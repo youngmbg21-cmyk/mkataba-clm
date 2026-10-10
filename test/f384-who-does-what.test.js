@@ -143,7 +143,7 @@ describe('f384 (1) Worth a look is the one light-red area; About this contract i
   });
   test('a reading that throws draws nothing — never the "found nothing" line, which would be a claim', () => {
     assert.ok(/try\{ who=docXrayWho\(c,rows,i\); \}/.test(PANEL), 'the reading is guarded');
-    assert.ok(/if\(who\) parts\.push/.test(PANEL), 'and a failed one draws no section at all');
+    assert.ok(/if\(who\)\{/.test(PANEL), 'and a failed one draws no section at all');
   });
   test('Who does what is drawn straight after Worth a look', () => {
     const a = PANEL.indexOf('class="doc-th-look'), b = PANEL.indexOf('docXrayWhoHtml(');
@@ -315,10 +315,29 @@ describe('f384 (4) the section the builder draws', () => {
     assert.ok(/2029/.test(html), 'with its day');
     assert.ok(/data-xr-ob="1"/.test(html), 'and the door');
   });
-  test('nothing found is one line in words', () => {
+  test('nothing found draws nothing — no box, no sentence (owner, 10 Oct 2026)', () => {
     const w = stage();
-    const html = w.win.docXrayWhoHtml ? w.win.docXrayWhoHtml(whoOf(w, CONTRACT(), /GOVERNING LAW/)) : '';
-    assert.ok(/doc-xr-q/.test(html) && !/data-xr-wd=/.test(html), 'a sentence, and no line');
+    if (!w.win.docXrayWhoHtml) return assert.fail('no builder');
+    const html = w.win.docXrayWhoHtml(whoOf(w, CONTRACT(), /GOVERNING LAW/));
+    assert.equal(html, '', 'nothing is drawn');
+  });
+  test('every line unclear draws nothing; one placed line keeps the whole box', () => {
+    const w = stage();
+    if (!w.win.docXrayWhoHtml) return assert.fail('no builder');
+    const line = (side, n) => ({ n, side, kind: 'must', cite: '3.4', text: 't' + n, say: 't' + n, ob: null });
+    const allUnclear = { lines: [line('unclear', 0)], total: 1, tally: { unclear: 1 } };
+    assert.equal(w.win.docXrayWhoHtml(allUnclear), '', 'the "Unclear 1" box is not drawn');
+    assert.equal(w.win.xrWhoSaysSomething(allUnclear), false);
+    const mixed = { lines: [line('you', 0), line('unclear', 1)], total: 2, tally: { you: 1, unclear: 1 } };
+    const html = w.win.docXrayWhoHtml(mixed);
+    assert.equal((html.match(/data-xr-wd=/g) || []).length, 2, 'both lines, the unclear one too');
+    assert.ok(/class="doc-xr-sec is-who"/.test(html));
+  });
+  test('the thread draws the rule only when the box or the unread line has something', () => {
+    const at = ROOM.indexOf('function docThreadBodyHtml(');
+    const body = ROOM.slice(at, ROOM.indexOf('\nfunction ', at + 10));
+    assert.match(body, /const whoHtml=docXrayWhoHtml\(who\)\+docThreadUnrunHtml\(c,\['oblig'\]\)/);
+    assert.match(body, /if\(whoHtml\) parts\.push\(`<div class="doc-th-rule"><\/div>\$\{whoHtml\}`\)/);
   });
   test('a cap is a fact: past XR_WD_MAX the rest are counted and said', () => {
     const w = stage();

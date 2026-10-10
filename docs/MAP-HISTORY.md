@@ -28321,3 +28321,53 @@ Every file was run at aa2b1f1 (before PR #201) and at unmodified main (eec0ebd).
 - PRODUCT FAULT, fixed in dlgSapFrame: a foot that lives in ONE COLUMN of a two-column dialog (the signed-copy filing window: paper left, checks and acts right) was stretched to the panel's edges, slid under the paper and was painted over — Hold and Send back could not be pressed (signed-copy-differs 6c, measured with elementFromPoint: the press landed on `.ho-copytext`). Now only a foot as wide as the body reaches the edges.
 - Re-pointed to the drawn look (dated comments in each file): sap-popups 9b (the step is a select of steps), five-images 5/5b/5d (no 3px colour line — a ruled `.dlg-h`; danger = `.dlg-mb-ic[data-tone=danger]` + a red confirm), dialog-balance 1d–1g, 2f, 3a (one `.sap-li` list incl. `#ns-cp`, Continue the one filled button, 16/18, Cancel last), one-door (check the row, press Continue — all 37 later steps green, so `nsGo` was never broken), amount-and-window (whose → what → due → recurring → amount | assign to; a dressed date's real input is hidden, so its visible face is measured), signing-route-timeline 3j/4a (the empty row carries the PARTY's initials badge and "Nobody named yet" — added on purpose by #201, so the place is empty of a person, not of a badge), overview-as-drawn 13a (the dropdown was never blank: the drawn form labels it with `<label for>`, read through `sel.labels`), window-drag (the frame lifts a short line under the title into the bar as its sub-line, so the test's wording became title bar; the wording is now a body paragraph).
 - Racing checks on slow runners, proven: round-two-comments G1 reproduced at 8x CPU throttling — the clause was measured mid smooth-scroll (html{scroll-behavior:smooth}) and the drag began in another clause; green with `behavior:'instant'`. their-edit-page 4a did not reproduce here even at 20x; GitHub's log shows 3d passed, 4a empty, 4b "lost and accepted" — consistent with the "Why this change?" question after 3d arriving after the 3 s wait, so the typing went into its box: the wait is now 10 s for that state, and a new stage check refuses to press unless the typing is in the clause's box. 4a is unchanged.
+
+## THE SIX-ITEM WORK ORDER, 10 OCT 2026 (owner: "yes and go")
+
+Six items agreed one at a time in the chat, nothing coded until "go".
+
+1. WHO DOES WHAT, HIDDEN WHEN IT SAYS NOTHING. The owner circled a clause
+   (3.4) whose box was one grey "Unclear 1" bar and the clause's own words
+   repeated, cut off. Picked "hide it when it says nothing", and "hide it too"
+   for the "HaTi found nothing…" sentence. `xrWhoSaysSomething`: at least one
+   line HaTi could place, else `docXrayWhoHtml` returns ''. The duties-not-read
+   line (with its Run) stays: it carries work. f384 (4) re-pointed.
+
+2. THE PAPER'S BUTTONS ON THE TAB LINE. "move the highlighted buttons on the
+   right one layer above so they can be on the same line as the tabs ...
+   delete the white bar they currently sit on", then "do this for the signing
+   page as well. And remove any banner words like in image 2 as the space
+   should only be there for the buttons" (image 2: "Signing copy · rebuilt
+   from their file with the agreed words"). Asked about the green "Executed
+   and locked" line — "drop it". REVERSES SAP batch 3's tool bar under the
+   tabs: `#ws-tabrow-end` moved into `.room-tabrow`, which wraps when narrow.
+   `wsLockLineHtml` and `scSourceLine` deleted; their keys inert.
+
+3. A FILTER LISTS ONLY WHAT WORKS. "If a choice in the filter can not be
+   clicked on and provide results then it should not be a choice in the
+   filter at all as it is confusing for a user." (Board picture menu,
+   "draws one split: set Then by to not split" on six greyed charts.) "hide
+   it too" for the greyed Trend switch. REVERSES the grey-with-its-reason
+   house rule for dropdown choices only: `hbRcShown` filters at the draw for
+   both menus; `hbRcOptions` keeps every reason (the readings and their tests
+   ask it). The choice in use is always kept.
+
+4. THE TRACK ON THE DOCUMENT TAB. "bring the highlighted feature to the
+   document page as well" (Home's Track). Home's layout code now takes a
+   host; `docTrackPaint` mounts `#doc-track` in `#doc-paper-col`'s grey.
+   Measured at 900px: the sheet runs to the column edge and a hairline lay
+   over the wording — so no margin, no Track. Press = `docThreadGoTo`.
+
+5. NEGOTIATIONS AND PARTIES UNDER CONTRACTS. "when you hover over the
+   contract tab in the nav panel, 2 sub-folders will appear the 1st one being
+   the negotiation folder and the second would be the customers folder but
+   rename customers to Parties." Asked about the amber count that would hide:
+   "yes" to a dot on Contracts. Shown also on keyboard focus (focus-visible,
+   not focus-within: a mouse press left focus on the door and held the group
+   open), on either page, and always where there is no hover. The dot is an
+   `<i>`: the icon rail's `.nav-item>span:not(.nav-rail)` rule hid a span.
+
+6. PROPOSED OBLIGATIONS AS A TABLE. The owner reviewed the "Proposed
+   Obligations List" artifact (Ruled · Table, the SAP way · Cards) and asked
+   for "building the SAP way". `.obd-tb`, bands, amber Not sure, two-line
+   names with the whole on the hover.

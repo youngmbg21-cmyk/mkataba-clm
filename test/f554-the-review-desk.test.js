@@ -79,7 +79,9 @@ test('f554 (2) the desk groups, counts, and adds exactly what was ticked', () =>
   const boxes = [...d.querySelectorAll('[data-ob-pick]')];
   assert.equal(boxes.length, 5);
   assert.ok(boxes.every(b => !b.checked), 'nothing arrives ticked');
-  assert.equal(d.querySelectorAll('.obd-grp').length, 4, 'dated · event · standing · not sure');
+  /* RE-POINTED 10 Oct 2026 (owner picked "Table", the SAP way): the kinds
+     are band rows of one table */
+  assert.equal(d.querySelectorAll('.obd-band').length, 4, 'dated · event · standing · not sure');
   assert.match(d.getElementById('obd-count').textContent, /5 to decide · 0 added · 0 skipped/);
   const g = d.querySelector('[data-obd-group="dated"]'); g.checked = true;
   g.dispatchEvent(new win.Event('change', { bubbles: true }));
@@ -163,4 +165,22 @@ test('f554 (7) every new word is in both books', () => {
     'obd_add', 'obd_edit', 'obd_skip', 'obd_both_line', 'obd_foot', 'obd_add_all_other', 'obd_add_ob', 'obd_back', 'obd_review_n_other',
     'obd_split_dated', 'obd_sorted_line', 'tri_t_oblig_review', 'tri_t_oblig_sorted'])
     assert.ok(inBoth(k), k);
+});
+
+test('f554 (T) the list is a table, the SAP way: columns named once, kinds as bands, Not sure in amber (owner, 10 Oct 2026)', () => {
+  const { win, c } = world();
+  win.openObligationsReview(c, FOUND);
+  const d = win.document;
+  const th = [...d.querySelectorAll('#obd-list .obd-tb thead th')].map(x => x.textContent.trim());
+  assert.deepEqual(th.slice(1), ['Obligation', 'Whose job', 'When'], 'three columns, named once');
+  assert.equal(d.querySelectorAll('#obd-list .obd-chip').length, 0, 'no chips');
+  const rows = [...d.querySelectorAll('#obd-list tbody tr.obd-row')];
+  assert.equal(rows.length, 5, 'one row per proposal');
+  rows.forEach(r => assert.equal(r.querySelectorAll('td').length, 4, 'tick · obligation · whose job · when'));
+  const bands = [...d.querySelectorAll('#obd-list tbody tr.obd-band')];
+  assert.ok(bands.every(b => b.querySelector('[data-obd-group]') && /to decide/.test(b.textContent)), 'each band carries its tick box and count');
+  const unsure = [...d.querySelectorAll('#obd-list .obd-c-who .obd-ns, #obd-list .obd-c-when .obd-ns')];
+  assert.ok(unsure.every(x => /Not sure/.test(x.textContent)), 'amber cells say Not sure');
+  const who = d.querySelector('#obd-list .obd-c-who .obd-clamp');
+  assert.equal(who.getAttribute('title'), who.textContent, 'the whole name is on the hover');
 });

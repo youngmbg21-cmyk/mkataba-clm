@@ -235,6 +235,10 @@ const check = (name, pass, detail) => {
         spine: !!el('doc-xr-spine'),
         head: open ? (open.querySelector('.doc-th-name') || {}).textContent : '',
         secs: open ? [...open.querySelectorAll('.doc-th-look, .doc-xr-sec.is-who')].map(e => e.className) : [],
+        look: !!(open && open.querySelector('.doc-th-look')),
+        whoBox: !!(open && open.querySelector('.doc-xr-sec.is-who')),
+        whoPlaced: !!(open && open.querySelector('.doc-xr-sec.is-who .doc-xr-who:not(.is-unclear)')),
+        whoNone: !!(open && open.querySelector('.doc-xr-sec.is-who .doc-xr-q') && !open.querySelector('.doc-xr-sec.is-who [data-xr-wd]')),
         bands: document.querySelectorAll('#doc-grid .hint,#doc-grid [class*="callout"]').length,
       };
     });
@@ -245,7 +249,11 @@ const check = (name, pass, detail) => {
        record carries no mark, so no row wears a tone, and no strand is drawn. */
     check('4e nothing marked, nothing toned, no strand', xr.toned === 0 && !xr.spine, xr.toned + ' toned');
     check('4g the open row names the clause it is about', !!(xr.head || '').trim(), xr.head);
-    check('4h it says what is known, borrowed — Worth a look and Who does what', xr.secs.length >= 2, JSON.stringify(xr.secs));
+    /* RE-POINTED 10 Oct 2026 (owner: "hide it when it says nothing"): Worth
+       a look is always said; Who does what is drawn only where it places at
+       least one line — never a box of Unclear, never "found nothing" */
+    check('4h it says what is known, borrowed — Worth a look, and Who does what only where it places a line',
+      xr.look && (!xr.whoBox || xr.whoPlaced) && !xr.whoNone, JSON.stringify(xr.secs));
     /* THE CARD IS A REAL SURFACE, asked live. */
     const cards = await page.evaluate(() => {
       const e = document.getElementById('doc-thread'); if (!e) return null;

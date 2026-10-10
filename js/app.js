@@ -177,6 +177,12 @@ function setActiveNav(view){
     // keep the active tab visible: open its collapsible section (never closes others)
     if(on){ const sec=b.closest('.nav-section'); if(sec && !sec.classList.contains('open')) openNavSection(sec,true); }
   });
+  /* a folded group stays open while the reader is on one of its pages, so
+     the menu always shows where they are (Contracts' Negotiations and
+     Parties, owner 10 Oct 2026) */
+  document.querySelectorAll('.nav-fold').forEach(f=>{
+    f.classList.toggle('is-open', !!f.querySelector(`.nav-sub .nav-item[data-view="${navFor}"]`));
+  });
 }
 function openNavSection(sec, open){
   sec.classList.toggle('open',open);
@@ -819,6 +825,14 @@ function updateSidebarCounts(){
     const tone=(Number(v)>0&&NAV_COUNT_TONE[k])||'';
     if(tone) el.setAttribute('data-tone',tone); else el.removeAttribute('data-tone');
   });
+  /* THE FOLDED GROUP'S DOT: while Negotiations is tucked under Contracts, an
+     amber dot on Contracts says a negotiation waits on the reader — the same
+     count the door carries (owner, 10 Oct 2026) */
+  document.querySelectorAll('[data-fold-dot]').forEach(dot=>{
+    const sub=dot.closest('.nav-fold');
+    const owed=!!(sub&&[...sub.querySelectorAll('.nav-sub [data-count]')].some(el=>el.getAttribute('data-tone')==='amber'&&el.closest('.nav-item')&&!el.closest('.nav-item').hidden));
+    dot.hidden=!owed;
+  });
   /* …and the Requests page's two tabs, on the same beat, off the same
      reading, so the door and the tabs it opens cannot disagree. */
   try{ if(typeof rqPaintKindCounts==='function') rqPaintKindCounts(); }catch(_){}
@@ -871,7 +885,7 @@ function updateSidebarCounts(){
 /* ============================================================ SHELL VIEW SWITCH */
 const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Insights',
   calendar:'Calendar', reports:'Reports', register:'Contracts', migration:'Import contracts',
-  pipeline:'Pipeline', advice:'Advice desk', intake:'Requests', obligations:'Obligations', approvals:'Approvals & signing', customers:'Customers', agents:"Copilot's work", brain:'the Brain', templates:'Templates', playbook:'Our standards',
+  pipeline:'Pipeline', advice:'Advice desk', intake:'Requests', obligations:'Obligations', approvals:'Approvals & signing', customers:'Parties', agents:"Copilot's work", brain:'the Brain', templates:'Templates', playbook:'Our standards',
   team:'Team & settings', directory:'People', workspace:'the contract workspace',
   redline:'Negotiations' };
 

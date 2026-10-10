@@ -1364,14 +1364,27 @@ function openObligationsReview(c, found, back){
     found.forEach((o, i) => { if (decision(i) === 'already'){ n.already++; return; } n.all++; n[obKindOf(o)]++; });
     return n;
   };
+  /* ---- THE LIST IS A TABLE, THE SAP WAY (owner picked "Table" by name,
+     10 Oct 2026, off the "Proposed obligations list" drawing) ----
+     Obligation · Whose job · When, each a column named once at the top and
+     pinned while the list scrolls; the kinds are grey bands across it with
+     their tick box and "N to decide"; what Copilot could not tell is "Not
+     sure" in amber, in the cell where the answer goes; a long name keeps to
+     two lines, the whole of it on the hover. The chips are gone. Nothing new
+     is said: the words, whose job, when, and Added or Skipped once decided. */
+  const whoseKey = i => { const o = found[i]; return whoseNow[i] === 'unsure' ? 'unsure' : (obWhoseOf(o) === 'both' && whoseNow[i] === 'us' ? 'both' : whoseNow[i]); };
+  const whenUnsure = o => obKindOf(o) === 'unsure' && !o.due && !(o.recurring && o.recurring !== 'none');
   const rowHtml = i => {
     const o = found[i], d = decision(i);
-    const state = d === 'added' ? `<span class="obd-chip is-added">${_obEsc(i18t('obd_added'))}</span>` : d === 'skipped' ? `<span class="obd-chip is-skipped">${_obEsc(i18t('obd_skipped'))}</span>` : '';
-    return `<div class="obd-row${i === sel ? ' is-sel' : ''}${d ? ' is-done' : ''}" data-obd-sel="${i}">
-      ${d === 'already' ? '<span class="obd-tick-gap"></span>' : `<input type="checkbox" data-ob-pick="${i}" class="obd-tick" aria-label="${_obEsc(o.desc || '')}"${d ? ' disabled' : ''}/>`}
-      <span class="obd-rtx"><span class="obd-desc">${_obEsc(o.desc || '')}</span>
-      <span class="obd-chips"><span class="obd-chip">${_obEsc(obWhoseWord(c, whoseNow[i] === 'unsure' ? 'unsure' : (obWhoseOf(o) === 'both' && whoseNow[i] === 'us' ? 'both' : whoseNow[i])))}</span><span class="obd-chip">${_obEsc(obWhenChip(o))}</span>${state}</span></span></div>`;
+    const state = d === 'added' ? `<span class="obd-st is-added">${_obEsc(i18t('obd_added'))}</span>` : d === 'skipped' ? `<span class="obd-st is-skipped">${_obEsc(i18t('obd_skipped'))}</span>` : '';
+    const wk = whoseKey(i), who = obWhoseWord(c, wk);
+    return `<tr class="obd-row${i === sel ? ' is-sel' : ''}${d ? ' is-done' : ''}${d === 'already' ? ' is-already' : ''}" data-obd-sel="${i}">
+      <td class="obd-c-tk">${d === 'already' ? '<span class="obd-tick-gap"></span>' : `<input type="checkbox" data-ob-pick="${i}" class="obd-tick" aria-label="${_obEsc(o.desc || '')}"${d ? ' disabled' : ''}/>`}</td>
+      <td class="obd-c-what"><span class="obd-desc">${_obEsc(o.desc || '')}</span>${state}</td>
+      <td class="obd-c-who"><span class="obd-clamp${wk === 'unsure' ? ' obd-ns' : ''}" title="${_obEsc(who)}">${_obEsc(who)}</span></td>
+      <td class="obd-c-when"><span class="${whenUnsure(o) ? 'obd-ns' : ''}">${_obEsc(obWhenChip(o))}</span></td></tr>`;
   };
+  const bandHtml = (k, tick, word, said) => `<tr class="obd-band" data-obd-band="${k}"><td class="obd-c-tk">${tick}</td><td colspan="3"><span class="obd-band-w">${_obEsc(word)}</span><span class="obd-gn">${_obEsc(said)}</span></td></tr>`;
   const listHtml = () => {
     const shown = i => filter === 'all' ? decision(i) !== 'already' : filter === 'already' ? decision(i) === 'already' : (decision(i) !== 'already' && obKindOf(found[i]) === filter);
     let out = '';
@@ -1379,11 +1392,13 @@ function openObligationsReview(c, found, back){
       const ids = found.map((_, i) => i).filter(i => shown(i) && decision(i) !== 'already' && obKindOf(found[i]) === k);
       if (!ids.length) return;
       const left = ids.filter(i => !decision(i)).length;
-      out += `<div class="obd-grp"><label class="obd-gh"><input type="checkbox" data-obd-group="${k}" aria-label="${_obEsc(i18t(w))}"${left ? '' : ' disabled'}/><span>${_obEsc(i18t(w))}</span><span class="obd-gn">${_obEsc(i18tn('obd_to_decide', left, { n: left }))}</span></label>${ids.map(rowHtml).join('')}</div>`;
+      out += bandHtml(k, `<input type="checkbox" class="obd-tick" data-obd-group="${k}" aria-label="${_obEsc(i18t(w))}"${left ? '' : ' disabled'}/>`, i18t(w), i18tn('obd_to_decide', left, { n: left }))
+        + ids.map(rowHtml).join('');
     });
     const al = found.map((_, i) => i).filter(i => decision(i) === 'already' && (filter === 'all' || filter === 'already'));
-    if (al.length) out += `<div class="obd-grp is-already"><div class="obd-gh"><span class="obd-tick-gap"></span><span>${_obEsc(i18t('obd_g_already'))}</span><span class="obd-gn">${_obEsc(i18t('obd_nothing_to_decide'))}</span></div>${al.map(rowHtml).join('')}</div>`;
-    return out || `<p class="obd-empty">${_obEsc(i18t('obd_none_here'))}</p>`;
+    if (al.length) out += bandHtml('already', '<span class="obd-tick-gap"></span>', i18t('obd_g_already'), i18t('obd_nothing_to_decide')) + al.map(rowHtml).join('');
+    if (!out) return `<p class="obd-empty">${_obEsc(i18t('obd_none_here'))}</p>`;
+    return `<table class="obd-tb"><thead><tr><th class="obd-c-tk"><span class="sr-only">${_obEsc(i18t('obd_pick_col'))}</span></th><th class="obd-c-what">${_obEsc(i18t('ob_col_what'))}</th><th class="obd-c-who">${_obEsc(i18t('obd_whose'))}</th><th class="obd-c-when">${_obEsc(i18t('obd_col_when'))}</th></tr></thead><tbody>${out}</tbody></table>`;
   };
   const itemHtml = () => {
     const o = found[sel]; if (!o) return '';

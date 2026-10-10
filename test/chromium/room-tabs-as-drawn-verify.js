@@ -84,12 +84,19 @@ const LIVE = { ...H.fixtureContract('MK-R2', 'Raw Milk Collection', 'Nandi Dairy
     const doc = await page.evaluate(() => {
       const vis = el => !!el && el.getClientRects().length > 0 && getComputedStyle(el).display !== 'none';
       return { facts: vis(document.getElementById('ws-facts')),
-        row: vis(document.querySelector('.room-toolrow')),
-        lock: ((document.getElementById('ws-lockline') || {}).textContent || '').trim(),
+        row: !!document.querySelector('.room-toolrow'),
+        lock: !!document.getElementById('ws-lockline'),
+        slotInTabs: !!document.querySelector('.room-tabrow > #ws-tabrow-end'),
+        sameLine: (() => { const t = document.querySelector('#ws-tabs .room-tab.on, #ws-tabs [data-ws-tab].on'), b = document.getElementById('ws-to-nego');
+          if (!t || !b) return false; const a = t.getBoundingClientRect(), r = b.getBoundingClientRect();
+          return Math.abs((a.top + a.bottom) / 2 - (r.top + r.bottom) / 2) < 12; })(),
         banner: /This document is executed and locked/.test(document.getElementById('doc-scroll') ? document.getElementById('doc-scroll').textContent : '') };
     });
     ok('2a the facts strip steps aside on Document', !doc.facts);
-    ok('2b the tools have their own row, the lock said on its left', doc.row && /locked/i.test(doc.lock), doc.lock);
+    /* RE-POINTED 10 Oct 2026 (owner: the buttons go up onto the tab line and
+       the white bar under the tabs is deleted, its lock line dropped) */
+    ok('2b no tool bar under the tabs, and no lock line', !doc.row && !doc.lock);
+    ok('2b2 the paper\'s buttons stand on the tab line', doc.slotInTabs && doc.sameLine);
     ok('2c no dark banner over the paper', !doc.banner);
 
     console.log('\n3 · Signing is one panel');

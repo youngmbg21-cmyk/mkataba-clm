@@ -181,7 +181,7 @@ const KEYS = `(() => {
     ok('3-stage a negotiation really is live', !!cid, cid || 'none');
     await page.evaluate(() => setView('dashboard'));
     await page.waitForTimeout(700);
-    await page.click('.nav-item[data-view="redline"]');
+    await page.hover('.nav-item[data-view="register"]'); await page.click('.nav-item[data-view="redline"]');
     await page.waitForTimeout(1600);
     await page.screenshot({ path: path.join(OUT, '03-negotiations.png') });
     const n = await page.evaluate(FOOT);

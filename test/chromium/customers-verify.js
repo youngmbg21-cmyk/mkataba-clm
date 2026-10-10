@@ -74,12 +74,16 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     await page.evaluate(() => { if (typeof updateSidebarCounts === 'function') updateSidebarCounts(); });
     const rail = await page.evaluate(() => {
       const doors = [...document.querySelectorAll('.nav-item[data-view]')].map(b => b.getAttribute('data-view'));
-      return { doors, n: (document.querySelector('[data-count="customers"]') || {}).textContent || '', want: (typeof cuDoorCount === 'function') ? cuDoorCount() : null, total: state.contracts.length };
+      return { doors, folded: !!document.querySelector('.nav-fold[data-nav-fold="register"] .nav-sub [data-view="redline"] + [data-view="customers"]'),
+        n: (document.querySelector('[data-count="customers"]') || {}).textContent || '', want: (typeof cuDoorCount === 'function') ? cuDoorCount() : null, total: state.contracts.length };
     });
-    ok('1a the rail reads Home · Customers · Contracts · Negotiations', rail.doors.slice(0, 4).join(' ') === 'dashboard customers register redline', rail.doors.join(' › '));
+    /* RE-POINTED 10 Oct 2026 (owner: Negotiations and Customers fold under
+       Contracts, shown on hover, and Customers is named Parties) */
+    ok('1a the rail reads Home · Contracts, with Negotiations · Parties folded under it', rail.doors.slice(0, 4).join(' ') === 'dashboard register redline customers' && rail.folded, rail.doors.join(' › '));
     ok('1b its number is the customers the page lists (3: one name in two cases is one customer)', rail.n.trim() === '3', JSON.stringify(rail));
 
     console.log('\n2 · the Customers page');
+    await page.hover('.nav-item[data-view="register"]');
     const opened = await page.click('.nav-item[data-view="customers"]').then(() => true, () => false);
     await page.waitForFunction(() => !!document.querySelector('[data-cu-screen="list"]'), null, { timeout: 8000 }).catch(() => {});
     const readList = () => page.evaluate(() => [...document.querySelectorAll('tr[data-cu-cust]')].map(tr => ({
@@ -107,7 +111,7 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     const pressOpen = async label => page.evaluate(label => {
       const b = [...document.querySelectorAll('#ins-panel button')].find(x => x.textContent.trim().startsWith(label));
       if (b) b.click(); return !!b; }, label);
-    ok('3a the panel carries Open customer', await pressOpen('Open customer'));
+    ok('3a the panel carries Open party', await pressOpen('Open party'));
     await page.waitForFunction(() => state.view === 'register' && !!document.querySelector('#reg-only-chip'), null, { timeout: 8000 }).catch(() => {});
     const rowsNow = () => page.evaluate(() => ({ view: state.view,
       chip: ((document.querySelector('#reg-only-chip') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
@@ -127,7 +131,7 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
 
     console.log('\n4 · Open on Explorer: that customer, Active | Expired');
     const toExplorer = async key => {
-      await page.click('.nav-item[data-view="customers"]');
+      await page.hover('.nav-item[data-view="register"]'); await page.click('.nav-item[data-view="customers"]');
       await page.waitForFunction(() => !!document.querySelector('[data-cu-screen="list"]'), null, { timeout: 8000 });
       await page.evaluate(() => { const s = document.querySelector('select[data-cu-f="owner"]'); if (s && s.value !== 'all'){ s.value = 'all'; s.dispatchEvent(new Event('change', { bubbles: true })); } });
       await page.waitForFunction(k => !!document.querySelector(`tr[data-cu-cust="${k}"]`), key, { timeout: 4000 });
@@ -153,7 +157,7 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     ok('4e an all-active customer shows one group', ck.groupBy === 'custom' && Object.keys(ck.counts).join() === 'Active' && ck.counts.Active === 2, JSON.stringify(ck.counts));
 
     console.log('\n5 · a refresh keeps the Customers page\'s filters');
-    await page.click('.nav-item[data-view="customers"]');
+    await page.hover('.nav-item[data-view="register"]'); await page.click('.nav-item[data-view="customers"]');
     await page.waitForFunction(() => !!document.querySelector('[data-cu-screen="list"]'), null, { timeout: 8000 });
     await page.evaluate(id => { const s = document.querySelector('select[data-cu-f="stream"]'); s.value = id; s.dispatchEvent(new Event('change', { bubbles: true })); }, H.FOLDER_A);
     await page.waitForTimeout(400);

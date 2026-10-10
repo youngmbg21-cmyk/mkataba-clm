@@ -3339,32 +3339,16 @@ function scPageGo(dir){
   pagesGoTo(sheet,sc,at+dir);
   scPaintPage();
 }
-/* Where the words on the signing copy came from, said once in the control
-   row (never a band): the round they were agreed in, as drafted, their paper
-   as it came — or, once signed, when. */
-function scSourceLine(c){
-  if(!c) return '';
-  if(docSealedCopy(c)){
-    const d=window.contractSignedLabel?contractSignedLabel(c):'';
-    return d?i18t('sc_src_signed',{d}):'';
-  }
-  if(isUpload(c)){
-    if(window.uploadWordingEdited&&uploadWordingEdited(c)) return i18t('sc_src_rebuilt');
-    return i18t('sc_src_theirs');
-  }
-  const rounds=(c.negotiation&&Array.isArray(c.negotiation.rounds))?c.negotiation.rounds.length:0;
-  if(rounds>0) return i18t('sc_src_round',{n:rounds});
-  return i18t('sc_src_draft');
-}
+/* THE ROW HOLDS BUTTONS ONLY (owner, 10 Oct 2026: "remove any banner words
+   ... the space should only be there for the buttons"): the "Signing copy ·
+   the words agreed in round N" label is gone (sc_signing_copy, sc_signed_copy,
+   sc_src_* inert in both books). */
 function scControlsHtml(c){
-  const src=scSourceLine(c);
-  const label=docSealedCopy(c)?i18t('sc_signed_copy'):i18t('sc_signing_copy');
-  const lab=`<span class="sc-label">${icon('lock','w-3.5 h-3.5')}<b>${esc(label)}</b>${src?`<span class="sc-src">· ${esc(src)}</span>`:''}</span>`;
   /* Their file as it came is THEIR pages, in the browser's own viewer with its
-     own size control; our only page is the one they sign on. */
+     own size control; our only page is the one they sign on — no buttons. */
   const t=signCopyTheirs(c);
-  if(t&&t.kind==='asItCame') return lab;
-  return `${lab}
+  if(t&&t.kind==='asItCame') return '';
+  return `
     <span class="sc-step" role="group" aria-label="${esc(i18t('sc_pages'))}">
       <button type="button" id="sc-page-prev" data-sc-page="-1" title="${esc(i18t('sc_page_prev'))}" aria-label="${esc(i18t('sc_page_prev'))}"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg></button>
       <span id="sc-page-out" aria-live="polite">${esc(window.pagesNumberLabel?pagesNumberLabel(1,1):'1')}</span>
@@ -5055,17 +5039,10 @@ function wsPaintRoundNeeds(c){
     if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
   });
 }
-/* The paper's lock state, said once on the tool bar's left (SAP batch 3).
-   Only a sealed agreement has one to say. */
-function wsLockLineHtml(c){
-  if(!c||c.status!=='Signed') return '';
-  return `${icon('lock','w-3.5 h-3.5')}<span>${esc(i18t(isUpload(c)?'ct_lockline_file':'ct_lockline'))}</span>`;
-}
 function wsPaintTabRowEnd(c){
   const end=document.getElementById('ws-tabrow-end');
   if(!end) return;
   end.innerHTML=wsTabRowEndHtml(c);
-  const ll=document.getElementById('ws-lockline'); if(ll) ll.innerHTML=wsLockLineHtml(c);
   if(window.rlWireTypeStep) rlWireTypeStep(end);
   if(end.querySelector('[data-sc-zoom]')) scWireControls(end);
   end.querySelector('#ws-to-nego')?.addEventListener('click',()=>{
@@ -11051,7 +11028,6 @@ function renderWorkspace(){
          row puts its underline in the middle of the strip. -->
     <div class="room-tabrow" style="display:flex;align-items:center;gap:14px;flex:none;border-bottom:1px solid var(--color-divider)">
       ${roomTabsHtml(c,_wsTab)}
-      <span style="flex:1"></span>
       ${''/* THE ROW'S RIGHT-HAND END IS ITS OWN SLOT, and it is repainted every
              time the tab changes — see applyWsTabs. Built inline here, it was
              drawn once per workspace render from whatever _wsTab happened to be
@@ -11063,18 +11039,18 @@ function renderWorkspace(){
              contract had shown both a minute earlier. That is the exact fault
              this file already records for the action bar one function above;
              the lesson was applied there and not here. */}
-    </div>
-    ${''/* ---- THE PAPER'S TOOLS HAVE THEIR OWN BAR (SAP benchmark, batch 3,
-           owner 9 Oct 2026: "Build exactly the drawings of SAP way") ----
-           On Document and Signing the drawing puts the copy, page, zoom and
-           Focus controls on a thin row under the tabs, with the paper's lock
-           state said on its left — which replaces the dark banner that sat
-           over the paper. The slot keeps its id and its painter
-           (wsPaintTabRowEnd); the row folds away wherever the slot is empty. */}
-    <div class="room-toolrow">
-      <span id="ws-lockline" class="room-lockline">${wsLockLineHtml(c)}</span>
-      <span style="flex:1"></span>
-      <div id="ws-tabrow-end" style="display:flex;align-items:center;gap:14px;flex:none">${wsTabRowEndHtml(c)}</div>
+      ${''/* ---- THE PAPER'S BUTTONS STAND ON THE TAB LINE (owner, 10 Oct 2026:
+             "move the highlighted buttons one layer above so they can be on the
+             same line as the tabs ... delete the white bar they currently sit
+             on", for Document and Signing alike, and "remove any banner words
+             ... the space should only be there for the buttons") ----
+             Reverses SAP batch 3's own tool bar under the tabs. The slot keeps
+             its id and its painter (wsPaintTabRowEnd); it stands at the row's
+             right end and, where the row is too narrow for both, takes a line
+             of its own under the tabs (the row wraps) — never over them. The
+             lock line and the signing copy's "which copy, from where" words
+             are gone with the bar (ct_lockline*, sc_src_* inert). */}
+      <div id="ws-tabrow-end" class="room-tabrow-end">${wsTabRowEndHtml(c)}</div>
     </div>
 
     </div><!-- /.room-band — the white band ends at the tab row's own rule; the
@@ -11147,8 +11123,9 @@ function renderWorkspace(){
                  The two states that are NOT about the reading rule — an
                  executed document, and a received one — still say so here,
                  because those are facts about the paper itself. */}
-          ${''/* The executed-and-locked banner LEFT the paper (SAP batch 3):
-                 the same fact is the tool bar's lock line (wsLockLineHtml). */}
+          ${''/* The executed-and-locked banner LEFT the paper (SAP batch 3),
+                 and its lock line left with the tool bar (owner, 10 Oct 2026):
+                 the status in the head says Signed. */}
           ${''/* ---- AND THE RECEIVED-DOCUMENT STRIP IS GONE (owner-asked
                  26 Aug 2026, ringing it: delete it and put nothing in its
                  place) ----
@@ -13062,11 +13039,20 @@ function xrWhoTracked(o){
   return bits.join(' · ');
 }
 /* THE BUILDER DRAWS THE READING AND COMPUTES NOTHING. */
+/* ---- A BOX THAT SAYS NOTHING IS NOT DRAWN (owner, 10 Oct 2026: "hide it
+   when it says nothing", and the "found nothing" sentence too) ----
+   Nothing found, or every line "Unclear", tells the reader no more than the
+   clause above it does: the section is not drawn at all. A clause with at
+   least one line HaTi could place keeps its box whole, unclear lines and all.
+   xr_wd_none stays in both books, inert. */
+function xrWhoSaysSomething(who){
+  const lines = (who && who.lines) || [];
+  return lines.some(l => l && l.side && l.side !== 'unclear');
+}
 function docXrayWhoHtml(who){
   const lines = (who && who.lines) || [];
+  if(!xrWhoSaysSomething(who)) return '';
   const head = i18t('xr_sec_who') + (lines.length ? ' · ' + lines.length : '');
-  if(!lines.length)
-    return docXraySecHtml(head, `<span class="doc-xr-q">${esc(i18t('xr_wd_none'))}</span>`, 'is-who');
   const t = who.tally || {};
   const sum = XR_WD_SIDES.reduce((a, s) => a + (t[s] || 0), 0) || 1;
   const bar = XR_WD_SIDES.filter(s => t[s]).map(s =>
@@ -13684,7 +13670,12 @@ function docThreadBodyHtml(c,rows,i,plain,sheet){
   let who=null;
   try{ who=docXrayWho(c,rows,i); }
   catch(e){ who=null; try{ console.warn('Thread · who does what', e); }catch(_){} }
-  if(who) parts.push(`<div class="doc-th-rule"></div>${docXrayWhoHtml(who)}${docThreadUnrunHtml(c,['oblig'])}`);
+  /* a box that says nothing is not drawn (xrWhoSaysSomething); the line that
+     says the duties were never read stays — it carries its own Run */
+  if(who){
+    const whoHtml=docXrayWhoHtml(who)+docThreadUnrunHtml(c,['oblig']);
+    if(whoHtml) parts.push(`<div class="doc-th-rule"></div>${whoHtml}`);
+  }
   /* WHAT HAS BEEN ARGUED, where the paper carries clause ids. */
   let rungs=[];
   const cid=docXrayClauseId(x.row);
@@ -13797,6 +13788,107 @@ function docThreadFlatSay(c,on,rows){
   });
   return flat;
 }
+/* ---- THE TRACK ON THE DOCUMENT TAB (owner, 10 Oct 2026: "bring the
+   highlighted feature to the document page as well", pointing at Home's
+   Track) ----
+   Home's Track, the same rail and the same code (igTrackHtml, igTrackSize,
+   igTrackPlace, igTrackFollow, igStrandTip — handed this paper as their
+   host), standing in the grey margin left of the working sheet, at the
+   margin's width: full, slim or a hairline of dots. It floats over the
+   column's own grey and is never in the flow, so the paper does not move by
+   a pixel. A press takes the paper to the clause and opens it in the
+   Clauses list (docThreadGoTo, the list's own glide). The working copy only:
+   the signing copy and the Signing tab keep their own look. Nothing here
+   writes or spends. */
+const _docTrack = { rows:[], data:[], c:null };
+function docTrackHost(){
+  return { sp:document.getElementById('doc-track'), sc:document.getElementById('doc-scroll'),
+    rows:_docTrack.rows, data:_docTrack.data, wrap:document.getElementById('doc-paper-col'), tipId:'doc-track-tip' };
+}
+function docTrackPaint(c, rowsIn){
+  const col=document.getElementById('doc-paper-col'), canvas=document.getElementById('doc-canvas');
+  let sp=document.getElementById('doc-track');
+  const can=!!(c&&col&&canvas&&_wsTab==='docs'&&docCopyOf(c)!=='sign'&&!PORTAL_MODE
+    &&typeof window.igTrackHtml==='function'&&typeof window.igTrackSize==='function');
+  let rows=[];
+  if(can){ if(Array.isArray(rowsIn)) rows=rowsIn; else { try{ rows=docXrayRows(c,canvas)||[]; }catch(_){ rows=[]; } } }
+  const marked=docXraySpineRows(rows);
+  if(!marked.length){
+    if(sp){ sp.hidden=true; sp.innerHTML=''; }
+    _docTrack.rows=[]; _docTrack.data=[]; _docTrack.c=null;
+    if(window.igStrandTip) igStrandTip(null, docTrackHost());
+    return;
+  }
+  if(!sp||sp.parentElement!==col){
+    if(sp) sp.remove();
+    sp=document.createElement('div'); sp.id='doc-track';
+    sp.className='doc-xr-spine ig-spine is-track doc-track';
+    sp.setAttribute('role','group'); sp.setAttribute('aria-label',i18t('xr_spine_label'));
+    col.insertBefore(sp, col.firstChild);
+  }
+  /* NO ROOM, NO TRACK: where the sheet runs to the column's edge (a narrow
+     window) there is no grey margin to stand in, and the Track never lies
+     over the wording */
+  const room=docTrackRoom(col, canvas);
+  if(room<IG_TRACK_WIDTHS.hair+4){
+    sp.hidden=true; sp.innerHTML=''; _docTrack.rows=[]; _docTrack.data=[]; _docTrack.c=c;
+    docTrackWire(sp, col, canvas); return;
+  }
+  sp.hidden=false;
+  const size=igTrackSize(sp, canvas);
+  sp.classList.toggle('is-slim', size==='slim');
+  sp.classList.toggle('is-hair', size==='hair');
+  sp.dataset.trackSize=size;
+  sp.style.width=IG_TRACK_WIDTHS[size]+'px';
+  sp.innerHTML=igTrackHtml(rows);
+  _docTrack.rows=rows.map(x=>x.el); _docTrack.data=rows; _docTrack.c=c;
+  igTrackPlace(docTrackHost()); igTrackFollow(docTrackHost());
+  docTrackWire(sp, col, canvas);
+}
+function docTrackRoom(col, canvas){
+  try{ const sheet=canvas.closest('.pg-sheet')||canvas;
+    return sheet.getBoundingClientRect().left-col.getBoundingClientRect().left; }catch(_){ return 0; }
+}
+function docTrackWire(sp, col, canvas){
+  const sc=document.getElementById('doc-scroll');
+  if(sc&&!sc.dataset.docTrackBound){ sc.dataset.docTrackBound='1'; let raf=0;
+    sc.addEventListener('scroll',()=>{ if(!_docTrack.c) return; igStrandTip(null, docTrackHost());
+      if(raf) return; raf=requestAnimationFrame(()=>{ raf=0; igTrackFollow(docTrackHost()); }); },{passive:true}); }
+  /* the margin and the paper's length move with the window, the drawer and
+     the text size: laid out again, and the size chosen again, when they do */
+  if(typeof ResizeObserver==='function'){
+    const again=()=>{ if(again._raf) return; again._raf=requestAnimationFrame(()=>{ again._raf=0;
+      const s2=document.getElementById('doc-track'), cv=document.getElementById('doc-canvas'), c2=_docTrack.c;
+      if(!s2||!c2||!cv) return;
+      /* hidden for want of room, or a size that no longer fits: drawn again */
+      if(s2.hidden||igTrackSize(s2, cv)!==s2.dataset.trackSize) docTrackPaint(c2); else igTrackPlace(docTrackHost()); }); };
+    if(!col.dataset.docTrackWatch){ col.dataset.docTrackWatch='1'; new ResizeObserver(again).observe(col); }
+    if(!canvas.dataset.docTrackWatch){ canvas.dataset.docTrackWatch='1'; new ResizeObserver(again).observe(canvas); }
+  }
+  if(sp.dataset.docTrackBound) return;
+  sp.dataset.docTrackBound='1';
+  sp.addEventListener('click',e=>{
+    const b=e.target.closest('[data-xr-seg]'); if(!b) return;
+    const i=Number(b.getAttribute('data-xr-seg')), c=_docTrack.c; if(!c) return;
+    igStrandTip(null, docTrackHost());
+    sp.querySelectorAll('.doc-xr-seg.is-on').forEach(x=>{ x.classList.remove('is-on'); x.setAttribute('aria-pressed','false'); });
+    b.classList.add('is-on'); b.setAttribute('aria-pressed','true');
+    /* the Clauses list opens on it (where a drawer covers Form & links, the
+       drawer opens first) and the paper glides there — the list's own press */
+    if(docReadFits()){
+      if(!docThreadDrawerShowing()) docThreadDrawerSet(c, true, { from:'track' });
+      docThreadGoTo(docThreadCur(c), i);
+    } else {
+      const el=_docTrack.rows[i], s2=document.getElementById('doc-scroll');
+      if(el&&s2){ const r=el.getBoundingClientRect(), sr=s2.getBoundingClientRect(); s2.scrollTo({ top:Math.max(0,s2.scrollTop+(r.top-sr.top)-16), behavior:'smooth' }); }
+    }
+  });
+  const tipFor=e=>{ const b=e.target&&e.target.closest&&e.target.closest('[data-xr-seg]'); igStrandTip(b||null, docTrackHost()); };
+  sp.addEventListener('mouseover',tipFor);
+  sp.addEventListener('focusin',tipFor);
+  sp.addEventListener('mouseleave',()=>igStrandTip(null, docTrackHost()));
+  sp.addEventListener('focusout',()=>igStrandTip(null, docTrackHost()));
+}
 function docThreadPaint(c){
   /* WHICH HOME this paint is for; a move between them starts the open row,
      the walk and the list's place afresh — they belonged to the other paper. */
@@ -13808,6 +13900,8 @@ function docThreadPaint(c){
   const right=home?null:document.getElementById('doc-right');
   const on=docThreadOn();
   const rows=on?docXrayRows(c,thEl('canvas')):[];
+  /* the Track in the paper's left margin (docTrackPaint) reads the same rows */
+  if(!home) docTrackPaint(c, on?rows:null);
   const has=home?false:(on?docPanelHas(c):true);
   const up=on&&(home||docThreadShowsClauses(c));
   _docThreadUp=up;
@@ -17135,7 +17229,7 @@ Object.assign(window,{docReadLongSplit,DOC_READ_LONG_WORDS,DOC_READ_RUN_MIN,docT
      through window that is not published is silence. */
   docSealedCopy,docCopyOf,docSignBodyHtml,docSignPaperParts,docSheetHtml,docRepaintSheet,docPaginate,docPaperAnswersHtml,docAnswersWire,
   signCopySheetHtml,signCopyWatch,signCopyFit,signCopyTheirs,signCopyRunning,SC_ZOOMS,SC_ZOOM_KEY,scZoomPref,scZoomSet,scZoomFit,scZoomNow,
-  scApplyZoom,scZoomStep,scPaintPage,scPageGo,scSourceLine,scControlsHtml,scWireControls,
+  scApplyZoom,scZoomStep,scPaintPage,scPageGo,scControlsHtml,scWireControls,
   wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,obTileOpensReview,paintKtTriage,ktTriageReread,triageRepaintSurfaces,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,templateClauseTitles,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,KT_FIELD_HOME,KT_FOCUS_TRIES,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,docReadMark,DOC_DUTY_HEAD,DOC_DUTY_VERB,DOC_DUTY_STATE,DOC_DUTY_RE,DOC_DUTY_KEY,docDutyOn,docDutySet,docDutyMark,docDutyCount,DOC_DUTY_PAPER_MAX,DOC_DUTY_PAPER_CLASS,DOC_DUTY_PAPER_SKIP,docDutyPaperClear,docDutyPaperPaint,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfNumCapsHead,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,sealPrepOf,sealPrepStamp,sealOnServer,distributionLine,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
@@ -17180,7 +17274,7 @@ Object.assign(window,{docReadLongSplit,DOC_READ_LONG_WORDS,DOC_READ_RUN_MIN,docT
   docThreadCannotOf,docThreadCannotMark,docThreadCannotWhy,docReadWhyOf,docThreadIsSec,DOC_THREAD_TONE_KEYS,
   DOC_XRAY_QUOTE_MIN,docXrayPlace,docXrayMarks,docXrayTone,docXrayClauseId,docXrayRows,
   riskViewOpen,XR_GRADES,XR_SEV_GRADE,docXrayBriefWatch,docXrayBriefOdd,docXrayRowText,docXrayWide,docXrayMarkHtml,
-  XR_WD_MAX,XR_WD_WORDS,XR_WD_SIDES,XR_WD_CHIPS,XR_WD_BAL,XR_MODAL_RE,XR_RIGHT_RE,XR_LIMIT_RE,XR_BOTH_RE,xrSentences,xrClauseBlocks,xrPartyNames,xrSideByName,xrActOf,xrPlaceObligations,docXrayWho,docXrayWhoHtml,xrWhoChip,xrWhoTracked,
+  XR_WD_MAX,XR_WD_WORDS,XR_WD_SIDES,XR_WD_CHIPS,XR_WD_BAL,XR_MODAL_RE,XR_RIGHT_RE,XR_LIMIT_RE,XR_BOTH_RE,xrSentences,xrClauseBlocks,xrPartyNames,xrSideByName,xrActOf,xrPlaceObligations,docXrayWho,docXrayWhoHtml,xrWhoSaysSomething,docTrackPaint,docTrackHost,xrWhoChip,xrWhoTracked,
   docXrayLabel,docXraySpineHtml,docXraySpineRows,docXraySegH,XR_SEG_MIN,XR_SEG_MAX,docXraySecHtml,
   docReadSheet,docReadClauses,docReadSig,docReadAnchors,docReadPaint,
   docReadRun});

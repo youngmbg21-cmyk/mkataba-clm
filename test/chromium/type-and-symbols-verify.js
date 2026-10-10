@@ -213,6 +213,9 @@ const SHELL_ICONS = [
 
     let painted = 0, unpainted = [];
     for (const [sel, sym] of SHELL_ICONS) {
+      /* Negotiations is folded under Contracts and shown on hover (owner,
+         10 Oct 2026): the pointer rests on Contracts so its icon is painted */
+      if (sel === '[data-view="redline"]') await page.hover('.nav-item[data-view="register"]').catch(() => {});
       const r = await page.evaluate(([sel, sym]) => {
         const host = document.querySelector(sel);
         if (!host) return { err: 'no such element' };

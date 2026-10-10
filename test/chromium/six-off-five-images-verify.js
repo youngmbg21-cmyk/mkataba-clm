@@ -84,7 +84,7 @@ const ok = (name, good, detail) => {
     });
     await page.evaluate(() => setView('dashboard'));
     await page.waitForTimeout(600);
-    await page.click('.nav-item[data-view="redline"]');
+    await page.hover('.nav-item[data-view="register"]'); await page.click('.nav-item[data-view="redline"]');
     await page.waitForTimeout(1500);
     const n1 = await heads();
     ok('1c the Negotiations table draws no value stream column either',

@@ -1982,6 +1982,18 @@
      SHELL — top header / sidebar / command bar / context panel
      ============================================================ */
   .nav-item{position:relative;display:flex;align-items:center;gap:11px;width:100%;border:1px solid transparent;background:none;color:var(--color-neutral-600);font:inherit;font-family:var(--font-body);font-size:var(--t-body);font-weight:var(--w-body);padding:9px var(--s-3);cursor:pointer;text-align:left;border-radius:var(--radius);}
+  /* CONTRACTS FOLDS NEGOTIATIONS AND PARTIES (owner, 10 Oct 2026): shown on
+     hover, KEYBOARD focus (:focus-visible — a mouse press leaves focus on the
+     door it pressed, which must not hold the group open), or while on either
+     page; always where there is no hover. Indented under Contracts; the rail of icons keeps them flush. */
+  .nav-fold > .nav-sub{display:none}
+  .nav-fold:hover > .nav-sub,.nav-fold:has(:focus-visible) > .nav-sub,.nav-fold.is-open > .nav-sub{display:block}
+  .nav-sub > .nav-item{padding-left:calc(var(--s-3) + 18px)}
+  #app-shell.rail aside .nav-sub > .nav-item{padding-left:0}
+  .nav-fold-dot{flex:none;width:7px;height:7px;border-radius:50%;background:var(--st-amber-dot)}
+  .nav-fold-dot[hidden],.nav-fold:hover .nav-fold-dot,.nav-fold:has(:focus-visible) .nav-fold-dot,.nav-fold.is-open .nav-fold-dot{display:none}
+  #app-shell.rail aside .nav-fold-dot{position:absolute;top:6px;right:8px}
+  @media (hover:none){ .nav-fold > .nav-sub{display:block} .nav-fold-dot{display:none} }
   .nav-item .nav-rail{position:absolute;left:0;top:4px;bottom:4px;width:2px;background:transparent;border-radius:var(--radius);}
   .nav-item svg,.nav-item i{flex:none;opacity:.85;}
   .nav-item:hover{background:var(--color-neutral-100);color:var(--color-text);}
@@ -2399,14 +2411,9 @@
      ground. The shell's page head above it wears the same white. */
   .room-band{ background:var(--color-surface); }
   body:has(#content .room-band) #page-head{ background:var(--color-surface); }
-  /* The paper's tool bar (batch 3): a thin white row under the tabs on
-     Document and Signing, folded wherever its slot is empty; the facts strip
-     steps aside on those two tabs so the paper starts higher. */
-  .room-band > .room-toolrow{ display:flex; align-items:center; gap:14px; min-height:calc(var(--ctl-h) + 2 * var(--s-2));
-    margin-top:calc(-1 * var(--s-2)); border-bottom:1px solid var(--color-divider); }
-  .room-band > .room-toolrow:has(#ws-tabrow-end:empty){ display:none; }
-  .room-lockline{ display:inline-flex; align-items:center; gap:var(--s-2); font-size:var(--t-body); color:var(--st-green-fg); min-width:0; }
-  .room-lockline:empty{ display:none; }
+  /* The paper's buttons stand on the tab line (owner, 10 Oct 2026); batch 3's
+     own tool bar under the tabs is gone, and the facts strip still steps
+     aside on Document and Signing so the paper starts higher. */
   .room-band:has(#ws-tabs [data-ws-tab="docs"].on) #ws-facts,
   .room-band:has(#ws-tabs [data-ws-tab="sign"].on) #ws-facts{ display:none; }
   .room-cp{ display:inline-flex; align-items:center; gap:var(--s-2); min-width:0; }
@@ -3683,7 +3690,12 @@
      runs the full width and the group is only as wide as five words. The tabs
      stretch inside it and pull their own underline down onto that rule. */
   .room-tabrow{ display:flex; align-items:stretch; gap:14px; flex:none;
-    border-bottom:1px solid var(--color-divider); }
+    border-bottom:1px solid var(--color-divider); flex-wrap:wrap; }
+  /* the buttons keep the row's right end; where the tabs and the buttons do not
+     fit on one line the buttons take their own line under the tabs, still on
+     the right — the row wraps, nothing overlaps (owner, 10 Oct 2026) */
+  .room-tabrow > #ws-tabrow-end{ display:flex; align-items:center; gap:14px; flex:none; margin-left:auto; min-width:0; }
+  .room-tabrow > #ws-tabrow-end:empty{ display:none; }
   /* A TABLET'S ROW WRAPS (9 Oct 2026): at 820px the slot on the right — Focus,
      Start negotiating, the signing copy's page and zoom steps — held nowrap and
      ran off the window, so the whole page scrolled sideways. Below 1024 the
@@ -3788,14 +3800,9 @@
   #ws-tabrow-end .ws-th-door[data-tone="ruby"] .ws-th-door-sum{ background:var(--st-ruby-fg); }
   #ws-tabrow-end .ws-th-door[data-tone="steel"] .ws-th-door-sum{ background:var(--st-steel-fg); }
   /* ---- THE SIGNING COPY'S CONTROLS (25 Sep 2026) ----
-     Which copy this is and where its words came from, then the page it is on
-     and the zoom — the design's own control row. One rung with the rest of the
-     slot; the two steppers wear the type stepper's box so the row reads as
-     one family. */
-  #ws-tabrow-end .sc-label{ display:inline-flex; align-items:center; gap:6px; min-width:0; flex:0 1 auto;
-    font-size:var(--t-body); color:var(--color-neutral-700); white-space:nowrap; overflow:hidden; }
-  #ws-tabrow-end .sc-label b{ font-weight:var(--w-strong); color:var(--color-text); }
-  #ws-tabrow-end .sc-label .sc-src{ color:var(--color-neutral-600); overflow:hidden; text-overflow:ellipsis; }
+     The page it is on and the zoom — buttons only since 10 Oct 2026 (the
+     "which copy, from where" label left with the tool bar). The two steppers
+     wear the type stepper's box so the row reads as one family. */
   #ws-tabrow-end .sc-step{ display:inline-flex; align-items:center; gap:2px; flex:none; height:var(--ctl-h);
     box-sizing:border-box; padding:0 3px; border:1px solid var(--btn-edge); border-radius:var(--radius);
     background:var(--color-surface); }
@@ -4900,23 +4907,32 @@
   .obd-filters button span{color:var(--cap-ink,#98A2B3);margin-left:2px;font-variant-numeric:tabular-nums}
   .obd-filters button[aria-pressed="true"]{background:var(--color-accent-50);border-color:var(--color-accent);color:var(--accent-ink,var(--color-accent));font-weight:600}
   .obd-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);min-height:0;flex:1 1 auto}
-  .obd-list{overflow:auto;border-right:1px solid var(--color-line);max-height:56vh;padding:6px 0}
+  .obd-list{overflow:auto;border-right:1px solid var(--color-line);max-height:56vh;padding:0}
   .obd-item{overflow:auto;max-height:56vh;padding:16px 24px}
-  .obd-grp{padding:4px 0 8px}
-  .obd-gh{display:flex;align-items:center;gap:10px;padding:8px 16px 6px;font-size:11px;color:var(--cap-ink,#98A2B3);font-weight:400}
-  .obd-gh .obd-gn{margin-left:auto;text-transform:none;letter-spacing:0;font-size:12px}
-  .obd-row{display:flex;gap:10px;align-items:flex-start;padding:8px 16px;cursor:pointer;border-left:3px solid transparent}
-  .obd-row:hover{background:var(--color-accent-50)}
-  .obd-row.is-sel{background:var(--color-accent-50);border-left-color:var(--color-accent)}
+  /* THE LIST IS A TABLE, THE SAP WAY (owner picked "Table", 10 Oct 2026):
+     Obligation · Whose job · When, named once and pinned; the kinds are grey
+     bands; "Not sure" is amber where the answer goes; a long name two lines */
+  .obd-tb{width:100%;border-collapse:collapse;font-size:13px}
+  .obd-tb th{position:sticky;top:0;z-index:1;background:var(--color-surface);text-align:left;font-size:12px;font-weight:var(--w-label);color:var(--color-ink-2,#475467);padding:8px 10px;border-bottom:1px solid var(--color-line);white-space:nowrap}
+  .obd-tb td{padding:9px 10px;border-bottom:1px solid var(--color-line);vertical-align:top}
+  .obd-tb .obd-c-tk{width:34px;padding-left:16px;padding-right:4px}
+  .obd-tb .obd-c-who{width:124px;font-size:12.5px}
+  .obd-tb .obd-c-when{width:98px;font-size:12.5px}
+  .obd-row{cursor:pointer}
+  .obd-row:hover td,.obd-row.is-sel td{background:var(--color-accent-50)}
+  .obd-row.is-sel td.obd-c-tk{box-shadow:inset 3px 0 0 var(--color-accent)}
   .obd-row.is-done .obd-desc{color:var(--color-ink-2,#475467)}
-  .obd-tick,.obd-gh input{width:15px;height:15px;margin-top:2px;accent-color:var(--color-accent);flex:none}
-  .obd-tick-gap{width:15px;flex:none}
-  .obd-rtx{min-width:0;display:flex;flex-direction:column;gap:4px}
-  .obd-desc{font-size:13px;color:var(--color-ink);line-height:1.4}
-  .obd-chips{display:flex;gap:4px;flex-wrap:wrap}
-  .obd-chip{font-size:11px;line-height:18px;padding:0 7px;border-radius:999px;background:var(--color-neutral-100,#F2F4F7);color:var(--color-ink-2,#475467)}
-  .obd-chip.is-added{background:var(--st-emerald-bg,#E7F6EE);color:var(--st-emerald-fg,#0E7A44)}
-  .obd-chip.is-skipped{background:var(--color-neutral-100,#F2F4F7);color:var(--cap-ink,#98A2B3)}
+  .obd-band td{background:var(--color-neutral-100,#F2F4F7);font-weight:var(--w-strong);font-size:12.5px;padding:7px 10px;color:var(--color-ink)}
+  .obd-band td.obd-c-tk{padding-left:16px}
+  .obd-band .obd-gn{margin-left:8px;font-weight:var(--w-body);color:var(--color-ink-2,#475467);font-variant-numeric:tabular-nums}
+  .obd-tick{width:15px;height:15px;margin:2px 0 0;accent-color:var(--color-accent);flex:none;vertical-align:top}
+  .obd-tick-gap{display:inline-block;width:15px}
+  .obd-desc{display:block;font-size:13px;color:var(--color-ink);line-height:1.4}
+  .obd-clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .obd-tb .obd-ns{color:var(--st-amber-fg)}
+  .obd-st{display:inline-block;margin-top:4px;font-size:11px;line-height:18px;padding:0 7px;border-radius:999px;background:var(--color-neutral-100,#F2F4F7);color:var(--color-ink-2,#475467)}
+  .obd-st.is-added{background:var(--st-emerald-bg,#E7F6EE);color:var(--st-emerald-fg,#0E7A44)}
+  .obd-st.is-skipped{background:var(--color-neutral-100,#F2F4F7);color:var(--cap-ink,#98A2B3)}
   .obd-meta{font-size:11px;color:var(--cap-ink,#98A2B3)}
   .obd-ih{font-size:15px;font-weight:600;color:var(--color-ink);margin:6px 0 10px;line-height:1.4}
   .obd-quote{margin:0 0 12px;padding:8px 12px;border-left:2px solid var(--color-line);font-size:12.5px;color:var(--color-ink-2,#475467);font-style:italic}
@@ -8673,6 +8689,9 @@
   .ig-paper[hidden]{display:none}
   .ig-paper-wrap{position:relative;height:100%;display:flex;min-height:0}
   .ig-paper-wrap .ig-spine[hidden]{display:none}
+  /* the Track on the Document tab (owner, 10 Oct 2026): Home's rail in the
+     paper column's own grey margin, floating, never in the flow */
+  #doc-paper-col > #doc-track[hidden]{display:none}
   .ig-paper-scroll{flex:1;min-width:0;overflow:auto;padding:20px 24px 60px 44px;position:relative}
   .ig-paper-scroll .pg-sheet{margin:0 auto}
   /* The held mark: the scan's flash colours, but STILL — the reader is reading it. */
@@ -12773,37 +12792,43 @@
                Below the card"): the agents' work is done on the Board, under
                Prepared by Copilot. Every old way in (a refresh, the bell, a
                link) lands there through hbOpenAgent. -->
-          <!-- CUSTOMERS (owner, 10 Oct 2026: "implement ... the custom folders SAP
-               way"). SECOND, RIGHT AFTER HOME (owner moved it, 10 Oct 2026: "move
-               the customer folder in the nav panel to be right after home");
-               Negotiations stays directly under Contracts (the owner's 12 Aug
-               call). One shelf per customer, drawn from the counterparty on each
-               contract — a reading, never a folder anybody files into. Its count
-               is how many customers the page lists (cuDoorCount). -->
-          <button data-view="customers" class="nav-item" title="Customers — every customer's contracts in one place, active and expired" data-i18n-title="nav_customers_title">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-shelf"/></svg>
-            <span style="flex:1;" data-i18n="nav_customers">Customers</span><span class="nav-count" data-count="customers"></span>
-          </button>
-          <button data-view="register" class="nav-item" title="Contracts — every contract lives here; open one for its document, negotiation and signing" data-i18n-title="nav_contracts_title">
+          <!-- CONTRACTS FOLDS NEGOTIATIONS AND PARTIES UNDER IT (owner, 10 Oct 2026:
+               "when you hover over the contract tab in the nav panel, 2 sub-folders
+               will appear the 1st one being the negotiation folder and the second
+               would be the customers folder but rename customers to Parties"). The
+               two doors keep their data-view, count and handlers; they show while
+               the pointer is on Contracts or its group, while the keyboard is in it,
+               while the reader is on either page (.is-open, setActiveNav), and
+               always on a screen with no hover. Folded, an amber dot on Contracts
+               says a negotiation waits on the reader (owner's yes, same day). -->
+          <div class="nav-fold" data-nav-fold="register">
+            <button data-view="register" class="nav-item" title="Contracts — every contract lives here; open one for its document, negotiation and signing" data-i18n-title="nav_contracts_title">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-folder"/></svg>
-            <span style="flex:1;" data-i18n="nav_contracts">Contracts</span><span class="nav-count" data-count="register"></span>
+            <span style="flex:1;" data-i18n="nav_contracts">Contracts</span><i class="nav-fold-dot" data-fold-dot aria-hidden="true" hidden></i><span class="nav-count" data-count="register"></span>
           </button>
-          <!-- Negotiations — a PLACE, second in the list, on the owner's call
-               (12 Aug 2026). It used to be a tab inside one agreement, which
-               made the work discoverable only by opening the contract it
-               belonged to. The count is what is waiting on THIS reader across
-               every live negotiation — see negoNeedsYouTotal; a per-contract
-               number over a door that sits above every contract would be
-               counting the wrong book. The word is a noun because everything
-               else in this list is (the button on the Document tab keeps the
-               verb: a place and an act must not share a word). -->
-          <button data-view="redline" class="nav-item" title="Negotiations — every agreement being argued over right now" data-i18n-title="nav_negotiations_title">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-nego"/></svg>
-            <span style="flex:1;" data-i18n="nav_negotiations">Negotiations</span><span class="nav-count" data-count="negotiations"></span>
-          </button>
+            <div class="nav-sub" role="group" aria-label="Contracts" data-i18n-aria="nav_contracts">
+            <!-- Negotiations — a PLACE, second in the list, on the owner's call
+                 (12 Aug 2026). It used to be a tab inside one agreement, which
+                 made the work discoverable only by opening the contract it
+                 belonged to. The count is what is waiting on THIS reader across
+                 every live negotiation — see negoNeedsYouTotal; a per-contract
+                 number over a door that sits above every contract would be
+                 counting the wrong book. The word is a noun because everything
+                 else in this list is (the button on the Document tab keeps the
+                 verb: a place and an act must not share a word). -->
+            <button data-view="redline" class="nav-item" title="Negotiations — every agreement being argued over right now" data-i18n-title="nav_negotiations_title">
+              <span class="nav-rail"></span>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-nego"/></svg>
+              <span style="flex:1;" data-i18n="nav_negotiations">Negotiations</span><span class="nav-count" data-count="negotiations"></span>
+            </button>
+            <button data-view="customers" class="nav-item" title="Parties — every party's contracts in one place, active and expired" data-i18n-title="nav_customers_title">
+              <span class="nav-rail"></span>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-shelf"/></svg>
+              <span style="flex:1;" data-i18n="nav_customers">Parties</span><span class="nav-count" data-count="customers"></span>
+            </button>
+            </div>
+          </div>
           <!-- APPROVALS & SIGNING (the redesign order's step 10, 20 Sep 2026):
                a door onto what waits on this reader's yes and on their
                signature — two readings Home already makes, drawn as a page.

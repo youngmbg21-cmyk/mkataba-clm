@@ -7452,12 +7452,17 @@ function igStrandPress(sp, b, i){
   if(window.chatFieldGrow) chatFieldGrow(inp);
   try{ inp.focus({ preventScroll:true }); inp.setSelectionRange(q.length,q.length); }catch(_){}
 }
-function igStrandTip(b){
-  const wrap=document.querySelector('#ig-paper .ig-paper-wrap');
-  let tip=document.getElementById('ig-spine-tip');
+/* The hover card, for the Track on any paper (owner, 10 Oct 2026: the Track
+   on the Document tab too): `h` is the paper it stands on — igTrackHostHome()
+   by default — carrying the margin it sits in (wrap) and the rows it reads. */
+function igStrandTip(b, h){
+  h=h||igTrackHostHome();
+  const wrap=h.wrap;
+  const tipId=h.tipId||'ig-spine-tip';
+  let tip=document.getElementById(tipId);
   if(!b||!wrap){ if(tip) tip.hidden=true; return; }
-  const row=_igStrandData[Number(b.getAttribute('data-xr-seg'))]; if(!row){ if(tip) tip.hidden=true; return; }
-  if(!tip||tip.parentNode!==wrap){ if(tip) tip.remove(); tip=document.createElement('div'); tip.id='ig-spine-tip'; tip.className='ig-spine-tip'; tip.setAttribute('role','tooltip'); wrap.appendChild(tip); }
+  const row=(h.data||[])[Number(b.getAttribute('data-xr-seg'))]; if(!row){ if(tip) tip.hidden=true; return; }
+  if(!tip||tip.parentNode!==wrap){ if(tip) tip.remove(); tip=document.createElement('div'); tip.id=tipId; tip.className='ig-spine-tip'; tip.setAttribute('role','tooltip'); wrap.appendChild(tip); }
   const g=IG_GRADE_RANK.includes(row.tone)?row.tone:'steel';
   const ms=((row.marks)||[]).filter(Boolean);
   const lines=ms.slice(0,2).map(m=>`<span class="ig-tip-m"><b>${igEsc(m.tag||'')}</b> ${igEsc(igStrandPoint(m))}</span>`).join('');
@@ -7522,16 +7527,23 @@ function igTrackHtml(rows){
 }
 /* Laid out off the painted paper: each mark's top and height are its
    clause's share of the paper, the rail the spine's own height. */
-function igTrackPlace(){
-  const sp=document.getElementById('ig-spine'), sc=document.getElementById('ig-paper-scroll');
+/* THE PAPER THE TRACK STANDS ON: Home's by default. The Document tab hands
+   its own (docTrackHost) — the same rail, laid out by the same code. */
+function igTrackHostHome(){
+  return { sp:document.getElementById('ig-spine'), sc:document.getElementById('ig-paper-scroll'),
+    rows:_igStrandRows, data:_igStrandData, wrap:document.querySelector('#ig-paper .ig-paper-wrap'), tipId:'ig-spine-tip' };
+}
+function igTrackPlace(h){
+  h=h||igTrackHostHome();
+  const sp=h.sp, sc=h.sc, els=h.rows||[];
   if(!sp||!sp.classList.contains('is-track')||!sc) return;
   const svg=sp.querySelector('.ig-trk-svg'); if(!svg) return;
   const H=sp.clientHeight, top=IG_TRACK_PAD, bot=H-IG_TRACK_PAD, span=Math.max(1,bot-top), total=Math.max(1,sc.scrollHeight);
   const scTop=sc.getBoundingClientRect().top-sc.scrollTop;
   const labs=[...sp.querySelectorAll('.ig-trk-lab')];
-  const marks=labs.map(b=>{ const i=Number(b.getAttribute('data-xr-seg')), el=_igStrandRows[i];
-    let y=0, h=0; try{ const r=el.getBoundingClientRect(); y=(r.top-scTop)/total; h=r.height/total; }catch(_){}
-    return { b, g:(b.className.match(/is-(ruby|amber|steel)/)||[])[1]||'steel', y:top+Math.max(0,Math.min(1,y))*span, h:Math.max(5,h*span) }; });
+  const marks=labs.map(b=>{ const i=Number(b.getAttribute('data-xr-seg')), el=els[i];
+    let y=0, h2=0; try{ const r=el.getBoundingClientRect(); y=(r.top-scTop)/total; h2=r.height/total; }catch(_){}
+    return { b, g:(b.className.match(/is-(ruby|amber|steel)/)||[])[1]||'steel', y:top+Math.max(0,Math.min(1,y))*span, h:Math.max(5,h2*span) }; });
   const geo=IG_TRACK_GEOM[sp.dataset.trackSize]||IG_TRACK_GEOM.full;
   const ly=igTrackLayout(marks.map(m=>m.y), top+9, bot-9, geo.gap);
   const x=geo.x, col={ ruby:'var(--st-ruby-dot)', amber:'var(--st-amber-dot)', steel:'var(--st-steel-dot)' };
@@ -7540,28 +7552,33 @@ function igTrackPlace(){
     +(geo.lab>x+4?`<path class="ig-trk-lead" d="M${x+4} ${(m.y+Math.min(m.h,6)/2).toFixed(1)} C ${x+9} ${(m.y).toFixed(1)}, ${x+9} ${ly[k].toFixed(1)}, ${geo.lab} ${ly[k].toFixed(1)}"/>`:'');
     m.b.style.top=ly[k].toFixed(1)+'px'; });
   svg.innerHTML=g;
-  igTrackWindow();
+  igTrackWindow(h);
 }
 /* The window over the part on screen, and the label of the clause being read. */
-function igTrackWindow(){
-  const sp=document.getElementById('ig-spine'), sc=document.getElementById('ig-paper-scroll');
+function igTrackWindow(h){
+  h=h||igTrackHostHome();
+  const sp=h.sp, sc=h.sc;
   if(!sp||!sc) return;
   const win=sp.querySelector('.ig-trk-win'); if(!win) return;
   const H=sp.clientHeight, top=IG_TRACK_PAD, span=Math.max(1,H-2*IG_TRACK_PAD), total=Math.max(1,sc.scrollHeight);
   win.setAttribute('y',(top+sc.scrollTop/total*span).toFixed(1));
   win.setAttribute('height',Math.max(6,sc.clientHeight/total*span).toFixed(1));
 }
+/* The window follows the scroll, and the label of the clause being read is lit. */
+function igTrackFollow(h){
+  h=h||igTrackHostHome();
+  const sp=h.sp, sc=h.sc, els=h.rows||[];
+  if(!sp||sp.hidden||!sc||!els.length) return;
+  igTrackWindow(h);
+  const at=sc.getBoundingClientRect().top+24; let here=-1;
+  els.forEach((el,i)=>{ try{ if(el&&el.getBoundingClientRect().top<=at) here=i; }catch(_){} });
+  let lab=null; sp.querySelectorAll('.ig-trk-lab').forEach(b=>{ b.classList.remove('is-here'); if(Number(b.getAttribute('data-xr-seg'))<=here) lab=b; });
+  if(lab) lab.classList.add('is-here');
+}
 function igStrandFollow(){
   const sp=document.getElementById('ig-spine'), sc=document.getElementById('ig-paper-scroll');
   if(!sp||sp.hidden||!sc||!_igStrandRows.length) return;
-  if(sp.classList.contains('is-track')){
-    igTrackWindow();
-    const at=sc.getBoundingClientRect().top+24; let here=-1;
-    _igStrandRows.forEach((el,i)=>{ try{ if(el&&el.getBoundingClientRect().top<=at) here=i; }catch(_){} });
-    let lab=null; sp.querySelectorAll('.ig-trk-lab').forEach(b=>{ b.classList.remove('is-here'); if(Number(b.getAttribute('data-xr-seg'))<=here) lab=b; });
-    if(lab) lab.classList.add('is-here');
-    return;
-  }
+  if(sp.classList.contains('is-track')){ igTrackFollow(); return; }
   const top=sc.getBoundingClientRect().top+24;
   let here=0;
   _igStrandRows.forEach((el,i)=>{ try{ if(el&&el.getBoundingClientRect().top<=top) here=i; }catch(_){} });
@@ -7633,5 +7650,5 @@ Object.assign(window,{igCellFolded,igHubCellsOpen,igCellRadius,igCellsFolded,igC
    milestone, and the tab's press wiring. */
 Object.assign(window,{igDockStepAside});
 Object.assign(window,{igFramesDrawn,igKeptKey,igWake,igTurnFace,igLoopStart,IG_SETTLE_ROUNDS,IG_SETTLE_SLICE,IG_AWAKE_MS});
-Object.assign(window,{igTrackLayout,igTrackFits,igTrackSize,IG_TRACK_WIDTHS,IG_TRACK_GEOM,igTrackHtml,igTrackPlace,IG_TRACK_W,igStrandPaint});
+Object.assign(window,{igTrackLayout,igTrackFits,igTrackSize,IG_TRACK_WIDTHS,IG_TRACK_GEOM,igTrackHtml,igTrackPlace,igTrackWindow,igTrackFollow,igTrackHostHome,IG_TRACK_W,igStrandPaint});
 Object.assign(window,{obReminderOf,OB_FIRST_DAYS,intelObligationsWire});

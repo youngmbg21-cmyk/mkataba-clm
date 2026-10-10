@@ -49,12 +49,18 @@ describe('F514 (B, C) — the chips are the card\'s own menus', () => {
     w.hbReadingSet(openKey(w), 'split', 'g:counterparty');
     assert.equal(openPlan(w).P.split.by, 'counterparty');
   });
-  test('a greyed option keeps its reason', () => {
+  /* RE-POINTED 10 Oct 2026 (owner: "If a choice in the filter can not be
+     clicked on and provide results then it should not be a choice in the
+     filter at all"): a choice that cannot draw is not listed; the reading
+     still knows why (hbRcOptions). */
+  test('a choice that cannot draw is not listed, and the reading keeps its reason', () => {
     const w = boardWorld();
     const i = askWithReading(w, 'payment terms by stage as bars');
     w.hbRdToggle(openKey(w), 'pic');
     const html = w.hbReadingHtml(w.intel.history[i].reading, true);
-    assert.match(html, /data-hb-rdset="pic:ring" disabled title="shows shares; an average has none"/);
+    assert.ok(!/data-hb-rdset="pic:ring"/.test(html), 'the ring is not offered');
+    assert.ok(!/data-hb-rdset="[^"]*" disabled/.test(html), 'no greyed choice');
+    assert.match(html, /data-hb-rdset="pic:bars"/, 'the one in use is there');
   });
 });
 

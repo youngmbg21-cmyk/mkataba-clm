@@ -147,6 +147,9 @@ describe('f225 (2) — the wording is the page, not a box on it', () => {
        sealed paper's fact moved off the paper onto the tool bar's lock line,
        as drawn — it is still said, once, on the Document and Signing tabs. */
     assert.ok(!/executed and locked/.test(grid), 'no band over the paper');
-    assert.match(SRC, /function wsLockLineHtml\(c\)\{[\s\S]*?ct_lockline/, 'the lock is said on the tool bar instead');
+    /* RE-POINTED 10 Oct 2026: the tool bar went too (owner: "delete the white
+       bar", and its "Executed and locked" line — "drop it"); the head's
+       status says Signed. */
+    assert.ok(!/function wsLockLineHtml\(/.test(SRC), 'and no lock line where the bar was');
   });
 });
