@@ -1116,7 +1116,7 @@ function brEnsureCss(){
     '@keyframes br-sk-march{to{stroke-dashoffset:-12}}',
     '.br-sk-n{cursor:pointer;outline:none}',
     '#br-sk-parcel{pointer-events:none}',
-    '.br-sk-ring{fill:#05201D;stroke-width:2;transition:fill var(--dur-2,.2s)}',
+    '.br-sk-ring{fill:#05201D;stroke-width:2;transition:fill var(--dur-2)}',
     '.br-sk-n.is-lit .br-sk-ring{fill:color-mix(in srgb,var(--c) 22%,#05201D)}',
     '.br-sk-halo{fill:none;stroke:var(--c);stroke-width:1.2;opacity:0;transform-box:fill-box;transform-origin:center}',
     '.br-sk-n.is-here .br-sk-halo{opacity:1;animation:br-sk-halo 1.8s ease-out infinite}',
