@@ -20588,3 +20588,14 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - CLAUDE.md is about 95 KB, over its own 80 KB line — a trim is owner-asked, not done here.
 - refile-a-contract-verify, nine-jobs-verify and paper-terms-frozen-verify fail identically on unmodified main (3cf24bb, 9 Oct 2026): main's own tests run has been red on its last three merges. Not fixed in the SAP batch 2 PR.
 - signing-on-paper-verify 1c, 4a and its journey fail identically on unmodified main (3cf24bb, 9 Oct 2026): the two copies start at different pixels and the mark never lands. Not fixed in SAP batch 3.
+
+## Bug log clean-up — 10 Oct 2026 (owner: "clean up as much as you can from the bug log, most serious first")
+- FIXED: the server let any editor put an APPROVED rule step back to waiting (or drop it) in a save. Now only the person who said yes, or an admin, may take it back; a save that moves the amount, words, filled terms or parties still lapses it (srvApprovalDecisionRefusal; f409 (9)).
+- FIXED: a change the funnel then REFUSED still claimed the negotiation desk — the claim is now made just before the change is pushed (negoFileChange; f165).
+- FIXED: the board's count trend line could start or end below zero; it is floored at zero where every point is (hbTrendOf; f448).
+- FIXED: "Why they asked" and Copilot's change record showed the clause editor's own label ("Written on the clause editor") as a reason; both hosts now read a reason the same way (NEGO_PROVENANCE_RE, SRV_NEGO_PROVENANCE_RE; f414 (n9)).
+- FIXED: on their negotiation link retired by signing, the state word beside the title still read "In Review"; it now says "Signing started" (portalStatusWordHtml; f440).
+- FIXED: opening the Document tab on a light list row before the whole record landed threw on c.fields.effDate; the paper is drawn off a copy with empty answers (docBody).
+- FIXED: calendar-redesign-verify depended on the day it ran (August 2026 seed) — the browser's clock is set to the seed's day, its dark-mode check re-pointed to the segmented views; taken off KNOWN_RED (45/45).
+- FIXED: the one unnamed button on every page was Copilot's send arrow (#ai-send) — it now has a spoken name in both languages.
+- Not fixed (left on purpose): the faint grey strip at the right edge of pages that do not own their height — a layout trade-off (the reserved scrollbar gutter), not a quick fix.
