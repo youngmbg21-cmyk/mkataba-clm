@@ -11519,7 +11519,8 @@ const docReadRunning=c=>!!(c&&c.id!=null&&_docReadJobs.has(c.id));
 const docReadCur=(id,c)=>((state&&state.contracts)||[]).find(x=>x&&x.id===id)||c;
 /* A poll nobody is looking at is a request for nothing — the reading goes on
    at the server either way, and the column catches up when the reader is back. */
-const docReadWatching=id=>state.view==='workspace'&&state.activeId===id&&_wsTab==='docs'&&docReadOn();
+const docReadWatching=id=>(state.view==='workspace'&&state.activeId===id&&_wsTab==='docs'&&docReadOn())
+  ||(thOnHome()&&thHomeLive()&&(()=>{ try{ const pc=pdContract(); return !!pc&&String(pc.id)===String(id); }catch(_){ return false; } })());
 const docReadSleep=ms=>new Promise(r=>setTimeout(r,ms));
 /* THIS PRESS'S OWN NAME, so the server's answer about progress is about THIS
    reading and never about a colleague's reading of an older wording. */
@@ -11837,7 +11838,9 @@ const _docReadItemNum = el => {
    reads the canvas it is handed, and #doc-canvas where it is handed none —
    every older caller passes none. */
 function docReadSheet(c, root){
-  const canvas=root||document.getElementById('doc-canvas');
+  /* with no root named, the paper the thread is showing: the Document tab's,
+     or Home's while the clause list is drawn there (10 Oct 2026) */
+  const canvas=root||((typeof thOnHome==='function'&&thOnHome()&&thHomeLive())?document.getElementById('ig-canvas'):document.getElementById('doc-canvas'));
   if(!canvas) return [];
   const name=_docReadNorm(c&&c.name);
   /* WHERE THE LAST ROW STOPS: the first piece of furniture that FOLLOWS it in
@@ -13126,7 +13129,29 @@ const _docThreadCannot = new Map();
    columns; below DOC_READ_MIN_W it stands down, as the layers before it did.
    docThreadLive is whether it IS on screen — the drawer open, or the clauses
    being the panel — and is what the paper's two hands ask. */
-const docThreadOn = () => docReadFits() && _wsTab === 'docs';
+/* THE THREAD'S TWO HOMES (owner, 10 Oct 2026: "When i migrate the clause to
+   paper, put it under the document tab in the panel"): the contract's own
+   Document tab, and the Document tab of Home's Paper panel. ONE painter, ONE
+   set of builders; the host only says where the list, the paper and the
+   paper's scroller are. On Home the list IS the panel — no door, no ×,
+   nothing for it to cover. The host is chosen at every paint (thHostFor). */
+const TH_HOSTS = {
+  doc:  { card:'doc-thread', scroll:'doc-scroll', canvas:'doc-canvas', col:'doc-paper-col' },
+  home: { card:'pd-thread', scroll:'ig-paper-scroll', canvas:'ig-canvas', col:'ig-paper-scroll' } };
+let _thHost = 'doc';
+const thHomeLive = () => { try{ return typeof state!=='undefined'&&!!state&&state.view==='dashboard'&&typeof pdShowsDesk==='function'&&pdShowsDesk()&&pdTab()==='doc'&&!!document.getElementById('pd-thread'); }catch(_){ return false; } };
+const thOnHome = () => _thHost==='home';
+const thEl = k => document.getElementById(TH_HOSTS[_thHost][k]);
+function thHostFor(c){
+  let pc=null; try{ pc=(typeof pdContract==='function')?pdContract():null; }catch(_){ pc=null; }
+  return (thHomeLive()&&pc&&c&&String(pc.id)===String(c.id))?'home':'doc';
+}
+/* the contract the host is showing, looked up LIVE at every event */
+function thLiveContract(){
+  if(thOnHome()){ try{ return (typeof pdContract==='function')?pdContract():null; }catch(_){ return null; } }
+  return (typeof getContract==='function'&&typeof state!=='undefined'&&state)?getContract(state.activeId):null;
+}
+const docThreadOn = () => thOnHome() ? thHomeLive() : (docReadFits() && _wsTab === 'docs');
 const docThreadLive = () => docThreadOn() && _docThreadUp;
 const docThreadCur = c => (typeof getContract === 'function' && c && c.id != null && getContract(c.id)) || c;
 const docThreadReduce = () => { try{ return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(_){ return false; } };
@@ -13157,7 +13182,7 @@ function docXraySecHtml(k,body,cls){
    type-size change cannot leave a stale answer. docThreadLineRow is the
    clause that opens for it — the nearest one shown. */
 function docThreadAtLine(){
-  const sc=document.getElementById('doc-scroll');
+  const sc=thEl('scroll');
   if(!sc||!_docThreadRows.length) return 0;
   const line=sc.getBoundingClientRect().top+DOC_THREAD_LINE+0.5;
   let here=0;
@@ -13178,7 +13203,7 @@ function docThreadLineRow(){
 function docThreadGoTo(c,i){
   const n=_docThreadRows.length; if(!n) return;
   i=Math.max(0,Math.min(n-1,Number(i)||0));
-  const sc=document.getElementById('doc-scroll'), el=_docThreadRows[i];
+  const sc=thEl('scroll'), el=_docThreadRows[i];
   if(!sc||!el){ docThreadOpen(c,i); return; }
   let target=0;
   try{ target=el.getBoundingClientRect().top-sc.getBoundingClientRect().top+sc.scrollTop-DOC_THREAD_LINE+1; }catch(_){ target=0; }
@@ -13202,11 +13227,11 @@ function docThreadSettle(c){
    element and is armed once per element. The contract is looked up LIVE at
    every event: a record replaced since would otherwise be the one acted on. */
 function docThreadFollowArm(){
-  const sc=document.getElementById('doc-scroll');
+  const sc=thEl('scroll');
   if(!sc||sc.dataset.thFollow) return;
   sc.dataset.thFollow='1';
   let raf=0;
-  const live=()=>(typeof getContract==='function'&&typeof state!=='undefined'&&state)?getContract(state.activeId):null;
+  const live=thLiveContract;
   sc.addEventListener('scroll',()=>{
     if(_docThreadGlide>=0){
       clearTimeout(_docThreadGlideT);
@@ -13214,7 +13239,7 @@ function docThreadFollowArm(){
       return;
     }
     if(raf) return;
-    raf=requestAnimationFrame(()=>{ raf=0; const c=live(); if(c&&docThreadLive()) docThreadOpen(c,docThreadLineRow()); });
+    raf=requestAnimationFrame(()=>{ raf=0; const c=live(); if(c&&docThreadLive()) docThreadOpen(c,docThreadLineRow(),{follow:true}); });
   },{passive:true});
   if('onscrollend' in window) sc.addEventListener('scrollend',()=>{ if(_docThreadGlide>=0) docThreadSettle(live()); });
 }
@@ -13331,7 +13356,7 @@ function docThreadPlain(c, sheet){
 /* The marks are a Map row → why ('empty' · 'noai' · 'limit' · 'failed'), so
    `.has(i)` still asks "is it marked" and docThreadCannotWhy asks why. */
 function docThreadCannotOf(c){
-  const card=document.getElementById('doc-thread');
+  const card=thEl('card');
   const rec=_docThreadCannot.get(String(c&&c.id));
   return (rec&&card&&rec.sig===card.getAttribute('data-th-sig')) ? rec.set : new Map();
 }
@@ -13340,7 +13365,7 @@ function docThreadCannotWhy(c, i){
   return DOC_THREAD_WHY[docThreadCannotOf(c).get(i)] || DOC_THREAD_WHY.empty;
 }
 function docThreadCannotMark(c, idxs, why){
-  const cache=_docThreadCache, card=document.getElementById('doc-thread');
+  const cache=_docThreadCache, card=thEl('card');
   if(!c||!card||!cache||cache.id!==String(c.id)||docReadRunning(c)) return;
   const sig=card.getAttribute('data-th-sig')||'';
   let rec=_docThreadCannot.get(cache.id);
@@ -13431,7 +13456,7 @@ function docThreadRowHtml(x,i){
    made — and WHICH ROWS THE FILTER SHOWS. A section title steps aside while
    the filter is on: it heads clauses the filter may have hidden. */
 function docThreadStates(c,rows,plain){
-  const box=document.querySelector('#doc-thread .doc-th-rows'); if(!box) return;
+  const thc=thEl('card'), box=thc&&thc.querySelector('.doc-th-rows'); if(!box) return;
   const running=docReadRunning(c);
   const cannot=docThreadCannotOf(c);
   const filtering=_docThreadTones.length>0;
@@ -13507,7 +13532,9 @@ function docThreadMovedHtml(c,i,sheet){
    its Run, in the place its result would show. The press is the room head's
    own data-room-check door (wireRoomChecks), so there is one act, not two. */
 function docThreadUnrunHtml(c,kinds){
-  if(typeof checkVerdict!=='function') return '';
+  /* its Run is the room head's door, which Home's Paper does not carry: a
+     line there would offer a press that does nothing */
+  if(typeof checkVerdict!=='function'||thOnHome()) return '';
   const may=(typeof canEdit!=='function'||canEdit());
   return kinds.map(k=>{
     let v=null; try{ v=checkVerdict(c,k); }catch(_){ v=null; }
@@ -13567,7 +13594,7 @@ function docThreadBodyHtml(c,rows,i,plain,sheet){
    the reader has scrolled it. */
 function docThreadFill(c,rows,i,opts){
   const o=opts||{};
-  const card=document.getElementById('doc-thread'); if(!card) return;
+  const card=thEl('card'); if(!card) return;
   const box=card.querySelector('.doc-th-rows'); if(!box) return;
   const plain=o.plain||docThreadPlain(c,o.sheet);
   rows.forEach((x,k)=>{
@@ -13606,15 +13633,25 @@ function docThreadFill(c,rows,i,opts){
 }
 /* A SCROLL OPENS THE ROW AT THE LINE off the last paint's walk — never a
    re-walk of the sheet per scroll event. */
-function docThreadOpen(c,i){
+/* THE LIST HOLDS STILL WHILE THE PAPER SCROLLS (owner, 10 Oct 2026: "clauses
+   in the documents tab Flickers"): a row that opens because the reader is
+   SCROLLING the paper opens in one step — no open/close animation, no glide of
+   the list — because a scroll passes several clauses a second and each one
+   used to set the list growing, shrinking and gliding at once. A PRESS (a row,
+   ‹ ›, the filter) still animates: it is one change the reader asked for. */
+function docThreadOpen(c,i,opts){
   if(i<0||i===_docThreadOn) return;
   _docThreadOn=i;
-  const card=document.getElementById('doc-thread');
+  const card=thEl('card');
   if(!card||card.hidden) return;
   const cache=_docThreadCache;
   if(!cache||cache.id!==String(c&&c.id)){ docThreadPaint(c); return; }
-  docThreadFill(c,cache.rows,i,{plain:cache.plain,sheet:cache.sheet});
+  const follow=!!(opts&&opts.follow);
+  if(follow) card.classList.add('th-still');
+  docThreadFill(c,cache.rows,i,{plain:cache.plain,sheet:cache.sheet,instant:follow});
+  if(follow){ clearTimeout(_docThreadStillT); _docThreadStillT=setTimeout(()=>card.classList.remove('th-still'),DOC_THREAD_SETTLE_MS*2); }
 }
+let _docThreadStillT=null;
 /* THE FILTER MOVED: the rows it hides step aside; where the open clause is
    one of them, the paper glides on to the next clause it shows (or the
    nearest, at the end of the paper) and that row opens. */
@@ -13632,7 +13669,7 @@ function docThreadFilterSet(c, tone){
   }
   docThreadPaint(cur);
   if(go>=0) docThreadGoTo(cur,go);
-  try{ const b=document.querySelector(`#doc-thread [data-th-tone="${tone||''}"]`); if(b) b.focus({preventScroll:true}); }catch(_){}
+  try{ const thc=thEl('card'), b=thc&&thc.querySelector(`[data-th-tone="${tone||''}"]`); if(b) b.focus({preventScroll:true}); }catch(_){}
 }
 
 /* ---------- paint ----------
@@ -13655,21 +13692,26 @@ function docThreadFlatSay(c,on,rows){
   return flat;
 }
 function docThreadPaint(c){
-  const card=document.getElementById('doc-thread');
+  /* WHICH HOME this paint is for; a move between them starts the open row,
+     the walk and the list's place afresh — they belonged to the other paper. */
+  const want=thHostFor(c);
+  if(want!==_thHost){ _thHost=want; _docThreadOn=-1; _docThreadRows=[]; _docThreadCache=null; _docThreadRevealed=-1; }
+  const home=thOnHome();
+  const card=thEl('card');
   if(!card) return;
-  const right=document.getElementById('doc-right');
+  const right=home?null:document.getElementById('doc-right');
   const on=docThreadOn();
-  const rows=on?docXrayRows(c):[];
-  const has=on?docPanelHas(c):true;
-  const up=on&&docThreadShowsClauses(c);
+  const rows=on?docXrayRows(c,thEl('canvas')):[];
+  const has=home?false:(on?docPanelHas(c):true);
+  const up=on&&(home||docThreadShowsClauses(c));
   _docThreadUp=up;
   card.hidden=!up;
   card.classList.toggle('is-drawer',up&&has);
   if(right) right.classList.toggle('is-clauses',up);
-  docThreadDoorPaint(rows,has,up);
+  if(!home) docThreadDoorPaint(rows,has,up);
   const flat=docThreadFlatSay(c,on,rows);
   if(!up){ card.innerHTML=''; card.removeAttribute('data-th-sig'); _docThreadRows=[]; _docThreadCache=null; _docThreadRevealed=-1; return; }
-  const sheet=docReadSheet(c)||[];
+  const sheet=docReadSheet(c,thEl('canvas'))||[];
   _docThreadRows=rows.map(x=>x.el);
   if(!rows.length){
     _docThreadWant='';
@@ -13705,6 +13747,7 @@ function docThreadPaint(c){
   docThreadFill(c,rows,_docThreadOn,{plain,sheet,instant:true});
   docThreadWire(c);
   docThreadFollowArm();
+  if(home&&typeof pdTabCountPaint==='function') pdTabCountPaint('doc', c);
   if(land>=0) setTimeout(()=>{ try{ docThreadGoTo(docThreadCur(c),land); }catch(_){} },0);
 }
 /* ---------- wire ----------
@@ -13713,7 +13756,7 @@ function docThreadPaint(c){
    listener as before: a line takes the paper to its sentence through
    scrollToQuote, the door goes to the Obligations tab through roomGoTab. */
 function docThreadWire(c){
-  const card=document.getElementById('doc-thread');
+  const card=thEl('card');
   if(card&&!card.dataset.thBound){
     card.dataset.thBound='1';
     card.addEventListener('click',async e=>{
@@ -13750,16 +13793,18 @@ function docThreadWire(c){
         return;
       }
       const wd=t.closest('[data-xr-wd]');
-      if(wd){ const q=String(wd.getAttribute('data-xr-q')||''); try{ if(q&&typeof window.scrollToQuote==='function') window.scrollToQuote(q); }catch(_){} return; }
+      if(wd){ const q=String(wd.getAttribute('data-xr-q')||''); try{ if(q&&typeof window.scrollToQuote==='function') window.scrollToQuote(q,thOnHome()?{root:thEl('canvas')}:undefined); }catch(_){} return; }
       const ob=t.closest('[data-xr-ob]');
-      if(ob){ roomGoTab(cur,'oblig'); return; }
+      if(ob){
+        if(thOnHome()){ if(typeof pdSetTab==='function') pdSetTab('oblig'); if(typeof renderIntelDock==='function') renderIntelDock(); return; }
+        roomGoTab(cur,'oblig'); return; }
     });
   }
   /* A PLAIN PRESS ON A CLAUSE IN THE PAPER OPENS ITS ROW (the owner's list,
      27 Sep 2026); the paper does not move — the reader is already there — and
      a press that ends a highlight, or lands on a control, opens nothing. Nor
      does a press on a clause the filter hides, or on a section title. */
-  const col=document.getElementById('doc-paper-col');
+  const col=thEl('col');
   if(col&&!col.dataset.thBound){
     col.dataset.thBound='1';
     col.addEventListener('click',e=>{
@@ -13769,9 +13814,18 @@ function docThreadWire(c){
       const at=_docThreadRows.findIndex(el=>el&&el.contains&&el.contains(e.target));
       const rows=(_docThreadCache&&_docThreadCache.rows)||[];
       if(at<0||at===_docThreadOn||!docThreadShown(rows[at])) return;
-      docThreadOpen(docThreadCur(c),at);
+      docThreadOpen(docThreadCur(thOnHome()?(thLiveContract()||c):c),at);
     });
   }
+}
+/* THE COUNT ON HOME'S DOCUMENT SYMBOL: the list's own "N to review" — the
+   last paint's walk where the list is drawn, else a walk of Home's paper. */
+function docThreadHomeMarks(c){
+  try{
+    if(thOnHome()&&_docThreadCache&&_docThreadCache.id===String(c&&c.id)) return docThreadMarks(_docThreadCache.rows);
+    const cv=document.getElementById('ig-canvas'); if(!cv||!c) return 0;
+    return docThreadMarks(docXrayRows(c,cv));
+  }catch(_){ return 0; }
 }
 /* The column's one painter, kept under the name every caller outside this
    file already presses (the negotiate page's type stepper, the clause editor). */
@@ -16968,7 +17022,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{ovRenewTermDoorHtml,ovRenewTermAsk,ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFrozen,paperTermFrozenRead,paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,roomHeadRefresh,
+Object.assign(window,{docThreadHomeMarks,TH_HOSTS,thHomeLive,ovRenewTermDoorHtml,ovRenewTermAsk,ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFrozen,paperTermFrozenRead,paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,roomHeadRefresh,
   /* TWO COPIES OF ONE CONTRACT (25 Sep 2026): the sheet's builders and the
      signing copy's controls. The other side's signing link draws the signing
      copy through signCopySheetHtml, so it must be on this list — a name read

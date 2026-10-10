@@ -32,22 +32,35 @@ describe('f563 (1) — the desk reads, it does not write', () => {
       assert.ok(!CODE.includes(bad), bad);
   });
   test('1b each tab is the room\'s own reading', () => {
-    for (const r of ['ktFactReads(c)', 'obPanelActs(o, c, i, \'tab\')', 'signBlockers(c)', 'roomHistoryEvents(c)', 'standsHtml(c'])
+    /* RE-POINTED 10 Oct 2026: Signing left the Paper; the Document tab is the room's own clause list */
+    for (const r of ['ktFactReads(c)', 'obPanelActs(o, c, i, \'tab\')', 'roomHistoryEvents(c)', 'standsHtml(c', 'id="pd-thread"'])
       assert.ok(DESK.includes(r), r);
   });
 });
 
-describe('f563 (2) — signing: the Sign button\'s list, acts in place', () => {
-  test('2a an approval the reader may decide is Approve / Refuse here; Send stays grey while anything is open', () => {
-    const { ctx, c } = stage({ g: { signBlockers: () => [{ key: 'approval', label: 'Approval outstanding' }],
-      approvalDecidableNow: () => ({ kind: 'rule' }), approvalDecideAsk: () => true, openShareModal: () => {}, signerPlan: () => [] } });
-    const h = ctx.pdSignHtml(c);
-    assert.match(h, /pd_approve/); assert.match(h, /pd_refuse/);
-    assert.match(h, /<button[^>]*disabled[^>]*>pd_send_sign</);
+/* RE-POINTED 10 Oct 2026 (owner: "delete signing tab"): the Paper has no
+   Signing tab; an approval waiting on you opens on the Approvals & signing
+   page with its row chosen, the page that decides it. */
+describe('f563 (2) — no Signing tab; an approval opens where it is decided', () => {
+  test('2a the tabs, and their symbols are the artifact\'s', () => {
+    const { ctx } = stage();
+    const v = n => vm.runInContext(n, ctx);
+    assert.deepEqual([...v('PD_TABS')], ['copilot', 'facts', 'doc', 'oblig', 'hist', 'deal']);
+    assert.ok(!('sign' in v('PD_BODY')));
+    assert.deepEqual(Object.values(v('PD_TAB_GLYPH')), ['\u2726', '\u25A6', '\u25A2', '\u2691', '\u25F7', '\u21C4']);
   });
-  test('2b nothing open: Send for signing is the filled button', () => {
-    const { ctx, c } = stage({ g: { signBlockers: () => [], openShareModal: () => {}, signerPlan: () => [] } });
-    assert.match(ctx.pdSignHtml(c), /ui-btn-primary" data-pd-act="a\d+">pd_send_sign/);
+  test('2b an approval opens the Approvals page with its row chosen', () => {
+    const seen = [];
+    const { ctx, c } = stage({ g: { apSetTab: t => seen.push('tab:' + t), insSelect: (s, id) => seen.push('sel:' + s + ':' + id), setView: v => seen.push('view:' + v), igWalk: () => seen.push('paper') } });
+    ctx.window = { innerWidth: 1440 };
+    assert.equal(ctx.pdOpenOnHome(c.id, 'sign'), true);
+    assert.deepEqual(seen, ['tab:approvals', 'sel:approvals:MK-1', 'view:approvals']);
+  });
+  test('2c the Document symbol counts the list\'s own "to review"', () => {
+    const { ctx, c } = stage({ g: { docThreadHomeMarks: () => 3 } });
+    assert.deepEqual({ ...ctx.pdTabCount('doc', c) }, { n: 3, tone: 'warn' });
+    const none = stage({ g: { docThreadHomeMarks: () => 0 } });
+    assert.equal(none.ctx.pdTabCount('doc', none.c), null);
   });
 });
 

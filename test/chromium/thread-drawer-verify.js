@@ -166,7 +166,7 @@ const answer = say => b => [{ type: 'tool_use', id: 'tu', name: 'clause_readings
     check('1b the form stands at the height of what it holds — the column scrolls, the card is not squeezed',
       s1.form && s1.form.h >= s1.form.content - 2 && s1.form.h > 600 && s1.rightScrolls === true,
       JSON.stringify({ form: s1.form, columnScrolls: s1.rightScrolls }));
-    check('1c a Clauses door on the tab row says what is marked', !!(s1.door && s1.door.shown && /Clauses/.test(s1.door.text) && /2 to look at/.test(s1.door.text) && s1.door.expanded === 'false'),
+    check('1c a Clauses door on the tab row says what is marked', !!(s1.door && s1.door.shown && /Clauses/.test(s1.door.text) && /2 to review/.test(s1.door.text) && s1.door.expanded === 'false'),
       JSON.stringify(s1.door));
     await page.screenshot({ path: path.join(OUT, '01-landing.png') });
 

@@ -64,7 +64,8 @@ test('f278 (1) the fact row has no second opinion about folding', () => {
     'the Thread\'s follow, by name');
   /* RE-POINTED 5 Oct 2026 (the Drawer): it asks whether the clauses are on
      screen (docThreadLive) and opens the nearest SHOWN clause at the line. */
-  assert.ok(/raf=requestAnimationFrame\(\(\)=>\{ raf=0; const c=live\(\); if\(c&&docThreadLive\(\)\) docThreadOpen\(c,docThreadLineRow\(\)\); \}\)/.test(CODE),
+  /* RE-POINTED 10 Oct 2026 (Home's Paper clauses work order): the thread has two homes (TH_HOSTS); a row the scroll opens opens in one step ({follow:true}). */
+  assert.ok(/raf=requestAnimationFrame\(\(\)=>\{ raf=0; const c=live\(\); if\(c&&docThreadLive\(\)\) docThreadOpen\(c,docThreadLineRow\(\),\{follow:true\}\); \}\)/.test(CODE),
     'and it opens a row and never touches the head');
   assert.ok(/raf=requestAnimationFrame\(\(\)=>\{ raf=0; scPaintPage\(\); \}\)/.test(CODE),
     'and the signing copy\'s page number, which writes a number and never touches the head');

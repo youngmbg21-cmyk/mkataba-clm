@@ -54,7 +54,8 @@ describe('f393 (1) the thread — one walk per paint, handed to every reader', (
 
   test('the painter walks the sheet ONCE and hands that walk on', () => {
     const p = PAINT();
-    assert.equal((p.match(/docReadSheet\(c\)/g) || []).length, 1, 'one walk of the canvas per paint');
+    /* RE-POINTED 10 Oct 2026 (Home's Paper clauses work order): the thread has two homes (TH_HOSTS); a row the scroll opens opens in one step ({follow:true}). */
+    assert.equal((p.match(/docReadSheet\(c,thEl\('canvas'\)\)/g) || []).length, 1, 'one walk of the canvas per paint');
     assert.match(p, /const plain=docThreadPlain\(c,sheet\);/, 'the pairing reads it');
     assert.match(p, /docThreadFill\(c,rows,_docThreadOn,\{plain,sheet,instant:true\}\);/, 'and so does the open row');
   });
@@ -67,7 +68,8 @@ describe('f393 (1) the thread — one walk per paint, handed to every reader', (
   test('a scroll opens the row at the line off the last paint\'s walk — never a re-walk per scroll event', () => {
     const o = code(region(CT, 'docThreadOpen'));
     assert.match(o, /const cache=_docThreadCache;/);
-    assert.match(o, /docThreadFill\(c,cache\.rows,i,\{plain:cache\.plain,sheet:cache\.sheet\}\);/);
+    /* RE-POINTED 10 Oct 2026 (Home's Paper clauses work order): the thread has two homes (TH_HOSTS); a row the scroll opens opens in one step ({follow:true}). */
+    assert.match(o, /docThreadFill\(c,cache\.rows,i,\{plain:cache\.plain,sheet:cache\.sheet,instant:follow\}\);/);
     assert.ok(!/docReadSheet\(/.test(o), 'no walk here');
   });
 

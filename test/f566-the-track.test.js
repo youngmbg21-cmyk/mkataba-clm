@@ -44,14 +44,18 @@ test('f566 (2) a crowd at the bottom is pulled back inside', () => {
   assert.ok(ly[ly.length - 1] <= 500 && ly[0] >= 20, ly.join(','));
 });
 
-test('f566 (3) the Track only where the margin has room, measured at the sheet', () => {
-  const fits = region('igTrackFits');
-  assert.match(fits, /canvas\.closest\('\.pg-sheet'\)\|\|canvas/, 'the sheet round the wording, or the redlined paper');
-  assert.match(fits, /room>=IG_TRACK_W\+4/);
+/* RE-POINTED 10 Oct 2026 (owner: "the DNA Strand appears again when we
+   actually agreed to delete it"): the Track at every width — full, slim or a
+   hairline — measured at the sheet; the old strip is never drawn. */
+test('f566 (3) the Track at the margin\'s width, measured at the sheet; never the strip', () => {
+  const size = region('igTrackSize');
+  assert.match(size, /canvas\.closest\('\.pg-sheet'\)\|\|canvas/, 'the sheet round the wording, or the redlined paper');
+  assert.match(size, /room>=IG_TRACK_W\+4\?'full':room>=IG_TRACK_WIDTHS\.slim\+4\?'slim':'hair'/);
   assert.match(SRC, /const IG_TRACK_W=70,/);
+  assert.match(SRC, /const IG_TRACK_WIDTHS=\{ full:IG_TRACK_W, slim:34, hair:14 \};/);
   const paint = region('igStrandPaint');
-  assert.match(paint, /if\(track\)\{ sp\.style\.width=IG_TRACK_W\+'px'; sp\.innerHTML=igTrackHtml\(rows\); \}/);
-  assert.match(paint, /else \{ sp\.style\.width=\(Number\(window\.DOC_XRAY_SPINE_W\)\|\|28\)\+'px'; sp\.innerHTML=docXraySpineHtml\(rows,\{ numbers:true \}\); \}/, 'today\'s strip where it does not fit');
+  assert.match(paint, /sp\.style\.width=IG_TRACK_WIDTHS\[size\]\+'px'; sp\.innerHTML=igTrackHtml\(rows\);/);
+  assert.doesNotMatch(paint, /docXraySpineHtml/, 'the old strip is gone from the paper');
 });
 
 test('f566 (4) the labels are the strip\'s own doors', () => {
