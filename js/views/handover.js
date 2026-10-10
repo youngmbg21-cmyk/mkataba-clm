@@ -101,7 +101,10 @@ function outsideAgreedParas(c){
     const title = !out.length && !own && text.split(/\s+/).length <= 12
       && (el.tagName === 'H1' || (/[A-Z]/.test(text) && text === text.toUpperCase())
         || text.toLowerCase() === String(c.name || '').trim().toLowerCase());
-    if (/^H[1-6]$/.test(el.tagName)){ head = text.slice(0, 80); group += 1; }
+    /* the document's NAME is not a clause heading: set as an h1, it used to
+       head every paragraph under it, so a difference in clause 3 was named
+       "3. · SERVICES AGREEMENT" (10 Oct 2026) */
+    if (/^H[1-6]$/.test(el.tagName) && !title){ head = text.slice(0, 80); group += 1; }
     out.push({ text, title, group: String(group), label: [own, /^H[1-6]$/.test(el.tagName) ? '' : head].filter(Boolean).join(' · ') || head,
       ...(fields.length ? { fields } : {}) });
   });
@@ -1065,6 +1068,13 @@ async function outsideFile(c, o){
       fills: (cmp.fills || []).slice(0, HO_FILLS_KEPT).map(x => ({ name: x.name || x.label || '', blank: String(x.blank || '').slice(0, 120),
         text: String(x.text || '').slice(0, 200) })) },
     differs: o.differs || null,
+    /* THE SIGNED COPY'S OWN WORDS, WHERE THEY DIFFER FROM THE AGREED ONES (the
+       owner's go, 10 Oct 2026). The signed copy is the document of record, so
+       what is read off the contract after filing — the duties first — is read
+       off THESE words: a copy that says sixty days must not be reminded on
+       the agreed thirty. Kept only when the words differ (the same words are
+       the agreed wording, already on the record); the list leaves it out. */
+    ...(cmp.same ? {} : { text: String(o.read.text || '').slice(0, typeof EXTRACT_MAX_CHARS === 'number' ? EXTRACT_MAX_CHARS : 200000) }),
     /* the person filing says the copy carries every party's signature — the
        server files nothing without it */
     everyone: o.everyone === true,
@@ -1103,8 +1113,10 @@ async function outsideFile(c, o){
   _hoAfterAct(c);
   /* The obligations Copilot found on the agreed wording, offered for ticking.
      runFindObligations returns into the review dialog with a reading already
-     held — it pays for nothing twice. */
-  try { if (typeof runFindObligations === 'function') setTimeout(() => runFindObligations(c, {}), 400); } catch (_) {}
+     held — it pays for nothing twice. WHERE THE SIGNED WORDS DIFFER that held
+     reading is of words nobody signed, so the duties are read afresh, off the
+     signed copy (obligationsText). */
+  try { if (typeof runFindObligations === 'function') setTimeout(() => runFindObligations(c, cmp.same ? {} : { fresh: true }), 400); } catch (_) {}
 }
 
 /* ============================================================

@@ -1704,6 +1704,8 @@ function fillHeavyFrom(c, full){
     if(!c.upload.extractedText && full.upload.extractedText) c.upload={ ...c.upload, extractedText: full.upload.extractedText };
     if(!c.upload.dataUrl && full.upload.dataUrl)             c.upload={ ...c.upload, dataUrl: full.upload.dataUrl };
   }
+  if(c.signedCopy && full.signedCopy && !c.signedCopy.text && full.signedCopy.text)
+    c.signedCopy={ ...c.signedCopy, text: full.signedCopy.text };
   /* …AND WHAT ONLY THE SINGLE-RECORD ROUTE CARRIES (27 Sep 2026, the overnight
      clean-up). The brief, the renewal advice, the Plain English edition and
      who must approve before signing ride GET /api/contracts/:id as transport

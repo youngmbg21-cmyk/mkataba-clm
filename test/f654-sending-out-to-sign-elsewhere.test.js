@@ -17,14 +17,13 @@ const { buildWorld } = require('./world');
 
 let W;
 before(async () => {
-  const w = await buildWorld({ contractView: true });
+  const w = await buildWorld({ contractView: true, obligations: true });
   W = w.win;
 });
 const plain = x => JSON.parse(JSON.stringify(x));
 const AGREED = 'SUPPLY AGREEMENT\n1. Price\nThe price is KES 100 per unit.\n2. Term\nThis runs for two years.';
 /* Their copy as a reader hands it back: lines kept, a heading run into its
-   paragraph. (A copy with EVERY line break lost reads one clause number as an
-   added word — logged in BUGLOG 9 Oct 2026, not pinned here.) */
+   paragraph. A copy with every line break lost is (30) below. */
 const SIGNED_SAME = 'SUPPLY AGREEMENT\n1. Price The price is KES 100 per unit.\n2. Term This runs for two years.';
 const contract = (extra = {}) => ({ id: 'c1', name: 'Supply Agreement', counterparty: 'Acme Ltd', redlineText: AGREED, changes: [], ...extra });
 const out = (extra = {}) => contract({ signRoute: 'outside', handover: { at: '2026-10-01T09:00:00Z' }, ...extra });
@@ -229,5 +228,65 @@ describe('f654 — the signed copy of record, on a filed contract', () => {
   test('(29) a signer\'s name is escaped', () => {
     const html = W.outsideExecutionBlock(contract({ signedCopy: { file: {}, signers: [{ name: '<script>x</script>' }] } }));
     assert.doesNotMatch(html, /<script>/);
+  });
+});
+
+/* ---------------------------------------------------------------------------
+   THE THREE FIXES (owner: "Fix the bugs", 10 Oct 2026). Each was found by this
+   set or its browser sibling and logged in BUGLOG on 9–10 Oct; each of (30),
+   (31), (33), (34), (36) and (37) fails against the commit before the fix; (32)
+   and (35) are the controls — what the fix must not swallow.
+   --------------------------------------------------------------------------- */
+describe('f654 — the fixes', () => {
+  const LONG = 'SUPPLY AGREEMENT\n1. Price\nThe price is KES 100 per unit.\n2. Term\nThis runs for two years.\n3. Fees\n'
+    + 'The Customer shall pay the fees set out in the Order Form within thirty days of invoice.\n4. Law\nThis Agreement is governed by the laws of Kenya.';
+  const cmp = signed => W.outsideCompare(W.outsideAgreedParas(contract({ redlineText: LONG })), signed, {});
+  const marked = r => plain(r.changed.map(x => x.b.filter(y => y.t !== 'k').map(y => y.s)));
+  test('(30) a copy whose line breaks were all lost, word for word the same, reads the same — not "1 difference"', () => {
+    const r = cmp(LONG.replace(/\n/g, ' '));
+    assert.equal(r.same, true, W.outsideCheckLine(r));
+    assert.equal(r.changedCount, 0);
+  });
+  test('(31) …and a real change in such a copy is still exactly that change', () => {
+    const r = cmp(LONG.replace(/\n/g, ' ').replace('thirty', 'sixty'));
+    assert.equal(r.changedCount, 1);
+    assert.deepEqual(marked(r), [['sixty']]);
+  });
+  test('(32) a number they really added at the end of a line is still a difference', () => {
+    const r = cmp(LONG.replace('two years.', 'two years 2.'));
+    assert.equal(r.same, false);
+  });
+  /* as the browser sibling drew it: each clause one line, heading and words */
+  const ONE = ['SERVICES AGREEMENT', '1. Term. This Agreement runs until 31 December 2027.',
+    '2. Services. The Provider shall make the Services available throughout the Term.',
+    '3. Fees. The Customer shall pay the fees set out in the Order Form within thirty days of invoice.',
+    '4. Governing law. This Agreement is governed by the laws of Kenya.'].join('\n');
+  test('(33) "§3" is their numbering: beside a real change only the changed word is marked', () => {
+    const r = W.outsideCompare(W.outsideAgreedParas(contract({ redlineText: ONE })),
+      ONE.replace(/^(\d)\. /gm, '§$1 ').replace('thirty', 'sixty'), {});
+    assert.equal(r.changedCount, 1);
+    assert.equal(r.changedCount, 1);
+    assert.deepEqual(marked(r), [['sixty']], 'their "§3" is not drawn as words they added');
+  });
+  test('(34) the same, flattened onto one line', () => {
+    const r = cmp(LONG.replace(/^(\d)\. /gm, '§$1 ').replace(/\n/g, ' ').replace('thirty', 'sixty'));
+    assert.deepEqual(marked(r), [['sixty']]);
+  });
+  test('(35) a changed figure at the start of a clause is still a changed word, not numbering', () => {
+    const r = W.outsideCompare(['30 days after delivery the goods pass.'], '60 days after delivery the goods pass.', {});
+    assert.equal(r.changedCount, 1);
+  });
+  test('(36) the document\'s title is not every clause\'s heading', () => {
+    const c = contract({ format: 'rich', redlineText: '<h1>SERVICES AGREEMENT</h1><p>1. Fees. Pay within thirty days of invoice to the Supplier.</p>' });
+    const r = W.outsideCompare(W.outsideAgreedParas(c), 'SERVICES AGREEMENT\n1. Fees. Pay within sixty days of invoice to the Supplier.', {});
+    assert.equal(r.changedCount, 1);
+    assert.doesNotMatch(r.changed[0].label || '', /SERVICES AGREEMENT/);
+    assert.match(W.outsideDiffHtml(r), /1\./);
+  });
+  test('(37) the duties are read off the signed copy\'s words where they were kept, else as always', () => {
+    const c = contract({ signedCopy: { text: 'Pay within sixty days.' } });
+    assert.equal(W.obligationsText(c), 'Pay within sixty days.');
+    assert.equal(typeof W.obligationsText(contract()), 'string');
+    assert.equal(W.obligationsText(contract({ signedCopy: { text: '   ' } })), W.obligationsText(contract()), 'an empty kept text is no text');
   });
 });

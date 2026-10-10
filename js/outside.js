@@ -252,12 +252,13 @@ function handoverLastCheck(c){
    differ is decided by the approver or an admin, with a reason. */
 const OH_ROMAN = '(?:i|ii|iii|iv|v|vi|vii|viii|ix|x|xi|xii|xiii|xiv|xv)';
 /* A marker at the start of a line: "14.", "14.2", "(b)", "b)", "(iv)", "iv.",
-   "14 (b)", "Clause 14". A BARE number followed by a space is not a marker —
+   "14 (b)", "Clause 14", "§3". A BARE number followed by a space is not a marker —
    "30 days after delivery" keeps its 30, so a changed figure at the start of
    a paragraph is still a changed word. */
 const OH_MARKER_RE = new RegExp(
   '^\\s*(?:(?:clause|section|article|paragraph)\\s+)?(?:'
-  + '\\d+(?:\\.\\d+)+\\.?'                   // 14.2  14.2.3  14.2.
+  + '§\\s*\\d+(?:\\.\\d+)*\\.?'             // §3  § 14.2  (their template's numbering, 10 Oct 2026)
+  + '|\\d+(?:\\.\\d+)+\\.?'                  // 14.2  14.2.3  14.2.
   + '|\\d+[.)]'                              // 14.  14)
   + '|\\d+\\s*\\(\\s*[a-z0-9]{1,4}\\s*\\)'  // 14 (b)
   + '|\\(\\s*[a-z]{1,2}\\s*\\)'              // (b)
@@ -605,6 +606,29 @@ function outsideCompare(agreed, signed, opts){
   const free = (s, e) => { for (let i = Math.max(0, s); i < Math.min(T.length, e); i++) if (claimed[i]) return false; return true; };
   const pn = paras.map(p => p.words.map(w => w.n));
   const state = paras.map(() => null);
+  /* ---- THE NEXT CLAUSE'S NUMBER IS THE NEXT CLAUSE'S (10 Oct 2026) ----
+     A copy whose line breaks were lost reads as one long line, and the number
+     opening a clause ("2.", "§3") then sits at the END of the clause before
+     it, where it read as a word they added — "1 difference" on a copy whose
+     every word was agreed. A run of up to three marker-like words standing
+     immediately before a paragraph already found is that paragraph's
+     numbering: taken off the end of the span, it is left over as one or two
+     words, which is their page, never a difference. */
+  const foundStarts = () => { const out = new Set();
+    state.forEach(st => { if (!st) return; if (st.s != null) out.add(st.s); else if (st.idx && st.idx.length) out.add(st.idx[0]); });
+    return out; };
+  const dropNextNumber = (idx, mayEmpty) => {
+    if (!idx.length) return idx;
+    const starts = foundStarts();
+    const next = idx[idx.length - 1] + 1;
+    if (!starts.has(next)) return idx;
+    let z = idx.length;
+    /* on the SAME LINE as the paragraph it opens: where the lines survived,
+       a clause starts its own line and its number was taken off there */
+    while (z > 0 && idx.length - z < 3 && idx[z - 1] === next - (idx.length - z + 1) && OH_MARKERISH.test(Tn[idx[z - 1]])
+      && T[idx[z - 1]].line === T[next].line) z--;
+    return z < idx.length && (z > 0 || mayEmpty) ? idx.slice(0, z) : idx;
+  };
   let agreedWords = 0;
   pn.forEach(a => { agreedWords += a.length; });
   /* LONGEST FIRST, in both passes. A two-word heading ("Notices") may also
@@ -669,7 +693,7 @@ function outsideCompare(agreed, signed, opts){
     const j0 = Math.min(...js), j1 = Math.max(...js);
     const kS = best.idx[j0], kE = best.idx[j1];
     const lS = T[kS].line, lE = T[kE].line;
-    const spanIdx = best.idx.filter(k => (k >= kS || T[k].line === lS) && (k <= kE || T[k].line === lE));
+    const spanIdx = dropNextNumber(best.idx.filter(k => (k >= kS || T[k].line === lS) && (k <= kE || T[k].line === lE)));
     const b = spanIdx.map(k => Tn[k]);
     let ops = ohLcsOps(a, b).ops;
     ops = ohMendOps(ops, a, b, bl);
@@ -691,6 +715,7 @@ function outsideCompare(agreed, signed, opts){
     const left = [], right = [];
     for (let k = st.s - 1; k >= 0 && !claimed[k] && T[k].line === T[st.s].line; k--) left.unshift(k);
     for (let k = st.e; k < T.length && !claimed[k] && T[k].line === T[st.e - 1].line; k++) right.push(k);
+    if (right.length){ const kept = dropNextNumber(right.slice(), true); right.length = 0; right.push(...kept); }
     if (!left.length && !right.length) return;
     /* THE DOCUMENT'S NAME MAY WEAR THEIR COMPANY. The title line is design,
        not a term: "NORDKUST INDUSTRI AB — SOFTWARE AS A SERVICE AGREEMENT"
@@ -798,6 +823,14 @@ function outsideCompare(agreed, signed, opts){
     const keptA = new Set(), keptB = new Set();
     /* a fill is kept: what they wrote in a blank is not drawn as a change */
     st.ops.forEach(op => { if (op.t === 'k'){ keptA.add(op.i); keptB.add(op.j); } else if (op.t === 'f') keptB.add(op.j); });
+    /* WHAT THE CHECK SET ASIDE AS DESIGN IS NOT DRAWN AS A CHANGE (10 Oct
+       2026): numbering one side carries and a word split across a line are
+       dropped by ohMendOps, so no op names them — their words are kept here
+       too, or "§3" was marked as words they added beside a real change. */
+    const opI = new Set(), opJ = new Set();
+    st.ops.forEach(op => { if (op.i != null) opI.add(op.i); if (op.j != null) opJ.add(op.j); });
+    pn[i].forEach((_, k) => { if (!opI.has(k)) keptA.add(k); });
+    st.idx.forEach((_, j) => { if (!opJ.has(j)) keptB.add(j); });
     const aWords = p.words.map((w, k) => ({ ...w, k }));
     const aRow = chunkRow(p.chunks, aWords, new Set(aWords.filter(w => keptA.has(w.k))), 'd');
     /* their side: the chunks the span covers, marked where a word is new */

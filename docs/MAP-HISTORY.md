@@ -28141,3 +28141,13 @@ What was built:
 - Kept, since the owner did not answer: the "Nobody assigned yet" chip in the head.
 
 Re-pointed: f184 (bar word), pages-read-alike 1 (head compared with the Document tab's; back button read in the head), nego-redesign 1c (the arrow beside the title). New: negotiate-as-drawn-verify (6 of its 9 fail at unmodified main; the 44px row and the tab name are guards that pass on both).
+
+## REDLINE HERE, SIGN THERE — THE THREE FIXES, 10 OCT 2026
+
+The owner asked for HaTi's least-tested areas to be checked (coverage report, 9 Oct 2026: the import screen about 15%, the handover screen about 25%). The new checks — f653, f654, import-contracts-verify, signed-copy-differs-verify — found three faults, logged in BUGLOG and then fixed on the owner's "Fix the bugs":
+
+1. **A duty on the wrong deadline.** A signed copy saying "sixty days" where the agreed words said thirty, accepted with a reason and filed, was followed by Copilot's proposed duties quoting "thirty days": the triage held list and every later "Find obligations" read the agreed wording, and the signed copy's text was never kept. Now `outsideFile` keeps `signedCopy.text` when the words differ (only then — the same words ARE the agreed wording), the reading after filing is `fresh`, and `obligationsText(c)` is the one reading every duty door asks. The server leaves the text off the list (HEAVY) and keeps the stored text on a save from a list row; `fillHeavyFrom` restores it. Left alone, said to the owner: the overnight key-terms reading (runBookReading) still reads the agreed wording.
+2. **A false "1 difference".** A copy whose line breaks were all lost carried each clause's number at the end of the clause before it, where the same-line re-read took it as an added word — "3 differences" on a copy identical word for word (measured). `dropNextNumber` gives up to three marker-like words standing immediately before a paragraph already found, on the SAME line, to that paragraph. Same-line only: a number really added at the end of a line where the lines survived still differs (f654 (32)).
+3. **Highlights on what did not change.** "§3" was not a marker, and words ohMendOps sets aside as design were still drawn as insertions, so their "§3" wore the green mark beside the real change; and an h1 title headed every clause ("3. · SERVICES AGREEMENT"). Now "§" numbering is a marker (it is said as "their §3"), words no op names are drawn kept, and the title does not set the heading.
+
+Red at the parent: f654 (30), (31), (33), (34), (36), (37) and f655 (1), (3); f654 (32) and (35) are the controls.

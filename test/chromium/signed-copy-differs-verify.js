@@ -14,7 +14,8 @@
         signed", only file WITH the difference (an admin) or hold; untick
         "everybody signed" → Send it back leads.
      4  ACCEPTING NEEDS A REASON: backing out of the reason files nothing.
-     5  WITH A REASON IT FILES, and the record says who accepted it and why.
+     5  WITH A REASON IT FILES, and the record says who accepted it and why;
+        the duties suggested next are read off the SIGNED copy.
      6  SOMEBODY WHO MAY NOT ACCEPT (an editor who did not approve it) is not
         offered it, is told who may, and a hold leaves it unfiled.
 
@@ -159,10 +160,11 @@ const signedOf = (cp, signer) => [
     });
     await page.screenshot({ path: path.join(OUT, '2-filing-differs.png') });
     check('2b the screen says there is one difference from the agreed wording', /1 difference from the agreed wording/.test(scr.text), scr.text.slice(0, 160));
-    /* Their own clause number ("§3") is also marked on their side today — a
-       display flaw logged in BUGLOG 10 Oct 2026, not pinned here either way. */
-    check('2c the agreed word is struck and theirs is marked', scr.del.join('|') === 'thirty' && scr.ins.includes('sixty'), JSON.stringify({ del: scr.del, ins: scr.ins }));
-    check('2d the difference is named by the clause it sits in', scr.head.some(t => /^3\.?/.test(t) || /Fees/.test(t) || /§3/.test(t)), JSON.stringify(scr.head));
+    /* FIXED 10 Oct 2026 (BUGLOG 10 Oct): their "§3" was marked as words they
+       added, and the clause was headed with the document's title. */
+    check('2c the agreed word is struck and theirs is marked — and nothing else, not their "§3"', scr.del.join('|') === 'thirty' && scr.ins.join('|') === 'sixty', JSON.stringify({ del: scr.del, ins: scr.ins }));
+    check('2d the difference is named by the clause it sits in, not by the document\'s title',
+      scr.head.some(t => /^3\.?/.test(t)) && !scr.head.some(t => /SERVICES AGREEMENT/.test(t)), JSON.stringify(scr.head));
 
     /* ===== 3. THE BUTTONS FOLLOW WHO HAS SIGNED ===== */
     const all = await acts(page);
@@ -193,8 +195,16 @@ const signedOf = (cp, signer) => [
     await page.waitForSelector('#pd-input', { timeout: 5000 }).catch(() => {});
     await page.fill('#pd-input', WHY).catch(() => {});
     await page.click('#pd-ok').catch(() => {});
-    await page.waitForTimeout(3500);
-    await page.evaluate(() => { const b = [...document.querySelectorAll('#modal-root button')].find(x => /cancel/i.test(x.textContent)); if (b) b.click(); });
+    /* THE DUTIES ARE READ OFF THE SIGNED COPY (FIXED 10 Oct 2026, BUGLOG 10
+       Oct): the suggestions that open after filing quoted the agreed "thirty
+       days" while the signed copy of record says sixty. */
+    const duties = await page.waitForFunction(() => { const d = document.querySelector('.obd'); return d ? d.innerText.replace(/\s+/g, ' ') : ''; },
+      null, { timeout: 15000 }).then(x => x.jsonValue()).catch(() => '');
+    await page.screenshot({ path: path.join(OUT, '5-duties.png') });
+    check('5d the duties suggested after filing quote the signed copy — sixty days — never the agreed thirty',
+      /sixty days/i.test(duties) && !/thirty days/i.test(duties), duties.slice(0, 220));
+    await page.waitForTimeout(500);
+    await page.evaluate(() => { const b = [...document.querySelectorAll('#modal-root button')].find(x => /^(cancel|close)$/i.test(x.textContent.trim())); if (b) b.click(); });
     await page.waitForTimeout(500);
     const filed = await page.evaluate(async id => {
       const c = await api('contracts/' + encodeURIComponent(id));
