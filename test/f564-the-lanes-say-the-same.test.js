@@ -64,7 +64,9 @@ describe('f564 (4) — the view is named in both books', () => {
   });
   test('4b the page draws the lanes as its fourth view, read off the catalogue', () => {
     const V = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'brain.js'), 'utf8');
-    assert.match(V, /const BR_VIEW_KEYS = BRAIN_VIEWS\.concat\('lanes'\);/);
+    /* RE-POINTED 10 Oct 2026 (the Brain's fifth view, Stack): the lanes stay the
+       fourth view; Stack follows them as the fifth */
+    assert.match(V, /const BR_VIEW_KEYS = BRAIN_VIEWS\.concat\('lanes'(, 'stack')?\);/);
     for (const r of ['brainLaneOf(st[0])', 'BRAIN_FLOW_STAGES[f.id]', 'BRAIN_PROBLEMS.filter', 'reviewGateCfg', 'deskEnforced', 'linkCodeCfg'])
       assert.ok(V.includes(r), r);
   });

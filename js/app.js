@@ -1287,6 +1287,8 @@ const PLACE_PARTS={
   obligations:['obwPlace','obwPlacePut'],
   redline:['rlPlace','rlPlacePut'],
   customers:['cuPlace','cuPlacePut'],
+  /* the Brain keeps only its Stack view's trip and stop (10 Oct 2026); its other views land as before */
+  brain:['brPlace','brPlacePut'],
 };
 const PLACE_ONE_CONTRACT=['workspace','doc','redline'];
 const PLACE_BACK_MS=6000, PLACE_BACK_EVERY=120, PLACE_SAVE_WAIT=250;

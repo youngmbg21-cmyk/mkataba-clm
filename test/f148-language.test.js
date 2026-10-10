@@ -35,6 +35,19 @@ const { STRINGS, I18N_DEFAULT, LANGUAGES } = i18n;
 /* Words that are legitimately identical in both languages, so an equal-to-
    English value is a real translation rather than a forgotten one. */
 const SAME_IN_BOTH = new Set([ 'pd_tab_copilot', 'pd_doc_pdf',
+  /* the Brain's Stack view (10 Oct 2026): product and service names (Node.js, Render, GitHub…), the
+     technical words a developer uses, and the "say this to a developer" lines, kept English in both books on purpose */
+  'brn_ov_stack', 'brn_stk_ask_1_s', 'brn_stk_ask_1_say', 'brn_stk_ask_2_s', 'brn_stk_ask_2_say', 'brn_stk_ask_3_s',
+  'brn_stk_ask_3_say', 'brn_stk_ask_4_say', 'brn_stk_ask_5_n', 'brn_stk_ask_5_s', 'brn_stk_ask_5_say', 'brn_stk_ask_6_say',
+  'brn_stk_gl_ai_l', 'brn_stk_gl_ai_v', 'brn_stk_gl_code_v', 'brn_stk_gl_db_v', 'brn_stk_gl_host_v', 'brn_stk_gl_lang_v',
+  'brn_stk_gl_mail_v', 'brn_stk_gl_server_l', 'brn_stk_gl_server_v', 'brn_stk_night_1_say', 'brn_stk_night_2_say', 'brn_stk_night_3_say',
+  'brn_stk_night_4_say', 'brn_stk_night_5_say', 'brn_stk_night_6_f1l', 'brn_stk_night_6_s', 'brn_stk_night_6_say', 'brn_stk_ship_1_say',
+  'brn_stk_ship_2_f1', 'brn_stk_ship_2_n', 'brn_stk_ship_2_say', 'brn_stk_ship_3_s', 'brn_stk_ship_3_say', 'brn_stk_ship_4_s',
+  'brn_stk_ship_4_say', 'brn_stk_ship_5_s', 'brn_stk_ship_5_say', 'brn_stk_ship_6_say', 'brn_stk_sign_1_say', 'brn_stk_sign_2_say',
+  'brn_stk_sign_3_say', 'brn_stk_sign_4_s', 'brn_stk_sign_4_say', 'brn_stk_sign_5_say', 'brn_stk_sign_6_say', 'brn_stk_title',
+  'brn_stk_w_aimaker', 'brn_stk_w_api', 'brn_stk_w_ci', 'brn_stk_w_cookie', 'brn_stk_w_express', 'brn_stk_w_github',
+  'brn_stk_w_hash', 'brn_stk_w_https', 'brn_stk_w_javascript', 'brn_stk_w_nodejs', 'brn_stk_w_render', 'brn_stk_w_resend',
+  'brn_stk_w_route', 'brn_stk_w_server', 'brn_stk_w_sqlite', 'brn_stk_w_stack', 'brn_stk_w_token', 'brn_view_stack',
   'pd_back_copilot',   /* "‹ Copilot": the product's name, alike in both (8 Oct 2026) */
   'ag_wk_range',   /* "{from} – {to}": the week ahead's two dates, placeholders only (7 Oct 2026) */
   'int_span_days',   /* "{n} d": the day's mark reads alike in both, as int_fact_decide always did */
