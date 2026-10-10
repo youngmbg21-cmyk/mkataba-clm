@@ -220,7 +220,9 @@ const CONTRACTS = [
     await page.click('[data-hb-screen="light"]');
     await page.evaluate(() => { if (typeof setDark === 'function') setDark(true); });
     const ink = await page.evaluate(() => getComputedStyle(document.getElementById('ig-page')).getPropertyValue('--hb-ink').trim().toUpperCase());
-    ok('9a Light stays light when the platform is dark', ink === '#141F1D', ink);
+    /* RE-POINTED 9 Oct 2026: the board's Light wears Ink Wash (black + the
+       brand's colour) — Green #032E2A, Blue #091938. Same claim: the LIGHT ink. */
+    ok('9a Light stays light when the platform is dark', ['#032E2A', '#091938'].includes(ink), ink);
     await page.screenshot({ path: path.join(OUT, '9-light-on-dark-platform.png') });
     await page.evaluate(() => { if (typeof setDark === 'function') setDark(false); });
     await page.click('[data-hb-screen="dark"]');

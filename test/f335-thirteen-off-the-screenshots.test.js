@@ -509,7 +509,8 @@ describe('f335 (12) — bold from facts, amber from the record', () => {
       'the marking never reaches what is hashed and sent');
   });
   test('computed ONCE per paint, not per scroll', () => {
-    assert.match(CONTRACT, /const rows=on\?docXrayRows\(c\):\[\];[\s\S]{0,900}?_docThreadRows=rows\.map/,
+    /* RE-POINTED 10 Oct 2026 (Home's Paper clauses work order): the thread has two homes (TH_HOSTS); a row the scroll opens opens in one step ({follow:true}). */
+    assert.match(CONTRACT, /const rows=on\?docXrayRows\(c,thEl\('canvas'\)\):\[\];[\s\S]{0,1100}?_docThreadRows=rows\.map/,
       'the walk happens in docThreadPaint');
     assert.match(CONTRACT, /_docThreadCache=\{ id:String\(c&&c\.id\), rows, plain, sheet \};/,
       'and a scroll reads the cache, or it is O(clauses x findings) on every tick of a 200-clause contract');

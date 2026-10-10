@@ -417,7 +417,7 @@ function negoTimelineScreenHtml(c, f = {}, opts = {}){
       .ht h3{font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;color:var(--color-text);margin:0 0 2px}
       .ht .ht-sub{font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3)}
       .ht .ht-filters{display:flex;gap:var(--s-2);flex-wrap:wrap;margin-bottom:14px;padding-bottom:var(--s-3);border-bottom:1px solid var(--color-divider)}
-      .ht .ht-f{display:flex;flex-direction:column;gap:2px;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)}
+      .ht .ht-f{display:flex;flex-direction:column;gap:2px;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600)}
       .ht .ht-f select{font:inherit;font-size:var(--t-meta);font-weight:var(--w-body);text-transform:none;letter-spacing:0;border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-1) 6px;background:var(--color-surface);color:var(--color-text);max-width:180px}
       .ht .ht-ev{display:flex;gap:10px;padding:var(--s-2) 0;border-bottom:1px solid color-mix(in srgb,var(--color-divider) 55%,transparent)}
       .ht .ht-mark{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--color-bg);border:1px solid var(--color-divider);font-size:var(--t-label)}
@@ -721,7 +721,7 @@ function negoRenumberPreviewHtml(c, plan){
       : `<div class="text-[11.5px] text-ink/50">${i18t('ng_none_cite')}</div>`}
     ${leftAlone}
     <div class="flex justify-end gap-2 mt-4">
-      <button id="renum-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button data-dlg-cancel id="renum-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="renum-apply" class="ui-btn ui-btn-primary">${i18tn('ng_renumber',plan.headings.length,{n:plan.headings.length})}</button>
     </div>
   </div>`;
@@ -1637,7 +1637,7 @@ function negoLiveCardsHtml(c, opts){
           title="${_ne(i18t('ng_revised_title'))} — ${_ne(String(ch.revisedBy))} / ${_ne(String(ch.author))}"><span aria-hidden="true">&#9998;</span> ${
           i18t('ng_revised_by_after',{who:_ne(_liveShort(ch.revisedBy)),author:_ne(_liveShort(ch.author))})}</div>` : ''}
         ${negoReasonOf(ch) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:var(--radius);padding:6px 9px;margin-bottom:var(--s-2)">
-          <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
+          <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
           <span class="nego-why-clamp" style="font-size:var(--t-meta);line-height:1.5;color:var(--n-ink)">${_ne(negoReasonOf(ch))}</span></div>` : ''}
         ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:var(--s-2);font-size:var(--t-meta);line-height:1.5;color:var(--n-ink)"><b>${i18t('ng_reply')}</b> ${_ne(ch.reply)}</div>` : ''}
         ${(() => { if (!window.reviewSeatShowsReview || !reviewSeatShowsReview(opts)) return '';
@@ -1809,7 +1809,7 @@ function negoHistoryCardHtml(c, ch, r, opts){
     <div style="font-size:var(--t-label);color:var(--n-ink-soft);margin-bottom:7px">${_ne(_neClause(ch.clauseLabel || ch.clauseId))}</div>
     <div style="font-size:var(--t-label);color:var(--n-ink-soft);margin-bottom:7px">${i18t('ng_author')} <b style="color:var(--n-ink);font-weight:var(--w-strong)">${_ne(ch.author)}</b></div>
     ${negoReasonOf(ch) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:var(--radius);padding:6px 9px;margin-bottom:var(--s-2)">
-      <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
+      <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
       <span class="nego-why-clamp" style="font-size:var(--t-meta);line-height:1.5;color:var(--n-ink)">${_ne(negoReasonOf(ch))}</span></div>` : ''}
     ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:var(--s-2);font-size:var(--t-meta);line-height:1.5;color:var(--n-ink)"><b>${i18t('ng_reply')}</b> ${_ne(ch.reply)}</div>` : ''}
     <div class="nego-hash" title="${_ne(ch.hash || '')}"><span aria-hidden="true">🔒</span> SHA-256: ${_ne(negoShortHash(ch.hash))}</div>
@@ -3614,7 +3614,7 @@ async function negoAiPropose(c, ctx){
   const foot = document.createElement('footer');
   foot.innerHTML = `
     ${canApply ? `<button type="button" data-ai-apply class="ui-btn ui-btn-primary">${i18t('ng_apply_redline')}</button>` : ''}
-    <button type="button" data-ai-cancel class="ui-btn">${i18t('act_cancel')}</button>
+    <button data-dlg-cancel type="button" data-ai-cancel class="ui-btn">${i18t('act_cancel')}</button>
     <span style="flex:1"></span>
     <span style="font-family:var(--n-font-ui);font-size:var(--t-label);color:var(--n-ink-soft);align-self:center">${i18t('ng_nothing_changed_yet')}</span>`;
   pop.appendChild(foot);
@@ -4533,7 +4533,7 @@ function wireNegotiationTab(c, opts = {}){
     const bar = document.createElement('div');
     bar.className = 'nego-edit-bar';
     const step1 = `<button class="b-save" data-nego-next="${_ne(clauseId)}">${i18t('ng_save_change')}</button>`
-      + `<button class="b-cancel" data-nego-cancel="${_ne(clauseId)}">${i18t('act_cancel')}</button>`;
+      + `<button data-dlg-cancel class="b-cancel" data-nego-cancel="${_ne(clauseId)}">${i18t('act_cancel')}</button>`;
     bar.innerHTML = step1;
     holder.after(bar);
     if (holder.focus) holder.focus();
@@ -7947,7 +7947,12 @@ function rlBoardPaintTitle(){
   else if (typeof window.shellCrumbAdopt === 'function' && window.getContract && typeof redlineHeldId === 'function' && redlineHeldId()
     && (document.querySelector('.room-head #ws-back') || document.getElementById('ws-back'))
     && shellCrumbAdopt(getContract(redlineHeldId()), document.querySelector('.room-head #ws-back') || document.getElementById('ws-back'))) { /* crumb painted */ }
-  else if (typeof window.shellTitleFor === 'function'){ el.classList.remove('is-crumb'); el.textContent = shellTitleFor('redline'); }
+  /* The back button left the page (10 Oct 2026), so with a contract on the
+     bench the bar keeps the page's name, as shellCrumbAdopt writes it. */
+  else if (typeof redlineHeldId === 'function' && redlineHeldId() && !el.querySelector('.crumb-here')){
+    el.innerHTML = ''; const s = document.createElement('span'); s.className = 'crumb-here';
+    s.textContent = i18t('tab_negotiate'); s.title = s.textContent; el.appendChild(s); }
+  else if (!el.querySelector('.crumb-here') && typeof window.shellTitleFor === 'function'){ el.classList.remove('is-crumb'); el.textContent = shellTitleFor('redline'); }
 }
 function rlBoardPageHtml(c){
   return `<div class="rl-boardpage" id="rl-boardpage">${dealBoardHtml(c, 'owner')}</div>`;
@@ -9053,8 +9058,18 @@ function negoLiveList(){
 }
 /* How many changes are waiting on this reader across every live negotiation.
    The sidebar door's number. */
+/* ---- IT COUNTS NEGOTIATIONS, NOT CHANGES (owner, 10 Oct 2026: "review the
+   number of contracts in the nav panel for the negotiation page as the number
+   is wrong") ---- it summed the changes owed across every negotiation, so one
+   contract with six asks read 6 on a door whose list holds one row. Now it is
+   the "Your move" tab's own number: live negotiations whose move is yours
+   (negWhoseMove, the reading the Negotiations page bands by; a handover is
+   "with them for signature", never yours). */
 function negoNeedsYouTotal(){
-  return negoLiveList().reduce((n, c) => n + negoNeedsYouIds(c).length, 0);
+  return negoLiveList().filter(c => {
+    if (typeof window.negWhoseMove === 'function'){ const m = window.negWhoseMove(c); return m.k === 'you' && m.why !== 'handover'; }
+    return negoNeedsYouIds(c).length > 0;
+  }).length;
 }
 /* ---- WHICH ONE THE DOOR REOPENS ----
    Per person, per browser, and it survives closing the window — the same shape
@@ -9397,7 +9412,7 @@ function negoMemoHtml(m, opts = {}){
   };
   const section = sec => {
     const rows = m[sec.k] || [];
-    return `<div style="display:flex;align-items:baseline;margin:12px 0 2px;font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)">
+    return `<div style="display:flex;align-items:baseline;margin:12px 0 2px;font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--color-neutral-600)">
         <span>${_ne(sec.label)}</span><b style="margin-left:auto;color:var(--color-text)">${m.counts[sec.k]}</b></div>`
       + (rows.length ? rows.map(row).join('')
         : `<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:5px 0;border-top:1px solid var(--color-divider)">${_ne(i18t('ng_memo_nil'))}</div>`);
@@ -9665,7 +9680,7 @@ function openNegoMemoShare(c, m){
       <div id="ng-memo-err" class="rvd-note" hidden style="color:var(--danger-hover);margin-top:var(--s-2)"></div>
     </div>
     <div class="rvd-foot">
-      <button class="ui-btn" data-close>${_ne(i18t('act_cancel'))}</button>
+      <button data-dlg-cancel class="ui-btn" data-close>${_ne(i18t('act_cancel'))}</button>
       <button class="ui-btn ui-btn-primary" id="ng-memo-go">${_ne(i18t('ng_memo_send_go'))}</button>
     </div>`, { maxWidth: '520px' });
   document.querySelectorAll('#modal-root [data-close]').forEach(b => b.addEventListener('click', closeModal));
@@ -9835,7 +9850,7 @@ function ngStartPickerOpen(){
       : `<p class="ngs-none">${_ne(i18t('ng_start_pick_none'))}</p>`}
     </div>
     <div style="padding:var(--s-3) 18px var(--s-4);display:flex;gap:var(--s-2);justify-content:flex-end;border-top:1px solid var(--color-divider)">
-      <button id="ngs-cancel" type="button" class="ui-btn">${_ne(i18t('act_cancel'))}</button>
+      <button data-dlg-cancel id="ngs-cancel" type="button" class="ui-btn">${_ne(i18t('act_cancel'))}</button>
       ${all.length ? `<button id="ngs-go" type="button" class="ui-btn ui-btn-primary" disabled>${_ne(i18t('ng_start_pick_go'))}</button>` : ''}
     </div>`, { label: i18t('ng_start_new'), maxWidth: W });
   let picked = null;
@@ -10219,8 +10234,16 @@ function renderRedline(){
         ${(typeof canEdit !== 'function' || canEdit()) && window.reviewState ? (() => {
           const st = reviewState(c);
           const label = st.phase === 'yours' ? i18t('rv_head_return') : i18t('rv_head_ask');
+          /* NOBODY TO ASK, NO POP-UP (SAP pop-ups, owner's go 10 Oct 2026):
+             with no colleague in the workspace the door used to open a dialog
+             whose whole message was "there is nobody to ask". The door greys
+             with that reason instead; a hand-back ('yours') is never greyed. */
+          const me = (typeof currentUser === 'function' && currentUser()) || {};
+          const nobody = st.phase !== 'yours' && typeof getUsers === 'function'
+            && !(getUsers() || []).some(u => u && u.id !== me.id);
+          const nobodyAttrs = nobody ? ` disabled aria-disabled="true" data-rl-dead="1" title="${_nea(i18t('rv_no_colleagues'))}"` : '';
           return `<button type="button" data-rl-review class="rl-pb-btn"
-            data-rv-phase="${_nea(st.phase)}"${deadAttrs || ` title="${_nea(i18t('rv_head_title'))}"`}>${icon('users','w-3.5 h-3.5')}<span class="rl-word">${_ne(label)}</span></button>`;
+            data-rv-phase="${_nea(st.phase)}"${deadAttrs || nobodyAttrs || ` title="${_nea(i18t('rv_head_title'))}"`}>${icon('users','w-3.5 h-3.5')}<span class="rl-word">${_ne(label)}</span></button>`;
         })() : ''}
   `;
   const mayMenu = !_rvPosture && (typeof canEdit !== 'function' || canEdit());
@@ -10553,17 +10576,11 @@ function renderRedline(){
                sentence: a door reading "3" still says what is behind it, which
                is why it can afford to lose its word before a verb can.
                textContent never changes, which is what the suite reads. */
-        }${(() => {
-          const liveN = (typeof negoLiveList === 'function') ? negoLiveList().length : 0;
-          const tip = i18tn('ng_live_list_title', liveN, { n: liveN });
-          return `<button type="button" data-rl-live-list class="rl-livelist"
-            title="${_nea(tip)}" aria-label="${_nea(tip)}">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
-            ><path d="m15 18-6-6 6-6"/></svg
-            ><span class="rl-word">${i18t('ng_live_list')}</span
-            ><span class="rl-livelist-n">${liveN}</span></button>`;
-        })()}
+        }${''/* ---- "OPEN DOCUMENT" TAKES THE PLACE OF "ALL NEGOTIATIONS" (owner,
+               10 Oct 2026) ---- the way back to this contract's Document tab,
+               now that the arrow left the name row. The list of negotiations
+               is still the sidebar's door. */}<button type="button" data-rl-open-doc class="rl-livelist"
+            title="${_nea(i18t('ct_open_document'))}"><span class="rl-word">${i18t('ct_open_document')}</span></button>
           </div>
         </section>
       </div>
@@ -10623,8 +10640,13 @@ function renderRedline(){
   /* THE WAY BACK TO THE OTHER NEGOTIATIONS — the sidebar's own door, told to
      land on the list rather than to reopen what is remembered (which is this
      page). One route, one argument; see openNegotiations. */
-  host.querySelectorAll('[data-rl-live-list]').forEach(el =>
-    el.addEventListener('click', () => openNegotiations({ list: true })));
+  host.querySelectorAll('[data-rl-open-doc]').forEach(el =>
+    el.addEventListener('click', () => {
+      const c = (typeof redlineHeldId === 'function' && window.getContract) ? getContract(redlineHeldId()) : null;
+      if (!c) return;
+      rlResetFocus();   /* leaving Negotiate leaves Focus behind, as every other way out does */
+      if (window.roomGoTab) roomGoTab(c, 'docs'); else if (window.openWorkspace) openWorkspace(c.id);
+    }));
   /* The tab row's wiring went with the tab row (12 Aug 2026). This page draws
      no room tabs, so a querySelector for them would have matched nothing
      forever — dead wiring that reads like a live route and outlives everyone
@@ -15138,7 +15160,7 @@ async function rlOpenPlaybookReview(c, again){
            named presses below, each of which asks. */}
     ${!it.lead
       ? `<div style="margin-top:9px;font-size:var(--t-meta);line-height:1.5;color:var(--color-neutral-600)">${i18t('ng_pb_nofit')}</div>`
-      : `<div style="margin-top:var(--s-2);font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)">${_ne(rlPbWordingLabel(it.leadKind))}</div>
+      : `<div style="margin-top:var(--s-2);font-size:var(--t-figure);font-weight:var(--w-title);color:var(--color-neutral-600)">${_ne(rlPbWordingLabel(it.leadKind))}</div>
     ${it.oldText && window.redlineStructuredHtml
       ? `<div style="margin-top:4px;font-size:var(--t-meta);line-height:1.7;border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-2) 10px;max-height:150px;overflow:auto">${redlineStructuredHtml(it.oldText, it.lead)}</div>`
       : `<div style="margin-top:4px;font-size:var(--t-meta);line-height:1.6;border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-2) 10px;max-height:150px;overflow:auto">${_ne(it.lead)}</div>`}`}
@@ -16691,7 +16713,7 @@ function rlNpReplyBoxHtml(root, ctx){
     <textarea class="chat-field rl-np-rin" rows="2" data-rl-np-rin="${_nea(key)}"
       placeholder="${_nea(ph)}" aria-label="${_nea(ph)}"></textarea>
     <div class="rl-np-act">
-      <button type="button" class="rl-np-act-b g" data-rl-np-reply-cancel="${_nea(key)}">${i18t('act_cancel')}</button>
+      <button data-dlg-cancel type="button" class="rl-np-act-b g" data-rl-np-reply-cancel="${_nea(key)}">${i18t('act_cancel')}</button>
       <button type="button" class="rl-np-send" data-rl-np-reply-send="${_nea(key)}">${i18t('ng_np_reply_send')}</button>
     </div>
   </div>`;
@@ -17728,7 +17750,7 @@ function rlNpGivePick(c, home, key, opts = {}, side = 'owner', again){
           class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500"/></label>
       <div class="flex justify-end gap-2">
         ${now ? `<button id="npg-off" class="ui-btn">${i18t('ng_np_give_off')}</button>` : ''}
-        <button id="npg-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="npg-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="npg-go" class="ui-btn ui-btn-primary">${i18t('ng_np_give_go')}</button>
       </div>
     </div>`, { maxWidth: DLG_W.s });

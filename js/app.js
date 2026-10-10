@@ -304,7 +304,10 @@ const PAGE_ACTIONS = {
    every stage. */
 /* `advice` paints an empty line whose room is held (adviceHeadPaint), so
    the Requests page's tab row sits at one height on both its tabs (gap F). */
-const PAGE_HEAD_PAINT = { obligations:'obwPaintHead', intake:'ikPaintHead', advice:'adviceHeadPaint', playbook:'pbPaintHead', agents:'agPaintHead' };
+/* Obligations left this table 9 Oct 2026 (owner: its head "needs to be the
+   same height as" Approvals & signing's, "so remove the we owe xxx place") —
+   it paints nothing into the head now, so it reserves no slot for it. */
+const PAGE_HEAD_PAINT = { intake:'ikPaintHead', advice:'adviceHeadPaint', playbook:'pbPaintHead', agents:'agPaintHead' };
 function pageActionHtml(kind){
   if(kind==='export') return `<button data-page-export class="ui-btn" title="${i18t('ap_export_working_set')}">`+
     `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>${i18t('ap_export')}</button>`;
@@ -511,10 +514,15 @@ function shellCrumbAdopt(c, backBtn){
        on the title's own line and the bar names the page, "Negotiate". Still
        ONE button, its id, data-back and handler untouched — it moves into the
        head's name row instead of into the bar. */
+    /* …AND NOW IT IS GONE FROM THE PAGE (owner, 10 Oct 2026: "delete the back
+       to document writing and the arrow but replace the all negotiation button
+       with Open document button"). The way back is "Open document" at the end
+       of the control row (data-rl-open-doc). The button leaves the page here,
+       where the head is laid out; the title's own click (#ws-back-title)
+       still reads its data-back and lands on the Document tab. */
     const nameRow = backBtn.closest('.room-head') && backBtn.closest('.room-head').querySelector('.room-name');
     if(nameRow){
-      backBtn.classList.remove('in-crumb'); backBtn.classList.add('in-head');
-      nameRow.prepend(backBtn);
+      backBtn.remove();
       const s=document.createElement('span'); s.className='crumb-here';
       s.textContent=i18t('tab_negotiate'); s.title=s.textContent;
       el.appendChild(s);
@@ -961,7 +969,7 @@ function viewLayersClosed(view){
      exactly as the clause editor's unfiled draft is. Nothing typed, no ask. */
   if(!_leavingCe && window.rlInlineDirty && rlInlineDirty() && window.confirmDialog){
     confirmDialog({ title:i18t('ce_leave_title'), message:i18t('ce_leave_body'),
-      confirmLabel:i18t('ce_leave_go'), cancelLabel:i18t('act_cancel'), danger:true })
+      confirmLabel:i18t('ce_leave_go'), cancelLabel:i18t('na_leave_stay'), danger:true })
       .then(ok=>{
         if(!ok) return;
         if(window.rlInlineEnd) rlInlineEnd(true);
@@ -987,7 +995,7 @@ function viewLayersClosed(view){
   const ask = (window.clauseEditorLeaveAsk && clauseEditorLeaveAsk())
     || { title:i18t('ce_leave_title'), message:i18t('ce_leave_body') };
   confirmDialog({ title:ask.title, message:ask.message,
-    confirmLabel:i18t('ce_leave_go'), cancelLabel:i18t('act_cancel'), danger:true })
+    confirmLabel:i18t('ce_leave_go'), cancelLabel:i18t('na_leave_stay'), danger:true })
     .then(ok=>{
       if(!ok) return;
       if(window.rlCloseClauseEditor) rlCloseClauseEditor();
@@ -1669,7 +1677,7 @@ function openCommandPalette(){
           <span style="display:block;font-size:var(--t-body);font-weight:var(--w-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(r.title||'').replace(/</g,'&lt;')}</span>
           <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.ref?(window.refHtml?refHtml(r.ref):String(r.ref).replace(/</g,'&lt;')):''}${(r.sub||'').replace(/</g,'&lt;')}</span>
         </span>
-        ${r.kind==='contract'&&window.statusChip?`<span style="flex:none">${statusChip(r.status)}</span>`:`<span style="flex:none;font-size:var(--t-micro);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-500)">${r.tag||r.kind}</span>`}
+        ${r.kind==='contract'&&window.statusChip?`<span style="flex:none">${statusChip(r.status)}</span>`:`<span style="flex:none;font-size:var(--t-micro);font-family:var(--font-mono);color:var(--color-neutral-500)">${r.tag||r.kind}</span>`}
       </button>`).join('');
     list.querySelectorAll('[data-cp-i]').forEach(b=>{
       const i=+b.getAttribute('data-cp-i');
@@ -3196,6 +3204,11 @@ function renderContextPanel(){
       closeContextPanel();
       if(a&&typeof a.go==='function') a.go();
     }));
+    /* A group's rest opens in place (alertsPanelHtml). */
+    body.querySelectorAll('[data-al-more]').forEach(b=>b.addEventListener('click',()=>{
+      const g=b.closest('[data-al-grp]'), f=g&&g.querySelector('[data-al-folded]');
+      if(f) f.hidden=false; b.remove();
+    }));
     /* ---- SEEING IT IS OPENING THE PANEL, AND IT IS MARKED AFTER THE PAINT ----
        (owner-asked 23 Aug 2026.) Order is the whole of it: the rows are built
        and written while the signal is still unseen, so the green one gets to
@@ -3228,7 +3241,7 @@ function activityPanelHtml(){
   const feed=buildActivityFeed();
   return `
       <div style="padding:10px var(--s-3);">
-        <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:var(--s-2);">
+        <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-micro);color:var(--color-neutral-600);margin-bottom:var(--s-2);">
           <span class="live-ping" style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot);"></span>${i18t('ap_scope_workspace')}
         </div>
         ${feed.length?feed.map(a=>`
@@ -3260,23 +3273,60 @@ function activityPanelHtml(){
    The inline styles stay inline: this panel has been written that way since it
    was built, the classes carry only what a stylesheet can say and a style
    attribute cannot — a state, an animation, and a media query. */
-function alertsPanelHtml(){
-  const rows=buildAlerts();
+/* Rows of one kind that say the same words, in the order buildAlerts sorted
+   them (kind by kind), become one group; anything else is a group of one. */
+const ALERT_GROUP_SHOW=3;
+function alertGroupsOf(rows){
+  const out=[];
+  rows.forEach((a,i)=>{
+    const last=out[out.length-1];
+    if(last && last.kind===a.kind && last.text===a.text) last.rows.push({a,i});
+    else out.push({ kind:a.kind, text:a.text, rows:[{a,i}] });
+  });
+  return out;
+}
+/* ONE ROW. In a group the shared words are on the group's line, so the row
+   leads with the contract's name and keeps its own sub-line and reference. */
+function alertRowHtml(a, i, inGroup){
   return `
-      <div style="padding:10px var(--s-3);">
-        <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:var(--s-2);">
-          <span style="width:6px;height:6px;border-radius:50%;background:${rows.length?'var(--st-amber-dot)':'var(--st-green-dot)'};"></span>${i18t('ap_scope_you')}
-        </div>
-        ${rows.length?rows.map((a,i)=>`
           <button data-alert-i="${i}" data-alert-kind="${a.kind}"${a.hint?` title="${esc(a.hint)}"`:''} class="al-row${a.tone==='green'?' al-good':''}${a.news?' al-news':''}" style="display:flex;gap:9px;width:100%;padding:9px 2px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
             <span style="width:8px;height:8px;border-radius:50%;background:${ALERT_TONE[a.tone]};flex:none;margin-top:5px;"></span>
             <span style="flex:1;min-width:0;">
-              <span class="al-t" style="display:block;font-size:var(--t-meta);line-height:1.4;font-weight:var(--w-strong);">${esc(a.text)}</span>
+              <span class="al-t" style="display:block;font-size:var(--t-meta);line-height:1.4;font-weight:var(--w-strong);">${esc(inGroup?(a.name||a.ref||a.id):a.text)}</span>
               ${a.sub?`<span class="al-sub" style="display:block;font-size:var(--t-label);line-height:1.45;color:var(--color-neutral-600);margin-top:2px;">${esc(a.sub)}</span>`:''}
-              ${a.name?`<span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(a.name)}</span>`:''}
+              ${a.name&&!inGroup?`<span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(a.name)}</span>`:''}
               <span class="hati-ref" style="display:block;font-size:var(--t-label);color:var(--color-neutral-500);">${esc(a.ref||a.id)}</span>
             </span>
-          </button>`).join(''):`
+          </button>`;
+}
+function alertsPanelHtml(given){
+  const rows=given||buildAlerts();   /* rows may be handed in (a check drawing a known set) */
+  return `
+      <div style="padding:10px var(--s-3);">
+        <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-micro);color:var(--color-neutral-600);margin-bottom:var(--s-2);">
+          <span style="width:6px;height:6px;border-radius:50%;background:${rows.length?'var(--st-amber-dot)':'var(--st-green-dot)'};"></span>${i18t('ap_scope_you')}
+        </div>
+        ${rows.length?alertGroupsOf(rows).map(g=>{
+          /* ---- ONE GROUP, ONE COUNT (SAP's notifications, owner's go 10 Oct
+             2026) ----
+             Eleven identical "Waiting on your approval" lines read as eleven
+             news items. Rows of one kind saying the same thing are ONE group:
+             its line said once with the count, then the contracts under it,
+             three shown and the rest one press away. A row alone draws as it
+             always did. Every row keeps its own data-alert-i, so a press still
+             does the work it did. */
+          if(g.rows.length===1) return alertRowHtml(g.rows[0].a, g.rows[0].i, false);
+          const a0=g.rows[0].a, more=g.rows.length-ALERT_GROUP_SHOW;
+          return `<div class="al-grp" data-al-grp>
+            <div style="display:flex;align-items:center;gap:9px;padding:9px 2px 4px;">
+              <span style="width:8px;height:8px;border-radius:50%;background:${ALERT_TONE[a0.tone]};flex:none;"></span>
+              <span class="al-t" style="flex:1;min-width:0;font-size:var(--t-meta);font-weight:var(--w-strong);">${esc(a0.text)}</span>
+              <span class="al-n" style="flex:none;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink);background:var(--color-accent-50);border-radius:999px;padding:1px 8px;font-variant-numeric:tabular-nums">${g.rows.length}</span>
+            </div>
+            ${g.rows.slice(0,ALERT_GROUP_SHOW).map(r=>alertRowHtml(r.a, r.i, true)).join('')}
+            ${more>0?`<div data-al-folded hidden>${g.rows.slice(ALERT_GROUP_SHOW).map(r=>alertRowHtml(r.a, r.i, true)).join('')}</div>`:''}
+            ${more>0?`<button type="button" class="ui-link" data-al-more style="margin:2px 0 6px 17px;font-size:var(--t-label)">${esc(i18tn('al_show_more',more,{n:more}))}</button>`:''}
+          </div>`; }).join(''):`
           <div style="padding:26px 6px;text-align:center;">
             <div style="width:38px;height:38px;margin:0 auto 10px;display:grid;place-items:center;border-radius:50%;background:var(--st-green-bg);color:var(--st-green-fg);">&#10003;</div>
             <div style="font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);">${i18t('ap_nothing_needs_you')}</div>

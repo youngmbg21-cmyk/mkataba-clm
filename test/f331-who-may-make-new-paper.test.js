@@ -768,7 +768,10 @@ describe('f331 (13) — the link, and the room to draw it', () => {
       assert.match(src, /const _pv = \(typeof fillPreviewFits==='function'\) && fillPreviewFits\(\);/,
         name + ' asks it');
       assert.ok(/_pv\?fillPreviewPaneHtml\(/.test(src), name + ' draws the pane only where it fits');
-      assert.ok(/maxWidth:_pv\?'1040px':'620px'|_pv\?\{maxWidth:'1040px'\}:undefined/.test(src),
+      /* RE-POINTED 10 Oct 2026 (SAP pop-ups, owner's go): where the paper fits,
+         the saved-template fill is a PAGE (dlgPageAdopt), not a 1040px card;
+         under the width it is still the 620px dialog it was. */
+      assert.ok(/maxWidth:_pv\?'1040px':'620px'|_pv\?\{maxWidth:'1040px'\}:undefined|_pv\s*(\/\*[\s\S]*?\*\/\s*)?\?\s*\{\s*page:[\s\S]{0,200}:\s*\{maxWidth:'620px'\}/.test(src),
         name + ' widens the frame only where it fits');
     }
   });

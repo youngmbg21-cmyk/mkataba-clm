@@ -160,8 +160,13 @@ describe('f187 (2) — the alerts are borrowed counts, never new ones', () => {
     assert.ok(pushes.length >= 6, 'six kinds of alert');
     assert.match(body, /openRedlineWorkbench\(c\.id\)/);
     assert.match(body, /roomGoTab\(c,'sign'\)/);
+    /* RE-POINTED 10 Oct 2026 (SAP pop-ups: Alerts grouped): one row builder,
+       alertRowHtml, draws every row — alone or in a group — and alertsPanelHtml
+       calls it for each. */
+    const row = app.slice(app.indexOf('function alertRowHtml'));
+    assert.match(row.slice(0, row.indexOf('\n}')), /data-alert-i=/);
     const panel = app.slice(app.indexOf('function alertsPanelHtml'));
-    assert.match(panel.slice(0, panel.indexOf('\n}')), /data-alert-i=/);
+    assert.match(panel.slice(0, panel.indexOf('\n}')), /alertRowHtml\(/);
     const render = app.slice(app.indexOf('function renderContextPanel'));
     assert.match(render.slice(0, render.indexOf('\n}')), /closeContextPanel\(\);/,
       'and the panel gets out of the way when the door is taken');

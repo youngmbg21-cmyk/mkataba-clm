@@ -758,7 +758,7 @@ function clauseEditorCss(){
   /* the chat is WHITE, like HaTi's own Copilot panel — a grey ground made the
      rail read as a sunken well rather than as the panel it is */
   /* ---- THE LADDER CARD AND THE TWO NEW TABS (14 Sep 2026) ---- */
-  .ce-lcard .k{font-size:var(--t-micro); font-weight:var(--w-title); letter-spacing:.06em; text-transform:uppercase;
+  .ce-lcard .k{font-size:var(--t-micro); font-weight:var(--w-title);  
     color:var(--color-neutral-500); margin:10px 0 3px}
   .ce-lcard .k:first-child{margin-top:0}
   .ce-lcard .said{font-style:italic; color:var(--color-neutral-600)}
@@ -767,7 +767,7 @@ function clauseEditorCss(){
   .ce-ladder-lane{padding:0}
   .ce-ladder-lane .rl-cp-sec{margin:0 0 18px}
   .ce-ladder-lane .rl-cp-h{margin:0 0 var(--s-1); font-size:var(--t-label); font-weight:var(--w-title); letter-spacing:.06em;
-    text-transform:uppercase; color:var(--color-neutral-500)}
+     color:var(--color-neutral-500)}
   .ce-fig-note{font-size:var(--t-meta); color:var(--color-neutral-600); margin:8px 0 0}
   .ce-lane{flex:1; min-height:0; overflow:auto; padding:14px; background:var(--color-surface)}
   .ce-you{display:flex; justify-content:flex-end; margin:0 0 var(--s-3)}
@@ -809,7 +809,7 @@ function clauseEditorCss(){
   .ce-card .n{display:flex; align-items:center; gap:var(--s-2); font-size:var(--t-body); font-weight:var(--w-title)}
   .ce-card .n .g{flex:1; min-width:4px}
   .ce-card .chip{flex:none; font-size:var(--t-figure); font-weight:var(--w-title); letter-spacing:.06em;
-    text-transform:uppercase; padding:2px 6px}
+     padding:2px 6px}
   .ce-card .chip.ok{background:var(--st-green-bg); color:var(--st-green-fg)}
   .ce-card .chip.no{background:var(--st-ruby-bg); color:var(--st-ruby-fg)}
   .ce-card .chip.wait{background:var(--st-amber-bg); color:var(--st-amber-fg)}
@@ -860,7 +860,7 @@ function clauseEditorCss(){
      the note to the other side under it. */
   .ce-card .ce-prep-in .ce-inbox{color:var(--st-green-fg); font-size:var(--t-meta); font-weight:var(--w-label)}
   .ce-card .ce-prep-note{display:flex; flex-direction:column; gap:var(--s-1); margin-top:var(--s-3)}
-  .ce-card .ce-prep-note .k{font-size:var(--t-label); color:var(--cap-ink); text-transform:uppercase; letter-spacing:.04em}
+  .ce-card .ce-prep-note .k{font-size:var(--t-label); color:var(--cap-ink);  }
   .ce-card .ce-prep-note textarea{font:inherit; font-size:var(--t-meta); line-height:1.5; padding:var(--s-2); resize:vertical; min-height:64px;
     background:var(--color-surface); color:var(--color-neutral-900); border:1px solid var(--color-divider); border-radius:var(--radius)}
   .ce-card .ce-prep-note .h{font-size:var(--t-label); color:var(--color-neutral-600)}
@@ -905,14 +905,14 @@ function clauseEditorCss(){
          does — which is a band saying what the page will do with what you
          press, not a narration of the screen. */}
   .ce-scan-h{margin:14px 0 var(--s-2); font-size:var(--t-micro); font-weight:var(--w-title);
-    letter-spacing:.09em; text-transform:uppercase; color:var(--color-neutral-600)}
+      color:var(--color-neutral-600)}
   .ce-scan-h:first-child{margin-top:0}
   .ce-scan-h .s{display:block; margin-top:3px; font-size:var(--t-label); font-weight:var(--w-body);
     letter-spacing:0; text-transform:none; color:var(--color-neutral-600); line-height:1.45}
   ${''/* The preview names whose wording it is, so a card offering three of them
          can never leave the reader guessing which one it drew. */}
   .ce-rule .pvk{display:block; margin-top:var(--s-2); font-size:var(--t-figure); font-weight:var(--w-title);
-    letter-spacing:.09em; text-transform:uppercase; color:var(--color-neutral-600)}
+      color:var(--color-neutral-600)}
   ${''/* ---- AND THE BOX OPENS (Young, 21 Sep 2026: "I should be able to
          expand the window to read better") ----
          A proposed clause is the one thing on this rail a reader has to read
@@ -1013,7 +1013,7 @@ function clauseEditorCss(){
     padding:11px var(--s-3)}
   .ce-reason[hidden]{display:none}
   .ce-reason label{display:block; font-size:var(--t-micro); font-weight:var(--w-title); letter-spacing:.09em;
-    text-transform:uppercase; color:var(--color-neutral-600); margin-bottom:7px}
+     color:var(--color-neutral-600); margin-bottom:7px}
   .ce-reason textarea{width:100%; min-height:52px; padding:var(--s-2) 10px; font:inherit; font-size:var(--t-meta);
     line-height:1.5; resize:vertical; background:var(--color-surface);
     border:1px solid var(--color-divider); color:var(--color-text); outline:none}
@@ -1065,7 +1065,7 @@ function clauseEditorCss(){
   .ce-scope{margin:0 13px 9px; padding:8px 10px;
     background:var(--color-neutral-100); border:1px solid var(--color-divider)}
   .ce-scope .eb{display:flex; align-items:center; gap:6px; font-size:var(--t-figure);
-    font-weight:var(--w-title); letter-spacing:.09em; text-transform:uppercase;
+    font-weight:var(--w-title);  
     color:var(--accent-ink)}
   .ce-scope .eb b{font-weight:var(--w-title)}
   .ce-scope .eb .g{flex:1; min-width:4px}
@@ -2725,7 +2725,7 @@ function ceLeaveGuard(go){
   if (!dirty || typeof window === 'undefined' || !window.confirmDialog){ go(); return; }
   const ask = clauseEditorLeaveAsk();
   confirmDialog({ title: ask.title, message: ask.message,
-    confirmLabel: _cet('ce_leave_go'), cancelLabel: _cet('act_cancel'), danger: true })
+    confirmLabel: _cet('ce_leave_go'), cancelLabel: _cet('na_leave_stay'), danger: true })
     .then(ok => { if (ok) go(); }).catch(() => {});
 }
 /* ---- MOVING TO ANOTHER CLAUSE ASKS BEFORE IT THROWS A DRAFT AWAY ----

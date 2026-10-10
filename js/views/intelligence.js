@@ -624,7 +624,7 @@ function igDependentsHtml(id){
   if(money && d.value>0) lines.push(`<div class="text-[11.5px] text-ink/70">${i18t('int_dep_value',{v:fmtMoneyShort(d.value)})}${miss.length?` <span class="text-ink/45">· ${i18t('int_dep_missing',{n:miss.map(k=>`${d.missing[k]} × ${k}`).join(', ')})}</span>`:''}</div>`);
   if(d.held) lines.push(`<div class="text-[11.5px]" style="color:var(--st-amber-fg)">${i18tn('int_dep_held',d.held)}</div>`);
   return `<div class="mt-2 pt-2" style="border-top:1px solid var(--color-divider)" data-ig-deps-block="${igEsc(id)}">
-    <div class="text-[10px] uppercase tracking-wider text-ink/45 mb-1">${i18t('int_if_ends')}</div>
+    <div class="text-[10px] text-ink/45 mb-1">${i18t('int_if_ends')}</div>
     ${lines.join('')}
     <button data-ig-deps="${igEsc(id)}" class="ui-link" style="margin-top:6px">${i18t('int_dep_see_list')}${icon('chevR','w-3.5 h-3.5')}</button>
   </div>`;
@@ -2429,7 +2429,7 @@ async function intelComplianceScan(q){
   }
   const sevPill=s=>{ const lbl=((typeof SEV_META==='object'&&SEV_META&&SEV_META[s]&&SEV_META[s].label)||s);
     const col=s==='high'?['var(--st-ruby-bg)','var(--st-ruby-fg)']:s==='med'?['var(--st-amber-bg)','var(--st-amber-fg)']:['var(--st-gray-bg)','var(--st-gray-fg)'];
-    return `<span style="display:inline-flex;align-items:center;font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.04em;text-transform:uppercase;padding:1px 7px;border-radius:var(--radius);background:${col[0]};color:${col[1]}">${igEsc(lbl)}</span>`; };
+    return `<span style="display:inline-flex;align-items:center;font-size:var(--t-figure);font-weight:var(--w-title);padding:1px 7px;border-radius:var(--radius);background:${col[0]};color:${col[1]}">${igEsc(lbl)}</span>`; };
   const top=rows.slice(0,8);
   const totalFindings=rows.reduce((n,r)=>n+r.findings.length,0);
   let html=`<b>${i18t('int_compliance_review')}</b> ${rows.length} of ${cs.length} live contracts carry clauses worth a closer look — ${totalFindings} potential issue${totalFindings===1?'':'s'} in all (risks, missing protections or ambiguous terms), ranked by severity. This is a first-pass review to raise with counsel, not legal advice.`;
@@ -3981,7 +3981,7 @@ function renderIntel(){
              with it. */}
       <span style="flex:1"></span>
       ${intel.tab==='friction'?frictionControls:''}
-      ${intel.tab==='map'?`<label style="display:flex;align-items:center;gap:var(--s-2);font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);flex:none">Group by
+      ${intel.tab==='map'?`<label style="display:flex;align-items:center;gap:var(--s-2);font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600);flex:none">Group by
         ${groupSel}
       </label>`:''}
     </header>`;
@@ -4790,7 +4790,7 @@ function intelFrictionCopilotHtml(st){
   const head=`<div style="display:flex;align-items:center;gap:var(--s-2)">
     <span style="width:22px;height:22px;flex:none;display:grid;place-items:center;border-radius:var(--radius);background:var(--st-steel-bg);color:var(--st-steel-fg)">${icon('sparkle','w-3 h-3',2)}</span>
     <span style="font-size:var(--t-body);font-weight:var(--w-title)">${i18t('int_copilots_read')}</span>
-    <span style="font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:var(--radius);background:var(--st-steel-bg);color:var(--st-steel-fg)">${i18t('int_optional_ai')}</span>
+    <span style="font-size:var(--t-figure);font-weight:var(--w-title);padding:2px 7px;border-radius:var(--radius);background:var(--st-steel-bg);color:var(--st-steel-fg)">${i18t('int_optional_ai')}</span>
   </div>`;
   let body;
   if(ai&&ai.busy&&ai.key===key){
@@ -5698,7 +5698,7 @@ const obCard=(title,hint,body,foot)=>`<section style="${OB_CARD}">
   ${foot?`<div style="margin-top:auto;padding-top:10px;font-size:var(--t-label);line-height:1.55;color:var(--color-neutral-600)">${foot}</div>`:''}</section>`;
 /* A flag on a card head says what KIND of thing the card is, in a word:
    a gap in the record, a commitment that has stopped, a field we do not keep. */
-const obFlag=(txt,bg,fg)=>`<span style="font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:var(--radius);background:${bg};color:${fg};margin-left:auto;flex:none">${txt}</span>`;
+const obFlag=(txt,bg,fg)=>`<span style="font-size:var(--t-figure);font-weight:var(--w-title);padding:2px 7px;border-radius:var(--radius);background:${bg};color:${fg};margin-left:auto;flex:none">${txt}</span>`;
 
 /* ---- COLOUR DOES ONE JOB PER CHART, AND NEVER ON ITS OWN ----
    OURS is the workspace's own accent — our team's workload — and THEIRS is
@@ -6274,7 +6274,7 @@ function intelPayTermsHtml(){
     ['pt_col_ref', ''], ['pt_col_party', ''], ['pt_col_stream', ''],
     ['pt_col_side', ''], ['pt_col_terms', 'text-align:right'],
     ['pt_col_gap', 'text-align:right'], ['pt_col_value', 'text-align:right'],
-  ].map(([k, x]) => `<span style="font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;font-weight:var(--w-title);color:var(--color-neutral-600);${x}">${i18t(k)}</span>`).join('');
+  ].map(([k, x]) => `<span style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600);${x}">${i18t(k)}</span>`).join('');
 
   /* THE NARROWING SAYS SO AND CARRIES THE WAY BACK ON THE SAME LINE — the
      standing rule for every control on this product that can hide a row. */
@@ -6292,7 +6292,7 @@ function intelPayTermsHtml(){
     ${cell(E(r.counterparty || r.name), 'font-size:var(--t-meta);color:var(--color-text)')}
     ${cell(E(streamOf(r)), 'font-size:var(--t-label);color:var(--color-neutral-600)')}
     ${cell(i18t(r.side === 'customer' ? 'pt_side_cust' : 'pt_side_supp'), `font-size:var(--t-label);color:${r.side === 'customer' ? OB_OURS : OB_THEIRS}`)}
-    <span style="${NUMCELL};color:var(--color-neutral-600)">${i18t('pt_drive_terms', { d:n(r.days), t:n(r.standard) })}${r.over ? ` <b style="font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--st-ruby-fg)">${i18t('pt_over_tag')}</b>` : ''}</span>
+    <span style="${NUMCELL};color:var(--color-neutral-600)">${i18t('pt_drive_terms', { d:n(r.days), t:n(r.standard) })}${r.over ? ` <b style="font-size:var(--t-micro);color:var(--st-ruby-fg)">${i18t('pt_over_tag')}</b>` : ''}</span>
     <span style="${NUMCELL};font-weight:var(--w-title);color:${r.gapDays > 0 ? 'var(--st-ruby-fg)' : 'var(--color-neutral-500)'}">${r.gapDays > 0 ? n(r.gapDays) + ' ' + i18t('pt_days') : '—'}</span>
     <span style="${NUMCELL};color:var(--color-neutral-600)">${money(r.value) || '—'}</span>
   </button>`;
@@ -6608,7 +6608,7 @@ function renderIntelDock(){
     </div>`}
     ${''/* SAVED VIEWS — the reader's own recipes, one press each (the view
            recipe, 28 Sep 2026). Drawn only when there is one. */}
-    ${(()=>{ const v=(window.pdShowsDesk&&pdShowsDesk())?[]:igViewsRead(); return v.length?`<div class="px-3.5 pb-1.5 shrink-0 flex flex-wrap items-center gap-1.5" data-ig-views><span class="text-[10.5px] uppercase tracking-wider text-ink/40">${i18t('int_saved_views')}</span>${v.slice(-4).reverse().map(x=>`<button type="button" data-ig-saved="${igEsc(x.name)}" title="${igEsc(x.name)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 px-2.5 py-1 text-brand-700 transition text-left" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${igEsc(x.name)}</button>`).join('')}</div>`:''; })()}
+    ${(()=>{ const v=(window.pdShowsDesk&&pdShowsDesk())?[]:igViewsRead(); return v.length?`<div class="px-3.5 pb-1.5 shrink-0 flex flex-wrap items-center gap-1.5" data-ig-views><span class="text-[10.5px] text-ink/40">${i18t('int_saved_views')}</span>${v.slice(-4).reverse().map(x=>`<button type="button" data-ig-saved="${igEsc(x.name)}" title="${igEsc(x.name)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 px-2.5 py-1 text-brand-700 transition text-left" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${igEsc(x.name)}</button>`).join('')}</div>`:''; })()}
     ${!intel.history.length&&!(window.pdShowsDesk&&pdShowsDesk())?`
     <div class="px-3.5 pb-2 shrink-0 flex flex-wrap gap-1.5">
       ${(typeof window.caChipsHtml==='function'&&caChipsHtml())||((state.view==='dashboard'&&typeof hbSuggestions==='function'&&hbSuggestions())||IG_SUGGESTIONS.slice(0,3)).map(s=>`<button data-igsug="${igEsc(s)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${igEsc(s)}</button>`).join('')}
@@ -6634,6 +6634,9 @@ function renderIntelDock(){
       <button id="igd-go" class="ui-btn ui-btn-sm ui-btn-primary absolute" style="right:18px;bottom:20px">${i18t('int_ask')}</button>
     </div>`;
   const feed=document.getElementById('igd-feed'); feed.scrollTop=feed.scrollHeight;
+  /* THE DOCUMENT TAB IS THE CLAUSE LIST (10 Oct 2026): its host is drawn
+     empty and filled by the Document tab's own painter. */
+  if(window.pdShowsDesk&&pdShowsDesk()&&window.pdTab&&pdTab()==='doc'&&typeof window.docThreadPaint==='function'){ const pc=pdContract(); if(pc) try{ docThreadPaint(pc); }catch(_){ } }
   // charts in dock answers come back to life after every repaint
   if(typeof aiHydrateCharts==='function'){
     const blocks=intel.history.flatMap(m=>(m&&m.blocks)||[]);
@@ -7320,7 +7323,7 @@ let _igStrandRows=[];
 function igStrandPaint(c){
   const sp=document.getElementById('ig-spine'), canvas=document.getElementById('ig-canvas'), sc=document.getElementById('ig-paper-scroll');
   if(!sp||!canvas) return;
-  if(typeof docXrayRows!=='function'||typeof docXraySpineHtml!=='function'||typeof docXraySpineRows!=='function'){ sp.hidden=true; return; }
+  if(typeof docXrayRows!=='function'||typeof docXraySpineRows!=='function'){ sp.hidden=true; return; }
   let rows=[]; try{ rows=docXrayRows(c,canvas)||[]; }catch(_){ rows=[]; }
   /* THE ANSWERS' CLAUSES JOIN THE MAP in steel: a pinned passage marks the
      clause it sits in; the scan's and the playbook's marks keep their own
@@ -7337,25 +7340,30 @@ function igStrandPaint(c){
   if(!marked.length){ sp.innerHTML=''; _igStrandRows=[]; return; }
   /* The strip's width is the Document tab's own number, written on the
      element as that tab writes it (the sheet's rule states none). */
-  /* THE TRACK where the margin has room for it, today's strip where it does
-     not — the paper never moves for it (igTrackFits). */
+  /* THE TRACK, ALWAYS (owner, 10 Oct 2026: "when i move the slide to the
+     left, the page breaks and the DNA Strand appears again when we actually
+     agreed to delete it"): the old strip is never drawn here again. The Track
+     takes the width the margin has — full, slim, or a hairline of dots
+     (igTrackSize) — and the paper never moves for it. */
   _igStrandC=c;
-  const track=igTrackFits(sp, canvas);
-  sp.classList.toggle('is-track', track);
-  if(track){ sp.style.width=IG_TRACK_W+'px'; sp.innerHTML=igTrackHtml(rows); }
-  else { sp.style.width=(Number(window.DOC_XRAY_SPINE_W)||28)+'px'; sp.innerHTML=docXraySpineHtml(rows,{ numbers:true }); }
+  const size=igTrackSize(sp, canvas);
+  sp.classList.add('is-track');
+  sp.classList.toggle('is-slim', size==='slim');
+  sp.classList.toggle('is-hair', size==='hair');
+  sp.dataset.trackSize=size;
+  sp.style.width=IG_TRACK_WIDTHS[size]+'px'; sp.innerHTML=igTrackHtml(rows);
   sp.querySelectorAll('.doc-xr-seg.is-on').forEach(b=>{ b.classList.remove('is-on'); b.setAttribute('aria-pressed','false'); });
   _igStrandRows=rows.map(x=>x.el);
   _igStrandData=rows;
   igStrandFollow();
-  if(track) igTrackPlace();
+  igTrackPlace();
   /* the margin and the paper's length move with the window and the panel:
      the Track is laid out again (and the strip chosen again) when they do */
   const wrap=sp.parentElement;
   if(wrap&&!wrap.dataset.igTrackWatch&&typeof ResizeObserver==='function'){ wrap.dataset.igTrackWatch='1'; let raf2=0;
     const again=()=>{ if(raf2) return; raf2=requestAnimationFrame(()=>{ raf2=0; const s2=document.getElementById('ig-spine');
-      if(!s2||s2.hidden||!_igStrandC) return; const fits=igTrackFits(s2, document.getElementById('ig-canvas'));
-      if(fits!==s2.classList.contains('is-track')) igStrandPaint(_igStrandC); else if(fits) igTrackPlace(); }); };
+      if(!s2||s2.hidden||!_igStrandC) return; const size=igTrackSize(s2, document.getElementById('ig-canvas'));
+      if(size!==s2.dataset.trackSize) igStrandPaint(_igStrandC); else igTrackPlace(); }); };
     const ro=new ResizeObserver(again); ro.observe(wrap); ro.observe(canvas); }
   if(sc&&!sc.dataset.igFollowBound){ sc.dataset.igFollowBound='1'; let raf=0;
     sc.addEventListener('scroll',()=>{ igStrandTip(null); if(raf) return; raf=requestAnimationFrame(()=>{ raf=0; igStrandFollow(); }); },{passive:true}); }
@@ -7453,19 +7461,26 @@ function igStrandTip(b){
    overlap, a leader joining each to its mark), and a soft window over the
    part of the contract on screen. The hover card, the press and the Ask
    question are the strip's own (igStrandTip, igStrandPress): the labels carry
-   the same `data-xr-seg`. IT LIVES IN THE GREY MARGIN ONLY: where the margin
-   left of the sheet is narrower than the Track, today's strip is drawn
-   instead, so the contract never moves. Nothing here writes or spends. */
+   the same `data-xr-seg`. IT LIVES IN THE GREY MARGIN ONLY, AT THE WIDTH
+   THE MARGIN HAS (10 Oct 2026, owner: the old strip is never drawn again):
+   full where the Track fits, SLIM (small number tags) where the margin is
+   tight, a HAIRLINE of dots (the number on the hover card) where there is
+   almost no room. The contract never moves. Nothing here writes or spends. */
 const IG_TRACK_W=70, IG_TRACK_GAP=20, IG_TRACK_PAD=14, IG_TRACK_X=10;
+const IG_TRACK_WIDTHS={ full:IG_TRACK_W, slim:34, hair:14 };
+/* where the rail runs and where a label starts, per size */
+const IG_TRACK_GEOM={ full:{ x:IG_TRACK_X, lab:22, gap:IG_TRACK_GAP }, slim:{ x:6, lab:13, gap:16 }, hair:{ x:6, lab:2, gap:10 } };
 let _igStrandC=null;
-function igTrackFits(sp, canvas){
-  const wrap=sp&&sp.parentElement; if(!wrap||!canvas) return false;
+function igTrackSize(sp, canvas){
+  const wrap=sp&&sp.parentElement; if(!wrap||!canvas) return 'hair';
   /* the sheet the paper is drawn on: the white page round the wording, or
      the redlined paper, which is the canvas itself */
   const sheet=canvas.closest('.pg-sheet')||canvas;
   const room=sheet.getBoundingClientRect().left-wrap.getBoundingClientRect().left;
-  return room>=IG_TRACK_W+4;
+  return room>=IG_TRACK_W+4?'full':room>=IG_TRACK_WIDTHS.slim+4?'slim':'hair';
 }
+/* kept for the readers that ask whether the WHOLE Track fits */
+function igTrackFits(sp, canvas){ return igTrackSize(sp, canvas)==='full'; }
 /* LABELS NEVER OVERLAP: in order, each at least `gap` below the one before;
    then pulled back inside [top, bot] from the bottom up. A pure function of
    the marks' places, so it is pinned by a unit test. */
@@ -7496,11 +7511,12 @@ function igTrackPlace(){
   const marks=labs.map(b=>{ const i=Number(b.getAttribute('data-xr-seg')), el=_igStrandRows[i];
     let y=0, h=0; try{ const r=el.getBoundingClientRect(); y=(r.top-scTop)/total; h=r.height/total; }catch(_){}
     return { b, g:(b.className.match(/is-(ruby|amber|steel)/)||[])[1]||'steel', y:top+Math.max(0,Math.min(1,y))*span, h:Math.max(5,h*span) }; });
-  const ly=igTrackLayout(marks.map(m=>m.y), top+9, bot-9, IG_TRACK_GAP);
-  const x=IG_TRACK_X, col={ ruby:'var(--st-ruby-dot)', amber:'var(--st-amber-dot)', steel:'var(--st-steel-dot)' };
+  const geo=IG_TRACK_GEOM[sp.dataset.trackSize]||IG_TRACK_GEOM.full;
+  const ly=igTrackLayout(marks.map(m=>m.y), top+9, bot-9, geo.gap);
+  const x=geo.x, col={ ruby:'var(--st-ruby-dot)', amber:'var(--st-amber-dot)', steel:'var(--st-steel-dot)' };
   let g=`<rect class="ig-trk-rail" x="${x-3}" y="${top}" width="6" height="${span}" rx="3"/><rect class="ig-trk-win" x="${x-7}" y="${top}" width="14" height="0" rx="3"/>`;
   marks.forEach((m,k)=>{ g+=`<rect x="${x-3}" y="${(m.y).toFixed(1)}" width="6" height="${m.h.toFixed(1)}" rx="1.5" style="fill:${col[m.g]}"/>`
-    +`<path class="ig-trk-lead" d="M${x+4} ${(m.y+Math.min(m.h,6)/2).toFixed(1)} C ${x+9} ${(m.y).toFixed(1)}, ${x+9} ${ly[k].toFixed(1)}, 22 ${ly[k].toFixed(1)}"/>`;
+    +(geo.lab>x+4?`<path class="ig-trk-lead" d="M${x+4} ${(m.y+Math.min(m.h,6)/2).toFixed(1)} C ${x+9} ${(m.y).toFixed(1)}, ${x+9} ${ly[k].toFixed(1)}, ${geo.lab} ${ly[k].toFixed(1)}"/>`:'');
     m.b.style.top=ly[k].toFixed(1)+'px'; });
   svg.innerHTML=g;
   igTrackWindow();
@@ -7596,5 +7612,5 @@ Object.assign(window,{igCellFolded,igHubCellsOpen,igCellRadius,igCellsFolded,igC
    milestone, and the tab's press wiring. */
 Object.assign(window,{igDockStepAside});
 Object.assign(window,{igFramesDrawn,igKeptKey,igWake,igTurnFace,igLoopStart,IG_SETTLE_ROUNDS,IG_SETTLE_SLICE,IG_AWAKE_MS});
-Object.assign(window,{igTrackLayout,igTrackFits,igTrackHtml,igTrackPlace,IG_TRACK_W,igStrandPaint});
+Object.assign(window,{igTrackLayout,igTrackFits,igTrackSize,IG_TRACK_WIDTHS,IG_TRACK_GEOM,igTrackHtml,igTrackPlace,IG_TRACK_W,igStrandPaint});
 Object.assign(window,{obReminderOf,OB_FIRST_DAYS,intelObligationsWire});

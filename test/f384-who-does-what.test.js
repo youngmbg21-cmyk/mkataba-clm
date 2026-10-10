@@ -353,7 +353,8 @@ describe('f384 (5) the two presses ride the thread’s one listener', () => {
   const WIRE = region('docThreadWire');
   test('a line takes the paper to its sentence through scrollToQuote — never a second finder', () => {
     assert.ok(/closest\('\[data-xr-wd\]'\)/.test(WIRE), 'the line is answered in the thread listener');
-    assert.ok(/window\.scrollToQuote\(q\)/.test(WIRE), 'by the risk scan’s own "take me to these words"');
+    /* RE-POINTED 10 Oct 2026 (Home's Paper clauses work order): the thread has two homes (TH_HOSTS); a row the scroll opens opens in one step ({follow:true}). */
+    assert.ok(/window\.scrollToQuote\(q,thOnHome\(\)\?\{root:thEl\('canvas'\)\}:undefined\)/.test(WIRE), 'by the risk scan’s own "take me to these words" (on Home, over Home\'s paper)');
     assert.ok(!/createTreeWalker/.test(whoBlock()), 'and nothing here walks the text for itself');
   });
   test('the door goes to the Obligations tab through roomGoTab, with the contract looked up LIVE', () => {

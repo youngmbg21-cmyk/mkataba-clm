@@ -176,9 +176,14 @@ describe('f238 — the design system has its other half', () => {
        #1C1A16; at night #E6ECEA / #A0ACA9 / #8B9895. The claim is unchanged —
        the four inks are the design's literal values and a well-meant retune
        may not drift off them — only the design they are read from moved. */
-    for (const decl of ['--color-text:#141F1D', '--color-neutral-600:#5A6866',
-                        '--color-neutral-500:#5A6866', '--color-neutral-400:#6B7876',
-                        '--color-neutral-700:#141F1D', '--color-doc-text:#1C1A16',
+    /* RE-PINNED 9 Oct 2026 to INK WASH (owner-picked, "HaTi without grey",
+       docs/WORKORDER-ink-wash-and-sentence-case.md): light mode's inks are
+       black + the theme colour — Green's here in :root, Blue's in
+       :root[data-brand="navy"]:not(.dark). Dark is unchanged, and so is the
+       paper's own ink. Same claim: the inks are the design's literals. */
+    for (const decl of ['--color-text:#032E2A', '--color-neutral-600:#3A5F5A',
+                        '--color-neutral-500:#3A5F5A', '--color-neutral-400:#547974',
+                        '--color-neutral-700:#032E2A', '--color-doc-text:#1C1A16',
                         '--color-doc-muted:#3B4A48'])
       assert.ok(has(root, decl), `light theme is missing ${decl}`);
     for (const decl of ['--color-text:#E6ECEA', '--color-neutral-600:#A0ACA9',

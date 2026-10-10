@@ -154,6 +154,25 @@ function listedVersions(c){
     .filter(v => v && v.listed !== false);
 }
 
+/* ---- IS THERE A SECOND THING TO COMPARE? (SAP pop-ups, owner's go 10 Oct
+   2026) ----
+   Compare used to open a dialog whose whole message was "there's only one
+   version". The ⋯ row asks this first and greys with that reason instead.
+   It answers the SAME question openCompareModal builds its list from —
+   captured versions, the live wording where it differs, and the proposed
+   wording while a change is pending — reading c.changes RAW, never through
+   negoChanges (which would initialise a negotiation: reading must not write). */
+function compareHasTwo(c){
+  if(!c) return false;
+  const vs=listedVersions(c);
+  if(vs.length>=2) return true;
+  let live=false;
+  if(!vs.length) live=true;
+  else { try{ live=docPlainText(c)!==vs[0].text || docCanonical(c)!==(vs[0].canon||vs[0].text); }catch(_){ live=true; } }
+  const pend=!!(c.negotiation && (c.changes||[]).some(x=>x && x.status==='pending' && !x.withdrawn));
+  return (vs.length + (live?1:0) + (pend?1:0)) >= 2;
+}
+
 /* The round a snapshot is taken in. The caller may name it — negoAdvanceRound
    does, because by the time it saves "Round 1 closed" the counter has already
    moved to 2 and the snapshot belongs to the round that just ended, not the one
@@ -833,7 +852,7 @@ function reviewProposedRound(c, n){
         ${b.after.trim()?`<ins style="background:var(--st-green-bg);color:var(--st-green-fg);text-decoration:none;border-radius:var(--radius);padding:0 2px">${e(b.after.trim())}</ins>`:''}
       </div>
       ${ask?`<div style="margin-top:var(--s-2);border-left:2px solid var(--color-accent-300);background:var(--st-steel-bg);border-radius:var(--radius);padding:7px 10px">
-        <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:2px">${i18t('ve_why_they_asked')}</span>
+        <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--accent-ink);margin-bottom:2px">${i18t('ve_why_they_asked')}</span>
         <span style="font-size:var(--t-meta);line-height:1.55;color:var(--color-neutral-800)">${e(ask)}</span></div>`:''}
       <div style="display:flex;gap:6px;margin-top:9px;align-items:center">
         <button data-dec="accept" data-for="${b.id}" class="ui-btn ui-btn-sm">${i18t('ve_accept')}</button>
@@ -849,7 +868,7 @@ function reviewProposedRound(c, n){
           <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
             <span style="color:var(--st-amber-dot);display:inline-flex">${icon('history','w-4 h-4')}</span>
             <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">Changes proposed by ${e(r.by||'the counterparty')}</h3>
-            <span style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:var(--radius);padding:3px 9px">${i18t('ve_round_open',{n})}</span>
+            <span style="font-size:var(--t-micro);font-weight:var(--w-title);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:var(--radius);padding:3px 9px">${i18t('ve_round_open',{n})}</span>
           </div>
           <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:7px 0 0;display:flex;flex-wrap:wrap;gap:10px;align-items:center">${fmtDT(r.at)} · ${_statLine(st)} · ${_diffLegend}</p>
         </div>
@@ -864,13 +883,13 @@ function reviewProposedRound(c, n){
               <button id="pr-all-rej" class="ui-btn">${i18t('ve_reject_all')}</button>
             </div>
             <div id="pr-blocks" style="display:flex;flex-direction:column;gap:9px;margin-bottom:18px">${blocks.map(blockRow).join('')}</div>`:''}
-          <div style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:7px">${i18t('ve_doc_with_changes')}</div>
+          <div style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500);margin-bottom:7px">${i18t('ve_doc_with_changes')}</div>
           <div style="background:var(--color-doc-surface);box-shadow:var(--shadow-md);border-radius:0;padding:30px 36px;font-size:var(--t-card);line-height:1.95;color:var(--color-doc-text);white-space:pre-wrap;font-family:var(--font-body)">${diffHtml(base, r.proposedText)}</div>
           ${r.comment?`<div style="margin-top:14px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:var(--s-3) var(--s-4)">
-            <div style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">${i18t('ve_their_comment')}</div>
+            <div style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500);margin-bottom:5px">${i18t('ve_their_comment')}</div>
             <div style="font-size:var(--t-body);line-height:1.6;color:var(--color-neutral-800)">${e(r.comment)}</div></div>`:''}
           <label style="display:block;margin-top:14px">
-            <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">${i18t('ve_your_reply_to',{who:e(r.by||i18t('ve_them'))})}</span>
+            <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500);margin-bottom:5px">${i18t('ve_your_reply_to',{who:e(r.by||i18t('ve_them'))})}</span>
             <textarea id="pr-reply" rows="2" placeholder="${e(i18t('ve_ph_reply'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:9px 11px;font:inherit;font-size:var(--t-body);outline:none"></textarea>
           </label>
         </div>
@@ -1109,4 +1128,4 @@ function fileCounterpartyEdit(c, text, opts={}){
 /* Guard used by signDocument: any open round carrying proposed edits? */
 function unresolvedRedlines(c){ return (c.rounds||[]).filter(r=>r.status==='open' && r.proposedText).length; }
 
-Object.assign(window,{uploadWordingEdited,applyOwnerEdit,listedVersions,takeNamedSnapshot,restoreVersion,restoreBlockedWhy,restoreNoOpWhy,fileCounterpartyEdit,resolveRound,noteForBlock,diffBlocks,applyBlockDecisions,openPointsFor,docPlainText,docCanonical,htmlToStructuredText,reflowWorkingText,captureVersion,wordDiff,diffHtml,diffStats,diffCompareText,tokenize,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});
+Object.assign(window,{uploadWordingEdited,applyOwnerEdit,listedVersions,compareHasTwo,takeNamedSnapshot,restoreVersion,restoreBlockedWhy,restoreNoOpWhy,fileCounterpartyEdit,resolveRound,noteForBlock,diffBlocks,applyBlockDecisions,openPointsFor,docPlainText,docCanonical,htmlToStructuredText,reflowWorkingText,captureVersion,wordDiff,diffHtml,diffStats,diffCompareText,tokenize,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});

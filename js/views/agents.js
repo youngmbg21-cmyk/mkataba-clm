@@ -1552,7 +1552,7 @@ function agSendBackHtml(agent, key){
         <textarea class="ag-sb-note" rows="2" maxlength="600" style="${(typeof HATI_FLD === 'string') ? HATI_FLD : ''}height:auto;min-height:var(--field-h)"
           placeholder="${_agE(_agT('ag_sendback_ph'))}" aria-label="${_agE(_agT('ag_sendback'))}"></textarea>
         <div class="ag-sb-acts"><button type="button" class="ui-btn ui-btn-primary" data-ag-sb-go>${_agE(_agT('ag_sendback_go'))}</button>
-          <button type="button" class="ui-link" data-ag-sb-cancel>${_agE(_agT('act_cancel'))}</button>
+          <button data-dlg-cancel type="button" class="ui-link" data-ag-sb-cancel>${_agE(_agT('act_cancel'))}</button>
           <span class="ag-sub">${_agE(_agT('ag_sendback_cost'))}</span></div>
       </div>
     </div>`;

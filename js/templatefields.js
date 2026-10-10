@@ -624,7 +624,7 @@ function openContractEssentials(opts){
     </div>
     ${errHtml}
     <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:var(--s-2)">
-      <button id="ce-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button data-dlg-cancel id="ce-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <span style="flex:1"></span>
       <button id="ce-skip" class="ui-btn" title="${esc(i18t('lib_create_now_fill_later'))}">${i18t('wz_skip_for_now')}</button>
       <button id="ce-create" class="ui-btn ui-btn-primary">${esc(o.createLabel||'Create draft')}</button>
@@ -877,7 +877,7 @@ function fillPreviewLeft(values){
 }
 function fillPreviewPaneHtml(n){
   return `<div style="display:flex;flex-direction:column;gap:6px;min-width:0">
-    <span style="font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)">${
+    <span style="font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--color-neutral-600)">${
       esc(i18t('tf_preview_cap'))}<span id="tf-preview-left">${n ? ' \u00b7 ' + esc(i18tn('tf_preview_left', n, { n })) : ''}</span></span>
     ${''/* IT SCROLLS, AND NOTHING IN IT IS TYPEABLE. Those were one problem.
            docBody draws a draft's blanks as REAL inputs, so this column was

@@ -165,7 +165,7 @@ function folderLegendHtml(opts={}){
   const short = f => (typeof STREAM_SHORT!=='undefined' && STREAM_SHORT[f.id]) || f.name;
   const items = visibleFolders().map(f=>`<span style="display:inline-flex;align-items:center;gap:6px;font-size:var(--t-label);color:var(--color-neutral-700);white-space:nowrap"><span style="width:4px;height:12px;border-radius:var(--radius);background:${f.color};flex:none"></span>${short(f)}</span>`).join('');
   return `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-2) 14px;${opts.style||''}">
-    <span style="font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('fo_value_streams')}</span>
+    <span style="font-size:var(--t-micro);color:var(--color-neutral-500)">${i18t('fo_value_streams')}</span>
     ${items}
   </div>`;
 }
@@ -210,7 +210,7 @@ function promptNewName(o){
         <input id="nf-name" placeholder="${esc(o.placeholder||'')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)" />
         <div id="nf-err" style="font-size:var(--t-label);color:var(--st-ruby-dot);margin-top:6px;display:none">${i18t('fo_enter_name')}</div>
         <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
-          <button id="nf-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+          <button data-dlg-cancel id="nf-cancel" class="ui-btn">${i18t('act_cancel')}</button>
           <button id="nf-save" class="ui-btn ui-btn-primary">${esc(o.ok)}</button>
         </div>
       </div>`;

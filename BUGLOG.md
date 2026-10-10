@@ -20571,10 +20571,16 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - On Negotiate, a colleague's lock sign on the paper (.rl-cp-lock) wears the contract design's typeface (Times New Roman under Formal legal) instead of the product's own face. Seen while re-pointing negotiate-design-verify; already so before this change.
 - js/mobile.js still maps a room tab key 'ov2' to the phone's Key terms tab (M_TAB_FOR_ROOM); harmless now the tab is gone, left as is.
 
+## Noticed, not fixed — 9 Oct 2026 (Ink Wash and sentence case)
+- test/chromium/theme-tokens-verify.js (the colour census) is red on unmodified main too: 16 screens report "every colour unchanged" failures before this change, so its baseline is already stale. Not re-recorded here, because a re-record would also bless drift unrelated to Ink Wash. With Ink Wash, calendar and templates (light) join the list; every dark screen stays as it was. ink-wash-verify carries this change's own census.
+- test/chromium/negotiation-memo, panel-alerts-and-head (7 FAIL) and templates-tabs (3 FAIL) fail identically on unmodified main. Left red.
 ## Noticed, not fixed — 9 Oct 2026 (SAP benchmark, batch 1: the lists)
 - The server lets any signed-in editor put an APPROVED rule step back to waiting in a save (srvApprovalDecisionRefusal skips a step whose new status is pending). It only makes a contract stricter, and Undo after Approve relies on it, but the server does not check that it is the approver taking back their own yes within the Undo window. Left as is.
 - Every page carries one unnamed button in the shell (axe button-name: 1 on Contracts, Negotiations, Approvals, Obligations). Planned for the accessibility batch.
 
+## Noticed, not fixed — 9 Oct 2026 (SAP benchmark of the pop-ups)
+- The "Fill a template" pop-up's "Which side are we on?" dropdown lists "[object Object]" three times instead of its choices (seen opening openTemplateFillModal on the first built-in template with the 30 Kenyan samples).
+- Deleting a draft ends in a red error toast ("… deleted", kind 'err' in deleteContract), so a success reads as a failure.
 ### Noticed, not fixed (SAP batch 2, 9 Oct 2026)
 - calendar-redesign-verify sections 5, 7 and 8 fail on main and on the branch alike: its SEED pins every event to August 2026, so once the real month moves on the grid shows none of them (a test whose answer depends on the day it runs). Section 3's colour check passes vacuously for the same reason.
 - axe reports one unnamed button on every page photographed (the same count on main) — left for the accessibility batch.
@@ -20588,3 +20594,19 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - FIXED 10 Oct 2026 (owner: "Fix the bugs") — the three handover findings above: (1) a signed copy whose words differ keeps its own text (`signedCopy.text`, off the list, kept on a list-row save) and the duties are read off it (`obligationsText`); (2) a clause number left at the end of the clause before it on a flattened copy is the next clause's (`dropNextNumber` in outsideCompare, same line only); (3) "§3" is their numbering (OH_MARKER_RE), numbering set aside as design is not drawn as a change, and the document's title no longer heads every clause. Tests f654 (30)–(37), f655, signed-copy-differs-verify 2c, 2d, 5d.
 - Noticed while fixing (10 Oct 2026), not changed: after a differing signed copy is filed, the Document tab's paper still shows the AGREED wording ("thirty days"); only the record block beneath says the signed copy differs. Likely by design (the agreed version and the copy of record side by side) — a question for the owner, not a fix.
 - Noticed while fixing (10 Oct 2026), not changed: the server's overnight key-terms reading (runBookReading via copilotContractWording) still reads the agreed wording of a contract filed on a differing signed copy, so Insights' payment-terms figure could say thirty where the copy of record says sixty.
+
+## Bug log clean-up — 10 Oct 2026 (owner: "clean up as much as you can from the bug log, most serious first")
+- FIXED: the server let any editor put an APPROVED rule step back to waiting (or drop it) in a save. Now only the person who said yes, or an admin, may take it back; a save that moves the amount, words, filled terms or parties still lapses it (srvApprovalDecisionRefusal; f409 (9)).
+- FIXED: a change the funnel then REFUSED still claimed the negotiation desk — the claim is now made just before the change is pushed (negoFileChange; f165).
+- FIXED: the board's count trend line could start or end below zero; it is floored at zero where every point is (hbTrendOf; f448).
+- FIXED: "Why they asked" and Copilot's change record showed the clause editor's own label ("Written on the clause editor") as a reason; both hosts now read a reason the same way (NEGO_PROVENANCE_RE, SRV_NEGO_PROVENANCE_RE; f414 (n9)).
+- FIXED: on their negotiation link retired by signing, the state word beside the title still read "In Review"; it now says "Signing started" (portalStatusWordHtml; f440).
+- FIXED: opening the Document tab on a light list row before the whole record landed threw on c.fields.effDate; the paper is drawn off a copy with empty answers (docBody).
+- FIXED: calendar-redesign-verify depended on the day it ran (August 2026 seed) — the browser's clock is set to the seed's day, its dark-mode check re-pointed to the segmented views; taken off KNOWN_RED (45/45).
+- FIXED: the one unnamed button on every page was Copilot's send arrow (#ai-send) — it now has a spoken name in both languages.
+- Not fixed (left on purpose): the faint grey strip at the right edge of pages that do not own their height — a layout trade-off (the reserved scrollbar gutter), not a quick fix.
+- CORRECTION (same day): the docBody light-row guard above was REVERTED before merge. A freshly filed upload is briefly a record with no fields; the throw it prevented is what made the Document tab redraw once the upload landed, and the guard drew a blank NDA instead (upload-party-verify went red). The original scripted-press throw stays open, not fixed.
+
+## Noticed, not fixed — 10 Oct 2026 (clauses on Home's Paper)
+- js/paperdesk.js `PD_ROOM_TAB` maps doc→'contract' and oblig→'obligations', but the room's tab keys are 'docs' and 'oblig' (ROOM_TABS): the phone fallback of `pdOpenOnHome` for those two tabs lands on no tab. Left as found.
+- test/chromium/history-head-verify.js is red on main (bf49fe3): it expects the History tab's five filters on screen with nothing pressed, but SAP batch 3 put them behind the Filter fold (`_histFiltersOpen`). The check needs re-pointing to the fold; left as found (10 Oct 2026, seen on PR #199's browser shard 1).

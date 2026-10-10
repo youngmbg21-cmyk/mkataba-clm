@@ -1001,7 +1001,7 @@ function calStyleCss(){ return `
   .cal-hz-t{font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text)}
   .cal-hz-h{font-size:var(--t-label);color:var(--color-neutral-600)}
   .cal-hz-col{padding:7px var(--s-3);font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.06em;
-    text-transform:uppercase;color:var(--color-neutral-500)}
+    color:var(--color-neutral-500)}
   .cal-hz-ruler{display:grid;grid-template-columns:300px minmax(0,1fr) 150px;position:sticky;top:0;z-index:2;
     background:var(--color-surface);box-shadow:inset 0 -1px var(--color-divider)}
   .cal-hz-months{display:grid;grid-template-columns:repeat(12,minmax(0,1fr))}
@@ -1107,7 +1107,7 @@ function calStyleCss(){ return `
     column-gap:var(--s-1);padding:0 var(--s-1);
     background:var(--color-neutral-100);box-shadow:inset 0 -1px var(--color-divider)}
   .cal-dow span{padding:7px var(--s-2);font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.06em;
-    text-transform:uppercase;color:var(--color-neutral-500);white-space:nowrap;overflow:hidden}
+    color:var(--color-neutral-500);white-space:nowrap;overflow:hidden}
   ${''/* ---- THE DAY BOXES ARE TILES WITH ROUNDED CORNERS (owner-asked 4 Oct
          2026: "the date boxes should have rounded corners like the cards
          across the platform") ---- They were cells: a 1px gap over a grey
@@ -1196,7 +1196,7 @@ function calStyleCss(){ return `
          the one light edge, the one height and the one ink every other
          button does — nothing of its own to keep in step. */}
   .cal-upn-done{flex:none}
-  .cal-theirs{flex:none;font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.04em;text-transform:uppercase;
+  .cal-theirs{flex:none;font-size:var(--t-figure);font-weight:var(--w-title);
     padding:1px var(--s-1);background:var(--st-amber-bg);color:var(--st-amber-fg)}
   .cal-panel-foot{flex:none;padding:11px 14px}
   .cal-link{border:0;background:none;font:inherit;font-size:var(--t-body);font-weight:var(--w-label);
@@ -1445,7 +1445,7 @@ function openCalendarShare(evs){
       <div id="cal-share-err" class="rvd-note" hidden style="color:var(--danger-hover);margin-top:var(--s-2)"></div>
     </div>
     <div class="rvd-foot">
-      <button class="ui-btn" data-close>${_esc(i18t('act_cancel'))}</button>
+      <button data-dlg-cancel class="ui-btn" data-close>${_esc(i18t('act_cancel'))}</button>
       <button class="ui-btn ui-btn-primary" id="cal-share-go">${_esc(i18t('cal_share_send'))}</button>
     </div>`, { maxWidth:'520px' });
   document.querySelectorAll('#modal-root [data-close]').forEach(b=>b.addEventListener('click',closeModal));

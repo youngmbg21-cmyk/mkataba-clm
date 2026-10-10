@@ -69,7 +69,8 @@ describe('f507 (1) — one card, where the layers were', () => {
   test('the strand stays on the Explorer and is not drawn on the Document tab', () => {
     assert.ok(CONTRACT.includes('function docXraySpineHtml'), 'the builder is kept for the Explorer');
     assert.ok(!THREAD.includes('docXraySpineHtml'), 'and the Thread never calls it');
-    assert.match(read('js/views/intelligence.js'), /docXraySpineHtml/, 'the Explorer still does');
+    /* RE-POINTED 10 Oct 2026 (owner): the paper draws the Track at every width; the strip is drawn nowhere now */
+    assert.doesNotMatch(read('js/views/intelligence.js'), /docXraySpineHtml\(rows/, 'nor does the Explorer');
   });
   test('the other hosts that repainted the Checks card now repaint the Thread', () => {
     for (const f of ['js/ai.js', 'js/obligations.js', 'js/views/templatelib.js']) {
@@ -110,7 +111,9 @@ describe('f507 (2) — the line decides the open row', () => {
     /* RE-POINTED 5 Oct 2026: the line opens the nearest clause SHOWN (a section
        title, or a clause the colour filter hides, opens the one it belongs with),
        and only while the clauses are on screen (the Drawer). */
-    assert.match(arm, /if\(c&&docThreadLive\(\)\) docThreadOpen\(c,docThreadLineRow\(\)\)/);
+    /* RE-POINTED 10 Oct 2026 (owner: "clauses in the documents tab Flickers"): a
+       row the SCROLL opens opens in one step — {follow:true} — never animated. */
+    assert.match(arm, /if\(c&&docThreadLive\(\)\) docThreadOpen\(c,docThreadLineRow\(\),\{follow:true\}\)/);
     assert.match(region(CONTRACT, 'docThreadLineRow'), /docThreadNearest\(rows, docThreadAtLine\(\)\)/);
     const open = region(CONTRACT, 'docThreadOpen');
     assert.ok(!open.includes('docReadSheet('), 'a scroll never walks the sheet');
@@ -209,9 +212,11 @@ describe('f507 (5) — the funnel, the words, the narrow window', () => {
     assert.match(CONTRACT, /function docReadOn\(\)\{ return docThreadOn\(\); \}/);
   });
   test('below 1024 it stands down, as the layers before it did — and while the drawer is shut', () => {
-    assert.match(THREAD, /const docThreadOn = \(\) => docReadFits\(\) && _wsTab === 'docs';/);
+    /* RE-POINTED 10 Oct 2026: the thread has two homes; on the Document tab the
+       rule is unchanged, on Home's Paper the list IS the panel. */
+    assert.match(THREAD, /const docThreadOn = \(\) => thOnHome\(\) \? thHomeLive\(\) : \(docReadFits\(\) && _wsTab === 'docs'\);/);
     const paint = region(CONTRACT, 'docThreadPaint');
-    assert.match(paint, /const up=on&&docThreadShowsClauses\(c\);/, 'RE-POINTED 5 Oct 2026: on screen = may be drawn AND the clauses are up');
+    assert.match(paint, /const up=on&&\(home\|\|docThreadShowsClauses\(c\)\);/, 'RE-POINTED 5 Oct 2026: on screen = may be drawn AND the clauses are up');
     assert.match(paint, /card\.hidden=!up;/);
   });
   test('its words are in both books', () => {

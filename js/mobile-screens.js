@@ -486,7 +486,7 @@ function mNewSheetHtml(){
     ${''/* No caption above them. "Other ways in" was true while the standards
            sat on top and is a heading about nothing now that they do not. */}
     <div class="m-card m-list" style="background:var(--color-bg)">${routes}</div>
-    <button class="m-btn m-btn-quiet" style="margin-top:var(--s-3)" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
+    <button data-dlg-cancel class="m-btn m-btn-quiet" style="margin-top:var(--s-3)" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
 }
 
 /* ------------------------------------------------------------- APPROVALS ---

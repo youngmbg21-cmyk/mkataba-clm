@@ -320,9 +320,14 @@ const check = (name, pass, detail) => {
       const rows = await page.evaluate(() => {
         const pairs = [['up-name', 'up-party'], ['up-cp', 'up-cpemail'], ['up-value', 'up-expiry']];
         return pairs.map(([a, b]) => {
-          const A = document.getElementById(a), B = document.getElementById(b);
+          /* A DATE WEARS HaTi'S FACE IN A POP-UP (SAP pop-ups, 10 Oct 2026):
+             the real box is kept, hidden, as the value; the box a reader sees
+             is the face beside it, so that is the one measured. */
+          const vis = el => el && el.dataset && el.dataset.dp === '1' && el.nextElementSibling ? el.nextElementSibling : el;
+          const A = vis(document.getElementById(a)), B = vis(document.getElementById(b));
           if (!A || !B) return { pair: a + '/' + b, missing: true };
-          const la = A.previousElementSibling, lb = B.previousElementSibling;
+          const lab = (el, id) => { const real = document.getElementById(id); return (real && real.dataset.dp === '1' ? real : el).previousElementSibling; };
+          const la = lab(A, a), lb = lab(B, b);
           return { pair: a.replace('up-', '') + '/' + b.replace('up-', ''),
             off: Math.round(A.getBoundingClientRect().top - B.getBoundingClientRect().top),
             labels: [Math.round(la.getBoundingClientRect().height),

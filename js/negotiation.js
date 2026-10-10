@@ -1156,7 +1156,11 @@ function negoKeepDiscarded(c, id, list){
 /* THE REASON, NOT THE PROVENANCE (the owner's list, 27 Sep 2026): `ch.note` on
    a Copilot-filed change is the machinery's label ("Copilot — Edit"), not a
    reason anybody gave. Every "Why they asked" reads this one answer. */
-const NEGO_PROVENANCE_RE = /^Copilot\s+[—-]\s/;
+/* AND THE CLAUSE EDITOR'S OWN LABEL (bug log, 29 Sep 2026): a change saved
+   on the clause editor with no Copilot behind it carries `ce_provenance`
+   ("Written on the clause editor") as its note, and History printed it as
+   "Why they asked". Server twin: SRV_NEGO_PROVENANCE_RE. */
+const NEGO_PROVENANCE_RE = /^(?:Copilot\s+[—-]\s|Written on the clause editor\s*$)/;
 const negoReasonOf = ch => (ch && (ch.why || (ch.note && !NEGO_PROVENANCE_RE.test(String(ch.note)) ? ch.note : ''))) || '';
 const negoDiscardedHashes = c => new Set(((c && c.negotiation && c.negotiation.discarded) || []).map(d => d && d.hash).filter(Boolean));
 async function verifyChangeChain(c){
@@ -1395,8 +1399,14 @@ async function negoFileChange(c, draft, opts = {}){
 
      Quiet by design, and it never refuses: filing a redline is the act the
      person meant to perform, and stage 1 of this feature stamps a name without
-     changing what anybody may do. */
-  if (window.deskClaimOnFile){ try{ deskClaimOnFile(c, side); }catch(_){} }
+     changing what anybody may do.
+
+     MADE AT THE PUSH, NOT HERE (bug log, 10 Oct 2026): claimed at the top, a
+     change that one of the guards below then REFUSED (no-op, empty insertion,
+     a rename, the clause lock) still handed the desk to whoever pressed. The
+     claim is made just before the change is pushed — see deskStampOnFile. An
+     unclaimed contract has no desk, and no desk refuses nobody, so moving it
+     changes no refusal. */
   /* ---------- THE OTHER SIDE MAY NOT RENAME OUR CLAUSES ----------
      Owner-ruled 29 Aug 2026. The rename shipped on 28 Aug with no rule about
      seats, and their page mounts the same panel ours does, so until now they
@@ -1433,9 +1443,9 @@ async function negoFileChange(c, draft, opts = {}){
      function without passing any screen at all, and a rule they can walk around
      is decoration.
 
-     AFTER the claim, deliberately: the first person to work an unclaimed
-     contract claims it and is then a member, so the rule never refuses the act
-     that would have created the desk.
+     An unclaimed contract has no desk, and no desk refuses nobody, so the
+     rule never refuses the act that will create the desk (the claim itself
+     is made at the push, below).
 
      OUR SIDE ONLY. The counterparty's own proposals arrive through here too and
      have nothing to do with who sits at our desk; their wall is the transport,
@@ -1869,6 +1879,7 @@ async function negoFileChange(c, draft, opts = {}){
      the desk rule is off, no desk is open, nobody is signed in, or this person
      holds the lead's seat — which is every workspace until an admin switches
      the desk rule on. */
+  if (window.deskClaimOnFile){ try{ deskClaimOnFile(c, side); }catch(_){} }
   try{ if (window.deskStampOnFile) deskStampOnFile(c, side, ch); }catch(_){}
   c.changes.push(ch);
   /* ---- AND IF COPILOT PROPOSED THIS WORDING, THE RECORD SAYS SO (idea 22) ----
@@ -4708,7 +4719,7 @@ function negoCopilotRecord(c){
     proposedBy: x.author || '', side: x.authorSide || '',
     summary: String(x.summary || ''),
     decidedBy: x.resolvedBy || null, decidedAt: x.resolvedAt || null,
-    reasonGiven: String(x.reply || x.note || '') || null,
+    reasonGiven: String(x.reply || negoReasonOf(x) || '') || null,
     currentWording: String(x.oldText || ''), proposedWording: String(x.newText || ''),
   });
   const ceiling = NEGO_COPILOT_CHARS();

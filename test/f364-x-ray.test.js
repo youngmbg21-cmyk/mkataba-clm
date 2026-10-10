@@ -89,7 +89,8 @@ describe('f364 (1) the switch is gone', () => {
    ==========================================================================*/
 describe('f364 (2) one facing page, always up', () => {
   test('up wherever two working columns fit, on the Document tab alone', () => {
-    assert.ok(/const docThreadOn = \(\) => docReadFits\(\) && _wsTab === 'docs';/.test(CODE));
+    /* RE-POINTED 10 Oct 2026: on the Document tab the rule is unchanged; Home's Paper is the thread's second home */
+    assert.ok(/const docThreadOn = \(\) => thOnHome\(\) \? thHomeLive\(\) : \(docReadFits\(\) && _wsTab === 'docs'\);/.test(CODE));
     assert.ok(/const docReadFits=\(\)=>window\.innerWidth>=DOC_READ_MIN_W;/.test(CODE), 'a narrow window stands it down, never a layer it cannot draw');
   });
 });
@@ -189,9 +190,10 @@ describe('f364 (5) the strand left the margin; the thread is the map', () => {
     assert.match(CODE, /const DOC_XRAY_SPINE_W = 28;/, 'the width stays, for the Explorer');
     assert.ok(!/docXraySpineHtml\(/.test(region('docThreadPaint')), 'the thread paints beads, not blocks');
   });
-  test('the Explorer still does, with the same builders', () => {
+  test('the Explorer draws the Track, never the strand (10 Oct 2026, owner)', () => {
     const IG = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js', 'views', 'intelligence.js'), 'utf8');
-    assert.ok(/docXraySpineHtml\(rows,\{ numbers:true \}\)/.test(IG));
+    assert.ok(!/docXraySpineHtml\(rows/.test(IG), 'the old strip is never drawn on the paper again');
+    assert.ok(/sp\.innerHTML=igTrackHtml\(rows\);/.test(IG));
     assert.ok(/\.doc-xr-spine\{position:absolute;/.test(INDEX), 'absolutely positioned and never in the flow');
   });
   test('the paper column gained a position and an id, and nothing else', () => {

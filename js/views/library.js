@@ -169,7 +169,10 @@ function openTemplateFillModal(t, prefill, ho){
     const _mapTitle=(_map && _map.trim().toLowerCase()!==String(f.label||'').trim().toLowerCase()) ? ` title="${_tplEsc(_map).replace(/"/g,'&quot;')}"` : '';
     const lbl=`<span${_mapTitle} style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${_tplEsc(f.label)}${f.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}${_mapNote}</span>`;
     const st='width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none';
-    if(f.type==='select') return `<label style="display:block">${lbl}<select id="${id}" style="${st}">${(f.opts||[]).map(o=>`<option value="${_tplEsc(o).replace(/"/g,'&quot;')}" ${f.def===o?'selected':''}>${_tplEsc(o)}</option>`).join('')}</select></label>`;
+    /* AN OPTION MAY BE A {v,l} PAIR (the side question is), so it is read
+       through fieldOpt, the one reading — printed whole it said "[object
+       Object]" three times (seen 9 Oct 2026, the SAP pop-up photographs). */
+    if(f.type==='select') return `<label style="display:block">${lbl}<select id="${id}" style="${st}">${(f.opts||[]).map(o=>(typeof window.fieldOpt==='function')?window.fieldOpt(o):{v:String(o),l:String(o)}).map(o=>`<option value="${_tplEsc(o.v).replace(/"/g,'&quot;')}" ${String(f.def==null?'':f.def)===o.v?'selected':''}>${_tplEsc(o.l)}</option>`).join('')}</select></label>`;
     const it=f.type==='date'?'date':(f.type==='num'?'number':'text');
     return `<label style="display:block">${lbl}<input id="${id}" type="${it}" value="${String(f.def||'').replace(/"/g,'&quot;')}" placeholder="${_tplEsc(f.ph||'')}" style="${st}"/></label>`; };
   /* ---- THE PAPER BESIDE THE QUESTIONS (upgrade 2, 18 Sep 2026) ----
@@ -265,11 +268,16 @@ function openTemplateFillModal(t, prefill, ho){
     </div>
     ${errHtml}
     <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:var(--s-2)">
-      <button id="tf-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button data-dlg-cancel id="tf-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <span style="flex:1"></span>
       <button id="tf-skip" class="ui-btn" title="${esc(i18t('lib_create_now_fill_later'))}">${i18t('lib_skip_for_now')}</button>
       <button id="tf-create" class="ui-btn ui-btn-primary">${i18t('lib_create_draft')}</button>
-    </div></div>`, {maxWidth:_pv?'1040px':'620px'});
+    </div></div>`, _pv
+      /* WITH THE PAPER BESIDE IT, A PAGE (SAP pop-ups, owner's go 10 Oct
+         2026): the form and the paper fill the work area, Create draft,
+         Skip and Cancel at the top. The short form stays a dialog. */
+      ? { page:{ acts:['tf-create','tf-skip','tf-cancel'], crumb:`${i18t('nav_contracts')} › ${i18t('na_title')}` } }
+      : {maxWidth:'620px'});
   if(typeof bindFolderSelect==='function') bindFolderSelect(document.getElementById('tf-folder'));
   /* THE ANSWERS AS THEY STAND, read exactly as the Create press reads them, so
      the preview cannot draw a contract the press would not make. */
@@ -320,7 +328,7 @@ function saveContractAsTemplate(c){
       <label style="display:block;margin-bottom:14px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_value_stream')}</span>
         <select id="tpl-folder" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">${opts}</select></label>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-        <button id="tpl-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="tpl-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="tpl-save" class="ui-btn ui-btn-primary">${i18t('lib_save_template')}</button>
       </div>
     </div>`);
@@ -404,7 +412,7 @@ function openCreateTemplateModal(mode){
 
       <div id="ct-status" style="font-size:var(--t-label);color:var(--color-neutral-600);min-height:16px;margin:10px 0"></div>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-        <button id="ct-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="ct-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="ct-save" class="ui-btn ui-btn-primary">${i18t('lib_save_template')}</button>
       </div>
     </div>`, {maxWidth:'820px'});
@@ -722,7 +730,7 @@ function openBlanksEditor(tid){
         : `<textarea id="be-body" class="scroll-thin" style="width:100%;height:210px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:9px 11px;font:inherit;font-size:var(--t-meta);line-height:1.6;font-family:var(--font-mono);outline:none;resize:vertical"></textarea>`}</label>
     <div id="be-status" style="font-size:var(--t-label);color:var(--color-neutral-600);min-height:15px;margin-bottom:var(--s-2)"></div>
     <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-      <button id="be-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button data-dlg-cancel id="be-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="be-save" class="ui-btn ui-btn-primary">${i18t('lib_save_blanks')}</button>
     </div></div>`, {maxWidth:'760px',
     /* Escape and the scrim ask the SAME question Cancel does. Without this they
@@ -942,7 +950,7 @@ function openTemplateEditor(tid){
     <div style="display:flex;justify-content:space-between;gap:var(--s-2)">
       <button id="te-delete" class="ui-btn" style="border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">${i18t('lib_delete_template')}</button>
       <span style="display:flex;gap:var(--s-2)">
-        <button id="te-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="te-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="te-save" class="ui-btn ui-btn-primary" style="white-space:nowrap">${icon('check2','w-3.5 h-3.5')} Save as v${templateVersionNo(rec)+1}</button>
       </span>
     </div></div>`, {maxWidth:'880px',
@@ -1694,7 +1702,7 @@ function tplPagePaintRows(){
      `tabular-nums`; the heads did not, so the column read ragged even when
      every number under it was right. `num` is passed by the two count
      columns and by nothing else — a label over words stays a label. */
-  const th=(t,num)=>`<th style="font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);text-align:left;padding:0 12px;height:34px;border-bottom:1px solid var(--color-divider);white-space:nowrap${num?';font-variant-numeric:tabular-nums':''}">${t}</th>`;
+  const th=(t,num)=>`<th style="font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--color-neutral-500);text-align:left;padding:0 12px;height:34px;border-bottom:1px solid var(--color-divider);white-space:nowrap${num?';font-variant-numeric:tabular-nums':''}">${t}</th>`;
   const hiddenKinds=hidden>0?Object.entries(rows.slice(CAP).reduce((m,r)=>{m[r.kind]=(m[r.kind]||0)+1;return m;},{}))
     /* Keyed on the KIND, not on the label's words — comparing the label to
        "Samples" stops being true the moment the label can be translated. */
@@ -2383,7 +2391,7 @@ function tplHealthHtml(d){
    figures are — THE CLOTHES FOLLOW THE BUILDER. Lifted whole, not rewritten:
    every declaration and every note below is the wall's own. */
 const TPL_OV_CARD='background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg,var(--radius));box-shadow:var(--shadow-sm)';
-const TPL_OV_HEAD='font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)';
+const TPL_OV_HEAD='font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600)';
 const TPL_OV_LBL='font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600);line-height:1.45';
 const TPL_OV_FIG='font-size:var(--t-card);font-weight:var(--w-title);font-variant-numeric:tabular-nums;line-height:1.3;margin-top:1px';
 
@@ -3074,7 +3082,7 @@ function renderPlaybookPage(){
       .std-row{border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:8px 10px}
       .std-row.is-open{border-color:color-mix(in srgb,var(--accent-solid) 34%,transparent)}
       .std-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-      .std-cat{font-size:var(--t-micro);font-weight:var(--w-title);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-600);flex:none}
+      .std-cat{font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600);flex:none}
       .std-name{font-size:var(--t-meta);font-weight:var(--w-title);color:var(--color-text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       .std-chip{font-size:var(--t-micro);font-weight:var(--w-title);padding:1px 7px;border-radius:var(--radius);white-space:nowrap;flex:none}
       .std-chip-none{color:var(--color-neutral-600);border:1px solid var(--color-divider)}
@@ -3086,7 +3094,7 @@ function renderPlaybookPage(){
             as a sentence that continues. */}
       .std-clip{margin:4px 0 0;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .std-body{margin:9px 0 2px;display:flex;flex-direction:column;gap:9px}
-      .std-lab{margin:0 0 3px;font-size:var(--t-micro);font-weight:var(--w-title);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-600)}
+      .std-lab{margin:0 0 3px;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600)}
       .std-quote{font-size:var(--t-label);line-height:1.6;color:var(--color-text);border-left:2px solid var(--color-divider);padding:2px 0 2px 10px;white-space:pre-wrap}
       .std-none{margin:0;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.6}
       .std-hist{margin:0;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.6}
@@ -3416,7 +3424,7 @@ function sdSettledHtml(cl, mayAdopt){
         : next==null?i18t('sd_learn_no_figure'):i18t(pick==='preferred'?'sd_learn_confirm_pref':'sd_learn_confirm_fb');
       confirm=`<div class="sd-learn-confirm"><p class="ins-p">${esc(msg)}</p>${prev}<div class="sd-learn-row">
         <button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-sd-move-go>${esc(i18t(pick==='keep'?'sd_learn_keep_go':next==null?'std_edit_wording':'sd_learn_change'))}</button>
-        <button type="button" class="ui-link" data-sd-move-cancel>${esc(i18t('act_cancel'))}</button></div></div>`;
+        <button data-dlg-cancel type="button" class="ui-link" data-sd-move-cancel>${esc(i18t('act_cancel'))}</button></div></div>`;
     }
     return `<span class="sd-proposed">${esc(i18t('sd_learn_proposed'))}</span>
       <p class="ins-p sd-learn-lead">${esc(i18t('std_learn_line',{category:p.category,figure:p.figure,unit:p.unit,seen:p.seen,settled:p.settled}))}${says?' '+esc(says):''}</p>

@@ -80,8 +80,10 @@ const FORM = () => {
   await page.fill('#ce-counterparty', 'Naivas Supermarkets Ltd');
   await page.fill('#ce-cpemail', 'legal@naivas.co.ke');
   await page.fill('#ce-value', '2500000');
-  await page.fill('#ce-effDate', '2026-09-01');
-  await page.fill('#ce-expiry', '2027-08-31');
+  /* A pop-up's date wears HaTi's face (SAP pop-ups, 10 Oct 2026): the real box
+     is kept, not drawn, as the value — written as the calendar writes it. */
+  await page.evaluate(([a, b]) => { for (const [id, v] of [['ce-effDate', a], ['ce-expiry', b]]) { const i = document.getElementById(id); i.value = v;
+    i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new Event('change', { bubbles: true })); } }, ['2026-09-01', '2027-08-31']);
   /* WHO WE ARE AND WHICH SIDE (the owner's list, 27 Sep 2026): both asked on
      this form and both dropped by the create call, so the contract fell back
      to the workspace's own name. A subsidiary is typed over the prefill. */

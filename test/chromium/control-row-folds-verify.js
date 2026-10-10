@@ -217,8 +217,10 @@ const OPEN = async page => {
     check('and the head never wraps its acts, at any width',
       seen.every(r => r.headOneLine !== false),
       seen.map(r => `${r.w}:${r.headOneLine ? '1' : '2'}`).join(' '));
-    check('the door keeps its count at every rung — a bare arrow says nothing',
-      seen.every(r => r.livelistN));
+    /* RE-POINTED 10 Oct 2026: the door is "Open document" (owner) — no count;
+       it keeps its WORD at every rung, since it is the way back. */
+    check('the way back keeps its word at every rung — a bare button says nothing',
+      seen.every(r => r.livelistWord));
     check('and the row stays one line all the way down to the wrap',
       seen.every(r => r.oneLine || r.rung === 'wrap'),
       seen.map(r => `${r.w}:${r.oneLine ? '1' : '2'}`).join(' '));

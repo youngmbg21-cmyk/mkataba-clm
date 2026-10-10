@@ -1395,15 +1395,27 @@ function regStageTabsWire(){
 }
 /* The two acts on saved views, shared by the box and the retired tabs. */
 async function regSaveViewAsk(){
-  const name=window.promptDialog?await promptDialog({title:i18t('reg_save_view_ask'),message:i18t('reg_save_view_msg'),placeholder:i18t('reg_save_view_ph'),confirmLabel:i18t('reg_save_view')}):prompt(i18t('reg_save_view_ask'));
+  const name=window.promptDialog?await promptDialog({title:i18t('reg_save_view'),label:i18t('reg_save_view_label'),message:i18t('reg_save_view_msg'),placeholder:i18t('reg_save_view_ph'),confirmLabel:i18t('reg_save_view')}):prompt(i18t('reg_save_view_ask'));
   if(name==null||!String(name).trim()) return false;
   if(regSaveView(name)){ if(window.toast) toast(i18t('reg_view_saved',{name:String(name).trim()}),'ok'); return true; }
   if(window.toast) toast(i18t('reg_view_not_saved'),'warn');
   return false;
 }
+/* ---- FORGET IS DONE AT ONCE, WITH UNDO (SAP pop-ups, owner's go 10 Oct
+   2026) ----
+   SAP asks "are you sure?" only before what cannot be undone. A saved view is
+   a reader's own shortcut in this browser, so forgetting it asked a question
+   it did not need: it goes at once, and the toast carries Undo, which puts the
+   view back exactly where it stood in the list. */
 async function regForgetViewAsk(name){
-  const ok=window.confirmDialog?await confirmDialog({title:i18t('reg_forget_view_title'),message:i18t('reg_forget_view',{name}),confirmLabel:i18t('reg_forget_view_go')}):confirm(i18t('reg_forget_view',{name}));
-  if(!ok) return false; regForgetView(name); return true;
+  const before=regSavedViews();
+  if(!before.some(v=>v.name===name)) return false;
+  regForgetView(name);
+  if(window.toast) toast(i18t('reg_view_forgotten',{name}),'ok',{ action:{ label:i18t('act_undo'), onClick:()=>{
+    try{ localStorage.setItem(REG_SAVED_KEY, JSON.stringify(before)); }catch(_){}
+    if(typeof regRepaint==='function') regRepaint();
+  } } });
+  return true;
 }
 function regPaintViewCounts(){
   const R=regState();
@@ -1750,7 +1762,7 @@ function regEndAct(c, k){
 function regDeclineAsk(c){
   if(!c || !window.contractDecline || !window.promptDialog) return;
   Promise.resolve(promptDialog({ title:i18t('end_decline_q'), message:i18t('end_decline_says'),
-    label:i18t('end_decline_why'), placeholder:i18t('end_decline_ph'), confirmLabel:i18t('reg_decline_close'), multiline:true }))
+    label:i18t('end_decline_why'), placeholder:i18t('end_decline_ph'), confirmLabel:i18t('reg_decline_close'), multiline:true, danger:true }))
     .then(why=>{ if(why==null) return;
       contractDecline(c, why).then(ok=>{ if(ok) regRepaint(); }); });
 }
@@ -3096,7 +3108,7 @@ function renderRegister(opts){
         box-shadow:0 10px 28px color-mix(in srgb,var(--color-text) 16%,transparent);
         padding:10px 12px 8px;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
       .reg-display-pop[hidden]{display:none}
-      .reg-dp-h{font-size:var(--t-micro);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-600);margin-top:2px}
+      .reg-dp-h{font-size:var(--t-micro);color:var(--color-neutral-600);margin-top:2px}
       .reg-display-pop .reg-seg{align-self:flex-start}
       .reg-dp-row{display:flex;align-items:center;gap:8px;border:0;background:none;font:inherit;font-size:var(--t-body);
         color:var(--color-text);padding:6px 0 2px;cursor:pointer;text-align:left;min-height:var(--tap-min);white-space:nowrap}
@@ -3395,7 +3407,7 @@ function renderRegister(opts){
       return `<label style="display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--color-divider);${f.fixed?'opacity:.6':'cursor:pointer'}">
         <input type="checkbox" data-adapt="${f.k}" ${on?'checked':''} ${f.fixed?'disabled':''} style="width:15px;height:15px;flex:none;accent-color:var(--accent-solid)"/>
         <span style="flex:1;font-size:var(--t-body)">${esc(f.label)}</span>
-        ${f.fixed?`<span style="font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">${esc(i18t('reg_adapt_always'))}</span>`:''}
+        ${f.fixed?`<span style="font-size:var(--t-micro);color:var(--color-neutral-500)">${esc(i18t('reg_adapt_always'))}</span>`:''}
       </label>`;
     }).join('');
     openModal(`

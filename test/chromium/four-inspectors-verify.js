@@ -147,7 +147,9 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
       await page.evaluate(() => { const r = [...document.querySelectorAll('.ob-lt tbody tr')]; let w = '';
         for (const t of r) { if (t.classList.contains('ins-grp')) w = t.getAttribute('data-ob-win'); else if (/Pay on delivery to site/.test(t.textContent)) return w === 'waiting'; }
         return false; }));
-    ok('1d the head says what is on the page', /\d/.test(ob.head), ob.head);
+    /* RE-POINTED 9 Oct 2026 (owner: "remove the we owe xxx place" so the head
+       is as tall as Approvals & signing's) — the money reads on the groups. */
+    ok('1d the head carries no facts line', !ob.head, ob.head);
     const rows = await page.$$('.ob-lt tbody [data-ins-row]');
     if (rows.length > 2) {
       await rows[2].click(); await page.waitForTimeout(300);
@@ -186,11 +188,13 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     const before = await page.evaluate(id => getContract(id).obligations.length, staged.c1);
     await page.click('#obt-panel [data-ins-more]').catch(() => {}); await page.waitForTimeout(200);
     await page.click('#obt-panel [data-act="remove"]').catch(() => {}); await page.waitForTimeout(500);
-    const asked = await page.evaluate(() => { const d = [...document.querySelectorAll('[data-top-overlay], [role="alertdialog"], [role="dialog"]')].pop();
-      return d ? d.textContent.replace(/\s+/g, ' ').slice(0, 160) : ''; });
-    await page.keyboard.press('Escape'); await page.waitForTimeout(400);
+    /* REVERSED 10 Oct 2026 (SAP pop-ups, owner's go): a removal that can be
+       undone does not ask — it goes, and the toast's Undo puts it back. */
+    const gone = await page.evaluate(id => getContract(id).obligations.length, staged.c1);
+    const undone = await page.evaluate(() => { const b = [...document.querySelectorAll('#toast-root [data-toast-act]')].pop(); if (b) { b.click(); return true; } return false; });
+    await page.waitForTimeout(400);
     const after = await page.evaluate(id => getContract(id).obligations.length, staged.c1);
-    ok('2c Remove asks first, and a cancel removes nothing', !!asked && before === after, { asked, before, after });
+    ok('2c Remove goes at once, and its Undo puts it back', gone === before - 1 && undone && after === before, { before, gone, undone, after });
 
     /* ================= 3 · OUR STANDARDS, THREE TABS ================= */
     await page.evaluate(() => setView('playbook')); await page.waitForTimeout(1200);

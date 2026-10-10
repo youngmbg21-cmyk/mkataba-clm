@@ -167,7 +167,7 @@ function mObligHtml(c){
     const rows = list.filter(o => band(o)===k);
     if(!rows.length) continue;          /* an empty band draws nothing — the desktop's own rule */
     html += `<div class="m-card" style="margin:var(--s-4) var(--s-4) 0;padding:12px 14px">
-      <div style="font-size:var(--t-label);font-weight:var(--w-strong);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600)">${
+      <div style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600)">${
         mEsc(i18t('ob_band_'+k))} · ${rows.length}</div>
       ${rows.map(o=>mObligRowHtml(o, c, list.indexOf(o))).join('')}</div>`;
   }
@@ -428,7 +428,7 @@ function mTermsHtml(c){
     background:color-mix(in srgb,var(--color-accent) 12%,transparent);border-radius:var(--radius);padding:0 3px}</style>`;
   const briefBlock = b ? `${briefFig}
       <div class="m-card m-brief" style="margin:var(--s-4) var(--s-4) 0;padding:14px">
-        <div style="font-size:var(--t-meta);font-weight:var(--w-title);letter-spacing:.04em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:6px">${mEsc(i18t('br_title'))}</div>
+        <div style="font-size:var(--t-meta);font-weight:var(--w-title);color:var(--color-neutral-600);margin-bottom:6px">${mEsc(i18t('br_title'))}</div>
         <div style="font-size:var(--t-card);line-height:1.6">${mk(b.overview||'')}</div>
         ${(c._brief&&c._brief.truncated)?`<div style="margin-top:var(--s-2);padding:7px 10px;border-radius:var(--radius);font-size:var(--t-label);line-height:1.5;color:var(--st-amber-fg);background:var(--st-amber-bg);border-left:3px solid var(--st-amber-dot)">${mEsc(i18t('br_partial'))} — ${mEsc(i18t('br_partial_sub'))}</div>`:''}
         ${(b.watchouts||[]).length?`<ul style="margin:var(--s-2) 0 0;padding-left:18px;list-style:none">${(b.watchouts||[]).map(w=>`<li style="font-size:var(--t-body);line-height:1.55;margin:6px 0;padding:var(--s-2) 10px;border-radius:var(--radius);background:var(--st-amber-bg);border-left:3px solid var(--st-amber-dot)">${mk(w.point||'')}</li>`).join('')}</ul>`:''}
@@ -628,7 +628,7 @@ function mOverflowSheetHtml(){
         <span style="flex:1;font-size:16px;font-weight:var(--w-body);color:${i.muted?'var(--color-neutral-400)':'var(--color-text)'}">${mEsc(i.label)}</span>
         ${i.desk?`<span style="flex:none;font-size:var(--t-card);color:var(--color-neutral-600)">${i18t('m_computer')}</span>`:''}
       </button>`).join('')}
-    <button class="m-btn m-btn-quiet" style="margin-top:6px" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
+    <button data-dlg-cancel class="m-btn m-btn-quiet" style="margin-top:6px" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
 }
 
 /* ------------------------------------------------------------ SHARE SHEET --
@@ -709,7 +709,7 @@ function mShareSheetHtml(){
     </label>
     ${s.shareErr?`<div class="m-err">${mEsc(s.shareErr)}</div>`:''}
     <button class="m-btn m-btn-primary" style="margin-top:var(--s-3)" data-m-act="share-create">${cta}</button>
-    <button class="m-btn m-btn-quiet" style="margin-top:var(--s-2)" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
+    <button data-dlg-cancel class="m-btn m-btn-quiet" style="margin-top:var(--s-2)" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
 }
 
 /* --------------------------------------------------- THE SIGNER PICKER ------
@@ -806,7 +806,7 @@ function mSignersSheetHtml(){
             : `<div class="m-note" style="margin-top:10px">${i18t('mc_signers_reorder_on_computer')}</div>`}
     ${mS().signersErr ? `<div class="m-err">${mEsc(mS().signersErr)}</div>` : ''}
     <button class="m-btn m-btn-primary" style="margin-top:var(--s-3)" data-m-act="signers-save">${i18t('mc_signers_save')}</button>
-    <button class="m-btn m-btn-quiet" style="margin-top:var(--s-2)" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
+    <button data-dlg-cancel class="m-btn m-btn-quiet" style="margin-top:var(--s-2)" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
 }
 /* THE SAVE IS THE DESKTOP'S. This builds two rows and hands them over; every
    rule about what a route IS — the shape, the refusal, the audit line, the
@@ -871,7 +871,7 @@ function mRenumberSheetHtml(){
     </div>
     ${refs.length?`<div class="m-note" style="margin-top:10px">${refs.length} cross-reference${refs.length===1?'':'s'} ${refs.length===1?'is':'are'} repointed in the same plan.</div>`:''}
     <button class="m-btn m-btn-primary" style="margin-top:var(--s-3)" data-m-act="renumber-apply">Renumber ${moves.length} heading${moves.length===1?'':'s'}</button>
-    <button class="m-btn m-btn-quiet" style="margin-top:var(--s-2)" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
+    <button data-dlg-cancel class="m-btn m-btn-quiet" style="margin-top:var(--s-2)" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
 }
 
 /* ------------------------------------------------------------- BEHAVIOUR ---*/

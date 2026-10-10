@@ -559,7 +559,7 @@ function openLinkModal(c, onDone, opts={}){
       <div id="lk-err" style="font-size:var(--t-label);color:var(--st-ruby-fg);min-height:15px;margin-bottom:var(--s-2)"></div>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
         ${(mode==='child'&&suggested.length)?`<button id="lk-standalone" class="ui-btn">${i18t('fa_standalone')}</button>`:''}
-        <button id="lk-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="lk-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="lk-save" class="ui-btn ui-btn-primary">${mode==='child'?'Link':'Attach'}</button>
       </div>
     </div>`, {maxWidth:'560px'});
@@ -1116,9 +1116,10 @@ function openCreateAmendmentModal(parent, onDone, opts){
     skeleton: true, facts: null, mentions: [], aiNotice: '' };
   const aiOn = !!(window.API_MODE && API_MODE() && window.state && state.aiConfigured && window.api);
   const CHIPS = ['fa_chip_extend', 'fa_chip_price', 'fa_chip_pay', 'fa_chip_add', 'fa_chip_notice', 'fa_chip_else'];
-  const relSel = () => `<select id="am-rel" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:3px 6px;font:inherit;font-size:var(--t-label)">${
+  const relSel = () => `<select id="am-rel" style="${FLD}">${
     CONTRACT_RELATIONS.map(r=>`<option value="${r.k}" ${r.k===S.rel?'selected':''} title="${_famAttr(r.blurb)}">${_famEsc(r.label)}</option>`).join('')}</select>`;
-  const head = (t, sub) => `<div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:6px"><span style="color:var(--color-accent)">${icon('filenew','w-4 h-4')}</span>
+  /* SAP's dialog (10 Oct 2026): a plain title, no sign beside it. */
+  const head = (t, sub) => `<div style="margin-bottom:6px">
       <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${t}</h3></div>
     ${sub?`<p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.55">${sub}</p>`:''}`;
   const endField = () => `<label style="display:block;margin:var(--s-3) 0 0"><span style="${LBL}">${i18t('fa_end_q')}</span>
@@ -1131,15 +1132,19 @@ function openCreateAmendmentModal(parent, onDone, opts){
       <div class="am-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:var(--s-2)">${CHIPS.map(k=>
         `<button type="button" data-am-chip="${k}" class="ui-btn ui-btn-sm" style="border-radius:999px">${_famEsc(i18t(k))}</button>`).join('')}</div>
       <textarea id="am-note" rows="4" placeholder="${_famAttr(i18t('fa_amend_ph'))}" style="${FLD};width:100%;resize:vertical;line-height:1.5">${_famEsc(S.note)}</textarea>
-      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin-top:var(--s-2);font-size:var(--t-label);color:var(--color-neutral-600)">
-        <label style="display:inline-flex;align-items:center;gap:6px">${i18t('fa_type')} ${relSel()}</label>
-        <label style="display:inline-flex;align-items:center;gap:6px;flex:1;min-width:220px">${i18t('fa_name')}
-          <input id="am-name" value="${_famAttr(S.name)}" style="${FLD};padding:3px 6px;font-size:var(--t-label)"/></label>
-        <span>${i18t('fa_same_parties',{ref:_famEsc(ref)})}</span></div>
-      ${foot(`<button id="am-blank" type="button" class="ui-link" style="margin-right:auto">${i18t('fa_start_blank')}</button>
-        <button id="am-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-        ${aiOn?`<span style="font-size:var(--t-label);color:var(--color-neutral-600)">✦ ${i18t('fa_ai_reads',{ref:_famEsc(ref)})}</span>`:''}
-        <button id="am-ai" class="ui-btn ui-btn-primary"${aiOn?'':' disabled'} title="${_famAttr(aiOn?'':i18t('fa_ai_off'))}">${i18t('fa_draft_with_copilot')}</button>`)}
+      ${''/* EACH FIELD ITS LABEL ABOVE IT, AND ROOM (SAP pop-ups, 10 Oct 2026):
+             Type and Name were squeezed into one small-print line and the name
+             was cut off. Two boxes side by side at the field's own size; the
+             foot carries Copilot's cost on its left, then the acts. */}
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:var(--s-3);margin-top:var(--s-3)">
+        <label style="display:block;min-width:0"><span style="${LBL}">${i18t('fa_type')}</span>${relSel()}</label>
+        <label style="display:block;min-width:0"><span style="${LBL}">${i18t('fa_name')}</span>
+          <input id="am-name" value="${_famAttr(S.name)}" style="${FLD}"/></label></div>
+      <p style="font-size:var(--t-label);color:var(--color-neutral-600);margin:var(--s-2) 0 0">${i18t('fa_same_parties',{ref:_famEsc(ref)})}</p>
+      ${foot(`${aiOn?`<span style="font-size:var(--t-label);color:var(--color-neutral-600);margin-right:auto">✦ ${i18t('fa_ai_reads',{ref:_famEsc(ref)})}</span>`:'<span style="margin-right:auto"></span>'}
+        <button id="am-ai" class="ui-btn ui-btn-primary"${aiOn?'':' disabled'} title="${_famAttr(aiOn?'':i18t('fa_ai_off'))}">${i18t('fa_draft_with_copilot')}</button>
+        <button id="am-blank" type="button" class="ui-btn">${i18t('fa_start_blank')}</button>
+        <button data-dlg-cancel id="am-cancel" class="ui-btn">${i18t('act_cancel')}</button>`)}
       ${aiOn?'':`<p style="font-size:var(--t-label);color:var(--color-neutral-600);margin:6px 0 0;text-align:right">${i18t('fa_ai_off')}</p>`}`;
   }
   function itemRowHtml(it, i){
@@ -1149,8 +1154,8 @@ function openCreateAmendmentModal(parent, onDone, opts){
         <input type="checkbox" data-am-item="${i}" ${it.on!==false?'checked':''} style="accent-color:var(--color-accent)"/>${_famEsc(it.clauseLabel||i18t('fa_new_clause'))}
         <span style="font-weight:var(--w-body);color:var(--color-neutral-600)">· ${_famEsc(i18t('fa_op_'+(it.op||'replace')))}</span></label>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
-        ${it.op==='insert'?'':`<div style="padding:8px 10px;font-family:var(--font-doc);font-size:var(--t-meta);line-height:1.5;min-width:0"><span style="display:block;font-family:var(--font-body);font-size:var(--t-micro,10px);letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-600)">${i18t('fa_signed_wording')}</span><del style="color:var(--st-ruby-fg)">${del}</del></div>`}
-        ${it.op==='delete'?'':`<div style="padding:8px 10px;font-family:var(--font-doc);font-size:var(--t-meta);line-height:1.5;min-width:0;border-left:1px solid var(--color-divider)"><span style="display:block;font-family:var(--font-body);font-size:var(--t-micro,10px);letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-600)">${i18t('fa_amended_wording')}</span><ins style="color:var(--accent-ink);text-decoration-color:var(--color-accent)">${_famEsc(it.amended||'')}</ins></div>`}
+        ${it.op==='insert'?'':`<div style="padding:8px 10px;font-family:var(--font-doc);font-size:var(--t-meta);line-height:1.5;min-width:0"><span style="display:block;font-family:var(--font-body);font-size:var(--t-micro,10px);color:var(--color-neutral-600)">${i18t('fa_signed_wording')}</span><del style="color:var(--st-ruby-fg)">${del}</del></div>`}
+        ${it.op==='delete'?'':`<div style="padding:8px 10px;font-family:var(--font-doc);font-size:var(--t-meta);line-height:1.5;min-width:0;border-left:1px solid var(--color-divider)"><span style="display:block;font-family:var(--font-body);font-size:var(--t-micro,10px);color:var(--color-neutral-600)">${i18t('fa_amended_wording')}</span><ins style="color:var(--accent-ink);text-decoration-color:var(--color-accent)">${_famEsc(it.amended||'')}</ins></div>`}
       </div></div>`;
   }
   function reviewPane(){

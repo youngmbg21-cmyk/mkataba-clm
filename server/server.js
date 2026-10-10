@@ -2132,6 +2132,27 @@ function srvApprovalDecisionRefusal(prev, c, u) {
       const st = after.find(x => x.ruleId === r.id); return !st || st.status !== 'approved'; }) : null;
     if (first) return `The approval steps are decided in order — “${first.name}” comes first.`;
   }
+  /* A YES IS TAKEN BACK ONLY BY THE PERSON WHO GAVE IT (bug log, 10 Oct 2026).
+     The loop above asks who MOVES a step to a decision; a step that moves
+     AWAY from a standing yes — back to pending, or dropped from the chain —
+     was asked nothing, so any editor could erase a colleague's approval with
+     one save. It stands when the yes has lapsed already, when this save
+     moves the amount, words, filled terms or parties (the yes lapses with
+     them), when the rule no longer asks for the step, or when the person
+     taking it back is the one who said yes (Undo) or an admin. */
+  if (!c || c.approvalChain === undefined) return null;   // a save that carries no chain moves none
+  const nowStamp = srvApprovalStamp(c), prevStamp = srvApprovalStamp(prev || {});
+  const afterById = new Map(after.map(x => [String(x.ruleId), x]));
+  for (const [rid, was] of before) {
+    if (was.status !== 'approved') continue;
+    const s = afterById.get(rid);
+    if (s && s.status === 'approved' && String(s.by || '') === String(was.by || '')) continue;
+    const rule = rules.find(r => r && String(r.id) === rid);
+    if (!rule || !srvRuleMatches(rule, c)) continue;
+    if (srvRuleYesLapsed(was, prevStamp) || srvRuleYesLapsed(was, nowStamp)) continue;
+    if (u && (u.role === 'admin' || String(u.name || '') === String(was.by || ''))) continue;
+    return `Only ${was.by || 'the person who approved it'} can take back the approval of “${rule.name}”.`;
+  }
   return null;
 }
 /* Every change decided: nothing waiting on an answer and nothing parked under
@@ -10182,6 +10203,7 @@ function trackPageHtml(r) {
   const row = (k, v) => v ? `<tr><td style="padding:5px 18px 5px 0;color:#5F6D6B;white-space:nowrap">${e(k)}</td><td style="padding:5px 0;color:#1B2A28">${e(v)}</td></tr>` : '';
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="format-detection" content="telephone=no,email=no,address=no,date=no">
   <meta name="robots" content="noindex,nofollow">
   <title>Where is my contract?</title></head>
   <body style="margin:0;background:#f4f6f5;font:15px 'Geist','IBM Plex Sans',-apple-system,Segoe UI,Arial,sans-serif;color:#1B2A28">
@@ -10283,6 +10305,7 @@ function dealPageHtml(D, org) {
   const waitOn = (!D.executed && D.move && D.move.party) ? `waiting on ${e(D.move.party)}` : '';
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="format-detection" content="telephone=no,email=no,address=no,date=no">
   <meta name="robots" content="noindex,nofollow">
   <title>Where the deal stands</title></head>
   <body style="margin:0;background:#EDF1F2;font:15px 'Geist','IBM Plex Sans',-apple-system,Segoe UI,Arial,sans-serif;color:#1B2A28">
@@ -10723,6 +10746,9 @@ function copilotStoredPlaybook(c) {
    this travels inside a prompt; the wording of each change is clipped and the
    list is capped, with the count stated so a truncated list is never mistaken
    for a complete one. */
+/* negoReasonOf's twin (js/negotiation.js): a note that is the tool's own label
+   ("Copilot — Edit", "Written on the clause editor") is not a reason. */
+const SRV_NEGO_PROVENANCE_RE = /^(?:Copilot\s+[—-]\s|Written on the clause editor\s*$)/;
 function copilotNegotiation(c) {
   const n = c && c.negotiation;
   const live = Array.isArray(c && c.changes) ? c.changes.filter(x => x && x.status !== 'superseded') : [];
@@ -10747,7 +10773,7 @@ function copilotNegotiation(c) {
     proposedBy: x.author || '', side: x.authorSide || '',
     summary: String(x.summary || ''),
     decidedBy: x.resolvedBy || null, decidedAt: x.resolvedAt || null,
-    reasonGiven: String(x.reply || x.note || '') || null,
+    reasonGiven: String(x.reply || x.why || (x.note && !SRV_NEGO_PROVENANCE_RE.test(String(x.note)) ? x.note : '') || '') || null,
     currentWording: String(x.oldText || ''), proposedWording: String(x.newText || ''),
   });
   const ceiling = aiDocChars();

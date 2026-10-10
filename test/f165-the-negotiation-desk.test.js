@@ -101,6 +101,17 @@ describe('f165 · the first redline opens a desk', () => {
     assert.equal(win.deskLead(c).id, ME.id);
   });
 
+  test('a change the funnel REFUSES claims nothing (bug log, 10 Oct 2026)', async () => {
+    /* The claim used to be made at the top of the funnel, so a press the
+       guards below then turned away still handed the desk to the presser. */
+    const { win } = world();
+    const c = contract();
+    const cl = win.negoClauseList(c).find(x => String(x.num) === '4');
+    const filed = await win.negoEditClause(c, cl.clauseId, cl.html || cl.bodyHtml || '', { side: 'owner', summary: 'nothing moved', quiet: true });
+    assert.equal(filed, null, 'the same wording files nothing');
+    assert.equal(win.deskIsOpen(c), false, 'and opens no desk');
+  });
+
   test('their change does not claim our desk', async () => {
     /* A response arriving through a link, a returned .docx, or typed in on
        their behalf is not somebody in this office starting work. Letting it

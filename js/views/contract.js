@@ -1546,8 +1546,11 @@ function openUploadModal(){
   openModal(`
     <div class="p-6">
       <div id="up-step-1">
-        <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('upload')}</span>
-          <h2 class="font-display font-700 text-brand-900">${i18t('ct_add_received')}</h2></div>
+        ${''/* ONE TITLE, AT EVERY DIALOG'S SIZE (SAP pop-ups, 10 Oct 2026): this
+               head was a smaller display face with an upload sign beside it,
+               the only dialog dressed that way; the drop area below already
+               says what the dialog is for. */}
+        <h2 class="font-serif font-600 text-lg text-ink mb-3">${i18t('ct_add_received')}</h2>
         <div id="up-drop" role="button" tabindex="0" aria-label="${i18t('ct_drop_file_here')}" style="border:2px dashed var(--color-accent);border-radius:var(--radius);background:var(--color-bg);padding:34px 20px;text-align:center;cursor:pointer;transition:background var(--dur-1)">
           <div style="font-size:var(--t-card);font-weight:var(--w-strong);color:var(--color-text)">${i18t('ct_drop_here')}</div>
           <div style="font-size:var(--t-meta);color:var(--color-neutral-600);margin-top:5px">${i18t('ct_upload_hint',{max:uploadMaxLabel()})}</div>
@@ -1566,7 +1569,7 @@ function openUploadModal(){
             (()=>{ const n=(typeof navCounts==='function')?Number((navCounts()||{}).migration)||0:0;
               return n>0?` <span id="up-bulk-waiting" style="margin-left:4px;color:var(--st-amber-fg)">· ${esc(i18tn('ct_import_waiting',n,{n}))}</span>`:''; })()}</button>
           <span style="flex:1"></span>
-          <button id="up-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+          <button data-dlg-cancel id="up-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         </div>
       </div>
       <div id="up-step-2" class="hidden">${uploadConfirmHtml(null,null)}</div>
@@ -1690,7 +1693,7 @@ function uploadConfirmHtml(ext, meta){
       <div class="flex items-center gap-2">
         <button id="up-back" class="ui-btn">${icon('arrowLeft')}Another file</button>
         <span style="flex:1"></span>
-        <button id="up-cancel-2" class="ui-btn">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="up-cancel-2" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="up-go" class="ui-btn ui-btn-primary">${icon('check2','w-3.5 h-3.5')} <span id="up-go-word">${i18t(ext&&uploadRouteDefault()==='outside'?'ho_start_redlining':'ct_file_contract')}</span></button>
       </div>`;
 }
@@ -2328,8 +2331,7 @@ function openEditDocModal(c){
   openModal(`
     <div style="padding:var(--s-6) 26px 20px;height:100%;display:flex;flex-direction:column;min-height:0">
       <div style="${COL};padding:0 26px">
-        <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1)"><span style="color:var(--color-accent)">${icon('pencil','w-4 h-4')}</span>
-          <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${i18t('ct_edit_document',{id:(window.contractRef?contractRef(c):c.id)})}</h3></div>
+        <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0 0 var(--s-1)">${i18t('ct_edit_document',{id:(window.contractRef?contractRef(c):c.id)})}</h3>
         ${''/* ONE LINE, AND ONLY WHERE SAVE COSTS SOMETHING (the pop-up diet,
                13 Sep 2026): the formatting is lost and cannot be got back, so
                that stays on the face; how versions and Compare work does not. */}
@@ -2348,11 +2350,15 @@ function openEditDocModal(c){
       <div style="${COL};padding:0 26px;display:flex;justify-content:space-between;align-items:center;margin-top:10px">
         <span id="ed-count" style="font-size:var(--t-label);color:var(--color-neutral-500)"></span>
         <span style="display:flex;gap:var(--s-2)">
-          <button id="ed-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+          <button data-dlg-cancel id="ed-cancel" class="ui-btn">${i18t('act_cancel')}</button>
           <button id="ed-save" class="ui-btn ui-btn-primary">${icon('check2','w-3.5 h-3.5')} Save changes</button>
         </span>
       </div>
-    </div>`, {maxWidth:'min(1180px, 96vw)', height:'calc(100vh - 40px)'});
+    </div>`, {
+      /* A PAGE, NOT A POP-UP (SAP pop-ups, owner's go 10 Oct 2026): the whole
+         document is edited in the work area under the top bar, Save and
+         Cancel at the top. See dlgPageAdopt in js/core.js. */
+      page:{ acts:['ed-save','ed-cancel'], crumb:`${i18t('nav_contracts')} › ${(window.contractRef?contractRef(c):c.id)} ${c.name||''}` } });
   const ta=document.getElementById('ed-text');
   ta.addEventListener('input',()=>{ const el=document.getElementById('ed-count'); if(el) el.textContent=''; });
   document.getElementById('ed-cancel').addEventListener('click',closeModal);
@@ -2415,9 +2421,9 @@ function discussPointsSectionHtml(c){
       <div style="display:flex;flex-direction:column;gap:var(--s-2)">
         ${pts.map((pt,i)=>`
           <div style="border:1px solid #e8d5ad;background:var(--color-surface);border-radius:var(--radius);padding:9px var(--s-3);font-size:var(--t-meta);line-height:1.6">
-            ${pt.before?`<div><span style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('ct_contract_says')}</span>
+            ${pt.before?`<div><span style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500)">${i18t('ct_contract_says')}</span>
               <div style="color:var(--color-neutral-800)">${e(pt.before)}</div></div>`:''}
-            ${pt.after?`<div style="margin-top:5px"><span style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('ct_they_asked_for')}</span>
+            ${pt.after?`<div style="margin-top:5px"><span style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500)">${i18t('ct_they_asked_for')}</span>
               <div style="color:var(--st-ruby-fg)">${e(pt.after)}</div></div>`:''}
             ${pt.ask?`<div style="margin-top:5px;font-size:var(--t-meta);color:var(--color-neutral-700)"><b>${i18t('ct_they_said')}</b> ${e(pt.ask)}</div>`:''}
             ${pt.reason?`<div style="margin-top:var(--s-1);font-size:var(--t-meta);color:var(--color-neutral-700)"><b>${i18t('ct_you_replied')}</b> ${e(pt.reason)}</div>`:''}
@@ -2494,7 +2500,7 @@ function uploadDocBody(c){
   const fileUrl = docFileUrl(c);
   const previewHead = canPreview ? `
     <div class="flex items-center justify-between gap-2 mb-2">
-      <div class="text-[11px] font-600 uppercase tracking-[0.14em] text-brand-800/60">${i18t('ct_document_preview')}</div>
+      <div class="text-[11px] font-600 text-brand-800/60">${i18t('ct_document_preview')}</div>
       <button type="button" data-expand-doc class="ui-btn ui-btn-sm">${icon('expand','w-3.5 h-3.5')} Expand</button>
     </div>` : '';
   const preview = previewHead + (((isPdf&&!pdfLaidOut)||isText)
@@ -3592,7 +3598,7 @@ function docBody(c){
     const a=key||('c'+n);
     const p=flags[a]?FLAGPAL[flags[a].sev]:null;
     const wrap=p?` style="background:${p.box};outline:1px solid ${p.line};border-radius:var(--radius);padding:6px 10px;margin-bottom:14px"`:'';
-    const tag=p?`<span style="font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.06em;text-transform:uppercase;background:${p.bg};color:${p.fg};padding:1px 6px;border-radius:var(--radius);flex:none">${p.tag}</span>`:'';
+    const tag=p?`<span style="font-size:var(--t-figure);font-weight:var(--w-title);background:${p.bg};color:${p.fg};padding:1px 6px;border-radius:var(--radius);flex:none">${p.tag}</span>`:'';
     /* NO FIXED-SIZE UTILITY ON THE PAPER. These carried `text-[13.5px]` and
        `text-[13px]`, and both LIE: the 22 Aug size sweep moved the compiled
        values to 15px and 14px and left the class NAMES saying 13.5 and 13.
@@ -3839,7 +3845,7 @@ function externalExecutionBlock(c){
   const filedBy=m.importedBy||((c.audit||[]).find(a=>a.action==='Migrated')||{}).user||'—';
   const filedAt=m.importedAt?fmtDT(m.importedAt):(((c.audit||[]).find(a=>a.action==='Migrated')||{}).at?fmtDT((c.audit||[]).find(a=>a.action==='Migrated').at):'—');
   const cell=(k,v,sub)=>`<div class="rounded-lg bg-white border border-brand-100 p-2.5">
-    <div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1">${k}</div>
+    <div class="text-brand-800/65 text-[10px] mb-1">${k}</div>
     <div class="font-medium text-brand-700">${v}</div>${sub?`<div class="text-[10px] text-brand-800/65 leading-snug">${sub}</div>`:''}</div>`;
   return `
     <div class="seal-in mt-8 rounded-2xl elev-3 bg-gradient-to-br from-brand-50 to-white p-6">
@@ -3900,7 +3906,7 @@ function signatureBlock(c){
        markup of this file's own and is the one part left as it is. */
     const sub=s=>`<div class="text-[10px] text-brand-800/65 font-normal leading-snug">${[esc(s.email||''),s.form?esc(s.form)+' signature':esc(s.method||''),asWord(s),s.at?esc(fmtDT(s.at)):''].filter(Boolean).join(' · ')}</div>`;
     const card=s=>{ const img=(window.sigImageSrc?sigImageSrc(s.image):''); return `<div class="rounded-lg bg-white border border-brand-100 p-2.5">
-      <div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1 flex items-center gap-1">${icon(s.party==='counterparty'?'users':'finger','w-3 h-3')} ${partyLabel(s)}</div>
+      <div class="text-brand-800/65 text-[10px] mb-1 flex items-center gap-1">${icon(s.party==='counterparty'?'users':'finger','w-3 h-3')} ${partyLabel(s)}</div>
       ${img?`<img src="${img}" alt="signature of ${esc(s.name||'')}" style="height:40px;max-width:190px;object-fit:contain;margin:2px 0 5px"/>`:''}
       <div class="font-medium text-brand-700">${(s.name||'').replace(/</g,'&lt;')}${signatureCapacity(s)?', '+signatureCapacity(s).replace(/</g,'&lt;'):''}</div>${sub(s)}</div>`; };
     const sigList = sigs.length ? sigs.map(card).join('')
@@ -3919,7 +3925,7 @@ function signatureBlock(c){
           <div class="flex items-center gap-2 warm-flip"><span class="font-display font-700 text-[17px] text-ink">${i18t('ct_executed_sealed_caps')}</span>${statusChip('Signed')}</div>
           <div class="mt-1 text-xs text-brand-800/60">${(c.execution&&c.execution.esignature)||jxEsignatureShort()}</div>
           <div class="mt-3 grid sm:grid-cols-2 gap-3 text-xs">${sigList}</div>
-          ${!isUpload(c)?`<div class="mt-3 rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1">${i18t('ct_sealed_fingerprint')}</div><div class="font-mono text-[10px] break-all text-brand-700">${c.execution?.textHash||'—'}</div></div>`:''}
+          ${!isUpload(c)?`<div class="mt-3 rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 text-[10px] mb-1">${i18t('ct_sealed_fingerprint')}</div><div class="font-mono text-[10px] break-all text-brand-700">${c.execution?.textHash||'—'}</div></div>`:''}
           <div class="mt-3 rounded-lg bg-brand-900 p-3 font-mono text-[11px] leading-relaxed">
             <div class="flex items-center gap-1.5 text-gold-400 mb-1">${icon('hash','w-3 h-3')} ${i18t('ct_document_seal')}</div>
             <div class="text-brand-100 break-all">${hashDisplay}</div>
@@ -3943,7 +3949,7 @@ function signatureBlock(c){
     /* Escaped, and the image drawn only where it is one — see the executed
        card above. */
     const card=s=>{ const img=(window.sigImageSrc?sigImageSrc(s.image):''); return `<div class="rounded-lg bg-white border border-brand-100 p-2.5">
-      <div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1">${partyLabel(s)}</div>
+      <div class="text-brand-800/65 text-[10px] mb-1">${partyLabel(s)}</div>
       ${img?`<img src="${img}" alt="signature of ${esc(s.name||'')}" style="height:40px;max-width:190px;object-fit:contain;margin:2px 0 5px"/>`:''}
       <div class="font-medium text-brand-700">${(s.name||'').replace(/</g,'&lt;')}${cap(s)?', '+cap(s).replace(/</g,'&lt;'):''}</div>
       <div class="text-[10px] text-brand-800/65 font-normal leading-snug">${esc([s.email,s.form?s.form+' signature':s.method,s.at?fmtDT(s.at):''].filter(Boolean).join(' · '))}</div></div>`; };
@@ -5436,7 +5442,7 @@ function ovAddressBookHtml(book){
         esc(typeof addressWhereWords==='function' ? addressWhereWords(r.where) : '')}</span>
     </div>`).join('');
   return `<div style="margin-top:12px">
-    <div style="font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-neutral-600);margin-bottom:2px">${
+    <div style="font-size:var(--t-micro);font-weight:var(--w-label);color:var(--color-neutral-600);margin-bottom:2px">${
       esc(i18tn('ppl_addr_head', book.rows.length, { n: book.rows.length }))}</div>${rows}</div>`;
 }
 function ktRouteEmailRowHtml(c){
@@ -6003,6 +6009,9 @@ function renderKeyTerms(c){
   try{ if(window.renderRenewalSection) renderRenewalSection(c); }catch(_){}
   paintOvBriefBtn(c);
   ovMapWire(host,c);
+  /* A TERM LONG ENOUGH TO SCROLL IN ITS CELL (the terms card never grows) is
+     reachable by keyboard too, so its hidden lines can be read. */
+  host.querySelectorAll('#ov-ess .ov-ess-g .sec-f-v').forEach(v=>{ if(v.scrollHeight>v.clientHeight+1) v.tabIndex=0; });
   /* ---- PRESSING A MARKED FIELD IS THE SAME ACT AS `Fix on Overview` ----
      focusKeyTerms is the one door: it opens the right section, turns its rows
      on and lands the caret in the box. TWO PLACES, ONE ACT — the signing list
@@ -6460,10 +6469,18 @@ function ovMapSvg(D){
   return s+'</svg>';
 }
 const OV_MAP_PILL={ g:'green', a:'amber', r:'ruby', s:'steel' };
+/* ONE ROW PER DUTY, DRAWN AS WHERE WE ARE'S SETTLED CARD (owner, 9 Oct 2026:
+   "should look similar to [Settled] … the line across the page plus header,
+   the single sentence plus checkmark on each obligation"): a mark, the duty
+   as one sentence (cut with an ellipsis, whole on hover), its date at the
+   right, a quiet line under it. The mark is a tick once done; an open duty
+   wears a ring in its state's colour — a tick there would say "done". */
+const OV_MAP_ST_WORD={ r:'ov_map_l_late', a:'ov_map_l_soon', s:'ov_map_l_later', g:'ov_map_done_h' };
 function ovMapDutyRow(x,D){
-  const when=x.due?(x.st==='g'?i18t('ov_tm_done_undated'):x.st==='r'?i18t('ov_tm_was_due',{ date:ovDay(x.due) }):i18t('ov_tm_due',{ date:ovDay(x.due) })):(x.st==='g'?i18t('ov_tm_done_undated'):i18t('ob_no_date'));
-  return `<div class="ov-map-ob" data-ov-duty="${esc(String(x.id||''))}"><div><span class="ov-map-obt">${esc(x.t)}</span><small>${esc(when)}${
-    x.cl?` · <span class="ov-map-cl">${esc(x.cl)}</span>`:''}</small></div>${x.amt&&D&&D.money?`<span class="ov-map-amt">${esc(ovMapMoney(D,x.amt))}</span>`:''}</div>`;
+  const day=x.due?ovDay(x.due):i18t('ob_no_date');
+  const sub=[esc(i18t(OV_MAP_ST_WORD[x.st]||'ov_map_l_later')), x.cl?esc(x.cl):'',
+    x.amt&&D&&D.money?`<span class="ov-map-amt">${esc(ovMapMoney(D,x.amt))}</span>`:''].filter(Boolean).join(' · ');
+  return `<div class="ov-map-ob is-${x.st}" data-ov-duty="${esc(String(x.id||''))}"><span class="ov-map-tick" aria-hidden="true">${x.st==='g'?'✓':'○'}</span><div><span class="ov-map-obt" title="${esc(x.t)}">${esc(x.t)}</span><small>${sub}</small></div><span class="ov-map-obd">${esc(day)}</span></div>`;
 }
 /* WHERE THE AGREEMENT STANDS IN ITS TERM: start → today → notice by → end,
    one bar, drawn only where a start and an end are both recorded. */
@@ -6504,14 +6521,16 @@ function ovMapPane(c,D,k){
       R.quote?`<h4>${esc(i18t('ov_map_wording'))}</h4><blockquote class="ov-map-quote">“${esc(R.quote)}”</blockquote>`:''}<div id="renewal-host" class="empty:hidden ov-map-decide" data-bare="1" data-compact="1"></div>`;
   }
   if(k==='ours'||k==='theirs'){
-    const list=D.duties[k], open=list.filter(x=>x.st!=='g'), late=list.filter(x=>x.st==='r').length;
-    const who=(k==='ours'?D.parties[0]:D.parties[1]).name;
-    const lede=(list.length?i18t('ov_map_side_lede',{ who, n:list.length, open:open.length, late }):i18t('ov_map_no_duties'))
-      +(D.pay[k]>0?' '+i18t('ov_map_side_pay',{ money:ovMapMoney(D,D.pay[k]) }):'');
-    const groups=[['r','ov_map_l_late'],['a','ov_map_l_soon'],['s','ov_map_l_later'],['g','ov_map_done_h']].map(([st,w])=>{
-      const xs=list.filter(x=>x.st===st); if(!xs.length) return '';
-      return `<div class="ov-map-grp"><h4><span class="ov-map-dot is-${st}"></span>${esc(i18t(w))} · ${xs.length}</h4><div class="ov-map-rows">${xs.map(x=>ovMapDutyRow(x,D)).join('')}</div></div>`; }).join('');
-    return `<h3>${esc(i18t(k==='ours'?'ov_map_ours_h':'ov_map_theirs_h'))}</h3><p class="ov-map-lede">${esc(lede)}</p>${groups}`;
+    /* THE SETTLED CARD'S SHAPE (owner, 9 Oct 2026): a header with its count
+       and a line across, then one flat list — late first, done last. What
+       the old sentence said is on the rows (each mark is its state); only
+       money still to pay rides the header's right. */
+    const list=D.duties[k];
+    const order=['r','a','s','g'], rows=order.flatMap(st=>list.filter(x=>x.st===st));
+    const pay=D.pay[k]>0?i18t('ov_map_side_pay',{ money:ovMapMoney(D,D.pay[k]) }):'';
+    return `<div class="ov-map-ch"><h3>${esc(i18t(k==='ours'?'ov_map_ours_h':'ov_map_theirs_h'))} <span class="ov-map-tn">(${list.length})</span></h3>${
+      pay?`<span class="ov-map-ch-r">${esc(pay)}</span>`:''}</div>${
+      rows.length?`<div class="ov-map-list">${rows.map(x=>ovMapDutyRow(x,D)).join('')}</div>`:`<p class="ov-map-lede ov-map-none">${esc(i18t('ov_map_no_duties'))}</p>`}`;
   }
   return '';
 }
@@ -7099,8 +7118,8 @@ function openPartyEditor(c, id){
       ${(!adding&&p.side!==PARTY_SIDE_OURS)?`<button type="button" class="ui-btn" id="py-del" style="color:var(--st-ruby-fg)">${
         esc(i18t('py_remove'))}</button>`:''}
       <span style="flex:1"></span>
-      <button type="button" class="ui-btn" id="py-cancel">${esc(i18t('act_cancel'))}</button>
-      <button type="button" class="ui-btn ui-btn-primary" id="py-ok">${esc(i18t('act_save'))}</button>
+      <button data-dlg-cancel type="button" class="ui-btn" id="py-cancel">${esc(i18t('act_cancel'))}</button>
+      <button type="button" class="ui-btn ui-btn-primary" id="py-ok">${esc(i18t(adding?'py_add_go':'act_save'))}</button>
     </div>`, { maxWidth: DLG_W.m });
 
   const say=m=>{ const el=document.getElementById('py-say'); if(!el) return;
@@ -7550,8 +7569,9 @@ function ktOverviewTermsHtml(c,opts={}){
   const rtLine=rtSay?`<small class="ov-pty-route" data-ov-route="1"><span style="font-weight:var(--w-strong)">${esc(i18t('ct_signing_route_email'))}:</span> ${esc(rtSay.email)}${
       rtSay.who?' \u00b7 '+esc(rtSay.who):''} \u00b7 ${esc(i18t('ct_signing_route_email_note'))}</small>`:'';
   const pyRows=(D?D.parties:[]).map(p=>`<div class="ov-pty"><span class="ov-pty-av" style="background:${p.tone[1]};color:${p.tone[2]}">${
-      esc(typeof deskInitials==='function'?deskInitials(p.name):String(p.name).slice(0,2))}</span><div><b>${esc(p.name)}</b><small>${
-      esc([p.role, p.us?i18t('ov_map_us_word'):'', p.where, p.email].filter(Boolean).join(' · '))}</small>${
+      esc(typeof deskInitials==='function'?deskInitials(p.name):String(p.name).slice(0,2))}</span><div><span class="ov-pty-nm"><b title="${esc(p.name)}">${esc(p.name)}</b>${p.us?`<span class="ov-pty-us">${esc(i18t('ov_pty_our_side'))}</span>`:''}</span>${(()=>{
+      const sub=[p.role, p.where, p.email].filter(Boolean).join(' · ');
+      return sub?`<small class="ov-pty-sub" title="${esc(sub)}">${esc(sub)}</small>`:''; })()}${
       (p===rtParty?rtLine:'')+p.signs.map(r=>`<small class="ov-pty-sg${r.signed?' is-done':''}">${esc(r.signed?(r.at?i18t('ov_map_signed_by',{ name:r.n, date:ovDay(r.at) }):i18t('ov_map_signed_by_nodate',{ name:r.n })):i18t('ov_map_signs',{ name:r.n }))}</small>`).join('')}</div></div>`).join('');
   /* IN THE EDIT POSTURE THE PARTIES ARE THEIR EDITORS — the block every party
      act already lives on (drawn bare, the name said once), the people on the
@@ -8576,14 +8596,14 @@ function openNegoProposeModal(c){
         <div style="${COL}">
           <textarea id="nego-prop-text" spellcheck="false" style="width:100%;min-height:52vh;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:14px var(--s-4);font:inherit;font-family:var(--font-mono);font-size:var(--t-body);line-height:1.8;outline:none;resize:vertical">${esc(base)}</textarea>
           <label style="display:block;margin-top:var(--s-3)">
-            <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">${i18t('ct_why_asking')}</span>
+            <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500);margin-bottom:5px">${i18t('ct_why_asking')}</span>
             <input id="nego-prop-why" type="text" placeholder="${esc(i18t('ct_ph_reason'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/>
           </label>
         </div>
       </div>
       <div style="flex:none;padding:14px 26px;border-top:1px solid var(--color-divider)">
         <div style="${COL};display:flex;align-items:center;gap:9px;flex-wrap:wrap">
-          <button id="nego-prop-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+          <button data-dlg-cancel id="nego-prop-cancel" class="ui-btn">${i18t('act_cancel')}</button>
           <button id="nego-prop-go" class="ui-btn ui-btn-primary">${i18t('ct_propose_changes')}</button>
         </div>
       </div>
@@ -8859,7 +8879,7 @@ function renderBlankFormSection(c){
              ruling, and its own reason. */}
       ${blankFormFilledLineHtml(c)}
       ${(() => { let n = 0; return groups.map(g => `
-        ${g.name?`<div style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-top:2px">${esc(g.name)}</div>`:''}
+        ${g.name?`<div style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500);margin-top:2px">${esc(g.name)}</div>`:''}
         ${g.blanks.map(b => { n++; return `<label style="display:block">
           ${''/* A RULED LINE WITH NO WORDS IN FRONT OF IT HAS NO NAME, so it is
                  numbered rather than left blank — a box with no label is a box
@@ -10118,7 +10138,12 @@ function roomHeadSubHtml(c, opts = {}){
   if (kind) bits.push(esc(kind));
   if (c && F[c.folder]) bits.push(`<span class="room-sub-stream"><i style="background:${esc(F[c.folder].color||'var(--color-neutral-400)')}"></i>${esc(F[c.folder].name)}</span>`);
   if (c && c.archived) bits.push(esc(i18t('ct_archived_tag')));
-  const owner = (typeof contractOwnerName === 'function') ? contractOwnerName(c) : '';
+  /* NEGOTIATE'S LINE NAMES NO PERSON (owner, 10 Oct 2026: "remove the lead
+     and name from the second line below the title in negotiation"). Its head
+     is the one built with opts.needs === false; the room's tabs keep the
+     owner. The lead is still one press away on the head's own pill. */
+  const negoHead = !!(c && opts.needs === false);
+  const owner = (!negoHead && typeof contractOwnerName === 'function') ? contractOwnerName(c) : '';
   if (owner) bits.push(`${esc(i18t('ov_f_owner'))} <b class="room-sub-owner">${esc(owner)}</b>`);
   /* "updated" ONLY BEFORE A DATE (9 Oct 2026): a company standard's contract
      was born with lastAction "Created from template" — words, not a day — and
@@ -10126,13 +10151,6 @@ function roomHeadSubHtml(c, opts = {}){
      rewritten; one that names no year is simply not printed here. */
   if (c && c.lastAction && /\b(19|20)\d{2}\b/.test(String(c.lastAction)))
     bits.push(esc(i18t('ct_updated_on', { when: c.lastAction })));
-  /* THE LEAD ON NEGOTIATE'S LINE (SAP benchmark, batch 4, as drawn): who
-     speaks for us in this negotiation, or "nobody yet". Negotiate's head is
-     the one that draws no round-needs slot (opts.needs === false). */
-  if (c && opts.needs === false) {
-    let lead = null; try { lead = (typeof window.deskLead === 'function') ? deskLead(c) : null; } catch (_) { lead = null; }
-    bits.push(`${esc(i18t('dk_lead_label'))}: <b class="room-sub-lead">${esc((lead && lead.name) || i18t('ct_lead_nobody'))}</b>`);
-  }
   const needs = opts.needs ? `<span id="ws-round-needs-slot">${negoRoundNeedsHtml(c)}</span>` : '';
   /* ---- WHO ELSE HAS THIS OPEN (idea 5, 4 Oct 2026) ----
      A SLOT, painted by the beat rather than built here, because this is the
@@ -10525,7 +10543,9 @@ function roomHeadHtml(c,opts={}){
                  FIRST thing inside the box, under its own instruction line, so
                  nobody holding a code can miss it. */}
           ${may?`<button type="button" id="ws-import" title="${i18t('ct_read_word_back')}">${icon('download','w-3.5 h-3.5')}${i18t('ct_import_word_file')}</button>`:''}
-          <button type="button" id="ws-compare" title="${i18t('ct_compare_review')}">${icon('columns','w-3.5 h-3.5')}Compare versions</button>
+          ${(window.compareHasTwo && !compareHasTwo(c))
+            ? `<button type="button" id="ws-compare" disabled aria-disabled="true" title="${i18t('ve_only_one_title')}">${icon('columns','w-3.5 h-3.5')}Compare versions<span class="mnote">${i18t('ve_one_so_far')}</span></button>`
+            : `<button type="button" id="ws-compare" title="${i18t('ct_compare_review')}">${icon('columns','w-3.5 h-3.5')}Compare versions</button>`}
           ${''/* "Save as template" LEFT THIS MENU (Young's go on "One Door to
                  Standards", 24 Sep 2026): the same start lives behind the
                  Templates page's one button — "From one of our contracts" —
@@ -10951,7 +10971,7 @@ function renderWorkspace(){
      Negotiate tab: the two tabs are one room and their objects should be the
      same objects (Young, 10 Aug 2026). */
   const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:0 1px 2px rgba(15,23,42,.05);border-radius:var(--radius-lg)';
-  const H6='margin:0;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600);text-transform:uppercase;letter-spacing:.09em';
+  const H6='margin:0;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600);';
   const KROW='display:flex;justify-content:space-between;gap:var(--s-2);padding:var(--s-1) 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);font-size:var(--t-meta)';
   const KKEY='color:var(--color-neutral-600);flex:none';
   const kv=(k,v)=>`<div style="${KROW}"><span style="${KKEY}">${k}</span><span style="font-weight:var(--w-body);text-align:right;min-width:0">${v}</span></div>`;
@@ -11499,7 +11519,8 @@ const docReadRunning=c=>!!(c&&c.id!=null&&_docReadJobs.has(c.id));
 const docReadCur=(id,c)=>((state&&state.contracts)||[]).find(x=>x&&x.id===id)||c;
 /* A poll nobody is looking at is a request for nothing — the reading goes on
    at the server either way, and the column catches up when the reader is back. */
-const docReadWatching=id=>state.view==='workspace'&&state.activeId===id&&_wsTab==='docs'&&docReadOn();
+const docReadWatching=id=>(state.view==='workspace'&&state.activeId===id&&_wsTab==='docs'&&docReadOn())
+  ||(thOnHome()&&thHomeLive()&&(()=>{ try{ const pc=pdContract(); return !!pc&&String(pc.id)===String(id); }catch(_){ return false; } })());
 const docReadSleep=ms=>new Promise(r=>setTimeout(r,ms));
 /* THIS PRESS'S OWN NAME, so the server's answer about progress is about THIS
    reading and never about a colleague's reading of an older wording. */
@@ -11817,7 +11838,9 @@ const _docReadItemNum = el => {
    reads the canvas it is handed, and #doc-canvas where it is handed none —
    every older caller passes none. */
 function docReadSheet(c, root){
-  const canvas=root||document.getElementById('doc-canvas');
+  /* with no root named, the paper the thread is showing: the Document tab's,
+     or Home's while the clause list is drawn there (10 Oct 2026) */
+  const canvas=root||((typeof thOnHome==='function'&&thOnHome()&&thHomeLive())?document.getElementById('ig-canvas'):document.getElementById('doc-canvas'));
   if(!canvas) return [];
   const name=_docReadNorm(c&&c.name);
   /* WHERE THE LAST ROW STOPS: the first piece of furniture that FOLLOWS it in
@@ -13106,7 +13129,29 @@ const _docThreadCannot = new Map();
    columns; below DOC_READ_MIN_W it stands down, as the layers before it did.
    docThreadLive is whether it IS on screen — the drawer open, or the clauses
    being the panel — and is what the paper's two hands ask. */
-const docThreadOn = () => docReadFits() && _wsTab === 'docs';
+/* THE THREAD'S TWO HOMES (owner, 10 Oct 2026: "When i migrate the clause to
+   paper, put it under the document tab in the panel"): the contract's own
+   Document tab, and the Document tab of Home's Paper panel. ONE painter, ONE
+   set of builders; the host only says where the list, the paper and the
+   paper's scroller are. On Home the list IS the panel — no door, no ×,
+   nothing for it to cover. The host is chosen at every paint (thHostFor). */
+const TH_HOSTS = {
+  doc:  { card:'doc-thread', scroll:'doc-scroll', canvas:'doc-canvas', col:'doc-paper-col' },
+  home: { card:'pd-thread', scroll:'ig-paper-scroll', canvas:'ig-canvas', col:'ig-paper-scroll' } };
+let _thHost = 'doc';
+const thHomeLive = () => { try{ return typeof state!=='undefined'&&!!state&&state.view==='dashboard'&&typeof pdShowsDesk==='function'&&pdShowsDesk()&&pdTab()==='doc'&&!!document.getElementById('pd-thread'); }catch(_){ return false; } };
+const thOnHome = () => _thHost==='home';
+const thEl = k => document.getElementById(TH_HOSTS[_thHost][k]);
+function thHostFor(c){
+  let pc=null; try{ pc=(typeof pdContract==='function')?pdContract():null; }catch(_){ pc=null; }
+  return (thHomeLive()&&pc&&c&&String(pc.id)===String(c.id))?'home':'doc';
+}
+/* the contract the host is showing, looked up LIVE at every event */
+function thLiveContract(){
+  if(thOnHome()){ try{ return (typeof pdContract==='function')?pdContract():null; }catch(_){ return null; } }
+  return (typeof getContract==='function'&&typeof state!=='undefined'&&state)?getContract(state.activeId):null;
+}
+const docThreadOn = () => thOnHome() ? thHomeLive() : (docReadFits() && _wsTab === 'docs');
 const docThreadLive = () => docThreadOn() && _docThreadUp;
 const docThreadCur = c => (typeof getContract === 'function' && c && c.id != null && getContract(c.id)) || c;
 const docThreadReduce = () => { try{ return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(_){ return false; } };
@@ -13137,7 +13182,7 @@ function docXraySecHtml(k,body,cls){
    type-size change cannot leave a stale answer. docThreadLineRow is the
    clause that opens for it — the nearest one shown. */
 function docThreadAtLine(){
-  const sc=document.getElementById('doc-scroll');
+  const sc=thEl('scroll');
   if(!sc||!_docThreadRows.length) return 0;
   const line=sc.getBoundingClientRect().top+DOC_THREAD_LINE+0.5;
   let here=0;
@@ -13158,7 +13203,7 @@ function docThreadLineRow(){
 function docThreadGoTo(c,i){
   const n=_docThreadRows.length; if(!n) return;
   i=Math.max(0,Math.min(n-1,Number(i)||0));
-  const sc=document.getElementById('doc-scroll'), el=_docThreadRows[i];
+  const sc=thEl('scroll'), el=_docThreadRows[i];
   if(!sc||!el){ docThreadOpen(c,i); return; }
   let target=0;
   try{ target=el.getBoundingClientRect().top-sc.getBoundingClientRect().top+sc.scrollTop-DOC_THREAD_LINE+1; }catch(_){ target=0; }
@@ -13182,11 +13227,11 @@ function docThreadSettle(c){
    element and is armed once per element. The contract is looked up LIVE at
    every event: a record replaced since would otherwise be the one acted on. */
 function docThreadFollowArm(){
-  const sc=document.getElementById('doc-scroll');
+  const sc=thEl('scroll');
   if(!sc||sc.dataset.thFollow) return;
   sc.dataset.thFollow='1';
   let raf=0;
-  const live=()=>(typeof getContract==='function'&&typeof state!=='undefined'&&state)?getContract(state.activeId):null;
+  const live=thLiveContract;
   sc.addEventListener('scroll',()=>{
     if(_docThreadGlide>=0){
       clearTimeout(_docThreadGlideT);
@@ -13194,7 +13239,7 @@ function docThreadFollowArm(){
       return;
     }
     if(raf) return;
-    raf=requestAnimationFrame(()=>{ raf=0; const c=live(); if(c&&docThreadLive()) docThreadOpen(c,docThreadLineRow()); });
+    raf=requestAnimationFrame(()=>{ raf=0; const c=live(); if(c&&docThreadLive()) docThreadOpen(c,docThreadLineRow(),{follow:true}); });
   },{passive:true});
   if('onscrollend' in window) sc.addEventListener('scrollend',()=>{ if(_docThreadGlide>=0) docThreadSettle(live()); });
 }
@@ -13311,7 +13356,7 @@ function docThreadPlain(c, sheet){
 /* The marks are a Map row → why ('empty' · 'noai' · 'limit' · 'failed'), so
    `.has(i)` still asks "is it marked" and docThreadCannotWhy asks why. */
 function docThreadCannotOf(c){
-  const card=document.getElementById('doc-thread');
+  const card=thEl('card');
   const rec=_docThreadCannot.get(String(c&&c.id));
   return (rec&&card&&rec.sig===card.getAttribute('data-th-sig')) ? rec.set : new Map();
 }
@@ -13320,7 +13365,7 @@ function docThreadCannotWhy(c, i){
   return DOC_THREAD_WHY[docThreadCannotOf(c).get(i)] || DOC_THREAD_WHY.empty;
 }
 function docThreadCannotMark(c, idxs, why){
-  const cache=_docThreadCache, card=document.getElementById('doc-thread');
+  const cache=_docThreadCache, card=thEl('card');
   if(!c||!card||!cache||cache.id!==String(c.id)||docReadRunning(c)) return;
   const sig=card.getAttribute('data-th-sig')||'';
   let rec=_docThreadCannot.get(cache.id);
@@ -13411,7 +13456,7 @@ function docThreadRowHtml(x,i){
    made — and WHICH ROWS THE FILTER SHOWS. A section title steps aside while
    the filter is on: it heads clauses the filter may have hidden. */
 function docThreadStates(c,rows,plain){
-  const box=document.querySelector('#doc-thread .doc-th-rows'); if(!box) return;
+  const thc=thEl('card'), box=thc&&thc.querySelector('.doc-th-rows'); if(!box) return;
   const running=docReadRunning(c);
   const cannot=docThreadCannotOf(c);
   const filtering=_docThreadTones.length>0;
@@ -13487,7 +13532,9 @@ function docThreadMovedHtml(c,i,sheet){
    its Run, in the place its result would show. The press is the room head's
    own data-room-check door (wireRoomChecks), so there is one act, not two. */
 function docThreadUnrunHtml(c,kinds){
-  if(typeof checkVerdict!=='function') return '';
+  /* its Run is the room head's door, which Home's Paper does not carry: a
+     line there would offer a press that does nothing */
+  if(typeof checkVerdict!=='function'||thOnHome()) return '';
   const may=(typeof canEdit!=='function'||canEdit());
   return kinds.map(k=>{
     let v=null; try{ v=checkVerdict(c,k); }catch(_){ v=null; }
@@ -13547,7 +13594,7 @@ function docThreadBodyHtml(c,rows,i,plain,sheet){
    the reader has scrolled it. */
 function docThreadFill(c,rows,i,opts){
   const o=opts||{};
-  const card=document.getElementById('doc-thread'); if(!card) return;
+  const card=thEl('card'); if(!card) return;
   const box=card.querySelector('.doc-th-rows'); if(!box) return;
   const plain=o.plain||docThreadPlain(c,o.sheet);
   rows.forEach((x,k)=>{
@@ -13586,15 +13633,25 @@ function docThreadFill(c,rows,i,opts){
 }
 /* A SCROLL OPENS THE ROW AT THE LINE off the last paint's walk — never a
    re-walk of the sheet per scroll event. */
-function docThreadOpen(c,i){
+/* THE LIST HOLDS STILL WHILE THE PAPER SCROLLS (owner, 10 Oct 2026: "clauses
+   in the documents tab Flickers"): a row that opens because the reader is
+   SCROLLING the paper opens in one step — no open/close animation, no glide of
+   the list — because a scroll passes several clauses a second and each one
+   used to set the list growing, shrinking and gliding at once. A PRESS (a row,
+   ‹ ›, the filter) still animates: it is one change the reader asked for. */
+function docThreadOpen(c,i,opts){
   if(i<0||i===_docThreadOn) return;
   _docThreadOn=i;
-  const card=document.getElementById('doc-thread');
+  const card=thEl('card');
   if(!card||card.hidden) return;
   const cache=_docThreadCache;
   if(!cache||cache.id!==String(c&&c.id)){ docThreadPaint(c); return; }
-  docThreadFill(c,cache.rows,i,{plain:cache.plain,sheet:cache.sheet});
+  const follow=!!(opts&&opts.follow);
+  if(follow) card.classList.add('th-still');
+  docThreadFill(c,cache.rows,i,{plain:cache.plain,sheet:cache.sheet,instant:follow});
+  if(follow){ clearTimeout(_docThreadStillT); _docThreadStillT=setTimeout(()=>card.classList.remove('th-still'),DOC_THREAD_SETTLE_MS*2); }
 }
+let _docThreadStillT=null;
 /* THE FILTER MOVED: the rows it hides step aside; where the open clause is
    one of them, the paper glides on to the next clause it shows (or the
    nearest, at the end of the paper) and that row opens. */
@@ -13612,7 +13669,7 @@ function docThreadFilterSet(c, tone){
   }
   docThreadPaint(cur);
   if(go>=0) docThreadGoTo(cur,go);
-  try{ const b=document.querySelector(`#doc-thread [data-th-tone="${tone||''}"]`); if(b) b.focus({preventScroll:true}); }catch(_){}
+  try{ const thc=thEl('card'), b=thc&&thc.querySelector(`[data-th-tone="${tone||''}"]`); if(b) b.focus({preventScroll:true}); }catch(_){}
 }
 
 /* ---------- paint ----------
@@ -13635,21 +13692,26 @@ function docThreadFlatSay(c,on,rows){
   return flat;
 }
 function docThreadPaint(c){
-  const card=document.getElementById('doc-thread');
+  /* WHICH HOME this paint is for; a move between them starts the open row,
+     the walk and the list's place afresh — they belonged to the other paper. */
+  const want=thHostFor(c);
+  if(want!==_thHost){ _thHost=want; _docThreadOn=-1; _docThreadRows=[]; _docThreadCache=null; _docThreadRevealed=-1; }
+  const home=thOnHome();
+  const card=thEl('card');
   if(!card) return;
-  const right=document.getElementById('doc-right');
+  const right=home?null:document.getElementById('doc-right');
   const on=docThreadOn();
-  const rows=on?docXrayRows(c):[];
-  const has=on?docPanelHas(c):true;
-  const up=on&&docThreadShowsClauses(c);
+  const rows=on?docXrayRows(c,thEl('canvas')):[];
+  const has=home?false:(on?docPanelHas(c):true);
+  const up=on&&(home||docThreadShowsClauses(c));
   _docThreadUp=up;
   card.hidden=!up;
   card.classList.toggle('is-drawer',up&&has);
   if(right) right.classList.toggle('is-clauses',up);
-  docThreadDoorPaint(rows,has,up);
+  if(!home) docThreadDoorPaint(rows,has,up);
   const flat=docThreadFlatSay(c,on,rows);
   if(!up){ card.innerHTML=''; card.removeAttribute('data-th-sig'); _docThreadRows=[]; _docThreadCache=null; _docThreadRevealed=-1; return; }
-  const sheet=docReadSheet(c)||[];
+  const sheet=docReadSheet(c,thEl('canvas'))||[];
   _docThreadRows=rows.map(x=>x.el);
   if(!rows.length){
     _docThreadWant='';
@@ -13685,6 +13747,7 @@ function docThreadPaint(c){
   docThreadFill(c,rows,_docThreadOn,{plain,sheet,instant:true});
   docThreadWire(c);
   docThreadFollowArm();
+  if(home&&typeof pdTabCountPaint==='function') pdTabCountPaint('doc', c);
   if(land>=0) setTimeout(()=>{ try{ docThreadGoTo(docThreadCur(c),land); }catch(_){} },0);
 }
 /* ---------- wire ----------
@@ -13693,7 +13756,7 @@ function docThreadPaint(c){
    listener as before: a line takes the paper to its sentence through
    scrollToQuote, the door goes to the Obligations tab through roomGoTab. */
 function docThreadWire(c){
-  const card=document.getElementById('doc-thread');
+  const card=thEl('card');
   if(card&&!card.dataset.thBound){
     card.dataset.thBound='1';
     card.addEventListener('click',async e=>{
@@ -13730,16 +13793,18 @@ function docThreadWire(c){
         return;
       }
       const wd=t.closest('[data-xr-wd]');
-      if(wd){ const q=String(wd.getAttribute('data-xr-q')||''); try{ if(q&&typeof window.scrollToQuote==='function') window.scrollToQuote(q); }catch(_){} return; }
+      if(wd){ const q=String(wd.getAttribute('data-xr-q')||''); try{ if(q&&typeof window.scrollToQuote==='function') window.scrollToQuote(q,thOnHome()?{root:thEl('canvas')}:undefined); }catch(_){} return; }
       const ob=t.closest('[data-xr-ob]');
-      if(ob){ roomGoTab(cur,'oblig'); return; }
+      if(ob){
+        if(thOnHome()){ if(typeof pdSetTab==='function') pdSetTab('oblig'); if(typeof renderIntelDock==='function') renderIntelDock(); return; }
+        roomGoTab(cur,'oblig'); return; }
     });
   }
   /* A PLAIN PRESS ON A CLAUSE IN THE PAPER OPENS ITS ROW (the owner's list,
      27 Sep 2026); the paper does not move — the reader is already there — and
      a press that ends a highlight, or lands on a control, opens nothing. Nor
      does a press on a clause the filter hides, or on a section title. */
-  const col=document.getElementById('doc-paper-col');
+  const col=thEl('col');
   if(col&&!col.dataset.thBound){
     col.dataset.thBound='1';
     col.addEventListener('click',e=>{
@@ -13749,9 +13814,18 @@ function docThreadWire(c){
       const at=_docThreadRows.findIndex(el=>el&&el.contains&&el.contains(e.target));
       const rows=(_docThreadCache&&_docThreadCache.rows)||[];
       if(at<0||at===_docThreadOn||!docThreadShown(rows[at])) return;
-      docThreadOpen(docThreadCur(c),at);
+      docThreadOpen(docThreadCur(thOnHome()?(thLiveContract()||c):c),at);
     });
   }
+}
+/* THE COUNT ON HOME'S DOCUMENT SYMBOL: the list's own "N to review" — the
+   last paint's walk where the list is drawn, else a walk of Home's paper. */
+function docThreadHomeMarks(c){
+  try{
+    if(thOnHome()&&_docThreadCache&&_docThreadCache.id===String(c&&c.id)) return docThreadMarks(_docThreadCache.rows);
+    const cv=document.getElementById('ig-canvas'); if(!cv||!c) return 0;
+    return docThreadMarks(docXrayRows(c,cv));
+  }catch(_){ return 0; }
 }
 /* The column's one painter, kept under the name every caller outside this
    file already presses (the negotiate page's type stepper, the clause editor). */
@@ -15386,7 +15460,7 @@ async function signCheckEscalate(c,i,after){
       <label style="display:block"><span style="${lbl}">${esc(i18t('sc_esc_note'))}</span>
         <textarea id="sc-esc-note" rows="3" style="${fld}resize:vertical" placeholder="${esc(i18t('sc_esc_note_ph'))}"></textarea></label>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
-        <button id="sc-esc-cancel" class="ui-btn">${esc(i18t('act_cancel'))}</button>
+        <button data-dlg-cancel id="sc-esc-cancel" class="ui-btn">${esc(i18t('act_cancel'))}</button>
         <button id="sc-esc-go" class="ui-btn ui-btn-primary">${esc(i18t('sc_esc_go'))}</button>
       </div></div>`);
     document.getElementById('sc-esc-cancel').addEventListener('click',()=>{ closeModal(); resolve(false); });
@@ -16674,7 +16748,7 @@ function openPaperSignatureModal(c){
       <label style="display:block"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono)">${i18t('ct_the_signed_copy')}</span>
         <input id="ps-file" type="file" accept=".pdf,image/*" style="width:100%;font-size:var(--t-body)"/></label>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
-        <button id="ps-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="ps-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="ps-go" class="ui-btn ui-btn-primary">${i18t('ct_file_as_executed')}</button>
       </div>
     </div>`);
@@ -16948,7 +17022,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{ovRenewTermDoorHtml,ovRenewTermAsk,ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFrozen,paperTermFrozenRead,paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,roomHeadRefresh,
+Object.assign(window,{docThreadHomeMarks,TH_HOSTS,thHomeLive,ovRenewTermDoorHtml,ovRenewTermAsk,ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFrozen,paperTermFrozenRead,paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,roomHeadRefresh,
   /* TWO COPIES OF ONE CONTRACT (25 Sep 2026): the sheet's builders and the
      signing copy's controls. The other side's signing link draws the signing
      copy through signCopySheetHtml, so it must be on this list — a name read

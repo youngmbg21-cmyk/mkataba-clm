@@ -118,13 +118,16 @@ const HELPERS = `(() => {
          3e), and the Thread's own step squares take the edge too. */
       const exp = pick('#ws-tabrow-end .ws-focus-door'), nego = pick('#ws-to-nego'), step = pick('.rl-type-step');
       const thStep = pick('#doc-thread .doc-th-row.is-open .doc-th-step');
-      return { want, fill: b.bg('--accent-fill'),
+      return { want, light: b.tok('--color-neutral-200'), fill: b.bg('--accent-fill'),
         exp: b.edge(exp), nego: b.edge(nego), step: b.edge(step), thStep: b.edge(thStep), switchGone: !document.querySelector('[data-doc-read]') };
     });
     ok('3a the row the owner photographed paints ONE edge — Focus, Open Negotiate and the stepper; the switch is gone',
       !!(row.exp && row.nego && row.step) && row.switchGone && [row.exp, row.nego, row.step].every(c => c === row.want),
       `Focus ${row.exp} · Open Negotiate ${row.nego} · stepper ${row.step} · token ${row.want}${row.switchGone ? '' : ' · a switch is still drawn'}`);
-    ok('3b and it is the LIGHT grey, #E2E7E5', row.want === 'rgb(226, 231, 229)', row.want);
+    /* RE-POINTED 9 Oct 2026 (Ink Wash: light mode has no grey; the light edge
+       is the ramp's divider step, black + the theme colour). Same claim, as a
+       RELATION: the edge is the LIGHT step, not a darker one. */
+    ok('3b and it is the LIGHT edge, the ramp\'s divider step', !!row.light && row.want === row.light, `${row.want} vs ${row.light}`);
     ok('3c the Thread\'s ‹ › squares take the same edge', !!row.thStep && row.thStep === row.want, `step ${row.thStep}`);
 
     await page.evaluate(i => openRedlineWorkbench(i, { blanksAsked: true }), id);

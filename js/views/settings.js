@@ -87,7 +87,7 @@ function openFolderAccessEditor(userId){
       <input type="checkbox" id="fa-all" ${isAll?'checked':''} style="width:16px;height:16px;accent-color:var(--color-accent)"/> ${i18t('set_all_streams')}</label>
     <div id="fa-list" style="display:${isAll?'none':'grid'};grid-template-columns:1fr;gap:6px;max-height:300px;overflow:auto;margin-bottom:14px">${folders.map(fRow).join('')}</div>
     <div class="flex justify-end gap-2">
-      <button id="fa-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button data-dlg-cancel id="fa-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="fa-save" class="ui-btn ui-btn-primary">${i18t('set_save_access')}</button></div>
   </div>`);
   const allBox=document.getElementById('fa-all'), list=document.getElementById('fa-list');
@@ -460,8 +460,8 @@ function stDrawerPaint(d){
   document.getElementById('st-dfoot').innerHTML =
     `<div id="st-drawer-refusal" class="st-refusal" hidden></div>
      <div class="st-dfoot-acts">${nextBtn}${d.foot==='save'
-      ? `<button class="ui-btn" data-st-dclose>${i18t('act_cancel')}</button>
-         <button class="ui-btn ui-btn-primary" id="st-dsave">${i18t('st_save_close')}</button>`
+      ? `<button class="ui-btn ui-btn-primary" id="st-dsave">${i18t('st_save_close')}</button>
+         <button data-dlg-cancel class="ui-btn" data-st-dclose>${i18t('act_cancel')}</button>`
       : `<button class="ui-btn ui-btn-primary" data-st-dclose>${i18t('st_done')}</button>`}</div>`;
   el.removeAttribute('hidden'); if(scrim) scrim.removeAttribute('hidden');
   /* The class flip is what animates; it has to land on a frame after the
@@ -478,6 +478,7 @@ function stDrawerPaint(d){
   if(_stTrap){ try{ _stTrap(); }catch(e){} _stTrap=null; }
   if(typeof window.trapFocus==='function') _stTrap=window.trapFocus(el);
   if(typeof d.wire==='function') d.wire();
+  if(typeof window.popupControlsDress==='function') popupControlsDress(el);   /* SAP pop-ups: HaTi's dropdowns and dates */
   if(d.foot==='save' && typeof d.save==='function')
     document.getElementById('st-dsave')?.addEventListener('click',()=>d.save());
   try{ el.focus&&el.focus(); }catch(_){}
@@ -2162,7 +2163,7 @@ async function stTwoStepToggle(){
     <input id="ts-code" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" style="${window.RV_FLD||ST_INPUT}"/>
     <p id="ts-err" class="st-note" style="color:var(--st-ruby-fg);min-height:16px;margin:6px 0 0"></p>
     <div style="display:flex;gap:var(--s-2);justify-content:flex-end;margin-top:var(--s-3)">
-      <button id="ts-cancel" style="${ST_BTN2}">${i18t('act_cancel')}</button>
+      <button data-dlg-cancel id="ts-cancel" style="${ST_BTN2}">${i18t('act_cancel')}</button>
       <button id="ts-confirm" class="ui-btn ui-btn-primary">${i18t('ts_confirm')}</button>
     </div>
   </div>`,{ maxWidth: DLG_W.m });
@@ -2375,7 +2376,7 @@ const SET_PANELS={
                    element rule that exempts it lives in index.html, because an
                    inline style cannot reach a ::placeholder. */}
             <input id="st-fx-code" type="text" list="st-fx-codes" autocomplete="off"
-              placeholder="${esc(i18t('st_fx_code_ph'))}" style="${window.RV_FLD||ST_INPUT}text-transform:uppercase"/></label>
+              placeholder="${esc(i18t('st_fx_code_ph'))}" style="${window.RV_FLD||ST_INPUT}"/></label>
           <datalist id="st-fx-codes"></datalist>
           <label style="flex:1;min-width:150px"><span style="${window.RV_LBL||''}">${esc(i18t('st_fx_rate',{cur:jxCurrency()}))}</span>
             <input id="st-fx-rate" type="number" step="any" min="0" placeholder="129.50" style="${window.RV_FLD||ST_INPUT}"/></label>
@@ -3868,7 +3869,7 @@ function stAcceptanceHtml(){
       ${tile(sh.notTaken + '%', i18t('ai_tr_not_taken'))}
     </div>
     <div style="border:1px solid var(--color-divider);border-radius:var(--radius);overflow:hidden">
-      <div style="display:flex;align-items:center;gap:var(--s-2);padding:var(--s-1) var(--s-2);border-bottom:1px solid var(--color-divider);font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">
+      <div style="display:flex;align-items:center;gap:var(--s-2);padding:var(--s-1) var(--s-2);border-bottom:1px solid var(--color-divider);font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500)">
         <span style="flex:1;min-width:0">${esc(i18t('ai_tr_th_feature'))}</span>
         <span style="flex:none;width:72px;text-align:right;white-space:nowrap">${esc(i18t('ai_tr_th_proposals'))}</span>
         <span style="flex:none;width:72px;text-align:right;white-space:nowrap">${esc(i18t('ai_tr_th_as_is'))}</span>
@@ -4176,7 +4177,7 @@ function stWireEngine(){
         const people=Array.isArray(spend.byPerson)?spend.byPerson:[];
         const un=Number(spend.unattributed||0);
         pHost.innerHTML=`
-          <div style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin:0 0 var(--s-1)">${
+          <div style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500);margin:0 0 var(--s-1)">${
             esc(i18t('set_spend_people'))}</div>
           ${people.length?`<div style="border:1px solid var(--color-divider);border-radius:var(--radius);overflow:hidden">
             ${people.map(p=>`<div style="display:flex;align-items:center;gap:var(--s-2);padding:var(--s-1) var(--s-2);border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);font-size:var(--t-label)">
@@ -4322,7 +4323,7 @@ function stLoadOutbox(){
         (failing&&hp.lastError?`<div class="mb-2 text-[10.5px] text-gold-700 bg-gold-500/10 rounded px-2 py-1.5 leading-relaxed">${i18t('set_why_failed',{why:esc(hp.lastError)})}</div>`:'')+
         (r.items.length?`<div class="space-y-1.5 max-h-56 overflow-y-auto scroll-thin">${r.items.map(it=>`
           <div class="rounded-lg border border-brand-100 bg-white p-2.5">
-            <div class="flex items-center gap-2"><span class="text-[11px] font-medium text-brand-900 truncate flex-1">${it.subject}</span><span class="text-[9px] uppercase tracking-wider ${it.sent?'text-brand-600':'text-gold-600'}">${it.sent?i18t('set_sent_lower'):it.provider}</span></div>
+            <div class="flex items-center gap-2"><span class="text-[11px] font-medium text-brand-900 truncate flex-1">${it.subject}</span><span class="text-[9px] ${it.sent?'text-brand-600':'text-gold-600'}">${it.sent?i18t('set_sent_lower'):it.provider}</span></div>
             <div class="text-[10px] font-mono text-brand-800/65 truncate">→ ${it.to_addr} · ${fmtDT(it.created_at)}</div>
             ${it.detail?`<div class="mt-1 text-[10px] text-gold-700 bg-gold-500/10 rounded px-1.5 py-1 leading-relaxed">${i18t('set_why_failed',{why:esc(it.detail)})}</div>`:''}
             ${it.dev_hint?`<div class="mt-1 text-[10px] font-mono text-gold-700 bg-gold-500/10 rounded px-1.5 py-0.5 inline-block">${it.dev_hint}</div>`:''}
@@ -4657,7 +4658,7 @@ function renderPrecedentPanel(){
           </div>`:''}
         </div>`).join('')}
       ${learned.holding.length?`<div style="border-top:1px solid var(--color-divider);padding:9px 0 0;margin-top:3px">
-        <div style="font-size:var(--t-label);font-weight:var(--w-title);color:var(--color-neutral-600);text-transform:uppercase;letter-spacing:.09em;margin-bottom:4px">${esc(i18t('std_learn_holding'))}</div>
+        <div style="font-size:var(--t-label);font-weight:var(--w-title);color:var(--color-neutral-600);margin-bottom:4px">${esc(i18t('std_learn_holding'))}</div>
         ${learned.holding.map(h=>`<div style="font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.55">${esc(h.category)} — ${esc(i18t('std_learn_hold_line',{figure:h.figure,unit:h.unit,seen:h.seen,settled:h.settled}))}</div>`).join('')}
       </div>`:''}
     </div>`;
@@ -5053,7 +5054,7 @@ function renderPlaybookView(){
     <div style="margin-bottom:${baseline?'12px':'8px'};border:1px solid ${baseline?'var(--color-accent-300)':'var(--color-divider)'};border-left:3px solid ${baseline?'var(--color-accent)':'var(--color-divider)'};border-radius:var(--radius);background:${baseline?'var(--color-accent-100)':'var(--color-surface)'};padding:${baseline?'11px 13px':'10px 12px'}">
       <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:${baseline?'2px':'6px'}">
         <span style="font-size:var(--t-meta);font-weight:${baseline?700:600};color:${baseline?'var(--color-accent-900)':'var(--color-text)'}">${PB_ESC(label)}</span>
-        ${baseline?`<span style="font-size:var(--t-figure);font-family:var(--font-heading);letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-title);color:#fff;background:var(--color-accent);border-radius:var(--radius);padding:2px var(--s-2)">${i18t('set_applies_all')}</span>`:''}
+        ${baseline?`<span style="font-size:var(--t-figure);font-family:var(--font-heading);font-weight:var(--w-title);color:#fff;background:var(--color-accent);border-radius:var(--radius);padding:2px var(--s-2)">${i18t('set_applies_all')}</span>`:''}
         ${canEditPb?`<span style="margin-left:auto;display:flex;gap:10px;font-size:var(--t-label);font-weight:var(--w-strong)">
           <button data-pb-edit="${key}" style="background:none;border:0;cursor:pointer;color:var(--accent-ink-700)">${i18t('set_edit_lower')}</button>
           ${removable?`<button data-pb-del="${key}" style="background:none;border:0;cursor:pointer;color:var(--st-ruby-dot)">${i18t('set_remove_lower')}</button>`:''}
@@ -5136,7 +5137,7 @@ function openPlaybookEditor(key){
     <div id="pb-rng-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:var(--s-4)"></div>
 
     <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-      <button id="pb-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button data-dlg-cancel id="pb-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="pb-save" class="ui-btn ui-btn-primary">${i18t('act_save')}</button>
     </div>
   </div>`, {maxWidth:'34rem'});
@@ -5197,7 +5198,7 @@ function openClauseEditor(idx){
   openModal(`<div class="p-6">
     <h3 class="font-serif font-600 text-lg text-ink mb-3">${idx>=0?'Edit':'Add'} clause</h3>
     ${fld('category','Category')}${fld('name','Name')}${fld('preferred','Preferred wording',true)}${fld('fallback','Fallback wording',true)}${fld('guidance','Guidance',true)}
-    <div class="flex justify-end gap-2 mt-2"><button id="ce-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+    <div class="flex justify-end gap-2 mt-2"><button data-dlg-cancel id="ce-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="ce-save" class="ui-btn ui-btn-primary">${i18t('act_save')}</button></div>
   </div>`);
   document.getElementById('ce-cancel').addEventListener('click',closeModal);
@@ -5267,15 +5268,30 @@ function openApprovalRuleEditor(idx){
         ${members.map(m=>`<option value="member:${esc(m.id)}" ${isAp(m)?'selected':''}>${esc(m.name)} (${roleName(m.role)})</option>`).join('')}
       </select>
       ${orphan?`<span style="display:block;margin-top:6px;font-size:var(--t-label);color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);padding:6px 9px">${i18t('set_approver_gone_note',{name:esc(orphan)})}</span>`:''}</label>
-    <div class="flex justify-end gap-2 mt-2"><button id="ar-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-      <button id="ar-save" class="ui-btn ui-btn-primary">${i18t('set_save_rule')}</button></div>
+    ${''/* THE RULE READ BACK AS A SENTENCE (SAP pop-ups, owner's yes 10 Oct
+           2026): four boxes are hard to check; one line saying what they add
+           up to is not. Painted on every change by arSays below. */}
+    <div id="ar-says" role="status" style="margin:2px 0 var(--s-3);padding:8px 11px;border-radius:var(--radius);background:var(--color-accent-50);color:var(--accent-ink);font-size:var(--t-body);line-height:1.45"></div>
+    <div class="flex justify-end gap-2 mt-2"><button data-dlg-cancel id="ar-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button id="ar-save" class="ui-btn ui-btn-primary">${i18t(idx>=0?'set_save_rule':'ar_add_go')}</button></div>
   </div>`);
+  const arSays=()=>{
+    const host=document.getElementById('ar-says'); if(!host) return;
+    const t=document.getElementById('ar-cond').value, cv=document.getElementById('ar-cv');
+    const cond={ type:t, op:'>=', value: t==='value' ? Number((cv&&cv.value)||0) : (cv&&cv.value) };
+    const apSel=document.getElementById('ar-approver');
+    const who=(apSel && apSel.selectedOptions[0]) ? apSel.selectedOptions[0].textContent.trim() : '';
+    host.textContent=i18t('ar_reads',{ who, n:Math.max(1,Number(document.getElementById('ar-order').value||1)), cond:condLabel(cond) });
+  };
   const renderCondVal=()=>{ const t=document.getElementById('ar-cond').value; const h=document.getElementById('ar-condval');
     if(t==='value') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('set_threshold',{cur:jxCurrency()})}</span><input id="ar-cv" type="number" value="${r.cond.type==='value'?r.cond.value:5000000}" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld"/></label>`;
     else if(t==='folder') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('set_value_stream')}</span><select id="ar-cv" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld">${Object.values(FOLDERS).map(f=>`<option value="${esc(f.id)}" ${r.cond.value===f.id?'selected':''}>${esc(f.name)}</option>`).join('')}</select></label>`;
     else if(t==='kind') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('set_type_contains')}</span><input id="ar-cv" value="${r.cond.type==='kind'?(r.cond.value||''):''}" placeholder="${esc(i18t('set_ph_eg_lease'))}" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld"/></label>`;
     else h.innerHTML=`<p class="text-[11px] text-ink/55">${i18t('set_no_extra_value')}</p>`; };
-  document.getElementById('ar-cond').addEventListener('change',renderCondVal); renderCondVal();
+  document.getElementById('ar-cond').addEventListener('change',()=>{ renderCondVal(); arSays(); }); renderCondVal();
+  document.querySelector('#modal-root [role="dialog"]').addEventListener('input',arSays);
+  document.querySelector('#modal-root [role="dialog"]').addEventListener('change',arSays);
+  arSays();
   document.getElementById('ar-cancel').addEventListener('click',closeModal);
   document.getElementById('ar-save').addEventListener('click',()=>{
     const t=document.getElementById('ar-cond').value; const cv=document.getElementById('ar-cv');

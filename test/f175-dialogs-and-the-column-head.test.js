@@ -365,7 +365,10 @@ describe('f175 · the Tracked Changes head is a rule, not a box', () => {
     const px = t => tokenPx(t);
     assert.ok(px(rest) > px(word) + 4,
       'the number leads by a clear step — it is the thing being scanned');
-    assert.match(word, /text-transform:uppercase/, 'and the word reads as its label');
+    /* RE-POINTED 9 Oct 2026: labels are SENTENCE CASE now (owner: "Headers
+       being in small letters … Not Headers in Capital letters"). The word is
+       still the caption under the count — the size step above says so. */
+    assert.doesNotMatch(word, /text-transform:uppercase/, 'and the word reads as its label, in sentence case');
 
     /* REVERSED IN PLACE 24 Aug 2026 (WO-8). This read "the tabs still draw,
        reading zero" — right while the cut was a segmented control on a line of

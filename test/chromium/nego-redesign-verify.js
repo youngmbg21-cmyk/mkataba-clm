@@ -121,7 +121,9 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
           .map(e => (e.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 22)) };
     }, SEEN);
     /* RE-POINTED 7 Oct 2026 (Young, the HaTi Platform mockup): the head sits on the page ground, as the room's does. */
-    check('1 the head sits on the page ground, as the room\'s does', head.bg === 'rgba(0, 0, 0, 0)', head.bg);
+    /* REVERSED 10 Oct 2026 (owner: "the entire top bar is supposed to be White
+       like in the documents tab"). */
+    check('1 the head is white, as the Document tab\'s band is', head.bg === 'rgb(255, 255, 255)', head.bg);
     /* REVERSED IN PLACE 25 Aug 2026 — this pinned the literal `9px 24px`, and
        the vertical half of that is not a claim about anything: it is whatever
        lands this head's title on the same vertical as every other page's, and
@@ -130,8 +132,12 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        to the measure costs no edit here. */
     /* no line across it (Young ruled 21 Sep 2026: "remove the line going across the card"); the band measure stays */
     check('1 with the band measure inside it and no line across it',
+      /* RE-POINTED 10 Oct 2026 (owner: no movement going Document ⇄
+         Negotiate): the LEFT is the room's title inset, which
+         negotiate-as-drawn-verify 3b pins against the Document tab's pixels;
+         the right keeps the band measure. */
       !/inset/.test(head.rule || '')
-        && head.padX === head.bandX && head.padXR === head.bandX,
+        && head.padXR === head.bandX,
       `${head.pad} · x ${head.padX}/${head.padXR} vs --band-pad-x ${head.bandX} · ${head.rule}`);
     /* ---- REVERSED IN PLACE 24 Aug 2026 (owner-approved render) ----
        The head was one line because the render it was built from drew one. The
@@ -155,10 +161,14 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        its own title, and the bar was printing it again a few pixels higher. So
        the control is asked for as a control; that it is a painted sign rather
        than a word is 1c's, right below. */
-    check('1 and the way back survived it — the sign IS the button',
-      !!head.back && head.back.on,
-      head.back ? `${head.back.text || '(no word, as ruled)'} ${head.back.w}x${head.back.h}`
-        : 'MISSING — the page has no exit');
+    /* REVERSED 10 Oct 2026 (owner: "delete the back to document writing and
+       the arrow but replace the all negotiation button with Open document
+       button"). The page still has an exit — it is the row's last button. */
+    const exitDoor = await page.evaluate(() => { const d = document.querySelector('#view-redline .rl-actions [data-rl-open-doc]');
+      const r = d && d.getBoundingClientRect(); return d ? { txt: d.textContent.trim(), on: !!(r && r.width > 0) } : null; });
+    check('1 the back arrow is gone, and the way back is "Open document"',
+      !head.back && !!exitDoor && exitDoor.on && exitDoor.txt === 'Open document',
+      `arrow ${!!head.back} · ${JSON.stringify(exitDoor)}`);
     check('1 the title is a second door to the same place',
       !!head.title && head.title.on, head.title && head.title.text);
 
@@ -203,16 +213,10 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         inside: !!(ar && br && ar.left >= br.left - 1 && ar.right <= br.right + 1),
         btnLine: getComputedStyle(b).textDecorationLine };
     });
-    check('1c the arrow is PAINTED beside the title, not switched off there',
-      !door.none && door.hidden !== 'none' && door.painted && door.wide,
-      door.none ? 'no door' : `display ${door.hidden} · painted ${door.painted} · wide ${door.wide}`);
-    check('1c and it stands alone — no word beside the sign',
-      !door.none && door.word === null, door.none ? 'no door' : `word ${JSON.stringify(door.word)}`);
-    /* A SIGN A READER CANNOT NAME IS A GUESS. The word is not lost; it stops
-       being ink and becomes the label a screen reader and the hover read. */
-    check('1c and it still says where it goes, to the keyboard and the reader',
-      !door.none && door.label.length > 0 && !/underline/.test(door.btnLine || 'none'),
-      door.none ? 'no door' : `"${door.label}" · ${door.btnLine}`);
+    /* 1c RETIRED 10 Oct 2026: the arrow beside the title is gone (owner). What
+       it guarded — a reader can always leave this page and is told where to —
+       is the "Open document" check in 1. */
+    check('1c no arrow is drawn beside the title', door.none, door.none ? 'none' : 'an arrow is still drawn');
 
     /* ---- 1b. FOUR ACTS, ONE FILLED, PLAYBOOK IN THE MENU ---- */
     const acts = await page.evaluate(() => {
@@ -619,7 +623,7 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        is where the dead-in-preview treatment sits; what this checks is that the
        row itself still says what it said. */
     check('9 the row keeps its words and reads from our chair',
-      /Redline/i.test(preview.rowText) && /All negotiations/i.test(preview.rowText),
+      /Redline/i.test(preview.rowText) && /Open document/i.test(preview.rowText),
       preview.rowText.slice(0, 80));
     await page.screenshot({ path: path.join(OUT, '04-preview.png') });
     await page.click('#view-redline [data-redline-side="owner"]');

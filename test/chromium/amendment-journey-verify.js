@@ -226,7 +226,10 @@ const VISIBLE = `(el) => {
       form.goLabel);
 
     /* ================= 4 · THE JOURNEY ================= */
-    await page.fill('#am-expiry', '2029-03-31');
+    /* A POP-UP'S DATE WEARS HaTi'S FACE (SAP pop-ups, 10 Oct 2026): the real
+       box is kept, not drawn, as the value — written as the calendar writes it. */
+    await page.evaluate(v => { const i = document.getElementById('am-expiry'); i.value = v;
+      i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new Event('change', { bubbles: true })); }, '2029-03-31');
     await page.click('#am-go');
     await page.waitForTimeout(1800);
 

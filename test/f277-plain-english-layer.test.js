@@ -104,7 +104,8 @@ describe('f277 (1) the switch is gone — the thread is the Document tab\'s one 
   });
 
   test('it stands down on a window too narrow to hold two working columns', () => {
-    assert.match(CONTRACT_JS, /const docThreadOn = \(\) => docReadFits\(\) && _wsTab === 'docs';/,
+    /* RE-POINTED 10 Oct 2026 (Home's Paper clauses work order): the thread has two homes (TH_HOSTS); a row the scroll opens opens in one step ({follow:true}). */
+    assert.match(CONTRACT_JS, /const docThreadOn = \(\) => thOnHome\(\) \? thHomeLive\(\) : \(docReadFits\(\) && _wsTab === 'docs'\);/,
       'the thread is up on the Document tab wherever two columns fit');
     assert.match(CONTRACT_JS, /function docReadOn\(\)\{ return docThreadOn\(\); \}/,
       'and the readings\' own polling asks it by its old name');

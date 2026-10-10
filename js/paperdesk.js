@@ -5,7 +5,7 @@
    the wording, its acts in place.)
    ============================================================
    The tabs of the Copilot panel while Home's Paper holds a contract (Header
-   Icons, below) — Overview · Document · Signing · Obligations · History · Deal
+   Icons, below) — Overview · Document · Obligations · History · Deal (Signing left, 10 Oct 2026)
    beside Copilot. EVERY TAB IS A
    READING THE CONTRACT'S OWN PAGES ALREADY MAKE, never a second copy:
    ktFactReads (the Overview), obPanelActs (the Obligations tab's acts),
@@ -23,11 +23,17 @@
    one view; Focus is the full size). The lit symbol says its name; the others
    say theirs on the hover. Off the Paper (the Board, Explorer) only Copilot's
    symbol is drawn. The engine's name rides Copilot's hover. */
-const PD_TABS = ['copilot', 'facts', 'doc', 'sign', 'oblig', 'hist', 'deal'];
-/* each tab's symbol — the one the left menu draws for the same thing */
-const PD_TAB_ICON = { copilot: 'spark', facts: 'grid', doc: 'file', sign: 'check', oblig: 'flag', hist: 'clock', deal: 'nego' };
+/* NO SIGNING TAB (owner, 10 Oct 2026: "delete signing tab"): what stands
+   before a signature is the contract's own Signing tab; an approval waiting
+   on you opens on the Approvals & signing page (pdOpenOnHome). */
+const PD_TABS = ['copilot', 'facts', 'doc', 'oblig', 'hist', 'deal'];
+/* THE ARTIFACT'S SYMBOLS, EXACTLY (owner, 10 Oct 2026: "use the Symbols that
+   were in the artifact before not the ones in hati"): typed marks, each held
+   to its text face (U+FE0E), never the left menu's drawings. */
+const PD_TAB_GLYPH = { copilot: '\u2726', facts: '\u25A6', doc: '\u25A2', oblig: '\u2691', hist: '\u25F7', deal: '\u21C4' };
+const PD_TAB_ICON = PD_TAB_GLYPH;
 /* the room's own words for its tabs; Copilot and Deal have no room tab */
-const PD_TAB_NAME = { copilot: 'pd_tab_copilot', facts: 'tab_overview', doc: 'tab_document', sign: 'tab_signing', oblig: 'tab_obligations', hist: 'tab_history', deal: 'pd_tab_deal' };
+const PD_TAB_NAME = { copilot: 'pd_tab_copilot', facts: 'tab_overview', doc: 'tab_document', oblig: 'tab_obligations', hist: 'tab_history', deal: 'pd_tab_deal' };
 const PD_HIST_MAX = 40;          // trail rows drawn; the rest are counted and one press away
 let _pdTab = 'copilot';
 const _pdActs = new Map();       // act id -> function, refilled at every paint (resolved at press time)
@@ -84,25 +90,31 @@ function pdEmpty(title, ic){
   return pdNote(title);
 }
 /* THE COUNT ON A SYMBOL is the length of the list behind it, read the same
-   way the tab reads it: Signing = the Sign button's list, Document = the
-   blanks plus a form owed, Obligations = the duties recorded, Deal = their
-   changes still open. Nothing is counted that the tab does not draw. */
+   way the tab reads it: Document = the clause list's own "N to review" (the
+   marks the thread counts, docThreadMarks over the same walk), Obligations =
+   the duties recorded, Deal = their changes still open. Nothing is counted
+   that the tab does not draw. */
 function pdTabCount(t, c){
   if (!c) return null;
   try {
-    if (t === 'sign'){
-      if ((typeof contractSignedAt === 'function' && contractSignedAt(c)) || /^(Signed|Executed|Active|Expired|Terminated)$/.test(String(c.status || ''))) return null;
-      const n = (typeof signBlockers === 'function') ? (signBlockers(c) || []).length : 0; return n ? { n, tone: 'warn' } : null;
-    }
     if (t === 'doc'){
-      const b = (typeof contractBlanksOpen === 'function') ? (contractBlanksOpen(c) || []).length : 0;
-      const f = (typeof tplFormPending === 'function' && tplFormPending(c)) ? 1 : 0;
-      return (b + f) ? { n: b + f, tone: 'warn' } : null;
+      const n = (typeof docThreadHomeMarks === 'function') ? docThreadHomeMarks(c) : 0;
+      return n ? { n, tone: 'warn' } : null;
     }
     if (t === 'oblig'){ const n = Array.isArray(c.obligations) ? c.obligations.filter(Boolean).length : 0; return n ? { n, tone: 'quiet' } : null; }
     if (t === 'deal'){ const n = pdTheirOpen(c).length; return n ? { n, tone: 'warn' } : null; }
   } catch (_){}
   return null;
+}
+
+/* the count on one symbol, put back in place when its list repaints */
+function pdTabCountPaint(t, c){
+  const b = document.querySelector(`#ig-dock [data-pd-tab="${t}"] .pd-tab-i`); if (!b) return;
+  const cnt = pdTabCount(t, c || pdContract());
+  let n = b.querySelector('.pd-tab-n');
+  if (!cnt){ if (n) n.remove(); return; }
+  if (!n){ n = document.createElement('span'); b.appendChild(n); }
+  n.className = 'pd-tab-n is-' + cnt.tone; n.textContent = cnt.n > 99 ? '99+' : String(cnt.n);
 }
 
 /* ---- FACTS: the Overview's own reading ---- */
@@ -165,23 +177,15 @@ function pdObligHtml(c){
   return head + pdList(rows) + add;
 }
 
-/* ---- DOCUMENT: what is still to fill on the paper, the form, the files ----
-   The clause list is the strip down the paper's left edge, so it is not drawn
-   again here. Blanks come off the paper (contractBlanksOpen); the form owed is
-   tplFormPending; PDF and Word are the room's own exports. */
+/* ---- DOCUMENT: THE CLAUSE LIST (owner, 10 Oct 2026: "When i migrate the
+   clause to paper, put it under the document tab in the panel. Remove whats
+   currently there.") ---- the contract's own Document tab's thread, drawn by
+   its one painter (docThreadPaint) on Home's paper: the colour filter, the
+   open clause with Plain and its marks, the beads down the line. The blanks
+   list, the copies and the left-edge sentence are gone from here. The host
+   is empty until the painter fills it. */
 function pdDocHtml(c){
-  let blanks = [];
-  try { blanks = (typeof contractBlanksOpen === 'function') ? (contractBlanksOpen(c) || []) : []; } catch (_){ blanks = []; }
-  let formOwed = false;
-  try { formOwed = (typeof tplFormPending === 'function') ? !!tplFormPending(c) : false; } catch (_){ formOwed = false; }
-  const fill = blanks.length ? pdH(_pdTn('pd_missing', blanks.length, { n: blanks.length }))
-    + pdList(blanks.slice(0, 8).map(b => `<div class="pd-row"><i class="is-warn">!</i><span>${_pdE(b.label || b.name || b.key || '')}</span>${pdBtn(_pdT('pd_fill'), pdRoom(c, 'contract'), { go: true })}</div>`).join(''))
-    + (blanks.length > 8 ? pdNote(_pdT('pd_more_n', { n: blanks.length - 8 })) : '')
-    : pdNote(_pdT('pd_doc_no_blanks'));
-  const form = formOwed ? pdH(_pdT('pd_doc_form')) + pdList(`<div class="pd-row"><i class="is-warn">!</i><span>${_pdE(_pdT('pd_doc_form_owed'))}</span>${pdBtn(_pdT('pd_doc_form_go'), pdRoom(c, 'contract'), { lead: true })}</div>`) : '';
-  const files = pdH(_pdT('pd_doc_files')) + `<div class="pd-acts">${typeof exportPDF === 'function' ? pdBtn(_pdT('pd_doc_pdf'), () => exportPDF(getContract(c.id) || c)) : ''}${pdBtn(_pdT('pd_doc_open'), pdRoom(c, 'contract'))}</div>`;
-  const owed = blanks.length + (formOwed ? 1 : 0);
-  return pdTop('doc', owed ? pdPill('warn', _pdTn('pd_missing', owed, { n: owed })) : pdPill('ok', _pdT('pd_st_complete'))) + form + fill + files + pdNote(_pdT('pd_doc_foot'));
+  return `<div id="pd-thread" class="doc-th pd-th" data-pd-thread="${_pdE(c && c.id)}"></div>`;
 }
 
 /* ---- OPEN ONE CONTRACT ON HOME'S PAPER, ON A TAB, FROM ANYWHERE (the nine
@@ -191,6 +195,17 @@ function pdDocHtml(c){
 const PD_ROOM_TAB = { facts: 'terms', oblig: 'obligations', sign: 'sign', hist: 'history', deal: 'redline', doc: 'contract', copilot: 'terms' };
 function pdOpenOnHome(id, tab){
   const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c) return false;
+  /* SIGNING LEFT THE PAPER (10 Oct 2026): an approval waiting on you opens
+     the Approvals & signing page with its row chosen — the page that already
+     decides it (Approve · Refuse in its panel). */
+  if (tab === 'sign'){
+    if (typeof apSetTab === 'function' && typeof insSelect === 'function' && typeof setView === 'function'){
+      apSetTab('approvals'); insSelect('approvals', id); setView('approvals'); return true;
+    }
+    if (typeof openWorkspace === 'function') openWorkspace(id);
+    if (typeof roomGoTab === 'function') try { roomGoTab(getContract(id), 'sign'); } catch (_){}
+    return true;
+  }
   const phone = typeof window !== 'undefined' && window.innerWidth && window.innerWidth < 768;
   if (phone || typeof igWalk !== 'function'){
     if (typeof openWorkspace === 'function') openWorkspace(id);
@@ -201,46 +216,6 @@ function pdOpenOnHome(id, tab){
   igWalk([id], 0, { tab: tab || 'facts' });
   return true;
 }
-/* THE APPROVAL PACK, where this reader may decide now: the Approvals agent's
-   own body (value against your limit, the rule, what departs from our
-   standards, the brief) — one builder, drawn here instead of on the Board. */
-function pdApprovalPackHtml(c){
-  let d = null; try { d = (typeof approvalDecidableNow === 'function') ? approvalDecidableNow(c) : null; } catch (_){ d = null; }
-  if (!d || typeof agApproveBody !== 'function') return '';
-  let it = null; try { it = (typeof agApproveItems === 'function') ? (agApproveItems() || []).find(x => x && x.cid === c.id) || null : null; } catch (_){ it = null; }
-  let body = ''; try { body = agApproveBody(it || { c, rule: '', asker: '', days: 0 }); } catch (_){ body = ''; }
-  const acts = (typeof approvalDecideAsk === 'function') ? `<div class="pd-acts">${pdBtn(_pdT('pd_approve'), () => approvalDecideAsk(getContract(c.id) || c, 'approved'), { lead: true })}${pdBtn(_pdT('pd_refuse'), () => approvalDecideAsk(getContract(c.id) || c, 'refused'))}</div>` : '';
-  return `<section class="pd-pack" data-pd-pack="1">${pdH(_pdT('pd_pack_head'))}${body}${acts}</section>`;
-}
-/* ---- SIGNING: the list the Sign button reads, each gap with its act ---- */
-function pdSignDoor(c, b){
-  const k = b.key;
-  if ((k === 'approval' || k === 'signapproval') && typeof approvalDecidableNow === 'function' && approvalDecidableNow(c) && typeof approvalDecideAsk === 'function')
-    return pdBtn(_pdT('pd_approve'), () => approvalDecideAsk(getContract(c.id) || c, 'approved'), { lead: true })
-      + pdBtn(_pdT('pd_refuse'), () => approvalDecideAsk(getContract(c.id) || c, 'refused'));
-  if (k === 'signers' && typeof openSignerPlanEditor === 'function') return pdBtn(_pdT('pd_name_signers'), () => openSignerPlanEditor(getContract(c.id) || c), { go: true });
-  if (k === 'negotiation' && typeof openRedlineWorkbench === 'function') return pdBtn(_pdT('pd_negotiate'), () => openRedlineWorkbench(c.id), { go: true });
-  const door = (typeof caReadyDoor === 'function') ? caReadyDoor(k) : 'sign';
-  return pdBtn(_pdT('ca_ready_go_' + door), door === 'nego' ? () => openRedlineWorkbench(c.id) : pdRoom(c, door === 'contract' ? 'contract' : door === 'terms' ? 'terms' : 'sign'), { go: true });
-}
-function pdSignHtml(c){
-  const signed = (typeof contractSignedAt === 'function') ? contractSignedAt(c) : null;
-  if (signed || /^(Signed|Executed|Active|Expired|Terminated)$/.test(String(c.status || '')))
-    return pdTop('sign', pdPill('ok', _pdT('pd_st_signed'))) + pdNote(signed ? _pdT('pd_signed', { when: (typeof fmtDocDate === 'function' && fmtDocDate(String(signed).slice(0, 10))) || String(signed).slice(0, 10) }) : _pdT('pd_signed_nodate')) + `<div class="pd-acts">${pdBtn(_pdT('pd_open_copy'), pdRoom(c, 'sign'))}</div>`;
-  let bl = [];
-  try { bl = (typeof signBlockers === 'function') ? signBlockers(c) : []; } catch (_){ bl = []; }
-  const rows = pdList(bl.map(b => `<div class="pd-row"><i class="is-warn">!</i><span>${_pdE(b.label)}</span><span class="pd-row-acts">${pdSignDoor(c, b)}</span></div>`).join(''));
-  const plan = (typeof signerPlan === 'function') ? signerPlan(c) : [];
-  const signers = plan.length ? pdList(plan.map(s => `<div class="pd-row"><i class="${s.signed ? 'is-ok' : ''}">${s.signed ? '✓' : '·'}</i><span>${_pdE(s.name || '')}<small>${_pdE(_pdT(s.party === 'internal' ? 'pd_side_ours' : 'pd_side_theirs'))}</small></span><span></span></div>`).join(''))
-    : pdNote(_pdT('pd_no_signers'));
-  const send = (typeof openShareModal === 'function') ? pdBtn(_pdT('pd_send_sign'), () => openShareModal(getContract(c.id) || c, { purpose: 'sign' }),
-    { lead: !bl.length, disabled: !!bl.length, why: _pdTn('pd_settle_first', bl.length, { n: bl.length }) }) : '';
-  return pdTop('sign', bl.length ? pdPill('warn', _pdT('pd_st_notready')) : pdPill('ok', _pdT('pd_st_ready'))) + pdApprovalPackHtml(c) + pdH(bl.length ? _pdTn('pd_to_settle', bl.length, { n: bl.length }) : _pdT('pd_ready_to_sign')) + rows
-    + pdH(_pdT('pd_signers')) + signers
-    + `<div class="pd-acts">${send}${pdBtn(_pdT('pd_open_copy'), pdRoom(c, 'sign'))}</div>`
-    + pdNote(_pdT('pd_sign_foot'));
-}
-
 /* ---- HISTORY: the trail, newest first; the cap is said ---- */
 function pdHistHtml(c){
   let ev = [];
@@ -333,7 +308,7 @@ function pdDealHtml(c){
   return dealTop + (send ? `<div class="pd-acts">${send}</div>` : '') + `<div class="pd-deal">${sheet}</div>` + changes + (go ? `<div class="pd-acts">${go}</div>` : '');
 }
 
-const PD_BODY = { facts: pdFactsHtml, doc: pdDocHtml, sign: pdSignHtml, oblig: pdObligHtml, hist: pdHistHtml, deal: pdDealHtml };
+const PD_BODY = { facts: pdFactsHtml, doc: pdDocHtml, oblig: pdObligHtml, hist: pdHistHtml, deal: pdDealHtml };
 /* THE TITLE ROW: one button per tab, the lit one carrying its name. `brain`
    is the engine's own words (copilotBrainInfo), said on Copilot's hover. */
 function pdHeadHtml(brain){
@@ -344,7 +319,7 @@ function pdHeadHtml(brain){
     const name = _pdT(PD_TAB_NAME[t]);
     const tip = t === 'copilot' && brain ? name + ' · ' + brain : name;
     const on = t === lit, cnt = pdTabCount(t, c);
-    return `<button type="button" role="tab" class="pd-tab${on ? ' on' : ''}" data-pd-tab="${t}" aria-selected="${on}" aria-label="${_pdE(cnt ? _pdT('pd_tab_n', { name, n: cnt.n }) : name)}" title="${_pdE(tip)}"><span class="pd-tab-i"><svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-${PD_TAB_ICON[t]}"/></svg>${cnt ? `<span class="pd-tab-n is-${cnt.tone}">${cnt.n > 99 ? '99+' : cnt.n}</span>` : ''}</span><span class="pd-tab-w">${_pdE(name)}</span></button>`;
+    return `<button type="button" role="tab" class="pd-tab${on ? ' on' : ''}" data-pd-tab="${t}" aria-selected="${on}" aria-label="${_pdE(cnt ? _pdT('pd_tab_n', { name, n: cnt.n }) : name)}" title="${_pdE(tip)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${PD_TAB_GLYPH[t]}\uFE0E</span>${cnt ? `<span class="pd-tab-n is-${cnt.tone}">${cnt.n > 99 ? '99+' : cnt.n}</span>` : ''}</span><span class="pd-tab-w">${_pdE(name)}</span></button>`;
   }).join('');
 }
 function pdBodyHtml(c){
@@ -366,6 +341,15 @@ function pdPaint(c){
   if (!pdShowsDesk()) return;
   const host = document.getElementById('pd-body'); if (!host){ if (typeof renderIntelDock === 'function') renderIntelDock(); return; }
   c = c || pdContract(); if (!c) return;
+  /* THE CLAUSE LIST IS KEPT, NEVER REDRAWN FROM NOTHING: a paint of the paper
+     repaints it in place (its open row, filter and scroll stay). */
+  if (_pdTab === 'doc'){
+    const th = host.querySelector('#pd-thread');
+    if (!th || th.getAttribute('data-pd-thread') !== String(c.id)) host.innerHTML = pdBodyHtml(c);
+    host.dataset.for = c.id + ':doc';
+    if (typeof docThreadPaint === 'function') docThreadPaint(c);
+    return;
+  }
   const top = host.scrollTop;
   host.innerHTML = pdBodyHtml(c);
   if (host.dataset.for === c.id + ':' + _pdTab) host.scrollTop = top;
@@ -390,5 +374,5 @@ if (typeof document !== 'undefined' && !document._pdWired){
   });
 }
 
-Object.assign(window, { PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdApprovalPackHtml, PD_TAB_ICON, PD_TAB_NAME, PD_TABS, pdTabCount, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml,
-  pdSignDoor, pdSignHtml, pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint });
+Object.assign(window, { PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml,
+  pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint });

@@ -68,10 +68,15 @@ const check = (name, ok, detail) => {
         rowH: +r.getBoundingClientRect().height.toFixed(1) };
     };
     const C = await page.evaluate(READ);
+    /* RE-POINTED 9 Oct 2026 (Ink Wash): the page ink and the strong edge are
+       read from their tokens, so the claims stay RELATIONS whatever the ramp. */
+    const INKS = await page.evaluate(() => { const read = (v => { const i = document.createElement('i'); i.style.color = 'var(' + v + ')'; document.body.appendChild(i);
+      const c = getComputedStyle(i).color; i.remove(); return c; });
+      return { text: read('--color-text'), strong: read('--color-neutral-300') }; });
     check('1a the Contracts table draws no CONTRACT TITLE column',
       !C.err && !C.ths.some(x => /contract title/i.test(x.t)), C.err || C.ths.map(x => x.t).join(' | '));
     check('1b the counterparty leads the identity cell, in the page ink at the heavier weight',
-      !!C.title && +C.title.w >= 500 && C.title.col === 'rgb(20, 31, 29)',
+      !!C.title && +C.title.w >= 500 && C.title.col === INKS.text,
       C.title && `"${C.title.txt}" ${C.title.w} ${C.title.size} ${C.title.col}`);
     check('1c the contract name sits UNDER it, a size down and in the quiet grey',
       !!C.sub && C.stacked && parseFloat(C.sub.size) < parseFloat(C.title.size)
@@ -225,7 +230,7 @@ const check = (name, ok, detail) => {
       !!P.bodyBg && P.bodyBg === P.pageBg && P.bodyBg !== P.cardBg,
       `body ${P.bodyBg} · page ${P.pageBg} · card ${P.cardBg}`);
     check('3b and the card edge is the token that stays visible on it',
-      P.cardEdge === 'rgb(203, 211, 208)', P.cardEdge);
+      P.cardEdge === INKS.strong, `${P.cardEdge} vs ${INKS.strong}`);
     check('3c the line-of-business control is the size of the controls beside it',
       P.lobH != null && P.fieldH != null && Math.abs(P.lobH - P.fieldH) <= 2, `lob ${P.lobH} · field ${P.fieldH}`);
     /* RE-POINTED IN PLACE 22 Sep 2026. The ground is still the claim, and on

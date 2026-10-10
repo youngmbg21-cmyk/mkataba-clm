@@ -701,8 +701,8 @@ async function extractMetadata(text, seed, opts={}){
 /* ---- review-and-confirm panel: the human always confirms before save ---- */
 function openMetaReview(meta, onConfirm, opts={}){
   const c = meta.confidence||{};
-  const badge = lvl => lvl==='low' ? `<span class="ml-1.5 text-[9px] font-mono uppercase tracking-wide text-amber bg-gold-500/12 rounded px-1 py-0.5">low</span>`
-    : lvl==='medium' ? `<span class="ml-1.5 text-[9px] font-mono uppercase tracking-wide text-brand-600 bg-brand-50 rounded px-1 py-0.5">med</span>` : '';
+  const badge = lvl => lvl==='low' ? `<span class="ml-1.5 text-[9px] font-mono text-amber bg-gold-500/12 rounded px-1 py-0.5">low</span>`
+    : lvl==='medium' ? `<span class="ml-1.5 text-[9px] font-mono text-brand-600 bg-brand-50 rounded px-1 py-0.5">med</span>` : '';
   const p = meta._payload;
   // Say how much of the document was actually read — "Copilot-extracted" over the
   // first eight pages is a materially different claim from over all of it.
@@ -773,7 +773,7 @@ function openMetaReview(meta, onConfirm, opts={}){
       <div class="grid grid-cols-2 gap-3" style="max-height:min(52vh,460px);overflow-y:auto;padding-right:var(--s-1)">${META_FIELDS.map(field).join('')}</div>
       <div class="flex justify-end gap-2 mt-5">
         ${queued?`<button id="mr-stop" class="ui-btn" style="margin-right:auto">${i18t('me_stop')}</button>`:''}
-        <button id="mr-cancel" class="ui-btn">${queued?i18t('me_skip_this'):i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="mr-cancel" class="ui-btn">${queued?i18t('me_skip_this'):i18t('act_cancel')}</button>
         <button id="mr-save" class="ui-btn ui-btn-primary">${opts.saveLabel||'Confirm & save'}</button>
       </div>
     </div>`);

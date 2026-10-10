@@ -225,7 +225,7 @@ function renderAdviceTracking(r){
           <span style="margin-left:auto;flex:none">${adviceStageChip(r.status)}</span>
         </div>
         ${etaBanner}
-        <h3 style="font-size:var(--t-micro);color:var(--color-neutral-600);letter-spacing:.09em;text-transform:uppercase;margin:18px 0 var(--s-3)">${i18t('apo_where_request')}</h3>
+        <h3 style="font-size:var(--t-micro);color:var(--color-neutral-600);margin:18px 0 var(--s-3)">${i18t('apo_where_request')}</h3>
         ${steps}
       </div>
       <aside style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:18px" class="portal-aside">

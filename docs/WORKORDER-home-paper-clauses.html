@@ -1,0 +1,305 @@
+<title>Home Paper Clauses</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a mock-up board. Each scene is HaTi's Home: blue bar, full-width white greeting row, then the page beside a white panel. */
+:root{
+  --bg:#eef1f6; --fg:#0b1530; --ink-2:#2c3a5c; --ink-3:#5a6788;
+  --nav:#264C9E; --nav-ink:#cfdcf2; --accent:#2a55b8; --accent-tint:#e7eefb;
+  --paper:#ffffff; --panel:#ffffff; --desk:#e9eef7; --line:#d5dceb; --line-soft:#e6eaf3;
+  --amber:#d98a00; --amber-tint:#fff3dc; --amber-ink:#8a5600;
+  --red:#c2372f; --red-tint:#fbe9e7; --blue:#3f6fd1; --ok:#1f8a5b; --ok-tint:#e1f4ea;
+  --row2:54px; --font:'Geist',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0d1422; --fg:#e8edf7; --ink-2:#c3cde2; --ink-3:#8d9ab6; --nav:#0B1220; --nav-ink:#a5bde0;
+  --accent:#7aa2ff; --accent-tint:#1b2a4a; --paper:#151e30; --panel:#151e30; --desk:#0f1727; --line:#2a3650; --line-soft:#212c42;
+  --amber:#f0a92e; --amber-tint:#3a2a0c; --amber-ink:#f6c46b; --red:#ff8a80; --red-tint:#3a1a19; --blue:#7aa2ff; --ok:#5fd19b; --ok-tint:#123526; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0d1422; --fg:#e8edf7; --ink-2:#c3cde2; --ink-3:#8d9ab6; --nav:#0B1220; --nav-ink:#a5bde0;
+  --accent:#7aa2ff; --accent-tint:#1b2a4a; --paper:#151e30; --panel:#151e30; --desk:#0f1727; --line:#2a3650; --line-soft:#212c42;
+  --amber:#f0a92e; --amber-tint:#3a2a0c; --amber-ink:#f6c46b; --red:#ff8a80; --red-tint:#3a1a19; --blue:#7aa2ff; --ok:#5fd19b; --ok-tint:#123526; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:14px;line-height:1.5}
+.wrap{max-width:1280px;margin:0 auto;padding-inline:16px;padding-block:28px 60px;display:grid;gap:28px}
+h1{font-size:26px;margin:0;font-weight:700;text-wrap:balance}
+h2{font-size:19px;margin:0;font-weight:600}
+.lede{color:var(--ink-2);max-width:72ch;margin:6px 0 0}
+section{display:grid;gap:14px}
+.switch{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.switch button{font:inherit;font-weight:500;padding:6px 14px;border:1px solid var(--line);background:var(--paper);color:var(--fg);border-radius:4px;cursor:pointer}
+.switch button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.switch .hint{color:var(--ink-3);font-size:12px;margin-left:6px}
+.note{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:14px 16px;color:var(--ink-2);margin:0}
+.note b{color:var(--fg)}
+ul.rules{margin:6px 0 0;padding-left:20px;color:var(--ink-2);display:grid;gap:4px}
+.scroller{overflow-x:auto;border-radius:8px;border:1px solid var(--line)}
+/* ---------- the mock app ---------- */
+.app{min-width:1020px;background:var(--desk);font-size:13px;display:grid;grid-template-rows:44px auto 600px}
+.bar{background:var(--nav);color:#fff;display:flex;align-items:center;gap:16px;padding:0 16px}
+.bar .t{font-weight:500}
+.bar .s{flex:0 1 380px;height:28px;border-radius:4px;background:rgba(255,255,255,.12);color:var(--nav-ink);display:flex;align-items:center;padding:0 10px;font-size:12px}
+.bar .r{margin-left:auto;display:flex;gap:10px;align-items:center;color:var(--nav-ink);font-size:12px}
+.bar .av{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.18);display:grid;place-items:center;color:#fff;font-size:11px}
+.main{display:grid;grid-template-columns:1fr 400px;min-height:0}
+.left{display:grid;grid-template-rows:auto 1fr;min-width:0;min-height:0}
+.hd{display:flex;align-items:center;gap:14px;padding:10px 18px;background:var(--paper);border-bottom:1px solid var(--line-soft)}
+.hd .g{font-size:20px;font-weight:700}
+.hd .sp{flex:1}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.seg span{padding:4px 12px}
+.seg .on{background:var(--accent);color:#fff}
+.btn{font:inherit;font-size:12px;padding:3px 10px;border:1px solid var(--line);border-radius:4px;background:var(--paper);color:var(--fg);white-space:nowrap}
+.btn.fill{background:var(--nav);border-color:var(--nav);color:#fff}
+.strip{display:flex;align-items:center;gap:10px;height:var(--row2);padding:0 18px;background:var(--paper);border-bottom:1px solid var(--line-soft)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--amber);display:inline-block;flex:none}
+.strip .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* the panel: white, full height, from the top bar down */
+.panel{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-width:0;min-height:0}
+.tabs{display:flex;align-items:flex-end;gap:2px;height:var(--row2);padding:0 8px;border-bottom:1px solid var(--line-soft)}
+.tab{display:grid;justify-items:center;gap:2px;font-size:11px;color:var(--ink-2);padding:2px 7px 6px;position:relative}
+.tab i{font-style:normal;font-size:15px;line-height:20px}
+.tab.on{color:var(--accent);box-shadow:inset 0 -2px 0 var(--accent)}
+.tab b{position:absolute;top:-3px;right:2px;background:var(--amber);color:#fff;font-size:9px;border-radius:8px;padding:0 4px;line-height:14px;font-weight:600}
+.tabs .gap{flex:1}
+.tabs .fold{color:var(--ink-3);padding:0 4px 8px;font-size:15px}
+.ph{padding:12px 16px 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ph .tt{font-size:15px;font-weight:600}
+.ph .cnt{color:var(--amber-ink);font-weight:500}
+.meta{color:var(--ink-3);font-size:12px}
+.chips{margin-left:auto;display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden;font-size:12px}
+.chips span{padding:2px 8px;border-left:1px solid var(--line)}
+.chips span:first-child{border-left:0;background:var(--accent-tint);color:var(--accent);font-weight:600}
+.chips .off{color:var(--ink-3)}
+.plist{overflow:auto;flex:1;padding:4px 16px 10px;min-height:0}
+/* the thread, as HaTi's Clauses panel draws it: one line down the left, a bead per clause */
+.th{position:relative}
+.trow{position:relative;padding-left:26px}
+.trow::before{content:"";position:absolute;left:6px;top:0;bottom:0;width:2px;background:var(--line)}
+.trow.first::before{top:17px}
+.trow.last::before{bottom:auto;height:17px}
+.bead{position:absolute;left:1px;top:11px;width:12px;height:12px;border-radius:50%;box-sizing:border-box;background:var(--panel);border:1.5px solid #b7c4e2;z-index:1}
+.trow.amber .bead{background:var(--amber);border-color:var(--amber)}
+.trow.open .bead{width:14px;height:14px;left:0;top:10px;box-shadow:0 0 0 2px var(--panel),0 0 0 4px var(--fg)}
+.row{display:flex;gap:10px;align-items:center;padding:7px 0}
+.row .n{font-weight:500;flex:1}
+.lk{color:var(--amber-ink);font-size:12px;white-space:nowrap}
+.sec{color:var(--ink-3);font-size:12px;padding:12px 0 2px}
+.open{padding:6px 0 10px;margin-bottom:4px;border-bottom:1px solid var(--line-soft);display:grid;gap:8px}
+.open .top{display:flex;align-items:baseline;gap:8px}
+.open .top .n{font-weight:700;font-size:14px;flex:1}
+.brief{background:var(--red-tint);border-radius:6px;padding:8px 10px 8px 12px;border-left:3px solid var(--amber);font-size:12px;color:var(--fg)}
+.brief b{float:right;color:var(--amber-ink);font-size:11px;margin-left:8px}
+.unc{display:grid;grid-template-columns:auto 1fr;gap:8px;font-size:12px;color:var(--ink-2)}
+.pill{border:1px solid var(--line);border-radius:10px;padding:0 8px;font-size:11px;height:20px;display:inline-flex;align-items:center;color:var(--fg)}
+.ask{border-top:1px solid var(--line-soft);padding:10px 16px}
+.ask div{border:1px solid var(--line);border-radius:4px;padding:7px 10px;color:var(--ink-3);display:flex;justify-content:space-between}
+.ask b{background:var(--nav);color:#fff;font-weight:500;padding:0 8px;border-radius:3px}
+.msg{background:var(--accent-tint);border-radius:10px;padding:8px 10px;font-size:12.5px;color:var(--fg);margin:6px 0;max-width:92%}
+.msg.me{margin-left:auto;background:var(--desk)}
+/* the desk */
+.desk{position:relative;overflow:hidden;display:flex;justify-content:center;padding:18px 18px 0 90px;min-height:0}
+.sheet{background:var(--paper);width:100%;max-width:600px;padding:26px 34px;box-shadow:0 1px 3px rgba(10,20,50,.12);position:relative;z-index:1}
+.sheet h3{font-size:13px;text-align:center;margin:0 0 14px;letter-spacing:.02em}
+.sheet h4{font-size:13px;margin:16px 0 4px}
+.sheet p{margin:0 0 6px;color:var(--ink-2);font-size:12.5px;line-height:1.65}
+.sheet .hl{background:var(--amber-tint);border-radius:2px;box-shadow:0 0 0 3px var(--amber-tint)}
+/* the Track */
+.track{position:absolute;left:14px;top:18px;bottom:0;width:60px;z-index:0}
+.track .ln{position:absolute;left:8px;top:0;bottom:0;width:3px;border-radius:2px;background:#b7c4e2}
+.track .view{position:absolute;left:3px;width:13px;border:1.5px solid var(--accent);border-radius:4px;top:0;height:140px}
+.tk{position:absolute;left:6px;display:flex;align-items:center;gap:4px}
+.tk s{width:7px;height:3px;background:var(--amber);display:block}
+.tk em{font-style:normal;font-size:11px;border:1px solid var(--line);border-left:2px solid var(--amber);background:var(--paper);padding:0 5px;border-radius:2px;color:var(--fg)}
+.track.slim{width:30px}
+.track.slim .tk em{font-size:10px;padding:0 3px}
+/* board */
+.board{padding:16px 18px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-content:start;overflow:hidden}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:grid;gap:6px;align-content:start}
+.card .k{font-size:12px;color:var(--ink-3)}
+.card .v{font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
+.card.wide{grid-column:span 3}
+.bars{display:flex;align-items:flex-end;gap:10px;height:120px;padding-top:8px;border-bottom:1px solid var(--line)}
+.bars i{flex:1;background:var(--accent);opacity:.75;border-radius:2px 2px 0 0}
+.lst{display:grid;gap:6px}
+.lst div{display:flex;justify-content:space-between;border-bottom:1px solid var(--line-soft);padding-bottom:5px}
+/* explorer */
+.map{position:relative;margin:16px 18px;background:var(--paper);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.map svg{width:100%;height:100%;display:block}
+/* before/after */
+.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.mini{background:var(--paper);border:1px solid var(--line);border-radius:8px;overflow:hidden;display:grid}
+.mini .cap{padding:10px 14px;border-bottom:1px solid var(--line-soft);display:flex;gap:8px;align-items:center}
+.tag{font-size:11px;font-weight:600;border-radius:10px;padding:1px 8px}
+.tag.bad{background:var(--red-tint);color:var(--red)}
+.tag.good{background:var(--ok-tint);color:var(--ok)}
+.minidesk{position:relative;height:300px;background:var(--desk);display:flex;padding:14px 0 0 0}
+.minidesk .sheet{padding:18px 20px;max-width:none}
+.minidesk .side{flex:0 0 120px;background:var(--panel);border-left:1px solid var(--line);margin-left:6px;padding:10px;font-size:11px;color:var(--ink-3)}
+.strand{position:absolute;left:4px;top:14px;bottom:0;width:24px;display:grid;grid-auto-rows:1fr;gap:3px;z-index:2}
+.strand div{background:var(--amber);color:#fff;font-size:10px;display:grid;place-items:center;border-radius:2px}
+.strand div.v{background:var(--blue)}
+.mini .say{padding:10px 14px;color:var(--ink-2);font-size:13px;border-top:1px solid var(--line-soft)}
+.symset{display:flex;flex-wrap:wrap;gap:18px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+.symset .tab{color:var(--fg)}
+@media (prefers-reduced-motion:no-preference){.switch button{transition:background .15s}}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="s-copilot" viewBox="0 0 20 20"><path d="M10 1.5c.6 4.4 2.1 5.9 6.5 6.5-4.4.6-5.9 2.1-6.5 6.5-.6-4.4-2.1-5.9-6.5-6.5 4.4-.6 5.9-2.1 6.5-6.5Z" fill="currentColor"/><path d="M15.5 13c.25 1.7.8 2.25 2.5 2.5-1.7.25-2.25.8-2.5 2.5-.25-1.7-.8-2.25-2.5-2.5 1.7-.25 2.25-.8 2.5-2.5Z" fill="currentColor"/></symbol>
+  <symbol id="s-overview" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="11" y="3" width="6" height="6" rx="1"/><rect x="3" y="11" width="6" height="6" rx="1"/><rect x="11" y="11" width="6" height="6" rx="1"/></g></symbol>
+  <symbol id="s-document" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M5 2.5h6.5L15.5 6.5V17.5H5Z"/><path d="M11.5 2.5V6.5H15.5"/></g></symbol>
+  <symbol id="s-oblig" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M5 17.5V3"/><path d="M5 3.5h10l-2.5 3.5L15 10.5H5"/></g></symbol>
+  <symbol id="s-history" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l2.5 2"/></g></symbol>
+  <symbol id="s-deal" viewBox="0 0 20 20"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7h12M12.5 4l3 3-3 3"/><path d="M16.5 13h-12M7.5 10l-3 3 3 3"/></g></symbol>
+</svg>
+
+<div class="wrap">
+  <header>
+    <h1>Clauses on Home's Paper</h1>
+    <p class="lede">Your picks, drawn before any code is written. The clause list moves into the panel's <b>Document</b> tab. On Board, Paper and Explorer the white greeting row runs end to end under the blue bar, and the white panel starts below it. The panel uses the six symbols below, and the Signing tab is gone.</p>
+  </header>
+
+  <section>
+    <h2>Home, three faces</h2>
+    <div class="switch" role="group" aria-label="Choose a face">
+      <button id="f-board" aria-pressed="false" data-v="0">Board</button>
+      <button id="f-paper" aria-pressed="true" data-v="1">Paper</button>
+      <button id="f-explorer" aria-pressed="false" data-v="2">Explorer</button>
+      <span class="hint">Keys 1–3 or ← → to switch</span>
+    </div>
+    <div class="scroller"><div id="scene"></div></div>
+    <p class="note" id="scene-note"></p>
+  </section>
+
+  <section>
+    <h2>The panel's symbols</h2>
+    <div class="symset" id="symset"></div>
+    <p class="note">Six tabs: <b>Copilot · Overview · Document · Obligations · History · Deal</b>. <b>Signing is removed.</b> On Board and Explorer only Copilot shows, because no contract is open. These are the same symbols as in the first version of this page: ✦ ▦ ▢ ⚑ ◷ ⇄.</p>
+  </section>
+
+  <section>
+    <h2>The panel, what changes</h2>
+    <div class="note">
+      <ul class="rules" style="margin:0">
+        <li><b>The white greeting row goes end to end:</b> under the blue bar, across the full width, on Board, Paper and Explorer.</li><li><b>The panel starts below that row</b> and runs to the bottom of the screen. On Paper its symbol row lines up exactly with the contract line (same height, one shared bottom line).</li>
+        <li><b>White:</b> the panel is plain white from top to bottom, with no grey frame around it.</li>
+        <li><b>Document tab = the clauses:</b> the same list as the contract's own Document tab. The 8 blanks, the Copies buttons and the "left edge" line are removed.</li>
+        <li><b>Signing tab removed:</b> its symbol and its number (2) are gone from the panel.</li>
+        <li>The <b>8</b> on the Document symbol counts the "8 to review" in the list below it.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>Work order (not built yet)</h2>
+    <div class="note">
+      <ul class="rules" style="margin:0">
+        <li><b>1. Home → Paper, Document tab = the clause list</b>, with HaTi's yellow balls. The blanks, Copies buttons and the "left edge" line are removed.</li>
+        <li><b>2. Panel tabs:</b> Signing removed; the symbols ✦ ▦ ▢ ⚑ ◷ ⇄ from this page.</li>
+        <li><b>3. Layout:</b> white greeting row end to end; white panel below it on Board, Paper and Explorer, its symbol row level with the contract line.</li>
+        <li><b>4. The Track</b> never falls back to the old coloured strand; it only gets slimmer.</li>
+        <li><b>5. "to look at" → "to review"</b> in the clause panel on Home <b>and</b> on the contract's own Document tab (its Clauses button and list).</li>
+        <li><b>6. Bug: the clause list on the Document tab flickers.</b> First find when it happens, then fix it so the list stays still.</li>
+        <li><b>7. Bug: the Clauses panel sometimes has no × close button.</b> First find which way of opening it loses the ×, then fix it.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>The Track stays when you drag the divider</h2>
+    <p class="lede" style="margin:0">Unchanged from the last version. The old coloured strand is removed for good; the Track only gets slimmer when space is tight.</p>
+    <div class="pair">
+      <div class="mini">
+        <div class="cap"><span class="tag bad">Today</span> Divider dragged left</div>
+        <div class="minidesk">
+          <div class="strand" aria-hidden="true"><div class="v">1</div><div>2</div><div>3</div><div>5</div><div>6</div><div>7</div></div>
+          <div class="sheet" style="margin-left:34px"><h4 style="margin-top:0">1. Services and Applicable Terms</h4><p>AIT shall provide warehousing, transportation and related logistics services to the Customer in accordance with this Agreement.</p><h4>2. Term and Termination</h4><p>This Agreement shall remain in force for an initial term of three (3) years…</p></div>
+          <div class="side">Panel (wider)</div>
+        </div>
+        <div class="say">The old coloured strand comes back and the page jumps sideways.</div>
+      </div>
+      <div class="mini">
+        <div class="cap"><span class="tag good">Fixed</span> Same divider position</div>
+        <div class="minidesk">
+          <div style="width:36px;flex:none;position:relative">
+            <div class="track slim" style="left:2px;top:0">
+              <div class="ln"></div><div class="view" style="height:90px"></div>
+              <div class="tk" style="top:30px"><s></s><em>1</em></div>
+              <div class="tk" style="top:80px"><s></s><em>2</em></div>
+              <div class="tk" style="top:130px"><s></s><em>3</em></div>
+              <div class="tk" style="top:190px"><s></s><em>5</em></div>
+              <div class="tk" style="top:222px"><s></s><em>6</em></div>
+              <div class="tk" style="top:254px"><s></s><em>7</em></div>
+            </div>
+          </div>
+          <div class="sheet"><h4 style="margin-top:0">1. Services and Applicable Terms</h4><p>AIT shall provide warehousing, transportation and related logistics services to the Customer in accordance with this Agreement.</p><h4>2. Term and Termination</h4><p>This Agreement shall remain in force for an initial term of three (3) years…</p></div>
+          <div class="side">Panel (wider)</div>
+        </div>
+        <div class="say">Same Track, just slimmer. The page does not move. With almost no room it becomes a thin line with dots.</div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+const TABS=[['✦','Copilot'],['▦','Overview'],['▢','Document','8'],['⚑','Obligations','2'],['◷','History'],['⇄','Deal']];
+const tab=([g,label,n],on)=>`<div class="tab${on?' on':''}"><i aria-hidden="true">${g}</i>${label}${n?`<b>${n}</b>`:''}</div>`;
+document.getElementById('symset').innerHTML=TABS.map(t=>tab([t[0],t[1]],false)).join('');
+const CL=[['1. Services and Applicable Terms',1],['2. Term and Termination',0],['3. Pricing and Payment',2],['4. Independent Contractor',0],['5. Limitation of Liability',3],['6. Assignment',1],['7. Insurance',1],['8. Entire Agreement',0],['9. Counterparts and Electronic Signatures',0]];
+const bar=`<div class="bar"><span>☰</span><span class="t">Contract Lifecycle Management</span><span class="s">Search contracts, clauses, counterparties…</span><span class="r"><span>English · Svenska</span><span class="av">YM</span></span></div>`;
+const hd=face=>`<div class="hd"><span class="g">Good morning, Young</span><span class="seg">${['Board','Paper','Explorer'].map(f=>`<span class="${f===face?'on':''}">${f}</span>`).join('')}</span><span class="sp"></span><span class="btn">Present</span><span class="btn fill">+ Draft new agreement</span></div>`;
+const askBox=t=>`<div class="ask"><div>${t} <b>Ask</b></div></div>`;
+const copilotOnly=`<div class="tabs">${tab(TABS[0],true)}<span class="gap"></span><span class="fold">›</span></div>`;
+const chat=`<div class="plist"><div class="msg me">Which contracts renew in the next 90 days?</div><div class="msg">Four contracts renew before 8 January. Two of them have no decision yet: MK-448 (AIT Worldwide Logistics) and MK-382.</div></div>`;
+const openCard=`<div class="trow amber open first"><span class="bead"></span><div class="open"><div class="top"><span class="n">1. Services and Applicable Terms</span><span class="lk">1 to review</span><span class="btn">‹</span><span class="btn">›</span></div>
+  <div class="meta">58 words · 12% of the paper · 1 of 9</div>
+  <div><span class="btn"><b>Plain</b></span> <span class="meta">one short reading</span></div>
+  <div class="brief"><b>Brief</b>The contract's terms are added to by two outside rulebooks you may not have reviewed — NSAB 2015 and AIT's own standard terms — which apply unless this Agreement overrides them.</div>
+  <div class="unc"><span class="pill">Unclear</span><span>AIT shall provide warehousing, transportation and related logistics services to the Customer in accordance with this Agreement.</span></div></div></div>`;
+const rows=`<div class="trow"><div class="sec">2. Term and Termination</div></div>`+CL.slice(2).map(([n,k],i,a)=>`<div class="trow ${k?'amber':''} ${i===a.length-1?'last':''}"><span class="bead"></span><div class="row"><span class="n">${n}</span><span class="lk">${k?k+' to review':''}</span></div></div>`).join('');
+const ticks=[[40,1],[150,2],[250,3],[330,5],[380,6],[430,7]].map(([t,n])=>`<div class="tk" style="top:${t}px"><s></s><em>${n}</em></div>`).join('');
+const paper=`<div class="desk"><div class="track"><div class="ln"></div><div class="view"></div>${ticks}</div>
+  <div class="sheet"><h3>WAREHOUSING AND TRANSPORTATION SERVICES AGREEMENT</h3>
+  <p>This Warehousing and Transportation Services Agreement ("Agreement") is entered into between: ("Customer"), and ("AIT" or "Service Provider"). The parties agree as follows:</p>
+  <h4>1. Services and Applicable Terms</h4><p><span class="hl">AIT shall provide warehousing, transportation and related logistics services to the Customer in accordance with this Agreement.</span></p>
+  <p>The services shall be governed by: • The Nordic Association of Freight Forwarders' General Conditions (NSAB 2015). • AIT Worldwide Logistics' standard terms and conditions.</p>
+  <h4>2. Term and Termination</h4><p>This Agreement shall remain in force for an initial term of three (3) years from the Effective Date. Either party may terminate this Agreement by providing six (6) months' written notice.</p>
+  <h4>3. Pricing and Payment</h4><p>Prices are set out in Appendix 1 and may be adjusted once a year…</p></div></div>`;
+const board=`<div class="board">
+  <div class="card"><span class="k">Waiting on you</span><span class="v">7</span><span class="meta">3 approvals · 4 redlines</span></div>
+  <div class="card"><span class="k">Renewing in 90 days</span><span class="v">4</span><span class="meta">2 with no decision</span></div>
+  <div class="card"><span class="k">Duties overdue</span><span class="v">2</span><span class="meta">both with AIT</span></div>
+  <div class="card wide"><span class="k">Contracts signed per month</span><div class="bars"><i style="height:40%"></i><i style="height:55%"></i><i style="height:35%"></i><i style="height:70%"></i><i style="height:60%"></i><i style="height:85%"></i></div><span class="meta">May – October 2026</span></div>
+  <div class="card wide"><span class="k">Your move</span><div class="lst"><div><span>MK-448 · AIT Worldwide Logistics</span><span class="lk">8 to review</span></div><div><span>MK-382 · Warehousing and Transportation</span><span class="lk">In review</span></div></div></div></div>`;
+const explorer=`<div class="map"><svg viewBox="0 0 600 420" aria-hidden="true">
+  <g stroke="var(--line)" stroke-width="1.5"><line x1="300" y1="210" x2="150" y2="110"/><line x1="300" y1="210" x2="460" y2="120"/><line x1="300" y1="210" x2="170" y2="320"/><line x1="300" y1="210" x2="450" y2="320"/></g>
+  <circle cx="300" cy="210" r="46" fill="var(--accent-tint)" stroke="var(--accent)"/><text x="300" y="215" text-anchor="middle" font-size="13" fill="var(--fg)">Logistics</text>
+  <circle cx="150" cy="110" r="30" fill="var(--amber-tint)" stroke="var(--amber)"/><text x="150" y="114" text-anchor="middle" font-size="11" fill="var(--fg)">AIT</text>
+  <circle cx="460" cy="120" r="26" fill="var(--accent-tint)" stroke="var(--accent)"/><text x="460" y="124" text-anchor="middle" font-size="11" fill="var(--fg)">DSV</text>
+  <circle cx="170" cy="320" r="22" fill="var(--accent-tint)" stroke="var(--accent)"/><text x="170" y="324" text-anchor="middle" font-size="11" fill="var(--fg)">Maersk</text>
+  <circle cx="450" cy="320" r="34" fill="var(--accent-tint)" stroke="var(--accent)"/><text x="450" y="324" text-anchor="middle" font-size="11" fill="var(--fg)">PostNord</text></svg></div>`;
+function scene(face){
+  let left, panel;
+  if(face==='Paper'){
+    left=`<div class="strip"><span class="dot"></span><span class="nm"><b>MK-448</b> · Warehousing and Transportation Services Agreement — AIT Worldwide Logistics Norway AS</span><span class="btn">Another contract</span></div>`+paper;
+    panel=`<div class="tabs">${TABS.map(t=>tab(t,t[0]==='document')).join('')}<span class="gap"></span><span class="fold">›</span></div>
+      <div class="ph"><span class="tt">Clauses</span><span class="meta">(9)</span><span class="cnt">8 to review</span><span class="chips"><span>All 9</span><span class="off">Red 0</span><span>Amber 5</span><span class="off">Blue 0</span></span></div>
+      <div class="plist"><div class="th">${openCard}${rows}</div></div>`+askBox('Ask about MK-448…');
+  } else {
+    left=`<div></div>`+(face==='Board'?board:explorer);
+    panel=copilotOnly+chat+askBox('Ask Copilot… use @ for a contract');
+  }
+  return `<div class="app">${bar}${hd(face)}<div class="main"><div class="left">${left}</div><div class="panel">${panel}</div></div></div>`;
+}
+const F=[
+ ['Board',`<b>Board.</b> The greeting row runs end to end; the white panel starts below it and runs to the bottom. No contract is open, so only the Copilot symbol shows.`],
+ ['Paper',`<b>Paper.</b> The greeting row runs end to end. The white panel starts below it, and its symbol row lines up with the contract line. The Document tab holds the clause list; pressing a clause glides the paper to it and tints its words. The Track's numbers on the left open the same rows. Signing is no longer a tab.`],
+ ['Explorer',`<b>Explorer.</b> Same layout as the Board: greeting row end to end, white panel below it, with Copilot only. The map keeps the rest of the space.`]];
+let cur=1;
+function show(i){cur=(i+F.length)%F.length;document.getElementById('scene').innerHTML=scene(F[cur][0]);document.getElementById('scene-note').innerHTML=F[cur][1];
+  document.querySelectorAll('.switch button').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.v===cur)));}
+document.querySelectorAll('.switch button').forEach(b=>b.addEventListener('click',()=>show(+b.dataset.v)));
+document.addEventListener('keydown',e=>{if(e.key>='1'&&e.key<='3')show(+e.key-1);else if(e.key==='ArrowRight')show(cur+1);else if(e.key==='ArrowLeft')show(cur-1);});
+show(1);
+</script>
