@@ -67,9 +67,12 @@ const check = (name, pass, detail) => {
     await page.click('#obt-find');
     const desk = await until(() => { const d = document.getElementById('obd'); if (!d) return null;
       const r = d.closest('[role="dialog"]') ? d.closest('[role="dialog"]').getBoundingClientRect() : d.getBoundingClientRect();
-      return { groups: [...d.querySelectorAll('.obd-grp:not(.is-already) .obd-gh span:nth-child(2)')].map(x => x.textContent.trim()),
+      /* RE-POINTED 10 Oct 2026 (owner picked "Table", the SAP way): a kind
+         is a band row of the table, an item already on the contract a row
+         marked is-already */
+      return { groups: [...d.querySelectorAll('.obd-band:not([data-obd-band="already"]) .obd-band-w')].map(x => x.textContent.trim()),
         ticked: [...d.querySelectorAll('[data-ob-pick]')].filter(b => b.checked).length,
-        already: d.querySelectorAll('.obd-grp.is-already [data-obd-sel]').length, alreadyBoxes: d.querySelectorAll('.obd-grp.is-already [data-ob-pick]').length,
+        already: d.querySelectorAll('.obd-row.is-already').length, alreadyBoxes: d.querySelectorAll('.obd-row.is-already [data-ob-pick]').length,
         w: Math.round(d.getBoundingClientRect().width), bottom: Math.round(r.bottom), vh: innerHeight, foot: d.querySelector('#obd-count').textContent }; });
     check('2a. the desk opens with its three groups', desk && desk.groups.join('|') === 'Dated or repeating|Only when something happens|Standing promises', desk && desk.groups.join('|'));
     check('2b. nothing arrives ticked', desk && desk.ticked === 0);

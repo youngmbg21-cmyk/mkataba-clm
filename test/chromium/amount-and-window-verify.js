@@ -218,7 +218,7 @@ const day = off => { const d = new Date(); d.setDate(d.getDate() + off); return 
          with nothing to decide (no box), so only the fresh one has a box. */
       const boxes = [...document.querySelectorAll('[data-ob-pick]')];
       return { n: document.querySelectorAll('#obd [data-obd-sel]').length, checked: boxes.map(b => b.checked),
-        reasons: [...document.querySelectorAll('#obd .obd-grp.is-already [data-obd-sel]')].map(() => 'Already on this contract'),
+        reasons: [...document.querySelectorAll('#obd .obd-row.is-already')].map(() => 'Already on this contract'),
         button: (document.getElementById('or-add') || {}).textContent };
     });
     check('every proposal is DRAWN, including the ones already on the contract',
