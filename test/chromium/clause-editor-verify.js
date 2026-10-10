@@ -933,10 +933,12 @@ const dismissNote = async pg => {
     return { save: pick('[data-ce-act="save"]'), discard: pick('[data-ce-act="discard"]'),
       undo: pick('#ce-undo') };
   });
+  /* RE-POINTED 10 Oct 2026 (Young, "one Copilot panel"): the foot's Discard
+     is gone, so Save and Undo are the draft's acts. */
   ck('12i2 and the draft\'s own acts stand down with the caret — greyed, drawn, '
      + 'and each saying why',
      acts.save.there && acts.save.off && /not editable|Endast|reading only/i.test(acts.save.why)
-       && acts.discard.off && acts.undo.off,
+       && !acts.discard.there && acts.undo.off,
      `save off ${acts.save.off} ("${acts.save.why}"), discard ${acts.discard.off}, undo ${acts.undo.off}`);
   /* A DIMMED CONTROL THAT STILL LOOKS LIVE IS WORSE THAN NO SIGNAL, so the
      greying is measured against how the same controls look when they work —
@@ -2355,8 +2357,8 @@ const dismissNote = async pg => {
   ck('18k …the card is released, and the one press reached the record',
      cutRun.ok && cutRun.shut === true && cutRun.filed === cutRun.before + 1,
      cutRun.ok ? `shut ${cutRun.shut}, ${cutRun.filed} changes, ${cutRun.before} before` : '');
-  await p.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="discard"]');
-    if (b && !b.disabled) b.click(); });
+  /* the foot's Discard is gone (10 Oct 2026): put the draft back directly */
+  await p.evaluate(() => { if (window.ceDiscard) ceDiscard(); });
   await pause(400);
 
   /* ---- ZOOM IS A VIEW, NOT A FONT SIZE ----

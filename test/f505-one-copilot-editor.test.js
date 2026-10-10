@@ -71,9 +71,11 @@ describe('f505 (B) one set of rows', () => {
     assert.match(tabs, /ask\.style\.display = \(_ceTab === 'chat' \|\| rk\)/);
     assert.match(tabs, /chips\.style\.display = \(_ceTab === 'chat' \|\| rk\)/);
   });
-  test('both feet on every tab while a walk is on', () => {
+  /* RE-POINTED 10 Oct 2026 (Young, "one Copilot panel"): ONE foot on every
+     tab — ‹ k of n › and Save; the walk's own row is retired and hidden. */
+  test('one foot on every tab', () => {
     const tabs = fn(CE, 'ceRenderTabs');
-    assert.match(tabs, /if \(rf\) rf\.hidden = false;/);
+    assert.match(tabs, /if \(rf\) rf\.hidden = true;/);
     assert.match(tabs, /if \(mf\) mf\.style\.display = '';/);
   });
 });

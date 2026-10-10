@@ -116,7 +116,7 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     await press(page, '#rl-risks [data-rk-key="s:t-liab"] [data-rk-act="edit-ce"]');
     const rk = await until(page, () => { const lane = document.querySelector('#clause-editor #ce-lane');
       /* RE-POINTED 7 Oct 2026 (One footer): the risk's Apply is the feet's top row */
-      return lane && !lane.querySelector('.rk-busy') && lane.querySelector('.ce-card .pv') && document.querySelector('#ce-rksug [data-ce-apply="rk:0"]') ? true : null; }, null, 10000);
+      return lane && !lane.querySelector('.rk-busy') && lane.querySelector('.ce-card .pv') && document.querySelector('#ce-lane [data-ce-apply="rk:0"]') ? true : null; }, null, 10000);
     check(!!rk, '1- the Risks tab has Copilot\'s answer');
     const H = await page.evaluate(() => {
       const h = document.querySelector('#ce-lane .rk-ce-head'), k = h && getComputedStyle(h), why = document.querySelector('#ce-lane .rk-ce-why');

@@ -29,7 +29,9 @@
    Screenshots: test/chromium/shots/one-door-for-edits/ (or HATI_SHOT_DIR).
    Run: node test/chromium/one-door-for-edits-verify.js */
 /* RE-POINTED 7 Oct 2026 (Young, "Risk Walk Options" — One footer): on the risk
-   walk the Suggested wording's Apply is the feet's top row, #ce-rksug. */
+   walk the Suggested wording's Apply is the feet's top row, #ce-rksug.
+   RE-POINTED 10 Oct 2026 (Young, "one Copilot panel"): Apply is on the card
+   again (no strip); the foot is ‹ k of n › and Save. */
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
@@ -225,8 +227,8 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
       const lane = pg.querySelector('#ce-lane');
       if (!lane || !/Risk 1 of/.test(window.__laneText(lane)) || lane.querySelector('.rk-busy') || !/Copilot suggested/.test(window.__laneText(lane))) return null;
       return { on: !!(tab && tab.classList.contains('is-on')), clause: clauseEditorClauseId(), step: window.__riskStep(),
-        card: !!document.querySelector('#ce-rksug [data-ce-apply="rk:0"]'), boxNew: /twelve \(12\) months/.test(ceBoxWords()),
-        save: (pg.querySelector('[data-ce-act="rk-save"]') || {}).textContent || '' };
+        card: !!document.querySelector('#ce-lane [data-ce-apply="rk:0"]'), boxNew: /twelve \(12\) months/.test(ceBoxWords()),
+        save: (pg.querySelector('#ce-railfoot [data-ce-act="save"]') || {}).textContent || '' };
     }, null, 10000);
     check(!!ed && ed.on, '3a Edit with Copilot opens the window with the Risks tab lit', ed && JSON.stringify(ed));
     const liabClause = await page.evaluate(id => (negoClauseList(getContract(id)).find(x => /liability/i.test(x.headingText || x.title || '')) || {}).clauseId, ID);
@@ -234,7 +236,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
     check(!!ed && /Risk 1 of 3/.test(ed.step), '3c "Risk 1 of 3"', ed && ed.step);
     check(!!ed && ed.card && !ed.boxNew, '3d Copilot\'s wording waits in the Suggested wording card; the box is untouched', ed && JSON.stringify(ed));
     await shot('3-edit-with-copilot.png');
-    await press(page, '#ce-rksug [data-ce-apply="rk:0"]');
+    await press(page, '#ce-lane [data-ce-apply="rk:0"]');
     const applied = await until(page, () => /twelve \(12\) months/.test(ceBoxWords())
       && !!document.querySelector('#ce-doc ins, #ce-doc .hati-ins, #ce-doc .nego-ins') ? true : null);
     check(!!applied, '3d2 Apply moves it into the box as tracked changes');
@@ -244,12 +246,12 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
       && /save for breach of confidentiality/.test((document.querySelector('#ce-lane .ce-card .pv') || {}).textContent || '')
       && !/save for breach of confidentiality/.test(ceBoxWords()) ? true : null, n0);
     check(!!firm, '3e "Make it firmer" asks Copilot once and redrafts the card, the box waits, nothing saved');
-    await press(page, '#ce-rksug [data-ce-apply="rk:0"]');
+    await press(page, '#ce-lane [data-ce-apply="rk:0"]');
     check(!!(await until(page, () => /save for breach of confidentiality/.test(ceBoxWords()) ? true : null)), '3f Apply takes the firmer wording into the box');
     const unsaved = await page.evaluate(id => (getContract(id).changes || []).length, ID);
 
     /* ============ 4. NOTE AFTER SAVE ============ */
-    await press(page, '[data-ce-act="rk-save"]');
+    await press(page, '#ce-railfoot [data-ce-act="save"]');
     const filed = await until(page, ({ id, n }) => {
       const c = getContract(id); if ((c.changes || []).length <= n) return null;
       const ch = c.changes[c.changes.length - 1];
@@ -275,12 +277,12 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
 
     /* ============ 5b. A NEW CLAUSE, HELD IN THE WINDOW ============ */
     const before6 = await page.evaluate(id => (getContract(id).changes || []).length, ID);
-    await press(page, '[data-ce-act="rk-skip"]');
+    await press(page, '#ce-railfoot [data-ce-act="walk-next"]');
     const nc = await until(page, () => {
       const pg = document.getElementById('clause-editor'); if (!pg) return null;
       const lane = pg.querySelector('#ce-lane');
       if (!lane || !/Risk 2 of 2/.test(window.__laneText(lane)) || !/No injunctive-relief clause/.test(window.__laneText(lane)) || lane.querySelector('.rk-busy') || !/Copilot suggested/.test(window.__laneText(lane))) return null;
-      const ap = document.querySelector('#ce-rksug [data-ce-apply="rk:0"]');
+      const ap = document.querySelector('#ce-lane [data-ce-apply="rk:0"]');
       if (ap && !/interim injunctive relief/.test(ceBoxWords())){ ap.click(); return null; }
       const secs = [...pg.querySelectorAll('#ce-doc [data-clause]')].map(x => x.getAttribute('data-clause'));
       const heads = [...pg.querySelectorAll('#ce-doc [data-clause]')].map(x => (x.querySelector('.rl-clause-h, h4') || {}).textContent || '');
@@ -301,7 +303,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
        there is no expanded view; the Risks tab's own "Where it goes" sits in
        the lane, above the footer's Apply. */
     const fw = await until(page, () => {
-      const sel = document.querySelector('#ce-lane [data-ce-rk-where]'), ap = document.querySelector('#ce-rksug [data-ce-apply]');
+      const sel = document.querySelector('#ce-lane [data-ce-rk-where]'), ap = document.querySelector('#ce-lane .av[data-ce-card="rk:0"]');
       return sel && ap ? { n: sel.options.length, apply: true, before: !!(sel.compareDocumentPosition(ap) & Node.DOCUMENT_POSITION_FOLLOWING) } : null;
     });
     check(!!fw && fw.n === (nc && nc.opts.length) && fw.apply && fw.before, '5e2 "Where it goes" stands above Apply', fw && JSON.stringify(fw));
@@ -315,7 +317,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
     });
     check(!!moved, '5f moving it puts it after Confidentiality on the paper, still unsaved', moved);
     const n5 = await page.evaluate(id => (getContract(id).changes || []).length, ID);
-    await press(page, '[data-ce-act="rk-save"]');
+    await press(page, '#ce-railfoot [data-ce-act="save"]');
     const ins = await until(page, ({ id, n }) => {
       const c = getContract(id); if ((c.changes || []).length <= n) return null;
       const ch = c.changes[c.changes.length - 1];
@@ -382,15 +384,15 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
     await press(page, '#rl-risks [data-rk-key="s:t-cap"] [data-rk-act="edit-ce"]');
     const ready = await until(page, () => {
       const lane = document.querySelector('#clause-editor #ce-lane');
-      const b = document.querySelector('[data-ce-act="rk-save"]');
+      const b = document.querySelector('#ce-railfoot [data-ce-act="save"]');
       /* the wording waits for Apply (5 Oct 2026): press it once it is there */
-      const ap = lane && document.querySelector('#ce-rksug [data-ce-apply="rk:0"]');
+      const ap = lane && document.querySelector('#ce-lane [data-ce-apply="rk:0"]');
       if (ap && b && b.disabled){ ap.click(); return null; }
       return lane && /Exposure ceiling is low/.test(window.__laneText(lane)) && !lane.querySelector('.rk-busy') && b && !b.disabled ? true : null;
     }, null, 10000);
     check(!!ready, '8- the risk is open on the liability clause with wording to save');
     const n8 = await page.evaluate(id => (getContract(id).changes || []).length, ID);
-    await press(page, '[data-ce-act="rk-save"]');
+    await press(page, '#ce-railfoot [data-ce-act="save"]');
     const dlg = await until(page, () => {
       const d = [...document.querySelectorAll('.modal, [role="dialog"], [role="alertdialog"]')].find(x => /already has your redline/.test(x.textContent));
       return d ? d.innerText.replace(/\s+/g, ' ') : null;

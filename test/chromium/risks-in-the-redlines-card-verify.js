@@ -23,7 +23,9 @@
    Screenshots: test/chromium/shots/risks-in-the-redlines-card/.
    Run: node test/chromium/risks-in-the-redlines-card-verify.js */
 /* RE-POINTED 7 Oct 2026 (Young, "Risk Walk Options" — One footer): on the risk
-   walk the Suggested wording's Apply is the feet's top row, #ce-rksug. */
+   walk the Suggested wording's Apply is the feet's top row, #ce-rksug.
+   RE-POINTED 10 Oct 2026 (Young, "one Copilot panel"): Apply is on the card
+   again (no strip); the foot is ‹ k of n › and Save. */
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
@@ -173,7 +175,7 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
     const lane = pg.querySelector('#ce-lane');
     if (!lane || !/Payment terms: 60 days/.test(window.__laneText(lane)) || lane.querySelector('.rk-busy') || !/Copilot suggested/.test(window.__laneText(lane))) return null;
     /* the wording waits in the Suggested wording card for Apply (Young, 5 Oct 2026) */
-    const ap = document.querySelector('#ce-rksug [data-ce-apply="rk:0"]');
+    const ap = document.querySelector('#ce-lane [data-ce-apply="rk:0"]');
     if (ap && !pg.querySelector('#ce-doc ins, #ce-doc .hati-ins, #ce-doc .nego-ins')){ ap.click(); return null; }
     return { ins: !!pg.querySelector('#ce-doc ins, #ce-doc .hati-ins, #ce-doc .nego-ins'), del: !!pg.querySelector('#ce-doc del, #ce-doc .hati-del, #ce-doc .nego-del'),
       clause: clauseEditorClauseId(), cost: (lane.querySelector('.rk-cost') || {}).textContent || '' };
@@ -187,7 +189,7 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
 
   /* ============ 3. SAVE — UNSENT, THROUGH THE FUNNEL ============ */
   const before = await page.evaluate(id => { const c = getContract(id); return { n: (c.changes || []).length, turnAt: (c.negotiation || {}).turnAt || null }; }, ID);
-  await press(page, '[data-ce-act="rk-save"]');
+  await press(page, '#ce-railfoot [data-ce-act="save"]');
   await until(page, () => !!document.querySelector('#context-panel [data-rl-np-unpin]'));
   await press(page, '#context-panel [data-rl-np-unpin]');
   /* the walk goes on to the next open risk — the missing clause (section 4) */
@@ -224,9 +226,9 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   await page.screenshot({ path: path.join(OUT, '05-new-clause.png') });
   const n2 = await page.evaluate(id => (getContract(id).changes || []).length, ID);
   /* the new clause's wording waits in the card for Apply (Young, 5 Oct 2026) */
-  await press(page, '#ce-rksug [data-ce-apply="rk:0"]');
-  await until(page, () => { const b = document.querySelector('[data-ce-act="rk-save"]'); return b && !b.disabled ? true : null; });
-  await press(page, '[data-ce-act="rk-save"]');
+  await press(page, '#ce-lane [data-ce-apply="rk:0"]');
+  await until(page, () => { const b = document.querySelector('#ce-railfoot [data-ce-act="save"]'); return b && !b.disabled ? true : null; });
+  await press(page, '#ce-railfoot [data-ce-act="save"]');
   const ins = await until(page, ({ id, n }) => {
     const c = getContract(id);
     if ((c.changes || []).length <= n) return null;

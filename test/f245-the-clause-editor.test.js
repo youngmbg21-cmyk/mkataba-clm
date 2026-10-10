@@ -436,9 +436,11 @@ describe('f245 (7) — it files through the funnel and nothing else', () => {
     assert.match(read, /clauseEditorOpen\(\) && \(tx !== _ceOpenText \|\| hd !== _ceOpenHead\)/,
       '…and there is something the RECORD does not already hold (clauseEditorDirty\'s question)');
     assert.match(foot, /const liveMoved = now \? \(now\.text !== _ceBase \|\| now\.head !== _ceHeadBase\) : moved;/);
-    assert.match(foot, /\[discard, _cet\('ce_discard'\), liveMoved\]/,
-      'Discard keeps its own question — has the wording moved from what stands, '
-      + 'because that is what it puts back');
+    /* RE-POINTED 10 Oct 2026 (Young, "one Copilot panel"): the foot's
+       Discard is gone — Undo and the leave question cover the reader's own
+       typing — so the foot is the walk and Save. */
+    assert.doesNotMatch(foot, /data-ce-act="discard"/, 'no Discard in the foot');
+    assert.match(foot, /\[\[save, label, anyToFile\]\]/, 'Save keeps its own question');
   });
 });
 
@@ -468,7 +470,12 @@ describe('f245 (8) — nothing asks why, on either path', () => {
   test('and the act goes straight to the funnel', () => {
     /* RE-POINTED 28 Sep 2026: the spell check stands between (js/spell.js), and
        files at once wherever it has nothing to say. */
-    assert.ok(/case 'save': cePullText\(\); ceSaveChecked\(\); break;/.test(CODE),
+    /* RE-POINTED 10 Oct 2026: Save on a walk opens the next item after
+       filing (ceSaveAndOn); it still pulls the wording and files it through
+       the spelling list only. */
+    assert.ok(/case 'save': ceSaveAndOn\(\); break;/.test(CODE), 'Save goes through ceSaveAndOn');
+    const on = CODE.match(/async function ceSaveAndOn\(\)\{[\s\S]*?\n\}/)[0];
+    assert.ok(/cePullText\(\);[\s\S]*await ceSaveChecked\(\)/.test(on),
       'Save pulls the wording and files it, through the spelling list only');
     assert.match(CODE, /_ceSpellList = \[\]; _ceSpellFor = null; ceRenderSpell\(\);\n  return ceFile\(\);/);
     assert.ok(!/ceOpenReason/.test(CODE), 'the opener is gone rather than left unreachable');

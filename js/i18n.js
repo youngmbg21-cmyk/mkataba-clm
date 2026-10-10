@@ -3309,7 +3309,7 @@ const STRINGS = {
        clause's name, and the stack has to be able to name which half moved. */
     ce_step_named: 'Renamed the clause',
     ce_tabs_group: 'Copilot, or the playbook scan',
-    ce_tab_chat: 'Suggestions',
+    ce_tab_chat: 'Playbook',
     /* STALE since 28 Aug 2026 — the Changes tab was deleted on the owner's
        ask. Left INERT rather than removed: a key taken out of one dictionary
        and not the other is how a screen ends up half-English. */
@@ -3387,6 +3387,15 @@ const STRINGS = {
     ce_tag_about: 'Asking about',
     ce_sug_dock: 'Suggestion',
     ce_sug_applied: '✓ Applied',
+    ce_sug_discard: 'Discard',
+    ce_sug_undo: 'Undo',
+    ce_sug_discarded: 'Suggestion discarded.',
+    ce_sug_out: 'Copilot’s wording taken out of the box.',
+    ce_step_card_undo: 'Copilot’s wording taken out',
+    ce_walk_of: '{k} of {n}',
+    ce_walk_none: '– of {n}',
+    ce_walk_prev: 'Previous',
+    ce_walk_next: 'Next — moves on without saving',
     ce_tag_contract: 'Whole contract',
     ce_tag_back_clause: 'Let go, and ask about the whole clause',
     ce_why_change: 'Why change it',
@@ -17818,7 +17827,7 @@ const STRINGS = {
     ce_step_typed: 'Skrivet här',
     ce_step_named: 'Klausulen omdöpt',
     ce_tabs_group: 'Copilot, eller spelbokskontrollen',
-    ce_tab_chat: 'Förslag',
+    ce_tab_chat: 'Spelbok',
     /* STALE since 28 Aug 2026 — the Changes tab was deleted on the owner's
        ask. Left INERT rather than removed: a key taken out of one dictionary
        and not the other is how a screen ends up half-English. */
@@ -17894,6 +17903,15 @@ const STRINGS = {
     ce_tag_about: 'Frågar om',
     ce_sug_dock: 'Förslag',
     ce_sug_applied: '✓ Infört',
+    ce_sug_discard: 'Släng',
+    ce_sug_undo: 'Ångra',
+    ce_sug_discarded: 'Förslaget slängt.',
+    ce_sug_out: 'Copilots lydelse borttagen ur rutan.',
+    ce_step_card_undo: 'Copilots lydelse borttagen',
+    ce_walk_of: '{k} av {n}',
+    ce_walk_none: '– av {n}',
+    ce_walk_prev: 'Föregående',
+    ce_walk_next: 'Nästa — går vidare utan att spara',
     ce_tag_contract: 'Hela avtalet',
     ce_tag_back_clause: 'Släpp, och fråga om hela klausulen',
     ce_why_change: 'Varför ändra',
