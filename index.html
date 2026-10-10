@@ -8729,6 +8729,11 @@
   .ig-trk-svg .ig-trk-rail{fill:var(--st-gray-dot);opacity:.55}
   .ig-trk-svg .ig-trk-win{fill:color-mix(in srgb,var(--accent-fill) 16%,transparent);stroke:var(--accent-fill);stroke-width:1}
   .ig-trk-svg .ig-trk-lead{fill:none;stroke:var(--rule-strong);stroke-width:1}
+  /* BODY FIRST (owner-picked 10 Oct 2026): the schedules fold into one short, fainter piece
+     under a dashed cut, named in the label column (intelligence.js igTrackFold) */
+  .ig-trk-svg .ig-trk-tail{opacity:.28}
+  .ig-trk-svg .ig-trk-cut{stroke:var(--color-neutral-600);stroke-width:1;stroke-dasharray:2 2}
+  .ig-spine.is-track .ig-trk-sec{position:absolute;left:22px;top:0;transform:translateY(-50%);font-family:var(--font-body);font-size:var(--t-figure);line-height:1;color:var(--color-neutral-600);white-space:nowrap;pointer-events:none}
   .ig-spine.is-track .doc-xr-seg.ig-trk-lab{position:absolute;left:22px;top:0;flex:none;min-height:0;height:18px;transform:translateY(-50%);
     display:flex;align-items:center;padding:0 5px;border-radius:3px;background:var(--color-surface);border:1px solid var(--color-divider);
     color:var(--color-text);font-family:var(--font-body);font-size:var(--t-figure);font-weight:var(--w-label);line-height:1;
@@ -9404,6 +9409,8 @@
   .hb-svg[data-hb-step="full"]{--hb-fs-ax:13px;--hb-fs-cat:14px;--hb-fs-val:14px}
   .hb-svg[data-hb-step] text.hb-sv-mute{font-size:var(--hb-fs-ax);font-weight:400}
   .hb-svg[data-hb-step] text.hb-sv-ink2{font-size:var(--hb-fs-cat);font-weight:400}
+  /* ANGLED NAMES (owner-picked 10 Oct 2026; homeboard.js hbAngleOf): a little smaller than the flat ones at every step */
+  .hb-svg[data-hb-step] text.hb-sv-angled{font-size:11px}
   .hb-svg[data-hb-step] text.hb-sv-ink{font-size:var(--hb-fs-val);font-weight:600}
   .hb-svg[data-hb-step] text.hb-sv-glow{fill:var(--hb-ink)}
   .hb-ring[data-hb-step] text.hb-sv-ink[font-size="44"]{font-size:28px;font-weight:700}

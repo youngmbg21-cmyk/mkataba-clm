@@ -62,3 +62,24 @@ test('f566 (4) the labels are the strip\'s own doors', () => {
   assert.match(region('igTrackHtml'), /class="doc-xr-seg ig-trk-lab is-\$\{g\}" data-xr-seg="\$\{x\.i\}"/);
   assert.doesNotMatch(region('igTrackPlace') + region('igTrackHtml') + region('igTrackWindow'), /persist\(|api\(|fetch\(|logAudit/, 'reading writes nothing');
 });
+
+/* BODY FIRST (owner picked it by name, 10 Oct 2026): the rail spans the main
+   body; the schedules fold into a short piece at the bottom. */
+test('f566 (5) body first: where the body ends, and the fold', () => {
+  const c2 = {}; vm.createContext(c2);
+  const consts = SRC.match(/const IG_TRACK_TAIL=[^\n]*\n/)[0] + SRC.match(/const IG_TRACK_SCHED_RE=[^\n]*\n/)[0];
+  vm.runInContext(consts + region('igTrackBodyEnd') + region('igTrackFold') + region('igTrackAt')
+    + '\nthis.end = igTrackBodyEnd; this.fold = igTrackFold; this.at = igTrackAt;', c2);
+  const body = [1, 2, 3, 4, 5, 6].map(n => ({ text: n + '. Clause ' + n, cite: String(n), headed: true }));
+  assert.equal(c2.end(body), -1, 'no schedules, no fold');
+  for (const h of ['SCHEDULE 1 – PRICES', 'Annex A', 'Appendix 2: Data', 'Exhibit B', 'Schedules', 'Bilaga 1'])
+    assert.equal(c2.end(body.concat([{ text: h, cite: '', headed: true }])), 6, h);
+  assert.equal(c2.end(body.concat([{ text: '1. Definitions', cite: '1', headed: true }])), 6, 'numbering starts again');
+  assert.equal(c2.end([{ text: '1. Scope', cite: '1', headed: true }, { text: '2. Schedule of payments', cite: '2', headed: true }]), -1, 'a body clause named for a schedule');
+  assert.equal(c2.fold(0.9, 0, 100), null, 'schedules shorter than the piece stay true to the page');
+  const f = c2.fold(0.4, 0, 100);
+  assert.ok(f && f.bodyBot > 70 && f.tailT > f.bodyBot, JSON.stringify(f));
+  assert.equal(c2.at(0.2, f, 0, 100), 0.2 / 0.4 * f.bodyBot, 'a body place is true to the body');
+  assert.ok(c2.at(0.7, f, 0, 100) > f.tailT && c2.at(1, f, 0, 100) === 100, 'a schedule place sits in the tail');
+  assert.equal(c2.at(0.5, null, 0, 100), 50, 'unfolded, true to the page');
+});

@@ -1402,6 +1402,29 @@ function _hbEvery(labels, step, fs, min){
   const w = Math.max(0, ...labels.map(l => _hbTextW(l, fs))) + 8;
   return Math.max(min || 1, Math.ceil(w / Math.max(1, step)));
 }
+/* ---- ANGLED NAMES (owner picked "Angled" by name, 10 Oct 2026, off the
+   "Track and Chart Labels" proposals: "where the words are big and you cant
+   fit them, try making them smaller and at an angle") ----
+   Where a chart's column names would be cut lying flat, every name in that
+   row is drawn a little smaller (HB_ANGLE_FS) and slanted HB_ANGLE degrees,
+   so it reads whole past its narrow column; the chart gives them the height
+   (and the side room) they need. Names that fit flat stay flat. A name past
+   HB_ANGLE_MAX is still cut, and is whole on the hover card as before. */
+const HB_ANGLE = 40, HB_ANGLE_FS = 11, HB_ANGLE_MAX = 210, HB_ANGLE_SIDE = 0.45;
+/* `drawn`: the words a slanted name prints (a column's whole name), where
+   they differ from the flat ones */
+function hbAngleOf(labels, step, fs, drawn){
+  if (!labels.length || labels.every(l => _hbTextW(l, fs) <= step - 4)) return null;
+  const w = Math.min(HB_ANGLE_MAX, Math.max(0, ...(drawn || labels).map(l => _hbTextW(l, HB_ANGLE_FS))));
+  const r = HB_ANGLE * Math.PI / 180;
+  return { fs: HB_ANGLE_FS, w, up: Math.ceil(w * Math.sin(r)) + HB_ANGLE_FS, out: Math.ceil(w * Math.cos(r)) };
+}
+/* `anchor` 'start': the name rises to the right from (x, y) — over a grid;
+   'end': it ends at (x, y) — under an axis */
+function hbAngleText(t, x, y, A, anchor){
+  const xs = x.toFixed(1), ys = y.toFixed(1);
+  return `<text x="${xs}" y="${ys}" text-anchor="${anchor}" font-size="${A.fs}" transform="rotate(-${HB_ANGLE} ${xs} ${ys})" class="hb-sv-ink2 hb-sv-angled">${_hbE(_hbFitText(t, A.w, A.fs))}</text>`;
+}
 function hbRingSvg(D, cs, field, money, P){
   const sayOf = (n, v) => money ? _hbM(v) + ' · ' + _hbN(n) : _hbN(n);
   /* the reader's order and top N; the rest is one slice, and a door */
@@ -2886,7 +2909,13 @@ function hbStackSvg(D, cs, P){
   const inSer = (c, S) => S.rest ? !ser.rows.some(r => r.g === hbGroupOf(c, f2)) : hbGroupOf(c, f2) === S.g;
   const cells = X.cols.map(col => ({ col, parts: series.map(S => { const list = col.list.filter(c => inSer(c, S)); return { S, list, M: hbMeasure(list, m) }; }) }));
   const tops = cells.map(x => grouped ? Math.max(0, ...x.parts.map(p => p.M.y || 0)) : x.parts.reduce((a, p) => a + (p.M.y || 0), 0));
-  const W = hbFW(), H = hbFH(340), L = 64, R = 18, Tp = 46, B = 52, base = H - B, n = Math.max(1, cells.length), step = (W - L - R) / n;
+  const W = hbFW(), R = 18, Tp = 46, n = Math.max(1, cells.length);
+  const colWord = (col, whole) => col.b === 'none' ? i18t('hb_c_no_date') : whole ? (col.full || col.label) : col.label;
+  /* names that do not fit flat are angled, with the room under the axis and
+     to the left that they need (hbAngleOf) */
+  const A = X.time ? null : hbAngleOf(cells.map(x => colWord(x.col)), (W - 64 - R) / n, 12, cells.map(x => colWord(x.col, true)));
+  /* the slanted names take their height UNDER the chart, never out of it */
+  const L = A ? Math.max(64, Math.ceil(A.out - (W - 64 - R) / n / 2) + 6) : 64, B = A ? 20 + A.up : 52, H = hbFH(340) + B - 52, base = H - B, step = (W - L - R) / n;
   const top = hbAxisTop(Math.max(...tops, 0) * 1.1, m !== 'value' && m !== 'rounds', hbGridN());
   const Y = v => Tp + (base - Tp) * (1 - Math.max(0, v) / top);
   const fmtAxis = v => m === 'value' ? _hbM(v) : m === 'rounds' ? hbMeasureFmt(m, v) : _hbN(Math.round(v));
@@ -2919,7 +2948,8 @@ function hbStackSvg(D, cs, P){
     });
     const tot = tops[i];
     if (!grouped && tot > 0 && n <= 30) g += `<text x="${cx.toFixed(1)}" y="${(Y(tot) - 7).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="600" class="hb-sv-ink">${_hbE(hbMeasureShort(m, tot))}</text>`;
-    if (i % labelEvery === 0 || x.col.edge) g += `<text x="${cx.toFixed(1)}" y="${base + 18}" text-anchor="middle" font-size="12" class="hb-sv-ink2">${_hbE(x.col.b === 'none' ? i18t('hb_c_no_date') : _hbFitText(x.col.label, X.time ? step * labelEvery - 4 : step - 4, 12))}</text>`;
+    if (A) g += hbAngleText(colWord(x.col, true), cx + 3, base + 14, A, 'end');
+    else if (i % labelEvery === 0 || x.col.edge) g += `<text x="${cx.toFixed(1)}" y="${base + 18}" text-anchor="middle" font-size="12" class="hb-sv-ink2">${_hbE(x.col.b === 'none' ? i18t('hb_c_no_date') : _hbFitText(x.col.label, X.time ? step * labelEvery - 4 : step - 4, 12))}</text>`;
     if (X.time && !x.col.edge && X.unit !== 'y' && (i === 0 || (X.unit === 'm' ? String(x.col.b).slice(5) === '01' : String(x.col.b).slice(5) === 'Q1'))) g += `<text x="${cx.toFixed(1)}" y="${base + 34}" text-anchor="middle" font-size="11" class="hb-sv-mute">${_hbE(String(x.col.b).slice(0, 4))}</text>`;
   });
   const note = X.unsigned.length ? i18tn('hb_cols_unsigned', X.unsigned.length, { n: _hbN(X.unsigned.length) }) : '';
@@ -2939,15 +2969,31 @@ function hbHeatSvg(D, cs, P){
   const max = Math.max(0, ...grid.flat().map(x => x.list.length ? (x.M.y || 0) : 0)) || 1;
   /* A LONG LIST IS CUT, AND THE CUT IS SAID (O-25): rows past the step's
      height are not drawn; counting is never capped, only drawing */
-  const allR = rowsS.length, capR = _hbFit ? Math.max(2, Math.floor((hbStepH(_hbFit.step) - 58) / 30)) : allR;
+  const nC = Math.max(1, X.cols.length), W = hbFW();
+  const colWord = (col, whole) => col.b === 'none' ? i18t('hb_c_no_date') : whole ? (col.full || col.label) : col.label;
+  /* names that do not fit flat are angled over the grid, with the height
+     and the room on the right that they need (hbAngleOf); the row names'
+     column is then only as wide as its longest name, so the grid keeps its
+     width, and the room on the right is never more than HB_ANGLE_SIDE of
+     it (a name longer than that is cut, whole on the hover card) */
+  const L0 = Math.min(190, Math.round(W * 0.3));
+  let A = hbAngleOf(X.cols.map(col => colWord(col)), (W - L0 - 12) / nC, 12, X.cols.map(col => colWord(col, true)));
+  const L = A ? Math.min(L0, Math.ceil(Math.max(0, ...rowsS.map(S => _hbTextW(S.label, 12.5)))) + 26) : L0;
+  let R = 12;
+  if (A){ const room = (W - L) * HB_ANGLE_SIDE, half = (W - L - 12) / nC / 2;
+    if (A.out - half > room){ const k = (room + half) / A.out; A = { ...A, w: A.w * k, up: Math.ceil((A.up - A.fs) * k) + A.fs, out: Math.ceil(A.out * k) }; }
+    R = Math.max(12, Math.ceil(A.out - half) + 4); }
+  const Tp = A ? A.up + 16 : 36;
+  const allR = rowsS.length, capR = _hbFit ? Math.max(2, Math.floor((hbStepH(_hbFit.step) - 58 - (Tp - 36)) / 30)) : allR;
   const cutR = allR > capR ? allR - (capR - 1) : 0;
   const gridAll = grid.slice();
   if (cutR){ rowsS.length = capR - 1; grid.length = capR - 1; }
-  const nC = Math.max(1, X.cols.length), nR = Math.max(1, rowsS.length);
-  const W = hbFW(), L = Math.min(190, Math.round(hbFW() * 0.3)), R = 12, Tp = 36, cellH = 30, H = Tp + nR * cellH + 22, step = (W - L - R) / nC;
+  const nR = Math.max(1, rowsS.length);
+  const cellH = 30, H = Tp + nR * cellH + 22, step = (W - L - R) / nC;
   let g = '';
   X.cols.forEach((col, i) => { const x = L + step * (i + 0.5);
-    g += `<text x="${x.toFixed(1)}" y="${Tp - 12}" text-anchor="middle" font-size="12" class="hb-sv-ink2">${_hbE(col.b === 'none' ? i18t('hb_c_no_date') : _hbFitText(col.label, step - 4, 12))}</text>`; });
+    g += A ? hbAngleText(colWord(col, true), x - 3, Tp - 8, A, 'start')
+      : `<text x="${x.toFixed(1)}" y="${Tp - 12}" text-anchor="middle" font-size="12" class="hb-sv-ink2">${_hbE(_hbFitText(colWord(col), step - 4, 12))}</text>`; });
   grid.forEach((row, ri) => { const y = Tp + ri * cellH, S = rowsS[ri];
     g += `<g class="hb-sv-row" ${_hbSvgDoor(S.rest ? '' : 'qg:' + D.key + HB_KEY_SEP + f2 + HB_KEY_SEP + S.g, S.label)}><rect x="0" y="${y}" width="${L - 10}" height="${cellH}" fill="transparent"/><text x="8" y="${y + cellH / 2 + 4.5}" font-size="12.5" font-weight="600" class="hb-sv-ink">${_hbE(_hbFitText(S.label, L - 18, 12.5))}</text></g>`;
     row.forEach((x, ci) => { const cx = L + step * ci, v = x.list.length ? (x.M.y || 0) : 0, a = x.list.length ? 0.14 + 0.82 * v / max : 0;
@@ -8889,7 +8935,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgentWorkPress, hbOpenAgent, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
+Object.assign(window, { hbAngleOf, hbAngleText, HB_ANGLE, hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgentWorkPress, hbOpenAgent, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,
