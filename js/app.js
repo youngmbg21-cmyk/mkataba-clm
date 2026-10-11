@@ -62,7 +62,9 @@ import './signature.js';
 import './wizard.js';
 import './draft.js';    // draft from a sentence: it picks from your own paper and mints nothing (W-1)
 import './adviserlink.js';   // send two clauses to an outside adviser: a fifth link purpose (upgrade 9)
+import './mine.js';             // a person's own calendar events and private notes: one store, private to them (10 Oct 2026)
 import './views/calendar.js';
+import './views/mynotes.js';     // My notes: the private ledger (10 Oct 2026)
 import './views/reports.js';
 import './views/weekly.js';       // the weekly review: five slots, three sizes, no AI
 import './views/healthreport.js'; // the Portfolio Health Report: deterministic document, opened by button or by Copilot
@@ -286,7 +288,8 @@ function commandMeta(view){
     // Named to match the nav item exactly. One feature answering to two names
     // is one name too many for a reader trying to describe where they were.
     case 'intel':     return [i18t('nav_insights'), i18t('pg_insights_sub')];
-    case 'calendar':  return [i18t('nav_calendar'), ''];   // the drawing's bar says "Calendar", the rail's word (SAP batch 2)
+    case 'calendar':  return [i18t('nav_calendar'), ''];
+    case 'mynotes':   return [i18t('nav_mynotes'), ''];   // the drawing's bar says "Calendar", the rail's word (SAP batch 2)
     case 'migration': return [i18t('nav_import'), i18t('pg_import_sub')];
     case 'reports':   return [i18t('pg_reports'), i18t('pg_reports_sub')];
     case 'team':      return [i18t('pg_team'), i18t('pg_team_sub')];
@@ -436,7 +439,7 @@ const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates', 'cal
    an agent is pressed): Copilot's work is --view-h tall above 900px, its right
    side scrolls inside itself and the list beside it stays put. */
 /* 'intake' and 'advice' joined 9 Oct 2026 (SAP benchmark, batch 2): Requests and its Advice tab draw the white band to the screen's edge, as Approvals and Obligations do; 'directory' (People) and 'templates' (Our paper) the same day, each scrolling inside its own page. */
-const VIEW_OWNS_HEIGHT = ['workspace', 'redline', 'calendar', 'intel', 'register', 'brain', 'approvals', 'obligations', 'intake', 'advice', 'directory', 'templates', 'customers', 'agents'];
+const VIEW_OWNS_HEIGHT = ['workspace', 'redline', 'calendar', 'mynotes', 'intel', 'register', 'brain', 'approvals', 'obligations', 'intake', 'advice', 'directory', 'templates', 'customers', 'agents'];
 /* The class carries the fact; index.html carries the rule. Painted from
    renderPageHeader, which runs on EVERY view change — including onto a view
    that is not on the list, which is what takes the class back off again. */
@@ -854,6 +857,9 @@ function updateSidebarCounts(){
     /* obligationDue, not `.slice(0,10)`: slicing ten characters off "31 March
        2027" produces "31 March 2", which is not a date either — the count
        simply left out every obligation whose date a person had typed. */
+    /* MY NOTES DUE FOR REVIEW (Young, 10 Oct 2026) — mineNotesDue, the one
+       reading the ledger's own Due filter and the bell ask. */
+    mynotes: (typeof mineNotesDue==='function')?mineNotesDue().length:0,
     calendar: (window.allObligations?allObligations().filter(o=>{ const due=window.obligationDue?obligationDue(o):(o.due||'').slice(0,10);
       const d=(due&&window.daysUntil)?daysUntil(due):null; return d!=null&&!isNaN(d)&&d>=0&&d<=60; }).length:0),
     migration: nc.migration,
@@ -870,7 +876,7 @@ function updateSidebarCounts(){
   /* Tone of the count pill: teal = size of the portfolio, amber = items
      waiting on a person. A zero drops to neutral so an amber tag never cries
      wolf over an empty queue. */
-  const NAV_COUNT_TONE={register:'teal',calendar:'amber',migration:'amber',pipeline:'amber',negotiations:'amber',intake:'amber',obligations:'amber',approvals:'amber',agents:'amber'};
+  const NAV_COUNT_TONE={register:'teal',calendar:'amber',mynotes:'amber',migration:'amber',pipeline:'amber',negotiations:'amber',intake:'amber',obligations:'amber',approvals:'amber',agents:'amber'};
   document.querySelectorAll('[data-count]').forEach(el=>{
     const k=el.getAttribute('data-count'); const v=counts[k];
     /* A door that only counts WORK says nothing at zero (the Import door,
@@ -1157,6 +1163,7 @@ function setView(view){
     else if(view==='folder') renderFolder();
     else if(view==='intel') renderIntel();
     else if(view==='calendar') renderCalendar();
+    else if(view==='mynotes') renderMyNotes();
     else if(view==='reports') renderReports();
     else if(view==='register') renderRegister();
     else if(view==='migration') renderMigration();
@@ -2032,6 +2039,11 @@ const ALERT_KINDS = [
      never sent anywhere. Amber: worth a look, nobody else is waiting on it.
      Ranked under the work somebody is owed and over what only waits. */
   { k:'watch',       tone:'amber', ic:'&#128065;' },
+  /* ---- A NOTE OF YOUR OWN TO LOOK AT AGAIN (Young, 10 Oct 2026) ----
+     My notes whose review day has come (mineNotesDue, js/mine.js) — private,
+     so only ever this reader's own. Amber: work this reader set themselves.
+     It clears when the note is marked reviewed or snoozed. */
+  { k:'note-due',    tone:'amber', ic:'&#128221;' },
   /* Waiting on somebody else, and last of all a date that moved by itself —
      neither is a thing this reader can clear this minute. */
   { k:'review-out',  tone:'gray',  ic:'&#8987;'  },
@@ -2526,6 +2538,12 @@ function buildAlerts(){
      (hbWatchAlerts); the press lands on that figure's dig-in. */
   try{
     if(typeof window.hbWatchAlerts==='function') hbWatchAlerts().forEach(w=>push('watch',null,w.text,w.go));
+  }catch(e){}
+  try{
+    if(typeof window.mineNotesDue==='function') mineNotesDue().forEach(n=>{
+      const c=n.contractId&&typeof getContract==='function'?getContract(n.contractId):null;
+      push('note-due',c,i18t('al_note_due',{t:n.title}),()=>{ if(window.myNotesOpen) myNotesOpen(n.id); });
+    });
   }catch(e){}
   /* THE ORDER IS APPLIED ONCE, HERE — see ALERT_KINDS. Sorted at the end rather
      than by rearranging the sweeps above, because the sweeps are grouped by

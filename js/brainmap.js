@@ -120,6 +120,15 @@ const BRAIN_PARTS = [
   ['renewprep', 'runRenewalPrep', 'time', 2],
   ['obligations', 'obligationBand', 'time', 1],
   ['calendar', 'calPeriod', 'time', 0],
+  /* MY CALENDAR AND MY NOTES (Young, 10 Oct 2026): a person's own events and
+     private notes, one store (js/mine.js), its routes, and Copilot's plan. */
+  ['mynotes', 'renderMyNotes', 'time', 0],
+  ['mine', 'mineSave', 'time', 1],
+  ['myitems', 'POST /api/me/items', 'wall', 2],
+  ['myitemsget', 'GET /api/me/items', 'wall', 2],
+  ['myitemsput', 'PUT /api/me/items/:id', 'wall', 2],
+  ['myitemsdel', 'DELETE /api/me/items/:id', 'wall', 2],
+  ['plan', 'POST /api/ai/plan', 'ai', 2],
   ['renewal', 'renewalWindow', 'time', 1],
   ['desknight', 'deskShown', 'time', 1],
   ['email', 'mailReport', 'out', 3],
@@ -244,7 +253,7 @@ const BRAIN_FLOWS = [
      who else is on the page while you do it, and who may rule on it. */
   { id: 'redline', steps: [['negpage', 'startnego', 'here', 'follow'], ['editor', 'baton', 'askkeep', 'risklist', 'riskwalk'], ['funnel'], ['desk', 'suggest'], ['ladder'], ['review', 'kept', 'asks'], ['payload'], ['shares', 'linkcheck'], ['email', 'mailkey', 'cplink', 'turnmail', 'wordmark'], ['whosemove', 'bell', 'roundauto']] },
   { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop'], ['ladder'], ['whosemove', 'decidedsend'], ['bell', 'home', 'negpage', 'stands', 'stale', 'dealpaper', 'onepaper', 'answeronpaper'], ['webhook']] },
-  { id: 'sign', steps: [['signtab', 'linkcheck'], ['readiness', 'signgate', 'rules', 'paperjobs'], ['approvals', 'namedyes', 'decide', 'undoyes', 'rulestep', 'asks', 'approvalpaper', 'freshen'], ['brief', 'playbook', 'blanks'], ['pad'], ['putguard', 'srvseal', 'sealtext'], ['seal', 'frozen', 'issuelinks'], ['obligations', 'renewal', 'calendar'], ['email', 'copies']] },
+  { id: 'sign', steps: [['signtab', 'linkcheck'], ['readiness', 'signgate', 'rules', 'paperjobs'], ['approvals', 'namedyes', 'decide', 'undoyes', 'rulestep', 'asks', 'approvalpaper', 'freshen'], ['brief', 'playbook', 'blanks'], ['pad'], ['putguard', 'srvseal', 'sealtext'], ['seal', 'frozen', 'issuelinks'], ['obligations', 'renewal', 'calendar', 'mynotes', 'mine', 'myitems', 'myitemsget', 'myitemsput', 'myitemsdel', 'plan'], ['email', 'copies']] },
   { id: 'night', steps: [['reminders', 'lanes', 'agentlevel', 'linkkeep'], ['renewal', 'renewact'], ['renewprep'], ['model', 'boardjudge', 'bookread'], ['db'], ['obligations'], ['email', 'boardmoved', 'looktell'], ['desknight', 'home', 'insights', 'readings', 'chasemany', 'draftreply']] },
   { id: 'ask', steps: [['copilotask', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook', 'stackview'], ['db', 'dealfacts', 'brainread'], ['model', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote', 'citedoor', 'walkset', 'paperdesk'], ['contracts', 'customers', 'passroute', 'lookask', 'copilotdoors'], ['explorer', 'cellfold', 'readchips', 'nextq', 'boardmarks']] },
   /* THE OVERNIGHT REVIEW'S FLOWS (9 Oct 2026): the commonest start, a request,
@@ -276,7 +285,7 @@ const BRAIN_LANE_OF = {
     'editor', 'baton', 'askkeep', 'risklist', 'riskwalk', 'stands', 'dealpaper', 'onepaper', 'decidedsend', 'signtab', 'pad', 'calendar', 'desknight', 'insights', 'readings',
     'chasemany', 'copilotask', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs',
     'phrasebook', 'boardtools', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'citedoor', 'walkset', 'paperdesk', 'contracts', 'customers', 'cellfold',
-    'readchips', 'nextq', 'newagr', 'essentials', 'tplform', 'outbyhand', 'amend', 'decline', 'reopen', 'archive', 'hold', 'served', 'obdone', 'inline', 'stackview'],
+    'readchips', 'nextq', 'newagr', 'essentials', 'tplform', 'outbyhand', 'amend', 'decline', 'reopen', 'archive', 'hold', 'served', 'obdone', 'inline', 'stackview', 'mynotes'],
   /* HaTi itself: the readings, Copilot, the agents, the server's checks, the mail it sends */
   hati: ['docx', 'clauses', 'putguard', 'db', 'triage', 'arrivalowed', 'datedwin', 'brief', 'playbook', 'oblscan', 'risk', 'model', 'blanks', 'laneowner',
     'funnel', 'desk', 'ladder', 'kept', 'asks', 'payload', 'shares', 'linkcheck', 'email', 'turnmail', 'wordmark', 'whosemove', 'roundauto',
@@ -284,7 +293,7 @@ const BRAIN_LANE_OF = {
     'frozen', 'obligations', 'renewal', 'reminders', 'lanes', 'agentlevel', 'linkkeep', 'renewact', 'renewprep', 'boardjudge', 'bookread',
     'boardmoved', 'looktell', 'draftreply', 'dataguide', 'analyst', 'story', 'quote', 'passroute', 'copilotdoors', 'factsheet', 'dealfacts',
     'boardmarks', 'pdf', 'intake', 'mailroom', 'wordfile', 'issuelinks', 'filesig', 'srvseal', 'copies', 'autorenew', 'leaveguard', 'discard',
-    'freshen', 'sealtext', 'brainread'],
+    'freshen', 'sealtext', 'brainread', 'mine', 'myitems', 'myitemsget', 'myitemsput', 'myitemsdel', 'plan'],
   /* the counterparty: their link, the code that proves it is them */
   them: ['cplink', 'guestcode', 'theirsign']
 };
@@ -332,7 +341,7 @@ const BRAIN_FILE_REGION = [
   [/^js\/(ai|aimd|aitrace|triage|playbook|metadata|metaclean|precedent|standards|draft|copilotacts)\.js$/, 'ai'],
   [/^js\/(docx|pdf|pdfrich|ocr|clausemodel|blanks|uploadblanks|richdoc|redline|templateform)\.js$/, 'read'],
   [/^js\/(signcheck|signapproval|approvals|signature|assurance|outside)\.js$|^js\/views\/(handover|approvalsview)\.js$/, 'sign'],
-  [/^js\/(obligations|desknight|notice|payterms|runway)\.js$|^js\/views\/calendar\.js$/, 'time'],
+  [/^js\/(obligations|desknight|notice|payterms|runway|mine)\.js$|^js\/views\/(calendar|mynotes)\.js$/, 'time'],
   [/^js\/(wizard|intake|cohort|family)\.js$|^js\/views\/(intake|newstandard|templatebuilder|templatelib|migration|library)\.js$/, 'in'],
   [/^js\/(adviserlink)\.js$|^js\/views\/(portal|adviceportal)\.js$/, 'out']
 ];
