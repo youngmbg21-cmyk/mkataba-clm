@@ -89,12 +89,8 @@ const KNOWN_RED = {
      goes green. */
   'counterparty-reading-and-more-verify.js':
     'Red on main before 28 Sep 2026 (a837d09), the same way: throws: a TimeoutError waiting for a control.',
-  'flat-rows-and-alerts-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: 2d the filter sits under the caption, in the same head · 2e caption at the left, filter at the right · 2f the three cuts are all still there, and exactly one is live · 5-contractsb every cell but the document kind is ONE size · 5-negotiationsb every cell but the document kind is ONE size.',
   'notes-two-rooms-verify.js':
     'RE-POINTED 11 Oct 2026 and now RED ON THE PRODUCT, not the file: Chat left the shell bar for the contract\'s acts row (20 Sep 2026), and the open Notes drawer covers that row, so the SECOND press that should shut it (owner-asked 10 Sep: "when i click on it again it should collapse") cannot be made — Playwright reports the drawer\'s header intercepting the press. Where the drawer starts or where the door sits is the owner\'s call (BUGLOG, 11 Oct 2026). Every other check in the file passes.',
-  'templates-tabs-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: 7c · …and they are the rail’s own two captions, read through one key each.',
   'theme-tokens-verify.js':
     'Red on main before 28 Sep 2026 (a837d09), the same way: dashboard--light · register--light · calendar--light · templates--light · contract--light · keyterms--light · and 14 more.',
   /* --- retired feature, net kept for the restore --- */

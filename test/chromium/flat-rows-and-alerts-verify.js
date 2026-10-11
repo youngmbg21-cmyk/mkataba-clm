@@ -264,15 +264,12 @@ const SEED_UNSENT = async () => {
        asserting the opposite of what was approved.
        WHAT THE CHECK IS REALLY ABOUT SURVIVES: the two belong to one head, in
        reading order, with nothing between them but the head's own content. */
-    check('2d the filter sits under the caption, in the same head',
-      !!head.cap && !!head.tabs && head.tabs.y > head.cap.y
-        && head.tabs.y - (head.cap.y + head.cap.h) < 90,
-      { caption: head.cap, filter: head.tabs });
-    check('2e caption at the left, filter at the right',
-      !!head.cap && !!head.tabs && head.tabs.x > head.cap.x,
-      { capX: head.cap && head.cap.x, tabsX: head.tabs && head.tabs.x });
-    check('2f the three cuts are all still there, and exactly one is live',
-      head.segText.length === 3 && head.segLive === 1, head.segText);
+    /* RE-POINTED 11 Oct 2026: the whose-asks filter was RETIRED on 26 Aug 2026
+       (rlIdxFilterHtml is a `return ''` stub); the column is sorted, never
+       filtered, so the caption stands alone in its head and no cut is drawn. */
+    check('2d the caption heads the column', !!head.cap, { caption: head.cap });
+    check('2e and no filter is drawn beside or under it — the retired cuts stay gone',
+      !head.tabs && head.segText.length === 0, { tabs: head.tabs, cuts: head.segText });
 
     /* ---- 3 — nothing in the head row is bold ---- */
     const acts = await page.evaluate(() => {
@@ -416,11 +413,20 @@ const SEED_UNSENT = async () => {
          Owner column's initials badge (.reg-own, a 22px disc at the badge's own
          size and weight) draws here for the first time. It is a mark, like the
          kind, not a line of the row's text. */
-      const KIND = /reg-kind|reg-sub|reg-typecell|reg-own/;
+      /* AND THE COUNTERPARTY'S INITIALS (re-pointed 11 Oct 2026): the SAP list
+         (owner-approved 9 Oct) leads each row with the counterparty's avatar
+         (.reg-av) — a mark at the badge's own size, like .reg-own. THE
+         REFERENCE is the row's label (ROW IDENTITY: "the reference at
+         --t-label/--w-label"), deliberately one rung smaller. */
+      const KIND = /reg-kind|reg-sub|reg-typecell|reg-own|reg-av/;
+      const REF = /reg-mk|reg-day/;   /* the reference and the day: the row's labels (regDotDate prints the day at the label rung) */
       const body = rows.cells.filter(c => !KIND.test(c.cls));
-      const sizes = [...new Set(body.map(c => c.size))];
-      check(`5${shape}-${label}b every cell but the document kind is ONE size`,
-        sizes.length === 1, { sizes, offenders: body.filter(c => c.size !== sizes[0])
+      const text = body.filter(c => !REF.test(c.cls));
+      const refs = body.filter(c => REF.test(c.cls));
+      const sizes = [...new Set(text.map(c => c.size))];
+      check(`5${shape}-${label}b every cell but the marks and the reference is ONE size — and the reference one rung under it`,
+        sizes.length === 1 && refs.every(r => parseFloat(r.size) < parseFloat(sizes[0])),
+        { sizes, refs: [...new Set(refs.map(r => r.size))], offenders: text.filter(c => c.size !== sizes[0])
           .slice(0, 4).map(c => [c.txt, c.size, c.cls]) });
 
       /* ---- REVERSED IN PLACE 21 Sep 2026 (Young: "pay attention to the
@@ -438,14 +444,19 @@ const SEED_UNSENT = async () => {
       const weights = [...new Set(body.map(c => Number(c.weight)))].sort((a, b) => a - b);
       const titles = body.filter(c => /reg-title/.test(c.cls));
       const others = body.filter(c => !/reg-title/.test(c.cls));
-      check(`5${shape}-${label}c the row carries at most two weights, and the title has the heavier`,
-        weights.length <= 2 && titles.length > 0
-          && others.every(c => Number(c.weight) <= Math.min(...titles.map(t => Number(t.weight)))),
+      /* RE-POINTED 11 Oct 2026 to the SAP list: three rungs, each one meaning
+         one thing — the body, the LABEL weight for the reference and the stage
+         (--w-label), and the title above them both. */
+      const wLabel = Number(rows.label.w);
+      check(`5${shape}-${label}c the title is the heaviest thing on the row, and nothing else passes the label weight`,
+        titles.length > 0
+          && others.every(c => Number(c.weight) <= wLabel)
+          && titles.every(t => Number(t.weight) >= Math.max(...others.map(c => Number(c.weight)))),
         { weights, title: titles.slice(0, 1).map(c => [c.txt, c.weight]),
           heavyOthers: others.filter(c => Number(c.weight) > 400).slice(0, 4).map(c => [c.txt, c.weight, c.cls]) });
-      check(`5${shape}-${label}c2 and nothing on a row is heavier than the column heading`,
-        rows.th.length > 0 && body.every(c => Number(c.weight) <= Math.min(...rows.th.map(t => Number(t.w)))),
-        { rowMax: Math.max(...body.map(c => Number(c.weight))),
+      check(`5${shape}-${label}c2 and nothing on a row but its title is heavier than the column heading`,
+        rows.th.length > 0 && others.every(c => Number(c.weight) <= Math.min(...rows.th.map(t => Number(t.w)))),
+        { rowMax: Math.max(...others.map(c => Number(c.weight))),
           headMin: rows.th.length ? Math.min(...rows.th.map(t => Number(t.w))) : null });
 
       const kind = rows.cells.filter(c => /reg-kind/.test(c.cls));
@@ -455,8 +466,11 @@ const SEED_UNSENT = async () => {
 
       /* THE COLOURS ARE THE WHOLE CONDITION ON FLATTENING THE TYPE. */
       const inks = [...new Set(body.map(c => c.color))];
+      /* "not one" is the claim: the narrow inspector's table draws fewer
+         columns, and two inks — the title's and the labels' — still tell
+         them apart (11 Oct 2026) */
       check(`5${shape}-${label}e the rows still carry several inks, not one`,
-        inks.length >= 3, inks);
+        inks.length >= 2, inks);
 
       /* RE-POINTED IN PLACE 26 Sep 2026 (the list Inspector drawing the owner
          picked): its column headings are plain words at 12px medium —
