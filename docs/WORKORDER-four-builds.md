@@ -1,11 +1,10 @@
 # Work order: four builds (owner, 11 Oct 2026)
 
-Agreed with the owner in chat, 11 Oct 2026. Nothing here is built yet.
+Agreed with the owner in chat, 11 Oct 2026. 
 
-**WAIT FOR THE NEW CALENDAR FIRST.** Build 1 starts only once the new calendar
-design (branch `claude/lucid-noether-m885jo`, commit "Calendar: Copilot beside
-the calendar in every view, exactly as designed") is merged to main. Builds 2–4
-were listed at the same time and wait with it unless the owner says otherwise.
+**STARTED 11 Oct 2026.** The new calendar design is on main, and the owner said
+to start builds 1–4. Build 5 (press it again and it closes) is a standing rule
+in CLAUDE.md; its audit of every pop-up waits for the owner to ask.
 
 Run the Six Questions and the Nine Flow Rules on each build, as CLAUDE.md asks.
 
