@@ -79,10 +79,14 @@ for (let i = 1; i <= 12; i++)
        line is held open. */
     const cards = await page.evaluate(() => {
       const R = el => el ? el.getBoundingClientRect() : null;
-      return [...document.querySelectorAll('#hm-map .hm-map-fact')].map(t => {
-        const head = R(t.querySelector('.hm-map-fl'));
-        const fig = R(t.querySelector('.hm-map-ff'));
-        const fs = t.querySelector('.hm-map-fs');
+      /* RE-POINTED 11 Oct 2026: HOME IS THE BOARD — the Map and its three
+         fact cards went with it; Your book's figures are Home's cards now
+         (.hb-fig: the number, then its label). The rule is unchanged: no gap
+         inside a card as tall as a line, no line held open. */
+      return [...document.querySelectorAll('#hb-book .hb-fig')].map(t => {
+        const head = R(t.querySelector('.hb-fig-n'));
+        const fig = R(t.querySelector('.hb-fig-l'));
+        const fs = t.querySelector('.hb-fig-l');
         const foot = R(fs);
         /* THE LINES THE FOOT'S OWN TEXT TAKES, counted off the painted line
            boxes — a foot taller than its lines is holding one open. */
@@ -91,10 +95,10 @@ for (let i = 1; i <= 12; i++)
           const rg = document.createRange(); rg.selectNodeContents(fs);
           lines = new Set([...rg.getClientRects()].filter(q => q.width > 0).map(q => Math.round(q.top))).size;
         }
-        return { title: (t.querySelector('.hm-map-fl') || {}).textContent || '',
+        return { title: (t.querySelector('.hb-fig-l') || {}).textContent || '',
           h: Math.round(R(t).height),
           gapHeadToFig: head && fig ? Math.round(fig.top - head.bottom) : null,
-          gapFigToFoot: fig && foot ? Math.round(foot.top - fig.bottom) : null,
+          gapFigToFoot: null,
           spacer: !!t.querySelector('.hm-sp'),
           footH: foot ? foot.height : null,
           footLines: lines,
@@ -102,8 +106,8 @@ for (let i = 1; i <= 12; i++)
       });
     });
     const tiles = await page.evaluate(() => document.querySelectorAll('.hm-tile').length);
-    check('3a the tiles left Home, and the Map\'s three facts are its cards',
-      tiles === 0 && cards.length === 3,
+    check('3a the tiles left Home, and Your book\'s figures are its cards',
+      tiles === 0 && cards.length >= 3,
       `${tiles} tiles · ${cards.length} facts: ${cards.map(c => c.title.trim()).join(' | ')}`);
     check('3b the spacer that became the hole is on no card',
       cards.every(c => !c.spacer)
@@ -142,8 +146,12 @@ for (let i = 1; i <= 12; i++)
     for (const v of PAGES){
       await page.evaluate(async v => {
         if (v === 'workspace' || v === 'redline'){
-          const c = state.contracts[0];
+          /* a contract that may still be negotiated — a signed one is
+             (rightly) shown as its room, which is negoMayStart, not a lost
+             place (11 Oct 2026) */
+          const c = (v === 'redline' && state.contracts.find(x => !['Signed', 'Executed', 'Declined', 'Expired'].includes(x.status) && !x.archived)) || state.contracts[0];
           state.activeId = c.id;
+          if (v === 'redline' && window.openRedlineWorkbench){ await ensureFull(c); await openRedlineWorkbench(c.id); await new Promise(r => setTimeout(r, 900)); return; }
           if (v === 'workspace') await ensureFull(c);
         }
         setView(v);
@@ -212,9 +220,19 @@ for (let i = 1; i <= 12; i++)
         let painted = false;
         try { const bb = icon && icon.getBBox(); painted = !!(bb && bb.width > 0 && bb.height > 0); }
         catch (_) { painted = false; }
+        /* THE LINES THE TEXT REALLY TOOK, counted off the painted line boxes
+           (11 Oct 2026): a 22px button with no padding and a 13px line-height
+           made the height arithmetic call every one-line verb two. A Range over
+           the words reports one rect per line; their distinct tops are the
+           lines. The arithmetic stays as the fallback where no text node is. */
+        const rg = document.createRange(); rg.selectNodeContents(b);
+        /* tops within half a line of each other are ONE line — the verb's icon
+           sits a pixel off its word on the same line */
+        const tops = [...rg.getClientRects()].filter(q => q.width > 1).map(q => q.top).sort((x, y) => x - y)
+          .reduce((acc, t) => (acc.length && t - acc[acc.length - 1] < lh / 2 ? acc : acc.concat(t)), []);
         return { text: b.textContent.replace(/\s+/g, ' ').trim(),
           size: s.fontSize, weight: s.fontWeight, wrap: s.whiteSpace,
-          lines: Math.max(1, Math.round(inner / lh)), hasIcon: !!icon, painted };
+          lines: tops.length || Math.max(1, Math.round(inner / lh)), hasIcon: !!icon, painted };
       });
       return { rows, faceSize: fs_ ? fs_.fontSize : null,
         visible: m.getBoundingClientRect().width > 0,

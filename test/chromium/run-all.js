@@ -93,16 +93,10 @@ const KNOWN_RED = {
     'Red on main before 28 Sep 2026 (a837d09), the same way: 2d the filter sits under the caption, in the same head · 2e caption at the left, filter at the right · 2f the three cuts are all still there, and exactly one is live · 5-contractsb every cell but the document kind is ONE size · 5-negotiationsb every cell but the document kind is ONE size.',
   'notes-two-rooms-verify.js':
     'RE-POINTED 11 Oct 2026 and now RED ON THE PRODUCT, not the file: Chat left the shell bar for the contract\'s acts row (20 Sep 2026), and the open Notes drawer covers that row, so the SECOND press that should shut it (owner-asked 10 Sep: "when i click on it again it should collapse") cannot be made — Playwright reports the drawer\'s header intercepting the press. Where the drawer starts or where the door sits is the owner\'s call (BUGLOG, 11 Oct 2026). Every other check in the file passes.',
-  'seven-fixes-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: 5b exactly two arrows, on the two Young named · 5c a tile with a door is a real button, a tile without one is not · 5f pressing the obligations tile lands on the obligations tab · 6e an older note with no reason is answered by a LIVE reading · 6f and it names the panel that DOES fill it.',
-  'six-fixes-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: 4a a refresh returns you to the page you were on, on every page · 1d no verb wraps to a second line.',
   'templates-tabs-verify.js':
     'Red on main before 28 Sep 2026 (a837d09), the same way: 7c · …and they are the rail’s own two captions, read through one key each.',
   'theme-tokens-verify.js':
     'Red on main before 28 Sep 2026 (a837d09), the same way: dashboard--light · register--light · calendar--light · templates--light · contract--light · keyterms--light · and 14 more.',
-  'type-and-symbols-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: and each one is painted at the size the sheet asks for .',
   /* --- retired feature, net kept for the restore --- */
   'copilot-band-verify.js':
     'THE BAND IT MEASURES NO LONGER DRAWS. WO-3, 24 Aug 2026, owner-asked: ' +
