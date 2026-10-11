@@ -245,9 +245,12 @@ const SEED = () => {
        closes the Work group below Calendar, so it is painted after Obligations
        and Calendar and BEFORE Library's Templates and Requests — the painted
        order is still the claim, read off the pixels. */
-    const iCa = nav.order.indexOf('calendar');
-    check('3a · Insights is painted after Obligations and directly after Calendar, before Library',
-      iOb >= 0 && iIn > iOb && iIn === iCa + 1 && iTp > iIn && iRq > iIn, nav.order.join(' · '));
+    /* RE-POINTED 11 Oct 2026 (WORKORDER-four-builds item 1): the Calendar is
+       Home's second tab and has no rail door, so Insights closes Work
+       directly after My notes */
+    const iCa = nav.order.indexOf('mynotes');
+    check('3a · Insights is painted after Obligations and directly after My notes, before Library — and no Calendar row',
+      iOb >= 0 && iIn > iOb && iIn === iCa + 1 && iTp > iIn && iRq > iIn && nav.order.indexOf('calendar') < 0, nav.order.join(' · '));
     check('3b · and Work leads Library — Obligations is painted before Templates',
       iTp >= 0 && iOb < iTp, nav.order.join(' · '));
     check('3c · painted top-to-bottom in that order, never merely in the source',
