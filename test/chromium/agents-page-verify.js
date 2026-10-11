@@ -146,7 +146,8 @@ const ok = (name, good, detail) => {
     await back();
     const head = await page.evaluate(() => {
       const A = hbAgentsData(null);
-      return { rows: [...document.querySelectorAll('#hm-agents [data-hm-agent-row]')].map(b => b.getAttribute('data-hm-agent-row')),
+      /* RE-POINTED 11 Oct 2026 (owner's go: one row per item, as drawn): the agents in the order their rows come */
+      return { rows: [...new Set([...document.querySelectorAll('#hm-agents [data-hm-agent-row]')].map(b => b.getAttribute('data-hm-agent-row')))],
         want: AG_KEYS.filter(k => !HB_OFF_BOARD.includes(k) && A.rows.some(r => r.k === k)),
         ready: A.ready, sub: ((document.querySelector('#hm-agents .hb-cs') || {}).textContent || '').trim(),
         over: document.documentElement.scrollWidth - innerWidth };

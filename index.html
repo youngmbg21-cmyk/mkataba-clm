@@ -9770,6 +9770,14 @@
   .hb-grid>.hb-card>.hb-cb{flex:1 1 auto;display:flex;flex-direction:column;min-width:0}
   .hb-grid>.hb-card>.hb-cb>.hb-chart-notes{margin-top:auto}
   .hb-cb svg.hb-svg{max-width:100%}
+  /* the figure picker: a small panel under the sliders on Your book's head */
+  .hb-figpick-w{position:relative;display:inline-flex}
+  .hb-figpick{position:absolute;right:0;top:calc(100% + 6px);z-index:8;width:260px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;border:1px solid rgba(var(--hb-ln),.28);border-radius:var(--radius-lg);background:var(--hb-menu);box-shadow:0 12px 32px rgba(0,0,0,.18);color:var(--hb-ink)}
+  .hb-figpick .hb-dp-head{margin-bottom:6px}
+  .hb-fp-row{display:flex;align-items:center;gap:8px;padding:5px 2px;font-size:13px;cursor:pointer;border-radius:var(--radius)}
+  .hb-fp-row:hover{background:rgba(var(--hb-ln),.05)}
+  .hb-fp-row.is-dead{color:var(--hb-mute);cursor:not-allowed}
+  .hb-book:has(.hb-figpick){z-index:7;position:relative}
   /* THE SIDE LIST, AS DRAWN (part B): over the right of the page, under the bar */
   .hb-sheet{position:fixed;top:48px;right:0;bottom:0;width:min(560px,100vw);z-index:60;background:var(--hb-menu);border-left:1px solid rgba(var(--hb-ln),.18);box-shadow:-12px 0 32px rgba(4,25,26,.12);display:flex;flex-direction:column}
   .hb-sheet:focus{outline:none}

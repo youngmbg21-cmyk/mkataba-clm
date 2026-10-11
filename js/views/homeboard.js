@@ -55,7 +55,33 @@ const HB_FIGS = [
   { k: 'past',    word: 'hb_f_past',    tip: 'hb_f_past_tip',    tone: 'bad' },
   { k: 'overdue', word: 'hb_f_overdue', tip: 'hb_f_overdue_tip', tone: 'bad' },
   { k: 'us',      word: 'hb_f_us',      tip: 'hb_f_us_tip',      tone: 'warn' },
+  /* figures a person may pick instead (owner, 11 Oct 2026: "only 5 cards, but
+     a small settings feature to add other KPI cards while removing one") */
+  { k: 'drafting', word: 'hb_f_drafting', tip: 'hb_f_drafting_tip', tone: '', stage: 'Draft' },
+  { k: 'review',   word: 'hb_f_review',   tip: 'hb_f_review_tip',   tone: '', stage: 'Under Review' },
+  { k: 'signed',   word: 'hb_f_signed',   tip: 'hb_f_signed_tip',   tone: '', stage: 'Signed' },
 ];
+/* FIVE FIGURES, EACH PERSON'S OWN (s.figs): the default five, a press on the
+   head's sliders swaps one for another; never more than five */
+const HB_FIGS_MAX = 5, HB_FIGS_DEFAULT = ['live', 'value', 'ending', 'past', 'overdue'];
+let _hbFigPick = false;
+function hbFigsChosen(money){
+  const s = hbS(); const keys = Array.isArray(s.figs) && s.figs.length ? s.figs : HB_FIGS_DEFAULT;
+  return keys.map(k => HB_FIGS.find(f => f.k === k)).filter(f => f && (!f.money || money)).slice(0, HB_FIGS_MAX);
+}
+function hbFigToggle(k){
+  const s = hbS(); const cur = (Array.isArray(s.figs) && s.figs.length ? s.figs : HB_FIGS_DEFAULT).slice();
+  const i = cur.indexOf(k);
+  if (i >= 0){ if (cur.length > 1) cur.splice(i, 1); }
+  else if (cur.length < HB_FIGS_MAX && HB_FIG_KEYS.includes(k)) cur.push(k);
+  s.figs = cur; hbSave();
+}
+function hbFigPickHtml(money){
+  const s = hbS(); const cur = Array.isArray(s.figs) && s.figs.length ? s.figs : HB_FIGS_DEFAULT, full = cur.length >= HB_FIGS_MAX;
+  const rows = HB_FIGS.filter(f => !f.money || money).map(f => { const on = cur.includes(f.k), dead = !on && full;
+    return `<label class="hb-fp-row${dead ? ' is-dead' : ''}"${dead ? ` title="${_hbE(i18t('hb_figs_full'))}"` : ''}><input type="checkbox" data-hb-figkey="${f.k}"${on ? ' checked' : ''}${dead ? ' disabled' : ''}><span>${_hbE(i18t(f.word))}</span></label>`; }).join('');
+  return `<div class="hb-figpick" role="dialog" aria-label="${_hbE(i18t('hb_figs_pick'))}"><div class="hb-dp-head">${_hbE(i18t('hb_figs_head', { n: HB_FIGS_MAX }))}</div>${rows}</div>`;
+}
 const HB_FIG_KEYS = HB_FIGS.map(f => f.k);
 /* The panels a question can put on the board. Each is a reading the named
    Insights tab already counts; `src` names that tab on the panel's head. */
@@ -129,6 +155,7 @@ function hbS(){
     if (typeof v.keptSent === 'string') s.keptSent = v.keptSent.slice(0, 4000);
     if (typeof v.insFold === 'boolean') s.insFold = v.insFold;
     if (Array.isArray(v.path)) s.path = v.path.filter(k => typeof k === 'string').slice(-HB_PATH_MAX);
+    if (Array.isArray(v.figs)) s.figs = v.figs.filter(k => HB_FIG_KEYS.includes(k)).filter((k, i, a) => a.indexOf(k) === i).slice(0, HB_FIGS_MAX);
     if (Array.isArray(v.watches)) s.watches = v.watches.filter(w => w && HB_FIG_KEYS.includes(w.k)
       && (w.dir === 'above' || w.dir === 'below') && isFinite(Number(w.n))).slice(0, HB_WATCH_MAX)
       .map(w => ({ k: w.k, dir: w.dir, n: Number(w.n) }));
@@ -326,9 +353,13 @@ function hbBookData(lens, opts){
       past:    { n: past.length, ids: past.map(c => c.id) },
       overdue: { n: overdue.length, ids: overdue.map(o => o.id || (o.cid + ':' + (o.title || ''))), rows: overdue },
       us:      { n: us.length, ids: us.map(c => c.id) },
+      drafting: hbStageFig(stages, 'Draft'),
+      review:   hbStageFig(stages, 'Under Review'),
+      signed:   hbStageFig(stages, 'Signed'),
     },
     stages };
 }
+function hbStageFig(stages, k){ const st = (stages || []).find(x => x.k === k); return { n: st ? st.n : 0, ids: st ? st.ids.slice() : [] }; }
 function hbFigNumber(d, k){ const f = d.figs[k]; return k === 'value' ? (f.v || 0) : f.n; }
 
 /* ---------------- what moved since you last looked ----------------
@@ -652,6 +683,8 @@ function hbDigData(key, lens){
   if (k === 'f'){
     const F = B.figs[a]; if (!F) return null;
     if (a === 'overdue') return { key, kind: 'obl', word: 'hb_f_overdue', rows: F.rows, n: F.n };
+    const SF = HB_FIGS.find(f => f.k === a);
+    if (SF && SF.stage) return { key, kind: 'list', word: 'hb_f_' + a, fig: a, ids: F.ids, n: F.n, chart: { mode: 'groups', by: 'counterparty' }, fixed: ['status'], stage: SF.stage };
     if (a === 'value') return { key, kind: 'stages', word: 'hb_f_value', stages: B.stages, money: B.money, v: F.v, left: F.left };
     const chart = (a === 'ending' || a === 'past') ? { mode: 'months' } : { mode: 'groups', by: a === 'us' ? 'counterparty' : 'status' };
     return { key, kind: 'list', word: 'hb_f_' + a, fig: a, ids: F.ids, n: F.n, chart, fixed: a === 'live' ? [] : ['status'] };
@@ -938,6 +971,9 @@ const HB_RX = {
     past:    /past (their |the )?end|expired|efter slutdatum|utgångna|har löpt ut/i,
     overdue: /overdue|past due|förfallna/i,
     us:      /waiting on us|our move|väntar på oss|vårt drag/i,
+    drafting: /^(?:the )?(?:contracts )?in drafting$|^under utkast$/i,
+    review:   /^(?:the )?(?:contracts )?in review$|^under granskning$/i,
+    signed:   /^(?:the )?executed contracts$|^undertecknade avtal$/i,
   },
 };
 /* Which contract a question names: its reference anywhere in the words, or
@@ -1131,7 +1167,8 @@ function hbDeltaHtml(k, M, since){
   return `<button type="button" class="hb-fd${cls}" data-hb-dig="mv:${k}" title="${_hbE(i18t(M.d ? (up ? 'hb_d_up_tip' : 'hb_d_down_tip') : 'hb_d_swap_tip', { n: amt, when }))}">${_hbE(txt)}</button>`;
 }
 function hbBookHtml(d, moved, since){
-  const tiles = HB_FIGS.filter(f => !f.money || d.money).map(f => {
+  const chosen = hbFigsChosen(d.money);
+  const tiles = chosen.map(f => {
     const F = d.figs[f.k];
     const num = f.k === 'value' ? _hbM(F.v) : _hbN(F.n);
     const zero = !F.n;
@@ -1152,8 +1189,9 @@ function hbBookHtml(d, moved, since){
   const sub = [count, d.lens === 'all' ? '' : i18t('hb_lens_' + d.lens), since ? i18t('hb_book_since', { when: hbDayWords(since) }) : ''].filter(Boolean).join(' · ');
   const unsided = d.unsided ? `<div class="hb-quiet">${_hbE(i18tn('hb_unsided', d.unsided, { n: _hbN(d.unsided) }))}</div>` : '';
   return `<section class="hb-card hb-book" id="hb-book"><header class="hb-ch"><span class="hb-ct">${_hbE(i18t('hb_book'))}</span><span class="hb-cs">${_hbE(sub)}</span>
-    ${hbS().prep === 'closed' ? `<button type="button" class="hb-link" data-hb-prep="open" title="${_hbE(i18t('hb_prep_back'))}">${_hbE(i18t('hm_ag_title'))} <span class="hb-pill">${_hbN(hbAgentsData(null).ready)}</span></button>` : ''}</header>
-    <div class="hb-cb"><div class="hb-figs">${tiles}</div>${bar}${unsided}</div></section>`;
+    ${hbS().prep === 'closed' ? `<span class="hb-grow"></span><button type="button" class="hb-link" data-hb-prep="open" title="${_hbE(i18t('hb_prep_back'))}">${_hbE(i18t('hm_ag_title'))} <span class="hb-pill">${_hbN(hbAgentsData(null).ready)}</span></button>` : ''}
+    <span class="hb-grow"></span><span class="hb-figpick-w"><button type="button" class="hb-ib hb-figs-set" data-hb-figpick aria-haspopup="dialog" aria-expanded="${_hbFigPick}" title="${_hbE(i18t('hb_figs_pick'))}" aria-label="${_hbE(i18t('hb_figs_pick'))}"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor"><use href="#i-sliders"/></svg></button>${_hbFigPick ? hbFigPickHtml(d.money) : ''}</span></header>
+    <div class="hb-cb"><div class="hb-figs" style="grid-template-columns:repeat(${Math.max(1, chosen.length)},minmax(0,1fr))">${tiles}</div>${bar}${unsided}</div></section>`;
 }
 
 /* ---- PREPARED BY COPILOT, under the book ----
@@ -1194,7 +1232,7 @@ function hbPrepHtml(A, since){
   const rows = shownItems.map(x => {
     const dot = x.tone === 'ruby' ? ' is-bad' : x.tone === 'amber' ? ' is-warn' : '';
     const urg = x.urg ? `<span class="hb-ag-u${x.tone === 'ruby' ? ' is-bad' : ' is-warn'}">${_hbE(x.urg)}</span>` : '';
-    return `<div class="hb-ag hb-ag-item" data-hb-ag-item="${_hbE(x.key)}">
+    return `<div class="hb-ag hb-ag-item" data-hb-ag-item="${_hbE(x.key)}" data-hm-agent-row="${_hbE(x.k)}">
       <span class="hb-ag-k"><i class="hb-ag-dot${dot}" aria-hidden="true"></i><span class="hb-ag-t">${_hbE(i18t('ag_' + x.k))}</span></span>
       <span class="hb-ag-b"><span class="hb-ag-w">${_hbE(x.who || x.sum || '')}</span>${(x.who && x.sum) || urg ? `<span class="hb-ag-s">${x.who && x.sum ? _hbE(x.sum) : ''}${x.who && x.sum && urg ? ' · ' : ''}${urg}</span>` : ''}</span>
       <span class="hb-ag-acts">${actsOf(x.key) || `<button type="button" class="hb-btn" data-hb-dig="ag:${_hbE(x.k)}">${_hbE(i18t('hm_ag_review'))}</button>`}</span></div>`;
@@ -8742,6 +8780,8 @@ function hbReviewOnPaper(k){
 function hbOnClick(e){
   if (!window.state || state.view !== 'dashboard') return;
   const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+  /* a press anywhere but the figure picker puts it away */
+  if (_hbFigPick && !t.closest('.hb-figpick-w')){ _hbFigPick = false; hbPaintBoard(); }
   /* a door out of the side list (Open these, Show on the map) leaves it closed behind */
   if (_hbSheet && t.closest('.hb-sheet [data-hb-open], .hb-sheet [data-hb-map]')) _hbSheet = null;
   { const rp = t.closest('[data-hb-review-paper]');
@@ -8862,6 +8902,8 @@ function hbOnClick(e){
   if ((el = on('[data-hb-ins]'))){ hbInsAct(el.getAttribute('data-hb-ins'), el.getAttribute('data-hb-ins-k')); return; }
   if ((el = on('[data-hb-ai]'))){ hbAskInPanel(el.getAttribute('data-hb-ai'), el.getAttribute('data-hb-ai-id')); return; }
   if ((el = on('[data-hb-ser]'))){ hbSerToggle(el.getAttribute('data-hb-ser-key'), el.getAttribute('data-hb-ser')); hbPaintBoard(); return; }
+  if (on('[data-hb-figpick]')){ _hbFigPick = !_hbFigPick; hbPaintBoard(); return; }
+  if ((el = on('[data-hb-figkey]'))){ if (!el.disabled){ hbFigToggle(el.getAttribute('data-hb-figkey')); hbPaintBoard(); } return; }
   if (on('[data-hb-agents-page]')){ if (typeof setView === 'function') setView('agents'); return; }
   if (on('[data-hb-ins-fold]')){ const st = hbS(); st.insFold = !st.insFold; hbSave(); hbPaintBoard(); return; }
   if ((el = on('[data-hm-agent]'))){ e.stopPropagation(); hbOpenAgent(el.getAttribute('data-hm-agent')); return; }
@@ -8950,6 +8992,7 @@ function hbOnKey(e){
     if (typeof toast === 'function') toast(i18t(ok ? 'hb_undo_done' : 'hb_undo_none'), ok ? 'ok' : 'warn'); return;
   }
   if (e.key === 'Escape' && _hbSheet && document.querySelector('.hb-sheet')){ if (_hbSheet.cid){ _hbSheet.cid = null; hbPaintBoard(); hbSheetFocus(); } else hbSheetClose(); return; }
+  if (e.key === 'Escape' && _hbFigPick){ _hbFigPick = false; hbPaintBoard(); const b = document.querySelector('[data-hb-figpick]'); if (b) try { b.focus({ preventScroll: true }); } catch (_){} return; }
   if (e.key === 'Escape' && (_hbDrawnOpen || _hbToolsMenu)){
     /* the keyboard goes back to the button that opened it */
     const back = _hbDrawnOpen ? `[data-hb-drawn="${CSS.escape(_hbDrawnOpen)}"]` : `[data-hb-tools-more="${CSS.escape(_hbToolsMenu)}"]`;
