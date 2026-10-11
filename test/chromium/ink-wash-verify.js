@@ -44,6 +44,13 @@
    as a set difference: only dark Home's counts moved (five tile grounds and
    edges became the strip's one); 0 keys new, 0 gone; every other screen is
    identical.
+   RE-RECORDED 11 Oct 2026 (fourth), OWNER-ASKED ("yes"): the Board as drawn
+   (rounds 1-3, owner-approved). Audited as a set difference: only Home moved,
+   0 other screens. Light Home: counts only. Dark Home: 2 new (a card edge at
+   .12 where it was .10) and 11 gone per brand (the old blocks' teal, amber
+   and blue fills and strokes, now one hue squarified; the old agent-icon
+   squares' glow grounds; an amber tile edge). Every Ink Wash claim passed
+   before and after; the check passes twice running on the new record.
      node test/chromium/ink-wash-verify.js          (check)
    ============================================================ */
 const fs = require('node:fs');
