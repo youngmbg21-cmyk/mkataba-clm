@@ -66,8 +66,10 @@ const ok = (name, good, detail) => {
     const rail = await page.$$eval('#side-nav [data-view]', els => els.map(e => e.getAttribute('data-view')));
     /* RE-POINTED 7 Oct 2026: Copilot's work lives on the Board ("Below the
        card"), so the rail has no door of its own for it. */
-    ok('1 Copilot\'s work has no rail door (it lives on the Board), and Insights sits directly after Calendar',
-      rail.indexOf('agents') === -1 && rail.indexOf('intel') === rail.indexOf('calendar') + 1,
+    /* RE-POINTED 11 Oct 2026: the Calendar is Home's second tab and has no
+       rail door, so Insights sits directly after My notes */
+    ok('1 Copilot\'s work has no rail door (it lives on the Board), no Calendar row, and Insights sits directly after My notes',
+      rail.indexOf('agents') === -1 && rail.indexOf('calendar') === -1 && rail.indexOf('intel') === rail.indexOf('mynotes') + 1,
       rail.slice(0, 9).join(' → '));
 
     /* A DATE IS DATA: the artifact sets both columns in the figure face at the

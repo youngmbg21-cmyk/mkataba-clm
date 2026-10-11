@@ -140,7 +140,8 @@ for (let i = 1; i <= 12; i++)
        was true of all of them and a check on one would have passed on a fix
        that reached one.
        ============================================================ */
-    const PAGES = ['register', 'templates', 'playbook', 'intel', 'calendar', 'reports',
+    /* 'calendar' left this list 11 Oct 2026: it is Home's tab (calendar-on-home-verify 11 asks its refresh) */
+    const PAGES = ['register', 'templates', 'playbook', 'intel', 'mynotes', 'reports',
       'migration', 'team', 'directory', 'intake', 'redline', 'workspace'];
     const lost = [];
     for (const v of PAGES){
@@ -167,11 +168,11 @@ for (let i = 1; i <= 12; i++)
     /* THE CAUSE, pinned so the shadow cannot come back through another door:
        what setView stores has to be readable by the pair that reads it. */
     const stored = await page.evaluate(() => {
-      setView('calendar');
+      setView('mynotes');
       return { raw: localStorage.getItem(LS.ui), parsed: lsGet(LS.ui) };
     });
     check('4b and what it stores is readable, not the text "[object Object]"',
-      stored.parsed && stored.parsed.view === 'calendar',
+      stored.parsed && stored.parsed.view === 'mynotes',
       `raw: ${String(stored.raw).slice(0, 40)}`);
 
     /* ============================================================

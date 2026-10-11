@@ -151,18 +151,17 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
        sits under the head cannot be asked. What it was really pinning — one
        white band carrying the page's controls, with no second head above it —
        is what is asked here and in the three claims below. */
-    check('1 the head is one band, and there is no second control row under it',
-      shape.head && shape.head.on && !(shape.bar && shape.bar.on),
-      { head: shape.head, bar: shape.bar });
-    check('1 and the shell draws no second head above it',
-      shape.pageHead.trim() === '', shape.pageHead.slice(0, 60));
-    check('1 the title is the nav\'s own word, not a second name for the page',
-      shape.title.trim() === 'Calendar', shape.title);
-    /* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2 — the owner's
-       "go"; the drawing is the target): the drawing's head is the name, the
-       month stepper and the controls on one row. The "decisions this week"
-       line and the count on Month are not in it — the month and Next 14 days
-       already say both. Asked as their absence, so they cannot creep back. */
+    /* ---- RE-POINTED 11 Oct 2026 (WORKORDER-four-builds item 1: Calendar is
+       Home's second tab) ---- the calendar draws no head of its own on Home:
+       Home's head (the greeting and the tabs) is the page's ONE head, the
+       Calendar tab is lit in it, and the calendar's ⋯ stands at the end of
+       its first bar. */
+    const homeHead = await page.evaluate(() => ({ calHead: !!document.querySelector('#hb-cal .cal-head'),
+      tab: (document.querySelector('[data-hb-face][aria-selected="true"]') || {}).getAttribute?.('data-hb-face') || null,
+      more: !!document.querySelector('#hb-cal .cal-bar1 #cal-more') }));
+    check('1 on Home the calendar draws no second head; Home\'s Calendar tab is the lit one',
+      !homeHead.calHead && homeHead.tab === 'calendar', JSON.stringify(homeHead));
+    check('1 and its ⋯ stands at the end of the calendar\'s first bar', homeHead.more);
     check('1 the head prints no decisions line (the drawing has none)', shape.stat === '', shape.stat);
     /* RE-POINTED 10 Oct 2026 (Young: "one calendar" — Month · Week · Horizon) */
     check('1 three views, plain words, no count on the live one',
@@ -174,29 +173,6 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
        card was ruled across the middle. The rule under the TABS stays; the one
        between the title and the tabs goes. Written as a relation: the head must
        draw no bottom edge of any kind, and the bar must still draw one. */
-    const band = await page.evaluate(() => {
-      const edge = el => { const cs = getComputedStyle(el);
-        return { sh: cs.boxShadow, bb: cs.borderBottomWidth, bg: cs.backgroundColor,
-          y: Math.round(el.getBoundingClientRect().y),
-          bottom: Math.round(el.getBoundingClientRect().bottom) }; };
-      const h = document.querySelector('.cal-head'), b = document.querySelector('.cal-bar');
-      const a = document.querySelector('.cal-head .cal-acts');
-      if (!h) return null;
-      return { head: edge(h), bar: b ? edge(b) : null,
-        acts: document.querySelectorAll('.cal-head .cal-acts > *').length,
-        actsY: a ? Math.round(a.getBoundingClientRect().y) : null,
-        /* the acts start inside the head's own box, never on a row below it */
-        sameLine: !!a && a.getBoundingClientRect().bottom <= h.getBoundingClientRect().bottom + 1 };
-    });
-    /* ONE BAND, SO THERE IS ONE RULE AND IT IS THE BAND'S OWN. The 24 Aug
-       report was a line drawn ACROSS the middle of a two-row band; with one
-       row there is no middle to rule. The band is still white and still the
-       only thing between the shell bar and the month. */
-    check('1 the head is white and carries the page\'s controls',
-      band && band.head.bg === 'rgb(255, 255, 255)' && band.acts >= 2,
-      band && { bg: band.head.bg, acts: band.acts });
-    check('1 and the controls sit on the head\'s own line, not under it',
-      band && band.sameLine, band && { headTop: band.head.y, acts: band.actsY });
     check('1 the scope is two options, not two states', shape.scope.length === 2, shape.scope);
     /* RE-POINTED IN PLACE 21 Sep 2026: the reference stacks them — the month
        across the whole page, the key under it, Next 14 days as a card below
@@ -209,9 +185,12 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
     /* RE-POINTED 11 Oct 2026 (Young: "build it exactly as designed"): Next 14
        days is gone and Copilot stands beside the calendar, a narrower column
        on the right of ONE card whose top it shares. */
-    check('1 the month runs the page, with Copilot beside it on the right, in one card',
+    /* RE-POINTED 11 Oct 2026: on Home its Copilot is Home's one panel, on
+       the right of the whole page, beside the calendar card */
+    check('1 the month runs the page, with Copilot beside it on the right, in Home\'s panel',
       shape.grid && shape.panel && shape.stage && shape.panel.w < shape.grid.w
-        && shape.panel.x > shape.grid.x + shape.grid.w - 1 && Math.abs(shape.panel.y - shape.stage.y) < 2,
+        && shape.panel.x > shape.grid.x + shape.grid.w - 1
+        && !!(await page.evaluate(() => !!document.querySelector('#ig-dock #cal-plan'))),
       { grid: shape.grid && shape.grid.w, panel: shape.panel && shape.panel.w,
         stageY: shape.stage && shape.stage.y, panelY: shape.panel && shape.panel.y });
     check('1 the week starts on Monday', shape.dow[0] && /^M/i.test(shape.dow[0]), shape.dow);

@@ -80,6 +80,12 @@ const OFFSETS = [3, 6, 9, 12, 20, 26, 35, 44, 52, 61, 70, 78, 85, 88];
     await page.click('#li-go');
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.length > 0,
       null, { timeout: 15000 }).catch(() => {});
+    /* RE-POINTED 11 Oct 2026 (Calendar is Home's tab): the server's own list
+       lands first, so the start-up's "back to where you were" (hbPlacePut)
+       has run before the Calendar tab is asked for — a person cannot press it
+       sooner either */
+    await page.waitForFunction(() => state.contracts.some(c => c.id === 'MK-B2'), null, { timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(600);
     await page.evaluate(() => setView('calendar'));
     await pause(1200);
     /* SEEDED ON THE PAGE, after it has drawn once: the bootstrap's own fetch

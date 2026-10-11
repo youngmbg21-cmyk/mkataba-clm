@@ -2483,6 +2483,20 @@ const AI_EXPLAIN_FIELDS = () => '  "whyChange": "One or two plain sentences to t
   + 'Everyday words.",\n';
 const AI_NO_NOTES = '\n\nNever write your working notes or thinking anywhere in the reply — no "Now I have", '
   + '"Let me", "Wait", "I should", no talk about "the user": think silently, then send the ONE final JSON object.';
+/* ---- ONE LIST RULE FOR EVERY DRAFT (owner, 11 Oct 2026, WORKORDER-four-
+   builds item 2) ----
+   It used to live in AI_EDIT_FORMAT alone, so a replacement — the Risks tab,
+   "Make it firmer", every passage rewrite — came back as one paragraph with
+   (a) to (f) run together. Both formats carry it now, and it asks for the
+   document's OWN list style. aiListLines (below) is the net under it. */
+const AI_LIST_RULE = () => 'When the wording sets out points — obligations, conditions, exceptions, '
+  + 'steps — put ONE POINT PER LINE, each opening with its own label, and introduce them '
+  + 'with a line ending in a colon. Use the labels the document already uses for its points '
+  + '("(a)", "(i)", "1.1", …); where you cannot tell, use "(a)", "(b)", "(c)". When the '
+  + 'passage you were shown sets its points on separate lines, keep them on separate lines. '
+  + 'Never run the points together into a single paragraph — a list filed as one paragraph '
+  + 'loses the numbering a contract is cited by. A clause that is one sentence stays one '
+  + 'paragraph.\n\n';
 const AI_PROPOSAL_FORMAT = () => 'Reply with ONE JSON object and nothing else — no preamble, '
   + 'no commentary outside it, no markdown fence:\n'
   + '{\n'
@@ -2491,6 +2505,7 @@ const AI_PROPOSAL_FORMAT = () => 'Reply with ONE JSON object and nothing else �
   + '  "proposedText": "The replacement wording for the selected passage, and nothing else — '
   + 'no quotation marks around it, no explanation inside it."\n'
   + '}\n\n'
+  + AI_LIST_RULE()
   + 'proposedText is CONTRACT WORDING ONLY. If you need more information, or cannot draft '
   + 'from what you were shown, say so in "advice" and return proposedText as an empty string '
   + '— never put a question, an apology, a note about missing context, or a remark about '
@@ -2571,9 +2586,7 @@ const AI_EDIT_FORMAT = () => 'Reply with ONE JSON object and nothing else — no
   + 'when they are asking you to change wording that is already there. When they say '
   + '"after this clause", prefer newClause; when they say "after this" of a sentence '
   + 'inside a clause, prefer after.\n\n'
-  + 'When proposedText is a list, put ONE ITEM PER LINE with its own opening mark '
-  + '("(a)", "1.", "•" or "-"). Never run the items together into a single paragraph — '
-  + 'a list filed as one paragraph loses the numbering a contract is cited by.\n\n'
+  + AI_LIST_RULE()
   + 'proposedText is CONTRACT WORDING ONLY. If you need more information, or cannot draft '
   + 'from what you were shown, say so in "advice" and return proposedText as an empty string '
   + '— never put a question, an apology, a note about missing context, or a remark about '
@@ -3439,15 +3452,73 @@ async function copilotPropose(opts){
   const placement = placements ? aiNormalizePlacement(parsed.placement) : 'replace';
   return aiExplainSet({ ...parsed, placement,
     headingText: placement === 'newClause' ? String(parsed.headingText || '') : '',
-    proposedText: aiIsInsert(placement)
+    /* a list run into one paragraph gets its line breaks back (aiListLines) */
+    proposedText: aiListLines(aiIsInsert(placement)
       ? aiCleanAddedWording(passage, parsed.proposedText)
       /* BEFORE the typography repair, never after: that repair counts the
          passage's sub-paragraphs and reshapes the answer to match, so a
          restated heading left in place is one line it would try to make the
          wording account for. See aiDropRestatedHeading. */
       : aiPreserveTypography(passage,
-          aiDropRestatedHeading(parsed.proposedText, o.clauseLabel, passage)) });
+          aiDropRestatedHeading(parsed.proposedText, o.clauseLabel, passage))) });
 }
+/* ---- A LIST ARRIVES AS LINES (owner, 11 Oct 2026, WORKORDER-four-builds
+   item 2: "in a real contract this clause likely goes into a bullet point
+   format but copilot is not doing so") ----
+   The prompt asks for one point per line (AI_LIST_RULE). A model that still
+   runs the points into one paragraph — "The Supplier shall: (a) …; (b) …; and
+   (c) …" — has the line breaks put back here, before the wording reaches any
+   door. ONLY THE BREAKS: not one word, label or mark is changed, so the
+   redline counts the same words and a person's reading of it is the same.
+
+   CONSERVATIVE ON PURPOSE. The labels must run in order from the first —
+   (a) (b) (c)…, (i) (ii) (iii)…, or (1) (2) (3)… — at least two of them, and
+   each must open after a colon or a semicolon (optionally "and"/"or"), which
+   is where a drafter starts a limb. So "clause 4(a)" or "under (a) above" in
+   the middle of a sentence never splits, and a line that already stands on
+   its own is left as it is. Every line is read on its own. */
+const AI_LIST_ROMAN = ['i','ii','iii','iv','v','vi','vii','viii','ix','x','xi','xii','xiii','xiv','xv'];
+const AI_LIST_ALPHA = 'abcdefghijklmnopqrstuvwxyz'.split('');
+const AI_LIST_MARK_RE = /([:;])(\s+(?:(?:and|or)\s+)?)\(([a-z]{1,5}|\d{1,2})\)(?=\s)/gi;
+function aiListSeq(first){
+  const f = String(first).toLowerCase();
+  if (f === 'a') return AI_LIST_ALPHA;
+  if (f === 'i') return AI_LIST_ROMAN;
+  if (f === '1') return AI_LIST_ALPHA.map((_, k) => String(k + 1));
+  return null;
+}
+function aiListLine(line){
+  const marks = [];
+  AI_LIST_MARK_RE.lastIndex = 0;
+  let m;
+  while ((m = AI_LIST_MARK_RE.exec(line))){
+    /* where the label's "(" stands, and where the space before it starts */
+    const open = m.index + m[1].length + m[2].length;
+    const and = /\S/.test(m[2]);
+    marks.push({ label: m[3].toLowerCase(), open, cut: and ? open : m.index + m[1].length });
+  }
+  if (marks.length < 2) return line;
+  const seq = aiListSeq(marks[0].label);
+  if (!seq) return line;
+  const run = [];
+  for (const k of marks){ if (k.label === seq[run.length]) run.push(k); else if (run.length) break; }
+  if (run.length < 2) return line;
+  /* cut from the end so the earlier offsets stay true; the white space before
+     each label becomes one line break */
+  let out = line;
+  for (let r = run.length - 1; r >= 0; r--){
+    const k = run[r];
+    const head = out.slice(0, k.cut).replace(/[ \t]+$/, '');
+    out = head + '\n' + out.slice(k.open);
+  }
+  return out;
+}
+function aiListLines(text){
+  const s = String(text == null ? '' : text);
+  if (!/\(/.test(s)) return s;
+  return s.split('\n').map(aiListLine).join('\n');
+}
+
 /* ---- WORKING NOTES ARE NEVER SHOWN (Young, 6 Oct 2026) ----
    A model that thinks aloud writes it in the first person to itself, or about
    "the user" / "the drafter". Such text is not an explanation for the reader:
@@ -4909,7 +4980,7 @@ if(typeof window!=='undefined'&&typeof window.addEventListener==='function')
   window.addEventListener('resize',()=>{ if(ai.open) aiSyncDock(); });
 
 Object.assign(window,{scanGoTo,aiContractByRef,aiWorkingNotes,aiExplainOf,aiExplainSet,aiJsonObjects,
-  AI_PROPOSAL_FORMAT,AI_EDIT_FORMAT,AI_ADVICE_FIELD,AI_KEEP_TAGS,AI_PROPOSAL_OPEN,aiProposals,aiSyncDock,
+  AI_PROPOSAL_FORMAT,AI_EDIT_FORMAT,AI_LIST_RULE,aiListLines,aiListLine,AI_ADVICE_FIELD,AI_KEEP_TAGS,AI_PROPOSAL_OPEN,aiProposals,aiSyncDock,
   AI_PLACEMENTS,AI_PLACEMENT_LABEL,AI_PLACEMENT_SHORT,aiNormalizePlacement,aiIsInsert,
   aiProposalAnchorHtml,aiProposalPlacementHtml,aiProposalSetPlacement,aiCleanAddedWording,
   AI_NOT_WORDING,AI_ASKS_BACK,AI_ASKS_WHOLE,AI_MODEL_VOICE,AI_MODEL_INSTRUMENT,AI_TASK_TALK,AI_ENDS_ASKING,aiAsksTheReader,aiLooksConversational,

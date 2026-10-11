@@ -1365,7 +1365,10 @@ describe('f210 (19) — the panel\'s own type stepper', () => {
      that the panel does not follow the DOCUMENT's type (.rl-cp-src
      {--doc-scale:1}) is untouched; this is the panel's own preference. */
 
-  test('the stepper sits in the head, reading 14px, with its OWN readout class', async () => {
+  /* RE-POINTED 11 Oct 2026 (WORKORDER-four-builds item 3): the panel's own
+     control is a ZOOM now, "− 100% +" in 10% steps, still the panel's own
+     value and still the panel body alone. */
+  test('the zoom sits in the head, reading 100%, with its OWN readout class', async () => {
     const p = await bench();
     const box = page(p);
     const head = box.querySelector('.rl-cp-head');
@@ -1373,7 +1376,7 @@ describe('f210 (19) — the panel\'s own type stepper', () => {
     const up = head && head.querySelector('[data-rl-cp-type="up"]');
     const out = head && head.querySelector('.rl-cp-type-out');
     assert.ok(down && up && out, 'A− / readout / A＋ are in the panel head');
-    assert.equal(out.textContent, '14px', 'the panel\'s own base, not the document\'s 15');
+    assert.equal(out.textContent, '100%', 'the panel\'s own zoom, at its start');
     /* rlSetDocType repaints every .rl-type-out on the page with the DOCUMENT's
        px — one shared class is how the two steppers would come to lie about
        each other's value. */
@@ -1387,25 +1390,25 @@ describe('f210 (19) — the panel\'s own type stepper', () => {
     const $ = s => p.win.document.querySelector(s);
     const panelBefore = $('#rl-cp');
     $('[data-rl-cp-type="up"]').click();
-    assert.equal($('.rl-cp-type-out').textContent, '15px', 'one press, one px');
-    assert.equal($('#rl-cp').style.getPropertyValue('--cp-zoom'), (15 / 14).toFixed(4),
-      'the zoom is the ratio against the panel\'s own base');
+    assert.equal($('.rl-cp-type-out').textContent, '110%', 'one press, one step');
+    assert.equal($('#rl-cp').style.getPropertyValue('--cp-zoom'), (1.1).toFixed(4),
+      'the zoom is the factor the body reads');
     assert.equal($('#rl-cp'), panelBefore, 'the SAME node — a class-and-var flip, never a repaint');
     $('[data-rl-cp-type="down"]').click();
-    assert.equal($('.rl-cp-type-out').textContent, '14px', 'and the way back');
+    assert.equal($('.rl-cp-type-out').textContent, '100%', 'and the way back');
   });
 
   test('the bounds are the document stepper\'s own, and the buttons say so', async () => {
     const p = await bench();
     p.win.renderRedline();
     const $ = s => p.win.document.querySelector(s);
-    p.win.rlCpSetType(99);
-    assert.equal($('.rl-cp-type-out').textContent, '20px', 'clamped to the shared ceiling');
+    p.win.rlCpSetZoom(999);
+    assert.equal($('.rl-cp-type-out').textContent, '200%', 'clamped to the shared ceiling');
     assert.ok($('[data-rl-cp-type="up"]').disabled, 'A＋ refuses at the top');
-    p.win.rlCpSetType(1);
-    assert.equal($('.rl-cp-type-out').textContent, '8px', 'clamped to the shared floor');
+    p.win.rlCpSetZoom(1);
+    assert.equal($('.rl-cp-type-out').textContent, '60%', 'clamped to the shared floor');
     assert.ok($('[data-rl-cp-type="down"]').disabled, 'A− refuses at the bottom');
-    p.win.rlCpSetType(14);
+    p.win.rlCpSetZoom(100);
   });
 
   test('only the panel: the zoom is read by the panel body alone, and the document stepper does not touch it', async () => {
@@ -1417,13 +1420,13 @@ describe('f210 (19) — the panel\'s own type stepper', () => {
     const p = await bench();
     p.win.renderRedline();
     const $ = s => p.win.document.querySelector(s);
-    p.win.rlCpSetType(16);
-    p.win.rlSetDocType(10);
-    assert.equal($('.rl-cp-type-out').textContent, '16px',
+    p.win.rlCpSetZoom(130);
+    p.win.rlSetDocZoom(70);
+    assert.equal($('.rl-cp-type-out').textContent, '130%',
       'the document stepper repaints its own readouts and leaves the panel\'s alone');
     assert.ok(!$('.rl-doc') || !String($('.rl-doc').getAttribute('style') || '').includes('--cp-zoom'),
       'and the paper carries no panel zoom');
-    p.win.rlCpSetType(14); p.win.rlSetDocType(15);
+    p.win.rlCpSetZoom(100); p.win.rlSetDocZoom(100);
   });
 });
 

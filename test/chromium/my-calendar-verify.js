@@ -54,6 +54,11 @@ const check = (name, pass, detail) => {
       const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       return { day: iso(t) };
     });
+    /* RE-POINTED 11 Oct 2026 (Calendar is Home's tab): the server's list lands
+       before the tab is asked for, so the start-up's own "back to where you
+       were" cannot turn Home back to the Board under the check */
+    await page.waitForFunction(() => state.contracts.some(c => c.id === 'MK-B2'), null, { timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(600);
     await page.evaluate(() => setView('calendar'));
     const views = await until(() => { const v = [...document.querySelectorAll('[data-cal-view]')].map(e => e.getAttribute('data-cal-view')); return v.length ? v : null; });
     check('1. the views are Month · Week · Horizon', !!views && views.join(' ') === 'month week horizon', views && views.join(' '));

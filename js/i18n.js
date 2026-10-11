@@ -8646,6 +8646,8 @@ const STRINGS = {
     ng_focus_mode: 'Focus mode &mdash; hide the header and give the space to the document and the changes',
     ng_leave_focus: 'Leave focus mode and bring the page back (Esc)',
     ng_contract_text_size: 'Contract text size',
+    ng_zoom_label: 'Zoom — how big the page looks',
+    ng_words_moved: 'Words added and removed by the changes still open on the table',
     ng_smaller_text: 'Smaller contract text',
     ng_larger_text: 'Larger contract text',
     ng_tools_for_clause: 'Tools for this clause',
@@ -13438,6 +13440,7 @@ const STRINGS = {
     // ---- Home is the board and the map (3 Oct 2026) ----
     hb_face_board: "Board",
     hb_face_explorer: "Explorer",
+    hb_face_calendar: "Calendar",
     hb_face_paper: "Paper",
     hb_show: "Show",
     hb_group_by: "Group by",
@@ -22988,6 +22991,8 @@ const STRINGS = {
     ng_focus_mode: 'Fokusläge &mdash; dölj rubriken och ge utrymmet till dokumentet och ändringarna',
     ng_leave_focus: 'Lämna fokusläget och ta tillbaka sidan (Esc)',
     ng_contract_text_size: 'Textstorlek i avtalet',
+    ng_zoom_label: 'Zoom \u2014 hur stor sidan ser ut',
+    ng_words_moved: 'Ord som lagts till och tagits bort av \u00e4ndringarna som fortfarande ligger p\u00e5 bordet',
     ng_smaller_text: 'Mindre avtalstext',
     ng_larger_text: 'Större avtalstext',
     ng_tools_for_clause: 'Verktyg för den här klausulen',
@@ -27536,6 +27541,7 @@ const STRINGS = {
     // ---- Hem är tavlan och kartan (3 okt 2026) ----
     hb_face_board: "Tavla",
     hb_face_explorer: "Utforskaren",
+    hb_face_calendar: "Kalender",
     hb_face_paper: "Papper",
     hb_show: "Visa",
     hb_group_by: "Gruppera efter",

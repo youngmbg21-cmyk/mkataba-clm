@@ -208,7 +208,9 @@ describe('F107d — the shape never varies, whatever the register', () => {
       for (const p of ['replace', 'after', 'before', 'newClause'])
         assert.ok(f.includes(p), `${p} in ${style}`);
       assert.match(f, /ADD.*placement MUST NOT be "replace"/s, style);
-      assert.match(f, /ONE ITEM PER LINE/, style);
+      /* RE-POINTED 11 Oct 2026 (WORKORDER-four-builds item 2): the list rule is
+         AI_LIST_RULE now, shared by both formats */
+      assert.match(f, /ONE POINT PER LINE/, style);
     }
   });
 

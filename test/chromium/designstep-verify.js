@@ -338,12 +338,14 @@ const READ = () => {
     zoom: parseFloat(getComputedStyle(document.getElementById('ds-zoom')).getPropertyValue('--ds-zoom')),
     type: parseFloat(getComputedStyle(document.querySelector('#ds-zoom .hati-doc')).fontSize),
     readout: document.querySelector('.rl-type-out').textContent.trim(),
-    stored: localStorage.getItem('hati.v1.rlDocType') }));
-  check('9 · A+ makes the contract bigger, and stores the preference',
-    z1.type > type0 && z1.readout !== '15px' && z1.stored,
-    `type ${type0} → ${z1.type}, readout ${z1.readout}, stored ${z1.stored}`);
-  check('9 · and the page itself keeps fitting its pane, whatever the type',
-    Math.abs(z1.zoom - z0) < 0.001, `zoom ${z0} → ${z1.zoom}`);
+    stored: localStorage.getItem('hati.v1.docZoom') }));
+  /* RE-POINTED 11 Oct 2026 (WORKORDER-four-builds item 3): the press is the
+     ZOOM now — the page's fit times the reader's zoom grows, the type holds. */
+  check('9 · + makes the contract bigger, and stores the zoom',
+    z1.zoom > z0 * 1.09 && z1.readout === '110%' && z1.stored === '110',
+    `zoom ${z0} → ${z1.zoom}, readout ${z1.readout}, stored ${z1.stored}`);
+  check('9 · and the words keep their type — the page grows, not the font',
+    Math.abs(z1.type - type0) < 0.01, `type ${type0} → ${z1.type}`);
   await page.evaluate(() => document.querySelector('[data-rl-type="-1"]').click());
   await page.waitForTimeout(250);
 

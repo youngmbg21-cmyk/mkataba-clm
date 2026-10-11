@@ -67,13 +67,15 @@ const check = (name, pass, detail) => {
     /* ============ 1. CONTROL — this already works, and must go on working ============
        If it did not, everything below would be measuring a product that never
        remembered anything rather than the fault the owner reported. */
-    await page.evaluate(() => setView('calendar'));
+    /* RE-POINTED 11 Oct 2026: the Calendar is Home's tab now, so the plain
+       page here is Obligations */
+    await page.evaluate(() => setView('obligations'));
     await page.waitForTimeout(900);
     const s1 = await stored();
-    check('1a a plain navigation is recorded', !!(s1 && s1.view === 'calendar'),
+    check('1a a plain navigation is recorded', !!(s1 && s1.view === 'obligations'),
       s1 ? s1.view : 'nothing stored');
     await reload();
-    check('1b CONTROL — and a refresh lands there', (await liveView()) === 'calendar',
+    check('1b CONTROL — and a refresh lands there', (await liveView()) === 'obligations',
       await liveView());
 
     /* ============ 2. THE FAULT, STAGED THE WAY IT HAPPENS ============

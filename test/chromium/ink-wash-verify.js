@@ -44,6 +44,12 @@
    as a set difference: only dark Home's counts moved (five tile grounds and
    edges became the strip's one); 0 keys new, 0 gone; every other screen is
    identical.
+   RE-RECORDED 11 Oct 2026 (fifth), OWNER-ASKED ("yes go ahead with both"):
+   the four builds (WORKORDER-four-builds) — the Calendar row left the menu
+   (one 13px label and one 11px count fewer on every page), the calendar draws
+   on Home's Calendar tab, the zoom stands where A⁻/A⁺ stood. Audited first as a
+   set difference: 254 counts moved, NO colour appeared or vanished, light
+   mode's colours unchanged (text-size counts only), status colours as before.
    RE-RECORDED 11 Oct 2026 (fourth), OWNER-ASKED ("yes"): the Board as drawn
    (rounds 1-3, owner-approved). Audited as a set difference: only Home moved,
    0 other screens. Light Home: counts only. Dark Home: 2 new (a card edge at

@@ -860,8 +860,9 @@ function updateSidebarCounts(){
     /* MY NOTES DUE FOR REVIEW (Young, 10 Oct 2026) — mineNotesDue, the one
        reading the ledger's own Due filter and the bell ask. */
     mynotes: (typeof mineNotesDue==='function')?mineNotesDue().length:0,
-    calendar: (window.allObligations?allObligations().filter(o=>{ const due=window.obligationDue?obligationDue(o):(o.due||'').slice(0,10);
-      const d=(due&&window.daysUntil)?daysUntil(due):null; return d!=null&&!isNaN(d)&&d>=0&&d<=60; }).length:0),
+    /* the Calendar tab's number (Home's second tab since 11 Oct 2026): one
+       reading, calendarDoorCount, which the tab also draws itself */
+    calendar: (typeof window.calendarDoorCount==='function')?calendarDoorCount():0,
     migration: nc.migration,
     /* WHAT IS WAITING ON YOU, NOT HOW MANY NEGOTIATIONS THERE ARE. This door
        sits above every agreement, so a per-contract number on it would be
@@ -1111,6 +1112,14 @@ function setView(view){
   /* The layer over the page area is asked about BEFORE anything is drawn — a
      page rendered behind a guard the reader then cancels is a navigation that
      half happened. */
+  /* ---- THE CALENDAR IS HOME'S SECOND TAB (owner, 11 Oct 2026) ----
+     Its menu row went, so every door that still names the page lands on
+     Home's Calendar tab. The phone keeps its own desk-work door. */
+  if(view==='calendar' && typeof window!=='undefined' && typeof window.hbOpenCalendar==='function'
+    && !(typeof window.mPhone==='function' && window.mPhone())){
+    window.hbOpenCalendar();
+    return;
+  }
   if(!viewLayersClosed(view)) return;
   /* ---- LEAVING THE ROOM LEAVES THE ROOM (idea 5, 4 Oct 2026) ----
      A beat that carried on after the reader went to Insights would keep

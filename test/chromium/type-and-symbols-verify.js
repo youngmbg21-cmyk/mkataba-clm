@@ -61,7 +61,8 @@ const SHELL_ICONS = [
   ['[data-view="dashboard"]',    'i-home'],
   ['[data-nav-fold-open="register"]', 'i-folder'],   /* the menu's Contracts row opens the fly-out (10 Oct 2026) */
   ['[data-view="redline"]',      'i-nego'],
-  ['[data-view="calendar"]',     'i-cal'],
+  /* [data-view="calendar"] left the rail on 11 Oct 2026: the Calendar is
+     Home's second tab (WORKORDER-four-builds item 1) */
   ['[data-view="intel"]',        'i-insight'],
   ['[data-view="templates"]',    'i-tpl'],
   ['[data-view="intake"]',       'i-req'],
@@ -256,7 +257,8 @@ const SHELL_ICONS = [
        many were actually measured, so nobody reads 19 oks as 19 pictures. */
     console.log(`  note  ${painted} icons measured as pixels; ` +
       `${unpainted.length} not painted in this workspace (${unpainted.join(', ') || 'none'})`);
-    check('most of the shell was measured, not merely referenced', painted >= 14,
+    /* 13 since the Calendar's rail door went (11 Oct 2026): one fewer to paint */
+    check('most of the shell was measured, not merely referenced', painted >= 13,
       `${painted} painted`);
 
     /* Every <use> anywhere in the shell must point at a symbol that exists —

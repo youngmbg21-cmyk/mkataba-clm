@@ -10510,7 +10510,7 @@ function renderRedline(){
                    ITS READOUT FOLDS ON THE TIGHT STEP of this row's fit ladder,
                    like every other word here — by CSS, so textContent never
                    changes and the suite still reads "15px". */}
-            ${window.rlTypeStepHtml ? rlTypeStepHtml() : ''}
+            ${rlWordsMovedHtml(c)}${window.rlTypeStepHtml ? rlTypeStepHtml() : ''}
             ${''/* FOCUS MODE SITS RIGHT OF THE TEXT-SIZE STEPPER (Young ruled 21
                    Sep 2026: "bring the focus mode button to be on the right of
                    the font adjuster like in the document page"). It carries
@@ -12630,10 +12630,47 @@ function rlLayoutResizer(host){
    11 and of 15; the arithmetic is unchanged and only the floor moved. */
 const RL_TYPE_MIN = 8, RL_TYPE_MAX = 20, RL_TYPE_DEF = 15;
 const RL_TYPE_KEY = 'hati.v1.rlDocType';
-function rlDocType(){
-  try { const v = Number(localStorage.getItem(RL_TYPE_KEY));
-    return (v >= RL_TYPE_MIN && v <= RL_TYPE_MAX) ? v : RL_TYPE_DEF; }
-  catch (e) { return RL_TYPE_DEF; }
+/* ---- ONE ZOOM ON EVERY PAGE THAT SHOWS THE CONTRACT (owner, 11 Oct 2026,
+   docs/WORKORDER-four-builds.md item 3) ----
+   The A⁻ 15px A⁺ stepper is gone from every paper: it changed the size of the
+   WORDS, so lines and pages moved. In its place is the clause editor's own
+   "− 100% +": it enlarges the whole page, so the layout holds and it reads
+   like a sheet of paper. ONE remembered value for every paper (Document tab,
+   Negotiate, Home's Paper, their page, the design step), stored per browser.
+   The type itself is fixed again: rlDocType() answers the base, so every
+   reader of it (--doc-scale, --rl-doc-type) stands at 1 and the zoom wrapper
+   each page already carries (#doc-zoom, .rl-zoom, #ds-zoom, .ig-zoom) does
+   the enlarging. A size somebody chose before is carried over once, as the
+   nearest zoom step. */
+function rlDocType(){ return RL_TYPE_DEF; }
+const RL_ZOOM_KEY = 'hati.v1.docZoom', RL_DZ_MIN = 60, RL_DZ_MAX = 200, RL_DZ_STEP = 10, RL_DZ_DEF = 100;
+function rlDzClamp(z){ return Math.max(RL_DZ_MIN, Math.min(RL_DZ_MAX, Math.round((Number(z) || RL_DZ_DEF) / RL_DZ_STEP) * RL_DZ_STEP)); }
+function rlDocZoom(){
+  try {
+    const v = Number(localStorage.getItem(RL_ZOOM_KEY));
+    if (v >= RL_DZ_MIN && v <= RL_DZ_MAX) return v;
+    const old = Number(localStorage.getItem(RL_TYPE_KEY));
+    if (old >= RL_TYPE_MIN && old <= RL_TYPE_MAX && old !== RL_TYPE_DEF) return rlDzClamp(old / RL_TYPE_DEF * 100);
+  } catch (e) {}
+  return RL_DZ_DEF;
+}
+/* the zoom as the factor every wrapper reads */
+function rlDocZoomFactor(){ return (rlDocZoom() / 100).toFixed(2); }
+function rlSetDocZoom(z){
+  const v = rlDzClamp(z);
+  try { localStorage.setItem(RL_ZOOM_KEY, String(v)); } catch (e) {}
+  rlApplyDocZoom(document);
+  if (window.applyDocZoom) applyDocZoom();
+  if (window.dsApplyZoom) dsApplyZoom();
+  if (window.igApplyZoom) igApplyZoom();
+  /* the Document tab's Track measures the paper, whose length just moved */
+  try { if (window.igTrackPlace && window.docTrackHost) igTrackPlace(docTrackHost()); } catch (_) {}
+  document.querySelectorAll('.rl-type-out').forEach(el => { el.textContent = v + '%'; });
+  document.querySelectorAll('[data-rl-type]').forEach(b => {
+    const d = Number(b.getAttribute('data-rl-type'));
+    b.disabled = (d < 0 && v <= RL_DZ_MIN) || (d > 0 && v >= RL_DZ_MAX);
+  });
+  return v;
 }
 /* The same preference as a plain RATIO against the workbench's own 15px base.
    One reading, because three screens with three different bases share one
@@ -12643,46 +12680,10 @@ function rlDocScale(px){
   const v = Number(px) || rlDocType();
   return (v / RL_TYPE_DEF).toFixed(3);
 }
+/* THE OLD NAME, KEPT FOR ANY CALLER: a size in px is read as the zoom that
+   would show the base type at that size. */
 function rlSetDocType(px){
-  const v = Math.max(RL_TYPE_MIN, Math.min(RL_TYPE_MAX, Math.round(Number(px) || RL_TYPE_DEF)));
-  try { localStorage.setItem(RL_TYPE_KEY, String(v)); } catch (e) {}
-  /* Applied live to every mounted workbench root — no repaint, so scroll
-     positions and half-typed replies survive a resize like they survive a
-     mode switch — and the readouts and bound-stops follow the same value. */
-  document.querySelectorAll('.redline-page').forEach(root => {
-    root.style.setProperty('--rl-doc-type', v + 'px');
-    /* And the same choice as a RATIO, for the parts of the sheet that are not
-       body text — the title, the kicker, the subtitle, the parties at the
-       foot. They used to follow the zoom and now follow this. */
-    root.style.setProperty('--doc-scale', rlDocScale(v));
-  });
-  /* The line above is now the whole of it on this page — the sheet's type IS
-     the preference again (13 Aug 2026). The re-fit still runs, because a
-     smaller sheet is a shorter one and the pane's scrollbar can appear or go,
-     which changes the room the fit is measured against. */
-  rlApplyDocZoom(document);
-  document.querySelectorAll('.rl-type-out').forEach(el => { el.textContent = v + 'px'; });
-  document.querySelectorAll('[data-rl-type]').forEach(b => {
-    const d = Number(b.getAttribute('data-rl-type'));
-    b.disabled = (d < 0 && v <= RL_TYPE_MIN) || (d > 0 && v >= RL_TYPE_MAX);
-  });
-  /* The Doc tab and the Design step read the same preference through their own
-     zoom (each multiplies by rlDocType()/default), so stepping here re-sizes
-     the contract on all three screens. */
-  if (window.applyDocZoom) applyDocZoom();
-  /* ---- ONE PRESS MOVES BOTH COLUMNS (D-3c, 11 Sep 2026) ----
-     The Plain English edition beside the Document tab's paper was repainted
-     only by a ResizeObserver on the canvas — so it followed only when the
-     PAPER changed height, which a paper at a flat size never does, and a frame
-     late otherwise. Repainted here, in the same press, on the contract the
-     layer holds; the observer stays for the paper's own reflows. */
-  try {
-    const th = document.getElementById('doc-thread');
-    const held = th && !th.hidden && window.state && typeof getContract === 'function' && getContract(state.activeId);
-    if (held && window.docThreadPaint) docThreadPaint(held);
-  } catch (e) {}
-  if (window.dsApplyZoom) dsApplyZoom();
-  return v;
+  return rlSetDocZoom((Number(px) || RL_TYPE_DEF) / RL_TYPE_DEF * 100);
 }
 /* ---- FIT THE SHEET TO THE COLUMN — REVERSED IN PLACE, 22 Aug 2026 ----
    This page used to do what the Document tab does: take a fixed 660px page and
@@ -12743,7 +12744,7 @@ const RL_LEFT_MAX = RL_SHEET_MAX + 40;   // the sheet's measure + gutters; no lo
 function rlApplyDocZoom(host){
   const scope = (host && host.querySelectorAll) ? host : document;
   scope.querySelectorAll('.redline-page .rl-zoom').forEach(wrap => {
-    wrap.style.setProperty('--rl-zoom', '1');
+    wrap.style.setProperty('--rl-zoom', rlDocZoomFactor());
   });
 }
 /* ---- AND IT FOLLOWS THE COLUMN WHATEVER MOVED IT ----
@@ -12767,22 +12768,41 @@ function rlObserveDocPane(host){
 }
 /* The stepper's markup — one builder, so the Redline strip and the Doc tab's
    toolbar render the identical control. */
+/* ---- THE WORDS MOVED, ON NEGOTIATE ONLY (owner, 11 Oct 2026) ----
+   The clause editor's "+54 −31", for the whole table: words added and removed
+   by every change still open (pending, not superseded), counted off each
+   change's stored ops. RAW — c.changes, never negoChanges, which would start a
+   negotiation. Nothing open, nothing drawn. */
+function rlWordsMoved(c){
+  let ins = 0, del = 0;
+  for (const ch of (c && Array.isArray(c.changes) ? c.changes : [])){
+    if (!ch || ch.status !== 'pending' || !Array.isArray(ch.ops) || !window.redlineStats) continue;
+    try { const n = redlineStats(ch.ops); ins += n.ins || 0; del += n.del || 0; } catch (_) {}
+  }
+  return { ins, del };
+}
+function rlWordsMovedHtml(c){
+  const n = rlWordsMoved(c);
+  if (!n.ins && !n.del) return '';
+  return `<span class="rl-moved" title="${_nea(i18t('ng_words_moved'))}"><span class="i">+${n.ins}</span> <span class="d">&minus;${n.del}</span></span>`;
+}
 function rlTypeStepHtml(){
-  const v = rlDocType();
-  return `<div class="rl-type-step" role="group" aria-label="${i18t('ng_contract_text_size')}">
-    <button type="button" data-rl-type="-1" title="${i18t('ng_smaller_text')}"${v <= RL_TYPE_MIN ? ' disabled' : ''}>A&#8315;</button>
-    <span class="rl-type-out">${v}px</span>
-    <button type="button" data-rl-type="1" title="${i18t('ng_larger_text')}"${v >= RL_TYPE_MAX ? ' disabled' : ''}>A&#8314;</button>
+  const v = rlDocZoom();
+  return `<div class="rl-type-step" role="group" aria-label="${i18t('ng_zoom_label')}">
+    <button type="button" data-rl-type="-1" title="${i18t('ce_zoom_out')}" aria-label="${i18t('ce_zoom_out')}"${v <= RL_DZ_MIN ? ' disabled' : ''}>&minus;</button>
+    <span class="rl-type-out">${v}%</span>
+    <button type="button" data-rl-type="1" title="${i18t('ce_zoom_in')}" aria-label="${i18t('ce_zoom_in')}"${v >= RL_DZ_MAX ? ' disabled' : ''}>+</button>
   </div>`;
 }
-function rlWireTypeStep(host){
-  const scope = (host && host.querySelectorAll) ? host : document;
-  scope.querySelectorAll('[data-rl-type]').forEach(b => {
-    if (b.dataset.rlTypeWired) return;
-    b.dataset.rlTypeWired = '1';
-    b.addEventListener('click', () => rlSetDocType(rlDocType() + Number(b.getAttribute('data-rl-type'))));
-  });
-}
+/* ONE LISTENER, ON THE DOCUMENT, so a control painted anywhere (Home's strip
+   is repainted on every act) answers without being wired. rlWireTypeStep stays
+   for its callers and does nothing. */
+function rlWireTypeStep(){}
+if (typeof document !== 'undefined') document.addEventListener('click', e => {
+  const b = e.target && e.target.closest && e.target.closest('[data-rl-type]');
+  if (!b || b.disabled) return;
+  rlSetDocZoom(rlDocZoom() + Number(b.getAttribute('data-rl-type')) * RL_DZ_STEP);
+});
 
 function rlWireResizer(host){
   const scope = (host && host.querySelector) ? host : document;
@@ -14966,7 +14986,8 @@ async function rlFilePlaybookProposal(c, item, wording, opts){
      one press does not raise one red box per refused proposal, and reads the
      refusal back off `opts.refused`. Every caller written before passes
      nothing and behaves exactly as it did. */
-  const words = String(wording == null ? '' : wording).trim();
+  /* a list run into one paragraph gets its lines back (owner, 11 Oct 2026) */
+  const words = (window.aiListLines ? aiListLines : String)(String(wording == null ? '' : wording)).trim();
   if (!words) return null;
   /* THE WALL, not a decision about pixels. A deviation nobody could place has
      no clause to edit and must not be added, or the contract grows a second
@@ -15027,7 +15048,10 @@ async function rlFilePlaybookProposal(c, item, wording, opts){
        lines: negoRichFromLines would flatten every OTHER block of the clause
        into a bare paragraph and file a formatting change across wording nobody
        touched — the opposite of what this whole change is for. */
-    const body = (fitted && item.fit.html) ? item.fit.html : negoRichFromLines(words);
+    /* a labelled point on its own line is its own block, never a wrap of the
+       line above (11 Oct 2026): docLineWraps would join "…;" to "(b) …" */
+    const body = (fitted && item.fit.html) ? item.fit.html
+      : negoRichFromLines(words.replace(/\n(?=[ \t]*\((?:[a-z]{1,5}|\d{1,2})\)\s)/gi, '\n\n'));
     return await negoEditClause(c, item.clauseId, body, { side: 'owner', author, note });
   }
   if (window.negoInsertClause){
@@ -20484,36 +20508,44 @@ function rlCpSegsHtml(){
    the DOCUMENT's px, and one shared class is how the two steppers would come
    to lie about each other's value. */
 const RL_CP_TYPE_DEF = 14, RL_CP_TYPE_KEY = 'hati.v1.cpType';
-function rlCpTypePx(){
-  try { const v = Number(localStorage.getItem(RL_CP_TYPE_KEY));
-    return (v >= RL_TYPE_MIN && v <= RL_TYPE_MAX) ? v : RL_CP_TYPE_DEF; }
-  catch (e) { return RL_CP_TYPE_DEF; }
+/* ---- AND IT IS A ZOOM NOW, LIKE EVERY PAPER (owner, 11 Oct 2026) ----
+   Still the panel's OWN value (the owner's 20 Aug rule stands: it adjusts the
+   panel and nothing more), now read as "− 100% +" in the same 10% steps as
+   the paper's zoom. A px chosen before is carried over once. */
+const RL_CP_ZOOM_KEY = 'hati.v1.cpZoom';
+function rlCpZoomPct(){
+  try {
+    const v = Number(localStorage.getItem(RL_CP_ZOOM_KEY));
+    if (v >= RL_DZ_MIN && v <= RL_DZ_MAX) return v;
+    const old = Number(localStorage.getItem(RL_CP_TYPE_KEY));
+    if (old >= RL_TYPE_MIN && old <= RL_TYPE_MAX && old !== RL_CP_TYPE_DEF) return rlDzClamp(old / RL_CP_TYPE_DEF * 100);
+  } catch (e) {}
+  return RL_DZ_DEF;
 }
-function rlCpZoom(px){
-  const v = Number(px) || rlCpTypePx();
-  return (v / RL_CP_TYPE_DEF).toFixed(4);
-}
-function rlCpSetType(px){
-  const v = Math.max(RL_TYPE_MIN, Math.min(RL_TYPE_MAX, Math.round(Number(px) || RL_CP_TYPE_DEF)));
-  try { localStorage.setItem(RL_CP_TYPE_KEY, String(v)); } catch (e) {}
-  /* Applied live to every mounted panel — querySelectorAll by id, exactly as
-     rlCpSetNotes does, because the owner's page and a portal mount can both
-     hold one. No repaint: a half-typed reply in the panel's composer survives
-     a resize. */
-  document.querySelectorAll('#rl-cp').forEach(p => p.style.setProperty('--cp-zoom', rlCpZoom(v)));
-  document.querySelectorAll('.rl-cp-type-out').forEach(el => { el.textContent = v + 'px'; });
+/* the old name: the size the panel's base type shows at */
+function rlCpTypePx(){ return Math.round(rlCpZoomPct() / 100 * RL_CP_TYPE_DEF); }
+function rlCpZoom(){ return (rlCpZoomPct() / 100).toFixed(4); }
+function rlCpSetZoom(z){
+  const v = rlDzClamp(z);
+  try { localStorage.setItem(RL_CP_ZOOM_KEY, String(v)); } catch (e) {}
+  /* Applied live to every mounted panel — the owner's page and a portal mount
+     can both hold one. No repaint: a half-typed reply survives a zoom. */
+  document.querySelectorAll('#rl-cp').forEach(p => p.style.setProperty('--cp-zoom', rlCpZoom()));
+  document.querySelectorAll('.rl-cp-type-out').forEach(el => { el.textContent = v + '%'; });
   document.querySelectorAll('[data-rl-cp-type]').forEach(b => {
     const d = b.getAttribute('data-rl-cp-type') === 'down' ? -1 : 1;
-    b.disabled = (d < 0 && v <= RL_TYPE_MIN) || (d > 0 && v >= RL_TYPE_MAX);
+    b.disabled = (d < 0 && v <= RL_DZ_MIN) || (d > 0 && v >= RL_DZ_MAX);
   });
   return v;
 }
+/* the old name, a px read as the zoom that shows the base type at that size */
+function rlCpSetType(px){ return rlCpSetZoom((Number(px) || RL_CP_TYPE_DEF) / RL_CP_TYPE_DEF * 100); }
 function rlCpTypeStepHtml(){
-  const v = rlCpTypePx();
-  return `<div class="rl-type-step rl-cp-type">
-    <button type="button" data-rl-cp-type="down" title="${_nea(i18t('ng_smaller_text'))}"${v <= RL_TYPE_MIN ? ' disabled' : ''}>A&#8315;</button>
-    <span class="rl-cp-type-out">${v}px</span>
-    <button type="button" data-rl-cp-type="up" title="${_nea(i18t('ng_larger_text'))}"${v >= RL_TYPE_MAX ? ' disabled' : ''}>A&#8314;</button>
+  const v = rlCpZoomPct();
+  return `<div class="rl-type-step rl-cp-type" role="group" aria-label="${_nea(i18t('ng_zoom_label'))}">
+    <button type="button" data-rl-cp-type="down" title="${_nea(i18t('ce_zoom_out'))}" aria-label="${_nea(i18t('ce_zoom_out'))}"${v <= RL_DZ_MIN ? ' disabled' : ''}>&minus;</button>
+    <span class="rl-cp-type-out">${v}%</span>
+    <button type="button" data-rl-cp-type="up" title="${_nea(i18t('ce_zoom_in'))}" aria-label="${_nea(i18t('ce_zoom_in'))}"${v >= RL_DZ_MAX ? ' disabled' : ''}>+</button>
   </div>`;
 }
 function rlClausePanelHtml(bodies){
@@ -20709,7 +20741,7 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
     const step = t.closest('[data-rl-cp-type]');
     if (step){
       ev.preventDefault(); ev.stopPropagation();
-      rlCpSetType(rlCpTypePx() + (step.getAttribute('data-rl-cp-type') === 'up' ? 1 : -1));
+      rlCpSetZoom(rlCpZoomPct() + (step.getAttribute('data-rl-cp-type') === 'up' ? 1 : -1) * RL_DZ_STEP);
       return;
     }
     const opener = t.closest('[data-rl-cp-open]');
@@ -21497,7 +21529,7 @@ if (typeof window !== 'undefined') Object.assign(window, { rlRoundPrepLineHtml, 
   rlInlineClick, rlInlineSave, rlInlineDirty, rlInlineOn, rlInlineEnd,
   renderRedline, redlineRoundLabel, redlineSyncProxies,
   rlToggleDiscussion, rlSideMode, rlSetSideMode, rlLayoutResizer, rlWireResizer, rlWireClauseTools,
-  rlDocType, rlDocScale, rlSetDocType, rlTypeStepHtml, rlWireTypeStep,
+  rlDocType, rlDocScale, rlSetDocType, rlTypeStepHtml, rlWireTypeStep, rlDocZoom, rlDocZoomFactor, rlSetDocZoom, rlWordsMoved, rlWordsMovedHtml,
   rlApplyDocZoom, rlObserveDocPane, RL_PAGE_W, RL_ZOOM_MAX,
   rlFocusOn, rlSetFocus, rlResetFocus, rlWireFocusKey, rlPaintFocusBtn, rlFocusPage,
   rlReadSegsHtml, rlPaintReadSegs, rlBellIsNews, rlReadySeen, rlMarkReadySeen,
@@ -21512,7 +21544,7 @@ if (typeof window !== 'undefined') Object.assign(window, { rlRoundPrepLineHtml, 
   rlHangRichHtml,
   rlCpOpenId, rlCpSetOpen, rlCpSetShown, rlCpPaint, rlCpNotesOn, rlCpSetNotes, rlCpLadderOnly, rlCpNarrowSeat,
   rlEditorTakesIt,
-  rlCpTypePx, rlCpSetType, rlCpZoom,
+  rlCpTypePx, rlCpSetType, rlCpZoom, rlCpZoomPct, rlCpSetZoom,
   rlUnsentBandHtml, rlUnsentSendHtml, rlDecisionsSendHtml, rlPaperSubText, RL_SUG_VERB, rlCopilotAnswers, rlSugWordsHtml, rlPaintCopilotAnswers, rlUnsentCount, rlCloseRoundHtml, rlRoundLabelHtml,
   rlFitTabRow, rlWireFitTabRow, rlObserveTabRow,
   redlineHeldId, redlineEvict, openRedlineWorkbench,

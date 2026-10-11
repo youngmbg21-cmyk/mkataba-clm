@@ -123,7 +123,9 @@ function dsApplyZoom() {
   const cs = getComputedStyle(pane);
   const room = pane.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 2;
   const fit = Math.min(DS_ZOOM_MAX, Math.max(DS_ZOOM_MIN, room / DS_PAGE_W));
-  wrap.style.setProperty('--ds-zoom', fit.toFixed(3));
+  /* times the reader's zoom (owner, 11 Oct 2026): one zoom on every paper */
+  const zoom = window.rlDocZoomFactor ? Number(rlDocZoomFactor()) : 1;
+  wrap.style.setProperty('--ds-zoom', (fit * zoom).toFixed(3));
   /* The preference sizes the TYPE, not the page — the same move the other two
      screens made on 13 Aug 2026, kept identical here so one setting cannot
      mean two things in one product. The page still scales to the pane, which

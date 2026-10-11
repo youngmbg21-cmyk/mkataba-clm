@@ -97,7 +97,8 @@ function mineChanged(){
   try{ if (typeof paintMyNotesCount === 'function') paintMyNotesCount(); }catch(_){}
   try{
     const v = typeof state === 'object' && state ? state.view : '';
-    if (v === 'calendar' && typeof renderCalendar === 'function') renderCalendar();
+    /* the calendar is Home's tab since 11 Oct 2026: calOnScreen answers both homes */
+    if ((typeof calOnScreen === 'function' ? calOnScreen() : v === 'calendar') && typeof renderCalendar === 'function') renderCalendar();
     if (v === 'mynotes' && typeof renderMyNotes === 'function') renderMyNotes();
   }catch(_){}
 }

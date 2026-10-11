@@ -321,8 +321,10 @@ const check = (name, ok, detail) => {
        if leaving really takes it away — so it is asked, not assumed.
        RE-POINTED 3 Oct 2026: Home is Explorer's page now and paints this
        head white ITSELF (Insights' own rule), so the page left to is one that
-       paints nothing there — the Calendar. */
-    await page.evaluate(() => setView('calendar'));
+       paints nothing there — the Calendar. RE-POINTED 11 Oct 2026: the
+       Calendar is Home's tab now (and paints it white), so the page left to is
+       My notes, which paints nothing there. */
+    await page.evaluate(() => setView('mynotes'));
     await page.waitForTimeout(1500);
     const left = await page.evaluate(() => {
       const e = document.querySelector('#page-head');

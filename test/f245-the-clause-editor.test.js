@@ -251,7 +251,8 @@ describe('f245 (5) — sub-paragraph lines survive', () => {
     /* RE-POINTED 27 Sep 2026 (the owner's list, n4): each single line break
        is made a paragraph break first, so deleting the start of a line no
        longer merges what is left into the line above. Same reader, same t. */
-    assert.ok(/negoRichFromLines\(t\b/.test(CODE),
+    /* RE-POINTED 11 Oct 2026: the lines pass aiListLines first (lt) */
+    assert.ok(/negoRichFromLines\(lt\b/.test(CODE),
       'and it is what reads line openers back into real numbering');
   });
 
