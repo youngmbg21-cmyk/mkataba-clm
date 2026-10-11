@@ -464,6 +464,9 @@ const CONTRACTS = [
     const tw = f15.t.find(x => x.l === 'We wait'), tp = f15.t.find(x => x.l === 'We pay');
     ok('15e We wait and We pay are figures a person may pick, read from the payment terms reading', !!tw && !!tp
       && (f15.cu == null ? tw.n === '—' : tw.n === f15.cu + (f15.cu === 1 ? ' day' : ' days')) && (f15.su == null ? tp.n === '—' : tp.n === f15.su + (f15.su === 1 ? ' day' : ' days')), JSON.stringify(f15));
+    /* EVERY FIGURE HAS ITS LINE (owner, 11 Oct 2026) */
+    const l15 = await page.evaluate(() => { const d = hbBookData(hbS().lens); return HB_FIGS.filter(f => !(d.figs[f.k] && d.figs[f.k].none) && !(f.money && !d.money)).map(f => f.k + ':' + hbFigSeries(f.k, d).length).filter(x => !(Number(x.split(':')[1]) >= 2)); });
+    ok('15g every figure a person may pick draws its six-month line', l15.length === 0, JSON.stringify(l15));
     await page.evaluate(() => { const s = hbS(); delete s.figs; hbSave(); hbPaintBoard(); });
 
     ok('no page errors', !errs.length, errs.join(' | '));

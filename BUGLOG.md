@@ -20637,3 +20637,4 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 
 ## 11 Oct 2026 — the Board, round 3
 - Noticed, not fixed: f549 (5) "opened, full screen, and the cut said" and f552 (3) "only a chart in a card is fitted" are red on main as well as on the branch — both slice `hbChartHtml`/the `_hbFitAt` setters by source text and no longer find `data-hb-full` there or a `finally { _hbFitAt = null; }` after every setter. Red before this round's changes; left as they are.
+- Correction (same day): the f549 (5) / f552 (3) line above was wrong — main already carried the first Board merge (#216), so the two were red from that change, not before it. Both fixed in the next round, with f496, f519 and f563, which #216/#217 had also left red.

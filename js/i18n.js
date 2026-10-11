@@ -27556,7 +27556,7 @@ const STRINGS = {
     hb_book: "Din avtalsportfölj",
     hb_book_since: "ändringar sedan {when}",
     hb_spark_tip6: "Senaste sex månaderna, räknat ur avtalens egna datum: {from} den {when}, {to} i dag.",
-    hb_vs_6m: "jämfört med för 6 månader sedan",
+    hb_vs_6m: "mot 6 mån sedan",
     hb_vs_same: "Samma",
     hb_spark_tip: "{from} → {to} under de {n} dagar du öppnade Hem, sedan {when}",
     hb_d_since: "sedan {day}",

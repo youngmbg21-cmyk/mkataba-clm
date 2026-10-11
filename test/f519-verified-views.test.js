@@ -105,13 +105,15 @@ describe('F519 (D) — the ⋯ row is an admin\'s', () => {
     w.hbPanelAct(p.id, 'more');
     return w.hbViewPanelHtml(p, 'all');
   };
-  test('a non-admin sees no ⋯ and no row', () => {
+  /* RE-POINTED 11 Oct 2026 (the Board as drawn): every card has one ⋯ menu
+     (data-hb-tools-more); Verified view… is its admin-only row */
+  test('a non-admin sees no Verified view row', () => {
     const h = card(false);
-    assert.doesNotMatch(h, /data-hb-act="more"/); assert.doesNotMatch(h, /Verified view…/);
+    assert.match(h, /data-hb-tools-more/); assert.doesNotMatch(h, /data-hb-act="verify"/); assert.doesNotMatch(h, /Verified view…/);
   });
   test('an admin sees ⋯, and the row once it is opened', () => {
     const h = card(true);
-    assert.match(h, /data-hb-act="more"/); assert.match(h, /data-hb-act="verify">Verified view…</);
+    assert.match(h, /data-hb-tools-more/); assert.match(h, /data-hb-act="verify"[\s\S]*?Verified view…/);
   });
 });
 

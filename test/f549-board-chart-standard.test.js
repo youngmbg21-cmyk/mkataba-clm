@@ -67,7 +67,8 @@ test('f549 (4) the Instrument marks', () => {
 test('f549 (5) opened, full screen, and the cut said', () => {
   const html = region('hbChartHtml');
   assert.match(html, /hbChartTableHtml\(R\.body\)/);
-  assert.match(html, /data-hb-full/);
+  /* RE-POINTED 11 Oct 2026 (the Board as drawn): full screen is a row of the card's ⋯ menu */
+  assert.match(region('hbEdgeHtml'), /data-hb-full/);
   assert.match(region('hbChartTableHtml'), /data-hb-dig="\$\{_hbE\(r\.dig\)\}"/, 'each row the same door');
   const heat = region('hbHeatSvg');
   assert.match(heat, /hb_more_rows/);
