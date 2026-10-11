@@ -127,7 +127,10 @@ const EXTRA = [
     check('1b payment terms sits after obligations',
       row[3] && row[3].k === 'payterms' && row[2] && row[2].k === 'obligations',
       row.map(r => r.k).join(' > '));
-    check('1c and before the contract graph', row[4] && row[4].k === 'map', row[4] && row[4].k);
+    /* RE-POINTED 11 Oct 2026: the contract graph (Explorer) moved to Home
+       (INSIGHTS: IG_TABS Portfolio · Friction · Obligations · Payment terms ·
+       Exposure, "Explorer on Home"), so Exposure closes the row. */
+    check('1c and before Exposure, with the graph gone to Home', row[4] && row[4].k === 'exposure' && !row.some(r => r.k === 'map'), row.map(r => r.k).join(' > '));
     check('1d it is painted, not merely present',
       row[3] && row[3].w > 40, row[3] && `${Math.round(row[3].w)}px wide at x=${row[3].x}`);
     check('1e it is translated, not a raw key',
@@ -383,7 +386,8 @@ const EXTRA = [
     await page.waitForTimeout(1200);
     const onDesk = await page.evaluate(() => ({
       tile: !!document.querySelector('[data-kpi-id="payterms"]'),
-      map: !!document.getElementById('hm-map') }));
+      map: !!document.getElementById('hm-map'),
+      board: !!document.getElementById('hb-board') || !!document.getElementById('hb-head') }));
     await page.setViewportSize({ width: 390, height: 844 });
     await page.waitForTimeout(700);
     await page.evaluate(() => { if (window.mGo) mGo('home'); });
@@ -415,8 +419,11 @@ const EXTRA = [
     await page.screenshot({ path: path.join(OUT, '02-tile.png'), fullPage: true });
     await page.setViewportSize({ width: 1500, height: 1100 });
     await page.waitForTimeout(700);
-    check('7d the desktop Home carries no tile — the Map took the tiles\' place',
-      !onDesk.tile && onDesk.map, `tile ${onDesk.tile} · map ${onDesk.map}`);
+    /* RE-POINTED 11 Oct 2026: the Map in turn gave way to the Board (HOME —
+       THE BOARD AND THE MAP: "Desktop Home IS Explorer's page"); the tile
+       stays gone. */
+    check('7d the desktop Home carries no tile — the Board is Home',
+      !onDesk.tile && onDesk.board, `tile ${onDesk.tile} · board ${onDesk.board} · map ${onDesk.map}`);
 
     /* ─── 8 · no page scrolls sideways ─── */
     await page.evaluate(() => { intel.tab = 'payterms'; setView('intel'); });

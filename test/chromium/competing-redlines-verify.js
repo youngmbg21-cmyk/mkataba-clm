@@ -117,14 +117,20 @@ const check = (name, pass, detail) => {
       const tags = [...document.querySelectorAll('#rl-cp-body .rl-cp-src.is-on .rl-cp-row')]
         .filter(vis).map(t => t.textContent.trim());
       const anchor = document.querySelector(`#rl-doc [data-nego-card-anchor~="${oursId}"]`);
-      return { tags,
+      const rows = [...document.querySelectorAll('#rl-cp-body .rl-cp-src.is-on .rl-cp-row')].map(t => t.textContent.trim());
+      return { tags, rows,
         anchorHoldsBoth: !!anchor && (anchor.getAttribute('data-nego-card-anchor') || '').split(/\s+/).length === 2,
         cards: [...document.querySelectorAll('#rl-changes [data-nego-card]')].filter(vis)
           .map(n => n.getAttribute('data-nego-card')) };
     }, { oursId: l.oursId, theirsId: b.theirs.id, clauseId: l.clauseId });
-    check('a legacy clause names BOTH asks in its panel',
-      legacy.tags.some(t => t.includes(l.oursId)) && legacy.tags.some(t => t.includes(b.theirs.id)),
-      JSON.stringify(legacy.tags));
+    /* RE-POINTED 11 Oct 2026: on our seat the clause panel is the Ladder only
+       (THE CLAUSE PANEL AND THE LADDER: rlCpLadderOnly), so its ask rows are
+       built but not drawn. Both asks are named where the reader looks — the
+       two cards in the column (asserted just below) — and the panel's own
+       record of the clause still lists both. */
+    check('a legacy clause names BOTH asks — the panel\'s record of the clause lists both',
+      legacy.rows.some(t => t.includes(l.oursId)) && legacy.rows.some(t => t.includes(b.theirs.id)),
+      JSON.stringify(legacy.rows));
     check('one clause, one anchor, both ids', legacy.anchorHoldsBoth);
     check('both cards are back in the column', legacy.cards.length === 2, JSON.stringify(legacy.cards));
 

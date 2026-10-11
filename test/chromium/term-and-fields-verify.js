@@ -70,10 +70,15 @@ const check = (name, pass, detail) => {
     });
     await page.evaluate(() => { window.wsSet(['standing', 'project'], 'job'); setView('intel'); });
     await page.waitForTimeout(1400);
+    /* RE-POINTED 11 Oct 2026: the runway is no longer an SVG — it is the
+       Fit-to-Screen grid (pfRenewalRunway, 29 Sep 2026): the bars carry the
+       label, and the months are the .pf-vaxis cells under them. */
     const axis = await page.evaluate(() => {
-      const svg = Array.from(document.querySelectorAll('svg[aria-label]'))
+      const bars = Array.from(document.querySelectorAll('[aria-label]'))
         .find(s => /ending in each/i.test(s.getAttribute('aria-label') || ''));
-      return svg ? Array.from(svg.querySelectorAll('text')).map(t => t.textContent.trim()) : null;
+      const run = bars && bars.closest('.pf-run');
+      const cells = run ? run.querySelectorAll('.pf-vaxis span') : (bars ? bars.querySelectorAll('text') : []);
+      return bars ? Array.from(cells).map(t => t.textContent.trim()) : null;
     });
     check('the renewal runway itself draws four-digit years',
       axis && axis.some(t => /[A-Za-zÅÄÖåäö]{3}.*\d{4}/.test(t)),
@@ -116,7 +121,9 @@ const check = (name, pass, detail) => {
          should be. It is asked at every creation door by the owner's word —
          see TEMPLATE_BASE_FIELDS — and it prints in the register, the filters
          and the Overview's own value-stream row. */
-      const ESSENTIAL = new Set(['party', 'counterparty', 'value', 'effDate', 'expiry', 'folder']);
+      /* `side` (Our side, maps the category) is the same kind as folder: a
+         filing fact the paper does not state. */
+      const ESSENTIAL = new Set(['party', 'counterparty', 'value', 'effDate', 'expiry', 'folder', 'side']);
       const out = [];
       Object.keys(window.TEMPLATES).forEach(id => {
         const c = { id: 'X', template: id, status: 'Draft', fields: {}, counterparty: 'Acme Ltd',
@@ -158,13 +165,12 @@ const check = (name, pass, detail) => {
       partyWalk.length === 0, partyWalk.join(', ') || 'all twelve clean');
 
     /* The wizard is where it was reported — read the form, not the schema. */
-    await page.evaluate(() => { closeModal && closeModal(); openWizard(); });
+    /* RE-POINTED 11 Oct 2026: openWizard() with no template is now the New
+       agreement menu (openNewDoors, SAP pop-ups 10 Oct 2026), which holds no
+       template buttons to press; the NDA's form is opened through the
+       template's own door, openWizard('ND') — the Templates page's "Use this". */
+    await page.evaluate(() => { closeModal && closeModal(); openWizard('ND'); });
     await page.waitForTimeout(700);
-    await page.evaluate(() => {
-      const b = Array.from(document.querySelectorAll('[data-tpl],button'))
-        .find(el => /non-disclosure|\bNDA\b/i.test(el.textContent || ''));
-      if (b) b.click();
-    });
     await page.waitForTimeout(600);
     const form = await page.evaluate(() => ({
       text: (document.getElementById('modal-root') || {}).textContent || '',
@@ -232,8 +238,14 @@ const check = (name, pass, detail) => {
     await page.evaluate(() => { const b = document.querySelector('#ws-tabs [data-ws-tab="docs"]'); if (b) b.click(); });
     await page.waitForTimeout(1000);
     const typed = await page.evaluate(() => {
-      const el = document.querySelector('#doc-canvas [data-field="termYears"]');
-      if (!el) return { found: false };
+      /* RE-POINTED 11 Oct 2026: THE DOCUMENT TAB IS NEVER EDITED (Young,
+         9 Oct) — the paper draws the blank as a read-only answer and the
+         reader types in its peer on the panel (docAnswersWire →
+         contractFieldPeer(key, 'panel')). */
+      const onPaper = document.querySelector('#doc-canvas [data-field="termYears"]');
+      if (!onPaper) return { found: false };
+      const el = (window.contractFieldPeer && contractFieldPeer('termYears', 'panel')) || null;
+      if (!el) return { found: true, peer: false };
       el.value = '3';
       el.dispatchEvent(new Event('input', { bubbles: true }));
       el.dispatchEvent(new Event('change', { bubbles: true }));
@@ -246,6 +258,7 @@ const check = (name, pass, detail) => {
       return { expiry: c.expiry, meta: (c.metadata || {}).expiryDate, doc: doc.replace(/\s+/g, ' ') };
     }, filled);
     check('the term blank is drawn while the record has no end date', typed.found);
+    check('and its answer box is on the panel', typed.peer !== false);
     check('typing a term fills the empty end date the whole product runs off',
       after.expiry === '2029-08-09' && after.meta === '2029-08-09', after.expiry);
     check('and the clause then states the dates instead of the blank',

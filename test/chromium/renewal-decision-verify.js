@@ -248,11 +248,15 @@ const check = (name, pass, detail) => {
     const lapse = await page.evaluate(i => {
       const c = state.contracts.find(x => x.id === i);
       c.metadata.noticePeriodDays = 60;
+      /* ONE CONTRACT, ONE ROW ABOUT ITS RENEWAL (desknight, 16 Sep 2026): where
+         the notice letter is ready, the sharper NOTICE row stands in for the
+         renewal row — either one is the nag starting again. */
+      const rows = (window.deskItems ? deskItems() : []).filter(x => (x.kind === 'renewal' || x.kind === 'notice') && x.cid === i);
       return { decided: renewalDecided(c), stale: renewalDecisionStale(c),
-        desk: (window.deskItems ? deskItems() : []).filter(x => x.kind === 'renewal' && x.cid === i).length };
+        desk: rows.length, kinds: rows.map(x => x.kind) };
     }, id);
     check('6a correcting the notice period lapses the answer', lapse.decided === false && lapse.stale === true, lapse);
-    check('6b and the nags start again on their own', lapse.desk === 1, lapse.desk);
+    check('6b and the nags start again on their own — one renewal or notice row', lapse.desk === 1, lapse.kinds);
 
     check('7 no page errors — clean', errs.length === 0, errs.slice(0, 2));
   } catch (e) {

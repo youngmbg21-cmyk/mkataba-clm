@@ -8923,6 +8923,16 @@ function wireBlankForm(c){
            question. No repaint: the box is under the reader's hand. */
         try{ if(window.uploadBlankPaint) uploadBlankPaint(key, el.value); }catch(_){ }
       }
+      /* THE TERM AND THE NOTICE PERIOD FILL THE RECORD FROM HERE TOO (11 Oct
+         2026). Their fill (an empty end date from the term, an empty notice
+         period from the clause) listens for `change` on the PAPER's box, and
+         since the Document tab stopped taking typing (9 Oct) the answer is
+         typed here instead — so the paper's box is told, and its one fill
+         runs, rather than a second copy of it here. */
+      if(paper && (key === 'termYears' || key === 'noticeDays')){
+        paper.value = el.value;
+        paper.dispatchEvent(new Event('change', { bubbles: true }));
+      }
       paintBlankFormCount(c);
     });
   });

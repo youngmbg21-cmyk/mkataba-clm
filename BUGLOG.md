@@ -20628,3 +20628,7 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - their-edit-page-verify (known red) still reads the clause editor foot's Discard (`[data-ce-act="discard"]`), retired 10 Oct by the one-Copilot-panel change; it reads null now — re-point when that file is cleared.
 - Outlook / Google calendar sync for "My calendar" is not built: it needs an app registration from the owner (Microsoft / Google), like the Google sign-in already waiting. The .ics download still carries contract dates out.
 - The calendar's day number (opens the week) has no keyboard stop, by calendar-day-verify's own rule; keyboard users reach a week through the Week tab and its stepper.
+
+## 11 Oct 2026 — the parked browser checks
+- Noticed, not fixed (owner's call): the Notes drawer, once open, covers the contract's acts row where the Chat door has lived since 20 Sep, so the second press that should shut it (owner-asked 10 Sep) cannot be made with a mouse; the drawer's own × still shuts it. notes-two-rooms-verify stays parked on that one claim.
+- Fixed (found by term-and-fields-verify): since the Document tab stopped taking typing (9 Oct), answering the term or the notice period in the side panel no longer filled the contract's empty end date or notice period — the fill listened only to the paper's box. The panel's answer now tells the paper's box, and its one fill runs.

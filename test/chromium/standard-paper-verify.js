@@ -210,7 +210,10 @@ const FREIGHT = [
     btn.click();
     await new Promise(r => setTimeout(r, 700));
     const ed = document.getElementById('clause-editor');
-    const stands = ed && ed.querySelector('#ce-stands');
+    /* RE-POINTED 11 Oct 2026: #ce-stands went with the boxes (clauseeditor:
+       ".ce-stands ... STALE"); the editor now holds the clause on its own
+       paper, the editable body #ce-clausebody inside #ce-doc. */
+    const stands = ed && (ed.querySelector('#ce-clausebody') || ed.querySelector('#ce-doc'));
     return { there: true,
       menu: !!document.querySelector('.nego-selmenu'),
       editor: !!ed,

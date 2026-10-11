@@ -191,11 +191,16 @@ const BODY =
       return { hs, body: pcs ? parseFloat(pcs.fontSize) : null,
         bodyWeight: pcs ? Number(pcs.fontWeight) : null };
     });
-    check('2a the four clause headings are PAINTED on the sheet',
-      !!(drawn && drawn.hs.length === 4 && drawn.hs.every(x => x.on)),
-      drawn ? drawn.hs.map(x => x.t).join(' | ') : '—');
+    /* RE-POINTED 11 Oct 2026: the file's own Title paragraph ("DISTRIBUTION
+       AGREEMENT", Word's Title style in the fixture) is drawn as the sheet's
+       heading too, so it leads; the four NUMBERED clause headings follow. */
+    if (drawn){ drawn.title = drawn.hs.length && !/^\d/.test(drawn.hs[0].t) ? drawn.hs[0] : null;
+      drawn.hs = drawn.hs.filter(x => /^\d/.test(x.t)); }
+    check('2a the four clause headings are PAINTED on the sheet, under the file\'s own title',
+      !!(drawn && drawn.hs.length === 4 && drawn.hs.every(x => x.on) && drawn.title && /DISTRIBUTION AGREEMENT/.test(drawn.title.t)),
+      drawn ? (drawn.title ? drawn.title.t + ' | ' : '') + drawn.hs.map(x => x.t).join(' | ') : '—');
     check('2b each carries its resolved number',
-      !!(drawn && /^1\./.test(drawn.hs[0].t) && /^4\./.test(drawn.hs[3].t)),
+      !!(drawn && drawn.hs.length === 4 && /^1\./.test(drawn.hs[0].t) && /^4\./.test(drawn.hs[3].t)),
       drawn ? drawn.hs.map(x => x.t.split(/\s/)[0]).join(',') : '—');
     /* A HEADING MUST READ AS ONE, which is a computed fact and not a tag name:
        it is what makes the document followable, and it is what jsdom cannot

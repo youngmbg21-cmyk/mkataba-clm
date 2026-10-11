@@ -21,7 +21,8 @@
    which is why both halves are measured here:
 
      1  scrolling the cards leaves the head exactly where it was
-     2  and the contract still folds it, so the feature is scoped, not removed
+     2  and the contract does not fold it either — the scroll fold was taken
+        away on 10 Sep 2026 (owner: "Let the user click to collapse")
      3  the cards still scroll inside themselves, and do not chain to the page
 
    THE HEIGHT IS READ, NEVER TYPED: what is asserted is that the number does not
@@ -158,8 +159,11 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     check('1 scrolling the cards leaves the head exactly where it was',
       m.rest && m.afterCards && m.afterCards.h === m.rest.h && !m.afterCards.folded,
       m.rest ? `${m.rest.h}px → ${m.afterCards.h}px` : 'no head');
-    check('2 and the contract still folds it — scoped, not removed',
-      m.afterDoc && m.afterDoc.scrollable && m.afterDoc.folded && m.afterDoc.h < m.rest.h,
+    /* RE-POINTED 11 Oct 2026: the owner took the scroll fold away on 10 Sep
+       ("Let the user click to collapse and expand") — no scroller folds the
+       head now, the contract included. */
+    check('2 and scrolling the contract does not fold it either (owner, 10 Sep 2026)',
+      m.afterDoc && m.afterDoc.scrollable && !m.afterDoc.folded && m.afterDoc.h === m.rest.h,
       m.afterDoc ? `${m.rest.h}px → ${m.afterDoc.h}px` : 'no document pane');
     check('3 the cards scroll inside themselves and do not chain to the page',
       m.chained === false && m.contain === 'contain',
