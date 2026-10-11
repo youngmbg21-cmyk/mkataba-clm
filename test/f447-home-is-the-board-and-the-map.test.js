@@ -257,7 +257,9 @@ describe('F447 (3) — the reader, without a model', () => {
     assert.match(ring, /<title>/, 'every piece says what it is on hover');
     const blocks = w.hbChartHtml({ key: 'q:b', chart: { mode: 'values' }, fixed: [] }, cs, 'chart');
     assert.match(blocks, /class="hb-svg hb-blocks"/);
-    assert.match(blocks, /data-hb-dig="c:MK-1"/, 'a tile is the contract');
+    /* RE-POINTED 11 Oct 2026 (owner picked "Squarified" by name): one block per
+       group, no contract tiles inside; a press on a block opens its contracts */
+    assert.ok(!/data-hb-dig="c:/.test(blocks), 'no contract tiles inside the blocks');
     assert.match(blocks, /data-hb-dig="qg:q:b§status§/, 'a block is the group');
     const tl = w.hbChartHtml({ key: 'q:c', chart: { mode: 'months' }, fixed: [] }, cs, 'chart');
     assert.match(tl, /class="hb-svg hb-tl"/);

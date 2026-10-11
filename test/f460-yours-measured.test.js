@@ -157,20 +157,21 @@ describe('F460 — yours first, then the company\'s', () => {
 });
 
 describe('F460 — a quiet day is said, not filled', () => {
-  test('nothing unusual: the row says so and the usual pictures wait behind one press', () => {
+  /* RE-POINTED 11 Oct 2026 (owner: "make it to always be 3 but if the only
+     insights that are available are 2, then cover the space with the 2
+     cards"): a quiet day is still SAID in the head, and the usual pictures
+     fill the row at once — no switch to press, never a hole */
+  test('nothing unusual: the row says so and the usual pictures fill the row', () => {
     const w = world({ days: steady });
     const I = w.hbInsightsToday();
     assert.equal(I.length, 0);
     const row = w.hbInsRowHtml(I);
     assert.match(text(row), /nothing moved outside its normal range this morning/);
-    assert.match(row, /data-hb-ins="usual"[^>]*>Show the usual pictures \(\d\)</);
-    assert.equal(w.hbShelfHtml(I), '', 'no filler');
-    w.hbPaintBoard = () => {};
-    w.hbInsAct('usual');
-    assert.match(w.hbShelfHtml(I), /hb-ins is-plain/);
-    assert.match(w.hbInsRowHtml(I), />Hide the usual pictures</);
-    w.hbInsAct('usual');
-    assert.equal(w.hbShelfHtml(I), '');
+    const shelf = w.hbShelfHtml(I);
+    assert.match(shelf, /hb-ins is-plain/);
+    const n = (shelf.match(/data-hb-ins-card=/g) || []).length;
+    assert.ok(n >= 1 && n <= 3, 'one to three cards: ' + n);
+    assert.match(shelf, new RegExp('data-hb-shelf-n="' + n + '"'), 'the row is cut to the cards it holds');
   });
   test('a quiet choice is kept all day (an empty list is an answer, not a fault)', () => {
     const w = world({ days: steady });
@@ -179,10 +180,16 @@ describe('F460 — a quiet day is said, not filled', () => {
     w.hbInsightsToday();
     assert.equal(w.hbS().ins, was, 'not chosen again on every paint');
   });
-  test('a place no finding filled says "nothing else stood out"', () => {
+  /* RE-POINTED 11 Oct 2026 (owner, as above): a place no finding filled is
+     filled by a usual picture, never a "nothing else stood out" filler */
+  test('a place no finding filled takes a usual picture, up to three', () => {
     const w = world({ days: lateMine });
-    const h = text(w.hbShelfHtml(w.hbInsightsToday()));
-    assert.match(h, /Nothing else stood out today\. Show the usual pictures \(\d\)/);
+    const I = w.hbInsightsToday();
+    const h = w.hbShelfHtml(I);
+    assert.ok(!/Nothing else stood out/.test(text(h)));
+    const n = (h.match(/data-hb-ins-card=/g) || []).length;
+    assert.ok(n > I.length || n === 3, 'topped up: ' + n + ' for ' + I.length + ' findings');
+    assert.ok(n <= 3);
   });
 });
 
