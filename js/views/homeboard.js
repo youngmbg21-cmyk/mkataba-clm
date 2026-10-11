@@ -3732,21 +3732,34 @@ function hbChartHtml(D, cs0, big){
   if (at){
     const w = _hbFitW.get(at.key + '|' + at.step) || (at.step === 'board' ? (at.big ? 1100 : 540) : 1100);
     R.body = String(R.body || '').replace(/<svg class="hb-svg/g, `<svg data-hb-fit="${_hbE(at.key + '|' + at.step)}" data-hb-w="${w}" data-hb-step="${at.step}" class="hb-svg`);
-    /* OPENED, DETAIL IS EARNED (O-25): the same numbers as a table, and full screen */
-    if (at.step !== 'board' && /data-hb-dig=/.test(R.body)){
+    /* THE CARD'S EDGE CARRIES ITS TOOLS (owner, 11 Oct 2026, over the "HaTi
+       Board" artifact; reverses O-25's "detail is earned once opened"): on the
+       opened chart AND on a chart kept on the board, Table stands on the edge,
+       the reference lines keep their own dropdown, and every other tool is ONE
+       press away under "⋯" — each item the SAME door it always was (its own
+       data attribute and handler), never a second way to the same act. */
+    if (/data-hb-dig=/.test(R.body)){
       /* THE BUTTON NEVER LIES (Part 6): it is drawn only where the chart has
          rows to show, and says "Show as chart" only while a table IS showing */
       const t = hbChartTableHtml(R.body);
       const tab = !!t && _hbTableOn.has(at.key);
       if (tab) R.body = t;
-      R.body = `<div class="hb-open-tools">${t ? `<button type="button" class="hb-link" data-hb-table="${_hbE(at.key)}" aria-pressed="${tab}">${_hbE(i18t(tab ? 'hb_show_chart' : 'hb_show_table'))}</button>` : ''}`
-        + `<button type="button" class="hb-link" data-hb-full aria-pressed="${_hbFull}">${_hbE(i18t(_hbFull ? 'hb_full_back' : 'hb_full_screen'))}</button>`
-        + (P.pic === 'cols' && P.measure !== 'live' && !P.compare && !tab ? hbLinesMenuHtml(D, P) + `<button type="button" class="hb-link" data-hb-odd="${_hbE(D.key)}" aria-pressed="${_hbOddOn.has(D.key)}">${_hbE(i18t(_hbOddOn.has(D.key) ? 'hb_odd_off' : 'hb_odd_btn'))}</button>` : '')
-        + `<button type="button" class="hb-link" data-hb-saveq="${_hbE(D.key)}">${_hbE(i18t('hb_myq_btn'))}</button>`
-        + `<button type="button" class="hb-link" data-hb-whatif="${_hbE(D.key)}" aria-pressed="${_hbWhatIf.has(D.key)}">${_hbE(i18t(_hbWhatIf.has(D.key) ? 'hb_wi_off' : 'hb_wi_btn'))}</button>`
-        + (!tab ? `<button type="button" class="hb-link" data-hb-copy-img>${_hbE(i18t('hb_copy_img'))}</button>` : '')
-        + (t ? `<button type="button" class="hb-link" data-hb-copy-tab>${_hbE(i18t('hb_copy_tab'))}</button>` : '') + '</div>' + R.body;
-      R.body = R.body.replace('<div class="hb-open-tools">', `<div class="hb-open-tools" data-hb-copy-t="${_hbE(P.title || D.title || D.crumb || '')}" data-hb-copy-s="${_hbE(R.by || '')}" data-hb-copy-n="${cs.length}">`);
+      const board = at.step === 'board', mk = at.key + '|' + at.step, open = _hbToolsMenu === mk;
+      const cols = P.pic === 'cols' && P.measure !== 'live' && !P.compare && !tab;
+      const it = (attrs, word) => `<button type="button" class="hb-link" role="menuitem" ${attrs}>${_hbE(word)}</button>`;
+      const items = (board ? it(`data-hb-dig="${_hbE(D.key)}"`, i18t('hb_tools_open')) : it(`data-hb-full aria-pressed="${_hbFull}"`, i18t(_hbFull ? 'hb_full_back' : 'hb_full_screen')))
+        + it(`data-hb-mwhy="${_hbE(D.key)}"`, i18t('hb_cx_btn'))
+        + it(`data-hb-why-follow="${_hbE(D.key)}"`, i18t('hb_tip_ask'))
+        + (cols ? it(`data-hb-odd="${_hbE(D.key)}" aria-pressed="${_hbOddOn.has(D.key)}"`, i18t(_hbOddOn.has(D.key) ? 'hb_odd_off' : 'hb_odd_btn')) : '')
+        + it(`data-hb-saveq="${_hbE(D.key)}"`, i18t('hb_myq_btn'))
+        + it(`data-hb-whatif="${_hbE(D.key)}" aria-pressed="${_hbWhatIf.has(D.key)}"`, i18t(_hbWhatIf.has(D.key) ? 'hb_wi_off' : 'hb_wi_btn'))
+        + (!tab ? it('data-hb-copy-img', i18t('hb_copy_img')) : '')
+        + (t ? it('data-hb-copy-tab', i18t('hb_copy_tab')) : '');
+      R.body = `<div class="hb-open-tools" data-hb-copy-t="${_hbE(P.title || D.title || D.crumb || '')}" data-hb-copy-s="${_hbE(R.by || '')}" data-hb-copy-n="${cs.length}">`
+        + (t ? `<button type="button" class="hb-link" data-hb-table="${_hbE(at.key)}" aria-pressed="${tab}">${_hbE(i18t(tab ? 'hb_show_chart' : 'hb_show_table'))}</button>` : '')
+        + (cols ? hbLinesMenuHtml(D, P) : '')
+        + `<span class="hb-tools-w"><button type="button" class="hb-ib hb-tools-more" data-hb-tools-more="${_hbE(mk)}" aria-haspopup="menu" aria-expanded="${open}" title="${_hbE(i18t('hb_tools_more'))}" aria-label="${_hbE(i18t('hb_tools_more'))}">⋯</button>`
+        + (open ? `<span class="hb-pmenu hb-tools-menu" role="menu">${items}</span>` : '') + '</span></div>' + R.body;
     }
   }
   const total = money ? cs.reduce((a, c) => a + hbValueOfOne(c), 0) : null;
@@ -4889,6 +4902,15 @@ function hbGiveFormHtml(p){
     <button type="submit" class="hb-btn is-primary">${_hbE(i18t('hb_give_go'))}</button><button type="button" class="hb-btn" data-hb-give-cancel>${_hbE(i18t('hb_cancel'))}</button>
     <span class="hb-quiet hb-wide">${_hbE(i18t('hb_give_note'))}</span></form>`;
 }
+/* a ready-made panel's ⋯ (11 Oct 2026, the artifact's card edge): its
+   reading is HaTi's own (hp:<kind>), so what could explain it and asking
+   about it are the same two doors an opened chart offers */
+function hbKindToolsHtml(p){
+  const key = 'hp:' + p.kind, mk = p.id + '|kind', open = _hbToolsMenu === mk;
+  const it = (attrs, word) => `<button type="button" class="hb-link" role="menuitem" ${attrs}>${_hbE(word)}</button>`;
+  return `<span class="hb-tools-w"><button type="button" class="hb-ib hb-tools-more" data-hb-tools-more="${_hbE(mk)}" aria-haspopup="menu" aria-expanded="${open}" title="${_hbE(i18t('hb_tools_more'))}" aria-label="${_hbE(i18t('hb_tools_more'))}">⋯</button>`
+    + (open ? `<span class="hb-pmenu hb-tools-menu" role="menu">${it(`data-hb-mwhy="${_hbE(key)}"`, i18t('hb_cx_btn'))}${it(`data-hb-why-follow="${_hbE(key)}"`, i18t('hb_tip_ask'))}</span>` : '') + '</span>';
+}
 function hbPanelHtml(p, lens, gift){
   if (p.kind === 'view') return hbViewPanelHtml(p, lens);
   const K = HB_KINDS[p.kind];
@@ -4900,6 +4922,7 @@ function hbPanelHtml(p, lens, gift){
   return `<section class="hb-card hb-panel${(p.big || p.split) ? ' is-big' : ''}${p.id === _hbNewPanel ? ' is-new' : ''}" data-hb-pid="${_hbE(p.id)}">
     <header class="hb-ch"><span class="hb-ct">${_hbE(i18t(K.word))}${p.split ? ' · ' + _hbE(i18t('hb_side_by_side')) : ''}</span>${from}${given}<span class="hb-grow"></span>
       <span class="hb-src" title="${_hbE(i18t('hb_p_src', { tab: i18t(K.src) }))}">${_hbE(i18t(K.src))}</span>
+      ${hbKindToolsHtml(p)}
       <button type="button" class="hb-ib" data-hb-act="split" aria-pressed="${!!p.split}" title="${_hbE(i18t(p.split ? 'hb_p_unsplit' : 'hb_p_split'))}" aria-label="${_hbE(i18t('hb_p_split'))}">${_hbSplitIc}</button>
       ${gift && gift.from ? '' : `<button type="button" class="hb-ib" data-hb-act="give" aria-pressed="${_hbGiveForm === p.id}" title="${_hbE(i18t('hb_p_give'))}" aria-label="${_hbE(i18t('hb_p_give'))}">${_hbGiveIc}</button>`}
       ${hbBigBtnHtml(p.big, 'data-hb-act="big"')}
@@ -7927,7 +7950,7 @@ function hbVerifiedGuide(){
     + L.slice(0, 20).map(v => `"${v.title}" answers ${v.phrases.slice(0, 6).map(p => '"' + p + '"').join(', ')}`).join('; ') + '.';
 }
 /* the admin's ⋯ menu and its form, on a card the board built (cd:) */
-let _hbMoreMenu = null, _hbVerForm = null;
+let _hbMoreMenu = null, _hbVerForm = null, _hbToolsMenu = null;
 function hbMayVerify(p){ return !!(p && p.kind === 'view' && /^cd:/.test(p.key || '') && typeof isAdmin === 'function' && isAdmin()); }
 function hbVerFormHtml(p){
   const v = hbVerifiedOf(p);
@@ -8403,6 +8426,11 @@ function hbOnClick(e){
   if (_hbLinesOpen && !t.closest('.hb-lines-w')){ _hbLinesOpen = null; hbPaintBoard(); }
   if (_hbRdOpen && !t.closest('.hb-rd-wrap')){ _hbRdOpen = null; hbDockRepaint(); }
   if (_hbMoreMenu && !t.closest('.hb-more-w')){ _hbMoreMenu = null; hbPaintBoard(); }
+  /* the card's ⋯: its own button opens and shuts it; any press elsewhere, or
+     on one of its items, shuts it (the item's own handler still runs below) */
+  { const tm = t.closest('[data-hb-tools-more]');
+    if (tm){ const k = tm.getAttribute('data-hb-tools-more'); _hbToolsMenu = _hbToolsMenu === k ? null : k; hbPaintBoard(); return; }
+    if (_hbToolsMenu){ _hbToolsMenu = null; if (!t.closest('.hb-tools-menu')) hbPaintBoard(); } }
   const on = sel => t.closest(sel);
   let el;
   /* the hover card's own presses (G4): Ask about this fills the ask box; its
@@ -8457,11 +8485,11 @@ function hbOnClick(e){
     if (_hbLinesOpen){ const f = document.getElementById('hb-ref-tgt-in'); if (f && f.closest('.hb-lines-menu')){ const b = f.closest('.hb-lines-menu').querySelector('button:not([disabled])'); if (b) try { b.focus({ preventScroll: true }); } catch (_){} } } return; }
   if ((el = on('[data-hb-line]'))){ if (el.disabled) return; const w = el.closest('[data-hb-lines-key]'), k = w && w.getAttribute('data-hb-lines-key'); const v = el.getAttribute('data-hb-line');
     if (k){ if (v === 'tgt-off') hbRefsSet(k, 'tgt', null); else hbRefsSet(k, v); } hbPaintBoard(); return; }
-  if ((el = on('[data-hb-copy-img]'))){ hbCopyChartImage(el); return; }
+  if ((el = on('[data-hb-copy-img]'))){ hbCopyChartImage(el); hbPaintBoard(); return; }
   if ((el = on('[data-hb-saveq]'))){ hbMyqSave(el.getAttribute('data-hb-saveq')); return; }
   if (on('[data-hb-pack-dl]')){ hbPackMake(); return; }
   if ((el = on('[data-hb-whatif]'))){ hbWhatIfToggle(el.getAttribute('data-hb-whatif')); return; }
-  if ((el = on('[data-hb-copy-tab]'))){ hbCopyChartTable(el); return; }
+  if ((el = on('[data-hb-copy-tab]'))){ hbCopyChartTable(el); hbPaintBoard(); return; }
   /* a story's chapter opens as its own enlarged card; the trail leads back */
   if (on('[data-hb-sy-big]')){ const s = hbS(); s.digBig = true; hbDig(t.closest('[data-hb-sy-big]').getAttribute('data-hb-sy-big'), true); return; }
   if ((el = on('[data-hb-prep]'))){ const v = el.getAttribute('data-hb-prep'); if (HB_PREP.includes(v)){ hbS().prep = v; hbSave(); hbPaintBoard(); } return; }
@@ -8485,6 +8513,9 @@ function hbOnClick(e){
   if (on('[data-hb-obl]')){ if (typeof obwGoFiltered === 'function') obwGoFiltered({ state: 'overdue' }); else setView('obligations'); return; }
   if ((el = on('[data-hb-room]'))){ if (typeof openWorkspace === 'function') openWorkspace(el.getAttribute('data-hb-room')); return; }
   if ((el = on('[data-hb-why]'))){ hbWhyAsk(el.getAttribute('data-hb-why')); return; }
+  /* ⋯ → What could explain this?: the card's reading opens where it stands and
+     the same three-point answer is asked for (hbWhyAsk, the one door) */
+  if ((el = on('[data-hb-mwhy]'))){ const k = el.getAttribute('data-hb-mwhy'); _hbReadOpen.add(k); hbPaintBoard(); hbWhyAsk(k); return; }
   if ((el = on('[data-hb-deeper]'))){ if (!el.disabled) hbDigDeeper(el.getAttribute('data-hb-deeper')); return; }
   if ((el = on('[data-hb-sy-deeper]'))){ if (!el.disabled) hbStoryDeeper(el.getAttribute('data-hb-sy-deeper')); return; }
   if ((el = on('[data-hb-sy-stop]'))){ hbStoryStop(el.getAttribute('data-hb-sy-stop')); return; }

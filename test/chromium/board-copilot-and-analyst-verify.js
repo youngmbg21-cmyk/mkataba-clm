@@ -102,6 +102,8 @@ const check = (name, pass, detail) => {
     await page.screenshot({ path: path.join(OUT, '4-sentence-and-how.png') });
 
     /* 5. unusual */
+/* RE-POINTED 11 Oct 2026: the tool is an item of the card's ⋯ (the artifact's card edge) — open it first */
+    await page.click('#hb-focus [data-hb-tools-more]');
     await page.click('#hb-focus [data-hb-odd]');
     const odd = await until(() => { const m = document.querySelectorAll('#hb-focus .hb-svg .hb-sv-odd'); const t = [...document.querySelectorAll('#hb-focus .hb-svg title, #hb-focus .hb-odd-say, #hb-focus [class*="odd"]')].map(x => x.textContent).join(' '); return m.length || /usual/.test(t) ? { n: m.length, t: t.slice(0, 160) } : null; });
     check('5. C5 "Unusual" marks the odd month and says why', !!odd && /usual/.test(odd.t), odd && `${odd.n} marked · ${odd.t}`);
@@ -109,6 +111,7 @@ const check = (name, pass, detail) => {
 
     /* 6. what if */
     await openChart('q:contracts ending in the next 6 months', { which: 'all', pic: 'bars', split: { by: 'counterparty' }, measure: 'count' });
+    await page.click('#hb-focus [data-hb-tools-more]');
     await page.click('#hb-focus [data-hb-whatif]');
     const wi = await until(() => { const s = document.querySelector('#hb-focus svg.hb-wi'); return s ? s.textContent.slice(0, 200) : null; });
     check('6. A5 what if these do not renew: a scenario, said so', !!wi && /SCENARIO/.test(wi), wi && wi.slice(0, 80));

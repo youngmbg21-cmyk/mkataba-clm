@@ -148,11 +148,14 @@ const check = (name, pass, detail) => {
     await page.screenshot({ path: path.join(OUT, '4-lines.png') });
 
     /* 5. G9 copies */
+/* RE-POINTED 11 Oct 2026: the tool is an item of the card's ⋯ (the artifact's card edge) — open it first */
+    await page.click('#hb-focus [data-hb-tools-more]');
     await page.click('#hb-focus [data-hb-copy-tab]');
     const clip = await until(async () => { try { const t = await navigator.clipboard.readText(); return /\t/.test(t) ? t : null; } catch (_){ return null; } });
     const rows = clip ? clip.split('\n').slice(1).map(r => r.split('\t')) : [];
     check('5a. G9 Copy table puts the chart\'s rows on the clipboard, a column per field', rows.length >= 3 && rows.every(r => r.length === 2 && r[0] && /\d/.test(r[1])), clip ? clip.split('\n').slice(0, 3).join(' / ') : 'nothing on the clipboard');
     let dl = null; page.once('download', d => { dl = d; });
+    await page.click('#hb-focus [data-hb-tools-more]');
     await page.click('#hb-focus [data-hb-copy-img]');
     const img = await until(() => { const t = [...document.querySelectorAll('.toast, [role="status"], [role="alert"]')].map(x => x.textContent).join(' '); return /copied as an image|downloaded as a picture|could not be turned/i.test(t) ? t : null; }, null, 10000);
     check('5b. G9 Copy as image copies or saves a picture, and says which', !!img && !/could not be turned/i.test(img), (img || '').slice(0, 120) + (dl ? ' (downloaded)' : ''));
