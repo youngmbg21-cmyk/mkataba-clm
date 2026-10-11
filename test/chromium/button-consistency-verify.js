@@ -270,7 +270,11 @@ const HELPERS = `(() => {
       dd.status = 'Signed'; dd.parentId = null; dd.expiry = day(55);
       dd.metadata = Object.assign({}, dd.metadata, { expiryDate: day(55), noticePeriodDays: 30 });
       if (me) dd.owner = { id: me.id, name: me.name };
+      /* RE-POINTED 11 Oct 2026: the sweep visited the Calendar, which is
+         Home's second tab now, and Home reopens on the tab it was left on —
+         so the Board is asked for by name */
       setView('dashboard');
+      if (typeof hbSetFace === 'function') hbSetFace('board');
       return true;
     });
     await page.waitForTimeout(1500); await load(); await rest();
