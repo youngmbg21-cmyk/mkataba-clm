@@ -218,9 +218,12 @@ describe('f255 (3) — the door, and where a row lands', () => {
 
   test('a row opens its contract ON THE OBLIGATIONS TAB', () => {
     const list = OB_CODE.match(/function renderObligationsList\(\)\{[\s\S]*?\n\}/)[0];
-    assert.match(list, /roomGoTab\(c, 'oblig'\)/,
+    /* RE-POINTED 11 Oct 2026 (owner): the row goes through obOpenContract, which
+       lands on Home's Document, on the panel's Obligations tab */
+    assert.match(list, /const go = cid => obOpenContract\(cid\);/,
       'a row that opened the Document tab would make the reader hunt for what '
       + 'they pressed');
+    assert.match(OB_CODE.match(/function obOpenContract\([\s\S]*?\n\}/)[0], /pdOpenOnHome\(cid, 'oblig'\)/);
   });
 
   /* REVERSED IN PLACE 30 Aug 2026. This pinned `go:{nav:'obligations'}`, which

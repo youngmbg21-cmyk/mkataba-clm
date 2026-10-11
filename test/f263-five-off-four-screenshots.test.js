@@ -347,7 +347,9 @@ describe('f263 (4) — the worklist names its columns and states its filters', (
        asked for something the page already did. */
     const list = OB.match(/function renderObligationsList\(\)\{[\s\S]*?\n\}/)[0];
     assert.match(list, /\[data-obw-row\]'\)\.forEach\(tr => tr\.addEventListener\('click'/);
-    assert.match(list, /roomGoTab\(c, 'oblig'\)/, 'and lands on the tab the row is about');
+    /* RE-POINTED 11 Oct 2026 (owner): Home's Document, its Obligations tab */
+    assert.match(list, /const go = cid => obOpenContract\(cid\);/, 'and lands on the tab the row is about');
+    assert.match(OB.match(/function obOpenContract\([\s\S]*?\n\}/)[0], /pdOpenOnHome\(cid, 'oblig'\)/);
     assert.match(HTML, /\.obw-table tr\[data-obw-row\]:hover \.obw-what\{ text-decoration:underline; \}/,
       'the description reads as the door it is');
   });
