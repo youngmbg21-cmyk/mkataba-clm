@@ -1765,12 +1765,16 @@ describe('f277 (20) Part D', () => {
     assert.match(css, /\.doc-th-plain\{[^}]*font-size:var\(--t-body\);/);
   });
 
-  test('D-3c the size press repaints the thread itself, not by way of a resize', () => {
+  /* RE-POINTED 11 Oct 2026 (WORKORDER-four-builds item 3): the press is a
+     ZOOM now. The thread is furniture and does not change size, so it is not
+     repainted; what must follow in the same press is the Document tab's own
+     zoom and the Track that measures the paper. */
+  test('D-3c the zoom press reaches the Document tab and its Track in the same press', () => {
     const src = _f277rd('js/views/negotiation.js');
-    const i = src.indexOf('function rlSetDocType(');
+    const i = src.indexOf('function rlSetDocZoom(');
     const fn = src.slice(i, src.indexOf('\n}\n', i));
     assert.match(fn, /applyDocZoom\(\)/);
-    assert.match(fn, /docThreadPaint\(/, 'the thread is repainted in the same press');
+    assert.match(fn, /igTrackPlace\(docTrackHost\(\)\)/, 'the Track is laid out again in the same press');
   });
 
   test('D-4 the heading wraps as the paper wraps — no balancing', () => {

@@ -113,7 +113,9 @@ describe('F97a — the placement survives the parse, or fails safe', () => {
   test('and it asks for list items one per line', () => {
     /* docRichFromText rebuilds real list markup from line openers, so bullets
        have to ARRIVE as lines to survive as items. */
-    assert.match(ai.AI_EDIT_FORMAT(), /ONE ITEM PER LINE/);
+    /* RE-POINTED 11 Oct 2026: the shared AI_LIST_RULE, now on both formats */
+    assert.match(ai.AI_EDIT_FORMAT(), /ONE POINT PER LINE/);
+    assert.match(ai.AI_PROPOSAL_FORMAT(), /ONE POINT PER LINE/);
   });
 
   test('a stated placement is read back', () => {

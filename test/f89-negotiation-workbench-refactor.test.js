@@ -502,8 +502,11 @@ describe('F89 (2) — a centred sheet with gutters, like the Doc page', () => {
       require('node:path').join(__dirname, '..', 'js', 'views', 'negotiation.js'), 'utf8');
     assert.ok(!/setProperty\('--rl-zoom', fit\.toFixed/.test(src89),
       'nothing computes a fit for this page any more');
-    assert.match(src89, /root\.style\.setProperty\('--rl-doc-type', v \+ 'px'\)/,
-      'one writer for the preference, still');
+    /* RE-POINTED 11 Oct 2026 (WORKORDER-four-builds item 3): the reader's
+       size is a ZOOM now, and the one writer of the wrapper's value is
+       rlApplyDocZoom, from the one stored zoom */
+    assert.match(src89, /wrap\.style\.setProperty\('--rl-zoom', rlDocZoomFactor\(\)\)/,
+      'one writer for the zoom');
     /* WARM PAPER, ON ITS OWN TOKENS — untouched by the 22 Aug render.
        REVERSED IN PLACE 25 Sep 2026 with the flat sheet above: the working copy
        is WHITE, like a page in Word, and what makes it read as paper beside a

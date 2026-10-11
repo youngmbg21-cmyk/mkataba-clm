@@ -434,30 +434,28 @@ describe('F84 — the text size is a control on this page again', () => {
       'but the fullscreen toggle did NOT come back — focus mode is in the head\'s "..."');
   });
 
-  test('the preference and its bounds are untouched', async () => {
+  /* ---- RE-POINTED 11 Oct 2026 (owner: "add image 1 feature to all the
+     pages that have paper and delete the A⁻ 15px A⁺"; WORKORDER-four-builds
+     item 3) ---- the stepper is a ZOOM now: "− 100% +", one remembered value,
+     10% steps from 60 to 200. The type is fixed at the base again, so the
+     canvas reads 15px and a ratio of 1; the page's .rl-zoom wrapper grows. */
+  test('the zoom and its bounds', async () => {
     const p = await page();
-    assert.equal(p.win.rlDocType(), 15, 'the doc-parity default');
-    p.win.rlSetDocType(99);
-    assert.equal(p.win.rlDocType(), 20, 'clamped at the ceiling');
-    p.win.rlSetDocType(2);
-    /* ---- THE FLOOR MOVED, 13 Aug 2026 (owner-asked) ----
-       It was 11, set as "below this a contract stops being readable" — a
-       judgement about a reader, made for them. Skimming a long agreement at a
-       glance is a real way to work: "the fonts should be able to go low all
-       the way to 8. Currently the smallest font is 11." The ceiling of 20 is
-       untouched and is still there for the opposite need. */
-    assert.equal(p.win.rlDocType(), 8, 'clamped at the floor');
-    p.win.rlSetDocType(18);
+    assert.equal(p.win.rlDocType(), 15, 'the type is the base, always');
+    assert.equal(p.win.rlDocZoom(), 100, 'the zoom starts at 100%');
+    p.win.rlSetDocZoom(999);
+    assert.equal(p.win.rlDocZoom(), 200, 'clamped at the ceiling');
+    p.win.rlSetDocZoom(1);
+    assert.equal(p.win.rlDocZoom(), 60, 'clamped at the floor');
+    p.win.rlSetDocZoom(124);
+    assert.equal(p.win.rlDocZoom(), 120, 'in 10% steps');
     p.win.renderRedline();
-    assert.equal(p.$('#view-redline').style.getPropertyValue('--rl-doc-type'), '18px',
-      'and the canvas still reads it, however it was set');
-    /* AND THE SAME CHOICE AS A RATIO, which is what the parts of the sheet
-       that are not body text follow — the title, the kicker, the parties at
-       the foot. They used to follow the zoom; the zoom carries the fit alone
-       now, so they follow this. */
-    assert.equal(p.$('#view-redline').style.getPropertyValue('--doc-scale'), '1.200',
-      '18 over the 15px base');
-    p.win.rlSetDocType(15);
+    assert.equal(p.$('#view-redline').style.getPropertyValue('--rl-doc-type'), '15px',
+      'the words keep their size');
+    assert.equal(p.$('.rl-type-step .rl-type-out').textContent.trim(), '120%', 'the control reads the zoom');
+    const z = p.$('#view-redline .rl-zoom');
+    assert.ok(z && z.style.getPropertyValue('--rl-zoom') === '1.20', 'and the page wrapper grows by it');
+    p.win.rlSetDocZoom(100);
   });
 
   test('the Doc tab renders the same control and its zoom reads the same preference', async () => {
@@ -468,7 +466,7 @@ describe('F84 — the text size is a control on this page again', () => {
       require('node:path').join(__dirname, '..', 'js', 'views', 'contract.js'), 'utf8');
     assert.ok(/rlTypeStepHtml\(\)/.test(src), 'the tab row renders the shared stepper');
     assert.ok(/rlWireTypeStep\(/.test(src), 'and wires it');
-    assert.ok(/rlDocType\(\)/.test(src), 'applyDocZoom reads the stored preference');
+    assert.ok(/rlDocZoomFactor\(\)/.test(src), 'applyDocZoom reads the reader\'s zoom (11 Oct 2026)');
     /* ---- CLAIM REVERSED A SECOND TIME, 29 Aug 2026 (owner-asked: the three
        screens that draw the agreement must agree) ----
        13 Aug took the PREFERENCE out of the zoom, leaving the width-fit: the
@@ -487,8 +485,10 @@ describe('F84 — the text size is a control on this page again', () => {
        PINNED, NOT DELETED: rlApplyDocZoom's own precedent on the negotiation
        page. Several callers ask the layout to re-fit and one named thing they
        can all keep calling beats four private opinions. */
-    assert.ok(/setProperty\('--doc-zoom', '1'\)/.test(src),
-      'the sheet does not magnify — it is capped and centred like every other screen');
+    /* RE-POINTED 11 Oct 2026: the sheet still does not fit itself to the
+       window; it grows only by the reader's own zoom */
+    assert.ok(/setProperty\('--doc-zoom', window\.rlDocZoomFactor\?rlDocZoomFactor\(\):'1'\)/.test(src),
+      'the sheet grows by the reader\'s zoom and nothing else');
     assert.ok(!/DOC_ZOOM_MAX/.test(src), 'and the ceiling it used to need is gone');
     assert.ok(/setProperty\('--doc-scale', pref/.test(src),
       'and the reader\'s choice sizes the type inside it');

@@ -1795,6 +1795,9 @@ function redlineLayoutCss(){
      again, which is the thing this rule was written to stop. The stepper's
      readout is a figure, not a press, and keeps the body weight. */
   .redline-page .rl-head .rl-type-step{height:var(--ctl-h);padding:0 3px}
+  ${''/* the words moved, beside the zoom, the editor's own look (owner, 11 Oct 2026) */}
+  .redline-page .rl-head .rl-moved{font-size:var(--t-label);font-weight:var(--w-title);white-space:nowrap;align-self:center;margin-right:4px}
+  .redline-page .rl-head .rl-moved .i{color:var(--st-green-fg)} .redline-page .rl-head .rl-moved .d{color:var(--st-ruby-fg)}
   .redline-page .rl-head .rl-type-step button{font-size:var(--t-body);font-weight:var(--w-label)}
   .redline-page .rl-head .rl-type-step .rl-type-out{font-size:var(--t-body);font-weight:var(--w-body)}
   .redline-page .rl-head .rl-segwrap:not(.rl-readwrap){height:var(--ctl-h)}

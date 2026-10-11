@@ -699,7 +699,11 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       /* RE-POINTED 11 Oct 2026: while the panel's editor is open the paper
          draws no pencil, so the paper is read off its own wording — which is
          what "the paper scales" means. */
-      tool: parseFloat(getComputedStyle(document.querySelector('#rl-doc .rl-clause .nego-body')).fontSize) });
+      /* RE-POINTED 11 Oct 2026 (WORKORDER-four-builds item 3): the reader's
+         size is the page ZOOM now, so the paper is read as the reader sees
+         it — its type times the .rl-zoom factor; the panel stays furniture. */
+      tool: parseFloat(getComputedStyle(document.querySelector('#rl-doc .rl-clause .nego-body')).fontSize)
+        * (Number(getComputedStyle(document.querySelector('#rl-doc .rl-zoom') || document.body).zoom) || 1) });
     const at15 = read();
     rlSetDocType(20); await new Promise(r=>setTimeout(r,300));
     const at20 = read();

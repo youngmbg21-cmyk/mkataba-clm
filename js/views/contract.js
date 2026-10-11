@@ -9358,7 +9358,8 @@ const DOC_PAGE_W = DOC_SHEET_FALLBACK;
 function applyDocZoom(){
   const wrap=document.getElementById('doc-zoom');
   if(!wrap) return;
-  wrap.style.setProperty('--doc-zoom', '1');
+  /* THE READER'S ZOOM (owner, 11 Oct 2026): the page grows, the words do not reflow */
+  wrap.style.setProperty('--doc-zoom', window.rlDocZoomFactor?rlDocZoomFactor():'1');
   /* ---- AND THE READER'S TEXT SIZE, WHICH IS THE TYPE AND NOT THE PAGE ----
      (13 Aug 2026, owner-asked: "lower it to 8 but keep the page filling the
      column".) The A⁻/A⁺ stepper both tabs carry — persisted by the workbench,

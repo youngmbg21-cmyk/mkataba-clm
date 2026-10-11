@@ -7155,6 +7155,8 @@ function igStripHtml(c,p){
       return `<span class="ig-red" role="group" aria-label="${igEsc(i18t('int_red_label'))}"><button type="button" data-ig-red="0" aria-pressed="${red?'false':'true'}">${igEsc(i18t('int_red_clean'))}</button><button type="button" data-ig-red="1" aria-pressed="${red?'true':'false'}">${igEsc(i18t('int_red_marked',{ n }))}</button></span>`; })():''}
     ${/* NO FOCUS ON HOME'S PAPER (owner, 8 Oct 2026: "the removal of the focus
        button from the paper tab"); the map's own paper keeps it */''}${up&&igHomePaperFace()!==true?`<button type="button" class="ui-btn ui-btn-sm" data-ig-focus aria-pressed="${p.focus?'true':'false'}" title="${igEsc(i18t(p.focus?'int_focus_exit_title':'int_focus_title'))}">${icon(p.focus?'x':'scan','w-3.5 h-3.5')}${igEsc(i18t(p.focus?'int_focus_exit':'int_focus'))}</button>`:''}
+    ${/* ONE ZOOM ON EVERY PAPER (owner, 11 Oct 2026): the same "− 100% +" the
+       Document tab and Negotiate carry, one remembered value */''}${up&&window.rlTypeStepHtml?rlTypeStepHtml():''}
     ${onHome?`<button type="button" class="ui-btn ui-btn-sm" data-ig-pick-again>${igEsc(i18t('int_pick_change'))}</button>`:''}
     ${onHome?'':`<button type="button" class="ui-btn ui-btn-sm" data-ig-ws="${c.id}">${igEsc(i18t('int_open_workspace'))}${icon('chevR','w-3.5 h-3.5')}</button>`}`;
 }
@@ -7241,8 +7243,15 @@ function igPaperHtml(c){
   }
   return `<div class="ig-paper-wrap">
     <div id="ig-spine" class="doc-xr-spine ig-spine" role="group" aria-label="${igEsc(i18t('xr_spine_label'))}" hidden></div>
-    <div id="ig-paper-scroll" class="ig-paper-scroll scroll-thin">${sheet}</div>
+    <div id="ig-paper-scroll" class="ig-paper-scroll scroll-thin"><div class="ig-zoom" style="zoom:${window.rlDocZoomFactor?rlDocZoomFactor():1}">${sheet}</div></div>
   </div>`;
+}
+/* the reader's zoom, written where Home's sheet reads it; the Track is laid
+   out again because the paper's length moved */
+function igApplyZoom(){
+  const f=window.rlDocZoomFactor?rlDocZoomFactor():'1';
+  document.querySelectorAll('#ig-paper .ig-zoom').forEach(z=>{ z.style.zoom=f; });
+  try{ if(typeof igTrackPlace==='function') igTrackPlace(); }catch(_){ }
 }
 function igPaperPaginate(c){
   const host=document.getElementById('ig-paper'); const sheet=host&&host.querySelector('.pg-sheet');
@@ -7702,7 +7711,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
   });
 }
 
-Object.assign(window,{igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
+Object.assign(window,{igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
 Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});

@@ -1513,8 +1513,12 @@ function ceRich(v){
      one left a lowercase remainder that was glued onto the paragraph above.
      A blank line between each keeps every line its own block; list items and
      headings are read exactly as before. */
-  if (window.negoRichFromLines){ try{ return negoRichFromLines(t.replace(/\n(?!\n)/g, '\n\n')); }catch(_){} }
-  return '<p>' + _cee(t).replace(/\n/g, '</p><p>') + '</p>';
+  /* A LIST RUN INTO ONE PARAGRAPH GETS ITS LINES BACK (owner, 11 Oct 2026):
+     every card's wording reaches the clause here, whatever wrote it — the
+     Risks tab, the Playbook tab, a quick ask — so the net is cast once. */
+  const lt = window.aiListLines ? aiListLines(t) : t;
+  if (window.negoRichFromLines){ try{ return negoRichFromLines(lt.replace(/\n(?!\n)/g, '\n\n')); }catch(_){} }
+  return '<p>' + _cee(lt).replace(/\n/g, '</p><p>') + '</p>';
 }
 function ceWordCount(t){
   const w = String(t == null ? '' : t).trim();

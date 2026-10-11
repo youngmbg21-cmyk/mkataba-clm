@@ -284,126 +284,50 @@ const SHEET = () => {
     check('4 with both buttons and its readout', step.buttons && step.buttons.length === 2,
       (step.buttons || []).join(' '));
 
+    /* ---- 4, 5 and 5b RE-POINTED 11 Oct 2026 (owner: "add image 1 feature to
+       all the pages that have paper and delete" the A⁻ 15px A⁺ —
+       WORKORDER-four-builds item 3) ----
+       The stepper is the clause editor's ZOOM now: "− 100% +", 10% steps from
+       60 to 200, one remembered value (hati.v1.docZoom). The words keep their
+       type (--rl-doc-type stays 15px); the PAGE grows — the .rl-zoom wrapper
+       carries the factor — so lines get bigger on screen and the layout
+       inside the sheet holds. The 13 Aug "keep the page filling the column at
+       8" rule is reversed by the same ask: a zoom makes the page smaller. */
     const stepped = await page.evaluate(async () => {
       const up = document.querySelector('.redline-page .rl-tabrow .rl-type-step [data-rl-type="1"]');
-      const before = parseFloat(getComputedStyle(
-        document.querySelector('.redline-page')).getPropertyValue('--rl-doc-type'));
+      const typeVar = () => parseFloat(getComputedStyle(document.querySelector('.redline-page')).getPropertyValue('--rl-doc-type'));
       const lineOf = () => { const l = document.querySelector(
         '.redline-page .rl-paper .rl-clause-p, .redline-page .rl-paper .rl-line, .redline-page .rl-paper p');
         return l ? l.getBoundingClientRect().height : 0; };
-      /* THE SHEET'S OWN TYPE, from inside the zoom wrapper. It MUST move with
-         the stepper and the zoom must NOT — see the reversal below. Read from
-         a clause line, because that is what the reader is being offered a
-         choice about. */
-      const typeIn = () => { const l = document.querySelector('.redline-page .rl-paper .rl-clause-p')
-        || document.querySelector('.redline-page .rl-paper p');
-        return l ? parseFloat(getComputedStyle(l).fontSize) : 0; };
-      const zoomOf = () => Number(getComputedStyle(
-        document.querySelector('.redline-page .rl-zoom')).zoom) || 1;
-      /* AND THE PAGE'S OWN WIDTH ON SCREEN, which is the half of this the
-         owner reported: whatever the type is set to, the sheet still fills its
-         column. */
-      const sheetW = () => { const el = document.querySelector('.redline-page .rl-paper');
-        const col = document.querySelector('.redline-page #rl-doc') || el.parentElement;
-        return [Math.round(el.getBoundingClientRect().width),
-          Math.round(col.getBoundingClientRect().width)]; };
-      const wBefore = sheetW();
-      const lineBefore = lineOf(), typeBefore = typeIn(), zoomBefore = zoomOf();
+      const zoomOf = () => Number(getComputedStyle(document.querySelector('.redline-page .rl-zoom')).zoom) || 1;
+      const before = { type: typeVar(), line: lineOf(), zoom: zoomOf() };
       for (let i = 0; i < 5; i++){ if (!up.disabled) up.click(); }
       await new Promise(r => setTimeout(r, 250));
-      return { before,
-        after: parseFloat(getComputedStyle(
-          document.querySelector('.redline-page')).getPropertyValue('--rl-doc-type')),
-        stored: Number(localStorage.getItem('hati.v1.rlDocType')),
-        readout: (document.querySelector('.redline-page .rl-type-out') || {}).textContent,
-        lineBefore: Math.round(lineBefore), lineAfter: Math.round(lineOf()),
-        typeBefore, typeAfter: typeIn(),
-        wBefore, wAfter: sheetW(),
-        /* The front matter has to follow the body, or the sheet is two
-           documents. It used to follow the zoom; it follows the ratio now. */
-        titleBefore: parseFloat(getComputedStyle(
-          document.querySelector('.redline-page .rl-paper-title') || document.body).fontSize),
-        zoomRatio: Math.round((zoomOf() / (zoomBefore || 1)) * 100) / 100 };
+      return { before, type: typeVar(), line: lineOf(), zoom: zoomOf(),
+        stored: Number(localStorage.getItem('hati.v1.docZoom')),
+        readout: (document.querySelector('.redline-page .rl-type-out') || {}).textContent };
     });
-    check('4 pressing A⁺ makes the contract text bigger ON SCREEN',
-      stepped.after > stepped.before && stepped.lineAfter > stepped.lineBefore,
-      `${stepped.before} → ${stepped.after}, line ${stepped.lineBefore}px → ${stepped.lineAfter}px`);
-    check('5 ONE PREFERENCE — it writes the key the other screens read',
-      stepped.stored === stepped.after, `stored ${stepped.stored}`);
-    check('5 and the readout says the same number, in its own words',
-      String(stepped.readout).trim() === stepped.after + 'px', stepped.readout);
-    /* ---- APPLIED ONCE, AND ON THE OTHER SIDE OF THE MULTIPLICATION ----
-       BOTH CLAIMS HERE ARE REVERSED, 13 Aug 2026, owner-asked, and the rule
-       they were protecting is unchanged: the reader's preference may be
-       carried by ONE mechanism, never two, or a single step doubles the text.
-
-       It used to be the zoom, with the sheet's own type pinned to the base
-       inside the wrapper. That is interchangeable with this for the TEXT — on
-       screen it is fit × preference either way — and not for the PAGE. With
-       the preference in the zoom, asking for the new floor of 8 shrank the
-       sheet to half its column and left it floating in white space. "Lower it
-       to 8 but keep the page filling the column."
-
-       So now: the zoom does NOT move with the stepper, the sheet's own type
-       DOES, and the page still fills its column at every setting — which is
-       the third check, and the one the owner would look at. */
-    check('5 THE ZOOM DOES NOT MOVE WITH THE STEPPER — it is the width-fit alone',
-      stepped.zoomRatio > 0.99 && stepped.zoomRatio < 1.01,
-      `15→20 scaled the zoom by ${stepped.zoomRatio}x (expected 1)`);
-    check('5 THE SHEET\'S OWN TYPE CARRIES THE STEP, and by exactly the step',
-      stepped.typeBefore > 0
-      && stepped.typeAfter / stepped.typeBefore > 1.28
-      && stepped.typeAfter / stepped.typeBefore < 1.39,
-      `${stepped.typeBefore}px → ${stepped.typeAfter}px inside the sheet`);
-    /* "or has reached its measure cap" since 22 Aug 2026: the sheet is fluid
-       and stops at RL_SHEET_MAX (860), so on a column wider than that filling
-       it would mean an unreadable line. The claim — the stepper never leaves
-       the page floating in white space — is unchanged, and the second half of
-       it (the sheet's width does not move with the type) is the load-bearing
-       one either way. */
-    /* RE-POINTED, 8 Oct 2026: the Home paper (owner: "i am choosing the home
-       paper") is 720 wide, and the stepper still never moves the page. */
-    check('5 AND THE PAGE HOLDS THE HOME PAPER\'S WIDTH — the reported half',
-      Math.abs(stepped.wAfter[0] - Math.min(720, stepped.wAfter[1])) <= 1
-      && stepped.wAfter[0] === stepped.wBefore[0],
-      `${stepped.wBefore[0]} of ${stepped.wBefore[1]} → ${stepped.wAfter[0]} of ${stepped.wAfter[1]}`);
-    check('5 and the front matter followed the body, so the sheet is one document',
-      stepped.titleBefore > 20, `title ${stepped.titleBefore}px at 20`);
-    /* ---- 5b. AND THE FLOOR IS 8 (owner-asked, 13 Aug 2026) ----
-       "The fonts should be able to go low all the way to 8. Currently the
-       smallest font is 11." Driven through the CONTROL rather than the store,
-       because the thing being checked is that the reader can actually get
-       there: A⁻ must keep working past 11 and stop at 8. */
+    check('4 pressing + makes the contract bigger ON SCREEN',
+      stepped.line > stepped.before.line * 1.3,
+      `line ${Math.round(stepped.before.line)}px → ${Math.round(stepped.line)}px`);
+    check('5 ONE REMEMBERED ZOOM — five presses are 150%, stored where every paper reads it',
+      stepped.stored === 150, `stored ${stepped.stored}`);
+    check('5 and the readout says the same number, as a percentage', String(stepped.readout).trim() === '150%', stepped.readout);
+    check('5 THE WORDS KEEP THEIR TYPE — the page grows, not the font',
+      stepped.type === stepped.before.type && Math.abs(stepped.zoom / stepped.before.zoom - 1.5) < 0.01,
+      `type ${stepped.before.type} → ${stepped.type}, zoom ${stepped.before.zoom} → ${stepped.zoom}`);
     const floored = await page.evaluate(async () => {
       const down = document.querySelector('.redline-page .rl-tabrow .rl-type-step [data-rl-type="-1"]');
-      const paper = () => document.querySelector('.redline-page .rl-paper');
-      const col = () => document.querySelector('.redline-page #rl-doc') || paper().parentElement;
-      const typeIn = () => { const l = document.querySelector('.redline-page .rl-paper .rl-clause-p')
-        || document.querySelector('.redline-page .rl-paper p');
-        return l ? parseFloat(getComputedStyle(l).fontSize) : 0; };
-      const at15 = typeIn();
-      /* Far more presses than the range needs — the bound is the button's job,
-         not the loop's. */
       for (let i = 0; i < 30; i++){ if (!down.disabled) down.click(); }
       await new Promise(r => setTimeout(r, 300));
-      return { stored: Number(localStorage.getItem('hati.v1.rlDocType')),
+      return { stored: Number(localStorage.getItem('hati.v1.docZoom')),
         readout: (document.querySelector('.redline-page .rl-type-out') || {}).textContent,
-        disabled: !!down.disabled, at15, at8: typeIn(),
-        sheet: Math.round(paper().getBoundingClientRect().width),
-        col: Math.round(col().getBoundingClientRect().width),
-        zoom: Number(getComputedStyle(document.querySelector('.redline-page .rl-zoom')).zoom) || 1,
-        overflow: document.querySelector('.redline-page #rl-doc, .redline-page .nego-scroll')
-          ? false : false };
+        disabled: !!down.disabled,
+        zoom: Number(getComputedStyle(document.querySelector('.redline-page .rl-zoom')).zoom) || 1 };
     });
-    check('5b A⁻ goes all the way down to 8 and stops there',
-      floored.stored === 8 && String(floored.readout).trim() === '8px' && floored.disabled,
-      `stored ${floored.stored}, readout ${floored.readout}, button disabled ${floored.disabled}`);
-    check('5b the wording really is smaller at 8 than at 15',
-      floored.at8 > 0 && floored.at8 < floored.at15 * 0.62,
-      `${floored.at15}px → ${floored.at8}px`);
-    check('5b AND THE PAGE DOES NOT SHRINK WITH THE WORDS — the whole point of the ask',
-      Math.abs(floored.sheet - Math.min(720, floored.col)) <= 1,
-      `${floored.sheet} of ${floored.col}, zoom ${floored.zoom}`);
+    check('5b − goes down to 60% and stops there',
+      floored.stored === 60 && String(floored.readout).trim() === '60%' && floored.disabled && Math.abs(floored.zoom - 0.6) < 0.01,
+      `stored ${floored.stored}, readout ${floored.readout}, button disabled ${floored.disabled}, zoom ${floored.zoom}`);
     await page.screenshot({ path: path.join(OUT, '04-owner-floor-8.png') });
 
     /* ---- 5c. AND THE FURNITURE ON THE SHEET FOLLOWS THE WORDS ----
@@ -429,7 +353,10 @@ const SHEET = () => {
         return { w: +r.width.toFixed(1), h: +r.height.toFixed(1) }; };
       const words = document.querySelector('.redline-page .rl-paper .rl-clause p')
         || document.querySelector('.redline-page .rl-paper p');
-      return { words: words ? +parseFloat(getComputedStyle(words).fontSize).toFixed(2) : 0,
+      /* the words as the reader SEES them (11 Oct 2026): the type times the
+         page's zoom, which is what the stepper moves now */
+      const zf = Number(getComputedStyle(document.querySelector('.redline-page .rl-zoom') || document.body).zoom) || 1;
+      return { words: words ? +(parseFloat(getComputedStyle(words).fontSize) * zf).toFixed(2) : 0,
         /* The tags left the paper on 16 Aug 2026; the Edit pill is the piece of
            furniture that rides the clause head now, and it takes the same
            --doc-scale reading the tag did. Same claim, its successor. THE TOOL
