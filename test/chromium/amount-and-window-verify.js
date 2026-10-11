@@ -254,102 +254,17 @@ const day = off => { const d = new Date(); d.setDate(d.getDate() + off); return 
     check('AND THE CONFIRMATION IS NOT SILENT — it says what happened',
       /\d/.test(toastText) && /already/i.test(toastText), toastText.slice(0, 90));
 
-    /* ============ 5. THE CALENDAR'S AGENDA WINDOW ============ */
+    /* ============ 5. THE CALENDAR'S AGENDA WINDOW — RETIRED ============
+       11 Oct 2026: Next 14 days and its 14 · 30 · 60 · 90 window left the
+       Calendar when Copilot took its place beside every view (Young: "build it
+       exactly as designed", then "Remove it" for the list). What stays true is
+       that no window control or agenda list is left drawn as furniture. */
     await page.evaluate(() => setView('calendar'));
-    await page.waitForTimeout(1400);
-    await page.screenshot({ path: path.join(OUT, '05-calendar.png') });
-    const cal0 = await page.evaluate(() => {
-      /* RE-POINTED 27 Sep 2026 (T3): the window is a SEGMENT since 21 Sep
-         (THE MAP: "Agenda window 14/30/60/90 as a segment"), id kept — its
-         value is the lit button's, its options are its buttons. */
-      const sel = document.getElementById('cal-days');
-      const lit = sel && sel.querySelector('[data-cal-days].on');
-      return { sel: !!sel, value: lit && lit.getAttribute('data-cal-days'),
-        options: sel ? [...sel.querySelectorAll('[data-cal-days]')].map(o => ({ v: o.getAttribute('data-cal-days'), t: o.textContent.trim() })) : [],
-        h5: !!document.querySelector('.cal-panel-head h5'),
-        rows: document.querySelectorAll('#cal-agenda .cal-upn').length,
-        count: (document.querySelector('.cal-cnt') || {}).textContent };
-    });
-    /* RE-POINTED 27 Sep 2026 (T3): REVERSED by the owner on 21 Sep ("the
-       calendar must look exactly like the artifact") — a heading AND a segment
-       of four numbers; one value (calAgendaDays) answers both. */
-    check('a heading names the window and the segment beside it changes it',
-      cal0.sel && cal0.h5, JSON.stringify({ sel: cal0.sel, h5: cal0.h5 }));
-    check('four windows are offered, each naming its own',
-      cal0.options.length === 4 && cal0.options.every(o => /14|30|60|90/.test(o.t)),
-      JSON.stringify(cal0.options.map(o => o.t)));
-    check('a reader who touches nothing still gets a fortnight',
-      cal0.value === '14', String(cal0.value));
-
-    await page.evaluate(() => {
-      /* Four expiries, one inside the fortnight and three beyond it, so the
-         window has something to include AND something to leave out. In memory:
-         renderCalendar reads state.contracts directly. */
-      const mk = (n, i) => { const d = new Date(); d.setDate(d.getDate() + n);
-        return { id: 'WIN-' + i, name: 'Window ' + i, status: 'Signed', folder: 'proc',
-          counterparty: 'Y', expiry: d.toISOString().slice(0, 10), obligations: [], audit: [] }; };
-      state.contracts = state.contracts.concat([mk(5, 1), mk(25, 2), mk(50, 3), mk(80, 4)]);
-      renderCalendar();
-    });
-    await page.waitForTimeout(600);
-    const cal14 = await page.evaluate(() => document.querySelectorAll('#cal-agenda .cal-upn').length);
-    check('with events staged, the fortnight holds only what falls inside it',
-      cal14 >= 1, String(cal14));
-    const widened = await page.evaluate(() => {
-      calSetAgendaDays(90);
-      const lit = document.querySelector('#cal-days [data-cal-days].on');
-      return { value: lit && lit.getAttribute('data-cal-days'),
-        rows: document.querySelectorAll('#cal-agenda .cal-upn').length,
-        count: (document.querySelector('.cal-cnt') || {}).textContent,
-        empty: !!document.querySelector('#cal-agenda .cal-empty'),
-        heading: lit ? lit.textContent.trim() : '' };
-    });
-    await page.waitForTimeout(400);
-    check('CHOOSING NINETY DAYS CHANGES WHAT THE LIST HOLDS — counted as rows',
-      widened.rows > cal14, `${cal14} → ${widened.rows}`);
-    check('and the heading, the count and the list all name the same window',
-      /90/.test(widened.heading) && String(widened.count) === String(widened.rows || widened.count),
-      JSON.stringify({ heading: widened.heading, count: widened.count, rows: widened.rows }));
-    await page.screenshot({ path: path.join(OUT, '06-calendar-90.png') });
-
-    /* THE EMPTY STATE NAMES THE WINDOW THAT IS SHOWING. */
-    const emptyNames = await page.evaluate(() => {
-      const keep = state.contracts;
-      state.contracts = [];
-      renderCalendar();
-      const t = document.querySelector('#cal-agenda').textContent;
-      state.contracts = keep;
-      return t;
-    });
-    check('an empty window names THAT window, not the default',
-      /90/.test(emptyNames) && !/\b14\b/.test(emptyNames), emptyNames.replace(/\s+/g, ' ').slice(0, 80));
-    await page.evaluate(() => { calSetAgendaDays(14); renderCalendar(); });
-    await page.waitForTimeout(500);
-
-    /* THE CAP SAYS SO ONLY WHEN IT BITES. */
-    const capped = await page.evaluate(() => {
-      const before = !!document.querySelector('.cal-panel-cap');
-      /* Fifty contracts expiring inside the window, so the forty-row ceiling
-         is genuinely reached rather than asserted. */
-      const extra = [];
-      for (let i = 0; i < 50; i++) {
-        const d = new Date(); d.setDate(d.getDate() + 3 + (i % 20));
-        extra.push({ id: 'CAP-' + i, name: 'Cap ' + i, status: 'Signed', folder: 'proc',
-          counterparty: 'X', expiry: d.toISOString().slice(0, 10), obligations: [], audit: [] });
-      }
-      const keep = state.contracts;
-      state.contracts = keep.concat(extra);
-      calSetAgendaDays(90); renderCalendar();
-      const cap = (document.querySelector('.cal-panel-cap') || {}).textContent || '';
-      const rows = document.querySelectorAll('#cal-agenda .cal-upn').length;
-      state.contracts = keep; calSetAgendaDays(14); renderCalendar();
-      return { before, cap: cap.trim(), rows };
-    });
-    check('below the cap it says NOTHING — a caveat always there is unread',
-      capped.before === false);
-    check('AND PAST FORTY IT SAYS HOW MANY OF HOW MANY',
-      /40/.test(capped.cap) && /\d{2,}/.test(capped.cap) && capped.rows === 40,
-      `${capped.rows} rows · "${capped.cap}"`);
+    await page.waitForTimeout(900);
+    const gone = await page.evaluate(() => ({ agenda: !!document.getElementById('cal-agenda'),
+      windows: document.querySelectorAll('[data-cal-days]').length, copilot: !!document.getElementById('cal-plan') }));
+    check('the agenda and its window are gone, and Copilot stands in their place',
+      !gone.agenda && gone.windows === 0 && gone.copilot, JSON.stringify(gone));
 
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {

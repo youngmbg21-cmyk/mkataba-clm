@@ -35,6 +35,10 @@
    --st-ruby-dot and Copilot's plan dashed edge --alt). Audited as a set
    difference: 8 new keys, all those swatches; 0 gone. Every Ink Wash claim
    passed before and after.
+   RE-RECORDED AGAIN 11 Oct 2026, OWNER-ASKED ("Yes, update it"): the
+   Calendar became one card with Copilot beside it (the design). Audited as a
+   set difference: only the three calendar screens moved (green-light sizes,
+   green-dark and navy-dark colours); every other screen is byte-identical.
      node test/chromium/ink-wash-verify.js          (check)
    ============================================================ */
 const fs = require('node:fs');

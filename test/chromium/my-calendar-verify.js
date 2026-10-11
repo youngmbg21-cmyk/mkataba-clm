@@ -6,7 +6,7 @@
      1. the views are Month · Week · Horizon
      2. + New event writes an event to MY calendar; it shows in the Week at its
         day and hour, and in the Month as a chip
-     3. the day's number in the Month opens that week
+     3. a day in the Month opens that week (the whole box, 11 Oct 2026)
      4. the layers hide and show: My calendar off takes the event away
      5. Copilot's plan (the route stubbed): suggestions are dashed with
         Add · Discard; Add puts the block in the calendar (stored), Undo takes
@@ -80,9 +80,10 @@ const check = (name, pass, detail) => {
     await page.evaluate(day => { const d = new Date(day + 'T00:00:00'); calState.ym = { y: d.getFullYear(), m: d.getMonth() }; calSetView('month'); }, D.day);
     const chip = await until(id => !!document.querySelector(`#cal-grid .cal-chip[data-cal-mine="${id}"]`), stored && stored.id);
     check('2c. the Month shows it as a chip of my calendar', !!chip);
-    await page.click(`#cal-grid .cal-dn[data-cal-week="${D.day}"]`);
+    /* the whole day box opens its week since 11 Oct 2026 (the design) */
+    await page.click(`#cal-grid .cal-day[data-cal-week="${D.day}"] .cal-dn`);
     const wk = await until(() => calView() === 'week' && !!document.getElementById('cal-week'));
-    check('3. the day\'s number in the Month opens that week', !!wk);
+    check('3. a day in the Month opens that week', !!wk);
 
     /* 4. the layers */
     await page.click('[data-cal-lay="me"]');

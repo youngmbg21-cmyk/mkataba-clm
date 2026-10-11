@@ -34,7 +34,15 @@
  *   4. More wears the same outline as Export and Share beside it.
  *
  * Every driven half is guarded, so a missing control REPORTS rather than
- * times out. */
+ * times out.
+ *
+ * RE-POINTED 11 Oct 2026 — ONE CARD, CALENDAR + COPILOT (Young: "build it
+ * exactly as designed"; Next 14 days removed by Young's choice). The owner's
+ * rule is unchanged and is what 1b/1c still ask: the month keeps one height.
+ * What used to move it (the agenda's 14 · 30 · 60 · 90) is gone; what a reader
+ * now touches beside it is the three layers and Copilot, whose answer grows a
+ * conversation of cards — so those are driven instead, and Copilot's answer
+ * scrolls inside its own panel rather than pushing the month. */
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
@@ -92,27 +100,39 @@ const OFFSETS = [3, 6, 9, 12, 20, 26, 35, 44, 52, 61, 70, 78, 85, 88];
       const r = el => el ? +el.getBoundingClientRect().height.toFixed(2) : null;
       /* the month sits in its own column beside the agenda since 9 Oct 2026
          (SAP benchmark, batch 2), so it is found inside the stack, not on it */
-      const grid = document.querySelector('.cal-stack .cal-grid');
-      const panel = document.querySelector('.cal-stack .cal-panel');   /* inside .cal-side since 9 Oct 2026 */
+      const grid = document.querySelector('.cal-view .cal-grid');
+      const panel = document.getElementById('cal-plan');   /* Copilot, beside every view since 11 Oct 2026 */
       const pg = document.querySelector('.cal-page');
       const body = document.querySelector('.cal-body');
       return { grid: r(grid), panel: r(panel), day: r(document.querySelector('.cal-day')),
-        page: r(pg), rows: document.querySelectorAll('#cal-agenda .cal-upn').length,
+        page: r(pg), rows: document.querySelectorAll('#cal-plan .cal-prop').length,
         over: body ? Math.max(0, body.scrollHeight - body.clientHeight) : null };
     });
 
     const base = await measure();
-    ok('0 the month and the agenda are both on the page',
+    ok('0 the month and Copilot are both on the page',
       base.grid != null && base.panel != null && base.day != null, JSON.stringify(base));
 
     /* ===== 1. IT HOLDS STILL ===== */
     const seen = [{ at: 'at rest', ...base }];
-    for (const n of [14, 60, 90, 30]){
-      const there = await page.$(`[data-cal-days="${n}"]`);
-      if (!there){ ok(`1 the ${n}-day window is a control on the page`, false, 'not drawn'); continue; }
-      await there.click(); await pause(500);
-      seen.push({ at: 'window ' + n, ...(await measure()) });
+    for (const k of ['ct', 'me', 'cp']){
+      const there = await page.$(`[data-cal-lay="${k}"]`);
+      if (!there){ ok(`1 the ${k} layer is a control on the page`, false, 'not drawn'); continue; }
+      await there.click(); await pause(400); seen.push({ at: 'layer ' + k + ' off', ...(await measure()) });
+      await page.click(`[data-cal-lay="${k}"]`); await pause(400);
     }
+    /* Copilot answers (the route stubbed in the page): eight suggestions, so
+       its conversation is longer than its panel. */
+    await page.evaluate(() => {
+      const iso = o => { const t = new Date(); t.setDate(t.getDate() + o);
+        return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; };
+      const real = window.api;
+      window.api = async (p, m, b) => p === 'ai/plan' ? { say: 'Eight blocks before your dates.', dropped: 0,
+        blocks: Array.from({ length: 8 }, (_, i) => ({ date: iso(3 + i), start: '10:00', end: '11:00', title: 'Prepare CH-' + i, why: 'Its date is close and you are free.' })) } : real(p, m, b);
+    });
+    const q = await page.$('[data-cal-plan-q="week"]');
+    if (q){ await q.click(); await pause(900); seen.push({ at: 'Copilot answered', ...(await measure()) }); }
+    else ok('1 Copilot\'s prepared question is on the page', false, 'not drawn');
     for (const id of ['cal-prev', 'cal-next']){
       const b = await page.$('#' + id);
       if (!b){ ok(`1 #${id} is a control on the page`, false, 'not drawn'); continue; }
@@ -128,36 +148,30 @@ const OFFSETS = [3, 6, 9, 12, 20, 26, 35, 44, 52, 61, 70, 78, 85, 88];
     seen.push({ at: 'back from Horizon', ...(await measure()) });
 
     const counts = [...new Set(seen.map(s => s.rows))];
-    ok('1a the agenda really did change — four windows, different row counts',
-      counts.length >= 3, 'row counts seen: ' + counts.join(', '));
+    ok('1a Copilot really did answer beside it — its cards came and the month was measured either side',
+      counts.length >= 2 && Math.max(...counts) === 8, 'cards seen: ' + counts.join(', '));
     const heights = [...new Set(seen.map(s => s.grid))];
     ok('1b the month card is the SAME height throughout',
       heights.length === 1, seen.map(s => `${s.at}=${s.grid}`).join('  '));
     const days = [...new Set(seen.map(s => s.day))];
     ok('1c and so is a single day box',
       days.length === 1, seen.map(s => `${s.at}=${s.day}`).join('  '));
-    /* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2 — the drawing
-       is the target): Next 14 days now stands BESIDE the month, as tall as
-       its rows (the drawing's card ends under its last row). What keeps the
-       month still is no longer the agenda's one height but that the agenda
-       is its own column: it may grow, up to the month's own height, and never
-       past it. 1b and 1c above are the owner's rule itself and are unchanged. */
-    const tallest = seen.filter(s => s.panel != null && s.grid != null && s.panel > s.grid + 60);
-    ok('1d because the agenda card is its own column, never taller than the month beside it',
-      tallest.length === 0, seen.map(s => `${s.at}=${s.panel}/${s.grid}`).join('  '));
+    const tallest = seen.filter(s => s.panel != null && s.grid != null && s.panel > s.page);
+    ok('1d because Copilot is its own column, never taller than the page it sits on',
+      tallest.length === 0, seen.map(s => `${s.at}=${s.panel}/${s.page}`).join('  '));
 
     /* ===== 2. AND NOTHING SPILLS ===== */
     const spill = seen.filter(s => s.over > 1);
-    ok('2a the page never has to scroll to reach the agenda',
+    ok('2a the page never has to scroll to reach Copilot',
       spill.length === 0, spill.map(s => `${s.at}+${s.over}`).join(', ') || 'none');
     const scroller = await page.evaluate(() => {
-      const el = document.getElementById('cal-agenda');
+      const el = document.getElementById('cal-plan-body');
       if (!el) return null;
       return { can: el.scrollHeight > el.clientHeight, oy: getComputedStyle(el).overflowY,
-        rows: el.querySelectorAll('.cal-upn').length };
+        rows: el.querySelectorAll('.cal-prop').length };
     });
-    ok('2b a long agenda is reachable inside its own card',
-      !!scroller && scroller.oy === 'auto', JSON.stringify(scroller));
+    ok('2b a long answer is reachable inside Copilot\'s own panel',
+      !!scroller && scroller.oy === 'auto' && scroller.can, JSON.stringify(scroller));
 
     /* ===== 3. THE DATE BOXES ARE TILES ===== */
     const tile = await page.evaluate(() => {
@@ -189,7 +203,9 @@ const OFFSETS = [3, 6, 9, 12, 20, 26, 35, 44, 52, 61, 70, 78, 85, 88];
       /* Export and Share went INTO the ⋯ menu on 9 Oct 2026 (SAP benchmark,
          batch 2), so the neighbours ⋯ must match are now the two switches
          beside it on the same row. */
-      const peers = [...document.querySelectorAll('.cal-acts > .cal-seg')].map(p => {
+      /* ⋯ stands alone in the page head since 11 Oct 2026; its neighbours are
+         the calendar card's own buttons, and what must match is the OUTLINE */
+      const peers = [...document.querySelectorAll('#cal-today, #cal-new')].map(p => {
         const c = getComputedStyle(p);
         return { id: p.id || p.className, edge: c.borderTopColor, w: c.borderTopWidth, st: c.borderTopStyle,
           h: Math.round(p.getBoundingClientRect().height) };
@@ -207,7 +223,7 @@ const OFFSETS = [3, 6, 9, 12, 20, 26, 35, 44, 52, 61, 70, 78, 85, 88];
       row && JSON.stringify(row.more));
     ok('4b the same one its neighbours wear',
       !!row && row.peers.length > 0 && row.peers.every(p =>
-        p.edge === row.more.edge && p.w === row.more.w && p.st === row.more.st && p.h === row.more.h),
+        p.edge === row.more.edge && p.w === row.more.w && p.st === row.more.st),
       row && JSON.stringify(row));
 
     await page.screenshot({ path: path.join(OUT, '1-month.png') });

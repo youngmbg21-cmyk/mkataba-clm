@@ -135,7 +135,7 @@ CAL_EVENT.mine = { dot:'var(--color-accent-600)', fg:'var(--accent-ink)', bg:'va
   get label(){ return i18t('cal_lg_mine'); }, get short(){ return i18t('cal_k_mine'); } };
 CAL_EVENT.note = { dot:'var(--color-neutral-500)', fg:'var(--color-neutral-700, var(--color-text))', bg:'var(--surface-2, var(--color-neutral-100))',
   get label(){ return i18t('cal_lg_note'); }, get short(){ return i18t('cal_k_note'); } };
-CAL_EVENT.plan = { dot:'var(--alt)', fg:'var(--alt-ink)', bg:'var(--alt-soft)',
+CAL_EVENT.plan = { dot:'var(--cal-cp)', fg:'var(--cal-cp)', bg:'var(--cal-cp-bg)',
   get label(){ return i18t('cal_lg_plan'); }, get short(){ return i18t('cal_k_plan'); } };
 // priority when a day carries more than one kind of event (drives its tint)
 const CAL_PRIORITY = ['expiry','renewal','obligation','round','mine','note','plan'];
@@ -244,7 +244,7 @@ function calEventMine(e, u){
    shows its month; Quarter and List show that month and the two after it. */
 function calPeriod(){
   const {y,m}=calMonth(), view=calView();
-  if(view==='week'){ const a=calWeekStart(), z=calAddDays(a,6);
+  if(view==='week'){ const a=calWeekStart(), z=calAddDays(a,CAL_WEEK_DAYS-1);
     return { months:[{y:a.getFullYear(),m:a.getMonth()}], from:_isoLocal(a), to:_isoLocal(z) }; }
   const months=[{y,m}];
   if(view!=='month') for(let i=1;i<3;i++){ const d=new Date(y,m+i,1); months.push({y:d.getFullYear(),m:d.getMonth()}); }
@@ -404,21 +404,14 @@ function calMonthGridHtml(y, m, byDay, opts){
     const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(dnum).padStart(2,'0')}`;
     const list=byDay[iso]||[];
     const today=iso===todayIso;
-    const cids=Array.from(new Set(list.map(e=>e.cid).filter(Boolean)));
     const dayName=new Date(y,m,dnum).toLocaleDateString(langLocale(),{day:'numeric',month:'long',year:'numeric'});
-    /* ---- THE WHOLE BOX IS THE DOOR ----
-       Pressing anything in a day cell goes to the register narrowed to that
-       day's contracts; the document opens only when the day holds exactly one.
-       It is CONTRACTS, not events — one contract can put two marks on one day
-       (an expiry and the renewal decision that defaults to it), and sending a
-       reader to a list to choose between two rows about the same agreement is
-       a choice with one answer. The chips are spans and fall through to the
-       cell, so the count question is asked in exactly one place. */
-    const attrs=cids.length
-      ? ` role="button" tabindex="0" data-cal-day="${iso}" title="${_esc(cids.length===1
-          ? i18t('cal_open_this',{name:list[0].cname})
-          : i18t('cal_choose_from',{n:cids.length,day:dayName}))}"`
-      : '';
+    /* ---- THE WHOLE BOX OPENS ITS WEEK, A CONTRACT OPENS ITS CONTRACT (Young,
+       11 Oct 2026: "Press a day in Month to open its week ... Pressing a
+       contract anywhere opens that contract") ----
+       The box is the week's door (a real tab stop, Enter and Space); each
+       contract chip is that contract's door, pressed before the box. The
+       register narrowed to a day (data-cal-day) is STALE. */
+    const attrs=compact?'':` role="button" tabindex="0" data-cal-week="${iso}" title="${_esc(i18t('cal_open_week_of',{day:dayName}))}"`;
     let inner='';
     if(compact){
       const dots=list.slice(0,4).map(e=>_dot(CAL_EVENT[e.type].dot,5)).join('');
@@ -440,20 +433,17 @@ function calMonthGridHtml(y, m, byDay, opts){
            carries no title and the browser walks up to the cell's own
            ("choose from N on 30 August"), which is where the press really
            lands. */
-        const t=cids.length===1?` title="${_esc(ev.label+': '+(e.note||e.cname))}"`:'';
+        const t=` title="${_esc(ev.label+': '+(e.note||e.cname))}"`;
         /* the chip's reference wears the reference face (calChipText stays the text) */
         /* the drawing's chip names the contract after its reference ("Ends · MK-A6 Flour…") */
         if(e.own){
           return `<span class="cal-chip cal-own is-${e.type}${e.st==='added'?' is-added':''}" ${e.own} title="${_esc(e.title)}" style="border-left-color:${ev.dot};background:${ev.bg};color:${ev.fg}">${_esc(e.chip)}</span>`;
         }
         const chip=e.type==='obligation'?_esc(calChipText(e)):_esc(CAL_EVENT[e.type].short)+' · '+(window.refHtml?refHtml(e.cref||e.cid):_esc(e.cref||e.cid))+(e.cname?' '+_esc(e.cname):'');
-        return `<span class="cal-chip${e.done?' is-done':''}"${t} style="border-left-color:${ev.dot};background:${ev.bg};color:${ev.fg}">${chip}</span>`;
+        return `<span class="cal-chip${e.done?' is-done':''}" data-cal-ct="${_esc(e.cid)}"${t} style="border-left-color:${ev.dot};background:${ev.bg};color:${ev.fg}">${chip}</span>`;
       }).join('')+(more>0?`<span class="cal-more">${i18t('cal_n_more',{n:more})}</span>`:'')+`</span>`;
     }
-    /* THE DAY'S NUMBER OPENS ITS WEEK (10 Oct 2026); the rest of the box is
-       still the door to that day's contracts. */
-    const dn=compact?`<span class="cal-dn">${dnum}</span>`
-      :`<span class="cal-dn" data-cal-week="${iso}" title="${_esc(i18t('cal_open_week'))}">${dnum}</span>`;
+    const dn=`<span class="cal-dn">${dnum}</span>`;
     cells.push(`<div class="cal-day${today?' is-today':''}"${attrs}>${dn}${inner}</div>`);
   }
   /* id="cal-grid" is KEPT from the grid this replaces, and only the MONTH view
@@ -499,13 +489,6 @@ function calLegendHtml(evs){
    way to change month — so the sub-line's month becomes the control it was
    already sitting beside: prev, the month (which is Today), next. The word
    only the arrows carried is on their titles as it always was. */
-function calMonthStepHtml(y, m){
-  return `<span class="cal-sel">
-      <button id="cal-prev" title="${_esc(i18t('cal_prev_month'))}" aria-label="${_esc(i18t('cal_prev_month'))}">${icon('chevL','w-3.5 h-3.5')}</button>
-      <button id="cal-today" class="cal-sel-now">${_esc(calMonthName(y,m))}</button>
-      <button id="cal-next" title="${_esc(i18t('cal_next_month'))}" aria-label="${_esc(i18t('cal_next_month'))}">${icon('chevR','w-3.5 h-3.5')}</button>
-    </span>`;
-}
 
 
 /* ---- THE HORIZON: WHEN THE BOOK RUNS OUT (owner-ruled 24 Aug 2026) ----
@@ -787,39 +770,25 @@ function renderCalendar(){
     main=calHorizonHtml();
   }
 
+  /* ---- ONE CARD: THE CALENDAR AND COPILOT BESIDE IT (Young, 11 Oct 2026:
+         "build it exactly as designed" — the HaTi Proposals artifact, Part 3)
+         ----
+         The calendar and its Copilot are ONE card: on the left a bar with
+         ‹ Today ›, the period's name and Month · Week · Horizon; under it (Month
+         and Week) the layers on the left, the scope and + New event on the
+         right; then the view. On the right, in EVERY view, Copilot. Next 14
+         days left the page with it (Young chose "Remove it", 11 Oct 2026): the
+         same dates are on the month itself and in Horizon. The page head keeps
+         the name and the ⋯ (Export, Share, Print, Open register), ids kept. */
+  const title=view==='month'?calMonthName(y,m):view==='week'?calWeekTitle():i18t('cal_hz_bar');
+  const navOff=view==='horizon'?' disabled':'';
   document.getElementById('content').innerHTML=`
   <div class="view-enter cal-page">
     <style>${calStyleCss()}</style>
     <div class="cal-head">
-      ${''/* The NAV'S OWN WORD, not pg_calendar's "Renewal Calendar &
-             Obligations" — this file's own rule two pages up: one feature
-             answering to two names is one name too many for a reader trying to
-             say where they were. The render draws "Calendar" and so does the
-             sidebar. */}
-      ${''/* THE TITLE SITS OVER ITS OWN SUB-LINE (21 Sep 2026) — the
-             reference's page head, and every other page in HaTi. The two
-             facts are unchanged and in the same order; they were beside the
-             title on one row, which made the head read as a sentence rather
-             than a heading. */}
-      ${''/* ---- THE SAP BENCHMARK, BATCH 2 (owner said "go", 9 Oct 2026) ----
-             The drawing's head is ONE row: the name, the month stepper beside
-             it, and on the right the two switches and a ⋯ that holds Export,
-             Share, Print and Open register. The "N decisions this week" line
-             is not in the drawing and goes — the decisions are on the month
-             and in Next 14 days, so the line said a fact twice. The ids of
-             Export and Share are kept on the menu rows, so every handler and
-             every test reaches the same act. */}
-      <span class="cal-head-l">
-        <span class="ttl">${_esc(i18t('nav_calendar'))}</span>
-        <span class="cal-head-sub">${view==='month'?calMonthStepHtml(y,m):view==='week'?calWeekStepHtml()
-          :_esc(i18t('cal_three_months',{from:calMonthName(y,m),to:calMonthName(p.months[2].y,p.months[2].m)}))}</span>
-      </span>
+      <span class="cal-head-l"><span class="ttl">${_esc(i18t('nav_calendar'))}</span></span>
       <span class="g"></span>
       <div class="cal-acts">
-        ${view==='horizon'?'':calLayerSegHtml()}
-        <span class="cal-seg cal-seg-view">${seg('month',i18t('cal_v_month'),null)}${seg('week',i18t('cal_v_week'),null)}${seg('horizon',i18t('cal_v_horizon'),null)}</span>
-        <span class="cal-seg">${scopeSeg('all',i18t('cal_all_dates'))}${scopeSeg('mine',i18t('cal_mine'))}</span>
-        ${view==='horizon'?'':`<button class="ui-btn ui-btn-sm" id="cal-new">${_esc(i18t('cal_new_event'))}</button>`}
         <button class="ui-btn ws-more-btn cal-more-ic" id="cal-more" aria-haspopup="true" aria-expanded="false" title="${_esc(i18t('ct_more'))}" aria-label="${_esc(i18t('ct_more'))}">${icon('more','w-4 h-4')}</button>
         <div id="cal-more-menu" class="cal-menu" hidden>
           <button id="cal-export" title="${_esc(i18t('cal_export_title'))}">${_esc(i18t('cal_export'))}</button>
@@ -830,12 +799,28 @@ function renderCalendar(){
       </div>
     </div>
     <div class="cal-body">
-      ${''/* ---- THE AGENDA IS THE MONTH'S COMPANION, NOT THE PAGE'S ----
-             The design pairs "Next 14 days" with the month grid alone (its
-             Month tab is the only one drawn as 1fr 304px), and Horizon wants
-             every pixel it can get for its twelve months. */}
-      <div class="cal-stack${view==='horizon'?' is-wide':''}">${main}${view==='month'?`<div class="cal-side">${calPanelHtml(evs)}</div>`
-        :view==='week'?`<div class="cal-side">${calPlanHtml()}</div>`:''}</div>
+      <section class="cal-stage${view==='horizon'?' is-hz':''}" id="cal-stage">
+        <div class="cal-main">
+          <div class="cal-bar1">
+            <span class="cal-nav">
+              <button type="button" class="ui-btn ui-btn-sm cal-nb" id="cal-prev"${navOff} title="${_esc(i18t(view==='week'?'cal_prev_week':'cal_prev_month'))}" aria-label="${_esc(i18t(view==='week'?'cal_prev_week':'cal_prev_month'))}">${icon('chevL','w-3.5 h-3.5')}</button>
+              <button type="button" class="ui-btn ui-btn-sm" id="cal-today"${navOff}>${_esc(i18t('cal_today'))}</button>
+              <button type="button" class="ui-btn ui-btn-sm cal-nb" id="cal-next"${navOff} title="${_esc(i18t(view==='week'?'cal_next_week':'cal_next_month'))}" aria-label="${_esc(i18t(view==='week'?'cal_next_week':'cal_next_month'))}">${icon('chevR','w-3.5 h-3.5')}</button>
+            </span>
+            <span class="cal-title" id="cal-title">${_esc(title)}</span>
+            <span class="cal-seg cal-seg-view" role="group" aria-label="${_esc(i18t('cal_v_group'))}">${seg('month',i18t('cal_v_month'),null)}${seg('week',i18t('cal_v_week'),null)}${seg('horizon',i18t('cal_v_horizon'),null)}</span>
+          </div>
+          ${view==='horizon'?'':`<div class="cal-bar2">
+            ${calLayerSegHtml()}
+            <span class="cal-bar2-r">
+              <span class="cal-seg">${scopeSeg('all',i18t('cal_all_dates'))}${scopeSeg('mine',i18t('cal_mine'))}</span>
+              <button class="ui-btn ui-btn-sm" id="cal-new">${_esc(i18t('cal_new_event'))}</button>
+            </span>
+          </div>`}
+          <div class="cal-view${view==='horizon'?' is-wide':''}">${main}</div>
+        </div>
+        ${calPlanHtml()}
+      </section>
     </div>
   </div>`;
 
@@ -1333,16 +1318,16 @@ function calStyleCss(){ return `
   .cal-lays{display:inline-flex;gap:4px;flex-wrap:wrap}
   .cal-lay{display:inline-flex;align-items:center;gap:5px;height:var(--ctl-h-sm);padding:0 8px;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface);color:var(--color-neutral-700,var(--color-text));font:inherit;font-size:var(--t-label);font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
   .cal-lay i{width:8px;height:8px;border-radius:2px}
-  .cal-lay.is-ct i{background:var(--st-ruby-dot)} .cal-lay.is-me i{background:var(--color-accent-600)} .cal-lay.is-cp i{border:1.5px dashed var(--alt)}
+  .cal-lay.is-ct i{background:var(--st-ruby-dot)} .cal-lay.is-me i{background:var(--color-accent-600)} .cal-lay.is-cp i{border:1.5px dashed var(--cal-cp)}
   .cal-lay[aria-pressed="false"]{opacity:.55;text-decoration:line-through}
   .cal-lay:focus-visible,.cal-wk-slot:focus-visible,.cal-wk-blk:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:1px}
   .cal-dn[data-cal-week]{cursor:pointer;border-radius:3px}
   .cal-dn[data-cal-week]:hover{background:var(--color-accent-50);color:var(--accent-ink)}
   .cal-chip.cal-own{cursor:pointer}
-  .cal-chip.is-plan{border:1px dashed var(--alt);border-left-width:3px}
+  .cal-chip.is-plan{border:1px dashed var(--cal-cp);border-left-width:3px}
   .cal-wk-card{height:calc(var(--cal-day-h) * 6 + 28px)}
   .cal-wk{display:flex;flex-direction:column;min-height:0;height:100%}
-  .cal-wk-hd,.cal-wk-alls,.cal-wk-grid{display:grid;grid-template-columns:52px repeat(7,minmax(0,1fr))}
+  .cal-wk-hd,.cal-wk-alls,.cal-wk-grid{display:grid;grid-template-columns:52px repeat(${CAL_WEEK_DAYS},minmax(0,1fr))}
   .cal-wk-hd{border-bottom:1px solid var(--color-divider)}
   .cal-wk-h{padding:6px 8px;font-size:var(--t-label);color:var(--color-neutral-600);border-left:1px solid var(--color-divider)}
   .cal-wk-h b{display:block;font-size:var(--t-h3, 16px);color:var(--color-text);font-weight:var(--w-strong)}
@@ -1362,7 +1347,7 @@ function calStyleCss(){ return `
   .cal-wk-blk{position:absolute;left:3px;right:3px;border:0;border-left:3px solid var(--color-accent-600);border-radius:4px;background:var(--color-accent-50);color:var(--accent-ink);text-align:left;padding:2px 5px;font:inherit;font-size:var(--t-micro);line-height:1.3;overflow:hidden;cursor:pointer;display:flex;flex-direction:column}
   .cal-wk-blk b{font-weight:var(--w-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .cal-wk-blk small{opacity:.85}
-  .cal-wk-blk.is-plan{border:1.5px dashed var(--alt);background:var(--alt-soft);color:var(--alt-ink)}
+  .cal-wk-blk.is-plan{border:1.5px dashed var(--cal-cp);background:var(--cal-cp-bg);color:var(--cal-cp)}
   .cal-plan{height:100%;max-height:100%}
   .cal-plan-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px;padding:var(--s-3) var(--s-4);border-bottom:1px solid var(--color-divider)}
   .cal-plan-lv{display:inline-flex;align-items:center;gap:6px;font-size:var(--t-label);color:var(--color-neutral-600)}
@@ -1373,10 +1358,10 @@ function calStyleCss(){ return `
   .cal-plan-busy{margin:0;display:flex;gap:8px;align-items:center;font-size:var(--t-meta);color:var(--color-neutral-600)}
   .cal-plan-cost{margin:0;padding:0 var(--s-4) var(--s-3);font-size:var(--t-label);color:var(--color-neutral-600)}
   .cal-plan-body .cal-plan-cost{padding:0}
-  .cal-prop{border:1.5px dashed var(--alt);background:var(--alt-soft);border-radius:var(--radius);padding:7px 9px;display:flex;flex-direction:column;gap:3px;font-size:var(--t-meta)}
+  .cal-prop{border:1.5px dashed var(--cal-cp);background:var(--cal-cp-bg);border-radius:var(--radius);padding:7px 9px;display:flex;flex-direction:column;gap:3px;font-size:var(--t-meta)}
   .cal-prop.is-added{border-style:solid;border-color:var(--color-accent-100);background:var(--color-surface)}
   .cal-prop.is-gone{border-color:var(--color-divider);background:none;color:var(--color-neutral-600);flex-direction:row;align-items:center;justify-content:space-between}
-  .cal-prop.is-lit{box-shadow:0 0 0 2px var(--alt)}
+  .cal-prop.is-lit{box-shadow:0 0 0 2px var(--cal-cp)}
   .cal-prop small{color:var(--color-neutral-700,var(--color-text))}
   .cal-prop .av{display:flex;gap:6px;margin-top:4px}
   .cal-prop button,.cal-plan-chips button,.cal-plan-ask button{height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm,8px);font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);color:var(--color-text);cursor:pointer;white-space:nowrap}
@@ -1402,6 +1387,76 @@ function calStyleCss(){ return `
   .cal-evd-del{color:var(--st-ruby-fg)}
   .cal-evd-say{margin:0;min-height:1em;font-size:var(--t-label);color:var(--st-ruby-fg)}
   .cal-evd-why,.cal-evd-priv{margin:0;font-size:var(--t-label);color:var(--color-neutral-600)}
+  ${''/* ---- ONE CARD, THE CALENDAR AND COPILOT (Young, 11 Oct 2026: "build it
+         exactly as designed") ---- the artifact's own measures: the card is the
+         page's surface with one hairline and the large radius; the calendar
+         takes what is left and Copilot a fixed 340px; two bars across the
+         calendar's top, 12/16 and 8/16; under 980px Copilot stacks under it.
+         Copilot's colour is the design's violet, dashed while a suggestion and
+         solid once added — the page's own tokens, said once here. */}
+  .cal-page{--cal-cp:#6B4FBB;--cal-cp-bg:#F2EEFB}
+  html.dark .cal-page{--cal-cp:#B9A4F2;--cal-cp-bg:#221B3A}
+  .cal-page .cal-body{flex-direction:column}
+  ${''/* THE CARD IS THE PAGE'S HEIGHT, NOT ITS CONTENT'S: one row of
+         minmax(0,1fr), so a long Copilot answer scrolls inside its own panel
+         and never makes the month taller (THE MONTH NEVER CHANGES HEIGHT, owner
+         4 Oct 2026; calendar-holds-still 1b). */}
+  .cal-stage{flex:1 1 0;min-height:560px;display:grid;grid-template-columns:minmax(0,1fr) 340px;grid-template-rows:minmax(0,1fr);border:1px solid var(--color-divider);
+    border-radius:var(--radius-lg);background:var(--color-surface);overflow:hidden}
+  .cal-main{min-width:0;display:flex;flex-direction:column}
+  .cal-bar1{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:12px 16px;border-bottom:1px solid var(--color-divider)}
+  .cal-nav{display:inline-flex;gap:4px;flex:none}
+  .cal-nav .ui-btn{border-color:var(--btn-edge, var(--color-divider))}
+  .cal-nav .cal-nb{padding:0 9px}
+  .cal-nav .ui-btn:disabled{opacity:.45;cursor:default}
+  .cal-title{font-size:17px;font-weight:var(--w-title);margin-right:auto;color:var(--color-text);white-space:nowrap;font-variant-numeric:tabular-nums}
+  .cal-bar2{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;padding:8px 16px;border-bottom:1px solid var(--color-divider)}
+  .cal-bar2-r{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .cal-bar2 .cal-seg{height:var(--ctl-h-sm)}
+  .cal-bar2 .cal-seg span{font-size:var(--t-meta)}
+  .cal-lay{height:26px;padding:0 9px;border-color:var(--btn-edge, var(--color-divider));font-size:var(--t-meta)}
+  .cal-lay i{width:9px;height:9px}
+  .cal-view{flex:1;min-height:0;padding:12px 16px 16px;display:flex;flex-direction:column;overflow:auto}
+  .cal-view .cal-month{flex:1;min-height:0;align-self:stretch;min-width:0}
+  .cal-view .cal-month > .cal-card{flex:1 1 auto;min-width:0}
+  .cal-view .cal-grid{border:0;box-shadow:none;background:none;padding:0}
+  .cal-view .cal-wk-card{border:0;box-shadow:none;padding:0}
+  .cal-day[data-cal-week]{cursor:pointer}
+  .cal-day[data-cal-week]:hover{border-color:var(--color-accent-100)}
+  .cal-day[data-cal-week]:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:1px}
+  .cal-chip[data-cal-ct]{cursor:pointer}
+  /* Copilot */
+  .cal-cop{border-left:1px solid var(--color-divider);display:flex;flex-direction:column;min-width:0;min-height:0}
+  .cal-cop .cal-plan-head{padding:12px 14px}
+  .cal-cop .cal-plan-head b{font-size:var(--t-body)}
+  .cal-cop .cal-plan-lv{font-size:var(--t-meta);color:var(--color-neutral-600)}
+  .cal-cop .cal-plan-lv select{border:0;background:none;font-weight:var(--w-label);color:var(--color-text);padding:0 2px;height:auto;cursor:pointer}
+  .cal-cop .cal-plan-body{padding:12px 14px;gap:10px}
+  .cal-plan-you{align-self:flex-end;max-width:90%;background:var(--color-accent-700);color:#fff;padding:7px 11px;border-radius:var(--radius);font-size:var(--t-meta)}
+  .cal-plan-ai{display:flex;flex-direction:column;gap:8px}
+  .cal-cop .cal-plan-say{font-size:var(--t-meta);line-height:1.5}
+  .cal-plan-intro{color:var(--color-neutral-600)}
+  .cal-props{display:flex;flex-direction:column;gap:8px}
+  .cal-cop .cal-prop{padding:8px 10px;gap:6px}
+  .cal-cop .cal-prop b{color:var(--color-text);font-size:var(--t-body)}
+  .cal-cop .cal-prop.is-added{border-style:solid;border-color:var(--cal-cp);background:var(--cal-cp-bg)}
+  .cal-cop .cal-prop.is-gone{border:1.5px dashed var(--color-divider);background:none}
+  .cal-cop .cal-prop .av{margin-top:0}
+  .cal-cop .cal-prop button{height:var(--ctl-h);display:inline-flex;align-items:center;gap:6px;padding:0 12px;font-size:var(--t-meta)}
+  .cal-cop .cal-prop button svg{flex:none}
+  .cal-cop .cal-prop button.p{background:var(--color-accent-700);border-color:transparent;color:#fff}
+  .cal-cop .cal-prop button.is-added{opacity:1}
+  .cal-plan-read{margin:0;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5}
+  .cal-cop .cal-plan-chips{padding:0 14px 10px}
+  .cal-cop .cal-plan-chips button{height:auto;padding:4px 9px;font-size:var(--t-label);font-weight:var(--w-body);border-radius:3px}
+  .cal-cop .cal-plan-ask{padding:0 14px 6px}
+  .cal-cop .cal-plan-ask input{height:36px;font-size:var(--t-meta);padding:0 10px}
+  .cal-cop .cal-plan-cost{padding:0 14px 12px}
+  @media (max-width:980px){
+    .cal-stage{grid-template-columns:minmax(0,1fr);grid-template-rows:auto;flex:none}
+    .cal-cop{max-height:640px}
+    .cal-cop{border-left:0;border-top:1px solid var(--color-divider)}
+  }
   @media print{
     .cal-head .cal-acts,.cal-panel{display:none!important}
     .cal-page{height:auto}
@@ -1443,20 +1498,6 @@ function wireCalendar(evs, byDay, p){
      is for the spans the two segments beside it are made of. */
   document.querySelectorAll('[data-cal-days]').forEach(el=>el.addEventListener('click',
     ()=>calSetAgendaDays(el.getAttribute('data-cal-days'))));
-
-  /* THE DAY CELL. One contract opens; several go to the register narrowed to
-     exactly those. Keyboard too: the cell carries role="button" and a tab
-     stop, so it has to answer Enter and Space like one. */
-  const openDay=iso=>{
-    const here=byDay[iso]||[];
-    const cids=Array.from(new Set(here.map(e=>e.cid).filter(Boolean)));
-    if(!cids.length) return;
-    if(cids.length===1) return selectContract(cids[0]);
-    const dayName=new Date(iso+'T00:00:00').toLocaleDateString(langLocale(),{day:'numeric',month:'long',year:'numeric'});
-    if(typeof regShowOnly==='function') regShowOnly(cids, i18t('cal_due_on',{day:dayName}));
-    else selectContract(cids[0]);   // no register loaded (a test stage) — still go somewhere
-  };
-  document.querySelectorAll('[data-cal-day]').forEach(el=>press(el,()=>openDay(el.getAttribute('data-cal-day'))));
 
   /* [data-sel] is the LIST's and the PANEL's row — never a day cell's chip.
      The chips are spans and fall through to the cell, which is why there is no
@@ -1605,18 +1646,18 @@ function calLayerSegHtml(){
 const calAddDays=(d,n)=>{ const x=new Date(d); x.setDate(x.getDate()+n); return x; };
 function calWeekStart(){
   const base=calState.wk?new Date(calState.wk+'T00:00:00'):new Date(calToday()+'T00:00:00');
+  /* a Saturday or a Sunday opens the WORKING week ahead — the week drawn is
+     Monday to Friday, so the one just finished would show none of that day */
+  if(base.getDay()===6||base.getDay()===0) return calAddDays(base,base.getDay()===6?2:1);
   return calAddDays(base,-((base.getDay()+6)%7));
 }
-function calWeekStepHtml(){
-  const a=calWeekStart(), z=calAddDays(a,6);
+/* THE WORKING WEEK'S NAME, "19–23 Oct 2026" — the design's bar title. */
+const CAL_WEEK_DAYS = 5;
+function calWeekTitle(){
+  const a=calWeekStart(), z=calAddDays(a,CAL_WEEK_DAYS-1);
   const f=(d,o)=>d.toLocaleDateString(langLocale(),o);
-  const name=a.getMonth()===z.getMonth()?`${a.getDate()}–${f(z,{day:'numeric',month:'short',year:'numeric'})}`
+  return a.getMonth()===z.getMonth()?`${a.getDate()}–${f(z,{day:'numeric',month:'short',year:'numeric'})}`
     :`${f(a,{day:'numeric',month:'short'})} – ${f(z,{day:'numeric',month:'short',year:'numeric'})}`;
-  return `<span class="cal-sel">
-      <button id="cal-prev" title="${_esc(i18t('cal_prev_week'))}" aria-label="${_esc(i18t('cal_prev_week'))}">${icon('chevL','w-3.5 h-3.5')}</button>
-      <button id="cal-today" class="cal-sel-now" title="${_esc(i18t('cal_this_week'))}">${_esc(name)}</button>
-      <button id="cal-next" title="${_esc(i18t('cal_next_week'))}" aria-label="${_esc(i18t('cal_next_week'))}">${icon('chevR','w-3.5 h-3.5')}</button>
-    </span>`;
 }
 /* THE PERSON'S OWN DATES between two days, as the grid's events. */
 function calOwnEvents(from,to){
@@ -1633,14 +1674,14 @@ function calOwnEvents(from,to){
   return out.sort((a,b)=>String(a.start||'').localeCompare(String(b.start||'')));
 }
 const calMins=hm=>{ const [h,m]=String(hm||'0:0').split(':').map(Number); return h*60+(m||0); };
-/* THE WEEK: Monday to Sunday, the person's hours down the side, an "All day"
-   row for contract dates and notes to review. An empty hour is a door to a
-   new event at that hour. */
+/* THE WEEK: Monday to Friday (the design's working week, 11 Oct 2026), the
+   person's hours down the side, an "All day" row for contract dates and notes
+   to review. An empty hour is a door to a new event at that hour. */
 function calWeekHtml(contractEvs){
-  const a=calWeekStart(), days=Array.from({length:7},(_,i)=>calAddDays(a,i));
+  const a=calWeekStart(), days=Array.from({length:CAL_WEEK_DAYS},(_,i)=>calAddDays(a,i));
   const pref=typeof minePref==='function'?minePref():{dayStart:8,dayEnd:17};
   const H0=Math.max(0,Math.min(pref.dayStart,8)-1), H1=Math.min(24,Math.max(pref.dayEnd,17)+1), ROW=40;
-  const today=calToday(), from=_isoLocal(days[0]), to=_isoLocal(days[6]);
+  const today=calToday(), from=_isoLocal(days[0]), to=_isoLocal(days[days.length-1]);
   const own=calOwnEvents(from,to);
   const head=days.map(d=>{ const iso=_isoLocal(d);
     return `<div class="cal-wk-h${iso===today?' is-today':''}${d.getDay()%6===0?' is-we':''}"><span>${_esc(d.toLocaleDateString(langLocale(),{weekday:'short'}))}</span><b>${d.getDate()}</b></div>`; }).join('');
@@ -1667,57 +1708,86 @@ function calWeekHtml(contractEvs){
 }
 
 /* ---- COPILOT'S PLAN (per sitting; what is added lives in js/mine.js) ---- */
-let _calPlan = { busy:false, say:'', err:'', blocks:[], dropped:0, seq:0 };
+let _calPlan = { busy:false, say:'', err:'', blocks:[], dropped:0, seq:0, ask:'', read:null };
+const CAL_I_X='<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>';
+const CAL_I_TICK='<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg>';
+const CAL_I_UNDO='<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3L2 6l3 3"/><path d="M2 6h7.5a4 4 0 010 8H6"/></svg>';
+/* THE NEXT CONTRACT WITH A DATE, for the "Find an hour for MK-…" question. */
+function calPlanNextRef(){
+  const t=calToday();
+  const e=calVisible(calendarEvents()).filter(x=>x.date>=t&&x.cid).sort((a,b)=>a.date.localeCompare(b.date))[0];
+  return e?{ ref:e.cref||e.cid, cid:e.cid }:null;
+}
+/* ---- COPILOT, BESIDE THE CALENDAR IN EVERY VIEW (the design, 11 Oct 2026) ----
+   A conversation: what you asked, on the right in the accent; Copilot's
+   answer under it with its suggestions, each a dashed card with Add · Discard
+   (→ Added · Undo; a discarded one leaves one line with Undo); then what it
+   read. Under the conversation the prepared questions and the ask box; the
+   cost of a press is said under the box (COPILOT'S PLACE). */
 function calPlanHtml(){
   const pref=typeof minePref==='function'?minePref():{copilotLevel:'ask'};
   const auto=pref.copilotLevel==='auto';
   const rows=_calPlan.blocks.map(b=>{
     const d=new Date(b.date+'T00:00:00').toLocaleDateString(langLocale(),{weekday:'short',day:'numeric',month:'short'});
     const when=`${d} · ${b.start}–${b.end}`;
-    if(b.st==='gone') return `<div class="cal-prop is-gone"><span>${_esc(i18t('cal_plan_gone'))} ${_esc(b.title)}</span><button type="button" class="u" data-cal-plan-undo="${_esc(b.k)}">${_esc(i18t('cal_plan_undo'))}</button></div>`;
+    if(b.st==='gone') return `<div class="cal-prop is-gone"><span>${_esc(i18t('cal_plan_gone'))} ${_esc(b.title)}</span><button type="button" class="u" data-cal-plan-undo="${_esc(b.k)}">${CAL_I_UNDO}${_esc(i18t('cal_plan_undo'))}</button></div>`;
     const acts=b.st==='added'
-      ? `<button type="button" class="is-added" disabled>${_esc(i18t('cal_plan_added'))}</button><button type="button" class="u" data-cal-plan-undo="${_esc(b.k)}">${_esc(i18t('cal_plan_undo'))}</button>`
-      : `<button type="button" class="p" data-cal-plan-add="${_esc(b.k)}">${_esc(i18t('cal_plan_add'))}</button><button type="button" class="d" data-cal-plan-discard="${_esc(b.k)}">${_esc(i18t('cal_plan_discard'))}</button>`;
+      ? `<button type="button" class="is-added" aria-disabled="true" disabled>${CAL_I_TICK}${_esc(i18t('cal_plan_added'))}</button><button type="button" class="u" data-cal-plan-undo="${_esc(b.k)}">${CAL_I_UNDO}${_esc(i18t('cal_plan_undo'))}</button>`
+      : `<button type="button" class="p" data-cal-plan-add="${_esc(b.k)}">${_esc(i18t('cal_plan_add'))}</button><button type="button" class="d" data-cal-plan-discard="${_esc(b.k)}">${CAL_I_X}${_esc(i18t('cal_plan_discard'))}</button>`;
     return `<div class="cal-prop${b.st==='added'?' is-added':''}" data-cal-prop="${_esc(b.k)}"><b>${_esc(b.title)}</b><small>${_esc(when)}${b.why?' · '+_esc(b.why):''}</small><div class="av">${acts}</div></div>`;
   }).join('');
-  const body=_calPlan.busy?`<p class="cal-plan-busy" aria-busy="true"><span class="ob-spin" aria-hidden="true"></span>${_esc(i18t('cal_plan_busy'))}</p>`
+  const r=_calPlan.read;
+  const read=r?`<p class="cal-plan-read">${_esc(i18t('cal_plan_read',{ d:i18tn('cal_plan_read_d',r.d,{n:r.d}), e:i18tn('cal_plan_read_e',r.e,{n:r.e}),
+    hs:String(r.hs).padStart(2,'0')+':00', he:String(r.he).padStart(2,'0')+':00' }))}</p>`:'';
+  const you=_calPlan.ask?`<div class="cal-plan-you">${_esc(_calPlan.ask)}</div>`:'';
+  const answer=_calPlan.busy?`<p class="cal-plan-busy" aria-busy="true"><span class="ob-spin" aria-hidden="true"></span>${_esc(i18t('cal_plan_busy'))}</p>`
     :_calPlan.err?`<p class="cal-plan-err">${_esc(_calPlan.err)}</p>`
-    :_calPlan.seq?`${_calPlan.say?`<p class="cal-plan-say">${_esc(_calPlan.say)}</p>`:''}${rows||`<p class="cal-plan-say">${_esc(i18t('cal_plan_none'))}</p>`}${
-      _calPlan.dropped?`<p class="cal-plan-cost">${_esc(i18tn('cal_plan_dropped',_calPlan.dropped,{n:_calPlan.dropped}))}</p>`:''}<p class="cal-plan-cost">&#10022; ${_esc(i18t('ce_ai_check'))}</p>`
-    :`<p class="cal-plan-say">${_esc(i18t('cal_plan_empty'))}</p>`;
-  return `<section class="cal-card cal-plan" id="cal-plan">
+    :_calPlan.seq?`<div class="cal-plan-ai">${_calPlan.say?`<p class="cal-plan-say">${_esc(_calPlan.say)}</p>`:''}${rows?`<div class="cal-props">${rows}</div>`:`<p class="cal-plan-say">${_esc(i18t('cal_plan_none'))}</p>`}${
+      _calPlan.dropped?`<p class="cal-plan-read">${_esc(i18tn('cal_plan_dropped',_calPlan.dropped,{n:_calPlan.dropped}))}</p>`:''}${read}</div>`
+    :`<p class="cal-plan-say cal-plan-intro">${_esc(i18t('cal_plan_empty'))}</p>`;
+  const nx=calPlanNextRef();
+  const off=_calPlan.busy?' disabled':'';
+  return `<aside class="cal-cop" id="cal-plan" aria-label="${_esc(i18t('ce_copilot'))}">
     <div class="cal-plan-head"><b>&#10022; ${_esc(i18t('ce_copilot'))}</b>
       <label class="cal-plan-lv">${_esc(i18t('cal_plan_level'))}
         <select id="cal-plan-level"><option value="ask"${auto?'':' selected'}>${_esc(i18t('cal_plan_ask'))}</option><option value="auto"${auto?' selected':''}>${_esc(i18t('cal_plan_auto'))}</option></select></label></div>
-    <div class="cal-plan-body scroll-thin">${body}</div>
-    <div class="cal-plan-chips"><button type="button" data-cal-plan-q="week"${_calPlan.busy?' disabled':''}>${_esc(i18t('cal_plan_q_week'))}</button><button type="button" data-cal-plan-q="due"${_calPlan.busy?' disabled':''}>${_esc(i18t('cal_plan_q_due'))}</button></div>
-    <div class="cal-plan-ask"><input id="cal-plan-in" type="text" maxlength="600" placeholder="${_esc(i18t('cal_plan_ph'))}" aria-label="${_esc(i18t('cal_plan_ph'))}"><button type="button" id="cal-plan-go"${_calPlan.busy?' disabled':''}>${_esc(i18t('cal_plan_go'))}</button></div>
+    <div class="cal-plan-body scroll-thin" id="cal-plan-body">${you}${answer}</div>
+    <div class="cal-plan-chips"><button type="button" data-cal-plan-q="week"${off}>${_esc(i18t('cal_plan_q_week'))}</button><button type="button" data-cal-plan-q="due"${off}>${_esc(i18t('cal_plan_q_due'))}</button>${
+      nx?`<button type="button" data-cal-plan-q="hour" data-cal-plan-ref="${_esc(nx.ref)}"${off}>${_esc(i18t('cal_plan_q_hour',{ref:nx.ref}))}</button>`:''}</div>
+    <div class="cal-plan-ask"><input id="cal-plan-in" type="text" maxlength="600" enterkeyhint="send" placeholder="${_esc(i18t('cal_plan_ph'))}" aria-label="${_esc(i18t('cal_plan_ph'))}"${off}></div>
     <p class="cal-plan-cost">${_esc(i18t(auto?'cal_plan_cost_auto':'cal_plan_cost'))}</p>
-  </section>`;
+  </aside>`;
 }
+/* The whole page repaints (the suggestions draw on the grid too); the places
+   the reader had scrolled to are kept. */
 function calPlanRepaint(){
-  if(state.view!=='calendar') return;
-  const host=document.getElementById('cal-plan');
-  if(host&&calView()==='week'){ const body=document.getElementById('cal-wk-body'), top=body?body.scrollTop:0;
-    renderCalendar(); const b2=document.getElementById('cal-wk-body'); if(b2) b2.scrollTop=top; }
+  if(state.view!=='calendar'||!document.getElementById('cal-plan')) return;
+  const wk=document.getElementById('cal-wk-body'), pb=document.getElementById('cal-plan-body');
+  const a=wk?wk.scrollTop:null, c=pb?pb.scrollTop:0;
+  renderCalendar();
+  const wk2=document.getElementById('cal-wk-body'), pb2=document.getElementById('cal-plan-body');
+  if(wk2&&a!=null) wk2.scrollTop=a;
+  if(pb2) pb2.scrollTop=_calPlan.busy?0:c;
 }
-async function calPlanAsk(q){
+async function calPlanAsk(q, ref){
   if(_calPlan.busy) return;
   const a=calWeekStart(), from=_isoLocal(a)<calToday()?calToday():_isoLocal(a), to=_isoLocal(calAddDays(new Date(from+'T00:00:00'),13));
-  const ask=q==='week'?i18t('cal_plan_p_week'):q==='due'?i18t('cal_plan_p_due'):String(q||'').trim();
+  const ask=q==='week'?i18t('cal_plan_p_week'):q==='due'?i18t('cal_plan_p_due'):q==='hour'?i18t('cal_plan_p_hour',{ref:ref||''}):String(q||'').trim();
   if(!ask) return;
+  const said=q==='week'?i18t('cal_plan_q_week'):q==='due'?i18t('cal_plan_q_due'):q==='hour'?i18t('cal_plan_q_hour',{ref:ref||''}):ask;
   const until=_isoLocal(calAddDays(new Date(to+'T00:00:00'),30));
   const dates=calVisible(calendarEvents()).filter(e=>e.date>=from&&e.date<=until).slice(0,120)
     .map(e=>({ date:e.date, title:(e.cref||e.cid)+' · '+(e.type==='obligation'?(e.note||CAL_EVENT[e.type].label):CAL_EVENT[e.type].label)+(e.cname?' ('+e.cname+')':''), contractId:e.cid }));
   const events=(typeof mineList==='function'?mineList('event'):[]).filter(e=>e.date>=from&&e.date<=to).map(e=>({ date:e.date, start:e.start, end:e.end, title:e.title }));
   const pref=typeof minePref==='function'?minePref():{dayStart:8,dayEnd:17,copilotLevel:'ask'};
-  _calPlan.busy=true; _calPlan.err=''; calPlanRepaint();
+  _calPlan.busy=true; _calPlan.err=''; _calPlan.ask=said; _calPlan.read=null; calPlanRepaint();
   try{
     if(!(typeof API_MODE==='function'&&API_MODE())) throw Object.assign(new Error('needsKey'),{needsKey:true});
     const r=await api('ai/plan','POST',{ from, to, ask, dates, events, dayStart:pref.dayStart, dayEnd:pref.dayEnd });
     _calPlan.seq++;
     _calPlan.say=String((r&&r.say)||'');
     _calPlan.dropped=Number((r&&r.dropped)||0);
+    _calPlan.read={ d:dates.length, e:events.length, hs:pref.dayStart, he:pref.dayEnd };
     _calPlan.blocks=((r&&r.blocks)||[]).map((b,i)=>({ ...b, k:'b'+_calPlan.seq+'_'+i, st:'proposed', itemId:null }));
     _calPlan.busy=false;
     if(pref.copilotLevel==='auto') for(const b of _calPlan.blocks) await calPlanAdd(b.k,{quiet:true});
@@ -1798,17 +1868,17 @@ function calWireOwn(){
     const t=e.target.closest?e.target:null; if(!t) return;
     const hit=sel=>t.closest(sel);
     let el;
-    if((el=hit('[data-cal-week]'))){ e.preventDefault(); e.stopPropagation(); calState.wk=el.getAttribute('data-cal-week'); calState.view='week'; renderCalendar(); return; }
+    if((el=hit('[data-cal-ct]'))){ e.preventDefault(); e.stopPropagation(); selectContract(el.getAttribute('data-cal-ct')); return; }
     if((el=hit('[data-cal-mine]'))){ e.preventDefault(); e.stopPropagation(); const it=mineGet(el.getAttribute('data-cal-mine')); if(it) calEventDialog(it); return; }
     if((el=hit('[data-cal-note]'))){ e.preventDefault(); e.stopPropagation(); if(typeof myNotesOpen==='function') myNotesOpen(el.getAttribute('data-cal-note')); return; }
     if((el=hit('[data-cal-plan-go]'))){ e.preventDefault(); e.stopPropagation(); const k=el.getAttribute('data-cal-plan-go');
       if(calView()!=='week'){ const b=_calPlan.blocks.find(x=>x.k===k); if(b) calState.wk=b.date; calState.view='week'; renderCalendar(); }
       const p=document.querySelector(`[data-cal-prop="${CSS.escape(k)}"]`); if(p){ p.scrollIntoView({block:'nearest'}); p.classList.add('is-lit'); setTimeout(()=>p.classList.remove('is-lit'),1200); } return; }
+    if((el=hit('[data-cal-week]'))){ e.preventDefault(); e.stopPropagation(); calState.wk=el.getAttribute('data-cal-week'); calState.view='week'; renderCalendar(); return; }
     if((el=hit('[data-cal-slot]'))){ const [date,start]=el.getAttribute('data-cal-slot').split('|'); calEventDialog(null,{date,start}); return; }
-    if((el=hit('#cal-new'))){ calEventDialog(null,{ date:calView()==='week'?_isoLocal(calWeekStart())<=calToday()&&calToday()<=_isoLocal(calAddDays(calWeekStart(),6))?calToday():_isoLocal(calWeekStart()):calToday() }); return; }
+    if((el=hit('#cal-new'))){ calEventDialog(null,{ date:calView()==='week'?_isoLocal(calWeekStart())<=calToday()&&calToday()<=_isoLocal(calAddDays(calWeekStart(),CAL_WEEK_DAYS-1))?calToday():_isoLocal(calWeekStart()):calToday() }); return; }
     if((el=hit('[data-cal-lay]'))){ const k=el.getAttribute('data-cal-lay'); calState.lay={ ...calLayers(), [k]:!calLayers()[k] }; renderCalendar(); return; }
-    if((el=hit('[data-cal-plan-q]'))){ calPlanAsk(el.getAttribute('data-cal-plan-q')); return; }
-    if((el=hit('#cal-plan-go'))){ const i=document.getElementById('cal-plan-in'); calPlanAsk(i?i.value:''); return; }
+    if((el=hit('[data-cal-plan-q]'))){ calPlanAsk(el.getAttribute('data-cal-plan-q'), el.getAttribute('data-cal-plan-ref')); return; }
     if((el=hit('[data-cal-plan-add]'))){ calPlanAdd(el.getAttribute('data-cal-plan-add')); return; }
     if((el=hit('[data-cal-plan-discard]'))){ const b=_calPlan.blocks.find(x=>x.k===el.getAttribute('data-cal-plan-discard')); if(b){ b.st='gone'; calPlanRepaint(); } return; }
     if((el=hit('[data-cal-plan-undo]'))){ calPlanUndo(el.getAttribute('data-cal-plan-undo')); return; }

@@ -201,37 +201,21 @@ describe('F80 — the portfolio figure the server sends', () => {
    neither what was due nor whose deliverable it was. The workspace panel has
    printed the owner under every obligation all along.
    ------------------------------------------------------------------ */
-describe('F80 — the agenda says what is due, and whose it is', () => {
-  function agenda(obligations) {
+/* RETIRED 11 Oct 2026 WITH THE AGENDA IT MEASURED: Next 14 days left the
+   Calendar when Copilot took its place beside every view (Young chose "Remove
+   it"). What is due is still on the month as a named chip, and whose it is on
+   the Obligations page. */
+describe('F80 — the calendar draws no agenda now', () => {
+  test('no Next 14 days list on the Calendar', () => {
     const sb = loadViews(['js/obligations.js', 'js/views/calendar.js'], {
       state: { contracts: [{ id: 'MK-2', name: 'Nandi Dairy Collection',
-        counterparty: 'Nandi Dairy', status: 'Signed', expiry: day(300), obligations }] },
+        counterparty: 'Nandi Dairy', status: 'Signed', expiry: day(300), obligations: [] }] },
       effectiveExpiry: c => c.expiry || null,
       daysUntil: iso => Math.ceil((new Date(iso + 'T00:00:00') - Date.now()) / 86400000),
       renewalDecisionDate: () => null,
       selectContract() {}, setView() {}, setActiveNav() {},
     });
     sb.renderCalendar();
-    const html = sb.document.getElementById('content').innerHTML;
-    return html.slice(html.indexOf('id="cal-agenda"'));
-  }
-
-  test('an obligation row names the obligation, not just the contract', () => {
-    const rows = agenda([{ desc: 'Quarterly volume report', due: day(12),
-      assignee: 'Wanjiku Kamau', status: 'open' }]);
-    assert.match(rows, /Quarterly volume report/,
-      'the agenda listed "Obligation · MK-2" and never said what was due');
-  });
-
-  test('and says who owns it', () => {
-    const rows = agenda([{ desc: 'Quarterly volume report', due: day(12),
-      assignee: 'Wanjiku Kamau', status: 'open' }]);
-    assert.match(rows, /Wanjiku Kamau/, 'nothing on the calendar said whose deliverable it was');
-  });
-
-  test('an unowned obligation says so rather than saying nothing', () => {
-    const rows = agenda([{ desc: 'Insurance certificate', due: day(5), status: 'open' }]);
-    assert.match(rows, /unassigned/i,
-      '"nobody owns this" is the actionable fact, and it was left blank');
+    assert.ok(!sb.document.getElementById('content').innerHTML.includes('id="cal-agenda"'));
   });
 });
