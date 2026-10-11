@@ -80,8 +80,9 @@ const DOC = 'SUPPLY AGREEMENT\n\nArticle 1 Term\n\nThis Agreement runs for twelv
     const o = await ask('What is still open on MK-J2?');
     ok('2a "What is still open" is the Deal card', !!o && o.door === 'open', JSON.stringify(o));
     await page.click('#igd-feed [data-ca-act="door"] >> nth=-1').catch(() => {});
-    const deal = await page.waitForFunction(() => window.intel && intel.paper && intel.paper.id === 'MK-J2' && pdTab() === 'deal', null, { timeout: 8000 }).then(() => true, () => false);
-    ok('2b its press opens the Paper at Deal', deal, await page.evaluate(() => JSON.stringify({ id: intel.paper && intel.paper.id, tab: pdTab() })));
+    /* RE-POINTED 11 Oct 2026 (owner: "delete the deal tab"): the Deal door lands on Clauses */
+    const deal = await page.waitForFunction(() => window.intel && intel.paper && intel.paper.id === 'MK-J2' && pdTab() === 'doc', null, { timeout: 8000 }).then(() => true, () => false);
+    ok('2b its press opens Home\'s Document at Clauses', deal, await page.evaluate(() => JSON.stringify({ id: intel.paper && intel.paper.id, tab: pdTab() })));
     await page.evaluate(() => { document.querySelector('#ig-dock [data-pd-tab="copilot"]')?.click(); });
 
     /* ===== 3. SIGNING AND AMENDMENT ===== */

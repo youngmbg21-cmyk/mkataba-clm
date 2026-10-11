@@ -296,7 +296,7 @@ const SHEET = () => {
        inside the sheet holds. The 13 Aug "keep the page filling the column at
        8" rule is reversed by the same ask: a zoom makes the page smaller. */
     const stepped = await page.evaluate(async () => {
-      const up = document.querySelector('.redline-page .rl-tabrow .rl-type-step [data-rl-type="1"]');
+      const up = document.querySelector('.redline-page .paper-zc .rl-type-step [data-rl-type="1"]');
       const typeVar = () => parseFloat(getComputedStyle(document.querySelector('.redline-page')).getPropertyValue('--rl-doc-type'));
       const lineOf = () => { const l = document.querySelector(
         '.redline-page .rl-paper .rl-clause-p, .redline-page .rl-paper .rl-line, .redline-page .rl-paper p');
@@ -319,7 +319,7 @@ const SHEET = () => {
       stepped.type === stepped.before.type && Math.abs(stepped.zoom / stepped.before.zoom - 1.5) < 0.01,
       `type ${stepped.before.type} → ${stepped.type}, zoom ${stepped.before.zoom} → ${stepped.zoom}`);
     const floored = await page.evaluate(async () => {
-      const down = document.querySelector('.redline-page .rl-tabrow .rl-type-step [data-rl-type="-1"]');
+      const down = document.querySelector('.redline-page .paper-zc .rl-type-step [data-rl-type="-1"]');
       for (let i = 0; i < 30; i++){ if (!down.disabled) down.click(); }
       await new Promise(r => setTimeout(r, 300));
       return { stored: Number(localStorage.getItem('hati.v1.docZoom')),

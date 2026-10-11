@@ -8724,15 +8724,32 @@
      rlPaperZoomHtml's row, first in each paper's scroller, so the control
      sits in the grey above the sheet's right edge, and both
      scroll with the page: NOTHING FLOATS OVER THE PAGE. */
-  /* The row tops each scroller's own padding up to a 40px band over the sheet
-     (measured 11 Oct 2026: Home pads 9px, Negotiate 29px, the design step
-     16px, the Document and Signing tabs none), and the control stands on its
-     floor, 3px above the sheet. */
-  .paper-zc-row{position:relative;height:34px;z-index:4}
-  #ig-paper-scroll > .paper-zc-row{height:31px}
-  #nego-scroll-work > .paper-zc-row{height:11px}
-  #ds-docpane > .paper-zc-row{height:24px}
-  .paper-zc{position:absolute;right:var(--paper-zc-right,0);bottom:3px;display:flex;align-items:center;gap:var(--s-3);white-space:nowrap}
+  /* ONE BAND, 40px, OVER EVERY SHEET (measured 11 Oct 2026): the row adds
+     what each scroller's own padding and the sheet's own margin leave short of
+     40 (Home 9 + 20 on Redlined or 9 + 0 clean, Negotiate 29, the Document tab
+     0 + 29, the signing copy 0 + 0, the design step 16), so the gap above the
+     sheet is one number on every paper (one-paper-everywhere), and the control
+     stands 6px under the scroller's top edge (--zc-top lifts it out of the
+     row into the padding). The row is height 0 with a margin, the slot draws
+     no box, and the control's anchor is 0x0 with its contents spilling left:
+     no wrapper is a painted element, so the colour census counts only what it
+     always counted. */
+  .paper-zc-row{position:relative;height:0;margin-bottom:var(--zc-room,40px);z-index:4}
+  #doc-zc-slot{display:contents}
+  #ig-paper-scroll > .paper-zc-row{--zc-room:31px;--zc-top:-3px}
+  #ig-paper-scroll > .paper-zc-row:has(+ .ig-zoom .ig-redpaper){--zc-room:11px}
+  #nego-scroll-work > .paper-zc-row{--zc-room:11px;--zc-top:-23px}
+  #doc-zc-slot > .paper-zc-row{--zc-room:11px}
+  #doc-zc-slot > .paper-zc-row:has(.sc-step){--zc-room:40px}
+  #ds-docpane > .paper-zc-row{--zc-room:24px;--zc-top:-10px}
+  .paper-zc{position:absolute;right:var(--paper-zc-right,0);top:var(--zc-top,6px);width:0;height:0;display:flex;justify-content:flex-end;align-items:flex-start;gap:var(--s-3);white-space:nowrap}
+  .paper-zc > *{flex:none}
+  .paper-zc{color:var(--color-text)}
+  .paper-zc .rl-moved{line-height:var(--ctl-h)}
+  /* the zoom wears the clothes it wore on the bars it left */
+  .paper-zc .rl-type-step{height:var(--ctl-h);padding:0 3px}
+  .paper-zc .rl-type-step button{font-size:var(--t-body);font-weight:var(--w-label)}
+  .paper-zc .rl-type-step .rl-type-out{font-size:var(--t-body);font-weight:var(--w-body)}
   .paper-zc .rl-moved{font-size:var(--t-label);font-weight:var(--w-title)}
   .paper-zc .rl-moved .i{color:var(--st-green-fg)} .paper-zc .rl-moved .d{color:var(--st-ruby-fg)}
   /* The held mark: the scan's flash colours, but STILL — the reader is reading it. */

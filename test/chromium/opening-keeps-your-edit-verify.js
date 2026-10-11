@@ -93,10 +93,12 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
       /* The status word the head prints (contractStatusTextHtml) — never the
          head's whole text, whose menu offers "Put on hold" once released. */
       const stat = ((document.querySelector('#ws-head .room-stat') || {}).textContent || '').trim();
-      return { view: state.view, active: state.activeId, hold: !!(c && c.hold), stat, onHoldWord: /^on hold/i.test(stat) };
+      return { view: state.view, active: (window.intel && intel.paper) ? intel.paper.id : state.activeId, hold: !!(c && c.hold), stat, onHoldWord: /^on hold/i.test(stat) };
     });
-    check('1b the contract room opens on it, released — the hold it was just taken off is not back',
-      room.view === 'workspace' && room.active === 'MK-A2' && !room.hold && !!room.stat && !room.onHoldWord, JSON.stringify(room));
+    /* RE-POINTED 11 Oct 2026 (owner: "click open contract, it will then take you
+       to the home page under document"): the row opens on Home's Document. */
+    check('1b it opens on Home\'s Document, released — the hold it was just taken off is not back',
+      room.view === 'dashboard' && room.active === 'MK-A2' && !room.hold && !room.onHoldWord, JSON.stringify(room));
     /* One more ordinary save of the same contract — whatever the screen holds
        is what gets written, so a hold put back on screen is put back on file. */
     await page.evaluate(async () => { const c = getContract('MK-A2'); persist(c); await flushSaves(); });
@@ -150,7 +152,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     const b1 = await page.evaluate(() => { const c = getContract('MK-B1'); return { loaded: !!c._loaded, light: !!c._light, audit: (c.audit || []).length, view: state.view }; });
     const s3 = await stored('MK-B1');
     check('3 CONTROL — a row opened with nothing pending loads its whole stored record, as before',
-      b1was.light && b1.loaded && !b1.light && b1.audit === (s3.audit || []).length && b1.view === 'workspace',
+      b1was.light && b1.loaded && !b1.light && b1.audit === (s3.audit || []).length && b1.view === 'dashboard',
       JSON.stringify({ b1was, b1, storedAudit: (s3.audit || []).length }));
   } finally {
     check('4 no page error anywhere in the run', errors.length === 0, errors.join(' | ') || 'none');

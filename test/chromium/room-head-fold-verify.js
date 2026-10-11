@@ -56,10 +56,11 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
      way the list now opens it; where the page draws its full table (a
      narrower window) the one press still opens and the double-click is never
      needed. */
+  /* RE-POINTED 11 Oct 2026: the list's open now lands on Home's Document (owner);
+     the room is the row menu's Open workspace, which is openWorkspace. */
   await page.evaluate(() => {
     const row = document.querySelector('#reg-tbody [data-row]');
-    row.click();
-    if (state.view === 'register') row.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
+    openWorkspace(row.getAttribute('data-row'));
   });
   await page.waitForTimeout(1400);
 

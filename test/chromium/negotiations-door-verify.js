@@ -200,16 +200,18 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     check('the door counts what is waiting on you, in amber',
       count.text === '1' && count.tone === 'amber', `${count.text} / ${count.tone}`);
 
-    /* ---- 7. OUT, AND IT LANDS ON DOCUMENT ---- */
+    /* ---- 7. OUT, AND IT LANDS ON HOME'S DOCUMENT, ON COPILOT ----
+       RE-POINTED 11 Oct 2026 (owner: "when in the negotiation page and you press
+       open document you will also be sent to the copilot"). */
     await page.click('#view-redline [data-rl-open-doc]');
     await page.waitForTimeout(1500);
-    const out = await page.evaluate(() => ({ view: state.view, tab: roomCurrentTab(),
-      tabs: [...document.querySelectorAll('#ws-tabs .room-tab')].map(b => b.textContent.trim()) }));
-    check('Open document returns to the agreement', out.view === 'workspace', out.view);
-    check('on its Document tab, where the door in lives', out.tab === 'docs', out.tab);
-    check('and the whole tab row is back with it',
-      out.tabs.length === (await page.evaluate(() => (window.ROOM_TABS || []).length)),
-      out.tabs.join(' | '));
+    const out = await page.evaluate(() => ({ view: state.view, id: (window.intel && intel.paper) ? intel.paper.id : null,
+      tab: (document.querySelector('#ig-dock [data-pd-tab][aria-selected="true"]') || {}).getAttribute?.('data-pd-tab') }));
+    check('Open document opens the agreement on Home\'s Document', out.view === 'dashboard' && !!out.id, JSON.stringify(out));
+    check('on the Copilot tab', out.tab === 'copilot', out.tab);
+    /* the room itself, opened the way a reader still reaches it */
+    await page.evaluate(id => openWorkspace(id), out.id);
+    await page.waitForTimeout(1200);
 
     /* ---- 7b. AND THE ROOM HAS NO BACK ARROW AT ALL ----
        REVERSED IN PLACE 4 Oct 2026 (Young: "In negotiations, back takes you to
