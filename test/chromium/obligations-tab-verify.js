@@ -542,9 +542,11 @@ const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
       document.querySelector('.obw-table tr[data-obw-row]').getAttribute('data-obw-cid'));
     await page.click('.obw-table tr[data-obw-row]');
     await page.waitForTimeout(1400);
+    /* RE-POINTED 11 Oct 2026 (owner): Open contract lands on Home's Document,
+       on the panel's Obligations tab — still the tab the row is about. */
     const back = await page.evaluate(`(() => {
-      const on = document.querySelector('#ws-tabs .room-tab.on');
-      return { id: state.activeId, tab: on ? on.getAttribute('data-ws-tab') : null };
+      const on = document.querySelector('#ig-dock .pd-tab.on');
+      return { view: state.view, id: (window.intel && intel.paper) ? intel.paper.id : null, tab: on ? on.getAttribute('data-pd-tab') : null };
     })()`);
     check('pressing a row opens that contract on its Obligations tab',
       back.id === want && back.tab === 'oblig', JSON.stringify(back));
