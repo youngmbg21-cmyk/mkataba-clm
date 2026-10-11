@@ -27914,7 +27914,7 @@ const STRINGS = {
     hb_ins_letgo_btn: "Släpp den",
     hb_ag_more_one: "1 till — se agenterna",
     hb_ag_more_other: "{n} till — se agenterna",
-    hb_agt_agent: "Agent",
+    hb_agt_agent: "Namn",
     hb_agt_does: "Vad den gör",
     hb_agt_runs: "När den körs",
     hb_agt_ready: "Klart åt dig",
