@@ -7111,8 +7111,11 @@
      and the ring silently did not (computed outline-style read `none` while
      the source read `2px solid`). A tag in the selector is what wins it on
      merit; `!important` would have won it by force and taught the next rule to
-     do the same. Fixed by SCOPE. */
-  input.is-fieldlit,span.is-fieldlit,.hati-field.is-fieldlit{
+     do the same. Fixed by SCOPE.
+     AND HOME'S PAPER (11 Oct 2026): its answers are frozen words, and an
+     unfilled one is `.field-frozen[title]` (0,2,0) in amber — which beat the
+     wash. `span.field-frozen.is-fieldlit` (0,2,1) wins it by scope. */
+  input.is-fieldlit,span.is-fieldlit,.hati-field.is-fieldlit,span.field-frozen.is-fieldlit{
     outline:2px solid var(--st-green-dot);outline-offset:1px;
     background:var(--st-green-bg);border-radius:var(--radius);}
   /* And the class alone still carries the wash, for the PANEL's box — which is

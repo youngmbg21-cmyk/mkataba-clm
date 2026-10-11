@@ -259,9 +259,11 @@ function ownBlankSet(c, key, value){
    which is what lets the panel light the spot and a press on the spot open
    its box. The painted walk must find exactly the stored walk's blanks, in
    order, or it paints nothing (uploadBlanksPaint's wall). */
-function ownBlanksPaint(c){
+/* `root`: Home's Document hands in its own paper (11 Oct 2026); else the
+   paper the fill form sits beside (formPaperEl), else the room's. */
+function ownBlanksPaint(c, root){
   if(typeof document === 'undefined') return 0;
-  const canvas = document.getElementById('doc-canvas');
+  const canvas = root || (typeof formPaperEl === 'function' && formPaperEl()) || document.getElementById('doc-canvas');
   if(!canvas || !ownBlanksLive(c)) return 0;
   const host = ownBlankHost(c);
   const want = host ? ownBlanksWalk(host) : [];
@@ -298,7 +300,7 @@ function ownBlanksPaint(c){
    reader's hand. */
 function ownBlankPaint(key, cls, text){
   if(typeof document === 'undefined') return 0;
-  const canvas = document.getElementById('doc-canvas');
+  const canvas = (typeof formPaperEl === 'function' && formPaperEl()) || document.getElementById('doc-canvas');
   if(!canvas) return 0;
   const q = (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(key) : key;
   let n = 0;

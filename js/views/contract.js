@@ -14264,6 +14264,28 @@ function docAnswersWire(c){
     if(peer){ try{ peer.scrollIntoView({ block: 'center' }); peer.focus(); }catch(_){ } }
   });
 }
+/* AND ON HOME'S DOCUMENT (11 Oct 2026, the Document tab gone): the paper there
+   is the read-only copy, its answers frozen words that still say which fact
+   they are (readOnlyDocHtml). A press on one goes to its box in the Overview
+   tab's form — the tab is turned to if another is up, a filled box's fold is
+   opened. Delegated once, on the document. */
+if(typeof document !== 'undefined' && !document._homeAnswerWired){
+  document._homeAnswerWired = true;
+  document.addEventListener('click', e => {
+    const w = e.target && e.target.closest ? e.target.closest('#ig-canvas [data-field], #ig-canvas [data-sync]') : null;
+    if(!w) return;
+    const key = w.getAttribute('data-field') || w.getAttribute('data-sync');
+    if(!key || typeof contractFieldPeer !== 'function') return;
+    let peer = contractFieldPeer(key, 'panel');
+    if(!peer && window.pdOnPaper && pdOnPaper() && window.pdSetTab && window.renderIntelDock){
+      pdSetTab('facts'); try{ renderIntelDock(); }catch(_){ }
+      peer = contractFieldPeer(key, 'panel');
+    }
+    if(!peer) return;
+    const fold = peer.closest('details'); if(fold && !fold.open) fold.open = true;
+    try{ peer.scrollIntoView({ block: 'center' }); peer.focus(); }catch(_){ }
+  });
+}
 /* Bound once per canvas element. `docFillable` is the product's own reading of
    "may wording be typed here", so this cannot disagree with what the page
    actually allows. */
@@ -16030,7 +16052,10 @@ function renderSignSide(c){
      focuses is written by the render roomGoTab asks for. */
   host.querySelectorAll('[data-sc-blanks]').forEach(b=>b.addEventListener('click',()=>{
     if(b.getAttribute('data-sc-blanks')==='nego'){ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); return; }
-    if(window.roomGoTab) roomGoTab(c,'docs');
+    /* the form is Home's Document, Overview tab, since the room's Document
+       tab went (11 Oct 2026); the phone keeps its own Document tab */
+    if(window.pdOpenOnHome && !(window.innerWidth && window.innerWidth < 768)) pdOpenOnHome(c.id,'facts');
+    else if(window.roomGoTab) roomGoTab(c,'docs');
     const first=(window.contractBoxesOpen?(contractBoxesOpen(c)[0]||{}):{}).key||'';
     setTimeout(()=>{ try{ if(window.contractFieldFocus) contractFieldFocus(c, first); }catch(_){ } },0);
   }));

@@ -1282,7 +1282,14 @@ function openCreateAmendmentModal(parent, onDone, opts){
         rel:(RELATION_LABEL[made.contract.relation]||'Amendment').toLowerCase() }),'ok');
       if(typeof updateSidebarCounts==='function') updateSidebarCounts();
       if(onDone) onDone(made.contract);
-      else if(typeof openWorkspace==='function') openWorkspace(made.contract.id);
+      else if(typeof openWorkspace==='function'){
+        openWorkspace(made.contract.id);
+        /* IT STILL LANDS WHERE IT IS WRITTEN (11 Oct 2026): the room has no
+           Document tab now and opens on its Overview, so the draft is sent
+           through the one door every old way onto the paper passes — Home's
+           Document (roomGoTab 'docs'); the phone keeps its own Document tab. */
+        if(typeof roomGoTab==='function') roomGoTab(getContract(made.contract.id)||made.contract,'docs');
+      }
     });
   }
   show('ask');

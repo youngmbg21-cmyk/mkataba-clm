@@ -103,11 +103,17 @@ const readRow = page => page.evaluate(() => {
     check('1 · stage: MK-A2 at the door with its start date and material empty', staged.ok, staged.err);
     /* THE PAPER'S OWN DASHES: every box left empty is sealed as "—"
        (readOnlyDocHtml), so the count is a measurement of the signed copy. */
-    const dashes = () => page.evaluate(() => { roomGoTab(getContract('MK-A2'), 'docs'); return new Promise(res => setTimeout(() => {
-      const cv = document.getElementById('doc-canvas');
-      res(cv ? [...cv.querySelectorAll('.field-frozen')].filter(x => x.textContent.trim() === '—').length : -1); }, 700)); });
+    /* RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner); the
+       paper is Home's Document (#ig-canvas), the same read-only copy. */
+    const dashes = async () => {
+      await page.evaluate(() => pdOpenOnHome('MK-A2', 'facts'));
+      await page.waitForFunction(() => !!(window.intel && intel.paper && intel.paper.id === 'MK-A2'
+        && document.querySelector('#ig-canvas .field-frozen')), null, { timeout: 8000 }).catch(() => {});
+      return page.evaluate(() => { const cv = document.getElementById('ig-canvas');
+        return cv ? [...cv.querySelectorAll('.field-frozen')].filter(x => x.textContent.trim() === '—').length : -1; });
+    };
     const dashesBefore = await dashes();
-    await page.evaluate(() => { roomGoTab(getContract('MK-A2'), 'sign'); });
+    await page.evaluate(() => { openWorkspace('MK-A2'); roomGoTab(getContract('MK-A2'), 'sign'); });
     await page.waitForTimeout(700);
     let r = await readRow(page);
     await page.screenshot({ path: path.join(OUT, '1-signing-tab.png') });
@@ -182,9 +188,9 @@ const readRow = page => page.evaluate(() => {
     await page.evaluate(() => { const b = document.querySelector('#sign-check [data-sc-row="bl:blanks"] [data-sc-blanks]'); if (b) b.click(); });
     await page.waitForTimeout(1200);
     const focus = await page.evaluate(() => { const a = document.activeElement;
-      return { inPanel: !!(a && a.closest && a.closest('#tplform-section')), key: a && a.getAttribute && (a.getAttribute('data-blankf') || a.getAttribute('data-field') || ''),
+      return { inPanel: !!(a && a.closest && a.closest('#pd-fill')), key: a && a.getAttribute && (a.getAttribute('data-blankf') || a.getAttribute('data-field') || ''),
         tab: (document.querySelector('#ws-tabs .on, #ws-tabs [aria-selected="true"]') || {}).textContent || '' }; });
-    check('3b pressing it lands on the Document tab with the cursor in the first empty box', focus.inPanel && focus.key === 'effDate', JSON.stringify(focus));
+    check('3b pressing it lands on Home\'s Document, Overview tab, with the cursor in the first empty box', focus.inPanel && focus.key === 'effDate', JSON.stringify(focus));
     await page.evaluate(() => openShareModal(getContract('MK-A2')));
     await page.waitForTimeout(1600);
     const send = await page.evaluate(() => {
