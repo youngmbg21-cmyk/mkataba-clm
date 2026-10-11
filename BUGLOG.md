@@ -20651,3 +20651,9 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Noticed, not fixed: in DARK mode Home's Document (Clean and Redlined) draws a WHITE sheet (`article.nego-doc.rl-paper`, background rgb(255,255,255)) with the dark theme's near-white words (rgb(230,236,234)) — the agreement is all but unreadable. Measured the same at main d9bf410 (Home's Paper then), so not caused by removing the Document tab; but that tab's dark paper was the readable one, and every "open document" door now lands here. The Ink Wash census (ink-wash-verify, dark "document") would record it as "as before" if re-recorded now.
 - Noticed, not fixed: on Negotiate, the room head's ⋯ "Focus" row (#ws-focus) keeps aria-pressed="false" while the page is in Focus — rlPaintFocusBtn paints only `[data-rl-focus]` and `[data-ws-focus]`, so the two doors disagree on that page. Same code at main.
 - Noticed, not fixed: theme-tokens-verify's 'signing' stage presses roomGoTab(c, 'signing'), which is no tab key ('sign' is); it photographed the old Document tab's paper by fall-through. Left as is because that census is KNOWN_RED for its stale palette (ink-wash-verify's same stage was re-pointed to 'sign').
+
+## Noticed, not fixed (11 Oct 2026, the Jambo build)
+- f177 ("both AI chart surfaces inherit a new kind") was already red on origin/main before this work; left red.
+- Swedish adjectives agreeing with the old name stay neuter after the rename (e.g. "Jambo är inte anslutet"); a Swedish reader may prefer "ansluten". Wording only, not changed.
+- The "Scanning…" toast when a contract scan starts (ai.js) has no moving ring; HaTi's toast cannot carry one today.
+- CLAUDE.md is 82 KB, over its own "about 80 KB" line (it was 81 KB before this build); the next trim should take it back under.

@@ -384,7 +384,7 @@ function negoStyleHtml(){
      At 60 this menu was TIED with the room and only painted above it because
      _negoKillSelMenu re-appends it last — order-of-DOM luck, not a rule. And
      at 60/61 both layers sat UNDER the scrim, which is rgba(29,45,61,.35) with
-     a 2px backdrop blur and pointer-events:auto when open. Opening the Copilot
+     a 2px backdrop blur and pointer-events:auto when open. Opening Jambo
      drawer undocked therefore dimmed and blurred the menu and the proposal
      popover — the washed-out, unclickable state — rather than the page behind
      them. Above the scrim, under the drawer: the menu stays crisp and live,
@@ -804,7 +804,7 @@ function negoStyleHtml(){
   .nego-edit-bar .b-save{background:var(--n-accept);color:#fff}
   .nego-edit-bar .b-cancel{background:var(--n-paper);border-color:var(--n-line);color:var(--n-ink-soft)}
   /* The room sits above the application shell, and the shell is where HaTi's
-     Copilot panel lives — which is why Ask Copilot could not simply open it.
+     Jambo panel lives — which is why Ask Jambo could not simply open it.
      Raising the real panel over the room is the whole fix: it stays the app's
      own panel, with its own markup, styles and behaviour, so it looks and works
      in here exactly as it does everywhere else. A lookalike built for this one
@@ -1744,7 +1744,7 @@ function redlineLayoutCss(){
   .redline-page select.rl-jump option:checked{background:color-mix(in srgb,var(--accent-solid) 12%,transparent);
     color:var(--accent-ink-700)}
   html.dark .redline-page select.rl-jump option:checked{color:var(--color-accent-400)}
-  /* The playbook pass wears the Copilot's violet — an AI act, visibly not one
+  /* The playbook pass wears Jambo's violet — an AI act, visibly not one
      of the engine's own verbs, and disabled it says it is thinking. */
   /* ---- THE WAY BACK TO THE LIST ----
      NEUTRAL, not the purple of the two buttons beside it. Those are acts on
@@ -2559,7 +2559,7 @@ function redlineLayoutCss(){
      (13 and 15 Aug 2026) is enough to apply it without waiting for a fourth.
      And it is CUT FROM THE SELECTION with the rest of the furniture (see
      _NEGO_SEL_CHROME): a drag from above the first word to below the last must
-     not sweep the word "Edit" into the passage the Copilot is asked about. */
+     not sweep the word "Edit" into the passage Jambo is asked about. */
   ${''/* It wore the nav's own dark fill from 16 to 20 Aug 2026; the icon-only
      dress below replaced it on the owner's ask. */}
   /* ---- AND IT IS PINNED, NOT CARRIED ----
@@ -3145,7 +3145,7 @@ function redlineLayoutCss(){
      one pair, and it is the ✦ ALONE because a receipt is one line: a second
      labelled button is exactly what would push it to two. Its words are on the
      hover and on its accessible name, so nothing rests on the mark. The ink is
-     the accent so the pair reads as door-then-door with the Copilot one
+     the accent so the pair reads as door-then-door with Jambo one
      leading, which is the order the approved journey puts them in. */
   .redline-page .rl-cp-editor-btn{flex:none;margin-left:2px;padding:0 var(--pad-ctl-x-sm);display:inline-flex;
     align-items:center;cursor:pointer;font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);line-height:1;
@@ -4341,7 +4341,7 @@ function redlineLayoutCss(){
      left-hand column and is read first, so bringing it in from the right would
      move a thing the reader knows to the opposite side of the page. And the
      right-hand edge is already spoken for: the floating notices stack sits at
-     bottom-right and the Copilot launcher beside it, and a panel arriving over
+     bottom-right and Jambo launcher beside it, and a panel arriving over
      both is a panel that covers the two controls a reader reaches for while
      they work.
 
@@ -4632,10 +4632,10 @@ function redlineLayoutCss(){
     background:color-mix(in srgb,var(--accent-solid) 10%,transparent);
     border-color:var(--accent-solid)}
   .redline-page .rl-cp-hint{flex-basis:100%;margin:6px 0 0;font-size:var(--t-meta)}
-  /* .rl-cp-ai-note is RETIRED (19 Aug 2026) — the Copilot is a BUTTON in this
+  /* .rl-cp-ai-note is RETIRED (19 Aug 2026) — Jambo is a BUTTON in this
      panel again, see the note beside it. The words-without-a-pill were right
      while the paper still offered a highlight menu of its own; with that off,
-     the one Copilot on this page had to be pressable. */
+     the one Jambo on this page had to be pressable. */
   /* Reopen, on a settled ask in the History. Edit's own quiet clothes, as it
      wore in the tag reveal it moved from — nothing about changing your mind
      should shout louder than the record it sits in. */
@@ -4933,7 +4933,7 @@ function redlineLayoutCss(){
      workbench talking about the clause, not wording anybody negotiated. Both
      are cut from the reading as well (see _NEGO_SEL_CHROME); this stops them
      joining the highlight in the first place, so what is highlighted on screen
-     is what the Copilot is asked about. */
+     is what Jambo is asked about. */
   .redline-page .rl-asktag,.redline-page .nego-badge{
     -webkit-user-select:none;user-select:none}
   /* ---- THE CLAUSE TOOL ROW'S RULES LEFT WITH THE ROW (16 Aug 2026) ----
@@ -5097,7 +5097,7 @@ function redlineLayoutCss(){
      WHAT IS DELIBERATELY NOT HERE, each because the owner ruled on it:
        · the change column is NOT boxed — the mock-up draws a white card round
          it and this page keeps the transparent column (see .rl-col's own note);
-       · the Copilot band stays, folded, above the cards;
+       · Jambo band stays, folded, above the cards;
        · the divider stays and only its resting place moves (see RL_RIGHT_W0).
      ------------------------------------------------------------------------ */
 

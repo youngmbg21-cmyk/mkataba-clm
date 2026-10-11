@@ -1065,7 +1065,7 @@ const QUESTION = 'why do I have a big workload runway today?';
     check('18f a grouping the map cannot cut is refused in words, on screen, naming what the map can do',
       r18.dock && /expiry window/.test(r18.last) && /signed quarter/.test(r18.last) && !/moon phase/.test(r18.last), r18.last);
     check('18g and the map is left exactly as it was — value-stream hubs, the caption unmoved, no lens, no "Copilot grouping"',
-      JSON.stringify(r18.hubs) === JSON.stringify(folderHubs) && /value stream/.test(r18.note) && !/Copilot grouping/.test(r18.note) && r18.groupBy === 'folder' && r18.groups === null && r18.lenses === 0,
+      JSON.stringify(r18.hubs) === JSON.stringify(folderHubs) && /value stream/.test(r18.note) && !/Jambo grouping/.test(r18.note) && r18.groupBy === 'folder' && r18.groups === null && r18.lenses === 0,
       JSON.stringify({ hubs: r18.hubs, note: r18.note, groupBy: r18.groupBy, lenses: r18.lenses }));
     await page.screenshot({ path: path.join(OUT, '18-map-copilot.png') });
     await drive18(() => { intel.lenses = []; intel.groups = null; intel.groupBy = 'folder'; intel.history = []; rebuildIntelGraph(); renderIntelDock(); }, null);

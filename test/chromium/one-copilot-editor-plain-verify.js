@@ -88,7 +88,7 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
     await until(page, () => !!(window.state && state.contracts && state.contracts.length));
-    if (!(await page.evaluate(() => typeof riskAnswerOf === 'function'))) throw new Error('there is no one Copilot editor on this build');
+    if (!(await page.evaluate(() => typeof riskAnswerOf === 'function'))) throw new Error('there is no one Jambo editor on this build');
     await page.evaluate(({ LIAB_NEW, QUAL_NEW }) => {
       state.aiConfigured = true;
       window._ocAsked = [];
@@ -108,7 +108,7 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     await until(page, () => !!document.querySelector('.redline-page #rl-changes'));
     const row = await until(page, id => { if (!document.getElementById('rl-risks') && window.renderRedline) renderRedline();
       return !!document.querySelector('#rl-risks [data-rk-key="s:t-liab"] [data-rk-act="edit-ce"]'); }, ID);
-    check(!!row, '0 the Redlines card lists the liability risk with Edit with Copilot');
+    check(!!row, '0 the Redlines card lists the liability risk with Edit with Jambo');
 
     /* ============ 4/5. THE RISK DOOR ============ */
     const card = await page.evaluate(() => { const t = document.querySelector('#rl-risks [data-rk-key="s:t-liab"] .rk-t'); return t ? { t: t.textContent.trim(), full: t.getAttribute('title') } : null; });
@@ -117,7 +117,7 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     const rk = await until(page, () => { const lane = document.querySelector('#clause-editor #ce-lane');
       /* RE-POINTED 7 Oct 2026 (One footer): the risk's Apply is the feet's top row */
       return lane && !lane.querySelector('.rk-busy') && lane.querySelector('.ce-card .pv') && document.querySelector('#ce-lane [data-ce-apply="rk:0"]') ? true : null; }, null, 10000);
-    check(!!rk, '1- the Risks tab has Copilot\'s answer');
+    check(!!rk, '1- the Risks tab has Jambo\'s answer');
     const H = await page.evaluate(() => {
       const h = document.querySelector('#ce-lane .rk-ce-head'), k = h && getComputedStyle(h), why = document.querySelector('#ce-lane .rk-ce-why');
       return h ? { t: (h.querySelector('.rk-t') || {}).textContent, sev: (h.querySelector('.rk-sev') || {}).textContent, border: k.borderTopStyle + ' ' + k.borderTopWidth,
@@ -130,12 +130,12 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
       return { ex: ex ? ex.textContent.replace(/\s+/g, ' ').trim() : '', text: lane.textContent, foot: (lane.querySelector('.ce-aifoot') || {}).textContent || '' }; });
     check(/^Why change it As written, the cap is three months/.test(L.ex) && /What the new wording does It raises the cap to twelve months/.test(L.ex), '1a over the wording: Why change it · What the new wording does, in plain words', L.ex.slice(0, 90));
     check(!/Now I have|Let me|Wait, I should|the user|First try/.test(L.text), '1b no working note and no first try anywhere on the panel');
-    check(/Copilot · check before sending/.test(L.foot), '1c "Copilot · check before sending" under the answer', L.foot);
+    check(/Copilot · check before sending/.test(L.foot), '1c "Jambo · check before sending" under the answer', L.foot);
     const P = await page.evaluate(() => { const p = document.getElementById('ce-pick'), s = document.getElementById('ce-pick-sel');
       return p ? { h: Math.round(p.getBoundingClientRect().height), disc: !!document.querySelector('#clause-editor .ce-disc'),
         groups: s ? [...s.querySelectorAll('optgroup')].map(g => g.label) : [], on: s ? s.options[s.selectedIndex].textContent : '' } : { disc: !!document.querySelector('#clause-editor .ce-disc'),
         discH: document.querySelector('#clause-editor .ce-disc') ? Math.round(document.querySelector('#clause-editor .ce-disc').getBoundingClientRect().height) : 0 }; });
-    check(!!P.h && !P.disc && P.h <= 34, '2a the dropdown stands where "Written by Copilot" stood, no taller than it (34px, measured at main)', JSON.stringify(P));
+    check(!!P.h && !P.disc && P.h <= 34, '2a the dropdown stands where "Written by Jambo" stood, no taller than it (34px, measured at main)', JSON.stringify(P));
     check(P.groups && P.groups.length === 1 && /^High · 1$/.test(P.groups[0]) && P.on === 'Liability · may favour them', '2b on Risks: the open risks by short title, grouped by severity, on the one being edited', JSON.stringify(P));
     const T = await page.evaluate(() => { const t = document.querySelector('#ce-askrow #ce-scope.ce-tag'); return { tag: t ? t.textContent.trim() : null, card: !!document.querySelector('#clause-editor .ce-scope') }; });
     check(T.tag !== null && !T.card, '3a no Selected card; what it said rides in the ask box', JSON.stringify(T));

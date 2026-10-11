@@ -333,7 +333,7 @@ const check = (name, pass, detail) => {
     const pr = ok7 ? await page.evaluate(async () => {
       const real = window.api; let asked = 0;
       window.api = async (p, m, b, o) => {
-        if (String(p).indexOf('ai/readings') === 0) { asked++; throw new Error('Copilot is busy'); }
+        if (String(p).indexOf('ai/readings') === 0) { asked++; throw new Error('Jambo is busy'); }
         return real(p, m, b, o);
       };
       docThreadPaint(state.contracts[0]);

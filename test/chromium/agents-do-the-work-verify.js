@@ -164,12 +164,12 @@ const answer = body => {
     /* ===== 3. THEIR ROUND CAME BACK ===== */
     await openAgent('round');
     const rcard = await page.evaluate(() => { const c = document.querySelector('[data-ag-open="answer:MK-DW1"]'); return c ? c.textContent.replace(/\s+/g, ' ').trim() : null; });
-    ok('3a the card counts what Copilot answered', !!rcard && /Copilot answered 1/.test(rcard), rcard);
+    ok('3a the card counts what Copilot answered', !!rcard && /Jambo answered 1/.test(rcard), rcard);
     if (rcard) {
       await page.click('[data-ag-open="answer:MK-DW1"]');
       await page.waitForTimeout(700);
       const prep = await page.evaluate(() => { const p = document.querySelector('[data-ag-panel] .ag-prep'); return p ? p.textContent.replace(/\s+/g, ' ').trim() : null; });
-      ok('3b the panel shows Copilot\'s answer, what it rests on and its wording', !!prep && /Copilot: counter/.test(prep) && /Rests on: Payment terms/.test(prep)
+      ok('3b the panel shows Copilot\'s answer, what it rests on and its wording', !!prep && /Jambo: counter/.test(prep) && /Rests on: Payment terms/.test(prep)
         && /sixty \(60\)/.test(await page.evaluate(() => (document.querySelector('[data-ag-panel] .ag-prep .ag-words-b') || {}).textContent || '')), prep);
       const opened = await page.evaluate(() => { const b = document.querySelector('[data-ag-panel] [data-ag-sb-open]'); if (!b) return false; b.click();
         const box = document.querySelector('[data-ag-panel] .ag-sb-box'); return !!box && !box.hidden; });
@@ -189,7 +189,7 @@ const answer = body => {
       const l = document.querySelector('.rl-card-prep');
       return l ? { text: l.textContent.replace(/\s+/g, ' ').trim(), verdict: l.getAttribute('data-rl-prep') } : null;
     });
-    ok('3e the negotiation page\'s row carries the answer as its own quiet line', !!row && row.verdict === 'counter' && /Copilot: counter/.test(row.text), JSON.stringify(row));
+    ok('3e the negotiation page\'s row carries the answer as its own quiet line', !!row && row.verdict === 'counter' && /Jambo: counter/.test(row.text), JSON.stringify(row));
     await page.screenshot({ path: path.join(OUT, '3-negotiation-row.png') });
 
     /* ===== 4. NO LINK TO SIGN: A LINK ABOUT TO RUN OUT ===== */

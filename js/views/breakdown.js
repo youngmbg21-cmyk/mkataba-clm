@@ -86,6 +86,7 @@ function bdHeadHtml(c){
   const b = bdOf(c);
   return `<div class="bd-strip"><span class="bd-strip-ref"><b class="hati-ref">${_bdE(ref)}</b><span class="q"> · </span>${_bdE(c.name || '')}<span class="q"> · ${_bdE(c.counterparty || '—')} · ${_bdE(st)}</span></span>
     <span class="bd-sp"></span>
+    ${_bd.busy && b ? `<span class="bd-busy" role="status">${bdBusyHtml()}</span>` : ''}
     ${(b || bdStale(c)) && !_bd.busy ? `<button type="button" class="ui-btn ui-btn-sm" data-bd-run title="${_bdE(i18t('bd_again_title'))}">${_bdE(i18t(bdStale(c) ? 'bd_again_changed' : 'bd_again'))}</button>` : ''}
     <button type="button" class="ui-btn ui-btn-sm" data-bd-pick-again>${_bdE(i18t('int_pick_change'))}</button></div>`;
 }
@@ -98,6 +99,11 @@ function bdPickHtml(){
     <input id="bd-pick-q" type="search" class="ig-pick-find" placeholder="${_bdE(i18t('bd_pick_ph'))}" aria-label="${_bdE(i18t('bd_pick_ph'))}" value="${_bdE(_bd.q)}" autocomplete="off">
     <div id="bd-pick-list">${list}</div></div></div>`;
 }
+/* WHEN SOMETHING IS LOADING, SOMETHING MOVES (owner, 11 Oct 2026): the
+   reading is a wait of seconds, so its word carries the house's turning ring
+   (components.js busyHtml) — on the button that started it and, when a
+   reading is redone over one on screen, in the head beside the contract. */
+function bdBusyHtml(){ return window.busyHtml ? busyHtml(i18t('bd_reading')) : _bdE(i18t('bd_reading')); }
 function bdStageHtml(){
   const c = bdContract();
   if (!c || _bd.picking) return bdPickHtml();
@@ -107,7 +113,7 @@ function bdStageHtml(){
       <h2>${_bdE(i18t('bd_empty_title'))}</h2>
       <p>${_bdE(i18t(bdStale(c) ? 'bd_empty_changed' : 'bd_empty_sub'))}</p>
       ${_bd.err ? `<p class="bd-err" role="alert">${_bdE(_bd.err)}</p>` : ''}
-      <div class="bd-empty-acts"><button type="button" class="ui-btn ui-btn-primary" data-bd-run${_bd.busy ? ' disabled' : ''}>${_bdE(i18t(_bd.busy ? 'bd_reading' : 'bd_run'))}</button>
+      <div class="bd-empty-acts"><button type="button" class="ui-btn ui-btn-primary" data-bd-run${_bd.busy ? ' disabled aria-busy="true"' : ''}>${_bd.busy ? bdBusyHtml() : _bdE(i18t('bd_run'))}</button>
       <span class="bd-cost">${_bdE(i18t('bd_cost'))}</span></div></div></div>`;
   }
   const need = bdCount(b, 'need'), look = bdCount(b, 'look'), fine = bdCount(b, 'fine');

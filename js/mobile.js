@@ -164,7 +164,7 @@ const M_CSS = `
   .m-screen{ flex:1; min-height:0; display:flex; flex-direction:column; }
   .m-scroll{ flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; }
   .m-scroll::-webkit-scrollbar{ display:none; }
-  /* Room at the bottom for the Copilot pill and the tab bar to float over.
+  /* Room at the bottom for Jambo pill and the tab bar to float over.
      Without it the last row of every list is a row you can see and cannot
      press, which is worse than a row that is not there. */
   .m-scroll{ scrollbar-width:none; padding-bottom:64px; }
@@ -406,7 +406,7 @@ const M_CSS = `
     border:1px solid var(--color-divider); border-radius:var(--radius); padding:11px 13px;
   }
   /* ---- THE NOTICES, FLOATING RATHER THAN BANDING THE CONTRACT ----
-     Bottom-right and clear of the Copilot launcher, which sits 96px up: this
+     Bottom-right and clear of Jambo launcher, which sits 96px up: this
      starts above it so a thumb reaching for one never catches the other. The
      column itself takes no pointer events, so the empty space under the last
      card does not swallow taps meant for the document. */
@@ -633,7 +633,7 @@ const M_CSS = `
 
   /* ---- the toast ----
      The app's toasts are pinned to the bottom-right corner, which on a phone is
-     underneath the tab bar and the Copilot pill. They move above both, and span
+     underneath the tab bar and Jambo pill. They move above both, and span
      the width, because a confirmation nobody can read is a confirmation that
      did not happen. */
   body.m-on #toast-root{
@@ -848,7 +848,7 @@ function mAccountSheetHtml(){
 
     ${(typeof API_MODE==='function'&&API_MODE())?`
     <div class="m-capline" style="margin:14px 0 6px">${i18t('st_acct_sessions')}</div>
-    <div class="m-card" style="padding:var(--s-3)"><div id="sessions-list" class="m-note">${i18t('set_loading')}</div></div>
+    <div class="m-card" style="padding:var(--s-3)"><div id="sessions-list" class="m-note">${window.busyHtml?busyHtml(i18t('set_loading')):i18t('set_loading')}</div></div>
 
     ${''/* The honest read-only statement, kept exactly as it is on the laptop.
            The checkboxes it replaced were wired to nothing. */}

@@ -1067,7 +1067,7 @@ function negoDocHtml(c, opts){
   const tools = (cl, notes) => editable ? `<div class="nego-tools">
       ${notes || ''}
       ${opts.noAi ? '' : `<button class="nego-tool" data-nego-ai-clause="${_ne(cl.clauseId)}"
-        title="${i18t('ng_ai_redraft_title')}">&#10024; Copilot</button>`}
+        title="${i18t('ng_ai_redraft_title')}">&#10024; Jambo</button>`}
       <button class="nego-tool" data-nego-edit="${_ne(cl.clauseId)}"
         title="${i18t('ng_propose_change_title')}">Change</button>
       ${''/* "Add clause" is gone. Proposing a clause the contract does not
@@ -1840,7 +1840,7 @@ function negoHistoryCardHtml(c, ch, r, opts){
    reader looking at that change sees the problem where the problem is. */
 function negoVerifyPill(c, ch){
   const v = window.negoVerifyCached ? negoVerifyCached(c) : null;
-  if (!v) return `<span class="nego-st verified" title="${_ne(i18t('ng_recomputing_fp'))}">${i18t('ng_checking')}</span>`;
+  if (!v) return `<span class="nego-st verified" title="${_ne(i18t('ng_recomputing_fp'))}">${window.busyHtml?busyHtml(i18t('ng_checking')):i18t('ng_checking')}</span>`;
   /* "Verified in part" is not a hedge, it is the truth about this copy: every
      record it holds was recomputed and matched, and the links across records it
      was never given could not be. It stays GREEN — nothing here suggests
@@ -2084,7 +2084,7 @@ function negoStatusHtml(c, opts){
    an actionable statement about a legal document. */
 function negoIntegritySeg(c){
   const v = window.negoVerifyCached ? negoVerifyCached(c) : null;
-  if (!v) return `<div class="seg" id="nego-integrity"><span class="dot warn"></span>${i18t('ng_fingerprints_checking')}</div>`;
+  if (!v) return `<div class="seg" id="nego-integrity">${window.busyHtml?busyHtml(i18t('ng_fingerprints_checking')):'<span class="dot warn"></span>'+i18t('ng_fingerprints_checking')}</div>`;
   if (v.ok) return `<div class="seg" id="nego-integrity" title="${_ne(v.detail)}"><span class="dot ok"></span>Fingerprints: ${v.checked} verified${
     v.partial ? ' in part — this copy does not carry every earlier draft' : ''}</div>`;
   return `<div class="seg" id="nego-integrity" title="${_ne(v.detail)}"><span class="dot warn"></span>${i18t('ng_integrity_failed_at',{at:_ne('#' + (v.failedAt || 'unknown'))})}</div>`;
@@ -2813,7 +2813,7 @@ function negoRoomActionsHtml(c, opts){
             Sharing is not lost: the workspace's own Share and the contracts
             list both open the same dialog, for the cases this room is not the
             right place for — a third party, a re-send, a link for signature. */}
-    <button class="nego-tbtn ghost" id="nego-copilot" title="${i18t('ng_ask_about_contract')}">✦ Ask Copilot</button>
+    <button class="nego-tbtn ghost" id="nego-copilot" title="${i18t('ng_ask_about_contract')}">✦ Ask Jambo</button>
     ${canAct ? `<button class="nego-tbtn ghost" id="nego-insert-lib" title="${i18t('ng_insert_preferred')}">+ Insert clause</button>` : ''}
     ${(() => { const bs = negoBulkState(c, side, canAct);   /* see negoBulkState */
       const t = (own, dflt) => comparing ? 'Not while you are comparing versions' : (own || dflt);
@@ -3498,7 +3498,7 @@ async function negoAiPropose(c, ctx){
     place();
   };
   if (!window.copilotAvailable || !copilotAvailable()){
-    fail('The Copilot is not connected on this workspace yet, so there is nothing to ask. Connect it under Settings, then try again — the wording you selected is untouched.');
+    fail('Jambo is not connected on this workspace yet, so there is nothing to ask. Connect it under Settings, then try again — the wording you selected is untouched.');
     return;
   }
 
@@ -3506,7 +3506,7 @@ async function negoAiPropose(c, ctx){
      spliced back into one clause, and misreporting it as pending edits sent
      people hunting for redlines that were not there. */
   if (ctx.spans){
-    fail('The selection covers more than one clause. Select within a single clause — the Copilot rewrites one clause at a time.');
+    fail('The selection covers more than one clause. Select within a single clause — Jambo rewrites one clause at a time.');
     return;
   }
   const cl = window.negoClauseById ? negoClauseById(c, clauseId) : null;
@@ -3552,12 +3552,12 @@ async function negoAiPropose(c, ctx){
     if (raw && typeof raw !== 'string') raw = String(raw);
   }catch(err){
     fail(err && err.needsKey
-      ? 'The Copilot needs an API key. Add one under Settings, then try again.'
-      : `The Copilot couldn't answer: ${(err && err.message) || err}. Try again.`);
+      ? 'Jambo needs an API key. Add one under Settings, then try again.'
+      : `Jambo couldn't answer: ${(err && err.message) || err}. Try again.`);
     return;
   }
   if (!pop.isConnected) return;                    // closed while it was thinking
-  if (!String(raw || '').trim()){ fail('The Copilot didn\'t return a usable answer. Try again.'); return; }
+  if (!String(raw || '').trim()){ fail('Jambo didn\'t return a usable answer. Try again.'); return; }
 
   let note = '', replacement = String(raw).trim();
   if (action.explain){
@@ -3622,7 +3622,7 @@ async function negoAiPropose(c, ctx){
   foot.querySelector('[data-ai-cancel]').addEventListener('click', () => pop.remove());
   foot.querySelector('[data-ai-apply]')?.addEventListener('click', async () => {
     const btn = foot.querySelector('[data-ai-apply]');
-    btn.disabled = true; btn.textContent = i18t('ng_filing');
+    btn.disabled = true; (window.busySet?busySet(btn,i18t('ng_filing')):(btn.textContent=i18t('ng_filing')));
     try{
       /* Filed as a tracked change like any other proposal — same model, same
          fingerprint, same chain. A suggestion that arrived from a model is not
@@ -3631,7 +3631,7 @@ async function negoAiPropose(c, ctx){
       const html = window.negoRichFromLines ? negoRichFromLines(proposed) : `<p>${e(proposed)}</p>`;
       const ch = await negoEditClause(c, clauseId, html, {
         side, author: opts.by,
-        note: `Copilot — ${action.label.replace(/^\S+\s/, '')}` });
+        note: `Jambo — ${action.label.replace(/^\S+\s/, '')}` });
       /* THE REFUSAL SPEAKS (the owner's list, 27 Sep 2026): a bare toast prints
          nothing, so a suggestion the funnel turned away left the reader with
          a button that simply came back. The funnel's other guards say their
@@ -4812,7 +4812,7 @@ function wireNegotiationTab(c, opts = {}){
         _negoKillSelMenu();
         _negoSayAtSelection(rect, 'More than one highlight',
           'There are ' + sel.rangeCount + ' separate highlights on the page. '
-          + 'The Copilot rewrites one passage at a time — clear the others and select the wording once.');
+          + 'Jambo rewrites one passage at a time — clear the others and select the wording once.');
         return;
       }
       if (onPaper){
@@ -9700,7 +9700,7 @@ function openNegoMemoShare(c, m){
        to show. The body is composed HERE and nowhere else, so the panel, the
        paste and the inbox cannot say different things. */
     const html = negoMemoRichHtml(m);
-    btn.disabled = true; btn.textContent = i18t('ng_memo_sending');
+    btn.disabled = true; (window.busySet?busySet(btn,i18t('ng_memo_sending')):(btn.textContent=i18t('ng_memo_sending')));
     try {
       const r = await api('contracts/' + encodeURIComponent(c.id) + '/memo', 'POST', { toId, note, lines, html });
       closeModal();
@@ -11338,7 +11338,7 @@ const RL_SEL_ACTIONS = [
      is the Copilot" signal, and the pairing the two buttons make is worth
      having — Direct Edit is "I will type it", Edit with Copilot is "you type
      it, I will approve it". */
-  { id: 'edit', label: '✨ Edit with Copilot', converse: true, placements: true,
+  { id: 'edit', label: '✨ Edit with Jambo', converse: true, placements: true,
     noteLabel: 'Edit',
     get ask(){ return `Rewrite, add to, or extend this contract wording as the drafter asks, while staying commercially reasonable and enforceable under ${jxLaw()}.`; },
     greeting: 'What would you like to add or change here?' },
@@ -11524,7 +11524,7 @@ async function rlAiPropose(ctx){
   if (window.renderAIFeed) renderAIFeed(!action.converse);
 
   if (!window.copilotAvailable || !copilotAvailable() || !window.copilotPropose){
-    rlSayInPanel('The Copilot is not connected yet. Connect it under Settings, then try again.');
+    rlSayInPanel('Jambo is not connected yet. Connect it under Settings, then try again.');
     return;
   }
   const cl = window.negoClauseById ? negoClauseById(c, clauseId) : null;
@@ -11566,7 +11566,7 @@ async function rlAiPropose(ctx){
     return !!x && (x.headingless || !String(x.headingText || '').trim());
   });
   if (ctx.spans && !headingless){
-    rlSayInPanel('The selection covers more than one clause. Select within a single clause — the Copilot rewrites one clause at a time.');
+    rlSayInPanel('The selection covers more than one clause. Select within a single clause — Jambo rewrites one clause at a time.');
     return;
   }
   const parts = headingless ? spanParts : null;
@@ -11646,8 +11646,8 @@ async function rlAiPropose(ctx){
         if (window.negoInvalidateVerification) negoInvalidateVerification(c);
         if (opts && opts.persist !== false && window.persist) persist(c);
         if (window.toast) toast(filed.length === 1
-          ? `#${filed[0].id} filed from the Copilot — it is a proposal until the other side answers it`
-          : `${filed.length} changes filed from the Copilot (${filed.map(x => '#' + x.id).join(', ')})`
+          ? `#${filed[0].id} filed from Jambo — it is a proposal until the other side answers it`
+          : `${filed.length} changes filed from Jambo (${filed.map(x => '#' + x.id).join(', ')})`
             + ' — they are proposals until the other side answers them');
         again();
       })
@@ -11680,7 +11680,7 @@ async function rlAiPropose(ctx){
     const placement = window.aiNormalizePlacement
       ? aiNormalizePlacement(card && card.placement) : 'replace';
     const noteLabel = action.noteLabel || action.label.replace(/^\S+\s/, '');
-    const note = `Copilot — ${noteLabel}${RL_PLACEMENT_NOTE[placement] || ''}`;
+    const note = `Jambo — ${noteLabel}${RL_PLACEMENT_NOTE[placement] || ''}`;
     /* The reason typed on the proposal card, if any. Distinct from `note`
        above on purpose: note is provenance ("Copilot — Edit"), internal, and
        never crosses the table; the reason is the person's own case for the
@@ -11837,9 +11837,9 @@ async function rlAiPropose(ctx){
     return;
   }
   try{
-    if (!await propose('')) rlSayInPanel('The Copilot didn\'t return a usable answer. Try again.');
+    if (!await propose('')) rlSayInPanel('Jambo didn\'t return a usable answer. Try again.');
   }catch(err){
-    rlSayInPanel(`The Copilot could not answer: ${(err && err.message) || err}. Nothing was changed.`);
+    rlSayInPanel(`Jambo could not answer: ${(err && err.message) || err}. Nothing was changed.`);
   }
 }
 
@@ -14912,7 +14912,7 @@ async function rlPrepareRedlines(c, again){
     }
     c.playbook = rev;
     if (window.logAudit) logAudit(c, 'Playbook',
-      `Playbook review run from the Redline bench — ${rev.verdicts.length} position${rev.verdicts.length === 1 ? '' : 's'} checked (${rev.source === 'ai' ? 'Copilot-assisted' : 'rule-based'})`);
+      `Playbook review run from the Redline bench — ${rev.verdicts.length} position${rev.verdicts.length === 1 ? '' : 's'} checked (${rev.source === 'ai' ? 'Jambo-assisted' : 'rule-based'})`);
   }
   const items = rlPlaybookProposals(c, rev);
   const n = { filed: 0, here: 0, unplaced: 0, refused: 0, fallback: 0, broad: 0 };
@@ -15156,7 +15156,7 @@ async function rlOpenPlaybookReview(c, again){
   }
   c.playbook = rev;
   if (window.logAudit) logAudit(c, 'Playbook',
-    `Playbook review run from the Redline bench — ${rev.verdicts.length} position${rev.verdicts.length === 1 ? '' : 's'} checked (${rev.source === 'ai' ? 'Copilot-assisted' : 'rule-based'})`);
+    `Playbook review run from the Redline bench — ${rev.verdicts.length} position${rev.verdicts.length === 1 ? '' : 's'} checked (${rev.source === 'ai' ? 'Jambo-assisted' : 'rule-based'})`);
   if (window.persist) persist(c);
   const items = rlPlaybookProposals(c, rev);
   const aligned = rev.verdicts.filter(v => v.status === 'aligned').length;
@@ -15259,7 +15259,7 @@ async function rlOpenPlaybookReview(c, again){
   </div>`;
   openModal(`<div style="padding:20px var(--s-6);max-height:calc(100vh - 80px);overflow-y:auto">
     <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0 0 var(--s-1)">&#10022; ${i18tn('ng_playbook_review',items.length,{n:items.length})}</h2>
-    <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">${aligned} position${aligned === 1 ? '' : 's'} aligned${rlPbCheckedLine(rev) ? ' &middot; ' + _ne(rlPbCheckedLine(rev)) : ''}${rev.source === 'ai' ? ' &middot; Copilot-assisted review' : ' &middot; rule-based review'}. A proposal files as an ordinary fingerprinted change only when you press it — nothing applies itself. <b>${i18t('ng_preferred')}</b> ${i18t('ng_opening_position')} <b>fallback</b> ${i18t('ng_concession_allowed')} ${i18t('ng_draft_is_copilots')}</p>
+    <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">${aligned} position${aligned === 1 ? '' : 's'} aligned${rlPbCheckedLine(rev) ? ' &middot; ' + _ne(rlPbCheckedLine(rev)) : ''}${rev.source === 'ai' ? ' &middot; Jambo-assisted review' : ' &middot; rule-based review'}. A proposal files as an ordinary fingerprinted change only when you press it — nothing applies itself. <b>${i18t('ng_preferred')}</b> ${i18t('ng_opening_position')} <b>fallback</b> ${i18t('ng_concession_allowed')} ${i18t('ng_draft_is_copilots')}</p>
     ${items.map(itemHtml).join('')}
     <div class="dlg-foot"><button id="pbr-close" class="ui-btn">${i18t('act_close')}</button></div>
   </div>`, { maxWidth: '780px' });
@@ -18854,7 +18854,7 @@ function redlineChangeCardsHtml(c, opts = {}){
              REACH, which is why it is a branch and not a deletion. */}
       ${acts || `<span>${opts.noAi
         ? `Press the <b>&#9998; ${i18t('ng_cp_edit')}</b> button on any clause to open its panel, then <b>&#43;</b> to propose new wording.`
-        : `Press the <b>&#9998; ${i18t('ng_cp_edit')}</b> button on any clause to open its panel — <b>&#43;</b> starts a draft, and highlighting a passage offers <b>&#10024; Copilot</b>.`} ${i18t('ng_each_ask_lands')}</span>`}
+        : `Press the <b>&#9998; ${i18t('ng_cp_edit')}</b> button on any clause to open its panel — <b>&#43;</b> starts a draft, and highlighting a passage offers <b>&#10024; Jambo</b>.`} ${i18t('ng_each_ask_lands')}</span>`}
       ${settled ? `<span>${settled} change${settled === 1 ? ' has' : 's have'} already been decided — ${settled === 1 ? 'it is' : 'they are'} in the document and the round history, not here.</span>` : ''}
     </div>`;
   }

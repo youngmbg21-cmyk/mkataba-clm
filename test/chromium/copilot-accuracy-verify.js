@@ -41,9 +41,9 @@ const ring = { content: [{ type: 'tool_use', id: 'tu', name: 'render_graph', inp
     await page.evaluate(() => openSettingsAt('platform', 'boardaccuracy'));
     const s2 = await until(() => { const h = document.getElementById('st-acc'); if (!h || !h.textContent.trim()) return null; const tiles = [...h.firstElementChild.children].map(t => t.textContent.replace(/\s+/g, ' ').trim()); return { tiles, sub: (document.getElementById('st-acc-sub') || {}).textContent }; });
     await page.screenshot({ path: path.join(OUT, '2-drawer.png') });
-    check('2 three tiles: the free reader\'s book, Copilot\'s score, disconnects', !!s2 && s2.tiles.length === 3 && /Free reader/.test(s2.tiles[0]) && new RegExp('Copilot · ' + run.hits + ' of ' + run.asked + ' right').test(s2.tiles[1]) && /Disconnects/.test(s2.tiles[2]) && /every Monday/.test(s2.sub), JSON.stringify(s2));
+    check('2 three tiles: the free reader\'s book, Copilot\'s score, disconnects', !!s2 && s2.tiles.length === 3 && /Free reader/.test(s2.tiles[0]) && new RegExp('Jambo · ' + run.hits + ' of ' + run.asked + ' right').test(s2.tiles[1]) && /Disconnects/.test(s2.tiles[2]) && /every Monday/.test(s2.sub), JSON.stringify(s2));
     const s3 = await page.evaluate(() => { const h = document.getElementById('st-acc'); return { words: h.querySelectorAll('[data-acc-word]').length, text: h.textContent }; });
-    check('3 Copilot\'s misses are listed, each with "Add a word"', s3.words >= Math.min(30, run.total - run.hits) && /Copilot misses/.test(s3.text), s3.words);
+    check('3 Copilot\'s misses are listed, each with "Add a word"', s3.words >= Math.min(30, run.total - run.hits) && /Jambo misses/.test(s3.text), s3.words);
     const s4 = await page.evaluate(() => !!document.querySelector('[data-acc-keep]') && /payment terms for suppliers/.test(document.getElementById('st-acc').textContent));
     await page.click('[data-acc-keep]');
     const s4b = await until(() => { const t = document.getElementById('st-acc').textContent; return !/“payment terms for suppliers”/.test(t) && /1 question is kept as a test/.test(t) ? true : null; });

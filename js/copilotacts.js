@@ -243,7 +243,7 @@ function caCardHtml(a, i){
   else if (a.state === 'asked') foot = `<p class="ca-said is-warn">${_caE(_caT('ca_no_address', { who: a.person.name }))}</p>`;
   else if (a.state === 'mailfail') foot = `<p class="ca-said is-warn">${_caE(_caT('ca_mail_failed', { who: a.person.name, why: a.why || '' }))}</p>`;
   else if (a.state === 'failed') foot = `<p class="ca-said is-bad">${_caE(a.why || _caT('ca_failed'))}</p>`;
-  else if (a.state === 'sending') acts = `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary" disabled aria-disabled="true">${_caE(_caT('ca_sending'))}</button>`;
+  else if (a.state === 'sending') acts = `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary" disabled aria-disabled="true">${window.busyHtml?busyHtml(_caT('ca_sending')):_caE(_caT('ca_sending'))}</button>`;
   else if (blocked){
     foot = `<p class="ca-why">${_caE(blocked.why)}</p>`;
     acts = blocked.fix === 'sendscreen' ? B('sendscreen', _caT('ca_a_sendscreen'), 'lead') : '';

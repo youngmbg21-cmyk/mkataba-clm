@@ -103,7 +103,7 @@ describe('f241 — the table describes sentences the server really says', () => 
       'A response was already submitted for this link',
       'This contract is no longer available. Ask the sender for an up-to-date copy.',
       'That is not a Word (.docx) or PDF file — the converter reads those two kinds',
-      'Copilot engine not configured',
+      'Jambo engine not configured',
     ]) assert.ok(SRV_MSG[s], `not translated: ${s}`);
   });
 

@@ -222,7 +222,7 @@ async function draftRead(given){
   /* The button's MARKUP is kept, not its text: it carries Copilot's sparkle,
      and restoring textContent put back the word without it (26 Sep 2026). */
   const was=btn.innerHTML;
-  btn.disabled=true; btn.textContent=i18t('ct_working'); out.innerHTML='';
+  btn.disabled=true; (window.busySet?busySet(btn,i18t('ct_working')):(btn.textContent=i18t('ct_working'))); out.innerHTML='';
   try{
     /* A CALLER MAY NAME THE LIST; otherwise it is read HERE, at the press.
        The door passes nothing, deliberately — see the note above. */

@@ -59,7 +59,7 @@ const check = (name, ok, detail) => {
     await page.evaluate(() => { intel.dockOpen = false; renderIntelDock(); igSyncDockWidth(); });
     await until(() => Math.round(document.getElementById('ig-dock').getBoundingClientRect().width) === 46, null, 4000);   // the dock slides
     const d1 = await door();
-    check('1 folded, the panel is a door that says "Ask Copilot"', d1.there && d1.label === 'Ask Copilot', JSON.stringify(d1));
+    check('1 folded, the panel is a door that says "Ask Copilot"', d1.there && d1.label === 'Ask Jambo', JSON.stringify(d1));
     check('1b painted where a press lands, tinted, words at a readable size', d1.hit && d1.bg !== 'rgba(0, 0, 0, 0)' && d1.size >= 12, JSON.stringify(d1));
     check('1c it keeps the folded width, so the board does not move', d1.w === 46, String(d1.w));
 

@@ -1728,7 +1728,7 @@ function stAccountBodyHtml(){
     <section class="st-sec">
       <h3 class="st-sec-h">${esc(i18t('st_acct_sessions'))}</h3>
       <p class="st-note" style="margin-bottom:6px">${i18t('set_sessions_sub')}</p>
-      <div id="sessions-list" style="font-size:var(--t-meta);color:var(--color-neutral-700)">${i18t('set_loading')}</div>
+      <div id="sessions-list" style="font-size:var(--t-meta);color:var(--color-neutral-700)">${window.busyHtml?busyHtml(i18t('set_loading')):i18t('set_loading')}</div>
     </section>
 
     ${''/* THE HONEST READ-ONLY STATEMENT STAYS. The checkboxes that used to be
@@ -3194,7 +3194,7 @@ const SET_PANELS={
     title:()=>i18t('st_p_report'),
     sub:()=>i18t('set_monthly_report_sub'),
     state(){ return { dot:'off', text:i18t('set_monthly_report_sub') }; },
-    body(){ return `<div id="mr-status" style="font-size:var(--t-label);color:var(--color-neutral-700);margin-bottom:var(--s-2)">${i18t('set_checking')}</div>
+    body(){ return `<div id="mr-status" style="font-size:var(--t-label);color:var(--color-neutral-700);margin-bottom:var(--s-2)">${window.busyHtml?busyHtml(i18t('set_checking')):i18t('set_checking')}</div>
       <label class="st-toggle" style="margin-bottom:var(--s-2)">
         <input id="mr-enabled" type="checkbox"/><span><span class="st-role-name">${i18t('set_monthly_report_on')}</span></span></label>
       <div style="display:flex;gap:var(--s-2);align-items:center;flex-wrap:wrap">
@@ -3325,7 +3325,7 @@ const SET_PANELS={
     title:()=>i18t('st_b_pilot'),
     sub:()=>i18t('set_activation_sub'),
     state(){ return { dot:'off', text:i18t('set_activation_sub') }; },
-    body(){ return `<div id="activation-funnel" style="font-size:var(--t-meta);color:var(--color-neutral-700)">${i18t('set_loading')}</div>`; },
+    body(){ return `<div id="activation-funnel" style="font-size:var(--t-meta);color:var(--color-neutral-700)">${window.busyHtml?busyHtml(i18t('set_loading')):i18t('set_loading')}</div>`; },
     wire(){ stLoadActivation(); },
   },
 
@@ -3715,7 +3715,7 @@ function stIntegrityHtml(r){
 }
 async function stRunIntegrity(){
   const out=document.getElementById('st-integrity-out');
-  if(out) out.innerHTML=i18t('set_integrity_running');
+  if(out) out.innerHTML=window.busyHtml?busyHtml(i18t('set_integrity_running')):i18t('set_integrity_running');
   const list=(state.contracts||[]).slice();
   const bad=[]; let checked=0;
   for(const c of list){
@@ -3935,7 +3935,7 @@ function stPaintKeyClear(source){
 }
 function stEngineBodyHtml(){
   if(!API_MODE()){
-    return `<div id="ai-cfg-status" style="font-size:var(--t-label);color:var(--color-neutral-700);margin-bottom:var(--s-2)">${i18t('set_checking')}</div>
+    return `<div id="ai-cfg-status" style="font-size:var(--t-label);color:var(--color-neutral-700);margin-bottom:var(--s-2)">${window.busyHtml?busyHtml(i18t('set_checking')):i18t('set_checking')}</div>
       <div style="display:flex;gap:var(--s-2);align-items:flex-end">
         <label style="flex:1;min-width:0"><span style="${window.RV_LBL||''}">${i18t('set_api_key')}</span>
           <input id="ai-key" type="password" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" spellcheck="false" placeholder="sk-ant-…" style="${window.RV_FLD||ST_INPUT}"/></label>
@@ -3952,7 +3952,7 @@ function stEngineBodyHtml(){
       ${stAcceptanceHtml()}`;
   }
   return `
-    <div id="ai-cfg-status" style="font-size:var(--t-label);color:var(--color-neutral-700);margin-bottom:var(--s-2)">${i18t('set_checking')}</div>
+    <div id="ai-cfg-status" style="font-size:var(--t-label);color:var(--color-neutral-700);margin-bottom:var(--s-2)">${window.busyHtml?busyHtml(i18t('set_checking')):i18t('set_checking')}</div>
     <div style="display:flex;gap:var(--s-2);align-items:flex-end">
       <label style="flex:1;min-width:0"><span style="${window.RV_LBL||''}">${i18t('set_api_key')}</span>
         <input id="ai-key" type="password" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" spellcheck="false" placeholder="sk-ant-…" style="${window.RV_FLD||ST_INPUT}"/></label>
@@ -4116,8 +4116,8 @@ function stWireEngine(){
          must still not offer a press that would do nothing. */
       stPaintKeyClear(k?'settings':null);
       if(!st) return;
-      st.innerHTML=k?`<span style="color:var(--st-green-fg);font-weight:var(--w-strong)">● Configured</span> · key ••••${String(k).slice(-4)} stored in this browser — Copilot is live.`
-                    :`<span style="color:var(--st-amber-fg);font-weight:var(--w-strong)">● Not configured</span> — Copilot and Copilot features use the built-in interpreter.`; };
+      st.innerHTML=k?`<span style="color:var(--st-green-fg);font-weight:var(--w-strong)">● Configured</span> · key ••••${String(k).slice(-4)} stored in this browser — Jambo is live.`
+                    :`<span style="color:var(--st-amber-fg);font-weight:var(--w-strong)">● Not configured</span> — Jambo and Jambo features use the built-in interpreter.`; };
     refresh();
     const refreshAiIndicators=()=>{ if(typeof renderSideUser==='function') renderSideUser(); if(typeof updateAiBrainPill==='function') updateAiBrainPill(); };
     document.getElementById('ai-key-save')?.addEventListener('click',()=>{
@@ -4129,7 +4129,7 @@ function stWireEngine(){
       toast(i18t('set_t_key_saved',{last4:key.slice(-4)})); refresh(); refreshAiIndicators();
     });
     document.getElementById('ai-key-clear')?.addEventListener('click',async()=>{
-      if(!await confirmDialog({title:'Remove the stored Copilot key?', message:i18t('set_key_remove_msg'), confirmLabel:'Remove key', danger:true})) return;
+      if(!await confirmDialog({title:'Remove the stored Jambo key?', message:i18t('set_key_remove_msg'), confirmLabel:'Remove key', danger:true})) return;
       localStorage.removeItem('hati.v1.aikey'); toast(i18t('set_key_removed')); refresh(); refreshAiIndicators();
     });
     return;
@@ -4217,7 +4217,7 @@ function stWireEngine(){
       if(rp&&document.activeElement!==rp) rp.checked=lim.renewalPrep!==false;
       renderAllowancePanel(c.allowance||{});
       renderRateTable(c.rates||{}, c.ratesMeta||{});
-    }catch(e){ el.textContent='Could not read Copilot config.'; stPaintKeyClear(undefined); } };
+    }catch(e){ el.textContent='Could not read Jambo config.'; stPaintKeyClear(undefined); } };
   refreshAiCfg();
   /* ---- THE COPILOT ENGINE PANEL'S FOUR SAVES SAY 'SAVED' ----
      Every refusal here goes into the drawer's foot and every SUCCESS was a
@@ -4367,7 +4367,7 @@ function stLoadOutbox(){
    — and a key set in the server's own environment cannot be removed from
    here (stKeyRemovable says so on the button). */
 function stMailKeyHtml(){
-  return `<div id="mail-cfg-status" style="font-size:var(--t-label);color:var(--color-neutral-700);margin-bottom:var(--s-2)">${i18t('set_checking')}</div>
+  return `<div id="mail-cfg-status" style="font-size:var(--t-label);color:var(--color-neutral-700);margin-bottom:var(--s-2)">${window.busyHtml?busyHtml(i18t('set_checking')):i18t('set_checking')}</div>
     <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:var(--s-2);align-items:flex-end">
       <label style="min-width:0"><span style="${window.RV_LBL||''}">${i18t('set_mail_key')}</span>
         <input id="mail-key" type="password" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" spellcheck="false" placeholder="re_…" style="${window.RV_FLD||ST_INPUT}"/></label>
@@ -4431,7 +4431,7 @@ function stWireOutbox(){
   stWireMailKey();
   const busy=(btn,word,fn)=>async()=>{
     const held=btn.innerHTML;
-    btn.disabled=true; btn.innerHTML=esc(i18t(word));
+    btn.disabled=true; btn.innerHTML=window.busyHtml?busyHtml(i18t(word)):esc(i18t(word));
     try{ await fn(); } finally { btn.disabled=false; btn.innerHTML=held; }
   };
   const ob=document.getElementById('ob-refresh');
@@ -5369,7 +5369,7 @@ async function stAgentsPaint(){
       ${f.length?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:9px">${f.join('')}</div>`:''}
       <div style="display:flex;align-items:center;gap:10px;margin-top:9px;flex-wrap:wrap">
         <button type="button" data-st-ag-save="${k}" style="${ST_BTN_SM}">${esc(i18t('act_save'))}</button>
-        ${a.on?`<button type="button" data-st-ag-run="${k}" style="${ST_BTN_SM}"${a.running?' disabled aria-disabled="true"':''}>${esc(i18t(a.running?'ag_running':'ag_runnow'))}</button>`:''}
+        ${a.on?`<button type="button" data-st-ag-run="${k}" style="${ST_BTN_SM}"${a.running?' disabled aria-disabled="true"':''}>${a.running&&window.busyHtml?busyHtml(i18t('ag_running')):esc(i18t(a.running?'ag_running':'ag_runnow'))}</button>`:''}
         ${AG_MONEY_NOTE_KEYS.includes(k)?`<span class="st-note" style="margin:0">${esc(i18t('st_agents_money_note'))}</span>`:''}
       </div>
       ${''/* RUN NOW AND THE EARLIER RUNS MOVED HERE when Copilot's work moved onto

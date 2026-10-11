@@ -30,7 +30,7 @@ const KPI_EN={
      and nothing that was on the page is gone — the lifecycle, import-queue and
      coverage tiles are chosen here like every other, beside Compliance, which
      was in the catalogue already. */
-  lifecycle:'Contract lifecycle', importq:'Import queue', coverage:'Copilot coverage' };
+  lifecycle:'Contract lifecycle', importq:'Import queue', coverage:'Jambo coverage' };
 /* Falls back to the English WORD, never the dictionary key — a tile reading
    `kpi_avgcycle` looks like broken software, one reading "Avg turnaround time"
    on a Swedish screen looks only untranslated. */
@@ -208,7 +208,7 @@ function gsSteps(){
     ||cs.some(c=>(c.audit||[]).some(a=>a&&a.action==='Shared'));
   return [
     {k:'add',  t:'Add your first contract',      d:'Draft one from a template, or upload one you received.', done:mine.length>0},
-    {k:'scan', t:'Let Copilot scan a contract',  d:'A read-through that flags risky terms in plain English.', done:cs.some(c=>c.scan)},
+    {k:'scan', t:'Let Jambo scan a contract',  d:'A read-through that flags risky terms in plain English.', done:cs.some(c=>c.scan)},
     {k:'send', t:'Send one to the other side',   d:'They get a secure link — no account needed.',             done:sent},
     {k:'sign', t:'Watch it come back signed',    d:'Sealed, filed and on the record.',                        done:mine.some(c=>c.status==='Signed')},
   ];

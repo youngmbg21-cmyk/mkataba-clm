@@ -710,7 +710,7 @@ function openMetaReview(meta, onConfirm, opts={}){
     : p.thorough ? ` · whole document read in ${p.sections} overlapping section${p.sections===1?'':'s'} (thorough mode)`
     : p.omitted ? ` · read the front, the back and ${p.sections-2>0?p.sections-2:0} clause window${p.sections-2===1?'':'s'} of a ${Number(p.sourceChars||0).toLocaleString(jxLocale())}-character document`
     : ` · read the whole ${Number(p.chars||0).toLocaleString(jxLocale())}-character document`;
-  const src = (meta._source==='ai' ? 'Read with Copilot' : 'Read without Copilot') + coverage;
+  const src = (meta._source==='ai' ? 'Read with Jambo' : 'Read without Jambo') + coverage;
   /* A QUEUE NEEDS A DOOR. Opened one at a time from a backfill, this dialog had
      Cancel — which meant "next", not "stop" — so the only way out of a run of
      forty was to dismiss forty. Escape did end it, but silently, which is worse

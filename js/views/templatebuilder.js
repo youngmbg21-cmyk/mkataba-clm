@@ -1239,7 +1239,7 @@ function tbStyleHtml() {
   .tb-pq-o .ui-btn{flex:none;font-size:var(--t-meta);padding:0 var(--pad-ctl-x-sm);min-height:var(--ctl-h-sm)}
   /* ════ THE THREE STEPS, IN THE STRIP THAT ALREADY EXISTS (18 Sep 2026) ═════
      The builder never said what the job WAS: you arrived on a document with a
-     Copilot beside it and had to work out for yourself that marking the blanks
+     Jambo beside it and had to work out for yourself that marking the blanks
      and publishing were still to come. The spine says it in three words and is
      a real door — each step presses something that already worked.
 
@@ -1335,7 +1335,7 @@ function tbStyleHtml() {
   .tb-list .it{display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.45}
   /* Where a proposed section's words will come from (24 Sep 2026): the three
      sources in the three tones the builder already uses for them — the
-     library steel, the playbook green, Copilot's own violet. */
+     library steel, the playbook green, Jambo's own violet. */
   .tb-list .src{font-size:var(--t-micro);font-weight:var(--w-strong);padding:0 5px;margin-left:6px;white-space:nowrap}
   .tb-list .src.lib{background:var(--st-steel-bg);color:var(--st-steel-fg)}
   .tb-list .src.std{background:var(--st-green-bg);color:var(--st-green-fg)}

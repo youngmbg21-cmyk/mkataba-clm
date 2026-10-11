@@ -1783,7 +1783,7 @@ function hydrate(){
    note that is not a Copilot stamp is a person's reason wearing the wrong
    label. A Copilot stamp is left exactly where it is — relabelling provenance
    as somebody's reason would be this same bug pointing the other way. */
-const NEGO_COPILOT_NOTE=/^\s*Copilot\s*[—–-]/;
+const NEGO_COPILOT_NOTE=/^\s*(?:Copilot|Jambo)\s*[—–-]/;   /* Jambo since 11 Oct 2026; notes saved before say Copilot */
 function negoRecoverMisfiledReasons(c){
   if(!c||!Array.isArray(c.changes)) return c;
   for(const ch of c.changes){
@@ -2641,13 +2641,13 @@ async function refreshAiUsage(){
     // a subject; under a "Copilot spend today" label with "15 Copilot requests
     // today" beneath it, it is a reading.
     const reqs=Number(u.count||0);
-    const reqLine=`${reqs.toLocaleString(jxLocale())} Copilot request${reqs===1?'':'s'} today`;
+    const reqLine=`${reqs.toLocaleString(jxLocale())} Jambo request${reqs===1?'':'s'} today`;
     if(a&&a.open){
       if(lab) lab.textContent='Free allowance';
       txt.textContent=`$${Number(a.spent||0).toFixed(2)}${a.budget>0?' / $'+Number(a.budget).toFixed(2):''}`;
       if(sub) sub.textContent=reqLine;
     }else{
-      if(lab) lab.textContent='Copilot spend';
+      if(lab) lab.textContent='Jambo spend';
       txt.textContent=`$${spent.toFixed(2)}${budget>0?' / $'+budget.toFixed(2):''}`;
       if(sub) sub.textContent=reqLine;   // the cap is already the figure's denominator
     }
@@ -8379,7 +8379,7 @@ async function renderSharesSection(c){
        REFUSAL was reported as "queued to the outbox" — a queue it is not in and
        will never leave. The route answers with mailReport: sent / outbox /
        refused-and-why, and all three now reach the person who pressed. */
-    const was=b.textContent; b.disabled=true; b.textContent=i18t('co_sending');
+    const was=b.textContent; b.disabled=true; (window.busySet?busySet(b,i18t('co_sending')):(b.textContent=i18t('co_sending')));
     try{ const r=await api('shares/'+b.getAttribute('data-sh-resend')+'/resend','POST',{});
       if(r.emailSent) toast(i18t('co_resend_sent'),'ok');
       else if(r.outbox||r.emailConfigured===false) toast(i18t('co_resend_outbox'),'warn');

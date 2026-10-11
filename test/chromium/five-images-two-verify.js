@@ -263,7 +263,7 @@ const ok = (name, good, detail) => {
       /* triageWhy is the one reading; asked directly so the four kinds can be
          told apart without four failing round trips. */
       const w = k => (typeof triageWhy === 'function')
-        ? triageWhy({ kind: k, message: 'Copilot request failed: fetch failed' }).say : null;
+        ? triageWhy({ kind: k, message: 'Jambo request failed: fetch failed' }).say : null;
       return { raw: (typeof triageWhy === 'function') ? triageWhy({ message: 'fetch failed' }) : null,
         kinds: { noKey: w('noKey'), rateLimit: w('rateLimit'), spendCap: w('spendCap'), provider: w('provider') },
         names: (typeof contractOpenFieldNames === 'function') ? contractOpenFieldNames(c).slice(0, 4) : null };

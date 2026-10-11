@@ -393,7 +393,7 @@ describe('F88g — the conversational action asks before it drafts', () => {
 
   test('the button says what it does and nothing about a direction', () => {
     const block = selBlock().replace(/\/\*[\s\S]*?\*\//g, '');
-    assert.match(block, /label: '✨ Edit with Copilot'/,
+    assert.match(block, /label: '✨ Edit with Jambo'/,
       'the label the reader presses');
     assert.ok(!/Rephrase for Buyer Advantage/.test(block),
       'and it no longer decides, on their behalf, that rephrase means favour my side');

@@ -47,10 +47,10 @@ const check = (name, pass, detail) => { results.push({ name, pass: !!pass }); co
     await page.screenshot({ path: path.join(OUT, '2-free.png') });
     check('2 the line says what will be drawn, free — and the board is untouched', s2 === 'All contracts: Ring · by stage · count · Free' && board2 === board0, JSON.stringify({ s2, same: board2 === board0 }));
     await page.fill('#igd-input', ''); await page.keyboard.type('how quickly do we close deals in each stream', { delay: 10 });
-    const s3 = await until(() => { const t = document.getElementById('igd-pre').textContent; return /Copilot/.test(t) ? t : null; });
+    const s3 = await until(() => { const t = document.getElementById('igd-pre').textContent; return /Jambo/.test(t) ? t : null; });
     const b3 = await box();
     await page.screenshot({ path: path.join(OUT, '3-copilot.png') });
-    check('3 a question Copilot answers says so, with no price', s3 === 'Copilot will read this one', s3);
+    check('3 a question Copilot answers says so, with no price', s3 === 'Jambo will read this one', s3);
     check('4 nothing moved: the box, the line and the feed hold their places', JSON.stringify(b0) === JSON.stringify(b2) && JSON.stringify(b0) === JSON.stringify(b3), JSON.stringify({ b0, b2, b3 }));
     await page.fill('#igd-input', 'contracts by stage'); await page.keyboard.press('Enter');
     const s5 = await until(() => { const s = hbS(), k = (s.path || []).slice(-1)[0]; if (!k) return null; return hbHowWord(hbPlan(hbDigData(k, s.lens))); });

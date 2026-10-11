@@ -1461,7 +1461,7 @@ function calStyleCss(){ return `
   .cal-day[data-cal-week]:hover{border-color:var(--color-accent-100)}
   .cal-day[data-cal-week]:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:1px}
   .cal-chip[data-cal-ct]{cursor:pointer}
-  /* Copilot */
+  /* Jambo */
   .cal-cop{border-left:1px solid var(--color-divider);display:flex;flex-direction:column;min-width:0;min-height:0}
   .cal-cop .cal-plan-head{padding:12px 14px}
   .cal-cop .cal-plan-head b{font-size:var(--t-body)}
@@ -1644,7 +1644,7 @@ function openCalendarShare(evs){
     const err=document.getElementById('cal-share-err');
     const toId=document.getElementById('cal-share-who').value;
     const note=String(document.getElementById('cal-share-note').value||'').slice(0,1000);
-    btn.disabled=true; btn.textContent=i18t('cal_share_sending');
+    btn.disabled=true; (window.busySet?busySet(btn,i18t('cal_share_sending')):(btn.textContent=i18t('cal_share_sending')));
     try{
       const r=await api('calendar/share','POST',{toId,note,lines});   // api(path, method, body) — it stringifies
       closeModal();

@@ -76,7 +76,7 @@ const BAD = add('Starts by month', { pic: 'cols', split: { by: 'date', unit: 'm'
     const titles = await page.evaluate(() => hbS().panels.map(p => p.title).sort().join('|'));
     check('1a the good card and the fixed card are on the board; the bad one is not', titles === 'By stream|Ends by month', titles);
     check('1b the bad card went back once, with HaTi\'s reason', sent.length - n0 === 2 && /start date is missing for \d+ of \d+ contracts/.test(sent[sent.length - 1].query || ''), (sent[sent.length - 1] || {}).query);
-    check('1c the panel says one retry ran', /One retry ran: 1 card went back to Copilot to be fixed\./.test(said1 || ''), said1);
+    check('1c the panel says one retry ran', /One retry ran: 1 card went back to Jambo to be fixed\./.test(said1 || ''), said1);
     await page.waitForTimeout(700);
     await page.screenshot({ path: path.join(OUT, '1-fixed.png') });
 

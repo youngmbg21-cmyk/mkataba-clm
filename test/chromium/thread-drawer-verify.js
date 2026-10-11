@@ -237,7 +237,7 @@ const answer = say => b => [{ type: 'tool_use', id: 'tu', name: 'clause_readings
     ai.script(answer(() => ''), answer(() => ''));
     const p1 = await press();
     check('4b answered empty (twice), the clause says "Could not read" on its row, and why, with Plain to ask again',
-      p1.calls === 2 && /Could not read/.test(p1.row.state) && /Copilot could not read this clause/.test(p1.s.openText) && /Plain/.test(p1.s.openText),
+      p1.calls === 2 && /Could not read/.test(p1.row.state) && /Jambo could not read this clause/.test(p1.s.openText) && /Plain/.test(p1.s.openText),
       JSON.stringify({ calls: p1.calls, state: p1.row.state, text: p1.s.openText.slice(0, 140) }));
     await page.screenshot({ path: path.join(OUT, '04-could-not-read.png') });
     ai.script(answer(hd => 'In plain words, ' + hd + ' asks you to hand over your directors’ identity papers.'));

@@ -111,8 +111,8 @@ describe('f560 (1)(2)(3) — the pass route, the ladder, and Just do it', () => 
     assert.ok(Date.parse(row.expires_at) > Date.now() + 10 * 864e5, row.expires_at);
     const c = await W.admin.json('/api/contracts/MK-AK-1');
     assert.match(c.audit[c.audit.length - 1].detail, /kept open until/);
-    assert.match(c.audit[c.audit.length - 1].user, /Copilot/);
-    const mail = (await outbox(W)).find(m => (m.to_addr || m.to) === 'everything@example.co.ke' && /Copilot kept it open/.test(m.body));
+    assert.match(c.audit[c.audit.length - 1].user, /Jambo/);
+    const mail = (await outbox(W)).find(m => (m.to_addr || m.to) === 'everything@example.co.ke' && /Jambo kept it open/.test(m.body));
     assert.ok(mail, 'the owner is told what was done');
   });
   test('3b Ask me first: the same link is only warned of', async () => {

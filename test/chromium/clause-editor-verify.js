@@ -1295,7 +1295,7 @@ const dismissNote = async pg => {
      !cost.none && cost.colour === cost.label && cost.colour !== cost.amber && cost.colour !== cost.ruby,
      `${cost.colour} (label ${cost.label}, amber ${cost.amber}, ruby ${cost.ruby})`);
   const t = cost.titles || {};
-  const std = t['Use our standard'], draft = t["Use Copilot's draft"];
+  const std = t['Use our standard'], draft = t["Use Jambo's draft"];
   /* ---- PINNED AS A RELATION, NOT AS WHICH ONE IS BIGGER (31 Aug 2026) ----
      It asserted std "keeps none" and draft "keeps N", which is a fact about
      this fixture's WORDING rather than about the product: the clause the

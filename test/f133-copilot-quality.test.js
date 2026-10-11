@@ -459,7 +459,7 @@ describe('F-C — the panel and the chat read the same review', () => {
     assert.ok(r, 'the review the Playbook panel is showing travels with the contract');
     assert.equal(r.playbook, 'Supply / raw material / packaging', 'and it names the book it was checked against');
     assert.equal(r.checkedAt, '2026-09-01T09:00:00.000Z', 'when it was run is READ off the audit trail, never guessed');
-    assert.equal(r.checkedBy, 'Copilot-assisted');
+    assert.equal(r.checkedBy, 'Jambo-assisted');
     assert.equal(r.verdicts.length, 2);
     assert.equal(r.verdicts[1].status, 'missing');
     assert.equal(r.verdicts[1].escalate, true);

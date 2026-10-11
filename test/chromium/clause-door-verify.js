@@ -730,7 +730,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   };
   const inPanelMenu = await selMenu('#rl-cp [data-nego-editor]');
   ck('7g a highlight in the panel\'s editor offers exactly Edit with Copilot',
-     inPanelMenu.length === 1 && /Edit with Copilot/.test(inPanelMenu[0]),
+     inPanelMenu.length === 1 && /Edit with Jambo/.test(inPanelMenu[0]),
      inPanelMenu.join(' / ') || 'no menu');
   await p.evaluate(()=>{const g=window.getSelection&&window.getSelection();if(g)g.removeAllRanges();
     document.querySelectorAll('.nego-selmenu').forEach(n=>n.remove());});
@@ -908,7 +908,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       tip: btn.getAttribute('title') || '', w: Math.round(r.width), h: Math.round(r.height) };
   });
   ck('8c the Copilot is drawn in the panel, greyed, saying why',
-     !cop.none && cop.tag === 'BUTTON' && /Edit with Copilot/.test(cop.text)
+     !cop.none && cop.tag === 'BUTTON' && /Edit with Jambo/.test(cop.text)
      && cop.w > 40 && cop.h > 10 && cop.dead && cop.tip.length > 10,
      cop.none ? 'no button' : `${cop.tag} "${cop.text}" dead ${cop.dead} — ${cop.tip}`);
   const copPress = await (async () => {

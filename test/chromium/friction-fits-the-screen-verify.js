@@ -165,7 +165,7 @@ function measure() {
         await lens(page, 'clauses');
         const m = await drive(page, measure, undefined, null) || {};
         check(`${tag} a — the tab fits: the page itself does not scroll`, m.hostScrolls === false, JSON.stringify({ scrolls: m.hostScrolls }));
-        check(`${tag} b — Copilot's read first, then six figure tiles in one line`,
+        check(`${tag} b — Jambo's read first, then six figure tiles in one line`,
           !!m.cop && !!m.figsR && m.cop.b <= m.figsR.t && m.figs === 6 && (m.figTops || []).length === 1,
           `${m.figs} tiles · tops ${JSON.stringify(m.figTops)}`);
         check(`${tag} c — the list and its panel share top and bottom edges`,

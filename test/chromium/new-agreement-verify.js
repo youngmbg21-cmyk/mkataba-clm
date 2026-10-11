@@ -315,7 +315,7 @@ const READ = () => {
       await page.evaluate(() => closeModal()); await pause(200);
     }
     check('9e the note says only what is true — no blank to light, nothing "under these questions"',
-      !d.err && /Copilot reads the agreement on arrival/.test(d.note) && !/lights the blank|under these questions/.test(d.note),
+      !d.err && /Jambo reads the agreement on arrival/.test(d.note) && !/lights the blank|under these questions/.test(d.note),
       d.err || d.note.slice(0, 90));
     /* A REAL WHEEL, at the iPad size where the body DOES scroll (MEASURED: by
        105px at 1194x834, because the ask now sits above both columns). What

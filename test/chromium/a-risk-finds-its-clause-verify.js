@@ -149,8 +149,8 @@ const NEW_CL = 'Each party shall sign this Agreement in the order the Buyer name
     check(!!L1 && /Risk 1 of 3/.test(L1.step), '1- the walk is on "Product standard not cited"', L1 && L1.step);
     check(!!L1 && /Quality & Rejection/i.test(L1.clause), '1a it opens ON the quality clause, not a new one', L1 && L1.clause);
     const ask1 = await page.evaluate(() => window._asked[window._asked.length - 1] || '');
-    check(/Rewrite this contract clause/.test(ask1) && /failing specification/.test(ask1), '1b Copilot is asked to rewrite it, with its wording', ask1.slice(0, 90));
-    check(!!L1 && L1.card && !L1.red, '1c Copilot\'s Suggested wording card is there, no refusal');
+    check(/Rewrite this contract clause/.test(ask1) && /failing specification/.test(ask1), '1b Jambo is asked to rewrite it, with its wording', ask1.slice(0, 90));
+    check(!!L1 && L1.card && !L1.red, '1c Jambo\'s Suggested wording card is there, no refusal');
     check(!!L1 && L1.label == null, '1d nothing to choose: HaTi knew the clause');
     await shot('1-the-quality-clause.png');
 
@@ -165,7 +165,7 @@ const NEW_CL = 'Each party shall sign this Agreement in the order the Buyer name
     check(chg.length >= 4 && add.length === chg.length && /^Change 1\. Supply & Specification$/.test(chg[0].t) && /^New clause after/.test(add[0].t),
       '2c every clause to change and every place for a new one', chg.length + ' · ' + add.length + ' · ' + (chg[0] && chg[0].t));
     const still = await until(page, n => window._asked.length > n ? true : null, n0, 900);
-    check(!still, '2d Copilot is not asked while the reader chooses');
+    check(!still, '2d Jambo is not asked while the reader chooses');
     check(!!L2 && L2.chipsOff.length === 4 && L2.chipsOff.every(Boolean), '2e the quick asks are grey until then', L2 && JSON.stringify(L2.chipsOff));
     await shot('2-which-clause.png');
     await page.selectOption('#clause-editor #ce-lane [data-ce-rk-where]', chg[0] ? chg[0].v : 'none');
@@ -173,7 +173,7 @@ const NEW_CL = 'Each party shall sign this Agreement in the order the Buyer name
       return ln && /Risk 2 of 3/.test(window.__laneText(ln)) && document.querySelector('#ce-lane [data-ce-apply="rk:0"]') ? true : null; }, null, 10000) && await lane();
     check(!!L3 && /Supply & Specification/i.test(L3.clause), '2f "Change 1. Supply & Specification" opens that clause', L3 && L3.clause);
     const ask3 = await page.evaluate(() => window._asked.slice(-1)[0] || '');
-    check(/Rewrite this contract clause/.test(ask3) && /shall supply an estimated/i.test(ask3), '2g and asks Copilot once, to rewrite it', ask3.slice(0, 90));
+    check(/Rewrite this contract clause/.test(ask3) && /shall supply an estimated/i.test(ask3), '2g and asks Jambo once, to rewrite it', ask3.slice(0, 90));
     check(!!L3 && L3.value === chg[0].v, '2h the box keeps the choice, so it can be changed', L3 && L3.value);
     await shot('2f-changed-clause-1.png');
     const before = await page.evaluate(() => window._asked.length);
@@ -181,7 +181,7 @@ const NEW_CL = 'Each party shall sign this Agreement in the order the Buyer name
     await page.selectOption('#clause-editor #ce-lane [data-ce-rk-where]', last.v);
     const L4 = await until(page, async (n) => { const pg = document.getElementById('clause-editor'); const ln = pg && pg.querySelector('#ce-lane');
       return ln && window._asked.length > n && document.querySelector('#ce-lane [data-ce-apply="rk:0"]') && document.querySelector('#clause-editor .ce-new-badge') ? true : null; }, before, 10000) && await lane();
-    check(!!L4, '2i a place for a new clause holds it there, and Copilot is asked');
+    check(!!L4, '2i a place for a new clause holds it there, and Jambo is asked');
     const ask4 = await page.evaluate(() => window._asked.slice(-1)[0] || '');
     check(/There is no existing wording/.test(ask4) && !/The selected wording is/.test(ask4) && !/"""/.test(ask4),
       '2j the request says there is no wording yet — no empty quote', ask4.slice(0, 90));
@@ -194,7 +194,7 @@ const NEW_CL = 'Each party shall sign this Agreement in the order the Buyer name
       return ln && /Risk 3 of 3/.test(window.__laneText(ln)) && ln.querySelector('.rk-say') ? true : null; }, null, 10000) && await lane();
     check(!!L5 && /Price & Contract Value/i.test(L5.clause), '3- "Price index unnamed" (clause 2) opens on its clause', L5 && L5.clause);
     check(!!L5 && !L5.red && /I need the clause that sets prices/.test(L5.say) && /Choose the clause this is about above/.test(L5.say),
-      '3a Copilot\'s answer is said quietly, with the way forward — not in red', L5 && L5.say.slice(0, 140));
+      '3a Jambo\'s answer is said quietly, with the way forward — not in red', L5 && L5.say.slice(0, 140));
     check(!!L5 && /Which clause is this about\?/i.test(L5.label || '') && /^chg:/.test(L5.value || ''), '3b and the box opens on the clause in front of the reader', L5 && L5.value);
     const red = await page.evaluate(() => { const s = document.querySelector('#clause-editor .rk-say'); return s ? getComputedStyle(s.querySelector('p')).color : ''; });
     const ruby = await page.evaluate(() => { const p = document.createElement('span'); p.style.color = 'var(--st-ruby-fg)'; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; });

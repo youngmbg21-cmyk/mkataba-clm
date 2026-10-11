@@ -1058,7 +1058,7 @@ function renderPlaybookSection(c){
      Scan card carries the same rule and the same reason: a panel headed
      "Copilot review" over checks a regular expression made is a lie the reader
      has no way to catch. */
-  const head = (r && r.source==='ai') ? 'Copilot review &middot; vs Our standards' : 'Playbook review &middot; vs Our standards';
+  const head = (r && r.source==='ai') ? 'Jambo review &middot; vs Our standards' : 'Playbook review &middot; vs Our standards';
   const HEAD='font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600);margin:0';
   const rowsHtml = r ? r.verdicts.map((v,i)=>{
     const m=PB_MARK[v.status]||PB_MARK.missing;

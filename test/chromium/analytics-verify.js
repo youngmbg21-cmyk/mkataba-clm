@@ -75,7 +75,7 @@ const check = (ok, what) => {
   await page.evaluate(() => { window.clearAIHistory && (window.ai.history = []); window.openAI(); });
   await page.waitForTimeout(800);
   const chips = await page.locator('#ai-suggest .ai-chip').count();
-  check(chips >= 3, `Copilot shows suggestion chips on an empty panel (${chips})`);
+  check(chips >= 3, `Jambo shows suggestion chips on an empty panel (${chips})`);
   await page.screenshot({ path: path.join(OUT, 'copilot-chips.png') });
 
   /* ---- 3. the report chip opens the Portfolio Health Report ---- */

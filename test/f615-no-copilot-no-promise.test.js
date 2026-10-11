@@ -30,9 +30,9 @@ const draw = available => {
 test('f615 with Copilot connected the line names its cost; without it, it promises nothing it cannot keep', () => {
   assert.ok(FN.length > 100, 'the function was found');
   const on = draw(true), off = draw(false);
-  assert.match(on, /About three Copilot calls/);
+  assert.match(on, /About three Jambo calls/);
   assert.ok(!/three Copilot calls/.test(off), 'no Copilot calls promised without Copilot');
-  assert.match(off, /Copilot is not connected/);
+  assert.match(off, /Jambo is not connected/);
   assert.match(off, /local risk scan still does/);
-  assert.match(I18N, /ct_triage_optin_sub_noai: 'Copilot är inte anslutet/, 'and in Swedish');
+  assert.match(I18N, /ct_triage_optin_sub_noai: 'Jambo är inte anslutet/, 'and in Swedish');
 });

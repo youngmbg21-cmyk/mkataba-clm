@@ -314,8 +314,8 @@ describe('f396 (4) — a renewal\'s Decide reads the contract again', () => {
   });
   test('4e the press says what it spends: the Decide hover names the fresh reading, in both books', () => {
     const en = valOf(EN, 'ins_need_go_terms'), sv = valOf(SV, 'ins_need_go_terms');
-    assert.match(en, /Copilot read the contract again/);
-    assert.ok(sv && /Copilot/.test(sv) && sv !== en, 'Swedish has its own sentence');
+    assert.match(en, /Jambo read the contract again/);
+    assert.ok(sv && /Jambo/.test(sv) && sv !== en, 'Swedish has its own sentence');
   });
   /* ---- TWO THINGS THE RE-READ PUT IN FRONT OF THE READER ----
      Before this, a signed contract never had its arrival read run over it, so

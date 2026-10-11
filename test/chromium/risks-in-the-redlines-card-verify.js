@@ -175,18 +175,18 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   const open = await until(page, () => {
     const pg = document.getElementById('clause-editor'); if (!pg) return null;
     const lane = pg.querySelector('#ce-lane');
-    if (!lane || !/Payment terms: 60 days/.test(window.__laneText(lane)) || lane.querySelector('.rk-busy') || !/Copilot suggested/.test(window.__laneText(lane))) return null;
+    if (!lane || !/Payment terms: 60 days/.test(window.__laneText(lane)) || lane.querySelector('.rk-busy') || !/Jambo suggested/.test(window.__laneText(lane))) return null;
     /* the wording waits in the Suggested wording card for Apply (Young, 5 Oct 2026) */
     const ap = document.querySelector('#ce-lane [data-ce-apply="rk:0"]');
     if (ap && !pg.querySelector('#ce-doc ins, #ce-doc .hati-ins, #ce-doc .nego-ins')){ ap.click(); return null; }
     return { ins: !!pg.querySelector('#ce-doc ins, #ce-doc .hati-ins, #ce-doc .nego-ins'), del: !!pg.querySelector('#ce-doc del, #ce-doc .hati-del, #ce-doc .nego-del'),
       clause: clauseEditorClauseId(), cost: (lane.querySelector('.rk-cost') || {}).textContent || '' };
   }, null, 8000);
-  check(!!open, '2c "Edit with Copilot" opens the clause editor on that risk', open && JSON.stringify(open));
-  check(!!open && open.ins && open.del, '2d Copilot\'s wording is drawn as tracked changes against the clause — read first');
+  check(!!open, '2c "Edit with Jambo" opens the clause editor on that risk', open && JSON.stringify(open));
+  check(!!open && open.ins && open.del, '2d Jambo\'s wording is drawn as tracked changes against the clause — read first');
   const payClause = await page.evaluate(id => (negoClauseList(getContract(id)).find(x => /Payment/.test(x.headingText || x.title || '')) || {}).clauseId, ID);
   check(!!open && open.clause === payClause, '2e it changes the clause the risk is about', open && open.clause);
-  check(!!open && /1 Copilot call/.test(open.cost), '2f the cost is said', open && open.cost);
+  check(!!open && /1 Jambo call/.test(open.cost), '2f the cost is said', open && open.cost);
   await page.screenshot({ path: path.join(OUT, '03-read-in-place.png') });
 
   /* ============ 3. SAVE — UNSENT, THROUGH THE FUNNEL ============ */
@@ -198,7 +198,7 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   const nw = await until(page, () => {
     const pg = document.getElementById('clause-editor'); if (!pg) return null;
     const lane = pg.querySelector('#ce-lane');
-    if (!lane || !/No injunctive-relief clause/.test(window.__laneText(lane)) || lane.querySelector('.rk-busy') || !/Copilot suggested/.test(window.__laneText(lane))) return null;
+    if (!lane || !/No injunctive-relief clause/.test(window.__laneText(lane)) || lane.querySelector('.rk-busy') || !/Jambo suggested/.test(window.__laneText(lane))) return null;
     const sec = pg.querySelector('#ce-doc [data-clause="' + window.CE_NEW_ID + '"]');
     return { held: !!sec, head: sec ? ((sec.querySelector('.rl-clause-h, h4') || {}).textContent || '') : '',
       where: [...lane.querySelectorAll('[data-ce-rk-where] option')].map(o => o.textContent) };

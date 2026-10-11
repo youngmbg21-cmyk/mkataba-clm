@@ -172,7 +172,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
       return { edit: st(ed), risk: st(row && row.querySelector('[data-rk-act="edit-ce"]')), all: vs.map(st), leftFirst: lefts[0], rowLeft: row ? Math.round(row.getBoundingClientRect().left) : 0, ordered: lefts.every((x, i) => !i || x > lefts[i - 1]) };
     });
     const same = (a, b) => a && b && a.h === b.h && a.bg === b.bg && a.fs === b.fs && a.fw === b.fw && a.col === b.col && a.mark && b.mark;
-    check(!!dress.edit && same(dress.risk, dress.edit), '1e "Edit with Copilot" on a risk is dressed as "Edit" on a redline (no box, small rung, a mark, the same ink)', JSON.stringify([dress.edit, dress.risk]));
+    check(!!dress.edit && same(dress.risk, dress.edit), '1e "Edit with Jambo" on a risk is dressed as "Edit" on a redline (no box, small rung, a mark, the same ink)', JSON.stringify([dress.edit, dress.risk]));
     check(dress.all.length === 3 && dress.all.every(v => v && v.mark && v.h === dress.edit.h && /^none/.test(v.bd)), '1f all three risk verbs carry a mark and no box', JSON.stringify(dress.all));
     check(dress.ordered && dress.leftFirst - dress.rowLeft < 24, '1g set from the left, like the redlines row', JSON.stringify([dress.rowLeft, dress.leftFirst]));
     const rej = await page.evaluate(() => { const d = document.querySelector('#rl-risks [data-rk-act="dismiss"]');
@@ -225,16 +225,16 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
       const pg = document.getElementById('clause-editor'); if (!pg) return null;
       const tab = pg.querySelector('[data-ce-tab="risks"]');
       const lane = pg.querySelector('#ce-lane');
-      if (!lane || !/Risk 1 of/.test(window.__laneText(lane)) || lane.querySelector('.rk-busy') || !/Copilot suggested/.test(window.__laneText(lane))) return null;
+      if (!lane || !/Risk 1 of/.test(window.__laneText(lane)) || lane.querySelector('.rk-busy') || !/Jambo suggested/.test(window.__laneText(lane))) return null;
       return { on: !!(tab && tab.classList.contains('is-on')), clause: clauseEditorClauseId(), step: window.__riskStep(),
         card: !!document.querySelector('#ce-lane [data-ce-apply="rk:0"]'), boxNew: /twelve \(12\) months/.test(ceBoxWords()),
         save: (pg.querySelector('#ce-railfoot [data-ce-act="save"]') || {}).textContent || '' };
     }, null, 10000);
-    check(!!ed && ed.on, '3a Edit with Copilot opens the window with the Risks tab lit', ed && JSON.stringify(ed));
+    check(!!ed && ed.on, '3a Edit with Jambo opens the window with the Risks tab lit', ed && JSON.stringify(ed));
     const liabClause = await page.evaluate(id => (negoClauseList(getContract(id)).find(x => /liability/i.test(x.headingText || x.title || '')) || {}).clauseId, ID);
     check(!!ed && ed.clause === liabClause, '3b on the clause the risk is about', ed && ed.clause);
     check(!!ed && /Risk 1 of 3/.test(ed.step), '3c "Risk 1 of 3"', ed && ed.step);
-    check(!!ed && ed.card && !ed.boxNew, '3d Copilot\'s wording waits in the Suggested wording card; the box is untouched', ed && JSON.stringify(ed));
+    check(!!ed && ed.card && !ed.boxNew, '3d Jambo\'s wording waits in the Suggested wording card; the box is untouched', ed && JSON.stringify(ed));
     await shot('3-edit-with-copilot.png');
     await press(page, '#ce-lane [data-ce-apply="rk:0"]');
     const applied = await until(page, () => /twelve \(12\) months/.test(ceBoxWords())
@@ -245,7 +245,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
     const firm = await until(page, n => window._odAsked.length > n && /Asked now: Make it firmer/.test(window._odAsked[window._odAsked.length - 1])
       && /save for breach of confidentiality/.test((document.querySelector('#ce-lane .ce-card .pv') || {}).textContent || '')
       && !/save for breach of confidentiality/.test(ceBoxWords()) ? true : null, n0);
-    check(!!firm, '3e "Make it firmer" asks Copilot once and redrafts the card, the box waits, nothing saved');
+    check(!!firm, '3e "Make it firmer" asks Jambo once and redrafts the card, the box waits, nothing saved');
     await press(page, '#ce-lane [data-ce-apply="rk:0"]');
     check(!!(await until(page, () => /save for breach of confidentiality/.test(ceBoxWords()) ? true : null)), '3f Apply takes the firmer wording into the box');
     const unsaved = await page.evaluate(id => (getContract(id).changes || []).length, ID);
@@ -259,7 +259,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
       return pin ? { status: ch.status, side: ch.authorSide, note: ch.note, words: ch.newText, drafted: (c.risks && c.risks.drafted || {})['s:t-liab'], id: ch.id } : null;
     }, { id: ID, n: unsaved }, 10000);
     check(!!filed && filed.status === 'pending' && filed.side === 'owner', '4a Save & next files one redline of ours, unsent', filed && JSON.stringify(filed).slice(0, 160));
-    check(!!filed && /^Copilot — Risk scan: Liability cap/.test(filed.note) && filed.drafted === filed.id, '4b it wears the risk\'s provenance and the risk remembers it', filed && filed.note);
+    check(!!filed && /^Jambo — Risk scan: Liability cap/.test(filed.note) && filed.drafted === filed.id, '4b it wears the risk\'s provenance and the risk remembers it', filed && filed.note);
     check(!!filed && /save for breach of confidentiality/.test(filed.words || ''), '4c with the wording that was in the box');
     await shot('4-note-after-save.png');
     await press(page, '#context-panel [data-rl-np-unpin]');
@@ -281,7 +281,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
     const nc = await until(page, () => {
       const pg = document.getElementById('clause-editor'); if (!pg) return null;
       const lane = pg.querySelector('#ce-lane');
-      if (!lane || !/Risk 2 of 2/.test(window.__laneText(lane)) || !/No injunctive-relief clause/.test(window.__laneText(lane)) || lane.querySelector('.rk-busy') || !/Copilot suggested/.test(window.__laneText(lane))) return null;
+      if (!lane || !/Risk 2 of 2/.test(window.__laneText(lane)) || !/No injunctive-relief clause/.test(window.__laneText(lane)) || lane.querySelector('.rk-busy') || !/Jambo suggested/.test(window.__laneText(lane))) return null;
       const ap = document.querySelector('#ce-lane [data-ce-apply="rk:0"]');
       if (ap && !/interim injunctive relief/.test(ceBoxWords())){ ap.click(); return null; }
       const secs = [...pg.querySelectorAll('#ce-doc [data-clause]')].map(x => x.getAttribute('data-clause'));
@@ -293,7 +293,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
     }, null, 10000);
     check((await page.evaluate(id => (getContract(id).changes || []).length, ID)) === before6, '5b Skip filed nothing');
     check(!!nc && nc.at > 0 && /Limitation of liability/i.test(nc.before) && /Signatures/i.test(nc.after), '5c the window holds the new clause where it will go — after the last clause, before the signatures', nc && JSON.stringify({ at: nc.at, before: nc.before, after: nc.after }));
-    check(!!nc && /Injunctive relief/i.test(nc.head) && /interim injunctive relief/.test(nc.head), '5d with its heading and Copilot\'s wording on the paper', nc && nc.head.slice(0, 120));
+    check(!!nc && /Injunctive relief/i.test(nc.head) && /interim injunctive relief/.test(nc.head), '5d with its heading and Jambo\'s wording on the paper', nc && nc.head.slice(0, 120));
     check(!!nc && /^New clause$/i.test(nc.badge.trim()), '5d2 marked "New clause", not as a step on the ladder, until it is saved', nc && nc.badge);
     check(!!nc && nc.opts.length > 0 && nc.opts.every(o => /^New clause after/.test(o)) && !nc.opts.some(o => /Signatures/.test(o)) && /Never after .*Signatures/.test(nc.never), '5e "Where it goes" offers only places before the signatures', nc && (nc.opts.join(' | ') + ' / ' + nc.never));
     await shot('5b-new-clause.png');
@@ -326,7 +326,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
         drafted: (c.risks && c.risks.drafted || {})['s:t-inj'] === ch.id, pin: !!document.querySelector('#context-panel [data-rl-np-unpin]') };
     }, { id: ID, n: n5 }, 10000);
     check(!!ins && ins.type === 'insertClause' && ins.status === 'pending' && /Injunctive relief/i.test(ins.heading), '5g Save files ONE new clause, unsent, with its heading', ins && JSON.stringify(ins));
-    check(!!ins && /Confidentiality/.test(ins.after) && /^Copilot — Risk scan/.test(ins.note) && ins.drafted, '5h where it was put, wearing the risk\'s provenance, and the risk remembers it', ins && JSON.stringify(ins));
+    check(!!ins && /Confidentiality/.test(ins.after) && /^Jambo — Risk scan/.test(ins.note) && ins.drafted, '5h where it was put, wearing the risk\'s provenance, and the risk remembers it', ins && JSON.stringify(ins));
     check(!!ins && ins.pin, '5i the notes drawer opens for it, as after any Save');
     if (ins && ins.pin) await press(page, '#context-panel [data-rl-np-unpin]');
 

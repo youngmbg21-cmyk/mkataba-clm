@@ -531,7 +531,7 @@ function riskFiled(c, key, ch){
   const it = riskItemsOf(c).find(x => x.key === key);
   _rkStoreW(c).drafted[key] = String(ch.id);
   const w0 = _rkWalkOf(c); if (w0 && w0.key === key){ w0.clauseId = String(ch.clauseId || w0.clauseId); w0.isNew = false; }
-  if (typeof logAudit === 'function') logAudit(c, 'Risk', `Redline drafted from the risk scan in Edit with Copilot — ${_rkTopicText(it).slice(0, 160)} (${ch.id}, not sent)`);
+  if (typeof logAudit === 'function') logAudit(c, 'Risk', `Redline drafted from the risk scan in Edit with Jambo — ${_rkTopicText(it).slice(0, 160)} (${ch.id}, not sent)`);
   if (typeof persist === 'function') persist(c);
   const w = _rkWalkOf(c); if (w && !w.saved.includes(key)) w.saved.push(key);
   /* the column behind the window learns where the row came from now, not at
@@ -539,7 +539,7 @@ function riskFiled(c, key, ch){
   try{ rkRepaintAll(c); }catch(_){}
 }
 /* PROVENANCE, NEVER A REASON — the same words the card's filing writes. */
-const riskProvenance = it => 'Copilot — Risk scan: ' + _rkTopicText(it).slice(0, 200);
+const riskProvenance = it => 'Jambo — Risk scan: ' + _rkTopicText(it).slice(0, 200);
 /* THE SAFETY NET AT SAVE: a redline of ours already on this clause that this
    filing would NOT fold into (sent in an earlier round, or not pending) would
    make two. Asked at the press; null where saving makes one. */
@@ -1023,7 +1023,7 @@ function rkEnsureStyle(){
      ruby (Young, 5 Oct 2026: "dismiss should actually say discard"). It still
      only sets the risk aside — Bring back returns it. */
   .rk-verb.is-no{color:var(--st-ruby-fg)}
-  /* Copilot's own door wears Copilot's violet, as the redline row's Edit does
+  /* Jambo's own door wears Jambo's violet, as the redline row's Edit does
      (.rl-card-verbs .rl-verb-ai in negotiation-css.js, the same two values). */
   .rk-verb.is-ai{color:#6d28d9}
   html.dark .rk-verb.is-ai{color:#c4b5fd}
@@ -1135,7 +1135,7 @@ if (typeof document !== 'undefined' && document.addEventListener && !document._r
       if (typeof runScan !== 'function') return;
       runScan(c);
       const n = (typeof openFindings === 'function') ? openFindings(c).length : 0;
-      if (typeof logAudit === 'function') logAudit(c, 'Scanned', `Copilot contract scan run — ${n} open finding${n === 1 ? '' : 's'}`);
+      if (typeof logAudit === 'function') logAudit(c, 'Scanned', `Jambo contract scan run — ${n} open finding${n === 1 ? '' : 's'}`);
       if (typeof persist === 'function') persist(c);
       if (typeof toast === 'function') toast(n ? _rkT('rk_scan_found', { n }) : _rkT('ai_scan_clean'), 'ok');
       rkRepaint(c); return;

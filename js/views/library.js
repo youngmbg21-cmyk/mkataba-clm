@@ -794,7 +794,7 @@ function openBlanksEditor(tid){
   // ---- 2. Copilot-assisted — reviewed and editable before anything is saved
   document.getElementById('be-suggest')?.addEventListener('click',async(e)=>{
     const btn=e.currentTarget; btn.disabled=true; const was=btn.innerHTML;
-    btn.innerHTML='Thinking…'; status('Asking the Copilot engine for suggestions — nothing is saved until you review them.');
+    btn.innerHTML='Thinking…'; status('Asking Jambo engine for suggestions — nothing is saved until you review them.');
     try{
       // the model reads the document, never the markup
       const r=await api('ai/blanks','POST',{ text: bodyText().slice(0, 60000) });

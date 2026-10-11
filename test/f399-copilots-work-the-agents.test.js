@@ -99,9 +99,9 @@ describe('f399 (2) — registered everywhere a view must be', () => {
     assert.match(APP, /import '\.\/views\/agents\.js';/);
     assert.match(APP, /else if\(view==='agents'\) renderAgentsPage\(\);/);
     assert.match(APP, /case 'agents':\s*return \[i18t\('nav_agents'\), ''\];/);
-    assert.match(APP, /agents:"Copilot's work"/, 'VIEW_LABEL names it');
+    assert.match(APP, /agents:"Jambo's work"/, 'VIEW_LABEL names it');
     assert.match(CORE, /'redline','agents'\]\.includes\(state\.view\)/, 'a refresh lands back on it');
-    assert.match(AI, /agents: "Copilot's work"/, 'Copilot knows the page');
+    assert.match(AI, /agents: "Jambo's work"/, 'Jambo knows the page');
   });
   test('2b the header facts are painted by the page\'s own painter', () => {
     assert.match(APP, /const PAGE_HEAD_PAINT = \{[^}]*agents:'agPaintHead'[^}]*\}/);

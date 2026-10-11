@@ -109,7 +109,7 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
   if (open){
     const ce = await page.evaluate(() => {
       const r = document.querySelector('#clause-editor .ce-rail');
-      return { copilot: /Copilot/.test(r ? r.textContent : ''), ask: !!document.getElementById('ce-ask'),
+      return { copilot: /Jambo/.test(r ? r.textContent : ''), ask: !!document.getElementById('ce-ask'),
         tabs: [...document.querySelectorAll('#clause-editor [data-ce-tab]')].map(b => b.getAttribute('data-ce-tab')) };
     });
     check('3c nothing on the rail says Copilot', !ce.copilot);

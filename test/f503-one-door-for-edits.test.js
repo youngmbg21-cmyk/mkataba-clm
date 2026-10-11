@@ -171,7 +171,7 @@ describe('f503 (D) the walls', () => {
     assert.ok(!/negoEditClause|negoFileChange|negoInsertClause|changes\.push/.test(body), 'files nothing of its own');
     assert.match(CE, /const note = _ceFileNote \|\| _cet\('ce_provenance'\);/);
     const w = load();
-    assert.match(w.riskProvenance({ title: 'Liability cap may be too low' }), /^Copilot — Risk scan: Liability cap may be too low$/);
+    assert.match(w.riskProvenance({ title: 'Liability cap may be too low' }), /^Jambo — Risk scan: Liability cap may be too low$/);
   });
   test('a held new clause is drawn from a VIEW of the contract — the record is never written', () => {
     const fn = strip(CE.slice(CE.indexOf('function ceNewView('), CE.indexOf('function ceNewPlace(')));

@@ -182,7 +182,7 @@ describe('f340 (3) draft from a sentence prefers approved paper', () => {
   });
 
   test('3g and the dialog says where it looks first, on the lead it already had', () => {
-    assert.match(I18N, /dr_lead: 'Copilot looks at your company standards first/);
+    assert.match(I18N, /dr_lead: 'Jambo looks at your company standards first/);
     assert.equal((I18N.match(/\bdr_lead:/g) || []).length, 2, 'both books');
     /* AND THE OTHER HALF IS ON THE BOX'S HOVER, not a third sentence — the
        pop-up diet pins this lead's length by name, and machinery belongs on

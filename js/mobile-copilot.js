@@ -102,7 +102,7 @@ const M_AI_CSS = `
   #ai-feed .ai-proposal .ai-anchor, #ai-feed .ai-prop-anchor{ font-size:var(--t-card)!important; }
 
   /* THE LAUNCHER.
-     A pill rather than a circle: "Copilot" said in words is the difference
+     A pill rather than a circle: "Jambo" said in words is the difference
      between a button people press and a button people wonder about. It sits
      clear of the tab bar so a thumb reaching for Approvals never catches it. */
   .m-ai-fab{

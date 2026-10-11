@@ -181,7 +181,7 @@ function cohortProgressOpen(title){
     </div>`, { label:title, maxWidth:DLG_W.m });
   document.getElementById('co-h-stop')?.addEventListener('click',()=>{
     cohortStop();
-    const b=document.getElementById('co-h-stop'); if(b){ b.disabled=true; b.textContent=i18t('co_h_stopping'); }
+    const b=document.getElementById('co-h-stop'); if(b){ b.disabled=true; (window.busySet?busySet(b,i18t('co_h_stopping')):(b.textContent=i18t('co_h_stopping'))); }
   });
   return (n,total)=>{
     const el=document.getElementById('co-h-count');

@@ -224,7 +224,7 @@ async function ocrDocument(dataUrl, mime, opts={}){
         }catch(e){
           // budget gone, rate limit, provider error — finish the document on the
           // offline recogniser rather than abandoning it half-read
-          out.error=e.message||'Copilot OCR failed';
+          out.error=e.message||'Jambo OCR failed';
           tier='local';
         }
       }
@@ -261,7 +261,7 @@ function capConfidenceForOcr(meta){
   meta._ocrCapped=true;
   return meta;
 }
-const OCR_TIER_LABEL={ 'ocr-ai':'Copilot transcription', 'ocr-local':'offline recogniser (Tesseract)' };
+const OCR_TIER_LABEL={ 'ocr-ai':'Jambo transcription', 'ocr-local':'offline recogniser (Tesseract)' };
 /* One sentence describing where a contract's text came from — reused by the
    viewer banner, the audit detail and the clause-review warning. */
 function ocrProvenanceLine(u){

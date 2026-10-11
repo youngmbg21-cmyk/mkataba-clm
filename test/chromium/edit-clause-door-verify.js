@@ -167,7 +167,7 @@ const endOf = (page, sel) => page.evaluate(sel => {
       const m = document.querySelector('.nego-selmenu');
       return m ? m.textContent.replace(/\s+/g, ' ').trim() : null;
     }, ids[0]);
-    ok('5 a highlight still offers Edit with Copilot', /Edit with Copilot/i.test(s6 || ''), s6);
+    ok('5 a highlight still offers Edit with Copilot', /Edit with Jambo/i.test(s6 || ''), s6);
     await page.keyboard.press('Escape').catch(() => {});
     await page.evaluate(() => getSelection().removeAllRanges());
 

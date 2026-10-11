@@ -880,7 +880,7 @@ describe('F273 — auto-triage on upload', () => {
       assert.ok(!/await\s+triageRun/.test(w), 'the reading itself is still not awaited');
     });
     test('the sentence names what it costs, and names THREE', () => {
-      assert.match(I18N, /ct_triage_optin_sub: 'Writes the brief[^']*three Copilot calls/,
+      assert.match(I18N, /ct_triage_optin_sub: 'Writes the brief[^']*three Jambo calls/,
         'the risk scan is deterministic and free — overstating a cost is as dishonest as hiding it');
     });
   });

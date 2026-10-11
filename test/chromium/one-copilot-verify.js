@@ -146,7 +146,7 @@ const closeEditor = async page => {
   const pressedA = rowsA.includes('edit') && await pressMenu(page, 'edit');
   const railA = await railState(page);
   check(pressedA && railA.open && /Apex Logistics Limited/.test(railA.text) && !/is-asking/.test(railA.card),
-    'A2 and Edit opens the editing Copilot holding those words', railA.text.slice(0, 90) || 'not opened');
+    'A2 and Edit opens the editing Jambo holding those words', railA.text.slice(0, 90) || 'not opened');
   await page.screenshot({ path: path.join(OUT, '02-parties-edit.png') });
   await closeEditor(page);
 
@@ -164,7 +164,7 @@ const closeEditor = async page => {
   const pressedB = rowsB.includes('ask') && await pressMenu(page, 'ask');
   const railB = await railState(page);
   const mainChat = await page.evaluate(() => window.__mainChat || 0);
-  check(pressedB && railB.open && mainChat === 0, 'B2 and Ask opens the EDITING Copilot, not the main chat',
+  check(pressedB && railB.open && mainChat === 0, 'B2 and Ask opens the EDITING Jambo, not the main chat',
     JSON.stringify({ editor: railB.open, mainChat }));
   check(/is-asking/.test(railB.card) && /goods stored/.test(railB.text) && /store and handle/.test(railB.text),
     'B3 holding every word highlighted, as a question', railB.text.slice(0, 120) || 'no card');
@@ -195,7 +195,7 @@ const closeEditor = async page => {
   const want = await page.evaluate(() => ({ ph: i18t('ce_ask_ph_contract'), label: i18t('ce_whole_contract'),
     chips: [i18t('ce_q_contract_risks'), i18t('ce_q_contract_missing'), i18t('ce_q_contract_end')] }));
   check(!!x && /^Whole contract\b/.test(railD.text) && /Warehousing Agreement/i.test(railD.text),
-    'D1 the ✕ turns Copilot to the whole contract, and the card says so', railD.text.slice(0, 100) || 'no card');
+    'D1 the ✕ turns Jambo to the whole contract, and the card says so', railD.text.slice(0, 100) || 'no card');
   /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy"): the rail head no longer
      carries a name; the card (D1) says "the whole contract". */
   check(railD.ph === want.ph && !railD.label.trim() && railD.chips.join('|') === want.chips.join('|'),

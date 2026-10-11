@@ -62,7 +62,7 @@ describe('f537 (1) B1 plain words over the wording', () => {
     const r = await ai.copilotPropose({ ask: 'Rewrite.', passage: 'Old wording.' });
     assert.equal(r.proposedText, 'New wording.');
     assert.equal(r.explain, null);
-    assert.equal(r.advice, 'Copilot suggested new wording. Read it before you apply it.');
+    assert.equal(r.advice, 'Jambo suggested new wording. Read it before you apply it.');
     ai.window.copilotAsk = async () => '{"advice":"Worth proposing: it caps the cost.","proposedText":"New wording."}';
     assert.equal((await ai.copilotPropose({ ask: 'Rewrite.', passage: 'Old wording.' })).advice, 'Worth proposing: it caps the cost.', 'clean advice stands');
     ai.window.copilotAsk = async () => '{"advice":"I cannot tell which clause you mean.","proposedText":""}';

@@ -34,8 +34,8 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await until(page, () => document.querySelectorAll('[data-hb-face]').length > 0, null, 10000);
 
     const tabs = await page.evaluate(() => [...document.querySelectorAll('[data-hb-face]')].map(b => b.getAttribute('data-hb-face')));
-    /* RE-POINTED 11 Oct 2026 (owner): Breakdown stands beside Document (key `paper`) */
-    ok('1 Home\'s tabs read Board · Calendar · Document · Breakdown · Explorer', tabs.join(',') === 'board,calendar,paper,breakdown,explorer', tabs.join(','));
+    /* RE-POINTED 11 Oct 2026 (owner, the sliding pill): Board · Document · Breakdown · Calendar · Explorer */
+    ok('1 Home\'s tabs read Board · Document · Breakdown · Calendar · Explorer', tabs.join(',') === 'board,paper,breakdown,calendar,explorer', tabs.join(','));
     ok('2 the menu has no Calendar row', await page.evaluate(() => !document.querySelector('#side-nav [data-view="calendar"]')));
 
     await page.click('[data-hb-face="calendar"]');

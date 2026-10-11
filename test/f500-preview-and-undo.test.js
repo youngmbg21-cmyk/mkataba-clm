@@ -45,7 +45,7 @@ describe('F500 (A) — a big build waits for the reader', () => {
     const said = await w.hbBoardTakesChecked({ actions: [add('One'), add('Two'), add('Three')], answer: 'Three views.' });
     const meta = w.hbTakeMeta();
     assert.equal(w.hbS().panels.length, 0, 'nothing applied');
-    assert.match(said, /^Copilot proposes 3 changes to the board\. Nothing changes until you choose:/);
+    assert.match(said, /^Jambo proposes 3 changes to the board\. Nothing changes until you choose:/);
     assert.equal(meta.preview.rows.length, 3); assert.equal(meta.preview.adds, true);
     assert.match(meta.preview.rows[0], /^Add “One” — Ring · by value stream · count, 12 contracts$/);
     const out = w.hbPreviewPress(meta.preview.id, 'chosen', [0, 2]);

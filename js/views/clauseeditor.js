@@ -368,7 +368,7 @@ function clauseEditorCss(){
      (owner-asked 26 Aug 2026, wanting the negotiation page's draggable divider
      here.) The handle is an ABSOLUTE child of this grid — it claims no track
      and no row, which is the whole condition on adding it: a third grid child
-     laid out in flow, or any strip spanning both columns, pushes the Copilot
+     laid out in flow, or any strip spanning both columns, pushes Jambo
      rail down by its own height. That is the one thing about this layout that
      was corrected repeatedly before it was built, and it looks perfectly
      correct in the source when it is wrong.
@@ -387,7 +387,7 @@ function clauseEditorCss(){
   /* ---- THE CONTRACT ALONE (owner-reported 28 Aug 2026: the render carried
      this control and the build did not) ----
      ONE COLUMN, and the rail and the divider stand down with it. The rail is
-     kept in the DOM rather than torn out, so its Copilot thread, its scan
+     kept in the DOM rather than torn out, so its Jambo thread, its scan
      results and its scroll position are all still there when the reader comes
      back — and coming back is one press of the same button. */
   #clause-editor.is-wide .ce-grid{grid-template-columns:minmax(0,1fr)}
@@ -399,7 +399,7 @@ function clauseEditorCss(){
   /* ---- THE WHITE STRIP, AS THE PROTOTYPE DRAWS IT ----
      The tools, then whatever the page has to say, then the way out at the wall.
      It stops at the divider because it lives in the LEFT COLUMN — the owner's
-     own instruction, and what keeps the Copilot rail running floor to
+     own instruction, and what keeps Jambo rail running floor to
      ceiling. */
   .ce-barrow{flex:none; display:flex; align-items:center; gap:var(--s-2);
     min-height:44px; padding:5px 12px; border-bottom:1px solid var(--color-divider)}
@@ -462,7 +462,7 @@ function clauseEditorCss(){
      as the discard changes and file as a change … shorten to Discard and File
      … make the buttons smaller"): the walk's ‹ Previous · Skip · Save & next
      and Discard · File share ONE row on the compact rung, so the rail gives
-     Copilot a whole row back. A rail too narrow for five wraps rather than
+     Jambo a whole row back. A rail too narrow for five wraps rather than
      cutting a word. */
   .ce-feet{flex:none; display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end;
     gap:6px var(--s-2); padding:8px 14px; border-top:1px solid var(--color-divider); background:var(--color-surface)}
@@ -718,10 +718,10 @@ function clauseEditorCss(){
     cursor:pointer; text-decoration:underline; text-underline-offset:2px}
   .ce-foot .ce-wait-go:hover{text-decoration-thickness:2px}
 
-  /* ---- the band over Copilot: whose words these are ----
-     The reference page carries ONE brand colour and no other, so the Copilot
+  /* ---- the band over Jambo: whose words these are ----
+     The reference page carries ONE brand colour and no other, so Jambo
      label takes the workspace accent here rather than a violet of its own.
-     That is a decision about THIS page: the clause panel's own Copilot button
+     That is a decision about THIS page: the clause panel's own Jambo button
      keeps the violet it has always worn. */
   .ce-ah{flex:none; display:flex; align-items:center; gap:18px; padding:0 14px; flex-wrap:nowrap;
     border-bottom:1px solid var(--color-divider)}
@@ -762,7 +762,7 @@ function clauseEditorCss(){
   .ce-aifoot{margin:6px 0 0; font-size:var(--t-label); color:var(--color-neutral-600)}
   .ce-aifoot b{color:var(--accent-ink); font-weight:var(--w-title)}
 
-  /* the chat is WHITE, like HaTi's own Copilot panel — a grey ground made the
+  /* the chat is WHITE, like HaTi's own Jambo panel — a grey ground made the
      rail read as a sunken well rather than as the panel it is */
   /* ---- THE LADDER CARD AND THE TWO NEW TABS (14 Sep 2026) ---- */
   .ce-lcard .k{font-size:var(--t-micro); font-weight:var(--w-title);  
@@ -794,9 +794,9 @@ function clauseEditorCss(){
   @keyframes cespin{to{transform:rotate(360deg)}}
   @media (prefers-reduced-motion:reduce){ .ce-work i{animation:none} }
 
-  /* what Copilot read before it answered — the facts, named, so the answer
+  /* what Jambo read before it answered — the facts, named, so the answer
      rests on something a reader can check */
-  /* SHADED COLUMN (Young, 7 Oct 2026, "Copilot Panel Tidy-up"): the labels
+  /* SHADED COLUMN (Young, 7 Oct 2026, "Jambo Panel Tidy-up"): the labels
      on a pale accent column in normal case, a 2px line between them and the
      explanations, faint lines between rows, one thin border round the block. */
   .ce-read{margin:0 0 var(--s-4); padding:0; display:flex; flex-direction:column;
@@ -868,7 +868,7 @@ function clauseEditorCss(){
   .ce-card .av button.is-applied{background:var(--color-accent-50); border-color:var(--color-accent-100); color:var(--accent-ink); opacity:1; cursor:default}
   .ce-card .av button.u{background:var(--st-amber-bg); border-color:var(--st-amber-line); color:var(--st-amber-fg)}
   .ce-card .av .ce-sug-gone{font-size:var(--t-meta); color:var(--color-neutral-600)}
-  /* Copilot's counter in the box (change 2): the state, its one way back, and
+  /* Jambo's counter in the box (change 2): the state, its one way back, and
      the note to the other side under it. */
   .ce-card .ce-prep-in .ce-inbox{color:var(--st-green-fg); font-size:var(--t-meta); font-weight:var(--w-label)}
   .ce-card .ce-prep-note{display:flex; flex-direction:column; gap:var(--s-1); margin-top:var(--s-3)}
@@ -876,7 +876,7 @@ function clauseEditorCss(){
   .ce-card .ce-prep-note textarea{font:inherit; font-size:var(--t-meta); line-height:1.5; padding:var(--s-2); resize:vertical; min-height:64px;
     background:var(--color-surface); color:var(--color-neutral-900); border:1px solid var(--color-divider); border-radius:var(--radius)}
   .ce-card .ce-prep-note .h{font-size:var(--t-label); color:var(--color-neutral-600)}
-  /* ---- STICKY BAR (Young, 7 Oct 2026, "Copilot Panel Tidy-up") ----
+  /* ---- STICKY BAR (Young, 7 Oct 2026, "Jambo Panel Tidy-up") ----
      The Suggested wording is not a card: no fill, no box, no window. It is
      printed whole on the panel under a 2px accent line, and the panel scrolls
      as ONE. Its buttons stick to the lane's bottom edge while any of the
@@ -2482,6 +2482,8 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   const page = holder.firstElementChild;
   document.body.appendChild(page);
   document.body.classList.add('ce-open');
+  /* Copilot is on this page: the moved Copilot window steps aside (ai.js) */
+  try{ if (window.aiFloatSync) aiFloatSync(); }catch(_){}
   /* ---- THEIR SEAT: THE EDITING PAGE BESIDE THEIR OWN REDLINES COLUMN
      (Young ruled 28 Sep 2026: "the redline page should look exactly like it
      does today but the side panel should still reflect the image attached")
@@ -2604,6 +2606,8 @@ function rlCloseClauseEditor(opts = {}){
   _cePrep = null;
   _ceSpellList = []; _ceSpellFor = null;
   _ceRendering = false; _ceZoom = 100;
+  /* the page is gone: a moved Copilot window that stepped aside comes back (ai.js) */
+  try{ if (window.aiFloatSync) aiFloatSync(); }catch(_){}
   _ceOpenText = '';
   _ceBusy = false;
   clearTimeout(_ceSayTimer);

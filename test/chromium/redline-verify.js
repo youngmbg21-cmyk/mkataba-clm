@@ -1320,7 +1320,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      carries no Copilot button of its own; a highlight inside one clause offers
      exactly those three, in that order, and nothing else. */
   check('5 no clause carries a Copilot button — and a highlight offers Ask · Edit · Comment',
-    menu.noToolbar && menu.open && JSON.stringify(menu.items) === JSON.stringify(['Ask Copilot', 'Edit with Copilot', 'Comment']),
+    menu.noToolbar && menu.open && JSON.stringify(menu.items) === JSON.stringify(['Ask Jambo', 'Edit with Jambo', 'Comment']),
     `menu ${menu.open}, items ${JSON.stringify(menu.items)}`);
   check('5 but the wording still selects, so it can still be copied',
     menu.selected > 3, `${menu.selected} characters selected`);

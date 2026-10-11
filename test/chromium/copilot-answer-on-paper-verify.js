@@ -101,7 +101,7 @@ function answer(body){
     let L = await look();
     ok('1a counter: Copilot\'s wording sits in a dashed box under theirs, 60 marked', /rl-sug-counter/.test(L.sug) && /60 days/.test(L.box) && /60/.test(L.boxNew), JSON.stringify(L));
     ok('1b only Counter glows, and nothing is filed', L.glows.join() === 'counter' && L.top && L.filed === 1, JSON.stringify({ g: L.glows, top: L.top, filed: L.filed }));
-    ok('1c no note on the paper: Copilot\'s answer is said once, on the row', L.notes === 0 && /Copilot: counter/.test(await page.evaluate(() => (document.querySelector('.rl-card-prep') || {}).innerText || '')));
+    ok('1c no note on the paper: Copilot\'s answer is said once, on the row', L.notes === 0 && /Jambo: counter/.test(await page.evaluate(() => (document.querySelector('.rl-card-prep') || {}).innerText || '')));
     await page.screenshot({ path: path.join(OUT, '1-counter.png') });
     /* 1d Home's Document, Redlined: the paper carries the box. RE-POINTED 11 Oct
        2026 (owner: "delete the deal tab"): the Deal tab and its glowing door
