@@ -127,6 +127,7 @@ function hbS(){
     if (v.insKept && typeof v.insKept === 'object') HB_INS_SHAPES.forEach(k => { if (Number(v.insKept[k]) > 0) s.insKept[k] = Math.min(20, Number(v.insKept[k])); });
     if (v.insOff && typeof v.insOff === 'object') HB_INS_SHAPES.forEach(k => { if (/^\d{4}-\d{2}-\d{2}$/.test(String(v.insOff[k] || ''))) s.insOff[k] = v.insOff[k]; });
     if (typeof v.keptSent === 'string') s.keptSent = v.keptSent.slice(0, 4000);
+    if (typeof v.insFold === 'boolean') s.insFold = v.insFold;
     if (Array.isArray(v.path)) s.path = v.path.filter(k => typeof k === 'string').slice(-HB_PATH_MAX);
     if (Array.isArray(v.watches)) s.watches = v.watches.filter(w => w && HB_FIG_KEYS.includes(w.k)
       && (w.dir === 'above' || w.dir === 'below') && isFinite(Number(w.n))).slice(0, HB_WATCH_MAX)
@@ -1125,8 +1126,7 @@ function hbPrepHtml(A, since){
   const I = hbInsightsToday();
   /* drawn while work is ready, OR work was done while you were away, OR
      today's insights are waiting (the shelf, 4 Oct 2026) */
-  const insOn = I.length > 0 || hbInsUsual(I).length > 0;
-  if (st === 'closed' || (!A.rows.length && !A.done.length && !insOn)) return '';
+  if (st === 'closed' || (!A.rows.length && !A.done.length)) return hbInsCardHtml(I);
   const folded = st === 'folded';
   const next = A.rows[0];
   const sub = (A.ready ? i18tn('hm_ag_sub', A.ready, { n: _hbN(A.ready) }) : '')
@@ -1143,9 +1143,27 @@ function hbPrepHtml(A, since){
   const done = (!folded && A.done.length) ? `<div class="hb-done">${_hbE(i18t('hb_done_since', { when: hbDayWords(since) }))} ${A.done.map(x => `<button type="button" data-hb-dig="dn:${_hbE(x.k)}">${_hbE(i18tn('hb_done_' + x.k, x.n, { n: _hbN(x.n) }))}</button>`).join('<span aria-hidden="true">·</span>')}<span class="hb-grow"></span><span class="hb-quiet">${_hbE(i18t('hb_done_trail'))}</span></div>` : '';
   return `<section class="hb-card hb-prep${folded ? ' is-folded' : ''}" id="hm-agents"><header class="hb-ch">
     <button type="button" class="hb-ib" data-hb-prep="${folded ? 'open' : 'folded'}" aria-expanded="${!folded}" title="${_hbE(i18t(folded ? 'hb_prep_open' : 'hb_prep_fold'))}" style="transform:rotate(${folded ? '-90' : '0'}deg)">${_hbChev}</button>
-    <span class="hb-ct">${_hbE(i18t('hm_ag_title'))}</span><span class="hb-cs">${_hbE(sub)}</span>
+    <span class="hb-ct">${_hbE(i18t('hm_ag_title'))}</span><span class="hb-cs">${_hbE(sub)}</span><span class="hb-grow"></span>
+    <button type="button" class="hb-edge-b" data-hb-agents-page>${_hbE(i18t('hb_the_agents'))}</button>
     <button type="button" class="hb-ib hb-x" data-hb-prep="closed" title="${_hbE(i18t('hb_prep_close'))}" aria-label="${_hbE(i18t('hb_prep_close'))}">${_hbX}</button></header>
-    ${done}${rows || insOn ? `<div class="hb-ags">${folded ? '' : hbInsRowHtml(I)}${rows}</div>` : ''}${folded ? '' : hbShelfHtml(I)}</section>`;
+    ${done}${rows ? `<div class="hb-ags">${rows}</div>` : ''}</section>${hbInsCardHtml(I)}`;
+}
+/* C3 (the board as drawn, 11 Oct 2026): TODAY'S INSIGHTS IS ITS OWN CARD under
+   Copilot's work — HaTi's own arithmetic, no model; the pictures three across,
+   each Open · Keep · Ask why · Let it go; Hide folds it for the sitting's
+   person (s.insFold). Its content is the shelf it always was (hbShelfHtml). */
+function hbInsCardHtml(I){
+  const s = hbS(), U = hbInsUsual(I);
+  if (!I.length && !U.length) return '';
+  const fold = !!s.insFold, ins = s.ins || {};
+  const sub = I.length ? (ins.scope === 'mine' ? 'hb_ins_sub_mine' : ins.scope === 'few' ? 'hb_ins_sub_few' : 'hb_ins_sub')
+    : ins.young ? 'hb_ins_sub_young' : 'hb_ins_sub_quiet';
+  const open = hbInsUsualOpen();
+  const body = fold ? '' : (I.length || open ? hbShelfHtml(I)
+    : `<div class="hb-ins-calm is-wide"><span>${_hbE(i18t('hb_ins_calm'))}</span><button type="button" class="hb-link" data-hb-ins="usual" aria-pressed="false">${_hbE(i18t('hb_ins_usual_n', { n: _hbN(U.length) }))}</button></div>`);
+  return `<section class="hb-card hb-inscard${fold ? ' is-folded' : ''}"><header class="hb-ch"><span class="hb-ct">${_hbE(i18t('hb_ins_title'))}</span>`
+    + `<span class="hb-cs">${I.length ? _hbE(_hbN(I.length)) + ' · ' : ''}${_hbE(i18t(sub))}</span><span class="hb-grow"></span>`
+    + `<button type="button" class="hb-edge-b" data-hb-ins-fold>${_hbE(i18t(fold ? 'hb_ins_show' : 'hb_ins_hide'))}</button></header>${body}</section>`;
 }
 
 /* ---- ONE CONTRACT ROW, in every list on the board ---- */
@@ -6716,16 +6734,15 @@ function hbShelfHtml(I){
       <button type="button" class="hb-ins-pic" data-hb-ins="open" data-hb-ins-k="${_hbE(id)}" title="${_hbE(i18t('hb_ins_open_tip'))}" aria-label="${_hbE(x.title + ' — ' + i18t('hb_ins_open'))}">${hbInsThumb(x.C.R)}</button>
       <div class="hb-ins-f">${_hbE(x.say)}</div>${x.plain ? '' : `<div class="hb-ins-why">${_hbE(hbInsWhy(x))}</div>`}${_hbReadOpen.has('ins:' + id) ? hbReadSrcHtml('ins:' + id) : ''}
       <div class="hb-ins-acts">
-        <button type="button" class="hb-btn is-sm" data-hb-ins="keep" data-hb-ins-k="${_hbE(id)}"${isKept ? ` disabled title="${_hbE(i18t('hb_ins_kept_tip'))}"` : ` title="${_hbE(i18t('hb_ins_keep_tip'))}"`}>${_hbE(i18t(isKept ? 'hb_ins_kept' : 'hb_ins_keep'))}</button>
         <button type="button" class="hb-btn is-sm" data-hb-ins="open" data-hb-ins-k="${_hbE(id)}">${_hbE(i18t('hb_ins_open'))}</button>
+        <button type="button" class="hb-btn is-sm" data-hb-ins="keep" data-hb-ins-k="${_hbE(id)}"${isKept ? ` disabled title="${_hbE(i18t('hb_ins_kept_tip'))}"` : ` title="${_hbE(i18t('hb_ins_keep_tip'))}"`}>${_hbE(i18t(isKept ? 'hb_ins_kept' : 'hb_ins_keep'))}</button>
         ${''/* "ASK WHY" IS RETIRED (Young, 6 Oct 2026): it sent the question to
                the side panel while every other card asks "What could explain
                this?" in place — two doors onto one question. The card's
                finding is its headline; Read more opens its reading here, the
                same block (hbReadSrcHtml), per sitting (_hbReadOpen).
-               hb_ins_why / hb_ins_why_q are inert in both books. */}<button type="button" class="hb-link hb-head-more" data-hb-read-more="${_hbE('ins:' + id)}" aria-expanded="${_hbReadOpen.has('ins:' + id)}">${_hbE(i18t(_hbReadOpen.has('ins:' + id) ? 'hb_head_less' : 'hb_head_more'))}</button>
-        <span class="hb-grow"></span>
-        <button type="button" class="hb-ib hb-ins-x" data-hb-ins="go" data-hb-ins-k="${_hbE(id)}" title="${_hbE(i18t('hb_ins_letgo'))}" aria-label="${_hbE(i18t('hb_ins_letgo'))}">${_hbX}</button></div></article>`; }).join('')}${calm}</div>`;
+               hb_ins_why / hb_ins_why_q are inert in both books. */}<button type="button" class="hb-link hb-head-more" data-hb-read-more="${_hbE('ins:' + id)}" aria-expanded="${_hbReadOpen.has('ins:' + id)}">${_hbE(i18t(_hbReadOpen.has('ins:' + id) ? 'hb_head_less' : 'hb_ins_askwhy'))}</button>
+        <button type="button" class="hb-link hb-ins-go" data-hb-ins="go" data-hb-ins-k="${_hbE(id)}" title="${_hbE(i18t('hb_ins_letgo'))}">${_hbE(i18t('hb_ins_letgo_btn'))}</button></div></article>`; }).join('')}${calm}</div>`;
 }
 /* A KEPT VIEW IS A PANEL: the question, its recipe, a name that stays true
    (the proposal's sentence was true the morning it was made). */
@@ -8692,6 +8709,8 @@ function hbOnClick(e){
   if ((el = on('[data-hb-why-follow]'))){ hbWhyFollow(el.getAttribute('data-hb-why-follow')); return; }
   if ((el = on('[data-hb-ins]'))){ hbInsAct(el.getAttribute('data-hb-ins'), el.getAttribute('data-hb-ins-k')); return; }
   if ((el = on('[data-hb-ai]'))){ hbAskInPanel(el.getAttribute('data-hb-ai'), el.getAttribute('data-hb-ai-id')); return; }
+  if (on('[data-hb-agents-page]')){ if (typeof setView === 'function') setView('agents'); return; }
+  if (on('[data-hb-ins-fold]')){ const st = hbS(); st.insFold = !st.insFold; hbSave(); hbPaintBoard(); return; }
   if ((el = on('[data-hm-agent]'))){ e.stopPropagation(); hbOpenAgent(el.getAttribute('data-hm-agent')); return; }
   if (on('[data-hb-sheet-x]')){ _hbSheet = null; hbPaintBoard(); return; }
   if (on('[data-hb-sheet-back]')){ if (_hbSheet) _hbSheet.cid = null; hbPaintBoard(); return; }
