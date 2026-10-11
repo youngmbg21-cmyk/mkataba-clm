@@ -6,8 +6,9 @@
    ============================================================
    Driven where the reader stands, in Edit with Copilot on a clause that
    departs from our standard:
-     1. the rail's row reads Copilot · Suggestions · (Risks) · Ladder — no
-        Playbook scan, no Figure, no clause name — and the clause is still
+     1. the rail's row reads Copilot · Playbook · (Risks) · Ladder — the
+        Suggestions tab RENAMED Playbook (Young, 10 Oct 2026, "one panel");
+        one Playbook tab only (no separate scan), no Figure, no clause name — and the clause is still
         named in the top bar and on the Selected card;
      2. the prepared questions are at most four, the standard ones first;
      3. "Use our standard" puts our wording on a Suggested wording card badged
@@ -110,8 +111,8 @@ const BODY = '<h1>Supply Agreement</h1><p>Between Highland Corporate Ltd and Nor
       return { text: ah.textContent.replace(/\s+/g, ' ').trim(), tabs, crumb: crumb + ' ' + document.body.textContent.slice(0, 0), scope: scope.replace(/\s+/g, ' ').trim(),
         bar: (document.elementFromPoint(300, 20) || {}).textContent || '' };
     });
-    check(head.tabs[0] === 'Suggestions' && head.tabs[head.tabs.length - 1] === 'Ladder' && !head.tabs.some(t => /Playbook|Figure/.test(t)),
-      '1a the row is Suggestions · (Risks) · Ladder, Ladder last, no Playbook scan or Figure', head.tabs.join(' · '));
+    check(head.tabs[0] === 'Playbook' && head.tabs[head.tabs.length - 1] === 'Ladder' && head.tabs.filter(t => /Playbook/.test(t)).length === 1 && !head.tabs.some(t => /Suggestions|Figure/.test(t)),
+      '1a the row is Playbook · (Risks) · Ladder, Ladder last, one Playbook tab, no Figure', head.tabs.join(' · '));
     check(!/Payment/.test(head.text), '1b nothing after "Copilot" names the clause', head.text);
     const named = await page.evaluate(() => { const t = document.body.innerText; return { bar: /Edit\s+(Clause 2 · )?2?\.? ?Payment/i.test(t), scope: /Payment/.test(((document.getElementById('ce-pick-sel') || { options: [], selectedIndex: -1 }).options[(document.getElementById('ce-pick-sel') || {}).selectedIndex] || {}).textContent || '') }; });
     check(named.bar || named.scope, '1c the clause is still named where the reader looks (top bar or the panel\'s dropdown — re-pointed 6 Oct 2026)', JSON.stringify(named));
