@@ -39,7 +39,9 @@ test('f414 (n3) a Copilot filing speaks, both ways', () => {
 });
 
 test('f414 (n4 n5 n6) the clause editor keeps lines, handles struck words, refuses chat', () => {
-  assert.match(CE, /negoRichFromLines\(t\.replace\(\/\\n\(\?!\\n\)\/g, '\\n\\n'\)\)/);
+  /* RE-POINTED 11 Oct 2026 (WORKORDER-four-builds item 2): the lines pass
+     aiListLines first, as lt */
+  assert.match(CE, /negoRichFromLines\(lt\.replace\(\/\\n\(\?!\\n\)\/g, '\\n\\n'\)\)/);
   assert.match(CE, /function ceSpanOverAtoms\(box, sel, ev\)\{/);
   /* The wall moved into one shared function (ceAtomWall, 9 Oct 2026) so the
      Negotiate paper's click-to-type box obeys it too; it still asks first. */

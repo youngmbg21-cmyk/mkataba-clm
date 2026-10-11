@@ -1288,7 +1288,8 @@ function calStyleCss(){ return `
   .cal-month{align-self:flex-start}
   .cal-month .cal-weeks{flex:none;grid-template-rows:repeat(6,var(--cal-day-h))}
   .cal-month .cal-dow{background:none;box-shadow:none;padding:0 0 var(--s-1)}
-  .cal-month .cal-dow span{text-transform:none;letter-spacing:0;font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600)}
+  .cal-month .cal-dow span{text-transform:none;letter-spacing:0;font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600);padding-left:var(--s-1);padding-right:var(--s-1)}
+  ${''/* the weekday's side padding is small (11 Oct 2026): on Home the month shares the width with Copilot's panel, and at 800px "Mon" was cut by 3px (swedish-verify) */}
   .cal-month .cal-weeks{padding:0}
   .cal-month .cal-legend{box-shadow:none;padding:0 2px;min-height:20px;align-items:center}
   .cal-month .cal-legend span{font-weight:var(--w-label)}
