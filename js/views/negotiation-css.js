@@ -3658,6 +3658,15 @@ function redlineLayoutCss(){
          is placed on row 2, so without this it was drawn on top of the first. */}
   .redline-page .rl-card-d .rl-card-sum.rl-card-prep{grid-row:3}
   .redline-page .rl-card-d:has(.rl-card-prep) > .rl-card-side{grid-row:4}
+  ${''/* WHO HAS ANSWERED, on a contract with two negotiating parties (owner's
+         iPad, 11 Oct 2026: "the redline panel has words overlapping"): the
+         party line is a .rl-card-sum too, so it was placed on row 2 OVER the
+         row's argument. It takes the next line; Copilot's answer and the verbs
+         step down one more. */}
+  .redline-page .rl-card-d .rl-card-sum.rl-card-party{grid-row:3}
+  .redline-page .rl-card-d:has(.rl-card-party) .rl-card-sum.rl-card-prep{grid-row:4}
+  .redline-page .rl-card-d:has(.rl-card-party) > .rl-card-side{grid-row:4}
+  .redline-page .rl-card-d:has(.rl-card-party):has(.rl-card-prep) > .rl-card-side{grid-row:5}
   ${''/* ---- AND THE STRIPS TAKE THE WHOLE WIDTH UNDER BOTH (15 Sep 2026) ----
          The sentences and the reviewer's verdict buttons that rode in the card
          body until Open went. Row 3 of this row's own grid, so they sit under

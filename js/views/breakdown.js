@@ -91,8 +91,11 @@ function bdHeadHtml(c){
 }
 function bdPickHtml(){
   const list = (typeof igPickListHtml === 'function') ? igPickListHtml(_bd.q).replace(/data-ig-pick=/g, 'data-bd-pick=') : '';
-  return `<div class="bd-empty"><div class="bd-empty-card"><h2>${_bdE(i18t('bd_pick_title'))}</h2><p>${_bdE(i18t('bd_pick_sub'))}</p>
-    <input id="bd-pick-q" type="search" class="bd-pick-q" placeholder="${_bdE(i18t('bd_pick_ph'))}" value="${_bdE(_bd.q)}" autocomplete="off">
+  /* THE SAME CARD AS THE DOCUMENT FACE'S PICKER (owner, 11 Oct 2026: "the
+     choose your contract cards should be the same size"): its clothes, its
+     width, its find box; only the words and the hooks are this face's. */
+  return `<div class="ig-pick bd-pick"><div class="ig-pick-card"><h2>${_bdE(i18t('bd_pick_title'))}</h2><p class="ig-pick-sub">${_bdE(i18t('bd_pick_sub'))}</p>
+    <input id="bd-pick-q" type="search" class="ig-pick-find" placeholder="${_bdE(i18t('bd_pick_ph'))}" aria-label="${_bdE(i18t('bd_pick_ph'))}" value="${_bdE(_bd.q)}" autocomplete="off">
     <div id="bd-pick-list">${list}</div></div></div>`;
 }
 function bdStageHtml(){
@@ -150,7 +153,6 @@ function bdDealHtml(c, b){
   const pil = { pay: 0, get: 0, protect: 0 }; (b.regions || []).forEach(r => { pil[r.kind] = (pil[r.kind] || 0) + (r.items || []).length; });
   const pt = (pil.pay + pil.get + pil.protect) || 1;
   return `<h3 class="bd-kick">${_bdE(i18t('bd_whole_deal'))}</h3><h2>${_bdE(c.name || '')}</h2>
-    <div class="bd-counts"><div class="is-need"><b>${bdCount(b, 'need')}</b><span>${_bdE(i18t('bd_st_need'))}</span></div><div class="is-look"><b>${bdCount(b, 'look')}</b><span>${_bdE(i18t('bd_st_look'))}</span></div><div class="is-fine"><b>${bdCount(b, 'fine')}</b><span>${_bdE(i18t('bd_st_fine'))}</span></div></div>
     ${b.head || b.sub ? `<p class="bd-lead">${_bdE([b.head, b.sub].filter(Boolean).join('. '))}</p>` : ''}
     <h4>${_bdE(i18t('bd_by_status'))}</h4>
     <div class="bd-slist">${bdByStatus(b).map(r => `<button type="button" data-bd-go="${r.i}"><span class="bd-dot ${r.status}"></span><span class="bd-sn">${r.n}. ${_bdE(r.name)}</span><span class="bd-sf">${bdFlagged(r) ? _bdE(i18t('bd_flagged_of', { k: bdFlagged(r), n: (r.items || []).length })) : _bdE(i18tn('bd_clauses_n', (r.items || []).length, { n: (r.items || []).length }))}</span></button>`).join('')}</div>
