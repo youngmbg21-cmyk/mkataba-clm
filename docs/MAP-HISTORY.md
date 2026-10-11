@@ -28662,3 +28662,14 @@ Tests: f393, f401–f421, their-markers, review-keeps-typed-terms, discard-keeps
 - SIGNING: ONE LINK CHECK `linkRefusal` (= server `srvLinkRefusal`); ONE ASK RECORD `c.asks` (js/asks.js, `askOpen`/`askAnswer`/`askLapse`, fails closed); rule steps mail and remind (`runRuleStepReminders`); `contractDecline`. A stale reading re-reads (`triageReadingStale`); a renewal answer starts its act (`renewalDecisionAct`). Our Word file reads back exactly (`docxIsPaperPara`).
 Tests: f460–f495 (named in MAP-HISTORY), editor-lock-words-verify, lane-drafts-verify, advice-is-a-request-verify.
 
+
+### Round 2: the owner's list of fixes (11 Oct 2026, evening)
+
+The owner sent eleven screenshots: "A lot of issues with this new design that you have not cleaned up… we have agreed that stripe was the benchmark and this is not a board where attention to detail seems to matter when it should." Then a written critique (visual noise, collisions, overflow, artifact parity, a rigid grid). Found and fixed:
+- A money chart over contracts worth SEK 0 printed float dust ("0.000000000002") on its axis, and text grew huge because the board's width changed (the Copilot panel folding) without the window resizing — `hbAxisTop` ignores dust and money is counted in whole units; the chart says "none of these has a value" with a "Count them instead" press; `hbFitWatch` re-measures on the board's own width.
+- The timeline reserved a sliver for a no-end-date contract whose words ran 250px, so the next item was drawn on top; "Today" sat on a month's count. Room is now reserved by the words' width; a stage's no-end contracts fold into ONE line that opens exactly them (q2 … d.m.end none); the count under Today is not drawn.
+- The Table view said "Count" over money; it now has Value and Contracts columns, right-aligned, and no key rows.
+- The side list: fixed columns; the Copilot panel's resize handle (another layer) showed through as an amber bar — hidden while the list is open.
+- Measures no contract can answer (no rounds, no risk read) are not listed. Dig deeper joined the ⋯ menu.
+- "There is no card 'open'": a suggestion aimed at "the open chart" while the chart stood on the board; "open" now falls back to the card the last answer drew, then the newest kept chart.
+- The owner chose trend lines from the contracts' own dates (reversing the morning's "days actually seen") and one row per item in Copilot's work, as the artifact draws.
