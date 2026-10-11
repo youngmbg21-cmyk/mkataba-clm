@@ -123,16 +123,17 @@ const BODY =
     check('0 the Word file is on the record', !!id, id || 'absent');
     if (!id) throw new Error('no upload');
 
-    await page.evaluate(i => openWorkspace(i), id);
-    await page.waitForTimeout(1000);
-    await page.evaluate(() => roomGoTab(getContract(state.activeId), 'docs'));
-    await page.waitForSelector('#doc-canvas', { timeout: 15000 }).catch(() => {});
-    await page.waitForTimeout(1400);
+    /* RE-POINTED 11 Oct 2026: the contract's Document tab is gone (owner); the
+       Thread lives on Home's Document face, Clauses tab (#pd-thread beside
+       #ig-canvas in #ig-paper-scroll). Every claim is asked there. */
+    await page.evaluate(i => { window.__xrId = i; setView('dashboard'); pdOpenOnHome(i, 'doc'); }, id);
+    await page.waitForFunction(() => document.querySelectorAll('#pd-thread .doc-th-row').length > 0 && !!document.getElementById('ig-canvas'), null, { timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(800);
 
     /* The first line of the wording, measured INSIDE the page and against the
        window, before X-ray is switched on. */
     const ink = () => page.evaluate(() => {
-      const cv = document.getElementById('doc-canvas');
+      const cv = document.getElementById('ig-canvas');
       if (!cv) return null;
       const w = document.createTreeWalker(cv, NodeFilter.SHOW_TEXT,
         { acceptNode: n => /\S/.test(n.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP });
@@ -148,7 +149,7 @@ const BODY =
     /* ---- the facts X-ray reads: a finding on XI, a watchout on XIV, a
        finding that lands on NO clause, and two obligations on the tab ---- */
     const staged = await page.evaluate(() => {
-      const c = getContract(state.activeId);
+      const c = getContract(window.__xrId);
       c.scan = { at: 'today', on: '2026-09-25', dismissed: [], findings: [
         { id: 'w1', sev: 'med', title: 'Liability / indemnity — review carefully',
           why: 'Counterparty paper often caps their liability low.',
@@ -171,13 +172,13 @@ const BODY =
       return true;
     });
     await page.waitForTimeout(1200);
-    await page.evaluate(() => { const sc = document.getElementById('doc-scroll'); if (sc) sc.scrollTop = 0; });
+    await page.evaluate(() => { const sc = document.getElementById('ig-paper-scroll'); if (sc) sc.scrollTop = 0; });
     await page.waitForTimeout(600);
     const during = await ink();
 
     /* What the panel shows, as data. */
     const read = () => page.evaluate(() => {
-      const panel = document.querySelector('#doc-thread .doc-th-row.is-open');
+      const panel = document.querySelector('#pd-thread .doc-th-row.is-open');
       if (!panel) return null;
       const txt = el => el ? el.textContent.replace(/\s+/g, ' ').trim() : '';
       const secs = [...panel.querySelectorAll('.doc-th-look, .doc-xr-sec')];
@@ -202,9 +203,9 @@ const BODY =
       return v.length >= 3 && v[0] > v[1] + 3 && v[0] > v[2] + 3;
     };
     const pick = async re => page.evaluate(async src => {
-      const rows = docXrayRows(getContract(state.activeId));
+      const rows = docXrayRows(getContract(window.__xrId), document.getElementById('ig-canvas'));
       const i = rows.findIndex(r => new RegExp(src).test((r.row && r.row.heading) || r.name || ''));
-      const b = document.querySelector('#doc-thread [data-th-go="' + i + '"]');
+      const b = document.querySelector('#pd-thread [data-th-go="' + i + '"]');
       if (!b) return { i, pressed: false };
       b.click();
       await new Promise(z => setTimeout(z, 1300));
@@ -221,7 +222,7 @@ const BODY =
       first ? `${first.head} · has:${first.lookHas} · ${first.lookBg}` : '—');
     check('1c About this contract is not drawn, though a finding lands on no clause',
       !!first && !first.heads.some(hd => /About this contract/i.test(hd)) && !/XRNOWHERE/.test(first.text)
-        && !(await page.$('#doc-thread .is-wide')),
+        && !(await page.$('#pd-thread .is-wide')),
       first ? first.heads.join(' | ') : '—');
 
     await pick(/INDEMNIFICATION/);
@@ -231,7 +232,7 @@ const BODY =
       xi ? `${xi.head} · has:${xi.lookHas} · ${xi.lookBg}` : '—');
     /* GATED on WHICH area is red: before this change the one red area was
        About this contract, and "exactly one" alone passed on it. */
-    const reds = await page.evaluate(() => [...document.querySelectorAll('#doc-thread .doc-th-row.is-open .doc-th-in > *')].filter(s => {
+    const reds = await page.evaluate(() => [...document.querySelectorAll('#pd-thread .doc-th-row.is-open .doc-th-in > *')].filter(s => {
       const bg = getComputedStyle(s).backgroundColor;
       const v = (bg.match(/[\d.]+/g) || []).map(Number).map(n => /srgb/.test(bg) ? n * 255 : n);
       return v.length >= 3 && (v.length < 4 || v[3] > 0) && v[0] > v[1] + 3 && v[0] > v[2] + 3;
@@ -265,7 +266,7 @@ const BODY =
         && xiv.lines.some(l => l.side === 'both' && /^cooperate in good faith/.test(l.say) && l.cite === 'XIV.4'),
       xiv ? JSON.stringify(xiv.lines.map(l => [l.chip, l.cite, l.say.slice(0, 30)])) : '—');
     const aligned = await page.evaluate(() => {
-      const xs = [...document.querySelectorAll('#doc-thread .doc-th-row.is-open .doc-xr-wd .doc-xr-wdt')].map(e => Math.round(e.getBoundingClientRect().left));
+      const xs = [...document.querySelectorAll('#pd-thread .doc-th-row.is-open .doc-xr-wd .doc-xr-wdt')].map(e => Math.round(e.getBoundingClientRect().left));
       return { xs, same: xs.length >= 2 && xs.every(x => x === xs[0]) };
     });
     check('2f2 every line’s words start at the same place, whatever its chip says',
@@ -292,13 +293,13 @@ const BODY =
        the paper to the sentence and lights it. */
     await pick(/TERM, TERMINATION/);
     const moved = await page.evaluate(async () => {
-      const sc = document.getElementById('doc-scroll');
-      const b = [...document.querySelectorAll('#doc-thread .doc-th-row.is-open .doc-xr-wd')].find(x => /cooperate in good faith/.test(x.textContent));
+      const sc = document.getElementById('ig-paper-scroll');
+      const b = [...document.querySelectorAll('#pd-thread .doc-th-row.is-open .doc-xr-wd')].find(x => /cooperate in good faith/.test(x.textContent));
       if (!b) return null;
       const top0 = sc ? sc.scrollTop : -1;
       b.click();
       await new Promise(z => setTimeout(z, 900));
-      const marks = [...document.querySelectorAll('#doc-canvas .anchor-flash')];
+      const marks = [...document.querySelectorAll('#ig-canvas .anchor-flash')];
       const r = marks.length ? marks[0].getBoundingClientRect() : null;
       const box = sc ? sc.getBoundingClientRect() : null;
       return { top0, top1: sc ? sc.scrollTop : -1, marked: marks.map(m => m.textContent).join(''),
@@ -309,13 +310,13 @@ const BODY =
       JSON.stringify(moved));
     await pick(/TERM, TERMINATION/);
     const door = await page.evaluate(async () => {
-      const b = document.querySelector('#doc-thread .doc-th-row.is-open [data-xr-ob]');
+      const b = document.querySelector('#pd-thread .doc-th-row.is-open [data-xr-ob]');
       if (!b) return null;
       b.click();
       await new Promise(z => setTimeout(z, 700));
-      const lit = document.querySelector('.room-tab[aria-selected="true"]');
-      return lit ? lit.getAttribute('data-ws-tab') : null;
+      return typeof pdTab === 'function' ? pdTab() : null;
     });
+    /* RE-POINTED 11 Oct 2026: on Home the door opens the panel's Obligations tab */
     check('4b the door lands on the Obligations tab', door === 'oblig', String(door));
 
     /* ===== 5. THE CONTRACT DOES NOT MOVE ===== */
@@ -325,17 +326,16 @@ const BODY =
       !!before && !!during && during.top === before.top && during.left === before.left && during.sheetW === before.sheetW,
       JSON.stringify({ before, during }));
 
-    await page.evaluate(() => { roomGoTab(getContract(state.activeId), 'docs'); });
-    await page.waitForTimeout(900);
+    await page.evaluate(() => { pdOpenOnHome(window.__xrId, 'doc'); });
+    await page.waitForFunction(() => document.querySelectorAll('#pd-thread .doc-th-row').length > 0, null, { timeout: 8000 }).catch(() => {});
     await page.evaluate(() => { document.documentElement.setAttribute('data-theme', 'dark');
       if (typeof setDark === 'function') setDark(true);
-      const c = getContract(state.activeId);
-      if (typeof applyWsTabs === 'function') applyWsTabs(c); });
+      docThreadPaint(getContract(window.__xrId)); });
     await page.waitForTimeout(900);
     await pick(/INDEMNIFICATION/);
     const night = await read();
     const nightInk = await page.evaluate(() => {
-      const c = document.querySelector('#doc-thread .doc-th-row.is-open .doc-xr-who');
+      const c = document.querySelector('#pd-thread .doc-th-row.is-open .doc-xr-who');
       return c ? getComputedStyle(c).color : '';
     });
     check('5b at night Worth a look is still the one reddish area, and a chip is still inked',

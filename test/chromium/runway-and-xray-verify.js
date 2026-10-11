@@ -181,34 +181,36 @@ const check = (name, pass, detail) => {
        Thread: the contract does not move, the cards beneath are not covered,
        nothing marked means nothing toned, the open row names its clause and
        says what is known, no explainer band. */
-    await page.evaluate(() => { selectContract(state.contracts[0].id); });
-    await page.waitForTimeout(1200);
-    await page.evaluate(() => { roomGoTab(state.contracts[0], 'docs'); });
-    await page.waitForTimeout(1400);
+    /* RE-POINTED 11 Oct 2026: the contract's Document tab is gone (owner); the
+       Thread lives on Home's Document face, Clauses tab (#pd-thread, the panel
+       beside #ig-canvas in #ig-paper-scroll). The claims are asked there. */
+    await page.evaluate(() => { setView('dashboard'); pdOpenOnHome(state.contracts[0].id, 'doc'); });
+    await page.waitForFunction(() => document.querySelectorAll('#pd-thread .doc-th-row').length > 0 && !!document.getElementById('ig-canvas'), null, { timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(600);
 
     /* Measured INSIDE the document: the first ink's offset from the canvas,
        so scrolling can never read as the paper moving. */
     const ink = () => page.evaluate(() => {
-      const cv = document.getElementById('doc-canvas'); if (!cv) return null;
+      const cv = document.getElementById('ig-canvas'); if (!cv) return null;
       const w = document.createTreeWalker(cv, NodeFilter.SHOW_TEXT,
         { acceptNode: n => n.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT });
       const n = w.nextNode(); if (!n) return null;
       const r = document.createRange(); r.selectNodeContents(n);
       const q = r.getBoundingClientRect(), cb = cv.getBoundingClientRect();
-      const sc = document.getElementById('doc-scroll').getBoundingClientRect();
+      const sc = document.getElementById('ig-paper-scroll').getBoundingClientRect();
       return { inkLeft: +(q.left - cb.left).toFixed(1), inkTop: +(q.top - cb.top).toFixed(1),
         sheetLeft: +(cb.left - sc.left).toFixed(1), sheetW: Math.round(cb.width) };
     });
     const before = await ink();
     const segsRest = await page.evaluate(() => ({
       segs: document.querySelectorAll('[data-doc-read]').length,
-      rows: document.querySelectorAll('#doc-thread .doc-th-row').length,
-      sheet: (typeof docReadSheet === 'function') ? (docReadSheet(state.contracts[0]) || []).length : -1,
-      up: !!document.getElementById('doc-thread') && !document.getElementById('doc-thread').hidden }));
+      rows: document.querySelectorAll('#pd-thread .doc-th-row').length,
+      sheet: (typeof docReadSheet === 'function') ? (docReadSheet(state.contracts[0], document.getElementById('ig-canvas')) || []).length : -1,
+      up: !!document.getElementById('pd-thread') && !document.getElementById('pd-thread').hidden }));
     check('4a there is no switch; the Thread is up with one row per painted clause',
       segsRest.segs === 0 && segsRest.up && segsRest.rows > 0 && segsRest.rows === segsRest.sheet, JSON.stringify(segsRest));
 
-    const pressedRow = await press('#doc-thread [data-th-go="1"]', '4a2 there is a second row to press');
+    const pressedRow = await press('#pd-thread [data-th-go="1"]', '4a2 there is a second row to press');
     await page.waitForTimeout(1300);
     await page.screenshot({ path: path.join(OUT, '02-thread.png') });
     const after = await ink();
@@ -225,13 +227,11 @@ const check = (name, pass, detail) => {
 
     const xr = await page.evaluate(() => {
       const el = id => document.getElementById(id);
-      const th = el('doc-thread');
+      const th = el('pd-thread');
       const open = th && th.querySelector('.doc-th-row.is-open');
-      const right = el('doc-right');
       return {
         open: open ? Number(open.dataset.thRow) : -1,
         line: (typeof docThreadAtLine === 'function') ? docThreadAtLine() : -2,
-        right: right ? getComputedStyle(right).visibility : '(absent)',
         toned: th ? th.querySelectorAll('.doc-th-row.is-ruby,.doc-th-row.is-amber,.doc-th-row.is-steel').length : -1,
         spine: !!el('doc-xr-spine'),
         head: open ? (open.querySelector('.doc-th-name') || {}).textContent : '',
@@ -240,11 +240,12 @@ const check = (name, pass, detail) => {
         whoBox: !!(open && open.querySelector('.doc-xr-sec.is-who')),
         whoPlaced: !!(open && open.querySelector('.doc-xr-sec.is-who .doc-xr-who:not(.is-unclear)')),
         whoNone: !!(open && open.querySelector('.doc-xr-sec.is-who .doc-xr-q') && !open.querySelector('.doc-xr-sec.is-who [data-xr-wd]')),
-        bands: document.querySelectorAll('#doc-grid .hint,#doc-grid [class*="callout"]').length,
+        bands: document.querySelectorAll('#ig-paper .hint,#ig-paper [class*="callout"],#ig-dock .hint,#ig-dock [class*="callout"]').length,
       };
     });
     check('4c the pressed row is open, and it is the one at the line', pressedRow && xr.open === 1 && xr.line === 1, JSON.stringify({ open: xr.open, line: xr.line }));
-    check('4d the cards beneath it are not covered — the Thread is a card among them', xr.right === 'visible', xr.right);
+    /* 4d retired 11 Oct 2026: the Document tab is gone (owner) — on Home the
+       clause list IS the panel; there are no cards beneath it to cover. */
     /* REVERSED IN PLACE 23 Sep 2026 (Young: "Remove the grey dna strands and
        just keep the colored ones that are of interest"), and again here: this
        record carries no mark, so no row wears a tone, and no strand is drawn. */
@@ -257,7 +258,8 @@ const check = (name, pass, detail) => {
       xr.look && (!xr.whoBox || xr.whoPlaced) && !xr.whoNone, JSON.stringify(xr.secs));
     /* THE CARD IS A REAL SURFACE, asked live. */
     const cards = await page.evaluate(() => {
-      const e = document.getElementById('doc-thread'); if (!e) return null;
+      /* on Home the list is drawn on the panel itself (#ig-dock), not a card of its own */
+      const e = document.getElementById('pd-thread') && document.getElementById('ig-dock'); if (!e) return null;
       const c = getComputedStyle(e);
       return { bg: c.backgroundColor, radius: c.borderTopLeftRadius };
     });
@@ -270,39 +272,24 @@ const check = (name, pass, detail) => {
 
     /* the reader's hand: scrolling the paper to the top opens the first row,
        and the paper is where it was */
-    await page.evaluate(() => { document.getElementById('doc-scroll').scrollTop = 0; });
+    await page.evaluate(() => { document.getElementById('ig-paper-scroll').scrollTop = 0; });
     await page.waitForTimeout(600);
     const back = await page.evaluate(() => ({
-      open: Number((document.querySelector('#doc-thread .doc-th-row.is-open') || { dataset: {} }).dataset.thRow),
-      right: document.getElementById('doc-right')
-        ? getComputedStyle(document.getElementById('doc-right')).visibility : '(absent)',
+      open: Number((document.querySelector('#pd-thread .doc-th-row.is-open') || { dataset: {} }).dataset.thRow),
     }));
     const backInk = await ink();
     check('4k a scroll back to the top opens the first row again',
-      back.open === 0 && back.right === 'visible',
+      back.open === 0,
       JSON.stringify(back));
     check('4l and the contract is exactly where it started',
       pressedRow && backInk && before && backInk.inkLeft === before.inkLeft && backInk.inkTop === before.inkTop
         && backInk.sheetLeft === before.sheetLeft,
       (pressedRow ? '' : 'nothing was pressed · ') + JSON.stringify(backInk));
 
-    /* ================= 5. THE NARROW WINDOW ============================= */
-    /* The Thread is up where two working columns fit (1024); below that it
-       stands down and the paper has the tab, and a repaint at that width
-       draws no row at all. */
-    await page.setViewportSize({ width: 900, height: 900 });
-    await page.waitForTimeout(400);
-    const narrowOn = await page.evaluate(() => (typeof docThreadOn === 'function') ? docThreadOn() : '(absent)');
-    check('5a below 1024 the Thread reads itself as off', narrowOn === false, String(narrowOn));
-    await page.evaluate(() => { roomGoTab(state.contracts[0], 'docs'); });
-    await page.waitForTimeout(700);
-    const narrow = await page.evaluate(() => ({
-      hidden: (document.getElementById('doc-thread') || {}).hidden,
-      rows: document.querySelectorAll('#doc-thread .doc-th-row').length,
-      segs: document.querySelectorAll('[data-doc-read]').length,
-    }));
-    check('5c (CONTROL) a repaint at that width draws no row and no switch',
-      narrow.hidden === true && narrow.rows === 0 && narrow.segs === 0, JSON.stringify(narrow));
+    /* ================= 5. THE NARROW WINDOW =============================
+       5a and 5c retired 11 Oct 2026: the Document tab is gone (owner). "Below
+       1024 the Thread stands down and the paper has the tab" was that tab's
+       own width rule; Home's Document panel keeps its own. */
 
     /* ================= 7. FORMAT A, ON A CONTRACT THAT HAS BEEN READ ====
        WHY THIS SECTION EXISTS. Section 4 opened a contract with NO reading,
@@ -311,12 +298,9 @@ const check = (name, pass, detail) => {
        the owner reported off his iPad. A check that passes against the
        broken build is a description. Everything below stages the real thing
        first. */
-    await page.setViewportSize({ width: 1500, height: 950 });
-    await page.waitForTimeout(300);
-    await page.evaluate(() => { selectContract(state.contracts[0].id); });
-    await page.waitForTimeout(1100);
-    await page.evaluate(() => { roomGoTab(state.contracts[0], 'docs'); });
-    await page.waitForTimeout(1100);
+    await page.evaluate(() => { setView('dashboard'); pdOpenOnHome(state.contracts[0].id, 'doc'); });
+    await page.waitForFunction(() => document.querySelectorAll('#pd-thread .doc-th-row').length > 0 && !!document.getElementById('ig-canvas'), null, { timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(600);
 
     /* A reading per painted row, a brief whose first watchout quotes real
        wording and whose second carries none, two unusual terms, and a high
@@ -324,7 +308,7 @@ const check = (name, pass, detail) => {
     const staged = await page.evaluate(() => {
       const c = state.contracts[0];
       let sheet = [];
-      try { sheet = docReadSheet(c) || []; } catch (_) { sheet = []; }
+      try { sheet = docReadSheet(c, document.getElementById('ig-canvas')) || []; } catch (_) { sheet = []; }
       if (sheet.length < 4) return { rows: sheet.length };
       c._readings = { at: '21 Sep 2026', over: 0,
         items: sheet.map((r, i) => ({ i, heading: r.heading, plain: 'XRPLAIN' + i + ' a reading of this clause.' })) };
@@ -355,28 +339,28 @@ const check = (name, pass, detail) => {
       docThreadPaint(state.contracts[0]);
       await new Promise(r => setTimeout(r, 600));
       window.api = real;
-      return { asked, read: document.querySelectorAll('#doc-thread .doc-th-state .is-read').length };
+      return { asked, read: document.querySelectorAll('#pd-thread .doc-th-state .is-read').length };
     }) : null;
     const fa = ok7 ? await page.evaluate(async () => {
       /* land on the clause the high finding quotes */
-      const rows = docXrayRows(state.contracts[0]);
+      const rows = docXrayRows(state.contracts[0], document.getElementById('ig-canvas'));
       const i = rows.findIndex(r => r.tone === 'ruby');
-      if (i >= 0) { const b = document.querySelector('#doc-thread [data-th-go="' + i + '"]'); if (b) b.click(); }
+      if (i >= 0) { const b = document.querySelector('#pd-thread [data-th-go="' + i + '"]'); if (b) b.click(); }
       await new Promise(z => setTimeout(z, 1300));
-      const th = document.getElementById('doc-thread'), cv = document.getElementById('doc-canvas');
+      const th = document.getElementById('pd-thread'), cv = document.getElementById('ig-canvas');
       const overlap = th && cv ? th.getBoundingClientRect().left < cv.getBoundingClientRect().right : null;
-      const lit = document.querySelectorAll('#doc-thread .doc-th-row.is-open').length;
-      const open = document.querySelector('#doc-thread .doc-th-row.is-open');
+      const lit = document.querySelectorAll('#pd-thread .doc-th-row.is-open').length;
+      const open = document.querySelector('#pd-thread .doc-th-row.is-open');
       return { i, overlap, lit, head: open ? open.querySelector('.doc-th-name').textContent : '',
         got: open ? Number(open.dataset.thRow) : -1, line: docThreadAtLine(),
         tones: rows.map(r => r.tone || '-'),
-        segs: [...document.querySelectorAll('#doc-thread .doc-th-row')].map(b =>
+        segs: [...document.querySelectorAll('#pd-thread .doc-th-row')].map(b =>
           (b.className.match(/is-(ruby|amber|steel)/) || [])[1] || '-') };
     }) : null;
     if (fa) await page.screenshot({ path: path.join(OUT, '03-thread-format-a.png') });
 
     const panel = fa ? await page.evaluate(() => {
-      const open = document.querySelector('#doc-thread .doc-th-row.is-open');
+      const open = document.querySelector('#pd-thread .doc-th-row.is-open');
       const txt = el => el ? el.innerText.replace(/\s+/g, ' ').trim() : '';
       const marksIn = el => el ? [...el.querySelectorAll('.doc-xr-mark')].map(m =>
         ({ grade: (m.className.match(/is-(ruby|amber|steel)/) || [])[1] || '-',
@@ -384,7 +368,7 @@ const check = (name, pass, detail) => {
       const look = open && open.querySelector('.doc-th-look'), wide = open && open.querySelector('.doc-xr-sec.is-wide');
       const plain = open && open.querySelector('.doc-th-plain');
       return { plain: txt(plain).slice(0, 60), look: marksIn(look), wide: marksIn(wide), wideDrawn: !!wide,
-        face: plain ? getComputedStyle(plain).fontFamily : '', paper: getComputedStyle(document.querySelector('#doc-canvas .doc-surface') || document.getElementById('doc-canvas')).fontFamily };
+        face: plain ? getComputedStyle(plain).fontFamily : '', paper: getComputedStyle(document.querySelector('#ig-canvas .doc-surface') || document.getElementById('ig-canvas')).fontFamily };
     }) : null;
 
     check('7a the open row shows the reading that is ON the record, in the paper\'s face',

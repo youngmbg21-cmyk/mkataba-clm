@@ -83,20 +83,24 @@ const check = (name, pass, detail) => {
     check('1b the Negotiations list comes back as the list, still searched for "Bidco"', !!n1 && n1.q === 'Bidco', JSON.stringify(n1));
 
     /* ================= 2. A CONTRACT: THE TAB, THE READING, THE SCROLL ======= */
-    await page.evaluate(() => openWorkspace('MK-R3'));
-    await until(() => state.view === 'workspace' && document.getElementById('doc-scroll'));
-    await page.evaluate(() => roomGoTab(getContract('MK-R3'), 'docs'));
-    await until(() => { const e = document.getElementById('doc-scroll'); return e && e.scrollHeight > e.clientHeight + 1000; });
-    const d0 = await scrollTo('doc-scroll', 900);
+    /* RE-POINTED 11 Oct 2026: the contract's Document tab is gone (owner); the
+       paper and its clause list live on Home's Document face (Clauses tab):
+       the paper's scroller is #ig-paper-scroll, the list #pd-thread. */
+    await page.evaluate(() => { setView('dashboard'); pdOpenOnHome('MK-R3', 'doc'); });
+    await until(() => { const e = document.getElementById('ig-paper-scroll'); return e && e.scrollHeight > e.clientHeight + 1000 && document.querySelectorAll('#pd-thread .doc-th-row').length > 0; }, null, 15000);
+    const d0 = await scrollTo('ig-paper-scroll', 900);
     await reload();
-    const d1 = await cameBack('doc-scroll', d0);
-    check('2a the Document tab comes back on the same contract, scrolled to the same line', d0 >= 800 && d1 === d0 && (await page.evaluate(() => state.activeId)) === 'MK-R3', JSON.stringify({ d0, d1 }));
+    const d1 = await cameBack('ig-paper-scroll', d0);
+    const onDoc = await page.evaluate(() => ({ view: state.view, face: window.hbS ? hbS().face : null, id: window.pdContract && pdContract() ? pdContract().id : null, tab: window.pdTab ? pdTab() : null }));
+    check('2a Home\'s Document comes back on the same contract and the Clauses tab, scrolled to the same line', d0 >= 800 && d1 === d0 && onDoc.id === 'MK-R3' && onDoc.tab === 'doc', JSON.stringify({ d0, d1, onDoc }));
     await page.screenshot({ path: path.join(OUT, '2a-document-kept.png') });
     /* RE-POINTED 5 Oct 2026 (the Thread): there is no reading mode to keep any
        more; what comes back is the thread's open row, which follows the line
        the paper came back to. */
-    const pm = await until(() => { const o = document.querySelector('#doc-thread .doc-th-row.is-open'); return o && window.docThreadAtLine ? { open: Number(o.dataset.thRow), line: docThreadAtLine() } : null; });
+    const pm = await until(() => { const o = document.querySelector('#pd-thread .doc-th-row.is-open'); return o && window.docThreadAtLine ? { open: Number(o.dataset.thRow), line: docThreadAtLine() } : null; });
     check('2b the Thread\'s open row is the one at the line the paper came back to', !!pm && pm.open === pm.line && pm.open > 0, JSON.stringify(pm));
+    await page.evaluate(() => openWorkspace('MK-R3'));
+    await until(() => state.view === 'workspace' && state.activeId === 'MK-R3');
     await page.evaluate(() => roomGoTab(getContract('MK-R3'), 'history'));
     await page.waitForTimeout(400);
     await reload();

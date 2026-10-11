@@ -8,6 +8,7 @@
      3  "Who else" lists the colleague who filed a change and the one who
         approved, each marked as added by HaTi
      4  the Document tab, left on X-ray, lands on Contract View next time
+        (11 Oct 2026: asked on Home's Document, Clauses tab — the tab is gone)
      5  the X-ray map draws one block per MARKED clause and nothing grey
      7  the head draws no "Send to counterparty"; Share is there
      8  A+ grows the X-ray panel's type
@@ -126,11 +127,15 @@ const BODY = '<h1>SOFTWARE AS A SERVICE AGREEMENT</h1>'
        Thread's rows. "One block per marked clause" is "every clause a row,
        the marked ones wearing their tone"; A+ grows the READING in the open
        row, which is set in the paper's own face and size. */
-    await page.evaluate(() => roomGoTab(getContract('MK-N1'), 'docs'));
-    await page.waitForTimeout(1500);
+    /* RE-POINTED 11 Oct 2026: the contract's Document tab is gone (owner); the
+       Thread lives on Home's Document face, Clauses tab. 5, 8 and 4 are asked
+       there. */
+    const homeDoc = () => page.evaluate(() => { setView('dashboard'); pdOpenOnHome('MK-N1', 'doc'); })
+      .then(() => page.waitForFunction(() => document.querySelectorAll('#pd-thread .doc-th-row').length > 0 && !!document.getElementById('ig-canvas'), null, { timeout: 15000 }).catch(() => {}));
+    await homeDoc();
     const map = await page.evaluate(() => {
-      const th = document.getElementById('doc-thread');
-      const rows = (typeof docXrayRows === 'function') ? docXrayRows(getContract('MK-N1')) : [];
+      const th = document.getElementById('pd-thread');
+      const rows = (typeof docXrayRows === 'function') ? docXrayRows(getContract('MK-N1'), document.getElementById('ig-canvas')) : [];
       const drawn = th ? [...th.querySelectorAll('.doc-th-row')] : [];
       return { segs: drawn.length, toned: drawn.filter(r => /\bis-(ruby|amber|steel)\b/.test(r.className)).length,
         grey: drawn.filter(r => /\bis-(ruby|amber|steel)\b/.test(r.className) && !r.querySelector('.doc-th-state .is-ruby,.doc-th-state .is-amber,.doc-th-state .is-steel')).length,
@@ -140,40 +145,41 @@ const BODY = '<h1>SOFTWARE AS A SERVICE AGREEMENT</h1>'
     check('5b and a toned row always says how many marks', map.grey === 0, JSON.stringify(map));
     await page.screenshot({ path: path.join(OUT, '03-thread.png') });
     /* a reading on the open row, so there is a line in the paper's face to measure */
-    await page.evaluate(() => { const c = getContract('MK-N1'); const sheet = docReadSheet(c) || [];
+    await page.evaluate(() => { const c = getContract('MK-N1'); const sheet = docReadSheet(c, document.getElementById('ig-canvas')) || [];
       c._readings = { at: '2026-10-05', over: 0, items: sheet.map((r, i) => ({ i, heading: r.heading, plain: 'NJPLAIN' + i + ' a reading.' })) };
       docThreadPaint(c); });
     await page.waitForTimeout(400);
-    const sizeOf = () => page.evaluate(() => { const t = document.querySelector('#doc-thread .doc-th-row.is-open .doc-th-plain');
-      return t ? parseFloat(getComputedStyle(t).fontSize) : 0; });
+    const sizeOf = () => page.evaluate(() => { const t = document.querySelector('#pd-thread .doc-th-row.is-open .doc-th-plain');
+      const cv = document.getElementById('ig-canvas');
+      return { read: t ? parseFloat(getComputedStyle(t).fontSize) : 0, paper: cv ? Math.round(cv.getBoundingClientRect().width * 10) / 10 : 0 }; });
     const s0 = await sizeOf();
-    await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /A\+|A⁺/.test(x.textContent) && x.offsetParent); if (b) { b.click(); b.click(); } });
-    await page.waitForTimeout(600);
+    /* RE-POINTED 11 Oct 2026 (ONE ZOOM): A⁻/A⁺ became "− 100% +" on the grey
+       above the paper; its + is pressed twice, and the paper must really grow. */
+    const zin = '#ig-paper-scroll .paper-zc [data-rl-type="1"]', zout = '#ig-paper-scroll .paper-zc [data-rl-type="-1"]';
+    const hasZoom = !!(await page.$(zin));
+    if (hasZoom) { await page.click(zin); await page.click(zin); }
+    await page.waitForFunction(w => { const cv = document.getElementById('ig-canvas'); return cv && cv.getBoundingClientRect().width > w + 1; }, s0.paper, { timeout: 5000 }).catch(() => {});
     const s1 = await sizeOf();
     /* RE-POINTED 6 Oct 2026 (Panel Voice, Young: "the A⁻ / A⁺ buttons no
        longer change them"): the reading keeps the panel's size; only the paper grows. */
-    check('8 A+ grows the paper, never the reading in the thread', s0 > 0 && s1 === s0, `${s0}px → ${s1}px`);
-    await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /A-|A⁻/.test(x.textContent) && x.offsetParent); if (b) { b.click(); b.click(); } });
+    check('8 + grows the paper, never the reading in the thread', hasZoom && s0.read > 0 && s1.read === s0.read && s1.paper > s0.paper, `${JSON.stringify(s0)} → ${JSON.stringify(s1)}`);
+    if (hasZoom) { await page.click(zout); await page.click(zout); }
 
     /* ===== 4. LANDS ON THE PAPER WITH THE THREAD BESIDE IT ===== */
     /* RE-POINTED 5 Oct 2026: there is no Contract View to land on any more —
        the paper and the thread are one screen. Coming back finds both up and
        no switch to have been left in the wrong position. */
-    await page.evaluate(() => roomGoTab(getContract('MK-N1'), 'terms'));
-    await page.waitForTimeout(700);
-    await page.evaluate(() => roomGoTab(getContract('MK-N1'), 'docs'));
-    await page.waitForTimeout(1000);
-    const tabBack = await page.evaluate(() => ({ paper: !!document.getElementById('doc-canvas'),
-      thread: !document.getElementById('doc-thread')?.hidden && document.querySelectorAll('#doc-thread .doc-th-row').length > 0,
+    await page.evaluate(() => pdOpenOnHome('MK-N1', 'facts'));
+    await page.waitForFunction(() => typeof pdTab === 'function' && pdTab() === 'facts', null, { timeout: 5000 }).catch(() => {});
+    await homeDoc();
+    const tabBack = await page.evaluate(() => ({ paper: !!document.getElementById('ig-canvas'),
+      thread: !document.getElementById('pd-thread')?.hidden && document.querySelectorAll('#pd-thread .doc-th-row').length > 0,
       switchGone: !document.querySelector('[data-doc-read]') }));
-    check('4 back on the Document tab the paper and the thread are both up, and there is no switch', tabBack.paper && tabBack.thread && tabBack.switchGone, JSON.stringify(tabBack));
+    check('4 back on the Clauses tab the paper and the thread are both up, and there is no switch', tabBack.paper && tabBack.thread && tabBack.switchGone, JSON.stringify(tabBack));
     await page.evaluate(() => setView('register'));
-    await page.waitForTimeout(800);
-    await page.evaluate(() => openWorkspace('MK-N1'));
-    await page.waitForTimeout(1200);
-    await page.evaluate(() => roomGoTab(getContract('MK-N1'), 'docs'));
-    await page.waitForTimeout(1000);
-    const pageBack = await page.evaluate(() => !document.getElementById('doc-thread')?.hidden && document.querySelectorAll('#doc-thread .doc-th-row').length > 0 && !document.querySelector('[data-doc-read]'));
+    await page.waitForFunction(() => state.view === 'register', null, { timeout: 5000 }).catch(() => {});
+    await homeDoc();
+    const pageBack = await page.evaluate(() => !document.getElementById('pd-thread')?.hidden && document.querySelectorAll('#pd-thread .doc-th-row').length > 0 && !document.querySelector('[data-doc-read]'));
     check('4b and after another page too', pageBack === true, String(pageBack));
 
     /* ===== 9. THE NEGOTIATE PAGE ===== */

@@ -108,28 +108,28 @@ function startProvider(){
     await page.click('#li-go');
     await page.waitForTimeout(2400);
 
+    /* RE-POINTED 11 Oct 2026: the contract's Document tab is gone (owner); the
+       Thread lives on Home's Document face, Clauses tab (#pd-thread). */
     const openDocs = async () => {
-      await page.evaluate(() => openWorkspace('MK-BG1')).catch(() => {});
-      await page.waitForTimeout(1000);
-      await page.evaluate(() => roomGoTab(getContract('MK-BG1'), 'docs')).catch(() => {});
-      await page.waitForSelector('#doc-canvas', { timeout: 15000 }).catch(() => {});
-      await page.waitForTimeout(1200);
+      await page.evaluate(() => { setView('dashboard'); pdOpenOnHome('MK-BG1', 'doc'); }).catch(() => {});
+      await page.waitForFunction(() => document.querySelectorAll('#pd-thread .doc-th-row').length > 100 && !!document.getElementById('ig-canvas'), null, { timeout: 15000 }).catch(() => {});
+      await page.waitForTimeout(600);
     };
     const pressPlain = async () => {
-      const b = await page.$('#doc-thread .doc-th-row.is-open [data-th-explain]');
+      const b = await page.$('#pd-thread .doc-th-row.is-open [data-th-explain]');
       if (!b) return false;
       try { await b.click({ timeout: 3000 }); return true; } catch (_) { return false; }
     };
     /* clause 61 is the one the stand-in holds back */
     const open61 = async () => {
       await page.evaluate(() => {
-        const r = [...document.querySelectorAll('#doc-thread .doc-th-row')].find(x => /^61\. Clause 61/.test((x.querySelector('.doc-th-name') || {}).textContent || ''));
+        const r = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(x => /^61\. Clause 61/.test((x.querySelector('.doc-th-name') || {}).textContent || ''));
         const b = r && r.querySelector('[data-th-go]'); if (b) b.click();
       }).catch(() => {});
       await page.waitForTimeout(1300);
     };
     const read = () => page.evaluate(() => {
-      const th = document.getElementById('doc-thread');
+      const th = document.getElementById('pd-thread');
       const open = th && th.querySelector('.doc-th-row.is-open');
       const wait = open && open.querySelector('.doc-th-wait');
       const rows = th ? [...th.querySelectorAll('.doc-th-row')] : [];

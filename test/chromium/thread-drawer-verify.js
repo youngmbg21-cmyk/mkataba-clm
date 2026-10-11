@@ -27,6 +27,9 @@
         panel — no door, no ×
      8  at night the drawer keeps its colours
 
+   RE-POINTED 11 Oct 2026 (the contract's Document tab is gone, owner): asked
+   on Home's Document face, Clauses tab; 1, 5 and 6b are retired in place.
+
    AT UNMODIFIED MAIN there is no door, no drawer and no filter: every driven
    half is GUARDED so the checks REPORT rather than hang.
    Screenshots go to $HATI_SHOT_DIR, else test/chromium/shots/thread-drawer/.
@@ -114,17 +117,26 @@ const answer = say => b => [{ type: 'tool_use', id: 'tu', name: 'clause_readings
       c.scan = { at: 'today', on: '2026-10-05', dismissed: [], findings: [
         { id: 'w1', sev: 'high', title: 'Credit can be cut without warning', why: 'Bull may cancel your credit at any time.', quote: 'Credit is granted at the Supplier' },
         { id: 'w2', sev: 'med', title: 'Directors’ identity papers', why: 'Sensitive papers are handed over before credit is agreed.', quote: 'attach copies of the Directors' }] };
-      roomGoTab(c, 'docs'); }, id);
-    const open = async id => { await page.evaluate(i => openWorkspace(i), id); await page.waitForTimeout(900); await stage(id); await page.waitForTimeout(1200); };
-    await open('MK-314');
+      setView('dashboard'); pdOpenOnHome(i, 'doc'); }, id);
+    /* RE-POINTED 11 Oct 2026: the contract's Document tab is gone (owner), and
+       with it the drawer over Form & links. The clause list lives on Home's
+       Document face as the panel's Clauses tab (#pd-thread); its form is on
+       the Overview tab. What the list itself does is asked there; what was the
+       drawer's own (the landing on Form & links, the door, ×, Escape, leaving
+       and coming back) is retired below, each where it stood. */
+    const open = async id => { await stage(id);
+      await page.waitForFunction(() => document.querySelectorAll('#pd-thread .doc-th-row').length > 0 && !!document.getElementById('ig-canvas'), null, { timeout: 15000 }).catch(() => {});
+      await page.waitForTimeout(400); };
+    await page.evaluate(() => { setView('dashboard'); pdOpenOnHome('MK-314', 'facts'); });
+    await page.waitForFunction(() => !!document.getElementById('ig-canvas') && typeof pdTab === 'function' && pdTab() === 'facts', null, { timeout: 15000 }).catch(() => {});
+    await page.evaluate(() => { const c = getContract('MK-314');
+      c.scan = { at: 'today', on: '2026-10-05', dismissed: [], findings: [
+        { id: 'w1', sev: 'high', title: 'Credit can be cut without warning', why: 'Bull may cancel your credit at any time.', quote: 'Credit is granted at the Supplier' },
+        { id: 'w2', sev: 'med', title: 'Directors’ identity papers', why: 'Sensitive papers are handed over before credit is agreed.', quote: 'attach copies of the Directors' }] }; });
 
     const read = () => page.evaluate(() => {
       const txt = el => el ? el.textContent.replace(/\s+/g, ' ').trim() : '';
-      const box = id => { const e = document.getElementById(id); if (!e) return null; const r = e.getBoundingClientRect();
-        return { h: Math.round(r.height), content: e.scrollHeight, client: e.clientHeight, shown: !e.hidden && getComputedStyle(e).display !== 'none' && r.height > 0 }; };
-      const th = document.getElementById('doc-thread');
-      const door = document.getElementById('ws-th-door');
-      const right = document.getElementById('doc-right');
+      const th = document.getElementById('pd-thread');
       const rows = th ? [...th.querySelectorAll('.doc-th-row')].map(r => ({ i: Number(r.dataset.thRow), name: txt(r.querySelector('.doc-th-name')),
         state: txt(r.querySelector('.doc-th-state')), open: r.classList.contains('is-open'), shown: !r.hidden,
         tone: (r.className.match(/is-(ruby|amber|steel)/) || [])[1] || '' })) : [];
@@ -133,48 +145,39 @@ const answer = say => b => [{ type: 'tool_use', id: 'tu', name: 'clause_readings
       const chips = th ? [...th.querySelectorAll('[data-th-tone]')].map(b => ({ tone: b.getAttribute('data-th-tone'), text: txt(b),
         pressed: b.getAttribute('aria-pressed') === 'true', dead: b.getAttribute('aria-disabled') === 'true', title: b.getAttribute('title') || '' })) : [];
       const list = th && th.querySelector('.doc-th-rows');
-      return { door: door ? { shown: !door.hidden && door.getBoundingClientRect().width > 0, text: txt(door), expanded: door.getAttribute('aria-expanded') } : null,
-        threadShown: !!(th && !th.hidden && th.getBoundingClientRect().height > 0), form: box('tplform-section'),
-        rightScrolls: right ? right.scrollHeight > right.clientHeight + 1 : null, rightTop: right ? right.scrollTop : -1,
+      return { threadShown: !!(th && !th.hidden && th.getBoundingClientRect().height > 0),
         close: !!(th && th.querySelector('[data-th-close]')), chips, rows,
         secs: th ? [...th.querySelectorAll('.doc-th-sec')].map(s => ({ text: txt(s), shown: !s.hidden, bead: !!s.querySelector('.doc-th-bead'), button: !!s.querySelector('button') })) : [],
         openIdx: openRow ? Number(openRow.dataset.thRow) : -1, openText: txt(body).slice(0, 400),
         bodyScroll: body ? { y: getComputedStyle(body).overflowY, max: getComputedStyle(body).maxHeight } : null,
         listScroll: list ? getComputedStyle(list).overflowY : '',
-        atLine: typeof docThreadAtLine === 'function' ? docThreadAtLine() : -2,
-        focus: document.activeElement ? (document.activeElement.id || document.activeElement.className) : '' };
+        atLine: typeof docThreadAtLine === 'function' ? docThreadAtLine() : -2 };
     });
     const ink = () => page.evaluate(() => {
-      const cv = document.getElementById('doc-canvas'); if (!cv) return null;
+      const cv = document.getElementById('ig-canvas'); if (!cv) return null;
       const w = document.createTreeWalker(cv, NodeFilter.SHOW_TEXT, { acceptNode: n => /\S/.test(n.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP });
       const t = w.nextNode(); if (!t) return null;
       const r = document.createRange(); r.selectNodeContents(t);
       const b = r.getBoundingClientRect();
       return { top: Math.round(b.top * 10) / 10, left: Math.round(b.left * 10) / 10, w: Math.round(cv.getBoundingClientRect().width) };
     });
-    const hasDoor = () => page.evaluate(() => { const d = document.getElementById('ws-th-door'); return !!(d && !d.hidden); });
-    const pressDoor = async () => { if (await hasDoor()) { await page.click('#ws-th-door'); await page.waitForTimeout(700); return true; } return false; };
+    /* the way in on Home is the panel's Clauses tab */
+    const pressDoor = async () => { const t = await page.$('#ig-dock [data-pd-tab="doc"]'); if (!t) return false; await t.click();
+      return page.waitForFunction(() => pdTab() === 'doc' && document.querySelectorAll('#pd-thread .doc-th-row').length > 0, null, { timeout: 8000 }).then(() => true, () => false); };
     const chip = async tone => {
-      const ok = await page.evaluate(t => { const b = document.querySelector(`#doc-thread [data-th-tone="${t}"]`); if (!b) return false; b.click(); return true; }, tone);
+      const ok = await page.evaluate(t => { const b = document.querySelector(`#pd-thread [data-th-tone="${t}"]`); if (!b) return false; b.click(); return true; }, tone);
       await page.waitForTimeout(1200); return ok; };
 
-    /* ===== 1. THE TAB LANDS ON FORM & LINKS ===== */
-    const s1 = await read();
+    /* ===== 1. THE TAB LANDS ON FORM & LINKS =====
+       1a–1c retired 11 Oct 2026: the Document tab is gone (owner) — its landing
+       on Form & links, the form's column and the toned Clauses door with it. */
     const ink0 = await ink();
-    check('1a the tab lands on Form & links: the clauses are shut', !s1.threadShown && s1.form && s1.form.shown,
-      JSON.stringify({ thread: s1.threadShown, form: s1.form && s1.form.shown }));
-    check('1b the form stands at the height of what it holds — the column scrolls, the card is not squeezed',
-      s1.form && s1.form.h >= s1.form.content - 2 && s1.form.h > 600 && s1.rightScrolls === true,
-      JSON.stringify({ form: s1.form, columnScrolls: s1.rightScrolls }));
-    check('1c a Clauses door on the tab row says what is marked', !!(s1.door && s1.door.shown && /Clauses/.test(s1.door.text) && /2 to review/.test(s1.door.text) && s1.door.expanded === 'false'),
-      JSON.stringify(s1.door));
-    await page.screenshot({ path: path.join(OUT, '01-landing.png') });
 
     /* ===== 2. THE DOOR BRINGS THE CLAUSES OVER IT ===== */
     /* the paper is put on the second clause first: the drawer opens THERE
        (not the first, which is where it would open anyway; not one near the
        end, which the paper cannot bring up to the line) */
-    await page.evaluate(() => { const sc = document.getElementById('doc-scroll'); const rows = docXrayRows(getContract(state.activeId)).filter(x => !(x.row && x.row.kind === 'section'));
+    await page.evaluate(() => { const sc = document.getElementById('ig-paper-scroll'); const rows = docXrayRows(getContract('MK-314'), document.getElementById('ig-canvas')).filter(x => !(x.row && x.row.kind === 'section'));
       const el = rows[1] && rows[1].el; if (el) sc.scrollTop = el.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - 20; });
     await page.waitForTimeout(500);
     const ink1 = await ink();
@@ -182,17 +185,18 @@ const answer = say => b => [{ type: 'tool_use', id: 'tu', name: 'clause_readings
     const s2 = await read();
     const ink2 = await ink();
     const second = s2.rows[1];
-    check('2a the door brings the clauses over Form & links, and says it is open', opened && s2.threadShown && !(s2.form && s2.form.shown) && s2.door && s2.door.expanded === 'true',
-      JSON.stringify({ opened, thread: s2.threadShown, form: s2.form && s2.form.shown, door: s2.door }));
+    check('2a the Clauses tab brings the clause list into the panel', opened && s2.threadShown,
+      JSON.stringify({ opened, thread: s2.threadShown }));
     check('2b it opens on the clause at the paper\'s line', opened && !!(second && second.open) && s2.openIdx === s2.atLine, (second ? second.name : '-') + ' · open ' + s2.openIdx + ' · line ' + s2.atLine);
-    check('2c × is there, and the filter: All · Red · Amber · Blue with their counts', s2.close && s2.chips.length === 4
+    /* on Home the list IS the panel: no × (home-paper-clauses 1d) */
+    check('2c no ×, and the filter: All · Red · Amber · Blue with their counts', !s2.close && s2.chips.length === 4
       && /All 7/.test(s2.chips[0].text) && /Red 1/.test(s2.chips[1].text) && /Amber 1/.test(s2.chips[2].text) && /Blue 0/.test(s2.chips[3].text),
       s2.chips.map(c => c.text).join(' | '));
     check('2d a part title is a label — no bead, no button', s2.secs.length >= 1 && s2.secs.every(x => !x.bead && !x.button) && s2.secs.some(x => /PART B/i.test(x.text)),
       JSON.stringify(s2.secs));
     check('2e ONE scroller: the open row grows, the list scrolls', !!(s2.bodyScroll && s2.bodyScroll.y !== 'auto' && s2.bodyScroll.max === 'none' && s2.listScroll === 'auto'),
       JSON.stringify({ body: s2.bodyScroll, list: s2.listScroll }));
-    check('2f [control] THE CONTRACT DOES NOT MOVE when the drawer opens (refusal 3)', !!(ink1 && ink2 && ink1.top === ink2.top && ink1.left === ink2.left && ink1.w === ink2.w && ink0 && ink0.w === ink2.w),
+    check('2f [control] THE CONTRACT DOES NOT MOVE when the Clauses tab opens (refusal 3)', !!(ink1 && ink2 && ink1.top === ink2.top && ink1.left === ink2.left && ink1.w === ink2.w && ink0 && ink0.w === ink2.w),
       JSON.stringify({ before: ink1, after: ink2 }));
     await page.screenshot({ path: path.join(OUT, '02-drawer.png') });
 
@@ -211,7 +215,7 @@ const answer = say => b => [{ type: 'tool_use', id: 'tu', name: 'clause_readings
     check('3d Red and Amber together show the two', shown4.length === 2 && shown4.every(r => r.tone === 'ruby' || r.tone === 'amber'), shown4.map(r => r.name + ':' + r.tone).join(' | '));
     /* ‹ from the red one steps to the amber one, the paper gliding there */
     const amberIdx = (shown4.find(r => r.tone === 'amber') || {}).i;
-    await page.evaluate(() => { const b = document.querySelector('#doc-thread .doc-th-row.is-open [data-th-step="-1"]'); if (b && !b.disabled) b.click(); });
+    await page.evaluate(() => { const b = document.querySelector('#pd-thread .doc-th-row.is-open [data-th-step="-1"]'); if (b && !b.disabled) b.click(); });
     await page.waitForTimeout(1400);
     s4 = await read();
     check('3e ‹ steps only through the shown clauses, and the paper glides there', s4.openIdx === amberIdx && s4.atLine === amberIdx,
@@ -220,10 +224,10 @@ const answer = say => b => [{ type: 'tool_use', id: 'tu', name: 'clause_readings
     await chip('');
 
     /* ===== 4. PLAIN NEVER ENDS IN SILENCE ===== */
-    const deliv = await page.evaluate(() => { const r = [...document.querySelectorAll('#doc-thread .doc-th-row')].find(x => /Delivery Information/.test(x.textContent)); return r ? r.dataset.thRow : null; });
-    if (deliv != null) { await page.evaluate(i => document.querySelector(`#doc-thread [data-th-go="${i}"]`).click(), deliv); await page.waitForTimeout(1400); }
+    const deliv = await page.evaluate(() => { const r = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(x => /Delivery Information/.test(x.textContent)); return r ? r.dataset.thRow : null; });
+    if (deliv != null) { await page.evaluate(i => document.querySelector(`#pd-thread [data-th-go="${i}"]`).click(), deliv); await page.waitForTimeout(1400); }
     const press = async () => { const c0 = ai.calls.length;
-      await page.evaluate(() => { const b = document.querySelector('#doc-thread .doc-th-row.is-open [data-th-explain]'); if (b) b.click(); });
+      await page.evaluate(() => { const b = document.querySelector('#pd-thread .doc-th-row.is-open [data-th-explain]'); if (b) b.click(); });
       await page.waitForTimeout(3500);
       const s = await read(); return { calls: ai.calls.length - c0, s, row: s.rows.find(r => r.open) || {} }; };
     const s5 = await read();
@@ -244,52 +248,40 @@ const answer = say => b => [{ type: 'tool_use', id: 'tu', name: 'clause_readings
     check('4d and it is kept: a press after that costs nothing', p3.calls === 0 && /In plain words/.test(p3.s.openText), p3.calls + ' calls');
     await page.screenshot({ path: path.join(OUT, '05-read.png') });
 
-    /* ===== 5. ESCAPE AND × GO BACK ===== */
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(600);
-    const s6 = await read();
-    check('5a Escape goes back to Form & links, the hand on the door', !s6.threadShown && s6.form && s6.form.shown && s6.focus === 'ws-th-door' && s6.door.expanded === 'false',
-      JSON.stringify({ thread: s6.threadShown, focus: s6.focus }));
-    await pressDoor();
-    await page.evaluate(() => { const x = document.querySelector('#doc-thread [data-th-close]'); if (x) x.click(); });
-    await page.waitForTimeout(600);
-    const s7 = await read();
-    check('5b and so does ×', !s7.threadShown && s7.form && s7.form.shown, JSON.stringify({ thread: s7.threadShown }));
+    /* ===== 5. ESCAPE AND × GO BACK =====
+       5a–5b retired 11 Oct 2026: the Document tab is gone (owner) — there is no
+       drawer to shut and nothing under it to go back to. */
 
-    /* ===== 6. A REFRESH KEEPS IT; LEAVING DOES NOT ===== */
-    await pressDoor();
-    await chip('ruby');
+    /* ===== 6. A REFRESH KEEPS IT =====
+       RE-POINTED 11 Oct 2026: a refresh puts back Home's Document on the same
+       contract with the Clauses tab up. The colour it showed was the drawer's
+       own keep (docThreadPlace, room only) and is not asked; 6b (leaving the
+       room lands on Form & links) is retired: the Document tab is gone. */
     await page.reload({ waitUntil: 'networkidle' });
-    await page.waitForTimeout(3200);
-    await stage('MK-314');
-    await page.waitForTimeout(1200);
+    await page.waitForFunction(() => window.state && state.view === 'dashboard' && typeof pdContract === 'function' && pdContract() && pdContract().id === 'MK-314'
+      && pdTab() === 'doc' && document.querySelectorAll('#pd-thread .doc-th-row').length > 0, null, { timeout: 15000 }).catch(() => {});
     const s8 = await read();
-    const red8 = s8.chips.find(c => c.tone === 'ruby');
-    check('6a a refresh puts back the open drawer and the colour it showed', s8.threadShown && !!(red8 && red8.pressed) && s8.rows.filter(r => r.shown).every(r => r.tone === 'ruby'),
-      JSON.stringify({ thread: s8.threadShown, red: red8 && red8.pressed, shown: s8.rows.filter(r => r.shown).map(r => r.name) }));
-    await page.evaluate(() => setView('register'));
-    await page.waitForTimeout(900);
-    await open('MK-314');
-    const s9 = await read();
-    check('6b leaving the room and coming back lands on Form & links', !s9.threadShown && s9.form && s9.form.shown && s9.door && s9.door.shown, JSON.stringify({ thread: s9.threadShown, door: s9.door }));
+    const back8 = await page.evaluate(() => ({ id: pdContract() ? pdContract().id : null, tab: pdTab() }));
+    check('6a a refresh puts back Home\'s Document on the same contract, the clause list up', s8.threadShown && back8.id === 'MK-314' && back8.tab === 'doc',
+      JSON.stringify({ thread: s8.threadShown, back8 }));
 
     /* ===== 7. NOTHING TO COVER: THE CLAUSES ARE THE PANEL ===== */
     await open('MK-315');
     const s10 = await read();
-    check('7 [control] a contract with no form, link or round: the clauses ARE the panel — no door, no ×',
-      s10.threadShown && s10.rows.length >= 3 && !(s10.door && s10.door.shown) && !s10.close,
+    check('7 [control] a contract with no form, link or round: the clauses ARE the panel — no ×',
+      s10.threadShown && s10.rows.length >= 3 && !s10.close,
       JSON.stringify({ thread: s10.threadShown, rows: s10.rows.length, door: s10.door, close: s10.close }));
     await page.screenshot({ path: path.join(OUT, '06-one-home.png') });
 
     /* ===== 8. AT NIGHT ===== */
     await open('MK-314');
-    await pressDoor();
     await page.evaluate(() => { if (typeof setDark === 'function') setDark(true); });
     await page.waitForTimeout(700);
-    const night = await page.evaluate(() => { const th = document.getElementById('doc-thread'); const ch = th && th.querySelector('[data-th-tone=""]');
-      return { bg: th ? getComputedStyle(th).backgroundColor : '', body: getComputedStyle(document.body).backgroundColor, chip: ch ? getComputedStyle(ch).backgroundColor : '' }; });
+    /* on Home the list is drawn on the panel itself (#ig-dock) */
+    const night = await page.evaluate(() => { const th = document.getElementById('pd-thread'); const dock = document.getElementById('ig-dock'); const ch = th && th.querySelector('[data-th-tone=""]');
+      return { bg: dock ? getComputedStyle(dock).backgroundColor : '', body: getComputedStyle(document.body).backgroundColor, chip: ch ? getComputedStyle(ch).backgroundColor : '' }; });
     const dark = c => { const v = (String(c).match(/[\d.]+/g) || []).map(Number); return v.length >= 3 && v[0] < 80 && v[1] < 80 && v[2] < 80; };
-    check('8 at night the drawer is dark, and the pressed chip stands out of it', dark(night.bg) && !!night.chip && night.chip !== night.bg, JSON.stringify(night));
+    check('8 at night the clause panel is dark, and the pressed chip stands out of it', dark(night.bg) && !!night.chip && night.chip !== night.bg, JSON.stringify(night));
     await page.screenshot({ path: path.join(OUT, '07-night.png') });
     await page.evaluate(() => { if (typeof setDark === 'function') setDark(false); });
 

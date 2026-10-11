@@ -94,13 +94,13 @@ const longBody = n => '<h1>SOFTWARE AS A SERVICE AGREEMENT</h1>' + Array.from({ 
        at the line 24px below the paper's top. The same claims: drawn for
        every clause, scrolls on its own, follows the paper, a press lands on
        its clause. */
-    await page.evaluate(() => openWorkspace('MK-LC2'));
-    await page.waitForTimeout(1200);
-    await page.evaluate(() => roomGoTab(getContract('MK-LC2'), 'docs'));
-    await page.waitForSelector('#doc-canvas', { timeout: 15000 }).catch(() => {});
-    await page.waitForTimeout(1500);
+    /* RE-POINTED 11 Oct 2026: the contract's Document tab is gone (owner); the
+       Thread lives on Home's Document face, Clauses tab (#pd-thread beside
+       #ig-paper-scroll). The same claims. */
+    await page.evaluate(() => { setView('dashboard'); pdOpenOnHome('MK-LC2', 'doc'); });
+    await page.waitForFunction(() => document.querySelectorAll('#pd-thread .doc-th-row').length >= 150 && !!document.getElementById('ig-canvas'), null, { timeout: 20000 }).catch(() => {});
     const map = await page.evaluate(() => {
-      const th = document.getElementById('doc-thread');
+      const th = document.getElementById('pd-thread');
       if (!th || th.hidden) return null;
       const box = th.querySelector('.doc-th-rows');
       const rows = [...th.querySelectorAll('.doc-th-row')];
@@ -112,7 +112,7 @@ const longBody = n => '<h1>SOFTWARE AS A SERVICE AGREEMENT</h1>' + Array.from({ 
     check('3b every row\'s head is at least 24px tall', !!map && map.minH >= 23.5, map ? map.minH + 'px' : '—');
     check('3c the thread scrolls on its own', !!map && map.scrolls, map ? String(map.scrolls) : '—');
     const follow = await page.evaluate(async () => {
-      const sc = document.getElementById('doc-scroll'), th = document.getElementById('doc-thread');
+      const sc = document.getElementById('ig-paper-scroll'), th = document.getElementById('pd-thread');
       if (!sc || !th) return null;
       const box = th.querySelector('.doc-th-rows');
       const before = box.scrollTop;
@@ -125,7 +125,7 @@ const longBody = n => '<h1>SOFTWARE AS A SERVICE AGREEMENT</h1>' + Array.from({ 
       !!follow && follow.after > follow.before && follow.here > 50 && follow.here === follow.line,
       follow ? `thread ${follow.before} → ${follow.after}, open row ${follow.here}, line ${follow.line}` : '—');
     const press = await page.evaluate(async () => {
-      const th = document.getElementById('doc-thread');
+      const th = document.getElementById('pd-thread');
       const open = th && th.querySelector('.doc-th-row.is-open');
       if (!open) return null;
       const want = Number(open.dataset.thRow) - 20;

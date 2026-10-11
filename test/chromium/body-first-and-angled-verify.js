@@ -11,7 +11,8 @@
         of the rail (true to the page they sat in its top 40%); each sits at
         its clause's place IN THE BODY; no label overlaps another or the
         schedules' name
-     2. the Document tab draws the same
+     2. Home's Document with the Clauses tab open draws the same (was the
+        contract's Document tab, gone 11 Oct 2026)
      3. a contract with no schedules is drawn true to the page, unfolded
    On the Board, with twelve long party names:
      4. a heat grid's column names do not fit flat, so each is drawn
@@ -126,17 +127,20 @@ const LONG = ['Procurement & Raw Materials Ltd', 'Manufacturing & Operations Gro
     judge('1', await readTrack('ig-spine', 'ig-paper-scroll', 'ig-canvas'));
     await page.screenshot({ path: path.join(OUT, '1-home-paper.png') });
 
-    /* ===== 2. THE DOCUMENT TAB ===== */
-    console.log('\n2 · the Document tab');
-    await page.evaluate(() => { openWorkspace('MK-BF'); setTimeout(() => roomGoTab(getContract('MK-BF'), 'docs'), 250); });
-    await until(() => !!document.querySelector('#ws-tabs [data-ws-tab="docs"].on') && !!document.getElementById('doc-canvas'), null, 12000);
-    const f2 = await flag('doc-canvas', FLAGGED);
+    /* ===== 2. HOME'S DOCUMENT, CLAUSES TAB =====
+       RE-POINTED 11 Oct 2026: the contract's Document tab is gone (owner); the
+       clause list lives on Home's Document face, Clauses tab. With the list
+       open beside the paper the Track still draws the same. */
+    console.log('\n2 · Home\'s Document, Clauses tab');
+    await page.evaluate(() => pdOpenOnHome('MK-BF', 'doc'));
+    await until(() => document.querySelectorAll('#pd-thread .doc-th-row').length > 0 && !!document.getElementById('ig-canvas'), null, 12000);
+    const f2 = await flag('ig-canvas', FLAGGED);
     check('2. five body clauses flagged', !f2.err, f2.err || String(f2.n));
-    await page.evaluate(() => docThreadPaint(getContract('MK-BF')));
-    await until(() => { const sp = document.getElementById('doc-track'); return sp && !sp.hidden && sp.querySelectorAll('.ig-trk-lab').length >= 5; });
+    await page.evaluate(() => { igPaintPaper(); docThreadPaint(getContract('MK-BF')); });
+    await until(() => { const sp = document.getElementById('ig-spine'); return sp && !sp.hidden && sp.querySelectorAll('.ig-trk-lab').length >= 5; });
     await page.waitForTimeout(300);
-    judge('2', await readTrack('doc-track', 'doc-scroll', 'doc-canvas'));
-    await page.screenshot({ path: path.join(OUT, '2-document-tab.png') });
+    judge('2', await readTrack('ig-spine', 'ig-paper-scroll', 'ig-canvas'));
+    await page.screenshot({ path: path.join(OUT, '2-home-clauses-tab.png') });
 
     /* ===== 3. NO SCHEDULES, NO FOLD ===== */
     const plain = await page.evaluate(() => {

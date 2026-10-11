@@ -12917,8 +12917,9 @@ function xrSentences(t){
    page the reader is looking at, so a line and the sentence the press lands
    on are the same words. */
 function xrClauseBlocks(rows, i){
-  const canvas = (typeof document !== 'undefined') ? document.getElementById('doc-canvas') : null;
   const x = rows && rows[i];
+  /* the canvas the row is painted on — the room's or Home's (TH_HOSTS) */
+  const canvas = (x && x.el && x.el.closest) ? x.el.closest('#ig-canvas, #doc-canvas') : null;
   if(!canvas || !x || !x.el) return [];
   const FOLLOW = Node.DOCUMENT_POSITION_FOLLOWING;
   const furniture = Array.from(canvas.querySelectorAll(DOC_READ_FURNITURE));
@@ -13066,7 +13067,7 @@ function docXrayWho(c, rows, i){
     if(m) cite = m[1];
     xrSentences(t).forEach(s => sentences.push({ text: s, cite }));
   });
-  const canvas = document.getElementById('doc-canvas');
+  const canvas = (x && x.el && x.el.closest && x.el.closest('#ig-canvas, #doc-canvas')) || document.getElementById('doc-canvas');
   const names = xrPartyNames(c, canvas ? String(canvas.textContent || '').replace(/\s+/g, ' ') : '');
   const placed = xrPlaceObligations(c, sentences);
   const lines = [];

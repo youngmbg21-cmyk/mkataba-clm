@@ -72,7 +72,8 @@ const CERT = '<h1>CERTIFICATE OF DESIGNATION</h1><h2>SANERGY, INC.</h2><p>A Dela
     /* ===== 1. NEGOTIATE ON A LONG CONTRACT ===== */
     const negotiateFreeze = async id => {
       await page.evaluate(i => openWorkspace(i), id);
-      await until(i => state.activeId === i && !!document.getElementById('doc-canvas'), id);
+      /* the room opens on its Overview (11 Oct 2026: no Document tab) */
+      await until(i => state.activeId === i && state.view === 'workspace', id);
       await page.waitForTimeout(1500);
       await page.evaluate(() => { window.__lt = []; roomGoTab(getContract(state.activeId), 'redline'); });
       await until(() => state.view === 'redline' && !!document.querySelector('#view-redline .rl-clause'));
@@ -86,35 +87,35 @@ const CERT = '<h1>CERTIFICATE OF DESIGNATION</h1><h2>SANERGY, INC.</h2><p>A Dela
     await page.screenshot({ path: path.join(OUT, '01-negotiate-250.png') });
 
     /* ===== 2. THE CERTIFICATE'S SECTIONS ARE ITS PARTS ===== */
-    await page.evaluate(() => { openWorkspace('MK-LM-CERT'); });
-    await until(() => state.activeId === 'MK-LM-CERT' && !!document.getElementById('doc-canvas'));
-    await page.evaluate(() => { const c = getContract('MK-LM-CERT'); roomGoTab(c, 'docs'); if (window.docThreadDrawerSet) docThreadDrawerSet(c, true); });
-    await until(() => document.querySelectorAll('#doc-thread .doc-th-row').length > 3);
-    const parts = await page.evaluate(() => (typeof docReadSheet === 'function' ? docReadSheet(getContract('MK-LM-CERT')) : [])
+    /* RE-POINTED 11 Oct 2026: the contract's Document tab is gone (owner); the
+       clause list lives on Home's Document face, Clauses tab (#pd-thread). */
+    await page.evaluate(() => { setView('dashboard'); pdOpenOnHome('MK-LM-CERT', 'doc'); });
+    await until(() => document.querySelectorAll('#pd-thread .doc-th-row').length > 3 && !!document.getElementById('ig-canvas'));
+    const parts = await page.evaluate(() => (typeof docReadSheet === 'function' ? docReadSheet(getContract('MK-LM-CERT'), document.getElementById('ig-canvas')) : [])
       .map(r => ({ num: r.num || '', name: (r.ownHead || r.heading || '').slice(0, 40), words: r.text.split(/\s+/).length })));
     const sec = SECTIONS.map(s => parts.findIndex(p => p.name.startsWith(s)));
     check('2a every section under PREFERRED STOCK is its own part, numbered 1 to 9',
       sec.every((at, i) => at >= 0 && parts[at].num === String(i + 1)), parts.map(p => `${p.num || '-'} ${p.name.slice(0, 18)} ${p.words}w`).join(' | '));
-    const drawn = await page.evaluate(() => [...document.querySelectorAll('#doc-thread .doc-th-row')].map(r => r.textContent.replace(/\s+/g, ' ').trim().slice(0, 60)));
+    const drawn = await page.evaluate(() => [...document.querySelectorAll('#pd-thread .doc-th-row')].map(r => r.textContent.replace(/\s+/g, ' ').trim().slice(0, 60)));
     check('2b and the clause drawer draws a row for each', SECTIONS.every(s => drawn.some(t => t.includes(s))), drawn.length + ' rows');
     const giant = parts.filter(p => p.words > 1500 && !/SCHEDULE/.test(p.name) && !p.name.startsWith('Notices'));
     check('2c no part but the two genuinely long ones is past the long-part limit', giant.length === 0, JSON.stringify(giant));
     await page.screenshot({ path: path.join(OUT, '02-certificate-sections.png') });
 
-    const rowOf = name => page.evaluate(n => { const rows = docReadSheet(getContract('MK-LM-CERT')); return rows.findIndex(r => (r.ownHead || r.heading || '').startsWith(n)); }, name);
+    const rowOf = name => page.evaluate(n => { const rows = docReadSheet(getContract('MK-LM-CERT'), document.getElementById('ig-canvas')); return rows.findIndex(r => (r.ownHead || r.heading || '').startsWith(n)); }, name);
     const press = async i => {
-      await page.evaluate(k => { const b = document.querySelector(`#doc-thread [data-th-go="${k}"]`); if (b) b.click(); }, i);
+      await page.evaluate(k => { const b = document.querySelector(`#pd-thread [data-th-go="${k}"]`); if (b) b.click(); }, i);
       /* SLOW-RUNNER WAIT (10 Oct 2026, "get main to green"): a fixed 1.2 s
          pause here was not always enough on GitHub's runner — the pressed row
          had not opened yet, so its Plain was never pressed. Ask for the state:
          the pressed row is the open one and carries its Plain, bounded. */
-      await page.waitForFunction(k => { const r = document.querySelector('#doc-thread .doc-th-row.is-open');
+      await page.waitForFunction(k => { const r = document.querySelector('#pd-thread .doc-th-row.is-open');
         return !!(r && r.querySelector(`[data-th-go="${k}"]`) && r.querySelector('[data-th-explain]')); }, i, { timeout: 10000 }).catch(() => {});
-      const btn = await page.$('#doc-thread .doc-th-row.is-open [data-th-explain]');
+      const btn = await page.$('#pd-thread .doc-th-row.is-open [data-th-explain]');
       if (!btn) return false;
       await btn.click(); return true;
     };
-    const openText = () => page.evaluate(() => { const r = document.querySelector('#doc-thread .doc-th-row.is-open'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : ''; });
+    const openText = () => page.evaluate(() => { const r = document.querySelector('#pd-thread .doc-th-row.is-open'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : ''; });
 
     /* ===== 3. PLAIN ON A SECTION LONGER THAN ONE ANSWER ===== */
     const piece = body => { const m = /\(part (\d+) of (\d+)\)/.exec(JSON.stringify(body));
@@ -123,7 +124,7 @@ const CERT = '<h1>CERTIFICATE OF DESIGNATION</h1><h2>SANERGY, INC.</h2><p>A Dela
     const calls0 = ai.calls.length;
     const notices = await rowOf('Notices');
     const pressed3 = notices >= 0 && await press(notices);
-    await until(() => /PIECE \d+ OF \d+/.test((document.querySelector('#doc-thread .doc-th-row.is-open') || {}).textContent || ''), null, 20000);
+    await until(() => /PIECE \d+ OF \d+/.test((document.querySelector('#pd-thread .doc-th-row.is-open') || {}).textContent || ''), null, 20000);
     const t3 = await openText();
     const n3 = ai.calls.length - calls0;
     check('3. Plain on a 30,000-character section reads it in pieces and shows ONE reading carrying them all',
@@ -134,7 +135,7 @@ const CERT = '<h1>CERTIFICATE OF DESIGNATION</h1><h2>SANERGY, INC.</h2><p>A Dela
     const calls1 = ai.calls.length;
     const sched = await rowOf('SCHEDULE');
     const pressed4 = sched >= 0 && await press(sched);
-    await until(() => !!document.querySelector('#doc-thread .doc-th-row.is-open .doc-th-cannot'), null, 20000);
+    await until(() => !!document.querySelector('#pd-thread .doc-th-row.is-open .doc-th-cannot'), null, 20000);
     const t4 = await openText();
     check('4. a part too long even for the pieces says "too long" on its row and asks Copilot nothing',
       pressed4 && /too long for Copilot to read in one go/.test(t4) && ai.calls.length === calls1, `${ai.calls.length - calls1} asks · ${t4.slice(0, 160)}`);
