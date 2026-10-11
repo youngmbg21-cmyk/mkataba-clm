@@ -9635,7 +9635,16 @@
      and the browser paints nothing under it. visibility keeps their size, so
      the map comes back where it was. */
   #ig-page[data-hb-side="board"] #ig-gwrap > :is(#ig-cv,#ig-svg,#ig-legend,#ig-note,.ig-viewbar),
-  #ig-page[data-hb-side="paper"] #ig-gwrap > :is(#ig-cv,#ig-svg,#ig-legend,#ig-note,.ig-viewbar){visibility:hidden}
+  #ig-page[data-hb-side="paper"] #ig-gwrap > :is(#ig-cv,#ig-svg,#ig-legend,#ig-note,.ig-viewbar),
+  #ig-page[data-hb-side="calendar"] #ig-gwrap > :is(#ig-cv,#ig-svg,#ig-legend,#ig-note,.ig-viewbar){visibility:hidden}
+  /* CALENDAR, HOME'S SECOND TAB (owner, 11 Oct 2026): the calendar covers the
+     stage the way the board does; its Copilot is the panel beside it */
+  .hb-seg .hb-face-n{margin-left:6px;font-size:11px;font-weight:var(--w-strong);font-variant-numeric:tabular-nums}
+  .hb-seg .hb-face-n:empty{display:none}
+  .hb-seg .hb-face-n[data-tone="amber"]{color:var(--st-amber-fg)}
+  .hb-cal{position:absolute;inset:0;z-index:4;overflow:hidden;background:var(--color-bg);display:flex;flex-direction:column;min-height:0}
+  .hb-cal[hidden]{display:none}
+  .hb-cal > .cal-page{flex:1;min-height:0;height:auto}
   .hb-tools .ig-seg{display:inline-flex;align-items:center;border:1px solid rgba(var(--hb-ln),.25);border-radius:var(--radius);overflow:hidden;background:var(--hb-card)}
   .hb-tools .ig-seg button{all:unset;cursor:pointer;height:var(--ctl-h-sm);padding:0 9px;font-size:12px;font-weight:500;color:var(--hb-ink-2);display:inline-flex;align-items:center;white-space:nowrap}
   .hb-tools .ig-seg button:hover{color:var(--hb-ink)}
@@ -13074,11 +13083,6 @@
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-edit"/></svg>
             <span style="flex:1;" data-i18n="nav_mynotes">My notes</span><span class="nav-count" data-count="mynotes" data-count-quiet-zero></span>
-          </button>
-          <button data-view="calendar" class="nav-item" title="Calendar" data-i18n-title="nav_calendar_title">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-cal"/></svg>
-            <span style="flex:1;" data-i18n="nav_calendar">Calendar</span><span class="nav-count" data-count="calendar"></span>
           </button>
           <!-- INSIGHTS SITS BELOW CALENDAR (Young ruled 27 Sep 2026: "move
                insights to below calendar", in the same breath as putting

@@ -4135,6 +4135,7 @@ function renderIntel(){
         <div id="ig-paper" class="ig-paper" hidden></div>
         </div>
         ${onHome?`<div id="hb-board" class="hb-board scroll-thin"></div>
+          ${''/* CALENDAR, HOME'S SECOND TAB (owner, 11 Oct 2026, WORKORDER-four-builds item 1) */}<div id="hb-cal" class="hb-cal" hidden></div>
           <div id="hb-tools" class="hb-tools"></div><canvas id="hb-ink" class="hb-ink" aria-hidden="true"></canvas>
           ${''/* the red dot lives on the pointer's veil (hbVeilPaint) */}`:''}
       </div>
@@ -6598,6 +6599,21 @@ function renderIntelDock(){
       <div class="h-6 w-6 shrink-0 grid place-items-center rounded-lg bg-gold-500/15 text-gold-600 mt-0.5">${icon('sparkle','w-3 h-3')}</div>
       <div class="rounded-2xl rounded-tl-md bg-canvas border border-brand-100 px-3.5 py-2.5 typing"><span></span><span></span><span></span></div>
     </div>`:'';
+  /* ---- ONE COPILOT PANEL, ON THE CALENDAR TAB TOO (owner, 11 Oct 2026,
+     WORKORDER-four-builds item 1) ----
+     The calendar's own Copilot (calPlanHtml: plan my week, find time, Add ·
+     Discard → Added · Undo) stands HERE, in Home's one panel, while the
+     Calendar tab is up — never a second panel beside the calendar. Its wiring
+     is the calendar's, by id (calWireOwn). The fold is the panel's own. */
+  if(window.state&&state.view==='dashboard'&&typeof window.hbFace==='function'&&hbFace()==='calendar'&&typeof window.calPlanHtml==='function'){
+    dock.innerHTML=calPlanHtml();
+    const head=dock.querySelector('.cal-plan-head');
+    if(head) head.insertAdjacentHTML('beforeend',`<button id="igd-collapse" title="${i18t('int_collapse_panel')}" aria-label="${i18t('int_collapse_panel')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('chevR')}</button>`);
+    const fold=document.getElementById('igd-collapse');
+    if(fold) fold.addEventListener('click',()=>{ intel.dockOpen=false; renderIntelDock(); igSyncDockWidth(); });
+    if(typeof window.calWireOwn==='function') calWireOwn();
+    return;
+  }
   dock.innerHTML=`
     ${''/* HEADER ICONS (Young, 8 Oct 2026): the title row is the panel's tabs —
            Copilot, then the contract's own tabs while the Paper holds one. The

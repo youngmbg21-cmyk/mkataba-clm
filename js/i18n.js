@@ -13440,6 +13440,7 @@ const STRINGS = {
     // ---- Home is the board and the map (3 Oct 2026) ----
     hb_face_board: "Board",
     hb_face_explorer: "Explorer",
+    hb_face_calendar: "Calendar",
     hb_face_paper: "Paper",
     hb_show: "Show",
     hb_group_by: "Group by",
@@ -27540,6 +27541,7 @@ const STRINGS = {
     // ---- Hem är tavlan och kartan (3 okt 2026) ----
     hb_face_board: "Tavla",
     hb_face_explorer: "Utforskaren",
+    hb_face_calendar: "Kalender",
     hb_face_paper: "Papper",
     hb_show: "Visa",
     hb_group_by: "Gruppera efter",

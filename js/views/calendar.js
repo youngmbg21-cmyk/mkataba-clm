@@ -735,7 +735,26 @@ function calPanelHtml(evs){
   </section>`;
 }
 
+/* THE CALENDAR'S NUMBER — duties due in the next 60 days. Moved here from the
+   menu's counter when the door became Home's Calendar tab (11 Oct 2026), so
+   the tab and any other reader count the same way. obligationDue, never a
+   ten-character slice of a typed date. */
+function calendarDoorCount(){
+  return window.allObligations?allObligations().filter(o=>{ const due=window.obligationDue?obligationDue(o):(o.due||'').slice(0,10);
+    const d=(due&&window.daysUntil)?daysUntil(due):null; return d!=null&&!isNaN(d)&&d>=0&&d<=60; }).length:0;
+}
+/* WHERE THE CALENDAR IS DRAWN (owner, 11 Oct 2026, WORKORDER-four-builds
+   item 1): Home's Calendar tab (#hb-cal, its Copilot in Home's one panel), or
+   its own page where something still opens it (the phone's desk-work door). */
+function calOnScreen(){
+  if(!window.state) return false;
+  if(state.view==='calendar') return true;
+  return state.view==='dashboard' && typeof window.hbFace==='function' && hbFace()==='calendar' && !!document.getElementById('hb-cal');
+}
 function renderCalendar(){
+  const onHome=window.state&&state.view==='dashboard'&&typeof window.hbFace==='function'&&hbFace()==='calendar'&&!!document.getElementById('hb-cal');
+  const host=onHome?document.getElementById('hb-cal'):document.getElementById('content');
+  if(!host) return;
   const {y,m}=calMonth(), view=calView(), p=calPeriod();
   const all=calendarEvents();
   const evs=calVisible(all);
@@ -743,7 +762,7 @@ function renderCalendar(){
      notes' review days), Copilot's plan — each on or off in Month and Week.
      js/mine.js is loaded once; the page repaints when it lands. */
   if(typeof mineLoaded==='function'&&!mineLoaded()&&typeof mineLoad==='function')
-    mineLoad().then(()=>{ if(state.view==='calendar') renderCalendar(); });
+    mineLoad().then(()=>{ if(calOnScreen()) renderCalendar(); });
   const lay=calLayers();
   const grid=lay.ct?evs:[];
   const byDay={}; grid.concat(calOwnEvents(p.from,p.to)).forEach(e=>{ (byDay[e.date]=byDay[e.date]||[]).push(e); });
@@ -782,13 +801,10 @@ function renderCalendar(){
          the name and the ⋯ (Export, Share, Print, Open register), ids kept. */
   const title=view==='month'?calMonthName(y,m):view==='week'?calWeekTitle():i18t('cal_hz_bar');
   const navOff=view==='horizon'?' disabled':'';
-  document.getElementById('content').innerHTML=`
-  <div class="view-enter cal-page">
-    <style>${calStyleCss()}</style>
-    <div class="cal-head">
-      <span class="cal-head-l"><span class="ttl">${_esc(i18t('nav_calendar'))}</span></span>
-      <span class="g"></span>
-      <div class="cal-acts">
+  /* ON HOME the page head is Home's (the greeting and the tabs), so the
+     calendar draws no head of its own and its ⋯ stands at the end of its
+     first bar, ids kept */
+  const moreHtml=`<div class="cal-acts">
         <button class="ui-btn ws-more-btn cal-more-ic" id="cal-more" aria-haspopup="true" aria-expanded="false" title="${_esc(i18t('ct_more'))}" aria-label="${_esc(i18t('ct_more'))}">${icon('more','w-4 h-4')}</button>
         <div id="cal-more-menu" class="cal-menu" hidden>
           <button id="cal-export" title="${_esc(i18t('cal_export_title'))}">${_esc(i18t('cal_export'))}</button>
@@ -796,10 +812,17 @@ function renderCalendar(){
           <button data-cal-act="print">${_esc(i18t('cal_print'))}</button>
           <button data-cal-act="register">${_esc(i18t('cal_open_register'))}</button>
         </div>
-      </div>
-    </div>
+      </div>`;
+  host.innerHTML=`
+  <div class="view-enter cal-page${onHome?' is-home':''}">
+    <style>${calStyleCss()}</style>
+    ${onHome?'':`<div class="cal-head">
+      <span class="cal-head-l"><span class="ttl">${_esc(i18t('nav_calendar'))}</span></span>
+      <span class="g"></span>
+      ${moreHtml}
+    </div>`}
     <div class="cal-body">
-      <section class="cal-stage${view==='horizon'?' is-hz':''}" id="cal-stage">
+      <section class="cal-stage${view==='horizon'?' is-hz':''}${onHome?' is-home':''}" id="cal-stage">
         <div class="cal-main">
           <div class="cal-bar1">
             <span class="cal-nav">
@@ -809,6 +832,7 @@ function renderCalendar(){
             </span>
             <span class="cal-title" id="cal-title">${_esc(title)}</span>
             <span class="cal-seg cal-seg-view" role="group" aria-label="${_esc(i18t('cal_v_group'))}">${seg('month',i18t('cal_v_month'),null)}${seg('week',i18t('cal_v_week'),null)}${seg('horizon',i18t('cal_v_horizon'),null)}</span>
+            ${onHome?moreHtml:''}
           </div>
           ${view==='horizon'?'':`<div class="cal-bar2">
             ${calLayerSegHtml()}
@@ -819,14 +843,16 @@ function renderCalendar(){
           </div>`}
           <div class="cal-view${view==='horizon'?' is-wide':''}">${main}</div>
         </div>
-        ${calPlanHtml()}
+        ${onHome?'':calPlanHtml()}
       </section>
     </div>
   </div>`;
 
   wireCalendar(evs, byDay, p);
-  calWireOwn();
-  setActiveNav('calendar');
+  /* on Home its Copilot is Home's one panel, painted (and wired) there */
+  if(onHome){ if(typeof window.renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ } else calWireOwn(); }
+  else calWireOwn();
+  setActiveNav(onHome?'dashboard':'calendar');
 }
 
 /* ---------------------------------------------------------------------------
@@ -1394,8 +1420,17 @@ function calStyleCss(){ return `
          calendar's top, 12/16 and 8/16; under 980px Copilot stacks under it.
          Copilot's colour is the design's violet, dashed while a suggestion and
          solid once added — the page's own tokens, said once here. */}
-  .cal-page{--cal-cp:#6B4FBB;--cal-cp-bg:#F2EEFB}
-  html.dark .cal-page{--cal-cp:#B9A4F2;--cal-cp-bg:#221B3A}
+  .cal-page,.cal-cop{--cal-cp:#6B4FBB;--cal-cp-bg:#F2EEFB}
+  html.dark .cal-page,html.dark .cal-cop{--cal-cp:#B9A4F2;--cal-cp-bg:#221B3A}
+  ${''/* ON HOME (owner, 11 Oct 2026): the card is the calendar alone — its
+         Copilot is Home's panel — and the page fills the tab's cover */}
+  .cal-page.is-home{height:100%}
+  .cal-stage.is-home{grid-template-columns:minmax(0,1fr)}
+  .cal-page.is-home .cal-body{padding-top:var(--s-3)}
+  .cal-bar1 .cal-acts{display:inline-flex;position:relative}
+  #ig-dock .cal-cop{border-left:0;flex:1;min-height:0;height:100%;background:var(--color-surface)}
+  #ig-dock .cal-cop .cal-plan-head{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--color-divider)}
+  #ig-dock .cal-cop .cal-plan-lv{margin-left:auto}
   .cal-page .cal-body{flex-direction:column}
   ${''/* THE CARD IS THE PAGE'S HEIGHT, NOT ITS CONTENT'S: one row of
          minmax(0,1fr), so a long Copilot answer scrolls inside its own panel
@@ -1761,7 +1796,7 @@ function calPlanHtml(){
 /* The whole page repaints (the suggestions draw on the grid too); the places
    the reader had scrolled to are kept. */
 function calPlanRepaint(){
-  if(state.view!=='calendar'||!document.getElementById('cal-plan')) return;
+  if(!calOnScreen()||!document.getElementById('cal-plan')) return;
   const wk=document.getElementById('cal-wk-body'), pb=document.getElementById('cal-plan-body');
   const a=wk?wk.scrollTop:null, c=pb?pb.scrollTop:0;
   renderCalendar();
@@ -1864,7 +1899,7 @@ function calWireOwn(){
   if(document._calOwnWired) return;
   document._calOwnWired=true;
   document.addEventListener('click',e=>{
-    if(state.view!=='calendar') return;
+    if(!calOnScreen()) return;
     const t=e.target.closest?e.target:null; if(!t) return;
     const hit=sel=>t.closest(sel);
     let el;
@@ -1884,14 +1919,14 @@ function calWireOwn(){
     if((el=hit('[data-cal-plan-undo]'))){ calPlanUndo(el.getAttribute('data-cal-plan-undo')); return; }
   }, true);
   document.addEventListener('keydown',e=>{
-    if(state.view!=='calendar'||(e.key!=='Enter'&&e.key!==' ')) return;
+    if(!calOnScreen()||(e.key!=='Enter'&&e.key!==' ')) return;
     const el=e.target&&e.target.closest?e.target.closest('[data-cal-week]'):null;
     if(el){ e.preventDefault(); e.stopPropagation(); el.click(); }
   }, true);
 }
 const _calPlanState=()=>_calPlan;
 
-Object.assign(window,{calState,calPlace,calPlacePut,calMonth,calView,calScope,CAL_VIEWS,CAL_EVENT,CAL_PRIORITY,
+Object.assign(window,{calendarDoorCount,calOnScreen,calWireOwn,calState,calPlace,calPlacePut,calMonth,calView,calScope,CAL_VIEWS,CAL_EVENT,CAL_PRIORITY,
   calendarEvents,calEventMine,calPeriod,calInPeriod,calLegendHtml,calVisible,calDecisionsThisWeek,calWeekBounds,
   calToday,calChipText,calIcsFor,calUpcoming,calSummaryLines,calMonthGridHtml,calPanelHtml,
   CAL_AGENDA_DAYS,CAL_AGENDA_WINDOWS,CAL_AGENDA_ROWS,calAgendaDays,calSetAgendaDays,

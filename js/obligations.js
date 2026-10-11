@@ -553,7 +553,7 @@ function obligationSurfacesChanged(){
      what was left to fix is the work done BEFORE them. */
   if(window.updateSidebarCounts) updateSidebarCounts();
   const here = (window.state && window.getContract) ? getContract(state.activeId) : null;
-  if(window.state && state.view==='calendar' && window.renderCalendar) renderCalendar();
+  if(window.state && window.calOnScreen && calOnScreen() && window.renderCalendar) renderCalendar();
   /* AND THE DASHBOARD, now that it counts them too. Same reasoning as the
      calendar above: its numbers are computed during a render, and ticking an
      obligation off is not a screen switch. */

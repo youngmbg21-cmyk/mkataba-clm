@@ -67,7 +67,9 @@ test('F347 — the second five images', async t => {
     const doors = [...rail.matchAll(/data-view="([a-z]+)" class="nav-item/g)].map(m => m[1]);
     /* RE-POINTED 7 Oct 2026: Copilot's work lives on the Board — no rail door */
     assert.equal(doors.indexOf('agents'), -1, 'Copilot\'s work has no rail door of its own');
-    assert.equal(doors[doors.indexOf('calendar') + 1], 'intel', 'and Insights directly below Calendar');
+    /* RE-POINTED 11 Oct 2026 (WORKORDER-four-builds item 1): Calendar is
+       Home's second tab and has no rail door; Insights still closes Work */
+    assert.equal(doors.indexOf('calendar'), -1, 'Calendar has no rail door — it is Home\'s tab');
     assert.equal(doors[doors.length - 1], 'intel', 'at the foot of the Work group');
   });
 
