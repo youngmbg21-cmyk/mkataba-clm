@@ -138,6 +138,13 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      inside the doc root. Everything after that — the two-step save, the skip,
      the funnel it files through — is unchanged, which is the point: this file
      audits six real rounds and only the door moved. */
+  /* RE-POINTED 11 Oct 2026: wording is changed in the clause EDITOR on both
+     seats now — our paper carries no pencil from 1024px up (Young, 9 Oct:
+     "No pen on any paper"; the door is "Edit clause"), and theirs has had
+     none since 28 Sep (their door is Edit at the top). Both doors end in the
+     mount's own openEditor (host._rlOpenEditor), which is what is called
+     here, on the clause named by its heading; the words are replaced the way
+     a person types them (a selection, then insertText), and Save files it. */
   async function directEdit(page, root, headingRe, replaceRe, replacement){
     const did = await page.evaluate(async ({ root, headingRe, replaceRe, replacement }) => {
       const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -145,30 +152,34 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       const clause = Array.from(scope.querySelectorAll('.rl-clause')).find(cl =>
         new RegExp(headingRe).test((cl.querySelector('.rl-clause-h') || {}).textContent || ''));
       if (!clause) return 'no clause';
-      const pill = clause.querySelector('.rl-cp-pill'); if (!pill) return 'no edit pill';
-      pill.click();
-      await wait(450);
-      const body = document.querySelector('#rl-cp .rl-cp-src.is-on');
-      if (!body) return 'panel did not open';
-      const plus = body.querySelector('[data-rl-cp-edit]'); if (!plus) return 'no ＋ in the panel';
-      plus.click();
-      await wait(450);
-      const ed = document.querySelector('[data-nego-editor]');
-      if (!ed) return 'no editor';
-      ed.innerHTML = ed.innerHTML.replace(new RegExp(replaceRe), replacement);
-      /* ONE PRESS FILES (28 Aug 2026 — the reason step is retired). */
-      const next = (ed.parentElement.querySelector('[data-nego-next]')
-        || document.querySelector('[data-nego-next]'));
-      if (!next) return 'no save';
-      next.click();
-      await wait(550);
-      /* SHUT THE PANEL BEHIND US. It is an overlay on the working area, and
-         left standing it covers whatever the next step wants to press — which
-         surfaces as a click timing out on a button that is plainly on screen,
-         not as anything that names the panel. A helper should leave the page as
-         it found it. */
-      const shut = document.querySelector('#rl-cp [data-rl-cp-close], #rl-cp-min');
-      if (shut) shut.click();
+      const id = clause.getAttribute('data-clause');
+      const host = [scope, ...scope.querySelectorAll('*')].find(e => typeof e._rlOpenEditor === 'function');
+      if (!host) return 'no editor door';
+      host._rlOpenEditor(id, { typing: true });
+      for (let i = 0; i < 30 && !document.getElementById('ce-clausebody'); i++) await wait(100);
+      const box = document.getElementById('ce-clausebody');
+      if (!box) return 'no editor';
+      box.focus();
+      const rx = new RegExp(replaceRe);
+      const tw = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
+      let hit = null;
+      while (tw.nextNode()){ const n = tw.currentNode, m = rx.exec(n.data); if (m){ hit = { n, i: m.index, len: m[0].length }; break; } }
+      if (!hit) return 'wording not found';
+      const rg = document.createRange(); rg.setStart(hit.n, hit.i); rg.setEnd(hit.n, hit.i + hit.len);
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(rg);
+      document.execCommand('insertText', false, replacement);
+      await wait(300);
+      const save = document.querySelector('#clause-editor [data-ce-act="save"]');
+      if (!save) return 'no save';
+      save.click();
+      await wait(900);
+      /* their seat asks why (portalAskReason); a person with nothing to add
+         answers "Not now". */
+      const why = document.querySelector('#prompt-overlay #pd-cancel'); if (why) { why.click(); await wait(400); }
+      if (window.clauseEditorDirty && clauseEditorDirty()) return 'not saved';
+      if (window.rlCloseClauseEditor) rlCloseClauseEditor();
+      await wait(300);
+      if (window.closeContextPanel && window.state && state.panelOpen) closeContextPanel();
       await wait(200);
       return 'ok';
     }, { root, headingRe, replaceRe, replacement });
@@ -198,6 +209,23 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     await pause(300);
   };
 
+  /* WHAT THEIR SEND ASKS, ANSWERED AS A PERSON WOULD (11 Oct 2026): their
+     name, once per device ("Your name"), then the send's own question naming
+     what travels (portalSendCheck). */
+  const cpAnswer = async () => {
+    for (let i = 0; i < 3; i++){
+      await pause(400);
+      const did = await cp.evaluate(() => {
+        const pr = document.getElementById('prompt-overlay');
+        if (pr){ const inp = pr.querySelector('input, textarea'); if (inp && !inp.value) { inp.value = 'Erik Lindqvist'; inp.dispatchEvent(new Event('input', { bubbles: true })); }
+          const go = pr.querySelector('#pd-ok') || [...pr.querySelectorAll('button')].find(b => /save/i.test(b.textContent)); if (go){ go.click(); return 'name'; } }
+        const ok = document.getElementById('cf-ok'); if (ok){ ok.click(); return 'confirm'; }
+        return '';
+      });
+      if (!did) break;
+    }
+  };
+
   let token = null;
 
   /* ================= ROUND 1 — the owner proposes and sends ================= */
@@ -209,7 +237,10 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     check(1, 'the bench carries no email strip — that question moved to Key terms',
       !(await owner.$('#nego-cp-setup')));
     await owner.evaluate(id => { openWorkspace(id); }, CID);
-    await owner.evaluate(() => roomGoTab(getContract(state.activeId), 'terms'));
+    /* RE-POINTED 11 Oct 2026: the Overview redesign (8 Oct) moved their
+       email into the filing details, opened by the ⋯ row "Filing and
+       stream" (ws-filing → ovOpenFiling) — the same row, the same handler. */
+    await owner.evaluate(() => ovOpenFiling(getContract(state.activeId)));
     await owner.waitForSelector('[data-kt-row="cpEmail"]', { timeout: 10000 });
     await owner.click('[data-kt-row="cpEmail"] [data-kt-edit]');
     await owner.fill('[data-kt="cpEmail"]', ERIK);
@@ -241,6 +272,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       b.click(); return 'ok';
     });
     check(1, 'the batch send is on the page and pressed', sent === 'ok', sent);
+    /* The send names what travels and asks once ("Send 1 change to …?"),
+       as the later rounds' sends below already answer. */
+    await pause(400); await owner.evaluate(() => { const ok = document.getElementById('cf-ok'); if (ok) ok.click(); });
     await pause(1500); await ownerFlush(); await pause(400);
 
     const shares = (await admin.json(`/api/contracts/${CID}/shares`)).shares || [];
@@ -274,6 +308,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       if (!b) return 'no send';
       b.click(); return 'ok';
     });
+    await cpAnswer();
     check(2, 'his postbox sends the held answer and the counter-ask', send === 'ok', send);
     await pause(1500);
     await mailCheck(2, 1, 'no new email for his answer — the platform carried it');
@@ -316,7 +351,13 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     const shares = (await admin.json(`/api/contracts/${CID}/shares`)).shares || [];
     check(3, 'still ONE link — the round refreshed it in place', shares.length === 1,
       `${shares.length} share(s)`);
-    await mailCheck(3, 1, 'round 3 travelled with no email — the platform is the channel');
+    /* RE-POINTED 11 Oct 2026: since the process review (4 Oct 2026, owner:
+       "build all the fixes") a round handed to them carries ONE "it is your
+       turn" email (roundTurnMail) — an email alone is never a hand-off, but a
+       hand-off is told where they look. Their answers and the comments still
+       send nothing. So the count grows by one per hand-over, and by nothing
+       else. */
+    await mailCheck(3, 2, 'the link, then one "your turn" email for this hand-over');
 
     await cpOpen(token);
     await leakCheck(3);
@@ -327,16 +368,22 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
        rather than a hover away, so the walk opens each clause's panel until it
        finds the words. The claim is unchanged: Erik must be able to READ why he
        was refused. */
+    /* RE-POINTED 11 Oct 2026: their paper has carried no pencil since 28 Sep
+       (Edit at the top is their door), so the clause panel is opened on the
+       clause the refusal is about — the one whose panel carries the reason —
+       and the reason is read off the OPEN panel, as before. */
     const refusalSeen = await cp.evaluate(async () => {
       const wait = ms => new Promise(r => setTimeout(r, ms));
-      for (const pill of [...document.querySelectorAll('.rl-clause .rl-cp-pill')]) {
-        pill.click();
-        await wait(350);
-        const said = [...document.querySelectorAll('#rl-cp .rl-cp-src.is-on .rl-cp-why')]
-          .map(n => n.textContent).join(' | ');
-        if (/whole point of the facility/.test(said)) return said;
-      }
-      return '';
+      const src = [...document.querySelectorAll('#rl-cp .rl-cp-src')].find(b =>
+        [...b.querySelectorAll('.rl-cp-why')].some(n => /whole point of the facility/.test(n.textContent)));
+      if (!src || !window.rlCpSetShown) return '';
+      rlCpSetShown(document, src.getAttribute('data-rl-cp-for'));
+      await wait(400);
+      const on = document.querySelector('#rl-cp .rl-cp-src.is-on');
+      const vis = on && on.getBoundingClientRect().height > 0;
+      const said = on ? [...on.querySelectorAll('.rl-cp-why')].map(n => n.textContent).join(' | ') : '';
+      rlCpSetShown(document, null); await wait(200);
+      return vis ? said : '';
     });
     check(3, 'Erik reads the refusal reason in the clause panel',
       /whole point of the facility/.test(refusalSeen), refusalSeen.slice(0, 70));
@@ -388,8 +435,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       const b = document.getElementById('nego-send-decisions') || document.getElementById('pt-nego-send');
       if (b) b.click();
     });
+    await cpAnswer();
     await pause(1500);
-    await mailCheck(4, 1, 'round 4: still only the first email');
+    await mailCheck(4, 2, 'his answer sends nothing to him');
 
     await ownerPoll();
     await ownerOpenBench();
@@ -400,9 +448,20 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
        A change's conversation is in the clause panel's row for that change, and
        every clause's body is rendered whether or not the panel is open, so the
        words are readable without pressing anything. */
+    /* RE-POINTED 11 Oct 2026: on OUR seat a change's conversation is read in
+       the Notes drawer (one drawer, a room per party — notes-two-rooms); the
+       drawer is opened on the change and its outside room is the one read. */
+    const ownerThread = await owner.evaluate(async id => {
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      openNotesPanel(state.activeId, id, { force: true }); await wait(500);
+      const ext = [...document.querySelectorAll('#context-panel [data-rl-np-room]')].find(b => b.getAttribute('data-rl-np-room') !== 'internal');
+      if (ext){ ext.click(); await wait(400); }
+      const t = ((document.getElementById('context-panel') || {}).textContent || '').replace(/\s+/g, ' ');
+      if (window.closeContextPanel) closeContextPanel();
+      return t;
+    }, replyOn);
     const ownerSees = await owner.evaluate(id => ({
-      thread: [...document.querySelectorAll(`[data-rl-cp-change="${id}"] .rl-cnote`)]
-        .map(n => n.textContent).join(' | '),
+      thread: '',
       withdrawn: (() => { const c = getContract(state.activeId);
         return negoChanges(c).filter(x => x.withdrawn).length; })(),
       termination: (() => { const c = getContract(state.activeId);
@@ -410,7 +469,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
         return ch && ch.status; })(),
     }), replyOn);
     check(4, 'his shared reply is on the owner\'s thread',
-      /please confirm storage stays/.test(ownerSees.thread), ownerSees.thread.slice(0, 80));
+      /please confirm storage stays/.test(ownerThread), ownerThread.slice(0, 120));
     check(4, 'the withdrawal settled the contested ask', ownerSees.withdrawn >= 1);
     check(4, 'the termination ask is accepted on the record', ownerSees.termination === 'accepted');
   }
@@ -419,27 +478,42 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   {
     await ownerOpenBench();
     /* THE SAME THREAD, named by the same change id — see round 4. */
+    /* RE-POINTED 11 Oct 2026: our reply is written in the Notes drawer, in
+       the outside party's room (a shared note), on the same change. */
     const said = await owner.evaluate(async id => {
       const wait = ms => new Promise(r => setTimeout(r, ms));
-      const input = document.getElementById('nego-ti-' + id);
-      if (!input) return 'no reply box for ' + id;
-      const sh = document.querySelector(`[data-nego-vis="shared"][data-for="${id}"]`);
-      if (sh){ sh.click(); await wait(150); }
+      openNotesPanel(state.activeId, id, { force: true }); await wait(500);
+      const ext = [...document.querySelectorAll('#context-panel [data-rl-np-room]')].find(b => b.getAttribute('data-rl-np-room') !== 'internal');
+      if (ext){ ext.click(); await wait(400); }
+      const input = document.querySelector('#context-panel .rl-np-in');
+      if (!input) return 'no note box for ' + id;
       input.value = 'Confirmed — storage stays at one hundred and twenty (120) days.';
-      const send = document.querySelector(`[data-nego-send="${id}"]`);
-      if (!send) return 'no reply send for ' + id;
-      send.click(); return 'ok';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      const send = document.querySelector('#context-panel [data-rl-np-send], #context-panel [data-rl-chat-send]');
+      if (!send) return 'no note send for ' + id;
+      send.click(); await wait(500);
+      if (window.closeContextPanel) closeContextPanel();
+      return 'ok';
     }, replyOn);
     check(5, 'the owner replies in the same thread', said === 'ok', said);
     await pause(1200);
 
     await cpOpen(token);
     await leakCheck(5);
+    /* RE-POINTED 11 Oct 2026: their notes are read in their Notes drawer
+       (#pt-notes-door → portalOpenNotes), opened as the reader would. */
+    const cpNotes = await cp.evaluate(async () => {
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      const door = document.getElementById('pt-notes-door'); if (door) door.click(); else if (window.portalOpenNotes) portalOpenNotes();
+      await wait(600);
+      const p = document.getElementById('pt-notes');
+      const t = p ? p.textContent.replace(/\s+/g, ' ') : '';
+      if (window.portalNotesClose) portalNotesClose();
+      return t;
+    });
     check(5, 'the reply is on Erik\'s page without any re-send',
-      /Confirmed — storage stays/.test(await cp.evaluate(id =>
-        [...document.querySelectorAll(`[data-rl-cp-change="${id}"] .rl-cnote`)]
-          .map(n => n.textContent).join(' | '), replyOn)));
-    await mailCheck(5, 1, 'a comment is a comment — no email');
+      /Confirmed — storage stays/.test(cpNotes), cpNotes.slice(0, 120));
+    await mailCheck(5, 2, 'a comment is a comment — no email');
   }
 
   /* ============== ROUND 6 — alignment, readiness, both sides ============== */
@@ -467,6 +541,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
         const b = document.getElementById('nego-send-decisions') || document.getElementById('pt-nego-send');
         if (b) b.click();
       });
+      await cpAnswer();
       await pause(1200);
       await ownerPoll();
       await cpOpen(token);
@@ -481,7 +556,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     check(6, 'Erik\'s Ready to sign is live and pressed', ready === 'ok', ready);
     await pause(1500);
     await leakCheck(6);
-    await mailCheck(6, 1, 'six rounds in: still exactly one email to Erik');
+    await mailCheck(6, 3, 'six rounds in: the link and one "your turn" email per hand-over (rounds 3 and 6)');
 
     await ownerPoll(); await ownerOpenBench();
     /* RE-POINTED 23 Aug 2026, owner-asked: NOTHING FLOATS OVER THE PAGE.
