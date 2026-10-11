@@ -211,7 +211,7 @@ function apInsActs(tab, r){
   if(!r) return [];
   /* "Open contract" is a link on the head's sub line (SAP benchmark, 9 Oct
      2026); the buttons are the decision and the Signing tab. */
-  const open={ k:'open', inSub:true, label:i18t('ins_open_contract'), run:c=>selectContract(c.id) };
+  const open={ k:'open', inSub:true, label:i18t('ins_open_contract'), run:c=>{ if(!(typeof pdOpenOnHome==='function'&&pdOpenOnHome(c.id,'copilot'))) selectContract(c.id); } };
   if(tab==='approvals' && r.done) return [
     ...(apMayUndo(r)?[{ k:'undo', label:i18t('ap_pg_undo'), title:i18t('ap_pg_undo_title'), run:c=>apUndo(c.id) }]:[]),
     { k:'gate', label:i18t('ap_pg_open_signing'), title:i18t('ap_pg_gate_title'), run:c=>apOpenSigning(c.id) },

@@ -285,6 +285,30 @@ const ok = (name, good, detail) => {
       ok('3c the panel’s lead act opens that contract on its Signing tab', false, 'nothing to press');
     }
 
+    /* 3d–3e (owner, 11 Oct 2026): "Open contract" on Approvals and on
+       Obligations lands on Home's Document, on that contract — Obligations on
+       the panel's Obligations tab. */
+    const HOMED = () => ({ view: state.view, id: (window.intel && intel.paper) ? intel.paper.id : null,
+      tab: document.querySelector('#ig-dock .pd-tab.on')?.getAttribute('data-pd-tab') || null });
+    await page.evaluate(() => setView('approvals')); await page.waitForTimeout(1000);
+    const apPid = await page.evaluate(() => document.getElementById('ins-panel')?.getAttribute('data-ins-id'));
+    if (apPid && await page.$('#ins-panel [data-ins-act="open"]')) {
+      await page.click('#ins-panel [data-ins-act="open"]'); await page.waitForTimeout(1200);
+      const r = await page.evaluate(HOMED);
+      ok('3d Approvals: Open contract lands on Home\'s Document, on that contract', r.view === 'dashboard' && r.id === apPid, JSON.stringify(r));
+    } else ok('3d Approvals: Open contract lands on Home\'s Document', false, 'no panel or no Open contract link');
+    const obCid = await page.evaluate(() => { const c = state.contracts.find(x => !x.archived); if (!c) return null;
+      c.obligations = (c.obligations || []).concat([{ id: 'ob-ins-3e', desc: 'Send the quarterly report', due: todayISO(), party: 'us', status: 'open' }]); return c.id; });
+    await page.evaluate(() => setView('obligations')); await page.waitForTimeout(1200);
+    const obRow = await page.$('[data-ins-page="obligations"] tbody tr:not(.ins-grp)'); if (obRow) { await obRow.click(); await page.waitForTimeout(500); }
+    const obPid = await page.evaluate(() => document.getElementById('ins-panel')?.getAttribute('data-ins-id'));
+    const obBtn = await page.$('#ins-panel [data-ins-act="open"]');
+    if (obBtn) {
+      await obBtn.click(); await page.waitForTimeout(1200);
+      const r = await page.evaluate(HOMED);
+      ok('3e Obligations: Open contract lands on Home\'s Document, Obligations tab', r.view === 'dashboard' && !!r.id && r.id === obCid && r.tab === 'oblig', JSON.stringify({ ...r, obCid, obPid }));
+    } else ok('3e Obligations: Open contract lands on Home\'s Document', false, 'no Open contract in the panel');
+
     /* ================= 4 · BELOW THE LINE, AND A WIDTH THAT CROSSES IT ================= */
     await page.setViewportSize({ width: 1024, height: 800 }); await toContracts();
     const narrow = await page.evaluate(() => ({ ins: document.querySelector('[data-ins-page]')?.getAttribute('data-ins'), panel: !!document.getElementById('ins-panel'),
