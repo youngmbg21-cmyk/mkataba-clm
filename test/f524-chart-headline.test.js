@@ -67,7 +67,8 @@ describe('f524 (3) where it is drawn', () => {
   test('a small chart: a note under the chart, from the one reading; enlarged: the full reading, no headline', () => {
     const f = fn('hbChartHtml');
     /* a bigger card ON THE BOARD is only wider: it keeps the note; opened, the full reading */
-    assert.match(f, /const head = big && !onBoard \? '' : hbHeadlineHtml\(D\.key, hbReadingOf\(D, cs, P, R\), cs\.length, hbWhySig\(D, P, cs\)\);/);
+    /* (11 Oct 2026) a money picture with no money in it draws no headline either (R.noValue) */
+    assert.match(f, /const head = R\.noValue \|\| \(big && !onBoard\) \? '' : hbHeadlineHtml\(D\.key, hbReadingOf\(D, cs, P, R\), cs\.length, hbWhySig\(D, P, cs\)\);/);
     assert.match(f, /const read = big && !onBoard \? hbReadHtml\(D, cs, P, R\) : '';/);
     assert.match(f, /\$\{R\.body\}<div class="hb-chart-notes">\$\{head\}<div class="hb-chart-lead">\$\{lead\}/, 'under the chart, the point then the totals');
     assert.match(f, /\(!head && R\.say \?/, 'the trend arithmetic gives way to the point');

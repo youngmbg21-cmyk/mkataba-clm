@@ -9730,6 +9730,17 @@
   /* A17: a legend's colour square is a switch; a series switched off is faded */
   .hb-sv-sw{cursor:pointer} .hb-sv-sw:focus-visible{outline:2px solid var(--hb-glow);outline-offset:2px}
   .hb-sv-row.is-off text{opacity:.45;text-decoration:line-through}
+  /* bars on the board: quiet rows of one height; the rest row is a door with no bar (11 Oct 2026) */
+  .hb-board .hb-chart-bars{gap:2px}
+  .hb-board .hb-cbar{min-height:30px}
+  .hb-board .hb-dig.is-big .hb-cbar{min-height:32px}
+  .hb-board .hb-cbar-tr{height:12px}
+  .hb-board .hb-dig.is-big .hb-cbar-tr{height:14px}
+  .hb-board .hb-dig.is-big .hb-cbar-t,.hb-board .hb-dig.is-big .hb-cbar-n{font-size:var(--t-body)}
+  .hb-board .hb-dig.is-big .hb-cbar-s{font-size:var(--t-micro)}
+  .hb-cbar.is-rest .hb-cbar-tr{background:none}
+  .hb-cbar.is-rest .hb-cbar-t{color:var(--hb-glow)}
+  .hb-cbar-n{font-variant-numeric:tabular-nums;text-align:right}
   /* THE SIDE LIST, AS DRAWN (part B): over the right of the page, under the bar */
   .hb-sheet{position:fixed;top:48px;right:0;bottom:0;width:min(560px,100vw);z-index:60;background:var(--hb-menu);border-left:1px solid rgba(var(--hb-ln),.18);box-shadow:-12px 0 32px rgba(4,25,26,.12);display:flex;flex-direction:column}
   .hb-sheet:focus{outline:none}

@@ -1339,11 +1339,13 @@ function hbValueBands(lo, hi, want){
 }
 function hbValueOfOne(c){ const h = (typeof fxHome === 'function') ? fxHome(c) : { v: Number(c.value || 0), missing: false }; return (h && !h.missing) ? (h.v || 0) : 0; }
 function hbChartBarsHtml(rows, money, yk){
-  const max = Math.max(1, ...rows.map(r => money ? r.v : r.n));
+  /* the "N more groups" row is a door, not a bar: it never sets the scale and
+     draws no fill, so the groups that were drawn keep their size (11 Oct 2026) */
+  const max = Math.max(1, ...rows.filter(r => !r.rest).map(r => money ? r.v : r.n));
   return `<div class="hb-chart hb-chart-bars" data-hb-yk="${_hbE(yk || (money ? 'value' : 'count'))}">${rows.map(r => { const m = money ? r.v : r.n; const pct = Math.max(m ? 1.5 : 0, m / max * 100);
-    return `<button type="button" class="hb-cbar" ${r.dig && r.n ? `data-hb-dig="${_hbE(r.dig)}"${_hbYAttr(m)}` : 'disabled'} title="${_hbE(r.label + ': ' + r.say)}">
+    return `<button type="button" class="hb-cbar${r.rest ? ' is-rest' : ''}" ${r.dig && r.n ? `data-hb-dig="${_hbE(r.dig)}"${_hbYAttr(m)}` : 'disabled'} title="${_hbE(r.label + ': ' + r.say)}">
       <span class="hb-cbar-l"><span class="hb-cbar-t">${_hbE(r.label)}</span>${r.sub ? `<span class="hb-cbar-s">${_hbE(r.sub)}</span>` : ''}</span>
-      <span class="hb-cbar-tr"><span class="hb-cbar-f" style="width:${pct.toFixed(1)}%${r.color ? ';background:' + _hbE(r.color) : ''}"></span></span>
+      <span class="hb-cbar-tr">${r.rest ? '' : `<span class="hb-cbar-f" style="width:${pct.toFixed(1)}%${r.color ? ';background:' + _hbE(r.color) : ''}"></span>`}</span>
       <span class="hb-cbar-n">${_hbE(r.say)}</span></button>`; }).join('')}</div>`;
 }
 function hbChartColsHtml(cols, money){
@@ -1617,9 +1619,19 @@ function hbTimelineSvg(D, cs, money){
   const X = m => L + (W - L - Rm) * (Math.max(m0, Math.min(m1, m)) - m0) / months;
   const keyOf = m => { const y = tY + Math.floor((tM + m) / 12), mo = ((tM + m) % 12 + 12) % 12; return y + '-' + String(mo + 1).padStart(2, '0'); };
   const order = HB_STATUS_ORDER.concat([...new Set(items.map(i => i.status))].filter(s => !HB_STATUS_ORDER.includes(s)));
-  const lanes = order.map(s => ({ s, label: hbGroupLabel('status', s), list: items.filter(i => i.status === s) })).filter(l => l.list.length);
+  /* a lane's contracts with no end date are ONE line ("6 with no end date"),
+     a door onto them, so they never crowd the dated ones off the card */
+  const lanes = order.map(s => { const all = items.filter(i => i.status === s), noEnd = all.filter(i => !i.end);
+    const list = noEnd.length > 1 ? all.filter(i => i.end).concat([{ summary: true, n: noEnd.length, ids: noEnd.map(i => i.c.id), c: noEnd[0].c, start: null, end: null, status: s }]) : all;
+    return { s, label: hbGroupLabel('status', s), list, all }; }).filter(l => l.list.length);
   let out = '', lanesOut = '', y = axisY + 14;
-  const span = (it, short) => { const e = it.end ? mIdx(it.end) : null; let s = it.start ? mIdx(it.start) : (e != null ? e - 1 : 0); if (short && e != null) s = Math.max(s, e - HB_TL_SHORT); return [s, e != null ? e : s + 1.5]; };
+  /* a contract with no end date is a dot and its words: it holds the row for
+     as far as its words run, so nothing is drawn over them (11 Oct 2026) */
+  const pxMonth = (W - L - Rm) / months, fsPack = 10.5;
+  const noEndWord = it => it.summary ? i18tn('hb_tl_noend', it.n, { n: _hbN(it.n) }) : hbRef(it.c) + ' · ' + i18t('hb_c_no_end');
+  const noEndMonths = it => (66 + _hbTextW(noEndWord(it), fsPack) + 12) / pxMonth;
+  const span = (it, short) => { const e = it.end ? mIdx(it.end) : null; let s = it.start ? mIdx(it.start) : (e != null ? e - 1 : 0); if (short && e != null) s = Math.max(s, e - HB_TL_SHORT);
+    if (e == null) s = Math.max(m0, Math.min(m1, s)); return [s, e != null ? e : s + noEndMonths(it)]; };
   /* pills pack into rows per lane; a crowded set keeps only the last months
      of each pill so the lanes stay short, and past the cap the rest is said */
   const pack = (short, cap) => { const placed = []; let rowsUsed = 0, left = 0;
@@ -1639,21 +1651,23 @@ function hbTimelineSvg(D, cs, money){
   const H = fitted ? hbFH(0) : axisY + 14 + lanes.reduce((a, l) => a + l.n * rowH + laneGap, 0) + 36;
   /* a long span names every second or third month, so the names never run together */
   const nameEvery = Math.max(1, Math.ceil(months / 14), fitted ? Math.ceil(52 / ((W - L - Rm) / months)) : 1);
+  const txAt = X(mIdx(today));
   for (let i = 0; i < months; i++){ const m = m0 + i; const x = X(m), x2 = X(m + 1); const k = keyOf(m); const mo = ((tM + m) % 12 + 12) % 12;
+    const underToday = Math.abs((x + x2) / 2 - txAt) < 26 + _hbTextW(i18tn('hb_tl_end_n', 9, { n: '9' }), 11) / 2;
     const n = items.filter(it => it.end && it.end.slice(0, 7) === k).length;
     out += `<rect x="${x.toFixed(1)}" y="${axisY}" width="${(x2 - x).toFixed(1)}" height="${H - axisY - 30}" class="${Math.floor(mo / 3) % 2 ? 'hb-sv-qtr' : ''}" fill="${Math.floor(mo / 3) % 2 ? '' : 'transparent'}"/>`;
     if (mo % 3 === 0) out += `<line x1="${x.toFixed(1)}" y1="${axisY}" x2="${x.toFixed(1)}" y2="${H - 30}" class="hb-sv-grid"/>`;
     const label = hbMonthLabel(k, false); const ttl = label + (n ? ': ' + i18tn('hb_tl_end_n', n, { n: _hbN(n) }) : '');
     out += `<g class="hb-sv-month" ${_hbSvgDoor(n ? 'qm:' + D.key + HB_KEY_SEP + 'm' + HB_KEY_SEP + k : '', ttl)}><rect x="${x.toFixed(1)}" y="${axisY - 24}" width="${(x2 - x).toFixed(1)}" height="22" fill="transparent"/>${i % nameEvery === 0 ? `<text x="${(x + 4).toFixed(1)}" y="${axisY - 8}" font-size="11" class="hb-sv-ink2">${_hbE(label)}</text>` : ''}
-      ${n && i % nameEvery === 0 ? `<text x="${((x + x2) / 2).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="11" font-weight="600" class="hb-sv-ink2">${_hbE(i18tn('hb_tl_end_n', n, { n: _hbN(n) }))}</text>` : ''}</g>`; }
-  lanes.filter(l => !fitted || l.n).forEach(l => { const top = y; const lv = l.list.reduce((a, it) => a + hbValueOfOne(it.c), 0); const hue = hbHueOf('status', l.s, 0);
-    lanesOut += `<g class="hb-sv-lane" ${_hbSvgDoor('qg:' + D.key + HB_KEY_SEP + 'status' + HB_KEY_SEP + l.s, l.label + ': ' + (money ? _hbM(lv) + ' · ' : '') + _hbN(l.list.length))}><rect x="0" y="${top - 2}" width="${L - 10}" height="${l.n * rowH}" fill="transparent"/><rect x="4" y="${top - 2}" width="3" height="${l.n * rowH}" rx="1.5" style="fill:${hue}"/>
-      <text x="12" y="${top + 14}" font-size="13" font-weight="600" class="hb-sv-ink">${_hbE(l.label)}</text>${!fitted || l.n * rowH >= 30 ? `<text x="12" y="${top + 30}" font-size="11" class="hb-sv-ink2">${_hbE(_hbN(l.list.length))}${money ? ' · ' + _hbE(_hbM(lv)) : ''}</text>` : ''}</g>`;
+      ${n && i % nameEvery === 0 && !underToday ? `<text x="${((x + x2) / 2).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="11" font-weight="600" class="hb-sv-ink2">${_hbE(i18tn('hb_tl_end_n', n, { n: _hbN(n) }))}</text>` : ''}</g>`; }
+  lanes.filter(l => !fitted || l.n).forEach(l => { const top = y; const lv = l.all.reduce((a, it) => a + hbValueOfOne(it.c), 0); const hue = hbHueOf('status', l.s, 0);
+    lanesOut += `<g class="hb-sv-lane" ${_hbSvgDoor('qg:' + D.key + HB_KEY_SEP + 'status' + HB_KEY_SEP + l.s, l.label + ': ' + (money ? _hbM(lv) + ' · ' : '') + _hbN(l.all.length))}><rect x="0" y="${top - 2}" width="${L - 10}" height="${l.n * rowH}" fill="transparent"/><rect x="4" y="${top - 2}" width="3" height="${l.n * rowH}" rx="1.5" style="fill:${hue}"/>
+      <text x="12" y="${top + 14}" font-size="13" font-weight="600" class="hb-sv-ink">${_hbE(l.label)}</text>${!fitted || l.n * rowH >= 30 ? `<text x="12" y="${top + 30}" font-size="11" class="hb-sv-ink2">${_hbE(_hbN(l.all.length))}${money ? ' · ' + _hbE(_hbM(lv)) : ''}</text>` : ''}</g>`;
     placed.filter(p => p[0] === l).forEach(([, ri, it, s, e]) => { const yy = top + ri * rowH; const xs = X(s), past = it.end && it.end < today && it.status === 'Signed', xe = it.end ? X(e) : xs + 8; const fill = past ? 'var(--hb-ruby)' : hue;
       const ttl = hbRef(it.c) + ' · ' + String(it.c.name || '') + (it.c.counterparty ? ' · ' + it.c.counterparty : '') + (money ? ': ' + _hbM(hbValueOfOne(it.c)) : '') + ' · ' + (it.end ? i18t('hb_tl_ends', { d: hbMonthLabel(it.end.slice(0, 7), false) }) : i18t('hb_c_no_end'));
       if (past) anyPast = true;
       if (it.end) out += `<g class="hb-sv-pill hb-in" style="animation-delay:${Math.min(ri, 12) * 40}ms" ${_hbSvgDoor('c:' + it.c.id, ttl)}><rect x="${xs.toFixed(1)}" y="${yy + 3}" width="${Math.max(6, xe - xs).toFixed(1)}" height="${rowH - 7}" rx="${rowH > 16 ? 6 : 4}" style="fill:${fill}" opacity="${it.status === 'Declined' ? '.4' : '.9'}"/>${xe - xs > 120 ? `<text x="${(xs + 8).toFixed(1)}" y="${(yy + ty).toFixed(1)}" font-size="${fs}" font-weight="600" fill="${HB_TILE_INK}">${_hbE(hbRef(it.c) + (it.c.counterparty ? ' · ' + it.c.counterparty : ''))}</text>` : xe - xs > 52 ? `<text x="${(xs + 7).toFixed(1)}" y="${(yy + ty).toFixed(1)}" font-size="${fs}" font-weight="600" fill="${HB_TILE_INK}">${_hbE(hbRef(it.c))}</text>` : ''}</g>`;
-      else out += `<g class="hb-sv-pill hb-in" style="animation-delay:${Math.min(ri, 12) * 40}ms" ${_hbSvgDoor('c:' + it.c.id, ttl)}><rect x="${xs.toFixed(1)}" y="${yy + 2}" width="200" height="${rowH - 4}" fill="transparent"/><circle cx="${(xs + 4).toFixed(1)}" cy="${yy + rowH / 2 - 0.5}" r="${rowH > 16 ? 5 : 4}" style="fill:${fill}"/><line x1="${(xs + 12).toFixed(1)}" y1="${yy + rowH / 2 - 0.5}" x2="${(xs + 60).toFixed(1)}" y2="${yy + rowH / 2 - 0.5}" style="stroke:${fill}" stroke-dasharray="2 4"/><text x="${(xs + 66).toFixed(1)}" y="${(yy + ty).toFixed(1)}" font-size="${fs}" class="hb-sv-ink2">${_hbE(hbRef(it.c) + ' · ' + i18t('hb_c_no_end'))}</text></g>`; });
+      else out += `<g class="hb-sv-pill hb-in" style="animation-delay:${Math.min(ri, 12) * 40}ms" ${_hbSvgDoor(it.summary ? 'q2:' + D.key + HB_KEY_SEP + 'status' + HB_KEY_SEP + l.s + HB_KEY_SEP + 'd.m.end' + HB_KEY_SEP + 'none' : 'c:' + it.c.id, it.summary ? l.label + ' · ' + noEndWord(it) : ttl)}><rect x="${xs.toFixed(1)}" y="${yy + 2}" width="200" height="${rowH - 4}" fill="transparent"/><circle cx="${(xs + 4).toFixed(1)}" cy="${yy + rowH / 2 - 0.5}" r="${rowH > 16 ? 5 : 4}" style="fill:${fill}"/><line x1="${(xs + 12).toFixed(1)}" y1="${yy + rowH / 2 - 0.5}" x2="${(xs + 60).toFixed(1)}" y2="${yy + rowH / 2 - 0.5}" style="stroke:${fill}" stroke-dasharray="2 4"/><text x="${(xs + 66).toFixed(1)}" y="${(yy + ty).toFixed(1)}" font-size="${fs}" class="hb-sv-ink2">${_hbE(noEndWord(it))}</text></g>`; });
     y += l.n * rowH + laneGap; });
   const tx = X(mIdx(today));
   if (anyPast) out += `<rect x="12" y="${H - 24}" width="10" height="10" rx="2" class="hb-sv-ruby"/><text x="27" y="${H - 15}" font-size="11" class="hb-sv-ink2">${_hbE(i18t('hb_tl_past'))}</text>`;
@@ -2319,7 +2333,7 @@ function hbColsSvg(D, cs, P){
   const odd = hbOddCols(_hbOddOn.has(D.key) ? cols : null, unit);
   const ys = cols.map(c => c.M.y || 0).concat(none.length ? [hbMeasure(none, m).y || 0] : []).concat(T ? [T.y0, T.y1] : []).concat(band || [])
     .concat(avgY != null ? [avgY] : []).concat(tgtY != null ? [tgtY] : []).concat(ghost ? ghost.filter(Boolean).map(x => x.y) : []);
-  const top = hbAxisTop(Math.max(...ys, 0) * 1.12, m !== 'value' && m !== 'rounds', hbGridN());
+  const top = hbAxisTop(Math.max(...ys, 0) * 1.12, m !== 'rounds', hbGridN());
   const Y = v => Tp + (base - Tp) * (1 - Math.max(0, v) / top), X = i => L + step * (i + 0.5);
   const fmtAxis = v => m === 'value' ? _hbM(v) : m === 'rounds' ? hbMeasureFmt(m, v) : _hbN(Math.round(v));
   let g = '';
@@ -2463,6 +2477,8 @@ function hbLiveSvg(D, P){
    top is four nice steps, and a step of whole things (contracts, days) is a
    whole number, at least 1 */
 function hbAxisTop(v, whole, n){
+  /* a float's leftover (1e-12) is nothing, never a scale of its own */
+  if (!(v > 1e-6)) v = 0;
   /* as many nice steps as the chart draws gridlines (three on a board card,
      G2: "0, 11, 21, 32" was four steps cut in three) */
   const k = n > 0 ? n : 4;
@@ -2483,7 +2499,7 @@ function hbGroupBars(D, cs, P){
   const cut = hbGroupsCut(rows, P, HB_CHART_BARS, m, field);
   rows = cut.rows;
   if (cut.rest){ const M = hbMeasure(cut.rest.list, m);
-    rows = rows.concat([{ g: null, label: cut.rest.label, n: cut.rest.n, v: M.y || 0, say: hbMeasureFmt(m, M.y) + (m === 'count' ? '' : ' · ' + _hbN(cut.rest.n)), dig: hbRestDig(D, field, cut.kept, m === 'value'), color: '' }]); }
+    rows = rows.concat([{ g: null, rest: true, label: cut.rest.label, n: cut.rest.n, v: M.y || 0, say: hbMeasureFmt(m, M.y) + (m === 'count' ? '' : ' · ' + _hbN(cut.rest.n)), dig: hbRestDig(D, field, cut.kept, m === 'value'), color: '' }]); }
   /* SHARE OF TOTAL: each bar says its part of the whole */
   if (P.show === 'share'){ const tot = rows.reduce((a, r) => a + (r.v || 0), 0) || 1; rows.forEach(r => { r.say = _hbN(Math.round((r.v || 0) / tot * 100)) + '% · ' + r.say; }); }
   return { body: hbChartBarsHtml(rows, true, P.show === 'share' ? _hbYKind(m) : _hbYKind(m, P.show)), by: hbSplitWord(P.split) + (m !== 'count' ? ' · ' + i18t('hb_ms_' + m).toLowerCase() : '') + (P.show ? ' · ' + i18t('hb_show_' + P.show).toLowerCase() : ''), note: '', rows };
@@ -2992,7 +3008,7 @@ function hbStackSvg(D, cs, P){
   const A = X.time ? null : hbAngleOf(cells.map(x => colWord(x.col)), (W - 64 - R) / n, 12, cells.map(x => colWord(x.col, true)));
   /* the slanted names take their height UNDER the chart, never out of it */
   const L = A ? Math.max(64, Math.ceil(A.out - (W - 64 - R) / n / 2) + 6) : 64, B = A ? 20 + A.up : 52, H = hbFH(340) + B - 52, base = H - B, step = (W - L - R) / n;
-  const top = hbAxisTop(Math.max(...tops, 0) * 1.1, m !== 'value' && m !== 'rounds', hbGridN());
+  const top = hbAxisTop(Math.max(...tops, 0) * 1.1, m !== 'rounds', hbGridN());
   const Y = v => Tp + (base - Tp) * (1 - Math.max(0, v) / top);
   const fmtAxis = v => m === 'value' ? _hbM(v) : m === 'rounds' ? hbMeasureFmt(m, v) : _hbN(Math.round(v));
   let g = '';
@@ -3116,7 +3132,7 @@ function hbCompareSvg(D, cs, P, Wc){
       return { b, pb, label: hbBucketLabel(b, unit, true), full: hbBucketLabel(b, unit, false), pfull: hbBucketLabel(pb, unit, false), cur, prev, Mc: hbMeasure(cur, m), Mp: hbMeasure(prev, m),
         dc: 'qm:' + D.key + HB_KEY_SEP + unit + HB_KEY_SEP + b + HB_KEY_SEP + date, dp: hbCellDig(D, 'w', 'prev', tok, pb) }; });
     const H = hbFH(320), base = H - B, n = Math.max(1, rows.length), step = (W - L - R) / n, cw = Math.min(22, step * 0.32);
-    const top = hbAxisTop(Math.max(0, ...rows.map(r => Math.max(r.Mc.y || 0, r.Mp.y || 0))) * 1.12, m !== 'value' && m !== 'rounds');
+    const top = hbAxisTop(Math.max(0, ...rows.map(r => Math.max(r.Mc.y || 0, r.Mp.y || 0))) * 1.12, m !== 'rounds');
     const Y = v => Tp + (base - Tp) * (1 - Math.max(0, v) / top);
     for (let k = 0; k <= 4; k++){ const v = top * k / 4, y = Y(v); g += `<line x1="${L}" x2="${W - R}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" class="${k ? 'hb-sv-grid' : 'hb-sv-axis'}"/><text x="${L - 8}" y="${(y + 4).toFixed(1)}" text-anchor="end" font-size="12" class="hb-sv-mute">${_hbE(m === 'value' ? _hbM(v) : _hbN(Math.round(v)))}</text>`; }
     rows.forEach((r, i) => { const cx = L + step * (i + 0.5);
@@ -3348,7 +3364,7 @@ function hbMultiSvg(D, cs, P){
   const inSer = (c, S) => S.rest ? !ser.rows.some(r => r.g === hbGroupOf(c, f2)) : hbGroupOf(c, f2) === S.g;
   const xs = X.cols.filter(c => c.b !== 'none');
   const cells = xs.map(col => ({ col, parts: series.map(S => { const list = col.list.filter(c => inSer(c, S)); return { S, list, M: hbMeasure(list, m) }; }) }));
-  const top = hbAxisTop(Math.max(0, ...cells.flatMap(x => x.parts.map(p => p.M.y || 0))) * 1.1, m !== 'value' && m !== 'rounds');
+  const top = hbAxisTop(Math.max(0, ...cells.flatMap(x => x.parts.map(p => p.M.y || 0))) * 1.1, m !== 'rounds');
   const rowsN = Math.max(1, Math.ceil(series.length / colsN)), pw = (W - gap * (colsN - 1)) / colsN, ph = Math.min(140, (H - gap * (rowsN - 1)) / rowsN);
   const nC = Math.max(1, xs.length);
   let g = '';
@@ -3761,6 +3777,12 @@ function hbChartHtml(D, cs0, big){
   let run;
   try { run = hbChartRun(D, cs0, P); } finally { _hbFit = null; }
   const { R, cs } = run;
+  /* a money picture over contracts that carry no value draws no axis of zeros:
+     it says so in one line, the count still a door */
+  if (HB_MONEY_MEASURES.includes(P.measure) && cs.length && cs.every(c => !(hbValueOfOne(c) > 0)) && P.pic !== 'list' && P.pic !== 'gantt'){
+    R.body = `<div class="hb-quiet hb-novalue" data-hb-rkey="${_hbE(D.key)}">${_hbE(i18tn('hb_no_value_here', cs.length, { n: _hbN(cs.length) }))} <button type="button" class="hb-link" data-hb-rset="measure:count">${_hbE(i18t('hb_no_value_count'))}</button></div>`;
+    R.lead = ''; R.say = ''; R.note = ''; R.noValue = true;
+  }
   /* the reading is worked out once: the headline says it, and the piece it
      is about wears the colour (G7) */
   const reading = hbReadingOf(D, cs, P, R);
@@ -3792,7 +3814,7 @@ function hbChartHtml(D, cs0, big){
   const onBoard = !!(at && at.step === 'board');
   const read = big && !onBoard ? hbReadHtml(D, cs, P, R) : '';
   /* small, the chart says its point in one line under the totals (HEADLINE) */
-  const head = big && !onBoard ? '' : hbHeadlineHtml(D.key, hbReadingOf(D, cs, P, R), cs.length, hbWhySig(D, P, cs));
+  const head = R.noValue || (big && !onBoard) ? '' : hbHeadlineHtml(D.key, hbReadingOf(D, cs, P, R), cs.length, hbWhySig(D, P, cs));
   /* how this was counted: asked for from the card's ⋯ (the artifact's card is clean) */
   const how = at && !one && _hbHowOn.has(D.key) ? hbHowHtml(D, P, R, cs) : '';
   return `${read || (!head && R.say ? `<p class="hb-tr-say">${_hbE(R.say)}</p>` : '')}${R.body}<div class="hb-chart-notes">${head}<div class="hb-chart-lead">${lead}${at ? '' : `<span class="hb-chart-by">${_hbE(R.by)}</span>`}</div>${R.note ? `<div class="hb-quiet hb-chart-note">${_hbE(R.note)}</div>` : ''}</div>${how}`;
@@ -6234,6 +6256,21 @@ function hbPaintBoard(opts){
   hbPaintHead();
   hbRcMenuPlace(host);
   hbFitMeasure();
+  hbFitWatch(host);
+}
+/* THE BOARD'S OWN WIDTH (owner, 11 Oct 2026: a chart's words grew huge): the
+   board narrows and widens without the window moving — the Copilot panel
+   opens or folds, the menu hides — so a chart drawn for one width was
+   stretched like a photo. One observer per board host re-measures, settled. */
+let _hbFitObs = null, _hbFitObsHost = null, _hbFitObsT = null;
+function hbFitWatch(host){
+  if (typeof ResizeObserver === 'undefined' || !host || _hbFitObsHost === host) return;
+  if (_hbFitObs) _hbFitObs.disconnect();
+  _hbFitObsHost = host;
+  let last = host.clientWidth;
+  _hbFitObs = new ResizeObserver(() => { const w = host.clientWidth; if (Math.abs(w - last) < 4) return; last = w;
+    clearTimeout(_hbFitObsT); _hbFitObsT = setTimeout(() => { try { if (window.state && state.view === 'dashboard') hbFitMeasure(); } catch (_){} }, 120); });
+  _hbFitObs.observe(host);
 }
 /* AN OPEN DROPDOWN IS ON THE SCREEN (7 Oct 2026, owner: "fix the 2 older
    failures"): a card low on the board opened its Picture list below the
