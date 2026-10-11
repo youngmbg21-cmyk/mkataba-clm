@@ -112,24 +112,29 @@ const PAPER = `(() => {
     await pause(900);
     await page.screenshot({ path: path.join(OUT, '01-their-page.png') });
 
-    /* ---- 1. THE READING SWITCH IS IN THEIR HEADER ---- */
+    /* ---- 1. THE READING IS THEIR REDLINES TAB ----
+       RE-POINTED 11 Oct 2026. The one-choice switch ("Redlined", the only
+       reading left after Young's 23 Sep ruling) gave way on THIS page to the
+       page's tabs (Young picked "Where we are", 29 Sep 2026: "the Redlines tab
+       IS that reading"). So the claim is now: the Redlines tab is in their
+       header as visible pixels, it is the one chosen, and no control on their
+       page offers a reading with the marks taken off. */
     const sw = await page.evaluate(([seen]) => {
       const s = eval(seen);
-      const wrap = document.querySelector('.pw-id .rl-readwrap');
+      const wrap = document.querySelector('.pw-id .pw-tabs');
       const head = document.querySelector('.pw-id');
-      const segs = [...document.querySelectorAll('.pw-id .rl-readwrap .rl-seg')];
+      const tabs = [...document.querySelectorAll('.pw-id .pw-tabs .pw-tab')];
       return { box: s(wrap), inHead: !!(wrap && head && head.contains(wrap)),
-        labels: segs.map(b => b.textContent.trim()),
-        boxes: segs.map(b => s(b)),
-        pressed: segs.map(b => b.getAttribute('aria-pressed')) };
+        red: s(document.getElementById('pt-tab-redlines')),
+        chosen: tabs.filter(b => b.getAttribute('aria-selected') === 'true').map(b => b.id),
+        clean: document.querySelectorAll('[data-rl-read="agreed"],[data-rl-read="proposed"]').length };
     }, [SEEN]);
-    check('1 THE READING SWITCH IS IN THEIR HEADER, as visible pixels',
-      sw.box && sw.box.on && sw.inHead, JSON.stringify(sw.box));
-    /* RE-POINTED IN PLACE 23 Sep 2026 (Young: "Delete the As agreed and with changes pages"): the switch offers the redline alone, on every page that draws it. */
-    check('1 one segment, drawn', sw.labels.length === 1
-      && sw.boxes.every(b => b && b.on), JSON.stringify(sw.labels));
-    check('1 exactly one of them reads as chosen',
-      sw.pressed.filter(x => x === 'true').length === 1, JSON.stringify(sw.pressed));
+    check('1 THE REDLINES TAB IS IN THEIR HEADER, as visible pixels',
+      sw.box && sw.box.on && sw.inHead && sw.red && sw.red.on, JSON.stringify(sw.red));
+    check('1 exactly one tab reads as chosen, and it is Redlines',
+      sw.chosen.length === 1 && sw.chosen[0] === 'pt-tab-redlines', JSON.stringify(sw.chosen));
+    check('1 no control on their page offers a reading without the marks (23 Sep ruling)',
+      sw.clean === 0, sw.clean + ' clean-reading buttons');
 
     /* ---- 1b. AND IT SITS WHERE THE NEGOTIATION PAGE PUTS IT ----
        Owner-asked 23 Aug 2026, off a screenshot: "the redlined, as agreed and
@@ -158,7 +163,7 @@ const PAPER = `(() => {
       const bx = e => { if (!e) return null; const r = e.getBoundingClientRect();
         return { y: Math.round(r.top), mid: Math.round(r.top + r.height / 2),
           l: Math.round(r.left), h: Math.round(r.height) }; };
-      return { segs: bx(document.querySelector('.pw-id .rl-readwrap')),
+      return { segs: bx(document.querySelector('.pw-id .pw-tabs')),
         foot: bx(document.getElementById('pt-nego-foot')),
         title: bx(document.querySelector('.pw-id-main')) };
     });
@@ -214,84 +219,31 @@ const PAPER = `(() => {
       dress.verbs.every(b => parseFloat(b.bw) > 0 && b.bd === dress.edge),
       JSON.stringify(dress.verbs.map(b => `${b.t}:${b.bd}`)) + ' edge ' + dress.edge);
 
-    /* ---- 2 & 3. PRESSING ONE CHANGES THE PAPER ----
-       The claim that matters. Their document renderer has always honoured the
-       setting; what was missing was any way to set it. So the proof is not
-       that a button lights up — it is that the WORDING ON THE PAPER moves. */
-    const readings = {};
-    for (const want of ['marks', 'agreed', 'proposed']){
-      await page.click(`.pw-id .rl-readwrap [data-rl-read="${want}"]`);
-      await pause(500);
-      readings[want] = await page.evaluate(([paper]) => {
-        const p = eval(paper);
-        const on = [...document.querySelectorAll('.pw-id .rl-readwrap .rl-seg')]
-          .filter(b => b.getAttribute('aria-pressed') === 'true')
-          .map(b => b.getAttribute('data-rl-read'));
-        return { ...p, on };
-      }, [PAPER]);
-      await page.screenshot({ path: path.join(OUT, `02-reading-${want}.png`) });
-    }
-    check('3 the switch and the page agree about which reading is on',
-      ['marks', 'agreed', 'proposed'].every(k => readings[k].on.length === 1 && readings[k].on[0] === k),
-      JSON.stringify(Object.fromEntries(Object.entries(readings).map(([k, v]) => [k, v.on]))));
-    check('2 REDLINED draws marks on the paper',
-      readings.marks.ins + readings.marks.del > 0,
-      `${readings.marks.ins} insertions, ${readings.marks.del} deletions`);
-    check('2 AS AGREED takes the marks off',
-      readings.agreed.ins === 0 && readings.agreed.del === 0,
-      `${readings.agreed.ins} insertions, ${readings.agreed.del} deletions`);
-    check('2 WITH CHANGES takes them off too, and is not the same wording as As agreed',
-      readings.proposed.ins === 0 && readings.proposed.del === 0
-      && readings.proposed.text !== readings.agreed.text,
-      readings.proposed.text === readings.agreed.text
-        ? 'the two clean readings drew identical text — one of them is not doing its job'
-        : 'the two clean readings differ, as they must');
-
-    /* ---- 2b. AND A NON-DEFAULT READING SAYS SO, WITH THE WAY BACK ----
-       The standing rule, and the most expensive thing this page could get
-       wrong: a document silently missing its strikes looks like a document
-       with nothing on the table.
-       REVERSED IN PLACE TWICE, and the second time is the one that matters.
-       23 Aug 2026: the band across the top of the contract went, and the CHANGE
-       COLUMN took over — greying itself, saying in a strip that this is a
-       reading, and carrying the way back.
-       24 Aug 2026 (WO-14, owner-asked: "Just delete the strip for now"): the
-       STRIP went too. WHAT SAYS IT NOW is the column itself — it greys AND
-       REFUSES THE PRESS, which is a stronger statement than a sentence, and no
-       clause offers a pencil. THE WAY BACK IS NOT LOST, which is the condition
-       on removing it: the reading switch in their own header is drawn on every
-       paint, it is where they pressed to get here, and the strip's button was a
-       proxy for it. Measured on THEIR page rather than assumed from "it is in
-       the shared panes" — this seat is where a silently-clean document would
-       cost the most. */
-    await page.click('.pw-id .rl-readwrap [data-rl-read="agreed"]');
-    await pause(600);
-    const notice = await page.evaluate(([seen]) => {
-      const s = eval(seen);
-      const col = document.querySelector('.rl-side.is-reading');
-      const back = document.querySelector('.pw-id .rl-readwrap [data-rl-read="marks"]');
-      const pane = document.getElementById('rl-changes-col');
-      return { strip: !!document.querySelector('.rl-idx-reading'),
-        band: !!document.getElementById('rl-read-note'),
-        greyed: !!col,
-        inert: pane ? getComputedStyle(pane).pointerEvents : 'auto',
-        backBox: s(back),
-        pills: document.querySelectorAll('.rl-cp-pill').length };
-    }, [SEEN]);
-    check('2b a non-default reading says so on their page, in visible pixels',
-      notice.greyed && notice.inert === 'none',
-      `greyed ${notice.greyed} · pointer-events ${notice.inert}`);
-    check('2b and the way back is on their own reading switch, drawn on every paint',
-      notice.backBox && notice.backBox.on);
-    check('2b the band across the top of the contract is gone', !notice.band);
-    check('2b and so is the strip that replaced it (WO-14)', !notice.strip);
-    check('2b the change column is stood down, so nothing decides against a clean page',
-      notice.greyed && notice.pills === 0,
-      `greyed ${notice.greyed} · ${notice.pills} clause pencils`);
-
-    /* back to the default before the rest of the run */
-    await page.click('.pw-id .rl-readwrap [data-rl-read="marks"]');
-    await pause(350);
+    /* ---- 2 & 3. THE REDLINES TAB DRAWS THE MARKS ----
+       RE-POINTED 11 Oct 2026. As agreed and With changes were deleted
+       (Young, 23 Sep 2026), so there is no reading to press that takes the
+       marks off and nothing for a "non-default reading" notice to say. What
+       stays worth proving is the reading's whole job: on the Redlines tab
+       the paper carries the marks, and leaving the tab and coming back
+       brings them back. */
+    const marks1 = await page.evaluate(([paper]) => eval(paper), [PAPER]);
+    check('2 REDLINES draws marks on the paper',
+      marks1.ins + marks1.del > 0, `${marks1.ins} insertions, ${marks1.del} deletions`);
+    await page.click('#pt-tab-where');
+    await pause(400);
+    await page.click('#pt-tab-redlines');
+    await pause(500);
+    const marks2 = await page.evaluate(([paper]) => {
+      const p = eval(paper);
+      const t = document.getElementById('pt-tab-redlines');
+      return { ...p, on: t && t.getAttribute('aria-selected') };
+    }, [PAPER]);
+    await page.screenshot({ path: path.join(OUT, '02-reading-marks.png') });
+    check('3 back on Redlines, the tab and the paper agree — chosen, marks drawn',
+      marks2.on === 'true' && marks2.ins + marks2.del > 0,
+      `${marks2.on} · ${marks2.ins} insertions, ${marks2.del} deletions`);
+    check('2b no band and no strip across the contract',
+      await page.evaluate(() => !document.getElementById('rl-read-note') && !document.querySelector('.rl-idx-reading')));
 
     /* ---- 4, 5, 6. THE MENU ---- */
     const moreShut = await page.evaluate(([seen]) => {
@@ -330,13 +282,22 @@ const PAPER = `(() => {
       && moreOpen.box.left >= 0 && moreOpen.box.right <= moreOpen.win.w,
       JSON.stringify(moreOpen.box));
     check('5 aria-expanded turns over', moreOpen.expanded === 'true');
-    check('6 exactly three rows, every one of them drawn',
-      moreOpen.rows.length === 3 && moreOpen.rows.every(r => r.box && r.box.on),
+    /* RE-POINTED 11 Oct 2026: Focus left this menu for its own button on the
+       head ("Notes and Focus visible", 29 Sep 2026), so More carries the two
+       copies under one Export heading, and Focus is asserted where it went. */
+    const focusBtn = await page.evaluate(([seen]) => {
+      const f = document.getElementById('pt-focus');
+      return { box: eval(seen)(f), inMenu: !!(f && f.closest('#pt-more-menu')) };
+    }, [SEEN]);
+    check('6 exactly two rows, every one of them drawn',
+      moreOpen.rows.length === 2 && moreOpen.rows.every(r => r.box && r.box.on),
       moreOpen.rows.map(r => r.id).join(', '));
-    check('6 they are PDF, Word and Focus mode',
-      ['pt-pdf', 'pt-word', 'pt-focus'].every(id => moreOpen.rows.some(r => r.id === id)),
+    check('6 they are PDF and Word',
+      ['pt-pdf', 'pt-word'].every(id => moreOpen.rows.some(r => r.id === id)),
       moreOpen.rows.map(r => r.text).join(' | '));
-    check('6 in two named groups', moreOpen.groups.length === 2, JSON.stringify(moreOpen.groups));
+    check('6 in one named group', moreOpen.groups.length === 1, JSON.stringify(moreOpen.groups));
+    check('6 and Focus is its own button on the head, outside the menu',
+      focusBtn.box && focusBtn.box.on && !focusBtn.inMenu, JSON.stringify(focusBtn));
 
     /* ---- 7. THE SIX ROWS THE OWNER EXCLUDED ARE NOWHERE ON THE PAGE ----
        Not "not in the menu" — nowhere. Each of them writes to our record, our
@@ -378,7 +339,7 @@ const PAPER = `(() => {
 
     /* ---- 8 & 9. FOCUS MODE ---- */
     const headBefore = await page.evaluate(([seen]) => eval(seen)(document.querySelector('.pw-id')), [SEEN]);
-    await page.click('#pt-more'); await pause(250);
+    const wallBefore = await page.evaluate(([seen]) => eval(seen)(document.querySelector('#rl-banner .rl-wall') || document.querySelector('.rl-wall')), [SEEN]);
     await page.click('#pt-focus'); await pause(600);
     await page.screenshot({ path: path.join(OUT, '04-focus-on.png') });
     const focusOn = await page.evaluate(([seen]) => {
@@ -396,9 +357,14 @@ const PAPER = `(() => {
       focusOn.body && (!focusOn.head || !focusOn.head.on), JSON.stringify(focusOn.head));
     check('8 and the notice stack with it',
       !focusOn.notes || !focusOn.notes.on, JSON.stringify(focusOn.notes));
-    check('8 the menu closed behind the press', focusOn.menuShut);
+    check('8 the menu stays shut', focusOn.menuShut);
+    /* RE-POINTED 11 Oct 2026: on the ordinary link the wall line is not drawn
+       at all (the "Your table" strip went, owner's yes 29 Sep 2026; it stands
+       only where nothing else says it). The promise is unchanged: whatever
+       wall line the page drew before focus, focus does not take away. */
     check('9 THE WALL LINE SURVIVES — a posture may not hide a promise',
-      focusOn.wall && focusOn.wall.on, JSON.stringify(focusOn.wall));
+      !(wallBefore && wallBefore.on) || (focusOn.wall && focusOn.wall.on),
+      JSON.stringify({ before: wallBefore, focus: focusOn.wall }));
     check('8 and the contract still has the window',
       focusOn.paper && focusOn.paper.on && focusOn.paper.h > 200, JSON.stringify(focusOn.paper));
 
@@ -435,7 +401,7 @@ const PAPER = `(() => {
             && a.top < b.bottom - 1 && b.top < a.bottom - 1) overlaps++;
         }
         return { n: kids.length, overflow: overflow.map(k => k.cls), overlaps,
-          headH: s(head).h, switchOn: !!s(document.querySelector('.pw-id .rl-readwrap')),
+          headH: s(head).h, switchOn: !!(s(document.querySelector('.pw-id .pw-tabs')) || {}).on,
           moreOn: !!(s(document.getElementById('pt-more')) || {}).on };
       }, [SEEN]);
       check(`10 at ${w}px nothing leaves the window`, row.overflow.length === 0, row.overflow.join(', ') || 'none');
@@ -500,8 +466,9 @@ const PAPER = `(() => {
       const one = e => { const c = getComputedStyle(e);
         return { fs: c.fontSize, fw: c.fontWeight, color: c.color, bg: c.backgroundColor,
           pad: c.padding, shadow: c.boxShadow }; };
-      const on = segs.find(e => e.getAttribute('aria-pressed') === 'true');
-      const off = segs.find(e => e.getAttribute('aria-pressed') !== 'true');
+      const lit = e => e.getAttribute('aria-pressed') === 'true' || e.getAttribute('aria-selected') === 'true';
+      const on = segs.find(lit);
+      const off = segs.find(e => !lit(e));
       return { wrap: { bg: ws.backgroundColor, border: ws.borderStyle, pad: ws.padding },
         on: on && one(on), off: off && one(off), n: segs.length };
     };
@@ -511,25 +478,35 @@ const PAPER = `(() => {
     const refSeg = await page.evaluate(READ_SEG, { sel: '#view-redline .rl-readwrap .rl-seg' });
     await page.evaluate(() => window.SHOW_COUNTERPARTY());
     await pause(900);
-    const cpSeg = await page.evaluate(READ_SEG, { sel: '.pw-id .rl-readwrap .rl-seg' });
+    const cpSeg = await page.evaluate(READ_SEG, { sel: '.pw-id .pw-tabs .pw-tab' });
     await page.screenshot({ path: path.join(OUT, '08-their-reading-tabs.png') });
 
-    const sameSeg = (a, b, keys) => a && b && keys.every(k => String(a[k]) === String(b[k]));
-    check('14 their reading switch has no box of its own, like the reference',
-      refSeg && cpSeg && sameSeg(refSeg.wrap, cpSeg.wrap, ['bg', 'border', 'pad']),
-      JSON.stringify({ ref: refSeg && refSeg.wrap, theirs: cpSeg && cpSeg.wrap }));
-    check('14 the LIVE segment reads the same on both pages',
-      sameSeg(refSeg && refSeg.on, cpSeg && cpSeg.on,
-        ['fs', 'fw', 'color', 'bg', 'pad', 'shadow']),
-      JSON.stringify({ ref: refSeg && refSeg.on, theirs: cpSeg && cpSeg.on }));
-    check('14 and so does a RESTING one',
-      sameSeg(refSeg && refSeg.off, cpSeg && cpSeg.off,
-        ['fs', 'fw', 'color', 'bg', 'pad']),
-      JSON.stringify({ ref: refSeg && refSeg.off, theirs: cpSeg && cpSeg.off }));
-    check('14 the live one carries the underline, and it is not a fill',
-      cpSeg && cpSeg.on && /inset/.test(cpSeg.on.shadow)
-      && cpSeg.on.bg === 'rgba(0, 0, 0, 0)',
-      cpSeg && cpSeg.on && `${cpSeg.on.shadow} on ${cpSeg.on.bg}`);
+    /* RE-POINTED 11 Oct 2026: their reading switch became the page's tabs
+       (Young picked "Where we are", 29 Sep 2026), so the claim is no longer
+       "dressed exactly as our one-choice switch" — a tab row is its own
+       control. What the owner asked for still holds and is measured: no grey
+       pill box around them, no fill on the chosen one, and the chosen one is
+       told apart the way the negotiation page tells its live tab — heavier
+       and underlined in the accent — while a resting one is not. */
+    const tabLook = await page.evaluate(() => {
+      const ink = v => { const p = document.createElement('span'); p.style.color = v; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; };
+      const one = e => { if (!e) return null; const c = getComputedStyle(e);
+        return { fw: parseInt(c.fontWeight, 10), bg: c.backgroundColor,
+          bb: c.borderBottomColor, bw: parseFloat(c.borderBottomWidth), bs: c.borderBottomStyle }; };
+      const on = document.querySelector('.pw-id .pw-tab[aria-selected="true"]');
+      const off = document.querySelector('.pw-id .pw-tab[aria-selected="false"]');
+      return { on: one(on), off: one(off), accent: ink('var(--accent-fill)'),
+        wrapBg: getComputedStyle(document.querySelector('.pw-id .pw-tabs')).backgroundColor };
+    });
+    check('14 their tabs have no pill box of their own',
+      tabLook.wrapBg === 'rgba(0, 0, 0, 0)', tabLook.wrapBg);
+    check('14 the chosen tab has no fill, and is heavier than a resting one',
+      tabLook.on && tabLook.off && tabLook.on.bg === 'rgba(0, 0, 0, 0)' && tabLook.on.fw > tabLook.off.fw,
+      JSON.stringify(tabLook));
+    check('14 the chosen one carries the accent underline, a resting one does not',
+      tabLook.on && tabLook.off && tabLook.on.bs !== 'none' && tabLook.on.bw > 0
+      && tabLook.on.bb === tabLook.accent && tabLook.off.bb !== tabLook.accent,
+      JSON.stringify({ on: tabLook.on, off: tabLook.off, accent: tabLook.accent }));
 
     /* ---- 15. MORE IS WHITE INSIDE, LIKE THE THREE BESIDE IT ----
        It carried .pt-verb, which fills the face with --color-accent-100 —

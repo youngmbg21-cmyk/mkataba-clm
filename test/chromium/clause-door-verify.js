@@ -68,7 +68,13 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      because this file only ever ran in the sandbox — the exact habit run-all.js
      was written to end, caught by run-all.js on its first push. */
   const br=await chromium.launch({executablePath:EXEC,args:['--no-sandbox']});
-  const p=await br.newPage({viewport:{width:1500,height:1000},deviceScaleFactor:2});
+  /* STAGED AT 1000px (re-pointed 11 Oct 2026). Young ruled "No pen on any
+     paper" on 9 Oct: at an editor-taking width (1024px and up) the clause
+     carries no pencil and opens the clause editor through "Edit clause"
+     (edit-clause-door-verify measures that door). The pencil and the panel
+     it opens live on under 1024px — the product's own condition — so that
+     is where this file presses them. */
+  const p=await br.newPage({viewport:{width:1000,height:1000},deviceScaleFactor:2});
   const errs=[];p.on('pageerror',e=>errs.push(e.message));
   await p.goto(`http://127.0.0.1:${srv.address().port}/test/chromium/parity.html`,{waitUntil:'load'});
   /* ---- THE STAGE HAS NO SHELL (11 Sep 2026) ----
@@ -213,6 +219,9 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       visible: getComputedStyle(panel).visibility === 'visible',
       w: Math.round(r.width), h: Math.round(r.height), w0left: Math.round(r.left),
       onRightWall: Math.abs(Math.round(r.right - grid.right)) <= 2,
+      onWinWall: Math.abs(Math.round(r.right) - innerWidth) <= 2, right: Math.round(r.right),
+      winW: innerWidth, winH: innerHeight,
+      sideBelow: side.top >= doc.getBoundingClientRect().bottom - 2,
       onScreen: r.left < 1500 && r.right > 0,
       forClause: on && on.getAttribute('data-rl-cp-for'),
       /* THE CLAUSES' bodies. The front matter has one too since 28 Aug 2026,
@@ -249,8 +258,12 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      !!open && open.openClass && open.visible, open && `is-open ${open.openClass}, ${open.visibility||open.visible}`);
   ck('2b it is really on screen, with a real size',
      !!open && open.onScreen && open.w > 300 && open.h > 300, open && `${open.w}x${open.h}`);
-  ck('2c it hangs on the PAGE\'s own right wall, not the window\'s',
-     !!open && open.onRightWall, open && `right edge offset ${open.w}`);
+  /* RE-POINTED 11 Oct 2026: under 1024px (the only width the panel opens at
+     since "No pen on any paper", 9 Oct) the cards column stacks UNDER the
+     paper, so there is no column beside it to hang on: the panel is a sheet
+     on the window's own right wall, full height. */
+  ck('2c it hangs on the window\'s right wall, full height — the narrow seat\'s sheet',
+     !!open && open.onWinWall && open.h >= open.winH - 2, open && `right ${open.right} of ${open.winW}, ${open.h}px tall`);
   ck('2d it opened on the clause that was pressed',
      !!open && open.forClause === staged.clauseId, open && open.forClause);
   ck('2e ONE clause at a time, though every clause\'s body is in the panel',
@@ -296,13 +309,17 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      proportion bought and what covered the contract's own words. Owner-asked:
      stop it at the cards column. The claim is now the opposite and it is
      stricter — the panel must BE that column, to the pixel, on every edge. */
-  ck('2i it IS the cards column, to the pixel, on all four edges',
-     !!open && open.onColumn.every(Boolean), open && JSON.stringify(open.onColumn));
-  ck('2i′ and NO WORD of the contract is behind it',
-     !!open && open.textRight < open.w0left, open && `text ends ${open.textRight}, panel starts ${open.w0left}`);
-  ck('2i″ every clause\'s Edit pill stays in the clear',
-     !!open && open.pillsTotal > 1 && open.pillsClear === open.pillsTotal,
-     open && `${open.pillsClear}/${open.pillsTotal}`);
+  /* RE-POINTED 11 Oct 2026: "it IS the cards column" was the wide seat's
+     claim (16 Aug 2026), and at the wide seat there is no panel now. Under
+     1024px the column is drawn below the paper, so the sheet necessarily lies
+     over part of the wording; what the 16 Aug ruling protected — the contract
+     stays lit and usable beside it — is 2g/2g′/2g″ above. Measured here: the
+     column really is below the paper at this width, and the sheet leaves the
+     wording's left side uncovered. */
+  ck('2i at this width the cards column sits below the paper',
+     !!open && open.sideBelow, open && JSON.stringify(open.onColumn));
+  ck('2i′ and the sheet leaves the wording\'s left side in the clear',
+     !!open && open.w0left > 300, open && `panel starts ${open.w0left}`);
 
   const docAfter = await p.evaluate(() => {
     const d = document.querySelector('.redline-page #rl-doc');
@@ -348,6 +365,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
         t:b.textContent.trim(), edit:b.getAttribute('data-nego-edit'),
         plus:b.getAttribute('data-rl-cp-edit'),
         ai:b.getAttribute('data-nego-ai-clause'), close:b.hasAttribute('data-rl-cp-close'),
+        dead:b.disabled && b.getAttribute('data-rl-dead') === '1', tip:b.getAttribute('title'),
         cls:b.className })),
       sheetTools: document.querySelectorAll('#rl-cp .rl-tool').length,
     };
@@ -373,9 +391,13 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      more (owner-asked; see 8c), so the panel offers TWO acts: the ＋ that writes
      here, and the Copilot that hands the whole clause over and closes behind
      itself. Direct Edit is still gone, and that half of the claim is unchanged. */
-  ck('3d the panel offers the ＋ and the Copilot, and Direct Edit is gone',
+  /* RE-POINTED 11 Oct 2026: at this width the clause editor cannot open, so
+     Edit with Copilot is drawn GREYED with its reason (ce_too_narrow — "a dead
+     button never wears a live one's clothes", the 9 Oct 2026 review), not
+     offered and then refused. Still two acts, still no Direct Edit. */
+  ck('3d the panel offers the ＋ and a greyed Copilot that says why, and Direct Edit is gone',
      said.acts.length === 2 && said.acts[0].plus === staged.clauseId
-     && !said.acts.some(a => a.edit) && said.acts.some(a => a.ai),
+     && !said.acts.some(a => a.edit) && said.acts.some(a => a.dead && a.tip),
      said.acts.map(a=>a.t).join(' / '));
   ck('3d″ and it does not close the panel it writes into',
      !!said.acts[0] && !said.acts[0].close,
@@ -615,8 +637,10 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   }
 
   /* Back to the page's own width: stage 6 ran narrow, where the row's Open
-     reaches the panel (from 1024 up its Edit/Counter open the editor page). */
-  await p.setViewportSize({ width: 1500, height: 1000 });
+     reaches the panel (from 1024 up its Edit/Counter open the editor page).
+     RE-POINTED 11 Oct 2026: "the page's own width" for this file is 1000px
+     now — the pencil and its panel live only under 1024 (see the top). */
+  await p.setViewportSize({ width: 1000, height: 1000 });
   await p.evaluate(()=>window.SHOW_OWNER()); await pause(900);
 
   /* ---- 7. THE EDITING IS IN THE PANEL, DRIVEN FOR REAL ----
@@ -633,7 +657,9 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   const acts = await p.evaluate(()=>[...document.querySelectorAll(
     '#rl-cp .rl-cp-src.is-on .rl-cp-acts button')].map(b => ({
       t:b.textContent.trim(), plus:b.hasAttribute('data-rl-cp-edit'),
-      ai:b.hasAttribute('data-nego-ai-clause'), direct:b.hasAttribute('data-nego-edit') })));
+      ai:b.classList.contains('rl-cp-act-ai'), direct:b.hasAttribute('data-nego-edit') })));
+  /* RE-POINTED 11 Oct 2026: the Copilot is still one of the two acts; at this
+     width it is drawn greyed (see 3d), so it is found by its own class. */
   ck('7a the panel offers the ＋ and the Copilot; Direct Edit is not among them',
      acts.length===2 && acts[0].plus && acts.some(a=>a.ai) && !acts.some(a=>a.direct),
      acts.map(a=>a.t).join(' / '));
@@ -670,7 +696,10 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   const scale = await p.evaluate(async () => {
     const read = () => ({
       save: parseFloat(getComputedStyle(document.querySelector('#rl-cp .nego-edit-bar button')).fontSize),
-      tool: parseFloat(getComputedStyle(document.querySelector('#rl-doc .rl-clause .rl-cp-pill')).fontSize) });
+      /* RE-POINTED 11 Oct 2026: while the panel's editor is open the paper
+         draws no pencil, so the paper is read off its own wording — which is
+         what "the paper scales" means. */
+      tool: parseFloat(getComputedStyle(document.querySelector('#rl-doc .rl-clause .nego-body')).fontSize) });
     const at15 = read();
     rlSetDocType(20); await new Promise(r=>setTimeout(r,300));
     const at20 = read();
@@ -856,42 +885,38 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      copilot dropdown appears on the top right corner": the press must hand
      straight to the Copilot and leave no stray menu clamped into the corner of
      the window. That is 8d, measured after a real press. */
+  /* RE-POINTED 11 Oct 2026. The pressable Copilot button (19 Aug) opens the
+     clause editor, and the editor needs 1024px; on our seat at that width the
+     panel is the ladder only and the clause carries no pencil (9 Oct, "No pen
+     on any paper"). Where the panel's acts ARE drawn — under 1024px — the
+     Copilot is GREYED with the reason (the 9 Oct review: a dead button never
+     wears a live one's clothes). The door to the editor is measured by
+     edit-clause-door-verify. What stays pinned here is the ORIGINAL REPORT —
+     "the panel disappears and the copilot dropdown appears on the top right
+     corner": a press on it leaves no stray menu and does not take the panel
+     away. */
   const cop = await p.evaluate(() => {
     const on = document.querySelector('#rl-cp .rl-cp-src.is-on');
-    const btn = on.querySelector('[data-nego-ai-clause]');
+    const btn = on.querySelector('.rl-cp-act-ai');
     if (!btn) return { none: true };
-    const s = getComputedStyle(btn), r = btn.getBoundingClientRect();
-    return { tag: btn.tagName, text: btn.textContent.trim(), cursor: s.cursor,
-      colour: s.color, w: Math.round(r.width), h: Math.round(r.height),
-      note: !!on.querySelector('.rl-cp-ai-note') };
+    const r = btn.getBoundingClientRect();
+    return { tag: btn.tagName, text: btn.textContent.trim(), dead: btn.disabled,
+      tip: btn.getAttribute('title') || '', w: Math.round(r.width), h: Math.round(r.height) };
   });
-  ck('8c the Copilot is a real, pressable button in the panel',
+  ck('8c the Copilot is drawn in the panel, greyed, saying why',
      !cop.none && cop.tag === 'BUTTON' && /Edit with Copilot/.test(cop.text)
-     && cop.w > 40 && cop.h > 10 && !cop.note,
-     cop.none ? 'no button' : `${cop.tag} "${cop.text}" ${cop.w}x${cop.h}`);
+     && cop.w > 40 && cop.h > 10 && cop.dead && cop.tip.length > 10,
+     cop.none ? 'no button' : `${cop.tag} "${cop.text}" dead ${cop.dead} — ${cop.tip}`);
   const copPress = await (async () => {
-    await p.click('#rl-cp .rl-cp-src.is-on [data-nego-ai-clause]');
+    await p.evaluate(() => { const b = document.querySelector('#rl-cp .rl-cp-src.is-on .rl-cp-act-ai'); if (b) b.click(); });
     await pause(400);
-    return p.evaluate(() => {
-      const m = document.querySelector('.nego-selmenu');
-      const box = m ? m.getBoundingClientRect() : null;
-      return { menu: !!m, left: box ? Math.round(box.left) : null,
-        top: box ? Math.round(box.top) : null,
-        editor: !!document.getElementById('clause-editor'),
-        panelHeld: !!document.querySelector('#rl-cp.is-open') };
-    });
+    return p.evaluate(() => ({ menu: !!document.querySelector('.nego-selmenu'),
+      editor: !!document.getElementById('clause-editor'),
+      panelHeld: !!document.querySelector('#rl-cp.is-open') }));
   })();
-  /* WHAT THE PRESS HANDS OVER TO CHANGED ON 25 Aug 2026 and this claim is
-     REVERSED IN PLACE: it used to open the Copilot DRAWER, and it opens the
-     clause EDITOR now (f245). The original report is still exactly what is
-     pinned — "the panel disappears and the copilot dropdown appears on the top
-     right corner" — so the no-stray-menu half is untouched, and the half that
-     names the destination follows the destination. */
-  ck('8d …and pressing it opens the clause editor, with no dropdown left in the corner',
-     copPress.menu === false && copPress.editor === true,
-     copPress.menu ? `a menu at ${copPress.left},${copPress.top}`
-       : (copPress.editor ? 'the editor, no stray menu' : 'no editor'));
-  ck('8d2 and the clause panel is still standing behind it, to come back to',
+  ck('8d …and pressing it leaves no dropdown in the corner and opens nothing',
+     copPress.menu === false && copPress.editor === false, JSON.stringify(copPress));
+  ck('8d2 and the clause panel is still standing',
      copPress.panelHeld === true, copPress.panelHeld ? 'panel held' : 'panel shut');
   /* CLOSED AGAIN BEFORE THE FILE GOES ON. The editor is a fixed layer over the
      whole window; left open it covers every pixel the checks below measure,
@@ -1438,7 +1463,9 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       /* RE-POINTED 29 Aug 2026 — the door moved for the whole canvas and the
          claim was always that the region carries the SAME one, pointed at
          itself. */
-      opens: pen ? pen.getAttribute('data-rl-cp-editor') : null,
+      /* RE-POINTED 11 Oct 2026: under 1024px the door is the panel's
+         (data-rl-cp-open), the same one a clause's pencil carries there. */
+      opens: pen ? (pen.getAttribute('data-rl-cp-editor') || pen.getAttribute('data-rl-cp-open')) : null,
       /* top right of the region, exactly where a clause's sits */
       rightGap: (r && hr) ? Math.round(hr.right - r.right) : -1,
       topGap: (r && hr) ? Math.round(r.top - hr.top) : -1,
@@ -1491,13 +1518,27 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      in the same change that gave it somewhere new to go. So the destination is
      asserted here by DRIVING it, and a state check would not do — a pill that
      opens nothing looks identical in the markup to one that opens a page. */
-  const landed = await p.evaluate(async id => {
-    const sec = document.querySelector(`.redline-page .nego-clause[data-clause="${id}"]`);
-    const b = sec && sec.querySelector('.rl-cp-pill');
-    if (!b) return { none: 'no pencil on the staged clause' };
-    const attr = b.getAttribute('data-rl-cp-editor');
-    b.click();
-    await new Promise(r => setTimeout(r, 800));
+  /* RE-POINTED 11 Oct 2026: the door onto the editor page is "Edit clause"
+     on the control row since Young's 9 Oct ruling ("No pen on any paper"),
+     at the width where the editor opens. It opens the clause being read, so
+     the staged clause is brought to the reading line first and the button is
+     pressed for real. Everything the 29 Aug reports pinned — one press lands
+     on the page, on the clause, ready to type, with the marks in the box —
+     is asserted exactly as before. */
+  await p.setViewportSize({ width: 1500, height: 1000 });
+  await p.evaluate(() => window.SHOW_OWNER()); await pause(900);
+  await p.evaluate(id => {
+    const sec = document.querySelector(`.redline-page .rl-paper [data-nego-working="${id}"]`)
+      || document.querySelector(`.redline-page .nego-clause[data-clause="${id}"]`);
+    if (sec) sec.scrollIntoView({ block: 'start', behavior: 'instant' });
+  }, staged.clauseId);
+  await pause(500);
+  const door16 = await p.$('.redline-page [data-rl-edit-clause]');
+  const attr16 = door16 ? await door16.getAttribute('data-rl-edit-clause') : null;
+  if (door16) await door16.click();
+  await pause(800);
+  const landed = await p.evaluate(async attr => {
+    if (!attr) return { none: 'no Edit clause door on the page' };
     const page = document.getElementById('clause-editor');
     const box = document.querySelector('#ce-clausebody');
     const on = box && box.closest('[data-clause]');
@@ -1522,9 +1563,9 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
         && document.getElementById('ce-twin').getBoundingClientRect().top >= box.getBoundingClientRect().bottom - 1,
       /* and the panel is NOT what opened — that is the half the ruling changed */
       panel: !!document.querySelector('#rl-cp.is-on, #rl-cp-body .rl-cp-src.is-on') };
-  }, staged.clauseId);
-  ck('16a the pencil names the editor as its door',
-     landed.attr === staged.clauseId, String(landed.attr));
+  }, attr16);
+  ck('16a "Edit clause" names the editor as its door at this width',
+     landed.attr === 'editor', String(landed.attr));
   ck('16b A REAL PRESS OPENS THE EDITOR PAGE, as pixels',
      landed.page === true && landed.visible === true, JSON.stringify(landed));
   ck('16c \u2026on the clause that was pressed',
@@ -1883,8 +1924,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     await p.mouse.click(1400, 60); await pause(250);
     /* the pencil itself opens exactly once */
     const pen17 = await p.evaluate(id => {
-      const sec = document.querySelector(`.rl-doc [data-clause="${CSS.escape(id)}"]`);
-      const b = sec && sec.querySelector('[data-rl-cp-editor], [data-rl-cp-open]');
+      const b = document.querySelector('.redline-page [data-rl-edit-clause="editor"]');
       if (!b) return null;
       window.__opens17 = 0;
       const real = window.rlOpenClauseEditor;
@@ -1896,7 +1936,8 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     if (pen17){ await p.mouse.move(pen17.x, pen17.y); await pause(150); await p.mouse.click(pen17.x, pen17.y); await pause(800); }
     const pen17b = await p.evaluate(() => { const out = { opens: window.__opens17, open: !!(window.clauseEditorOpen && clauseEditorOpen()) };
       window.rlOpenClauseEditor = window.__realOpen17; delete window.__realOpen17; return out; });
-    ck('17c (control) …and a press ON the pencil opens the editor exactly once — one door, one act',
+    /* RE-POINTED 11 Oct 2026: the door is "Edit clause" (see 16). */
+    ck('17c (control) …and a press ON "Edit clause" opens the editor exactly once — one door, one act',
        !!pen17 && pen17b.opens === 1 && pen17b.open, JSON.stringify(pen17b));
     await p.evaluate(() => { if (window.clauseEditorOpen && clauseEditorOpen()) rlCloseClauseEditor(); });
     await p.evaluate(() => { const b = document.getElementById('cf-ok'); if (b) b.click(); }); await pause(300);

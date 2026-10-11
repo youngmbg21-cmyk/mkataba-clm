@@ -61,25 +61,6 @@ const KNOWN_RED = {
     'verify (Review opens the work below the card), agents-do-the-work-verify and ' +
     'no-link-to-sign-verify (the readings and panels). Take it off when it is ported ' +
     'to the Board (BUGLOG, 8 Oct 2026).',
-  'clause-door-verify.js':
-    'STALE AFTER A DELIBERATE CHANGE, 9 Oct 2026: Young ruled "No pen on any paper" (the ' +
-    'Paper and Counter review, change 5) — at an editor-taking width the clause carries no ' +
-    'pencil and a click in the wording types in place. This file measures that pencil ' +
-    '(sections 1, 2, 15–17) and opens the clause panel through it, so it stops at section 1. ' +
-    'The new door is measured by edit-clause-door-verify (Edit clause, 9 Oct 2026); the panel still lives under 1024px. ' +
-    'Take it off when its panel sections are re-staged at a narrow width.',
-  'panel-alerts-and-head-verify.js':
-    'ITS HEAD CLAIMS ARE STALE, NOT THIS BRANCH\'S. It asks for render B1 — ' +
-    'three .rl-fseg cuts, the 19px count as the headline with its uppercase ' +
-    'caption underneath, the live one the only coloured thing on the row. That ' +
-    'head became a <select> in "The negotiation page takes the render" ' +
-    '(f3bc058) and this file was never re-pointed; PROVED by running it in a ' +
-    'worktree at unmodified origin/main, where the identical 7 checks fail and ' +
-    'it throws in the same place. WO-8 of the screenshot work order only MOVED ' +
-    'that control into the slot the owner drew and did not choose its shape. ' +
-    'WHAT IT NEEDS is whoever owns that render saying what B1\'s claims become ' +
-    'now the cuts are options — everything else in the file (the alerts rows, ' +
-    'the WORKING TEXT lid) is green and worth keeping.',
   /* --- RED BEFORE THE OVERNIGHT RUN (28 Sep 2026), IDENTICALLY ---
      Each file below failed with exactly these checks (or this throw) in a
      worktree at unmodified main a837d09, before any of that night's work, so
@@ -87,8 +68,6 @@ const KNOWN_RED = {
      written and needs re-pointing by someone who owns that screen. Listed so
      the run is an alarm again rather than a list. Take a file off the day it
      goes green. */
-  'counterparty-reading-and-more-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: throws: a TimeoutError waiting for a control.',
   'notes-two-rooms-verify.js':
     'RE-POINTED 11 Oct 2026 and now RED ON THE PRODUCT, not the file: Chat left the shell bar for the contract\'s acts row (20 Sep 2026), and the open Notes drawer covers that row, so the SECOND press that should shut it (owner-asked 10 Sep: "when i click on it again it should collapse") cannot be made — Playwright reports the drawer\'s header intercepting the press. Where the drawer starts or where the door sits is the owner\'s call (BUGLOG, 11 Oct 2026). Every other check in the file passes.',
   'theme-tokens-verify.js':
