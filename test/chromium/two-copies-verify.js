@@ -119,14 +119,19 @@ const PAGES = sel => `(() => {
       persist(c);
       await new Promise(r => setTimeout(r, 1400));   // persist is debounced
     }, ID);
-    await page.evaluate(id => openWorkspace(id), ID);
-    await page.waitForSelector('#doc-canvas', { timeout: 15000 }).catch(() => {});
-    await page.evaluate(() => roomGoTab(getContract(state.activeId), 'docs'));
-    await page.waitForTimeout(1300);
+    /* RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner). The
+       WORKING copy is read on Home's Document now — the same docSheetHtml,
+       paged by the same page-maker (igPaperPaginate) — so sections 1, 2, 5
+       and 6a measure it there; the SIGNING copy stays on the room's Signing
+       tab. */
+    const WORK = '#ig-paper .pg-sheet.pg-work';
+    const workUp = () => page.waitForFunction(sel => { const s = document.querySelector(sel); return !!(s && s._pgInfo && s._pgInfo.n >= 1); }, WORK, { timeout: 15000 }).catch(() => {});
+    await page.evaluate(id => pdOpenOnHome(id, 'doc'), ID);
+    await workUp();
 
     /* ================= 1 — THE WORKING COPY IS PAGES (1A, 3A) */
-    const work = await page.evaluate(PAGES('#doc-sheet-host .pg-sheet.pg-work'));
-    check('1a the Document tab draws the WORKING copy, laid out as pages', !!(work && work.n >= 1),
+    const work = await page.evaluate(PAGES(WORK));
+    check('1a Home\'s Document draws the WORKING copy, laid out as pages', !!(work && work.n >= 1),
       work ? `${work.n} page(s)` : 'no paged working copy');
     check('1b the contract runs over more than one page, a grey gap between each',
       !!(work && work.n >= 2 && work.gaps.every(g => g >= 19)), work ? `gaps ${work.gaps.join(',')}` : '—');
@@ -142,15 +147,16 @@ const PAGES = sel => `(() => {
     await page.screenshot({ path: path.join(OUT, '01-working-copy.png') });
 
     /* ================= 2 — THE LETTERHEAD FADES INTO THE TOP MARGIN (2B) */
-    await page.evaluate(d => {
-      const c = getContract(state.activeId);
+    await page.evaluate(([d, id]) => {
+      const c = getContract(id);
       c.branding = { ...(c.branding || {}), ...d };
-      roomGoTab(c, 'sign'); roomGoTab(c, 'docs');
-    }, DESIGN);
-    await page.waitForTimeout(1300);
-    const workD = await page.evaluate(PAGES('#doc-sheet-host .pg-sheet.pg-work'));
+      igPaperRefresh();
+    }, [DESIGN, ID]);
+    await page.waitForFunction(([sel, name]) => { const s = document.querySelector(sel); const h = s && s.querySelector('[data-pg-layer] .pg-head');
+      return !!(s && s._pgInfo && h && (h.getAttribute('data-l') || h.textContent.trim()) === name); }, [WORK, DESIGN.companyName], { timeout: 10000 }).catch(() => {});
+    const workD = await page.evaluate(PAGES(WORK));
     const inFlow = await page.evaluate(() => {
-      const sh = document.querySelector('#doc-sheet-host .pg-sheet.pg-work');
+      const sh = document.querySelector('#ig-paper .pg-sheet.pg-work');
       if (!sh) return null;
       return Array.from(sh.querySelectorAll('[data-doc-design]')).filter(e => !e.closest('[data-pg-layer]')).length;
     });
@@ -158,20 +164,24 @@ const PAGES = sel => `(() => {
       !!(workD && workD.heads[0] === DESIGN.companyName && inFlow === 0),
       workD ? `head "${workD.heads[0]}" · letterhead blocks in the wording: ${inFlow}` : '—');
     check('2b pages after the first carry the reference beside the name',
-      !!(workD && workD.n >= 2 && await page.evaluate(() => {
-        const r = document.querySelector('#doc-sheet-host .pg-work [data-pg-layer] .pg-head.is-run');
-        return !!(r && r.getAttribute('data-r') === getContract(state.activeId).id);
-      })), workD ? `${workD.heads.length} heads` : '—');
+      !!(workD && workD.n >= 2 && await page.evaluate(id => {
+        const r = document.querySelector('#ig-paper .pg-work [data-pg-layer] .pg-head.is-run');
+        const c = getContract(id);
+        return !!(r && r.getAttribute('data-r') === (window.contractRef ? contractRef(c) : c.id));
+      }, ID)), workD ? `${workD.heads.length} heads` : '—');
     await page.screenshot({ path: path.join(OUT, '02-working-copy-faded-letterhead.png') });
 
     /* ================= 3 — THE SIGNING COPY IS THE DESIGN AT FULL STRENGTH */
+    await page.evaluate(id => openWorkspace(id), ID);
+    await page.waitForFunction(() => !!document.querySelector('.room-tabrow'), null, { timeout: 15000 }).catch(() => {});
     await page.evaluate(() => {
       const c = getContract(state.activeId);
       c.signSpots = [];
       signSpotAdd(c, 'cl_tcv00012', (c.signerPlan.find(r => r.party === 'internal') || c.signerPlan[0]).id, 'signature');
       roomGoTab(c, 'sign');
     });
-    await page.waitForTimeout(1600);
+    await page.waitForFunction(() => { const s = document.querySelector('#doc-signwrap .pg-sheet.pg-sign'); return !!(s && s._pgInfo); }, null, { timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(600);
     const sign = await page.evaluate(PAGES('#doc-signwrap .pg-sheet.pg-sign'));
     check('3a the Signing tab draws the SIGNING copy on fixed A4 pages', !!(sign && sign.W === 794
       && Math.abs(sign.pageH - 794 * 297 / 210) < 1), sign ? `${sign.W} x ${sign.pageH} · ${sign.n} page(s)` : 'no signing copy');
@@ -230,22 +240,25 @@ const PAGES = sel => `(() => {
     await page.evaluate(() => { try { localStorage.removeItem('hati.v1.signZoom'); } catch (_) {} });
 
     /* ================= 5 — THE WORKING COPY CARRIES NO PLACE TO SIGN (5A) */
-    await page.evaluate(() => roomGoTab(getContract(state.activeId), 'docs'));
-    await page.waitForTimeout(1000);
-    const workSpots = await page.evaluate(() => ({
-      spots: document.querySelectorAll('#doc-sheet-host .sig-spot').length,
-      flags: document.querySelectorAll('#doc-sheet-host [data-pg-flag]').length,
-      placed: (getContract(state.activeId).signSpots || []).length,
-      copy: (document.getElementById('doc-sheet-host') || {}).getAttribute ? document.getElementById('doc-sheet-host').getAttribute('data-copy') : null }));
+    await page.evaluate(id => pdOpenOnHome(id, 'doc'), ID);
+    await workUp();
+    const workSpots = await page.evaluate(id => ({
+      spots: document.querySelectorAll('#ig-paper .sig-spot').length,
+      flags: document.querySelectorAll('#ig-paper [data-pg-flag]').length,
+      placed: (getContract(id).signSpots || []).length,
+      copy: (document.querySelector('#ig-paper .pg-sheet') || { getAttribute: () => null }).getAttribute('data-copy') }), ID);
     check('5a a place to sign that EXISTS is not drawn on the working copy', workSpots.copy === 'work'
       && workSpots.placed >= 1 && workSpots.spots === 0 && workSpots.flags === 0, JSON.stringify(workSpots));
 
     /* ================= 6 — THE SIGNING COPY IS ALWAYS WHITE */
     await page.evaluate(() => { if (window.setDark) setDark(true); else document.documentElement.classList.add('dark'); });
     await page.waitForTimeout(500);
-    const darkWork = await page.evaluate(() => { const s = document.querySelector('#doc-sheet-host .pg-work'); return s ? getComputedStyle(s).backgroundColor : null; });
+    const darkWork = await page.evaluate(() => { const s = document.querySelector('#ig-paper .pg-work'); return s ? getComputedStyle(s).backgroundColor : null; });
+    await page.evaluate(id => openWorkspace(id), ID);
+    await page.waitForFunction(() => !!document.querySelector('.room-tabrow'), null, { timeout: 15000 }).catch(() => {});
     await page.evaluate(() => roomGoTab(getContract(state.activeId), 'sign'));
-    await page.waitForTimeout(1100);
+    await page.waitForFunction(() => !!document.querySelector('#doc-signwrap .pg-sign'), null, { timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(500);
     const darkSign = await page.evaluate(() => { const s = document.querySelector('#doc-signwrap .pg-sign'); return s ? getComputedStyle(s).backgroundColor : null; });
     check('6a under the dark theme the working copy is the dark paper…', !!darkWork && darkWork !== 'rgb(255, 255, 255)', darkWork);
     check('6b …and the signing copy stays WHITE — it is the page that gets signed and printed',

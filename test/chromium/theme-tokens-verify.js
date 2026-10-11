@@ -63,8 +63,11 @@ const SCREENS = [
   ['register',  async p => { await p.evaluate(() => setView('register')); await pause(600); }],
   ['calendar',  async p => { await p.evaluate(() => setView('calendar')); await pause(600); }],
   ['templates', async p => { await p.evaluate(() => setView('templates')); await pause(600); }],
-  ['contract',  async p => { await p.evaluate(() => { openWorkspace('MK-82'); roomGoTab(getContract('MK-82'), 'docs'); }); await pause(800); }],
-  ['keyterms',  async p => { await p.evaluate(() => roomGoTab(getContract('MK-82'), 'terms')); await pause(600); }],
+  /* RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner); its
+     paper is Home's Document, so 'contract' photographs that, and 'keyterms'
+     opens the room again before its tabs are pressed. */
+  ['contract',  async p => { await p.evaluate(() => pdOpenOnHome('MK-82', 'doc')); await p.waitForSelector('#ig-canvas', { timeout: 10000 }).catch(() => {}); await pause(800); }],
+  ['keyterms',  async p => { await p.evaluate(() => { openWorkspace('MK-82'); roomGoTab(getContract('MK-82'), 'terms'); }); await p.waitForSelector('.room-tabrow', { timeout: 10000 }).catch(() => {}); await pause(600); }],
   ['signing',   async p => { await p.evaluate(() => roomGoTab(getContract('MK-82'), 'signing')); await pause(600); }],
   ['history',   async p => { await p.evaluate(() => roomGoTab(getContract('MK-82'), 'history')); await pause(600); }],
   ['negotiate', async p => { await p.evaluate(() => openRedlineWorkbench('MK-82'));

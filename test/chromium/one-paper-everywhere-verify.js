@@ -79,7 +79,11 @@ const M = () => {
     out.homeRed = await at(async () => { await page.evaluate(() => { setView('dashboard'); igWalk(['MK-OP1'], 0, {}); }); await page.waitForTimeout(1500); await page.evaluate(() => document.querySelector('#ig-strip [data-ig-red="1"]').click()); });
     const focus = await page.evaluate(() => !!document.querySelector('#ig-strip [data-ig-focus]'));
     out.homeClean = await at(async () => { await page.evaluate(() => document.querySelector('#ig-strip [data-ig-red="0"]').click()); });
-    out.document = await at(async () => { await page.evaluate(() => openWorkspace('MK-OP1')); await page.waitForTimeout(1200); await page.evaluate(() => roomGoTab('contract')); });
+    /* RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner); its old
+       door (roomGoTab 'contract') lands on Home's Document, so "document" is the
+       paper that door reaches — it must be the reference paper itself. */
+    out.document = await at(async () => { await page.evaluate(() => openWorkspace('MK-OP1')); await page.waitForFunction(() => !!document.querySelector('.room-tabrow'), null, { timeout: 10000 });
+      await page.evaluate(() => roomGoTab(getContract('MK-OP1'), 'contract')); await page.waitForFunction(() => !!document.querySelector('#ig-canvas article.nego-doc'), null, { timeout: 10000 }); });
     out.negotiate = await at(async () => { await page.evaluate(() => openRedlineWorkbench('MK-OP1')); });
     const cp = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
     await cp.goto(h.base + '/#share=t:' + s.token, { waitUntil: 'networkidle' }); await cp.waitForTimeout(2500);
@@ -94,7 +98,11 @@ const M = () => {
     const homeGround = out.homeRed && out.homeRed.col;
     ok('1g Home\'s Paper keeps its ground (Redline and Clean)', !!homeGround && homeGround !== 'rgba(0, 0, 0, 0)' && homeGround !== out.homeRed.page
       && out.homeClean && out.homeClean.col === homeGround, JSON.stringify({ red: homeGround, clean: out.homeClean && out.homeClean.col, page: out.homeRed && out.homeRed.page }));
-    for (const k of ['document', 'negotiate', 'theirs']){
+    /* retired 11 Oct 2026 for 'document': the Document tab is gone (owner) — its
+       door lands on Home's Document, which keeps Home's ground (1g). */
+    ok('1h document: the old Document door lands on Home\'s Document, on Home\'s ground', !!out.document && out.document.col === homeGround,
+      out.document && JSON.stringify({ col: out.document.col }));
+    for (const k of ['negotiate', 'theirs']){
       const v = out[k];
       ok(`1h ${k}: the column takes no colour — the sheet lies on the page ground`, !!v && v.col === 'rgba(0, 0, 0, 0)' && v.ground === v.page && v.ground !== homeGround,
         v && JSON.stringify({ col: v.col, ground: v.ground, page: v.page }));

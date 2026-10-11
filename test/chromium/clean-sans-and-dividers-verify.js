@@ -82,18 +82,18 @@ const login = async page => {
     });
 
     /* ---- 1. CLEAN SANS ON THE PAPER YOU READ ---- */
-    await page.evaluate(i => openWorkspace(i), id);
-    await page.waitForTimeout(900);
-    await page.evaluate(i => roomGoTab(getContract(i), 'docs'), id);
-    await page.waitForSelector('#doc-canvas', { timeout: 15000 }).catch(() => {});
-    await page.waitForTimeout(1000);
-    const docFace = await paperFace(page, '#doc-canvas');
-    check('1a the Document tab sets the agreement in Clean Sans', first(docFace) === 'Geist', docFace);
+    /* RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner); the
+       paper you READ is Home's Document, and its Thread is the Clauses tab
+       (#pd-thread) — sections 1, 2 and 8 measure there. */
+    await page.evaluate(i => pdOpenOnHome(i, 'doc'), id);
+    await page.waitForFunction(() => { const c = document.getElementById('ig-canvas'); return !!c && (c.textContent || '').trim().length > 40 && !!document.getElementById('pd-thread'); }, null, { timeout: 15000 }).catch(() => {});
+    const docFace = await paperFace(page, '#ig-canvas');
+    check('1a Home\'s Document sets the agreement in Clean Sans', first(docFace) === 'Geist', docFace);
     await page.screenshot({ path: path.join(OUT, '01-document.png') });
 
     /* ---- 2. PANEL VOICE: the reading is the panel's face and size ---- */
     const pv = await page.evaluate(() => {
-      const th = document.getElementById('doc-thread'); if (!th) return null;
+      const th = document.getElementById('pd-thread'); if (!th) return null;
       const d = document.createElement('div'); d.className = 'doc-th-plain'; d.textContent = 'The deal runs for two years.';
       th.appendChild(d);
       const before = getComputedStyle(d);
@@ -109,18 +109,23 @@ const login = async page => {
     check('2c and the text size stepper never reaches it', pv && pv.sizeAfter === '13px', pv && pv.sizeAfter);
     check('2d nor the rest of the clause panel', pv && (pv.nameAfter === null || pv.nameAfter === '13px'), pv && pv.nameAfter);
 
-    /* ---- 3. THE DOCUMENT TAB'S DIVIDER IS BESIDE THE SCROLLBAR, NOT OVER IT ---- */
-    const docSeam = await seamRead(page, '#doc-resizer',
-      () => { const g = document.getElementById('doc-grid'); return g.firstElementChild.getBoundingClientRect().right; });
-    check('3a Document tab: a press beside the seam reaches the scrollbar, not the divider',
-      docSeam && !docSeam.hidden && !docSeam.leftIsRez, JSON.stringify(docSeam));
-    check('3b and the grip is still the divider', docSeam && docSeam.gripIsRez, JSON.stringify(docSeam));
-
     /* ---- 4. THE SIGNING COPY KEEPS THE SERIF ---- */
+    await page.evaluate(i => openWorkspace(i), id);
+    await page.waitForFunction(() => !!document.querySelector('.room-tabrow'), null, { timeout: 10000 }).catch(() => {});
     await page.evaluate(i => roomGoTab(getContract(i), 'sign'), id);
-    await page.waitForTimeout(1400);
+    await page.waitForFunction(() => !!document.querySelector('.pg-sign'), null, { timeout: 15000 }).catch(() => {});
     const signFace = await paperFace(page, '.pg-sign');
     check('4a the signing copy keeps the book serif', first(signFace) === 'Source Serif 4', signFace);
+
+    /* ---- 3. THE ROOM'S DIVIDER IS BESIDE THE SCROLLBAR, NOT OVER IT ----
+       RE-POINTED 11 Oct 2026: the Document tab is gone (owner); the same
+       divider (#doc-resizer, between the paper and the side column) stands on
+       the Signing tab, so it is measured there. */
+    const docSeam = await seamRead(page, '#doc-resizer',
+      () => { const g = document.getElementById('doc-grid'); return g.firstElementChild.getBoundingClientRect().right; });
+    check('3a Signing tab: a press beside the seam reaches the scrollbar, not the divider',
+      docSeam && !docSeam.hidden && !docSeam.leftIsRez, JSON.stringify(docSeam));
+    check('3b and the grip is still the divider', docSeam && docSeam.gripIsRez, JSON.stringify(docSeam));
 
     /* ---- 5. NEGOTIATE AND THE CLAUSE EDITOR ---- */
     await page.evaluate(i => openRedlineWorkbench(i), id);
@@ -207,14 +212,10 @@ const login = async page => {
 
     /* ---- 8. THE PRESSED CHIP IN THE DARK ---- */
     await page.evaluate(() => { try { setDark(true); } catch (_) { document.documentElement.classList.add('dark'); } });
-    await page.evaluate(i => openWorkspace(i), id);
-    await page.waitForTimeout(900);
-    await page.evaluate(i => roomGoTab(getContract(i), 'docs'), id);
-    await page.waitForTimeout(1200);
-    await page.evaluate(() => { const d = document.getElementById('ws-th-door'); if (d && !document.getElementById('doc-right')?.classList.contains('is-clauses')) d.click(); });
-    await page.waitForTimeout(700);
+    await page.evaluate(i => pdOpenOnHome(i, 'doc'), id);
+    await page.waitForFunction(() => !!document.querySelector('#pd-thread .doc-th-chip[aria-pressed="true"]'), null, { timeout: 15000 }).catch(() => {});
     const chip = await page.evaluate(() => {
-      const c = document.querySelector('.doc-th-chip[aria-pressed="true"]:not(.is-ruby):not(.is-amber):not(.is-steel)');
+      const c = document.querySelector('#pd-thread .doc-th-chip[aria-pressed="true"]:not(.is-ruby):not(.is-amber):not(.is-steel)');
       if (!c) return null;
       const m = getComputedStyle(c).backgroundColor.match(/[\d.]+/g).map(Number);
       const a = m.length > 3 ? m[3] : 1;
@@ -222,7 +223,7 @@ const login = async page => {
         dark: document.documentElement.classList.contains('dark') };
     });
     check('8a in the dark the pressed "All" chip is not a pale block', chip && chip.dark && chip.lum < 90, JSON.stringify(chip));
-    const el = await page.$('.doc-th-chips'); if (el) await el.screenshot({ path: path.join(OUT, '04-dark-chips.png') });
+    const el = await page.$('#pd-thread .doc-th-chips'); if (el) await el.screenshot({ path: path.join(OUT, '04-dark-chips.png') });
 
     check('9 no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } finally {

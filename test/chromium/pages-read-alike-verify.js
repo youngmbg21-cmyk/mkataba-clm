@@ -155,8 +155,10 @@ const SEED = async () => {
     /* SAP batch 4 (9 Oct 2026): Negotiate hides the facts strip, as the
        Document tab does, so the two heads are compared there — the title's
        top and the quiet line's bottom. */
-    await page.evaluate(id => roomGoTab(getContract(id), 'docs'), cid);
-    await pause(900);
+    /* RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner); the
+       room's paper tab is Signing now, so its head is the one compared. */
+    await page.evaluate(id => roomGoTab(getContract(id), 'sign'), cid);
+    await page.waitForFunction(() => !!document.querySelector('#view-workspace #doc-signwrap, #doc-zc-slot .paper-zc') && !!document.querySelector('#ws-head .room-sub'), null, { timeout: 10000 }).catch(() => {});
     const roomDoc = await page.evaluate(() => {
       const h1 = document.querySelector('#ws-head .room-name h1');
       const sub = document.querySelector('#ws-head .room-sub');
@@ -226,7 +228,7 @@ const SEED = async () => {
     /* RE-POINTED 9 Oct 2026 (SAP batch 4): Negotiate hides the facts as the
        Document tab does, so the relation is now with THAT head — the title
        starts at the same height and the quiet line ends at the same height. */
-    check('1 the negotiation card measures the Document tab\'s head, to the pixel',
+    check('1 the negotiation card measures the Signing tab\'s head, to the pixel',
       nego.top !== null && roomDoc.top !== null && Math.abs(nego.top - roomDoc.top) < 1
         && nego.sub !== null && roomDoc.sub !== null && Math.abs(nego.sub - roomDoc.sub) < 1,
       `title ${nego.top} vs ${roomDoc.top} · sub ${nego.sub} vs ${roomDoc.sub}`);

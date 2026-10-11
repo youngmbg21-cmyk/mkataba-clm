@@ -112,7 +112,7 @@ const GREYS = () => {
     return sat < .12; };
   const hits = {};
   for (const el of document.querySelectorAll('body *')) {
-    if (el.closest('.pg-sheet, svg, script, style, #theme-menu, [data-brand-pick], .hati-ref, .rl-card button, .rl-unsent-go, .rl-decisions-go, #nego-send, [data-ink-exempt]')) continue;
+    if (el.closest('.pg-sheet, #ig-canvas.rl-paper, svg, script, style, #theme-menu, [data-brand-pick], .hati-ref, .rl-card button, .rl-unsent-go, .rl-decisions-go, #nego-send, [data-ink-exempt]')) continue;
     const s = getComputedStyle(el);
     if (s.display === 'none' || s.visibility === 'hidden' || +s.opacity === 0) continue;
     const r = el.getBoundingClientRect(); if (r.width < 1 || r.height < 1) continue;
@@ -131,7 +131,7 @@ const GREYS = () => {
 const CAPS = () => {
   const hits = {};
   for (const el of document.querySelectorAll('body *')) {
-    if (el.closest('.pg-sheet, svg, script, style, .hati-ref, kbd, [data-ink-exempt]')) continue;
+    if (el.closest('.pg-sheet, #ig-canvas.rl-paper, svg, script, style, .hati-ref, kbd, [data-ink-exempt]')) continue;
     let own = ''; for (const n of el.childNodes) if (n.nodeType === 3) own += n.nodeValue;
     if (!/[a-z]/i.test(own)) continue;
     const s = getComputedStyle(el);
@@ -146,10 +146,13 @@ const CAPS = () => {
 };
 
 /* THE PAPER: every .pg-sheet and what is in it, except the GAP between pages,
-   which shows the desk and follows it. */
+   which shows the desk and follows it — and Home's Document paper, which is
+   the same paper drawn without the page-maker's sheet (#ig-canvas.rl-paper,
+   Redlined and Clean; added 11 Oct 2026 when the Document tab's paper moved
+   there). */
 const PAPER = props => {
   const out = {};
-  for (const root of document.querySelectorAll('.pg-sheet')) for (const el of [root, ...root.querySelectorAll('*')]) {
+  for (const root of document.querySelectorAll('.pg-sheet, #ig-canvas.rl-paper')) for (const el of [root, ...root.querySelectorAll('*')]) {
     if (el.closest('.pg-gap')) continue;
     const s = getComputedStyle(el);
     if (s.display === 'none' || s.visibility === 'hidden') continue;
@@ -211,8 +214,16 @@ const diff = (a, b) => {
       ['ourpaper',    () => setView('templates')],
       ['settings',    () => setView('team')],
       ['overview',    id => { openWorkspace(id); roomGoTab(getContract(id), 'terms'); }],
-      ['document',    id => { openWorkspace(id); roomGoTab(getContract(id), 'docs'); }],
-      ['signing',     id => { openWorkspace(id); roomGoTab(getContract(id), 'signing'); }],
+      /* RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner). The
+         paper it drew is read on Home's Document now, so 'document' measures
+         that; Home's face is put back afterwards so the next 'home' census
+         sees the face it always saw. 'signing' used the key 'signing', which
+         is no tab: it drew the Document tab's paper by fall-through, and with
+         that tab gone it drew none — it measures the real Signing tab
+         ('sign') now, where the signing copy lives. */
+      ['document',    id => { window.__hbFaceWas = hbFace(); pdOpenOnHome(id, 'doc'); }],
+      ['signing',     id => { if (window.__hbFaceWas) { hbS().face = window.__hbFaceWas; hbSave(); delete window.__hbFaceWas; }
+        openWorkspace(id); roomGoTab(getContract(id), 'sign'); }],
       ['history',     id => { openWorkspace(id); roomGoTab(getContract(id), 'history'); }],
       ['negotiate',   id => openRedlineWorkbench(id)],
     ];
@@ -245,6 +256,8 @@ const diff = (a, b) => {
         const isPop = POPUPS.some(x => x[0] === name);
         await page.evaluate(`(${go.toString()})(${JSON.stringify(cid)})`);
         if (name === 'negotiate') await page.waitForSelector('#view-redline #rl-doc', { timeout: 10000 }).catch(() => {});
+        if (name === 'document') await page.waitForSelector('#ig-canvas', { timeout: 10000 }).catch(() => {});
+        if (name === 'signing') await page.waitForSelector('#doc-signwrap .pg-sheet', { timeout: 10000 }).catch(() => {});
         await pause(name === 'home' ? 1400 : 800);
         const r = {};
         if (dark) r.all = await page.evaluate(CENSUS, ['body', COLOUR_PROPS]);
