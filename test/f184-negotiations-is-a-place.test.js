@@ -215,15 +215,16 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
     assert.match(door.textContent, /Open document/);
   });
 
-  test('pressing it lands on THIS contract\'s Document tab', () => {
+  /* HOME'S DOCUMENT, ON COPILOT (owner, 11 Oct 2026: "when in the negotiation
+     page and you press open document you will also be sent to the copilot"). */
+  test('pressing it lands on THIS contract on Home\'s Document, on Copilot', () => {
     const b = world(['MK-1', 'MK-2']);
     theirAsk(b.byId('MK-1'), 'CHG-1');
     let went = null;
-    b.win.openWorkspace = id => { went = id; b.win.state.view = 'workspace'; };
+    b.win.pdOpenOnHome = (id, tab) => { went = [id, tab]; return true; };
     b.win.openRedlineWorkbench('MK-1');
     b.$('[data-rl-open-doc]').dispatchEvent(new b.win.Event('click'));
-    assert.equal(went, 'MK-1', 'it returns to the agreement on the bench');
-    assert.equal(b.win.roomCurrentTab(), 'docs', 'on its Document tab');
+    assert.deepEqual(went, ['MK-1', 'copilot'], 'it opens the agreement on the bench, on the Copilot tab');
   });
 
   test('a bare repaint of the LIST redraws the list, whatever activeId holds', () => {
@@ -282,8 +283,8 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
 
   test('and it is ONE route — the room\'s own tab door', () => {
     const s = read('js/views/negotiation.js');
-    assert.match(s, /data-rl-open-doc\]'\)\.forEach\([\s\S]{0,600}roomGoTab\(c, 'docs'\)/,
-      'the button goes through roomGoTab, the room\'s one way to a tab');
+    assert.match(s, /data-rl-open-doc\]'\)\.forEach\([\s\S]{0,900}pdOpenOnHome\(c\.id, 'copilot'\)/,
+      'the button goes through pdOpenOnHome, the one way onto a contract on Home');
     const fn = s.slice(s.indexOf('function openNegotiations'), s.indexOf('let _rlDoorAsked'));
     assert.match(fn, /opts && opts\.list/, 'and the sidebar\'s list door is untouched');
   });

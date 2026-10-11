@@ -209,7 +209,7 @@ const HELPERS = `(() => {
     await page.screenshot({ path: path.join(OUT, '03-document.png') });
     const c3 = await page.evaluate(() => {
       const m = window.__m;
-      const slot = [...document.querySelectorAll('#ws-tabrow-end .ui-btn, #ws-tabrow-end .doc-read-seg, #ws-tabrow-end .rl-type-step, #ws-tabrow-end .ws-focus-door')].filter(m.vis).map(m.box);
+      const slot = [...document.querySelectorAll('#ws-tabrow-end .ui-btn, #ws-tabrow-end .doc-read-seg, #doc-zc-slot .rl-type-step, #ws-tabrow-end .ws-focus-door')].filter(m.vis).map(m.box);
       /* RE-POINTED 5 Oct 2026 (the Thread): the switch and the Checks card
          are gone; the Thread's ‹ › are the small rung's squares and its text
          buttons (Explain all, Run) are the text button. */
@@ -218,7 +218,8 @@ const HELPERS = `(() => {
       const squares = [...document.querySelectorAll('#ws-tabrow-end .ws-focus-door')].filter(m.vis).map(m.box);
       return { slot, segs, run, squares, accent: m.tok('--accent-ink'), ink: m.ink('#doc-canvas') ?? m.ink('.doc-surface') };
     });
-    ok('3a the Document tab\'s control row is one height (28)',
+    /* the zoom stands on the paper's ground since 11 Oct 2026, the same 28 */
+    ok('3a the Document tab\'s controls are one height (28)',
       c3.slot.length >= 3 && c3.slot.every(b => near(b.h, 28)), JSON.stringify(c3.slot.map(b => b.t.slice(0, 14) + ':' + b.h)));
     ok('3b the Thread\'s ‹ › are squares of the small rung (22)',
       c3.segs.length === 2 && c3.segs.every(b => near(b.w, b.h) && near(b.h, 22)),

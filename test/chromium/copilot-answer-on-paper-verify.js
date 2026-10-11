@@ -103,12 +103,12 @@ function answer(body){
     ok('1b only Counter glows, and nothing is filed', L.glows.join() === 'counter' && L.top && L.filed === 1, JSON.stringify({ g: L.glows, top: L.top, filed: L.filed }));
     ok('1c no note on the paper: Copilot\'s answer is said once, on the row', L.notes === 0 && /Copilot: counter/.test(await page.evaluate(() => (document.querySelector('.rl-card-prep') || {}).innerText || '')));
     await page.screenshot({ path: path.join(OUT, '1-counter.png') });
-    /* 1d Home's Paper, Deal tab: the paper carries the box, the change's door glows */
-    await page.evaluate(() => { setView('dashboard'); igWalk(['MK-CP1'], 0, {}); });
-    await page.waitForFunction(() => window.intel && intel.paper && intel.paper.id === 'MK-CP1' && document.querySelector('#ig-dock [data-pd-tab="deal"]'), null, { timeout: 10000 }).catch(() => {});
-    await page.click('#ig-dock [data-pd-tab="deal"]').catch(() => {});
-    const home = await page.waitForFunction(() => document.querySelector('#ig-paper .rl-sug-box') && document.querySelector('#pd-body .rl-glow') ? { box: document.querySelector('#ig-paper .rl-sug-box').textContent.trim(), door: document.querySelector('#pd-body .rl-glow').textContent.trim() } : null, null, { timeout: 10000 }).then(x => x.jsonValue(), () => null);
-    ok('1d on Home\'s Paper the box is drawn too, and the Deal tab\'s door glows', !!home && /60 days/.test(home.box) && /Answer on Negotiate/.test(home.door), JSON.stringify(home));
+    /* 1d Home's Document, Redlined: the paper carries the box. RE-POINTED 11 Oct
+       2026 (owner: "delete the deal tab"): the Deal tab and its glowing door
+       are gone; a door asking for Deal opens Clauses with the paper Redlined. */
+    await page.evaluate(() => { setView('dashboard'); pdOpenOnHome('MK-CP1', 'deal'); });
+    const home = await page.waitForFunction(() => document.querySelector('#ig-paper .rl-sug-box') ? { box: document.querySelector('#ig-paper .rl-sug-box').textContent.trim() } : null, null, { timeout: 10000 }).then(h => h.jsonValue(), () => null);
+    ok('1d on Home\'s Document the box is drawn too', !!home && /60 days/.test(home.box), JSON.stringify(home));
     await page.screenshot({ path: path.join(OUT, '1d-home.png') });
     await page.evaluate(() => openRedlineWorkbench('MK-CP1'));
     await page.waitForFunction(() => state.view === 'redline' && document.querySelector('.rl-glow'), null, { timeout: 10000 }).catch(() => {});

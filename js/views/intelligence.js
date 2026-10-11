@@ -7171,8 +7171,8 @@ function igStripHtml(c,p){
       return `<span class="ig-red" role="group" aria-label="${igEsc(i18t('int_red_label'))}"><button type="button" data-ig-red="0" aria-pressed="${red?'false':'true'}">${igEsc(i18t('int_red_clean'))}</button><button type="button" data-ig-red="1" aria-pressed="${red?'true':'false'}">${igEsc(i18t('int_red_marked',{ n }))}</button></span>`; })():''}
     ${/* NO FOCUS ON HOME'S PAPER (owner, 8 Oct 2026: "the removal of the focus
        button from the paper tab"); the map's own paper keeps it */''}${up&&igHomePaperFace()!==true?`<button type="button" class="ui-btn ui-btn-sm" data-ig-focus aria-pressed="${p.focus?'true':'false'}" title="${igEsc(i18t(p.focus?'int_focus_exit_title':'int_focus_title'))}">${icon(p.focus?'x':'scan','w-3.5 h-3.5')}${igEsc(i18t(p.focus?'int_focus_exit':'int_focus'))}</button>`:''}
-    ${/* ONE ZOOM ON EVERY PAPER (owner, 11 Oct 2026): the same "− 100% +" the
-       Document tab and Negotiate carry, one remembered value */''}${up&&window.rlTypeStepHtml?rlTypeStepHtml():''}
+    ${/* THE ZOOM LEFT THIS STRIP for the paper's own ground (owner, 11 Oct
+       2026): igPaperHtml draws it, top right above the sheet */''}
     ${onHome?`<button type="button" class="ui-btn ui-btn-sm" data-ig-pick-again>${igEsc(i18t('int_pick_change'))}</button>`:''}
     ${onHome?'':`<button type="button" class="ui-btn ui-btn-sm" data-ig-ws="${c.id}">${igEsc(i18t('int_open_workspace'))}${icon('chevR','w-3.5 h-3.5')}</button>`}`;
 }
@@ -7259,7 +7259,7 @@ function igPaperHtml(c){
   }
   return `<div class="ig-paper-wrap">
     <div id="ig-spine" class="doc-xr-spine ig-spine" role="group" aria-label="${igEsc(i18t('xr_spine_label'))}" hidden></div>
-    <div id="ig-paper-scroll" class="ig-paper-scroll scroll-thin"><div class="ig-zoom" style="zoom:${window.rlDocZoomFactor?rlDocZoomFactor():1}">${sheet}</div></div>
+    <div id="ig-paper-scroll" class="ig-paper-scroll scroll-thin">${window.rlPaperZoomHtml?rlPaperZoomHtml():''}<div class="ig-zoom" style="zoom:${window.rlDocZoomFactor?rlDocZoomFactor():1}">${sheet}</div></div>
   </div>`;
 }
 /* the reader's zoom, written where Home's sheet reads it; the Track is laid

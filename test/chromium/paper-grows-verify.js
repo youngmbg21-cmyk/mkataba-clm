@@ -270,7 +270,9 @@ const SHEET = () => {
 
     /* ---- 4 & 5. THE STEPPER THIS PAGE NEVER HAD ---- */
     const step = await page.evaluate(() => {
-      const row = document.querySelector('.redline-page .rl-tabrow');
+      /* on the paper's own ground, top right, since 11 Oct 2026 (owner: "inside
+         the page area ... not adding a button on the panel") */
+      const row = document.querySelector('.redline-page #nego-scroll-work > .paper-zc-row');
       const st = row && row.querySelector('.rl-type-step');
       if (!st) return { there: false };
       const r = st.getBoundingClientRect();
@@ -279,7 +281,7 @@ const SHEET = () => {
         readout: (st.querySelector('.rl-type-out') || {}).textContent,
         buttons: [...st.querySelectorAll('[data-rl-type]')].map(b => b.textContent.trim()) };
     });
-    check('4 THE STEPPER IS IN THE NEGOTIATION CONTROL ROW',
+    check('4 THE ZOOM IS ON THE NEGOTIATION PAPER, TOP RIGHT',
       step.there && step.inRow && step.visible, JSON.stringify(step));
     check('4 with both buttons and its readout', step.buttons && step.buttons.length === 2,
       (step.buttons || []).join(' '));

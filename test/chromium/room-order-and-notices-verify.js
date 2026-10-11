@@ -315,7 +315,7 @@ const seen = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
     const cornerNow = () => page.evaluate(([s]) => {
       const seenFn = eval(s);
       return { tab: (document.querySelector('#ws-tabs .on') || {}).textContent || '',
-        stepper: seenFn(document.querySelector('.room-tabrow .rl-type-step')),
+        stepper: seenFn(document.querySelector('#doc-zc-slot .rl-type-step')), /* on the paper's ground since 11 Oct 2026 */
         toNego: seenFn(document.getElementById('ws-to-nego')) };
     }, [seen]);
     journey.push(['arrived on the room', await cornerNow()]);

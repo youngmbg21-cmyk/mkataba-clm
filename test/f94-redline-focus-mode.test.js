@@ -113,7 +113,8 @@ describe('F94 — the toggle has left the strip, and focus still works', () => {
        with the row's other controls rather than in a wrapper of its own. */
     const p = await page();
     assert.equal(p.$('.rl-head [data-rl-focus]'), null, 'no focus button on the strip');
-    assert.ok(p.$('.rl-head .rl-type-step'), 'but the type stepper is here again');
+    /* the zoom moved onto the paper's own ground (owner, 11 Oct 2026) */
+    assert.ok(p.$('#nego-scroll-work > .paper-zc-row .rl-type-step'), 'but the zoom is on the paper');
     assert.equal(p.$('.rl-setwrap'), null, 'and the group they shared is still gone');
   });
 

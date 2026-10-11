@@ -10510,7 +10510,8 @@ function renderRedline(){
                    ITS READOUT FOLDS ON THE TIGHT STEP of this row's fit ladder,
                    like every other word here — by CSS, so textContent never
                    changes and the suite still reads "15px". */}
-            ${rlWordsMovedHtml(c)}${window.rlTypeStepHtml ? rlTypeStepHtml() : ''}
+            ${''/* THE WORDS MOVED AND THE ZOOM LEFT THIS ROW for the paper's own
+                   ground, top right (owner, 11 Oct 2026): rlPaperZoomHtml */}
             ${''/* FOCUS MODE SITS RIGHT OF THE TEXT-SIZE STEPPER (Young ruled 21
                    Sep 2026: "bring the focus mode button to be on the right of
                    the font adjuster like in the document page"). It carries
@@ -10645,6 +10646,10 @@ function renderRedline(){
       const c = (typeof redlineHeldId === 'function' && window.getContract) ? getContract(redlineHeldId()) : null;
       if (!c) return;
       rlResetFocus();   /* leaving Negotiate leaves Focus behind, as every other way out does */
+      /* HOME'S DOCUMENT, ON COPILOT (owner, 11 Oct 2026: "when in the
+         negotiation page and you press open document you will also be sent to
+         the copilot") — the Contracts list's Open contract lands there too. */
+      if (window.pdOpenOnHome && pdOpenOnHome(c.id, 'copilot')) return;
       if (window.roomGoTab) roomGoTab(c, 'docs'); else if (window.openWorkspace) openWorkspace(c.id);
     }));
   /* The tab row's wiring went with the tab row (12 Aug 2026). This page draws
@@ -12793,6 +12798,21 @@ function rlTypeStepHtml(){
     <span class="rl-type-out">${v}%</span>
     <button type="button" data-rl-type="1" title="${i18t('ce_zoom_in')}" aria-label="${i18t('ce_zoom_in')}"${v >= RL_DZ_MAX ? ' disabled' : ''}>+</button>
   </div>`;
+}
+/* ---- THE ZOOM SITS ON THE PAPER'S OWN GROUND, TOP RIGHT (owner, 11 Oct
+   2026: "the page adjust was supposed to go inside the page area ... not
+   adding a button on the panel", and "this needs to be done to all pages with
+   a paper") ----
+   Edit Clause's place for it: the grey above the sheet, at the right. ONE
+   builder for every paper — Home's Document, Negotiate and their page, the
+   contract's Document and Signing tabs, the design step. It is the first child
+   of the paper's scroller in a row of no height, so it costs the contract no
+   line and scrolls with the page: NOTHING FLOATS OVER THE PAGE. `extra` is
+   what stands beside it on that page (Negotiate's words moved; the Signing
+   copy's page arrows). */
+function rlPaperZoomHtml(extra, zoomHtml){
+  const z = zoomHtml != null ? zoomHtml : rlTypeStepHtml();
+  return `<div class="paper-zc-row"><div class="paper-zc">${extra || ''}${z}</div></div>`;
 }
 /* ONE LISTENER, ON THE DOCUMENT, so a control painted anywhere (Home's strip
    is repainted on every act) answers without being wired. rlWireTypeStep stays
@@ -21116,7 +21136,7 @@ function redlinePanesHtml(c, opts = {}){
              actually are ("N on the table"). What is left is the paper, on the
              page, which is the whole point of the column. */}
       <section id="rl-doc" class="rl-doc nego-pane working" aria-label="${_nea(i18t('ng_doc_aria'))}">
-        <div class="nego-scroll" id="nego-scroll-work">${_cpDoc}</div>
+        <div class="nego-scroll" id="nego-scroll-work">${rlPaperZoomHtml((typeof rlOnTheirPage === 'function' && rlOnTheirPage()) ? '' : rlWordsMovedHtml(c))}${_cpDoc}</div>
       </section>
 
       ${''/* A SEPARATOR NOBODY CAN REACH IS A CONTROL HALF THIS WORKSPACE DOES
@@ -21529,7 +21549,7 @@ if (typeof window !== 'undefined') Object.assign(window, { rlRoundPrepLineHtml, 
   rlInlineClick, rlInlineSave, rlInlineDirty, rlInlineOn, rlInlineEnd,
   renderRedline, redlineRoundLabel, redlineSyncProxies,
   rlToggleDiscussion, rlSideMode, rlSetSideMode, rlLayoutResizer, rlWireResizer, rlWireClauseTools,
-  rlDocType, rlDocScale, rlSetDocType, rlTypeStepHtml, rlWireTypeStep, rlDocZoom, rlDocZoomFactor, rlSetDocZoom, rlWordsMoved, rlWordsMovedHtml,
+  rlDocType, rlDocScale, rlSetDocType, rlTypeStepHtml, rlPaperZoomHtml, rlWireTypeStep, rlDocZoom, rlDocZoomFactor, rlSetDocZoom, rlWordsMoved, rlWordsMovedHtml,
   rlApplyDocZoom, rlObserveDocPane, RL_PAGE_W, RL_ZOOM_MAX,
   rlFocusOn, rlSetFocus, rlResetFocus, rlWireFocusKey, rlPaintFocusBtn, rlFocusPage,
   rlReadSegsHtml, rlPaintReadSegs, rlBellIsNews, rlReadySeen, rlMarkReadySeen,

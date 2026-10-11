@@ -346,7 +346,7 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         needsBorder: needs && needs.borderTopWidth, needsBg: needs && needs.backgroundColor,
         backBorder: back && back.borderTopWidth, backBg: back && back.backgroundColor,
         stepH: step && step.height, stepBorder: step && step.borderTopWidth,
-        stepButtons: document.querySelectorAll('#view-redline .rl-tabrow .rl-type-step button').length,
+        stepButtons: document.querySelectorAll('#view-redline .paper-zc .rl-type-step button').length, /* on the paper's ground since 11 Oct 2026 */
         readout: (document.querySelector('#view-redline .rl-type-out') || {}).textContent,
         order: [...document.querySelectorAll('#view-redline .rl-actions > *')]
           .map(e => e.className.split(' ')[0]),

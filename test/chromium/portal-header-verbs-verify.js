@@ -134,7 +134,7 @@ const VERBS = [
       /* Its left end is the page's TABS since 29 Sep 2026 (Where we are ·
          Redlines · History), where the one-choice reading switch stood. */
       segs: box(document.querySelector('.pw-id .pw-tabs')),
-      stepper: box(document.querySelector('.pw-id .rl-type-step')),
+      stepper: box(document.querySelector('.pw-id .rl-type-step')), zcPaper: box(document.querySelector('#nego-scroll-work .paper-zc .rl-type-step')),
       /* What the request deleted, and what it must not have deleted. */
       nameBoxGone: !byId('nego-cp-name') && !document.querySelector('.pw-id .nego-who'),
       mirrorGone: !byId('pt-ready-top') && !document.querySelector('.pt-ready-top'),
@@ -213,8 +213,10 @@ const VERBS = [
     (() => { const r = m.verbs[0].box;
       return !!r && !!m.compare && r.bottom <= m.compare.top + 2; })(),
     m.compare ? `compare top=${m.compare.top}, ready bottom=${m.verbs[0].box && m.verbs[0].box.bottom}` : 'no compare');
-  check('the text-size stepper is still in the header, untouched',
-    !!m.stepper && m.stepper.w > 0, m.stepper ? `${m.stepper.w}x${m.stepper.h}` : 'absent');
+  /* RE-POINTED 11 Oct 2026 (owner: "this needs to be done to all pages with a
+     paper"): the zoom left their header for the paper's own ground, top right. */
+  check('the zoom left the header for their paper, top right',
+    !m.stepper && !!m.zcPaper && m.zcPaper.w > 0, m.zcPaper ? `${m.zcPaper.w}x${m.zcPaper.h}` : 'absent');
 
   /* ---- 5. what the request deleted is deleted ---- */
   check('the YOU / name box is gone from the header', m.nameBoxGone);

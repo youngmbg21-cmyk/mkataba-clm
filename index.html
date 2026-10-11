@@ -3817,15 +3817,15 @@
      The page it is on and the zoom — buttons only since 10 Oct 2026 (the
      "which copy, from where" label left with the tool bar). The two steppers
      wear the type stepper's box so the row reads as one family. */
-  #ws-tabrow-end .sc-step{ display:inline-flex; align-items:center; gap:2px; flex:none; height:var(--ctl-h);
+  :is(#ws-tabrow-end,#doc-zc-slot) .sc-step{ display:inline-flex; align-items:center; gap:2px; flex:none; height:var(--ctl-h);
     box-sizing:border-box; padding:0 3px; border:1px solid var(--btn-edge); border-radius:var(--radius);
     background:var(--color-surface); }
-  #ws-tabrow-end .sc-step button{ width:var(--ctl-h-sm); height:var(--ctl-h-sm); display:inline-grid; place-items:center; padding:0;
+  :is(#ws-tabrow-end,#doc-zc-slot) .sc-step button{ width:var(--ctl-h-sm); height:var(--ctl-h-sm); display:inline-grid; place-items:center; padding:0;
     border:0; background:none; border-radius:var(--radius); color:var(--color-neutral-600); font:inherit;
     font-size:var(--t-body); cursor:pointer; }
-  #ws-tabrow-end .sc-step button:hover:not(:disabled){ background:var(--nav-well); color:var(--color-text); }
-  #ws-tabrow-end .sc-step button:disabled{ opacity:.4; cursor:default; }
-  #ws-tabrow-end .sc-step>span{ min-width:3.2em; text-align:center; font-size:var(--t-body); color:var(--color-text);
+  :is(#ws-tabrow-end,#doc-zc-slot) .sc-step button:hover:not(:disabled){ background:var(--nav-well); color:var(--color-text); }
+  :is(#ws-tabrow-end,#doc-zc-slot) .sc-step button:disabled{ opacity:.4; cursor:default; }
+  :is(#ws-tabrow-end,#doc-zc-slot) .sc-step>span{ min-width:3.2em; text-align:center; font-size:var(--t-body); color:var(--color-text);
     font-variant-numeric:tabular-nums; white-space:nowrap; padding:0 4px; }
 
   /* The quiet line under the tabs: one sentence saying what this tab is for,
@@ -8720,6 +8720,21 @@
   #doc-paper-col > #doc-track[hidden]{display:none}
   .ig-paper-scroll{flex:1;min-width:0;overflow:auto;padding:20px 24px 60px 44px;position:relative}
   .ig-paper-scroll .pg-sheet{margin:0 auto}
+  /* THE ZOOM ON THE PAPER'S OWN GROUND, TOP RIGHT (owner, 11 Oct 2026):
+     rlPaperZoomHtml's row, first in each paper's scroller, so the control
+     sits in the grey above the sheet's right edge, and both
+     scroll with the page: NOTHING FLOATS OVER THE PAGE. */
+  /* The row tops each scroller's own padding up to a 40px band over the sheet
+     (measured 11 Oct 2026: Home pads 9px, Negotiate 29px, the design step
+     16px, the Document and Signing tabs none), and the control stands on its
+     floor, 3px above the sheet. */
+  .paper-zc-row{position:relative;height:34px;z-index:4}
+  #ig-paper-scroll > .paper-zc-row{height:31px}
+  #nego-scroll-work > .paper-zc-row{height:11px}
+  #ds-docpane > .paper-zc-row{height:24px}
+  .paper-zc{position:absolute;right:var(--paper-zc-right,0);bottom:3px;display:flex;align-items:center;gap:var(--s-3);white-space:nowrap}
+  .paper-zc .rl-moved{font-size:var(--t-label);font-weight:var(--w-title)}
+  .paper-zc .rl-moved .i{color:var(--st-green-fg)} .paper-zc .rl-moved .d{color:var(--st-ruby-fg)}
   /* The held mark: the scan's flash colours, but STILL — the reader is reading it. */
   .ig-mark{background:var(--st-steel-bg);border-radius:var(--radius);box-shadow:0 0 0 2px var(--st-steel-bg)}
   .ig-mark.ob{background:var(--st-amber-bg);box-shadow:0 0 0 2px var(--st-amber-bg)}

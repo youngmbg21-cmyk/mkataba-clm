@@ -73,8 +73,8 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
         small: [...document.querySelectorAll('#ig-dock .igd-small .ui-link')].map(b => b.textContent.trim()),
         smallAfter: !!(row && row.nextElementSibling && row.nextElementSibling.classList.contains('igd-small')) };
     });
-    ok('1a the answer leads with Read all 3 on Paper (filled), then Show on the Board',
-      doors.btns.join('|') === 'Read all 3 on Paper*|Show on the Board', JSON.stringify(doors));
+    ok('1a the answer leads with Read all 3 in Document (filled; Paper is called Document, owner 11 Oct 2026), then Show on the Board',
+      doors.btns.join('|') === 'Read all 3 in Document*|Show on the Board', JSON.stringify(doors));
     ok('1b the Contracts page and Export are small links after them', doors.smallAfter && doors.small.length === 2 && /Contracts page/.test(doors.small[0]), JSON.stringify(doors.small));
     await page.screenshot({ path: path.join(OUT, '1-answer.png') });
 
@@ -92,22 +92,23 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     await page.waitForSelector('#ig-dock [data-pd-tab="facts"]', { timeout: 5000 }).catch(() => {});
     const head = await page.evaluate(() => ({ title: /Intelligence panel/.test((document.querySelector('#ig-dock .igd-head') || {}).textContent || ''), desk: !!document.getElementById('ig-desk'),
       tabs: [...document.querySelectorAll('#ig-dock .igd-head [data-pd-tab]')].map(b => b.getAttribute('data-pd-tab')) }));
-    /* RE-POINTED 10 Oct 2026 (owner: "delete signing tab") */
-    ok('3a0 the title row is the tabs: Copilot then five; no Signing, no "Intelligence panel", no column beside the paper',
-      !head.title && !head.desk && head.tabs.join(',') === 'copilot,facts,doc,oblig,hist,deal', JSON.stringify(head));
+    /* RE-POINTED 10 Oct 2026 (owner: "delete signing tab"), and 11 Oct 2026
+       ("delete the deal tab ... and also delete history"; Document is Clauses) */
+    ok('3a0 the title row is the tabs: Copilot then three; no Signing, Deal or History, no "Intelligence panel", no column beside the paper',
+      !head.title && !head.desk && head.tabs.join(',') === 'copilot,facts,doc,oblig', JSON.stringify(head));
     const tabs = {};
-    for (const t of ['facts', 'doc', 'oblig', 'hist', 'deal']) {
+    for (const t of ['facts', 'doc', 'oblig']) {
       const b = await page.$(`#ig-dock [data-pd-tab="${t}"]`); if (b) await b.click();
       await page.waitForSelector(`#ig-dock [data-pd-tab="${t}"].on`, { timeout: 3000 }).catch(() => {});
       tabs[t] = await page.evaluate(() => (document.getElementById('pd-body') || {}).innerText || '');
     }
-    ok('3a five contract tabs, each drawn', Object.values(tabs).every(x => x.trim().length > 5), JSON.stringify(Object.fromEntries(Object.entries(tabs).map(([k, v]) => [k, v.slice(0, 60)]))));
+    ok('3a three contract tabs, each drawn', Object.values(tabs).every(x => x.trim().length > 5), JSON.stringify(Object.fromEntries(Object.entries(tabs).map(([k, v]) => [k, v.slice(0, 60)]))));
     /* LIFTED (Young, 8 Oct 2026: "yes to words under the symbols"): every symbol
        carries its word, whole — a word cut to "Docu…" is not a word */
     const sym = await page.evaluate(() => [...document.querySelectorAll('#ig-dock .igd-head .pd-tab')].map(b => { const w = b.querySelector('.pd-tab-w');
       return { k: b.getAttribute('data-pd-tab'), on: b.classList.contains('on'), txt: w ? w.textContent.trim() : '', whole: !!w && w.scrollWidth <= w.clientWidth + 1, glyph: (b.querySelector('.pd-tab-g') || {}).textContent || '', name: b.getAttribute('title') }; }));
     /* the artifact's symbols, exactly (owner, 10 Oct 2026) */
-    ok('3a2 symbols — the artifact\'s marks — each with its word under it, whole; one lit', sym.length === 6 && sym.map(s => s.glyph.replace('\uFE0E', '')).join('') === '\u2726\u25A6\u25A2\u2691\u25F7\u21C4' && sym.every(s => s.name && s.txt.length > 2 && s.whole) && sym.filter(s => s.on).length === 1, JSON.stringify(sym.map(s => s.glyph + ' ' + s.txt + (s.whole ? '' : ' (cut)'))));
+    ok('3a2 symbols — the artifact\'s marks — each with its word under it, whole; one lit', sym.length === 4 && sym.map(s => s.glyph.replace('\uFE0E', '')).join('') === '\u2726\u25A6\u25A2\u2691' && sym.map(s => s.txt).join('|') === 'Copilot|Overview|Clauses|Obligations' && sym.every(s => s.name && s.txt.length > 2 && s.whole) && sym.filter(s => s.on).length === 1, JSON.stringify(sym.map(s => s.glyph + ' ' + s.txt + (s.whole ? '' : ' (cut)'))));
     /* WHITE, UNDER THE GREETING ROW (owner, 10 Oct 2026; reverses Lifted) */
     const white = await page.evaluate(() => { const d = document.getElementById('ig-dock');
       return { dock: getComputedStyle(d).backgroundColor, card: getComputedStyle(d, '::before').content, top: Math.round(d.getBoundingClientRect().top), bar: Math.round(document.getElementById('ig-strip').getBoundingClientRect().top) }; });
@@ -125,13 +126,15 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
       ws: !!document.querySelector('#ig-strip [data-ig-ws]'), ask: !!document.getElementById('igd-input') }));
     ok('3d the paper keeps its width (the Home paper\'s 720, owner 8 Oct 2026), "Open workspace" is gone from Home, the ask box stays under every tab', wide.sheet >= 700 && !wide.ws && wide.ask, JSON.stringify(wide));
     /* ONE BAR (Young, 8 Oct 2026): the strip and the panel's symbols share one top, one
-       bottom and one colour, side by side; the sheet starts where it always did (56px under
+       bottom and one colour, side by side; the sheet starts 87px under the strip's top
+       since 11 Oct 2026 (it was 56): the zoom's own 31px row stands above it, the
+       owner's "inside the page area" (one-zoom-verify). It was (56px under
        the bar's top), so the wording did not move */
     const bar = await page.evaluate(() => { const R = e => e.getBoundingClientRect();
       const s = document.getElementById('ig-strip'), hd = document.querySelector('#ig-dock > .igd-head'), sh = document.querySelector('#ig-paper .pg-sheet');
       const a = R(s), b = R(hd); return { st: Math.round(a.top), sb: Math.round(a.bottom), ht: Math.round(b.top), hb: Math.round(b.bottom), gap: Math.round(b.left - a.right),
         same: getComputedStyle(s).backgroundColor === getComputedStyle(hd).backgroundColor, sheet: Math.round(R(sh).top - a.top) }; });
-    ok('3f the strip and the symbols are one bar, and the wording has not moved', bar.st === bar.ht && bar.sb === bar.hb && Math.abs(bar.gap) <= 1 && bar.same && bar.sheet === 56, JSON.stringify(bar));
+    ok('3f the strip and the symbols are one bar, and the wording has not moved', bar.st === bar.ht && bar.sb === bar.hb && Math.abs(bar.gap) <= 1 && bar.same && bar.sheet === 87, JSON.stringify(bar));
     await page.screenshot({ path: path.join(OUT, '3-desk.png') });
     await page.click('#ig-dock [data-pd-tab="copilot"]');
     ok('3e Copilot\'s symbol brings the conversation back', await page.evaluate(() => !!document.querySelector('#igd-feed:not([hidden])') && !document.getElementById('pd-body')));

@@ -89,6 +89,10 @@ const READ = () => {
        up now, and it is measured as typeOut. */
     sendDetail: visAny('.rl-send-detail'),
     typeOut: any('.rl-type-out') && vis('.rl-type-out'),
+    /* THE ZOOM LEFT THE ROW (owner, 11 Oct 2026: "inside the page area"): its
+       readout stands on the paper's ground, never folded; typeOut (the row's)
+       is now always false, so the lite rung has no tenant left on the row. */
+    zcOut: visAny('.paper-zc .rl-type-out'),
     /* The count on the way-out door NEVER folds — it is what the door says. */
     livelistN: any('.rl-livelist-n') && vis('.rl-livelist-n'),
     /* textContent is untouched at every rung: this is a paint decision. */
@@ -176,8 +180,8 @@ const OPEN = async page => {
       await page.waitForTimeout(500);
       const r = await page.evaluate(READ);
       check(`${w}px: one line, and every word on it`,
-        r.oneLine && r.purpleWords && r.livelistWord && r.typeOut,
-        `rung "${r.rung}", gap ${r.gapW}px`);
+        r.oneLine && r.purpleWords && r.livelistWord && !r.typeOut && r.zcOut,
+        `rung "${r.rung}", gap ${r.gapW}px, ${JSON.stringify({ o: r.oneLine, p: r.purpleWords, l: r.livelistWord, t: r.typeOut, z: r.zcOut })}`);
     }
 
     /* ---- 3: WHEN IT DOES FOLD, IT FOLDS CHEAPEST FIRST ----

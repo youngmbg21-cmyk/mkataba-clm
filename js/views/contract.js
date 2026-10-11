@@ -4879,9 +4879,12 @@ function wsTabRowEndHtml(c){
      the page it is on — the design's own control row, never a band. The
      reader's text-size stepper is the WORKING copy's; here it would re-break
      the very pages that get signed. */
-  if(_wsTab==='sign') return scControlsHtml(c) + (window.signWalkHtml?signWalkHtml(c):'');
+  /* THE ZOOM (and the signing copy's page arrows) LEFT THIS ROW for the
+     paper's own ground, top right (owner, 11 Oct 2026): docZoomCornerHtml,
+     painted into #doc-zc-slot by wsPaintTabRowEnd. */
+  if(_wsTab==='sign') return (window.signWalkHtml?signWalkHtml(c):'');
   if(_wsTab!=='docs') return '';
-  const step=docCopyOf(c)==='sign' ? scControlsHtml(c) : (window.rlTypeStepHtml?rlTypeStepHtml():'');
+  const step='';
   /* Raw, not negoChanges(): that call runs negoInit, which CREATES a
      negotiation on a contract that has none — and this builder runs on every
      paint of every Document tab. See negoNeedsYouIds for the same trap. */
@@ -5039,12 +5042,21 @@ function wsPaintRoundNeeds(c){
     if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
   });
 }
+/* THE PAPER'S OWN ZOOM ON THE DOCUMENT AND SIGNING TABS (owner, 11 Oct
+   2026): the signing copy's page arrows and zoom, or the one remembered
+   "− 100% +", in the grey above the sheet's right edge (rlPaperZoomHtml). */
+function docZoomCornerHtml(c){
+  if(!c||(_wsTab!=='sign'&&_wsTab!=='docs')||!window.rlPaperZoomHtml) return '';
+  if(_wsTab==='sign'||docCopyOf(c)==='sign') return rlPaperZoomHtml('', scControlsHtml(c));
+  return rlPaperZoomHtml();
+}
 function wsPaintTabRowEnd(c){
   const end=document.getElementById('ws-tabrow-end');
   if(!end) return;
   end.innerHTML=wsTabRowEndHtml(c);
+  const zc=document.getElementById('doc-zc-slot');
+  if(zc){ zc.innerHTML=docZoomCornerHtml(c); if(zc.querySelector('[data-sc-zoom]')) scWireControls(zc); }
   if(window.rlWireTypeStep) rlWireTypeStep(end);
-  if(end.querySelector('[data-sc-zoom]')) scWireControls(end);
   end.querySelector('#ws-to-nego')?.addEventListener('click',()=>{
     if(window.roomGoTab) roomGoTab(c,'redline');
     else if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
@@ -11128,6 +11140,7 @@ function renderWorkspace(){
                reader's own A⁻/A⁺ stepper is what changes the size of the
                words. The wrapper stays so applyDocZoom keeps one place to
                pin. -->
+          <div id="doc-zc-slot"></div>
           <div id="doc-zoom" style="zoom:var(--doc-zoom,1)">
           ${''/* THE SECOND EXPLANATORY BAR IS GONE. The quiet line under the
                  tabs already says how this tab reads and how to leave it; a

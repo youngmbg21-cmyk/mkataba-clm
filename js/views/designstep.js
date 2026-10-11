@@ -441,17 +441,16 @@ function dsPaint(opts) {
                  would be the strip announcing that nothing has happened. */}
           ${b.contents ? `<span class="badge" style="background:var(--color-neutral-100);color:var(--color-text);${step === 1 ? 'opacity:.5' : ''}">+ Contents</span>` : ''}
           <span style="flex:1"></span>
-          <!-- The workbench's own controls, not lookalikes: one stored text-size
-               preference shared with the Doc tab and the Redline canvas, so a
-               size set here is the size there. -->
-          ${window.rlTypeStepHtml ? rlTypeStepHtml() : ''}
+          <!-- The zoom is the paper's own (top right of the canvas below), one
+               remembered value shared with every other paper. -->
           <button id="ds-focus" class="ui-btn ui-btn-icon" title="${_ds.focus ? 'Leave full screen' : 'Fill the screen with the document'}"
             aria-pressed="${_ds.focus ? 'true' : 'false'}"
             style="${_ds.focus ? 'background:var(--color-accent-700);border-color:var(--accent-ink-700);color:#fff' : ''}">
             ${icon('expand', 'w-3.5 h-3.5')}</button>
         </div>
         <div id="ds-docpane" class="scroll-thin" style="flex:1;min-height:0;padding:var(--s-4);
-          background:var(--color-neutral-100);overflow:auto">${paper}</div>
+          background:var(--color-neutral-100);overflow:auto">${''/* the zoom on the paper's own ground,
+          top right (owner, 11 Oct 2026) */}${window.rlPaperZoomHtml ? rlPaperZoomHtml() : ''}${paper}</div>
         <div style="flex:none;padding:7px 14px;border-top:1px solid var(--color-divider);text-align:center;font-size:var(--t-label);color:var(--color-neutral-500)">
           ${publish ? 'Your live draft, not a sample' : 'A sample document, so the looks can be compared'}
         </div>

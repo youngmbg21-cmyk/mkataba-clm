@@ -94,8 +94,9 @@ const until = async (page, fn, arg, ms = 8000) => page.waitForFunction(fn, arg, 
 
     /* ===== 3. NO SIGNING TAB; THE ARTIFACT'S SYMBOLS ===== */
     const tabs = await page.evaluate(() => [...document.querySelectorAll('#ig-dock .igd-head .pd-tab')].map(b => ({ k: b.getAttribute('data-pd-tab'), g: ((b.querySelector('.pd-tab-g') || {}).textContent || '').replace('︎', '') })));
-    ok('3a no Signing tab: Copilot · Overview · Document · Obligations · History · Deal', tabs.map(t => t.k).join(',') === 'copilot,facts,doc,oblig,hist,deal', JSON.stringify(tabs.map(t => t.k)));
-    ok('3b the symbols are the artifact\'s marks', tabs.map(t => t.g).join('') === '✦▦▢⚑◷⇄', tabs.map(t => t.g).join(' '));
+    /* RE-POINTED 11 Oct 2026 (owner: "delete the deal tab ... and also delete history") */
+    ok('3a no Signing, Deal or History tab: Copilot · Overview · Clauses · Obligations', tabs.map(t => t.k).join(',') === 'copilot,facts,doc,oblig', JSON.stringify(tabs.map(t => t.k)));
+    ok('3b the symbols are the artifact\'s marks', tabs.map(t => t.g).join('') === '✦▦▢⚑', tabs.map(t => t.g).join(' '));
 
     /* ===== 4. WHITE, UNDER THE GREETING ROW ===== */
     const lay = await page.evaluate(() => { const R = e => e.getBoundingClientRect();
