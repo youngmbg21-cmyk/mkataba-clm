@@ -9741,9 +9741,17 @@
   .hb-cbar.is-rest .hb-cbar-tr{background:none}
   .hb-cbar.is-rest .hb-cbar-t{color:var(--hb-glow)}
   .hb-cbar-n{font-variant-numeric:tabular-nums;text-align:right}
+  /* the Table view, the Stripe way: numbers right, even-width digits, a quiet row hover */
+  .hb-ctab th.r,.hb-ctab td.r{text-align:right;white-space:nowrap}
+  .hb-ctab td{padding:7px 8px}
+  .hb-ctab tbody tr:hover td{background:rgba(var(--hb-ln),.04)}
+  .hb-ctab td .hb-link{color:var(--hb-ink);text-decoration:none}
+  .hb-ctab td .hb-link:hover{color:var(--hb-glow);text-decoration:underline}
   /* THE SIDE LIST, AS DRAWN (part B): over the right of the page, under the bar */
   .hb-sheet{position:fixed;top:48px;right:0;bottom:0;width:min(560px,100vw);z-index:60;background:var(--hb-menu);border-left:1px solid rgba(var(--hb-ln),.18);box-shadow:-12px 0 32px rgba(4,25,26,.12);display:flex;flex-direction:column}
   .hb-sheet:focus{outline:none}
+  /* the Copilot panel's resize handle lives in another layer and showed through the side list (the stray amber bar) */
+  #ig-page:has(.hb-sheet) .ig-resizer{visibility:hidden}
   .hb-sheet-h{display:flex;align-items:flex-start;gap:12px;padding:16px 18px 12px;border-bottom:1px solid rgba(var(--hb-ln),.14)}
   .hb-sheet-h > div{flex:1;min-width:0}
   .hb-sheet-h h3{margin:0;font-size:var(--t-title,16px);font-weight:var(--w-title,700);color:var(--hb-ink)}
@@ -9752,7 +9760,9 @@
   .hb-sheet-back{margin:6px 0 10px}
   .hb-sheet-w{margin:4px 0 8px}
   .hb-sheet .hb-figs{grid-template-columns:repeat(3,minmax(0,1fr))} .hb-sheet .hb-fig:nth-child(3n+1){border-left:0} .hb-sheet .hb-fig:nth-child(n+4){border-top:1px solid rgba(var(--hb-ln),.16)}
-  .hb-sheet-t{width:100%;border-collapse:collapse;font-size:13px;color:var(--hb-ink)}
+  .hb-sheet-t{width:100%;border-collapse:collapse;font-size:13px;color:var(--hb-ink);table-layout:fixed}
+  .hb-sheet-t td,.hb-sheet-t th{overflow-wrap:anywhere;min-width:0}
+  .hb-sheet-t col.c{width:38%} .hb-sheet-t col.s{width:20%} .hb-sheet-t col.o{width:16%} .hb-sheet-t col.v{width:12%} .hb-sheet-t col.g{width:14%}
   .hb-sheet-t th{position:sticky;top:-8px;background:var(--hb-menu);text-align:left;font-weight:var(--w-label,500);color:var(--hb-mute);padding:8px 6px;border-bottom:1px solid rgba(var(--hb-ln),.16)}
   .hb-sheet-t td{padding:8px 6px;border-bottom:1px solid rgba(var(--hb-ln),.1);vertical-align:top}
   .hb-sheet-t .r{text-align:right;white-space:nowrap}

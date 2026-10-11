@@ -3500,8 +3500,17 @@ function hbChartTableHtml(svgHtml){
     rows.push({ label: at > 0 ? txt.slice(0, at) : txt, val: at > 0 ? txt.slice(at + 2) : '', dig });
   });
   if (!rows.length) return '';
-  return `<table class="hb-ctab"><thead><tr><th>${_hbE(i18t('hb_tab_what'))}</th><th>${_hbE(i18t('hb_tab_count'))}</th></tr></thead><tbody>`
-    + rows.map(r => `<tr><td><button type="button" class="hb-link" data-hb-dig="${_hbE(r.dig)}">${_hbE(r.label)}</button></td><td>${_hbE(r.val)}</td></tr>`).join('') + '</tbody></table>';
+  /* THE TABLE READS LIKE A TABLE (owner, 11 Oct 2026): money and the count
+     in their own columns, each right-aligned in even-width digits; a piece
+     the chart names without a number (a legend's key) is no row */
+  const MONEY = /^[A-Z]{3} -?[\d.,]+[KMB]?$/, COUNT = /^(\d[\d,\s]*)(?: [^\d·]+)?$/;
+  rows.forEach(r => { const parts = r.val ? r.val.split(' · ') : []; r.money = ''; r.count = ''; const rest = [];
+    parts.forEach(p => { const q = p.trim(); if (!r.money && MONEY.test(q)) r.money = q; else if (!r.count && COUNT.test(q)) r.count = COUNT.exec(q)[1].trim(); else if (q) rest.push(q); });
+    r.detail = rest.join(' · '); });
+  const shown = rows.some(r => r.money || r.count) ? rows.filter(r => r.money || r.count || r.detail) : rows;
+  const hasM = shown.some(r => r.money), hasN = shown.some(r => r.count), hasD = shown.some(r => r.detail);
+  return `<table class="hb-ctab"><thead><tr><th>${_hbE(i18t('hb_tab_what'))}</th>${hasM ? `<th class="r">${_hbE(i18t('hb_tab_value'))}</th>` : ''}${hasN ? `<th class="r">${_hbE(i18t('hb_tab_contracts'))}</th>` : ''}${hasD ? `<th>${_hbE(i18t('hb_tab_detail'))}</th>` : ''}</tr></thead><tbody>`
+    + shown.map(r => `<tr><td><button type="button" class="hb-link" data-hb-dig="${_hbE(r.dig)}">${_hbE(r.label)}</button></td>${hasM ? `<td class="r">${_hbE(r.money)}</td>` : ''}${hasN ? `<td class="r">${_hbE(r.count)}</td>` : ''}${hasD ? `<td>${_hbE(r.detail)}</td>` : ''}</tr>`).join('') + '</tbody></table>';
 }
 /* A6: THE FORECAST, WITH AN HONEST RANGE — never one guessed number */
 const HB_FC_MIN = 5, RENEWAL_ANS_FC = ['renew', 'renegotiate', 'lapse'];
@@ -5023,7 +5032,7 @@ function hbSheetHtml(){
   const watch = fk ? `<div class="hb-sheet-w"><button type="button" class="hb-link" data-hb-watch="${fk}" aria-pressed="${!!(_hbWatchForm === fk || mine.length)}">${_hbE(i18t('hb_watch_menu'))}</button></div>`
     + (_hbWatchForm === fk ? hbWatchFormHtml(fk) : '')
     + (mine.length ? `<div class="hb-say">${_hbE(i18t('hb_watching'))} ${mine.map(w => `<span class="hb-chip${hbWatchFired(w) ? ' is-bad' : ''}">${_hbE(i18t('hb_watch_' + w.dir) + ' ' + (w.k === 'value' ? _hbM(w.n) : _hbN(w.n)) + ' · ' + i18t(hbWatchFired(w) ? 'hb_watch_fired' : 'hb_watch_not_yet'))}<button type="button" data-hb-watch-stop="${s.watches.indexOf(w)}" title="${_hbE(i18t('hb_watch_stop'))}" aria-label="${_hbE(i18t('hb_watch_stop'))}">${_hbX}</button></span>`).join(' ')}</div>` : '') : '';
-  const table = cs.length ? `<table class="hb-sheet-t"><thead><tr><th>${_hbE(i18t('hb_sheet_c'))}</th><th>${_hbE(i18t('hb_sheet_stream'))}</th><th>${_hbE(i18t('hb_sheet_owner'))}</th><th class="r">${_hbE(i18t('hb_c_value'))}</th><th>${_hbE(i18t('hb_c_stage'))}</th></tr></thead><tbody>${rows}</tbody></table>`
+  const table = cs.length ? `<table class="hb-sheet-t"><colgroup><col class="c"><col class="s"><col class="o"><col class="v"><col class="g"></colgroup><thead><tr><th>${_hbE(i18t('hb_sheet_c'))}</th><th>${_hbE(i18t('hb_sheet_stream'))}</th><th>${_hbE(i18t('hb_sheet_owner'))}</th><th class="r">${_hbE(i18t('hb_c_value'))}</th><th>${_hbE(i18t('hb_c_stage'))}</th></tr></thead><tbody>${rows}</tbody></table>`
     : `<div class="hb-quiet">${_hbE(i18t('hb_none_here'))}</div>`;
   return wrap(title, i18tn('hb_sheet_sub', cs.length, { n: _hbN(cs.length) }), deeper + watch + table + (cs.length ? hbListFootHtml(cs, title, D.stage || null, '') : ''));
 }

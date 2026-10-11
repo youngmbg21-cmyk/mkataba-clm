@@ -80,7 +80,8 @@ test('f565 (2) a month-column chart becomes a table too', () => {
 test('f565 (3) an SVG chart still reads from its <title>', () => {
   const { ctx, dom } = stage();
   const svg = '<svg><g data-hb-dig="qg:a"><title>Draft: 2 contracts</title><rect/></g><g data-hb-dig="qg:b"><title>Signed: 4 contracts</title></g></svg>';
-  assert.deepEqual(rowsOf(dom, ctx.table(svg)).map(r => r.label + '|' + r.val), ['Draft|2 contracts', 'Signed|4 contracts']);
+  /* RE-POINTED 11 Oct 2026 (owner: the table must read like a table): the count stands in its own column as a number */
+  assert.deepEqual(rowsOf(dom, ctx.table(svg)).map(r => r.label + '|' + r.val), ['Draft|2', 'Signed|4']);
   assert.equal(ctx.table('<div data-hb-dig="x" disabled></div>'), '', 'nothing behind it, no table');
 });
 
