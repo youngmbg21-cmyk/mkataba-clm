@@ -304,13 +304,14 @@ describe('f373 (7) the column opens on the press and fills as it is read', () =>
   test('the open row says "Reading N of M" in its own line, never a band', () => {
     const p = region('docThreadProgress');
     assert.match(p, /i18t\('ct_read_progress',\{n:Number\(r\.done\),m:Number\(r\.total\)\}\)/);
-    assert.match(region('docThreadBodyHtml'), /class="doc-th-wait">\$\{esc\(docThreadProgress\(c\)\)\}/);
+    /* the wait wears the turning ring (busyHtml, owner 11 Oct 2026: "when something is loading, there should be some type of movement") */
+    assert.match(region('docThreadBodyHtml'), /class="doc-th-wait">\$\{window\.busyHtml\?busyHtml\(docThreadProgress\(c\)\):esc\(docThreadProgress\(c\)\)\}/);
     assert.equal((I18N.match(/ct_read_progress: '/g) || []).length, 2, 'in both books');
     assert.match(I18N, /ct_read_progress: 'Reading \{n\} of \{m\}'/);
   });
   test('a clause still to come says so on its row, with a class of its own', () => {
     const p = region('docThreadStates');
-    assert.match(p, /class="is-wait">\$\{esc\(i18t\('ct_read_reading'\)\)\}/);
+    assert.match(p, /class="is-wait">\$\{window\.busyHtml\?busyHtml\(i18t\('ct_read_reading'\)\):esc\(i18t\('ct_read_reading'\)\)\}/);
     assert.match(p, /\(!_docThreadOnly\|\|_docThreadOnly\.has\(i\)\)/, 'only the rows this press asked for');
     assert.match(INDEX, /\.doc-th-state \.is-wait\{/, 'and the sheet dresses it');
   });
