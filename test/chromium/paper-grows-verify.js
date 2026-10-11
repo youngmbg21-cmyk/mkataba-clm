@@ -488,8 +488,11 @@ const SHEET = () => {
     await pause(600);
     const cp15 = await furnitureAt(15), cp20 = await furnitureAt(20);
     await page.screenshot({ path: path.join(OUT, '04c-counterparty-furniture-20.png') });
-    check('5c · counterparty: their sheet carries the same tag',
-      !!(cp15.tag && cp20.tag), cp15.tag ? `${cp15.tag.w}x${cp15.tag.h}` : 'no tag');
+    /* RE-POINTED 11 Oct 2026: no pen on ANY paper (Young, 9 Oct, change 5);
+       their seat's way in is Edit at the top (#pt-edit), so their sheet, like
+       ours, carries no clause furniture to scale. */
+    check('5c · counterparty: their sheet carries no pen either — one rule, both seats',
+      !cp15.tag && !cp20.tag, cp15.tag ? `pill ${cp15.tag.w}x${cp15.tag.h}` : 'no pen on their sheet');
     if (cp15.tag && cp20.tag)
       check('5c · counterparty: AND IT SCALES THERE TOO — one rule, both seats',
         cp20.tag.w > cp15.tag.w,
@@ -556,59 +559,48 @@ const SHEET = () => {
       await pause(300);
       return page.evaluate(EDITOR);
     };
-    const editorOpens = await (async () => { await page.evaluate(t => window.rlSetDocType(t), 15);
-      await pause(300); return openEditor(); })();
-    check('5d the pill and the ＋ open a real editor to measure',
-      editorOpens, editorOpens ? 'the panel\'s editor opened' : 'no editor anywhere');
-    if (editorOpens){
-      const noClauseEditor = await page.evaluate(() =>
-        !document.querySelector('.redline-page .rl-clause [data-nego-editor]')
-        && !!document.querySelector('.redline-page .rl-cp-src [data-nego-editor]'));
-      check('5d and it opened in the PANEL — the paper itself carries no editor',
-        noClauseEditor, 'editor inside .rl-cp-src, none inside a clause');
-      const e8 = await editorAt(8), e15 = await editorAt(15), e20 = await editorAt(20);
-      await page.screenshot({ path: path.join(OUT, '04d-owner-editor-20.png') });
-      const got = e15.fmtBtn && e15.save && e15.ed;
-      check('5d the open editor carries its format chips, its box and Save',
-        !!got, got ? `chip ${e15.fmtBtn.w}x${e15.fmtBtn.h}, save ${e15.save.w}x${e15.save.h}, box h${e15.ed.h}` : 'editor furniture missing');
-      if (got){
-        /* THE PANEL'S OWN RULE, stated as the thing that must now be true:
-           three settings, three IDENTICAL boxes — while the paper's words
-           move. The old "no longer the same size at every setting" claim
-           belonged to an editor that sat ON the paper. */
-        check('5d THE EDITOR FURNITURE HOLDS ITS SIZE AT EVERY SETTING — the panel does not follow the stepper',
-          e8.fmtBtn.h === e15.fmtBtn.h && e15.fmtBtn.h === e20.fmtBtn.h,
-          `format chip — 8: ${e8.fmtBtn.h} · 15: ${e15.fmtBtn.h} · 20: ${e20.fmtBtn.h}`);
-        check('5d Save / Cancel hold too',
-          e8.save.h === e15.save.h && e15.save.h === e20.save.h,
-          `${e8.save.h} · ${e15.save.h} · ${e20.save.h}`);
-        /* RE-POINTED 28 Aug 2026 from the retired reason box onto the editor
-           itself. The wording INSIDE it is the clause's own and scales with the
-           paper — which is right — so what is pinned is the box's WIDTH, the
-           half the reason box was really guarding. */
-        check('5d …while the paper\'s own words still move under the same presses',
-          f8.words < f15.words && f20.words > f15.words,
-          `words — 8: ${f8.words} · 15: ${f15.words} · 20: ${f20.words}`);
-        check('5d and the editor box still takes its WIDTH from its container, not the type',
-          Math.abs(e8.ed.w - e20.ed.w) <= 1, `8: ${e8.ed.w} · 20: ${e20.ed.w}`);
-      }
-      /* BOTH SEATS. The counterparty mounts this same panel and the same
-         editor; the pin is the panel's own rule, so it must hold there too. */
-      await page.evaluate(() => { window.rlSetDocType(15); window.SHOW_COUNTERPARTY(); });
+    /* ---- RE-POINTED 11 Oct 2026 ----
+       THE PAPER READS, EDIT CLAUSE OPENS THE EDIT ROOM (Young, 9 Oct 2026):
+       at this width the editor is the full-window clause editor
+       (rlOpenClauseEditor), not a box in the side panel — the panel's own
+       editor stays for narrow windows. The rule this section protects is
+       unchanged: THE PAPER SCALES, THE EDITOR'S FURNITURE DOES NOT. So the
+       paper is set to 8, 15 and 20 and the editor's Save is measured each
+       time; and the paper itself carries no editor. */
+    const ceAt = async v => {
+      await page.evaluate(t => window.rlSetDocType(t), v);
+      await pause(300);
+      const ok = await page.evaluate(() => {
+        const c = window.CONTRACT, cl = negoClauseList(c)[1] || negoClauseList(c)[0];
+        return window.rlOpenClauseEditor ? rlOpenClauseEditor(c, cl.clauseId, {}) !== false : false;
+      });
       await pause(700);
-      const cpOpens = await openEditor();
-      check('5d · counterparty: their pill and ＋ open the same editor',
-        cpOpens, cpOpens ? 'the panel\'s editor opened on their seat' : 'no editor');
-      if (cpOpens){
-        const q15 = await editorAt(15), q20 = await editorAt(20);
-        await page.screenshot({ path: path.join(OUT, '04e-counterparty-editor-20.png') });
-        check('5d · counterparty: AND IT HOLDS THERE TOO — one rule, both seats',
-          !!(q15.fmtBtn && q20.fmtBtn) && q20.fmtBtn.h === q15.fmtBtn.h,
-          q15.fmtBtn ? `15: ${q15.fmtBtn.h} → 20: ${q20.fmtBtn.h}` : 'no chips');
-      }
-      await page.evaluate(() => { window.rlSetDocType(15); window.SHOW_OWNER(); });
-      await pause(700);
+      const m = await page.evaluate(() => {
+        const ed = document.getElementById('clause-editor');
+        const sv = ed && ed.querySelector('[data-ce-act="save"]');
+        const r = sv && sv.getBoundingClientRect(), f = ed && ed.querySelector('.ce-rail');
+        return ed ? { save: r ? { w: Math.round(r.width), h: Math.round(r.height) } : null,
+          rail: f ? Math.round(f.getBoundingClientRect().width) : null,
+          onPaper: !!document.querySelector('.redline-page .rl-clause [data-nego-editor]') } : null;
+      });
+      await page.evaluate(() => { if (window.rlCloseClauseEditor) rlCloseClauseEditor(); });
+      await pause(400);
+      return ok ? m : null;
+    };
+    const ce8 = await ceAt(8), ce15 = await ceAt(15), ce20 = await ceAt(20);
+    check('5d Edit opens a real editor to measure — the clause editor',
+      !!(ce15 && ce15.save), ce15 ? JSON.stringify(ce15.save) : 'no editor anywhere');
+    if (ce8 && ce15 && ce20 && ce8.save && ce15.save && ce20.save){
+      check('5d and the paper itself carries no editor', !ce15.onPaper);
+      check('5d THE EDITOR FURNITURE HOLDS ITS SIZE AT EVERY SETTING — it does not follow the paper\'s stepper',
+        ce8.save.h === ce15.save.h && ce15.save.h === ce20.save.h && ce8.rail === ce20.rail,
+        `save — 8: ${ce8.save.h} · 15: ${ce15.save.h} · 20: ${ce20.save.h}; rail ${ce8.rail} · ${ce20.rail}`);
+      check('5d …while the paper\'s own words still move under the same presses',
+        f8.words < f15.words && f20.words > f15.words,
+        `words — 8: ${f8.words} · 15: ${f15.words} · 20: ${f20.words}`);
     }
+    await page.evaluate(() => { window.rlSetDocType(15); });
+    await pause(300);
 
     await page.screenshot({ path: path.join(OUT, '03-owner-stepped.png') });
 
@@ -644,7 +636,11 @@ const SHEET = () => {
       const card = document.querySelector('#rl-changes .rl-card');
       const more = card && card.querySelector('.rl-more-btn');
       if (more) more.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      const btn = (card && card.querySelector('.rl-more-menu [data-rl-cp-open]'))
+      /* RE-POINTED 11 Oct 2026: THE ROW IS THE WHOLE OF IT (rlRowFaceVerbs) —
+         the clause panel, the Ladder on our seat, opens from the row's own
+         Ladder verb; the ⋯ row is kept for a book that still draws one. */
+      const btn = (card && card.querySelector('[data-rl-ladder]'))
+        || (card && card.querySelector('.rl-more-menu [data-rl-cp-open]'))
         || document.querySelector('#rl-changes .rl-card .rl-open-btn');
       if (!btn) return null;
       btn.click();
