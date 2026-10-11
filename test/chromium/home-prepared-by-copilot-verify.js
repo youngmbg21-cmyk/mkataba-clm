@@ -108,9 +108,13 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     /* ===== 2. ONE ROW PER AGENT WITH WORK, EVERY NUMBER BORROWED ===== */
     const rows = await page.evaluate(() => {
       const D = agentsData();
-      const want = AG_KEYS.filter(k => D.agents[k].ready.length).map(k => k + ':' + D.agents[k].ready.length);
-      const got = [...document.querySelectorAll('[data-hm-agent-row]')].map(r => r.getAttribute('data-hm-agent-row') + ':'
-        + ((r.querySelector('.hb-pill') || {}).textContent || '').trim());
+      /* RE-POINTED 11 Oct 2026 (the Board as drawn, owner's go): ONE ROW PER
+         ITEM, at most 8, in the agents' order — so each agent's rows are its
+         ready count (cut at the 8th row overall) */
+      const flat = AG_KEYS.flatMap(k => D.agents[k].ready.map(() => k)).slice(0, 8);
+      const tally = list => { const o = []; list.forEach(k => { const l = o[o.length - 1]; if (l && l[0] === k) l[1]++; else o.push([k, 1]); }); return o.map(x => x.join(':')); };
+      const want = tally(flat);
+      const got = tally([...document.querySelectorAll('#hm-agents [data-hm-agent-row]')].map(r => r.getAttribute('data-hm-agent-row')));
       const sub = (document.querySelector('#hm-agents .hb-cs') || {}).textContent || '';
       const rail = ((document.querySelector('[data-count="agents"]') || {}).textContent || '').trim();
       return { want, got, sub, ready: D.ready, rail };
@@ -128,11 +132,15 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     await page.locator('#hm-agents').screenshot({ path: path.join(OUT, '2-card.png') });
 
     /* ===== 3. REVIEW OPENS THAT AGENT'S WORK BELOW THE CARD (Young, 7 Oct 2026) ===== */
-    await page.click('[data-hm-agent-row="ours"] .hb-btn');
+    /* RE-POINTED 11 Oct 2026: a row's own button does that item's act; the
+       agent's whole work opens from The agents → Open its work */
+    await page.click('#hm-agents [data-hb-agents-page]');
+    await page.waitForSelector('#hb-focus [data-hb-dig="ag:ours"]', { timeout: 8000 }).catch(() => {});
+    await page.click('#hb-focus [data-hb-dig="ag:ours"]').catch(() => {});
     const shown = () => page.evaluate(() => ({ view: state.view,
       want: agentsData().agents.ours.ready.map(x => x.key).slice(0, 8),
-      got: [...document.querySelectorAll('#hb-board [data-hb-ag-item]')].map(x => x.getAttribute('data-hb-ag-item')),
-      acts: document.querySelectorAll('#hb-board [data-hb-ag-item] [data-ag-act]').length }));
+      got: [...document.querySelectorAll('#hb-focus [data-hb-ag-item]')].map(x => x.getAttribute('data-hb-ag-item')),
+      acts: document.querySelectorAll('#hb-focus [data-hb-ag-item] [data-ag-act]').length }));
     await page.waitForFunction(() => !!document.querySelector('#hb-board [data-hb-ag-item]'), null, { timeout: 8000 }).catch(() => {});
     const s3 = await shown();
     ok('3 Review opens that agent\'s whole work below the card, on the Board, with its own buttons',

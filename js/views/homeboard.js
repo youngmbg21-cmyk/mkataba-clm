@@ -1238,7 +1238,7 @@ function hbPrepHtml(A, since){
     return `<div class="hb-ag hb-ag-item" data-hb-ag-item="${_hbE(x.key)}" data-hm-agent-row="${_hbE(x.k)}">
       <span class="hb-ag-k"><i class="hb-ag-dot${dot}" aria-hidden="true"></i><span class="hb-ag-t">${_hbE(i18t('ag_' + x.k))}</span></span>
       <span class="hb-ag-b"><span class="hb-ag-w">${_hbE(x.who || x.sum || '')}</span>${(x.who && x.sum) || urg ? `<span class="hb-ag-s">${x.who && x.sum ? _hbE(x.sum) : ''}${x.who && x.sum && urg ? ' · ' : ''}${urg}</span>` : ''}</span>
-      <span class="hb-ag-acts">${actsOf(x.key) || `<button type="button" class="hb-btn" data-hb-dig="ag:${_hbE(x.k)}">${_hbE(i18t('hm_ag_review'))}</button>`}</span></div>`;
+      <span class="hb-ag-acts">${HB_REVIEW_ON_PAPER[x.k] ? `<button type="button" class="hb-btn" data-hb-review-paper="${_hbE(x.k)}" data-hb-review-cid="${_hbE(x.cid || '')}">${_hbE(i18t('hm_ag_review'))}</button>` : ''}${(HB_REVIEW_ON_PAPER[x.k] ? '' : actsOf(x.key)) || (HB_REVIEW_ON_PAPER[x.k] ? '' : `<button type="button" class="hb-btn" data-hb-dig="ag:${_hbE(x.k)}">${_hbE(i18t('hm_ag_review'))}</button>`)}</span></div>`;
   }).join('') + (items.length > shownItems.length ? `<div class="hb-ag-more"><button type="button" class="hb-link" data-hb-agents-page>${_hbE(i18tn('hb_ag_more', items.length - shownItems.length, { n: _hbN(items.length - shownItems.length) }))}</button></div>` : '');
   const done = (!folded && A.done.length) ? `<div class="hb-done">${_hbE(i18t('hb_done_since', { when: hbDayWords(since) }))} ${A.done.map(x => `<button type="button" data-hb-dig="dn:${_hbE(x.k)}">${_hbE(i18tn('hb_done_' + x.k, x.n, { n: _hbN(x.n) }))}</button>`).join('<span aria-hidden="true">·</span>')}<span class="hb-grow"></span><span class="hb-quiet">${_hbE(i18t('hb_done_trail'))}</span></div>` : '';
   return `<section class="hb-card hb-prep${folded ? ' is-folded' : ''}" id="hm-agents"><header class="hb-ch">
@@ -8778,12 +8778,13 @@ function hbPlacePut(p){
    tab that holds its act; several are walked with Previous / Next. The row
    itself still opens the agent's work below the card. */
 const HB_REVIEW_ON_PAPER = { renew: 'facts', late: 'oblig', round: 'deal' };
-function hbReviewOnPaper(k){
+function hbReviewOnPaper(k, cid){
   const tab = HB_REVIEW_ON_PAPER[k]; if (!tab || typeof agentsData !== 'function' || typeof igWalk !== 'function') return false;
   const ids = [];
   ((agentsData().agents[k] || {}).ready || []).forEach(it => { const id = it && (it.cid || (it.c && it.c.id)); if (id && !ids.includes(id)) ids.push(id); });
   if (!ids.length) return false;
-  igWalk(ids, 0, { title: i18t('ag_' + k), tab });
+  /* a row of one item starts the walk on its own contract */
+  igWalk(ids, Math.max(0, cid ? ids.indexOf(cid) : 0), { title: i18t('ag_' + k), tab });
   return true;
 }
 function hbOnClick(e){
@@ -8794,7 +8795,7 @@ function hbOnClick(e){
   /* a door out of the side list (Open these, Show on the map) leaves it closed behind */
   if (_hbSheet && t.closest('.hb-sheet [data-hb-open], .hb-sheet [data-hb-map]')) _hbSheet = null;
   { const rp = t.closest('[data-hb-review-paper]');
-    if (rp){ e.preventDefault(); e.stopPropagation(); if (!hbReviewOnPaper(rp.getAttribute('data-hb-review-paper'))) hbDig('ag:' + rp.getAttribute('data-hb-review-paper'), false, true); return; } }
+    if (rp){ e.preventDefault(); e.stopPropagation(); if (!hbReviewOnPaper(rp.getAttribute('data-hb-review-paper'), rp.getAttribute('data-hb-review-cid'))) hbDig('ag:' + rp.getAttribute('data-hb-review-paper'), false, true); return; } }
   /* an open dropdown closes on a press anywhere else */
   if (_hbRcOpen && !t.closest('.hb-rwrap')){ _hbRcOpen = null; hbPaintBoard(); }
   if (_hbLinesOpen && !t.closest('.hb-lines-w')){ _hbLinesOpen = null; hbPaintBoard(); }
@@ -8803,10 +8804,16 @@ function hbOnClick(e){
   /* the card's ⋯: its own button opens and shuts it; any press elsewhere, or
      on one of its items, shuts it (the item's own handler still runs below) */
   { const dr = t.closest('[data-hb-drawn]');
-    if (dr){ const k = dr.getAttribute('data-hb-drawn'); _hbDrawnOpen = _hbDrawnOpen === k ? null : k; _hbToolsMenu = null; hbPaintBoard(); return; }
+    if (dr){ const k = dr.getAttribute('data-hb-drawn'); _hbDrawnOpen = _hbDrawnOpen === k ? null : k; _hbToolsMenu = null; hbPaintBoard();
+      /* a card low on the screen opened its panel below the window's foot
+         (11 Oct 2026): bring the opened panel into view, the least scroll */
+      if (_hbDrawnOpen){ const m = document.querySelector('.hb-dp'); if (m && m.scrollIntoView) m.scrollIntoView({ block: 'nearest' }); }
+      return; }
     if (_hbDrawnOpen && !t.closest('.hb-dp')){ _hbDrawnOpen = null; hbPaintBoard(); } }
   { const tm = t.closest('[data-hb-tools-more]');
-    if (tm){ const k = tm.getAttribute('data-hb-tools-more'); _hbToolsMenu = _hbToolsMenu === k ? null : k; _hbDrawnOpen = null; hbPaintBoard(); return; }
+    if (tm){ const k = tm.getAttribute('data-hb-tools-more'); _hbToolsMenu = _hbToolsMenu === k ? null : k; _hbDrawnOpen = null; hbPaintBoard();
+      if (_hbToolsMenu){ const m = document.querySelector('.hb-tools-menu'); if (m && m.scrollIntoView) m.scrollIntoView({ block: 'nearest' }); }
+      return; }
     if (_hbToolsMenu){ _hbToolsMenu = null; if (!t.closest('.hb-tools-menu')) hbPaintBoard(); } }
   const on = sel => t.closest(sel);
   let el;
