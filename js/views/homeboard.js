@@ -5240,7 +5240,7 @@ function hbSheetHtml(){
   if (_hbSheet.cid){
     const D = hbDigData('c:' + _hbSheet.cid, lens);
     if (D && D.card) return wrap(D.card.ref + ' · ' + D.card.name, D.card.cp || '',
-      `<button type="button" class="hb-link hb-sheet-back" data-hb-sheet-back>← ${_hbE(i18t('hb_sheet_back'))}</button>${hbCardHtml(D.card)}`);
+      `<button type="button" class="hb-link hb-sheet-back" data-hb-sheet-back>${_hbBack}${_hbE(i18t('hb_sheet_back'))}</button>${hbCardHtml(D.card)}`);
     _hbSheet.cid = null;
   }
   const D = hbDigData(_hbSheet.key, lens);
