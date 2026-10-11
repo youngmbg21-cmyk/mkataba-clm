@@ -96,8 +96,16 @@ const check = (name, pass, detail) => {
 
     /* 4. the opened chart: sentence + how */
     await openChart(KEY, RECIPE);
-    const head = await until(() => { const r = document.querySelector('#hb-focus .hb-recipe.is-sentence'); const how = document.querySelector('#hb-focus .hb-how'); return r && how ? { r: r.textContent.replace(/\s+/g, ' ').trim(), how: how.textContent.trim() } : null; });
-    check('4a. C1 the recipe reads as one sentence', !!head && /as/.test(head.r) && /counting/.test(head.r), head && head.r.slice(0, 120));
+    /* RE-POINTED 11 Oct 2026 (the Board as drawn): the card is clean — the
+       recipe's choices are labelled groups under How this is drawn ▾, and How
+       this was counted is an item of the card's ⋯ */
+    await page.click('#hb-focus [data-hb-drawn]');
+    const dp = await until(() => { const p = document.querySelector('#hb-focus .hb-dp'); return p ? [...p.querySelectorAll('.hb-dp-l')].map(l => l.firstChild ? l.firstChild.textContent.trim() : '').join(' | ') : null; });
+    check('4a. C1 the choices are labelled groups under How this is drawn', !!dp && /Picture/.test(dp) && /Measure|Show/.test(dp) && !(await page.$('#hb-focus .hb-recipe')), dp);
+    await page.keyboard.press('Escape');
+    await page.click('#hb-focus [data-hb-tools-more]');
+    await page.click('#hb-focus [data-hb-howon]');
+    const head = await until(() => { const how = document.querySelector('#hb-focus .hb-how'); return how ? { how: how.textContent.trim() } : null; });
     check('4b. C6 how this was counted is said', !!head && /How this was counted/.test(head.how), head && head.how.slice(0, 140));
     await page.screenshot({ path: path.join(OUT, '4-sentence-and-how.png') });
 

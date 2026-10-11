@@ -52,7 +52,8 @@ const PANELS = [['pa', 'q:contracts by status'], ['pb', 'q:contracts by counterp
       await page.waitForFunction(() => window.state && state.contracts && state.contracts.length > 3 && typeof hbS === 'function', null, { timeout: 20000 });
       if (screen === 'dark') await page.evaluate(() => setDark(true));
       const standFn = ({ P, R, screen }) => {
-        if (P.every(([id]) => document.querySelector(`[data-hb-pid="${id}"] [data-hb-rc]`))) return true;
+        /* RE-POINTED 11 Oct 2026 (the Board as drawn): the card's list is the How this is drawn panel */
+        if (P.every(([id]) => document.querySelector(`[data-hb-pid="${id}"] [data-hb-drawn]`))) return true;
         const s = hbS(); s.face = 'board'; s.prep = 'closed'; s.path = []; s.screen = screen; s.scrPick = 1;
         s.panels = P.map(([id, key]) => ({ id, kind: 'view', key, title: id, recipe: JSON.parse(JSON.stringify(R)), split: false, big: false }));
         hbSave(); if (state.view !== 'dashboard') setView('dashboard'); else hbPaintBoard(); return false; };
@@ -69,33 +70,33 @@ const PANELS = [['pa', 'q:contracts by status'], ['pb', 'q:contracts by counterp
       const lum = c => c ? (0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b) / 255 : null;
       /* 1 + 2: a mouse press on the Split choice */
       await stand();
-      const btn = await page.evaluate(() => { const b = document.querySelector('[data-hb-pid="pa"] [data-hb-rc="split"]') || document.querySelector('[data-hb-pid="pa"] [data-hb-rc]');
+      const btn = await page.evaluate(() => { const b = document.querySelector('[data-hb-pid="pa"] [data-hb-drawn]');
         b.scrollIntoView({ block: 'center' }); const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
       await page.mouse.click(btn.x, btn.y);
-      const menu = await until(() => { const m = document.querySelector('.hb-rmenu'); if (!m) return null; const cs = getComputedStyle(m);
-        const b = document.querySelector('.hb-rc.is-open') || document.querySelector('[data-hb-pid="pa"] [data-hb-rc="split"]'), bs = getComputedStyle(b);
+      const menu = await until(() => { const m = document.querySelector('.hb-dp'); if (!m) return null; const cs = getComputedStyle(m);
+        const b = document.querySelector('[data-hb-pid="pa"] [data-hb-drawn]'), bs = getComputedStyle(b);
         const glow = getComputedStyle(document.getElementById('hb-page') || document.getElementById('ig-page')).getPropertyValue('--hb-glow').trim();
-        return { bg: cs.backgroundColor, blur: cs.backdropFilter, shadow: bs.boxShadow, outline: bs.outlineStyle + ' ' + bs.outlineWidth, edge: bs.borderTopColor, glow }; });
+        return { bg: cs.backgroundColor, blur: cs.backdropFilter, shadow: bs.boxShadow, outline: bs.outlineStyle + ' ' + bs.outlineWidth, edge: bs.borderTopColor, ew: parseFloat(bs.borderTopWidth), glow }; });
       if (screen === 'light') await page.screenshot({ path: path.join(OUT, '1-list-open-light.png') });
       else await page.screenshot({ path: path.join(OUT, '1-list-open-dark.png') });
       const mbg = menu && rgba(menu.bg);
       check(`1. ${screen}: the open list's ground is solid, no blur`, !!mbg && mbg.a === 1 && (!menu.blur || menu.blur === 'none'), menu && `${menu.bg} · blur ${menu.blur}`);
       const edge = menu && rgba(menu.edge);
       check(`2. ${screen}: after a mouse press the open choice wears no dark ring`, !!menu && !/inset/.test(menu.shadow) && (/^none /.test(menu.outline) || / 0px$/.test(menu.outline))
-        && !!edge && edge.a < 1, menu && `shadow ${menu.shadow} · outline ${menu.outline} · edge ${menu.edge}`);
+        && !!edge && (edge.a < 1 || menu.ew === 0), menu && `shadow ${menu.shadow} · outline ${menu.outline} · edge ${menu.edge}`);
       await page.keyboard.press('Escape'); await page.mouse.click(4, 400);
-      await until(() => !document.querySelector('.hb-rmenu'), null, 3000);
+      await until(() => !document.querySelector('.hb-dp'), null, 3000);
       /* the card's ⋯ menu */
-      const more = await page.evaluate(() => { const b = document.querySelector('[data-hb-pid="pa"] [data-hb-act="more"]'); if (!b) return false; b.click(); return true; });
+      const more = await page.evaluate(() => { const b = document.querySelector('[data-hb-pid="pa"] [data-hb-tools-more]'); if (!b) return false; b.click(); return true; });
       if (more) { const pm = await until(() => { const m = document.querySelector('.hb-pmenu'); if (!m) return null; const cs = getComputedStyle(m); return { bg: cs.backgroundColor, blur: cs.backdropFilter }; });
         const pbg = pm && rgba(pm.bg);
         check(`1. ${screen}: the ⋯ menu's ground is solid, no blur`, !!pbg && pbg.a === 1 && (!pm.blur || pm.blur === 'none'), pm && `${pm.bg} · blur ${pm.blur}`);
         await page.keyboard.press('Escape'); await page.mouse.click(4, 400); }
       /* 3: the keyboard still gets a ring */
       await stand();
-      await page.evaluate(() => document.querySelector('[data-hb-pid="pa"] [data-hb-rc]').setAttribute('data-kb', '1'));
-      await page.focus('[data-hb-pid="pa"] [data-hb-rc][data-kb]'); await page.keyboard.press('Shift+Tab'); await page.keyboard.press('Tab');
-      const ring = await page.evaluate(() => { const a = document.activeElement; const cs = getComputedStyle(a); return { on: a.matches('[data-hb-rc]'), style: cs.outlineStyle, w: parseFloat(cs.outlineWidth) }; });
+      await page.evaluate(() => document.querySelector('[data-hb-pid="pa"] [data-hb-drawn]').setAttribute('data-kb', '1'));
+      await page.focus('[data-hb-pid="pa"] [data-hb-drawn][data-kb]'); await page.keyboard.press('Shift+Tab'); await page.keyboard.press('Tab');
+      const ring = await page.evaluate(() => { const a = document.activeElement; const cs = getComputedStyle(a); return { on: a.matches('[data-hb-drawn]'), style: cs.outlineStyle, w: parseFloat(cs.outlineWidth) }; });
       check(`3. ${screen}: a keyboard Tab onto a choice shows a 2px ring`, ring.on && ring.style !== 'none' && ring.w >= 2, JSON.stringify(ring));
       /* 4 + 5: the search field */
       await page.mouse.click(4, 400);

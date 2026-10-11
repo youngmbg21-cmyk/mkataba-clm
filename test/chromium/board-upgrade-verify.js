@@ -126,17 +126,26 @@ const check = (name, pass, detail) => {
     check('3a. G2 every fitted column edge is on a whole pixel', sharp.xs.length >= 3 && sharp.xs.every(x => x % 1 === 0), sharp.xs.slice(0, 6).join(' '));
     check('3b. G2 grid lines are crisp', sharp.crisp === 'crispedges', sharp.crisp);
 
+    /* RE-POINTED 11 Oct 2026 (the Board as drawn): the press in 1d opens the
+       column's contracts in the side list over the right of the page — close it */
+    await page.keyboard.press('Escape');
+    await until(() => !document.querySelector('.hb-sheet'), null, 3000);
     /* 4. G5 opened: lines */
     await page.evaluate(k => { const s = hbS(); s.panels = []; s.path = [k]; hbSave(); hbPaintBoard(); }, KEY);
     await page.evaluate(({ k, R }) => { hbCardSet(k, R, { seed: true }); hbPaintBoard(); }, { k: KEY, R: RECIPE });
-    await until(() => !!document.querySelector('#hb-focus [data-hb-lines]'));
-    const tools = await page.evaluate(() => [...document.querySelectorAll('#hb-focus .hb-open-tools > *')].map(b => b.textContent.trim()).join(' | '));
-    check('4a. G5/G9 opened: Lines, Copy as image and Copy table beside Show as table and Full screen', /Lines/.test(tools) && /Copy as image/.test(tools) && /Copy table/.test(tools) && /Show as table/.test(tools), tools);
-    await page.click('#hb-focus [data-hb-lines]');
-    await until(() => !!document.querySelector('.hb-lines-menu'));
-    await page.click('.hb-lines-menu [data-hb-line="avg"]');
+    /* RE-POINTED 11 Oct 2026 (the Board as drawn): the head carries How this is
+       drawn ▾ · Table · ⋯; Lines (and the target) are a group in the panel,
+       Copy as image / Copy table are items of ⋯ */
+    await until(() => !!document.querySelector('#hb-focus [data-hb-drawn]'));
+    await page.click('#hb-focus [data-hb-tools-more]');
+    const tools = await until(() => { const h = [...document.querySelectorAll('#hb-focus .hb-edge > *')].map(b => b.textContent.trim()).join(' | '); const m = document.querySelector('#hb-focus .hb-tools-menu'); return m ? h + ' || ' + m.textContent.replace(/\s+/g, ' ') : null; });
+    check('4a. G5/G9 opened: How this is drawn · Table on the head; Copy as image, Copy table and Full screen in ⋯', !!tools && /How this is drawn/.test(tools) && /Table/.test(tools) && /Copy as image/.test(tools) && /Copy table/.test(tools) && /Full screen/.test(tools), tools);
+    await page.keyboard.press('Escape');
+    await page.click('#hb-focus [data-hb-drawn]');
+    await until(() => !!document.querySelector('#hb-focus .hb-dp [data-hb-line="avg"]'));
+    await page.click('#hb-focus .hb-dp [data-hb-line="avg"]');
     check('4b. G5 the average is drawn', !!(await until(() => !!document.querySelector('#hb-focus .hb-sv-ref-avg'))));
-    if (!(await page.evaluate(() => !!document.querySelector('#hb-ref-tgt-in')))) await page.click('#hb-focus [data-hb-lines]');
+    if (!(await page.evaluate(() => !!document.querySelector('#hb-ref-tgt-in')))) await page.click('#hb-focus [data-hb-drawn]');
     await until(() => !!document.querySelector('#hb-ref-tgt-in'));
     await page.fill('#hb-ref-tgt-in', 'lots');
     await page.press('#hb-ref-tgt-in', 'Enter');
