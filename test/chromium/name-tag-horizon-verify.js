@@ -61,7 +61,9 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
       const row = document.querySelector('[data-hm-agent-row="renew"]');
       if (!row) return null;
       /* RE-POINTED IN PLACE 3 Oct 2026: the row is the board's own now */
-      const t = row.querySelector('.hb-ag-ic, .hm-ag-ic');
+      /* RE-POINTED 11 Oct 2026 (the Board as drawn, owner's go): one row per
+         item, its agent's mark the drawn dot */
+      const t = row.querySelector('.hb-ag-dot, .hb-ag-ic, .hm-ag-ic');
       if (!t) return { drawn: false };
       const rr = row.getBoundingClientRect(), tr = t.getBoundingClientRect();
       const head = row.querySelector('.hb-ag-b, .hm-rb').getBoundingClientRect();
@@ -75,7 +77,7 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
     ok('1b its mark sits at the LEFT, on the sentence\'s own line',
       !!tag && tag.atLeft && tag.sameLine, JSON.stringify(tag && { l: tag.atLeft, s: tag.sameLine }));
     /* GATED on the mark really being drawn, or an absence satisfies it. */
-    ok('1c it is a tinted square, not a bare glyph',
+    ok('1c it is a filled mark, not a bare glyph',
       !!tag && tag.drawn && tag.bg !== 'rgba(0, 0, 0, 0)', tag && tag.bg);
 
     /* ════ 2. THE DROPDOWN'S CHOICES ════ */

@@ -89,7 +89,8 @@ const CONTRACTS = [
     await page.click('#li-go');
     await until(page, () => window.state && state.contracts && state.contracts.length > 0, null, 15000);
     await page.evaluate(() => setView('dashboard'));
-    const landed = await until(page, () => document.querySelectorAll('#hb-board .hb-fig').length === 6);
+    /* RE-POINTED 11 Oct 2026 (owner: "only 5 cards") */
+    const landed = await until(page, () => document.querySelectorAll('#hb-board .hb-fig').length === 5);
     ok('0 Home lands on the board', landed);
 
     /* ===== 1. THE CARD IS COPILOT'S, AND NOTHING IS WAITING ON IT ===== */

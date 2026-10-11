@@ -92,20 +92,21 @@ const DOC = 'SUPPLY AGREEMENT\n\nArticle 1 Term\n\nThis Agreement runs for twelv
     await page.screenshot({ path: path.join(OUT, '3-cards.png') });
 
     /* ===== 4. A DRAFTED REPLY, SAID HONESTLY WITH NO KEY ===== */
+    /* RE-POINTED 11 Oct 2026 (one row per item on Copilot's work): the agent's own work opens under the card (#hb-focus) — that is where a draft is drawn */
     await page.evaluate(() => hbOpenAgent('quiet'));
-    await page.waitForSelector('[data-hb-ag-item^="quiet:"] [data-ag-act="draftreply"]', { timeout: 10000 }).catch(() => {});
-    const btn = await page.$('[data-hb-ag-item^="quiet:"] [data-ag-act="draftreply"]');
+    await page.waitForSelector('#hb-focus [data-hb-ag-item^="quiet:"] [data-ag-act="draftreply"]', { timeout: 10000 }).catch(() => {});
+    const btn = await page.$('#hb-focus [data-hb-ag-item^="quiet:"] [data-ag-act="draftreply"]');
     ok('4a the dropped thread offers "Draft a reply"', !!btn);
     if (btn) await btn.click();
-    const said = await page.waitForFunction(() => /No Copilot key is set up|Copilot could not write a reply|Copilot came back with nothing to say|A reply Copilot drafted/.test((document.querySelector('[data-hb-ag-item^="quiet:"]') || {}).innerText || ''), null, { timeout: 15000 }).then(() => true, () => false);
-    ok('4b the press ends in words: a draft, or why there is none', said, await page.evaluate(() => ((document.querySelector('[data-hb-ag-item^="quiet:"]') || {}).innerText || '').slice(0, 300)));
+    const said = await page.waitForFunction(() => /No Copilot key is set up|Copilot could not write a reply|Copilot came back with nothing to say|A reply Copilot drafted/.test((document.querySelector('#hb-focus [data-hb-ag-item^="quiet:"]') || {}).innerText || ''), null, { timeout: 15000 }).then(() => true, () => false);
+    ok('4b the press ends in words: a draft, or why there is none', said, await page.evaluate(() => ((document.querySelector('#hb-focus [data-hb-ag-item^="quiet:"]') || {}).innerText || '').slice(0, 300)));
     /* a stand-in answer, so the hand-over into the drawer can be driven */
     await page.evaluate(() => { window.copilotAsk = async () => ({ answer: 'Thank you, Erik. The delivery address is our Ruiru warehouse, as in clause 1.' }); });
-    const again = await page.$('[data-hb-ag-item^="quiet:"] [data-ag-act="draftreply"]'); if (again) await again.click();
-    const drafted = await page.waitForFunction(() => /Ruiru warehouse/.test((document.querySelector('[data-hb-ag-item^="quiet:"]') || {}).innerText || '') && !!document.querySelector('[data-hb-ag-item^="quiet:"] [data-ag-act="usereply"]'), null, { timeout: 8000 }).then(() => true, () => false);
+    const again = await page.$('#hb-focus [data-hb-ag-item^="quiet:"] [data-ag-act="draftreply"]'); if (again) await again.click();
+    const drafted = await page.waitForFunction(() => /Ruiru warehouse/.test((document.querySelector('#hb-focus [data-hb-ag-item^="quiet:"]') || {}).innerText || '') && !!document.querySelector('#hb-focus [data-hb-ag-item^="quiet:"] [data-ag-act="usereply"]'), null, { timeout: 8000 }).then(() => true, () => false);
     ok('4c a drafted reply is shown, marked "check before sending", with Use this reply', drafted);
     await page.screenshot({ path: path.join(OUT, '4-reply.png') });
-    if (drafted) await page.click('[data-hb-ag-item^="quiet:"] [data-ag-act="usereply"]');
+    if (drafted) await page.click('#hb-focus [data-hb-ag-item^="quiet:"] [data-ag-act="usereply"]');
     const inBox = await page.waitForFunction(() => { const b = document.querySelector('#panel-body [data-rl-np-rin]'); return !!(b && /Ruiru warehouse/.test(b.value)); }, null, { timeout: 8000 }).then(() => true, () => false);
     const sent = await page.evaluate(() => { const c = getContract('MK-J2'); return (c.thread || []).filter(m => /Ruiru/.test(m.text || '')).length; });
     const dbg = inBox ? '' : await page.evaluate(() => { const h = document.getElementById('panel-body'); return JSON.stringify({ open: !!(window.state && state.panelOpen), face: typeof panelFace === 'function' ? panelFace() : '', rooms: h ? [...h.querySelectorAll('[data-rl-np-room]')].map(b => b.getAttribute('data-rl-np-room') + (b.classList.contains('on') ? '*' : '')) : null, replies: h ? [...h.querySelectorAll('[data-rl-np-reply]')].map(b => b.getAttribute('data-rl-np-reply')) : null, text: h ? h.innerText.slice(0, 200) : '' }); });

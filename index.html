@@ -9692,7 +9692,7 @@
   .hb-edge-b.hb-tools-more{font-size:var(--t-body);letter-spacing:1px;padding:0 9px}
   .hb-dp{position:absolute;right:0;top:calc(100% + 6px);z-index:7;width:min(400px,80vw);padding:12px 14px 14px;display:flex;flex-direction:column;gap:10px;border:1px solid rgba(var(--hb-ln),.28);border-radius:var(--radius-lg);background:var(--hb-menu);box-shadow:0 12px 32px rgba(0,0,0,.18);color:var(--hb-ink);text-align:left}
   .hb-dp-head{font-size:var(--t-meta);color:var(--hb-ink-2);line-height:1.4}
-  .hb-dp{max-height:min(70vh,560px);overflow:auto}
+  .hb-dp{max-height:min(80vh,720px);overflow:auto}
   label.hb-dp-l{display:flex;flex-direction:column;gap:4px}
   .hb-dp-sel{font:inherit;font-size:var(--t-meta);color:var(--hb-ink);height:30px;padding:0 8px;border:1px solid rgba(var(--hb-ln),.3);border-radius:var(--radius);background:var(--hb-menu)}
   .hb-chart-notes .hb-chart-lead{margin:0}
@@ -9730,9 +9730,60 @@
   /* A17: a legend's colour square is a switch; a series switched off is faded */
   .hb-sv-sw{cursor:pointer} .hb-sv-sw:focus-visible{outline:2px solid var(--hb-glow);outline-offset:2px}
   .hb-sv-row.is-off text{opacity:.45;text-decoration:line-through}
+  /* bars on the board: quiet rows of one height; the rest row is a door with no bar (11 Oct 2026) */
+  .hb-board .hb-chart-bars{gap:2px}
+  .hb-board .hb-cbar{min-height:30px;grid-template-columns:minmax(0,38%) minmax(0,1fr) auto}
+  .hb-board .hb-dig.is-big .hb-cbar{min-height:32px}
+  .hb-board .hb-cbar-tr{height:12px}
+  .hb-board .hb-dig.is-big .hb-cbar-tr{height:14px}
+  .hb-board .hb-dig.is-big .hb-cbar-t,.hb-board .hb-dig.is-big .hb-cbar-n{font-size:var(--t-body)}
+  .hb-board .hb-dig.is-big .hb-cbar-s{font-size:var(--t-micro)}
+  .hb-cbar.is-rest .hb-cbar-tr{background:none}
+  .hb-cbar.is-rest .hb-cbar-t{color:var(--hb-glow)}
+  .hb-cbar-n{font-variant-numeric:tabular-nums;text-align:right}
+  /* the Table view, the Stripe way: numbers right, even-width digits, a quiet row hover */
+  .hb-ctab th.r,.hb-ctab td.r{text-align:right;white-space:nowrap}
+  .hb-ctab td{padding:7px 8px}
+  .hb-ctab tbody tr:hover td{background:rgba(var(--hb-ln),.04)}
+  .hb-ctab td .hb-link{color:var(--hb-ink);text-decoration:none}
+  .hb-ctab td .hb-link:hover{color:var(--hb-glow);text-decoration:underline}
+  /* a tile's "vs 6 months ago" line, as drawn: the change coloured by what it means, the words quiet */
+  .hb-vs{display:block;font-size:12px;color:var(--hb-mute);margin-top:4px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hb-vs-n{font-weight:var(--w-label);color:var(--hb-ink)}
+  .hb-vs-n.is-good{color:var(--hb-green)} .hb-vs-n.is-bad{color:var(--hb-ruby)} .hb-vs-n.is-warn{color:var(--hb-amber)}
+  .hb-fig .hb-spark{height:30px;margin-top:8px}
+  /* Copilot's work, one row per item (as drawn): kind with its dot · who over one grey line · the item's own acts */
+  .hb-ag.hb-ag-item{grid-template-columns:minmax(140px,190px) minmax(0,1fr) auto;cursor:default;padding:12px var(--s-4)}
+  .hb-ag-item .hb-ag-k{display:flex;align-items:center;gap:8px;color:var(--hb-mute);font-size:13px}
+  .hb-ag-item .hb-ag-t{color:var(--hb-mute);font-weight:400}
+  .hb-ag-dot{width:7px;height:7px;border-radius:50%;background:var(--hb-glow);flex:none}
+  .hb-ag-dot.is-warn{background:var(--hb-amber)} .hb-ag-dot.is-bad{background:var(--hb-ruby)}
+  .hb-ag-item .hb-ag-w{font-weight:var(--w-label);color:var(--hb-ink)}
+  .hb-ag-item .hb-ag-s{display:block;color:var(--hb-mute);font-size:12.5px;margin-top:2px}
+  .hb-ag-item .hb-ag-s .hb-ag-u{display:inline;font-size:inherit}
+  .hb-ag-acts{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+  .hb-ag-more{padding:10px var(--s-4);border-top:1px solid rgba(var(--hb-ln),.1)}
+  @media (max-width:900px){ .hb-ag.hb-ag-item{grid-template-columns:minmax(0,1fr)} .hb-ag-acts{justify-content:flex-start} }
+  /* THE GRID (owner, 11 Oct 2026: "align card heights"): cards in a row stand as tall as each other, the
+     chart's notes rest on the card's foot, nothing in a card pushes past its edge */
+  .hb-grid>.hb-card{display:flex;flex-direction:column;min-width:0}
+  .hb-grid>.hb-card>.hb-cb{flex:1 1 auto;display:flex;flex-direction:column;min-width:0}
+  .hb-grid>.hb-card>.hb-cb>.hb-chart-notes{margin-top:auto}
+  .hb-cb svg.hb-svg{max-width:100%}
+  /* the figure picker: a small panel under the sliders on Your book's head */
+  .hb-figpick-w{position:relative;display:inline-flex}
+  .hb-figpick{position:absolute;right:0;top:calc(100% + 6px);z-index:8;width:260px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;border:1px solid rgba(var(--hb-ln),.28);border-radius:var(--radius-lg);background:var(--hb-menu);box-shadow:0 12px 32px rgba(0,0,0,.18);color:var(--hb-ink)}
+  .hb-figpick .hb-dp-head{margin-bottom:6px}
+  .hb-fp-row{display:flex;align-items:center;gap:8px;padding:5px 2px;font-size:13px;cursor:pointer;border-radius:var(--radius)}
+  .hb-fp-row:hover{background:rgba(var(--hb-ln),.05)}
+  .hb-fp-row.is-dead{color:var(--hb-mute);cursor:not-allowed}
+  .hb-book:has(.hb-figpick){z-index:7;position:relative}
+  .hb-agtab td{vertical-align:top} .hb-agt-does{color:var(--hb-mute);max-width:46ch}
   /* THE SIDE LIST, AS DRAWN (part B): over the right of the page, under the bar */
   .hb-sheet{position:fixed;top:48px;right:0;bottom:0;width:min(560px,100vw);z-index:60;background:var(--hb-menu);border-left:1px solid rgba(var(--hb-ln),.18);box-shadow:-12px 0 32px rgba(4,25,26,.12);display:flex;flex-direction:column}
   .hb-sheet:focus{outline:none}
+  /* the Copilot panel's resize handle lives in another layer and showed through the side list (the stray amber bar) */
+  #ig-page:has(.hb-sheet) .ig-resizer{visibility:hidden}
   .hb-sheet-h{display:flex;align-items:flex-start;gap:12px;padding:16px 18px 12px;border-bottom:1px solid rgba(var(--hb-ln),.14)}
   .hb-sheet-h > div{flex:1;min-width:0}
   .hb-sheet-h h3{margin:0;font-size:var(--t-title,16px);font-weight:var(--w-title,700);color:var(--hb-ink)}
@@ -9741,7 +9792,9 @@
   .hb-sheet-back{margin:6px 0 10px}
   .hb-sheet-w{margin:4px 0 8px}
   .hb-sheet .hb-figs{grid-template-columns:repeat(3,minmax(0,1fr))} .hb-sheet .hb-fig:nth-child(3n+1){border-left:0} .hb-sheet .hb-fig:nth-child(n+4){border-top:1px solid rgba(var(--hb-ln),.16)}
-  .hb-sheet-t{width:100%;border-collapse:collapse;font-size:13px;color:var(--hb-ink)}
+  .hb-sheet-t{width:100%;border-collapse:collapse;font-size:13px;color:var(--hb-ink);table-layout:fixed}
+  .hb-sheet-t td,.hb-sheet-t th{overflow-wrap:anywhere;min-width:0}
+  .hb-sheet-t col.c{width:38%} .hb-sheet-t col.s{width:20%} .hb-sheet-t col.o{width:16%} .hb-sheet-t col.v{width:12%} .hb-sheet-t col.g{width:14%}
   .hb-sheet-t th{position:sticky;top:-8px;background:var(--hb-menu);text-align:left;font-weight:var(--w-label,500);color:var(--hb-mute);padding:8px 6px;border-bottom:1px solid rgba(var(--hb-ln),.16)}
   .hb-sheet-t td{padding:8px 6px;border-bottom:1px solid rgba(var(--hb-ln),.1);vertical-align:top}
   .hb-sheet-t .r{text-align:right;white-space:nowrap}

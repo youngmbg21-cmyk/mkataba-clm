@@ -82,8 +82,9 @@ const CONTRACTS = [
     await signIn(page, 'admin@example.co.ke', 'adminpassword1');
 
     /* ===== 1. THE LANDING ===== */
-    const landed = await until(page, () => document.querySelectorAll('#hb-board .hb-fig').length === 6);
-    ok('1a Home lands on the board with six figures', landed);
+    /* RE-POINTED 11 Oct 2026 (owner: "only 5 cards", each person may swap them) */
+    const landed = await until(page, () => document.querySelectorAll('#hb-board .hb-fig').length === 5);
+    ok('1a Home lands on the board with five figures', landed);
     const L = await page.evaluate(() => ({ face: typeof hbS === 'function' && hbS().face,
       dark: !!document.querySelector('#ig-page.hb-dark'), light: !!document.querySelector('#ig-page.hb-light'),
       order: [...document.querySelectorAll('#hb-head [data-hb-screen]')].map(b => b.getAttribute('data-hb-screen')).join(','), up: typeof igMapUp === 'function' ? igMapUp() : null,

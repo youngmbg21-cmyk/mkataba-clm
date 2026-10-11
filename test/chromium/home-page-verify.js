@@ -201,8 +201,9 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
        of the board: six figures and three stages, all drawn. */
     const drawn = await page.evaluate(() => ({ figs: document.querySelectorAll('#hb-book .hb-fig').length,
       stages: document.querySelectorAll('#hb-book .hb-stagekey button').length }));
-    check('3b Your book draws all six figures and all three stages',
-      drawn.figs === 6 && drawn.stages === 3, JSON.stringify(drawn));
+    /* RE-POINTED 11 Oct 2026 (owner: "only 5 cards", each person may swap them) */
+    check('3b Your book draws its five figures and all three stages',
+      drawn.figs === 5 && drawn.stages === 3, JSON.stringify(drawn));
 
     /* ======= 3c. THE STAGES WEAR THE CONTRACTS LIST'S OWN COLOURS ========
        "The color code of the drafting, review and executed should match the
@@ -249,8 +250,8 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
        picker's half stands: the phone's sheet still offers the readings. */
     const tops = await page.evaluate(() =>
       [...document.querySelectorAll('#hb-book .hb-fig .hb-fig-n')].map(e => Math.round(e.getBoundingClientRect().top)));
-    check('4 the six figures share one baseline',
-      tops.length === 6 && Math.max(...tops) - Math.min(...tops) <= 1, tops.join(' / '));
+    check('4 the five figures share one baseline',
+      tops.length === 5 && Math.max(...tops) - Math.min(...tops) <= 1, tops.join(' / '));
     const offered = await page.evaluate(() => (window.kpiCatalogOrder ? kpiCatalogOrder() : []));
     const want = ['lifecycle', 'compliance', 'importq', 'coverage'];
     check('4 the phone\'s picker still offers the four Portfolio readings',
@@ -414,7 +415,7 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
         const board = document.getElementById('hb-board'), br = board.getBoundingClientRect();
         const figs = [...document.querySelectorAll('#hb-book .hb-fig')];
         return { sideways: document.documentElement.scrollWidth > document.documentElement.clientWidth || board.scrollWidth > board.clientWidth + 1,
-          inside: figs.length === 6 && figs.every(f => { const x = f.getBoundingClientRect(); return x.left >= br.left - 1 && x.right <= br.right + 1; }) };
+          inside: figs.length === 5 && figs.every(f => { const x = f.getBoundingClientRect(); return x.left >= br.left - 1 && x.right <= br.right + 1; }) };
       });
       check(`9 ${w}: the board fits and the page never scrolls sideways`, !r.sideways && r.inside, JSON.stringify(r));
     }
@@ -431,7 +432,7 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
         clipped: el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1,
       })));
       const clipped = t.filter(x => x.clipped).map(x => x.name);
-      check(`10 ${w}: nothing on Your book has its content cut off`, t.length === 9 && clipped.length === 0,
+      check(`10 ${w}: nothing on Your book has its content cut off`, t.length === 8 && clipped.length === 0, // RE-POINTED 11 Oct 2026: five figures (owner) + the stage key
         clipped.length ? 'clipped: ' + clipped.join(', ') : `${t.length} figures clear`);
     }
     await page.setViewportSize({ width: 1440, height: 900 });
