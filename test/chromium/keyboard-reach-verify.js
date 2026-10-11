@@ -345,10 +345,11 @@ async function tabAround(page, sel, n = 25) {
     if (fig) {
       await fig.focus();
       await page.keyboard.press('Enter'); await pause(600);
-      const dig = await page.evaluate(() => ({ open: !!document.querySelector('#hb-board .hb-dig'),
-        kept: !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#hb-focus')) }));
-      check('and Enter on a figure opens its dig-in, with the keyboard on it', dig.open && dig.kept, JSON.stringify(dig));
-      const open = await page.$('#hb-board .hb-dig [data-hb-open]');
+      /* RE-POINTED 11 Oct 2026 (the Board as drawn): a figure opens its list in the side list */
+      const dig = await page.evaluate(() => ({ open: !!document.querySelector('.hb-sheet [data-hb-sheet-c]'),
+        kept: !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('.hb-sheet')) }));
+      check('and Enter on a figure opens its list on the right, with the keyboard on it', dig.open && dig.kept, JSON.stringify(dig));
+      const open = await page.$('.hb-sheet [data-hb-open]');
       if (open) { await open.focus(); await page.keyboard.press('Enter'); await pause(900); }
       const landed = await page.evaluate(() => ({ view: state.view,
         only: (regState().only && regState().only.ids) ? regState().only.ids.length : 0 }));

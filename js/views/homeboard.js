@@ -1159,10 +1159,11 @@ function hbInsCardHtml(I){
   const sub = I.length ? (ins.scope === 'mine' ? 'hb_ins_sub_mine' : ins.scope === 'few' ? 'hb_ins_sub_few' : 'hb_ins_sub')
     : ins.young ? 'hb_ins_sub_young' : 'hb_ins_sub_quiet';
   const open = hbInsUsualOpen();
-  const body = fold ? '' : (I.length || open ? hbShelfHtml(I)
-    : `<div class="hb-ins-calm is-wide"><span>${_hbE(i18t('hb_ins_calm'))}</span><button type="button" class="hb-link" data-hb-ins="usual" aria-pressed="false">${_hbE(i18t('hb_ins_usual_n', { n: _hbN(U.length) }))}</button></div>`);
+  /* a quiet day: the head says so, and the usual pictures are one press from it, both ways */
+  const body = fold ? '' : (I.length || open ? hbShelfHtml(I) : '');
+  const usual = !I.length && U.length && !fold ? `<button type="button" class="hb-edge-b" data-hb-ins="usual" aria-pressed="${open}">${_hbE(open ? i18t('hb_ins_usual_hide') : i18t('hb_ins_usual_n', { n: _hbN(U.length) }))}</button>` : '';
   return `<section class="hb-card hb-inscard${fold ? ' is-folded' : ''}"><header class="hb-ch"><span class="hb-ct">${_hbE(i18t('hb_ins_title'))}</span>`
-    + `<span class="hb-cs">${I.length ? _hbE(_hbN(I.length)) + ' · ' : ''}${_hbE(i18t(sub))}</span><span class="hb-grow"></span>`
+    + `<span class="hb-cs">${I.length ? _hbE(_hbN(I.length)) + ' · ' : ''}${_hbE(i18t(sub))}</span><span class="hb-grow"></span>${usual}`
     + `<button type="button" class="hb-edge-b" data-hb-ins-fold>${_hbE(i18t(fold ? 'hb_ins_show' : 'hb_ins_hide'))}</button></header>${body}</section>`;
 }
 
@@ -4967,11 +4968,15 @@ function hbGiveFormHtml(p){
    that contract in the same place (the contract card, hbCardHtml) with a way
    back to the list. × or Esc closes it. Reading never writes. */
 let _hbSheet = null;
-function hbSheetOpen(key, within){ _hbSheet = { key, cid: null, within: !!within }; try { hbTipHide(true); } catch (_){} hbPaintBoard(); }
+function hbSheetOpen(key, within, from){ _hbSheet = { key, cid: null, within: !!within, from: from || null }; try { hbTipHide(true); } catch (_){} hbPaintBoard(); hbSheetFocus(); }
+/* the keyboard follows the side list in, and goes back to the door it came from */
+function hbSheetFocus(){ const a = document.querySelector('.hb-sheet'); if (a) try { a.focus({ preventScroll: true }); } catch (_){} }
+function hbSheetClose(){ const from = _hbSheet && _hbSheet.from; _hbSheet = null; hbPaintBoard();
+  const b = from ? document.querySelector(`#hb-board [data-hb-dig="${CSS.escape(from)}"]`) : null; if (b) try { b.focus({ preventScroll: true }); } catch (_){} }
 function hbSheetHtml(){
   if (!_hbSheet) return '';
   const s = hbS(), lens = s.lens;
-  const wrap = (title, sub, body) => `<aside class="hb-sheet" role="dialog" aria-label="${_hbE(title)}"><header class="hb-sheet-h"><div><h3>${_hbE(title)}</h3>${sub ? `<p>${_hbE(sub)}</p>` : ''}</div>`
+  const wrap = (title, sub, body) => `<aside class="hb-sheet" role="dialog" tabindex="-1" aria-label="${_hbE(title)}"><header class="hb-sheet-h"><div><h3>${_hbE(title)}</h3>${sub ? `<p>${_hbE(sub)}</p>` : ''}</div>`
     + `<button type="button" class="hb-ib hb-sheet-x" data-hb-sheet-x title="${_hbE(i18t('hb_close_dig'))}" aria-label="${_hbE(i18t('hb_close_dig'))}">${_hbX}</button></header><div class="hb-sheet-b">${body}</div></aside>`;
   if (_hbSheet.cid){
     const D = hbDigData('c:' + _hbSheet.cid, lens);
@@ -8618,6 +8623,8 @@ function hbReviewOnPaper(k){
 function hbOnClick(e){
   if (!window.state || state.view !== 'dashboard') return;
   const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+  /* a door out of the side list (Open these, Show on the map) leaves it closed behind */
+  if (_hbSheet && t.closest('.hb-sheet [data-hb-open], .hb-sheet [data-hb-map]')) _hbSheet = null;
   { const rp = t.closest('[data-hb-review-paper]');
     if (rp){ e.preventDefault(); e.stopPropagation(); if (!hbReviewOnPaper(rp.getAttribute('data-hb-review-paper'))) hbDig('ag:' + rp.getAttribute('data-hb-review-paper'), false, true); return; } }
   /* an open dropdown closes on a press anywhere else */
@@ -8739,13 +8746,13 @@ function hbOnClick(e){
   if (on('[data-hb-agents-page]')){ if (typeof setView === 'function') setView('agents'); return; }
   if (on('[data-hb-ins-fold]')){ const st = hbS(); st.insFold = !st.insFold; hbSave(); hbPaintBoard(); return; }
   if ((el = on('[data-hm-agent]'))){ e.stopPropagation(); hbOpenAgent(el.getAttribute('data-hm-agent')); return; }
-  if (on('[data-hb-sheet-x]')){ _hbSheet = null; hbPaintBoard(); return; }
+  if (on('[data-hb-sheet-x]')){ hbSheetClose(); return; }
   if (on('[data-hb-sheet-dig]')){ const S = _hbSheet; _hbSheet = null; if (S) hbDig(S.key, S.within, true); return; }
   if (on('[data-hb-sheet-back]')){ if (_hbSheet) _hbSheet.cid = null; hbPaintBoard(); return; }
   if ((el = on('[data-hb-sheet-c]'))){ if (_hbSheet){ _hbSheet.cid = el.getAttribute('data-hb-sheet-c'); hbPaintBoard(); } return; }
   /* a piece of a chart, a table row or a figure: its contracts in the side list (as drawn) */
   if ((el = on('.hb-sheet [data-hb-dig^="c:"]')) && _hbSheet){ _hbSheet.cid = el.getAttribute('data-hb-dig').slice(2); hbPaintBoard(); return; }
-  if ((el = on('[data-hb-dig]')) && !el.disabled){ const sk = hbSheetKeyOf(el); if (sk){ hbSheetOpen(sk, !!el.closest('.hb-dig')); return; } }
+  if ((el = on('[data-hb-dig]')) && !el.disabled){ const sk = hbSheetKeyOf(el); if (sk){ hbSheetOpen(sk, !!el.closest('.hb-dig'), el.getAttribute('data-hb-dig')); return; } }
   if ((el = on('[data-hb-dig]'))){ if (el.disabled) return; hbDig(el.getAttribute('data-hb-dig'), !!el.closest('.hb-dig'), true); return; }
   if (on('#hero-draft')){ e.stopPropagation(); if (typeof openNewMenu === 'function') openNewMenu(on('#hero-draft')); else { const nb = document.getElementById('cmd-new'); if (nb) nb.click(); } }
 }
@@ -8823,7 +8830,7 @@ function hbOnKey(e){
     e.preventDefault(); const ok = hbUndo(); hbPaintBoard();
     if (typeof toast === 'function') toast(i18t(ok ? 'hb_undo_done' : 'hb_undo_none'), ok ? 'ok' : 'warn'); return;
   }
-  if (e.key === 'Escape' && _hbSheet){ if (_hbSheet.cid) _hbSheet.cid = null; else _hbSheet = null; hbPaintBoard(); return; }
+  if (e.key === 'Escape' && _hbSheet && document.querySelector('.hb-sheet')){ if (_hbSheet.cid){ _hbSheet.cid = null; hbPaintBoard(); hbSheetFocus(); } else hbSheetClose(); return; }
   if (e.key === 'Escape' && (_hbDrawnOpen || _hbToolsMenu)){
     /* the keyboard goes back to the button that opened it */
     const back = _hbDrawnOpen ? `[data-hb-drawn="${CSS.escape(_hbDrawnOpen)}"]` : `[data-hb-tools-more="${CSS.escape(_hbToolsMenu)}"]`;

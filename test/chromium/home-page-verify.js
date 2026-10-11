@@ -174,7 +174,7 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       const book = document.getElementById('hb-book'), board = document.getElementById('hb-board');
       return {
         cards: [...document.querySelectorAll('#hb-board > .hb-card > .hb-ch .hb-ct')].map(e => e.textContent.trim()),
-        book: i18t('hb_book'), agents: i18t('hm_ag_title'),
+        book: i18t('hb_book'), agents: i18t('hm_ag_title'), ins: i18t('hb_ins_title'),
         tiles: document.querySelectorAll('.hm-tile').length,
         choose: !!document.getElementById('kpi-customize'),
         map: !!document.getElementById('hm-map'),
@@ -184,9 +184,10 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
         ring: document.querySelectorAll('.hm-pipe-card, #hm-segs, #hm-ring-row').length,
       };
     });
-    check('3 Your book leads, Prepared by Copilot is the only card under it',
-      shape.cards[0] === shape.book && shape.cards.length <= 2
-        && (shape.cards.length === 1 || shape.cards[1] === shape.agents),
+    /* RE-POINTED 11 Oct 2026 (the Board as drawn): Today's insights is its own card under Copilot's work */
+    check('3 Your book leads, then Copilot\'s work and Today\'s insights only',
+      shape.cards[0] === shape.book && shape.cards.length <= 3
+        && shape.cards.slice(1).every(t => t === shape.agents || t === shape.ins),
       shape.cards.join(' · '));
     check('3 no tiles, no "Choose tiles" and no Map — the board took their place',
       shape.tiles === 0 && !shape.choose && !shape.map, `${shape.tiles} tiles · choose ${shape.choose} · map ${shape.map}`);
@@ -296,11 +297,10 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     await page.waitForTimeout(600);
     /* CHART FIRST (3 Oct 2026): the dig-in opens as a chart; the rows are on
        the List switch, which is where the reader counts them */
-    await page.click('#hb-focus [data-hb-rc="pic"]').catch(() => {});
-    await page.click('#hb-focus [data-hb-rset="pic:list"]').catch(() => {});
-    await page.waitForTimeout(300);
-    const listed = await page.evaluate(() => document.querySelectorAll('#hb-board .hb-dig .hb-rows [data-hb-dig^="c:"]').length);
-    await page.click('#hb-board .hb-dig [data-hb-open]').catch(() => {});
+    /* RE-POINTED 11 Oct 2026 (the Board as drawn): the figure opens its list in
+       the side list on the right; its foot's "Open these" opens the register */
+    const listed = await page.evaluate(() => document.querySelectorAll('.hb-sheet [data-hb-sheet-c]').length);
+    await page.click('.hb-sheet [data-hb-open]').catch(() => {});
     await page.waitForTimeout(1500);
     const landed = await page.evaluate(() => ({
       view: state.view,
@@ -338,7 +338,7 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       const want = hbBookData('all').stages.find(s => s.k === k).n;
       b.click();
       await new Promise(r => setTimeout(r, 400));
-      const open = document.querySelector(`#hb-board .hb-dig [data-hb-stage="${k}"]`);
+      const open = document.querySelector(`.hb-sheet [data-hb-stage="${k}"]`);
       if (!open) return { k, want, open: false };
       open.click();
       await new Promise(r => setTimeout(r, 900));

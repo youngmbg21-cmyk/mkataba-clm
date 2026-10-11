@@ -121,7 +121,9 @@ const at = (page, xy) => page.evaluate(([x, y]) => {
       const S2 = await spotsOf(page);
       if (face === 'board' && S2.fig){
         await page.mouse.click(S2.fig[0], S2.fig[1]);
-        const dug = await until(page, () => (hbS().path || []).length > 0 ? true : null);
+        /* RE-POINTED 11 Oct 2026 (the Board as drawn): a figure opens its list in the side list */
+        const dug = await until(page, () => document.querySelector('.hb-sheet [data-hb-sheet-c]') ? true : null);
+        await page.keyboard.press('Escape');
         check(!!dug, 'board 4 after exit a click on a figure opens it again');
         await page.evaluate(() => { const c = document.querySelector('[data-hb-crumb="-1"]'); if (c) c.click(); });
         await page.waitForTimeout(300);

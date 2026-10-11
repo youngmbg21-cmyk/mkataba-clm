@@ -160,7 +160,10 @@ const CONTRACTS = [
       return out;
     });
     ok('3a every card that closes puts its x at the right edge, last in the row',
-      corners.length >= 3 && corners.every(c => c.last && c.gap <= 14), JSON.stringify(corners));
+      /* RE-POINTED 11 Oct 2026 (the Board as drawn): a kept chart is removed from
+         its ⋯ ("Remove from the board"), so the cards with a corner × are
+         Copilot's work and the opened card */
+      corners.length >= 2 && corners.every(c => c.last && c.gap <= 14), JSON.stringify(corners));
     await page.evaluate(() => { try { hbDig(null); } catch (_){} const s = hbS(); s.path = []; s.panels = []; hbSave(); hbPaintBoard(); });
     await until(page, () => !document.querySelector('.hb-dig'));
 
