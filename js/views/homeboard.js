@@ -379,14 +379,61 @@ function hbHistOf(k){
   const s = hbS(), h = s.seen && Array.isArray(s.seen.hist) ? s.seen.hist : [];
   return h.filter(r => r && r.n && isFinite(Number(r.n[k]))).map(r => ({ at: r.at, v: Number(r.n[k]) }));
 }
-function hbSparkHtml(k, fmt){
-  const h = hbHistOf(k);
+/* A FIGURE'S LAST SIX MONTHS, FROM THE CONTRACTS' OWN DATES (owner's go,
+   11 Oct 2026; reverses "a line only from days actually seen"): each month-end
+   is counted with today's rules over what the record dates — started on or
+   before it, its end date, its duties' due and done dates. Nothing is
+   guessed: a figure the record cannot date (waiting on us) draws no line.
+   The last point is the figure on the tile, exactly. */
+const HB_SPARK_MONTHS = 6, HB_SPARK_DATED = ['live', 'value', 'ending', 'past', 'overdue'];
+function hbMonthsAgo(n){ const t = new Date(hbToday() + 'T00:00:00'); const d = new Date(t.getFullYear(), t.getMonth() - n, 1); const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(t.getDate(), last)); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+const _hbSeriesMemo = new Map();
+function hbFigSeries(k, d){
+  if (!HB_SPARK_DATED.includes(k)) return [];
+  const cs = hbBook('all'), sig = hbToday() + '|' + cs.length + '|' + hbFigNumber(d, k);
+  const mk = k + '|' + sig; if (_hbSeriesMemo.has(mk)) return _hbSeriesMemo.get(mk);
+  const day = v => { const x = String(v || '').slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(x) ? x : null; };
+  const born = c => day(hbStartOf(c)) || day(c.createdAt);
+  const endOf = c => day((typeof effectiveExpiry === 'function') ? effectiveExpiry(c) : null) || day(c.metadata && c.metadata.expiryDate) || day(c.expiry);
+  const live = cs.filter(c => c.status !== 'Declined');
+  const agr = ((typeof agreementsIn === 'function') ? agreementsIn(cs) : cs).filter(c => c.status !== 'Declined');
+  const ids = new Set(cs.map(c => c.id));
+  const obs = (typeof allObligations === 'function' ? (allObligations() || []) : []).filter(o => o && ids.has(o.cid));
+  const plus90 = iso => { const t = new Date(iso + 'T00:00:00'); t.setDate(t.getDate() + 90); return t.toISOString().slice(0, 10); };
+  const at = iso => {
+    const lv = live.filter(c => { const b = born(c); return !b || b <= iso; });
+    if (k === 'live') return lv.length;
+    if (k === 'value') return lv.reduce((a, c) => a + hbValueOfOne(c), 0);
+    if (k === 'ending'){ const hi = plus90(iso); return agr.filter(c => { const e = endOf(c), b = born(c); return e && e >= iso && e <= hi && (!b || b <= iso); }).length; }
+    if (k === 'past') return agr.filter(c => { const e = endOf(c); return c.status === 'Signed' && e && e < iso; }).length;
+    if (k === 'overdue') return obs.filter(o => { const due = day((typeof obligationDue === 'function') ? obligationDue(o) : o.due); if (!due || due >= iso) return false;
+      const done = day(o.completedAt); const st = (typeof obState === 'function') ? obState(o) : o.status; return st !== 'done' || (done && done > iso); }).length;
+    return 0; };
+  const out = [];
+  for (let m = HB_SPARK_MONTHS; m >= 1; m--){ const iso = hbMonthsAgo(m); out.push({ at: iso, v: at(iso) }); }
+  out.push({ at: hbToday(), v: hbFigNumber(d, k) });
+  _hbSeriesMemo.clear(); _hbSeriesMemo.set(mk, out);
+  return out;
+}
+/* "+58 · vs 6 months ago": the tile's number against the first point of its line */
+function hbVsHtml(k, d, tone){
+  const h = hbFigSeries(k, d); if (h.length < 2) return '';
+  const was = h[0].v, now = h[h.length - 1].v, dlt = now - was;
+  const amt = k === 'value' ? (was > 0 ? (dlt >= 0 ? '+' : '−') + (Math.abs(dlt) / was * 100).toFixed(1).replace(/\.0$/, '') + '%' : (dlt >= 0 ? '+' : '−') + _hbM(Math.abs(dlt))) : (dlt > 0 ? '+' : dlt < 0 ? '−' : '') + _hbN(Math.abs(dlt));
+  const good = tone === 'bad' || tone === 'warn' ? dlt < 0 : dlt > 0;
+  const cls = !dlt ? '' : good ? ' is-good' : (tone === 'bad' ? ' is-bad' : ' is-warn');
+  return `<span class="hb-vs"><b class="hb-vs-n${cls}">${_hbE(dlt ? amt : i18t('hb_vs_same'))}</b> · ${_hbE(i18t('hb_vs_6m'))}</span>`;
+}
+function hbSparkHtml(k, fmt, book){
+  const h = book ? hbFigSeries(k, book) : hbHistOf(k);
   if (h.length < HB_HIST_MIN) return '';
   const w = 120, ht = 26, vs = h.map(r => r.v), mn = Math.min(...vs), mx = Math.max(...vs), r = (mx - mn) || 1;
   const pts = vs.map((v, i) => [3 + i * (w - 6) / (vs.length - 1), mx === mn ? ht / 2 : ht - 4 - (v - mn) / r * (ht - 8)]);
   const d = pts.map((q, i) => (i ? 'L' : 'M') + q[0].toFixed(1) + ' ' + q[1].toFixed(1)).join(' ');
   const e = pts[pts.length - 1];
-  const tip = i18t('hb_spark_tip', { n: h.length, from: fmt(vs[0]), to: fmt(vs[vs.length - 1]), when: hbDayWords(h[0].at) });
+  const tip = book ? i18t('hb_spark_tip6', { from: fmt(vs[0]), to: fmt(vs[vs.length - 1]), when: hbDayWords(h[0].at) })
+    : i18t('hb_spark_tip', { n: h.length, from: fmt(vs[0]), to: fmt(vs[vs.length - 1]), when: hbDayWords(h[0].at) });
   return `<svg class="hb-spark" viewBox="0 0 ${w} ${ht}" preserveAspectRatio="none" role="img" aria-label="${_hbE(tip)}"><title>${_hbE(tip)}</title>`
     + `<path d="${d} L${e[0].toFixed(1)} ${ht} L3 ${ht}Z" class="hb-spark-a"/><path d="${d}" class="hb-spark-l"/><circle cx="${e[0].toFixed(1)}" cy="${e[1].toFixed(1)}" r="2.4" class="hb-spark-e"/></svg>`;
 }
@@ -1095,7 +1142,7 @@ function hbBookHtml(d, moved, since){
     return `<div class="hb-fig${tone}">
       <button type="button" class="hb-fig-main" ${zero ? 'disabled' : `data-hb-dig="f:${f.k}"`} title="${_hbE(i18t(f.tip) + left)}">
         <span class="hb-fig-l">${_hbE(i18t(f.word))}</span><span class="hb-fig-n">${_hbE(num)}</span></button>
-      ${hbDeltaHtml(f.k, moved && moved[f.k], since)}${hbSparkHtml(f.k, f.k === 'value' ? _hbM : _hbN)}</div>`;
+      ${hbDeltaHtml(f.k, moved && moved[f.k], since)}${hbVsHtml(f.k, d, f.tone)}${hbSparkHtml(f.k, f.k === 'value' ? _hbM : _hbN, d)}</div>`;
   }).join('');
   const tot = d.stages.reduce((a, s) => a + s.n, 0);
   const bar = tot ? `<div class="hb-stagebar">${d.stages.map(s => s.n ? `<button type="button" style="flex-grow:${s.n};background:${_hbE(s.tone)}" data-hb-dig="st:${_hbE(s.k)}" title="${_hbE((s.word ? i18t(s.word) : s.k) + ': ' + i18tn('home_map_n_contracts', s.n, { n: _hbN(s.n) }))}" aria-label="${_hbE((s.word ? i18t(s.word) : s.k) + ': ' + i18tn('home_map_n_contracts', s.n, { n: _hbN(s.n) }))}"></button>` : '').join('')}</div>
@@ -1121,6 +1168,7 @@ function hbBookHtml(d, moved, since){
    is still drawn where it was before — the checklist in the side panel beside
    each contract (needsYouOf), the bell, and the phone's own Home, all three
    reading the same hmDecisionItems. Only this card stops repeating them. */
+const HB_AG_ROWS_MAX = 8;
 function hbPrepHtml(A, since){
   const st = hbS().prep;
   const I = hbInsightsToday();
@@ -1132,14 +1180,25 @@ function hbPrepHtml(A, since){
   const sub = (A.ready ? i18tn('hm_ag_sub', A.ready, { n: _hbN(A.ready) }) : '')
     + (folded && next ? (A.ready ? ' · ' : '') + i18t('hb_prep_next', { who: next.who || next.sum }) : '')
     + (folded && I.length ? ((A.ready || next) ? ' · ' : '') + i18tn('hb_ins_n', I.length, { n: I.length }) : '');
-  const rows = folded ? '' : A.rows.map(r => {
-    const tone = r.tone === 'ruby' ? ' is-neg' : r.tone === 'amber' ? ' is-crit' : '';
-    return `<div class="hb-ag${tone}" data-hb-dig="ag:${_hbE(r.k)}" data-hm-agent-row="${_hbE(r.k)}">
-      <span class="hb-ag-k"><span class="hb-ag-ic" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor"><use href="#i-${_hbE(r.icon)}"/></svg></span><span class="hb-ag-t">${_hbE(i18t('ag_' + r.k))} <span class="hb-pill">${_hbN(r.n)}</span></span></span>
-      <span class="hb-ag-b"><span class="hb-ag-w">${_hbE(r.who || r.sum || '')}</span>${r.who && r.sum ? `<span class="hb-ag-s">${_hbE(r.sum)}</span>` : ''}</span>
-      ${r.urg ? `<span class="hb-ag-u${r.tone === 'ruby' ? ' is-bad' : ' is-warn'}">${_hbE(r.urg)}</span>` : '<span></span>'}
-      ${HB_REVIEW_ON_PAPER[r.k] ? `<button type="button" class="hb-btn" data-hb-review-paper="${_hbE(r.k)}">${_hbE(i18t('hm_ag_review'))}</button>` : `<button type="button" class="hb-btn" data-hb-dig="ag:${_hbE(r.k)}">${_hbE(i18t('hm_ag_review'))}</button>`}</div>`;
-  }).join('');
+  /* ONE ROW PER ITEM, AS DRAWN (owner's go, 11 Oct 2026): the kind with its
+     dot · who, with one grey line under it · that item's own acts (its
+     agent's own buttons, the lead first, at most two; the rest stay on the
+     agents' page). Rows are the agents' ready work in their order. */
+  const items = folded ? [] : A.rows.flatMap(r => r.items.map(x => Object.assign({ k: r.k }, x)));
+  const shownItems = items.slice(0, HB_AG_ROWS_MAX);
+  const actsOf = key => { let it = null; try { it = (typeof agFind === 'function') ? agFind(key) : null; } catch (_){ it = null; }
+    if (!it || typeof agPanelActs !== 'function') return '';
+    let raw = ''; try { raw = agPanelActs(it); } catch (_){ raw = ''; }
+    const acts = []; String(raw).replace(/<button[^>]*class="([^"]*)"[^>]*data-ag-act="([^"]+)"[^>]*>([^<]*)<\/button>/g, (m, cls, act, label) => { if (!/ui-link/.test(cls)) acts.push({ act, label, lead: /ui-btn-primary/.test(cls) }); return m; });
+    return acts.slice(0, 2).map(x => `<button type="button" class="hb-btn" data-ag-act="${_hbE(x.act)}">${x.label}</button>`).join(''); };
+  const rows = shownItems.map(x => {
+    const dot = x.tone === 'ruby' ? ' is-bad' : x.tone === 'amber' ? ' is-warn' : '';
+    const urg = x.urg ? `<span class="hb-ag-u${x.tone === 'ruby' ? ' is-bad' : ' is-warn'}">${_hbE(x.urg)}</span>` : '';
+    return `<div class="hb-ag hb-ag-item" data-hb-ag-item="${_hbE(x.key)}">
+      <span class="hb-ag-k"><i class="hb-ag-dot${dot}" aria-hidden="true"></i><span class="hb-ag-t">${_hbE(i18t('ag_' + x.k))}</span></span>
+      <span class="hb-ag-b"><span class="hb-ag-w">${_hbE(x.who || x.sum || '')}</span>${(x.who && x.sum) || urg ? `<span class="hb-ag-s">${x.who && x.sum ? _hbE(x.sum) : ''}${x.who && x.sum && urg ? ' · ' : ''}${urg}</span>` : ''}</span>
+      <span class="hb-ag-acts">${actsOf(x.key) || `<button type="button" class="hb-btn" data-hb-dig="ag:${_hbE(x.k)}">${_hbE(i18t('hm_ag_review'))}</button>`}</span></div>`;
+  }).join('') + (items.length > shownItems.length ? `<div class="hb-ag-more"><button type="button" class="hb-link" data-hb-agents-page>${_hbE(i18tn('hb_ag_more', items.length - shownItems.length, { n: _hbN(items.length - shownItems.length) }))}</button></div>` : '');
   const done = (!folded && A.done.length) ? `<div class="hb-done">${_hbE(i18t('hb_done_since', { when: hbDayWords(since) }))} ${A.done.map(x => `<button type="button" data-hb-dig="dn:${_hbE(x.k)}">${_hbE(i18tn('hb_done_' + x.k, x.n, { n: _hbN(x.n) }))}</button>`).join('<span aria-hidden="true">·</span>')}<span class="hb-grow"></span><span class="hb-quiet">${_hbE(i18t('hb_done_trail'))}</span></div>` : '';
   return `<section class="hb-card hb-prep${folded ? ' is-folded' : ''}" id="hm-agents"><header class="hb-ch">
     <button type="button" class="hb-ib" data-hb-prep="${folded ? 'open' : 'folded'}" aria-expanded="${!folded}" title="${_hbE(i18t(folded ? 'hb_prep_open' : 'hb_prep_fold'))}" style="transform:rotate(${folded ? '-90' : '0'}deg)">${_hbChev}</button>
