@@ -47,7 +47,8 @@ describe('f538 (1) Read more where Ask why stood', () => {
     const w = world();
     const c = w.hbInsCandidate('sign');
     const h = w.hbShelfHtml([c]);
-    assert.match(h, new RegExp('data-hb-read-more="ins:' + c.id + '" aria-expanded="false">Read more<'));
+    /* RE-POINTED 11 Oct 2026 (the Board as drawn): the artifact's word, "Ask why", on the same in-card reading */
+    assert.match(h, new RegExp('data-hb-read-more="ins:' + c.id + '" aria-expanded="false">Ask why<'));
     assert.ok(!/data-hb-ins="why"/.test(h));
     assert.ok(!/class="hb-read"/.test(h), 'closed at rest');
   });

@@ -18444,7 +18444,7 @@ const HOME_GIFT_OPEN_MAX = 20;
 function homeGiftShape(g){
   const who = id => { const u = db.prepare('SELECT name FROM users WHERE id=?').get(id); return u ? u.name : ''; };
   let spec = null; if (g.spec) try { spec = JSON.parse(g.spec); } catch (_){}
-  return { id: g.id, kind: g.kind, lens: g.lens, split: !!g.split, note: g.note || '', pid: g.pid || '', spec,
+  return { id: g.id, kind: g.kind, lens: g.lens, split: !!g.split, note: g.note || '', pid: g.pid || '', ...(spec ? { spec } : {}),
     fromId: g.from_id, fromName: who(g.from_id), toId: g.to_id, toName: who(g.to_id),
     at: g.created_at, seenAt: g.seen_at || null };
 }

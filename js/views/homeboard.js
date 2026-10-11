@@ -4988,9 +4988,15 @@ function hbSheetHtml(){
   const owner = c => (typeof contractOwnerName === 'function' ? contractOwnerName(c) : '') || '';
   const rows = cs.map(c => `<tr data-hb-sheet-c="${_hbE(c.id)}" tabindex="0"><td><span class="hb-sheet-cp">${_hbE(c.counterparty || i18t('home_no_counterparty'))}</span><small>${_hbRefH(c)} · ${_hbE(c.name || '')}</small></td>`
     + `<td>${_hbE(stream(c))}</td><td>${_hbE(owner(c))}</td><td class="r">${money ? _hbE((typeof fmtMoneyShortOf === 'function') ? fmtMoneyShortOf(c) : _hbM(hbValueOfOne(c))) : '—'}</td><td>${_hbE(_hbStatus(c.status))}</td></tr>`).join('');
+  /* a top figure's watch travels with its list (it lived on the dig-in card) */
+  const fk = /^f:/.test(_hbSheet.key) ? _hbSheet.key.slice(2) : null;
+  const mine = fk ? (s.watches || []).filter(w => w.k === fk) : [];
+  const watch = fk ? `<div class="hb-sheet-w"><button type="button" class="hb-link" data-hb-watch="${fk}" aria-pressed="${!!(_hbWatchForm === fk || mine.length)}">${_hbE(i18t('hb_watch_menu'))}</button></div>`
+    + (_hbWatchForm === fk ? hbWatchFormHtml(fk) : '')
+    + (mine.length ? `<div class="hb-say">${_hbE(i18t('hb_watching'))} ${mine.map(w => `<span class="hb-chip${hbWatchFired(w) ? ' is-bad' : ''}">${_hbE(i18t('hb_watch_' + w.dir) + ' ' + (w.k === 'value' ? _hbM(w.n) : _hbN(w.n)) + ' · ' + i18t(hbWatchFired(w) ? 'hb_watch_fired' : 'hb_watch_not_yet'))}<button type="button" data-hb-watch-stop="${s.watches.indexOf(w)}" title="${_hbE(i18t('hb_watch_stop'))}" aria-label="${_hbE(i18t('hb_watch_stop'))}">${_hbX}</button></span>`).join(' ')}</div>` : '') : '';
   const table = cs.length ? `<table class="hb-sheet-t"><thead><tr><th>${_hbE(i18t('hb_sheet_c'))}</th><th>${_hbE(i18t('hb_sheet_stream'))}</th><th>${_hbE(i18t('hb_sheet_owner'))}</th><th class="r">${_hbE(i18t('hb_c_value'))}</th><th>${_hbE(i18t('hb_c_stage'))}</th></tr></thead><tbody>${rows}</tbody></table>`
     : `<div class="hb-quiet">${_hbE(i18t('hb_none_here'))}</div>`;
-  return wrap(title, i18tn('hb_sheet_sub', cs.length, { n: _hbN(cs.length) }), table + (cs.length ? hbListFootHtml(cs, title, null, '') : ''));
+  return wrap(title, i18tn('hb_sheet_sub', cs.length, { n: _hbN(cs.length) }), watch + table + (cs.length ? hbListFootHtml(cs, title, D.stage || null, '') : ''));
 }
 /* is this press a piece of a chart or a figure whose list the side list shows? */
 function hbSheetKeyOf(el){
@@ -5062,7 +5068,7 @@ function hbEdgeHtml(D, akey, where, p, gift){
     + (/^(q|cd|ls):/.test(D.key) ? _hbMi(`data-hb-cwatch="${_hbE(akey)}"`, _HB_MI.watch, i18t('hb_watch_menu')) : '')
     + '<hr>'
     + (board && p && p.kind === 'view' && !/^gift:/.test(p.id) && !(gift && gift.from) ? _hbMi('data-hb-act="give"', _HB_MI.give, i18t('hb_p_give') + '…') : '')
-    + _hbMi('data-hb-pack-one', _HB_MI.pack, i18t('hb_pack_one'))
+    + _hbMi('data-hb-pack-one', _HB_MI.pack, i18t('hb_pack_this'))
     + (M.canTable ? (M.tab ? '' : _hbMi('data-hb-copy-img', _HB_MI.img, i18t('hb_copy_img'))) + _hbMi('data-hb-copy-tab', _HB_MI.tab, i18t('hb_copy_tab')) : '')
     + _hbMi(`data-hb-saveq="${k}"`, _HB_MI.save, i18t('hb_myq_btn'))
     + _hbMi(`data-hb-whatif="${k}" aria-pressed="${_hbWhatIf.has(D.key)}"`, _HB_MI.wi, i18t(_hbWhatIf.has(D.key) ? 'hb_wi_off' : 'hb_wi_btn'))
@@ -8424,8 +8430,7 @@ function hbShowFound(ids, title, chart){
    bell when the line is crossed, and nothing is sent. buildAlerts asks this. */
 function hbWatchAlerts(){
   let s; try { s = hbS(); } catch (_){ return []; }
-  const charts = (s.chartWatches || []).filter(hbChartWatchFired).map(w => ({ k: 'chart', text: i18t('hb_watch_alert', { what: w.title || w.key, now: _hbN(hbChartWatchNow(w.key)), dir: i18t('hb_watch_' + w.dir), n: _hbN(w.n) }),
-    go: () => { if (typeof setView === 'function'){ const st = hbS(); st.face = 'board'; st.path = [w.key]; hbSave(); setView('dashboard'); } } }));
+  const charts = hbChartWatchAlerts(s);
   if (!s.watches || !s.watches.length) return charts;
   const d = hbBookData('all', { whole: true });
   return s.watches.filter(w => { const v = hbFigNumber(d, w.k); return w.dir === 'above' ? v > w.n : v < w.n; }).map(w => {
@@ -8433,6 +8438,11 @@ function hbWatchAlerts(){
     return { k: w.k, text: i18t('hb_watch_alert', { what: i18t('hb_f_' + w.k), now: w.k === 'value' ? _hbM(v) : _hbN(v), dir: i18t('hb_watch_' + w.dir), n: w.k === 'value' ? _hbM(w.n) : _hbN(w.n) }),
       go: () => { if (typeof setView === 'function'){ const st = hbS(); st.face = 'board'; st.path = ['f:' + w.k]; hbSave(); setView('dashboard'); } } };
   }).concat(charts);
+}
+/* a chart's watch (A9): read over the chart's own list, a row in the bell when crossed */
+function hbChartWatchAlerts(s){
+  return (s.chartWatches || []).filter(hbChartWatchFired).map(w => ({ k: 'chart', text: i18t('hb_watch_alert', { what: w.title || w.key, now: _hbN(hbChartWatchNow(w.key)), dir: i18t('hb_watch_' + w.dir), n: _hbN(w.n) }),
+    go: () => { if (typeof setView === 'function'){ const st = hbS(); st.face = 'board'; st.path = [w.key]; hbSave(); setView('dashboard'); } } }));
 }
 function hbAlertsChanged(){ try { if (typeof updateAlertBadge === 'function') updateAlertBadge(); } catch (_){} }
 
