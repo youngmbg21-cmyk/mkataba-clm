@@ -790,6 +790,9 @@ function hbDigData(key, lens){
     return { key, kind: 'moved', fig: a, word: 'hb_f_' + a, d: M.d, added: M.added, gone: M.gone, since: base && base.at };
   }
   if (k === 'ag'){
+    /* "The agents" (as drawn): every agent on the Board, what it does, when it runs, what it has ready */
+    if (!a){ const H = hbAgentsData(null); const keys = (Array.isArray(window.AG_KEYS) ? AG_KEYS : []).filter(x => !HB_OFF_BOARD.includes(x));
+      return { key, kind: 'agents', crumb: i18t('hb_the_agents'), rows: keys.map(x => { const r = H.rows.find(y => y.k === x); return { k: x, n: r ? r.n : 0 }; }), n: keys.length }; }
     const A = hbAgentsData(null).rows.find(r => r.k === a); if (!A) return null;
     return { key, kind: 'agent', agent: a, items: A.items, n: A.n };
   }
@@ -4807,6 +4810,12 @@ function hbDigBodyHtml(D, lens, big){
       ${D.added.length ? `<div class="hb-lab">${_hbE(i18tn('hb_moved_new', D.added.length, { n: _hbN(D.added.length) }))}</div>${show(D.added)}` : ''}
       ${D.gone.length ? `<div class="hb-lab">${_hbE(i18tn('hb_moved_gone', D.gone.length, { n: _hbN(D.gone.length) }))}</div>${show(D.gone)}` : ''}
       ${(!isOb && D.added.length) ? `<div class="hb-foot"><span>${_hbE(i18t('hb_moved_note'))}</span><button type="button" class="hb-btn" data-hb-map="${_hbE(D.added.join(','))}" data-hb-what="${_hbE(i18t('hb_moved_crumb', { what: i18t(D.word) }))}">${_hbE(i18t('hb_show_map'))}</button></div>` : ''}`;
+  }
+  if (D.kind === 'agents'){
+    const has = key => { try { return i18t(key) !== key; } catch (_){ return false; } };
+    return `<table class="hb-ctab hb-agtab"><thead><tr><th>${_hbE(i18t('hb_agt_agent'))}</th><th>${_hbE(i18t('hb_agt_does'))}</th><th>${_hbE(i18t('hb_agt_runs'))}</th><th class="r">${_hbE(i18t('hb_agt_ready'))}</th><th></th></tr></thead><tbody>`
+      + D.rows.map(r => `<tr><td><b>${_hbE(i18t('ag_' + r.k))}</b></td><td class="hb-agt-does">${has('ag_' + r.k + '_does') ? _hbE(i18t('ag_' + r.k + '_does')) : ''}</td><td>${has('ag_' + r.k + '_runs') ? _hbE(i18t('ag_' + r.k + '_runs')) : ''}</td><td class="r">${_hbN(r.n)}</td>`
+        + `<td class="r">${r.n ? `<button type="button" class="hb-btn" data-hb-dig="ag:${_hbE(r.k)}">${_hbE(i18t('hb_agt_open'))}</button>` : ''}</td></tr>`).join('') + '</tbody></table>';
   }
   if (D.kind === 'agent' && typeof agFind === 'function' && typeof agPanelBody === 'function') return hbAgentWorkHtml(D);
   if (D.kind === 'agent' || D.kind === 'done'){
@@ -8913,7 +8922,7 @@ function hbOnClick(e){
   if ((el = on('[data-hb-ser]'))){ hbSerToggle(el.getAttribute('data-hb-ser-key'), el.getAttribute('data-hb-ser')); hbPaintBoard(); return; }
   if (on('[data-hb-figpick]')){ _hbFigPick = !_hbFigPick; hbPaintBoard(); return; }
   if ((el = on('[data-hb-figkey]'))){ if (!el.disabled){ hbFigToggle(el.getAttribute('data-hb-figkey')); hbPaintBoard(); } return; }
-  if (on('[data-hb-agents-page]')){ if (typeof setView === 'function') setView('agents'); return; }
+  if (on('[data-hb-agents-page]')){ hbDig('ag:', false, true); return; }
   if (on('[data-hb-ins-fold]')){ const st = hbS(); st.insFold = !st.insFold; hbSave(); hbPaintBoard(); return; }
   if ((el = on('[data-hm-agent]'))){ e.stopPropagation(); hbOpenAgent(el.getAttribute('data-hm-agent')); return; }
   if (on('[data-hb-sheet-x]')){ hbSheetClose(); return; }
