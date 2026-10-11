@@ -7334,7 +7334,12 @@ function igPaintPaper(){
   /* on Home the head row is Home's own (#hb-head, 3 Oct 2026): Focus folds it the same way */
   const head=document.getElementById('ig-head')||document.getElementById('hb-head'); if(head) head.style.display=focus?'none':'flex';
   if(!up){ host.hidden=true; return; }
-  if(host.dataset.for!==igPaperKey(c)){ host.innerHTML=igPaperHtml(c); host.dataset.for=igPaperKey(c); igPaperWire(host); }
+  if(host.dataset.for!==igPaperKey(c)){ host.innerHTML=igPaperHtml(c); host.dataset.for=igPaperKey(c); igPaperWire(host);
+    /* THE BLANKS ARE MARKED HERE TOO (11 Oct 2026, the Document tab gone): an
+       upload's placeholders and our amendment's ruled lines, painted on the
+       paper the Overview tab's form fills — never stored, as on the room's. */
+    const cv=document.getElementById('ig-canvas');
+    if(cv&&!igRedOn(c)){ try{ if(window.uploadBlanksPaint) uploadBlanksPaint(c,cv); }catch(_){ } try{ if(window.ownBlanksPaint) ownBlanksPaint(c,cv); }catch(_){ } } }
   /* Copilot's answer on Home's Redlined paper too (dashed marks; the glow is the Deal tab's door) */
   if(igRedOn(c)&&window.rlPaintCopilotAnswers) try{ rlPaintCopilotAnswers(host,c,{ side:'owner', noGlow:true }); }catch(_){ }
   host.hidden=false;

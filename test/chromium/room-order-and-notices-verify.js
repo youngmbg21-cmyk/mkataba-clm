@@ -15,7 +15,9 @@
       and reading the sentences back, because a message that moved somewhere
       nobody can reach has been lost, not moved.
 
-   3  THE DOCUMENT TAB'S CONTROLS ARE VISIBLE PIXELS. The text-size stepper and
+   3  THE TAB ROW'S CONTROLS ARE VISIBLE PIXELS (the Document tab is gone,
+      11 Oct 2026: Open Negotiate is on the Overview, the size control on
+      the Signing tab's paper). The text-size stepper and
       Open Negotiate went missing from that corner and came back later on the
       same contract: the slot was built once per render from whichever tab
       happened to be current then. The reproduction is driven here, in order,
@@ -259,7 +261,9 @@ const seen = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
     check('the bands did not come back with it',
       (await page.evaluate(BAND_SCAN)).bands.length === 0);
 
-    /* ================= 3. NO BANDS ON THE DOCUMENT TAB ==================== */
+    /* ================= 3. NO BANDS ON THE ROOM'S FIRST TAB =================
+       The room opens on the Overview since the Document tab went (11 Oct 2026,
+       owner); the scan below is of whichever tab it opens on. */
     await page.evaluate(id => openWorkspace(id), built.id);
     await page.waitForTimeout(1600);
     await page.screenshot({ path: path.join(OUT, '03-document.png') });
@@ -309,48 +313,67 @@ const seen = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
       !docStack.onPaper, `onPaper=${docStack.onPaper}`);
 
     /* ================= 4. THE TAB ROW'S CONTROLS ========================== */
-    /* The reported sequence, in order: sit on Key terms, let the room render,
-       then press Document. Before the fix that corner came up empty. */
+    /* The reported sequence, in order: sit on another tab, let the room
+       render, then press the tab that carries the controls. Before the fix
+       that corner came up empty.
+       RE-POINTED 11 Oct 2026: the Document tab is gone (owner). Open
+       Negotiate now stands on the Overview tab's row, and the size control
+       ("- 100% +") on the Signing tab's paper (#doc-zc-slot) - so the
+       reproduction is driven onto each of the two tabs that carry one. */
     const journey = [];
     const cornerNow = () => page.evaluate(([s]) => {
       const seenFn = eval(s);
       return { tab: (document.querySelector('#ws-tabs .on') || {}).textContent || '',
-        stepper: seenFn(document.querySelector('#doc-zc-slot .rl-type-step')), /* on the paper's ground since 11 Oct 2026 */
+        stepper: seenFn(document.querySelector('#doc-zc-slot .paper-zc [data-sc-zoom="1"], #doc-zc-slot .paper-zc [data-rl-type="1"]')), /* on the paper's ground since 11 Oct 2026 */
         toNego: seenFn(document.getElementById('ws-to-nego')) };
     }, [seen]);
+    const tabOn = k => page.waitForFunction(k2 => {
+      const b = document.querySelector(`#ws-tabs [data-ws-tab="${k2}"]`);
+      return !!b && b.classList.contains('on');
+    }, k, { timeout: 5000 }).catch(() => {});
     journey.push(['arrived on the room', await cornerNow()]);
-    await page.evaluate(() => document.querySelector('[data-ws-tab="terms"]').click());
-    await page.waitForTimeout(500);
-    journey.push(['on Key terms', await cornerNow()]);
+    await page.evaluate(() => document.querySelector('[data-ws-tab="history"]').click());
+    await tabOn('history');
+    journey.push(['on History', await cornerNow()]);
     await page.evaluate(id => openWorkspace(id), built.id);     // the room re-renders under them
     await page.waitForTimeout(1300);
-    journey.push(['room re-rendered while on Key terms', await cornerNow()]);
-    await page.evaluate(() => document.querySelector('[data-ws-tab="docs"]').click());
-    await page.waitForTimeout(700);
+    await page.evaluate(() => document.querySelector('[data-ws-tab="history"]').click());
+    await tabOn('history');
+    journey.push(['room re-rendered, then on History', await cornerNow()]);
+    await page.evaluate(() => document.querySelector('[data-ws-tab="terms"]').click());
+    await tabOn('terms');
+    await page.waitForFunction(() => !!document.getElementById('ws-to-nego'), null, { timeout: 4000 }).catch(() => {});
     const back = await cornerNow();
-    journey.push(['pressed Document', back]);
+    journey.push(['pressed Overview', back]);
     await page.screenshot({ path: path.join(OUT, '04-tabrow.png') });
+    await page.evaluate(() => document.querySelector('[data-ws-tab="sign"]').click());
+    await tabOn('sign');
+    await page.waitForFunction(() => { const z = document.querySelector('#doc-zc-slot .paper-zc [data-sc-zoom="1"], #doc-zc-slot .paper-zc [data-rl-type="1"]'); return !!z && z.getBoundingClientRect().width > 0; }, null, { timeout: 6000 }).catch(() => {});
+    const onSign = await cornerNow();
+    journey.push(['pressed Signing', onSign]);
 
-    check('the stepper is visible pixels on the Document tab, after switching to it',
-      !!back.stepper && back.stepper.on, JSON.stringify(back.stepper));
-    check('and so is Open Negotiate — the corner the reader found empty',
+    check('the size control is visible pixels on the Signing tab\'s paper, after switching to it',
+      !!onSign.stepper && onSign.stepper.on, JSON.stringify(onSign.stepper));
+    check('and Open Negotiate is visible pixels on the Overview tab - the corner the reader found empty',
       !!back.toNego && back.toNego.on, JSON.stringify(back.toNego));
-    const onTerms = journey.find(j => j[0] === 'room re-rendered while on Key terms')[1];
-    check('and they are correctly absent on a tab that is not Document',
-      (!onTerms.stepper || !onTerms.stepper.on) && (!onTerms.toNego || !onTerms.toNego.on),
-      onTerms.tab);
+    const onOther = journey.find(j => j[0] === 'room re-rendered, then on History')[1];
+    check('and they are correctly absent on a tab that carries neither',
+      (!onOther.stepper || !onOther.stepper.on) && (!onOther.toNego || !onOther.toNego.on),
+      onOther.tab);
 
     /* AND THE DOOR STILL WORKS EXACTLY ONCE. Repainting a slot on every tab
        press is how a handler comes to be added twice. */
     const pressed = await page.evaluate(async () => {
-      for (const k of ['terms', 'docs', 'sign', 'docs', 'history', 'docs']){
+      for (const k of ['terms', 'sign', 'terms', 'history', 'sign', 'terms']){
         document.querySelector(`[data-ws-tab="${k}"]`).click();
         await new Promise(r => setTimeout(r, 90));
       }
+      for (let i = 0; i < 40 && !document.getElementById('ws-to-nego'); i++) await new Promise(r => setTimeout(r, 50));
       let opens = 0;
       const real = window.openRedlineWorkbench;
       window.openRedlineWorkbench = () => { opens++; };
-      document.getElementById('ws-to-nego').click();
+      const door = document.getElementById('ws-to-nego');
+      if (door) door.click();
       await new Promise(r => setTimeout(r, 200));
       window.openRedlineWorkbench = real;
       return opens;

@@ -171,21 +171,25 @@ const endOf = (page, sel) => page.evaluate(sel => {
     await page.keyboard.press('Escape').catch(() => {});
     await page.evaluate(() => getSelection().removeAllRanges());
 
-    /* ===== 6. THE DOCUMENT TAB IS NEVER EDITED ===== */
-    await page.evaluate(() => { openWorkspace('MK-CT2'); });
-    await page.waitForTimeout(1200);
-    await page.evaluate(() => roomGoTab(getContract('MK-CT2'), 'document'));
-    const s7 = await until(page, () => { const cv = document.getElementById('doc-canvas'); if (!cv) return null;
-      const boxes = [...cv.querySelectorAll('input, textarea')]; if (!boxes.length) return null;
-      const bg = getComputedStyle(cv.closest('.pg-sheet').parentElement).backgroundColor;
-      return { n: boxes.length, ro: boxes.every(b => b.readOnly), key: boxes[0].getAttribute('data-field') || boxes[0].getAttribute('data-sync'), bg }; }, null, 8000);
-    ok('6a a Draft\'s blanks on the Document tab paper take no typing', !!s7 && s7.ro, JSON.stringify(s7));
+    /* ===== 6. THE DOCUMENT IS NEVER EDITED =====
+       RE-POINTED 11 Oct 2026: the contract room's Document tab is gone (owner);
+       the paper is Home's Document (#ig-canvas), its blanks read-only answers,
+       and the form is its Overview tab's (#pd-fill). */
+    await until(page, () => { if (!(window.intel && intel.paper && intel.paper.id === 'MK-CT2')) pdOpenOnHome('MK-CT2', 'facts');
+      return !!(intel.paper && intel.paper.id === 'MK-CT2' && document.querySelector('#ig-canvas')); }, null, 10000);
+    const s7 = await until(page, () => { const cv = document.getElementById('ig-canvas'); if (!cv) return null;
+      const words = [...cv.querySelectorAll('[data-field], [data-sync]')]; if (!words.length) return null;
+      return { n: words.length, ro: cv.querySelectorAll('input, textarea, [contenteditable="true"]').length === 0,
+        key: words[0].getAttribute('data-field') || words[0].getAttribute('data-sync') }; }, null, 8000);
+    ok('6a a Draft\'s blanks on the paper take no typing', !!s7 && s7.ro, JSON.stringify(s7));
     if (s7) {
-      await page.evaluate(() => { const b = document.querySelector('#doc-canvas input'); b.scrollIntoView({ block: 'center' }); });
-      const r = await page.evaluate(() => { const b = document.querySelector('#doc-canvas input').getBoundingClientRect(); return { x: b.left + 4, y: b.top + b.height / 2 }; });
+      /* from another tab, so the press has to bring the form up itself */
+      await page.evaluate(() => pdOpenOnHome('MK-CT2', 'oblig'));
+      await page.evaluate(() => { const b = document.querySelector('#ig-canvas [data-field], #ig-canvas [data-sync]'); b.scrollIntoView({ block: 'center' }); });
+      const r = await page.evaluate(() => { const b = document.querySelector('#ig-canvas [data-field], #ig-canvas [data-sync]').getBoundingClientRect(); return { x: b.left + 4, y: b.top + b.height / 2 }; });
       await page.mouse.click(r.x, r.y);
-      const s7b = await until(page, () => { const a = document.activeElement; return a && a.closest && a.closest('#tplform-section') ? (a.getAttribute('data-blankf') || a.getAttribute('data-tplf') || a.tagName) : null; }, null, 3000);
-      ok('6b a press on one goes to its box in the side panel\'s form', !!s7b, s7b);
+      const s7b = await until(page, () => { const a = document.activeElement; return a && a.closest && a.closest('#pd-fill') ? (a.getAttribute('data-blankf') || a.getAttribute('data-tplf') || a.tagName) : null; }, null, 3000);
+      ok('6b a press on one goes to its box in the side panel\'s form', !!s7b && s7b === s7.key, `${s7b} vs ${s7.key}`);
     } else ok('6b a press on one goes to its box in the side panel\'s form', false, 'no blanks');
     await page.screenshot({ path: path.join(OUT, '7-document.png') });
 

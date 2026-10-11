@@ -768,6 +768,9 @@ if (typeof document !== 'undefined' && !document._caSelArmed){
     setTimeout(caSelOpen, 0);
   });
   document.addEventListener('mousedown', e => { if (!e.target.closest || !e.target.closest('.nego-selmenu')) { if (document.querySelector('#ig-canvas') ) caSelKill(); } }, true);
+  /* Esc closes it too (11 Oct 2026): the Document tab's highlight menu did, and
+     with that tab gone Home's paper is where a reader highlights. */
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.querySelector('#ig-canvas')) caSelKill(); });
 }
 
 /* A DRAFTED REPLY (step 6, 8 Oct 2026): the one Copilot call behind "Draft a

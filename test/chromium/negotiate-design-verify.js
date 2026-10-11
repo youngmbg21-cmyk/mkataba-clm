@@ -36,9 +36,13 @@ const check = (name, pass, detail) => {
 /* What the paper resolves to, and what the furniture standing on it resolves
    to. The face is read off the FIRST family in the stack, because that is the
    one the browser actually used for Latin text. */
-const READ = `(() => {
+/* RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner); "the
+   document" is Home's Document face now (#ig-canvas, the same working copy).
+   Each page is read off its OWN paper, so a hidden page left in the DOM can
+   never answer for the other. */
+const READ_AT = sel => `(() => {
   const face = el => el ? getComputedStyle(el).fontFamily.split(',')[0].replace(/['"]/g, '').trim() : null;
-  const paper = document.querySelector('.redline-page .rl-paper') || document.querySelector('#doc-canvas');
+  const paper = document.querySelector(${JSON.stringify(sel)});
   if (!paper) return { paper: null };
   const hook = (() => { let n = paper;
     for (let i = 0; i < 6 && n; i++) { if (n.getAttribute && n.getAttribute('data-doc-body')) return n.getAttribute('data-doc-body'); n = n.parentElement; }
@@ -60,19 +64,26 @@ const READ = `(() => {
     has: { body: !!body, head: !!head, pencil: !!pencil } };
 })()`;
 
+const DOC_PAPER = '#ig-paper #ig-canvas';
+const NEG_PAPER = '.redline-page .rl-paper';
+/* Home's Document face, drawn afresh: the design is changed in memory between
+   stages, and Home keeps a drawn paper by its contract (igPaperRefresh). */
+const goDoc = async (page, id) => {
+  await page.evaluate(i => { pdOpenOnHome(i, 'copilot'); }, id);
+  await page.waitForFunction(i => !!document.querySelector('#ig-paper #ig-canvas') && window.intel && intel.paper && intel.paper.id === i, id, { timeout: 15000 }).catch(() => {});
+  await page.evaluate(() => { if (window.igPaperRefresh) igPaperRefresh(); });
+  await page.waitForFunction(() => { const cv = document.querySelector('#ig-paper #ig-canvas');
+    return !!cv && cv.getBoundingClientRect().height > 40; }, null, { timeout: 15000 }).catch(() => {});
+};
 const openDoc = async (page, id) => {
-  await page.evaluate(i => openWorkspace(i), id);
-  await page.waitForTimeout(1100);
-  await page.evaluate(() => roomGoTab(getContract(state.activeId), 'docs'));
-  await page.waitForSelector('#doc-canvas', { timeout: 15000 }).catch(() => {});
-  await page.waitForTimeout(1100);
-  return page.evaluate(READ);
+  await goDoc(page, id);
+  return page.evaluate(READ_AT(DOC_PAPER));
 };
 const openNego = async (page, id) => {
   await page.evaluate(i => openRedlineWorkbench(i), id);
   await page.waitForSelector('.redline-page .rl-paper', { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(1400);
-  return page.evaluate(READ);
+  return page.evaluate(READ_AT(NEG_PAPER));
 };
 
 (async () => {
@@ -211,8 +222,8 @@ const openNego = async (page, id) => {
        `h4.rl-clause-h`, so a renamed heading can carry its own redline marks.
        Asking each page for its own element is what makes this a comparison
        rather than a description of one page's markup. */
-    const tt = `(() => {
-      const box = document.querySelector('.redline-page .rl-paper') || document.querySelector('#doc-canvas');
+    const tt = sel => `(() => {
+      const box = document.querySelector(${JSON.stringify(sel)});
       const h = box && (box.querySelector('.rl-clause-h') || box.querySelector('h2'));
       const cs = h ? getComputedStyle(h) : null;
       return h ? { tag: h.tagName, tt: cs.textTransform, weight: cs.fontWeight,
@@ -221,13 +232,10 @@ const openNego = async (page, id) => {
         fit: Math.round((parseFloat(cs.letterSpacing) / parseFloat(cs.fontSize)) * 1000) / 1000,
         size: parseFloat(cs.fontSize) } : null;
     })()`;
-    await page.evaluate(i => openWorkspace(i), id);
-    await page.waitForTimeout(900);
-    await page.evaluate(() => roomGoTab(getContract(state.activeId), 'docs'));
-    await page.waitForTimeout(1100);
-    const ttDoc = await page.evaluate(tt);
+    await goDoc(page, id);
+    const ttDoc = await page.evaluate(tt(DOC_PAPER));
     await openNego(page, id);
-    const ttNeg = await page.evaluate(tt);
+    const ttNeg = await page.evaluate(tt(NEG_PAPER));
     check('4a each page drew its own clause heading for a stored body',
       !!ttDoc && !!ttNeg, `doc ${JSON.stringify(ttDoc)} · nego ${JSON.stringify(ttNeg)}`);
     check('4b the design’s heading treatment reaches BOTH pages',

@@ -312,7 +312,9 @@ const drive = async (page, fn, arg, fallback) => {
     await drive(page, id => { openWorkspace(id); }, cid, null);
     await pause(1500);
     const room = await drive(page, async () => {
-      const b = document.querySelector('#view-redline .room-focus[data-ws-focus], [data-ws-focus-door]') /* the room's door is on the Document tab's control row since 21 Sep 2026 */;
+      /* RE-POINTED 11 Oct 2026: the Document tab and its control-row door are
+         gone (owner); the room's door is its ⋯ menu row, on every tab. */
+      const b = document.getElementById('ws-focus');
       if (!b) return { err: 'not drawn' };
       b.click();
       await new Promise(r => setTimeout(r, 300));
@@ -329,10 +331,10 @@ const drive = async (page, fn, arg, fallback) => {
        the route actually sends, and the obligation is given a quote taken out
        of the paper the reader is looking at — so the placing is the product's
        own rlPbFindClause, not a fixture agreeing with itself. */
-    await drive(page, () => { openWorkspace('MK-A2'); }, undefined, null);
-    await pause(1600);
-    await drive(page, () => { const b = document.querySelector('[data-ws-tab="docs"]'); if (b) b.click(); }, undefined, null);
-    await pause(900);
+    /* RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner); the
+       Thread is on Home's Document, Clauses tab (#pd-thread). */
+    await drive(page, () => { pdOpenOnHome('MK-A2', 'doc'); }, undefined, null);
+    await page.waitForFunction(() => document.querySelectorAll('#pd-thread .doc-th-row[data-th-row]').length > 0, null, { timeout: 15000 }).catch(() => {});
 
     const rows = await drive(page, () => {
       const c = state.contracts.find(x => x.id === 'MK-A2');
@@ -385,18 +387,18 @@ const drive = async (page, fn, arg, fallback) => {
     ai.script(readOne, readOne, readOne);
     await drive(page, async () => {
       const wait = ms => new Promise(r => setTimeout(r, ms));
-      const idx = Array.from(document.querySelectorAll('#doc-thread .doc-th-row[data-th-row]')).map(r => r.getAttribute('data-th-row')).slice(0, 3);
+      const idx = Array.from(document.querySelectorAll('#pd-thread .doc-th-row[data-th-row]')).map(r => r.getAttribute('data-th-row')).slice(0, 3);
       for (const k of idx) {
-        const go = document.querySelector('#doc-thread [data-th-go="' + k + '"]'); if (go) go.click();
+        const go = document.querySelector('#pd-thread [data-th-go="' + k + '"]'); if (go) go.click();
         await wait(1300);
-        const b = document.querySelector('#doc-thread .doc-th-row.is-open [data-th-explain]'); if (b) b.click();
+        const b = document.querySelector('#pd-thread .doc-th-row.is-open [data-th-explain]'); if (b) b.click();
         await wait(2200);
       }
     }, undefined, null);
     await pause(1200);
 
     const amber = await drive(page, () => {
-      const rows = Array.from(document.querySelectorAll('#doc-thread .doc-th-row'));
+      const rows = Array.from(document.querySelectorAll('#pd-thread .doc-th-row'));
       const read = rows.filter(r => r.querySelector('.doc-th-state .is-read'));
       const watch = rows.filter(r => /\bis-(ruby|amber|steel)\b/.test(r.className));
       const shot = watch.map(r => ({ title: (r.querySelector('.doc-th-name') || {}).textContent || '',

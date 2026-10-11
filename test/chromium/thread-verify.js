@@ -7,6 +7,8 @@
    scan, a brief and two obligations staged on the record and a scripted
    Copilot answering the readings route:
 
+     (RE-POINTED 11 Oct 2026: the contract's Document tab is gone, owner; all
+     of this is asked on Home's Document face, Clauses tab)
      1  the Document tab is ONE screen: the paper and the Thread, no switch, no
         Checks card, no Activity & comments card, no strand in the margin
      2  every clause is a row; scrolling the paper opens the row at the line
@@ -129,21 +131,24 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
        unusual term, two obligations on the tab — staged in the browser's copy
        of the record (never saved), so a reload below forgets them and they are
        staged again. */
-    const stage = () => page.evaluate(() => { const c = getContract(state.activeId);
+    /* RE-POINTED 11 Oct 2026: the contract's Document tab is gone (owner); the
+       Thread lives on Home's Document face, Clauses tab (#pd-thread beside
+       Home's paper #ig-canvas in #ig-paper-scroll). Every claim is asked there. */
+    const stage = (go = true) => page.evaluate(({ i, go }) => { window.__thId = i; const c = getContract(i);
       c.scan = { at: 'today', on: '2026-10-05', dismissed: [], findings: [
         { id: 'w1', sev: 'high', title: 'Liability cap — 12 months of fees', why: 'A cap at twelve months of fees is low for a warehouse holding $3m of stock.', quote: 'shall not exceed the total Fees paid or payable during the twelve (12) months' },
         { id: 'w3', sev: 'med', title: 'Termination for convenience — 60 days', why: 'They can walk away from storing your goods on two months’ notice.', quote: 'for convenience upon providing 60 days’ prior written notice' }] };
       c._brief = { at: new Date().toISOString(), data: { overview: 'x', watchouts: [{ point: 'A breach does not let you terminate at once — you wait 90 days.', why: 'The other side has three months to fix it.', quote: 'fails to cure such breach within 90 days after receipt of written notice' }], unusual: [{ point: 'The insurance minimum is one flat figure.', why: 'It does not follow the value of goods stored.', quote: 'minimum limit of $3,000,000 per occurrence' }] } };
       c.obligations = [{ id: 'ob1', desc: 'Cooperate on transition', status: 'open', party: 'ours', due: '2029-09-01', quote: 'the parties shall cooperate in good faith to ensure an orderly transition' },
         { id: 'ob2', desc: 'Deliver insurance certificates', status: 'open', party: 'theirs', due: '2026-12-31', quote: 'Certificates of insurance are to be delivered on request' }];
-      roomGoTab(c, 'docs'); });
+      if (go) { setView('dashboard'); pdOpenOnHome(c.id, 'doc'); } }, { i: id, go });
     await stage();
-    const up = await page.waitForSelector('#doc-thread:not([hidden])', { timeout: 15000 }).then(() => true).catch(() => false);
+    const up = await page.waitForFunction(() => document.querySelectorAll('#pd-thread:not([hidden]) .doc-th-row').length >= 5, null, { timeout: 15000 }).then(() => true).catch(() => false);
     await page.waitForTimeout(1200);
 
     /* The first line of the wording, measured INSIDE the canvas. */
     const ink = () => page.evaluate(() => {
-      const cv = document.getElementById('doc-canvas'); if (!cv) return null;
+      const cv = document.getElementById('ig-canvas'); if (!cv) return null;
       const w = document.createTreeWalker(cv, NodeFilter.SHOW_TEXT,
         { acceptNode: n => /\S/.test(n.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP });
       const t = w.nextNode(); if (!t) return null;
@@ -152,16 +157,16 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
       return { top: Math.round((b.top - sh.top) * 10) / 10, left: Math.round((b.left - sh.left) * 10) / 10, sheetW: Math.round(sh.width) };
     });
     const read = () => page.evaluate(() => {
-      const th = document.getElementById('doc-thread');
+      const th = document.getElementById('pd-thread');
       const txt = el => el ? el.textContent.replace(/\s+/g, ' ').trim() : '';
       const rows = th ? [...th.querySelectorAll('.doc-th-row')].map(r => ({ name: txt(r.querySelector('.doc-th-name')), state: txt(r.querySelector('.doc-th-state')),
         open: r.classList.contains('is-open'), tone: (r.className.match(/is-(ruby|amber|steel)/) || [])[1] || '' })) : [];
       const open = th && th.querySelector('.doc-th-row.is-open');
       const body = open && open.querySelector('.doc-th-in');
-      const sc = document.getElementById('doc-scroll');
+      const sc = document.getElementById('ig-paper-scroll');
       const look = body && body.querySelector('.doc-th-look');
       const plain = body && body.querySelector('.doc-th-plain');
-      const paper = document.querySelector('#doc-canvas .doc-surface') || document.getElementById('doc-canvas');
+      const paper = document.querySelector('#ig-canvas .doc-surface') || document.getElementById('ig-canvas');
       return { hidden: !th || th.hidden, rows, openIdx: open ? Number(open.dataset.thRow) : -1, openText: txt(body).slice(0, 500),
         atLine: (typeof docThreadAtLine === 'function') ? docThreadAtLine() : -2, scroll: sc ? Math.round(sc.scrollTop) : -1,
         switchGone: !document.querySelector('[data-doc-read]'), checksGone: !document.getElementById('checks-card'),
@@ -197,7 +202,7 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
     await page.screenshot({ path: path.join(OUT, '01-arrival.png') });
 
     /* ===== 2. SCROLL OPENS THE ROW AT THE LINE ===== */
-    await page.evaluate(() => { const sc = document.getElementById('doc-scroll'); const el = docXrayRows(getContract(state.activeId))[3].el;
+    await page.evaluate(() => { const sc = document.getElementById('ig-paper-scroll'); const el = docXrayRows(getContract(window.__thId), document.getElementById('ig-canvas'))[3].el;
       sc.scrollTop = el.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - 20; });
     await page.waitForTimeout(700);
     const s2 = await read();
@@ -206,17 +211,17 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
     await page.screenshot({ path: path.join(OUT, '02-scrolled.png') });
 
     /* ===== 3. PRESS AND STEP GLIDE TO THE LINE ===== */
-    await page.click('#doc-thread .doc-th-row[data-th-row="0"] [data-th-go]');
+    await page.click('#pd-thread .doc-th-row[data-th-row="0"] [data-th-go]');
     await page.waitForTimeout(1400);
     const s3 = await read();
     check('3a pressing a row glides the paper until that clause is at the line', s3.openIdx === 0 && s3.atLine === 0 && s3.scroll < s2.scroll,
       JSON.stringify({ open: s3.openIdx, line: s3.atLine, scroll: s2.scroll + ' → ' + s3.scroll }));
-    await page.click('#doc-thread .doc-th-row.is-open [data-th-step="1"]'); await page.waitForTimeout(1300);
-    await page.click('#doc-thread .doc-th-row.is-open [data-th-step="1"]'); await page.waitForTimeout(1300);
+    await page.click('#pd-thread .doc-th-row.is-open [data-th-step="1"]'); await page.waitForTimeout(1300);
+    await page.click('#pd-thread .doc-th-row.is-open [data-th-step="1"]'); await page.waitForTimeout(1300);
     const s4 = await read();
     check('3b › twice opens the third clause, with the paper at it', s4.openIdx === 2 && s4.atLine === 2 && s4.scroll > s3.scroll,
       JSON.stringify({ open: s4.openIdx, line: s4.atLine, scroll: s3.scroll + ' → ' + s4.scroll }));
-    await page.click('#doc-thread .doc-th-row.is-open [data-th-step="-1"]'); await page.waitForTimeout(1300);
+    await page.click('#pd-thread .doc-th-row.is-open [data-th-step="-1"]'); await page.waitForTimeout(1300);
     const s4b = await read();
     check('3c and ‹ steps back the same way', s4b.openIdx === 1 && s4b.atLine === 1, JSON.stringify({ open: s4b.openIdx, line: s4b.atLine }));
     const during = await ink();
@@ -226,11 +231,11 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
     await page.screenshot({ path: path.join(OUT, '03-stepped.png') });
 
     /* ===== 4. EXPLAIN ONE CLAUSE ===== */
-    await page.click('#doc-thread .doc-th-row[data-th-row="2"] [data-th-go]'); await page.waitForTimeout(1300);
+    await page.click('#pd-thread .doc-th-row[data-th-row="2"] [data-th-go]'); await page.waitForTimeout(1300);
     ai.script(responder);
     const calls0 = ai.calls.length;
     const posts0 = await page.evaluate(() => 0);
-    await page.click('#doc-thread .doc-th-row.is-open [data-th-explain]');
+    await page.click('#pd-thread .doc-th-row.is-open [data-th-explain]');
     await page.waitForTimeout(2500);
     const s5 = await read();
     const asked = ai.calls.slice(calls0).map(c => (c.body.messages && String(c.body.messages[0].content).match(/\[R\d+\]/g) || []).length);
@@ -244,7 +249,8 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
 
     /* the one-clause reading rides the GET after a reload */
     await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(2500);
-    await page.evaluate(i => { openWorkspace(i); roomGoTab(getContract(i), 'docs'); }, id);
+    await page.evaluate(i => { window.__thId = i; setView('dashboard'); pdOpenOnHome(i, 'doc'); }, id);
+    await page.waitForFunction(() => document.querySelectorAll('#pd-thread .doc-th-row').length >= 5, null, { timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(1500);
     const s6 = await read();
     check('4f after a reload the one reading is still on its row', s6.rows.length >= 5 && /Read/.test(s6.rows[2].state) && s6.rows.filter(r => /Read\b/.test(r.state)).length === 1,
@@ -252,8 +258,8 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
 
     /* ===== 5. WORTH A LOOK AND WHO DOES WHAT ===== */
     await stage(); await page.waitForTimeout(900);
-    await page.evaluate(() => { const c = getContract(state.activeId); const i = docXrayRows(c).findIndex(r => r.tone === 'ruby');
-      document.querySelector('#doc-thread [data-th-go="' + i + '"]').click(); });
+    await page.evaluate(() => { const c = getContract(window.__thId); const i = docXrayRows(c, document.getElementById('ig-canvas')).findIndex(r => r.tone === 'ruby');
+      document.querySelector('#pd-thread [data-th-go="' + i + '"]').click(); });
     await page.waitForTimeout(1300);
     const s7 = await read();
     check('5a the ruby row (Article XI) opens with Worth a look shaded light red', /INDEMNIF/.test(s7.rows[s7.openIdx].name) && s7.lookHas && reddish(s7.lookBg), s7.lookBg);
@@ -261,25 +267,25 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
       JSON.stringify(s7.marks));
     check('5c and there is NO "Add a note" (the owner removed it)', s7.notes === 0 && !s7.addNote, JSON.stringify({ notes: s7.notes, addNote: s7.addNote }));
     check('5d Who does what sits under Worth a look, with its lines', s7.whoAfterLook && s7.who >= 1, s7.who + ' lines');
-    await page.evaluate(() => document.querySelector('#doc-thread [data-th-go="0"]').click()); await page.waitForTimeout(1300);
+    await page.evaluate(() => document.querySelector('#pd-thread [data-th-go="0"]').click()); await page.waitForTimeout(1300);
     const s7b = await read();
     check('5e [control] with nothing worth a look (Article VI) the area stays white', !s7b.lookHas && !reddish(s7b.lookBg), s7b.lookBg);
     await page.screenshot({ path: path.join(OUT, '05-worth-a-look.png') });
 
     /* ===== 8. WHY IT COULD NOT, AND THE OPEN CLAUSE RISES (6 Oct 2026) ===== */
-    const openWhy = () => page.evaluate(() => { const b = document.querySelector('#doc-thread .doc-th-row.is-open .doc-th-cannot');
+    const openWhy = () => page.evaluate(() => { const b = document.querySelector('#pd-thread .doc-th-row.is-open .doc-th-cannot');
       return b ? b.textContent.replace(/\s+/g, ' ').trim() : ''; });
-    await page.evaluate(() => document.querySelector('#doc-thread [data-th-go="3"]').click()); await page.waitForTimeout(1300);
+    await page.evaluate(() => document.querySelector('#pd-thread [data-th-go="3"]').click()); await page.waitForTimeout(1300);
     ai.script(() => 500, () => 500);
-    await page.click('#doc-thread .doc-th-row.is-open [data-th-explain]');
-    await page.waitForFunction(() => !!document.querySelector('#doc-thread .doc-th-row.is-open .doc-th-cannot'), null, { timeout: 15000 }).catch(() => {});
+    await page.click('#pd-thread .doc-th-row.is-open [data-th-explain]');
+    await page.waitForFunction(() => !!document.querySelector('#pd-thread .doc-th-row.is-open .doc-th-cannot'), null, { timeout: 15000 }).catch(() => {});
     const s9 = await read(); const why9 = await openWhy();
     check('8a a press the provider failed says so on its row, and why', /Could not read/.test(s9.rows[3] && s9.rows[3].state) && /connection or the provider failed/.test(why9),
       (s9.rows[3] && s9.rows[3].state) + ' · ' + why9);
     const emptyAns = reqBody => tool([...String(reqBody.messages[0].content).matchAll(/\[(R\d{1,3})\] (?:CLAUSE|SECTION)[^\n]*\nheading: ([^\n]*)/g)].map(m => ({ key: m[1], heading: m[2], plain: '' })));
     ai.script(emptyAns, emptyAns);
-    await page.click('#doc-thread .doc-th-row.is-open [data-th-explain]');
-    await page.waitForFunction(() => /answered without/.test((document.querySelector('#doc-thread .doc-th-row.is-open .doc-th-cannot') || {}).textContent || ''), null, { timeout: 15000 }).catch(() => {});
+    await page.click('#pd-thread .doc-th-row.is-open [data-th-explain]');
+    await page.waitForFunction(() => /answered without/.test((document.querySelector('#pd-thread .doc-th-row.is-open .doc-th-cannot') || {}).textContent || ''), null, { timeout: 15000 }).catch(() => {});
     const why9b = await openWhy();
     check('8b a press Copilot answered with nothing says THAT, with Plain to ask again', /answered without a reading/.test(why9b), why9b);
     await page.screenshot({ path: path.join(OUT, '08-could-not-read.png') });
@@ -288,41 +294,43 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
        the list allows (scrollTo clamps), so the expected place is the
        smaller of "its head at the top" and "the list scrolled to its end". */
     const rise = () => page.evaluate(() => {
-      const box = document.querySelector('#doc-thread .doc-th-rows'); const r = box && box.querySelector('.doc-th-row.is-open');
+      const box = document.querySelector('#pd-thread .doc-th-rows'); const r = box && box.querySelector('.doc-th-row.is-open');
       if (!box || !r) return null;
       const pad = parseFloat(getComputedStyle(box).paddingTop) || 0;
       const gap = r.getBoundingClientRect().top - box.getBoundingClientRect().top - pad;
       const max = box.scrollHeight - box.clientHeight;
       return { idx: Number(r.dataset.thRow), gap: Math.round(gap), scroll: Math.round(box.scrollTop), max: Math.round(max), want: Math.round(Math.min(box.scrollTop + gap, max)) };
     });
-    await page.evaluate(() => document.querySelector('#doc-thread [data-th-go="0"]').click()); await page.waitForTimeout(1400);
-    await page.click('#doc-thread .doc-th-row.is-open [data-th-step="1"]'); await page.waitForTimeout(1500);
+    await page.evaluate(() => document.querySelector('#pd-thread [data-th-go="0"]').click()); await page.waitForTimeout(1400);
+    await page.click('#pd-thread .doc-th-row.is-open [data-th-step="1"]'); await page.waitForTimeout(1500);
     const r1 = await rise();
     check('8c › brings the next clause\'s head to the TOP of the list, the ones before it scrolled up', !!r1 && r1.idx === 1 && Math.abs(r1.gap) <= 2 && r1.scroll > 0,
       JSON.stringify(r1));
-    await page.evaluate(() => { const b = document.querySelector('#doc-thread .doc-th-rows'); b.scrollTop = 0; });
+    await page.evaluate(() => { const b = document.querySelector('#pd-thread .doc-th-rows'); b.scrollTop = 0; });
     await page.waitForTimeout(300);
-    await page.evaluate(() => document.querySelector('#doc-thread [data-th-go="2"]').click()); await page.waitForTimeout(1500);
+    await page.evaluate(() => document.querySelector('#pd-thread [data-th-go="2"]').click()); await page.waitForTimeout(1500);
     const r2 = await rise();
     check('8d a press on a row already in sight low down brings it to the top too (as high as the list allows)', !!r2 && r2.idx === 2 && Math.abs(r2.scroll - r2.want) <= 2 && r2.scroll > 0,
       JSON.stringify(r2));
     await page.screenshot({ path: path.join(OUT, '08-risen.png') });
-    await page.evaluate(() => document.querySelector('#doc-thread [data-th-go="4"]').click()); await page.waitForTimeout(1500);
+    await page.evaluate(() => document.querySelector('#pd-thread [data-th-go="4"]').click()); await page.waitForTimeout(1500);
     const r3 = await rise();
     check('8e [control] the last clause goes as high as the list allows — nothing padded to fake it', !!r3 && r3.idx === 4 && Math.abs(r3.scroll - r3.want) <= 2,
       JSON.stringify(r3));
 
     /* ===== 6. THE DOORS, THE NARROW WINDOW, THE NIGHT ===== */
-    await page.setViewportSize({ width: 1000, height: 800 }); await page.waitForTimeout(600);
-    await page.evaluate(() => applyWsTabs(getContract(state.activeId))); await page.waitForTimeout(400);
-    const narrow = await page.evaluate(() => ({ hidden: document.getElementById('doc-thread').hidden, rows: document.querySelectorAll('#doc-thread .doc-th-row').length }));
-    check('6a below 1024 the Thread stands down and the paper has the tab', narrow.hidden && narrow.rows === 0, JSON.stringify(narrow));
-    await page.setViewportSize({ width: 1440, height: 900 }); await page.waitForTimeout(400);
-    await page.evaluate(() => applyWsTabs(getContract(state.activeId))); await page.waitForTimeout(600);
-    await page.evaluate(() => roomGoTab(getContract(state.activeId), 'terms')); await page.waitForTimeout(500);
-    await page.evaluate(() => riskViewOpen(getContract(state.activeId))); await page.waitForTimeout(1500);
+    /* 6a retired 11 Oct 2026: the Document tab is gone (owner). "Below 1024 the
+       Thread stands down and the paper has the tab" was the tab's own width
+       rule; Home's Document panel keeps its own. */
+    /* the risk door is pressed in the room (its Overview); opening the room
+       reads the record again, so the browser-only facts are staged again */
+    await page.evaluate(() => { openWorkspace(window.__thId); roomGoTab(getContract(window.__thId), 'terms'); });
+    await page.waitForFunction(() => state.view === 'workspace', null, { timeout: 8000 }).catch(() => {});
+    await page.waitForTimeout(600);
+    await stage(false);
+    await page.evaluate(() => riskViewOpen(getContract(window.__thId))); await page.waitForTimeout(1500);
     const s8 = await read();
-    check('6b the risk door lands on the Document tab with the worst-marked clause open, the paper glided to it',
+    check('6b the risk door lands on Home\'s Document, Clauses tab, with the worst-marked clause open, the paper glided to it',
       !s8.hidden && s8.openIdx >= 0 && s8.rows[s8.openIdx].tone === 'ruby' && s8.atLine === s8.openIdx, names(s8) + ' · scroll ' + s8.scroll);
     await page.evaluate(() => { try { setDark(true); } catch (_) { document.documentElement.classList.add('dark'); } }); await page.waitForTimeout(600);
     const night = await read();

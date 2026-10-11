@@ -2739,9 +2739,7 @@ function renderObligationsList(){
   host.querySelector('[data-obw-only-clear]')?.addEventListener('click', () => { f.only = null; obwRepaint(); });
   /* WHERE THE READER ENDS UP: the contract, on the tab this row is about. A row
      that opened the Document tab would make them hunt for what they pressed. */
-  const go = cid => { if(window.openWorkspace){ openWorkspace(cid);
-    const c = window.getContract ? getContract(cid) : null;
-    if(c && window.roomGoTab) try{ roomGoTab(c, 'oblig'); }catch(_){} } };
+  const go = cid => obOpenContract(cid);
   host.querySelectorAll('[data-obw-open]').forEach(b => b.addEventListener('click', ev => {
     ev.stopPropagation(); go(b.getAttribute('data-obw-open')); }));
   host.querySelectorAll('[data-obw-row]').forEach(tr => tr.addEventListener('click', () =>
@@ -3275,6 +3273,10 @@ async function obligationRemove(c, i){
    Reminder Line's dots): that row is picked on the tab before it paints, and
    a tab left on Completed is put back on Outstanding, where an open one is. */
 function obOpenContract(cid, key){
+  /* OPEN CONTRACT LANDS ON HOME'S DOCUMENT (owner, 11 Oct 2026), on its
+     Obligations tab. A press on one obligation (a key) still opens the room's
+     Obligations tab with that row chosen. */
+  if(!key && typeof window.pdOpenOnHome === 'function' && pdOpenOnHome(cid, 'oblig')) return;
   if(!window.openWorkspace) return;
   if(key){
     if(typeof window.insSelect === 'function') insSelect('oblig:' + cid, key);

@@ -189,9 +189,11 @@ const FORM = () => {
   check('and the Key terms tab is still the door that carries it',
     onTerms.termsTab === true, `tab visible: ${onTerms.termsTab}`);
 
-  for (const t of ['docs', 'sign', 'history']) {
+  /* RE-POINTED 11 Oct 2026: the Document tab is gone (owner) — retired from
+     this loop; the head is asked on every tab the room still draws. */
+  for (const t of ['stands', 'sign', 'oblig', 'history']) {
     const h = await headOn(t);
-    check(`nor on the ${t} tab — the head is the same head on all five`,
+    check(`nor on the ${t} tab — the head is the same head on every tab`,
       h.says === 0 && !h.na && h.acts.length >= 2,
       `matches=${h.says} next-action=${h.na} acts=[${h.acts.join(', ')}]`);
   }
@@ -212,8 +214,10 @@ const FORM = () => {
     const on = document.querySelector('#ws-tabs [data-ws-tab][aria-selected="true"]');
     return on && on.getAttribute('data-ws-tab');
   });
-  check('coming back to it later opens on the document as before',
-    again === 'docs', `tab=${again}`);
+  /* RE-POINTED 11 Oct 2026: with the Document tab gone the room opens on its
+     Overview for every contract — coming back lands where the room opens. */
+  check('coming back to it later opens where the room always opens, the Overview',
+    again === 'terms', `tab=${again}`);
 
   /* ---------- 3. HaTi STANDARD TEMPLATE — already asked, now also skippable ---------- */
   await page.evaluate(() => window.setView('templates'));

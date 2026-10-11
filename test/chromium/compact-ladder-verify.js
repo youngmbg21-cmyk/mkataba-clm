@@ -53,7 +53,7 @@ const EXEC = process.env.CHROMIUM_BIN
    34px top margin, so their first line sits lower by that gap and no more
    (271.9 → 297.0, 287.7 → 317.8, measured on this stage). The Signing tab was
    not asked and keeps its line. */
-const PARENT_INK = { docs: 297.0, nego: 317.8, sign: 301.9 };
+const PARENT_INK = { nego: 317.8, sign: 301.9 };   /* docs: 297.0 retired 11 Oct 2026: the Document tab is gone (owner) */
 
 let pass = 0, fail = 0;
 const ok = (name, good, detail) => {
@@ -149,7 +149,9 @@ const HELPERS = `(() => {
        is handed back after this section. */
     await page.evaluate(() => { if (window.insForce) insForce(false); });
     await page.evaluate(() => { try { regSetScope(null); } catch (e) {} setView('register'); });
-    await page.waitForTimeout(1400);
+    await page.waitForFunction(() => [...document.querySelectorAll('.reg-row-more')].some(b => b.getBoundingClientRect().height > 0)
+      && !!document.querySelector('#page-head button'), null, { timeout: 10000 }).catch(() => {});
+    await page.waitForTimeout(300);
     await page.screenshot({ path: path.join(OUT, '01-contracts.png') });
     const c1 = await page.evaluate(() => {
       const m = window.__m;
@@ -202,43 +204,57 @@ const HELPERS = `(() => {
       c2.acts.filter(b => b.t && !b.sq).every(b => b.fw === '600'), JSON.stringify(c2.acts.filter(b => b.t && !b.sq).map(b => b.t + ':' + b.fw)));
     await sweep('room');
 
-    /* ════════ 3. THE DOCUMENT TAB ════════ */
-    await page.evaluate(id => roomGoTab(getContract(id), 'docs'), ids.rev);
-    await page.waitForTimeout(1500);
+    /* ════════ 3. THE OVERVIEW'S TAB ROW, AND HOME'S DOCUMENT ════════
+       RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner). Its
+       tab-row door onto Negotiate stands on the Overview's row; its paper,
+       zoom and Thread live on Home's Document face (the Thread on the side
+       panel's Clauses tab). The Focus door (3e) and the Document tab's own
+       first-line measure (3d) are RETIRED with the tab: the room draws no
+       Focus door now, and the parent's number was the tab's. */
+    await page.evaluate(id => roomGoTab(getContract(id), 'terms'), ids.rev);
+    await page.waitForFunction(() => !!document.querySelector('#ws-tabrow-end #ws-to-nego'), null, { timeout: 8000 }).catch(() => {});
+    await load();
+    const c3row = await page.evaluate(() => {
+      const m = window.__m;
+      return [...document.querySelectorAll('#ws-tabrow-end .ui-btn')].filter(m.vis).map(m.box);
+    });
+    await page.evaluate(id => pdOpenOnHome(id, 'doc'), ids.rev);
+    await page.waitForFunction(() => {
+      const r = document.querySelector('#pd-thread .doc-th-row.is-open');
+      return !!r && r.getBoundingClientRect().height > 0 && !!document.querySelector('#ig-paper-scroll .paper-zc .rl-type-step');
+    }, null, { timeout: 15000 }).catch(() => {});
     await load();
     await page.screenshot({ path: path.join(OUT, '03-document.png') });
     const c3 = await page.evaluate(() => {
       const m = window.__m;
-      const slot = [...document.querySelectorAll('#ws-tabrow-end .ui-btn, #ws-tabrow-end .doc-read-seg, #doc-zc-slot .rl-type-step, #ws-tabrow-end .ws-focus-door')].filter(m.vis).map(m.box);
+      const zoom = [...document.querySelectorAll('#ig-paper-scroll .paper-zc .rl-type-step')].filter(m.vis).map(m.box);
       /* RE-POINTED 5 Oct 2026 (the Thread): the switch and the Checks card
-         are gone; the Thread's ‹ › are the small rung's squares and its text
-         buttons (Explain all, Run) are the text button. */
-      const segs = [...document.querySelectorAll('#doc-thread .doc-th-row.is-open .doc-th-step')].filter(m.vis).map(m.box);
-      const run = [...document.querySelectorAll('#doc-thread .doc-th-row.is-open .ui-btn-plain')].filter(m.vis).map(m.box);
-      const squares = [...document.querySelectorAll('#ws-tabrow-end .ws-focus-door')].filter(m.vis).map(m.box);
-      return { slot, segs, run, squares, accent: m.tok('--accent-ink'), ink: m.ink('#doc-canvas') ?? m.ink('.doc-surface') };
+         are gone; the Thread's ‹ › are the small rung's squares. */
+      const segs = [...document.querySelectorAll('#pd-thread .doc-th-row.is-open .doc-th-step')].filter(m.vis).map(m.box);
+      return { zoom, segs };
     });
-    /* the zoom stands on the paper's ground since 11 Oct 2026, the same 28 */
-    ok('3a the Document tab\'s controls are one height (28)',
-      c3.slot.length >= 3 && c3.slot.every(b => near(b.h, 28)), JSON.stringify(c3.slot.map(b => b.t.slice(0, 14) + ':' + b.h)));
+    const slot = c3row.concat(c3.zoom);
+    ok('3a the Overview\'s tab-row door and the Document\'s zoom are one height (28)',
+      c3row.length >= 1 && c3.zoom.length >= 1 && slot.every(b => near(b.h, 28)), JSON.stringify(slot.map(b => b.t.slice(0, 14) + ':' + b.h)));
     ok('3b the Thread\'s ‹ › are squares of the small rung (22)',
       c3.segs.length === 2 && c3.segs.every(b => near(b.w, b.h) && near(b.h, 22)),
       JSON.stringify(c3.segs.map(b => b.w + '×' + b.h)));
-    /* RE-POINTED 7 Oct 2026 (Young's type formula, off the HaTi Platform mockup): a button's word is 600 — still ONE weight for every button. */
-    ok('3c the Thread\'s text buttons (Explain all, Run) are the text button: accent, 600, no underline',
-      c3.run.length > 0 && c3.run.every(b => b.fw === '600' && b.td === 'none' && b.color === c3.accent),
-      JSON.stringify(c3.run.map(b => ({ h: b.h, fw: b.fw, td: b.td, ink: b.color === c3.accent }))));
-    /* RE-POINTED 7 Oct 2026 (the one-build work order part E): the Focus
-       door carries its mark AND the word "Focus" — it is no longer a square,
-       but it stays on its row's rung */
-    ok('3e the Focus door sits on its row\'s rung (28), mark and word',
-      c3.squares.length > 0 && c3.squares.every(b => near(b.h, 28) && b.w > b.h), JSON.stringify(c3.squares.map(b => b.w + '×' + b.h)));
-    ok('3d REFUSAL 3: the contract\'s first line on the Document tab did not move down',
-      c3.ink != null && (PARENT_INK.docs == null || c3.ink <= PARENT_INK.docs + 0.5),
-      `first ink ${c3.ink} · parent ${PARENT_INK.docs}`);
+    /* 3c "the Thread's text buttons (Explain all, Run) are the text button"
+       RETIRED 11 Oct 2026: the Document tab is gone (owner), and the Thread's
+       Run lines were that tab's alone - on Home they would press the room
+       head's door, which Home does not carry (docThreadUnrunHtml answers ''
+       there). What is left on the open row is Plain, an ordinary button: it
+       stands on the everyday rung at the one weight. */
+    const plainBtn = await page.evaluate(() => { const m = window.__m;
+      return [...document.querySelectorAll('#pd-thread .doc-th-row.is-open [data-th-explain]')].filter(m.vis).map(m.box); });
+    ok('3c the open row\'s Plain is the everyday rung (28) at the one weight (600)',
+      plainBtn.length > 0 && plainBtn.every(b => near(b.h, 28) && b.fw === '600'),
+      JSON.stringify(plainBtn.map(b => b.t + ':' + b.h + '/' + b.fw)));
     await sweep('document');
 
     /* ════════ 4. THE SIGNING TAB ════════ */
+    await page.evaluate(id => openWorkspace(id), ids.rev);   /* back from Home (section 3) */
+    await page.waitForFunction(() => !!document.querySelector('#ws-tabs [data-ws-tab="sign"]'), null, { timeout: 8000 }).catch(() => {});
     await page.evaluate(id => roomGoTab(getContract(id), 'sign'), ids.rev);
     await page.waitForTimeout(1500);
     await load();

@@ -149,17 +149,19 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
      the Thread's rows; a marked clause wears its tone, and its open row holds
      the mark in Worth a look — with no "Draft a redline" and (the owner's
      word) no "Add a note" either. */
-  await page.evaluate(id => { const c = getContract(id); roomGoTab(c, 'docs'); }, ID);
-  await until(page, () => document.querySelectorAll('#doc-thread .doc-th-row').length ? true : null);
+  /* RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner); the
+     Thread lives on Home's Document, its Clauses tab (#pd-thread). */
+  await page.evaluate(id => { pdOpenOnHome(id, 'doc'); }, ID);
+  await until(page, () => document.querySelectorAll('#pd-thread .doc-th-row').length ? true : null);
   const seg = await until(page, () => {
-    const n = document.querySelectorAll('#doc-thread .doc-th-row.is-ruby, #doc-thread .doc-th-row.is-amber, #doc-thread .doc-th-row.is-steel').length;
+    const n = document.querySelectorAll('#pd-thread .doc-th-row.is-ruby, #pd-thread .doc-th-row.is-amber, #pd-thread .doc-th-row.is-steel').length;
     return n ? n : null;
   });
   check(!!seg, '2- the Thread draws the marked clauses in their tone', seg);
   /* open the marked clause (Payment) */
-  await page.evaluate(() => { const b = document.querySelector('#doc-thread .doc-th-row.is-ruby [data-th-go], #doc-thread .doc-th-row.is-amber [data-th-go], #doc-thread .doc-th-row.is-steel [data-th-go]'); if (b) b.click(); });
+  await page.evaluate(() => { const b = document.querySelector('#pd-thread .doc-th-row.is-ruby [data-th-go], #pd-thread .doc-th-row.is-amber [data-th-go], #pd-thread .doc-th-row.is-steel [data-th-go]'); if (b) b.click(); });
   const go = await until(page, () => {
-    const open = document.querySelector('#doc-thread .doc-th-row.is-open');
+    const open = document.querySelector('#pd-thread .doc-th-row.is-open');
     const m = open && open.querySelector('.doc-th-look .doc-xr-mark');
     return m ? { draft: open.querySelectorAll('[data-rk-go]').length, notes: open.querySelectorAll('[data-rk-note]').length,
       text: open.querySelector('.doc-th-look').textContent.replace(/\s+/g, ' ').trim().slice(0, 80) } : null;
@@ -167,7 +169,7 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   check(!!go && go.draft === 0, '2a the Payment mark in the Thread draws no "Draft a redline" (one door for edits)', go && JSON.stringify(go));
   check(!!go && go.notes === 0 && !/Add a note/.test(go.text), '2b and no "Add a note" (removed 5 Oct 2026)', go && go.text);
   await page.screenshot({ path: path.join(OUT, '02-thread.png') });
-  await page.evaluate(id => roomGoTab(getContract(id), 'redline'), ID);
+  await page.evaluate(id => openRedlineWorkbench(id), ID);   /* from Home (section 2) */
   await until(page, () => !!document.querySelector('#rl-risks [data-rk-key="s:t-pay"] [data-rk-act="edit-ce"]'));
   await press(page, '#rl-risks [data-rk-key="s:t-pay"] [data-rk-act="edit-ce"]');
   const open = await until(page, () => {
@@ -273,7 +275,8 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   await until(page, () => !document.getElementById('clause-editor'));
 
   /* ============ 7. THE OLD PANEL'S DOORS LAND ON RISK VIEW ============ */
-  await page.evaluate(id => { const c = getContract(id); roomGoTab(c, 'terms'); }, ID);
+  await page.evaluate(id => { openWorkspace(id); }, ID);
+  await until(page, () => !!document.querySelector('#ws-tabs [data-ws-tab="terms"].on'));
   /* RE-POINTED 5 Oct 2026 (the Thread): Risk View became the Thread, and the
      head's risk icon is the NEGOTIATE head's (roomHeadHtml draws the checks
      only with backToContract) — the contract's page never had it, so the door
@@ -281,10 +284,13 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
      lands on the Document tab with the worst-marked clause's row open. */
   const noIcon = await page.evaluate(() => !document.querySelector('[data-room-check="risk"]'));
   await page.evaluate(id => riskViewOpen(getContract(id)), ID);
-  const rv = await until(page, () => (typeof roomCurrentTab === 'function' && roomCurrentTab() === 'docs'
-    && !document.getElementById('doc-thread')?.hidden && !!document.querySelector('#doc-thread .doc-th-row.is-open')
-    && !document.querySelector('#scan-section')) ? true : null);
-  check(!!rv && noIcon, '7a the risk door opens the Document tab with the Thread, not a side panel (and the room head draws no risk icon of its own)', JSON.stringify({ landed: !!rv, noIcon }));
+  /* RE-POINTED 11 Oct 2026: the Document tab is gone (owner); the door lands
+     on Home's Document, its Clauses tab, with the worst-marked clause open. */
+  const ON_THREAD = () => (state.view === 'dashboard' && typeof pdTab === 'function' && pdTab() === 'doc'
+    && !!document.querySelector('#pd-thread .doc-th-row.is-open.is-ruby, #pd-thread .doc-th-row.is-open.is-amber, #pd-thread .doc-th-row.is-open.is-steel')
+    && !document.querySelector('#scan-section')) ? true : null;
+  const rv = await until(page, ON_THREAD);
+  check(!!rv && noIcon, '7a the risk door opens Home\'s Document on its Clauses tab, the marked clause open, not a side panel (and the room head draws no risk icon of its own)', JSON.stringify({ landed: !!rv, noIcon }));
   const tiles = await page.evaluate(id => {
     const c = getContract(id);
     const t = triageTiles(Object.assign({}, c, { triage: { at: '2026-10-04', steps: { risk: { ok: true, open: 1 } } } }));
@@ -297,7 +303,7 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   await page.evaluate(id => { const c = getContract(id);
     c.triage = { at: '2026-10-04', steps: { risk: { ok: true, open: 2 }, brief: { ok: false, why: 'No key' },
       playbook: { ok: false, why: 'No key' }, oblig: { ok: false, why: 'No key' }, fill: { ok: true, none: 'none' } } };
-    roomGoTab(c, 'terms'); }, ID);
+    openWorkspace(id); }, ID);
   const tile = await until(page, () => {
     const b = document.querySelector('[data-kt-tri-go="risk"]');
     return b ? b.innerText.replace(/\s+/g, ' ').trim() : null;
@@ -306,8 +312,8 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   await page.screenshot({ path: path.join(OUT, '08-overview-tile.png') });
   if (tile){
     await press(page, '[data-kt-tri-go="risk"]');
-    const rv2 = await until(page, () => (roomCurrentTab() === 'docs' && !!document.querySelector('#doc-thread:not([hidden]) .doc-th-row.is-open')) ? true : null);
-    check(!!rv2, '7d and pressing it opens the Document tab with the Thread');
+    const rv2 = await until(page, ON_THREAD);
+    check(!!rv2, '7d and pressing it opens Home\'s Document with the Thread');
   }
 
   /* ============ 8. NOTHING TRAVELS ============ */

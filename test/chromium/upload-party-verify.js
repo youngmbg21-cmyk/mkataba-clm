@@ -71,11 +71,13 @@ const check = (name, pass, detail) => {
           extractedText: 'THIRD PARTY SERVICES AGREEMENT. '.repeat(12), textSource: 'docx' },
         _loaded: true, _light: false, _v: 0,
       });
+      /* RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner); the
+         room opens on the Overview and the paper is Home's Document face. */
       state.activeId = 'UPX-1';
       setView('workspace');
-      if (window.roomGoTab) roomGoTab('docs');
     });
-    await page.waitForTimeout(900);
+    await page.waitForFunction(() => /3rd Party Contract/.test(document.getElementById('content').innerText),
+      null, { timeout: 8000 }).catch(() => {});
     let body = await page.evaluate(() => document.getElementById('content').innerText);
     check('the workspace DRAWS for a received, not-yet-signed upload',
       !/could not be drawn/i.test(body) && !/not defined/i.test(body) && /3rd Party Contract/.test(body),
@@ -97,14 +99,12 @@ const check = (name, pass, detail) => {
     /* AND THE ENTITY IS STILL THERE TO BE READ AND CHANGED. Key terms is the
        one door for an upload's own facts (there are no recitals to name it in),
        so that is where this claim belongs now. */
-    await page.evaluate(() => { if (window.roomGoTab) roomGoTab('terms'); });
+    await page.evaluate(() => { if (window.roomGoTab) roomGoTab(getContract('UPX-1'), 'terms'); });
     await page.waitForTimeout(700);
     const onTerms = await page.evaluate(() => document.getElementById('content').innerText);
     const firstParty = await page.evaluate(() => window.FIRST_PARTY || '');
     check('and with no entity on the record Key terms still offers the workspace as the assumption',
       !!firstParty && onTerms.includes(firstParty), firstParty);
-    await page.evaluate(() => { if (window.roomGoTab) roomGoTab('docs'); });
-    await page.waitForTimeout(600);
 
     /* The contract's own entity where one is named — contractParty, the same
        reading the recitals use. */
@@ -112,7 +112,6 @@ const check = (name, pass, detail) => {
       const c = state.contracts.find(x => x.id === 'UPX-1');
       c.party = 'Highland Juice Kenya Ltd';
       setView('workspace');
-      if (window.roomGoTab) roomGoTab('docs');
     });
     await page.waitForTimeout(600);
     body = await page.evaluate(() => document.getElementById('content').innerText);
@@ -129,8 +128,11 @@ const check = (name, pass, detail) => {
        and the counterparty's page is a REAL link, opened. Against the parent
        C7a reports the caption, C7c reports 13px against 14, C7e reports the
        phrase on their page. */
+    await page.evaluate(() => pdOpenOnHome('UPX-1', 'doc'));
+    await page.waitForFunction(() => /THIRD PARTY SERVICES AGREEMENT/.test((document.getElementById('ig-canvas') || {}).textContent || ''),
+      null, { timeout: 8000 }).catch(() => {});
     const c7 = await page.evaluate(() => {
-      const canvas = document.getElementById('doc-canvas');
+      const canvas = document.getElementById('ig-canvas');
       if (!canvas) return null;
       const t = document.getElementById('content').innerText;
       const first = [...canvas.querySelectorAll('div,p')].find(el => /THIRD PARTY SERVICES AGREEMENT/.test(el.textContent) && !el.querySelector('div,p'));
@@ -241,7 +243,7 @@ const check = (name, pass, detail) => {
       filed.source === 'upload' && filed.party === 'Momo Beach Distillers Ltd',
       JSON.stringify(filed));
 
-    await page.evaluate(() => { if (window.roomGoTab) roomGoTab('docs'); });
+    await page.evaluate(() => setView('workspace'));
     await page.waitForTimeout(700);
     body = await page.evaluate(() => document.getElementById('content').innerText);
     check('and the freshly filed upload\'s page draws, naming that entity — the loop the owner was stuck in, closed',

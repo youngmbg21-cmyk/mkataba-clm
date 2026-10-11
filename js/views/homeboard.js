@@ -8909,6 +8909,9 @@ function hbPlace(){
   if (s.face === 'explorer' && typeof igRecipeNow === 'function'){ try { p.recipe = igRecipeNow(); p.cam = intel.cam ? { ...intel.cam, w: intel.cam.w.slice() } : null; } catch (_){} }
   /* the Calendar tab keeps its month, week and view across a refresh */
   if (s.face === 'calendar' && typeof window.calPlace === 'function'){ try { p.cal = calPlace(); } catch (_){} }
+  /* the Document tab keeps its contract and its panel tab (11 Oct 2026: the
+     contract's own Document tab is gone, so this is where a refresh lands) */
+  if (s.face === 'paper' && typeof window.pdContract === 'function'){ try { const c = pdContract(); if (c) p.paper = { id: String(c.id), tab: typeof pdTab === 'function' ? pdTab() : '' }; } catch (_){} }
   return p;
 }
 function hbPlacePut(p){
@@ -8920,6 +8923,18 @@ function hbPlacePut(p){
   if (p.recipe && typeof igRecipeSet === 'function'){ try { igRecipeSet(p.recipe); } catch (_){} }
   if (p.cam && Array.isArray(p.cam.w) && window.intel && typeof IGB_NV !== 'undefined' && p.cam.w.length === IGB_NV) intel.cam = { ...p.cam, w: p.cam.w.slice() };
   if (p.cal && typeof window.calPlacePut === 'function'){ try { calPlacePut(p.cal); } catch (_){} }
+  /* the contract goes back on the Document face once the list holds it,
+     through the one door (igWalk), bounded; a contract chosen meanwhile wins */
+  if (p.paper && p.paper.id && p.face === 'paper'){
+    const want = p.paper; let n = 0;
+    if (want.tab && typeof window.pdSetTab === 'function') pdSetTab(want.tab);
+    const go = () => {
+      if (!(window.state && state.view === 'dashboard' && hbS().face === 'paper') || (window.intel && intel.paper)) return;
+      if (typeof getContract === 'function' && getContract(want.id) && typeof window.igWalk === 'function'){ igWalk([want.id], 0, { tab: want.tab || undefined }); return; }
+      if (++n < 60) setTimeout(go, 150);
+    };
+    setTimeout(go, 0);
+  }
 }
 
 /* ---------------- ONE LISTENER, armed once at load ----------------

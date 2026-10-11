@@ -79,7 +79,9 @@ const check = (name, pass, detail) => {
       const me = us.find(u => /admin@/.test(u.email || '')) || us[0] || {};
       c.owner = { id: me.id, name: me.name };
     }, id);
-    await page.click('[data-ws-tab="docs"]'); await page.waitForTimeout(600);
+    /* away and back so the Overview repaints off the fixture — via History
+       since 11 Oct 2026 (the Document tab is gone, owner) */
+    await page.click('[data-ws-tab="history"]'); await page.waitForTimeout(600);
     await page.click('[data-ws-tab="terms"]'); await page.waitForTimeout(1600);
 
     /* ---- 1 · the question, on the card that already asks everything else --- */

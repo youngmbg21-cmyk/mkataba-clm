@@ -170,9 +170,9 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     const sel = await page.$('#ins-panel');
     await page.focus('.ob-lt tbody tr.is-sel').catch(() => {});
     await page.keyboard.press('Enter'); await page.waitForTimeout(1500);
-    const landed = await page.evaluate(() => ({ view: state.view, tab: (document.querySelector('.room-tab.on, .room-tab[aria-selected="true"]') || {}).getAttribute ? document.querySelector('.room-tab.on, .room-tab[aria-selected="true"]').getAttribute('data-ws-tab') : null,
-      pane: !!document.querySelector('#ws-obligations-pane:not([hidden])') }));
-    ok('1h Enter opens the contract on its Obligations tab', !!sel && landed.view === 'workspace' && landed.pane, landed);
+    /* RE-POINTED 11 Oct 2026 (owner): Open contract lands on Home's Document, on the panel's Obligations tab */
+    const onHome = await page.evaluate(() => ({ view: state.view, tab: (document.querySelector('#ig-dock .pd-tab.on') || { getAttribute: () => null }).getAttribute('data-pd-tab') }));
+    ok('1h Enter opens the contract on Home\'s Document, its Obligations tab', !!sel && onHome.view === 'dashboard' && onHome.tab === 'oblig', onHome);
 
     /* ================= 2 · THE CONTRACT'S OBLIGATIONS TAB ================= */
     await page.evaluate(id => { openWorkspace(id); }, staged.c1); await page.waitForTimeout(1200);

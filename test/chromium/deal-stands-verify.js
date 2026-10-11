@@ -107,8 +107,10 @@ const DEAL = {
     /* THE LANDING IS UNTOUCHED, which is the whole reason the new tab went in
        SECOND. roomOpenOnTerms sends a NEW DRAFT to the Overview; an existing
        contract opens on the Document tab, as it always has. What a tab added
-       second must never do is change either of those. */
-    ok('1a an existing contract still opens on the Document tab, as before', tabs.on === 'docs', tabs.on);
+       second must never do is change either of those.
+       RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner) and the
+       room opens on the Overview; Where we are still never takes the landing. */
+    ok('1a an existing contract opens on the Overview, never on Where we are', tabs.on === 'terms', tabs.on);
     const landing = await page.evaluate(() => ({ first: (window.ROOM_TABS || [[]])[0][0],
       onTerms: typeof roomOpenOnTerms === 'function' }));
     ok('1a2 and the Overview still leads the row, which is where a new draft lands',

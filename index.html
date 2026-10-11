@@ -7111,8 +7111,11 @@
      and the ring silently did not (computed outline-style read `none` while
      the source read `2px solid`). A tag in the selector is what wins it on
      merit; `!important` would have won it by force and taught the next rule to
-     do the same. Fixed by SCOPE. */
-  input.is-fieldlit,span.is-fieldlit,.hati-field.is-fieldlit{
+     do the same. Fixed by SCOPE.
+     AND HOME'S PAPER (11 Oct 2026): its answers are frozen words, and an
+     unfilled one is `.field-frozen[title]` (0,2,0) in amber — which beat the
+     wash. `span.field-frozen.is-fieldlit` (0,2,1) wins it by scope. */
+  input.is-fieldlit,span.is-fieldlit,.hati-field.is-fieldlit,span.field-frozen.is-fieldlit{
     outline:2px solid var(--st-green-dot);outline-offset:1px;
     background:var(--st-green-bg);border-radius:var(--radius);}
   /* And the class alone still carries the wash, for the PANEL's box — which is
@@ -8669,7 +8672,8 @@
   .pd-kv dd{margin:2px 0 0;font-weight:var(--w-strong);min-width:0;overflow-wrap:anywhere}
   .pd-ob{padding:8px 0;border-bottom:1px solid var(--color-neutral-200)}
   .pd-ob-h{display:flex;align-items:flex-start;gap:8px}
-  .pd-ob-h b{font-weight:var(--w-strong);line-height:1.4}
+  /* the duty reads as plain words, not a heading (owner, 11 Oct 2026: "the obligations should not be in bold") */
+  .pd-ob-h .pd-ob-t{font-weight:400;line-height:1.4}
   .pd-ob>small{margin:3px 0 0}
   .pd-tag{flex:none;font-size:10.5px;font-weight:var(--w-strong);padding:1px 7px;border-radius:999px;margin-top:1px}
   .pd-tag.is-theirs{background:var(--color-accent-50);color:var(--accent-ink)} .pd-tag.is-ours{background:var(--st-amber-bg);color:var(--st-amber-fg)}
@@ -9685,6 +9689,7 @@
      The Calendar's own cover over the stage; a white band strip, figure cards
      and a quiet table; the zoom lives in Home's one panel (.bd-lens). */
   .hb-bd[hidden]{display:none}
+  .hb-bd > .bd-pick{flex:1;min-height:0;height:auto}
   .bd-strip{display:flex;align-items:center;gap:10px;padding:10px 18px;background:var(--color-surface);border-bottom:1px solid var(--color-divider);font-size:var(--t-meta);min-width:0}
   .bd-strip-ref{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .bd-strip .q{color:var(--color-neutral-600)} .bd-sp{flex:1}
   .bd-scroll{flex:1;min-height:0;overflow:auto;padding:16px 18px 24px}
@@ -9695,7 +9700,7 @@
   .bd-kpis>div{padding:12px 14px;border-right:1px solid var(--color-divider);display:grid;gap:2px;min-width:0} .bd-kpis>div:last-child{border-right:0}
   .bd-kpis span{font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .bd-kpis b{font-size:20px;font-weight:var(--w-title);font-variant-numeric:tabular-nums}
-  .bd-kpis b.is-need,.bd-counts .is-need b{color:var(--st-ruby-fg)} .bd-kpis b.is-look,.bd-counts .is-look b{color:var(--st-amber-fg)} .bd-kpis b.is-fine,.bd-counts .is-fine b{color:var(--st-green-fg)}
+  .bd-kpis b.is-need{color:var(--st-ruby-fg)} .bd-kpis b.is-look{color:var(--st-amber-fg)} .bd-kpis b.is-fine{color:var(--st-green-fg)}
   .bd-tscroll{overflow-x:auto}
   .bd-table{width:100%;border-collapse:collapse;font-size:var(--t-meta);min-width:620px}
   .bd-table th{text-align:left;font-weight:var(--w-label);font-size:var(--t-label);color:var(--color-neutral-600);padding:8px 14px;background:var(--color-bg);border-bottom:1px solid var(--color-divider)}
@@ -9708,7 +9713,6 @@
   .bd-empty-card h2{margin:0;font-size:var(--t-card);font-weight:var(--w-title)} .bd-empty-card p{margin:0;color:var(--color-neutral-600);font-size:var(--t-meta);line-height:1.5}
   .bd-empty-acts{display:flex;align-items:center;gap:12px;flex-wrap:wrap} .bd-cost{font-size:var(--t-label);color:var(--color-neutral-600)}
   .bd-empty-card p.bd-err{color:var(--st-ruby-fg)}
-  .bd-pick-q{height:var(--field-h);border:1px solid var(--color-divider);border-radius:var(--radius);padding:0 var(--field-pad-x);font:inherit;background:var(--color-surface);color:var(--color-text)}
   .bd-lens{display:flex;flex-direction:column;min-height:0;height:100%}
   .bd-lens-head{display:flex;align-items:center;gap:6px;padding:10px 12px;border-bottom:1px solid var(--color-divider);font-size:var(--t-meta)}
   .bd-lens-top{padding:10px 16px 8px;border-bottom:1px solid var(--color-divider);display:grid;gap:8px}
@@ -9723,8 +9727,6 @@
   .bd-lvls span.on{color:var(--color-accent-700);border-color:var(--color-accent-700)}
   .bd-crumbs{display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:var(--t-label)} .bd-crumbs i{font-style:normal;color:var(--color-neutral-600)}
   .bd-crumbs button{background:none;border:0;padding:0;color:var(--color-accent-700);font:inherit;font-weight:var(--w-label);cursor:pointer}
-  .bd-counts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--color-divider);border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden;margin-top:6px}
-  .bd-counts>div{background:var(--color-surface);padding:9px 11px;display:grid;gap:1px} .bd-counts b{font-size:20px;font-weight:var(--w-title)} .bd-counts span{font-size:var(--t-label);color:var(--color-neutral-600)}
   .bd-slist{display:grid} .bd-slist button{display:grid;grid-template-columns:10px 1fr auto;gap:10px;align-items:center;background:none;border:0;border-bottom:1px solid var(--color-divider);padding:8px 2px;text-align:left;font:inherit;color:inherit;cursor:pointer}
   .bd-dot{width:8px;height:8px;border-radius:50%} .bd-dot.need{background:var(--st-ruby-fg)} .bd-dot.look{background:var(--st-amber-fg)} .bd-dot.fine{background:var(--st-green-fg)}
   .bd-sn{font-size:var(--t-meta)} .bd-sf{font-size:var(--t-label);color:var(--color-neutral-600)}

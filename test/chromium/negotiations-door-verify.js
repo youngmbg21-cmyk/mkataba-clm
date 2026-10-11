@@ -127,11 +127,11 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       tabs.join(' | ') + ' | declared ' + declared);
     check('and Negotiate is not one of them', !tabs.some(t => /Negotiat/i.test(t)), tabs.join(' | '));
 
-    /* ---- 3. THE DOOR IN IS ON THE DOCUMENT TAB, AND IT DOES NOT HIDE ---- */
-    await page.evaluate(id => roomGoTab(getContract(id), 'docs'), cid);
+    /* ---- 3. THE DOOR IN IS ON THE OVERVIEW TAB, AND IT DOES NOT HIDE (re-pointed 11 Oct 2026: the Document tab is gone, owner) ---- */
+    await page.evaluate(id => roomGoTab(getContract(id), 'terms'), cid);
     await page.waitForTimeout(700);
     const fresh = await page.evaluate(seen => eval(seen)('#ws-to-nego'), SEEN);
-    check('the Document tab offers a door even with nothing filed yet',
+    check('the Overview tab offers a door even with nothing filed yet',
       !!fresh && fresh.on, fresh ? `${fresh.text} ${fresh.w}x${fresh.h}` : 'MISSING — a draft with no way in');
     check('and its word says the negotiation has not started',
       !!fresh && /Start negotiating/i.test(fresh.text), fresh && fresh.text);
@@ -149,7 +149,7 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         before: 'thirty (30) days', after: 'sixty (60) days', why: 'Our cycle runs monthly.' });
     }, cid);
     await page.waitForTimeout(1400);
-    await page.evaluate(id => roomGoTab(getContract(id), 'docs'), cid);
+    await page.evaluate(id => roomGoTab(getContract(id), 'terms'), cid);
     await page.waitForTimeout(600);
     const running = await page.evaluate(seen => eval(seen)('#ws-to-nego'), SEEN);
     check('once something is on the table the door says how much is waiting',
@@ -166,7 +166,7 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     await page.screenshot({ path: path.join(OUT, '03-key-terms-signal.png') });
 
     /* ---- 5. IN, AND THE PAGE HAS NO TABS ---- */
-    await page.evaluate(id => roomGoTab(getContract(id), 'docs'), cid);
+    await page.evaluate(id => roomGoTab(getContract(id), 'terms'), cid);
     await page.waitForTimeout(600);
     await page.click('#ws-to-nego');
     await pause(400); await passBlanks(page);
@@ -758,12 +758,12 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        report the view on the negotiate page. */
     await page.evaluate(() => { openWorkspace('MK-A1'); });
     await pause(1200);
-    await page.evaluate(() => { const b = document.querySelector('[data-ws-tab="docs"]'); if (b) b.click(); });
+    await page.evaluate(() => { const b = document.querySelector('[data-ws-tab="terms"]'); if (b) b.click(); });
     await pause(700);
     const sealed = await page.evaluate(() => {
       const b = document.getElementById('ws-to-nego');
       return b ? { disabled: b.disabled, title: b.title, on: !!b.offsetParent, label: b.textContent.trim() } : null; });
-    check('9a on a SIGNED contract the Document tab\'s door is drawn, greyed, with the reason on the hover',
+    check('9a on a SIGNED contract the Overview tab\'s door is drawn, greyed, with the reason on the hover',
       !!sealed && sealed.on && sealed.disabled && /executed|sealed/i.test(sealed.title),
       sealed ? `${sealed.label} · disabled ${sealed.disabled} · "${sealed.title}"` : 'no door');
     const doorBox = await page.$('#ws-to-nego');
@@ -791,7 +791,7 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       stale !== 'redline' && after9d === 'workspace', `view ${after9d}`);
     await page.evaluate(() => { location.hash = ''; openWorkspace('MK-A2'); });
     await pause(1200);
-    await page.evaluate(() => { const b = document.querySelector('[data-ws-tab="docs"]'); if (b) b.click(); });
+    await page.evaluate(() => { const b = document.querySelector('[data-ws-tab="terms"]'); if (b) b.click(); });
     await pause(700);
     const live9 = await page.evaluate(() => {
       const b = document.getElementById('ws-to-nego');

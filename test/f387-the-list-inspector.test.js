@@ -433,7 +433,8 @@ describe('f387 (5) the Approvals & signing page', () => {
     assert.match(c, /onOpen:pid=>apOpenSigning\(pid\)/);
     /* Re-pointed 9 Oct 2026 (SAP benchmark, owner-approved): "Open contract"
        is a link on the head's sub line — the same act, the same open. */
-    assert.match(c, /const open=\{ k:'open', inSub:true, label:i18t\('ins_open_contract'\), run:c=>selectContract\(c\.id\) \};/);
+    /* RE-POINTED 11 Oct 2026 (owner): Open contract lands on Home's Document, the room as the fallback */
+    assert.match(c, /const open=\{ k:'open', inSub:true, label:i18t\('ins_open_contract'\), run:c=>\{ if\(!\(typeof pdOpenOnHome==='function'&&pdOpenOnHome\(c\.id,'copilot'\)\)\) selectContract\(c\.id\); \} \};/);
   });
   test('5c [wall] the page still decides nothing', () => {
     const c = code(AP);

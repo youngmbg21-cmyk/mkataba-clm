@@ -106,10 +106,11 @@ const ok = (name, good, detail) => {
        tab (it still draws on the Explorer); the Thread's row list is what runs
        to the bottom of its card now, scrolling inside it, never past the
        screen, every row head big enough to press. */
-    await page.evaluate(() => { selectContract(state.contracts[0].id); });
-    await page.waitForTimeout(1000);
-    await page.evaluate(() => { roomGoTab(state.contracts[0], 'docs'); });
-    await page.waitForTimeout(1000);
+    /* RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner); the
+       Thread lives on Home's Document, Clauses tab (#pd-thread, TH_HOSTS.home),
+       so its card is measured there. */
+    await page.evaluate(() => { pdOpenOnHome(state.contracts[0].id, 'doc'); });
+    await page.waitForFunction(() => !!document.getElementById('pd-thread') && !!document.getElementById('ig-canvas'), null, { timeout: 15000 }).catch(() => {});
     const staged = await page.evaluate(() => {
       const c = state.contracts[0];
       let sheet = [];
@@ -124,10 +125,10 @@ const ok = (name, good, detail) => {
       return long.length;
     });
     ok('4-stage a contract with marked clauses', staged >= 3, staged + ' marked');
-    await page.waitForTimeout(600);
+    await page.waitForFunction(() => document.querySelectorAll('#pd-thread .doc-th-row').length > 0, null, { timeout: 8000 }).catch(() => {});
     await page.screenshot({ path: path.join(OUT, '04-thread.png') });
     const strand = await page.evaluate(() => {
-      const th = document.getElementById('doc-thread');
+      const th = document.getElementById('pd-thread');
       if (!th || th.hidden) return null;
       const box = th.querySelector('.doc-th-rows');
       const rows = [...th.querySelectorAll('.doc-th-row')];
@@ -150,9 +151,9 @@ const ok = (name, good, detail) => {
         p.style.fontWeight = 'var(--w-strong)'; document.body.appendChild(p);
         const w = getComputedStyle(p).fontWeight; p.remove(); return Number(w); })();
       /* the first toned row opened, so a mark with its reason is on screen */
-      const go = document.querySelector('#doc-thread .doc-th-row.is-ruby [data-th-go], #doc-thread .doc-th-row.is-amber [data-th-go]');
+      const go = document.querySelector('#pd-thread .doc-th-row.is-ruby [data-th-go], #pd-thread .doc-th-row.is-amber [data-th-go]');
       if (go) { go.click(); await new Promise(r => setTimeout(r, 1200)); }
-      const xr = document.querySelector('#doc-thread .doc-th-row.is-open .doc-xr-why b');
+      const xr = document.querySelector('#pd-thread .doc-th-row.is-open .doc-xr-why b');
       const xw = xr ? Number(getComputedStyle(xr).fontWeight) : null;
       openCheckPanel(state.contracts[0], 'brief');
       await new Promise(r => setTimeout(r, 700));
@@ -168,16 +169,18 @@ const ok = (name, good, detail) => {
       JSON.stringify(weights));
 
     /* ════════ 6. THE FOCUS CHIP STAYS ON ITS OWN PAGE ════════
-       A real press on the Document tab's own focus door, then a real press on
-       the rail, then back. */
-    await page.evaluate(() => { roomGoTab(state.contracts[0], 'docs'); });
-    await page.waitForTimeout(800);
-    /* The Document tab's own door is [data-ws-focus-door] (the control row);
-       [data-ws-focus] is the negotiate page's head square. */
-    const door = await page.$('[data-ws-focus-door]');
-    ok('6-stage the Document tab offers its focus door', !!door);
+       A real press on the room's focus door, then a real press on the rail,
+       then back. RE-POINTED 11 Oct 2026: the Document tab (and its control-row
+       door) is gone (owner); the room's ⋯ menu row (#ws-focus) is the door
+       that stays on every tab, so it is pressed on the Signing tab. */
+    await page.evaluate(() => { openWorkspace(state.contracts[0].id); });
+    await page.waitForFunction(() => !!document.querySelector('.room-tabrow'), null, { timeout: 10000 }).catch(() => {});
+    await page.evaluate(() => { roomGoTab(state.contracts[0], 'sign'); });
+    await page.click('#ws-more').catch(() => {});
+    const door = await page.waitForSelector('#ws-focus', { state: 'visible', timeout: 5000 }).catch(() => null);
+    ok('6-stage the room offers its focus door (the ⋯ menu row)', !!door);
     if (door) await door.click();
-    await page.waitForTimeout(500);
+    await page.waitForFunction(() => !!document.getElementById('ws-focus-out'), null, { timeout: 5000 }).catch(() => {});
     const on = await page.evaluate(() => ({
       chip: !!document.getElementById('ws-focus-out'),
       headHidden: (() => { const h = document.getElementById('ws-head'); return !!h && getComputedStyle(h).display === 'none'; })() }));

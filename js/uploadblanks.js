@@ -594,7 +594,7 @@ function uploadBlankSeq(c){
    It takes the contract because the ANSWERS come off the record — the span
    prints what has been typed, so the paper reads back what the panel holds. */
 function uploadBlanksClear(root){
-  const host = root || (typeof document !== 'undefined' ? document.getElementById('doc-canvas') : null);
+  const host = root || (typeof document !== 'undefined' ? ((typeof formPaperEl === 'function' && formPaperEl()) || document.getElementById('doc-canvas')) : null);
   if(!host || !host.querySelectorAll) return;
   for(const m of host.querySelectorAll('span.' + UP_MARK_CLASS)){
     const p = m.parentNode; if(!p) continue;
@@ -621,9 +621,12 @@ function uploadBlanksClear(root){
   }
 }
 
-function uploadBlanksPaint(c){
+/* `root` (11 Oct 2026, the Document tab gone): Home's Document paints its own
+   paper (#ig-canvas) and hands it in; without one the paper the fill form sits
+   beside is asked (formPaperEl), else the room's. */
+function uploadBlanksPaint(c, root){
   if(typeof document === 'undefined') return 0;
-  const canvas = document.getElementById('doc-canvas');
+  const canvas = root || (typeof formPaperEl === 'function' && formPaperEl()) || document.getElementById('doc-canvas');
   if(!canvas) return 0;
   uploadBlanksClear(canvas);
   if(!uploadBlanksLive(c)) return 0;
@@ -701,7 +704,7 @@ function uploadBlanksPaint(c){
    through a document is ONE question. */
 function uploadBlankPaint(key, value){
   if(typeof document === 'undefined' || !key) return 0;
-  const canvas = document.getElementById('doc-canvas');
+  const canvas = (typeof formPaperEl === 'function' && formPaperEl()) || document.getElementById('doc-canvas');
   if(!canvas) return 0;
   const q = (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(String(key)) : String(key).replace(/["\\]/g, '\\$&');
   const v = String(value == null ? '' : value).trim();

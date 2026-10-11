@@ -34,15 +34,15 @@ const check = (name, pass, detail) => {
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
     await page.waitForTimeout(2400);
-    await page.evaluate(() => { const c = state.contracts.find(x => x.status === 'Under Review') || state.contracts[0]; openWorkspace(c.id); });
-    await page.waitForTimeout(1000);
-    await page.evaluate(() => roomGoTab(getContract(state.activeId), 'docs'));
-    await page.waitForSelector('#doc-canvas', { timeout: 15000 }).catch(() => {});
-    await page.waitForTimeout(1200);
+    /* RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner); the
+       paper and its Thread are Home's Document face, Clauses tab. */
+    await page.evaluate(() => { const c = state.contracts.find(x => x.status === 'Under Review') || state.contracts[0]; pdOpenOnHome(c.id, 'doc'); });
+    await page.waitForFunction(() => !!document.getElementById('ig-canvas')
+      && document.querySelectorAll('#pd-thread .doc-th-row').length > 0, null, { timeout: 15000 }).catch(() => {});
     const got = await page.evaluate(() => ({
       gone: ['[data-doc-duty]', '#doc-read', '.doc-read-head', '[data-doc-read]'].map(s => [s, !document.querySelector(s)]),
-      thread: !!document.getElementById('doc-thread') && !document.getElementById('doc-thread').hidden
-        && document.querySelectorAll('#doc-thread .doc-th-row').length > 0,
+      thread: !!document.getElementById('pd-thread') && !document.getElementById('pd-thread').hidden
+        && document.querySelectorAll('#pd-thread .doc-th-row').length > 0,
       names: ['docViewSet', 'docViewMode', 'docReadSet', 'docReadFlags', 'renderChecksCard', 'renderFeed'].filter(n => typeof window[n] === 'function'),
     }));
     for (const [sel, gone] of got.gone) check('the old surface is gone from the page: ' + sel, gone, gone ? 'absent' : 'still drawn');

@@ -130,82 +130,70 @@ const SHEET_TOP = `(() => {
       return { id: c.id, me: me.name };
     });
 
-    await page.evaluate(id => openWorkspace(id), built.id);
-    await page.waitForSelector('#doc-canvas', { timeout: 15000 }).catch(() => {});
-    await page.waitForTimeout(1200);
-
-    /* ================= 1 — ONE SHEET, TWO TABS */
-    const docInk = await page.evaluate(INK_TOP);
-    const docSheet = await page.evaluate(SHEET_TOP);
-    const docBox = await seen(page, '#doc-canvas');
-    check('1a the Document tab draws the agreement', !!(docBox && docBox.on),
+    /* ================= 1 — THE WORKING COPY ON HOME, THE SIGNING COPY IN THE ROOM
+       RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner). The
+       working copy is read on Home's Document (#ig-canvas); the Signing tab is
+       the room's one paper. What 1a–1c2 PROVE stays: the agreement is drawn
+       where it is read, nothing grew above the signing copy, and this job's
+       marks never move the working copy's first line. */
+    const inkTopOf = id => page.evaluate(INK_TOP.replace("getElementById('doc-canvas')", `getElementById('${id}')`));
+    await page.evaluate(id => pdOpenOnHome(id, 'doc'), built.id);
+    await page.waitForFunction(() => { const b = document.getElementById('ig-canvas'); return !!b && b.getBoundingClientRect().height > 50 && /thirty \(30\) days/.test(b.textContent); }, null, { timeout: 15000 }).catch(() => {});
+    const docBox = await seen(page, '#ig-canvas');
+    check('1a Home\'s Document draws the agreement', !!(docBox && docBox.on),
       docBox ? `${docBox.w}x${docBox.h}` : 'absent');
 
+    /* ---- 1c2. THE WORKING COPY'S OWN NUMBER IS UNMOVED by this job ----
+       ADDED 30 Aug 2026 against the Document tab; measured now on Home's
+       Document, the working copy's one home: the same document without this
+       job's marks and with one placed, which is the state before and after. */
+    const docInkAgain = await inkTopOf('ig-canvas');
+    const inkWithSpot = await (async () => {
+      await page.evaluate(id => {
+        const c = getContract(id);
+        window.__keepSpots = c.signSpots; c.signSpots = [{ id: 'sp_probe', clauseId: 'cl_spa00003', kind: 'signature', signer: 'r1' }];
+        if (typeof igPaperRefresh === 'function') igPaperRefresh(); else pdOpenOnHome(c.id, 'doc');
+      }, built.id);
+      await page.waitForFunction(() => !!document.querySelector('#ig-canvas'), null, { timeout: 5000 }).catch(() => {});
+      const v = await inkTopOf('ig-canvas');
+      await page.evaluate(id => {
+        const c = getContract(id);
+        c.signSpots = window.__keepSpots; delete window.__keepSpots;
+        if (typeof igPaperRefresh === 'function') igPaperRefresh(); else pdOpenOnHome(c.id, 'doc');
+      }, built.id);
+      return v;
+    })();
+    check('1c2 THE WORKING COPY’S OWN NUMBER IS UNMOVED by this job (Home\'s Document)',
+      docInkAgain != null && inkWithSpot != null && Math.abs(docInkAgain - inkWithSpot) <= 1,
+      `without the marks ${docInkAgain} · with one ${inkWithSpot}`);
+
+    await page.evaluate(id => openWorkspace(id), built.id);
+    await page.waitForFunction(() => !!document.querySelector('.room-tabrow'), null, { timeout: 15000 }).catch(() => {});
     await page.evaluate(() => roomGoTab(getContract(state.activeId), 'sign'));
-    await page.waitForTimeout(900);
+    await page.waitForFunction(() => { const b = document.getElementById('doc-canvas'); return !!b && b.getBoundingClientRect().height > 50 && !!b.closest('.pg-sheet'); }, null, { timeout: 15000 }).catch(() => {});
     const signInk = await page.evaluate(INK_TOP);
     const signSheet = await page.evaluate(SHEET_TOP);
     const signBox = await seen(page, '#doc-canvas');
-    check('1b the Signing tab draws THE SAME sheet', !!(signBox && signBox.on),
+    check('1b the Signing tab draws the signing copy', !!(signBox && signBox.on),
       signBox ? `${signBox.w}x${signBox.h}` : 'absent');
-    /* THE WORK ORDER'S OWN ACCEPTANCE 5 was: identical on both tabs, and the
-       Document tab's own number unchanged. Both are reported either way, so a
-       failure names the numbers rather than saying "not equal".
-
-       ---- 1c REVERSED IN PLACE 25 Sep 2026 (Young: "when you go to the
-       signing page it should look exactly like how it was designed") ----
-       Until then both tabs drew ONE sheet, so the first line sat at the same
-       pixel on both. The Signing tab now draws the SIGNING COPY — a real A4
-       page carrying the page's own top margin, as it prints — so its first
-       line sits lower by exactly the difference between the two pages' own
-       top margins, AND BY NOTHING ELSE. That second half is what 1c still
-       protects, and it is the half refusal 3 is about: no CHROME grew. Both
-       copies start at the same pixel, and each first line sits its own
-       page's margin below it. */
+    /* 1c — REFUSAL 3, NO CHROME GREW ABOVE THE SIGNING COPY. Until 11 Oct 2026
+       this compared the signing sheet's top with the Document tab's; that tab
+       is gone, so it is asked of the room itself: between the top of the
+       paper's scroller (inside its padding) and the sheet stands the zoom
+       row's band (36px, 8633d72) and nothing else; and the first line sits
+       inside the page, below the page's own margin. */
+    const above = await page.evaluate(() => {
+      const sc = document.getElementById('doc-scroll');
+      const cv = document.getElementById('doc-canvas'); const sh = cv && cv.closest('.pg-sheet');
+      if (!sc || !sh) return null;
+      sc.scrollTop = 0;
+      const st = sc.getBoundingClientRect().top + (parseFloat(getComputedStyle(sc).paddingTop) || 0);
+      return { gap: Math.round(sh.getBoundingClientRect().top - st) };
+    });
     const inkIn = (ink, sh) => (ink != null && sh) ? ink - sh.top - sh.pad : null;
-    /* ---- RE-POINTED 11 Oct 2026 ----
-       ONE PAPER EVERYWHERE (owner, 8 Oct 2026) gave the Document tab the Home
-       paper — its subtitle and rule above the sheet, its own padding — and
-       left the Signing tab its own ground and its A4 copy. The two sheets are
-       deliberately two pages now, so "the same pixel" is gone; refusal 3 is
-       what stays: NO CHROME GREW above the signing copy (its sheet starts no
-       lower than the Document's), and each first line sits inside its own
-       page, below that page's own margin. */
-    check('1c no chrome grew above the signing copy, and each first line sits inside its own page’s margin',
-      docSheet && signSheet && signSheet.top <= docSheet.top + 1
-      && inkIn(docInk, docSheet) != null && inkIn(docInk, docSheet) >= 0 && inkIn(signInk, signSheet) >= 0,
-      `document ${docInk} (sheet ${docSheet && docSheet.top} + ${docSheet && docSheet.pad})`
-      + ` · signing ${signInk} (sheet ${signSheet && signSheet.top} + ${signSheet && signSheet.pad})`);
-
-    /* ---- 1c2. AND THE DOCUMENT TAB'S OWN NUMBER IS UNMOVED ----
-       ADDED 30 Aug 2026. 1c reads both tabs at HEAD and asserts they agree —
-       so a change that pushed the wording down on BOTH tabs by the same amount
-       passed it cleanly. The comment above names two halves and 1c implements
-       one. The second half is measured the way upload-structure-verify
-       measures its own: on ONE document, with this job's marks present and
-       with them taken away, which is exactly the state before and after. */
-    const inkNoSpots = await (async () => {
-      await page.evaluate(() => {
-        const c = getContract(state.activeId);
-        window.__keepSpots = c.signSpots; c.signSpots = [];
-        roomGoTab(c, 'docs');
-      });
-      await page.waitForTimeout(500);
-      const v = await page.evaluate(INK_TOP);
-      await page.evaluate(() => {
-        const c = getContract(state.activeId);
-        c.signSpots = window.__keepSpots; delete window.__keepSpots;
-        roomGoTab(c, 'docs');
-      });
-      await page.waitForTimeout(500);
-      return v;
-    })();
-    const docInkAgain = await page.evaluate(INK_TOP);
-    check('1c2 THE DOCUMENT TAB’S OWN NUMBER IS UNMOVED by this job',
-      docInkAgain != null && inkNoSpots != null && Math.abs(docInkAgain - inkNoSpots) <= 1,
-      `with the marks ${docInkAgain} · without them ${inkNoSpots}`);
-    await page.evaluate(() => roomGoTab(getContract(state.activeId), 'sign'));
-    await page.waitForTimeout(600);
+    check('1c no chrome grew above the signing copy, and its first line sits inside its own page’s margin',
+      above && signSheet && above.gap <= 36 + 1 && inkIn(signInk, signSheet) != null && inkIn(signInk, signSheet) >= 0,
+      `${JSON.stringify(above)} · signing ink ${signInk} (sheet ${signSheet && signSheet.top} + ${signSheet && signSheet.pad})`);
 
     /* THE COLUMN SWAPS AND THE PAPER DOES NOT. */
     const cols = await page.evaluate(() => {

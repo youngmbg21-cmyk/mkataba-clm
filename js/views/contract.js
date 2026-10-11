@@ -2849,7 +2849,11 @@ async function rereadUploadText(c, btn){
     /* SAID, AND SAID HONESTLY (9 Oct 2026 review): a bare toast(msg) prints
        nothing, and where the redlined wording was kept the reader is told so. */
     toast(i18t(keptWording?'ct_reread_done_kept':'ct_reread_done', { n: text.length.toLocaleString() }), 'ok');
-    renderWorkspace();
+    /* PRESSED ON HOME'S PAPER (11 Oct 2026: the room's Document tab is gone and
+       the file strip lives on Home's Document face): Home's paper and its
+       Clauses list are drawn again; renderWorkspace would put the room over Home. */
+    if(homePaperShows(c)){ try{ if(window.igPaperRefresh) igPaperRefresh(); docThreadPaint(c); }catch(_){ } }
+    else renderWorkspace();
   }catch(e){
     toast(i18t('ct_could_not_reread')+e.message,'err');
     if(btn){ btn.disabled=false; btn.innerHTML=restore; }
@@ -9267,6 +9271,11 @@ function riskViewOpen(c){
      paper to it — see docThreadPaint — with the drawer open over Form & links
      (docThreadShowsClauses reads the want). */
   _docThreadWant='risk';
+  /* NO DOCUMENT TAB (owner, 11 Oct 2026): the Thread lives on Home's
+     Document, its Clauses tab — so this door opens THAT tab (roomGoTab's
+     'docs' lands on Copilot, where the Thread is not drawn and the want would
+     be left waiting for some later paint). */
+  if(!(window.innerWidth&&window.innerWidth<768)&&typeof pdOpenOnHome==='function'&&pdOpenOnHome(c.id,'doc')) return;
   roomGoTab(c,'docs');
   if(_wsTab==='docs') docThreadPaint(c);
 }
@@ -12908,8 +12917,9 @@ function xrSentences(t){
    page the reader is looking at, so a line and the sentence the press lands
    on are the same words. */
 function xrClauseBlocks(rows, i){
-  const canvas = (typeof document !== 'undefined') ? document.getElementById('doc-canvas') : null;
   const x = rows && rows[i];
+  /* the canvas the row is painted on — the room's or Home's (TH_HOSTS) */
+  const canvas = (x && x.el && x.el.closest) ? x.el.closest('#ig-canvas, #doc-canvas') : null;
   if(!canvas || !x || !x.el) return [];
   const FOLLOW = Node.DOCUMENT_POSITION_FOLLOWING;
   const furniture = Array.from(canvas.querySelectorAll(DOC_READ_FURNITURE));
@@ -13057,7 +13067,7 @@ function docXrayWho(c, rows, i){
     if(m) cite = m[1];
     xrSentences(t).forEach(s => sentences.push({ text: s, cite }));
   });
-  const canvas = document.getElementById('doc-canvas');
+  const canvas = (x && x.el && x.el.closest && x.el.closest('#ig-canvas, #doc-canvas')) || document.getElementById('doc-canvas');
   const names = xrPartyNames(c, canvas ? String(canvas.textContent || '').replace(/\s+/g, ' ') : '');
   const placed = xrPlaceObligations(c, sentences);
   const lines = [];
@@ -14017,7 +14027,9 @@ function docThreadPaint(c){
   const sheet=docReadSheet(c,thEl('canvas'))||[];
   _docThreadRows=rows.map(x=>x.el);
   if(!rows.length){
-    _docThreadWant='';
+    /* on Home the list can paint before the paper has its wording: a risk
+       door's want waits for the paint that has rows (riskViewOpen) */
+    { const cv=thEl('canvas'); if(!home||(cv&&cv.textContent.trim())) _docThreadWant=''; }
     card.innerHTML=`<div class="doc-th-top">${docThreadTopHtml(c,rows,has)}</div><div class="doc-xr-none">${esc(i18t(flat?'ct_struct_flat':'xr_no_clauses'))}</div>`;
     card.removeAttribute('data-th-sig'); _docThreadCache=null; return;
   }
@@ -14140,6 +14152,20 @@ function docThreadHomeMarks(c){
 /* The column's one painter, kept under the name every caller outside this
    file already presses (the negotiate page's type stepper, the clause editor). */
 function docReadPaint(c){ docThreadPaint(c); }
+/* THE FILE STRIP'S TWO BUTTONS ON HOME'S PAPER (11 Oct 2026: the room's
+   Document tab is gone, so Home's Document face is where the strip is read).
+   wireDocCanvas arms them on the room's sheet; Home's sheet is painted by
+   intelligence.js and never passes here, so they are delegated once, at load,
+   and find their contract at press time. */
+function homePaperShows(c){
+  try{ return state.view==='dashboard'&&!!document.getElementById('ig-canvas')&&typeof pdContract==='function'&&!!pdContract()&&String(pdContract().id)===String(c&&c.id); }catch(_){ return false; }
+}
+if(typeof document!=='undefined') document.addEventListener('click',e=>{
+  const b=e.target&&e.target.closest&&e.target.closest('#ig-canvas [data-reread], #ig-canvas [data-expand-doc]'); if(!b) return;
+  const c=(typeof pdContract==='function')?pdContract():null; if(!c) return;
+  if(b.hasAttribute('data-reread')) rereadUploadText(c, b);
+  else openDocReader(docFileUrl(c), c.upload?.fileName||c.name, c.upload?.mime);
+});
 function wireDocCanvas(c){
   document.querySelector('[data-expand-doc]')?.addEventListener('click',()=>openDocReader(docFileUrl(c), c.upload?.fileName||c.name, c.upload?.mime));
   document.querySelector('[data-reread]')?.addEventListener('click',e=>rereadUploadText(c, e.currentTarget));
@@ -14236,6 +14262,28 @@ function docAnswersWire(c){
     const key = box.getAttribute('data-field') || box.getAttribute('data-sync') || box.getAttribute('data-field-key') || '';
     const peer = (key && typeof contractFieldPeer === 'function') ? contractFieldPeer(key, 'panel') : null;
     if(peer){ try{ peer.scrollIntoView({ block: 'center' }); peer.focus(); }catch(_){ } }
+  });
+}
+/* AND ON HOME'S DOCUMENT (11 Oct 2026, the Document tab gone): the paper there
+   is the read-only copy, its answers frozen words that still say which fact
+   they are (readOnlyDocHtml). A press on one goes to its box in the Overview
+   tab's form — the tab is turned to if another is up, a filled box's fold is
+   opened. Delegated once, on the document. */
+if(typeof document !== 'undefined' && !document._homeAnswerWired){
+  document._homeAnswerWired = true;
+  document.addEventListener('click', e => {
+    const w = e.target && e.target.closest ? e.target.closest('#ig-canvas [data-field], #ig-canvas [data-sync]') : null;
+    if(!w) return;
+    const key = w.getAttribute('data-field') || w.getAttribute('data-sync');
+    if(!key || typeof contractFieldPeer !== 'function') return;
+    let peer = contractFieldPeer(key, 'panel');
+    if(!peer && window.pdOnPaper && pdOnPaper() && window.pdSetTab && window.renderIntelDock){
+      pdSetTab('facts'); try{ renderIntelDock(); }catch(_){ }
+      peer = contractFieldPeer(key, 'panel');
+    }
+    if(!peer) return;
+    const fold = peer.closest('details'); if(fold && !fold.open) fold.open = true;
+    try{ peer.scrollIntoView({ block: 'center' }); peer.focus(); }catch(_){ }
   });
 }
 /* Bound once per canvas element. `docFillable` is the product's own reading of
@@ -16004,7 +16052,10 @@ function renderSignSide(c){
      focuses is written by the render roomGoTab asks for. */
   host.querySelectorAll('[data-sc-blanks]').forEach(b=>b.addEventListener('click',()=>{
     if(b.getAttribute('data-sc-blanks')==='nego'){ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); return; }
-    if(window.roomGoTab) roomGoTab(c,'docs');
+    /* the form is Home's Document, Overview tab, since the room's Document
+       tab went (11 Oct 2026); the phone keeps its own Document tab */
+    if(window.pdOpenOnHome && !(window.innerWidth && window.innerWidth < 768)) pdOpenOnHome(c.id,'facts');
+    else if(window.roomGoTab) roomGoTab(c,'docs');
     const first=(window.contractBoxesOpen?(contractBoxesOpen(c)[0]||{}):{}).key||'';
     setTimeout(()=>{ try{ if(window.contractFieldFocus) contractFieldFocus(c, first); }catch(_){ } },0);
   }));

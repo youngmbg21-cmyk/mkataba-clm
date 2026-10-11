@@ -103,10 +103,23 @@ const HELPERS = `(() => {
     const rest = () => page.mouse.move(2, 890);
 
     /* ════════ 3. ONE LIGHT GREY EDGE ════════ */
-    await page.evaluate(i => { openWorkspace(i); setTimeout(() => { try { roomGoTab(getContract(i), 'docs'); } catch (e) {} }, 50); }, id);
-    await page.waitForTimeout(1600); await load(); await rest();
-    await page.screenshot({ path: path.join(OUT, '01-document-tab.png') });
-    const row = await page.evaluate(() => {
+    /* RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner), and
+       with it the row's Focus door (retired: the Document tab is gone). What
+       stays is measured where it lives now: Open Negotiate on the Overview
+       tab's row, the zoom stepper on Home's Document paper, and the Thread's
+       step squares on Home's Document, Clauses tab. */
+    await page.evaluate(i => { openWorkspace(i); setTimeout(() => { try { roomGoTab(getContract(i), 'terms'); } catch (e) {} }, 50); }, id);
+    await page.waitForFunction(() => !!document.querySelector('#ws-to-nego'), null, { timeout: 10000 }).catch(() => {});
+    await load(); await rest();
+    await page.screenshot({ path: path.join(OUT, '01-overview-tab.png') });
+    const negoEdge = await page.evaluate(() => { const b = window.__b; return b.edge([...document.querySelectorAll('#ws-to-nego')].find(b.vis) || null); });
+    await page.evaluate(i => pdOpenOnHome(i, 'doc'), id);
+    await page.waitForFunction(() => !!document.querySelector('#ig-paper .rl-type-step') && document.querySelectorAll('#pd-thread .doc-th-row').length > 0, null, { timeout: 15000 }).catch(() => {});
+    await page.evaluate(() => { if (!document.querySelector('#pd-thread .doc-th-row.is-open')) { const g = document.querySelector('#pd-thread [data-th-go]'); if (g) g.click(); } });
+    await page.waitForFunction(() => !!document.querySelector('#pd-thread .doc-th-row.is-open .doc-th-step'), null, { timeout: 5000 }).catch(() => {});
+    await load(); await rest();
+    await page.screenshot({ path: path.join(OUT, '01-home-document.png') });
+    const row = await page.evaluate(negoEdge => {
       const b = window.__b, want = b.tok('--btn-edge');
       const pick = sel => [...document.querySelectorAll(sel)].find(b.vis) || null;
       /* RE-POINTED 4 Oct 2026: the Export menu is off this row (the owner:
@@ -116,14 +129,14 @@ const HELPERS = `(() => {
          claim on the three that remain; the seam and the lit-half claims
          went with the switch (the negotiate page's seat switch keeps them in
          3e), and the Thread's own step squares take the edge too. */
-      const exp = pick('#ws-tabrow-end .ws-focus-door'), nego = pick('#ws-to-nego'), step = pick('.rl-type-step');
-      const thStep = pick('#doc-thread .doc-th-row.is-open .doc-th-step');
+      const step = pick('#ig-paper .rl-type-step');
+      const thStep = pick('#pd-thread .doc-th-row.is-open .doc-th-step');
       return { want, light: b.tok('--color-neutral-200'), fill: b.bg('--accent-fill'),
-        exp: b.edge(exp), nego: b.edge(nego), step: b.edge(step), thStep: b.edge(thStep), switchGone: !document.querySelector('[data-doc-read]') };
-    });
-    ok('3a the row the owner photographed paints ONE edge — Focus, Open Negotiate and the stepper; the switch is gone',
-      !!(row.exp && row.nego && row.step) && row.switchGone && [row.exp, row.nego, row.step].every(c => c === row.want),
-      `Focus ${row.exp} · Open Negotiate ${row.nego} · stepper ${row.step} · token ${row.want}${row.switchGone ? '' : ' · a switch is still drawn'}`);
+        nego: negoEdge, step: b.edge(step), thStep: b.edge(thStep), switchGone: !document.querySelector('[data-doc-read]') };
+    }, negoEdge);
+    ok('3a the controls the owner photographed paint ONE edge — Open Negotiate and the stepper; the switch is gone',
+      !!(row.nego && row.step) && row.switchGone && [row.nego, row.step].every(c => c === row.want),
+      `Open Negotiate ${row.nego} · stepper ${row.step} · token ${row.want}${row.switchGone ? '' : ' · a switch is still drawn'}`);
     /* RE-POINTED 9 Oct 2026 (Ink Wash: light mode has no grey; the light edge
        is the ramp's divider step, black + the theme colour). Same claim, as a
        RELATION: the edge is the LIGHT step, not a darker one. */
@@ -235,8 +248,10 @@ const HELPERS = `(() => {
     await wrapAt('contracts', () => { try { regSetScope(null); } catch (e) {} setView('register'); });
     await wrapAt('negotiations', () => openNegotiations({ list: true }));
     await wrapAt('approvals', () => setView('approvals'));
-    for (const tab of ['terms', 'docs', 'sign'])
+    /* the room's tabs since 11 Oct 2026 (no Document tab), and Home's Document where its paper went */
+    for (const tab of ['terms', 'sign'])
       await wrapAt('room-' + tab, i => { openWorkspace(i[0]); setTimeout(() => { try { roomGoTab(getContract(i[0]), i[1]); } catch (e) {} }, 50); }, [id, tab]);
+    await wrapAt('home-document', i => pdOpenOnHome(i, 'doc'), id);
     await wrapAt('negotiate', i => openRedlineWorkbench(i, { blanksAsked: true }), id);
     ok('1b at a 1024 window no labelled button on the working pages takes two lines', wrapped.length === 0,
       wrapped.length ? wrapped.slice(0, 6).join(' | ') : 'none');

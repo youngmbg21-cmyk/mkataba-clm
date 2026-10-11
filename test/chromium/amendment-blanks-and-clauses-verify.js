@@ -65,12 +65,15 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
       return r.contract ? r.contract.id : null;
     });
     check('0  an amendment was made', !!aid, aid);
-    await page.evaluate(id => { openWorkspace(id); roomGoTab(getContract(id), 'docs'); }, aid);
-    await waitFor(page, () => !!document.querySelector('#doc-canvas'));
-    await page.waitForTimeout(800);
+    /* RE-POINTED 11 Oct 2026: the contract room's Document tab is gone (owner);
+       the fill panel is Home's Document, Overview tab (#pd-fill), beside Home's
+       paper (#ig-canvas). */
+    await waitFor(page, id => { if (!(window.intel && intel.paper && intel.paper.id === id && document.getElementById('pd-fill')))
+      pdOpenOnHome(id, 'facts');
+      return !!(intel.paper && intel.paper.id === id && document.querySelector('#ig-canvas') && document.getElementById('pd-fill')); }, aid, 10000);
 
     const p1 = await waitFor(page, () => {
-      const host = document.getElementById('tplform-section');
+      const host = document.getElementById('pd-fill');
       const boxes = host ? Array.from(host.querySelectorAll('[data-blankf]')) : [];
       return boxes.length ? { n: boxes.length, keys: boxes.map(b => b.getAttribute('data-blankf')),
         types: boxes.map(b => b.type), labels: Array.from(host.querySelectorAll('label > span:first-child')).map(s => s.textContent.trim()) } : null;
@@ -78,35 +81,37 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
     check('1  the fill panel draws with the ruled lines as boxes', p1 && p1.n >= 1, JSON.stringify(p1));
     check('2  the date box is a date box named by the paper ("Made on")',
       p1 && p1.types[0] === 'date' && /^Made on$/.test(p1.labels[0] || ''), p1 && (p1.types[0] + ' / ' + p1.labels[0]));
-    const marked = await page.evaluate(() => document.querySelectorAll('#doc-canvas span.hati-field[data-field-key^="own_"]').length);
+    const marked = await page.evaluate(() => document.querySelectorAll('#ig-canvas span.hati-field[data-field-key^="own_"]').length);
     check('2b the paper marks the same blanks', p1 && marked === p1.n, `${marked} marked`);
 
     /* Fill the date through the panel's own box. */
     await page.evaluate(() => {
-      const box = document.querySelector('#tplform-section [data-blankf="own_1"]');
+      const box = document.querySelector('#pd-fill [data-blankf="own_1"]');
       if (!box) return;
       box.value = '2026-10-08'; box.dispatchEvent(new Event('change', { bubbles: true }));
     });
     const p3 = await page.evaluate(id => {
       const c = getContract(id);
-      const paper = document.querySelector('#doc-canvas span[data-field-key="own_1"]');
+      const paper = document.querySelector('#ig-canvas span[data-field-key="own_1"]');
       return { stored: /made on <span class="hati-field-done" data-field-key="own_1">8 October 2026<\/span>/.test(c.redlineText),
         paper: paper ? paper.textContent : null, cls: paper ? paper.className : null,
-        box: (document.querySelector('#tplform-section [data-blankf="own_1"]') || {}).value };
+        box: (document.querySelector('#pd-fill [data-blankf="own_1"]') || {}).value };
     }, aid);
     check('3  the date is written INTO the wording and shown on the paper',
       p3.stored && p3.paper === '8 October 2026' && p3.cls === 'hati-field-done', JSON.stringify(p3));
     /* It survives a repaint of the sheet (the stored wording is the truth). */
-    await page.evaluate(id => docRepaintSheet(getContract(id)), aid);
+    await page.evaluate(() => igPaperRefresh());
     const p3b = await page.evaluate(() => {
-      const paper = document.querySelector('#doc-canvas span[data-field-key="own_1"]');
-      const box = document.querySelector('#tplform-section [data-blankf="own_1"]');
+      const paper = document.querySelector('#ig-canvas span[data-field-key="own_1"]');
+      const box = document.querySelector('#pd-fill [data-blankf="own_1"]');
       return { paper: paper ? paper.textContent : null, box: box ? box.value : null };
     });
     check('3b after a repaint the paper and the box still hold it', p3b.paper === '8 October 2026' && p3b.box === '2026-10-08', JSON.stringify(p3b));
 
     /* The clause list beside the paper. */
-    await page.evaluate(id => { const c = getContract(id); if (window.docThreadDrawerSet) docThreadDrawerSet(c, true); }, aid);
+    /* the clause list is Home's Clauses tab now (11 Oct 2026) */
+    await page.evaluate(id => pdOpenOnHome(id, 'doc'), aid);
+    await waitFor(page, () => !!document.querySelector('#pd-thread, #doc-thread'));
     const p4 = await waitFor(page, id => {
       const rows = docXrayRows(getContract(id)).map(x => docXrayLabel(x));
       return rows.length ? rows : null;

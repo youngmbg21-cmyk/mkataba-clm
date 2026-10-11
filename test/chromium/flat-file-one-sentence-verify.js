@@ -51,23 +51,23 @@ const ok = (n, g, d) => { g ? pass++ : fail++; console.log(`${g ? 'PASS' : 'FAIL
       && (x.upload || {}).fileName === 'Plain_Letter_Agreement.docx'), null, 15000)
       && await page.evaluate(() => state.contracts.find(x => (x.upload || {}).fileName === 'Plain_Letter_Agreement.docx').id);
     ok('1 the flat Word file is filed', !!id, id);
-    await page.evaluate(i => openWorkspace(i), id);
-    await page.waitForTimeout(800);
-    await page.evaluate(() => { const b = document.querySelector('[data-ws-tab="docs"]'); if (b) b.click(); });
-    await until(() => !!document.querySelector('#doc-canvas'), null, 15000);
+    /* 11 Oct 2026: the room's Document tab is gone (owner); the paper and the
+       Clauses thread live on Home's Document face, Clauses tab. */
+    await page.evaluate(i => pdOpenOnHome(i, 'doc'), id);
+    await until(() => !!document.querySelector('#ig-canvas') && !!document.querySelector('#pd-thread'), null, 15000);
     await until(() => { const s = document.querySelector('[data-up-struct]'); return !!s && /No headings/.test(s.textContent); }, null, 8000);
     const read = await page.evaluate(() => {
       const s = document.querySelector('[data-up-struct]');
-      const none = document.querySelector('#doc-thread .doc-xr-none');
-      const door = document.querySelector('#ws-th-door');
+      const none = document.querySelector('#pd-thread .doc-xr-none');
       return { strip: s ? s.textContent.trim() : null, thread: none ? none.textContent.trim() : null,
-        threadShown: !!(none && none.getClientRects().length), door: door ? door.textContent.replace(/\s+/g, ' ').trim() : null };
+        threadShown: !!(none && none.getClientRects().length), onHome: !!(s && s.closest('#ig-paper')) };
     });
     ok('2 the strip says the one sentence', /No headings or numbering found/.test(read.strip || ''), read.strip);
     ok('3 and never "Structure read from the wording" over a file nothing reads as clauses in',
       !/Structure read from the wording/.test(read.strip || ''), read.strip);
     ok('4 the thread, where it speaks, says the same sentence',
       read.thread == null || read.thread === read.strip, JSON.stringify(read));
+    ok('5 the strip is on Home\'s Document paper, where the reader looks', read.onHome, JSON.stringify(read));
     await page.screenshot({ path: path.join(OUT, '1-flat-file.png') });
   } catch (e) { ok('the run finished', false, String(e && e.stack || e)); }
   ok('no page error', errors.length === 0, errors.join(' | ') || 'none');

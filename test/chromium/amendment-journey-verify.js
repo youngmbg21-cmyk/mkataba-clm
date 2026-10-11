@@ -231,15 +231,21 @@ const VISIBLE = `(el) => {
     await page.evaluate(v => { const i = document.getElementById('am-expiry'); i.value = v;
       i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new Event('change', { bubbles: true })); }, '2029-03-31');
     await page.click('#am-go');
-    await page.waitForTimeout(1800);
+    /* RE-POINTED 11 Oct 2026: the contract room's Document tab is gone (owner);
+       a created amendment lands where roomGoTab('docs') sends every old door —
+       Home's Document, with the Copilot tab open. Asked for, bounded. */
+    await page.waitForFunction(() => !!(state.view === 'dashboard' && window.intel && intel.paper
+      && getContract(intel.paper.id) && getContract(intel.paper.id).parentId && document.querySelector('#ig-canvas')),
+      null, { timeout: 10000 }).catch(() => {});
 
     const landed = await page.evaluate(`(() => {
       const vis = ${VISIBLE};
-      const c = getContract(state.activeId);
-      const paper = document.querySelector('#view-workspace .rl-paper-title, .rl-paper-title');
-      const sub = document.querySelector('.rl-paper-sub');
-      const doc = document.querySelector('#doc-scroll, .doc-surface');
-      return { tab: roomCurrentTab(), id: c.id, parentId: c.parentId, rel: c.relation,
+      const c = getContract(intel.paper ? intel.paper.id : state.activeId);
+      const paper = document.querySelector('#ig-paper .rl-paper-title');
+      const sub = document.querySelector('#ig-paper .rl-paper-sub');
+      const doc = document.querySelector('#ig-canvas');
+      const home = state.view === 'dashboard' && !!intel.paper && intel.paper.id === c.id;
+      return { tab: home ? 'home:' + pdTab() : roomCurrentTab(), id: c.id, parentId: c.parentId, rel: c.relation,
         status: c.status, expiry: c.expiry, note: c.relationNote,
         cp: c.counterparty, party: c.party || null,
         title: paper ? paper.textContent.trim() : null,
@@ -247,8 +253,8 @@ const VISIBLE = `(el) => {
         body: doc ? doc.textContent : '',
         paperVis: vis(paper) };
     })()`);
-    check('it lands on the Document tab, not on Key terms',
-      landed.tab === 'docs', landed.tab);
+    check('it lands on Home\'s Document, on Copilot, not on Key terms',
+      landed.tab === 'home:copilot', landed.tab);
     check('the draft is already filed against its parent',
       landed.parentId === cid && landed.rel === 'amendment' && landed.status === 'Draft',
       `${landed.id} → ${landed.parentId} (${landed.rel}, ${landed.status})`);
@@ -375,25 +381,35 @@ const VISIBLE = `(el) => {
        read · Run" line where each result would show, pressing the same
        data-room-check door the negotiate head's icons press (wireRoomChecks,
        one act) — and the panel the card opened is still openCheckPanel's. */
-    await page.evaluate(id => roomGoTab(getContract(id), 'docs'), cid);
-    await page.waitForTimeout(1200);
-    const rows = await page.evaluate(`(() => {
-      const vis = ${VISIBLE};
-      const open = document.querySelector('#doc-thread .doc-th-row.is-open');
-      const bs = open ? [...open.querySelectorAll('.doc-th-unrun [data-room-check]')] : [];
-      return { kinds: bs.map(b => b.getAttribute('data-room-check')),
-        firstVis: vis(bs[0]),
-        obLine: ((bs.find(b => b.getAttribute('data-room-check') === 'oblig') || {}).closest ? bs.find(b => b.getAttribute('data-room-check') === 'oblig').closest('.doc-th-unrun').textContent : ''),
-        card: !!document.getElementById('checks-card') };
-    })()`);
-    /* Which checks are still unrun depends on the master the draft inherits
-       (a signed seed since O-9); what this pins is that every unrun one is on
-       the room's one door, obligations among them, and no Checks card. */
-    check('the open row offers the unrun checks, each on the room\'s one door (the Checks card is gone)',
-      rows.kinds.includes('oblig') && rows.kinds.every(k => ['oblig', 'playbook', 'risk'].includes(k)) && !rows.card,
-      rows.kinds.join(',') + (rows.card ? ' · a checks card is still drawn' : ''));
-    check('the obligations line names Obligations, and is visible', rows.firstVis.on && /Obligation/i.test(rows.obLine),
-      rows.obLine.replace(/\s+/g, ' ').trim());
+    /* RE-POINTED 11 Oct 2026: the Document tab is gone (owner), and with it
+       the Thread's "not yet read · Run" lines — their Run was the room head's
+       door, which Home's Document does not carry (docThreadUnrunHtml draws
+       nothing there, by design). The obligations sweep is offered where Home
+       keeps it: the Obligations tab's "Find in the wording" (runFindObligations).
+       What is kept: the sweep is on screen, under Obligations, and no stray
+       Run line sits on the Clauses tab's open row. */
+    const obTab = async () => {
+      await page.evaluate(id => pdOpenOnHome(id, 'oblig'), cid);
+      await page.waitForFunction(() => window.pdTab && pdTab() === 'oblig' && !!document.querySelector('#ig-dock [data-pd-tab="oblig"]'),
+        null, { timeout: 8000 }).catch(() => {});
+      return page.evaluate(`(() => {
+        const vis = ${VISIBLE};
+        const want = i18t('pd_ob_find');
+        const b = [...document.querySelectorAll('#ig-dock button')].find(x => x.textContent.trim() === want);
+        const tab = document.querySelector('#ig-dock [data-pd-tab="oblig"]');
+        return { find: vis(b), live: !!(b && !b.disabled), tab: tab ? tab.textContent.replace(/\\s+/g, ' ').trim() : '' };
+      })()`);
+    };
+    const ob6 = await obTab();
+    await page.evaluate(id => pdOpenOnHome(id, 'doc'), cid);
+    await page.waitForFunction(() => !!document.querySelector('#pd-thread .doc-th-row.is-open'), null, { timeout: 8000 }).catch(() => {});
+    const rows = await page.evaluate(() => ({
+      open: !!document.querySelector('#pd-thread .doc-th-row.is-open'),
+      runs: document.querySelectorAll('#pd-thread .doc-th-unrun [data-room-check]').length,
+      card: !!document.getElementById('checks-card') }));
+    check('the obligations sweep is offered on Home\'s Obligations tab, and no Run line the page cannot answer sits on the open clause (the Checks card is gone)',
+      ob6.find.on && ob6.live && rows.open && rows.runs === 0 && !rows.card, JSON.stringify({ ob6, rows }));
+    check('it stands under Obligations, and is visible', ob6.find.on && /Obligation/i.test(ob6.tab), ob6.tab);
 
     /* Track one, so there is a verdict to say and a panel to open. */
     await page.evaluate(id => {
@@ -407,7 +423,7 @@ const VISIBLE = `(el) => {
     await page.waitForTimeout(400);
     const verdict = await page.evaluate(id => {
       const v = checkVerdict(getContract(id), 'oblig');
-      const open = document.querySelector('#doc-thread .doc-th-row.is-open');
+      const open = document.querySelector('#pd-thread .doc-th-row.is-open');
       return { label: v ? String(v.label) : '', unrun: open ? !!open.querySelector('.doc-th-unrun [data-room-check="oblig"]') : null };
     }, cid);
     check('once anything is tracked the verdict says how many, and the "not yet read" line is gone', /2 tracked/.test(verdict.label) && verdict.unrun === false, JSON.stringify(verdict));
@@ -448,17 +464,20 @@ const VISIBLE = `(el) => {
        quarterly report starts mattering AFTER signature. On the Thread: the
        obligations line is still offered on a signed contract, the two lines
        that read the wording are not drawn at all. */
+    /* RE-POINTED 11 Oct 2026: asked of Home's Document — the Obligations
+       tab still offers its sweep on a signed contract; the Clauses tab offers
+       neither of the two checks that read the wording. */
     await page.evaluate(id => {
       const c = getContract(id);
       c.status = 'Signed'; c.obligations = [];
-      docThreadPaint(c);
     }, cid);
-    await page.waitForTimeout(400);
-    const signed = await page.evaluate(() => {
-      const open = document.querySelector('#doc-thread .doc-th-row.is-open');
-      const g = k => open && open.querySelector(`.doc-th-unrun [data-room-check="${k}"]`);
-      return { oblig: !!g('oblig') && !g('oblig').disabled, playbook: !!g('playbook'), risk: !!g('risk') };
-    });
+    const ob7 = await obTab();
+    await page.evaluate(id => pdOpenOnHome(id, 'doc'), cid);
+    await page.waitForFunction(() => !!document.querySelector('#pd-thread .doc-th-row.is-open'), null, { timeout: 8000 }).catch(() => {});
+    const signed = await page.evaluate(ob => {
+      const g = k => document.querySelector(`#pd-thread [data-room-check="${k}"]`);
+      return { oblig: !!ob.live, playbook: !!g('playbook'), risk: !!g('risk') };
+    }, ob7);
     check('on a SIGNED contract the obligations sweep is still offered',
       signed.oblig, JSON.stringify(signed));
     check('and the two checks that read the wording are not — the rule is intact',
@@ -493,7 +512,7 @@ const VISIBLE = `(el) => {
        every section open, because they are what a reader would actually see go
        wrong, and they must hold in the new layout too. */
     await page.setViewportSize({ width: 1500, height: 720 });
-    await page.evaluate(id => roomGoTab(getContract(id), 'terms'), cid);
+    await page.evaluate(id => { openWorkspace(id); roomGoTab(getContract(id), 'terms'); }, cid);
     await page.waitForTimeout(900);
     for (const k of ['record', 'related', 'copilot']) await openSec(k);
     await page.evaluate(() => {

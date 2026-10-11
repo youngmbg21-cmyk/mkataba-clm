@@ -348,11 +348,13 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
        sit in its row's Worth a look on the Document tab. The card still drafts
        nothing, and "Add a note" went with the panel (the owner, 5 Oct 2026:
        "the add note feature has been deleted from the worth a look panel"). */
-    await page.evaluate(id => { openWorkspace(id); roomGoTab(getContract(id), 'docs'); }, ID);
-    await until(page, () => { const t = document.getElementById('doc-thread'); return t && !t.hidden && t.querySelectorAll('.doc-th-row').length ? true : null; });
+    /* RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner); the
+       Thread lives on Home's Document, its Clauses tab. */
+    await page.evaluate(id => { pdOpenOnHome(id, 'doc'); }, ID);
+    await until(page, () => { const t = document.getElementById('pd-thread'); return t && !t.hidden && t.querySelectorAll('.doc-th-row').length ? true : null; });
     /* every marked row pressed until one carries a risk mark */
     const rv = await until(page, () => {
-      const th = document.getElementById('doc-thread'); if (!th) return null;
+      const th = document.getElementById('pd-thread'); if (!th) return null;
       const read = () => { const open = th.querySelector('.doc-th-row.is-open'); if (!open) return null;
         const marks = open.querySelectorAll('.doc-th-look .doc-xr-mark').length;
         return marks ? { marks, notes: open.querySelectorAll('[data-rk-note]').length, go: open.querySelectorAll('[data-rk-go]').length, text: open.innerText } : null; };
@@ -365,6 +367,8 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
     await shot('7-thread.png');
 
     /* ============ 8. SAFETY NET ============ */
+    await page.evaluate(id => openWorkspace(id), ID);   /* back from Home (section 7) */
+    await until(page, () => !!document.getElementById('ws-tabs'));
     await page.evaluate(id => roomGoTab(getContract(id), 'redline'), ID);
     await until(page, () => !!document.getElementById('rl-risks'));
     /* THE REST THE SAFETY NET CATCHES: a risk of no known topic whose words

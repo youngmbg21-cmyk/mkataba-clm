@@ -21,9 +21,10 @@
    size, the Internal/Counterparty seat and All negotiations — every one of
    them unreachable from inside the mode a reader entered in order to read.
 
-   THE CONTROLS ARE NAMED: 1a-1d (the page draws a control row at rest at all),
-   and the whole of section 4 (the Document tab, which has always behaved this
-   way) pass at the parent. They are what prove the stage bites.
+   THE CONTROLS ARE NAMED: 1a-1d (the page draws a control row at rest at all)
+   pass at the parent. They are what prove the stage bites. (Sections 4-5,
+   the Document tab side of the comparison, retired 11 Oct 2026: the Document
+   tab is gone, owner.)
 
    Run: node test/chromium/focus-mimics-document-verify.js */
 const fs = require('node:fs');
@@ -219,68 +220,13 @@ const SHOT = (rowSel) => {
       !list.err && list.wasOn === true && list.nowOn === false && list.body === false,
       list.err || `was ${list.wasOn} / now ${list.nowOn} / body ${list.body}`);
 
-    /* ═══════════ 4 · THE DOCUMENT TAB, WHICH IS WHAT IS BEING COPIED ═══════════
-       ALL CONTROLS — it has always behaved this way, so every one of these
-       passes at the parent too. They are here because "mimic" is a claim about
-       TWO screens, and a claim about two screens that only measures one is
-       half a claim. */
-    await drive(page, id => { openWorkspace(id); }, cid, null);
-    await pause(1800);
-    await drive(page, () => { try { roomGoTab('docs'); } catch (_) {} }, undefined, null);
-    await pause(1400);
-    const docOn = await drive(page, async () => {
-      const b = document.querySelector('#view-redline .room-focus[data-ws-focus], [data-ws-focus-door]') /* the room's door is on the Document tab's control row since 21 Sep 2026 */;
-      if (!b) return { err: 'no Focus button in the contract room' };
-      b.click();
-      await new Promise(r => setTimeout(r, 500));
-      return null;
-    }, undefined, { err: 'blocked' });
-    await pause(300);
-    const docFoc = docOn && docOn.err ? { err: docOn.err }
-      : await drive(page, SHOT, '.room-tabrow', {});
-    check('4a CONTROL — the Document tab keeps its dark bar in focus',
-      !docFoc.err && !!docFoc.bar && docFoc.bar.h > 0,
-      docFoc.err || (docFoc.bar ? `${docFoc.bar.h}px` : 'absent'));
-    check('4b CONTROL — it keeps its side rail',
-      !docFoc.err && !!docFoc.rail && docFoc.rail.w > 0,
-      docFoc.err || (docFoc.rail ? `${docFoc.rail.w}px wide` : 'absent'));
-    check('4c CONTROL — it keeps its tab row',
-      !docFoc.err && !!docFoc.row && docFoc.row.h > 0,
-      docFoc.err || (docFoc.row ? `${docFoc.row.h}px` : 'absent'));
-    check('4d CONTROL — and it drops its head card',
-      !docFoc.err && !!docFoc.head && docFoc.head.h === 0,
-      docFoc.err || (docFoc.head ? `${docFoc.head.h}px` : 'absent'));
-    await page.screenshot({ path: path.join(OUT, '03-doc-focus.png') });
-
-    /* ═══════════ 5 · THE TWO NOW AGREE ═══════════
-       The point of the ruling, stated as the comparison it is: the same four
-       readings, same answer on both pages. */
-    const same = !foc.err && !docFoc.err && !!foc.bar && !!docFoc.bar;
-    check('5a THE MIMIC: bar, rail and row all stand on both pages, head card on neither',
-      same
-        && (foc.bar.h > 0) === (docFoc.bar.h > 0)
-        && (foc.rail.w > 0) === (docFoc.rail.w > 0)
-        && (foc.row.h > 0) === (docFoc.row.h > 0)
-        && (foc.head.h === 0) === (docFoc.head.h === 0),
-      same
-        ? `negotiate bar ${foc.bar.h} rail ${foc.rail.w} row ${foc.row.h} head ${foc.head.h}`
-          + ` · document bar ${docFoc.bar.h} rail ${docFoc.rail.w} row ${docFoc.row.h} head ${docFoc.head.h}`
-        : (foc.err || docFoc.err || 'blocked'));
-    /* ---- COMPARE WHAT THE READER SEES, NOT WHICH ELEMENT HOLDS THE PADDING ----
-       Written first as "both rows start at the same offset below the bar" and
-       it FAILED at 0 against 16 on a screen where the two are identical: the
-       room carries the gap on its .room-band and the row sits 16px down inside
-       it, while this page carries the gap INSIDE the row, whose own box
-       therefore begins at the bar. Two element trees, one picture. So the two
-       things a reader can actually see are compared instead — where the white
-       begins, and where the controls begin. */
-    const ctrlTop = s => (s && s.row) ? s.row.top + parseFloat(s.padTop || '0') : null;
-    check('5b the same ground is painted directly under the bar on both pages',
-      same && foc.underBar === docFoc.underBar,
-      same ? `negotiate ${foc.underBar} / document ${docFoc.underBar}` : 'blocked');
-    check('5c and the controls sit at the same height on both',
-      same && ctrlTop(foc) !== null && ctrlTop(foc) === ctrlTop(docFoc),
-      same ? `negotiate ${ctrlTop(foc)} / document ${ctrlTop(docFoc)}` : 'blocked');
+    /* ═══════════ 4 and 5 · THE DOCUMENT TAB, AND THE TWO AGREEING ═══════════
+       RETIRED 11 Oct 2026: the Document tab is gone (owner), and its Focus
+       door with it - the contract room draws no Focus door on any tab now
+       (wsTabRowEndHtml returns the Negotiate door alone on the Overview). The
+       comparison had nothing left to compare against. What this file is
+       about - Negotiate's focus mode keeps the bar, the rail and its control
+       row, in white, under the bar (sections 1-3) - is still measured above. */
 
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
   } catch (e) {
