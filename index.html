@@ -9047,6 +9047,13 @@
   .hb-fig-n{font-size:var(--t-page);font-weight:var(--w-strong);font-variant-numeric:tabular-nums;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
   .hb-fig.is-warn .hb-fig-n{color:var(--hb-amber)}
   .hb-fig.is-bad .hb-fig-n{color:var(--hb-ruby)}
+  .hb-fig.is-good .hb-fig-n{color:var(--hb-green)}
+  /* a payment-terms-by-side card's three figures, above its picture (owner, 11 Oct 2026) */
+  .hb-payk{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;margin:0 0 12px;border:1px solid rgba(var(--hb-ln),.18);border-radius:var(--radius-lg);overflow:hidden;background:rgba(var(--hb-ln),.18)}
+  .hb-payk-i{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;gap:2px;padding:10px 14px;background:var(--hb-menu)}
+  .hb-payk-i:hover{background:rgba(var(--hb-gw),.06)} .hb-payk-i:focus-visible{outline:2px solid var(--hb-glow);outline-offset:-2px} .hb-payk-i:disabled{cursor:default}
+  .hb-payk-l{font-size:12px;color:var(--hb-mute)} .hb-payk-n{font-size:18px;font-weight:var(--w-strong);color:var(--hb-ink);font-variant-numeric:tabular-nums}
+  .hb-payk-i.is-good .hb-payk-n{color:var(--hb-green)} .hb-payk-i.is-bad .hb-payk-n{color:var(--hb-ruby)}
   .hb-fig-l{font-size:var(--t-meta);color:var(--hb-ink-2);font-weight:var(--w-label);line-height:1.3}
   .hb-fd{font:inherit;font-size:var(--t-micro);font-weight:var(--w-strong);font-variant-numeric:tabular-nums;padding:1px 6px;border-radius:3px;border:1px solid rgba(var(--hb-ln),.25);background:none;color:var(--hb-ink-2);cursor:pointer;white-space:nowrap}
   span.hb-fd{cursor:default}
