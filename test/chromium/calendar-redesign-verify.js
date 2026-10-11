@@ -164,8 +164,9 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
        line and the count on Month are not in it — the month and Next 14 days
        already say both. Asked as their absence, so they cannot creep back. */
     check('1 the head prints no decisions line (the drawing has none)', shape.stat === '', shape.stat);
-    check('1 two views, plain words, no count on the live one',
-      shape.tabs.length === 2 && shape.tabs[0] === 'Month', shape.tabs);
+    /* RE-POINTED 10 Oct 2026 (Young: "one calendar" — Month · Week · Horizon) */
+    check('1 three views, plain words, no count on the live one',
+      shape.tabs.length === 3 && shape.tabs.join(' ') === 'Month Week Horizon', shape.tabs);
     /* ---- ONE WHITE BAND, NOT TWO (owner-reported 24 Aug 2026: "remove the
            line in the highlighted area") ----
        The head and the control bar are two elements, both white and touching,
@@ -340,8 +341,8 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
     check('4 Quarter, List and Obligations are retired, control and markup alike',
       !retired.q && !retired.l && !retired.o && !retired.qm && !retired.lr && !retired.ot,
       JSON.stringify(retired));
-    check('4 and the tab row is exactly Month and Horizon',
-      String(retired.tabs) === String(['month', 'horizon']), retired.tabs);
+    check('4 and the tab row is exactly Month, Week and Horizon',
+      String(retired.tabs) === String(['month', 'week', 'horizon']), retired.tabs);
 
     /* ---- 5. ALL DATES / MINE ---- */
     await page.click('[data-cal-view="month"]');

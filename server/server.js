@@ -2952,6 +2952,7 @@ const AI_FEATURE_LABEL = {
   renewal: 'Renewal adviser',   // W2-4
   amend: 'Amendment drafting',  // work order O-12, named on arrival
   windows: 'Dated windows',     // work order O-40, the Time Machine's periods
+  plan: 'Calendar planning',    // Copilot plans a person's own time (10 Oct 2026)
   /* The template builder's outline (Prompt & Build). Named on arrival for
      the reason conversion's absence taught: an unnamed feature spends into
      the Other bucket, where the one figure an admin wants is unreadable.
@@ -21236,6 +21237,154 @@ app.post('/api/shares/:token/applied', auth, editor, (req, res) => {
   const cid = (db.prepare('SELECT contract_id FROM shares WHERE token=?').get(req.params.token) || {}).contract_id;
   res.json({ ok: true, reach: (cid && idInScope(folderScopeFor(req.user), cid)) ? srvReachOf(cid) : null });
 });
+
+/* ============================================================
+   MY ITEMS — A PERSON'S OWN CALENDAR EVENTS AND PRIVATE NOTES
+   (Young, 10 Oct 2026, the "HaTi Proposals" artifact, Parts 3 and 4)
+   ============================================================
+   Private to the person who wrote them: every read and write is scoped to
+   req.user.id, so no colleague, admin list, share or contract history ever
+   sees them. A note may name a contract, but only one the writer can see
+   (folderScopeFor). Nothing here sends anything. */
+db.exec(`
+  CREATE TABLE IF NOT EXISTS my_items (
+    id TEXT PRIMARY KEY, user_id TEXT NOT NULL, kind TEXT NOT NULL,
+    json TEXT NOT NULL, updated_at TEXT);
+  CREATE INDEX IF NOT EXISTS idx_my_items_user ON my_items(user_id, kind);
+`);
+const MY_KINDS = ['event', 'note', 'pref'];
+const myDay = v => (/^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) && !isNaN(Date.parse(v))) ? String(v) : '';
+const myHm = v => /^([01]\d|2[0-3]):[0-5]\d$/.test(String(v || '')) ? String(v) : '';
+const myText = (v, n) => String(v == null ? '' : v).replace(/\u0000/g, '').trim().slice(0, n);
+function myContractOk(user, id){
+  if (!id) return '';
+  const row = db.prepare('SELECT folder FROM contracts WHERE id=?').get(String(id));
+  return (row && inScope(folderScopeFor(user), row.folder)) ? String(id) : null;
+}
+/* THE ONE CLEANER per kind: what is stored is only these fields. */
+function myItemClean(kind, b, user, prev){
+  const o = b || {};
+  const cid = myContractOk(user, o.contractId);
+  if (cid === null) return { error: 'That contract is not one you can see.' };
+  if (kind === 'event'){
+    const date = myDay(o.date); if (!date) return { error: 'An event needs a day (yyyy-mm-dd).' };
+    const title = myText(o.title, 120); if (!title) return { error: 'An event needs a title.' };
+    const start = myHm(o.start), end = myHm(o.end);
+    if ((start && !end) || (!start && end) || (start && end <= start)) return { error: 'An event ends after it starts.' };
+    return { item: { title, date, start, end, contractId: cid, source: o.source === 'copilot' ? 'copilot' : 'me',
+      why: myText(o.why, 300), createdAt: (prev && prev.createdAt) || now() } };
+  }
+  if (kind === 'note'){
+    const body = myText(o.body, 4000); if (!body) return { error: 'A note needs some words.' };
+    const title = myText(o.title, 120) || myText(body.split(/\n/)[0], 80);
+    return { item: { title, body, contractId: cid, clauseId: myText(o.clauseId, 80), quote: myText(o.quote, 600),
+      reviewBy: myDay(o.reviewBy), reviewedAt: o.reviewedAt ? myText(o.reviewedAt, 40) : '',
+      createdAt: (prev && prev.createdAt) || now() } };
+  }
+  if (kind === 'pref'){
+    const lv = ['ask', 'auto'].includes(o.copilotLevel) ? o.copilotLevel : 'ask';
+    const hs = Math.max(0, Math.min(23, Number(o.dayStart) || 8)), he = Math.max(hs + 1, Math.min(24, Number(o.dayEnd) || 17));
+    return { item: { copilotLevel: lv, dayStart: hs, dayEnd: he } };
+  }
+  return { error: 'Unknown kind.' };
+}
+const myRow = r => { let j = {}; try { j = JSON.parse(r.json) || {}; } catch (_) { j = {}; } return { ...j, id: r.id, kind: r.kind, updatedAt: r.updated_at }; };
+app.get('/api/me/items', auth, (req, res) => {
+  const kind = String(req.query.kind || '');
+  const rows = MY_KINDS.includes(kind)
+    ? db.prepare('SELECT * FROM my_items WHERE user_id=? AND kind=? ORDER BY updated_at DESC').all(String(req.user.id), kind)
+    : db.prepare('SELECT * FROM my_items WHERE user_id=? ORDER BY updated_at DESC').all(String(req.user.id));
+  res.json({ items: rows.map(myRow) });
+});
+app.post('/api/me/items', auth, (req, res) => {
+  const b = req.body || {}, kind = String(b.kind || '');
+  if (!MY_KINDS.includes(kind)) return res.status(400).json({ error: 'Unknown kind.' });
+  const cl = myItemClean(kind, b.item, req.user, null);
+  if (cl.error) return res.status(400).json({ error: cl.error });
+  const id = kind === 'pref' ? 'pref:' + req.user.id : (kind === 'event' ? 'ev_' : 'nt_') + crypto.randomBytes(8).toString('hex');
+  const at = now();
+  db.prepare(`INSERT INTO my_items (id,user_id,kind,json,updated_at) VALUES (?,?,?,?,?)
+    ON CONFLICT(id) DO UPDATE SET json=excluded.json, updated_at=excluded.updated_at`).run(id, String(req.user.id), kind, JSON.stringify(cl.item), at);
+  res.json({ item: { ...cl.item, id, kind, updatedAt: at } });
+});
+app.put('/api/me/items/:id', auth, (req, res) => {
+  const row = db.prepare('SELECT * FROM my_items WHERE id=? AND user_id=?').get(String(req.params.id), String(req.user.id));
+  if (!row) return res.status(404).json({ error: 'Not found' });
+  const prev = myRow(row);
+  const cl = myItemClean(row.kind, { ...prev, ...((req.body || {}).item || {}) }, req.user, prev);
+  if (cl.error) return res.status(400).json({ error: cl.error });
+  const at = now();
+  db.prepare('UPDATE my_items SET json=?, updated_at=? WHERE id=? AND user_id=?').run(JSON.stringify(cl.item), at, row.id, String(req.user.id));
+  res.json({ item: { ...cl.item, id: row.id, kind: row.kind, updatedAt: at } });
+});
+app.delete('/api/me/items/:id', auth, (req, res) => {
+  const r = db.prepare('DELETE FROM my_items WHERE id=? AND user_id=?').run(String(req.params.id), String(req.user.id));
+  if (!r.changes) return res.status(404).json({ error: 'Not found' });
+  res.json({ ok: true });
+});
+/* COPILOT PLANS YOUR TIME: it reads the dates and events the person's own
+   calendar shows and proposes blocks; nothing is stored here — each block
+   lands only when the person presses Add (or, at "Just do it", is added by
+   the page with its Undo). Every block is checked: inside the window, inside
+   working hours, clear of the events it was shown and of each other, and a
+   contract only where the person can see it. */
+app.post('/api/ai/plan', auth, rlAiDeep, aiFeature('plan'), aiBudgetGuard, capAiInput, async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  const b = req.body || {};
+  const from = myDay(b.from), to = myDay(b.to);
+  if (!from || !to || to < from) return res.status(400).json({ error: 'from and to are required (yyyy-mm-dd).' });
+  const ask = myText(b.ask, 600) || 'Plan time for what is due.';
+  const hs = Math.max(0, Math.min(23, Number(b.dayStart) || 8)), he = Math.max(hs + 1, Math.min(24, Number(b.dayEnd) || 17));
+  const events = (Array.isArray(b.events) ? b.events : []).slice(0, 200).map(e => ({ date: myDay(e.date), start: myHm(e.start), end: myHm(e.end), title: myText(e.title, 120) })).filter(e => e.date);
+  const dates = (Array.isArray(b.dates) ? b.dates : []).slice(0, 200).map(d => ({ date: myDay(d.date), title: myText(d.title, 160), contractId: myContractOk(req.user, d.contractId) || '' })).filter(d => d.date);
+  const tool = { name: 'propose_blocks', description: 'Propose blocks of time in the person\'s calendar.',
+    input_schema: { type: 'object', properties: { say: { type: 'string', description: 'One or two plain sentences: what you found and what you suggest.' },
+      blocks: { type: 'array', maxItems: 8, items: { type: 'object', properties: {
+        date: { type: 'string', description: 'yyyy-mm-dd' }, start: { type: 'string', description: 'HH:MM, 24-hour' }, end: { type: 'string', description: 'HH:MM, 24-hour' },
+        title: { type: 'string', description: 'A short plain title, at most 8 words, e.g. "Decide MK-363 notice".' },
+        why: { type: 'string', description: 'One plain sentence: why this time.' },
+        contractId: { type: 'string', description: 'The contract id the block is for, from the dates listed, or empty.' } },
+        required: ['date', 'start', 'end', 'title'] } } }, required: ['blocks'] } };
+  const prompt = `You plan a lawyer's working time between ${from} and ${to}. Working hours are ${String(hs).padStart(2, '0')}:00 to ${String(he).padStart(2, '0')}:00, Monday to Friday.
+Contract dates (deadlines, expiries, duties):
+${dates.map(d => `- ${d.date}: ${d.title}${d.contractId ? ' [' + d.contractId + ']' : ''}`).join('\n') || '- none'}
+Already in the calendar (never overlap these):
+${events.map(e => `- ${e.date} ${e.start ? e.start + '-' + e.end : 'all day'}: ${e.title}`).join('\n') || '- nothing'}
+The person asks: ${ask}
+Propose up to 8 blocks of time, each BEFORE the deadline it serves, inside working hours, never overlapping anything above or each other. Use plain words.`;
+  try {
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 2000, tools: [tool], tool_choice: { type: 'tool', name: 'propose_blocks' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'plan', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const block = (resp.data.content || []).find(x => x.type === 'tool_use');
+    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    const out = planBlocksCheck(block.input && block.input.blocks, { from, to, hs, he, events, user: req.user });
+    if (!out.blocks.length && resp.truncated) return res.status(502).json({ error: 'Copilot ran out of room before it could plan. Try again.' });
+    res.json({ say: myText(block.input && block.input.say, 400), blocks: out.blocks, dropped: out.dropped, ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+});
+/* THE ONE CHECK of a proposed block (also run by tests). */
+function planBlocksCheck(list, o){
+  const mins = hm => { const [h, m] = String(hm).split(':').map(Number); return h * 60 + m; };
+  const taken = (o.events || []).filter(e => e.start && e.end).map(e => ({ date: e.date, a: mins(e.start), b: mins(e.end) }));
+  const allDayBusy = new Set((o.events || []).filter(e => !e.start).map(e => e.date));
+  let dropped = 0; const blocks = [];
+  /* AT MOST 8 KEPT; whatever is past that is counted as left out, never
+     quietly dropped (a cap is a fact). */
+  (Array.isArray(list) ? list : []).forEach(x => {
+    if (blocks.length >= 8) { dropped++; return; }
+    const date = myDay(x && x.date), start = myHm(x && x.start), end = myHm(x && x.end), title = myText(x && x.title, 120);
+    if (!date || !start || !end || !title || date < o.from || date > o.to || end <= start) { dropped++; return; }
+    const wd = new Date(date + 'T00:00:00Z').getUTCDay();
+    const a = mins(start), z = mins(end);
+    if (wd === 0 || wd === 6 || a < o.hs * 60 || z > o.he * 60 || allDayBusy.has(date)
+      || taken.some(t => t.date === date && a < t.b && t.a < z)) { dropped++; return; }
+    const cid = o.user ? (myContractOk(o.user, x.contractId) || '') : String(x.contractId || '');
+    taken.push({ date, a, b: z });
+    blocks.push({ date, start, end, title, why: myText(x.why, 300), contractId: cid });
+  });
+  return { blocks, dropped };
+}
 
 /* ============================================================
    ADVICE DESK — customer advice/review/drafting requests on a

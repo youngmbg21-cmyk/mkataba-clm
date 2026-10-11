@@ -63,7 +63,10 @@ test('f422 (2) the word list is ours to serve, and is fetched only on first use'
   assert.ok(!/\bapi\(|\/api\//.test(SRC.replace(/\/\*[\s\S]*?\*\//g, '')), 'no route');
   assert.match(R('js/app.js'), /import '\.\/spell\.js';/);
   /* both doors ask at their Save, and only wait where waiting buys a check */
-  assert.match(R('js/views/clauseeditor.js'), /case 'save': cePullText\(\); ceSaveChecked\(\); break;/);
+  /* RE-POINTED 10 Oct 2026 (one Copilot panel): Save goes through
+     ceSaveAndOn, which still pulls the box and files through ceSaveChecked. */
+  assert.match(R('js/views/clauseeditor.js'), /case 'save': ceSaveAndOn\(\); break;/);
+  assert.match(R('js/views/clauseeditor.js'), /async function ceSaveAndOn\(\)\{[\s\S]*?cePullText\(\);[\s\S]*?await ceSaveChecked\(\)/);
   assert.match(R('js/views/negotiation.js'), /addEventListener\('click', ev => \{ ev\.stopPropagation\(\); fileChecked\(\); \}\)/);
 });
 

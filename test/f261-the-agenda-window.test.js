@@ -98,7 +98,9 @@ describe('f261 (2) — the heading IS the control', () => {
   test('per sitting, in memory, like the tab and the scope', () => {
     /* A reader who widened to ninety days last Tuesday should not quietly still
        be on ninety a week later. */
-    assert.match(CAL_CODE, /let calState = \{ ym:null, view:'month', scope:'all', days:null \};/);
+    /* RE-POINTED 10 Oct 2026 (Young: Month · Week · Horizon, with layers): the
+       week and the layers join the per-sitting state, still unstored. */
+    assert.match(CAL_CODE, /let calState = \{ ym:null, view:'month', scope:'all', days:null, wk:null, lay:\{ ct:true, me:true, cp:true \} \};/);
     assert.ok(!/regColSetWidths|localStorage[^)]*calState\.days/.test(CAL_CODE), 'nothing stores it');
     /* AND IT IS NOT IN ITS OWN TEMPORAL DEAD ZONE: calState is built at load
        and CAL_AGENDA_DAYS is a const declared below it. */
@@ -147,7 +149,7 @@ describe('f261 (5) — nothing else on that page moved', () => {
     for (const anchor of ['function calMonthGridHtml', 'function calHorizonHtml',
                           'const CAL_EVENT', 'function calSetScope', 'data-cal-scope'])
       assert.ok(CAL_CODE.includes(anchor), anchor + ' is untouched');
-    assert.match(CAL_CODE, /const CAL_VIEWS = \['month','horizon'\];/);
+    assert.match(CAL_CODE, /const CAL_VIEWS = \['month','week','horizon'\];/, 'Week joined Month and Horizon (Young, 10 Oct 2026)');
   });
 
   test('and the Done button on an obligation row', () => {

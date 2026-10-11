@@ -2409,8 +2409,11 @@ function startApp(){
      resuming there is safe — and losing a refresh mid-negotiation to the
      dashboard was the exact complaint this list caused. */
   const _place=window.placeResume?placeResume():null;
-  setView(['brain','dashboard','register','pipeline','advice','intake','obligations','approvals','folder','intel','calendar','reports','templates','playbook','workspace','team','directory','migration','customers','redline','agents'].includes(state.view)?state.view:'dashboard');
+  setView(['brain','dashboard','register','pipeline','advice','intake','obligations','approvals','folder','intel','calendar','mynotes','reports','templates','playbook','workspace','team','directory','migration','customers','redline','agents'].includes(state.view)?state.view:'dashboard');
   if(_place&&window.placeScrollBack) placeScrollBack(_place);
+  /* MY OWN EVENTS AND NOTES (10 Oct 2026): loaded once, so the rail's count
+     and the bell know what is due before either page is opened. */
+  if(window.mineLoad) mineLoad(true).then(()=>{ if(window.paintMyNotesCount) paintMyNotesCount(); });
   if(API_MODE()){ refreshStats(); refreshShareOverview(); refreshWaitingQuestions(); pollPendingResponses(); refreshAiUsage();
     schedulePolling();
     /* Coming back to the tab is when a person expects to be up to date. */

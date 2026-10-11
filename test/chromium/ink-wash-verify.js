@@ -29,6 +29,12 @@
    the History and Document redesigns removed. Every Ink Wash claim (ramp, no
    grey, no capitals, status, paper, redline and danger buttons) passed before
    and after. From here the record is today's pages.
+   RE-RECORDED 11 Oct 2026, OWNER-ASKED ("yes, update the record"): the "My
+   notes" menu door adds a few rows on every page (counts only), and in dark
+   mode the Calendar's new layer keys add two swatches (the contract-dates dot
+   --st-ruby-dot and Copilot's plan dashed edge --alt). Audited as a set
+   difference: 8 new keys, all those swatches; 0 gone. Every Ink Wash claim
+   passed before and after.
      node test/chromium/ink-wash-verify.js          (check)
    ============================================================ */
 const fs = require('node:fs');

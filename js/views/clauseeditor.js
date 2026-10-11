@@ -482,6 +482,13 @@ function clauseEditorCss(){
   .ce-rksug .k{font-size:var(--t-label); color:var(--color-neutral-500); margin-right:2px}
   .ce-rksug .g{flex:1; min-width:4px}
   .ce-railfoot button.is-done[disabled]{opacity:1; border-color:transparent; background:none; color:var(--st-green-fg)}
+  /* THE ONE FOOT (Young, 10 Oct 2026): ‹ k of n › on the left, Save on the right */
+  .ce-railfoot#ce-railfoot{flex:1 1 auto}
+  .ce-railfoot .g{flex:1; min-width:4px}
+  .ce-walk{display:inline-flex; align-items:center; gap:4px}
+  .ce-walk[hidden]{display:none}
+  .ce-walk .k{min-width:44px; text-align:center; font-size:var(--t-label); color:var(--color-neutral-600); font-variant-numeric:tabular-nums}
+  .ce-railfoot .ce-walk button{min-width:var(--ctl-h-sm); padding:0 6px}
 
   /* ---- THE MIDDLE OF THE PAGE IS THE CONTRACT (owner-asked 26 Aug 2026) ----
      "There is no current wording vs proposed wording windows. Just one screen
@@ -856,6 +863,11 @@ function clauseEditorCss(){
     color:#fff}
   .ce-card .av button:hover{border-color:var(--accent-solid)}
   .ce-card .av .g{flex:1; min-width:4px}
+  /* DISCARD RED, APPLIED PALE BLUE, UNDO AMBER (Young, 10 Oct 2026) */
+  .ce-card .av button.d{background:var(--st-ruby-bg); border-color:var(--st-ruby-line); color:var(--st-ruby-fg)}
+  .ce-card .av button.is-applied{background:var(--color-accent-50); border-color:var(--color-accent-100); color:var(--accent-ink); opacity:1; cursor:default}
+  .ce-card .av button.u{background:var(--st-amber-bg); border-color:var(--st-amber-line); color:var(--st-amber-fg)}
+  .ce-card .av .ce-sug-gone{font-size:var(--t-meta); color:var(--color-neutral-600)}
   /* Copilot's counter in the box (change 2): the state, its one way back, and
      the note to the other side under it. */
   .ce-card .ce-prep-in .ce-inbox{color:var(--st-green-fg); font-size:var(--t-meta); font-weight:var(--w-label)}
@@ -1857,7 +1869,7 @@ function clauseEditorHtml(){
                  is STALE. */}
           <span class="ce-tabs" id="ce-tabs" role="group"
             aria-label="${_ceea(_cet('ce_tabs_group'))}">
-            ${ceNoAi() ? '' : `<button type="button" data-ce-tab="chat">${_cet('ce_tab_chat')}</button>`}
+            ${ceNoAi() ? '' : `<button type="button" data-ce-tab="chat">${_cet('ce_tab_chat')}<span class="n" id="ce-pb-n"></span></button>`}
             ${''/* ---- THE CHANGES TAB IS DELETED (owner-asked 28 Aug 2026:
                    "Delete changes tab") ----
                    It was built the same day from the approved prototype — every
@@ -4147,14 +4159,32 @@ function ceRenderFoot(){
      THE LABEL IS WRITTEN AS textContent rather than as markup: it is a name,
      never a fragment, and that is also what keeps the element identity the fix
      rests on. */
-  let discard = foot.querySelector('[data-ce-act="discard"]');
+  /* ---- ONE FOOT: ‹ k of n › AND SAVE (Young, 10 Oct 2026, "one Copilot
+     panel") ---- the walk on the left moves between the tab's items without
+     saving (Skip is gone); Save on the right files and, on a walk, opens the
+     next item. The foot's Discard is gone: Undo and the leave question already
+     cover the reader's own typing. */
   let save = foot.querySelector('[data-ce-act="save"]');
-  if (!discard || !save){
-    foot.innerHTML = '<button type="button" data-ce-act="discard"></button>'
-      + '<button type="button" class="p" data-ce-act="save"></button>';
-    discard = foot.querySelector('[data-ce-act="discard"]');
+  let walk = foot.querySelector('.ce-walk');
+  if (!save || !walk){
+    foot.innerHTML = '<span class="ce-walk"><button type="button" data-ce-act="walk-prev"></button>'
+      + '<span class="k" aria-live="polite"></span><button type="button" data-ce-act="walk-next"></button></span>'
+      + '<span class="g"></span><button type="button" class="p" data-ce-act="save"></button>';
     save = foot.querySelector('[data-ce-act="save"]');
+    walk = foot.querySelector('.ce-walk');
   }
+  const w = ceWalkNow();
+  walk.hidden = !w;
+  if (w){
+    const prev = walk.querySelector('[data-ce-act="walk-prev"]'), next = walk.querySelector('[data-ce-act="walk-next"]'), k = walk.querySelector('.k');
+    const kw = w.k ? _cet('ce_walk_of', { k: w.k, n: w.n }) : _cet('ce_walk_none', { n: w.n });
+    if (k.textContent !== kw) k.textContent = kw;
+    prev.textContent = '\u2039'; next.textContent = '\u203a';
+    prev.setAttribute('aria-label', _cet('ce_walk_prev')); prev.title = _cet('ce_walk_prev');
+    next.setAttribute('aria-label', _cet('ce_walk_next')); next.title = _cet('ce_walk_next');
+    prev.disabled = !w.prev; next.disabled = !w.next;
+  }
+  ceCardActsPaint();
   const label = (_ceSpellList.length && _ceSpellFor === ceSpellKey()) ? _cet('spl_save_as_written')
     : (_cePrep && _cePrep.inBox) ? _cet('ce_save_counter')
     : _ceLead ? _cet('ce_save_to', { id: _ceLead.id }) : _cet('ce_file_as_change');
@@ -4175,7 +4205,8 @@ function ceRenderFoot(){
   const now = ceBoxNow();
   const liveMoved = now ? (now.text !== _ceBase || now.head !== _ceHeadBase) : moved;
   const anyToFile = ceCanFile(now);
-  [[discard, _cet('ce_discard'), liveMoved], [save, label, anyToFile]].forEach(([b, word, on]) => {
+  void liveMoved;
+  [[save, label, anyToFile]].forEach(([b, word, on]) => {
     if (!b) return;
     b.disabled = !(on && live);
     /* THE NOTE COMES AT SAVE, and the control says so (round four, item 7,
@@ -4187,6 +4218,62 @@ function ceRenderFoot(){
     else b.removeAttribute('title');
     if (b.textContent !== word) b.textContent = word;
   });
+}
+
+/* ---- THE WALK UNDER BOTH TABS (Young, 10 Oct 2026) ----
+   Risks: the risk walk (riskWalkInfo). Playbook: the clauses our playbook
+   flags on this contract (deviations placed on a clause, in the contract's
+   order). Ladder: no walk. RAW reads; nothing is initialised. */
+function cePbWalkIds(){
+  const c = _ceC; if (!c || !window.rlPbFindClause) return [];
+  const all = (((c.playbook) || {}).verdicts || []).filter(x => x && x.status === 'deviation' && x.quote);
+  if (!all.length) return [];
+  const ids = new Set();
+  all.forEach(v => { try{ const cl = rlPbFindClause(c, v.quote, v.category); if (cl && cl.clauseId) ids.add(String(cl.clauseId)); }catch(_){} });
+  let order = [];
+  try{ order = (window.negoClauseList ? negoClauseList(c) : []).map(cl => String(cl.clauseId)); }catch(_){ order = []; }
+  const at = id => { const i = order.indexOf(id); return i < 0 ? 1e9 : i; };
+  return [...ids].sort((a, b) => at(a) - at(b));
+}
+function ceWalkNow(){
+  if (!_ceC) return null;
+  if (_ceTab === 'risks'){
+    const info = window.riskWalkInfo ? riskWalkInfo(_ceC) : null;
+    if (!info || info.done || !info.it) return null;
+    return { k: info.k, n: info.n, prev: info.k > 1, next: true };
+  }
+  if (_ceTab !== 'chat' || ceNoAi()) return null;
+  const ids = cePbWalkIds(); if (!ids.length) return null;
+  const k = ids.indexOf(String(_ceClauseId)) + 1;
+  return { k, n: ids.length, prev: k > 1, next: k < ids.length, ids };
+}
+function cePbGo(step){
+  const w = ceWalkNow(); if (!w || !w.ids) return;
+  const id = w.k ? w.ids[w.k - 1 + step] : w.ids[step > 0 ? 0 : w.ids.length - 1];
+  if (id) ceGoClause(id, { tab: 'chat', risk: undefined, newClause: undefined, changeId: undefined });
+}
+function ceWalkPress(dir){
+  if (_ceTab === 'risks'){ if (window.riskWalkPress && _ceC) riskWalkPress(_ceC, dir < 0 ? 'prev' : 'skip'); return; }
+  cePbGo(dir);
+}
+/* SAVE, AND ON A WALK THE NEXT ITEM: the risk walk keeps its own save (its
+   provenance and its second-redline net); on Playbook the ordinary save,
+   then the next flagged clause once the note drawer has been answered. */
+async function ceSaveAndOn(){
+  if (_ceTab === 'risks' && ceRiskAsking()){
+    const info = riskWalkInfo(_ceC);
+    if (info && String(info.clauseId) === String(_ceClauseId)) return ceRiskSave();
+  }
+  cePullText();
+  const w = _ceTab === 'chat' ? ceWalkNow() : null;
+  _ceLastNoteAsk = null;
+  const ch = await ceSaveChecked();
+  if (!ch || !w || !w.ids || !w.k || w.k >= w.n) return ch;
+  const wait = _ceLastNoteAsk; _ceLastNoteAsk = null;
+  try{ if (wait) await wait; }catch(_){}
+  if (wait){ try{ if (window.closeContextPanel) closeContextPanel(); }catch(_){} }
+  if (clauseEditorOpen()) ceGoClause(w.ids[w.k], { tab: 'chat', risk: undefined, newClause: undefined, changeId: undefined });
+  return ch;
 }
 
 /* Below this the say span is showing an ellipsis and a letter or two, which is
@@ -4609,7 +4696,10 @@ function ceRenderTabs(){
      over Discard · Save on every tab, the Risks tab included. Outside a walk
      ceRenderRiskFoot leaves the walk's row empty. */
   const rf = _ceQ('#ce-rkfoot'), mf = _ceQ('#ce-railfoot');
-  if (rf) rf.hidden = false;
+  if (rf) rf.hidden = true;
+  const pbn = _ceQ('#ce-pb-n');
+  if (pbn){ const k = cePbWalkIds().length; pbn.textContent = k ? String(k) : ''; pbn.style.display = k ? '' : 'none'; }
+  ceRenderFoot();
   ceRenderRiskSug();
   if (mf) mf.style.display = '';
   /* The ask box belongs to the conversation. The scan has nothing to be asked.
@@ -4773,13 +4863,42 @@ function ceCardHtml(card, i, j){
     ${card.cost ? `<span class="cost">${_cee(card.cost)}</span>` : ''}
     ${card.rests ? `<span class="r">${_cee(_cet('ce_rests_on', { on: card.rests }))}</span>` : ''}
     ${card.text ? `<span class="pv">${marked}</span>` : ''}
-    ${card.prepared && _cePrep && _cePrep.inBox ? cePrepInBoxHtml() : docked ? '' : `<div class="av">
-      ${offerWording ? `<button type="button" class="p" data-ce-apply="${i}:${j}">${_cet('ce_apply')}</button>` : ''}
-      ${''/* NO "ASK FOR A CHANGE", NO THUMBS (Young, 7 Oct 2026): the first only
-             put the cursor in the ask box already below the card; the thumbs
-             lit up and recorded nothing. Apply is the card's one act. */}
-    </div>`}
+    ${card.prepared && _cePrep && _cePrep.inBox ? cePrepInBoxHtml() : docked ? '' : `<div class="av" data-ce-card="${i}:${j}">${offerWording ? ceCardActsInner(card, `${i}:${j}`) : ''}</div>`}
   </div>`;
+}
+/* ---- APPLY · DISCARD, THEN APPLIED · UNDO (Young, 10 Oct 2026, "one
+   Copilot panel" — the same card on Playbook and Risks) ----
+   Apply moves the wording into the box (nothing is filed); Discard sets the
+   suggestion aside and leaves one quiet line with Undo. Once applied the card
+   reads a pale-blue Applied and an amber Undo that takes the wording back out
+   — only while the box still holds exactly what Apply left (card._after), so
+   Undo never wipes typing done since. Painted in place (ceCardActsPaint) from
+   ceRenderFoot, so the state follows the box as it changes. */
+function ceCardState(card){
+  if (!card) return 'offer';
+  if (card._gone) return 'gone';
+  const now = ceBoxNow(); const cur = _cePlain(now ? now.text : _ceText);
+  if (card._after != null && cur === _cePlain(card._after)) return 'undoable';
+  return ceCardApplied(card) ? 'applied' : 'offer';
+}
+function ceCardActsInner(card, key){
+  const st = ceCardState(card);
+  if (st === 'gone') return `<span class="ce-sug-gone">${_cee(_cet('ce_sug_discarded'))}</span><button type="button" class="u" data-ce-card-undo="${_ceea(key)}">${_cee(_cet('ce_sug_undo'))}</button>`;
+  if (st === 'undoable' || st === 'applied') return `<button type="button" class="is-applied" disabled aria-disabled="true">${_cee(_cet('ce_sug_applied'))}</button>${
+    st === 'undoable' ? `<button type="button" class="u" data-ce-card-undo="${_ceea(key)}">${_cee(_cet('ce_sug_undo'))}</button>` : ''}`;
+  return `<button type="button" class="p" data-ce-apply="${_ceea(key)}">${_cee(_cet('ce_apply'))}</button><button type="button" class="d" data-ce-card-discard="${_ceea(key)}">${_cee(_cet('ce_sug_discard'))}</button>`;
+}
+function ceCardActsPaint(){
+  if (!clauseEditorOpen()) return;
+  const page = document.getElementById('clause-editor'); if (!page) return;
+  page.querySelectorAll('.ce-sug .av[data-ce-card]').forEach(av => {
+    const key = av.getAttribute('data-ce-card'), card = ceCardAt(key);
+    if (!card || !av.firstElementChild) return;
+    const want = ceCardState(card);
+    if (av.getAttribute('data-st') === want) return;
+    av.setAttribute('data-st', want);
+    av.innerHTML = ceCardActsInner(card, key);
+  });
 }
 /* COPILOT'S COUNTER IS IN THE BOX: no Apply to press — the state, the one
    way back ("Take it out"), and the note to the other side, drafted from
@@ -6212,7 +6331,9 @@ function ceBoxWords(){
    holds the suggestion the row says "Applied" and Save & next is the green
    press. The same data attributes as the card's, so the same handlers.
    PATCHED IN PLACE, NEVER REWRITTEN under a finger (the foot's own rule). */
-function ceRiskDocks(){ return _ceTab === 'risks' && ceRiskAsking(); }
+/* THE APPLY STRIP IS GONE (Young, 10 Oct 2026, "one Copilot panel"): the
+   risk's card carries Apply · Discard like every other card. */
+function ceRiskDocks(){ return false; }
 const _cePlain = h => String(h == null ? '' : h).replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
 /* Whether the draft already holds this card's wording (an undo un-applies it). */
 function ceCardApplied(card){
@@ -6243,25 +6364,11 @@ function ceRenderRiskSug(){
 function ceRenderRiskFoot(){
   ceRenderRiskSug();
   const foot = _ceQ('#ce-rkfoot'); if (!foot) return;
-  const info = (window.riskWalkInfo && _ceC) ? riskWalkInfo(_ceC) : null;
-  if (!info || info.done || !info.it){ if (foot.innerHTML) foot.innerHTML = ''; return; }
-  let prev = foot.querySelector('[data-ce-act="rk-prev"]'), skip = foot.querySelector('[data-ce-act="rk-skip"]'), save = foot.querySelector('[data-ce-act="rk-save"]');
-  if (!prev || !skip || !save){
-    foot.innerHTML = '<button type="button" data-ce-act="rk-prev"></button><button type="button" data-ce-act="rk-skip"></button>'
-      + '<button type="button" class="p" data-ce-act="rk-save"></button>';
-    prev = foot.querySelector('[data-ce-act="rk-prev"]'); skip = foot.querySelector('[data-ce-act="rk-skip"]'); save = foot.querySelector('[data-ce-act="rk-save"]');
-  }
-  const here = String(info.clauseId) === String(_ceClauseId);
-  const live = ceEditableReading();
-  /* "Save & next" whether or not the clause holds a redline already (5 Oct
-     2026, one row of feet): the change it saves into is on the hover. */
-  const into = _ceLead && _ceLead.authorSide === 'owner' ? _ceLead.id : '';
-  const label = _cet('rk_ce_save');
-  [[prev, _cet('rk_ce_prev'), info.k > 1], [skip, _cet('rk_ce_skip'), true], [save, label, here && live && ceCanFile(ceBoxNow())]].forEach(([b, word, on]) => {
-    b.disabled = !on;
-    if (b.textContent !== word) b.textContent = word;
-  });
-  save.setAttribute('title', (into ? _cet('ce_save_to_long', { id: into }) + ' — ' : '') + _cet('ce_save_opens_note'));
+  /* RETIRED (Young, 10 Oct 2026, "one Copilot panel"): ‹ Previous · Skip ·
+     Save & next live in the one foot as ‹ k of n › and Save (ceRenderFoot).
+     The row stays empty and hidden; rk-prev/rk-skip/rk-save are STALE. */
+  if (foot.innerHTML) foot.innerHTML = '';
+  foot.hidden = true;
 }
 /* SAVE & NEXT: the safety net, then this page's own Save with the risk's
    provenance, then the note drawer as after any Save, then the next risk. */
@@ -6709,6 +6816,27 @@ function ceWirePage(page){
     const ew = hit('[data-ce-edit-with]');
     if (ew){ ev.preventDefault(); ceEditWith(_ceThread[Number(ew.getAttribute('data-ce-edit-with'))]); return; }
 
+    const cdis = hit('[data-ce-card-discard]');
+    if (cdis){ ev.preventDefault();
+      const card = ceCardAt(cdis.getAttribute('data-ce-card-discard'));
+      if (card){ card._gone = true; ceCardActsPaint(); }
+      return; }
+    const cund = hit('[data-ce-card-undo]');
+    if (cund){ ev.preventDefault();
+      const card = ceCardAt(cund.getAttribute('data-ce-card-undo'));
+      if (!card) return;
+      if (card._gone){ card._gone = false; ceCardActsPaint(); return; }
+      /* TAKES APPLY'S WORDING BACK OUT through the one door into the box,
+         and only while the box holds exactly what Apply left (ceCardState). */
+      if (ceCardState(card) === 'undoable' && card._before != null){
+        const back = card._before;
+        card._before = null; card._after = null;
+        if (back !== _ceText) ceApply(back, _cet('ce_step_card_undo'), { quiet: true });
+        ceRenderFoot();
+        ceSay(_cet('ce_sug_out'), 'ok');
+      }
+      return; }
+
     const apply = hit('[data-ce-apply]');
     if (apply){ ev.preventDefault();
       const card = ceCardAt(apply.getAttribute('data-ce-apply'));
@@ -6732,10 +6860,14 @@ function ceWirePage(page){
       if (typeof window.aiLooksConversational === 'function' && window.aiLooksConversational(String(card.text || ''))){
         ceSay(i18t('tb_not_wording'), 'warn'); return; }
       ceFullClose();
-      if (card.std){ ceStdApply(card); return; }
+      cePullText();
+      const before = _ceText;
+      const stamp = () => { if (_ceText !== before){ card._before = before; card._after = _ceText; } ceRenderFoot(); };
+      if (card.std){ ceStdApply(card); stamp(); return; }
       if (card.prepared && _cePrep){ cePrepPut(); return; }
       if (card.passage) ceReplacePassage(card.passage, card.text, { keepView: false });
       else ceApply(card.text, _cet('ce_step_copilot'));
+      stamp();
       /* WHAT THE DRAFT BECAME, so the funnel can later say whether the reader
          changed it before filing. Stamped AFTER the apply and read off the
          draft itself rather than off the card — a passage replacement puts
@@ -6876,7 +7008,9 @@ function ceWirePage(page){
       /* ONE PRESS FILES. The act keeps its name — every check and both
          browser files reach this button by it — and what changed is where it
          goes. `reason-back`, `reason-skip` and `reason-file` are STALE. */
-      case 'save': cePullText(); ceSaveChecked(); break;
+      case 'save': ceSaveAndOn(); break;
+      case 'walk-prev': ceWalkPress(-1); break;
+      case 'walk-next': ceWalkPress(1); break;
       /* THE WALK'S FOOT (work order Part 8) */
       case 'rk-save': ceRiskSave(); break;
       case 'rk-prev': if (window.riskWalkPress && _ceC) riskWalkPress(_ceC, 'prev'); break;

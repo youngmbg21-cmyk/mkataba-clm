@@ -39,7 +39,7 @@
    and CAL_AGENDA_DAYS is a const declared below it, so naming it here is a read
    inside its own temporal dead zone — the getter trap this codebase records,
    one keyword along. calAgendaDays() supplies the default. */
-let calState = { ym:null, view:'month', scope:'all', days:null };
+let calState = { ym:null, view:'month', scope:'all', days:null, wk:null, lay:{ ct:true, me:true, cp:true } };
 /* ---- THREE TABS, THE DESIGN'S OWN (owner-ruled 24 Aug 2026) ----
    Month · Horizon · Obligations. 'quarter' and 'list' are RETIRED: Quarter drew
    three compact months of the same grid, which is the Month view three times
@@ -54,7 +54,12 @@ let calState = { ym:null, view:'month', scope:'all', days:null };
    THE KEYS STAY READABLE FROM AN OLD BROWSER: calView() falls back to 'month'
    for anything not on this list, so a reader whose stored tab was 'list' lands
    on the month rather than on a blank page. */
-const CAL_VIEWS = ['month','horizon'];
+/* ---- WEEK JOINS THEM (Young, 10 Oct 2026, the "HaTi Proposals" artifact,
+   Part 3: "combine layers which looks at monthly view with the week planner
+   to make it one calendar ... combine it with the horizon view") ----
+   One calendar, three views: Month to see everything, Week to plan the
+   person's own hours (js/mine.js), Horizon for the year of contracts. */
+const CAL_VIEWS = ['month','week','horizon'];
 /* ---- THE AGENDA'S WINDOW IS A CONTROL (owner-asked 31 Aug 2026, J-5.4) ----
    *"the highlighted area that shows the next 14 days, change that to a filter
    where you can look next 14, 30, 60, 90 days."*
@@ -123,8 +128,17 @@ const CAL_EVENT = {
   round:      { dot:'var(--st-gray-dot)',  fg:'var(--st-gray-fg)',  bg:'var(--st-gray-bg)',
                 get label(){ return i18t('cal_nego_activity'); },    get short(){ return i18t('cal_k_round'); } },
 };
+/* THE PERSON'S OWN LAYER (10 Oct 2026): their events in the accent, a note
+   to review in grey, a block Copilot proposed in the helper colour, dashed
+   until it is added. */
+CAL_EVENT.mine = { dot:'var(--color-accent-600)', fg:'var(--accent-ink)', bg:'var(--color-accent-50)',
+  get label(){ return i18t('cal_lg_mine'); }, get short(){ return i18t('cal_k_mine'); } };
+CAL_EVENT.note = { dot:'var(--color-neutral-500)', fg:'var(--color-neutral-700, var(--color-text))', bg:'var(--surface-2, var(--color-neutral-100))',
+  get label(){ return i18t('cal_lg_note'); }, get short(){ return i18t('cal_k_note'); } };
+CAL_EVENT.plan = { dot:'var(--alt)', fg:'var(--alt-ink)', bg:'var(--alt-soft)',
+  get label(){ return i18t('cal_lg_plan'); }, get short(){ return i18t('cal_k_plan'); } };
 // priority when a day carries more than one kind of event (drives its tint)
-const CAL_PRIORITY = ['expiry','renewal','obligation','round'];
+const CAL_PRIORITY = ['expiry','renewal','obligation','round','mine','note','plan'];
 
 /* Gather every lifecycle event as {date, type, cid, cname, note}. */
 function calendarEvents(){
@@ -230,6 +244,8 @@ function calEventMine(e, u){
    shows its month; Quarter and List show that month and the two after it. */
 function calPeriod(){
   const {y,m}=calMonth(), view=calView();
+  if(view==='week'){ const a=calWeekStart(), z=calAddDays(a,6);
+    return { months:[{y:a.getFullYear(),m:a.getMonth()}], from:_isoLocal(a), to:_isoLocal(z) }; }
   const months=[{y,m}];
   if(view!=='month') for(let i=1;i<3;i++){ const d=new Date(y,m+i,1); months.push({y:d.getFullYear(),m:d.getMonth()}); }
   const last=months[months.length-1];
@@ -427,11 +443,18 @@ function calMonthGridHtml(y, m, byDay, opts){
         const t=cids.length===1?` title="${_esc(ev.label+': '+(e.note||e.cname))}"`:'';
         /* the chip's reference wears the reference face (calChipText stays the text) */
         /* the drawing's chip names the contract after its reference ("Ends · MK-A6 Flour…") */
+        if(e.own){
+          return `<span class="cal-chip cal-own is-${e.type}${e.st==='added'?' is-added':''}" ${e.own} title="${_esc(e.title)}" style="border-left-color:${ev.dot};background:${ev.bg};color:${ev.fg}">${_esc(e.chip)}</span>`;
+        }
         const chip=e.type==='obligation'?_esc(calChipText(e)):_esc(CAL_EVENT[e.type].short)+' · '+(window.refHtml?refHtml(e.cref||e.cid):_esc(e.cref||e.cid))+(e.cname?' '+_esc(e.cname):'');
         return `<span class="cal-chip${e.done?' is-done':''}"${t} style="border-left-color:${ev.dot};background:${ev.bg};color:${ev.fg}">${chip}</span>`;
       }).join('')+(more>0?`<span class="cal-more">${i18t('cal_n_more',{n:more})}</span>`:'')+`</span>`;
     }
-    cells.push(`<div class="cal-day${today?' is-today':''}"${attrs}><span class="cal-dn">${dnum}</span>${inner}</div>`);
+    /* THE DAY'S NUMBER OPENS ITS WEEK (10 Oct 2026); the rest of the box is
+       still the door to that day's contracts. */
+    const dn=compact?`<span class="cal-dn">${dnum}</span>`
+      :`<span class="cal-dn" data-cal-week="${iso}" title="${_esc(i18t('cal_open_week'))}">${dnum}</span>`;
+    cells.push(`<div class="cal-day${today?' is-today':''}"${attrs}>${dn}${inner}</div>`);
   }
   /* id="cal-grid" is KEPT from the grid this replaces, and only the MONTH view
      carries it — three of them in the Quarter view would be three elements
@@ -733,7 +756,14 @@ function renderCalendar(){
   const {y,m}=calMonth(), view=calView(), p=calPeriod();
   const all=calendarEvents();
   const evs=calVisible(all);
-  const byDay={}; evs.forEach(e=>{ (byDay[e.date]=byDay[e.date]||[]).push(e); });
+  /* THE LAYERS (10 Oct 2026): contract dates, my calendar (my events and my
+     notes' review days), Copilot's plan — each on or off in Month and Week.
+     js/mine.js is loaded once; the page repaints when it lands. */
+  if(typeof mineLoaded==='function'&&!mineLoaded()&&typeof mineLoad==='function')
+    mineLoad().then(()=>{ if(state.view==='calendar') renderCalendar(); });
+  const lay=calLayers();
+  const grid=lay.ct?evs:[];
+  const byDay={}; grid.concat(calOwnEvents(p.from,p.to)).forEach(e=>{ (byDay[e.date]=byDay[e.date]||[]).push(e); });
 
   const seg=(k,label,count)=>`<a class="${view===k?'on':''}" data-cal-view="${k}" role="button" tabindex="0">${_esc(label)}${count!=null?`<span class="c">${count}</span>`:''}</a>`;
   const scopeSeg=(k,label)=>`<span class="${calScope()===k?'on':''}" data-cal-scope="${k}" role="button" tabindex="0">${_esc(label)}</span>`;
@@ -750,6 +780,9 @@ function renderCalendar(){
        about the card, and under the grid it is furniture about the month. */
     main=`<div class="cal-month"><section class="cal-card cal-grid">${calMonthGridHtml(y,m,byDay,{id:'cal-grid'})}</section>
       ${calLegendHtml(evs.filter(e=>calInPeriod(e,p)))}</div>`;
+  } else if(view==='week'){
+    main=`<div class="cal-month cal-weekwrap"><section class="cal-card cal-wk-card">${calWeekHtml(grid)}</section>
+      ${calLegendHtml(grid.filter(e=>calInPeriod(e,p)).concat(calOwnEvents(p.from,p.to)))}</div>`;
   } else {
     main=calHorizonHtml();
   }
@@ -778,13 +811,15 @@ function renderCalendar(){
              every test reaches the same act. */}
       <span class="cal-head-l">
         <span class="ttl">${_esc(i18t('nav_calendar'))}</span>
-        <span class="cal-head-sub">${view==='month'?calMonthStepHtml(y,m)
+        <span class="cal-head-sub">${view==='month'?calMonthStepHtml(y,m):view==='week'?calWeekStepHtml()
           :_esc(i18t('cal_three_months',{from:calMonthName(y,m),to:calMonthName(p.months[2].y,p.months[2].m)}))}</span>
       </span>
       <span class="g"></span>
       <div class="cal-acts">
-        <span class="cal-seg cal-seg-view">${seg('month',i18t('cal_v_month'),null)}${seg('horizon',i18t('cal_v_horizon'),null)}</span>
+        ${view==='horizon'?'':calLayerSegHtml()}
+        <span class="cal-seg cal-seg-view">${seg('month',i18t('cal_v_month'),null)}${seg('week',i18t('cal_v_week'),null)}${seg('horizon',i18t('cal_v_horizon'),null)}</span>
         <span class="cal-seg">${scopeSeg('all',i18t('cal_all_dates'))}${scopeSeg('mine',i18t('cal_mine'))}</span>
+        ${view==='horizon'?'':`<button class="ui-btn ui-btn-sm" id="cal-new">${_esc(i18t('cal_new_event'))}</button>`}
         <button class="ui-btn ws-more-btn cal-more-ic" id="cal-more" aria-haspopup="true" aria-expanded="false" title="${_esc(i18t('ct_more'))}" aria-label="${_esc(i18t('ct_more'))}">${icon('more','w-4 h-4')}</button>
         <div id="cal-more-menu" class="cal-menu" hidden>
           <button id="cal-export" title="${_esc(i18t('cal_export_title'))}">${_esc(i18t('cal_export'))}</button>
@@ -799,11 +834,13 @@ function renderCalendar(){
              The design pairs "Next 14 days" with the month grid alone (its
              Month tab is the only one drawn as 1fr 304px), and Horizon wants
              every pixel it can get for its twelve months. */}
-      <div class="cal-stack${view==='month'?'':' is-wide'}">${main}${view==='month'?`<div class="cal-side">${calPanelHtml(evs)}</div>`:''}</div>
+      <div class="cal-stack${view==='horizon'?' is-wide':''}">${main}${view==='month'?`<div class="cal-side">${calPanelHtml(evs)}</div>`
+        :view==='week'?`<div class="cal-side">${calPlanHtml()}</div>`:''}</div>
     </div>
   </div>`;
 
   wireCalendar(evs, byDay, p);
+  calWireOwn();
   setActiveNav('calendar');
 }
 
@@ -1290,6 +1327,81 @@ function calStyleCss(){ return `
     .cal-side > .cal-panel{flex:none;max-height:none}
     .cal-card{min-height:380px}
   }
+  /* ---- MY CALENDAR, THE WEEK, COPILOT'S PLAN (10 Oct 2026) ---- the week
+         card is the month's height, so switching Month and Week moves
+         nothing; its hours scroll inside. */
+  .cal-lays{display:inline-flex;gap:4px;flex-wrap:wrap}
+  .cal-lay{display:inline-flex;align-items:center;gap:5px;height:var(--ctl-h-sm);padding:0 8px;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface);color:var(--color-neutral-700,var(--color-text));font:inherit;font-size:var(--t-label);font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
+  .cal-lay i{width:8px;height:8px;border-radius:2px}
+  .cal-lay.is-ct i{background:var(--st-ruby-dot)} .cal-lay.is-me i{background:var(--color-accent-600)} .cal-lay.is-cp i{border:1.5px dashed var(--alt)}
+  .cal-lay[aria-pressed="false"]{opacity:.55;text-decoration:line-through}
+  .cal-lay:focus-visible,.cal-wk-slot:focus-visible,.cal-wk-blk:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:1px}
+  .cal-dn[data-cal-week]{cursor:pointer;border-radius:3px}
+  .cal-dn[data-cal-week]:hover{background:var(--color-accent-50);color:var(--accent-ink)}
+  .cal-chip.cal-own{cursor:pointer}
+  .cal-chip.is-plan{border:1px dashed var(--alt);border-left-width:3px}
+  .cal-wk-card{height:calc(var(--cal-day-h) * 6 + 28px)}
+  .cal-wk{display:flex;flex-direction:column;min-height:0;height:100%}
+  .cal-wk-hd,.cal-wk-alls,.cal-wk-grid{display:grid;grid-template-columns:52px repeat(7,minmax(0,1fr))}
+  .cal-wk-hd{border-bottom:1px solid var(--color-divider)}
+  .cal-wk-h{padding:6px 8px;font-size:var(--t-label);color:var(--color-neutral-600);border-left:1px solid var(--color-divider)}
+  .cal-wk-h b{display:block;font-size:var(--t-h3, 16px);color:var(--color-text);font-weight:var(--w-strong)}
+  .cal-wk-h.is-today b{color:var(--accent-ink)}
+  .cal-wk-h.is-we{background:var(--surface-2, transparent)}
+  .cal-wk-alls{border-bottom:1px solid var(--color-divider);background:var(--surface-2, var(--color-surface))}
+  .cal-wk-lab{font-size:var(--t-micro);color:var(--color-neutral-600);padding:6px 6px 0 0;text-align:right}
+  .cal-wk-all{border-left:1px solid var(--color-divider);padding:3px;display:flex;flex-direction:column;gap:2px;min-height:30px;min-width:0}
+  .cal-wk-all .cal-chip{display:block;text-align:left;border:0;border-left:3px solid;font:inherit;font-size:var(--t-micro);padding:1px 5px;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;max-width:100%}
+  .cal-wk-body{flex:1;min-height:0;overflow:auto}
+  .cal-wk-times{display:flex;flex-direction:column}
+  .cal-wk-t{height:var(--cal-wk-row);font-size:var(--t-micro);color:var(--color-neutral-600);text-align:right;padding:0 6px 0 0;border-top:1px solid var(--color-divider);font-variant-numeric:tabular-nums}
+  .cal-wk-col{position:relative;border-left:1px solid var(--color-divider);display:flex;flex-direction:column}
+  .cal-wk-col.is-today{background:color-mix(in srgb,var(--color-accent-50) 45%,transparent)}
+  .cal-wk-slot{height:var(--cal-wk-row);flex:none;border:0;border-top:1px solid var(--color-divider);background:none;cursor:copy;padding:0}
+  .cal-wk-slot:hover{background:var(--color-accent-50)}
+  .cal-wk-blk{position:absolute;left:3px;right:3px;border:0;border-left:3px solid var(--color-accent-600);border-radius:4px;background:var(--color-accent-50);color:var(--accent-ink);text-align:left;padding:2px 5px;font:inherit;font-size:var(--t-micro);line-height:1.3;overflow:hidden;cursor:pointer;display:flex;flex-direction:column}
+  .cal-wk-blk b{font-weight:var(--w-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cal-wk-blk small{opacity:.85}
+  .cal-wk-blk.is-plan{border:1.5px dashed var(--alt);background:var(--alt-soft);color:var(--alt-ink)}
+  .cal-plan{height:100%;max-height:100%}
+  .cal-plan-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px;padding:var(--s-3) var(--s-4);border-bottom:1px solid var(--color-divider)}
+  .cal-plan-lv{display:inline-flex;align-items:center;gap:6px;font-size:var(--t-label);color:var(--color-neutral-600)}
+  .cal-plan-lv select{font:inherit;font-size:var(--t-label);height:var(--ctl-h-sm);border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);color:var(--color-text)}
+  .cal-plan-body{flex:1;min-height:0;overflow:auto;padding:var(--s-3) var(--s-4);display:flex;flex-direction:column;gap:8px}
+  .cal-plan-say{margin:0;font-size:var(--t-meta);color:var(--color-text)}
+  .cal-plan-err{margin:0;font-size:var(--t-meta);color:var(--st-ruby-fg)}
+  .cal-plan-busy{margin:0;display:flex;gap:8px;align-items:center;font-size:var(--t-meta);color:var(--color-neutral-600)}
+  .cal-plan-cost{margin:0;padding:0 var(--s-4) var(--s-3);font-size:var(--t-label);color:var(--color-neutral-600)}
+  .cal-plan-body .cal-plan-cost{padding:0}
+  .cal-prop{border:1.5px dashed var(--alt);background:var(--alt-soft);border-radius:var(--radius);padding:7px 9px;display:flex;flex-direction:column;gap:3px;font-size:var(--t-meta)}
+  .cal-prop.is-added{border-style:solid;border-color:var(--color-accent-100);background:var(--color-surface)}
+  .cal-prop.is-gone{border-color:var(--color-divider);background:none;color:var(--color-neutral-600);flex-direction:row;align-items:center;justify-content:space-between}
+  .cal-prop.is-lit{box-shadow:0 0 0 2px var(--alt)}
+  .cal-prop small{color:var(--color-neutral-700,var(--color-text))}
+  .cal-prop .av{display:flex;gap:6px;margin-top:4px}
+  .cal-prop button,.cal-plan-chips button,.cal-plan-ask button{height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm,8px);font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);color:var(--color-text);cursor:pointer;white-space:nowrap}
+  .cal-prop button.p,.cal-plan-ask button{background:var(--color-accent-700);border-color:var(--accent-ink-700, var(--color-accent-700));color:#fff}
+  .cal-prop button.d{background:var(--st-ruby-bg);border-color:var(--st-ruby-line);color:var(--st-ruby-fg)}
+  .cal-prop button.u{background:var(--st-amber-bg);border-color:var(--st-amber-line);color:var(--st-amber-fg)}
+  .cal-prop button.is-added{background:var(--color-accent-50);border-color:var(--color-accent-100);color:var(--accent-ink);cursor:default}
+  .cal-plan-chips{display:flex;flex-wrap:wrap;gap:6px;padding:var(--s-2) var(--s-4) 0}
+  .cal-plan-chips button{background:var(--surface-2, var(--color-neutral-100));border-color:transparent}
+  .cal-plan-ask{display:flex;gap:6px;padding:var(--s-2) var(--s-4)}
+  .cal-plan-ask input{flex:1;min-width:0;height:var(--ctl-h);font:inherit;font-size:var(--t-meta);padding:0 8px;border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);color:var(--color-text)}
+  .cal-plan-ask button{height:var(--ctl-h)}
+  .cal-evd{display:flex;flex-direction:column;gap:10px;padding:var(--s-4)}
+  .cal-evd h3{margin:0;font-size:var(--t-h3, 16px)}
+  .cal-evd label{display:flex;flex-direction:column;gap:4px;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-700,var(--color-text))}
+  .cal-evd input[type=text],.cal-evd input[type=date],.cal-evd input[type=time],.cal-evd select{height:var(--field-h, 32px);font:inherit;font-size:var(--t-body);font-weight:400;padding:0 8px;border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);color:var(--color-text)}
+  .cal-evd-row{display:flex;gap:10px;align-items:flex-end}
+  .cal-evd-row[hidden]{display:none}
+  .cal-evd-row label{flex:1}
+  .cal-evd label.cal-evd-all{flex:none;flex-direction:row;align-items:center;padding-bottom:7px}
+  .cal-evd-foot{display:flex;gap:8px;align-items:center}
+  .cal-evd-foot .g{flex:1}
+  .cal-evd-del{color:var(--st-ruby-fg)}
+  .cal-evd-say{margin:0;min-height:1em;font-size:var(--t-label);color:var(--st-ruby-fg)}
+  .cal-evd-why,.cal-evd-priv{margin:0;font-size:var(--t-label);color:var(--color-neutral-600)}
   @media print{
     .cal-head .cal-acts,.cal-panel{display:none!important}
     .cal-page{height:auto}
@@ -1309,6 +1421,7 @@ function calStyleCss(){ return `
    WIRING
    ------------------------------------------------------------------------- */
 function calStep(n){
+  if(calView()==='week'){ calState.wk=_isoLocal(calAddDays(calWeekStart(),7*n)); renderCalendar(); return; }
   let {y,m}=calMonth();
   m+=n*(calView()==='month'?1:3);
   while(m<0){ m+=12; y--; } while(m>11){ m-=12; y++; }
@@ -1321,7 +1434,7 @@ function wireCalendar(evs, byDay, p){
   const $=id=>document.getElementById(id);
   $('cal-prev')?.addEventListener('click',()=>calStep(-1));
   $('cal-next')?.addEventListener('click',()=>calStep(1));
-  $('cal-today')?.addEventListener('click',()=>{ calState.ym=null; renderCalendar(); });
+  $('cal-today')?.addEventListener('click',()=>{ calState.ym=null; calState.wk=null; renderCalendar(); });
   const press=(el,fn)=>{ el.addEventListener('click',fn);
     el.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); fn(); } }); };
   document.querySelectorAll('[data-cal-view]').forEach(el=>press(el,()=>calSetView(el.getAttribute('data-cal-view'))));
@@ -1472,8 +1585,245 @@ function openCalendarShare(evs){
   });
 }
 
+/* ============================================================================
+   MY CALENDAR, THE WEEK AND COPILOT'S PLAN (Young, 10 Oct 2026, the "HaTi
+   Proposals" artifact, Part 3)
+   ----------------------------------------------------------------------------
+   The person's own events and their notes' review days live in js/mine.js,
+   private to them. Contract dates stay read-only and come off the contracts;
+   pressing one still opens its contract. Copilot reads both layers and
+   PROPOSES blocks (POST /api/ai/plan); at "Ask me first" — the start — a block
+   lands only on Add, at "Just do it" it is added at once, and every one can
+   be undone. Nothing is sent to anybody.
+   ========================================================================== */
+function calLayers(){ const l=calState.lay||{}; return { ct:l.ct!==false, me:l.me!==false, cp:l.cp!==false }; }
+function calLayerSegHtml(){
+  const l=calLayers();
+  const b=(k,w)=>`<button type="button" class="cal-lay is-${k}" data-cal-lay="${k}" aria-pressed="${l[k]?'true':'false'}"><i></i>${_esc(i18t(w))}</button>`;
+  return `<span class="cal-lays" role="group" aria-label="${_esc(i18t('cal_lay_group'))}">${b('ct','cal_lay_ct')}${b('me','cal_lay_me')}${b('cp','cal_lay_cp')}</span>`;
+}
+const calAddDays=(d,n)=>{ const x=new Date(d); x.setDate(x.getDate()+n); return x; };
+function calWeekStart(){
+  const base=calState.wk?new Date(calState.wk+'T00:00:00'):new Date(calToday()+'T00:00:00');
+  return calAddDays(base,-((base.getDay()+6)%7));
+}
+function calWeekStepHtml(){
+  const a=calWeekStart(), z=calAddDays(a,6);
+  const f=(d,o)=>d.toLocaleDateString(langLocale(),o);
+  const name=a.getMonth()===z.getMonth()?`${a.getDate()}–${f(z,{day:'numeric',month:'short',year:'numeric'})}`
+    :`${f(a,{day:'numeric',month:'short'})} – ${f(z,{day:'numeric',month:'short',year:'numeric'})}`;
+  return `<span class="cal-sel">
+      <button id="cal-prev" title="${_esc(i18t('cal_prev_week'))}" aria-label="${_esc(i18t('cal_prev_week'))}">${icon('chevL','w-3.5 h-3.5')}</button>
+      <button id="cal-today" class="cal-sel-now" title="${_esc(i18t('cal_this_week'))}">${_esc(name)}</button>
+      <button id="cal-next" title="${_esc(i18t('cal_next_week'))}" aria-label="${_esc(i18t('cal_next_week'))}">${icon('chevR','w-3.5 h-3.5')}</button>
+    </span>`;
+}
+/* THE PERSON'S OWN DATES between two days, as the grid's events. */
+function calOwnEvents(from,to){
+  const l=calLayers(), out=[];
+  const inP=d=>d&&d>=from&&d<=to;
+  if(l.me&&typeof mineList==='function'){
+    mineList('event').filter(e=>inP(e.date)).forEach(e=>out.push({ date:e.date, type:'mine', id:e.id, title:e.title, start:e.start, end:e.end,
+      chip:(e.start?e.start+' ':'')+e.title, own:`data-cal-mine="${_esc(e.id)}"` }));
+    mineList('note').filter(n=>inP(n.reviewBy)&&!n.reviewedAt).forEach(n=>out.push({ date:n.reviewBy, type:'note', id:n.id,
+      title:i18t('cal_note_review',{t:n.title}), chip:i18t('cal_note_review',{t:n.title}), own:`data-cal-note="${_esc(n.id)}"` }));
+  }
+  if(l.cp) _calPlan.blocks.filter(b=>b.st==='proposed'&&inP(b.date)).forEach(b=>out.push({ date:b.date, type:'plan', id:b.k,
+    title:b.title, start:b.start, end:b.end, chip:'✦ '+b.start+' '+b.title, own:`data-cal-plan-go="${_esc(b.k)}"` }));
+  return out.sort((a,b)=>String(a.start||'').localeCompare(String(b.start||'')));
+}
+const calMins=hm=>{ const [h,m]=String(hm||'0:0').split(':').map(Number); return h*60+(m||0); };
+/* THE WEEK: Monday to Sunday, the person's hours down the side, an "All day"
+   row for contract dates and notes to review. An empty hour is a door to a
+   new event at that hour. */
+function calWeekHtml(contractEvs){
+  const a=calWeekStart(), days=Array.from({length:7},(_,i)=>calAddDays(a,i));
+  const pref=typeof minePref==='function'?minePref():{dayStart:8,dayEnd:17};
+  const H0=Math.max(0,Math.min(pref.dayStart,8)-1), H1=Math.min(24,Math.max(pref.dayEnd,17)+1), ROW=40;
+  const today=calToday(), from=_isoLocal(days[0]), to=_isoLocal(days[6]);
+  const own=calOwnEvents(from,to);
+  const head=days.map(d=>{ const iso=_isoLocal(d);
+    return `<div class="cal-wk-h${iso===today?' is-today':''}${d.getDay()%6===0?' is-we':''}"><span>${_esc(d.toLocaleDateString(langLocale(),{weekday:'short'}))}</span><b>${d.getDate()}</b></div>`; }).join('');
+  const allDay=days.map(d=>{ const iso=_isoLocal(d);
+    const c=(contractEvs||[]).filter(e=>e.date===iso).map(e=>{ const ev=CAL_EVENT[e.type];
+      const t=e.type==='obligation'?calChipText(e):ev.short+' · '+(e.cref||e.cid);
+      return `<button type="button" class="cal-chip cal-wk-ct" data-sel="${_esc(e.cid)}" title="${_esc(ev.label+': '+(e.note||e.cname))}" style="border-left-color:${ev.dot};background:${ev.bg};color:${ev.fg}">${_esc(t)}</button>`; });
+    const o=own.filter(e=>e.date===iso&&!e.start).map(e=>{ const ev=CAL_EVENT[e.type];
+      return `<button type="button" class="cal-chip cal-own is-${e.type}" ${e.own} title="${_esc(e.title)}" style="border-left-color:${ev.dot};background:${ev.bg};color:${ev.fg}">${_esc(e.chip)}</button>`; });
+    return `<div class="cal-wk-all">${c.concat(o).join('')}</div>`; }).join('');
+  const hours=Array.from({length:H1-H0},(_,i)=>`<div class="cal-wk-t">${String(H0+i).padStart(2,'0')}:00</div>`).join('');
+  const cols=days.map(d=>{ const iso=_isoLocal(d);
+    const slots=Array.from({length:H1-H0},(_,i)=>`<button type="button" tabindex="-1" class="cal-wk-slot" data-cal-slot="${iso}|${String(H0+i).padStart(2,'0')}:00" aria-label="${_esc(i18t('cal_new_at',{day:d.toLocaleDateString(langLocale(),{weekday:'long',day:'numeric',month:'long'}),h:String(H0+i).padStart(2,'0')+':00'}))}"></button>`).join('');
+    const blocks=own.filter(e=>e.date===iso&&e.start).map(e=>{
+      const top=Math.max(0,(calMins(e.start)-H0*60)/60*ROW), h=Math.max(18,(calMins(e.end)-calMins(e.start))/60*ROW-2);
+      return `<button type="button" class="cal-wk-blk is-${e.type}" ${e.own} style="top:${top}px;height:${h}px" title="${_esc(e.title+' · '+e.start+'–'+e.end)}">${h<34?`<b>${_esc((e.type==='plan'?'✦ ':'')+e.title)} · ${_esc(e.start)}</b>`
+        :`<b>${_esc(e.type==='plan'?'✦ '+e.title:e.title)}</b><small>${_esc(e.start+'–'+e.end)}${e.type==='plan'?' · '+_esc(i18t('cal_plan_suggested')):''}</small>`}</button>`; }).join('');
+    return `<div class="cal-wk-col${iso===today?' is-today':''}" style="height:${(H1-H0)*ROW}px">${slots}${blocks}</div>`; }).join('');
+  return `<div class="cal-wk" id="cal-week" style="--cal-wk-row:${ROW}px">
+    <div class="cal-wk-hd"><div></div>${head}</div>
+    <div class="cal-wk-alls"><div class="cal-wk-lab">${_esc(i18t('cal_all_day'))}</div>${allDay}</div>
+    <div class="cal-wk-body scroll-thin" id="cal-wk-body"><div class="cal-wk-grid"><div class="cal-wk-times">${hours}</div>${cols}</div></div>
+  </div>`;
+}
+
+/* ---- COPILOT'S PLAN (per sitting; what is added lives in js/mine.js) ---- */
+let _calPlan = { busy:false, say:'', err:'', blocks:[], dropped:0, seq:0 };
+function calPlanHtml(){
+  const pref=typeof minePref==='function'?minePref():{copilotLevel:'ask'};
+  const auto=pref.copilotLevel==='auto';
+  const rows=_calPlan.blocks.map(b=>{
+    const d=new Date(b.date+'T00:00:00').toLocaleDateString(langLocale(),{weekday:'short',day:'numeric',month:'short'});
+    const when=`${d} · ${b.start}–${b.end}`;
+    if(b.st==='gone') return `<div class="cal-prop is-gone"><span>${_esc(i18t('cal_plan_gone'))} ${_esc(b.title)}</span><button type="button" class="u" data-cal-plan-undo="${_esc(b.k)}">${_esc(i18t('cal_plan_undo'))}</button></div>`;
+    const acts=b.st==='added'
+      ? `<button type="button" class="is-added" disabled>${_esc(i18t('cal_plan_added'))}</button><button type="button" class="u" data-cal-plan-undo="${_esc(b.k)}">${_esc(i18t('cal_plan_undo'))}</button>`
+      : `<button type="button" class="p" data-cal-plan-add="${_esc(b.k)}">${_esc(i18t('cal_plan_add'))}</button><button type="button" class="d" data-cal-plan-discard="${_esc(b.k)}">${_esc(i18t('cal_plan_discard'))}</button>`;
+    return `<div class="cal-prop${b.st==='added'?' is-added':''}" data-cal-prop="${_esc(b.k)}"><b>${_esc(b.title)}</b><small>${_esc(when)}${b.why?' · '+_esc(b.why):''}</small><div class="av">${acts}</div></div>`;
+  }).join('');
+  const body=_calPlan.busy?`<p class="cal-plan-busy" aria-busy="true"><span class="ob-spin" aria-hidden="true"></span>${_esc(i18t('cal_plan_busy'))}</p>`
+    :_calPlan.err?`<p class="cal-plan-err">${_esc(_calPlan.err)}</p>`
+    :_calPlan.seq?`${_calPlan.say?`<p class="cal-plan-say">${_esc(_calPlan.say)}</p>`:''}${rows||`<p class="cal-plan-say">${_esc(i18t('cal_plan_none'))}</p>`}${
+      _calPlan.dropped?`<p class="cal-plan-cost">${_esc(i18tn('cal_plan_dropped',_calPlan.dropped,{n:_calPlan.dropped}))}</p>`:''}<p class="cal-plan-cost">&#10022; ${_esc(i18t('ce_ai_check'))}</p>`
+    :`<p class="cal-plan-say">${_esc(i18t('cal_plan_empty'))}</p>`;
+  return `<section class="cal-card cal-plan" id="cal-plan">
+    <div class="cal-plan-head"><b>&#10022; ${_esc(i18t('ce_copilot'))}</b>
+      <label class="cal-plan-lv">${_esc(i18t('cal_plan_level'))}
+        <select id="cal-plan-level"><option value="ask"${auto?'':' selected'}>${_esc(i18t('cal_plan_ask'))}</option><option value="auto"${auto?' selected':''}>${_esc(i18t('cal_plan_auto'))}</option></select></label></div>
+    <div class="cal-plan-body scroll-thin">${body}</div>
+    <div class="cal-plan-chips"><button type="button" data-cal-plan-q="week"${_calPlan.busy?' disabled':''}>${_esc(i18t('cal_plan_q_week'))}</button><button type="button" data-cal-plan-q="due"${_calPlan.busy?' disabled':''}>${_esc(i18t('cal_plan_q_due'))}</button></div>
+    <div class="cal-plan-ask"><input id="cal-plan-in" type="text" maxlength="600" placeholder="${_esc(i18t('cal_plan_ph'))}" aria-label="${_esc(i18t('cal_plan_ph'))}"><button type="button" id="cal-plan-go"${_calPlan.busy?' disabled':''}>${_esc(i18t('cal_plan_go'))}</button></div>
+    <p class="cal-plan-cost">${_esc(i18t(auto?'cal_plan_cost_auto':'cal_plan_cost'))}</p>
+  </section>`;
+}
+function calPlanRepaint(){
+  if(state.view!=='calendar') return;
+  const host=document.getElementById('cal-plan');
+  if(host&&calView()==='week'){ const body=document.getElementById('cal-wk-body'), top=body?body.scrollTop:0;
+    renderCalendar(); const b2=document.getElementById('cal-wk-body'); if(b2) b2.scrollTop=top; }
+}
+async function calPlanAsk(q){
+  if(_calPlan.busy) return;
+  const a=calWeekStart(), from=_isoLocal(a)<calToday()?calToday():_isoLocal(a), to=_isoLocal(calAddDays(new Date(from+'T00:00:00'),13));
+  const ask=q==='week'?i18t('cal_plan_p_week'):q==='due'?i18t('cal_plan_p_due'):String(q||'').trim();
+  if(!ask) return;
+  const until=_isoLocal(calAddDays(new Date(to+'T00:00:00'),30));
+  const dates=calVisible(calendarEvents()).filter(e=>e.date>=from&&e.date<=until).slice(0,120)
+    .map(e=>({ date:e.date, title:(e.cref||e.cid)+' · '+(e.type==='obligation'?(e.note||CAL_EVENT[e.type].label):CAL_EVENT[e.type].label)+(e.cname?' ('+e.cname+')':''), contractId:e.cid }));
+  const events=(typeof mineList==='function'?mineList('event'):[]).filter(e=>e.date>=from&&e.date<=to).map(e=>({ date:e.date, start:e.start, end:e.end, title:e.title }));
+  const pref=typeof minePref==='function'?minePref():{dayStart:8,dayEnd:17,copilotLevel:'ask'};
+  _calPlan.busy=true; _calPlan.err=''; calPlanRepaint();
+  try{
+    if(!(typeof API_MODE==='function'&&API_MODE())) throw Object.assign(new Error('needsKey'),{needsKey:true});
+    const r=await api('ai/plan','POST',{ from, to, ask, dates, events, dayStart:pref.dayStart, dayEnd:pref.dayEnd });
+    _calPlan.seq++;
+    _calPlan.say=String((r&&r.say)||'');
+    _calPlan.dropped=Number((r&&r.dropped)||0);
+    _calPlan.blocks=((r&&r.blocks)||[]).map((b,i)=>({ ...b, k:'b'+_calPlan.seq+'_'+i, st:'proposed', itemId:null }));
+    _calPlan.busy=false;
+    if(pref.copilotLevel==='auto') for(const b of _calPlan.blocks) await calPlanAdd(b.k,{quiet:true});
+  }catch(e){
+    _calPlan.busy=false;
+    const why=String((e&&(e.error||e.message))||'');
+    _calPlan.err=(e&&(e.needsKey||/needsKey|not configured/i.test(why)))?i18t('cal_plan_nokey'):i18t('cal_plan_failed',{why:why||'—'});
+  }
+  calPlanRepaint();
+}
+async function calPlanAdd(k,o){
+  const b=_calPlan.blocks.find(x=>x.k===k); if(!b||b.st==='added') return;
+  try{
+    const it=await mineSave('event',{ title:b.title, date:b.date, start:b.start, end:b.end, contractId:b.contractId||'', source:'copilot', why:b.why||'' });
+    b.st='added'; b.itemId=it.id;
+    if(!(o&&o.quiet)) toast(i18t('cal_ev_saved'),'ok');
+  }catch(e){ toast(String((e&&(e.error||e.message))||i18t('cal_plan_failed',{why:''})),'err'); }
+  calPlanRepaint();
+}
+async function calPlanUndo(k){
+  const b=_calPlan.blocks.find(x=>x.k===k); if(!b) return;
+  if(b.st==='added'&&b.itemId){ try{ await mineDelete(b.itemId); }catch(_){} b.itemId=null; }
+  b.st='proposed'; calPlanRepaint();
+}
+/* ---- ONE EVENT: NEW OR EDITED (a dialog — the event's facts are a
+   decision the reader is making). Private, said once at the foot. ---- */
+function calEventDialog(item, seed){
+  const it=item||{}, sd=seed||{};
+  const date=it.date||sd.date||calToday(), start=it.start!=null?it.start:(sd.start||'09:00');
+  const end=it.end!=null?it.end:(sd.start?String(Math.min(23,Number(sd.start.slice(0,2))+1)).padStart(2,'0')+':00':'10:00');
+  const allDay=!!item&&!it.start;
+  const opts=(state.contracts||[]).filter(c=>!c.archived).slice(0,400).map(c=>`<option value="${_esc(c.id)}"${String(it.contractId||'')===String(c.id)?' selected':''}>${_esc((c.contractNo||c.id)+' · '+(c.counterparty||c.name||''))}</option>`).join('');
+  openModal(`<div class="cal-evd">
+    <h3>${_esc(i18t(item?'cal_ev_title_edit':'cal_ev_title_new'))}</h3>
+    <label>${_esc(i18t('cal_ev_what'))}<input id="cal-ev-title" type="text" maxlength="120" value="${_esc(it.title||'')}"></label>
+    <div class="cal-evd-row"><label>${_esc(i18t('cal_ev_day'))}<input id="cal-ev-date" type="date" value="${_esc(date)}"></label>
+      <label class="cal-evd-all"><input id="cal-ev-all" type="checkbox"${allDay?' checked':''}> ${_esc(i18t('cal_ev_allday'))}</label></div>
+    <div class="cal-evd-row" id="cal-ev-times"${allDay?' hidden':''}><label>${_esc(i18t('cal_ev_from'))}<input id="cal-ev-start" type="time" value="${_esc(start)}"></label>
+      <label>${_esc(i18t('cal_ev_to'))}<input id="cal-ev-end" type="time" value="${_esc(end)}"></label></div>
+    <label>${_esc(i18t('cal_ev_contract'))}<select id="cal-ev-ct"><option value="">${_esc(i18t('cal_ev_none'))}</option>${opts}</select></label>
+    ${it.source==='copilot'&&it.why?`<p class="cal-evd-why">&#10022; ${_esc(it.why)}</p>`:''}
+    <p class="cal-evd-say" id="cal-ev-say" role="status"></p>
+    <div class="cal-evd-foot">${item?`<button type="button" class="ui-btn ui-btn-sm cal-evd-del" id="cal-ev-del">${_esc(i18t('cal_ev_delete'))}</button>`:''}<span class="g"></span>
+      <button type="button" class="ui-btn ui-btn-sm" id="cal-ev-cancel">${_esc(i18t('cal_ev_cancel'))}</button>
+      <button type="button" class="ui-btn ui-btn-sm ui-btn-primary" id="cal-ev-save">${_esc(i18t('cal_ev_save'))}</button></div>
+    <p class="cal-evd-priv">${_esc(i18t('cal_ev_private'))}</p>
+  </div>`, { maxWidth: (window.DLG_W&&DLG_W.s)||'420px', label:i18t(item?'cal_ev_title_edit':'cal_ev_title_new') });
+  const $=id=>document.getElementById(id);
+  $('cal-ev-title')?.focus();
+  $('cal-ev-all')?.addEventListener('change',e=>{ $('cal-ev-times').hidden=e.target.checked; });
+  $('cal-ev-cancel')?.addEventListener('click',()=>closeModal());
+  $('cal-ev-del')?.addEventListener('click',async()=>{ try{ await mineDelete(it.id); closeModal(); toast(i18t('cal_ev_deleted'),'ok'); }catch(e){ $('cal-ev-say').textContent=String((e&&(e.error||e.message))||''); } });
+  $('cal-ev-save')?.addEventListener('click',async()=>{
+    const all=$('cal-ev-all').checked;
+    const body={ title:$('cal-ev-title').value.trim(), date:$('cal-ev-date').value, start:all?'':$('cal-ev-start').value, end:all?'':$('cal-ev-end').value, contractId:$('cal-ev-ct').value,
+      source:it.source||'me', why:it.why||'' };
+    if(!body.title){ $('cal-ev-say').textContent=i18t('cal_ev_need_title'); $('cal-ev-title').focus(); return; }
+    if(!all&&(!body.start||!body.end||body.end<=body.start)){ $('cal-ev-say').textContent=i18t('cal_ev_need_times'); return; }
+    try{ await mineSave('event',body,item?it.id:null); closeModal(); toast(i18t('cal_ev_saved'),'ok'); }
+    catch(e){ $('cal-ev-say').textContent=String((e&&(e.error||e.message))||''); }
+  });
+}
+/* ARMED ONCE, delegated on document, the element resolved at the press. */
+function calWireOwn(){
+  const lv=document.getElementById('cal-plan-level');
+  if(lv) lv.addEventListener('change',async()=>{ try{ await mineSave('pref',{ ...minePref(), copilotLevel:lv.value }); }catch(_){} calPlanRepaint(); });
+  const inp=document.getElementById('cal-plan-in');
+  if(inp) inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); calPlanAsk(inp.value); } });
+  const body=document.getElementById('cal-wk-body');
+  if(body&&body.dataset&&!body.dataset.scrolled&&typeof getComputedStyle==='function'){ body.dataset.scrolled='1';
+    const first=body.querySelector('.cal-wk-blk'); const pref=typeof minePref==='function'?minePref():{dayStart:8};
+    const row=parseFloat(getComputedStyle(body.parentElement).getPropertyValue('--cal-wk-row'))||40;
+    body.scrollTop=first?Math.max(0,first.offsetTop-row):Math.max(0,(pref.dayStart-Math.max(0,Math.min(pref.dayStart,8)-1))*row-4); }
+  if(document._calOwnWired) return;
+  document._calOwnWired=true;
+  document.addEventListener('click',e=>{
+    if(state.view!=='calendar') return;
+    const t=e.target.closest?e.target:null; if(!t) return;
+    const hit=sel=>t.closest(sel);
+    let el;
+    if((el=hit('[data-cal-week]'))){ e.preventDefault(); e.stopPropagation(); calState.wk=el.getAttribute('data-cal-week'); calState.view='week'; renderCalendar(); return; }
+    if((el=hit('[data-cal-mine]'))){ e.preventDefault(); e.stopPropagation(); const it=mineGet(el.getAttribute('data-cal-mine')); if(it) calEventDialog(it); return; }
+    if((el=hit('[data-cal-note]'))){ e.preventDefault(); e.stopPropagation(); if(typeof myNotesOpen==='function') myNotesOpen(el.getAttribute('data-cal-note')); return; }
+    if((el=hit('[data-cal-plan-go]'))){ e.preventDefault(); e.stopPropagation(); const k=el.getAttribute('data-cal-plan-go');
+      if(calView()!=='week'){ const b=_calPlan.blocks.find(x=>x.k===k); if(b) calState.wk=b.date; calState.view='week'; renderCalendar(); }
+      const p=document.querySelector(`[data-cal-prop="${CSS.escape(k)}"]`); if(p){ p.scrollIntoView({block:'nearest'}); p.classList.add('is-lit'); setTimeout(()=>p.classList.remove('is-lit'),1200); } return; }
+    if((el=hit('[data-cal-slot]'))){ const [date,start]=el.getAttribute('data-cal-slot').split('|'); calEventDialog(null,{date,start}); return; }
+    if((el=hit('#cal-new'))){ calEventDialog(null,{ date:calView()==='week'?_isoLocal(calWeekStart())<=calToday()&&calToday()<=_isoLocal(calAddDays(calWeekStart(),6))?calToday():_isoLocal(calWeekStart()):calToday() }); return; }
+    if((el=hit('[data-cal-lay]'))){ const k=el.getAttribute('data-cal-lay'); calState.lay={ ...calLayers(), [k]:!calLayers()[k] }; renderCalendar(); return; }
+    if((el=hit('[data-cal-plan-q]'))){ calPlanAsk(el.getAttribute('data-cal-plan-q')); return; }
+    if((el=hit('#cal-plan-go'))){ const i=document.getElementById('cal-plan-in'); calPlanAsk(i?i.value:''); return; }
+    if((el=hit('[data-cal-plan-add]'))){ calPlanAdd(el.getAttribute('data-cal-plan-add')); return; }
+    if((el=hit('[data-cal-plan-discard]'))){ const b=_calPlan.blocks.find(x=>x.k===el.getAttribute('data-cal-plan-discard')); if(b){ b.st='gone'; calPlanRepaint(); } return; }
+    if((el=hit('[data-cal-plan-undo]'))){ calPlanUndo(el.getAttribute('data-cal-plan-undo')); return; }
+  }, true);
+  document.addEventListener('keydown',e=>{
+    if(state.view!=='calendar'||(e.key!=='Enter'&&e.key!==' ')) return;
+    const el=e.target&&e.target.closest?e.target.closest('[data-cal-week]'):null;
+    if(el){ e.preventDefault(); e.stopPropagation(); el.click(); }
+  }, true);
+}
+const _calPlanState=()=>_calPlan;
+
 Object.assign(window,{calState,calPlace,calPlacePut,calMonth,calView,calScope,CAL_VIEWS,CAL_EVENT,CAL_PRIORITY,
   calendarEvents,calEventMine,calPeriod,calInPeriod,calLegendHtml,calVisible,calDecisionsThisWeek,calWeekBounds,
   calToday,calChipText,calIcsFor,calUpcoming,calSummaryLines,calMonthGridHtml,calPanelHtml,
   CAL_AGENDA_DAYS,CAL_AGENDA_WINDOWS,CAL_AGENDA_ROWS,calAgendaDays,calSetAgendaDays,
-  calSetView,calSetScope,calStep,openCalendarShare,renderCalendar});
+  calSetView,calSetScope,calStep,openCalendarShare,renderCalendar,
+  calLayers,calWeekStart,calWeekHtml,calOwnEvents,calPlanHtml,calPlanAsk,calPlanAdd,calPlanUndo,calEventDialog,_calPlanState});

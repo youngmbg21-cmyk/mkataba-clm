@@ -34,7 +34,7 @@ const { STRINGS, I18N_DEFAULT, LANGUAGES } = i18n;
 
 /* Words that are legitimately identical in both languages, so an equal-to-
    English value is a real translation rather than a forgotten one. */
-const SAME_IN_BOTH = new Set([ 'pd_tab_copilot', 'pd_doc_pdf',
+const SAME_IN_BOTH = new Set([ 'cal_k_plan', 'pd_tab_copilot', 'pd_doc_pdf',
   /* the Brain's Stack view (10 Oct 2026): product and service names (Node.js, Render, GitHub…), the
      technical words a developer uses, and the "say this to a developer" lines, kept English in both books on purpose */
   'brn_ov_stack', 'brn_stk_ask_1_s', 'brn_stk_ask_1_say', 'brn_stk_ask_2_s', 'brn_stk_ask_2_say', 'brn_stk_ask_3_s',

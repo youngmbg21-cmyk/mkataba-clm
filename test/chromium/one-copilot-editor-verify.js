@@ -150,20 +150,21 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     await press(page, '#rl-risks [data-rk-key="s:t-liab"] [data-rk-act="edit-ce"]');
     const rk = await until(page, () => {
       const lane = document.querySelector('#clause-editor #ce-lane');
-      return lane && lane.querySelector('.rk-ce-head') && !lane.querySelector('.rk-busy') && lane.querySelector('.ce-card .pv') && document.querySelector('#ce-rksug [data-ce-apply="rk:0"]') ? true : null;
+      return lane && lane.querySelector('.rk-ce-head') && !lane.querySelector('.rk-busy') && lane.querySelector('.ce-card .pv') && document.querySelector('#ce-lane [data-ce-apply="rk:0"]') ? true : null;
     }, null, 10000);
     check(!!rk, '1- the Risks tab has Copilot\'s answer');
     const R = await railNow();
     check(!!R && R.disc, '1a the panel\'s dropdown stands over the risk as over the clause');
     check(!!R && R.read.length >= 2 && /playbook/i.test(R.read[0]) && R.read.some(x => /wording/i.test(x)), '1b the reading rows the clause screen draws (Our playbook · The wording)', R && R.read.join(' · '));
     /* RE-POINTED 7 Oct 2026 (One footer): on the walk the card's buttons are the feet's top row */
-    check(!!R && R.cardName === 'Suggested wording' && R.cardBtns.length === 0 && R.dock.includes('Apply') && !R.dock.includes('Ask for a change') && !R.dock.includes('Expand'), '1c ONE Suggested wording; its Apply is the footer\'s top row — no Ask for a change, no votes (Young, 7 Oct 2026), no Expand', R && (R.cardBtns.join(' · ') + ' | ' + R.dock.join(' · ')));
+    /* RE-POINTED 10 Oct 2026 (Young, "one Copilot panel"): the card carries Apply · Discard itself; no Apply strip */
+    check(!!R && R.cardName === 'Suggested wording' && R.cardBtns.join(' · ') === 'Apply · Discard' && R.dock.length === 0, '1c ONE Suggested wording with Apply · Discard on the card — no strip, no Ask for a change, no votes, no Expand', R && (R.cardBtns.join(' · ') + ' | ' + R.dock.join(' · ')));
     check(!!R && Array.isArray(R.chips) && R.chips.join(' · ') === 'Make it firmer · Give me a softer version · Shorter · What does our playbook say?', '1d the risk\'s quick asks sit in the rail\'s own chips row', R && String(R.chips));
     check(!!R && R.ask, '1e and the typed ask in the rail\'s own box');
     check(!!R && R.scope, '1f with the clause card over it, as from a clause');
     check(!!R && !/twelve \(12\)/.test(R.box), '1g the box is untouched until Apply');
-    check(!!R && R.feet.length === 2 && /Previous · Skip · Save & next/.test(R.feet[0]) && /^Discard · (File|Save)$/.test(R.feet[1]), '1h the walk\'s buttons, then Discard · File', R && R.feet.join(' | '));
-    check(!!R && R.footTops.length === 5 && new Set(R.footTops).size === 1, '5a all five on ONE row', R && R.footTops.join(','));
+    check(!!R && R.feet.length === 1 && /^‹ · › · (File|Save)/.test(R.feet[0]), '1h one foot: ‹ k of n › and Save — no Skip, no Save & next, no Discard', R && R.feet.join(' | '));
+    check(!!R && R.footTops.length === 3 && new Set(R.footTops).size === 1, '5a all three on ONE row', R && R.footTops.join(','));
     check(!!R && R.footH.every(h => h <= 24), '5b on the small rung', R && R.footH.join(','));
     const face = await page.evaluate(() => {
       const p = [...document.querySelectorAll('#ce-doc .rl-clause p, #ce-doc p')].find(x => x.textContent.trim().length > 20);
@@ -198,11 +199,11 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
       text: (document.querySelector('#ce-lane .ce-card .pv') || {}).textContent || '' }));
     check(none.expand === 0 && !none.full, '3a no Expand and no full view', JSON.stringify({ expand: none.expand, full: none.full }));
     check(/Each party shall use reasonable endeavours to mitigate/.test(none.text), '3g the whole redline is there in the lane, to its last sentence');
-    await press(page, '#ce-rksug [data-ce-apply="rk:0"]');
-    const ap = await until(page, () => /twelve \(12\) months/.test(ceBoxWords()) && /Applied/.test((document.querySelector('#ce-rksug [data-ce-apply]') || {}).textContent || '') ? true : null);
-    check(!!ap, '3i Apply from the footer moves the wording into the box, and the row says Applied');
-    const save = await page.evaluate(() => { const b = document.querySelector('[data-ce-act="rk-save"]'); return b ? !b.disabled : false; });
-    check(save, '3j and Save & next is live once applied');
+    await press(page, '#ce-lane [data-ce-apply="rk:0"]');
+    const ap = await until(page, () => /twelve \(12\) months/.test(ceBoxWords()) && /Applied/.test((document.querySelector('#ce-lane .av[data-ce-card="rk:0"] .is-applied') || {}).textContent || '') ? true : null);
+    check(!!ap, '3i Apply on the card moves the wording into the box, and the card says Applied');
+    const save = await page.evaluate(() => { const b = document.querySelector('#ce-railfoot [data-ce-act="save"]'); return b ? !b.disabled : false; });
+    check(save, '3j and Save is live once applied');
 
     /* ============ 4. A TYPED ASK ON THE RISKS TAB ============ */
     const n0 = await page.evaluate(() => window._ocAsked.length);
@@ -218,13 +219,13 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     await press(page, '[data-ce-tab="chat"]');
     await until(page, () => document.querySelector('[data-ce-tab="chat"].is-on') ? true : null);
     await page.evaluate(() => ceAsk('Make the supply clause firmer'));
-    const ch = await until(page, () => document.querySelector('#ce-lane .ce-card.ce-sug [data-ce-apply]:not([data-ce-apply^="rk"])') ? true : null, null, 10000);
+    const ch = await until(page, () => document.querySelector('#ce-lane .ce-card.ce-sug .av[data-ce-card]:not([data-ce-card^="rk"])') ? true : null, null, 10000);
     check(!!ch, '2- the conversation has a Suggested wording card');
     const C = await railNow();
-    check(!!C && C.disc && C.cardName === 'Suggested wording' && C.cardBtns.includes('Apply') && !C.cardBtns.includes('Ask for a change') && !C.cardBtns.includes('Expand') && C.dock.length === 0, '2a the same wording, its own Apply on this tab — no Ask for a change, no Expand', C && C.cardBtns.join(' · '));
+    check(!!C && C.disc && C.cardName === 'Suggested wording' && (C.cardBtns.includes('Apply') || C.cardBtns.some(b => /Applied/.test(b))) && !C.cardBtns.includes('Ask for a change') && !C.cardBtns.includes('Expand') && C.dock.length === 0, '2a the same wording, its own Apply on this tab — no Ask for a change, no Expand', C && C.cardBtns.join(' · '));
     check(!!C && C.read.length >= 2 && /playbook/i.test(C.read[0]), '2b the same reading rows', C && C.read.join(' · '));
     check(!!C && Array.isArray(C.chips) && C.chips.length > 0 && C.ask, '2c the chips row and the ask box in the same places');
-    check(!!C && C.feet.length === 2, '2d the same two feet while the walk is on', C && C.feet.join(' | '));
+    check(!!C && C.feet.length === 1 && /(File|Save)$/.test(C.feet[0]), '2d the same one foot on this tab', C && C.feet.join(' | '));
     await shot('2-from-a-clause.png');
     /* RE-POINTED 7 Oct 2026 (Sticky bar): the buttons stick to the panel's bottom edge */
     const stick = await page.evaluate(() => { const av = [...document.querySelectorAll('#ce-lane .ce-card.ce-sug > .av')].pop(); return av ? getComputedStyle(av).position : null; });

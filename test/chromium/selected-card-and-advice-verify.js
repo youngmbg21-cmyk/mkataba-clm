@@ -18,7 +18,9 @@
    Screenshots: test/chromium/shots/selected-card-and-advice/ (or HATI_SHOT_DIR).
    Run: node test/chromium/selected-card-and-advice-verify.js */
 /* RE-POINTED 7 Oct 2026 (Young, "Risk Walk Options" — One footer): on the risk
-   walk the Suggested wording's Apply is the feet's top row, #ce-rksug. */
+   walk the Suggested wording's Apply is the feet's top row, #ce-rksug.
+   RE-POINTED 10 Oct 2026 (Young, "one Copilot panel"): Apply is on the card
+   again (no strip); the foot is ‹ k of n › and Save. */
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
@@ -143,7 +145,7 @@ const SCAN = { at: '5 Oct 2026, 15:10', on: '2026-10-05', lang: 'en', dismissed:
     await press(page, '#rl-risks [data-rk-key="s:t-liab"] [data-rk-act="edit-ce"]');
     const r1 = await until(page, () => {
       const lane = document.querySelector('#clause-editor #ce-lane');
-      return lane && !lane.querySelector('.rk-busy') && document.querySelector('#ce-rksug [data-ce-apply="rk:0"]') ? lane.textContent.replace(/\s+/g, ' ') : null;
+      return lane && !lane.querySelector('.rk-busy') && document.querySelector('#ce-lane [data-ce-apply="rk:0"]') ? lane.textContent.replace(/\s+/g, ' ') : null;
     }, null, 10000);
     /* RE-POINTED 6 Oct 2026 ("one Copilot editor"): the step count is gone;
        the panel's dropdown lists the open risks the walk goes through */
@@ -158,7 +160,7 @@ const SCAN = { at: '5 Oct 2026, 15:10', on: '2026-10-05', lang: 'en', dismissed:
     const c0 = await cardNow();
     check(c0.vis && c0.quote === 'This clause', '2a the tag in the ask box names the clause and quotes nothing', c0.quote);
     await shot('2a-card-at-rest.png');
-    await press(page, '#ce-rksug [data-ce-apply="rk:0"]');
+    await press(page, '#ce-lane [data-ce-apply="rk:0"]');
     const c1 = await until(page, () => /twelve \(12\) months/.test(ceBoxWords()) ? true : null) && await cardNow();
     check(!!c1 && /twelve \(12\) months/.test(c1.box), '2- Apply moved Copilot\'s wording onto the paper');
     check(!!c1 && c1.quote === 'This clause', '2b after Apply nothing on the tag can go stale', c1 && c1.quote);
@@ -193,7 +195,7 @@ const SCAN = { at: '5 Oct 2026, 15:10', on: '2026-10-05', lang: 'en', dismissed:
 
     /* back to the walk: Skip twice, never an advice row, never a refusal */
     await page.evaluate(() => { if (window.ceForgetUnfiled) ceForgetUnfiled(); });
-    await press(page, '[data-ce-act="rk-skip"]');
+    await press(page, '#ce-railfoot [data-ce-act="walk-next"]');
     const r2 = await until(page, () => {
       const lane = document.querySelector('#clause-editor #ce-lane');
       const hd = lane && lane.querySelector('.rk-ce-head');
@@ -202,7 +204,7 @@ const SCAN = { at: '5 Oct 2026, 15:10', on: '2026-10-05', lang: 'en', dismissed:
     check(!!r2 && /data-protection|data protection/i.test(r2) && /Where it goes/i.test(r2), '1h the second risk is data protection, held as a new clause', r2 && r2.slice(0, 120));
     check(!!r2 && !/could not draft|passage shown is empty/i.test(r2), '1i with no refusal from Copilot');
     await shot('1h-risk-2-of-2.png');
-    await press(page, '[data-ce-act="rk-skip"]');
+    await press(page, '#ce-railfoot [data-ce-act="walk-next"]');
     const done = await until(page, () => { const lane = document.querySelector('#clause-editor #ce-lane');
       return lane && /last risk/i.test(lane.textContent) ? lane.textContent.replace(/\s+/g, ' ') : null; }, null, 6000);
     check(!!done && !/qualified counsel/i.test(done), '1j the walk ends after two — it never opened an advice row', done && done.slice(0, 120));

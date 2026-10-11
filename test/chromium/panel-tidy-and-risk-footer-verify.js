@@ -14,11 +14,10 @@
      C. STICKY BAR — the Suggested wording is not a window: nothing inside it
         scrolls, no Expand is drawn and there is no #ce-full; on the
         Suggestions tab its buttons are sticky inside the lane.
-     D. ONE FOOTER — on the risk walk the suggestion's Apply · Ask for a
-        change · votes are the footer's top row (#ce-rksug), none in the
-        lane; Save & next is grey before Apply; after Apply the row says
-        Applied and Save & next can be pressed; the row is gone off the
-        Risks tab.
+     D. ONE FOOTER (re-pointed 10 Oct 2026, "one Copilot panel") — the
+        risk's card carries Apply · Discard itself; the foot is ‹ k of n ›
+        and Save, grey before Apply; after Apply the card reads Applied ·
+        Undo; Undo and Discard both work.
    Every driven half is GUARDED — a build without the feature REPORTS.
    Screenshots: test/chromium/shots/panel-tidy-and-risk-footer/ (or HATI_SHOT_DIR).
    Run: node test/chromium/panel-tidy-and-risk-footer-verify.js */
@@ -154,36 +153,51 @@ const LIAB_NEW = 'Each party\'s total liability under this Agreement shall not e
     check(c.pv <= 1, 'C1 nothing inside the Suggested wording scrolls (the wording is printed whole)', c.pv);
     check(c.expand === 0 && !c.full, 'C2 no Expand and no full-panel view', JSON.stringify(c));
 
-    /* ---- D. ONE FOOTER ---- */
+    /* ---- D. ONE FOOTER ---- RE-POINTED 10 Oct 2026 (Young, "one Copilot
+       panel"): the risk's card carries Apply · Discard itself (no Apply
+       strip); the foot is ‹ k of n › and Save; after Apply the card reads
+       Applied · Undo, and Undo takes the wording back out. */
     const d0 = await page.evaluate(() => {
       const row = document.getElementById('ce-rksug'), lane = document.getElementById('ce-lane');
-      const save = document.querySelector('[data-ce-act="rk-save"]');
-      return { row: !!row && !row.hidden && row.getClientRects().length > 0, apply: row ? !!row.querySelector('[data-ce-apply="rk:0"]:not([disabled])') : false,
-        laneApply: lane ? lane.querySelectorAll('[data-ce-apply]').length : -1, saveOff: !!save && save.disabled,
-        rowAbove: !!row && !!save && row.getBoundingClientRect().bottom <= save.getBoundingClientRect().top + 1 };
+      const save = document.querySelector('#ce-railfoot [data-ce-act="save"]'), walk = document.querySelector('#ce-railfoot .ce-walk');
+      return { strip: !!row && !row.hidden && row.getClientRects().length > 0,
+        apply: !!(lane && lane.querySelector('.ce-sug [data-ce-apply="rk:0"]')), discard: !!(lane && lane.querySelector('.ce-sug [data-ce-card-discard="rk:0"]')),
+        walk: walk && !walk.hidden ? walk.textContent.replace(/\s+/g, ' ').trim() : '', saveOff: !!save && save.disabled,
+        oldFoot: document.querySelectorAll('[data-ce-act="rk-save"],[data-ce-act="rk-skip"],#ce-railfoot [data-ce-act="discard"]').length };
     });
-    check(d0.row && d0.apply && d0.laneApply === 0, 'D1 Apply · Ask for a change · votes are the footer\'s top row, none in the lane', JSON.stringify(d0));
-    check(d0.rowAbove && d0.saveOff, 'D2 the row sits over the walk\'s row, and Save & next is grey before Apply', JSON.stringify(d0));
-    await press(page, '#ce-rksug [data-ce-apply="rk:0"]');
+    check(!d0.strip && d0.apply && d0.discard, 'D1 Apply · Discard are on the card itself; no Apply strip', JSON.stringify(d0));
+    check(/1 of \d/.test(d0.walk) && d0.saveOff && d0.oldFoot === 0, 'D2 the foot is ‹ k of n › and Save (grey before Apply); no Skip, Save & next or Discard', JSON.stringify(d0));
+    await press(page, '#ce-lane [data-ce-apply="rk:0"]');
     const d1 = await until(page, () => {
-      const a = document.querySelector('#ce-rksug [data-ce-apply="rk:0"]'), save = document.querySelector('[data-ce-act="rk-save"]');
-      return a && /Applied/.test(a.textContent) ? { word: a.textContent, off: a.disabled, save: !!save && !save.disabled, box: /twelve \(12\) months/.test(ceBoxWords()) } : null;
+      const av = document.querySelector('#ce-lane .av[data-ce-card="rk:0"]'), save = document.querySelector('#ce-railfoot [data-ce-act="save"]');
+      const ap = av && av.querySelector('.is-applied'), un = av && av.querySelector('[data-ce-card-undo]');
+      return ap && un ? { word: ap.textContent, bg: getComputedStyle(ap).backgroundColor, undoBg: getComputedStyle(un).backgroundColor, save: !!save && !save.disabled, box: /twelve \(12\) months/.test(ceBoxWords()) } : null;
     });
-    check(!!d1 && d1.box && d1.off, 'D3 Apply moves the wording into the box and the row says Applied', d1 && JSON.stringify(d1));
-    check(!!d1 && d1.save, 'D4 Save & next can be pressed once applied', d1 && JSON.stringify(d1));
+    check(!!d1 && d1.box && /Applied/.test(d1.word), 'D3 Apply moves the wording into the box and the card says Applied · Undo', d1 && JSON.stringify(d1));
+    check(!!d1 && d1.save, 'D4 Save can be pressed once applied', d1 && JSON.stringify(d1));
+    await press(page, '#ce-lane [data-ce-card-undo="rk:0"]');
+    const d2 = await until(page, () => !/twelve \(12\) months/.test(ceBoxWords()) && document.querySelector('#ce-lane [data-ce-apply="rk:0"]') ? true : null);
+    check(!!d2, 'D4b Undo takes the wording back out and the card offers Apply · Discard again');
+    await press(page, '#ce-lane [data-ce-card-discard="rk:0"]');
+    const d3 = await until(page, () => { const av = document.querySelector('#ce-lane .av[data-ce-card="rk:0"]');
+      return av && /discarded/i.test(av.textContent) && av.querySelector('[data-ce-card-undo]') ? true : null; });
+    check(!!d3, 'D4c Discard leaves one quiet line with Undo');
+    await press(page, '#ce-lane [data-ce-card-undo="rk:0"]');
+    await press(page, '#ce-lane [data-ce-apply="rk:0"]');
+    await until(page, () => /twelve \(12\) months/.test(ceBoxWords()) ? true : null);
     await railShot('3-risk-walk-after-apply.png');
 
     /* ---- C3 / D5: the Suggestions tab ---- */
     await press(page, '[data-ce-tab="chat"]');
     const off = await until(page, () => { const r = document.getElementById('ce-rksug'); return (!r || r.hidden) ? true : null; });
-    check(!!off, 'D5 off the Risks tab the suggestion row is gone');
+    check(!!off, 'D5 no Apply strip on the Playbook tab either');
     await page.evaluate(() => ceAsk('Make it firmer'));
     const s = await until(page, () => {
       const card = [...document.querySelectorAll('#ce-lane .ce-card.ce-sug')].pop(); if (!card) return null;
       const av = card.querySelector(':scope > .av');
-      return av ? { pos: getComputedStyle(av).position, apply: !!av.querySelector('[data-ce-apply]'), bg: getComputedStyle(card).backgroundColor } : null;
+      return av ? { pos: getComputedStyle(av).position, apply: !!av.querySelector('[data-ce-apply], .is-applied'), bg: getComputedStyle(card).backgroundColor } : null;
     }, null, 10000);
-    check(!!s && s.pos === 'sticky' && s.apply, 'C3 on the Suggestions tab Apply sits in a bar that sticks to the panel\'s bottom edge', s && JSON.stringify(s));
+    check(!!s && s.pos === 'sticky' && s.apply, 'C3 on the Playbook tab the card\'s buttons (Apply, or Applied once the box holds it) sit in a bar that sticks to the panel\'s bottom edge', s && JSON.stringify(s));
     await page.evaluate(() => { const l = document.getElementById('ce-lane'); l.scrollTop = Math.max(0, l.scrollHeight - l.clientHeight - 120); });
     await railShot('4-suggestions-sticky.png');
     await shot('5-whole-page.png');
