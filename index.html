@@ -9681,8 +9681,8 @@
   .hb-fd.is-bad,.hb-fd.is-warn,.hb-fd.is-good{background:rgba(var(--hb-gw),.1)}
   @media (max-width:900px){ .hb-ag{grid-template-columns:minmax(0,1fr) auto} .hb-ag>.hb-btn{grid-column:2;grid-row:1 / span 3} }
   /* the card's edge (as drawn): title · sub-title, then How this is drawn ▾ · Table · ⋯ */
-  .hb-board .hb-panel>.hb-ch,.hb-dig>.hb-ch{flex-wrap:wrap;row-gap:4px}
-  .hb-panel>.hb-ch .hb-cs,.hb-dig>.hb-ch .hb-cs{flex:0 1 auto}
+  .hb-board .hb-panel>.hb-ch,.hb-dig>.hb-ch{flex-wrap:nowrap;align-items:flex-start;row-gap:4px}
+  .hb-panel>.hb-ch .hb-cs,.hb-dig>.hb-ch .hb-cs{flex:0 0 100%;margin:0}
   .hb-edge{display:inline-flex;align-items:center;gap:2px;flex:none}
   .hb-edge-w{position:relative;display:inline-flex}
   .hb-edge-b{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:4px;height:26px;padding:0 8px;border-radius:var(--radius);font-size:var(--t-meta);font-weight:var(--w-label);color:var(--hb-glow);white-space:nowrap}
@@ -9716,6 +9716,8 @@
   .hb-chart-notes .hb-chart-lead b{font-weight:var(--w-label)}
   .hb-chart-notes .hb-head-line{margin:0}
   .hb-chart-notes .hb-head-line p{font-size:var(--t-meta);color:var(--hb-ink-2)}
+  /* the card's head: title (and its tags) over a short grey sub-title on the left, the edge on the right */
+  .hb-ch-l{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;min-width:0;flex:0 1 auto}
   /* THE SIDE LIST, AS DRAWN (part B): over the right of the page, under the bar */
   .hb-sheet{position:fixed;top:48px;right:0;bottom:0;width:min(560px,100vw);z-index:60;background:var(--hb-menu);border-left:1px solid rgba(var(--hb-ln),.18);box-shadow:-12px 0 32px rgba(4,25,26,.12);display:flex;flex-direction:column}
   .hb-sheet-h{display:flex;align-items:flex-start;gap:12px;padding:16px 18px 12px;border-bottom:1px solid rgba(var(--hb-ln),.14)}

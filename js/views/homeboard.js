@@ -86,7 +86,7 @@ function hbUid(){
 let _hbS = null, _hbSUid = null;
 function hbFresh(){
   return { face: 'board', lens: 'all', panels: [], path: [], prep: 'open', screen: null, scrPick: 0,
-    watches: [], seen: null, saved: [], seq: 0, found: null, recipe: {}, digBig: false,
+    watches: [], chartWatches: [], seen: null, saved: [], seq: 0, found: null, recipe: {}, digBig: false,
     ins: null, insKept: {}, insOff: {}, keptSent: '', why: {}, undo: [], undoSeq: 0, an: {}, sy: {}, refs: {}, myq: [] };
 }
 /* The board as this person left it. Read once per sitting and per person; a
@@ -131,6 +131,9 @@ function hbS(){
     if (Array.isArray(v.watches)) s.watches = v.watches.filter(w => w && HB_FIG_KEYS.includes(w.k)
       && (w.dir === 'above' || w.dir === 'below') && isFinite(Number(w.n))).slice(0, HB_WATCH_MAX)
       .map(w => ({ k: w.k, dir: w.dir, n: Number(w.n) }));
+    if (Array.isArray(v.chartWatches)) s.chartWatches = v.chartWatches.filter(w => w && typeof w.key === 'string' && /^(q|cd|ls):/.test(w.key)
+      && (w.dir === 'above' || w.dir === 'below') && isFinite(Number(w.n))).slice(0, HB_WATCH_MAX)
+      .map(w => ({ key: w.key.slice(0, 200), title: String(w.title || '').slice(0, 120), dir: w.dir, n: Number(w.n) }));
     if (v.seen && typeof v.seen === 'object') s.seen = v.seen;
     if (Array.isArray(v.saved)) s.saved = v.saved.filter(x => x && x.name && Array.isArray(x.kinds)).slice(-6)
       .map(x => ({ name: String(x.name).slice(0, 60), kinds: x.kinds.filter(k => HB_KINDS[k]), lens: HB_LENSES.includes(x.lens) ? x.lens : 'all' }));
@@ -3519,8 +3522,9 @@ function hbWhatIfSvg(D, cs, P){
 /* A8: THE MONTHLY PACK — every chart kept on the board, drawn as a picture
    with its name, its headline and the date of the data, in one page the
    reader downloads (a standalone page: literal colours, nothing borrowed) */
-async function hbPackMake(){
-  const cards = [...document.querySelectorAll('#hb-board .hb-grid [data-hb-pid]')];
+async function hbPackMake(only){
+  /* A11: one chart's own pack (its ⋯ menu) is the same page with one picture */
+  const cards = Array.isArray(only) ? only : [...document.querySelectorAll('#hb-board .hb-grid [data-hb-pid]')];
   const said = (k, kind, v) => { if (typeof toast === 'function') toast(i18t(k, v), kind); };
   const items = [];
   for (const card of cards){
@@ -4581,7 +4585,10 @@ function hbHeadlineHtml(key, reading, n, sig){
   const line = hbHeadlineOf(reading);
   if (!line) return '';
   const open = _hbReadOpen.has(key);
-  return `<div class="hb-head-line"><p>${line}</p><button type="button" class="hb-link hb-head-more" data-hb-read-more="${_hbE(key)}" aria-expanded="${open}">${_hbE(i18t(open ? 'hb_head_less' : 'hb_head_more'))}</button></div>`
+  /* on a board card the reading opens from ⋯ → What could explain this?
+     (as drawn); its "Read less" stays to fold it again */
+  const btn = open || !(_hbFitAt && _hbFitAt.step === 'board');
+  return `<div class="hb-head-line"><p>${line}</p>${btn ? `<button type="button" class="hb-link hb-head-more" data-hb-read-more="${_hbE(key)}" aria-expanded="${open}">${_hbE(i18t(open ? 'hb_head_less' : 'hb_head_more'))}</button>` : ''}</div>`
     + (open ? hbReadBlockHtml(key, reading, n, sig) : '');
 }
 function hbReadSrcHeadHtml(key){
@@ -4605,7 +4612,10 @@ function hbDigBodyHtml(D, lens, big){
     const lead = fig ? `<div class="hb-say">${_hbE(i18tn('hb_say_' + fig, cs.length, { n: _hbN(cs.length) }))}</div>` : '';
     /* CHART FIRST, ALWAYS; the rows are the List picture */
     const P = hbPlan(D);
-    if (P.pic !== 'list') return lead + hbChartHtml(D, cs, big) + (cs.length ? hbListFootHtml(cs, label, D.stage || null, i18tn('hb_all_counted', cs.length, { n: _hbN(cs.length) })) : '');
+    /* on the board the card is clean (as drawn): its contracts are one press
+       away in the side list, which carries this foot */
+    const onCard = !!(_hbFitAt && _hbFitAt.step === 'board');
+    if (P.pic !== 'list') return lead + hbChartHtml(D, cs, big) + (cs.length && !onCard ? hbListFootHtml(cs, label, D.stage || null, i18tn('hb_all_counted', cs.length, { n: _hbN(cs.length) })) : '');
     /* the list keeps the card's period, order and top N — the rest said */
     const W = P.window ? hbWindowCut(cs, P) : null;
     let rows = W ? W.cs : cs.slice();
@@ -4760,6 +4770,27 @@ function hbWatchFormHtml(k){
     <span class="hb-quiet hb-wide">${_hbE(i18t('hb_watch_note'))}</span></form>`;
 }
 function hbWatchFired(w){ const v = hbFigNumber(hbBookData('all', { whole: true }), w.k); return w.dir === 'above' ? v > w.n : v < w.n; }
+/* A9 (the board as drawn, 11 Oct 2026): ANY CHART'S NUMBER CAN BE WATCHED —
+   the contracts it counts (its own list, hbDigData), read where it is drawn;
+   crossing the line is a row in the bell, nothing is sent. Kept apart from
+   the six figures' watches (s.chartWatches), so theirs read as before. */
+function hbChartWatchNow(key){ const D = hbDigData(key, 'all'); return D && Array.isArray(D.ids) ? D.ids.length : null; }
+function hbChartWatchFired(w){ const v = hbChartWatchNow(w.key); return v != null && (w.dir === 'above' ? v > w.n : v < w.n); }
+function hbChartWatchFormHtml(key, title){
+  const v = hbChartWatchNow(key) || 0;
+  return `<form class="hb-inl" data-hb-watch-form="chart" data-hb-watch-key="${_hbE(key)}" data-hb-watch-title="${_hbE(title || '')}">${_hbE(i18t('hb_watch_tell', { what: title || i18tn('hb_contracts_word', 2, { n: 2 }) }))}
+    <select name="dir" aria-label="${_hbE(i18t('hb_watch_dir'))}"><option value="above">${_hbE(i18t('hb_watch_above'))}</option><option value="below">${_hbE(i18t('hb_watch_below'))}</option></select>
+    <input type="number" name="n" value="${Math.round(v)}" min="0" aria-label="${_hbE(i18t('hb_watch_line'))}">
+    <button type="submit" class="hb-btn is-primary">${_hbE(i18t('hb_watch_go'))}</button><button type="button" class="hb-btn" data-hb-watch-cancel>${_hbE(i18t('hb_cancel'))}</button>
+    <span class="hb-quiet hb-wide">${_hbE(i18t('hb_watch_note'))}</span></form>`;
+}
+/* "Watching: above N · not yet" on the card, each with its own ×; and the form while it is open */
+function hbChartWatchHtml(key, title, formKey){
+  const s = hbS(), list = s.chartWatches || [];
+  const mine = list.filter(w => w.key === key);
+  const form = _hbWatchForm === formKey ? hbChartWatchFormHtml(key, title) : '';
+  return form + (mine.length ? `<div class="hb-say hb-watching">${_hbE(i18t('hb_watching'))} ${mine.map(w => `<span class="hb-chip${hbChartWatchFired(w) ? ' is-bad' : ''}">${_hbE(i18t('hb_watch_' + w.dir) + ' ' + _hbN(w.n) + ' · ' + i18t(hbChartWatchFired(w) ? 'hb_watch_fired' : 'hb_watch_not_yet'))}<button type="button" data-hb-cwatch-stop="${list.indexOf(w)}" title="${_hbE(i18t('hb_watch_stop'))}" aria-label="${_hbE(i18t('hb_watch_stop'))}">${_hbX}</button></span>`).join(' ')}</div>` : '');
+}
 function hbFocusHtml(){
   const s = hbS(); const path = s.path || []; if (!path.length) return '';
   const D = hbDigData(path[path.length - 1], s.lens);
@@ -4780,10 +4811,10 @@ function hbFocusHtml(){
   const tools = D.kind === 'list' ? hbEdgeHtml(D, 'focus', 'focus') : grows ? `${hbBigBtnHtml(s.digBig, 'data-hb-digbig')}` : '';
   const FM = _hbEdgeMeta.get('focus') || {};
   return `<div class="hb-focus" id="hb-focus"><nav class="hb-trail" aria-label="${_hbE(i18t('hb_trail'))}"><button type="button" data-hb-crumb="-1">${_hbE(i18t('hb_face_board'))}</button><span aria-hidden="true">›</span>${crumbs}${hbFuStepsHtml(path[path.length - 1])}</nav>
-    <section class="hb-card hb-dig${_hbFocusNew ? ' is-new' : ''}${s.digBig && grows ? ' is-big' : ''}${_hbFull && grows ? ' is-full' : ''}"><header class="hb-ch"><span class="hb-ct">${_hbE(title)}</span>${FM.by ? `<span class="hb-cs">${_hbE(FM.by)}</span>` : ''}${hbVerBadgeHtml((s.panels || []).find(x => x.key === path[path.length - 1]))}<span class="hb-grow"></span>${tools}${eye}
+    <section class="hb-card hb-dig${_hbFocusNew ? ' is-new' : ''}${s.digBig && grows ? ' is-big' : ''}${_hbFull && grows ? ' is-full' : ''}"><header class="hb-ch"><span class="hb-ch-l"><span class="hb-ct">${_hbE(title)}</span>${hbVerBadgeHtml((s.panels || []).find(x => x.key === path[path.length - 1]))}${FM.by ? `<span class="hb-cs">${_hbE(FM.by)}</span>` : ''}</span><span class="hb-grow"></span>${tools}${eye}
       ${path.length > 1 ? `<button type="button" class="hb-ib" data-hb-crumb="${path.length - 2}" title="${_hbE(i18t('hb_step_back'))}" aria-label="${_hbE(i18t('hb_step_back'))}">${_hbBack}</button>` : ''}
       <button type="button" class="hb-ib hb-x" data-hb-crumb="-1" title="${_hbE(i18t('hb_close_dig'))}" aria-label="${_hbE(i18t('hb_close_dig'))}">${_hbX}</button></header>
-      <div class="hb-cb">${fk && _hbWatchForm === fk ? hbWatchFormHtml(fk) : ''}${watching}${bodyHtml}</div></section></div>`;
+      <div class="hb-cb">${fk && _hbWatchForm === fk ? hbWatchFormHtml(fk) : ''}${watching}${D.kind === 'list' && /^(q|cd|ls):/.test(D.key) ? hbChartWatchHtml(D.key, title, 'chart:focus') : ''}${bodyHtml}</div></section></div>`;
 }
 /* the opened card is step two, or three in full screen (O-22, O-25) */
 function hbFocusBodyHtml(D, s){
@@ -4952,7 +4983,7 @@ function hbSheetKeyOf(el){
    SAME door it always was). The card's body is the chart and its notes. */
 const _hbEdgeMeta = new Map(), _hbHowOn = new Set();
 let _hbDrawnOpen = null;
-const _HB_MI = { why: '✦', odd: '◎', how: 'ⓘ', ask: '✦', watch: '◔', give: '➦', pack: '▤', img: '⧉', tab: '⊞', save: '☆', wi: '◇', ver: '✓', big: '⤢', full: '⛶', x: '✕', split: '⇆' };
+const _HB_MI = { why: '✦', odd: '◎', how: 'ⓘ', ask: '✦', watch: '⤒', give: '➦', pack: '▤', img: '⧉', tab: '⊞', save: '☆', wi: '◇', ver: '✓', big: '⤢', full: '⛶', x: '✕', split: '⇆' };
 function _hbMi(attrs, sym, word, danger){
   return `<button type="button" role="menuitem" class="hb-mi${danger ? ' is-danger' : ''}" ${attrs}><span class="hb-mi-k" aria-hidden="true">${sym}</span>${_hbE(word)}</button>`;
 }
@@ -4987,7 +5018,7 @@ function hbDrawnPanelHtml(D, P){
 }
 /* the head's right side for a chart card: akey is the card's own (a panel's
    id, or 'focus'); where says which card it is ('board' | 'focus') */
-function hbEdgeHtml(D, akey, where, p){
+function hbEdgeHtml(D, akey, where, p, gift){
   const M = _hbEdgeMeta.get(akey) || {}, P = hbPlan(D), mk = akey + '|' + where, board = where === 'board';
   const drawnOpen = _hbDrawnOpen === mk, moreOpen = _hbToolsMenu === mk;
   const drawn = D.kind === 'list' ? `<span class="hb-edge-w" data-hb-rkey="${_hbE(D.key)}"><button type="button" class="hb-edge-b" data-hb-drawn="${_hbE(mk)}" aria-haspopup="dialog" aria-expanded="${drawnOpen}">${_hbE(i18t('hb_dp_btn'))}${_hbCaret}</button>`
@@ -4998,7 +5029,10 @@ function hbEdgeHtml(D, akey, where, p){
     + (M.cols ? _hbMi(`data-hb-odd="${k}" aria-pressed="${_hbOddOn.has(D.key)}"`, _HB_MI.odd, i18t(_hbOddOn.has(D.key) ? 'hb_odd_off' : 'hb_odd_btn')) : '')
     + _hbMi(`data-hb-howon="${k}" aria-pressed="${_hbHowOn.has(D.key)}"`, _HB_MI.how, i18t(_hbHowOn.has(D.key) ? 'hb_how_off' : 'hb_how_on'))
     + _hbMi(`data-hb-why-follow="${k}"`, _HB_MI.ask, i18t('hb_tip_ask'))
+    + (/^(q|cd|ls):/.test(D.key) ? _hbMi(`data-hb-cwatch="${_hbE(akey)}"`, _HB_MI.watch, i18t('hb_watch_menu')) : '')
     + '<hr>'
+    + (board && p && p.kind === 'view' && !/^gift:/.test(p.id) && !(gift && gift.from) ? _hbMi('data-hb-act="give"', _HB_MI.give, i18t('hb_p_give') + '…') : '')
+    + _hbMi('data-hb-pack-one', _HB_MI.pack, i18t('hb_pack_one'))
     + (M.canTable ? (M.tab ? '' : _hbMi('data-hb-copy-img', _HB_MI.img, i18t('hb_copy_img'))) + _hbMi('data-hb-copy-tab', _HB_MI.tab, i18t('hb_copy_tab')) : '')
     + _hbMi(`data-hb-saveq="${k}"`, _HB_MI.save, i18t('hb_myq_btn'))
     + _hbMi(`data-hb-whatif="${k}" aria-pressed="${_hbWhatIf.has(D.key)}"`, _HB_MI.wi, i18t(_hbWhatIf.has(D.key) ? 'hb_wi_off' : 'hb_wi_btn'))
@@ -5006,7 +5040,7 @@ function hbEdgeHtml(D, akey, where, p){
     + '<hr>'
     + (board ? _hbMi('data-hb-act="big"', _HB_MI.big, i18t(p && p.big ? 'hb_p_small' : 'hb_p_big')) : _hbMi('data-hb-digbig', _HB_MI.big, i18t(hbS().digBig ? 'hb_p_small' : 'hb_p_big')))
     + (board ? _hbMi(`data-hb-fullkey="${k}"`, _HB_MI.full, i18t('hb_full_screen')) : _hbMi(`data-hb-full aria-pressed="${_hbFull}"`, _HB_MI.full, i18t(_hbFull ? 'hb_full_back' : 'hb_full_screen')))
-    + (board ? _hbMi('data-hb-act="x"', _HB_MI.x, i18t('hb_p_x'), true) : '');
+    + (board ? _hbMi('data-hb-act="x"', _HB_MI.x, i18t(gift && gift.from ? 'hb_p_x_gift' : 'hb_p_x'), true) : '');
   const more = `<span class="hb-tools-w"><button type="button" class="hb-edge-b hb-tools-more" data-hb-tools-more="${_hbE(mk)}" aria-haspopup="menu" aria-expanded="${moreOpen}" title="${_hbE(i18t('hb_tools_more'))}" aria-label="${_hbE(i18t('hb_tools_more'))}">⋯</button>`
     + (moreOpen ? `<span class="hb-pmenu hb-tools-menu" role="menu">${items}</span>` : '') + '</span>';
   return `<span class="hb-edge hb-open-tools" data-hb-copy-t="${_hbE(M.title || '')}" data-hb-copy-s="${_hbE(M.by || '')}" data-hb-copy-n="${M.n || 0}">${drawn}${table}${more}</span>`;
@@ -5028,7 +5062,7 @@ function hbKindToolsHtml(p, gift){
     + (moreOpen ? `<span class="hb-pmenu hb-tools-menu" role="menu">${items}</span>` : '') + '</span></span>';
 }
 function hbPanelHtml(p, lens, gift){
-  if (p.kind === 'view') return hbViewPanelHtml(p, lens);
+  if (p.kind === 'view') return hbViewPanelHtml(p, lens, gift);
   const K = HB_KINDS[p.kind];
   const body = p.split
     ? `<div class="hb-split"><div><div class="hb-lab is-side">${_hbE(i18t('hb_lens_suppliers'))}</div>${hbPanelBodyHtml(p.kind, 'suppliers')}</div><div><div class="hb-lab is-side">${_hbE(i18t('hb_lens_customers'))}</div>${hbPanelBodyHtml(p.kind, 'customers')}</div></div>`
@@ -5036,7 +5070,7 @@ function hbPanelHtml(p, lens, gift){
   const given = gift && gift.sent ? `<span class="hb-given" title="${_hbE(gift.sent.note || '')}">${_hbE(i18t('hb_given', { who: gift.sent.toName || '', seen: i18t(gift.sent.seenAt ? 'hb_seen' : 'hb_not_seen') }))}<button type="button" data-hb-ungive="${_hbE(gift.sent.id)}" title="${_hbE(i18t('hb_take_back'))}" aria-label="${_hbE(i18t('hb_take_back'))}">${_hbX}</button></span>` : '';
   const from = gift && gift.from ? `<span class="hb-given is-from" title="${_hbE(gift.from.note || '')}">${_hbE(i18t('hb_from', { who: gift.from.fromName || '' }))}</span>` : '';
   return `<section class="hb-card hb-panel${(p.big || p.split) ? ' is-big' : ''}${p.id === _hbNewPanel ? ' is-new' : ''}" data-hb-pid="${_hbE(p.id)}">
-    <header class="hb-ch"><span class="hb-ct">${_hbE(i18t(K.word))}</span><span class="hb-cs" title="${_hbE(i18t('hb_p_src', { tab: i18t(K.src) }))}">${p.split ? _hbE(i18t('hb_side_by_side')) : _hbE(i18t(K.src))}</span>${from}${given}<span class="hb-grow"></span>
+    <header class="hb-ch"><span class="hb-ch-l"><span class="hb-ct">${_hbE(i18t(K.word))}</span>${from}${given}<span class="hb-cs" title="${_hbE(i18t('hb_p_src', { tab: i18t(K.src) }))}">${p.split ? _hbE(i18t('hb_side_by_side')) : _hbE(i18t(K.src))}</span></span><span class="hb-grow"></span>
       ${hbKindToolsHtml(p, gift)}</header>
     <div class="hb-cb">${_hbGiveForm === p.id ? hbGiveFormHtml(p) : ''}${body}</div></section>`;
 }
@@ -5088,7 +5122,9 @@ function hbBoardHtml(){
   hbKeptSync();
   hbMovedSync();
   const panels = s.panels.slice().reverse().map(p => hbPanelHtml(p, s.lens, { sent: gifts.sent[p.id] || null })).join('');
-  const received = gifts.received.map(g => /^sy_/.test(g.kind) ? hbStoryGiftHtml(g) : hbPanelHtml({ id: 'gift:' + g.id, kind: g.kind, split: !!g.split, big: false }, HB_LENSES.includes(g.lens) ? g.lens : 'all', { from: g })).join('');
+  const received = gifts.received.map(g => /^sy_/.test(g.kind) ? hbStoryGiftHtml(g)
+    : g.kind === 'view' ? hbViewPanelHtml({ id: 'gift:' + g.id, kind: 'view', key: g.spec.key, title: g.spec.title || '', recipe: g.spec.recipe || null, big: false }, HB_LENSES.includes(g.lens) ? g.lens : 'all', { from: g })
+    : hbPanelHtml({ id: 'gift:' + g.id, kind: g.kind, split: !!g.split, big: false }, HB_LENSES.includes(g.lens) ? g.lens : 'all', { from: g })).join('');
   /* and the freshness line too: WHEN it was counted is a fact the reader
      cannot know; "all contracts" is one they chose. */
   const cut = [hbCountLabel(s.lens), s.lens === 'all' ? '' : i18t('hb_lens_' + s.lens).toLowerCase()].filter(Boolean).join(' · ');
@@ -6703,7 +6739,7 @@ function hbAddView(k, mine){
   s.panels.push(p); _hbNewPanel = p.id; hbSave();
   return { p, left };
 }
-function hbViewPanelHtml(p, lens){
+function hbViewPanelHtml(p, lens, gift){
   if (p.recipe) hbCardSet(p.key, p.recipe, { seed: true });
   const D = hbDigData(p.key, lens);
   _hbFitAt = { key: p.id, step: 'board', big: !!p.big };
@@ -6714,12 +6750,14 @@ function hbViewPanelHtml(p, lens){
   const body = D ? `<div class="hb-cb">${inner}</div>` : `<div class="hb-cb"><div class="hb-quiet">${_hbE(i18t('hb_none_here'))}</div></div>`;
   const M = _hbEdgeMeta.get(p.id) || {};
   const tag = p.verified ? '' : /^cd:/.test(p.key) ? `<span class="hb-src" title="${_hbE(i18t('hb_cd_src_tip'))}">${_hbE(i18t('hb_cd_src'))}</span>` : `<span class="hb-src" title="${_hbE(i18t('hb_ins_src_tip'))}">${_hbE(i18t('hb_ins_src'))}</span>`;
-  const edge = D ? hbEdgeHtml(D, p.id, 'board', p)
+  const given = gift && gift.sent ? `<span class="hb-given" title="${_hbE(gift.sent.note || '')}">${_hbE(i18t('hb_given', { who: gift.sent.toName || '', seen: i18t(gift.sent.seenAt ? 'hb_seen' : 'hb_not_seen') }))}<button type="button" data-hb-ungive="${_hbE(gift.sent.id)}" title="${_hbE(i18t('hb_take_back'))}" aria-label="${_hbE(i18t('hb_take_back'))}">${_hbX}</button></span>` : '';
+  const from = gift && gift.from ? `<span class="hb-given is-from" title="${_hbE(gift.from.note || '')}">${_hbE(i18t('hb_from', { who: gift.from.fromName || '' }))}</span>` : '';
+  const edge = D ? hbEdgeHtml(D, p.id, 'board', p, gift)
     : `<span class="hb-edge"><button type="button" class="hb-edge-b" data-hb-act="x">${_hbE(i18t('hb_p_x'))}</button></span>`;
   return `<section class="hb-card hb-panel hb-view${p.big ? ' is-big' : ''}${p.id === _hbNewPanel ? ' is-new' : ''}" data-hb-pid="${_hbE(p.id)}">
-    <header class="hb-ch"><span class="hb-ct">${_hbE(hbPanelWord(p))}</span>${M.by ? `<span class="hb-cs">${_hbE(M.by)}</span>` : ''}${hbVerBadgeHtml(p)}${tag}<span class="hb-grow"></span>
+    <header class="hb-ch"><span class="hb-ch-l"><span class="hb-ct">${_hbE(hbPanelWord(p))}</span>${hbVerBadgeHtml(p)}${tag}${from}${given}${M.by ? `<span class="hb-cs">${_hbE(M.by)}</span>` : ''}</span><span class="hb-grow"></span>
       ${edge}</header>
-    ${_hbVerForm === p.id && hbMayVerify(p) ? hbVerFormHtml(p) : ''}${body}</section>`;
+    ${_hbVerForm === p.id && hbMayVerify(p) ? hbVerFormHtml(p) : ''}${_hbGiveForm === p.id ? `<div class="hb-cb">${hbGiveFormHtml(p)}</div>` : ''}${D ? hbChartWatchHtml(p.key, hbPanelWord(p), 'chart:' + p.id) : ''}${body}</section>`;
 }
 function hbInsAct(act, id){
   const s = hbS();
@@ -8215,7 +8253,7 @@ function hbAsk(q){
   }
   if (r.act === 'noref') return say(_hbE(i18t('hb_no_ref', { ref: r.ref })), { noPaint: true });
   if (r.act === 'reset'){
-    const keep = { screen: s.screen, scrPick: s.scrPick, watches: s.watches, saved: s.saved, seen: s.seen, seq: s.seq, undo: s.undo, undoSeq: s.undoSeq };
+    const keep = { screen: s.screen, scrPick: s.scrPick, watches: s.watches, chartWatches: s.chartWatches, saved: s.saved, seen: s.seen, seq: s.seq, undo: s.undo, undoSeq: s.undoSeq };
     Object.assign(s, hbFresh(), keep); hbSave(); hbLensOnMap();
     hbMount();
     return say(_hbE(i18t('hb_reset_said')), { noPaint: true });
@@ -8357,13 +8395,15 @@ function hbShowFound(ids, title, chart){
    bell when the line is crossed, and nothing is sent. buildAlerts asks this. */
 function hbWatchAlerts(){
   let s; try { s = hbS(); } catch (_){ return []; }
-  if (!s.watches || !s.watches.length) return [];
+  const charts = (s.chartWatches || []).filter(hbChartWatchFired).map(w => ({ k: 'chart', text: i18t('hb_watch_alert', { what: w.title || w.key, now: _hbN(hbChartWatchNow(w.key)), dir: i18t('hb_watch_' + w.dir), n: _hbN(w.n) }),
+    go: () => { if (typeof setView === 'function'){ const st = hbS(); st.face = 'board'; st.path = [w.key]; hbSave(); setView('dashboard'); } } }));
+  if (!s.watches || !s.watches.length) return charts;
   const d = hbBookData('all', { whole: true });
   return s.watches.filter(w => { const v = hbFigNumber(d, w.k); return w.dir === 'above' ? v > w.n : v < w.n; }).map(w => {
     const v = hbFigNumber(d, w.k);
     return { k: w.k, text: i18t('hb_watch_alert', { what: i18t('hb_f_' + w.k), now: w.k === 'value' ? _hbM(v) : _hbN(v), dir: i18t('hb_watch_' + w.dir), n: w.k === 'value' ? _hbM(w.n) : _hbN(w.n) }),
       go: () => { if (typeof setView === 'function'){ const st = hbS(); st.face = 'board'; st.path = ['f:' + w.k]; hbSave(); setView('dashboard'); } } };
-  });
+  }).concat(charts);
 }
 function hbAlertsChanged(){ try { if (typeof updateAlertBadge === 'function') updateAlertBadge(); } catch (_){} }
 
@@ -8377,7 +8417,7 @@ let _hbGifts = { received: [], sent: [], at: 0 };
 function hbGiftsFor(){
   const sent = {};
   (_hbGifts.sent || []).forEach(g => { if (g && g.pid && !sent[g.pid]) sent[g.pid] = g; });
-  return { received: (_hbGifts.received || []).filter(g => g && (HB_KINDS[g.kind] || (/^sy_/.test(g.kind) && HB_STORIES.includes(g.kind.slice(3)) && !!hbStoryGiftHtml(g)))), sent };
+  return { received: (_hbGifts.received || []).filter(g => g && ((g.kind === 'view' && g.spec && /^(q|cd|ls):/.test(String(g.spec.key || ''))) || HB_KINDS[g.kind] || (/^sy_/.test(g.kind) && HB_STORIES.includes(g.kind.slice(3)) && !!hbStoryGiftHtml(g)))), sent };
 }
 function hbGiftsLoad(force){
   if (typeof API_MODE !== 'function' || !API_MODE() || typeof api !== 'function') return;
@@ -8399,7 +8439,8 @@ async function hbGive(pid, to, note){
   const p = story ? { kind: 'sy_' + hbStoryId(story).topic, split: false } : hbS().panels.find(x => x.id === pid); if (!p) return;
   if (typeof API_MODE !== 'function' || !API_MODE()){ if (typeof toast === 'function') toast(i18t('hb_give_local'), 'warn'); return; }
   try {
-    const r = await api('home/gifts', 'POST', { to, kind: p.kind, split: !!p.split, lens: hbS().lens, note: String(note || '').slice(0, 500), pid });
+    const spec = p.kind === 'view' ? { key: p.key, title: hbPanelWord(p), recipe: (hbS().recipe || {})[p.key] || p.recipe || null } : undefined;
+    const r = await api('home/gifts', 'POST', { to, kind: p.kind, split: !!p.split, lens: hbS().lens, note: String(note || '').slice(0, 500), pid, spec });
     if (r && r.gift) _hbGifts.sent.unshift(r.gift);
     _hbGiveForm = null; hbPaintBoard();
     if (typeof toast === 'function') toast(i18t('hb_given_toast', { who: (r && r.gift && r.gift.toName) || '' }), 'ok');
@@ -8614,6 +8655,10 @@ function hbOnClick(e){
   if ((el = on('[data-hb-watch-stop]'))){ const s = hbS(); s.watches.splice(Number(el.getAttribute('data-hb-watch-stop')), 1); hbSave(); hbAlertsChanged(); hbPaintBoard(); return; }
   if ((el = on('[data-hb-watch]'))){ const k = el.getAttribute('data-hb-watch'); _hbWatchForm = _hbWatchForm === k ? null : k; hbPaintBoard(); return; }
   if (on('[data-hb-watch-cancel]')){ _hbWatchForm = null; hbPaintBoard(); return; }
+  if ((el = on('[data-hb-cwatch-stop]'))){ const s = hbS(); (s.chartWatches || []).splice(Number(el.getAttribute('data-hb-cwatch-stop')), 1); hbSave(); hbAlertsChanged(); hbPaintBoard(); return; }
+  if ((el = on('[data-hb-cwatch]'))){ const k = 'chart:' + el.getAttribute('data-hb-cwatch'); _hbToolsMenu = null; _hbWatchForm = _hbWatchForm === k ? null : k; hbPaintBoard(); return; }
+  if ((el = on('[data-hb-pack-one]'))){ const c0 = el.closest('.hb-card'), pid = c0 && c0.getAttribute('data-hb-pid'); _hbToolsMenu = null; hbPaintBoard();
+    const card = pid ? document.querySelector(`#hb-board [data-hb-pid="${CSS.escape(pid)}"]`) : document.querySelector('#hb-focus .hb-card'); if (card) hbPackMake([card]); return; }
   if (on('[data-hb-give-cancel]')){ _hbGiveForm = null; hbPaintBoard(); return; }
   if (on('[data-hb-ver-cancel]')){ _hbVerForm = null; hbPaintBoard(); return; }
   if ((el = on('[data-hb-ver-off]'))){ hbVerSave(el.getAttribute('data-hb-ver-off'), '', '', true); return; }
@@ -8660,6 +8705,16 @@ function hbOnClick(e){
 function hbOnSubmit(e){
   if (!window.state || state.view !== 'dashboard') return;
   const f = e.target;
+  if (f && f.matches && f.matches('[data-hb-watch-form="chart"]')){
+    e.preventDefault();
+    const key = f.getAttribute('data-hb-watch-key'), title = f.getAttribute('data-hb-watch-title') || '', dir = f.dir.value === 'below' ? 'below' : 'above', n = Number(f.n.value);
+    if (!isFinite(n) || !/^(q|cd|ls):/.test(key || '')) return;
+    const s = hbS(); s.chartWatches = s.chartWatches || [];
+    if (s.chartWatches.length >= HB_WATCH_MAX){ if (typeof toast === 'function') toast(i18t('hb_watch_full', { n: HB_WATCH_MAX }), 'warn'); return; }
+    s.chartWatches.push({ key, title, dir, n }); _hbWatchForm = null; hbSave(); hbAlertsChanged(); hbPaintBoard();
+    if (typeof toast === 'function') toast(i18t('hb_watch_said', { what: title || key, dir: i18t('hb_watch_' + dir), n }), 'ok');
+    return;
+  }
   if (f && f.matches && f.matches('[data-hb-watch-form]')){
     e.preventDefault();
     const k = f.getAttribute('data-hb-watch-form'), dir = f.dir.value === 'below' ? 'below' : 'above', n = Number(f.n.value);

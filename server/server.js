@@ -18422,15 +18422,29 @@ db.exec(`CREATE TABLE IF NOT EXISTS home_gifts (
   id TEXT PRIMARY KEY, from_id TEXT NOT NULL, to_id TEXT NOT NULL, kind TEXT NOT NULL,
   lens TEXT NOT NULL DEFAULT 'all', split INTEGER NOT NULL DEFAULT 0, note TEXT NOT NULL DEFAULT '',
   pid TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, seen_at TEXT, dismissed_at TEXT)`);
+/* a KEPT CHART is given by its name too (kind 'view', 11 Oct 2026, the
+   board as drawn): its key, its title and how it is drawn travel in spec —
+   never a figure; the colleague's own Home counts it over what they may see */
+try { db.exec("ALTER TABLE home_gifts ADD COLUMN spec TEXT NOT NULL DEFAULT ''"); } catch (_){}
+function homeGiftSpec(b){
+  const v = b && typeof b === 'object' ? b : null;
+  const key = v && typeof v.key === 'string' ? v.key.trim().slice(0, 200) : '';
+  if (!/^(q|cd|ls):/.test(key)) return null;
+  const recipe = v.recipe && typeof v.recipe === 'object' && !Array.isArray(v.recipe) ? v.recipe : null;
+  const out = { key, title: typeof v.title === 'string' ? v.title.slice(0, 120) : '', recipe };
+  const str = JSON.stringify(out);
+  return str.length <= 4000 ? str : null;
+}
 /* a STORY is given by its name too (sy_<topic>; Young, 6 Oct 2026) */
-const HOME_GIFT_KINDS = ['obl', 'fric', 'ren', 'pay', 'exp', 'val', 'sy_friction', 'sy_renewals', 'sy_spend', 'sy_pipeline', 'sy_risk', 'sy_payterms', 'sy_obligations', 'sy_party', 'sy_stream', 'sy_quarter'];
+const HOME_GIFT_KINDS = ['view', 'obl', 'fric', 'ren', 'pay', 'exp', 'val', 'sy_friction', 'sy_renewals', 'sy_spend', 'sy_pipeline', 'sy_risk', 'sy_payterms', 'sy_obligations', 'sy_party', 'sy_stream', 'sy_quarter'];
 const HOME_GIFT_LENSES = ['all', 'suppliers', 'customers'];
 /* A PERSON'S HOME HOLDS AT MOST THIS MANY GIFTS STILL ON IT; one more is
    refused in words, never dropped (a cap is a fact). */
 const HOME_GIFT_OPEN_MAX = 20;
 function homeGiftShape(g){
   const who = id => { const u = db.prepare('SELECT name FROM users WHERE id=?').get(id); return u ? u.name : ''; };
-  return { id: g.id, kind: g.kind, lens: g.lens, split: !!g.split, note: g.note || '', pid: g.pid || '',
+  let spec = null; if (g.spec) try { spec = JSON.parse(g.spec); } catch (_){}
+  return { id: g.id, kind: g.kind, lens: g.lens, split: !!g.split, note: g.note || '', pid: g.pid || '', spec,
     fromId: g.from_id, fromName: who(g.from_id), toId: g.to_id, toName: who(g.to_id),
     at: g.created_at, seenAt: g.seen_at || null };
 }
@@ -18449,13 +18463,15 @@ app.post('/api/home/gifts', auth, (req, res) => {
   const kind = clean(b.kind);
   if (!HOME_GIFT_KINDS.includes(kind)) return res.status(400).json({ error: 'kind must be one of: ' + HOME_GIFT_KINDS.join(', ') });
   const lens = HOME_GIFT_LENSES.includes(clean(b.lens)) ? clean(b.lens) : 'all';
+  const spec = kind === 'view' ? homeGiftSpec(b.spec) : '';
+  if (spec === null) return res.status(400).json({ error: 'A chart is given by its name and how it is drawn (key q:, cd: or ls:).' });
   const open = db.prepare('SELECT COUNT(*) AS n FROM home_gifts WHERE to_id=? AND dismissed_at IS NULL').get(u.id).n;
   if (open >= HOME_GIFT_OPEN_MAX) return res.status(409).json({ error: `${u.name} already has ${HOME_GIFT_OPEN_MAX} panels waiting on their Home. Ask them to clear some first.` });
   const g = { id: 'g_' + rid(8), from_id: req.user.id, to_id: u.id, kind, lens, split: b.split ? 1 : 0,
     /* a story about one counterparty or stream carries its name in its pid */
-    note: clean(b.note).slice(0, 500), pid: clean(b.pid).slice(0, /^sy_/.test(kind) ? 200 : 40), created_at: new Date().toISOString() };
-  db.prepare('INSERT INTO home_gifts (id,from_id,to_id,kind,lens,split,note,pid,created_at) VALUES (?,?,?,?,?,?,?,?,?)')
-    .run(g.id, g.from_id, g.to_id, g.kind, g.lens, g.split, g.note, g.pid, g.created_at);
+    note: clean(b.note).slice(0, 500), pid: clean(b.pid).slice(0, /^sy_/.test(kind) ? 200 : 40), spec, created_at: new Date().toISOString() };
+  db.prepare('INSERT INTO home_gifts (id,from_id,to_id,kind,lens,split,note,pid,spec,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)')
+    .run(g.id, g.from_id, g.to_id, g.kind, g.lens, g.split, g.note, g.pid, g.spec, g.created_at);
   res.json({ ok: true, gift: homeGiftShape(g) });
 });
 app.post('/api/home/gifts/:id/seen', auth, (req, res) => {
