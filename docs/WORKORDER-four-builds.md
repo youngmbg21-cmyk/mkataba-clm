@@ -80,3 +80,18 @@ the next one.
   ("In Review", "Executed") and a long value ("KES 600M", "SEK 15.20M").
 - Look for the same fixed-width, no-wrap pattern in the other tables drawn the
   same way, and fix every one where words overlap.
+
+## 5. Press it again and it closes (owner, 11 Oct 2026: "this should be a rule")
+
+The owner's rule, now in CLAUDE.md's Standing Lessons: when a press opens a
+pop-up (a menu, a hover card, a side list, a panel, a picker), pressing the
+SAME thing again closes it. Esc and a press outside still close it too.
+
+- **The Board first:** every piece, figure, row, legend square, head button
+  (How this is drawn ▾, Table, ⋯) and the side list. Pressing the piece or
+  figure that opened the side list closes it; pressing a DIFFERENT one moves
+  the side list to that one.
+- **Then every page:** the same check on every other pop-up in HaTi (menus,
+  dropdowns, the bell, the Clauses drawer, the calendar's ⋯, the Track's tip).
+- A browser check presses each opener twice and asks that the pop-up is gone
+  after the second press, and open after the first.
