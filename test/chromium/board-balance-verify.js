@@ -49,6 +49,11 @@ const ALL = [['pa', 'q:contracts by status'], ['pb', 'q:contracts by counterpart
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.length > 3 && typeof hbS === 'function', null, { timeout: 20000 });
+    /* the server's list lands after the browser's own copy and repaints the
+       board; place the cards only once it has, or the repaint can take a card
+       away between placing and measuring (CI on main, 11 Oct 2026: "1" read no
+       card at all) */
+    await page.waitForFunction(() => state.contracts.some(c => c.id === 'MK-B2'), null, { timeout: 20000 }).catch(() => {});
     await page.evaluate(() => { hbS().face = 'board'; hbS().prep = 'closed'; hbSave(); setView('dashboard'); });
     /* place a set of cards (oldest first: the board draws newest first), and
        ask until they stand — the saved settings may land after a paint */
@@ -66,10 +71,11 @@ const ALL = [['pa', 'q:contracts by status'], ['pb', 'q:contracts by counterpart
        the cards once stood in the markup while the grid was not yet laid out,
        and every box read 0 (".. tops 0/0", "0 of 0"). So a measure first asks,
        bounded, that the grid and each card have a real width, then reads. */
-    const boxes = async () => { await until(() => { const g = document.querySelector('.hb-grid');
+    const boxes = async want => { await until(want => { const g = document.querySelector('.hb-grid');
       if (!g || g.getBoundingClientRect().width < 1) return false;
       const cs = [...g.querySelectorAll(':scope > [data-hb-pid]')];
-      return cs.length > 0 && cs.every(c => c.getBoundingClientRect().width > 0); }, null, 10000);
+      if (want && !want.every(id => cs.some(c => c.getAttribute('data-hb-pid') === id))) return false;
+      return cs.length > 0 && cs.every(c => c.getBoundingClientRect().width > 0); }, want || null, 10000);
       return page.evaluate(() => {
       const g = document.querySelector('.hb-grid'); if (!g) return null;
       const gr = g.getBoundingClientRect();
@@ -81,7 +87,7 @@ const ALL = [['pa', 'q:contracts by status'], ['pb', 'q:contracts by counterpart
 
     /* 1. one card */
     check('0. one card stands', !!(await place([ALL[0]])));
-    let B = await boxes();
+    let B = await boxes(['pa']);
     let a = B && byId(B, 'pa');
     check('1. one card spans the grid\'s width', !!a && Math.abs(a.w - B.gw) <= 2, a && `${a.w} of ${B.gw}`);
     await page.screenshot({ path: path.join(OUT, '1-one.png') });
