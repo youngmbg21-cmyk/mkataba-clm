@@ -4997,7 +4997,7 @@ function hbSheetHtml(){
   const fk = /^f:/.test(_hbSheet.key) ? _hbSheet.key.slice(2) : null;
   const mine = fk ? (s.watches || []).filter(w => w.k === fk) : [];
   /* the piece's own chart, one level deeper with the trail back (the dig-in it always opened) */
-  const deeper = fk ? '' : `<div class="hb-sheet-w"><button type="button" class="hb-link" data-hb-sheet-dig>${_hbE(i18t('hb_sheet_chart'))}</button></div>`;
+  const deeper = `<div class="hb-sheet-w"><button type="button" class="hb-link" data-hb-sheet-dig>${_hbE(i18t('hb_sheet_chart'))}</button></div>`;
   const watch = fk ? `<div class="hb-sheet-w"><button type="button" class="hb-link" data-hb-watch="${fk}" aria-pressed="${!!(_hbWatchForm === fk || mine.length)}">${_hbE(i18t('hb_watch_menu'))}</button></div>`
     + (_hbWatchForm === fk ? hbWatchFormHtml(fk) : '')
     + (mine.length ? `<div class="hb-say">${_hbE(i18t('hb_watching'))} ${mine.map(w => `<span class="hb-chip${hbWatchFired(w) ? ' is-bad' : ''}">${_hbE(i18t('hb_watch_' + w.dir) + ' ' + (w.k === 'value' ? _hbM(w.n) : _hbN(w.n)) + ' · ' + i18t(hbWatchFired(w) ? 'hb_watch_fired' : 'hb_watch_not_yet'))}<button type="button" data-hb-watch-stop="${s.watches.indexOf(w)}" title="${_hbE(i18t('hb_watch_stop'))}" aria-label="${_hbE(i18t('hb_watch_stop'))}">${_hbX}</button></span>`).join(' ')}</div>` : '') : '';
