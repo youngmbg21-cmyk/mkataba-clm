@@ -724,13 +724,15 @@ describe('f148 — the shared renderers follow the language in both shells', () 
     /* AND AGAIN 7 OCT 2026: Overview 2 (the Time Machine, owner-instructed,
        work order O-36) joined right after the Overview — and went again on
        9 Oct 2026, owner-asked. */
+    /* AND AGAIN 11 OCT 2026: the Document tab went (owner: "get rid of the
+       document page"); its use is Home's Document. */
     win.langSet('en', { repaint: false });
-    assert.equal(strip(win.roomTabsHtml({}, 'docs')),
-      'Overview Where we are Document Signing Obligations History');
+    assert.equal(strip(win.roomTabsHtml({}, 'terms')),
+      'Overview Where we are Signing Obligations History');
     win.langSet('sv', { repaint: false });
-    assert.equal(strip(win.roomTabsHtml({}, 'docs')),
-      'Översikt Var vi är Dokument Undertecknande Åtaganden Historik');
-    assert.ok(!strip(win.roomTabsHtml({}, 'docs')).includes('Förhandla'));
+    assert.equal(strip(win.roomTabsHtml({}, 'terms')),
+      'Översikt Var vi är Undertecknande Åtaganden Historik');
+    assert.ok(!strip(win.roomTabsHtml({}, 'terms')).includes('Förhandla'));
   });
 
   test('the negotiations door and its two doors in are translated', () => {

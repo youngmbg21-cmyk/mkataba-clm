@@ -4598,7 +4598,7 @@ function docTabDefaults(c){
    so that coming back lands on the document rather than on a tab pointing
    somewhere the reader has left. The choice resets when a different contract
    opens. */
-let _wsTab='docs';                           // see ROOM_TABS
+let _wsTab='terms';                          // see ROOM_TABS
 let _wsTabFor=null;
 /* A tab chosen from the WORKBENCH, which is a different view. Pressing "Key
    terms" over there has to come back here first, and the arrival must land on
@@ -4768,7 +4768,11 @@ const ROOM_TABS=[
      and not first so that roomOpenOnTerms is untouched: a new draft still
      lands on the Overview, and f170 still asks it of the same key. */
   ['stands','tab_where_we_are'],
-  ['docs','tab_document'],
+  /* THE DOCUMENT TAB IS GONE (owner, 11 Oct 2026: "get rid of the document
+     page ... move its use to the paper page in home page"): every door onto it
+     (roomGoTab 'docs' / 'contract') opens the contract on Home's Document, on
+     Copilot; filling in is Home's Overview tab; Download original and Re-read
+     are in More. The Signing tab keeps the shared sheet (#doc-paper-col). */
   ['sign','tab_signing'],
   ['oblig','tab_obligations',c=>{
     if(!c||!window.obligationTabState) return '';
@@ -4883,7 +4887,8 @@ function wsTabRowEndHtml(c){
      paper's own ground, top right (owner, 11 Oct 2026): docZoomCornerHtml,
      painted into #doc-zc-slot by wsPaintTabRowEnd. */
   if(_wsTab==='sign') return (window.signWalkHtml?signWalkHtml(c):'');
-  if(_wsTab!=='docs') return '';
+  /* the Overview tab carries the door onto Negotiate now the Document tab is gone */
+  if(_wsTab!=='docs'&&_wsTab!=='terms') return '';
   const step='';
   /* Raw, not negoChanges(): that call runs negoInit, which CREATES a
      negotiation on a contract that has none — and this builder runs on every
@@ -4950,6 +4955,7 @@ function wsTabRowEndHtml(c){
     ? `<span class="seg-am" role="group" aria-label="${esc(i18t('fa_as_amended'))}" style="display:inline-flex;border:1px solid var(--color-divider);border-radius:var(--radius);overflow:hidden;flex:none">
         <button type="button" data-doc-am="0" class="ui-btn" style="border:0;border-radius:0" aria-pressed="${docAsAmendedOn(c)?'false':'true'}">${esc(i18t('fa_original'))}</button>
         <button type="button" data-doc-am="1" class="ui-btn" style="border:0;border-radius:0;border-left:1px solid var(--color-divider)" aria-pressed="${docAsAmendedOn(c)?'true':'false'}">${esc(i18t('fa_as_amended'))}</button></span>` : '';
+  if(_wsTab==='terms') return door;
   return amended+clauses+step+focus+door;
 }
 /* ---- THE ROOM'S OWN FLOATING NOTICES ----
@@ -5077,7 +5083,7 @@ function wsPaintTabRowEnd(c){
 let _wsTabApplied=null;   /* the tab applyWsTabs last painted — "arrived" is a change of it */
 function applyWsTabs(c){
   const keys=ROOM_TABS.map(t=>t[0]);
-  if(!keys.includes(_wsTab)) _wsTab='docs';
+  if(!keys.includes(_wsTab)) _wsTab='terms';
   const paint=k=>{
     document.querySelectorAll('[data-ws-pane]').forEach(p=>{
       /* A PANE MAY SERVE MORE THAN ONE TAB (J-1). The Document and Signing
@@ -5184,8 +5190,8 @@ function applyWsTabs(c){
      the workbench lands on a page showing the document rather than on a tab
      pointing somewhere the reader is no longer standing. */
   if(_wsTab==='redline'){
-    _wsTab='docs';
-    paint('docs');
+    _wsTab='terms';
+    paint('terms');
     /* Through openRedlineWorkbench, not by setting activeId and switching view
        here: that one function is where the previous occupant of the bench is
        taken off and put back in Drafting, and a second route in would skip it
@@ -5237,6 +5243,11 @@ function applyWsTabs(c){
    which is why the wanted tab is parked rather than applied. */
 function roomGoTab(c,k){
   if(!c) return;
+  /* NO DOCUMENT TAB (owner, 11 Oct 2026): the one door every old way in passes
+     through lands on Home's Document, on Copilot. The phone still draws its own
+     Document tab, so below 768px nothing changes. */
+  if((k==='docs'||k==='contract') && !(typeof window!=='undefined'&&window.innerWidth&&window.innerWidth<768)
+    && typeof pdOpenOnHome==='function' && pdOpenOnHome(c.id,'copilot')) return;
   if(k==='redline'){
     if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
     else if(window.toast) toast(i18t('ct_workbench_unavailable'),'err');
@@ -8546,7 +8557,7 @@ function openNegotiationOwnerRoom(c){
       negoAdvanceRound(c,{ by:currentUser()?.name });
       logAudit(c,'Negotiation','Negotiation complete — every change resolved; the agreed wording was carried to the Docs tab for signature');
       persist(c);
-      _wsTab='docs'; _docTopTab='signing';
+      _wsTab='sign'; _docTopTab='signing';
       closeNegotiationRoom();
       renderWorkspace();
       toast(i18t('ct_agreed_carried'));
@@ -10609,6 +10620,11 @@ function roomHeadHtml(c,opts={}){
                  ct_save_as_reusable are STALE; the key stays inert. */}
           <hr>
           <div class="mgroup">${i18t('ct_export')}</div>
+          ${''/* THE FILE'S OWN TWO ACTS, FROM THE DOCUMENT TAB'S STRIP (owner, 11 Oct
+                 2026: the tab is gone): the same link and the same re-read. */}
+          ${(isUpload(c)&&c.upload&&docFileUrl(c))?`<button type="button" id="ws-dl-original">${icon('download','w-3.5 h-3.5')}${esc(i18t('ct_menu_dl_original'))}</button>`:''}
+          ${(isUpload(c)&&c.upload&&canEdit())?(()=>{ const kept=rereadKeepsWording(c);
+            return `<button type="button" id="ws-reread"${kept?' disabled aria-disabled="true"':''} title="${esc(i18t(kept?'ct_reread_kept_title':'ct_read_original_again'))}">${icon('history','w-3.5 h-3.5')}${esc(i18t('ct_menu_reread'))}</button>`; })():''}
           <button type="button" id="ws-pdf" title="${i18t('ct_clean_copy')}">${icon('printer','w-3.5 h-3.5')}PDF<span class="mnote">clean copy</span></button>
           <button type="button" id="ws-word" title="${i18t('ct_redline_word')}">${icon('file','w-3.5 h-3.5')}Word<span class="mnote">tracked changes</span></button>
           ${(window.printIsHatiExecuted&&printIsHatiExecuted(c))?`<button type="button" id="ws-pdf-record" title="The full record for your own file — the document plus HaTi's seal and the audit trail">${icon('shield','w-3.5 h-3.5')}Record<span class="mnote">sealed + audit</span></button>`:''}
@@ -11522,6 +11538,10 @@ function renderWorkspace(){
      (js/views/newstandard.js). Leaving the listener behind is how a removed
      row comes back the next time somebody re-adds the markup. */
   document.getElementById('ws-pdf')?.addEventListener('click',()=>exportPDF(c));
+  document.getElementById('ws-dl-original')?.addEventListener('click',()=>{
+    const a=document.createElement('a'); a.href=docFileUrl(c); a.download=String((c.upload||{}).fileName||'contract');
+    document.body.appendChild(a); a.click(); a.remove(); });
+  document.getElementById('ws-reread')?.addEventListener('click',e=>rereadUploadText(c, e.currentTarget));
   document.getElementById('ws-filing')?.addEventListener('click',()=>ovOpenFiling(c));
   document.getElementById('ws-mynote')?.addEventListener('click',()=>{ if(window.myNotesNew) myNotesNew({ contractId:c.id }); });
   document.getElementById('ws-pdf-record')?.addEventListener('click',()=>exportPDF(c,{record:true}));
@@ -13571,7 +13591,7 @@ function docThreadTopHtml(c, rows, has){
      text link ending it. The room's own drawer is already on the Document tab,
      so it keeps the one-line head below. */
   if(thOnHome()) return `<div class="doc-th-hd is-home"><span class="doc-th-title">${esc(i18t('th_clauses'))} <span class="doc-th-tn">(${clauses.length})</span></span>${docThreadSumHtml(rows,'doc-th-sum')}
-    <div class="doc-th-bar">${filter}<button type="button" class="ui-link doc-th-open" data-th-open-doc>${icon('arrowRight','w-3.5 h-3.5')}${esc(i18t('th_go_document'))}</button></div></div>`;
+    <div class="doc-th-bar">${filter}${''/* "→ Go to document" is GONE (11 Oct 2026): this IS the document now — the room's Document tab was retired into Home's */}</div></div>`;
   /* ONE LINE, AS DRAWN (SAP batch 3): "Clauses (n)" and the colour filter as
      one segmented control on the head's right. */
   return `<div class="doc-th-hd"><span class="doc-th-title">${esc(i18t('th_clauses'))} <span class="doc-th-tn">(${clauses.length})</span></span>${docThreadSumHtml(rows,'doc-th-sum')}
@@ -14061,7 +14081,7 @@ function docThreadWire(c){
          opened on its own Document tab. */
       if(t.closest('[data-th-open-doc]')){
         const lc=thLiveContract()||cur; if(!lc) return;
-        _wsTabWant='docs'; if(typeof openWorkspace==='function') openWorkspace(lc.id);
+        if(typeof pdOpenOnHome==='function'&&pdOpenOnHome(lc.id,'copilot')){ /* Home's Document */ } else if(typeof openWorkspace==='function') openWorkspace(lc.id);
         return;
       }
       const tn=t.closest('[data-th-tone]');
