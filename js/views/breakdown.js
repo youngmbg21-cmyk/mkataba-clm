@@ -12,16 +12,20 @@
    stands in Home's ONE side panel while this face is up (renderIntelDock asks
    bdOnScreen, as it asks the Calendar), never a second panel beside it.
 
-   COPILOT SPENDS ON A PRESS. Nothing is read on arrival: "Break it down" is
-   pressed once per wording (POST /api/ai/breakdown), and the answer is kept on
-   the contract against the wording's hash (c.breakdown) — read again only when
-   the words change. No score: counts and facts. Nothing is filed or sent; a
+   COPILOT SPENDS ON A PRESS — AND CHOOSING THE CONTRACT IS THAT PRESS (owner,
+   11 Oct 2026: "Choosing the contract should be the only press needed to
+   break it down"). The picker says the cost; a contract held here with no
+   reading of its present wording is read once (POST /api/ai/breakdown,
+   `bdAutoRun`, latched per contract and wording for the sitting so a refusal
+   is said, never retried in a loop), and the answer is kept on the contract
+   against the wording's hash (c.breakdown) — read again only when the words
+   change. No score: counts and facts. Nothing is filed or sent; a
    region's "Start redlining here" is Negotiate's own door, "Show on the paper"
    is the Document face's own quote pin, "Ask Copilot" is Home's one Copilot.
    ============================================================ */
 const BD_RANK = { need: 0, look: 1, fine: 2 };
 const BD_LEVELS = ['deal', 'region', 'clause', 'words'];
-const _bd = { id: null, lvl: 'deal', ri: -1, ci: -1, busy: false, err: '', picking: false, q: '' };
+const _bd = { id: null, lvl: 'deal', ri: -1, ci: -1, busy: false, err: '', picking: false, q: '', tried: {} };
 const _bdE = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 
 /* the face is up and its cover is drawn */
@@ -94,7 +98,7 @@ function bdPickHtml(){
   /* THE SAME CARD AS THE DOCUMENT FACE'S PICKER (owner, 11 Oct 2026: "the
      choose your contract cards should be the same size"): its clothes, its
      width, its find box; only the words and the hooks are this face's. */
-  return `<div class="ig-pick bd-pick"><div class="ig-pick-card"><h2>${_bdE(i18t('bd_pick_title'))}</h2><p class="ig-pick-sub">${_bdE(i18t('bd_pick_sub'))}</p>
+  return `<div class="ig-pick bd-pick"><div class="ig-pick-card"><h2>${_bdE(i18t('bd_pick_title'))}</h2><p class="ig-pick-sub">${_bdE(i18t('bd_pick_sub'))} ${_bdE(i18t('bd_cost'))}.</p>
     <input id="bd-pick-q" type="search" class="ig-pick-find" placeholder="${_bdE(i18t('bd_pick_ph'))}" aria-label="${_bdE(i18t('bd_pick_ph'))}" value="${_bdE(_bd.q)}" autocomplete="off">
     <div id="bd-pick-list">${list}</div></div></div>`;
 }
@@ -107,8 +111,10 @@ function bdStageHtml(){
       <h2>${_bdE(i18t('bd_empty_title'))}</h2>
       <p>${_bdE(i18t(bdStale(c) ? 'bd_empty_changed' : 'bd_empty_sub'))}</p>
       ${_bd.err ? `<p class="bd-err" role="alert">${_bdE(_bd.err)}</p>` : ''}
-      <div class="bd-empty-acts"><button type="button" class="ui-btn ui-btn-primary" data-bd-run${_bd.busy ? ' disabled' : ''}>${_bdE(i18t(_bd.busy ? 'bd_reading' : 'bd_run'))}</button>
-      <span class="bd-cost">${_bdE(i18t('bd_cost'))}</span></div></div></div>`;
+      ${!_bd.busy && (_bd.err || _bd.tried[c.id + ':' + bdHash(c)])
+        /* only a refusal (or a read already tried this sitting) asks for a press — the pick already was one */
+        ? `<div class="bd-empty-acts"><button type="button" class="ui-btn ui-btn-primary" data-bd-run>${_bdE(i18t('bd_run'))}</button><span class="bd-cost">${_bdE(i18t('bd_cost'))}</span></div>`
+        : `<p class="bd-reading" role="status" aria-live="polite">${_bdE(i18t('bd_reading'))}</p>`}</div></div>`;
   }
   const need = bdCount(b, 'need'), look = bdCount(b, 'look'), fine = bdCount(b, 'fine');
   const placed = (b.regions || []).reduce((n, r) => n + (r.items || []).length, 0);
@@ -128,9 +134,20 @@ function renderBreakdown(){
   const sc = document.getElementById('bd-scroll'); const top = sc ? sc.scrollTop : 0;
   host.innerHTML = bdStageHtml();
   const sc2 = document.getElementById('bd-scroll'); if (sc2) sc2.scrollTop = top;
+  if (bdOnScreen()) setTimeout(bdAutoRun, 0);
   const q = document.getElementById('bd-pick-q');
   if (q && !q._bdWired){ q._bdWired = true; q.addEventListener('input', () => { _bd.q = q.value;
     const l = document.getElementById('bd-pick-list'); if (l && typeof igPickListHtml === 'function') l.innerHTML = igPickListHtml(_bd.q).replace(/data-ig-pick=/g, 'data-bd-pick='); }); }
+}
+/* THE PICK IS THE PRESS: a contract held here with no reading of these words
+   is read once this sitting; a refusal stays on screen with Try again */
+function bdAutoRun(){
+  const c = bdContract();
+  if (!c || _bd.picking || _bd.busy || bdOf(c)) return;
+  const key = c.id + ':' + bdHash(c);
+  if (_bd.tried[key]) return;
+  _bd.tried[key] = true;
+  bdRun(c);
 }
 function bdPaint(){
   if (!bdOnScreen()) return;
@@ -265,4 +282,4 @@ if (typeof document !== 'undefined' && !document._bdWired){
   });
 }
 
-Object.assign(window, { bdOnScreen, bdContract, bdOf, bdStale, bdRun, bdStageHtml, renderBreakdown, bdPaint, bdLensHtml, bdGo, BD_LEVELS });
+Object.assign(window, { bdAutoRun, bdOnScreen, bdContract, bdOf, bdStale, bdRun, bdStageHtml, renderBreakdown, bdPaint, bdLensHtml, bdGo, BD_LEVELS });
