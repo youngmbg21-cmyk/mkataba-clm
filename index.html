@@ -9805,9 +9805,10 @@
   .hb-sheet-back{margin:6px 0 10px;display:inline-flex;align-items:center;gap:4px}
   .hb-sheet-w{margin:4px 0 8px}
   .hb-sheet .hb-figs{grid-template-columns:repeat(3,minmax(0,1fr))} .hb-sheet .hb-fig:nth-child(3n+1){border-left:0} .hb-sheet .hb-fig:nth-child(n+4){border-top:1px solid rgba(var(--hb-ln),.16)}
-  .hb-sheet-t{width:100%;border-collapse:collapse;font-size:13px;color:var(--hb-ink);table-layout:fixed}
+  .hb-sheet-t{width:100%;border-collapse:collapse;font-size:13px;color:var(--hb-ink);table-layout:auto}
   .hb-sheet-t td,.hb-sheet-t th{overflow-wrap:anywhere;min-width:0}
-  .hb-sheet-t col.c{width:38%} .hb-sheet-t col.s{width:20%} .hb-sheet-t col.o{width:16%} .hb-sheet-t col.v{width:12%} .hb-sheet-t col.g{width:14%}
+  /* VALUE AND STAGE TAKE THE ROOM THEIR WORDS NEED (owner, 11 Oct 2026: "SEK 15.20M" printed over "In Review"). They never wrap, so a fixed 12%/14% share let a long value run into the next column; the table now sizes itself and the wrapping columns give way. */
+  .hb-sheet-t col.c{width:38%} .hb-sheet-t col.s{width:20%} .hb-sheet-t col.o{width:16%}
   .hb-sheet-t th{position:sticky;top:-8px;background:var(--hb-menu);text-align:left;font-weight:var(--w-label,500);color:var(--hb-mute);padding:8px 6px;border-bottom:1px solid rgba(var(--hb-ln),.16)}
   .hb-sheet-t td{padding:8px 6px;border-bottom:1px solid rgba(var(--hb-ln),.1);vertical-align:top}
   .hb-sheet-t .r{text-align:right;white-space:nowrap}
@@ -11673,7 +11674,7 @@
   .ap-table.ap-ins{table-layout:fixed;}
   .ap-table.ap-ins th{position:sticky;top:0;z-index:1;background:var(--color-surface);text-transform:none;letter-spacing:0;
     font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600);}
-  .ap-table.ap-ins td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ap-table.ap-ins :is(td,th){white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .ap-table.ap-ins .ap-name,.ap-table.ap-ins .ap-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .ap-table .ap-sub.late{color:var(--st-ruby-fg);}
   .ap-table tbody tr[data-ap-row]:focus{outline:none;}
