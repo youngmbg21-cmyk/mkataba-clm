@@ -448,7 +448,12 @@ function hbHistOf(k){
    before it, its end date, its duties' due and done dates. Nothing is
    guessed: a figure the record cannot date (waiting on us) draws no line.
    The last point is the figure on the tile, exactly. */
-const HB_SPARK_MONTHS = 6, HB_SPARK_DATED = ['live', 'value', 'ending', 'past', 'overdue'];
+/* EVERY FIGURE HAS ITS LINE (owner, 11 Oct 2026: "the cards all need to have
+   trend lines"): each is counted at each month-end from dates the record
+   holds — a stage from its signing date and its first change on the table, a
+   contract waiting on us from who filed the last change before that day,
+   payment days from the contracts that had started by then */
+const HB_SPARK_MONTHS = 6, HB_SPARK_DATED = ['live', 'value', 'ending', 'past', 'overdue', 'us', 'drafting', 'review', 'signed', 'wewait', 'wepay', 'paygap'];
 function hbMonthsAgo(n){ const t = new Date(hbToday() + 'T00:00:00'); const d = new Date(t.getFullYear(), t.getMonth() - n, 1); const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
   d.setDate(Math.min(t.getDate(), last)); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 const _hbSeriesMemo = new Map();
@@ -470,11 +475,40 @@ function hbFigSeries(k, d){
     if (k === 'value') return lv.reduce((a, c) => a + hbValueOfOne(c), 0);
     if (k === 'ending'){ const hi = plus90(iso); return agr.filter(c => { const e = endOf(c), b = born(c); return e && e >= iso && e <= hi && (!b || b <= iso); }).length; }
     if (k === 'past') return agr.filter(c => { const e = endOf(c); return c.status === 'Signed' && e && e < iso; }).length;
+    const signedOn = c => c.status === 'Signed' ? (day(c.signedAt) || born(c) || '0000-01-01') : null;
+    const signedBy = c => { const sd = signedOn(c); return !!sd && sd <= iso; };
+    const firstMove = c => { const xs = (Array.isArray(c.changes) ? c.changes : []).map(x => day(x && x.createdAt)).filter(Boolean).sort(); return xs[0] || null; };
+    const inReviewBy = c => { const f = firstMove(c); return f ? f <= iso : (c.status === 'Under Review' || c.status === 'Signed'); };
+    if (k === 'signed') return lv.filter(signedBy).length;
+    if (k === 'review') return lv.filter(c => !signedBy(c) && inReviewBy(c)).length;
+    if (k === 'drafting') return lv.filter(c => !signedBy(c) && !inReviewBy(c)).length;
+    if (k === 'us') return lv.filter(c => { if (signedBy(c)) return false;
+      const last = (Array.isArray(c.changes) ? c.changes : []).filter(x => x && day(x.createdAt) && day(x.createdAt) <= iso).sort((a, b) => String(a.createdAt) < String(b.createdAt) ? -1 : 1).pop();
+      return !!last && last.authorSide === 'counterparty'; }).length;
+    if (k === 'wewait' || k === 'wepay' || k === 'paygap') return hbPayAt(iso, born);
     if (k === 'overdue') return obs.filter(o => { const due = day((typeof obligationDue === 'function') ? obligationDue(o) : o.due); if (!due || due >= iso) return false;
       const done = day(o.completedAt); const st = (typeof obState === 'function') ? obState(o) : o.status; return st !== 'done' || (done && done > iso); }).length;
     return 0; };
+  /* the payment figures at a past day: the same rows payTermsData reads, only
+     the contracts started by then, averaged on the same basis */
+  let PT = null;
+  const hbPayAt = (iso, born) => {
+    if (!PT){ try { PT = typeof payTermsData === 'function' ? payTermsData() : null; } catch (_){ PT = null; } }
+    if (!PT) return null;
+    const byId = new Map(cs.map(c => [c.id, c]));
+    const avg = S => { const rows = (S && S.rows || []).filter(r => { const c = byId.get(r.id), b = c ? born(c) : null; return !b || b <= iso; });
+      if (!rows.length) return null;
+      if (S.basis === 'value'){ const w = rows.reduce((a, r) => a + r.value, 0); if (w > 0) return Math.round(rows.reduce((a, r) => a + r.days * r.value, 0) / w); }
+      return Math.round(rows.reduce((a, r) => a + r.days, 0) / rows.length); };
+    const cu = avg(PT.customer), su = avg(PT.supplier);
+    if (k === 'wewait') return cu;
+    if (k === 'wepay') return su;
+    return cu != null && su != null ? Math.abs(cu - su) : null;
+  };
   const out = [];
-  for (let m = HB_SPARK_MONTHS; m >= 1; m--){ const iso = hbMonthsAgo(m); out.push({ at: iso, v: at(iso) }); }
+  for (let m = HB_SPARK_MONTHS; m >= 1; m--){ const iso = hbMonthsAgo(m); const v = at(iso); if (v != null) out.push({ at: iso, v }); }
+  /* a figure with no reading today (no payment terms on that side) draws no line */
+  if (d.figs[k] && d.figs[k].none){ _hbSeriesMemo.clear(); return []; }
   out.push({ at: hbToday(), v: hbFigNumber(d, k) });
   _hbSeriesMemo.clear(); _hbSeriesMemo.set(mk, out);
   return out;
@@ -1219,7 +1253,7 @@ function hbBookHtml(d, moved, since){
     return `<div class="hb-fig${tone}">
       <button type="button" class="hb-fig-main" ${zero ? 'disabled' : `data-hb-dig="f:${f.k}"`} title="${_hbE(i18t(f.k === 'paygap' && F.gap != null ? (F.gap < 0 ? 'hb_f_paygap_good' : F.gap > 0 ? 'hb_f_paygap_bad' : 'hb_f_paygap_tip') : f.tip) + left)}">
         <span class="hb-fig-l">${_hbE(i18t(f.word))}</span><span class="hb-fig-n">${_hbE(num)}</span></button>
-      ${hbDeltaHtml(f.k, moved && moved[f.k], since)}${hbVsHtml(f.k, d, f.tone)}${hbSparkHtml(f.k, f.k === 'value' ? _hbM : _hbN, d)}</div>`;
+      ${hbDeltaHtml(f.k, moved && moved[f.k], since)}${hbVsHtml(f.k, d, f.k === 'paygap' ? (F.tone === 'good' ? '' : 'warn') : f.tone)}${hbSparkHtml(f.k, f.k === 'value' ? _hbM : f.days ? (n => i18tn('hb_f_days', n, { n: _hbN(n) })) : _hbN, d)}</div>`;
   }).join('');
   const tot = d.stages.reduce((a, s) => a + s.n, 0);
   const bar = tot ? `<div class="hb-stagebar">${d.stages.map(s => s.n ? `<button type="button" style="flex-grow:${s.n};background:${_hbE(s.tone)}" data-hb-dig="st:${_hbE(s.k)}" title="${_hbE((s.word ? i18t(s.word) : s.k) + ': ' + i18tn('home_map_n_contracts', s.n, { n: _hbN(s.n) }))}" aria-label="${_hbE((s.word ? i18t(s.word) : s.k) + ': ' + i18tn('home_map_n_contracts', s.n, { n: _hbN(s.n) }))}"></button>` : '').join('')}</div>
@@ -1231,7 +1265,7 @@ function hbBookHtml(d, moved, since){
   return `<section class="hb-card hb-book" id="hb-book"><header class="hb-ch"><span class="hb-ct">${_hbE(i18t('hb_book'))}</span><span class="hb-cs">${_hbE(sub)}</span>
     ${hbS().prep === 'closed' ? `<span class="hb-grow"></span><button type="button" class="hb-link" data-hb-prep="open" title="${_hbE(i18t('hb_prep_back'))}">${_hbE(i18t('hm_ag_title'))} <span class="hb-pill">${_hbN(hbAgentsData(null).ready)}</span></button>` : ''}
     <span class="hb-grow"></span><span class="hb-figpick-w"><button type="button" class="hb-ib hb-figs-set" data-hb-figpick aria-haspopup="dialog" aria-expanded="${_hbFigPick}" title="${_hbE(i18t('hb_figs_pick'))}" aria-label="${_hbE(i18t('hb_figs_pick'))}"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor"><use href="#i-sliders"/></svg></button>${_hbFigPick ? hbFigPickHtml(d.money) : ''}</span></header>
-    <div class="hb-cb"><div class="hb-figs" style="grid-template-columns:repeat(${Math.max(1, chosen.length)},minmax(0,1fr))">${tiles}</div>${bar}${unsided}</div></section>`;
+    <div class="hb-cb"><div class="hb-figs" style="grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr))">${tiles}</div>${bar}${unsided}</div></section>`;
 }
 
 /* ---- PREPARED BY COPILOT, under the book ----
@@ -2963,7 +2997,8 @@ function hbMovedFromStart(key){
 function hbBackToStart(key, inFocus){
   const s = hbS(), st = s.recipeStart || {};
   if (key in st){ const was = st[key]; delete st[key];
-    if (was) s.recipe[key] = was; else delete s.recipe[key];
+    /* through the one writer (hbCardSet, as a seed: no new start is kept) */
+    delete s.recipe[key]; if (was) hbCardSet(key, was, { seed: true });
     (s.panels || []).forEach(p => { if (p.kind === 'view' && p.key === key) p.recipe = was ? JSON.parse(JSON.stringify(was)) : p.recipe; }); }
   if (inFocus && Array.isArray(s.path) && s.path.length > 1){ const root = s.path[0]; s.path = [root]; if (root in st) return hbBackToStart(root, false); }
   hbSave();
@@ -6482,8 +6517,15 @@ function hbFitWatch(host){
    board's own bottom edge, out of sight. Like any dropdown it opens UPWARD
    when there is more room above, and its height never passes the room it
    has; the board is not scrolled under the reader. */
+/* A MENU OPENS WHERE THERE IS ROOM, THE BOARD STAYS PUT (owner's "keeps
+   your place", 10 Oct 2026): How this is drawn and ⋯ open upward when the
+   room below the button is short, and are never scrolled into view — round
+   2's scroll moved the card the reader was working on */
 function hbRcMenuPlace(host){
-  const m = host && host.querySelector('.hb-rmenu'); if (!m) return;
+  if (!host) return;
+  host.querySelectorAll('.hb-rmenu, .hb-dp, .hb-tools-menu').forEach(m => hbMenuPlaceOne(host, m));
+}
+function hbMenuPlaceOne(host, m){
   m.classList.remove('is-up'); m.style.maxHeight = '';
   const box = host.getBoundingClientRect(), w = m.parentElement.getBoundingClientRect();
   const bottom = Math.min(box.bottom, window.innerHeight), top = Math.max(box.top, 0);
@@ -7028,8 +7070,8 @@ function hbAddView(k, mine){
 function hbViewPanelHtml(p, lens, gift){
   if (p.recipe) hbCardSet(p.key, p.recipe, { seed: true });
   const D = hbDigData(p.key, lens);
-  _hbFitAt = { key: p.id, step: 'board', big: !!p.big };
   _hbEdgeMeta.delete(p.id);
+  _hbFitAt = { key: p.id, step: 'board', big: !!p.big };
   let inner; try { inner = D ? hbDigBodyHtml(D, lens, !!p.big) : ''; } finally { _hbFitAt = null; }
   /* THE CARD IS CLEAN (11 Oct 2026, as drawn): no recipe sentence on the card —
      its choices are under How this is drawn ▾ on the head (hbEdgeHtml) */
@@ -7625,7 +7667,7 @@ function hbPanelAct(pid, act){
   else if (act === 'large') p.big = true;
   else if (act === 'small') p.big = false;
   else if (act === 'give') _hbGiveForm = _hbGiveForm === pid ? null : pid;
-  else if (act === 'more') _hbMoreMenu = _hbMoreMenu === pid ? null : pid;
+  else if (act === 'more'){ _hbMoreMenu = _hbMoreMenu === pid ? null : pid; const mk = pid + '|board'; _hbToolsMenu = _hbToolsMenu === mk ? null : mk; }
   else if (act === 'verify'){ _hbMoreMenu = null; _hbVerForm = _hbVerForm === pid ? null : pid; return true; }
   else return false;
   hbSave(); return true;
@@ -8888,14 +8930,11 @@ function hbOnClick(e){
      on one of its items, shuts it (the item's own handler still runs below) */
   { const dr = t.closest('[data-hb-drawn]');
     if (dr){ const k = dr.getAttribute('data-hb-drawn'); _hbDrawnOpen = _hbDrawnOpen === k ? null : k; _hbToolsMenu = null; hbPaintBoard();
-      /* a card low on the screen opened its panel below the window's foot
-         (11 Oct 2026): bring the opened panel into view, the least scroll */
-      if (_hbDrawnOpen){ const m = document.querySelector('.hb-dp'); if (m && m.scrollIntoView) m.scrollIntoView({ block: 'nearest' }); }
+      /* a card low on the screen opens its panel upward (hbRcMenuPlace) */
       return; }
     if (_hbDrawnOpen && !t.closest('.hb-dp')){ _hbDrawnOpen = null; hbPaintBoard(); } }
   { const tm = t.closest('[data-hb-tools-more]');
     if (tm){ const k = tm.getAttribute('data-hb-tools-more'); _hbToolsMenu = _hbToolsMenu === k ? null : k; _hbDrawnOpen = null; hbPaintBoard();
-      if (_hbToolsMenu){ const m = document.querySelector('.hb-tools-menu'); if (m && m.scrollIntoView) m.scrollIntoView({ block: 'nearest' }); }
       return; }
     if (_hbToolsMenu){ _hbToolsMenu = null; if (!t.closest('.hb-tools-menu')) hbPaintBoard(); } }
   const on = sel => t.closest(sel);
@@ -9554,7 +9593,7 @@ Object.assign(window, { hbAngleOf, hbAngleText, HB_ANGLE, hbAskPopRows, hbAskPop
   hbRcOptions, hbRcShown, hbShowCard, hbAnchorOf, HB_ANCHOR_MS, hbRecipeRowHtml, hbRecipeSet, hbRecipeClean, hbFoundChart,
   hbRootKey, hbCountKey, hbCountIds, hbCounted, hbCountLabel, hbCountChipHtml, hbAskInPanel,
   HB_INS, HB_INS_SHAPES, HB_INS_MEASURED, HB_INS_V, HB_INS_MAX, HB_INS_REST_DAYS, HB_INS_NORM_PTS, HB_INS_MINE_MIN, hbInsKey, hbInsId, hbInsOf, hbInsViewWord, hbInsChart, hbInsCandidate, hbInsCandidateMemo,
-  hbMovedFromStart, hbBackToStart, hbStartBtnHtml, hbPayFigs, hbPayKpiHtml,
+  hbMovedFromStart, hbBackToStart, hbStartBtnHtml, hbPayFigs, hbPayKpiHtml, hbFigSeries,
   hbInsScope, hbInsNormal, hbInsRenNormal, hbInsFinding, hbInsFindingMemo, hbInsightsToday, hbInsUsual, hbInsUsualOpen, hbInsWhy, hbInsResting, hbInsBookSig,
   hbInsThumb, hbInsRowHtml, hbShelfHtml, hbPanelWord, hbAddView, hbViewPanelHtml, hbInsAct, hbKeptSync,
   hbBigBtnHtml, hbReadingOf, hbReadHtml, hbWhySig, hbWhyKept, hbWhyPrompt, hbWhyCheck, hbWhyAsk, hbWhyFollow, HB_WHY_KEEP,

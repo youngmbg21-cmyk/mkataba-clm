@@ -77,7 +77,8 @@ describe('f563 (3) — history: the cap is said', () => {
 describe('f563 (4) — the doors onto Home', () => {
   test('4a Review on renewals and late promises opens the Paper on its tab (approvals left the Board, rule 6)', () => {
     assert.match(HB, /const HB_REVIEW_ON_PAPER = \{ renew: 'facts', late: 'oblig'/);
-    assert.match(HB, /igWalk\(ids, 0, \{ title: i18t\('ag_' \+ k\), tab \}\)/);
+    /* RE-POINTED 11 Oct 2026: the walk starts at the row's own contract when it names one */
+    assert.match(HB, /igWalk\(ids, Math\.max\(0, cid \? ids\.indexOf\(cid\) : 0\), \{ title: i18t\('ag_' \+ k\), tab \}\)/);
   });
   test('4b an answer on Home leads with the Paper and the Board; off Home it keeps the Contracts page', () => {
     const fn = IG.slice(IG.indexOf('function igAnswerIds'), IG.indexOf('/* WALK A SET ON THE PAPER'));

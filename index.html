@@ -9469,6 +9469,7 @@
   .hb-rc:focus-visible,.hb-tg:focus-visible,.hb-rmenu button:focus-visible{outline:2px solid rgba(var(--hb-gw),.85);outline-offset:2px}
   .hb-rmenu{position:absolute;top:calc(100% + 4px);left:0;z-index:20;min-width:260px;max-height:360px;overflow:auto;padding:4px;border-radius:var(--radius-lg);border:1px solid rgba(var(--hb-ln),.35);background:var(--hb-menu);box-shadow:0 18px 40px -12px rgba(0,0,0,.6)}
   .hb-rmenu.is-up{top:auto;bottom:calc(100% + 4px)}
+  .hb-dp.is-up{top:auto;bottom:calc(100% + 6px)} .hb-tools-menu.is-up{top:auto;bottom:calc(100% + 4px)}
   .hb-rmenu button{display:flex;align-items:center;gap:10px;width:100%;padding:7px 9px;border:0;border-radius:var(--radius);background:none;color:var(--hb-ink);font:inherit;font-size:var(--t-body);text-align:left;cursor:pointer}
   .hb-rmenu button:hover:not(:disabled){background:rgba(var(--hb-ln),.1)}
   .hb-rmenu button[aria-checked="true"]{background:rgba(var(--hb-ln),.14)}
@@ -9759,7 +9760,7 @@
   .hb-ctab td .hb-link{color:var(--hb-ink);text-decoration:none}
   .hb-ctab td .hb-link:hover{color:var(--hb-glow);text-decoration:underline}
   /* a tile's "vs 6 months ago" line, as drawn: the change coloured by what it means, the words quiet */
-  .hb-vs{display:block;font-size:12px;color:var(--hb-mute);margin-top:4px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hb-vs{display:block;max-width:100%;min-width:0;align-self:stretch;font-size:12px;color:var(--hb-mute);margin-top:4px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .hb-vs-n{font-weight:var(--w-label);color:var(--hb-ink)}
   .hb-vs-n.is-good{color:var(--hb-green)} .hb-vs-n.is-bad{color:var(--hb-ruby)} .hb-vs-n.is-warn{color:var(--hb-amber)}
   .hb-fig .hb-spark{height:30px;margin-top:8px}
@@ -9772,7 +9773,7 @@
   .hb-ag-dot.is-warn{background:var(--hb-amber)} .hb-ag-dot.is-bad{background:var(--hb-ruby)}
   .hb-ag-row .hb-ag-w{font-weight:var(--w-label);color:var(--hb-ink)}
   .hb-ag-row .hb-ag-n{font-weight:400;color:var(--hb-mute);margin-left:6px}
-  .hb-ag-row .hb-ag-s{display:block;color:var(--hb-mute);font-size:12.5px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hb-ag-row .hb-ag-s{display:block;color:var(--hb-mute);font-size:12px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .hb-ag-row .hb-ag-s .hb-ag-u{display:inline;font-size:inherit}
   .hb-ag-acts{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
   @media (max-width:900px){ .hb-ag.hb-ag-row{grid-template-columns:minmax(0,1fr)} .hb-ag-acts{justify-content:flex-start} }
