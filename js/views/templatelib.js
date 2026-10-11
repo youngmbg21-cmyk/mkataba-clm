@@ -1105,7 +1105,7 @@ function tplFormInputHtml(f, value, idx) {
 }
 
 function renderTemplateFormSection(c) {
-  const host = document.getElementById('tplform-section');
+  const host = (window.formHostEl ? formHostEl() : document.getElementById('tplform-section'));
   if (!host) return;
   const form = c.templateForm;
   if (!form) { host.innerHTML = ''; return; }
@@ -1254,7 +1254,8 @@ function tplFormPending(c) {
   try { return templateFormDocHtml(form) !== String(c.redlineText || ''); } catch (_) { return false; }
 }
 function tplFormPaintFill(c) {
-  const btn = document.querySelector('#tplform-section [data-tplf-fill]');
+  const fh = window.formHostEl ? formHostEl() : document.getElementById('tplform-section');
+  const btn = fh && fh.querySelector('[data-tplf-fill]');
   if (!btn) return;
   const owed = tplFormPending(c);
   btn.disabled = !owed;
@@ -1272,7 +1273,7 @@ function tplFormPaintFill(c) {
   btn.title = owed ? i18t('tl_fill_doc_hint') : i18t('tl_fill_doc_none');
 }
 function tplFormPaintRow(c, idx) {
-  const host = document.getElementById('tplform-section');
+  const host = (window.formHostEl ? formHostEl() : document.getElementById('tplform-section'));
   const form = c.templateForm;
   if (!host || !form) return;
   const fields = (form.fields || []).filter(f => f.fieldType !== 'signature_name_title');
@@ -1321,6 +1322,8 @@ function tplFormApply(c) {
   if (canvas && window.renderDocHtml) canvas.innerHTML = renderDocHtml(c.redlineText, window.RICH_FORMAT || 'rich');
   c.lastAction = (typeof todayStr === 'function') ? todayStr() : c.lastAction;
   persist(c);
+  /* on Home's Document the paper beside the form is Home's: drawn again (11 Oct 2026) */
+  if (window.formOnHome && formOnHome() && window.igPaperRefresh) igPaperRefresh();
   tplFormPaintFill(c);
   /* The Checks card sits under this form and counts what is still empty. */
   if (window.docThreadPaint && (!window.contractOnScreen || contractOnScreen(c))) docThreadPaint(c);
@@ -1349,7 +1352,7 @@ function tplFormBlankClick(c, span) {
   tplFormFlashRow(idx, { quiet: true });
 }
 function tplFormFlashRow(idx, opts = {}) {
-  const host = document.getElementById('tplform-section');
+  const host = (window.formHostEl ? formHostEl() : document.getElementById('tplform-section'));
   const input = host && (host.querySelector(`[data-tplf="${idx}"]`) || host.querySelector(`[data-tplf-file="${idx}"]`));
   if (!input) return;
   try { input.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (_) {}

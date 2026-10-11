@@ -4156,6 +4156,11 @@ function readOnlyDocHtml(html){
     /* The monospace has gone — see .field-frozen in index.html. A commercial
        term reads as part of the sentence it sits in, not as a code sample. */
     s.className='field-frozen';
+    /* IT KEEPS SAYING WHICH FACT IT IS (11 Oct 2026): Home's Overview tab fills
+       the blanks beside this paper, and a box in the form lights its word here
+       (contractFieldPeer reads data-sync / data-field) — docSignBodyHtml's own
+       carry. An attribute, so nothing a reader sees moves. */
+    ['data-sync','data-field'].forEach(a=>{ if(inp.hasAttribute(a)) s.setAttribute(a,inp.getAttribute(a)); });
     const v=fieldDisplayValue(inp);
     s.textContent=v||'—';
     if(!v) s.setAttribute('title',i18t('ct_term_not_filled'));

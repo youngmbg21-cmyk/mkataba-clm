@@ -158,7 +158,12 @@ function pdFactsHtml(c){
     try { if (cc._light && !cc._loaded && typeof ensureFull === 'function') await ensureFull(cc); } catch (_){}
     openCheckPanel(getContract(c.id) || cc, 'brief'); }, { lead: true }) : '';
   const top = pdTop('facts', blanks.length ? pdPill('warn', _pdTn('pd_missing', blanks.length, { n: blanks.length })) : pdPill('ok', _pdT('pd_st_complete')));
-  return top + pdH(_pdT('pd_parties')) + who + pdH(_pdT('pd_terms')) + kv + missing + renew
+  /* FIELDS TO FILL, THE SAP WAY (owner picked it, 11 Oct 2026): the room's own
+     fill form, drawn here by its one builder (paintContractForm → #pd-fill,
+     formHostEl), under Parties and Terms. The list of blanks with doors to the
+     room stays only where the form draws nothing (a contract past drafting). */
+  return top + pdH(_pdT('pd_parties')) + who + pdH(_pdT('pd_terms')) + kv
+    + `<div data-pd-missing>${missing}</div><div id="pd-fill" class="pd-fill"></div>` + renew
     + `<div class="pd-acts">${brief}${pdBtn(_pdT('pd_edit_facts'), pdRoom(c, 'terms'))}</div>`
     + pdNote(_pdT('pd_facts_foot'));
 }
@@ -358,10 +363,30 @@ function pdPaint(c){
     if (typeof docThreadPaint === 'function') docThreadPaint(c);
     return;
   }
+  /* THE FILL FORM IS KEPT, NEVER REDRAWN FROM NOTHING: an answer typed on the
+     Overview repaints the paper, which paints this panel — the form itself is
+     lifted out and put back, so the box the Tab key is moving to stays. */
+  const keep = (_pdTab === 'facts' && host.dataset.for === c.id + ':facts') ? host.querySelector('#pd-fill') : null;
   const top = host.scrollTop;
   host.innerHTML = pdBodyHtml(c);
+  if (_pdTab === 'facts'){
+    const slot = host.querySelector('#pd-fill');
+    if (keep && keep.firstElementChild && slot){
+      slot.replaceWith(keep);
+      const miss = host.querySelector('[data-pd-missing]'); if (miss) miss.remove();
+    } else pdFillPaint(c);
+  }
   if (host.dataset.for === c.id + ':' + _pdTab) host.scrollTop = top;
   host.dataset.for = c.id + ':' + _pdTab;
+}
+/* the fill form into the Overview tab's slot; the old list of blanks only
+   where the form drew nothing */
+function pdFillPaint(c){
+  const slot = document.getElementById('pd-fill'); if (!slot) return;
+  const body = document.getElementById('pd-body'); if (body && c) body.dataset.for = c.id + ':facts';
+  try { if (typeof paintContractForm === 'function') paintContractForm(c); } catch (_){ slot.innerHTML = ''; }
+  const miss = document.querySelector('#pd-body [data-pd-missing]');
+  if (miss && slot.firstElementChild) miss.remove();
 }
 /* presses, read at press time; a repaint after an act shows what it changed */
 if (typeof document !== 'undefined' && !document._pdWired){
@@ -380,4 +405,4 @@ if (typeof document !== 'undefined' && !document._pdWired){
 }
 
 Object.assign(window, { PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml,
-  pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint });
+  pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint });

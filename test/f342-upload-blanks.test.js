@@ -400,8 +400,10 @@ describe('f342 (5) the panel', () => {
     const b = win.contractBlanks(c)[0];
     assert.ok(b, 'no blank read');
     assert.equal(b.label, '', 'no words in front of it means no name');
-    const r = fnBody(CONTRACT_CODE, 'renderBlankFormSection');
+    /* the rows moved into their own builder (11 Oct 2026: Home's Overview tab draws them too) */
+    const r = fnBody(CONTRACT_CODE, 'blankFormRowsHtml');
     assert.ok(/bf_blank_n/.test(r), 'the panel must number it');
+    assert.ok(/blankFormRowsHtml\(groups\)/.test(fnBody(CONTRACT_CODE, 'renderBlankFormSection')), 'and the panel draws those rows');
   });
   test('5e typing in the panel answers the word on the paper', () => {
     const w = fnBody(CONTRACT_CODE, 'wireBlankForm');

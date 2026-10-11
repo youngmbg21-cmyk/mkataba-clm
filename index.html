@@ -8680,6 +8680,12 @@
   .pd-ev>span{display:block;color:var(--color-text);font-weight:var(--w-label);line-height:1.4}
   .pd-ev-when{font-variant-numeric:tabular-nums}
   .pd-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  /* FIELDS TO FILL on the Overview tab (owner picked the SAP way, 11 Oct 2026):
+     the room's form, in the panel's own card clothes */
+  .pd-fill:empty{display:none}
+  .pd-fill{margin-top:14px;border:1px solid var(--color-neutral-200);border-radius:var(--radius-lg);overflow:hidden;background:var(--color-surface)}
+  .pd-fill .pd-fill-done summary{cursor:pointer;font-size:var(--t-label);color:var(--accent-ink,var(--color-accent-700));font-weight:var(--w-label);list-style:none}
+  .pd-fill .pd-fill-done summary::-webkit-details-marker{display:none}
   .pd-acts-c{justify-content:center}
   .pd-ob .pd-acts{margin-top:8px}
   .pd-note{font-size:11.5px;color:var(--cap-ink);margin:12px 0 0}
