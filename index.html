@@ -9726,6 +9726,9 @@
   .hb-inscard.is-folded .hb-ch{border-bottom:0}
   .hb-inscard .hb-ins-calm{padding:12px 16px}
   @media (max-width:1100px){ .hb-inscard .hb-ins{border-right:0;border-bottom:1px solid rgba(var(--hb-ln),.12)} }
+  /* A17: a legend's colour square is a switch; a series switched off is faded */
+  .hb-sv-sw{cursor:pointer} .hb-sv-sw:focus-visible{outline:2px solid var(--hb-glow);outline-offset:2px}
+  .hb-sv-row.is-off text{opacity:.45;text-decoration:line-through}
   /* THE SIDE LIST, AS DRAWN (part B): over the right of the page, under the bar */
   .hb-sheet{position:fixed;top:48px;right:0;bottom:0;width:min(560px,100vw);z-index:60;background:var(--hb-menu);border-left:1px solid rgba(var(--hb-ln),.18);box-shadow:-12px 0 32px rgba(4,25,26,.12);display:flex;flex-direction:column}
   .hb-sheet-h{display:flex;align-items:flex-start;gap:12px;padding:16px 18px 12px;border-bottom:1px solid rgba(var(--hb-ln),.14)}

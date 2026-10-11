@@ -2967,14 +2967,22 @@ function hbByThen(P){ return i18t('hb_by_then', { a: hbSplitWord(P.split), b: hb
    Every segment is a door onto its own contracts (q2:), every legend entry a
    door onto its group; the axis is hbAxisTop's; colours are the board's own
    hues (a stage keeps its stage colour). */
+/* A17 (the board as drawn, 11 Oct 2026): a legend's colour square switches
+   its series off and on, for the sitting; the name stays the door onto the
+   group. A hidden series is left out of the columns and their totals and
+   drawn faded in the legend, so the reader always sees what is off. */
+const _hbSerOff = new Map();
+function hbSerOff(key){ return _hbSerOff.get(key) || new Set(); }
+function hbSerToggle(key, v){ const s = new Set(hbSerOff(key)); if (s.has(v)) s.delete(v); else s.add(v); if (s.size) _hbSerOff.set(key, s); else _hbSerOff.delete(key); }
 function hbStackSvg(D, cs, P){
   const m = P.measure, grouped = P.pic === 'grouped';
+  const off = hbSerOff(D.key);
   const X = hbXOf(D, cs, P), f2 = P.split2.by;
   const ser = hbSeriesOf(cs, f2, P, HB_SERIES_MAX);
   const series = ser.rows.map((r, i) => ({ g: r.g, label: r.label, hue: hbHueOf(f2, r.g, i), v: '' + r.g }))
     .concat(ser.rest ? [{ g: null, rest: true, label: ser.rest.label, hue: '#9FB3C8', v: '~' + ser.kept + (ser.mv ? 'v' : 'n') }] : []);
   const inSer = (c, S) => S.rest ? !ser.rows.some(r => r.g === hbGroupOf(c, f2)) : hbGroupOf(c, f2) === S.g;
-  const cells = X.cols.map(col => ({ col, parts: series.map(S => { const list = col.list.filter(c => inSer(c, S)); return { S, list, M: hbMeasure(list, m) }; }) }));
+  const cells = X.cols.map(col => ({ col, parts: series.map(S => { const list = off.has(S.v) ? [] : col.list.filter(c => inSer(c, S)); return { S, list, M: hbMeasure(list, m) }; }) }));
   const tops = cells.map(x => grouped ? Math.max(0, ...x.parts.map(p => p.M.y || 0)) : x.parts.reduce((a, p) => a + (p.M.y || 0), 0));
   const W = hbFW(), R = 18, Tp = 46, n = Math.max(1, cells.length);
   const colWord = (col, whole) => col.b === 'none' ? i18t('hb_c_no_date') : whole ? (col.full || col.label) : col.label;
@@ -2996,7 +3004,9 @@ function hbStackSvg(D, cs, P){
   series.forEach(S => { const w = Math.min(200, 26 + _hbTextW(S.label, 12));
     if (lx + w > W - R && ly < 20 && lx > L){ lx = L; ly += 17; }
     if (lx + w > W - R){ lostS++; return; }
-    g += `<g class="hb-sv-row" transform="translate(${lx.toFixed(1)},${ly})" ${_hbSvgDoor(S.rest ? '' : 'qg:' + D.key + HB_KEY_SEP + f2 + HB_KEY_SEP + S.g, S.label)}><rect x="0" y="0" width="10" height="10" rx="2" style="fill:${S.hue}"/><text x="15" y="9.5" font-size="12" class="hb-sv-ink2">${_hbE(_hbFitText(S.label, w - 20, 12))}</text></g>`;
+    const isOff = off.has(S.v), sw = i18t(isOff ? 'hb_ser_show' : 'hb_ser_hide', { what: S.label });
+    g += `<g class="hb-sv-sw${isOff ? ' is-off' : ''}" transform="translate(${lx.toFixed(1)},${ly})" data-hb-ser="${_hbE(S.v)}" data-hb-ser-key="${_hbE(D.key)}" tabindex="0" role="switch" aria-checked="${!isOff}" aria-label="${_hbE(sw)}"><title>${_hbE(sw)}</title><rect x="-4" y="-4" width="18" height="18" fill="transparent"/><rect x="0" y="0" width="10" height="10" rx="2" style="${isOff ? `fill:none;stroke:${S.hue}` : `fill:${S.hue}`}"/></g>`
+      + `<g class="hb-sv-row${isOff ? ' is-off' : ''}" transform="translate(${(lx + 15).toFixed(1)},${ly})" ${_hbSvgDoor(S.rest ? '' : 'qg:' + D.key + HB_KEY_SEP + f2 + HB_KEY_SEP + S.g, S.label)}><text x="0" y="9.5" font-size="12" class="hb-sv-ink2">${_hbE(_hbFitText(S.label, w - 20, 12))}</text></g>`;
     lx += w; });
   if (lostS) g += `<text x="${(W - R).toFixed(1)}" y="${ly + 9.5}" text-anchor="end" font-size="12" class="hb-sv-mute">${_hbE(i18t('hb_legend_more', { n: _hbN(lostS) }))}</text>`;
   const labelEvery = X.time ? _hbEvery(cells.filter(x => !x.col.edge).map(x => x.col.label), step, 12, n > 18 ? 2 : 1) : 1;
@@ -3777,9 +3787,11 @@ function hbChartHtml(D, cs0, big){
   const lead = R.lead || `<b>${_hbN(cs.length)}</b> ${_hbE(i18tn('hb_contracts_word', cs.length, { n: cs.length }))}${money ? hbLeadMoneyHtml(cs, P.measure, total) : ''}`;
   /* enlarged, the chart opens with HaTi's reading in place of the trend
      line's arithmetic (READ, THEN ASK, below) */
-  const read = big ? hbReadHtml(D, cs, P, R) : '';
+  /* a bigger card ON THE BOARD is only wider (as drawn); its reading opens from ⋯ */
+  const onBoard = !!(at && at.step === 'board');
+  const read = big && !onBoard ? hbReadHtml(D, cs, P, R) : '';
   /* small, the chart says its point in one line under the totals (HEADLINE) */
-  const head = big ? '' : hbHeadlineHtml(D.key, hbReadingOf(D, cs, P, R), cs.length, hbWhySig(D, P, cs));
+  const head = big && !onBoard ? '' : hbHeadlineHtml(D.key, hbReadingOf(D, cs, P, R), cs.length, hbWhySig(D, P, cs));
   /* how this was counted: asked for from the card's ⋯ (the artifact's card is clean) */
   const how = at && !one && _hbHowOn.has(D.key) ? hbHowHtml(D, P, R, cs) : '';
   return `${read || (!head && R.say ? `<p class="hb-tr-say">${_hbE(R.say)}</p>` : '')}${R.body}<div class="hb-chart-notes">${head}<div class="hb-chart-lead">${lead}${at ? '' : `<span class="hb-chart-by">${_hbE(R.by)}</span>`}</div>${R.note ? `<div class="hb-quiet hb-chart-note">${_hbE(R.note)}</div>` : ''}</div>${how}`;
@@ -8709,6 +8721,7 @@ function hbOnClick(e){
   if ((el = on('[data-hb-why-follow]'))){ hbWhyFollow(el.getAttribute('data-hb-why-follow')); return; }
   if ((el = on('[data-hb-ins]'))){ hbInsAct(el.getAttribute('data-hb-ins'), el.getAttribute('data-hb-ins-k')); return; }
   if ((el = on('[data-hb-ai]'))){ hbAskInPanel(el.getAttribute('data-hb-ai'), el.getAttribute('data-hb-ai-id')); return; }
+  if ((el = on('[data-hb-ser]'))){ hbSerToggle(el.getAttribute('data-hb-ser-key'), el.getAttribute('data-hb-ser')); hbPaintBoard(); return; }
   if (on('[data-hb-agents-page]')){ if (typeof setView === 'function') setView('agents'); return; }
   if (on('[data-hb-ins-fold]')){ const st = hbS(); st.insFold = !st.insFold; hbSave(); hbPaintBoard(); return; }
   if ((el = on('[data-hm-agent]'))){ e.stopPropagation(); hbOpenAgent(el.getAttribute('data-hm-agent')); return; }
