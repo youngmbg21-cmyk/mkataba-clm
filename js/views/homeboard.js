@@ -8808,6 +8808,15 @@ function hbOnClick(e){
   if (on('[data-hb-setup]')){ e.preventDefault(); if (typeof window.openSettingsAt === 'function') window.openSettingsAt('build', 'golive'); return; }
   if (on('[data-hb-chase-many]')){ e.preventDefault(); hbChaseManyRun(t.closest('[data-hb-chase-many-box]')); return; }
   if (on('[data-hb-chase-key]')){ setTimeout(() => hbChaseManyCount(t.closest('[data-hb-chase-many-box]')), 0); return; }
+  /* A ROW'S OWN BUTTON (one row per item, 11 Oct 2026): its result is drawn in
+     the item's panel, so the press opens that agent's work under the card and
+     presses the same button there, where the draft or the note appears */
+  { const rb = t.closest('.hb-ag-item [data-ag-act]');
+    if (rb){ e.stopPropagation(); const row = rb.closest('.hb-ag-item'), key = row.getAttribute('data-hb-ag-item'), k = row.getAttribute('data-hm-agent-row'), act = rb.getAttribute('data-ag-act');
+      hbDig('ag:' + k, false, true);
+      let n = 0; const go = () => { const b = document.querySelector(`#hb-focus [data-hb-ag-item="${CSS.escape(key)}"] [data-ag-act="${CSS.escape(act)}"]`);
+        if (b){ try { b.scrollIntoView({ block: 'center' }); } catch (_){} b.click(); } else if (++n < 20) setTimeout(go, 60); };
+      setTimeout(go, 30); return; } }
   if (on('[data-hb-ag-item]') && hbAgentWorkPress(t)){ e.stopPropagation(); return; }
   if ((el = on('[data-hb-face]'))){ hbSetFace(el.getAttribute('data-hb-face')); return; }
   if ((el = on('[data-hb-screen]'))){ const m = el.getAttribute('data-hb-screen'); if (HB_SCREENS.includes(m)){ hbS().screen = m; hbS().scrPick = 1; hbSave(); hbApplyScreen(); hbPaintHead(); if (typeof igRender === 'function') try { igRender(); } catch (_){} } return; }
