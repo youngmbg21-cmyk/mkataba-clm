@@ -9029,21 +9029,25 @@
   .hb-foot{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);flex-wrap:wrap;font-size:var(--t-meta);color:var(--hb-mute)}
   .hb-wide{flex-basis:100%}
 
-  /* your book: six figures, each with a meaning edge read off its tone */
-  .hb-figs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:var(--s-2)}
-  .hb-fig{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:10px 12px 9px;border-radius:var(--radius);background:var(--hb-fig);border:1px solid rgba(var(--hb-ln),.16);overflow:hidden;min-width:0;text-align:left;color:var(--hb-ink)}
-  .hb-fig::before{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:var(--hb-glow)}
-  .hb-fig.is-warn::before{background:var(--hb-amber)}
-  .hb-fig.is-bad::before{background:var(--hb-ruby)}
-  .hb-fig.is-good::before{background:var(--hb-green)}
+  /* your book: six figures as ONE STRIP (the new board design, 11 Oct 2026):
+     what it counts, the number (its tone colours the number), what moved
+     since your last visit, the figure's own line; thin rules between, no
+     edge on top — the meaning edge of 3 Oct is retired with it */
+  .hb-figs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:0;border:1px solid rgba(var(--hb-ln),.16);border-radius:var(--radius-lg);overflow:hidden;background:var(--hb-fig)}
+  .hb-fig{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:12px 14px 10px;background:transparent;border:0;border-left:1px solid rgba(var(--hb-ln),.16);overflow:hidden;min-width:0;text-align:left;color:var(--hb-ink)}
+  .hb-fig:first-child{border-left:0}
+  .hb-fig:has(.hb-fig-main:not(:disabled):hover){background:rgba(var(--hb-gw),.06)}
+  .hb-spark{display:block;width:100%;height:26px;margin-top:2px}
+  .hb-spark-a{fill:var(--hb-glow);opacity:.08}
+  .hb-spark-l{fill:none;stroke:var(--hb-glow);stroke-width:1.6;vector-effect:non-scaling-stroke}
+  .hb-spark-e{fill:var(--hb-glow)}
   .hb-fig-main{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-width:0;width:100%}
   .hb-fig-main:disabled{cursor:default}
   .hb-fig-main:focus-visible{outline:2px solid var(--hb-glow);outline-offset:2px;border-radius:2px}
-  .hb-fig:has(.hb-fig-main:not(:disabled):hover){border-color:rgba(var(--hb-gw),.6)}
   .hb-fig-n{font-size:var(--t-page);font-weight:var(--w-strong);font-variant-numeric:tabular-nums;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
   .hb-fig.is-warn .hb-fig-n{color:var(--hb-amber)}
   .hb-fig.is-bad .hb-fig-n{color:var(--hb-ruby)}
-  .hb-fig-l{font-size:var(--t-meta);color:var(--hb-ink-2);line-height:1.3}
+  .hb-fig-l{font-size:var(--t-meta);color:var(--hb-ink-2);font-weight:var(--w-label);line-height:1.3}
   .hb-fd{font:inherit;font-size:var(--t-micro);font-weight:var(--w-strong);font-variant-numeric:tabular-nums;padding:1px 6px;border-radius:3px;border:1px solid rgba(var(--hb-ln),.25);background:none;color:var(--hb-ink-2);cursor:pointer;white-space:nowrap}
   span.hb-fd{cursor:default}
   .hb-fd.is-bad{color:var(--hb-ruby);border-color:currentColor}
@@ -9646,7 +9650,7 @@
   .hb-presenting{height:100vh}
   /* the page's host is what goes full screen (it survives Board ⇄ Explorer) */
   #content:fullscreen{background:var(--color-bg);overflow:hidden}
-  @media (max-width:1180px){ .hb-figs{grid-template-columns:repeat(3,minmax(0,1fr))} .hb-rows,.hb-grid,.hb-cgrid{grid-template-columns:minmax(0,1fr)} }
+  @media (max-width:1180px){ .hb-figs{grid-template-columns:repeat(3,minmax(0,1fr))} .hb-fig:nth-child(3n+1){border-left:0} .hb-fig:nth-child(n+4){border-top:1px solid rgba(var(--hb-ln),.16)} .hb-rows,.hb-grid,.hb-cgrid{grid-template-columns:minmax(0,1fr)} }
   @media (prefers-reduced-motion:reduce){ .hb-card.is-lit::before,.hb-card.is-new,.hb-card.is-new::before,.hb-bar-f,.hb-cbar-f,.hb-ccol-f,.hb-in,.hb-live i{animation:none} }
 
   /* ---- Insights → Exposure: THE PATTERN GRID (owner-picked, 28 Sep 2026) ----

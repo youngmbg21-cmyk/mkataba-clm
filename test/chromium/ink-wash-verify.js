@@ -39,6 +39,11 @@
    Calendar became one card with Copilot beside it (the design). Audited as a
    set difference: only the three calendar screens moved (green-light sizes,
    green-dark and navy-dark colours); every other screen is byte-identical.
+   RE-RECORDED 11 Oct 2026 (third), OWNER-ASKED ("Yes, update the record"):
+   Your book's six figures became one strip (the new Board design). Audited
+   as a set difference: only dark Home's counts moved (five tile grounds and
+   edges became the strip's one); 0 keys new, 0 gone; every other screen is
+   identical.
      node test/chromium/ink-wash-verify.js          (check)
    ============================================================ */
 const fs = require('node:fs');

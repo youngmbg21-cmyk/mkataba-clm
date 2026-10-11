@@ -349,8 +349,42 @@ function hbSeenTick(d){
   if (!seen.last) seen.last = now;
   else if (seen.last.at !== now.at){ seen.base = seen.last; seen.last = now; }
   else seen.last = now;
+  hbHistTick(seen, now);
   s.seen = seen; hbSave();
   return seen.base;
+}
+/* ---- THE FIGURES' OWN HISTORY: A TREND LINE UNDER EACH (the new board
+   design, 11 Oct 2026, owner's "Build now" over the "HaTi Board" artifact).
+   A figure's past cannot be read back off the record (a stage, a duty's
+   state, whose move it is are today's facts only), so NOTHING IS GUESSED:
+   each day Home is painted, the six numbers it showed are kept in this
+   person's own browser record of what they looked at (one row a day, the
+   last of the day wins, at most HB_HIST_DAYS rows). The line draws only the
+   days that were seen, and only once HB_HIST_MIN days are kept; before
+   that the tile carries no line at all. */
+const HB_HIST_DAYS = 60, HB_HIST_MIN = 3;
+function hbHistTick(seen, now){
+  const row = { at: now.at, n: {} };
+  HB_FIG_KEYS.forEach(k => { row.n[k] = Number(now.figs[k] && now.figs[k].n) || 0; });
+  const h = Array.isArray(seen.hist) ? seen.hist.filter(r => r && typeof r.at === 'string' && r.n && typeof r.n === 'object' && r.at !== now.at) : [];
+  h.push(row);
+  h.sort((a, b) => a.at < b.at ? -1 : a.at > b.at ? 1 : 0);
+  seen.hist = h.slice(-HB_HIST_DAYS);
+}
+function hbHistOf(k){
+  const s = hbS(), h = s.seen && Array.isArray(s.seen.hist) ? s.seen.hist : [];
+  return h.filter(r => r && r.n && isFinite(Number(r.n[k]))).map(r => ({ at: r.at, v: Number(r.n[k]) }));
+}
+function hbSparkHtml(k, fmt){
+  const h = hbHistOf(k);
+  if (h.length < HB_HIST_MIN) return '';
+  const w = 120, ht = 26, vs = h.map(r => r.v), mn = Math.min(...vs), mx = Math.max(...vs), r = (mx - mn) || 1;
+  const pts = vs.map((v, i) => [3 + i * (w - 6) / (vs.length - 1), mx === mn ? ht / 2 : ht - 4 - (v - mn) / r * (ht - 8)]);
+  const d = pts.map((q, i) => (i ? 'L' : 'M') + q[0].toFixed(1) + ' ' + q[1].toFixed(1)).join(' ');
+  const e = pts[pts.length - 1];
+  const tip = i18t('hb_spark_tip', { n: h.length, from: fmt(vs[0]), to: fmt(vs[vs.length - 1]), when: hbDayWords(h[0].at) });
+  return `<svg class="hb-spark" viewBox="0 0 ${w} ${ht}" preserveAspectRatio="none" role="img" aria-label="${_hbE(tip)}"><title>${_hbE(tip)}</title>`
+    + `<path d="${d} L${e[0].toFixed(1)} ${ht} L3 ${ht}Z" class="hb-spark-a"/><path d="${d}" class="hb-spark-l"/><circle cx="${e[0].toFixed(1)}" cy="${e[1].toFixed(1)}" r="2.4" class="hb-spark-e"/></svg>`;
 }
 function hbMoved(d, base){
   const out = {};
@@ -1043,10 +1077,12 @@ function hbBookHtml(d, moved, since){
     const zero = !F.n;
     const tone = !zero && f.tone ? ' is-' + f.tone : '';
     const left = (f.k === 'value' && F.left) ? ' · ' + i18tn('fx_left_out', F.left, { n: F.left, codes: '' }) : '';
+    /* THE NEW BOARD'S TILE (11 Oct 2026): what it counts, then the number,
+       then what moved since your last visit, then the figure's own line */
     return `<div class="hb-fig${tone}">
       <button type="button" class="hb-fig-main" ${zero ? 'disabled' : `data-hb-dig="f:${f.k}"`} title="${_hbE(i18t(f.tip) + left)}">
-        <span class="hb-fig-n">${_hbE(num)}</span><span class="hb-fig-l">${_hbE(i18t(f.word))}</span></button>
-      ${hbDeltaHtml(f.k, moved && moved[f.k], since)}</div>`;
+        <span class="hb-fig-l">${_hbE(i18t(f.word))}</span><span class="hb-fig-n">${_hbE(num)}</span></button>
+      ${hbDeltaHtml(f.k, moved && moved[f.k], since)}${hbSparkHtml(f.k, f.k === 'value' ? _hbM : _hbN)}</div>`;
   }).join('');
   const tot = d.stages.reduce((a, s) => a + s.n, 0);
   const bar = tot ? `<div class="hb-stagebar">${d.stages.map(s => s.n ? `<button type="button" style="flex-grow:${s.n};background:${_hbE(s.tone)}" data-hb-dig="st:${_hbE(s.k)}" title="${_hbE((s.word ? i18t(s.word) : s.k) + ': ' + i18tn('home_map_n_contracts', s.n, { n: _hbN(s.n) }))}" aria-label="${_hbE((s.word ? i18t(s.word) : s.k) + ': ' + i18tn('home_map_n_contracts', s.n, { n: _hbN(s.n) }))}"></button>` : '').join('')}</div>
