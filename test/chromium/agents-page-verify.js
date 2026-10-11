@@ -28,6 +28,17 @@
    "Nothing has been briefed" over a brief that exists. The two section-10
    stage lines are the gate.
 
+   PORTED TO THE BOARD, 11 Oct 2026. Young moved Copilot's work onto the
+   Board on 7 Oct ("Below the card"): the page this file walked has no door,
+   and its address lands on the Board, where the agent's work is drawn as
+   cards built by the page's own panel builders (agPanelHeadHtml, agPanelBody,
+   agPanelActs) and pressed through the page's own acts (agRunAct). So the
+   walk now opens each agent's work ON THE BOARD (hbOpenAgent, the door the
+   Board's Review row uses) and presses the card's own buttons. What was the
+   page's furniture alone — the agents list and its arrow keys, the steps
+   strip, the card foot, the rules door, the Done-recently table, the rail
+   count, the side panel's hover prefetch — is said retired where it stood.
+
    Run: node test/chromium/agents-page-verify.js */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -123,44 +134,48 @@ const ok = (name, good, detail) => {
     await page.evaluate(() => setView('agents')); await page.waitForTimeout(900);
     const atBoard = await page.evaluate(() => state.view);
     ok('1b the old address lands on the Board', atBoard === 'dashboard', atBoard);
-    await page.evaluate(() => { state.view = 'agents'; agSetSel('round'); renderAgentsPage(); }); await page.waitForTimeout(600);
-    const head = await page.evaluate(() => ({
-      title: (document.querySelector('#page-head h1') || document.querySelector('h1') || {}).textContent || '',
-      facts: (document.getElementById('page-head-facts') || {}).textContent || '',
-      rows: [...document.querySelectorAll('[data-ag-agent]')].map(b => b.getAttribute('data-ag-agent')),
-      on: (document.querySelector('.ag-row.on') || { getAttribute: () => null }).getAttribute('data-ag-agent'),
-      ready: agentsData().ready,
-      over: document.documentElement.scrollWidth - innerWidth,
-    }));
-    ok('1d eleven agents: the four readings, then the drawing\'s order with "No link to sign" second',
-      head.rows.join(',') === 'approve,request,week,quiet,round,link,renew,paper,late,ours,import', head.rows.join(','));
-    ok('1e the number in the head is the number of things ready', new RegExp('^' + head.ready + ' ready for review').test(head.facts), `ready ${head.ready} · head "${head.facts}"`);
-    ok('1f it shows the agent asked for', head.on === 'round', head.on);
+    const CARD = '.hb-ag-works .hb-ag-work';
+    const pick = async k => { const okk = await page.evaluate(k => { if (typeof hbOpenAgent !== 'function') return false; hbOpenAgent(k); return true; }, k); await page.waitForTimeout(900); return okk; };
+    const openFirst = async () => !!(await page.$(CARD));
+    const act = async a => { const b = await page.$(`${CARD} [data-ag-act="${a}"]`); if (!b) return false; await b.click(); await page.waitForTimeout(900); return true; };
+    const back = async () => { await page.evaluate(() => setView('dashboard')); await page.waitForTimeout(700); };
+
+    /* ---- 1d–1g ON THE BOARD: the prepared-work card lists the agents with
+       work ready, in the agents' own order (approvals are off the Board,
+       HB_OFF_BOARD), and its count is the number of things ready. */
+    await back();
+    const head = await page.evaluate(() => {
+      const A = hbAgentsData(null);
+      return { rows: [...document.querySelectorAll('#hm-agents [data-hm-agent-row]')].map(b => b.getAttribute('data-hm-agent-row')),
+        want: AG_KEYS.filter(k => !HB_OFF_BOARD.includes(k) && A.rows.some(r => r.k === k)),
+        ready: A.ready, sub: ((document.querySelector('#hm-agents .hb-cs') || {}).textContent || '').trim(),
+        over: document.documentElement.scrollWidth - innerWidth };
+    });
+    ok('1d the Board lists the agents with work ready, in the agents\' own order, approvals off the Board',
+      head.rows.length >= 4 && head.rows.join(',') === head.want.join(',') && !head.rows.includes('approve'), head.rows.join(','));
+    ok('1e the number on the card is the number of things ready', head.ready > 0 && new RegExp('^' + head.ready + '\\b').test(head.sub), `ready ${head.ready} · "${head.sub}"`);
+    await pick('round');
+    const shown = await page.evaluate(() => ({ path: (hbS().path || []).join('|'), cards: [...document.querySelectorAll('.hb-ag-works .hb-ag-work')].map(c => c.getAttribute('data-hb-ag-item')) }));
+    ok('1f Review opens the agent asked for, its work below the card', shown.path === 'ag:round' && shown.cards.length >= 1 && shown.cards.every(k => /MK-149/.test(k)), JSON.stringify(shown));
     ok('1g no sideways scroll at 1440', head.over <= 0, head.over + 'px');
     await page.screenshot({ path: path.join(OUT, '1-round.png') });
-
-    const openFirst = async () => { const it = await page.$('#ag-main [data-ag-open]'); if (!it) return false; await it.click(); await page.waitForTimeout(450); return !!(await page.$('#side-panel [data-ag-panel]')); };
-    const pick = async k => { const b = await page.$(`[data-ag-agent="${k}"]`); if (b) { await b.click(); await page.waitForTimeout(350); } return !!b; };
-    const act = async a => { const b = await page.$(`#side-panel [data-ag-act="${a}"]`); if (!b) return false; await b.click(); await page.waitForTimeout(900); return true; };
-
-    /* ---- 1i. the card says when (Young, 27 Sep 2026: the cards were thinner
-       than the drawing). The round's card arrived nine days ago. RED at faa8f95. */
-    const foot = await page.evaluate(() => { const f = document.querySelector('#ag-main .ag-item .ag-foot'); return f ? f.textContent.replace(/\s+/g, ' ').trim() : null; });
-    ok('1i the card carries its own foot: when it arrived (and who it is for, where the record names one)', !!foot && /Arrived /.test(foot), String(foot));
+    /* 1i (the card's foot: when it arrived) was the page's list card; the
+       Board draws the panel itself, whose head names the contract — retired
+       with the page. */
 
     /* ---- 2. their round ---- */
-    const steps = await page.evaluate(() => [...document.querySelectorAll('.ag-stp')].map(s => s.textContent.trim()));
-    ok('2a the steps name where a person looks, and count what waits there', steps.some(s => /Your review\s*1/.test(s)), steps.join(' | '));
+    /* 2a (the steps strip, "Your review 1") was the page's head — retired
+       with the page; the Board's card says the count (1e). */
     const roundPanel = await openFirst();
     const rp = await page.evaluate(() => {
-      const p = document.getElementById('side-panel');
+      const p = document.querySelector('.hb-ag-works .hb-ag-work');
       return p ? { chg: p.querySelectorAll('.ag-chg').length, tags: [...p.querySelectorAll('.ag-chg .ag-tag')].map(t => t.textContent.trim()),
         acts: [...p.querySelectorAll('[data-ag-act]')].map(b => b.getAttribute('data-ag-act')) } : null;
     });
     ok('2b the round\'s panel lists each ask with the co-pilot\'s answer', roundPanel && rp && rp.chg === 3 && rp.tags.length === 3, JSON.stringify(rp));
     const words = await page.evaluate(async () => {
-      const d = document.querySelector('#side-panel details.ag-words'); if (!d) return null;
-      const n = document.querySelectorAll('#side-panel details.ag-words').length;
+      const d = document.querySelector('.hb-ag-works .hb-ag-work details.ag-words'); if (!d) return null;
+      const n = document.querySelectorAll('.hb-ag-works .hb-ag-work details.ag-words').length;
       d.querySelector('summary').click(); await new Promise(r => setTimeout(r, 150));
       const b = d.querySelector('.ag-words-b');
       return { n, open: d.open, marks: b ? b.querySelectorAll('ins,del').length : 0, text: b ? b.textContent.trim().slice(0, 60) : '' };
@@ -169,17 +184,15 @@ const ok = (name, good, detail) => {
     ok('2c and it offers the negotiation, never a decision', !!rp && rp.acts.includes('nego') && !rp.acts.some(a => /accept|reject|counter/.test(a)), rp && rp.acts.join(','));
     await page.screenshot({ path: path.join(OUT, '2-round-panel.png') });
     if (roundPanel) await act('nego');
-    const landed = await page.evaluate(() => ({ view: state.view, held: (typeof redlineHeldId === 'function') ? redlineHeldId() : null, panel: !!document.getElementById('side-panel') }));
-    ok('2d "Answer on the negotiation" lands on that contract\'s negotiation, and the panel goes', landed.view === 'redline' && String(landed.held) === 'MK-149' && !landed.panel, JSON.stringify(landed));
-
-    const back = async () => { await page.evaluate(() => setView('agents')); await page.waitForTimeout(700); };
+    const landed = await page.evaluate(() => ({ view: state.view, held: (typeof redlineHeldId === 'function') ? redlineHeldId() : null, panel: !!document.querySelector('.hb-ag-works') }));
+    ok('2d "Answer on the negotiation" lands on that contract\'s negotiation, and the Board goes', landed.view === 'redline' && String(landed.held) === 'MK-149' && !landed.panel, JSON.stringify(landed));
 
     /* ---- 3. renewals: the notice ---- */
     await back();
     await pick('renew');
     const renewPanel = await openFirst();
     ok('3a a notice is ready under Renewals', renewPanel);
-    const letterOn = await page.evaluate(() => { const l = document.querySelector('#side-panel .ag-letter'); return l ? l.textContent.trim().slice(0, 40) : null; });
+    const letterOn = await page.evaluate(() => { const l = document.querySelector('.hb-ag-works .hb-ag-work .ag-letter'); return l ? l.textContent.trim().slice(0, 40) : null; });
     ok('3a2 the notice\'s panel carries THE LETTER itself, written from the record (RED at faa8f95)', !!letterOn && /^NOTICE OF/.test(letterOn), String(letterOn));
     if (renewPanel) await act('notice');
     const letter = await page.evaluate(() => !!document.getElementById('nt-close'));
@@ -201,7 +214,7 @@ const ok = (name, good, detail) => {
         inWindow: !!(w && w.inWindow && !w.decided),
         stamped: !!(getContract('MK-143').desk && getContract('MK-143').desk.notice),
         here: agentsData().agents.renew.ready.filter(x => x.cid === 'MK-143').length,
-        drawn: document.querySelectorAll('#ag-main [data-ag-key^="desk:MK-143:"]').length,
+        drawn: document.querySelectorAll('.hb-ag-works [data-hb-ag-item^="desk:MK-143:"]').length,
         home: deskItems().filter(x => x.cid === 'MK-143').length };
     });
     ok('3c0 CONTROL — the renewal decision is still open on this contract', away.inWindow, JSON.stringify(away));
@@ -213,24 +226,24 @@ const ok = (name, good, detail) => {
     const paperPanel = await openFirst();
     /* RE-POINTED IN PLACE 27 Sep 2026: the five tiles are each OPENED now —
        a section under the tile's own head, carrying the reading itself. */
-    const tiles = await page.evaluate(() => [...document.querySelectorAll('#side-panel [data-ag-tile]')].length);
+    const tiles = await page.evaluate(() => [...document.querySelectorAll('.hb-ag-works .hb-ag-work [data-ag-tile]')].length);
     ok('4a what HaTi read on arrival is laid out reading by reading, under each tile\'s own head', paperPanel && tiles >= 3, tiles + ' sections');
     if (paperPanel) await act('seen');
     const seen = await page.evaluate(() => ({ seenAt: !!(getContract('MK-158').triage || {}).seenAt,
       ready: agentsData().agents.paper.ready.length, done: agentsData().agents.paper.done.map(x => x.cid) }));
     ok('4b "Mark as read" is the arrival strip\'s own stamp, and the item moves to Done recently', seen.seenAt && seen.ready === 0 && seen.done.includes('MK-158'), JSON.stringify(seen));
-    const doneRow = await page.evaluate(() => [...document.querySelectorAll('.ag-runs tbody tr')].map(r => r.textContent).join(' | '));
-    ok('4c the finished row is drawn on the page', /PwC/.test(doneRow), doneRow.slice(0, 120));
+    /* 4c (the Done-recently table) was the page's — retired with it; 4b
+       reads Done from the agent's own record. */
 
     /* ---- 5. late promises: the chase asks before it sends ---- */
     await pick('late');
     const latePanel = await openFirst();
-    ok('5a a late promise is ready, with the address it will go to', latePanel && /ops@kabras\.example/.test(await page.evaluate(() => (document.getElementById('side-panel') || {}).textContent || '')));
-    const mail = await page.evaluate(() => { const m = document.querySelector('#side-panel .ag-mail'); return m ? m.textContent.replace(/\s+/g, ' ').trim() : null; });
+    ok('5a a late promise is ready, with the address it will go to', latePanel && /ops@kabras\.example/.test(await page.evaluate(() => (document.querySelector('.hb-ag-works .hb-ag-work') || {}).textContent || '')));
+    const mail = await page.evaluate(() => { const m = document.querySelector('.hb-ag-works .hb-ag-work .ag-mail'); return m ? m.textContent.replace(/\s+/g, ' ').trim() : null; });
     ok('5a2 the chase\'s panel carries THE MESSAGE it will send — its subject and its words (RED at faa8f95)',
       !!mail && /A reminder about Deliver the Q3 stock report/.test(mail) && /Could you let us know where it stands\?/.test(mail), String(mail).slice(0, 160));
     if (latePanel) {
-      const b = await page.$('#side-panel [data-ag-act="chase"]');
+      const b = await page.$('.hb-ag-works .hb-ag-work [data-ag-act="chase"]');
       if (b) { await b.click(); await page.waitForTimeout(500); }
     }
     const asked = await page.evaluate(() => !!document.getElementById('confirm-overlay'));
@@ -243,32 +256,24 @@ const ok = (name, good, detail) => {
     ok('5c the chase is stamped on the obligation and the item moves to Done recently', !!chased.at && chased.ready === 0 && chased.done.includes('ob_late1'), JSON.stringify(chased));
 
     /* ---- 6. archive import ---- */
-    await page.evaluate(() => { if (document.getElementById('side-panel')) closeModal(); });
     await pick('import');
     const impPanel = await openFirst();
-    const impText = await page.evaluate(() => (document.getElementById('side-panel') || {}).textContent || '');
+    const impText = await page.evaluate(() => (document.querySelector('.hb-ag-works .hb-ag-work') || {}).textContent || '');
     ok('6a the batch says how many there are, how many to check, how many could not be read', impPanel && /Contracts\s*3/i.test(impText) && /To check\s*2/i.test(impText), impText.replace(/\s+/g, ' ').slice(0, 160));
-    const named = await page.evaluate(() => [...document.querySelectorAll('#side-panel .ag-names li b')].map(b => b.textContent.trim()));
+    const named = await page.evaluate(() => [...document.querySelectorAll('.hb-ag-works .hb-ag-work .ag-names li b')].map(b => b.textContent.trim()));
     ok('6a2 the batch\'s panel NAMES the contracts — the one that could not be read and the ones to check (RED at faa8f95)', named.length >= 2, named.join(' | '));
     if (impPanel) await act('import');
     ok('6b "Open the import queue" lands on the import page', (await page.evaluate(() => state.view)) === 'migration');
 
-    /* ---- 7. the rules door, and the keyboard ---- */
-    await back();
-    await pick('round');
-    const rules = await page.$('[data-ag-door="standards"]');
-    if (rules) { await rules.click(); await page.waitForTimeout(700); }
-    ok('7a the round\'s rules are Our standards, one press away', rules && (await page.evaluate(() => state.view)) === 'playbook');
-    await back();
-    await page.focus('[data-ag-agent="round"]').catch(() => {});
-    await page.keyboard.press('ArrowDown'); await page.waitForTimeout(400);
-    const kb = await page.evaluate(() => ({ on: (document.querySelector('.ag-row.on') || { getAttribute: () => null }).getAttribute('data-ag-agent'),
-      focus: document.activeElement && document.activeElement.getAttribute('data-ag-agent') }));
-    ok('7b the arrow keys walk the agents list, and the focus follows', kb.on === 'link' && kb.focus === 'link', JSON.stringify(kb));
+    /* ---- 7. the rules door and the arrow keys walked the page's agents
+       list — retired with the page (the Board has no such list). ---- */
 
     /* ---- 8. the door count follows the work ---- */
-    const after = await page.evaluate(() => ({ rail: (document.querySelector('[data-count="agents"]') || {}).textContent || '', ready: agentsData().ready }));
-    ok('8a with work done, the count went down and the door and the page still agree', after.rail === String(after.ready) && after.ready < 5, JSON.stringify(after));
+    /* RE-POINTED 11 Oct 2026: there is no rail door; the count that must
+       agree is the Board card's own. */
+    await back();
+    const after = await page.evaluate(() => ({ sub: ((document.querySelector('#hm-agents .hb-cs') || {}).textContent || '').trim(), ready: hbAgentsData(null).ready }));
+    ok('8a with work done, the count went down and the Board\'s card still agrees', after.ready < head.ready && new RegExp('^' + after.ready + '\\b').test(after.sub), JSON.stringify({ ...after, before: head.ready }));
 
     /* ---- 8b–8e. a step held back in a payment chain is not chased (27 Sep 2026) ----
        Young: "fix the two problems you found". The desk asked the chain
@@ -294,7 +299,7 @@ const ok = (name, good, detail) => {
     await pick('late');
     const heldHere = await page.evaluate(() => ({
       ready: agentsData().agents.late.ready.filter(x => x.ob && x.ob.id === 'ob_held').length,
-      drawn: document.querySelectorAll('#ag-main [data-ag-key="desk:MK-131:chase:ob_held"]').length }));
+      drawn: document.querySelectorAll('.hb-ag-works [data-hb-ag-item="desk:MK-131:chase:ob_held"]').length }));
     ok('8c Copilot\'s work does not offer to chase a step nobody could have done yet', heldHere.ready === 0 && heldHere.drawn === 0, JSON.stringify(heldHere));
     await page.evaluate(() => setView('dashboard')); await page.waitForTimeout(900);
     const heldHome = await page.evaluate(() => ({
@@ -306,7 +311,7 @@ const ok = (name, good, detail) => {
     await pick('late');
     const freed = await page.evaluate(() => ({
       ready: agentsData().agents.late.ready.filter(x => x.ob && x.ob.id === 'ob_held').length,
-      drawn: document.querySelectorAll('#ag-main [data-ag-key="desk:MK-131:chase:ob_held"]').length }));
+      drawn: document.querySelectorAll('.hb-ag-works [data-hb-ag-item="desk:MK-131:chase:ob_held"]').length }));
     ok('8e CONTROL — once our deposit is marked paid, the same step IS offered, on the page', freed.ready === 1 && freed.drawn === 1, JSON.stringify(freed));
 
     /* ---- 9. a narrow window and the dark theme ---- */
@@ -318,10 +323,10 @@ const ok = (name, good, detail) => {
     await page.evaluate(() => { if (typeof setDark === 'function') setDark(true); else document.documentElement.classList.add('dark'); });
     await page.waitForTimeout(400);
     const dark = await page.evaluate(() => {
-      const card = document.querySelector('.ag-card'); if (!card) return null;
-      return { bg: getComputedStyle(card).backgroundColor, ink: getComputedStyle(card.querySelector('h2') || card).color };
+      const card = document.querySelector('.hb-ag-works .hb-ag-work') || document.getElementById('hm-agents'); if (!card) return null;
+      return { bg: getComputedStyle(card).backgroundColor, ink: getComputedStyle(card).color };
     });
-    ok('9b the dark theme dresses the page (a dark card, light ink)', !!dark && !/255, 255, 255/.test(dark.bg) && /2[0-9]{2}/.test(dark.ink), JSON.stringify(dark));
+    ok('9b the dark theme dresses the Board\'s work (a dark card, light ink)', !!dark && !/255, 255, 255/.test(dark.bg) && /2[0-9]{2}/.test(dark.ink), JSON.stringify(dark));
     await page.screenshot({ path: path.join(OUT, '9-dark.png') });
 
     /* ---- 10. THE BRIEF THAT OPENED EMPTY (Young, 27 Sep 2026: "for many cards
@@ -369,32 +374,35 @@ const ok = (name, good, detail) => {
       await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(2500);
       const light = await page.evaluate(id => { const c = getContract(id); return c ? { light: !!c._light, loaded: !!c._loaded, hasBrief: !!c._hasBrief, brief: !!c._brief } : null; }, fresh.a);
       ok('10 GATE — after the reload the contract is a LIGHT row that knows a brief exists and does not carry it', !!light && light.light && !light.loaded && light.hasBrief && !light.brief, JSON.stringify(light));
-      await page.evaluate(() => setView('agents')); await page.waitForTimeout(900);
+      /* ON THE BOARD the card is open as drawn — no press; the Board loads
+         each shown card's whole record itself (hbAgentWorkHtml → agLoadWhole). */
+      const CA = `.hb-ag-work[data-hb-ag-item="read:${fresh.a}"]`;
       await pick('paper');
-      const it = await page.$(`#ag-main [data-ag-key="read:${fresh.a}"]`);
-      if (it) { await it.click(); await page.waitForTimeout(1500); }
-      const opened = await page.evaluate(() => {
-        const t = k => { const x = document.querySelector(`#side-panel [data-ag-tile="${k}"]`); return x ? x.textContent.replace(/\s+/g, ' ').trim() : ''; };
+      await page.waitForFunction(sel => { const b = document.querySelector(sel + ' [data-ag-tile="brief"]'); return !!b && /FY2026 external audit/.test(b.textContent); }, CA, { timeout: 8000 }).catch(() => {});
+      const opened = await page.evaluate(sel => {
+        const t = k => { const x = document.querySelector(`${sel} [data-ag-tile="${k}"]`); return x ? x.textContent.replace(/\s+/g, ' ').trim() : ''; };
         return { brief: t('brief'), std: t('playbook'), obs: t('oblig'),
-          obsBtn: (document.querySelector('#side-panel [data-ag-act="obs"]') || {}).textContent || '' };
-      });
-      ok('10a the panel shows THE BRIEF itself once the whole record lands (RED at faa8f95)', /FY2026 external audit/.test(opened.brief) && /Why it matters/.test(opened.brief), opened.brief.slice(0, 140));
+          obsBtn: (document.querySelector(`${sel} [data-ag-act="obs"]`) || {}).textContent || '' };
+      }, CA);
+      /* RE-POINTED 11 Oct 2026 (Young, 7 Oct: "a button to click to read a
+         brief which would then appear as a side panel"): the card keeps the
+         brief's opening lines and COUNTS what is worth watching; the whole
+         brief, "Why it matters" and all, is 10d's side panel. */
+      ok('10a the card shows THE BRIEF itself once the whole record lands, and counts what is worth watching (RED at faa8f95)', /FY2026 external audit/.test(opened.brief) && /1 worth watching/.test(opened.brief), opened.brief.slice(0, 140));
       ok('10b and the departures, their words beside your standard (RED at faa8f95)',
         /Liability cap/.test(opened.std) && /Their words/.test(opened.std) && /Your standard/.test(opened.std) && /1 other standard is met/.test(opened.std), opened.std.slice(0, 160));
       ok('10c and the obligations found, whose each is, with one door onto adding them (RED at faa8f95)',
         /Deliver the audit plan/.test(opened.obs) && /Theirs/.test(opened.obs) && /Review 2 obligations/.test(opened.obsBtn), opened.obs.slice(0, 120) + ' · ' + opened.obsBtn);
       await page.screenshot({ path: path.join(OUT, '10-new-paper-panel.png') });
-      const rb = await page.$('#side-panel [data-ag-act="brief"]');
+      const rb = await page.$(`${CA} [data-ag-act="brief"]`);
       if (rb) { await rb.click(); await page.waitForTimeout(1800); }
       const briefShown = await page.evaluate(() => { const s = document.getElementById('brief-section'); if (!s) return null; const x = s.cloneNode(true); x.querySelectorAll('style').forEach(n => n.remove()); return x.textContent.replace(/\s+/g, ' ').trim(); });
       ok('10d "Read the brief" opens the brief, not an empty panel — the owner\'s report (RED at faa8f95)',
         !!briefShown && /FY2026 external audit/.test(briefShown) && !/Nothing has been briefed/.test(briefShown), String(briefShown).slice(0, 140));
       await page.screenshot({ path: path.join(OUT, '10-brief.png') });
-      await page.evaluate(() => { if (document.getElementById('side-panel')) closeModal(); setView('agents'); }); await page.waitForTimeout(900);
+      await page.evaluate(() => { if (document.getElementById('side-panel')) closeModal(); });
       await pick('paper');
-      const it2 = await page.$(`#ag-main [data-ag-key="read:${fresh.a}"]`);
-      if (it2) { await it2.click(); await page.waitForTimeout(800); }
-      const ob = await page.$('#side-panel [data-ag-act="obs"]');
+      const ob = await page.$(`${CA} [data-ag-act="obs"]`);
       if (ob) { await ob.click(); await page.waitForTimeout(1200); }
       const review = await page.evaluate(() => ({ dialog: !!document.getElementById('or-add'), text: ((document.getElementById('modal-root') || {}).textContent || '').replace(/\s+/g, ' ').slice(0, 120) }));
       ok('10e "Review 2 obligations" opens the one review dialog, where each is ticked by the reader — nothing is added from the card (RED at faa8f95)', review.dialog, JSON.stringify(review));
@@ -404,7 +412,7 @@ const ok = (name, good, detail) => {
          PAGE: its side panel loads the first row's record for its own reasons,
          which made this pass at the parent for the wrong one (measured). The
          gate asks that the row is still light at the moment of the press. */
-      await page.evaluate(() => setView('agents')); await page.waitForTimeout(700);
+      await page.evaluate(() => { try { hbS().path = []; hbSave(); } catch (_){} setView('dashboard'); }); await page.waitForTimeout(700);
       const stillLight = await page.evaluate(id => { const c = getContract(id); return !!(c && c._light && !c._loaded && c._hasBrief && !c._brief); }, fresh.b);
       ok('10f GATE — the second contract is still a light row that carries no brief', stillLight);
       await page.evaluate(id => openCheckPanel(getContract(id), 'brief'), fresh.b);
@@ -417,75 +425,45 @@ const ok = (name, good, detail) => {
       /* ---- 11. NO STUTTER ON OPENING A CARD (Young, 29 Sep 2026: "when i open
          one of the new cards, it opens up without a brief and flashed like a
          stutter then the brief appears") ----
-         The panel's FIRST PAINT is recorded the moment it enters the page. Fast
-         path: a pointer resting on the card starts the whole record's fetch, so
-         the panel opens with the brief already in it. Slow path (the record's
-         read held back 900ms): the brief's place is held by a placeholder, and
-         when it lands only the brief is swapped — the standards section beside
-         it is the same element before and after. RED at the parent: the first
-         paint carried neither the brief nor a placeholder, and the whole body
-         was replaced. */
-      const recordFirst = () => page.evaluate(() => {
-        window.__agFirst = null; window.__agStd = null;
-        const mo = new MutationObserver(() => {
-          const p = document.querySelector('[data-ag-panel]');
-          if (!p || window.__agFirst) return;
-          const b = p.querySelector('[data-ag-tile="brief"]'), sk = b && b.querySelector('.ag-skel');
-          window.__agFirst = { brief: !!b && /FY2026 external audit/.test(b.textContent), skel: !!sk,
-            skelH: sk ? Math.round(sk.getBoundingClientRect().height) : 0 };
-          window.__agStd = p.querySelector('[data-ag-tile="playbook"]');
-          mo.disconnect();
-        });
-        mo.observe(document.body, { childList: true, subtree: true });
-      });
-      const settleLoaded = id => page.waitForFunction(i => { const c = getContract(i); return !!(c && c._loaded); }, id, { timeout: 8000 }).catch(() => {});
-      /* FAST: hover, let the read land, then press. */
+         RE-POINTED TO THE BOARD 11 Oct 2026. There is no press to open a card
+         now — the Board draws the agent's work open, and loads each shown
+         card's whole record itself — so the page's hover prefetch (11a) and
+         its first-paint-on-press (11b) have nothing to measure. What the
+         owner reported stays measured on the slow path: while the record's
+         read is held back, the brief's place is a placeholder the size of a
+         brief, never an empty gap, and when it lands the brief fills it and
+         the standards beside it read the same. */
       await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(2000);
-      await page.evaluate(() => setView('agents')); await page.waitForTimeout(700);
-      await pick('paper');
-      const card = `#ag-main [data-ag-key="read:${fresh.a}"]`;
+      await page.evaluate(() => { try { hbS().path = []; hbSave(); } catch (_){} setView('dashboard'); }); await page.waitForTimeout(500);
       const light2 = await page.evaluate(id => { const c = getContract(id); return !!(c && c._light && !c._loaded); }, fresh.a);
-      ok('11 GATE — after a reload the card\'s contract is a light row again', light2);
-      if (await page.$(card)) {
-        await page.hover(card);
-        await settleLoaded(fresh.a);
-        ok('11a resting the pointer on a card fetches its whole record before any press',
-          await page.evaluate(id => !!(getContract(id) || {})._loaded, fresh.a));
-        await recordFirst();
-        await page.click(card);
-        await page.waitForSelector('[data-ag-panel]', { timeout: 5000 }).catch(() => {});
-        const f1 = await page.evaluate(() => window.__agFirst);
-        ok('11b the panel\'s FIRST paint already carries the brief — no half-drawn panel', !!f1 && f1.brief && !f1.skel, JSON.stringify(f1));
-        await page.evaluate(() => { try { closeModal(); } catch (_){} });
-      }
-      /* SLOW: the record's own read held back, so the wait runs out. */
-      await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(2000);
+      ok('11 GATE — after a reload, with the work closed, the card\'s contract is a light row again', light2);
       await page.route(u => new URL(u).pathname === '/api/contracts/' + fresh.a, async r => {
         if (r.request().method() === 'GET') await new Promise(res => setTimeout(res, 900));
         await r.continue();
       });
-      await page.evaluate(() => setView('agents')); await page.waitForTimeout(700);
-      await pick('paper');
-      if (await page.$(card)) {
-        await recordFirst();
-        await page.click(card);
-        await page.waitForSelector('[data-ag-panel]', { timeout: 5000 }).catch(() => {});
-        const f2 = await page.evaluate(() => window.__agFirst);
-        ok('11c slow: the brief\'s place is held by a placeholder the size of a brief, never an empty gap',
-          !!f2 && f2.skel && !f2.brief && f2.skelH >= 100, JSON.stringify(f2));
-        await page.screenshot({ path: path.join(OUT, '11-placeholder.png') });
-        await page.waitForFunction(() => { const b = document.querySelector('[data-ag-panel] [data-ag-tile="brief"]'); return !!b && /FY2026 external audit/.test(b.textContent); }, null, { timeout: 8000 }).catch(() => {});
-        const after = await page.evaluate(() => {
-          const p = document.querySelector('[data-ag-panel]');
-          const b = p && p.querySelector('[data-ag-tile="brief"]');
-          return { brief: !!b && /FY2026 external audit/.test(b.textContent), skel: !!(b && b.querySelector('.ag-skel')),
-            sameStd: !!window.__agStd && window.__agStd === (p && p.querySelector('[data-ag-tile="playbook"]')) };
-        });
-        ok('11d when it lands the brief fills its place', after.brief && !after.skel, JSON.stringify(after));
-        ok('11e and only the brief is swapped — the standards section beside it is the very same element', after.sameStd, JSON.stringify(after));
-        await page.screenshot({ path: path.join(OUT, '11-landed.png') });
-        await page.evaluate(() => { try { closeModal(); } catch (_){} });
-      }
+      const CA2 = `.hb-ag-work[data-hb-ag-item="read:${fresh.a}"]`;
+      await page.evaluate(() => hbOpenAgent('paper'));
+      await page.waitForSelector(CA2, { timeout: 5000 }).catch(() => {});
+      const f2 = await page.evaluate(sel => {
+        const b = document.querySelector(sel + ' [data-ag-tile="brief"]'), sk = b && b.querySelector('.ag-skel');
+        const st = document.querySelector(sel + ' [data-ag-tile="playbook"]');
+        window.__agStdText = st ? st.textContent.replace(/\s+/g, ' ').trim() : null;
+        return { brief: !!b && /FY2026 external audit/.test(b.textContent), skel: !!sk,
+          skelH: sk ? Math.round(sk.getBoundingClientRect().height) : 0 };
+      }, CA2);
+      ok('11c slow: the brief\'s place is held by a placeholder the size of a brief, never an empty gap',
+        f2.skel && !f2.brief && f2.skelH >= 100, JSON.stringify(f2));
+      await page.screenshot({ path: path.join(OUT, '11-placeholder.png') });
+      await page.waitForFunction(sel => { const b = document.querySelector(sel + ' [data-ag-tile="brief"]'); return !!b && /FY2026 external audit/.test(b.textContent); }, CA2, { timeout: 8000 }).catch(() => {});
+      const after = await page.evaluate(sel => {
+        const b = document.querySelector(sel + ' [data-ag-tile="brief"]');
+        const st = document.querySelector(sel + ' [data-ag-tile="playbook"]');
+        return { brief: !!b && /FY2026 external audit/.test(b.textContent), skel: !!(b && b.querySelector('.ag-skel')),
+          sameStd: !!window.__agStdText && st && st.textContent.replace(/\s+/g, ' ').trim() === window.__agStdText };
+      }, CA2);
+      ok('11d when it lands the brief fills its place', after.brief && !after.skel, JSON.stringify(after));
+      ok('11e and the standards beside it read the same before and after', after.sameStd, JSON.stringify(after));
+      await page.screenshot({ path: path.join(OUT, '11-landed.png') });
       await page.unroute(u => new URL(u).pathname === '/api/contracts/' + fresh.a).catch(() => {});
     }
   } catch (e) {
