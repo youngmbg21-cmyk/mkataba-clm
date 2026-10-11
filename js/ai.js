@@ -969,7 +969,12 @@ function openAI(prefill,opts){
   document.getElementById('ai-scrim').classList.toggle('open',!ai.docked && !aiFloatOn());
   ai.open=true;
   try{ aiFloatWire(); aiFloatSync(); }catch(_){}   /* a cut-down stage has no box model */
-  if(typeof jamboFacePaint==='function') jamboFacePaint(document.getElementById('ai-panel'));
+  /* his face takes the header's tile once the chat is opened — the closed
+     drawer keeps today's sparkle, so nothing changes on a page that never
+     opens it */
+  try{ const tile=document.querySelector('#ai-panel > header .ai-head-tile');
+    if(tile && !tile.classList.contains('has-face') && typeof jamboFaceHtml==='function'){ tile.innerHTML=jamboFaceHtml('hello',36); tile.classList.add('has-face');
+      tile.style.background='color-mix(in srgb,#fff 82%,var(--color-accent))'; tile.style.borderRadius='50%'; } }catch(_){}
   ai.minimized=false; ai.unread=false; updateAIBadge();   // opening clears the glow
   if(typeof updateAiBrainPill==='function') updateAiBrainPill();   // show which brain is live
   // restore the remembered width preference

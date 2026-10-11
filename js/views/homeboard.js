@@ -1229,13 +1229,15 @@ function hbHeadHtml(groupSel){
   </header>`;
 }
 /* A face's word in the reader's language, with every other language's word
-   stacked under it unseen, so the button is as wide as the widest. */
+   reserving its width unseen, so the button is as wide as the widest. */
 function hbFaceWordsHtml(f){
   const key = 'hb_face_' + f, now = i18t(key);
   const all = (typeof LANGUAGES !== 'undefined' && typeof STRINGS !== 'undefined')
     ? LANGUAGES.map(l => (STRINGS[l.id] || {})[key]).filter(Boolean) : [];
   const others = [...new Set(all)].filter(w => w !== now);
-  return `<span class="hb-face-w"><span>${_hbE(now)}</span>${others.map(w => `<span aria-hidden="true">${_hbE(w)}</span>`).join('')}</span>`;
+  /* the other words reserve the width from CSS (attr() into ::before/::after),
+     so the button's own text stays its one word */
+  return `<span class="hb-face-w"${others[0] ? ` data-w1="${_hbE(others[0])}"` : ''}${others[1] ? ` data-w2="${_hbE(others[1])}"` : ''}><span>${_hbE(now)}</span></span>`;
 }
 
 /* ---- YOUR BOOK: six figures and the stage bar ----

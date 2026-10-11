@@ -9697,8 +9697,9 @@
   #hb-head .hb-seg.hb-faces button:focus-visible{outline:2px solid var(--color-accent);outline-offset:-2px}
   #hb-head .hb-faces .hb-face-ic{width:15px;height:15px;flex:none}
   #hb-head .hb-faces .hb-face-w{display:inline-grid}
-  #hb-head .hb-faces .hb-face-w > span{grid-area:1/1;text-align:center}
-  #hb-head .hb-faces .hb-face-w > span[aria-hidden="true"]{visibility:hidden}
+  #hb-head .hb-faces .hb-face-w > span,#hb-head .hb-faces .hb-face-w::before,#hb-head .hb-faces .hb-face-w::after{grid-area:1/1;text-align:center}
+  #hb-head .hb-faces .hb-face-w::before{content:attr(data-w1);visibility:hidden}
+  #hb-head .hb-faces .hb-face-w::after{content:attr(data-w2);visibility:hidden}
   #hb-head .hb-faces .hb-thumb{position:absolute;top:3px;bottom:3px;left:3px;width:calc((100% - 6px) / var(--hb-fn, 5));border-radius:calc(var(--radius-lg) - 2px);background:var(--color-surface);box-shadow:0 1px 2px rgba(9,25,56,.16),0 0 0 1px rgba(9,25,56,.06);transform:translateX(calc(var(--hb-fi, 0) * 100%));transition:transform var(--dur-3) cubic-bezier(.22,.61,.36,1);pointer-events:none}
   @media (prefers-reduced-motion:reduce){#hb-head .hb-faces .hb-thumb{transition:none}}
   .hb-cal{position:absolute;inset:0;z-index:4;overflow:hidden;background:var(--color-bg);display:flex;flex-direction:column;min-height:0}
@@ -10570,7 +10571,8 @@
      on the page it steps aside (.ai-stepaside). The dock button shows only
      once it has been moved off the right edge. */
   #ai-panel.floating,#ai-panel.floating.expanded{right:auto;bottom:auto;max-width:none!important;transition:none;transform:none}
-  #ai-panel.floating:not(.open),#ai-panel.floating.ai-stepaside{visibility:hidden;pointer-events:none}
+  #ai-panel.floating:not(.open){transform:translateX(200vw);pointer-events:none}   /* closed: off the screen, as the drawer always was */
+  #ai-panel.floating.ai-stepaside{visibility:hidden;pointer-events:none}
   #ai-panel.floating:not(.ai-float-home){border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden;box-shadow:0 18px 50px rgba(9,25,56,.24),0 2px 6px rgba(9,25,56,.1)}
   #ai-panel.floating > header{cursor:grab;touch-action:none;user-select:none}
   #ai-panel.floating.ai-float-busy > header{cursor:grabbing}
@@ -10581,7 +10583,7 @@
      measured on the window, not the screen (the screen's narrow rules below
      are for a drawer as wide as a phone). */
   #ai-panel.floating{container-type:size;container-name:aiwin}
-  @container aiwin (max-width: 479px){
+  @container aiwin (max-width: 419px){   /* below the drawer's own 430 */
     #ai-panel > header{padding:var(--s-3);gap:var(--s-2)}
     #ai-panel > header button{width:28px;height:28px}
     #ai-panel > header > :first-child{display:none}
@@ -10593,7 +10595,7 @@
   /* JAMBO'S FACE in the chats (components.js jamboFaceHtml) — a round picture
      on a light wash of the theme colour, the same in every chat */
   img.jambo-face{border-radius:50%;object-fit:cover;flex:none;align-self:flex-start;aspect-ratio:1/1;background:color-mix(in srgb,var(--color-accent) 12%,var(--color-surface));user-select:none}
-  #ai-panel > header img.ai-head-face{background:color-mix(in srgb,#fff 82%,var(--color-accent))}
+  #ai-panel > header .ai-head-tile.has-face{overflow:hidden}
   #ai-panel .ai-rz{display:none;position:absolute;z-index:3;touch-action:none}
   #ai-panel.floating .ai-rz{display:block}
   #ai-panel .ai-rz-n,#ai-panel .ai-rz-s{left:12px;right:12px;height:8px;cursor:ns-resize}
@@ -13550,7 +13552,7 @@
 <div id="ai-scrim" class="fixed inset-0 z-40" style="background:color-mix(in srgb,#020617 45%,transparent);"></div>
 <section id="ai-panel" class="hati-copilot-panel fixed top-0 right-0 bottom-0 w-full z-50 flex flex-col" style="max-width:430px;background:var(--color-surface);border-left:1px solid var(--color-divider);">
   <header class="px-5 py-4 flex items-center gap-3" data-i18n-title="ai_float_move" title="Drag to move. Pull an edge or corner to resize." style="background:var(--color-accent-900);color:#fff;">
-    <img class="h-9 w-9 shrink-0 jambo-face ai-head-face" data-jambo-face="hello" alt="" width="36" height="36" draggable="false">
+    <div class="h-9 w-9 grid place-items-center shrink-0 ai-head-tile" style="background:var(--color-accent);color:#fff;border-radius:var(--radius);" data-ic-big="sparkle"></div>
     <div class="flex-1 leading-tight">
       <div class="font-display font-600">Jambo</div>
       <div id="ai-brain-sub" class="text-[11px] flex items-center gap-1.5" style="color:var(--color-accent-200);"><span class="h-1.5 w-1.5 rounded-full live-dot" style="background:var(--st-green-dot);"></span><span data-i18n="ai_searching_live">Searching your live contract data</span></div>
