@@ -9716,6 +9716,25 @@
   .hb-chart-notes .hb-chart-lead b{font-weight:var(--w-label)}
   .hb-chart-notes .hb-head-line{margin:0}
   .hb-chart-notes .hb-head-line p{font-size:var(--t-meta);color:var(--hb-ink-2)}
+  /* THE SIDE LIST, AS DRAWN (part B): over the right of the page, under the bar */
+  .hb-sheet{position:fixed;top:48px;right:0;bottom:0;width:min(560px,100vw);z-index:60;background:var(--hb-menu);border-left:1px solid rgba(var(--hb-ln),.18);box-shadow:-12px 0 32px rgba(4,25,26,.12);display:flex;flex-direction:column}
+  .hb-sheet-h{display:flex;align-items:flex-start;gap:12px;padding:16px 18px 12px;border-bottom:1px solid rgba(var(--hb-ln),.14)}
+  .hb-sheet-h > div{flex:1;min-width:0}
+  .hb-sheet-h h3{margin:0;font-size:var(--t-title,16px);font-weight:var(--w-title,700);color:var(--hb-ink)}
+  .hb-sheet-h p{margin:4px 0 0;font-size:var(--t-small,12px);color:var(--hb-mute)}
+  .hb-sheet-b{flex:1;overflow:auto;padding:8px 18px 18px}
+  .hb-sheet-back{margin:6px 0 10px}
+  .hb-sheet .hb-figs{grid-template-columns:repeat(3,minmax(0,1fr))} .hb-sheet .hb-fig:nth-child(3n+1){border-left:0} .hb-sheet .hb-fig:nth-child(n+4){border-top:1px solid rgba(var(--hb-ln),.16)}
+  .hb-sheet-t{width:100%;border-collapse:collapse;font-size:13px;color:var(--hb-ink)}
+  .hb-sheet-t th{position:sticky;top:-8px;background:var(--hb-menu);text-align:left;font-weight:var(--w-label,500);color:var(--hb-mute);padding:8px 6px;border-bottom:1px solid rgba(var(--hb-ln),.16)}
+  .hb-sheet-t td{padding:8px 6px;border-bottom:1px solid rgba(var(--hb-ln),.1);vertical-align:top}
+  .hb-sheet-t .r{text-align:right;white-space:nowrap}
+  .hb-sheet-t td:last-child{white-space:nowrap}
+  .hb-sheet-t td:nth-child(2),.hb-sheet-t td:nth-child(3){font-size:12px;color:var(--hb-mute)}
+  .hb-sheet-t tbody tr{cursor:pointer}
+  .hb-sheet-t tbody tr:hover,.hb-sheet-t tbody tr:focus-visible{background:rgba(var(--hb-ln),.06);outline:none}
+  .hb-sheet-cp{display:block;font-weight:var(--w-label,500)}
+  .hb-sheet-t small{display:block;color:var(--hb-mute);font-size:12px}
   @media (max-width:1180px){ .hb-figs{grid-template-columns:repeat(3,minmax(0,1fr))} .hb-fig:nth-child(3n+1){border-left:0} .hb-fig:nth-child(n+4){border-top:1px solid rgba(var(--hb-ln),.16)} .hb-rows,.hb-grid,.hb-cgrid{grid-template-columns:minmax(0,1fr)} }
   @media (prefers-reduced-motion:reduce){ .hb-card.is-lit::before,.hb-card.is-new,.hb-card.is-new::before,.hb-bar-f,.hb-cbar-f,.hb-ccol-f,.hb-in,.hb-live i{animation:none} }
 

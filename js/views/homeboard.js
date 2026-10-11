@@ -4897,6 +4897,49 @@ function hbGiveFormHtml(p){
     <span class="hb-quiet hb-wide">${_hbE(i18t('hb_give_note'))}</span></form>`;
 }
 /* ============================================================
+   THE SIDE LIST, AS DRAWN (owner, 11 Oct 2026, the "HaTi Board" artifact;
+   work order docs/WORKORDER-board-as-drawn.md, part B)
+   ============================================================
+   A press on a piece of a chart, a row of its table or a figure opens the
+   contracts behind it on the RIGHT, over the page: the same list the number
+   was counted from (its ids, hbDigData), one row each. A press on a row reads
+   that contract in the same place (the contract card, hbCardHtml) with a way
+   back to the list. × or Esc closes it. Reading never writes. */
+let _hbSheet = null;
+function hbSheetOpen(key){ _hbSheet = { key, cid: null }; try { hbTipHide(true); } catch (_){} hbPaintBoard(); }
+function hbSheetHtml(){
+  if (!_hbSheet) return '';
+  const s = hbS(), lens = s.lens;
+  const wrap = (title, sub, body) => `<aside class="hb-sheet" role="dialog" aria-label="${_hbE(title)}"><header class="hb-sheet-h"><div><h3>${_hbE(title)}</h3>${sub ? `<p>${_hbE(sub)}</p>` : ''}</div>`
+    + `<button type="button" class="hb-ib hb-sheet-x" data-hb-sheet-x title="${_hbE(i18t('hb_close_dig'))}" aria-label="${_hbE(i18t('hb_close_dig'))}">${_hbX}</button></header><div class="hb-sheet-b">${body}</div></aside>`;
+  if (_hbSheet.cid){
+    const D = hbDigData('c:' + _hbSheet.cid, lens);
+    if (D && D.card) return wrap(D.card.ref + ' · ' + D.card.name, D.card.cp || '',
+      `<button type="button" class="hb-link hb-sheet-back" data-hb-sheet-back>← ${_hbE(i18t('hb_sheet_back'))}</button>${hbCardHtml(D.card)}`);
+    _hbSheet.cid = null;
+  }
+  const D = hbDigData(_hbSheet.key, lens);
+  if (!D || !Array.isArray(D.ids)){ _hbSheet = null; return ''; }
+  const money = hbMoneyOk();
+  const cs = hbListOf(D.ids, lens).slice().sort((a, b) => money ? hbValueOfOne(b) - hbValueOfOne(a) : 0);
+  const title = hbCrumbOf(_hbSheet.key, lens);
+  const stream = c => (typeof FOLDERS !== 'undefined' && FOLDERS && FOLDERS[c.folder] && FOLDERS[c.folder].name) || c.folder || '';
+  const owner = c => (typeof contractOwnerName === 'function' ? contractOwnerName(c) : '') || '';
+  const rows = cs.map(c => `<tr data-hb-sheet-c="${_hbE(c.id)}" tabindex="0"><td><span class="hb-sheet-cp">${_hbE(c.counterparty || i18t('home_no_counterparty'))}</span><small>${_hbRefH(c)} · ${_hbE(c.name || '')}</small></td>`
+    + `<td>${_hbE(stream(c))}</td><td>${_hbE(owner(c))}</td><td class="r">${money ? _hbE((typeof fmtMoneyShortOf === 'function') ? fmtMoneyShortOf(c) : _hbM(hbValueOfOne(c))) : '—'}</td><td>${_hbE(_hbStatus(c.status))}</td></tr>`).join('');
+  const table = cs.length ? `<table class="hb-sheet-t"><thead><tr><th>${_hbE(i18t('hb_sheet_c'))}</th><th>${_hbE(i18t('hb_sheet_stream'))}</th><th>${_hbE(i18t('hb_sheet_owner'))}</th><th class="r">${_hbE(i18t('hb_c_value'))}</th><th>${_hbE(i18t('hb_c_stage'))}</th></tr></thead><tbody>${rows}</tbody></table>`
+    : `<div class="hb-quiet">${_hbE(i18t('hb_none_here'))}</div>`;
+  return wrap(title, i18tn('hb_sheet_sub', cs.length, { n: _hbN(cs.length) }), table + (cs.length ? hbListFootHtml(cs, title, null, '') : ''));
+}
+/* is this press a piece of a chart or a figure whose list the side list shows? */
+function hbSheetKeyOf(el){
+  if (!el || el.closest('.hb-sheet, .hb-pmenu, .hb-dp, .hb-trail, .hb-acts, .hb-ag, .hb-ins')) return null;
+  if (!el.closest('svg.hb-svg, .hb-chart, .hb-chart-bars, .hb-ctab, .hb-small, .hb-fig-main, .hb-stagebar, .hb-stagekey')) return null;
+  const k = el.getAttribute('data-hb-dig'); if (!k || /^(c|ag|pk|sy|mv|dn):/.test(k)) return null;
+  const D = hbDigData(k, hbS().lens);
+  return D && D.kind === 'list' && Array.isArray(D.ids) && D.ids.length ? k : null;
+}
+/* ============================================================
    THE CARD'S EDGE, AS DRAWN (owner, 11 Oct 2026, over the "HaTi Board"
    artifact: "the cards in the artifact are clean without filters sitting on
    the screen"; work order docs/WORKORDER-board-as-drawn.md, part A)
@@ -5055,7 +5098,7 @@ function hbBoardHtml(){
     ${hbBookHtml(d, moved, base && base.at)}
     ${hbPrepHtml(A, base && base.at)}
     ${hbFocusHtml()}
-    <div class="hb-grid">${(received || panels) ? hbGridBalanced(received + panels) : `<div class="hb-empty">${_hbE(i18t('hb_empty'))}${hbSetupDoorHtml()}</div>`}</div>`;
+    <div class="hb-grid">${(received || panels) ? hbGridBalanced(received + panels) : `<div class="hb-empty">${_hbE(i18t('hb_empty'))}${hbSetupDoorHtml()}</div>`}</div>${hbSheetHtml()}`;
 }
 /* ---- FINISH SETTING UP (9 Oct 2026, the overnight run) ----
    A brand-new Home said nothing about what to do first while the admin's
@@ -8605,6 +8648,12 @@ function hbOnClick(e){
   if ((el = on('[data-hb-ins]'))){ hbInsAct(el.getAttribute('data-hb-ins'), el.getAttribute('data-hb-ins-k')); return; }
   if ((el = on('[data-hb-ai]'))){ hbAskInPanel(el.getAttribute('data-hb-ai'), el.getAttribute('data-hb-ai-id')); return; }
   if ((el = on('[data-hm-agent]'))){ e.stopPropagation(); hbOpenAgent(el.getAttribute('data-hm-agent')); return; }
+  if (on('[data-hb-sheet-x]')){ _hbSheet = null; hbPaintBoard(); return; }
+  if (on('[data-hb-sheet-back]')){ if (_hbSheet) _hbSheet.cid = null; hbPaintBoard(); return; }
+  if ((el = on('[data-hb-sheet-c]'))){ if (_hbSheet){ _hbSheet.cid = el.getAttribute('data-hb-sheet-c'); hbPaintBoard(); } return; }
+  /* a piece of a chart, a table row or a figure: its contracts in the side list (as drawn) */
+  if ((el = on('.hb-sheet [data-hb-dig^="c:"]')) && _hbSheet){ _hbSheet.cid = el.getAttribute('data-hb-dig').slice(2); hbPaintBoard(); return; }
+  if ((el = on('[data-hb-dig]')) && !el.disabled){ const sk = hbSheetKeyOf(el); if (sk){ hbSheetOpen(sk); return; } }
   if ((el = on('[data-hb-dig]'))){ if (el.disabled) return; hbDig(el.getAttribute('data-hb-dig'), !!el.closest('.hb-dig'), true); return; }
   if (on('#hero-draft')){ e.stopPropagation(); if (typeof openNewMenu === 'function') openNewMenu(on('#hero-draft')); else { const nb = document.getElementById('cmd-new'); if (nb) nb.click(); } }
 }
@@ -8672,6 +8721,8 @@ function hbOnKey(e){
     e.preventDefault(); const ok = hbUndo(); hbPaintBoard();
     if (typeof toast === 'function') toast(i18t(ok ? 'hb_undo_done' : 'hb_undo_none'), ok ? 'ok' : 'warn'); return;
   }
+  if (e.key === 'Escape' && _hbSheet){ if (_hbSheet.cid) _hbSheet.cid = null; else _hbSheet = null; hbPaintBoard(); return; }
+  if (e.key === 'Escape' && (_hbDrawnOpen || _hbToolsMenu)){ _hbDrawnOpen = null; _hbToolsMenu = null; hbPaintBoard(); return; }
   if (e.key === 'Escape' && _hbRdOpen){ _hbRdOpen = null; hbDockRepaint(); return; }
   if (e.key === 'Escape' && _hbLinesOpen){ const k = _hbLinesOpen; _hbLinesOpen = null; hbPaintBoard();
     const w = [...document.querySelectorAll('[data-hb-lines-key]')].find(x => x.getAttribute('data-hb-lines-key') === k), b = w && w.querySelector('[data-hb-lines]'); if (b) try { b.focus({ preventScroll: true }); } catch (_){} return; }
