@@ -188,7 +188,8 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   await page.keyboard.press('Enter');
   await page.waitForTimeout(1000);
   const opened = await page.evaluate(() => ({
-    view: (typeof state !== 'undefined' && state.view) || '', active: (typeof state !== 'undefined' && state.activeId) || '' }));
+    /* RE-POINTED 11 Oct 2026 (owner): opening a row lands on Home's Document, on it */
+    view: (typeof state !== 'undefined' && state.view) || '', active: (window.intel && intel.paper && intel.paper.id) || (typeof state !== 'undefined' && state.activeId) || '' }));
   ok('Enter opened the focused contract', opened.active === wantId,
      'wanted ' + wantId + ', opened ' + opened.active + ' (view ' + opened.view + ')');
 

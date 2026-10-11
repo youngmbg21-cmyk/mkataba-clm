@@ -265,9 +265,11 @@ const check = (name, pass, detail) => {
     check('14b no "Back to Document" words; "Open document" instead', !!back && !back.word && back.text === 'Open document', JSON.stringify(back));
     await page.screenshot({ path: path.join(OUT, '14-back-to-document.png'), clip: { x: 0, y: 0, width: 1180, height: 120 } });
     await page.click('#view-redline [data-rl-open-doc]').catch(() => {});
-    const docs = await until(() => state.view === 'workspace' && !!document.querySelector('#ws-tabs [data-room-tab="docs"][aria-selected="true"]'));
-    check('14c pressed, Open document lands on the contract\'s Document tab', !!docs,
-      await page.evaluate(() => state.view + ' · ' + ((document.querySelector('#ws-tabs [aria-selected="true"]') || {}).textContent || '')));
+    /* RE-POINTED 11 Oct 2026 (owner: "press open document you will also be sent to the copilot") */
+    const docs = await until(() => state.view === 'dashboard' && window.intel && intel.paper && intel.paper.id === 'MK-A2'
+      && !!document.querySelector('#ig-dock [data-pd-tab="copilot"][aria-selected="true"]'));
+    check('14c pressed, Open document lands on Home\'s Document, on Copilot', !!docs,
+      await page.evaluate(() => state.view + ' · ' + ((window.intel && intel.paper) ? intel.paper.id : '')));
 
     check('9a no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {

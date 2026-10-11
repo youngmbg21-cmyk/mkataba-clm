@@ -122,7 +122,12 @@ const check = (name, pass, detail) => {
     const sg = await page.evaluate(() => { const sp = document.getElementById('doc-track'); return !sp || sp.hidden || !sp.getClientRects().length; });
     check('5b no Track on the Signing tab', sg);
     const s = await line();
-    check('5c Signing: the buttons stand on the tab line, no bar, no words', s.inRow && s.same && !s.bar && !s.words, JSON.stringify(s));
+    /* RE-POINTED 11 Oct 2026 (owner: the zoom "inside the page area"): the signing
+       copy's page arrows and zoom left the tab line for the paper's own ground;
+       what stays on the line (the walk, when there is one) still stands on it. */
+    check('5c Signing: no bar, no words; what is on the tab line stands on it', s.inRow && (s.slotH === 0 || s.same) && !s.bar && !s.words, JSON.stringify(s));
+    const zc = await page.evaluate(() => !!document.querySelector('#doc-zc-slot .paper-zc .sc-step'));
+    check('5d Signing: the page arrows and the zoom stand on the paper', zc);
     await page.screenshot({ path: path.join(OUT, '3-signing.png') });
 
     console.log('\n6 · a narrow window');

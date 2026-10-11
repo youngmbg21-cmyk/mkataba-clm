@@ -428,8 +428,12 @@ describe('F84 — the text size is a control on this page again', () => {
      menu, and that claim is kept exactly as it was. */
   test('the workbench strip carries the stepper, and only the stepper', async () => {
     const p = await page();
-    assert.ok(p.$('#view-redline .rl-head .rl-type-step'),
-      'the size of the contract is decided where the contract is worked on');
+    /* RE-POINTED 11 Oct 2026 (owner: "the page adjust was supposed to go
+       inside the page area"): the zoom stands on the paper's own ground, top
+       right — not on the strip. */
+    assert.ok(p.$('#view-redline #nego-scroll-work > .paper-zc-row .rl-type-step'),
+      'the size of the contract is decided on the paper it is worked on');
+    assert.equal(p.$('#view-redline .rl-head .rl-type-step'), null, 'and no longer on the strip');
     assert.equal(p.$('#view-redline [data-rl-focus]'), null,
       'but the fullscreen toggle did NOT come back — focus mode is in the head\'s "..."');
   });
@@ -464,7 +468,7 @@ describe('F84 — the text size is a control on this page again', () => {
        exactly a line of source — one builder, one preference. */
     const src = require('node:fs').readFileSync(
       require('node:path').join(__dirname, '..', 'js', 'views', 'contract.js'), 'utf8');
-    assert.ok(/rlTypeStepHtml\(\)/.test(src), 'the tab row renders the shared stepper');
+    assert.ok(/rlPaperZoomHtml\(\)/.test(src), 'the paper renders the shared zoom, top right (11 Oct 2026)');
     assert.ok(/rlWireTypeStep\(/.test(src), 'and wires it');
     assert.ok(/rlDocZoomFactor\(\)/.test(src), 'applyDocZoom reads the reader\'s zoom (11 Oct 2026)');
     /* ---- CLAIM REVERSED A SECOND TIME, 29 Aug 2026 (owner-asked: the three

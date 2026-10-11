@@ -223,7 +223,8 @@ const check = (name, ok, detail) => {
     await page.evaluate(() => document.querySelector('tr[data-row]').click());
     await page.waitForTimeout(1600);
     const landed = await page.evaluate(() => window.state && state.view);
-    check('6a pressing a row still opens the contract', landed === 'workspace', String(landed));
+    /* RE-POINTED 11 Oct 2026 (owner): the list opens the contract on Home's Document */
+    check('6a pressing a row still opens the contract, on Home\'s Document', landed === 'dashboard', String(landed));
 
     /* ============ 7. THE SAME TABLE ON THE OTHER SEAT ============ */
     /* Negotiations IS this renderer. With nothing live it draws its own empty

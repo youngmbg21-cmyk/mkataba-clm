@@ -44,7 +44,8 @@ const HB_LS = 'hati.v1.homeBoard.';
    you analyse a contract"; Explorer loses its own Graph | Paper switch). */
 /* CALENDAR IS HOME'S SECOND TAB (owner, 11 Oct 2026, WORKORDER-four-builds
    item 1): today → coming up → one contract → the whole book */
-const HB_FACES = ['board', 'calendar', 'paper', 'explorer'];
+/* BREAKDOWN STANDS NEXT TO DOCUMENT (owner, 11 Oct 2026): js/views/breakdown.js */
+const HB_FACES = ['board', 'calendar', 'paper', 'breakdown', 'explorer'];
 const HB_LENSES = ['all', 'suppliers', 'customers'];
 const HB_SCREENS = ['dark', 'light'];
 const HB_PREP = ['open', 'folded', 'closed'];
@@ -6587,6 +6588,11 @@ function hbApplyFace(){
   if (cal){ cal.hidden = s.face !== 'calendar';
     if (s.face === 'calendar' && typeof window.renderCalendar === 'function') try { renderCalendar(); } catch (_){}
     else if (s.face !== 'calendar') cal.innerHTML = ''; }
+  /* the Breakdown tab draws its regions into its own cover the same way */
+  const bd = document.getElementById('hb-bd');
+  if (bd){ bd.hidden = s.face !== 'breakdown';
+    if (s.face === 'breakdown' && typeof window.renderBreakdown === 'function') try { renderBreakdown(); } catch (_){}
+    else if (s.face !== 'breakdown') bd.innerHTML = ''; }
 }
 /* Home on the desktop. The page is Explorer's (renderIntel draws it with
    Home's head and calls hbAfterMount); a stage without Explorer gets the
@@ -6609,7 +6615,8 @@ function hbRender(){
   if (pg && hbHost() && pg.getAttribute('data-hb-side') === s.face && pg.getAttribute('data-hb-lang') === lang){
     if (s.face === 'board') hbPaintBoard(); else { _hbBoardMissed = true; hbPaintHead();
       /* the book moved under the Calendar tab: the calendar reads it again */
-      if (s.face === 'calendar' && typeof window.renderCalendar === 'function') try { renderCalendar(); } catch (_){} }
+      if (s.face === 'calendar' && typeof window.renderCalendar === 'function') try { renderCalendar(); } catch (_){}
+      if (s.face === 'breakdown' && typeof window.renderBreakdown === 'function') try { renderBreakdown(); } catch (_){} }
     return;
   }
   hbMount();

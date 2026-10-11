@@ -4411,7 +4411,8 @@ function renderShareWorkbench(p, opts={}){
         <span class="pw-id-sp"></span>
         <span class="pw-rl-only pw-rl-tools">
           ${portalReadingBtnsHtml({ noHist:true })}
-          ${window.rlTypeStepHtml ? rlTypeStepHtml() : ''}
+          ${''/* the zoom moved onto the paper's own ground, top right
+                 (owner, 11 Oct 2026): redlinePanesHtml draws it */}
           ${portalFocusBtnHtml()}
         </span>
       </div>

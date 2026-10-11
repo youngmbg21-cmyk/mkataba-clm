@@ -6,7 +6,12 @@
    The A⁻ 15px A⁺ text-size stepper is gone; the clause editor's "− 100% +"
    zoom stands in its place on the Document tab, Negotiate and Home's Paper,
    one remembered value. The page grows; the words keep their type. The
-   "+N −N" words-moved count is on Negotiate only. */
+   "+N −N" words-moved count is on Negotiate only.
+
+   RE-POINTED 11 Oct 2026 (owner: "the page adjust was supposed to go inside
+   the page area ... not adding a button on the panel"; "this needs to be done
+   to all pages with a paper"): the zoom stands on each paper's own grey, top
+   right above the sheet (rlPaperZoomHtml, .paper-zc), never on a bar. */
 const path = require('node:path');
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
@@ -53,13 +58,14 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await page.evaluate(id => openWorkspace(id), id);
     await until(page, () => !!document.querySelector('.room-tabrow'), null, 10000);
     await page.evaluate(() => roomGoTab('contract'));
-    const docUp = await until(page, () => !!document.querySelector('#ws-tabrow-end .rl-type-step') && !!document.querySelector('#doc-zoom'));
-    ok('1a the Document tab carries the zoom', docUp);
+    const docUp = await until(page, () => !!document.querySelector('#doc-zc-slot .paper-zc .rl-type-step') && !!document.querySelector('#doc-zoom'));
+    ok('1a the Document tab carries the zoom, on the paper', docUp);
+    ok('1a2 and none on the tab row', await page.evaluate(() => !document.querySelector('#ws-tabrow-end .rl-type-step')));
     const d0 = await READ('#doc-zoom');
     ok('1b it reads "− 100% +", and no A⁻ / A⁺ is drawn', d0.ctl === '− 100% +' && !d0.textSize, d0.ctl);
     ok('1c no words-moved count on the Document tab', !d0.moved);
-    await page.click('#ws-tabrow-end .rl-type-step [data-rl-type="1"]');
-    await page.click('#ws-tabrow-end .rl-type-step [data-rl-type="1"]');
+    await page.click('#doc-zc-slot .rl-type-step [data-rl-type="1"]');
+    await page.click('#doc-zc-slot .rl-type-step [data-rl-type="1"]');
     await until(page, () => (document.querySelector('.rl-type-out') || {}).textContent === '120%');
     const d1 = await READ('#doc-zoom');
     ok('1d two presses: 120%, the page grows, the words keep their type',
@@ -70,8 +76,12 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
 
     /* 2. NEGOTIATE: the same zoom, and the words moved */
     await page.evaluate(id => openRedlineWorkbench(id), id);
-    const ngUp = await until(page, () => !!document.querySelector('#view-redline .rl-type-step') && !!document.querySelector('#view-redline .rl-zoom'));
-    ok('2a Negotiate carries the zoom', ngUp);
+    const ngUp = await until(page, () => !!document.querySelector('#view-redline .paper-zc .rl-type-step') && !!document.querySelector('#view-redline .rl-zoom'));
+    ok('2a Negotiate carries the zoom, on the paper', ngUp);
+    ok('2a2 and none on the control row', await page.evaluate(() => !document.querySelector('#view-redline .rl-head .rl-type-step')));
+    const above = await page.evaluate(() => { const z = document.querySelector('#view-redline .paper-zc').getBoundingClientRect();
+      const s = document.querySelector('#view-redline .rl-paper').getBoundingClientRect(); return { zb: Math.round(z.bottom), st: Math.round(s.top) }; });
+    ok('2a3 it stands in the grey above the sheet', above.zb <= above.st, JSON.stringify(above));
     const n0 = await READ('#view-redline .rl-zoom');
     ok('2b at the zoom the Document tab left', n0.ctl === '− 120% +' && Math.abs(n0.zoom - 1.2) < 0.01, `${n0.ctl}, zoom ${n0.zoom}`);
     ok('2c nothing open on the table, no count', !n0.moved);
@@ -81,7 +91,7 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
       try { await negoEditClause(c, cl.clauseId, body, { side: 'owner', note: 'test' }); } catch (e) { return 'threw ' + e.message; }
       renderRedline(); return rlWordsMoved(c);
     }, id);
-    const shown = await page.evaluate(() => (document.querySelector('#view-redline .rl-moved') || {}).textContent || '');
+    const shown = await page.evaluate(() => (document.querySelector('#view-redline .paper-zc .rl-moved') || {}).textContent || '');
     ok('2d a filed change shows its words moved beside the zoom', filed && filed.ins > 0 && shown.replace(/\s+/g, ' ').trim() === `+${filed.ins} −${filed.del}`,
       `${JSON.stringify(filed)} · "${shown}"`);
     await page.screenshot({ path: path.join(OUT, '2-negotiate.png') });
@@ -90,13 +100,14 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await page.evaluate(() => setView('dashboard'));
     await until(page, () => typeof window.igAnalyze === 'function');
     await page.evaluate(id => igAnalyze(id), id);
-    const hmUp = await until(page, () => !!document.querySelector('#ig-strip .rl-type-step') && !!document.querySelector('#ig-paper .ig-zoom'));
-    ok('3a Home\'s Paper carries the zoom', hmUp);
+    const hmUp = await until(page, () => !!document.querySelector('#ig-paper .paper-zc .rl-type-step') && !!document.querySelector('#ig-paper .ig-zoom'));
+    ok('3a Home\'s Document carries the zoom, on the paper', hmUp);
+    ok('3a2 and none on the strip', await page.evaluate(() => !document.querySelector('#ig-strip .rl-type-step')));
     const m0 = await READ('#ig-paper .ig-zoom');
     ok('3b at the same remembered zoom, and the page wears it', m0.ctl === '− 120% +' && Math.abs(m0.zoom - 1.2) < 0.01, `${m0.ctl}, zoom ${m0.zoom}`);
     ok('3c no count on Home\'s Paper', !m0.moved);
-    await page.click('#ig-strip .rl-type-step [data-rl-type="-1"]');
-    await until(page, () => (document.querySelector('#ig-strip .rl-type-out') || {}).textContent === '110%');
+    await page.click('#ig-paper .rl-type-step [data-rl-type="-1"]');
+    await until(page, () => (document.querySelector('#ig-paper .rl-type-out') || {}).textContent === '110%');
     const m1 = await READ('#ig-paper .ig-zoom');
     ok('3d a press on Home turns Home\'s page', Math.abs(m1.zoom - 1.1) < 0.01, `zoom ${m1.zoom}`);
     await page.screenshot({ path: path.join(OUT, '3-home-paper.png') });

@@ -1839,7 +1839,17 @@ function regOpenRow(id, negoRow){
   const cRow=(typeof getContract==='function')?getContract(id):null;
   const mayNego=!cRow||!window.negoMayStart||negoMayStart(cRow).ok;
   if(negoRow&&mayNego&&window.openRedlineWorkbench) openRedlineWorkbench(id);
-  else selectContract(id);
+  else regOpenContract(id);
+}
+/* ---- OPEN CONTRACT LANDS ON HOME'S DOCUMENT, ON COPILOT (owner, 11 Oct
+   2026: "when you ... click open contract, it will then take you to the home
+   page under document ... you should land in that tab") ----
+   The one door the list's Open contract, Enter and the second press share.
+   pdOpenOnHome is the product's own way onto a contract on Home; below 768px
+   it opens the contract's own page, which the phone draws instead. */
+function regOpenContract(id){
+  if(typeof pdOpenOnHome==='function'&&pdOpenOnHome(id,'copilot')) return;
+  selectContract(id);
 }
 /* THE ROW'S PRIMARY VERB.
    Not one generic "Open" down the column — each row offers the thing that
@@ -2258,7 +2268,7 @@ function regInsActs(c){
      the panel offered "Open negotiation" on a contract nobody had argued
      (measured on the night screenshot, 26 Sep 2026). Two doors, one answer. */
   const started=!!(c.negotiation&&Array.isArray(c.changes)&&c.changes.length);
-  const openC={ k:'open', label:i18t('ins_open_contract'), iconEnd:'chevR', run:x=>selectContract(x.id) };
+  const openC={ k:'open', label:i18t('ins_open_contract'), iconEnd:'chevR', run:x=>regOpenContract(x.id) };
   const openN={ k:'nego', label:i18t('ins_open_nego'), icon:'msg', run:x=>regOpenRow(x.id,true) };
   /* BOTH SEATS LEAD WITH THE CONTRACT, FILLED, AND OFFER THE NEGOTIATION
      BESIDE IT (Young, 7 Oct 2026, the mockup's own panel). A press on the row
@@ -3574,7 +3584,7 @@ function ftsSearch(q){
     }catch(e){ box.classList.add('hidden'); }
   },220);
 }
-Object.assign(window,{regPlace,regPlacePut,regSignedOn,regSignedYear,regSignedYears,regSignedCell,
+Object.assign(window,{regOpenContract,regPlace,regPlacePut,regSignedOn,regSignedYear,regSignedYears,regSignedCell,
   REG_COL_KEYS,REG_COL_KEYS_NEGO,REG_COL_W,REG_COL_W_NEGO,REG_COL_KEYS_NARROW,REG_COL_KEYS_NEGO_NARROW,REG_COL_W_NARROW,REG_COL_W_NEGO_NARROW,REG_NARROW_W,regNarrowTable,REG_COL_MIN_PX,regReopenAsk,
   /* the list inspector (26 Sep 2026) */
   REG_COL_KEYS_INS,REG_COL_KEYS_NEGO_INS,REG_INS_COL_PX,regInspecting,regColKeys,regInsSeat,regInsActs,regInsPaint,

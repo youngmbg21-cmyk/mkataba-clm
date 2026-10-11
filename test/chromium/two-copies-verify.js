@@ -216,7 +216,7 @@ const PAGES = sel => `(() => {
 
     /* ================= 4 — THE SIZE CONTROL ZOOMS, IT DOES NOT RE-BREAK (4A) */
     const z0 = await page.evaluate(PAGES('#doc-signwrap .pg-sheet.pg-sign'));
-    const zBtn = await page.$('#ws-tabrow-end [data-sc-zoom="1"]');
+    const zBtn = await page.$('#doc-zc-slot [data-sc-zoom="1"]');
     if (zBtn) { await zBtn.click(); await page.waitForTimeout(700); }
     const z1 = await page.evaluate(PAGES('#doc-signwrap .pg-sheet.pg-sign'));
     const zOut = await page.evaluate(() => (document.getElementById('sc-zoom-out') || {}).textContent || null);
@@ -225,7 +225,7 @@ const PAGES = sel => `(() => {
     check('4b …and the pages break exactly where they broke — nothing re-flows',
       !!(z0 && z1 && zBtn && z0.n === z1.n && z0.push === z1.push && z1.W === 794),
       z0 && z1 ? `${z0.n} → ${z1.n} pages, pushes ${z0.push === z1.push ? 'identical' : 'moved'}` : '—');
-    const zb = await page.$('#ws-tabrow-end [data-sc-zoom="-1"]');
+    const zb = await page.$('#doc-zc-slot [data-sc-zoom="-1"]');
     if (zb) { await zb.click(); await page.waitForTimeout(400); }
     await page.evaluate(() => { try { localStorage.removeItem('hati.v1.signZoom'); } catch (_) {} });
 

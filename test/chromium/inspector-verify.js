@@ -118,18 +118,20 @@ const ok = (name, good, detail) => {
       const id4 = await rows[3].getAttribute('data-row');
       ok('1e the arrow key moves the selection, and the panel with it', arrow === id4, `${id3} → ${arrow}`);
       await page.click('#ins-panel [data-ins-act="open"]'); await page.waitForTimeout(900);
-      const opened = await page.evaluate(() => ({ view: state.view, id: state.activeId }));
-      ok('1f the panel’s Open contract opens that contract', opened.view === 'workspace' && opened.id === id4, JSON.stringify(opened));
+      /* 1f–1h RE-POINTED 11 Oct 2026 (owner): Open contract lands on Home's Document, on that contract */
+      const HOME = () => ({ view: state.view, id: (window.intel && intel.paper) ? intel.paper.id : null });
+      const opened = await page.evaluate(HOME);
+      ok('1f the panel’s Open contract opens that contract, on Home\'s Document', opened.view === 'dashboard' && opened.id === id4, JSON.stringify(opened));
       await toContracts();
       const rows2 = await page.$$('#reg-tbody tr[data-row]');
       const id2 = await rows2[1].getAttribute('data-row');
       await rows2[1].dblclick(); await page.waitForTimeout(900);
-      const dbl = await page.evaluate(() => ({ view: state.view, id: state.activeId }));
-      ok('1g a double-click opens it', dbl.view === 'workspace' && dbl.id === id2, JSON.stringify(dbl));
+      const dbl = await page.evaluate(HOME);
+      ok('1g a double-click opens it', dbl.view === 'dashboard' && dbl.id === id2, JSON.stringify(dbl));
       await toContracts();
       await page.focus('#reg-tbody tr.is-sel'); await page.keyboard.press('Enter'); await page.waitForTimeout(900);
       const ent = await page.evaluate(() => ({ view: state.view }));
-      ok('1h Enter opens it', ent.view === 'workspace', JSON.stringify(ent));
+      ok('1h Enter opens it', ent.view === 'dashboard', JSON.stringify(ent));
       await toContracts();
     } else {
       for (const n of ['1d a press SELECTS', '1e the arrow key moves the selection', '1f the panel’s Open contract opens that contract', '1g a double-click opens it', '1h Enter opens it'])
@@ -291,8 +293,11 @@ const ok = (name, good, detail) => {
     const nrow = await page.$('#reg-tbody tr[data-row]');
     const nid = nrow ? await nrow.getAttribute('data-row') : null;
     if (nrow) { await nrow.click(); await page.waitForTimeout(900); }
-    const nopen = await page.evaluate(() => ({ view: state.view, id: state.activeId }));
-    ok('4b [control] and one press opens there, as it always did', nopen.view === 'workspace' && nopen.id === nid, JSON.stringify(nopen));
+    /* RE-POINTED 11 Oct 2026 (owner: "when you ... click open contract, it will then
+       take you to the home page under document"): the list's open lands on Home's
+       Document, on that contract. */
+    const nopen = await page.evaluate(() => ({ view: state.view, id: (window.intel && intel.paper) ? intel.paper.id : null }));
+    ok('4b [control] and one press opens it, on Home\'s Document', nopen.view === 'dashboard' && nopen.id === nid, JSON.stringify(nopen));
     await toContracts();
     await page.setViewportSize({ width: 1440, height: 900 }); await page.waitForTimeout(700);
     const grown = await page.evaluate(() => ({ ins: document.querySelector('[data-ins-page]')?.getAttribute('data-ins'), view: state.view }));

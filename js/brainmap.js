@@ -240,6 +240,9 @@ const BRAIN_PARTS = [
      counts read by the route that reads the code */
   ['stackview', 'brStackPaint', 'see', 0],
   ['brainread', 'GET /api/brain', 'wall', 2],
+  /* Home's Breakdown (owner, 11 Oct 2026): the whole contract in regions, read once per wording */
+  ['breakdown', 'renderBreakdown', 'see', 0],
+  ['breakread', 'POST /api/ai/breakdown', 'ai', 2],
 ].map((a, i) => ({ id: a[0], code: a[1], reg: a[2], floor: a[3], def: (a[4] || {}).def || '', men: (a[4] || {}).men || '', i }));
 
 /* The six flows: which parts each step lands on. The sentences are
@@ -255,7 +258,7 @@ const BRAIN_FLOWS = [
   { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop'], ['ladder'], ['whosemove', 'decidedsend'], ['bell', 'home', 'negpage', 'stands', 'stale', 'dealpaper', 'onepaper', 'answeronpaper'], ['webhook']] },
   { id: 'sign', steps: [['signtab', 'linkcheck'], ['readiness', 'signgate', 'rules', 'paperjobs'], ['approvals', 'namedyes', 'decide', 'undoyes', 'rulestep', 'asks', 'approvalpaper', 'freshen'], ['brief', 'playbook', 'blanks'], ['pad'], ['putguard', 'srvseal', 'sealtext'], ['seal', 'frozen', 'issuelinks'], ['obligations', 'renewal', 'calendar', 'mynotes', 'mine', 'myitems', 'myitemsget', 'myitemsput', 'myitemsdel', 'plan'], ['email', 'copies']] },
   { id: 'night', steps: [['reminders', 'lanes', 'agentlevel', 'linkkeep'], ['renewal', 'renewact'], ['renewprep'], ['model', 'boardjudge', 'bookread'], ['db'], ['obligations'], ['email', 'boardmoved', 'looktell'], ['desknight', 'home', 'insights', 'readings', 'chasemany', 'draftreply']] },
-  { id: 'ask', steps: [['copilotask', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook', 'stackview'], ['db', 'dealfacts', 'brainread'], ['model', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote', 'citedoor', 'walkset', 'paperdesk'], ['contracts', 'customers', 'passroute', 'lookask', 'copilotdoors'], ['explorer', 'cellfold', 'readchips', 'nextq', 'boardmarks']] },
+  { id: 'ask', steps: [['copilotask', 'homepaper', 'breakdown', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook', 'stackview'], ['db', 'dealfacts', 'brainread'], ['model', 'breakread', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote', 'citedoor', 'walkset', 'paperdesk'], ['contracts', 'customers', 'passroute', 'lookask', 'copilotdoors'], ['explorer', 'cellfold', 'readchips', 'nextq', 'boardmarks']] },
   /* THE OVERNIGHT REVIEW'S FLOWS (9 Oct 2026): the commonest start, a request,
      the other side's signature, an amendment, the end of a contract, and the
      ways a step can go wrong — none of which the six flows above walked. */
@@ -285,7 +288,7 @@ const BRAIN_LANE_OF = {
     'editor', 'baton', 'askkeep', 'risklist', 'riskwalk', 'stands', 'dealpaper', 'onepaper', 'decidedsend', 'signtab', 'pad', 'calendar', 'desknight', 'insights', 'readings',
     'chasemany', 'copilotask', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs',
     'phrasebook', 'boardtools', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'citedoor', 'walkset', 'paperdesk', 'contracts', 'customers', 'cellfold',
-    'readchips', 'nextq', 'newagr', 'essentials', 'tplform', 'outbyhand', 'amend', 'decline', 'reopen', 'archive', 'hold', 'served', 'obdone', 'inline', 'stackview', 'mynotes'],
+    'readchips', 'nextq', 'newagr', 'essentials', 'tplform', 'outbyhand', 'amend', 'decline', 'reopen', 'archive', 'hold', 'served', 'obdone', 'inline', 'stackview', 'mynotes', 'breakdown'],
   /* HaTi itself: the readings, Copilot, the agents, the server's checks, the mail it sends */
   hati: ['docx', 'clauses', 'putguard', 'db', 'triage', 'arrivalowed', 'datedwin', 'brief', 'playbook', 'oblscan', 'risk', 'model', 'blanks', 'laneowner',
     'funnel', 'desk', 'ladder', 'kept', 'asks', 'payload', 'shares', 'linkcheck', 'email', 'turnmail', 'wordmark', 'whosemove', 'roundauto',
@@ -293,7 +296,7 @@ const BRAIN_LANE_OF = {
     'frozen', 'obligations', 'renewal', 'reminders', 'lanes', 'agentlevel', 'linkkeep', 'renewact', 'renewprep', 'boardjudge', 'bookread',
     'boardmoved', 'looktell', 'draftreply', 'dataguide', 'analyst', 'story', 'quote', 'passroute', 'copilotdoors', 'factsheet', 'dealfacts',
     'boardmarks', 'pdf', 'intake', 'mailroom', 'wordfile', 'issuelinks', 'filesig', 'srvseal', 'copies', 'autorenew', 'leaveguard', 'discard',
-    'freshen', 'sealtext', 'brainread', 'mine', 'myitems', 'myitemsget', 'myitemsput', 'myitemsdel', 'plan'],
+    'freshen', 'sealtext', 'brainread', 'mine', 'myitems', 'myitemsget', 'myitemsput', 'myitemsdel', 'plan', 'breakread'],
   /* the counterparty: their link, the code that proves it is them */
   them: ['cplink', 'guestcode', 'theirsign']
 };
@@ -334,7 +337,7 @@ const BRAIN_FILE_REGION = [
   /* The page every party reads is a reading, not a view file, so without this
      line it would default to the wall — which is where a reading that spends
      nothing and touches no route does not belong. */
-  [/^js\/(dealstands|paperdesk)\.js$/, 'see'],
+  [/^js\/(dealstands|paperdesk)\.js$|^js\/views\/breakdown\.js$/, 'see'],
   /* the process review's two new files (4 Oct 2026) and the address book */
   [/^js\/(signgate|asks|sealtext)\.js$/, 'sign'],
   [/^js\/(intakelanes|participants)\.js$/, 'in'],

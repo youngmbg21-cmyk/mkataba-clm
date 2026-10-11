@@ -4598,7 +4598,7 @@ function docTabDefaults(c){
    so that coming back lands on the document rather than on a tab pointing
    somewhere the reader has left. The choice resets when a different contract
    opens. */
-let _wsTab='docs';                           // see ROOM_TABS
+let _wsTab='terms';                          // see ROOM_TABS
 let _wsTabFor=null;
 /* A tab chosen from the WORKBENCH, which is a different view. Pressing "Key
    terms" over there has to come back here first, and the arrival must land on
@@ -4768,7 +4768,11 @@ const ROOM_TABS=[
      and not first so that roomOpenOnTerms is untouched: a new draft still
      lands on the Overview, and f170 still asks it of the same key. */
   ['stands','tab_where_we_are'],
-  ['docs','tab_document'],
+  /* THE DOCUMENT TAB IS GONE (owner, 11 Oct 2026: "get rid of the document
+     page ... move its use to the paper page in home page"): every door onto it
+     (roomGoTab 'docs' / 'contract') opens the contract on Home's Document, on
+     Copilot; filling in is Home's Overview tab; Download original and Re-read
+     are in More. The Signing tab keeps the shared sheet (#doc-paper-col). */
   ['sign','tab_signing'],
   ['oblig','tab_obligations',c=>{
     if(!c||!window.obligationTabState) return '';
@@ -4879,9 +4883,13 @@ function wsTabRowEndHtml(c){
      the page it is on — the design's own control row, never a band. The
      reader's text-size stepper is the WORKING copy's; here it would re-break
      the very pages that get signed. */
-  if(_wsTab==='sign') return scControlsHtml(c) + (window.signWalkHtml?signWalkHtml(c):'');
-  if(_wsTab!=='docs') return '';
-  const step=docCopyOf(c)==='sign' ? scControlsHtml(c) : (window.rlTypeStepHtml?rlTypeStepHtml():'');
+  /* THE ZOOM (and the signing copy's page arrows) LEFT THIS ROW for the
+     paper's own ground, top right (owner, 11 Oct 2026): docZoomCornerHtml,
+     painted into #doc-zc-slot by wsPaintTabRowEnd. */
+  if(_wsTab==='sign') return (window.signWalkHtml?signWalkHtml(c):'');
+  /* the Overview tab carries the door onto Negotiate now the Document tab is gone */
+  if(_wsTab!=='docs'&&_wsTab!=='terms') return '';
+  const step='';
   /* Raw, not negoChanges(): that call runs negoInit, which CREATES a
      negotiation on a contract that has none — and this builder runs on every
      paint of every Document tab. See negoNeedsYouIds for the same trap. */
@@ -4947,6 +4955,7 @@ function wsTabRowEndHtml(c){
     ? `<span class="seg-am" role="group" aria-label="${esc(i18t('fa_as_amended'))}" style="display:inline-flex;border:1px solid var(--color-divider);border-radius:var(--radius);overflow:hidden;flex:none">
         <button type="button" data-doc-am="0" class="ui-btn" style="border:0;border-radius:0" aria-pressed="${docAsAmendedOn(c)?'false':'true'}">${esc(i18t('fa_original'))}</button>
         <button type="button" data-doc-am="1" class="ui-btn" style="border:0;border-radius:0;border-left:1px solid var(--color-divider)" aria-pressed="${docAsAmendedOn(c)?'true':'false'}">${esc(i18t('fa_as_amended'))}</button></span>` : '';
+  if(_wsTab==='terms') return door;
   return amended+clauses+step+focus+door;
 }
 /* ---- THE ROOM'S OWN FLOATING NOTICES ----
@@ -5039,12 +5048,21 @@ function wsPaintRoundNeeds(c){
     if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
   });
 }
+/* THE PAPER'S OWN ZOOM ON THE DOCUMENT AND SIGNING TABS (owner, 11 Oct
+   2026): the signing copy's page arrows and zoom, or the one remembered
+   "− 100% +", in the grey above the sheet's right edge (rlPaperZoomHtml). */
+function docZoomCornerHtml(c){
+  if(!c||(_wsTab!=='sign'&&_wsTab!=='docs')||!window.rlPaperZoomHtml) return '';
+  if(_wsTab==='sign'||docCopyOf(c)==='sign') return rlPaperZoomHtml('', scControlsHtml(c));
+  return rlPaperZoomHtml();
+}
 function wsPaintTabRowEnd(c){
   const end=document.getElementById('ws-tabrow-end');
   if(!end) return;
   end.innerHTML=wsTabRowEndHtml(c);
+  const zc=document.getElementById('doc-zc-slot');
+  if(zc){ zc.innerHTML=docZoomCornerHtml(c); if(zc.querySelector('[data-sc-zoom]')) scWireControls(zc); }
   if(window.rlWireTypeStep) rlWireTypeStep(end);
-  if(end.querySelector('[data-sc-zoom]')) scWireControls(end);
   end.querySelector('#ws-to-nego')?.addEventListener('click',()=>{
     if(window.roomGoTab) roomGoTab(c,'redline');
     else if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
@@ -5065,7 +5083,7 @@ function wsPaintTabRowEnd(c){
 let _wsTabApplied=null;   /* the tab applyWsTabs last painted — "arrived" is a change of it */
 function applyWsTabs(c){
   const keys=ROOM_TABS.map(t=>t[0]);
-  if(!keys.includes(_wsTab)) _wsTab='docs';
+  if(!keys.includes(_wsTab)) _wsTab='terms';
   const paint=k=>{
     document.querySelectorAll('[data-ws-pane]').forEach(p=>{
       /* A PANE MAY SERVE MORE THAN ONE TAB (J-1). The Document and Signing
@@ -5172,8 +5190,8 @@ function applyWsTabs(c){
      the workbench lands on a page showing the document rather than on a tab
      pointing somewhere the reader is no longer standing. */
   if(_wsTab==='redline'){
-    _wsTab='docs';
-    paint('docs');
+    _wsTab='terms';
+    paint('terms');
     /* Through openRedlineWorkbench, not by setting activeId and switching view
        here: that one function is where the previous occupant of the bench is
        taken off and put back in Drafting, and a second route in would skip it
@@ -5225,6 +5243,11 @@ function applyWsTabs(c){
    which is why the wanted tab is parked rather than applied. */
 function roomGoTab(c,k){
   if(!c) return;
+  /* NO DOCUMENT TAB (owner, 11 Oct 2026): the one door every old way in passes
+     through lands on Home's Document, on Copilot. The phone still draws its own
+     Document tab, so below 768px nothing changes. */
+  if((k==='docs'||k==='contract') && !(typeof window!=='undefined'&&window.innerWidth&&window.innerWidth<768)
+    && typeof pdOpenOnHome==='function' && pdOpenOnHome(c.id,'copilot')) return;
   if(k==='redline'){
     if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
     else if(window.toast) toast(i18t('ct_workbench_unavailable'),'err');
@@ -8534,7 +8557,7 @@ function openNegotiationOwnerRoom(c){
       negoAdvanceRound(c,{ by:currentUser()?.name });
       logAudit(c,'Negotiation','Negotiation complete — every change resolved; the agreed wording was carried to the Docs tab for signature');
       persist(c);
-      _wsTab='docs'; _docTopTab='signing';
+      _wsTab='sign'; _docTopTab='signing';
       closeNegotiationRoom();
       renderWorkspace();
       toast(i18t('ct_agreed_carried'));
@@ -8818,8 +8841,33 @@ function blankFormInputHtml(b){
     placeholder="${esc(b.ph||'')}" style="${INP}">`;
 }
 
+/* ---- WHERE THE FILL FORM IS DRAWN (owner, 11 Oct 2026: "the filing in should
+   go to the overview tab" of Home's Document) ----
+   ONE builder, two hosts: Home's Document panel, Overview tab (#pd-fill), or
+   the contract room's Form & links (#tplform-section). The answer it writes is
+   the same act either way (contractBlankSet, the record's own fields); only
+   the box it is drawn in and the paper it lights differ. Home is the host while
+   Home's page is up and has drawn the slot. */
+function formOnHome(){
+  return !!(typeof state === 'object' && state && state.view === 'dashboard'
+    && typeof document !== 'undefined' && document.getElementById('pd-fill'));
+}
+function formHostEl(){ return document.getElementById(formOnHome() ? 'pd-fill' : 'tplform-section'); }
+function formPaperEl(){ return document.getElementById(formOnHome() ? 'ig-canvas' : 'doc-canvas'); }
+/* the contract the form is about: the paper's on Home, the room's otherwise */
+function formHeldContract(c){
+  const id = formOnHome() ? ((typeof intel === 'object' && intel && intel.paper) ? intel.paper.id : null)
+    : (typeof state === 'object' && state ? state.activeId : null);
+  return (id && typeof getContract === 'function' && getContract(id)) || c;
+}
+/* after a write that moves the record's own facts, the page the reader is on
+   is drawn again: Home's paper and panel, or the room */
+function formRepaint(){
+  if(formOnHome()){ try{ if(window.igPaperRefresh) igPaperRefresh(); }catch(_){ } return; }
+  if(typeof renderWorkspace === 'function') renderWorkspace();
+}
 function renderBlankFormSection(c){
-  const host = document.getElementById('tplform-section');
+  const host = formHostEl();
   if(!host) return;
   /* NOT DRAWN AT ALL once the paper stops being fillable. docFillable is the
      one reading of that and this asks it rather than keeping a second copy:
@@ -8863,18 +8911,35 @@ function renderBlankFormSection(c){
              them is the one that reads as decided. DRAFT FROM A SENTENCE's own
              ruling, and its own reason. */}
       ${blankFormFilledLineHtml(c)}
-      ${(() => { let n = 0; return groups.map(g => `
-        ${g.name?`<div style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500);margin-top:2px">${esc(g.name)}</div>`:''}
-        ${g.blanks.map(b => { n++; return `<label style="display:block">
+      ${blankFormRowsHtml(groups)}
+    </div>`;
+  wireBlankForm(c);
+}
+
+/* THE ROWS. In the room, by section as the template groups them. On Home's
+   Overview tab (the SAP way, owner picked 11 Oct 2026) the blanks still open
+   come first and the answered ones fold under "Show N filled", so the work
+   owed is what the reader sees. Same boxes, same numbering, same writer. */
+function blankFormRowsHtml(groups){
+  let n = 0;
+  const row = b => { n++; return `<label style="display:block">
           ${''/* A RULED LINE WITH NO WORDS IN FRONT OF IT HAS NO NAME, so it is
                  numbered rather than left blank — a box with no label is a box
                  nobody can answer. The placeholder as the document prints it is
                  the box's own placeholder, which is what says which one it is. */}
           <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:3px">${esc(b.label || i18t('bf_blank_n', { n }))}</span>
           ${blankFormInputHtml(b)}
-        </label>`; }).join('')}`).join(''); })()}
-    </div>`;
-  wireBlankForm(c);
+        </label>`; };
+  if(!formOnHome()) return groups.map(g => `
+        ${g.name?`<div style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500);margin-top:2px">${esc(g.name)}</div>`:''}
+        ${g.blanks.map(row).join('')}`).join('');
+  const all = []; groups.forEach(g => g.blanks.forEach(b => all.push(b)));
+  const rows = new Map(all.map(b => [b, row(b)]));
+  const owed = all.filter(b => !String(b.value == null ? '' : b.value).trim());
+  const done = all.filter(b => owed.indexOf(b) < 0);
+  return owed.map(b => rows.get(b)).join('')
+    + (done.length ? `<details class="pd-fill-done"><summary>${esc(i18tn('pd_fill_show_filled', done.length, { n: done.length }))}</summary>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">${done.map(b => rows.get(b)).join('')}</div></details>` : '');
 }
 
 /* One line naming the boxes the arrival reading answered, so a reader can see
@@ -8900,7 +8965,7 @@ function blankFormFilledLineHtml(c){
 
    BOUND ONCE PER PAINT, on the host, because the host is rebuilt whole. */
 function wireBlankForm(c){
-  const host = document.getElementById('tplform-section');
+  const host = formHostEl();
   if(!host) return;
   host.querySelectorAll('[data-blankf]').forEach(el => {
     el.addEventListener('change', () => {
@@ -8910,6 +8975,10 @@ function wireBlankForm(c){
       if(paper && paper.hasAttribute('data-sync')){
         paper.value = el.value;
         paper.dispatchEvent(new Event('input', { bubbles: true }));
+      } else if(!paper && (key === 'value' || key === 'counterparty')){
+        /* ON HOME THERE IS NO TYPING PAPER (11 Oct 2026): the record's own two
+           facts are written as the paper's handler writes them. */
+        docSyncWrite(c, key, el.value);
       } else if(window.ownBlanksLive && ownBlanksLive(c)){
         /* Our own amendment: the answer is written INTO the wording and the
            paper patched in place (ownBlankSet). */
@@ -8932,8 +9001,11 @@ function wireBlankForm(c){
       if(paper && (key === 'termYears' || key === 'noticeDays')){
         paper.value = el.value;
         paper.dispatchEvent(new Event('change', { bubbles: true }));
-      }
+      } else if(key === 'termYears') docTermFill(c, el.value);
+      else if(key === 'noticeDays') docNoticeFill(c, el.value);
       paintBlankFormCount(c);
+      /* on Home the answer reaches the paper beside the form */
+      if(formOnHome() && window.igPaperRefresh){ try{ igPaperRefresh(); }catch(_){ } }
     });
   });
 }
@@ -8943,7 +9015,7 @@ function wireBlankForm(c){
    halfway through a box takes the box out from under them, which is the
    `keepView` lesson the clause editor paid for twice. */
 function paintBlankForm(c, source){
-  const host = document.getElementById('tplform-section');
+  const host = formHostEl();
   if(!host || !host.querySelector('[data-blankf]')) return;
   const key = source && (source.getAttribute('data-field') || source.getAttribute('data-sync'));
   if(key){
@@ -8957,7 +9029,7 @@ function paintBlankForm(c, source){
    again rather than counted here — a second tally is how a panel comes to
    report a different number from the page it sits beside. */
 function paintBlankFormCount(c){
-  const host = document.getElementById('tplform-section');
+  const host = formHostEl();
   const out = host && host.querySelector('[data-blankf-count]');
   if(!out) return;
   const all = (typeof contractBlanks === 'function') ? contractBlanks(c).length : 0;
@@ -9038,15 +9110,14 @@ function contractFieldPeer(key, where){
   const k = String(key == null ? '' : key);
   if(!k || typeof document === 'undefined') return null;
   const q = (window.CSS && CSS.escape) ? CSS.escape(k) : k.replace(/["\\]/g, '\\$&');
-  const host = document.getElementById(where === 'panel' ? 'tplform-section' : 'doc-canvas');
+  const host = where === 'panel' ? formHostEl() : formPaperEl();
   if(!host) return null;
   if(where === 'panel'){
     const box = host.querySelector(`[data-blankf="${q}"]`);
     if(box) return box;
     /* The template form's boxes are keyed by INDEX, so the key has to be
        carried back through the same map contractFieldKeyOf reads forward. */
-    const c = (typeof state === 'object' && state && typeof getContract === 'function')
-      ? getContract(state.activeId) : null;
+    const c = formHeldContract(null);
     const fields = c && c.templateForm && Array.isArray(c.templateForm.fields) ? c.templateForm.fields : [];
     const i = fields.findIndex(f => f && String(f.fieldKey) === k);
     return i < 0 ? null : host.querySelector(`[data-tplf="${i}"]`);
@@ -9123,13 +9194,12 @@ function contractFieldFocus(c, key){
    paper of an ordinary contract. */
 function wireFieldLink(c){
   if(typeof document === 'undefined') return;
-  const panel = document.getElementById('tplform-section');
+  const panel = formHostEl();
   const canvas = document.getElementById('doc-canvas');
   if(panel && !panel._fieldLinkWired){
     panel._fieldLinkWired = true;
     panel.addEventListener('focusin', e => {
-      const held = (typeof state === 'object' && state && typeof getContract === 'function')
-        ? getContract(state.activeId) : c;
+      const held = formHeldContract(c);
       const key = contractFieldKeyOf(e.target, held);
       if(key) contractFieldLight(contractFieldPeer(key, 'paper'));
     });
@@ -10550,6 +10620,11 @@ function roomHeadHtml(c,opts={}){
                  ct_save_as_reusable are STALE; the key stays inert. */}
           <hr>
           <div class="mgroup">${i18t('ct_export')}</div>
+          ${''/* THE FILE'S OWN TWO ACTS, FROM THE DOCUMENT TAB'S STRIP (owner, 11 Oct
+                 2026: the tab is gone): the same link and the same re-read. */}
+          ${(isUpload(c)&&c.upload&&docFileUrl(c))?`<button type="button" id="ws-dl-original">${icon('download','w-3.5 h-3.5')}${esc(i18t('ct_menu_dl_original'))}</button>`:''}
+          ${(isUpload(c)&&c.upload&&canEdit())?(()=>{ const kept=rereadKeepsWording(c);
+            return `<button type="button" id="ws-reread"${kept?' disabled aria-disabled="true"':''} title="${esc(i18t(kept?'ct_reread_kept_title':'ct_read_original_again'))}">${icon('history','w-3.5 h-3.5')}${esc(i18t('ct_menu_reread'))}</button>`; })():''}
           <button type="button" id="ws-pdf" title="${i18t('ct_clean_copy')}">${icon('printer','w-3.5 h-3.5')}PDF<span class="mnote">clean copy</span></button>
           <button type="button" id="ws-word" title="${i18t('ct_redline_word')}">${icon('file','w-3.5 h-3.5')}Word<span class="mnote">tracked changes</span></button>
           ${(window.printIsHatiExecuted&&printIsHatiExecuted(c))?`<button type="button" id="ws-pdf-record" title="The full record for your own file — the document plus HaTi's seal and the audit trail">${icon('shield','w-3.5 h-3.5')}Record<span class="mnote">sealed + audit</span></button>`:''}
@@ -11128,6 +11203,7 @@ function renderWorkspace(){
                reader's own A⁻/A⁺ stepper is what changes the size of the
                words. The wrapper stays so applyDocZoom keeps one place to
                pin. -->
+          <div id="doc-zc-slot"></div>
           <div id="doc-zoom" style="zoom:var(--doc-zoom,1)">
           ${''/* THE SECOND EXPLANATORY BAR IS GONE. The quiet line under the
                  tabs already says how this tab reads and how to leave it; a
@@ -11462,6 +11538,10 @@ function renderWorkspace(){
      (js/views/newstandard.js). Leaving the listener behind is how a removed
      row comes back the next time somebody re-adds the markup. */
   document.getElementById('ws-pdf')?.addEventListener('click',()=>exportPDF(c));
+  document.getElementById('ws-dl-original')?.addEventListener('click',()=>{
+    const a=document.createElement('a'); a.href=docFileUrl(c); a.download=String((c.upload||{}).fileName||'contract');
+    document.body.appendChild(a); a.click(); a.remove(); });
+  document.getElementById('ws-reread')?.addEventListener('click',e=>rereadUploadText(c, e.currentTarget));
   document.getElementById('ws-filing')?.addEventListener('click',()=>ovOpenFiling(c));
   document.getElementById('ws-mynote')?.addEventListener('click',()=>{ if(window.myNotesNew) myNotesNew({ contractId:c.id }); });
   document.getElementById('ws-pdf-record')?.addEventListener('click',()=>exportPDF(c,{record:true}));
@@ -13511,7 +13591,7 @@ function docThreadTopHtml(c, rows, has){
      text link ending it. The room's own drawer is already on the Document tab,
      so it keeps the one-line head below. */
   if(thOnHome()) return `<div class="doc-th-hd is-home"><span class="doc-th-title">${esc(i18t('th_clauses'))} <span class="doc-th-tn">(${clauses.length})</span></span>${docThreadSumHtml(rows,'doc-th-sum')}
-    <div class="doc-th-bar">${filter}<button type="button" class="ui-link doc-th-open" data-th-open-doc>${icon('arrowRight','w-3.5 h-3.5')}${esc(i18t('th_go_document'))}</button></div></div>`;
+    <div class="doc-th-bar">${filter}${''/* "→ Go to document" is GONE (11 Oct 2026): this IS the document now — the room's Document tab was retired into Home's */}</div></div>`;
   /* ONE LINE, AS DRAWN (SAP batch 3): "Clauses (n)" and the colour filter as
      one segmented control on the head's right. */
   return `<div class="doc-th-hd"><span class="doc-th-title">${esc(i18t('th_clauses'))} <span class="doc-th-tn">(${clauses.length})</span></span>${docThreadSumHtml(rows,'doc-th-sum')}
@@ -14001,7 +14081,7 @@ function docThreadWire(c){
          opened on its own Document tab. */
       if(t.closest('[data-th-open-doc]')){
         const lc=thLiveContract()||cur; if(!lc) return;
-        _wsTabWant='docs'; if(typeof openWorkspace==='function') openWorkspace(lc.id);
+        if(typeof pdOpenOnHome==='function'&&pdOpenOnHome(lc.id,'copilot')){ /* Home's Document */ } else if(typeof openWorkspace==='function') openWorkspace(lc.id);
         return;
       }
       const tn=t.closest('[data-th-tone]');
@@ -14388,21 +14468,7 @@ function wireDocumentSync(c){
      runs on `change` rather than `input`, because a repaint mid-keystroke
      takes the field out from under the typist — and by the time it fires the
      blank is no longer drawn, the clause having become a sentence. */
-  canvas.querySelectorAll('[data-field="termYears"]').forEach(inp=>inp.addEventListener('change',()=>{
-    const n=Math.round(Number(inp.value));
-    const start=String((c.fields||{}).effDate||(c.metadata||{}).effectiveDate||'').trim();
-    if(!(n>0&&n<=99) || !start || c.expiry) return;
-    const end=(typeof termAdd==='function')?termAdd(start,n,'year'):null;
-    if(!end) return;
-    c.expiry=end;
-    c.metadata=c.metadata||{}; c.metadata.confidence=c.metadata.confidence||{};
-    c.metadata.expiryDate=end; c.metadata.confidence.expiryDate='high';
-    c.lastAction=todayStr();
-    logAudit(c,'Edited',`End date set to ${end} — ${n} years from the start date stated in the term clause`);
-    persist(c);
-    toast(`End date set to ${fmtDocDate(end)} — ${n} years from the start date`);
-    renderWorkspace();
-  }));
+  canvas.querySelectorAll('[data-field="termYears"]').forEach(inp=>inp.addEventListener('change',()=>docTermFill(c,inp.value)));
   /* ---- AND THE NOTICE PERIOD THE PAPER ALREADY PRINTS ---- (16 Sep 2026)
      The Distributor Agreement's clause 4 reads "terminable on N days' written
      notice", and that N has always been a real typeable blank that saved — to
@@ -14415,18 +14481,50 @@ function wireDocumentSync(c){
      and a FILL rather than an overwrite, so a number somebody put on Key terms
      can never be quietly moved by the wording. Unlike termYears this blank is
      drawn for the life of the draft, so that guard is the only one there is. */
-  canvas.querySelectorAll('[data-field="noticeDays"]').forEach(inp=>inp.addEventListener('change',()=>{
-    const n=Math.round(Number(inp.value));
-    if(!(n>0&&n<=3650)) return;
-    if(Number((c.metadata||{}).noticePeriodDays)>0) return;
-    c.metadata=c.metadata||{}; c.metadata.confidence=c.metadata.confidence||{};
-    c.metadata.noticePeriodDays=n; c.metadata.confidence.noticePeriodDays='high';
-    c.lastAction=todayStr();
-    logAudit(c,'Edited',`Notice period set to ${n} days — from the term clause on the paper`);
-    persist(c);
-    toast(i18tn('ct_notice_from_paper',n,{n}),'ok');
-    renderWorkspace();
-  }));
+  canvas.querySelectorAll('[data-field="noticeDays"]').forEach(inp=>inp.addEventListener('change',()=>docNoticeFill(c,inp.value)));
+}
+/* THE TWO FILLS, ONE EACH, for the paper's box and the form's box alike (11 Oct
+   2026: Home's Overview tab types the answer with no paper box under it). The
+   term fills an empty end date; the notice period an empty notice period. A
+   FILL, NEVER AN OVERWRITE — see the paper's listeners above. */
+function docTermFill(c, raw){
+  const n=Math.round(Number(raw));
+  const start=String((c.fields||{}).effDate||(c.metadata||{}).effectiveDate||'').trim();
+  if(!(n>0&&n<=99) || !start || c.expiry) return;
+  const end=(typeof termAdd==='function')?termAdd(start,n,'year'):null;
+  if(!end) return;
+  c.expiry=end;
+  c.metadata=c.metadata||{}; c.metadata.confidence=c.metadata.confidence||{};
+  c.metadata.expiryDate=end; c.metadata.confidence.expiryDate='high';
+  c.lastAction=todayStr();
+  logAudit(c,'Edited',`End date set to ${end} — ${n} years from the start date stated in the term clause`);
+  persist(c);
+  toast(`End date set to ${fmtDocDate(end)} — ${n} years from the start date`);
+  formRepaint();
+}
+function docNoticeFill(c, raw){
+  const n=Math.round(Number(raw));
+  if(!(n>0&&n<=3650)) return;
+  if(Number((c.metadata||{}).noticePeriodDays)>0) return;
+  c.metadata=c.metadata||{}; c.metadata.confidence=c.metadata.confidence||{};
+  c.metadata.noticePeriodDays=n; c.metadata.confidence.noticePeriodDays='high';
+  c.lastAction=todayStr();
+  logAudit(c,'Edited',`Notice period set to ${n} days — from the term clause on the paper`);
+  persist(c);
+  toast(i18tn('ct_notice_from_paper',n,{n}),'ok');
+  formRepaint();
+}
+/* The record's own two facts the paper's [data-sync] boxes write (value and
+   counterparty), written where no such box is drawn — the same writes, the
+   same trail line, no second meaning. */
+function docSyncWrite(c, key, raw){
+  if(key==='value'){ c.value=raw===''?0:Number(raw);
+    if(c.parentId){ if(c.value>0) c.valueSetHere=true; else delete c.valueSetHere; } }
+  else if(key==='counterparty') c.counterparty=raw;
+  else return;
+  c.lastAction=todayStr();
+  logAudit(c,'Edited',`Updated ${key==='value'?'contract value':'counterparty'}`);
+  persist(c);
 }
 
 /* -------- Key terms panel -------- */
@@ -17290,7 +17388,7 @@ Object.assign(window,{docReadLongSplit,DOC_READ_LONG_WORDS,DOC_READ_RUN_MIN,docT
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,renderSignButton,renderSignSide,roomFactsHtml,signBlockHtml,signReadinessCardHtml,signRowTitle,signWhyShort,SIGN_WHY_WORDS,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPlace,roomPlacePut,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,checkVerdict,tplFormOpenCount,tplFormOpenFields,openCheckPanel,roomHeadHtml,wireRoomHead,
+  ROOM_TABS,formOnHome,formHostEl,formPaperEl,formHeldContract,formRepaint,docTermFill,docNoticeFill,docSyncWrite,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPlace,roomPlacePut,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,checkVerdict,tplFormOpenCount,tplFormOpenFields,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill,
   /* idea 7 — the plain-English layer. Published because a name read through
      window from another module, or from a test stage, is silence when it is

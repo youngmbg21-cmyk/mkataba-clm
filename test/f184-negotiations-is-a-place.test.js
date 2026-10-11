@@ -99,7 +99,9 @@ describe('F184 (1) — Negotiate is a place and not a tab in the room', () => {
        lands on. */
     assert.equal(keys[0], 'terms', 'the Overview still leads, and the landing with it');
     const ix = k => keys.indexOf(k);
-    assert.ok(ix('terms') < ix('docs') && ix('docs') < ix('sign') && ix('sign') < ix('history'),
+    /* the Document tab went 11 Oct 2026 (owner); its use is Home's Document */
+    assert.ok(!keys.includes('docs'), 'no Document tab');
+    assert.ok(ix('terms') < ix('sign') && ix('sign') < ix('history'),
       'and the tabs that were always here are still in the order a contract\'s life runs in');
     assert.ok(keys.includes('history'), 'the trail is still one of them');
   });
@@ -117,7 +119,7 @@ describe('F184 (1) — Negotiate is a place and not a tab in the room', () => {
     assert.ok(!/rt-n/.test(html), 'no tab carries the negotiation count any more');
   });
 
-  test('a stored tab of "redline" falls back to Document rather than to nothing', () => {
+  test('a stored tab of "redline" falls back to the Overview rather than to nothing', () => {
     /* Somebody was ON the Negotiate tab when this shipped, and their session
        remembers it. applyWsTabs checks the wanted tab against the list; a key
        that is no longer in it must land somewhere real. */
@@ -125,8 +127,8 @@ describe('F184 (1) — Negotiate is a place and not a tab in the room', () => {
     const s = read('js/views/contract.js');
     const fn = s.slice(s.indexOf('function applyWsTabs'), s.indexOf('function wireWsTabs'));
     assert.match(fn, /const keys=ROOM_TABS\.map/);
-    assert.match(fn, /if\(!keys\.includes\(_wsTab\)\) _wsTab='docs'/);
-    assert.ok(w.win.ROOM_TABS.map(t => t[0]).includes('docs'));
+    assert.match(fn, /if\(!keys\.includes\(_wsTab\)\) _wsTab='terms'/);
+    assert.ok(w.win.ROOM_TABS.map(t => t[0]).includes('terms'));
   });
 
   test("but roomGoTab still answers to 'redline' — the key routes, it just is not a tab", () => {
@@ -215,15 +217,16 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
     assert.match(door.textContent, /Open document/);
   });
 
-  test('pressing it lands on THIS contract\'s Document tab', () => {
+  /* HOME'S DOCUMENT, ON COPILOT (owner, 11 Oct 2026: "when in the negotiation
+     page and you press open document you will also be sent to the copilot"). */
+  test('pressing it lands on THIS contract on Home\'s Document, on Copilot', () => {
     const b = world(['MK-1', 'MK-2']);
     theirAsk(b.byId('MK-1'), 'CHG-1');
     let went = null;
-    b.win.openWorkspace = id => { went = id; b.win.state.view = 'workspace'; };
+    b.win.pdOpenOnHome = (id, tab) => { went = [id, tab]; return true; };
     b.win.openRedlineWorkbench('MK-1');
     b.$('[data-rl-open-doc]').dispatchEvent(new b.win.Event('click'));
-    assert.equal(went, 'MK-1', 'it returns to the agreement on the bench');
-    assert.equal(b.win.roomCurrentTab(), 'docs', 'on its Document tab');
+    assert.deepEqual(went, ['MK-1', 'copilot'], 'it opens the agreement on the bench, on the Copilot tab');
   });
 
   test('a bare repaint of the LIST redraws the list, whatever activeId holds', () => {
@@ -282,8 +285,8 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
 
   test('and it is ONE route — the room\'s own tab door', () => {
     const s = read('js/views/negotiation.js');
-    assert.match(s, /data-rl-open-doc\]'\)\.forEach\([\s\S]{0,600}roomGoTab\(c, 'docs'\)/,
-      'the button goes through roomGoTab, the room\'s one way to a tab');
+    assert.match(s, /data-rl-open-doc\]'\)\.forEach\([\s\S]{0,900}pdOpenOnHome\(c\.id, 'copilot'\)/,
+      'the button goes through pdOpenOnHome, the one way onto a contract on Home');
     const fn = s.slice(s.indexOf('function openNegotiations'), s.indexOf('let _rlDoorAsked'));
     assert.match(fn, /opts && opts\.list/, 'and the sidebar\'s list door is untouched');
   });
@@ -688,15 +691,15 @@ describe('F184 (4) — the way in, and the only way out', () => {
       'and the contract name is the second half of the door — the biggest target on the page');
   });
 
-  test('pressing either lands on the Document tab', () => {
+  /* RE-POINTED 11 Oct 2026 (owner: the Document tab went; its use is Home's Document) */
+  test('pressing either lands on the agreement on Home\'s Document', () => {
     const b = world(['MK-1']);
     theirAsk(b.byId('MK-1'), 'CHG-1');
     let went = null;
-    b.win.openWorkspace = id => { went = id; b.win.state.view = 'workspace'; };
+    b.win.pdOpenOnHome = (id, tab) => { went = [id, tab]; return true; };
     b.win.openRedlineWorkbench('MK-1');
     b.$('#ws-back').dispatchEvent(new b.win.Event('click'));
-    assert.equal(went, 'MK-1', 'the arrow returns to the agreement');
-    assert.equal(b.win.roomCurrentTab(), 'docs', 'on its Document tab, where the door in lives');
+    assert.deepEqual(went, ['MK-1', 'copilot'], 'the arrow returns to the agreement, on Home\'s Document');
   });
 
   test('the contract page keeps the OTHER back arrow — the one to the register', () => {

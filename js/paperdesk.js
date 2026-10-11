@@ -26,14 +26,22 @@
 /* NO SIGNING TAB (owner, 10 Oct 2026: "delete signing tab"): what stands
    before a signature is the contract's own Signing tab; an approval waiting
    on you opens on the Approvals & signing page (pdOpenOnHome). */
-const PD_TABS = ['copilot', 'facts', 'doc', 'oblig', 'hist', 'deal'];
+/* NO DEAL AND NO HISTORY TAB (owner, 11 Oct 2026: "delete the deal tab ...
+   and also delete history"): the deal's progress is the contract's Where we
+   are tab and its trail the History tab. A door that still asks for Deal
+   lands on Clauses with their changes marked on the paper (PD_TAB_ALIAS);
+   pdDealHtml and pdHistHtml have no caller and are STALE. */
+const PD_TABS = ['copilot', 'facts', 'doc', 'oblig'];
+const PD_TAB_ALIAS = { deal: 'doc', hist: 'facts' };
 /* THE ARTIFACT'S SYMBOLS, EXACTLY (owner, 10 Oct 2026: "use the Symbols that
    were in the artifact before not the ones in hati"): typed marks, each held
    to its text face (U+FE0E), never the left menu's drawings. */
 const PD_TAB_GLYPH = { copilot: '\u2726', facts: '\u25A6', doc: '\u25A2', oblig: '\u2691', hist: '\u25F7', deal: '\u21C4' };
 const PD_TAB_ICON = PD_TAB_GLYPH;
 /* the room's own words for its tabs; Copilot and Deal have no room tab */
-const PD_TAB_NAME = { copilot: 'pd_tab_copilot', facts: 'tab_overview', doc: 'tab_document', oblig: 'tab_obligations', hist: 'tab_history', deal: 'pd_tab_deal' };
+/* THE DOCUMENT TAB IS CALLED CLAUSES (owner, 11 Oct 2026): Home's face is
+   "Document" now, and this tab holds the clause list. */
+const PD_TAB_NAME = { copilot: 'pd_tab_copilot', facts: 'tab_overview', doc: 'pd_tab_clauses', oblig: 'tab_obligations', hist: 'tab_history', deal: 'pd_tab_deal' };
 const PD_HIST_MAX = 40;          // trail rows drawn; the rest are counted and one press away
 let _pdTab = 'copilot';
 const _pdActs = new Map();       // act id -> function, refilled at every paint (resolved at press time)
@@ -42,7 +50,7 @@ const _pdE = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '
 const _pdT = (k, v) => (typeof i18t === 'function') ? i18t(k, v) : k;
 const _pdTn = (k, n, v) => (typeof i18tn === 'function') ? i18tn(k, n, v) : k;
 
-function pdSetTab(t){ if (PD_TABS.includes(t)) _pdTab = t; }
+function pdSetTab(t){ t = PD_TAB_ALIAS[t] || t; if (PD_TABS.includes(t)) _pdTab = t; }
 function pdTab(){ return _pdTab; }
 /* the contract's tabs are drawn only while Home's Paper holds a contract */
 function pdOnPaper(){
@@ -150,7 +158,12 @@ function pdFactsHtml(c){
     try { if (cc._light && !cc._loaded && typeof ensureFull === 'function') await ensureFull(cc); } catch (_){}
     openCheckPanel(getContract(c.id) || cc, 'brief'); }, { lead: true }) : '';
   const top = pdTop('facts', blanks.length ? pdPill('warn', _pdTn('pd_missing', blanks.length, { n: blanks.length })) : pdPill('ok', _pdT('pd_st_complete')));
-  return top + pdH(_pdT('pd_parties')) + who + pdH(_pdT('pd_terms')) + kv + missing + renew
+  /* FIELDS TO FILL, THE SAP WAY (owner picked it, 11 Oct 2026): the room's own
+     fill form, drawn here by its one builder (paintContractForm → #pd-fill,
+     formHostEl), under Parties and Terms. The list of blanks with doors to the
+     room stays only where the form draws nothing (a contract past drafting). */
+  return top + pdH(_pdT('pd_parties')) + who + pdH(_pdT('pd_terms')) + kv
+    + `<div data-pd-missing>${missing}</div><div id="pd-fill" class="pd-fill"></div>` + renew
     + `<div class="pd-acts">${brief}${pdBtn(_pdT('pd_edit_facts'), pdRoom(c, 'terms'))}</div>`
     + pdNote(_pdT('pd_facts_foot'));
 }
@@ -308,7 +321,7 @@ function pdDealHtml(c){
   return dealTop + (send ? `<div class="pd-acts">${send}</div>` : '') + `<div class="pd-deal">${sheet}</div>` + changes + (go ? `<div class="pd-acts">${go}</div>` : '');
 }
 
-const PD_BODY = { facts: pdFactsHtml, doc: pdDocHtml, oblig: pdObligHtml, hist: pdHistHtml, deal: pdDealHtml };
+const PD_BODY = { facts: pdFactsHtml, doc: pdDocHtml, oblig: pdObligHtml };
 /* THE TITLE ROW: one button per tab, the lit one carrying its name. `brain`
    is the engine's own words (copilotBrainInfo), said on Copilot's hover. */
 function pdHeadHtml(brain){
@@ -350,10 +363,30 @@ function pdPaint(c){
     if (typeof docThreadPaint === 'function') docThreadPaint(c);
     return;
   }
+  /* THE FILL FORM IS KEPT, NEVER REDRAWN FROM NOTHING: an answer typed on the
+     Overview repaints the paper, which paints this panel — the form itself is
+     lifted out and put back, so the box the Tab key is moving to stays. */
+  const keep = (_pdTab === 'facts' && host.dataset.for === c.id + ':facts') ? host.querySelector('#pd-fill') : null;
   const top = host.scrollTop;
   host.innerHTML = pdBodyHtml(c);
+  if (_pdTab === 'facts'){
+    const slot = host.querySelector('#pd-fill');
+    if (keep && keep.firstElementChild && slot){
+      slot.replaceWith(keep);
+      const miss = host.querySelector('[data-pd-missing]'); if (miss) miss.remove();
+    } else pdFillPaint(c);
+  }
   if (host.dataset.for === c.id + ':' + _pdTab) host.scrollTop = top;
   host.dataset.for = c.id + ':' + _pdTab;
+}
+/* the fill form into the Overview tab's slot; the old list of blanks only
+   where the form drew nothing */
+function pdFillPaint(c){
+  const slot = document.getElementById('pd-fill'); if (!slot) return;
+  const body = document.getElementById('pd-body'); if (body && c) body.dataset.for = c.id + ':facts';
+  try { if (typeof paintContractForm === 'function') paintContractForm(c); } catch (_){ slot.innerHTML = ''; }
+  const miss = document.querySelector('#pd-body [data-pd-missing]');
+  if (miss && slot.firstElementChild) miss.remove();
 }
 /* presses, read at press time; a repaint after an act shows what it changed */
 if (typeof document !== 'undefined' && !document._pdWired){
@@ -361,10 +394,7 @@ if (typeof document !== 'undefined' && !document._pdWired){
   document.addEventListener('click', async e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('#ig-dock')) return;
     const tab = t.closest('[data-pd-tab]');
-    if (tab){ _pdTab = tab.getAttribute('data-pd-tab');
-      /* the Deal tab shows their changes on the paper too (Clean | Redlined says which) */
-      const p = (typeof intel === 'object' && intel) ? intel.paper : null;
-      if (_pdTab === 'deal' && p && !p.red && pdRedOk(pdContract())){ p.red = true; if (typeof igPaintPaper === 'function') igPaintPaper(); }
+    if (tab){ pdSetTab(tab.getAttribute('data-pd-tab'));
       if (typeof renderIntelDock === 'function') renderIntelDock(); return; }
     const a = t.closest('[data-pd-act]'); const fn = a ? _pdActs.get(a.getAttribute('data-pd-act')) : null;
     if (!fn) return;
@@ -375,4 +405,4 @@ if (typeof document !== 'undefined' && !document._pdWired){
 }
 
 Object.assign(window, { PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml,
-  pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint });
+  pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint });

@@ -270,7 +270,9 @@ const SHEET = () => {
 
     /* ---- 4 & 5. THE STEPPER THIS PAGE NEVER HAD ---- */
     const step = await page.evaluate(() => {
-      const row = document.querySelector('.redline-page .rl-tabrow');
+      /* on the paper's own ground, top right, since 11 Oct 2026 (owner: "inside
+         the page area ... not adding a button on the panel") */
+      const row = document.querySelector('.redline-page #nego-scroll-work > .paper-zc-row');
       const st = row && row.querySelector('.rl-type-step');
       if (!st) return { there: false };
       const r = st.getBoundingClientRect();
@@ -279,7 +281,7 @@ const SHEET = () => {
         readout: (st.querySelector('.rl-type-out') || {}).textContent,
         buttons: [...st.querySelectorAll('[data-rl-type]')].map(b => b.textContent.trim()) };
     });
-    check('4 THE STEPPER IS IN THE NEGOTIATION CONTROL ROW',
+    check('4 THE ZOOM IS ON THE NEGOTIATION PAPER, TOP RIGHT',
       step.there && step.inRow && step.visible, JSON.stringify(step));
     check('4 with both buttons and its readout', step.buttons && step.buttons.length === 2,
       (step.buttons || []).join(' '));
@@ -294,7 +296,7 @@ const SHEET = () => {
        inside the sheet holds. The 13 Aug "keep the page filling the column at
        8" rule is reversed by the same ask: a zoom makes the page smaller. */
     const stepped = await page.evaluate(async () => {
-      const up = document.querySelector('.redline-page .rl-tabrow .rl-type-step [data-rl-type="1"]');
+      const up = document.querySelector('.redline-page .paper-zc .rl-type-step [data-rl-type="1"]');
       const typeVar = () => parseFloat(getComputedStyle(document.querySelector('.redline-page')).getPropertyValue('--rl-doc-type'));
       const lineOf = () => { const l = document.querySelector(
         '.redline-page .rl-paper .rl-clause-p, .redline-page .rl-paper .rl-line, .redline-page .rl-paper p');
@@ -317,7 +319,7 @@ const SHEET = () => {
       stepped.type === stepped.before.type && Math.abs(stepped.zoom / stepped.before.zoom - 1.5) < 0.01,
       `type ${stepped.before.type} → ${stepped.type}, zoom ${stepped.before.zoom} → ${stepped.zoom}`);
     const floored = await page.evaluate(async () => {
-      const down = document.querySelector('.redline-page .rl-tabrow .rl-type-step [data-rl-type="-1"]');
+      const down = document.querySelector('.redline-page .paper-zc .rl-type-step [data-rl-type="-1"]');
       for (let i = 0; i < 30; i++){ if (!down.disabled) down.click(); }
       await new Promise(r => setTimeout(r, 300));
       return { stored: Number(localStorage.getItem('hati.v1.docZoom')),

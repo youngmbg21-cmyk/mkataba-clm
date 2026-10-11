@@ -457,8 +457,10 @@ describe('F91 (1,2) — the Doc page header and its sub-navigation', () => {
        changed — the tab holds the whole record now, not the commercial terms
        alone — and `tab_key_terms` is still live, because the PHONE draws its
        own Key terms tab and was deliberately left alone. */
-    [['docs', 'tab_document', 'Document'],
-      ['terms', 'tab_overview', 'Overview'], ['sign', 'tab_signing', 'Signing'],
+    /* AND THE DOCUMENT TAB WENT 11 OCT 2026 (owner: "get rid of the document
+       page"): its use is Home's Document; the key routes there (roomGoTab). */
+    assert.ok(!s.includes(`['docs','tab_document']`), 'the Document tab is not a tab any more');
+    [['terms', 'tab_overview', 'Overview'], ['sign', 'tab_signing', 'Signing'],
       ['history', 'tab_history', 'History']].forEach(([k, key, english]) => {
       assert.ok(s.includes(`['${k}','${key}']`), `${english} is a tab, keyed '${k}'`);
       assert.equal(STRINGS.en[key], english, `and still reads "${english}" in English`);

@@ -11,6 +11,12 @@
      3  "Answer on Negotiate" opens the Negotiate page (wording changes stay
         there — Home first), and Clean puts the clean paper back
    AT THE PARENT every claim FAILS: there is no switch, no Deal sorting.
+
+   RE-POINTED 11 Oct 2026 (owner: "delete the deal tab inside the current
+   paper page ... and also delete history"): there is no Deal tab. A door that
+   still asks for Deal (a Copilot card, the agents' review) lands on Clauses
+   with the paper Redlined; the sorting and "Answer on Negotiate" went with the
+   tab. Steps 2 and 3b are retired; 1 and 3a stand.
    ============================================================ */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -72,22 +78,18 @@ const DOC = ['SUPPLY AGREEMENT', '', 'Article 1 Term', '', 'This Agreement runs 
     /* ===== 1. CLEAN | REDLINED, AND THE DEAL TAB TURNS IT ON ===== */
     const sw = await page.evaluate(() => [...document.querySelectorAll('#ig-strip .ig-red button')].map(b => b.textContent.trim() + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')));
     ok('1a the strip offers Clean | Redline · 2, Clean at rest', sw.join('|') === 'Clean*|Redline · 2', JSON.stringify(sw));
-    await page.click('#ig-dock [data-pd-tab="deal"]');
-    await page.waitForFunction(() => !!document.querySelector('#ig-paper .ig-redpaper'), null, { timeout: 8000 }).catch(() => {});
+    const tabs = await page.evaluate(() => [...document.querySelectorAll('#ig-dock [data-pd-tab]')].map(b => b.getAttribute('data-pd-tab')));
+    ok('1a2 no Deal and no History tab', !tabs.includes('deal') && !tabs.includes('hist'), JSON.stringify(tabs));
+    await page.evaluate(() => pdOpenOnHome('MK-DP1', 'deal'));
+    await page.waitForFunction(() => !!document.querySelector('#ig-paper .ig-redpaper:not(.is-clean)'), null, { timeout: 8000 }).catch(() => {});
     const red = await page.evaluate(() => {
       const cv = document.getElementById('ig-canvas'); const t = cv ? cv.innerText : '';
       return { paper: !!document.querySelector('#ig-paper .ig-redpaper'), lit: (document.querySelector('#ig-strip .ig-red [aria-pressed="true"]') || {}).textContent,
+        tab: (document.querySelector('#ig-dock [data-pd-tab][aria-selected="true"]') || {}).getAttribute?.('data-pd-tab'),
         both: /twelve/.test(t) && /six/.test(t), marks: cv ? cv.querySelectorAll('del, ins, .rl-del, .rl-ins, [class*="del"], [class*="ins"]').length : 0 };
     });
-    ok('1b the Deal tab draws the paper Redlined: their words struck and inserted', red.paper && /Redline/.test(red.lit || '') && red.both && red.marks > 0, JSON.stringify(red));
+    ok('1b a door asking for Deal draws the paper Redlined, on Clauses: their words struck and inserted', red.paper && /Redline/.test(red.lit || '') && red.both && red.marks > 0 && red.tab === 'doc', JSON.stringify(red));
     await page.screenshot({ path: path.join(OUT, '1-redlined.png') });
-
-    /* ===== 2. THEIR CHANGES, SORTED ===== */
-    const deal = await page.evaluate(() => (document.getElementById('pd-body') || {}).innerText || '');
-    ok('2a "Needs a look" holds the change about months; "Looks minor" holds the wording-only one',
-      /Looks minor · 1/i.test(deal) && /Needs a look · 1/i.test(deal), deal.slice(0, 600));
-    const acts = await page.evaluate(() => [...document.querySelectorAll('#pd-body button')].map(b => b.textContent.trim()));
-    ok('2b nothing is accepted here: each change answers on Negotiate', acts.filter(x => x === 'Answer on Negotiate').length === 2 && !acts.some(x => /^Accept/.test(x)), JSON.stringify(acts));
 
     /* ===== 3. ANSWER ON NEGOTIATE, AND BACK TO CLEAN ===== */
     await page.evaluate(() => document.querySelector('#ig-strip [data-ig-red="0"]').click());
@@ -101,12 +103,6 @@ const DOC = ['SUPPLY AGREEMENT', '', 'Article 1 Term', '', 'This Agreement runs 
         marks: w ? [...w.querySelectorAll('del, ins, .rl-rung')].filter(shown).length : -1,
         lit: (document.querySelector('#ig-strip .ig-red [aria-pressed="true"]') || {}).textContent }; });
     ok('3a Clean puts the clean paper back: the same paper, no marks', clean.shell && clean.isClean && clean.marks === 0 && clean.lit === 'Clean', JSON.stringify(clean));
-    const b = (await page.$$('#pd-body button')).find(async x => /Answer on Negotiate/.test(await x.textContent()));
-    const answer = await page.$('xpath=//div[@id="pd-body"]//button[normalize-space(.)="Answer on Negotiate"]');
-    if (answer) await answer.click(); else if (b) await b.click();
-    const went = await page.waitForFunction(() => window.state && state.view === 'redline', null, { timeout: 10000 }).then(() => true, () => false);
-    ok('3b Answer on Negotiate opens the Negotiate page', went, await page.evaluate(() => window.state && state.view));
-
     ok('no page errors', !errs.length, errs.join(' | '));
   } catch (e) {
     ok('the stage ran', false, String(e && e.stack || e).slice(0, 400));
