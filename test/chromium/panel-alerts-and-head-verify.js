@@ -84,141 +84,54 @@ const px = v => Number(String(v || '').replace('px', ''));
     await page.evaluate(id => openRedlineWorkbench(id), cid);
     await page.waitForTimeout(2400);
 
-    const head = await page.evaluate(() => {
-      const one = el => { if (!el) return null; const s = getComputedStyle(el);
-        const r = el.getBoundingClientRect();
-        return { text: el.textContent.trim(), color: s.color, size: s.fontSize,
-          weight: s.fontWeight, tt: s.textTransform,
-          bb: s.borderBottomColor, bw: s.borderBottomWidth,
-          bg: s.backgroundColor, bd: s.borderTopWidth,
-          x: Math.round(r.left), y: Math.round(r.top), h: Math.round(r.height) }; };
-      const cap = document.querySelector('.rl-idx-k');
-      const tabs = [...document.querySelectorAll('[data-rl-cardfilter]')];
-      return {
-        cap: one(cap),
-        /* THE TOKEN RESOLVED, NOT THE TOKEN'S TEXT. getPropertyValue hands
-           back '#1B2A28' while every computed colour is 'rgb(27, 42, 40)', and
-           comparing those two is a test that fails on a correct page. The body
-           carries --color-text, so its own computed colour IS the ink. */
-        ink: getComputedStyle(document.body).color,
-        tabs: tabs.map(t => ({ key: t.getAttribute('data-rl-cardfilter'),
-          on: t.classList.contains('on'), ...one(t),
-          num: one(t.querySelector('.rl-fseg-n')),
-          word: one(t.querySelector('.rl-fseg-w')) })),
-      };
+    /* ---- RE-POINTED 11 Oct 2026 ----
+       Render B1's three cuts (All · Mine · Theirs) were the whose-asks filter,
+       and the owner deleted it on 26 Aug 2026 ("delete the whose ask
+       feature"); the column was renamed "Redlines N" on 27 Aug. What B1 asked
+       for still stands and is what is measured now: the head's count is the
+       real number, the whole head is the primary ink (B1, "all of it black"),
+       it is legible at night — and the
+       filter is nowhere on the head, neither as tabs nor as a dropdown. */
+    const lum = c => { const m = /(\d+), (\d+), (\d+)/.exec(c || ''); if (!m) return null;
+      const f = v => { v = v / 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); };
+      return .2126 * f(+m[1]) + .7152 * f(+m[2]) + .0722 * f(+m[3]); };
+    const readHead = () => page.evaluate(() => {
+      const t = document.querySelector('#rl-changes-col .rl-idx-title, .rl-idx-title');
+      const s = t && getComputedStyle(t); const r = t && t.getBoundingClientRect();
+      const n = t && t.querySelector('i');
+      const panel = getComputedStyle(document.querySelector('#rl-changes-col')).backgroundColor;
+      return { text: t ? t.textContent.replace(/\s+/g, ' ').trim() : null,
+        color: s && s.color, num: n ? getComputedStyle(n).color : null,
+        mid: r ? r.top + r.height / 2 : null,
+          ink: getComputedStyle(document.body).color,
+        bg: /rgba\(0, 0, 0, 0\)/.test(panel) ? getComputedStyle(document.body).backgroundColor : panel,
+        tabs: [...document.querySelectorAll('.rl-idx-head [data-rl-cardfilter], #rl-changes-col .rl-idx [data-rl-cardfilter]')]
+          .filter(e => e.getBoundingClientRect().height > 0).length,
+        select: !!document.getElementById('rl-cardfilter') };
     });
+    const head = await readHead();
+    check('the whose-asks filter is gone from the head — no tabs, no dropdown (26 Aug 2026)',
+      head.tabs === 0 && !head.select, JSON.stringify({ tabs: head.tabs, select: head.select }));
+    check('the column says "Redlines" and the real number, not decoration',
+      /Redlines\s*2\b/.test(head.text || ''), head.text);
+    /* The word is the primary ink (B1). The number in it is "the quiet half
+       of the name", marked so the sheet can say so (27 Aug 2026) — quieter
+       than the word, never so quiet it cannot be read. */
+    const nr = (() => { const x = lum(head.num), y = lum(head.bg); return (x == null || y == null) ? null
+      : (Math.max(x, y) + .05) / (Math.min(x, y) + .05); })();
+    check('the head\'s word is the primary ink — B1, "all of it black"',
+      head.color === head.ink, `${head.color} vs ${head.ink}`);
+    check('and its number is the quiet half, still legible',
+      head.num && head.num !== head.ink && nr >= 4.5, `${head.num} · ${nr && nr.toFixed(2)}`);
 
-    const live = head.tabs.find(t => t.on), resting = head.tabs.filter(t => !t.on);
-    check('the head draws three cuts and exactly one is live',
-      head.tabs.length === 3 && !!live && resting.length === 2,
-      head.tabs.map(t => t.key + (t.on ? '*' : '')).join(' '));
-    check('the count is the headline and the word is its caption',
-      !!live && px(live.num.size) > px(live.word.size) + 4
-        && live.num.y < live.word.y,
-      live && `${live.num.size} over ${live.word.size}`);
-    check('and the word reads as a label — uppercase, small, under it',
-      !!live && live.word.tt === 'uppercase', live && live.word.tt);
-    check('the counts are the real numbers, not decoration',
-      head.tabs.map(t => t.num.text).join('/') === '2/1/1',
-      head.tabs.map(t => t.key + ':' + t.num.text).join(' '));
-
-    /* B1 IS "ALL OF IT BLACK". The caption and the two RESTING tabs take the
-       primary ink; only the live one is coloured. Read against the token
-       rather than against a typed hex, so a palette change costs no edit. */
-    const ink = head.ink;
-    check('the caption is the primary ink — B1\'s deliberate exception to the size rule',
-      head.cap.color === ink, `${head.cap.color} vs ${ink}`);
-    check('and so is every resting tab, number and word alike',
-      resting.every(t => t.color === ink && t.num.color === ink && t.word.color === ink),
-      resting.map(t => t.key + ':' + t.color).join(' '));
-    check('the live tab is the ONE coloured thing on the row',
-      !!live && live.color !== ink, live && live.color);
-    check('and its number and word follow it — one colour declaration, both inherit',
-      !!live && live.num.color === live.color && live.word.color === live.color,
-      live && `${live.num.color} / ${live.word.color}`);
-    /* The underline is --accent-solid and the ink is --accent-ink: two tokens
-       on purpose, because the ink has to carry text at 11px in both themes and
-       the rule does not. What the claim protects is that a rule really DRAWS —
-       a 2px border declared and computing to 0 is this codebase's own recorded
-       fault, and only a browser can tell them apart. */
-    check('it is marked by an underline that really draws, in an accent',
-      !!live && px(live.bw) >= 2 && !/rgba\(0, 0, 0, 0\)/.test(live.bb)
-        && live.bb !== ink,
-      live && `${live.bw} ${live.bb}`);
-    check('the resting tabs carry the same reserved height and no visible rule',
-      resting.every(t => px(t.bw) === px(live.bw) && t.bb !== t.color),
-      resting.map(t => t.bw + ' ' + t.bb).join(' | '));
-
-    /* THE BOX AND THE FILL ARE GONE. Render B of 22 Aug put every count in a
-       hairline box and FILLED the live one; at 19px the size already says
-       which is which, and two marks for one fact is how they disagree. */
-    check('no count wears a box any more',
-      head.tabs.every(t => px(t.num.bd) === 0 && /rgba\(0, 0, 0, 0\)/.test(t.num.bg)),
-      head.tabs.map(t => t.num.bd + '/' + t.num.bg).join(' '));
-
-    /* ---- BOTH CLAIMS REVERSED IN PLACE, 23 Aug 2026 (owner-asked: "move the
-       all, mine, their to sit next to tracked changes as opposed to below it")
-       ----
-       These pinned render B1 of the day before, whose reasoning was that "a
-       19px figure cannot share a line with a 12px caption without one of them
-       looking like a mistake". The owner has now seen both and wants the line
-       back, so the size difference is the price and it was named before it was
-       built. THE 19px COUNT IS DELIBERATELY UNTOUCHED — shrinking it to make
-       the row sit comfortably would be reversing a second decision nobody
-       asked about.
-       WHAT THE PAIR IS REALLY ABOUT SURVIVES, which is why they are rewritten
-       rather than deleted: the caption and the tabs must read as ONE head
-       rather than as two unrelated things. On one line that is "same line,
-       caption left, tabs right" instead of "stacked, one left edge".
-       AND THE WRAP IS NOT ASSERTED AWAY: .rl-idx-head is still flex-wrap:wrap,
-       so a column dragged to its 300px minimum may still drop the tabs to
-       their own line. This is measured at the resting split, where they fit. */
-    check('the caption shares ONE line with the tabs',
-      Math.abs((head.cap.y + head.cap.h / 2) - (live.y + live.h / 2)) <= 12,
-      `caption mid ${Math.round(head.cap.y + head.cap.h / 2)} vs tab mid ${Math.round(live.y + live.h / 2)}`);
-    check('caption at the left wall, tabs at the right',
-      head.tabs[0].x > head.cap.x, `${head.cap.x} vs ${head.tabs[0].x}`);
-
-    /* AND IT STILL FILTERS. The three safety properties this control has
-       carried since it came back are not a design decision anybody may drop:
-       three options, each showing its OWN count unmoved by the filter, and a
-       row of choices rather than a dropdown. */
-    await page.click('[data-rl-cardfilter="theirs"]');
-    await page.waitForTimeout(700);
-    const filtered = await page.evaluate(() => ({
-      on: (document.querySelector('[data-rl-cardfilter].on') || {}).getAttribute
-        ? document.querySelector('[data-rl-cardfilter].on').getAttribute('data-rl-cardfilter') : null,
-      counts: [...document.querySelectorAll('[data-rl-cardfilter] .rl-fseg-n')].map(n => n.textContent.trim()),
-      cards: document.querySelectorAll('#rl-changes-col .rl-card, #rl-changes-col .rl-receipt').length,
-    }));
-    check('pressing a cut narrows the column', filtered.on === 'theirs' && filtered.cards === 1,
-      JSON.stringify(filtered));
-    check('and every count still shows its OWN number, unmoved by the filter',
-      filtered.counts.join('/') === '2/1/1', filtered.counts.join('/'));
-    await page.click('[data-rl-cardfilter="all"]');
-    await page.waitForTimeout(500);
-
-    /* THE DARK THEME FOLLOWS FROM THE TOKENS, or the live tab is a deep green
-       on an almost-black panel — the exact fault the reviewer's own count was
-       caught with on 22 Aug. */
     await page.evaluate(() => setTheme('dark'));
     await page.waitForTimeout(1200);
-    const dark = await page.evaluate(() => {
-      const t = document.querySelector('[data-rl-cardfilter].on');
-      const s = t && getComputedStyle(t);
-      const lum = c => { const m = /(\d+), (\d+), (\d+)/.exec(c || ''); if (!m) return null;
-        const f = v => { v = v / 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); };
-        return .2126 * f(+m[1]) + .7152 * f(+m[2]) + .0722 * f(+m[3]); };
-      const panel = getComputedStyle(document.querySelector('#rl-changes-col')).backgroundColor;
-      const bg = /rgba\(0, 0, 0, 0\)/.test(panel)
-        ? getComputedStyle(document.body).backgroundColor : panel;
-      const a = lum(s && s.color), b = lum(bg);
-      return { color: s && s.color, bg,
-        ratio: (a == null || b == null) ? null
-          : Math.round(((Math.max(a, b) + .05) / (Math.min(a, b) + .05)) * 100) / 100 };
-    });
-    check('at night the live tab is still legible against its own panel',
-      dark.ratio !== null && dark.ratio >= 4.5, JSON.stringify(dark));
+    const dark = await readHead();
+    const a = lum(dark.color), bb = lum(dark.bg);
+    const ratio = (a == null || bb == null) ? null
+      : Math.round(((Math.max(a, bb) + .05) / (Math.min(a, bb) + .05)) * 100) / 100;
+    check('at night the head is still legible against its own panel',
+      ratio !== null && ratio >= 4.5, JSON.stringify({ color: dark.color, bg: dark.bg, ratio }));
     await page.evaluate(() => setTheme('light'));
     await page.waitForTimeout(1000);
 

@@ -126,9 +126,16 @@ const VISIBLE = `(el) => {
        rules at all, so the only place that claim can be proved is here. */
     const clothes = await page.evaluate(() => {
       const card = document.querySelector('.redline-page .rl-card');
-      const re = card.querySelector('[data-rl-reopen]'), ed = card.querySelector('[data-rl-edit]');
+      /* RE-POINTED 11 Oct 2026: the row's Edit carries data-rl-cp-editor-row
+         since THE ROW IS THE WHOLE OF IT (rlRowFaceVerbs); data-rl-edit is
+         still read where it draws. */
+      const re = card.querySelector('[data-rl-reopen]'), ed = card.querySelector('[data-rl-edit], [data-rl-cp-editor-row]');
       const own = el => { const cs = getComputedStyle(el), r = el.getBoundingClientRect();
-        return { bg: cs.backgroundColor, bd: cs.borderTopWidth + ' ' + cs.borderTopColor,
+        /* A BORDER IS PAINTED ONLY WHEN ITS STYLE AND WIDTH DRAW ONE: the
+           colour of a 0px edge is the text's ink and paints nothing, so it is
+           named only when the edge is really there (11 Oct 2026). */
+        const drawn = cs.borderTopStyle !== 'none' && parseFloat(cs.borderTopWidth) > 0;
+        return { bg: cs.backgroundColor, bd: drawn ? cs.borderTopWidth + ' ' + cs.borderTopStyle + ' ' + cs.borderTopColor : 'none',
           fw: cs.fontWeight, fs: cs.fontSize, h: Math.round(r.height) }; };
       const acc = document.querySelector('.redline-page .rl-acc');
       return { re: own(re), ed: own(ed), acc: acc ? own(acc) : null };
@@ -136,7 +143,7 @@ const VISIBLE = `(el) => {
     check('Reopen is drawn exactly like Edit — background, border, weight, size',
       clothes.re.bg === clothes.ed.bg && clothes.re.bd === clothes.ed.bd
       && clothes.re.fw === clothes.ed.fw && clothes.re.fs === clothes.ed.fs,
-      `${clothes.re.bg} / ${clothes.re.bd}`);
+      JSON.stringify(clothes));
     check('and the same height, so the row reads as one set of verbs',
       Math.abs(clothes.re.h - clothes.ed.h) <= 1, `${clothes.re.h}px vs ${clothes.ed.h}px`);
 

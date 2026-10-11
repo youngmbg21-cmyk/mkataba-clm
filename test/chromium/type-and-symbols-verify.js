@@ -306,35 +306,46 @@ const SHELL_ICONS = [
        three stages drawn, and a press that really GOES to the register. */
     await page.evaluate(() => { if (window.setView) setView('dashboard'); });
     await page.waitForTimeout(600);
+    /* RE-POINTED 11 Oct 2026: HOME IS THE BOARD. The three stages are Your
+       book's stage key (.hb-stagekey), every number a door (hbDigData), a zero
+       stage greyed rather than a door to nothing. The claims are unchanged:
+       no retired "View full register" link, three stages drawn, the register
+       reachable from them, and a press that really GOES there. */
+    await page.waitForTimeout(1200);
     const head = await page.evaluate(() => {
-      const map = document.getElementById('hm-map');
-      if (!map) return { err: 'no Map on Home' };
-      const lab = [...map.querySelectorAll('.hm-map-lab')].map(e => e.textContent.trim());
+      const book = document.getElementById('hb-book');
+      if (!book) return { err: 'no Board on Home' };
+      const keys = [...book.querySelectorAll('.hb-stagekey button')];
       return {
-        link: !!map.querySelector('[data-open-register]'),
-        text: /view full register|visa hela registret/i.test(map.textContent),
-        stages: map.querySelectorAll('.hm-map-legend button').length,
-        live: map.querySelectorAll('.hm-map-legend [data-hm-map^="stage:"]').length,
-        heading: lab[0] || '', want: i18t('home_map_by_stage'),
+        link: !!book.querySelector('[data-open-register]'),
+        text: /view full register|visa hela registret/i.test(book.textContent),
+        stages: keys.length,
+        live: keys.filter(k => /^st:/.test(k.getAttribute('data-hb-dig') || '')).length,
+        zeroGrey: keys.filter(k => /\b0$/.test(k.textContent.trim())).every(k => k.disabled),
       };
     });
-    check('the Map\'s stage part exists', !head.err, head.err);
+    check('the Board\'s stage part exists', !head.err, head.err);
     check('the "View full register" button is still gone', head.link === false);
     check('and its words are gone with it', head.text === false);
-    check('the heading names the thing', !!head.heading && head.heading === head.want, head.heading);
+    check('a stage with nothing in it is greyed, never a door to an empty list', head.zeroGrey);
     check('all three stages are drawn', head.stages === 3, `${head.stages} blocks`);
     check('the register is still reachable from the stages', head.live > 0,
       `${head.live} of ${head.stages} are doors`);
 
     /* It has to actually GO there, not merely carry the attribute. */
-    await page.evaluate(() => { const b = document.querySelector('#hm-map .hm-map-legend [data-hm-map^="stage:"]'); if (b) b.click(); });
-    await page.waitForTimeout(900);
-    const landed = await page.evaluate(() => ({
-      view: window.state && window.state.view,
-      rows: document.querySelectorAll('[data-row]').length,
-    }));
-    check('pressing a stage still opens the register', landed.view === 'register', landed.view);
-    check('and the register has rows in it', landed.rows > 0, String(landed.rows));
+    if (await page.$('#hb-book .hb-stagekey [data-hb-dig^="st:"]')) await page.click('#hb-book .hb-stagekey [data-hb-dig^="st:"]');
+    await page.waitForTimeout(1200);
+    /* ON THE BOARD A NUMBER DIGS (hbDig, "every number a door"): the stage
+       opens its own card on the Board, named for the stage and counting the
+       contracts in it — the register's rows, one press away from there. */
+    const landed = await page.evaluate(() => {
+      const d = document.querySelector('#hb-board .hb-dig');
+      const lead = d && d.querySelector('.hb-chart-lead b');
+      return { view: window.state && window.state.view, card: !!d,
+        title: d ? (d.querySelector('.hb-ct') || {}).textContent : '', n: lead ? Number(lead.textContent) : 0 };
+    });
+    check('pressing a stage opens that stage\'s own card on the Board', landed.view === 'dashboard' && landed.card && /review|executed|draft/i.test(landed.title || ''), `${landed.view} · ${landed.title}`);
+    check('and it counts the contracts in it', landed.n > 0, String(landed.n));
 
     await page.screenshot({ path: path.join(OUT, '04-register.png') });
 
@@ -397,8 +408,11 @@ const SHELL_ICONS = [
       rowMarks.length > 0 && hollow.length === 0,
       hollow.length ? hollow.map(d => `${d.word} -> ${d.href}`).join(', ')
         : rowMarks.map(m => `${m.word} ${m.href} ${m.bb.w.toFixed(0)}x${m.bb.h.toFixed(0)}`).join(' · '));
+    const btnIc = await page.evaluate(() => Math.round(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--btn-ic')) || 15));
     check('and each one is painted at the size the sheet asks for',
-      rowMarks.every(m => m.box && m.box.w === 15 && m.box.h === 15),
+      /* the button-icon token (--btn-ic) is the size the sheet asks for since
+         the button work (f385); read, never typed (11 Oct 2026) */
+      rowMarks.every(m => m.box && m.box.w === btnIc && m.box.h === btnIc),
       rowMarks.map(m => m.box && m.box.w + 'x' + m.box.h).join(' · '));
     check('the mark takes its verb\'s own ink, so no colour was moved to add it',
       rowMarks.every(m => m.markInk === m.ink),

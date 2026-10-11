@@ -234,7 +234,13 @@ window.READY = (async () => {
      harness measuring four sidebar tabs and a 0px document — reading the
      hidden page as though it were the visible one. Only one of these is ever
      mounted in the product; the harness now matches that. */
+  /* AND OUR PAGE IS NOT THEIR PAGE (11 Oct 2026). renderSharePortal raises
+     PORTAL_MODE, and in the product nothing ever lowers it because the two
+     pages are never mounted in one window. Here they are, one after the
+     other, so SHOW_OWNER lowers it — else "our" page came back drawn as
+     their seat (no Edit clause, rlOnTheirPage() true). */
   window.SHOW_OWNER = function(){
+    window.PORTAL_MODE = false;
     document.getElementById('share-root').innerHTML = '';
     document.getElementById('app-shell').classList.remove('hidden');
     renderRedline();

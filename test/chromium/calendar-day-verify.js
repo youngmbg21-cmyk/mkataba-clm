@@ -30,6 +30,16 @@
    agenda list beside the calendar — which shares nothing with a day box but a
    selector — still opens its own named contract.
 
+   ---- REVERSED 11 Oct 2026 BY THE OWNER'S DESIGN ("build it exactly as
+   designed", the HaTi Proposals artifact Part 3: "Press a day in Month to open
+   its week ... Pressing a contract anywhere opens that contract") ----
+   A day box is now the door to its WEEK, every day, a real tab stop; a chip
+   is the door to its own CONTRACT — chips name the reference and the
+   agreement now ("Ends · MK-A6 Flour…"), which is what made nine identical
+   "Mutual Non-Discl…" chips a guess on 12 Aug. A busy day shows what fits,
+   says how many more, and its week's All-day row lists every one of them,
+   each its own door. The register narrowed to a day (data-cal-day) is STALE.
+
    Run: node test/chromium/calendar-day-verify.js */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
@@ -88,7 +98,11 @@ const check = (name, pass, detail) => {
     const days = await page.evaluate(() => {
       const d = new Date(), y = d.getFullYear(), m = d.getMonth();
       const iso = n => `${y}-${String(m + 1).padStart(2, '0')}-${String(n).padStart(2, '0')}`;
-      const grid = { many: iso(12), one: iso(18), twice: iso(22) };
+      /* WEEKDAYS (11 Oct 2026): a day opens its Monday-to-Friday week, so the
+         fixture's days are a Wednesday on or after the 8th, the Thursday after
+         it and the Wednesday a week on — all inside this month on any date. */
+      let w = 8; while (new Date(y, m, w).getDay() !== 3) w++;
+      const grid = { many: iso(w), one: iso(w + 1), twice: iso(w + 7) };
       const pinned = [grid.many, grid.one, grid.twice];
       let soon = null;
       for (let off = 4; off <= 10 && !soon; off++){
@@ -123,206 +137,70 @@ const check = (name, pass, detail) => {
     await page.evaluate(() => setView('calendar'));
     await page.waitForTimeout(1200);
 
-    /* ---- the box is a door, and only where there is something behind it ---- */
+    /* ---- every day box is the door to its week ---- */
     const cells = await page.evaluate(d => {
-      const at = iso => document.querySelector(`[data-cal-day="${iso}"]`);
-      const empty = Array.from(document.querySelectorAll('.cal-day:not(.cal-blank)'))
-        .filter(el => !el.hasAttribute('data-cal-day'));
+      const at = iso => document.querySelector(`.cal-day[data-cal-week="${iso}"]`);
+      const all = Array.from(document.querySelectorAll('#cal-grid .cal-day:not(.is-mute)'));
+      const many = at(d.many);
       return {
-        many: !!at(d.many), one: !!at(d.one), twice: !!at(d.twice),
-        manyTitle: at(d.many) ? at(d.many).getAttribute('title') : '',
-        oneTitle: at(d.one) ? at(d.one).getAttribute('title') : '',
-        twiceTitle: at(d.twice) ? at(d.twice).getAttribute('title') : '',
-        manyRole: at(d.many) ? at(d.many).getAttribute('role') : '',
-        emptyDays: empty.length,
+        allDoors: all.length > 27 && all.every(el => el.hasAttribute('data-cal-week') && el.getAttribute('role') === 'button' && el.getAttribute('tabindex') === '0'),
+        n: all.length,
+        title: many ? many.getAttribute('title') : '',
+        chips: many ? many.querySelectorAll('.cal-chip').length : 0,
+        more: many ? ((many.querySelector('.cal-more') || {}).textContent || '') : '',
+        focusable: many ? many.querySelectorAll('button,[tabindex],a[href],input').length : -1,
+        chipCt: many ? Array.from(many.querySelectorAll('.cal-chip')).every(c => c.hasAttribute('data-cal-ct')) : false,
       };
     }, days);
-    check('a day carrying contracts is pressable', cells.many && cells.one && cells.twice);
-    check('an empty day is not', cells.emptyDays > 0, `${cells.emptyDays} quiet days`);
-    check('and it says which door it is before you press it',
-      /Choose from the 3 contracts/.test(cells.manyTitle) && /^Open /.test(cells.oneTitle),
-      cells.manyTitle);
-    check('a screen reader is told it is a button', cells.manyRole === 'button');
+    check('every day of the month is a door: a button, a tab stop', cells.allDoors, `${cells.n} days`);
+    check('and it says which door it is before you press it — its week', /week/i.test(cells.title || ''), cells.title);
+    check('a busy day shows what fits and says how many more',
+      cells.chips >= 1 && cells.chips <= 2 && /\+\s*\d+/.test(cells.more), `${cells.chips} chip(s), ${JSON.stringify(cells.more)}`);
+    check('each chip is its own contract’s door, and no keyboard stop inside the box leads anywhere else',
+      cells.chipCt && cells.focusable === 0, `${cells.focusable} focusable inside`);
 
-    /* THE COUNT IS OF CONTRACTS, NOT MARKS. Two events, one agreement. */
-    check('two marks from one contract is still one contract',
-      /^Open /.test(cells.twiceTitle), cells.twiceTitle);
-
-    /* ---- many → the register, narrowed to exactly those ---- */
-    await page.evaluate(d => document.querySelector(`[data-cal-day="${d.many}"]`).click(), days);
-    await page.waitForTimeout(1400);
-    const reg = await page.evaluate(() => ({
-      view: state.view,
-      only: state.reg && state.reg.only ? state.reg.only.ids.slice().sort() : null,
-      label: state.reg && state.reg.only ? state.reg.only.label : '',
-      rows: Array.from(document.querySelectorAll('#reg-tbody tr')).length,
-      ids: Array.from(document.querySelectorAll('#reg-tbody .reg-mk')).map(e => e.textContent.trim()).sort(),
-      chip: !!document.getElementById('reg-only-chip'),
-      chipText: (document.getElementById('reg-only-chip') || {}).textContent || '',
-      canClear: !!document.getElementById('reg-only-clear'),
-    }));
-    check('pressing a day of several lands on the register', reg.view === 'register');
-    check('narrowed to exactly the contracts that were on that day',
-      reg.rows === 3 && JSON.stringify(reg.ids) === JSON.stringify(['CAL1', 'CAL2', 'CAL3']),
-      `${reg.rows} row(s): ${reg.ids.join(', ')}`);
-    check('the register says it has been narrowed, and why',
-      reg.chip && /Due on/.test(reg.chipText.replace(/\s+/g, ' ')),
-      reg.chipText.replace(/\s+/g, ' ').trim());
-    check('and the way back is on the chip', reg.canClear);
-
-    /* ---- the other filters still work INSIDE the set ---- */
-    await page.evaluate(() => { const R = regState(); R.stage = 'Draft'; R.page = 1; renderRegister(); });
-    await page.waitForTimeout(600);
-    const inside = await page.evaluate(() => ({
-      rows: Array.from(document.querySelectorAll('#reg-tbody .reg-mk')).length,
-      chip: !!document.getElementById('reg-only-chip'),
-    }));
-    check('a filter on top of the set narrows within it rather than replacing it',
-      inside.rows === 0 && inside.chip, `${inside.rows} row(s), chip still shown`);
-    await page.evaluate(() => { const R = regState(); R.stage = 'all'; renderRegister(); });
-    await page.waitForTimeout(500);
-
-    /* ---- clearing gives the whole register back ---- */
-    await page.evaluate(() => document.getElementById('reg-only-clear').click());
-    await page.waitForTimeout(800);
-    const cleared = await page.evaluate(() => ({
-      only: state.reg.only,
-      chip: !!document.getElementById('reg-only-chip'),
-      rows: Array.from(document.querySelectorAll('#reg-tbody .reg-mk')).length,
-    }));
-    check('clearing it gives the whole register back',
-      cleared.only == null && !cleared.chip && cleared.rows > 3, `${cleared.rows} rows`);
-
-    /* ---- one contract opens straight into it ---- */
-    await page.evaluate(() => setView('calendar'));
-    await page.waitForTimeout(1000);
-    await page.evaluate(d => document.querySelector(`[data-cal-day="${d.one}"]`).click(), days);
-    await page.waitForTimeout(1400);
-    const single = await page.evaluate(() => ({ view: state.view, id: state.activeId,
-      only: state.reg && state.reg.only }));
-    check('a day with one contract opens that contract instead',
-      single.id === 'CAL4' && single.only == null, `${single.view} · ${single.id}`);
-
-    /* ---- A CHIP INSIDE A DAY BOX IS NOT ITS OWN DOOR ANY MORE ----
-       (owner-asked, 12 Aug 2026, reversing the 11 Aug decision this file used to
-       assert.) The old claim was "a named contract inside the box still opens
-       that contract, not the list", and the reasoning behind it was sound: a
-       named thing should open the thing it names. What killed it is what the
-       names actually look like at 9.5px in a 90px column — on the reported
-       screen, 30 August carried nine contracts and its three visible chips all
-       read "Mutual Non-Discl…". Pressing one is a guess between nine similarly
-       named agreements; the register shows counterparty, status, value and
-       expiry, which is what tells them apart.
-
-       WHAT MUST STAY TRUE EITHER WAY, and is asserted below: pressing anything
-       in a day box LANDS somewhere, and the landing says what it is narrowed to
-       with the way back on the same chip. */
-    await page.evaluate(() => setView('calendar'));
-    await page.waitForTimeout(1000);
-    const chipShape = await page.evaluate(d => {
-      const cell = document.querySelector(`[data-cal-day="${d.many}"]`);
-      const chips = Array.from(cell.querySelectorAll('.cal-chip'));
-      const one = document.querySelector(`[data-cal-day="${d.one}"]`);
-      return {
-        n: chips.length,
-        selectors: cell.querySelectorAll('[data-sel]').length,
-        buttons: cell.querySelectorAll('button').length,
-        focusable: cell.querySelectorAll('button,[tabindex],a[href],input').length,
-        title: chips[0] ? chips[0].getAttribute('title') : 'MISSING',
-        oneTitle: one.querySelector('.cal-chip')
-          ? one.querySelector('.cal-chip').getAttribute('title') : 'MISSING',
-        more: (cell.querySelector('.cal-more') || {}).textContent || '',
-        cellTab: cell.getAttribute('tabindex'), cellRole: cell.getAttribute('role'),
-      };
+    /* ---- pressing the day opens its week, with every contract of the day on it ---- */
+    await page.click(`#cal-grid .cal-day[data-cal-week="${days.many}"] .cal-dn`);
+    await page.waitForTimeout(900);
+    const wk = await page.evaluate(d => {
+      const day = new Date(d.many + 'T00:00:00');
+      const col = Array.from(document.querySelectorAll('#cal-week .cal-wk-h')).findIndex(h => h.querySelector('b') && Number(h.querySelector('b').textContent) === day.getDate());
+      const alls = Array.from(document.querySelectorAll('#cal-week .cal-wk-all'));
+      const cell = alls[col];
+      return { view: calView(), col,
+        ids: cell ? Array.from(cell.querySelectorAll('[data-sel]')).map(b => b.getAttribute('data-sel')).filter((v, i, a) => a.indexOf(v) === i).sort() : [] };
     }, days);
-    /* ---- REVERSED IN PLACE, 22 Aug 2026 (the calendar took the mock-up) ----
-       This asserted that all three chips draw and NOTHING is hidden. The cells
-       had a fixed floor then; they FLEX now, so the month always shows its six
-       weeks on any window and a cell cannot promise room for a third chip. The
-       cap is 2, and past it the day shows one chip and says how many more —
-       which is the same bargain the old "+N more" line struck, just reached
-       sooner.
-       WHAT THE CLAIM WAS REALLY FOR SURVIVES AND IS ASSERTED HERE: nothing is
-       hidden SILENTLY. A day holding more than it can show says so, and the
-       press still lands on all of them. */
-    check('a day shows what fits and says how many more',
-      chipShape.n >= 1 && chipShape.n <= 2 && /\+\s*\d+/.test(chipShape.more || ''),
-      `${chipShape.n} chip(s), more line: ${JSON.stringify(chipShape.more)}`);
-    check('but they are no longer doors of their own',
-      chipShape.selectors === 0 && chipShape.buttons === 0,
-      `${chipShape.selectors} data-sel, ${chipShape.buttons} button(s)`);
-    check('and no keyboard stop inside the box leads nowhere new',
-      chipShape.focusable === 0 && chipShape.cellTab === '0' && chipShape.cellRole === 'button',
-      `${chipShape.focusable} focusable inside, cell tabindex=${chipShape.cellTab}`);
-    check('a chip that no longer goes where its label points stops promising it',
-      chipShape.title === null,
-      'on a many-contract day the cell’s own tooltip is what the reader sees');
-    check('and on a one-contract day it still names the event, because that is still where it goes',
-      /^(Expiry|Renewal|Obligation)/i.test(chipShape.oneTitle || ''), chipShape.oneTitle);
-
-    const chipGo = await page.evaluate(d => {
-      const cell = document.querySelector(`[data-cal-day="${d.many}"]`);
-      cell.querySelector('.cal-chip').click();
-    }, days);
-    await page.waitForTimeout(1400);
-    const afterChip = await page.evaluate(() => ({ view: state.view,
-      only: state.reg && state.reg.only ? state.reg.only.ids.slice().sort() : null,
-      rows: Array.from(document.querySelectorAll('#reg-tbody .reg-mk')).map(e => e.textContent.trim()).sort(),
-      chip: !!document.getElementById('reg-only-chip'),
-      chipText: (document.getElementById('reg-only-chip') || {}).textContent || '',
-      canClear: !!document.getElementById('reg-only-clear') }));
-    check('pressing a chip on a many-contract day lands on the narrowed list',
-      afterChip.view === 'register'
-      && JSON.stringify(afterChip.rows) === JSON.stringify(['CAL1', 'CAL2', 'CAL3']),
-      `${afterChip.view} · ${afterChip.rows.join(', ')}`);
-    check('and that list still says what it is narrowed to, with the way back on it',
-      afterChip.chip && /Due on/.test(afterChip.chipText.replace(/\s+/g, ' ')) && afterChip.canClear,
-      afterChip.chipText.replace(/\s+/g, ' ').trim());
-
-    /* ---- and a chip on a ONE-contract day lands exactly where it always did ---- */
-    await page.evaluate(() => { document.getElementById('reg-only-clear')?.click(); });
-    await page.waitForTimeout(400);
-    await page.evaluate(() => setView('calendar'));
-    await page.waitForTimeout(1000);
-    await page.evaluate(d => document.querySelector(`[data-cal-day="${d.one}"] .cal-chip`).click(), days);
-    await page.waitForTimeout(1400);
-    const chipOne = await page.evaluate(() => ({ id: state.activeId,
-      only: state.reg && state.reg.only }));
-    check('a chip on a one-contract day still opens that contract',
-      chipOne.id === 'CAL4' && chipOne.only == null, `${chipOne.id}`);
-
-    /* ---- a day marked TWICE by one contract is one contract, from the chip too ---- */
-    await page.evaluate(() => setView('calendar'));
-    await page.waitForTimeout(1000);
-    await page.evaluate(d => document.querySelector(`[data-cal-day="${d.twice}"] .cal-chip`).click(), days);
-    await page.waitForTimeout(1400);
-    const chipTwice = await page.evaluate(() => ({ id: state.activeId,
-      only: state.reg && state.reg.only }));
-    check('a day marked twice by one contract still opens the contract',
-      chipTwice.id === 'CAL5' && chipTwice.only == null,
-      'the count is of contracts, not marks — from the chip as well as the cell');
-
-    /* ---- THE AGENDA BESIDE THE CALENDAR IS NOT A DAY BOX ----
-       It is a list of individual events, and a named row there is the one place
-       on this screen where "open that contract" is the whole answer. The old
-       chip handler was shared with it through [data-sel]; a change scoped to
-       that selector rather than to the chips would have taken this out. */
-    await page.evaluate(() => setView('calendar'));
-    await page.waitForTimeout(1000);
-    const agenda = await page.evaluate(() => {
-      const rows = Array.from(document.querySelectorAll('[data-sel]'))
-        .filter(el => !el.closest('[data-cal-day]'));
-      if (!rows.length) return { none: true };
-      const want = rows[0].getAttribute('data-sel');
-      rows[0].click();
-      return { want, n: rows.length };
-    });
+    check('pressing a day opens its week', wk.view === 'week' && wk.col > -1, `${wk.view} · column ${wk.col}`);
+    check('and that day’s All-day row names every contract it carried — nothing hidden',
+      JSON.stringify(wk.ids) === JSON.stringify(['CAL1', 'CAL2', 'CAL3']), wk.ids.join(', '));
+    await page.evaluate(d => document.querySelector(`#cal-week [data-sel="CAL2"]`).click(), days);
     await page.waitForTimeout(1200);
-    const afterAgenda = await page.evaluate(() => ({ id: state.activeId,
-      only: state.reg && state.reg.only }));
-    check('the agenda list beside the calendar still opens its own named contract',
-      !agenda.none && afterAgenda.id === agenda.want && afterAgenda.only == null,
-      agenda.none ? 'no agenda rows to press' : `${afterAgenda.id} (wanted ${agenda.want}), ${agenda.n} row(s)`);
+    check('each of them opens its own contract', await page.evaluate(() => state.activeId) === 'CAL2');
+
+    /* ---- the keyboard opens the week too ---- */
+    await page.evaluate(() => { setView('calendar'); calSetView('month'); });
+    await page.waitForTimeout(900);
+    await page.focus(`#cal-grid .cal-day[data-cal-week="${days.one}"]`);
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(800);
+    check('Enter on a day opens its week as well', await page.evaluate(() => calView()) === 'week');
+
+    /* ---- a chip in the month opens its contract ---- */
+    await page.evaluate(() => calSetView('month'));
+    await page.waitForTimeout(800);
+    await page.click(`#cal-grid .cal-day[data-cal-week="${days.one}"] .cal-chip`);
+    await page.waitForTimeout(1200);
+    const single = await page.evaluate(() => ({ view: state.view, id: state.activeId }));
+    check('a contract chip in the month opens that contract', single.id === 'CAL4', `${single.view} · ${single.id}`);
+
+    /* THE COUNT IS OF CONTRACTS, NOT MARKS — two marks of one agreement, one door. */
+    await page.evaluate(() => { setView('calendar'); calSetView('month'); });
+    await page.waitForTimeout(900);
+    const twice = await page.evaluate(d => Array.from(document.querySelectorAll(`#cal-grid .cal-day[data-cal-week="${d.twice}"] .cal-chip`)).map(c => c.getAttribute('data-cal-ct')), days);
+    await page.click(`#cal-grid .cal-day[data-cal-week="${days.twice}"] .cal-chip`);
+    await page.waitForTimeout(1200);
+    check('a day marked twice by one contract: every chip is that one contract’s door',
+      twice.length >= 1 && twice.every(x => x === 'CAL5') && await page.evaluate(() => state.activeId) === 'CAL5', twice.join(', '));
 
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {

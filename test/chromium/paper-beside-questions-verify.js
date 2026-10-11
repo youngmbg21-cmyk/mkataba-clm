@@ -331,9 +331,11 @@ const check = (name, pass, detail) => {
     std.words.slice(0, 80));
   /* THE QUESTIONS DID NOT CHANGE — the owner asked for the paper, not for more
      to answer. The seven are CONTRACT_ESSENTIALS, exactly as before. */
-  check('7c the questions are the same seven basic entries',
-    ['ce-party','ce-counterparty','ce-cpemail','ce-value','ce-effDate','ce-expiry','ce-folder']
-      .every(id => std.boxes.includes(id)) && std.boxes.length === 7, std.boxes.join(','));
+  /* RE-POINTED 11 Oct 2026: CONTRACT_ESSENTIALS gained "Our side" (ce-side,
+     maps the category) — eight now; still exactly the essentials, nothing more. */
+  check('7c the questions are the basic entries, CONTRACT_ESSENTIALS and nothing more',
+    ['ce-party','ce-counterparty','ce-cpemail','ce-value','ce-side','ce-effDate','ce-expiry','ce-folder']
+      .every(id => std.boxes.includes(id)) && std.boxes.length === 8, std.boxes.join(','));
   /* "N blanks left" counts empty ANSWERS; here the answers are record facts and
      the wording is already complete, so a count would be a number about the
      form printed on the paper. */
@@ -383,7 +385,7 @@ const check = (name, pass, detail) => {
       boxes: [...document.querySelectorAll('#modal-root input, #modal-root select')].map(e => e.id).filter(Boolean).length };
   });
   check('7g under 1000px the door is one column again, with the same questions',
-    narrow7.pane === false && narrow7.boxes === 7, JSON.stringify(narrow7));
+    narrow7.pane === false && narrow7.boxes === 8, JSON.stringify(narrow7));
   await page.evaluate(() => { if (window.closeModal) closeModal(); });
 
   check('no page errors', errors.length === 0, errors.slice(0, 2).join(' | '));

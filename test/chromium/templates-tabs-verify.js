@@ -439,7 +439,9 @@ const BOX = sel => {
        700→600). The 25 Aug ask was "one size down", and it still holds as the
        RELATION — figures one rung above the name — which is what these pin now. */
     const tok = await page.evaluate(() => { const r = getComputedStyle(document.documentElement);
-      const g = k => r.getPropertyValue(k).trim(); return { card: g('--t-card'), body: g('--t-body'), title: g('--w-title') }; });
+      /* the card's weight is --w-strong (600) since the 21 Sep redesign — the
+         note above names the move "700→600"; read off the token, never typed */
+      const g = k => r.getPropertyValue(k).trim(); return { card: g('--t-card'), body: g('--t-body'), title: g('--w-strong') || g('--w-title') }; });
     check('6a · every card wears a 3px bar across its whole top, first in the card',
       dm.length > 0 && dm.every(c => c.bar.h === 3 && c.bar.top <= 1 && c.bar.w === c.bar.cw),
       dm.map(c => c.bar));
@@ -468,7 +470,7 @@ const BOX = sel => {
        to be reduced by one size and the ones highlighted (numbers) should be
        reduced by 2 sizes"). These are pinned as NUMBERS rather than as
        relations, deliberately: the ask was about the sizes themselves. */
-    check('6c · the name is the card\'s one piece of primary type — --t-body at --w-title',
+    check('6c · the name is the card\'s one piece of primary type — --t-body at --w-strong',
       dm.every(c => c.nm.size === tok.body && c.nm.weight === tok.title), dm[0] && { nm: dm[0].nm, tok });
     /* RE-POINTED: there is no meta line under the name any more — the section
        above says whether this is a library or a value stream and the count is
@@ -483,7 +485,7 @@ const BOX = sel => {
       dm.every(c => c.labels.length === 2 && c.labels.every(l => l.tt === 'none'))
       && /NEEDS ATTENTION|Needs attention/.test(attTxt),
       dm[0] && dm[0].labels.map(l => l.txt + ':' + l.tt));
-    check('6f · both figures are --t-body at --w-title, in mono — and the first is the primary ink',
+    check('6f · both figures are --t-body at --w-strong, in mono — and the first is the primary ink',
       /* RE-POINTED 21 Sep 2026: the figure is the reference's mono at BODY
          size and strong weight — the same rung as the name, told apart by face. */
       dm.every(c => c.figs.length === 2 && c.figs.every(f => f.size === tok.body && f.weight === tok.title))
@@ -562,9 +564,11 @@ const BOX = sel => {
           out.push(cur);
         } else if (cur) cur.cards++; else out.push({ txt: '(loose card)', cards: 1 });
       }
-      /* the rail's own two captions, which the wall must read through */
-      const caps = [...document.querySelectorAll('[data-tpl-sec="list"] div')]
-        .map(e => e.textContent.trim()).filter(t => /^(Library|Value stream)$/.test(t));
+      /* the two captions the wall reads through, one key each (tplOverviewHtml
+         SECTIONS: lib_library, lib_value_stream) — the list's rail that once
+         drew them became an inspector (SAP batch 2), so the keys themselves
+         are the reference now */
+      const caps = [i18t('lib_library'), i18t('lib_value_stream')];
       return { out, caps, wallW: Math.round(wall.getBoundingClientRect().width),
         cards: wall.querySelectorAll('[data-tpl-ov-bucket]').length };
     });
@@ -617,8 +621,10 @@ const BOX = sel => {
     });
     check('9a · the book is a real tab and it draws', !!bk && !bk.hidden && bk.h > 250 && bk.rowH > 30,
       bk && { h: bk.h, hidden: bk.hidden, rowH: bk.rowH });
-    check('9b · one row per shelf, in the library\u2019s order',
-      !!bk && JSON.stringify(bk.rows) === JSON.stringify(['company', 'cp', 'builtin', 'sample']), bk && bk.rows);
+    /* the drawing's order (SAP batch 2, tplBookHtml SHELF_ORDER): our own
+       paper, HaTi's, the samples, then theirs */
+    check('9b · one row per shelf, in the drawing\u2019s order',
+      !!bk && JSON.stringify(bk.rows) === JSON.stringify(['company', 'builtin', 'sample', 'cp']), bk && bk.rows);
     check('9e · the glance is three figures in the band, and the caveat rides the rate alone',
       !!bk && bk.gl.length === 3 && bk.gl.filter(g => g.title.trim()).length === 1,
       bk && bk.gl.map(g => g.label.trim() + (g.title.trim() ? ' [hover]' : '')));
@@ -801,8 +807,11 @@ const BOX = sel => {
 
     await page.evaluate(() => { const b = document.getElementById('tpl-new'); if (b) b.click(); });
     await pause(500);
-    await page.evaluate(() => { const b = document.querySelector('[data-ns-start="template"]'); if (b) b.click(); });
-    await pause(600);
+    /* RE-POINTED 11 Oct 2026: the three starts are a choice and a Continue
+       (THE POP-UPS, THE SAP WAY — the act first, Cancel last) */
+    await page.evaluate(() => { const b = document.querySelector('[data-ns-start="template"]'); if (b){ b.checked = true; b.dispatchEvent(new Event('change', { bubbles: true })); }
+      const go = document.getElementById('ns-continue'); if (go) go.click(); });
+    await pause(800);
     await page.screenshot({ path: path.join(OUT, '09-from-a-template.png') });
     const conv = await page.evaluate(() => {
       const dlg = document.querySelector('#modal-root [role="dialog"]');

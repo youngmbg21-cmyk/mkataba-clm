@@ -201,24 +201,27 @@ const check = (name, pass, detail) => {
     await page.setViewportSize({ width: 2000, height: 1030 });
     await page.evaluate(() => setView('templates'));
     await page.waitForTimeout(1600);
+    /* RE-POINTED 11 Oct 2026: SAP BENCHMARK, BATCH 2 — the book is a shelves
+       TABLE (tplBookHtml, #tpl-bk-library), one row per shelf, and the two
+       halves are a segmented switch (Shelves · Value streams) rather than two
+       headings. The claims stand: every shelf whatever the window, no "see
+       all", two halves, and the card reaches down a tall screen. */
     const tall = await page.evaluate(() => ({
-      cards: document.querySelectorAll('#tpl-ov-cards [data-tpl-ov-bucket]').length,
-      bands: document.querySelectorAll('#tpl-ov-cards .tpl-ov-band').length,
+      cards: document.querySelectorAll('#tpl-bk-library [data-tpl-ov-bucket]').length,
+      bands: document.querySelectorAll('#tpl-bk-library [data-tpl-book-cut]').length,
       seeAll: !!document.getElementById('tpl-ov-all'),
-      bottom: Math.round(document.getElementById('tpl-ov-cards').getBoundingClientRect().bottom) }));
+      bottom: Math.round((document.getElementById('tpl-bk-library') || { getBoundingClientRect: () => ({ bottom: 0 }) }).getBoundingClientRect().bottom) }));
     await page.setViewportSize({ width: 2000, height: 700 });
     await page.evaluate(() => renderTemplatesPage());
     await page.waitForTimeout(1600);
     const short = await page.evaluate(() =>
-      document.querySelectorAll('#tpl-ov-cards [data-tpl-ov-bucket]').length);
-    check('the templates wall shows every category, whatever the window',
+      document.querySelectorAll('#tpl-bk-library [data-tpl-ov-bucket]').length);
+    check('the templates book shows every shelf, whatever the window',
       tall.cards > 0 && tall.cards === short, `${tall.cards} at 1030, ${short} at 700`);
     check('and nothing is held back behind a "see all"', !tall.seeAll, tall.seeAll);
-    check('the wall is segmented, with a heading over each half',
-      tall.bands === 2, `${tall.bands} headings`);
-    /* KEPT from the fill-the-monitor pass: whatever else changes, the wall may
-       not stop a third of the way down a tall screen with the rest empty. */
-    check('the wall reaches down the tall screen rather than stopping short',
+    check('the book is segmented into its two halves — shelves and value streams',
+      tall.bands === 2, `${tall.bands} halves`);
+    check('the book reaches down the tall screen rather than stopping short',
       tall.bottom > 700, tall.bottom + 'px of 1030');
     await page.setViewportSize({ width: 2000, height: 1030 });
 

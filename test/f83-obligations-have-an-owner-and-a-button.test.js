@@ -167,46 +167,19 @@ describe('F83 — completing one is a verb, not an inline handler', () => {
   });
 });
 
-describe('F83 — the calendar can act on what it draws', () => {
-  const agenda = over => {
-    const w = world(['js/views/calendar.js'], over);
+/* RETIRED 11 Oct 2026 WITH THE LIST IT MEASURED. Next 14 days — the agenda
+   whose obligation rows carried the owner line, the theirs chip and Done —
+   left the Calendar when Copilot took its place beside every view (Young:
+   "build it exactly as designed", then "Remove it" for the list). The same
+   obligations stay on the month as named chips that open their contract, and
+   Done stays on the Obligations page and tab (toggleObligationById, above). */
+describe('F83 — the calendar draws no agenda now', () => {
+  test('no Next 14 days list, and no second Done door on the calendar', () => {
+    const w = world(['js/views/calendar.js']);
     w.renderCalendar();
     const html = w.document.getElementById('content').innerHTML;
-    return { w, rows: html.slice(html.indexOf('id="cal-agenda"')) };
-  };
-
-  test('an obligation row carries a Done button', () => {
-    const { rows } = agenda();
-    assert.match(rows, /data-ob-done="ob_1"/,
-      'the calendar drew the obligation and offered no way to act on it');
-    assert.match(rows, /data-ob-cid="MK-1"/);
-  });
-
-  test('an expiry row does not — a date is not a task', () => {
-    const { rows } = agenda({ contracts: [contract({ obligations: [], expiry: day(20) })] });
-    assert.ok(!/data-ob-done/.test(rows));
-  });
-
-  test('a theirs row is marked as something to chase', () => {
-    const { rows } = agenda({ contracts: [contract({ obligations: [ob({ party: 'theirs' })] })] });
-    assert.match(rows, /theirs/i);
-    assert.match(rows, /Kabras Sugar/);
-  });
-
-  test('a viewer gets no button', () => {
-    const { rows } = agenda({ canEdit: false });
-    assert.ok(!/data-ob-done/.test(rows));
-  });
-
-  test('the row is no longer one big button, so the two controls can coexist', () => {
-    // the Done control has to sit OUTSIDE the row's own button: a button nested
-    // inside a button is not something any browser will honour, and it is why
-    // this screen could never carry a second control
-    const { rows } = agenda();
-    const open = rows.indexOf('data-sel="MK-1"');
-    assert.ok(open > -1, 'the row lost its link into the contract');
-    const inner = rows.slice(open, rows.indexOf('</button>', open));
-    assert.ok(!inner.includes('<button'), 'the Done control is nested inside the row button');
+    assert.ok(!html.includes('id="cal-agenda"'), 'the agenda is drawn again');
+    assert.ok(html.includes('id="cal-plan"'), 'Copilot is not beside the calendar');
   });
 });
 

@@ -306,11 +306,15 @@ const SEED = async () => {
     await page.screenshot({ path: path.join(OUT, '04-arrival-strip.png') });
 
     check('5a the strip is drawn with its tiles', (strip.n || 0) >= 4, `${strip.n} tiles`);
-    check('5b exactly two arrows, on the two Young named',
-      strip.arrows === 2 && JSON.stringify(strip.keys) === JSON.stringify(['brief', 'oblig']),
+    /* RE-POINTED 11 Oct 2026: since 20 Sep Standards opens the playbook
+       review and the fifth tile is RISKS FOUND with a door to Risk View, so
+       every tile with somewhere to go carries the arrow — brief, standards,
+       obligations, risks — and the Fill tile, with nothing behind it, does not. */
+    check('5b an arrow on every tile with a door, and only there',
+      strip.arrows === strip.doors && JSON.stringify(strip.keys.slice().sort()) === JSON.stringify(['brief', 'oblig', 'playbook', 'risk']),
       `${strip.arrows} arrows on ${JSON.stringify(strip.keys)}`);
     check('5c a tile with a door is a real button, a tile without one is not',
-      strip.buttons === 2, `${strip.buttons} of ${strip.n} tiles are buttons`);
+      strip.buttons === strip.doors && strip.buttons < strip.n, `${strip.buttons} of ${strip.n} tiles are buttons`);
     check('5d every tile still draws exactly one body',
       strip.bodies === strip.n, `${strip.bodies} bodies for ${strip.n} tiles`);
     check('5e AND THE STRIP KEEPS ITS FIXED HEIGHT — the 17 Sep ruling',
@@ -321,12 +325,19 @@ const SEED = async () => {
     const pressed = await drive(page, async () => {
       const b = document.querySelector('[data-kt-tri-go="oblig"]');
       if (!b) return { pressed: false };
+      /* THE OBLIGATIONS DOOR FOLLOWS THE TAB (Young, 22 Sep 2026): while the
+         tab is empty the press opens the list the reading found, to tick and
+         add; once the tab has obligations it goes straight there. */
+      const review = !!(window.obTileOpensReview && obTileOpensReview(getContract(state.activeId)));
       b.click();
       await new Promise(r => setTimeout(r, 900));
-      return { pressed: true, tab: (window.roomCurrentTab ? roomCurrentTab() : null) };
+      return { pressed: true, review, tab: (window.roomCurrentTab ? roomCurrentTab() : null),
+        desk: !!document.getElementById('obd-list') };
     }, undefined, { pressed: false });
-    check('5f pressing the obligations tile lands on the obligations tab',
-      pressed.pressed && pressed.tab === 'oblig', `tab now ${pressed.tab}`);
+    check('5f pressing the obligations tile lands where it says — the found list while the tab is empty, else the tab',
+      pressed.pressed && (pressed.review ? pressed.desk : pressed.tab === 'oblig'),
+      `review ${pressed.review} · desk ${pressed.desk} · tab ${pressed.tab}`);
+    await drive(page, async () => { if (window.closeModal) closeModal(); }, undefined, null);
 
     /* AND THE BRIEF TILE PULLS THE BRIEF PANEL (Young reported it 20 Sep 2026:
        "Brief Witten is supposed to pull the brief side Panel but it does not").
@@ -410,11 +421,15 @@ const SEED = async () => {
         tone: chip ? [...chip.classList].filter(k => k.startsWith('is-')).join(' ') : '',
         body: (t.querySelector('.kt-tri-td') || {}).textContent.replace(/\s+/g, ' ').trim() };
     }, cid, { found: false });
-    check('6e an older note with no reason is answered by a LIVE reading',
-      older.found && /is-none/.test(older.tone || '') && !/\u2713/.test(older.mark || ''),
+    /* RE-POINTED 11 Oct 2026: the live reading now COUNTS the open field —
+       "1", in the warning tone, never a tick — the head names the panel that
+       fills it and the body names the field itself. Stronger than the steel
+       "nothing to fill" it used to read, and still no claim of success. */
+    check('6e an older note with no reason is answered by a LIVE reading — the open field counted, never a tick',
+      older.found && older.mark === '1' && /is-warn/.test(older.tone || '') && !/\u2713/.test(older.mark || ''),
       `mark "${older.mark}" · tone "${older.tone}"`);
-    check('6f and it names the panel that DOES fill it \u2014 item 7',
-      older.found && /panel/i.test(older.body || '') && /panel/i.test(older.head || ''),
+    check('6f and it names the panel that DOES fill it, and the field \u2014 item 7',
+      older.found && /panel/i.test(older.head || '') && /Signer name/.test(older.body || ''),
       `head "${older.head}" · "${(older.body || '').slice(0, 50)}"`);
 
     /* ═══════════ 7 · THE DATE BOXES ═══════════
@@ -431,7 +446,9 @@ const SEED = async () => {
       const cells = [...grid.children].map(l => Math.round(l.getBoundingClientRect().width));
       const box = sel => { const el = grid.querySelector(sel); if (!el) return null;
         const r = el.getBoundingClientRect(); return { w: Math.round(r.width), x: Math.round(r.x) }; };
-      const anyDate = box('input[type="date"]');
+      /* a date box wears HaTi's own picker face (datePickDress, SAP pop-ups
+         10 Oct 2026) and keeps the real input hidden as the ISO value */
+      const anyDate = box('.dp-face') || box('input[type="date"]');
       const anyText = box('input[type="text"]');
       const gridR = grid.getBoundingClientRect();
       const over = [...grid.querySelectorAll('input,select')]

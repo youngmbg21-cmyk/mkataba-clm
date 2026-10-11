@@ -196,7 +196,8 @@ const contract = () => ({
           .map(b => b.getAttribute('data-share-purpose')) };
     });
     check('the picker offers a read-only link, not only Sign and Negotiate',
-      defaults.offered.join(',') === 'sign,negotiate,view', defaults.offered.join(','));
+      /* Adviser joined as the fourth purpose (THE SEND SCREEN: Sign · Negotiate · View · Adviser) */
+      defaults.offered.join(',') === 'sign,negotiate,view,advise', defaults.offered.join(','));
     check('and with nobody named to sign, the default is one the send will accept',
       defaults.preselected.join(',') === 'negotiate',
       'preselected ' + (defaults.preselected.join(',') || 'nothing')

@@ -133,8 +133,11 @@ const symbol = page => page.evaluate(() => {
   await page.keyboard.type(' Paid promptly.');
   await until(page, () => document.getElementById('clause-editor').classList.contains('ce-typed'), null, 2000);
   const ourFoot = await footNow(page);
-  check('6a2 our seat: while the caret is still in the words, Save and Discard are live, not grey',
-    ourFoot.focused && ourFoot.save === false && ourFoot.discard === false, JSON.stringify(ourFoot));
+  check('6a2 our seat: while the caret is still in the words, Save is live, not grey (no foot Discard since 10 Oct)',
+    /* RE-POINTED 11 Oct 2026: ONE PANEL FOR PLAYBOOK AND RISKS retired the
+       foot's Discard (your own typing comes back with Ctrl+Z, or the question
+       on the way out); the foot is ‹ k of n › and Save. Save is live. */
+    ourFoot.focused && ourFoot.save === false && ourFoot.discard === null, JSON.stringify(ourFoot));
   const ourTyped = await symbol(page);
   check('6b …and shows once typed: a drawn disk, no word, named Save, the hover says the keys',
     !!ourTyped && ourTyped.vis === 'visible' && ourTyped.svg && ourTyped.word === '' && ourTyped.label === 'Save'
@@ -220,8 +223,10 @@ const symbol = page => page.evaluate(() => {
   check('2a the editor opens on their page and stops short of their Redlines column',
     ed.theirs && ed.right <= ed.colLeft && ed.colSeen, JSON.stringify({ right: ed.right, col: ed.colLeft, seen: ed.colSeen }));
   /* RE-POINTED 5 Oct 2026: the foot's words are "Discard" and "File"/"Save" (one row of feet) */
-  check('2b Discard and Save sit under the column', ed.footUnder
-    && ed.footBtns.includes('Discard') && ed.footBtns.some(t => /^(Save|File)/.test(t)), ed.footBtns.join(','));
+  /* RE-POINTED 11 Oct 2026: the foot's Discard retired with the one-panel
+     change (10 Oct); Save (or File) is the foot's act, under the column. */
+  check('2b Save sits under the column, and the retired Discard is not on the foot', ed.footUnder
+    && !ed.footBtns.includes('Discard') && ed.footBtns.some(t => /^(Save|File)/.test(t)), ed.footBtns.join(','));
   /* REVERSED 29 Sep 2026 (Young said yes): the "Your table" strip is gone on
        the ordinary live link; its promise rides the Send all hover and heads
        the check before Send. What is measured now is that it is NOT there. */
@@ -239,8 +244,8 @@ const symbol = page => page.evaluate(() => {
   await page.keyboard.type(' Paid promptly.');
   await until(page, () => document.getElementById('clause-editor').classList.contains('ce-typed'), null, 2000);
   const theirFoot = await footNow(page);
-  check('3a2 their seat: while the caret is still in the words, Save and Discard under the column are live',
-    theirFoot.focused && theirFoot.save === false && theirFoot.discard === false, JSON.stringify(theirFoot));
+  check('3a2 their seat: while the caret is still in the words, Save under the column is live',
+    theirFoot.focused && theirFoot.save === false && theirFoot.discard === null, JSON.stringify(theirFoot));
   const cleanUl = await underlined(page);
   check('3a3 their seat: correctly spelt words carry no underline', cleanUl.words.length === 0 && cleanUl.native === false, JSON.stringify(cleanUl));
   const typed = await symbol(page);

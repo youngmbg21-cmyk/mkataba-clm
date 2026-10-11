@@ -279,7 +279,10 @@ const VERBS = [
     btn.click();
     await new Promise(r => setTimeout(r, 300));
     const send = document.querySelector('.rl-unsent-go');
-    const band = document.querySelector('.rl-unsent');
+    /* RE-POINTED 11 Oct 2026: Send all moved into the column's own head row
+       (.rl-idx-top, owner-asked 26 Aug 2026: "only move the button"); the old
+       .rl-unsent band is measured where it still draws. */
+    const band = (send && send.closest('.rl-idx-top, .rl-unsent')) || document.querySelector('.rl-unsent');
     /* "on top of the redline cards" is a GEOMETRY claim, so it is measured as
        geometry: the band sits above the first card and shares its column. An
        ancestor walk would have been the wrong test — the band is prepended to

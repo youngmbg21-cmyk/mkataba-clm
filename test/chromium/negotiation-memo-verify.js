@@ -398,8 +398,11 @@ const visible = (page, sel) => page.evaluate(s => {
     check(!dlg.people.some(t => /admin@example\.co\.ke/.test(t)),
       '7d and never yourself', dlg.people.join(' / '));
     check(dlg.note && dlg.go, '7e with somewhere to say why, and one act');
-    check(/address on file/i.test(dlg.text),
-      '7f and it says where the message goes before it goes');
+    /* RE-POINTED 11 Oct 2026: the sentence "address on file" went in the
+       pop-up diet; WHERE IT GOES is now said by the choice itself — every
+       colleague is listed with the address the memo goes to. */
+    check(dlg.people.length >= 1 && dlg.people.every(t => /\S+@\S+\.\S+/.test(t)),
+      '7f and it says where the message goes before it goes — each name carries its address', dlg.people.join(' / '));
   }
   await page.screenshot({ path: path.join(OUT, '04-send.png') });
 

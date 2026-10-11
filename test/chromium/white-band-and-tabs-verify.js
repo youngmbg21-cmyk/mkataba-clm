@@ -223,7 +223,10 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     /* THE REFERENCE FOR EVERY TYPE CLAIM BELOW, read live off the very control
        the owner highlighted: a RESTING reading tab on this page. */
     const ref = await page.evaluate(() => {
-      const e = [...document.querySelectorAll('.rl-readwrap .rl-seg')]
+      /* RE-POINTED 11 Oct 2026: the switch reads Redline · Deal board now
+         (SAP batch 4 kept the tab name "Redline"; the Deal board is its other
+         half), and the resting half is still the reference. */
+      const e = [...document.querySelectorAll('#view-redline .rl-seg')]
         .find(x => !x.classList.contains('on'));
       if (!e) return null;
       const s = getComputedStyle(e);
@@ -233,7 +236,7 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
       return o;
     });
     check('5-ref the reference control really is on screen and resting',
-      ref && /agreed|changes/i.test(ref._txt), ref && ref._txt);
+      ref && /agreed|changes|board|redline/i.test(ref._txt), ref && ref._txt);
 
     const sameAsRef = (got) => {
       if (!ref || !got) return { ok: false, why: 'missing' };
@@ -261,12 +264,17 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
         d.style.color = v; document.body.appendChild(d);
         const c = getComputedStyle(d).color; d.remove(); return c; };
       return { rows, view: state.view,
-        labelInk: resolve(rs.getPropertyValue('--color-neutral-500').trim()),
+        labelInk: resolve(rs.getPropertyValue('--color-neutral-400').trim()),
         amberInk: resolve(rs.getPropertyValue('--st-amber-fg').trim()) };
     });
     const real = counts.rows.filter(r => r.id !== 'nav-intel-new');
     const amber = real.filter(r => r.tone === 'amber');
-    const plain = real.filter(r => r.tone !== 'amber');
+    /* THE MENU AS THE MOCKUP DRAWS IT (Young, 7 Oct 2026, index.html "THE MENU,
+       DRESSED AS THE MOCKUP DRAWS IT"): an untoned count is a quiet figure, no
+       box; the Contracts door's count wears the brand's soft wash (teal tone);
+       amber where work is owed. So "plain" is the UNTONED counts. */
+    const plain = real.filter(r => !r.tone);
+    const wash = real.filter(r => r.tone === 'teal');
     const tag = counts.rows.find(r => r.id === 'nav-intel-new');
 
     /* ---- REVERSED IN PLACE 24 Aug 2026, and the RULE is what survives ----
@@ -284,6 +292,9 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     check('3b and it is the quiet ink, never the loud one',
       plain.length > 0 && plain.every(r => r.color === counts.labelInk),
       plain.map(r => `${r.view}:${r.color}`) + ` (label ink ${counts.labelInk})`);
+    check('3b2 the Contracts count is the brand\'s soft wash, a pill — never amber',
+      wash.every(r => r.bg !== 'rgba(0, 0, 0, 0)' && r.color !== counts.amberInk),
+      wash.map(r => `${r.view}:${r.bg}/${r.color}`));
     check('3c AMBER SURVIVES — including on the door the reader is standing on',
       counts.view === 'redline' && amber.length > 0
         && amber.every(r => r.color === counts.amberInk && r.color !== counts.labelInk),
@@ -308,65 +319,36 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     await pause(2400);
     await page.screenshot({ path: path.join(OUT, '03-home.png') });
 
+    /* ---- RE-POINTED 11 Oct 2026: HOME IS THE BOARD ("Desktop Home IS
+       Explorer's page", HOME — THE BOARD AND THE MAP; home-page-verify 3:
+       Your book leads, Prepared by Copilot under it when something is
+       prepared). The cards' heads are .hb-ch. What these claims are about is
+       unchanged: every heading painted, the one that leads, a head that rules
+       itself off, its sub and acts on the heading's own line, and the heading
+       on the card's own margin. */
     const homeLine = await page.evaluate(() => {
       const mid = e => { if (!e) return null; const r = e.getBoundingClientRect();
-        return { y: r.y + r.height / 2, txt: e.textContent.trim().slice(0, 30), x: Math.round(r.x) }; };
-      const secs = [...document.querySelectorAll('.hm-sec')];
-      const work = secs[0], decide = secs[secs.length - 1];
+        return { y: r.y + r.height / 2, txt: e.textContent.trim().slice(0, 30), x: Math.round(r.x), h: r.height }; };
+      const cards = [...document.querySelectorAll('#hb-board > .hb-card')];
       return {
-        heads: secs.map(sc => mid(sc.querySelector('h2'))),
-        workAct: work ? mid(work.querySelector('.hm-cz, .hm-sec-sub, .hm-desk-sub')) : null,
-        workRule: work && !!work.querySelector('.hm-rule'),
-        /* the card's own head rules itself off from its rows */
-        cardRule: (() => { const c = document.querySelector('.hm-card .hm-sec');
-          return !!c && getComputedStyle(c).borderBottomWidth !== '0px'; })(),
-        decide: (typeof i18t === 'function') ? i18t('home_needs_decision') : null,
-        mapTitle: (typeof i18t === 'function') ? i18t('home_map_title') : null,
-        tilesX: (() => { const e = document.querySelector('.hm-tile');
-          return e ? Math.round(e.getBoundingClientRect().x) : null; })(),
-        headX: secs.length ? Math.round(secs[0].querySelector('h2').getBoundingClientRect().x) : null,
-        decideTxt: decide ? decide.querySelector('h2').textContent.trim() : null,
+        heads: cards.map(c => mid(c.querySelector('.hb-ch .hb-ct'))),
+        acts: cards.map(c => [...c.querySelectorAll('.hb-ch > :not(.hb-ct)')].map(mid)),
+        rules: cards.map(c => { const h = c.querySelector('.hb-ch'); const cs = h && getComputedStyle(h);
+          return !!cs && cs.borderBottomStyle !== 'none' && parseFloat(cs.borderBottomWidth) > 0; }),
+        margins: cards.map(c => { const t = c.querySelector('.hb-ch .hb-ct'); return t ? Math.round(t.getBoundingClientRect().x - c.getBoundingClientRect().x) : null; }),
+        book: (typeof i18t === 'function') ? i18t('hb_book') : null,
       };
     });
-
-    /* TWO OR THREE since 20 Sep 2026 (DECIDE 2 of the redesign order): the
-       Portfolio row went into the picker, and Prepared for you is drawn only
-       while something is prepared. My work leads and Needs your decision
-       closes; every heading that is drawn is painted. */
-    /* ---- RE-POINTED IN PLACE 21 Sep 2026 (Young: Home must look exactly
-       like the artifact) ---- the reference draws no label over the four
-       tiles and makes the two sections below into CARDS: the heading is the
-       card's own head, over a hairline, with its sub and its act on that same
-       line. So "My work first" cannot be asked (it is gone, deliberately) and
-       the rule is the card's border rather than a span. The three things
-       these claims were really about — every heading painted, its act on the
-       heading's own line, and the heading starting on the page's own left
-       margin — are asked here unchanged. */
-    /* ---- RE-POINTED IN PLACE 24 Sep 2026 (Young, over "Executive Home
-       Options": "instead of needs your decision, delete it and replace with
-       prepared for you", then "Build it") ---- Needs your decision no longer
-       closes the page: it LEFT HOME, and the Map leads it. What 4a is about is
-       unchanged — every heading that is drawn is painted — and it now also
-       measures the order the owner chose: the Map first, and no heading left
-       for the card that went. */
-    /* ---- AND BACK AGAIN 25 Sep 2026 (Young: "below prepared for you card,
-       add bring back the needs your attention card but only have 2 lines and
-       nothing more") ---- Needs your decision closes the page once more, under
-       the Map and under Prepared for you when that is drawn. */
-    check('4a every section heading really drew, the Map leads, and Needs your decision closes',
-      homeLine.heads.length >= 2 && homeLine.heads.length <= 3
-        && homeLine.heads.every(Boolean) && homeLine.heads[0].txt === homeLine.mapTitle
-        && homeLine.heads[homeLine.heads.length - 1].txt === homeLine.decide,
+    check('4a every card heading really drew, and Your book leads',
+      homeLine.heads.length >= 1 && homeLine.heads.every(h => h && h.h > 0) && homeLine.heads[0].txt === homeLine.book,
       homeLine.heads.map(h => h && h.txt));
     check('4b each heading sits in a card head that rules itself off',
-      homeLine.cardRule, { rule: homeLine.cardRule, span: homeLine.workRule });
-    check('4c AND ITS ACT IS ON THAT LINE TOO, not below it',
-      homeLine.workAct && near(homeLine.heads[0].y, homeLine.workAct.y, 4),
-      { head: homeLine.heads[0] && +homeLine.heads[0].y.toFixed(1),
-        act: homeLine.workAct && +homeLine.workAct.y.toFixed(1) });
-    check('4d it starts on the page\'s own margin, like the tiles above it',
-      homeLine.tilesX == null || near(homeLine.headX, homeLine.tilesX, 18),
-      { head: homeLine.headX, tiles: homeLine.tilesX });
+      homeLine.rules.length > 0 && homeLine.rules.every(Boolean), { rules: homeLine.rules });
+    check('4c AND ITS SUB AND ACTS ARE ON THAT LINE TOO, not below it',
+      homeLine.acts.every((row, i) => row.length > 0 && row.every(a => near(homeLine.heads[i].y, a.y, 4))),
+      homeLine.acts.map((row, i) => row.map(a => +(a.y - homeLine.heads[i].y).toFixed(1))));
+    check('4d it starts on the card\'s own margin',
+      homeLine.margins.every(m => m != null && m >= 8 && m <= 48), { margins: homeLine.margins });
 
     /* ================= 5 · A RESTING TAB IS DARK INK ======================= */
     await page.evaluate(() => setView('intel'));

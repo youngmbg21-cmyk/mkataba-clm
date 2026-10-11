@@ -90,29 +90,26 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
        const n=src?src.querySelectorAll('.rl-cp-row').length:0;
        return marked && n===2;},staged.clauseId));
 
-  /* ---- IMAGE 2 ---- */
-  const inColumn = await p.evaluate(a=>!!document.querySelector(`[data-nego-card="${a}"]`),staged.a);
-  ck('the adopted change has no card — which is why "reopen it first" was unreachable',!inColumn);
+  /* ---- IMAGE 2 ----
+     RE-POINTED 11 Oct 2026. The report was that a settled ask had NO WAY BACK
+     ("reopen it first" with nothing to press). Two things moved since: the
+     adopted change now keeps its card in the column (RL_CARD_BANDS: one pile
+     per state), and on our seat the clause panel is the Ladder only
+     (rlCpLadderOnly), so its own Reopen is built but not drawn. The claim is
+     unchanged — a REACHABLE Reopen, as visible pixels, that really reopens —
+     and it is asked of the card, where the reader now finds it. */
+  const card = await p.evaluate(a=>{
+    const k=document.querySelector(`#rl-changes [data-nego-card="${a}"]`)||document.querySelector(`[data-nego-card="${a}"]`);
+    const el=k&&k.querySelector('[data-rl-reopen], [data-nego-undo]');
+    if(!el) return {card:!!k};
+    el.scrollIntoView({block:'center'});
+    const r=el.getBoundingClientRect();
+    return {card:true,t:el.textContent.trim(),w:Math.round(r.width),h:Math.round(r.height)};},staged.a);
+  ck('the adopted change keeps its card in the column', !!card && card.card);
+  ck('IMAGE 2 — and the card offers a REACHABLE Reopen, as visible pixels',
+     !!card&&card.w>20&&card.h>10,card&&card.t?`"${card.t}" ${card.w}x${card.h}`:'absent');
 
-  /* RE-POINTED 29 Aug 2026, claim unchanged. On OUR seat the clause's pencil
-     opens the clause EDITOR now (owner-ruled), so pressing it here would cover
-     the panel this section is about with a full-window page. The panel is
-     opened by its own act — the same door the pencil pressed when this was
-     written — and what is asserted below is what the PANEL offers, which is
-     what the owner's report was about. */
-  await p.evaluate(id => window.rlCpSetShown(document, id), staged.clauseId);
-  await pause(600);
-  ck('the clause\'s panel opens on it',
-     await p.evaluate(id=>!!document.querySelector(
-       `#rl-cp .rl-cp-src.is-on[data-rl-cp-for="${id}"]`),staged.clauseId));
-  const btn = await p.evaluate(a=>{
-    const el=document.querySelector(`#rl-cp [data-rl-cp-change="${a}"] [data-nego-undo]`);
-    if(!el) return null; const r=el.getBoundingClientRect();
-    return {t:el.textContent.trim(),w:Math.round(r.width),h:Math.round(r.height)};},staged.a);
-  ck('IMAGE 2 — and the panel offers a REACHABLE Reopen, as visible pixels',
-     !!btn&&btn.w>20&&btn.h>10,btn?`"${btn.t}" ${btn.w}x${btn.h}`:'absent');
-
-  await p.click(`#rl-cp [data-rl-cp-change="${staged.a}"] [data-nego-undo]`);
+  await p.click(`[data-nego-card="${staged.a}"] [data-rl-reopen], [data-nego-card="${staged.a}"] [data-nego-undo]`);
   await pause(600);
   ck('pressing it really reopens the change',
      await p.evaluate(a=>negoChangeById(window.CONTRACT,a).status,staged.a)==='pending',

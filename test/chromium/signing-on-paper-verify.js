@@ -163,9 +163,17 @@ const SHEET_TOP = `(() => {
        copies start at the same pixel, and each first line sits its own
        page's margin below it. */
     const inkIn = (ink, sh) => (ink != null && sh) ? ink - sh.top - sh.pad : null;
-    check('1c both copies start at the SAME pixel, and each first line sits its own page’s margin below it',
-      docSheet && signSheet && Math.abs(docSheet.top - signSheet.top) <= 1
-      && inkIn(docInk, docSheet) != null && Math.abs(inkIn(docInk, docSheet) - inkIn(signInk, signSheet)) <= 1,
+    /* ---- RE-POINTED 11 Oct 2026 ----
+       ONE PAPER EVERYWHERE (owner, 8 Oct 2026) gave the Document tab the Home
+       paper — its subtitle and rule above the sheet, its own padding — and
+       left the Signing tab its own ground and its A4 copy. The two sheets are
+       deliberately two pages now, so "the same pixel" is gone; refusal 3 is
+       what stays: NO CHROME GREW above the signing copy (its sheet starts no
+       lower than the Document's), and each first line sits inside its own
+       page, below that page's own margin. */
+    check('1c no chrome grew above the signing copy, and each first line sits inside its own page’s margin',
+      docSheet && signSheet && signSheet.top <= docSheet.top + 1
+      && inkIn(docInk, docSheet) != null && inkIn(docInk, docSheet) >= 0 && inkIn(signInk, signSheet) >= 0,
       `document ${docInk} (sheet ${docSheet && docSheet.top} + ${docSheet && docSheet.pad})`
       + ` · signing ${signInk} (sheet ${signSheet && signSheet.top} + ${signSheet && signSheet.pad})`);
 
@@ -281,6 +289,9 @@ const SHEET_TOP = `(() => {
     await page.waitForSelector('#sig-pad', { timeout: 8000 });
     check('4a0 pressing a spot opens the picker HaTi already has — never a second one',
       true, 'the signature pad');
+    /* THE INTENT LINE IS THE PAD'S FIRST LINE (13 Sep 2026): adopting a mark
+       without it is refused, in words, so it is ticked like a reader would. */
+    if (await page.$('#sig-intent')) await page.check('#sig-intent');
     await page.click('#sig-pad [data-sig-tab="type"]');
     await page.fill('#sig-typed', built.me);
     await page.waitForTimeout(300);
@@ -395,7 +406,11 @@ const SHEET_TOP = `(() => {
       const id = await page.evaluate(() => signWalkNext(getContract(state.activeId)).id);
       await page.click(`[data-sig-spot="${id}"]`);
       await page.waitForSelector('#sig-pad', { timeout: 8000 });
-      await page.click('#sig-pad [data-sig-tab="type"]');
+      /* THE INTENT LINE IS THE PAD'S FIRST LINE (13 Sep 2026): adopting a mark
+       without it is refused, in words, so it is ticked like a reader would. */
+    if (await page.$('#sig-intent')) await page.check('#sig-intent');
+    if (await page.$('#sig-intent')) await page.check('#sig-intent');
+    await page.click('#sig-pad [data-sig-tab="type"]');
       await page.fill('#sig-typed', built.me);
       await page.waitForTimeout(200);
       await page.click('#sig-adopt-go');
@@ -434,10 +449,20 @@ const SHEET_TOP = `(() => {
     await page.waitForTimeout(500);
     const btn = await page.evaluate(() => {
       const b = document.getElementById('sign-btn');
-      return b ? { disabled: b.disabled, text: (b.textContent || '').trim() } : null;
+      const c = getContract(state.activeId);
+      const holds = signReadiness(c).holds;
+      const n = holds.length;
+      return b ? { disabled: b.disabled, text: (b.textContent || '').trim(), n,
+        says: i18t('sc_btn_to_settle', { n }),
+        spot: holds.some(r => r.key === 'spots' || r.kind === 'spots' || /place/i.test(String(r.label || r.title || ''))),
+        kinds: holds.map(r => r.key || r.kind) } : null;
     });
-    check('7b and the Sign button disables itself and wears the reason',
-      !!(btn && btn.disabled), JSON.stringify(btn));
+    /* RE-POINTED 11 Oct 2026: THE BUTTON IS THE LIST (13 Sep 2026, the
+       signing audit): it no longer greys; it wears "Sign — N to settle", N
+       being signReadiness's holds — which this empty place has just joined —
+       and a press lands on the first open row. */
+    check('7b and the Sign button wears the reason — the count of what holds it, the place among them',
+      !!(btn && btn.text === btn.says && btn.spot), JSON.stringify(btn));
 
     /* ================= 8 — NOTHING TRAVELS */
     const payload = await page.evaluate(() => {

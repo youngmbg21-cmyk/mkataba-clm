@@ -159,8 +159,12 @@ function mObligRowHtml(o, c, i){
 }
 function mObligHtml(c){
   const list = mObligList(c);
-  if(!list.length) return `<div class="m-card" style="margin:var(--s-4);padding:16px">
-    <p style="margin:0;font-size:var(--t-card);color:var(--color-neutral-600);line-height:1.5">${mEsc(i18t('ob_none_tracked'))}</p></div>`;
+  /* IN THE TAB'S OWN SCROLLER, like Document, Overview and History (11 Oct
+     2026): drawn straight into the flex column, each card was squeezed to fit
+     the screen and its overflow:hidden cut the Chase / Mark done row in half —
+     and a long list could not be scrolled at all. */
+  if(!list.length) return `<div class="m-scroll"><div class="m-card" style="margin:var(--s-4);padding:16px">
+    <p style="margin:0;font-size:var(--t-card);color:var(--color-neutral-600);line-height:1.5">${mEsc(i18t('ob_none_tracked'))}</p></div></div>`;
   const band = o => (typeof obligationBand==='function') ? obligationBand(o, c) : 'later';
   let html = '';
   for(const k of M_OB_BANDS){
@@ -171,7 +175,7 @@ function mObligHtml(c){
         mEsc(i18t('ob_band_'+k))} · ${rows.length}</div>
       ${rows.map(o=>mObligRowHtml(o, c, list.indexOf(o))).join('')}</div>`;
   }
-  return html + '<div style="height:var(--s-4)"></div>';
+  return `<div class="m-scroll">${html}<div style="height:var(--s-4)"></div></div>`;
 }
 
 /* ------------------------------------------------------- THE DOCUMENT TAB --*/

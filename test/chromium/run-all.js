@@ -51,52 +51,6 @@ const DIR = __dirname;
  * keep earning its place or it becomes the furniture. */
 const KNOWN_RED = {
   /* --- stale after a deliberate change: the product moved, the file did not --- */
-  'agents-page-verify.js':
-    'STALE AFTER A DELIBERATE CHANGE, 7 Oct 2026: Young moved Copilot\'s work onto the ' +
-    'Board ("Below the card") — the page this file walks screen by screen has no door ' +
-    'and its address lands on the Board. Its door checks were re-pointed and pass (no ' +
-    'rail door, the address lands on the Board, eleven agents in order); the walk ' +
-    'through the page\'s list and side panel does not, because that page is no longer ' +
-    'drawn. The same acts are checked where they now live: home-prepared-by-copilot-' +
-    'verify (Review opens the work below the card), agents-do-the-work-verify and ' +
-    'no-link-to-sign-verify (the readings and panels). Take it off when it is ported ' +
-    'to the Board (BUGLOG, 8 Oct 2026).',
-  'clause-door-verify.js':
-    'STALE AFTER A DELIBERATE CHANGE, 9 Oct 2026: Young ruled "No pen on any paper" (the ' +
-    'Paper and Counter review, change 5) — at an editor-taking width the clause carries no ' +
-    'pencil and a click in the wording types in place. This file measures that pencil ' +
-    '(sections 1, 2, 15–17) and opens the clause panel through it, so it stops at section 1. ' +
-    'The new door is measured by edit-clause-door-verify (Edit clause, 9 Oct 2026); the panel still lives under 1024px. ' +
-    'Take it off when its panel sections are re-staged at a narrow width.',
-  'white-band-and-tabs-verify.js':
-    '36 of 38 PASS. The two that do not are 5d/5e. WIDENED 24 Aug 2026 (WO-16): ' +
-    'the list titles are now deliberately ONE RUNG under the reference on the ' +
-    'owner\'s ask, so the size left that comparison and is pinned separately as ' +
-    'the relation, with both lists pinned to each other so there can never be a ' +
-    'third size. Those two new checks pass. WHAT IS STILL RED is unchanged and ' +
-    'is NOT the home page rebuild of 24 Aug — MEASURED on a clean tree before ' +
-    'page rebuild of 24 Aug — MEASURED on a clean tree before that work and ' +
-    'they fail there identically. The register list titles compute a 20px ' +
-    'line box against the reading switch\'s 19.6px, and the claim compares ' +
-    'the two property for property. The cause is two decisions made a day ' +
-    'apart: on 22 Aug those titles were measured byte-identical to that ' +
-    'control, and on 23 Aug the register took --row-line-1 as a STATED line ' +
-    'box so its rows could hit 45px. WHAT IT NEEDS is a ruling on which one ' +
-    'gives — the row rhythm or the shared type — and that is a density ' +
-    'decision, not a drive-by fix. Everything else in the file, including the ' +
-    'white column and the reversed count rules, is green.',
-  'panel-alerts-and-head-verify.js':
-    'ITS HEAD CLAIMS ARE STALE, NOT THIS BRANCH\'S. It asks for render B1 — ' +
-    'three .rl-fseg cuts, the 19px count as the headline with its uppercase ' +
-    'caption underneath, the live one the only coloured thing on the row. That ' +
-    'head became a <select> in "The negotiation page takes the render" ' +
-    '(f3bc058) and this file was never re-pointed; PROVED by running it in a ' +
-    'worktree at unmodified origin/main, where the identical 7 checks fail and ' +
-    'it throws in the same place. WO-8 of the screenshot work order only MOVED ' +
-    'that control into the slot the owner drew and did not choose its shape. ' +
-    'WHAT IT NEEDS is whoever owns that render saying what B1\'s claims become ' +
-    'now the cuts are options — everything else in the file (the alerts rows, ' +
-    'the WORKING TEXT lid) is green and worth keeping.',
   /* --- RED BEFORE THE OVERNIGHT RUN (28 Sep 2026), IDENTICALLY ---
      Each file below failed with exactly these checks (or this throw) in a
      worktree at unmodified main a837d09, before any of that night's work, so
@@ -104,64 +58,10 @@ const KNOWN_RED = {
      written and needs re-pointing by someone who owns that screen. Listed so
      the run is an alarm again rather than a list. Take a file off the day it
      goes green. */
-  'competing-redlines-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: a legacy clause names BOTH asks in its panel.',
-  'counterparty-reading-and-more-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: throws: a TimeoutError waiting for a control.',
-  'flat-rows-and-alerts-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: 2d the filter sits under the caption, in the same head · 2e caption at the left, filter at the right · 2f the three cuts are all still there, and exactly one is live · 5-contractsb every cell but the document kind is ONE size · 5-negotiationsb every cell but the document kind is ONE size.',
-  'keeps-your-place-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: throws: Cannot read properties of null (reading \'getBoundingClientRect\').',
-  'nego-redesign-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: 1 with a hairline under it and the band measure inside it.',
-  'negotiation-memo-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: — 7f and it says where the message goes before it goes.',
   'notes-two-rooms-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: and it sits between Copilot and the bell, where the owner ringed it · the run completed.',
-  'paper-beside-questions-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: 7c the questions are the same seven basic entries · 7g under 1000px the door is one column again, with the same questions.',
-  'paper-grows-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: 5d the pill and the ＋ open a real editor to measure · 6 the clause panel opens from the row, on screen.',
-  'payment-terms-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: 1a the row draws five tabs · 1c and before the contract graph.',
-  'phone-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: iPhone 14 (390): and offers no menu — no edits on the paper.',
-  'plain-english-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: — 10c and the walk reads it clause for clause, each with the paper\'s own number [13 rows:  · — 17d D-3a the sealed paper’s paragraphs follow the reader’s size on screen.',
-  'portal-header-verbs-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: the Send is ON TOP OF THE REDLINE CARDS, in their own column.',
-  'renewal-decision-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: 6b and the nags start again on their own.',
-  'reopen-a-refusal-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: throws: getComputedStyle parameter 1 is not of type \'Element\'.',
-  'room-order-and-notices-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: nothing still awaiting an answer sits under a decided change · the All / Mine / Theirs cuts are untouched.',
-  'selection-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: 2 a cross-sub-clause drag offers nothing on the paper · 3 and the paper answers with nothing to press · 4 and the paper offers nothing on it either · 5 and nothing is offered or asked of the model · 6 and the page says nothing about a menu it no longer offers.',
-  'settled-ask-reopen-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: the adopted change has no card · IMAGE 2.',
-  'seven-fixes-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: 5b exactly two arrows, on the two Young named · 5c a tile with a door is a real button, a tile without one is not · 5f pressing the obligations tile lands on the obligations tab · 6e an older note with no reason is answered by a LIVE reading · 6f and it names the panel that DOES fill it.',
-  'signers-and-party-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: the picker offers a read-only link, not only Sign and Negotiate.',
-  'signing-on-paper-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: 4a the mark lands on the paper · the journey ran.',
-  'six-fixes-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: 4a a refresh returns you to the page you were on, on every page · 1d no verb wraps to a second line.',
-  'standard-paper-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: 4 the Edit pill on clause 8 opens the panel on clause 8 — · 4 and the ＋ opens the editor inside that panel · 4 and it holds clause 8 alone · 5 the panel offers the Copilot on that clause · 5 it hands over with no menu in between — · 5 the clause editor opens · and 2 more.',
-  'templates-tabs-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: 7c · …and they are the rail’s own two captions, read through one key each.',
-  'term-and-fields-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: every question a template asks has somewhere on its own page to print · the NDA form on screen shows no payment field · the term blank is drawn while the record has no end date · typing a term fills the empty end date the whole product runs off · and the clause then states the dates instead of the blank —.',
+    'RE-POINTED 11 Oct 2026 and now RED ON THE PRODUCT, not the file: Chat left the shell bar for the contract\'s acts row (20 Sep 2026), and the open Notes drawer covers that row, so the SECOND press that should shut it (owner-asked 10 Sep: "when i click on it again it should collapse") cannot be made — Playwright reports the drawer\'s header intercepting the press. Where the drawer starts or where the door sits is the owner\'s call (BUGLOG, 11 Oct 2026). Every other check in the file passes.',
   'theme-tokens-verify.js':
     'Red on main before 28 Sep 2026 (a837d09), the same way: dashboard--light · register--light · calendar--light · templates--light · contract--light · keyterms--light · and 14 more.',
-  'tracked-changes-scroll-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: 2 and the contract still folds it.',
-  'type-and-symbols-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: and each one is painted at the size the sheet asks for .',
-  'upload-structure-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: 2a the four clause headings are PAINTED on the sheet · 2b each carries its resolved number.',
   /* --- retired feature, net kept for the restore --- */
   'copilot-band-verify.js':
     'THE BAND IT MEASURES NO LONGER DRAWS. WO-3, 24 Aug 2026, owner-asked: ' +
@@ -186,12 +86,7 @@ const KNOWN_RED = {
     'share dialog opened by the readiness hand-off needs the same treatment. ' +
     'Naming a signer was necessary and not sufficient.',
   'their-edit-page-verify.js':
-    'RED ON GITHUB ONLY, 10 Oct 2026 ("get main to green"): 24 of 26 pass. Section 4 — typing ' +
-    'after a save on THEIR seat — never holds on GitHub\'s runner: the caret is in the clause\'s ' +
-    'box, the keys are typed three times, and the words are gone each time with nothing counted ' +
-    'as unfiled (so 4a has nothing to ask about). It passes every time locally, even at a 10x ' +
-    'CPU throttle, so it is not a wait that can be lengthened. Logged in BUGLOG (a repaint may be ' +
-    'taking a person\'s typing). Take it off when section 4 holds on GitHub.',
+    'RED ON GITHUB ONLY, 10 Oct 2026: section 4 — typing after a save on THEIR seat — never holds on GitHub\'s runner (the words typed are gone each time); it passes every time locally, even at a 10x CPU throttle. The foot\'s Discard claims (2b, 3a2, 6a2) were re-pointed 11 Oct to the one-panel foot and pass. Logged in BUGLOG (a repaint may be taking a person\'s typing). Take it off when section 4 holds on GitHub.',
   /* NOT LISTED, deliberately: analytics-verify.js. It was two faults wearing
      one symptom and ONE OF THEM IS NOW CLOSED BY CONSTRUCTION.
      Its check is `canvases > 0 || bars > 0`. The canvas half used to fail in a

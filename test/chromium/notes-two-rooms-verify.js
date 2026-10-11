@@ -461,17 +461,21 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
       const svg = b.querySelector('svg');
       let box = null;
       try { box = svg.getBBox ? svg.getBBox() : null; } catch (_){}
-      const ai = document.getElementById('cmd-ai').getBoundingClientRect();
-      const bell = document.getElementById('hdr-notify').getBoundingClientRect();
+      /* RE-POINTED 11 Oct 2026: the Chat door LEFT THE SHELL BAR on 20 Sep
+         2026 — it is roomChatDoorHtml in the contract's own acts row, beside
+         More (MAP-HISTORY "ONE PANEL, THREE FACES"). */
+      const more = document.querySelector('.room-head #ws-more, .room-head .ws-more-btn');
+      const row = b.closest('.room-acts') || b.parentElement;
       return { there: true, painted: r.width > 0 && r.height > 0,
         drawn: !!(box && box.width > 0 && box.height > 0),
-        between: ai.left < r.left && r.left < bell.left,
+        between: !!b.closest('.room-head') && !b.closest('#app-header, .shell-bar, header.shell')
+          && !!more && row.contains(more) && Math.abs(more.getBoundingClientRect().top - r.top) < 12,
         dead: b.disabled, title: b.title };
     });
-    check('the Chat door is drawn in the shell bar', btn.there && btn.painted);
+    check('the Chat door is drawn on the contract', btn.there && btn.painted);
     check('its SYMBOL really resolves — a missing one paints an empty box in silence',
       btn.drawn === true);
-    check('and it sits between Copilot and the bell, where the owner ringed it',
+    check('and it sits in the contract\'s own acts row, beside More (since 20 Sep 2026)',
       btn.between === true);
     check('it is live on a contract, with what it is on its hover',
       btn.dead === false && /chat/i.test(btn.title || ''), btn.title);
@@ -484,7 +488,8 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
       return { open: !!(p && p.classList.contains('open')),
         title: (document.getElementById('panel-title') || {}).textContent,
         rows: rows.length,
-        onLines: rows.map(r => (r.querySelector('.rl-chat-on') || {}).textContent
+        /* a note on no change carries no reference line (owner, 2 Sep 2026) */
+        onLines: rows.map(r => ((r.querySelector('.rl-chat-on') || {}).textContent || '')
           .replace(/\s+/g, ' ').trim()),
         text: (document.querySelector('.rl-chat') || {}).textContent
           ? document.querySelector('.rl-chat').textContent.replace(/\s+/g, ' ') : '',

@@ -133,7 +133,7 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
         return { w: Math.round(r.width), h: Math.round(r.height), y: Math.round(r.y), x: Math.round(r.x),
           on: r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none' }; };
       return { head: seen('.cal-head'), bar: seen('.cal-bar'),
-        grid: seen('.cal-grid'), panel: seen('.cal-panel'),
+        grid: seen('.cal-grid'), panel: seen('#cal-plan'), stage: seen('#cal-stage'),
         title: (document.querySelector('.cal-head .ttl') || {}).textContent || '',
         stat: (document.querySelector('.cal-stat') || {}).textContent || '',
         pageHead: (document.getElementById('page-head') || {}).innerHTML || '',
@@ -206,11 +206,14 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
     /* RE-POINTED AGAIN 9 Oct 2026 (SAP benchmark, batch 2): the drawing puts
        Next 14 days BESIDE the month, a narrower card on the right whose top
        sits level with the month's. */
-    check('1 the month runs the page, with Next 14 days beside it on the right',
-      shape.grid && shape.panel && shape.panel.w < shape.grid.w
-        && shape.panel.x > shape.grid.x + shape.grid.w - 1 && Math.abs(shape.panel.y - shape.grid.y) < 40,
+    /* RE-POINTED 11 Oct 2026 (Young: "build it exactly as designed"): Next 14
+       days is gone and Copilot stands beside the calendar, a narrower column
+       on the right of ONE card whose top it shares. */
+    check('1 the month runs the page, with Copilot beside it on the right, in one card',
+      shape.grid && shape.panel && shape.stage && shape.panel.w < shape.grid.w
+        && shape.panel.x > shape.grid.x + shape.grid.w - 1 && Math.abs(shape.panel.y - shape.stage.y) < 2,
       { grid: shape.grid && shape.grid.w, panel: shape.panel && shape.panel.w,
-        gridY: shape.grid && shape.grid.y, panelY: shape.panel && shape.panel.y });
+        stageY: shape.stage && shape.stage.y, panelY: shape.panel && shape.panel.y });
     check('1 the week starts on Monday', shape.dow[0] && /^M/i.test(shape.dow[0]), shape.dow);
     /* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2): the drawing's
        key names only the kinds that month carries. A relation, so it holds on
