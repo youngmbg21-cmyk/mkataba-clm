@@ -182,7 +182,7 @@ const VERDICTS = [
   const ask = await page.evaluate(() => { const ok = document.getElementById('cf-ok'); const msg = ok && ok.closest('[role="dialog"], .modal, div');
     const text = ok ? (ok.closest('[role="dialog"]') || ok.parentElement.parentElement).innerText : ''; return { there: !!ok, text }; });
   check(ask.there, '2a a real press raises the confirm dialog');
-  check(/one deep Copilot call/i.test(ask.text) && /nothing is sent/i.test(ask.text), '2b and the sentence names the cost and says nothing is sent', ask.text.slice(0, 160));
+  check(/one deep Jambo call/i.test(ask.text) && /nothing is sent/i.test(ask.text), '2b and the sentence names the cost and says nothing is sent', ask.text.slice(0, 160));
   await page.screenshot({ path: path.join(OUT, '02-ask.png') });
   /* REFUSING WRITES NOTHING. */
   if (ask.there){ await page.click('#cf-cancel'); await pause(500); }

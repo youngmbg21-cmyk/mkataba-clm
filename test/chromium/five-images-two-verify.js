@@ -225,7 +225,7 @@ const ok = (name, good, detail) => {
     for (let i = 0; i < 4; i++) {
       const done = await page.evaluate(() => {
         const h = [...document.querySelectorAll('.sec-head[aria-expanded="false"]')]
-          .find(e => /copilot/i.test((e.querySelector('.sec-t') || {}).textContent || ''));
+          .find(e => /jambo/i.test((e.querySelector('.sec-t') || {}).textContent || ''));
         if (!h) return true;
         h.click(); return false;
       });

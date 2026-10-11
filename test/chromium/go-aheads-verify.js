@@ -239,7 +239,7 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
     ok('3g2 a signed contract\'s open-fields tile says it is signed, not "in negotiation"',
       /signed — its wording is final/i.test(face.strip) && !/in negotiation/i.test(face.strip), face.strip.slice(0, 400));
     ok('3g3 and the head\'s Copilot fact follows the reading below it — it no longer says "Not read yet"',
-      /copilot/i.test(face.facts) && !/not read yet/i.test(face.facts), face.facts);
+      /jambo/i.test(face.facts) && !/not read yet/i.test(face.facts), face.facts);
     await own.screenshot({ path: path.join(OUT, '3-overview-after-decide.png') });
 
     /* [control] THE ORDINARY DOOR READS NOTHING. The same Overview, opened from

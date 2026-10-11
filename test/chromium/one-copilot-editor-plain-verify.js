@@ -130,7 +130,7 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
       return { ex: ex ? ex.textContent.replace(/\s+/g, ' ').trim() : '', text: lane.textContent, foot: (lane.querySelector('.ce-aifoot') || {}).textContent || '' }; });
     check(/^Why change it As written, the cap is three months/.test(L.ex) && /What the new wording does It raises the cap to twelve months/.test(L.ex), '1a over the wording: Why change it · What the new wording does, in plain words', L.ex.slice(0, 90));
     check(!/Now I have|Let me|Wait, I should|the user|First try/.test(L.text), '1b no working note and no first try anywhere on the panel');
-    check(/Copilot · check before sending/.test(L.foot), '1c "Jambo · check before sending" under the answer', L.foot);
+    check(/Jambo · check before sending/.test(L.foot), '1c "Jambo · check before sending" under the answer', L.foot);
     const P = await page.evaluate(() => { const p = document.getElementById('ce-pick'), s = document.getElementById('ce-pick-sel');
       return p ? { h: Math.round(p.getBoundingClientRect().height), disc: !!document.querySelector('#clause-editor .ce-disc'),
         groups: s ? [...s.querySelectorAll('optgroup')].map(g => g.label) : [], on: s ? s.options[s.selectedIndex].textContent : '' } : { disc: !!document.querySelector('#clause-editor .ce-disc'),

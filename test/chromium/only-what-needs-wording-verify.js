@@ -124,7 +124,7 @@ const BRIEF = { at: new Date().toISOString(), by: 'Stage', truncated: false, dat
     check(T.some(t => /postal address only/.test(t)), '1d a watch-out an older brief left unmarked is shown, not guessed away');
     const n = await page.evaluate(id => riskOpenOf(getContract(id)).length, ID);
     check(T.length === 3 && n === 3 && /· 3$/.test(list.head), '2a the card\'s head, its rows and the one count every tile reads all say 3', list && (list.head + ' / ' + n));
-    const fact = await page.evaluate(() => { const f = [...document.querySelectorAll('#ws-facts .room-facet')].find(x => /copilot/i.test((x.querySelector('.l') || {}).textContent || ''));
+    const fact = await page.evaluate(() => { const f = [...document.querySelectorAll('#ws-facts .room-facet')].find(x => /jambo/i.test((x.querySelector('.l') || {}).textContent || ''));
       return f ? f.querySelector('.v').textContent.replace(/\s+/g, ' ').trim() : null; });
     check(fact == null || !/\d/.test(fact) || /\b3 to look at/.test(fact), '2b the head\'s Jambo fact counts the same three', fact == null ? 'not drawn here' : fact);
     const scan = await page.evaluate(id => getContract(id).scan.findings.length, ID);

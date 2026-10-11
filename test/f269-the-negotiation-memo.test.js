@@ -309,8 +309,8 @@ describe('f269 (9) it spends nothing and changes nothing', () => {
   test('the precedent line is never badged as Copilot', () => {
     const w = W();
     const m = w.negoMemo(deal([ch('CHG-1', { status: 'rejected' })]));
-    assert.equal(/copilot/i.test(w.negoMemoHtml(m)), false);
-    assert.equal(/copilot/i.test(w.negoMemoText(m)), false);
+    assert.equal(/copilot|jambo/i.test(w.negoMemoHtml(m)), false);
+    assert.equal(/copilot|jambo/i.test(w.negoMemoText(m)), false);
   });
 
   test('and a stage without precedent still draws a memo', () => {
@@ -408,7 +408,7 @@ describe('f269 (11) the words, in both languages', () => {
   test('neither book calls the memo Copilot', () => {
     for (const lang of ['en', 'sv'])
       for (const k of KEYS)
-        assert.equal(/copilot/i.test(STRINGS[lang][k]), false, `${k} says Copilot in ${lang}`);
+        assert.equal(/copilot|jambo/i.test(STRINGS[lang][k]), false, `${k} says Copilot in ${lang}`);
   });
 });
 

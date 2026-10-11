@@ -136,7 +136,7 @@ const SCAN = { at: '5 Oct 2026, 15:10', on: '2026-10-05', lang: 'en', dismissed:
     const counts = await page.evaluate(id => ({ open: riskOpenOf(getContract(id)).length, scan: openFindings(getContract(id)).length }), ID);
     check(!!list && /· 2$/.test(list.head) && counts.open === 2, '1d the card\'s head, its rows and the one count every tile reads all say 2', list && (list.head + ' / ' + counts.open));
     check(counts.scan === 6, '1e the scan itself still holds all six, for every other reader', counts.scan);
-    const fact = await page.evaluate(() => { const f = [...document.querySelectorAll('#ws-facts .room-facet')].find(x => /copilot/i.test((x.querySelector('.l') || {}).textContent || ''));
+    const fact = await page.evaluate(() => { const f = [...document.querySelectorAll('#ws-facts .room-facet')].find(x => /jambo/i.test((x.querySelector('.l') || {}).textContent || ''));
       return f ? f.querySelector('.v').textContent.replace(/\s+/g, ' ').trim() : null; });
     check(fact == null || !/\d/.test(fact) || /\b2 to look at/.test(fact), '1f the head\'s Jambo fact counts the same two', fact == null ? 'not drawn here' : fact);
     await shot('1-the-list.png');
