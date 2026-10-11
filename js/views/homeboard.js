@@ -5037,8 +5037,8 @@ function hbDrawnPanelHtml(D, P){
   const group = (part, label) => {
     const xs = hbRcShown(part, P, D);
     if (xs.length < 2) return '';
-    /* a long group (HaTi offers some thirty splits) is ONE compact list, a short one stands as buttons */
-    if (xs.length > 6){
+    /* a long group (HaTi offers some thirty splits) is ONE compact list; up to a dozen stand as buttons, as drawn */
+    if (xs.length > 12){
       let og = '';
       const opts = xs.map(x => { const cur = part === 'which' ? ((o.which || 'set') === x.v) : hbRcCurHas(part, P, x.v);
         const head = x.head ? `${og ? '</optgroup>' : ''}<optgroup label="${_hbE(x.head)}">` : ''; if (x.head) og = x.head;
