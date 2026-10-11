@@ -309,9 +309,14 @@ describe('f458 (11) — the x that closes a card is in its right corner', () => 
     /* and since 4 Oct 2026 a fourth: a view kept from today's insights is a
        panel of its own (hbViewPanelHtml), closed the same way. The shelf's
        per-picture "let go" is not a card's close and wears hb-ins-x. */
+    /* RE-POINTED 11 Oct 2026 (the Board as drawn, the owner's artifact): a
+       chart kept on the board closes from its ⋯ — "Remove from the board", in
+       red, last — like the artifact's cards; the corner x stays on the two
+       cards that are not kept charts (Copilot's work, the opened card). */
     const xs = (BOARD.match(/class="hb-ib hb-x"/g) || []).length;
-    assert.equal(xs, 4, 'expected four card-closing x buttons, found ' + xs);
-    for (const door of ['data-hb-prep="closed"', 'data-hb-crumb="-1"', 'data-hb-act="x"'])
+    assert.equal(xs, 2, 'expected two corner x buttons, found ' + xs);
+    assert.equal((BOARD.match(/_hbMi\('data-hb-act="x"'/g) || []).length, 2, 'both kinds of kept card remove from their ⋯');
+    for (const door of ['data-hb-prep="closed"', 'data-hb-crumb="-1"'])
       assert.ok(new RegExp('class="hb-ib hb-x"[^>]*' + door.replace(/"/g, '"')).test(BOARD)
         || new RegExp(door.replace(/"/g, '"') + '[^>]*class="hb-ib hb-x"').test(BOARD),
         door + ' is not the one wearing hb-x');

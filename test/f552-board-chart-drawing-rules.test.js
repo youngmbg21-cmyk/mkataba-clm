@@ -82,6 +82,8 @@ test('f552 (4) Esc steps back one step: full screen first', () => {
    opens it with every tool instead. */
 test('f552 (5) the card edge carries the tools: table on every chart with doors; full screen once opened', () => {
   const html = region('hbChartHtml');
-  assert.match(html, /if \(\/data-hb-dig=\/\.test\(R\.body\)\)\{[\s\S]*data-hb-table=[\s\S]*data-hb-tools-more/, 'table and ⋯ wherever the chart has doors');
-  assert.match(html, /board \? it\(`data-hb-dig=[\s\S]*: it\(`data-hb-full/, 'a kept chart opens with every tool; an opened one goes full screen');
+  assert.match(html, /if \(\/data-hb-dig=\/\.test\(R\.body\)\)\{[\s\S]*_hbEdgeMeta\.set\(at\.key, \{ canTable: !!t/, 'the table is offered wherever the chart has doors');
+  const edge = region('hbEdgeHtml');
+  assert.match(edge, /data-hb-table=[\s\S]*data-hb-tools-more/, 'Table and ⋯ on the head');
+  assert.match(edge, /board \? _hbMi\(`data-hb-fullkey=[\s\S]*: _hbMi\(`data-hb-full/, 'a kept chart opens full; an opened one goes full screen');
 });

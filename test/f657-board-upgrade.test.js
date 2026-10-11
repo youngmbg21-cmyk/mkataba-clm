@@ -315,10 +315,12 @@ describe('f657 (G9) copy as image, copy table', () => {
      card's ⋯, on the opened chart and on a chart kept on the board */
   test('offered on the card\'s ⋯, with Show as table and the lines on the edge', () => {
     const html = region('hbChartHtml');
-    assert.match(html, /if \(\/data-hb-dig=\/\.test\(R\.body\)\)\{[\s\S]*data-hb-full[\s\S]*data-hb-copy-img[\s\S]*data-hb-copy-tab[\s\S]*data-hb-table=[\s\S]*hbLinesMenuHtml\(D, P\)[\s\S]*data-hb-tools-more/);
-    assert.match(html, /data-hb-copy-n="\$\{cs\.length\}"/, 'the picture says how many contracts it counts');
-    assert.match(html, /const cols = P\.pic === 'cols' && P\.measure !== 'live' && !P\.compare && !tab;/, 'lines only where a column chart can carry them');
-    assert.match(html, /\(cols \? hbLinesMenuHtml\(D, P\) : ''\)/);
+    /* RE-POINTED AGAIN 11 Oct 2026 (as drawn): the edge is the card's head (hbEdgeHtml) */
+    const edge = region('hbEdgeHtml');
+    assert.match(edge, /data-hb-copy-img[\s\S]*data-hb-copy-tab/);
+    assert.match(edge, /data-hb-copy-n="\$\{M\.n \|\| 0\}"/, 'the picture says how many contracts it counts');
+    assert.match(html, /cols: P\.pic === 'cols' && P\.measure !== 'live' && !P\.compare && !tab/, 'lines only where a column chart can carry them');
+    assert.match(region('hbDrawnPanelHtml'), /canTrend \? `<div class="hb-dp-g" data-hb-lines-key=/);
   });
   test('a picture leaving HaTi carries literal colours, its title and the date of the data', () => {
     assert.match(region('_hbSvgLiteral'), /getComputedStyle\(el\)/);

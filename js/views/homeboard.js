@@ -3642,7 +3642,12 @@ function _hbBarsAsSvg(box){
 }
 /* the chart a card's tools stand over: the drawing right after them (never
    the reading above, whose numbers are doors too) */
-function _hbToolsChart(tools){ const n = tools && tools.nextElementSibling; return n && (n.matches('svg.hb-svg, .hb-chart, .hb-small, .hb-ctab') ? n : null); }
+const _HB_CHART_SEL = 'svg.hb-svg, .hb-chart, .hb-small, .hb-ctab';
+/* the chart a card's tools copy: the card's own (its edge sits in the head, 11 Oct 2026) */
+function _hbToolsChart(tools){
+  const n = tools && tools.nextElementSibling; if (n && n.matches(_HB_CHART_SEL)) return n;
+  const card = tools && tools.closest('.hb-card'); return card ? card.querySelector('.hb-cb ' + _HB_CHART_SEL.split(', ').join(', .hb-cb ')) : null;
+}
 function hbChartPng(tools){
   const chart = _hbToolsChart(tools); if (!chart) return Promise.reject(new Error('no chart'));
   return hbChartPngOf(chart, { title: tools.getAttribute('data-hb-copy-t') || '', sub: tools.getAttribute('data-hb-copy-s') || '', n: Number(tools.getAttribute('data-hb-copy-n')) || 0 });
@@ -3732,34 +3737,18 @@ function hbChartHtml(D, cs0, big){
   if (at){
     const w = _hbFitW.get(at.key + '|' + at.step) || (at.step === 'board' ? (at.big ? 1100 : 540) : 1100);
     R.body = String(R.body || '').replace(/<svg class="hb-svg/g, `<svg data-hb-fit="${_hbE(at.key + '|' + at.step)}" data-hb-w="${w}" data-hb-step="${at.step}" class="hb-svg`);
-    /* THE CARD'S EDGE CARRIES ITS TOOLS (owner, 11 Oct 2026, over the "HaTi
-       Board" artifact; reverses O-25's "detail is earned once opened"): on the
-       opened chart AND on a chart kept on the board, Table stands on the edge,
-       the reference lines keep their own dropdown, and every other tool is ONE
-       press away under "⋯" — each item the SAME door it always was (its own
-       data attribute and handler), never a second way to the same act. */
+    /* THE CARD IS CLEAN, ITS TOOLS ON ITS EDGE (owner, 11 Oct 2026, the
+       "HaTi Board" artifact; reverses O-25's "detail is earned once opened"):
+       the chart says nothing about its tools; the card's head draws How this
+       is drawn ▾ · Table · ⋯ (hbEdgeHtml) from what is stashed here. THE
+       BUTTON NEVER LIES (Part 6): Table only where the chart has rows to
+       show, Chart only while a table IS showing. */
     if (/data-hb-dig=/.test(R.body)){
-      /* THE BUTTON NEVER LIES (Part 6): it is drawn only where the chart has
-         rows to show, and says "Show as chart" only while a table IS showing */
       const t = hbChartTableHtml(R.body);
       const tab = !!t && _hbTableOn.has(at.key);
       if (tab) R.body = t;
-      const board = at.step === 'board', mk = at.key + '|' + at.step, open = _hbToolsMenu === mk;
-      const cols = P.pic === 'cols' && P.measure !== 'live' && !P.compare && !tab;
-      const it = (attrs, word) => `<button type="button" class="hb-link" role="menuitem" ${attrs}>${_hbE(word)}</button>`;
-      const items = (board ? it(`data-hb-dig="${_hbE(D.key)}"`, i18t('hb_tools_open')) : it(`data-hb-full aria-pressed="${_hbFull}"`, i18t(_hbFull ? 'hb_full_back' : 'hb_full_screen')))
-        + it(`data-hb-mwhy="${_hbE(D.key)}"`, i18t('hb_cx_btn'))
-        + it(`data-hb-why-follow="${_hbE(D.key)}"`, i18t('hb_tip_ask'))
-        + (cols ? it(`data-hb-odd="${_hbE(D.key)}" aria-pressed="${_hbOddOn.has(D.key)}"`, i18t(_hbOddOn.has(D.key) ? 'hb_odd_off' : 'hb_odd_btn')) : '')
-        + it(`data-hb-saveq="${_hbE(D.key)}"`, i18t('hb_myq_btn'))
-        + it(`data-hb-whatif="${_hbE(D.key)}" aria-pressed="${_hbWhatIf.has(D.key)}"`, i18t(_hbWhatIf.has(D.key) ? 'hb_wi_off' : 'hb_wi_btn'))
-        + (!tab ? it('data-hb-copy-img', i18t('hb_copy_img')) : '')
-        + (t ? it('data-hb-copy-tab', i18t('hb_copy_tab')) : '');
-      R.body = `<div class="hb-open-tools" data-hb-copy-t="${_hbE(P.title || D.title || D.crumb || '')}" data-hb-copy-s="${_hbE(R.by || '')}" data-hb-copy-n="${cs.length}">`
-        + (t ? `<button type="button" class="hb-link" data-hb-table="${_hbE(at.key)}" aria-pressed="${tab}">${_hbE(i18t(tab ? 'hb_show_chart' : 'hb_show_table'))}</button>` : '')
-        + (cols ? hbLinesMenuHtml(D, P) : '')
-        + `<span class="hb-tools-w"><button type="button" class="hb-ib hb-tools-more" data-hb-tools-more="${_hbE(mk)}" aria-haspopup="menu" aria-expanded="${open}" title="${_hbE(i18t('hb_tools_more'))}" aria-label="${_hbE(i18t('hb_tools_more'))}">⋯</button>`
-        + (open ? `<span class="hb-pmenu hb-tools-menu" role="menu">${items}</span>` : '') + '</span></div>' + R.body;
+      _hbEdgeMeta.set(at.key, { canTable: !!t, tab, cols: P.pic === 'cols' && P.measure !== 'live' && !P.compare && !tab,
+        title: P.title || D.title || D.crumb || '', by: R.by || '', n: cs.length });
     }
   }
   const total = money ? cs.reduce((a, c) => a + hbValueOfOne(c), 0) : null;
@@ -3769,8 +3758,9 @@ function hbChartHtml(D, cs0, big){
   const read = big ? hbReadHtml(D, cs, P, R) : '';
   /* small, the chart says its point in one line under the totals (HEADLINE) */
   const head = big ? '' : hbHeadlineHtml(D.key, hbReadingOf(D, cs, P, R), cs.length, hbWhySig(D, P, cs));
-  const how = at && !one ? hbHowHtml(D, P, R, cs) : '';
-  return `${read || (!head && R.say ? `<p class="hb-tr-say">${_hbE(R.say)}</p>` : '')}<div class="hb-chart-lead">${lead}<span class="hb-chart-by">${_hbE(R.by)}</span></div>${head}${R.body}${how}${R.note ? `<div class="hb-quiet hb-chart-note">${_hbE(R.note)}</div>` : ''}`;
+  /* how this was counted: asked for from the card's ⋯ (the artifact's card is clean) */
+  const how = at && !one && _hbHowOn.has(D.key) ? hbHowHtml(D, P, R, cs) : '';
+  return `${read || (!head && R.say ? `<p class="hb-tr-say">${_hbE(R.say)}</p>` : '')}${R.body}<div class="hb-chart-notes">${head}<div class="hb-chart-lead">${lead}${at ? '' : `<span class="hb-chart-by">${_hbE(R.by)}</span>`}</div>${R.note ? `<div class="hb-quiet hb-chart-note">${_hbE(R.note)}</div>` : ''}</div>${how}`;
 }
 /* ============================================================
    READ, THEN ASK (Young picked it by name, 4 Oct 2026: "the cards when
@@ -4784,12 +4774,16 @@ function hbFocusHtml(){
   const watching = mine.length ? `<div class="hb-say">${_hbE(i18t('hb_watching'))} ${mine.map((w, i) => `<span class="hb-chip${hbWatchFired(w) ? ' is-bad' : ''}">${_hbE(i18t('hb_watch_' + w.dir) + ' ' + (w.k === 'value' ? _hbM(w.n) : _hbN(w.n)) + ' · ' + i18t(hbWatchFired(w) ? 'hb_watch_fired' : 'hb_watch_not_yet'))}<button type="button" data-hb-watch-stop="${s.watches.indexOf(w)}" title="${_hbE(i18t('hb_watch_stop'))}" aria-label="${_hbE(i18t('hb_watch_stop'))}">${_hbX}</button></span>`).join(' ')}</div>` : '';
   /* a chart and Value under contract can be made bigger (the bigger card opens with HaTi's reading) */
   const grows = D.kind === 'list' || D.kind === 'stages';
-  const tools = grows ? `${hbBigBtnHtml(s.digBig, 'data-hb-digbig')}` : '';
+  /* the body first: it stashes what the head's edge draws (as drawn, 11 Oct 2026) */
+  _hbEdgeMeta.delete('focus');
+  const bodyHtml = hbFocusBodyHtml(D, s);
+  const tools = D.kind === 'list' ? hbEdgeHtml(D, 'focus', 'focus') : grows ? `${hbBigBtnHtml(s.digBig, 'data-hb-digbig')}` : '';
+  const FM = _hbEdgeMeta.get('focus') || {};
   return `<div class="hb-focus" id="hb-focus"><nav class="hb-trail" aria-label="${_hbE(i18t('hb_trail'))}"><button type="button" data-hb-crumb="-1">${_hbE(i18t('hb_face_board'))}</button><span aria-hidden="true">›</span>${crumbs}${hbFuStepsHtml(path[path.length - 1])}</nav>
-    <section class="hb-card hb-dig${_hbFocusNew ? ' is-new' : ''}${s.digBig && grows ? ' is-big' : ''}${_hbFull && grows ? ' is-full' : ''}"><header class="hb-ch"><span class="hb-ct">${_hbE(title)}</span>${hbVerBadgeHtml((s.panels || []).find(x => x.key === path[path.length - 1]))}<span class="hb-grow"></span>${tools}${eye}
+    <section class="hb-card hb-dig${_hbFocusNew ? ' is-new' : ''}${s.digBig && grows ? ' is-big' : ''}${_hbFull && grows ? ' is-full' : ''}"><header class="hb-ch"><span class="hb-ct">${_hbE(title)}</span>${FM.by ? `<span class="hb-cs">${_hbE(FM.by)}</span>` : ''}${hbVerBadgeHtml((s.panels || []).find(x => x.key === path[path.length - 1]))}<span class="hb-grow"></span>${tools}${eye}
       ${path.length > 1 ? `<button type="button" class="hb-ib" data-hb-crumb="${path.length - 2}" title="${_hbE(i18t('hb_step_back'))}" aria-label="${_hbE(i18t('hb_step_back'))}">${_hbBack}</button>` : ''}
       <button type="button" class="hb-ib hb-x" data-hb-crumb="-1" title="${_hbE(i18t('hb_close_dig'))}" aria-label="${_hbE(i18t('hb_close_dig'))}">${_hbX}</button></header>
-      ${D.kind === 'list' ? hbRecipeRowHtml(D, hbPlan(D)) : ''}<div class="hb-cb">${fk && _hbWatchForm === fk ? hbWatchFormHtml(fk) : ''}${watching}${hbFocusBodyHtml(D, s)}</div></section></div>`;
+      <div class="hb-cb">${fk && _hbWatchForm === fk ? hbWatchFormHtml(fk) : ''}${watching}${bodyHtml}</div></section></div>`;
 }
 /* the opened card is step two, or three in full screen (O-22, O-25) */
 function hbFocusBodyHtml(D, s){
@@ -4902,14 +4896,93 @@ function hbGiveFormHtml(p){
     <button type="submit" class="hb-btn is-primary">${_hbE(i18t('hb_give_go'))}</button><button type="button" class="hb-btn" data-hb-give-cancel>${_hbE(i18t('hb_cancel'))}</button>
     <span class="hb-quiet hb-wide">${_hbE(i18t('hb_give_note'))}</span></form>`;
 }
+/* ============================================================
+   THE CARD'S EDGE, AS DRAWN (owner, 11 Oct 2026, over the "HaTi Board"
+   artifact: "the cards in the artifact are clean without filters sitting on
+   the screen"; work order docs/WORKORDER-board-as-drawn.md, part A)
+   ============================================================
+   Every chart card's head carries exactly three controls on its right:
+   How this is drawn ▾ (a panel of labelled choices — the SAME choices the
+   recipe sentence offered, only those that work, each pressing the same
+   handler: data-hb-rset / data-hb-rtrend / data-hb-line), Table (Chart while
+   a table shows) and ⋯ (every other tool, in the artifact's order, each the
+   SAME door it always was). The card's body is the chart and its notes. */
+const _hbEdgeMeta = new Map(), _hbHowOn = new Set();
+let _hbDrawnOpen = null;
+const _HB_MI = { why: '✦', odd: '◎', how: 'ⓘ', ask: '✦', watch: '◔', give: '➦', pack: '▤', img: '⧉', tab: '⊞', save: '☆', wi: '◇', ver: '✓', big: '⤢', full: '⛶', x: '✕', split: '⇆' };
+function _hbMi(attrs, sym, word, danger){
+  return `<button type="button" role="menuitem" class="hb-mi${danger ? ' is-danger' : ''}" ${attrs}><span class="hb-mi-k" aria-hidden="true">${sym}</span>${_hbE(word)}</button>`;
+}
+function hbDrawnPanelHtml(D, P){
+  const s = hbS(), o = (s.recipe || {})[D.key] || {};
+  const canWhich = /^(q|ls):?/.test(D.key) && D.kind === 'list';
+  const btn = (attrs, word, on, why) => `<button type="button" ${attrs} aria-pressed="${on}" class="${on ? 'is-on' : ''}"${why ? ` title="${_hbE(why)}"` : ''}>${_hbE(word)}</button>`;
+  const group = (part, label) => {
+    const xs = hbRcShown(part, P, D);
+    if (xs.length < 2) return '';
+    /* a long group (HaTi offers some thirty splits) is ONE compact list, a short one stands as buttons */
+    if (xs.length > 6){
+      let og = '';
+      const opts = xs.map(x => { const cur = part === 'which' ? ((o.which || 'set') === x.v) : hbRcCurHas(part, P, x.v);
+        const head = x.head ? `${og ? '</optgroup>' : ''}<optgroup label="${_hbE(x.head)}">` : ''; if (x.head) og = x.head;
+        return `${head}<option value="${_hbE(x.v)}"${cur ? ' selected' : ''}>${_hbE(x.word)}</option>`; }).join('') + (og ? '</optgroup>' : '');
+      return `<div class="hb-dp-g"><label class="hb-dp-l">${_hbE(label)}<select class="hb-dp-sel" data-hb-rsel="${_hbE(part)}">${opts}</select></label></div>`;
+    }
+    return `<div class="hb-dp-g"><div class="hb-dp-l">${_hbE(label)}</div><div class="hb-dp-seg">${xs.map(x => {
+      const cur = part === 'which' ? ((o.which || 'set') === x.v) : hbRcCurHas(part, P, x.v);
+      return btn(`data-hb-rset="${_hbE(part + ':' + x.v)}"`, x.word, cur, x.why);
+    }).join('')}</div></div>`;
+  };
+  const canTrend = P.pic === 'cols' && P.measure !== 'live' && !P.compare;
+  const trend = canTrend ? `<div class="hb-dp-g"><div class="hb-dp-l">${_hbE(i18t('hb_rc_trend'))}</div><div class="hb-dp-seg">${btn(P.trend ? 'data-hb-rtrend' : '', i18t('hb_dp_off'), !P.trend)}${btn(P.trend ? '' : 'data-hb-rtrend', i18t('hb_dp_trend_on'), !!P.trend)}</div></div>` : '';
+  const RF = canTrend ? hbRefsOf(D.key, P) : null, r = (s.refs || {})[D.key] || {};
+  const lines = canTrend ? `<div class="hb-dp-g" data-hb-lines-key="${_hbE(D.key)}"><div class="hb-dp-l">${_hbE(i18t('hb_ref_lines'))}</div><div class="hb-dp-seg">${btn('data-hb-line="avg"', i18t('hb_ref_avg'), !!r.avg)}${RF && RF.lyOk ? btn('data-hb-line="ly"', i18t('hb_ref_ly'), !!r.ly) : ''}</div></div>` : '';
+  return `<div class="hb-dp-head">${_hbE(i18t('hb_dp_head'))}</div>`
+    + group('pic', i18t('hb_rc_pic')) + group('measure', i18t('hb_rc_measure')) + group('split', i18t('hb_rc_split')) + group('split2', i18t('hb_rc_split2'))
+    + group('compare', i18t('hb_rc_compare')) + trend + group('order', i18t('hb_rc_order')) + group('window', i18t('hb_rc_window'))
+    + (canWhich ? group('which', i18t('hb_rc_which')) : '') + lines;
+}
+/* the head's right side for a chart card: akey is the card's own (a panel's
+   id, or 'focus'); where says which card it is ('board' | 'focus') */
+function hbEdgeHtml(D, akey, where, p){
+  const M = _hbEdgeMeta.get(akey) || {}, P = hbPlan(D), mk = akey + '|' + where, board = where === 'board';
+  const drawnOpen = _hbDrawnOpen === mk, moreOpen = _hbToolsMenu === mk;
+  const drawn = D.kind === 'list' ? `<span class="hb-edge-w" data-hb-rkey="${_hbE(D.key)}"><button type="button" class="hb-edge-b" data-hb-drawn="${_hbE(mk)}" aria-haspopup="dialog" aria-expanded="${drawnOpen}">${_hbE(i18t('hb_dp_btn'))}${_hbCaret}</button>`
+    + (drawnOpen ? `<div class="hb-dp" role="dialog" aria-label="${_hbE(i18t('hb_dp_btn'))}">${hbDrawnPanelHtml(D, P)}</div>` : '') + '</span>' : '';
+  const table = M.canTable ? `<button type="button" class="hb-edge-b" data-hb-table="${_hbE(akey)}" aria-pressed="${!!M.tab}">${_hbE(i18t(M.tab ? 'hb_edge_chart' : 'hb_edge_table'))}</button>` : '';
+  const k = _hbE(D.key);
+  const items = _hbMi(`data-hb-mwhy="${k}"`, _HB_MI.why, i18t('hb_cx_btn'))
+    + (M.cols ? _hbMi(`data-hb-odd="${k}" aria-pressed="${_hbOddOn.has(D.key)}"`, _HB_MI.odd, i18t(_hbOddOn.has(D.key) ? 'hb_odd_off' : 'hb_odd_btn')) : '')
+    + _hbMi(`data-hb-howon="${k}" aria-pressed="${_hbHowOn.has(D.key)}"`, _HB_MI.how, i18t(_hbHowOn.has(D.key) ? 'hb_how_off' : 'hb_how_on'))
+    + _hbMi(`data-hb-why-follow="${k}"`, _HB_MI.ask, i18t('hb_tip_ask'))
+    + '<hr>'
+    + (M.canTable ? (M.tab ? '' : _hbMi('data-hb-copy-img', _HB_MI.img, i18t('hb_copy_img'))) + _hbMi('data-hb-copy-tab', _HB_MI.tab, i18t('hb_copy_tab')) : '')
+    + _hbMi(`data-hb-saveq="${k}"`, _HB_MI.save, i18t('hb_myq_btn'))
+    + _hbMi(`data-hb-whatif="${k}" aria-pressed="${_hbWhatIf.has(D.key)}"`, _HB_MI.wi, i18t(_hbWhatIf.has(D.key) ? 'hb_wi_off' : 'hb_wi_btn'))
+    + (board && p && hbMayVerify(p) ? _hbMi('data-hb-act="verify"', _HB_MI.ver, i18t('hb_ver_menu')) : '')
+    + '<hr>'
+    + (board ? _hbMi('data-hb-act="big"', _HB_MI.big, i18t(p && p.big ? 'hb_p_small' : 'hb_p_big')) : _hbMi('data-hb-digbig', _HB_MI.big, i18t(hbS().digBig ? 'hb_p_small' : 'hb_p_big')))
+    + (board ? _hbMi(`data-hb-fullkey="${k}"`, _HB_MI.full, i18t('hb_full_screen')) : _hbMi(`data-hb-full aria-pressed="${_hbFull}"`, _HB_MI.full, i18t(_hbFull ? 'hb_full_back' : 'hb_full_screen')))
+    + (board ? _hbMi('data-hb-act="x"', _HB_MI.x, i18t('hb_p_x'), true) : '');
+  const more = `<span class="hb-tools-w"><button type="button" class="hb-edge-b hb-tools-more" data-hb-tools-more="${_hbE(mk)}" aria-haspopup="menu" aria-expanded="${moreOpen}" title="${_hbE(i18t('hb_tools_more'))}" aria-label="${_hbE(i18t('hb_tools_more'))}">⋯</button>`
+    + (moreOpen ? `<span class="hb-pmenu hb-tools-menu" role="menu">${items}</span>` : '') + '</span>';
+  return `<span class="hb-edge hb-open-tools" data-hb-copy-t="${_hbE(M.title || '')}" data-hb-copy-s="${_hbE(M.by || '')}" data-hb-copy-n="${M.n || 0}">${drawn}${table}${more}</span>`;
+}
 /* a ready-made panel's ⋯ (11 Oct 2026, the artifact's card edge): its
    reading is HaTi's own (hp:<kind>), so what could explain it and asking
    about it are the same two doors an opened chart offers */
-function hbKindToolsHtml(p){
-  const key = 'hp:' + p.kind, mk = p.id + '|kind', open = _hbToolsMenu === mk;
-  const it = (attrs, word) => `<button type="button" class="hb-link" role="menuitem" ${attrs}>${_hbE(word)}</button>`;
-  return `<span class="hb-tools-w"><button type="button" class="hb-ib hb-tools-more" data-hb-tools-more="${_hbE(mk)}" aria-haspopup="menu" aria-expanded="${open}" title="${_hbE(i18t('hb_tools_more'))}" aria-label="${_hbE(i18t('hb_tools_more'))}">⋯</button>`
-    + (open ? `<span class="hb-pmenu hb-tools-menu" role="menu">${it(`data-hb-mwhy="${_hbE(key)}"`, i18t('hb_cx_btn'))}${it(`data-hb-why-follow="${_hbE(key)}"`, i18t('hb_tip_ask'))}</span>` : '') + '</span>';
+function hbKindToolsHtml(p, gift){
+  const key = 'hp:' + p.kind, mk = p.id + '|kind', drawnOpen = _hbDrawnOpen === mk, moreOpen = _hbToolsMenu === mk;
+  const sb = (on, word) => `<button type="button" ${on ? '' : 'data-hb-act="split"'} aria-pressed="${on}" class="${on ? 'is-on' : ''}">${_hbE(word)}</button>`;
+  const drawn = `<span class="hb-edge-w"><button type="button" class="hb-edge-b" data-hb-drawn="${_hbE(mk)}" aria-haspopup="dialog" aria-expanded="${drawnOpen}">${_hbE(i18t('hb_dp_btn'))}${_hbCaret}</button>`
+    + (drawnOpen ? `<div class="hb-dp" role="dialog" aria-label="${_hbE(i18t('hb_dp_btn'))}"><div class="hb-dp-head">${_hbE(i18t('hb_dp_head'))}</div><div class="hb-dp-g"><div class="hb-dp-l">${_hbE(i18t('hb_rc_split'))}</div><div class="hb-dp-seg">${sb(!p.split, i18t('hb_sp_none'))}${sb(!!p.split, i18t('hb_p_split'))}</div></div></div>` : '') + '</span>';
+  const items = _hbMi(`data-hb-mwhy="${_hbE(key)}"`, _HB_MI.why, i18t('hb_cx_btn'))
+    + _hbMi(`data-hb-why-follow="${_hbE(key)}"`, _HB_MI.ask, i18t('hb_tip_ask'))
+    + (gift && gift.from ? '' : '<hr>' + _hbMi('data-hb-act="give"', _HB_MI.give, i18t('hb_p_give') + '…'))
+    + '<hr>' + _hbMi('data-hb-act="big"', _HB_MI.big, i18t(p.big ? 'hb_p_small' : 'hb_p_big'))
+    + _hbMi('data-hb-act="x"', _HB_MI.x, i18t(gift && gift.from ? 'hb_p_x_gift' : 'hb_p_x'), true);
+  return `<span class="hb-edge">${drawn}<span class="hb-tools-w"><button type="button" class="hb-edge-b hb-tools-more" data-hb-tools-more="${_hbE(mk)}" aria-haspopup="menu" aria-expanded="${moreOpen}" title="${_hbE(i18t('hb_tools_more'))}" aria-label="${_hbE(i18t('hb_tools_more'))}">⋯</button>`
+    + (moreOpen ? `<span class="hb-pmenu hb-tools-menu" role="menu">${items}</span>` : '') + '</span></span>';
 }
 function hbPanelHtml(p, lens, gift){
   if (p.kind === 'view') return hbViewPanelHtml(p, lens);
@@ -4920,13 +4993,8 @@ function hbPanelHtml(p, lens, gift){
   const given = gift && gift.sent ? `<span class="hb-given" title="${_hbE(gift.sent.note || '')}">${_hbE(i18t('hb_given', { who: gift.sent.toName || '', seen: i18t(gift.sent.seenAt ? 'hb_seen' : 'hb_not_seen') }))}<button type="button" data-hb-ungive="${_hbE(gift.sent.id)}" title="${_hbE(i18t('hb_take_back'))}" aria-label="${_hbE(i18t('hb_take_back'))}">${_hbX}</button></span>` : '';
   const from = gift && gift.from ? `<span class="hb-given is-from" title="${_hbE(gift.from.note || '')}">${_hbE(i18t('hb_from', { who: gift.from.fromName || '' }))}</span>` : '';
   return `<section class="hb-card hb-panel${(p.big || p.split) ? ' is-big' : ''}${p.id === _hbNewPanel ? ' is-new' : ''}" data-hb-pid="${_hbE(p.id)}">
-    <header class="hb-ch"><span class="hb-ct">${_hbE(i18t(K.word))}${p.split ? ' · ' + _hbE(i18t('hb_side_by_side')) : ''}</span>${from}${given}<span class="hb-grow"></span>
-      <span class="hb-src" title="${_hbE(i18t('hb_p_src', { tab: i18t(K.src) }))}">${_hbE(i18t(K.src))}</span>
-      ${hbKindToolsHtml(p)}
-      <button type="button" class="hb-ib" data-hb-act="split" aria-pressed="${!!p.split}" title="${_hbE(i18t(p.split ? 'hb_p_unsplit' : 'hb_p_split'))}" aria-label="${_hbE(i18t('hb_p_split'))}">${_hbSplitIc}</button>
-      ${gift && gift.from ? '' : `<button type="button" class="hb-ib" data-hb-act="give" aria-pressed="${_hbGiveForm === p.id}" title="${_hbE(i18t('hb_p_give'))}" aria-label="${_hbE(i18t('hb_p_give'))}">${_hbGiveIc}</button>`}
-      ${hbBigBtnHtml(p.big, 'data-hb-act="big"')}
-      <button type="button" class="hb-ib hb-x" data-hb-act="x" title="${_hbE(i18t(gift && gift.from ? 'hb_p_x_gift' : 'hb_p_x'))}" aria-label="${_hbE(i18t('hb_p_x'))}">${_hbX}</button></header>
+    <header class="hb-ch"><span class="hb-ct">${_hbE(i18t(K.word))}</span><span class="hb-cs" title="${_hbE(i18t('hb_p_src', { tab: i18t(K.src) }))}">${p.split ? _hbE(i18t('hb_side_by_side')) : _hbE(i18t(K.src))}</span>${from}${given}<span class="hb-grow"></span>
+      ${hbKindToolsHtml(p, gift)}</header>
     <div class="hb-cb">${_hbGiveForm === p.id ? hbGiveFormHtml(p) : ''}${body}</div></section>`;
 }
 
@@ -6596,14 +6664,18 @@ function hbViewPanelHtml(p, lens){
   if (p.recipe) hbCardSet(p.key, p.recipe, { seed: true });
   const D = hbDigData(p.key, lens);
   _hbFitAt = { key: p.id, step: 'board', big: !!p.big };
+  _hbEdgeMeta.delete(p.id);
   let inner; try { inner = D ? hbDigBodyHtml(D, lens, !!p.big) : ''; } finally { _hbFitAt = null; }
-  const body = D ? (D.kind === 'list' ? hbRecipeRowHtml(D, hbPlan(D)) : '') + `<div class="hb-cb">${inner}</div>` : `<div class="hb-cb"><div class="hb-quiet">${_hbE(i18t('hb_none_here'))}</div></div>`;
+  /* THE CARD IS CLEAN (11 Oct 2026, as drawn): no recipe sentence on the card —
+     its choices are under How this is drawn ▾ on the head (hbEdgeHtml) */
+  const body = D ? `<div class="hb-cb">${inner}</div>` : `<div class="hb-cb"><div class="hb-quiet">${_hbE(i18t('hb_none_here'))}</div></div>`;
+  const M = _hbEdgeMeta.get(p.id) || {};
+  const tag = p.verified ? '' : /^cd:/.test(p.key) ? `<span class="hb-src" title="${_hbE(i18t('hb_cd_src_tip'))}">${_hbE(i18t('hb_cd_src'))}</span>` : `<span class="hb-src" title="${_hbE(i18t('hb_ins_src_tip'))}">${_hbE(i18t('hb_ins_src'))}</span>`;
+  const edge = D ? hbEdgeHtml(D, p.id, 'board', p)
+    : `<span class="hb-edge"><button type="button" class="hb-edge-b" data-hb-act="x">${_hbE(i18t('hb_p_x'))}</button></span>`;
   return `<section class="hb-card hb-panel hb-view${p.big ? ' is-big' : ''}${p.id === _hbNewPanel ? ' is-new' : ''}" data-hb-pid="${_hbE(p.id)}">
-    <header class="hb-ch"><span class="hb-ct">${_hbE(hbPanelWord(p))}</span>${hbVerBadgeHtml(p)}<span class="hb-grow"></span>
-      ${p.verified ? '' : /^cd:/.test(p.key) ? `<span class="hb-src" title="${_hbE(i18t('hb_cd_src_tip'))}">${_hbE(i18t('hb_cd_src'))}</span>` : `<span class="hb-src" title="${_hbE(i18t('hb_ins_src_tip'))}">${_hbE(i18t('hb_ins_src'))}</span>`}
-      ${hbMayVerify(p) ? `<span class="hb-more-w"><button type="button" class="hb-ib" data-hb-act="more" aria-haspopup="menu" aria-expanded="${_hbMoreMenu === p.id}" title="${_hbE(i18t('hb_p_more'))}" aria-label="${_hbE(i18t('hb_p_more'))}">⋯</button>${_hbMoreMenu === p.id ? `<span class="hb-pmenu" role="menu"><button type="button" role="menuitem" data-hb-act="verify">${_hbE(i18t('hb_ver_menu'))}${p.verified ? ' ✓' : ''}</button></span>` : ''}</span>` : ''}
-      ${hbBigBtnHtml(p.big, 'data-hb-act="big"')}
-      <button type="button" class="hb-ib hb-x" data-hb-act="x" title="${_hbE(i18t('hb_p_x'))}" aria-label="${_hbE(i18t('hb_p_x'))}">${_hbX}</button></header>
+    <header class="hb-ch"><span class="hb-ct">${_hbE(hbPanelWord(p))}</span>${M.by ? `<span class="hb-cs">${_hbE(M.by)}</span>` : ''}${hbVerBadgeHtml(p)}${tag}<span class="hb-grow"></span>
+      ${edge}</header>
     ${_hbVerForm === p.id && hbMayVerify(p) ? hbVerFormHtml(p) : ''}${body}</section>`;
 }
 function hbInsAct(act, id){
@@ -8428,8 +8500,11 @@ function hbOnClick(e){
   if (_hbMoreMenu && !t.closest('.hb-more-w')){ _hbMoreMenu = null; hbPaintBoard(); }
   /* the card's ⋯: its own button opens and shuts it; any press elsewhere, or
      on one of its items, shuts it (the item's own handler still runs below) */
+  { const dr = t.closest('[data-hb-drawn]');
+    if (dr){ const k = dr.getAttribute('data-hb-drawn'); _hbDrawnOpen = _hbDrawnOpen === k ? null : k; _hbToolsMenu = null; hbPaintBoard(); return; }
+    if (_hbDrawnOpen && !t.closest('.hb-dp')){ _hbDrawnOpen = null; hbPaintBoard(); } }
   { const tm = t.closest('[data-hb-tools-more]');
-    if (tm){ const k = tm.getAttribute('data-hb-tools-more'); _hbToolsMenu = _hbToolsMenu === k ? null : k; hbPaintBoard(); return; }
+    if (tm){ const k = tm.getAttribute('data-hb-tools-more'); _hbToolsMenu = _hbToolsMenu === k ? null : k; _hbDrawnOpen = null; hbPaintBoard(); return; }
     if (_hbToolsMenu){ _hbToolsMenu = null; if (!t.closest('.hb-tools-menu')) hbPaintBoard(); } }
   const on = sel => t.closest(sel);
   let el;
@@ -8515,6 +8590,9 @@ function hbOnClick(e){
   if ((el = on('[data-hb-why]'))){ hbWhyAsk(el.getAttribute('data-hb-why')); return; }
   /* ⋯ → What could explain this?: the card's reading opens where it stands and
      the same three-point answer is asked for (hbWhyAsk, the one door) */
+  if ((el = on('[data-hb-howon]'))){ const k = el.getAttribute('data-hb-howon'); if (_hbHowOn.has(k)) _hbHowOn.delete(k); else _hbHowOn.add(k); hbPaintBoard(); return; }
+  /* ⋯ → Full screen on a kept chart: it opens, filling the screen */
+  if ((el = on('[data-hb-fullkey]'))){ hbDig(el.getAttribute('data-hb-fullkey')); _hbFull = true; hbPaintBoard(); return; }
   if ((el = on('[data-hb-mwhy]'))){ const k = el.getAttribute('data-hb-mwhy'); _hbReadOpen.add(k); hbPaintBoard(); hbWhyAsk(k); return; }
   if ((el = on('[data-hb-deeper]'))){ if (!el.disabled) hbDigDeeper(el.getAttribute('data-hb-deeper')); return; }
   if ((el = on('[data-hb-sy-deeper]'))){ if (!el.disabled) hbStoryDeeper(el.getAttribute('data-hb-sy-deeper')); return; }
@@ -8995,6 +9073,9 @@ if (typeof document !== 'undefined' && !document._hbWired){
   document._hbWired = true;
   document.addEventListener('click', hbOnClick);
   document.addEventListener('submit', hbOnSubmit);
+  /* How this is drawn ▾'s long groups are lists: a choice there is the same hbRecipeSet a button makes */
+  document.addEventListener('change', e => { const el = e.target && e.target.closest ? e.target.closest('[data-hb-rsel]') : null; if (!el) return;
+    const w = el.closest('[data-hb-rkey]'); if (!w) return; hbRecipeSet(w.getAttribute('data-hb-rkey'), el.getAttribute('data-hb-rsel'), el.value); hbPaintBoard(); });
   document.addEventListener('pointermove', hbOnPointer, { passive: true });
   document.addEventListener('pointerdown', hbOnPenDown);
   document.addEventListener('pointerup', hbOnPenUp);

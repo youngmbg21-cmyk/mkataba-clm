@@ -62,10 +62,12 @@ describe('f524 (1)(2) the line is the reading\'s point', () => {
 });
 
 describe('f524 (3) where it is drawn', () => {
-  test('a small chart: under the totals, from the one reading; enlarged: the full reading, no headline', () => {
+  /* RE-POINTED 11 Oct 2026 (the Board as drawn): the card is clean — the chart
+     first, then its notes: the point in one line, then the totals */
+  test('a small chart: a note under the chart, from the one reading; enlarged: the full reading, no headline', () => {
     const f = fn('hbChartHtml');
     assert.match(f, /const head = big \? '' : hbHeadlineHtml\(D\.key, hbReadingOf\(D, cs, P, R\), cs\.length, hbWhySig\(D, P, cs\)\);/);
-    assert.match(f, /<div class="hb-chart-lead">\$\{lead\}<span class="hb-chart-by">\$\{_hbE\(R\.by\)\}<\/span><\/div>\$\{head\}\$\{R\.body\}/, 'right under the totals, above the chart');
+    assert.match(f, /\$\{R\.body\}<div class="hb-chart-notes">\$\{head\}<div class="hb-chart-lead">\$\{lead\}/, 'under the chart, the point then the totals');
     assert.match(f, /\(!head && R\.say \?/, 'the trend arithmetic gives way to the point');
   });
   test('Value under contract and the ready-made panels wear it too', () => {
