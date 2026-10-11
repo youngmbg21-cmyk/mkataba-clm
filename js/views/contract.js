@@ -9271,6 +9271,11 @@ function riskViewOpen(c){
      paper to it — see docThreadPaint — with the drawer open over Form & links
      (docThreadShowsClauses reads the want). */
   _docThreadWant='risk';
+  /* NO DOCUMENT TAB (owner, 11 Oct 2026): the Thread lives on Home's
+     Document, its Clauses tab — so this door opens THAT tab (roomGoTab's
+     'docs' lands on Copilot, where the Thread is not drawn and the want would
+     be left waiting for some later paint). */
+  if(!(window.innerWidth&&window.innerWidth<768)&&typeof pdOpenOnHome==='function'&&pdOpenOnHome(c.id,'doc')) return;
   roomGoTab(c,'docs');
   if(_wsTab==='docs') docThreadPaint(c);
 }
@@ -14021,7 +14026,9 @@ function docThreadPaint(c){
   const sheet=docReadSheet(c,thEl('canvas'))||[];
   _docThreadRows=rows.map(x=>x.el);
   if(!rows.length){
-    _docThreadWant='';
+    /* on Home the list can paint before the paper has its wording: a risk
+       door's want waits for the paint that has rows (riskViewOpen) */
+    { const cv=thEl('canvas'); if(!home||(cv&&cv.textContent.trim())) _docThreadWant=''; }
     card.innerHTML=`<div class="doc-th-top">${docThreadTopHtml(c,rows,has)}</div><div class="doc-xr-none">${esc(i18t(flat?'ct_struct_flat':'xr_no_clauses'))}</div>`;
     card.removeAttribute('data-th-sig'); _docThreadCache=null; return;
   }

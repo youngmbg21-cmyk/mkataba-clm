@@ -2,9 +2,9 @@
    order, part E)
    ============================================================
    Where the reader stands, at 1024 and 1440 wide:
-     1. the Document tab's control row: the Focus door shows the mark AND the
-        word "Focus"; the row stays one line; pressing it enters focus and
-        pressing again leaves.
+     1. RETIRED 11 Oct 2026: the Document tab is gone (owner), and its
+        control row's Focus door with it. The room's Focus lives in the ⋯
+        menu (3), which still enters and leaves focus (3b).
      2. the Negotiate page's control row: the same.
      3. the ⋯ menu row says "Focus" (no longer "Focus mode").
      4. in Swedish every one of them says "Fokus".
@@ -77,22 +77,10 @@ const doorOf = (page, sel) => page.evaluate(sel => {
 
     for (const w of [1024, 1440]){
       await page.setViewportSize({ width: w, height: 800 });
-      await page.evaluate(id => { openWorkspace(id); roomGoTab(getContract(id), 'doc'); }, ID);
-      await until(page, () => !!document.querySelector('.ws-focus-door'));
-      const d = await doorOf(page, '.ws-focus-door');
-      check(!!d && d.text === 'Focus' && d.mark, `1a @${w} the Document tab's Focus door shows the mark and the word "Focus"`, d && JSON.stringify(d));
-      check(!!d && d.oneLine, `1b @${w} the Document tab's control row stays one line`, d && JSON.stringify(d));
-      await shot(`doc-${w}.png`);
-      if (w === 1024){
-        const first = await page.evaluate(() => { const p = document.querySelector('.doc-surface p, .doc-surface h2'); return p ? Math.round(p.getBoundingClientRect().top) : null; });
-        await page.evaluate(() => document.querySelector('.ws-focus-door').click());
-        const on = await until(page, () => document.querySelector('.ws-focus-door[aria-pressed="true"]') ? true : null);
-        check(!!on, '1c pressing it enters focus');
-        await page.evaluate(() => { const b = document.querySelector('.ws-focus-door[aria-pressed="true"]') || document.querySelector('[data-ws-focus][aria-pressed="true"]'); if (b) b.click(); else wsFocusToggle(); });
-        const off = await until(page, () => document.querySelector('.ws-focus-door[aria-pressed="false"]') ? true : null);
-        const again = await page.evaluate(() => { const p = document.querySelector('.doc-surface p, .doc-surface h2'); return p ? Math.round(p.getBoundingClientRect().top) : null; });
-        check(!!off && first === again, '1d pressing again leaves, and the first line of wording is where it was', JSON.stringify({ first, again }));
-      }
+      /* 1a-1d RETIRED 11 Oct 2026: the Document tab is gone (owner), and the
+         Focus door on its control row with it. */
+      await page.evaluate(id => openWorkspace(id), ID);
+      await until(page, () => !!document.getElementById('ws-tabs'));
       await page.evaluate(id => roomGoTab(getContract(id), 'redline'), ID);
       await until(page, () => !!document.querySelector('.redline-page .rl-focus-door'), null, 10000);
       const n = await doorOf(page, '.redline-page .rl-focus-door');
@@ -102,22 +90,30 @@ const doorOf = (page, sel) => page.evaluate(sel => {
     }
 
     /* 3. the ⋯ menu row */
-    await page.evaluate(id => roomGoTab(getContract(id), 'doc'), ID);
-    await until(page, () => !!document.querySelector('.ws-focus-door'));
+    await page.evaluate(id => openWorkspace(id), ID);
+    await until(page, () => !!document.getElementById('ws-focus'));
     const m = await page.evaluate(() => { const b = document.getElementById('ws-focus'); if (!b) return null;
       const t = [...b.childNodes].filter(k => k.nodeType === 3 || (k.nodeType === 1 && !k.classList.contains('mnote') && k.tagName !== 'svg')).map(k => k.textContent).join('').trim(); return t; });
     check(m === 'Focus', '3 the ⋯ menu row says "Focus"', m);
+    /* 3b the room's one Focus (the ⋯ row) enters focus and leaves it again -
+       what 1c/1d proved on the retired Document-tab door */
+    const fOn = await page.evaluate(() => { const b = document.getElementById('ws-focus'); if (!b) return null; b.click(); return true; });
+    const entered = fOn && await until(page, () => (document.getElementById('ws-focus') || {}).getAttribute && document.getElementById('ws-focus').getAttribute('aria-pressed') === 'true' && (document.getElementById('ws-head') || {style: {}}).style.display === 'none' ? true : null);
+    await page.keyboard.press('Escape');   /* the row's own hint: Esc to leave */
+    const left = await until(page, () => (document.getElementById('ws-focus') || {}).getAttribute && document.getElementById('ws-focus').getAttribute('aria-pressed') === 'false' ? true : null);
+    check(!!entered && !!left, '3b the ⋯ row enters focus (the head goes), and it can be left again', JSON.stringify({ entered: !!entered, left: !!left }));
 
     /* 4. Swedish */
     await page.evaluate(() => langSet('sv'));
     await page.waitForTimeout(400);
-    await page.evaluate(id => { openWorkspace(id); roomGoTab(getContract(id), 'doc'); }, ID);
-    await until(page, () => !!document.querySelector('.ws-focus-door'));
-    const sv = await doorOf(page, '.ws-focus-door');
+    await page.evaluate(id => openWorkspace(id), ID);
+    await until(page, () => !!document.getElementById('ws-focus'));
+    const sv = await page.evaluate(() => { const b = document.getElementById('ws-focus'); if (!b) return null;
+      return { text: [...b.childNodes].filter(k => k.nodeType === 3 || (k.nodeType === 1 && !k.classList.contains('mnote') && k.tagName !== 'svg')).map(k => k.textContent).join('').trim() }; });
     await page.evaluate(id => roomGoTab(getContract(id), 'redline'), ID);
     await until(page, () => !!document.querySelector('.redline-page .rl-focus-door'), null, 10000);
     const svN = await doorOf(page, '.redline-page .rl-focus-door');
-    check(!!sv && !!svN && sv.text === 'Fokus' && svN.text === 'Fokus', '4 in Swedish both doors say "Fokus"', JSON.stringify({ sv: sv && sv.text, svN: svN && svN.text }));
+    check(!!sv && !!svN && sv.text === 'Fokus' && svN.text === 'Fokus', '4 in Swedish the ⋯ row and the Negotiate door both say "Fokus"', JSON.stringify({ sv: sv && sv.text, svN: svN && svN.text }));
     await shot('nego-sv.png');
     await page.evaluate(() => langSet('en'));
   } catch (e){

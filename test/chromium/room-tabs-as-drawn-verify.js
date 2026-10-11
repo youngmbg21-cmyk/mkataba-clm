@@ -6,9 +6,9 @@
    negotiation
      1 the head is one white band, the bar says Contracts on every tab, the
        counterparty wears its initials
-     2 Document and Signing: the facts step aside, the paper's tools sit on
-       their own row with the lock said on its left, and no dark banner sits
-       over the paper
+     2 Signing: the facts step aside, no tool bar and no dark banner over the
+       paper; the Overview's buttons (Open Negotiate) stand on the tab line.
+       (Re-pointed 11 Oct 2026: the Document tab is gone, owner.)
      3 Signing is one panel, the sealed record's two acts on top
      4 Where we are: the open points are a table (clause · what · by), Settled
        and Lately are cards, and our own act is "Share a status link"
@@ -67,7 +67,7 @@ const LIVE = { ...H.fixtureContract('MK-R2', 'Raw Milk Collection', 'Nandi Dairy
     await page.waitForFunction(() => typeof openWorkspace === 'function' && state.contracts && state.contracts.length > 1, null, { timeout: 15000 });
 
     console.log('\n1 · the head');
-    await tab('MK-R1', 'docs');
+    await tab('MK-R1', 'terms');   /* was 'docs' - retired 11 Oct 2026: the Document tab is gone (owner) */
     const head = await page.evaluate(() => {
       const band = document.querySelector('.room-band');
       const probe = document.createElement('div'); probe.style.background = 'var(--color-surface)'; document.body.appendChild(probe);
@@ -77,10 +77,19 @@ const LIVE = { ...H.fixtureContract('MK-R2', 'Raw Milk Collection', 'Nandi Dairy
         cpAv: !!document.querySelector('#ws-facts .room-cp .reg-av') };
     });
     ok('1a the name, facts and tabs sit on one white band', head.band === head.white, `${head.band} vs ${head.white}`);
-    ok('1b the bar says Contracts on the Document tab', /^Contracts/.test(head.bar), head.bar);
+    ok('1b the bar says Contracts on the Overview tab', /^Contracts/.test(head.bar), head.bar);
     ok('1c the counterparty fact wears its initials', head.cpAv);
 
     console.log('\n2 · the paper\'s tools');
+    /* the tab line's buttons are measured on the Overview, where Open
+       Negotiate now stands; the rest on Signing, the one tab left that draws
+       the paper (re-pointed 11 Oct 2026: the Document tab is gone, owner) */
+    const lineOf = await page.evaluate(() => ({
+        slotInTabs: !!document.querySelector('.room-tabrow > #ws-tabrow-end'),
+        sameLine: (() => { const t = document.querySelector('#ws-tabs .room-tab.on, #ws-tabs [data-ws-tab].on'), b = document.getElementById('ws-to-nego');
+          if (!t || !b) return false; const a = t.getBoundingClientRect(), r = b.getBoundingClientRect();
+          return Math.abs((a.top + a.bottom) / 2 - (r.top + r.bottom) / 2) < 12; })() }));
+    await tab('MK-R1', 'sign');
     const doc = await page.evaluate(() => {
       const vis = el => !!el && el.getClientRects().length > 0 && getComputedStyle(el).display !== 'none';
       return { facts: vis(document.getElementById('ws-facts')),
@@ -92,11 +101,11 @@ const LIVE = { ...H.fixtureContract('MK-R2', 'Raw Milk Collection', 'Nandi Dairy
           return Math.abs((a.top + a.bottom) / 2 - (r.top + r.bottom) / 2) < 12; })(),
         banner: /This document is executed and locked/.test(document.getElementById('doc-scroll') ? document.getElementById('doc-scroll').textContent : '') };
     });
-    ok('2a the facts strip steps aside on Document', !doc.facts);
+    ok('2a the facts strip steps aside on Signing', !doc.facts);
     /* RE-POINTED 10 Oct 2026 (owner: the buttons go up onto the tab line and
        the white bar under the tabs is deleted, its lock line dropped) */
     ok('2b no tool bar under the tabs, and no lock line', !doc.row && !doc.lock);
-    ok('2b2 the paper\'s buttons stand on the tab line', doc.slotInTabs && doc.sameLine);
+    ok('2b2 the Overview\'s buttons stand on the tab line', lineOf.slotInTabs && lineOf.sameLine);
     ok('2c no dark banner over the paper', !doc.banner);
 
     console.log('\n3 · Signing is one panel');

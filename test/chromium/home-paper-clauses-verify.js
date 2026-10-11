@@ -12,8 +12,9 @@
         with the contract line (no lifted card)
      5  the Track keeps its place at every panel width — slim when the margin
         is tight — and the old strip is never drawn
-     6  the contract's Document tab: the drawer's × is on the head's first line
-        at the right; a row the scroll opens opens in one step (no animation)
+     6  a row the scroll opens opens in one step (no animation) — on Home's
+        Document since 11 Oct 2026 (the room's Document tab, its drawer and
+        its ×, are gone, owner)
    RED AT THE PARENT: 1, 3, 4 (white), 5, 6 fail on main before this change.
    ============================================================ */
 const fs = require('node:fs');
@@ -118,27 +119,26 @@ const until = async (page, fn, arg, ms = 8000) => page.waitForFunction(fn, arg, 
     await page.screenshot({ path: path.join(OUT, '5-track-slim.png') });
     await page.evaluate(() => { localStorage.removeItem('hati.v1.igDockW'); igSyncDockWidth(); });
 
-    /* ===== 6. THE CONTRACT'S DOCUMENT TAB: THE × AND THE STILL LIST ===== */
-    await page.evaluate(() => { openWorkspace('MK-HP2'); });
-    await page.waitForTimeout(700);
-    await page.evaluate(() => roomGoTab(getContract('MK-HP2'), 'docs'));
-    await until(page, () => !!document.getElementById('ws-th-door') && !document.getElementById('ws-th-door').hidden);
-    const door = await page.evaluate(() => (document.getElementById('ws-th-door') || {}).textContent.replace(/\s+/g, ' ').trim());
-    ok('6a the Clauses door says "to review"', /2 to review|3 to review/.test(door), door);
-    await page.click('#ws-th-door');
-    await until(page, () => !!document.querySelector('#doc-thread [data-th-close]'));
-    const x = await page.evaluate(() => { const b = document.querySelector('#doc-thread [data-th-close]').getBoundingClientRect(), t = document.querySelector('#doc-thread .doc-th-title').getBoundingClientRect(), card = document.getElementById('doc-thread').getBoundingClientRect();
-      return { xMid: Math.round(b.top + b.height / 2), tTop: Math.round(t.top), tBot: Math.round(t.bottom), gapRight: Math.round(card.right - b.right) }; });
-    ok('6b the × sits on the head\'s first line, at the right', x.xMid >= x.tTop - 4 && x.xMid <= x.tBot + 4 && x.gapRight <= 20, JSON.stringify(x));
-    await page.screenshot({ path: path.join(OUT, '6-room-drawer.png') });
-    await page.mouse.move(500, 600);
+    /* ===== 6. THE STILL LIST =====
+       6a (the room's Clauses door says "to review") and 6b (the drawer's x on
+       its head's first line) RETIRED 11 Oct 2026: the Document tab is gone
+       (owner), and its door and drawer with it; Home's list has neither (1d).
+       6c is the Thread's own behaviour, so it is measured where the Thread
+       lives now: Home's Document, Clauses tab, scrolling Home's paper. */
+    await page.evaluate(() => pdOpenOnHome('MK-HP2', 'doc'));
+    await until(page, () => !!document.querySelector('#pd-thread .doc-th-row.is-open .doc-th-body')
+      && !!document.getElementById('ig-paper-scroll'));
+    const pb = await page.evaluate(() => { const r = document.getElementById('ig-paper-scroll').getBoundingClientRect();
+      return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }; });
+    await page.mouse.move(pb.x, pb.y);
     const still = [];
     for (let k = 0; k < 12; k++) {
       await page.mouse.wheel(0, 40); await page.waitForTimeout(40);
-      still.push(await page.evaluate(() => { const c = document.getElementById('doc-thread'); const o = c.querySelector('.doc-th-row.is-open .doc-th-body');
+      still.push(await page.evaluate(() => { const c = document.getElementById('pd-thread'); const o = c.querySelector('.doc-th-row.is-open .doc-th-body');
         return c.classList.contains('th-still') ? (o ? getComputedStyle(o).transitionDuration : 'none') : 'idle'; }));
     }
     ok('6c while the paper scrolls, a row opens in one step — no animation', still.some(v => v === '0s') && !still.some(v => v !== '0s' && v !== 'idle' && v !== 'none'), still.join(' '));
+    await page.screenshot({ path: path.join(OUT, '6-home-still.png') });
 
     /* ===== 8. HOME'S HEAD: THE FILTER AT THE LEFT, "GO TO DOCUMENT" AT THE RIGHT =====
        (owner, 10 Oct 2026: "move the highlighted buttons to the far left and
@@ -158,13 +158,10 @@ const until = async (page, fn, arg, ms = 8000) => page.waitForFunction(fn, arg, 
         word: door ? door.textContent.replace(/\s+/g, ' ').trim() : '', arrow: !!(door && door.querySelector('svg')), x: !!t.querySelector('[data-th-close]') };
     });
     ok('8b the filter starts at the left, under the title', !!(hd && hd.chips && hd.title && Math.abs(hd.chips.l - hd.title.l) <= 2), JSON.stringify(hd && { chips: hd.chips, title: hd.title }));
-    ok('8c "→ Go to document" ends the same row, at the far right', !!(hd && hd.door && hd.hit && hd.word === 'Go to document' && hd.arrow
-      && Math.abs((hd.door.t + hd.door.b) - (hd.chips.t + hd.chips.b)) <= 4 && hd.head.r - hd.door.r <= 16 && hd.door.l > hd.chips.r), JSON.stringify(hd));
+    /* 8c ("→ Go to document" ends the row) and 8d (it opens the contract on
+       its Document tab) RETIRED 11 Oct 2026: the Document tab is gone (owner);
+       Home's Document IS the document, so the list drops the door. */
     await page.screenshot({ path: path.join(OUT, '8-home-head.png') });
-    await page.click('#pd-thread [data-th-open-doc]');
-    const landed = await until(page, () => state.view === 'workspace' && String(state.activeId) === 'MK-HP1'
-      && !!document.querySelector('#ws-tabs [data-ws-tab="docs"][aria-selected="true"]'));
-    ok('8d pressing it opens this contract on its Document tab', landed);
 
     ok('7 no page errors', !errs.length, errs.join(' | '));
   } catch (e) {

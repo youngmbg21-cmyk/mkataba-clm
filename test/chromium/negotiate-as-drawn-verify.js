@@ -7,7 +7,9 @@
        lands on the Document tab
      3 the quiet line under the title names no person (owner, 10 Oct 2026:
        no lead, no owner), and the title and that line stand on exactly the
-       pixels they hold on the Document tab — no movement going between them
+       pixels they hold on the room's Signing tab — no movement going between
+       them (was the Document tab; re-pointed 11 Oct 2026: the Document tab is
+       gone, owner — Signing is the room's tab that also sets the facts aside)
      7 no grey on the head: a closed side panel casts no shadow over its edge
      4 the facts strip steps aside, as on the Document tab
      5 the parties' colour key has a thin row of its own under the controls,
@@ -56,8 +58,9 @@ const LIVE = { ...H.fixtureContract('MK-N1', 'Raw Milk Collection', 'Nandi Dairy
       const R = e => { if (!e) return null; const b = e.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top)]; };
       return { t: R(t), l: R(l) };
     });
-    await page.evaluate(() => { const c = getContract('MK-N1'); roomGoTab(c, 'docs'); });
-    await page.waitForTimeout(900);
+    await page.evaluate(() => { const c = getContract('MK-N1'); roomGoTab(c, 'sign'); });
+    await page.waitForFunction(() => !!document.querySelector('#ws-tabs [data-ws-tab="sign"].on'), null, { timeout: 8000 }).catch(() => {});
+    await page.waitForTimeout(500);
     const docSpot = await spot();
     await page.evaluate(() => openRedlineWorkbench('MK-N1'));
     await page.waitForFunction(() => !!document.querySelector('#view-redline #ws-head .room-name h1'), null, { timeout: 10000 }).catch(() => {});
@@ -103,7 +106,7 @@ const LIVE = { ...H.fixtureContract('MK-N1', 'Raw Milk Collection', 'Nandi Dairy
     ok('2c the title row is white, like the Document tab\'s band', r.headBg === 'rgb(255, 255, 255)', r.headBg);
     console.log('\n3 · the quiet line');
     ok('3a it names no person — no Lead, no Owner', !/Lead|Owner/.test(r.sub) && /MK-N1/.test(r.sub), r.sub);
-    ok('3b the title and its line hold the Document tab\'s pixels',
+    ok('3b the title and its line hold the room\'s pixels (its Signing tab)',
       !!docSpot.t && !!docSpot.l && JSON.stringify(docSpot) === JSON.stringify(negSpot),
       JSON.stringify({ docSpot, negSpot }));
     console.log('\n4 · the facts');
@@ -116,12 +119,9 @@ const LIVE = { ...H.fixtureContract('MK-N1', 'Raw Milk Collection', 'Nandi Dairy
     console.log('\n7 · no grey');
     ok('7 a closed side panel casts no shadow over the head', r.shadows.every(x => x === 'none'), JSON.stringify(r.shadows));
 
-    if (r.backBeforeTitle) {
-      await page.click('#view-redline #ws-head .room-name #ws-back');
-      await page.waitForFunction(() => !!document.querySelector('#ws-tabs [data-ws-tab="docs"].on'), null, { timeout: 8000 }).catch(() => {});
-      ok('2c pressing it lands on the Document tab',
-        await page.evaluate(() => !!document.querySelector('#ws-tabs [data-ws-tab="docs"].on')));
-    }
+    /* "pressing the back arrow lands on the Document tab" RETIRED 11 Oct
+       2026: the Document tab is gone (owner), and the arrow went on 10 Oct;
+       2a pins that no arrow is drawn. */
   } catch (e) {
     fail++; console.log('  FAIL harness — ' + e.message);
   }

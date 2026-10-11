@@ -279,19 +279,20 @@ async function shot(page, name){ try{ await page.screenshot({ path: path.join(OU
     await page.evaluate(() => { try{ if (window.clauseEditorClose) window.clauseEditorClose({ force: true }); }catch(_){} });
     await page.keyboard.press('Escape');
 
-    /* 6 — the Document tab's Worth a look */
-    await page.evaluate(id => { const c = getContract(id); try{ if (window.closeClauseEditor) window.closeClauseEditor(true); }catch(_){} roomGoTab(c, 'document'); }, ID);
+    /* 6 — the Thread's Worth a look. RE-POINTED 11 Oct 2026: the room's
+       Document tab and its Clauses drawer are gone (owner); the Thread lives
+       on Home's Document, its Clauses tab (#pd-thread). */
+    await page.evaluate(id => { try{ if (window.closeClauseEditor) window.closeClauseEditor(true); }catch(_){} pdOpenOnHome(id, 'doc'); }, ID);
     const thread = await until(page, () => {
-      const door = document.getElementById('ws-th-door'); if (door && !document.querySelector('#doc-right.is-clauses')) door.click();
-      const rows = [...document.querySelectorAll('#doc-thread .doc-xr-mt')].map(x => x.textContent.replace(/\s+/g, ' ').trim());
+      const rows = [...document.querySelectorAll('#pd-thread .doc-xr-mt')].map(x => x.textContent.replace(/\s+/g, ' ').trim());
       const hit = rows.find(t => /^Ended on 30 days' notice — /.test(t));
-      if (!hit){ const row = [...document.querySelectorAll('#doc-thread .doc-th-row')].find(x => /Termination/.test((x.querySelector('.doc-th-name') || {}).textContent || ''));
+      if (!hit){ const row = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(x => /Termination/.test((x.querySelector('.doc-th-name') || {}).textContent || ''));
         const go = row && row.querySelector('[data-th-go]'); if (go && go.getAttribute('aria-expanded') !== 'true') go.click(); }
       return hit || null;
     }, null, 10000);
-    const thWhy = thread ? '' : await page.evaluate(() => JSON.stringify({ door: !!document.getElementById('ws-th-door'), drawer: !!document.querySelector('#doc-right.is-clauses'),
+    const thWhy = thread ? '' : await page.evaluate(() => JSON.stringify({ view: state.view, thread: !!document.getElementById('pd-thread'),
       mt: [...document.querySelectorAll('.doc-xr-mt')].map(x => x.textContent.replace(/\s+/g, ' ').trim().slice(0, 80)), tab: state.wsTab || null }));
-    check(!!thread, '6 the Clauses drawer\'s Worth a look reads "title — sentence"', thread || thWhy);
+    check(!!thread, '6 the Clauses tab\'s Worth a look reads "title — sentence"', thread || thWhy);
     await shot(page, '5-worth-a-look.png');
 
     check(errors.length === 0, '9 no page errors', errors.join(' | ') || 'none');
