@@ -173,6 +173,8 @@ function hbS(){
     const old = {};
     if (v.digView && typeof v.digView === 'object') Object.entries(v.digView).forEach(([k, m]) => { if (typeof k === 'string' && (m === 'list' || m === 'bars')) old[k] = { pic: m }; });
     s.recipe = hbRecipeClean(Object.assign(old, v.recipe && typeof v.recipe === 'object' ? v.recipe : {}));
+    s.recipeStart = {};
+    if (v.recipeStart && typeof v.recipeStart === 'object') Object.entries(v.recipeStart).slice(-30).forEach(([k, r]) => { if (typeof k === 'string') s.recipeStart[k] = r && typeof r === 'object' ? hbCardClean(r) : null; });
     s.digBig = !!v.digBig;
     /* MY QUESTIONS (A4): a name and a view key, or a name and a recipe */
     if (Array.isArray(v.myq)) s.myq = v.myq.filter(q => q && typeof q.name === 'string' && (typeof q.key === 'string' || (q.recipe && typeof q.recipe === 'object'))).slice(-HB_MYQ_MAX)
@@ -1962,7 +1964,7 @@ const HB_PICS_OWN_SPLIT = ['waterfall', 'funnel', 'forecast'];
 const HB_SORTS = ['value', 'count', 'name'];
 const HB_DIRS = ['down', 'up'];
 const HB_COMPARES = ['prev', 'year', 'range'];
-const HB_TOP_MAX = 50, HB_TITLE_MAX = 80, HB_SERIES_MAX = 6, HB_HEAT_MAX = 12;
+const HB_TOP_MAX = 50, HB_TITLE_MAX = 80, HB_SERIES_MAX = 6, HB_HEAT_MAX = 12, HB_HEAT_BOARD_ROWS = 8;
 const HB_WIN_MAX = { m: 120, q: 40, y: 10 };
 const HB_TREND_MIN_N = 3, HB_TREND_MIN_PTS = 6, HB_COLS_MAX = 24;
 const _HB_BY = '(?:by|per|across|for each|grouped by|split by|broken down by|efter|uppdelat på)\\s+(?:the\\s+|their\\s+)?';
@@ -2961,6 +2963,10 @@ function hbCardSet(key, parts, opts){
      taken whole, never part by part */
   const seed = !!(opts && opts.seed);
   if (seed && s.recipe[key]) return s.recipe[key];
+  /* WHERE YOU STARTED (owner, 11 Oct 2026: "a back button / arrow (small
+     one) that brings you back to where you started so you do not get lost"):
+     the recipe as it was before the first press is kept once per card */
+  if (!seed){ s.recipeStart = s.recipeStart || {}; if (!(key in s.recipeStart)) s.recipeStart[key] = s.recipe[key] ? JSON.parse(JSON.stringify(s.recipe[key])) : null; }
   const o = seed ? {} : Object.assign({}, s.recipe[key] || {});
   if (seed) Object.assign(o, parts || {});
   else Object.keys(parts || {}).forEach(part => hbCardSetPart(o, part, parts[part]));
@@ -2974,6 +2980,27 @@ function hbCardSet(key, parts, opts){
 }
 /* a press on a dropdown: one part through the one writer */
 function hbRecipeSet(key, part, v){ return hbCardSet(key, { [part]: v }); }
+/* has this card moved from where it started? */
+function hbMovedFromStart(key){
+  const s = hbS(), st = s.recipeStart || {};
+  if (!(key in st)) return false;
+  return JSON.stringify(st[key] || {}) !== JSON.stringify((s.recipe || {})[key] || {});
+}
+/* back to where it started: the card's first recipe, and on the open card the
+   first step of its trail */
+function hbBackToStart(key, inFocus){
+  const s = hbS(), st = s.recipeStart || {};
+  if (key in st){ const was = st[key]; delete st[key];
+    if (was) s.recipe[key] = was; else delete s.recipe[key];
+    (s.panels || []).forEach(p => { if (p.kind === 'view' && p.key === key) p.recipe = was ? JSON.parse(JSON.stringify(was)) : p.recipe; }); }
+  if (inFocus && Array.isArray(s.path) && s.path.length > 1){ const root = s.path[0]; s.path = [root]; if (root in st) return hbBackToStart(root, false); }
+  hbSave();
+}
+function hbStartBtnHtml(key, inFocus){
+  const s = hbS(), deep = inFocus && (s.path || []).length > 1;
+  if (!key || !(deep || hbMovedFromStart(key))) return '';
+  return `<button type="button" class="hb-ib hb-to-start" data-hb-to-start="${_hbE(key)}"${inFocus ? ' data-hb-to-start-focus' : ''} title="${_hbE(i18t('hb_to_start'))}" aria-label="${_hbE(i18t('hb_to_start'))}">${_hbBack}</button>`;
+}
 function hbRecipeClean(v){
   const out = {};
   if (!v || typeof v !== 'object') return out;
@@ -3259,7 +3286,12 @@ function hbHeatSvg(D, cs, P){
     if (A.out - half > room){ const k = (room + half) / A.out; A = { ...A, w: A.w * k, up: Math.ceil((A.up - A.fs) * k) + A.fs, out: Math.ceil(A.out * k) }; }
     R = Math.max(12, Math.ceil(A.out - half) + 4); }
   const Tp = A ? A.up + 16 : 36;
-  const allR = rowsS.length, capR = _hbFit ? Math.max(2, Math.floor((hbStepH(_hbFit.step) - 58 - (Tp - 36)) / 30)) : allR;
+  /* ON THE BOARD THE CARD GROWS TO SHOW THE ROWS (owner, 11 Oct 2026: "it
+     gives a chart that tells you a story and is not in full"): up to
+     HB_HEAT_BOARD_ROWS rows are drawn whatever the step's height; past that
+     the cut is said, as before */
+  const allR = rowsS.length, fitR = _hbFit ? Math.floor((hbStepH(_hbFit.step) - 58 - (Tp - 36)) / 30) : allR;
+  const capR = _hbFit ? Math.max(2, fitR, _hbFit.step === 'board' ? Math.min(allR, HB_HEAT_BOARD_ROWS) : 0) : allR;
   const cutR = allR > capR ? allR - (capR - 1) : 0;
   const gridAll = grid.slice();
   if (cutR){ rowsS.length = capR - 1; grid.length = capR - 1; }
@@ -5060,7 +5092,7 @@ function hbFocusHtml(){
   const tools = D.kind === 'list' ? hbEdgeHtml(D, 'focus', 'focus') : grows ? `${hbBigBtnHtml(s.digBig, 'data-hb-digbig')}` : '';
   const FM = _hbEdgeMeta.get('focus') || {};
   return `<div class="hb-focus" id="hb-focus"><nav class="hb-trail" aria-label="${_hbE(i18t('hb_trail'))}"><button type="button" data-hb-crumb="-1">${_hbE(i18t('hb_face_board'))}</button><span aria-hidden="true">›</span>${crumbs}${hbFuStepsHtml(path[path.length - 1])}</nav>
-    <section class="hb-card hb-dig${_hbFocusNew ? ' is-new' : ''}${s.digBig && grows ? ' is-big' : ''}${_hbFull && grows ? ' is-full' : ''}"><header class="hb-ch"><span class="hb-ch-l"><span class="hb-ct">${_hbE(title)}</span>${hbVerBadgeHtml((s.panels || []).find(x => x.key === path[path.length - 1]))}${FM.by ? `<span class="hb-cs">${_hbE(FM.by)}</span>` : ''}</span><span class="hb-grow"></span>${tools}${eye}
+    <section class="hb-card hb-dig${_hbFocusNew ? ' is-new' : ''}${s.digBig && grows ? ' is-big' : ''}${_hbFull && grows ? ' is-full' : ''}"><header class="hb-ch">${hbStartBtnHtml(path[0], true)}<span class="hb-ch-l"><span class="hb-ct">${_hbE(title)}</span>${hbVerBadgeHtml((s.panels || []).find(x => x.key === path[path.length - 1]))}${FM.by ? `<span class="hb-cs">${_hbE(FM.by)}</span>` : ''}</span><span class="hb-grow"></span>${tools}${eye}
       ${path.length > 1 ? `<button type="button" class="hb-ib" data-hb-crumb="${path.length - 2}" title="${_hbE(i18t('hb_step_back'))}" aria-label="${_hbE(i18t('hb_step_back'))}">${_hbBack}</button>` : ''}
       <button type="button" class="hb-ib hb-x" data-hb-crumb="-1" title="${_hbE(i18t('hb_close_dig'))}" aria-label="${_hbE(i18t('hb_close_dig'))}">${_hbX}</button></header>
       <div class="hb-cb">${fk && _hbWatchForm === fk ? hbWatchFormHtml(fk) : ''}${watching}${D.kind === 'list' && /^(q|cd|ls):/.test(D.key) ? hbChartWatchHtml(D.key, title, 'chart:focus') : ''}${bodyHtml}</div></section></div>`;
@@ -6265,7 +6297,7 @@ function hbPage(){ return document.getElementById('ig-page') || document.getElem
    and a keyboard reader is thrown to the top). The pressed control is found
    again by what it IS — its own data-hb-* attribute — and a dig-in that
    opened takes focus on its first crumb instead. */
-const HB_FOCUS_KEYS = ['data-hb-dig', 'data-hb-act', 'data-hb-prep', 'data-hb-crumb', 'data-hb-watch', 'data-hb-lens', 'data-hm-agent', 'data-hb-rc', 'data-hb-rset', 'data-hb-rtrend', 'data-hb-digbig', 'data-hb-rmore'];
+const HB_FOCUS_KEYS = ['data-hb-to-start', 'data-hb-dig', 'data-hb-act', 'data-hb-prep', 'data-hb-crumb', 'data-hb-watch', 'data-hb-lens', 'data-hm-agent', 'data-hb-rc', 'data-hb-rset', 'data-hb-rtrend', 'data-hb-digbig', 'data-hb-rmore'];
 function hbFocusKey(el){
   if (!el || !el.getAttribute) return null;
   const pid = el.closest && el.closest('[data-hb-pid]');
@@ -7035,7 +7067,7 @@ function hbViewPanelHtml(p, lens, gift){
   const edge = D ? hbEdgeHtml(D, p.id, 'board', p, gift)
     : `<span class="hb-edge"><button type="button" class="hb-edge-b" data-hb-act="x">${_hbE(i18t('hb_p_x'))}</button></span>`;
   return `<section class="hb-card hb-panel hb-view${p.big ? ' is-big' : ''}${p.id === _hbNewPanel ? ' is-new' : ''}" data-hb-pid="${_hbE(p.id)}">
-    <header class="hb-ch"><span class="hb-ch-l"><span class="hb-ct">${_hbE(hbPanelWord(p))}</span>${hbVerBadgeHtml(p)}${tag}${from}${given}${M.by ? `<span class="hb-cs">${_hbE(M.by)}</span>` : ''}</span><span class="hb-grow"></span>
+    <header class="hb-ch">${hbStartBtnHtml(p.key, false)}<span class="hb-ch-l"><span class="hb-ct">${_hbE(hbPanelWord(p))}</span>${hbVerBadgeHtml(p)}${tag}${from}${given}${M.by ? `<span class="hb-cs">${_hbE(M.by)}</span>` : ''}</span><span class="hb-grow"></span>
       ${edge}</header>
     ${_hbVerForm === p.id && hbMayVerify(p) ? hbVerFormHtml(p) : ''}${_hbGiveForm === p.id ? `<div class="hb-cb">${hbGiveFormHtml(p)}</div>` : ''}${D ? hbChartWatchHtml(p.key, hbPanelWord(p), 'chart:' + p.id) : ''}${body}</section>`;
 }
@@ -8929,6 +8961,7 @@ function hbOnClick(e){
     _hbRdOpen = null; if (row && i > 0) hbReadingSet(row.getAttribute('data-hb-rd-key'), v.slice(0, i), v.slice(i + 1)); hbPaintBoard({ jump: 'focus' }); hbDockRepaint(); return; }
   if ((el = on('[data-hb-rmore]'))){ hbRcMoreToggle(rkey(el)); _hbRcOpen = null; hbPaintBoard(); return; }
   if ((el = on('[data-hb-rc]'))){ const p = rkey(el) + '|' + el.getAttribute('data-hb-rc'); _hbRcOpen = _hbRcOpen === p ? null : p; hbPaintBoard(); return; }
+  if ((el = on('[data-hb-to-start]'))){ hbBackToStart(el.getAttribute('data-hb-to-start'), el.hasAttribute('data-hb-to-start-focus')); _hbRcOpen = null; _hbDrawnOpen = null; hbPaintBoard(); return; }
   if ((el = on('[data-hb-rset]'))){ if (el.disabled) return; const key = rkey(el), v = el.getAttribute('data-hb-rset'), i = v.indexOf(':');
     _hbRcOpen = null; if (key && i > 0) hbRecipeSet(key, v.slice(0, i), v.slice(i + 1)); hbPaintBoard(); return; }
   if ((el = on('[data-hb-rtrend]'))){ if (el.disabled) return; const s = hbS(), key = rkey(el);
@@ -9345,7 +9378,10 @@ const HB_GALLERY = [
   { k: 'speed', recipe: { pic: 'spread', split: { by: 'kind' } } },
   { k: 'leak', which: { q: 'expired contracts' }, recipe: { pic: 'cols', split: { by: 'date', unit: 'm', date: 'end' }, window: { last: 12, unit: 'm' } } },
   { k: 'prom', recipe: { pic: 'stack', split: { by: 'counterparty' }, split2: { by: 'overdue' }, top: 10 } },
-  { k: 'pay', recipe: { pic: 'heat', split: { by: 'folder' }, split2: { by: 'payterms' } } },
+  /* payment terms ACROSS (five short names, read flat), the streams DOWN (owner,
+     11 Oct 2026: twelve stream names angled over the grid ate the card's
+     height and only one row of four was drawn) */
+  { k: 'pay', recipe: { pic: 'heat', split: { by: 'payterms' }, split2: { by: 'folder' } } },
   { k: 'pipe', recipe: { pic: 'funnel' } },
   { k: 'move', recipe: { pic: 'waterfall', measure: 'value', window: { last: 12, unit: 'm' } } },
   { k: 'fc', recipe: { pic: 'forecast', measure: 'value' } }];
@@ -9542,6 +9578,7 @@ Object.assign(window, { hbAngleOf, hbAngleText, HB_ANGLE, hbAskPopRows, hbAskPop
   hbRcOptions, hbRcShown, hbShowCard, hbAnchorOf, HB_ANCHOR_MS, hbRecipeRowHtml, hbRecipeSet, hbRecipeClean, hbFoundChart,
   hbRootKey, hbCountKey, hbCountIds, hbCounted, hbCountLabel, hbCountChipHtml, hbAskInPanel,
   HB_INS, HB_INS_SHAPES, HB_INS_MEASURED, HB_INS_V, HB_INS_MAX, HB_INS_REST_DAYS, HB_INS_NORM_PTS, HB_INS_MINE_MIN, hbInsKey, hbInsId, hbInsOf, hbInsViewWord, hbInsChart, hbInsCandidate, hbInsCandidateMemo,
+  hbMovedFromStart, hbBackToStart, hbStartBtnHtml,
   hbInsScope, hbInsNormal, hbInsRenNormal, hbInsFinding, hbInsFindingMemo, hbInsightsToday, hbInsUsual, hbInsUsualOpen, hbInsWhy, hbInsResting, hbInsBookSig,
   hbInsThumb, hbInsRowHtml, hbShelfHtml, hbPanelWord, hbAddView, hbViewPanelHtml, hbInsAct, hbKeptSync,
   hbBigBtnHtml, hbReadingOf, hbReadHtml, hbWhySig, hbWhyKept, hbWhyPrompt, hbWhyCheck, hbWhyAsk, hbWhyFollow, HB_WHY_KEEP,

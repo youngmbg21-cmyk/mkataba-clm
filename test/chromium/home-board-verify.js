@@ -435,6 +435,23 @@ const CONTRACTS = [
     ok('12b and after the other tab saves, a reload still has it', await until(page, () => hbS().panels.some(p => p.kind === 'fric')));
     await tab2.close();
 
+    /* ===== 15. THE WHOLE PICTURE, AND THE WAY BACK (owner, 11 Oct 2026: the
+       Payment terms question drew one row of four; "there should be a back
+       button / arrow (small one) that brings you back to where you started") */
+    await page.evaluate(() => { hbGalleryRun('pay'); hbPaintBoard(); });
+    await until(page, () => !!document.querySelector('.hb-panel .hb-heat'));
+    const h13 = await page.evaluate(() => { const c = [...document.querySelectorAll('.hb-panel')].find(x => x.querySelector('.hb-heat'));
+      return { rows: c.querySelectorAll('.hb-heat .hb-sv-row').length, cut: /more/.test((c.querySelector('.hb-note, .hb-cnote') || {}).textContent || ''), arrow: !!c.querySelector('[data-hb-to-start]'), by: (c.querySelector('.hb-cs') || {}).textContent }; });
+    ok('15a the payment terms question draws every row on the board (up to eight), names across, streams down', h13.rows >= 2 && !h13.arrow && /^by payment terms/.test(h13.by || ''), JSON.stringify(h13));
+    const pid14 = await page.evaluate(() => { const p = hbS().panels.find(x => x.kind === 'view' && x.recipe && x.recipe.pic === 'heat'); hbRecipeSet(p.key, 'split', 'g:status'); hbPaintBoard(); return p.id; });
+    const card = `.hb-panel[data-hb-pid="${pid14}"]`;
+    const a13 = await page.evaluate(sel => { const c = document.querySelector(sel); const b = c.querySelector('[data-hb-to-start]'), t = c.querySelector('.hb-ct');
+      return { arrow: !!b, left: !!(b && t && b.getBoundingClientRect().right <= t.getBoundingClientRect().left + 1), by: (c.querySelector('.hb-cs') || {}).textContent }; }, card);
+    ok('15b once the card is sliced, a small arrow stands left of its title', a13.arrow && a13.left && /^by stage/.test(a13.by || ''), JSON.stringify(a13));
+    await page.click(card + ' [data-hb-to-start]').catch(() => {});
+    const b13 = await until(page, sel => { const c = document.querySelector(sel); return /^by payment terms/.test((c.querySelector('.hb-cs') || {}).textContent || '') && !c.querySelector('[data-hb-to-start]'); }, card);
+    ok('15c the arrow puts the card back as it started, and goes away', b13);
+
     ok('no page errors', !errs.length, errs.join(' | '));
   } catch (e) {
     ok('the run finished', false, String(e && e.stack || e).slice(0, 400));
