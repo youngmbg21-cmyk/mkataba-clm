@@ -35,6 +35,13 @@
    with. What is no longer asserted here is the menu that used to follow, and
    the refusals it carried.
 
+   ---- AND THE MENU CAME BACK, 11 Sep 2026 (re-pointed here 11 Oct 2026) ----
+   Young: THREE VERBS on a highlight — Ask Copilot, Edit with Copilot, Comment
+   — none of which types on the paper. One clause's own words get all three;
+   wider than one clause gets Ask and Comment, never Edit; the parties block
+   is one editable region (23 Sep). Each journey now asserts which verbs it is
+   offered, and that the highlight alone asks nothing of the model.
+
    Screenshots go to test/chromium/shots/selection/. */
 const path = require('node:path');
 const fs = require('node:fs');
@@ -138,7 +145,9 @@ const INSTRUMENT = () => {
     (target || a.node.parentElement).dispatchEvent(
       new MouseEvent('mouseup', { bubbles: true, view: window }));
     await window.__settle();
-    return { text: sel.toString(), menu: !!document.querySelector('.nego-selmenu') };
+    const m = document.querySelector('.nego-selmenu');
+    return { text: sel.toString(), menu: !!m,
+      verbs: m ? [...m.querySelectorAll('button')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean) : [] };
   };
   window.__press = re => {
     const menu = document.querySelector('.nego-selmenu');
@@ -152,6 +161,7 @@ const INSTRUMENT = () => {
   window.__said = re => window.__seen.said.some(m => new RegExp(re, 'i').test(m.text));
 };
 
+const ONE_CLAUSE = ['Ask Copilot', 'Edit with Copilot', 'Comment'];
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const srv = await serve();
@@ -225,8 +235,13 @@ const INSTRUMENT = () => {
     return { ...got, passage: passage.text, found, asked: window.__seen.asked.length,
       refused: window.__said('couldn.t be matched|pending edits|more than one') };
   });
-  check('2 a cross-sub-clause drag offers nothing on the paper', !lists.menu,
-    lists.menu ? 'a menu opened' : 'no menu');
+  /* RE-POINTED 11 Oct 2026: the highlight menu came back (Young, 11 Sep 2026
+     evening: THREE VERBS — rlPaperOfferFromRange / rlPaperSelOffer). One
+     clause's own words: Ask · Edit · Comment. Wider than one clause: Ask ·
+     Comment, NEVER Edit. Nothing is asked of the model until a verb is pressed. */
+  check('2 a cross-sub-clause drag inside ONE clause offers Ask · Edit · Comment',
+    JSON.stringify(lists.verbs) === JSON.stringify(ONE_CLAUSE), JSON.stringify(lists.verbs));
+  check('2 and the highlight alone asks nothing of the model', lists.asked === 0, String(lists.asked));
   check('2 and the markers are still forgiven — the reading finds it in the stored clause',
     lists.found, lists.found ? 'located' : 'the reading could not be matched');
   check('2 with no false refusal', !lists.refused);
@@ -256,17 +271,18 @@ const INSTRUMENT = () => {
     const sel = window.getSelection();
     const swept = sel.toString();
     const menu = !!document.querySelector('.nego-selmenu');
+    const verbs = [...(document.querySelector('.nego-selmenu') || document.createElement('i')).querySelectorAll('button')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean);
     const passage = sel.rangeCount
       ? window.negoReadPassage(sel.getRangeAt(0), document.querySelector('#rl-doc')).text : '';
-    return { swept, menu, passage,
+    return { swept, menu, verbs, passage,
       refused: window.__said('couldn.t be matched|pending edits') };
   });
   check('3 a real pointer drag from the heading selects the clause',
     /Business Day/.test(whole.swept), JSON.stringify(whole.swept.slice(0, 44)));
   check('3 and the real drag really did sweep the heading in',
     /Definitions/.test(whole.swept), JSON.stringify(whole.swept.slice(0, 20)));
-  check('3 and the paper answers with nothing to press', !whole.menu,
-    whole.menu ? 'a menu opened' : 'no menu');
+  check('3 and the paper offers the one-clause verbs — Ask · Edit · Comment',
+    JSON.stringify(whole.verbs) === JSON.stringify(ONE_CLAUSE), JSON.stringify(whole.verbs));
   check('3 with no false refusal', !whole.refused);
   check('3 and the heading is not part of what the reading takes',
     !!whole.passage && !/Definitions/i.test(whole.passage),
@@ -292,8 +308,9 @@ const INSTRUMENT = () => {
     cl.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, view: window }));
     await window.__settle();
     const menu = !!document.querySelector('.nego-selmenu');
+    const verbs = [...(document.querySelector('.nego-selmenu') || document.createElement('i')).querySelectorAll('button')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean);
     const passage = window.negoReadPassage(r, document.querySelector('#rl-doc'));
-    return { menu, ids: passage.clauseIds.length,
+    return { menu, verbs, ids: passage.clauseIds.length,
       mine: passage.clauseIds[0] === cl.getAttribute('data-clause'),
       spanned: window.__said('more than one clause') };
   });
@@ -301,7 +318,7 @@ const INSTRUMENT = () => {
   else {
     check('4 an overshoot into the margin is not read as spanning two clauses',
       !over.spanned && over.ids === 1 && over.mine, `${over.ids} clause(s) in the drag`);
-    check('4 and the paper offers nothing on it either', !over.menu);
+    check('4 and it is offered as ONE clause — Edit is there', JSON.stringify(over.verbs) === JSON.stringify(ONE_CLAUSE), JSON.stringify(over.verbs));
   }
 
   /* ---- 5. the true refusals still refuse ----
@@ -317,7 +334,7 @@ const INSTRUMENT = () => {
     const got = await window.__select(a, b);
     const r2 = window.getSelection().getRangeAt(0);
     const passage = window.negoReadPassage(r2, document.querySelector('#rl-doc'));
-    return { menu: !!got.menu, marks: passage.hasMarks,
+    return { menu: !!got.menu, verbs: got.verbs, marks: passage.hasMarks,
       asked: window.__seen.asked.length };
   });
   if (live.skip) check('5 the payment clause carries a live redline', false, 'no marks found');
@@ -326,8 +343,8 @@ const INSTRUMENT = () => {
        on — the reading saying honestly that these words are under a mark — is
        here, and is what the surfaces that still offer the Copilot ask. */
     check('5 wording under a LIVE redline still reads as marked', live.marks);
-    check('5 and nothing is offered or asked of the model',
-      !live.menu && live.asked === 0, `menu ${live.menu}, asked ${live.asked}`);
+    check('5 and nothing is asked of the model by the highlight itself',
+      live.asked === 0, `menu ${JSON.stringify(live.verbs)}, asked ${live.asked}`);
   }
 
   const cross = await page.evaluate(async () => {
@@ -340,15 +357,16 @@ const INSTRUMENT = () => {
     const got = await window.__select(a, b, a0);
     const r2 = window.getSelection().getRangeAt(0);
     const passage = window.negoReadPassage(r2, document.querySelector('#rl-doc'));
-    return { menu: !!got.menu, ids: passage.clauseIds.length,
+    return { menu: !!got.menu, verbs: got.verbs, ids: passage.clauseIds.length,
       asked: window.__seen.asked.length };
   });
   if (cross.skip) check('5 both clauses are on the page', false);
   else {
     check('5 a genuine drag across two numbered clauses reads as two',
       cross.ids === 2, `${cross.ids} clause(s)`);
-    check('5 and nothing is offered or asked of the model',
-      !cross.menu && cross.asked === 0, `menu ${cross.menu}, asked ${cross.asked}`);
+    check('5 and across two clauses it is Ask · Comment, NEVER Edit — and nothing is asked yet',
+      JSON.stringify(cross.verbs) === JSON.stringify(['Ask Copilot', 'Comment']) && cross.asked === 0,
+      `menu ${JSON.stringify(cross.verbs)}, asked ${cross.asked}`);
   }
 
   /* ---- 6. front matter: the notice is retired with the menu it explained ----
@@ -374,15 +392,18 @@ const INSTRUMENT = () => {
     await window.__settle();
     const menu = document.querySelector('.nego-selmenu');
     const passage = window.negoReadPassage(r, document.querySelector('#rl-doc'));
-    return { menu: !!menu, note: !!document.querySelector('.nego-selnote'),
+    return { menu: !!menu, verbs: [...(document.querySelector('.nego-selmenu') || document.createElement('i')).querySelectorAll('button')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean), note: !!document.querySelector('.nego-selnote'),
       ids: passage.clauseIds.length, text: passage.text,
       selected: window.getSelection().toString() };
   });
   if (front.skip) check('6 the page renders front matter', false);
   else {
     check('6 the recital belongs to no clause', front.ids === 0, `${front.ids} clause(s)`);
-    check('6 and the page says nothing about a menu it no longer offers',
-      !front.menu && !front.note);
+    /* the parties block is ONE editable region (Young, 23 Sep 2026, fix 4 of
+       seven): its own words are offered what a clause's own words are, and no
+       sentence explains anything */
+    check('6 the parties block is offered what a clause is — and no note explains it',
+      JSON.stringify(front.verbs) === JSON.stringify(ONE_CLAUSE) && !front.note, JSON.stringify(front.verbs) + ' note ' + front.note);
     check('6 while the words are still selectable, so they can be copied',
       front.selected.trim().length > 3, JSON.stringify(front.selected.slice(0, 40)));
   }

@@ -53,6 +53,9 @@ const BAND_SCAN = `(() => {
   const bottom = paper.getBoundingClientRect().top;
   const bands = [];
   document.querySelectorAll('body *').forEach(el => {
+    /* the parties' key has its own row under the control row (SAP batch 4,
+       owner 9 Oct 2026) — the page's furniture, not a notice band */
+    if (el.closest('.rl-keyrow')) return;
     const r = el.getBoundingClientRect();
     if (r.height < 9 || r.width < page.width * 0.6) return;      // not band-shaped
     if (r.top < top - 1 || r.bottom > bottom + 1) return;        // not in the strip
@@ -141,7 +144,11 @@ const seen = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
       `cards ${order.cards.join(',')} · ids ${order.ids.join(',')}`);
     /* Pending before refused, refused before anything adopted — and nothing
        still awaiting an answer may sit under something decided. */
-    const rank = s => (s === 'pending' ? 0 : s === 'rejected' ? 1 : 2);
+    /* RE-POINTED 11 Oct 2026: REFUSED SITS AT THE TOP OF THE WHOLE COLUMN
+       (owner-asked 27 Aug 2026: "move refusals to the top of the pile") — a
+       refusal is a disagreement standing on the record, so it leads; below it,
+       nothing awaiting an answer may sit under an ACCEPTED or withdrawn one. */
+    const rank = s => (s === 'rejected' ? -1 : s === 'pending' ? 0 : 2);
     const ranks = order.states.map(rank);
     check('nothing still awaiting an answer sits under a decided change',
       ranks.every((r, i) => i === 0 || ranks[i - 1] <= r),
@@ -163,9 +170,12 @@ const seen = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
       const all = redlineCardIds(c, { side: 'owner', countAll: true }).length;
       return { chips: opts, all };
     });
-    check('the All / Mine / Theirs cuts are untouched — this is a sort, not a filter',
-      counts.chips.length >= 3 && counts.chips.every(t => /\d/.test(t)),
-      counts.chips.join(' | '));
+    /* RE-POINTED 11 Oct 2026: the whose-asks filter was RETIRED on 26 Aug 2026
+       (rlIdxFilterHtml is a `return ''` stub, rlCardFilterPass), so there is no
+       cut left that could hide a change — the claim becomes that no such
+       control is drawn, and the count below proves the column is whole. */
+    check('no All / Mine / Theirs cut is drawn — this is a sort, never a filter',
+      counts.chips.length === 0, counts.chips.join(' | ') || 'none drawn');
     check('and the column still holds every card the record says it should',
       order.cards.length === counts.all, `${order.cards.length} of ${counts.all}`);
 
@@ -396,8 +406,11 @@ const seen = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
           && document.getElementById('nego-ready-signal')
           && document.getElementById('pt-alerts').contains(document.getElementById('nego-ready-signal'))) };
     }, [seen]);
-    check('the counterparty still reads the wall line before they start',
-      !!cp.wall && cp.wall.on && /until you press Send/i.test(cp.said), cp.said);
+    /* REVERSED 11 Oct 2026 by the owner's own ruling (29 Sep 2026): the "Your
+       table" wall line went from the ORDINARY link — it stays only where
+       nothing else says it (no live link back, multi-party, read-only). */
+    check('on the ordinary link the wall line is not drawn (owner, 29 Sep 2026)',
+      !cp.wall || !cp.wall.on, cp.said || 'not drawn');
     /* ---- CLAIM UPDATED, 13 Aug 2026, OWNER-ASKED ----
        This used to read "the readiness signal is behind THEIR bell, like ours",
        and the bell it looked for was the floating amber one. On 13 August the

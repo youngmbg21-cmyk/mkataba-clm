@@ -108,22 +108,10 @@ const KNOWN_RED = {
     'Red on main before 28 Sep 2026 (a837d09), the same way: throws: a TimeoutError waiting for a control.',
   'flat-rows-and-alerts-verify.js':
     'Red on main before 28 Sep 2026 (a837d09), the same way: 2d the filter sits under the caption, in the same head · 2e caption at the left, filter at the right · 2f the three cuts are all still there, and exactly one is live · 5-contractsb every cell but the document kind is ONE size · 5-negotiationsb every cell but the document kind is ONE size.',
-  'keeps-your-place-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: throws: Cannot read properties of null (reading \'getBoundingClientRect\').',
   'notes-two-rooms-verify.js':
     'RE-POINTED 11 Oct 2026 and now RED ON THE PRODUCT, not the file: Chat left the shell bar for the contract\'s acts row (20 Sep 2026), and the open Notes drawer covers that row, so the SECOND press that should shut it (owner-asked 10 Sep: "when i click on it again it should collapse") cannot be made — Playwright reports the drawer\'s header intercepting the press. Where the drawer starts or where the door sits is the owner\'s call (BUGLOG, 11 Oct 2026). Every other check in the file passes.',
   'paper-grows-verify.js':
     'Red on main before 28 Sep 2026 (a837d09), the same way: 5d the pill and the ＋ open a real editor to measure · 6 the clause panel opens from the row, on screen.',
-  'phone-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: iPhone 14 (390): and offers no menu — no edits on the paper.',
-  'reopen-a-refusal-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: throws: getComputedStyle parameter 1 is not of type \'Element\'.',
-  'room-order-and-notices-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: nothing still awaiting an answer sits under a decided change · the All / Mine / Theirs cuts are untouched.',
-  'selection-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: 2 a cross-sub-clause drag offers nothing on the paper · 3 and the paper answers with nothing to press · 4 and the paper offers nothing on it either · 5 and nothing is offered or asked of the model · 6 and the page says nothing about a menu it no longer offers.',
-  'settled-ask-reopen-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: the adopted change has no card · IMAGE 2.',
   'seven-fixes-verify.js':
     'Red on main before 28 Sep 2026 (a837d09), the same way: 5b exactly two arrows, on the two Young named · 5c a tile with a door is a real button, a tile without one is not · 5f pressing the obligations tile lands on the obligations tab · 6e an older note with no reason is answered by a LIVE reading · 6f and it names the panel that DOES fill it.',
   'signing-on-paper-verify.js':

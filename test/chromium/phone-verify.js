@@ -207,13 +207,18 @@ const PROBE = () => {
              identical), so the selection is measured first and the door after. */
           const tap = await page.evaluate(() => ({
             menu: !!document.querySelector('.nego-selmenu'),
+            verbs: [...(document.querySelector('.nego-selmenu') || document.createElement('i')).querySelectorAll('button')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean),
             sel: String(window.getSelection() || '').trim().length,
             pill: !!document.querySelector('.rl-cp-pill, [data-rl-cp-open]'),
           }));
           check(`${P.name}: tapping a sentence still selects it, so it can be copied`,
             tap.sel > 10, `${tap.sel} chars selected`);
-          check(`${P.name}: and offers no menu — no edits on the paper`,
-            !tap.menu, tap.menu ? 'the selection menu still opens' : '');
+          /* RE-POINTED 11 Oct 2026: the highlight menu came back (Young, 11 Sep:
+             Ask · Edit · Comment), and Edit is offered only where the clause
+             editor can open — never on a phone. So the phone's paper still
+             takes no edits: Ask and Comment, never Edit. */
+          check(`${P.name}: and offers no Edit — no edits on the paper (Ask · Comment)`,
+            tap.menu && !tap.verbs.some(v => /Edit/i.test(v)), JSON.stringify(tap.verbs));
           check(`${P.name}: the way in is the clause's own Edit pill`, tap.pill);
           await page.keyboard.press('Escape');
         } else check(`${P.name}: a clause on screen to tap`, false, 'none reachable');
@@ -313,13 +318,20 @@ const PROBE = () => {
        product's own and not a fixture the renderer never sees. */
     await page.evaluate(() => {
       const c = window.mContract();
+      /* DATES FROM TODAY (11 Oct 2026): these were fixed days, and the licence's
+         30 Sep slid from "this month" into Overdue as the calendar moved — a
+         test whose answer depends on the day it runs. One overdue, one inside
+         the 30-day "soon" window, one later, whatever day it runs. */
+      const day = n => { const d = new Date(todayISO() + 'T00:00:00'); d.setDate(d.getDate() + n);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+      window.__obUntil = day(15);
       c.obligations = [
         { id: 'o1', desc: 'Q3 volume rebate claim', text: 'Q3 volume rebate claim',
-          due: '2026-08-31', party: 'theirs', amount: 840000 },
+          due: day(-40), party: 'theirs', amount: 840000 },
         { id: 'o2', desc: 'Food handling licence — renewed copy', text: 'Food handling licence — renewed copy',
-          due: '2026-09-30', party: 'theirs', doc: { file: '', until: '2026-09-30' } },
+          due: day(15), party: 'theirs', doc: { file: '', until: day(15) } },
         { id: 'o3', desc: 'Quarterly stock reconciliation', text: 'Quarterly stock reconciliation',
-          due: '2026-12-01', party: 'ours' },
+          due: day(90), party: 'ours' },
       ];
       window.mS().tab = 'oblig';
       window.mRender();
@@ -338,6 +350,10 @@ const PROBE = () => {
       money: (() => { const rows = [...document.querySelectorAll('.m-ob-row')];
         const hit = rows.find(r => /rebate/i.test(r.textContent)); return hit ? hit.textContent : ''; })(),
       doc: [...document.querySelectorAll('.m-ob-doc')].map(d => d.textContent.trim()),
+      until: window.__obUntil || '',
+      /* every card holds its own rows — none squeezed and clipped (11 Oct 2026) */
+      clipped: [...document.querySelectorAll('#m-root .m-card')].filter(k => k.scrollHeight > k.clientHeight + 1).length,
+      scroller: !!(document.querySelector('[data-m-ob-done]') || document.body).closest('.m-scroll'),
       wide: Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth),
     }));
     check('obligations: the tab carries the desktop tab\'s own count', /3/.test(ob.tab), ob.tab);
@@ -346,11 +362,13 @@ const PROBE = () => {
     check('obligations: Chase them is offered on theirs only', ob.chase === 2, ob.chase + ' of 3 rows');
     check('obligations: Mark done is on every row', ob.done === 3, String(ob.done));
     check('obligations: and the verb is really painted', ob.chasePainted);
+    check('obligations: no card is squeezed — each holds its own rows, in the tab\'s own scroller',
+      ob.clipped === 0 && ob.scroller, `${ob.clipped} clipped · scroller ${ob.scroller}`);
     /* A BARE 840000 BESIDE A PROMISE IS A NUMBER, NOT MONEY. */
     check('obligations: the amount is in the contract\'s own currency',
       /KES/.test(ob.money) && !/840000/.test(ob.money), ob.money.replace(/\s+/g, ' ').trim().slice(0, 90));
     check('obligations: a required document says what it is good until',
-      ob.doc.length === 1 && /30/.test(ob.doc[0]), ob.doc.join(' | '));
+      ob.doc.length === 1 && new RegExp('\\b' + Number(ob.until.slice(8)) + '\\b').test(ob.doc[0]), ob.doc.join(' | ') + ' · until ' + ob.until);
     check('obligations: nothing off the side', ob.wide <= 1, ob.wide + 'px');
     await ctx.close();
   }
