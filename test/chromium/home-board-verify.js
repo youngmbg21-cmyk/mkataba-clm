@@ -439,11 +439,12 @@ const CONTRACTS = [
        Payment terms question drew one row of four; "there should be a back
        button / arrow (small one) that brings you back to where you started") */
     await page.evaluate(() => { hbGalleryRun('pay'); hbPaintBoard(); });
-    await until(page, () => !!document.querySelector('.hb-panel .hb-heat'));
-    const h13 = await page.evaluate(() => { const c = [...document.querySelectorAll('.hb-panel')].find(x => x.querySelector('.hb-heat'));
-      return { rows: c.querySelectorAll('.hb-heat .hb-sv-row').length, cut: /more/.test((c.querySelector('.hb-note, .hb-cnote') || {}).textContent || ''), arrow: !!c.querySelector('[data-hb-to-start]'), by: (c.querySelector('.hb-cs') || {}).textContent }; });
-    ok('15a the payment terms question draws every row on the board (up to eight), names across, streams down', h13.rows >= 2 && !h13.arrow && /^by payment terms/.test(h13.by || ''), JSON.stringify(h13));
-    const pid14 = await page.evaluate(() => { const p = hbS().panels.find(x => x.kind === 'view' && x.recipe && x.recipe.pic === 'heat'); hbRecipeSet(p.key, 'split', 'g:status'); hbPaintBoard(); return p.id; });
+    await until(page, () => hbS().panels.some(p => p.kind === 'view' && p.recipe && p.recipe.split2 && p.recipe.split2.by === 'side'));
+    const h13 = await page.evaluate(() => { const p = hbS().panels.find(x => x.kind === 'view' && x.recipe && x.recipe.split2 && x.recipe.split2.by === 'side'); const c = document.querySelector('.hb-panel[data-hb-pid="' + p.id + '"]');
+      return { pic: p.recipe.pic, rows: c.querySelectorAll('svg.hb-svg [data-hb-dig]').length, cut: /more/.test((c.querySelector('.hb-note, .hb-cnote') || {}).textContent || ''), arrow: !!c.querySelector('[data-hb-to-start]'), by: (c.querySelector('.hb-cs') || {}).textContent }; });
+    /* RE-POINTED 11 Oct 2026: the owner picked The SAP way, paired bars per band */
+    ok('15a the payment terms question draws paired bars per band, terms across, sides as the series', h13.pic === 'grouped' && h13.rows >= 2 && !h13.arrow && /^by payment terms/.test(h13.by || ''), JSON.stringify(h13));
+    const pid14 = await page.evaluate(() => { const p = hbS().panels.find(x => x.kind === 'view' && x.recipe && x.recipe.split2 && x.recipe.split2.by === 'side'); hbRecipeSet(p.key, 'split', 'g:status'); hbPaintBoard(); return p.id; });
     const card = `.hb-panel[data-hb-pid="${pid14}"]`;
     const a13 = await page.evaluate(sel => { const c = document.querySelector(sel); const b = c.querySelector('[data-hb-to-start]'), t = c.querySelector('.hb-ct');
       return { arrow: !!b, left: !!(b && t && b.getBoundingClientRect().right <= t.getBoundingClientRect().left + 1), by: (c.querySelector('.hb-cs') || {}).textContent }; }, card);

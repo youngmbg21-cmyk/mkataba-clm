@@ -9356,7 +9356,8 @@ const HB_GALLERY = [
   /* payment terms ACROSS (five short names, read flat), the streams DOWN (owner,
      11 Oct 2026: twelve stream names angled over the grid ate the card's
      height and only one row of four was drawn) */
-  { k: 'pay', recipe: { pic: 'heat', split: { by: 'payterms' }, split2: { by: 'side' } } },
+  /* drawn the SAP way, paired bars per band (owner picked it by name, 11 Oct 2026) */
+  { k: 'pay', recipe: { pic: 'grouped', split: { by: 'payterms' }, split2: { by: 'side' } } },
   { k: 'pipe', recipe: { pic: 'funnel' } },
   { k: 'move', recipe: { pic: 'waterfall', measure: 'value', window: { last: 12, unit: 'm' } } },
   { k: 'fc', recipe: { pic: 'forecast', measure: 'value' } }];
