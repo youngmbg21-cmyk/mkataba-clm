@@ -81,7 +81,7 @@ const check = (name, pass, detail) => {
       const me = currentUser(); state.contracts.forEach(c => { const m = /^MK-P\d+-(\d)$/.exec(c.id); if (m) c.owner = Number(m[1]) < 3 ? { id: me.id, name: me.name } : { id: 'u_other', name: 'Someone Else' }; });
       const s = hbS(); s.face = 'board'; s.prep = 'open'; s.ins = null; s.insOff = {}; s.insKept = {}; s.panels = []; s.path = []; hbSave(); setView('dashboard'); });
     const has = await until(() => typeof hbInsightsToday === 'function' && !!document.querySelector('#hb-board .hb-inscard .hb-shelf')
-      && hbS().ins && hbS().ins.n === hbInsBookSig() && document.querySelectorAll('#hb-board .hb-inscard .hb-shelf .hb-ins').length === hbS().ins.list.length);
+      && hbS().ins && hbS().ins.n === hbInsBookSig() && document.querySelectorAll('#hb-board .hb-inscard .hb-shelf .hb-ins:not(.is-plain)').length === hbS().ins.list.length);
     if (!has){ check('1a the shelf is drawn in its own card, Today\'s insights', false, 'no .hb-shelf'); throw new Error('no shelf'); }
 
     /* ================= 1. YOURS, MEASURED ================= */
@@ -108,16 +108,17 @@ const check = (name, pass, detail) => {
     check('1g its row says whose', /Today.s insights\s*\d.*in your contracts, then the company.s/.test(s1.row), s1.row);
     await page.waitForTimeout(1500);   /* the columns rise in; photograph them risen */
     await page.screenshot({ path: path.join(OUT, '1-yours-measured.png') });
-    if (s1.n < 3){
-      check('1h a place no finding filled says so', /^Nothing else stood out today\. Show the usual pictures \(\d\)$/.test(s1.calm), s1.calm);
-      await page.evaluate(() => document.querySelector('#hb-board .hb-inscard .hb-ins-calm [data-hb-ins="usual"]').click());
-      const u = await until(n => { const k = document.querySelectorAll('#hb-board .hb-inscard .hb-ins.is-plain').length; return k ? { plain: k, all: document.querySelectorAll('#hb-board .hb-inscard .hb-ins').length } : null; }, s1.n);
-      check('1i one press shows the usual pictures, plain, after the findings', !!u && u.all === s1.n + u.plain, JSON.stringify(u));
-      await page.screenshot({ path: path.join(OUT, '1-usual-pictures.png') });
-      await page.evaluate(() => document.querySelector('#hb-board .hb-inscard .hb-ins-calm [data-hb-ins="usual"]').click());
-      const hid = await until(() => document.querySelectorAll('#hb-board .hb-inscard .hb-ins.is-plain').length === 0);
-      check('1j and the same press takes them away', !!hid);
-    }
+    /* RE-POINTED 11 Oct 2026 (owner: "make it to always be 3 but if the only
+       insights that are available are 2, then cover the space with the 2
+       cards"): a place no finding filled takes a usual picture, plain, after
+       the findings — no "nothing else stood out", no switch — and the row is
+       cut to the cards it holds */
+    const s1h = await page.evaluate(() => { const sh = document.querySelector('#hb-board .hb-inscard .hb-shelf'); const cs = [...sh.querySelectorAll('.hb-ins')];
+      const w = cs.map(x => Math.round(x.getBoundingClientRect().width));
+      return { n: cs.length, plainAfter: cs.findIndex(x => x.classList.contains('is-plain')), finds: cs.filter(x => !x.classList.contains('is-plain')).length,
+        attr: sh.getAttribute('data-hb-shelf-n'), calm: !!sh.querySelector('.hb-ins-calm'), sw: Math.round(sh.getBoundingClientRect().width), sum: w.reduce((a, x) => a + x, 0) }; });
+    check('1h a place no finding filled takes a usual picture, after the findings, up to three', s1h.n <= 3 && (s1h.n === 3 || s1h.n > s1h.finds) && (s1h.plainAfter === -1 || s1h.plainAfter === s1h.finds) && !s1h.calm, JSON.stringify(s1h));
+    check('1i the cards fill the row, no hole', s1h.attr === String(s1h.n) && s1h.sum >= s1h.sw - 4, JSON.stringify(s1h));
 
     /* ================= 2. A REFRESH KEEPS THE DAY'S SHELF ================= */
     /* (Young, 4 Oct 2026: "fix the shelf refresh fault") — the board record
@@ -189,12 +190,11 @@ const check = (name, pass, detail) => {
     const s7 = await until(() => { const r = document.querySelector('#hb-board .hb-inscard > .hb-ch'); if (!r || !hbS().ins || hbS().ins.list.length) return null;
       return { row: r.textContent.replace(/\s+/g, ' ').trim(), cards: document.querySelectorAll('#hb-board .hb-inscard .hb-ins').length, btn: (r.querySelector('[data-hb-ins="usual"]') || {}).textContent }; });
     check('7a a quiet day: the row says nothing moved outside normal', !!s7 && /nothing moved outside its normal range this morning/.test(s7.row), s7 && s7.row);
-    check('7b and no filler is drawn', !!s7 && s7.cards === 0, s7 && `${s7.cards} cards`);
+    /* RE-POINTED 11 Oct 2026 (owner, as in 1h): a quiet day is SAID in the
+       head, and the usual pictures fill the row at once — no switch */
+    check('7b and the usual pictures fill the row, plain, with no switch to press', !!s7 && s7.cards >= 1 && s7.cards <= 3 && !s7.btn
+      && await page.evaluate(n => document.querySelectorAll('#hb-board .hb-inscard .hb-ins.is-plain').length === n && document.querySelector('#hb-board .hb-inscard .hb-shelf').getAttribute('data-hb-shelf-n') === String(n), s7.cards), s7 && `${s7.cards} cards`);
     await page.screenshot({ path: path.join(OUT, '7-quiet-day.png') });
-    await page.evaluate(() => document.querySelector('#hb-board .hb-inscard > .hb-ch [data-hb-ins="usual"]').click());
-    const s7c = await until(() => { const n = document.querySelectorAll('#hb-board .hb-inscard .hb-ins.is-plain').length; return n ? { n, btn: document.querySelector('#hb-board .hb-inscard > .hb-ch [data-hb-ins="usual"]').textContent } : null; });
-    check('7c the usual pictures are one press away', !!s7c && s7c.n >= 1 && /Hide the usual pictures/.test(s7c.btn), JSON.stringify(s7c));
-    await page.screenshot({ path: path.join(OUT, '7-quiet-day-usual.png') });
 
     /* ================= 8. ON A NARROW WINDOW ================= */
     await page.setViewportSize({ width: 820, height: 900 });

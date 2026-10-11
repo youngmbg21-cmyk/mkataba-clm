@@ -1209,7 +1209,6 @@ function hbBookHtml(d, moved, since){
    is still drawn where it was before — the checklist in the side panel beside
    each contract (needsYouOf), the bell, and the phone's own Home, all three
    reading the same hmDecisionItems. Only this card stops repeating them. */
-const HB_AG_ROWS_MAX = 8;
 function hbPrepHtml(A, since){
   const st = hbS().prep;
   const I = hbInsightsToday();
@@ -1221,25 +1220,23 @@ function hbPrepHtml(A, since){
   const sub = (A.ready ? i18tn('hm_ag_sub', A.ready, { n: _hbN(A.ready) }) : '')
     + (folded && next ? (A.ready ? ' · ' : '') + i18t('hb_prep_next', { who: next.who || next.sum }) : '')
     + (folded && I.length ? ((A.ready || next) ? ' · ' : '') + i18tn('hb_ins_n', I.length, { n: I.length }) : '');
-  /* ONE ROW PER ITEM, AS DRAWN (owner's go, 11 Oct 2026): the kind with its
-     dot · who, with one grey line under it · that item's own acts (its
-     agent's own buttons, the lead first, at most two; the rest stay on the
-     agents' page). Rows are the agents' ready work in their order. */
-  const items = folded ? [] : A.rows.flatMap(r => r.items.map(x => Object.assign({ k: r.k }, x)));
-  const shownItems = items.slice(0, HB_AG_ROWS_MAX);
-  const actsOf = key => { let it = null; try { it = (typeof agFind === 'function') ? agFind(key) : null; } catch (_){ it = null; }
-    if (!it || typeof agPanelActs !== 'function') return '';
-    let raw = ''; try { raw = agPanelActs(it); } catch (_){ raw = ''; }
-    const acts = []; String(raw).replace(/<button[^>]*class="([^"]*)"[^>]*data-ag-act="([^"]+)"[^>]*>([^<]*)<\/button>/g, (m, cls, act, label) => { if (!/ui-link/.test(cls)) acts.push({ act, label, lead: /ui-btn-primary/.test(cls) }); return m; });
-    return acts.slice(0, 2).map(x => `<button type="button" class="hb-btn" data-ag-act="${_hbE(x.act)}">${x.label}</button>`).join(''); };
-  const rows = shownItems.map(x => {
-    const dot = x.tone === 'ruby' ? ' is-bad' : x.tone === 'amber' ? ' is-warn' : '';
-    const urg = x.urg ? `<span class="hb-ag-u${x.tone === 'ruby' ? ' is-bad' : ' is-warn'}">${_hbE(x.urg)}</span>` : '';
-    return `<div class="hb-ag hb-ag-item" data-hb-ag-item="${_hbE(x.key)}" data-hm-agent-row="${_hbE(x.k)}">
-      <span class="hb-ag-k"><i class="hb-ag-dot${dot}" aria-hidden="true"></i><span class="hb-ag-t">${_hbE(i18t('ag_' + x.k))}</span></span>
-      <span class="hb-ag-b"><span class="hb-ag-w">${_hbE(x.who || x.sum || '')}</span>${(x.who && x.sum) || urg ? `<span class="hb-ag-s">${x.who && x.sum ? _hbE(x.sum) : ''}${x.who && x.sum && urg ? ' · ' : ''}${urg}</span>` : ''}</span>
-      <span class="hb-ag-acts">${HB_REVIEW_ON_PAPER[x.k] ? `<button type="button" class="hb-btn" data-hb-review-paper="${_hbE(x.k)}" data-hb-review-cid="${_hbE(x.cid || '')}">${_hbE(i18t('hm_ag_review'))}</button>` : ''}${(HB_REVIEW_ON_PAPER[x.k] ? '' : actsOf(x.key)) || (HB_REVIEW_ON_PAPER[x.k] ? '' : `<button type="button" class="hb-btn" data-hb-dig="ag:${_hbE(x.k)}">${_hbE(i18t('hm_ag_review'))}</button>`)}</span></div>`;
-  }).join('') + (items.length > shownItems.length ? `<div class="hb-ag-more"><button type="button" class="hb-link" data-hb-agents-page>${_hbE(i18tn('hb_ag_more', items.length - shownItems.length, { n: _hbN(items.length - shownItems.length) }))}</button></div>` : '');
+  /* ONE ROW PER AGENT, A SUMMARY (owner, 11 Oct 2026: "copilots work is
+     supposed to be a summary by agent not a full list. then when you click
+     on that agent it gives you the details below the card") — reverses the
+     same day's one-row-per-item. The row: the agent with its dot and count ·
+     its first item, with how many more · Review. A press on the row opens
+     that agent's work below the card (ag:k); Review on Renewals, Late
+     promises and Their round came back walks the Paper, as before. */
+  const rows = folded ? '' : A.rows.map(r => {
+    const dot = r.tone === 'ruby' ? ' is-bad' : r.tone === 'amber' ? ' is-warn' : '';
+    const urg = r.urg ? `<span class="hb-ag-u${r.tone === 'ruby' ? ' is-bad' : ' is-warn'}">${_hbE(r.urg)}</span>` : '';
+    const more = r.n > 1 ? `<span class="hb-ag-n">${_hbE(i18tn('hb_ag_and_more', r.n - 1, { n: _hbN(r.n - 1) }))}</span>` : '';
+    const sub = [r.who && r.sum ? _hbE(r.sum) : '', urg].filter(Boolean).join(' · ');
+    return `<div class="hb-ag hb-ag-row" data-hb-dig="ag:${_hbE(r.k)}" data-hm-agent-row="${_hbE(r.k)}">
+      <span class="hb-ag-k"><i class="hb-ag-dot${dot}" aria-hidden="true"></i><span class="hb-ag-t">${_hbE(i18t('ag_' + r.k))}</span><span class="hb-pill">${_hbN(r.n)}</span></span>
+      <span class="hb-ag-b"><span class="hb-ag-w">${_hbE(r.who || r.sum || '')}${more}</span>${sub ? `<span class="hb-ag-s">${sub}</span>` : ''}</span>
+      <span class="hb-ag-acts">${HB_REVIEW_ON_PAPER[r.k] ? `<button type="button" class="hb-btn" data-hb-review-paper="${_hbE(r.k)}">${_hbE(i18t('hm_ag_review'))}</button>` : `<button type="button" class="hb-btn" data-hb-dig="ag:${_hbE(r.k)}">${_hbE(i18t('hm_ag_review'))}</button>`}</span></div>`;
+  }).join('');
   const done = (!folded && A.done.length) ? `<div class="hb-done">${_hbE(i18t('hb_done_since', { when: hbDayWords(since) }))} ${A.done.map(x => `<button type="button" data-hb-dig="dn:${_hbE(x.k)}">${_hbE(i18tn('hb_done_' + x.k, x.n, { n: _hbN(x.n) }))}</button>`).join('<span aria-hidden="true">·</span>')}<span class="hb-grow"></span><span class="hb-quiet">${_hbE(i18t('hb_done_trail'))}</span></div>` : '';
   return `<section class="hb-card hb-prep${folded ? ' is-folded' : ''}" id="hm-agents"><header class="hb-ch">
     <button type="button" class="hb-ib" data-hb-prep="${folded ? 'open' : 'folded'}" aria-expanded="${!folded}" title="${_hbE(i18t(folded ? 'hb_prep_open' : 'hb_prep_fold'))}" style="transform:rotate(${folded ? '-90' : '0'}deg)">${_hbChev}</button>
@@ -1258,10 +1255,13 @@ function hbInsCardHtml(I){
   const fold = !!s.insFold, ins = s.ins || {};
   const sub = I.length ? (ins.scope === 'mine' ? 'hb_ins_sub_mine' : ins.scope === 'few' ? 'hb_ins_sub_few' : 'hb_ins_sub')
     : ins.young ? 'hb_ins_sub_young' : 'hb_ins_sub_quiet';
-  const open = hbInsUsualOpen();
-  /* a quiet day: the head says so, and the usual pictures are one press from it, both ways */
-  const body = fold ? '' : (I.length || open ? hbShelfHtml(I) : '');
-  const usual = !I.length && U.length && !fold ? `<button type="button" class="hb-edge-b" data-hb-ins="usual" aria-pressed="${open}">${_hbE(open ? i18t('hb_ins_usual_hide') : i18t('hb_ins_usual_n', { n: _hbN(U.length) }))}</button>` : '';
+  /* ALWAYS THREE, NEVER A HOLE (owner, 11 Oct 2026: "make it to always be 3
+     but if the only insights that are available are 2, then cover the space
+     with the 2 cards"): the findings first, the usual pictures fill the rest
+     up to three (hbShelfCards), and the cards share the row's width. The
+     "Show / Hide the usual pictures" switch is gone with it. */
+  const body = fold ? '' : hbShelfHtml(I);
+  const usual = '';
   return `<section class="hb-card hb-inscard${fold ? ' is-folded' : ''}"><header class="hb-ch"><span class="hb-ct">${_hbE(i18t('hb_ins_title'))}</span>`
     + `<span class="hb-cs">${I.length ? _hbE(_hbN(I.length)) + ' · ' : ''}${_hbE(i18t(sub))}</span><span class="hb-grow"></span>${usual}`
     + `<button type="button" class="hb-edge-b" data-hb-ins-fold>${_hbE(i18t(fold ? 'hb_ins_show' : 'hb_ins_hide'))}</button></header>${body}</section>`;
@@ -1664,7 +1664,83 @@ function hbRingSvg(D, cs, field, money, P){
     ${money ? `<text x="${cx}" y="${cy + 38}" text-anchor="middle" font-size="15" font-weight="600" class="hb-sv-glow">${_hbE(_hbM(total))}</text>` : ''}`;
   return { body: `<svg class="hb-svg hb-ring${tall ? ' is-tall' : ''}" data-hb-yk="${money ? 'value' : 'count'}" viewBox="0 0 ${W} ${H}" role="group" aria-label="${_hbE(hbGroupWord(field))}">${slices}${centre}${legend}</svg>`, by: hbGroupWord(field), note: '' };
 }
+/* ---- THE BLOCKS, REDRAWN (owner, 11 Oct 2026: "the chart is poorly designed
+   and not in line with best in class") — three looks on trial, the owner
+   picks one by name; window.__hbBlocksLook chooses while on trial ---- */
+function hbSquarify(items, x, y, w, h){
+  const tot = items.reduce((a, it) => a + it.v, 0) || 1, area = w * h;
+  const q = items.map(it => Object.assign({}, it, { a: it.v / tot * area }));
+  const out = []; let row = [];
+  const worst = (r, len) => { if (!r.length) return Infinity; const s = r.reduce((a, t) => a + t.a, 0), mx = Math.max(...r.map(t => t.a)), mn = Math.min(...r.map(t => t.a)); return Math.max(len * len * mx / (s * s), (s * s) / (len * len * mn)); };
+  const lay = r => { const s = r.reduce((a, t) => a + t.a, 0);
+    if (w >= h){ const cw = s / h; let yy = y; r.forEach(t => { const th = t.a / cw; out.push(Object.assign(t, { x, y: yy, w: cw, h: th })); yy += th; }); x += cw; w -= cw; }
+    else { const rh = s / w; let xx = x; r.forEach(t => { const tw = t.a / rh; out.push(Object.assign(t, { x: xx, y, w: tw, h: rh })); xx += tw; }); y += rh; h -= rh; } };
+  q.forEach(t => { const len = Math.min(w, h); if (!row.length || worst(row.concat([t]), len) <= worst(row, len)) row.push(t); else { lay(row); row = [t]; } });
+  if (row.length) lay(row);
+  return out;
+}
+function _hbTileHtml(r, dig, title, hue, op, lines){
+  const gap = 1, x = r.x + gap, y = r.y + gap, w = Math.max(0, r.w - 2 * gap), h = Math.max(0, r.h - 2 * gap);
+  const light = op < 0.55, ink = light ? 'class="hb-sv-ink"' : 'fill="#fff"', ink2 = light ? 'class="hb-sv-ink2"' : 'fill="#fff" fill-opacity=".85"';
+  let txt = '';
+  if (w > 64 && h > 34 && lines.length){
+    const fits = h > 58 ? 3 : 2; let ty = y + 18;
+    lines.slice(0, fits).forEach((L, i) => { const fs = i === 0 ? 12 : 11, s = _hbFitText(L, w - 16, fs); if (s) txt += `<text x="${(x + 8).toFixed(1)}" y="${ty.toFixed(1)}" style="font-size:${fs}px;font-weight:${i === 0 ? 600 : 400}" ${i === 0 ? ink : ink2}>${_hbE(s)}</text>`; ty += i === 0 ? 17 : 15; });
+  }
+  return `<g class="hb-sv-tile hb-in" ${_hbSvgDoor(dig, title, '')}><rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="3" style="fill:${hue}" fill-opacity="${op.toFixed(2)}"/>${txt}</g>`;
+}
+function hbBlocksTrial(D, cs, field, money, P, look){
+  let groups = hbGroupsOf(cs.filter(c => hbValueOfOne(c) > 0), field, true);
+  const unvalued = cs.length - groups.reduce((a, g) => a + g.n, 0);
+  if (!groups.length) return hbRingSvg(D, cs, field, money, P);
+  const cap = look === 'sap' ? 8 : look === 'nested' ? 6 : 12;
+  const cut = hbGroupsCut(groups, P || {}, cap, 'value', field);
+  groups = cut.rest ? cut.rows.concat([cut.rest]) : cut.rows;
+  const whole = groups.reduce((a, g) => a + g.v, 0) || 1;
+  const vmax = Math.max(1, ...groups.filter(g => !g.rest).map(g => g.v));
+  const hue = hbHues()[0], grey = '#8A9BB0';
+  const W = hbFW(), H = hbFH(330);
+  const pc = v => Math.round(v / whole * 100) + '%';
+  const digOf = g => g.rest ? hbRestDig(D, field, cut.kept, 'b') : 'qg:' + D.key + HB_KEY_SEP + field + HB_KEY_SEP + g.g;
+  const name = g => g.label;
+  const ttl = g => name(g) + ': ' + _hbM(g.v) + ' · ' + _hbN(g.n) + ' · ' + pc(g.v);
+  const opOf = g => g.rest ? 0.3 : 0.3 + 0.7 * Math.sqrt(g.v / vmax);
+  let out = '';
+  if (look === 'sap'){
+    /* THE SAP WAY: Fiori's analytical card — ranked bars, the name on the left,
+       value and share at the bar's end, the rest one grey row */
+    const rowH = Math.max(20, Math.min(30, (H - 8) / groups.length)), labW = Math.min(240, W * 0.3), valW = 120, barW = Math.max(40, W - labW - valW - 16);
+    groups.forEach((g, i) => { const y = 4 + i * rowH, bw = Math.max(2, barW * g.v / vmax), col = g.rest ? grey : hue;
+      out += `<g class="hb-sv-tile hb-in" ${_hbSvgDoor(digOf(g), ttl(g), _hbYAttr(g.v))}><rect x="0" y="${y}" width="${W}" height="${rowH}" fill="transparent"/>
+        <text x="0" y="${(y + rowH / 2 + 4).toFixed(1)}" font-size="12" class="hb-sv-ink">${_hbE(_hbFitText(name(g), labW - 8, 12))}</text>
+        <rect x="${labW}" y="${(y + rowH * 0.22).toFixed(1)}" width="${Math.min(barW, bw).toFixed(1)}" height="${(rowH * 0.56).toFixed(1)}" rx="3" style="fill:${col}" fill-opacity="${g.rest ? 0.45 : 0.9}"/>
+        <text x="${(labW + Math.min(barW, bw) + 8).toFixed(1)}" y="${(y + rowH / 2 + 4).toFixed(1)}" font-size="12" class="hb-sv-ink" font-variant-numeric="tabular-nums"><tspan font-weight="600">${_hbE(_hbM(g.v))}</tspan><tspan class="hb-sv-ink2"> · ${pc(g.v)}</tspan></text></g>`; });
+    const h2 = Math.ceil(8 + groups.length * rowH);
+    return { body: `<svg class="hb-svg hb-blocks" data-hb-yk="value" viewBox="0 0 ${W} ${h2}" role="group" aria-label="${_hbE(i18t('hb_by_blocks', { by: hbGroupWord(field) }))}">${out}</svg>`,
+      by: i18t('hb_by_blocks', { by: hbGroupWord(field) }), note: unvalued ? i18t('hb_chart_unvalued', { n: _hbN(unvalued) }) : '' };
+  }
+  const rects = hbSquarify(groups.map(g => ({ g, v: g.v })), 0, 0, W, H);
+  rects.forEach(r => { const g = r.g;
+    if (look === 'nested' && !g.rest && r.w > 90 && r.h > 70){
+      /* one block per counterparty with its contracts inside, a name strip on top */
+      const head = 42, inner = g.list.slice().sort((a, b) => hbValueOfOne(b) - hbValueOfOne(a)).map(c => ({ c, v: hbValueOfOne(c) }));
+      out += `<g class="hb-sv-block hb-in" ${_hbSvgDoor(digOf(g), ttl(g), _hbYAttr(g.v))}><rect x="${(r.x + 1).toFixed(1)}" y="${(r.y + 1).toFixed(1)}" width="${(r.w - 2).toFixed(1)}" height="${(r.h - 2).toFixed(1)}" rx="4" style="fill:${hue}" fill-opacity=".08"/>
+        <text x="${(r.x + 9).toFixed(1)}" y="${(r.y + 18).toFixed(1)}" style="font-size:12px;font-weight:600" class="hb-sv-ink">${_hbE(_hbFitText(g.label, r.w - 18, 12))}</text>
+        <text x="${(r.x + 9).toFixed(1)}" y="${(r.y + 34).toFixed(1)}" style="font-size:11px;font-weight:400" class="hb-sv-ink2">${_hbE(_hbFitText(_hbM(g.v) + ' · ' + pc(g.v), r.w - 18, 11))}</text></g>`;
+      const im = Math.max(1, ...inner.map(t => t.v));
+      hbSquarify(inner, r.x + 4, r.y + head, r.w - 8, r.h - head - 4).forEach(t => {
+        out += _hbTileHtml(t, 'c:' + t.c.id, hbRef(t.c) + ' · ' + String(t.c.name || '') + ': ' + _hbM(t.v), hue, 0.35 + 0.55 * Math.sqrt(t.v / im), [hbRef(t.c), _hbM(t.v)]);
+      });
+      return;
+    }
+    out += _hbTileHtml(r, digOf(g), ttl(g), g.rest ? grey : hue, opOf(g), [name(g), _hbM(g.v) + ' · ' + pc(g.v), i18tn('hb_n_contracts', g.n, { n: _hbN(g.n) })]);
+  });
+  return { body: `<svg class="hb-svg hb-blocks" data-hb-yk="value" viewBox="0 0 ${W} ${H}" role="group" aria-label="${_hbE(i18t('hb_by_blocks', { by: hbGroupWord(field) }))}">${out}</svg>`,
+    by: i18t('hb_by_blocks', { by: hbGroupWord(field) }), note: unvalued ? i18t('hb_chart_unvalued', { n: _hbN(unvalued) }) : '' };
+}
 function hbBlocksSvg(D, cs, field, money, P){
+  const look = (typeof window !== 'undefined' && window.__hbBlocksLook) || '';
+  if (look) return hbBlocksTrial(D, cs, field, money, P, look);
   let groups = hbGroupsOf(cs.filter(c => hbValueOfOne(c) > 0), field, true);
   const unvalued = cs.length - groups.reduce((a, g) => a + g.n, 0);
   if (!groups.length) return hbRingSvg(D, cs, field, money, P);
@@ -6902,17 +6978,17 @@ function hbInsRowHtml(I){
     <span class="hb-ag-b"><span class="hb-ag-s">${_hbE(i18t(sub))}</span></span>
     <span></span>${btn}</div>`;
 }
+function hbShelfCards(I){
+  const U = hbInsUsual(I);
+  return I.slice(0, HB_INS_MAX).concat(U).slice(0, HB_INS_MAX);
+}
 function hbShelfHtml(I){
-  const s = hbS(), open = hbInsUsualOpen(), U = hbInsUsual(I);
-  const cards = I.concat(open ? U : []);
-  /* the places no finding filled say so, with the usual pictures one press away */
-  const calm = I.length && I.length < HB_INS_MAX && U.length
-    ? `<div class="hb-ins-calm${!open && I.length === 1 ? ' is-wide' : ''}">${open ? '' : `<span><b>${_hbE(i18t('hb_ins_calm'))}</b></span>`}
-      <button type="button" class="hb-link" data-hb-ins="usual" aria-pressed="${open}">${_hbE(open ? i18t('hb_ins_usual_hide') : i18t('hb_ins_usual_n', { n: _hbN(U.length) }))}</button></div>` : '';
+  const s = hbS();
+  const cards = hbShelfCards(I), calm = '';
   if (!cards.length) return '';
   const kept = new Set(s.panels.filter(p => p.kind === 'view').map(p => p.key));
   const scope = (s.ins || {}).scope, mineN = scope === 'mine' ? hbInsScope().n : 0;
-  return `<div class="hb-shelf">${cards.map(x => { const id = x.id, isKept = kept.has(hbInsKey(x.shape, x.mine));
+  return `<div class="hb-shelf" data-hb-shelf-n="${cards.length}">${cards.map(x => { const id = x.id, isKept = kept.has(hbInsKey(x.shape, x.mine));
     const chips = x.plain ? '' : (x.mine ? `<span class="hb-ins-scope">${_hbE(i18t('hb_ins_scope_mine', { n: _hbN(mineN) }))}</span>` : scope === 'mine' ? `<span class="hb-ins-scope">${_hbE(i18t('hb_ins_scope_co'))}</span>` : '')
       + (x.rank ? `<span class="hb-chip${x.tone === 'good' ? ' is-good' : x.tone === 'warn' ? ' is-warn' : ''}">${_hbE(x.rank)}</span>` : '');
     const tone = x.plain ? ' is-plain' : x.tone === 'warn' ? ' is-warn' : x.tone === 'good' ? ' is-good' : '';
@@ -8824,15 +8900,6 @@ function hbOnClick(e){
   if (on('[data-hb-setup]')){ e.preventDefault(); if (typeof window.openSettingsAt === 'function') window.openSettingsAt('build', 'golive'); return; }
   if (on('[data-hb-chase-many]')){ e.preventDefault(); hbChaseManyRun(t.closest('[data-hb-chase-many-box]')); return; }
   if (on('[data-hb-chase-key]')){ setTimeout(() => hbChaseManyCount(t.closest('[data-hb-chase-many-box]')), 0); return; }
-  /* A ROW'S OWN BUTTON (one row per item, 11 Oct 2026): its result is drawn in
-     the item's panel, so the press opens that agent's work under the card and
-     presses the same button there, where the draft or the note appears */
-  { const rb = t.closest('.hb-ag-item [data-ag-act]');
-    if (rb){ e.stopPropagation(); const row = rb.closest('.hb-ag-item'), key = row.getAttribute('data-hb-ag-item'), k = row.getAttribute('data-hm-agent-row'), act = rb.getAttribute('data-ag-act');
-      hbDig('ag:' + k, false, true);
-      let n = 0; const go = () => { const b = document.querySelector(`#hb-focus [data-hb-ag-item="${CSS.escape(key)}"] [data-ag-act="${CSS.escape(act)}"]`);
-        if (b){ try { b.scrollIntoView({ block: 'center' }); } catch (_){} b.click(); } else if (++n < 20) setTimeout(go, 60); };
-      setTimeout(go, 30); return; } }
   if (on('[data-hb-ag-item]') && hbAgentWorkPress(t)){ e.stopPropagation(); return; }
   if ((el = on('[data-hb-face]'))){ hbSetFace(el.getAttribute('data-hb-face')); return; }
   if ((el = on('[data-hb-screen]'))){ const m = el.getAttribute('data-hb-screen'); if (HB_SCREENS.includes(m)){ hbS().screen = m; hbS().scrPick = 1; hbSave(); hbApplyScreen(); hbPaintHead(); if (typeof igRender === 'function') try { igRender(); } catch (_){} } return; }
@@ -9066,6 +9133,13 @@ function hbOnKey(e){
    hbDigData's for the piece's own key. While it shows, the browser's own
    tooltip is held back (the words are the card's) and given back after. */
 const HB_TIP_TOP = 3, HB_TIP_HIDE_MS = 220;
+/* THE CARD STAYS WHILE YOU REACH FOR IT (owner, 11 Oct 2026: "you cannot
+   click on the highlighted buttons ... you end up on the next bar"): once a
+   card is up, crossing another piece on the way to it does not swap the
+   card at once — the pointer must rest there HB_TIP_SWITCH_MS; reaching the
+   card cancels the swap. The first card still comes at once. */
+const HB_TIP_SWITCH_MS = 320;
+let _hbTipSwitchT = null;
 let _hbTipFor = null, _hbTipHideT = null, _hbTipHeld = null;
 const _hbTipMemo = new Map();
 function hbLitClear(){
@@ -9154,7 +9228,7 @@ function _hbTipEl(){
   let t = document.getElementById('hb-tip');
   if (t && t.parentElement !== pg){ t.remove(); t = null; }
   if (!t){ t = document.createElement('div'); t.id = 'hb-tip'; t.className = 'hb-tip'; t.setAttribute('role', 'tooltip'); t.hidden = true; pg.appendChild(t);
-    t.addEventListener('pointerenter', () => clearTimeout(_hbTipHideT));
+    t.addEventListener('pointerenter', () => { clearTimeout(_hbTipHideT); clearTimeout(_hbTipSwitchT); });
     t.addEventListener('pointerleave', () => hbTipHide(false)); }
   return t;
 }
@@ -9184,7 +9258,7 @@ function hbTipShow(el){
 }
 function hbTipHide(now){
   clearTimeout(_hbTipHideT);
-  const go = () => { const t = document.getElementById('hb-tip'); if (t) t.hidden = true; _hbTipGive(); _hbTipFor = null; hbLitClear(); };
+  const go = () => { clearTimeout(_hbTipSwitchT); const t = document.getElementById('hb-tip'); if (t) t.hidden = true; _hbTipGive(); _hbTipFor = null; hbLitClear(); };
   if (now) go(); else _hbTipHideT = setTimeout(go, HB_TIP_HIDE_MS);
 }
 /* "Ask about this": the question goes into the ask box, and waits there.
@@ -9217,7 +9291,15 @@ function _hbPieceOf(t){ return t && t.closest ? t.closest('.hb-svg [data-hb-dig]
 function hbOnPieceOver(e){
   if (!window.state || state.view !== 'dashboard') return;
   const el = _hbPieceOf(e.target);
-  if (!el){ if (_hbTipFor && !(e.target && e.target.closest && e.target.closest('#hb-tip'))) hbTipHide(false); return; }
+  if (!el){ if (e.target && e.target.closest && e.target.closest('#hb-tip')){ clearTimeout(_hbTipSwitchT); return; }
+    clearTimeout(_hbTipSwitchT); if (_hbTipFor) hbTipHide(false); return; }
+  clearTimeout(_hbTipSwitchT);
+  const up = document.getElementById('hb-tip');
+  if (e.pointerType !== 'touch' && _hbTipFor && _hbTipFor !== el && up && !up.hidden && _hbTipFor.isConnected){
+    clearTimeout(_hbTipHideT);
+    _hbTipSwitchT = setTimeout(() => { if (!el.isConnected) return; if (el.closest('.hb-svg')) hbLitSet(el); hbTipShow(el); }, HB_TIP_SWITCH_MS);
+    return;
+  }
   if (el.closest('.hb-svg')) hbLitSet(el);
   if (e.pointerType === 'touch') return;
   hbTipShow(el);

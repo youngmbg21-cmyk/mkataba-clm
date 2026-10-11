@@ -120,6 +120,37 @@ const check = (name, pass, detail) => {
     await page.mouse.move(5, 5);
     await until(() => { const t = document.getElementById('hb-tip'); return !t || t.hidden; });
 
+    /* 2d. THE CARD STAYS WHILE YOU REACH FOR IT (owner, 11 Oct 2026: "you
+       cannot click on the highlighted buttons ... you end up on the next
+       bar"): crossing another column on the way does not swap the card;
+       reaching the card keeps it; resting on the other column swaps it */
+    const two = await page.evaluate(s => { const all = [...document.querySelectorAll(s)].filter((x, i, a) => a.findIndex(y => y.getAttribute('data-hb-dig') === x.getAttribute('data-hb-dig')) === i);
+      const at = g => { const r = g.querySelector('path').getBoundingClientRect(); return { dig: g.getAttribute('data-hb-dig'), x: r.left + r.width / 2, y: r.top + r.height / 2 + 2 }; };
+      return all.length >= 2 ? [at(all[0]), at(all[1])] : null; }, colSel);
+    if (two){
+      const tipFor = () => page.evaluate(() => { const t = document.getElementById('hb-tip'); return t && !t.hidden && t._hbAsk ? t._hbAsk.dig : null; });
+      await page.mouse.move(two[0].x, two[0].y);
+      await until(d => { const t = document.getElementById('hb-tip'); return t && !t.hidden && t._hbAsk && t._hbAsk.dig === d; }, two[0].dig);
+      await page.mouse.move(two[1].x, two[1].y);
+      await page.waitForTimeout(120);
+      const still = await tipFor();
+      const btn = await page.evaluate(() => { const b = document.querySelector('#hb-tip .hb-tip-go') || document.querySelector('#hb-tip .hb-tip-ask'); const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+      await page.mouse.move(btn.x, btn.y);
+      await page.waitForTimeout(500);
+      const reached = await page.evaluate(b => { const e = document.elementFromPoint(b.x, b.y); const t = document.getElementById('hb-tip'); return { onCard: !!(e && e.closest('#hb-tip')), dig: t && !t.hidden && t._hbAsk ? t._hbAsk.dig : null }; }, btn);
+      check('2d. passing over another column on the way does not swap the card', still === two[0].dig, `${still} vs ${two[0].dig}`);
+      check('2e. the card is reached and still the first column\'s, its button under the pointer', reached.onCard && reached.dig === two[0].dig, JSON.stringify(reached));
+      /* a column the card does not cover */
+      const far = await page.evaluate(({ s, d0 }) => { const t = document.getElementById('hb-tip').getBoundingClientRect();
+        const g = [...document.querySelectorAll(s)].find(x => { if (x.getAttribute('data-hb-dig') === d0) return false; const r = x.querySelector('path').getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2 + 2; return cx < t.left - 4 || cx > t.right + 4 || cy < t.top - 4 || cy > t.bottom + 4; });
+        if (!g) return null; const r = g.querySelector('path').getBoundingClientRect(); return { dig: g.getAttribute('data-hb-dig'), x: r.left + r.width / 2, y: r.top + r.height / 2 + 2 }; }, { s: colSel, d0: two[0].dig });
+      if (far) await page.mouse.move(far.x, far.y);
+      const swapped = far && await until(d => { const t = document.getElementById('hb-tip'); return t && !t.hidden && t._hbAsk && t._hbAsk.dig === d; }, far.dig, 3000);
+      check('2f. resting on the other column swaps the card', !!swapped);
+      await page.mouse.move(5, 5);
+      await until(() => { const t = document.getElementById('hb-tip'); return !t || t.hidden; });
+    } else check('2d. two columns to cross', false, 'fewer than two columns');
+
     /* 3. G2 */
     const sharp = await page.evaluate(s => { const xs = [...document.querySelectorAll(s + ' svg.hb-svg path.hb-sv-col, ' + s + ' svg.hb-svg path.hb-sv-colpast')].filter(p => p.getAttribute('d')).map(p => Number((/^M(-?[\d.]+),/.exec(p.getAttribute('d')) || [])[1]));
       const g = document.querySelector(s + ' .hb-sv-grid'); return { xs, crisp: g ? getComputedStyle(g).shapeRendering : '' }; }, sel);

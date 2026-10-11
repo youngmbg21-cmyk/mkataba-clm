@@ -9721,6 +9721,10 @@
   .hb-btn{border-color:var(--btn-edge)}
   /* C3: Today's insights, its own card — three pictures across, ruled between, no boxes (as drawn) */
   .hb-inscard .hb-shelf{gap:0;padding:0;border-top:1px solid rgba(var(--hb-ln),.12)}
+  /* always three across, never a hole: two cards share the row, one takes it whole (owner, 11 Oct 2026) */
+  .hb-shelf[data-hb-shelf-n="2"]{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .hb-shelf[data-hb-shelf-n="1"]{grid-template-columns:minmax(0,1fr)}
+  @media (max-width:1100px){.hb-shelf[data-hb-shelf-n]{grid-template-columns:minmax(0,1fr)}}
   .hb-inscard .hb-ins{border:0;border-right:1px solid rgba(var(--hb-ln),.12);border-radius:0;background:transparent;padding:12px 16px}
   .hb-inscard .hb-ins:nth-child(3n){border-right:0}
   .hb-inscard .hb-ins-acts{margin-left:-6px}
@@ -9752,18 +9756,19 @@
   .hb-vs-n{font-weight:var(--w-label);color:var(--hb-ink)}
   .hb-vs-n.is-good{color:var(--hb-green)} .hb-vs-n.is-bad{color:var(--hb-ruby)} .hb-vs-n.is-warn{color:var(--hb-amber)}
   .hb-fig .hb-spark{height:30px;margin-top:8px}
-  /* Copilot's work, one row per item (as drawn): kind with its dot · who over one grey line · the item's own acts */
-  .hb-ag.hb-ag-item{grid-template-columns:minmax(140px,190px) minmax(0,1fr) auto;cursor:default;padding:12px var(--s-4)}
-  .hb-ag-item .hb-ag-k{display:flex;align-items:center;gap:8px;color:var(--hb-mute);font-size:13px}
-  .hb-ag-item .hb-ag-t{color:var(--hb-mute);font-weight:400}
+  /* Copilot's work, one row per AGENT (owner, 11 Oct 2026): the agent with its dot and count · its first item over one grey line · Review; the row opens its work below */
+  .hb-ag.hb-ag-row{grid-template-columns:minmax(170px,220px) minmax(0,1fr) auto;padding:12px var(--s-4)}
+  .hb-ag-row .hb-ag-k{display:flex;align-items:center;gap:8px;color:var(--hb-ink);font-size:13px}
+  .hb-ag-row .hb-ag-t{color:var(--hb-ink);font-weight:var(--w-label)}
+  .hb-ag-row .hb-pill{margin-left:2px}
   .hb-ag-dot{width:7px;height:7px;border-radius:50%;background:var(--hb-glow);flex:none}
   .hb-ag-dot.is-warn{background:var(--hb-amber)} .hb-ag-dot.is-bad{background:var(--hb-ruby)}
-  .hb-ag-item .hb-ag-w{font-weight:var(--w-label);color:var(--hb-ink)}
-  .hb-ag-item .hb-ag-s{display:block;color:var(--hb-mute);font-size:12.5px;margin-top:2px}
-  .hb-ag-item .hb-ag-s .hb-ag-u{display:inline;font-size:inherit}
+  .hb-ag-row .hb-ag-w{font-weight:var(--w-label);color:var(--hb-ink)}
+  .hb-ag-row .hb-ag-n{font-weight:400;color:var(--hb-mute);margin-left:6px}
+  .hb-ag-row .hb-ag-s{display:block;color:var(--hb-mute);font-size:12.5px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hb-ag-row .hb-ag-s .hb-ag-u{display:inline;font-size:inherit}
   .hb-ag-acts{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
-  .hb-ag-more{padding:10px var(--s-4);border-top:1px solid rgba(var(--hb-ln),.1)}
-  @media (max-width:900px){ .hb-ag.hb-ag-item{grid-template-columns:minmax(0,1fr)} .hb-ag-acts{justify-content:flex-start} }
+  @media (max-width:900px){ .hb-ag.hb-ag-row{grid-template-columns:minmax(0,1fr)} .hb-ag-acts{justify-content:flex-start} }
   /* THE GRID (owner, 11 Oct 2026: "align card heights"): cards in a row stand as tall as each other, the
      chart's notes rest on the card's foot, nothing in a card pushes past its edge */
   .hb-grid>.hb-card{display:flex;flex-direction:column;min-width:0}
