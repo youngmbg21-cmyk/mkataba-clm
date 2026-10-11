@@ -9650,6 +9650,32 @@
   .hb-presenting{height:100vh}
   /* the page's host is what goes full screen (it survives Board ⇄ Explorer) */
   #content:fullscreen{background:var(--color-bg);overflow:hidden}
+  /* THE BOARD AS DRAWN (owner, 11 Oct 2026: "nothing like the mock up" — the
+     "HaTi Board" artifact). On the Light screen the board is a flat ground
+     with plain white cards: no frost, no shadow. Your book is no card of its
+     own (its strip is). Copilot's work reads kind · who and what · when · act.
+     Cards carry no coloured top edge; a card's headline is its first line,
+     not a band. Dark keeps Explorer's stage. */
+  #ig-page.hb-light .hb-board,#hb-page.hb-light .hb-board{background:#F0F5F4;--hb-card:#FFFFFF;--hb-fig:#FFFFFF;--hb-blur:0px;--hb-shadow:none}
+  :root[data-brand="navy"] #ig-page.hb-light .hb-board,:root[data-brand="navy"] #hb-page.hb-light .hb-board{background:#EEF2F9}
+  .hb-board{gap:var(--s-4)}
+  .hb-book.hb-card{background:none;border:0;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+  .hb-book>.hb-ch{border-bottom:0;padding:0 2px var(--s-2);min-height:0}
+  .hb-book>.hb-cb{padding:0}
+  .hb-board .hb-ch{padding:10px var(--s-4)}
+  .hb-ag{grid-template-columns:minmax(150px,220px) minmax(0,1fr) auto auto;padding:10px var(--s-4)}
+  .hb-ag-k{display:flex;align-items:center;gap:8px;min-width:0}
+  .hb-ag-k .hb-ag-ic{width:22px;height:22px;border-radius:5px;flex:none}
+  .hb-ag-k .hb-ag-t{font-weight:var(--w-label);font-size:var(--t-meta);color:var(--hb-ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hb-ag-w{font-weight:var(--w-label);color:var(--hb-ink);font-size:var(--t-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hb-ag-u{font-size:var(--t-meta);font-weight:var(--w-label);white-space:nowrap}
+  .hb-ag-u.is-bad{color:var(--hb-ruby)}
+  .hb-ag-u.is-warn{color:var(--hb-amber)}
+  .hb-ins::before{content:none}
+  .hb-head-line{border-left:0;padding:0;background:none;border-radius:0}
+  .hb-fd{border:0;border-radius:9px;padding:1px 8px;background:rgba(var(--hb-gw),.1);color:var(--hb-glow);align-self:flex-start}
+  .hb-fd.is-bad,.hb-fd.is-warn,.hb-fd.is-good{background:rgba(var(--hb-gw),.1)}
+  @media (max-width:900px){ .hb-ag{grid-template-columns:minmax(0,1fr) auto} .hb-ag>.hb-btn{grid-column:2;grid-row:1 / span 3} }
   @media (max-width:1180px){ .hb-figs{grid-template-columns:repeat(3,minmax(0,1fr))} .hb-fig:nth-child(3n+1){border-left:0} .hb-fig:nth-child(n+4){border-top:1px solid rgba(var(--hb-ln),.16)} .hb-rows,.hb-grid,.hb-cgrid{grid-template-columns:minmax(0,1fr)} }
   @media (prefers-reduced-motion:reduce){ .hb-card.is-lit::before,.hb-card.is-new,.hb-card.is-new::before,.hb-bar-f,.hb-cbar-f,.hb-ccol-f,.hb-in,.hb-live i{animation:none} }
 

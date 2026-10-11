@@ -1057,6 +1057,15 @@ function hbHeadHtml(groupSel){
    EVERY FIGURE IS A DOOR AND A ZERO IS NOT ONE (Home's own rule since 20 Aug
    2026). The change since the baseline rides its own small chip, a door onto
    exactly the contracts that moved. */
+/* "Thu" within the week just gone, "3 Oct" before it: the tile's chip says WHEN */
+function hbSinceDay(iso){
+  if (!iso) return '';
+  try {
+    const d = new Date(iso + 'T00:00:00'), days = Math.round((new Date(hbToday() + 'T00:00:00') - d) / 864e5);
+    const loc = (typeof langLocale === 'function') ? langLocale() : undefined;
+    return days >= 0 && days < 7 ? d.toLocaleDateString(loc, { weekday: 'short' }) : d.toLocaleDateString(loc, { day: 'numeric', month: 'short' });
+  } catch (_){ return String(iso); }
+}
 function hbDeltaHtml(k, M, since){
   if (!M) return '';
   const tone = (HB_FIGS.find(f => f.k === k) || {}).tone;
@@ -1067,7 +1076,7 @@ function hbDeltaHtml(k, M, since){
   const up = M.d > 0;
   const cls = !M.d ? '' : tone === 'bad' ? (up ? ' is-bad' : ' is-good') : tone === 'warn' ? (up ? ' is-warn' : ' is-good') : '';
   const amt = k === 'value' ? _hbM(n) : _hbN(n);
-  const txt = M.d ? (up ? '▲ ' : '▼ ') + amt : '↔';
+  const txt = (M.d ? (up ? '▲ ' : '▼ ') + amt : '↔') + ' ' + i18t('hb_d_since', { day: hbSinceDay(since) });
   return `<button type="button" class="hb-fd${cls}" data-hb-dig="mv:${k}" title="${_hbE(i18t(M.d ? (up ? 'hb_d_up_tip' : 'hb_d_down_tip') : 'hb_d_swap_tip', { n: amt, when }))}">${_hbE(txt)}</button>`;
 }
 function hbBookHtml(d, moved, since){
@@ -1123,9 +1132,9 @@ function hbPrepHtml(A, since){
   const rows = folded ? '' : A.rows.map(r => {
     const tone = r.tone === 'ruby' ? ' is-neg' : r.tone === 'amber' ? ' is-crit' : '';
     return `<div class="hb-ag${tone}" data-hb-dig="ag:${_hbE(r.k)}" data-hm-agent-row="${_hbE(r.k)}">
-      <span class="hb-ag-ic" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor"><use href="#i-${_hbE(r.icon)}"/></svg></span>
-      <span class="hb-ag-b"><span class="hb-ag-t">${_hbE(i18t('ag_' + r.k))} <span class="hb-pill">${_hbN(r.n)}</span></span><span class="hb-ag-s">${_hbE([r.who, r.sum].filter(Boolean).join(' · '))}</span></span>
-      ${r.urg ? `<span class="hb-chip${r.tone === 'ruby' ? ' is-bad' : ' is-warn'}">${_hbE(r.urg)}</span>` : '<span></span>'}
+      <span class="hb-ag-k"><span class="hb-ag-ic" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor"><use href="#i-${_hbE(r.icon)}"/></svg></span><span class="hb-ag-t">${_hbE(i18t('ag_' + r.k))} <span class="hb-pill">${_hbN(r.n)}</span></span></span>
+      <span class="hb-ag-b"><span class="hb-ag-w">${_hbE(r.who || r.sum || '')}</span>${r.who && r.sum ? `<span class="hb-ag-s">${_hbE(r.sum)}</span>` : ''}</span>
+      ${r.urg ? `<span class="hb-ag-u${r.tone === 'ruby' ? ' is-bad' : ' is-warn'}">${_hbE(r.urg)}</span>` : '<span></span>'}
       ${HB_REVIEW_ON_PAPER[r.k] ? `<button type="button" class="hb-btn" data-hb-review-paper="${_hbE(r.k)}">${_hbE(i18t('hm_ag_review'))}</button>` : `<button type="button" class="hb-btn" data-hb-dig="ag:${_hbE(r.k)}">${_hbE(i18t('hm_ag_review'))}</button>`}</div>`;
   }).join('');
   const done = (!folded && A.done.length) ? `<div class="hb-done">${_hbE(i18t('hb_done_since', { when: hbDayWords(since) }))} ${A.done.map(x => `<button type="button" data-hb-dig="dn:${_hbE(x.k)}">${_hbE(i18tn('hb_done_' + x.k, x.n, { n: _hbN(x.n) }))}</button>`).join('<span aria-hidden="true">·</span>')}<span class="hb-grow"></span><span class="hb-quiet">${_hbE(i18t('hb_done_trail'))}</span></div>` : '';
@@ -6514,8 +6523,8 @@ function hbInsRowHtml(I){
     ? `<button type="button" class="hb-btn" data-hb-ins="open" data-hb-ins-k="${_hbE(I[0].id)}">${_hbE(i18t('hm_ag_review'))}</button>`
     : `<button type="button" class="hb-btn" data-hb-ins="usual" aria-pressed="${open}">${_hbE(open ? i18t('hb_ins_usual_hide') : i18t('hb_ins_usual_n', { n: _hbN(U.length) }))}</button>`;
   return `<div class="hb-ag hb-ins-row">
-    <span class="hb-ag-ic" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor"><use href="#i-insight"/></svg></span>
-    <span class="hb-ag-b"><span class="hb-ag-t">${_hbE(i18t('hb_ins_title'))}${I.length ? ` <span class="hb-pill">${_hbN(I.length)}</span>` : ''}</span><span class="hb-ag-s">${_hbE(i18t(sub))}</span></span>
+    <span class="hb-ag-k"><span class="hb-ag-ic" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor"><use href="#i-insight"/></svg></span><span class="hb-ag-t">${_hbE(i18t('hb_ins_title'))}${I.length ? ` <span class="hb-pill">${_hbN(I.length)}</span>` : ''}</span></span>
+    <span class="hb-ag-b"><span class="hb-ag-s">${_hbE(i18t(sub))}</span></span>
     <span></span>${btn}</div>`;
 }
 function hbShelfHtml(I){
