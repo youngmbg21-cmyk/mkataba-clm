@@ -44,7 +44,9 @@ test('f427 (1) the foot asks the one reading of the box as typed, and typing rep
   const foot = code(region(CE, 'ceRenderFoot'));
   assert.match(foot, /const now = ceBoxNow\(\);/);
   assert.match(foot, /const anyToFile = ceCanFile\(now\);/);
-  assert.match(foot, /\[discard, _cet\('ce_discard'\), liveMoved\]/);
+  /* RE-POINTED 10 Oct 2026 (one Copilot panel): the foot's Discard is gone;
+     Save still asks the box as typed. */
+  assert.match(foot, /\[\[save, label, anyToFile\]\]/);
   const box = code(region(CE, 'ceBoxNow'));
   assert.match(box, /if \(!ceIsTyping\(\)\) return null;/, 'nothing typed, nothing read');
   assert.doesNotMatch(box, /_ceText =|ceApply\(/, 'reading the box writes nothing');

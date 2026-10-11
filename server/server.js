@@ -2952,6 +2952,7 @@ const AI_FEATURE_LABEL = {
   renewal: 'Renewal adviser',   // W2-4
   amend: 'Amendment drafting',  // work order O-12, named on arrival
   windows: 'Dated windows',     // work order O-40, the Time Machine's periods
+  plan: 'Calendar planning',    // Copilot plans a person's own time (10 Oct 2026)
   /* The template builder's outline (Prompt & Build). Named on arrival for
      the reason conversion's absence taught: an unnamed feature spends into
      the Other bucket, where the one figure an admin wants is unreadable.
