@@ -10545,6 +10545,8 @@ function roomHeadHtml(c,opts={}){
           <hr>
           <div class="mgroup">${i18t('ct_view')}</div>
           <button type="button" id="ws-filing">${icon('folder','w-3.5 h-3.5')}${esc(i18t('ct_menu_filing'))}</button>
+          ${''/* MY NOTES (Young, 10 Oct 2026): a private note on this contract, in the person's own ledger */}
+          <button type="button" id="ws-mynote">${icon('pencil','w-3.5 h-3.5')}${esc(i18t('mn_add_to'))}</button>
           <button type="button" id="ws-focus" aria-pressed="false" title="${i18t('ct_hide_header')}">${icon('scan','w-3.5 h-3.5')}${esc(i18t('ct_focus_word'))}<span class="mnote">${i18t('ct_esc_to_leave')}</span></button>
           ${may?`<hr>
           ${''/* THE SAME SENTENCE AS THE CONTRACTS ROW (21 Sep 2026, the
@@ -11450,6 +11452,7 @@ function renderWorkspace(){
      row comes back the next time somebody re-adds the markup. */
   document.getElementById('ws-pdf')?.addEventListener('click',()=>exportPDF(c));
   document.getElementById('ws-filing')?.addEventListener('click',()=>ovOpenFiling(c));
+  document.getElementById('ws-mynote')?.addEventListener('click',()=>{ if(window.myNotesNew) myNotesNew({ contractId:c.id }); });
   document.getElementById('ws-pdf-record')?.addEventListener('click',()=>exportPDF(c,{record:true}));
   document.getElementById('ws-word')?.addEventListener('click',()=>exportWordTracked(c));
   // The text-size stepper on the tab row: the control, its styles and its

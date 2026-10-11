@@ -137,7 +137,11 @@ function renderMyNotes(){
       <div class="mn-split"><div class="mn-wrap scroll-thin">${myNotesTableHtml(list)}</div>
         <aside class="mn-side scroll-thin" id="mn-side">${_mn.mode === 'new' ? myNoteFormHtml(_mn.form) : myNoteViewHtml(n)}</aside></div>
     </section></div>`;
-  if (keep && document.getElementById(keep)){ const el = document.getElementById(keep); el.focus(); try{ if (caret != null) el.setSelectionRange(caret, caret); }catch(_){} }
+  /* THE CARET GOES TO THE NOTE BOX when the form first draws (asked of the
+     paint itself, not of a timer racing it); later repaints keep it where the
+     reader had it. */
+  if (_mn.mode === 'new' && _mn.form && _mn.form.focus){ _mn.form.focus = false; const b = document.getElementById('mn-body'); if (b) b.focus(); }
+  else if (keep && document.getElementById(keep)){ const el = document.getElementById(keep); el.focus(); try{ if (caret != null) el.setSelectionRange(caret, caret); }catch(_){} }
   myNotesWire();
   if (typeof setActiveNav === 'function') setActiveNav('mynotes');
 }
@@ -146,10 +150,9 @@ function renderMyNotes(){
 function myNotesNew(seed){
   const s = seed || {};
   _mn.mode = 'new';
-  _mn.form = { body:'', title:'', contractId:s.contractId || '', quote:s.quote || '', clauseId:s.clauseId || '', when:'week', date:'', query:'', listOpen:false };
+  _mn.form = { body:'', title:'', contractId:s.contractId || '', quote:s.quote || '', clauseId:s.clauseId || '', when:'week', date:'', query:'', listOpen:false, focus:true };
   _mn.filter = 'all';
   if (state.view !== 'mynotes' && typeof setView === 'function') setView('mynotes'); else renderMyNotes();
-  setTimeout(() => { const b = document.getElementById('mn-body'); if (b) b.focus(); }, 0);
 }
 function myNotesOpen(id){
   _mn.mode = 'view'; _mn.sel = id; _mn.filter = 'all'; _mn.form = null;
@@ -221,11 +224,11 @@ function paintMyNotesCount(){
   if (typeof updateSidebarCounts === 'function'){ try{ if (typeof navCountsClear === 'function') navCountsClear(); updateSidebarCounts(); }catch(_){} }
 }
 function myNotesCss(){ return `
-  .mn-page{height:var(--view-h, 100%);display:flex;flex-direction:column;min-height:0;padding:var(--page-pad-t, 16px) var(--s-6) 20px;gap:var(--s-3)}
-  .mn-head{display:flex;flex-direction:column;gap:2px}
+  .mn-page{height:var(--view-h, 100%);display:flex;flex-direction:column;min-height:0}
+  .mn-head{flex:none;display:flex;flex-direction:column;gap:2px;background:var(--color-surface);padding:var(--page-pad-t, 16px) var(--s-6) var(--s-3);box-shadow:inset 0 -1px var(--color-divider)}
   .mn-head .ttl{font-size:var(--t-h2, 20px);font-weight:var(--w-title)}
   .mn-sub{font-size:var(--t-meta);color:var(--color-neutral-600)}
-  .mn-card{flex:1;min-height:0;display:flex;flex-direction:column;border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:var(--color-surface);overflow:hidden}
+  .mn-card{flex:1;min-height:0;margin:var(--s-4) var(--s-6) 20px;display:flex;flex-direction:column;border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:var(--color-surface);overflow:hidden}
   .mn-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:var(--s-3) var(--s-4);border-bottom:1px solid var(--color-divider)}
   .mn-bar .g{flex:1}
   .mn-chips{display:flex;flex-wrap:wrap;gap:6px}

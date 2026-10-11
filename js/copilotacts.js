@@ -673,6 +673,8 @@ const CA_SEL_ACTIONS = () => [
   { id: 'oblig', label: _caT('ca_sel_oblig') },
   { id: 'risk', label: _caT('ca_sel_risk') },
   { id: 'note', label: _caT('ca_sel_note') },
+  /* MY NOTES (Young, 10 Oct 2026): the words into the person's private ledger */
+  { id: 'mine', label: _caT('mn_add_to') },
 ];
 function caSelKill(){ document.querySelectorAll('.nego-selmenu').forEach(n => n.remove()); }
 function caSelClauseId(node){
@@ -717,6 +719,8 @@ async function caSelPick(c, act, text, clauseId){
     if (typeof openObligationForm === 'function') openObligationForm(c, { desc: quote, due: '', recurring: 'none', assignee: '', quote, amount: '' });
     return;
   }
+  /* a private note is anybody's to write, a viewer's too */
+  if (act.id === 'mine'){ if (typeof myNotesNew === 'function') myNotesNew({ contractId: c.id, quote, clauseId }); return; }
   if (typeof canEdit === 'function' && !canEdit()){ if (typeof toast === 'function') toast(_caT('ca_send_viewer'), 'err'); return; }
   if (act.id === 'risk'){
     if (typeof promptDialog !== 'function') return;
