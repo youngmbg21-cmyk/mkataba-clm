@@ -2952,6 +2952,7 @@ const AI_FEATURE_LABEL = {
   renewal: 'Renewal adviser',   // W2-4
   amend: 'Amendment drafting',  // work order O-12, named on arrival
   windows: 'Dated windows',     // work order O-40, the Time Machine's periods
+  breakdown: 'Contract breakdown', // Home's Breakdown tab (owner, 11 Oct 2026), read once per wording
   plan: 'Calendar planning',    // Copilot plans a person's own time (10 Oct 2026)
   /* The template builder's outline (Prompt & Build). Named on arrival for
      the reason conversion's absence taught: an unnamed feature spends into
@@ -8407,6 +8408,83 @@ app.post('/api/ai/windows', auth, rlAiDeep, aiFeature('windows'), aiBudgetGuard,
     }).filter(Boolean);
     if (!windows.length && resp.truncated) return res.status(502).json({ error: 'Copilot ran out of room before it could list the windows. Try again.' });
     res.json({ windows, dropped, ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+});
+
+/* ---- HOME'S BREAKDOWN: THE WHOLE CONTRACT IN REGIONS (owner picked the SAP
+   way, 11 Oct 2026) ----
+   One reading cuts the contract into at most ten regions; every clause and
+   schedule is placed in exactly one, and each region says whether it needs the
+   reader, is worth a look, or is fine — counts and facts, no score. Quotes are
+   checked against the wording (a quote the text does not hold is dropped and
+   counted, never shown); a reading cut short says so. The browser keeps the
+   answer on the contract against the wording's own hash (c.breakdown), so a
+   contract is read once until its words change. Nothing is filed or sent. */
+const BREAKDOWN_STATUS = ['need', 'look', 'fine'];
+const BREAKDOWN_KINDS = ['pay', 'get', 'protect'];
+app.post('/api/ai/breakdown', auth, rlAiDeep, aiFeature('breakdown'), aiBudgetGuard, capAiInput, async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  const { text, side } = req.body || {};
+  if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
+  const tool = { name: 'break_down', description: 'Cut the contract into regions and say how each one stands for the reader\'s side.',
+    input_schema: { type: 'object', properties: {
+      head: { type: 'string', description: 'At most 6 words: what to do first, e.g. "Fix one, check three".' },
+      sub: { type: 'string', description: 'One plain sentence: where to start and why.' },
+      regions: { type: 'array', maxItems: 10, items: { type: 'object', properties: {
+        name: { type: 'string', description: 'A short plain name, at most 4 words, e.g. "Price & currency".' },
+        clauses: { type: 'string', description: 'The clause and schedule numbers in it, as printed, e.g. "5.1–5.3 · Sch. 3".' },
+        status: { type: 'string', enum: BREAKDOWN_STATUS, description: 'need = the reader must act; look = worth a look; fine = nothing to do.' },
+        kind: { type: 'string', enum: BREAKDOWN_KINDS, description: 'pay = what we pay; get = what we get; protect = what protects us.' },
+        headline: { type: 'string', description: 'At most 12 words: what this region does to the reader.' },
+        sentence: { type: 'string', description: 'One or two plain sentences of fact.' },
+        meaning: { type: 'string', description: 'What the marked words mean in practice, plainly.' },
+        fix: { type: 'string', description: 'The suggested change, or "Nothing to change."' },
+        ours: { type: 'string', description: 'What a careful buyer of this kind of contract would usually expect here, one sentence. Empty if fine.' },
+        here: { type: 'string', description: 'What this contract says instead, one sentence. Empty if fine.' },
+        stake: { type: 'string', description: 'What is at stake, in money or plain terms, one sentence. Empty if fine.' },
+        quotes: { type: 'array', maxItems: 3, items: { type: 'object', properties: {
+          source: { type: 'string', description: 'Where it is, e.g. "Clause 5.11 · Currency".' },
+          text: { type: 'string', description: 'The key words, verbatim.' + AI_QUOTE_RULE },
+          mark: { type: 'array', maxItems: 4, items: { type: 'string' }, description: 'Short phrases inside text that matter most, verbatim.' },
+        }, required: ['text'] } },
+        items: { type: 'array', maxItems: 20, items: { type: 'object', properties: {
+          ref: { type: 'string', description: 'The clause number as printed.' },
+          title: { type: 'string', description: 'Its heading, short.' },
+          note: { type: 'string', description: 'At most 12 words on what it says.' },
+          status: { type: 'string', enum: BREAKDOWN_STATUS },
+        }, required: ['ref', 'title'] } },
+      }, required: ['name', 'status', 'headline', 'items'] } },
+      links: { type: 'array', maxItems: 6, items: { type: 'object', properties: {
+        a: { type: 'number', description: '1-based number of one region.' }, b: { type: 'number', description: '1-based number of another region.' },
+        why: { type: 'string', description: 'How the two connect, a few words.' } }, required: ['a', 'b', 'why'] } },
+    }, required: ['regions'] } };
+  const mine = side === 'theirs' ? 'the other party' : 'our side (the party using this system)';
+  const prompt = `Read this whole contract from ${mine} and cut it into at most ten regions — groups of clauses that do one job (price, payment, term and exit, service levels, data, liability, law and general, missing details…). Every clause and schedule must sit in exactly one region. For each region say plainly whether it NEEDS the reader (a real risk or a contradiction), is WORTH A LOOK, or is FINE, and why, in short plain English for a non-lawyer. Quote the key words verbatim. Do not invent facts or numbers the text does not state; say "not stated" instead. Return via break_down.\n\nCONTRACT:\n${aiDocText(req, text)}`;
+  try {
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 8000, tools: [tool], tool_choice: { type: 'tool', name: 'break_down' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'breakdown', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const block = (resp.data.content || []).find(b => b.type === 'tool_use');
+    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    const hay = amendNorm(text);
+    const str = (v, n) => String(v == null ? '' : v).slice(0, n);
+    let dropped = 0;
+    const regions = (Array.isArray(block.input && block.input.regions) ? block.input.regions : []).slice(0, 10).map(r => {
+      if (!r || !r.name) return null;
+      const quotes = (Array.isArray(r.quotes) ? r.quotes : []).filter(q => {
+        const ok = q && q.text && hay.includes(amendNorm(q.text)); if (q && !ok) dropped++; return ok;
+      }).slice(0, 3).map(q => ({ source: str(q.source, 80), text: str(q.text, 600),
+        mark: (Array.isArray(q.mark) ? q.mark : []).map(m => str(m, 120)).filter(m => m && amendNorm(q.text).includes(amendNorm(m))).slice(0, 4) }));
+      const items = (Array.isArray(r.items) ? r.items : []).filter(i => i && i.ref).slice(0, 20).map(i => ({ ref: str(i.ref, 24), title: str(i.title, 80), note: str(i.note, 140),
+        status: BREAKDOWN_STATUS.includes(i.status) ? i.status : 'fine' }));
+      return { name: str(r.name, 40), clauses: str(r.clauses, 80), status: BREAKDOWN_STATUS.includes(r.status) ? r.status : 'look',
+        kind: BREAKDOWN_KINDS.includes(r.kind) ? r.kind : 'protect', headline: str(r.headline, 140), sentence: str(r.sentence, 400),
+        meaning: str(r.meaning, 500), fix: str(r.fix, 300), ours: str(r.ours, 240), here: str(r.here, 240), stake: str(r.stake, 240), quotes, items };
+    }).filter(Boolean);
+    if (!regions.length) return res.status(502).json({ error: resp.truncated ? 'Copilot ran out of room before it could cut the contract into regions. Try again.' : 'Copilot found no regions in this wording.' });
+    const links = (Array.isArray(block.input.links) ? block.input.links : []).map(l => ({ a: Math.round(Number(l && l.a)), b: Math.round(Number(l && l.b)), why: str(l && l.why, 120) }))
+      .filter(l => l.a >= 1 && l.b >= 1 && l.a <= regions.length && l.b <= regions.length && l.a !== l.b && l.why).slice(0, 6);
+    res.json({ head: str(block.input.head, 60), sub: str(block.input.sub, 240), regions, links, dropped, truncated: !!resp.truncated, ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 

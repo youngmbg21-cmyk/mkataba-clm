@@ -64,7 +64,8 @@ import './draft.js';    // draft from a sentence: it picks from your own paper a
 import './adviserlink.js';   // send two clauses to an outside adviser: a fifth link purpose (upgrade 9)
 import './mine.js';             // a person's own calendar events and private notes: one store, private to them (10 Oct 2026)
 import './views/calendar.js';
-import './views/mynotes.js';     // My notes: the private ledger (10 Oct 2026)
+import './views/mynotes.js';
+import './views/breakdown.js';   // Home's Breakdown face: the whole contract in regions (11 Oct 2026)     // My notes: the private ledger (10 Oct 2026)
 import './views/reports.js';
 import './views/weekly.js';       // the weekly review: five slots, three sizes, no AI
 import './views/healthreport.js'; // the Portfolio Health Report: deterministic document, opened by button or by Copilot
