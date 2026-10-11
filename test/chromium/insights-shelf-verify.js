@@ -2,6 +2,8 @@
    by name; "Build it", 4 Oct 2026) — CHOSEN AS "YOURS, MEASURED" (Young
    picked it by name the same day: "hati is a company platform")
    ============================================================
+   RE-POINTED 11 Oct 2026 (the Board as drawn): its own card, Today's insights,
+   under Copilot's work; Read more is worded "Ask why" (the same reading).
    Inside Prepared by Copilot on Home: a row and up to three small pictures of
    what is OUTSIDE ITS NORMAL RANGE — the reader's own contracts first, then
    the company's — each with Keep · Open · Read more · let go.
@@ -78,24 +80,24 @@ const check = (name, pass, detail) => {
       /* the reader owns three of each month's four */
       const me = currentUser(); state.contracts.forEach(c => { const m = /^MK-P\d+-(\d)$/.exec(c.id); if (m) c.owner = Number(m[1]) < 3 ? { id: me.id, name: me.name } : { id: 'u_other', name: 'Someone Else' }; });
       const s = hbS(); s.face = 'board'; s.prep = 'open'; s.ins = null; s.insOff = {}; s.insKept = {}; s.panels = []; s.path = []; hbSave(); setView('dashboard'); });
-    const has = await until(() => typeof hbInsightsToday === 'function' && !!document.querySelector('#hm-agents .hb-shelf')
-      && hbS().ins && hbS().ins.n === hbInsBookSig() && document.querySelectorAll('#hm-agents .hb-shelf .hb-ins').length === hbS().ins.list.length);
-    if (!has){ check('1a the shelf is drawn inside Prepared by Copilot', false, 'no .hb-shelf'); throw new Error('no shelf'); }
+    const has = await until(() => typeof hbInsightsToday === 'function' && !!document.querySelector('#hb-board .hb-inscard .hb-shelf')
+      && hbS().ins && hbS().ins.n === hbInsBookSig() && document.querySelectorAll('#hb-board .hb-inscard .hb-shelf .hb-ins').length === hbS().ins.list.length);
+    if (!has){ check('1a the shelf is drawn in its own card, Today\'s insights', false, 'no .hb-shelf'); throw new Error('no shelf'); }
 
     /* ================= 1. YOURS, MEASURED ================= */
     const s1 = await page.evaluate(() => {
-      const cards = [...document.querySelectorAll('#hm-agents .hb-shelf .hb-ins')];
+      const cards = [...document.querySelectorAll('#hb-board .hb-inscard .hb-shelf .hb-ins')];
       const c = document.querySelector('[data-hb-ins-card="pay.mine"]'), band = c && c.querySelector('.hb-ins-pic .hb-sv-band'), lit = c && c.querySelector('.hb-ins-pic .hb-sv-collit');
       const bb = band && band.getBoundingClientRect();
       return { n: cards.length, ids: cards.map(x => x.getAttribute('data-hb-ins-card')), scope: hbS().ins.scope,
         acts: cards.every(x => x.querySelector('[data-hb-ins="keep"]') && x.querySelector('[data-hb-ins="open"]') && x.querySelector('[data-hb-read-more^="ins:"]') && x.querySelector('[data-hb-ins="go"]')),
-        doorsInside: document.querySelectorAll('#hm-agents .hb-ins-pic [data-hb-dig], #hm-agents .hb-ins-pic [tabindex]').length,
+        doorsInside: document.querySelectorAll('#hb-board .hb-inscard .hb-ins-pic [data-hb-dig], #hb-board .hb-inscard .hb-ins-pic [tabindex]').length,
         chip: c && (c.querySelector('.hb-ins-scope') || {}).textContent, t: c && c.querySelector('.hb-ins-t').textContent, f: c && c.querySelector('.hb-ins-f').textContent,
         why: c && (c.querySelector('.hb-ins-why') || {}).textContent,
         band: bb ? { h: Math.round(bb.height), fill: getComputedStyle(band).fill, stroke: getComputedStyle(band).strokeStyle || getComputedStyle(band).stroke } : null,
         lit: lit ? getComputedStyle(lit).fill + ' / ' + getComputedStyle(lit).fillOpacity : null,
-        row: ((document.querySelector('#hm-agents .hb-ins-row') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
-        calm: ((document.querySelector('#hm-agents .hb-ins-calm') || {}).textContent || '').replace(/\s+/g, ' ').trim() };
+        row: ((document.querySelector('#hb-board .hb-inscard > .hb-ch') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+        calm: ((document.querySelector('#hb-board .hb-inscard .hb-ins-calm') || {}).textContent || '').replace(/\s+/g, ' ').trim() };
     });
     check('1a your own contracts come first: the payment-days picture is yours', s1.ids[0] === 'pay.mine' && s1.scope === 'mine' && s1.n <= 3, JSON.stringify(s1.ids));
     check('1b marked yours, titled by what left its normal', /^Yours · \d+$/.test(s1.chip || '') && /Payment days are above normal/.test(s1.t || ''), `${s1.chip} | ${s1.t}`);
@@ -108,12 +110,12 @@ const check = (name, pass, detail) => {
     await page.screenshot({ path: path.join(OUT, '1-yours-measured.png') });
     if (s1.n < 3){
       check('1h a place no finding filled says so', /^Nothing else stood out today\. Show the usual pictures \(\d\)$/.test(s1.calm), s1.calm);
-      await page.evaluate(() => document.querySelector('#hm-agents .hb-ins-calm [data-hb-ins="usual"]').click());
-      const u = await until(n => { const k = document.querySelectorAll('#hm-agents .hb-ins.is-plain').length; return k ? { plain: k, all: document.querySelectorAll('#hm-agents .hb-ins').length } : null; }, s1.n);
+      await page.evaluate(() => document.querySelector('#hb-board .hb-inscard .hb-ins-calm [data-hb-ins="usual"]').click());
+      const u = await until(n => { const k = document.querySelectorAll('#hb-board .hb-inscard .hb-ins.is-plain').length; return k ? { plain: k, all: document.querySelectorAll('#hb-board .hb-inscard .hb-ins').length } : null; }, s1.n);
       check('1i one press shows the usual pictures, plain, after the findings', !!u && u.all === s1.n + u.plain, JSON.stringify(u));
       await page.screenshot({ path: path.join(OUT, '1-usual-pictures.png') });
-      await page.evaluate(() => document.querySelector('#hm-agents .hb-ins-calm [data-hb-ins="usual"]').click());
-      const hid = await until(() => document.querySelectorAll('#hm-agents .hb-ins.is-plain').length === 0);
+      await page.evaluate(() => document.querySelector('#hb-board .hb-inscard .hb-ins-calm [data-hb-ins="usual"]').click());
+      const hid = await until(() => document.querySelectorAll('#hb-board .hb-inscard .hb-ins.is-plain').length === 0);
       check('1j and the same press takes them away', !!hid);
     }
 
@@ -122,7 +124,7 @@ const check = (name, pass, detail) => {
        kept only bare shape names, so "yours" left the shelf until tomorrow */
     const before2 = await page.evaluate(() => ({ list: hbS().ins.list.slice(), n: hbS().ins.n }));
     await page.reload({ waitUntil: 'networkidle' });
-    const s2 = await until(() => { if (!(window.hbS && hbS().ins && document.querySelector('#hm-agents .hb-shelf'))) return null;
+    const s2 = await until(() => { if (!(window.hbS && hbS().ins && document.querySelector('#hb-board .hb-inscard .hb-shelf'))) return null;
       const c = document.querySelector('[data-hb-ins-card="pay.mine"]');
       return c ? { list: hbS().ins.list.slice(), scope: hbS().ins.scope, chip: (c.querySelector('.hb-ins-scope') || {}).textContent } : null; }, null, 20000);
     check('2a a refresh keeps your own picture on the shelf, marked yours', !!s2 && s2.list.includes('pay.mine') && s2.scope === 'mine' && /^Yours · \d+$/.test(s2.chip || ''), JSON.stringify({ before2, s2 }));
@@ -133,10 +135,10 @@ const check = (name, pass, detail) => {
     /* ================= 3. OPEN IS THE BOARD'S OWN DIG-IN ================= */
     await page.evaluate(() => document.querySelector('[data-hb-ins-card="pay.mine"] [data-hb-ins="open"]').click());
     const s3 = await until(() => { const d = document.querySelector('#hb-focus .hb-dig'); if (!d) return null;
-      return { recipe: !!d.querySelector('.hb-recipe, [data-hb-rc]'), cols: !!d.querySelector('svg.hb-cols'), key: (hbS().path || []).slice(-1)[0],
+      return { recipe: !!d.querySelector('[data-hb-drawn]') && !d.querySelector('.hb-recipe'), cols: !!d.querySelector('svg.hb-cols'), key: (hbS().path || []).slice(-1)[0],
         ids: hbDigData((hbS().path || []).slice(-1)[0], 'all').ids }; });
     const s3mine = s3 && await page.evaluate(ids => ({ n: ids.length, notMine: ids.filter(id => !contractOwnedBy(getContract(id), currentUser())).length }), s3.ids);
-    check('3a Open lands on the board\'s own dig-in, with its dropdowns', !!s3 && s3.recipe && s3.cols, s3 && JSON.stringify({ recipe: s3.recipe, cols: s3.cols }));
+    check('3a Open lands on the board\'s own dig-in, its choices under How this is drawn', !!s3 && s3.recipe && s3.cols, s3 && JSON.stringify({ recipe: s3.recipe, cols: s3.cols }));
     check('3b on your own contracts — the same question the picture asked', !!s3 && /^q:average payment days of my signed contracts/.test(s3.key) && s3mine.n >= 36 && s3mine.notMine === 0, s3 && `${s3.key} · ${JSON.stringify(s3mine)}`);
     await page.screenshot({ path: path.join(OUT, '3-open.png') });
     await page.evaluate(() => { const s = hbS(); s.path = []; hbSave(); hbPaintBoard(); });
@@ -170,7 +172,8 @@ const check = (name, pass, detail) => {
     await page.screenshot({ path: path.join(OUT, '6-read-more.png') });
     await page.evaluate(() => document.querySelector('[data-hb-ins-card="pay.mine"] [data-hb-read-more]').click());
     const s6d = await until(() => { const card = document.querySelector('[data-hb-ins-card="pay.mine"]'); return card && !card.querySelector('.hb-read') ? card.querySelector('[data-hb-read-more]').textContent.trim() : null; }, null, 3000);
-    check('6d Show less folds it', s6d === 'Read more', s6d);
+    /* RE-POINTED 11 Oct 2026 (the Board as drawn): the artifact's word on the same in-card reading */
+    check('6d Show less folds it', s6d === 'Ask why', s6d);
 
     /* ================= 5. LET GO, AND IT RESTS ================= */
     const before = await page.evaluate(() => document.querySelectorAll('.hb-shelf .hb-ins:not(.is-plain)').length);
@@ -183,13 +186,13 @@ const check = (name, pass, detail) => {
     /* ================= 7. A QUIET DAY ================= */
     await page.evaluate(() => { state.contracts.forEach(c => { if (/^MK-P1-[0-2]$/.test(c.id)) c.metadata = { ...c.metadata, paymentTerms: '31 days' }; });
       const s = hbS(); s.ins = null; s.insOff = {}; s.panels = []; hbSave(); hbPaintBoard(); });
-    const s7 = await until(() => { const r = document.querySelector('#hm-agents .hb-ins-row'); if (!r || !hbS().ins || hbS().ins.list.length) return null;
-      return { row: r.textContent.replace(/\s+/g, ' ').trim(), cards: document.querySelectorAll('#hm-agents .hb-ins').length, btn: (r.querySelector('[data-hb-ins="usual"]') || {}).textContent }; });
+    const s7 = await until(() => { const r = document.querySelector('#hb-board .hb-inscard > .hb-ch'); if (!r || !hbS().ins || hbS().ins.list.length) return null;
+      return { row: r.textContent.replace(/\s+/g, ' ').trim(), cards: document.querySelectorAll('#hb-board .hb-inscard .hb-ins').length, btn: (r.querySelector('[data-hb-ins="usual"]') || {}).textContent }; });
     check('7a a quiet day: the row says nothing moved outside normal', !!s7 && /nothing moved outside its normal range this morning/.test(s7.row), s7 && s7.row);
     check('7b and no filler is drawn', !!s7 && s7.cards === 0, s7 && `${s7.cards} cards`);
     await page.screenshot({ path: path.join(OUT, '7-quiet-day.png') });
-    await page.evaluate(() => document.querySelector('#hm-agents .hb-ins-row [data-hb-ins="usual"]').click());
-    const s7c = await until(() => { const n = document.querySelectorAll('#hm-agents .hb-ins.is-plain').length; return n ? { n, btn: document.querySelector('#hm-agents .hb-ins-row [data-hb-ins="usual"]').textContent } : null; });
+    await page.evaluate(() => document.querySelector('#hb-board .hb-inscard > .hb-ch [data-hb-ins="usual"]').click());
+    const s7c = await until(() => { const n = document.querySelectorAll('#hb-board .hb-inscard .hb-ins.is-plain').length; return n ? { n, btn: document.querySelector('#hb-board .hb-inscard > .hb-ch [data-hb-ins="usual"]').textContent } : null; });
     check('7c the usual pictures are one press away', !!s7c && s7c.n >= 1 && /Hide the usual pictures/.test(s7c.btn), JSON.stringify(s7c));
     await page.screenshot({ path: path.join(OUT, '7-quiet-day-usual.png') });
 

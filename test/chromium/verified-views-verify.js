@@ -34,11 +34,13 @@ const check = (name, pass, detail) => { results.push({ name, pass: !!pass }); co
     await page.evaluate(() => { const s = hbS(); s.face = 'board'; s.prep = 'closed'; s.panels = []; s.path = []; s.screen = 'dark'; hbSave(); setView('dashboard'); });
     await until(() => document.getElementById('hb-board') ? true : null);
     const pid = await page.evaluate(() => { const { p } = hbAddCard({ all: true }, { pic: 'bars', split: { by: 'status' }, measure: 'count' }, 'Stages for the board pack'); hbPaintBoard(); return p.id; });
-    await until(id => document.querySelector(`[data-hb-pid="${id}"] [data-hb-act="more"]`) ? true : null, pid);
-    await page.click(`[data-hb-pid="${pid}"] [data-hb-act="more"]`);
+    await until(id => document.querySelector(`[data-hb-pid="${id}"] [data-hb-tools-more]`) ? true : null, pid);
+    /* RE-POINTED 11 Oct 2026 (the Board as drawn): Verify is an item of the card's ⋯ */
+    await page.click(`[data-hb-pid="${pid}"] [data-hb-tools-more]`);
     const s1 = await until(id => { const m = document.querySelector(`[data-hb-pid="${id}"] .hb-pmenu`); return m ? [...m.querySelectorAll('button')].map(b => b.textContent.trim()) : null; }, pid);
     await page.screenshot({ path: path.join(OUT, '1-menu.png') });
-    check('1 the admin\'s card has ⋯ with "Verified view…"', JSON.stringify(s1) === JSON.stringify(['Verified view…']), JSON.stringify(s1));
+    /* the card's one ⋯ now carries every tool; Verified view… is one of its items, for the admin */
+    check('1 the admin\'s card has ⋯ with "Verified view…"', !!s1 && s1.some(t => /Verified view…$/.test(t)), JSON.stringify(s1));
     await page.click(`[data-hb-pid="${pid}"] [data-hb-act="verify"]`);
     await until(id => document.querySelector(`[data-hb-ver-form="${id}"]`) ? true : null, pid);
     await page.fill(`[data-hb-ver-form="${pid}"] textarea[name="phrases"]`, 'board pack stages\nwhere do deals stand');

@@ -103,8 +103,12 @@ const check = (name, pass, detail) => {
     if (hit && hit.key){
       const want = await page.evaluate(k => hbDigData(k, hbS().lens).n, hit.key);
       await page.evaluate(k => { const g = [...document.querySelectorAll('#hb-focus [data-hb-dig]')].find(x => x.getAttribute('data-hb-dig') === k); g.dispatchEvent(new MouseEvent('click', { bubbles: true })); }, hit.key);
+      /* RE-POINTED 11 Oct 2026 (the Board as drawn): a press opens the segment's
+         contracts in the side list; its "Open as a chart" nests it under the chart */
+      const rows = await until(() => { const n = document.querySelectorAll('.hb-sheet [data-hb-sheet-c]').length; return n || null; });
+      await page.evaluate(() => { const b = document.querySelector('.hb-sheet [data-hb-sheet-dig]'); if (b) b.click(); });
       const got = await until(k => { const s = hbS(); return (s.path || []).slice(-1)[0] === k ? hbDigData(k, s.lens).n : null; }, hit.key);
-      check('1d pressing it opens exactly those contracts, nested under the chart', got === want && want > 0, JSON.stringify({ want, got }));
+      check('1d pressing it opens exactly those contracts, nested under the chart', got === want && rows === want && want > 0, JSON.stringify({ want, rows, got }));
     }
 
     /* ================= 2. HEAT GRID ================= */
@@ -148,9 +152,11 @@ const check = (name, pass, detail) => {
       const s = hbS(); const open = (s.path || []).slice(-1)[0];
       s.panels = [{ id: 'pk1', kind: 'view', key: 'q:contracts by stage', title: 'By stage', recipe: { pic: 'ring', split: { by: 'status' } }, split: false, big: false }];
       hbSave(); hbPaintBoard();
-      document.querySelector('[data-hb-pid="pk1"] [data-hb-rkey] [data-hb-rmore]').click();
-      document.querySelector('[data-hb-pid="pk1"] [data-hb-rkey] [data-hb-rc="split2"]').click();
-      const opt = document.querySelector('[data-hb-pid="pk1"] [data-hb-rset="split2:g:folder"]'); if (opt) opt.click();
+      /* RE-POINTED 11 Oct 2026 (the Board as drawn): the choice is made under How this is drawn ▾ */
+      document.querySelector('[data-hb-pid="pk1"] [data-hb-drawn]').click();
+      const sel = document.querySelector('[data-hb-pid="pk1"] .hb-dp [data-hb-rsel="split2"]');
+      if (sel){ sel.value = 'g:folder'; sel.dispatchEvent(new Event('change', { bubbles: true })); }
+      else { const opt = document.querySelector('[data-hb-pid="pk1"] .hb-dp [data-hb-rset="split2:g:folder"]'); if (opt) opt.click(); }
       const P = hbPlan(hbDigData('q:contracts by stage', s.lens));
       return { panel: P.split2 && P.split2.by, pic: P.pic, openKept: JSON.stringify((s.recipe || {})[open] || {}).indexOf('split2') < 0 || /stream/.test(open), kept: !!(s.panels[0].recipe && s.panels[0].recipe.split2) };
     });

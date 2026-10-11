@@ -75,7 +75,15 @@ test('f552 (4) Esc steps back one step: full screen first', () => {
   assert.ok(full < present && full < board, 'before it leaves Present or closes the opened card');
 });
 
-test('f552 (5) detail is earned: table and full screen only once opened', () => {
+/* RE-POINTED 11 Oct 2026 (owner, over the "HaTi Board" artifact: the card's
+   edge carries its tools, reversing O-25's "detail is earned once opened"):
+   Table and the ⋯ menu are on every chart that has doors, opened or kept on
+   the board; full screen is offered off the board step, and a kept chart's ⋯
+   opens it with every tool instead. */
+test('f552 (5) the card edge carries the tools: table on every chart with doors; full screen once opened', () => {
   const html = region('hbChartHtml');
-  assert.match(html, /if \(at\.step !== 'board' && \/data-hb-dig=\/\.test\(R\.body\)\)\{[\s\S]*data-hb-table=[\s\S]*data-hb-full/, 'offered off the board step only, and only where the chart has doors');
+  assert.match(html, /if \(\/data-hb-dig=\/\.test\(R\.body\)\)\{[\s\S]*_hbEdgeMeta\.set\(at\.key, \{ canTable: !!t/, 'the table is offered wherever the chart has doors');
+  const edge = region('hbEdgeHtml');
+  assert.match(edge, /data-hb-table=[\s\S]*data-hb-tools-more/, 'Table and ⋯ on the head');
+  assert.match(edge, /board \? _hbMi\(`data-hb-fullkey=[\s\S]*: _hbMi\(`data-hb-full/, 'a kept chart opens full; an opened one goes full screen');
 });

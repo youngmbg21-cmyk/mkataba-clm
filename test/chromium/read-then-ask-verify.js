@@ -3,6 +3,8 @@
    ============================================================
    On Home's board, the owner's own card — the whole book, by month signed,
    counted:
+     (RE-POINTED 11 Oct 2026, the Board as drawn: Make bigger is a ⋯ item;
+     a kept chart made bigger on the board is only wider.)
      1. at normal size the corner button says Make bigger, arrows out, and the
         chart keeps its own line; no reading is drawn;
      2. enlarged, the button says Make smaller (to a screen reader too), its
@@ -71,8 +73,15 @@ const check = (name, pass, detail) => {
   const until = async (fn, arg, ms = 8000) => { let v; const t0 = Date.now();
     while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(120); }
     return v; };
-  const btnOf = sel => page.evaluate(s => { const b = document.querySelector(s); if (!b) return null;
-    return { title: b.getAttribute('title'), aria: b.getAttribute('aria-label'), pressed: b.getAttribute('aria-pressed'), path: (b.querySelector('path') || {}).getAttribute ? b.querySelector('path').getAttribute('d') : '' }; }, sel);
+  /* RE-POINTED 11 Oct 2026 (the Board as drawn): on a chart, Make bigger /
+     Make smaller is an item of the card's ⋯ menu; it is read off the item
+     (its words), pressed through the menu */
+  const itemOf = async (card) => { await page.click(`${card} [data-hb-tools-more]`);
+    await until(c => !!document.querySelector(`${c} .hb-tools-menu`), card);
+    return page.evaluate(c => { const b = document.querySelector(`${c} .hb-tools-menu [data-hb-digbig], ${c} .hb-tools-menu [data-hb-act="big"]`);
+      const t = b ? [...b.childNodes].filter(n => !(n.classList && n.classList.contains('hb-mi-k'))).map(n => n.textContent).join('').trim() : null; return t ? { title: t } : null; }, card); };
+  const pressBig = async (card) => { if (!(await page.$(`${card} .hb-tools-menu`))) await page.click(`${card} [data-hb-tools-more]`);
+    await page.click(`${card} .hb-tools-menu [data-hb-digbig], ${card} .hb-tools-menu [data-hb-act="big"]`); };
   try {
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke');
@@ -88,22 +97,24 @@ const check = (name, pass, detail) => {
       const s = hbS(); s.face = 'board'; s.prep = 'closed'; s.panels = []; s.why = {}; s.digBig = false; s.path = [k]; s.screen = 'dark';
       s.recipe = s.recipe || {}; s.recipe[k] = { which: 'all', pic: 'cols', split: { by: 'date', unit: 'm', date: 'signed' }, measure: 'count', trend: true };
       hbSave(); setView('dashboard'); }, KEY);
-    const up = await until(() => !!document.querySelector('#hb-focus .hb-dig [data-hb-digbig]'));
+    const up = await until(() => !!document.querySelector('#hb-focus .hb-dig [data-hb-tools-more]'));
     if (!up){ check('1a the card is on the board', false, 'no card'); throw new Error('no card'); }
 
     /* ================= 1. AT REST ================= */
-    const b1 = await btnOf('#hb-focus [data-hb-digbig]');
+    const b1 = await itemOf('#hb-focus');
+    await page.keyboard.press('Escape');
     const r1 = await page.evaluate(() => ({ read: !!document.querySelector('#hb-focus .hb-read'), note: ((document.querySelector('#hb-focus .hb-chart-note') || {}).textContent || '') }));
-    check('1a at rest the button says Make bigger, arrows out', b1 && b1.title === 'Make bigger' && b1.aria === 'Make bigger' && b1.pressed === 'false' && /^M2 6V2h4/.test(b1.path), JSON.stringify(b1));
+    check('1a at rest the ⋯ menu offers Make bigger', b1 && b1.title === 'Make bigger', JSON.stringify(b1));
     /* one burst after a long quiet is not a trend (4 Oct 2026): at rest the
        card says why in its own note, and no reading is drawn */
     check('1b and the card is as it was: no reading; the chart\'s own note says why there is no line', !r1.read && /Not enough history yet for a trend/.test(r1.note), JSON.stringify(r1));
 
     /* ================= 2. ENLARGED ================= */
-    await page.click('#hb-focus [data-hb-digbig]');
+    await pressBig('#hb-focus');
     const big = await until(() => document.querySelector('#hb-focus .hb-dig.is-big') && document.querySelector('#hb-focus .hb-read') ? true : null);
-    const b2 = await btnOf('#hb-focus [data-hb-digbig]');
-    check('2a enlarged, the button says Make smaller, arrows in — to the hand and a screen reader', !!big && b2 && b2.title === 'Make smaller' && b2.aria === 'Make smaller' && b2.pressed === 'true' && /^M6 2v4H2/.test(b2.path), JSON.stringify(b2));
+    const b2 = await itemOf('#hb-focus');
+    await page.keyboard.press('Escape');
+    check('2a enlarged, the ⋯ menu offers Make smaller', !!big && b2 && b2.title === 'Make smaller', JSON.stringify(b2));
     const r2 = await page.evaluate(() => { const r = document.querySelector('#hb-focus .hb-read'); const dock = document.getElementById('ig-dock');
       return { lines: [...r.querySelectorAll('li')].map(li => li.textContent.replace(/\s+/g, ' ').trim()), say: !!document.querySelector('#hb-focus .hb-tr-say'),
         dock: dock ? getComputedStyle(dock).display : 'none', door: !!document.getElementById('igd-expand'), bg: getComputedStyle(r).backgroundColor, border: getComputedStyle(r).borderTopColor }; });
@@ -143,20 +154,23 @@ const check = (name, pass, detail) => {
     check('4h kept with its chart: a repaint shows it again without asking', kept);
 
     /* ================= 5. MAKE SMALLER ================= */
-    await page.click('#hb-focus [data-hb-digbig]');
+    await pressBig('#hb-focus');
     const s5 = await until(() => !document.querySelector('#hb-focus .hb-dig.is-big') ? { read: !!document.querySelector('#hb-focus .hb-read'), dock: getComputedStyle(document.getElementById('ig-dock') || document.body).display } : null);
-    const b5 = await btnOf('#hb-focus [data-hb-digbig]');
+    const b5 = await itemOf('#hb-focus');
+    await page.keyboard.press('Escape');
     check('5a Make smaller brings the card back and the panel returns', !!s5 && !s5.read && s5.dock !== 'none' && b5 && b5.title === 'Make bigger', JSON.stringify({ s5, b5 }));
 
     /* ================= 6. A KEPT VIEW WEARS THE SAME BUTTON ================= */
     await page.evaluate(k => { const s = hbS(); s.path = []; s.panels = [{ id: 'p1', kind: 'view', key: k, title: 'Signed by month', shape: '', recipe: s.recipe[k], split: false, big: false }]; s.seq = 1; hbSave(); hbPaintBoard(); }, KEY);
-    const v0 = await until(() => document.querySelector('.hb-view [data-hb-act="big"]') ? true : null);
-    const bv0 = v0 && await btnOf('.hb-view [data-hb-act="big"]');
-    await page.click('.hb-view [data-hb-act="big"]');
+    /* a kept chart made bigger ON THE BOARD is only wider (as drawn): its reading opens from ⋯ */
+    const v0 = await until(() => document.querySelector('.hb-view [data-hb-tools-more]') ? true : null);
+    const bv0 = v0 && await itemOf('.hb-view');
+    await pressBig('.hb-view');
     await until(() => document.querySelector('.hb-view.is-big') ? true : null);
-    const bv1 = await btnOf('.hb-view [data-hb-act="big"]');
+    const bv1 = await itemOf('.hb-view');
+    await page.keyboard.press('Escape');
     const vr = await page.evaluate(() => !!document.querySelector('.hb-view.is-big .hb-read'));
-    check('6a a kept view: Make bigger at rest, Make smaller enlarged, with the reading', bv0 && bv0.title === 'Make bigger' && bv1 && bv1.title === 'Make smaller' && /^M6 2v4H2/.test(bv1.path) && vr, JSON.stringify({ bv0, bv1, vr }));
+    check('6a a kept view: Make bigger at rest, Make smaller enlarged, and the card stays clean', bv0 && bv0.title === 'Make bigger' && bv1 && bv1.title === 'Make smaller' && !vr, JSON.stringify({ bv0, bv1, vr }));
 
     /* ================= 8. EVERY ENLARGED CARD READS =================
        Young, 4 Oct 2026: "i do not see the options in the dashboard" →
@@ -177,14 +191,15 @@ const check = (name, pass, detail) => {
     await page.screenshot({ path: path.join(OUT, '8a-value-reading.png') });
     await page.evaluate(() => { const s = hbS(); s.path = []; s.digBig = false; hbSave(); hbPaintBoard(); });
     const fe = await until(() => document.querySelector('#hb-board [data-hb-dig="f:ending"]') ? true : null);
-    if (fe) await page.click('#hb-board [data-hb-dig="f:ending"]');
-    if (await until(() => document.querySelector('#hb-focus [data-hb-digbig]') ? true : null)) await page.click('#hb-focus [data-hb-digbig]');
+    /* RE-POINTED: a list figure opens the side list; "Open as a chart" opens its card */
+    if (fe) { await page.click('#hb-board [data-hb-dig="f:ending"]'); await until(() => document.querySelector('.hb-sheet [data-hb-sheet-dig]') ? true : null); await page.click('.hb-sheet [data-hb-sheet-dig]'); }
+    if (await until(() => document.querySelector('#hb-focus [data-hb-tools-more]') ? true : null)) await pressBig('#hb-focus');
     const s8b = await until(() => { const r = document.querySelector('#hb-focus .hb-dig.is-big .hb-read'); return r ? [...r.querySelectorAll('li')].map(li => li.textContent.replace(/\s+/g, ' ').trim()) : null; });
     check('8b Ending in 90 days, made bigger, names the first to end', !!s8b && s8b.some(l => /end in the next 90 days; the first is MK-S0 \(Nordkraft AB\), on /.test(l)), JSON.stringify({ fe, s8b }));
     await page.screenshot({ path: path.join(OUT, '8b-ending-reading.png') });
     await page.evaluate(() => { const s = hbS(); s.path = []; s.digBig = false; s.panels = [{ id: 'p8', kind: 'ren', split: false, big: false }]; s.seq = 8; hbSave(); hbPaintBoard(); });
-    const p0 = await until(() => document.querySelector('.hb-panel[data-hb-pid="p8"] [data-hb-act="big"]') ? { read: !!document.querySelector('.hb-panel[data-hb-pid="p8"] .hb-read') } : null);
-    if (p0) await page.click('.hb-panel[data-hb-pid="p8"] [data-hb-act="big"]');
+    const p0 = await until(() => document.querySelector('.hb-panel[data-hb-pid="p8"] [data-hb-tools-more]') ? { read: !!document.querySelector('.hb-panel[data-hb-pid="p8"] .hb-read') } : null);
+    if (p0) await pressBig('.hb-panel[data-hb-pid="p8"]');
     const s8c = await until(() => { const P = document.querySelector('.hb-panel.is-big[data-hb-pid="p8"]'); const r = P && P.querySelector('.hb-read'); return r ? { lines: [...r.querySelectorAll('li')].map(li => li.textContent.replace(/\s+/g, ' ').trim()), ask: !!P.querySelector('[data-hb-why="hp:ren"]') } : null; });
     check('8c a ready-made panel: nothing extra at normal size; made bigger, it reads and offers the ask', !!p0 && !p0.read && !!s8c && s8c.ask && s8c.lines.some(l => /^The first to end is MK-S0 \(Nordkraft AB\), in \d+ days/.test(l)), JSON.stringify({ p0, s8c }));
     if (s8c) await page.click('.hb-panel[data-hb-pid="p8"] [data-hb-why="hp:ren"]');

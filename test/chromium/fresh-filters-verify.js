@@ -120,8 +120,9 @@ function book(){
        digs in first, and the dig-in's "Open these" is the door onto Contracts. */
     const openStage = async k => {
       await page.click(`#hb-board .hb-stagekey [data-hb-dig="st:${k}"]`).catch(() => {});
-      await page.waitForSelector(`#hb-board .hb-dig [data-hb-stage="${k}"]`, { timeout: 5000 }).catch(() => {});
-      await page.click(`#hb-board .hb-dig [data-hb-stage="${k}"]`).catch(() => {});
+      /* RE-POINTED 11 Oct 2026 (the Board as drawn): the stage opens its list in the side list */
+      await page.waitForSelector(`.hb-sheet [data-hb-stage="${k}"]`, { timeout: 5000 }).catch(() => {});
+      await page.click(`.hb-sheet [data-hb-stage="${k}"]`).catch(() => {});
     };
     if (dd.draftDoor) await openStage('Draft');
     await page.waitForTimeout(1100);

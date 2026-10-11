@@ -88,5 +88,6 @@ test('f565 (4) the button never lies', () => {
   const body = region('hbChartHtml');
   assert.match(body, /const t = hbChartTableHtml\(R\.body\);/, 'the table is built before the button is drawn');
   assert.match(body, /const tab = !!t && _hbTableOn\.has\(at\.key\);/, '"Show as chart" only while a table is showing');
-  assert.match(body, /\$\{t \? `<button type="button" class="hb-link" data-hb-table=/, 'no rows, no button');
+  /* RE-POINTED 11 Oct 2026 (as drawn): the button stands on the card's head */
+  assert.match(region('hbEdgeHtml'), /const table = M\.canTable \? `<button type="button" class="hb-edge-b" data-hb-table=/, 'no rows, no button');
 });

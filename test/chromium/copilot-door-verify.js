@@ -65,7 +65,9 @@ const check = (name, ok, detail) => {
 
     /* ===== 2. AN ENLARGED CARD KEEPS THE DOOR ===== */
     await page.evaluate(() => { intel.dockOpen = true; renderIntelDock(); igSyncDockWidth(); });
-    await page.click('#hb-board .hb-fig');
+    /* RE-POINTED 11 Oct 2026 (the Board as drawn): a list figure opens the side
+       list; Value under contract still opens its card on the board */
+    await page.click('#hb-board [data-hb-dig="f:value"]');
     await until(() => !!document.querySelector('#hb-focus .hb-bigbtn'));
     await page.click('#hb-focus .hb-bigbtn');
     await until(() => !!document.querySelector('.hb-dig-big') && Math.round(document.getElementById('ig-dock').getBoundingClientRect().width) === 46, null, 4000);

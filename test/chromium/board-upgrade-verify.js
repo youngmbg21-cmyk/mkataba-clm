@@ -126,17 +126,26 @@ const check = (name, pass, detail) => {
     check('3a. G2 every fitted column edge is on a whole pixel', sharp.xs.length >= 3 && sharp.xs.every(x => x % 1 === 0), sharp.xs.slice(0, 6).join(' '));
     check('3b. G2 grid lines are crisp', sharp.crisp === 'crispedges', sharp.crisp);
 
+    /* RE-POINTED 11 Oct 2026 (the Board as drawn): the press in 1d opens the
+       column's contracts in the side list over the right of the page — close it */
+    await page.keyboard.press('Escape');
+    await until(() => !document.querySelector('.hb-sheet'), null, 3000);
     /* 4. G5 opened: lines */
     await page.evaluate(k => { const s = hbS(); s.panels = []; s.path = [k]; hbSave(); hbPaintBoard(); }, KEY);
     await page.evaluate(({ k, R }) => { hbCardSet(k, R, { seed: true }); hbPaintBoard(); }, { k: KEY, R: RECIPE });
-    await until(() => !!document.querySelector('#hb-focus [data-hb-lines]'));
-    const tools = await page.evaluate(() => [...document.querySelectorAll('#hb-focus .hb-open-tools > *')].map(b => b.textContent.trim()).join(' | '));
-    check('4a. G5/G9 opened: Lines, Copy as image and Copy table beside Show as table and Full screen', /Lines/.test(tools) && /Copy as image/.test(tools) && /Copy table/.test(tools) && /Show as table/.test(tools), tools);
-    await page.click('#hb-focus [data-hb-lines]');
-    await until(() => !!document.querySelector('.hb-lines-menu'));
-    await page.click('.hb-lines-menu [data-hb-line="avg"]');
+    /* RE-POINTED 11 Oct 2026 (the Board as drawn): the head carries How this is
+       drawn ▾ · Table · ⋯; Lines (and the target) are a group in the panel,
+       Copy as image / Copy table are items of ⋯ */
+    await until(() => !!document.querySelector('#hb-focus [data-hb-drawn]'));
+    await page.click('#hb-focus [data-hb-tools-more]');
+    const tools = await until(() => { const h = [...document.querySelectorAll('#hb-focus .hb-edge > *')].map(b => b.textContent.trim()).join(' | '); const m = document.querySelector('#hb-focus .hb-tools-menu'); return m ? h + ' || ' + m.textContent.replace(/\s+/g, ' ') : null; });
+    check('4a. G5/G9 opened: How this is drawn · Table on the head; Copy as image, Copy table and Full screen in ⋯', !!tools && /How this is drawn/.test(tools) && /Table/.test(tools) && /Copy as image/.test(tools) && /Copy table/.test(tools) && /Full screen/.test(tools), tools);
+    await page.keyboard.press('Escape');
+    await page.click('#hb-focus [data-hb-drawn]');
+    await until(() => !!document.querySelector('#hb-focus .hb-dp [data-hb-line="avg"]'));
+    await page.click('#hb-focus .hb-dp [data-hb-line="avg"]');
     check('4b. G5 the average is drawn', !!(await until(() => !!document.querySelector('#hb-focus .hb-sv-ref-avg'))));
-    if (!(await page.evaluate(() => !!document.querySelector('#hb-ref-tgt-in')))) await page.click('#hb-focus [data-hb-lines]');
+    if (!(await page.evaluate(() => !!document.querySelector('#hb-ref-tgt-in')))) await page.click('#hb-focus [data-hb-drawn]');
     await until(() => !!document.querySelector('#hb-ref-tgt-in'));
     await page.fill('#hb-ref-tgt-in', 'lots');
     await page.press('#hb-ref-tgt-in', 'Enter');
@@ -148,11 +157,14 @@ const check = (name, pass, detail) => {
     await page.screenshot({ path: path.join(OUT, '4-lines.png') });
 
     /* 5. G9 copies */
+/* RE-POINTED 11 Oct 2026: the tool is an item of the card's ⋯ (the artifact's card edge) — open it first */
+    await page.click('#hb-focus [data-hb-tools-more]');
     await page.click('#hb-focus [data-hb-copy-tab]');
     const clip = await until(async () => { try { const t = await navigator.clipboard.readText(); return /\t/.test(t) ? t : null; } catch (_){ return null; } });
     const rows = clip ? clip.split('\n').slice(1).map(r => r.split('\t')) : [];
     check('5a. G9 Copy table puts the chart\'s rows on the clipboard, a column per field', rows.length >= 3 && rows.every(r => r.length === 2 && r[0] && /\d/.test(r[1])), clip ? clip.split('\n').slice(0, 3).join(' / ') : 'nothing on the clipboard');
     let dl = null; page.once('download', d => { dl = d; });
+    await page.click('#hb-focus [data-hb-tools-more]');
     await page.click('#hb-focus [data-hb-copy-img]');
     const img = await until(() => { const t = [...document.querySelectorAll('.toast, [role="status"], [role="alert"]')].map(x => x.textContent).join(' '); return /copied as an image|downloaded as a picture|could not be turned/i.test(t) ? t : null; }, null, 10000);
     check('5b. G9 Copy as image copies or saves a picture, and says which', !!img && !/could not be turned/i.test(img), (img || '').slice(0, 120) + (dl ? ' (downloaded)' : ''));

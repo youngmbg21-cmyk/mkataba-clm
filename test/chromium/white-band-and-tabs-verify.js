@@ -333,9 +333,13 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
       return {
         heads: cards.map(c => mid(c.querySelector('.hb-ch .hb-ct'))),
         acts: cards.map(c => [...c.querySelectorAll('.hb-ch > :not(.hb-ct)')].map(mid)),
-        rules: cards.map(c => { const h = c.querySelector('.hb-ch'); const cs = h && getComputedStyle(h);
+        /* RE-POINTED 11 Oct 2026 (the Board as drawn): Your book is no card — its
+           strip is — so its head draws no rule; every other card's head does. And
+           a head starts at its first item (Copilot's work leads with its fold
+           chevron), measured on the card's own margin. */
+        rules: cards.filter(c => !c.classList.contains('hb-book')).map(c => { const h = c.querySelector('.hb-ch'); const cs = h && getComputedStyle(h);
           return !!cs && cs.borderBottomStyle !== 'none' && parseFloat(cs.borderBottomWidth) > 0; }),
-        margins: cards.map(c => { const t = c.querySelector('.hb-ch .hb-ct'); return t ? Math.round(t.getBoundingClientRect().x - c.getBoundingClientRect().x) : null; }),
+        margins: cards.map(c => { const t = c.querySelector('.hb-ch > *'); return t ? Math.round(t.getBoundingClientRect().x - c.getBoundingClientRect().x) : null; }),
         book: (typeof i18t === 'function') ? i18t('hb_book') : null,
       };
     });

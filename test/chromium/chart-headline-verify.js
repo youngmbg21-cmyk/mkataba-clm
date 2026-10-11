@@ -60,7 +60,9 @@ const check = (name, pass, detail) => {
       more: more ? more.textContent.trim() : null, expanded: more ? more.getAttribute('aria-expanded') : null,
       read: !!d.querySelector('.hb-read'), why: !!d.querySelector('[data-hb-why]'),
       cost: ((d.querySelector('.hb-why-ask .hb-quiet') || {}).textContent || '').trim(),
-      afterLead: !!(hl && lead && (lead.compareDocumentPosition(hl) & Node.DOCUMENT_POSITION_FOLLOWING)),
+      /* RE-POINTED 11 Oct 2026 (the Board as drawn): the notes sit under the
+         chart, the point first, then the totals */
+      afterLead: !!(hl && lead && (hl.compareDocumentPosition(lead) & Node.DOCUMENT_POSITION_FOLLOWING) && !!d.querySelector('svg') && (d.querySelector('svg').compareDocumentPosition(hl) & Node.DOCUMENT_POSITION_FOLLOWING)),
       chart: !!d.querySelector('svg'), doors: hl ? [...hl.querySelectorAll('.hb-read-n')].map(b => ({ k: b.getAttribute('data-hb-dig'), n: b.textContent.trim() })) : [] };
   });
   try {
@@ -83,7 +85,7 @@ const check = (name, pass, detail) => {
     /* 1 — at rest */
     const c1 = await card();
     check('1a at normal size the card says its point in one line', !!c1 && !c1.big && !!c1.line, c1 && c1.line);
-    check('1b under the totals, never the totals said again', !!c1 && c1.afterLead && !/are counted here|is counted here|under contract, (in|across)/.test(c1.line || ''), c1 && c1.line);
+    check('1b under the chart, before the totals, never the totals said again', !!c1 && c1.afterLead && !/are counted here|is counted here|under contract, (in|across)/.test(c1.line || ''), c1 && c1.line);
     check('1c it is the chart\'s own point: the busiest stretch', !!c1 && /busiest|Most of them/i.test(c1.line || ''), c1 && c1.line);
     check('1d Read more beside it; the full reading is not drawn and nothing is asked',
       !!c1 && c1.more === 'Read more' && c1.expanded === 'false' && !c1.read && c1.chart, JSON.stringify({ more: c1 && c1.more, read: c1 && c1.read }));
@@ -117,9 +119,12 @@ const check = (name, pass, detail) => {
     check('4 Show less folds it again', !!c4 && !c4.read && c4.more === 'Read more', c4 && c4.more);
 
     /* 6 — enlarged: as it was */
+    /* RE-POINTED 11 Oct 2026: Make bigger is an item of the card's ⋯ */
+    await page.click('#hb-focus [data-hb-tools-more]');
     await page.click('#hb-focus [data-hb-digbig]');
     const c6 = await until(() => document.querySelector('#hb-focus .hb-dig.is-big .hb-read') ? true : null) && await card();
     check('6 enlarged, the card is as it was: the full reading, no headline', !!c6 && c6.big && c6.read && !c6.line, JSON.stringify(c6 && { big: c6.big, read: c6.read, line: c6.line }));
+    await page.click('#hb-focus [data-hb-tools-more]');
     await page.click('#hb-focus [data-hb-digbig]');
 
     /* 5 — Value under contract */

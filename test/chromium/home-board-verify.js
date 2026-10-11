@@ -99,14 +99,12 @@ const CONTRACTS = [
 
     /* ===== 2. A FIGURE IS A DOOR WITH A TRAIL ===== */
     if (landed) await page.click('.hb-fig-main[data-hb-dig="f:live"]');
-    ok('2a pressing Live contracts opens the dig-in', await until(page, () => !!document.querySelector('#hb-board .hb-dig')));
-    /* CHART FIRST (3 Oct 2026): the dig-in opens as a chart; its set is read
-       off the card's own data, and 13c proves the list switch */
-    const digIds = () => page.evaluate(() => (hbDigData((hbS().path || []).slice(-1)[0], hbS().lens) || { ids: [] }).ids.slice());
-    ok('2b the dig-in counts the live contracts', (await digIds()).length === await page.evaluate(() => hbBookData('all').figs.live.n)
-      && await page.evaluate(() => /\d/.test((document.querySelector('#hb-focus .hb-chart-lead') || {}).textContent || '')));
-    await page.click('[data-hb-crumb="-1"]').catch(() => {});
-    ok('2c the trail\'s first crumb goes back to the book', await until(page, () => !document.querySelector('#hb-board .hb-dig') && hbS().path.length === 0));
+    /* RE-POINTED 11 Oct 2026 (the Board as drawn): a figure opens its contracts
+       in the side list on the right — the same list the number was counted from */
+    ok('2a pressing Live contracts opens its list on the right', await until(page, () => !!document.querySelector('.hb-sheet [data-hb-sheet-c]')));
+    ok('2b the list holds the live contracts, as many as the figure says', await page.evaluate(() => document.querySelectorAll('.hb-sheet [data-hb-sheet-c]').length === hbBookData('all').figs.live.n));
+    await page.click('.hb-sheet [data-hb-sheet-x]').catch(() => {});
+    ok('2c × closes it, back to the book', await until(page, () => !document.querySelector('.hb-sheet') && hbS().path.length === 0));
 
     /* ===== 3. ASKING ===== */
     await ask(page, 'suppliers only');
@@ -158,11 +156,13 @@ const CONTRACTS = [
     }
     ok('6a a watch over the line is a row in the bell', await until(page, () =>
       buildAlerts().some(a => a.kind === 'watch')));
-    await page.click('[data-hb-crumb="-1"]').catch(() => {});
+    await page.keyboard.press('Escape');
+    await until(page, () => !document.querySelector('.hb-sheet'));
 
     /* ===== 7. GIVE A PANEL ===== */
     const pid = await page.evaluate(() => (hbS().panels[0] || {}).id || null);
-    if (pid) await page.click(`[data-hb-pid="${pid}"] [data-hb-act="give"]`).catch(() => {});
+    /* RE-POINTED 11 Oct 2026: Give to a colleague… is an item of the card's ⋯ */
+    if (pid) { await page.click(`[data-hb-pid="${pid}"] [data-hb-tools-more]`).catch(() => {}); await page.click(`[data-hb-pid="${pid}"] [data-hb-act="give"]`).catch(() => {}); }
     const giveUp = await until(page, () => !!document.querySelector('[data-hb-give-form]'));
     ok('7a Give opens a form naming colleagues, not addresses', giveUp && await page.evaluate(() =>
       [...document.querySelectorAll('[data-hb-give-form] select[name="to"] option')].every(o => !/@/.test(o.textContent) && /^u_/.test(o.value))));
@@ -288,7 +288,16 @@ const CONTRACTS = [
     ok('13i Enter on a focused slice digs one step deeper', await until(page, () => (hbS().path || []).length === 2 && /^qg:/.test((hbS().path || [])[1])));
     await page.click('[data-hb-crumb="0"]').catch(() => {});
     await until(page, () => (hbS().path || []).length === 1);
-    const pick = async (part, v) => { await page.click(`#hb-focus [data-hb-rc="${part}"]`); await until(page, p => !!document.querySelector(`#hb-focus [data-hb-rset="${p}"]`), part + ':' + v); await page.click(`#hb-focus [data-hb-rset="${part}:${v}"]`); };
+    /* RE-POINTED 11 Oct 2026 (the Board as drawn): a choice is made in the How
+       this is drawn panel — a button, or one compact list where a group is long */
+    /* RE-POINTED 11 Oct 2026: on a chart Make bigger is an item of the card's ⋯ */
+    const bigger = async () => { if (!(await page.$('#hb-focus .hb-ch > [data-hb-digbig], #hb-focus .hb-ch .hb-ib[data-hb-digbig]')) && await page.$('#hb-focus [data-hb-tools-more]')) await page.click('#hb-focus [data-hb-tools-more]'); await page.click('#hb-focus [data-hb-digbig]'); };
+    const pick = async (part, v) => {
+      if (!(await page.$('#hb-focus .hb-dp'))) await page.click('#hb-focus [data-hb-drawn]');
+      await until(page, p => !!document.querySelector(`#hb-focus .hb-dp [data-hb-rset^="${p}:"], #hb-focus .hb-dp [data-hb-rsel="${p}"]`), part);
+      if (await page.$(`#hb-focus .hb-dp [data-hb-rsel="${part}"]`)) await page.selectOption(`#hb-focus .hb-dp [data-hb-rsel="${part}"]`, v);
+      else await page.click(`#hb-focus .hb-dp [data-hb-rset="${part}:${v}"]`);
+      await page.keyboard.press('Escape'); await until(page, () => !document.querySelector('#hb-focus .hb-dp')); };
     await pick('pic', 'bars');
     await until(page, () => document.querySelectorAll('#hb-focus .hb-cbar').length >= 2);
     /* the bar grows in over 0.7 s: asked for the state, bounded */
@@ -297,15 +306,19 @@ const CONTRACTS = [
       return { h: Math.round(r.height), filled: f.width > 4, painted: getComputedStyle(b.querySelector('.hb-cbar-f')).backgroundColor !== 'rgba(0, 0, 0, 0)', text: b.textContent.replace(/\s+/g, ' ').trim() }; });
     ok('13b on the Bars picture every bar is a painted button with its words and its number', bar.h >= 30 && bar.filled && bar.painted && /\d/.test(bar.text), JSON.stringify(bar));
     const h0 = await page.evaluate(() => document.querySelector('#hb-focus .hb-dig').getBoundingClientRect().height);
-    await page.click('#hb-focus [data-hb-digbig]');
+    await bigger();
     ok('13e expanded, the chart grows for the room', await until(page, h => !!document.querySelector('#hb-focus .hb-dig.is-big') && document.querySelector('#hb-focus .hb-dig').getBoundingClientRect().height > h + 40, h0));
-    await page.click('#hb-focus [data-hb-digbig]');
+    await bigger();
     await until(page, () => !document.querySelector('#hb-focus .hb-dig.is-big'));
     await pick('pic', 'list');
     ok('13c the List picture shows the list the owner had', await until(page, () => document.querySelectorAll('#hb-focus .hb-rows [data-hb-dig^="c:"]').length >= 2 && !document.querySelector('#hb-focus .hb-chart-lead')));
     await pick('pic', 'ring');
     await until(page, () => !!document.querySelector('#hb-focus .hb-ring'));
+    /* RE-POINTED 11 Oct 2026 (the Board as drawn): a press opens the row's
+       contracts in the side list; its "Open as a chart" digs one step deeper */
     await page.click('#hb-focus .hb-ring .hb-sv-row[data-hb-dig]');
+    await until(page, () => !!document.querySelector('.hb-sheet [data-hb-sheet-dig]'));
+    await page.click('.hb-sheet [data-hb-sheet-dig]');
     ok('13d a legend row digs one step deeper and the trail says so', await until(page, () =>
       (hbS().path || []).length === 2 && /^qg:/.test((hbS().path || [])[1]) && document.querySelectorAll('#hb-focus .hb-trail button').length >= 2 && !!document.querySelector('#hb-focus .hb-chart-lead')));
     await page.click('[data-hb-crumb="-1"]').catch(() => {});
@@ -317,9 +330,9 @@ const CONTRACTS = [
     ok('13g a date question is the Timeline: today marked, each month with an ending a door, each pill a contract', await until(page, () =>
       document.querySelectorAll('#hb-focus .hb-tl [data-hb-dig^="qm:"]').length >= 1 && document.querySelectorAll('#hb-focus .hb-tl [data-hb-dig^="c:"]').length >= 1 && !!document.querySelector('#hb-focus .hb-tl .hb-sv-today')));
     const big = await page.evaluate(() => { const s = document.querySelector('#hb-focus .hb-svg'); return s ? s.getBoundingClientRect().width : 0; });
-    await page.click('#hb-focus [data-hb-digbig]');
+    await bigger();
     ok('13j expanded, the timeline grows with the room', await until(page, w => { const s = document.querySelector('#hb-focus .hb-dig.is-big .hb-svg'); return !!s && s.getBoundingClientRect().width > w + 100; }, big));
-    await page.click('#hb-focus [data-hb-digbig]');
+    await bigger();
     await until(page, () => !document.querySelector('#hb-focus .hb-dig.is-big'));
 
     /* ===== 14. THE COUNT FOLLOWS THE QUESTION (Young: "the top constant 6
@@ -339,12 +352,16 @@ const CONTRACTS = [
        return to the whole list") — a card pressed while counting opens within it */
     const liveBtn = await page.$('#hb-book [data-hb-dig="f:live"]');
     if (liveBtn) await liveBtn.click();
-    ok('14d a card pressed while counting Juno opens within Juno: the six stay, the trail names Juno, the list is Juno\'s', !!liveBtn && await until(page, n => {
-      const p = hbS().path || [], trail = (document.querySelector('#hb-focus .hb-crumbs, #hb-focus .hb-trail') || document.querySelector('#hb-focus') || {}).textContent || '';
-      return p.length === 2 && p[1] === 'f:live' && /^q:/.test(p[0]) && hbBookData('all').figs.live.n === n
+    /* RE-POINTED 11 Oct 2026 (the Board as drawn): the figure opens its list in
+       the side list — still within Juno: the count stays, the six stay, the list is Juno's */
+    ok('14d a card pressed while counting Juno opens within Juno: the six stay, the count stays, the list is Juno\'s', !!liveBtn && await until(page, n => {
+      const p = hbS().path || [];
+      return p.length === 1 && /^q:/.test(p[0]) && hbBookData('all').figs.live.n === n
         && String((document.querySelector('#hb-book .hb-fig .hb-fig-n') || {}).textContent).replace(/\D/g, '') === String(n)
-        && /Juno/.test(trail) && hbDigData('f:live', 'all').ids.length === n && !!document.querySelector('.hb-counting .is-count');
-    }, counted.live), JSON.stringify(await page.evaluate(() => ({ path: hbS().path, live: hbBookData('all').figs.live.n }))));
+        && document.querySelectorAll('.hb-sheet [data-hb-sheet-c]').length === n && !!document.querySelector('.hb-counting .is-count');
+    }, counted.live), JSON.stringify(await page.evaluate(() => ({ path: hbS().path, live: hbBookData('all').figs.live.n, rows: document.querySelectorAll('.hb-sheet [data-hb-sheet-c]').length }))));
+    await page.keyboard.press('Escape');
+    await until(page, () => !document.querySelector('.hb-sheet'));
     await page.evaluate(() => Promise.race([Promise.all(document.getAnimations().filter(a => a.effect && a.effect.getTiming().iterations !== Infinity).map(a => a.finished.catch(() => {}))), new Promise(r => setTimeout(r, 2000))]));
     await page.screenshot({ path: path.join(OUT, '14d-card-within-the-count.png') });
     await page.click('.hb-counting .is-count [data-hb-crumb="-1"]');
@@ -363,18 +380,24 @@ const CONTRACTS = [
     await ask(page, 'Show Juno contracts by month');
     /* ONE RECIPE LANGUAGE (work order Part 1, 4 Oct 2026): the row gained
        Then by, Order, Period and Compare, behind one "More" until used */
-    ok('15a "by month" draws month columns, each a door, with the recipe\'s dropdowns and the trend switch on the card', await until(page, () =>
-      document.querySelectorAll('#hb-focus .hb-cols [data-hb-dig^="qm:"]').length >= 1 && ['which', 'split', 'pic', 'measure'].every(p => document.querySelector(`#hb-focus .hb-recipe [data-hb-rc="${p}"]`)) && !!document.querySelector('#hb-focus .hb-recipe [data-hb-rmore]') && !!document.querySelector('#hb-focus .hb-recipe [data-hb-rtrend]') && /month/i.test(document.querySelector('#hb-focus [data-hb-rc="split"]').textContent)));
-    await page.click('#hb-focus [data-hb-rc="pic"]');
-    const menu = await page.evaluate(() => { const m = document.querySelector('#hb-focus .hb-rmenu'); if (!m) return null; const r = m.getBoundingClientRect(); const top = document.elementFromPoint(r.left + 30, r.top + 14);
-      return { h: Math.round(r.height), onTop: !!(top && top.closest('.hb-rmenu')), dead: [...m.querySelectorAll('button:disabled')].map(b => b.title).filter(Boolean).length, opts: m.querySelectorAll('button').length }; });
+    /* RE-POINTED 11 Oct 2026 (the Board as drawn): the card is clean; its
+       choices are labelled groups under How this is drawn ▾ */
+    await until(page, () => document.querySelectorAll('#hb-focus .hb-cols [data-hb-dig^="qm:"]').length >= 1 && !!document.querySelector('#hb-focus [data-hb-drawn]'));
+    await page.click('#hb-focus [data-hb-drawn]');
+    const grp = p => `#hb-focus .hb-dp [data-hb-rset^="${p}:"], #hb-focus .hb-dp [data-hb-rsel="${p}"]`;
+    ok('15a "by month" draws month columns, each a door, with the recipe\'s groups and the trend switch under How this is drawn', await until(page, g =>
+      document.querySelectorAll('#hb-focus .hb-cols [data-hb-dig^="qm:"]').length >= 1 && ['split', 'pic', 'measure'].every(p => document.querySelector(eval(g)(p))) && !!document.querySelector('#hb-focus .hb-dp [data-hb-rtrend]')
+        && /month/i.test(((document.querySelector('#hb-focus .hb-dp [data-hb-rsel="split"]') || {}).selectedOptions || [{}])[0].textContent || (document.querySelector('#hb-focus .hb-dp [data-hb-rset^="split:"][aria-pressed="true"]') || {}).textContent || ''), grp.toString()) && !(await page.$('#hb-focus .hb-recipe')));
+    const menu = await page.evaluate(() => { const m = document.querySelector('#hb-focus .hb-dp'); if (!m) return null; const r = m.getBoundingClientRect(); const top = document.elementFromPoint(r.left + 30, r.top + 14);
+      const sel = m.querySelector('[data-hb-rsel="pic"]'), btns = m.querySelectorAll('[data-hb-rset^="pic:"]');
+      return { h: Math.round(r.height), onTop: !!(top && top.closest('.hb-dp')), dead: [...(sel ? sel.options : btns)].filter(o => o.disabled).length, opts: sel ? sel.options.length : btns.length }; });
     const nPics = await page.evaluate(() => HB_PICS.length);
     /* RE-POINTED 10 Oct 2026 (owner: "If a choice in the filter can not be
        clicked on and provide results then it should not be a choice in the
        filter at all"): only the pictures that draw are listed, none greyed */
-    ok('15b the Picture dropdown is painted on top, only pictures that draw are listed, none greyed', !!menu && menu.onTop && menu.opts >= 3 && menu.opts < nPics && menu.dead === 0 && menu.h > 100, JSON.stringify(menu));
+    ok('15b the panel is painted on top, only pictures that draw are listed, none greyed', !!menu && menu.onTop && menu.opts >= 3 && menu.opts < nPics && menu.dead === 0 && menu.h > 100, JSON.stringify(menu));
     await page.keyboard.press('Escape');
-    ok('15c Escape closes it and gives the keyboard back to the dropdown', await until(page, () => !document.querySelector('#hb-focus .hb-rmenu') && (document.activeElement || {}).getAttribute && document.activeElement.getAttribute('data-hb-rc') === 'pic'));
+    ok('15c Escape closes it and gives the keyboard back to How this is drawn', await until(page, () => !document.querySelector('#hb-focus .hb-dp') && (document.activeElement || {}).getAttribute && document.activeElement.hasAttribute('data-hb-drawn')));
     await pick('pic', 'gantt');
     ok('15d one press turns the same set into contract bars, and it is kept for this card', await until(page, () => !!document.querySelector('#hb-focus .hb-tl [data-hb-dig^="c:"]') && (hbS().recipe[(hbS().path || []).slice(-1)[0]] || {}).pic === 'gantt'));
     /* RE-POINTED 7 Oct 2026 (the one-build work order A2): the opening word
@@ -382,7 +405,8 @@ const CONTRACTS = [
     await page.click('[data-hb-crumb="-1"]').catch(() => {});
     await ask(page, 'Is time to sign getting faster?');
     ok('15e a trend question draws columns with the trend on — a line and its sentence, or the plain reason there is not enough history', await until(page, () =>
-      document.querySelector('#hb-focus [data-hb-rtrend]').getAttribute('aria-pressed') === 'true'
+      /* RE-POINTED 11 Oct 2026: the Trend switch lives under How this is drawn ▾ — read the card's own plan */
+      !!(hbS().path || []).length && !!(hbPlan(hbDigData((hbS().path || []).slice(-1)[0], hbS().lens)) || {}).trend
       && (!!document.querySelector('#hb-focus .hb-sv-trend') && /→/.test((document.querySelector('#hb-focus .hb-tr-say') || {}).textContent || '') || /Not enough history yet/.test((document.querySelector('#hb-focus .hb-chart-note') || {}).textContent || ''))));
     await page.click('[data-hb-crumb="-1"]').catch(() => {});
     await ask(page, 'How many live contracts did we have each month?');

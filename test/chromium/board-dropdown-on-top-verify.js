@@ -57,10 +57,10 @@ const PANELS = [['pa', 'q:contracts by status'], ['pb', 'q:contracts by counterp
       /* the saved settings may land after the first paint: ask until the
          three cards stand, placing them again if they were replaced */
       const stood = await until(async ({ P, R, screen }) => {
-        if (P.every(([id]) => document.querySelector(`[data-hb-pid="${id}"] [data-hb-rc]`))) return true;
+        if (P.every(([id]) => document.querySelector(`[data-hb-pid="${id}"] [data-hb-drawn]`))) return true;
         const s = hbS(); if (!(s.panels || []).some(p => p.id === 'pa')) { s.panels = P.map(([id, key]) => ({ id, kind: 'view', key, title: id, recipe: JSON.parse(JSON.stringify(R)), split: false, big: false })); s.screen = screen; s.scrPick = 1; hbSave(); hbPaintBoard(); }
         return false; }, { P: PANELS, R, screen }, 15000);
-      check(`0. ${tag}: three cards on the board, each with its dropdown row`, !!stood);
+      check(`0. ${tag}: three cards on the board, each with How this is drawn`, !!stood);
       if (!stood) { await page.close(); continue; }
       /* the upper card: the one with another card straight below it */
       const upper = await page.evaluate(ids => {
@@ -69,42 +69,41 @@ const PANELS = [['pa', 'q:contracts by status'], ['pb', 'q:contracts by counterp
         return pair ? pair.id : null; }, PANELS.map(p => p[0]));
       check(`0b. ${tag}: a card has a card straight below it`, !!upper, upper);
       if (!upper) { await page.close(); continue; }
-      const parts = await page.evaluate(id => [...document.querySelectorAll(`[data-hb-pid="${id}"] [data-hb-rc]`)].map(b => b.getAttribute('data-hb-rc')), upper);
+      /* RE-POINTED 11 Oct 2026 (the Board as drawn): the card's choices are one
+         panel under How this is drawn ▾ and one ⋯ menu, both on the card's head */
       const probe = () => {
-        const m = document.querySelector('.hb-rmenu, .hb-pmenu'); if (!m) return null;
+        const m = document.querySelector('.hb-dp, .hb-pmenu'); if (!m) return null;
         const mr = m.getBoundingClientRect(); const bad = []; let n = 0;
-        [...m.querySelectorAll('button')].forEach(it => { const r = it.getBoundingClientRect(); const cy = r.top + r.height / 2;
+        [...m.querySelectorAll('button, select')].forEach(it => { const r = it.getBoundingClientRect(); const cy = r.top + r.height / 2;
           if (r.height < 2 || cy < mr.top + 3 || cy > mr.bottom - 3 || cy < 0 || cy > innerHeight) return;
           n++; const e = document.elementFromPoint(r.left + r.width / 2, cy);
           if (!e || !m.contains(e)) bad.push((it.textContent || '').trim().slice(0, 24) + ' → ' + (e ? ((e.closest('[data-hb-pid]') || e).getAttribute('data-hb-pid') || e.className.toString().slice(0, 20)) : 'nothing')); });
         return { n, bad }; };
-      const close = async () => { await page.keyboard.press('Escape'); await page.mouse.click(4, 4); await until(() => !document.querySelector('.hb-rmenu, .hb-pmenu'), null, 3000); };
-      for (const part of parts) {
-        await page.evaluate(({ id, part }) => { const b = document.querySelector(`[data-hb-pid="${id}"] [data-hb-rc="${part}"]`); b.scrollIntoView({ block: 'center' }); b.click(); }, { id: upper, part });
+      const close = async () => { await page.keyboard.press('Escape'); await page.mouse.click(4, 4); await until(() => !document.querySelector('.hb-dp, .hb-pmenu'), null, 3000); };
+      for (const [what, sel] of [['How this is drawn panel', 'data-hb-drawn'], ['⋯ menu', 'data-hb-tools-more']]) {
+        await page.evaluate(({ id, sel }) => { const b = document.querySelector(`[data-hb-pid="${id}"] [${sel}]`); b.scrollIntoView({ block: 'center' }); b.click(); }, { id: upper, sel });
         const r = await until(probe);
-        check(`1. ${tag}: the ${part} list is on top at every choice it shows`, !!r && r.n > 0 && r.bad.length === 0,
-          r ? `${r.n - r.bad.length}/${r.n} on top${r.bad.length ? ' · covered: ' + r.bad.join(', ') : ''}` : 'no list opened');
-        if (part === 'split' && W === 1440 && screen === 'light') await page.screenshot({ path: path.join(OUT, '1-split-open.png') });
+        check(`1. ${tag}: the ${what} is on top at every choice it shows`, !!r && r.n > 0 && r.bad.length === 0,
+          r ? `${r.n - r.bad.length}/${r.n} on top${r.bad.length ? ' · covered: ' + r.bad.join(', ') : ''}` : 'nothing opened');
+        if (sel === 'data-hb-drawn' && W === 1440 && screen === 'light') await page.screenshot({ path: path.join(OUT, '1-drawn-open.png') });
         await close();
       }
-      /* the card's own ⋯ menu, where this card draws one */
-      const more = await page.evaluate(id => { const b = document.querySelector(`[data-hb-pid="${id}"] [data-hb-act="more"]`); if (!b) return false; b.scrollIntoView({ block: 'center' }); b.click(); return true; }, upper);
-      if (more) { const r = await until(probe);
-        check(`1. ${tag}: the ⋯ menu is on top`, !!r && r.bad.length === 0, r ? `${r.n - r.bad.length}/${r.n}` : 'no menu'); await close(); }
-      /* 2. pressing the lowest visible split choice applies it */
-      if (W === 1440 && screen === 'light' && parts.includes('split')) {
-        await page.evaluate(id => { const b = document.querySelector(`[data-hb-pid="${id}"] [data-hb-rc="split"]`); b.scrollIntoView({ block: 'center' }); b.click(); }, upper);
-        await until(() => !!document.querySelector('.hb-rmenu'));
-        const pick = await page.evaluate(() => { const m = document.querySelector('.hb-rmenu'), mr = m.getBoundingClientRect();
-          const vis = [...m.querySelectorAll('[data-hb-rset]:not(:disabled)')].filter(b => { const r = b.getBoundingClientRect(); return r.bottom <= mr.bottom - 2 && r.top >= mr.top && r.bottom <= innerHeight; });
-          const b = vis[vis.length - 1]; if (!b) return null; const r = b.getBoundingClientRect();
-          return { v: b.getAttribute('data-hb-rset'), x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
-        if (pick) { await page.mouse.click(pick.x, pick.y);
-          const applied = await until(({ id, v }) => { const k = (hbS().panels || []).find(p => p.id === id); const key = k && k.key; const val = v.slice(v.indexOf(':') + 1);
+      /* 2. choosing the last split in the panel applies it */
+      if (W === 1440 && screen === 'light') {
+        await page.evaluate(id => { const b = document.querySelector(`[data-hb-pid="${id}"] [data-hb-drawn]`); b.scrollIntoView({ block: 'center' }); b.click(); }, upper);
+        await until(() => !!document.querySelector('.hb-dp'));
+        const pick = await page.evaluate(() => { const sl = document.querySelector('.hb-dp [data-hb-rsel="split"]');
+          if (sl){ const o = [...sl.options].filter(x => !x.selected && x.value !== 'none').pop(); return o ? { sel: true, v: o.value } : null; }
+          const b = [...document.querySelectorAll('.hb-dp [data-hb-rset^="split:"]')].filter(x => x.getAttribute('aria-pressed') !== 'true' && x.getAttribute('data-hb-rset') !== 'split:none').pop();
+          return b ? { sel: false, v: b.getAttribute('data-hb-rset').slice(6) } : null; });
+        if (pick) {
+          if (pick.sel) await page.selectOption('.hb-dp [data-hb-rsel="split"]', pick.v);
+          else await page.click(`.hb-dp [data-hb-rset="split:${pick.v}"]`);
+          const applied = await until(({ id, v }) => { const k = (hbS().panels || []).find(p => p.id === id); const key = k && k.key;
             const P = key ? hbPlan(hbDigData(key, hbS().lens)) : null; const S = P && P.split; const cur = !S ? 'none' : S.by === 'date' ? 'd:' + S.unit + ':' + S.date : 'g:' + S.by;
-            return cur === val ? cur : null; }, { id: upper, v: pick.v });
-          check('2. pressing the lowest visible split choice applies it', !!applied, pick.v + ' → ' + applied);
-        } else check('2. a split choice to press', false, 'none visible');
+            return cur === v ? cur : null; }, { id: upper, v: pick.v });
+          check('2. choosing the last split in the panel applies it', !!applied, pick.v + ' → ' + applied);
+        } else check('2. a split choice to press', false, 'none');
       }
       await page.close();
     }

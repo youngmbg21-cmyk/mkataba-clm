@@ -109,6 +109,8 @@ const check = (name, pass, detail) => {
     await page.click('[data-hb-table]');
 
     /* 3. full screen and Esc */
+/* RE-POINTED 11 Oct 2026: the tool is an item of the card's ⋯ (the artifact's card edge) — open it first */
+    await page.click('#hb-focus [data-hb-tools-more]');
     await page.click('[data-hb-full]');
     await until(() => !!document.querySelector('#hb-focus .hb-dig.is-full svg[data-hb-step="full"]'));
     await until(s => { const svg = document.querySelector(s); return svg && Math.abs(Number(svg.getAttribute('data-hb-w')) - svg.getBoundingClientRect().width) <= 8; }, fsel);

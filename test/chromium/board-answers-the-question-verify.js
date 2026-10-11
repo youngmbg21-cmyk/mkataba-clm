@@ -119,7 +119,8 @@ const check = (name, pass, detail) => {
 
     /* ================= 4. BY OWNER ================= */
     await ask('contracts by owner');
-    const s4 = await until(() => { const f = document.querySelector('#hb-focus .hb-chart-by'); return f && (hbS().path || []).slice(-1)[0] === 'q:contracts by owner' ? f.textContent.trim() : null; });
+    /* RE-POINTED 11 Oct 2026 (the Board as drawn): "by …" is the card's grey sub-title in its head */
+    const s4 = await until(() => { const f = document.querySelector('#hb-focus .hb-ch .hb-cs'); return f && (hbS().path || []).slice(-1)[0] === 'q:contracts by owner' ? f.textContent.trim() : null; });
     check('4a a ring by owner says "by owner"', s4 === 'by owner', s4);
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
   } catch (e) {

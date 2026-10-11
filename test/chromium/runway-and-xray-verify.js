@@ -155,7 +155,8 @@ const check = (name, pass, detail) => {
     check('3c and that figure is a door', rw.door, 'door ' + rw.door);
     if (rw.door) await page.click('#hb-book .hb-fig-main[data-hb-dig="f:ending"]');
     await page.waitForTimeout(500);
-    const listed = await page.evaluate(() => [...document.querySelectorAll('#hb-board .hb-dig [data-hb-dig^="c:"]')].map(e => e.getAttribute('data-hb-dig').slice(2)));
+    /* RE-POINTED 11 Oct 2026 (the Board as drawn): the figure opens its list in the side list, one row a contract */
+    const listed = await page.evaluate(() => [...document.querySelectorAll('.hb-sheet [data-hb-sheet-c]')].map(e => e.getAttribute('data-hb-sheet-c')));
     check('3d its dig-in lists each one by name',
       ren.length > 0 && ren.every(r => listed.includes(r.id)), JSON.stringify({ want: ren.map(r => r.id), listed }));
     check('3e the quiet desk the rail plotted is a row in the bell now',

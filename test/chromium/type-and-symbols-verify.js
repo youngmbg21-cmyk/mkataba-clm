@@ -338,13 +338,14 @@ const SHELL_ICONS = [
     /* ON THE BOARD A NUMBER DIGS (hbDig, "every number a door"): the stage
        opens its own card on the Board, named for the stage and counting the
        contracts in it — the register's rows, one press away from there. */
+    /* RE-POINTED 11 Oct 2026 (the Board as drawn): the stage opens its contracts
+       in the side list on the right, named for the stage, one row each */
     const landed = await page.evaluate(() => {
-      const d = document.querySelector('#hb-board .hb-dig');
-      const lead = d && d.querySelector('.hb-chart-lead b');
+      const d = document.querySelector('.hb-sheet');
       return { view: window.state && window.state.view, card: !!d,
-        title: d ? (d.querySelector('.hb-ct') || {}).textContent : '', n: lead ? Number(lead.textContent) : 0 };
+        title: d ? (d.querySelector('h3') || {}).textContent : '', n: d ? d.querySelectorAll('[data-hb-sheet-c]').length : 0 };
     });
-    check('pressing a stage opens that stage\'s own card on the Board', landed.view === 'dashboard' && landed.card && /review|executed|draft/i.test(landed.title || ''), `${landed.view} · ${landed.title}`);
+    check('pressing a stage opens that stage\'s own list on the right', landed.view === 'dashboard' && landed.card && /review|executed|draft/i.test(landed.title || ''), `${landed.view} · ${landed.title}`);
     check('and it counts the contracts in it', landed.n > 0, String(landed.n));
 
     await page.screenshot({ path: path.join(OUT, '04-register.png') });

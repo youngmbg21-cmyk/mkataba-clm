@@ -233,7 +233,8 @@ describe('F459 (D) — today\'s insights', () => {
     const t = w.hbInsThumb(c.C.R);
     assert.ok(!/data-hb-dig|tabindex|role="button"/.test(t));
     /* RE-POINTED 6 Oct 2026: "Ask why" is retired for Read more (the reading in the card) */
-    assert.match(w.hbShelfHtml([c]), /data-hb-ins="keep"[\s\S]*data-hb-ins="open"[\s\S]*data-hb-read-more="ins:[\s\S]*data-hb-ins="go"/);
+    /* RE-POINTED 11 Oct 2026 (the Board as drawn): Open · Keep · Ask why (the same reading in the card) · Let it go */
+    assert.match(w.hbShelfHtml([c]), /data-hb-ins="open"[\s\S]*data-hb-ins="keep"[\s\S]*data-hb-read-more="ins:[\s\S]*data-hb-ins="go"/);
   });
   test('Keep makes a kept view: a panel that counts again, named so it stays true', () => {
     const w = world();
