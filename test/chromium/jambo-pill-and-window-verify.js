@@ -61,12 +61,12 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     /* ---- 3 the Breakdown's wait moves ---- */
     await page.route('**/api/ai/breakdown', () => {});   // never answers: the wait stays on screen
     await page.click('[data-hb-face="breakdown"]').catch(() => {});
-    const picked = await page.evaluate(() => { const b = document.querySelector('[data-bd-pick]'); if (b){ b.click(); return true; } return !!document.querySelector('[data-bd-run]'); });
     await page.evaluate(() => { if (window.state) state.aiConfigured = true; });
-    await until(page, () => !!document.querySelector('[data-bd-run]'), null, 5000);
-    await page.evaluate(() => { const b = document.querySelector('[data-bd-run]'); if (b) b.click(); });
-    const ring = await until(page, () => { const b = document.querySelector('[data-bd-run][disabled]'); const s = b && b.querySelector('.ob-spin');
-      return !!(s && getComputedStyle(s).animationName === 'obSpin'); }, null, 5000);
+    const picked = await page.evaluate(() => { const b = document.querySelector('[data-bd-pick]'); if (b){ b.click(); return true; } return !!document.querySelector('[data-bd-run], .bd-reading'); });
+    /* the pick starts the read (11 Oct 2026); where a press is still asked, press it */
+    await page.evaluate(() => { if (window.state) state.aiConfigured = true; const b = document.querySelector('[data-bd-run]'); if (b) b.click(); });
+    const ring = await until(page, () => { const s = document.querySelector('.bd-reading .ob-spin, [data-bd-run][disabled] .ob-spin, .bd-busy .ob-spin');
+      return !!(s && getComputedStyle(s).animationName === 'obSpin'); }, null, 6000);
     ok('3a "Jambo is reading…" carries a turning ring while it waits', picked && ring, picked ? '' : 'no contract to pick');
     await page.screenshot({ path: path.join(OUT, '3-breakdown-wait.png') });
     await page.unroute('**/api/ai/breakdown');

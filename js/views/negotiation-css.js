@@ -92,7 +92,12 @@ function negoStyleHtml(){
   /* The room joins the theme like every other surface: same private namespace,
      dark values. The topbar slate and the accept/reject hues already read on
      both themes; only paper, canvas, ink and hairlines flip. */
-  html.dark .nego-room, html.dark #nego-root, html.dark .nego-selmenu, html.dark .nego-aipop{
+  ${''/* Home's Document draws this paper read-only (.nego-onpaper) and took
+         the LIGHT tokens only, so in dark mode its sheet stayed white under
+         the dark ink: near-white words on white paper (owner, 11 Oct 2026:
+         "Fix dark mode first"). It takes the dark ones too — the same paper
+         as Negotiate's, as ONE PAPER EVERYWHERE asks. */}
+  html.dark .nego-room, html.dark #nego-root, html.dark .nego-selmenu, html.dark .nego-aipop, html.dark .nego-onpaper{
     --n-badge-bg:#1e293b;
     --n-ins-bg:var(--st-green-bg);
     --n-paper:#0f172a; --n-canvas:#020617; --n-line:#1e293b;

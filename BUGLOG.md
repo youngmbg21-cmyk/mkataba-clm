@@ -20657,3 +20657,4 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Swedish adjectives agreeing with the old name stay neuter after the rename (e.g. "Jambo är inte anslutet"); a Swedish reader may prefer "ansluten". Wording only, not changed.
 - The "Scanning…" toast when a contract scan starts (ai.js) has no moving ring; HaTi's toast cannot carry one today.
 - CLAUDE.md is 82 KB, over its own "about 80 KB" line (it was 81 KB before this build); the next trim should take it back under.
+- 11 Oct 2026 — Noticed, not fixed: Breakdown's card sub-line says "1 clauses placed in a region" — bd_placed has no singular form (both books).
