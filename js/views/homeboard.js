@@ -2546,6 +2546,7 @@ function hbRcOptions(part, P, D){
     return [opt('none', i18t('hb_sp_none'), true)].concat(gs, ds);
   }
   if (part === 'measure'){
+    let _dcs = null; const dataCs = () => _dcs || (_dcs = Array.isArray(D.ids) ? hbListOf(D.ids, hbS().lens) : []);
     const own = !['cols', 'bars', 'stack', 'grouped', 'heat', 'multi'].includes(P.pic);
     /* the new pictures' own measures (G8): the waterfall and the funnel count
        or add money; the spread is always days to sign */
@@ -2554,6 +2555,10 @@ function hbRcOptions(part, P, D){
       if (own && !ownOk(k)) return opt(k, i18t('hb_ms_' + k), false, i18t(P.pic === 'spread' ? 'hb_why_spread_measure' : 'hb_why_own_measure'));
       if (hbMoneyMeasure(k) && !money) return opt(k, i18t('hb_ms_' + k), false, i18t('hb_why_money'));
       if (k === 'live' && (!isDate || P.split2)) return opt(k, i18t('hb_ms_' + k), false, i18t('hb_why_date'));
+      /* A MEASURE THESE CONTRACTS CANNOT ANSWER IS NOT A CHOICE (owner, 11 Oct
+         2026): no rounds on record, no risk read, no payment days — it would
+         draw nothing, so it is not listed */
+      if (!['count', 'live', 'value'].includes(k)){ const M = hbMeasure(dataCs(), k); if (!(M && M.n > 0 && M.y != null)) return opt(k, i18t('hb_ms_' + k), false, i18t('hb_why_no_data')); }
       return opt(k, i18t('hb_ms_' + k), true);
     });
   }
@@ -5105,6 +5110,9 @@ function hbEdgeHtml(D, akey, where, p, gift){
     + (M.cols ? _hbMi(`data-hb-odd="${k}" aria-pressed="${_hbOddOn.has(D.key)}"`, _HB_MI.odd, i18t(_hbOddOn.has(D.key) ? 'hb_odd_off' : 'hb_odd_btn')) : '')
     + _hbMi(`data-hb-howon="${k}" aria-pressed="${_hbHowOn.has(D.key)}"`, _HB_MI.how, i18t(_hbHowOn.has(D.key) ? 'hb_how_off' : 'hb_how_on'))
     + _hbMi(`data-hb-why-follow="${k}"`, _HB_MI.ask, i18t('hb_tip_ask'))
+    /* Dig deeper (owner, 11 Oct 2026: "needs to be in the drop down"): the
+       analyst's run on this chart's own question; without a key it greys and says why */
+    + _hbMi(`data-hb-deeper="${_hbE(String(M.title || D.title || D.crumb || '').slice(0, 400))}"${hbDdLive() ? '' : ` disabled title="${_hbE(i18t('hb_cx_nokey'))}"`}`, _HB_MI.ask, i18t('hb_dd_btn'))
     + (/^(q|cd|ls):/.test(D.key) ? _hbMi(`data-hb-cwatch="${_hbE(akey)}"`, _HB_MI.watch, i18t('hb_watch_menu')) : '')
     + '<hr>'
     + (board && p && p.kind === 'view' && !/^gift:/.test(p.id) && !(gift && gift.from) ? _hbMi('data-hb-act="give"', _HB_MI.give, i18t('hb_p_give') + '…') : '')
@@ -7470,7 +7478,13 @@ function hbActionClean(a){
    ref, or its name as the reader sees it */
 function hbCardRef(ref){
   const s = hbS(); const r = String(ref || '').trim(); if (!r) return null;
-  if (/^open$/i.test(r)){ const key = hbOpenListKey(); return key ? { open: true, key } : null; }
+  if (/^open$/i.test(r)){ const key = hbOpenListKey(); if (key) return { open: true, key };
+    /* nothing opened: "this chart" is the card the last answer drew, else the
+       newest kept chart (owner, 11 Oct 2026: "there is no card 'open'" while
+       the chart stood on the board) */
+    const views = s.panels.filter(x => x.kind === 'view');
+    const p = views.find(x => x.id === s.lastAsked) || views[views.length - 1];
+    return p ? { p, key: p.key } : null; }
   const p = s.panels.find(x => x.id === r) || s.panels.find(x => hbPanelWord(x).toLowerCase() === r.toLowerCase());
   return p ? { p, key: p.kind === 'view' ? p.key : null } : null;
 }
@@ -7489,7 +7503,7 @@ function hbBoardApply(actions, q){
       const named = hbNameAsked(_hbAskQ);
       if (!named && a.recipe) delete a.recipe.title;
       const { p, left } = hbAddCard(a.which || { all: true }, a.recipe || {}, named ? a.title : null);
-      added.push(p.id);
+      added.push(p.id); s.lastAsked = p.id;
       const D = hbDigData(p.key, s.lens);
       did.push(i18t('hb_act_added', { what: p.title, how: D ? hbHowWord(hbPlan(D)) : '' }) + (left ? ' ' + i18t('hb_panel_left', { what: hbPanelWord(left) }) : ''));
       return;
@@ -8778,7 +8792,7 @@ function hbOnClick(e){
   /* ⋯ → Full screen on a kept chart: it opens, filling the screen */
   if ((el = on('[data-hb-fullkey]'))){ hbDig(el.getAttribute('data-hb-fullkey')); _hbFull = true; hbPaintBoard(); return; }
   if ((el = on('[data-hb-mwhy]'))){ const k = el.getAttribute('data-hb-mwhy'); _hbReadOpen.add(k); hbPaintBoard(); hbWhyAsk(k); return; }
-  if ((el = on('[data-hb-deeper]'))){ if (!el.disabled) hbDigDeeper(el.getAttribute('data-hb-deeper')); return; }
+  if ((el = on('[data-hb-deeper]'))){ if (!el.disabled){ _hbToolsMenu = null; hbDigDeeper(el.getAttribute('data-hb-deeper')); } return; }
   if ((el = on('[data-hb-sy-deeper]'))){ if (!el.disabled) hbStoryDeeper(el.getAttribute('data-hb-sy-deeper')); return; }
   if ((el = on('[data-hb-sy-stop]'))){ hbStoryStop(el.getAttribute('data-hb-sy-stop')); return; }
   if ((el = on('[data-hb-sy-write]'))){ hbStoryWrite(el.getAttribute('data-hb-sy-write')); return; }
