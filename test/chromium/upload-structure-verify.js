@@ -45,6 +45,17 @@ const seen = (page, sel) => page.evaluate(s => {
     on: r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none' };
 }, sel);
 
+/* RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner). The paper
+   a reader sees is Home's Document face (#ig-canvas), opened on its Clauses tab. */
+const openDocOn = page => async id => {
+  await page.evaluate(i => pdOpenOnHome(i, 'doc'), id);
+  await page.waitForFunction(i => {
+    const pc = typeof pdContract === 'function' && pdContract();
+    const cv = document.getElementById('ig-canvas');
+    return !!pc && String(pc.id) === String(i) && !!cv && cv.textContent.trim().length > 40;
+  }, id, { timeout: 15000 }).catch(() => {});
+};
+
 /* The distance to the first line of the AGREEMENT, off a Range rather than a
    box: a box is the LINE box and half-leading puts the glyphs elsewhere.
 
@@ -57,8 +68,8 @@ const seen = (page, sel) => page.evaluate(s => {
    underneath it moved 36px. A net that cannot fail is worse than no net,
    because it reads as a measurement. */
 const INK = `(() => {
-  const box = document.querySelector('.rl-paper, [data-anchor="redline"], .hati-doc')
-    || document.getElementById('doc-canvas'); if (!box) return null;
+  const box = document.querySelector('#ig-canvas .rl-paper, #ig-canvas [data-anchor="redline"], #ig-canvas .hati-doc')
+    || document.getElementById('ig-canvas'); if (!box) return null;
   const walk = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
   while (walk.nextNode()) { const n = walk.currentNode;
     if ((n.textContent || '').trim().length < 8) continue;
@@ -94,6 +105,7 @@ const BODY =
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const ctx = await browser.newContext({ viewport: { width: 1500, height: 1000 } });
   const page = await ctx.newPage();
+  const openDoc = openDocOn(page);
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
 
@@ -115,11 +127,7 @@ const BODY =
       const c = state.contracts.find(x => x.status !== 'Signed') || state.contracts[0];
       return c.id;
     });
-    await page.evaluate(i => openWorkspace(i), beforeId);
-    await page.waitForTimeout(1000);
-    await page.evaluate(() => roomGoTab(getContract(state.activeId), 'docs'));
-    await page.waitForSelector('#doc-canvas', { timeout: 15000 }).catch(() => {});
-    await page.waitForTimeout(1200);
+    await openDoc(beforeId);
     const inkBefore = await page.evaluate(INK);
 
     /* ---- THE REAL FILE, THROUGH THE REAL INPUT ---- */
@@ -165,20 +173,13 @@ const BODY =
       missing.length === 0, missing.length ? 'missing ' + JSON.stringify(missing) : 'all ten');
 
     /* ---- 2. THE HEADINGS ARE ON SCREEN ---- */
-    await page.evaluate(i => openWorkspace(i), rec.id);
-    await page.waitForTimeout(1200);
-    /* A NEW UPLOAD OPENS ON KEY TERMS — roomOpenOnTerms, which is right (an
-       upload arrives with a complete document whose TERMS are the blanks) and
-       means the sheet has to be asked for before it can be measured. */
-    await page.evaluate(() => roomGoTab(getContract(state.activeId), 'docs'));
-    await page.waitForSelector('#doc-canvas', { timeout: 15000 }).catch(() => {});
-    await page.waitForTimeout(1400);
+    await openDoc(rec.id);
     const drawn = await page.evaluate(() => {
       /* THE STORED BODY, not the whole canvas: the sheet draws its own title
          and front matter above the wording, and counting those would make this
          check pass or fail for reasons that have nothing to do with the file. */
-      const box = document.querySelector('#doc-canvas [data-anchor="redline"]')
-        || document.getElementById('doc-canvas');
+      const box = document.querySelector('#ig-canvas [data-anchor="redline"]')
+        || document.getElementById('ig-canvas');
       if (!box) return null;
       const hs = [...box.querySelectorAll('h2,h3,h4')].map(el => {
         const cs = getComputedStyle(el), r = el.getBoundingClientRect();
@@ -211,7 +212,7 @@ const BODY =
 
     /* ---- 3. THE CLAUSE MODEL WORKS ON RECEIVED PAPER ---- */
     const segs = await page.evaluate(() => {
-      const c = getContract(state.activeId);
+      const c = getContract(pdContract().id);
       const list = clauseSegment(c.redlineText || '');
       return { n: list.length, first: (list[0] || {}).title || (list[0] || {}).label || '' };
     });
@@ -221,7 +222,7 @@ const BODY =
        be renamed and the front-matter region is offered. Both refuse outright
        on a document whose headings do not mark its clauses. */
     const front = await page.evaluate(() => {
-      const c = getContract(state.activeId);
+      const c = getContract(pdContract().id);
       const f = window.clauseFrontClause ? clauseFrontClause(c.redlineText || '') : null;
       const rn = window.clauseReplaceHeading
         ? clauseReplaceHeading(c.redlineText || '', clauseSegment(c.redlineText || '')[0].clauseId, 'Meanings')
@@ -238,28 +239,33 @@ const BODY =
        So the number is measured on ONE document, with and without the line
        this job adds to that strip, which is exactly the state before and
        after. `inkBefore` above is reported beside it as the room's own figure. */
-    const inkWith = await page.evaluate(INK);
-    const inkWithout = await page.evaluate(() => {
-      const c = getContract(state.activeId);
+    /* RE-POINTED 11 Oct 2026: Home's sheet is drawn read-only
+       (readOnlyDocHtml(docBody(c))), so both halves are drawn THAT way into
+       the one canvas and measured alike; the paper is then painted afresh. */
+    const q4 = await page.evaluate(() => {
+      const c = getContract(pdContract().id);
+      const dc = document.getElementById('ig-canvas');
+      const top = () => {
+        const box = dc.querySelector('.rl-paper, [data-anchor="redline"], .hati-doc') || dc;
+        const walk = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
+        while (walk.nextNode()) { const n = walk.currentNode;
+          if ((n.textContent || '').trim().length < 8) continue;
+          const rg = document.createRange(); rg.setStart(n, 0); rg.setEnd(n, Math.min(6, n.textContent.length));
+          const r = Array.from(rg.getClientRects())[0];
+          if (r && r.width > 2) return Math.round(r.top); }
+        return null;
+      };
       const keep = c.upload.docStructure;
+      dc.innerHTML = readOnlyDocHtml(docBody(c));
+      const withIt = top();
       delete c.upload.docStructure;
-      const dc = document.getElementById('doc-canvas');
-      dc.innerHTML = docBodyStructured(c);
-      /* The PAPER, for the same reason the shared helper reads it — rooted at
-         the canvas this walker found the file name and reported the strip's
-         own top on both sides of the comparison. */
-      const box = document.querySelector('.rl-paper, [data-anchor="redline"], .hati-doc') || dc;
-      const walk = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
-      let top = null;
-      while (walk.nextNode()) { const n = walk.currentNode;
-        if ((n.textContent || '').trim().length < 8) continue;
-        const rg = document.createRange(); rg.setStart(n, 0); rg.setEnd(n, Math.min(6, n.textContent.length));
-        const r = Array.from(rg.getClientRects())[0];
-        if (r && r.width > 2) { top = Math.round(r.top); break; } }
+      dc.innerHTML = readOnlyDocHtml(docBody(c));
+      const without = top();
       c.upload.docStructure = keep;
-      dc.innerHTML = docBodyStructured(c);
-      return top;
+      igPaperRefresh();
+      return { withIt, without };
     });
+    const inkWith = q4.withIt, inkWithout = q4.without;
     check('4a THIS JOB ADDS NOTHING ABOVE THE WORDING',
       inkWith != null && inkWithout != null && Math.abs(inkWith - inkWithout) <= 1,
       `with the line ${inkWith} · without it ${inkWithout} `
@@ -275,7 +281,7 @@ const BODY =
     for (const w of [1500, 1440, 1366, 1280]) {
       await page.setViewportSize({ width: w, height: 900 });
       const m = await page.evaluate(() => {
-        const box = document.getElementById('doc-canvas'); if (!box) return null;
+        const box = document.getElementById('ig-canvas'); if (!box) return null;
         const hit = [...box.querySelectorAll('span')].find(s => /Download original|Re-read|KB/i.test(s.textContent || ''))
           || [...box.querySelectorAll('div')].find(d => /Download original/i.test(d.textContent || ''));
         const row = hit && (hit.closest('div[style*="display:flex"]') || hit.closest('div'));
@@ -295,7 +301,7 @@ const BODY =
 
     /* ---- 5. THE FILE STRIP, AND NO BAND ---- */
     const strip = await page.evaluate(() => {
-      const box = document.getElementById('doc-canvas');
+      const box = document.getElementById('ig-canvas');
       if (!box) return null;
       const hit = [...box.querySelectorAll('span')]
         .find(s => /heading|rubrik/i.test(s.textContent || ''));
@@ -314,7 +320,7 @@ const BODY =
        was read. The claim is about the SPAN this job added, not about the row
        it joined, which has drawn a hairline under itself since it was built. */
     const line = await page.evaluate(() => {
-      const box = document.getElementById('doc-canvas'); if (!box) return null;
+      const box = document.getElementById('ig-canvas'); if (!box) return null;
       const hit = [...box.querySelectorAll('span')]
         .find(s => /heading|rubrik/i.test(s.textContent || ''));
       if (!hit) return { found: false };
@@ -398,14 +404,10 @@ const BODY =
         return c ? c.id : null;
       });
       if (id8){
-        await page.evaluate(i => openWorkspace(i), id8);
-        await page.waitForTimeout(1200);
-        await page.evaluate(() => roomGoTab(getContract(state.activeId), 'docs'));
-        await page.waitForSelector('#doc-canvas', { timeout: 15000 }).catch(() => {});
-        await page.waitForTimeout(1400);
+        await openDoc(id8);
       }
       const sheet = await page.evaluate(() => {
-        const box = document.querySelector('#doc-canvas [data-anchor="redline"]') || document.getElementById('doc-canvas');
+        const box = document.querySelector('#ig-canvas [data-anchor="redline"]') || document.getElementById('ig-canvas');
         return box ? box.innerText.replace(/[ \t ]+/g, ' ') : '';
       });
       const at = (num, words) => new RegExp('(^|\\n)\\s*' + num.replace(/\./g, '\\.') + ' ' + words).test(sheet);

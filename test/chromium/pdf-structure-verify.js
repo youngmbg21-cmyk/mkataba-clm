@@ -106,8 +106,8 @@ function flatPdf() {
    text node is the file name inside the strip, which sits above the wording
    and cannot move, so a check rooted there measures the strip against itself. */
 const INK = `(() => {
-  const box = document.querySelector('.rl-paper, [data-anchor="redline"], .hati-doc')
-    || document.getElementById('doc-canvas');
+  const box = document.querySelector('#ig-canvas .rl-paper, #ig-canvas [data-anchor="redline"], #ig-canvas .hati-doc')
+    || document.getElementById('ig-canvas');
   if (!box) return null;
   const walk = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
   let n;
@@ -154,21 +154,22 @@ const INK = `(() => {
       return c ? c.id : null;
     }, path.basename(file));
   };
+  /* RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner). The
+     paper is Home's Document face (#ig-canvas) and the Thread its Clauses tab
+     (#pd-thread) — the one place a reader now sees the wording. */
   const openDoc = async id => {
-    await page.evaluate(i => openWorkspace(i), id);
-    await page.waitForTimeout(1200);
-    /* AN UPLOAD OPENS ON KEY TERMS — roomOpenOnTerms, which is right and means
-       the sheet has to be asked for before it can be measured. The TAB IS
-       PRESSED rather than routed to: roomGoTab takes the contract first and is
-       a module function, so calling it by name from here does nothing at all
-       and every measurement after it reads a pane that is still display:none. */
-    await page.evaluate(() => {
-      const b = document.querySelector('[data-ws-tab="docs"]');
-      if (b) b.click();
-    });
-    await page.waitForSelector('#doc-canvas', { timeout: 15000 }).catch(() => {});
-    await page.waitForTimeout(1400);
+    await page.evaluate(i => pdOpenOnHome(i, 'doc'), id);
+    await page.waitForFunction(i => {
+      const pc = typeof pdContract === 'function' && pdContract();
+      return !!pc && String(pc.id) === String(i) && !!document.getElementById('ig-canvas')
+        && !!document.getElementById('pd-thread');
+    }, id, { timeout: 15000 }).catch(() => {});
+    await page.waitForFunction(() => {
+      const t = document.getElementById('pd-thread');
+      return !!t && (t.querySelector('.doc-th-row, .doc-xr-none') != null);
+    }, null, { timeout: 8000 }).catch(() => {});
   };
+  const curId = () => page.evaluate(() => String(pdContract().id));
 
   try {
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
@@ -210,7 +211,7 @@ const INK = `(() => {
     await page.screenshot({ path: path.join(OUT, '01-document-tab.png') });
 
     const drawn = await page.evaluate(() => {
-      const canvas = document.getElementById('doc-canvas');
+      const canvas = document.getElementById('ig-canvas');
       if (!canvas) return null;
       const heads = Array.from(canvas.querySelectorAll('h1,h2,h3,h4'))
         .filter(e => (e.textContent || '').trim())
@@ -248,27 +249,35 @@ const INK = `(() => {
        template contract's own number is reported beside it for scale and is
        deliberately not asserted: an upload carries a file strip a template
        contract does not, and comparing the two would be comparing chrome. */
-    const inkWith = await page.evaluate(INK);
-    const inkWithout = await page.evaluate(() => {
-      const c = getContract(state.activeId);
+    /* RE-POINTED 11 Oct 2026: on Home's paper the sheet is drawn read-only
+       (readOnlyDocHtml(docBody(c))), so both halves are drawn THAT way into the
+       one canvas and measured alike; the paper is then painted afresh. */
+    const q3 = await page.evaluate(() => {
+      const c = getContract(pdContract().id);
+      const dc = document.getElementById('ig-canvas');
+      const top = () => {
+        const box = dc.querySelector('.rl-paper, [data-anchor="redline"], .hati-doc') || dc;
+        const walk = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
+        while (walk.nextNode()) {
+          const n = walk.currentNode;
+          if ((n.textContent || '').trim().length < 8) continue;
+          const rg = document.createRange(); rg.selectNodeContents(n);
+          const r = rg.getBoundingClientRect();
+          if (r && r.height > 0) return Math.round(r.top);
+        }
+        return null;
+      };
       const keep = c.upload.docStructure;
+      dc.innerHTML = readOnlyDocHtml(docBody(c));
+      const withIt = top();
       delete c.upload.docStructure;
-      const dc = document.getElementById('doc-canvas');
-      dc.innerHTML = docBodyStructured(c);
-      const box = document.querySelector('.rl-paper, [data-anchor="redline"], .hati-doc') || dc;
-      const walk = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
-      let top = null;
-      while (walk.nextNode()) {
-        const n = walk.currentNode;
-        if ((n.textContent || '').trim().length < 8) continue;
-        const rg = document.createRange(); rg.selectNodeContents(n);
-        const r = rg.getBoundingClientRect();
-        if (r && r.height > 0) { top = Math.round(r.top); break; }
-      }
+      dc.innerHTML = readOnlyDocHtml(docBody(c));
+      const without = top();
       c.upload.docStructure = keep;
-      dc.innerHTML = docBodyStructured(c);
-      return top;
+      igPaperRefresh();
+      return { withIt, without };
     });
+    const inkWith = q3.withIt, inkWithout = q3.without;
     check('2e Q3 — this job adds nothing above the wording',
       inkWith != null && inkWithout != null && Math.abs(inkWith - inkWithout) <= 1,
       `with the line ${inkWith} · without it ${inkWithout} (a template contract, for scale: ${inkBefore})`);
@@ -281,7 +290,7 @@ const INK = `(() => {
       await page.setViewportSize({ width: w, height: 900 });
       await page.waitForTimeout(250);
       const m = await page.evaluate(() => {
-        const box = document.getElementById('doc-canvas'); if (!box) return null;
+        const box = document.getElementById('ig-canvas'); if (!box) return null;
         const hit = [...box.querySelectorAll('span')].find(s => /Download original|Re-read|KB/i.test(s.textContent || ''))
           || [...box.querySelectorAll('div')].find(d => /Download original/i.test(d.textContent || ''));
         const row = hit && (hit.closest('div[style*="display:flex"]') || hit.closest('div'));
@@ -304,14 +313,14 @@ const INK = `(() => {
        what a structured PDF must now draw is the Thread, one row per clause.
        A structureless record draws the card's "no clauses" line and no row. */
     const sw = await page.evaluate(() => {
-      const el = document.getElementById('doc-thread');
+      const el = document.getElementById('pd-thread');
       if (!el || el.hidden) return { on: false, why: 'not drawn' };
       const r = el.getBoundingClientRect(), cs = getComputedStyle(el);
       const rows = el.querySelectorAll('.doc-th-row').length;
       return { on: rows > 0 && r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none',
         why: `${Math.round(r.width)}x${Math.round(r.height)} · ${rows} rows`,
         clauses: (typeof docReadClauses === 'function')
-          ? docReadClauses(getContract(state.activeId)).length : -1 };
+          ? docReadClauses(getContract(pdContract().id)).length : -1 };
     });
     check('3a the Thread is VISIBLE PIXELS on a PDF, with rows — the report',
       sw.on === true, `${sw.why} · ${sw.clauses} clauses on the sheet`);
@@ -359,7 +368,7 @@ const INK = `(() => {
         fr.rich === false, fr.rich ? 'a body was stored' : 'none, as before');
       await openDoc(flatId);
       const ff = await page.evaluate(() => {
-        const strip = document.getElementById('doc-canvas');
+        const strip = document.getElementById('ig-canvas');
         return { frame: !!document.getElementById('uploaded-doc-frame'),
           /* RE-POINTED 9 Oct 2026 (the owner's review, E8 — one sentence for
              a flat file): where neither the file nor its wording carries a
@@ -379,7 +388,7 @@ const INK = `(() => {
     /* ---- and the READ one must NOT wear that sentence ---- */
     await openDoc(id);
     const saysRead = await page.evaluate(() => {
-      const canvas = document.getElementById('doc-canvas');
+      const canvas = document.getElementById('ig-canvas');
       return /Structure read from the wording/i.test((canvas || {}).textContent || '');
     });
     check('5e a PDF whose structure was really READ does not claim it was guessed',
@@ -405,17 +414,22 @@ const INK = `(() => {
       return c.id;
     }, id);
     await openDoc(oldId);
-    const swBefore = await page.evaluate(() => document.querySelectorAll('#doc-thread .doc-th-row').length > 0);
+    /* Home keeps a painted paper while its contract stays the same, so the
+       staged record is painted afresh — the state a reader arriving at it meets. */
+    await page.evaluate(() => { igPaperRefresh(); if (window.docThreadPaint) docThreadPaint(getContract(pdContract().id)); });
+    await page.waitForFunction(() => document.querySelectorAll('#pd-thread .doc-th-row').length === 0,
+      null, { timeout: 8000 }).catch(() => {});
+    const swBefore = await page.evaluate(() => document.querySelectorAll('#pd-thread .doc-th-row').length > 0);
     check('7a a PDF filed before this shipped draws NO rows on the Thread',
       swBefore === false, swBefore ? 'rows are there — nothing was staged' : 'none, as reported');
 
     const pressed = await page.evaluate(() => {
-      const b = document.querySelector('[data-reread]');
+      const b = document.querySelector('#ig-canvas [data-reread]');
       if (!b) return 'no Re-read control on the page';
       b.click(); return '';
     });
     check('7b the Re-read control is on the page to press', pressed === '', pressed || 'pressed');
-    await page.waitForTimeout(6000);
+    await page.waitForFunction(i => !!getContract(i).redlineText, oldId, { timeout: 15000 }).catch(() => {});
 
     const after = await page.evaluate(i => {
       const c = getContract(i);
@@ -428,12 +442,12 @@ const INK = `(() => {
 
     await openDoc(oldId);
     const swAfter = await page.evaluate(() => {
-      const el = document.getElementById('doc-thread');
+      const el = document.getElementById('pd-thread');
       if (!el || el.hidden) return { on: false, clauses: -1 };
       const r = el.getBoundingClientRect(), cs = getComputedStyle(el);
       return { on: el.querySelectorAll('.doc-th-row').length > 0 && r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none',
         clauses: (typeof docReadClauses === 'function')
-          ? docReadClauses(getContract(state.activeId)).length : -1 };
+          ? docReadClauses(getContract(pdContract().id)).length : -1 };
     });
     check('7d and the Thread has rows, VISIBLE PIXELS, afterwards',
       swAfter.on === true, `${swAfter.on} · ${swAfter.clauses} clauses`);

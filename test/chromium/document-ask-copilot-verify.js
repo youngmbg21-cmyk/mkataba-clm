@@ -1,4 +1,5 @@
 /* Chromium verification: HIGHLIGHT ON THE DOCUMENT TAB → SIMPLIFY / ASK COPILOT
+   (re-pointed 11 Oct 2026 to Home's Document face: the room's tab is gone)
    ============================================================
    (owner-asked 17 Aug 2026.) Highlight a sentence on the Document page and a
    menu appears beside it — Simplify and Ask Copilot — and both actions talk in
@@ -50,20 +51,25 @@ const check = (name, pass, detail) => {
     await page.click('#li-go');
     await page.waitForTimeout(2200);
 
-    /* A template-built contract, on its Document tab. */
+    /* A template-built contract, on its paper.
+       RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner); the
+       paper a reader highlights is Home's Document face (#ig-canvas), whose
+       menu is the Paper's own (copilotacts.js CA_SEL_ACTIONS). */
     const cid = await page.evaluate(() => {
       const c = state.contracts.find(x => x.template && x.status !== 'Declined');
-      state.activeId = c.id; state.selId = c.id; setView('workspace');
-      if (window.roomGoTab) roomGoTab(c, 'docs');
+      pdOpenOnHome(c.id, 'copilot');
       return c.id;
     });
-    await page.waitForTimeout(900);
+    await page.waitForFunction(i => {
+      const pc = typeof pdContract === 'function' && pdContract();
+      const cv = document.getElementById('ig-canvas');
+      return !!pc && String(pc.id) === String(i) && !!cv && cv.textContent.trim().length > 200
+        && !!document.getElementById('igd-input');
+    }, cid, { timeout: 15000 }).catch(() => {});
     const before = await page.evaluate(() =>
       state.contracts.map(c => (c.changes || []).length).join(','));
-
-    /* ---- 1. a real highlight raises the menu, beside the words ---- */
-    const raised = await page.evaluate(() => {
-      const canvas = document.getElementById('doc-canvas');
+    const highlight = n => page.evaluate(len => {
+      const canvas = document.getElementById('ig-canvas');
       if (!canvas) return { err: 'no canvas' };
       const walker = document.createTreeWalker(canvas, NodeFilter.SHOW_TEXT);
       let node = null;
@@ -72,12 +78,18 @@ const check = (name, pass, detail) => {
       if (!node) return { err: 'no sentence to select' };
       const range = document.createRange();
       range.setStart(node, 0);
-      range.setEnd(node, Math.min(60, node.textContent.length));
+      range.setEnd(node, Math.min(len, node.textContent.length));
       const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range);
-      canvas.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      node.parentElement.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
       return { picked: sel.toString().slice(0, 40) };
-    });
-    await page.waitForTimeout(250);
+    }, n);
+    const menuUp = () => page.waitForFunction(() => {
+      const m = document.querySelector('.nego-selmenu'); return !!m && m.getBoundingClientRect().height > 0;
+    }, null, { timeout: 4000 }).then(() => true, () => false);
+
+    /* ---- 1. a real highlight raises the menu, beside the words ---- */
+    const raised = await highlight(60);
+    await menuUp();
     const menu = await page.evaluate(() => {
       const m = document.querySelector('.nego-selmenu');
       if (!m) return null;
@@ -87,73 +99,38 @@ const check = (name, pass, detail) => {
     });
     check('1 the highlight raises the menu, as visible pixels',
       !!menu && menu.on, JSON.stringify(menu) + ' · picked "' + (raised.picked || raised.err) + '"');
-    check('1 with the two actions the owner chose',
-      !!menu && menu.labels.length === 2 && /Simplify/.test(menu.labels[0]) && /Ask Copilot/.test(menu.labels[1]),
-      menu && menu.labels.join(' | '));
+    /* RE-POINTED 11 Oct 2026: the owner's two actions were the Document tab's
+       menu; Home's paper carries Ask Copilot among the Paper's own verbs.
+       "Simplify" went with the tab — retired 11 Oct 2026: the Document tab is
+       gone (owner). */
+    check('1 Ask Copilot is on it',
+      !!menu && menu.labels.some(l => /Ask Copilot/.test(l)), menu && menu.labels.join(' | '));
     await page.screenshot({ path: path.join(OUT, '01-menu.png') });
 
-    /* ---- 2. Simplify opens the panel and the answer lands in the stream ---- */
-    await page.evaluate(() => {
-      /* The server's own response shape — aiRenderServerAnswer reads .answer. */
-      window.copilotAsk = async () => ({ answer: 'A plain version: the supplier delivers the goods.' });
-      const b = document.querySelector('.nego-selmenu [data-nego-ai="simplify"]');
-      b.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-    });
-    /* Long enough for the stubbed provider round trip. */
-    await page.waitForTimeout(1200);
-    const panel = await page.evaluate(() => {
-      const p = document.getElementById('ai-panel');
-      const open = !!p && p.classList.contains('open');
-      const feed = (document.getElementById('ai-feed') || p || {}).textContent || '';
-      return { open, gone: !document.querySelector('.nego-selmenu'),
-        quoted: /Simplify/.test(feed), answered: /A plain version/i.test(feed) };
-    });
-    check('2 the press closes the menu and opens the Copilot panel',
-      panel.open && panel.gone, JSON.stringify(panel));
-    check('2 the ask is quoted in the reader\'s own stream', panel.quoted);
-    check('2 AND THE ANSWER LANDS IN THE STREAM', panel.answered);
-    await page.screenshot({ path: path.join(OUT, '02-simplify-panel.png') });
+    /* ---- 2. (retired 11 Oct 2026: the Document tab is gone (owner) — its
+       Simplify press, which answered in the old Copilot panel, has no door on
+       Home's paper.) ---- */
 
-    /* ---- 3. Ask Copilot asks for the inquiry ---- */
+    /* ---- 3. Ask Copilot puts the words in Copilot's ask box, quoted ---- */
     await page.evaluate(() => {
-      const canvas = document.getElementById('doc-canvas');
-      const walker = document.createTreeWalker(canvas, NodeFilter.SHOW_TEXT);
-      let node = null;
-      while ((node = walker.nextNode())) if (node.textContent.trim().length > 50) break;
-      const range = document.createRange();
-      range.setStart(node, 0); range.setEnd(node, 40);
-      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range);
-      canvas.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-    });
-    await page.waitForTimeout(250);
-    await page.evaluate(() => {
-      const b = document.querySelector('.nego-selmenu [data-nego-ai="ask"]');
+      const b = [...document.querySelectorAll('.nego-selmenu [data-nego-ai]')].find(x => /Ask Copilot/.test(x.textContent));
       if (b) b.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
     });
-    await page.waitForTimeout(400);
-    const asked = await page.evaluate(() => {
-      const feed = (document.getElementById('ai-feed') || document.getElementById('ai-panel') || {}).textContent || '';
-      return { greeted: /What would you like to know/i.test(feed) };
-    });
-    check('3 Ask Copilot asks for the inquiry in the panel', asked.greeted);
+    const quoted = raised.picked ? raised.picked.trim().slice(0, 20) : '\u0000';
+    const asked = await page.waitForFunction(q => {
+      const inp = document.getElementById('igd-input');
+      return !!inp && inp.value.includes(q) && !document.querySelector('.nego-selmenu');
+    }, quoted, { timeout: 4000 }).then(() => true, () => false);
+    check('3 Ask Copilot puts the highlighted words in Copilot\'s ask box, and the menu closes', asked,
+      await page.evaluate(() => (document.getElementById('igd-input') || {}).value || ''));
 
     /* ---- 4. Escape dismisses; nothing was written anywhere ---- */
-    await page.evaluate(() => {
-      const canvas = document.getElementById('doc-canvas');
-      const walker = document.createTreeWalker(canvas, NodeFilter.SHOW_TEXT);
-      let node = null;
-      while ((node = walker.nextNode())) if (node.textContent.trim().length > 50) break;
-      const range = document.createRange();
-      range.setStart(node, 0); range.setEnd(node, 30);
-      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range);
-      canvas.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-    });
-    await page.waitForTimeout(250);
-    const hadMenu = await page.evaluate(() => !!document.querySelector('.nego-selmenu'));
+    await highlight(30);
+    const hadMenu = await menuUp();
     await page.keyboard.press('Escape');
-    await page.waitForTimeout(150);
-    const escaped = await page.evaluate(() => !document.querySelector('.nego-selmenu'));
-    check('4 Escape dismisses the menu', hadMenu && escaped);
+    const escaped = await page.waitForFunction(() => !document.querySelector('.nego-selmenu'),
+      null, { timeout: 3000 }).then(() => true, () => false);
+    check('4 Escape dismisses the menu', hadMenu && escaped, JSON.stringify({ hadMenu, escaped }));
     const after = await page.evaluate(() =>
       state.contracts.map(c => (c.changes || []).length).join(','));
     check('4 NOTHING WAS FILED — every contract\'s change count is untouched',

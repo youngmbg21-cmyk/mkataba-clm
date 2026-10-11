@@ -93,15 +93,17 @@ const BODY =
     check('0 the Word file is on the record', !!id, id || 'absent');
     if (!id) throw new Error('no upload');
 
-    await page.evaluate(i => openWorkspace(i), id);
-    await page.waitForTimeout(1000);
-    await page.evaluate(() => roomGoTab(getContract(state.activeId), 'docs'));
-    await page.waitForSelector('#doc-canvas', { timeout: 15000 }).catch(() => {});
-    await page.waitForTimeout(1400);
+    /* RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner). The
+       paper is Home's Document face (#ig-canvas), the Thread its Clauses tab
+       (#pd-thread); sections 3 and 4 are the room's Overview, as before. */
+    await page.evaluate(i => { window.__cid = i; pdOpenOnHome(i, 'doc'); }, id);
+    await page.waitForFunction(() => !!document.getElementById('ig-canvas')
+      && /Request for provision/.test(document.getElementById('ig-canvas').textContent)
+      && !!document.getElementById('pd-thread'), null, { timeout: 15000 }).catch(() => {});
 
     /* ===== 1. A CLAUSE IS A PARAGRAPH, ITS TITLE ALONE IN BOLD ===== */
     const para = await page.evaluate(() => {
-      const box = document.getElementById('doc-canvas');
+      const box = document.getElementById('ig-canvas');
       const el = [...box.querySelectorAll('p,h1,h2,h3,h4')].find(e => /Request for provision/.test(e.textContent));
       if (!el) return null;
       const body = [...box.querySelectorAll('p')].find(e => e !== el && e.textContent.trim().length > 20);
@@ -118,7 +120,7 @@ const BODY =
       para ? `${para.size}px/${para.weight} against body ${para.bodySize}px` : '—');
     check('1c its own title keeps its bold', !!(para && para.bold >= 600), para ? 'title ' + para.bold : '—');
     const heads = await page.evaluate(() =>
-      [...document.querySelectorAll('#doc-canvas h1,#doc-canvas h2,#doc-canvas h3,#doc-canvas h4')]
+      [...document.querySelectorAll('#ig-canvas h1,#ig-canvas h2,#ig-canvas h3,#ig-canvas h4')]
         .map(e => e.textContent.replace(/\s+/g, ' ').trim()).filter(t => t.length > 60).length);
     check('1d no heading on the paper runs to a sentence', heads === 0, heads + ' long headings');
     await page.screenshot({ path: path.join(OUT, '01-document.png') });
@@ -127,7 +129,7 @@ const BODY =
     /* RE-POINTED 5 Oct 2026 (the Thread): the map's blocks are the Thread's
        rows, the panel is the open row. Same facts staged, same claims. */
     const staged = await page.evaluate(() => {
-      const c = getContract(state.activeId);
+      const c = getContract(window.__cid);
       c.scan = { at: 'today', on: '2026-09-22', dismissed: [], findings: [
         { id: 'x1', sev: 'high', title: 'No right to suspend', why: 'Your only lever in a payment dispute is gone.',
           quote: 'is not entitled to suspend, withhold, discontinue or interrupt the Services' },
@@ -142,7 +144,7 @@ const BODY =
     });
     await page.waitForTimeout(1200);
     const spine = await page.evaluate(() => {
-      const segs = [...document.querySelectorAll('#doc-thread .doc-th-row')];
+      const segs = [...document.querySelectorAll('#pd-thread .doc-th-row')];
       return { n: segs.length, ruby: segs.filter(s => s.classList.contains('is-ruby')).length,
         amber: segs.filter(s => s.classList.contains('is-amber')).length };
     });
@@ -150,11 +152,11 @@ const BODY =
     check('2b the clause the scan found is RED on the thread', spine.ruby === 1, spine.ruby + ' red');
     check('2c and the brief\'s watchout colours its own clause amber', spine.amber >= 1, spine.amber + ' amber');
     const pressed = await page.evaluate(async () => {
-      const seg = document.querySelector('#doc-thread .doc-th-row.is-ruby [data-th-go]');
+      const seg = document.querySelector('#pd-thread .doc-th-row.is-ruby [data-th-go]');
       if (!seg) return null;
       seg.click();
       await new Promise(z => setTimeout(z, 1300));
-      const panel = document.querySelector('#doc-thread .doc-th-row.is-open');
+      const panel = document.querySelector('#pd-thread .doc-th-row.is-open');
       const mark = panel && [...panel.querySelectorAll('.doc-xr-mark.is-ruby')][0];
       const why = mark && mark.querySelector('.doc-xr-why');
       const wide = panel && panel.querySelector('.doc-xr-sec.is-wide');
@@ -164,7 +166,7 @@ const BODY =
         mark: mark ? mark.textContent.replace(/\s+/g, ' ').trim() : '',
         why: why ? why.textContent.replace(/\s+/g, ' ').trim() : '',
         wide: wide ? wide.textContent.replace(/\s+/g, ' ').trim() : '', bg,
-        anywhere: document.getElementById('doc-thread').textContent.replace(/\s+/g, ' ') };
+        anywhere: document.getElementById('pd-thread').textContent.replace(/\s+/g, ' ') };
     });
     check('2d pressing the red row opens it on that clause',
       !!(pressed && /No suspension/.test(pressed.head + pressed.mark)), pressed ? pressed.head : 'no red row');
@@ -188,8 +190,11 @@ const BODY =
     await page.screenshot({ path: path.join(OUT, '02-thread.png') });
 
     /* ===== 3. THE OBLIGATIONS TILE ===== */
+    await page.evaluate(() => openWorkspace(window.__cid));
+    await page.waitForFunction(() => state.view === 'workspace' && !!document.getElementById('ws-tabs'),
+      null, { timeout: 15000 }).catch(() => {});
     const tile = await page.evaluate(async () => {
-      const c = getContract(state.activeId);
+      const c = getContract(window.__cid);
       c.obligations = [];
       c.triage = { at: new Date().toISOString(), by: 'Admin', steps: {
         oblig: { ok: true, found: [{ desc: 'Supplier must keep providing the Services', due: '', who: 'them' },
@@ -214,7 +219,7 @@ const BODY =
     const tile2 = await page.evaluate(async () => {
       document.querySelectorAll('#modal-root *').forEach(() => {});
       if (typeof closeModal === 'function') closeModal();
-      const c = getContract(state.activeId);
+      const c = getContract(window.__cid);
       c.obligations = [{ id: 'ob1', desc: 'Pay within sixty days', due: '', who: 'us' }];
       if (typeof paintKtTriage === 'function') paintKtTriage(c);
       await new Promise(z => setTimeout(z, 300));
@@ -230,7 +235,7 @@ const BODY =
       !!(tile2 && !tile2.modal && tile2.tab === 'oblig'), JSON.stringify(tile2));
 
     /* ===== 4. THE THREE OVERVIEW CARDS ===== */
-    await page.evaluate(() => roomGoTab(getContract(state.activeId), 'terms'));
+    await page.evaluate(() => roomGoTab(getContract(window.__cid), 'terms'));
     await page.waitForTimeout(1200);
     /* RE-POINTED IN PLACE 1 Oct 2026 (Read Down): nothing folds, so every
        section is open as drawn — found by its head's words, not pressed. */

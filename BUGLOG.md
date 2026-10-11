@@ -20642,3 +20642,7 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ## 11 Oct 2026 — Home Document, round 2
 - Noticed, not fixed: the term fill's confirmation ("End date set to … years from the start date", now `docTermFill`) calls a bare `toast(msg)` with no kind, which prints nothing (TOAST_KINDS) — the end date is set silently. Carried over unchanged when the fill was lifted into its own function.
 - Noticed, not fixed: on Home's Document a DRAFT's empty blank (readOnlyDocHtml's `.field-frozen` dash) carries the hover "This term was not filled in before the contract was sent" (`ct_term_not_filled`) though nothing was sent; the sentence fits the signing copy, not a draft read on Home.
+
+## 11 Oct 2026 — upload checks re-pointed to Home Document
+- Noticed, not fixed: on Home's Document, Copilot tab (where "Open contract" and every old Document-tab door now land), a flat upload's file strip still says "Structure read from the wording"; it only becomes "No headings or numbering found — read as plain paragraphs" once the Clauses tab paints the Thread (`docThreadFlatSay` runs from `docThreadPaint`). Two readings of one fact again until the reader opens Clauses.
+- Noticed, not fixed: the Document tab's highlight menu offered "Simplify" (a plain-English reading of the highlighted words in Copilot); Home's paper menu (`CA_SEL_ACTIONS`: Ask Copilot · Make it an obligation · Mark a risk · Comment · Add to my notes) has no Simplify, so that act went with the tab.

@@ -238,6 +238,10 @@ const px = v => Number(String(v || '').replace('px', ''));
     const upId = await page.evaluate(async () => {
       const c = state.contracts.find(x => x.status !== 'Signed' && x.status !== 'Declined');
       await ensureFull(c);
+      /* an edited upload, not a negotiation (11 Oct 2026): Home's paper draws
+         a negotiated contract's Redlined/Clean sheet rather than its own
+         wording, and every unsigned fixture here is negotiated */
+      c.changes = []; delete c.negotiation;
       c.source = 'upload';
       c.upload = { fileName: 'Counterparty draft.docx', size: 48210,
         uploadedBy: 'Amina Otieno', uploadedAt: new Date().toISOString(),
@@ -249,16 +253,14 @@ const px = v => Number(String(v || '').replace('px', ''));
       return c.id;
     });
     await page.waitForTimeout(1200);
-    await page.evaluate(id => { openWorkspace(id); }, upId);
-    await page.waitForTimeout(1800);
-    await page.evaluate(id => {
-      const c = state.contracts.find(x => x.id === id);
-      if (window.roomGoTab) roomGoTab(c, 'doc');
-    }, upId);
-    await page.waitForTimeout(1600);
+    /* RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner); the
+       wording is read on Home's Document face. */
+    await page.evaluate(id => { pdOpenOnHome(id, 'doc'); }, upId);
+    await page.waitForFunction(() => /ZEBRAFISH CONSIGNMENTS/.test((document.getElementById('ig-canvas') || {}).textContent || ''),
+      null, { timeout: 15000 }).catch(() => {});
 
     const doc = await page.evaluate(() => {
-      const anchor = document.querySelector('[data-anchor="redline"]');
+      const anchor = document.querySelector('#ig-canvas [data-anchor="redline"]');
       const txt = (document.getElementById('content') || document.body).innerText || '';
       return { anchor: !!anchor,
         words: /ZEBRAFISH CONSIGNMENTS/.test(txt),

@@ -2849,7 +2849,11 @@ async function rereadUploadText(c, btn){
     /* SAID, AND SAID HONESTLY (9 Oct 2026 review): a bare toast(msg) prints
        nothing, and where the redlined wording was kept the reader is told so. */
     toast(i18t(keptWording?'ct_reread_done_kept':'ct_reread_done', { n: text.length.toLocaleString() }), 'ok');
-    renderWorkspace();
+    /* PRESSED ON HOME'S PAPER (11 Oct 2026: the room's Document tab is gone and
+       the file strip lives on Home's Document face): Home's paper and its
+       Clauses list are drawn again; renderWorkspace would put the room over Home. */
+    if(homePaperShows(c)){ try{ if(window.igPaperRefresh) igPaperRefresh(); docThreadPaint(c); }catch(_){ } }
+    else renderWorkspace();
   }catch(e){
     toast(i18t('ct_could_not_reread')+e.message,'err');
     if(btn){ btn.disabled=false; btn.innerHTML=restore; }
@@ -14140,6 +14144,20 @@ function docThreadHomeMarks(c){
 /* The column's one painter, kept under the name every caller outside this
    file already presses (the negotiate page's type stepper, the clause editor). */
 function docReadPaint(c){ docThreadPaint(c); }
+/* THE FILE STRIP'S TWO BUTTONS ON HOME'S PAPER (11 Oct 2026: the room's
+   Document tab is gone, so Home's Document face is where the strip is read).
+   wireDocCanvas arms them on the room's sheet; Home's sheet is painted by
+   intelligence.js and never passes here, so they are delegated once, at load,
+   and find their contract at press time. */
+function homePaperShows(c){
+  try{ return state.view==='dashboard'&&!!document.getElementById('ig-canvas')&&typeof pdContract==='function'&&!!pdContract()&&String(pdContract().id)===String(c&&c.id); }catch(_){ return false; }
+}
+if(typeof document!=='undefined') document.addEventListener('click',e=>{
+  const b=e.target&&e.target.closest&&e.target.closest('#ig-canvas [data-reread], #ig-canvas [data-expand-doc]'); if(!b) return;
+  const c=(typeof pdContract==='function')?pdContract():null; if(!c) return;
+  if(b.hasAttribute('data-reread')) rereadUploadText(c, b);
+  else openDocReader(docFileUrl(c), c.upload?.fileName||c.name, c.upload?.mime);
+});
 function wireDocCanvas(c){
   document.querySelector('[data-expand-doc]')?.addEventListener('click',()=>openDocReader(docFileUrl(c), c.upload?.fileName||c.name, c.upload?.mime));
   document.querySelector('[data-reread]')?.addEventListener('click',e=>rereadUploadText(c, e.currentTarget));
