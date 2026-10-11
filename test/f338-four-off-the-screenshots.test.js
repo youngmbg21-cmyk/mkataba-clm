@@ -150,8 +150,10 @@ describe('f338 (3) — markup order, and nothing else', () => {
      group below Calendar. It is still an everyday door, and the move is still
      markup order and nothing else. */
   test('3a Insights sits below Calendar, at the foot of Work; Copilot\'s work has no rail door; Requests is Library', () => {
-    assert.ok(at('calendar') > 0 && at('intel') > at('calendar'),
-      'Calendar leads Insights in the markup');
+    /* RE-POINTED 11 Oct 2026 (WORKORDER-four-builds item 1): the Calendar is
+       Home's second tab, so it has no rail door; My notes leads Insights */
+    assert.equal(at('calendar'), -1, 'Calendar has no rail door');
+    assert.ok(at('mynotes') > 0 && at('intel') > at('mynotes'), 'My notes leads Insights in the markup');
     assert.ok(at('templates') > at('intel'), 'and Insights is the last Work door, before Library begins');
     assert.equal(grp('intel'), 'work', 'Insights is an everyday door');
     const doors = [...nav.matchAll(/data-view="([a-z]+)" class="nav-item/g)].map(m => m[1]);
@@ -176,7 +178,8 @@ describe('f338 (3) — markup order, and nothing else', () => {
      svg colour rules are keyed on the ATTRIBUTE rather than on a position, so
      they follow the block wherever it is written. */
   test('3d every door still carries its own data-view — no handler moved', () => {
-    for (const v of ['dashboard', 'register', 'redline', 'calendar', 'templates',
+    /* 'calendar' left the rail 11 Oct 2026 (Home's tab) */
+    for (const v of ['dashboard', 'register', 'redline', 'mynotes', 'templates',
       'obligations', 'intel', 'intake'])
       assert.ok(at(v) >= 0, v + ' lost its door');
   });
