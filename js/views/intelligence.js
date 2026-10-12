@@ -849,7 +849,9 @@ const GRAPH_GROUP_KEYS=GRAPH_GROUPINGS.map(g=>g.k);
 const graphGroupingOf=k=>GRAPH_GROUPINGS.find(g=>g.k===k)||null;
 /* The caption's word for a grouping — the dropdown's own label, lower-cased,
    so the control and the note line cannot name one cut two ways. */
-const graphGroupingWord=k=>k==='custom'?'Jambo grouping':((graphGroupingOf(k)||{}).label||String(k||'')).toLowerCase();
+/* a grouping a press made without Jambo carries its own name (`groups._name`,
+   e.g. the Customers page's Active | Expired; BUGLOG 10 Oct 2026) */
+const graphGroupingWord=k=>k==='custom'?((typeof intel==='object'&&intel&&intel.groups&&intel.groups._name)||'Jambo grouping'):((graphGroupingOf(k)||{}).label||String(k||'')).toLowerCase();
 const GRAPH_MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const _gSignedDay=c=>{ try{ return (typeof contractSignedAt==='function')?(contractSignedAt(c)||null):null; }catch(_){ return null; } };
 const _gExpiryDay=c=>{ const e=(typeof effectiveExpiry==='function'?effectiveExpiry(c):c.expiry); return e?String(e).slice(0,10):null; };
@@ -1774,6 +1776,7 @@ function igRecipeRun(parsed, opts){
     if(a.compare){ const A=igIdsWhere(a.compare.a), B=igIdsWhere(a.compare.b), groups={};
       A.forEach(id=>{ groups[id]=a.compare.aLabel; }); B.forEach(id=>{ if(!groups[id]) groups[id]=a.compare.bLabel; });
       intel.lenses=intel.lenses.filter(l=>l.action!=='filter'); addLens({ label:i18t('int_compare_lens',{ a:a.compare.aLabel, b:a.compare.bLabel }), ids:Object.keys(groups), action:'filter' });
+      Object.defineProperty(groups,'_name',{ value:i18t('int_compare_group',{ a:a.compare.aLabel, b:a.compare.bLabel }), enumerable:false });
       intel.groupBy='custom'; intel.groups=groups;
       const tot=ids=>{ let s=0; ids.forEach(id=>{ const v=igHomeValue(getContract(id)); if(v!=null) s+=v; }); return s; };
       const money=(typeof canViewValues!=='function')||canViewValues(), fmt=v=>(typeof fmtMoneyShort==='function')?fmtMoneyShort(v):String(Math.round(v));
@@ -3660,8 +3663,8 @@ function igPaintGroupSelect(){
   const sel=document.getElementById('ig-group'); if(!sel) return;
   const has=sel.querySelector('option[value="custom"]');
   if(intel.groupBy==='custom'){
-    if(!has){ const o=document.createElement('option'); o.value='custom';
-      o.textContent=graphGroupingWord('custom').replace(/^./,ch=>ch.toUpperCase()); sel.insertBefore(o, sel.firstChild); }
+    if(!has){ const o=document.createElement('option'); o.value='custom'; sel.insertBefore(o, sel.firstChild); }
+    sel.querySelector('option[value="custom"]').textContent=graphGroupingWord('custom').replace(/^./,ch=>ch.toUpperCase());
     sel.value='custom'; return;
   }
   if(has) has.remove();
