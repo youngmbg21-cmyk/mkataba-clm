@@ -54,7 +54,7 @@ const SHELL_ICONS = [
   /* #brand-mark is RETIRED with the 44px shell bar (24 Aug 2026): a 40px tile
      does not fit, and the wordmark stays as live text. */
   ['.cmd-search',                'i-search'],
-  ['#cmd-ai',                    'i-spark'],
+  /* #cmd-ai wears Jambo's face, not #i-spark, since 12 Oct 2026 (owner); checked below */
   ['#hdr-notify',                'i-bell'],
   ['#cmd-panel',                 'i-clock'],   /* DECIDE 2, 20 Sep 2026: Recent activity is behind the clock */
   ['#side-logout',               'i-out'],
@@ -73,7 +73,6 @@ const SHELL_ICONS = [
      Templates & standards, and importing is reached from the upload door. */
   /* [data-view="advice"] left the rail on 4 Oct 2026 too (the process
      review, gap F, f495): the Advice desk is the Advice tab of Requests. */
-  ['#cmd-ai',                    'i-spark'],   /* the one Copilot door since 7 Oct 2026 (W-3) */
 ];
 
 (async () => {
@@ -257,9 +256,12 @@ const SHELL_ICONS = [
        many were actually measured, so nobody reads 19 oks as 19 pictures. */
     console.log(`  note  ${painted} icons measured as pixels; ` +
       `${unpainted.length} not painted in this workspace (${unpainted.join(', ') || 'none'})`);
-    /* 13 since the Calendar's rail door went (11 Oct 2026): one fewer to paint */
-    check('most of the shell was measured, not merely referenced', painted >= 13,
+    /* 11 since #cmd-ai (listed twice) became Jambo's face (12 Oct 2026) */
+    check('most of the shell was measured, not merely referenced', painted >= 11,
       `${painted} painted`);
+    const door = await page.evaluate(() => { const i = document.querySelector('#cmd-ai img.jambo-face'); const r = i && i.getBoundingClientRect();
+      return r ? { w: Math.round(r.width), h: Math.round(r.height), ok: i.complete && i.naturalWidth > 0 } : null; });
+    check('#cmd-ai, the one Jambo door, shows his face, painted', !!door && door.w > 8 && door.h > 8 && door.ok, JSON.stringify(door));
 
     /* Every <use> anywhere in the shell must point at a symbol that exists —
        the named list above proves the ones we meant to change; this catches a
