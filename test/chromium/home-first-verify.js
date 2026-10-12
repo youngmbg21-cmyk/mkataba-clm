@@ -124,7 +124,8 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     ok('3c the Document tab is the clause list, its beads down the line; no ×, no blanks, no copies', doc.rows >= 2 && doc.beads === doc.rows && !doc.close && !doc.blanks, JSON.stringify(doc));
     const wide = await page.evaluate(() => ({ sheet: Math.round((document.querySelector('#ig-paper .pg-sheet') || { getBoundingClientRect: () => ({ width: 0 }) }).getBoundingClientRect().width),
       ws: !!document.querySelector('#ig-strip [data-ig-ws]'), ask: !!document.getElementById('igd-input') }));
-    ok('3d the paper keeps its width (the Home paper\'s 720, owner 8 Oct 2026), "Open workspace" is gone from Home, the ask box stays under every tab', wide.sheet >= 700 && !wide.ws && wide.ask, JSON.stringify(wide));
+    /* RE-POINTED 12 Oct 2026 (owner): the ask box stands on the Copilot tab only — this is the Clauses tab, so none */
+    ok('3d the paper keeps its width (the Home paper\'s 720, owner 8 Oct 2026), "Open workspace" is gone from Home, no ask box on the Clauses tab', wide.sheet >= 700 && !wide.ws && !wide.ask, JSON.stringify(wide));
     /* ONE BAR (Young, 8 Oct 2026): the strip and the panel's symbols share one top, one
        bottom and one colour, side by side; the sheet starts 87px under the strip's top
        since 11 Oct 2026 (it was 56): the zoom's own 31px row stands above it, the

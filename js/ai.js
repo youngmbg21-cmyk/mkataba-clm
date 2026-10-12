@@ -843,7 +843,7 @@ function aiGoEmbedded(here, prefill){
       if(typeof igSyncDockWidth === 'function') try{ igSyncDockWidth(); }catch(_){}
     } else if(typeof renderIntelDock === 'function') try{ renderIntelDock(); }catch(_){}
     if(prefill && typeof intelAskReady === 'function' && intelAskReady(prefill)) return true;
-    const inp = document.getElementById('igd-input');
+    const inp = (typeof igAskBox === 'function') ? igAskBox() : document.getElementById('igd-input');
     if(inp) try{ inp.focus({ preventScroll: true }); }catch(_){}
     return true;
   }

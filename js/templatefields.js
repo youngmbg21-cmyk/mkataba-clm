@@ -280,7 +280,7 @@ function bulkTemplateCsv(t){
   const hint=['e.g. Distribution Agreement — Coast', ...fs.map(f=>
     f.type==='date' ? '2026-12-31'
     : f.type==='num' ? '2500000'
-    : f.type==='select' ? (f.opts||[]).join(' | ')
+    : f.type==='select' ? (f.opts||[]).map(fieldOpt).map(o=>o.v).filter(Boolean).join(' | ')   /* a {v,l} pair is not a string: the hint printed [object Object] (12 Oct 2026) */
     : f.def || (f.type==='party'?'Acme Ltd':''))];
   return [head.map(_csvCell).join(','), hint.map(_csvCell).join(',')].join('\n');
 }

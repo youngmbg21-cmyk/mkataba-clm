@@ -4148,7 +4148,7 @@ const canonicalDoc = c => isUpload(c)
    and prints is the same text that will be sealed. An empty field becomes an
    em-dash rather than nothing, so an unfilled term is visible as a gap the
    reader can point at. */
-function readOnlyDocHtml(html){
+function readOnlyDocHtml(html, opts){
   const tmp=document.createElement('div');
   tmp.innerHTML=String(html||'');
   tmp.querySelectorAll('input,textarea').forEach(inp=>{
@@ -4163,7 +4163,9 @@ function readOnlyDocHtml(html){
     ['data-sync','data-field'].forEach(a=>{ if(inp.hasAttribute(a)) s.setAttribute(a,inp.getAttribute(a)); });
     const v=fieldDisplayValue(inp);
     s.textContent=v||'—';
-    if(!v) s.setAttribute('title',i18t('ct_term_not_filled'));
+    /* a DRAFT's blank was never sent anywhere: it is simply not answered yet
+       (BUGLOG 11 Oct 2026: Home's Document said "…before the contract was sent") */
+    if(!v) s.setAttribute('title',i18t(opts&&opts.open?'ct_term_open':'ct_term_not_filled'));
     inp.replaceWith(s);
   });
   return tmp.innerHTML;

@@ -192,6 +192,8 @@ function cuOpenExplorer(key){
   try { if (typeof igRecipePush === 'function') igRecipePush(); } catch (_) {}
   intel.lenses = (intel.lenses || []).filter(l => l.action !== 'filter' || l.hb);
   addLens({ label: v.name, ids, action: 'filter' });
+  /* the grouping says what it is — not "Jambo grouping": no model was asked */
+  Object.defineProperty(groups, '_name', { value: i18t('cu_group_word'), enumerable: false });
   intel.groupBy = 'custom'; intel.groups = groups;
   if (typeof hbOpenExplorer === 'function') hbOpenExplorer(); else if (typeof setView === 'function') setView('dashboard');
 }

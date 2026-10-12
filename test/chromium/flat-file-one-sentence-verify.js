@@ -53,6 +53,16 @@ const ok = (n, g, d) => { g ? pass++ : fail++; console.log(`${g ? 'PASS' : 'FAIL
     ok('1 the flat Word file is filed', !!id, id);
     /* 11 Oct 2026: the room's Document tab is gone (owner); the paper and the
        Clauses thread live on Home's Document face, Clauses tab. */
+    /* 1b (BUGLOG 11 Oct 2026, fixed 12 Oct): on the COPILOT tab — where "Open
+       contract" and every old door land — the strip already says it, before
+       the Clauses tab has ever painted. */
+    await page.evaluate(i => pdOpenOnHome(i, 'copilot'), id);
+    await until(() => !!document.querySelector('#ig-canvas') && !!document.querySelector('[data-up-struct]'), null, 15000);
+    await until(() => { const s = document.querySelector('[data-up-struct]'); return !!s && /No headings/.test(s.textContent); }, null, 8000);
+    const onCp = await page.evaluate(() => ({ strip: (document.querySelector('[data-up-struct]') || {}).textContent || null,
+      clauses: !!document.querySelector('#pd-thread') }));
+    ok('1b on the Copilot tab, before Clauses has painted, the strip already says the one sentence',
+      /No headings or numbering found/.test(onCp.strip || '') && !onCp.clauses, JSON.stringify(onCp));
     await page.evaluate(i => pdOpenOnHome(i, 'doc'), id);
     await until(() => !!document.querySelector('#ig-canvas') && !!document.querySelector('#pd-thread'), null, 15000);
     await until(() => { const s = document.querySelector('[data-up-struct]'); return !!s && /No headings/.test(s.textContent); }, null, 8000);

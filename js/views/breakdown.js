@@ -128,7 +128,7 @@ function bdStageHtml(){
       <td><b>${r.n}. ${_bdE(r.name)}</b>${r.clauses ? `<br><span class="bd-small">${_bdE(r.clauses)}</span>` : ''}</td>
       <td>${bdChip(r.status)}</td><td class="num">${(r.items || []).length}</td><td class="num">${bdFlagged(r) || '–'}</td><td>${_bdE(r.headline)}</td></tr>`).join('');
   return bdHeadHtml(c) + `<div class="bd-scroll scroll-thin" id="bd-scroll"><div class="bd-card">
-      <div class="bd-card-h"><h3>${_bdE(c.name || '')}</h3><span class="bd-small">${_bdE(i18t('bd_placed', { n: placed }))}${b.truncated ? ' · ' + _bdE(i18t('bd_cut_short')) : ''}</span></div>
+      <div class="bd-card-h"><h3>${_bdE(c.name || '')}</h3><span class="bd-small">${_bdE(i18tn('bd_placed', placed, { n: placed }))}${b.truncated ? ' · ' + _bdE(i18t('bd_cut_short')) : ''}</span></div>
       <div class="bd-kpis"><div><span>${_bdE(i18t('bd_st_need'))}</span><b class="is-need">${need}</b></div><div><span>${_bdE(i18t('bd_st_look'))}</span><b class="is-look">${look}</b></div>
         <div><span>${_bdE(i18t('bd_st_fine'))}</span><b class="is-fine">${fine}</b></div><div><span>${_bdE(i18t('bd_regions'))}</span><b>${(b.regions || []).length}</b></div></div>
       <div class="bd-tscroll"><table class="bd-table"><thead><tr><th>${_bdE(i18t('bd_th_region'))}</th><th>${_bdE(i18t('bd_th_status'))}</th><th>${_bdE(i18t('bd_th_clauses'))}</th><th>${_bdE(i18t('bd_th_flagged'))}</th><th>${_bdE(i18t('bd_th_says'))}</th></tr></thead>

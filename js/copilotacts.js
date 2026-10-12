@@ -708,7 +708,7 @@ async function caSelPick(c, act, text, clauseId){
   caSelKill();
   const quote = text.slice(0, 600);
   if (act.id === 'ask'){
-    const inp = document.getElementById('igd-input'); if (!inp) return;
+    const inp = (typeof igAskBox === 'function') ? igAskBox() : document.getElementById('igd-input'); if (!inp) return;
     inp.value = _caT('ca_sel_ask_fill', { q: quote.length > 240 ? quote.slice(0, 240) + '…' : quote });
     try { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); } catch (_){}
     if (typeof chatFieldGrow === 'function') chatFieldGrow(inp);

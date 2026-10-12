@@ -849,7 +849,9 @@ const GRAPH_GROUP_KEYS=GRAPH_GROUPINGS.map(g=>g.k);
 const graphGroupingOf=k=>GRAPH_GROUPINGS.find(g=>g.k===k)||null;
 /* The caption's word for a grouping — the dropdown's own label, lower-cased,
    so the control and the note line cannot name one cut two ways. */
-const graphGroupingWord=k=>k==='custom'?'Jambo grouping':((graphGroupingOf(k)||{}).label||String(k||'')).toLowerCase();
+/* a grouping a press made without Jambo carries its own name (`groups._name`,
+   e.g. the Customers page's Active | Expired; BUGLOG 10 Oct 2026) */
+const graphGroupingWord=k=>k==='custom'?((typeof intel==='object'&&intel&&intel.groups&&intel.groups._name)||'Jambo grouping'):((graphGroupingOf(k)||{}).label||String(k||'')).toLowerCase();
 const GRAPH_MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const _gSignedDay=c=>{ try{ return (typeof contractSignedAt==='function')?(contractSignedAt(c)||null):null; }catch(_){ return null; } };
 const _gExpiryDay=c=>{ const e=(typeof effectiveExpiry==='function'?effectiveExpiry(c):c.expiry); return e?String(e).slice(0,10):null; };
@@ -1774,6 +1776,7 @@ function igRecipeRun(parsed, opts){
     if(a.compare){ const A=igIdsWhere(a.compare.a), B=igIdsWhere(a.compare.b), groups={};
       A.forEach(id=>{ groups[id]=a.compare.aLabel; }); B.forEach(id=>{ if(!groups[id]) groups[id]=a.compare.bLabel; });
       intel.lenses=intel.lenses.filter(l=>l.action!=='filter'); addLens({ label:i18t('int_compare_lens',{ a:a.compare.aLabel, b:a.compare.bLabel }), ids:Object.keys(groups), action:'filter' });
+      Object.defineProperty(groups,'_name',{ value:i18t('int_compare_group',{ a:a.compare.aLabel, b:a.compare.bLabel }), enumerable:false });
       intel.groupBy='custom'; intel.groups=groups;
       const tot=ids=>{ let s=0; ids.forEach(id=>{ const v=igHomeValue(getContract(id)); if(v!=null) s+=v; }); return s; };
       const money=(typeof canViewValues!=='function')||canViewValues(), fmt=v=>(typeof fmtMoneyShort==='function')?fmtMoneyShort(v):String(Math.round(v));
@@ -1857,10 +1860,16 @@ async function intelMapLocal(q){
    CONTRACT — it goes to Copilot's reading chat and is never re-read by the
    board's free reader (which would hear "risks" and open the Exposure panel). */
 let _igReadyAsk='';
+/* THE ONE WAY TO THE ASK BOX: on Home's Document the box stands on the
+   Copilot tab only, so a door that puts words in it turns to that tab first. */
+function igAskBox(){
+  if(window.pdShowsDesk&&pdShowsDesk()&&typeof window.pdSetTab==='function'){ pdSetTab('copilot'); renderIntelDock(); }
+  return document.getElementById('igd-input');
+}
 function intelAskReady(q){
   q=String(q||'').trim(); if(!q) return false;
   if(!intel.dockOpen){ intel.dockOpen=true; renderIntelDock(); igSyncDockWidth(); }
-  const inp=document.getElementById('igd-input'); if(!inp) return false;
+  const inp=igAskBox(); if(!inp) return false;
   const had=String(inp.value||'');
   if(had.trim() && had.trim()!==_igReadyAsk && had!==_igStrandLastAsk) return false;
   inp.value=q; _igReadyAsk=q;
@@ -3654,8 +3663,8 @@ function igPaintGroupSelect(){
   const sel=document.getElementById('ig-group'); if(!sel) return;
   const has=sel.querySelector('option[value="custom"]');
   if(intel.groupBy==='custom'){
-    if(!has){ const o=document.createElement('option'); o.value='custom';
-      o.textContent=graphGroupingWord('custom').replace(/^./,ch=>ch.toUpperCase()); sel.insertBefore(o, sel.firstChild); }
+    if(!has){ const o=document.createElement('option'); o.value='custom'; sel.insertBefore(o, sel.firstChild); }
+    sel.querySelector('option[value="custom"]').textContent=graphGroupingWord('custom').replace(/^./,ch=>ch.toUpperCase());
     sel.value='custom'; return;
   }
   if(has) has.remove();
@@ -6626,7 +6635,7 @@ function renderIntelDock(){
   }
   /* ---- AND ON THE BREAKDOWN TAB: its zoom (deal → region → clause → words)
      stands in this one panel (owner, 11 Oct 2026; js/views/breakdown.js) ---- */
-  if(window.state&&state.view==='dashboard'&&typeof window.hbFace==='function'&&hbFace()==='breakdown'&&typeof window.bdLensHtml==='function'){
+  if(typeof window.bdOnScreen==='function'&&bdOnScreen()&&typeof window.bdLensHtml==='function'){
     dock.innerHTML=bdLensHtml();
     const head=dock.querySelector('.bd-lens-head');
     if(head) head.insertAdjacentHTML('beforeend',`<button id="igd-collapse" title="${i18t('int_collapse_panel')}" aria-label="${i18t('int_collapse_panel')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('chevR')}</button>`);
@@ -6676,7 +6685,12 @@ function renderIntelDock(){
       <button id="igd-cmp-clear" class="text-[10.5px] font-600 text-ink/50 hover:text-ink">${i18t('int_clear')}</button>
       <button id="igd-cmp-run" class="ui-btn ui-btn-sm${intel.compareSel.length<2?'':' ui-btn-primary'}" title="${intel.compareSel.length<2?'Tap “+ Compare” on one more node first':'Run the side-by-side comparison'}">${intel.compareSel.length<2?'Pick 1 more…':'Compare '+intel.compareSel.length}</button>
     </div>`:''}
-    <div class="p-3 border-t border-hair shrink-0 relative">
+    ${''/* ONLY THE COPILOT TAB ASKS (owner, 12 Oct 2026: "only Copilot tab ...
+           should have a copilot field to Type in. The other tabs (overview,
+           clauses and obligations) should not have a copilot prompt entry
+           window"). A press elsewhere that puts words in the box goes through
+           igAskBox, which turns to the Copilot tab first. */}
+    ${(window.pdShowsDesk&&pdShowsDesk())?'':`<div class="p-3 border-t border-hair shrink-0 relative">
       ${''/* THE BOX SAYS WHICH CONTRACT IT ASKS ABOUT (26 Sep 2026): the reader's
              own switch, read back on the control that carries it — never a
              line above it. The cost of a question rides the hover. */}
@@ -6689,7 +6703,7 @@ function renderIntelDock(){
       ${igPreOn()?`<div id="igd-pre" class="hb-pre" aria-live="polite"></div>`:''}
       <textarea id="igd-input" rows="1" placeholder="${igEsc(igAskPlaceholder())}" title="${igEsc(igAskCost())}" class="chat-field w-full rounded-xl border border-inputln bg-white pl-3.5 pr-16 py-2.5 text-[13px] outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition" style="display:block"></textarea>
       <button id="igd-go" class="ui-btn ui-btn-sm ui-btn-primary absolute" style="right:18px;bottom:20px">${i18t('int_ask')}</button>
-    </div>`;
+    </div>`}`;
   const feed=document.getElementById('igd-feed'); feed.scrollTop=feed.scrollHeight;
   /* THE DOCUMENT TAB IS THE CLAUSE LIST (10 Oct 2026): its host is drawn
      empty and filled by the Document tab's own painter. */
@@ -6712,13 +6726,13 @@ function renderIntelDock(){
   const go=()=>{ const inp=document.getElementById('igd-input'); const v=inp.value;
     if(!String(v||'').trim()||intel.busy) return;
     inp.value=''; if(window.chatFieldGrow) chatFieldGrow(inp); intelAsk(v); };
-  document.getElementById('igd-go').addEventListener('click',go);
-  document.getElementById('igd-input').addEventListener('keydown',e=>{
+  document.getElementById('igd-go')?.addEventListener('click',go);
+  document.getElementById('igd-input')?.addEventListener('keydown',e=>{
     if(window.chatFieldSubmits ? chatFieldSubmits(e) : (e.key==='Enter'&&!e.shiftKey&&(e.preventDefault(),true))) go(); });
   /* SEE IT WHILE YOU TYPE (Part 10): after a short pause, the board's ONE
      reading of the words in the box, said on the line above it. Costs nothing,
      writes nothing; the line's room is always there, so nothing moves. */
-  if(igPreOn()){ const inp=document.getElementById('igd-input');
+  if(igPreOn()&&document.getElementById('igd-input')){ const inp=document.getElementById('igd-input');
     inp.addEventListener('input',()=>{ clearTimeout(_igPreT); _igPreT=setTimeout(igPrePaint,IG_PRE_MS); });
     if(_keep) igPrePaint(); }
   dock.querySelectorAll('[data-igsug]').forEach(b=>b.addEventListener('click',()=>intelAsk(b.getAttribute('data-igsug'))));
@@ -7344,7 +7358,12 @@ function igPaintPaper(){
        upload's placeholders and our amendment's ruled lines, painted on the
        paper the Overview tab's form fills — never stored, as on the room's. */
     const cv=document.getElementById('ig-canvas');
-    if(cv&&!igRedOn(c)){ try{ if(window.uploadBlanksPaint) uploadBlanksPaint(c,cv); }catch(_){ } try{ if(window.ownBlanksPaint) ownBlanksPaint(c,cv); }catch(_){ } } }
+    if(cv&&!igRedOn(c)){ try{ if(window.uploadBlanksPaint) uploadBlanksPaint(c,cv); }catch(_){ } try{ if(window.ownBlanksPaint) ownBlanksPaint(c,cv); }catch(_){ } }
+    /* ONE READING OF "IS THIS FILE FLAT": the strip says so as soon as the
+       paper is up, not only once the Clauses tab has painted (BUGLOG 11 Oct
+       2026) — the same question the Clauses list asks (docThreadFlatSay). */
+    if(cv&&c.upload&&document.querySelector('[data-up-struct="inferred"]')&&window.docXrayRows&&window.docThreadFlatSay){
+      try{ docThreadFlatSay(c,true,docXrayRows(c,cv)); }catch(_){ } } }
   /* Copilot's answer on Home's Redlined paper too (dashed marks; the glow is the Deal tab's door) */
   if(igRedOn(c)&&window.rlPaintCopilotAnswers) try{ rlPaintCopilotAnswers(host,c,{ side:'owner', noGlow:true }); }catch(_){ }
   host.hidden=false;
@@ -7506,7 +7525,11 @@ function igStrandPress(sp, b, i){
     clearTimeout(el._igFlash); el._igFlash=setTimeout(()=>el.classList.remove('ig-flash'),1700); }
   const row=_igStrandData[i]; if(!row) return;
   if(!intel.dockOpen){ intel.dockOpen=true; renderIntelDock(); igSyncDockWidth(); }
-  const inp=document.getElementById('igd-input'); if(!inp) return;
+  /* the Track's press puts a question ready in the box, which stands on the
+     Copilot tab only: from Overview or Obligations it turns there (igAskBox);
+     on Clauses it opens the clause in the list and asks nothing */
+  const onClauses=typeof window.pdTab==='function'&&pdTab()==='doc'&&window.pdShowsDesk&&pdShowsDesk();
+  const inp=onClauses?null:igAskBox(); if(!inp) return;
   const had=String(inp.value||'');
   if(had.trim() && had!==_igStrandLastAsk) return;
   const q=igStrandQuestion(row);
@@ -7765,7 +7788,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
 }
 
 Object.assign(window,{igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
-Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp,IG_PRE_MS,igPreOn,igPrePaint});
