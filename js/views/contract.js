@@ -4526,6 +4526,9 @@ function focusKeyTerms(c, field){
        way a reader would, through wireKtRows' own handler, rather than
        reaching past it to reveal a hidden field. */
     const row=document.querySelector(`[data-kt-row="${home.kt}"]`);
+    /* on Details a box may sit in a fold (more terms, or parties and filing): opened first */
+    const box0=document.querySelector(`[data-kt="${home.kt}"]`)||row;
+    const fold0=box0&&box0.closest?box0.closest('details'):null; if(fold0&&!fold0.open) fold0.open=true;
     const opener=row&&row.querySelector(`[data-kt-edit="${home.kt}"]`);
     if(opener&&!row.classList.contains('is-open')) opener.click();
     const panel=document.querySelector(`[data-kt="${home.kt}"]`);
@@ -5242,7 +5245,7 @@ function applyWsTabs(c){
      own flag, so the repaint underneath it cannot take it off. */
   /* THE DETAILS TAB (owner, 12 Oct 2026): the one card in its edit posture,
      then the paper's form, beside the sheet. */
-  if(_wsTab==='details'){ renderKeyTerms(c); try{ paintContractForm(c); }catch(_){} try{ detPaintPaperEmpties(); }catch(_){}
+  if(_wsTab==='details'){ try{ detPaintBasics(c); }catch(_){} renderKeyTerms(c); try{ paintContractForm(c); }catch(_){} try{ detPaintPaperEmpties(); }catch(_){}
     if(window.wireKtParties) wireKtParties(c);
     /* …and the full page, once, over a contract just made here — only while
        something is really left to answer, and only for someone who may. */
@@ -7660,12 +7663,14 @@ function ktOverviewTermsHtml(c,opts={}){
       theirs:pyAll.filter(p=>p.side!==PARTY_SIDE_OURS).map((p,i)=>({ id:p.id, first:i===0, html:pyHead(p) })) }) }):'';
   const pyEdit=`<div class="ov-pty-list ov-dir" tabindex="-1"><div id="kt-parties-host"><div id="kt-people">${dir}</div></div>${
       ovAddressBookHtml(addrs)}${signersBtn?`<div class="ov-ess-more">${signersBtn}</div>`:''}</div>`;
-  const pyN=D?D.parties.length:0;
+  /* THE COUNT IS THE LIST IT HEADS (13 Oct 2026): at rest the rows are the
+     map's parties; on Details the directory's (contractParties). */
+  const pyN=onDet?pyAll.length:(D?D.parties.length:0);
   const parties=`<div class="ov-ess-p" id="ov-parties"><div class="ov-ess-h"><span class="ov-ess-t">${esc(i18t('py_parties'))} <span class="ov-ess-tn">(${pyN})</span></span>${
       pyLocked?`<span class="ov-ess-lock">${esc(i18t('py_locked'))}</span>`:''}${pyAdd}</div>${dealEd?pyEdit:`<div class="ov-pty-list" tabindex="-1">${pyRows}</div>`}</div>`;
   const hold=holdsIn(OV_ESS_FIELDS);
   const essActs=onDet?fill
-    :(ed?`<button type="button" class="ui-btn ui-btn-sm" data-ov-go-details="1">${esc(i18t('det_fill_in_on'))} &rarr;</button>`:'');
+    :(ed?`<button type="button" class="ui-btn ui-btn-sm" data-ov-go-details="1">${esc(i18t('det_fill_in_on'))}</button>`:'');
   const map=onDet?'':ovMapHtml(c);
   const renewalHost='<div id="renewal-host" class="empty:hidden" data-bare="1"></div>';
   /* AT REST THE TERMS ARE THE EIGHT (the redesign's rule: "render the terms
@@ -7692,10 +7697,14 @@ function ktOverviewTermsHtml(c,opts={}){
     chip: holdChip(recHold),
     body: (recEd
         ? `<div id="kt-rows-record">${ktTermsRowsHtml(c,
-            {editable:ed&&onDet,only:['name','party','counterparty','cpEmail','cpRouteEmail','stream','template']})}</div>`
+            {editable:ed&&onDet,only:onDet?['name','cpRouteEmail','stream','template']:['name','party','counterparty','cpEmail','cpRouteEmail','stream','template']})}</div>`
         : '<div id="kt-rows-record"></div>')
       + `<div id="kt-record-facts">${ktRecordFactsHtml(c,{rowsAbove:recEd,marks,mayEdit:ed})}</div>`,
     acts: moveBtn+(onDet?'':`<button type="button" class="ui-btn ui-btn-sm" data-ov-edit="${esc(recK)}">${esc(i18t('ov_filing_close'))}</button>`) }):'';
+  /* ON DETAILS THIS CARD IS THE FOLDED "Parties, people and filing": the
+     terms are boxes in #det-basics (detBasicsHtml), so they are not drawn a
+     second time here. */
+  if(onDet) return `<div class="ov-card ov-ess" id="ov-ess"><div class="ov-ess-body det-ess">${parties}</div>${record}</div>`;
   return top(essActs)+`<div class="ov-card ov-ess" id="ov-ess"><div class="ov-ess-body">${parties}${facts}</div>${record}</div>`+map;
 }
 
@@ -9093,6 +9102,65 @@ function openCompleteDetails(c){
   if(first) setTimeout(()=>{ try{ first.focus(); }catch(_){} },0);
   return true;
 }
+/* ---- THE CONTRACT'S OWN DETAILS, AS PLAIN BOXES (owner, 13 Oct 2026) ----
+   The Details tab drew the Overview's wide two-column card squeezed into a
+   third of the screen: scroll areas inside scroll areas, boxes too pale to
+   see, the same fact twice, and what was owed at the very bottom. This is
+   the same facts as a form, first under the count: who we are, the other
+   party and their email, the value, the dates — each a visible box, an empty
+   one amber — and the other terms one fold away. THE BOXES ARE THE PRODUCT'S
+   OWN (`data-kt` / `data-ktm`, wireKeyTerms; ktFieldCell for the terms), so
+   nothing here writes; Fill from document is the one act (#kt-fill). */
+const DET_MORE_TERMS = ['contractType','governingLaw','disputes','renewalType','paymentTerms','liabilityCapped'];
+function detBasicsHtml(c, opts){
+  const d = detailsOf(c);
+  if(!d.live) return '';
+  const may = canEdit() && !PORTAL_MODE;
+  const open = new Set(d.items.filter(x => x.open).map(x => x.key));
+  const IN = 'width:100%;height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size)';
+  /* a box that already holds a label of its own (the value's Non-monetary
+     tick) is wrapped in a div: a label may not hold a label */
+  const box = (key, label, html) => { if(!html) return ''; const tag = /<label/i.test(html) ? 'div' : 'label';
+    return `<${tag} class="cd-fld${open.has(key)?' is-open':''}" data-cd-key="${esc(key)}"><span class="cd-lab">${esc(label)}</span>${html}</${tag}>`; };
+  const cellHtml = k => { const cell = ktFieldCell(c, k, may, null); return cell ? cell[1] : ''; };
+  /* A PRINTED TERM THAT HAS FROZEN IS NOT A BOX (paperTermsFrozen, 27 Sep
+     2026): who we are and the other party are read-outs saying why. */
+  const frozen = k => PAPER_TERM_KEYS.includes(k) && paperTermsFrozen(c);
+  const readOut = (k, v) => frozen(k) ? paperTermFrozenRead(c, k, esc(v||'')) : esc(v||'');
+  const rows = [
+    box('party', i18t('det_f_party'), (may && !frozen('party')) ? `<input type="text" data-kt="party" value="${esc(c.party||'')}" placeholder="${esc((typeof contractParty==='function'?contractParty(c):'')||'')}" style="${IN}">` : readOut('party', contractParty(c))),
+    box('counterparty', i18t('det_f_counterparty'), (may && !frozen('counterparty')) ? `<input type="text" data-kt="counterparty" value="${esc(c.counterparty||'')}" placeholder="${esc(i18t('det_ph_counterparty'))}" style="${IN}">` : readOut('counterparty', c.counterparty)),
+    box('cpEmail', i18t('ov_f_email'), may ? `<input type="email" data-kt="cpEmail" value="${esc(c.counterpartyEmail||'')}" placeholder="name@company.com" style="${IN}">` : esc(c.counterpartyEmail||'')),
+    box('value', i18t('ov_f_value'), cellHtml('value')),
+    box('effDate', i18t('ov_f_effective'), cellHtml('effDate')),
+    box('expiry', i18t('ov_f_expiry'), cellHtml('expiry')),
+  ].filter(Boolean).join('');
+  const more = DET_MORE_TERMS.map(k => { const cell = ktFieldCell(c, k, may, null); return cell ? box(k, cell[0], cell[1]) : ''; }).join('');
+  const text = ((isUpload(c)?(c.upload&&c.upload.extractedText):(window.docPlainText?docPlainText(c):''))||'');
+  const readable = (opts && opts.readable != null) ? !!opts.readable : text.length > 200;
+  const fill = (may && readable)
+    ? `<button id="kt-fill" type="button" class="ui-btn ui-btn-sm hati-fill-btn" title="${esc(i18t('ct_read_out_details'))}">${icon('sparkle','w-3 h-3')} ${esc(i18t('ct_fill_from_doc'))}</button>` : '';
+  return `<div class="det-card-h"><span class="det-card-t">${esc(i18t('det_sec_contract'))}</span>${fill}</div>
+    <div class="cd-grid det-grid">${rows}</div>
+    ${more ? `<details class="det-fold"><summary>${esc(i18t('det_more_terms'))}</summary><div class="cd-grid det-grid">${more}</div></details>` : ''}`;
+}
+function detPaintBasics(c){
+  const h = document.getElementById('det-basics'); if(!h || !c) return;
+  const keepOpen = !!h.querySelector('details.det-fold[open]');
+  h.innerHTML = detBasicsHtml(c);
+  if(keepOpen){ const f = h.querySelector('details.det-fold'); if(f) f.open = true; }
+  /* the boxes are wireKeyTerms' own (bound once per box); a press on a date opens its calendar */
+  try{ wireKeyTerms(c); }catch(_){}
+  h.querySelectorAll('input[type="date"]').forEach(d => d.addEventListener('click', () => { try{ if(typeof d.showPicker === 'function') d.showPicker(); }catch(_){} }));
+}
+/* After an answer: which boxes are still owed, in place — never a repaint
+   under the hand that is typing. */
+function detMarkOpen(c){
+  const h = document.getElementById('det-basics'); if(!h || !c) return;
+  let d; try{ d = detailsOf(c); }catch(_){ return; }
+  const open = new Set(d.items.filter(x => x.open).map(x => x.key));
+  h.querySelectorAll('[data-cd-key]').forEach(l => l.classList.toggle('is-open', open.has(l.getAttribute('data-cd-key'))));
+}
 /* THE PAPER'S EMPTY BLANKS ARE MARKED (owner, 12 Oct 2026: "empty blanks
    stay yellow") — by what the box HOLDS, asked afresh after every answer, so
    a box the panel filled stops being yellow at once. A value of 0 is an
@@ -9103,12 +9171,24 @@ function detPaintPaperEmpties(){
     const v = String(i.value == null ? '' : i.value).trim();
     i.classList.toggle('is-empty', v === '' || (i.getAttribute('data-sync') === 'value' && /^0+$/.test(v)));
   });
+  /* …and the boxes of the paper's questions beside it, the same way */
+  const panel = document.getElementById('tplform-section');
+  /* (their boxes carry their own inline background, so the tint is set on
+     the box itself: amber while empty and not being typed in) */
+  if(panel) panel.querySelectorAll('input[data-blankf], input[data-tplf]').forEach(i => {
+    const tint = () => { const empty = !String(i.value == null ? '' : i.value).trim();
+      i.classList.toggle('is-empty', empty);
+      i.style.backgroundColor = (empty && document.activeElement !== i && i.type !== 'file') ? 'var(--st-amber-bg)' : 'var(--color-surface)'; };
+    if(i.dataset.detEmptyBound !== '1'){ i.dataset.detEmptyBound = '1';
+      ['input','focus','blur'].forEach(ev => i.addEventListener(ev, tint)); }
+    tint();
+  });
 }
 /* After any answer: the tab's count, the head's "n of m" and the bar. */
 function detailsChanged(c){
   if(!c) return;
   try{ wsPaintTabCounts(c); }catch(_){}
-  if(_wsTab === 'details' && state.activeId === c.id){ try{ detPaintHead(c); }catch(_){} try{ detPaintPaperEmpties(); }catch(_){} }
+  if(_wsTab === 'details' && state.activeId === c.id){ try{ detPaintHead(c); }catch(_){} try{ detPaintPaperEmpties(); }catch(_){} try{ detMarkOpen(c); }catch(_){} }
 }
 /* ============================================================
    THE OPEN BLANKS, FILLABLE FROM THE COLUMN (Young ruled 17 Sep 2026)
@@ -11621,10 +11701,17 @@ function renderWorkspace(){
                slot, #tplform-section, which lives here now; the Document tab
                it sat on is gone). The paper beside it is the same sheet. */}
         <div data-doc-col="details" class="det-col" style="display:none;flex-direction:column;gap:var(--s-3)">
+          ${''/* REDRAWN AS A FORM (owner, 13 Oct 2026, over a screenshot of the
+                 squeezed Overview card): the count, then the contract's own
+                 details as plain boxes, then the paper's questions — what is
+                 owed near the top — and the parties, people and filing folded
+                 underneath. */}
           <div id="det-head" class="det-head"></div>
-          <div id="kt-det-terms" class="det-terms"></div>
+          <div id="det-basics" class="det-card"></div>
           <!-- template form: the open fields of a library-template contract -->
           <div id="tplform-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+          <details id="det-more" class="det-more"><summary>${esc(i18t('det_more'))}</summary>
+            <div id="kt-det-terms" class="det-terms"></div></details>
         </div>
 
         <div data-doc-col="docs" style="display:flex;flex-direction:column;gap:var(--s-3)">
@@ -17812,7 +17899,7 @@ Object.assign(window,{docReadLongSplit,DOC_READ_LONG_WORDS,DOC_READ_RUN_MIN,docT
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,renderSignButton,renderSignSide,roomFactsHtml,signBlockHtml,signReadinessCardHtml,signRowTitle,signWhyShort,SIGN_WHY_WORDS,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,formOnHome,formHostEl,formPaperEl,formHeldContract,formRepaint,docTermFill,docNoticeFill,docSyncWrite,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPlace,roomPlacePut,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,checkVerdict,tplFormOpenCount,tplFormOpenFields,detailsOf,detailsSections,blankFormLive,DET_RECORD_KEYS,detHeadHtml,detPaintHead,detailsChanged,detPaintPaperEmpties,openCompleteDetails,cdRepaintCounts,openCheckPanel,roomHeadHtml,wireRoomHead,
+  ROOM_TABS,formOnHome,formHostEl,formPaperEl,formHeldContract,formRepaint,docTermFill,docNoticeFill,docSyncWrite,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPlace,roomPlacePut,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,checkVerdict,tplFormOpenCount,tplFormOpenFields,detailsOf,detailsSections,blankFormLive,DET_RECORD_KEYS,detHeadHtml,detPaintHead,detailsChanged,detPaintPaperEmpties,DET_MORE_TERMS,detBasicsHtml,detPaintBasics,detMarkOpen,openCompleteDetails,cdRepaintCounts,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill,
   /* idea 7 — the plain-English layer. Published because a name read through
      window from another module, or from a test stage, is silence when it is

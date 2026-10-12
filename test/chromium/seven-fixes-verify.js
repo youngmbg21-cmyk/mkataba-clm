@@ -288,6 +288,12 @@ const SEED = async () => {
         fill: { ok: true, filled: [], left: 0 },
       } };
       c._brief = { at: new Date().toISOString(), overview: 'A three-year supply agreement.' };
+      /* Since 12 Oct 2026 the Fill tile opens Details while detailsOf owes
+         anything; the record's facts are filled in so it is the tile with
+         nowhere to go that this check still needs. */
+      c.counterparty = c.counterparty || 'Nordic Supply AB';
+      if (!(Number(c.value) > 0)) c.value = 120000;
+      c.fields = Object.assign({}, c.fields, { effDate: (c.fields && c.fields.effDate) || '2026-01-01' });
       openWorkspace(id); roomGoTab(c, 'terms');
       await new Promise(r => setTimeout(r, 900));
       const tiles = [...document.querySelectorAll('.kt-tri-tile')];
@@ -301,6 +307,7 @@ const SEED = async () => {
         spread: h.length ? Math.max(...h) - Math.min(...h) : -1,
         bodies: document.querySelectorAll('.kt-tri-td').length,
         keys: [...document.querySelectorAll('[data-kt-tri-go]')].map(b => b.getAttribute('data-kt-tri-go')),
+        detLeft: detailsOf(c).left,
       };
     }, cid, {});
     await page.screenshot({ path: path.join(OUT, '04-arrival-strip.png') });
@@ -312,7 +319,7 @@ const SEED = async () => {
        obligations, risks — and the Fill tile, with nothing behind it, does not. */
     check('5b an arrow on every tile with a door, and only there',
       strip.arrows === strip.doors && JSON.stringify(strip.keys.slice().sort()) === JSON.stringify(['brief', 'oblig', 'playbook', 'risk']),
-      `${strip.arrows} arrows on ${JSON.stringify(strip.keys)}`);
+      `${strip.arrows} arrows on ${JSON.stringify(strip.keys)} · details left ${strip.detLeft}`);
     check('5c a tile with a door is a real button, a tile without one is not',
       strip.buttons === strip.doors && strip.buttons < strip.n, `${strip.buttons} of ${strip.n} tiles are buttons`);
     check('5d every tile still draws exactly one body',

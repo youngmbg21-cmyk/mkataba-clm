@@ -92,6 +92,12 @@ const signedOf = (cp, signer) => [
       await page.fill('#up-cp', cp);
       await page.click('#up-go');
       await page.waitForTimeout(2500);
+      /* A NEW UPLOAD OPENS "Complete the details" over its Details tab (owner,
+         12 Oct 2026); this stage answers through the record, so it saves and
+         finishes later, as a person would. */
+      await page.waitForFunction(() => !!document.getElementById('cd-page'), null, { timeout: 4000 }).catch(() => {});
+      await page.evaluate(() => { const b = document.getElementById('cd-later'); if (b) b.click(); });
+      await page.waitForTimeout(400);
       const staged = await page.evaluate(async () => {
         try {
           const c = getContract(state.activeId);

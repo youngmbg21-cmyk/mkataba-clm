@@ -325,7 +325,7 @@ const readRow = page => page.evaluate(() => {
     /* RE-POINTED 12 Oct 2026: the boxes are on the Details tab (owner). */
     await page.evaluate(id => roomGoTab(getContract(id), 'details'), made.id);
     await page.waitForTimeout(900);
-    const box = await page.evaluate(() => { const v = document.querySelector('#kt-det-terms [data-kt="value"]'); const n = document.querySelector('#kt-det-terms [data-kt="nonmonetary"]');
+    const box = await page.evaluate(() => { const v = document.querySelector('#det-basics [data-kt="value"]'); const n = document.querySelector('#det-basics [data-kt="nonmonetary"]');
       return { box: !!v, disabled: v ? v.disabled : null, ticked: n ? n.checked : null }; });
     check('5c and on Details the value box is open and "Non-monetary" is not ticked',
       box.box && box.disabled === false && box.ticked === false, JSON.stringify(box));

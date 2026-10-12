@@ -639,7 +639,10 @@ function wizardFormMount(o, tid, prefill){
    (NA_PAPER_MIN_W, NA_PAPER_W, NA_FRAME_W, NA_STACK_MIN_W), had no reader
    left and are GONE rather than kept dormant: a branch that can never fire
    again is a guard that is always false. */
-const NA_RAIL_W = 260;           /* the picker's own column, rows not cards */
+const NA_RAIL_W = 260;
+/* the choices' card: never shorter than this, and it ends this far above the window's foot */
+const NA_ROWS_MIN_H = 200;
+const NA_ROWS_FOOT = 24;           /* the picker's own column, rows not cards */
 const NA_FRAME_NARROW_W = 900;   /* rail + questions — the frame, at every window */
 /* The word filter: every word of three letters or more, any one of which in
    the name, the description or the stream's name is a hit. A sentence meant
@@ -959,10 +962,25 @@ function openNewAgreement(o){
   const root=document.getElementById('na-root');
   if(!root || typeof root.querySelector!=='function') return;
   const lists=()=>document.getElementById('na-lists');
+  /* ---- THE CHOICES SIT IN A CARD THAT SCROLLS (owner, 13 Oct 2026: "the
+     choices need to be in a scrolling card and not bare") ----
+     The rows are a white card under the tabs; the card ends just above the
+     window's foot, measured from where it starts, so the whole list is one
+     card the reader scrolls inside and the page itself does not run on. */
+  const fitRows=()=>{ const l=lists(); const r=l&&l.lastElementChild; if(!r||!r.getBoundingClientRect) return;
+    const top=r.getBoundingClientRect().top;
+    r.style.maxHeight=Math.max(NA_ROWS_MIN_H, Math.round((window.innerHeight||800)-top-NA_ROWS_FOOT))+'px'; };
   const paintLists=()=>{ const l=lists(); if(!l) return;
     const q=(document.getElementById('na-q')||{}).value||'';
     l.innerHTML=listsHtml(q);
+    fitRows();
   };
+  fitRows();
+  /* a stage with no real window (a sandbox) has nothing to listen to */
+  if(typeof window.addEventListener==='function'){
+    const onResize=()=>{ if(!root.isConnected){ window.removeEventListener('resize',onResize); return; } fitRows(); };
+    window.addEventListener('resize',onResize);
+  }
   const light=()=>{ root.querySelectorAll('.na-pick.on').forEach(b=>b.classList.remove('on'));
     if(sel){ const b=root.querySelector(`[data-wz-${sel.kind}="${String(sel.id).replace(/["\\]/g,'\\$&')}"]`); if(b) b.classList.add('on'); }
     /* THE ACTS WAKE ON A PICK: Create draft and Skip stay grey, saying why,
@@ -1153,4 +1171,4 @@ function naPickFromDraft(pick, prefill){
   return true;
 }
 
-Object.assign(window,{openNewDoors,TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naCarryRead,naCarryWrite,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_RAIL_W,NA_FRAME_NARROW_W});
+Object.assign(window,{openNewDoors,TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naCarryRead,naCarryWrite,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_RAIL_W,NA_ROWS_MIN_H,NA_ROWS_FOOT,NA_FRAME_NARROW_W});

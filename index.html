@@ -4569,6 +4569,28 @@
   #kt-det-terms .sec-fields{ grid-template-columns:repeat(2,minmax(0,1fr)); }
   #kt-det-terms .ov-pty-list{ max-height:none; }
   #kt-det-terms .ov-top{ margin-bottom:8px; }
+  /* THE DETAILS COLUMN AS A FORM (owner, 13 Oct 2026): one card of plain,
+     visible boxes (the New agreement page's own .cd-fld), the other terms one
+     fold away; the parties, people and filing folded underneath, with no
+     scroll area of their own inside the column's one scroll. */
+  .det-card{ background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:12px 14px; display:flex; flex-direction:column; gap:12px; }
+  .det-card:empty{ display:none; }
+  .det-card-h{ display:flex; align-items:center; gap:var(--s-2); }
+  .det-card-t{ flex:1; font-family:var(--font-heading); font-size:var(--t-card); font-weight:var(--w-strong); color:var(--color-text); }
+  .det-grid{ gap:10px 12px; }
+  #det-basics .cd-fld :is(input,select){ height:var(--field-h); border:1px solid var(--color-divider); background-color:var(--color-surface); padding:0 var(--field-pad-x); }
+  #det-basics .cd-fld.is-open :is(input,select){ background-color:var(--st-amber-bg); }
+  #det-basics .cd-fld :is(input,select):focus{ outline:none; background-color:var(--color-surface); border-color:var(--accent-fill); box-shadow:0 0 0 3px var(--color-accent-100); }
+  #det-basics .cd-fld input[type="checkbox"]{ height:13px; padding:0; }
+  #det-basics .ov-val-edit{ flex-wrap:wrap; }
+  .det-fold > summary, .det-more > summary{ cursor:pointer; font-size:var(--t-label); font-weight:var(--w-label); color:var(--accent-ink); padding:2px 0; }
+  .det-fold > .det-grid{ margin-top:10px; }
+  .det-more{ background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:10px 14px; }
+  .det-more[open] > summary{ margin-bottom:10px; }
+  #kt-det-terms .ov-ess{ border:0; box-shadow:none; }
+  #kt-det-terms .ov-ess-body{ grid-template-columns:minmax(0,1fr); }
+  #kt-det-terms .ov-ess-p{ border-right:0; padding:0; }
+  #kt-det-terms .ov-pty-list{ contain:none; flex:none; min-height:0; max-height:none; overflow:visible; }
   .det-top-t{ flex:1; font-size:var(--t-card); font-weight:var(--w-strong); color:var(--color-text); }
   .det-head{ background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
   .det-h-row{ display:flex; align-items:center; gap:var(--s-2); }
@@ -8222,6 +8244,11 @@
   .na-tab:last-child{ border-right:0; }
   .na-tab[aria-selected="true"]{ background:var(--color-accent-50); color:var(--accent-ink); }
   .na-picks{ max-height:none; overflow:visible; }
+  /* THE CHOICES ARE A CARD THAT SCROLLS (owner, 13 Oct 2026), the questions
+     card's own surface, edge and corner; its height is set where it is
+     painted (fitRows in openNewAgreement) so it ends above the window's foot. */
+  #na-lists > .na-rows{ background:var(--color-surface); border:1px solid var(--rule-strong); border-radius:var(--radius-lg);
+    padding:4px; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; }
   .dlg-pg-body .na-root{ max-height:none; }
   .dlg-pg-body .na-body{ overflow:visible; }
   .na-empty{ padding:32px 12px; text-align:center; color:var(--color-neutral-600); }

@@ -40,7 +40,9 @@ test('the builder: three doors, the lead filled, Negotiation greyed with its rea
   assert.match(body, /icon: 'msg', label: i18t\('ins_door_nego'\)/);
   assert.match(body, /icon: 'folderOpen', label: i18t\('ins_door_ws'\)/);
   assert.match(body, /disabled: !ns\.ok, title: ns\.ok \? '' : ns\.why/);
-  assert.match(body, /roomGoTab\(getContract\(c\.id\) \|\| c, 'terms'\)/, 'Workspace lands on the Overview');
+  /* RE-POINTED 12 Oct 2026: the Workspace door lands on Details while
+     anything is left to fill in, on the Overview otherwise (owner) */
+  assert.match(body, /roomGoTab\(live, left \? 'details' : 'terms'\)/, 'Workspace lands on Details while owed, else the Overview');
   assert.doesNotMatch(body, /x\.id/, 'a door never reads the id of what the panel hands it');
   assert.match(ins, /<div class="ins-acts ins-doors">\$\{doors\}\$\{more\}<\/div>/, 'the doors stand in a row of their own, the ⋯ at its end');
 });

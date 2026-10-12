@@ -148,9 +148,17 @@ const READ = () => {
       && await page.evaluate(() => !document.getElementById('na-paper')), m.err || `paper ${m.paper}, ${m.paperText} chars`);
     const scrollers = await page.evaluate(() => [...document.querySelectorAll('#modal-root *')].filter(e => { const cs = getComputedStyle(e);
       return /(auto|scroll)/.test(cs.overflowY) && e.scrollHeight > e.clientHeight + 2 && e.tagName !== 'TEXTAREA'; }).map(e => e.id || String(e.className).slice(0, 24)));
-    check('1h2 the rail is 260 and ONE scroll: the list never scrolls inside the page',
-      !m.err && m.railW === 260 && !m.listScrolls && scrollers.length <= 1,
-      m.err || `rail ${m.railW} · list scrolls ${m.listScrolls} · scrollers ${JSON.stringify(scrollers)}`);
+    /* REVERSED 13 Oct 2026 (owner: "the choices need to be in a scrolling card
+       and not bare"): the rows are a card that scrolls inside itself, ending
+       above the window's foot; nothing else on the page scrolls with it. */
+    const card = await page.evaluate(() => { const r = document.querySelector('#na-lists .na-rows'); if (!r) return null;
+      const b = r.getBoundingClientRect(), cs = getComputedStyle(r);
+      return { scrolls: /(auto|scroll)/.test(cs.overflowY), edge: cs.borderTopStyle !== 'none' && parseFloat(cs.borderTopWidth) > 0,
+        surface: cs.backgroundColor !== 'rgba(0, 0, 0, 0)', fits: b.bottom <= innerHeight + 1 }; });
+    check('1h2 the rail is 260 and its choices are a card that scrolls inside the window',
+      !m.err && m.railW === 260 && !!card && card.scrolls && card.edge && card.surface && card.fits
+        && scrollers.filter(x => !/na-rows/.test(x)).length <= 1,
+      m.err || `rail ${m.railW} · card ${JSON.stringify(card)} · scrollers ${JSON.stringify(scrollers)}`);
     check('1i the card\'s labels wear the artifact\'s label weight, not the form\'s bold', !m.err && Number(m.labelWeight) < 600, m.err || m.labelWeight);
     /* THE ASK TAKES THE WHOLE TOP LINE (Young, 22-23 Sep 2026). At the parent
        it sat in the 260px rail: the box 236px wide and Find UNDER it. */

@@ -76,15 +76,18 @@ const SEC = (suffix) => {
   /* RE-POINTED 8 Oct 2026 (the Constellation page): the terms are the
      essentials card's grid (#ov-facts), the filing opens on the ⋯ row
      (#ov-record), and the people are inside the Parties column. */
-  const IDS = { deal: ['ov-facts'], record: ['ov-record'],
+  /* RE-POINTED 13 Oct 2026: on the Details tab the deal's boxes are the
+     Details form's (#det-basics, cells .cd-fld with .cd-lab) */
+  const onDet = window.roomCurrentTab && roomCurrentTab() === 'details';
+  const IDS = { deal: onDet ? ['det-basics'] : ['ov-facts'], record: ['ov-record'],
     copilot: [], parties: ['ov-parties'], people: ['ov-parties'] };
   const ids = IDS[String(suffix).replace(/^\./, '')] || [];
   const boxes = ids.map(id => document.getElementById(id)).filter(Boolean);
   if (!boxes.length) return null;
   const all = sel => boxes.flatMap(b => [...b.querySelectorAll(sel)]);
   const box = { querySelectorAll: sel => all(sel) };
-  const cells = [...box.querySelectorAll('.sec-fields .sec-f')].map(f => ({
-    label: (f.querySelector('.sec-f-l') || {}).textContent || '',
+  const cells = [...box.querySelectorAll('.sec-fields .sec-f, .cd-fld')].map(f => ({
+    label: (f.querySelector('.sec-f-l, .cd-lab') || {}).textContent || '',
     value: ((f.querySelector('.sec-f-v') || {}).textContent || '').trim(),
     x: Math.round(f.getBoundingClientRect().left),
     y: Math.round(f.getBoundingClientRect().top),
@@ -774,7 +777,10 @@ const SEC = (suffix) => {
     /* Brought to the middle of the window first (7 Oct 2026): the parties
        now lead the card, so the box sits low, and a list with no room under
        it rightly opens above. The claim is where it opens WITH room. */
-    await page.evaluate(() => { const el = document.querySelector('[data-ktm="contractType"]'); if (el) el.scrollIntoView({ block: 'center' }); });
+    /* on Details the other terms sit behind "More terms" (13 Oct 2026): opened as a person would */
+    await page.evaluate(() => { document.querySelectorAll('details.det-fold').forEach(d => { d.open = true; });
+      /* to the top of the column, so the list has the room it needs under it */
+      const el = document.querySelector('[data-ktm="contractType"]'); if (el) el.scrollIntoView({ block: 'start' }); });
     await page.waitForTimeout(300);
     const cm = await page.evaluate(() => {
       const el = document.querySelector('[data-ktm="contractType"]');
@@ -786,8 +792,11 @@ const SEC = (suffix) => {
       const m = document.querySelector('.hati-selmenu'); if (!m) return null;
       const el = document.querySelector('[data-ktm="contractType"]');
       const b = m.getBoundingClientRect(), s2 = el.getBoundingClientRect();
-      return { rows: m.querySelectorAll('[data-sm]').length, under: b.top >= s2.bottom - 1 }; });
-    check('14d pressing it opens HaTi\'s own list', !!cm && !!menu && menu.rows === ct.n && menu.under,
+      return { rows: m.querySelectorAll('[data-sm]').length, under: b.top >= s2.bottom - 1, mt: Math.round(b.top), mb: Math.round(b.bottom), st: Math.round(s2.top), sb: Math.round(s2.bottom), vh: innerHeight }; });
+    /* under the box where there is room; above it, rightly, where there is
+       not (on the Details form the box can sit low in a short column) */
+    check('14d pressing it opens HaTi\'s own list', !!cm && !!menu && menu.rows === ct.n
+      && (menu.under || (menu.vh - menu.sb < menu.mb - menu.mt && menu.mb <= menu.st + 1)),
       menu ? JSON.stringify(menu) : 'no menu');
     /* AND PICKING ONE REACHES THE RECORD. `high` is what every later reader —
        the standards check, the exposure register — treats as read from the
