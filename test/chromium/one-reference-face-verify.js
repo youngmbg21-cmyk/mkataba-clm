@@ -54,12 +54,17 @@ const refsOn = (page, scope) => page.evaluate(([scope, refs]) => {
   }
   return out;
 }, [scope, ['MK-A1', 'MK-A2', 'MK-B1', 'MK-B2', 'MK-RF1', 'MK-RF2']]);
+/* THE CALENDAR OPENS ON THIS MONTH: an expiry "20 days from today" fell in
+   the next month from the 12th on (red 12 Oct 2026, a test whose answer
+   depended on the day it ran). The 15th of the running month is always on
+   the month the Calendar opens on. */
+const midMonth = () => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-15`; };
 const geist = f => /^"?Geist Mono"?/.test(f || '');
 
 (async () => {
   const h = await startHati({});
   const extra = [
-    { ...FIXTURES[0], id: 'MK-RF1', name: 'Rail freight', counterparty: 'Coast Rail Ltd', status: 'Signed', expiry: iso(20),
+    { ...FIXTURES[0], id: 'MK-RF1', name: 'Rail freight', counterparty: 'Coast Rail Ltd', status: 'Signed', expiry: midMonth(),
       obligations: [{ id: 'o-rf1', desc: 'Send the quarterly report', party: 'ours', due: iso(-3), status: 'open' }] },
     { ...FIXTURES[1], id: 'MK-RF2', name: 'Port handling', counterparty: 'Mombasa Port Services', status: 'Under Review', expiry: iso(45), value: 90000000, folder: FOLDER_A },
   ];
