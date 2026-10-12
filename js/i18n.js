@@ -9489,6 +9489,7 @@ const STRINGS = {
     ap_a_role: 'a {role}',
     ap_admin_or_legal: 'an Admin or Editor',
     ct_term_not_filled: 'This term was not filled in before the contract was sent',
+    ct_term_open: 'Not filled in yet — answer it on the Overview tab',
     // ---- two copies of one contract: the pages (25 Sep 2026) ----
     pg_page_of: 'Page {n} of {m}',
     pg_sign_here: 'Sign here',
@@ -23882,6 +23883,7 @@ const STRINGS = {
     ap_a_role: 'en {role}',
     ap_admin_or_legal: 'en administratör eller redigerare',
     ct_term_not_filled: 'Det här villkoret fylldes inte i innan avtalet skickades',
+    ct_term_open: 'Inte ifyllt ännu — svara på fliken Översikt',
     // ---- två exemplar av samma avtal: sidorna (25 sep 2026) ----
     pg_page_of: 'Sida {n} av {m}',
     pg_sign_here: 'Signera här',

@@ -3095,7 +3095,7 @@ function docSheetHtml(c, o){
        Counter review, change 5): a Draft's blanks are filled from the side
        panel's form, which lists them; the paper shows the answers
        (docPaperAnswersHtml) and a press on one goes to its box in the panel. */
-    const body=(!o.readOnly&&docFillable(c))?docPaperAnswersHtml(docBody(c)):readOnlyDocHtml(docBody(c));
+    const body=(!o.readOnly&&docFillable(c))?docPaperAnswersHtml(docBody(c)):readOnlyDocHtml(docBody(c),{ open:c.status==='Draft' });
     const accent=(b&&window.docDesignPaperStyle)?((docDesignPaperStyle(b).match(/--doc-design-accent:[^;]*;/)||[''])[0]):'';
     /* The design's TYPEFACE comes (docDesignBodyAttr); its structure and its
        page decorations do not — the working copy looks the same whatever the
