@@ -8729,13 +8729,10 @@ async function negoBlanksAsk(c){
    leaving, with the cursor already in the first box that is still empty and
    its word lit on the paper. Every step is a door the product already has. */
 function negoBlanksFill(c){
-  /* The form is Home's Document, Overview tab, since the room's Document tab
-     went (11 Oct 2026); the phone keeps its own Document tab. */
-  if(window.pdOpenOnHome && !(window.innerWidth && window.innerWidth < 768)) pdOpenOnHome(c.id, 'facts');
-  else {
-    if(typeof openWorkspace === 'function') openWorkspace(c.id);
-    if(typeof roomGoTab === 'function') roomGoTab(c, 'docs');
-  }
+  /* The form is the room's Details tab (owner, 12 Oct 2026: every way back to
+     filling in lands there); on the phone roomGoTab opens its Details page. */
+  if(typeof openWorkspace === 'function') openWorkspace(c.id);
+  if(typeof roomGoTab === 'function') roomGoTab((typeof getContract === 'function' && getContract(c.id)) || c, 'details');
   /* AFTER THE PAINT, never before it: the panel this focuses is written by the
      render roomGoTab just asked for, and a box that is not on the page yet
      takes no cursor. */

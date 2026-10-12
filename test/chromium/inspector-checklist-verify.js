@@ -81,6 +81,16 @@ const ok = (name, good, detail) => {
       const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
       const w = getContract('MK-149'), s = getContract('MK-158'), r = getContract('MK-143');
       if (!w || !s || !r) return null;
+      /* NOTHING LEFT TO FILL IN (12 Oct 2026): the Details tab's own count
+         joined the checklist; this stage is about the other kinds, so each
+         sample contract is answered first, through the record. */
+      [w, s, r].forEach(k => { const d = window.detailsOf ? detailsOf(k) : { items: [] };
+        d.items.filter(x => x.open).forEach(x => {
+          if (x.key === 'counterparty') k.counterparty = k.counterparty || 'Counterparty Ltd';
+          else if (x.key === 'value') k.value = 1000000;
+          else if (x.key === 'effDate') { k.fields = k.fields || {}; k.fields.effDate = day(-30); }
+          else if (x.kind === 'tplf') { k.templateForm.values = k.templateForm.values || {}; k.templateForm.values[x.key] = 'x'; }
+          else { k.fields = k.fields || {}; k.fields[x.key] = 'x'; } }); });
       w.changes = []; delete w.negotiation; negoInit(w);
       const cls = negoClauseList(w).filter(x => x && x.clauseId && x.clauseId !== 'front');
       const byName = re => cls.find(x => re.test((typeof clauseLabel === 'function' ? clauseLabel(x) : '') + ' ' + (x.headingText || '')));

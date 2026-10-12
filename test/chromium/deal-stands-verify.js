@@ -113,12 +113,13 @@ const DEAL = {
     ok('1a an existing contract opens on the Overview, never on Where we are', tabs.on === 'terms', tabs.on);
     const landing = await page.evaluate(() => ({ first: (window.ROOM_TABS || [[]])[0][0],
       onTerms: typeof roomOpenOnTerms === 'function' }));
-    ok('1a2 and the Overview still leads the row, which is where a new draft lands',
-      landing.first === 'terms', JSON.stringify(landing));
+    /* RE-POINTED 12 Oct 2026: Details leads the row (owner) and a new draft lands there. */
+    ok('1a2 and Details leads the row, which is where a new draft lands',
+      landing.first === 'details', JSON.stringify(landing));
     /* RE-POINTED 7 Oct 2026: Overview 2 (owner-instructed, work order O-36)
        sat right after the Overview; it went on 9 Oct 2026 (owner-asked). */
     ok('1b Where we are sits right after the Overview',
-      tabs.keys[0] === 'terms' && tabs.keys[1] === 'stands' && !tabs.keys.includes('ov2'), tabs.keys.join(','));
+      tabs.keys.indexOf('stands') === tabs.keys.indexOf('terms') + 1 && !tabs.keys.includes('ov2'), tabs.keys.join(','));
 
     /* ===== 2-5. THE SHEET ===== */
     await page.click('#ws-tabs [data-ws-tab="stands"]').catch(() => {});

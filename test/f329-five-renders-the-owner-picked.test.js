@@ -249,10 +249,11 @@ describe('f329 (3) — opening Negotiate offers to fill the open fields first', 
     assert.match(fn, /openRedlineWorkbench\(target, Object\.assign\(\{\}, opts, \{ blanksAsked: true \}\)\)/,
       'one path into the page, so the dialog cannot become a second one');
   });
-  test('"Fill them in" lands on the Document tab with the cursor in the first box', () => {
+  /* RE-POINTED 12 Oct 2026: the boxes are on the room's Details tab (owner). */
+  test('"Fill them in" lands on the Details tab with the cursor in the first box', () => {
     const fn = realBody(strip(NEGO), 'function negoBlanksFill(');
     assert.ok(fn, 'the landing exists');
-    assert.match(fn, /roomGoTab\(c, 'docs'\)/, 'the tab the boxes are on');
+    assert.match(fn, /'details'\)/, 'the tab the boxes are on');
     assert.match(fn, /contractFieldFocus\(c\)/, 'and the door that puts the cursor there');
     assert.match(fn, /setTimeout/, 'after the paint — a box not on the page yet takes no cursor');
   });

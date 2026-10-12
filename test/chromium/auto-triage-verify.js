@@ -478,8 +478,10 @@ const SEED = t => {
       !!(bad && strip.drawn && bad.bg && bad.bg !== 'rgba(0, 0, 0, 0)'),
       bad && { could_not_read: bad.bg });
 
-    check('8e · "Got it" puts it away and stamps the same seen the card reads',
-      put.pressed === true && put.gone === true && put.seen === true, put);
+    /* REVERSED 12 Oct 2026 (owner: "make image 1 permanent so it cannot be
+       deleted by Got it"): there is nothing to press, and the strip stays. */
+    check('8e · there is no "Got it" — the five cards are permanent',
+      put.pressed === false && (await drive(() => !!document.getElementById('kt-triage'), undefined, false)), put);
 
     /* ============ 10 · THE STRIP AND THE CARD, READ TOGETHER ============ */
     /* Owner-reported 10 Sep 2026: "The Key terms strip and the Contract brief
@@ -771,6 +773,12 @@ const SEED = t => {
        state is staged with the product's own flag (`_triaging`, what
        triageRun sets for the life of a run) and the strip is repainted
        through its own painter. */
+    /* A NEW CONTRACT LANDS ON DETAILS with "Complete the details" over it
+       (owner, 12 Oct 2026); the strip is the Overview's, so the reader steps
+       there first. */
+    await drive(() => { if (document.getElementById('cd-page') && window.closeModal) closeModal();
+      if (window.roomGoTab && state.activeId) roomGoTab(getContract(state.activeId), 'terms'); });
+    await pause(700);
     const spin = await drive(id => {
       const c = state.contracts.find(x => x.id === id) || state.contracts[0];
       /* WHAT A RUN IN FLIGHT REALLY LOOKS LIKE, and it is the record's own

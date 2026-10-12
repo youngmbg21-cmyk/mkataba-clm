@@ -16425,10 +16425,10 @@ function renderSignSide(c){
      focuses is written by the render roomGoTab asks for. */
   host.querySelectorAll('[data-sc-blanks]').forEach(b=>b.addEventListener('click',()=>{
     if(b.getAttribute('data-sc-blanks')==='nego'){ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); return; }
-    /* the form is Home's Document, Overview tab, since the room's Document
-       tab went (11 Oct 2026); the phone keeps its own Document tab */
-    if(window.pdOpenOnHome && !(window.innerWidth && window.innerWidth < 768)) pdOpenOnHome(c.id,'facts');
-    else if(window.roomGoTab) roomGoTab(c,'docs');
+    /* THE FORM IS THE ROOM'S DETAILS TAB (owner, 12 Oct 2026); on the phone
+       roomGoTab's hook opens the phone's own Details page */
+    if(state.view!=='workspace'||state.activeId!==c.id) openWorkspace(c.id);
+    if(window.roomGoTab) roomGoTab(getContract(c.id)||c,'details');
     const first=(window.contractBoxesOpen?(contractBoxesOpen(c)[0]||{}):{}).key||'';
     setTimeout(()=>{ try{ if(window.contractFieldFocus) contractFieldFocus(c, first); }catch(_){ } },0);
   }));
