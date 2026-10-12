@@ -58,14 +58,17 @@ describe('f170 · a new draft lands on Key terms', () => {
 
     const c = contract({ id: 'MK-501' });
     win.roomOpenOnTerms(c.id);
-    assert.equal(landOn(win, c), 'terms');
+    /* ON DETAILS SINCE 12 OCT 2026 (owner: "when you create a draft, it takes
+       you to the blanks page ... once done, you are taken to a new page called
+       details") — the full "Complete the details" page opens over it. */
+    assert.equal(landOn(win, c), 'details');
   });
 
   test('the landing happens once — the second visit is the ordinary one', () => {
     const { win } = world();
     const c = contract({ id: 'MK-502' });
     win.roomOpenOnTerms(c.id);
-    assert.equal(landOn(win, c), 'terms', 'first arrival');
+    assert.equal(landOn(win, c), 'details', 'first arrival');
 
     /* Opening another contract is what resets the room's memory of the tab. */
     landOn(win, contract({ id: 'MK-OTHER' }));
@@ -96,7 +99,7 @@ describe('f170 · a new draft lands on Key terms', () => {
     for (const status of ['Under Review', 'In Review', 'Draft']){
       const c = contract({ id: 'MK-UP-' + status.replace(/\s/g, ''), status });
       win.roomOpenOnTerms(c.id);
-      assert.equal(landOn(win, c), 'terms', status + ' lands on Key terms');
+      assert.equal(landOn(win, c), 'details', status + ' lands on Details');
       landOn(win, contract({ id: 'MK-RESET-' + status.replace(/\s/g, '') }));
     }
   });
@@ -121,7 +124,7 @@ describe('f170 · a new draft lands on Key terms', () => {
 
   test('Key terms is the first tab in the row, so the landing is also the leftmost', () => {
     const { win } = world();
-    assert.equal(win.ROOM_TABS[0][0], 'terms');
+    assert.equal(win.ROOM_TABS[0][0], 'details', 'Details is the first tab (owner, 12 Oct 2026)');
   });
 });
 

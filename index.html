@@ -4556,6 +4556,62 @@
     .ov-pty-list{ contain:none; flex:none; min-height:0; max-height:150px; }
   }
   #kt-overview{ container:ovpane / inline-size; }
+  /* ---- THE DETAILS TAB (owner, 12 Oct 2026): the paper left, the boxes
+     right. The one card in its edit posture stacks in the narrow column (the
+     same container rule as the Overview), two boxes to a row. */
+  #kt-det-terms{ container:ovpane / inline-size; }
+  /* AN EMPTY BLANK ON THE PAPER IS YELLOW while the Details tab holds it
+     (owner, 12 Oct 2026), until it is answered; the light of the box being
+     typed (contractFieldLight, .is-fieldlit) is left out, so its green wins. */
+  #doc-grid[data-tab="details"] #doc-canvas [data-doc-answer].is-empty:not(.is-fieldlit),
+  #doc-grid[data-tab="details"] #doc-canvas .hati-field[data-field-key]:not(.is-fieldlit){ background-color:var(--st-amber-bg); }
+  #kt-det-terms:empty, #det-head:empty{ display:none; }
+  #kt-det-terms .sec-fields{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #kt-det-terms .ov-pty-list{ max-height:none; }
+  #kt-det-terms .ov-top{ margin-bottom:8px; }
+  .det-top-t{ flex:1; font-size:var(--t-card); font-weight:var(--w-strong); color:var(--color-text); }
+  .det-head{ background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
+  .det-h-row{ display:flex; align-items:center; gap:var(--s-2); }
+  .det-h-t{ flex:1; font-family:var(--font-heading); font-size:var(--t-card); font-weight:var(--w-strong); color:var(--color-text); }
+  .det-h-n{ font-size:var(--t-label); color:var(--color-neutral-600); white-space:nowrap; }
+  .det-h-n.is-done{ color:var(--st-green-fg); }
+  .det-bar{ height:4px; border-radius:999px; background:var(--color-bg); overflow:hidden; }
+  .det-bar > i{ display:block; height:100%; background:var(--accent-fill); border-radius:inherit; }
+  /* ---- "COMPLETE THE DETAILS", THE SAP WAY: sections left, labelled boxes
+     in the middle, Jambo's suggestions right; the foot holds the two ways out. */
+  .cd-page{ display:flex; flex-direction:column; min-height:100%; }
+  .cd-title{ margin:0; }
+  .cd-count{ font-size:var(--t-label); color:var(--color-neutral-600); white-space:nowrap; }
+  .cd-sub{ display:inline-flex; margin-left:var(--s-3); vertical-align:middle; }
+  [data-dlg-page] .dlg-pg-title > .cd-sub{ font-family:var(--font-body); font-size:var(--t-label); font-weight:var(--w-label); }
+  .dlg-pg-title .cd-title{ display:inline; }
+  .cd-body{ flex:1; display:grid; grid-template-columns:220px minmax(0,1fr) 300px; gap:var(--s-4); align-items:start;
+    padding:var(--s-4) var(--band-pad-x,24px); }
+  .cd-nav{ position:sticky; top:var(--s-4); display:flex; flex-direction:column; gap:2px; background:var(--color-surface);
+    border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:6px; }
+  .cd-nav-i{ display:flex; align-items:center; gap:var(--s-2); width:100%; border:0; background:none; text-align:left; cursor:pointer;
+    font:inherit; font-size:var(--t-body); color:var(--color-text); padding:8px 10px; border-radius:var(--radius); }
+  .cd-nav-i:hover{ background:var(--color-accent-50); }
+  .cd-nav-i.on{ background:var(--color-accent-50); box-shadow:inset 3px 0 0 var(--accent-fill); font-weight:var(--w-label); }
+  .cd-nav-n{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cd-nav-l{ flex:none; font-size:var(--t-label); color:var(--st-amber-fg); }
+  .cd-nav-l.is-done{ color:var(--st-green-fg); }
+  .cd-form{ display:flex; flex-direction:column; gap:var(--s-4); min-width:0; }
+  .cd-sec{ background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:14px 16px; scroll-margin-top:var(--s-4); }
+  .cd-sec-t{ margin:0 0 10px; font-family:var(--font-heading); font-size:var(--t-card); font-weight:var(--w-strong); color:var(--color-text); }
+  .cd-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px 16px; }
+  .cd-fld{ display:flex; flex-direction:column; gap:4px; min-width:0; }
+  .cd-lab{ font-size:var(--t-label); font-weight:var(--w-strong); color:var(--color-neutral-700); }
+  .cd-fld :is(input,select,textarea){ width:100%; border:1px solid var(--color-divider); border-radius:var(--radius); background:var(--color-surface); color:var(--color-text); }
+  .cd-fld.is-open :is(input,select,textarea){ background:var(--st-amber-bg); }
+  .cd-fld :is(input,select,textarea):focus{ outline:none; background:var(--color-surface); border-color:var(--accent-fill); box-shadow:0 0 0 3px var(--color-accent-100); }
+  .cd-side{ position:sticky; top:var(--s-4); display:flex; flex-direction:column; gap:10px; }
+  .cd-side-t{ font-size:var(--t-card); font-weight:var(--w-strong); color:var(--color-text); }
+  .cd-card{ background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:10px 12px; display:flex; flex-direction:column; gap:8px; align-items:flex-start; }
+  .cd-p{ margin:0; font-size:var(--t-label); line-height:1.5; color:var(--color-neutral-700); }
+  .cd-quiet{ color:var(--color-neutral-600); }
+  .cd-foot{ position:sticky; bottom:0; display:flex; gap:var(--s-2); padding:12px var(--band-pad-x,24px); background:var(--color-surface); border-top:1px solid var(--rule-strong); }
+  @media (max-width:1100px){ .cd-body{ grid-template-columns:180px minmax(0,1fr); } .cd-side{ grid-column:1 / -1; position:static; } }
   /* THE CONSTELLATION (ovMapSvg / ovMapWire): the mock-up's map, in HaTi's
      tokens. The panel beside the map card HOLDS THE CARD'S HEIGHT (Young,
      8 Oct 2026: "Never gets bigger or small"): `contain:size` keeps its

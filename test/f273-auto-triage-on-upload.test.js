@@ -519,7 +519,7 @@ describe('F273 — auto-triage on upload', () => {
     /* ITS OWN STAGE: js/views/contract.js is loaded only on request, and the
        rest of this file has no need of it — pulling it into stage() would make
        every other test here pay for a view they never touch. */
-    test('it draws only where there IS a reading, and only until it is seen', () => {
+    test('it draws only where there IS a reading, and stays once it is seen', () => {
       const { win } = buildWorld({ triage: true, contractView: true });
       win.FOLDERS = { proc: { name: 'Supply & Logistics' } };
       const c = { id: 'MK-407', name: 'N', counterparty: 'Nordkust', status: 'Under Review',
@@ -533,9 +533,11 @@ describe('F273 — auto-triage on upload', () => {
           playbook: { ok: true, dev: 0, miss: 0, cats: [] },
           oblig: { ok: true, found: [] } } };
       assert.match(win.ktTriageStripHtml(c), /kt-tri-tile/, 'drawn once there is');
+      /* REVERSED 12 Oct 2026 (owner: "make image 1 permanent so it cannot be
+         deleted by Got it"): an acknowledged reading keeps its five cards. */
       c.triage.seenAt = '2026-09-09T01:00:00.000Z';
-      assert.equal(win.ktTriageStripHtml(c), '',
-        'and gone once acknowledged — an always-there strip is furniture');
+      assert.match(win.ktTriageStripHtml(c), /kt-tri-tile/, 'and it stays once acknowledged');
+      assert.ok(!/kt-tri-done/.test(win.ktTriageStripHtml(c)), 'there is no Got it to press');
     });
     /* THE SIX QUESTIONS' ONE ABSOLUTE REFUSAL: a strip above the tab content
        pushes what is under it down, and on the Document tab that is the
@@ -559,10 +561,10 @@ describe('F273 — auto-triage on upload', () => {
       /* A second painter is how the strip and its dismiss come to disagree
          about which contract they are about. */
       assert.equal((CONTRACT.match(/function paintKtTriage\(/g) || []).length, 1);
-      assert.match(CONTRACT, /kt-tri-done'\);[\s\S]{0,80}addEventListener/,
-        'the press is bound where the markup was just written');
+      /* "Got it" went 12 Oct 2026 (owner): nothing to bind any more. */
+      assert.ok(!/getElementById\('kt-tri-done'\)/.test(CONTRACT), 'no Got it is wired');
     });
-    test('acknowledging is an ACT, and it is Home\'s own stamp', () => {
+    test('the Overview no longer acknowledges — the cards are permanent', () => {
       /* ---- PIN THE REGION, NOT A BYTE COUNT ---- (re-pointed 20 Sep 2026)
          This sliced 900 characters off the front of paintKtTriage, and the
          claim went red the moment that function grew — the two arrow doors
@@ -573,8 +575,8 @@ describe('F273 — auto-triage on upload', () => {
       const at = CONTRACT.indexOf('function paintKtTriage');
       const b = CONTRACT.slice(at, CONTRACT.indexOf('\nfunction ', at + 10));
       assert.ok(b.length > 100 && b.length < 6000, 'the region is the function, and it is found');
-      assert.match(b, /triageAck\(c\)/,
-        'one fact, one state — dismissing it in either place dismisses it in both');
+      assert.ok(!/triageAck\(c\)/.test(b),
+        'the strip is permanent (owner, 12 Oct 2026); Home keeps its own acknowledgement');
     });
     test('no acts beyond putting it away', () => {
       /* Home's three all exist to get you TO the contract, and you are on it;
@@ -588,6 +590,7 @@ describe('F273 — auto-triage on upload', () => {
       /* This file reads the dictionary as SOURCE and counts the key twice —
          once per book — which is what catches a key added to one and not the
          other, the way a screen ends up half-English. */
+      /* tri_kt_done / tri_kt_done_title are inert since 12 Oct 2026 and still in both books */
       for (const k of ['tri_kt_head', 'tri_kt_head_no', 'tri_kt_done', 'tri_kt_done_title'])
         assert.equal((I18N.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k);
     });

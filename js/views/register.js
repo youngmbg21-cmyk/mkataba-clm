@@ -416,6 +416,10 @@ const REG_VIEWS=[
   {k:'autosoon',   get label(){ return i18t('reg_auto_renew'); }},
   {k:'overdueob',  get label(){ return i18t('reg_overdue_obligations'); }},
   {k:'archived',   get label(){ return i18t('reg_view_archived'); }},
+  /* DETAILS TO FILL (owner, 12 Oct 2026): contracts with boxes still empty
+     on their Details tab — detailsOf, the tab's own count, printed beside
+     each row's stage while this view is on. Opening a row lands on Details. */
+  {k:'details',    get label(){ return i18t('det_quick'); }},
 ];
 /* ---- WHICH PAGE THIS TABLE IS ON (added 2026-08-12) ----
    The register's machinery — its filters, its row builder, its body renderer,
@@ -1594,6 +1598,7 @@ function regFiltered(){
     if(typeof renewalDecided==='function'&&renewalDecided(c)) return false;
     const dd=renewalDecisionDate(c); return (c.metadata&&c.metadata.renewalType==='auto-renew')&&dd&&daysUntil(dd)>=0&&daysUntil(dd)<=60; });
   else if(R.view==='overdueob') cs=cs.filter(c=>(c.obligations||[]).some(o=>obState(o)==='overdue'));
+  else if(R.view==='details') cs=cs.filter(c=>{ try{ return !!(window.detailsOf&&detailsOf(c).left); }catch(_){ return false; } });
   /* ---- THE TEXT FILTER, ON THE SEAT THAT HAS A BOX FOR IT ----
      (owner-reported 10 Sep 2026: *"the search feature is not working."*
      MEASURED before it was touched: four rows, type "lease", four rows.)
@@ -1850,6 +1855,12 @@ function regOpenRow(id, negoRow){
    pdOpenOnHome is the product's own way onto a contract on Home; below 768px
    it opens the contract's own page, which the phone draws instead. */
 function regOpenContract(id){
+  /* FROM "DETAILS TO FILL" A ROW OPENS ON ITS DETAILS TAB (owner, 12 Oct
+     2026: every way back to filling in lands there). */
+  if(regScope()!=='negotiations'&&regState().view==='details'&&typeof openWorkspace==='function'){
+    const c=(typeof getContract==='function')?getContract(id):null;
+    if(c){ openWorkspace(id); if(typeof roomGoTab==='function') try{ roomGoTab(getContract(id)||c,'details'); }catch(_){} return; }
+  }
   if(typeof pdOpenOnHome==='function'&&pdOpenOnHome(id,'copilot')) return;
   selectContract(id);
 }
@@ -2086,8 +2097,10 @@ function regRowsHtml(cs){
     const stageMove=(!neg&&insOn&&mv&&mv.k!=='clear')
       ? `<span class="ins-mv is-${mv.k}" title="${esc(i18t(mv.k==='you'?'ins_your_move':'ins_their_move'))}">· ${esc(i18t(mv.k==='you'?'ins_your_move':'ins_their_move'))}</span>` : '';
     /* A WORKING FILE FOUND BY A SEARCH HERE SAYS WHERE IT LIVES (26 Sep 2026). */
-    const lives=(!neg&&window.contractIsWorkingFile&&contractIsWorkingFile(c))
-      ? `<span class="ins-mv" style="color:var(--color-neutral-600)">· ${esc(i18t('ho_lives_nego'))}</span>` : '';
+    const lives=((!neg&&window.contractIsWorkingFile&&contractIsWorkingFile(c))
+      ? `<span class="ins-mv" style="color:var(--color-neutral-600)">· ${esc(i18t('ho_lives_nego'))}</span>` : '')
+      + ((!neg&&R.view==='details'&&window.detailsOf)?(()=>{ let n=0; try{ n=detailsOf(c).left; }catch(_){ n=0; }
+        return n?`<span class="ins-mv reg-det-n" data-reg-det-n="${n}" style="color:var(--st-amber-fg)">· ${esc(i18tn('det_to_fill',n,{n}))}</span>`:''; })():'');
     CELL.stage=`<td style="white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:6px;min-width:0;max-width:100%">${window.questionDot?questionDot(c.id):''}<span class="reg-stg-slot">${window.contractStatusDotHtml?contractStatusDotHtml(c):(window.contractStatusChip?contractStatusChip(c):statusChip(c.status))}</span>${stageMove}${lives}</span></td>`;
     CELL.move=neg ? (insOn&&typeof insMoveCellHtml==='function'
         ? `<td style="white-space:nowrap">${insMoveCellHtml(c)}</td>`

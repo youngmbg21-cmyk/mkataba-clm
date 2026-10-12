@@ -98,16 +98,20 @@ describe('f442 (1) the essentials card holds every term, once', () => {
     assert.ok(!/ov-reads|what-copilot-read/i.test(facts), 'no readings table');
   });
 
-  test('the renewal cell says the notice and its day; Edit and Fill ride the top row', () => {
+  test('the renewal cell says the notice and its day; the top row points to Details', () => {
     const { win } = ovWorld();
     win.todayISO = () => '2026-10-08';
     const c = supply(); c.metadata.renewalType = 'auto-renew';
     const cell = win.ovEssRestHtml(c, null);
     assert.ok(cell.includes(win.i18t('ov_f_renewal')));
     assert.ok(/90/.test(cell), 'the notice period is in the renewal cell');
+    /* RE-POINTED 12 Oct 2026 (owner): the Overview reads; its one act is
+       "Fill in on Details", and Fill from document rides the Details tab. */
     const html = win.ktOverviewTermsHtml(c, { editable: true, readable: true });
     const top = html.slice(0, html.indexOf('id="ov-ess"'));
-    assert.ok(/data-ov-edit="all"/.test(top) && /id="kt-fill"/.test(top), 'Edit and Fill are on the top row');
+    assert.ok(/data-ov-go-details/.test(top) && !/data-ov-edit="all"|id="kt-fill"/.test(top), 'one door to Details on the top row');
+    const det = win.ktOverviewTermsHtml(c, { editable: true, readable: true, details: true });
+    assert.ok(/id="kt-fill"/.test(det.slice(0, det.indexOf('id="ov-ess"'))), 'Fill from document is on the Details tab\'s top row');
     const head = html.slice(html.indexOf('id="ov-facts"'), html.indexOf('id="kt-rows"'));
     assert.ok(!/data-ov-edit|kt-fill/.test(head), 'the Terms heading holds only its caption and the hold chip');
   });
@@ -130,9 +134,8 @@ describe('f442 (1) the essentials card holds every term, once', () => {
     const { win } = ovWorld();
     const c = supply();
     c.metadata = Object.assign({}, c.metadata, { noticePeriodDays: 90, volumeRebate: '2%' });
-    win.ovSetEditing(`kt.${c.id}.deal`, true);
-    const html = win.ktOverviewTermsHtml(c, { editable: true });
-    win.ovSetEditing(`kt.${c.id}.deal`, false);
+    /* the edit posture is the Details tab's since 12 Oct 2026 */
+    const html = win.ktOverviewTermsHtml(c, { editable: true, details: true });
     const names = new Set((html.match(/data-kt="[a-zA-Z]+"|data-ktm="[a-zA-Z]+"/g) || [])
       .map(b => b.split('"')[1]));
     const want = ['contractType', 'governingLaw', 'disputes', 'value', 'effDate', 'expiry', 'renewalType', 'paymentTerms', 'liabilityCapped'];
@@ -353,12 +356,14 @@ describe('f442 (5) Read the brief, and one Edit', () => {
   /* RE-POINTED 9 Oct 2026 (Young: "the card should not expand when you
      click edit"): Edit turns the terms on; the filing rows stay on the ⋯
      row; Done closes both. */
-  test('one Edit turns the terms on, and Done closes both', () => {
+  /* REVERSED 12 Oct 2026 (owner: the Details page is the one place to fill
+     in): the Overview has no Edit; its one act opens the Details tab. */
+  test('no Edit on the Overview; one door to Details', () => {
     const r = strip(fnBody(CONTRACT, 'renderKeyTerms'));
-    assert.ok(/k==='all'/.test(r), 'the sheet\'s Edit is handled');
-    assert.ok(/ovSetEditing\(dk,on\); if\(!on\) ovSetEditing\(rk,false\)/.test(r), 'Edit opens the terms only; Done closes both');
+    assert.ok(/data-ov-go-details\]'\)\.forEach\(b=>b\.addEventListener\('click',\(\)=>roomGoTab\(c,'details'\)\)\)/.test(r), 'the door is wired where it is painted');
     const terms = strip(fnBody(CONTRACT, 'ktOverviewTermsHtml'));
-    assert.equal((terms.match(/data-ov-edit="all"/g) || []).length, 1, 'one Edit on the page');
+    assert.equal((terms.match(/data-ov-edit="all"/g) || []).length, 0, 'no Edit on the page');
+    assert.equal((terms.match(/data-ov-go-details/g) || []).length, 1, 'one door to Details');
   });
 });
 

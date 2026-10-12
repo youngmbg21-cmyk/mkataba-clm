@@ -190,8 +190,10 @@ describe('f451 (5) — the tab, and what it did not disturb', () => {
   test('Where we are is in ROOM_TABS, right after the Overview', () => {
     const win = world();
     const keys = win.ROOM_TABS.map(t => t[0]);
-    assert.equal(keys[0], 'terms', 'the Overview still leads, and roomOpenOnTerms with it');
-    assert.equal(keys[1], 'stands');
+    /* Details leads since 12 Oct 2026 (owner); Where we are still follows the Overview. */
+    assert.equal(keys[0], 'details', 'Details leads, and roomOpenOnTerms with it');
+    assert.equal(keys[1], 'terms');
+    assert.equal(keys[2], 'stands');
     assert.ok(!keys.includes('ov2'), 'Overview 2 is gone');
   });
 

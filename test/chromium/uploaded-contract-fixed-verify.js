@@ -244,8 +244,9 @@ const BODY =
        Parties column's editor, behind the essentials card's Edit; What Copilot
        read is the read card at the top (no table on the Overview); and the
        Parties column draws no second line under its own head. */
-    await page.evaluate(() => { const b = document.querySelector('[data-ov-edit="all"]'); if (b) b.click(); });
-    await page.waitForTimeout(800);
+    /* RE-POINTED 12 Oct 2026: the editors are the Details tab's (owner). */
+    await page.evaluate(() => roomGoTab(getContract(window.__cid), 'details'));
+    await page.waitForTimeout(900);
     const cards = await page.evaluate(() => {
       const out = {};
       const col = document.getElementById('ov-parties');
@@ -260,8 +261,8 @@ const BODY =
       out.colPad = col ? Math.round(parseFloat(getComputedStyle(col).paddingLeft)) : null;
       return out;
     });
-    await page.evaluate(() => { const b = document.querySelector('[data-ov-edit="all"]'); if (b) b.click(); });
-    await page.waitForTimeout(600);
+    await page.evaluate(() => roomGoTab(getContract(window.__cid), 'terms'));
+    await page.waitForTimeout(800);
     const rest = await page.evaluate(() => {
       const col = document.getElementById('ov-parties'); const hd = col && col.querySelector('.ov-ess-h');
       if (!hd) return { lines: -1 };

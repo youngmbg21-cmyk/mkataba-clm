@@ -68,29 +68,13 @@ const contract = (id, signed) => ({
     const boxesOn = async id => {
       await page.evaluate(x => { state.activeId = x; state.selId = x; setView('workspace'); }, id);
       await page.waitForTimeout(1500);
-      await page.click('#ws-tabs [data-ws-tab="terms"]');
-      await page.waitForTimeout(1000);
-      /* RE-POINTED IN PLACE 1 Oct 2026 (Read Down): nothing folds, and the
-         sheet has ONE Edit that turns both postures on together. */
+      /* RE-POINTED 12 Oct 2026: every box is on the Details tab (owner: the one
+         place a contract is filled in), the filing rows open beneath. */
+      await page.evaluate(x => roomGoTab(getContract(x), 'details'), id);
+      await page.waitForFunction(() => !!document.querySelector('#kt-det-terms #ov-ess'), null, { timeout: 5000 }).catch(() => {});
       await page.waitForTimeout(500);
-      const b = page.locator('[data-ov-edit="all"]').first();
-      if (await b.count()){ await b.click(); await page.waitForTimeout(700); }
-      /* RE-POINTED 10 Oct 2026 — follows "Overview Edit keeps the card"
-         (469bc5a, 9 Oct 2026): Edit draws the EIGHT terms only (value and the
-         two days among them), and who they are / who we are moved to the ⋯
-         row "Filing and stream" (`ws-filing` → ovOpenFiling, Young's yes,
-         8 Oct 2026). So BOTH acts a person presses are pressed — Edit, then
-         the filing row — and the printed terms are read across the Overview.
-         The notice period is no longer drawn as a box in Edit (it is said on
-         the renewal term's line), so the CONTROL is another recorded term
-         this paper does not freeze: the governing law (`data-ktm`). */
-      await page.evaluate(() => { const f = document.getElementById('ws-filing'); if (f) f.click(); });
-      await page.waitForFunction(() => {
-        const r = document.getElementById('ov-record');
-        return r && r.getBoundingClientRect().height > 0;
-      }, null, { timeout: 5000 }).catch(() => {});
       return page.evaluate(printed => {
-        const host = document.getElementById('kt-ov-terms') || document;
+        const host = document.getElementById('kt-det-terms') || document;
         const has = k => !!host.querySelector(`[data-kt="${k}"]`);
         const why = [...host.querySelectorAll('span[title]')].map(x => x.getAttribute('title'))
           .filter(t => /Signing has started/.test(t)).length;

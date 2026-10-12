@@ -1469,7 +1469,7 @@ function mHookSetView(){
    phone's Approvals card for that contract where this reader has an approval
    waiting there (the approval email's link), else the Document tab with its
    Sign bar; the negotiation ('redline') goes through as it always did. */
-const M_TAB_FOR_ROOM = { terms:'terms', ov2:'terms', stands:'terms', history:'hist', docs:'doc', oblig:'oblig' };
+const M_TAB_FOR_ROOM = { details:'det', terms:'terms', ov2:'terms', stands:'terms', history:'hist', docs:'doc', oblig:'oblig' };
 function mHookRoomTab(){
   if(typeof window==='undefined' || typeof window.roomGoTab!=='function' || window.roomGoTab._mHooked) return;
   const inner = window.roomGoTab;

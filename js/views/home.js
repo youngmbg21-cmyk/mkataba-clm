@@ -1542,7 +1542,7 @@ function hmDecisionItems(S, deskRows){
    owns is theirs to decide. The drawing is inspector.js's (insNeedsHtml).
    READING MUST NOT WRITE: every source reads, and a source a stage does not
    load says nothing rather than throwing. */
-const NEEDS_YOU_ORDER = ['quiet','review','look','approval','refused','note','suggest','join','sign','renewal'];
+const NEEDS_YOU_ORDER = ['quiet','review','look','approval','refused','note','suggest','join','details','sign','renewal'];
 function needsYouOf(c){
   if(!c || c.archived) return [];
   const me=(typeof currentUser==='function')?currentUser():null;
@@ -1593,6 +1593,12 @@ function needsYouOf(c){
       && (s.sa ? !!(s.req&&s.req.askedBy&&String(s.req.askedBy.id)===String(me.id))
                : (typeof contractOwnedBy==='function'&&contractOwnedBy(c, me))));
     if(bad) out.push({ kind:'refused', urgent:true, who:bad.by||'', why:bad.comment||'' }); });
+  /* DETAILS STILL TO FILL IN (owner, 12 Oct 2026: "coming back to fill you
+     should still go to the details page") — on a contract this reader owns,
+     the Details tab's own count (detailsOf). Never urgent: nothing is late. */
+  take(()=>{ if(!(typeof contractOwnedBy==='function'&&contractOwnedBy(c, me))) return;
+    const d=window.detailsOf?detailsOf(c):null;
+    if(d&&d.left) out.push({ kind:'details', urgent:false, n:d.left }); });
   take(()=>hmMySignings(one).forEach(x=>out.push({ kind:'sign', urgent:false, n:x.n||0 })));
   take(()=>{ const r=hmRenewalDue(c);
     if(r && typeof contractOwnedBy==='function' && contractOwnedBy(c, me))
@@ -1656,6 +1662,7 @@ function needsYouGo(kind, id){
      note's own count presses, so there is one way to reach a note. */
   if(kind==='note'){ if(window.openNotesPanel) try{ openNotesPanel(c.id,null,{force:true}); }catch(_){} return true; }
   if(kind==='sign'){ if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} return true; }
+  if(kind==='details'){ if(window.roomGoTab) try{ roomGoTab(getContract(c.id)||c,'details'); }catch(_){} return true; }
   if(kind==='renewal'){ if(window.roomGoTab) try{ roomGoTab(c,'terms'); }catch(_){} return true; }
   if(kind==='join'){ if(window.openDeskSheet) try{ openDeskSheet(c); }catch(_){} }
   return true;

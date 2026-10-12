@@ -132,10 +132,13 @@ describe('f325 (3) the edit posture is this sitting\'s, and nobody else\'s', () 
       'a stored posture would leave a colleague’s screen in edit mode');
   });
   test('it is keyed through OV_KEY, so it is per contract', () => {
-    assert.ok(/ovEditing\(dealK\)/.test(CONTRACT) && /ovEditing\(recK\)/.test(CONTRACT),
-      'both sections ask it by their own key');
-    assert.ok(/const dealK=OV_KEY\(c,'deal'\), recK=OV_KEY\(c,'record'\)/.test(CONTRACT),
-      'and the keys are the fold’s own, which carry the contract id');
+    /* RE-POINTED 12 Oct 2026: the terms are edited on the Details tab only
+       (owner), so the deal's posture is the TAB, not a flag; the filing rows'
+       posture on the Overview is still asked by its own per-contract key. */
+    assert.ok(/ovEditing\(recK\)/.test(CONTRACT), 'the filing rows ask it by their own key');
+    assert.ok(/const recK=OV_KEY\(c,'record'\)/.test(CONTRACT),
+      'and the key is the fold’s own, which carries the contract id');
+    assert.ok(/const dealEd=ed&&onDet/.test(CONTRACT), 'the terms are boxes only on Details');
   });
   test('Move to another stream is not a second door onto the act', () => {
     /* The picker, its admin guard, its audit line and its repaint are

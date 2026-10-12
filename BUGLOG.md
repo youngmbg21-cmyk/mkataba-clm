@@ -20679,3 +20679,8 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ## Noticed, not fixed — 12 Oct 2026 (three doors build)
 - Our standards panel (js/views/library.js, sdOpenContract) still says "Open contract" but opens the contract's workspace, not Home's Document — left alone; the owner named five list pages.
 - Agents page (js/views/agents.js, the 'overview' and approval buttons) still says "Open contract" — left alone, not one of the five list panels.
+
+## Noticed, not fixed — 12 Oct 2026 (the Details tab build)
+- An uploaded contract's empty lines are read off its text, which the light list leaves out — so the bell and the "Details to fill" filter can count fewer of an upload's blanks until the contract is opened once (detailsOf on a light row). Left alone; the tab's own count is right once the record is whole.
+- renderKeyTerms still carries a handler for the Overview's old "Edit these details" (`data-ov-edit="all"`), which nothing draws any more — dead, left in place.
+- The Overview's ⋯ "Filing and stream" still opens the filing rows there for an admin's re-file — housekeeping, left as it was (read-only for everyone else).

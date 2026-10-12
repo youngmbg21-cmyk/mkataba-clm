@@ -726,12 +726,15 @@ describe('f148 — the shared renderers follow the language in both shells', () 
        9 Oct 2026, owner-asked. */
     /* AND AGAIN 11 OCT 2026: the Document tab went (owner: "get rid of the
        document page"); its use is Home's Document. */
+    /* AND AGAIN 12 OCT 2026: Details leads (owner) — the one place a contract
+       is filled in — with its count while anything is empty (an empty
+       contract owes the other party, the value and the start date). */
     win.langSet('en', { repaint: false });
     assert.equal(strip(win.roomTabsHtml({}, 'terms')),
-      'Overview Where we are Signing Obligations History');
+      'Details 3 left Overview Where we are Signing Obligations History');
     win.langSet('sv', { repaint: false });
     assert.equal(strip(win.roomTabsHtml({}, 'terms')),
-      'Översikt Var vi är Undertecknande Åtaganden Historik');
+      'Uppgifter 3 kvar Översikt Var vi är Undertecknande Åtaganden Historik');
     assert.ok(!strip(win.roomTabsHtml({}, 'terms')).includes('Förhandla'));
   });
 

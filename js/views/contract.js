@@ -4491,7 +4491,9 @@ function focusKeyTerms(c, field){
      flips into boxes under their eyes. */
   try{ if(window.sectionSetOpen) sectionSetOpen(key, true); }catch(_){}
   try{ ovSetEditing(key, true); }catch(_){}
-  roomGoTab(c,'terms');
+  /* EVERY FIELD IS FILLED IN ON DETAILS (owner, 12 Oct 2026) — the Overview
+     reads; the signing list's "Fix" lands on the box there. */
+  roomGoTab(c,'details');
   /* AND THE POSTURE HAS TO BE PAINTED, THEN WAITED FOR. Measured in a browser,
      twice:
        · setting the two flags is not enough — `roomGoTab` is a NO-OP when the
@@ -4689,7 +4691,11 @@ function wsTabDefaults(c){
        negoExecuted, not `status==='Signed'`, so a sealed record that arrived by
        migration is excluded too (f170 asserts both). */
     const done=(typeof negoExecuted==='function')?negoExecuted(c):(c.status==='Signed');
-    _wsTab=(fresh && !done)?'terms':'docs';
+    /* A NEW CONTRACT LANDS ON DETAILS (owner, 12 Oct 2026), with "Complete
+       the details" opened over it once — the full page is what the owner
+       drew for the first sitting; Details is where both of its ways out land. */
+    _wsTab=(fresh && !done)?'details':'docs';
+    if(fresh && !done) _detOpenFull=String(c.id);
     _wsTabFor=c.id;
     if(window.negoResetView) negoResetView();   // don't open on another contract's fingerprint
   }
@@ -4761,6 +4767,15 @@ const ROOM_TABS=[
      commercial terms alone. The PHONE still draws `tab_key_terms` and its own
      one-column Key terms tab: it was left alone on purpose, and this is a
      desktop RENDERER, so nothing here reaches it. */
+  /* ---- DETAILS IS FIRST (owner, 12 Oct 2026) ---- the one place the
+     contract is filled in: the paper on the left, the boxes on the right. Its
+     count ("2 left") is drawn only while something is empty; the tab itself
+     always stays — it is where an answer is changed later (owner: "yes
+     option 1"). detailsOf is the one reading. */
+  ['details','tab_details',c=>{
+    let d; try{ d=detailsOf(c); }catch(_){ return ''; }
+    return d&&d.left?`<span class="room-tab-n">${esc(i18tn('det_left_n',d.left,{n:d.left}))}</span>`:'';
+  }],
   ['terms','tab_overview'],
   /* OVERVIEW 2 (the Time Machine) WAS A TAB HERE, 7 to 9 Oct 2026 — the owner
      asked for it to go (9 Oct: "delete the overview 2 tab … but keep
@@ -5056,7 +5071,7 @@ function wsPaintRoundNeeds(c){
    2026): the signing copy's page arrows and zoom, or the one remembered
    "− 100% +", in the grey above the sheet's right edge (rlPaperZoomHtml). */
 function docZoomCornerHtml(c){
-  if(!c||(_wsTab!=='sign'&&_wsTab!=='docs')||!window.rlPaperZoomHtml) return '';
+  if(!c||(_wsTab!=='sign'&&_wsTab!=='docs'&&_wsTab!=='details')||!window.rlPaperZoomHtml) return '';
   if(_wsTab==='sign'||docCopyOf(c)==='sign') return rlPaperZoomHtml('', scControlsHtml(c));
   return rlPaperZoomHtml();
 }
@@ -5084,7 +5099,9 @@ function wsPaintTabRowEnd(c){
   end.querySelector('#ws-th-door')?.addEventListener('click',()=>docThreadDrawerSet(c,!docThreadDrawerShowing(),{from:'door'}));
   end.querySelectorAll('[data-doc-am]').forEach(b=>b.addEventListener('click',()=>docAsAmendedSet(c,b.getAttribute('data-doc-am')==='1')));
 }
-let _wsTabApplied=null;   /* the tab applyWsTabs last painted — "arrived" is a change of it */
+let _wsTabApplied=null;
+/* the contract whose "Complete the details" page opens once, on arrival */
+let _detOpenFull=null;   /* the tab applyWsTabs last painted — "arrived" is a change of it */
 function applyWsTabs(c){
   const keys=ROOM_TABS.map(t=>t[0]);
   if(!keys.includes(_wsTab)) _wsTab='terms';
@@ -5114,6 +5131,9 @@ function applyWsTabs(c){
     });
   };
   paint(_wsTab);
+  /* the shared sheet says which tab holds it — the Details tab paints the
+     paper's empty blanks yellow (owner, 12 Oct 2026) */
+  const _grid=document.getElementById('doc-grid'); if(_grid) _grid.setAttribute('data-tab',_wsTab);
   /* ---- AND THE ROOM SAYS YOU ARE IN IT (idea 5, 4 Oct 2026) ----
      Started HERE because this is where the room lands on every render, which
      is also where every other thing that paints itself is started.
@@ -5130,7 +5150,7 @@ function applyWsTabs(c){
      ruled 25 Sep 2026) ---- one sheet pane, two builders: arriving on the
      other tab swaps the working copy for the signing copy, or back. A signed
      contract shows the signed copy on both, so nothing is swapped. */
-  if(_wsTab==='docs'||_wsTab==='sign'){
+  if(_wsTab==='docs'||_wsTab==='sign'||_wsTab==='details'){
     const host=document.getElementById('doc-sheet-host');
     /* The facts are compared only on ARRIVAL from another tab: a blank being
        typed into on the paper itself must never be redrawn under the caret. */
@@ -5220,6 +5240,19 @@ function applyWsTabs(c){
      AFTER the side so its document-wide row sweep covers what the side drew.
      wireKtParties binds on the HOST rather than its children and carries its
      own flag, so the repaint underneath it cannot take it off. */
+  /* THE DETAILS TAB (owner, 12 Oct 2026): the one card in its edit posture,
+     then the paper's form, beside the sheet. */
+  if(_wsTab==='details'){ renderKeyTerms(c); try{ paintContractForm(c); }catch(_){} try{ detPaintPaperEmpties(); }catch(_){}
+    if(window.wireKtParties) wireKtParties(c);
+    /* …and the full page, once, over a contract just made here — only while
+       something is really left to answer, and only for someone who may. */
+    if(_detOpenFull===String(c.id) && !(c._light&&!c._loaded)){
+      _detOpenFull=null;
+      let left=0; try{ left=detailsOf(c).left; }catch(_){ left=0; }
+      if(left && canEdit() && !PORTAL_MODE && window.openCompleteDetails)
+        setTimeout(()=>{ const live=(window.getContract&&getContract(c.id))||c;
+          if(state.activeId===live.id) openCompleteDetails(live); },0);
+    } }
   if(_wsTab==='terms'){ renderKeyTermsSide(c); renderKeyTerms(c);
     if(window.wireKtParties) wireKtParties(c);
     /* A renewal's Decide asked for every reading again (roomReadOnArrival):
@@ -5240,7 +5273,7 @@ function applyWsTabs(c){
      stale wide columns and the handle pinned at its stale left, and pressing
      Signing showed it that way for ever. Pressing Document repaired it and
      pressing Signing never did. Both tabs ask now, because both draw it. */
-  if((_wsTab==='docs'||_wsTab==='sign')&&window.layoutDocResizer) layoutDocResizer();
+  if((_wsTab==='docs'||_wsTab==='sign'||_wsTab==='details')&&window.layoutDocResizer) layoutDocResizer();
 }
 /* The one router BOTH shells press. From the Docs page a tab is a pane swap;
    from the workbench every tab but Negotiate is a journey back to this view,
@@ -5821,7 +5854,10 @@ function obTileOpensReview(c){
 function ktTriageStripHtml(c){
   if(!c||typeof triageTiles!=='function'||typeof triageOf!=='function') return '';
   const t=triageOf(c); if(!t) return '';
-  if(typeof triageSeen==='function'&&triageSeen(c)) return '';
+  /* THE FIVE CARDS ARE PERMANENT (owner, 12 Oct 2026: "make image 1
+     permanent so it cannot be deleted by Got it"). "Got it" is gone from
+     this strip and a reading acknowledged on Home no longer hides it here;
+     `tri_kt_done` / `tri_kt_done_title` are inert in both books. */
   /* A READING STILL IN FLIGHT IS NEITHER DONE NOR FAILED, and drawing it as
      either is what was reported: the tiles said "No brief · Standards not
      checked · Obligations not read" for the minute the readings take, with
@@ -5886,10 +5922,14 @@ function ktTriageStripHtml(c){
     (x.key==='oblig'    && x.ok) ? 'oblig' :
     (x.key==='playbook' && x.ok) ? 'playbook' :
     (x.key==='risk'     && x.ok) ? 'risk' : '';
+  /* THE FOURTH CARD OPENS THE DETAILS TAB (owner, 12 Oct 2026) while the
+     contract still has anything to fill in — detailsOf, the tab's own count. */
+  const detOpen=(()=>{ try{ return detailsOf(c).left>0; }catch(_){ return false; } })();
+  const doorOf=x=>{ const d=doorFor(x); return d||((x.key==='fill'&&detOpen&&!x.working)?'details':''); };
   const tiles=triageTiles(c).map(x0=>{
     /* A RE-READ IN FLIGHT turns the tile, as an arrival reading does. */
     const x=ktRereading(c,x0.key)?Object.assign({},x0,{ working:true, stale:false, detail:'' }):x0;
-    const door=x.working?'':doorFor(x);
+    const door=x.working?'':doorOf(x);
     /* NOTHING-TO-DO IS ASKED BEFORE `ok`, so a reading that looked and found
        no boxes can never draw the tick that made the tile read as a claim.
        Busy still wins over both, as it always has. */
@@ -5931,7 +5971,7 @@ function ktTriageStripHtml(c){
     if(door) return `<button type="button" class="kt-tri-tile is-door${door==='reread'?' is-stale':''}" data-kt-tri-go="${door}"${
       door==='reread'?` data-kt-tri-key="${esc(x.key)}"`:''}
       title="${esc(door==='reread'?i18t('tri_reread_title')
-        :i18t(door==='retry'?'tri_go_retry':door==='brief'?'tri_go_brief':door==='playbook'?'tri_go_playbook':door==='risk'?'tri_go_risk':'tri_go_oblig'))}">
+        :i18t(door==='retry'?'tri_go_retry':door==='brief'?'tri_go_brief':door==='playbook'?'tri_go_playbook':door==='risk'?'tri_go_risk':door==='details'?'det_need_go':'tri_go_oblig'))}">
       ${head}${body}
     </button>`;
     return `<div class="kt-tri-tile${x.working?' is-busy':''}"${x.working?' aria-busy="true"':''}>
@@ -5970,8 +6010,6 @@ function ktTriageStripHtml(c){
   return `<section id="kt-triage" class="kt-tri${busy?' is-busy':(read?'':' is-no')}">
     <div class="kt-tri-head">
       <span class="kt-tri-t">${esc(i18t(busy?'tri_kt_head_busy':(read?'tri_kt_head':'tri_kt_head_no')))}</span>
-      <button type="button" id="kt-tri-done" class="kt-tri-x"
-        title="${esc(i18t('tri_kt_done_title'))}">${esc(i18t('tri_kt_done'))}</button>
     </div>
     <div class="kt-tri-tiles">${tiles}</div>
   </section>`;
@@ -5986,10 +6024,18 @@ function renderKeyTerms(c){
      which also means a field's read-out and the summary above it can never
      disagree. The fold state survives it: sectionOpen keeps it in memory, so
      nothing a reader opened closes under them. */
-  const host=document.getElementById('kt-ov-terms'); if(!host) return;
+  /* ONE CARD, ONE HOST AT A TIME (owner, 12 Oct 2026): on the Details tab the
+     card is drawn editable beside the paper; everywhere else it is the
+     Overview's read-only card. The other host is emptied so no id is drawn
+     twice. */
+  const onDet=_wsTab==='details';
+  const host=document.getElementById(onDet?'kt-det-terms':'kt-ov-terms'); if(!host) return;
+  const other=document.getElementById(onDet?'kt-ov-terms':'kt-det-terms'); if(other) other.innerHTML='';
   const ktEditable=c.status!=='Signed'&&canEdit()&&!PORTAL_MODE;
   const ktReadable=((isUpload(c)?(c.upload&&c.upload.extractedText):(window.docPlainText?docPlainText(c):''))||'').length>200;
-  host.innerHTML=ktOverviewTermsHtml(c,{editable:ktEditable,readable:ktReadable});
+  host.innerHTML=ktOverviewTermsHtml(c,{editable:ktEditable,readable:ktReadable,details:onDet});
+  host.querySelectorAll('[data-ov-go-details]').forEach(b=>b.addEventListener('click',()=>roomGoTab(c,'details')));
+  if(onDet) detPaintHead(c);
   wireKtRows(c); wireKeyTerms(c);
   /* ---- THE TWO ACTS THE ARTIFACT NAMES ----
      Wired where they are PAINTED, which is this function: the head above is
@@ -6144,6 +6190,7 @@ function paintKtTriage(c){
        and paid for on every send, which is not what this is. */
     if(go==='retry'){ if(window.triageAndPaint) triageAndPaint(c,{again:true}); return; }
     if(go==='reread'){ ktTriageReread(c, btn.getAttribute('data-kt-tri-key')); return; }
+    if(go==='details'){ roomGoTab((window.getContract&&getContract(c.id))||c,'details'); return; }
     /* ---- THE OBLIGATIONS DOOR FOLLOWS THE TAB (F, Young ruled 22 Sep 2026) ----
        While the Obligations tab is EMPTY the press opens the list this reading
        already found, to tick and add — the funnel runFindObligations, which
@@ -6176,12 +6223,6 @@ function paintKtTriage(c){
     /* And it shuts on a second press, like every door onto the brief. */
     briefPanelToggle(c);
   }));
-  const b=document.getElementById('kt-tri-done'); if(!b) return;
-  b.addEventListener('click',()=>{
-    /* AN ACT, never a render: the strip goes because somebody pressed it. */
-    if(window.triageAck) triageAck(c);
-    slot.innerHTML='';
-  });
 }
 /* ---- THE QUOTES WENT BACK WHERE THEY WERE FOUND (2026-08-11) ----
    Key terms used to reprint, under "READ FROM THE DOCUMENT", the wording the
@@ -7209,14 +7250,18 @@ function wireKtParties(c){
   /* THE STACK, not the record card: the parties are their own section now and
      both doors (the section's `+ Add a party` and a row's own press) are
      inside it. Bound once per element, as every delegated door here is. */
-  const host=document.getElementById('kt-ov-terms')||document.getElementById('kt-record-facts');
-  if(!host || host.dataset.pyBound==='1') return;
-  host.dataset.pyBound='1';
-  host.addEventListener('click',e=>{
-    const add=e.target.closest('[data-py-add]');
-    if(add){ e.preventDefault(); openPartyEditor(getContract(c.id)||c,''); return; }
-    const row=e.target.closest('[data-py-edit]');
-    if(row){ e.preventDefault(); openPartyEditor(getContract(c.id)||c, row.getAttribute('data-py-edit')); }
+  /* Both hosts of the one card — the Overview's and the Details tab's. */
+  const hosts=[document.getElementById('kt-ov-terms'),document.getElementById('kt-det-terms')].filter(Boolean);
+  if(!hosts.length){ const r=document.getElementById('kt-record-facts'); if(r) hosts.push(r); }
+  hosts.forEach(host=>{
+    if(host.dataset.pyBound==='1') return;
+    host.dataset.pyBound='1';
+    host.addEventListener('click',e=>{
+      const add=e.target.closest('[data-py-add]');
+      if(add){ e.preventDefault(); openPartyEditor(getContract(c.id)||c,''); return; }
+      const row=e.target.closest('[data-py-edit]');
+      if(row){ e.preventDefault(); openPartyEditor(getContract(c.id)||c, row.getAttribute('data-py-edit')); }
+    });
   });
 }
 
@@ -7490,7 +7535,16 @@ function ktDocsSummary(c){
    hosts, so an edit to a term never redraws them. */
 function ktOverviewTermsHtml(c,opts={}){
   const ed=!!opts.editable, readable=!!opts.readable;
-  const dealK=OV_KEY(c,'deal'), recK=OV_KEY(c,'record');
+  /* ---- THE OVERVIEW READS, THE DETAILS TAB FILLS IN (owner, 12 Oct 2026:
+     "Overview page should be the only locations for filing in information on
+     the contract apart from signing it" — the DETAILS page, confirmed) ----
+     ONE BUILDER, TWO POSTURES: on Details (`opts.details`) the card is always
+     in its edit posture with the filing rows open beneath, and Fill from
+     document rides its head; on the Overview it never edits, and its one act
+     is "Fill in on Details" (`data-ov-go-details`). `ov_edit_details` /
+     `ov_edit_done` are no longer drawn on the Overview. */
+  const onDet=!!opts.details;
+  const recK=OV_KEY(c,'record');
   /* ---- FILING SURVIVES SIGNING (D-1, kept) ----
      `ed` is false on an executed contract, but MOVING ONE BETWEEN STREAMS IS
      HOUSEKEEPING and has never stood down on a signed record: ktStreamRowHtml
@@ -7499,7 +7553,7 @@ function ktOverviewTermsHtml(c,opts={}){
      would lose the one door onto it — which is exactly what
      refile-a-contract-verify caught the hour this card was redrawn. */
   const mayMove=(typeof mayReFile==='function')&&mayReFile()&&!PORTAL_MODE;
-  const dealEd=ed&&ovEditing(dealK), recEd=(ed||mayMove)&&ovEditing(recK);
+  const dealEd=ed&&onDet, recEd=onDet?ed:(mayMove&&ovEditing(recK));
   const fill=(ed&&readable)
     ? `<button id="kt-fill" class="ui-btn ui-btn-sm hati-fill-btn" title="${
         i18t('ct_read_out_details')}">${icon('sparkle','w-3 h-3')} ${i18t('ct_fill_from_doc')}</button>`
@@ -7555,7 +7609,10 @@ function ktOverviewTermsHtml(c,opts={}){
      else. Same buttons, same handlers — only where they are drawn moved. */
   /* THE SENTENCE BESIDE THE BUTTONS IS GONE (Young, 9 Oct 2026: "Delete the
      writing related to the terms on record"); `ov_top_note` stays inert. */
-  const top=acts=>`<div class="ov-top"><span id="kt-ov-brief" class="ov-top-brief"></span>
+  const top=acts=>onDet
+    ? `<div class="ov-top det-top"><span class="det-top-t">${esc(i18t('det_contract_details'))}</span>
+    <span class="ov-top-acts">${acts}</span></div>`
+    : `<div class="ov-top"><span id="kt-ov-brief" class="ov-top-brief"></span>
     <span class="ov-top-acts">${acts}</span></div>`;
   /* ---- THE ESSENTIALS CARD (Young, 8 Oct 2026: "Bring this back") ----
      Who it is between on the left, the terms on the right, as the mock-up
@@ -7563,7 +7620,7 @@ function ktOverviewTermsHtml(c,opts={}){
      they edit; Edit turns both postures on (the terms become boxes, the
      parties become their editors, and the filing rows open beneath). */
   const pyLocked=(typeof signingLocked==='function')?!!signingLocked(c):false;
-  const pyAdd=(ed&&!pyLocked&&!PORTAL_MODE)
+  const pyAdd=(ed&&onDet&&!pyLocked&&!PORTAL_MODE)
     ?`<button type="button" class="ui-btn ui-btn-sm" data-py-add="1">${esc(i18t('py_add'))}</button>`:'';
   const addrs=(typeof contractAddressBook==='function')?contractAddressBook(c, c&&c._shareFetch):null;
   const anySigner=(typeof participantSignerRows==='function')&&participantSignerRows(c).length>0;
@@ -7607,16 +7664,16 @@ function ktOverviewTermsHtml(c,opts={}){
   const parties=`<div class="ov-ess-p" id="ov-parties"><div class="ov-ess-h"><span class="ov-ess-t">${esc(i18t('py_parties'))} <span class="ov-ess-tn">(${pyN})</span></span>${
       pyLocked?`<span class="ov-ess-lock">${esc(i18t('py_locked'))}</span>`:''}${pyAdd}</div>${dealEd?pyEdit:`<div class="ov-pty-list" tabindex="-1">${pyRows}</div>`}</div>`;
   const hold=holdsIn(OV_ESS_FIELDS);
-  const essActs=`${ed?`<button type="button" class="ui-btn ui-btn-sm" data-ov-edit="all">${
-      esc(dealEd?i18t('ov_edit_done'):i18t('ov_edit_details'))}</button>`:''}${fill}`;
-  const map=ovMapHtml(c);
+  const essActs=onDet?fill
+    :(ed?`<button type="button" class="ui-btn ui-btn-sm" data-ov-go-details="1">${esc(i18t('det_fill_in_on'))} &rarr;</button>`:'');
+  const map=onDet?'':ovMapHtml(c);
   const renewalHost='<div id="renewal-host" class="empty:hidden" data-bare="1"></div>';
   /* AT REST THE TERMS ARE THE EIGHT (the redesign's rule: "render the terms
      and nothing else"); in Edit every field, fixed and occasional, is a box,
      exactly as before — so no term lost the one place it can be typed. */
   const facts=`<div class="ov-ess-g" id="ov-facts"><div class="ov-ess-h"><span class="ov-ess-t">${esc(i18t('ov_ess_terms'))}</span>${
       hold?`<span class="ov-ess-hold">${esc(i18tn('ov_hold_n',hold,{n:hold}))}</span>`:''}</div>
-    <div id="kt-rows"></div>${dealEd?ovEssEditHtml(c):ovEssRestHtml(c,marks)}${map?'':renewalHost}</div>`;
+    <div id="kt-rows"></div>${dealEd?ovEssEditHtml(c):ovEssRestHtml(c,marks)}${(map||onDet)?'':renewalHost}</div>`;
   /* MOVE TO ANOTHER STREAM IS NOT A SECOND DOOR. The stream picker is
      ktStreamRowHtml's, with its admin guard, its 'Re-filed' audit line and its
      own repaint; this button opens the rows that hold it and puts the reader
@@ -7629,16 +7686,16 @@ function ktOverviewTermsHtml(c,opts={}){
      also on whenever the page's Edit is, and focusKeyTerms turns it on for a
      filing field the signing list points at — so every old door still lands
      on the same rows, by the same handlers (wireKtRows, wireKeyTerms). */
-  const recOpen=ovEditing(recK);
+  const recOpen=onDet||ovEditing(recK);
   const record=recOpen?sectionHtml({
     id:'ov-record', title:i18t('ov_filing'),
     chip: holdChip(recHold),
     body: (recEd
         ? `<div id="kt-rows-record">${ktTermsRowsHtml(c,
-            {editable:ed,only:['name','party','counterparty','cpEmail','cpRouteEmail','stream','template']})}</div>`
+            {editable:ed&&onDet,only:['name','party','counterparty','cpEmail','cpRouteEmail','stream','template']})}</div>`
         : '<div id="kt-rows-record"></div>')
       + `<div id="kt-record-facts">${ktRecordFactsHtml(c,{rowsAbove:recEd,marks,mayEdit:ed})}</div>`,
-    acts: moveBtn+`<button type="button" class="ui-btn ui-btn-sm" data-ov-edit="${esc(recK)}">${esc(i18t('ov_filing_close'))}</button>` }):'';
+    acts: moveBtn+(onDet?'':`<button type="button" class="ui-btn ui-btn-sm" data-ov-edit="${esc(recK)}">${esc(i18t('ov_filing_close'))}</button>`) }):'';
   return top(essActs)+`<div class="ov-card ov-ess" id="ov-ess"><div class="ov-ess-body">${parties}${facts}</div>${record}</div>`+map;
 }
 
@@ -8788,6 +8845,272 @@ function tplFormOpenFields(c, opts){
 }
 function tplFormOpenCount(c){ return tplFormOpenFields(c).length; }
 /* ============================================================
+   WHAT IS STILL TO FILL IN — THE DETAILS PAGE'S ONE READING
+   (owner, 12 Oct 2026: "Once done, you are taken to a new page called details
+   where you have the paper on the left and the entry fields on the right")
+   ============================================================
+   ONE LIST, EVERY SURFACE: the Details tab's count, the "Complete the
+   details" page's sections and "3 of 8 done", the checklist's "N details to
+   fill", the bell, the Contracts list's "Details to fill" filter and the
+   phone's Details page all read THIS, so no two can disagree.
+
+   WHAT IS ASKED: the contract's own details a deal cannot go without — the
+   other party, the value (only where money passes, isMonetary), the start
+   date — and then the paper's own questions: a company standard's form
+   (tplFormOpenFields, every field, required or not) or the blanks in the
+   paper (contractBlanks, where blankFormLive says they are still typable).
+   A blank that IS one of the record's details (the counterparty, the value,
+   the start date) is asked once, as the detail.
+
+   READING MUST NOT WRITE, and nothing is asked of a sealed, signed or
+   declined contract: there is nothing left to fill. */
+function blankFormLive(c){
+  if(!c) return false;
+  const up = !!(typeof uploadBlanksLive === 'function' && uploadBlanksLive(c));
+  const ownp = !!(typeof ownBlanksLive === 'function' && ownBlanksLive(c));
+  let fill = false; try{ fill = !!docFillable(c); }catch(_){ fill = false; }
+  return !!(typeof contractHasBlanks === 'function' && contractHasBlanks(c)) && (fill || up || ownp);
+}
+const DET_RECORD_KEYS = ['party','counterparty','value','effDate'];
+function detailsOf(c){
+  const out = { items: [], left: 0, all: 0, live: false };
+  if(!c || c.archived) return out;
+  let sealed = false;
+  try{ sealed = (typeof negoExecuted === 'function') ? !!negoExecuted(c) : false; }catch(_){ sealed = false; }
+  if(sealed || c.status === 'Signed' || c.status === 'Declined' || c.hash) return out;
+  out.live = true;
+  const add = (sec, key, label, open, kind) => out.items.push({ sec, key: String(key), label, open: !!open, kind });
+  const recSec = i18t('det_sec_contract');
+  /* WHO WE ARE is asked and never owed: empty, it is the workspace
+     (contractParty's own fallback), so it counts as answered. */
+  add(recSec, 'party', i18t('det_f_party'), false, 'kt');
+  add(recSec, 'counterparty', i18t('det_f_counterparty'), !String(c.counterparty || '').trim(), 'kt');
+  let money = true; try{ money = (typeof isMonetary === 'function') ? isMonetary(c) : true; }catch(_){ money = true; }
+  if(money) add(recSec, 'value', i18t('ov_f_value'), !(Number(c.value) > 0), 'kt');
+  add(recSec, 'effDate', i18t('ov_f_effective'), !String((c.fields && c.fields.effDate) || '').trim(), 'kt');
+  const asked = new Set(DET_RECORD_KEYS);
+  if(c.templateForm && Array.isArray(c.templateForm.fields)){
+    let open = [];
+    try{ open = tplFormOpenFields(c, { all: true }); }catch(_){ open = []; }
+    const openSet = new Set(open);
+    c.templateForm.fields.filter(f => f && f.fieldType !== 'signature_name_title' && f.fieldKey && !asked.has(String(f.fieldKey)))
+      .forEach(f => add(f.section || i18t('det_sec_form'), f.fieldKey, f.label || f.fieldKey, openSet.has(f), 'tplf'));
+  } else if(blankFormLive(c)){
+    let n = 0;
+    blankFormSectionsOf(c).forEach(g => g.blanks.forEach(b => { n++;
+      if(!b || !b.key || asked.has(String(b.key))) return;
+      add(g.name || i18t('det_sec_blanks'), b.key, b.label || i18t('bf_blank_n', { n }),
+        !String(b.value == null ? '' : b.value).trim(), 'blank'); }));
+  }
+  out.all = out.items.length;
+  out.left = out.items.filter(x => x.open).length;
+  return out;
+}
+/* The sections in the order first met, each with what is left in it. */
+function detailsSections(d){
+  const out = [];
+  (d && d.items || []).forEach(x => { let g = out.find(s => s.name === x.sec);
+    if(!g){ g = { name: x.sec, items: [], left: 0 }; out.push(g); }
+    g.items.push(x); if(x.open) g.left++; });
+  return out;
+}
+/* THE DETAILS TAB'S HEAD (owner's drawing): "Contract details · 6 of 8
+   filled", the bar under it, and the door back to the full page. Painted,
+   never built with the room — every answer moves it. */
+function detHeadHtml(c){
+  const d = detailsOf(c);
+  if(!d.live || !d.all) return '';
+  const done = d.all - d.left;
+  const pct = Math.round(done * 100 / d.all);
+  const may = (typeof canEdit === 'function' ? canEdit() : true) && !PORTAL_MODE;
+  return `<div class="det-h-row"><span class="det-h-t">${esc(i18t('det_head'))}</span><span class="det-h-n${d.left ? '' : ' is-done'}" data-det-count>${
+      esc(i18t('det_n_of_m', { done, all: d.all }))}</span>${may ? `<button type="button" class="ui-btn ui-btn-sm" data-det-full>${esc(i18t('det_open_full'))}</button>` : ''}</div>
+    <div class="det-bar" aria-hidden="true"><i style="width:${pct}%"></i></div>`;
+}
+function detPaintHead(c){
+  const h = document.getElementById('det-head'); if(!h || !c) return;
+  h.innerHTML = detHeadHtml(c);
+  h.querySelector('[data-det-full]')?.addEventListener('click', () => {
+    const live = (window.getContract && getContract(c.id)) || c;
+    if(window.openCompleteDetails) openCompleteDetails(live);
+  });
+}
+/* ============================================================
+   "COMPLETE THE DETAILS" — THE FIRST SITTING, THE SAP WAY
+   (owner, 12 Oct 2026: "when you create a draft, it takes you to the blanks
+   page per your proposal in the SAP way"; then "go")
+   ============================================================
+   A FULL PAGE (openModal's `page`, the SAP pop-ups' own rule: big work is a
+   page): the sections down the left with what is left in each, labelled
+   boxes in the middle, "Jambo suggests" on the right; "3 of 8 done" and
+   "See the document" in the head; "Fill the document" and "Save and finish
+   later" at the foot, both landing on the Details tab.
+
+   IT OWNS NO WRITER. Every box is one the product already wires: the
+   contract's details are the Overview card's own `data-kt` boxes
+   (wireKeyTerms), a paper blank is the blanks panel's `data-blankf`
+   (wireBlankForm, handed this host), a company form's field is the form's
+   own `data-tplf` (tplFormCommit). Saved as typed; "Fill the document" is
+   tplFormApply where a company form owes its wording, and nothing more.
+   The list is detailsOf — the same list the tab's count reads. */
+let _cd=null;   /* the page's contract id while it is up */
+function cdBoxHtml(c, x, bmap){
+  const IN='width:100%;height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size)';
+  if(x.kind==='kt'){
+    if(x.key==='party') return `<input type="text" data-kt="party" value="${esc(c.party||'')}" placeholder="${esc((typeof contractParty==='function'?contractParty(c):'')||'')}" style="${IN}">`;
+    if(x.key==='counterparty') return `<input type="text" data-kt="counterparty" value="${esc(c.counterparty||'')}" placeholder="${esc(i18t('det_ph_counterparty'))}" style="${IN}">`;
+    if(x.key==='value') return `<input type="text" inputmode="numeric" data-kt="value" value="${(Number(c.value)>0)?Number(c.value).toLocaleString(jxLocale()):''}" placeholder="0" style="${IN};font-family:var(--font-mono)">`;
+    if(x.key==='effDate') return `<input type="date" data-kt="effDate" value="${esc((c.fields&&c.fields.effDate)||'')}" style="${IN}">`;
+  }
+  if(x.kind==='tplf'){
+    const form=c.templateForm||{}; const idx=(form.fields||[]).findIndex(f=>f&&String(f.fieldKey)===x.key);
+    if(idx<0||!window.tplFormInputHtml) return '';
+    /* the page's own box clothes (.cd-fld), so an empty box reads as one */
+    return tplFormInputHtml(form.fields[idx], (form.values||{})[x.key], idx).replace(/ style="[^"]*"/,` style="${IN}"`);
+  }
+  const b=bmap.get(x.key);
+  return b?blankFormInputHtml(b).replace(/ style="[^"]*"/,` style="${IN}"`):'';
+}
+function cdFieldHtml(c, x, bmap){
+  const box=cdBoxHtml(c,x,bmap); if(!box) return '';
+  return `<label class="cd-fld${x.open?' is-open':''}" data-cd-key="${esc(x.key)}"><span class="cd-lab">${esc(x.label)}</span>${box}</label>`;
+}
+function cdNavHtml(d){
+  return detailsSections(d).map((g,i)=>`<button type="button" class="cd-nav-i" data-cd-go="${i}"><span class="cd-nav-n">${esc(g.name)}</span><span class="cd-nav-l${g.left?'':' is-done'}">${
+    esc(g.left?i18tn('det_left_n',g.left,{n:g.left}):i18t('det_sec_done'))}</span></button>`).join('');
+}
+function cdCountText(d){ return i18t('det_n_of_m',{ done:d.all-d.left, all:d.all }); }
+function cdRepaintCounts(c){
+  if(!_cd||!c||String(c.id)!==_cd) return;
+  const root=document.getElementById('cd-page'); if(!root) return;
+  const d=detailsOf(c);
+  const cnt=document.getElementById('cd-count'); if(cnt) cnt.textContent=cdCountText(d);
+  const nav=root.querySelector('#cd-nav');
+  if(nav){ const on=nav.querySelector('.cd-nav-i.on'); const at=on?on.getAttribute('data-cd-go'):'0';
+    nav.innerHTML=cdNavHtml(d); nav.querySelector(`[data-cd-go="${at}"]`)?.classList.add('on'); cdWireNav(root); }
+  const open=new Set(d.items.filter(x=>x.open).map(x=>x.key));
+  root.querySelectorAll('[data-cd-key]').forEach(l=>l.classList.toggle('is-open',open.has(l.getAttribute('data-cd-key'))));
+}
+function cdWireNav(root){
+  root.querySelectorAll('[data-cd-go]').forEach(b=>b.addEventListener('click',()=>{
+    root.querySelectorAll('.cd-nav-i').forEach(x=>x.classList.toggle('on',x===b));
+    const sec=root.querySelector(`[data-cd-sec="${b.getAttribute('data-cd-go')}"]`);
+    if(sec){ try{ sec.scrollIntoView({ block:'start', behavior:'smooth' }); }catch(_){ sec.scrollIntoView(); }
+      const first=sec.querySelector('.cd-fld.is-open input, .cd-fld input'); if(first) try{ first.focus({ preventScroll:true }); }catch(_){} }
+  }));
+}
+function cdSuggestHtml(c){
+  const filled=blankFormFilledLineHtml(c);
+  const text=((isUpload(c)?(c.upload&&c.upload.extractedText):(window.docPlainText?docPlainText(c):''))||'');
+  const readable=text.length>200;
+  return `<div class="cd-side-t">${esc(i18t('det_jambo_suggests'))}</div>
+    ${filled?`<div class="cd-card">${filled}</div>`:''}
+    ${readable?`<div class="cd-card"><p class="cd-p">${esc(i18t('det_jambo_read'))}</p><button type="button" class="ui-btn ui-btn-sm hati-fill-btn" id="cd-read">${icon('sparkle','w-3 h-3')} ${esc(i18t('ct_fill_from_doc'))}</button></div>`
+      :(filled?'':`<p class="cd-p">${esc(i18t('det_jambo_none'))}</p>`)}
+    <p class="cd-p cd-quiet">${esc(i18t('det_saved_note'))}</p>`;
+}
+function cdLeave(c, how){
+  const live=(window.getContract&&getContract(c.id))||c;
+  let filled=false;
+  if(how==='fill' && live.templateForm && window.tplFormPending && tplFormPending(live) && window.tplFormApply){
+    try{ filled=!!tplFormApply(live); }catch(_){ filled=false; }
+  }
+  if(typeof persist==='function') persist(live);
+  _cd=null;
+  closeModal();
+  if(state.view==='workspace' && String(state.activeId)===String(live.id)){
+    if(typeof renderWorkspace==='function') renderWorkspace();
+    roomGoTab(live,'details');
+  }
+  if(filled) toast(i18t('det_filled_toast'),'ok');
+  else if(how==='later'){ const d=detailsOf(live);
+    toast(d.left?i18tn('det_saved_left',d.left,{n:d.left}):i18t('det_saved_all'),'ok'); }
+}
+function openCompleteDetails(c){
+  if(!c) return false;
+  const d=detailsOf(c);
+  if(!d.live||!d.all) return false;
+  _cd=String(c.id);
+  const bs=(typeof contractBlanks==='function')?contractBlanks(c):[];
+  const bmap=new Map(bs.map(b=>[String(b.key),b]));
+  const secs=detailsSections(d);
+  const ref=(window.contractRef?contractRef(c):c.id);
+  const st=(typeof contractStatusDotHtml==='function')?contractStatusDotHtml(c):'';
+  const html=`<div id="cd-page" class="cd-page">
+    <h2 class="cd-title">${esc(i18t('det_complete_title'))}</h2>
+    <span id="cd-count" class="cd-count">${esc(cdCountText(d))}</span>
+    <button type="button" id="cd-see" class="ui-btn">${esc(i18t('det_see_doc'))}</button>
+    <div class="cd-sub">${st}</div>
+    <div class="cd-body">
+      <nav id="cd-nav" class="cd-nav" aria-label="${esc(i18t('det_sections'))}">${cdNavHtml(d)}</nav>
+      <div class="cd-form" id="cd-form">${secs.map((g,i)=>`<section class="cd-sec" data-cd-sec="${i}">
+          <h3 class="cd-sec-t">${esc(g.name)}</h3>
+          <div class="cd-grid">${g.items.map(x=>cdFieldHtml(c,x,bmap)).join('')}</div></section>`).join('')}</div>
+      <aside class="cd-side" id="cd-side">${cdSuggestHtml(c)}</aside>
+    </div>
+    <div class="cd-foot">
+      <button type="button" id="cd-fill" class="ui-btn ui-btn-primary">${esc(i18t('tl_fill_doc'))}</button>
+      <button type="button" id="cd-later" class="ui-btn">${esc(i18t('det_save_later'))}</button>
+    </div>
+  </div>`;
+  openModal(html,{ page:{ acts:['cd-count','cd-see'], crumb:`${ref} · ${c.name||''}` }, label:i18t('det_complete_title'),
+    onBeforeClose:()=>{ if(_cd){ _cd=null; setTimeout(()=>{ const live=(window.getContract&&getContract(c.id))||c;
+      if(state.view==='workspace'&&String(state.activeId)===String(live.id)){ if(typeof renderWorkspace==='function') renderWorkspace(); roomGoTab(live,'details'); } },0); }
+      return true; } });
+  const root=document.getElementById('cd-page'); if(!root) return false;
+  /* the head row carries the contract's stage beside the title */
+  const sub=root.querySelector('.cd-sub'); const t=document.querySelector('.dlg-pg-title');
+  if(sub&&t) t.appendChild(sub);
+  root.querySelector('.cd-nav-i')?.classList.add('on');
+  /* THE WRITERS ARE THE PRODUCT'S OWN (see above) */
+  wireKeyTerms(c);
+  wireBlankForm(c, root.querySelector('#cd-form'));
+  root.querySelectorAll('[data-blankf]').forEach(el=>el.addEventListener('change',()=>cdRepaintCounts(c)));
+  root.querySelectorAll('[data-tplf]').forEach(el=>el.addEventListener('change',()=>{
+    const live=(window.getContract&&getContract(c.id))||c;
+    if(window.tplFormCommit) tplFormCommit(live, Number(el.getAttribute('data-tplf')), el.value);
+    detailsChanged(live); cdRepaintCounts(live);
+  }));
+  cdWireNav(root);
+  const see=document.getElementById('cd-see'); if(see) see.addEventListener('click',()=>cdLeave(c,'see'));
+  root.querySelector('#cd-fill')?.addEventListener('click',()=>cdLeave(c,'fill'));
+  root.querySelector('#cd-later')?.addEventListener('click',()=>cdLeave(c,'later'));
+  root.querySelector('#cd-read')?.addEventListener('click',async e=>{
+    const b=e.currentTarget; b.disabled=true;
+    if(typeof busySet==='function') try{ busySet(b,i18t('ct_reading')); }catch(_){}
+    const live=(window.getContract&&getContract(c.id))||c;
+    try{ await fillKeyTermsFromDocument(live); }catch(_){}
+    if(_cd!==String(live.id)) return;
+    /* the boxes the reading answered are drawn again with their answers */
+    root.querySelectorAll('[data-kt]').forEach(inp=>{ const k=inp.getAttribute('data-kt');
+      if(k==='counterparty') inp.value=live.counterparty||'';
+      else if(k==='value') inp.value=(Number(live.value)>0)?Number(live.value).toLocaleString(jxLocale()):'';
+      else if(k==='effDate') inp.value=(live.fields&&live.fields.effDate)||''; });
+    b.disabled=false; b.innerHTML=`${icon('sparkle','w-3 h-3')} ${esc(i18t('ct_fill_from_doc'))}`;
+    cdRepaintCounts(live); detailsChanged(live);
+  });
+  const first=root.querySelector('.cd-fld.is-open input, .cd-fld.is-open select');
+  if(first) setTimeout(()=>{ try{ first.focus(); }catch(_){} },0);
+  return true;
+}
+/* THE PAPER'S EMPTY BLANKS ARE MARKED (owner, 12 Oct 2026: "empty blanks
+   stay yellow") — by what the box HOLDS, asked afresh after every answer, so
+   a box the panel filled stops being yellow at once. A value of 0 is an
+   empty value (the paper prints its unset figure as 0). */
+function detPaintPaperEmpties(){
+  const cv = document.getElementById('doc-canvas'); if(!cv) return;
+  cv.querySelectorAll('[data-doc-answer]').forEach(i => {
+    const v = String(i.value == null ? '' : i.value).trim();
+    i.classList.toggle('is-empty', v === '' || (i.getAttribute('data-sync') === 'value' && /^0+$/.test(v)));
+  });
+}
+/* After any answer: the tab's count, the head's "n of m" and the bar. */
+function detailsChanged(c){
+  if(!c) return;
+  try{ wsPaintTabCounts(c); }catch(_){}
+  if(_wsTab === 'details' && state.activeId === c.id){ try{ detPaintHead(c); }catch(_){} try{ detPaintPaperEmpties(); }catch(_){} }
+}
+/* ============================================================
    THE OPEN BLANKS, FILLABLE FROM THE COLUMN (Young ruled 17 Sep 2026)
    ============================================================
    *"In image 3 and 4 there is also an issue where some fields need to be
@@ -8934,9 +9257,9 @@ function blankFormRowsHtml(groups){
           <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:3px">${esc(b.label || i18t('bf_blank_n', { n }))}</span>
           ${blankFormInputHtml(b)}
         </label>`; };
-  if(!formOnHome()) return groups.map(g => `
-        ${g.name?`<div style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500);margin-top:2px">${esc(g.name)}</div>`:''}
-        ${g.blanks.map(row).join('')}`).join('');
+  /* THE DETAILS TAB DRAWS IT THE SAME SAP WAY (owner, 12 Oct 2026: "the
+     entry fields on the right similar to" Home's form): open first, answered
+     folded. The room's clause-grouped drawing has no host left. */
   const all = []; groups.forEach(g => g.blanks.forEach(b => all.push(b)));
   const rows = new Map(all.map(b => [b, row(b)]));
   const owed = all.filter(b => !String(b.value == null ? '' : b.value).trim());
@@ -8968,8 +9291,8 @@ function blankFormFilledLineHtml(c){
    the page's input is put in step without an event so the write happens once.
 
    BOUND ONCE PER PAINT, on the host, because the host is rebuilt whole. */
-function wireBlankForm(c){
-  const host = formHostEl();
+function wireBlankForm(c, hostIn){
+  const host = hostIn || formHostEl();
   if(!host) return;
   host.querySelectorAll('[data-blankf]').forEach(el => {
     el.addEventListener('change', () => {
@@ -9008,6 +9331,7 @@ function wireBlankForm(c){
       } else if(key === 'termYears') docTermFill(c, el.value);
       else if(key === 'noticeDays') docNoticeFill(c, el.value);
       paintBlankFormCount(c);
+      detailsChanged(c);
       /* on Home the answer reaches the paper beside the form */
       if(formOnHome() && window.igPaperRefresh){ try{ igPaperRefresh(); }catch(_){ } }
     });
@@ -11188,7 +11512,7 @@ function renderWorkspace(){
            token match in applyWsTabs's paint and one extra child in #doc-right.
            A second pane would have cost a second canvas, a second resizer and a
            second set of ids for every test and every handler to choose between. */}
-    <div id="doc-grid" data-ws-pane="docs sign" style="position:relative;flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:var(--s-3)">
+    <div id="doc-grid" data-ws-pane="docs sign details" style="position:relative;flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:var(--s-3)">
 
       <!-- LEFT: document
            ---- THE SHEET SITS ON THE PAGE, NOT IN A CARD ----
@@ -11287,6 +11611,22 @@ function renderWorkspace(){
           </div>
         </div>
 
+        ${''/* ---- THE DETAILS TAB'S COLUMN (owner, 12 Oct 2026: "the details
+               page where you have the paper on the left and the entry fields
+               on the right") ----
+               THE ONE PLACE TO FILL IN THE CONTRACT, apart from signing: the
+               contract's details (parties, value, dates, term — the
+               Overview's own boxes, renderKeyTerms on this host) and the
+               paper's blanks or the company form (paintContractForm's one
+               slot, #tplform-section, which lives here now; the Document tab
+               it sat on is gone). The paper beside it is the same sheet. */}
+        <div data-doc-col="details" class="det-col" style="display:none;flex-direction:column;gap:var(--s-3)">
+          <div id="det-head" class="det-head"></div>
+          <div id="kt-det-terms" class="det-terms"></div>
+          <!-- template form: the open fields of a library-template contract -->
+          <div id="tplform-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+        </div>
+
         <div data-doc-col="docs" style="display:flex;flex-direction:column;gap:var(--s-3)">
           ${''/* ---- FORM & LINKS IS WHERE THE TAB LANDS; THE CLAUSES ARE A DRAWER
                  OVER IT (Young picked "Drawer", 5 Oct 2026) ----
@@ -11295,8 +11635,6 @@ function renderWorkspace(){
                  the one scroller. The Thread is the drawer the tab row's
                  Clauses button brings over them (docThreadDrawerSet); where
                  there is nothing here at all, the clauses ARE the panel. */}
-          <!-- template form: the open fields of a library-template contract -->
-          <div id="tplform-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
           ${''/* Where this contract came from. Quiet, because it is a thing you
                  check once — and it says the one thing that is easy to get
                  wrong, which is that a template revised later does not revise
@@ -14272,6 +14610,8 @@ function docAnswersWire(c){
     e.preventDefault();
     const key = box.getAttribute('data-field') || box.getAttribute('data-sync') || box.getAttribute('data-field-key') || '';
     const peer = (key && typeof contractFieldPeer === 'function') ? contractFieldPeer(key, 'panel') : null;
+    /* an answered box sits in the "Show N filled" fold, opened first */
+    const fold = peer && peer.closest ? peer.closest('details') : null; if(fold && !fold.open) fold.open = true;
     if(peer){ try{ peer.scrollIntoView({ block: 'center' }); peer.focus(); }catch(_){ } }
   });
 }
@@ -14287,14 +14627,27 @@ if(typeof document !== 'undefined' && !document._homeAnswerWired){
     if(!w) return;
     const key = w.getAttribute('data-field') || w.getAttribute('data-sync');
     if(!key || typeof contractFieldPeer !== 'function') return;
-    let peer = contractFieldPeer(key, 'panel');
-    if(!peer && window.pdOnPaper && pdOnPaper() && window.pdSetTab && window.renderIntelDock){
-      pdSetTab('facts'); try{ renderIntelDock(); }catch(_){ }
-      peer = contractFieldPeer(key, 'panel');
-    }
-    if(!peer) return;
-    const fold = peer.closest('details'); if(fold && !fold.open) fold.open = true;
-    try{ peer.scrollIntoView({ block: 'center' }); peer.focus(); }catch(_){ }
+    /* THE FORM LEFT HOME FOR THE ROOM'S DETAILS TAB (owner, 12 Oct 2026):
+       a press on an answer on Home's paper opens that tab and lands on the
+       box, through the one door that already lands on a box (focusKeyTerms'
+       bounded wait, asked here of the blank's own box). */
+    const id = (typeof intel === 'object' && intel && intel.paper) ? intel.paper.id : null;
+    const c = id && typeof getContract === 'function' ? getContract(id) : null;
+    if(!c || typeof openWorkspace !== 'function') return;
+    openWorkspace(c.id);
+    try{ roomGoTab(getContract(c.id) || c, 'details'); }catch(_){ }
+    let tries = 0;
+    const land = () => {
+      const peer = contractFieldPeer(key, 'panel');
+      const r = peer && peer.getBoundingClientRect ? peer.getBoundingClientRect() : null;
+      if(peer && r && (r.width > 0 || peer.closest('details'))){
+        const fold = peer.closest('details'); if(fold && !fold.open) fold.open = true;
+        try{ peer.scrollIntoView({ block: 'center' }); peer.focus(); }catch(_){ }
+        return;
+      }
+      if(++tries < KT_FOCUS_TRIES) setTimeout(land, 120);
+    };
+    setTimeout(land, 120);
   });
 }
 /* Bound once per canvas element. `docFillable` is the product's own reading of
@@ -14718,6 +15071,11 @@ function wireKeyTerms(c){
                effDate:'effective date', expiry:'expiry date', cpEmail:'counterparty email',
                notice:'notice period'};
   document.querySelectorAll('[data-kt]').forEach(inp=>{
+    /* BOUND ONCE PER BOX (12 Oct 2026): this sweeps the whole document, and
+       the Details tab and the "Complete the details" page can both be up —
+       a box already wired is not wired again. */
+    if(inp.dataset.ktBound==='1') return;
+    inp.dataset.ktBound='1';
     /* A NUMBER BOX WRITES ON `change`, NOT ON EVERY KEYSTROKE. Typing 90 into an
        `input`-driven box stores 9 first — and for a figure the renewal clock
        reads, a nine-day notice period sits on the record with a confidence
@@ -14814,6 +15172,8 @@ function wireKeyTerms(c){
       }catch(_){}
       persist(c); renderAuditSection(c);
       roomHeadRefresh(c);
+      detailsChanged(c);
+      if(window.cdRepaintCounts) cdRepaintCounts(c);
     });
   });
   /* ---- BOUND ONCE, LIKE THE TWO BESIDE IT ----
@@ -14845,6 +15205,8 @@ function wireKeyTerms(c){
      Nothing here repaints the panel, so the caret stays where the reader put
      it; the grid is rebuilt only when the Edit act itself is pressed. */
   document.querySelectorAll('[data-ktm]').forEach(inp=>{
+    if(inp.dataset.ktBound==='1') return;
+    inp.dataset.ktBound='1';
     const key=inp.getAttribute('data-ktm');
     const f=(window.META_FIELDS||[]).find(x=>x.k===key); if(!f) return;
     /* THE EVENT IS THE ELEMENT'S, not only the type's: a `picks` field is free
@@ -17450,7 +17812,7 @@ Object.assign(window,{docReadLongSplit,DOC_READ_LONG_WORDS,DOC_READ_RUN_MIN,docT
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,renderSignButton,renderSignSide,roomFactsHtml,signBlockHtml,signReadinessCardHtml,signRowTitle,signWhyShort,SIGN_WHY_WORDS,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,formOnHome,formHostEl,formPaperEl,formHeldContract,formRepaint,docTermFill,docNoticeFill,docSyncWrite,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPlace,roomPlacePut,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,checkVerdict,tplFormOpenCount,tplFormOpenFields,openCheckPanel,roomHeadHtml,wireRoomHead,
+  ROOM_TABS,formOnHome,formHostEl,formPaperEl,formHeldContract,formRepaint,docTermFill,docNoticeFill,docSyncWrite,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPlace,roomPlacePut,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,checkVerdict,tplFormOpenCount,tplFormOpenFields,detailsOf,detailsSections,blankFormLive,DET_RECORD_KEYS,detHeadHtml,detPaintHead,detailsChanged,detPaintPaperEmpties,openCompleteDetails,cdRepaintCounts,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill,
   /* idea 7 — the plain-English layer. Published because a name read through
      window from another module, or from a test stage, is silence when it is
