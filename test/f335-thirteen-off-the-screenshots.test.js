@@ -214,7 +214,8 @@ describe('f335 (6) — Fill it in opens the box it is looking for', () => {
     assert.match(body, /sectionSetOpen\(key, true\)/, 'the section is opened');
     assert.match(body, /ovSetEditing\(key, true\)/, 'and its rows turned on');
     const open = body.indexOf('sectionSetOpen');
-    const tab = body.indexOf("roomGoTab(c,'terms')");
+    /* RE-POINTED 12 Oct 2026: every field is filled in on Details (owner) */
+    const tab = body.indexOf("roomGoTab(c,'details')");
     assert.ok(open > 0 && tab > open, 'posture first, so ONE render does it');
   });
   test('and it honours the field it is handed', () => {

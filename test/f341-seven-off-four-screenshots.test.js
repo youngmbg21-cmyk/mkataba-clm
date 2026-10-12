@@ -294,7 +294,8 @@ describe('f341 (5) — two arrival tiles open the card that owns their reading',
 
   test('a working tile is never a door', () => {
     assert.match(fnBody(CONTRACT_CODE, 'ktTriageStripHtml'),
-      /const door=x\.working\?'':doorFor\(x\)/,
+      /* doorOf wraps doorFor since 12 Oct 2026 (the fill tile's Details door) */
+      /const door=x\.working\?'':door(For|Of)\(x\)/,
       'a reading still in flight has nothing to open yet');
   });
 

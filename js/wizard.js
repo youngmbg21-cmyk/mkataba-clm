@@ -967,7 +967,7 @@ function openNewAgreement(o){
      The rows are a white card under the tabs; the card ends just above the
      window's foot, measured from where it starts, so the whole list is one
      card the reader scrolls inside and the page itself does not run on. */
-  const fitRows=()=>{ const r=root.querySelector('#na-lists .na-rows'); if(!r||!r.getBoundingClientRect) return;
+  const fitRows=()=>{ const l=lists(); const r=l&&l.lastElementChild; if(!r||!r.getBoundingClientRect) return;
     const top=r.getBoundingClientRect().top;
     r.style.maxHeight=Math.max(NA_ROWS_MIN_H, Math.round((window.innerHeight||800)-top-NA_ROWS_FOOT))+'px'; };
   const paintLists=()=>{ const l=lists(); if(!l) return;
@@ -976,8 +976,11 @@ function openNewAgreement(o){
     fitRows();
   };
   fitRows();
-  const onResize=()=>{ if(!root.isConnected){ window.removeEventListener('resize',onResize); return; } fitRows(); };
-  window.addEventListener('resize',onResize);
+  /* a stage with no real window (a sandbox) has nothing to listen to */
+  if(typeof window.addEventListener==='function'){
+    const onResize=()=>{ if(!root.isConnected){ window.removeEventListener('resize',onResize); return; } fitRows(); };
+    window.addEventListener('resize',onResize);
+  }
   const light=()=>{ root.querySelectorAll('.na-pick.on').forEach(b=>b.classList.remove('on'));
     if(sel){ const b=root.querySelector(`[data-wz-${sel.kind}="${String(sel.id).replace(/["\\]/g,'\\$&')}"]`); if(b) b.classList.add('on'); }
     /* THE ACTS WAKE ON A PICK: Create draft and Skip stay grey, saying why,
