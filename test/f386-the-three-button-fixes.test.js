@@ -121,15 +121,15 @@ describe('f386 (2) Home\'s two cards use one button size', () => {
 });
 
 describe('f386 (3) one edge on every outlined control', () => {
-  /* RE-POINTED 12 Oct 2026 (the SAP way, the owner's pick by name): the one
-     edge is the ACCENT now — by day the accent, at night its lighter ink so
-     it stays visible. The old grey values stand above it in source and the
-     SAP block, written later, wins; the claim is still ONE token. */
-  test('the token is the accent by day and its lighter ink at night, written last', () => {
+  /* RE-POINTED 12 Oct 2026 to the accent (the SAP way), and BACK 13 Oct 2026
+     (owner: "revert all the buttons back to the previous thin grey outline"):
+     the one edge is the grey hairline by day and the stronger rule by night;
+     the claim is still ONE token, its last value the one that wins. */
+  test('the token is the grey hairline by day and the stronger rule at night, written last', () => {
     const day = [...HTML.matchAll(/:root\{[^}]*--btn-edge:([^;}]+)/g)].map(m => m[1].trim());
     const night = [...HTML.matchAll(/html\.dark\{[^}]*--btn-edge:([^;}]+)/g)].map(m => m[1].trim());
-    assert.equal(day[day.length - 1], 'var(--accent-solid)', 'the last day value is the accent');
-    assert.equal(night[night.length - 1], 'var(--accent-ink)', 'the last night value is the accent\'s night ink');
+    assert.equal(day[day.length - 1], 'var(--color-divider)', 'the last day value is the hairline');
+    assert.equal(night[night.length - 1], 'var(--rule-strong)', 'the last night value is the stronger rule');
   });
   test('every family that named its own edge reads the token now', () => {
     const want = [
