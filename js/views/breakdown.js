@@ -162,6 +162,15 @@ function bdPaint(){
 }
 
 /* ---------- THE PANEL: the zoom, deal → region → clause → words ---------- */
+/* the region a step press means: the chosen one, else the first row on the left */
+function bdStepRegion(b){
+  if (_bd.ri >= 0 && b.regions[_bd.ri]) return _bd.ri;
+  const first = bdByStatus(b)[0]; return first ? first.i : -1;
+}
+/* A ROW THAT IS A DOOR SAYS SO (owner, 13 Oct 2026: "you should have a button
+   directing you to click on the respective clauses otherwise you would not
+   know that it is a door"): the whole row stays the press; this is its sign. */
+function bdOpenHtml(key){ return `<span class="ui-btn ui-btn-sm bd-open">${_bdE(i18t(key))}</span>`; }
 function bdCrumbsHtml(b){
   const r = b.regions[_bd.ri];
   const parts = [`<button type="button" data-bd-nav="deal">${_bdE(i18t('bd_whole_deal'))}</button>`];
@@ -169,7 +178,17 @@ function bdCrumbsHtml(b){
   if (r && _bd.ci >= 0 && r.items[_bd.ci]) parts.push(`<button type="button" data-bd-nav="clause">${_bdE(r.items[_bd.ci].ref)}</button>`);
   if (_bd.lvl === 'words') parts.push(`<span>${_bdE(i18t('bd_words'))}</span>`);
   const lv = BD_LEVELS.indexOf(_bd.lvl);
-  return `<div class="bd-lvls">${BD_LEVELS.map((l, k) => `<span class="${lv >= k ? 'on' : ''}">${_bdE(i18t('bd_lvl_' + l))}</span>`).join('')}</div>
+  /* THE FOUR STEPS ARE DOORS (owner, 13 Oct 2026: "make the deal, region,
+     clause and words buttons to click on since it is simply not clear that
+     you have doors to those tabs"). A step with no region chosen yet opens
+     the first region of the list on the left; one with nothing behind it
+     greys and says why. */
+  const tr = bdStepRegion(b), rr = tr >= 0 ? b.regions[tr] : null;
+  const off = { deal: '', region: rr ? '' : i18t('bd_step_none'),
+    clause: rr && (rr.items || []).length ? '' : i18t('bd_step_no_clauses'),
+    words: rr && (rr.quotes || []).length ? '' : i18t('bd_step_no_words') };
+  return `<div class="bd-lvls" role="tablist" aria-label="${_bdE(i18t('bd_zoom_level'))}">${BD_LEVELS.map((l, k) =>
+    `<button type="button" role="tab" data-bd-step="${l}" aria-selected="${lv === k}"${lv > k ? ' class="on"' : ''}${off[l] ? ` disabled title="${_bdE(off[l])}"` : ''}>${_bdE(i18t('bd_lvl_' + l))}</button>`).join('')}</div>
     <nav class="bd-crumbs" aria-label="${_bdE(i18t('bd_zoom_level'))}">${parts.join('<i>›</i>')}</nav>`;
 }
 function bdDealHtml(c, b){
@@ -178,7 +197,7 @@ function bdDealHtml(c, b){
   return `<h3 class="bd-kick">${_bdE(i18t('bd_whole_deal'))}</h3><h2>${_bdE(c.name || '')}</h2>
     ${b.head || b.sub ? `<p class="bd-lead">${_bdE([b.head, b.sub].filter(Boolean).join('. '))}</p>` : ''}
     <h4>${_bdE(i18t('bd_by_status'))}</h4>
-    <div class="bd-slist">${bdByStatus(b).map(r => `<button type="button" data-bd-go="${r.i}"><span class="bd-dot ${r.status}"></span><span class="bd-sn">${r.n}. ${_bdE(r.name)}</span><span class="bd-sf">${bdFlagged(r) ? _bdE(i18t('bd_flagged_of', { k: bdFlagged(r), n: (r.items || []).length })) : _bdE(i18tn('bd_clauses_n', (r.items || []).length, { n: (r.items || []).length }))}</span></button>`).join('')}</div>
+    <div class="bd-slist">${bdByStatus(b).map(r => `<button type="button" data-bd-go="${r.i}"><span class="bd-dot ${r.status}"></span><span class="bd-sn">${r.n}. ${_bdE(r.name)}</span><span class="bd-sf">${bdFlagged(r) ? _bdE(i18t('bd_flagged_of', { k: bdFlagged(r), n: (r.items || []).length })) : _bdE(i18tn('bd_clauses_n', (r.items || []).length, { n: (r.items || []).length }))}</span>${bdOpenHtml('bd_open')}</button>`).join('')}</div>
     <h4>${_bdE(i18t('bd_made_of'))}</h4>
     <div class="bd-stack"><i class="sp" style="width:${pil.pay / pt * 100}%"></i><i class="sg" style="width:${pil.get / pt * 100}%"></i><i class="spr" style="width:${pil.protect / pt * 100}%"></i></div>
     <div class="bd-stackk"><span><i class="sp"></i>${_bdE(i18t('bd_k_pay'))} · ${pil.pay}</span><span><i class="sg"></i>${_bdE(i18t('bd_k_get'))} · ${pil.get}</span><span><i class="spr"></i>${_bdE(i18t('bd_k_protect'))} · ${pil.protect}</span></div>`;
@@ -193,8 +212,8 @@ function bdRegionHtml(c, b){
     ${r.ours || r.here ? `<h4>${_bdE(i18t('bd_vs'))}</h4><div class="bd-vs"><div class="ours"><span>${_bdE(i18t('bd_usual'))}</span><p>${_bdE(r.ours || '—')}</p></div><div class="here ${r.status}"><span>${_bdE(i18t('bd_this'))}</span><p>${_bdE(r.here || '—')}</p></div></div>` : ''}
     ${r.stake ? `<h4>${_bdE(i18t('bd_stake'))}</h4><p class="bd-stake">${_bdE(r.stake)}</p>` : ''}
     <h4>${_bdE(i18t('bd_every_clause', { n: (r.items || []).length }))}</h4>
-    <div class="bd-cls">${(r.items || []).map((it, k) => `<button type="button" data-bd-cl="${k}" class="${it.status}"><span class="ref">${_bdE(it.ref)}</span><span><b>${_bdE(it.title)}</b><em>${_bdE(it.note)}</em></span></button>`).join('')}</div>
-    ${links.length ? `<h4>${_bdE(i18t('bd_connected'))}</h4><div class="bd-links">${links.map(l => { const o = b.regions[(l.a === n ? l.b : l.a) - 1]; return o ? `<button type="button" data-bd-go="${(l.a === n ? l.b : l.a) - 1}"><b>${(l.a === n ? l.b : l.a)}. ${_bdE(o.name)}</b><span>${_bdE(l.why)}</span></button>` : ''; }).join('')}</div>` : ''}
+    <div class="bd-cls">${(r.items || []).map((it, k) => `<button type="button" data-bd-cl="${k}" class="${it.status}"><span class="ref">${_bdE(it.ref)}</span><span><b>${_bdE(it.title)}</b><em>${_bdE(it.note)}</em></span>${bdOpenHtml('bd_open_clause')}</button>`).join('')}</div>
+    ${links.length ? `<h4>${_bdE(i18t('bd_connected'))}</h4><div class="bd-links">${links.map(l => { const o = b.regions[(l.a === n ? l.b : l.a) - 1]; return o ? `<button type="button" data-bd-go="${(l.a === n ? l.b : l.a) - 1}"><b>${(l.a === n ? l.b : l.a)}. ${_bdE(o.name)}</b><span>${_bdE(l.why)}</span>${bdOpenHtml('bd_open_region')}</button>` : ''; }).join('')}</div>` : ''}
     ${r.fix ? `<div class="bd-fix"><span>${_bdE(i18t('bd_suggested'))}</span><p>${_bdE(r.fix)}</p></div>` : ''}
     <div class="bd-acts">${(r.quotes || []).length ? `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-bd-act="words">${_bdE(i18t('bd_read_words'))}</button>` : ''}
       ${r.status !== 'fine' ? `<button type="button" class="ui-btn ui-btn-sm" data-bd-act="redline">${_bdE(i18t('bd_redline_here'))}</button>` : ''}</div>`;
@@ -254,6 +273,14 @@ if (typeof document !== 'undefined' && !document._bdWired){
     if (pk){ _bd.id = pk.getAttribute('data-bd-pick'); _bd.picking = false; _bd.err = ''; _bd.lvl = 'deal'; _bd.ri = -1; _bd.ci = -1; bdPaint(); return; }
     const go = t.closest('[data-bd-go]'); if (go){ bdGo('region', Number(go.getAttribute('data-bd-go'))); return; }
     const cl = t.closest('[data-bd-cl]'); if (cl){ bdGo('clause', null, Number(cl.getAttribute('data-bd-cl'))); return; }
+    const step = t.closest('[data-bd-step]');
+    if (step){ const b0 = c && bdOf(c); if (!b0 || step.disabled) return;
+      const k = step.getAttribute('data-bd-step'), ri = bdStepRegion(b0);
+      if (k === 'deal'){ bdGo('deal'); return; }
+      if (ri < 0) return;
+      if (k === 'region'){ bdGo('region', ri); return; }
+      if (k === 'clause'){ bdGo('clause', ri, (_bd.ri === ri && _bd.ci >= 0) ? _bd.ci : 0); return; }
+      if (k === 'words'){ bdGo('words', ri); return; } }
     const nav = t.closest('[data-bd-nav]');
     if (nav){ const n = nav.getAttribute('data-bd-nav'); bdGo(n === 'deal' ? 'deal' : n === 'region' ? 'region' : 'clause'); return; }
     const act = t.closest('[data-bd-act]'); if (!act || !c) return;

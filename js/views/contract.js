@@ -9023,6 +9023,23 @@ function cdSuggestHtml(c){
       :(filled?'':`<p class="cd-p">${esc(i18t('det_jambo_none'))}</p>`)}
     <p class="cd-p cd-quiet">${esc(i18t('det_saved_note'))}</p>`;
 }
+function cdBoxOf(w){ return w.querySelector('input:not([type="checkbox"]):not([type="file"]),select,textarea'); }
+function cdSnapshot(root){
+  const m=new Map();
+  root.querySelectorAll('[data-cd-key]').forEach(w=>{ const k=w.getAttribute('data-cd-key');
+    const el=cdBoxOf(w), tick=w.querySelector('input[type="checkbox"]');
+    m.set(k,{ v: el ? String(el.value==null?'':el.value) : null, t: tick ? !!tick.checked : null }); });
+  return m;
+}
+function cdRestore(root, orig){
+  const fire=(el,evs)=>evs.forEach(n=>{ try{ el.dispatchEvent(new Event(n,{ bubbles:true })); }catch(_){} });
+  root.querySelectorAll('[data-cd-key]').forEach(w=>{ const o=orig.get(w.getAttribute('data-cd-key')); if(!o) return;
+    const tick=w.querySelector('input[type="checkbox"]');
+    if(tick && o.t!=null && !!tick.checked!==o.t){ tick.checked=o.t; fire(tick,['change']); }
+    const el=cdBoxOf(w);
+    if(el && o.v!=null && String(el.value==null?'':el.value)!==o.v){ el.value=o.v; fire(el,['input','change','blur']); }
+  });
+}
 function cdLeave(c, how){
   const live=(window.getContract&&getContract(c.id))||c;
   let filled=false;
@@ -9037,6 +9054,7 @@ function cdLeave(c, how){
     roomGoTab(live,'details');
   }
   if(filled) toast(i18t('det_filled_toast'),'ok');
+  else if(how==='cancel') toast(i18t('det_cancel_done'),'ok');
   else if(how==='later'){ const d=detailsOf(live);
     toast(d.left?i18tn('det_saved_left',d.left,{n:d.left}):i18t('det_saved_all'),'ok'); }
 }
@@ -9065,6 +9083,7 @@ function openCompleteDetails(c){
     <div class="cd-foot">
       <button type="button" id="cd-fill" class="ui-btn ui-btn-primary">${esc(i18t('tl_fill_doc'))}</button>
       <button type="button" id="cd-later" class="ui-btn">${esc(i18t('det_save_later'))}</button>
+      <button type="button" id="cd-cancel" class="ui-btn" data-dlg-cancel>${esc(i18t('act_cancel'))}</button>
     </div>
   </div>`;
   openModal(html,{ page:{ acts:['cd-count','cd-see'], crumb:`${ref} · ${c.name||''}` }, label:i18t('det_complete_title'),
@@ -9089,6 +9108,18 @@ function openCompleteDetails(c){
   const see=document.getElementById('cd-see'); if(see) see.addEventListener('click',()=>cdLeave(c,'see'));
   root.querySelector('#cd-fill')?.addEventListener('click',()=>cdLeave(c,'fill'));
   root.querySelector('#cd-later')?.addEventListener('click',()=>cdLeave(c,'later'));
+  /* CANCEL PUTS BACK WHAT THE BOXES HELD WHEN THE PAGE OPENED, THEN CLOSES
+     (owner, 13 Oct 2026, picked "Undo and close"): every answer here is saved
+     as it is typed, so Cancel is the undo, not a second "later". The old
+     answers go back THROUGH THE SAME BOXES AND THEIR OWN WRITERS (the box's
+     input · change · blur), so nothing here writes the record itself. Boxes
+     are found again by their key at the press — a reading may have redrawn
+     them. */
+  const cdOrig=cdSnapshot(root);
+  root.querySelector('#cd-cancel')?.addEventListener('click',()=>{
+    cdRestore(root, cdOrig);
+    cdLeave(c,'cancel');
+  });
   root.querySelector('#cd-read')?.addEventListener('click',async e=>{
     const b=e.currentTarget; b.disabled=true;
     if(typeof busySet==='function') try{ busySet(b,i18t('ct_reading')); }catch(_){}
