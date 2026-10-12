@@ -69,7 +69,7 @@ describe('f534 (1) the ask', () => {
   });
   test('the line over the box says the chapters are free and the words one call', () => {
     const w = world();
-    assert.match(w.hbAskPreviewText(w.hbAskReadingOf('build me a story of our negotiation friction')), /^Story: Negotiation friction · chapters free, the words one Copilot call$/);
+    assert.match(w.hbAskPreviewText(w.hbAskReadingOf('build me a story of our negotiation friction')), /^Story: Negotiation friction · chapters free, the words one Jambo call$/);
   });
 });
 
@@ -105,7 +105,7 @@ describe('f534 (3) the words', () => {
       return { answer: 'LEAD: Rounds rose this year. Signing took 40 days at the peak.\nC1: The highest month was 3 rounds. It was 777 rounds once.\nC2: The slowest month took 40 days.\nC3: Nothing was redlined.\nC4: Kevian Kenya Ltd took 1.9 rounds on average.' }; };
     const said = w.hbAsk('build me a story of our negotiation friction over the last year');
     assert.match(textOf(said), /a story in 4 chapters, over the last 12 months, is on the board/);
-    assert.match(textOf(said), /the words: one Copilot call/);
+    assert.match(textOf(said), /the words: one Jambo call/);
     await tick(); await tick();
     assert.equal(calls, 1, 'one call');
     assert.match(prompt, /CHAPTER 1 \(C1\): Rounds per contract/);
@@ -132,9 +132,9 @@ describe('f534 (3) the words', () => {
     let calls = 0; w.copilotAsk = async () => { calls++; return {}; };
     const said = w.hbAsk('show me the story of where our money sits');
     assert.equal(calls, 0);
-    assert.match(textOf(said), /the words need a Copilot key/);
+    assert.match(textOf(said), /the words need a Jambo key/);
     const html = textOf(w.hbStoryHtml(w.hbDigData('sy:spend', 'all'), 'all'));
-    assert.match(html, /HaTi’s own reading\. Copilot writes the story’s words once a Copilot key is set up/);
+    assert.match(html, /HaTi’s own reading\. Jambo writes the story’s words once a Jambo key is set up/);
     assert.match(html, /Where the money sits/);
   });
   test('the reply\'s shape is read whatever the model\'s decoration', () => {
@@ -185,8 +185,8 @@ describe('f534 (4) Dig deeper on a story', () => {
   });
   test('the cost sits beside the button; with no key the button is grey and says why', () => {
     const on = w => w.hbStoryHtml(w.hbDigData('sy:friction', 'all'), 'all');
-    assert.match(on(world({ key: true })), /data-hb-sy-deeper="friction"[^>]*title="Copilot looks for what is behind the story in up to 15 steps/);
-    assert.match(on(world()), /data-hb-sy-deeper="friction" disabled title="[^"]*Copilot key/);
+    assert.match(on(world({ key: true })), /data-hb-sy-deeper="friction"[^>]*title="Jambo looks for what is behind the story in up to 15 steps/);
+    assert.match(on(world()), /data-hb-sy-deeper="friction" disabled title="[^"]*Jambo key/);
   });
   test('a story\'s deeper run is not let go while the story keeps it', () => {
     const w = world();

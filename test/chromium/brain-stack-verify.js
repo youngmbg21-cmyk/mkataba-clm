@@ -67,7 +67,7 @@ const ok = (name, good, detail) => {
       title: document.getElementById('br-ov-t').textContent, sub: document.getElementById('br-ov-s').textContent,
       rings: document.querySelectorAll('#br-stack .br-sk-n').length }));
     ok('1b the key 5 opens it and lights its button', s1.on && s1.pressed === 'true', JSON.stringify({ on: s1.on, pressed: s1.pressed }));
-    ok('1c the stage says the trip and its stops', /^Stack · You ask Copilot$/.test(s1.title) && /Your browser → The internet → The engine → The memory → Claude AI → Back to you/.test(s1.sub), s1.title + ' | ' + s1.sub);
+    ok('1c the stage says the trip and its stops', /^Stack · You ask Jambo$/.test(s1.title) && /Your browser → The internet → The engine → The memory → Claude AI → Back to you/.test(s1.sub), s1.title + ' | ' + s1.sub);
 
     /* ---- 2. the canvas steps aside; the rings are what is painted ---- */
     const hit = await page.evaluate(() => {

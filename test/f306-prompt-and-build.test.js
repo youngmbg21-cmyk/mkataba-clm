@@ -84,7 +84,7 @@ describe('f306 (1) — the outline writes no wording', () => {
 
   test('a heading that came back empty never reaches the tick list', () => {
     assert.match(OUTLINE, /typeof x\.heading === 'string' && x\.heading\.trim\(\)/);
-    assert.match(OUTLINE, /Copilot proposed no sections/);
+    assert.match(OUTLINE, /Jambo proposed no sections/);
   });
 });
 
@@ -595,7 +595,7 @@ describe('f306 (11) — what the screen prints', () => {
 
   test('with no Copilot key the rail says so, the box is greyed, and the paper still types', async () => {
     const s = await stage([['heading', 'Confidentiality']], { configured: false });
-    assert.ok(s.rail.includes('Copilot is not connected'), 'the reason is in the rail');
+    assert.ok(s.rail.includes('Jambo is not connected'), 'the reason is in the rail');
     assert.match(s.rail, /<textarea id="tb-ask"[^>]*disabled/, 'the box is greyed');
     assert.ok(s.paper.includes('contenteditable="true"'), 'and the paper is still a place to write');
   });

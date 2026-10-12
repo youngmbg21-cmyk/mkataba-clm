@@ -230,7 +230,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_contracts_folder ON contracts(folder);
   CREATE INDEX IF NOT EXISTS idx_contracts_status ON contracts(status);
   CREATE INDEX IF NOT EXISTS idx_contracts_seq ON contracts(seq);
-  -- Every completed Copilot chat turn, including the failure paths. A chat
+  -- Every completed Jambo chat turn, including the failure paths. A chat
   -- turn spans contracts and belongs to the workspace, so it lives in its own
   -- table rather than bolted onto one contract's audit array. "What did the
   -- AI tell my team about MK-248 before we signed?" is answerable from here.
@@ -2638,7 +2638,7 @@ const intSetting = (key, envVar, def) => {
 // real demo or a busy reviewer, but a runaway client loop is stopped fast.
 const AI_WINDOW_MS = 15 * 60 * 1000;
 const aiUserKey = req => 'u:' + ((req.user && req.user.id) || clientIp(req) || 'unknown');
-const AI_LIMIT_MSG = 'Copilot limit reached — try again in a few minutes';
+const AI_LIMIT_MSG = 'Jambo limit reached — try again in a few minutes';
 /* EIGHT TURNS PER QUESTION (12 Sep 2026; was five): a paged read of a
    filtered set — forty rows a call, the owner's wall — needs the pages AND a
    turn to answer; at five a book of 161 gave up with "I wasn't able to finish
@@ -2652,7 +2652,7 @@ const rlAiDeep  = rateLimit('ai-deep',  () => intSetting('aiRateDeep',  'AI_RATE
 // but a pasted-in monster document or a scripted bulk payload is bounded before
 // it reaches (and is billed by) Anthropic. Truncation sets req.aiInputCapped so
 // the endpoint can tell the user their input was shortened.
-const AI_TRUNC_MARK = '\n\n[…truncated by HaTi before sending to Copilot…]';
+const AI_TRUNC_MARK = '\n\n[…truncated by HaTi before sending to Jambo…]';
 
 /* A QUOTE IS A QUOTE — ONE CONTINUOUS PASSAGE, NEVER TWO SPLICED.
    Measured against CUAD, 34 of 125 returned spans (27%) could not be found in
@@ -2937,7 +2937,7 @@ function priceUsage(model, usage) {
 const AI_FEATURE_LABEL = {
   extract: 'Metadata extraction', ocr: 'OCR (scanned paper)', playbook: 'Clause review',
   obligations: 'Obligations', graph: 'Portfolio graph', search: 'Search',
-  template: 'Template advisor', chat: 'Copilot', blanks: 'Template blanks', other: 'Other',
+  template: 'Template advisor', chat: 'Jambo', blanks: 'Template blanks', other: 'Other',
   /* Document conversion — the .docx and PDF upload routes. Missing from this
      map until now, and the omission was not cosmetic: recordAiCall() files any
      feature it does not recognise under 'other', so every conversion since
@@ -3152,10 +3152,10 @@ function aiBudgetGuard(req, res, next) {
   if (spendCeiling > 0) {
     const s = aiSpendToday();
     if (s.cost >= spendCeiling) {
-      console.warn(`[ai] daily SPEND ceiling reached: ${s.cost.toFixed(4)}/${spendCeiling} on ${s.date} — blocking further Copilot calls.`);
+      console.warn(`[ai] daily SPEND ceiling reached: ${s.cost.toFixed(4)}/${spendCeiling} on ${s.date} — blocking further Jambo calls.`);
       res.setHeader('Retry-After', 3600);
       return res.status(429).json({
-        error: `Daily Copilot budget reached (${money(s.cost)} of ${money(spendCeiling)} spent today). Waiting will not help — an admin needs to raise the budget in Team & Settings, or open an onboarding allowance for a migration.`,
+        error: `Daily Jambo budget reached (${money(s.cost)} of ${money(spendCeiling)} spent today). Waiting will not help — an admin needs to raise the budget in Team & Settings, or open an onboarding allowance for a migration.`,
         kind: 'spendCap',
         spendLimit: true, dailySpend: s.cost, dailySpendLimit: spendCeiling, retryAfter: 3600 });
     }
@@ -3164,9 +3164,9 @@ function aiBudgetGuard(req, res, next) {
   if (ceiling > 0) {
     const u = aiUsageToday();
     if (u.count >= ceiling) {
-      console.warn(`[ai] daily request ceiling reached: ${u.count}/${ceiling} on ${u.date} — blocking further Copilot calls.`);
+      console.warn(`[ai] daily request ceiling reached: ${u.count}/${ceiling} on ${u.date} — blocking further Jambo calls.`);
       res.setHeader('Retry-After', 3600);
-      return res.status(429).json({ error: `Daily Copilot limit reached (${u.count}/${ceiling} requests today). An admin can raise or disable this in Team & Settings.`, dailyLimit: true, retryAfter: 3600 });
+      return res.status(429).json({ error: `Daily Jambo limit reached (${u.count}/${ceiling} requests today). An admin can raise or disable this in Team & Settings.`, dailyLimit: true, retryAfter: 3600 });
     }
   }
   next();
@@ -4139,7 +4139,7 @@ app.get('/api/search', auth, (req, res) => {
 // E6-T2: Copilot semantic search — answer a portfolio question with quoted evidence.
 app.post('/api/ai/search', auth, rlAiLight, aiFeature('search'), aiBudgetGuard, capAiInput, scopeAiPortfolio, async (req, res) => {
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const { question, candidates } = req.body || {};
   if (!question || !Array.isArray(candidates)) return res.status(400).json({ error: 'question and candidates are required' });
   const tool = {
@@ -4155,12 +4155,12 @@ app.post('/api/ai/search', auth, rlAiLight, aiFeature('search'), aiBudgetGuard, 
   const prompt = `Answer the question about this contract portfolio using ONLY the provided contracts. Cite each contract that supports the answer with a short verbatim quote. Question: "${question}"\n\nCONTRACTS (JSON):\n${JSON.stringify(body)}\n\nReturn via answer_portfolio.`;
   try {
     const out = await anthropicMessages(key, 'fast', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'answer_portfolio' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'search', who: aiWho(req) });
-    if (!out.ok) return res.status(502).json({ error: 'Copilot provider error (' + out.status + '): ' + String(out.error).slice(0, 300) });
+    if (!out.ok) return res.status(502).json({ error: 'Jambo provider error (' + out.status + '): ' + String(out.error).slice(0, 300) });
     const data = out.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     res.json({ answer: block.input?.answer || '', matches: Array.isArray(block.input?.matches) ? block.input.matches : [], ...aiNotice(req, out) });
-  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
 app.get('/api/contracts/:id', auth, (req, res) => {
@@ -6659,9 +6659,9 @@ const COPILOT_TURN_CHARS = 20000;
 
 const aiNotice = (req, out) => {
   const parts = [];
-  if (req && req.aiInputCapped) parts.push('Your input was large, so it was shortened before being sent to the Copilot.');
-  if (out && out.truncated) parts.push('The Copilot answer was longer than the space allowed and was cut short, so some of it is missing. Try again, or narrow what you asked for.');
-  if (out && out.fellBack) parts.push(`The configured Copilot model "${out.rejectedModel}" was rejected by the provider, so the built-in default "${out.model}" was used instead. Update the model in Team & Settings.`);
+  if (req && req.aiInputCapped) parts.push('Your input was large, so it was shortened before being sent to Jambo.');
+  if (out && out.truncated) parts.push('Jambo answer was longer than the space allowed and was cut short, so some of it is missing. Try again, or narrow what you asked for.');
+  if (out && out.fellBack) parts.push(`The configured Jambo model "${out.rejectedModel}" was rejected by the provider, so the built-in default "${out.model}" was used instead. Update the model in Team & Settings.`);
   return parts.length ? { notice: parts.join(' ') } : {};
 };
 
@@ -6917,7 +6917,7 @@ app.put('/api/ai/config', auth, admin, (req, res) => {
   /* A key is one word starting "sk-ant-" (27 Sep 2026): a browser-filled
      login password must never be stored as the Copilot key. */
   if (typeof key === 'string' && key.trim() && !/^sk-ant-\S{4,}$/.test(key.trim()))
-    return res.status(400).json({ error: 'That does not look like a Copilot key. A key starts with “sk-ant-”.' });
+    return res.status(400).json({ error: 'That does not look like a Jambo key. A key starts with “sk-ant-”.' });
   if (typeof key === 'string' && key.trim()) setSetting('aiKey', key.trim());
   // Validate every supplied model string before storing; a blank clears that
   // override, a malformed value is rejected with a clear message.
@@ -6997,7 +6997,7 @@ app.put('/api/ai/config', auth, admin, (req, res) => {
    first and here second; a key here the browser cannot cut is a promise the
    map cannot keep. */
 const GRAPH_GROUP_KEYS = ['folder', 'counterparty', 'status', 'valueBand', 'kind', 'expiry', 'payterms', 'decision', 'risk', 'source', 'signedYear', 'signedQuarter', 'expiryYear', 'createdMonth', 'liability', 'law', 'owner', 'obligations', 'read'];
-const GRAPH_GROUP_DESC = 'folder = value stream; counterparty = customer/party; status = lifecycle stage; valueBand = value band; kind = contract type; expiry = expiry window (Expired / Within 30 days / 31–90 days / 3–12 months / Beyond a year / No expiry set — HaTi cuts these off the expiry field, you only name the dimension); payterms = payment-terms band off payTermsDays; decision = renewal decision quarter off decisionDate; risk = risk band; source = origin (uploaded / from a template / drafted); signedYear and signedQuarter = off signedAt; expiryYear = off expiry; createdMonth = off createdAt; liability = liability cap (capped / uncapped / unclear); law = governing law; owner = who owns the contract on our side; obligations = how many open obligations; read = whether Copilot has read it.';
+const GRAPH_GROUP_DESC = 'folder = value stream; counterparty = customer/party; status = lifecycle stage; valueBand = value band; kind = contract type; expiry = expiry window (Expired / Within 30 days / 31–90 days / 3–12 months / Beyond a year / No expiry set — HaTi cuts these off the expiry field, you only name the dimension); payterms = payment-terms band off payTermsDays; decision = renewal decision quarter off decisionDate; risk = risk band; source = origin (uploaded / from a template / drafted); signedYear and signedQuarter = off signedAt; expiryYear = off expiry; createdMonth = off createdAt; liability = liability cap (capped / uncapped / unclear); law = governing law; owner = who owns the contract on our side; obligations = how many open obligations; read = whether Jambo has read it.';
 const GRAPH_ASK_CAP = 600;   // contracts per map command, the browser's own cap; said in the prompt and the answer
 /* The structured filter the tool may return. HaTi applies it in the browser
    over its own cards (graphWhereIds), so the model never has to copy 159 ids
@@ -7005,7 +7005,7 @@ const GRAPH_ASK_CAP = 600;   // contracts per map command, the browser's own cap
 const GRAPH_WHERE_KEYS = ['status', 'folder', 'kind', 'counterparty', 'valueAbove', 'valueBelow', 'expiringWithinDays', 'signedFrom', 'signedTo', 'overdueObligations', 'offStandard', 'notRead', 'move', 'archived'];
 /* ONE SCHEMA for the vocabulary, read by the graph tool and by list_portfolio
    (Copilot audit phase 4); its keys ARE GRAPH_WHERE_KEYS (f305 pins the set). */
-const GRAPH_WHERE_SCHEMA = { type: 'object', description: 'A structured filter HaTi applies itself over every contract. Prefer this over copying ids. Keys: status (string or list), folder (value-stream name or id), kind (substring), counterparty (substring), valueAbove, valueBelow (numbers in the contract\'s own currency), expiringWithinDays (number), signedFrom, signedTo (YYYY-MM-DD, off signedAt), overdueObligations (true = has overdue obligations), offStandard (true = deviates from the playbook), notRead (true = Copilot has not read it), move ("you" = waiting on us, "them" = with the other side), archived (true/false).',
+const GRAPH_WHERE_SCHEMA = { type: 'object', description: 'A structured filter HaTi applies itself over every contract. Prefer this over copying ids. Keys: status (string or list), folder (value-stream name or id), kind (substring), counterparty (substring), valueAbove, valueBelow (numbers in the contract\'s own currency), expiringWithinDays (number), signedFrom, signedTo (YYYY-MM-DD, off signedAt), overdueObligations (true = has overdue obligations), offStandard (true = deviates from the playbook), notRead (true = Jambo has not read it), move ("you" = waiting on us, "them" = with the other side), archived (true/false).',
   properties: {
     status: { type: 'array', items: { type: 'string' } }, folder: { type: 'string' }, kind: { type: 'string' }, counterparty: { type: 'string' },
     valueAbove: { type: 'number' }, valueBelow: { type: 'number' }, expiringWithinDays: { type: 'number' },
@@ -7076,7 +7076,7 @@ function graphScreenSays(sc, sent, total) {
   if (!sc || typeof sc !== 'object') sc = {};
   const cut = (v, n) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n || 40);
   const parts = [];
-  const gb = cut(sc.groupBy); if (gb) parts.push(`The map is currently grouped by "${gb}"${sc.custom ? ' (a Copilot grouping)' : ''}.`);
+  const gb = cut(sc.groupBy); if (gb) parts.push(`The map is currently grouped by "${gb}"${sc.custom ? ' (a Jambo grouping)' : ''}.`);
   if (Array.isArray(sc.lenses) && sc.lenses.length)
     parts.push(`Lenses in force: ${sc.lenses.slice(0, 6).map(l => `"${cut(l && l.label, 40)}" (${cut(l && l.action, 10)}, ${Number(l && l.count) || 0} contracts)`).join(', ')}.`);
   if (Array.isArray(sc.crowded) && sc.crowded.length) parts.push(`Crowded renewal quarters: ${sc.crowded.slice(0, 6).map(x => cut(x, 20)).join(', ')}.`);
@@ -7228,7 +7228,7 @@ function graphLookClean(l) {
    and so does the board's weekly accuracy run (runBoardAccuracy) */
 const graphAskHandler = async (req, res) => {
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const { query, contracts, history, activeIds, screen } = req.body || {};
   if (!query || !Array.isArray(contracts)) return res.status(400).json({ error: 'query and contracts are required' });
   /* A CARD IS FIELDS, NEVER WORDING: a map command sends no text and none is
@@ -7296,7 +7296,7 @@ const graphAskHandler = async (req, res) => {
   const onScreen = graphScreenSays(screen, list.length, total);
   const figures = portfolioSays(portfolioFigures(copilotCtx(req)));
   const boardJob = onBoard ? `You are answering a question asked on HaTi's Home BOARD, a page of charts over a contract portfolio (the board is described under "On screen now", with each card's ref). Act through the board's own buttons in actions, a list HaTi presses in order:\n- add_card {which, recipe, title}: a new card. which = {all:true} for the whole book, or {q:"plain words naming the contracts"}.\n- change_card {card, recipe}: change a card; card "open" is the chart open on the board ("make it monthly", "as a pie", "by stream", "show value", "remove the trend", "this", "it"); fill ONLY the parts asked for.\n- remove_card {card}; name_card {card, title}; arrange {order: refs top first, sizes: {ref: big|small}}; filter_board {which}: what the whole board counts ({all:true} counts everything again).\nFor a whole dashboard ("build me a renewals dashboard") add four or five cards in one answer, each a different view. A question that names a picture is a card: "bubble chart of value against time left" → add_card {which:{all:true}, recipe:{pic:"bubbles", measure:"value"}}. A recipe uses the board's own words: pic ${GRAPH_CHART_PICS.join('/')} (stack/grouped/heat/multi need split2; waterfall, funnel and forecast take no split; spread is days to sign by a group); split ${GRAPH_CHART_SPLITS.join('/')} (with date ${GRAPH_CHART_DATES.join('/')} for month/quarter/year); split2 (a second split, same words); measure ${GRAPH_CHART_MEASURES.join('/')}; trend true/false; sort {by ${GRAPH_CHART_SORTS.join('/')}, dir ${GRAPH_CHART_DIRS.join('/')}}; top N; window {last|next N, unit ${GRAPH_CHART_UNITS.join('/')}, date} or {from, to}; compare ${GRAPH_CHART_COMPARES.join('/')} (range = against any other period, named in window.vs {from, to}: "Q1 2025 vs Q3 2026" is window {from:"2026-07-01", to:"2026-09-30", vs:{from:"2025-01-01", to:"2025-03-31"}}, compare range); title. HaTi counts every number: never put numbers in a recipe, and set no where, visibleIds or groupBy for a board action.\nWhen the request could mean two or three different charts and the board cannot tell which, give choices (each a label and its actions) instead of actions, and HaTi asks the reader. A QUESTION ABOUT WHAT THE BOARD SHOWS (why a number says what it says, what a line means): answer only, from the board's numbers, with no actions.\nThe map's own fields (groupBy, floorsBy, columnsBy, colourBy, view, look) are for the map: leave them empty unless the reader asks for the map.\n\n` : '';
-  const prompt = `${boardJob}You filter and cluster a contract portfolio for a graph view.\n\nToday's date: ${today}\n${onScreen ? `\nOn screen now: ${onScreen}\n` : ''}${figures ? `\n${figures}\n` : ''}\nContracts (JSON; fields per card: id, name, counterparty, folder = value stream, kind = type, status, currency, ${money ? 'value, ' : ''}expiry, signedAt, createdAt, decisionDate = renewal decision date, noticeDays, effDate, payTermsDays, parentId/relation = family, move = whose move in the negotiation ("you" = ours, "them" = theirs), live = negotiation live, overdue = overdue obligations, nextDue, offStandard = playbook deviations (null = never checked), risk = risk score (null = not scanned), read = Copilot has read it, archived, source):\n${JSON.stringify(list)}\n${hist ? `\nConversation so far:\n${hist}\n` : ''}${active ? `\nCurrently selected/highlighted contract ids (the user may refer to these as "those"/"these" in follow-ups — intersect with them when they do):\n${JSON.stringify(active)}\n` : ''}\nUser request: "${query}"\n\nRules:\n- If the request narrows the set (e.g. "leases", "Naivas", "high value", "expiring", "overdue", "waiting on us"), express it as a \`where\` filter wherever a field carries it; use visibleIds only for a match no field expresses (a name, a city).\n- Choose action: "filter" for explicit narrowing commands ("show only leases"), "highlight" for analytical questions ("which contracts end in 6 months?") so the rest of the portfolio stays visible for context.\n- For date/expiry questions, compute against today's date (${today}) using each contract's expiry field, and add a badges entry per match like "ends in 143d".\n- Write a short answer (1-3 sentences) for the chat panel — HaTi prints its own line of counts, so say what the numbers cannot. For any count or total, quote HaTi's own figures above; never add up the cards. NEVER state how many contracts match the request — HaTi counts the matches itself and prints that number; a sentence that states a different count is not shown.\n- If it is purely a grouping request ("group by customer", "cluster by expiration date", "by when they were signed"), leave visibleIds empty and set groupBy to the DIMENSION: ${GRAPH_GROUP_DESC}\n- It can be both.\n- Use groupBy="custom" ONLY for a dimension no key names (city, region, sector…), and then fill groups by INFERRING the label from the counterparty/name for every contract you can place, with at least two labels. Never return custom with an empty groups map.\n- If the request is about what a contract SAYS (a clause, its obligations, a summary, an explanation, a quote) and does not ask to arrange or narrow the map, set kind="wording" and nothing else.
+  const prompt = `${boardJob}You filter and cluster a contract portfolio for a graph view.\n\nToday's date: ${today}\n${onScreen ? `\nOn screen now: ${onScreen}\n` : ''}${figures ? `\n${figures}\n` : ''}\nContracts (JSON; fields per card: id, name, counterparty, folder = value stream, kind = type, status, currency, ${money ? 'value, ' : ''}expiry, signedAt, createdAt, decisionDate = renewal decision date, noticeDays, effDate, payTermsDays, parentId/relation = family, move = whose move in the negotiation ("you" = ours, "them" = theirs), live = negotiation live, overdue = overdue obligations, nextDue, offStandard = playbook deviations (null = never checked), risk = risk score (null = not scanned), read = Jambo has read it, archived, source):\n${JSON.stringify(list)}\n${hist ? `\nConversation so far:\n${hist}\n` : ''}${active ? `\nCurrently selected/highlighted contract ids (the user may refer to these as "those"/"these" in follow-ups — intersect with them when they do):\n${JSON.stringify(active)}\n` : ''}\nUser request: "${query}"\n\nRules:\n- If the request narrows the set (e.g. "leases", "Naivas", "high value", "expiring", "overdue", "waiting on us"), express it as a \`where\` filter wherever a field carries it; use visibleIds only for a match no field expresses (a name, a city).\n- Choose action: "filter" for explicit narrowing commands ("show only leases"), "highlight" for analytical questions ("which contracts end in 6 months?") so the rest of the portfolio stays visible for context.\n- For date/expiry questions, compute against today's date (${today}) using each contract's expiry field, and add a badges entry per match like "ends in 143d".\n- Write a short answer (1-3 sentences) for the chat panel — HaTi prints its own line of counts, so say what the numbers cannot. For any count or total, quote HaTi's own figures above; never add up the cards. NEVER state how many contracts match the request — HaTi counts the matches itself and prints that number; a sentence that states a different count is not shown.\n- If it is purely a grouping request ("group by customer", "cluster by expiration date", "by when they were signed"), leave visibleIds empty and set groupBy to the DIMENSION: ${GRAPH_GROUP_DESC}\n- It can be both.\n- Use groupBy="custom" ONLY for a dimension no key names (city, region, sector…), and then fill groups by INFERRING the label from the counterparty/name for every contract you can place, with at least two labels. Never return custom with an empty groups map.\n- If the request is about what a contract SAYS (a clause, its obligations, a summary, an explanation, a quote) and does not ask to arrange or narrow the map, set kind="wording" and nothing else.
 - The map has five views: brain, wiring, floors, grid and timeline. "Floors by X" sets floorsBy; "columns by X" sets columnsBy; "X against Y" sets columnsBy X, floorsBy Y and view grid; "over time" or "timeline" sets view timeline (timeBy names the date). Colour, size and labels each name a fact. Every fact is one of: ${GRAPH_GROUP_DESC}
 - When the request could mean more than one of these and you cannot tell which, fill ask with up to three {role, fact} options and change nothing else.
 - The map's LOOK — names shown or hidden, names on the edges, the size of the dots ("bubbles"), big bubbles, contracts gathered into one bubble, removing the grouping — goes in look and nowhere else. Never answer a look request with labelBy, sizeBy, groupBy, where or visibleIds.
@@ -7304,10 +7304,10 @@ const graphAskHandler = async (req, res) => {
 - Always return via the render_graph tool.`;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 2000, tools: [tool], tool_choice: { type: 'tool', name: 'render_graph' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'graph', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     const out = block.input || {};
     /* groupBy rides as the model wrote it (clamped, a string): the browser is
        the judge of whether the map can cut it, and a name it cannot cut is
@@ -7331,7 +7331,7 @@ const graphAskHandler = async (req, res) => {
       ask: Array.isArray(out.ask) ? out.ask.slice(0, 3).map(o => ({ role: String((o && o.role) || '').slice(0, 20), fact: String((o && o.fact) || '').slice(0, 40) })) : null,
       look: graphLookClean(out.look),
       ...aiNotice(req, resp) }, onBoard && !graphMapAsked(query)));
-  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 };
 app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, capAiInput, scopeAiPortfolio, graphAskHandler);
 /* ON THE BOARD THE MAP'S FIELDS DO NOT LEAVE THE SERVER (the one-build work
@@ -7404,7 +7404,7 @@ function boardAnalystClean(name, input) {
 }
 const boardAnalystHandler = async (req, res) => {
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const b = req.body || {};
   const question = String(b.question || '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 600);
   if (!question) return res.status(400).json({ error: 'question is required' });
@@ -7446,15 +7446,15 @@ const boardAnalystHandler = async (req, res) => {
   if (must) messages[messages.length - 1].content.push({ type: 'text', text: 'That was the last step: call finish now.' });
   try {
     const resp = await anthropicMessages(key, 'deep', { max_tokens: story ? 3000 : 1800, tools, tool_choice: must ? { type: 'tool', name: 'finish' } : { type: 'any' }, messages }, { feature: 'graph', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(x => x.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     let name = block.name, input = boardAnalystClean(name, block.input);
     /* a step the board cannot run (an unknown pack, a step past the last) is
        turned into a finish with nothing claimed, never run */
     if (!input || (must && name !== 'finish')) { name = 'finish'; input = { summary: '', cards: [], next: [] }; }
     res.json({ step: { name, input }, steps: steps.length, max: maxSteps, ...aiNotice(req, resp) });
-  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 };
 app.post('/api/board/analyst', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, capAiInput, boardAnalystHandler);
 
@@ -7484,7 +7484,7 @@ Rules — these are absolute:
 
 app.post('/api/ai/ocr', auth, rlAiOcr, aiFeature('ocr'), aiBudgetGuard, async (req, res) => {
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const { pages, first } = req.body || {};
   const list = Array.isArray(pages) ? pages : (req.body && req.body.page ? [req.body.page] : []);
   if (!list.length) return res.status(400).json({ error: 'pages (array of data URLs) is required' });
@@ -7518,9 +7518,9 @@ app.post('/api/ai/ocr', auth, rlAiOcr, aiFeature('ocr'), aiBudgetGuard, async (r
       max_tokens: 8000, tools: [tool], tool_choice: { type: 'tool', name: 'transcribe_page' },
       messages: [{ role: 'user', content: [...blocks, { type: 'text', text: OCR_PROMPT }] }],
     }, { feature: 'ocr', countRequest: !!first, allowance: req.aiAllowance, who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'Copilot returned no transcription' });
+    if (!block) return res.status(502).json({ error: 'Jambo returned no transcription' });
     const out = block.input || {};
     const text = typeof out.text === 'string' ? out.text : '';
     /* A PAGE THAT RAN OUT OF ROOM IS NOT A BLANK PAGE, and a page cut in half
@@ -7537,7 +7537,7 @@ app.post('/api/ai/ocr', auth, rlAiOcr, aiFeature('ocr'), aiBudgetGuard, async (r
        KEPT and says so, because degrading to partial beats degrading to
        silence — the customer's own words for it. */
     if (resp.truncated && !text.trim())
-      return res.status(502).json({ error: 'Copilot ran out of room before it could transcribe this page. Try again, or lower the render quality.' });
+      return res.status(502).json({ error: 'Jambo ran out of room before it could transcribe this page. Try again, or lower the render quality.' });
     res.json({
       text,
       illegible: Number(out.illegible || 0),
@@ -7558,7 +7558,7 @@ app.post('/api/ai/ocr', auth, rlAiOcr, aiFeature('ocr'), aiBudgetGuard, async (r
    contract described. */
 app.post('/api/ai/template', auth, rlAiLight, aiFeature('template'), aiBudgetGuard, capAiInput, scopeAiPortfolio, async (req, res) => {
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   /* LIBRARY TEMPLATES ARE NOT CONTRACTS (the owner's list, 27 Sep 2026): the
      Requests page sends its template shelf, and scopeAiPortfolio read those
      ids as contract ids — for a member limited to some value streams none
@@ -7599,16 +7599,16 @@ app.post('/api/ai/template', auth, rlAiLight, aiFeature('template'), aiBudgetGua
   const prompt = `You advise which existing contract to use as the TEMPLATE for a new one.\n\nToday's date: ${today}\n\nUser request: "${query}"\n\nCandidate contracts, each with full clause text (JSON):\n${JSON.stringify(body)}\n\nJudge fit on: clause structure and completeness for the requested deal type, quality of terms, whether it was executed (Signed is battle-tested), and how close the counterparty/commercial shape is to the request. Rank the top 3 via the recommend_template tool with a one-line reason each.`;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 1200, tools: [tool], tool_choice: { type: 'tool', name: 'recommend_template' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'template', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     const out = block.input || {};
     const ids = new Set(scored.map(c => c.id));
     const ranked = (Array.isArray(out.ranked) ? out.ranked : []).filter(x => x && ids.has(x.id)).slice(0, 3);
-    if (!ranked.length) return res.status(502).json({ error: 'Copilot returned no usable ranking' });
+    if (!ranked.length) return res.status(502).json({ error: 'Jambo returned no usable ranking' });
     res.json({ ranked, answer: typeof out.answer === 'string' ? out.answer : '', ...aiNotice(req, resp) });
-  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
 /* ---------- Copilot: draft from a sentence (W-1) ----------------------------
@@ -7645,7 +7645,7 @@ const DRAFT_FIELDS_MAX = 16;
 const DRAFT_BUCKET_WORD = { lib:'company standard', mine:'saved template', builtin:'HaTi template' };
 app.post('/api/ai/draft', auth, editor, rlAiLight, aiFeature('draft'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const { sentence, candidates } = req.body || {};
   if (!sentence || typeof sentence !== 'string' || !sentence.trim())
     return res.status(400).json({ error: 'sentence is required' });
@@ -7708,9 +7708,9 @@ app.post('/api/ai/draft', auth, editor, rlAiLight, aiFeature('draft'), aiBudgetG
   const prompt = `You help somebody start a contract in their own contract system.\n\nToday's date: ${today}\n\nWhat they typed:\n"""\n${said}\n"""\n\nThe templates this workspace has, each with the questions it asks (JSON):\n${JSON.stringify(cands)}\n\nDo two things with the draft_from_sentence tool.\n\nFIRST, pick the ONE template that fits what they described, by the kind of agreement it is. Return its id exactly as written above.\n\nWHICH SHELF TO TAKE IT OFF, when more than one fits. Each template says where it came from in \`from\`:\n- "company standard" is paper this company has approved and published. PREFER IT. If a company standard covers the kind of agreement they described, pick that one even where a saved or HaTi template looks like a closer match on wording — approved paper is the point of having it.\n- "saved template" is paper somebody in this workspace saved. Take one only when no company standard covers what they asked for.\n- "HaTi template" is the paper this product ships. Take one only when neither of the others covers it.\n- A template with no \`from\` is ranked last.\nTHEY CAN OVERRIDE THIS BY SAYING SO. If their sentence asks for a particular shelf — "use the HaTi template", "one of our saved ones", "not the company standard" — that wins over the order above, and \`why\` says you did as they asked. Only an explicit ask counts; do not read a preference into the kind of agreement they named.\nWhen you take something other than a company standard while one exists, \`why\` says in its one sentence why the standard did not cover it. If none of them is a reasonable fit, return an empty templateId — do not stretch to the nearest one. Then, and only then, NAME the nearest in \`closest\` and use \`why\` to say in one sentence what it does not cover. Naming it is not picking it: it is how the person is told why they got nothing, and nothing in this system will draft from it.\n\nSECOND, answer that template's own questions from their sentence, by key. Rules that matter more than filling boxes:\n- ONLY what they actually said, or what plainly follows from it. "Two-year agreement starting 1 March 2027" gives you both dates; "a two-year agreement" gives you neither, because you do not know when it starts.\n- LEAVE A QUESTION OUT rather than guess. An empty box a person fills in is right; a plausible wrong figure they do not notice is the one thing you must not produce.\n- Never invent a counterparty, a value, a date or a term that is not in what they typed.\n- Answer only the CHOSEN template's keys. Ignore every other template's fields.`;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'draft_from_sentence' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'draft', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = ((resp.data || {}).content || []).find(b => b.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     const out = block.input || {};
     /* THE ID MUST BE ONE WE OFFERED. A template the caller never listed is one
        they may not be able to reach — the browser drops it too, and this is the
@@ -7744,7 +7744,7 @@ app.post('/api/ai/draft', auth, editor, rlAiLight, aiFeature('draft'), aiBudgetG
       .slice(0, DRAFT_FIELDS_MAX)
       .map(f => ({ key: f.key, value: String(f.value).trim().slice(0, 300) }));
     res.json({ templateId: chosen.id, why: typeof out.why === 'string' ? String(out.why).slice(0, 400) : '', fields, ...aiNotice(req, resp) });
-  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
 /* ---------- Copilot: fill this contract's open blanks (17 Sep 2026) ---------
@@ -7778,7 +7778,7 @@ app.post('/api/ai/draft', auth, editor, rlAiLight, aiFeature('draft'), aiBudgetG
 const FILL_BLANKS_MAX = 40;
 app.post('/api/ai/fill', auth, editor, rlAiLight, aiFeature('fill'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const { text, blanks } = req.body || {};
   if (!Array.isArray(blanks) || !blanks.length)
     return res.status(400).json({ error: 'blanks are required' });
@@ -7824,9 +7824,9 @@ app.post('/api/ai/fill', auth, editor, rlAiLight, aiFeature('fill'), aiBudgetGua
     + RULES;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'fill_blanks' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'fill', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = ((resp.data || {}).content || []).find(b => b.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     const out = block.input || {};
     /* A KEY MUST BE ONE WE WERE ASKED ABOUT, and the example must not come
        back as the answer — a model handed "e.g. PET bottles & preforms" as the
@@ -7845,7 +7845,7 @@ app.post('/api/ai/fill', auth, editor, rlAiLight, aiFeature('fill'), aiBudgetGua
       .slice(0, FILL_BLANKS_MAX)
       .map(f => ({ key: f.key, value: String(f.value).trim().slice(0, 300) }));
     res.json({ fields, ...aiNotice(req, resp) });
-  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
 /* ---------- Copilot metadata extraction (E1 "file it for me") ----------
@@ -8010,15 +8010,15 @@ ${String(text)}`;
 }
 app.post('/api/ai/extract', auth, rlAiLight, aiFeature('extract'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const { text, thorough, part, parts } = req.body || {};
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
   try {
     const r = await aiExtractCall(key, { text, thorough, part, parts }, { allowance: req.aiAllowance, who: aiWho(req) });
-    if (!r.ok && r.noResult) return res.status(502).json({ error: 'Copilot returned no structured result' });
-    if (!r.ok) return res.status(502).json({ error: 'Copilot provider error (' + r.resp.status + '): ' + String(r.resp.error).slice(0, 300) });
+    if (!r.ok && r.noResult) return res.status(502).json({ error: 'Jambo returned no structured result' });
+    if (!r.ok) return res.status(502).json({ error: 'Jambo provider error (' + r.resp.status + '): ' + String(r.resp.error).slice(0, 300) });
     res.json({ metadata: r.metadata, sourceSpans: r.sourceSpans, source: 'ai', tier: r.tier, ...aiNotice(req, r.resp) });
-  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
 /* ---------- Copilot's SMALL QUESTIONS about a copied document (one door, 24 Sep 2026) ----------
@@ -8073,9 +8073,9 @@ async function aiLabelCandidates(req, res, key) {
     + `\n\nReturn via the label_candidates tool.`;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 2400, tools: [tool], tool_choice: { type: 'tool', name: 'label_candidates' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'blanks', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(x => x.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     const out = block.input || {};
     const KINDS = ['blank', 'note', 'leave'], TYPES = ['text', 'party', 'num', 'date', 'select'];
     /* ONLY WHAT WAS ASKED COMES BACK, and every string is bounded — a label
@@ -8088,7 +8088,7 @@ async function aiLabelCandidates(req, res, key) {
         variants: (Array.isArray(x.variants) ? x.variants : []).filter(v => typeof v === 'string' && v.trim().length >= 3).map(v => v.trim().slice(0, 80)).slice(0, 4) }));
     res.json({ items, category: TPL_CATEGORIES.includes(out.category) ? out.category : null,
       answered: items.length, asked: cands.length, ...aiNotice(req, resp) });
-  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 }
 
 /* ---------- Copilot: suggest the blanks in a customer's template ----------
@@ -8097,7 +8097,7 @@ async function aiLabelCandidates(req, res, key) {
    anything is saved — nothing here is written on the model's say-so. */
 app.post('/api/ai/blanks', auth, rlAiLight, aiFeature('blanks'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   if (Array.isArray((req.body || {}).candidates)) return aiLabelCandidates(req, res, key);
   const { text } = req.body || {};
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
@@ -8137,9 +8137,9 @@ TEMPLATE:
 ${String(text)}`;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 3000, tools: [tool], tool_choice: { type: 'tool', name: 'propose_blanks' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'blanks', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     const out = block.input || {};
     // Only keep proposals whose `find` actually appears in the document — the
     // client rewrites the body by literal replacement, so a hallucinated span
@@ -8148,7 +8148,7 @@ ${String(text)}`;
       .filter(f => f && typeof f.find === 'string' && f.find.length > 0 && f.find.length < 200 && String(text).includes(f.find));
     res.json({ fields, note: typeof out.note === 'string' ? out.note : '',
       dropped: (Array.isArray(out.fields) ? out.fields.length : 0) - fields.length, ...aiNotice(req, resp) });
-  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
 /* ---------- Copilot: the section list for a template being written ----------
@@ -8174,7 +8174,7 @@ const OUTLINE_SENTENCE_MAX = 2000;
 const OUTLINE_SECTIONS_MAX = 20;
 app.post('/api/ai/outline', auth, editor, rlAiLight, aiFeature('outline'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const { sentence, kind, required, title: wantTitle } = req.body || {};
   if (!sentence || typeof sentence !== 'string' || !sentence.trim())
     return res.status(400).json({ error: 'sentence is required' });
@@ -8226,9 +8226,9 @@ app.post('/api/ai/outline', auth, editor, rlAiLight, aiFeature('outline'), aiBud
     + `\nReturn via the propose_sections tool.`;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 1600, tools: [tool], tool_choice: { type: 'tool', name: 'propose_sections' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'outline', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     const out = block.input || {};
     /* A heading that came back empty is dropped rather than drawn as a blank
        row, and the count of what was dropped is not worth a sentence — what
@@ -8239,7 +8239,7 @@ app.post('/api/ai/outline', auth, editor, rlAiLight, aiFeature('outline'), aiBud
       .map(x => ({ heading: String(x.heading).trim().slice(0, 120),
                    intent: String(x.intent || '').trim().slice(0, 300),
                    ...(x.optional === true ? { optional: true } : {}) }));
-    if (!sections.length) return res.status(502).json({ error: 'Copilot proposed no sections' });
+    if (!sections.length) return res.status(502).json({ error: 'Jambo proposed no sections' });
     const extra = {};
     if (wantTitle) {
       const nm = typeof out.name_suggestion === 'string' ? clean(out.name_suggestion).slice(0, 80) : '';
@@ -8247,7 +8247,7 @@ app.post('/api/ai/outline', auth, editor, rlAiLight, aiFeature('outline'), aiBud
       if (TPL_CATEGORIES.includes(out.category_guess)) extra.category = out.category_guess;
     }
     res.json({ sections, note: typeof out.note === 'string' ? out.note : '', ...extra, ...aiNotice(req, resp) });
-  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
 /* ---------- Copilot obligation extraction (E3) ----------
@@ -8272,7 +8272,7 @@ function obSrvClean(o){
 }
 app.post('/api/ai/obligations', auth, rlAiDeep, aiFeature('obligations'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const { text, ours, theirs } = req.body || {};
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
   const side = (typeof ours === 'string' && ours.trim()) ? `\n\n"Us" is ${ours.trim().slice(0, 120)}${typeof theirs === 'string' && theirs.trim() ? '; "them" is ' + theirs.trim().slice(0, 120) : ''}.` : '';
@@ -8342,16 +8342,16 @@ Quote the clause each came from. For each, say its kind (dated, on an event, or 
        replaced. Output is billed as used, so headroom that is not needed
        costs nothing; an answer cut off costs the whole answer. */
     const resp = await anthropicMessages(key, 'deep', { max_tokens: 8000, tools: [tool], tool_choice: { type: 'tool', name: 'list_obligations' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'obligations', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     const list = (Array.isArray(block.input?.obligations) ? block.input.obligations : []).map(obSrvClean).filter(Boolean);
     /* "None" and "cut off before it could say" are different answers, and the
        screen prints the first as a fact about the contract. */
-    if (!list.length && resp.truncated) return res.status(502).json({ error: 'Copilot ran out of room before it could list the obligations. Try again.' });
+    if (!list.length && resp.truncated) return res.status(502).json({ error: 'Jambo ran out of room before it could list the obligations. Try again.' });
     res.json({ obligations: list, ...aiNotice(req, resp) });
-  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
 /* ---------- DRAFTING AN AMENDMENT FROM A SENTENCE (7 Oct 2026, O-12) ----------
@@ -8377,7 +8377,7 @@ const amendNorm = t => String(t || '').toLowerCase().replace(/[\u2018\u2019]/g, 
 const WINDOW_KINDS = ['fixed', 'fee', 'lockin', 'probation', 'nohire', 'secrecy', 'other'];
 app.post('/api/ai/windows', auth, rlAiDeep, aiFeature('windows'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const { text, start, end } = req.body || {};
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
   const day = v => (/^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) && !isNaN(Date.parse(v))) ? String(v) : '';
@@ -8394,9 +8394,9 @@ app.post('/api/ai/windows', auth, rlAiDeep, aiFeature('windows'), aiBudgetGuard,
   const prompt = `List the dated periods this contract sets: prices fixed, an exit fee or early-termination fee, a lock-in or minimum term, probation, no-hire or non-solicit, confidentiality that continues after the end, and any similar window with a start and an end.${day(start) ? ` The contract starts on ${day(start)}.` : ''}${day(end) ? ` It ends on ${day(end)}.` : ''} Give real calendar dates; leave a window out rather than guess its dates. Quote the words that set each one. Return via list_windows.\n\nDOCUMENT:\n${aiDocText(req, text)}`;
   try {
     const resp = await anthropicMessages(key, 'deep', { max_tokens: 4000, tools: [tool], tool_choice: { type: 'tool', name: 'list_windows' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'windows', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     const hay = amendNorm(text);
     let dropped = 0;
     const windows = (Array.isArray(block.input && block.input.windows) ? block.input.windows : []).map(w => {
@@ -8406,9 +8406,9 @@ app.post('/api/ai/windows', auth, rlAiDeep, aiFeature('windows'), aiBudgetGuard,
       return { label: String(w.label).slice(0, 60), kind: WINDOW_KINDS.includes(w.kind) ? w.kind : 'other', from, to,
         clause: String(w.clause || '').slice(0, 20), rule: String(w.rule || '').slice(0, 240), quote: String(w.quote).slice(0, 400) };
     }).filter(Boolean);
-    if (!windows.length && resp.truncated) return res.status(502).json({ error: 'Copilot ran out of room before it could list the windows. Try again.' });
+    if (!windows.length && resp.truncated) return res.status(502).json({ error: 'Jambo ran out of room before it could list the windows. Try again.' });
     res.json({ windows, dropped, ...aiNotice(req, resp) });
-  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
 /* ---- HOME'S BREAKDOWN: THE WHOLE CONTRACT IN REGIONS (owner picked the SAP
@@ -8424,7 +8424,7 @@ const BREAKDOWN_STATUS = ['need', 'look', 'fine'];
 const BREAKDOWN_KINDS = ['pay', 'get', 'protect'];
 app.post('/api/ai/breakdown', auth, rlAiDeep, aiFeature('breakdown'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const { text, side } = req.body || {};
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
   const tool = { name: 'break_down', description: 'Cut the contract into regions and say how each one stands for the reader\'s side.',
@@ -8463,9 +8463,9 @@ app.post('/api/ai/breakdown', auth, rlAiDeep, aiFeature('breakdown'), aiBudgetGu
   const prompt = `Read this whole contract from ${mine} and cut it into at most ten regions — groups of clauses that do one job (price, payment, term and exit, service levels, data, liability, law and general, missing details…). Every clause and schedule must sit in exactly one region. For each region say plainly whether it NEEDS the reader (a real risk or a contradiction), is WORTH A LOOK, or is FINE, and why, in short plain English for a non-lawyer. Quote the key words verbatim. Do not invent facts or numbers the text does not state; say "not stated" instead. Return via break_down.\n\nCONTRACT:\n${aiDocText(req, text)}`;
   try {
     const resp = await anthropicMessages(key, 'deep', { max_tokens: 8000, tools: [tool], tool_choice: { type: 'tool', name: 'break_down' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'breakdown', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     const hay = amendNorm(text);
     const str = (v, n) => String(v == null ? '' : v).slice(0, n);
     let dropped = 0;
@@ -8481,16 +8481,16 @@ app.post('/api/ai/breakdown', auth, rlAiDeep, aiFeature('breakdown'), aiBudgetGu
         kind: BREAKDOWN_KINDS.includes(r.kind) ? r.kind : 'protect', headline: str(r.headline, 140), sentence: str(r.sentence, 400),
         meaning: str(r.meaning, 500), fix: str(r.fix, 300), ours: str(r.ours, 240), here: str(r.here, 240), stake: str(r.stake, 240), quotes, items };
     }).filter(Boolean);
-    if (!regions.length) return res.status(502).json({ error: resp.truncated ? 'Copilot ran out of room before it could cut the contract into regions. Try again.' : 'Copilot found no regions in this wording.' });
+    if (!regions.length) return res.status(502).json({ error: resp.truncated ? 'Jambo ran out of room before it could cut the contract into regions. Try again.' : 'Jambo found no regions in this wording.' });
     const links = (Array.isArray(block.input.links) ? block.input.links : []).map(l => ({ a: Math.round(Number(l && l.a)), b: Math.round(Number(l && l.b)), why: str(l && l.why, 120) }))
       .filter(l => l.a >= 1 && l.b >= 1 && l.a <= regions.length && l.b <= regions.length && l.a !== l.b && l.why).slice(0, 6);
     res.json({ head: str(block.input.head, 60), sub: str(block.input.sub, 240), regions, links, dropped, truncated: !!resp.truncated, ...aiNotice(req, resp) });
-  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
 app.post('/api/ai/amend', auth, rlAiDeep, aiFeature('amend'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const { text, ask, facts } = req.body || {};
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
   if (!ask || typeof ask !== 'string' || !ask.trim()) return res.status(400).json({ error: 'Say what should change.' });
@@ -8531,9 +8531,9 @@ Current record facts: end date ${String(f.expiry || 'unknown')}, value ${Number(
 Return via draft_amendment.\n\nAGREEMENT:\n${aiDocText(req, text)}`;
   try {
     const resp = await anthropicMessages(key, 'deep', { max_tokens: 6000, tools: [tool], tool_choice: { type: 'tool', name: 'draft_amendment' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'amend', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     const inp = block.input || {};
     const body = amendNorm(text);
     let dropped = 0;
@@ -8546,14 +8546,14 @@ Return via draft_amendment.\n\nAGREEMENT:\n${aiDocText(req, text)}`;
       return true;
     }).map(it => ({ clauseNumber: String(it.clauseNumber || '').slice(0, 20), clauseLabel: String(it.clauseLabel || '').slice(0, 200),
       op: it.op, signed: String(it.signed || '').slice(0, 4000), amended: String(it.amended || '').slice(0, 4000), why: String(it.why || '').slice(0, 300) }));
-    if (!items.length && resp.truncated) return res.status(502).json({ error: 'Copilot ran out of room before it could draft the amendment. Try again.' });
+    if (!items.length && resp.truncated) return res.status(502).json({ error: 'Jambo ran out of room before it could draft the amendment. Try again.' });
     const fx = inp.facts && typeof inp.facts === 'object' ? inp.facts : {};
     const isoOk = v => /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) : '';
     res.json({ kind: inp.kind || null, items, dropped, truncated: !!resp.truncated,
       facts: { expiry: isoOk(fx.expiry), value: Number(fx.value) > 0 ? Number(fx.value) : 0, effectiveDate: isoOk(fx.effectiveDate) },
       mentions: (Array.isArray(inp.mentions) ? inp.mentions : []).slice(0, 5).map(m => ({ clause: String((m && m.clause) || '').slice(0, 120), why: String((m && m.why) || '').slice(0, 160) })),
       ...aiNotice(req, resp) });
-  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
 /* ---------- the Contract Brief (WO-2, WORKORDER-gap-map.md) ----------
@@ -8598,7 +8598,7 @@ app.post('/api/ai/brief', auth, editor, rlAiDeep, aiFeature('brief'), aiBudgetGu
     } catch (_) {}
   }
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const tool = {
     name: 'contract_brief',
     description: 'A plain-English cover memo for the whole contract.',
@@ -8669,9 +8669,9 @@ app.post('/api/ai/brief', auth, editor, rlAiDeep, aiFeature('brief'), aiBudgetGu
        reason — see f280, which pins this one to the two maxItems above rather
        than to the number, so the two cannot drift. */
     const resp = await anthropicMessages(key, 'deep', { max_tokens: 6000, tools: [tool], tool_choice: { type: 'tool', name: 'contract_brief' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'brief', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     /* ---- A CUT-SHORT BRIEF IS KEPT, MARKED — REVERSED IN PLACE 10 Sep 2026 ----
        (owner-ruled: "once the brief is written, when I refresh the page I should
        not lose the previously created brief until I choose to rerun the brief.")
@@ -8695,7 +8695,7 @@ app.post('/api/ai/brief', auth, editor, rlAiDeep, aiFeature('brief'), aiBudgetGu
     db.prepare('INSERT INTO briefs (contract_id,json,created_at) VALUES (?,?,?) ON CONFLICT(contract_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
       .run(String(id), JSON.stringify(brief), now());
     res.json({ brief, ...aiNotice(req, resp) });
-  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
 /* ===================== THE PLAIN-ENGLISH LAYER (idea 7) =====================
@@ -9156,7 +9156,7 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
   const pending = onlyAsk ? wanted.filter(i => onlyAsk.has(i)) : wanted;
   const skipped = wanted.length - pending.length;
   const key = aiKey();
-  if (pending.length && !key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  if (pending.length && !key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
 
   const tool = {
     name: 'clause_readings',
@@ -9203,9 +9203,9 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
        asked again. */
     const askPage = async pg => {
       const resp = await anthropicMessages(key, 'deep', { max_tokens: 8000, tools: [tool], tool_choice: { type: 'tool', name: 'clause_readings' }, messages: [{ role: 'user', content: promptFor(pg.body) }] }, { feature: 'readings', who: aiWho(req) });
-      if (!resp.ok) return { err: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) };
+      if (!resp.ok) return { err: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) };
       const block = (resp.data.content || []).find(b => b.type === 'tool_use' && b.name === 'clause_readings');
-      if (!block) return { err: 'Copilot returned no structured result' };
+      if (!block) return { err: 'Jambo returned no structured result' };
       return { resp, block };
     };
     /* A FEW AT A TIME, never all of them: a twelve-page contract fired in one
@@ -9520,7 +9520,7 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
      reads is kept as it lands. Kept in the map a minute after it ends, so a
      poll that lands just after the end still gets its answer. */
   job.promise = readAll()
-    .catch(e => ({ status: 502, error: 'Copilot request failed: ' + e.message }))
+    .catch(e => ({ status: 502, error: 'Jambo request failed: ' + e.message }))
     .finally(() => {
       job.running = false;
       const t = setTimeout(() => {
@@ -10672,14 +10672,14 @@ app.post('/api/ai/renewal', auth, editor, rlAiDeep, aiFeature('renewal'), aiBudg
     try { const a = JSON.parse(prev.json); if (a.inputHash === inputHash) return res.json({ advice: a, cached: true }); } catch (_) {}
   }
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   try {
     const r = await aiRenewalAdvice(key, { id: String(id), signals, doc: aiDocText(req, contractFullBody(full)),
       by: (req.user && req.user.name) || '' }, { who: aiWho(req) });
-    if (!r.ok && r.noResult) return res.status(502).json({ error: 'Copilot returned no structured result' });
-    if (!r.ok) return res.status(502).json({ error: 'Copilot provider error (' + r.resp.status + '): ' + String(r.resp.error).slice(0, 300) });
+    if (!r.ok && r.noResult) return res.status(502).json({ error: 'Jambo returned no structured result' });
+    if (!r.ok) return res.status(502).json({ error: 'Jambo provider error (' + r.resp.status + '): ' + String(r.resp.error).slice(0, 300) });
     res.json({ advice: r.advice, ...aiNotice(req, r.resp) });
-  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
 /* ---------- Copilot playbook review (E4) ----------
@@ -10747,20 +10747,20 @@ async function aiPlaybookVerdicts(key, { text, playbook, kind, note, before }, m
 
 app.post('/api/ai/playbook', auth, rlAiDeep, aiFeature('playbook'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const { text, playbook, kind } = req.body || {};
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
   try {
     const r = await aiPlaybookVerdicts(key, { text, playbook, kind }, { feature: 'playbook', who: aiWho(req) });
     if (!r.ok) {
-      if (r.noResult) return res.status(502).json({ error: 'Copilot returned no structured result' });
-      return res.status(502).json({ error: 'Copilot provider error (' + r.resp.status + '): ' + String(r.resp.error).slice(0, 300) });
+      if (r.noResult) return res.status(502).json({ error: 'Jambo returned no structured result' });
+      return res.status(502).json({ error: 'Jambo provider error (' + r.resp.status + '): ' + String(r.resp.error).slice(0, 300) });
     }
     /* `truncated` is the FACT beside the notice's sentence: the browser saves
        no check that was cut short (fix 3), so it has to be told, not left to
        read a notice. */
     res.json({ verdicts: r.verdicts, truncated: !!(r.resp && r.resp.truncated), ...aiNotice(req, r.resp) });
-  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
 /* ============================================================
@@ -10917,7 +10917,7 @@ function copilotStoredPlaybook(c) {
   const clip = (x, k) => { const t = String(x || ''); return t.length > k ? t.slice(0, k) + '…' : t; };
   return {
     playbook: r.label || r.key || '',
-    checkedBy: r.source === 'ai' ? 'Copilot-assisted' : 'rule-based',
+    checkedBy: r.source === 'ai' ? 'Jambo-assisted' : 'rule-based',
     checkedAt: at,
     verdicts: r.verdicts.slice(0, COPILOT_VERDICT_CAP).map(v => ({
       category: v.category || '', status: v.status || '',
@@ -10939,7 +10939,7 @@ function copilotStoredPlaybook(c) {
    for a complete one. */
 /* negoReasonOf's twin (js/negotiation.js): a note that is the tool's own label
    ("Copilot — Edit", "Written on the clause editor") is not a reason. */
-const SRV_NEGO_PROVENANCE_RE = /^(?:Copilot\s+[—-]\s|Written on the clause editor\s*$)/;
+const SRV_NEGO_PROVENANCE_RE = /^(?:(?:Copilot|Jambo)\s+[—-]\s|Written on the clause editor\s*$)/;   /* Jambo since 11 Oct 2026; notes saved before say Copilot */
 function copilotNegotiation(c) {
   const n = c && c.negotiation;
   const live = Array.isArray(c && c.changes) ? c.changes.filter(x => x && x.status !== 'superseded') : [];
@@ -11486,7 +11486,7 @@ const COPILOT_HISTORY_DESC = 'The audit trail of one contract, newest first: who
 const COPILOT_TOOLS = [
   { name: 'search_contracts', description: 'Full-text search the workspace by keyword, counterparty, or clause content. Returns matching contracts with a snippet, plus "total" — the TRUE number of matches in this reader\'s scope — and "truncated" when the list was cut at "limit". Use when the user names a party or topic rather than an exact id; raise "limit" (up to 40) when they ask for all of them.',
     input_schema: { type: 'object', properties: { query: { type: 'string', description: 'Keywords, counterparty name, or clause topic.' }, limit: { type: 'number', description: 'How many results to return, 1-40 (default 8).' } }, required: ['query'] } },
-  { name: 'get_contract', description: 'Fetch one contract in full by its id (e.g. MK-103): metadata, dates, value, status, open Copilot-scan findings, body text, AND its negotiation record — the round, whose turn it is, and every tracked change with who proposed it, its status, who decided it and any reason given. Use before answering about, or quoting, a specific contract, and for any question about edits, additions, rounds or versions. ' + COPILOT_MONEY_NOTE,
+  { name: 'get_contract', description: 'Fetch one contract in full by its id (e.g. MK-103): metadata, dates, value, status, open Jambo-scan findings, body text, AND its negotiation record — the round, whose turn it is, and every tracked change with who proposed it, its status, who decided it and any reason given. Use before answering about, or quoting, a specific contract, and for any question about edits, additions, rounds or versions. ' + COPILOT_MONEY_NOTE,
     input_schema: { type: 'object', properties: { id: { type: 'string', description: 'Contract id, e.g. MK-103.' } }, required: ['id'] } },
   { name: 'get_scan_findings', description: 'Fetch just the open risk/missing/ambiguity findings for one contract id (from the deterministic local-practice scan). Empty if it has not been scanned.',
     input_schema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } },
@@ -11513,7 +11513,7 @@ const COPILOT_TOOLS = [
       whose: { type: 'string', enum: ['ours', 'theirs'], description: 'Optional: our duties or the counterparty\'s.' } } } },
   { name: 'get_contract_history', description: COPILOT_HISTORY_DESC,
     input_schema: { type: 'object', properties: { id: { type: 'string', description: 'Contract id, e.g. MK-103.' } }, required: ['id'] } },
-  { name: 'check_against_playbook', description: 'Review one contract against the workspace playbook — the organisation\'s standard positions for its contract type. PREFERS THE REVIEW ALREADY ON THE CONTRACT: where the workspace has run one, this returns it (source:"stored-review", with the playbook it was checked against, when it was run and whether it was Copilot-assisted or rule-based) — that is exactly what the reader sees in their Playbook review panel, so quote it rather than re-judging the contract. Only where a contract has never been checked does it run one now (source:"run-now"), and it says so. Returns one verdict per playbook position (aligned / deviation / missing / na — na meaning the standard does not apply to this kind of contract, with verbatim quotes), noPlaybook:true when no playbook is configured for that contract type, or checkedNothing:true when a fresh check came back with no verdicts — which is NOT the same as the contract meeting every standard. ALWAYS NAME THE PLAYBOOK YOU READ and say whether it was the stored review or a fresh one. Use for questions about whether a contract matches our standards, positions or playbook.',
+  { name: 'check_against_playbook', description: 'Review one contract against the workspace playbook — the organisation\'s standard positions for its contract type. PREFERS THE REVIEW ALREADY ON THE CONTRACT: where the workspace has run one, this returns it (source:"stored-review", with the playbook it was checked against, when it was run and whether it was Jambo-assisted or rule-based) — that is exactly what the reader sees in their Playbook review panel, so quote it rather than re-judging the contract. Only where a contract has never been checked does it run one now (source:"run-now"), and it says so. Returns one verdict per playbook position (aligned / deviation / missing / na — na meaning the standard does not apply to this kind of contract, with verbatim quotes), noPlaybook:true when no playbook is configured for that contract type, or checkedNothing:true when a fresh check came back with no verdicts — which is NOT the same as the contract meeting every standard. ALWAYS NAME THE PLAYBOOK YOU READ and say whether it was the stored review or a fresh one. Use for questions about whether a contract matches our standards, positions or playbook.',
     input_schema: { type: 'object', properties: { id: { type: 'string', description: 'Contract id, e.g. MK-103.' } }, required: ['id'] } },
   { name: 'deliver_answer', description: 'Deliver the final grounded answer to the user. Call this once — and only once — after gathering what you need. Reference contracts by name and id, and cite the ones you used.',
     input_schema: { type: 'object', properties: {
@@ -11626,7 +11626,7 @@ function graphSays(g) {
       if (f.whose) p.push(`move: ${cut(f.whose, 12)}`);
       if (num(f.overdue)) p.push(`${num(f.overdue)} overdue obligation${num(f.overdue) === 1 ? '' : 's'}`);
       if (num(f.offStandard) != null) p.push(num(f.offStandard) ? `${num(f.offStandard)} off standard` : 'on standard');
-      if (f.unread) p.push('not read by Copilot');
+      if (f.unread) p.push('not read by Jambo');
       return p.length ? `${cut(f.contractNo ? `${f.contractNo} (worked as ${id})` : id, 60)}: ${p.join(', ')}` : ''; }).filter(Boolean);
     const more = Object.keys(g.facts).length - ids.length + (num(g.factsOmitted) || 0);
     if (lines.length) t += `What the graph says about each contract: ${lines.join('; ')}${more > 0 ? `; and ${more} more not listed` : ''}. `;
@@ -11675,7 +11675,7 @@ function buildCopilotSystem(context, scopeCtx) {
   const guideRules = typeof ctx.guideRules === 'string' ? ctx.guideRules.slice(0, 20000) : '';
   const guideLive = typeof ctx.guideLive === 'string' ? ctx.guideLive.slice(0, 20000) : '';
   const guideLegacy = typeof ctx.guide === 'string' ? ctx.guide.slice(0, 24000) : '';
-  const stable = `You are HaTi Copilot, the contract-intelligence assistant embedded in HaTi — a Contract Lifecycle Management platform (${orgName}), operating in ${orgJx().name}. You help a busy contracts/legal/commercial team read, search, compare and understand their own contract portfolio.
+  const stable = `You are Jambo, the contract-intelligence assistant embedded in HaTi — a Contract Lifecycle Management platform (${orgName}), operating in ${orgJx().name}. You help a busy contracts/legal/commercial team read, search, compare and understand their own contract portfolio.
 
 ${guideRules}
 
@@ -11800,7 +11800,7 @@ function logCopilotTurn(req, row) {
 
 app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const { messages, context } = req.body || {};
   const wholeDoc = !!(context && typeof context === 'object' && context.wholeDoc === true);
   if (!Array.isArray(messages) || !messages.length) return res.status(400).json({ error: 'messages are required' });
@@ -11871,7 +11871,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
       steps = step + 1;
       const resp = await anthropicMessages(key, compared ? 'deep' : 'fast', { max_tokens: 4000, system, tools: COPILOT_TOOLS, messages: working }, { feature: 'chat', who: aiWho(req) });
       if (!resp.ok) {
-        const err = 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300);
+        const err = 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300);
         logCopilotTurn(req, { question, answer: err, toolsUsed, model: resp.model || usedModel, steps });
         return res.status(502).json({ error: err, kind: 'provider' });
       }
@@ -11915,8 +11915,8 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
       quoteDrops: final.quoteDrops || 0, model: usedModel, steps });
     res.json({ answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ...(final.unfinished ? { unfinished: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...notice });
   } catch (e) {
-    logCopilotTurn(req, { question, answer: 'Copilot request failed: ' + e.message, toolsUsed, model: usedModel, steps });
-    res.status(502).json({ error: 'Copilot request failed: ' + e.message });
+    logCopilotTurn(req, { question, answer: 'Jambo request failed: ' + e.message, toolsUsed, model: usedModel, steps });
+    res.status(502).json({ error: 'Jambo request failed: ' + e.message });
   }
 });
 
@@ -12120,7 +12120,7 @@ function copilotProgressLabel(name, input) {
 
 app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const { messages, context } = req.body || {};
   const wholeDoc = !!(context && typeof context === 'object' && context.wholeDoc === true);
   if (!Array.isArray(messages) || !messages.length) return res.status(400).json({ error: 'messages are required' });
@@ -12207,7 +12207,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
         { feature: 'chat', who: aiWho(req) },
         { signal: ac.signal });
       if (!resp.ok) {
-        const err = 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300);
+        const err = 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300);
         logCopilotTurn(req, { question, answer: err, toolsUsed, model: resp.model || usedModel, steps });
         send('error', { message: err });
         return res.end();
@@ -12258,8 +12258,8 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
       try { res.end(); } catch (_) {}
       return;
     }
-    logCopilotTurn(req, { question, answer: 'Copilot request failed: ' + e.message, toolsUsed, model: usedModel, steps });
-    send('error', { message: 'Copilot request failed: ' + e.message });
+    logCopilotTurn(req, { question, answer: 'Jambo request failed: ' + e.message, toolsUsed, model: usedModel, steps });
+    send('error', { message: 'Jambo request failed: ' + e.message });
     res.end();
   }
 });
@@ -14085,7 +14085,7 @@ app.post('/api/contracts/:id/pass', auth, editor, async (req, res) => {
     const how = !r3 ? 'no email address on file; it is in their list in HaTi'
       : mail.emailSent ? 'emailed' : EMAIL_ON() ? 'the email did not go; it is in their list in HaTi' : 'email waiting in the outbox';
     line = { at: now(), user: req.user.name || 'System', action: 'Sent to a colleague',
-      detail: `To ${u.name || ''}${review ? ' for review' : ''} (asked Copilot) — ${how}${note ? ` — “${note}”` : ''}` };
+      detail: `To ${u.name || ''}${review ? ' for review' : ''} (asked Jambo) — ${how}${note ? ` — “${note}”` : ''}` };
     cj.audit = (Array.isArray(cj.audit) ? cj.audit : []).concat([line]);
     asks = cj.asks;
     db.prepare('UPDATE contracts SET json=?, updated_at=? WHERE id=?').run(JSON.stringify(cj), now(), req.params.id);
@@ -19651,7 +19651,7 @@ async function runPlaybookPrep() {
       if (isExecutedRow(cur)) { bump('executed'); continue; }
       cur.playbook = { key: pkey, label: resolved.label, verdicts: srvInParentVerdicts(cur, res.verdicts), source: 'ai', overnight: true, at: now() };
       cur.audit = (Array.isArray(cur.audit) ? cur.audit : []).concat([{ at: now(), user: 'HaTi', action: 'Playbook',
-        detail: `Playbook review prepared overnight — ${res.verdicts.length} position${res.verdicts.length === 1 ? '' : 's'} checked (Copilot-assisted), charged to ${owner.name || owner.id}` }]);
+        detail: `Playbook review prepared overnight — ${res.verdicts.length} position${res.verdicts.length === 1 ? '' : 's'} checked (Jambo-assisted), charged to ${owner.name || owner.id}` }]);
       db.prepare('UPDATE contracts SET json=?, updated_at=? WHERE id=?').run(JSON.stringify(cur), now(), r.id);
       out.prepared++;
     } catch (e) { bump('failed'); if (++streak >= PREP_OUTAGE_STREAK) { out.outage = true; break; } }
@@ -19736,7 +19736,7 @@ async function runLinkWatch() {
       if (!u0) continue;
       const no = srvLinkRefusal({ user: u0 }, srvStoredContract(sh.contract_id), sharePurposeOf(sh), { keep: true, contractId: sh.contract_id });
       if (no) { bump('autoRefused'); continue; }
-      it.kept = srvShareExtend(sh, SHARE_EXPIRY_DEFAULT_DAYS, 'Copilot (keep links working)');
+      it.kept = srvShareExtend(sh, SHARE_EXPIRY_DEFAULT_DAYS, 'Jambo (keep links working)');
       it.at = it.kept;
       out.kept = (out.kept || 0) + 1;
     }
@@ -20183,7 +20183,7 @@ app.post('/api/import/read', auth, editor, (req, res) => {
   const items = Array.isArray((req.body || {}).items) ? req.body.items.slice(0, 100) : [];
   if (!items.length) return res.status(400).json({ error: 'Nothing to read.' });
   if (!agentCfg('import').on) return res.status(409).json({ error: 'Archive import is switched off in its settings.', off: true });
-  if (!aiKey()) return res.status(409).json({ error: 'Copilot engine not configured', needsKey: true });
+  if (!aiKey()) return res.status(409).json({ error: 'Jambo engine not configured', needsKey: true });
   const scope = folderScopeFor(req.user);
   const queued = [];
   for (const it of items) {
@@ -20285,7 +20285,7 @@ async function runImportQueue() {
     c.migration = { ...(c.migration || {}), reading: null, readAt: now(), aiSource: 'ai',
       needsReview: MIG_READ.migReadNeedsReview(meta, { valueNone: c.valueType === 'none', ocr: !!q.ocr }) };
     c.audit = (Array.isArray(c.audit) ? c.audit : []).concat([{ at: now(), user: 'HaTi', action: 'Migrated',
-      detail: `Key terms read by Copilot${q.by_name ? ` for ${q.by_name}` : ''}${c.migration.needsReview ? ' — waiting for somebody to check them' : ''}${standards ? `; checked against ${standards.label}` : ''}` }]);
+      detail: `Key terms read by Jambo${q.by_name ? ` for ${q.by_name}` : ''}${c.migration.needsReview ? ' — waiting for somebody to check them' : ''}${standards ? `; checked against ${standards.label}` : ''}` }]);
     /* A NEW VERSION, deliberately: this is new content on the record, and a
        browser still holding the copy from before the reading must be told
        (the save's own "changed on the server" question) rather than quietly
@@ -20415,7 +20415,7 @@ async function paperRedo(cid, note, who) {
   c.playbook = { key: pkey, label: resolved.label, verdicts: srvInParentVerdicts(c, v.verdicts), source: 'ai', at: now(),
     sentBack: { note: String(note).slice(0, SENDBACK_NOTE_MAX), by: (who && who.name) || '' } };
   c.audit = (Array.isArray(c.audit) ? c.audit : []).concat([{ at: now(), user: (who && who.name) || 'HaTi', action: 'Playbook',
-    detail: `Standards check sent back to Copilot with a note — "${String(note).slice(0, 200)}" — and done again (${v.verdicts.length} position${v.verdicts.length === 1 ? '' : 's'} checked)` }]);
+    detail: `Standards check sent back to Jambo with a note — "${String(note).slice(0, 200)}" — and done again (${v.verdicts.length} position${v.verdicts.length === 1 ? '' : 's'} checked)` }]);
   upsertContract(c, row.version + 1);
   return { prepared: 1, playbook: c.playbook, version: row.version + 1 };
 }
@@ -20428,23 +20428,23 @@ app.post('/api/agents/:k/sendback', auth, editor, async (req, res) => {
   if (note.length > SENDBACK_NOTE_MAX) return res.status(400).json({ error: `Keep the note under ${SENDBACK_NOTE_MAX} characters.` });
   const cid = String(b.contractId || '');
   if (!cid || !idInScope(folderScopeFor(req.user), cid)) return res.status(404).json({ error: 'Contract not found' });
-  if (!aiKey()) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  if (!aiKey()) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const who = aiWho(req);
   const go = k === 'round' ? () => roundRedo(cid, String(b.key || ''), note, who)
     : k === 'renew' ? () => renewRedo(cid, note, who) : () => paperRedo(cid, note, who);
   const out = await runAgent(k, 'sendback', who, go, { subject: cid });
-  if (out.busy) return res.status(409).json({ error: 'Copilot is already working on this one. Try again in a moment.', busy: true });
+  if (out.busy) return res.status(409).json({ error: 'Jambo is already working on this one. Try again in a moment.', busy: true });
   if (out.ceiling || out.agentLimit) return res.status(429).json({ error: out.ceiling
-    ? 'Today’s Copilot budget is used up, so Copilot did not redo it. An admin can raise it in Settings.'
-    : 'This agent has spent its limit for today, so Copilot did not redo it. An admin can raise it in its settings.', ...out });
+    ? 'Today’s Jambo budget is used up, so Jambo did not redo it. An admin can raise it in Settings.'
+    : 'This agent has spent its limit for today, so Jambo did not redo it. An admin can raise it in its settings.', ...out });
   if (out.gone) return res.status(409).json({ error: 'That is no longer waiting — it may have been answered already.', ...out });
-  if (out.failed || out.error) return res.status(502).json({ error: 'Copilot could not do it again just now. Nothing was changed — try again.', ...out });
+  if (out.failed || out.error) return res.status(502).json({ error: 'Jambo could not do it again just now. Nothing was changed — try again.', ...out });
   if (out.noStandards) return res.status(409).json({ error: 'There are no standards written down for this kind of contract to check it against.', ...out });
   if (out.executed) return res.status(409).json({ error: 'This contract is signed, so its standards check is not redone. Nothing was changed.', ...out });
-  if (out.noText) return res.status(409).json({ error: 'There is not enough wording on this contract for Copilot to check. Nothing was changed.', ...out });
+  if (out.noText) return res.status(409).json({ error: 'There is not enough wording on this contract for Jambo to check. Nothing was changed.', ...out });
   /* "Done again" is said only where an answer was written (8 Oct 2026): any
      other ending, named above or not, is a refusal the page shows in words. */
-  if (!out.prepared) return res.status(409).json({ error: 'Copilot did not redo it. Nothing was changed.', ...out });
+  if (!out.prepared) return res.status(409).json({ error: 'Jambo did not redo it. Nothing was changed.', ...out });
   res.json({ ok: true, ...out });
 });
 /* ============================================================================
@@ -20581,7 +20581,7 @@ async function runAgent(k, trigger, who, fn, { subject = '' } = {}) {
     db.prepare('UPDATE agent_runs SET finished_at=?, error=?, cost=? WHERE id=?').run(now(), msg.slice(0, 500), cost, id);
     try {
       db.prepare('INSERT INTO outbox (id,to_addr,subject,body,sent,provider,dev_hint,created_at) VALUES (?,?,?,?,0,?,?,?)')
-        .run('ag_' + rid(6), 'admin', `A Copilot agent did not finish: ${AGENT_NAME_EN[k] || k}`,
+        .run('ag_' + rid(6), 'admin', `A Jambo agent did not finish: ${AGENT_NAME_EN[k] || k}`,
           `The "${AGENT_NAME_EN[k] || k}" agent stopped part-way through this run, so some of its work was not done.\n\nReason: ${msg}`,
           'system', 'agent run failure', now());
     } catch (_) {}
@@ -20878,7 +20878,7 @@ async function runBookReading() {
           if (cur.playbook && Array.isArray(cur.playbook.verdicts) && cur.playbook.verdicts.length) { bump('done'); continue; }
           cur.playbook = rec;
           cur.audit = (Array.isArray(cur.audit) ? cur.audit : []).concat([{ at: now(), user: 'HaTi', action: 'Playbook',
-            detail: `Checked against our standards overnight — ${res.verdicts.length} position${res.verdicts.length === 1 ? '' : 's'} checked (Copilot-assisted), charged to ${who.name}` }]);
+            detail: `Checked against our standards overnight — ${res.verdicts.length} position${res.verdicts.length === 1 ? '' : 's'} checked (Jambo-assisted), charged to ${who.name}` }]);
           db.prepare('UPDATE contracts SET json=?, updated_at=? WHERE id=?').run(JSON.stringify(cur), now(), r.id);
         }
         out.checked++;
@@ -21424,7 +21424,7 @@ app.delete('/api/me/items/:id', auth, (req, res) => {
    contract only where the person can see it. */
 app.post('/api/ai/plan', auth, rlAiDeep, aiFeature('plan'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const b = req.body || {};
   const from = myDay(b.from), to = myDay(b.to);
   if (!from || !to || to < from) return res.status(400).json({ error: 'from and to are required (yyyy-mm-dd).' });
@@ -21449,13 +21449,13 @@ The person asks: ${ask}
 Propose up to 8 blocks of time, each BEFORE the deadline it serves, inside working hours, never overlapping anything above or each other. Use plain words.`;
   try {
     const resp = await anthropicMessages(key, 'deep', { max_tokens: 2000, tools: [tool], tool_choice: { type: 'tool', name: 'propose_blocks' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'plan', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(x => x.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     const out = planBlocksCheck(block.input && block.input.blocks, { from, to, hs, he, events, user: req.user });
-    if (!out.blocks.length && resp.truncated) return res.status(502).json({ error: 'Copilot ran out of room before it could plan. Try again.' });
+    if (!out.blocks.length && resp.truncated) return res.status(502).json({ error: 'Jambo ran out of room before it could plan. Try again.' });
     res.json({ say: myText(block.input && block.input.say, 400), blocks: out.blocks, dropped: out.dropped, ...aiNotice(req, resp) });
-  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 /* THE ONE CHECK of a proposed block (also run by tests). */
 function planBlocksCheck(list, o){
@@ -23054,7 +23054,7 @@ app.post('/api/templates/upload', auth, paperMaker, passwordCurrent, rlAiDeep, a
     if (!structure.length) return res.status(400).json({ error: 'No readable text found in the document' });
   }
   const key = aiKey();
-  if (!key) return res.status(409).json({ error: 'The converter needs the Copilot engine — an admin adds the Anthropic API key under Team & Settings', needsKey: true });
+  if (!key) return res.status(409).json({ error: 'The converter needs Jambo engine — an admin adds the Anthropic API key under Team & Settings', needsKey: true });
 
   const sourceType = isPdf ? pdf.sourceType : 'docx';
   const fileName = clean(b.fileName).slice(0, 200) || (isPdf ? 'upload.pdf' : 'upload.docx');

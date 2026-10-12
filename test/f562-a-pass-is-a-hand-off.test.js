@@ -64,7 +64,7 @@ describe('f562 (1)–(4) — the look question, on the server', () => {
   test('1b the SERVER wrote the History line', async () => {
     const line = (stored('MK-LK-1').audit || []).filter(x => x.action === 'Sent to a colleague').pop();
     assert.ok(line, 'a trail line');
-    assert.match(line.detail, /Unrestricted Legal/); assert.match(line.detail, /for review/); assert.match(line.detail, /asked Copilot/);
+    assert.match(line.detail, /Unrestricted Legal/); assert.match(line.detail, /for review/); assert.match(line.detail, /asked Jambo/);
   });
   test('1c no email address: still a hand-off, still on the trail', async () => {
     sql("UPDATE users SET email='' WHERE id=?", String(mate.id));

@@ -99,7 +99,7 @@ const DOC = 'SUPPLY AGREEMENT\n\nArticle 1 Term\n\nThis Agreement runs for twelv
     const btn = await page.$('#hb-focus [data-hb-ag-item^="quiet:"] [data-ag-act="draftreply"]');
     ok('4a the dropped thread offers "Draft a reply"', !!btn);
     if (btn) await btn.click();
-    const said = await page.waitForFunction(() => /No Copilot key is set up|Copilot could not write a reply|Copilot came back with nothing to say|A reply Copilot drafted/.test((document.querySelector('#hb-focus [data-hb-ag-item^="quiet:"]') || {}).innerText || ''), null, { timeout: 15000 }).then(() => true, () => false);
+    const said = await page.waitForFunction(() => /No Jambo key is set up|Jambo could not write a reply|Jambo came back with nothing to say|A reply Jambo drafted/.test((document.querySelector('#hb-focus [data-hb-ag-item^="quiet:"]') || {}).innerText || ''), null, { timeout: 15000 }).then(() => true, () => false);
     ok('4b the press ends in words: a draft, or why there is none', said, await page.evaluate(() => ((document.querySelector('#hb-focus [data-hb-ag-item^="quiet:"]') || {}).innerText || '').slice(0, 300)));
     /* a stand-in answer, so the hand-over into the drawer can be driven */
     await page.evaluate(() => { window.copilotAsk = async () => ({ answer: 'Thank you, Erik. The delivery address is our Ruiru warehouse, as in clause 1.' }); });

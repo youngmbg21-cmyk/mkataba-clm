@@ -182,7 +182,7 @@ const VERDICTS = [
   const ask = await page.evaluate(() => { const ok = document.getElementById('cf-ok'); const msg = ok && ok.closest('[role="dialog"], .modal, div');
     const text = ok ? (ok.closest('[role="dialog"]') || ok.parentElement.parentElement).innerText : ''; return { there: !!ok, text }; });
   check(ask.there, '2a a real press raises the confirm dialog');
-  check(/one deep Copilot call/i.test(ask.text) && /nothing is sent/i.test(ask.text), '2b and the sentence names the cost and says nothing is sent', ask.text.slice(0, 160));
+  check(/one deep Jambo call/i.test(ask.text) && /nothing is sent/i.test(ask.text), '2b and the sentence names the cost and says nothing is sent', ask.text.slice(0, 160));
   await page.screenshot({ path: path.join(OUT, '02-ask.png') });
   /* REFUSING WRITES NOTHING. */
   if (ask.there){ await page.click('#cf-cancel'); await pause(500); }
@@ -215,7 +215,7 @@ const VERDICTS = [
   check(new RegExp(after.drafts + ' drafts filed under Your drafts — nothing sent').test(after.toast), '3f one toast says what happened, with the count', after.toast.trim().slice(0, 120));
   check(after.audit.length === 1 && new RegExp(after.drafts + ' drafts filed unsent').test(after.audit[0]), '3g one English audit line names the count', after.audit[0]);
   const calls1 = ai.calls.length;
-  check(calls1 === 1, '3i and exactly ONE deep Copilot call was spent for it', String(calls1));
+  check(calls1 === 1, '3i and exactly ONE deep Jambo call was spent for it', String(calls1));
   /* NO BAND, STRIP OR NOTICE anywhere: the column repainting is the confirmation. */
   const strips = await page.evaluate(() => document.querySelectorAll('.rl-notices > *:not(#rl-banner), .rl-plan, .rl-unsent').length);
   check(strips === 0, '3h and nothing was added to the page — no band, strip or notice', String(strips));
@@ -402,7 +402,7 @@ const VERDICTS = [
     '7a- the control: the finding landed on this clause', JSON.stringify(st7));
   /* THE FAULT AND THE FIX AS ONE PAIR OF NUMBERS, off the real module. */
   check(st7.lossBare === 5,
-    '7a Copilot\'s draft on its own would delete five parts nobody complained about', st7.lossBare);
+    '7a Jambo\'s draft on its own would delete five parts nobody complained about', st7.lossBare);
   check(st7.fitKind === 'draft' && st7.fitBlock === 2 && st7.fitBlocks === 6,
     '7b addressed, it goes in the block the finding quoted — the third of six',
     `${st7.fitKind} block ${st7.fitBlock} of ${st7.fitBlocks}`);

@@ -72,7 +72,7 @@ describe('F499 (B, C) — a failing card is not applied; the retry runs once', (
     assert.equal(calls, 1, 'one retry');
     assert.match(note, /did not apply these/); assert.match(note, /"Starts"/); assert.match(note, /start date is missing for 34 of 40/);
     assert.doesNotMatch(note, /"Streams"/, 'the good card is not sent back');
-    assert.match(said.replace(/<[^>]+>/g, ' '), /One retry ran: 1 card went back to Copilot to be fixed\./);
+    assert.match(said.replace(/<[^>]+>/g, ' '), /One retry ran: 1 card went back to Jambo to be fixed\./);
     /* two cards from one answer are a preview (work order Part 5): nothing lands until pressed */
     assert.equal(w.hbS().panels.length, 0);
     const id = w.hbTakeMeta().preview.id;

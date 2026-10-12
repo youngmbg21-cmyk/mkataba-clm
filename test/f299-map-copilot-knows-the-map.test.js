@@ -155,7 +155,7 @@ test('f299 (4) a custom grouping that places nothing is refused in words — no 
   assert.equal(ok.refused, false);
   assert.equal(win.eval('intel.groupBy'), 'custom');
   assert.equal(JSON.stringify(win.eval('intel.groups')), JSON.stringify({ 'MK-1': 'Nairobi', 'MK-2': 'Nairobi', 'MK-3': 'Mombasa' }));
-  assert.match(last(win).text, /Grouped 6 contracts into \d+ groups by Copilot grouping/);
+  assert.match(last(win).text, /Grouped 6 contracts into \d+ groups by Jambo grouping/);
 });
 
 /* ---------- (5) THE ANSWER IS WRITTEN FROM WHAT THE MAP DID ---------- */
@@ -190,7 +190,7 @@ test('f299 (5b) Copilot\'s sentence rides as a second line only where it says so
   win.eval('intel.lenses=[]; intel.groupBy="folder";');
   win.intelGraphApply('leases', { visibleIds: ['MK-1', 'MK-2'], note: 'Leases', action: 'filter', answer: 'Two leases, MK-1 the larger.' }, { capped: { sent: 600, total: 700 } });
   assert.equal(win.eval('intel.lenses.length'), 1);
-  assert.equal(last(win).text, '<p class="ai-p">Two leases, MK-1 the larger.</p><p class="ai-p igd-cap">Copilot read the first 600 of 700 contracts</p>', 'a cap is a fact: it stays on the screen');
+  assert.equal(last(win).text, '<p class="ai-p">Two leases, MK-1 the larger.</p><p class="ai-p igd-cap">Jambo read the first 600 of 700 contracts</p>', 'a cap is a fact: it stays on the screen');
   assert.equal(last(win).how, 'Showing 2 of 6 · Leases');
   win.eval('intel.lenses=[]');
   win.intelGraphApply('which expire soon', { visibleIds: ['MK-2'], note: 'Expiring', action: 'highlight', answer: '' });

@@ -127,7 +127,7 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
     await until(page, () => !!(window.state && state.contracts && state.contracts.length));
-    if (!(await page.evaluate(() => typeof riskAnswerOf === 'function'))) throw new Error('there is no one Copilot editor on this build');
+    if (!(await page.evaluate(() => typeof riskAnswerOf === 'function'))) throw new Error('there is no one Jambo editor on this build');
     await page.evaluate(({ LIAB_NEW, QUAL_NEW }) => {
       state.aiConfigured = true;
       window._ocAsked = [];
@@ -144,7 +144,7 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     await until(page, () => !!document.querySelector('.redline-page #rl-changes'));
     const row = await until(page, id => { if (!document.getElementById('rl-risks') && window.renderRedline) renderRedline();
       return !!document.querySelector('#rl-risks [data-rk-key="s:t-liab"] [data-rk-act="edit-ce"]'); }, ID);
-    check(!!row, '0 the Redlines card lists the liability risk with Edit with Copilot');
+    check(!!row, '0 the Redlines card lists the liability risk with Edit with Jambo');
 
     /* ============ 1. FROM A RISK ============ */
     await press(page, '#rl-risks [data-rk-key="s:t-liab"] [data-rk-act="edit-ce"]');
@@ -152,7 +152,7 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
       const lane = document.querySelector('#clause-editor #ce-lane');
       return lane && lane.querySelector('.rk-ce-head') && !lane.querySelector('.rk-busy') && lane.querySelector('.ce-card .pv') && document.querySelector('#ce-lane [data-ce-apply="rk:0"]') ? true : null;
     }, null, 10000);
-    check(!!rk, '1- the Risks tab has Copilot\'s answer');
+    check(!!rk, '1- the Risks tab has Jambo\'s answer');
     const R = await railNow();
     check(!!R && R.disc, '1a the panel\'s dropdown stands over the risk as over the clause');
     check(!!R && R.read.length >= 2 && /playbook/i.test(R.read[0]) && R.read.some(x => /wording/i.test(x)), '1b the reading rows the clause screen draws (Our playbook · The wording)', R && R.read.join(' · '));

@@ -266,7 +266,7 @@ function aiTracePack(c){
     /* The pack states what this record IS, because a lawyer reading it in a
        dispute must not have to infer it: these are proposals, the agreement is
        the agreement, and a person decided every one of them. */
-    note: 'Wording Copilot proposed on this contract, and what a person did with it. '
+    note: 'Wording Jambo proposed on this contract, and what a person did with it. '
         + 'Nothing here is part of the agreement — the agreement is the sealed wording above.',
     proposals: wording.length,
     takenAsIs: count('as-is'),

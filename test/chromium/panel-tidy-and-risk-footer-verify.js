@@ -102,7 +102,7 @@ const LIAB_NEW = 'Each party\'s total liability under this Agreement shall not e
     await until(page, () => !!document.querySelector('#rl-risks [data-rk-key="s:t-liab"]'), null, 12000);
     await press(page, '#rl-risks [data-rk-key="s:t-liab"] [data-rk-act="edit-ce"]');
     const up = await until(page, () => !!document.querySelector('#clause-editor #ce-lane .ce-card .pv') && document.querySelector('[data-ce-tab="risks"].is-on'), null, 12000);
-    check(!!up, '0 Edit with Copilot opens on the Risks tab with a Suggested wording');
+    check(!!up, '0 Edit with Jambo opens on the Risks tab with a Suggested wording');
     if (!up) throw new Error('the editor did not open on the risk');
     await railShot('1-risk-walk-before-apply.png');
 

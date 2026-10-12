@@ -1689,7 +1689,7 @@ function uploadConfirmHtml(ext, meta){
         <summary style="cursor:pointer;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-neutral-700)">More details HaTi read (${extras.length}) — renewal, notice, governing law…</summary>
         <div class="grid sm:grid-cols-2 gap-2 up-grid" style="margin-top:10px">${extras.map(extraFld).join('')}</div>
       </details>`:''}
-      ${ext&&readCount?`<p style="margin:0 0 10px;font-size:var(--t-label);color:var(--color-neutral-600)">Everything ✦ came from the document${meta&&meta._source==='ai'?', read by Copilot':', pattern-matched'}. Nothing is saved until you press <b>${i18t('ct_file_contract')}</b>.</p>`:''}
+      ${ext&&readCount?`<p style="margin:0 0 10px;font-size:var(--t-label);color:var(--color-neutral-600)">Everything ✦ came from the document${meta&&meta._source==='ai'?', read by Jambo':', pattern-matched'}. Nothing is saved until you press <b>${i18t('ct_file_contract')}</b>.</p>`:''}
       ${uploadRouteHtml(ext)}
       ${triageOptInHtml(ext)}
       <div class="flex items-center gap-2">
@@ -1977,7 +1977,7 @@ async function submitUpload(){
     template:null, source:'upload', folder, valueType:vtype,
     lastAction:todayStr(), expiry, hash:null, signedAt:null, signatory:u?.name||'Authorized signatory',
     compliance:{},
-    comments:[{author:'System',role:'Automation',side:'internal',text:`Uploaded “${file.name}”, received from ${cp||'a counterparty'} and filed under ${FOLDERS[folder].name}.${extractedText.length>200?` ${extractedText.length.toLocaleString()} characters of text extracted for Copilot review.`:''} Review and sign to record acceptance.`,ts:fmtDT(nowISO())}],
+    comments:[{author:'System',role:'Automation',side:'internal',text:`Uploaded “${file.name}”, received from ${cp||'a counterparty'} and filed under ${FOLDERS[folder].name}.${extractedText.length>200?` ${extractedText.length.toLocaleString()} characters of text extracted for Jambo review.`:''} Review and sign to record acceptance.`,ts:fmtDT(nowISO())}],
     fields:{}, scan:null,
     audit:[{at:nowISO(),user:u?.name||'System',action:'Uploaded',detail:`Received “${file.name}” (${Math.round(file.size/1024)} KB)${extractedText.length>200?`, ${extractedText.length.toLocaleString()} chars extracted`:', no text extracted'}`}],
     signatures:[], upload };
@@ -2188,7 +2188,7 @@ function applyMetadata(c, m){
   /* AND THE EFFECTIVE DATE, which this door confirmed and never copied — see
      metaEffDateOnto (js/metadata.js). Fill only, like the three above it. */
   if(typeof metaEffDateOnto==='function') metaEffDateOnto(c, m);
-  logAudit(c,'Metadata confirmed',`Filed with ${m._source==='ai'?'Copilot-extracted':'pattern-matched'} details (type ${m.contractType||'—'}, category ${m.category||'—'}, renewal ${m.renewalType||'—'})`);
+  logAudit(c,'Metadata confirmed',`Filed with ${m._source==='ai'?'Jambo-extracted':'pattern-matched'} details (type ${m.contractType||'—'}, category ${m.category||'—'}, renewal ${m.renewalType||'—'})`);
 }
 
 /* Working-text document body: shown once a contract carries edited wording
@@ -2686,7 +2686,7 @@ function uploadDocBody(c){
     </div>`}
     <!-- Everything above is the owner's own handling of the file: the Word
          round-trip control, who uploaded it and when, and how well the text
-         could be read for Copilot review. None of it is the counterparty's business,
+         could be read for Jambo review. None of it is the counterparty's business,
          and shown to them it produced a second Download button competing with
          the portal's own, under copy addressed to somebody else. -->
     ${''/* ---- THE SAME FIX AS THE BRANCH ABOVE, ONE BRANCH LATE (owner-asked
@@ -2945,7 +2945,7 @@ function uploadScanRules(c){
   }
   // always — honest disclaimer
   add('u-legal','low','missing','Have qualified counsel review before signing',
-    'This Copilot review flags common issues but is not legal advice and cannot catch everything.',
+    'This Jambo review flags common issues but is not legal advice and cannot catch everything.',
     'External paper is drafted for the other side; a clause-by-clause read by a lawyer catches what heuristics miss.',
     'Obtain independent legal review before signing where the value or risk is material.');
   return F;
@@ -7695,7 +7695,7 @@ function riskCardHtml(c){
     ${r.bars.map(b=>`<div class="risk-row"><span class="risk-k">${esc(b.label)}</span>
       <span class="risk-bar"><i style="width:${b.n}%;background:${b.n>=60?'var(--st-ruby-dot)':b.n>=35?'var(--st-amber-dot)':'var(--st-green-dot)'}"></i></span>
       <span class="risk-n">${b.n}</span></div>`).join('')}
-    <p style="margin:var(--s-2) 0 0;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-500)">Scored from ${[r.ranPb?'the playbook review':'',r.ranScan?'the Copilot scan':''].filter(Boolean).join(' and ')}. Anything above 60 needs Legal sign-off before signing.</p>`;
+    <p style="margin:var(--s-2) 0 0;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-500)">Scored from ${[r.ranPb?'the playbook review':'',r.ranScan?'Jambo scan':''].filter(Boolean).join(' and ')}. Anything above 60 needs Legal sign-off before signing.</p>`;
 }
 /* ---- ONE CARD BESIDE KEY TERMS, AND IT MATCHES IT ----
    The Risk card is gone from this tab (Young, 10 Aug 2026). It was the third
@@ -7805,7 +7805,7 @@ function wireKtBriefCard(c,opts){
     if(!window.runContractBrief) return;
     if(b.disabled) return;
     const word=b.textContent;
-    b.disabled=true; b.textContent=i18t('ct_working');
+    b.disabled=true; (window.busySet?busySet(b,i18t('ct_working')):(b.textContent=i18t('ct_working')));
     try{
       /* force, because a rewrite of a brief already on file must not be
          answered out of the cache with the same partial memo. */
@@ -13686,7 +13686,7 @@ function docThreadStates(c,rows,plain){
     if(n) parts.push(`<span class="is-${esc(x.tone||'amber')}">${esc(i18tn('th_look_n',n,{n}))}</span>`);
     if(plain.has(x.el)) parts.push(`<span class="is-read">${esc(i18t('th_read'))}</span>`);
     else if(running&&(!_docThreadOnly||_docThreadOnly.has(i)))
-      parts.push(`<span class="is-wait">${esc(i18t('ct_read_reading'))}</span>`);
+      parts.push(`<span class="is-wait">${window.busyHtml?busyHtml(i18t('ct_read_reading')):esc(i18t('ct_read_reading'))}</span>`);
     else if(cannot.has(i)) parts.push(`<span class="is-amber">${esc(i18t('th_cannot_state'))}</span>`);
     el.innerHTML=parts.join('<span class="doc-th-dot"> · </span>');
   });
@@ -13768,7 +13768,7 @@ function docThreadBodyHtml(c,rows,i,plain,sheet){
     parts.push(`<div class="doc-th-plain">${docReadMark(p)}</div>
       <div class="doc-th-at" title="${esc(i18t('ct_read_cap'))}">${esc(when?i18t('th_read_at',{when}):i18t('th_read'))}${docThreadMovedHtml(c,i,sheet)}</div>`);
   } else if(asked){
-    parts.push(`<div class="doc-th-wait">${esc(docThreadProgress(c))}</div>`);
+    parts.push(`<div class="doc-th-wait">${window.busyHtml?busyHtml(docThreadProgress(c)):esc(docThreadProgress(c))}</div>`);
   } else {
     if(docThreadCannotOf(c).has(i))
       parts.push(`<p class="doc-th-cannot"><b>${esc(i18t('th_cannot_head'))}</b> ${esc(i18t(docThreadCannotWhy(c,i)))}</p>`);
@@ -14339,7 +14339,7 @@ function docReadOnlyHint(c){
    guard states the decision where a future mount would trip it. */
 const DOC_SEL_ACTIONS=[
   { id:'simplify', label:'✂️ Simplify' },
-  { id:'ask',      label:'✨ Ask Copilot' }
+  { id:'ask',      label:'✨ Ask Jambo' }
 ];
 function docSelKill(){ document.querySelectorAll('.nego-selmenu').forEach(n=>n.remove()); }
 function wireDocCopilotSel(c){
@@ -14395,7 +14395,7 @@ async function docAiRead(c,action,text){
   const quote=`<div style="font-size:var(--t-label);margin-top:var(--s-1);opacity:.85;font-style:italic;max-height:76px;overflow-y:auto">“${esc(text)}”</div>`;
   if(window.aiPush) aiPush('user',{text:`${esc(action.label)}${quote}`});
   if(!window.copilotAvailable||!copilotAvailable()){
-    if(window.aiPush) aiPush('assistant',{text:'The Copilot is not connected yet. Connect it under Settings &rarr; Copilot engine, then try again.'});
+    if(window.aiPush) aiPush('assistant',{text:'Jambo is not connected yet. Connect it under Settings &rarr; Jambo engine, then try again.'});
     if(window.renderAIFeed) renderAIFeed();
     return;
   }
@@ -14426,7 +14426,7 @@ async function docAiRead(c,action,text){
     aiPush('assistant',aiRenderServerAnswer(res));
   }catch(e){
     ai.busy=false;
-    aiPush('assistant',{text:`<div>That didn’t come back: ${esc((e&&e.message)||'the Copilot could not answer')}. Nothing about the contract has changed.</div>`,err:true});
+    aiPush('assistant',{text:`<div>That didn’t come back: ${esc((e&&e.message)||'Jambo could not answer')}. Nothing about the contract has changed.</div>`,err:true});
   }
   renderAIFeed();
   if(!ai.open){ ai.unread=true; updateAIBadge(); }
@@ -14939,11 +14939,11 @@ async function fillKeyTermsFromDocument(c){
     }
     if(!filled.length){
       toast(meta._source==='ai'?'Nothing new found — the fields already hold what the document says'
-                               :'Nothing found. Party names and the deal value need an Copilot key — type them in instead','err');
+                               :'Nothing found. Party names and the deal value need a Jambo key — type them in instead','err');
       return;
     }
     c.lastAction=todayStr();
-    logAudit(c,'Edited',`Filled ${filled.join(', ')} from the document (${meta._source==='ai'?'Copilot':'pattern match'})`);
+    logAudit(c,'Edited',`Filled ${filled.join(', ')} from the document (${meta._source==='ai'?'Jambo':'pattern match'})`);
     persist(c);
     toast(`Filled ${filled.join(', ')} — check it before signing`,'ok');
     renderWorkspace();
@@ -15707,7 +15707,7 @@ function signCheckCardHtml(c){
       ? `<button type="button" class="sc-stage-act" id="sc-run" data-sc-run="1"${busy||rc.waiting?' disabled':''}
           title="${esc(i18t(rc.waiting?'sc_wait_nego':'sc_run_title'))}"><svg class="sc-run-i" width="14" height="14"
           viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-search"/></svg>${
-          esc(busy?i18t('sc_running'):(willN?i18tn('sc_run_n',willN,{n:willN}):i18t('sc_run')))}</button>`
+          (busy&&window.busyHtml?'<span class="ob-spin" aria-hidden="true"></span>':'')+esc(busy?i18t('sc_running'):(willN?i18tn('sc_run_n',willN,{n:willN}):i18t('sc_run')))}</button>`
       : (st==='sign'&&rc&&rc.ready)
       ? `<button type="button" class="sc-stage-act sc-brief" id="sc-brief"
           data-kt-brief="${briefStands?'open':'run'}"${busy||rc.waiting?' disabled':''}
@@ -15778,7 +15778,7 @@ function signCheckCardHtml(c){
      THE HEAD DRAWS NO CONTROL: it carried this one and nothing else. */
   return `<section id="sign-check" class="kt-tri sc-ready${busy?' is-busy':''}">
     <div class="kt-tri-head">
-      <span class="kt-tri-t">${esc(i18t(busy?'sc_head_busy':(window.signRouteOf&&signRouteOf(c)==='outside'?'ho_ready_head':'sc_ready_head')))}${counts?` <span class="sc-counts">${esc(counts)}</span>`:''}</span>
+      <span class="kt-tri-t">${busy&&window.busyHtml?'<span class="ob-spin" aria-hidden="true"></span>':''}${esc(i18t(busy?'sc_head_busy':(window.signRouteOf&&signRouteOf(c)==='outside'?'ho_ready_head':'sc_ready_head')))}${counts?` <span class="sc-counts">${esc(counts)}</span>`:''}</span>
     </div>
     ${openRows||settledRows?`<div class="sc-finds">${openRows}${settledRows}</div>`
       :`<div class="sc-find-w sc-clear">${esc(i18t('sc_head_clear'))}</div>`}

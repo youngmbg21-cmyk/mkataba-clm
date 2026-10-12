@@ -137,7 +137,7 @@ const OFFSETS = [3, 6, 9, 12, 20, 26, 35, 44, 52, 61, 70, 78, 85, 88];
         blocks: Array.from({ length: 8 }, (_, i) => ({ date: iso(3 + i), start: '10:00', end: '11:00', title: 'Prepare CH-' + i, why: 'Its date is close and you are free.' })) } : real(p, m, b);
     });
     const q = await page.$('[data-cal-plan-q="week"]');
-    if (q){ await q.click(); await pause(900); seen.push({ at: 'Copilot answered', ...(await measure()) }); }
+    if (q){ await q.click(); await pause(900); seen.push({ at: 'Jambo answered', ...(await measure()) }); }
     else ok('1 Copilot\'s prepared question is on the page', false, 'not drawn');
     for (const id of ['cal-prev', 'cal-next']){
       const b = await page.$('#' + id);

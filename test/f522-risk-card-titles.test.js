@@ -128,14 +128,14 @@ describe('(5) one reader of what a risk is about', () => {
     assert.match(body('riskClauseOf'), /_rkKind\(_rkTopicText\(it\)\)/);
     assert.match(body('riskItemsOf'), /_rkNorm\(_rkTopicText\(it\)\)/);
     assert.match(body('riskFiled'), /_rkTopicText\(it\)\.slice\(0, 160\)/);
-    assert.match(SRC, /const riskProvenance = it => 'Copilot — Risk scan: ' \+ _rkTopicText\(it\)/);
+    assert.match(SRC, /const riskProvenance = it => 'Jambo — Risk scan: ' \+ _rkTopicText\(it\)/);
     for (const n of ['riskCoverOf', 'riskClauseOf', 'riskEditTarget'])
       assert.doesNotMatch(strip(body(n)), /_rkKind\(it\.title\)/, n);
   });
   test('a titled item is recorded with its sentence', () => {
     const w = load();
     const it = J(w.riskItemsOf(briefContract())).find(x => x.src === 'brief');
-    assert.equal(w.riskProvenance(it), 'Copilot — Risk scan: ' + SENT);
+    assert.equal(w.riskProvenance(it), 'Jambo — Risk scan: ' + SENT);
   });
 });
 

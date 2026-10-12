@@ -94,7 +94,8 @@ const PROBE = () => {
       rootPainted: document.getElementById('m-root').innerHTML.length,
       bodyClass: document.body.className.includes('m-on'),
       phoneBits: document.querySelectorAll('.m-tabs, .m-ai-fab, .m-pagehead').length,
-      panelMax: getComputedStyle(document.getElementById('ai-panel')).maxWidth,
+      /* the Jambo window (11 Oct 2026) keeps its width itself, not by max-width: docked it is still 430 wide */
+      panelMax: getComputedStyle(document.getElementById('ai-panel')).width,
     }));
     check('desktop: the shell is still the page', s.shell === 'grid', s.shell);
     check('desktop: the phone root is hidden and empty', s.rootHidden && s.rootPainted === 0);
@@ -126,7 +127,7 @@ const PROBE = () => {
       check(`${P.name}/${theme}: the desktop shell is gone`, shell.shellHidden);
       check(`${P.name}/${theme}: the phone root is the page`, shell.rootShown);
       check(`${P.name}/${theme}: the tab bar is there`, shell.tabs);
-      check(`${P.name}/${theme}: the Copilot launcher is there`, shell.fab);
+      check(`${P.name}/${theme}: Jambo launcher is there`, shell.fab);
 
       const SCREENS = [
         ['home', () => window.mGo('home')],
@@ -238,7 +239,7 @@ const PROBE = () => {
           max: cs.maxWidth,
           greeted: (document.getElementById('ai-feed').textContent || '').includes('guidance, not legal advice') };
       });
-      check(`${P.name}/${theme}: the Copilot is the whole screen`, ai.w >= P.w - 1, ai.w + 'px of ' + P.w);
+      check(`${P.name}/${theme}: Jambo is the whole screen`, ai.w >= P.w - 1, ai.w + 'px of ' + P.w);
       check(`${P.name}/${theme}: no scrim behind a full-screen panel`, ai.scrim === 'none');
       check(`${P.name}/${theme}: no expand control`, ai.expand === 'none');
       check(`${P.name}/${theme}: the greeting still states the limit`, ai.greeted);
@@ -288,8 +289,8 @@ const PROBE = () => {
       }));
       check(`counterparty/${purpose}: the page drew`, m.drew);
       check(`counterparty/${purpose}: nothing off the side`, m.wide <= 1, m.wide + 'px');
-      check(`counterparty/${purpose}: no Copilot launcher`, !m.fab);
-      check(`counterparty/${purpose}: no Copilot panel`, !m.panel);
+      check(`counterparty/${purpose}: no Jambo launcher`, !m.fab);
+      check(`counterparty/${purpose}: no Jambo panel`, !m.panel);
       check(`counterparty/${purpose}: the owner's phone shell stayed away`, !m.phone);
       await ctx.close();
     }

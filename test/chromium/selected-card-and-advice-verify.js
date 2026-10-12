@@ -67,7 +67,7 @@ const SCAN = { at: '5 Oct 2026, 15:10', on: '2026-10-05', lang: 'en', dismissed:
   { id: 't-dp', sev: 'low', kind: 'missing', title: 'No data-protection terms detected', anchor: 'doc',
     what: 'No personal-data clause.', why: 'You stay responsible.', fix: 'Add a data-protection clause.' },
   { id: 'u-legal', sev: 'low', kind: 'missing', title: 'Have qualified counsel review before signing', anchor: 'doc',
-    what: 'This Copilot review flags common issues but is not legal advice and cannot catch everything.',
+    what: 'This Jambo review flags common issues but is not legal advice and cannot catch everything.',
     why: 'External paper is drafted for the other side; a clause-by-clause read by a lawyer catches what heuristics miss.',
     fix: 'Obtain independent legal review before signing where the value or risk is material.' },
 ] };
@@ -136,9 +136,9 @@ const SCAN = { at: '5 Oct 2026, 15:10', on: '2026-10-05', lang: 'en', dismissed:
     const counts = await page.evaluate(id => ({ open: riskOpenOf(getContract(id)).length, scan: openFindings(getContract(id)).length }), ID);
     check(!!list && /· 2$/.test(list.head) && counts.open === 2, '1d the card\'s head, its rows and the one count every tile reads all say 2', list && (list.head + ' / ' + counts.open));
     check(counts.scan === 6, '1e the scan itself still holds all six, for every other reader', counts.scan);
-    const fact = await page.evaluate(() => { const f = [...document.querySelectorAll('#ws-facts .room-facet')].find(x => /copilot/i.test((x.querySelector('.l') || {}).textContent || ''));
+    const fact = await page.evaluate(() => { const f = [...document.querySelectorAll('#ws-facts .room-facet')].find(x => /jambo/i.test((x.querySelector('.l') || {}).textContent || ''));
       return f ? f.querySelector('.v').textContent.replace(/\s+/g, ' ').trim() : null; });
-    check(fact == null || !/\d/.test(fact) || /\b2 to look at/.test(fact), '1f the head\'s Copilot fact counts the same two', fact == null ? 'not drawn here' : fact);
+    check(fact == null || !/\d/.test(fact) || /\b2 to look at/.test(fact), '1f the head\'s Jambo fact counts the same two', fact == null ? 'not drawn here' : fact);
     await shot('1-the-list.png');
 
     /* the walk: Risk 1 of 2, then the data-protection clause, then done */
@@ -162,7 +162,7 @@ const SCAN = { at: '5 Oct 2026, 15:10', on: '2026-10-05', lang: 'en', dismissed:
     await shot('2a-card-at-rest.png');
     await press(page, '#ce-lane [data-ce-apply="rk:0"]');
     const c1 = await until(page, () => /twelve \(12\) months/.test(ceBoxWords()) ? true : null) && await cardNow();
-    check(!!c1 && /twelve \(12\) months/.test(c1.box), '2- Apply moved Copilot\'s wording onto the paper');
+    check(!!c1 && /twelve \(12\) months/.test(c1.box), '2- Apply moved Jambo\'s wording onto the paper');
     check(!!c1 && c1.quote === 'This clause', '2b after Apply nothing on the tag can go stale', c1 && c1.quote);
     await shot('2b-after-apply.png');
     await press(page, '#ce-undo');
@@ -202,7 +202,7 @@ const SCAN = { at: '5 Oct 2026, 15:10', on: '2026-10-05', lang: 'en', dismissed:
       return hd && /data protection/i.test(hd.textContent) && !lane.querySelector('.rk-busy') ? lane.textContent.replace(/\s+/g, ' ') : null;
     }, null, 10000);
     check(!!r2 && /data-protection|data protection/i.test(r2) && /Where it goes/i.test(r2), '1h the second risk is data protection, held as a new clause', r2 && r2.slice(0, 120));
-    check(!!r2 && !/could not draft|passage shown is empty/i.test(r2), '1i with no refusal from Copilot');
+    check(!!r2 && !/could not draft|passage shown is empty/i.test(r2), '1i with no refusal from Jambo');
     await shot('1h-risk-2-of-2.png');
     await press(page, '#ce-railfoot [data-ce-act="walk-next"]');
     const done = await until(page, () => { const lane = document.querySelector('#clause-editor #ce-lane');

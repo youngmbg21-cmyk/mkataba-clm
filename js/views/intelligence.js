@@ -843,13 +843,13 @@ const GRAPH_GROUPINGS=[
   { k:'law',           label:'Governing law',    none:'Law not read' },
   { k:'owner',         label:'Owner',            none:'Nobody owns this' },
   { k:'obligations',   label:'Open obligations', none:null },
-  { k:'read',          label:'Read by Copilot',  none:null },
+  { k:'read',          label:'Read by Jambo',  none:null },
 ];
 const GRAPH_GROUP_KEYS=GRAPH_GROUPINGS.map(g=>g.k);
 const graphGroupingOf=k=>GRAPH_GROUPINGS.find(g=>g.k===k)||null;
 /* The caption's word for a grouping — the dropdown's own label, lower-cased,
    so the control and the note line cannot name one cut two ways. */
-const graphGroupingWord=k=>k==='custom'?'Copilot grouping':((graphGroupingOf(k)||{}).label||String(k||'')).toLowerCase();
+const graphGroupingWord=k=>k==='custom'?'Jambo grouping':((graphGroupingOf(k)||{}).label||String(k||'')).toLowerCase();
 const GRAPH_MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const _gSignedDay=c=>{ try{ return (typeof contractSignedAt==='function')?(contractSignedAt(c)||null):null; }catch(_){ return null; } };
 const _gExpiryDay=c=>{ const e=(typeof effectiveExpiry==='function'?effectiveExpiry(c):c.expiry); return e?String(e).slice(0,10):null; };
@@ -2077,14 +2077,14 @@ async function intelGraphAsk(q){
       res=await api('ai/graph','POST',payload);
     }catch(e){
       intel.history.push({role:'assistant', err:true,
-        text:(/key|configure|401|model/i.test(e.message)?'The Copilot engine needs an API key — using the built-in interpreter instead.':'Copilot error: '+igEsc(e.message)+' — using the built-in interpreter instead.')});
+        text:(/key|configure|401|model/i.test(e.message)?'Jambo engine needs an API key — using the built-in interpreter instead.':'Jambo error: '+igEsc(e.message)+' — using the built-in interpreter instead.')});
     }
   } else if(!API_MODE() && typeof _localAiKey==='function' && _localAiKey() && typeof aiLocalGraph==='function'){
     // local mode with a browser-stored key → browser-direct graph interpreter
     try{ res=await aiLocalGraph(q); }
     catch(e){
       intel.history.push({role:'assistant', err:true,
-        text:'Copilot error: '+igEsc(e.message||String(e))+' — using the built-in interpreter instead.'});
+        text:'Jambo error: '+igEsc(e.message||String(e))+' — using the built-in interpreter instead.'});
     }
   }
   /* COPILOT DECIDED IT IS ABOUT WORDING: the reading chat answers it, and
@@ -2290,14 +2290,14 @@ async function intelTemplateAsk(q){
       applyTemplateResult(res.ranked, igFmtRich(res.answer||'').html); return;
     }catch(e){
       intel.history.push({role:'assistant', err:true,
-        text:(/key|configure|401|model/i.test(e.message)?'The Copilot engine needs an API key for template analysis — here is a metadata-only ranking instead.':'Copilot template analysis failed ('+igEsc(e.message)+') — here is a metadata-only ranking instead.')});
+        text:(/key|configure|401|model/i.test(e.message)?'Jambo engine needs an API key for template analysis — here is a metadata-only ranking instead.':'Jambo template analysis failed ('+igEsc(e.message)+') — here is a metadata-only ranking instead.')});
     }
   }
   // fallback: deterministic metadata ranking, honest about its limits
   const ranked=shortlist.slice(0,3).map(c=>({ id:c.id,
     reason:[c.status==='Signed'?'executed — battle-tested terms':'closest match on type', cKind(c), c.counterparty?('with '+c.counterparty):null].filter(Boolean).join(' · ') }));
   const top=getContract(ranked[0].id);
-  applyTemplateResult(ranked, `Closest template match on metadata: <b>${igEsc(top?.name||'—')}</b>.${(API_MODE()&&!state.aiConfigured)||!API_MODE()?' Configure the Copilot engine for a clause-level comparison.':''}`);
+  applyTemplateResult(ranked, `Closest template match on metadata: <b>${igEsc(top?.name||'—')}</b>.${(API_MODE()&&!state.aiConfigured)||!API_MODE()?' Configure Jambo engine for a clause-level comparison.':''}`);
 }
 function applyTemplateResult(ranked, answer){
   const badges={}; ranked.forEach((r,i)=>badges[r.id]='#'+(i+1));
@@ -2380,7 +2380,7 @@ async function intelChatAsk(q){
       if(cmp){ intel.history.push({role:'assistant', text:'Side-by-side from your live contract data.'+(cmp.verdict?' '+igEsc(cmp.verdict):''), compare:cmp, cardIds:ids.filter(id=>getContract(id))}); igPaintIds(ids); return; }
     }
     intel.history.push({role:'assistant', err:true,
-      text:'For free-form questions I need an Anthropic API key (Settings → Copilot engine). Meanwhile I can still filter, highlight and regroup the map — or compare specific contracts, e.g. "compare MK-101 and MK-104".'});
+      text:'For free-form questions I need an Anthropic API key (Settings → Jambo engine). Meanwhile I can still filter, highlight and regroup the map — or compare specific contracts, e.g. "compare MK-101 and MK-104".'});
     return;
   }
   try{
@@ -2394,9 +2394,9 @@ async function intelChatAsk(q){
     // Copilot failed mid-flight → still deliver a local comparison if we can.
     if(ids.length>=2 && typeof localCompareData==='function'){
       const cmp=localCompareData(ids);
-      if(cmp){ intel.history.push({role:'assistant', text:'The Copilot engine was unavailable, so here is a side-by-side from your live data instead.', compare:cmp, cardIds:ids.filter(id=>getContract(id))}); igPaintIds(ids); return; }
+      if(cmp){ intel.history.push({role:'assistant', text:'Jambo engine was unavailable, so here is a side-by-side from your live data instead.', compare:cmp, cardIds:ids.filter(id=>getContract(id))}); igPaintIds(ids); return; }
     }
-    intel.history.push({role:'assistant', err:true, text:'Copilot error: '+igEsc(e.message||String(e))});
+    intel.history.push({role:'assistant', err:true, text:'Jambo error: '+igEsc(e.message||String(e))});
   }
 }
 
@@ -2493,7 +2493,7 @@ async function intelRunCompare(){
     } else {
       localFallback(`Side-by-side from your live contract data. <span class="text-[11px] text-amber-700">${i18t('int_add_key')}</span>`);
     }
-  }catch(e){ localFallback('The Copilot engine was unavailable ('+igEsc(e.message||'error')+'), so here is a side-by-side from your live data instead.'); }
+  }catch(e){ localFallback('Jambo engine was unavailable ('+igEsc(e.message||'error')+'), so here is a side-by-side from your live data instead.'); }
   intel.busy=false; rebuildIntelGraph(); renderIntelDock(); igPaintIds(ids);
 }
 
@@ -3783,7 +3783,7 @@ function updateIntelNote(){
   const wk=intel.walk;
   if(wk){ const k=Math.max(0,Math.min(wk.ids.length,Math.floor((wk.clock-IGB_PULSE_S)/IGB_STEP_S)+1));
     bits.push(`<b class="text-ink">${igEsc(i18t('int_walking',{ k, n:wk.ids.length }))}</b> <button id="ig-walk-stop" type="button" class="ui-link">${i18t('int_walk_stop')}</button>`); }
-  el.innerHTML = intel.busy ? `<span class="text-brand-700">${i18t('int_thinking')}</span>`
+  el.innerHTML = intel.busy ? `<span class="text-brand-700">${window.busyHtml?busyHtml(i18t('int_thinking')):i18t('int_thinking')}</span>`
     : `<span class="text-ink/60">${bits.join(' · ')}</span>`
       + ((on.length||intel.groups||wk)?` <button id="ig-clear" type="button" class="ui-link" style="margin-left:6px">${i18t('int_clear_all_x')}</button>`:'')
       + ((intel.recipeStack||[]).length?` <button id="ig-undo" type="button" class="ui-link" style="margin-left:6px">${i18t('int_undo')}</button>`:'')
@@ -4823,7 +4823,7 @@ function intelFrictionCopilotHtml(st){
     body=`<div class="igf-ai-read" style="font-size:var(--t-body);line-height:1.7;color:var(--color-neutral-800)">${ai.html}</div>
       <div style="display:flex;align-items:center;gap:10px;margin-top:var(--s-2);padding-top:var(--s-2);border-top:1px dashed var(--color-divider);font-size:var(--t-label);color:var(--color-neutral-500)">
         <span style="flex:none;font-size:var(--t-figure);font-weight:var(--w-title);padding:1px 7px;border-radius:var(--radius);background:var(--st-amber-bg);color:var(--st-amber-fg)">${i18t('int_ai_commentary')}</span>
-        <span style="min-width:0">Generated at ${igEsc(ai.at||'')} from the counted figures below — the numbers are the app's, the interpretation is Copilot's.</span>
+        <span style="min-width:0">Generated at ${igEsc(ai.at||'')} from the counted figures below — the numbers are the app's, the interpretation is Jambo's.</span>
         <button id="igf-ai-regen" type="button" class="ui-link" style="margin-left:auto;flex:none">${icon('refresh','w-3.5 h-3.5')}Regenerate</button>
       </div>`;
   }else if(ai&&ai.err&&ai.key===key){
@@ -4834,9 +4834,9 @@ function intelFrictionCopilotHtml(st){
   }else{
     const stale=!!(ai&&ai.html);
     const hint=!on
-      ?'Add an Anthropic key in Settings → Copilot engine to turn this on. The counted report below works without it.'
+      ?'Add an Anthropic key in Settings → Jambo engine to turn this on. The counted report below works without it.'
       :stale?'The figures below have changed since the last read — generate a fresh one. Nothing runs until you click.'
-      :'Copilot explains what is behind the figures below and what to do this week. Nothing runs until you click — the counted report never depends on it.';
+      :'Jambo explains what is behind the figures below and what to do this week. Nothing runs until you click — the counted report never depends on it.';
     body=`<div style="display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap">
       <button id="igf-ai-ask" type="button" class="ui-btn ui-btn-primary" ${on?'':'disabled'} style="flex:none">${icon('sparkle','w-3.5 h-3.5',2)}Interpret these numbers</button>
       <span style="font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5;max-width:56ch">${hint}</span>
@@ -4890,7 +4890,7 @@ async function intelFrictionAsk(){
       at:new Date().toLocaleTimeString(jxLocale(),{hour:'2-digit',minute:'2-digit'})};
   }catch(e){
     intel.frictionAI={busy:false,key,
-      err:(e&&e.needsKey)?'No Copilot key configured — add one in Settings → Copilot engine.':'Copilot was unavailable — '+(e&&e.message?e.message:String(e))};
+      err:(e&&e.needsKey)?'No Jambo key configured — add one in Settings → Jambo engine.':'Jambo was unavailable — '+(e&&e.message?e.message:String(e))};
   }
   if(state.view==='intel'&&intel.tab==='friction') intelFrictionRepaintAI();
 }
@@ -6458,7 +6458,7 @@ function igMsgHTML(m,i){
      silence is never mistaken for a jump that did not happen. */
   const cites=(m.paperId&&Array.isArray(m.quotes)&&!m.citesInline)?igCitesHtml(m,i):'';
   return `<div class="ai-msg flex gap-2"${Number.isInteger(i)?` data-ig-turn="${i}"`:''}>
-    <div class="h-6 w-6 shrink-0 grid place-items-center rounded-lg bg-gold-500/15 text-gold-600 mt-0.5">${icon('sparkle','w-3 h-3')}</div>
+    ${igFaceHtml('hello')}
     <div class="min-w-0 flex-1 space-y-1.5">
       ${m.text?`<div class="ai-bub rounded-2xl rounded-tl-md border px-3.5 py-2 text-[13px] leading-relaxed ${m.err?'bg-rose-50 border-rose-200 text-rose-800':'bg-canvas border-brand-100 text-brand-900'}">${igSafeHtml(m.text)}${cites}</div>`:''}
       ${''/* THE ANSWER IS A WORKLIST DOOR (the brain drawing, 28 Sep 2026): the
@@ -6568,6 +6568,11 @@ function igDockStepAside(big){
   if(big){ if(intel.dockOpen){ intel._dockBack=true; intel.dockOpen=false; renderIntelDock(); igSyncDockWidth(); } }
   else if(intel._dockBack){ intel._dockBack=false; intel.dockOpen=true; renderIntelDock(); igSyncDockWidth(); }
 }
+/* Jambo's face beside his words in Home's panel (components.js) */
+function igFaceHtml(mood){
+  if(typeof jamboFaceHtml==='function') return jamboFaceHtml(mood, 24, 'ai-face shrink-0 mt-0.5');
+  return `<div class="h-6 w-6 shrink-0 grid place-items-center rounded-lg bg-gold-500/15 text-gold-600 mt-0.5">${icon('sparkle','w-3 h-3')}</div>`;
+}
 function renderIntelDock(){
   const dock=document.getElementById('ig-dock'); if(!dock) return;
   /* A BOX IN THE OVERVIEW TAB'S FILL FORM UNDER THE READER'S HAND IS NEVER
@@ -6601,7 +6606,7 @@ function renderIntelDock(){
   const msgs=intel.history.map(igMsgHTML).join('');
   const typing=intel.busy?`
     <div class="ai-msg flex gap-2">
-      <div class="h-6 w-6 shrink-0 grid place-items-center rounded-lg bg-gold-500/15 text-gold-600 mt-0.5">${icon('sparkle','w-3 h-3')}</div>
+      ${igFaceHtml('think')}
       <div class="rounded-2xl rounded-tl-md bg-canvas border border-brand-100 px-3.5 py-2.5 typing"><span></span><span></span><span></span></div>
     </div>`:'';
   /* ---- ONE COPILOT PANEL, ON THE CALENDAR TAB TOO (owner, 11 Oct 2026,
@@ -7741,7 +7746,7 @@ async function igPaperAsk(q){
     intelPushChatResult(res);
     igPinsMint(c,res,intel.history.length-1);
   }catch(e){
-    intel.history.push({role:'assistant', err:true, text:'Copilot error: '+igEsc(e.message||String(e))});
+    intel.history.push({role:'assistant', err:true, text:'Jambo error: '+igEsc(e.message||String(e))});
   }
 }
 /* Escape leaves Focus, and only Focus: with nothing over the page and the

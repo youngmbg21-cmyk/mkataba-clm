@@ -116,7 +116,7 @@ const CONTRACTS = [
         reading: typeof window.hbNeedsData };
     });
     ok('1c it is called Prepared by Copilot again',
-      !!A.title && /copilot/i.test(A.title), JSON.stringify(A.title));
+      !!A.title && /jambo/i.test(A.title), JSON.stringify(A.title));
     ok('1d not one waiting row is drawn anywhere on the board',
       A.needs === 0 && A.needCls === 0, `${A.needs} doors, ${A.needCls} rows`);
     ok('1e and the reading behind them is not published either',

@@ -138,7 +138,7 @@ const CERT = '<h1>CERTIFICATE OF DESIGNATION</h1><h2>SANERGY, INC.</h2><p>A Dela
     await until(() => !!document.querySelector('#pd-thread .doc-th-row.is-open .doc-th-cannot'), null, 20000);
     const t4 = await openText();
     check('4. a part too long even for the pieces says "too long" on its row and asks Copilot nothing',
-      pressed4 && /too long for Copilot to read in one go/.test(t4) && ai.calls.length === calls1, `${ai.calls.length - calls1} asks · ${t4.slice(0, 160)}`);
+      pressed4 && /too long for Jambo to read in one go/.test(t4) && ai.calls.length === calls1, `${ai.calls.length - calls1} asks · ${t4.slice(0, 160)}`);
     await page.screenshot({ path: path.join(OUT, '04-too-long.png') });
 
     check('5. no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));

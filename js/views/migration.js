@@ -330,7 +330,7 @@ async function migConfirmEstimate(files){
     message:`${est.docs} document${est.docs===1?'':'s'}, about ${est.pages} page${est.pages===1?'':'s'} — estimated ${migMoney(est.extractCost)} to read the details`
       + `, up to ${migMoney(est.worstCase)} if every one turns out to be a scan needing OCR.`
       + (est.thorough?' Thorough extraction is on, which multiplies the cost.':'')
-      + (a&&a.open?` This draws on the onboarding allowance (${migMoney(a.spent)} of ${a.budget>0?migMoney(a.budget):'no cap'} used).`:' This draws on the daily Copilot budget.')
+      + (a&&a.open?` This draws on the onboarding allowance (${migMoney(a.spent)} of ${a.budget>0?migMoney(a.budget):'no cap'} used).`:' This draws on the daily Jambo budget.')
       + ' These are estimates from file sizes, not charges — the real figure lands in Settings as the batch runs.',
     confirmLabel:'Run the batch' });
 }
@@ -352,9 +352,9 @@ async function migExtract(text, seed){
     catch(e){ M.aiDown=true;
       M.aiDownMsg = e.allowanceExhausted
         ? 'Onboarding allowance used up — the rest of this batch is pattern-matched'
-        : e.spendLimit ? 'Daily Copilot budget reached — the rest of this batch is pattern-matched'
-        : /limit/i.test(e.message) ? 'Copilot rate limit reached'
-        : 'Copilot unavailable ('+e.message+')';
+        : e.spendLimit ? 'Daily Jambo budget reached — the rest of this batch is pattern-matched'
+        : /limit/i.test(e.message) ? 'Jambo rate limit reached'
+        : 'Jambo unavailable ('+e.message+')';
     }
   }
   if(!meta){ meta=heuristicExtract(text); meta._source='heuristic'; }
@@ -797,7 +797,7 @@ async function migRerunAi(){
   let done=0;
   for(const c of todo){
     if(migState().aiDown) break;
-    if(btn) btn.textContent=`Re-running Copilot… ${done}/${todo.length}`;
+    if(btn) btn.textContent=`Re-running Jambo… ${done}/${todo.length}`;
     try{ await ensureFull(c); }catch(e){}
     const text=(c.upload&&c.upload.extractedText)||'';
     if(text.length<200) continue;
@@ -824,7 +824,7 @@ async function migRerunAi(){
     /* The effective date too, fill only like the expiry above it — see
        metaEffDateOnto (js/metadata.js). */
     if(typeof metaEffDateOnto==='function') metaEffDateOnto(c, meta);
-    logAudit(c,'Copilot extraction','Re-ran Copilot metadata extraction over the stored document text');
+    logAudit(c,'Jambo extraction','Re-ran Jambo metadata extraction over the stored document text');
     c.migration.aiSource='ai';
     c.migration.needsReview=migNeedsReview(meta, c);
     persist(c); done++;
@@ -946,7 +946,7 @@ const MIG_QSTATE = {
   waiting:   {t:'Waiting',        c:'var(--color-neutral-500)'},
   reading:   {t:'Reading file…',  c:'var(--color-accent-700)'},
   extracting:{t:'Extracting text…',c:'var(--color-accent-700)'},
-  ai:        {t:'Copilot extracting…', c:'var(--color-accent-700)'},
+  ai:        {t:'Jambo extracting…', c:'var(--color-accent-700)'},
   matching:  {t:'Pattern-matching…',c:'var(--st-amber-fg)'},
   ocr:       {t:'Reading scan…',  c:'var(--color-accent-700)'},
   saved:     {t:'Imported',       c:'var(--st-green-fg)'},
@@ -976,8 +976,8 @@ function renderMigQueue(){
         ${M.running?`<button id="mig-cancel" class="ui-btn">${i18t('mig_stop_after_current')}</button>`:''}
       </div>
       <div style="height:6px;background:var(--color-neutral-200);border-radius:var(--radius);overflow:hidden;margin-bottom:10px"><div style="width:${pct}%;height:100%;background:var(--color-accent);transition:width var(--dur-3)"></div></div>
-      ${M.ocrError?`<div style="font-size:var(--t-meta);color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);border-radius:var(--radius);padding:7px 10px;margin-bottom:var(--s-2)">A scanned document could not be read: ${migEsc(M.ocrError)}. Those files were imported with no text — open each one and enter the details, or fix the reader and use “Re-run Copilot extraction”.</div>`:''}
-      ${M.aiDown?`<div style="font-size:var(--t-meta);color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);border-radius:var(--radius);padding:7px 10px;margin-bottom:var(--s-2)">${migEsc(M.aiDownMsg||'Copilot unavailable')} — remaining files use the built-in pattern-matcher and are flagged for review. Use “Re-run Copilot extraction” once the limit resets.</div>`:''}
+      ${M.ocrError?`<div style="font-size:var(--t-meta);color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);border-radius:var(--radius);padding:7px 10px;margin-bottom:var(--s-2)">A scanned document could not be read: ${migEsc(M.ocrError)}. Those files were imported with no text — open each one and enter the details, or fix the reader and use “Re-run Jambo extraction”.</div>`:''}
+      ${M.aiDown?`<div style="font-size:var(--t-meta);color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);border-radius:var(--radius);padding:7px 10px;margin-bottom:var(--s-2)">${migEsc(M.aiDownMsg||'Jambo unavailable')} — remaining files use the built-in pattern-matcher and are flagged for review. Use “Re-run Jambo extraction” once the limit resets.</div>`:''}
       <div class="scroll-thin" style="max-height:260px;overflow-y:auto">
         ${M.queue.map((q,i)=>{ const s=MIG_QSTATE[q.status]||MIG_QSTATE.waiting;
           const active=['reading','extracting','ai','matching','ocr'].includes(q.status);
@@ -1178,7 +1178,7 @@ function renderMigration(){
           <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${k.complete}/${k.total} fully migrated</span>
           <span style="flex:1"></span>
           ${canEdit()&&k.review?`<button id="mig-review-all" class="ui-btn ui-btn-primary">${icon('check2','w-3.5 h-3.5')} Review all (${k.review})</button>`:''}
-          ${canEdit()&&heur&&API_MODE()&&state.aiConfigured?`<button id="mig-rerun" class="ui-btn">${icon('sparkle','w-3.5 h-3.5')} Re-run Copilot extraction (${heur})</button>`:''}
+          ${canEdit()&&heur&&API_MODE()&&state.aiConfigured?`<button id="mig-rerun" class="ui-btn">${icon('sparkle','w-3.5 h-3.5')} Re-run Jambo extraction (${heur})</button>`:''}
           <button id="mig-sheet-out" class="ui-btn">${icon('download','w-3.5 h-3.5')} Review sheet</button>
           ${canEdit()?`<button id="mig-sheet-in" class="ui-btn">${icon('upload','w-3.5 h-3.5')} Import sheet</button>
           <input id="mig-sheet-file" type="file" accept=".csv" style="display:none">`:''}

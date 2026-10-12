@@ -57,7 +57,7 @@ describe('the button opens the application’s own Copilot', () => {
   test('it is in the OWNER\'s top bar, and not the counterparty\'s', async () => {
     const owner = await mounted('owner');
     assert.ok(owner.$('#nego-copilot'), 'the owner gets it');
-    assert.match(owner.$('#nego-copilot').textContent, /Ask Copilot/);
+    assert.match(owner.$('#nego-copilot').textContent, /Ask Jambo/);
 
     /* Copilot reads our whole portfolio and our playbook. It is our tool, and
        the counterparty's link is not the place to hand it over. */
@@ -110,7 +110,7 @@ describe('the button opens the application’s own Copilot', () => {
     win.openAI = undefined;
     win.openNegotiationRoom(c, { side: 'owner', by: 'W', persist: false });
     win.document.getElementById('nego-copilot').click();
-    assert.ok(w.log.toasts.some(t => /Copilot is not available/.test(t.msg)),
+    assert.ok(w.log.toasts.some(t => /Jambo is not available/.test(t.msg)),
       'a button that silently does nothing teaches people the feature is broken');
   });
 });

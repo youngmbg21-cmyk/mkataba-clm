@@ -45,7 +45,7 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       window.api = async function (p, ...a){
         if (p !== 'ai/breakdown') return o.call(this, p, ...a);
         window.__bd.n++;
-        if (window.__bd.refuse) return { error: 'Copilot found no regions in this wording.' };
+        if (window.__bd.refuse) return { error: 'Jambo found no regions in this wording.' };
         return { head: 'Fix one', sub: 'Start with payment.', links: [],
           regions: [{ name: 'Payment', clauses: '2', status: 'need', kind: 'pay', headline: 'You pay in thirty days', items: [{ ref: '2', title: 'Payment', status: 'need' }], quotes: [] },
             { name: 'Term', clauses: '1', status: 'fine', kind: 'protect', headline: 'Two years', items: [{ ref: '1', title: 'Term', status: 'fine' }], quotes: [] }] };
@@ -54,7 +54,7 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
     });
     const picker = await page.waitForSelector('#hb-bd .ig-pick-card', { timeout: 8000 }).then(() => true, () => false);
     const sub = picker ? await page.evaluate(() => document.querySelector('#hb-bd .ig-pick-sub').innerText) : '';
-    ok('1 the picker says the cost before the press', /Copilot once/.test(sub), sub);
+    ok('1 the picker says the cost before the press', /Jambo once/.test(sub), sub);
 
     if (picker) {
       await page.click('#hb-bd [data-bd-pick="MK-B1"]');

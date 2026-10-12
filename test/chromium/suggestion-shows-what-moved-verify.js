@@ -107,7 +107,7 @@ const BODY = '<h1>Lease Agreement</h1><p>Between Highland Corporate Ltd and Nord
     if (!swOk) throw new Error('could not build the scripted answer from the clause');
     await page.evaluate(([id, cid]) => rlOpenClauseEditor(getContract(id), cid), [ID, cl.id]);
     const open = await until(page, () => !!document.querySelector('#clause-editor #ce-lane') && !!document.querySelector('#ce-chips button'), null, 12000);
-    check(!!open, '0 Edit with Copilot opens on the Rent clause with its prepared questions');
+    check(!!open, '0 Edit with Jambo opens on the Rent clause with its prepared questions');
     if (!open) throw new Error('the editor did not open');
 
     /* ---- C. THE PREPARED QUESTIONS ARE SHADED ---- */
@@ -159,7 +159,7 @@ const BODY = '<h1>Lease Agreement</h1><p>Between Highland Corporate Ltd and Nord
       if (!d) return null; const k = getComputedStyle(d);
       return { color: k.color, line: k.textDecorationLine, lineColor: k.textDecorationColor };
     });
-    check(!!g1 && g1.color === r0 && /line-through/.test(g1.line) && g1.lineColor === r0, 'G1 in the Copilot panel a struck word and its line are red', g1 && JSON.stringify(g1) + ' want ' + r0);
+    check(!!g1 && g1.color === r0 && /line-through/.test(g1.line) && g1.lineColor === r0, 'G1 in Jambo panel a struck word and its line are red', g1 && JSON.stringify(g1) + ' want ' + r0);
     await railShot('4-panel-red.png');
 
     /* Apply still carries the WHOLE clause */

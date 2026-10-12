@@ -242,8 +242,8 @@ describe('F91 (1,2) — the Doc page header and its sub-navigation', () => {
        What this test was really about is the HEADER not carrying a third
        Copilot door, and that still holds: the label may appear only inside
        DOC_SEL_ACTIONS, never on a header control. */
-    const uses = s.split('Ask Copilot').length - 1;
-    const inActions = /DOC_SEL_ACTIONS=\[[\s\S]{0,200}Ask Copilot/.test(s);
+    const uses = s.split('Ask Jambo').length - 1;
+    const inActions = /DOC_SEL_ACTIONS=\[[\s\S]{0,200}Ask Jambo/.test(s);
     assert.ok(uses === 1 && inActions,
       'the label lives on the selection menu\'s action alone, not a header door');
   });

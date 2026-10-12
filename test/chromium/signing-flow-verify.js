@@ -440,7 +440,7 @@ const check = (name, pass, detail) => {
        for one; what is under test is the card, not the writing. */
     await page.evaluate(() => {
       const c = window.getContract(window.state.activeId);
-      c._brief = { at: new Date().toISOString(), by: 'Copilot',
+      c._brief = { at: new Date().toISOString(), by: 'Jambo',
         data: { overview: 'A supply agreement with Nordwind.' } };
       /* A FRESH BRIEF IS AN UNREAD ONE: the stamp made at the top of this file
          was against the brief it replaces, so nothing has to be cleared by

@@ -85,7 +85,7 @@ const check = (name, pass, detail) => {
     reply = { actions: DASH, answer: 'A renewals board: what ends when, who it is with, and the money.' };
     const said0 = await ask('build me a renewals dashboard');
     /* five cards are a PREVIEW first (work order Part 5): nothing lands until pressed */
-    check('1p five cards are offered as a list, nothing on the board yet', (await page.evaluate(() => hbS().panels.length)) === 0 && /Copilot proposes 5 changes/.test(said0 || ''), said0);
+    check('1p five cards are offered as a list, nothing on the board yet', (await page.evaluate(() => hbS().panels.length)) === 0 && /Jambo proposes 5 changes/.test(said0 || ''), said0);
     await page.waitForTimeout(400);
     await page.screenshot({ path: path.join(OUT, '0-preview.png') });
     await page.evaluate(() => document.querySelector('[data-hb-pv="all"]').click());

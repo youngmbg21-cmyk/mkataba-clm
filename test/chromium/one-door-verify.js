@@ -69,7 +69,7 @@ const DOC = styledPara('Title', null, 0, 'SERVICES AGREEMENT')
   page.on('pageerror', e => errors.push(e.message));
   let outlineMode = 'ok';
   await page.route('**/api/ai/outline', route => outlineMode === 'nokey'
-    ? route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' }) })
+    ? route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' }) })
     : route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(OUTLINE) }));
   /* The small questions: every bracketed gap is a blank; nothing else is answered. */
   await page.route('**/api/ai/blanks', route => {

@@ -225,7 +225,7 @@ const ok = (name, good, detail) => {
     for (let i = 0; i < 4; i++) {
       const done = await page.evaluate(() => {
         const h = [...document.querySelectorAll('.sec-head[aria-expanded="false"]')]
-          .find(e => /copilot/i.test((e.querySelector('.sec-t') || {}).textContent || ''));
+          .find(e => /jambo/i.test((e.querySelector('.sec-t') || {}).textContent || ''));
         if (!h) return true;
         h.click(); return false;
       });
@@ -263,7 +263,7 @@ const ok = (name, good, detail) => {
       /* triageWhy is the one reading; asked directly so the four kinds can be
          told apart without four failing round trips. */
       const w = k => (typeof triageWhy === 'function')
-        ? triageWhy({ kind: k, message: 'Copilot request failed: fetch failed' }).say : null;
+        ? triageWhy({ kind: k, message: 'Jambo request failed: fetch failed' }).say : null;
       return { raw: (typeof triageWhy === 'function') ? triageWhy({ message: 'fetch failed' }) : null,
         kinds: { noKey: w('noKey'), rateLimit: w('rateLimit'), spendCap: w('spendCap'), provider: w('provider') },
         names: (typeof contractOpenFieldNames === 'function') ? contractOpenFieldNames(c).slice(0, 4) : null };

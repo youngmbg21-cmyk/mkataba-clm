@@ -584,7 +584,7 @@ async function intakeDraft(id){
   if(!canEdit()){ toast(i18t('ap_viewers_no_create'),'err'); return; }
   const r=(_intake.list||[]).find(x=>x.id===id); if(!r) return;
   const btnBusy=document.querySelector(`[data-ik-draft="${CSS.escape(id)}"]`);
-  if(btnBusy){ btnBusy.disabled=true; btnBusy.textContent=i18t('ct_working'); }
+  if(btnBusy){ btnBusy.disabled=true; (window.busySet?busySet(btnBusy,i18t('ct_working')):(btnBusy.textContent=i18t('ct_working'))); }
   const pick=await intakeSuggestTemplate(r);
   const restore=()=>{ const b=document.querySelector(`[data-ik-draft="${CSS.escape(id)}"]`); if(b){ b.disabled=false; b.textContent=i18t('ik_act_draft'); } };
   restore();

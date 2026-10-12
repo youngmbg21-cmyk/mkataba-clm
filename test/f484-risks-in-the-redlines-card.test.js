@@ -108,7 +108,7 @@ describe('f484 (4) the walls', () => {
     assert.ok(!/negoEditClause\(|negoAddNamedClause\(|negoInsertClause\(/.test(CODE), 'the list files nothing itself');
     assert.ok(!/changes\.push|negoFileChange\(/.test(CODE), 'no change is pushed by hand');
     assert.ok(!/negoAdvanceRound|data-rl-send|nego-send|api\(\s*'shares/.test(CODE), 'nothing is sent');
-    assert.ok(/'Copilot — Risk scan: '/.test(SRC), 'the note is provenance (NEGO_PROVENANCE_RE), never a reason shown to them');
+    assert.ok(/'Jambo — Risk scan: '/.test(SRC), 'the note is provenance (NEGO_PROVENANCE_RE), never a reason shown to them');
   });
   test('c.risks never travels', () => {
     const core = read('js/core.js');

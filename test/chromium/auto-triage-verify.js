@@ -135,7 +135,7 @@ const SEED = t => {
     check('1c · and it is ticked, so the ordinary case is one press',
       !!(box && box.checked), box && { checked: box.checked });
     check('1d · the sentence names what it costs',
-      !!(box && /Copilot calls/i.test(box.txt) && /three/i.test(box.txt)),
+      !!(box && /Jambo calls/i.test(box.txt) && /three/i.test(box.txt)),
       box && box.txt.slice(0, 150));
     await page.evaluate(() => { if (typeof closeModal === 'function') closeModal(); });
     await pause(400);
@@ -619,7 +619,7 @@ const SEED = t => {
       if (!c) return null;
       /* The reported state: auto-triage ran at upload and the brief FAILED. */
       c.triage = { at: new Date().toISOString(), by: 'Young', steps: {
-        brief: { ok: false, why: 'Copilot request failed: fetch failed' },
+        brief: { ok: false, why: 'Jambo request failed: fetch failed' },
         risk: { ok: true, open: 0 },
         playbook: { ok: true, dev: 1, miss: 0, cats: ['Payment terms'] },
         oblig: { ok: true, found: [] } } };
@@ -660,11 +660,11 @@ const SEED = t => {
        thorough brief really hits, and the flag is what the record now keeps. */
     await ctx.route('**/api/ai/brief', route => route.fulfill({
       status: 200, contentType: 'application/json',
-      body: JSON.stringify({ brief: { v: 1, at: new Date().toISOString(), by: 'Copilot',
+      body: JSON.stringify({ brief: { v: 1, at: new Date().toISOString(), by: 'Jambo',
         inputHash: 'h', truncated: true,
         data: { overview: 'A haulage contract for the northern route, running a year.',
           watchouts: [], unusual: [], term: {}, money: {} } },
-        notice: 'The Copilot answer was longer than the space allowed.' }) }));
+        notice: 'Jambo answer was longer than the space allowed.' }) }));
     await drive(() => { const b = document.querySelector('#kt-ov-brief [data-kt-brief="run"]');
       if (b) b.click(); });
     await pause(1400);

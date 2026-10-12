@@ -9684,6 +9684,24 @@
   .hb-seg .hb-face-n{margin-left:6px;font-size:11px;font-weight:var(--w-strong);font-variant-numeric:tabular-nums}
   .hb-seg .hb-face-n:empty{display:none}
   .hb-seg .hb-face-n[data-tone="amber"]{color:var(--st-amber-fg)}
+  /* THE SLIDING PILL (owner picked it by name, 11 Oct 2026): Home's five faces
+     on one tinted track, all one width (equal grid columns; each button stacks
+     every language's word in one cell), a surface-coloured pill sliding under
+     the chosen face. Not a filled button, so "+ Draft new agreement" stays the
+     header's one filled control. Scoped by .hb-faces so the Light/Dark segment
+     keeps its own look. */
+  #hb-head .hb-seg.hb-faces{--hb-fi:0;--hb-fn:5;display:inline-grid;grid-auto-flow:column;grid-auto-columns:1fr;position:relative;border:0;border-radius:var(--radius-lg);padding:3px;overflow:visible;background:color-mix(in srgb,var(--color-accent) 8%,var(--color-surface))}
+  #hb-head .hb-seg.hb-faces button{height:calc(var(--ctl-h) - 6px);padding:0 var(--s-2);display:inline-flex;align-items:center;justify-content:center;gap:5px;position:relative;z-index:1;background:none;color:var(--color-neutral-600);font-weight:var(--w-label);border-radius:calc(var(--radius-lg) - 2px)}
+  #hb-head .hb-seg.hb-faces button+button{border-left:0}
+  #hb-head .hb-seg.hb-faces button[aria-selected="true"]{background:none;color:var(--color-text);font-weight:var(--w-label)}
+  #hb-head .hb-seg.hb-faces button:focus-visible{outline:2px solid var(--color-accent);outline-offset:-2px}
+  #hb-head .hb-faces .hb-face-ic{width:15px;height:15px;flex:none}
+  #hb-head .hb-faces .hb-face-w{display:inline-grid}
+  #hb-head .hb-faces .hb-face-w > span,#hb-head .hb-faces .hb-face-w::before,#hb-head .hb-faces .hb-face-w::after{grid-area:1/1;text-align:center}
+  #hb-head .hb-faces .hb-face-w::before{content:attr(data-w1);visibility:hidden}
+  #hb-head .hb-faces .hb-face-w::after{content:attr(data-w2);visibility:hidden}
+  #hb-head .hb-faces .hb-thumb{position:absolute;top:3px;bottom:3px;left:3px;width:calc((100% - 6px) / var(--hb-fn, 5));border-radius:calc(var(--radius-lg) - 2px);background:var(--color-surface);box-shadow:0 1px 2px rgba(9,25,56,.16),0 0 0 1px rgba(9,25,56,.06);transform:translateX(calc(var(--hb-fi, 0) * 100%));transition:transform var(--dur-3) cubic-bezier(.22,.61,.36,1);pointer-events:none}
+  @media (prefers-reduced-motion:reduce){#hb-head .hb-faces .hb-thumb{transition:none}}
   .hb-cal{position:absolute;inset:0;z-index:4;overflow:hidden;background:var(--color-bg);display:flex;flex-direction:column;min-height:0}
   /* ---- HOME'S BREAKDOWN (owner picked the SAP way, 11 Oct 2026; js/views/breakdown.js) ----
      The Calendar's own cover over the stage; a white band strip, figure cards
@@ -9712,6 +9730,8 @@
   .bd-empty-card{max-width:560px;width:100%;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:22px 24px;display:grid;gap:10px}
   .bd-empty-card h2{margin:0;font-size:var(--t-card);font-weight:var(--w-title)} .bd-empty-card p{margin:0;color:var(--color-neutral-600);font-size:var(--t-meta);line-height:1.5}
   .bd-empty-acts{display:flex;align-items:center;gap:12px;flex-wrap:wrap} .bd-cost{font-size:var(--t-label);color:var(--color-neutral-600)}
+  /* a reading redone over one on screen says so, with the ring that turns (busyHtml) */
+  .bd-busy{display:inline-flex;align-items:center;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap}
   .bd-empty-card p.bd-err{color:var(--st-ruby-fg)}
   .bd-lens{display:flex;flex-direction:column;min-height:0;height:100%}
   .bd-lens-head{display:flex;align-items:center;gap:6px;padding:10px 12px;border-bottom:1px solid var(--color-divider);font-size:var(--t-meta)}
@@ -10544,6 +10564,47 @@
   #ai-panel.expanded{max-width:clamp(430px,72vw,940px)!important;}
   #ai-scrim{position:fixed;inset:0;z-index:40;}
   #ai-panel.open{transform:none;}
+  /* ---- A WINDOW YOU CAN MOVE AND RESIZE (owner, 11 Oct 2026; ai.js aiFloat*) ----
+     Desktop only. Its place and size are set inline from the reader's own
+     stored box; the limits are kept by aiFloatClamp, never by CSS. Closed, it
+     is simply not shown where it stands; on a screen where Copilot is already
+     on the page it steps aside (.ai-stepaside). The dock button shows only
+     once it has been moved off the right edge. */
+  #ai-panel.floating,#ai-panel.floating.expanded{right:auto;bottom:auto;max-width:none!important;transition:none;transform:none}
+  #ai-panel.floating:not(.open){transform:translateX(200vw);pointer-events:none}   /* closed: off the screen, as the drawer always was */
+  #ai-panel.floating.ai-stepaside{visibility:hidden;pointer-events:none}
+  #ai-panel.floating:not(.ai-float-home){border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden;box-shadow:0 18px 50px rgba(9,25,56,.24),0 2px 6px rgba(9,25,56,.1)}
+  #ai-panel.floating > header{cursor:grab;touch-action:none;user-select:none}
+  #ai-panel.floating.ai-float-busy > header{cursor:grabbing}
+  #ai-panel.ai-float-busy{user-select:none}
+  #ai-panel #ai-dock-home{display:none}
+  #ai-panel.floating:not(.ai-float-home) #ai-dock-home{display:grid}
+  /* The window's own size decides how much its header and foot may carry —
+     measured on the window, not the screen (the screen's narrow rules below
+     are for a drawer as wide as a phone). */
+  #ai-panel.floating{container-type:size;container-name:aiwin}
+  @container aiwin (max-width: 419px){   /* below the drawer's own 430 */
+    #ai-panel > header{padding:var(--s-3);gap:var(--s-2)}
+    #ai-panel > header button{width:28px;height:28px}
+    #ai-panel > header > :first-child{display:none}
+    #ai-panel > header > .flex-1 > div:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    #ai-brain-sub{display:none}
+    #ai-feed,#ai-panel > footer,#ai-suggest{padding-left:var(--s-3);padding-right:var(--s-3)}
+  }
+  @container aiwin (max-height: 560px){ #ai-suggest{display:none} }
+  /* JAMBO'S FACE in the chats (components.js jamboFaceHtml) — a round picture
+     on a light wash of the theme colour, the same in every chat */
+  img.jambo-face{border-radius:50%;object-fit:cover;flex:none;align-self:flex-start;aspect-ratio:1/1;background:color-mix(in srgb,var(--color-accent) 12%,var(--color-surface));user-select:none}
+  #ai-panel > header .ai-head-tile.has-face{overflow:hidden}
+  #ai-panel .ai-rz{display:none;position:absolute;z-index:3;touch-action:none}
+  #ai-panel.floating .ai-rz{display:block}
+  #ai-panel .ai-rz-n,#ai-panel .ai-rz-s{left:12px;right:12px;height:8px;cursor:ns-resize}
+  #ai-panel .ai-rz-n{top:-3px} #ai-panel .ai-rz-s{bottom:-3px}
+  #ai-panel .ai-rz-e,#ai-panel .ai-rz-w{top:12px;bottom:12px;width:8px;cursor:ew-resize}
+  #ai-panel .ai-rz-e{right:-3px} #ai-panel .ai-rz-w{left:-3px}
+  #ai-panel .ai-rz-ne,#ai-panel .ai-rz-nw,#ai-panel .ai-rz-se,#ai-panel .ai-rz-sw{width:16px;height:16px}
+  #ai-panel .ai-rz-ne{right:-3px;top:-3px;cursor:nesw-resize} #ai-panel .ai-rz-sw{left:-3px;bottom:-3px;cursor:nesw-resize}
+  #ai-panel .ai-rz-nw{left:-3px;top:-3px;cursor:nwse-resize} #ai-panel .ai-rz-se{right:-3px;bottom:-3px;cursor:nwse-resize}
   /* DOCKED: an overlay drawer, and nothing behind it moves.
      The drawer floats on top of the right-hand side of the screen — it does not
      take a column, so no width behind it changes, no clause frame shifts left
@@ -12980,7 +13041,7 @@
       <button id="theme-btn" class="sh-theme" type="button" aria-pressed="false" title="Theme" data-i18n-title="sh_theme"></button>
     </div>
 
-    <button id="cmd-ai" class="hdr-icon-btn" title="Ask Copilot" data-i18n-title="sh_ask_copilot" style="position:relative;">
+    <button id="cmd-ai" class="hdr-icon-btn" title="Ask Jambo" data-i18n-title="sh_ask_copilot" style="position:relative;">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-spark"/></svg>
       <span id="cmd-ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:#f59e0b;"></span>
     </button>
@@ -13234,7 +13295,7 @@
                the phone menu already had it. Its count is the page's own "Need
                review" figure (navCounts' migration), drawn only above zero, and
                the door is for people who can import (data-edit-only). -->
-          <button data-view="migration" data-edit-only class="nav-item" title="Import contracts — bring a whole back-catalogue in at once, with Copilot extraction and a human review pass" data-i18n-title="nav_import_title">
+          <button data-view="migration" data-edit-only class="nav-item" title="Import contracts — bring a whole back-catalogue in at once, with Jambo extraction and a human review pass" data-i18n-title="nav_import_title">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-import"/></svg>
             <span style="flex:1;" data-i18n="nav_import">Import contracts</span><span class="nav-count" data-count="migration" data-count-quiet-zero></span>
@@ -13361,17 +13422,17 @@
         <div class="foot-kpi" title="Where this workspace keeps your contracts." data-i18n-title="foot_storage_title">
           <span class="foot-k" data-i18n="foot_storage">Storage</span><span class="foot-v" id="side-status-mode">—</span>
         </div>
-        <div class="foot-kpi" title="Whether Claude is answering the Copilot, or it is falling back to keyword matching." data-i18n-title="foot_copilot_title">
-          <span class="foot-k" data-i18n="foot_copilot">Copilot</span><span class="foot-v" id="side-status-ai">—</span>
+        <div class="foot-kpi" title="Whether Claude is answering for Jambo, or he is falling back to keyword matching." data-i18n-title="foot_copilot_title">
+          <span class="foot-k" data-i18n="foot_copilot">Jambo</span><span class="foot-v" id="side-status-ai">—</span>
         </div>
         <div class="foot-kpi" title="People with a login on this workspace." data-i18n-title="foot_team_title">
           <span class="foot-k" data-i18n="foot_team">Team</span><span class="foot-v" id="side-status-online">—</span>
         </div>
-        <button id="side-ai-usage" type="button" title="What the Copilot has cost today across the whole workspace in real Anthropic API calls — resets at local midnight. Click to set the daily limit." data-i18n-title="foot_spend_title" style="display:none;">
+        <button id="side-ai-usage" type="button" title="What Jambo has cost today across the whole workspace in real Anthropic API calls — resets at local midnight. Click to set the daily limit." data-i18n-title="foot_spend_title" style="display:none;">
           <span class="foot-ai-dot" style="width:7px;height:7px;border-radius:50%;background:#f59e0b;flex:none;"></span>
           <span class="foot-ai-body">
             <span class="foot-kpi">
-              <span class="foot-k" id="side-ai-usage-label" data-i18n="foot_spend">Copilot spend</span>
+              <span class="foot-k" id="side-ai-usage-label" data-i18n="foot_spend">Jambo’s spend</span>
               <span class="foot-v" id="side-ai-usage-txt" style="font-variant-numeric:tabular-nums;"></span>
             </span>
             <span class="foot-note" id="side-ai-usage-sub"></span>
@@ -13490,12 +13551,13 @@
 <!-- ================= Copilot ASSISTANT (slide-over) ================= -->
 <div id="ai-scrim" class="fixed inset-0 z-40" style="background:color-mix(in srgb,#020617 45%,transparent);"></div>
 <section id="ai-panel" class="hati-copilot-panel fixed top-0 right-0 bottom-0 w-full z-50 flex flex-col" style="max-width:430px;background:var(--color-surface);border-left:1px solid var(--color-divider);">
-  <header class="px-5 py-4 flex items-center gap-3" style="background:var(--color-accent-900);color:#fff;">
-    <div class="h-9 w-9 grid place-items-center shrink-0" style="background:var(--color-accent);color:#fff;border-radius:var(--radius);" data-ic-big="sparkle"></div>
+  <header class="px-5 py-4 flex items-center gap-3" data-i18n-title="ai_float_move" title="Drag to move. Pull an edge or corner to resize." style="background:var(--color-accent-900);color:#fff;">
+    <div class="h-9 w-9 grid place-items-center shrink-0 ai-head-tile" style="background:var(--color-accent);color:#fff;border-radius:var(--radius);" data-ic-big="sparkle"></div>
     <div class="flex-1 leading-tight">
-      <div class="font-display font-600">HaTi Copilot</div>
+      <div class="font-display font-600">Jambo</div>
       <div id="ai-brain-sub" class="text-[11px] flex items-center gap-1.5" style="color:var(--color-accent-200);"><span class="h-1.5 w-1.5 rounded-full live-dot" style="background:var(--st-green-dot);"></span><span data-i18n="ai_searching_live">Searching your live contract data</span></div>
     </div>
+    <button id="ai-dock-home" title="Back to the right edge" data-i18n-title="ai_dock_home" aria-label="Back to the right edge" class="h-8 w-8 grid place-items-center rounded hover:bg-white/10 transition" style="color:var(--color-accent-200);"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg></button>
     <button id="ai-expand" title="Expand the panel" data-i18n-title="ai_expand_panel" class="h-8 w-8 grid place-items-center rounded hover:bg-white/10 transition" style="color:var(--color-accent-200);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5"/><path d="M18 17l-5-5 5-5"/></svg></button>
     <button id="ai-clear" title="Delete conversation" data-i18n-title="ai_delete_conversation" class="h-8 w-8 grid place-items-center rounded hover:bg-white/10 transition" style="color:var(--color-accent-200);" data-ic-big="trash"></button>
     <button id="ai-min" title="Minimize — you'll be notified when an answer arrives" data-i18n-title="ai_minimize_hint" class="h-8 w-8 grid place-items-center rounded hover:bg-white/10 transition" style="color:var(--color-accent-200);" data-ic-big="minus"></button>
@@ -13516,7 +13578,7 @@
   <footer class="px-5 pb-5 pt-3" style="border-top:1px solid var(--color-divider);background:var(--color-surface);">
     <div class="flex items-center gap-2">
       <textarea id="ai-input" rows="1" data-i18n-ph="ai_input_ph" placeholder="Search, summarize, or ask about your contracts…  (Shift+Enter for a new line)" class="chat-field flex-1 px-3.5 py-2.5 text-sm outline-none transition" style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);"></textarea>
-      <button id="ai-send" aria-label="Send to Copilot" data-i18n-aria="sh_ai_send_aria" class="h-10 w-10 shrink-0 grid place-items-center text-white transition" style="background:var(--color-accent);border-radius:var(--radius);" data-ic-big="send"></button>
+      <button id="ai-send" aria-label="Send to Jambo" data-i18n-aria="sh_ai_send_aria" class="h-10 w-10 shrink-0 grid place-items-center text-white transition" style="background:var(--color-accent);border-radius:var(--radius);" data-ic-big="send"></button>
     </div>
   </footer>
 </section>

@@ -104,7 +104,7 @@ const check = (name, pass, detail) => {
        "Simplify" went with the tab — retired 11 Oct 2026: the Document tab is
        gone (owner). */
     check('1 Ask Copilot is on it',
-      !!menu && menu.labels.some(l => /Ask Copilot/.test(l)), menu && menu.labels.join(' | '));
+      !!menu && menu.labels.some(l => /Ask Jambo/.test(l)), menu && menu.labels.join(' | '));
     await page.screenshot({ path: path.join(OUT, '01-menu.png') });
 
     /* ---- 2. (retired 11 Oct 2026: the Document tab is gone (owner) — its
@@ -113,7 +113,7 @@ const check = (name, pass, detail) => {
 
     /* ---- 3. Ask Copilot puts the words in Copilot's ask box, quoted ---- */
     await page.evaluate(() => {
-      const b = [...document.querySelectorAll('.nego-selmenu [data-nego-ai]')].find(x => /Ask Copilot/.test(x.textContent));
+      const b = [...document.querySelectorAll('.nego-selmenu [data-nego-ai]')].find(x => /Ask Jambo/.test(x.textContent));
       if (b) b.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
     });
     const quoted = raised.picked ? raised.picked.trim().slice(0, 20) : '\u0000';

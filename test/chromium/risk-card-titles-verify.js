@@ -274,7 +274,7 @@ async function shot(page, name){ try{ await page.screenshot({ path: path.join(OU
        title with the whole sentence on its hover; Why it matters follows */
     const ce = await until(page, () => { const c = document.querySelector('#clause-editor .rk-ce-head'); if (!c) return null;
       const t = c.querySelector('.rk-t') || {}; return { t: t.textContent, p: t.getAttribute ? t.getAttribute('title') || '' : '' }; }, null, 10000);
-    check(!!ce && ce.t === 'Ended on 30 days\' notice' && ce.p.includes('30 days'), '5 Edit with Copilot\'s Risks tab: the title, the sentence on its hover', JSON.stringify(ce));
+    check(!!ce && ce.t === 'Ended on 30 days\' notice' && ce.p.includes('30 days'), '5 Edit with Jambo\'s Risks tab: the title, the sentence on its hover', JSON.stringify(ce));
     await shot(page, '4-edit-risks-tab.png');
     await page.evaluate(() => { try{ if (window.clauseEditorClose) window.clauseEditorClose({ force: true }); }catch(_){} });
     await page.keyboard.press('Escape');

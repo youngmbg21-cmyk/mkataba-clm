@@ -165,7 +165,7 @@ const OPEN = ['', 'show me ', 'give me ', 'can you draw ', 'I want to see '];
     const calls0 = await page.evaluate(() => window._bpCalls);
     const none = await ask('tell me something clever about the grumpy suppliers');
     const calls = await page.evaluate(() => window._bpCalls) - calls0;
-    check(calls === 2, 'A3d with nothing to draw Copilot is asked ONCE more for board actions', calls);
+    check(calls === 2, 'A3d with nothing to draw Jambo is asked ONCE more for board actions', calls);
     check(/could not draw/i.test(none.said) && !none.moved, 'A3e then one plain line, and nothing is drawn', none.said);
     check(!/bubble chart|plots/i.test(none.said), 'A4 no sentence names a chart when no card landed', none.said);
     check((await mapNow()) === mapBefore, 'A3f the hidden map is still exactly as it was', await mapNow());

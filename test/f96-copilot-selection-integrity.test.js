@@ -943,7 +943,7 @@ describe('F96 — the guarantees the fixes are not allowed to cost', () => {
     const ch = p.changes()[0];
     assert.equal(ch.status, 'pending', 'a proposal, never an edit');
     assert.ok(ch.hash, 'fingerprinted like every other change');
-    assert.match(ch.note || '', /Copilot/, 'and it says where it came from');
+    assert.match(ch.note || '', /Jambo/, 'and it says where it came from');
   });
 
   test('nothing is filed until a person presses Apply', async () => {
@@ -960,7 +960,7 @@ describe('F96 — the custom-prompt route matches the one-shot route', () => {
     const p = await page();
     const cl = p.clauseWith(/A party in breach/);
     await p.press(p.offer(cl, 'thirty (30) days', 'thirty (30) days', { fromNth: 1, toNth: 1 }),
-      /Edit with Copilot/);
+      /Edit with Jambo/);
     assert.equal(p.panel.sessions.length, 1, 'the conversational action asks what the edit is FOR');
     assert.equal(p.panel.proposals.length, 0, 'and spends nothing before it is told');
     /* The lawyer types their instruction. */

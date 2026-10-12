@@ -149,7 +149,7 @@ async function press(page, sel, what){
       filled: (document.getElementById('dr-filled') || {}).textContent || '',
       go: !!document.getElementById('dr-go'), text: f.textContent } : null;
   });
-  check(!!offer, '3a Copilot comes back with a recommendation');
+  check(!!offer, '3a Jambo comes back with a recommendation');
   check(offer && /Raw Material Supply/i.test(offer.name),
     '3b it names the template it picked', offer && offer.name);
   check(offer && /supply agreement/i.test(offer.text), '3c and says why, in the reader\'s own terms');
@@ -204,7 +204,7 @@ async function press(page, sel, what){
   });
   check(made && made.n === before + 1, '5a one contract, created', made && `${before} → ${made.n}`);
   check(made && made.template !== null && made.tpl === 'RM',
-    '5b from the template Copilot picked', made && String(made.tpl));
+    '5b from the template Jambo picked', made && String(made.tpl));
   check(made && made.cp === 'Nandi Dairy Cooperative Ltd',
     '5c carrying what the reader confirmed, not what the model first said', made && made.cp);
   check(made && made.status === 'Draft', '5d as an ordinary draft', made && made.status);

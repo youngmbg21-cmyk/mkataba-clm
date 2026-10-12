@@ -178,7 +178,7 @@ describe('f368 (4) one note, and only what is true', () => {
     assert.equal(books.length, 2, 'na_note is in both books');
     assert.ok(!/lights the blank/.test(books[0]), 'English: ' + books[0]);
     assert.ok(!/t\\u00e4nder luckan|tänder luckan/.test(books[1]), 'Swedish: ' + books[1]);
-    assert.match(books[0], /Copilot reads the agreement on arrival\./, 'the half that stays true stays');
+    assert.match(books[0], /Jambo reads the agreement on arrival\./, 'the half that stays true stays');
     assert.notEqual(books[0], books[1], 'and it is translated');
   });
   test('[wall] the retired sentences stay inert in BOTH books', () => {

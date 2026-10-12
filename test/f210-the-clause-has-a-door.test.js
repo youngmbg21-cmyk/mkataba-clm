@@ -893,7 +893,7 @@ describe('f210 (12) — the Copilot', () => {
     const p = await bench();
     const btn = page(p).querySelector('.rl-cp-acts [data-nego-ai-clause]');
     assert.ok(btn, 'the button is there');
-    assert.match(btn.textContent, /Edit with Copilot/);
+    assert.match(btn.textContent, /Edit with Jambo/);
     assert.equal(btn.tagName, 'BUTTON', 'pressable, not a caption');
     assert.ok(btn.hasAttribute('data-rl-cp-ai'), 'marked as the panel\'s own Copilot door');
     assert.equal(page(p).querySelector('.rl-cp-ai-note'), null,
@@ -934,7 +934,7 @@ describe('f210 (12) — the Copilot', () => {
     const one = win.rlSelMenu({ ...ctx, only: ['edit'] });
     const labels = [...one.querySelectorAll('[data-nego-ai]')].map(b => b.textContent.trim());
     assert.equal(labels.length, 1, 'one action in the panel');
-    assert.match(labels[0], /Edit with Copilot/);
+    assert.match(labels[0], /Edit with Jambo/);
     /* AND THE DOCUMENT'S OWN MENU IS UNTOUCHED — deliberately left alone, and
        said out loud. Simplify and Compare-to-our-standard are acts on the
        clause AS IT STANDS; inside the panel the reader is highlighting their

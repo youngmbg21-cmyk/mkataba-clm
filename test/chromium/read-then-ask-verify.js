@@ -138,13 +138,13 @@ const check = (name, pass, detail) => {
     const ask = await page.evaluate(() => { const b = document.querySelector('#hb-focus [data-hb-why]'); return b ? { word: b.textContent.trim(), cost: (b.parentElement.querySelector('.hb-quiet') || {}).textContent } : null; });
     check('4a one press, its cost said beside it', !!ask && ask.word === 'What could explain this?' && /Nothing is spent until you press/.test(ask.cost || ''), JSON.stringify(ask));
     await page.click('#hb-focus [data-hb-why]');
-    const busy = await until(() => { const w = document.querySelector('#hb-focus .hb-why'); return w && /Copilot is reading this chart/.test(w.textContent) ? true : null; }, null, 3000);
+    const busy = await until(() => { const w = document.querySelector('#hb-focus .hb-why'); return w && /Jambo is reading this chart/.test(w.textContent) ? true : null; }, null, 3000);
     check('4b while Copilot reads, the box says so', !!busy);
     const s4 = await until(() => { const w = document.querySelector('#hb-focus .hb-why:not(.is-err)'); if (!w || !w.querySelector('.hb-why-b')) return null;
       const r = document.querySelector('#hb-focus .hb-read');
       return { t: w.textContent.replace(/\s+/g, ' '), bg: getComputedStyle(w).backgroundColor, border: getComputedStyle(w).borderTopColor, readBorder: getComputedStyle(r).borderTopColor,
         again: !!document.querySelector('#hb-focus [data-hb-why]'), follow: !!w.querySelector('[data-hb-why-follow]'), below: !!(r.compareDocumentPosition(w) & Node.DOCUMENT_POSITION_FOLLOWING), asked: window._asked.length, prompt: window._asked[0] || '' }; });
-    check('4c the answer lands under the reading, in Copilot\'s box', !!s4 && s4.below && /Copilot’s read/.test(s4.t) && /late burst: 25 contracts landed in two months/.test(s4.t), s4 && s4.t.slice(0, 200));
+    check('4c the answer lands under the reading, in Copilot\'s box', !!s4 && s4.below && /Jambo’s read/.test(s4.t) && /late burst: 25 contracts landed in two months/.test(s4.t), s4 && s4.t.slice(0, 200));
     check('4d it wears amber, not the reading\'s teal', !!s4 && s4.border !== s4.readBorder && isAmber(s4.border), s4 && `${s4.border} vs ${s4.readBorder}`);
     check('4e a count this chart does not hold is left out, and the box says so', !!s4 && !/22 contracts were imported/.test(s4.t) && /1 sentence was left out: its number was not on HaTi’s fact sheet\./.test(s4.t), s4 && s4.t.slice(-160));
     check('4f asked once, not offered again; a follow-up goes to the panel', !!s4 && s4.asked === 1 && !s4.again && s4.follow, JSON.stringify({ asked: s4 && s4.asked, again: s4 && s4.again }));

@@ -249,7 +249,7 @@ const deliver = (id, answer, citations) => ({ content: [{ type: 'tool_use', id, 
       const r = t.getBoundingClientRect();
       return { shown: true, text: t.textContent.replace(/\s+/g, ' ').trim(), w: Math.round(r.width) }; });
     check('2s4 the hover names the clause, how serious it is, and why it is flagged',
-      tip.shown && tip.text.includes(staged.label) && /Could hurt you/.test(tip.text) && /capped far below/.test(tip.text) && /ask Copilot/.test(tip.text),
+      tip.shown && tip.text.includes(staged.label) && /Could hurt you/.test(tip.text) && /capped far below/.test(tip.text) && /ask Jambo/.test(tip.text),
       tip.text || 'not shown');
     await page.evaluate(() => { const i = document.getElementById('igd-input'); if (i) i.value = ''; });
     const callsBefore = ai.calls.length;

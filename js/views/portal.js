@@ -736,7 +736,7 @@ function portalSetBusy(pressedId, label){
   for(const b of portalActionButtons()){
     if(!b.dataset.idle) b.dataset.idle=b.innerHTML;
     b.disabled=true; b.style.opacity='.5'; b.style.cursor='default';
-    if(b.id===pressedId) b.innerHTML=esc(label||i18t('po_sending'));
+    if(b.id===pressedId) b.innerHTML=window.busyHtml?busyHtml(label||i18t('po_sending')):esc(label||i18t('po_sending'));
   }
 }
 function portalSetIdle(){

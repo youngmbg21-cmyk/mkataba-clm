@@ -172,6 +172,6 @@ describe('F211 — the wiring, and what it must never reach', () => {
        cross-realm Array never reference-matches this one's prototype. */
     assert.equal(acts.map(a => a.id).join(','), 'simplify,ask');
     assert.match(acts[0].label, /Simplify/);
-    assert.match(acts[1].label, /Ask Copilot/);
+    assert.match(acts[1].label, /Ask Jambo/);
   });
 });

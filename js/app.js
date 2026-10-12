@@ -951,7 +951,7 @@ function updateSidebarCounts(){
 /* ============================================================ SHELL VIEW SWITCH */
 const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Insights',
   calendar:'Calendar', reports:'Reports', register:'Contracts', migration:'Import contracts',
-  pipeline:'Pipeline', advice:'Advice desk', intake:'Requests', obligations:'Obligations', approvals:'Approvals & signing', customers:'Parties', agents:"Copilot's work", brain:'the Brain', templates:'Templates', playbook:'Our standards',
+  pipeline:'Pipeline', advice:'Advice desk', intake:'Requests', obligations:'Obligations', approvals:'Approvals & signing', customers:'Parties', agents:"Jambo's work", brain:'the Brain', templates:'Templates', playbook:'Our standards',
   team:'Team & settings', directory:'People', workspace:'the contract workspace',
   redline:'Negotiations' };
 
@@ -1302,6 +1302,8 @@ function setView(view){
       if(typeof requestAnimationFrame==='function') requestAnimationFrame(()=>{ sc.scrollTop=_keepTop; }); }
     else sc.scrollTo({top:0});
   }
+  /* the moved Copilot window steps aside where Copilot is on the page (ai.js) */
+  if(typeof window!=='undefined' && typeof window.aiFloatSync==='function') try{ window.aiFloatSync(); }catch(_){}
 }
 /* Repaint a same-view surface without losing the reader's place. For callers
    that repaint DIRECTLY (renderRegister after a delete, a filter or a pager
@@ -1585,7 +1587,7 @@ function renderNewMenu(){
      Translating all four is its own job. */
   menu.innerHTML=`
     ${item('sparkle','var(--tile-steel-bg)','var(--tile-steel-fg)','Draft from a template','Pick a template &amp; answer a few questions','id="menu-wizard"')}
-    ${item('msg','var(--tile-steel-bg)','var(--tile-steel-fg)','Describe what you need','Say it in a sentence — Copilot finds the template','id="menu-describe"')}
+    ${item('msg','var(--tile-steel-bg)','var(--tile-steel-fg)','Describe what you need','Say it in a sentence — Jambo finds the template','id="menu-describe"')}
     ${item('upload','var(--tile-amber-bg)','var(--tile-amber-fg)','Upload a received contract','Their paper — review, scan &amp; sign','id="menu-upload"')}
     ${item('box','var(--tile-steel-bg)','var(--tile-steel-fg)','Import many at once','Bring a whole back-catalogue in one go','id="menu-migrate"')}`;
   // A built-in template opens the SAME guided fill the Templates page opens.
@@ -3722,7 +3724,7 @@ function setRegion(code,opts){
   if(opts&&opts.silent) return;
   /* Everything on screen was rendered against the old market. */
   if(window.setView) setView(state.view||'dashboard');
-  if(window.toast) toast(`Jurisdiction switched to ${REGIONS[code].label} — money, governing-law checks and Copilot briefings follow it`);
+  if(window.toast) toast(`Jurisdiction switched to ${REGIONS[code].label} — money, governing-law checks and Jambo briefings follow it`);
 }
 
 /* ============================================================ COMMAND-BAR + PANEL WIRING (once) */

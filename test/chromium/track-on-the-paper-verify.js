@@ -124,7 +124,7 @@ const check = (name, pass, detail) => {
       await page.click(`#ig-spine .ig-trk-lab[data-xr-seg="${lab}"]`);
       const after = await until(({ s }) => { const sc = document.getElementById('ig-paper-scroll'); const inp = document.getElementById('igd-input');
         return sc.scrollTop > s + 20 && inp && inp.value ? { s: sc.scrollTop, q: inp.value.slice(0, 50), sent: (intel.history || []).length } : null; }, before, 6000);
-      check(`4b. ${tag}: pressing glides the paper and fills Copilot's box, sending nothing`, !!after && after.sent === before.sent, JSON.stringify(after));
+      check(`4b. ${tag}: pressing glides the paper and fills Jambo's box, sending nothing`, !!after && after.sent === before.sent, JSON.stringify(after));
 
       /* 5. the paper does not move for it */
       const edge = () => page.evaluate(() => Math.round((document.getElementById('ig-canvas').closest('.pg-sheet') || document.getElementById('ig-canvas')).getBoundingClientRect().left));

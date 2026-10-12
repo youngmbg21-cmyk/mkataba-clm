@@ -787,7 +787,7 @@ describe('F89 (5) — three actions on a passage, and only three', () => {
     assert.equal(ids.length, 3, 'three verbs, no more');
     assert.equal(ids.join(','), 'edit,shorten,standard');
     const labels = p.win.RL_SEL_ACTIONS.map(a => a.label);
-    assert.match(labels[0], /Edit with Copilot/);
+    assert.match(labels[0], /Edit with Jambo/);
     /* "Tag with internal note" was the third and is now "Compare to our
        standard": a private remark about a fragment answered nobody in the next
        round, and the question a negotiator actually has with wording

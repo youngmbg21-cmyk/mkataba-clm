@@ -108,8 +108,8 @@ describe('f505 (D) both books', () => {
     for (const k of ['ce_expand', 'ce_expand_title', 'ce_full_back']){
       assert.equal(I18N.split('\n    ' + k + ':').length - 1, 2, k + ' in both books');
     }
-    assert.match(I18N, /rk_ce_wrote: 'Copilot suggested wording below/);
-    assert.match(I18N, /rk_ce_wrote: 'Copilot föreslog en formulering nedan/);
+    assert.match(I18N, /rk_ce_wrote: 'Jambo suggested wording below/);
+    assert.match(I18N, /rk_ce_wrote: 'Jambo föreslog en formulering nedan/);
   });
 });
 

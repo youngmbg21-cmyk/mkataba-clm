@@ -459,7 +459,7 @@ describe('f413 (4) — their round came back: Copilot prepares the answers on ar
     const full = await W.admin.json('/api/contracts/MK-RD-2');
     assert.equal(full.playbook.sentBack.note, 'Check payment days again.');
     assert.equal(full._v, 2, 'a new version, so an older copy on screen is asked before it saves over it');
-    assert.match(full.audit[full.audit.length - 1].detail, /sent back to Copilot with a note/);
+    assert.match(full.audit[full.audit.length - 1].detail, /sent back to Jambo with a note/);
     const rn = await W.admin.json('/api/agents/renew/sendback', { method: 'POST', body: { contractId: 'MK-RD-2', note: 'They paid late twice.' } });
     assert.equal(rn.prepared, 1, JSON.stringify(rn));
     assert.equal(rn.advice.sentBack.note, 'They paid late twice.');

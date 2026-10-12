@@ -150,7 +150,7 @@ describe('the clause tools are visible without hunting for them', () => {
          one button on it concluded the Copilot could not touch their paper.
          It is a door onto the same menu and the same filing path, not a second
          way to propose: see f145. */
-      assert.deepEqual(Array.from(labels), ['✨ Copilot', 'Change']);
+      assert.deepEqual(Array.from(labels), ['✨ Jambo', 'Change']);
     }
   });
 

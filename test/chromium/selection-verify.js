@@ -161,7 +161,7 @@ const INSTRUMENT = () => {
   window.__said = re => window.__seen.said.some(m => new RegExp(re, 'i').test(m.text));
 };
 
-const ONE_CLAUSE = ['Ask Copilot', 'Edit with Copilot', 'Comment'];
+const ONE_CLAUSE = ['Ask Jambo', 'Edit with Jambo', 'Comment'];
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const srv = await serve();
@@ -365,7 +365,7 @@ const ONE_CLAUSE = ['Ask Copilot', 'Edit with Copilot', 'Comment'];
     check('5 a genuine drag across two numbered clauses reads as two',
       cross.ids === 2, `${cross.ids} clause(s)`);
     check('5 and across two clauses it is Ask · Comment, NEVER Edit — and nothing is asked yet',
-      JSON.stringify(cross.verbs) === JSON.stringify(['Ask Copilot', 'Comment']) && cross.asked === 0,
+      JSON.stringify(cross.verbs) === JSON.stringify(['Ask Jambo', 'Comment']) && cross.asked === 0,
       `menu ${JSON.stringify(cross.verbs)}, asked ${cross.asked}`);
   }
 

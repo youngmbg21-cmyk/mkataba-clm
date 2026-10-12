@@ -975,7 +975,7 @@ describe('f245 (12) — a rule that is not about this clause cannot replace it',
     assert.ok(!/GDPR/.test(it.preferred), 'never the model\'s improvisation');
     assert.match(it.draft, /GDPR/, 'the model\'s wording is kept — under its own name');
     assert.equal(it.leadKind, 'standard', 'and the approved one is what the card previews');
-    assert.match(p.win.ceWordingLabel('draft'), /Copilot/,
+    assert.match(p.win.ceWordingLabel('draft'), /Jambo/,
       'the draft is offered under a badge that says whose wording it is');
   });
 
@@ -1074,8 +1074,8 @@ describe('f245 (13) — the card says what the press takes', () => {
     const p = await costBench();
     const titles = {};
     for (const b of p.doc.querySelectorAll('#ce-chips [data-ce-std]')) titles[b.textContent.trim()] = b.getAttribute('title');
-    assert.ok(titles['Use Copilot\'s draft'], 'the draft says what it takes');
-    assert.match(titles['Use Copilot\'s draft'] || '', /keeps \d+\./, 'and the targeted draft keeps most of the clause');
+    assert.ok(titles['Use Jambo\'s draft'], 'the draft says what it takes');
+    assert.match(titles['Use Jambo\'s draft'] || '', /keeps \d+\./, 'and the targeted draft keeps most of the clause');
     if (titles['Use our standard'])
       assert.notEqual(titles['Use our standard'], titles['Use Copilot\'s draft'],
         'two wordings that cost different amounts must not read alike');

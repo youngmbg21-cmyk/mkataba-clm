@@ -136,7 +136,7 @@ describe('F461 (C) — then ask: Copilot\'s answer in its own box', () => {
     assert.match(sent, /C0, C1, C2/);
     const html = w.hbChartHtml(D, cs, true);
     assert.match(html, /class="hb-why"/);
-    assert.match(text(html), /Copilot’s read/);
+    assert.match(text(html), /Jambo’s read/);
     assert.match(text(html), /25 contracts landed in two months/);
     assert.ok(!/22 contracts were imported/.test(text(html)), 'a count this chart does not hold is left out');
     assert.match(text(html), /1 sentence was left out: its number was not on HaTi’s fact sheet\./);
@@ -158,13 +158,13 @@ describe('F461 (C) — then ask: Copilot\'s answer in its own box', () => {
     card(w, true);
     w.copilotAvailable = () => false;
     let html = card(w, true).html;
-    assert.match(html, /data-hb-why="[^"]*" disabled title="Asking Copilot needs a Copilot key/);
+    assert.match(html, /data-hb-why="[^"]*" disabled title="Asking Jambo needs a Jambo key/);
     w.copilotAvailable = () => true;
-    w.copilotAsk = async () => { throw new Error('Daily Copilot budget reached'); };
+    w.copilotAsk = async () => { throw new Error('Daily Jambo budget reached'); };
     await w.hbWhyAsk(KEY);
     html = card(w, true).html;
     assert.match(html, /class="hb-why is-err"/);
-    assert.match(text(html), /Copilot could not answer: Daily Copilot budget reached/);
+    assert.match(text(html), /Jambo could not answer: Daily Jambo budget reached/);
     assert.match(text(html), /Try again/);
   });
   test('the kept answer survives a reload of the board record', async () => {

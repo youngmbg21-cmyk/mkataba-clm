@@ -140,7 +140,7 @@ const paperRead = page => page.evaluate(() => {
       toastSaid = await until(page, () => { const t = [...document.querySelectorAll('.toast, [role="status"]')].map(x => x.textContent).join(' | ');
         return /redone|catching up/.test(t) ? t : null; }, null, 15000);
     }
-    ok('2b the card says "Copilot has redone it"', /Copilot has redone it/.test(toastSaid || ''), toastSaid);
+    ok('2b the card says "Copilot has redone it"', /Jambo has redone it/.test(toastSaid || ''), toastSaid);
     const taken = await page.evaluate(k => { const c = getContract('MK-CP1'); const a = c._roundPrep && c._roundPrep[k]; return a ? a.verdict : null; },
       require('../../js/roundprep.js').roundPrepKey(staged.clauseId, staged.newText));
     ok('2c the redone answer is the page\'s own at once (counter)', taken === 'counter', taken);
@@ -176,7 +176,7 @@ const paperRead = page => page.evaluate(() => {
         save: ((document.querySelector('[data-ce-act="save"]') || {}).textContent || '').trim() };
     }) : null;
     ok('5a the editor opens with Copilot\'s counter already in the box (60 added)', !!e5 && e5.boxHas60, JSON.stringify(e5));
-    ok('5b ONE card, "Copilot\'s counter", marked In the box, with no Apply', !!e5 && e5.cards === 1 && /Copilot's counter/.test(e5.name) && e5.inBox && e5.applies === 0, e5 && JSON.stringify({ c: e5.cards, n: e5.name, i: e5.inBox, a: e5.applies }));
+    ok('5b ONE card, "Copilot\'s counter", marked In the box, with no Apply', !!e5 && e5.cards === 1 && /Jambo's counter/.test(e5.name) && e5.inBox && e5.applies === 0, e5 && JSON.stringify({ c: e5.cards, n: e5.name, i: e5.inBox, a: e5.applies }));
     ok('5c "Rests on:" is said once', !!e5 && !e5.restsTwice && /Rests on: Payment terms/.test(e5.rests), e5 && e5.rests);
     ok('6a "Note to Nandi Dairy" is drafted from Copilot\'s reason', !!e5 && /Note to Nandi Dairy/i.test(e5.noteLabel) && e5.note === WHY, e5 && (e5.noteLabel + ' / ' + e5.note));
     ok('6b the Save reads "Save counter"', !!e5 && e5.save === 'Save counter', e5 && e5.save);

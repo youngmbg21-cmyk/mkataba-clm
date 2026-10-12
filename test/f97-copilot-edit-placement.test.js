@@ -355,7 +355,7 @@ describe('F97c — the menu renamed rather than grew a fourth door', () => {
     const p = await page();
     const ids = p.win.RL_SEL_ACTIONS.map(a => a.id);
     assert.equal(ids.join(','), 'edit,shorten,standard', 'still three verbs');
-    assert.match(p.action.label, /Edit with Copilot/);
+    assert.match(p.action.label, /Edit with Jambo/);
     assert.equal(p.action.placements, true);
     /* The sparkle stays: Direct Edit on the clause toolbar already wears a
        pencil, and two near-identical marks doing different jobs is the thing
@@ -445,7 +445,7 @@ describe('F97d — "after" keeps the sentence it follows', () => {
     const ch = p.changes().find(x => x.clauseId === p.clause.clauseId);
     assert.ok(ch, 'a tracked change was filed — an insert gets no private path into the contract');
     assert.equal(ch.changeType, 'modify');
-    assert.match(String(ch.note || ''), /Copilot — Edit \(added after\)/,
+    assert.match(String(ch.note || ''), /Jambo — Edit \(added after\)/,
       'the record says what it did, not just which tool did it');
   });
 
@@ -763,7 +763,7 @@ describe('F97 — the reason typed on the proposal card is filed with the change
     assert.ok(ch, 'a change was filed');
     assert.equal(ch.why, 'COPILOT-WHY our AP cycle runs monthly',
       'the reason travels on the field the other side reads');
-    assert.match(String(ch.note || ''), /^Copilot — /,
+    assert.match(String(ch.note || ''), /^Jambo — /,
       'and provenance stays its own field, internal as ever');
   });
 

@@ -434,7 +434,7 @@ describe('f376 (4) Copilot’s first move, one per start', () => {
     assert.ok(C.rows.length >= 1 && C.rows.every(r => r.on === false), 'nothing is a blank until a person ticks it');
     assert.ok(C.dropped >= 2, 'the company name and the date were not labelled: ' + C.dropped);
     const lane = win.document.getElementById('tb-lane').textContent;
-    assert.match(lane, /Copilot did not say whether \d+ names, amounts or dates are blanks/);
+    assert.match(lane, /Jambo did not say whether \d+ names, amounts or dates are blanks/);
     const make = win.document.querySelector('[data-tb-cand-make]');
     assert.ok(make && make.disabled, 'and the button waits for a tick');
   });

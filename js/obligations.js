@@ -1492,7 +1492,7 @@ function openObligationsReview(c, found, back){
     return true;
   };
   const settled = (n, skipped) => {
-    if(n) logAudit(c,'Obligation',`Added ${n} obligation${n === 1 ? '' : 's'} from Copilot scan` + (skipped ? ` — ${skipped} already on the contract` : ''));
+    if(n) logAudit(c,'Obligation',`Added ${n} obligation${n === 1 ? '' : 's'} from Jambo scan` + (skipped ? ` — ${skipped} already on the contract` : ''));
     persist(c); renderObligationsSection(c); obligationSurfacesChanged();
     if (window.roomPaintObligations) roomPaintObligations(c);
   };
@@ -1549,7 +1549,7 @@ function openObligationsReview(c, found, back){
       /* ASKED AGAIN AT THE ADD: the wall, not the sign */
       if (addOne(Number(cb.getAttribute('data-ob-pick')))) n++; });
     if (n || skipped) settled(n, 0);
-    if (!n && skipped) logAudit(c, 'Obligation', `Nothing added from Copilot scan — the ${skipped === 1 ? 'one it found is' : skipped + ' it found are'} already on the contract`);
+    if (!n && skipped) logAudit(c, 'Obligation', `Nothing added from Jambo scan — the ${skipped === 1 ? 'one it found is' : skipped + ' it found are'} already on the contract`);
     persist(c); closeModal(); renderObligationsSection(c);
     if (window.paintKtTriage && document.getElementById('kt-triage-slot')) try { paintKtTriage(c); } catch (_){}
     /* AND IT SAYS SO OUT LOUD: 'ok' when something arrived, 'warn' when not */

@@ -1162,7 +1162,7 @@ function negoKeepDiscarded(c, id, list){
    on the clause editor with no Copilot behind it carries `ce_provenance`
    ("Written on the clause editor") as its note, and History printed it as
    "Why they asked". Server twin: SRV_NEGO_PROVENANCE_RE. */
-const NEGO_PROVENANCE_RE = /^(?:Copilot\s+[—-]\s|Written on the clause editor\s*$)/;
+const NEGO_PROVENANCE_RE = /^(?:(?:Copilot|Jambo)\s+[—-]\s|Written on the clause editor\s*$)/;   /* Jambo since 11 Oct 2026; notes saved before say Copilot */
 const negoReasonOf = ch => (ch && (ch.why || (ch.note && !NEGO_PROVENANCE_RE.test(String(ch.note)) ? ch.note : ''))) || '';
 const negoDiscardedHashes = c => new Set(((c && c.negotiation && c.negotiation.discarded) || []).map(d => d && d.hash).filter(Boolean));
 async function verifyChangeChain(c){

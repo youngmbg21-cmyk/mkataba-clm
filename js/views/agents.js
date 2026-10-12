@@ -1096,7 +1096,7 @@ function agRunHtml(k){
   const admin = typeof isAdmin === 'function' && isAdmin();
   if (admin && a && a.on)
     out += `<button type="button" class="ui-btn" data-ag-runnow="${k}"${a.running ? ' disabled aria-disabled="true"' : ''}>${
-      _agE(_agT(a.running ? 'ag_running' : 'ag_runnow'))}</button>`;
+      (a.running && window.busyHtml) ? busyHtml(_agT('ag_running')) : _agE(_agT(a.running ? 'ag_running' : 'ag_runnow'))}</button>`;
   if (admin && a && typeof openSettingsAt === 'function')
     out += `<button type="button" class="ui-link" data-ag-door="agentsettings">${_agE(_agT('ag_settings'))}</button>`;
   return out || `<span class="ag-self">${_agE(_agT('ag_runs_itself'))}</span>`;

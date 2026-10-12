@@ -90,7 +90,7 @@ const ENGLISH_TELLS = /\b(the|your|this|that|cannot|please|before|already|contra
     return pre + (window.srvMsg ? window.srvMsg('This contract has been executed and sealed') : '');
   });
   check('a translated prefix and the server sentence are one language',
-    !ENGLISH_TELLS.test(glued.replace(/HaTi|Copilot/g, '')), glued);
+    !ENGLISH_TELLS.test(glued.replace(/HaTi|Copilot|Jambo/g, '')), glued);
 
   /* An unknown sentence must pass straight through — that is what makes the
      lookup safe to extend and impossible to break from the server. */
