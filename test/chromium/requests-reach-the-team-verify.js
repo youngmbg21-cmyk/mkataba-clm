@@ -91,6 +91,10 @@ const until = async (page, fn, arg, ms = 8000) => {
 
     /* ---- 3 · DRAFT IT ---- */
     await page.evaluate(id => intakeDraft(id), rid);
+    /* THE SEARCH LIST (12 Oct 2026): with no template suggested nothing is
+       picked for the reader; the request's answers land on the row they pick. */
+    await until(page, () => !!document.querySelector('#na-root .na-pick'));
+    await page.evaluate(() => { if (!document.querySelector('#na-form input')) document.querySelector('#na-root .na-pick').click(); });
     const opened = await until(page, () => !!document.getElementById('na-root') && !!document.querySelector('#na-form input'));
     ok('3a Draft it opens the ordinary drafting screen', opened);
     const pre = await page.evaluate(() => {

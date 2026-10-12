@@ -48,6 +48,10 @@ async function waitFor(page, fn, arg, ms = 6000) {
   page.on('pageerror', e => errors.push(e.message));
   const open = async () => {
     await page.evaluate(async () => { try { await tplLibRefresh(); } catch (_) {} openNewAgreement({}); });
+    /* THE SEARCH LIST (12 Oct 2026): nothing is picked on arrival, so the
+       check picks the first row (the company standard) as a reader would. */
+    await waitFor(page, () => !!document.querySelector('#na-root .na-pick'));
+    await page.evaluate(() => document.querySelector('#na-root .na-pick').click());
     return waitFor(page, () => !!document.querySelector('#na-root #na-form input'));
   };
   try {
@@ -68,7 +72,7 @@ async function waitFor(page, fn, arg, ms = 6000) {
       el.focus(); el.value = 'Juno Limited'; el.dispatchEvent(new Event('input', { bubbles: true })); return el.id;
     });
     check('C5 the card has a counterparty box', !!typedId, typedId);
-    await page.evaluate(() => document.querySelector('[data-wz-tid]').click());
+    await page.evaluate(() => { (document.querySelector('[data-na-tab="tid"]') || { click() {} }).click(); document.querySelector('[data-wz-tid]').click(); });
     const carried = await waitFor(page, () => {
       const el = document.getElementById('wz-counterparty'); return el ? el.value : null; });
     check('C5 the answer is in the same box on the next row', carried === 'Juno Limited', String(carried));
@@ -95,7 +99,7 @@ async function waitFor(page, fn, arg, ms = 6000) {
 
     /* C6: a refused Create, on a HaTi row. */
     await open();
-    await page.evaluate(() => document.querySelector('[data-wz-tid]').click());
+    await page.evaluate(() => { (document.querySelector('[data-na-tab="tid"]') || { click() {} }).click(); document.querySelector('[data-wz-tid]').click(); });
     await waitFor(page, () => !!document.getElementById('wz-cpemail'));
     await page.evaluate(() => { const e = document.getElementById('wz-cpemail'); e.value = 'not-an-address';
       e.dispatchEvent(new Event('input', { bubbles: true })); });

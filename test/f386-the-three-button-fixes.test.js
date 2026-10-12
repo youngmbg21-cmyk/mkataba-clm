@@ -136,7 +136,9 @@ describe('f386 (3) one edge on every outlined control', () => {
       [HTML, /\.doc-read-seg\{[^}]*border:1px solid var\(--btn-edge\)/, 'the Contract View switch'],
       [HTML, /\.doc-read-seg button \+ button\{\s*border-left:1px solid var\(--btn-edge\)/, 'and its seams'],
       [HTML, /\.hm-rverb\{[^}]*border:1px solid var\(--btn-edge\)/, 'Home\'s decision verb'],
-      [HTML, /\.reg-filterbar \.reg-chip\{[^}]*border:1px solid var\(--btn-edge\)/, 'the Contracts filter chips'],
+      /* RE-POINTED 12 Oct 2026 (the SAP way): a resting FILTER keeps its own
+         hairline, --chip-edge; the accent is what says it is in force. */
+      [HTML, /\.reg-filterbar \.reg-chip\{[^}]*border:1px solid var\(--chip-edge\)/, 'the Contracts filter chips'],
       [HTML, /\.reg-seg\{[^}]*border:1px solid var\(--btn-edge\)/, 'the Contracts switch'],
       [HTML, /\.reg-seg button \+ button\{border-left:1px solid var\(--btn-edge\);\}/, 'and its seam'],
       [HTML, /\.ui-btn-secondary\{[^}]*border-color:var\(--btn-edge\)/, 'the secondary button'],

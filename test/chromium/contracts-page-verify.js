@@ -513,7 +513,10 @@ const check = (name, ok, detail) => {
        outline"): every outlined control reads ONE edge token, --btn-edge,
        which is the light grey by day — the chips included. The variable
        keeps its old name so 12d and 12e below read the same resting edge. */
-    const ruleStrong = await page.evaluate(RESOLVE, '--btn-edge');
+    /* RE-POINTED 12 Oct 2026 (the SAP way): buttons wear the accent edge
+       now, so a filter's RESTING hairline has its own token, --chip-edge —
+       the accent is what says a filter is in force. */
+    const ruleStrong = await page.evaluate(RESOLVE, '--chip-edge');
     check('12a a resting filter wears the hairline, the redesign\'s own neutral',
       rest.stage && rest.stage.bc === ruleStrong && rest.type.bc === ruleStrong,
       `${rest.stage && rest.stage.bc} · token ${ruleStrong}`);
@@ -565,7 +568,7 @@ const check = (name, ok, detail) => {
     /* RE-POINTED (21 Sep 2026): the chip's hairline has a night answer of its
        own, so "the same neutral" is the token resolved AT NIGHT. */
     check('12f and a resting filter still wears the hairline at night',
-      dark.type && dark.type.bc === await page.evaluate(RESOLVE, '--rule-strong'),
+      dark.type && dark.type.bc === await page.evaluate(RESOLVE, '--chip-edge') && dark.type.bc === await page.evaluate(RESOLVE, '--rule-strong'),
       dark.type && dark.type.bc);
     await page.evaluate(() => setTheme('light'));
     await page.evaluate(() => { const R = regState(); R.stage = 'all'; R.view = null; regRepaint(); });

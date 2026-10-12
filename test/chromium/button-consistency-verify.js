@@ -168,6 +168,7 @@ const HELPERS = `(() => {
         if (el.querySelector('div,p,li,ul,table,h2,h3,h4,section')) continue;
         if (el.closest('#top-header')) continue;          /* the navy bar's controls are white-on-navy by design */
         if (el.classList.contains('nav-section-head')) continue;   /* on the 64px rail a group is a hairline divider, not an outlined control */
+        if (el.matches('.reg-filterbar .reg-chip:not(.on)')) continue;   /* a resting FILTER keeps its hairline (--chip-edge); the accent says it is in force */
         const cs = getComputedStyle(el);
         if (!(parseFloat(cs.borderTopWidth) >= 0.5) || cs.borderTopStyle === 'none') continue;
         const col = cs.borderTopColor; if (/rgba\\([^)]*,\\s*0\\)$/.test(col) || col === 'transparent') continue;
