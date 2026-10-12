@@ -3474,6 +3474,8 @@ function datePickDress(root){
       const w=datePickWords(_dpValue.get.call(inp));
       face.innerHTML=`<span class="dp-v${w?'':' dp-ph'}">${(w||i18t('dp_pick')).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</span>${typeof icon==='function'?icon('calendar','dp-ic'):''}`;
       face.disabled=!!inp.disabled;
+      /* an owed date is amber on the face the reader sees (needMark) */
+      if(inp.hasAttribute('data-need') && typeof needMark==='function') needMark(inp);
     };
     Object.defineProperty(inp,'value',{ configurable:true,
       get(){ return _dpValue.get.call(this); },

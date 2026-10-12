@@ -118,7 +118,10 @@ describe('f345 (3) the card is the existing door\'s own form, and this file mint
     assert.match(NA, /getElementById\('na-skip'\)\?\.addEventListener\('click', goCreate\(\(\)=>api\.skip\(\)\)\)/);
     /* RE-POINTED 26 Sep 2026: the wrapper awaits the act, so a refused Create
        can give the held people back to the screen. */
-    assert.match(NA, /const goCreate=fn=>async\(\)=>\{ if\(!api\)/, 'and the wrapper still refuses without a door');
+    /* RE-POINTED 13 Oct 2026: the wrapper takes the press (its button turns
+       while the server mints the record; the page stays up until "Complete
+       the details" replaces it). */
+    assert.match(NA, /const goCreate=fn=>async ev=>\{ if\(!api\)/, 'and the wrapper still refuses without a door');
   });
   test('each host form returns { create, skip, count } and keeps its own validation', () => {
     const ce = region(TF, 'openContractEssentials');

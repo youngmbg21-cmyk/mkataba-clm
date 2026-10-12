@@ -168,13 +168,13 @@ function openTemplateFillModal(t, prefill, ho){
     const _mapNote='';
     const _mapTitle=(_map && _map.trim().toLowerCase()!==String(f.label||'').trim().toLowerCase()) ? ` title="${_tplEsc(_map).replace(/"/g,'&quot;')}"` : '';
     const lbl=`<span${_mapTitle} style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${_tplEsc(f.label)}${f.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}${_mapNote}</span>`;
-    const st='width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none';
+    const st='width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);background:var(--need-bg,var(--color-surface));border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none';
     /* AN OPTION MAY BE A {v,l} PAIR (the side question is), so it is read
        through fieldOpt, the one reading — printed whole it said "[object
        Object]" three times (seen 9 Oct 2026, the SAP pop-up photographs). */
-    if(f.type==='select') return `<label style="display:block">${lbl}<select id="${id}" style="${st}">${(f.opts||[]).map(o=>(typeof window.fieldOpt==='function')?window.fieldOpt(o):{v:String(o),l:String(o)}).map(o=>`<option value="${_tplEsc(o.v).replace(/"/g,'&quot;')}" ${String(f.def==null?'':f.def)===o.v?'selected':''}>${_tplEsc(o.l)}</option>`).join('')}</select></label>`;
+    if(f.type==='select') return `<label style="display:block">${lbl}<select id="${id}" style="${st}"${(typeof needAttrs==='function'?needAttrs(f,(f.def==null?'':f.def)||((f.opts||[])[0]!=null&&typeof window.fieldOpt==='function'?window.fieldOpt(f.opts[0]).v:'')):'')}>${(f.opts||[]).map(o=>(typeof window.fieldOpt==='function')?window.fieldOpt(o):{v:String(o),l:String(o)}).map(o=>`<option value="${_tplEsc(o.v).replace(/"/g,'&quot;')}" ${String(f.def==null?'':f.def)===o.v?'selected':''}>${_tplEsc(o.l)}</option>`).join('')}</select></label>`;
     const it=f.type==='date'?'date':(f.type==='num'?'number':'text');
-    return `<label style="display:block">${lbl}<input id="${id}" type="${it}" value="${String(f.def||'').replace(/"/g,'&quot;')}" placeholder="${_tplEsc(f.ph||'')}" style="${st}"/></label>`; };
+    return `<label style="display:block">${lbl}<input id="${id}" type="${it}"${(typeof needAttrs==='function'?needAttrs(f,f.def):'')} value="${String(f.def||'').replace(/"/g,'&quot;')}" placeholder="${_tplEsc(f.ph||'')}" style="${st}"/></label>`; };
   /* ---- THE PAPER BESIDE THE QUESTIONS (upgrade 2, 18 Sep 2026) ----
      The boxes do not change — same questions, same order, same required stars,
      same three acts. They move into the left half of a wider frame and the

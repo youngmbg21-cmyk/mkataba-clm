@@ -527,7 +527,7 @@ function openContractEssentials(opts){
      ONCE here and read through `window` by the other two, with the literal as
      the fallback for a stage that has not loaded this file. */
   const ST = 'width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);'
-    + 'background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none;color:inherit';
+    + 'background:var(--need-bg,var(--color-surface));border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none;color:inherit';
   const input = f => {
     /* A value stream is the product's own list, with its "+ New value stream"
        sentinel — see the wizard for the pair. */
@@ -539,13 +539,13 @@ function openContractEssentials(opts){
        creation doors ask this question in one shape. */
     if (f.type==='select') return `<label style="display:block">
       <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${esc(f.label)}</span>
-      <select id="ce-${f.key}" style="${ST}">${(f.opts||[]).map(fieldOpt).map(o=>
+      <select id="ce-${f.key}" style="${ST}"${(typeof needAttrs==='function'?needAttrs(f,f.def||((f.opts||[])[0]!=null?fieldOpt(f.opts[0]).v:'')):'')}>${(f.opts||[]).map(fieldOpt).map(o=>
         `<option value="${esc(o.v).replace(/"/g,'&quot;')}"${String(f.def||'')===o.v?' selected':''}>${esc(o.l)}</option>`).join('')}</select></label>`;
     const it = f.type==='date' ? 'date' : (f.type==='num' ? 'number' : (f.type==='email' ? 'email' : 'text'));
     return `<label style="display:block">
       <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${esc(f.label)}${
         ''}</span>
-      <input id="ce-${f.key}" type="${it}" value="${esc(f.def||'').replace(/"/g,'&quot;')}" placeholder="${esc(f.ph||'')}" style="${ST}"></label>`;
+      <input id="ce-${f.key}" type="${it}"${(typeof needAttrs==='function'?needAttrs(f,f.def):'')} value="${esc(f.def||'').replace(/"/g,'&quot;')}" placeholder="${esc(f.ph||'')}" style="${ST}"></label>`;
   };
   /* ---- THE PAPER BESIDE THE QUESTIONS, ON THIS DOOR TOO (Young ruled 18 Sep
      2026, off two screenshots: "Make sure all drafted templates come with the
@@ -574,7 +574,20 @@ function openContractEssentials(opts){
         const el=document.getElementById('ce-'+f.key); if(el) bindFolderSelect(el);
       });
   };
-  const skip = () => { closeModal(); if(o.onSkip) o.onSkip(); };
+  /* THE PAGE STAYS UP UNTIL THE NEXT ONE TAKES THE SCREEN (owner, 13 Oct
+     2026: "it glitches and first pushes me to the contracts page"). The
+     company's templates are minted on the server, and closing first left the
+     page underneath on show for the whole round trip. The act runs with this
+     screen still standing; "Complete the details" replaces it in the same
+     breath (applyWsTabs), and this closes only if nothing did. */
+  const handOver = async run => {
+    const mine = o.host || document.getElementById('ce-err');
+    let ret = null;
+    try{ ret = run(); }catch(e){ if(mine && mine.isConnected) closeModal(); throw e; }
+    if(ret && typeof ret.then === 'function'){ try{ await ret; }catch(_){} }
+    if(mine && mine.isConnected) closeModal();
+  };
+  const skip = () => handOver(() => o.onSkip ? o.onSkip() : null);
   const create = () => {
     const values = {}, errs = [];
     for(const f of fs){
@@ -597,9 +610,7 @@ function openContractEssentials(opts){
       errs.push('The counterparty name is longer than 120 characters — use the registered name.');
     const err = document.getElementById('ce-err');
     if(errs.length){ if(err) err.textContent = errs.length===1?errs[0]:`${errs.length} things need fixing: ${errs.join(' · ')}`; return false; }
-    closeModal();
-    if(o.onCreate) o.onCreate(values, values.cpemail||'');
-    return true;
+    return handOver(() => o.onCreate ? o.onCreate(values, values.cpemail||'') : null).then(() => true);
   };
   if(o.host){
     o.host.innerHTML = gridHtml + errHtml;
