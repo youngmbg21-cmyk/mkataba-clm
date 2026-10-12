@@ -71,10 +71,11 @@ const contract = (id, signed) => ({
       /* RE-POINTED 12 Oct 2026: every box is on the Details tab (owner: the one
          place a contract is filled in), the filing rows open beneath. */
       await page.evaluate(x => roomGoTab(getContract(x), 'details'), id);
-      await page.waitForFunction(() => !!document.querySelector('#kt-det-terms #ov-ess'), null, { timeout: 5000 }).catch(() => {});
+      /* RE-POINTED 13 Oct 2026: the boxes are the Details form's (#det-basics) */
+      await page.waitForFunction(() => !!document.querySelector('#det-basics .cd-fld'), null, { timeout: 5000 }).catch(() => {});
       await page.waitForTimeout(500);
       return page.evaluate(printed => {
-        const host = document.getElementById('kt-det-terms') || document;
+        const host = document.getElementById('det-basics') || document;
         const has = k => !!host.querySelector(`[data-kt="${k}"]`);
         const why = [...host.querySelectorAll('span[title]')].map(x => x.getAttribute('title'))
           .filter(t => /Signing has started/.test(t)).length;

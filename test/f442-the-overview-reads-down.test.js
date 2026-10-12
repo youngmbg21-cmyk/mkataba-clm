@@ -110,8 +110,10 @@ describe('f442 (1) the essentials card holds every term, once', () => {
     const html = win.ktOverviewTermsHtml(c, { editable: true, readable: true });
     const top = html.slice(0, html.indexOf('id="ov-ess"'));
     assert.ok(/data-ov-go-details/.test(top) && !/data-ov-edit="all"|id="kt-fill"/.test(top), 'one door to Details on the top row');
-    const det = win.ktOverviewTermsHtml(c, { editable: true, readable: true, details: true });
-    assert.ok(/id="kt-fill"/.test(det.slice(0, det.indexOf('id="ov-ess"'))), 'Fill from document is on the Details tab\'s top row');
+    /* RE-POINTED 13 Oct 2026: on Details, Fill from document heads the form
+       of the contract's details (detBasicsHtml), not the parties card. */
+    const det = win.detBasicsHtml(c, { readable: true });
+    assert.ok(/id="kt-fill"/.test(det), 'Fill from document heads the Details form');
     const head = html.slice(html.indexOf('id="ov-facts"'), html.indexOf('id="kt-rows"'));
     assert.ok(!/data-ov-edit|kt-fill/.test(head), 'the Terms heading holds only its caption and the hold chip');
   });
@@ -134,8 +136,9 @@ describe('f442 (1) the essentials card holds every term, once', () => {
     const { win } = ovWorld();
     const c = supply();
     c.metadata = Object.assign({}, c.metadata, { noticePeriodDays: 90, volumeRebate: '2%' });
-    /* the edit posture is the Details tab's since 12 Oct 2026 */
-    const html = win.ktOverviewTermsHtml(c, { editable: true, details: true });
+    /* the edit posture is the Details tab's since 12 Oct 2026; since 13 Oct
+       its boxes are the Details form's (detBasicsHtml, the other terms folded) */
+    const html = win.detBasicsHtml(c);
     const names = new Set((html.match(/data-kt="[a-zA-Z]+"|data-ktm="[a-zA-Z]+"/g) || [])
       .map(b => b.split('"')[1]));
     const want = ['contractType', 'governingLaw', 'disputes', 'value', 'effDate', 'expiry', 'renewalType', 'paymentTerms', 'liabilityCapped'];
