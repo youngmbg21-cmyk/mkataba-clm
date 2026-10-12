@@ -55,6 +55,12 @@
    on Home's Calendar tab, the zoom stands where A⁻/A⁺ stood. Audited first as a
    set difference: 254 counts moved, NO colour appeared or vanished, light
    mode's colours unchanged (text-size counts only), status colours as before.
+   RE-RECORDED 12 Oct 2026, OWNER-ASKED ("yes, update the record"): after
+   #233-#236 (the Details tab as a form, the SAP-way buttons). Audited first as
+   a set difference: light mode NO colour new, gone or moved (text-size counts
+   only, on every screen); dark mode 26 keys new and 78 gone, all the buttons'
+   grey edges and white icons becoming the theme's lighter ink (the SAP way,
+   owner picked 12 Oct). 170 of 170 pass after.
    RE-RECORDED 11 Oct 2026 (fourth), OWNER-ASKED ("yes"): the Board as drawn
    (rounds 1-3, owner-approved). Audited as a set difference: only Home moved,
    0 other screens. Light Home: counts only. Dark Home: 2 new (a card edge at
