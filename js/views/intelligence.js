@@ -6632,7 +6632,7 @@ function renderIntelDock(){
   }
   /* ---- AND ON THE BREAKDOWN TAB: its zoom (deal → region → clause → words)
      stands in this one panel (owner, 11 Oct 2026; js/views/breakdown.js) ---- */
-  if(window.state&&state.view==='dashboard'&&typeof window.hbFace==='function'&&hbFace()==='breakdown'&&typeof window.bdLensHtml==='function'){
+  if(typeof window.bdOnScreen==='function'&&bdOnScreen()&&typeof window.bdLensHtml==='function'){
     dock.innerHTML=bdLensHtml();
     const head=dock.querySelector('.bd-lens-head');
     if(head) head.insertAdjacentHTML('beforeend',`<button id="igd-collapse" title="${i18t('int_collapse_panel')}" aria-label="${i18t('int_collapse_panel')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('chevR')}</button>`);
