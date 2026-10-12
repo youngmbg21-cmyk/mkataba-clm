@@ -106,9 +106,9 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     /* LIFTED (Young, 8 Oct 2026: "yes to words under the symbols"): every symbol
        carries its word, whole — a word cut to "Docu…" is not a word */
     const sym = await page.evaluate(() => [...document.querySelectorAll('#ig-dock .igd-head .pd-tab')].map(b => { const w = b.querySelector('.pd-tab-w');
-      return { k: b.getAttribute('data-pd-tab'), on: b.classList.contains('on'), txt: w ? w.textContent.trim() : '', whole: !!w && w.scrollWidth <= w.clientWidth + 1, glyph: (b.querySelector('.pd-tab-g') || {}).textContent || '', name: b.getAttribute('title') }; }));
-    /* the artifact's symbols, exactly (owner, 10 Oct 2026) */
-    ok('3a2 symbols — the artifact\'s marks — each with its word under it, whole; one lit', sym.length === 4 && sym.map(s => s.glyph.replace('\uFE0E', '')).join('') === '\u2726\u25A6\u25A2\u2691' && sym.map(s => s.txt).join('|') === 'Jambo|Overview|Clauses|Obligations' && sym.every(s => s.name && s.txt.length > 2 && s.whole) && sym.filter(s => s.on).length === 1, JSON.stringify(sym.map(s => s.glyph + ' ' + s.txt + (s.whole ? '' : ' (cut)'))));
+      return { k: b.getAttribute('data-pd-tab'), on: b.classList.contains('on'), txt: w ? w.textContent.trim() : '', whole: !!w && w.scrollWidth <= w.clientWidth + 1, glyph: b.querySelector('.pd-tab-g img.jambo-face') ? 'FACE' : ((b.querySelector('.pd-tab-g') || {}).textContent || ''), name: b.getAttribute('title') }; }));
+    /* the artifact's symbols, exactly (owner, 10 Oct 2026); Jambo's tab wears his face (owner, 12 Oct 2026) */
+    ok('3a2 symbols — the artifact\'s marks — each with its word under it, whole; one lit', sym.length === 4 && sym.map(s => s.glyph.replace('\uFE0E', '')).join('') === 'FACE\u25A6\u25A2\u2691' && sym.map(s => s.txt).join('|') === 'Jambo|Overview|Clauses|Obligations' && sym.every(s => s.name && s.txt.length > 2 && s.whole) && sym.filter(s => s.on).length === 1, JSON.stringify(sym.map(s => s.glyph + ' ' + s.txt + (s.whole ? '' : ' (cut)'))));
     /* WHITE, UNDER THE GREETING ROW (owner, 10 Oct 2026; reverses Lifted) */
     const white = await page.evaluate(() => { const d = document.getElementById('ig-dock');
       return { dock: getComputedStyle(d).backgroundColor, card: getComputedStyle(d, '::before').content, top: Math.round(d.getBoundingClientRect().top), bar: Math.round(document.getElementById('ig-strip').getBoundingClientRect().top) }; });
