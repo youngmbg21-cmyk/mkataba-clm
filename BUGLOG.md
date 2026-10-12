@@ -20658,3 +20658,20 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - The "Scanning…" toast when a contract scan starts (ai.js) has no moving ring; HaTi's toast cannot carry one today.
 - CLAUDE.md is 82 KB, over its own "about 80 KB" line (it was 81 KB before this build); the next trim should take it back under.
 - 11 Oct 2026 — Noticed, not fixed: Breakdown's card sub-line says "1 clauses placed in a region" — bd_placed has no singular form (both books).
+
+## Bug log clean-up — 12 Oct 2026 overnight (owner: "begin cleaning up the bug log … if something needs me, park it and continue")
+- FIXED: the overnight book reading read the AGREED wording of a contract filed on a differing signed copy; it now reads the copy of record (copilotRecordWording in runBookReading; f662).
+- FIXED: the term fill's "End date set to …" confirmation printed nothing (bare toast); now kind 'ok'.
+- FIXED: Negotiate's head ⋯ Focus row kept aria-pressed="false" while the page was in Focus (rlPaintFocusBtn paints #ws-focus too).
+- FIXED: Breakdown said "1 clauses placed in a region" (bd_placed_one/_other; bd_placed inert in both books).
+- FIXED: pdOpenOnHome's phone fallback landed on no tab for Clauses and Obligations (PD_ROOM_TAB now 'docs' / 'oblig').
+- FIXED: the import sheet's hint row printed "[object Object]" for the side question (bulkTemplateCsv; f663). The "Fill a template" pop-up's own dropdown was already fixed earlier (fieldOpt).
+- FIXED: a flat upload's strip said "Structure read from the wording" on Home's Copilot tab until Clauses painted (igPaintPaper asks docThreadFlatSay; flat-file-one-sentence-verify 1b).
+- FIXED: Home's Clauses forgot the colour filter on a refresh, and a filter carried over to the next contract (docThreadTonesNow / docThreadKeepTones via hbPlace; clauses-filter-kept-verify).
+- FIXED: a DRAFT's empty blank on Home's Document said "…before the contract was sent"; it now says "Not filled in yet — answer it on the Overview tab" (ct_term_open).
+- FIXED: Explorer called a grouping no model made "Jambo grouping"; Customers' Open on Explorer says "Active or expired", a compare says "A or B" (groups._name).
+- FIXED (dark mode, 11 Oct): Home's Document drew a white sheet under near-white words for a negotiated contract (.nego-onpaper takes the dark tokens).
+- CHECKED, not reproduced: negoMayStart vs openRedlineWorkbench on a light-list Signed contract — the wall asks negoMayStart itself, so the door and the wall read the same function now.
+- PARKED for the owner: the lost "Simplify" highlight action on Home's paper; the Notes drawer covering the Chat door (notes-two-rooms-verify); after a differing signed copy is filed, the paper still shows the agreed wording (design question); the old open PR #115 (CLAUDE.md's bug-log line count) — not closed.
+- LEFT as before: the faint grey strip (on purpose); the docBody light-row throw (open); theme-tokens / six-round-audit / their-edit-page / copilot-band stay on KNOWN_RED with their reasons.
+- NOTE: only the last 80 lines of this log can be read in a session (reading it whole is denied on purpose), so older items were not reviewed tonight.
