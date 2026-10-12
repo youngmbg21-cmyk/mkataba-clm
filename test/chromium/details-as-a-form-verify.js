@@ -10,8 +10,11 @@
      2  the contract's details are VISIBLE boxes (a painted edge), and an
         empty one is amber
      3  one scroll in the column — nothing scrolls inside it
-     4  no fact has two boxes in the column (other party, value, dates)
-     5  the parties' count is the list it heads, and the folds open
+     4  no fact has two boxes in the column (other party, value, start date),
+        and the end date is not asked here (owner, 13 Oct 2026: the Overview's)
+     5  RE-POINTED 13 Oct 2026 (owner: "this area is only supposed to be used
+        to fill in the blanks needed on the paper, the rest should go back to
+        the overview page"): no folds, no parties, people or filing here
      6  typing the other party clears its amber and moves the tab's count
      7  no page errors
    A wait asks for the state, bounded. Red at main 200fe07 (1, 2, 5, 6).
@@ -74,18 +77,17 @@ const check = (name, pass, detail) => {
       const count = k => document.querySelectorAll(`[data-doc-col="details"] [data-kt="${k}"]`).length;
       return { qOn: vis(firstQ), cpOn: vis(cp), edge: cs.borderTopStyle !== 'none' && parseFloat(cs.borderTopWidth) > 0,
         cpAmber: cs.backgroundColor === amber, amber, cpBg: cs.backgroundColor, inner: inner.map(e => e.id || e.className).slice(0, 4),
-        twice: ['counterparty', 'value', 'effDate', 'expiry'].filter(k => count(k) !== 1) };
+        twice: ['counterparty', 'value', 'effDate'].filter(k => count(k) !== 1).concat(count('expiry') ? ['expiry'] : []) };
     });
     check('1 the first empty question and the other party are on screen without scrolling', m.qOn && m.cpOn, JSON.stringify({ q: m.qOn, cp: m.cpOn }));
     check('2 the contract\'s details are visible boxes, an empty one amber', m.edge && m.cpAmber, `edge ${m.edge} · ${m.cpBg} vs ${m.amber}`);
     check('3 one scroll in the column — nothing scrolls inside it', m.inner.length === 0, JSON.stringify(m.inner));
     check('4 no fact has two boxes in the column', m.twice.length === 0, m.twice.join(', ') || 'one each');
 
-    await page.evaluate(() => { const dm = document.getElementById('det-more'); if (dm) dm.open = true; const f = document.querySelector('#det-basics details.det-fold'); if (f) f.open = true; });
-    const p = await until(() => { const n = document.querySelector('#kt-det-terms .ov-ess-tn'); const rows = document.querySelectorAll('#kt-det-terms .ov-dir-party').length;
-      const more = document.querySelector('#det-basics details.det-fold [data-ktm="governingLaw"]');
-      return n ? { n: (n.textContent || '').replace(/[()]/g, ''), rows, more: !!(more && more.getBoundingClientRect().width > 0) } : null; });
-    check('5 the parties\' count is the list it heads, and the folds open', !!p && Number(p.n) === p.rows && p.more, JSON.stringify(p));
+    const p = await page.evaluate(() => { const col = document.querySelector('[data-doc-col="details"]');
+      return { folds: col ? col.querySelectorAll('details').length : -1, parties: !!(col && col.querySelector('#ov-parties, #kt-det-terms, #det-more')),
+        law: !!(col && col.querySelector('[data-ktm="governingLaw"]')) }; });
+    check('5 only what the paper owes: no folds, no parties, people or filing, no other terms', p.folds === 0 && !p.parties && !p.law, JSON.stringify(p));
 
     const before = await page.evaluate(() => (document.querySelector('#ws-tabs [data-ws-tab="details"] .room-tab-n') || {}).textContent || '');
     if (await page.evaluate(() => !!document.querySelector('#det-basics [data-kt="counterparty"]')))

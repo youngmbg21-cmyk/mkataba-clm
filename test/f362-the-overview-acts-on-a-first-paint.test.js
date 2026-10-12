@@ -142,8 +142,8 @@ describe('f362 (2) the painter runs when the tab is shown', () => {
 describe('f362 (3) the painter still refuses a host that is not there', () => {
   test('[wall] renderKeyTerms returns on a missing host', () => {
     const w = region(CODE, 'renderKeyTerms');
-    /* two hosts since 12 Oct 2026 (the Details tab's and the Overview's) */
-    assert.ok(/getElementById\(onDet\?'kt-det-terms':'kt-ov-terms'\);\s*if\(!host\)\s*return;/.test(w),
+    /* one host again since 13 Oct 2026 (the card is the Overview's) */
+    assert.ok(/getElementById\('kt-ov-terms'\);\s*if\(!host\)\s*return;/.test(w),
       'a stage without the Overview is unharmed');
   });
 

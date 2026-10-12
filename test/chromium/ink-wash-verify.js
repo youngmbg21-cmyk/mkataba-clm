@@ -55,6 +55,13 @@
    on Home's Calendar tab, the zoom stands where A⁻/A⁺ stood. Audited first as a
    set difference: 254 counts moved, NO colour appeared or vanished, light
    mode's colours unchanged (text-size counts only), status colours as before.
+   RE-RECORDED 13 Oct 2026 with the owner's asked palette change ("the page
+   adjustment buttons on the paper pages need to go back to what it was"):
+   the zoom's edge is the grey hairline again and the Overview's card edits
+   again. Audited as a set difference first: light mode no colour moved (one
+   text-size count on the Overview); dark mode 8 keys new (the Overview's
+   restored edit card edge, the zoom's grey edge on Negotiate), 0 gone, moves
+   on Overview, Document and Negotiate only. 170 of 170 pass after.
    RE-RECORDED 12 Oct 2026, OWNER-ASKED ("yes, update the record"): after
    #233-#236 (the Details tab as a form, the SAP-way buttons). Audited first as
    a set difference: light mode NO colour new, gone or moved (text-size counts

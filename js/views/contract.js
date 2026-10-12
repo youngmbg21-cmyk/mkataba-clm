@@ -6032,17 +6032,14 @@ function renderKeyTerms(c){
      which also means a field's read-out and the summary above it can never
      disagree. The fold state survives it: sectionOpen keeps it in memory, so
      nothing a reader opened closes under them. */
-  /* ONE CARD, ONE HOST AT A TIME (owner, 12 Oct 2026): on the Details tab the
-     card is drawn editable beside the paper; everywhere else it is the
-     Overview's read-only card. The other host is emptied so no id is drawn
-     twice. */
+  /* THE CARD IS THE OVERVIEW'S AGAIN (owner, 13 Oct 2026: "the rest should
+     go back to the overview page"): the Details tab holds only what the paper
+     owes (detBasicsHtml and the paper's questions), so the card has one host. */
   const onDet=_wsTab==='details';
-  const host=document.getElementById(onDet?'kt-det-terms':'kt-ov-terms'); if(!host) return;
-  const other=document.getElementById(onDet?'kt-ov-terms':'kt-det-terms'); if(other) other.innerHTML='';
+  const host=document.getElementById('kt-ov-terms'); if(!host) return;
   const ktEditable=c.status!=='Signed'&&canEdit()&&!PORTAL_MODE;
   const ktReadable=((isUpload(c)?(c.upload&&c.upload.extractedText):(window.docPlainText?docPlainText(c):''))||'').length>200;
-  host.innerHTML=ktOverviewTermsHtml(c,{editable:ktEditable,readable:ktReadable,details:onDet});
-  host.querySelectorAll('[data-ov-go-details]').forEach(b=>b.addEventListener('click',()=>roomGoTab(c,'details')));
+  host.innerHTML=ktOverviewTermsHtml(c,{editable:ktEditable,readable:ktReadable});
   if(onDet) detPaintHead(c);
   wireKtRows(c); wireKeyTerms(c);
   /* ---- THE TWO ACTS THE ARTIFACT NAMES ----
@@ -7258,8 +7255,7 @@ function wireKtParties(c){
   /* THE STACK, not the record card: the parties are their own section now and
      both doors (the section's `+ Add a party` and a row's own press) are
      inside it. Bound once per element, as every delegated door here is. */
-  /* Both hosts of the one card — the Overview's and the Details tab's. */
-  const hosts=[document.getElementById('kt-ov-terms'),document.getElementById('kt-det-terms')].filter(Boolean);
+  const hosts=[document.getElementById('kt-ov-terms')].filter(Boolean);
   if(!hosts.length){ const r=document.getElementById('kt-record-facts'); if(r) hosts.push(r); }
   hosts.forEach(host=>{
     if(host.dataset.pyBound==='1') return;
@@ -7543,16 +7539,16 @@ function ktDocsSummary(c){
    hosts, so an edit to a term never redraws them. */
 function ktOverviewTermsHtml(c,opts={}){
   const ed=!!opts.editable, readable=!!opts.readable;
-  /* ---- THE OVERVIEW READS, THE DETAILS TAB FILLS IN (owner, 12 Oct 2026:
-     "Overview page should be the only locations for filing in information on
-     the contract apart from signing it" — the DETAILS page, confirmed) ----
-     ONE BUILDER, TWO POSTURES: on Details (`opts.details`) the card is always
-     in its edit posture with the filing rows open beneath, and Fill from
-     document rides its head; on the Overview it never edits, and its one act
-     is "Fill in on Details" (`data-ov-go-details`). `ov_edit_details` /
-     `ov_edit_done` are no longer drawn on the Overview. */
-  const onDet=!!opts.details;
-  const recK=OV_KEY(c,'record');
+  /* ---- THE OVERVIEW EDITS AGAIN (owner, 13 Oct 2026: "this area is only
+     supposed to be used to fill in the blanks needed on the paper, the rest
+     should go back to the overview page ... the empty fields will be filled
+     in in the overview page like it was previously") ----
+     This reverses 12 Oct's "the Overview reads": Edit these details, Fill
+     from document, + Add a party and the filing rows are the card's own once
+     more, as before the Details tab. The Details tab keeps only what the
+     paper owes (detBasicsHtml + the paper's questions); both read and write
+     the one record, so a box answered on either shows on the other. */
+  const dealK=OV_KEY(c,'deal'), recK=OV_KEY(c,'record');
   /* ---- FILING SURVIVES SIGNING (D-1, kept) ----
      `ed` is false on an executed contract, but MOVING ONE BETWEEN STREAMS IS
      HOUSEKEEPING and has never stood down on a signed record: ktStreamRowHtml
@@ -7561,7 +7557,7 @@ function ktOverviewTermsHtml(c,opts={}){
      would lose the one door onto it — which is exactly what
      refile-a-contract-verify caught the hour this card was redrawn. */
   const mayMove=(typeof mayReFile==='function')&&mayReFile()&&!PORTAL_MODE;
-  const dealEd=ed&&onDet, recEd=onDet?ed:(mayMove&&ovEditing(recK));
+  const dealEd=ed&&ovEditing(dealK), recEd=(ed||mayMove)&&ovEditing(recK);
   const fill=(ed&&readable)
     ? `<button id="kt-fill" class="ui-btn ui-btn-sm hati-fill-btn" title="${
         i18t('ct_read_out_details')}">${icon('sparkle','w-3 h-3')} ${i18t('ct_fill_from_doc')}</button>`
@@ -7617,10 +7613,7 @@ function ktOverviewTermsHtml(c,opts={}){
      else. Same buttons, same handlers — only where they are drawn moved. */
   /* THE SENTENCE BESIDE THE BUTTONS IS GONE (Young, 9 Oct 2026: "Delete the
      writing related to the terms on record"); `ov_top_note` stays inert. */
-  const top=acts=>onDet
-    ? `<div class="ov-top det-top"><span class="det-top-t">${esc(i18t('det_contract_details'))}</span>
-    <span class="ov-top-acts">${acts}</span></div>`
-    : `<div class="ov-top"><span id="kt-ov-brief" class="ov-top-brief"></span>
+  const top=acts=>`<div class="ov-top"><span id="kt-ov-brief" class="ov-top-brief"></span>
     <span class="ov-top-acts">${acts}</span></div>`;
   /* ---- THE ESSENTIALS CARD (Young, 8 Oct 2026: "Bring this back") ----
      Who it is between on the left, the terms on the right, as the mock-up
@@ -7628,7 +7621,7 @@ function ktOverviewTermsHtml(c,opts={}){
      they edit; Edit turns both postures on (the terms become boxes, the
      parties become their editors, and the filing rows open beneath). */
   const pyLocked=(typeof signingLocked==='function')?!!signingLocked(c):false;
-  const pyAdd=(ed&&onDet&&!pyLocked&&!PORTAL_MODE)
+  const pyAdd=(ed&&!pyLocked&&!PORTAL_MODE)
     ?`<button type="button" class="ui-btn ui-btn-sm" data-py-add="1">${esc(i18t('py_add'))}</button>`:'';
   const addrs=(typeof contractAddressBook==='function')?contractAddressBook(c, c&&c._shareFetch):null;
   const anySigner=(typeof participantSignerRows==='function')&&participantSignerRows(c).length>0;
@@ -7669,21 +7662,21 @@ function ktOverviewTermsHtml(c,opts={}){
   const pyEdit=`<div class="ov-pty-list ov-dir" tabindex="-1"><div id="kt-parties-host"><div id="kt-people">${dir}</div></div>${
       ovAddressBookHtml(addrs)}${signersBtn?`<div class="ov-ess-more">${signersBtn}</div>`:''}</div>`;
   /* THE COUNT IS THE LIST IT HEADS (13 Oct 2026): at rest the rows are the
-     map's parties; on Details the directory's (contractParties). */
-  const pyN=onDet?pyAll.length:(D?D.parties.length:0);
+     map's parties; in Edit the directory's (contractParties). */
+  const pyN=dealEd?pyAll.length:(D?D.parties.length:0);
   const parties=`<div class="ov-ess-p" id="ov-parties"><div class="ov-ess-h"><span class="ov-ess-t">${esc(i18t('py_parties'))} <span class="ov-ess-tn">(${pyN})</span></span>${
       pyLocked?`<span class="ov-ess-lock">${esc(i18t('py_locked'))}</span>`:''}${pyAdd}</div>${dealEd?pyEdit:`<div class="ov-pty-list" tabindex="-1">${pyRows}</div>`}</div>`;
   const hold=holdsIn(OV_ESS_FIELDS);
-  const essActs=onDet?fill
-    :(ed?`<button type="button" class="ui-btn ui-btn-sm" data-ov-go-details="1">${esc(i18t('det_fill_in_on'))}</button>`:'');
-  const map=onDet?'':ovMapHtml(c);
+  const essActs=`${ed?`<button type="button" class="ui-btn ui-btn-sm" data-ov-edit="all">${
+      esc(dealEd?i18t('ov_edit_done'):i18t('ov_edit_details'))}</button>`:''}${fill}`;
+  const map=ovMapHtml(c);
   const renewalHost='<div id="renewal-host" class="empty:hidden" data-bare="1"></div>';
   /* AT REST THE TERMS ARE THE EIGHT (the redesign's rule: "render the terms
      and nothing else"); in Edit every field, fixed and occasional, is a box,
      exactly as before — so no term lost the one place it can be typed. */
   const facts=`<div class="ov-ess-g" id="ov-facts"><div class="ov-ess-h"><span class="ov-ess-t">${esc(i18t('ov_ess_terms'))}</span>${
       hold?`<span class="ov-ess-hold">${esc(i18tn('ov_hold_n',hold,{n:hold}))}</span>`:''}</div>
-    <div id="kt-rows"></div>${dealEd?ovEssEditHtml(c):ovEssRestHtml(c,marks)}${(map||onDet)?'':renewalHost}</div>`;
+    <div id="kt-rows"></div>${dealEd?ovEssEditHtml(c):ovEssRestHtml(c,marks)}${map?'':renewalHost}</div>`;
   /* MOVE TO ANOTHER STREAM IS NOT A SECOND DOOR. The stream picker is
      ktStreamRowHtml's, with its admin guard, its 'Re-filed' audit line and its
      own repaint; this button opens the rows that hold it and puts the reader
@@ -7696,20 +7689,16 @@ function ktOverviewTermsHtml(c,opts={}){
      also on whenever the page's Edit is, and focusKeyTerms turns it on for a
      filing field the signing list points at — so every old door still lands
      on the same rows, by the same handlers (wireKtRows, wireKeyTerms). */
-  const recOpen=onDet||ovEditing(recK);
+  const recOpen=ovEditing(recK);
   const record=recOpen?sectionHtml({
     id:'ov-record', title:i18t('ov_filing'),
     chip: holdChip(recHold),
     body: (recEd
         ? `<div id="kt-rows-record">${ktTermsRowsHtml(c,
-            {editable:ed&&onDet,only:onDet?['name','cpRouteEmail','stream','template']:['name','party','counterparty','cpEmail','cpRouteEmail','stream','template']})}</div>`
+            {editable:ed,only:['name','party','counterparty','cpEmail','cpRouteEmail','stream','template']})}</div>`
         : '<div id="kt-rows-record"></div>')
       + `<div id="kt-record-facts">${ktRecordFactsHtml(c,{rowsAbove:recEd,marks,mayEdit:ed})}</div>`,
-    acts: moveBtn+(onDet?'':`<button type="button" class="ui-btn ui-btn-sm" data-ov-edit="${esc(recK)}">${esc(i18t('ov_filing_close'))}</button>`) }):'';
-  /* ON DETAILS THIS CARD IS THE FOLDED "Parties, people and filing": the
-     terms are boxes in #det-basics (detBasicsHtml), so they are not drawn a
-     second time here. */
-  if(onDet) return `<div class="ov-card ov-ess" id="ov-ess"><div class="ov-ess-body det-ess">${parties}</div>${record}</div>`;
+    acts: moveBtn+`<button type="button" class="ui-btn ui-btn-sm" data-ov-edit="${esc(recK)}">${esc(i18t('ov_filing_close'))}</button>` }):'';
   return top(essActs)+`<div class="ov-card ov-ess" id="ov-ess"><div class="ov-ess-body">${parties}${facts}</div>${record}</div>`+map;
 }
 
@@ -9147,7 +9136,6 @@ function openCompleteDetails(c){
    one amber — and the other terms one fold away. THE BOXES ARE THE PRODUCT'S
    OWN (`data-kt` / `data-ktm`, wireKeyTerms; ktFieldCell for the terms), so
    nothing here writes; Fill from document is the one act (#kt-fill). */
-const DET_MORE_TERMS = ['contractType','governingLaw','disputes','renewalType','paymentTerms','liabilityCapped'];
 function detBasicsHtml(c, opts){
   const d = detailsOf(c);
   if(!d.live) return '';
@@ -9163,28 +9151,29 @@ function detBasicsHtml(c, opts){
      2026): who we are and the other party are read-outs saying why. */
   const frozen = k => PAPER_TERM_KEYS.includes(k) && paperTermsFrozen(c);
   const readOut = (k, v) => frozen(k) ? paperTermFrozenRead(c, k, esc(v||'')) : esc(v||'');
+  /* ONLY WHAT THE PAPER NEEDS (owner, 13 Oct 2026: "this area is only
+     supposed to be used to fill in the blanks needed on the paper, the rest
+     should go back to the overview page"): the record's items detailsOf
+     counts — who we are, the other party, the value where money passes, the
+     start date. Their email, the end date and the other terms are the
+     Overview's again (its Edit). */
+  const owed = new Set(d.items.filter(x => x.kind === 'kt').map(x => x.key));
   const rows = [
     box('party', i18t('det_f_party'), (may && !frozen('party')) ? `<input type="text" data-kt="party" value="${esc(c.party||'')}" placeholder="${esc((typeof contractParty==='function'?contractParty(c):'')||'')}" style="${IN}">` : readOut('party', contractParty(c))),
     box('counterparty', i18t('det_f_counterparty'), (may && !frozen('counterparty')) ? `<input type="text" data-kt="counterparty" value="${esc(c.counterparty||'')}" placeholder="${esc(i18t('det_ph_counterparty'))}" style="${IN}">` : readOut('counterparty', c.counterparty)),
-    box('cpEmail', i18t('ov_f_email'), may ? `<input type="email" data-kt="cpEmail" value="${esc(c.counterpartyEmail||'')}" placeholder="name@company.com" style="${IN}">` : esc(c.counterpartyEmail||'')),
-    box('value', i18t('ov_f_value'), cellHtml('value')),
+    owed.has('value') ? box('value', i18t('ov_f_value'), cellHtml('value')) : '',
     box('effDate', i18t('ov_f_effective'), cellHtml('effDate')),
-    box('expiry', i18t('ov_f_expiry'), cellHtml('expiry')),
   ].filter(Boolean).join('');
-  const more = DET_MORE_TERMS.map(k => { const cell = ktFieldCell(c, k, may, null); return cell ? box(k, cell[0], cell[1]) : ''; }).join('');
   const text = ((isUpload(c)?(c.upload&&c.upload.extractedText):(window.docPlainText?docPlainText(c):''))||'');
   const readable = (opts && opts.readable != null) ? !!opts.readable : text.length > 200;
   const fill = (may && readable)
     ? `<button id="kt-fill" type="button" class="ui-btn ui-btn-sm hati-fill-btn" title="${esc(i18t('ct_read_out_details'))}">${icon('sparkle','w-3 h-3')} ${esc(i18t('ct_fill_from_doc'))}</button>` : '';
   return `<div class="det-card-h"><span class="det-card-t">${esc(i18t('det_sec_contract'))}</span>${fill}</div>
-    <div class="cd-grid det-grid">${rows}</div>
-    ${more ? `<details class="det-fold"><summary>${esc(i18t('det_more_terms'))}</summary><div class="cd-grid det-grid">${more}</div></details>` : ''}`;
+    <div class="cd-grid det-grid">${rows}</div>`;
 }
 function detPaintBasics(c){
   const h = document.getElementById('det-basics'); if(!h || !c) return;
-  const keepOpen = !!h.querySelector('details.det-fold[open]');
   h.innerHTML = detBasicsHtml(c);
-  if(keepOpen){ const f = h.querySelector('details.det-fold'); if(f) f.open = true; }
   /* the boxes are wireKeyTerms' own (bound once per box); a press on a date opens its calendar */
   try{ wireKeyTerms(c); }catch(_){}
   h.querySelectorAll('input[type="date"]').forEach(d => d.addEventListener('click', () => { try{ if(typeof d.showPicker === 'function') d.showPicker(); }catch(_){} }));
@@ -11746,14 +11735,12 @@ function renderWorkspace(){
           ${''/* REDRAWN AS A FORM (owner, 13 Oct 2026, over a screenshot of the
                  squeezed Overview card): the count, then the contract's own
                  details as plain boxes, then the paper's questions — what is
-                 owed near the top — and the parties, people and filing folded
-                 underneath. */}
+                 owed near the top. The parties, people and filing are the
+                 Overview's again (owner, 13 Oct 2026). */}
           <div id="det-head" class="det-head"></div>
           <div id="det-basics" class="det-card"></div>
           <!-- template form: the open fields of a library-template contract -->
           <div id="tplform-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
-          <details id="det-more" class="det-more"><summary>${esc(i18t('det_more'))}</summary>
-            <div id="kt-det-terms" class="det-terms"></div></details>
         </div>
 
         <div data-doc-col="docs" style="display:flex;flex-direction:column;gap:var(--s-3)">
@@ -17941,7 +17928,7 @@ Object.assign(window,{docReadLongSplit,DOC_READ_LONG_WORDS,DOC_READ_RUN_MIN,docT
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,renderSignButton,renderSignSide,roomFactsHtml,signBlockHtml,signReadinessCardHtml,signRowTitle,signWhyShort,SIGN_WHY_WORDS,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,formOnHome,formHostEl,formPaperEl,formHeldContract,formRepaint,docTermFill,docNoticeFill,docSyncWrite,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPlace,roomPlacePut,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,checkVerdict,tplFormOpenCount,tplFormOpenFields,detailsOf,detailsSections,blankFormLive,DET_RECORD_KEYS,detHeadHtml,detPaintHead,detailsChanged,detPaintPaperEmpties,DET_MORE_TERMS,detBasicsHtml,detPaintBasics,detMarkOpen,openCompleteDetails,cdRepaintCounts,openCheckPanel,roomHeadHtml,wireRoomHead,
+  ROOM_TABS,formOnHome,formHostEl,formPaperEl,formHeldContract,formRepaint,docTermFill,docNoticeFill,docSyncWrite,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPlace,roomPlacePut,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,checkVerdict,tplFormOpenCount,tplFormOpenFields,detailsOf,detailsSections,blankFormLive,DET_RECORD_KEYS,detHeadHtml,detPaintHead,detailsChanged,detPaintPaperEmpties,detBasicsHtml,detPaintBasics,detMarkOpen,openCompleteDetails,cdRepaintCounts,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill,
   /* idea 7 — the plain-English layer. Published because a name read through
      window from another module, or from a test stage, is silence when it is
