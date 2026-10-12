@@ -5252,9 +5252,14 @@ function applyWsTabs(c){
     if(_detOpenFull===String(c.id) && !(c._light&&!c._loaded)){
       _detOpenFull=null;
       let left=0; try{ left=detailsOf(c).left; }catch(_){ left=0; }
+      /* IN THE SAME BREATH, NOT ON A TIMER (owner, 13 Oct 2026: "it glitches
+         and first pushes me to the contracts page"): a microtask runs once the
+         render that queued it has finished but BEFORE the browser paints, so
+         the page that made the contract hands straight over to this one and
+         the room is never seen between them. */
       if(left && canEdit() && !PORTAL_MODE && window.openCompleteDetails)
-        setTimeout(()=>{ const live=(window.getContract&&getContract(c.id))||c;
-          if(state.activeId===live.id) openCompleteDetails(live); },0);
+        queueMicrotask(()=>{ const live=(window.getContract&&getContract(c.id))||c;
+          if(state.activeId===live.id) openCompleteDetails(live); });
     } }
   if(_wsTab==='terms'){ renderKeyTermsSide(c); renderKeyTerms(c);
     if(window.wireKtParties) wireKtParties(c);
@@ -9175,12 +9180,18 @@ function detPaintPaperEmpties(){
   const panel = document.getElementById('tplform-section');
   /* (their boxes carry their own inline background, so the tint is set on
      the box itself: amber while empty and not being typed in) */
-  if(panel) panel.querySelectorAll('input[data-blankf], input[data-tplf]').forEach(i => {
+  /* EVERY KIND OF BOX (owner, 13 Oct 2026: "across the platform"): a long
+     answer, a choice and a date too — a date's box is hidden behind the
+     picker's face (datePickDress), so the face is what turns amber. */
+  if(panel) panel.querySelectorAll(':is(input,textarea,select):is([data-blankf],[data-tplf])').forEach(i => {
     const tint = () => { const empty = !String(i.value == null ? '' : i.value).trim();
       i.classList.toggle('is-empty', empty);
-      i.style.backgroundColor = (empty && document.activeElement !== i && i.type !== 'file') ? 'var(--st-amber-bg)' : 'var(--color-surface)'; };
+      const face = (i.nextElementSibling && i.nextElementSibling.classList.contains('dp-face')) ? i.nextElementSibling : null;
+      const amber = empty && i.type !== 'file' && document.activeElement !== i && document.activeElement !== face;
+      i.style.backgroundColor = amber ? 'var(--st-amber-bg)' : 'var(--color-surface)';
+      if(face) face.style.backgroundColor = amber ? 'var(--st-amber-bg)' : 'var(--color-surface)'; };
     if(i.dataset.detEmptyBound !== '1'){ i.dataset.detEmptyBound = '1';
-      ['input','focus','blur'].forEach(ev => i.addEventListener(ev, tint)); }
+      ['input','change','focus','blur'].forEach(ev => i.addEventListener(ev, tint)); }
     tint();
   });
 }

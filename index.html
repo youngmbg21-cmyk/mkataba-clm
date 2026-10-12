@@ -4579,7 +4579,7 @@
   .det-card-t{ flex:1; font-family:var(--font-heading); font-size:var(--t-card); font-weight:var(--w-strong); color:var(--color-text); }
   .det-grid{ gap:10px 12px; }
   #det-basics .cd-fld :is(input,select){ height:var(--field-h); border:1px solid var(--color-divider); background-color:var(--color-surface); padding:0 var(--field-pad-x); }
-  #det-basics .cd-fld.is-open :is(input,select){ background-color:var(--st-amber-bg); }
+  #det-basics .cd-fld.is-open :is(input,select,.dp-face){ background-color:var(--st-amber-bg); }
   #det-basics .cd-fld :is(input,select):focus{ outline:none; background-color:var(--color-surface); border-color:var(--accent-fill); box-shadow:0 0 0 3px var(--color-accent-100); }
   #det-basics .cd-fld input[type="checkbox"]{ height:13px; padding:0; }
   #det-basics .ov-val-edit{ flex-wrap:wrap; }
@@ -4625,7 +4625,11 @@
   .cd-fld{ display:flex; flex-direction:column; gap:4px; min-width:0; }
   .cd-lab{ font-size:var(--t-label); font-weight:var(--w-strong); color:var(--color-neutral-700); }
   .cd-fld :is(input,select,textarea){ width:100%; border:1px solid var(--color-divider); border-radius:var(--radius); background:var(--color-surface); color:var(--color-text); }
-  .cd-fld.is-open :is(input,select,textarea){ background:var(--st-amber-bg); }
+  .cd-fld.is-open :is(input,select,textarea,.dp-face){ background:var(--st-amber-bg); }
+  /* AN EMPTY BOX THAT IS OWED AN ANSWER IS AMBER, EVERYWHERE (owner, 13 Oct
+     2026): the creation forms mark it (needAttrs, js/components.js) and their
+     inline background reads this property; typing in it takes the amber off. */
+  .need-empty:not(:focus){ --need-bg:var(--st-amber-bg); }
   .cd-fld :is(input,select,textarea):focus{ outline:none; background:var(--color-surface); border-color:var(--accent-fill); box-shadow:0 0 0 3px var(--color-accent-100); }
   .cd-side{ position:sticky; top:var(--s-4); display:flex; flex-direction:column; gap:10px; }
   .cd-side-t{ font-size:var(--t-card); font-weight:var(--w-strong); color:var(--color-text); }

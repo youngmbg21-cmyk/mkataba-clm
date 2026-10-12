@@ -154,6 +154,53 @@ const busyHtml = text => `<span class="ob-spin" aria-hidden="true"></span>${_bus
 /* a button or line that is now waiting: its ring and its word */
 const busySet = (el, text) => { if (el) el.innerHTML = busyHtml(text); };
 Object.assign(window,{ICONS,icon,plusLed,JAMBO_FACE,jamboFaceHtml,jamboFacePaint,busyHtml,busySet});
+/* ---- AN EMPTY BOX THAT IS OWED AN ANSWER IS AMBER (owner, 13 Oct 2026:
+   "where a field needs to be filled out and it is empty, it should be amber
+   ... across the platform ... so users are pulled to that field") ----
+   OWED IS WHAT detailsOf COUNTS ON A CONTRACT: the other party, the value (a
+   0 is no value), the start date and every one of the template's own
+   questions. Who we are, their email, the end date, which side of the money
+   and the stream are asked but never owed (NEED_NEVER), so they stay white.
+   A builder marks the box with `needAttrs(f, value)`; ONE capture listener
+   keeps its class as it is typed in, and the date picker's face follows its
+   box (datePickDress paints through needMark). The amber is a custom
+   property (--need-bg) because these boxes wear INLINE clothes no sheet rule
+   outranks: their background reads `var(--need-bg, var(--color-surface))`.
+   On the paper and in Complete the details the same amber comes from the
+   record's own reading (.cd-fld.is-open), never from this. */
+const NEED_NEVER = new Set(['party', 'cpemail', 'cpEmail', 'expiry', 'side', 'folder', 'stream']);
+const NEED_BG = 'var(--need-bg,var(--color-surface))';
+function needKind(f){
+  if (!f || f.type === 'stream') return '';
+  const k = String(f.maps || f.key || '');
+  if (!k || NEED_NEVER.has(k) || NEED_NEVER.has(String(f.key || ''))) return '';
+  return (f.type === 'num' || k === 'value') ? 'num' : '1';
+}
+function needIsEmpty(kind, v){
+  const t = String(v == null ? '' : v).trim();
+  if (!t) return true;
+  return kind === 'num' ? !(Number(t.replace(/[^\d.-]/g, '')) > 0) : false;
+}
+/* the attributes a builder writes on an owed box; '' on any other */
+function needAttrs(f, value){
+  const k = needKind(f); if (!k) return '';
+  return ` data-need="${k}"${needIsEmpty(k, value) ? ' class="need-empty"' : ''}`;
+}
+function needMark(el){
+  if (!el || !el.getAttribute) return;
+  const k = el.getAttribute('data-need'); if (!k) return;
+  const e = needIsEmpty(k, el.value);
+  el.classList.toggle('need-empty', e);
+  const face = el.nextElementSibling;
+  if (face && face.classList && face.classList.contains('dp-face')) face.classList.toggle('need-empty', e);
+}
+if (typeof document !== 'undefined' && document.addEventListener && !window._needWired) {
+  window._needWired = true;
+  const on = ev => { const t = ev.target; if (t && t.matches && t.matches('[data-need]')) needMark(t); };
+  document.addEventListener('input', on, true);
+  document.addEventListener('change', on, true);
+}
+Object.assign(window,{NEED_BG,needAttrs,needMark});
 /* ============================================================
    SHARED: contract row (compact list item, used everywhere)
    ============================================================ */

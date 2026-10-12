@@ -520,7 +520,7 @@ function wzMapNote(v){
   if(!m || String(m).trim().toLowerCase()===String(v.label||'').trim().toLowerCase()) return '';
   return `<span style="font-weight:var(--w-body);color:var(--color-neutral-500);text-transform:none;letter-spacing:0"> → ${m}</span>`;
 }
-const WZ_ST='width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;';
+const WZ_ST='width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);background:var(--need-bg,var(--color-surface));border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;';
 function wzFieldHtml(v){
   const id='wz-'+String(v.key).replace(/[:]/g,'_');
   const lbl=`<span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${v.label}${v.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}${wzMapNote(v)}</span>`;
@@ -531,12 +531,12 @@ function wzFieldHtml(v){
   if(v.type==='stream') return `<label style="display:block;">${lbl}
     <select id="${id}" style="${WZ_ST}">${(typeof folderOptionsHtml==='function') ? folderOptionsHtml(v.def||null, false) : ''}</select></label>`;
   if(v.type==='select') return `<label style="display:block;">${lbl}
-    <select id="${id}" style="${WZ_ST}">
+    <select id="${id}" style="${WZ_ST}"${(typeof needAttrs==='function'?needAttrs(v,v.def||((v.opts||[])[0]!=null&&typeof fieldOpt==='function'?fieldOpt(v.opts[0]).v:'')):'')}>
       ${(v.opts||[]).map(o=>(typeof fieldOpt==='function')?fieldOpt(o):{v:String(o),l:String(o)}).map(o=>
         `<option value="${String(o.v).replace(/"/g,'&quot;')}" ${String(v.def||'')===o.v?'selected':''}>${o.l}</option>`).join('')}</select></label>`;
   const it=v.type==='date'?'date':(v.type==='num'?'number':'text');
   return `<label style="display:block;">${lbl}
-    <input id="${id}" type="${it}" value="${String(v.def||'').replace(/"/g,'&quot;')}" placeholder="${v.ph||''}" style="${WZ_ST}"/></label>`;
+    <input id="${id}" type="${it}"${(typeof needAttrs==='function'?needAttrs(v,v.def):'')} value="${String(v.def||'').replace(/"/g,'&quot;')}" placeholder="${v.ph||''}" style="${WZ_ST}"/></label>`;
 }
 /* ASKED HERE, WHERE YOU ARE ALREADY NAMING THEM, AND NOWHERE ELSE. The
    templates carry the counterparty's NAME; nothing carried the address, so it
@@ -1096,10 +1096,21 @@ function openNewAgreement(o){
      ✕, Escape or the scrim — and the next contract made through ANY door
      claimed them. Asked after the act: a screen still standing means nothing
      was minted, and the hold is this screen's again. */
-  const goCreate=fn=>async()=>{ if(!api){ toast(i18t('na_pick_first'),'err'); return; }
-    _naClaimed=true;
+  /* WHILE THE SERVER MAKES IT, THE BUTTON SAYS SO (13 Oct 2026): the page
+     now stays up until "Complete the details" replaces it, so a second press
+     must not make a second contract — the pressed button turns, the pair greys. */
+  let _naBusy=false;
+  const goCreate=fn=>async ev=>{ if(!api){ toast(i18t('na_pick_first'),'err'); return; }
+    if(_naBusy) return;
+    const btn=ev&&ev.currentTarget, was=btn?btn.innerHTML:'';
+    const acts=['na-create','na-skip'].map(id=>document.getElementById(id)).filter(Boolean);
+    _naClaimed=true; _naBusy=true;
+    acts.forEach(b=>{ b.disabled=true; });
+    if(btn&&typeof busySet==='function') busySet(btn,i18t('na_creating'));
     try{ await fn(); }catch(_){ /* the act says its own refusal */ }
-    if(document.getElementById('na-root')) _naClaimed=false; };
+    _naBusy=false;
+    if(document.getElementById('na-root')){ _naClaimed=false;
+      if(btn) btn.innerHTML=was; acts.forEach(b=>{ b.disabled=false; }); light(); } };
   document.getElementById('na-create')?.addEventListener('click', goCreate(()=>api.create()));
   document.getElementById('na-skip')?.addEventListener('click', goCreate(()=>api.skip()));
   root.querySelector('#wz-pick')?.addEventListener('click',e=>{
