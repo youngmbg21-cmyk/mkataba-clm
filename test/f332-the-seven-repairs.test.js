@@ -272,7 +272,7 @@ describe('f332 (5) a contract can be renamed', () => {
     assert.match(CT, /\['name', ktRowHtml\('name', i18t\('ov_f_name'\)/,
       'one builder, so the grid and the editable row cannot disagree');
     assert.match(CT, /\['name', i18t\('ov_f_name'\), R\.name\]/);
-    assert.match(CT, /only:\['name','party','counterparty'/, 'first on the record');
+    assert.match(CT, /only:(?:onDet\?\['name'[^\]]*\]:)?\['name','party','counterparty'/, 'first on the record');
     assert.match(CT, /new Set\(\['name','party','counterparty'/,
       'and the grid gives the field up where the editable row is drawn, so it is not printed twice');
   });

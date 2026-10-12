@@ -7670,7 +7670,7 @@ function ktOverviewTermsHtml(c,opts={}){
       pyLocked?`<span class="ov-ess-lock">${esc(i18t('py_locked'))}</span>`:''}${pyAdd}</div>${dealEd?pyEdit:`<div class="ov-pty-list" tabindex="-1">${pyRows}</div>`}</div>`;
   const hold=holdsIn(OV_ESS_FIELDS);
   const essActs=onDet?fill
-    :(ed?`<button type="button" class="ui-btn ui-btn-sm" data-ov-go-details="1">${esc(i18t('det_fill_in_on'))} &rarr;</button>`:'');
+    :(ed?`<button type="button" class="ui-btn ui-btn-sm" data-ov-go-details="1">${esc(i18t('det_fill_in_on'))}</button>`:'');
   const map=onDet?'':ovMapHtml(c);
   const renewalHost='<div id="renewal-host" class="empty:hidden" data-bare="1"></div>';
   /* AT REST THE TERMS ARE THE EIGHT (the redesign's rule: "render the terms

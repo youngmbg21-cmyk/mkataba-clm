@@ -193,7 +193,7 @@ describe('f331 (5) — every door refuses the same way', () => {
     assert.match(TPLLIB, /function newPaperBlocked\(\)/, 'the predicate');
     assert.match(TPLLIB, /function newPaperBlockLine\(\)/, 'the sentence');
     assert.match(TPLLIB, /function newPaperBlock\(\)/, 'the funnel');
-    assert.match(TPLLIB, /\{ newPaperBlocked, newPaperBlockLine, newPaperBlock,/,
+    assert.match(TPLLIB, /\{[^}]*\bnewPaperBlocked, newPaperBlockLine, newPaperBlock,/,
       'all three published — library.js reads them through window');
   });
 
