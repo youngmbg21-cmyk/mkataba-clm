@@ -44,6 +44,11 @@
    as a set difference: only dark Home's counts moved (five tile grounds and
    edges became the strip's one); 0 keys new, 0 gone; every other screen is
    identical.
+   RE-RECORDED 12 Oct 2026, OWNER-ASKED ("Yes, update the record"): Jambo's
+   face on his own doors (the top bar's ✦ and Home's Jambo tab became his
+   picture). Audited first as a set difference: no colour appeared or vanished
+   (the two faces carry data-ink-exempt and no tinted disc); counts moved by
+   one element per page (svg + use → img), text sizes by one.
    RE-RECORDED 11 Oct 2026 (fifth), OWNER-ASKED ("yes go ahead with both"):
    the four builds (WORKORDER-four-builds) — the Calendar row left the menu
    (one 13px label and one 11px count fewer on every page), the calendar draws
