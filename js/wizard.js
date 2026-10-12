@@ -640,7 +640,8 @@ function wizardFormMount(o, tid, prefill){
    left and are GONE rather than kept dormant: a branch that can never fire
    again is a guard that is always false. */
 const NA_RAIL_W = 260;
-/* the choices' card: never shorter than this, and it ends this far above the window's foot */
+/* the choices' card: never shorter than this; it ends level with the card
+   beside it, or — stacked under the rail — this far above the window's foot */
 const NA_ROWS_MIN_H = 200;
 const NA_ROWS_FOOT = 24;           /* the picker's own column, rows not cards */
 const NA_FRAME_NARROW_W = 900;   /* rail + questions — the frame, at every window */
@@ -967,8 +968,19 @@ function openNewAgreement(o){
      The rows are a white card under the tabs; the card ends just above the
      window's foot, measured from where it starts, so the whole list is one
      card the reader scrolls inside and the page itself does not run on. */
+  /* ---- AS TALL AS THE CARD BESIDE IT (owner, 13 Oct 2026: "the card
+     highlighted should be the same height as the card on the right") ----
+     Where the questions' card stands beside the rail, the choices' card ends
+     level with its foot and scrolls inside; where it does not (the rail
+     stacked above it), the card ends above the window's foot as before. */
   const fitRows=()=>{ const l=lists(); const r=l&&l.lastElementChild; if(!r||!r.getBoundingClientRect) return;
-    const top=r.getBoundingClientRect().top;
+    const rr=r.getBoundingClientRect(), top=rr.top;
+    const card=document.getElementById('na-card'), cr=card&&card.getBoundingClientRect?card.getBoundingClientRect():null;
+    if(cr && cr.height && cr.left>=rr.right-1){
+      r.style.maxHeight='none';
+      r.style.height=Math.max(NA_ROWS_MIN_H, Math.round(cr.bottom-top))+'px';
+      return; }
+    r.style.height='';
     r.style.maxHeight=Math.max(NA_ROWS_MIN_H, Math.round((window.innerHeight||800)-top-NA_ROWS_FOOT))+'px'; };
   const paintLists=()=>{ const l=lists(); if(!l) return;
     const q=(document.getElementById('na-q')||{}).value||'';
@@ -981,6 +993,9 @@ function openNewAgreement(o){
     const onResize=()=>{ if(!root.isConnected){ window.removeEventListener('resize',onResize); return; } fitRows(); };
     window.addEventListener('resize',onResize);
   }
+  /* the questions' card grows with the template picked: the choices follow */
+  try{ const card=document.getElementById('na-card');
+    if(card && typeof ResizeObserver==='function'){ const ro=new ResizeObserver(()=>{ if(!root.isConnected){ ro.disconnect(); return; } fitRows(); }); ro.observe(card); } }catch(_){}
   const light=()=>{ root.querySelectorAll('.na-pick.on').forEach(b=>b.classList.remove('on'));
     if(sel){ const b=root.querySelector(`[data-wz-${sel.kind}="${String(sel.id).replace(/["\\]/g,'\\$&')}"]`); if(b) b.classList.add('on'); }
     /* THE ACTS WAKE ON A PICK: Create draft and Skip stay grey, saying why,

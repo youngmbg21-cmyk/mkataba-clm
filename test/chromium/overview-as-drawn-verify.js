@@ -60,11 +60,6 @@ const signIn = async (page, base, email, pass) => {
    SHEET FOLDS, so there is nothing to open — this only lets a paint settle.
    Kept as a name so every stage below still says what it is about to read. */
 const openSec = async (page) => { await page.waitForTimeout(300); };
-/* THE BOXES LIVE ON THE DETAILS TAB (owner, 12 Oct 2026: the Details page is
-   the one place a contract is filled in; the Overview reads). Every "press
-   Edit" below is a trip to Details, and every "press it again" the way back. */
-const toDetails = async (page) => { await page.evaluate(() => roomGoTab(getContract(state.activeId), 'details')); await page.waitForTimeout(800); };
-const toOverview = async (page) => { await page.click('#ws-tabs [data-ws-tab="terms"]'); await page.waitForTimeout(800); };
 
 /* WHAT IS PAINTED INSIDE A NAMED SECTION. Everything this file asserts is read
    off the rendered section, never off the source. */
@@ -76,18 +71,15 @@ const SEC = (suffix) => {
   /* RE-POINTED 8 Oct 2026 (the Constellation page): the terms are the
      essentials card's grid (#ov-facts), the filing opens on the ⋯ row
      (#ov-record), and the people are inside the Parties column. */
-  /* RE-POINTED 13 Oct 2026: on the Details tab the deal's boxes are the
-     Details form's (#det-basics, cells .cd-fld with .cd-lab) */
-  const onDet = window.roomCurrentTab && roomCurrentTab() === 'details';
-  const IDS = { deal: onDet ? ['det-basics'] : ['ov-facts'], record: ['ov-record'],
+  const IDS = { deal: ['ov-facts'], record: ['ov-record'],
     copilot: [], parties: ['ov-parties'], people: ['ov-parties'] };
   const ids = IDS[String(suffix).replace(/^\./, '')] || [];
   const boxes = ids.map(id => document.getElementById(id)).filter(Boolean);
   if (!boxes.length) return null;
   const all = sel => boxes.flatMap(b => [...b.querySelectorAll(sel)]);
   const box = { querySelectorAll: sel => all(sel) };
-  const cells = [...box.querySelectorAll('.sec-fields .sec-f, .cd-fld')].map(f => ({
-    label: (f.querySelector('.sec-f-l, .cd-lab') || {}).textContent || '',
+  const cells = [...box.querySelectorAll('.sec-fields .sec-f')].map(f => ({
+    label: (f.querySelector('.sec-f-l') || {}).textContent || '',
     value: ((f.querySelector('.sec-f-v') || {}).textContent || '').trim(),
     x: Math.round(f.getBoundingClientRect().left),
     y: Math.round(f.getBoundingClientRect().top),
@@ -160,39 +152,39 @@ const SEC = (suffix) => {
        something before it presses, and a fold is exactly what used to hide
        this. It presses once and presses again, so the card is left resting
        and section 1 below measures what it always measured. */
-    /* RE-POINTED 12 Oct 2026: the Overview's one act is "Fill in on Details". */
     const firstPress = await page.evaluate(async () => {
-      const go = document.querySelector('[data-ov-go-details]');
-      if (!go) return { no: true, why: 'no door to Details on this build' };
-      const before = document.querySelectorAll('#kt-overview [data-ktm], #kt-overview [data-kt]').length;
-      go.click(); await new Promise(z => setTimeout(z, 600));
-      const after = document.querySelectorAll('#kt-det-terms [data-ktm], #kt-det-terms [data-kt]').length;
-      const tab = roomCurrentTab();
-      document.querySelector('#ws-tabs [data-ws-tab="terms"]').click();
-      await new Promise(z => setTimeout(z, 600));
-      return { before, after, tab, rest: document.querySelectorAll('#kt-overview [data-ktm], #kt-overview [data-kt]').length };
+      const b = document.querySelector('[data-ov-edit="all"]');
+      if (!b) return { no: true, why: 'no edit act on this build' };
+      const before = document.querySelectorAll('[data-ktm],[data-kt]').length;
+      b.click(); await new Promise(z => setTimeout(z, 400));
+      const after = document.querySelectorAll('[data-ktm],[data-kt]').length;
+      document.querySelector('[data-ov-edit="all"]').click();
+      await new Promise(z => setTimeout(z, 400));
+      return { before, after, rest: document.querySelectorAll('[data-ktm],[data-kt]').length };
     });
     await page.waitForTimeout(400);
-    check('0a "Fill in on Details" opens the boxes on the very first press',
-      !firstPress.no && firstPress.before === 0 && firstPress.after > 0 && firstPress.tab === 'details',
-      firstPress.no ? firstPress.why : JSON.stringify(firstPress));
-    check('0b and back on the Overview there is not one box',
-      !firstPress.no && firstPress.rest === 0, JSON.stringify(firstPress));
-    /* + Add a party lives on Details too, wired on its first paint. */
-    await toDetails(page);
+    check('0a Edit these details works on the very first press',
+      !firstPress.no && firstPress.before === 0 && firstPress.after > 0,
+      firstPress.no ? firstPress.why : firstPress.before + ' boxes before, ' + firstPress.after + ' after');
+    /* AND IT IS STILL A TOGGLE — the press that opened it closes it, so the
+       card is left exactly as this file found it. */
+    check('0b and pressing it again puts the card back',
+      !firstPress.no && firstPress.after > 0 && firstPress.rest === 0,
+      JSON.stringify(firstPress));
+    /* THE PARTIES DOOR IS ON THE SAME CARD and its listener sits on the HOST
+       this change now rewrites, so it is measured on a first paint too. */
     const firstParty = await page.evaluate(async () => {
-      const add = document.querySelector('#kt-det-terms [data-py-add]');
+      const add = document.querySelector('[data-py-add]');
       if (!add) return { no: true, why: 'no add-a-party door' };
       add.click(); await new Promise(z => setTimeout(z, 450));
       const opened = !!document.getElementById('py-name');
       const x = document.getElementById('py-cancel'); if (x) x.click();
       await new Promise(z => setTimeout(z, 300));
-      return { opened, onOverview: !!document.querySelector('#kt-overview [data-py-add]') };
+      return { opened };
     });
-    check('0c [control] and so does + Add a party, on Details and not on the Overview',
-      !firstParty.no && firstParty.opened && !firstParty.onOverview,
+    check('0c [control] and so does + Add a party — green both sides, it is the door this change could most plausibly have broken',
+      !firstParty.no && firstParty.opened,
       JSON.stringify(firstParty));
-    await toOverview(page);
 
     /* ============ 1. THE RECORD IS THE ARTIFACT'S GRID ============ */
     /* RE-POINTED 8 Oct 2026: the filing is not on the resting page — it
@@ -237,12 +229,12 @@ const SEC = (suffix) => {
     const topEdit = await page.evaluate(() => {
       /* RE-POINTED IN PLACE 8 Oct 2026 (the Overview redesign): Edit and Fill
          ride the top row; the Terms heading holds its caption alone. */
-      const b = document.querySelector('#kt-overview .ov-top [data-ov-go-details]');
+      const b = document.querySelector('#kt-overview .ov-top [data-ov-edit="all"]');
       const r = b && b.getBoundingClientRect();
       return b ? { text: (b.textContent || '').trim(), w: Math.round(r.width), h: Math.round(r.height) } : null;
     });
-    check('2a "Fill in on Details" heads the sheet, as real pixels',
-      !!topEdit && /fill in on details/i.test(topEdit.text) && topEdit.w > 2 && topEdit.h > 2,
+    check('2a Edit these details heads the sheet, as real pixels',
+      !!topEdit && /edit these details/i.test(topEdit.text) && topEdit.w > 2 && topEdit.h > 2,
       JSON.stringify(topEdit) + ' · record acts: ' + actNames);
     check('2b Move to another stream is on it, as real pixels',
       rec.acts.some(a => /move to another stream/i.test(a.text) && a.w > 2 && a.h > 2), actNames);
@@ -268,14 +260,15 @@ const SEC = (suffix) => {
        timing out on a locator that will never arrive — this file is meant to
        be run against the commit before the fix, and a timeout there says
        nothing about the other checks. */
-    const hasEdit = await page.evaluate(() => !!document.querySelector('[data-ov-go-details]'));
+    const hasEdit = await page.evaluate(() => !!document.querySelector('[data-ov-edit="all"]'));
     if (!hasEdit) {
       check('4a Edit these details brings the editable rows back', false, 'no such act on this build');
       check('4b and the grid gives up the fields the rows now carry', false, 'not reached');
       check('4c pressing it again puts the artifact\'s shape back', false, 'not reached');
       check('5a it opens the record and lands on the real stream picker', false, 'not reached');
     } else {
-    await toDetails(page);
+    await page.click('[data-ov-edit="all"]');
+    await page.waitForTimeout(800);
     const dealEd = await page.evaluate(SEC, '.deal');
     check('4a Edit these details brings the editable rows back', dealEd.boxes > 0,
       dealEd.boxes + ' boxes, ' + dealEd.rows + ' rows');
@@ -291,7 +284,8 @@ const SEC = (suffix) => {
       if (seen[k]) { if (twice.indexOf(l.trim()) < 0) twice.push(l.trim()); } seen[k] = 1; });
     check('4b and no fact on it is printed twice', twice.length === 0,
       twice.length ? 'said twice: ' + twice.join(', ') : dealEd.labels.length + ' cells, none repeated');
-    await toOverview(page);
+    await page.click('[data-ov-edit="all"]');
+    await page.waitForTimeout(800);
     const dealBack = await page.evaluate(SEC, '.deal');
     check('4c pressing it again puts the artifact\'s shape back',
       dealBack.boxes === 0 && dealBack.labels.length === deal.labels.length,
@@ -374,13 +368,19 @@ const SEC = (suffix) => {
        Move to another stream (stage 5) left The record's on — so the first
        press may be the one that closes it. Asked for its RESULT, as stage 14
        does, then pressed until the sheet is back at rest. */
-    await toDetails(page);
+    await page.click('[data-ov-edit="all"]');
+    await page.waitForTimeout(800);
+    if (!await page.evaluate(() => !!document.querySelector('#kt-overview [data-ktm]'))) {
+      await page.click('[data-ov-edit="all"]');
+      await page.waitForTimeout(800);
+    }
     const ed = await page.evaluate(SEC, '.deal');
     /* One cell is DERIVED from the two dates beside it and is never a box. */
     check('9g every field on the card is a box bar the one worked out for you',
       ed.boxes >= ed.cells.length - 1, ed.boxes + ' boxes against ' + ed.cells.length + ' cells');
-    await toOverview(page);
-    check('9h CONTROL — the Overview is back at rest',
+    await page.click('[data-ov-edit="all"]');
+    await page.waitForTimeout(600);
+    check('9h CONTROL — one more press puts the whole sheet back at rest',
       await page.evaluate(() => !document.querySelector('#kt-overview [data-ktm], #kt-overview [data-kt]')),
       'boxes left after the press');
 
@@ -470,7 +470,8 @@ const SEC = (suffix) => {
     await page.waitForTimeout(500);
     /* RE-POINTED 8 Oct 2026: the people list is the Parties column's editor,
        opened by the card's one Edit (the map draws the people at rest). */
-    await toDetails(page);
+    await page.click('[data-ov-edit="all"]');
+    await page.waitForTimeout(700);
     const pplHead = await page.evaluate(() => {
       const h = document.querySelector('#ov-parties #kt-people') && document.querySelector('#ov-parties .ov-ess-h');
       if (!h) return null;
@@ -514,7 +515,8 @@ const SEC = (suffix) => {
       !!said && said.access && said.stored === 1,
       said ? 'access box ' + said.access + ' \u00b7 ' + said.stored + ' on the record' : 'none');
 
-    await toOverview(page);
+    await page.click('[data-ov-edit="all"]');
+    await page.waitForTimeout(700);
     /* ============ 6. WHAT COPILOT READ IS THE READ CARD NOW ============
        RE-POINTED 8 Oct 2026 (the Constellation page, Young's yes): the table
        of five readings left the Overview; the read card at the top carries
@@ -609,10 +611,8 @@ const SEC = (suffix) => {
     check('12d each names its party, and ours says it is us',
       /* re-pointed 9 Oct 2026: ours wears an "Our side" tag by its name (owner: "professionally designed") */
       py.text.includes(c.counterparty) && /Our side/.test(py.text), py.text.slice(0, 160));
-    /* REVERSED 12 Oct 2026 (owner): naming another party is filling in, and
-       that is the Details tab's (0c presses it there). */
-    check('12e the Overview reads: + Add a party is on Details, not here',
-      !py.add, py.add ? 'still on the Overview' : 'not on the Overview');
+    check('12e the one door onto naming another party is on it',
+      py.add, py.add ? 'on the Parties column' : 'no + Add a party');
     check('12f the name is said ONCE — the column carries it, not a block head',
       py.heads === 0, py.heads < 0 ? 'no parties column at all' : (py.heads + ' block heads inside it'));
     check('12g it reads beside the terms and above the map',
@@ -733,7 +733,7 @@ const SEC = (suffix) => {
     /* NOTHING FOLDS NOW (Read Down), so the repaint is the painter's own. */
     await page.evaluate(x => { window.renderKeyTerms(state.contracts.find(y => y.id === x)); }, c.id);
     await page.waitForTimeout(400);
-    const hasDealEdit = await page.evaluate(() => !!document.querySelector('[data-ov-go-details]'));
+    const hasDealEdit = await page.evaluate(() => !!document.querySelector('[data-ov-edit="all"]'));
     if (!hasDealEdit) {
       ['14a it is a dropdown, not a text box', '14b it offers the product\'s own words',
         '14c an off-list reading is kept and leads', '14d pressing it opens HaTi\'s own list',
@@ -744,7 +744,12 @@ const SEC = (suffix) => {
     /* THE EDIT POSTURE IS A TOGGLE AND THIS FILE HAS PRESSED IT BEFORE, so the
        press is asked for its RESULT rather than assumed: a second press where
        the first turned it off. Measured, not counted. */
-    await toDetails(page);
+    await page.click('[data-ov-edit="all"]');
+    await page.waitForTimeout(900);
+    if (!await page.evaluate(() => !!document.querySelector('[data-ktm]'))) {
+      await page.click('[data-ov-edit="all"]');
+      await page.waitForTimeout(900);
+    }
     const ct = await page.evaluate(() => {
       const el = document.querySelector('[data-ktm="contractType"]');
       if (!el) return { none: true };
@@ -777,10 +782,7 @@ const SEC = (suffix) => {
     /* Brought to the middle of the window first (7 Oct 2026): the parties
        now lead the card, so the box sits low, and a list with no room under
        it rightly opens above. The claim is where it opens WITH room. */
-    /* on Details the other terms sit behind "More terms" (13 Oct 2026): opened as a person would */
-    await page.evaluate(() => { document.querySelectorAll('details.det-fold').forEach(d => { d.open = true; });
-      /* to the top of the column, so the list has the room it needs under it */
-      const el = document.querySelector('[data-ktm="contractType"]'); if (el) el.scrollIntoView({ block: 'start' }); });
+    await page.evaluate(() => { const el = document.querySelector('[data-ktm="contractType"]'); if (el) el.scrollIntoView({ block: 'center' }); });
     await page.waitForTimeout(300);
     const cm = await page.evaluate(() => {
       const el = document.querySelector('[data-ktm="contractType"]');
@@ -792,11 +794,8 @@ const SEC = (suffix) => {
       const m = document.querySelector('.hati-selmenu'); if (!m) return null;
       const el = document.querySelector('[data-ktm="contractType"]');
       const b = m.getBoundingClientRect(), s2 = el.getBoundingClientRect();
-      return { rows: m.querySelectorAll('[data-sm]').length, under: b.top >= s2.bottom - 1, mt: Math.round(b.top), mb: Math.round(b.bottom), st: Math.round(s2.top), sb: Math.round(s2.bottom), vh: innerHeight }; });
-    /* under the box where there is room; above it, rightly, where there is
-       not (on the Details form the box can sit low in a short column) */
-    check('14d pressing it opens HaTi\'s own list', !!cm && !!menu && menu.rows === ct.n
-      && (menu.under || (menu.vh - menu.sb < menu.mb - menu.mt && menu.mb <= menu.st + 1)),
+      return { rows: m.querySelectorAll('[data-sm]').length, under: b.top >= s2.bottom - 1 }; });
+    check('14d pressing it opens HaTi\'s own list', !!cm && !!menu && menu.rows === ct.n && menu.under,
       menu ? JSON.stringify(menu) : 'no menu');
     /* AND PICKING ONE REACHES THE RECORD. `high` is what every later reader —
        the standards check, the exposure register — treats as read from the

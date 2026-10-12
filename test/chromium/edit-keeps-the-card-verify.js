@@ -57,41 +57,30 @@ const EIGHT = ['contractType', 'governingLaw', 'disputes', 'value', 'effDate', '
       await page.evaluate(() => { state.activeId = 'MK-EK1'; state.selId = 'MK-EK1'; setView('workspace'); });
       await until(() => !!document.querySelector('#ws-tabs [data-ws-tab="terms"]'));
       await page.click('#ws-tabs [data-ws-tab="terms"]');
-      /* RE-POINTED 12 Oct 2026 (owner: the Details page is the one place a
-         contract is filled in): the Overview card never edits, so it can never
-         grow on an Edit — 2a asks that as "no box on the Overview at all"; the
-         boxes this file measures are the Details tab's. */
-      const up = await until(() => !!document.querySelector('#kt-overview [data-ov-go-details]'));
-      if (!up) { check(`0. ${tag}: the Overview and its door to Details are drawn`, false); await page.close(); continue; }
+      const up = await until(() => !!document.querySelector('#ov-ess [data-ov-edit="all"], #kt-overview [data-ov-edit="all"]'));
+      if (!up) { check(`0. ${tag}: the Overview and its Edit are drawn`, false); await page.close(); continue; }
       const H = () => page.evaluate(() => document.getElementById('ov-ess').getBoundingClientRect().height);
       check(`1. ${tag}: no sentence beside Read the brief`, await page.evaluate(() => !document.querySelector('.ov-top-note')
         && !document.querySelector('.ov-top').textContent.includes(i18t('ov_top_note').slice(0, 30))));
-      check(`2a. ${tag}: the Overview card carries no box and no Edit`, await page.evaluate(() =>
-        !document.querySelector('#kt-overview [data-kt], #kt-overview [data-ktm], #kt-overview [data-ov-edit="all"]')));
-      await page.evaluate(() => roomGoTab(getContract('MK-EK1'), 'details'));
-      /* RE-POINTED 13 Oct 2026 (owner, over the squeezed card): the boxes are
-         the Details form's (#det-basics), the parties folded under it */
-      const edited = await until(() => document.querySelector('#det-basics [data-ktm], #det-basics [data-kt]') ? true : null);
-      await page.evaluate(() => { const m = document.getElementById('det-more'); if (m) m.open = true; });
-      if (!edited) { check(`2. ${tag}: Details draws boxes`, false); await page.close(); continue; }
       const rest = await H();
-      const boxes = await page.evaluate(() => [...new Set([...document.querySelectorAll('#det-basics [data-kt], #det-basics [data-ktm]')]
+      await page.click('[data-ov-edit="all"]');
+      const edited = await until(() => document.querySelector('#ov-facts [data-ktm], #ov-facts [data-kt]') ? true : null);
+      if (!edited) { check(`2. ${tag}: Edit draws boxes`, false); await page.close(); continue; }
+      const edit = await H();
+      check(`2a. ${tag}: Edit keeps the card's height`, Math.abs(edit - rest) < 1, `${rest.toFixed(1)} → ${edit.toFixed(1)}`);
+      const boxes = await page.evaluate(() => [...new Set([...document.querySelectorAll('#ov-facts [data-kt], #ov-facts [data-ktm]')]
         .map(e => e.getAttribute('data-kt') || e.getAttribute('data-ktm')).filter(k => k !== 'nonmonetary'))]);
-      const PEOPLE = ['party', 'counterparty', 'cpEmail'];
-      check(`3. ${tag}: the eight terms' boxes, and only the parties' beside them`, EIGHT.every(k => boxes.includes(k)) && boxes.every(k => EIGHT.includes(k) || PEOPLE.includes(k)), boxes.join(','));
-      /* REVERSED 13 Oct 2026: on Details a box must be SEEN — the soft fill
-         read as empty space (the owner's screenshot) */
-      const edge = await page.evaluate(() => { const b = document.querySelector('#det-basics [data-ktm="governingLaw"]'); const cs = getComputedStyle(b);
-        return { style: cs.borderTopStyle, w: cs.borderTopWidth, color: cs.borderTopColor }; });
-      check(`4. ${tag}: a term box has a visible edge`, edge.style !== 'none' && parseFloat(edge.w) > 0 && !/rgba\(0, 0, 0, 0\)|transparent/.test(edge.color), JSON.stringify(edge));
+      check(`3. ${tag}: the eight terms' boxes and no other`, EIGHT.every(k => boxes.includes(k)) && boxes.length === EIGHT.length, boxes.join(','));
+      const edge = await page.evaluate(() => { const b = document.querySelector('#ov-facts [data-ktm="governingLaw"]'); const cs = getComputedStyle(b);
+        return { color: cs.borderTopColor, bg: cs.backgroundColor }; });
+      check(`4. ${tag}: a term box has no visible edge (soft fill)`, /rgba\(0, 0, 0, 0\)|transparent/.test(edge.color) && edge.bg !== 'rgba(0, 0, 0, 0)', JSON.stringify(edge));
       const dir = await page.evaluate(() => !!document.querySelector('#ov-parties .ov-dir .pt-dir [data-pt-pick]'));
       check(`5a. ${tag}: the parties are the Directory`, dir);
       await page.evaluate(() => { const r = document.querySelector('[data-pt-pick="p:pt_a"]'); if (r) r.click(); });
       const form = await until(() => { const f = document.querySelector('#ov-parties .ov-dir .pt-dir-form [data-pt-row="pt_a"]'); return f ? true : null; });
       check(`5b. ${tag}: a person's press opens their form inside the scroller`, !!form);
       const withForm = await H();
-      /* on Details the column scrolls, so the card may grow for the form — it is measured only to have stayed drawn */
-      check(`2b. ${tag}: the form open keeps the card on the page`, withForm >= rest - 1, `${rest.toFixed(1)} → ${withForm.toFixed(1)}`);
+      check(`2b. ${tag}: the form open keeps the card's height`, Math.abs(withForm - rest) < 1, `${rest.toFixed(1)} → ${withForm.toFixed(1)}`);
       await page.close();
     }
     check('6. no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));

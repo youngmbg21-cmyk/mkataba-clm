@@ -80,9 +80,7 @@ const BODY = '<h1>SOFTWARE AS A SERVICE AGREEMENT</h1>'
     const parties = await page.evaluate(() =>
       [...document.querySelectorAll('#ov-parties .ov-pty')].map(r => (r.querySelector('small') || {}).textContent || ''));
     check('2 our party row prints an email', /@/.test(parties[0] || ''), JSON.stringify(parties));
-    /* RE-POINTED 12 Oct 2026: the editors are the Details tab's (owner). */
-    await page.evaluate(() => roomGoTab(getContract('MK-N1'), 'details'));
-    await page.waitForTimeout(900);
+    await page.evaluate(() => { const b = document.querySelector('[data-ov-edit="all"]'); if (b) b.click(); });
     /* RE-POINTED 10 Oct 2026 — follows THE DIRECTORY (Young picked it,
        9 Oct 2026: "for parties lets go with Directory"): Edit draws the people
        as one quiet line each (`participantsDirHtml`); a person HaTi added is a
