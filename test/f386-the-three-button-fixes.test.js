@@ -120,12 +120,16 @@ describe('f386 (2) Home\'s two cards use one button size', () => {
   });
 });
 
-describe('f386 (3) one light grey edge on every outlined control', () => {
-  test('the token is the light grey by day and stays visible at night, each said once', () => {
-    assert.match(HTML, /\n  :root\{ --btn-edge:var\(--color-divider\); \}/);
-    assert.match(HTML, /\n  html\.dark\{ --btn-edge:var\(--rule-strong\); \}/);
-    assert.equal((HTML.match(/--btn-edge:/g) || []).length, 2, 'one day value, one night value');
-    assert.match(HTML, /--color-divider:#E2E7E5;/, 'the day value is the stepper\'s own light grey');
+describe('f386 (3) one edge on every outlined control', () => {
+  /* RE-POINTED 12 Oct 2026 (the SAP way, the owner's pick by name): the one
+     edge is the ACCENT now — by day the accent, at night its lighter ink so
+     it stays visible. The old grey values stand above it in source and the
+     SAP block, written later, wins; the claim is still ONE token. */
+  test('the token is the accent by day and its lighter ink at night, written last', () => {
+    const day = [...HTML.matchAll(/:root\{[^}]*--btn-edge:([^;}]+)/g)].map(m => m[1].trim());
+    const night = [...HTML.matchAll(/html\.dark\{[^}]*--btn-edge:([^;}]+)/g)].map(m => m[1].trim());
+    assert.equal(day[day.length - 1], 'var(--accent-solid)', 'the last day value is the accent');
+    assert.equal(night[night.length - 1], 'var(--accent-ink)', 'the last night value is the accent\'s night ink');
   });
   test('every family that named its own edge reads the token now', () => {
     const want = [
