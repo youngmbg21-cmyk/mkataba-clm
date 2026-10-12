@@ -9512,6 +9512,8 @@
   .hb-rmenu{position:absolute;top:calc(100% + 4px);left:0;z-index:20;min-width:260px;max-height:360px;overflow:auto;padding:4px;border-radius:var(--radius-lg);border:1px solid rgba(var(--hb-ln),.35);background:var(--hb-menu);box-shadow:0 18px 40px -12px rgba(0,0,0,.6)}
   .hb-rmenu.is-up{top:auto;bottom:calc(100% + 4px)}
   .hb-dp.is-up{top:auto;bottom:calc(100% + 6px)} .hb-tools-menu.is-up{top:auto;bottom:calc(100% + 4px)}
+  /* A SHORT ROOM SCROLLS INSIDE THE CARD (owner, 12 Oct 2026): hbMenuPlaceOne caps the height to the room it has; the ⋯ menu and How this is drawn scroll inside their card rather than spilling choices past its edge (.hb-rmenu already did) */
+  .hb-dp,.hb-tools-menu{overflow-y:auto;overscroll-behavior:contain} .hb-tools-menu>*,.hb-dp>*{flex-shrink:0}
   .hb-rmenu button{display:flex;align-items:center;gap:10px;width:100%;padding:7px 9px;border:0;border-radius:var(--radius);background:none;color:var(--hb-ink);font:inherit;font-size:var(--t-body);text-align:left;cursor:pointer}
   .hb-rmenu button:hover:not(:disabled){background:rgba(var(--hb-ln),.1)}
   .hb-rmenu button[aria-checked="true"]{background:rgba(var(--hb-ln),.14)}
