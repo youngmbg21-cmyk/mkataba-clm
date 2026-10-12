@@ -20684,3 +20684,4 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - An uploaded contract's empty lines are read off its text, which the light list leaves out — so the bell and the "Details to fill" filter can count fewer of an upload's blanks until the contract is opened once (detailsOf on a light row). Left alone; the tab's own count is right once the record is whole.
 - renderKeyTerms still carries a handler for the Overview's old "Edit these details" (`data-ov-edit="all"`), which nothing draws any more — dead, left in place.
 - The Overview's ⋯ "Filing and stream" still opens the filing rows there for an admin's re-file — housekeeping, left as it was (read-only for everyone else).
+- Noticed, not fixed (12 Oct 2026): f385 (6) "drawn icons only" is red on main — js/views/contract.js draws a typed &rarr; in a button (came in with #233).

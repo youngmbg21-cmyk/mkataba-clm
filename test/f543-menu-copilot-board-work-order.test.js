@@ -30,25 +30,18 @@ function region(src, name){
 }
 const html = read('index.html'), app = read('js/app.js'), hb = read('js/views/homeboard.js'), i18n = read('js/i18n.js');
 
-test('(W-1) the menu button is in the bar at every width and names what it does', () => {
-  const btn = html.match(/<button id="nav-toggle"[^>]*>/)[0];
-  assert.doesNotMatch(btn, /display:\s*none/, 'the button is no longer hidden above the phone width');
-  assert.match(btn, /data-i18n-title="sh_nav_hide"/);
-  assert.match(html, /#top-header #nav-toggle\{display:grid/);
-  const t = region(app, 'toggleNavHidden');
-  /* RE-POINTED 8 Oct 2026 (Young: the menu must "completely remove from the
-     screen as the mock up designed it"): ☰ hides the menu at EVERY width; below
-     the float line it also closes the floating layer, never opens it. */
-  assert.match(t, /localStorage\.setItem\(NAV_HIDE_KEY/, 'the choice is remembered at every width');
-  assert.match(t, /if\(hide&&navDrawerActive\(\)\) setNavDrawer\(false\)/, 'hiding below the line also shuts the floating menu');
-  assert.doesNotMatch(t, /setNavDrawer\(!/, 'it no longer opens the floating menu');
+test('(W-1) the ☰ that hid the whole menu is gone, and nobody is left hidden', () => {
+  /* RE-POINTED 12 Oct 2026 (owner: "delete the highlighted button
+     functionality for excluding the nav panel"): no button, no hiding, and a
+     choice remembered from before is cleared so the menu comes back. */
+  assert.doesNotMatch(html, /id="nav-toggle"/, 'the button is gone');
+  assert.doesNotMatch(html, /#nav-toggle/, 'and its rules');
+  assert.doesNotMatch(app, /function (toggleNavHidden|navHidden|paintNavToggle)\b/);
+  assert.match(app, /localStorage\.removeItem\(NAV_HIDE_KEY\)/, 'an old hidden menu comes back');
   const a = region(app, 'applyRail');
-  assert.match(a, /const gone=navHidden\(\);/, 'hidden at every width');
-  assert.match(region(app, 'paintNavToggle'), /const shown=!navHidden\(\);/, 'and its words follow that one answer');
-  assert.match(a, /'0px'/, 'a hidden menu gives its whole column back');
-  assert.match(a, /sideNav\.style\.display=gone\?'none':'flex'/);
+  assert.doesNotMatch(a, /nav-hidden|'0px'/, 'the menu never gives its column away');
   for (const k of ['sh_nav_hide', 'sh_nav_show', 'sh_rail_collapse', 'sh_rail_expand'])
-    assert.equal((i18n.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k + ' in both books');
+    assert.equal((i18n.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k + ' in both books (inert where retired)');
 });
 
 test('(W-2) "Collapse menu" sits at the foot; the arrow at the top is gone', () => {

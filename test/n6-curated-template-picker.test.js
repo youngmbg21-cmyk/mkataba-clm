@@ -104,7 +104,9 @@ describe('N6 (2) — the doorway itself', () => {
     sb.openWizard();
     assert.match(modals[0], /data-wz-lib="L1"/, 'a door of its own on the front screen');
     assert.match(modals[0], /Wanjiru Standard MSA/);
-    assert.match(modals[0], /v3 · used 0×[^<]*Corporate &amp; Compliance/, 'its version, its use and its stream on the door');
+    /* RE-POINTED 12 Oct 2026 (the Search list): "used 0×" is noise and left the row. */
+    assert.match(modals[0], /v3 · Corporate &amp; Compliance/, 'its version and its stream on the door');
+    assert.doesNotMatch(modals[0], /used \d+×/);
   });
 
   test('a standard with no stream on it still has a door, and no stream is guessed for it', () => {
@@ -116,14 +118,15 @@ describe('N6 (2) — the doorway itself', () => {
     assert.ok(!/Procurement|Sales|Corporate/.test(door), 'and no stream word is invented for it');
   });
 
-  test('the line-of-business question is asked in the doorway, admins only', () => {
+  test('the line-of-business question is asked in Settings, not in the doorway', () => {
+    /* REVERSED 12 Oct 2026 (the Search list): a company rule lives in
+       Settings → Company (#set-industry), one writer, the same key. */
     const { sb, modals } = stage();
     sb.openWizard();
-    assert.match(modals[0], /id="wz-industry"/);
-    const nonAdmin = stage({ isAdmin: () => false });
-    nonAdmin.sb.openWizard();
-    assert.ok(!/wz-industry/.test(nonAdmin.modals[0]),
-      'a select that cannot save for this role is worse than no select');
+    assert.doesNotMatch(modals[0], /id="wz-industry"/);
+    const st = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js/views/settings.js'), 'utf8');
+    assert.match(st, /id="set-industry"/);
+    assert.match(st, /state\.settings\.industry=e\.target\.value\|\|undefined;/);
   });
 
   test('a preselected template still skips the doorway entirely', () => {

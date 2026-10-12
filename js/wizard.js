@@ -641,12 +641,6 @@ function wizardFormMount(o, tid, prefill){
    again is a guard that is always false. */
 const NA_RAIL_W = 260;           /* the picker's own column, rows not cards */
 const NA_FRAME_NARROW_W = 900;   /* rail + questions — the frame, at every window */
-function naUsageCount(kind, id){
-  try{
-    if(kind==='tid') return builtinUsageCount(id);
-    return (typeof templateUsage==='function') ? (templateUsage(id).count||0) : 0;
-  }catch(_){ return 0; }
-}
 /* The word filter: every word of three letters or more, any one of which in
    the name, the description or the stream's name is a hit. A sentence meant
    for Copilot ("a two-year NDA with a Swedish packaging supplier") narrows the
@@ -815,14 +809,13 @@ function openNewAgreement(o){
   const mineOf=()=>(mayEdit && typeof customTemplates==='function')?customTemplates():[];
   if(!tmpls.length && !libOf().length && !mineOf().length){ toast(i18t('wz_no_templates_role'),'err'); return; }
   const ready=(typeof draftAiReady==='function')&&draftAiReady();
-  const admin=(typeof isAdmin==='function')&&isAdmin();
   const sName=k=>(k&&typeof FOLDERS==='object'&&FOLDERS[k]&&FOLDERS[k].name)||'';
   const verOf=t=>'v'+((typeof templateVersionNo==='function')?templateVersionNo(t):1);
   const rows=()=>[
     ...libOf().map(t=>({ kind:'lib', id:t.id, name:t.name, sub:t.description||'', stream:sName(t.folder), cat:t.category,
-      go:i18t('na_go',{ v:'v'+(t.publishedVersion||1), n:naUsageCount('lib',t.id) }) })),
+      go:'v'+(t.publishedVersion||1) })),
     ...mineOf().map(t=>({ kind:'mine', id:t.id, name:t.name, sub:t.description||t.blurb||'', stream:sName(t.folder), cat:t.category,
-      go:i18t('na_go',{ v:verOf(t), n:naUsageCount('mine',t.id) }) })),
+      go:verOf(t) })),
     ...forYouPick(tmpls).list.concat(tmpls.filter(t=>!forYouPick(tmpls).list.includes(t)))
       .map(t=>({ kind:'tid', id:t.id, name:t.kind, sub:t.blurb||'', stream:sName(t.folder), cat:t.category })),
   ];
@@ -865,25 +858,31 @@ function openNewAgreement(o){
   const pickRow=r=>{ const meta=[r.go||'', r.stream||''].filter(Boolean).join(' · '), hint=naCardTitle(r);
     return `<button type="button" class="na-pick${sel&&sel.kind===r.kind&&sel.id===r.id?' on':''}" data-wz-${r.kind}="${esc(r.id)}"${hint?` title="${esc(hint)}"`:''}>
       <span class="na-pick-n">${esc(r.name)}</span>${meta?`<span class="na-pick-m">${esc(meta)}</span>`:''}</button>`; };
-  const industry=()=>(typeof workspaceIndustry==='function')?workspaceIndustry():'';
-  const lobHtml=()=>admin&&typeof INDUSTRY_TEMPLATES==='object'?`<label class="na-lob">${i18t('wz_line_of_business')}
-        <select id="wz-industry"><option value="">${i18t('wz_not_set')}</option>${
-          Object.keys(INDUSTRY_TEMPLATES).map(k=>`<option value="${k}" ${industry()===k?'selected':''}>${esc(INDUSTRY_LABEL[k])}</option>`).join('')}</select></label>`:'';
+  /* ---- THE SEARCH LIST (the owner picked it by name, 12 Oct 2026, from One
+     field · Search list · Shelf first · The SAP way) ----
+     The rail has its OWN search, which reads template NAMES only — the
+     sentence above is Jambo's and filters nothing (typing "agreement" there
+     used to match every standard and narrow nothing). Three tabs, one per
+     shelf, each with its count; a shelf with nothing on it is not drawn. One
+     scroll: the page's. The line of business moved to Settings → Company,
+     and "Import many at once" left — import has its own door. */
+  const NA_TABS=[['lib','na_tab_company'],['mine','na_tab_saved'],['tid','na_tab_hati']];
+  let tab=null;
+  const tabNow=()=>{ const all=rows(); const has=k=>all.some(r=>r.kind===k);
+    if(!tab||!has(tab)) tab=(sel&&has(sel.kind)&&sel.kind)||(NA_TABS.find(([k])=>has(k))||['lib'])[0];
+    return tab; };
   const listsHtml=q=>{
-    const all=rows(), hits=all.filter(r=>naHit(r,q));
-    const none=naHasWords(q)&&!hits.length;
-    const show=none?all:hits;
-    const sec=(kind,title)=>{ const rs=show.filter(r=>r.kind===kind); if(!rs.length) return '';
-      return `<div class="na-sec"><div class="na-sec-h"><span class="na-sec-label">${title}</span>${kind==='tid'?lobHtml():''}</div><div class="na-rows">${rs.map(pickRow).join('')}</div></div>`; };
-    return `${none?`<p class="na-none">${i18t(ready?'na_no_match_find':'na_no_match')}</p>`:''}
-      ${sec('lib', i18t('na_company'))}
-      ${sec('mine', i18t('na_saved'))}
-      ${sec('tid', i18t('na_hati'))}`;
+    const all=rows(), t=tabNow(), qq=String(q||'').trim().toLowerCase();
+    const tabs=NA_TABS.filter(([k])=>all.some(r=>r.kind===k));
+    const shown=all.filter(r=>r.kind===t && (!qq || String(r.name||'').toLowerCase().includes(qq)));
+    return `${tabs.length>1?`<div class="na-tabs" role="tablist" aria-label="${esc(i18t('na_tabs'))}">${tabs.map(([k,w])=>
+        `<button type="button" role="tab" class="na-tab" data-na-tab="${k}" aria-selected="${k===t}">${esc(i18t(w))} (${all.filter(r=>r.kind===k).length})</button>`).join('')}</div>`:''}
+      <div class="na-rows">${shown.map(pickRow).join('')||`<p class="na-none">${esc(i18t('na_no_name'))}</p>`}</div>`;
   };
   /* THE QUESTIONS CARD — one string, placed once, beside the rail. */
   const naCard=`<div class="na-card" id="na-card">
         <div class="na-card-h"><h3 id="na-card-name"></h3><span class="na-card-sub" id="na-card-sub"></span></div>
-        <div class="na-card-b"><div id="na-form"></div>
+        <div class="na-card-b"><div id="na-form"><div class="na-empty"><b>${esc(i18t('na_pick_hint'))}</b>${esc(i18t('na_pick_hint_sub'))}</div></div>
           <div class="na-note">${i18t('na_note')}</div>
           ${/* ---- WHO ELSE IS ON THIS AGREEMENT (Young ruled 21 Sep 2026) ----
                SHUT BY DEFAULT and under the questions, because it is an offer
@@ -929,14 +928,13 @@ function openNewAgreement(o){
                pop-up. MEASURED at the parent: the frame was already at its
                own ceiling (88vh) and opening the people panel pushed the body
                into scrolling at every window height tried. */}
+        <input id="na-q" class="na-inp na-q" type="search" autocomplete="off" placeholder="${esc(i18t('na_q_ph'))}" aria-label="${esc(i18t('na_q_ph'))}">
         <div id="na-lists" class="na-picks">${listsHtml('')}</div>
         ${''/* THE BACK-CATALOGUE'S WAY IN, kept. "Upload it" and its lead
                "Received a contract instead?" are GONE (Young ruled 23 Sep 2026:
                "remove the Upload it link") — upload is its own door in front of
                this screen now (openNewDoors), and a second way to one dialog is
                two doors. na_upload / na_received are inert in both books. */}
-        <div class="na-more">
-          <button type="button" id="na-import" class="ui-link">${i18t('na_import')}</button></div>
       </div>
       ${naCard}
     </div>
@@ -947,8 +945,8 @@ function openNewAgreement(o){
     <div class="na-foot">
       <span class="na-grow"></span>
       <button data-dlg-cancel type="button" id="wz-pick-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-      <button type="button" id="na-skip" class="ui-btn" title="${esc(i18t('lib_create_now_fill_later'))}">${i18t('na_skip')}</button>
-      <button type="button" id="na-create" class="ui-btn ui-btn-primary">${i18t('tl_create_draft')}</button>
+      <button type="button" id="na-skip" class="ui-btn" disabled title="${esc(i18t('na_pick_first'))}" data-title-on="${esc(i18t('lib_create_now_fill_later'))}">${i18t('na_skip')}</button>
+      <button type="button" id="na-create" class="ui-btn ui-btn-primary" disabled title="${esc(i18t('na_pick_first'))}">${i18t('tl_create_draft')}</button>
     </div></div>`, { maxWidth: NA_FRAME_NARROW_W+'px', label: i18t('na_title'),
       /* A PAGE, NOT A POP-UP (SAP pop-ups, owner's go 10 Oct 2026): the
          picker, the ask and the template's questions fill the work area,
@@ -962,17 +960,16 @@ function openNewAgreement(o){
   if(!root || typeof root.querySelector!=='function') return;
   const lists=()=>document.getElementById('na-lists');
   const paintLists=()=>{ const l=lists(); if(!l) return;
-    const q=(document.getElementById('dr-say')||{}).value||'';
+    const q=(document.getElementById('na-q')||{}).value||'';
     l.innerHTML=listsHtml(q);
-    document.getElementById('wz-industry')?.addEventListener('change',e=>{
-      state.settings=state.settings||{};
-      state.settings.industry=e.target.value||undefined;
-      if(typeof saveSettings==='function') saveSettings();
-      paintLists();
-    });
   };
   const light=()=>{ root.querySelectorAll('.na-pick.on').forEach(b=>b.classList.remove('on'));
-    if(sel){ const b=root.querySelector(`[data-wz-${sel.kind}="${String(sel.id).replace(/["\\]/g,'\\$&')}"]`); if(b) b.classList.add('on'); } };
+    if(sel){ const b=root.querySelector(`[data-wz-${sel.kind}="${String(sel.id).replace(/["\\]/g,'\\$&')}"]`); if(b) b.classList.add('on'); }
+    /* THE ACTS WAKE ON A PICK: Create draft and Skip stay grey, saying why,
+       until a template is chosen (they may have moved to the page head). */
+    const on=!!api;
+    ['na-create','na-skip'].forEach(id=>{ const b=document.getElementById(id); if(!b) return;
+      b.disabled=!on; b.title=on?(b.getAttribute('data-title-on')||''):i18t('na_pick_first'); }); };
   /* THE CARD IS THE CHOSEN DOOR'S OWN FORM. Every branch returns the acts the
      foot presses; the head prints the version where there is one and how
      many boxes were drawn. */
@@ -1003,6 +1000,7 @@ function openNewAgreement(o){
        off this screen and leaves their own dialogs exactly as they were. */
     const hostOpts={ host, paperHost:null, root:document.getElementById('na-body') };
     sel={kind,id}; api=null; let name='', ver='', follow=0;
+    if(tab!==kind){ tab=kind; paintLists(); }
     if(kind==='tid'){ api=wizardFormMount(hostOpts, id, prefill); const t=TEMPLATES[id]; name=t?t.kind:id; }
     else if(kind==='lib'){ const t=libOf().find(x=>x.id===id); name=t?t.name:id; ver='v'+((t&&t.publishedVersion)||1);
       follow=Number(t&&t.questionCount)||0;
@@ -1086,20 +1084,24 @@ function openNewAgreement(o){
     if(document.getElementById('na-root')) _naClaimed=false; };
   document.getElementById('na-create')?.addEventListener('click', goCreate(()=>api.create()));
   document.getElementById('na-skip')?.addEventListener('click', goCreate(()=>api.skip()));
-  document.getElementById('na-import')?.addEventListener('click', ()=>{ closeModal(); if(typeof setView==='function') setView('migration'); });
+  root.querySelector('#wz-pick')?.addEventListener('click',e=>{
+    const tb=e.target.closest('[data-na-tab]'); if(!tb||!root.contains(tb)) return;
+    tab=tb.getAttribute('data-na-tab'); paintLists(); light();
+  });
+  let _q=null;
+  document.getElementById('na-q')?.addEventListener('input',()=>{ clearTimeout(_q); _q=setTimeout(()=>{ paintLists(); light(); }, 80); });
   const say=document.getElementById('dr-say'), read=document.getElementById('dr-read');
-  let _t=null;
-  say?.addEventListener('input',()=>{ naSayFit(say); clearTimeout(_t); _t=setTimeout(paintLists, 120); });
+  say?.addEventListener('input',()=>naSayFit(say));
   /* ENTER STILL PRESSES FIND, and Shift+Enter is a newline — the box wraps
      now, so a reader who wants a second line has a way to ask for one. */
   say?.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); if(read&&!read.disabled) read.click(); } });
   if(read && ready) read.addEventListener('click',()=>{ if(typeof draftRead==='function') draftRead(); });
   paintLists();
-  /* THE CARD IS NEVER EMPTY: the first door is lit on arrival, exactly as the
-     artifact draws it, or the one the caller named. */
-  const first=rows()[0];
+  /* NOTHING IS CHOSEN FOR THE READER (the Search list, 12 Oct 2026; this
+     reverses "the first door is lit on arrival"): the card waits, and Create
+     draft with it, unless the caller named a template. */
   const want=o.pick&&rows().find(r=>r.kind===o.pick.kind&&String(r.id)===String(o.pick.id));
-  if(want) pick(want.kind, want.id, o.prefill); else if(first) pick(first.kind, first.id, o.prefill);
+  if(want) pick(want.kind, want.id, o.prefill); else light();
   naSayFit(say);
   if(o.say && say) say.focus();
   /* The company standards may still be in flight (the same race the draft

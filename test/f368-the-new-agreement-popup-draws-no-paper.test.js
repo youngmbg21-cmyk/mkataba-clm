@@ -267,7 +267,7 @@ describe('f368 (6) where the reader ends up', () => {
     assert.ok(ask < out && out < rail && rail < card, 'ask, its answer, the rail, the questions — in that order');
   });
   test('[control] the ask still grows, and Enter still presses Find', () => {
-    assert.match(NA, /say\?\.addEventListener\('input',\(\)=>\{ naSayFit\(say\);/);
+    assert.match(NA, /say\?\.addEventListener\('input',\(\)=>naSayFit\(say\)\);/);
     assert.match(NA, /e\.key==='Enter'&&!e\.shiftKey/);
   });
 });

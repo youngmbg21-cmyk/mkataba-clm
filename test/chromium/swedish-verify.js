@@ -149,7 +149,7 @@ const PROBE = () => {
         if (cb) { await page.mouse.click(cb.x + cb.width / 2, cb.y + cb.height / 2); await page.waitForTimeout(350); }
         return;
       }
-      if (!await pressable()) { await page.click('#nav-toggle'); await page.waitForTimeout(450); }
+      if (!await pressable()) { await page.click('#cmd-rail'); await page.waitForTimeout(450); }
       const box = await (await page.$(`#lang-switch [data-lang="${lang}"]`)).boundingBox();
       if (!box) throw new Error(`the ${lang} button has no box — it is not on screen`);
       await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
@@ -193,8 +193,8 @@ const PROBE = () => {
       where = await page.$('[data-m-act="account"]') ? 'phone: account sheet' : null;
     } else if (await pressable()) {
       where = 'desktop: header toggle';
-    } else if (await page.$('#nav-toggle')) {
-      await page.click('#nav-toggle');
+    } else if (await page.$('#cmd-rail')) {
+      await page.click('#cmd-rail');
       await page.waitForTimeout(450);
       where = await pressable() ? 'desktop: nav drawer, one press away' : null;
       await closeNav();

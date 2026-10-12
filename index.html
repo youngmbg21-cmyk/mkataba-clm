@@ -5944,7 +5944,6 @@
         390px and wrong at 1280, where there is ample room for the icons and
         hiding every door behind a press is the worse trade. One behaviour from
         768 to 1279 now, rather than two systems doing the same job. -- */
-  @media (max-width:899px){ #nav-toggle{ display:grid!important; } }
   /* 1440 INCLUSIVE — it must match navDrawerActive()'s `<=` exactly, and that
      number is derived from the supported screen sizes; see the note beside
      NAV_DRAWER_W in js/app.js. It read 1280, then 1536, and both were reported
@@ -8206,6 +8205,27 @@
   /* .82 of white on accent-fill measures 5.3:1 — above the 4.5 this product
      holds 11px text to. The figure is quieter than the name and still read. */
   .na-pick.on .na-pick-m{ color:#fff; opacity:.82; }
+  /* ---- THE SEARCH LIST (owner picked it by name, 12 Oct 2026) ----
+     The picked row is a light tint with the accent's thin line on its left,
+     never a solid block: one filled button per area, and that is Create
+     draft. The rail's own search sits on top, then the three shelves as tabs.
+     ONE SCROLL — the page's: the list and the body no longer scroll inside
+     it (three nested scroll areas at 1440 × 800 before). */
+  .na-pick{ border-left:3px solid transparent; }
+  .na-pick.on,.na-pick.on:hover{ background:var(--color-accent-50); border-left-color:var(--accent-solid); }
+  .na-pick.on .na-pick-n{ color:var(--color-text); font-weight:var(--w-strong); }
+  .na-pick.on .na-pick-m{ color:var(--color-neutral-600); opacity:1; }
+  .na-rail .na-q{ flex:none; width:100%; }
+  .na-tabs{ display:flex; border:1px solid var(--rule-strong); border-radius:var(--radius-lg); overflow:hidden; margin-bottom:8px; }
+  .na-tab{ flex:1; min-width:0; border:0; border-right:1px solid var(--rule-strong); background:var(--color-surface); color:var(--color-text);
+    font:inherit; font-size:var(--t-label); font-weight:var(--w-label); padding:6px 4px; cursor:pointer; white-space:nowrap; }
+  .na-tab:last-child{ border-right:0; }
+  .na-tab[aria-selected="true"]{ background:var(--color-accent-50); color:var(--accent-ink); }
+  .na-picks{ max-height:none; overflow:visible; }
+  .dlg-pg-body .na-root{ max-height:none; }
+  .dlg-pg-body .na-body{ overflow:visible; }
+  .na-empty{ padding:32px 12px; text-align:center; color:var(--color-neutral-600); }
+  .na-empty b{ display:block; color:var(--color-text); font-weight:var(--w-strong); margin-bottom:4px; }
   /* ---- WHAT THE TWO RETIRED CARD RULES WERE FOR (Young, 21 Sep 2026: "they
      should all be the same size", then "still not the same size. Make them
      the same and not big either") ----
@@ -11503,7 +11523,6 @@
      order W-1/W-3, off the HaTi Platform mockup) ---- ☰ sits at the bar's left
      edge at every width and hides the whole menu; the Copilot spark is bigger
      and in the bar's full ink, because it is now the only Copilot door. */
-  #top-header #nav-toggle{display:grid;width:36px;height:36px;margin-left:-10px;color:var(--bar-ink);}
   #top-header #cmd-ai{width:36px;height:36px;color:var(--bar-ink);}
   #top-header #cmd-ai svg{width:20px;height:20px;}
   #side-nav .nav-foot{flex:none;border-top:1px solid var(--color-divider);padding:6px 10px;}
@@ -11598,6 +11617,36 @@
   .ui-btn.ui-btn-danger:not(.ui-btn-primary){color:var(--st-ruby-fg);border-color:var(--st-ruby-line);}
   .ui-btn.ui-btn-danger:not(.ui-btn-primary):hover{border-color:var(--st-ruby-fg);background:color-mix(in srgb,var(--st-ruby-fg) 8%,var(--color-surface));}
   .ui-btn.ui-btn-danger:disabled{color:var(--color-neutral-400);border-color:var(--btn-edge);}
+  /* ---- THE SAP WAY (the owner picked it by name, 12 Oct 2026, from four
+     button proposals: Pearl · Lacquer · Keycap · The SAP way) ----
+     Flat, rounded 8px; the ordinary button wears the accent as its border and
+     its words on the surface white; the one filled button keeps its fill and
+     takes a single quiet lift; a press fills it with the accent's deep shade.
+     This REVERSES the reference's grey-hairline secondary above. Written at
+     the same weight and later in source, so every more specific dressing a
+     page gives its buttons (plain rows, danger, the fill-the-document button)
+     still wins. The Board's own buttons (.hb-btn) take the same clothes. */
+  .ui-btn{border-radius:var(--radius-lg);color:var(--accent-ink);border-color:var(--btn-edge);background:var(--color-surface);}
+  .ui-btn:hover{background:color-mix(in srgb,var(--accent-solid) 8%,var(--color-surface));}
+  .ui-btn:not(.ui-btn-primary):hover{border-color:var(--accent-solid);}
+  .ui-btn-plain{border-color:transparent;background:transparent;}
+  .ui-btn-plain:hover{border-color:transparent;}
+  .ui-btn-primary{background:var(--accent-fill);color:#fff;border-color:var(--accent-fill);font-weight:var(--w-label);box-shadow:0 1px 2px var(--btn-lift);}
+  .ui-btn-primary:hover{background:var(--accent-solid-hover);border-color:var(--accent-solid-hover);}
+  .ui-btn:active:not(:disabled):not(.ui-btn-plain){background:var(--accent-solid-hover);border-color:var(--accent-solid-hover);color:#fff;}
+  .ui-btn:disabled,.ui-btn[aria-disabled="true"]{color:var(--accent-ink);border-color:var(--btn-edge);opacity:.45;box-shadow:none;}
+  .ui-btn-primary:disabled,.ui-btn-primary[aria-disabled="true"]{color:#fff;background:var(--accent-fill);border-color:var(--accent-fill);}
+  .ui-btn-plain:disabled,.ui-btn-plain[aria-disabled="true"]{border-color:transparent;}
+  .ui-btn.ui-btn-danger:disabled{color:var(--st-ruby-fg);border-color:var(--st-ruby-line);}
+  /* ONE EDGE FOR EVERY OUTLINED CONTROL (button, stepper, segmented switch):
+     the token every one of them already reads becomes the accent; at night
+     the accent's lighter ink, so the edge stays visible on the dark ground. */
+  :root{ --btn-lift:rgba(10,20,40,.18); --btn-edge:var(--accent-solid); }
+  html.dark{ --btn-lift:rgba(0,0,0,.45); --btn-edge:var(--accent-ink); }
+  .hb-btn{border-radius:var(--radius-lg);border-color:var(--btn-edge);color:var(--accent-ink);background:var(--color-surface);}
+  .hb-btn:hover{background:color-mix(in srgb,var(--accent-solid) 8%,var(--color-surface));border-color:var(--accent-solid);}
+  .hb-btn.is-primary{background:var(--accent-fill);border-color:var(--accent-fill);color:#fff;box-shadow:0 1px 2px var(--btn-lift);}
+  .hb-btn.is-primary:hover{background:var(--accent-solid-hover);}
   /* THE MAIN ACT OF A REPEATED ROW takes the accent's INK, never its fill
      (rule 4 of the button review: one filled button per area, and a table of
      twelve rows is one area, not twelve). The row still says which press is
@@ -13062,9 +13111,6 @@
        could not have reached past it. -->
   <header id="top-header" style="grid-column:2;grid-row:1;display:flex;align-items:center;gap:var(--s-2);padding:0 var(--s-3) 0 20px;background:var(--nav-bg);color:var(--bar-ink);border-bottom:1px solid var(--nav-line);min-width:0;">
 
-    <button id="nav-toggle" class="hdr-icon-btn" title="Hide menu" data-i18n-title="sh_nav_hide" aria-label="Hide menu" data-i18n-aria="sh_nav_hide" aria-expanded="true" style="flex:none;">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-    </button>
 
     <div id="brand-block" style="align-items:center;gap:var(--s-2);flex:none;">
       <span id="brand-wordmark" style="font-family:var(--font-heading);font-weight:var(--w-title);font-size:var(--t-body);letter-spacing:-.01em;">HaTi</span>

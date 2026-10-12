@@ -2794,39 +2794,15 @@ const RAIL_KEY = 'hati.v1.railCollapsed';
    and the strip stays a 64px rail whatever this answers, exactly as before.
    A stored value always wins — `null` means "never chosen", not "chose no" —
    so anybody who had already collapsed it keeps their rail. */
-/* ---- ☰ HIDES THE MENU COMPLETELY (Young, 7 Oct 2026, work order W-1:
-   "disappear completely") ---- A second remembered choice beside the rail:
-   above the float line the menu leaves the grid and the page takes the whole
-   width. Below the line the same button opens and closes the floating menu
-   and this choice is read, never written (the rail's own rule). */
+/* ---- THE MENU IS ALWAYS ON THE SCREEN (owner, 12 Oct 2026: "delete the
+   highlighted button functionality for excluding the nav panel") ----
+   The ☰ that took the whole menu off the screen (W-1, 7-8 Oct) is GONE, and
+   with it the remembered choice: a reader who had hidden the menu would
+   otherwise be left with no door back, so the stored key is cleared once.
+   The rail's own foot row (Collapse menu, and below the float line the
+   floating menu) is the one control the menu has. */
 const NAV_HIDE_KEY = 'hati.v1.navHidden';
-function navHidden(){
-  try { return localStorage.getItem(NAV_HIDE_KEY) === '1'; } catch(e){ return false; }
-}
-function paintNavToggle(){
-  const btn=document.getElementById('nav-toggle'); if(!btn) return;
-  /* ☰ answers one question at every width: is the menu on the screen at all
-     (Young, 8 Oct 2026). Below the float line the floating layer is opened
-     from the strip's foot row, not from here. */
-  const shown=!navHidden();
-  const k=shown?'sh_nav_hide':'sh_nav_show';
-  btn.setAttribute('aria-expanded',shown?'true':'false');
-  btn.setAttribute('data-i18n-title',k); btn.setAttribute('data-i18n-aria',k);
-  btn.title=i18t(k); btn.setAttribute('aria-label',i18t(k));
-}
-/* ☰ REMOVES THE MENU AT EVERY WIDTH (Young, 8 Oct 2026: "the other feature
-   was supposed to completely remove the menu from the screen as the mock up
-   designed it"). It used to open the floating menu below the float line, so on
-   a laptop or an iPad the icon strip never went away. Now one press takes the
-   whole menu off the screen — strip, floating layer and all — and the next
-   brings it back as it was: the full menu above the line, the icon strip below
-   it (whose foot row still opens the floating menu). Remembered either way. */
-function toggleNavHidden(){
-  const hide=!navHidden();
-  try { localStorage.setItem(NAV_HIDE_KEY, hide?'1':'0'); } catch(e){}
-  if(hide&&navDrawerActive()) setNavDrawer(false);
-  applyRail();
-}
+try { if (typeof localStorage !== 'undefined') localStorage.removeItem(NAV_HIDE_KEY); } catch(e){}
 function railCollapsed(){
   try { const v = localStorage.getItem(RAIL_KEY); return v === null ? false : v === '1'; }
   catch(e){ return false; }
@@ -2838,12 +2814,7 @@ function applyRail(){
      is read, not written — see railCollapsed — so it is waiting unchanged when
      they are back on a wide screen. */
   const on=railCollapsed()||navDrawerActive();
-  const gone=navHidden();
   shell.classList.toggle('rail',on);
-  shell.classList.toggle('nav-hidden',gone);
-  /* The aside states display:flex inline, so the hiding is said inline too —
-     a stylesheet rule would lose to the attribute (the cascade, not a shout). */
-  const sideNav=document.getElementById('side-nav'); if(sideNav&&sideNav.style) sideNav.style.display=gone?'none':'flex';
   /* The columns are set inline in index.html, so they are answered inline
      here — a stylesheet rule would lose to the attribute it is arguing with.
 
@@ -2863,8 +2834,8 @@ function applyRail(){
      this one line and 240 in the shell's own grid, which is two answers to one
      question waiting to disagree; --nav-w is the single one. */
   if(shell.style) shell.style.gridTemplateColumns=
-    (gone?'0px':navDrawerActive()?'64px':(on?'64px':'var(--nav-w,240px)'))+' minmax(0,1fr)';
-  paintRailToggle(); paintNavToggle();
+    (navDrawerActive()?'64px':(on?'64px':'var(--nav-w,240px)'))+' minmax(0,1fr)';
+  paintRailToggle();
   /* THE PAGE HAS TO BE TOLD. The negotiation panel writes its own column
      widths from a measurement (rlLayoutResizer) — it solves how much the round's
      queue may take before the contract loses its measure — and 192px arriving
@@ -3139,11 +3110,8 @@ function openPanel(face){
 function setNavDrawer(open){
   const nav=document.getElementById('side-nav');
   const scrim=document.getElementById('nav-scrim');
-  const btn=document.getElementById('nav-toggle');
   if(nav&&nav.classList) nav.classList.toggle('open', !!open);
   if(scrim) scrim.hidden = !open;
-  if(btn) btn.setAttribute('aria-expanded', open?'true':'false');
-  paintNavToggle();
   /* The sidebar's own chevron is the door down here, so it has to answer for
      the state it just put the layer in. */
   paintRailToggle();
@@ -3795,15 +3763,7 @@ function wireShell(){
     }
   });
 
-  /* The header's menu button, drawn at 899 and below, and the two ways out of
-     the layer it opens: the scrim and Escape. The button is a SECOND door to
-     the same drawer — the sidebar's own chevron is the one that reaches it at
-     every width below 1500 — and above that line none of this is reachable,
-     because the sidebar is a column again. */
-  document.getElementById('nav-toggle')?.addEventListener('click',e=>{
-    e.stopPropagation();
-    toggleNavHidden();
-  });
+  /* The two ways out of the floating menu: the scrim and Escape. */
   document.getElementById('nav-scrim')?.addEventListener('click',closeNavDrawer);
   document.addEventListener('keydown',e=>{ if(e.key==='Escape' && !document.querySelector('[data-top-overlay]')) closeNavDrawer(); });
 
@@ -4175,5 +4135,5 @@ if (typeof window !== 'undefined' && window.addEventListener){
 }
 
 Object.assign(window,{printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,notesPanelShowing,notesPanelFollow,
-  buildAlerts,alertCount,updateAlertBadge,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,navHidden,toggleNavHidden,paintNavToggle,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
+  buildAlerts,alertCount,updateAlertBadge,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

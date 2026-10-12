@@ -74,16 +74,21 @@ describe('f345 (2) nothing a person could press disappeared', () => {
       'and the handler still answers all three');
     /* REVERSED 23 Sep 2026 (Young: "remove the Upload it link") — upload is a door in front of this screen (openNewDoors), so the screen's own link is gone and Import stays. */
     assert.ok(!/id="na-upload"/.test(NA) && !/getElementById\('na-upload'\)/.test(NA), 'no second way to the upload dialog');
-    assert.match(NA, /id="na-import"/);
-    assert.match(NA, /getElementById\('na-import'\)\?\.addEventListener\('click', \(\)=>\{ closeModal\(\); if\(typeof setView==='function'\) setView\('migration'\); \}\)/);
+    /* REVERSED 12 Oct 2026 (the Search list, owner picked it by name):
+       "Import many at once" left — import has its own door on the rail. */
+    assert.doesNotMatch(NA, /id="na-import"/, 'no second door to import');
   });
   test('the picker\'s search, streams and line of business survive on it', () => {
-    /* RE-POINTED IN PLACE 22 Sep 2026: the same listener also fits the box to
-       its own content now (Young: "the describe what you need should be able
-       to wrap text"). The CLAIM is the filter, and it is untouched. */
-    assert.match(NA, /say\?\.addEventListener\('input',\(\)=>\{ naSayFit\(say\); clearTimeout\(_t\); _t=setTimeout\(paintLists, 120\); \}\)/, 'the sentence box filters as you type');
-    assert.match(region(WZ, 'naHit'), /\$\{r\.name\} \$\{r\.sub\} \$\{r\.stream\}/, 'over name, description and stream — the browse by stream, by another door');
-    assert.match(NA, /id="wz-industry"/, 'the admin\'s line of business');
+    /* RE-POINTED 12 Oct 2026 (the Search list): the rail has its OWN search,
+       over template NAMES only; the sentence box only grows (it filters
+       nothing — "agreement" used to match every standard); the line of
+       business moved to Settings → Company; FOR YOU's order still leads. */
+    assert.match(NA, /id="na-q"/, 'the rail\'s own search');
+    assert.match(NA, /getElementById\('na-q'\)\?\.addEventListener\('input'/);
+    assert.match(NA, /String\(r\.name\|\|''\)\.toLowerCase\(\)\.includes\(qq\)/, 'names only');
+    assert.match(NA, /say\?\.addEventListener\('input',\(\)=>naSayFit\(say\)\);/, 'the sentence box filters nothing');
+    assert.doesNotMatch(NA, /id="wz-industry"/, 'the line of business is not in the picker');
+    assert.match(SRC('js/views/settings.js'), /id="set-industry"/, 'it is in Settings');
     assert.match(NA, /forYouPick\(tmpls\)\.list\.concat/, 'and FOR YOU\'s order leads the chips');
   });
   test('the word filter is forgiving, and an empty query lists everything', () => {
@@ -94,9 +99,8 @@ describe('f345 (2) nothing a person could press disappeared', () => {
     assert.equal(sb.naHit(r, 'lease'), false);
     assert.equal(sb.naHit(r, 'a'), true, 'a word under three letters narrows nothing');
   });
-  test('nothing matching says so and still draws every door', () => {
-    assert.match(NA, /const none=naHasWords\(q\)&&!hits\.length;\s*const show=none\?all:hits;/);
-    assert.match(NA, /na_no_match_find/);
+  test('nothing matching says so', () => {
+    assert.match(NA, /na_no_name/);
   });
 });
 

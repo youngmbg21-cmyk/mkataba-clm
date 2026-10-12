@@ -39,7 +39,9 @@ describe('f360 (1) the picker is a rail of rows, and there is one builder', () =
     assert.equal((strip(NA).match(/const pickRow=/g) || []).length, 1, 'one builder');
     assert.ok(!/const door=r=>/.test(strip(NA)) && !/const chip=r=>/.test(strip(NA)),
       'and neither of the two it replaced');
-    assert.match(NA, /<div class="na-rows">\$\{rs\.map\(pickRow\)\.join\(''\)\}<\/div>/,
+    /* RE-POINTED 12 Oct 2026 (the Search list): one shelf at a time, a tab
+       each, every shelf still drawn through the one builder. */
+    assert.match(NA, /<div class="na-rows">\$\{shown\.map\(pickRow\)\.join\(''\)/,
       'every shelf draws through it');
     assert.equal((NA.match(/na-rows/g) || []).length, 1, 'into one container class');
   });
@@ -67,8 +69,8 @@ describe('f360 (1) the picker is a rail of rows, and there is one builder', () =
     assert.match(WZ, /function naCardTitle\(r\)\{/);
     const fn = /function naCardTitle\(r\)\{[\s\S]*?\n\}/.exec(WZ)[0];
     assert.match(fn, /naCardSub\(r\)/, 'the sentence the face used to carry');
-    for (const keep of ['id="dr-say"', 'id="dr-read"', 'id="dr-out"', 'id="wz-industry"',
-      /* id="na-upload" left: REVERSED 23 Sep 2026 (Young: "remove the Upload it link") — upload is a door in front of this screen (openNewDoors) */ 'id="na-import"', 'id="na-people"', 'id="na-create"', 'id="na-skip"', 'id="wz-pick-cancel"'])
+    for (const keep of ['id="dr-say"', 'id="dr-read"', 'id="dr-out"',
+      /* id="na-upload" left: REVERSED 23 Sep 2026 (Young: "remove the Upload it link") — upload is a door in front of this screen (openNewDoors) */ 'id="na-people"', 'id="na-create"', 'id="na-skip"', 'id="wz-pick-cancel"'])
       assert.ok(NA.includes(keep), keep + ' still has a home');
   });
   test('[wall] the pop-up still mints nothing of its own', () => {
@@ -102,7 +104,7 @@ describe('f360 (2) the ask wraps, and grows with the sentence', () => {
     assert.ok(!/\.value\s*=/.test(fit), 'it never touches what was typed');
   });
   test('it runs on every keystroke and once at open', () => {
-    assert.match(NA, /say\?\.addEventListener\('input',\(\)=>\{ naSayFit\(say\);/);
+    assert.match(NA, /say\?\.addEventListener\('input',\(\)=>naSayFit\(say\)\);/);
     assert.match(NA, /naSayFit\(say\);\s*\n\s*if\(o\.say && say\) say\.focus\(\);/, 'and on arrival, before the caret');
   });
   /* REVERSED IN PLACE 23 Sep 2026 — Young: "the describe what you need maybe
