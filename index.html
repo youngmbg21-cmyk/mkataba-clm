@@ -9708,6 +9708,8 @@
   #hb-head .hb-seg.hb-faces button+button{border-left:0}
   #hb-head .hb-seg.hb-faces button[aria-selected="true"]{background:none;color:var(--color-text);font-weight:var(--w-label)}
   #hb-head .hb-seg.hb-faces button:focus-visible{outline:2px solid var(--color-accent);outline-offset:-2px}
+  /* a narrower screen tightens the pill, so the longest greeting (Swedish afternoon, 1280 at 150%) is never cut (12 Oct 2026) */
+  @media (max-width:1400px){ #hb-head .hb-seg.hb-faces button{padding:0 3px;gap:4px} }
   #hb-head .hb-faces .hb-face-ic{width:15px;height:15px;flex:none}
   #hb-head .hb-faces .hb-face-w{display:inline-grid}
   #hb-head .hb-faces .hb-face-w > span,#hb-head .hb-faces .hb-face-w::before,#hb-head .hb-faces .hb-face-w::after{grid-area:1/1;text-align:center}
