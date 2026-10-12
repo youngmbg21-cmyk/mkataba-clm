@@ -28894,3 +28894,9 @@ THE CHOICES' CARD on New agreement ends level with the questions' card beside it
 THE ZOOM'S EDGE. #234 (SAP-way buttons) made `--btn-edge` the accent "for every outlined control", and the paper's − 100% + box (`.rl-type-step`) reads that token, so it turned blue. It is the paper's instrument, not an act: `.rl-type-step{--btn-edge:var(--chip-edge)}` gives it the old hairline by day and night, wherever the one zoom is drawn (the clause panel's too).
 
 Tests: details-owes-overview-edits-verify (8); f442 (1)(5) re-pointed back to the pre-Details checks plus "the Details form holds only what the paper owes"; f325, f362 re-pointed back.
+
+## EVERY BUTTON'S EDGE IS THE THIN GREY HAIRLINE AGAIN (owner, 13 Oct 2026)
+
+> *"Please revert all the buttons back to the previous thin grey outline that was changed earlier today."*
+
+#234 ("SAP-way buttons", owner-picked 12 Oct) set `--btn-edge` to the accent (night: the accent's lighter ink) "for every outlined control". That one line is undone: `--btn-edge` is `--color-divider` by day and `--rule-strong` by night, as before #234, so every outlined button, stepper and switch wears the thin grey edge again. What #234 also did and the owner did not name stays: the 8px corner, the accent ink on the label, the one lift, the accent edge on HOVER. The paper zoom's own override (`.rl-type-step{--btn-edge:var(--chip-edge)}`, earlier the same day) had nothing left to do and is gone. Tests: f386 (3) and button-consistency 3b pointed back to the hairline; ink-wash census re-recorded after a set-difference audit (light mode nothing moved; dark mode only the accent edges went back to the dark rule), 170/170.

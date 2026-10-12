@@ -143,9 +143,10 @@ const HELPERS = `(() => {
     /* RE-POINTED 9 Oct 2026 (Ink Wash: light mode has no grey; the light edge
        is the ramp's divider step, black + the theme colour). Same claim, as a
        RELATION: the edge is the LIGHT step, not a darker one. */
-    /* RE-POINTED 12 Oct 2026 (the SAP way, the owner's pick by name): the one
-       edge is the ACCENT now, not the ramp's light divider step. */
-    ok('3b and it is the accent edge, the SAP way', !!row.accent && row.want === row.accent && row.want !== row.light, `${row.want} vs accent ${row.accent}`);
+    /* RE-POINTED 12 Oct 2026 to the accent (the SAP way), and BACK 13 Oct 2026
+       (owner: "revert all the buttons back to the previous thin grey
+       outline"): the one edge is the ramp's light divider step again. */
+    ok('3b and it is the LIGHT edge, the ramp\'s divider step', !!row.light && row.want === row.light && row.want !== row.accent, `${row.want} vs ${row.light}`);
     ok('3c the Thread\'s ‹ › squares take the same edge', !!row.thStep && row.thStep === row.want, `step ${row.thStep}`);
 
     await page.evaluate(i => openRedlineWorkbench(i, { blanksAsked: true }), id);

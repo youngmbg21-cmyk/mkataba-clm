@@ -11662,23 +11662,19 @@
   .ui-btn-primary:disabled,.ui-btn-primary[aria-disabled="true"]{color:#fff;background:var(--accent-fill);border-color:var(--accent-fill);}
   .ui-btn-plain:disabled,.ui-btn-plain[aria-disabled="true"]{border-color:transparent;}
   .ui-btn.ui-btn-danger:disabled{color:var(--st-ruby-fg);border-color:var(--st-ruby-line);}
-  /* ONE EDGE FOR EVERY OUTLINED CONTROL (button, stepper, segmented switch):
-     the token every one of them already reads becomes the accent; at night
-     the accent's lighter ink, so the edge stays visible on the dark ground. */
-  :root{ --btn-lift:rgba(10,20,40,.18); --btn-edge:var(--accent-solid); }
-  html.dark{ --btn-lift:rgba(0,0,0,.45); --btn-edge:var(--accent-ink); }
+  /* ONE EDGE FOR EVERY OUTLINED CONTROL (button, stepper, segmented switch)
+     IS THE THIN GREY HAIRLINE AGAIN (owner, 13 Oct 2026: "revert all the
+     buttons back to the previous thin grey outline that was changed earlier
+     today"): 12 Oct's accent edge is undone; by night the stronger rule so
+     the edge stays visible. The accent still lights an edge on hover. */
+  :root{ --btn-lift:rgba(10,20,40,.18); --btn-edge:var(--color-divider); }
+  html.dark{ --btn-lift:rgba(0,0,0,.45); --btn-edge:var(--rule-strong); }
   /* A FILTER IS NOT A BUTTON: on the Contracts filter bar the accent edge is
      what says a filter is IN FORCE, so a resting chip keeps the hairline
      (--chip-edge, the old grey by day and night) and only an active one wears
      the accent. Focus still lights it. */
   :root{ --chip-edge:var(--color-divider); }
   html.dark{ --chip-edge:var(--rule-strong); }
-  /* THE PAPER'S ZOOM KEEPS ITS HAIRLINE (owner, 13 Oct 2026: "the page
-     adjustment buttons on the paper pages need to go back to what it was
-     prior to the last update"): the − 100% + box is the paper's instrument,
-     not an act, so it reads the old grey edge, by day and night, everywhere
-     the one zoom is drawn (rlPaperZoomHtml → .rl-type-step). */
-  .rl-type-step{ --btn-edge:var(--chip-edge); }
   .hb-btn{border-radius:var(--radius-lg);border-color:var(--btn-edge);color:var(--accent-ink);background:var(--color-surface);}
   .hb-btn:hover{background:color-mix(in srgb,var(--accent-solid) 8%,var(--color-surface));border-color:var(--accent-solid);}
   .hb-btn.is-primary{background:var(--accent-fill);border-color:var(--accent-fill);color:#fff;box-shadow:0 1px 2px var(--btn-lift);}
