@@ -235,10 +235,24 @@ const PROBE = `(() => {
       !!(refused && refused.dot && m.tones && refused.dot.ring === m.tones['--st-ruby-dot']),
       refused && refused.dot ? `${refused.dot.ring} · ruby ${m.tones && m.tones['--st-ruby-dot']}` : 'none');
 
-    /* ================= 4. ROWS, NOT A LINE (RE-POINTED 9 Oct 2026) =================
-       The drawing rules each entry off from the next and draws no line down the
-       rings; the line of 24 Sep is STALE. */
-    ok('4a no line is drawn down the rings', rows.length > 0 && rows.every(r => !r.line), rows.filter(r => r.line).length + ' lines');
+    /* ================= 4. ROWS, AND ONE LINE PER DAY (12 Oct 2026) =================
+       The drawing rules each entry off from the next; the rings of one day are
+       joined by a line (owner, 12 Oct 2026, reversing 9 Oct's "no line"). */
+    /* RE-POINTED 12 Oct 2026 (owner: "where there are multiple bubbles in a
+       day, they should be joined by a line like the previous iterations"):
+       within a day the rings are joined, from the first ring's middle to the
+       last's; a day heading breaks the line; a day of one entry draws none. */
+    const days = []; rows.forEach(r => { const d = days[days.length - 1]; if (d && d.head === r.head) d.rows.push(r); else days.push({ head: r.head, rows: [r] }); });
+    const near = (a, b) => Math.abs(a - b) <= 1.5;
+    const dayOk = d => {
+      if (d.rows.length === 1){ const r = d.rows[0]; return !r.line || r.line.bot - r.line.top <= 1; }
+      return d.rows.every((r, i) => r.line && r.dot && near(r.line.x, r.dot.cx)
+        && near(r.line.top, i === 0 ? r.dot.cy : r.rowTop) && near(r.line.bot, i === d.rows.length - 1 ? r.dot.cy : r.rowBot));
+    };
+    const many = days.filter(d => d.rows.length > 1), one = days.filter(d => d.rows.length === 1);
+    ok('4a within a day the rings are joined by a line, ring to ring; a heading breaks it; a lone entry draws none',
+      many.length > 0 && one.length > 0 && days.every(dayOk),
+      days.map(d => `${d.rows.length}:${dayOk(d) ? 'ok' : 'BAD'}`).join(' · '));
     ok('4b each entry is ruled off from the next', rows.length > 0 && rows.every(r => r.rule >= 1), rows.map(r => r.rule).join(','));
 
     /* ================= 5. THE ROUND AT THE RIGHT WALL ================= */

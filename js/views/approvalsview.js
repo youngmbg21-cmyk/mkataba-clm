@@ -209,24 +209,26 @@ function apMayUndo(r){
 }
 function apInsActs(tab, r){
   if(!r) return [];
-  /* "Open contract" is a link on the head's sub line (SAP benchmark, 9 Oct
-     2026); the buttons are the decision and the Signing tab. */
-  const open={ k:'open', inSub:true, label:i18t('ins_open_contract'), run:c=>{ if(!(typeof pdOpenOnHome==='function'&&pdOpenOnHome(c.id,'copilot'))) selectContract(c.id); } };
+  /* The buttons are the decision and the Signing tab; under them the three
+     doors every list draws (owner, 12 Oct 2026: Document · Negotiation ·
+     Workspace, replacing the sub line's "Open contract" link). None filled:
+     this page's filled button is its own verb. */
+  const open=insDoorActs(r.c);
   if(tab==='approvals' && r.done) return [
     ...(apMayUndo(r)?[{ k:'undo', label:i18t('ap_pg_undo'), title:i18t('ap_pg_undo_title'), run:c=>apUndo(c.id) }]:[]),
     { k:'gate', label:i18t('ap_pg_open_signing'), title:i18t('ap_pg_gate_title'), run:c=>apOpenSigning(c.id) },
-    open,
+    ...open,
   ];
   if(tab==='approvals' && apMayDecide(r)) return [
     { k:'approve', kind:'accent', label:i18t('ap_pg_approve'), title:i18t('ap_pg_approve_title'), run:c=>apDecide(c.id,'approved') },
     { k:'refuse', label:i18t('ap_pg_refuse'), title:i18t('ap_pg_refuse_title'), run:c=>apDecide(c.id,'refused') },
     { k:'gate', label:i18t('ap_pg_open_signing'), title:i18t('ap_pg_gate_title'), run:c=>apOpenSigning(c.id) },
-    open,
+    ...open,
   ];
   const lead=tab==='approvals'
     ? { k:'gate', kind:'accent', label:r.mine?i18t('ap_pg_open_gate'):i18t('ap_pg_open'), title:i18t('ap_pg_gate_title'), run:c=>apOpenSigning(c.id) }
     : { k:'sign', kind:'accent', label:i18t('ap_pg_open_signing'), title:i18t('ap_pg_sign_title'), run:c=>apOpenSigning(c.id) };
-  return [lead, open];
+  return [lead, ...open];
 }
 function apApprovedPillHtml(){
   return `<span class="reg-stg" style="color:var(--st-green-fg);background:var(--st-green-bg)"><i style="background:var(--st-green-dot)"></i>${esc(i18t('ap_pg_approved'))}</span>`;

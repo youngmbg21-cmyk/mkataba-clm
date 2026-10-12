@@ -6430,7 +6430,7 @@ function igExplainCard(id){
            Analyze — one filled button per card. */}
     <div class="mt-2 flex items-center gap-1.5" style="flex-wrap:wrap">
       <button data-ig-analyze="${c.id}" class="ui-btn ui-btn-sm ui-btn-primary" style="flex:1 1 auto" title="${i18t('int_analyze_title')}">${icon('readpaper','w-3.5 h-3.5')}${i18t('int_analyze')}</button>
-      <button data-ig-ws="${c.id}" class="ui-btn ui-btn-sm" style="flex:1 1 auto">${i18t('int_open_workspace')}${icon('chevR','w-3.5 h-3.5')}</button>
+      <button data-ig-ws="${c.id}" class="ui-btn ui-btn-sm" style="flex:1 1 auto">${icon('folderOpen','w-3.5 h-3.5')}${i18t('int_open_workspace')}</button>
       <button data-ig-cmp="${c.id}" class="ui-btn ui-btn-sm${intel.compareSel.includes(c.id)?' ui-btn-accent':''}" aria-pressed="${intel.compareSel.includes(c.id)?'true':'false'}" title="${i18t('int_stage_for_compare')}">${intel.compareSel.includes(c.id)?`${icon('check2')}Comparing`:`${icon('plus')}Compare`}</button>
     </div>
   </div>`;
@@ -7210,7 +7210,7 @@ function igStripHtml(c,p){
     ${/* THE ZOOM LEFT THIS STRIP for the paper's own ground (owner, 11 Oct
        2026): igPaperHtml draws it, top right above the sheet */''}
     ${onHome?`<button type="button" class="ui-btn ui-btn-sm" data-ig-pick-again>${igEsc(i18t('int_pick_change'))}</button>`:''}
-    ${onHome?'':`<button type="button" class="ui-btn ui-btn-sm" data-ig-ws="${c.id}">${igEsc(i18t('int_open_workspace'))}${icon('chevR','w-3.5 h-3.5')}</button>`}`;
+    ${onHome?'':`<button type="button" class="ui-btn ui-btn-sm" data-ig-ws="${c.id}">${icon('folderOpen','w-3.5 h-3.5')}${igEsc(i18t('int_open_workspace'))}</button>`}`;
 }
 /* ---- WHICH CONTRACT TO READ (Home's Paper side, nothing chosen yet) ----
    The book, most recently touched first, narrowed by what is typed; a press

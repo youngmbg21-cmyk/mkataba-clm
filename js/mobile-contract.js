@@ -502,11 +502,18 @@ function mHistHtml(c){
     (window.dateFmtOf ? dateFmtOf(langLocale(),{dateStyle:'medium',timeStyle:'short'}).format(new Date(t))
       : new Date(t).toLocaleString(langLocale(),{dateStyle:'medium',timeStyle:'short'})); };
 
-  const list = shown.length ? shown.map(e=>{
+  /* ONE DAY, ONE LINE (owner, 12 Oct 2026, as the desk's History): the dots
+     of entries on the same day are joined by a thin line from the first dot's
+     middle to the last's; a day with one entry draws none. The dot's middle
+     sits 13 + 7 + 4.5px down its row. */
+  const dayOf = e => String((e && e.at) || '').slice(0, 10);
+  const list = shown.length ? shown.map((e, i)=>{
     const g = mHistGroupOf(e);
     const reason = e.note || e.reply || null;
-    return `<div style="display:flex;gap:11px;padding:13px 0;border-bottom:1px solid var(--color-divider)">
-      <span style="width:9px;height:9px;border-radius:50%;background:${M_HIST_DOT[g]};flex:none;margin-top:7px"></span>
+    const d = dayOf(e), up = i > 0 && dayOf(shown[i-1]) === d, down = i < shown.length - 1 && dayOf(shown[i+1]) === d;
+    const line = (up || down) ? `<span class="m-hist-line" aria-hidden="true" style="position:absolute;left:4px;width:1px;background:var(--rule);top:${up?'0':'24.5px'};bottom:${down?'0':'calc(100% - 24.5px)'}"></span>` : '';
+    return `<div style="position:relative;display:flex;gap:11px;padding:13px 0;border-bottom:1px solid var(--color-divider)">${line}
+      <span style="position:relative;z-index:1;width:9px;height:9px;border-radius:50%;background:${M_HIST_DOT[g]};flex:none;margin-top:7px"></span>
       <span style="min-width:0;flex:1">
         <span style="display:flex;align-items:baseline;gap:var(--s-2)">
           <span style="flex:1;min-width:0;font-size:var(--t-card);font-weight:var(--w-strong);line-height:1.35">${mEsc(e.text)}</span>

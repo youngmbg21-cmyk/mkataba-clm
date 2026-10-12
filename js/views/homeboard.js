@@ -5355,7 +5355,13 @@ function hbEdgeHtml(D, akey, where, p, gift){
     + (drawnOpen ? `<div class="hb-dp" role="dialog" aria-label="${_hbE(i18t('hb_dp_btn'))}">${hbDrawnPanelHtml(D, P)}</div>` : '') + '</span>' : '';
   const table = M.canTable ? `<button type="button" class="hb-edge-b" data-hb-table="${_hbE(akey)}" aria-pressed="${!!M.tab}">${_hbE(i18t(M.tab ? 'hb_edge_chart' : 'hb_edge_table'))}</button>` : '';
   const k = _hbE(D.key);
-  const items = _hbMi(`data-hb-mwhy="${k}"`, _HB_MI.why, i18t('hb_cx_btn'))
+  /* THE MOST USED FIRST, THE ONE THAT TAKES AWAY LAST (owner, 12 Oct 2026):
+     Make bigger and Full screen lead the menu; Remove from the board stays
+     at the foot, on its own, where a slip cannot reach it */
+  const items = (board ? _hbMi('data-hb-act="big"', _HB_MI.big, i18t(p && p.big ? 'hb_p_small' : 'hb_p_big')) : _hbMi('data-hb-digbig', _HB_MI.big, i18t(hbS().digBig ? 'hb_p_small' : 'hb_p_big')))
+    + (board ? _hbMi(`data-hb-fullkey="${k}"`, _HB_MI.full, i18t('hb_full_screen')) : _hbMi(`data-hb-full aria-pressed="${_hbFull}"`, _HB_MI.full, i18t(_hbFull ? 'hb_full_back' : 'hb_full_screen')))
+    + '<hr>'
+    + _hbMi(`data-hb-mwhy="${k}"`, _HB_MI.why, i18t('hb_cx_btn'))
     + (M.cols ? _hbMi(`data-hb-odd="${k}" aria-pressed="${_hbOddOn.has(D.key)}"`, _HB_MI.odd, i18t(_hbOddOn.has(D.key) ? 'hb_odd_off' : 'hb_odd_btn')) : '')
     + _hbMi(`data-hb-howon="${k}" aria-pressed="${_hbHowOn.has(D.key)}"`, _HB_MI.how, i18t(_hbHowOn.has(D.key) ? 'hb_how_off' : 'hb_how_on'))
     + _hbMi(`data-hb-why-follow="${k}"`, _HB_MI.ask, i18t('hb_tip_ask'))
@@ -5370,10 +5376,7 @@ function hbEdgeHtml(D, akey, where, p, gift){
     + _hbMi(`data-hb-saveq="${k}"`, _HB_MI.save, i18t('hb_myq_btn'))
     + _hbMi(`data-hb-whatif="${k}" aria-pressed="${_hbWhatIf.has(D.key)}"`, _HB_MI.wi, i18t(_hbWhatIf.has(D.key) ? 'hb_wi_off' : 'hb_wi_btn'))
     + (board && p && hbMayVerify(p) ? _hbMi('data-hb-act="verify"', _HB_MI.ver, i18t('hb_ver_menu')) : '')
-    + '<hr>'
-    + (board ? _hbMi('data-hb-act="big"', _HB_MI.big, i18t(p && p.big ? 'hb_p_small' : 'hb_p_big')) : _hbMi('data-hb-digbig', _HB_MI.big, i18t(hbS().digBig ? 'hb_p_small' : 'hb_p_big')))
-    + (board ? _hbMi(`data-hb-fullkey="${k}"`, _HB_MI.full, i18t('hb_full_screen')) : _hbMi(`data-hb-full aria-pressed="${_hbFull}"`, _HB_MI.full, i18t(_hbFull ? 'hb_full_back' : 'hb_full_screen')))
-    + (board ? _hbMi('data-hb-act="x"', _HB_MI.x, i18t(gift && gift.from ? 'hb_p_x_gift' : 'hb_p_x'), true) : '');
+    + (board ? '<hr>' + _hbMi('data-hb-act="x"', _HB_MI.x, i18t(gift && gift.from ? 'hb_p_x_gift' : 'hb_p_x'), true) : '');
   const more = `<span class="hb-tools-w"><button type="button" class="hb-edge-b hb-tools-more" data-hb-tools-more="${_hbE(mk)}" aria-haspopup="menu" aria-expanded="${moreOpen}" title="${_hbE(i18t('hb_tools_more'))}" aria-label="${_hbE(i18t('hb_tools_more'))}">⋯</button>`
     + (moreOpen ? `<span class="hb-pmenu hb-tools-menu" role="menu">${items}</span>` : '') + '</span>';
   return `<span class="hb-edge hb-open-tools" data-hb-copy-t="${_hbE(M.title || '')}" data-hb-copy-s="${_hbE(M.by || '')}" data-hb-copy-n="${M.n || 0}">${drawn}${table}${more}</span>`;
@@ -5386,11 +5389,13 @@ function hbKindToolsHtml(p, gift){
   const sb = (on, word) => `<button type="button" ${on ? '' : 'data-hb-act="split"'} aria-pressed="${on}" class="${on ? 'is-on' : ''}">${_hbE(word)}</button>`;
   const drawn = `<span class="hb-edge-w"><button type="button" class="hb-edge-b" data-hb-drawn="${_hbE(mk)}" aria-haspopup="dialog" aria-expanded="${drawnOpen}">${_hbE(i18t('hb_dp_btn'))}${_hbCaret}</button>`
     + (drawnOpen ? `<div class="hb-dp" role="dialog" aria-label="${_hbE(i18t('hb_dp_btn'))}"><div class="hb-dp-head">${_hbE(i18t('hb_dp_head'))}</div><div class="hb-dp-g"><div class="hb-dp-l">${_hbE(i18t('hb_rc_split'))}</div><div class="hb-dp-seg">${sb(!p.split, i18t('hb_sp_none'))}${sb(!!p.split, i18t('hb_p_split'))}</div></div></div>` : '') + '</span>';
-  const items = _hbMi(`data-hb-mwhy="${_hbE(key)}"`, _HB_MI.why, i18t('hb_cx_btn'))
+  /* the same order as a chart card's ⋯ (owner, 12 Oct 2026): Make bigger
+     first, Remove from the board last on its own */
+  const items = _hbMi('data-hb-act="big"', _HB_MI.big, i18t(p.big ? 'hb_p_small' : 'hb_p_big'))
+    + '<hr>' + _hbMi(`data-hb-mwhy="${_hbE(key)}"`, _HB_MI.why, i18t('hb_cx_btn'))
     + _hbMi(`data-hb-why-follow="${_hbE(key)}"`, _HB_MI.ask, i18t('hb_tip_ask'))
     + (gift && gift.from ? '' : '<hr>' + _hbMi('data-hb-act="give"', _HB_MI.give, i18t('hb_p_give') + '…'))
-    + '<hr>' + _hbMi('data-hb-act="big"', _HB_MI.big, i18t(p.big ? 'hb_p_small' : 'hb_p_big'))
-    + _hbMi('data-hb-act="x"', _HB_MI.x, i18t(gift && gift.from ? 'hb_p_x_gift' : 'hb_p_x'), true);
+    + '<hr>' + _hbMi('data-hb-act="x"', _HB_MI.x, i18t(gift && gift.from ? 'hb_p_x_gift' : 'hb_p_x'), true);
   return `<span class="hb-edge">${drawn}<span class="hb-tools-w"><button type="button" class="hb-edge-b hb-tools-more" data-hb-tools-more="${_hbE(mk)}" aria-haspopup="menu" aria-expanded="${moreOpen}" title="${_hbE(i18t('hb_tools_more'))}" aria-label="${_hbE(i18t('hb_tools_more'))}">⋯</button>`
     + (moreOpen ? `<span class="hb-pmenu hb-tools-menu" role="menu">${items}</span>` : '') + '</span></span>';
 }

@@ -1782,8 +1782,10 @@ function regReopenAsk(c, after){
    they do, from END_STATES, so the menu and any other home cannot word them
    differently. A `when` that asks a reading the stage does not carry answers
    "not offered" rather than throwing through the page. */
-function regRowActsHtml(c){
-  return REG_ROW_ACTIONS.filter(a=>{ try{ return !a.when||a.when(c); }catch(_){ return false; } }).map(a=>`<button data-act="${a.k}" data-id="${c.id}"${a.says?` title="${esc(a.says)}"`:''} class="reg-act${a.ruby?' danger':''}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;font:inherit;font-size:var(--t-meta);text-align:left;padding:6px 9px;border-radius:var(--radius);cursor:pointer;color:${a.ruby?'var(--st-ruby-fg)':'inherit'}">${window.icon?icon(a.ic,'w-3.5 h-3.5'):''}${a.label}</button>`).join('');
+/* `skip` leaves verbs out: the panel's ⋯ drops Workspace, which its doors
+   row already carries (one door per act, owner 12 Oct 2026). */
+function regRowActsHtml(c, skip){
+  return REG_ROW_ACTIONS.filter(a=>{ if(skip&&skip.includes(a.k)) return false; try{ return !a.when||a.when(c); }catch(_){ return false; } }).map(a=>`<button data-act="${a.k}" data-id="${c.id}"${a.says?` title="${esc(a.says)}"`:''} class="reg-act${a.ruby?' danger':''}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;font:inherit;font-size:var(--t-meta);text-align:left;padding:6px 9px;border-radius:var(--radius);cursor:pointer;color:${a.ruby?'var(--st-ruby-fg)':'inherit'}">${window.icon?icon(a.ic,'w-3.5 h-3.5'):''}${a.label}</button>`).join('');
 }
 /* ---- WHAT EACH ROW-MENU VERB PRESSES — one dispatcher, two homes ----
    Lifted out of the table's wiring so the panel's ⋯ presses exactly what the
@@ -2260,25 +2262,13 @@ function regNegoFacts(c){
 function regInsSeat(){ return regScope()==='negotiations' ? 'negotiations' : 'contracts'; }
 function regInsActs(c){
   if(!c) return [];
+  /* THREE DOORS ON BOTH SEATS (owner, 12 Oct 2026): Document · Negotiation ·
+     Workspace, from the one builder (insDoorActs). Each seat fills its own
+     door — the Contracts page its Document, the Negotiations page its
+     Negotiation (SAP benchmark, 9 Oct 2026). A press on the row itself still
+     opens the negotiation on that seat (regOpenRow). */
   const neg=regScope()==='negotiations';
-  let mayNego=true; try{ mayNego=!window.negoMayStart||negoMayStart(c).ok; }catch(_){ mayNego=true; }
-  /* STARTED MEANS A CHANGE IS ON IT — the Document tab's own reading
-     (wsTabRowEndHtml, "Start negotiating" vs "Open Negotiate"), never merely a
-     negotiation object: opening a contract can leave an empty one behind, and
-     the panel offered "Open negotiation" on a contract nobody had argued
-     (measured on the night screenshot, 26 Sep 2026). Two doors, one answer. */
-  const started=!!(c.negotiation&&Array.isArray(c.changes)&&c.changes.length);
-  const openC={ k:'open', label:i18t('ins_open_contract'), iconEnd:'chevR', run:x=>regOpenContract(x.id) };
-  const openN={ k:'nego', label:i18t('ins_open_nego'), icon:'msg', run:x=>regOpenRow(x.id,true) };
-  /* BOTH SEATS LEAD WITH THE CONTRACT, FILLED, AND OFFER THE NEGOTIATION
-     BESIDE IT (Young, 7 Oct 2026, the mockup's own panel). A press on the row
-     itself still opens the negotiation on that seat (regOpenRow). */
-  /* THE NEGOTIATIONS SEAT LEADS WITH THE NEGOTIATION (SAP benchmark, owner-
-     approved 9 Oct 2026, reverses 7 Oct's contract-first panel there): Open
-     negotiation filled, Open contract a link under the name. */
-  if(neg) return mayNego ? [Object.assign({kind:'accent'},openN), Object.assign({inSub:true},openC)] : [Object.assign({kind:'accent'},openC)];
-  return (started&&mayNego&&typeof openRedlineWorkbench==='function')
-    ? [Object.assign({kind:'accent'},openC), openN] : [Object.assign({kind:'accent'},openC)];
+  return insDoorActs(c, { lead: neg ? 'nego' : 'doc', doc: x=>regOpenContract(x.id) });
 }
 /* ---- "YOUR MOVE" STANDS IN ONE STRAIGHT LINE (Young, 7 Oct 2026) ----
    The stage pills are different widths ("Drafting", "In Review", and longer
@@ -2303,7 +2293,7 @@ function regInsPaint(){
   insMarkRow(tb,'[data-row]',idOf,id);
   const paint=pid=>{
     const c=pid?getContract(pid):null;
-    let menu=''; if(c){ try{ menu=regRowActsHtml(c); }catch(_){ menu=''; } }
+    let menu=''; if(c){ try{ menu=regRowActsHtml(c,['open']); }catch(_){ menu=''; } }
     insPaintPanel({ seat, c, acts:regInsActs(c), menuHtml:menu,
       onMenu:(act,cid)=>regRunRowAct(act,cid),
       moveSuffix:true,

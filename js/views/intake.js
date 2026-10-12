@@ -1148,10 +1148,15 @@ function ikActs(r, asker){
   const live=IK_LIVE.includes(r.status);
   const acts=[], menu=[];
   const track=!!intakeTrackUrl(r);
-  const openAct=r.contractId?{ k:'open', kind:'accent', label:i18t('ik_act_open_mk',{id:r.contractId}), run:()=>openWorkspace(r.contractId) }:null;
+  /* A REQUEST THAT BECAME A CONTRACT carries the three doors every list draws
+     (owner, 12 Oct 2026), Document filled, in place of "Open MK-…". */
+  const doorC=r.contractId&&typeof getContract==='function'?getContract(r.contractId):null;
+  const doorActs=()=>doorC&&typeof insDoorActs==='function'?insDoorActs(doorC,{ lead:'doc' })
+    :(r.contractId?[{ k:'open', kind:'accent', label:i18t('ik_act_open_mk',{id:r.contractId}), run:()=>openWorkspace(r.contractId) }]:[]);
+  const openAct=r.contractId?true:null;
   if(asker){
     if(live&&ikIsMine(r)) acts.push({ k:'withdraw', label:i18t('ik_act_withdraw'), title:i18t('ik_withdraw_msg'), run:()=>intakeSetStatus(r.id,'withdrawn') });
-    if(openAct&&(r.status==='done'||r.status==='drafted')) acts.unshift(openAct);
+    if(openAct&&(r.status==='done'||r.status==='drafted')) acts.unshift(...doorActs());
     if(track) acts.push({ k:'track', label:i18t('ik_act_copy_track'), icon:'link', title:i18t('ik_track_title'), run:()=>intakeTrackCopy(r.id) });
     return { acts, menu:'' };
   }
@@ -1161,7 +1166,7 @@ function ikActs(r, asker){
      link — under ⋯. Every verb is the one it always was. */
   if(may&&r.status==='open') acts.push({ k:'draft', kind:'accent', label:i18t('ik_act_draft'), attrs:`data-ik-draft="${esc(r.id)}"`, run:()=>intakeDraft(r.id) });
   if(may&&r.status==='open') acts.push({ k:'decline', label:i18t('ik_act_hand_back'), title:i18t('ik_decline_msg'), run:()=>intakeSetStatus(r.id,'declined') });
-  if(openAct&&(r.status==='done'||r.status==='drafted')) acts.unshift(openAct);
+  if(openAct&&(r.status==='done'||r.status==='drafted')) acts.unshift(...doorActs());
   if(may&&live) menu.push(insMenuItemHtml({ k:'pick', label:intakePickLabel(r) }));
   if(may&&live) menu.push(insMenuItemHtml({ k:'promise', label:r.promisedAt?i18t('ik_act_repromise'):i18t('ik_act_promise'), says:i18t('ik_promise_msg') }));
   if(live&&(ikIsMine(r)||(typeof isAdmin==='function'&&isAdmin()))) menu.push(insMenuItemHtml({ k:'withdraw', label:i18t('ik_act_withdraw'), says:i18t('ik_withdraw_msg') }));

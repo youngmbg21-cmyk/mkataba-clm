@@ -117,7 +117,7 @@ const ok = (name, good, detail) => {
       const arrow = await page.evaluate(() => document.getElementById('ins-panel').getAttribute('data-ins-id'));
       const id4 = await rows[3].getAttribute('data-row');
       ok('1e the arrow key moves the selection, and the panel with it', arrow === id4, `${id3} → ${arrow}`);
-      await page.click('#ins-panel [data-ins-act="open"]'); await page.waitForTimeout(900);
+      await page.click('#ins-panel [data-ins-act="door-doc"]'); await page.waitForTimeout(900);
       /* 1f–1h RE-POINTED 11 Oct 2026 (owner): Open contract lands on Home's Document, on that contract */
       const HOME = () => ({ view: state.view, id: (window.intel && intel.paper) ? intel.paper.id : null });
       const opened = await page.evaluate(HOME);
@@ -173,7 +173,7 @@ const ok = (name, good, detail) => {
     /* RE-POINTED 7 Oct 2026 (Young, the mockup's panel): one filled button PER
        AREA — the page head's Draft new agreement and the panel's lead act. */
     ok('1o one filled button in each area: the page head and the panel', floor.filled.length === 2
-      && floor.filled.some(t => /draft/i.test(t)) && floor.filled.some(t => /open/i.test(t)), floor.filled.join(' | '));
+      && floor.filled.some(t => /draft/i.test(t)) && floor.filled.some(t => /^document$/i.test(t)), floor.filled.join(' | '));  /* 12 Oct 2026: the lead door says Document */
     /* RE-POINTED 9 Oct 2026 (SAP benchmark, owner-approved): the filters sit in
        the page's white band; the list's own head (name, count, Sort, Display)
        is its card's top row. */
@@ -285,6 +285,7 @@ const ok = (name, good, detail) => {
       ok('3c the panel’s lead act opens that contract on its Signing tab', false, 'nothing to press');
     }
 
+    /* (12 Oct 2026, owner: the panel's Open contract is now the Document door, data-ins-act="door-doc") */
     /* 3d–3e (owner, 11 Oct 2026): "Open contract" on Approvals and on
        Obligations lands on Home's Document, on that contract — Obligations on
        the panel's Obligations tab. */
@@ -292,8 +293,8 @@ const ok = (name, good, detail) => {
       tab: document.querySelector('#ig-dock .pd-tab.on')?.getAttribute('data-pd-tab') || null });
     await page.evaluate(() => setView('approvals')); await page.waitForTimeout(1000);
     const apPid = await page.evaluate(() => document.getElementById('ins-panel')?.getAttribute('data-ins-id'));
-    if (apPid && await page.$('#ins-panel [data-ins-act="open"]')) {
-      await page.click('#ins-panel [data-ins-act="open"]'); await page.waitForTimeout(1200);
+    if (apPid && await page.$('#ins-panel [data-ins-act="door-doc"]')) {
+      await page.click('#ins-panel [data-ins-act="door-doc"]'); await page.waitForTimeout(1200);
       const r = await page.evaluate(HOMED);
       ok('3d Approvals: Open contract lands on Home\'s Document, on that contract', r.view === 'dashboard' && r.id === apPid, JSON.stringify(r));
     } else ok('3d Approvals: Open contract lands on Home\'s Document', false, 'no panel or no Open contract link');
@@ -302,7 +303,7 @@ const ok = (name, good, detail) => {
     await page.evaluate(() => setView('obligations')); await page.waitForTimeout(1200);
     const obRow = await page.$('[data-ins-page="obligations"] tbody tr:not(.ins-grp)'); if (obRow) { await obRow.click(); await page.waitForTimeout(500); }
     const obPid = await page.evaluate(() => document.getElementById('ins-panel')?.getAttribute('data-ins-id'));
-    const obBtn = await page.$('#ins-panel [data-ins-act="open"]');
+    const obBtn = await page.$('#ins-panel [data-ins-act="door-doc"]');
     if (obBtn) {
       await obBtn.click(); await page.waitForTimeout(1200);
       const r = await page.evaluate(HOMED);

@@ -183,10 +183,14 @@ describe('F380 — the history reads as a line of time', () => {
     assert.equal(none.querySelectorAll('.hist-trail').length, 0, 'a filter that matches nothing joins nothing');
     assert.ok(none.querySelector('.hist-empty'), 'and still says so');
   });
-  /* RE-POINTED 9 Oct 2026: the drawing rules each entry off and draws no line
-     down the rings; the 24 Sep line is STALE. */
-  test('(4b) no line runs down the rings; each entry is ruled off', () => {
-    assert.match(CSS, /\.hist-trail \.hist-ev::before\{ display:none; \}/);
+  /* RE-POINTED 12 Oct 2026 (owner: "where there are multiple bubbles in a
+     day, they should be joined by a line"): each entry is ruled off, and one
+     day's rings are joined, the line starting and stopping at a ring (a day
+     heading breaks it). Measured in a browser by history-timeline-verify 4a. */
+  test('(4b) each entry is ruled off; one day\'s rings are joined by a line', () => {
+    assert.match(CSS, /\.hist-trail \.hist-ev::before\{ display:block;/);
+    assert.match(CSS, /\.hist-trail \.hist-day-h \+ \.hist-ev::before,[\s\S]{0,80}\{ top:50%; \}/);
+    assert.match(CSS, /\.hist-trail \.hist-ev:has\(\+ \.hist-day-h\)::before,[\s\S]{0,80}\{ bottom:50%; \}/);
     assert.match(CSS, /\.hist-trail \.hist-ev\{[^}]*border-bottom:1px solid var\(--color-divider\)/);
   });
 

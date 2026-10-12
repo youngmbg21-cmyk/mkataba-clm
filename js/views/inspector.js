@@ -289,9 +289,51 @@ function insLatestHtml(c, st){
    head's own, byte for byte. An act may be drawn DEAD with its reason on the
    hover (`disabled` + `title`): a verb that cannot work today still says why,
    the product's own rule for what it can know before the press. */
+/* ---- THREE DOORS, ONE ROW, EVERY LIST (owner, 12 Oct 2026) ----
+   "these panels on the right ... should always have door to the overview
+   page"; the words drop "Open" and keep the name and its mark: Document
+   (Home's Document, on Jambo), Negotiation (the Negotiate page), Workspace
+   (the contract's own page, on its Overview). Contracts, Negotiations,
+   Approvals & signing, Obligations and Requests all draw them from here.
+   `lead` names the page's own door (filled) — omitted where the page already
+   has a filled verb of its own (Approve, Mark done), one filled button per
+   area. Negotiation is never a dead button in live clothes: no negotiation
+   yet, or a contract nobody may negotiate, greys it with the reason.
+   `doc` swaps the Document door's landing (Obligations lands on its tab).
+   Every door acts on ITS contract: a request's or an obligation's panel hands
+   the press its own item, not the contract. */
+function insNegoDoorState(c){
+  let may = { ok: true };
+  try { if (typeof negoMayStart === 'function') may = negoMayStart(c) || { ok: true }; } catch (_){ may = { ok: true }; }
+  if (!may.ok){
+    let why = ''; try { why = (typeof negoMayStartLine === 'function') ? negoMayStartLine(c) : ''; } catch (_){ why = ''; }
+    return { ok: false, why: why || i18t('ins_door_nego_none') };
+  }
+  /* STARTED MEANS A CHANGE IS ON IT (regInsActs' own reading, 26 Sep 2026):
+     opening a contract can leave an empty negotiation object behind. */
+  const started = !!(c && c.negotiation && Array.isArray(c.changes) && c.changes.length);
+  if (!started || typeof openRedlineWorkbench !== 'function') return { ok: false, why: i18t('ins_door_nego_none') };
+  return { ok: true, why: '' };
+}
+function insDoorActs(c, opt){
+  if (!c) return [];
+  const o = opt || {};
+  const ns = insNegoDoorState(c);
+  const doc = { k: 'door-doc', door: true, icon: 'file', label: i18t('ins_door_doc'),
+    run: typeof o.doc === 'function' ? () => o.doc(c) : (() => { if (!(typeof pdOpenOnHome === 'function' && pdOpenOnHome(c.id, 'copilot'))) openWorkspace(c.id); }) };
+  const nego = { k: 'door-nego', door: true, icon: 'msg', label: i18t('ins_door_nego'),
+    disabled: !ns.ok, title: ns.ok ? '' : ns.why, run: () => { if (insNegoDoorState(c).ok) openRedlineWorkbench(c.id); } };
+  const ws = { k: 'door-ws', door: true, icon: 'folderOpen', label: i18t('ins_door_ws'),
+    run: () => { openWorkspace(c.id); try { if (typeof roomGoTab === 'function') roomGoTab(getContract(c.id) || c, 'terms'); } catch (_){} } };
+  const all = { doc, nego, ws };
+  /* the lead door goes first and is filled; the rest keep the drawn order */
+  if (o.lead && all[o.lead] && !(o.lead === 'nego' && !ns.ok)) all[o.lead].kind = 'accent';
+  const order = o.lead === 'nego' && ns.ok ? ['nego', 'doc', 'ws'] : ['doc', 'nego', 'ws'];
+  return order.map(k => all[k]);
+}
 function insActsHtml(list, menuHtml, moreAria){
   /* An act marked `inSub` is drawn in the head's sub line instead (insHeadHtml). */
-  const acts = (list || []).filter(a => a && !a.inSub).map(a => {
+  const btn = a => {
     /* THE PANEL'S LEAD ACT IS FILLED (Young, 7 Oct 2026, off the HaTi Platform
        mockup: "Open contract" solid, the other doors outlined) — on every
        page this panel is drawn, because the builder is one. `iconEnd` draws
@@ -300,11 +342,17 @@ function insActsHtml(list, menuHtml, moreAria){
     const ic = n => (n && typeof icon === 'function') ? icon(n, 'w-3.5 h-3.5') : '';
     return `<button type="button" class="${cls}" data-ins-act="${esc(a.k)}"${a.title ? ` title="${esc(a.title)}"` : ''}${a.disabled ? ' disabled' : ''}${a.attrs ? ' ' + a.attrs : ''}>${
       ic(a.icon)}${esc(a.label)}${ic(a.iconEnd)}</button>`;
-  }).join('');
+  };
+  /* the page's own verbs, then the three doors in a row of their own
+     (insDoorActs) — the ⋯ ends the last row drawn */
+  const shown = (list || []).filter(a => a && !a.inSub);
+  const acts = shown.filter(a => !a.door).map(btn).join('');
+  const doors = shown.filter(a => a.door).map(btn).join('');
   const more = menuHtml ? `<span class="ins-more-wrap">
       <button type="button" class="ui-btn ui-btn-icon ins-more" data-ins-more aria-haspopup="true" aria-expanded="false"
         title="${esc(i18t('reg_more_actions'))}" aria-label="${esc(moreAria || i18t('reg_more_actions'))}">${typeof icon === 'function' ? icon('more') : ''}</button>
       <div class="ins-menu" data-ins-menu hidden>${menuHtml}</div></span>` : '';
+  if (doors) return (acts ? `<div class="ins-acts">${acts}</div>` : '') + `<div class="ins-acts ins-doors">${doors}${more}</div>`;
   return (acts || more) ? `<div class="ins-acts">${acts}${more}</div>` : '';
 }
 /* One row of the ⋯ menu, in the row menu's own markup (regRowActsHtml), so
@@ -830,5 +878,5 @@ Object.assign(window, { INS_MIN_W, INS_ASKS_MAX, INS_LATEST, INS_READ_TONE,
   insForce, insFits, insSelected, insSelect, insPick, insFacts, insMove, insMoveCellHtml,
   insTable, insReads, insLatest, insSecHtml, insFactsHtml, insTableHtml, insReadsHtml, insLatestHtml,
   insHeadHtml, insParties, insPartiesHtml, insNeedsHtml, insNeedsLineHtml, insNeedWords, INS_NEED_VERB, INS_NEED_GO, insPanelHtml, insPanelEmptyHtml, insPaintPanel, insCloseMenu, insMarkRow, insListWire,
-  insListOff, insWatchWidth, insActsHtml, insMenuItemHtml, insItemHeadHtml, INS_TONE, insKvHtml, insChipHtml, insViewTabsHtml,
+  insListOff, insWatchWidth, insActsHtml, insDoorActs, insNegoDoorState, insMenuItemHtml, insItemHeadHtml, INS_TONE, insKvHtml, insChipHtml, insViewTabsHtml,
   INS_PAGE_REPAINT });

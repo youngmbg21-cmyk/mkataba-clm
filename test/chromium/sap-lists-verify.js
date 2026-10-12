@@ -109,9 +109,10 @@ const wait = async (page, fn, arg, ms = 5000) => {
       const p = document.getElementById('ins-panel');
       return { beside: !!p.querySelector('.ins-cp .ins-st-side'), av: !!p.querySelector('.ins-cp .reg-av'),
         line: !!p.querySelector('[data-ins-need-line]'), decide: p.querySelectorAll('[data-ins-need]').length,
-        sub: !!p.querySelector('.ins-sub [data-ins-act="open"]'), approve: !!p.querySelector('[data-ins-act="approve"]') };
+        sub: !!p.querySelector('.ins-doors [data-ins-act="door-doc"]') && !p.querySelector('.ins-sub [data-ins-act]'), approve: !!p.querySelector('[data-ins-act="approve"]') };
     }) : null;
-    check('2c the panel head: initials, the stage beside the name, Open contract on the sub line',
+    /* RE-POINTED 12 Oct 2026 (owner): the sub line's Open contract became the Document door in the doors row */
+    check('2c the panel head: initials, the stage beside the name, the three doors under the verbs',
       !!head && head.beside && head.av && head.sub, JSON.stringify(head));
     check('2d one line says what is asked — no second Decide door', !!head && head.line && head.decide === 0, JSON.stringify(head));
     if (head && head.approve) {
