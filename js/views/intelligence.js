@@ -7355,7 +7355,12 @@ function igPaintPaper(){
        upload's placeholders and our amendment's ruled lines, painted on the
        paper the Overview tab's form fills — never stored, as on the room's. */
     const cv=document.getElementById('ig-canvas');
-    if(cv&&!igRedOn(c)){ try{ if(window.uploadBlanksPaint) uploadBlanksPaint(c,cv); }catch(_){ } try{ if(window.ownBlanksPaint) ownBlanksPaint(c,cv); }catch(_){ } } }
+    if(cv&&!igRedOn(c)){ try{ if(window.uploadBlanksPaint) uploadBlanksPaint(c,cv); }catch(_){ } try{ if(window.ownBlanksPaint) ownBlanksPaint(c,cv); }catch(_){ } }
+    /* ONE READING OF "IS THIS FILE FLAT": the strip says so as soon as the
+       paper is up, not only once the Clauses tab has painted (BUGLOG 11 Oct
+       2026) — the same question the Clauses list asks (docThreadFlatSay). */
+    if(cv&&c.upload&&document.querySelector('[data-up-struct="inferred"]')&&window.docXrayRows&&window.docThreadFlatSay){
+      try{ docThreadFlatSay(c,true,docXrayRows(c,cv)); }catch(_){ } } }
   /* Copilot's answer on Home's Redlined paper too (dashed marks; the glow is the Deal tab's door) */
   if(igRedOn(c)&&window.rlPaintCopilotAnswers) try{ rlPaintCopilotAnswers(host,c,{ side:'owner', noGlow:true }); }catch(_){ }
   host.hidden=false;
