@@ -9764,6 +9764,8 @@
   #hb-head .hb-seg.hb-faces button+button{border-left:0}
   #hb-head .hb-seg.hb-faces button[aria-selected="true"]{background:none;color:var(--color-text);font-weight:var(--w-label)}
   #hb-head .hb-seg.hb-faces button:focus-visible{outline:2px solid var(--color-accent);outline-offset:-2px}
+  /* a narrower screen tightens the pill, so the longest greeting (Swedish afternoon, 1280 at 150%) is never cut (12 Oct 2026) */
+  @media (max-width:1400px){ #hb-head .hb-seg.hb-faces button{padding:0 3px;gap:4px} }
   #hb-head .hb-faces .hb-face-ic{width:15px;height:15px;flex:none}
   #hb-head .hb-faces .hb-face-w{display:inline-grid}
   #hb-head .hb-faces .hb-face-w > span,#hb-head .hb-faces .hb-face-w::before,#hb-head .hb-faces .hb-face-w::after{grid-area:1/1;text-align:center}
@@ -9835,8 +9837,6 @@
   .bd-words{margin:8px 0 0;background:var(--color-doc-surface,var(--color-surface));border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:11px 13px}
   .bd-words figcaption{font-size:var(--t-micro);color:var(--color-neutral-600);margin-bottom:5px} .bd-words p{margin:0;font-family:var(--font-doc);font-size:var(--t-body);line-height:1.6}
   .bd-words mark{background:var(--st-amber-bg);color:inherit;border-radius:2px;padding:0 2px}
-  .bd-ask{display:flex;gap:6px;padding:10px 12px;border-top:1px solid var(--color-divider)}
-  .bd-ask input{flex:1;min-width:0;height:var(--field-h);border:1px solid var(--color-divider);border-radius:var(--radius);padding:0 var(--field-pad-x);font:inherit;background:var(--color-surface);color:var(--color-text)}
   .hb-cal[hidden]{display:none}
   .hb-cal > .cal-page{flex:1;min-height:0;height:auto}
   .hb-tools .ig-seg{display:inline-flex;align-items:center;border:1px solid rgba(var(--hb-ln),.25);border-radius:var(--radius);overflow:hidden;background:var(--hb-card)}
@@ -10664,6 +10664,8 @@
   /* JAMBO'S FACE in the chats (components.js jamboFaceHtml) — a round picture
      on a light wash of the theme colour, the same in every chat */
   img.jambo-face{border-radius:50%;object-fit:cover;flex:none;align-self:flex-start;aspect-ratio:1/1;background:color-mix(in srgb,var(--color-accent) 12%,var(--color-surface));user-select:none}
+  /* his face on his own doors sits on the door's own ground, no tinted disc (owner, 12 Oct 2026) */
+  #cmd-ai img.jambo-face,.pd-tab-g img.jambo-face{background:transparent}
   #ai-panel > header .ai-head-tile.has-face{overflow:hidden}
   #ai-panel .ai-rz{display:none;position:absolute;z-index:3;touch-action:none}
   #ai-panel.floating .ai-rz{display:block}

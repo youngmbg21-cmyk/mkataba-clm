@@ -8859,9 +8859,9 @@ const STRINGS = {
     ai_input_ph: 'Search, summarize, or ask about your contracts…  (Shift+Enter for a new line)',
 
     // ---- the Copilot's welcome ----
-    ai_welcome: 'Habari! I\'m <b>Jambo</b>. Ask me anything about your contracts — I can search, summarize and compare them, read what changed in a negotiation and who asked for it, and I know what\'s on your screen.',
+    ai_welcome: 'Hi! I\'m <b>Jambo</b>. Ask me anything about your contracts — I can search, summarize and compare them, read what changed in a negotiation and who asked for it, and I know what\'s on your screen.',
     ai_conversation_deleted: 'Conversation deleted',
-    int_notebook_welcome: 'Habari! I\'m <b class="text-brand-700">Jambo</b> — a notebook over your whole contract repository. Ask me to <b>summarise</b> or <b>quote</b> any contract verbatim, <b>flag which contracts have potentially risky or unlawful clauses</b>, or compare deals side-by-side. I can also filter, highlight and regroup the map. Answers cite the contracts they come from.',
+    int_notebook_welcome: 'Hi! I\'m <b class="text-brand-700">Jambo</b> — a notebook over your whole contract repository. Ask me to <b>summarise</b> or <b>quote</b> any contract verbatim, <b>flag which contracts have potentially risky or unlawful clauses</b>, or compare deals side-by-side. I can also filter, highlight and regroup the map. Answers cite the contracts they come from.',
 
     // ---- the phone's contract list ----
     m_chip_drafting: 'Drafting',

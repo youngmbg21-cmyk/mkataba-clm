@@ -1039,8 +1039,8 @@ function updateAIBadge(){
 /* ONE WELCOME, NOT TWO. It was written out in full both where the panel opens
    for the first time and where the conversation is deleted, so the two could
    drift — and while it was hardcoded English they were both wrong together on
-   a Swedish screen. The greeting word travels with the language: "Habari" is
-   the product's own voice in English, and a Swedish reader is met in Swedish.
+   a Swedish screen. The greeting word travels with the language: "Hi" in
+   English (owner, 12 Oct 2026; was "Habari"), and a Swedish reader is met in Swedish.
    The disclaimer under it was already translated; only the sentence above it
    was not. */
 /* ---- THE GREETING IS THE PANEL'S, NOT THE CONVERSATION'S (owner-reported
@@ -5147,7 +5147,19 @@ document.addEventListener('keydown',e=>{
 if(typeof window!=='undefined'&&typeof window.addEventListener==='function')
   window.addEventListener('resize',()=>{ if(ai.open) aiSyncDock(); });
 
-Object.assign(window,{aiFaceHtml,aiFloatSync,aiFloatClamp,aiFloatMaxBox,aiFloatHome,aiFloatOn,aiEmbeddedHere,aiGoEmbedded,AI_FLOAT_MIN,scanGoTo,aiContractByRef,aiWorkingNotes,aiExplainOf,aiExplainSet,aiJsonObjects,
+/* THE TOP BAR'S JAMBO DOOR WEARS HIS FACE (owner, 12 Oct 2026: "replace where
+   there are the copilot symbols with Jambo's symbol"); the badge dot stays */
+function aiDoorFace(){
+  try{
+  const b=document.getElementById('cmd-ai');
+  /* a stage that stands a bare object in for the page has no dataset/querySelector */
+  if(!b || !b.dataset || typeof b.querySelector!=='function' || b.dataset.face || typeof jamboFaceHtml!=='function') return;
+  const svg=b.querySelector('svg'); if(!svg) return;
+  svg.outerHTML=jamboFaceHtml('hello',24,'cmd-ai-face').replace('<img','<img data-ink-exempt');   /* a picture carries no ink */ b.dataset.face='1';
+  }catch(_){}
+}
+try{ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',aiDoorFace); else setTimeout(aiDoorFace,0); }catch(_){}
+Object.assign(window,{ aiDoorFace,aiFaceHtml,aiFloatSync,aiFloatClamp,aiFloatMaxBox,aiFloatHome,aiFloatOn,aiEmbeddedHere,aiGoEmbedded,AI_FLOAT_MIN,scanGoTo,aiContractByRef,aiWorkingNotes,aiExplainOf,aiExplainSet,aiJsonObjects,
   AI_PROPOSAL_FORMAT,AI_EDIT_FORMAT,AI_LIST_RULE,aiListLines,aiListLine,AI_ADVICE_FIELD,AI_KEEP_TAGS,AI_PROPOSAL_OPEN,aiProposals,aiSyncDock,
   AI_PLACEMENTS,AI_PLACEMENT_LABEL,AI_PLACEMENT_SHORT,aiNormalizePlacement,aiIsInsert,
   aiProposalAnchorHtml,aiProposalPlacementHtml,aiProposalSetPlacement,aiCleanAddedWording,

@@ -128,6 +128,18 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     const feedFace = await page.evaluate(() => !!document.querySelector('#ai-feed img.jambo-face'));
     ok('8a his face sits beside his words in the chat', feedFace);
 
+    /* ---- 11 his face on his own doors, "Hi" in English, no ask box on the Breakdown (owner, 12 Oct 2026) ---- */
+    const doors = await page.evaluate(() => ({ bar: !!document.querySelector('#cmd-ai img.jambo-face'), barSvg: !!document.querySelector('#cmd-ai svg'),
+      greet: (typeof i18t === 'function' ? i18t('ai_welcome') : '').slice(0, 3), note: (typeof i18t === 'function' ? i18t('int_notebook_welcome') : '').slice(0, 3) }));
+    ok('11a the top bar door shows Jambo\'s face, not the sparkle', doors.bar && !doors.barSvg, JSON.stringify(doors));
+    ok('11b the greeting says Hi', doors.greet === 'Hi!' && doors.note === 'Hi!', JSON.stringify(doors));
+    await page.evaluate(() => setView('dashboard'));
+    await until(page, () => !!document.querySelector('#ig-dock [data-pd-tab="copilot"]'), null, 6000);
+    const tab = await page.evaluate(() => { const t = document.querySelector('#ig-dock [data-pd-tab="copilot"]'); return t ? { face: !!t.querySelector('img.jambo-face'), word: (t.querySelector('.pd-tab-w') || {}).textContent } : null; });
+    ok('11c the panel\'s Jambo tab shows his face', !!tab && tab.face && tab.word === 'Jambo', JSON.stringify(tab));
+    const noAsk = await page.evaluate(() => typeof bdLensHtml === 'function' ? !/bd-ask/.test(String(bdLensHtml)) : 'no lens');
+    ok('11d the Breakdown panel has no ask box', noAsk === true, String(noAsk));
+
     /* ---- 10 the "Scanning…" toast wears the turning ring ---- */
     const scanRing = await page.evaluate(async () => {
       const c = (window.state && state.contracts || [])[0]; if (!c || typeof window.runScanFor !== 'function') return 'no scan door';
