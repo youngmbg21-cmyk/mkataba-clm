@@ -131,7 +131,7 @@ const HELPERS = `(() => {
          3e), and the Thread's own step squares take the edge too. */
       const step = pick('#ig-paper .rl-type-step');
       const thStep = pick('#pd-thread .doc-th-row.is-open .doc-th-step');
-      return { want, light: b.tok('--color-neutral-200'), fill: b.bg('--accent-fill'),
+      return { want, light: b.tok('--color-neutral-200'), accent: b.tok('--accent-solid'), fill: b.bg('--accent-fill'),
         nego: negoEdge, step: b.edge(step), thStep: b.edge(thStep), switchGone: !document.querySelector('[data-doc-read]') };
     }, negoEdge);
     ok('3a the controls the owner photographed paint ONE edge — Open Negotiate and the stepper; the switch is gone',
@@ -140,7 +140,9 @@ const HELPERS = `(() => {
     /* RE-POINTED 9 Oct 2026 (Ink Wash: light mode has no grey; the light edge
        is the ramp's divider step, black + the theme colour). Same claim, as a
        RELATION: the edge is the LIGHT step, not a darker one. */
-    ok('3b and it is the LIGHT edge, the ramp\'s divider step', !!row.light && row.want === row.light, `${row.want} vs ${row.light}`);
+    /* RE-POINTED 12 Oct 2026 (the SAP way, the owner's pick by name): the one
+       edge is the ACCENT now, not the ramp's light divider step. */
+    ok('3b and it is the accent edge, the SAP way', !!row.accent && row.want === row.accent && row.want !== row.light, `${row.want} vs accent ${row.accent}`);
     ok('3c the Thread\'s ‹ › squares take the same edge', !!row.thStep && row.thStep === row.want, `step ${row.thStep}`);
 
     await page.evaluate(i => openRedlineWorkbench(i, { blanksAsked: true }), id);
@@ -165,6 +167,7 @@ const HELPERS = `(() => {
         const r = el.getBoundingClientRect(); if (r.height > 36) continue;
         if (el.querySelector('div,p,li,ul,table,h2,h3,h4,section')) continue;
         if (el.closest('#top-header')) continue;          /* the navy bar's controls are white-on-navy by design */
+        if (el.classList.contains('nav-section-head')) continue;   /* on the 64px rail a group is a hairline divider, not an outlined control */
         const cs = getComputedStyle(el);
         if (!(parseFloat(cs.borderTopWidth) >= 0.5) || cs.borderTopStyle === 'none') continue;
         const col = cs.borderTopColor; if (/rgba\\([^)]*,\\s*0\\)$/.test(col) || col === 'transparent') continue;
@@ -193,8 +196,10 @@ const HELPERS = `(() => {
       const out = { want, div, btn: b.edge(el) };
       try { setDark(false); applyAppearance(); } catch (e) {}
       return out; });
-    ok('3g [control] at night the edge stays VISIBLE — the stronger night grey, not the day token followed into the dark',
-      night.want === 'rgb(54, 66, 63)' && night.btn === night.want && night.want !== night.div,
+    /* RE-POINTED 12 Oct 2026 (the SAP way, owner's pick): the edge is the
+       accent now, at night its lighter ink — still not the night divider. */
+    ok('3g [control] at night the edge stays VISIBLE — the accent\'s night ink, not the day token followed into the dark',
+      night.btn === night.want && night.want !== night.div,
       `edge ${night.want} · button ${night.btn} · night divider ${night.div}`);
 
     const wall = await page.evaluate(i => { try { openShareModal(getContract(i)); } catch (e) {} return i; }, id);

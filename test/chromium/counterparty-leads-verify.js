@@ -170,11 +170,16 @@ const check = (name, ok, detail) => {
     await page.waitForTimeout(500);
     await page.evaluate(() => (window.openNewAgreement ? openNewAgreement({}) : openWizard()));
     await page.waitForTimeout(1400);
+    /* THE SEARCH LIST (12 Oct 2026): nothing is picked on arrival, so the
+       check picks the first row the way a reader would. */
+    await page.evaluate(() => { const t = document.querySelector('[data-na-tab="tid"]'); if (t) t.click();
+      const b = document.querySelector('.na-pick'); if (b) b.click(); });
+    await page.waitForTimeout(500);
     await page.screenshot({ path: path.join(OUT, '03-new-agreement.png') });
     const P = await page.evaluate(() => {
       const cs = e => e ? getComputedStyle(e) : null;
       const body = document.querySelector('.na-body'), card = document.querySelector('.na-card');
-      const lob = document.querySelector('.na-lob select');
+      const lob = document.getElementById('na-q');
       const inp = document.querySelector('.na-card input');
       return { bodyBg: cs(body) && cs(body).backgroundColor,
         pageBg: (() => { const d = document.createElement('div');
@@ -211,6 +216,11 @@ const check = (name, ok, detail) => {
             .sort((a, b) => a.top - b.top)[0];
           return next ? Math.round(next.top - db) : null; })(),
         rows: document.querySelectorAll('.na-pick').length,
+        tabsClear: (() => { const t = document.querySelector('.na-tabs'), r = document.querySelector('.na-pick');
+          if (!r) return null; if (!t) return true; return t.getBoundingClientRect().bottom <= r.getBoundingClientRect().top + 0.5; })(),
+        tintBg: (() => { const d = document.createElement('div');
+          d.style.background = 'var(--color-accent-50)'; document.body.appendChild(d);
+          const v = getComputedStyle(d).backgroundColor; d.remove(); return v; })(),
         /* A ROW THAT IS NOT THE CHOSEN ONE. The chosen one is FILLED now, not
            outlined, which is the Templates page's own lit-row treatment. */
         pickPlain: !!document.querySelector('.na-pick:not(.on)'),
@@ -231,14 +241,18 @@ const check = (name, ok, detail) => {
       `body ${P.bodyBg} · page ${P.pageBg} · card ${P.cardBg}`);
     check('3b and the card edge is the token that stays visible on it',
       P.cardEdge === INKS.strong, `${P.cardEdge} vs ${INKS.strong}`);
-    check('3c the line-of-business control is the size of the controls beside it',
-      P.lobH != null && P.fieldH != null && Math.abs(P.lobH - P.fieldH) <= 2, `lob ${P.lobH} · field ${P.fieldH}`);
+    /* RE-POINTED 12 Oct 2026 (the Search list): the line of business moved
+       to Settings → Company; the control in the rail now is its own search. */
+    check('3c the rail\'s search is the size of the controls beside it',
+      P.lobH != null && P.fieldH != null && Math.abs(P.lobH - P.fieldH) <= 2, `search ${P.lobH} · field ${P.fieldH}`);
     /* RE-POINTED IN PLACE 22 Sep 2026. The ground is still the claim, and on
        a rail it is the ROW that must not compete with it: an unchosen row
        paints nothing and the chosen one is filled in the accent. */
-    check('3c2 an unchosen row paints nothing, and the chosen one is filled',
-      P.rows > 0 && P.pickPlain && P.pickBg === 'rgba(0, 0, 0, 0)' && P.onBg === P.railBg,
-      `${P.rows} rows · plain ${P.pickPlain} · resting ${P.pickBg} · lit ${P.onBg} · accent-fill ${P.railBg}`);
+    /* RE-POINTED 12 Oct 2026 (the Search list): the chosen row is a TINT, not
+       a fill — one filled button per area, and that is Create draft. */
+    check('3c2 an unchosen row paints nothing, and the chosen one is tinted, not filled',
+      P.rows > 0 && P.pickPlain && P.pickBg === 'rgba(0, 0, 0, 0)' && P.onBg === P.tintBg && P.onBg !== P.railBg,
+      `${P.rows} rows · plain ${P.pickPlain} · resting ${P.pickBg} · lit ${P.onBg} · tint ${P.tintBg}`);
     /* THE OWNER'S OWN REPORT, MEASURED: the heading row under a shelf stands
        clear of it by MORE than the things inside that shelf stand from each
        other, which is what "so close to overlapping" was about. RE-POINTED IN
@@ -249,15 +263,17 @@ const check = (name, ok, detail) => {
        rule it guards reads var(--field-h) — the heading row is at least one
        box tall, so the select in it is not crushed — and boxes are 28 since
        the Compact ladder, so the floor is read live rather than typed. */
-    check('3d and the heading row stands clear of the rows above it',
-      P.rows > 0 && P.realGap != null && P.secGap != null && P.realGap >= P.secGap && P.fieldTok > 0 && P.secHeadMin >= P.fieldTok,
-      `rows→heading ${P.realGap}px against the ${P.secGap}px boundary · head row ${P.secHeadMin}px against a ${P.fieldTok}px box`);
+    /* RE-POINTED 12 Oct 2026 (the Search list): one shelf at a time behind a
+       tab, so there is no heading between shelves; the tabs stand clear of
+       the rows under them. */
+    check('3d and the shelf tabs stand clear of the rows under them',
+      P.rows > 0 && P.tabsClear === true, `${P.rows} rows · clear ${P.tabsClear}`);
 
     /* A DROPDOWN ON A PAGE THAT IS NOT THE CONTRACTS FILTER BAR draws HaTi's
        own list — which is the whole of the owner's third ask. */
     const menu = await page.evaluate(async () => {
       document.querySelectorAll('.hati-selmenu').forEach(x => x.remove());
-      const sel = document.querySelector('.na-lob select') || document.querySelector('.na-card select');
+      const sel = document.querySelector('.na-card select');
       if (!sel) return { err: 'no select in the pop-up' };
       sel.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
       await new Promise(r => setTimeout(r, 250));

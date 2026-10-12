@@ -116,16 +116,29 @@ const READ = () => {
     /* RE-POINTED 10 Oct 2026 (SAP pop-ups, owner's go: New agreement is a
        page): the frame was a 900px card; it is the whole work area now. */
     check('1b two columns at 1440 on a page as wide as the work area — the rail and the questions', !m.err && m.cols === 2 && m.panelW === m.work, m.err || `${m.cols} cols, ${m.panelW}px of ${m.work}`);
-    check('1c the company standards are rows, with version, use and stream on one line',
-      !m.err && m.lib === 2 && m.goLines.some(x => /^v1 · used 0× · Procurement/.test(x)) && m.goLines.every(x => /^v1 · used 0×/.test(x)),
+    /* RE-POINTED 12 Oct 2026 — THE SEARCH LIST, which the owner picked by
+       name. At the parent: "v1 · used 0×" on every row, HaTi's rows under
+       the company's in one long list, the first row picked on arrival and
+       filled, and Create draft live before anything was chosen. */
+    check('1c the company standards are rows, with version and stream, and no "used 0×"',
+      !m.err && m.lib === 2 && m.goLines.some(x => /^v1 · Procurement/.test(x)) && m.goLines.every(x => /^v1/.test(x) && !/used/.test(x)),
       m.err || `${m.lib} rows · ${JSON.stringify(m.goLines)}`);
-    check('1d HaTi\'s paper is in the same rail, not a wall of chips', !m.err && m.tid >= 10 && m.picks === m.lib + m.tid, m.err || `${m.tid} of ${m.picks}`);
-    check('1e the first row is lit and its questions are in the card', !m.err && m.on && m.name && m.boxes >= 6 && /questions|details/.test(m.sub), m.err || `${m.name} · ${m.sub} · ${m.boxes} boxes`);
-    check('1e2 a lit row is FILLED, the product\'s own rail treatment', !m.err && m.onFilled
-      && m.onFilled.bg !== 'rgba(0, 0, 0, 0)' && /255, 255, 255/.test(m.onFilled.ink), m.err || JSON.stringify(m.onFilled));
+    const tabs = await page.evaluate(() => [...document.querySelectorAll('.na-tab')].map(t => t.textContent.trim() + (t.getAttribute('aria-selected') === 'true' ? '*' : '')));
+    check('1d one shelf at a time: Company first, HaTi one press away, each with its count',
+      !m.err && tabs.length === 2 && /^Company \(2\)\*$/.test(tabs[0]) && /^HaTi \(\d+\)$/.test(tabs[1]) && m.tid === 0, m.err || JSON.stringify(tabs) + ` · ${m.tid} HaTi rows shown`);
+    const acts0 = await page.evaluate(() => ({ create: document.getElementById('na-create').disabled, skip: document.getElementById('na-skip').disabled,
+      why: document.getElementById('na-create').title, empty: !!document.querySelector('#na-form .na-empty') }));
+    check('1e nothing is picked for you: no row lit, the card waits, Create draft and Skip are grey and say why',
+      !m.err && !m.on && acts0.empty && acts0.create && acts0.skip && /Pick a template/.test(acts0.why), m.err || JSON.stringify({ on: m.on, ...acts0 }));
+    await page.evaluate(() => document.querySelector('[data-wz-lib]').click()); await pause(500);
+    m = await page.evaluate(READ);
+    const acts1 = await page.evaluate(() => ({ create: document.getElementById('na-create').disabled }));
+    check('1e2 a pick lights the row with a tint, not a fill, draws its questions and wakes Create draft',
+      !m.err && m.on && m.boxes >= 1 && !acts1.create && m.onFilled && !/255, 255, 255/.test(m.onFilled.ink) && m.onFilled.bg !== 'rgba(0, 0, 0, 0)',
+      m.err || JSON.stringify({ on: m.on, boxes: m.boxes, ...acts1, lit: m.onFilled }));
     check('1e3 the questions get more room than the 380px they had', !m.err && m.cardW >= 430, m.err || m.cardW + 'px');
     /* REVERSED 23 Sep 2026 (Young: "remove the Upload it link") — upload is a door in front of this screen (openNewDoors): the screen carries the sentence box, Find and Import, and NO upload link. */
-    check('1f the sentence box, Find and Import are on it, and no second Upload', !m.err && m.say && m.find && !m.upload && m.imp);
+    check('1f the sentence box and Find are on it, and no second Upload or Import', !m.err && m.say && m.find && !m.upload && !m.imp);
     check('1g the acts are Create draft · Skip the questions · Cancel, at the page\'s top', !m.err && m.foot.join('|') === 'Create draft|Skip the questions|Cancel', m.err || m.foot.join('|'));
     /* REVERSED IN PLACE: the agreement is drawn at 1440 now, which is the
        whole of what proposal C was chosen for.
@@ -133,9 +146,11 @@ const READ = () => {
        parent this printed "paper true" with its wording. */
     check('1h no agreement is drawn at 1440', !m.err && !m.paper && m.paperText === 0
       && await page.evaluate(() => !document.getElementById('na-paper')), m.err || `paper ${m.paper}, ${m.paperText} chars`);
-    check('1h2 the rail is 260 and the list scrolls inside it, so its foot stays on screen',
-      !m.err && m.railW === 260 && m.listScrolls && m.moreSeen,
-      m.err || `rail ${m.railW} · list scrolls ${m.listScrolls} · Import row on screen ${m.moreSeen}`);
+    const scrollers = await page.evaluate(() => [...document.querySelectorAll('#modal-root *')].filter(e => { const cs = getComputedStyle(e);
+      return /(auto|scroll)/.test(cs.overflowY) && e.scrollHeight > e.clientHeight + 2 && e.tagName !== 'TEXTAREA'; }).map(e => e.id || String(e.className).slice(0, 24)));
+    check('1h2 the rail is 260 and ONE scroll: the list never scrolls inside the page',
+      !m.err && m.railW === 260 && !m.listScrolls && scrollers.length <= 1,
+      m.err || `rail ${m.railW} · list scrolls ${m.listScrolls} · scrollers ${JSON.stringify(scrollers)}`);
     check('1i the card\'s labels wear the artifact\'s label weight, not the form\'s bold', !m.err && Number(m.labelWeight) < 600, m.err || m.labelWeight);
     /* THE ASK TAKES THE WHOLE TOP LINE (Young, 22-23 Sep 2026). At the parent
        it sat in the 260px rail: the box 236px wide and Find UNDER it. */
@@ -144,15 +159,22 @@ const READ = () => {
       m.err || JSON.stringify(m.ask));
 
     /* ===== 2. A CHIP SWAPS THE CARD ===== */
-    await page.evaluate(() => document.querySelector('[data-wz-tid="ND"]').click()); await pause(500);
+    await page.evaluate(() => { (document.querySelector('[data-na-tab="tid"]')||{click(){}}).click(); document.querySelector('[data-wz-tid="ND"]').click(); }); await pause(500);
     m = await page.evaluate(READ);
     check('2a pressing a HaTi row lights it and draws that template\'s own questions', !m.err && /NDA/.test(m.on) && /NDA/.test(m.name) && m.boxes >= 5, m.err || `${m.on} · ${m.name} · ${m.boxes}`);
     check('2b the wizard\'s own boxes, by their own ids', await page.evaluate(() => !!document.getElementById('wz-counterparty') && !!document.getElementById('wz-cpemail')));
 
-    /* ===== 3. THE BOX FILTERS BY WORD ===== */
+    /* ===== 3. THE RAIL'S OWN SEARCH FILTERS BY NAME; THE SENTENCE NEVER DOES ===== */
+    /* RE-POINTED 12 Oct 2026 (the Search list). At the parent the sentence box
+       filtered by any word, so "agreement" matched every standard. */
     await page.fill('#dr-say', 'disclosure'); await pause(400);
     m = await page.evaluate(READ);
-    check('3a typing narrows the lists by word', !m.err && m.lib === 1 && m.tid <= 2, m.err || `${m.lib} standards, ${m.tid} HaTi`);
+    check('3a the sentence box filters nothing', !m.err && m.tid >= 10, m.err || `${m.tid} HaTi rows after typing`);
+    await page.fill('#dr-say', '');
+    await page.fill('#na-q', 'nda'); await pause(400);
+    m = await page.evaluate(READ);
+    check('3a1 the rail\'s search narrows by name', !m.err && m.tid >= 1 && m.tid <= 2, m.err || `${m.tid} HaTi rows for "nda"`);
+    await page.fill('#na-q', ''); await pause(300);
     /* THE ASK GROWS WITH THE SENTENCE (Young, 22 Sep 2026). At the parent this
        box stood at two lines whatever was typed and scrolled inside itself.
        RE-STAGED IN PLACE 23 Sep 2026: the box is 750px wide now, not 236, so
@@ -173,13 +195,14 @@ const READ = () => {
     check('3a2 the describe box grows with the sentence and scrolls neither way',
       grew.h > grow0 + 8 && !grew.inner && !grew.sideways,
       `${Math.round(grow0)} -> ${grew.h}px · inner scroll ${grew.inner} · sideways ${grew.sideways}`);
-    await page.fill('#dr-say', 'zzzz nothing'); await pause(400);
-    const none = await page.evaluate(() => ({ note: !!document.querySelector('.na-none'), rows: document.querySelectorAll('[data-wz-lib]').length }));
-    check('3b nothing matching says so and still lists every standard', none.note && none.rows === 2, JSON.stringify(none));
-    await page.fill('#dr-say', ''); await pause(400);
+    await page.fill('#dr-say', '');
+    await page.fill('#na-q', 'zzzz nothing'); await pause(400);
+    const none = await page.evaluate(() => ({ note: !!document.querySelector('.na-none'), rows: document.querySelectorAll('.na-pick').length }));
+    check('3b a search that matches no name says so', none.note && none.rows === 0, JSON.stringify(none));
+    await page.fill('#na-q', ''); await pause(400);
 
     /* ===== 4. CREATE REALLY CREATES, THROUGH THE DOOR'S OWN ACT ===== */
-    await page.evaluate(() => document.querySelector('[data-wz-tid="ND"]').click()); await pause(400);
+    await page.evaluate(() => { (document.querySelector('[data-na-tab="tid"]')||{click(){}}).click(); document.querySelector('[data-wz-tid="ND"]').click(); }); await pause(400);
     const before = await page.evaluate(() => state.contracts.length);
     await page.fill('#wz-counterparty', 'Popup Test Ltd');
     await page.click('#na-create'); await pause(1200);
@@ -305,8 +328,12 @@ const READ = () => {
       /* A GUARD: it held at the parent too. It is here because the list's
          cap was RE-DERIVED when the ask left the rail, and this is the whole
          of what that cap promises. */
-      check(`9c GUARD ${label} at ${w}: the Import row is on screen on a fresh open`,
-        !d.err && d.moreOnScreen, d.err || (d.moreOnScreen ? 'on screen' : 'the rail\'s foot is below the fold'));
+      /* RE-POINTED 12 Oct 2026 (the Search list): the Import row left; what
+         must stand on screen on a fresh open is the rail's own search. */
+      const qOn = await page.evaluate(() => { const e = document.getElementById('na-q'); if (!e) return false;
+        const r = e.getBoundingClientRect(); return r.height > 0 && r.top >= 0 && r.bottom <= innerHeight; });
+      check(`9c GUARD ${label} at ${w}: the rail's search is on screen on a fresh open`,
+        !d.err && qOn, d.err || (qOn ? 'on screen' : 'below the fold'));
       /* A GUARD, not a red-at-the-parent claim: the foot sits outside the
          scroller in both shapes. It is here because on a short screen the
          body now scrolls, and Create must never be what scrolls away. */
@@ -337,7 +364,7 @@ const READ = () => {
       d.err || `"Who else" on screen ${before9.peopleOnScreen} → ${d.peopleOnScreen} · foot ${d.footOnScreen}`);
     /* WHERE THE READER ENDS UP: another template is another set of questions,
        and still no paper. At the parent the stacked paper followed the pick. */
-    await page.evaluate(() => document.querySelector('[data-wz-tid]').click()); await pause(500);
+    await page.evaluate(() => { (document.querySelector('[data-na-tab="tid"]')||{click(){}}).click(); document.querySelector('[data-wz-tid]').click(); }); await pause(500);
     d = await page.evaluate(D);
     check('9g picking another template swaps the questions and draws no paper', !d.err && !d.paper, d.err || `paper ${d.paper}`);
     await page.evaluate(() => closeModal()); await pause(200);

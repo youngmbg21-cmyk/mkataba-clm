@@ -106,7 +106,8 @@ async function press(page, sel, what){
   check(menu.say, '1c the sentence box reads beside it');
   check(await visible(page, '#dr-say'), '1d and it is visible pixels, not markup behind something');
   /* REVERSED 23 Sep 2026 (Young: "remove the Upload it link") — upload is a door in front of this screen (openNewDoors). */
-  check(!menu.upload && menu.imp, '1e import keeps its door on the same screen; upload is the door in front of it');
+  /* REVERSED 12 Oct 2026 (the Search list): import left this screen too — it has its own door on the rail. */
+  check(!menu.upload && !menu.imp, '1e no second door to upload or import on this screen');
   await page.screenshot({ path: path.join(OUT, 'menu.png') });
 
   /* ============ 2. THE SENTENCE BOX ============ */

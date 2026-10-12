@@ -2282,6 +2282,16 @@ const SET_PANELS={
           <div id="set-market-facts" style="font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.6">${settingsMarketFactsHtml()}</div>
         </div>
       </section>
+      ${''/* ---- THE LINE OF BUSINESS LIVES HERE (12 Oct 2026, the Search list) ----
+             It sat in the heading of New agreement's template list, an admin's
+             company rule in a person's picker. One writer, the same key. */}
+      ${typeof INDUSTRY_TEMPLATES==='object'?`<section class="st-sec">
+        <h3 class="st-sec-h">${esc(i18t('set_lob'))}</h3>
+        <p class="st-note" style="margin-bottom:var(--s-2)">${esc(i18t('set_lob_sub'))}</p>
+        <select id="set-industry" style="min-width:190px;${window.RV_FLD||ST_INPUT}width:auto">
+          <option value="">${esc(i18t('wz_not_set'))}</option>${Object.keys(INDUSTRY_TEMPLATES).map(k=>`<option value="${k}"${(typeof workspaceIndustry==='function'&&workspaceIndustry()===k)?' selected':''}>${esc(INDUSTRY_LABEL[k])}</option>`).join('')}
+        </select>
+      </section>`:''}
       ${''/* ---- THE LEGAL IDENTITY LIVES HERE NOW (C, 14 Aug 2026) ----
              It used to be four unlabelled boxes inside the COMPANY DESIGN step,
              under the logo upload and the accent-colour picker, and this panel
@@ -2404,6 +2414,12 @@ const SET_PANELS={
          changes on the page behind is the approval rules (their thresholds are
          money) and the review gate (its box is labelled with the currency).
          Those, and nothing else — the page holds still. */
+      document.getElementById('set-industry')?.addEventListener('change',e=>{
+        state.settings=state.settings||{};
+        state.settings.industry=e.target.value||undefined;
+        if(typeof saveSettings==='function') saveSettings();
+        toast(i18t('set_lob_saved'),'ok');
+      });
       document.getElementById('set-market')?.addEventListener('change',e=>{
         const langWas=(typeof langId==='function'?langId():null);
         if(!window.jxSet || !jxSet(e.target.value)) return;

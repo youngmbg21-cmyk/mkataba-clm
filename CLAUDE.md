@@ -375,7 +375,7 @@ ONE rail door "Our paper": `PAPER_TABS` ['book','list','standards'] (`paperTabsH
 
 ## NEW AGREEMENT, DRAFT FROM A SENTENCE, THE FILL FORMS
 
-"+ Draft new agreement" opens two doors (`openNewDoors`). `openNewAgreement`: the ask on top (`#dr-say`, `naSayFit`), a rail (`pickRow`, company standards first) and the template's own questions MOUNTED (`wizardFormMount`, `openContractEssentials`, `openTemplateFillModal` with a host), no paper (`paperHost:null`); `NA_RAIL_W` 260, `NA_FRAME_NARROW_W` 900; mints nothing. js/draft.js mints nothing: `DRAFT_BUCKETS`, `POST /api/ai/draft`, a value only reaches a declared box (`draftApplyPrefill`), "nothing fits" → Requests; `tplLibReady()`. Fill forms draw the paper beside (`fillPreviewFits` ≥1000, `fillPreviewContract`); `fieldOpt`/`fieldOptHit`; `FIELD_GRID_CSS` `minmax(0,1fr)`. Tests: f270, f340, f345, f360, f368, new-agreement-verify, form-and-picker-verify.
+"+ Draft new agreement" opens two doors (`openNewDoors`). `openNewAgreement`: the ask on top (`#dr-say`, `naSayFit`), the SEARCH LIST (owner picked, 12 Oct 2026: `#na-q` names only, tabs `NA_TABS`, nothing pre-picked, Create greys; line of business in Settings `#set-industry`; `pickRow`) and the template's own questions MOUNTED (`wizardFormMount`, `openContractEssentials`, `openTemplateFillModal` with a host), no paper (`paperHost:null`); `NA_RAIL_W` 260, `NA_FRAME_NARROW_W` 900; mints nothing. js/draft.js mints nothing: `DRAFT_BUCKETS`, `POST /api/ai/draft`, a value only reaches a declared box (`draftApplyPrefill`), "nothing fits" → Requests; `tplLibReady()`. Fill forms draw the paper beside (`fillPreviewFits` ≥1000, `fillPreviewContract`); `fieldOpt`/`fieldOptHit`; `FIELD_GRID_CSS` `minmax(0,1fr)`. Tests: f270, f340, f345, f360, f368, new-agreement-verify, form-and-picker-verify.
 
 ## COPILOT READS A CONTRACT ON ARRIVAL, AND FILLS ITS BLANKS
 
@@ -406,7 +406,7 @@ Tests: sap-popups, negotiate-as-drawn, new-agreement verify, f390 1h.
 
 ## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS
 - Tokens in `:root` of index.html; `--radius` 4 / `--radius-lg` 8; Geist screen + read paper (`--font-doc`), Source Serif 4 signing/print; refs via ONE dress `refHtml(c)` (never in PDF, Word, email, toast, `<option>`). A changed font file gets a NEW NAME.
-- Brand lands on Blue once (`brandBlueOnce`). TYPE 400 · `--w-label` · `--w-strong` · `--w-title`; labels sentence case, no tracking. BUTTONS `--ctl-h-sm`/`--ctl-h`/`--ctl-h-lg`; one filled button per area; drawn icons only (f385); words never wrap (f386). `openModal({maxWidth})`, `confirmDialog`; retire a sentence by not calling it (f310).
+- Brand lands on Blue once (`brandBlueOnce`). TYPE 400 · `--w-label` · `--w-strong` · `--w-title`; labels sentence case, no tracking. BUTTONS `--ctl-h-sm`/`--ctl-h`/`--ctl-h-lg`, THE SAP WAY (owner picked, 12 Oct 2026: 8px, accent-outlined, one lift `--btn-lift`; `.hb-btn` alike); no ☰ hide (`NAV_HIDE_KEY` cleared once); one filled button per area; drawn icons only (f385); words never wrap (f386). `openModal({maxWidth})`, `confirmDialog`; retire a sentence by not calling it (f310).
 - INK WASH: no grey in light mode (black + the theme colour); dark mode, the paper, danger and status colours unchanged; no capitals on labels. Census ink-wash-baseline.json re-recorded ONLY with an owner-asked palette change.
 Tests: f96, f238, f310, f312, f377, f385, f386, f458 (9), contrast, button-consistency, theme-tokens, dark-no-white-patches, one-reference-face, ink-wash verify.
 
