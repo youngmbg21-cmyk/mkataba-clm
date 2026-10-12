@@ -5150,10 +5150,13 @@ if(typeof window!=='undefined'&&typeof window.addEventListener==='function')
 /* THE TOP BAR'S JAMBO DOOR WEARS HIS FACE (owner, 12 Oct 2026: "replace where
    there are the copilot symbols with Jambo's symbol"); the badge dot stays */
 function aiDoorFace(){
+  try{
   const b=document.getElementById('cmd-ai');
-  if(!b || b.dataset.face || typeof jamboFaceHtml!=='function') return;
+  /* a stage that stands a bare object in for the page has no dataset/querySelector */
+  if(!b || !b.dataset || typeof b.querySelector!=='function' || b.dataset.face || typeof jamboFaceHtml!=='function') return;
   const svg=b.querySelector('svg'); if(!svg) return;
   svg.outerHTML=jamboFaceHtml('hello',24,'cmd-ai-face').replace('<img','<img data-ink-exempt');   /* a picture carries no ink */ b.dataset.face='1';
+  }catch(_){}
 }
 try{ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',aiDoorFace); else setTimeout(aiDoorFace,0); }catch(_){}
 Object.assign(window,{ aiDoorFace,aiFaceHtml,aiFloatSync,aiFloatClamp,aiFloatMaxBox,aiFloatHome,aiFloatOn,aiEmbeddedHere,aiGoEmbedded,AI_FLOAT_MIN,scanGoTo,aiContractByRef,aiWorkingNotes,aiExplainOf,aiExplainSet,aiJsonObjects,
