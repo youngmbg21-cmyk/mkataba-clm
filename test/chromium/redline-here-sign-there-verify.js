@@ -130,6 +130,11 @@ const AGREED = [
     if (!(await page.evaluate(() => document.getElementById('up-cp').value))) await page.fill('#up-cp', 'Nordkust Industri AB');
     await page.click('#up-go');
     await page.waitForTimeout(2500);
+    /* A NEW UPLOAD OPENS "Complete the details" over its Details tab (owner,
+       12 Oct 2026): this stage saves and finishes later, as a person would. */
+    await page.waitForFunction(() => !!document.getElementById('cd-page'), null, { timeout: 4000 }).catch(() => {});
+    await page.evaluate(() => { const b = document.getElementById('cd-later'); if (b) b.click(); });
+    await page.waitForTimeout(400);
     const made = await page.evaluate(() => { const c = getContract(state.activeId);
       return c ? { id: c.id, route: c.signRoute || '', no: c.contractNo || '', view: state.view } : null; });
     check('1c it opens a working file with a working reference and no contract number yet',
@@ -325,6 +330,11 @@ const AGREED = [
     await page.fill('#up-cp', 'Kijani Foods Ltd');
     await page.click('#up-go');
     await page.waitForTimeout(2500);
+    /* A NEW UPLOAD OPENS "Complete the details" over its Details tab (owner,
+       12 Oct 2026): this stage saves and finishes later, as a person would. */
+    await page.waitForFunction(() => !!document.getElementById('cd-page'), null, { timeout: 4000 }).catch(() => {});
+    await page.evaluate(() => { const b = document.getElementById('cd-later'); if (b) b.click(); });
+    await page.waitForTimeout(400);
     const RL2 = await page.evaluate(() => { const c = getContract(state.activeId); return c && c.signRoute === 'outside' ? c.id : ''; });
     await page.evaluate(() => roomGoTab(getContract(state.activeId), 'sign'));
     await page.waitForTimeout(700);

@@ -117,6 +117,11 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
       const go = await page.$('#up-go');
       if (go) await go.click();
       await page.waitForTimeout(3000);
+      /* A NEW UPLOAD OPENS "Complete the details" over its Details tab (owner,
+         12 Oct 2026): this stage saves and finishes later, as a person would. */
+      await page.waitForFunction(() => !!document.getElementById('cd-page'), null, { timeout: 4000 }).catch(() => {});
+      await page.evaluate(() => { const b = document.getElementById('cd-later'); if (b) b.click(); });
+      await page.waitForTimeout(400);
     }
     const id = await page.evaluate(() => {
       const c = state.contracts.find(k => k.source === 'upload' && (k.upload || {}).fileName === 'Warehousing_agreement.docx');

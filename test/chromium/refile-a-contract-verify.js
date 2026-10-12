@@ -242,6 +242,12 @@ const seed = (id, name, folder, over = {}) => ({
     p2.on('pageerror', e => errors2.push(e.message));
     await signIn(p2, h.base, 'everything@example.co.ke', 'their-own-pass-9');
     await openKeyTerms(p2, 'MK-RF1');
+    /* RE-POINTED 12-13 Oct 2026: the Overview reads, so a non-admin's filing
+       rows are on the Details tab, under "Parties, people and filing" */
+    await p2.evaluate(() => roomGoTab(getContract('MK-RF1'), 'details'));
+    await p2.waitForFunction(() => !!document.getElementById('det-more'), null, { timeout: 5000 }).catch(() => {});
+    await p2.evaluate(() => { const m = document.getElementById('det-more'); if (m) m.open = true; });
+    await p2.waitForTimeout(400);
 
     const asEditor = await page2State(p2);
     check('the Editor still sees which drawer it is in', asEditor.rowText.length > 0,

@@ -145,8 +145,9 @@ const FORM = () => {
              label: on && on.textContent.trim(),
              view: window.state.view };
   });
-  check('a new draft lands on Key terms, not on the document',
-    landed.tab === 'terms', `tab=${landed.tab} "${landed.label}" view=${landed.view}`);
+  /* RE-POINTED 12 Oct 2026: a new draft lands on Details (owner) */
+  check('a new draft lands on Details, not on the document',
+    landed.tab === 'details', `tab=${landed.tab} "${landed.label}" view=${landed.view}`);
 
   /* ---------- 2c. THE HEAD DOES NOT OFFER A DOOR TO THE PAGE YOU ARE ON ----
      Owner-asked 9 Sep 2026: "delete the complete key terms button." This is
