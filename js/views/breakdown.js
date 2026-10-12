@@ -230,8 +230,9 @@ function bdLensHtml(){
   const head = `<div class="bd-lens-head"><b>${_bdE(i18t('bd_panel_title'))}</b><span class="flex-1"></span></div>`;
   if (!b) return `<div class="bd-lens">${head}<div class="bd-lens-body"><p class="bd-lead">${_bdE(i18t(c ? 'bd_panel_empty' : 'bd_panel_pick'))}</p></div></div>`;
   const body = _bd.lvl === 'words' ? bdWordsHtml(c, b) : _bd.lvl === 'clause' ? bdClauseHtml(c, b) : _bd.lvl === 'region' ? bdRegionHtml(c, b) : bdDealHtml(c, b);
-  return `<div class="bd-lens">${head}<div class="bd-lens-top">${bdCrumbsHtml(b)}</div><div class="bd-lens-body scroll-thin">${body}</div>
-    <form class="bd-ask" id="bd-ask"><input id="bd-ask-in" autocomplete="off" placeholder="${_bdE(i18t(_bd.ri >= 0 ? 'bd_ask_region' : 'bd_ask_deal'))}"><button type="submit" class="ui-btn ui-btn-sm ui-btn-primary">${_bdE(i18t('bd_ask'))}</button></form></div>`;
+  return `<div class="bd-lens">${head}<div class="bd-lens-top">${bdCrumbsHtml(b)}</div><div class="bd-lens-body scroll-thin">${body}</div></div>`;
+  /* NO ASK BOX HERE (owner, 12 Oct 2026: "remove entry field ... from the
+     breakdown"): Jambo is asked on his own tab; bd_ask* stay inert in both books */
 }
 function bdGo(lvl, ri, ci){
   _bd.lvl = lvl; if (ri != null) _bd.ri = ri; if (ci != null) _bd.ci = ci;
@@ -271,20 +272,6 @@ if (typeof document !== 'undefined' && !document._bdWired){
   document.addEventListener('keydown', e => {
     const row = e.target && e.target.closest ? e.target.closest('#hb-bd tr[data-bd-go]') : null;
     if (row && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); bdGo('region', Number(row.getAttribute('data-bd-go'))); }
-  });
-  /* ASK COPILOT: Home's one Copilot conversation, on the Document face, with
-     the region named — never a second chat here */
-  document.addEventListener('submit', e => {
-    if (!e.target || e.target.id !== 'bd-ask') return;
-    e.preventDefault();
-    const c = bdContract(); const inp = document.getElementById('bd-ask-in'); const q = String(inp && inp.value || '').trim();
-    if (!c || !q) return;
-    const b = bdOf(c); const r = b && b.regions[_bd.ri];
-    const text = r ? `${q} — ${i18t('bd_ask_about', { name: r.name, clauses: r.clauses || '' })}` : q;
-    if (typeof hbSetFace === 'function') hbSetFace('paper');
-    const ask = () => { if (typeof hbAskInPanel === 'function') hbAskInPanel(text, c.id); };
-    if (typeof intel === 'object' && intel && intel.paper && intel.paper.id === c.id) setTimeout(ask, 60);
-    else if (typeof igAnalyze === 'function') Promise.resolve(igAnalyze(c.id)).then(() => setTimeout(ask, 60)).catch(() => {});
   });
 }
 

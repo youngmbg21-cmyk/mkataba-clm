@@ -28780,3 +28780,11 @@ Owner, with a screenshot of a chart card's ⋯ menu circling Make bigger, Full s
 *"Add the turning ring to the Scanning toast too"* — the one toast left out on 11 Oct. `toast(msg, kind, {busy:true})` puts `.ob-spin` where the kind's icon stands; `runScanFor` passes it. jambo-pill-and-window-verify (10).
 
 *"also fix this issue where the card cuts short in the drop down if the rest of the choices are not on screen"* — a screenshot of a Board card's ⋯ menu whose last three choices hung below its white card. `hbMenuPlaceOne` capped the height (`max-height`), but `.hb-tools-menu` and `.hb-dp` had no overflow rule, so the choices spilled past the edge (`.hb-rmenu` already had `overflow:auto`). Both now scroll inside the card (`overflow-y:auto`, children `flex-shrink:0`). board-menu-scrolls-verify: red on main (`overflowY visible`, last choice 297px below the card), green after.
+
+## COPILOT IS CALLED JAMBO — HIS FACE ON HIS OWN DOORS, "HI", NO ASK BOX ON THE BREAKDOWN (owner, 12 Oct 2026)
+
+*"replace where there are the copilot symbols with Jambo's symbol. Also, in the copilot introduction in chat, change that from Habari to Hi."* — a screenshot marking the top bar's ✦ door, the ✦ on Home's Jambo tab and "Habari!". Built on those two doors only (the narrow reading; the ✦ beside menu verbs such as "What could explain this?" stays): `aiDoorFace` swaps `#cmd-ai`'s svg for his face once at load (badge dot kept); `pdTabGlyphHtml` draws it on the copilot tab (the other tabs keep `PD_TAB_GLYPH`). Both faces carry `data-ink-exempt` and no tinted disc, so no new colour reaches the ink census; the census still moves by one element per page (svg + use → img), counts only. English `ai_welcome` and `int_notebook_welcome` say "Hi!" (Swedish already said "Hej!").
+
+*"also, remove entry field highlighted above from the breakdown field"* — the Breakdown panel's "Ask Jambo about this region" box and its submit handler are gone; `bd_ask*` stay inert in both books. Tests: jambo-pill-and-window-verify (11a–d), home-first-verify 3a2, home-paper-clauses-verify 3b.
+
+The same day: swedish-verify went red at 1280 at 150% in the afternoon only ("God eftermiddag" is longer than "God morgon"; main red too after noon), the greeting cut by 17px. Below 1400px the sliding pill's buttons tighten (padding 0 3px, gap 4px); widths stay equal.
