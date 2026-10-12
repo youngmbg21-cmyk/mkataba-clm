@@ -128,6 +128,17 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     const feedFace = await page.evaluate(() => !!document.querySelector('#ai-feed img.jambo-face'));
     ok('8a his face sits beside his words in the chat', feedFace);
 
+    /* ---- 10 the "Scanning…" toast wears the turning ring ---- */
+    const scanRing = await page.evaluate(async () => {
+      const c = (window.state && state.contracts || [])[0]; if (!c || typeof window.runScanFor !== 'function') return 'no scan door';
+      const p = window.runScanFor(c);
+      const t = [...document.querySelectorAll('#toast-root [data-toast-kind]')].find(e => /Scanning/.test(e.textContent));
+      const s = t && t.querySelector('.ob-spin');
+      await p.catch(() => {});
+      return s ? getComputedStyle(s).animationName : 'no ring';
+    });
+    ok('10 the "Scanning…" message carries a turning ring', scanRing === 'obSpin', scanRing);
+
     ok('9 no page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
   } catch (e){ ok('the run finished', false, e && e.message); }
   finally { await browser.close(); if (h.stop) await h.stop(); }

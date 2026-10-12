@@ -369,7 +369,7 @@ const savedResultLang = r => (r && r.lang) || 'en';
    the full record first, then save the result and say what was found. */
 async function runScanFor(c){
   if(!canEdit()){ toast(i18t('ai_viewers_no_scan'),'err'); return; }
-  toast(i18t('ai_scanning'),'ok');   /* progress: the scan takes seconds and nothing else moves */
+  toast(i18t('ai_scanning'),'ok',{busy:true});   /* progress: the scan takes seconds and nothing else moves */
   try{ await ensureFull(c); }catch(e){ toast(i18t('ai_could_not_load')+e.message,'err'); return; }
   runScan(c);
   const n=openFindings(c).length;

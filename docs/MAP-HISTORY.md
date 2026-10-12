@@ -28774,3 +28774,9 @@ History: owner, with a screenshot: "where there are multiple bubbles in a day, t
 ## THE BOARD CARD'S ⋯: THE MOST USED FIRST (12 Oct 2026)
 
 Owner, with a screenshot of a chart card's ⋯ menu circling Make bigger, Full screen and Remove from the board: "put them on top of the drop downs because they will be the most used features." Claude agreed for the first two and advised keeping Remove at the foot, apart, where a slip cannot take a card off the board (the usual place for an act that takes something away). Owner: "go with remove at the bottom." Built in both builders: `hbEdgeHtml` (a chart card, and the dug-in chart: its own Make bigger/Full screen pair) and `hbKindToolsHtml` (a ready-made panel: Make bigger first). Test f665.
+
+## WHEN SOMETHING LOADS, SOMETHING MOVES — THE SCANNING TOAST, AND A SHORT ROOM SCROLLS INSIDE THE CARD (owner, 12 Oct 2026)
+
+*"Add the turning ring to the Scanning toast too"* — the one toast left out on 11 Oct. `toast(msg, kind, {busy:true})` puts `.ob-spin` where the kind's icon stands; `runScanFor` passes it. jambo-pill-and-window-verify (10).
+
+*"also fix this issue where the card cuts short in the drop down if the rest of the choices are not on screen"* — a screenshot of a Board card's ⋯ menu whose last three choices hung below its white card. `hbMenuPlaceOne` capped the height (`max-height`), but `.hb-tools-menu` and `.hb-dp` had no overflow rule, so the choices spilled past the edge (`.hb-rmenu` already had `overflow:auto`). Both now scroll inside the card (`overflow-y:auto`, children `flex-shrink:0`). board-menu-scrolls-verify: red on main (`overflowY visible`, last choice 297px below the card), green after.

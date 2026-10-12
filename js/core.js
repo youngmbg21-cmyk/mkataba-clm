@@ -939,7 +939,11 @@ function toast(msg,kind,opts){
      HTML; none passes a pre-escaped string either, so nothing double-escapes.
      ONE toast() exists (this one), it is published on window, and the phone's
      24 calls come through it — so this reaches both shells by construction. */
-  el.innerHTML='<span style="display:inline-flex;flex:none">'+icon(spec.ic)+'</span>'
+  /* A WAIT MOVES (owner, 11 Oct 2026): `opts.busy` puts the house's turning
+     ring where the kind's icon stands, for a toast that says work has started
+     ("Scanning…"). */
+  const lead = opts && opts.busy ? '<span class="ob-spin" aria-hidden="true" style="margin:0"></span>' : icon(spec.ic);
+  el.innerHTML='<span style="display:inline-flex;flex:none">'+lead+'</span>'
     +'<span style="flex:1;min-width:0">'+esc(msg)+'</span>'
     +(act?'<button type="button" data-toast-act style="flex:none;border:1px solid rgba(255,255,255,.55);'
       +'background:rgba(255,255,255,.14);color:#fff;border-radius:var(--radius);font:inherit;font-size:var(--t-meta);'
