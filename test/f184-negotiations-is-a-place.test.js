@@ -97,7 +97,9 @@ describe('F184 (1) — Negotiate is a place and not a tab in the room', () => {
        claim was about is their ORDER relative to each other, which is
        unchanged — and the Overview still leads, which is what roomOpenOnTerms
        lands on. */
-    assert.equal(keys[0], 'terms', 'the Overview still leads, and the landing with it');
+    /* Details leads since 12 Oct 2026 (owner), the Overview right after it. */
+    assert.equal(keys[0], 'details', 'Details leads, and the landing with it');
+    assert.equal(keys[1], 'terms', 'the Overview right after it');
     const ix = k => keys.indexOf(k);
     /* the Document tab went 11 Oct 2026 (owner); its use is Home's Document */
     assert.ok(!keys.includes('docs'), 'no Document tab');

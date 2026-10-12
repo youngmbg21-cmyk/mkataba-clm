@@ -324,7 +324,11 @@ function insDoorActs(c, opt){
   const nego = { k: 'door-nego', door: true, icon: 'msg', label: i18t('ins_door_nego'),
     disabled: !ns.ok, title: ns.ok ? '' : ns.why, run: () => { if (insNegoDoorState(c).ok) openRedlineWorkbench(c.id); } };
   const ws = { k: 'door-ws', door: true, icon: 'folderOpen', label: i18t('ins_door_ws'),
-    run: () => { openWorkspace(c.id); try { if (typeof roomGoTab === 'function') roomGoTab(getContract(c.id) || c, 'terms'); } catch (_){} } };
+    /* the Workspace lands on Details while anything is left to fill in
+       (owner, 12 Oct 2026), on the Overview otherwise */
+    run: () => { openWorkspace(c.id); try { const live = getContract(c.id) || c;
+      let left = 0; try { left = (typeof detailsOf === 'function') ? detailsOf(live).left : 0; } catch (_){ left = 0; }
+      if (typeof roomGoTab === 'function') roomGoTab(live, left ? 'details' : 'terms'); } catch (_){} } };
   const all = { doc, nego, ws };
   /* the lead door goes first and is filled; the rest keep the drawn order */
   if (o.lead && all[o.lead] && !(o.lead === 'nego' && !ns.ok)) all[o.lead].kind = 'accent';
@@ -415,9 +419,9 @@ function insPartiesHtml(list){
    worst row's, and a button wears the platform's one light edge (26 Sep 2026)
    with the row's colour on its word. */
 const INS_NEED_VERB = { quiet: 'home_verb_answer', review: 'home_verb_review', look: 'ins_need_v_look', approval: 'ins_need_v_approval', refused: 'ins_need_v_refused', join: 'home_verb_answer',
-  note: 'home_verb_answer', suggest: 'home_verb_answer', sign: 'home_verb_sign', renewal: 'home_verb_decide' };
+  note: 'home_verb_answer', suggest: 'home_verb_answer', details: 'det_need_verb', sign: 'home_verb_sign', renewal: 'home_verb_decide' };
 const INS_NEED_GO = { quiet: 'ins_need_go_nego', review: 'ins_need_go_nego', look: 'ins_need_go_look', approval: 'ins_need_go_approval', refused: 'ins_need_go_refused', join: 'ins_need_go_desk',
-  note: 'ins_need_go_notes', suggest: 'ins_need_go_nego', sign: 'ins_need_go_sign', renewal: 'ins_need_go_terms' };
+  note: 'ins_need_go_notes', suggest: 'ins_need_go_nego', details: 'det_need_go', sign: 'ins_need_go_sign', renewal: 'ins_need_go_terms' };
 /* One row's words: a title, and a line under it as HTML (`sub`) with the same
    words plain on its hover (`plain`) — the line is cut to one line, never the
    fact. Every number is a reading the panel already prints elsewhere: the
@@ -473,6 +477,8 @@ function insNeedWords(c, it){
     return Object.assign({ title: i18tn('dk_sg_held', it.n || 1) },
       lineOf([it.who ? bit(i18t('dk_sg_theirs', { who: it.who })) : null]));
   }
+  if (it.kind === 'details')
+    return Object.assign({ title: i18tn('det_to_fill', it.n || 1, { n: it.n || 1 }) }, lineOf([bit(i18t('det_need_sub'))]));
   if (it.kind === 'sign'){
     if (!it.n) return Object.assign({ title: i18t('ins_need_sign_ready') }, lineOf([bit(i18t('ins_need_sign_clear'))]));
     let first = '';

@@ -59,6 +59,7 @@ function mContractHeadHtml(c){
         </button>
       </div>
       <div style="display:flex">
+        ${tab('det')}${i18t('tab_details')}${mDetCountHtml(c)}</button>
         ${tab('doc')}${i18t('tab_document')}</button>
         ${tab('terms')}${i18t('tab_overview')}</button>
         ${tab('oblig')}${i18t('tab_obligations')}${mObligCountHtml(c)}</button>
@@ -102,6 +103,82 @@ function mContractHeadHtml(c){
 const M_OB_DOC_TONE = { lapsed:'ruby', missing:'ruby', soon:'amber', held:'' };
 const M_OB_BANDS = ['overdue','waiting','month','later','done'];
 const mObligList = c => ((c && c.obligations) || []);
+/* ---- THE PHONE'S OWN DETAILS PAGE (owner picked "B", 12 Oct 2026) ----
+   One column: the count and its bar, then the boxes by section with the
+   sections still owing something first, then Fill the document and See the
+   document. THE READING IS THE DESKTOP'S (detailsOf) AND SO IS EVERY WRITER:
+   the contract's details are the Overview card's `data-kt` boxes
+   (wireKeyTerms), a paper blank is `data-blankf` (wireBlankForm), a company
+   form's field is `data-tplf` (tplFormCommit) — so an answer typed here is
+   the same answer the computer shows. */
+function mDetCountHtml(c){
+  let d=null; try{ d=(typeof detailsOf==='function')?detailsOf(c):null; }catch(_){ d=null; }
+  return (d&&d.left)?`<span class="m-ctab-n">${d.left}</span>`:'';
+}
+function mDetBoxHtml(c, x, bmap){
+  const IN='width:100%;height:44px;padding:0 12px;font:inherit;font-size:16px;border:1px solid var(--color-divider);border-radius:var(--radius);background:'+(x.open?'var(--st-amber-bg)':'var(--color-surface)')+';color:var(--color-text)';
+  if(x.kind==='kt'){
+    if(x.key==='party') return `<input type="text" data-kt="party" value="${mEsc(c.party||'')}" placeholder="${mEsc((typeof contractParty==='function'?contractParty(c):'')||'')}" style="${IN}">`;
+    if(x.key==='counterparty') return `<input type="text" data-kt="counterparty" value="${mEsc(c.counterparty||'')}" style="${IN}">`;
+    if(x.key==='value') return `<input type="text" inputmode="numeric" data-kt="value" value="${(Number(c.value)>0)?mEsc(Number(c.value).toLocaleString(typeof jxLocale==='function'?jxLocale():undefined)):''}" placeholder="0" style="${IN}">`;
+    if(x.key==='effDate') return `<input type="date" data-kt="effDate" value="${mEsc((c.fields&&c.fields.effDate)||'')}" style="${IN}">`;
+    return '';
+  }
+  if(x.kind==='tplf'){
+    const form=c.templateForm||{}; const idx=(form.fields||[]).findIndex(f=>f&&String(f.fieldKey)===x.key);
+    if(idx<0||typeof tplFormInputHtml!=='function') return '';
+    return tplFormInputHtml(form.fields[idx], (form.values||{})[x.key], idx).replace(/style="[^"]*"/,`style="${IN}"`);
+  }
+  const b=bmap.get(x.key); if(!b) return '';
+  const type=b.type==='date'?'date':(b.type==='number'?'number':'text');
+  return `<input type="${type}" data-blankf="${mEsc(b.key)}" value="${mEsc(b.value==null?'':b.value)}" placeholder="${mEsc(b.ph||'')}" style="${IN}">`;
+}
+function mDetHtml(c){
+  let d=null; try{ d=(typeof detailsOf==='function')?detailsOf(c):null; }catch(_){ d=null; }
+  const may=(typeof canEdit!=='function'||canEdit())&&!mLocked(c);
+  if(!d||!d.live||!d.all||!may) return `<div class="m-scroll"><div class="m-card" style="margin:var(--s-3);padding:var(--s-4)"><div class="m-note">${mEsc(i18t(d&&d.all&&!d.left?'det_all_filled':'det_jambo_none'))}</div></div></div>`;
+  const bs=(typeof contractBlanks==='function')?(contractBlanks(c)||[]):[];
+  const bmap=new Map(bs.map(b=>[String(b.key),b]));
+  const secs=(typeof detailsSections==='function'?detailsSections(d):[]).slice().sort((a,b)=>(b.left>0)-(a.left>0));
+  const done=d.all-d.left, pct=Math.round(done*100/d.all);
+  const owesFill=!!(c.templateForm&&typeof tplFormPending==='function'&&tplFormPending(c));
+  return `<div class="m-scroll" id="m-det">
+    <div class="m-card" style="margin:var(--s-3);padding:var(--s-3) var(--s-4)">
+      <div style="display:flex;align-items:center;gap:8px"><span style="flex:1;font-weight:var(--w-strong)">${mEsc(i18t('det_head'))}</span>
+        <span data-m-det-count style="font-size:var(--t-card);color:${d.left?'var(--color-neutral-600)':'var(--st-green-fg)'}">${mEsc(i18t('det_n_of_m',{ done, all:d.all }))}</span></div>
+      <div style="height:4px;border-radius:999px;background:var(--color-bg);overflow:hidden;margin-top:8px"><i style="display:block;height:100%;width:${pct}%;background:var(--accent-fill)"></i></div>
+    </div>
+    ${secs.map(g=>`<div class="m-card" style="margin:0 var(--s-3) var(--s-3);padding:var(--s-3) var(--s-4)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="flex:1;font-weight:var(--w-strong)">${mEsc(g.name)}</span>
+        <span style="font-size:var(--t-card);color:${g.left?'var(--st-amber-fg)':'var(--st-green-fg)'}">${mEsc(g.left?i18tn('det_left_n',g.left,{n:g.left}):i18t('det_sec_done'))}</span></div>
+      ${g.items.slice().sort((a,b)=>(b.open?1:0)-(a.open?1:0)).map(x=>{ const box=mDetBoxHtml(c,x,bmap); return box?`<label style="display:block;margin-bottom:12px"><span style="display:block;font-size:14px;font-weight:var(--w-strong);margin-bottom:4px">${mEsc(x.label)}</span>${box}</label>`:''; }).join('')}
+    </div>`).join('')}
+    <div style="display:flex;flex-direction:column;gap:8px;margin:0 var(--s-3) var(--s-6)">
+      ${c.templateForm?`<button class="m-btn m-btn-primary" data-m-det="fill"${owesFill?'':' disabled'}>${mEsc(i18t('tl_fill_doc'))}</button>`:''}
+      <button class="m-btn" data-m-det="see">${mEsc(i18t('det_see_doc'))}</button>
+    </div>
+  </div>`;
+}
+function mDetWire(root){
+  const c=mContract(); if(!c||!root.querySelector('#m-det')) return;
+  if(typeof wireKeyTerms==='function') try{ wireKeyTerms(c); }catch(_){}
+  if(typeof wireBlankForm==='function') try{ wireBlankForm(c, root.querySelector('#m-det')); }catch(_){}
+  root.querySelectorAll('#m-det [data-tplf]').forEach(el=>el.addEventListener('change',()=>{
+    if(typeof tplFormCommit==='function') tplFormCommit(c, Number(el.getAttribute('data-tplf')), el.value);
+  }));
+  /* the count and the tab's number follow the answer, without redrawing the box under the thumb */
+  root.querySelectorAll('#m-det input, #m-det select').forEach(el=>el.addEventListener('change',()=>setTimeout(()=>{
+    let d=null; try{ d=detailsOf(c); }catch(_){ d=null; } if(!d) return;
+    const n=root.querySelector('[data-m-det-count]'); if(n) n.textContent=i18t('det_n_of_m',{ done:d.all-d.left, all:d.all });
+    const t=root.querySelector('[data-m-ctab="det"]'); if(t) t.innerHTML=mEsc(i18t('tab_details'))+mDetCountHtml(c);
+    const f=root.querySelector('[data-m-det="fill"]'); if(f) f.disabled=!(c.templateForm&&typeof tplFormPending==='function'&&tplFormPending(c));
+  },0)));
+  root.querySelector('[data-m-det="fill"]')?.addEventListener('click',()=>{
+    if(typeof tplFormApply==='function'&&tplFormApply(c)&&window.toast) toast(i18t('det_filled_toast'),'ok');
+    mS().tab='doc'; mRender();
+  });
+  root.querySelector('[data-m-det="see"]')?.addEventListener('click',()=>{ mS().tab='doc'; mRender(); });
+}
 function mObligCountHtml(c){
   if(typeof obligationTabState!=='function') return '';
   let st; try{ st=obligationTabState(c); }catch(_){ return ''; }
@@ -600,7 +677,7 @@ function mContractHtml(){
       <button class="m-btn m-btn-primary" style="margin-top:14px" data-m-tab="contracts">${i18t('mc_open_contracts')}</button>
     </div></div>`;
   const s = mS();
-  const body = s.tab==='terms' ? mTermsHtml(c) : s.tab==='oblig' ? mObligHtml(c) : s.tab==='hist' ? mHistHtml(c) : mDocHtml(c);
+  const body = s.tab==='det' ? mDetHtml(c) : s.tab==='terms' ? mTermsHtml(c) : s.tab==='oblig' ? mObligHtml(c) : s.tab==='hist' ? mHistHtml(c) : mDocHtml(c);
   return mContractHeadHtml(c) + body + mActionBarHtml(c);
 }
 
@@ -1012,7 +1089,8 @@ function mDoNextAction(kind){
      work. Said, never a dead press. */
   if(kind==='ho-hand'||kind==='ho-file'){ if(window.toast) toast(i18t('ho_on_computer'),'warn'); return; }
   if(kind==='share'){ mOpenShareSheet(); return; }
-  if(kind==='terms'){ mS().tab='terms'; mRender(); if(window.toast) toast(i18t('mc_fill_on_computer'),'warn'); return; }
+  /* filling in has a page on the phone now (owner's "B", 12 Oct 2026) */
+  if(kind==='terms'){ mS().tab='det'; mRender(); return; }
   if(kind==='review'){
     /* A STAGE IS A CLAIM, AND IT HAS ONE ACT (9 Oct 2026): contractLeavesDrafting
        moves it, writes the trail line and asks Copilot's reading — the phone
@@ -1103,6 +1181,7 @@ function mWireContract(root){
   root.querySelectorAll('[data-m-ctab]').forEach(b=>b.addEventListener('click',()=>{
     s.tab = b.getAttribute('data-m-ctab'); mRender();
   }));
+  mDetWire(root);
   root.querySelectorAll('[data-m-hist]').forEach(b=>b.addEventListener('click',()=>{
     s.hist = b.getAttribute('data-m-hist'); mRender();
   }));
@@ -1130,7 +1209,7 @@ function mWireContract(root){
   });
 }
 
-Object.assign(window,{ mContract, mLocked, mContractHtml, mDocHtml, mTermsHtml, mHistHtml,
+Object.assign(window,{ mContract, mLocked, mContractHtml, mDocHtml, mTermsHtml, mHistHtml, mDetHtml, mDetCountHtml, mDetWire,
   mActionBarHtml, mOverflowSheetHtml, mShareSheetHtml, mRenumberSheetHtml,
   mSignersSheetHtml, mSignersSave, mSignersState,
   mContractAct, mWireContract, mDoNextAction, mShareCreate, mOpenShareSheet, mNoticeStackHtml,

@@ -139,11 +139,15 @@ function pdFactsHtml(c){
     ['pd_f_owner', _pdE((typeof contractOwnerName === 'function' ? contractOwnerName(c) : '') || '')], ['pd_f_stream', F.stream],
   ].filter(([, v]) => v);
   const kv = `<dl class="pd-kv">${rows.map(([k, v]) => `<div><dt>${_pdE(_pdT(k))}</dt><dd>${v}</dd></div>`).join('')}</dl>`;
-  let blanks = [];
-  try { blanks = (typeof contractBlanksOpen === 'function') ? (contractBlanksOpen(c) || []) : []; } catch (_){ blanks = []; }
-  const missing = blanks.length ? pdH(_pdTn('pd_missing', blanks.length, { n: blanks.length }))
-    + pdList(blanks.slice(0, 6).map(b => `<div class="pd-row"><i class="is-warn">!</i><span>${_pdE(b.label || b.name || b.key || '')}</span>${pdBtn(_pdT('pd_fill'), pdRoom(c, 'terms'), { go: true })}</div>`).join(''))
-    + (blanks.length > 6 ? pdNote(_pdT('pd_more_n', { n: blanks.length - 6 })) : '') : '';
+  /* ---- FILLING IN IS THE DETAILS TAB'S (owner, 12 Oct 2026: "Home's
+     Document panel loses its form and shows N details to fill + a Fill in on
+     Details button") ---- The count is the tab's own (detailsOf); the form
+     that stood here (#pd-fill) and the list of blanks are gone from Home. */
+  let left = 0;
+  try { left = (typeof detailsOf === 'function') ? detailsOf(c).left : 0; } catch (_){ left = 0; }
+  const may = (typeof canEdit !== 'function') || canEdit();
+  const missing = left ? pdList(`<div class="pd-row"><i class="is-warn">!</i><span>${_pdE(_pdTn('det_to_fill', left, { n: left }))}</span>${
+      may ? pdBtn(_pdT('det_fill_in_on'), pdRoom(c, 'details'), { go: true }) : ''}</div>`) : '';
   /* THE RENEWAL, where its window is open: the notice desk's own dialog */
   let renew = '';
   try {
@@ -157,14 +161,12 @@ function pdFactsHtml(c){
     const cc = getContract(c.id) || c;
     try { if (cc._light && !cc._loaded && typeof ensureFull === 'function') await ensureFull(cc); } catch (_){}
     openCheckPanel(getContract(c.id) || cc, 'brief'); }, { lead: true }) : '';
-  const top = pdTop('facts', blanks.length ? pdPill('warn', _pdTn('pd_missing', blanks.length, { n: blanks.length })) : pdPill('ok', _pdT('pd_st_complete')));
-  /* FIELDS TO FILL, THE SAP WAY (owner picked it, 11 Oct 2026): the room's own
-     fill form, drawn here by its one builder (paintContractForm → #pd-fill,
-     formHostEl), under Parties and Terms. The list of blanks with doors to the
-     room stays only where the form draws nothing (a contract past drafting). */
+  const top = pdTop('facts', left ? pdPill('warn', _pdTn('det_to_fill', left, { n: left })) : pdPill('ok', _pdT('pd_st_complete')));
+  /* The fill form drawn here from 11 Oct 2026 (#pd-fill) moved to the room's
+     Details tab on 12 Oct 2026; this panel points there (see `missing`). */
   return top + pdH(_pdT('pd_parties')) + who + pdH(_pdT('pd_terms')) + kv
-    + `<div data-pd-missing>${missing}</div><div id="pd-fill" class="pd-fill"></div>` + renew
-    + `<div class="pd-acts">${brief}${pdBtn(_pdT('pd_edit_facts'), pdRoom(c, 'terms'))}</div>`
+    + `<div data-pd-missing>${missing}</div>` + renew
+    + `<div class="pd-acts">${brief}</div>`
     + pdNote(_pdT('pd_facts_foot'));
 }
 

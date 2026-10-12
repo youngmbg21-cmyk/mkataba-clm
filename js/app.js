@@ -2008,6 +2008,11 @@ const ALERT_KINDS = [
      somebody picks it up, drafts it or declines it. Ranked under approvals:
      a colleague is waiting, but no live deal is held by it. Amber: work owed. */
   { k:'request',     tone:'amber', ic:'&#128233;' },
+  /* ---- DETAILS STILL TO FILL IN (owner, 12 Oct 2026) ----
+     A contract this reader owns with boxes still empty on its Details tab
+     (detailsOf, the tab's own count); the press opens that tab. Amber: work
+     owed, never late. After the approvals' run, which f461 keeps together. */
+  { k:'details',     tone:'amber', ic:'&#9999;' },
   /* ---- AN ANSWER THAT WILL NOT LAND (owner-asked 23 Aug 2026) ----
      A REGISTERED KIND, not a special case at the draw. It arrived as a warn
      toast and on a real workspace that meant four orange boxes stacked over the
@@ -2261,6 +2266,16 @@ function buildAlerts(){
       push('look',c,i18t(a.stamp&&a.stamp.review?'al_look_review':'al_look',{ who:(a.by&&a.by.name)||'' }),
         ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(getContract(c.id)||c,'terms'); }catch(_){} },
         a.note?{ sub:'\u201c'+a.note+'\u201d' }:null);
+    });
+  }
+  /* 3a3. Details still to fill in on a contract this reader owns. */
+  if(window.detailsOf && me && typeof contractOwnedBy==='function'){
+    cs.forEach(c=>{
+      if(!contractOwnedBy(c, me)) return;
+      let d=null; try{ d=detailsOf(c); }catch(_){ d=null; }
+      if(!d||!d.left) return;
+      push('details',c,i18tn('det_to_fill',d.left,{n:d.left}),
+        ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(getContract(c.id)||c,'details'); }catch(_){} });
     });
   }
   /* 3b. Notes a colleague gave this reader. negoNotesForMe reads c.thread and

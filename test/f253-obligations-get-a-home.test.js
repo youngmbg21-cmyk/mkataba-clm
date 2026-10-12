@@ -142,8 +142,11 @@ describe('f253 (2) — the count, and the one thing it colours', () => {
 
   test('and a contract with nothing outstanding draws no count at all', () => {
     const { win, c } = bench([{ id: 'o1', desc: 'a', due: day(-2), status: 'done' }]);
-    assert.ok(!/room-tab-n/.test(win.roomTabsHtml(c, 'docs')), '"0" is furniture');
-    assert.ok(!/room-tab-n/.test(win.roomTabsHtml(supplyContract(), 'docs')),
+    /* ASKED OF THE OBLIGATIONS TAB'S OWN BUTTON (12 Oct 2026): the Details
+       tab in front of it carries its own count of boxes still to fill. */
+    const obTab = html => (String(html).match(/data-ws-tab="oblig"[^>]*>[^<]*(<span[^>]*>)?/) || [''])[0];
+    assert.ok(!/room-tab-n/.test(obTab(win.roomTabsHtml(c, 'docs'))), '"0" is furniture');
+    assert.ok(!/room-tab-n/.test(obTab(win.roomTabsHtml(supplyContract(), 'docs'))),
       'and so is a count on a contract that has none');
   });
 

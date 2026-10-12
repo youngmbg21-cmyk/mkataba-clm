@@ -188,9 +188,10 @@ const readRow = page => page.evaluate(() => {
     await page.evaluate(() => { const b = document.querySelector('#sign-check [data-sc-row="bl:blanks"] [data-sc-blanks]'); if (b) b.click(); });
     await page.waitForTimeout(1200);
     const focus = await page.evaluate(() => { const a = document.activeElement;
-      return { inPanel: !!(a && a.closest && a.closest('#pd-fill')), key: a && a.getAttribute && (a.getAttribute('data-blankf') || a.getAttribute('data-field') || ''),
+      return { inPanel: !!(a && a.closest && a.closest('#tplform-section')), key: a && a.getAttribute && (a.getAttribute('data-blankf') || a.getAttribute('data-field') || ''),
         tab: (document.querySelector('#ws-tabs .on, #ws-tabs [aria-selected="true"]') || {}).textContent || '' }; });
-    check('3b pressing it lands on Home\'s Document, Overview tab, with the cursor in the first empty box', focus.inPanel && focus.key === 'effDate', JSON.stringify(focus));
+    /* RE-POINTED 12 Oct 2026: the form is the room's Details tab (owner). */
+    check('3b pressing it lands on the Details tab, with the cursor in the first empty box', focus.inPanel && focus.key === 'effDate', JSON.stringify(focus));
     await page.evaluate(() => openShareModal(getContract('MK-A2')));
     await page.waitForTimeout(1600);
     const send = await page.evaluate(() => {
@@ -321,11 +322,12 @@ const readRow = page => page.evaluate(() => {
     await page.screenshot({ path: path.join(OUT, '5-standard-overview.png') });
     check('5b the Overview\'s value reads as unanswered, not "Non-monetary"', valueCell === '—', valueCell);
     /* RE-POINTED IN PLACE 1 Oct 2026: the sheet's one Edit (Read Down). */
-    await page.evaluate(() => { const b = document.querySelector('[data-ov-edit="all"]'); if (b) b.click(); });
+    /* RE-POINTED 12 Oct 2026: the boxes are on the Details tab (owner). */
+    await page.evaluate(id => roomGoTab(getContract(id), 'details'), made.id);
     await page.waitForTimeout(900);
-    const box = await page.evaluate(() => { const v = document.querySelector('[data-kt="value"]'); const n = document.querySelector('[data-kt="nonmonetary"]');
+    const box = await page.evaluate(() => { const v = document.querySelector('#kt-det-terms [data-kt="value"]'); const n = document.querySelector('#kt-det-terms [data-kt="nonmonetary"]');
       return { box: !!v, disabled: v ? v.disabled : null, ticked: n ? n.checked : null }; });
-    check('5c and in Edit these details the value box is open and "Non-monetary" is not ticked',
+    check('5c and on Details the value box is open and "Non-monetary" is not ticked',
       box.box && box.disabled === false && box.ticked === false, JSON.stringify(box));
 
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));

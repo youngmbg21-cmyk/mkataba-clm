@@ -1294,6 +1294,8 @@ function tplFormPaintRow(c, idx) {
     err.style.display = p ? 'block' : 'none';
   }
   tplFormPaintFill(c);
+  /* the Details tab's count and head read the same answers (12 Oct 2026) */
+  if (window.detailsChanged) try { detailsChanged(c); } catch (_) {}
 }
 function tplFormCommit(c, idx, value) {
   const form = c.templateForm;
@@ -1402,7 +1404,7 @@ function tplFormPopover(c, idx, anchor) {
   try { input?.focus(); } catch (_) {}
 }
 
-Object.assign(window, { newPaperBlocked, newPaperBlockLine, newPaperBlock, tplLibCategoryOptions, tplLibCatStreamRowHtml,
+Object.assign(window, { tplFormInputHtml, newPaperBlocked, newPaperBlockLine, newPaperBlock, tplLibCategoryOptions, tplLibCatStreamRowHtml,
   /* The whole cached list, drafts included, for surfaces that render company
      templates as rows of their own (the Templates page's library table)
      rather than through renderCompanyTemplatesSection's card grid. */
