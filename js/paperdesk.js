@@ -205,7 +205,10 @@ function pdDocHtml(c){
    flow rules' rule 6, Young 8 Oct 2026: approvals leave the Board; the bell and
    the checklist open the contract on the Paper with the approval pack on the
    Signing tab). Below 768px the phone has no Paper: the room's own tab. */
-const PD_ROOM_TAB = { facts: 'terms', oblig: 'obligations', sign: 'sign', hist: 'history', deal: 'redline', doc: 'contract', copilot: 'terms' };
+/* the room's / the phone's own tab keys (ROOM_TABS, M_TAB_FOR_ROOM): the phone
+   fallback below lands on them (BUGLOG 10 Oct 2026: 'contract' and
+   'obligations' were no tab's key, so those two landed nowhere) */
+const PD_ROOM_TAB = { facts: 'terms', oblig: 'oblig', sign: 'sign', hist: 'history', deal: 'redline', doc: 'docs', copilot: 'terms' };
 function pdOpenOnHome(id, tab){
   const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c) return false;
   /* SIGNING LEFT THE PAPER (10 Oct 2026): an approval waiting on you opens

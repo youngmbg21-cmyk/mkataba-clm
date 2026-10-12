@@ -8424,6 +8424,9 @@ function rlPaintFocusBtn(){
      loop finds nothing. */
   const page = rlFocusPage();
   if (page && page.querySelectorAll) page.querySelectorAll('[data-ws-focus]').forEach(face);
+  /* the head's ⋯ Focus row says pressed too while this page is in Focus
+     (BUGLOG 11 Oct 2026: the two doors disagreed here) */
+  if (page){ const row = document.getElementById('ws-focus'); if (row) row.setAttribute('aria-pressed', _rlFocus ? 'true' : 'false'); }
 }
 function rlResetFocus(){ _rlFocus = false; }
 /* Esc is the second exit, wired once onto the document and guarded twice: the

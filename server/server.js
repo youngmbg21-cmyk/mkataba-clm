@@ -11263,6 +11263,17 @@ function copilotContractType(c) {
    and the markup left — the server has no DOM, and this is a reading rather
    than evidence. COPILOT_PB_TEXT_MIN mirrors js/playbook.js's own floor. */
 const COPILOT_PB_TEXT_MIN = 120;
+/* THE WORDS OF RECORD: a contract filed on a signed copy whose words DIFFER
+   from the agreed ones keeps that copy's text (outsideFile, `signedCopy.text`),
+   and the signed copy is the document of record — the overnight reading of the
+   book reads it, as the duties do (obligationsText in js/obligations.js), so
+   Insights never says thirty days where the copy of record says sixty
+   (BUGLOG 10 Oct 2026, fixed 12 Oct). */
+function copilotRecordWording(c) {
+  const sc = c && c.signedCopy;
+  if (sc && typeof sc.text === 'string' && sc.text.trim()) return sc.text.trim();
+  return copilotContractWording(c);
+}
 function copilotContractWording(c) {
   const body = String((c && c.redlineText) || '').trim();
   if (body) return (c.format === 'rich' ? richBodyToSearchText(body) : body).trim();
@@ -20832,7 +20843,7 @@ async function runBookReading() {
     if (done >= cap) { out.cap = true; break; }
     let c = {}; try { c = JSON.parse(r.json) || {}; } catch (_) { continue; }
     if (c.archived) continue;
-    const wording = copilotContractWording(c);
+    const wording = copilotRecordWording(c);
     const hash = sha(wording);
     const have = db.prepare('SELECT * FROM book_readings WHERE contract_id=?').get(String(r.id)) || null;
     const needTerms = !(have && have.terms && have.hash === hash);

@@ -14547,7 +14547,7 @@ function docTermFill(c, raw){
   c.lastAction=todayStr();
   logAudit(c,'Edited',`End date set to ${end} — ${n} years from the start date stated in the term clause`);
   persist(c);
-  toast(`End date set to ${fmtDocDate(end)} — ${n} years from the start date`);
+  toast(`End date set to ${fmtDocDate(end)} — ${n} years from the start date`,'ok');
   formRepaint();
 }
 function docNoticeFill(c, raw){
