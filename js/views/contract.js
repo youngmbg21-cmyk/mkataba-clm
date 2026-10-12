@@ -14017,16 +14017,16 @@ function docThreadPaint(c){
   if(!card) return;
   const right=home?null:document.getElementById('doc-right');
   const on=docThreadOn();
-  const rows=on?docXrayRows(c,thEl('canvas')):[];
-  /* the Track in the paper's left margin (docTrackPaint) reads the same rows */
-  if(!home) docTrackPaint(c, on?rows:null);
-  const has=home?false:(on?docPanelHas(c):true);
   /* ON HOME the filter belongs to its contract too: a new contract starts on
      All, and a refresh's kept filter (docThreadKeepTones) is taken once —
      the room's own bookkeeping (docThreadShowsClauses) is not reached here */
   if(home&&c){ const id=String(c.id);
     if(_docThreadTonesFor!==id){ _docThreadTonesFor=id; _docThreadTones=[];
       const k=_docThreadKeep; if(k&&String(k.id)===id){ _docThreadKeep=null; _docThreadTones=docThreadTonesClean(k.tones); } } }
+  const rows=on?docXrayRows(c,thEl('canvas')):[];
+  /* the Track in the paper's left margin (docTrackPaint) reads the same rows */
+  if(!home) docTrackPaint(c, on?rows:null);
+  const has=home?false:(on?docPanelHas(c):true);
   const up=on&&(home||docThreadShowsClauses(c));
   _docThreadUp=up;
   card.hidden=!up;
