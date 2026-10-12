@@ -5053,7 +5053,18 @@
   .hist-day-h b{ color:var(--color-text); font-weight:var(--w-strong); }
   .hist-trail .hist-ev{ grid-template-columns:56px 14px minmax(0,1fr) minmax(0,260px) minmax(84px,auto); align-items:center;
     padding:9px var(--s-4); border-bottom:1px solid var(--color-divider); }
-  .hist-trail .hist-ev::before{ display:none; }
+  /* ONE DAY, ONE LINE (owner, 12 Oct 2026: "where there are multiple bubbles
+     in a day, they should be joined by a line like the previous iterations").
+     A piece per entry down the ring column; the day's first entry starts it
+     at its ring's middle and its last stops it there, so a day heading breaks
+     the line and a day with one entry draws none. The ring sits mid-row
+     (align-items:center), its surface middle hiding the line behind it. */
+  .hist-trail .hist-ev::before{ display:block; top:0; bottom:0;
+    left:calc(var(--s-4) + 56px + var(--hist-gap) + var(--hist-dot) / 2 - .5px); }
+  .hist-trail .hist-day-h + .hist-ev::before,
+  .hist-trail > .hist-ev.hist-ev:first-child::before{ top:50%; }
+  .hist-trail .hist-ev:has(+ .hist-day-h)::before,
+  .hist-trail > .hist-ev.hist-ev:last-child::before{ bottom:50%; }
   .hist-trail .hist-ev .hist-dot{ margin-top:0; }
   .hist-trail{ padding:0; }
   .hist-rchip{ display:inline-flex; align-items:center; height:17px; padding:0 6px; margin-left:8px; border-radius:var(--radius);

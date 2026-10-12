@@ -3238,7 +3238,9 @@ function obPanelActs(o, c, i, ctx){
     if(may && w === 'done') acts.push({ k:'reopen', label: i18t('ob_reopen_cap'), run: () => { const h = obLocate(obKeyOf(c.id, o, i)); if(h) toggleObligation(h.c, h.i, { from:'obligations tab' }); } });
     if(may) acts.push({ k:'edit', label: i18t('ob_edit_cap'), icon:'pencil', run: () => { const h = obLocate(obKeyOf(c.id, o, i)); if(h) openObligationForm(h.c, { ...h.o, _i: h.i }); } });
   } else {
-    acts.push({ k:'open', label: i18t('ins_open_contract'), run: () => obOpenContract(c.id) });
+    /* the three doors every list draws (owner, 12 Oct 2026); Document lands
+       on Home's Document at its Obligations tab, as Open contract did */
+    if(typeof insDoorActs === 'function') acts.push(...insDoorActs(c, { doc: () => obOpenContract(c.id) }));
   }
   return acts;
 }

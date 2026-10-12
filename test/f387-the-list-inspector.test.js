@@ -172,7 +172,8 @@ describe('f387 (2) the Contracts list in the inspector’s shape', () => {
     assert.deepEqual(b.calls.pop(), ['open', 'MK-2'], 'a double-click opens the contract');
     row('MK-2').dispatchEvent(key(b.win, 'Enter'));
     assert.deepEqual(b.calls.pop(), ['open', 'MK-2'], 'Enter opens it');
-    b.$('#ins-panel [data-ins-act="open"]').dispatchEvent(evt(b.win, 'click'));
+    /* RE-POINTED 12 Oct 2026 (owner): the panel's own button is the Document door */
+    b.$('#ins-panel [data-ins-act="door-doc"]').dispatchEvent(evt(b.win, 'click'));
     assert.deepEqual(b.calls.pop(), ['open', 'MK-2'], 'and so does the panel’s own button');
   });
 
@@ -226,7 +227,10 @@ describe('f387 (2) the Contracts list in the inspector’s shape', () => {
     b.win.contractOnHold = () => false;
     b.win.renderRegister();
     const acts = b.$$('#ins-panel [data-ins-menu] [data-act]').map(x => x.getAttribute('data-act'));
-    for (const k of ['open', 'share', 'archive', 'decline']) assert.ok(acts.includes(k), k + ' is in the panel’s menu');
+    for (const k of ['share', 'archive', 'decline']) assert.ok(acts.includes(k), k + ' is in the panel’s menu');
+    /* 12 Oct 2026 (owner): Workspace is a door in the panel's own row now, so
+       its ⋯ does not carry it twice (the row's menu still does) */
+    assert.ok(!acts.includes('open'), 'Workspace is not repeated under ⋯');
     b.$('#ins-panel [data-ins-menu] [data-act="archive"]').dispatchEvent(evt(b.win, 'click'));
     assert.deepEqual(done, [['MK-1', true]], 'the row menu’s own act, on the chosen contract');
   });
@@ -252,8 +256,14 @@ describe('f387 (2) the Contracts list in the inspector’s shape', () => {
     b.win.renderRegister();
     const acts = id => { b.$(`#reg-tbody tr[data-row="${id}"]`).dispatchEvent(evt(b.win, 'click'));
       return b.$$('#ins-panel [data-ins-act]').map(x => x.getAttribute('data-ins-act')); };
-    assert.deepEqual(acts('MK-4'), ['open'], 'an empty negotiation is not an open one');
-    assert.deepEqual(acts('MK-5'), ['open', 'nego'], 'one with a change on it is, second to the contract');
+    /* RE-POINTED 12 Oct 2026 (owner: the three doors always drawn): the
+       Negotiation door is always there, greyed with its reason where no
+       change is on it — never a dead button in live clothes */
+    const nego = () => b.$('#ins-panel [data-ins-act="door-nego"]');
+    assert.deepEqual(acts('MK-4'), ['door-doc', 'door-nego', 'door-ws'], 'the three doors, always');
+    assert.ok(nego().disabled && /No negotiation/.test(nego().getAttribute('title') || ''), 'an empty negotiation is not an open one: greyed, with the reason');
+    assert.deepEqual(acts('MK-5'), ['door-doc', 'door-nego', 'door-ws']);
+    assert.ok(!nego().disabled, 'one with a change on it is, second to the contract');
     assert.match(code(CT), /const started=!!\(c\.negotiation&&Array\.isArray\(c\.changes\)&&c\.changes\.length\);/,
       '[control] the Document tab still reads it this way — the relation this claim holds the panel to');
   });
@@ -317,9 +327,11 @@ describe('f387 (3) the Negotiations list in the inspector’s shape', () => {
     const b = world(nw(), { ins: true, nego: true });
     b.win.openNegotiations({ list: true });
     const acts = b.$$('#ins-panel [data-ins-act]').map(x => x.getAttribute('data-ins-act'));
-    assert.deepEqual(acts.sort(), ['nego', 'open']);
-    assert.ok(b.$('#ins-panel [data-ins-act="nego"]').classList.contains('ui-btn-primary'), 'the lead act is the filled one');
-    assert.ok(b.$('#ins-panel .ins-sub [data-ins-act="open"]'), 'Open contract is a link under the name');
+    /* RE-POINTED 12 Oct 2026 (owner): Negotiation · Document · Workspace, the
+       negotiation filled and first; Document a door beside it, not a link */
+    assert.deepEqual(acts, ['door-nego', 'door-doc', 'door-ws']);
+    assert.ok(b.$('#ins-panel [data-ins-act="door-nego"]').classList.contains('ui-btn-primary'), 'the lead act is the filled one');
+    assert.equal(b.$$('#ins-panel .ui-btn-primary').length, 1, 'one filled button');
     b.$('#reg-tbody tr[data-row="MK-7"]').dispatchEvent(evt(b.win, 'dblclick'));
     assert.deepEqual(b.calls.pop(), ['nego', 'MK-7']);
   });
@@ -434,7 +446,9 @@ describe('f387 (5) the Approvals & signing page', () => {
     /* Re-pointed 9 Oct 2026 (SAP benchmark, owner-approved): "Open contract"
        is a link on the head's sub line — the same act, the same open. */
     /* RE-POINTED 11 Oct 2026 (owner): Open contract lands on Home's Document, the room as the fallback */
-    assert.match(c, /const open=\{ k:'open', inSub:true, label:i18t\('ins_open_contract'\), run:c=>\{ if\(!\(typeof pdOpenOnHome==='function'&&pdOpenOnHome\(c\.id,'copilot'\)\)\) selectContract\(c\.id\); \} \};/);
+    /* RE-POINTED 12 Oct 2026 (owner): the three doors every list draws,
+       none filled — this page's filled button is its own verb */
+    assert.match(c, /const open=insDoorActs\(r\.c\);/);
   });
   test('5c [wall] the page still decides nothing', () => {
     const c = code(AP);

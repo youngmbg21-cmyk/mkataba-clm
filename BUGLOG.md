@@ -20675,3 +20675,7 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - PARKED for the owner: the lost "Simplify" highlight action on Home's paper; the Notes drawer covering the Chat door (notes-two-rooms-verify); after a differing signed copy is filed, the paper still shows the agreed wording (design question); the old open PR #115 (CLAUDE.md's bug-log line count) — not closed.
 - LEFT as before: the faint grey strip (on purpose); the docBody light-row throw (open); theme-tokens / six-round-audit / their-edit-page / copilot-band stay on KNOWN_RED with their reasons.
 - NOTE: only the last 80 lines of this log can be read in a session (reading it whole is denied on purpose), so older items were not reviewed tonight.
+
+## Noticed, not fixed — 12 Oct 2026 (three doors build)
+- Our standards panel (js/views/library.js, sdOpenContract) still says "Open contract" but opens the contract's workspace, not Home's Document — left alone; the owner named five list pages.
+- Agents page (js/views/agents.js, the 'overview' and approval buttons) still says "Open contract" — left alone, not one of the five list panels.

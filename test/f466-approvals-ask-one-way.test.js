@@ -110,7 +110,7 @@ describe('f466 (1) the Approvals page decides through the room\'s verbs and stil
       assert.ok(!V.includes(act), act + ' is called from the page');
   });
   test('the panel draws the verbs when the reading says so, and not otherwise', () => {
-    const w = loadViews(['js/views/approvalsview.js'], { approvalDecidableNow: c => (c.id === 'A' ? { kind: 'rule' } : null) });
+    const w = loadViews(['js/views/approvalsview.js'], { approvalDecidableNow: c => (c.id === 'A' ? { kind: 'rule' } : null), insDoorActs: () => [] });
     const keys = r => w.apInsActs('approvals', r).map(a => a.k);
     assert.equal(keys({ c: { id: 'A' }, mine: true }).slice(0, 2).join(','), 'approve,refuse');
     assert.ok(!keys({ c: { id: 'B' }, mine: true }).includes('approve'));
