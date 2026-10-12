@@ -11643,6 +11643,12 @@
      the accent's lighter ink, so the edge stays visible on the dark ground. */
   :root{ --btn-lift:rgba(10,20,40,.18); --btn-edge:var(--accent-solid); }
   html.dark{ --btn-lift:rgba(0,0,0,.45); --btn-edge:var(--accent-ink); }
+  /* A FILTER IS NOT A BUTTON: on the Contracts filter bar the accent edge is
+     what says a filter is IN FORCE, so a resting chip keeps the hairline
+     (--chip-edge, the old grey by day and night) and only an active one wears
+     the accent. Focus still lights it. */
+  :root{ --chip-edge:var(--color-divider); }
+  html.dark{ --chip-edge:var(--rule-strong); }
   .hb-btn{border-radius:var(--radius-lg);border-color:var(--btn-edge);color:var(--accent-ink);background:var(--color-surface);}
   .hb-btn:hover{background:color-mix(in srgb,var(--accent-solid) 8%,var(--color-surface));border-color:var(--accent-solid);}
   .hb-btn.is-primary{background:var(--accent-fill);border-color:var(--accent-fill);color:#fff;box-shadow:0 1px 2px var(--btn-lift);}
@@ -11700,7 +11706,7 @@
      is exactly what a date is. ONE class, both columns, so they cannot drift. */
   .reg-table .reg-day{font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-body);
     font-variant-numeric:tabular-nums;color:var(--color-neutral-600);}
-  .reg-filterbar .reg-chip{position:relative;flex-direction:row;align-items:center;gap:5px;height:var(--ctl-h);padding:0 var(--pad-ctl-x);border:1px solid var(--btn-edge);border-radius:999px;background:var(--color-surface);color:var(--color-neutral-700);font-size:var(--t-body);font-weight:var(--w-label);white-space:nowrap;cursor:pointer;}
+  .reg-filterbar .reg-chip{position:relative;flex-direction:row;align-items:center;gap:5px;height:var(--ctl-h);padding:0 var(--pad-ctl-x);border:1px solid var(--chip-edge);border-radius:999px;background:var(--color-surface);color:var(--color-neutral-700);font-size:var(--t-body);font-weight:var(--w-label);white-space:nowrap;cursor:pointer;}
   /* NOTHING DECORATIVE TAKES THE PRESS. The funnel mark, the word and the
      caret all sit over the control, and a press on any of them has to reach
      it — MEASURED, a press on the caret landed on the <label>, which opens
@@ -12415,7 +12421,7 @@
   .sap-page .reg-fb .reg-chip .reg-f-l{font-size:var(--t-meta);color:var(--color-neutral-600);font-weight:var(--w-body);max-width:none;}
   .sap-page .reg-fb .reg-chip .reg-f-l b{display:none;}
   .sap-page .reg-fb .reg-chip .reg-f-v{display:flex;align-items:center;height:var(--ctl-h);padding:0 28px 0 var(--s-2);
-    border:1px solid var(--btn-edge);border-radius:var(--radius);background:var(--color-surface);color:var(--color-text);
+    border:1px solid var(--chip-edge);border-radius:var(--radius);background:var(--color-surface);color:var(--color-text);
     font-size:var(--t-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;}
   .sap-page .reg-fb .reg-chip:hover .reg-f-v{border-color:var(--color-neutral-400);}
   .sap-page .reg-fb .reg-chip:focus-within .reg-f-v{border-color:var(--color-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--color-accent) 25%,transparent);}
@@ -12434,7 +12440,7 @@
   .sap-page .reg-tabbar > .reg-views{flex:0 1 auto;min-width:0;margin-top:0;}
   .sap-page .reg-tabbar > .reg-fb{flex:0 0 auto;margin-left:auto;flex-wrap:nowrap;align-items:center;gap:var(--s-2);padding:var(--s-1) 0;}
   .sap-page .reg-tabbar .reg-fb .reg-chip:not(.reg-chip-btn){display:flex;flex-direction:row;align-items:center;gap:0;min-width:0;height:var(--ctl-h);
-    padding:0 28px 0 var(--s-2);border:1px solid var(--btn-edge);border-radius:var(--radius);background:var(--color-surface);}
+    padding:0 28px 0 var(--s-2);border:1px solid var(--chip-edge);border-radius:var(--radius);background:var(--color-surface);}
   .sap-page .reg-tabbar .reg-fb .reg-chip:not(.reg-chip-btn):hover{border-color:var(--color-neutral-400);background:var(--color-surface);}
   .sap-page .reg-tabbar .reg-fb .reg-chip:not(.reg-chip-btn):focus-within{border-color:var(--color-accent);
     box-shadow:0 0 0 2px color-mix(in srgb,var(--color-accent) 25%,transparent);}

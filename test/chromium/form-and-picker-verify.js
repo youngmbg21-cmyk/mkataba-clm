@@ -164,10 +164,15 @@ const MEASURE = () => {
       const seen = el => { const r = el.getBoundingClientRect();
         return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
       const own = [...root.querySelectorAll('[data-wz-mine],[data-wz-lib]')].filter(seen);
+      /* THE SEARCH LIST (12 Oct 2026): one shelf at a time behind a tab, your
+         own first; HaTi's rows are one press away on their own tab. */
+      const tabs = [...root.querySelectorAll('[data-na-tab]')].map(t => t.getAttribute('data-na-tab'));
+      const ownTop = own.length ? Math.round(own[0].getBoundingClientRect().y) : null;
+      (root.querySelector('[data-na-tab="tid"]') || { click() {} }).click();
       const forYou = [...root.querySelectorAll('[data-wz-tid]')].filter(seen);
       const cancel = document.getElementById('wz-pick-cancel');
       return { ownVisible: own.length, forYouVisible: forYou.length,
-        ownTop: own.length ? Math.round(own[0].getBoundingClientRect().y) : null,
+        ownTop, tabs,
         forYouTop: forYou.length ? Math.round(forYou[0].getBoundingClientRect().y) : null,
         cancel: !!(cancel && seen(cancel)), cancelText: cancel ? cancel.textContent.trim() : '',
         say: !!document.getElementById('dr-say'),
@@ -177,9 +182,11 @@ const MEASURE = () => {
 
     check('4b your own paper is ON the front screen, not only behind a folder',
       picker.ownVisible >= 2, `${picker.ownVisible} own cards visible`);
-    check('4c and it leads, above the paper HaTi ships',
-      picker.ownTop != null && picker.forYouTop != null && picker.ownTop < picker.forYouTop,
-      `own at y=${picker.ownTop}, HaTi's at y=${picker.forYouTop}`);
+    /* RE-POINTED 12 Oct 2026 (the Search list): the shelves are tabs, so
+       "leads" is the tab order — your own shelf first, HaTi's after it. */
+    check('4c and it leads, before the paper HaTi ships',
+      (picker.tabs || []).indexOf('tid') > 0 && ['lib', 'mine'].includes((picker.tabs || [])[0]),
+      `tabs ${JSON.stringify(picker.tabs)}`);
     /* RE-POINTED 21 Sep 2026: the picker is the New agreement pop-up now, and
        the stream FOLDERS are the sentence box's word filter (a stream's name
        is searched) — so the control asks for FOR YOU's chips and the box. */
@@ -225,6 +232,7 @@ const MEASURE = () => {
       return drive(page, () => {
         const pick = document.getElementById('wz-pick');
         if (!pick) return { err: 'picker not drawn' };
+        (pick.querySelector('[data-na-tab="tid"]') || { click() {} }).click();
         const eye = [...pick.querySelectorAll('span')]
           .find(s => getComputedStyle(s).textTransform === 'uppercase' && /for you/i.test(s.textContent));
         const seen = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
