@@ -8933,7 +8933,9 @@ function hbPlace(){
   if (s.face === 'calendar' && typeof window.calPlace === 'function'){ try { p.cal = calPlace(); } catch (_){} }
   /* the Document tab keeps its contract and its panel tab (11 Oct 2026: the
      contract's own Document tab is gone, so this is where a refresh lands) */
-  if (s.face === 'paper' && typeof window.pdContract === 'function'){ try { const c = pdContract(); if (c) p.paper = { id: String(c.id), tab: typeof pdTab === 'function' ? pdTab() : '' }; } catch (_){} }
+  if (s.face === 'paper' && typeof window.pdContract === 'function'){ try { const c = pdContract(); if (c){ p.paper = { id: String(c.id), tab: typeof pdTab === 'function' ? pdTab() : '' };
+    /* and the Clauses list's colour filter (BUGLOG 11 Oct 2026) */
+    const tones = typeof window.docThreadTonesNow === 'function' ? docThreadTonesNow(c.id) : []; if (tones.length) p.paper.tones = tones; } } catch (_){} }
   return p;
 }
 function hbPlacePut(p){
@@ -8950,6 +8952,7 @@ function hbPlacePut(p){
   if (p.paper && p.paper.id && p.face === 'paper'){
     const want = p.paper; let n = 0;
     if (want.tab && typeof window.pdSetTab === 'function') pdSetTab(want.tab);
+    if (Array.isArray(want.tones) && typeof window.docThreadKeepTones === 'function') docThreadKeepTones(want.id, want.tones);
     const go = () => {
       if (!(window.state && state.view === 'dashboard' && hbS().face === 'paper') || (window.intel && intel.paper)) return;
       if (typeof getContract === 'function' && getContract(want.id) && typeof window.igWalk === 'function'){ igWalk([want.id], 0, { tab: want.tab || undefined }); return; }

@@ -13491,6 +13491,11 @@ function docThreadPlace(){
   if(_docThreadTones.length) o.tones=_docThreadTones.slice();
   return o;
 }
+/* HOME'S CLAUSES KEEP THEIR COLOUR FILTER ACROSS A REFRESH (BUGLOG 11 Oct
+   2026): Home's place (hbPlace) carries the tones; this hands them to the one
+   keep the room's refresh already used (_docThreadKeep). */
+function docThreadTonesNow(id){ return (_docThreadTonesFor===String(id) && _docThreadTones.length) ? _docThreadTones.slice() : []; }
+function docThreadKeepTones(id, tones){ const t=docThreadTonesClean(tones); if(id&&t.length) _docThreadKeep={ id:String(id), clauses:true, tones:t }; }
 function docThreadPlacePut(p){
   if(!p||p.tab!=='docs'||(p.clauses==null&&!Array.isArray(p.tones))) return;
   _docThreadKeep={ id:(typeof state!=='undefined'&&state&&state.activeId)||null, clauses:!!p.clauses, tones:docThreadTonesClean(p.tones) };
@@ -14016,6 +14021,12 @@ function docThreadPaint(c){
   /* the Track in the paper's left margin (docTrackPaint) reads the same rows */
   if(!home) docTrackPaint(c, on?rows:null);
   const has=home?false:(on?docPanelHas(c):true);
+  /* ON HOME the filter belongs to its contract too: a new contract starts on
+     All, and a refresh's kept filter (docThreadKeepTones) is taken once —
+     the room's own bookkeeping (docThreadShowsClauses) is not reached here */
+  if(home&&c){ const id=String(c.id);
+    if(_docThreadTonesFor!==id){ _docThreadTonesFor=id; _docThreadTones=[];
+      const k=_docThreadKeep; if(k&&String(k.id)===id){ _docThreadKeep=null; _docThreadTones=docThreadTonesClean(k.tones); } } }
   const up=on&&(home||docThreadShowsClauses(c));
   _docThreadUp=up;
   card.hidden=!up;
@@ -17445,7 +17456,7 @@ Object.assign(window,{docReadLongSplit,DOC_READ_LONG_WORDS,DOC_READ_RUN_MIN,docT
      window from another module, or from a test stage, is silence when it is
      not on this list: this codebase's most repeated defect. */
   DOC_READ_MIN_W,docReadFits,docReadOn,docReadItems,
-  DOC_XRAY_SPINE_W,DOC_THREAD_LINE,docThreadOn,docThreadFlatSay,docThreadLive,docThreadAtLine,docThreadLineRow,docThreadGoTo,docThreadOpen,docThreadPaint,docThreadWire,
+  DOC_XRAY_SPINE_W,DOC_THREAD_LINE,docThreadOn,docThreadTonesNow,docThreadKeepTones,docThreadFlatSay,docThreadLive,docThreadAtLine,docThreadLineRow,docThreadGoTo,docThreadOpen,docThreadPaint,docThreadWire,
   docThreadRowHtml,docThreadBodyHtml,docThreadExplainHtml,docThreadUnrunHtml,docThreadPlain,docThreadStates,docThreadFill,
   /* the Drawer, the colour filter and Plain (Young, 5 Oct 2026) */
   docPanelHas,docThreadLanding,docThreadShowsClauses,docThreadDrawerShowing,docThreadDrawerSet,docThreadPlace,docThreadPlacePut,
