@@ -7525,9 +7525,11 @@ function igStrandPress(sp, b, i){
     clearTimeout(el._igFlash); el._igFlash=setTimeout(()=>el.classList.remove('ig-flash'),1700); }
   const row=_igStrandData[i]; if(!row) return;
   if(!intel.dockOpen){ intel.dockOpen=true; renderIntelDock(); igSyncDockWidth(); }
-  /* the Track's press puts a question ready only where the box stands (the
-     Copilot tab); on Clauses it opens the clause there and asks nothing */
-  const inp=document.getElementById('igd-input'); if(!inp) return;
+  /* the Track's press puts a question ready in the box, which stands on the
+     Copilot tab only: from Overview or Obligations it turns there (igAskBox);
+     on Clauses it opens the clause in the list and asks nothing */
+  const onClauses=typeof window.pdTab==='function'&&pdTab()==='doc'&&window.pdShowsDesk&&pdShowsDesk();
+  const inp=onClauses?null:igAskBox(); if(!inp) return;
   const had=String(inp.value||'');
   if(had.trim() && had!==_igStrandLastAsk) return;
   const q=igStrandQuestion(row);
