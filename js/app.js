@@ -81,6 +81,7 @@ import './brainmap.js';           // the Brain's catalogue and its reader of the
 import './views/brain.js';         // the Brain: HaTi as a network of neurons, read from its own code (27 Sep 2026)
 import './agentruns.js';           // Copilot's agents' engine room: runs, settings, the page's quiet refresh (27 Sep 2026)
 import './views/agents.js';
+import './views/jambohouse.js';  // Jambo's agents: the house, his jobs and his points, behind Insights (12 Oct 2026)
 import './copilotacts.js';         // Copilot prepares, you press: @ people, # contracts, the send and draft cards (7 Oct 2026)        // Copilot's work: the six agents — what each found, prepared and did (27 Sep 2026)
 import './paperdesk.js';           // the Paper's desk: Facts · Obligations · Signing · History · Deal beside the paper on Home (8 Oct 2026)
 import './views/register.js';
@@ -285,6 +286,7 @@ function commandMeta(view){
     case 'customers': return [i18t('nav_customers'), ''];
     case 'brain':     return [i18t('nav_brain'), ''];
     case 'agents':    return [i18t('nav_agents'), ''];
+    case 'jambo':     return [i18t('nav_jambo'), ''];
     case 'intake':    return [i18t('nav_intake'), i18t('pg_intake_sub')];
     // Named to match the nav item exactly. One feature answering to two names
     // is one name too many for a reader trying to describe where they were.
@@ -408,7 +410,7 @@ function pageActionHtml(kind){
    screen"): the shell bar already says Brain and the stage card names its own
    view, so the page title was the one row between the brain and the screen. */
 /* 'customers' draws its own head in its white band (its name, figures and Draft new agreement, 10 Oct 2026). */
-const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates', 'calendar', 'mynotes', 'brain', 'customers'];
+const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates', 'calendar', 'mynotes', 'brain', 'customers', 'jambo'];
 /* ---- WHOSE PAGE OWNS ITS OWN HEIGHT, AND THEREFORE NEEDS NO SCROLLBAR
    RESERVED (owner-reported 25 Aug 2026, off three screenshots of the top-right
    corner: "the top card on the right corner … is leaving space in the corner.
@@ -951,7 +953,7 @@ function updateSidebarCounts(){
 /* ============================================================ SHELL VIEW SWITCH */
 const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Insights',
   calendar:'Calendar', reports:'Reports', register:'Contracts', migration:'Import contracts',
-  pipeline:'Pipeline', advice:'Advice desk', intake:'Requests', obligations:'Obligations', approvals:'Approvals & signing', customers:'Parties', agents:"Jambo's work", brain:'the Brain', templates:'Templates', playbook:'Our standards',
+  pipeline:'Pipeline', advice:'Advice desk', intake:'Requests', obligations:'Obligations', approvals:'Approvals & signing', customers:'Parties', agents:"Jambo's work", jambo:"Jambo's agents", brain:'the Brain', templates:'Templates', playbook:'Our standards',
   team:'Team & settings', directory:'People', workspace:'the contract workspace',
   redline:'Negotiations' };
 
@@ -1184,6 +1186,7 @@ function setView(view){
     else if(view==='customers') renderCustomers();
     else if(view==='brain') renderBrainPage();
     else if(view==='agents') renderAgentsPage();
+    else if(view==='jambo') renderJamboHouse();
     else if(view==='intake') renderIntake();
     else if(view==='templates') renderTemplatesPage();
     else if(view==='playbook') renderPlaybookPage();
@@ -1380,6 +1383,8 @@ const PLACE_PARTS={
   customers:['cuPlace','cuPlacePut'],
   /* the Brain keeps only its Stack view's trip and stop (10 Oct 2026); its other views land as before */
   brain:['brPlace','brPlacePut'],
+  /* Jambo's agents keeps its tab, period, look and speed (12 Oct 2026) */
+  jambo:['jhPlace','jhPlacePut'],
 };
 const PLACE_ONE_CONTRACT=['workspace','doc','redline'];
 const PLACE_BACK_MS=6000, PLACE_BACK_EVERY=120, PLACE_SAVE_WAIT=250;

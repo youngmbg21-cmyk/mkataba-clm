@@ -5887,6 +5887,9 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     if ((Array.isArray(c.changes) ? c.changes : []).some(x => x && x.authorSide === 'counterparty'
         && x.status === 'pending' && !x.withdrawn && !hadAsk.has(String(x.id)))) roundPrepKick(c.id);
   } catch (_) {}
+  /* …and a save that DECIDED an ask Jambo had answered says what became of
+     his answer (agentRoundSettle): the house's points read it. */
+  try { agentRecordSettle(prev, c, { id: req.user.id, name: req.user.name || req.user.email }); } catch (_) {}
   /* A REQUEST DRAFTED AS THIS CONTRACT IS DONE once the contract leaves Drafting. */
   try { srvIntakeCloseOn(prev, c, req); } catch (_) {}
   if (sealedNow) srvSendExecutedCopies(c.id, srvAppUrl(req));
@@ -6094,6 +6097,11 @@ app.put('/api/settings', auth, admin, (req, res) => {
      answers right, Part 3): a settings save never writes it, stale or not. */
   if ('boardWords' in stored) incoming.boardWords = stored.boardWords; else delete incoming.boardWords;
   if ('boardVerified' in stored) incoming.boardVerified = stored.boardVerified; else delete incoming.boardVerified;   // its own route (Part 9)
+  /* Jambo's points are their own route's (PUT /api/settings/agent-points), like
+     the word book: a whole-blob save from a browser holding an older copy must
+     not put back values an admin has since changed. */
+  if ('agentPoints' in stored) incoming.agentPoints = stored.agentPoints; else delete incoming.agentPoints;
+  if ('agentPointsLog' in stored) incoming.agentPointsLog = stored.agentPointsLog; else delete incoming.agentPointsLog;
   /* WHO SAVED A LANE, AND WHO IT NAMES, ARE THE SERVER'S WORD — see
      srvLanesStamp. */
   if (Array.isArray(incoming.intakeLanes)) incoming.intakeLanes = srvLanesStamp(incoming.intakeLanes, stored.intakeLanes, req.user);
@@ -18493,6 +18501,25 @@ app.put('/api/me/prefs', auth, (req, res) => {
       return res.status(400).json({ error: 'briefEvery must be one of: ' + BRIEF_EVERY.join(', ') });
     prefs.briefEvery = v;
   }
+  /* A PERSON'S OWN POINT VALUES (12 Oct 2026, the agents page): per agent,
+     validated like the company's; null takes that agent back to the company's
+     values, and {agentPoints:null} takes every agent back. They change only
+     what this person sees — the company's totals never read them. */
+  if ('agentPoints' in (req.body || {})) {
+    const v = req.body.agentPoints;
+    if (v === null) delete prefs.agentPoints;
+    else if (typeof v === 'object' && !Array.isArray(v)) {
+      const mine = { ...(prefs.agentPoints && typeof prefs.agentPoints === 'object' ? prefs.agentPoints : {}) };
+      for (const [k, x] of Object.entries(v)) {
+        if (!AGENT_POINT_KEYS.includes(k)) return res.status(400).json({ error: 'No such agent: ' + k });
+        if (x === null) { delete mine[k]; continue; }
+        const c = agentPointsClean(x, k);
+        if (!c) return res.status(400).json({ error: 'Each value must be a whole number: points 0–999, the three shares 0–200, the cap 0–9999.' });
+        mine[k] = c;
+      }
+      if (Object.keys(mine).length) prefs.agentPoints = mine; else delete prefs.agentPoints;
+    } else return res.status(400).json({ error: 'agentPoints must be an object or null' });
+  }
   db.prepare('UPDATE users SET prefs=? WHERE id=?').run(JSON.stringify(prefs), req.user.id);
   res.json({ ok: true, prefs });
 });
@@ -19573,6 +19600,7 @@ async function runRenewalPrep() {
       if (r.ok && !r.resp.truncated) {
         db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(rkey, now());
         out.prepared++; streak = 0;
+        agentPieceAdd('renew', c.id, decideBy);
       } else { bump('failed'); if (++streak >= PREP_OUTAGE_STREAK) { out.outage = true; break; } }
     } catch (e) { bump('failed'); if (++streak >= PREP_OUTAGE_STREAK) { out.outage = true; break; } }
   }
@@ -19665,6 +19693,7 @@ async function runPlaybookPrep() {
         detail: `Playbook review prepared overnight — ${res.verdicts.length} position${res.verdicts.length === 1 ? '' : 's'} checked (Jambo-assisted), charged to ${owner.name || owner.id}` }]);
       db.prepare('UPDATE contracts SET json=?, updated_at=? WHERE id=?').run(JSON.stringify(cur), now(), r.id);
       out.prepared++;
+      agentPieceAdd('paper', r.id);
     } catch (e) { bump('failed'); if (++streak >= PREP_OUTAGE_STREAK) { out.outage = true; break; } }
   }
   return out;
@@ -19770,7 +19799,7 @@ async function runLinkWatch() {
        provider has still been recorded where an admin reads it. Only a refusal
        leaves the rows unmarked, so tomorrow tries again. */
     if (r && (r.sent || r.provider === 'outbox' || !EMAIL_ON())) {
-      for (const x of rows) db.prepare('INSERT OR IGNORE INTO reminders (rkey,created_at) VALUES (?,?)').run(x.rkey, now());
+      for (const x of rows){ db.prepare('INSERT OR IGNORE INTO reminders (rkey,created_at) VALUES (?,?)').run(x.rkey, now()); agentPieceAdd('link', x.c.id, x.it.kind); }
       out.told++;
     } else bump('mailFailed');
   }
@@ -19837,7 +19866,7 @@ async function runLateChases() {
       const facts = { name: c.name || contractRef(c), desc: o.desc || '', days: late, first: String(o.chasedAt || '').slice(0, 10) };
       const k = String(person.email).toLowerCase();
       if (!tell.has(k)) tell.set(k, { who: person, rows: [] });
-      tell.get(k).rows.push({ rkey, line: tFor(L, !hasTo ? 'mail_lc_noaddr' : stage === 'firm' ? 'mail_lc_firm' : 'mail_lc_first', facts) });
+      tell.get(k).rows.push({ rkey, cid: c.id, ob: o.id, line: tFor(L, !hasTo ? 'mail_lc_noaddr' : stage === 'firm' ? 'mail_lc_firm' : 'mail_lc_first', facts) });
     }
   }
   for (const { who, rows } of tell.values()) {
@@ -19849,7 +19878,7 @@ async function runLateChases() {
     /* The outbox is delivery; only a refusal leaves the rows unmarked, so
        tomorrow's run tries again. */
     if (mr && (mr.sent || mr.provider === 'outbox')) {
-      for (const x of rows) db.prepare('INSERT OR IGNORE INTO reminders (rkey,created_at) VALUES (?,?)').run(x.rkey, now());
+      for (const x of rows){ db.prepare('INSERT OR IGNORE INTO reminders (rkey,created_at) VALUES (?,?)').run(x.rkey, now()); agentPieceAdd('late', x.cid, x.ob); }
       out.told++;
     } else bump('mailFailed');
   }
@@ -19889,6 +19918,10 @@ async function runOurPromises() {
     db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(rkey, now());
     for (const a of addrs) { const m = mk(a); await sendEmail(a, m.subject, m.body, tag); }
     out.reminded++;
+    /* ONE PIECE PER PROMISE, however many reminders it took: it is used when
+       the promise is marked done (agentRecordSettle). */
+    const mo = /^(.+):ob:([^:]+):/.exec(rkey);
+    if (mo && !db.prepare("SELECT 1 FROM agent_pieces WHERE agent='ours' AND contract_id=? AND ref=? LIMIT 1").get(mo[1], mo[2])) agentPieceAdd('ours', mo[1], mo[2]);
     return true;
   };
   for (const r of db.prepare("SELECT id,name,folder,json FROM contracts WHERE status!='Declined'").all()) {
@@ -20099,6 +20132,7 @@ async function runRoundPrep(cid, { force = false } = {}) {
       db.prepare('INSERT INTO round_prep (contract_id,pkey,json,created_at) VALUES (?,?,?,?) ON CONFLICT(contract_id,pkey) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
         .run(String(c.id), a.pkey, JSON.stringify(rec), now());
       out.prepared++;
+      agentPieceAdd('round', c.id, a.pkey);
     }
   }
   if (out.prepared) try { db.prepare('UPDATE contracts SET updated_at=? WHERE id=?').run(now(), String(c.id)); } catch (_) {}
@@ -20303,6 +20337,7 @@ async function runImportQueue() {
        saving the unread copy back over it. */
     upsertContract(c, row.version + 1);
     out.read++;
+    agentPieceAdd('import', q.contract_id);
     if (c.migration.needsReview) out.needReview++;
     finish('done');
   }
@@ -20444,6 +20479,8 @@ app.post('/api/agents/:k/sendback', auth, editor, async (req, res) => {
   const go = k === 'round' ? () => roundRedo(cid, String(b.key || ''), note, who)
     : k === 'renew' ? () => renewRedo(cid, note, who) : () => paperRedo(cid, note, who);
   const out = await runAgent(k, 'sendback', who, go, { subject: cid });
+  /* SENT BACK WITH A NOTE: a person changed what Jambo had prepared. */
+  if (out && out.prepared) try { agentPieceDecide(k, cid, 'changed', who, k === 'round' ? String(b.key || '') : ''); } catch (_) {}
   if (out.busy) return res.status(409).json({ error: 'Jambo is already working on this one. Try again in a moment.', busy: true });
   if (out.ceiling || out.agentLimit) return res.status(429).json({ error: out.ceiling
     ? 'Today’s Jambo budget is used up, so Jambo did not redo it. An admin can raise it in Settings.'
@@ -20579,7 +20616,7 @@ async function runAgent(k, trigger, who, fn, { subject = '' } = {}) {
   const id = 'ar_' + rid(8);
   db.prepare('INSERT INTO agent_runs (id,agent,trigger,subject,by_id,by_name,started_at,day) VALUES (?,?,?,?,?,?,?,?)')
     .run(id, k, trigger, subject || null, who && who.id ? String(who.id) : null, who && who.name ? String(who.name) : null, now(), aiToday());
-  const run = { k, cost: 0 };
+  const run = { k, cost: 0, id };
   try {
     const out = (await agentRunCtx.run(run, () => Promise.resolve().then(fn))) || {};
     const cost = Math.round(run.cost * 1e6) / 1e6;
@@ -20603,6 +20640,129 @@ async function runAgent(k, trigger, who, fn, { subject = '' } = {}) {
    the reader's language. */
 const AGENT_NAME_EN = { round: 'Their round came back', link: 'No link to sign', renew: 'Renewals',
   paper: 'New paper', late: 'Late promises', ours: 'Our promises', import: 'Archive import', book: 'Read the whole book' };
+/* ============================================================================
+   JAMBO'S PIECES OF WORK, AND WHAT BECAME OF EACH (Young, 12 Oct 2026: the
+   agents page — "the house", its points and its contract search)
+   ============================================================================
+   agent_runs says when an agent ran and how much it prepared; it never said
+   WHICH contract each piece was for, nor what a person then did with it — and
+   Jambo's points are counted from exactly that. So every piece is a row here:
+     · PREPARED where an agent prepares it (agentPieceAdd, inside the agent's
+       own run, so the row carries the run id), one per contract per thing.
+     · DECIDED where a person acts on it: used as is, changed by a person, or
+       thrown away (agentPieceDecide). The round's answers are decided HERE,
+       on the stored record, by comparing the decision the save carried with
+       the answer Jambo prepared (agentRoundSettle) — the browser cannot say
+       it. The Board's acts post the rest (POST /api/agents/outcome), each one
+       a person's press, written by this server with that person's name.
+   THE FOUR READING AGENTS (Approvals, Requests, Week ahead, Dropped threads)
+   prepare nothing on the server; their piece is written when a person acts
+   on what they laid out, already decided.
+   NOTHING HERE IS GUESSED: a piece nobody has acted on stays open (no
+   outcome) and scores nothing; points are counted in the browser from these
+   rows and the company's values (PUT /api/settings/agent-points). */
+db.exec(`CREATE TABLE IF NOT EXISTS agent_pieces (
+  id TEXT PRIMARY KEY, agent TEXT NOT NULL, contract_id TEXT, ref TEXT NOT NULL DEFAULT '',
+  run_id TEXT, prepared_at TEXT NOT NULL, outcome TEXT, decided_at TEXT, by_id TEXT, by_name TEXT);
+  CREATE INDEX IF NOT EXISTS idx_agent_pieces_at ON agent_pieces(prepared_at);
+  CREATE INDEX IF NOT EXISTS idx_agent_pieces_open ON agent_pieces(agent, contract_id, outcome);`);
+/* ONE LIST OF AGENTS, the page's AG_KEYS (js/views/agents.js) — a test holds
+   the two equal, so a new agent cannot reach the page without a points row. */
+const AGENT_POINT_KEYS = ['approve', 'request', 'week', 'quiet', 'round', 'link', 'renew', 'paper', 'late', 'ours', 'import'];
+const AGENT_OUTCOMES = ['used', 'changed', 'thrown'];
+/* The house's look-back is bounded and the bound is said (A CAP IS A FACT). */
+const AGENT_PIECES_MAX = 5000;
+const AGENT_PIECES_DAYS_MAX = 120;
+function agentPieceAdd(k, contractId, ref) {
+  if (!AGENT_POINT_KEYS.includes(k)) return null;
+  try {
+    const run = agentRunCtx.getStore();
+    const id = 'ap_' + rid(10);
+    db.prepare('INSERT INTO agent_pieces (id,agent,contract_id,ref,run_id,prepared_at) VALUES (?,?,?,?,?,?)')
+      .run(id, k, contractId ? String(contractId) : null, String(ref || '').slice(0, 160), (run && run.k === k && run.id) || null, now());
+    return id;
+  } catch (_) { return null; }
+}
+/* The newest OPEN piece of this agent on this contract (and this ref, where
+   one is given) is decided; where there is none — a reading agent, or work
+   prepared before the ledger began — a decided piece is written, once a day
+   per agent, contract, ref and outcome, so a second press is not a second score. */
+function agentPieceDecide(k, contractId, outcome, who, ref) {
+  if (!AGENT_POINT_KEYS.includes(k) || !AGENT_OUTCOMES.includes(outcome)) return null;
+  const cid = contractId ? String(contractId) : null, r = String(ref || '').slice(0, 160);
+  const byId = who && who.id != null ? String(who.id) : null, byName = who && who.name ? String(who.name) : null;
+  const open = r
+    ? db.prepare('SELECT id FROM agent_pieces WHERE agent=? AND contract_id IS ? AND ref=? AND outcome IS NULL ORDER BY prepared_at DESC LIMIT 1').get(k, cid, r)
+    : db.prepare('SELECT id FROM agent_pieces WHERE agent=? AND contract_id IS ? AND outcome IS NULL ORDER BY prepared_at DESC LIMIT 1').get(k, cid);
+  if (open) {
+    db.prepare('UPDATE agent_pieces SET outcome=?, decided_at=?, by_id=?, by_name=? WHERE id=?').run(outcome, now(), byId, byName, open.id);
+    return { id: open.id, decided: true };
+  }
+  const day = now().slice(0, 10);
+  const twice = db.prepare("SELECT id FROM agent_pieces WHERE agent=? AND contract_id IS ? AND ref=? AND outcome=? AND substr(decided_at,1,10)=? LIMIT 1").get(k, cid, r, outcome, day);
+  if (twice) return { id: twice.id, already: true };
+  const id = 'ap_' + rid(10), at = now();
+  db.prepare('INSERT INTO agent_pieces (id,agent,contract_id,ref,run_id,prepared_at,outcome,decided_at,by_id,by_name) VALUES (?,?,?,?,?,?,?,?,?,?)')
+    .run(id, k, cid, r, null, at, outcome, at, byId, byName);
+  return { id, created: true };
+}
+/* THEIR ROUND: a save that decided an ask of theirs Jambo had answered is
+   compared with that answer. The same decision is "used"; a counter whose
+   words a person changed is "changed"; any other decision is "thrown". An
+   answer that said "ask a colleague" (escalate) scores nothing either way. */
+const _apWords = s => String(s == null ? '' : s).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+function agentRoundSettle(prev, c, who) {
+  if (!prev || !c) return;
+  const was = new Map((Array.isArray(prev.changes) ? prev.changes : []).filter(x => x && x.authorSide === 'counterparty').map(x => [String(x.id), x]));
+  const now2 = Array.isArray(c.changes) ? c.changes : [];
+  for (const ch of now2) {
+    if (!ch || ch.authorSide !== 'counterparty') continue;
+    const before = was.get(String(ch.id));
+    if (!before || before.status !== 'pending' || ch.status === 'pending') continue;
+    const row = db.prepare('SELECT json FROM round_prep WHERE contract_id=? AND pkey=?').get(String(c.id), roundPrepKey(ch.clauseId, ch.newText));
+    if (!row) continue;
+    let a = null; try { a = JSON.parse(row.json); } catch (_) { a = null; }
+    if (!a || a.verdict === 'escalate') continue;
+    const ours = now2.find(x => x && x.authorSide !== 'counterparty' && (String(x.counterOf || '') === String(ch.id) || String(ch.supersededBy || '') === String(x.id)));
+    const decided = ch.status === 'accepted' ? 'accept' : ch.status === 'rejected' ? 'reject' : (ch.status === 'countered' || ch.status === 'superseded') && ours ? 'counter' : '';
+    if (!decided) continue;
+    let outcome = decided === a.verdict ? 'used' : 'thrown';
+    if (decided === 'counter' && a.verdict === 'counter' && _apWords(ours.newText) !== _apWords(a.wording)) outcome = 'changed';
+    agentPieceDecide('round', c.id, outcome, who, roundPrepKey(ch.clauseId, ch.newText));
+  }
+}
+/* WHAT A SAVE ITSELF SAYS ABOUT JAMBO'S WORK, read as a difference against
+   the stored record: their round (above); a promise of ours marked done is
+   Our promises' reminder used; an imported file marked checked is Archive
+   import's reading used; a renewal decision taken is Renewals' memo used. */
+function agentRecordSettle(prev, c, who) {
+  if (!prev || !c) return;
+  agentRoundSettle(prev, c, who);
+  const was = new Map((Array.isArray(prev.obligations) ? prev.obligations : []).filter(Boolean).map(o => [String(o.id), o.status]));
+  for (const o of (Array.isArray(c.obligations) ? c.obligations : []))
+    if (o && o.status === 'done' && was.has(String(o.id)) && was.get(String(o.id)) !== 'done' && String(o.party) !== 'theirs'
+      && db.prepare("SELECT 1 FROM agent_pieces WHERE agent='ours' AND contract_id=? AND ref=? AND outcome IS NULL LIMIT 1").get(String(c.id), String(o.id)))
+      agentPieceDecide('ours', c.id, 'used', who, String(o.id));
+  if (prev.migration && prev.migration.needsReview !== false && c.migration && c.migration.needsReview === false
+    && db.prepare("SELECT 1 FROM agent_pieces WHERE agent='import' AND contract_id=? AND outcome IS NULL LIMIT 1").get(String(c.id)))
+    agentPieceDecide('import', c.id, 'used', who);
+  const dec = x => !!(x && x.renewalDecision && RENEWAL_ANSWERS_SRV.includes(x.renewalDecision.answer));
+  if (!dec(prev) && dec(c) && db.prepare("SELECT 1 FROM agent_pieces WHERE agent='renew' AND contract_id=? AND outcome IS NULL LIMIT 1").get(String(c.id)))
+    agentPieceDecide('renew', c.id, 'used', who);
+}
+/* THE COMPANY'S VALUES, per agent: minutes a piece is worth, the share kept
+   for "changed" and taken off for "thrown", and a daily cap. Absent = the
+   starting values, which the browser holds (AG_POINTS_START_MINS) — the
+   server stores only what an admin set, so it carries no copy to drift. */
+function agentPointsClean(v, k) {
+  if (!v || typeof v !== 'object') return null;
+  const n = (x, lo, hi) => { const y = Number(x); return Number.isFinite(y) && Math.floor(y) === y && y >= lo && y <= hi ? y : null; };
+  const out = { mins: n(v.mins, 0, 999), used: n(v.used, 0, 200), changed: n(v.changed, 0, 200), thrown: n(v.thrown, 0, 200), cap: n(v.cap, 0, 9999) };
+  return Object.values(out).some(x => x === null) ? null : out;
+}
+/* The house's one question: the pieces in the look-back, scoped to what the
+   reader may see — a piece on a contract outside their streams is not sent,
+   and one with no contract (a week laid out) is theirs to see. */
 /* The runner each clock-driven agent presses, and Run now presses the same. */
 function agentRunner(k) {
   if (k === 'renew') return () => runRenewalPrep();
@@ -20989,6 +21149,69 @@ app.post('/api/agents/:k/run', auth, admin, async (req, res) => {
   if (!go) return res.status(400).json({ error: 'This agent has nothing to run on its own.' });
   if (!agentCfg(k).on) return res.status(409).json({ error: 'This agent is switched off. Switch it on in its settings first.' });
   res.json(await runAgent(k, 'now', { id: req.user.id, name: req.user.name || req.user.email }, go));
+});
+/* JAMBO'S PIECES — the house's replay (GET /api/agents/pieces?days=30). */
+app.get('/api/agents/pieces', auth, (req, res) => {
+  const days = Math.max(1, Math.min(AGENT_PIECES_DAYS_MAX, Math.floor(Number(req.query.days) || 30)));
+  const from = new Date(Date.now() - days * 86400000).toISOString();
+  const rows = db.prepare('SELECT * FROM agent_pieces WHERE prepared_at>=? OR decided_at>=? ORDER BY prepared_at DESC LIMIT ?').all(from, from, AGENT_PIECES_MAX + 1);
+  const cut = rows.length > AGENT_PIECES_MAX;
+  const scope = folderScopeFor(req.user);
+  const seen = new Map();
+  const mayIds = new Set(rows.map(r => r.contract_id).filter(Boolean).filter(id => { if (!seen.has(id)) seen.set(id, idInScope(scope, id)); return seen.get(id); }));
+  const names = new Map();
+  if (mayIds.size) {
+    const q = db.prepare('SELECT id, name, counterparty, json FROM contracts WHERE id=?');
+    for (const id of mayIds) { const r = q.get(id); if (!r) continue; let no = ''; try { no = (JSON.parse(r.json) || {}).contractNo || ''; } catch (_) {}
+      names.set(id, { no: no || id, name: r.name || '', cp: r.counterparty || '' }); }
+  }
+  const pieces = rows.slice(0, AGENT_PIECES_MAX).filter(r => !r.contract_id || mayIds.has(r.contract_id)).map(r => ({
+    id: r.id, agent: r.agent, cid: r.contract_id || '', at: r.prepared_at, outcome: r.outcome || null, decidedAt: r.decided_at || null }));
+  const contracts = {}; for (const [id, v] of names) contracts[id] = v;
+  res.json({ pieces, contracts, days, from, cut, max: AGENT_PIECES_MAX });
+});
+/* A PERSON'S PRESS ON JAMBO'S WORK — used, changed or thrown away. Any member
+   may say what they did with work they could see; the contract must be in
+   their streams. The name written is the caller's, looked up, never sent. */
+app.post('/api/agents/outcome', auth, (req, res) => {
+  const b = req.body || {};
+  const k = String(b.agent || ''), outcome = String(b.outcome || '');
+  if (!AGENT_POINT_KEYS.includes(k)) return res.status(404).json({ error: 'No such agent.' });
+  if (!AGENT_OUTCOMES.includes(outcome)) return res.status(400).json({ error: 'outcome must be one of: ' + AGENT_OUTCOMES.join(', ') });
+  const cid = b.contractId ? String(b.contractId) : '';
+  if (cid && (!idInScope(folderScopeFor(req.user), cid) || !db.prepare('SELECT 1 FROM contracts WHERE id=?').get(cid)))
+    return res.status(404).json({ error: 'Contract not found' });
+  const out = agentPieceDecide(k, cid || null, outcome, { id: req.user.id, name: req.user.name || req.user.email }, b.ref);
+  res.json({ ok: true, ...(out || {}) });
+});
+/* THE COMPANY'S POINT VALUES — an admin's, per agent, validated whole.
+   Body {agent, mins, used, changed, thrown, cap} sets one agent; {agent,
+   reset:true} takes it back to the starting values; {saveAll:true} marks
+   every agent's current values as looked at (a new agent stops being "new").
+   Each change is kept on a short dated list, who and when. */
+app.put('/api/settings/agent-points', auth, admin, (req, res) => {
+  const b = req.body || {};
+  const stored = getSetting('appSettings') || {};
+  const pts = (stored.agentPoints && typeof stored.agentPoints === 'object') ? { ...stored.agentPoints } : {};
+  const log = Array.isArray(stored.agentPointsLog) ? stored.agentPointsLog.slice(-49) : [];
+  const who = req.user.name || req.user.email;
+  if (b.saveAll) {
+    pts._seen = AGENT_POINT_KEYS.slice();
+    log.push({ at: now(), by: who, agent: '*', what: 'saved' });
+  } else {
+    const k = String(b.agent || '');
+    if (!AGENT_POINT_KEYS.includes(k)) return res.status(404).json({ error: 'No such agent.' });
+    if (b.reset) { delete pts[k]; log.push({ at: now(), by: who, agent: k, what: 'reset' }); }
+    else {
+      const v = agentPointsClean(b, k);
+      if (!v) return res.status(400).json({ error: 'Each value must be a whole number: points 0–999, the three shares 0–200, the cap 0–9999.' });
+      pts[k] = v; log.push({ at: now(), by: who, agent: k, what: 'set', v });
+    }
+    pts._seen = Array.from(new Set([...(Array.isArray(pts._seen) ? pts._seen : []), k]));
+  }
+  stored.agentPoints = pts; stored.agentPointsLog = log;
+  setSetting('appSettings', stored);
+  res.json({ ok: true, agentPoints: pts, agentPointsLog: log });
 });
 /* AN AGENT'S SETTINGS — admin-only, validated, each key optional. */
 app.put('/api/agents/:k/settings', auth, admin, (req, res) => {

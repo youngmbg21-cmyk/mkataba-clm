@@ -1812,9 +1812,14 @@ function stAccountBodyHtml(){
     ${''/* LANGUAGE KEEPS ITS ONE CONTROL AND ITS ONE WRITER. Drawing a second
            picker here would be a second writer for one fact; the row says where
            the control is instead. */}
+    ${''/* JAMBO'S POINTS, JUST FOR YOU (12 Oct 2026): a person's own values per
+           agent, which change only what they see (PUT /api/me/prefs agentPoints);
+           the same table the admin's Settings draws, in its own seat. */}
+    ${(typeof agPointsTableHtml==='function'&&API_MODE())?`<section class="st-sec" id="ag-pts-mine"><h3 class="st-sec-h">${esc(i18t('jh_pt_h_mine'))}</h3>${agPointsTableHtml('mine')}</section>`:''}
     <p class="st-note">${esc(i18t('st_acct_lang_note'))}</p>`;
 }
 function stAccountWire(){
+  if(typeof agPointsWire==='function') agPointsWire(document.getElementById('ag-pts-mine'));
   document.getElementById('acct-title-save')?.addEventListener('click',async()=>{
     const u=currentUser(); if(!u) return;
     const title=(document.getElementById('acct-title')?.value||'').trim();
@@ -2609,7 +2614,7 @@ const SET_PANELS={
       if(!s||!s.agents) return { dot:'off', text:i18t('st_p_agents_sub') };
       const all=Object.values(s.agents), on=all.filter(a=>a&&a.on).length;
       return { dot:on?'ok':'off', text:i18t('st_agents_on',{ n:on, of:all.length }) }; },
-    find:()=>['round','link','renew','paper','late','import'].map(k=>i18t('ag_'+k)).concat([i18t('st_p_book'),i18t('st_book_terms')]),
+    find:()=>['round','link','renew','paper','late','import'].map(k=>i18t('ag_'+k)).concat([i18t('st_p_book'),i18t('st_book_terms'),i18t('jh_pt_h')]),
     /* READ THE WHOLE BOOK (Charts That Explain, rec 7, 5 Oct 2026): the
        overnight reading of every contract's key terms and its check against
        our standards is an overnight agent, so it sits with them — under the
@@ -2617,9 +2622,13 @@ const SET_PANELS={
        switch (GET/PUT /api/board/reading, Run now POST …/run). The Copilot
        group stays four rows (f467). */
     body(){ return `<div id="st-agents-panel"></div>
+      ${''/* JAMBO'S POINTS (12 Oct 2026, the agents page): the company's value per
+             agent — one row per agent in AG_KEYS, so a new agent's row is here
+             the day it arrives (agPointsTableHtml, js/views/jambohouse.js). */}
+      <section class="st-sec" style="margin-top:var(--s-4)" id="st-ag-points"><h3 class="st-sec-h">${esc(i18t('jh_pt_h'))}</h3>${typeof agPointsTableHtml==='function'?agPointsTableHtml('company'):''}</section>
       <section class="st-sec" style="margin-top:var(--s-4)"><h3 class="st-sec-h">${esc(i18t('st_p_book'))}</h3>
       <p class="st-note" style="margin-bottom:10px">${esc(i18t('st_book_note'))}</p><div id="st-book">${esc(i18t('st_acc_loading'))}</div></section>`; },
-    wire(){ stAgentsPaint(); stBookLoad(); },
+    wire(){ stAgentsPaint(); stBookLoad(); if(typeof agPointsWire==='function') agPointsWire(document.getElementById('st-ag-points')); },
   },
 
   /* ---- THE BOARD'S WORD BOOK (the board that answers right, Part 3, 5 Oct
