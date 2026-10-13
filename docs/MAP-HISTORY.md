@@ -28955,3 +28955,7 @@ The owner, with a screenshot: "the graphic is too big on screen so make it fit f
 
 Owner: "Fix the cost meter price too". `AI_RATE_DEFAULTS` had claude-sonnet-5 at $3 / $15 per million tokens (Sonnet 4.6's price); Anthropic's price is $2 / $10 (claude-api skill, model-migration "per-token pricing is lower than Sonnet 4.6: $2/$10 vs $3/$15"). Corrected; `AI_RATES_VERIFIED_ON` 2026-10-13. Only the server holds the table; an admin's saved row (Settings, `aiRates`) still wins over the default. Tests f133, f134, f226 unchanged and green.
 - f413 1f pinned a number: its agent limit 0.0001 sat just under one run at the old $3/$15 (0.000105) and above one at $2/$10 (0.00007), and limits below 0.0001 round to 0 (setMoney precision). Now the run gets three contracts at the smallest limit and must be stopped partway (agentLimit true, prepared < 3) — at any price. Found by the one full node run the owner asked for (12,502 of 12,503 passed; this was the one).
+
+## UPLOADED-CONTRACT-FIXED-VERIFY 4a/4b RE-POINTED (13 Oct 2026)
+
+Owner: "Fix the uploaded contract who else check too". Red on main since the 13 Oct Details/Overview change: the check went to the Details tab for `#kt-people`, but Details now holds only what the paper owes and the people directory is the Overview's Edit (`data-ov-edit="all"` → `participantsDirHtml` inside `#ov-parties`). Nothing in the product was wrong. The check now presses Edit on the Overview, measures there (list 0 · Add button 0 · column inset 16) and leaves Edit; 18/18.
