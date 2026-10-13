@@ -136,14 +136,20 @@ describe('f413 (1) — every agent is logged, limited and can be run', () => {
     assert.equal((await W.admin.json('/api/agents/status')).agents.paper.next.kind, 'off');
   });
   test('1f an agent\'s own money limit stops it, under the workspace ceiling', async () => {
+    /* PIN THE RELATION, NOT THE NUMBER: the limit is the smallest the ledger
+       keeps (0.0001, setMoney's precision) and the run is given more work than
+       that buys, so the limit must stop it partway — at any model price. (A
+       fixed limit above one run's cost stopped binding when Sonnet 5's price
+       was corrected to $2/$10.) */
     await W.admin.json('/api/agents/renew/settings', { method: 'PUT', body: { limit: 0.0001 } });
-    const owner = W.users.unrestricted;
-    await W.admin.json('/api/contracts/MK-EN-2', { method: 'PUT', body: { baseVersion: 0, contract: {
-      ...fixtureContract('MK-EN-2', 'Forklift lease', 'Nandi Dairy', FOLDER_A, 900000, 'Signed', DOC),
+    const owner = W.users.unrestricted, ids = ['MK-EN-2', 'MK-EN-3', 'MK-EN-4'];
+    for (const id of ids) await W.admin.json('/api/contracts/' + id, { method: 'PUT', body: { baseVersion: 0, contract: {
+      ...fixtureContract(id, 'Forklift lease ' + id, 'Nandi Dairy', FOLDER_A, 900000, 'Signed', DOC),
       hash: 'x', owner: { id: owner.id, name: owner.name }, expiry: day(50), metadata: { expiryDate: day(50), noticePeriodDays: 10 } } } });
-    const out = await W.admin.json('/api/agents/renew/run', { method: 'POST', body: {} });
-    assert.equal(out.agentLimit, true, JSON.stringify(out));
-    assert.equal(out.prepared, 0);
+    const out = await W.admin.raw('/api/agents/renew/run', { method: 'POST', body: {} });
+    const body = out.json || {};
+    assert.equal(body.agentLimit, true, JSON.stringify(body));
+    assert.ok((body.prepared || 0) < ids.length, 'the limit stopped it before all three: ' + JSON.stringify(body));
   });
 });
 
