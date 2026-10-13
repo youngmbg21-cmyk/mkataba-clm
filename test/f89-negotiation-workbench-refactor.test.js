@@ -234,9 +234,12 @@ describe('F89 (1) — the head is not a band at all: it rides on the tab row', (
     assert.ok(acts.length, 'the actions group is drawn');
     assert.ok(!head.querySelector('[data-redline-proxy]'),
       'the round is published from the head now, not from this row');
-    /* RE-POINTED 10 Oct 2026: the way out is "Open document" (owner). */
-    assert.ok(acts[acts.length - 1].matches('[data-rl-open-doc]'),
-      'and the way out of this negotiation ends the row');
+    /* RE-POINTED 10 Oct 2026: the way out is "Open document" (owner), and
+       13 Oct 2026: Open workspace · Open document, then Internal | Counterparty
+       ends the row (owner) */
+    const out = acts.findIndex(el => el.matches('[data-rl-open-doc]'));
+    assert.ok(out > 0 && acts[out - 1].matches('[data-rl-open-ws]') && acts[acts.length - 1].matches('.rl-segwrap'),
+      'the ways out stand together, and Internal | Counterparty ends the row');
 
     /* AND IT DROPS TO ITS OWN LINE ONLY WHEN IT REALLY DOES NOT FIT. This was
        a width rule — one number, measured on one screen, and wrong on every

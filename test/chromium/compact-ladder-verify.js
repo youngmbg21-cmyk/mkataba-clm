@@ -279,7 +279,7 @@ const HELPERS = `(() => {
     const c5 = await page.evaluate(() => {
       const m = window.__m;
       /* Deal board is a TAB since 7 Oct 2026 (it stands the row's height beside Redlined), so it left this list of controls */
-      const row = [...document.querySelectorAll('.redline-page .rl-head .rl-segwrap:not(.rl-readwrap), .redline-page .rl-head .rl-type-step, .redline-page .rl-focus-door')].filter(m.vis).map(m.box);
+      const row = [...document.querySelectorAll('.redline-page .rl-head .rl-segwrap:not(.rl-readwrap), .redline-page .rl-head .rl-type-step, .redline-page .rl-head .rl-livelist')].filter(m.vis).map(m.box);
       const seat = [...document.querySelectorAll('.redline-page .rl-head .rl-segwrap:not(.rl-readwrap) .rl-seg')].filter(m.vis)
         .map(b => ({ t: b.innerText.trim(), on: b.classList.contains('on'), fw: getComputedStyle(b).fontWeight }));
       const verbs = [...document.querySelectorAll('.redline-page .rl-card-d .rl-card-face button')].filter(m.vis).map(m.box);
@@ -293,8 +293,11 @@ const HELPERS = `(() => {
       JSON.stringify(c5.seat));
     ok('5c a redline row\'s verbs are the row rung (22), one weight',
       c5.verbs.length > 0 && c5.verbs.every(b => near(b.h, 22) && b.fw === '500'), JSON.stringify(c5.verbs.slice(0, 6).map(b => b.t + ':' + b.h + '/' + b.fw)));
-    ok('5e the three check symbols are squares of the head row\'s rung, their marks at the rung\'s icon size',
-      c5.checks.length === 3 && c5.checks.every(b => near(b.w, 28) && near(b.h, 28)), JSON.stringify(c5.checks.map(b => b.w + '×' + b.h)));
+    /* RE-POINTED 13 Oct 2026: the Focus door left the row (owner), so the row is
+       measured on its doors (Open workspace, Open document) and the seat switch;
+       the Obligations and Risk scan squares are gone, the Notes square stays */
+    ok('5e the one check symbol left (Notes) is a square of the head row\'s rung',
+      c5.checks.length === 1 && c5.checks.every(b => near(b.w, 28) && near(b.h, 28)), JSON.stringify(c5.checks.map(b => b.w + '×' + b.h)));
     ok('5d REFUSAL 3: the contract\'s first line on the Negotiate page did not move down',
       c5.ink != null && (PARENT_INK.nego == null || c5.ink <= PARENT_INK.nego + 0.5),
       `first ink ${c5.ink} · parent ${PARENT_INK.nego}`);

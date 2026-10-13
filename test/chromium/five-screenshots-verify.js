@@ -265,8 +265,10 @@ const drive = async (page, fn, arg, fallback) => {
     await drive(page, id => openRedlineWorkbench(id), cid, null);
     await pause(2200);
     const nf = await drive(page, async () => {
-      const b = document.querySelector('#view-redline [data-ws-focus]') /* the control-row door since 21 Sep 2026 */;
-      if (!b) return { err: 'no Focus button on the negotiate page' };
+      /* RE-POINTED 13 Oct 2026: the owner deleted the control row's Focus button; Focus on Negotiate is the More menu's row (#ws-focus), opened first */
+      (document.querySelector('#view-redline #ws-more') || { click(){} }).click(); await new Promise(z => setTimeout(z, 350));
+      const b = document.querySelector('#view-redline #ws-focus');
+      if (!b) return { err: 'no Focus row on the negotiate page' };
       const r = b.getBoundingClientRect();
       /* A RECT IS NOT A PAINTED PIXEL — the lesson the ladder's hover card
          wrote down. elementFromPoint is the instrument. */
@@ -285,7 +287,7 @@ const drive = async (page, fn, arg, fallback) => {
         exit: !!document.querySelector('#view-redline .rl-focus-exit') };
     }, undefined, { err: 'blocked' });
 
-    check('4a the negotiate page draws the same Focus button', !nf.err,
+    check('4a the negotiate page offers Focus on its More menu', !nf.err,
       nf.err || `${nf.w}x${nf.h}`);
     check('4b it is PAINTED — nothing sits over it', nf.painted === true, String(nf.painted));
     check('4c pressing it really turns focus mode on', nf.onPage === true && nf.onBody === true,

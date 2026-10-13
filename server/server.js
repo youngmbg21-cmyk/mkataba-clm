@@ -8442,62 +8442,37 @@ app.post('/api/ai/breakdown', auth, rlAiDeep, aiFeature('breakdown'), aiBudgetGu
   if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const { text, side } = req.body || {};
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
-  const tool = { name: 'break_down', description: 'Cut the contract into regions and say how each one stands for the reader\'s side.',
+  /* TWO STEPS (owner, 13 Oct 2026: "the loading is taking too long and ruining
+     the user experience"): opening Clauses asks only for the LIST — the
+     sections and, per point, its title, severity, section and one line — on
+     the fast model; a point's deep dive is its own small read on the press
+     (POST /api/ai/breakdown/point). The section's own write-ups (sentence,
+     meaning, fix, quotes) left with the Breakdown face and are no longer asked. */
+  const tool = { name: 'break_down', description: 'Cut the contract into sections and list the points that matter to the company.',
     input_schema: { type: 'object', properties: {
-      head: { type: 'string', description: 'At most 6 words: what to do first, e.g. "Fix one, check three".' },
-      sub: { type: 'string', description: 'One plain sentence: where to start and why.' },
       regions: { type: 'array', maxItems: 10, items: { type: 'object', properties: {
         name: { type: 'string', description: 'A short plain name, at most 4 words, e.g. "Price & currency".' },
-        clauses: { type: 'string', description: 'The clause and schedule numbers in it, as printed, e.g. "5.1–5.3 · Sch. 3".' },
         status: { type: 'string', enum: BREAKDOWN_STATUS, description: 'need = the reader must act; look = worth a look; fine = nothing to do.' },
-        kind: { type: 'string', enum: BREAKDOWN_KINDS, description: 'pay = what we pay; get = what we get; protect = what protects us.' },
-        headline: { type: 'string', description: 'At most 12 words: what this region does to the reader.' },
-        sentence: { type: 'string', description: 'One or two plain sentences of fact.' },
-        meaning: { type: 'string', description: 'What the marked words mean in practice, plainly.' },
-        fix: { type: 'string', description: 'The suggested change, or "Nothing to change."' },
-        ours: { type: 'string', description: 'What a careful buyer of this kind of contract would usually expect here, one sentence. Empty if fine.' },
-        here: { type: 'string', description: 'What this contract says instead, one sentence. Empty if fine.' },
-        stake: { type: 'string', description: 'What is at stake, in money or plain terms, one sentence. Empty if fine.' },
-        quotes: { type: 'array', maxItems: 3, items: { type: 'object', properties: {
-          source: { type: 'string', description: 'Where it is, e.g. "Clause 5.11 · Currency".' },
-          text: { type: 'string', description: 'The key words, verbatim.' + AI_QUOTE_RULE },
-          mark: { type: 'array', maxItems: 4, items: { type: 'string' }, description: 'Short phrases inside text that matter most, verbatim.' },
-        }, required: ['text'] } },
-        items: { type: 'array', maxItems: 20, items: { type: 'object', properties: {
-          ref: { type: 'string', description: 'The clause number as printed.' },
-          title: { type: 'string', description: 'Its heading, short.' },
-          note: { type: 'string', description: 'At most 12 words on what it says.' },
-          status: { type: 'string', enum: BREAKDOWN_STATUS },
-        }, required: ['ref', 'title'] } },
-      }, required: ['name', 'status', 'headline', 'items'] } },
-      links: { type: 'array', maxItems: 6, items: { type: 'object', properties: {
-        a: { type: 'number', description: '1-based number of one region.' }, b: { type: 'number', description: '1-based number of another region.' },
-        why: { type: 'string', description: 'How the two connect, a few words.' } }, required: ['a', 'b', 'why'] } },
-      points: { type: 'array', maxItems: BREAKDOWN_POINTS_MAX, description: 'The deep read: the points that matter most to the company, worst first.', items: { type: 'object', properties: {
+        items: { type: 'array', maxItems: 40, items: { type: 'object', properties: {
+          ref: { type: 'string', description: 'The clause or schedule number as printed.' },
+        }, required: ['ref'] } },
+      }, required: ['name', 'status', 'items'] } },
+      points: { type: 'array', maxItems: BREAKDOWN_POINTS_MAX, description: 'The points that matter most to the company, worst first.', items: { type: 'object', properties: {
         clause: { type: 'string', description: 'The clause number as printed, e.g. "5" or "5.2". Empty when the point is something MISSING from the contract.' },
         after: { type: 'string', description: 'Only for a missing point: the clause number it would sit after.' },
-        region: { type: 'number', description: '1-based number of the region it belongs to.' },
+        region: { type: 'number', description: '1-based number of the section it belongs to.' },
         status: { type: 'string', enum: ['need', 'look'], description: 'need = must be dealt with before signing; look = worth raising.' },
         missing: { type: 'boolean', description: 'True when the point is something the contract does not say at all.' },
         title: { type: 'string', description: 'At most 12 words: the point, as a plain statement, e.g. "Their liability is capped at 3 months of charges".' },
         stake: { type: 'string', description: 'ONE plain line, at most 16 words, saying what is at stake for the company: the risk and, where the wording supports it, the money together.' },
-        what: { type: 'string', description: 'Two or three plain sentences: what could happen to us because of this wording.' },
-        theirs: { type: 'string', description: 'What this contract says, one short sentence. "Nothing." for a missing point.' },
-        usual: { type: 'string', description: 'What a careful company in our position would normally get instead, one short sentence.' },
-        figure: { type: 'string', description: 'The money at stake as a short figure in the contract currency, e.g. "KES 13.05M", worked out ONLY from figures the wording states. Empty when it cannot be worked out.' },
-        how: { type: 'string', description: 'One sentence showing how the figure was worked out from the wording, or why there is no figure.' },
-        push: { type: 'string', description: 'Where the other side is likely to push back, one sentence.' },
-        edge: { type: 'array', maxItems: 3, items: { type: 'string' }, description: 'Our edge: one to three practical moves that win the point while protecting the company.' },
-        trade: { type: 'array', maxItems: 3, items: { type: 'object', properties: { give: { type: 'string' }, get: { type: 'string' } }, required: ['give', 'get'] }, description: 'What we could give, and what we get for it.' },
-        ask: { type: 'string', description: 'The wording we would propose instead, in the contract\'s own style. Empty if none.' },
-        quote: { type: 'string', description: 'The key words in the contract that carry the point, verbatim. Empty for a missing point.' + AI_QUOTE_RULE },
+        quote: { type: 'string', description: 'The key words in the contract that carry the point, verbatim, at most 25 words. Empty for a missing point.' + AI_QUOTE_RULE },
         links: { type: 'array', maxItems: 3, items: { type: 'number' }, description: '1-based numbers of other points this one connects to.' },
       }, required: ['title', 'stake', 'status'] } },
     }, required: ['regions'] } };
   const mine = side === 'theirs' ? 'the other party' : 'our side (the party using this system)';
-  const prompt = `Read this whole contract from ${mine} and cut it into at most ten regions — groups of clauses that do one job (price, payment, term and exit, service levels, data, liability, law and general, missing details…). Every clause and schedule must sit in exactly one region. For each region say plainly whether it NEEDS the reader (a real risk or a contradiction), is WORTH A LOOK, or is FINE, and why, in short plain English for a non-lawyer. Quote the key words verbatim. Then, as ONE company view (the legal risk and the money together, never split by department), list the points that matter most, worst first: where this wording leaves us exposed or hands the other side an edge, and anything a careful company would expect that is MISSING. For each, say what could happen, what is at stake, what a careful company would normally get, where the other side will push back, our edge, what we could trade, and the wording we would ask for. Work out money only from figures the wording states. Do not invent facts or numbers the text does not state; say "not stated" instead. Return via break_down.\n\nCONTRACT:\n${aiDocText(req, text)}`;
+  const prompt = `Read this whole contract from ${mine} and cut it into at most ten sections — groups of clauses that do one job (price, payment, term and exit, service levels, data, liability, law and general…). Every clause and schedule must sit in exactly one section; list each one's clause numbers. Say whether each section NEEDS the reader, is WORTH A LOOK, or is FINE. Then, as ONE company view (the legal risk and the money together, never split by department), list the points that matter most, worst first: where this wording leaves us exposed or hands the other side an edge, and anything a careful company would expect that is MISSING. For each point give only its title, one line on what is at stake, its section and the key words verbatim — keep it short; the detail is asked for separately. Do not invent facts or numbers the text does not state. Return via break_down.\n\nCONTRACT:\n${aiDocText(req, text)}`;
   try {
-    const resp = await anthropicMessages(key, 'deep', { max_tokens: 16000, tools: [tool], tool_choice: { type: 'tool', name: 'break_down' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'breakdown', who: aiWho(req) });
+    const resp = await anthropicMessages(key, 'fast', { max_tokens: 6000, tools: [tool], tool_choice: { type: 'tool', name: 'break_down' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'breakdown', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
@@ -8534,6 +8509,48 @@ app.post('/api/ai/breakdown', auth, rlAiDeep, aiFeature('breakdown'), aiBudgetGu
         links: (Array.isArray(p.links) ? p.links : []).map(n => Math.round(Number(n))).filter(n => n >= 1 && n <= rawPts.length).slice(0, 3) };
     });
     res.json({ head: str(block.input.head, 60), sub: str(block.input.sub, 240), regions, links, points, dropped, truncated: !!resp.truncated, ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
+});
+
+/* ONE POINT'S DEEP DIVE (owner, 13 Oct 2026, "Two steps"): asked on the
+   press of Deep dive, for the one point named, and kept by the browser on the
+   reading so it is asked once. Small: the answer is only the dive's own
+   sections, so it lands in seconds. Money only from figures the wording
+   states; a figure it cannot work out is empty, never guessed. */
+app.post('/api/ai/breakdown/point', auth, rlAiDeep, aiFeature('breakdown'), aiBudgetGuard, capAiInput, async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
+  const { text, side, point } = req.body || {};
+  if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
+  if (!point || typeof point !== 'object' || !point.title) return res.status(400).json({ error: 'point is required' });
+  const str = (v, n) => String(v == null ? '' : v).slice(0, n);
+  const tool = { name: 'dive_point', description: 'The deep dive on one point of the contract, for the company.',
+    input_schema: { type: 'object', properties: {
+      what: { type: 'string', description: 'Two or three plain sentences: what could happen to us because of this wording.' },
+      theirs: { type: 'string', description: 'What this contract says, one short sentence. "Nothing." for a missing point.' },
+      usual: { type: 'string', description: 'What a careful company in our position would normally get instead, one short sentence.' },
+      figure: { type: 'string', description: 'The money at stake as a short figure in the contract currency, worked out ONLY from figures the wording states. Empty when it cannot be worked out.' },
+      how: { type: 'string', description: 'One sentence showing how the figure was worked out from the wording, or why there is no figure.' },
+      push: { type: 'string', description: 'Where the other side is likely to push back, one sentence.' },
+      edge: { type: 'array', maxItems: 3, items: { type: 'string' }, description: 'Our edge: one to three practical moves that win the point while protecting the company.' },
+      trade: { type: 'array', maxItems: 3, items: { type: 'object', properties: { give: { type: 'string' }, get: { type: 'string' } }, required: ['give', 'get'] }, description: 'What we could give, and what we get for it.' },
+      ask: { type: 'string', description: 'The wording we would propose instead, in the contract\'s own style. Empty if none.' },
+    }, required: ['what', 'usual'] } };
+  const mine = side === 'theirs' ? 'the other party' : 'our side (the party using this system)';
+  const about = [`POINT: ${str(point.title, 200)}`, point.stake ? `AT STAKE: ${str(point.stake, 240)}` : '',
+    point.missing ? `This is something the contract does NOT say${point.after ? ` (it would sit after clause ${str(point.after, 24)})` : ''}.` : (point.clause ? `CLAUSE: ${str(point.clause, 24)}` : ''),
+    point.quote ? `KEY WORDS: "${str(point.quote, 600)}"` : ''].filter(Boolean).join('\n');
+  const prompt = `Read this contract from ${mine} and give the deep dive on ONE point, as one company view (the legal risk and the money together). Say what could happen, what this contract says, what a careful company would normally get, the money at stake (only from figures the wording states), where the other side will push back, our edge, what we could trade, and the wording we would ask for. Short plain English for a non-lawyer. Do not invent facts or numbers the text does not state. Return via dive_point.\n\n${about}\n\nCONTRACT:\n${aiDocText(req, text)}`;
+  try {
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 2000, tools: [tool], tool_choice: { type: 'tool', name: 'dive_point' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'breakdown', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const block = (resp.data.content || []).find(b => b.type === 'tool_use');
+    if (!block || !block.input) return res.status(502).json({ error: 'Jambo returned no structured result' });
+    const d = block.input;
+    res.json({ what: str(d.what, 600), theirs: str(d.theirs, 240), usual: str(d.usual, 240), figure: str(d.figure, 40), how: str(d.how, 300), push: str(d.push, 240),
+      edge: (Array.isArray(d.edge) ? d.edge : []).map(e => str(e, 300)).filter(Boolean).slice(0, 3),
+      trade: (Array.isArray(d.trade) ? d.trade : []).filter(t => t && t.give && t.get).slice(0, 3).map(t => ({ give: str(t.give, 160), get: str(t.get, 160) })),
+      ask: str(d.ask, 900), truncated: !!resp.truncated, ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 

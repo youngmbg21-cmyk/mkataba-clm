@@ -436,7 +436,9 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
           return o && cur && document.querySelector('#side-nav .nav-sub [data-view="redline"]') ? o : null; })(),
         first: !!b && !!row && row.children[0] === b,
         last: (() => { const acts = document.querySelector('.rl-actions');
-          return !!b && !!acts && acts.children[acts.children.length - 1] === b; })(),
+          /* RE-POINTED 13 Oct 2026 (owner): Internal | Counterparty now ends the row, right after the way out */
+          const nx = b && b.nextElementSibling;
+          return !!b && !!acts && b.parentElement === acts && (!nx || (nx.classList.contains('rl-segwrap') && !nx.nextElementSibling)); })(),
         flush: (!b || !row) ? null : Math.round(b.getBoundingClientRect().left
           - row.getBoundingClientRect().left),
         n: ((document.querySelector('.rl-livelist-n') || {}).textContent || '').trim() };
@@ -460,7 +462,7 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        WHAT STILL MATTERS AND IS STILL PINNED: it is on the control row, it is
        the LAST thing on it, and (above) it says what it is and carries its
        count. Only the end of the line it sits at has changed. */
-    check('and it ENDS the control row — the way out reads last',
+    check('and only Internal | Counterparty stands after it, ending the control row',
       backDoor.last, `last=${backDoor.last}, ${backDoor.flush}px from the row's left`)
 
     /* Press it: the LIST, not the negotiation it was pressed from. */
