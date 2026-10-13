@@ -14,14 +14,19 @@
        lands back on the page with the same total
      4 the contract typed by its number: the list narrows as you type, Enter
        takes the top match, and the total is that contract's alone; × widens it
-     5 the architect's drawing is the same house, drawn taller (roof, title block);
+     5 the architect's drawing is the same house, drawn taller (a roof; its title
+       block removed, owner 13 Oct 2026);
        the Look is a dropdown whose choice is the person's default (owner, 13 Oct 2026)
-     6 the speed is a pressed choice, and Play moves the replay
+     6 the speed is a labelled box, and Play moves the replay
+    13 the end card closes by its ×, Esc, or a press beside it (owner, 13 Oct 2026)
      7 Settings → Jambo's agents carries one points row per agent; a box left
        is saved for everyone, and the house counts with it
      8 the Board's "The agents" opens this page (one place for the agents)
      2 the house fits the window and is drawn at its real size (owner, 13 Oct
-       2026: "too big … grainy"); no facts line under the title
+       2026: "too big … grainy"); no facts line under the title; the filters
+       are labelled boxes beside the tabs, Play rides in the house's header, and
+       the house never scrolls inside itself — a very short window takes four
+       rooms a floor (owner picked "Beside the tabs", 13 Oct 2026)
     12 opened a moment before sign-in finishes, the page waits and reads after it
     11 a 2× screen gets twice the pixels; a short window shrinks the floors
      9 no free room (owner, 13 Oct 2026): the agents fill every floor evenly and
@@ -98,6 +103,14 @@ const CONTRACTS = [
     ok('2b2 drawn at its real size on screen, not a stretched picture', f2.sharp, JSON.stringify(f2));
     ok('2b3 no facts line under the title', await page.evaluate(() => !document.getElementById('jh-facts') && !document.querySelector('.jh-band .page-facts')));
     ok('2c three tabs: the house, jobs, how points work', pg.tabs.join(' ') === 'house jobs how', pg.tabs.join(' '));
+    const row = await page.evaluate(() => { const bar = document.querySelector('.jh-band .jh-tabbar'), tabs = bar && bar.querySelector('.jh-tabs'), fb = bar && bar.querySelector('.jh-fb');
+      const inBar = ['jh-range', 'jh-one', 'jh-look', 'jh-speed'].map(id => !!(bar && bar.querySelector('#' + id)));
+      const tb = tabs && tabs.getBoundingClientRect(), fr = fb && fb.getBoundingClientRect();
+      return { inBar, oldRows: document.querySelectorAll('.jh-bar').length, sameLine: !!(tb && fr && Math.abs((tb.top + tb.bottom) / 2 - (fr.top + fr.bottom) / 2) < 12 && fr.left > tb.right),
+        playInHouse: !!document.querySelector('.jh-housecard .jh-sh [data-jh-play]') && !!document.querySelector('.jh-housecard .jh-sh [data-jh-restart]') && !!document.querySelector('.jh-housecard .jh-sh #jh-prog') }; });
+    ok('2f the four filters are labelled boxes on the tab row, beside the tabs (no control rows above the house)', row.inBar.every(Boolean) && row.oldRows === 0 && row.sameLine, JSON.stringify(row));
+    ok('2g Play, Start again and the progress line ride in the house\'s own header', row.playInHouse, JSON.stringify(row));
+    ok('2h the house never scrolls inside itself', await page.evaluate(() => { const st = document.getElementById('jh-stage'); return !/(auto|scroll)/.test(getComputedStyle(st).overflowY) && st.scrollHeight <= st.clientHeight + 1; }));
     ok('2d the opener wears "you are here" on the page', pg.current);
     const painted = await page.evaluate(() => { const cv = document.getElementById('jh-cv'), x = cv.getContext('2d'), d = x.getImageData(0, 0, cv.width, cv.height).data;
       let ink = 0; for (let i = 0; i < d.length; i += 4 * 97) if (d[i] < 200 || d[i + 1] < 200 || d[i + 2] < 200) ink++; return ink; });
@@ -140,7 +153,8 @@ const CONTRACTS = [
     await page.selectOption('#jh-look', '1', { timeout: 3000 }).catch(() => {});
     await page.waitForFunction(() => jhGeom().top === 128, null, { timeout: 4000 }).catch(() => {});
     const f5 = await fit(), g5 = await page.evaluate(() => jhGeom());
-    ok('5a the drawing (roof and title block) fits the same window, sharp', g5.top === 128 && f5.bottom <= f5.win && f5.sharp, JSON.stringify({ f5, g5 }));
+    ok('5a the drawing fits the same window, sharp', g5.top === 128 && f5.bottom <= f5.win && f5.sharp && !f5.scrolls, JSON.stringify({ f5, g5 }));
+    ok('5a2 its title block is gone: the foot holds only the ground and measuring lines', g5.h - g5.top - g5.floors * g5.fh === 48, JSON.stringify(g5));
     ok('5b the Look is one dropdown, and changing it redraws in place (no rebuild)', await page.evaluate(() => !document.querySelector('[data-jh-look]') && document.querySelector('.jh-page').dataset.mark5 === 'same'));
     await page.waitForFunction(() => window.REMOTE && REMOTE.me && REMOTE.me.prefs && REMOTE.me.prefs.agentsLook === 'drawing', null, { timeout: 4000 }).catch(() => {});
     const noPlace = await page.evaluate(() => !('look' in jhPlace()));
@@ -155,35 +169,47 @@ const CONTRACTS = [
     await page.waitForFunction(() => window.REMOTE && REMOTE.me && REMOTE.me.prefs && REMOTE.me.prefs.agentsLook === 'plan', null, { timeout: 4000 }).catch(() => {});
 
     console.log('\n6 · speed and play');
-    await page.click('[data-jh-speed="4"]');
-    const sp = await page.evaluate(() => [...document.querySelectorAll('[data-jh-speed]')].filter(x => x.getAttribute('aria-pressed') === 'true').map(x => x.getAttribute('data-jh-speed')));
-    ok('6a Fastest is the pressed speed', sp.join() === '4', sp.join());
+    await page.selectOption('#jh-speed', '4');
+    const sp = await page.evaluate(() => ({ v: document.getElementById('jh-speed').value, kept: jhPlace().speed }));
+    ok('6a Speed is a labelled box, and Fastest is taken', sp.v === '4' && sp.kept === 4, JSON.stringify(sp));
     await page.click('[data-jh-play]');
     await page.waitForFunction(() => { const w = parseFloat((document.getElementById('jh-prog') || {}).style.width || '0'); return w > 5 && w < 100; }, null, { timeout: 5000 }).catch(() => {});
     const w = await page.evaluate(() => parseFloat(document.getElementById('jh-prog').style.width || '0'));
     ok('6b Play moves the replay', w > 5, String(w));
     await page.click('[data-jh-play]');
 
+    console.log('\n13 · the end card closes');
+    const endShut = async how => { await page.evaluate(() => jhFinish()); const shown = await page.evaluate(() => !document.getElementById('jh-end').hidden);
+      if (how === 'x') await page.click('[data-jh-end-x]');
+      else if (how === 'esc') await page.keyboard.press('Escape');
+      else { const b = await page.evaluate(() => { const r = document.getElementById('jh-end').getBoundingClientRect(); return { x: r.left + 12, y: r.top + 12 }; }); await page.mouse.click(b.x, b.y); }
+      return shown && await page.evaluate(() => document.getElementById('jh-end').hidden); };
+    ok('13a the × in its corner closes it', await endShut('x'));
+    ok('13b Esc closes it', await endShut('esc'));
+    ok('13c a press beside the card closes it', await endShut('out'));
+
     console.log('\n9 · no free room: the rooms widen to fill each floor');
     const fc = await page.evaluate(() => { const bad = [];
-      for (let n = 1; n <= 30; n++){ const c = jhFloorCounts(n), F = Math.ceil(n / 3);
+      for (let n = 1; n <= 30; n++){ const c = jhFloorCounts(n, 3), F = Math.ceil(n / 3);
         if (c.length !== F || c.reduce((s, x) => s + x, 0) !== n || c.some(x => x > 3 || x < Math.max(...c) - 1)) bad.push(n + ':' + c.join(',')); }
       return bad; });
     ok('9a any number of agents fills every floor, evenly, never more than three a floor', fc.length === 0, fc.join(' '));
+    const fc4 = await page.evaluate(() => { const bad = []; for (let n = 1; n <= 30; n++){ const c = jhFloorCounts(n, 4); if (c.reduce((s, x) => s + x, 0) !== n || c.some(x => x > 4 || x < Math.max(...c) - 1)) bad.push(n + ':' + c.join(',')); } return bad; });
+    ok('9a2 four a floor fills every floor evenly too', fc4.length === 0, fc4.join(' '));
     const edges = await page.evaluate(() => { const g = jhGeom(), out = [];
       for (let f = 0; f < g.floors; f++){ const y = g.top + (g.floors - f) * g.fh - g.fh / 2; out.push(!!jhRoomAt(210, y) && !!jhRoomAt(1140, y)); } return out; });
     ok('9b every floor has a room from wall to wall (no empty room at either end)', edges.length > 0 && edges.every(Boolean), JSON.stringify(edges));
 
     console.log('\n10 · the period: a transition, and a typed number of days');
     await page.evaluate(() => { document.querySelector('.jh-page').dataset.mark = 'same'; document.getElementById('jh-cv').dataset.mark = 'same'; });
-    await page.click('[data-jh-range="7"]');
+    await page.selectOption('#jh-range', '7');
     await page.waitForFunction(() => /7/.test((document.getElementById('jh-total-l') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
     const kept = await page.evaluate(() => ({ page: (document.querySelector('.jh-page') || {}).dataset?.mark, cv: (document.getElementById('jh-cv') || {}).dataset?.mark,
-      pressed: [...document.querySelectorAll('[data-jh-range]')].filter(x => x.getAttribute('aria-pressed') === 'true').map(x => x.getAttribute('data-jh-range')).join(),
+      pressed: document.getElementById('jh-range').value,
       words: (document.getElementById('jh-total-l') || {}).textContent }));
-    ok('10a a period press keeps the page and the house (nothing is rebuilt, no flash)', kept.page === 'same' && kept.cv === 'same', JSON.stringify(kept));
+    ok('10a a period choice keeps the page and the house (nothing is rebuilt, no flash)', kept.page === 'same' && kept.cv === 'same', JSON.stringify(kept));
     ok('10b …and says the new period where the total is', kept.pressed === '7' && /7 days/.test(kept.words || ''), JSON.stringify(kept));
-    await page.click('[data-jh-range="custom"]');
+    await page.selectOption('#jh-range', 'custom');
     const boxOpen = await page.evaluate(() => !document.getElementById('jh-days').hidden && document.activeElement && document.activeElement.id === 'jh-days-n');
     ok('10c Custom… opens a box for the number of days, ready to type', boxOpen);
     await page.fill('#jh-days-n', '0'); await page.keyboard.press('Enter');
@@ -191,12 +217,19 @@ const CONTRACTS = [
     ok('10d a number outside 1–120 is refused, with the reason beside the box', refused.bad && /7 days/.test(refused.words), JSON.stringify(refused));
     await page.fill('#jh-days-n', '45'); await page.keyboard.press('Enter');
     await page.waitForFunction(() => /45/.test((document.getElementById('jh-total-l') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
-    const typed = await page.evaluate(() => ({ btn: document.querySelector('[data-jh-range="custom"]').textContent, pressed: document.querySelector('[data-jh-range="custom"]').getAttribute('aria-pressed'),
-      shut: document.getElementById('jh-days').hidden, words: document.getElementById('jh-total-l').textContent, page: document.querySelector('.jh-page').dataset.mark }));
-    ok('10e 45 days is taken: the button says it, the box closes, the page is the same page', typed.btn === '45 days' && typed.pressed === 'true' && typed.shut && /45 days/.test(typed.words) && typed.page === 'same', JSON.stringify(typed));
+    const typed = await page.evaluate(() => { const sel = document.getElementById('jh-range'); return { btn: sel.selectedOptions[0].textContent, pressed: String(sel.value === '45'),
+      shut: document.getElementById('jh-days').hidden, words: document.getElementById('jh-total-l').textContent, page: document.querySelector('.jh-page').dataset.mark }; });
+    ok('10e 45 days is taken: the box says it, the box closes, the page is the same page', typed.btn === '45 days' && typed.pressed === 'true' && typed.shut && /45 days/.test(typed.words) && typed.page === 'same', JSON.stringify(typed));
     await page.reload({ waitUntil: 'networkidle' });
-    await page.waitForFunction(() => !!document.querySelector('[data-jh-range="custom"]'), null, { timeout: 8000 }).catch(() => {});
-    const back = await page.evaluate(() => { const b = document.querySelector('[data-jh-range="custom"]'); return b ? b.textContent + '|' + b.getAttribute('aria-pressed') : ''; });
+    await page.waitForFunction(() => !!document.getElementById('jh-range'), null, { timeout: 8000 }).catch(() => {});
+    const back = await page.evaluate(() => { const b = document.getElementById('jh-range'); return b ? b.selectedOptions[0].textContent + '|' + String(b.value === '45') : ''; });
+    await page.click('[data-jh-tab="jobs"]');
+    const tabsF = { jobs: await page.evaluate(() => [...document.querySelectorAll('.jh-fb select, .jh-fb input')].map(x => x.id).filter(Boolean).join()) };
+    await page.click('[data-jh-tab="how"]');
+    tabsF.how = await page.evaluate(() => document.querySelectorAll('.jh-fb').length);
+    await page.click('[data-jh-tab="house"]');
+    await page.waitForFunction(() => !!document.getElementById('jh-cv'), null, { timeout: 8000 }).catch(() => {});
+    ok('10g Jobs carries only its period, How points work no filters', tabsF.jobs === 'jh-range,jh-days-n' && tabsF.how === 0, JSON.stringify(tabsF));
     ok('10f a refresh keeps the typed period', back === '45 days|true', back);
 
     console.log('\n11 · a sharp screen and a short window');
@@ -207,9 +240,13 @@ const CONTRACTS = [
     await p2.evaluate(() => setView('jambo'));
     await p2.waitForFunction(() => !!document.getElementById('jh-cv') && typeof jhGeom === 'function', null, { timeout: 8000 }).catch(() => {});
     const f11 = await p2.evaluate(() => { const cv = document.getElementById('jh-cv'), st = document.getElementById('jh-stage');
-      return { dpr: window.devicePixelRatio, bw: cv.width, cw: cv.clientWidth, bottom: Math.round(st.getBoundingClientRect().bottom), win: window.innerHeight, fh: jhGeom().fh }; });
+      return { dpr: window.devicePixelRatio, bw: cv.width, cw: cv.clientWidth, bottom: Math.round(st.getBoundingClientRect().bottom), win: window.innerHeight, fh: jhGeom().fh, scrolls: st.scrollHeight > st.clientHeight + 1 }; });
     ok('11a on a 2× screen the house is drawn with twice the pixels (crisp, not grainy)', f11.dpr === 2 && f11.bw === Math.round(f11.cw * 2), JSON.stringify(f11));
-    ok('11b in a short window the floors shrink so the house still ends on screen', f11.bottom <= f11.win && f11.fh < 132, JSON.stringify(f11));
+    ok('11b in a short window the floors shrink so the house still ends on screen, with no scroll inside it', f11.bottom <= f11.win && f11.fh < 132 && !f11.scrolls, JSON.stringify(f11));
+    await p2.setViewportSize({ width: 1440, height: 600 });
+    await p2.waitForFunction(() => jhGeom().cols === 4, null, { timeout: 4000 }).catch(() => {});
+    const f11s = await p2.evaluate(() => { const st = document.getElementById('jh-stage'); return { g: jhGeom(), scrolls: st.scrollHeight > st.clientHeight + 1, bottom: Math.round(st.getBoundingClientRect().bottom), win: innerHeight }; });
+    ok('11b2 in a very short window the house takes four rooms a floor rather than scroll', f11s.g.cols === 4 && !f11s.scrolls && f11s.bottom <= f11s.win, JSON.stringify(f11s));
     await p2.setViewportSize({ width: 1440, height: 1000 });
     await p2.waitForFunction(fh => jhGeom().fh > fh, f11.fh, { timeout: 4000 }).catch(() => {});
     ok('11c a taller window lets the floors grow back (refits on resize)', await p2.evaluate(fh => jhGeom().fh > fh, f11.fh));
