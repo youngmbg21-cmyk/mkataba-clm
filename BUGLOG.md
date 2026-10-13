@@ -20703,3 +20703,6 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ## Noticed, not fixed — 13 Oct 2026 (the 30-minute clock, phase 1)
 - The sign check's obligations row says "the wording moved after the obligations were read" on every template-drafted contract, even right after a fresh read: obligationsReadStamp hashes obligationsText(c) (contractPlainText) while signCheckObligations hashes playbookText(c) (docPlainText), and on a drafted NDA the two texts differ (3,067 vs 3,056 characters). Measured by the clock's probe on main. It drops to "noted" after the re-read and does not hold the signature; left alone, the two readings need one text.
 - New agreement's rail search reads template NAMES only: typing "non-disclosure" finds nothing, "NDA" finds the NDA. A plain-English search term should find the template; left alone.
+### Noticed, not fixed (13 Oct 2026, the agents' house C–F)
+- Jambo's agents: when a replay ends by itself (jhFrame → jhFinish) the Play button keeps saying "Pause" — jhSetPlayWord is not called there; pre-existing.
+- Jambo's agents: a room's sub-line can read "1 approvals laid out" — the jh_unit_* words are not plural-aware; pre-existing.
