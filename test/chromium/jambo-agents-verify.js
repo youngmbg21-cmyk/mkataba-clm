@@ -357,6 +357,9 @@ const CONTRACTS = [
     await page.waitForFunction(() => !document.getElementById('jh-end').hidden, null, { timeout: 15000 }).catch(() => {});
     const f16e = await page.evaluate(() => (document.getElementById('jh-end-r') || {}).textContent || '');
     ok('16d F: the panel shows contracts touched, dates caught, chases and nudges; the end card says them', f16.res.length === 3 && /contracts? touched/.test(f16e) && /chases? (and|or) nudges?/.test(f16e), JSON.stringify({ f16, f16e }));
+    const w16 = await page.evaluate(() => ({ btn: document.querySelector('[data-jh-play]').textContent, play: i18t('jh_play'), one: jhUnitWords('approve', 1), two: jhUnitWords('approve', 2) }));
+    ok('16e a replay that ends by itself puts Play back on the button', w16.btn === w16.play, JSON.stringify(w16));
+    ok('16f a count and its unit agree: "1 approval laid out", "2 approvals laid out"', w16.one === '1 approval laid out' && w16.two === '2 approvals laid out', JSON.stringify(w16));
 
     ok('no page errors', errs.length === 0, errs.join(' | ').slice(0, 300));
   } catch (e) { ok('the run finished', false, e.message); }
