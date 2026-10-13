@@ -419,7 +419,7 @@ function openIntakeForm(pre){
      stream. Every box keeps its id, so the send below reads them as before. */
   const fs=intakeFormFields(pre), byKey=k=>fs.find(f=>f.key===k);
   const cell=f=>f?ikSapField(f, streams, FLD):'';
-  const used=new Set(['counterparty','cpemail','value','effDate','expiry','party','side','folder']);
+  const used=new Set(['counterparty','cpname','cpemail','value','effDate','expiry','party','side','folder']);
   const rest=fs.filter(f=>!used.has(f.key));
   const pair=(a,b)=>(a||b)?`<div class="sap-row">${cell(a)||'<span></span>'}${cell(b)||'<span></span>'}</div>`:'';
   openModal(`<div style="padding:24px">
@@ -434,7 +434,10 @@ function openIntakeForm(pre){
             CONTRACT_ESSENTIALS through essentialFields, ALL OPTIONAL — they
             ride the request (`answers`) into the drafting screen's boxes. */}
       <p class="sap-grp">${esc(i18t('ik_f_essentials'))}</p>
-      ${pair(byKey('counterparty'), byKey('cpemail'))}
+      ${''/* WHO THEY ARE, THEIR CONTACT AND THEIR ADDRESS, three across (13 Oct
+            2026, phase 1 item 6: the person's name rides the request into the
+            draft, so its Send and signing route open with it). */}
+      ${byKey('cpname')?`<div class="sap-row3">${cell(byKey('counterparty'))}${cell(byKey('cpname'))}${cell(byKey('cpemail'))}</div>`:pair(byKey('counterparty'), byKey('cpemail'))}
       ${(byKey('value')||byKey('effDate')||byKey('expiry'))?`<div class="sap-row3">${cell(byKey('value'))}${cell(byKey('effDate'))}${cell(byKey('expiry'))}</div>`:''}
       ${pair(byKey('party'), byKey('side'))}
       ${pair(byKey('folder'), rest[0])}

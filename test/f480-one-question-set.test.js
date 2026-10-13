@@ -42,7 +42,8 @@ describe('f480 (1) the saved-template fill asks which side of the money', () => 
   });
   test('the answer is carried to the record through the same field', () => {
     const fill = strip(fnBody(LIB, 'openTemplateFillModal'));
-    assert.match(fill, /buildFromCustomTemplate\(t, values, \{ counterpartyEmail:cpEmail\.trim\(\), party, folder, side \}\)/);
+    /* RE-POINTED 13 Oct 2026 (phase 1 item 6): their contact's name rides last on the call. */
+    assert.match(fill, /buildFromCustomTemplate\(t, values, \{ counterpartyEmail:cpEmail\.trim\(\), party, folder, side(?:, counterpartyName:cpName)? \}\)/);
     const build = strip(fnBody(LIB, 'buildFromCustomTemplate'));
     assert.match(build, /applyTemplateValues\(c, \[sideF\], \{ side:opts\.side \}\)/);
   });

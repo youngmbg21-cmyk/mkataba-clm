@@ -8989,6 +8989,12 @@ const STRINGS = {
     wz_all_templates_n: 'All templates ({n})',
     wz_nothing_matches_q: 'Nothing matches “{q}” — open All templates below, or create your own under Templates.',
     wz_their_email: 'Their email',
+    /* THEIR CONTACT, ASKED BESIDE THEIR EMAIL (13 Oct 2026, phase 1 item 6:
+       "Send is one press"): the person's name, so the Send screen and the
+       signing route open with it already in place. */
+    wz_their_contact: 'Their contact',
+    wz_their_contact_ph: 'The person you deal with',
+    wz_their_contact_hint: 'so the send and the signing route name them',
     wz_skip_for_now: 'Skip for now',
     /* ---- THE NEW AGREEMENT POP-UP (Young, 21 Sep 2026; built to the
        redesign reference's own words) ---- */
@@ -23886,6 +23892,9 @@ const STRINGS = {
     wz_all_templates_n: 'Alla mallar ({n})',
     wz_nothing_matches_q: 'Inget matchar ”{q}” — öppna Alla mallar nedan, eller skapa en egen under Mallar.',
     wz_their_email: 'Deras e-post',
+    wz_their_contact: 'Deras kontaktperson',
+    wz_their_contact_ph: 'Personen ni har kontakt med',
+    wz_their_contact_hint: 'så att utskicket och signeringsordningen namnger dem',
     wz_skip_for_now: 'Hoppa över just nu',
     na_title: 'Nytt avtal',
     na_sub: 'Era f\u00f6retagsstandarder f\u00f6rst, sedan HaTis',

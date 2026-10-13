@@ -22,7 +22,7 @@ const IK_MONEY = /(?:KES|Ksh|USD|EUR|GBP|\$|€|£)\s?[\d,.]+|\b\d[\d,.]*\s?(?:m
 
 /* The answer keys a request may carry beyond its own columns (counterparty
    and folder are columns of their own, as they always were). */
-const INTAKE_ANSWER_KEYS = ['party', 'cpemail', 'value', 'side', 'effDate', 'expiry'];
+const INTAKE_ANSWER_KEYS = ['party', 'cpname', 'cpemail', 'value', 'side', 'effDate', 'expiry'];
 const INTAKE_SIDES = ['customer', 'supplier'];
 
 /* Clean what a body or a stored row says into the map above: strings only,
@@ -35,6 +35,8 @@ function intakeAnswersClean(a){
   const out = {};
   const s = (v, n) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n);
   const party = s(src.party, 200); if (party) out.party = party;
+  /* their contact's name (13 Oct 2026, phase 1 item 6), bounded like a name */
+  const nm = s(src.cpname, 120); if (nm) out.cpname = nm;
   const em = s(src.cpemail, 200); if (em && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) out.cpemail = em;
   const vRaw = s(src.value, 40).replace(/[,\s]/g, '');
   if (vRaw && /^\d+(\.\d+)?$/.test(vRaw) && Number(vRaw) > 0) out.value = vRaw;
@@ -97,6 +99,8 @@ function intakeAnswersOnto(c, r){
   if (a.party){ c.party = a.party; set('party', a.party); field('party', a.party); }
   if (a.counterparty){ c.counterparty = a.counterparty; set('counterparty', a.counterparty); field('counterparty', a.counterparty); }
   if (a.cpemail) c.counterpartyEmail = a.cpemail;
+  /* the browser's address book adopts the name with the address (contactAdopt) */
+  if (a.cpname) c.counterpartyName = a.cpname;
   if (a.value && c.valueType !== 'none'){ c.value = Number(a.value) || 0; set('value', c.value); field('value', c.value); }
   if (a.side){ set('category', a.side); field('side', a.side); }
   if (a.effDate){ c.fields.effDate = a.effDate; c.metadata.templateFields.effDate = a.effDate; set('effectiveDate', a.effDate); }

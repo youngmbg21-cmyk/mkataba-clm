@@ -121,6 +121,7 @@ async function fillEmpties(page, rootSel, who) {
     if (b.type === 'date') v = '2026-11-01';
     else if (b.type === 'number' || /amount|value|price|fee/.test(l)) v = '250000';
     else if (b.type === 'email' || /email/.test(l)) v = 'ola@nandi.co.ke';
+    else if (/contact/.test(l)) v = 'Ola Nordmann';   /* their contact: a person (13 Oct 2026, item 6) */
     else if (/name|party|company|counterparty/.test(l)) v = 'Nandi Traders Ltd';
     else if (/address/.test(l)) v = 'Plot 12, Nairobi';
     else if (/day|notice|term|year|month/.test(l)) v = '30';

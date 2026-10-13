@@ -544,6 +544,7 @@ async function tplLibCreate(id, essentials) {
       side: essentials.side || '',
       counterparty: essentials.counterparty || '',
       counterpartyEmail: essentials.cpemail || '',
+      counterpartyName: essentials.cpname || '',
       value: essentials.value || '',
       effDate: essentials.effDate || '',
       expiry: essentials.expiry || '',

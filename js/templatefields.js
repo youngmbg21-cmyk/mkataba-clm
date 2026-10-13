@@ -442,6 +442,11 @@ const CONTRACT_ESSENTIALS = [
     get def(){ return (typeof window!=='undefined' && window.FIRST_PARTY) || ''; } },
   { key:'counterparty', get label(){ return i18t('me_counterparty'); }, type:'text', maps:'counterparty',
     ph:'Full registered name' },
+  /* THEIR CONTACT, beside their email (13 Oct 2026, phase 1 item 6: "Send
+     is one press"): the person's name goes into the address book with the
+     address, so the Send screen and the signing route open with it. */
+  { key:'cpname', get label(){ return i18t('wz_their_contact'); }, type:'text', maps:null,
+    get ph(){ return i18t('wz_their_contact_ph'); }, get hint(){ return i18t('wz_their_contact_hint'); } },
   { key:'cpemail',      label:'Their email',  type:'email', maps:null,
     get ph(){ return (typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'; }, hint:'so you can send it to them' },
   { key:'value',        get label(){ return i18t('tf_contract_value'); }, type:'num', maps:'value',
@@ -598,6 +603,11 @@ function openContractEssentials(opts){
         else values.cpemail = raw;
         continue;
       }
+      if(f.key==='cpname'){
+        if(raw.length > 120) errs.push('Their contact\'s name is longer than 120 characters — use the name they go by.');
+        else values.cpname = raw;
+        continue;
+      }
       const e = (typeof validateField==='function') ? validateField({ ...f, required:false }, raw) : null;
       if(e) errs.push(e); else values[f.key] = raw;
     }
@@ -695,12 +705,17 @@ function ceWirePreview(fs, o, root){
 function applyContractEssentials(c, values){
   if(!c || !values) return false;
   const fs = essentialFields().filter(f => f.maps);
-  const any = fs.some(f => String(values[f.key]||'').trim() !== '') || String(values.cpemail||'').trim() !== '';
+  const any = fs.some(f => String(values[f.key]||'').trim() !== '') || String(values.cpemail||'').trim() !== ''
+    || String(values.cpname||'').trim() !== '';
   if(!any) return false;
   applyTemplateValues(c, fs, values);
-  const em = String(values.cpemail||'').trim();
-  /* Into the address book, through its one writer (js/participants.js). */
-  if(em){ if(typeof window!=='undefined' && window.contactSet) window.contactSet(c,{ main:true, email:em }); else c.counterpartyEmail = em; }
+  const em = String(values.cpemail||'').trim(), nm = String(values.cpname||'').trim();
+  /* Into the address book, through its one writer (js/participants.js) —
+     the person's name with their address (13 Oct 2026). */
+  if(em || nm){
+    if(typeof window!=='undefined' && window.contactSet) window.contactSet(c,{ main:true, ...(em?{ email:em }:{}), ...(nm?{ name:nm }:{}) });
+    else { if(em) c.counterpartyEmail = em; if(nm) c.counterpartyName = nm; }
+  }
   return true;
 }
 Object.assign(window,{CONTRACT_ESSENTIALS,essentialFields,fieldOpt,fieldOptHit,FIELD_GRID_CSS,openContractEssentials,ceWirePreview,applyContractEssentials});
