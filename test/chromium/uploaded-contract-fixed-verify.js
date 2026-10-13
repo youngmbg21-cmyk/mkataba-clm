@@ -246,8 +246,14 @@ const BODY =
        read is the read card at the top (no table on the Overview); and the
        Parties column draws no second line under its own head. */
     /* RE-POINTED 12 Oct 2026: the editors are the Details tab's (owner). */
-    await page.evaluate(() => roomGoTab(getContract(window.__cid), 'details'));
-    await page.waitForTimeout(900);
+    /* RE-POINTED 13 Oct 2026 (owner: Details holds only what the paper owes,
+       and THE OVERVIEW EDITS AGAIN): the people directory is the Overview's
+       Edit (data-ov-edit="all" → participantsDirHtml in #ov-parties), so the
+       check presses Edit on the Overview and measures there. */
+    await page.evaluate(() => roomGoTab(getContract(window.__cid), 'terms'));
+    await page.waitForFunction(() => !!document.querySelector('[data-ov-edit="all"]'), null, { timeout: 6000 }).catch(() => {});
+    await page.evaluate(() => { const b = document.querySelector('[data-ov-edit="all"]'); if (b) b.click(); });
+    await page.waitForFunction(() => !!document.querySelector('#ov-parties #kt-people'), null, { timeout: 6000 }).catch(() => {});
     const cards = await page.evaluate(() => {
       const out = {};
       const col = document.getElementById('ov-parties');
@@ -262,6 +268,7 @@ const BODY =
       out.colPad = col ? Math.round(parseFloat(getComputedStyle(col).paddingLeft)) : null;
       return out;
     });
+    await page.evaluate(() => { const b = document.querySelector('[data-ov-edit="all"]'); if (b && document.querySelector('#ov-parties #kt-people')) b.click(); });
     await page.evaluate(() => roomGoTab(getContract(window.__cid), 'terms'));
     await page.waitForTimeout(800);
     const rest = await page.evaluate(() => {

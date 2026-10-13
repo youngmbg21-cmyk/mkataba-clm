@@ -2887,17 +2887,18 @@ db.exec(`
 `);
 
 /* Per-model prices in USD per MILLION tokens. Verified 2026-07-25 against
-   Anthropic's published pricing; `verifiedOn` is surfaced in Team & Settings so
+   Anthropic's published pricing (Sonnet 5 corrected to $2 / $10 on 2026-10-13 —
+   it had been entered at Sonnet 4.6's $3 / $15, so the meter overstated it); `verifiedOn` is surfaced in Team & Settings so
    a stale table is visible rather than silently under-reporting spend. Admins
    can edit any row (and add models) from Team & Settings. */
-const AI_RATES_VERIFIED_ON = '2026-07-25';
+const AI_RATES_VERIFIED_ON = '2026-10-13';
 const AI_RATE_DEFAULTS = {
   'claude-opus-5':     { in: 5,  out: 25 },
   'claude-opus-4-8':   { in: 5,  out: 25 },
   'claude-opus-4-7':   { in: 5,  out: 25 },
   'claude-opus-4-6':   { in: 5,  out: 25 },
   'claude-opus-4-5':   { in: 5,  out: 25 },
-  'claude-sonnet-5':   { in: 3,  out: 15 },
+  'claude-sonnet-5':   { in: 2,  out: 10 },
   'claude-sonnet-4-6': { in: 3,  out: 15 },
   'claude-sonnet-4-5': { in: 3,  out: 15 },
   'claude-haiku-4-5':  { in: 1,  out: 5  },

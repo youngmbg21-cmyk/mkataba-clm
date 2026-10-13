@@ -77,10 +77,23 @@ const check = (name, pass, detail) => {
 
     /* 1. three widths */
     for (const W of [320, 560, 1180]){
-      await page.evaluate(({ s, W }) => { const c = document.querySelector(s).closest('.hb-card'); c.style.width = W + 'px'; c.style.maxWidth = W + 'px'; c.style.gridColumn = '1 / -1'; hbFitMeasure(); }, { s: sel, W });
-      await until(({ s }) => { const svg = document.querySelector(s); if (!svg) return false; const w = svg.getBoundingClientRect().width; return Math.abs(Number(svg.getAttribute('data-hb-w')) - w) <= 8; }, { s: sel });
-      /* a repaint replaces the card: put the width back and measure again */
-      await page.evaluate(({ s, W }) => { const c = document.querySelector(s).closest('.hb-card'); c.style.width = W + 'px'; c.style.maxWidth = W + 'px'; c.style.gridColumn = '1 / -1'; hbFitMeasure(); }, { s: sel, W });
+      /* A WAIT ASKS FOR THE STATE, BOUNDED (13 Oct 2026, red only on CI at 320):
+         a background repaint can replace the card between "set the width" and
+         "measure", so the card falls back to full width for a frame while its
+         chart still holds the last measured width (928 shown, 294 drawn). Each
+         try sets the width, lets hbFitMeasure run, and waits until the SAME
+         card still carries the width AND its chart is drawn at its shown width;
+         a replaced card is simply styled again. Measured only once settled. */
+      const settled = async () => until(({ s, W }) => {
+        const svg = document.querySelector(s); if (!svg) return false;
+        const c = svg.closest('.hb-card'); if (!c) return false;
+        if (c.style.width !== W + 'px'){ c.style.width = W + 'px'; c.style.maxWidth = W + 'px'; c.style.gridColumn = '1 / -1'; hbFitMeasure(); return false; }
+        const w = svg.getBoundingClientRect().width, vb = Number((svg.getAttribute('viewBox') || '').split(/\s+/)[2]);
+        return Math.abs(Number(svg.getAttribute('data-hb-w')) - w) <= 8 && Math.abs(vb - w) <= 8 && w <= W;
+      }, { s: sel, W }, 10000);
+      await settled();
+      await page.waitForTimeout(150);
+      await settled();
       const m = await svgOf(sel);
       check(`1a. at ${W}: drawn at the card's real width, not stretched`, m && Math.abs(m.vbW - m.w) <= 8, m && `${Math.round(m.w)} shown, ${m.vbW} drawn`);
       check(`1b. at ${W}: the chart is 196px tall`, m && Math.abs(m.h - 196) <= 2, m && Math.round(m.h));

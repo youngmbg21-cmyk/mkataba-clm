@@ -187,6 +187,17 @@ const CONTRACTS = [
     ok('7d the giver sees the seen tick', await until(page, () => {
       const s = Object.values(hbGiftsFor().sent)[0]; return !!(s && s.seenAt);
     }));
+    /* 7e (13 Oct 2026, red on CI as 7c): Home drawn in the instant before
+       sign-in finished sent its gifts read with no session; it was refused and
+       the minute's throttle kept Home from asking again. Now the board asks
+       once for whoever is signed in (hbGiftsKeep). */
+    const ctx3 = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const p3 = await ctx3.newPage(); p3.on('pageerror', e => errs.push('7e: ' + e.message));
+    await p3.goto(h.base + '/', { waitUntil: 'networkidle' });
+    await p3.evaluate(() => { try { setView('dashboard'); } catch (_) {} });
+    await p3.fill('#li-email', 'everything@example.co.ke'); await p3.fill('#li-pass', 'their-own-pass-9'); await p3.click('#li-go');
+    ok('7e Home drawn before sign-in finished still carries the gift once signed in', await until(p3, () => !!document.querySelector('[data-hb-pid^="gift:"]'), null, 12000));
+    await ctx3.close();
 
     /* ===== 8. PRESENT, THE POINTER AND THE PEN ===== */
     const toolsAtRest = await page.evaluate(() => getComputedStyle(document.getElementById('hb-tools')).display);

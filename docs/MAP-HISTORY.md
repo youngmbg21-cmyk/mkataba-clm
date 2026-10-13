@@ -28939,3 +28939,31 @@ The owner, after seeing the page: "there should be no free room in the house. Ju
 
 ## THE THREAD — A PAINT WITH NOWHERE TO DRAW TAKES NOTHING (13 Oct 2026)
 Owner's screenshot: Home's Clauses list drawn, "Jambo is reading…" never ending, and Plain English answering "There is no wording here to read yet." Cause: `docThreadPaint` for a contract not on Home's panel set `_thHost` to 'doc' and returned (the room's list is gone since 11 Oct), so the list on Home stayed drawn while its presses read `#doc-canvas` (absent) and the company read's repaint went nowhere. Fix: a paint whose host has no card returns WITHOUT moving the host. Test: stakes-verify 6b (red at the parent with the owner's exact sentence).
+
+
+## JAMBO'S AGENTS — THE HOUSE AND HIS POINTS: FITS THE SCREEN, DRAWN SHARP (13 Oct 2026)
+
+The owner, with a screenshot: "the graphic is too big on screen so make it fit for the screen. Delete the highlighted space and the graphic both in floor plan and in architect are both grainy and not fit for release."
+- WHY GRAINY: the canvas was a fixed 1160 × (70 + floors × 132 + 16) bitmap stretched by CSS to the stage's width (`width:100%;height:auto`), with no regard for devicePixelRatio — on a 1400px stage on a 2× screen every pixel was blown up ~2.4×. WHY TOO BIG: the height followed the width, so a wide stage pushed the lower floors below the window.
+- NOW: `jhFitCanvas` measures the stage (its width, and the window height left below its top), lays the house out with floors between `JH_FH_MIN` 92 and `JH_FH_MAX` 132 logical px so it ends on screen (below the minimum the stage scrolls inside itself), sizes the backing store to the box × devicePixelRatio (capped 3) and `jhFrame` draws through one transform; the cross-fade's snapshot is drawn back untransformed. `jhRefit` follows a window resize or zoom and a ResizeObserver on the stage's width. The side panel matches the fitted stage (`jhFitPanel`, no 480 floor). Hit-testing is unchanged (logical coordinates).
+- The facts line under the title is gone (its two facts are on the Jobs tab, in the house's own sub-line and in the points panel); `jh_n_pieces_in` is inert.
+- Measured: 1440×900 plan fh 132 bottom 826 ≤ 900; drawing fh 112 bottom 884; 1440×760 at 2× → backing 2060 for 1030 css, fh 111, bottom 744 ≤ 760; a taller window grows the floors back. Tests: jambo-agents-verify 2b–2b3, 5a, 9b, 11a–11c.
+
+- "NOT SIGNED IN" (owner: "Fix the Not signed in message too"): measured with request logging — when the page was opened in the instant before sign-in finished, GET /api/agents/pieces went out with no session cookie, the server answered 401 "Not signed in", and `jhLoad` kept that error as the period's data (`days` matched), so it was never asked again. Now `jhFetch` sends nothing until `jhSignedIn()` (REMOTE.me), and `renderJamboHouse` asks again when the kept data is an error (not on the render its own load triggered — `{fromLoad:true}` — so a lasting fault cannot loop); `jhSetRange` refetches over an error too. Before: 2 of 3 runs showed the note; after: 0 of 4, no 401 sent. Test: jambo-agents-verify 12a (the race is a timing, so 12a can pass at main by luck).
+
+## THE AI SPEND METER: SONNET 5 PRICE (13 Oct 2026)
+
+Owner: "Fix the cost meter price too". `AI_RATE_DEFAULTS` had claude-sonnet-5 at $3 / $15 per million tokens (Sonnet 4.6's price); Anthropic's price is $2 / $10 (claude-api skill, model-migration "per-token pricing is lower than Sonnet 4.6: $2/$10 vs $3/$15"). Corrected; `AI_RATES_VERIFIED_ON` 2026-10-13. Only the server holds the table; an admin's saved row (Settings, `aiRates`) still wins over the default. Tests f133, f134, f226 unchanged and green.
+- f413 1f pinned a number: its agent limit 0.0001 sat just under one run at the old $3/$15 (0.000105) and above one at $2/$10 (0.00007), and limits below 0.0001 round to 0 (setMoney precision). Now the run gets three contracts at the smallest limit and must be stopped partway (agentLimit true, prepared < 3) — at any price. Found by the one full node run the owner asked for (12,502 of 12,503 passed; this was the one).
+
+## UPLOADED-CONTRACT-FIXED-VERIFY 4a/4b RE-POINTED (13 Oct 2026)
+
+Owner: "Fix the uploaded contract who else check too". Red on main since the 13 Oct Details/Overview change: the check went to the Details tab for `#kt-people`, but Details now holds only what the paper owes and the people directory is the Overview's Edit (`data-ov-edit="all"` → `participantsDirHtml` inside `#ov-parties`). Nothing in the product was wrong. The check now presses Edit on the Overview, measures there (list 0 · Add button 0 · column inset 16) and leaves Edit; 18/18.
+
+## BOARD-CHART-STANDARD-VERIFY AT 320 (13 Oct 2026)
+
+Owner: "Fix the board chart check too". CI log (PR #247, 49fe2267): FAIL 1a "at 320 … 928 shown, 294 drawn", FAIL 1b "619" — 560 and 1180 passed. Cause: a background repaint replaced the card between the test's "set the width" and "measure", so for a frame the card was full-width while its chart kept the last measured width (hbFitMeasure corrects it a moment later). The test now asks for the settled state, bounded (A WAIT ASKS FOR THE STATE): a replaced card is styled again, and it measures only when the same card carries the width and the chart's viewBox equals its shown width. No product change.
+
+## HOME — A GIVEN PANEL ARRIVES AFTER SIGN-IN (13 Oct 2026)
+
+CI (PR #247, 9aee09d3) failed home-board-verify 7c/7d ("the colleague's Home carries the panel"). Reproduced with a probe (Home drawn, then sign-in): `GET /api/home/gifts` went out before the session existed → 401, and `hbGiftsLoad` had already stamped `_hbGifts.at`, so for a minute nothing asked again; sign-in does not remount Home, so the gift never came. Now: the minute starts only from an answer; one read at a time (`busy`, raised before the promise) and a read wanted meanwhile runs after (`again`); `hbGiftsKeep()` at the top of `hbPaintBoard` asks once for whoever is signed in when the last read was sent for nobody or someone else (`_hbGifts.me`) — a failure for the signed-in person is not retried by painting, so nothing loops. Probe 0/3 → 3/3. Test: home-board-verify 7e (red at main).

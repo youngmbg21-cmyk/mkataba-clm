@@ -148,15 +148,21 @@ function jhPlacePut(p){
 const jhRangeWords = () => _jh.range === 1 ? _jhT('jh_r_1') : _jhT('jh_last_n', { r: jhRangeLabel(_jh.range) });
 
 /* jhFetch reads a period without touching the page; jhLoad keeps it as the page's. */
+/* NOT BEFORE SIGN-IN, AND A REFUSAL IS NOT AN ANSWER (owner, 13 Oct 2026: "Fix
+   the Not signed in message"): with a server and nobody signed in yet the read
+   is not sent at all (null = not yet); a read that failed is kept only to say
+   so, and the next drawing of the page asks again (renderJamboHouse). */
+const jhSignedIn = () => { try { return !!(window.REMOTE && REMOTE.me); } catch (_) { return false; } };
 async function jhFetch(days){
   if (!(typeof API_MODE === 'function' && API_MODE()) || typeof api !== 'function') return { pieces: [], contracts: {}, static: true, days };
+  if (!jhSignedIn()) return null;
   try { const r = await api('agents/pieces?days=' + days); return { pieces: (r && r.pieces) || [], contracts: (r && r.contracts) || {}, cut: !!(r && r.cut), max: r && r.max, days, from: r && r.from }; }
   catch (e){ return { pieces: [], contracts: {}, error: (e && e.message) || String(e), days }; }
 }
 async function jhLoad(){
   if (_jh.loading) return;
   _jh.loading = true;
-  try { _jh.data = await jhFetch(_jh.range); } finally { _jh.loading = false; }
+  try { const d = await jhFetch(_jh.range); if (d) _jh.data = d; } finally { _jh.loading = false; }
 }
 /* The pieces this page counts: the period's, and only the typed contract's. */
 function jhPieces(){
@@ -171,15 +177,25 @@ function jhSpan(){
 const jhUpto = () => { const S = jhSpan(); return _jh.t >= 1 ? Infinity : S.from + _jh.t * (S.end - S.from); };
 
 /* ---------------- THE HOUSE: drawn from the list ---------------- */
-const JH_W = 1160, JH_FH = 132, JH_COLS = 3, JH_SX = 160, JH_RX0 = 206, JH_RX1 = 1144, JH_GAP = 12;
+/* THE HOUSE FITS THE SCREEN AND IS DRAWN SHARP (owner, 13 Oct 2026: "the
+   graphic is too big on screen … both grainy and not fit for release"). The
+   drawing keeps one logical width (JH_W) but its floors shrink to fit the
+   window (_jhFH between JH_FH_MIN and JH_FH_MAX), and the canvas is sized to
+   its real on-screen box times the screen's pixel density (jhFitCanvas), so
+   nothing is stretched. Below the minimum the house scrolls inside its box. */
+const JH_FH_MAX = 132, JH_FH_MIN = 92, JH_FIT_FOOT = 16, JH_FIT_MIN_CSS = 300;
+let _jhFH = JH_FH_MAX, _jhFitH = 0;
+const JH_W = 1160, JH_COLS = 3, JH_SX = 160, JH_RX0 = 206, JH_RX1 = 1144, JH_GAP = 12;
 let _jhTop = 70, _jhF = 1, _jhH = 620, _jhRooms = [];
-const jhLY = f => _jhTop + (_jhF - f) * JH_FH;
+const jhLY = f => _jhTop + (_jhF - f) * _jhFH;
 const jhFoot = f => jhLY(f) - 18;
 function jhLayout(){
   const keys = agPointsKeys();
   _jhTop = _jh.look === 1 ? 128 : 70;
   _jhF = Math.max(1, Math.ceil(keys.length / JH_COLS));
-  _jhH = _jhTop + _jhF * JH_FH + (_jh.look === 1 ? 104 : 16);
+  const foot = _jh.look === 1 ? 104 : 16;
+  _jhFH = _jhFitH ? Math.max(JH_FH_MIN, Math.min(JH_FH_MAX, Math.floor((_jhFitH - _jhTop - foot) / _jhF))) : JH_FH_MAX;
+  _jhH = _jhTop + _jhF * _jhFH + foot;
   /* NO FREE ROOM (owner, 13 Oct 2026: "Just make other rooms bigger. Always
      build it that way."): the agents are shared over the floors as evenly as
      they go, lower floors first, and a floor's rooms widen to fill it. A new
@@ -190,11 +206,43 @@ function jhLayout(){
   per.forEach((n, f) => { const w = (JH_RX1 - JH_RX0 - JH_GAP * (n - 1)) / n;
     for (let c = 0; c < n; c++, i++){ const k = keys[i], x = JH_RX0 + c * (w + JH_GAP);
       const look = JH_LOOK[k] || JH_SPARE[spare++ % JH_SPARE.length];
-      _jhRooms.push({ k, i, f, col: look[0], hat: look[1], card: { x, y: jhLY(f) - JH_FH + 10, w, h: JH_FH - 22 }, cx: x + w / 2 }); } });
+      _jhRooms.push({ k, i, f, col: look[0], hat: look[1], card: { x, y: jhLY(f) - _jhFH + 10, w, h: _jhFH - 22 }, cx: x + w / 2 }); } });
 }
 function jhFloorCounts(n){ const F = Math.max(1, Math.ceil(n / JH_COLS)), base = Math.floor(n / F), extra = n % F;
   return Array.from({ length: F }, (_, f) => base + (f < extra ? 1 : 0)); }
 const jhFloorRooms = f => _jhRooms.filter(r => r.f === f);
+/* The canvas's own box: as wide as the stage, as tall as the window leaves
+   below it, at the screen's pixel density. Lays the house out again for it. */
+function jhFitCanvas(){
+  const cv = document.getElementById('jh-cv'), stage = document.getElementById('jh-stage');
+  if (!cv || !stage) return false;
+  const cssW = stage.clientWidth || JH_W, k = cssW / JH_W;
+  let top = stage.getBoundingClientRect().top;
+  for (let p = stage.parentElement; p; p = p.parentElement) top += p.scrollTop || 0;
+  const avail = Math.max(JH_FIT_MIN_CSS, (window.innerHeight || 900) - top - JH_FIT_FOOT);
+  _jhFitH = avail / k;
+  jhLayout(); _jhRooms.forEach(jhSimulate);
+  const cssH = Math.round(_jhH * k), dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+  const bw = Math.round(cssW * dpr), bh = Math.round(cssH * dpr);
+  if (cv.width !== bw) cv.width = bw;
+  if (cv.height !== bh) cv.height = bh;
+  cv.style.height = cssH + 'px';
+  stage.style.maxHeight = Math.round(avail) + 'px';
+  stage.style.overflowY = cssH > avail + 1 ? 'auto' : '';
+  return true;
+}
+/* A new window size or zoom fits and redraws the house where it stands. */
+let _jhFitW = 0;
+function jhRefit(force){
+  if (typeof state === 'undefined' || state.view !== 'jambo' || _jh.tab !== 'house') return;
+  const stage = document.getElementById('jh-stage'); if (!stage) return;
+  const w = stage.clientWidth; if (!force && w === _jhFitW && !_jhRefitWin) return;
+  _jhFitW = w; _jhRefitWin = false;
+  if (jhFitCanvas()){ jhFitPanel(); jhFrame(typeof performance !== 'undefined' ? performance.now() : 0); }
+}
+let _jhRefitWin = false;
+if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('resize', () => { _jhRefitWin = true; jhRefit(); });
+const jhGeom = () => ({ top: _jhTop, fh: _jhFH, floors: _jhF, h: _jhH, w: JH_W });
 /* Each Jambo's walk: his own room, then two others he hands work to, by the stairs. */
 const JH_SPEED_PX = 240;
 function jhSimulate(r){
@@ -266,12 +314,12 @@ function jhDrawPlan(ctx, pieces, upto){
   ctx.textAlign = 'left'; ctx.font = '600 13px Geist, sans-serif'; ctx.fillStyle = C.fg; ctx.fillText(_jhT('jh_house_title'), 20, 30);
   ctx.font = '400 12px Geist, sans-serif'; ctx.fillStyle = C.muted;
   ctx.fillText(jhHouseSub(), 20, 48);
-  for (let f = 0; f < _jhF; f++){ const y = jhLY(f); ctx.fillStyle = f % 2 ? C.soft : C.card; ctx.fillRect(0, y - JH_FH, JH_W, JH_FH);
+  for (let f = 0; f < _jhF; f++){ const y = jhLY(f); ctx.fillStyle = f % 2 ? C.soft : C.card; ctx.fillRect(0, y - _jhFH, JH_W, _jhFH);
     ctx.fillStyle = C.line; ctx.fillRect(0, y - 1, JH_W, 1);
-    ctx.fillStyle = C.muted; ctx.font = '500 12px Geist, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(jhFloorName(f), 20, y - JH_FH / 2 + 4); }
-  ctx.fillStyle = C.accentSoft; ctx.fillRect(JH_SX - 26, jhLY(_jhF - 1) - JH_FH + 10, 52, _jhF * JH_FH - 14);
-  ctx.strokeStyle = C.line; ctx.lineWidth = 1; for (let y = jhLY(_jhF - 1) - JH_FH + 20; y < jhLY(0) - 6; y += 12){ ctx.beginPath(); ctx.moveTo(JH_SX - 18, y); ctx.lineTo(JH_SX + 18, y); ctx.stroke(); }
-  ctx.fillStyle = C.muted; ctx.font = '500 11px Geist, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(_jhT('jh_stairs'), JH_SX, jhLY(_jhF - 1) - JH_FH + 4);
+    ctx.fillStyle = C.muted; ctx.font = '500 12px Geist, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(jhFloorName(f), 20, y - _jhFH / 2 + 4); }
+  ctx.fillStyle = C.accentSoft; ctx.fillRect(JH_SX - 26, jhLY(_jhF - 1) - _jhFH + 10, 52, _jhF * _jhFH - 14);
+  ctx.strokeStyle = C.line; ctx.lineWidth = 1; for (let y = jhLY(_jhF - 1) - _jhFH + 20; y < jhLY(0) - 6; y += 12){ ctx.beginPath(); ctx.moveTo(JH_SX - 18, y); ctx.lineTo(JH_SX + 18, y); ctx.stroke(); }
+  ctx.fillStyle = C.muted; ctx.font = '500 11px Geist, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(_jhT('jh_stairs'), JH_SX, jhLY(_jhF - 1) - _jhFH + 4);
   _jhRooms.forEach(r => { const c = r.card, s = agPointsTally(r.k, pieces, upto), hov = _jh.hover === r.k || _jh.sel === r.k;
     ctx.fillStyle = hov ? C.accentSoft : C.card; ctx.strokeStyle = hov ? C.accent : C.line; ctx.lineWidth = hov ? 1.5 : 1;
     jhRoundRect(ctx, c.x, c.y, c.w, c.h, 8); ctx.fill(); ctx.stroke();
@@ -285,7 +333,7 @@ function jhDrawPlan(ctx, pieces, upto){
 }
 const JH_MONO = '"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
 function jhDrawDrawing(ctx, pieces, upto){
-  const C = _jhC, ink = C.accent, top = jhLY(_jhF - 1) - JH_FH, bot = jhLY(0), X0 = 120, X1 = 1152, mid = (X0 + X1) / 2;
+  const C = _jhC, ink = C.accent, top = jhLY(_jhF - 1) - _jhFH, bot = jhLY(0), X0 = 120, X1 = 1152, mid = (X0 + X1) / 2;
   ctx.fillStyle = C.card; ctx.fillRect(0, 0, JH_W, _jhH);
   ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.globalAlpha = .55;
   for (let x = 0; x < JH_W; x += 20){ ctx.beginPath(); ctx.moveTo(x + .5, 0); ctx.lineTo(x + .5, _jhH); ctx.stroke(); }
@@ -301,12 +349,12 @@ function jhDrawDrawing(ctx, pieces, upto){
   ctx.globalAlpha = .35; for (let x = 14; x < JH_W - 10; x += 10){ ctx.beginPath(); ctx.moveTo(x, bot + 16); ctx.lineTo(x + 10, bot + 6); ctx.stroke(); } ctx.globalAlpha = 1;
   for (let f = 0; f < _jhF; f++){ const y = jhLY(f);
     if (f > 0){ ctx.lineWidth = 1.4; [0, 5].forEach(d => { ctx.beginPath(); ctx.moveTo(X0, y + d); ctx.lineTo(JH_SX - 26, y + d); ctx.moveTo(JH_SX + 26, y + d); ctx.lineTo(X1, y + d); ctx.stroke(); }); }
-    ctx.lineWidth = 1.2; [194].concat(jhFloorRooms(f).slice(1).map(r => r.card.x - JH_GAP / 2)).forEach(x => { ctx.beginPath(); ctx.moveTo(x, y - JH_FH + 6); ctx.lineTo(x, y); ctx.stroke(); });
-    const xa = f % 2 ? JH_SX + 18 : JH_SX - 18, xb = f % 2 ? JH_SX - 18 : JH_SX + 18, yb = y - JH_FH + 6;
+    ctx.lineWidth = 1.2; [194].concat(jhFloorRooms(f).slice(1).map(r => r.card.x - JH_GAP / 2)).forEach(x => { ctx.beginPath(); ctx.moveTo(x, y - _jhFH + 6); ctx.lineTo(x, y); ctx.stroke(); });
+    const xa = f % 2 ? JH_SX + 18 : JH_SX - 18, xb = f % 2 ? JH_SX - 18 : JH_SX + 18, yb = y - _jhFH + 6;
     ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(xa, y); ctx.lineTo(xb, yb); ctx.stroke();
     for (let s = 1; s < 12; s++){ const k = s / 12, x = xa + (xb - xa) * k, yy = y + (yb - y) * k; ctx.beginPath(); ctx.moveTo(x, yy); ctx.lineTo(x, yy - 6); ctx.stroke(); }
     ctx.fillStyle = C.muted; ctx.font = '500 11px ' + JH_MONO; ctx.textAlign = 'right'; ctx.fillText(f === 0 ? '±0.00' : '+' + (f * 3.2).toFixed(2), 112, y - 4);
-    ctx.textAlign = 'left'; ctx.font = '500 10.5px ' + JH_MONO; ctx.fillText(jhFloorName(f).toUpperCase(), 14, y - JH_FH / 2 + 4);
+    ctx.textAlign = 'left'; ctx.font = '500 10.5px ' + JH_MONO; ctx.fillText(jhFloorName(f).toUpperCase(), 14, y - _jhFH / 2 + 4);
     ctx.strokeStyle = ink; ctx.globalAlpha = .5; ctx.beginPath(); ctx.moveTo(84, y); ctx.lineTo(X0, y); ctx.stroke(); ctx.globalAlpha = 1;
   }
   ctx.fillStyle = C.muted; ctx.font = '500 10.5px ' + JH_MONO; ctx.textAlign = 'center'; ctx.fillText(_jhT('jh_stairs').toUpperCase(), JH_SX, top + 14);
@@ -383,12 +431,13 @@ function jhFrame(now){
     }
     if (_jh.t >= 1){ _jh.playing = false; jhFinish(); }
   } else _jh.last = now;
-  const ctx = cv.getContext('2d');
+  const ctx = cv.getContext('2d'), kk = cv.width / JH_W;
+  ctx.setTransform(kk, 0, 0, kk, 0, 0);
   const upto = jhUpto();
   (_jh.look === 1 ? jhDrawDrawing : jhDrawPlan)(ctx, pieces, upto);
   jhRunners(ctx, pieces); jhDateCard(ctx); jhDrawPops(ctx);
   const xk = jhXfK(), xf = _jh.xf;
-  if (xf && xf.img){ ctx.save(); ctx.globalAlpha = 1 - xk; ctx.drawImage(xf.img, 0, 0); ctx.restore(); }
+  if (xf && xf.img){ ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1 - xk; ctx.drawImage(xf.img, 0, 0, cv.width, cv.height); ctx.restore(); }
   jhScorePaint(pieces, upto, xf ? xk : 1);
   if (_jh.playing || _jh.pops.length || _jh.xf) _jh.raf = requestAnimationFrame(jhFrame);
 }
@@ -442,7 +491,7 @@ function jhFitPanel(){
     if (typeof matchMedia === 'function' && !matchMedia('(min-width: 1180px)').matches){ rows.style.maxHeight = '420px'; return; }
     rows.style.maxHeight = '0px';
     const other = panel.offsetHeight;
-    rows.style.maxHeight = Math.max(170, Math.max(480, stage.offsetHeight) - other) + 'px';
+    rows.style.maxHeight = Math.max(170, stage.offsetHeight - other) + 'px';
   });
 }
 function jhRowsHtml(){
@@ -525,11 +574,10 @@ function jhOnePick(id){
 
 /* ---------------- THE PAGE ---------------- */
 function jhBandHtml(){
-  const pieces = jhPieces(), n = pieces.length;
-  const facts = [_jhTn('jh_n_agents', agPointsKeys().length, { n: agPointsKeys().length })];
-  if (_jh.data && !_jh.data.static) facts.push(_jhTn('jh_n_pieces_in', n, { n, r: jhRangeWords() }));
+  /* No facts line under the title (owner, 13 Oct 2026): the agents are counted
+     on the Jobs tab and in the house, the period and points in the panel. */
   return `<div class="sap-band jh-band">
-    <div class="jh-head"><div style="min-width:0"><h1 class="jh-t">${_jhE(_jhT('nav_jambo'))}</h1><div class="page-facts" id="jh-facts">${facts.map(_jhE).join(' · ')}</div></div>
+    <div class="jh-head"><div style="min-width:0"><h1 class="jh-t">${_jhE(_jhT('nav_jambo'))}</h1></div>
       <div class="jh-acts"><button type="button" class="ui-btn" data-jh-points>${_jhE(_jhT('jh_change_points'))}</button></div></div>
     <div class="jh-tabs" role="tablist">${JH_TABS.map(t => `<button type="button" role="tab" class="jh-tab" data-jh-tab="${t}" aria-selected="${_jh.tab === t}">${_jhE(_jhT('jh_tab_' + t))}${t === 'jobs' ? ` <span class="jh-quiet">${agPointsKeys().length}</span>` : ''}</button>`).join('')}</div>
   </div>`;
@@ -618,21 +666,25 @@ function jhHowHtml(){
     <div class="jh-grid">${card('jh_rule_list_t', 'jh_rule_list')}${card('jh_rule_move_t', 'jh_rule_move')}${card('jh_rule_check_t', 'jh_rule_check')}</div>
   </div>`;
 }
-function renderJamboHouse(){
+function renderJamboHouse(opts){
   const host = document.getElementById('content'); if (!host) return;
   if (typeof cancelAnimationFrame === 'function' && _jh.raf){ cancelAnimationFrame(_jh.raf); _jh.raf = 0; }
   /* ARRIVING IS AT REST: a replay paused on the way out is not where the page
      opens next time — it opens on the whole period's totals, still. */
   if (!document.querySelector('.jh-page')){ jhReplayFromStart(false); const lp = jhLookPref(); if (lp !== null && jhServerKeeps()) _jh.look = lp; }
   jhColors(); jhLayout(); _jhRooms.forEach(jhSimulate);
-  if (!_jh.data || _jh.data.days !== _jh.range){
-    if (!_jh.loading) jhLoad().then(() => { if (typeof state !== 'undefined' && state.view === 'jambo') renderJamboHouse(); });
+  const stale = !_jh.data || _jh.data.days !== _jh.range || (_jh.data.error && !(opts && opts.fromLoad));
+  if (stale && !_jh.loading && (jhSignedIn() || !(typeof API_MODE === 'function' && API_MODE()))){
+    if (_jh.data && _jh.data.error) _jh.data = null;
+    jhLoad().then(() => { if (typeof state !== 'undefined' && state.view === 'jambo') renderJamboHouse({ fromLoad: true }); });
   }
   const body = _jh.tab === 'jobs' ? (_jh.data ? jhJobsHtml() : jhHouseHtml()) : _jh.tab === 'how' ? jhHowHtml() : jhHouseHtml();
   host.innerHTML = `<style>${JH_CSS}</style><div class="view-enter sap-page jh-page" data-jh-tab-on="${_jh.tab}">${jhBandHtml()}${body}</div>`;
   jhWire(host);
   if (typeof setActiveNav === 'function') setActiveNav('jambo');
   if (_jh.tab === 'house' && document.getElementById('jh-cv')){
+    jhFitCanvas(); _jhFitW = document.getElementById('jh-stage').clientWidth;
+    try { if (typeof ResizeObserver === 'function'){ const st = document.getElementById('jh-stage'); if (!st.dataset.jhRo){ st.dataset.jhRo = '1'; new ResizeObserver(() => jhRefit()).observe(st); } } } catch (_) {}
     jhPaintFaces(host); jhOneShow(); jhFeedFill(); _jhScKey = '';
     const face = jhFaceImg(); if (face && !face.complete) face.onload = () => { jhPaintFaces(); jhKick(); };
     jhFrame(typeof performance !== 'undefined' ? performance.now() : 0);
@@ -656,8 +708,9 @@ async function jhSetRange(d, btn){
   document.querySelectorAll('[data-jh-range]').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
   const word = btn ? btn.textContent : '';
   if (btn && typeof busySet === 'function') busySet(btn, word);
-  const data = (_jh.data && _jh.data.days === d) ? _jh.data : await jhFetch(d);
+  const data = (_jh.data && _jh.data.days === d && !_jh.data.error) ? _jh.data : await jhFetch(d);
   if (ask !== _jhRangeAsk || !document.getElementById('jh-cv')) return;
+  if (!data){ if (btn) btn.textContent = word; return; }
   if (btn) btn.textContent = JH_RANGES.includes(d) ? word : jhRangeLabel(d);
   const cb = document.querySelector('[data-jh-range="custom"]'); if (cb && cb !== btn) cb.textContent = _jhT('jh_r_custom');
   /* the picture and the numbers as they stand, before anything moves */
@@ -673,8 +726,6 @@ async function jhSetRange(d, btn){
 }
 /* Every word on the page that names the period, said again in place. */
 function jhRangeWordsPaint(){
-  const n = jhPieces().length, facts = document.getElementById('jh-facts');
-  if (facts){ const f = [_jhTn('jh_n_agents', agPointsKeys().length, { n: agPointsKeys().length })]; if (_jh.data && !_jh.data.static) f.push(_jhTn('jh_n_pieces_in', n, { n, r: jhRangeWords() })); facts.textContent = f.join(' · '); }
   const tl = document.getElementById('jh-total-l'); if (tl) tl.textContent = _jhT('jh_pts') + ' · ' + jhRangeWords();
   const notes = document.getElementById('jh-notes'); if (notes) notes.innerHTML = jhNotesHtml();
   const oneIn = document.getElementById('jh-one'); if (oneIn && document.activeElement !== oneIn) oneIn.value = '';
@@ -689,8 +740,7 @@ function jhSetLook(v){
   if (v === _jh.look) return;
   _jh.look = v; _jh.trails = [];
   const cv = document.getElementById('jh-cv'), tip = document.getElementById('jh-tip'); if (tip) tip.hidden = true;
-  jhLayout(); _jhRooms.forEach(jhSimulate);
-  if (cv){ if (cv.height !== _jhH) cv.height = _jhH; jhFitPanel(); jhFrame(typeof performance !== 'undefined' ? performance.now() : 0); } else jhRepaint();
+  if (cv && jhFitCanvas()){ jhFitPanel(); jhFrame(typeof performance !== 'undefined' ? performance.now() : 0); } else jhRepaint();
   if (typeof placeSave === 'function') placeSave();
   if (jhServerKeeps()) api('me/prefs', 'PUT', { agentsLook: JH_LOOKS[v] })
     .then(r => { if (window.REMOTE && REMOTE.me && r && r.prefs) REMOTE.me.prefs = r.prefs; })
@@ -765,7 +815,7 @@ function jhWire(host){
 function jhKickOnce(){ if (!_jh.playing && !_jh.raf) jhFrame(typeof performance !== 'undefined' ? performance.now() : 0); }
 function jhRoomAt(x, y){
   for (const r of _jhRooms){ const c = r.card; if (x >= c.x && x <= c.x + c.w && y >= c.y && y <= c.y + c.h) return r.k; }
-  if (Math.abs(x - JH_SX) <= 26 && y >= jhLY(_jhF - 1) - JH_FH && y <= jhLY(0)) return 'stairs';
+  if (Math.abs(x - JH_SX) <= 26 && y >= jhLY(_jhF - 1) - _jhFH && y <= jhLY(0)) return 'stairs';
   return null;
 }
 function jhTipHtml(k){
@@ -984,4 +1034,4 @@ const JH_CSS = `
 try { if (typeof jamboFacePaint === 'function') jamboFacePaint(); } catch (_) {}
 
 Object.assign(window, { AG_POINTS_LAUNCH, AG_POINTS_START_MINS, AG_POINTS_NEW_MINS, AG_POINTS_FIELDS, agPointsKeys, agPointsStart, agPointsCompany, agPointsMine, agPointsOf,
-  agPointsIsNew, agPointsEach, agPointsTally, agPointsSumLine, agPieceSay, agPointsTableHtml, agPointsWire, renderJamboHouse, jhRepaint, jhPlace, jhPlacePut, jhLayout, jhRoomAt, jhFloorCounts });
+  agPointsIsNew, agPointsEach, agPointsTally, agPointsSumLine, agPieceSay, agPointsTableHtml, agPointsWire, renderJamboHouse, jhRepaint, jhPlace, jhPlacePut, jhLayout, jhRoomAt, jhFloorCounts, jhGeom });
