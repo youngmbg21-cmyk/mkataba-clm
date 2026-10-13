@@ -20717,3 +20717,6 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 
 ### Noticed, not fixed (13 Oct 2026, Ask Jambo from the deep dive)
 - Home's Jambo panel answers a question put in its box by `intelAskReady` (a "readied" ask) through `intelChatAsk`, the whole-book chat, so it does not know the contract on the paper ("I still need to know which contract you're referring to", with "Ask about MK-457…" in the box). The deep dive's Ask Jambo now goes to the edit room; other readied asks on Home still take this path.
+
+### Noticed, not fixed (13 Oct 2026, the CI workflow PR #276)
+- The node suite is red on main with exactly one failing test of 12,538 (name unreadable from the Actions log API, which serves only the log's tail). Green at run 3012 (merge #270, 19:36); red from run 3015 (merge #271, "The start-redlining journey", 19:39) onward; #272, #273 (browser-check fix), #274 and #275 did not cure it. Not touched while changing .github/workflows/tests.yml (concurrency + single run per commit).
