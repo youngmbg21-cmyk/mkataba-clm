@@ -598,8 +598,8 @@ function shellCrumbAdopt(c, backBtn){
       /* THE WAY BACK TO THE CLAUSES TAB (owner, 13 Oct 2026), only on the trip
          "Start redlining with this ask" began — a crumb, not a band */
       if(window.rlCameFrom && rlCameFrom(c.id)){
-        const back=document.createElement('button'); back.type='button'; back.className='crumb-door'; back.setAttribute('data-rl-back-clauses','');
-        back.textContent='\u2039 '+i18t('stk_back');
+        const back=document.createElement('button'); back.type='button'; back.className='crumb-door crumb-door-back'; back.setAttribute('data-rl-back-clauses','');
+        back.textContent='\u2039 '+i18t('rl_back_clauses');
         const sep=document.createElement('i'); sep.className='crumb-sep'; sep.setAttribute('aria-hidden','true'); sep.textContent='/';
         el.appendChild(back); el.appendChild(sep);
       }
@@ -616,11 +616,17 @@ function shellCrumbAdopt(c, backBtn){
     el.appendChild(s);
   }
   el.classList.add('is-crumb');
+  /* A LAYER ALREADY OPEN KEEPS ITS CRUMB: the clause editor can open before
+     the bar is painted (Start redlining lands straight on its clause), and
+     this paint would otherwise wipe its "/ Edit 26. Liability…" */
+  if(_shellLayerLabel) shellCrumbLayer(_shellLayerLabel);
   return true;
 }
 /* A full-window layer over the page (the clause editor) says its own name as
    a third crumb; null takes it off. Never rebuilds the crumbs beneath it. */
+let _shellLayerLabel=null;
 function shellCrumbLayer(label){
+  _shellLayerLabel=label||null;
   const el=document.getElementById('shell-title'); if(!el) return;
   el.querySelectorAll('.crumb-layer,.crumb-layer-sep').forEach(n=>n.remove());
   if(!label||!el.classList.contains('is-crumb')) return;
