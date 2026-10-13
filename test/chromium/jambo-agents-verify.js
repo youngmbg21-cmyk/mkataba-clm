@@ -26,7 +26,8 @@
        2026: "too big … grainy"); no facts line under the title; the filters
        are labelled boxes beside the tabs, Play rides in the house's header, and
        the house never scrolls inside itself — a very short window takes four
-       rooms a floor (owner picked "Beside the tabs", 13 Oct 2026)
+       rooms a floor (owner picked "Beside the tabs", 13 Oct 2026); an opened
+       dropdown wears no dark outline (owner, 13 Oct 2026)
     12 opened a moment before sign-in finishes, the page waits and reads after it
     11 a 2× screen gets twice the pixels; a short window shrinks the floors
      9 no free room (owner, 13 Oct 2026): the agents fill every floor evenly and
@@ -110,6 +111,9 @@ const CONTRACTS = [
         playInHouse: !!document.querySelector('.jh-housecard .jh-sh [data-jh-play]') && !!document.querySelector('.jh-housecard .jh-sh [data-jh-restart]') && !!document.querySelector('.jh-housecard .jh-sh #jh-prog') }; });
     ok('2f the four filters are labelled boxes on the tab row, beside the tabs (no control rows above the house)', row.inBar.every(Boolean) && row.oldRows === 0 && row.sameLine, JSON.stringify(row));
     ok('2g Play, Start again and the progress line ride in the house\'s own header', row.playInHouse, JSON.stringify(row));
+    const rings = await page.evaluate(() => ['jh-range', 'jh-look', 'jh-speed'].map(id => { const e = document.getElementById(id); e.focus(); const c = getComputedStyle(e);
+      const r = { id, outline: c.outlineStyle === 'none' || parseFloat(c.outlineWidth) === 0 ? '' : c.outlineStyle + ' ' + c.outlineWidth + ' ' + c.outlineColor, shadow: c.boxShadow }; e.blur(); return r; }));
+    ok('2i an opened dropdown wears no dark outline (owner, 13 Oct 2026)', rings.every(r => !r.outline && r.shadow === 'none'), JSON.stringify(rings));
     ok('2h the house never scrolls inside itself', await page.evaluate(() => { const st = document.getElementById('jh-stage'); return !/(auto|scroll)/.test(getComputedStyle(st).overflowY) && st.scrollHeight <= st.clientHeight + 1; }));
     ok('2d the opener wears "you are here" on the page', pg.current);
     const painted = await page.evaluate(() => { const cv = document.getElementById('jh-cv'), x = cv.getContext('2d'), d = x.getImageData(0, 0, cv.width, cv.height).data;

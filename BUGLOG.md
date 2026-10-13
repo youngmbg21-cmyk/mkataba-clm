@@ -20696,3 +20696,6 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 
 ### Noticed, not fixed (13 Oct 2026, Jambo's agents filters beside the tabs)
 - CLAUDE.md is 84 KB on main, above its own "keep it under about 80 KB" rule; a trim needs the owner's yes.
+
+### Noticed, not fixed (13 Oct 2026, dropdowns wear no dark outline)
+- f148 "no Swedish value is a forgotten copy of the English" is red on main since #248: `stk_by_jambo` is 'Jambo' in both books (a name); it belongs in f148's SAME_IN_BOTH beside `pd_tab_copilot`.

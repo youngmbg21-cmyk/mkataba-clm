@@ -969,8 +969,9 @@ const JH_CSS = `
   .jh-fb{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:var(--s-2);margin-left:auto;padding:var(--s-1) 0}
   .jh-box{display:inline-flex;align-items:center;height:var(--ctl-h,32px);box-sizing:border-box;padding:0 0 0 var(--s-2);border:1px solid var(--chip-edge,var(--color-divider));border-radius:var(--radius);background:var(--color-surface);cursor:pointer;min-width:0}
   .jh-box:hover{border-color:var(--color-neutral-400)}
-  .jh-box:focus-within{border-color:var(--color-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--color-accent) 25%,transparent)}
+  .jh-box:focus-within{box-shadow:0 0 0 2px color-mix(in srgb,var(--color-accent) 22%,transparent)}
   .jh-box-l{color:var(--color-neutral-600);white-space:nowrap;margin-right:4px}
+  .jh-box-v:focus,.jh-box-v:focus-visible{outline:none;box-shadow:none}
   .jh-box-l::after{content:":"}
   .jh-box-v{border:0;background:none;font:inherit;color:var(--color-text);font-weight:var(--w-label);height:100%;padding:0 6px 0 0;cursor:pointer;outline:none;max-width:200px}
   .jh-rangewrap{position:relative;display:inline-flex;align-items:center;gap:6px}
