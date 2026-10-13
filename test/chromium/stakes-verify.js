@@ -46,7 +46,11 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
   d1.playbook = { key: '_default', source: 'heuristic', verdicts: [
     { category: 'Payment terms', status: 'deviation', quote: 'Prices are exclusive of VAT and invoices fall due within', position: 'Paid within 14 days', redline: 'Invoices are paid within 14 days of receipt.', escalate: false },
     { category: 'Governing law', status: 'aligned', quote: '', position: '', redline: '', escalate: false }] };
-  await seedWorkspace(h, { contracts: [d1, deal('MK-S2', 'Haulage Refused')], approvalRules: [] });
+  /* a contract the risk scan read: one finding on clause 4's wording (the paper is the RM template's) */
+  const d3 = deal('MK-S3', 'Haulage Scanned');
+  d3.scan = { findings: [{ id: 'f1', sev: 'high', title: 'Renews on its own for twelve months', why: 'It renews unless notice is given ninety days before the end.',
+    quote: 'The term is three (3) years from the effective date' }], dismissed: [] };
+  await seedWorkspace(h, { contracts: [d1, deal('MK-S2', 'Haulage Refused'), d3], approvalRules: [] });
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const errs = [];
   try {
@@ -179,23 +183,6 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       const f7 = await page.evaluate(() => ({ sq: document.querySelectorAll('#pd-thread .stk-rsq').length,
         named: document.querySelectorAll('#pd-thread .doc-th-row .doc-th-name').length }));
       ok('3i no coloured section square after any clause name', f7.named > 0 && f7.sq === 0, JSON.stringify(f7));
-      /* 3j EVERY COLOURED DOT EXPLAINS ITSELF (owner, 13 Oct 2026: "we have some
-         worth a look but they have no explanation"): an older mark's amber on a
-         clause with no point under it is cleared; the dot is plain */
-      const f8 = await page.evaluate(() => {
-        const c = getContract('MK-S1'), card = document.getElementById('pd-thread');
-        const bare = [...card.querySelectorAll('.doc-th-row')].find(r => !r.querySelector('.stk-n') && !r.querySelector('.stk-line'));
-        if (!bare) return { bare: false };
-        const at = bare.getAttribute('data-th-row');
-        bare.classList.add('is-amber');
-        const plain = getComputedStyle(card.querySelector('.doc-th-row:not(.is-amber):not(.stk-b-need):not(.stk-b-look) .doc-th-bead') || bare).backgroundColor;
-        stkDecorate(c, card, [...document.querySelectorAll('#pd-thread .doc-th-row, #pd-thread .doc-th-sec')].map(() => ({})));
-        const r = card.querySelector(`.doc-th-row[data-th-row="${at}"]`);
-        const out = { bare: true, amber: r.classList.contains('is-amber'), bead: getComputedStyle(r.querySelector('.doc-th-bead')).backgroundColor, plain };
-        docThreadPaint(c);
-        return out;
-      });
-      ok('3j a clause with no point under it wears a plain dot, even where an older mark said amber', f8.bare && !f8.amber && f8.bead === f8.plain, JSON.stringify(f8));
       /* 3k AN OPEN CLAUSE WITH NOTHING THE FILTER KEEPS LEAVES THE LIST (owner,
          13 Oct 2026): open the Term row (no points), then Severity: Needs you */
       const f9 = await page.evaluate(async () => {
@@ -293,13 +280,30 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
         await new Promise(r => setTimeout(r, 2500));
         const ceId = window.clauseEditorOpen && clauseEditorOpen() ? clauseEditorClauseId() : null;
         const cl = ceId ? negoClauseList(getContract('MK-S1')).find(x => x.clauseId === ceId) : null;
+        const bk = document.querySelector('#shell-title [data-rl-back-clauses]');
+        const pane = document.getElementById('clause-editor'), ptxt = pane ? pane.innerText : '';
         return { title, view: state.view, editor: !!ceId, clause: cl ? clauseLabel(cl) : null,
-          ask: (document.getElementById('ce-ask') || {}).value || '', filed: (getContract('MK-S1').changes || []).length - before,
-          back: (document.querySelector('#shell-title [data-rl-back-clauses]') || {}).textContent || '' };
+          card: /Jambo's proposed ask/.test(ptxt), say: /This is the ask you came with/.test(ptxt), askOnCard: /12 months before the claim/.test(ptxt),
+          apply: !!(pane && [...pane.querySelectorAll('button')].some(b => /^Apply$/.test(b.textContent.trim()))),
+          box: (document.getElementById('ce-ask') || {}).value || '', filed: (getContract('MK-S1').changes || []).length - before,
+          back: bk ? bk.textContent : '', bold: bk ? Number(getComputedStyle(bk).fontWeight) : 0,
+          crumb: (document.getElementById('shell-title') || {}).innerText || '' };
       });
-      ok('5c "Start redlining with this ask" opens its own clause in Edit with Jambo, the ask ready and unsent, nothing filed',
-        j1.view === 'redline' && j1.editor && /\b3\b/.test(j1.clause || '') && /12 months before the claim/.test(j1.ask) && j1.filed === 0, JSON.stringify(j1));
-      ok('5d the bar offers "‹ Back to clauses" on that trip', /Back to clauses/.test(j1.back), j1.back);
+      ok('5c "Start redlining with this ask" opens its own clause in Edit with Jambo, the ask waiting on a card with Apply, nothing filed',
+        j1.view === 'redline' && j1.editor && /\b3\b/.test(j1.clause || '') && j1.card && j1.say && j1.askOnCard && j1.apply && !j1.box && j1.filed === 0, JSON.stringify(j1));
+      ok('5d the bar offers a bold "‹ Back to Clauses" on that trip, and still names the clause being edited',
+        /‹ Back to Clauses/.test(j1.back) && j1.bold >= 600 && /Edit\b/.test(j1.crumb), JSON.stringify({ back: j1.back, bold: j1.bold, crumb: j1.crumb }));
+      const ja = await page.evaluate(async () => {
+        const before = (getContract('MK-S1').changes || []).length;
+        const btn = [...document.querySelectorAll('#clause-editor button')].find(b => /^Apply$/.test(b.textContent.trim()));
+        if (!btn) return { btn: false };
+        btn.click(); await new Promise(r => setTimeout(r, 800));
+        const box = document.getElementById('ce-clausebody') || document.querySelector('#clause-editor [contenteditable]');
+        return { btn: true, dirty: !!(window.clauseEditorDirty && clauseEditorDirty()), inBox: /12 months before the claim/.test(box ? box.innerText : ''),
+          filed: (getContract('MK-S1').changes || []).length - before };
+      });
+      ok('5c2 Apply puts the ask into the clause as a draft; nothing is filed until Save', ja.btn && ja.dirty && ja.inBox && ja.filed === 0, JSON.stringify(ja));
+      if (process.env.STK_SHOT) await page.screenshot({ path: process.env.STK_SHOT + '-landed.png' });
       const j2 = await page.evaluate(async () => {
         document.querySelector('#shell-title [data-rl-back-clauses]').click();
         await new Promise(r => setTimeout(r, 2500));
@@ -313,6 +317,20 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       const j3 = await page.evaluate(async () => { openRedlineWorkbench('MK-S1'); await new Promise(r => setTimeout(r, 1500));
         const out = !document.querySelector('[data-rl-back-clauses]'); setView('dashboard'); pdOpenOnHome('MK-S1', 'doc'); await new Promise(r => setTimeout(r, 1200)); return out; });
       ok('5f Negotiate opened by another door offers no way back to the clauses', j3);
+      /* 5g "ASK JAMBO ABOUT THIS" FILLS A WHOLE QUESTION (owner, 13 Oct 2026:
+         "the question posed is terribly framed"): the clause by number, the
+         point without quote marks, and what we want back — nothing asked yet */
+      const j4 = await page.evaluate(async () => {
+        const c = getContract('MK-S1'); window.__bd.n = window.__bd.n || 0;
+        stkDiveOpen(c, 0); await new Promise(r => setTimeout(r, 400));
+        const calls = (window.__calls || []).length;
+        document.querySelector('#pd-thread [data-stk-ask]').click(); await new Promise(r => setTimeout(r, 800));
+        const box = window.igAskBox ? igAskBox() : null;
+        return { q: box ? box.value : '', asked: (window.__calls || []).filter(p => /ai\/(ask|chat|copilot)/.test(p)).length - 0, calls };
+      });
+      ok('5g "Ask Jambo about this" fills a whole question naming the clause, with no quote marks, unsent',
+        /^In clause 3: Their liability is capped at three months of fees\. Explain in plain English what this means for us, and what we should ask for instead\.$/.test(j4.q) && !/"/.test(j4.q), JSON.stringify(j4));
+      await page.evaluate(() => { const b = window.igAskBox ? igAskBox() : null; if (b) b.value = ''; stkDiveClose(getContract('MK-S1')); });
 
       await page.evaluate(() => { window.__bd.refuse = true; window.__bd.n = 0; pdOpenOnHome('MK-S2', 'doc'); });
       const said = await page.waitForSelector('#pd-thread .stk-err', { timeout: 8000 }).then(() => true, () => false);
@@ -341,6 +359,24 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
     } else {
       ['2', '3', '4', '5', '6'].forEach(k => ok(k + ' (not reached)', false, 'the Clauses tab was never read'));
     }
+    /* 9 EVERY COLOURED DOT EXPLAINS ITSELF (owner, 13 Oct 2026: "Yes, build
+       it"): the risk scan's finding is a point under its clause — counted,
+       red, its reason in the open row, "Found by: Risk scan" */
+    const sc = await page.evaluate(async () => {
+      window.__bd.refuse = false;
+      pdOpenOnHome('MK-S3', 'doc');
+      for (let i = 0; i < 40 && !document.querySelector('#pd-thread .stk-line'); i++) await new Promise(r => setTimeout(r, 250));
+      const by = [...document.querySelectorAll('#pd-thread [data-stk-f="by"] option')].map(o => o.value);
+      const row = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(r => /^4\b/.test((r.querySelector('.doc-th-name') || {}).innerText || ''));
+      if (!row) return { row: false, by };
+      const red = row.classList.contains('stk-b-need'), say = (row.querySelector('.stk-n') || {}).textContent || '';
+      if (!row.classList.contains('is-open')){ row.querySelector('[data-th-go]').click(); await new Promise(r => setTimeout(r, 900)); }
+      const r2 = document.querySelector(`#pd-thread .doc-th-row[data-th-row="${row.getAttribute('data-th-row')}"]`);
+      const line = r2 && r2.querySelector('.stk-line'), vis = !!line && line.getClientRects().length > 0;
+      return { row: true, by, red, say, vis, text: line ? line.innerText : '' };
+    });
+    ok('9 a risk-scan finding is a point under its clause: red, counted, its reason shown when opened, "Found by: Risk scan"',
+      sc.row && sc.by.includes('scan') && sc.red && /1 to review/.test(sc.say) && sc.vis && /ninety days/.test(sc.text), JSON.stringify(sc));
     /* 8 THE OVERVIEW TAB IS GONE from Home's panel (owner, 13 Oct 2026); an old
        door onto it lands on Jambo */
     const tabs = await page.evaluate(() => { pdOpenOnHome('MK-S1', 'facts');

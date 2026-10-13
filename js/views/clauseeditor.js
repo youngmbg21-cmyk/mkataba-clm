@@ -5041,6 +5041,30 @@ function ceStdPress(kind){
   ceRenderTabs(); ceRenderLane();
   return true;
 }
+/* ---- THE ASK YOU CAME WITH WAITS ON THE CLAUSE (owner, 13 Oct 2026: "when
+   i click on the start redlining, i get screen 2 next which has no question
+   nor do I know what is supposed to happen") ----
+   "Start redlining with this ask" lands here (rlLandOn) and the ask the
+   reader was just reading is put on a card in Jambo's panel: one line saying
+   what happens next, then the ask placed as the smallest change (pbFitInto at
+   the point's quote), its cost, and Apply · Discard. It is a STANDARD CARD in
+   all but name, so Apply goes through ceStdApply and its seatbelt. NOTHING
+   REACHES THE BOX UNTIL APPLY, and nothing is filed until Save. No model call. */
+function ceOfferAsk(words, quote){
+  if (!clauseEditorOpen() || ceNoAi()) return false;
+  const w = String(words || '').trim(); if (!w) return false;
+  cePullText();
+  const into = window.pbFitInto ? pbFitInto(_ceText, quote, w) : null;
+  const text = into ? into.html : w;
+  const label = (() => { try{ return ceClauseLabel(ceClause()) || ''; }catch(_){ return ''; } })();
+  _ceThread.push({ who: 'ai', text: _cet('ce_landed_say'), read: [],
+    cards: [{ name: _cet('ce_landed_ask'), chip: ceWordingLabel('draft'), chipTone: 'wait',
+      line: '', cost: ceCostLine(_ceText, text) || '', rests: '',
+      text, passage: null, std: { kind: 'draft', fitted: !!into, item: { oldHtml: _ceText, v: { quote: String(quote || '') }, clauseLabel: label, draft: '' } } }] });
+  _ceTab = 'chat';
+  ceRenderTabs(); ceRenderLane();
+  return true;
+}
 /* APPLY ON A STANDARD CARD: the seatbelt where the wording would replace
    words the finding never quoted, then the box — and the idea-22 record: a
    Copilot draft that was on offer and passed over for our own wording is a
@@ -7306,7 +7330,7 @@ if (typeof document !== 'undefined' && !document._ceWired){
 }
 
 Object.assign(window, {
-  ceApplyZoom, ceLeaveGuard, ceStacksOn, ceTypingRefusal, ceMarkedHtml, ceTwinHtml, ceTwinPaint,
+  ceApplyZoom, ceLeaveGuard, ceOfferAsk, ceStacksOn, ceTypingRefusal, ceMarkedHtml, ceTwinHtml, ceTwinPaint,
   clauseEditorOpen, clauseEditorClauseId, clauseEditorContract, clauseEditorDirty, ceCanFile, clauseEditorCss,
   clauseEditorLeaveAsk,
   clauseEditorHtml, clauseEditorRefusal, clauseEditorFits,
