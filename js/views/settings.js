@@ -2622,13 +2622,9 @@ const SET_PANELS={
        switch (GET/PUT /api/board/reading, Run now POST …/run). The Copilot
        group stays four rows (f467). */
     body(){ return `<div id="st-agents-panel"></div>
-      ${''/* JAMBO'S POINTS (12 Oct 2026, the agents page): the company's value per
-             agent — one row per agent in AG_KEYS, so a new agent's row is here
-             the day it arrives (agPointsTableHtml, js/views/jambohouse.js). */}
-      <section class="st-sec" style="margin-top:var(--s-4)" id="st-ag-points"><h3 class="st-sec-h">${esc(i18t('jh_pt_h'))}</h3>${typeof agPointsTableHtml==='function'?agPointsTableHtml('company'):''}</section>
       <section class="st-sec" style="margin-top:var(--s-4)"><h3 class="st-sec-h">${esc(i18t('st_p_book'))}</h3>
       <p class="st-note" style="margin-bottom:10px">${esc(i18t('st_book_note'))}</p><div id="st-book">${esc(i18t('st_acc_loading'))}</div></section>`; },
-    wire(){ stAgentsPaint(); stBookLoad(); if(typeof agPointsWire==='function') agPointsWire(document.getElementById('st-ag-points')); },
+    wire(){ stAgentsPaint(); stBookLoad(); },
   },
 
   /* ---- THE BOARD'S WORD BOOK (the board that answers right, Part 3, 5 Oct
@@ -5364,6 +5360,14 @@ function openApprovalRuleEditor(idx){
 const ST_AGENT_KEYS=['round','link','renew','paper','late','ours','import'];
 async function stAgentsPaint(){
   const host=document.getElementById('st-agents-panel'); if(!host) return;
+  /* JAMBO'S POINTS (12 Oct 2026, the agents page): the company's value per agent,
+     its own section in this drawer under the agents — one row per agent in
+     AG_KEYS, so a new agent's row is here the day it arrives
+     (agPointsTableHtml, js/views/jambohouse.js); drawn and wired once. */
+  if(typeof agPointsTableHtml==='function' && !document.getElementById('st-ag-points')){
+    host.insertAdjacentHTML('afterend',`<section class="st-sec" style="margin-top:var(--s-4)" id="st-ag-points"><h3 class="st-sec-h">${esc(i18t('jh_pt_h'))}</h3>${agPointsTableHtml('company')}</section>`);
+    if(typeof agPointsWire==='function') agPointsWire(document.getElementById('st-ag-points'));
+  }
   if(typeof agentsStatusLoad!=='function'){ host.innerHTML=''; return; }
   host.innerHTML=`<p class="st-note">${esc(i18t('ct_loading_contract'))}</p>`;
   const s=await agentsStatusLoad();
