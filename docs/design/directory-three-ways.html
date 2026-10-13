@@ -1,0 +1,699 @@
+<title>Directory Three Ways</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: a sticky strip with the three option names, ONE full-size HaTi
+     screen under it (the Directory on its real page, in HaTi's own shell),
+     then the comparison and the notes. The page's own chrome reads these
+     tokens in both themes; the HaTi picture inside carries HaTi's light
+     values to the byte, because it is a picture of the product as it is. */
+  :root{--bg:#EEF3F2;--fg:#032E2A;--mute:#3A5F5A;--line:#DCE9E6;--card:#FFFFFF;--accent:#12796D;--accent-ink:#0E5F58;--soft:#E3F3EF;--warn:#A24E07;color-scheme:light}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0F1A19;--fg:#E6EFED;--mute:#A0ACA9;--line:#263835;--card:#16221F;--accent:#5EC2B3;--accent-ink:#8FD9CC;--soft:rgba(94,194,179,.14);--warn:#EBAD46;color-scheme:dark}}
+  :root[data-theme="dark"]{--bg:#0F1A19;--fg:#E6EFED;--mute:#A0ACA9;--line:#263835;--card:#16221F;--accent:#5EC2B3;--accent-ink:#8FD9CC;--soft:rgba(94,194,179,.14);--warn:#EBAD46;color-scheme:dark}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:Geist,'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;font-size:14px;line-height:1.5;padding-inline:16px;padding-block:0 48px;-webkit-font-smoothing:antialiased}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+  button{font:inherit;cursor:pointer}
+  a{color:var(--accent-ink)}
+  h1,h2,h3{text-wrap:balance;margin:0}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  /* ---------- the strip ---------- */
+  .strip{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:0 -16px;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line)}
+  .strip .name{font-weight:600;font-size:15px;margin-right:6px}
+  .opts{display:flex;gap:6px;flex-wrap:wrap}
+  .opt{height:30px;padding:0 12px;border:1px solid var(--line);border-radius:4px;background:var(--card);color:var(--fg);display:inline-flex;align-items:center;gap:8px}
+  .opt kbd{font:500 11px 'Geist Mono',ui-monospace,monospace;color:var(--mute);border:1px solid var(--line);border-radius:3px;padding:0 4px;line-height:16px}
+  .opt.on{background:var(--soft);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+  .strip .sp{flex:1}
+  .strip .hint{font-size:12px;color:var(--mute)}
+  .fit{height:30px;padding:0 10px;border:1px solid var(--line);border-radius:4px;background:var(--card);color:var(--fg)}
+
+  /* ---------- the stage ---------- */
+  .lead{max-width:980px;margin:18px auto 12px;color:var(--mute);font-size:14px}
+  .lead b{color:var(--fg);font-weight:600}
+  .stagewrap{position:relative;overflow:hidden;margin:0 auto;border:1px solid var(--line);border-radius:6px;background:#F4F8F7}
+  .stagewrap.actual{overflow:auto}
+  .stage{width:1440px;height:820px;transform-origin:0 0}
+  .caption{display:flex;flex-wrap:wrap;gap:4px 16px;max-width:980px;margin:10px auto 0;font-size:13px;color:var(--mute)}
+  .caption b{color:var(--fg);font-weight:600}
+
+  /* ---------- notes ---------- */
+  .notes{max-width:980px;margin:34px auto 0;display:grid;gap:30px}
+  .notes h2{font-size:17px;font-weight:700;margin-bottom:8px}
+  .notes h3{font-size:14px;font-weight:600;margin:14px 0 4px}
+  .notes p{margin:0 0 8px;max-width:72ch}
+  .notes ul{margin:0 0 8px;padding-left:20px;max-width:76ch}
+  .notes li{margin:0 0 5px}
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--card)}
+  table.cmp{width:100%;border-collapse:collapse;font-size:13px;min-width:720px}
+  table.cmp th{text-align:left;font-weight:600;color:var(--mute);padding:10px 12px;border-bottom:1px solid var(--line);font-size:12px}
+  table.cmp td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  table.cmp tr:last-child td{border-bottom:0}
+  table.cmp td:first-child{font-weight:600;white-space:nowrap}
+  .pick{border:1px solid var(--accent);background:var(--soft);border-radius:6px;padding:14px 16px}
+  .pick h2{color:var(--accent-ink)}
+  .chk{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+  .chk div{border:1px solid var(--line);border-radius:6px;padding:12px 14px;background:var(--card)}
+  .chk b{display:block;margin-bottom:4px}
+  .chk ul{padding-left:18px;margin:0}
+  .warnline{color:var(--warn)}
+
+  /* ======================================================================
+     THE HATI PICTURE — every value is HaTi's own light :root, to the byte:
+     ground #F4F8F7 · surface #fff · ink #032E2A · label #3A5F5A · quiet #547974
+     divider #DCE9E6 · surface-2 #F0F5F4 · accent 600 #12796D · ink #0E5F58
+     accent-100 #E3F3EF · nav bar #12796D · radius 4 / 8 · ctl-h 28
+     type 20/16/14/13/12/11 · weights 400/500/600/700
+     status: gray #F0F5F4/#3A5F5A · amber #FBEEDB/#A24E07 · green #DFF2E7/#1A6F45
+             steel #E6ECF6/#48639A · ruby #FBE5E3/#B3261E
+     ====================================================================== */
+  .hati{width:1440px;height:820px;background:#F4F8F7;color:#032E2A;font-family:Geist,'IBM Plex Sans',system-ui,sans-serif;font-size:13px;line-height:1.5;display:flex;flex-direction:column;overflow:hidden;position:relative;--h-ink:#032E2A;--h-lab:#3A5F5A;--h-quiet:#547974;--h-line:#DCE9E6;--h-s2:#F0F5F4;--h-acc:#12796D;--h-acc-ink:#0E5F58;--h-acc-100:#E3F3EF}
+  .hati *{box-sizing:border-box}
+  .hati button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+  .h-bar{flex:none;height:48px;background:#12796D;display:flex;align-items:center;gap:14px;padding:0 14px 0 16px;color:#fff}
+  .h-bar .brand{font-weight:700;font-size:15px;letter-spacing:-.01em;display:flex;align-items:center;gap:9px}
+  .h-bar .brand i{width:22px;height:22px;border-radius:5px;background:#fff;color:#12796D;display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:700}
+  .h-bar .title{font-size:13px;color:rgba(255,255,255,.86);padding-left:14px;border-left:1px solid rgba(255,255,255,.25)}
+  .h-bar .sp{flex:1}
+  .h-bar .search{height:28px;width:280px;border-radius:4px;background:rgba(255,255,255,.14);display:flex;align-items:center;gap:8px;padding:0 10px;font-size:12px;color:rgba(255,255,255,.8);white-space:nowrap}
+  .h-bar .search svg{width:14px;height:14px;flex:none}
+  .h-bar .search kbd{margin-left:auto;font:500 11px 'Geist Mono',monospace;opacity:.8}
+  .h-bar .ic{width:28px;height:28px;border-radius:4px;display:grid;place-items:center;color:#fff}
+  .h-bar .ic svg{width:16px;height:16px}
+  .h-bar .face{width:26px;height:26px;border-radius:50%;background:#E3F3EF;color:#0E5F58;display:grid;place-items:center;font-size:10px;font-weight:600}
+  .h-body{flex:1;min-height:0;display:flex}
+  .h-rail{flex:none;width:228px;background:#fff;border-right:1px solid #DCE9E6;padding:6px 8px;display:flex;flex-direction:column;gap:1px;overflow:hidden}
+  .h-sec{font-size:11px;font-weight:700;color:#547974;padding:12px 12px 6px}
+  .h-sec:first-child{padding-top:4px}
+  .h-nav{display:flex;align-items:center;gap:11px;width:100%;padding:8px 12px;border:1px solid transparent;border-radius:4px;color:#3A5F5A;font-size:13px}
+  .h-nav svg{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .h-nav .l{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .h-nav .n{font:700 12px 'Geist Mono',monospace;padding:1px 7px;border-radius:4px;background:#F0F5F4;color:#3A5F5A}
+  .h-nav .n.warn{color:#A24E07}
+  .h-nav .chev{width:12px;height:12px;color:#547974}
+  .h-nav.on{background:rgba(18,121,109,.10);border-color:rgba(18,121,109,.20);color:#0E5F58;font-weight:700;letter-spacing:-.01em}
+  .h-main{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
+  /* the SAP band: title, facts, tabs and filters on one white strip */
+  .h-band{flex:none;background:#fff;border-bottom:1px solid #DCE9E6;padding:16px 16px 0}
+  .h-bandtop{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .h-h1{font-size:20px;font-weight:700;letter-spacing:-.01em;line-height:1.2}
+  .h-facts{font-size:13px;color:#3A5F5A;margin-top:3px}
+  .h-tabbar{display:flex;align-items:center;justify-content:space-between;gap:0 16px;margin-top:6px}
+  .h-tabs{display:flex;align-items:flex-end;gap:2px;min-width:0}
+  .h-tab{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 12px;margin-bottom:-1px;border-bottom:2px solid transparent;color:#3A5F5A;font-size:13px;font-weight:500;white-space:nowrap}
+  .h-tab .n{font:400 11px 'Geist Mono',monospace;color:#3A5F5A;background:#F0F5F4;border-radius:4px;padding:1px 5px;line-height:1.3}
+  .h-tab.on{color:#032E2A;font-weight:600;border-bottom-color:#12796D}
+  .h-tab.zero{color:#547974}
+  .h-fb{display:flex;align-items:center;gap:8px;padding:4px 0}
+  .h-find{height:28px;width:220px;display:flex;align-items:center;gap:6px;padding:0 8px;border:1px solid #DCE9E6;border-radius:4px;background:#fff;color:#547974;font-size:13px}
+  .h-find svg{width:14px;height:14px;flex:none}
+  .h-find input{border:0;outline:0;background:none;font:inherit;color:#032E2A;width:100%;min-width:0;padding:0}
+  .h-find input::placeholder{color:#547974}
+  .h-chip{position:relative;height:28px;display:inline-flex;align-items:center;padding:0 26px 0 8px;border:1px solid #DCE9E6;border-radius:4px;background:#fff;font-size:13px;white-space:nowrap;color:#032E2A}
+  .h-chip .l{color:#3A5F5A;margin-right:5px}
+  .h-chip .l::after{content:":"}
+  .h-chip::after{content:"";position:absolute;right:9px;top:50%;width:6px;height:6px;margin-top:-5px;border-right:1.5px solid #3A5F5A;border-bottom:1.5px solid #3A5F5A;transform:rotate(45deg)}
+  .h-chip.on{border-color:#12796D}
+  .h-chip.on b{color:#0E5F58;font-weight:600}
+  /* the ground: the card and its panel */
+  .h-ground{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 440px;grid-template-rows:minmax(0,1fr);gap:14px;padding:14px 16px 16px}
+  .h-card{background:#fff;border:1px solid #DCE9E6;border-radius:8px;box-shadow:0 1px 2px rgba(10,40,36,.06),0 1px 3px rgba(10,40,36,.04);display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  .h-cardh{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid #DCE9E6;flex:none}
+  .h-cardt{font-size:14px;font-weight:600;line-height:1.2}
+  .h-cardt span{font-weight:400;color:#3A5F5A;font-variant-numeric:tabular-nums}
+  .h-link{color:#0E5F58;font-size:13px;display:inline-flex;align-items:center;gap:4px}
+  .h-link svg{width:12px;height:12px}
+  .h-scroll{flex:1;min-height:0;overflow:auto;position:relative}
+  .h-foot{flex:none;display:flex;align-items:center;justify-content:space-between;padding:6px 14px;border-top:1px solid #DCE9E6;font-size:12px;color:#3A5F5A;background:#fff}
+  table.h-t{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+  .h-t th{position:sticky;top:0;background:#fff;text-align:left;font-size:11px;font-weight:700;color:#3A5F5A;padding:10px 14px;border-bottom:1px solid #DCE9E6;white-space:nowrap;z-index:1}
+  .h-t td{padding:8px 14px;border-bottom:1px solid #DCE9E6;vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .h-t th.n,.h-t td.n{text-align:right;font-variant-numeric:tabular-nums}
+  .h-t tr.row{cursor:pointer}
+  .h-t tr.row:hover td{background:#F7FAF9}
+  .h-t tr.row.sel td{background:rgba(18,121,109,.08)}
+  .h-t tr.row.sel td:first-child{box-shadow:inset 2px 0 0 #12796D}
+  .h-t td.quiet,.quiet{color:#547974}
+  .h-t a{color:#0E5F58;text-decoration:none}
+  .h-id{display:flex;align-items:center;gap:8px;min-width:0}
+  .h-id > div{min-width:0}
+  .h-name{display:block;font-weight:500;color:#032E2A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .h-sub{display:block;font-size:12px;color:#547974;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .h-you{font-size:11px;color:#3A5F5A;background:#F0F5F4;border-radius:4px;padding:0 5px;margin-left:4px;font-weight:500}
+  .av{flex:none;width:28px;height:28px;border-radius:4px;display:grid;place-items:center;font-size:11px;font-weight:600;letter-spacing:.02em;line-height:1}
+  .av-0{background:#E3F3EF;color:#0E5F58}.av-1{background:#E9EFFB;color:#24488F}.av-2{background:#FBEEDB;color:#A24E07}.av-3{background:#F1ECFA;color:#5B3F9A}.av-4{background:#F0F5F4;color:#3A5F5A}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:2px 9px 2px 7px;border-radius:999px;font-size:12px;font-weight:500;line-height:1.3;white-space:nowrap;background:#F0F5F4;color:#3A5F5A}
+  .pill i{width:6px;height:6px;border-radius:50%;background:#84A8A3}
+  .pill.amber{background:#FBEEDB;color:#A24E07}.pill.amber i{background:#E8A317}
+  .pill.green{background:#DFF2E7;color:#1A6F45}.pill.green i{background:#2E9E63}
+  .pill.steel{background:#E6ECF6;color:#48639A}.pill.steel i{background:#6F86BF}
+  .pill.ruby{background:#FBE5E3;color:#B3261E}.pill.ruby i{background:#D9453B}
+  /* shelves */
+  .h-t tr.shelf td{background:#F7FAF9;padding:7px 14px;cursor:pointer}
+  .h-t tr.shelf:hover td{background:#F0F5F4}
+  .h-t tr.shelf.sel td{background:rgba(18,121,109,.08)}
+  .h-t tr.shelf.sel td:first-child{box-shadow:inset 2px 0 0 #12796D}
+  .h-t tr.shelf .h-name{font-weight:600}
+  .h-fold{width:16px;height:16px;flex:none;display:grid;place-items:center;color:#547974;border-radius:3px}
+  .h-fold svg{width:12px;height:12px;transition:transform .15s}
+  .h-t tr.shelf.closed .h-fold svg{transform:rotate(-90deg)}
+  .h-t tr.under td:first-child{padding-left:50px}
+  /* faces */
+  .h-wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(188px,1fr));gap:10px;padding:14px 46px 14px 14px}
+  .h-face{border:1px solid #DCE9E6;border-radius:8px;padding:12px 12px 10px;background:#fff;display:flex;flex-direction:column;gap:6px;min-width:0;text-align:left;cursor:pointer}
+  .h-face:hover{border-color:#BED6D1;background:#F7FAF9}
+  .h-face.sel{border-color:#12796D;box-shadow:0 0 0 1px #12796D inset}
+  .h-face .av{width:34px;height:34px;font-size:12px}
+  .h-face .nm{font-weight:600;font-size:14px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .h-face .pt{font-size:12px;color:#3A5F5A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .h-face .rl{font-size:12px;color:#032E2A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .h-face .ft{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px;font-size:12px;color:#547974;border-top:1px solid #F0F5F4;padding-top:7px}
+  .h-face .ft a{color:#0E5F58;text-decoration:none;display:inline-flex}
+  .h-face .ft svg{width:14px;height:14px}
+  .h-az{position:absolute;right:8px;top:12px;display:flex;flex-direction:column;align-items:center;gap:0;font-size:10px;font-weight:600;color:#0E5F58;font-variant-numeric:tabular-nums}
+  .h-az button{width:22px;height:19px;display:grid;place-items:center;border-radius:3px;color:#0E5F58}
+  .h-az button:hover{background:#E3F3EF}
+  .h-az button.dim{color:#BED6D1;cursor:default}
+  /* the panel */
+  .h-panel{background:#fff;border:1px solid #DCE9E6;border-radius:8px;box-shadow:0 1px 2px rgba(10,40,36,.06),0 1px 3px rgba(10,40,36,.04);min-height:0;overflow:auto;font-size:13px}
+  .p-h{padding:18px 20px 16px;border-bottom:1px solid #DCE9E6}
+  .p-eb{font-size:12px;color:#3A5F5A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .p-t{margin:4px 0 0;font-size:16px;font-weight:700;letter-spacing:-.01em;line-height:1.25;display:flex;align-items:center;gap:8px;min-width:0}
+  .p-t span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .p-sub{color:#3A5F5A;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .p-sub a{color:#0E5F58;text-decoration:none}
+  .p-acts{display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap}
+  .h-btn{height:28px;padding:0 10px;display:inline-flex;align-items:center;gap:6px;border:1px solid #DCE9E6;border-radius:4px;background:#fff;color:#0E5F58;font-size:13px;font-weight:500;white-space:nowrap;box-shadow:0 1px 0 rgba(10,20,40,.06)}
+  .h-btn:hover{border-color:#12796D}
+  .h-btn.fill{background:#12796D;border-color:#12796D;color:#fff}
+  .h-btn.fill:hover{background:#0E5F58;border-color:#0E5F58}
+  .h-btn svg{width:12px;height:12px}
+  .h-btn.more{padding:0 8px;color:#3A5F5A}
+  .p-facts{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px 16px;margin:0;padding:16px 20px;border-bottom:1px solid #DCE9E6}
+  .p-facts dt{font-size:11px;color:#3A5F5A}
+  .p-facts dd{margin:3px 0 0;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .p-facts dd.none{color:#547974;font-weight:400}
+  .p-sec{padding:14px 20px;border-bottom:1px solid #DCE9E6}
+  .p-sec h3{margin:0 0 8px;font-size:12px;font-weight:700;display:flex;gap:6px;align-items:baseline}
+  .p-sec h3 .n{font-weight:400;color:#3A5F5A}
+  .p-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:7px 0;border-top:1px solid #F0F5F4;cursor:pointer;width:100%}
+  .p-row:first-of-type{border-top:0;padding-top:0}
+  .p-row:hover .p-rn{color:#0E5F58}
+  .p-rn{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .p-rn .ref{font:500 12px 'Geist Mono',ui-monospace,monospace;color:#3A5F5A;margin-right:6px}
+  .p-rs{grid-column:1 / -1;font-size:12px;color:#547974;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .p-pp{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid #F0F5F4;cursor:pointer;width:100%}
+  .p-pp:first-of-type{border-top:0;padding-top:0}
+  .p-pp .av{width:24px;height:24px;font-size:10px}
+  .p-pp .nm{font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .p-pp .rl{margin-left:auto;font-size:12px;color:#547974;white-space:nowrap}
+  .p-chips{display:flex;flex-wrap:wrap;gap:6px}
+  .p-chips span{font-size:12px;padding:2px 8px;border:1px solid #DCE9E6;border-radius:999px;color:#032E2A}
+  .p-empty{padding:28px 20px;color:#547974;text-align:center}
+</style>
+
+<div class="strip">
+  <span class="name">The Directory, three ways</span>
+  <div class="opts" role="tablist" aria-label="Options">
+    <button class="opt on" role="tab" data-opt="sap" aria-selected="true"><kbd>1</kbd>The SAP Way</button>
+    <button class="opt" role="tab" data-opt="shelves" aria-selected="false"><kbd>2</kbd>Shelves</button>
+    <button class="opt" role="tab" data-opt="faces" aria-selected="false"><kbd>3</kbd>Faces</button>
+  </div>
+  <span class="sp"></span>
+  <span class="hint">Keys 1 · 2 · 3 or ← → switch. Press a row to see its panel.</span>
+  <button class="fit" id="fitbtn" type="button">Actual size</button>
+</div>
+
+<p class="lead" id="lead"></p>
+
+<div class="stagewrap" id="stagewrap">
+  <div class="stage" id="stage"></div>
+</div>
+<div class="caption" id="caption"></div>
+
+<div class="notes">
+  <section>
+    <h2>The three, side by side</h2>
+    <div class="tablewrap">
+      <table class="cmp">
+        <thead><tr><th>Option</th><th>The idea</th><th>When it wins</th><th>Cost</th></tr></thead>
+        <tbody>
+          <tr><td>The SAP Way</td>
+            <td>One quiet list of every person HaTi deals with, ours and theirs. Tabs for the side, filters beside them (party, role, stream), and the side panel shows the person's contracts and the doors onto them.</td>
+            <td>Every day. "Who signs for Naivas?", "What is her address?", "Which contracts is he named on?" One search, one press.</td>
+            <td>The same page grammar as Contracts, Parties and People, so little new to learn or build. Needs one reading on the server (scoped to the streams you may open) and the doors wired.</td></tr>
+          <tr><td>Shelves</td>
+            <td>The same list, grouped under each party. Our side is the first shelf. A shelf opens to its people; pressing the shelf itself shows the party's own panel.</td>
+            <td>When you think in companies first: "Who do we know at Safaricom?" and you want them all in one glance.</td>
+            <td>Parties now appear on two pages (Parties and here). Long shelves need folding and the fold state must be kept on refresh. Two levels of selection in one list.</td></tr>
+          <tr><td>Faces</td>
+            <td>A wall of contact cards with an A to Z edge, like a phone's contacts. A pressed card shows the same panel.</td>
+            <td>A small book, under about sixty people, or when you pick a person by name at a glance.</td>
+            <td>Fewer people on a screen and no columns to run your eye down. A new control (the A to Z edge) outside HaTi's list grammar, where every list is a table with a panel.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="pick">
+    <h2>Recommendation: The SAP Way</h2>
+    <ul>
+      <li><b>It is the grammar every list already wears.</b> Contracts, Negotiations, Parties, People and Requests all read this way, so nobody learns a new page and the build reuses the list and panel that exist.</li>
+      <li><b>Parties already answers "by company".</b> The Directory should answer "by person". The two meet through the Party filter here and a "People" door on the Parties panel, so there is one list of parties and one list of people.</li>
+      <li><b>The panel is the inspector.</b> Its doors, its facts grid and keeping your place on refresh come for free.</li>
+    </ul>
+    <p>If you prefer Shelves or Faces, say the name and only that one is built.</p>
+  </section>
+
+  <section>
+    <h2>What all three share</h2>
+    <h3>What the page reads</h3>
+    <p>Nothing new is stored. The Directory is a reading, as Parties is, from three places HaTi already keeps:</p>
+    <ul>
+      <li><b>The roster</b> (Settings → People): your colleagues, their job titles and their role in HaTi.</li>
+      <li><b>Every contract's own people list</b> (the one address book): the other side's signers, negotiators, advisers and readers, with the role each holds on each contract.</li>
+      <li><b>The imported contact list</b> (Settings → Signer directory): people an admin loaded from a file. They show under "Not on a contract" until a contract names them.</li>
+    </ul>
+    <p>One person is one email address, across contracts. The same person named on four contracts is one row with four contracts behind it. The columns are facts the record already holds: party, role, how many contracts, when they were last on one, and the address. "Last on" is the date of the newest contract activity naming them.</p>
+    <h3>Where it sits</h3>
+    <p>It takes over the People door in the rail, renamed Directory. People becomes its "Our people" tab, so there is one door, not two. The Parties panel gains a "People (n)" door that lands here with that party already chosen in the filter. If you would rather see it under Work beside Parties, say so; nothing else changes.</p>
+    <h3>Where you end up</h3>
+    <ul>
+      <li><b>Open party</b> uses the Parties page's own door: the Contracts page narrowed to that party, with the × chip to widen.</li>
+      <li><b>A contract in the panel</b> opens Home's Document for that contract. The rail is the way back.</li>
+      <li><b>Draft new agreement</b> is the existing form with the party and the person's address already filled.</li>
+      <li><b>Email</b> is the one press that leaves HaTi, as on People today.</li>
+      <li>A refresh keeps the tab, the filters and the person you chose.</li>
+    </ul>
+    <h3>What it does not do</h3>
+    <ul>
+      <li><b>It writes nothing.</b> A name or address is corrected on the contract, where the one writer lives, and every page follows. The panel's contract rows take you there.</li>
+      <li><b>Adding people stays where it is.</b> A colleague is added in Settings → People. An outside person is added on a contract. A list is imported in Settings → Signer directory.</li>
+      <li><b>The phone is not in this round.</b> The phone keeps its People screen for now, as Parties is not on the phone yet either.</li>
+      <li><b>No Jambo on the page.</b> Later, his page context can carry the same reading so "Who signs for Naivas?" is answered from it. Not drawn here.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>What the six questions changed</h2>
+    <ul>
+      <li><b>The standard answer.</b> The general practice in contract software is a business-partner book: organisations with their contact persons, each with roles, and the related contracts beside them. HaTi follows it in one departure: the book is a reading off the contracts, nothing filed, because the address already has a home on the contract. The Parties page took the same decision.</li>
+      <li><b>The cheapest channel.</b> The counts live in the band's facts line and the tabs. "Not on a contract" is a tab, not a notice. No band, strip or tip anywhere.</li>
+      <li><b>The one door.</b> The Directory grows out of the People door instead of adding a rail door. The Parties panel gets one door into it rather than a people list of its own. Open party reuses the Parties door, Draft new agreement reuses its prefill, and correcting a person stays on the contract.</li>
+      <li><b>Where the reader ends up.</b> The number on the Parties panel's People door is the number of rows behind it. Every door above lands on an existing page, and the rail brings you back.</li>
+      <li>The contract's pixels and Jambo's place do not bite: this is not a contract page and no model is called.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>The page checklist</h2>
+    <div class="chk">
+      <div><b>The SAP Way</b><ul>
+        <li>Most important thing easiest to see: the name and the party, first two columns. Yes.</li>
+        <li>Related things grouped: a person's contracts and the others at their party sit in the panel. Yes.</li>
+        <li>Each label says what is behind it: Party, Role, Contracts, Last on, Email. Yes.</li>
+        <li>Know where you are: the rail door is lit, the band names the page. Yes.</li></ul></div>
+      <div><b>Shelves</b><ul>
+        <li>Most important thing: the party leads, the person comes second. Yes, if the company is what you look for.</li>
+        <li>Related things grouped: people under their party on the page itself. Yes.</li>
+        <li>Labels: a shelf row and a person row share one head. The cost: the Role column is empty on a shelf row.</li>
+        <li>Know where you are: yes, but a folded shelf hides who is where until opened.</li></ul></div>
+      <div><b>Faces</b><ul>
+        <li>Most important thing: the name, large on each card. Yes.</li>
+        <li>Related things grouped: only in the panel. The cost: no sorting by a column.</li>
+        <li>Labels: cards have none, the reader learns the shape. The cost.</li>
+        <li>Know where you are: yes. The A to Z edge is a new control to learn.</li></ul></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Assumptions to confirm</h2>
+    <ul>
+      <li>"Directory" means the people HaTi deals with, inside and outside, with their parties and contracts. If you meant something else by the word, say which and this round is redrawn.</li>
+      <li>The sample names, parties and contracts on the screen are made up to show the shape. Nothing here is read from your workspace.</li>
+      <li>Order is by name, admins first on the Our people tab, as People orders today.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  /* ---------- the sample book ---------- */
+  const PARTIES = [
+    { k:'naivas', name:'Naivas Ltd', contracts:4, active:3, expired:1, onPaper:'KES 48.2M', next:'31 Mar 2027', waiting:1, streams:['Procurement 3','Legal 1'] },
+    { k:'safaricom', name:'Safaricom PLC', contracts:3, active:3, expired:0, onPaper:'KES 12.6M', next:'30 Jun 2027', waiting:1, streams:['Procurement 2','IT 1'] },
+    { k:'nordkust', name:'Nordkust Industri AB', contracts:2, active:2, expired:0, onPaper:'SEK 3.1M', next:'31 Dec 2026', waiting:0, streams:['Procurement 2'] },
+    { k:'bamburi', name:'Bamburi Cement PLC', contracts:2, active:1, expired:1, onPaper:'KES 9.8M', next:'28 Feb 2027', waiting:0, streams:['Procurement 2'] },
+    { k:'twiga', name:'Twiga Foods Ltd', contracts:3, active:3, expired:0, onPaper:'KES 6.4M', next:'30 Sep 2027', waiting:1, streams:['Sales 3'] },
+    { k:'jubilee', name:'Jubilee Insurance', contracts:1, active:1, expired:0, onPaper:'KES 2.2M', next:'31 Jan 2027', waiting:0, streams:['HR 1'] },
+    { k:'kcb', name:'KCB Bank Kenya', contracts:2, active:2, expired:0, onPaper:'KES 75.0M', next:'30 Apr 2028', waiting:0, streams:['Finance 2'] },
+    { k:'brookside', name:'Brookside Dairy', contracts:1, active:1, expired:0, onPaper:'KES 1.9M', next:'31 Aug 2027', waiting:0, streams:['Sales 1'] },
+    { k:'sarova', name:'Sarova Hotels', contracts:1, active:0, expired:1, onPaper:'', next:'', waiting:0, streams:['Admin 1'] },
+    { k:'equity', name:'Equity Bank', contracts:1, active:1, expired:0, onPaper:'KES 4.0M', next:'31 May 2027', waiting:1, streams:['Finance 1'] },
+  ];
+  const P = Object.fromEntries(PARTIES.map(p => [p.k, p]));
+  const C = {
+    101:['Supply agreement','naivas','Signed'], 118:['Framework agreement 2026','naivas','Negotiating'], 124:['Amendment 2 to supply agreement','naivas','Awaiting signature'], 131:['Distribution agreement','naivas','Draft'],
+    107:['Enterprise connectivity','safaricom','Signed'], 122:['M-Pesa collections','safaricom','Negotiating'], 129:['Data processing agreement','safaricom','Awaiting signature'],
+    110:['Komponentavtal','nordkust','Signed'], 127:['Serviceavtal 2027','nordkust','Negotiating'],
+    104:['Cement supply','bamburi','Signed'], 119:['Haulage services','bamburi','Expired'],
+    112:['Fresh produce supply','twiga','Signed'], 121:['Cold chain lease','twiga','Negotiating'], 130:['Price schedule 2027','twiga','Draft'],
+    109:['Group medical cover','jubilee','Signed'], 113:['Banking facility','kcb','Signed'], 126:['Asset finance','kcb','Awaiting signature'],
+    115:['Milk supply','brookside','Signed'], 117:['Conference venue','sarova','Expired'], 128:['Payroll services','equity','Negotiating'],
+  };
+  const ROLE = { sign:'Signs for them', nego:'Negotiates for them', advise:'Advises them', read:'Can read it',
+    owner:'Owner', oursign:'Signs for us', approve:'Approves before signing', review:'Checks it before it goes', help:'Helps with the wording', ourread:'Can read it' };
+  const SHORT = { sign:'Signs', nego:'Negotiates', advise:'Advises', read:'Reads', owner:'Owner', oursign:'Signs', approve:'Approves', review:'Checks', help:'Helps', ourread:'Reads' };
+  const TONE = { Draft:'', Negotiating:'steel', 'Awaiting signature':'amber', Signed:'green', Expired:'' };
+  // on: [contract number, role on it]
+  const PEOPLE = [
+    { k:'amina', side:'ours', name:'Amina Otieno', you:true, title:'General Counsel', hati:'Admin', email:'amina.otieno@highland.co.ke', last:'13 Oct 2026', on:[[118,'owner'],[124,'approve'],[122,'owner'],[129,'approve'],[127,'owner'],[126,'approve'],[101,'owner'],[107,'owner'],[113,'owner'],[109,'owner'],[115,'approve'],[128,'owner'],[131,'owner'],[121,'approve']] },
+    { k:'brian', side:'ours', name:'Brian Odhiambo', title:'Procurement lead', hati:'Editor', email:'brian.odhiambo@highland.co.ke', last:'12 Oct 2026', on:[[118,'help'],[104,'owner'],[119,'owner'],[110,'owner'],[112,'owner'],[130,'owner'],[101,'help'],[124,'owner'],[131,'help']] },
+    { k:'grace', side:'ours', name:'Grace Njeri', title:'Legal counsel', hati:'Editor', email:'grace.njeri@highland.co.ke', last:'11 Oct 2026', on:[[122,'review'],[129,'owner'],[128,'review'],[126,'owner'],[118,'review'],[121,'owner'],[117,'owner']] },
+    { k:'daniel', side:'ours', name:'Daniel Kiprop', title:'Finance Director', hati:'Admin', email:'daniel.kiprop@highland.co.ke', last:'9 Oct 2026', on:[[101,'oursign'],[113,'oursign'],[126,'oursign'],[107,'oursign'],[124,'oursign']] },
+    { k:'mercy', side:'ours', name:'Mercy Wambui', title:'Operations manager', hati:'Viewer', email:'mercy.wambui@highland.co.ke', last:'6 Oct 2026', on:[[112,'ourread'],[121,'ourread'],[115,'ourread']] },
+    { k:'johan', side:'ours', name:'Johan Berg', title:'Commercial manager, Nordic', hati:'Editor', email:'johan.berg@highland.se', last:'2 Oct 2026', on:[[110,'help'],[127,'owner'],[128,'owner'],[109,'help']] },
+
+    { k:'wanjiru', side:'theirs', party:'naivas', name:'Wanjiru Kamau', title:'Chief Finance Officer', email:'wanjiru.kamau@naivas.co.ke', last:'2 Oct 2026', on:[[101,'sign'],[124,'sign'],[118,'read']] },
+    { k:'peter', side:'theirs', party:'naivas', name:'Peter Mwangi', title:'Head of Procurement', email:'peter.mwangi@naivas.co.ke', last:'10 Oct 2026', on:[[101,'nego'],[118,'nego'],[124,'nego'],[131,'nego']] },
+    { k:'faith', side:'theirs', party:'naivas', name:'Faith Chebet', title:'Legal officer', email:'faith.chebet@naivas.co.ke', last:'28 Sep 2026', on:[[118,'read'],[124,'read']] },
+    { k:'david', side:'theirs', party:'naivas', name:'David Omondi', title:'IT manager', email:'david.omondi@naivas.co.ke', last:'18 Sep 2026', on:[[131,'read']] },
+    { k:'susan', side:'theirs', party:'safaricom', name:'Susan Achieng', title:'Senior Legal Counsel', email:'sachieng@safaricom.co.ke', last:'8 Oct 2026', on:[[107,'nego'],[122,'nego'],[129,'nego']] },
+    { k:'james', side:'theirs', party:'safaricom', name:'James Mutua', title:'Director, Enterprise', email:'jmutua@safaricom.co.ke', last:'30 Sep 2026', on:[[107,'sign'],[129,'sign']] },
+    { k:'lydia', side:'theirs', party:'safaricom', name:'Lydia Nekesa', title:'Contracts manager', email:'lnekesa@safaricom.co.ke', last:'6 Oct 2026', on:[[122,'nego']] },
+    { k:'kevin', side:'theirs', party:'safaricom', name:'Kevin Oduya', title:'Partner, Oduya & Associates', email:'k.oduya@oduyalaw.co.ke', last:'20 Sep 2026', on:[[129,'advise']] },
+    { k:'lena', side:'theirs', party:'nordkust', name:'Lena Åkesson', title:'VD', email:'lena.akesson@nordkust.se', last:'7 Oct 2026', on:[[110,'sign'],[127,'sign']] },
+    { k:'erik', side:'theirs', party:'nordkust', name:'Erik Lindqvist', title:'Inköpschef', email:'erik.lindqvist@nordkust.se', last:'11 Oct 2026', on:[[110,'nego'],[127,'nego']] },
+    { k:'anna', side:'theirs', party:'nordkust', name:'Anna Holm', title:'Advokat, Holm Juridik', email:'anna@holmjuridik.se', last:'4 Oct 2026', on:[[127,'advise']] },
+    { k:'rose', side:'theirs', party:'bamburi', name:'Rose Wairimu', title:'Supply chain manager', email:'rose.wairimu@bamburi.co.ke', last:'5 Oct 2026', on:[[104,'nego'],[119,'nego']] },
+    { k:'george', side:'theirs', party:'bamburi', name:'George Kamande', title:'Company Secretary', email:'g.kamande@bamburi.co.ke', last:'15 Sep 2026', on:[[104,'sign']] },
+    { k:'alice', side:'theirs', party:'twiga', name:'Alice Nyambura', title:'Commercial director', email:'alice@twiga.com', last:'12 Oct 2026', on:[[112,'sign'],[121,'nego'],[130,'nego']] },
+    { k:'samuel', side:'theirs', party:'twiga', name:'Samuel Kariuki', title:'Finance manager', email:'samuel.k@twiga.com', last:'1 Oct 2026', on:[[112,'read']] },
+    { k:'tom', side:'theirs', party:'twiga', name:'Tom Kipchumba', title:'Operations', email:'tom.k@twiga.com', last:'26 Sep 2026', on:[[121,'read']] },
+    { k:'hassan', side:'theirs', party:'jubilee', name:'Hassan Abdi', title:'Underwriting lead', email:'habdi@jubileeinsurance.com', last:'22 Sep 2026', on:[[109,'nego']] },
+    { k:'catherine', side:'theirs', party:'kcb', name:'Catherine Wanjala', title:'Relationship manager', email:'cwanjala@kcbgroup.com', last:'9 Oct 2026', on:[[113,'nego'],[126,'nego']] },
+    { k:'moses', side:'theirs', party:'kcb', name:'Moses Ochieng', title:'Head of Legal', email:'mochieng@kcbgroup.com', last:'25 Sep 2026', on:[[113,'sign'],[126,'sign']] },
+    { k:'esther', side:'theirs', party:'brookside', name:'Esther Muthoni', title:'Procurement officer', email:'e.muthoni@brookside.co.ke', last:'3 Oct 2026', on:[[115,'nego']] },
+    { k:'patrick', side:'theirs', party:'sarova', name:'Patrick Njoroge', title:'General Manager', email:'gm@sarovahotels.com', last:'29 Sep 2026', on:[[117,'sign'],[117,'nego']] },
+    { k:'nancy', side:'theirs', party:'equity', name:'Nancy Akinyi', title:'Legal counsel', email:'nancy.akinyi@equitybank.co.ke', last:'13 Oct 2026', on:[[128,'nego']] },
+
+    { k:'joseph', side:'none', name:'Joseph Maina', title:'Managing Director', email:'j.maina@brookside.co.ke', last:'', on:[], imported:'Imported by Amina Otieno, 2 Sep 2026' },
+    { k:'beatrice', side:'none', name:'Beatrice Wangari', title:'Head of Legal', email:'b.wangari@jubileeinsurance.com', last:'', on:[], imported:'Imported by Amina Otieno, 2 Sep 2026' },
+    { k:'olof', side:'none', name:'Olof Sand', title:'Ekonomichef', email:'olof.sand@nordkust.se', last:'', on:[], imported:'Imported by Johan Berg, 19 Sep 2026' },
+  ];
+  const BY = Object.fromEntries(PEOPLE.map(p => [p.k, p]));
+
+  /* ---------- small readings ---------- */
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+  const ini = n => n.split(' ').filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  const toneOf = p => p.side === 'ours' ? 0 : p.side === 'none' ? 4 : (PARTIES.findIndex(x => x.k === p.party) % 4) + 1;
+  const avatar = (p, cls) => `<span class="av av-${toneOf(p)}${cls ? ' ' + cls : ''}">${esc(ini(p.name))}</span>`;
+  const partyAv = (pt, i) => `<span class="av av-${(PARTIES.findIndex(x => x.k === pt.k) % 4) + 1}">${esc(ini(pt.name))}</span>`;
+  const rolesOf = p => [...new Set(p.on.map(x => x[1]))];
+  const roleWords = p => rolesOf(p).map(r => SHORT[r]).join(' · ');
+  const roleLong = p => rolesOf(p).map(r => ROLE[r]).join(' · ');
+  const partyName = p => p.side === 'ours' ? 'Our side' : p.side === 'none' ? '—' : P[p.party].name;
+  const nContracts = p => new Set(p.on.map(x => x[0])).size;
+  const activeOf = p => new Set(p.on.filter(x => C[x[0]][2] !== 'Expired').map(x => x[0])).size;
+  const sortName = (a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' });
+  const pill = st => `<span class="pill ${TONE[st] || ''}"><i></i>${esc(st)}</span>`;
+  const svgChev = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
+  const svgDown = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+  const svgSearch = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>';
+  const svgMail = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>';
+
+  /* ---------- the sitting ---------- */
+  const S = { opt: 'sap', tab: 'all', q: '', sel: 'wanjiru', selKind: 'person', closed: new Set(), fit: true };
+
+  const TABS = [['all', 'Everyone'], ['ours', 'Our people'], ['theirs', 'Their people'], ['none', 'Not on a contract']];
+  function rows(){
+    const q = S.q.trim().toLowerCase();
+    return PEOPLE.filter(p => S.tab === 'all' || p.side === S.tab)
+      .filter(p => !q || [p.name, p.email, partyName(p), p.title].join(' ').toLowerCase().includes(q))
+      .sort((a, b) => {
+        if (S.tab === 'ours'){ const aa = a.hati === 'Admin' ? 0 : 1, bb = b.hati === 'Admin' ? 0 : 1; if (aa !== bb) return aa - bb; }
+        return sortName(a, b);
+      });
+  }
+  const count = side => PEOPLE.filter(p => side === 'all' || p.side === side).length;
+
+  /* ---------- the shell ---------- */
+  const navIcon = {
+    home:'<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
+    file:'<svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>',
+    check:'<svg viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>',
+    list:'<svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>',
+    note:'<svg viewBox="0 0 24 24"><path d="M4 4h16v12l-4 4H4z"/><path d="M16 20v-4h4"/></svg>',
+    chart:'<svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
+    book:'<svg viewBox="0 0 24 24"><path d="M4 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4z"/><path d="M20 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg>',
+    inbox:'<svg viewBox="0 0 24 24"><path d="M4 13l2-8h12l2 8v6H4z"/><path d="M4 13h5l1 2h4l1-2h5"/></svg>',
+    down:'<svg viewBox="0 0 24 24"><path d="M12 4v12M6 10l6 6 6-6M4 20h16"/></svg>',
+    users:'<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.5a5 5 0 0 1 6 5"/></svg>',
+    gear:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+  };
+  const nav = (ic, label, n, on, chev) => `<button class="h-nav${on ? ' on' : ''}" type="button" tabindex="-1">${navIcon[ic]}<span class="l">${esc(label)}</span>${n ? `<span class="n${n.warn ? ' warn' : ''}">${esc(n.v)}</span>` : ''}${chev ? `<span class="chev">${svgChev}</span>` : ''}</button>`;
+  function railHtml(){
+    return `<aside class="h-rail" aria-hidden="true">
+      <div class="h-sec">Work</div>
+      ${nav('home', 'Home')}
+      ${nav('file', 'Contracts', { v: '27' }, false, true)}
+      ${nav('check', 'Approvals & signing', { v: '3', warn: true })}
+      ${nav('list', 'Obligations', { v: '12' })}
+      ${nav('note', 'My notes')}
+      ${nav('chart', 'Insights', null, false, true)}
+      <div class="h-sec">Library</div>
+      ${nav('book', 'Our paper', { v: '14' })}
+      ${nav('down', 'Import contracts')}
+      ${nav('inbox', 'Requests', { v: '2', warn: true })}
+      ${nav('users', 'Directory', null, true)}
+      <div class="h-sec">Company</div>
+      ${nav('gear', 'Settings & rules')}
+    </aside>`;
+  }
+  function barHtml(){
+    return `<div class="h-bar" aria-hidden="true">
+      <span class="brand"><i>H</i>HaTi</span><span class="title">Directory</span>
+      <span class="sp"></span>
+      <span class="search">${svgSearch} Search contracts, people, clauses <kbd>⌘K</kbd></span>
+      <span class="ic" title="Ask Jambo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.6L18.5 9l-4.7 1.4L12 15l-1.8-4.6L5.5 9l4.7-1.4z"/><path d="M19 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg></span>
+      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg></span>
+      <span class="face">AO</span>
+    </div>`;
+  }
+  function bandHtml(){
+    const facts = `${PEOPLE.length} people · ${PARTIES.length} parties · ${count('ours')} of ours`;
+    return `<div class="h-band">
+      <div class="h-bandtop"><div><h1 class="h-h1">Directory</h1><div class="h-facts">${esc(facts)}</div></div></div>
+      <div class="h-tabbar">
+        <div class="h-tabs" role="tablist">${TABS.map(([k, l]) => { const n = count(k); return `<button class="h-tab${S.tab === k ? ' on' : ''}${!n ? ' zero' : ''}" role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${l}${n ? `<span class="n">${n}</span>` : ''}</button>`; }).join('')}</div>
+        <div class="h-fb">
+          <label class="h-find">${svgSearch}<input id="h-q" type="search" placeholder="Name, email or party" value="${esc(S.q)}" aria-label="Find a person"></label>
+          <span class="h-chip"><span class="l">Party</span>All parties</span>
+          <span class="h-chip"><span class="l">Role</span>Any</span>
+          <span class="h-chip"><span class="l">Stream</span>All streams</span>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  /* ---------- the three bodies ---------- */
+  const HEAD_SAP = `<thead><tr><th style="width:26%">Name</th><th style="width:18%">Party</th><th style="width:15%">Role</th><th class="n" style="width:10%">Contracts</th><th style="width:14%">Last on</th><th>Email</th></tr></thead>`;
+  function personRow(p, under){
+    const n = nContracts(p);
+    return `<tr class="row${under ? ' under' : ''}${S.selKind === 'person' && S.sel === p.k ? ' sel' : ''}" data-person="${p.k}" tabindex="-1">
+      <td><div class="h-id">${avatar(p)}<div><span class="h-name">${esc(p.name)}${p.you ? '<span class="h-you">You</span>' : ''}</span><span class="h-sub">${esc(p.title)}</span></div></div></td>
+      ${under ? '' : `<td class="${p.side === 'none' ? 'quiet' : ''}">${esc(partyName(p))}</td>`}
+      <td class="${n ? '' : 'quiet'}">${n ? esc(roleWords(p)) : 'Not yet named'}</td>
+      <td class="n ${n ? '' : 'quiet'}">${n || '—'}</td>
+      <td class="${p.last ? '' : 'quiet'}">${esc(p.last || '—')}</td>
+      <td><a href="mailto:${esc(p.email)}" tabindex="-1">${esc(p.email)}</a></td>
+    </tr>`;
+  }
+  function cardHtml(inner, n, foot){
+    return `<section class="h-card">
+      <div class="h-cardh"><h2 class="h-cardt">Directory <span>(${n})</span></h2><span class="h-link">Manage in Settings ${svgChev}</span></div>
+      <div class="h-scroll" id="h-scroll">${inner}</div>
+      <div class="h-foot"><span>${esc(foot)}</span><span>Read from the roster, the contracts and the imported list</span></div>
+    </section>`;
+  }
+  function bodySap(){
+    const r = rows();
+    const t = `<table class="h-t">${HEAD_SAP}<tbody>${r.map(p => personRow(p, false)).join('')}</tbody></table>`;
+    return cardHtml(r.length ? t : '<div class="p-empty">Nobody matches that search.</div>', r.length, `${r.length} of ${PEOPLE.length} people`);
+  }
+  function bodyShelves(){
+    const r = rows();
+    const groups = [];
+    const ours = r.filter(p => p.side === 'ours'); if (ours.length) groups.push({ k: 'ours', name: 'Our side', sub: `${ours.length} people · Highland Corporate Ltd`, people: ours, party: null });
+    PARTIES.forEach(pt => { const ps = r.filter(p => p.party === pt.k); if (ps.length) groups.push({ k: pt.k, name: pt.name, sub: `${ps.length} ${ps.length === 1 ? 'person' : 'people'} · ${pt.contracts} contract${pt.contracts === 1 ? '' : 's'}`, people: ps, party: pt }); });
+    const none = r.filter(p => p.side === 'none'); if (none.length) groups.push({ k: 'none', name: 'Not on a contract', sub: `${none.length} people from the imported list`, people: none, party: null });
+    const head = `<thead><tr><th style="width:35%">Party and people</th><th style="width:16%">Role</th><th class="n" style="width:11%">Contracts</th><th style="width:14%">Last on</th><th>Email</th></tr></thead>`;
+    const body = groups.map(g => {
+      const closed = S.closed.has(g.k);
+      const selShelf = S.selKind === 'party' && S.sel === g.k;
+      const av = g.party ? partyAv(g.party) : `<span class="av av-${g.k === 'ours' ? 0 : 4}">${g.k === 'ours' ? 'HC' : '—'}</span>`;
+      return `<tr class="shelf${closed ? ' closed' : ''}${selShelf ? ' sel' : ''}" data-shelf="${g.k}">
+        <td><div class="h-id"><span class="h-fold">${svgDown}</span>${av}<div><span class="h-name">${esc(g.name)}</span><span class="h-sub">${esc(g.sub)}</span></div></div></td>
+        <td class="quiet"></td><td class="n quiet">${g.party ? g.party.contracts : ''}</td><td></td>
+        <td>${g.party ? `<span class="h-link">Open party ${svgChev}</span>` : ''}</td>
+      </tr>${closed ? '' : g.people.map(p => personRow(p, true)).join('')}`;
+    }).join('');
+    const t = `<table class="h-t">${head}<tbody>${body}</tbody></table>`;
+    return cardHtml(groups.length ? t : '<div class="p-empty">Nobody matches that search.</div>', r.length, `${r.length} of ${PEOPLE.length} people · ${groups.filter(g => g.party).length} parties`);
+  }
+  function bodyFaces(){
+    const r = rows();
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    const have = new Set(r.map(p => p.name[0].toUpperCase()));
+    const cards = r.map(p => { const n = nContracts(p); return `<button class="h-face${S.selKind === 'person' && S.sel === p.k ? ' sel' : ''}" type="button" data-person="${p.k}" data-letter="${p.name[0].toUpperCase()}">
+      ${avatar(p)}
+      <span class="nm">${esc(p.name)}${p.you ? '<span class="h-you">You</span>' : ''}</span>
+      <span class="pt">${esc(p.side === 'none' ? p.title : partyName(p) + ' · ' + p.title)}</span>
+      <span class="rl ${n ? '' : 'quiet'}">${n ? esc(roleLong(p)) : 'Not yet named on a contract'}</span>
+      <span class="ft"><span>${n ? `${n} contract${n === 1 ? '' : 's'} · last ${esc(p.last)}` : 'No contracts yet'}</span><a href="mailto:${esc(p.email)}" title="${esc(p.email)}" tabindex="-1">${svgMail}</a></span>
+    </button>`; }).join('');
+    const az = `<nav class="h-az" aria-label="Jump to a letter">${letters.map(L => `<button type="button" data-az="${L}" class="${have.has(L) ? '' : 'dim'}" tabindex="-1">${L}</button>`).join('')}</nav>`;
+    return cardHtml(r.length ? `<div class="h-wall">${cards}</div>${az}` : '<div class="p-empty">Nobody matches that search.</div>', r.length, `${r.length} of ${PEOPLE.length} people`);
+  }
+
+  /* ---------- the panel ---------- */
+  function contractRows(p, max){
+    const seen = new Set();
+    const list = p.on.filter(x => { if (seen.has(x[0])) return false; seen.add(x[0]); return true; });
+    const shown = max ? list.slice(0, max) : list;
+    const html = shown.map(([no, role]) => { const c = C[no]; const roleOn = p.on.filter(x => x[0] === no).map(x => ROLE[x[1]]).join(' · ');
+      return `<button class="p-row" type="button" tabindex="-1" title="Opens Home's Document for MK-${no}"><span class="p-rn"><span class="ref">MK-${no}</span>${esc(c[0])}</span>${pill(c[2])}<span class="p-rs">${esc(roleOn)}${p.side === 'ours' ? ' · ' + esc(P[c[1]].name) : ''}</span></button>`; }).join('');
+    const more = list.length > shown.length ? `<div class="quiet" style="padding-top:8px;font-size:12px">and ${list.length - shown.length} more on the Contracts page</div>` : '';
+    return html + more;
+  }
+  function panelPerson(p){
+    const n = nContracts(p);
+    let eyebrow, acts, facts, secs = '';
+    if (p.side === 'ours'){
+      eyebrow = `Our side · ${esc(p.title)}`;
+      acts = `<button class="h-btn fill" type="button" tabindex="-1">Show their contracts ${svgChev}</button><button class="h-btn" type="button" tabindex="-1">Manage in Settings</button><button class="h-btn more" type="button" tabindex="-1" aria-label="More">⋯</button>`;
+      const parties = [...new Set(p.on.map(x => C[x[0]][1]))];
+      facts = [['In HaTi', p.hati], ['Contracts', `${n} · ${activeOf(p)} active`], ['Roles held', roleLong(p)], ['Last on', p.last]];
+      secs = `<section class="p-sec"><h3>Named on <span class="n">${n}</span></h3>${contractRows(p, 5)}</section>
+        <section class="p-sec"><h3>Works with <span class="n">${parties.length} parties</span></h3><div class="p-chips">${parties.map(k => `<span>${esc(P[k].name)}</span>`).join('')}</div></section>`;
+    } else if (p.side === 'none'){
+      eyebrow = `Imported contact · ${esc(p.title)}`;
+      acts = `<button class="h-btn fill" type="button" tabindex="-1">Draft new agreement</button><button class="h-btn more" type="button" tabindex="-1" aria-label="More">⋯</button>`;
+      facts = [['Party', ''], ['Contracts', ''], ['From', p.imported], ['Last on', '']];
+      secs = `<section class="p-sec"><h3>Named on <span class="n">0</span></h3><div class="quiet" style="font-size:12px">Not named on a contract yet. The first contract that names this address brings them in here with their role.</div></section>`;
+    } else {
+      const pt = P[p.party];
+      const others = PEOPLE.filter(x => x.party === p.party && x.k !== p.k).sort(sortName);
+      eyebrow = `${esc(pt.name)} · ${esc(roleLong(p))}`;
+      acts = `<button class="h-btn fill" type="button" tabindex="-1">Open party ${svgChev}</button><button class="h-btn" type="button" tabindex="-1">Draft new agreement</button><button class="h-btn more" type="button" tabindex="-1" aria-label="More">⋯</button>`;
+      facts = [['Party', pt.name], ['Contracts', `${n} · ${activeOf(p)} active`], ['Job title', p.title], ['Last on', p.last]];
+      secs = `<section class="p-sec"><h3>Named on <span class="n">${n}</span></h3>${contractRows(p)}</section>
+        <section class="p-sec"><h3>Also at ${esc(pt.name)} <span class="n">${others.length}</span></h3>${others.length ? others.map(o => `<button class="p-pp" type="button" data-person="${o.k}" tabindex="-1">${avatar(o)}<span class="nm">${esc(o.name)}</span><span class="rl">${esc(roleWords(o))}</span></button>`).join('') : '<div class="quiet" style="font-size:12px">Nobody else from this party is named on a contract.</div>'}</section>`;
+    }
+    return `<div class="p-h">
+      <div class="p-eb">${eyebrow}</div>
+      <h2 class="p-t">${avatar(p)}<span>${esc(p.name)}</span></h2>
+      <div class="p-sub"><a href="mailto:${esc(p.email)}" tabindex="-1">${esc(p.email)}</a></div>
+      <div class="p-acts">${acts}</div>
+    </div>
+    <dl class="p-facts">${facts.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd class="${v ? '' : 'none'}" title="${esc(v)}">${v ? esc(v) : '—'}</dd></div>`).join('')}</dl>
+    ${secs}`;
+  }
+  function panelParty(pt){
+    const ps = PEOPLE.filter(p => p.party === pt.k).sort(sortName);
+    return `<div class="p-h">
+      <div class="p-eb">Party · ${pt.contracts} contract${pt.contracts === 1 ? '' : 's'} · ${pt.streams.length} stream${pt.streams.length === 1 ? '' : 's'}</div>
+      <h2 class="p-t">${partyAv(pt)}<span>${esc(pt.name)}</span></h2>
+      <div class="p-acts"><button class="h-btn fill" type="button" tabindex="-1">Open party ${svgChev}</button><button class="h-btn" type="button" tabindex="-1">Open on Explorer</button><button class="h-btn" type="button" tabindex="-1">Draft new agreement</button></div>
+    </div>
+    <dl class="p-facts">
+      <div><dt>Active</dt><dd>${pt.active}${pt.onPaper ? ' · ' + esc(pt.onPaper) : ''}</dd></div>
+      <div><dt>Expired</dt><dd class="${pt.expired ? '' : 'none'}">${pt.expired || '—'}</dd></div>
+      <div><dt>Next to end</dt><dd class="${pt.next ? '' : 'none'}">${esc(pt.next || '—')}</dd></div>
+      <div><dt>Waiting on you</dt><dd class="${pt.waiting ? '' : 'none'}">${pt.waiting || '—'}</dd></div>
+    </dl>
+    <section class="p-sec"><h3>People <span class="n">${ps.length}</span></h3>${ps.map(o => `<button class="p-pp" type="button" data-person="${o.k}" tabindex="-1">${avatar(o)}<span class="nm">${esc(o.name)}</span><span class="rl">${esc(roleWords(o))}</span></button>`).join('')}</section>
+    <section class="p-sec"><h3>Streams <span class="n">${pt.streams.length}</span></h3><div class="p-chips">${pt.streams.map(s => `<span>${esc(s)}</span>`).join('')}</div></section>`;
+  }
+  function panelHtml(){
+    if (S.selKind === 'party' && P[S.sel]) return panelParty(P[S.sel]);
+    const p = BY[S.sel];
+    return p ? panelPerson(p) : '<div class="p-empty">Choose a person to see their contracts.</div>';
+  }
+
+  /* ---------- paint ---------- */
+  const LEAD = {
+    sap: '<b>The SAP Way.</b> One list of everyone, ours and theirs, in the clothes every HaTi list wears: a white band with the tabs and the filters beside them, a quiet table, and the side panel with the person’s contracts and the doors onto them.',
+    shelves: '<b>Shelves.</b> The same people grouped under their party, our side first. A shelf folds; pressing the shelf itself shows the party’s own panel, pressing a person shows theirs.',
+    faces: '<b>Faces.</b> A wall of contact cards with an A to Z edge, like a phone’s contacts. The band, the tabs and the panel are the same; only the list changes shape.',
+  };
+  const CAP = {
+    sap: ['<b>Band:</b> Directory · facts line · Everyone / Our people / Their people / Not on a contract · search and three filter boxes', '<b>Table:</b> Name · Party · Role · Contracts · Last on · Email', '<b>Panel:</b> party and role · name · email · Open party / Draft new agreement · four facts · Named on · Also at this party'],
+    shelves: ['<b>Shelf row:</b> party · people and contracts · Open party', '<b>Person row:</b> indented under its shelf, no Party column', '<b>Panel:</b> a person’s, or the party’s own (the Parties page’s panel) when the shelf is pressed'],
+    faces: ['<b>Card:</b> initials · name · party and job title · role words · contracts and last date · email', '<b>A to Z edge:</b> letters with nobody behind them are dimmed', '<b>Panel:</b> the same as The SAP Way'],
+  };
+  function paint(){
+    const body = S.opt === 'sap' ? bodySap() : S.opt === 'shelves' ? bodyShelves() : bodyFaces();
+    const keep = document.getElementById('h-scroll'); const top = keep ? keep.scrollTop : 0;
+    const typing = document.activeElement && document.activeElement.id === 'h-q';
+    const caret = typing ? document.activeElement.selectionStart : null;
+    document.getElementById('stage').innerHTML = `<div class="hati">${barHtml()}<div class="h-body">${railHtml()}<main class="h-main">${bandHtml()}<div class="h-ground">${body}<aside class="h-panel" id="h-panel" aria-label="The chosen person">${panelHtml()}</aside></div></main></div></div>`;
+    const sc = document.getElementById('h-scroll'); if (sc) sc.scrollTop = top;
+    if (typing){ const q = document.getElementById('h-q'); if (q){ q.focus(); try { q.setSelectionRange(caret, caret); } catch (_) {} } }
+    document.getElementById('lead').innerHTML = LEAD[S.opt];
+    document.getElementById('caption').innerHTML = CAP[S.opt].map(s => `<span>${s}</span>`).join('');
+    document.querySelectorAll('.opt').forEach(b => { const on = b.dataset.opt === S.opt; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+    fit();
+  }
+  function paintPanel(){ const el = document.getElementById('h-panel'); if (el) el.innerHTML = panelHtml(); }
+  function fit(){
+    const wrap = document.getElementById('stagewrap'), st = document.getElementById('stage');
+    wrap.classList.toggle('actual', !S.fit);
+    if (!S.fit){ st.style.transform = ''; wrap.style.height = ''; return; }
+    const w = wrap.clientWidth || 1440;
+    const k = Math.min(1, w / 1440);
+    st.style.transform = `scale(${k})`;
+    wrap.style.height = Math.round(820 * k) + 'px';
+  }
+
+  /* ---------- wiring ---------- */
+  document.querySelector('.opts').addEventListener('click', e => { const b = e.target.closest('[data-opt]'); if (!b) return; S.opt = b.dataset.opt; if (S.selKind === 'party' && S.opt !== 'shelves'){ S.selKind = 'person'; S.sel = 'wanjiru'; } paint(); });
+  document.getElementById('fitbtn').addEventListener('click', e => { S.fit = !S.fit; e.currentTarget.textContent = S.fit ? 'Actual size' : 'Fit to width'; fit(); });
+  window.addEventListener('resize', fit);
+  document.addEventListener('keydown', e => {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+    const order = ['sap', 'shelves', 'faces'];
+    let i = order.indexOf(S.opt);
+    if (e.key === '1' || e.key === '2' || e.key === '3') i = Number(e.key) - 1;
+    else if (e.key === 'ArrowRight') i = (i + 1) % 3;
+    else if (e.key === 'ArrowLeft') i = (i + 2) % 3;
+    else return;
+    e.preventDefault(); S.opt = order[i]; if (S.selKind === 'party' && S.opt !== 'shelves'){ S.selKind = 'person'; S.sel = 'wanjiru'; } paint();
+  });
+  const stage = document.getElementById('stage');
+  stage.addEventListener('click', e => {
+    const tab = e.target.closest('[data-tab]'); if (tab){ S.tab = tab.dataset.tab; paint(); return; }
+    const az = e.target.closest('[data-az]'); if (az){ const first = stage.querySelector(`.h-face[data-letter="${az.dataset.az}"]`); if (first) first.scrollIntoView({ block: 'start', behavior: 'smooth' }); return; }
+    if (e.target.closest('a')){ e.preventDefault(); return; }
+    const shelf = e.target.closest('[data-shelf]');
+    if (shelf){
+      const k = shelf.dataset.shelf;
+      if (e.target.closest('.h-fold')){ if (S.closed.has(k)) S.closed.delete(k); else S.closed.add(k); paint(); return; }
+      if (P[k]){ S.selKind = 'party'; S.sel = k; paint(); } else { if (S.closed.has(k)) S.closed.delete(k); else S.closed.add(k); paint(); }
+      return;
+    }
+    const row = e.target.closest('[data-person]');
+    if (row){ S.selKind = 'person'; S.sel = row.dataset.person;
+      stage.querySelectorAll('.sel').forEach(x => x.classList.remove('sel'));
+      stage.querySelectorAll(`[data-person="${S.sel}"]`).forEach(x => { if (x.classList.contains('row') || x.classList.contains('h-face')) x.classList.add('sel'); });
+      paintPanel(); return; }
+  });
+  stage.addEventListener('input', e => { if (e.target.id === 'h-q'){ S.q = e.target.value; paint(); } });
+
+  /* A link may open straight on one option: #sap, #shelves or #faces. */
+  const want = String(location.hash || '').replace('#', '');
+  if (['sap', 'shelves', 'faces'].includes(want)) S.opt = want;
+  paint();
+})();
+</script>

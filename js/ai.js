@@ -1806,7 +1806,7 @@ const AI_PAGE_NAMES = {
   redline: 'Negotiations', workspace: 'a contract', intel: 'Insights',
   obligations: 'Obligations', approvals: 'Approvals & signing', customers: 'Customers', agents: "Jambo's work", jambo: "Jambo's agents", brain: 'the Brain', calendar: 'Calendar', mynotes: 'My notes', templates: 'Templates',
   playbook: 'Our standards', pipeline: 'Approvals', intake: 'Requests',
-  directory: 'People', team: 'Settings & rules', reports: 'Reports',
+  directory: 'Directory', team: 'Settings & rules', reports: 'Reports',
   migration: 'Import contracts', advice: 'Advice desk',
 };
 /* WHICH CONTRACT IS REALLY ON THE SCREEN, and on two pages only.
