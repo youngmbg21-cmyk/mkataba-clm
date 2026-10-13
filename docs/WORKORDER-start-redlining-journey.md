@@ -107,6 +107,27 @@ green dots as no one knows what they are for"*.
 - Update THE MAP's Stakes line in CLAUDE.md ("name + region square
   (`.stk-rsq`)") in the same change, and mark `.stk-rsq` stale.
 
+## 7. Every coloured dot explains itself
+
+Owner, 13 Oct 2026, a screenshot of the Clauses tab with Severity = "Worth a
+look": *"we have some worth a look but they have no explanation"*. Clause 3.6
+wears an amber dot, has no "N to review", and opened it shows only Plain
+English: nothing says why it is amber.
+- Why (read in the code, to prove in a browser first): the list has TWO
+  readings. The dot's amber comes from the older clause marks (`x.tone`,
+  `docThreadMarks`/`docThreadWorst` in js/views/contract.js), and Home does not
+  draw those marks. The explanations come only from Jambo's points
+  (`stkDecorate`, js/views/breakdown.js). A clause the old marks call amber but
+  Jambo's points never mention gets a dot with nothing behind it.
+- And the filter keeps an OPEN row even when no point matches it ("the open
+  row stays", `stkFiltering` in `stkDecorate`), so 3.6 stays in a "Worth a look"
+  list that has nothing for it.
+- Build: a dot is coloured ONLY when the open row can say why. One reading for
+  both: the dot follows the points listed under it (the Stakes points, which
+  already take in the standards check), and a clause with none wears a plain
+  dot. Under a filter, a row with nothing that matches leaves the list, even if
+  it is open. The number on the filter matches the rows shown.
+
 ---
 
 ## For the bug log, not this build (owner: stay focused)
