@@ -53,6 +53,17 @@ law applies.", number included.
 - Check every path that files a Jambo/Playbook ask (`rlFilePlaybookProposal`,
   the editor's "Use Jambo's draft", the deep dive) through the funnel.
 
+## 4. One dropdown per press on an iPad (owner: second time asked)
+
+On the Clauses tab, pressing the Section filter on an iPad shows HaTi's own list
+AND then the iPad's own picker for the same box. The rule is now in CLAUDE.md
+("ONE DROPDOWN PER PRESS, ON AN iPAD TOO").
+- Likely cause, to prove first: the Stakes filters' change handler
+  (js/views/breakdown.js) repaints and then calls `.focus()` on the new select;
+  on iPadOS a focused select opens the system picker. Remove that, and sweep
+  `js/` for every other `.focus()` on a `<select>`.
+- Test with a touch press: one list only, before and after.
+
 ---
 
 ## For the bug log, not this build (owner: stay focused)
