@@ -20699,3 +20699,7 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 
 ### Noticed, not fixed (13 Oct 2026, dropdowns wear no dark outline)
 - f148 "no Swedish value is a forgotten copy of the English" is red on main since #248: `stk_by_jambo` is 'Jambo' in both books (a name); it belongs in f148's SAME_IN_BOTH beside `pd_tab_copilot`.
+
+## Noticed, not fixed — 13 Oct 2026 (the 30-minute clock, phase 1)
+- The sign check's obligations row says "the wording moved after the obligations were read" on every template-drafted contract, even right after a fresh read: obligationsReadStamp hashes obligationsText(c) (contractPlainText) while signCheckObligations hashes playbookText(c) (docPlainText), and on a drafted NDA the two texts differ (3,067 vs 3,056 characters). Measured by the clock's probe on main. It drops to "noted" after the re-read and does not hold the signature; left alone, the two readings need one text.
+- New agreement's rail search reads template NAMES only: typing "non-disclosure" finds nothing, "NDA" finds the NDA. A plain-English search term should find the template; left alone.
