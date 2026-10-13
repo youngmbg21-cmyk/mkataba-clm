@@ -28936,3 +28936,6 @@ The owner, after seeing the page: "there should be no free room in the house. Ju
 - A TYPED PERIOD: "Custom…" opens a box (1–`JH_DAYS_MAX` 120, the server's AGENT_PIECES_DAYS_MAX); a refusal says why beside the box; press it again, Esc or a press outside closes it; the place store keeps the number.
 - THE LOOK: one dropdown (`#jh-look`); `jhSetLook` redraws in place and saves `agentsLook` ('plan'|'drawing'|null) in the person's prefs (PUT /api/me/prefs, refused otherwise). With a server the place store no longer carries the look (one fact, one home); static mode keeps it there.
 - Tests: f667 (5b), jambo-agents-verify 5a–5c, 9a–9b, 10a–10f (red at main: 5a–5c and the run stops at `jhFloorCounts`).
+
+## THE THREAD — A PAINT WITH NOWHERE TO DRAW TAKES NOTHING (13 Oct 2026)
+Owner's screenshot: Home's Clauses list drawn, "Jambo is reading…" never ending, and Plain English answering "There is no wording here to read yet." Cause: `docThreadPaint` for a contract not on Home's panel set `_thHost` to 'doc' and returned (the room's list is gone since 11 Oct), so the list on Home stayed drawn while its presses read `#doc-canvas` (absent) and the company read's repaint went nowhere. Fix: a paint whose host has no card returns WITHOUT moving the host. Test: stakes-verify 6b (red at the parent with the owner's exact sentence).

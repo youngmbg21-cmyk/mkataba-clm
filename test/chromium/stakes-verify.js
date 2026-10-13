@@ -50,7 +50,7 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       window.__bd = { n: 0, refuse: false };
       const o = window.api;
       window.api = async function (p, ...a){
-        if (p !== 'ai/breakdown') return o.call(this, p, ...a);
+        if (p !== 'ai/breakdown') { (window.__calls = window.__calls || []).push(p); return o.call(this, p, ...a); }
         window.__bd.n++;
         if (window.__bd.refuse) return { error: 'Jambo found no regions in this wording.' };
         return { head: 'Fix the cap first', sub: 'Their cover stops at three months of fees.', links: [],
@@ -117,6 +117,24 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       const f = await page.evaluate(() => ({ n: window.__bd.n, err: (document.querySelector('#pd-thread .stk-err') || {}).innerText || null,
         again: !!document.querySelector('#pd-thread [data-stk-run]') }));
       ok('6 a refusal is said with Try again, and is not retried in a loop', said && f.n === 1 && !!f.err && f.again, JSON.stringify(f));
+
+      /* 6b A PAINT FOR ANOTHER CONTRACT TAKES NOTHING (owner's screenshot,
+         13 Oct 2026: Plain English said "There is no wording here to read
+         yet." and "Jambo is reading…" never ended). A background paint for a
+         contract not on the panel moved the list's host to the room, which is
+         gone; the list stayed drawn and its presses read no paper. */
+      const g = await page.evaluate(async () => {
+        const toasts = []; const ot = window.toast; window.toast = (m, k, ...r) => { toasts.push(String(m)); return ot && ot(m, k, ...r); };
+        window.__calls = [];
+        docThreadPaint(getContract('MK-S1'));
+        if (!document.querySelector('#pd-thread .doc-th-row.is-open')) { const go = document.querySelector('#pd-thread [data-th-go]'); if (go) go.click(); await new Promise(r => setTimeout(r, 900)); }
+        const b = document.querySelector('#pd-thread .doc-th-row.is-open [data-th-explain]');
+        if (b) b.click();
+        await new Promise(r => setTimeout(r, 1500));
+        window.toast = ot;
+        return { btn: !!b, toasts, asked: window.__calls.filter(p => /readings/.test(p)).length };
+      });
+      ok('6b after a paint for another contract, Plain English still reads the paper on screen', g.btn && g.asked >= 1 && !g.toasts.some(t => /no wording here/i.test(t)), JSON.stringify(g));
     } else {
       ['2', '3', '4', '5', '6'].forEach(k => ok(k + ' (not reached)', false, 'the Clauses tab was never read'));
     }
