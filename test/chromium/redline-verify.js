@@ -133,8 +133,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      of ending the control row. So this row's last control is the way OUT —
      the line reads left to right as what you are looking at, then how, then
      where else you could go. */
-  check('1 the way out of this negotiation ends the row',
-    /rl-livelist/.test(head.lastAct), head.lastAct);
+  /* RE-POINTED 13 Oct 2026 (owner): Internal | Counterparty now ends the row, right after the ways out */
+  check('1 Internal | Counterparty ends the row, after the ways out',
+    /rl-segwrap/.test(head.lastAct), head.lastAct);
   /* Whether it wrapped here depends on this fixture's controls, and that is
      the point — the row wraps on content, not on a guessed width. What must
      never happen at any width is the controls running off the right edge. */
