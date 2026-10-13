@@ -414,6 +414,19 @@ Object.assign(CONTRACTS[2], { signApprovals: [{ id: 'sa1', askedAt: ago(8), stat
     ok('18e a calm walk on right angles: never a jump across the house, never a diagonal', w18.maxStep < 60 && w18.crooked === 0, JSON.stringify(w18));
     const s18 = await page.evaluate(() => ({ vault: jhSheetsIn('vault', 1), money: jhSheetsIn('money', 1), mail: jhSheetsIn('mail', 0) }));
     ok('18c the paper piles up in the rooms it came through (none before the replay starts)', s18.vault > 0 && s18.money > 0 && s18.mail === 0, JSON.stringify(s18));
+    console.log('\n19 · the owner\'s shortest screen (1536 × 730): nothing overlaps, in both looks');
+    const ctx19 = await b.newContext({ viewport: { width: 1536, height: 730 }, storageState: await page.context().storageState() });
+    const p19 = await ctx19.newPage();
+    p19.on('pageerror', e => errs.push(e.message));
+    await p19.goto(h.base + '/#jambo', { waitUntil: 'networkidle' });
+    await p19.waitForFunction(() => typeof setView === 'function' && window.REMOTE && REMOTE.me, null, { timeout: 15000 }).catch(() => {});
+    await p19.evaluate(() => setView('jambo'));
+    await p19.waitForFunction(() => !!document.getElementById('jh-cv') && typeof jhOverlapAudit === 'function' && jhGeom().h > 0, null, { timeout: 8000 }).catch(() => {});
+    const a19 = await p19.evaluate(async () => { const out = {}; for (const v of ['0', '1']){ const s = document.getElementById('jh-look'); s.value = v; s.dispatchEvent(new Event('change', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 400)); out[v] = { ...jhOverlapAudit(), fh: jhGeom().fh }; } return out; });
+    ok('19a Floor plan: every word and pile stays in its room, none touch', a19['0'] && a19['0'].ok && a19['0'].words > 30, JSON.stringify(a19['0']).slice(0, 400));
+    ok('19b Architect\'s drawing: the same', a19['1'] && a19['1'].ok && a19['1'].words > 30, JSON.stringify(a19['1']).slice(0, 400));
+    await ctx19.close();
     ok('no page errors', errs.length === 0, errs.join(' | ').slice(0, 300));
   } catch (e) { ok('the run finished', false, e.message); }
   finally { await b.close(); await h.stop(); }
