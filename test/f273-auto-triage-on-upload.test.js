@@ -1024,8 +1024,9 @@ describe('F273 — auto-triage on upload', () => {
       const deskAt = CONTRACT.indexOf("if(kind==='review')");
       const desk = CONTRACT.slice(deskAt, CONTRACT.indexOf('if(kind===', deskAt + 10));
       assert.ok(deskAt > 0 && desk.length > 0, 'the branch is where it says it is');
-      assert.match(desk, /triageAndPaint\(c\)/,
-        'the desktop send-for-review press starts the readings');
+      /* RE-POINTED 13 Oct 2026: the desk's press is the ONE act too. */
+      assert.match(desk, /contractLeavesDrafting\(c, 'sent for review'\)/,
+        'the desktop send-for-review press starts the readings, through the one act');
       const phoneAt = MOBILE_CODE.indexOf("if(kind==='review')");
       const phone = MOBILE_CODE.slice(phoneAt, MOBILE_CODE.indexOf('if(kind===', phoneAt + 10));
       /* RE-POINTED 9 Oct 2026: the phone's press is the ONE act now
