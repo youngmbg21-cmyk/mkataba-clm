@@ -318,7 +318,9 @@ function stkDiveHtml(c, b, i){
     : `<button type="button" class="stk-lnk" data-stk-show="${i}">${_bdE(i18t('stk_clause', { n: p.clause }))}</button>`;
   const sec = (h, body) => body ? `<section class="stk-sec"><h4>${_bdE(i18t(h))}</h4>${body}</section>` : '';
   const vs = p.theirs || p.usual ? `<table class="stk-vs"><tr class="is-theirs"><td>${_bdE(i18t('stk_this'))}</td><td>${_bdE(p.theirs || '—')}</td></tr><tr class="is-usual"><td>${_bdE(i18t('stk_usual'))}</td><td>${_bdE(p.usual || '—')}</td></tr></table>` : '';
-  const cost = `<div class="stk-fig${p.figure ? '' : ' is-none'}">${_bdE(p.figure || i18t('stk_no_figure'))}</div>${p.how ? `<p class="stk-how">${_bdE(p.how)}</p>` : ''}`;
+  /* a "figure" with no number in it is a sentence (an older read kept one): no figure, its words go to how */
+  const fig = /\d/.test(String(p.figure || '')) ? String(p.figure) : '', how = [fig ? '' : String(p.figure || ''), String(p.how || '')].filter(Boolean).join(' ');
+  const cost = `<div class="stk-fig${fig ? '' : ' is-none'}">${_bdE(fig || i18t('stk_no_figure'))}</div>${how ? `<p class="stk-how">${_bdE(how)}</p>` : ''}`;
   /* a link names Jambo's point by its place in his read; it opens where that point stands on screen */
   const links = (p.links || []).map(k => shown.findIndex(q => q.by === 'jambo' && q._i === k - 1)).filter(at => at >= 0 && at !== i);
   return `<div class="stk-dv${stkTone(p)}">
@@ -363,7 +365,7 @@ function stkDivePaint(c, card){
    nothing filed or sent until a person presses. It remembers where the
    reader came from — this contract's deep dive, its point and its filters —
    so "‹ Back to clauses" returns to the same point (stkResume). */
-function stkRedlineGo(c){
+function stkRedlineGo(c, opts){
   const b = stkOf(c), p = b && _stk.dive >= 0 ? stkShown(c, b)[_stk.dive] : null;
   let clauseId = '';
   if (p && !p.missing && _stk.rows){
@@ -372,7 +374,8 @@ function stkRedlineGo(c){
   }
   if (typeof rlCameFromSet === 'function') rlCameFromSet({ id: String(c.id), dive: _stk.dive, f: { ..._stk.f } });
   if (typeof openRedlineWorkbench !== 'function') return;
-  openRedlineWorkbench(c.id, { from: 'clauses', land: p && !p.missing ? { clauseId, quote: String(p.quote || ''), num: stkNum(p.clause), ask: String(p.ask || '') } : null });
+  const q = opts && opts.question ? String(opts.question) : '';
+  openRedlineWorkbench(c.id, { from: 'clauses', land: p && !p.missing ? { clauseId, quote: String(p.quote || ''), num: stkNum(p.clause), ask: q ? '' : String(p.ask || ''), question: q } : null });
 }
 /* the way back puts the deep dive where the reader left it */
 function stkResume(f){
@@ -440,9 +443,18 @@ if (typeof document !== 'undefined' && !document._stkWired){
          terribly framed"): the clause by number, the point in plain words with
          no quote marks (Jambo read a quoted title as a finding to look up), and
          what we want back. The reader presses Ask, or edits it first. */
-      if (p && typeof intelAskReady === 'function'){
+      if (p){
         const t = String(p.title || '').trim().replace(/[.\s]+$/, ''), n = stkNum(p.clause);
-        intelAskReady(p.missing ? i18t('stk_ask_q_missing', { t }) : n ? i18t('stk_ask_q', { n, t }) : i18t('stk_ask_q_none', { t }));
+        const q = p.missing ? i18t('stk_ask_q_missing', { t }) : n ? i18t('stk_ask_q', { n, t }) : i18t('stk_ask_q_none', { t });
+        /* TO JAMBO IN THE EDIT ROOM (owner, 13 Oct 2026: "ask jambo is supposed
+           to take me to the jambo in the redline editing page"): the clause
+           opens in Edit with Jambo, the question waiting in his ask box,
+           unsent — he knows the contract and the clause there. A point about
+           nothing in the contract, or a window too narrow for the editor,
+           asks on Home as before. */
+        const fits = typeof clauseEditorFits === 'function' && clauseEditorFits();
+        if (!p.missing && fits) stkRedlineGo(c, { question: q });
+        else if (typeof intelAskReady === 'function') intelAskReady(q);
       } }
   }, true);
   /* a filter's change repaints the list, and the box keeps the keyboard */

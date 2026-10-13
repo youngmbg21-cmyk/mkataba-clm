@@ -8857,8 +8857,14 @@ function rlLandOn(c, land){
   const door = _rlEditorDoor && _rlEditorDoor.id === c.id && typeof _rlEditorDoor.open === 'function' ? _rlEditorDoor : null;
   if (door && window.clauseEditorFits && clauseEditorFits()){
     if (!door.open(cl.clauseId)) return;
-    /* the ask waits on a card in Jambo's panel, Apply · Discard (ceOfferAsk) */
+    /* the ask waits on a card in Jambo's panel, Apply · Discard (ceOfferAsk);
+       a question from "Ask Jambo about this" waits in his ask box, unsent */
     if (land.ask && window.ceOfferAsk) ceOfferAsk(land.ask, land.quote);
+    if (land.question) setTimeout(() => {
+      const box = document.getElementById('ce-ask'); if (!box) return;
+      box.value = land.question;
+      try{ box.dispatchEvent(new Event('input', { bubbles: true })); box.focus({ preventScroll: true }); box.setSelectionRange(box.value.length, box.value.length); }catch(_){ }
+    }, 0);
     return;
   }
   rlJumpToClause(cl.clauseId);
