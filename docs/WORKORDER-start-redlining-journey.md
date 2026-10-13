@@ -91,6 +91,22 @@ be in the grey area but well designed and well placed."*
   Details/Signing, the design step), at desktop and iPad widths, with a
   photograph of each, and keep the ONE ZOOM rule in CLAUDE.md true.
 
+## 6. Remove the coloured squares after clause names on the Clauses tab
+
+Owner, 13 Oct 2026, a screenshot of Home → Document → Clauses: *"remove these
+green dots as no one knows what they are for"*.
+- They are the section squares (`.stk-rsq`, painted in `stkDecorate`,
+  js/views/breakdown.js): each clause name gets a small square in its
+  section's colour (green, blue, purple…), with the section's name only as a
+  hover tip, which an iPad never shows. On some rows the square also sits on
+  top of the clause name's last letters.
+- Build: remove the square from every row, in every colour, not only green.
+  The Section filter already says which section a point belongs to.
+- Kept: the deep dive's "■ General" chip, because it carries its section's
+  name in words. Ask the owner if that one should go too.
+- Update THE MAP's Stakes line in CLAUDE.md ("name + region square
+  (`.stk-rsq`)") in the same change, and mark `.stk-rsq` stale.
+
 ---
 
 ## For the bug log, not this build (owner: stay focused)
