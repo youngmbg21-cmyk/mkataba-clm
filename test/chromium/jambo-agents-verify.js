@@ -19,6 +19,8 @@
        the Look is a dropdown whose choice is the person's default (owner, 13 Oct 2026)
      6 the speed is a labelled box, and Play moves the replay
     13 the end card closes by its ×, Esc, or a press beside it (owner, 13 Oct 2026)
+    17 the agents' past rebuilt from the records: previewed, written marked as
+       rebuilt, scored only where clear, never twice, removable (13 Oct 2026)
     16 C–F: an agent moves only for its real work, a pop names its contract, a
        quiet room says why and every room its setting, and the panel and end
        card count contracts touched, dates caught, chases and nudges (13 Oct 2026)
@@ -55,6 +57,7 @@ const EXEC = process.env.CHROMIUM_BIN
 let pass = 0, fail = 0;
 const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  FAIL ') + n + (d ? '  → ' + d : '')); };
 
+const DAY = 86400000, ago = d => new Date(Date.now() - d * DAY).toISOString();
 const CONTRACTS = [
   H.fixtureContract('MK-JA1', 'Raw milk supply', 'Nandi Dairy', H.FOLDER_A, 12e6, 'Signed'),
   H.fixtureContract('MK-JA2', 'Cold chain logistics', 'Siginon Group', H.FOLDER_A, 8e6, 'Under Review'),
@@ -62,6 +65,11 @@ const CONTRACTS = [
   H.fixtureContract('MK-JA4', 'Packaging services', 'Nampak Kenya', H.FOLDER_B, 3e6, 'Draft'),
   H.fixtureContract('MK-JA5', 'Mutual NDA', 'Juno Ltd', H.FOLDER_A, 0, 'Signed'),
 ];
+/* History for the rebuild (section 17): a file imported 10 days ago and checked
+   a day later; an approval asked 8 days ago and given the next day. */
+Object.assign(CONTRACTS[3], { migration: { importedAt: ago(10), needsReview: false },
+  audit: [{ at: ago(9), user: 'Ama Reviewer', action: 'Migration review', detail: 'Extracted details confirmed' }] });
+Object.assign(CONTRACTS[2], { signApprovals: [{ id: 'sa1', askedAt: ago(8), status: 'approved', decidedAt: ago(7), decidedBy: { name: 'Ama Approver' } }] });
 
 (async () => {
   const h = await H.startHati();
@@ -360,6 +368,26 @@ const CONTRACTS = [
     const w16 = await page.evaluate(() => ({ btn: document.querySelector('[data-jh-play]').textContent, play: i18t('jh_play'), one: jhUnitWords('approve', 1), two: jhUnitWords('approve', 2) }));
     ok('16e a replay that ends by itself puts Play back on the button', w16.btn === w16.play, JSON.stringify(w16));
     ok('16f a count and its unit agree: "1 approval laid out", "2 approvals laid out"', w16.one === '1 approval laid out' && w16.two === '2 approvals laid out', JSON.stringify(w16));
+
+    console.log('\n17 · the agents\' past, rebuilt from the records');
+    const r17 = await page.evaluate(async () => {
+      await api('intake', 'POST', { title: 'A supply deal', need: 'We need a supply contract with a new vendor.' });
+      const dry = await api('agents/rebuild', 'POST', { dry: true });
+      const before = (await api('agents/pieces?days=60')).pieces.length;
+      const run = await api('agents/rebuild', 'POST', {});
+      const after = await api('agents/pieces?days=60');
+      const again = await api('agents/rebuild', 'POST', { dry: true });
+      return { dry, before, run, after: after.pieces.length, rebuilt: after.pieces.filter(p => p.rebuilt).map(p => p.agent + ':' + (p.outcome || 'waiting')).sort(), again: again.total, already: again.already };
+    });
+    ok('17a the preview finds the import (used), the approval (used) and the open request (waiting), writing nothing', r17.dry.byAgent.import && r17.dry.byAgent.import.used === 1 && r17.dry.byAgent.approve && r17.dry.byAgent.approve.used === 1
+      && r17.dry.byAgent.request && r17.dry.byAgent.request.waiting === 1 && r17.dry.written === 0, JSON.stringify(r17.dry));
+    ok('17b Rebuild writes them, each marked as rebuilt, and nothing for agents whose live record has begun', r17.run.written === r17.dry.total && r17.after === r17.before + r17.dry.total
+      && r17.rebuilt.join() === 'approve:used,import:used,request:waiting' && !r17.dry.byAgent.paper && !r17.dry.byAgent.round, JSON.stringify(r17));
+    ok('17c running it again adds nothing', r17.again === 0 && r17.already === 3, JSON.stringify({ again: r17.again, already: r17.already }));
+    const u17 = await page.evaluate(async () => { const r = await api('agents/rebuild', 'POST', { undo: true }); const left = (await api('agents/pieces?days=60')).pieces.filter(p => p.rebuilt).length; return { removed: r.removed, left }; });
+    ok('17d Remove takes every rebuilt piece out again, and only those', u17.removed === 3 && u17.left === 0, JSON.stringify(u17));
+    const b17 = await page.evaluate(() => { const h = document.createElement('div'); h.innerHTML = agPointsTableHtml('company'); return !!h.querySelector('[data-ag-rebuild]') && !!h.querySelector('[data-ag-rebuild-undo]'); });
+    ok('17e Settings → Jambo\'s agents carries Rebuild and Remove', b17);
 
     ok('no page errors', errs.length === 0, errs.join(' | ').slice(0, 300));
   } catch (e) { ok('the run finished', false, e.message); }
