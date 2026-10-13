@@ -8437,6 +8437,18 @@ const BREAKDOWN_KINDS = ['pay', 'get', 'protect'];
    is dropped from the point (the point stays; only its pin to the paper goes),
    and counted. */
 const BREAKDOWN_POINTS_MAX = 10;
+/* ---- A CAP IS A FACT, NEVER A CUT WORD (owner, 13 Oct 2026: "Not
+   quantifiable from the contract wordi" — the deep dive's figure, its "how"
+   and its ask all stopped mid-word) ----
+   Jambo's prose for the Clauses tab is held to a length, but at a WORD, with
+   "…" saying more was written. Quotes, references and clause numbers are not
+   prose: they keep the plain slice, because they are matched to the paper. */
+function aiClip(v, n){
+  const t = String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
+  if (t.length <= n) return t;
+  const cut = t.slice(0, n - 1), sp = cut.lastIndexOf(' ');
+  return (sp > n * 0.6 ? cut.slice(0, sp) : cut).replace(/[\s,;:–—-]+$/, '') + '…';
+}
 app.post('/api/ai/breakdown', auth, rlAiDeep, aiFeature('breakdown'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
@@ -8477,15 +8489,15 @@ app.post('/api/ai/breakdown', auth, rlAiDeep, aiFeature('breakdown'), aiBudgetGu
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     const hay = amendNorm(text);
-    const str = (v, n) => String(v == null ? '' : v).slice(0, n);
+    const raw = (v, n) => String(v == null ? '' : v).slice(0, n), str = aiClip;
     let dropped = 0;
     const regions = (Array.isArray(block.input && block.input.regions) ? block.input.regions : []).slice(0, 10).map(r => {
       if (!r || !r.name) return null;
       const quotes = (Array.isArray(r.quotes) ? r.quotes : []).filter(q => {
         const ok = q && q.text && hay.includes(amendNorm(q.text)); if (q && !ok) dropped++; return ok;
-      }).slice(0, 3).map(q => ({ source: str(q.source, 80), text: str(q.text, 600),
-        mark: (Array.isArray(q.mark) ? q.mark : []).map(m => str(m, 120)).filter(m => m && amendNorm(q.text).includes(amendNorm(m))).slice(0, 4) }));
-      const items = (Array.isArray(r.items) ? r.items : []).filter(i => i && i.ref).slice(0, 20).map(i => ({ ref: str(i.ref, 24), title: str(i.title, 80), note: str(i.note, 140),
+      }).slice(0, 3).map(q => ({ source: str(q.source, 80), text: raw(q.text, 600),
+        mark: (Array.isArray(q.mark) ? q.mark : []).map(m => raw(m, 120)).filter(m => m && amendNorm(q.text).includes(amendNorm(m))).slice(0, 4) }));
+      const items = (Array.isArray(r.items) ? r.items : []).filter(i => i && i.ref).slice(0, 20).map(i => ({ ref: raw(i.ref, 24), title: str(i.title, 80), note: str(i.note, 140),
         status: BREAKDOWN_STATUS.includes(i.status) ? i.status : 'fine' }));
       return { name: str(r.name, 40), clauses: str(r.clauses, 80), status: BREAKDOWN_STATUS.includes(r.status) ? r.status : 'look',
         kind: BREAKDOWN_KINDS.includes(r.kind) ? r.kind : 'protect', headline: str(r.headline, 140), sentence: str(r.sentence, 400),
@@ -8496,11 +8508,11 @@ app.post('/api/ai/breakdown', auth, rlAiDeep, aiFeature('breakdown'), aiBudgetGu
       .filter(l => l.a >= 1 && l.b >= 1 && l.a <= regions.length && l.b <= regions.length && l.a !== l.b && l.why).slice(0, 6);
     const rawPts = (Array.isArray(block.input.points) ? block.input.points : []).filter(p => p && p.title && p.stake).slice(0, BREAKDOWN_POINTS_MAX);
     const points = rawPts.map(p => {
-      let quote = str(p.quote, 600);
+      let quote = raw(p.quote, 600);
       if (quote && !hay.includes(amendNorm(quote))) { dropped++; quote = ''; }
       const region = Math.round(Number(p.region));
       const missing = !!p.missing || !String(p.clause || '').trim();
-      return { clause: missing ? '' : str(p.clause, 24), after: missing ? str(p.after, 24) : '', region: region >= 1 && region <= regions.length ? region : 0,
+      return { clause: missing ? '' : raw(p.clause, 24), after: missing ? raw(p.after, 24) : '', region: region >= 1 && region <= regions.length ? region : 0,
         status: p.status === 'need' ? 'need' : 'look', missing, title: str(p.title, 140), stake: str(p.stake, 180), what: str(p.what, 600),
         theirs: str(p.theirs, 240), usual: str(p.usual, 240), figure: str(p.figure, 40), how: str(p.how, 300), push: str(p.push, 240),
         edge: (Array.isArray(p.edge) ? p.edge : []).map(e => str(e, 300)).filter(Boolean).slice(0, 3),
@@ -8523,7 +8535,7 @@ app.post('/api/ai/breakdown/point', auth, rlAiDeep, aiFeature('breakdown'), aiBu
   const { text, side, point } = req.body || {};
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
   if (!point || typeof point !== 'object' || !point.title) return res.status(400).json({ error: 'point is required' });
-  const str = (v, n) => String(v == null ? '' : v).slice(0, n);
+  const str = aiClip;
   const tool = { name: 'dive_point', description: 'The deep dive on one point of the contract, for the company.',
     input_schema: { type: 'object', properties: {
       what: { type: 'string', description: 'Two or three plain sentences: what could happen to us because of this wording.' },
@@ -8547,10 +8559,13 @@ app.post('/api/ai/breakdown/point', auth, rlAiDeep, aiFeature('breakdown'), aiBu
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
     if (!block || !block.input) return res.status(502).json({ error: 'Jambo returned no structured result' });
     const d = block.input;
-    res.json({ what: str(d.what, 600), theirs: str(d.theirs, 240), usual: str(d.usual, 240), figure: str(d.figure, 40), how: str(d.how, 300), push: str(d.push, 240),
-      edge: (Array.isArray(d.edge) ? d.edge : []).map(e => str(e, 300)).filter(Boolean).slice(0, 3),
-      trade: (Array.isArray(d.trade) ? d.trade : []).filter(t => t && t.give && t.get).slice(0, 3).map(t => ({ give: str(t.give, 160), get: str(t.get, 160) })),
-      ask: str(d.ask, 900), truncated: !!resp.truncated, ...aiNotice(req, resp) });
+    /* a "figure" with no number in it is a sentence, not a figure: the page says "No figure" and the reason stays in "how" */
+    const fig = /\d/.test(String(d.figure || '')) ? str(d.figure, 60) : '';
+    const how = fig ? str(d.how, 500) : str([/\d/.test(String(d.figure || '')) ? '' : String(d.figure || ''), String(d.how || '')].filter(Boolean).join(' '), 500);
+    res.json({ what: str(d.what, 900), theirs: str(d.theirs, 400), usual: str(d.usual, 400), figure: fig, how, push: str(d.push, 400),
+      edge: (Array.isArray(d.edge) ? d.edge : []).map(e => str(e, 400)).filter(Boolean).slice(0, 3),
+      trade: (Array.isArray(d.trade) ? d.trade : []).filter(t => t && t.give && t.get).slice(0, 3).map(t => ({ give: str(t.give, 240), get: str(t.get, 240) })),
+      ask: str(d.ask, 2000), truncated: !!resp.truncated, ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
