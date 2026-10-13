@@ -137,6 +137,39 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
       await page.screenshot({ path: path.join(OUT, '4-signing.png') });
     }
 
+    /* 6. ONE PLACE ON EVERY PAPER (owner, 13 Oct 2026: "the paper adjustment
+       filter seems to be in different places and cutoff or joined to the
+       paper"; "all papers should be uniform"). At the owner's 1200px: the
+       control stands wholly inside its scroller, 6px under its top edge, clear
+       of the sheet, its right edge on the sheet's right edge — on Home,
+       Negotiate, Details and Signing alike; and the clause editor draws the
+       same control (no second zoom). */
+    await page.setViewportSize({ width: 1200, height: 860 });
+    const PLACE = () => page.evaluate(() => {
+      const zc = [...document.querySelectorAll('.paper-zc')].find(e => e.getClientRects().length && e.parentElement.getBoundingClientRect().width > 0);
+      const box = zc && zc.lastElementChild; if (!box) return null;
+      let sc = null; for (let e = zc.parentElement; e && e !== document.body; e = e.parentElement){ const o = getComputedStyle(e).overflowY; if (o === 'auto' || o === 'scroll'){ sc = e; break; } }
+      const sheet = sc && [...sc.querySelectorAll('.pg-sheet, article.nego-doc, .doc-sheet, .rl-paper')].find(e => e.getBoundingClientRect().width > 200);
+      if (!sc || !sheet) return null;
+      const z = box.getBoundingClientRect(), r = sc.getBoundingClientRect(), sh = sheet.getBoundingClientRect();
+      return { top: Math.round(z.top - r.top), clear: Math.round(sh.top - z.bottom), right: Math.round(z.right - sh.right) };
+    });
+    const placed = {};
+    await page.evaluate(id => { setView('dashboard'); igAnalyze(id); }, id); await page.waitForTimeout(1500); placed.home = await PLACE();
+    await page.evaluate(id => openRedlineWorkbench(id), id); await page.waitForTimeout(1500); placed.negotiate = await PLACE();
+    await page.evaluate(id => openWorkspace(id), id); await page.waitForTimeout(1000);
+    await page.evaluate(id => roomGoTab(getContract(id), 'details'), id); await page.waitForTimeout(1500); placed.details = await PLACE();
+    await page.evaluate(id => roomGoTab(getContract(id), 'sign'), id); await page.waitForTimeout(1500); placed.signing = await PLACE();
+    for (const [k, v] of Object.entries(placed))
+      ok(`6 ${k}: the zoom stands 6px inside the grey above the sheet, clear of it, on the sheet's right edge`,
+        !!v && v.top >= 4 && v.top <= 8 && v.clear >= 4 && Math.abs(v.right) <= 2, JSON.stringify(v));
+    await page.evaluate(id => openRedlineWorkbench(id), id); await page.waitForTimeout(1200);
+    const ce = await page.evaluate(id => { const c = getContract(id); const L = negoClauseList(c); rlOpenClauseEditor(c, L[1].clauseId);
+      return new Promise(r => setTimeout(() => r({ shared: !!document.querySelector('.ce-readbar .rl-type-step [data-rl-type]'), own: !!document.querySelector('.ce-zoom, [data-ce-zoom]'),
+        out: (document.querySelector('.ce-readbar .rl-type-out') || {}).textContent, want: rlDocZoom() + '%' }), 1500)); }, id);
+    ok('6e the clause editor draws the same zoom, at the remembered value — no second control', ce.shared && !ce.own && ce.out === ce.want, JSON.stringify(ce));
+    await page.evaluate(() => { if (window.clauseEditorOpen && window.clauseEditorOpen() && window.rlCloseClauseEditor) window.rlCloseClauseEditor(); }).catch(() => {});
+
     ok('5 no page errors', errs.length === 0, errs.slice(0, 2).join(' | ') || null);
   } catch (e) { fail++; console.log('FAIL  the check threw — ' + e.message); }
   await browser.close(); await h.stop();

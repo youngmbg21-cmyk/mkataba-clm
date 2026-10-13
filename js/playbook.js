@@ -454,6 +454,57 @@ function pbSwapBlock(bodyHtml,idx,text){
   return root.innerHTML;
 }
 
+/* ---- ONLY THE QUOTED RUN MOVES (owner, 13 Oct 2026) ----
+   Where the finding's quote is one run INSIDE its block and the wording does
+   not already carry the block's other words, the wording takes the quote's
+   place and nothing else in the block moves: the number "21.1", a bold title,
+   the sentences before and after, and their markup come through byte for
+   byte. Where the wording already re-says the rest of the block (a rewrite of
+   the whole paragraph), or the quote cannot be found in the block's own text,
+   null — and the caller swaps the block as it always did.
+   Matching is whitespace- and case-blind, the way every quote here is read. */
+function pbSpliceQuote(bodyHtml,idx,quote,words){
+  const q=_pbFitNorm(quote), w=String(words==null?'':words).trim();
+  if(q.length<8||!w) return null;
+  if(typeof document==='undefined'||!document.createElement||!document.createTreeWalker) return null;
+  let root;
+  try{ root=document.createElement('div'); root.innerHTML=String(bodyHtml==null?'':bodyHtml); }
+  catch(_){ return null; }
+  const el=root.children&&root.children[idx]; if(!el) return null;
+  /* the block's text, its text nodes, and a map from the folded text back */
+  const nodes=[]; const tw=document.createTreeWalker(el,4); for(let n=tw.nextNode();n;n=tw.nextNode()) nodes.push(n);
+  let raw=''; const at=[]; nodes.forEach((n,k)=>{ const t=n.nodeValue||''; for(let i=0;i<t.length;i++){ raw+=t[i]; at.push([k,i]); } });
+  let fold='', back=[], sp=true;
+  for(let i=0;i<raw.length;i++){
+    const ch=raw[i];
+    if(/\s/.test(ch)){ if(!sp){ fold+=' '; back.push(i); sp=true; } continue; }
+    fold+=ch.toLowerCase(); back.push(i); sp=false;
+  }
+  if(fold.endsWith(' ')){ fold=fold.slice(0,-1); back.pop(); }
+  if(fold.startsWith(' ')){ fold=fold.slice(1); back.shift(); }
+  const s=fold.indexOf(q); if(s<0) return null;
+  if(fold.indexOf(q,s+1)>=0) return null;                       /* said twice: no single address */
+  const before=fold.slice(0,s).trim(), after=fold.slice(s+q.length).trim();
+  if(!/[\p{L}\p{N}]/u.test(before+after)) return null;          /* the quote IS the block */
+  /* A REWRITE OF THE WHOLE BLOCK opens with the block's opening words or
+     closes with its closing words; such wording replaces the block whole */
+  const wf=_pbFitNorm(w), aw=after.split(' ').filter(Boolean);
+  const bw=before.split(' ').filter(Boolean);
+  while(bw.length&&/^\(?(\d+(\.\d+)*|[a-z]|[ivxl]+)\)?[.):]?$/.test(bw[0])) bw.shift();   /* its numbering is not its words */
+  if(bw.length>=3&&wf.includes(bw.slice(0,4).join(' '))) return null;
+  if(aw.length>=3&&wf.includes(aw.slice(-4).join(' '))) return null;
+  const a=back[s], b=back[s+q.length-1];
+  const [ka,ia]=at[a], [kb,ib]=at[b];
+  /* the wording goes where the quote began; the rest of the quoted run goes */
+  if(ka===kb){ const t=nodes[ka].nodeValue; nodes[ka].nodeValue=t.slice(0,ia)+w+t.slice(ib+1); }
+  else {
+    nodes[ka].nodeValue=nodes[ka].nodeValue.slice(0,ia)+w;
+    for(let k=ka+1;k<kb;k++) nodes[k].nodeValue='';
+    nodes[kb].nodeValue=nodes[kb].nodeValue.slice(ib+1);
+  }
+  return root.innerHTML;
+}
+
 /* THE NUMBER OUR POSITION ASKS FOR, read by the topic's OWN reader — the one
    precedent and the ladder already use — out of wording the workspace
    approved. Null where the position is not argued in a number at all
@@ -527,7 +578,17 @@ function pbFitInto(bodyHtml,quote,words){
   /* The figure path's own no-op test, asked of the BLOCK rather than the
      clause: wording identical to what it replaces is not a change. */
   if(_pbFitNorm(w)===_pbFitNorm(blocks[at])) return null;
-  const html=pbSwapBlock(bodyHtml,at,w);
+  /* THE SENTENCE, NOT THE PARAGRAPH, where the quote is one (owner, 13 Oct
+     2026: Jambo's ask for 21.1 kept its quoted sentence and added one, and the
+     filed change struck ALL of 21.1 — its number, its title and two sentences
+     nobody asked about — "+69 −110"). The block is the paragraph; the quote is
+     the address inside it. */
+  /* A WHOLE-PARAGRAPH REWRITE KEEPS THE PARAGRAPH'S OWN NUMBER ("33.1",
+     "(a)") where the wording leaves it off (owner, 13 Oct 2026: "33.1 Danish
+     law applies." was struck number and all) */
+  const num=/^\s*(\d+(?:\.\d+)*\.?|\(\d+\)|\([a-z]{1,4}\)|[a-z]\))\s+/i.exec(blocks[at]);
+  const whole=(num&&!_pbFitNorm(w).startsWith(_pbFitNorm(num[1])))?num[1]+' '+w:w;
+  const html=pbSpliceQuote(bodyHtml,at,quote,w)||pbSwapBlock(bodyHtml,at,whole);
   if(!html) return null;
   let text='';
   try{ text=richToText(html); }catch(_){ return null; }
@@ -1502,4 +1563,4 @@ function openClausePicker(c, opts){
   document.querySelectorAll('[data-cl-ins]').forEach(b=>b.addEventListener('click',()=>{ const cl=clauseById(b.getAttribute('data-cl-ins')); closeModal(); if(onPick) onPick(cl); }));
 }
 
-Object.assign(window,{pbAmendsAnother,pbInParentVerdicts,PB_TYPE_PATTERNS,PB_STEM_SAYS,pbTypeWords,DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,pbCarryDecisions,PB_TEXT_MIN,playbookText,PB_RANGE_READERS,pbRangeRead,PB_QUOTE_MIN,PB_QUOTE_LEAD,pbClauseBlocks,pbQuoteBlock,pbSwapBlock,pbPositionFigure,pbFitWording,pbFitInto,pbUnquotedLoss,pbClauseHeadWords,pbDropRepeatedHeading,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,pbStandardsFor,pbStandardsSent,PB_SETTLED_STATUSES,pbVerdictOpen,pbAlignVerdicts,pbReviewComplete,pbReviewUsable,playbookReviewHeuristic,runPlaybookReview,playbookStale,playbookHashOf,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});
+Object.assign(window,{pbAmendsAnother,pbInParentVerdicts,PB_TYPE_PATTERNS,PB_STEM_SAYS,pbTypeWords,DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,pbCarryDecisions,PB_TEXT_MIN,playbookText,PB_RANGE_READERS,pbRangeRead,PB_QUOTE_MIN,PB_QUOTE_LEAD,pbClauseBlocks,pbQuoteBlock,pbSwapBlock,pbPositionFigure,pbFitWording,pbFitInto,pbUnquotedLoss,pbClauseHeadWords,pbDropRepeatedHeading,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,pbStandardsFor,pbStandardsSent,PB_SETTLED_STATUSES,pbVerdictOpen,pbAlignVerdicts,pbReviewComplete,pbReviewUsable,playbookReviewHeuristic,runPlaybookReview,playbookStale,playbookHashOf,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear,pbSpliceQuote});
