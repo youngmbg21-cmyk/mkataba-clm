@@ -6492,6 +6492,7 @@ function hbShowCard(host, el, opts){
 }
 function hbPaintBoard(opts){
   const host = hbHost(); if (!host) return;
+  hbGiftsKeep();
   _hbTipMemo.clear(); if (_hbTipFor) hbTipHide(true);
   _hbBoardPaintedAt = Date.now(); _hbBoardMissed = false;
   const top = host.scrollTop;
@@ -8809,17 +8810,34 @@ function hbGiftsFor(){
 }
 function hbGiftsLoad(force){
   if (typeof API_MODE !== 'function' || !API_MODE() || typeof api !== 'function') return;
+  /* A REFUSAL IS NOT AN ANSWER (13 Oct 2026): a read sent in the instant
+     before sign-in finished was refused, yet stamped the minute's throttle
+     first — so the Home that sign-in then drew skipped its read and a
+     colleague's gift stayed away for a minute. The minute now starts only from
+     an answer; one read at a time, and a read asked for while one is on its
+     way runs once that one ends (`again`), so a refused first read is retried. */
+  if (_hbGifts.busy){ _hbGifts.again = true; return; }
   if (!force && Date.now() - _hbGifts.at < 60000) return;
-  _hbGifts.at = Date.now();
+  _hbGifts.busy = true; _hbGifts.again = false;   /* raised before the promise exists */
+  try { _hbGifts.me = (window.REMOTE && REMOTE.me && REMOTE.me.id) || null; } catch (_) { _hbGifts.me = null; }
   api('home/gifts').then(r => {
     if (!r) return;
+    _hbGifts.at = Date.now();
     const before = JSON.stringify([_hbGifts.received, _hbGifts.sent]);
     _hbGifts.received = Array.isArray(r.received) ? r.received : [];
     _hbGifts.sent = Array.isArray(r.sent) ? r.sent : [];
     /* SEEN IS SAID WHEN IT IS DRAWN, once per panel, on the reader's own Home. */
     _hbGifts.received.filter(g => !g.seenAt).forEach(g => { g.seenAt = new Date().toISOString(); api('home/gifts/' + encodeURIComponent(g.id) + '/seen', 'POST', {}).catch(() => {}); });
     if (JSON.stringify([_hbGifts.received, _hbGifts.sent]) !== before && state.view === 'dashboard' && hbS().face === 'board') hbPaintBoard();
-  }).catch(() => {});
+  }).catch(() => {}).then(() => { _hbGifts.busy = false; if (_hbGifts.again){ _hbGifts.again = false; hbGiftsLoad(); } });
+}
+/* ONCE PER PERSON WHO IS SIGNED IN: the board's paint asks for the gifts when
+   the last read was sent for nobody (before sign-in finished) or for someone
+   else — sign-in then draws the board and the colleague's gift arrives at once.
+   A read that fails for the signed-in person is not retried by painting. */
+function hbGiftsKeep(){
+  let me = null; try { me = (window.REMOTE && REMOTE.me && REMOTE.me.id) || null; } catch (_) {}
+  if (me && _hbGifts.me !== me) hbGiftsLoad(true);
 }
 async function hbGive(pid, to, note){
   /* a story is given by its name (sy_<topic>), like a panel */
