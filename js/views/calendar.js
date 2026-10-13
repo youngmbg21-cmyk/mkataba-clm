@@ -770,7 +770,7 @@ function renderCalendar(){
   const seg=(k,label,count)=>`<a class="${view===k?'on':''}" data-cal-view="${k}" role="button" tabindex="0">${_esc(label)}${count!=null?`<span class="c">${count}</span>`:''}</a>`;
   const scopeSeg=(k,label)=>`<span class="${calScope()===k?'on':''}" data-cal-scope="${k}" role="button" tabindex="0">${_esc(label)}</span>`;
 
-  let main='';
+  let main='', legendEvs=[];
   if(view==='month'){
     /* ---- THE GRID IS THE WIDTH OF THE PAGE, AND THE KEY READS UNDER IT
        (Young ruled 21 Sep 2026: the calendar must look exactly like the
@@ -780,11 +780,11 @@ function renderCalendar(){
        month's own cells were the narrowest thing on the page. The key leaves
        the card's own bar with it: a legend inside a card head is furniture
        about the card, and under the grid it is furniture about the month. */
-    main=`<div class="cal-month"><section class="cal-card cal-grid">${calMonthGridHtml(y,m,byDay,{id:'cal-grid'})}</section>
-      ${calLegendHtml(evs.filter(e=>calInPeriod(e,p)))}</div>`;
+    main=`<div class="cal-month"><section class="cal-card cal-grid">${calMonthGridHtml(y,m,byDay,{id:'cal-grid'})}</section></div>`;
+    legendEvs=evs.filter(e=>calInPeriod(e,p));
   } else if(view==='week'){
-    main=`<div class="cal-month cal-weekwrap"><section class="cal-card cal-wk-card">${calWeekHtml(grid)}</section>
-      ${calLegendHtml(grid.filter(e=>calInPeriod(e,p)).concat(calOwnEvents(p.from,p.to)))}</div>`;
+    main=`<div class="cal-month cal-weekwrap"><section class="cal-card cal-wk-card">${calWeekHtml(grid)}</section></div>`;
+    legendEvs=grid.filter(e=>calInPeriod(e,p)).concat(calOwnEvents(p.from,p.to));
   } else {
     main=calHorizonHtml();
   }
@@ -835,7 +835,7 @@ function renderCalendar(){
             ${onHome?moreHtml:''}
           </div>
           ${view==='horizon'?'':`<div class="cal-bar2">
-            ${calLayerSegHtml()}
+            <span class="cal-bar2-l">${calLayerSegHtml()}${calLegendHtml(legendEvs)}</span>
             <span class="cal-bar2-r">
               <span class="cal-seg">${scopeSeg('all',i18t('cal_all_dates'))}${scopeSeg('mine',i18t('cal_mine'))}</span>
               <button class="ui-btn ui-btn-sm" id="cal-new">${_esc(i18t('cal_new_event'))}</button>
@@ -1363,6 +1363,8 @@ function calStyleCss(){ return `
   .cal-wk-alls{border-bottom:1px solid var(--color-divider);background:var(--surface-2, var(--color-surface))}
   .cal-wk-lab{font-size:var(--t-micro);color:var(--color-neutral-600);padding:6px 6px 0 0;text-align:right}
   .cal-wk-all{border-left:1px solid var(--color-divider);padding:3px;display:flex;flex-direction:column;gap:2px;min-height:30px;min-width:0}
+  .cal-view.is-tight .cal-day .cal-chip{padding:1px var(--s-1);line-height:1.15}
+  .cal-view.is-tight .cal-day{padding-top:2px;padding-bottom:3px}
   .cal-wk-all .cal-chip{display:block;text-align:left;border:0;border-left:3px solid;font:inherit;font-size:var(--t-micro);padding:1px 5px;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;max-width:100%}
   .cal-wk-body{flex:1;min-height:0;overflow:auto}
   .cal-wk-times{display:flex;flex-direction:column}
@@ -1448,6 +1450,10 @@ function calStyleCss(){ return `
   .cal-title{font-size:17px;font-weight:var(--w-title);margin-right:auto;color:var(--color-text);white-space:nowrap;font-variant-numeric:tabular-nums}
   .cal-bar2{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;padding:8px 16px;border-bottom:1px solid var(--color-divider)}
   .cal-bar2-r{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .cal-bar2-l{display:inline-flex;align-items:center;gap:8px 16px;flex-wrap:wrap;min-width:0}
+  .cal-bar2 .cal-legend{padding:0;box-shadow:none;min-height:0;gap:6px 12px;flex-wrap:wrap}
+  .cal-bar2 .cal-legend span{font-size:var(--t-meta);font-weight:var(--w-label);gap:5px;white-space:nowrap}
+  .cal-bar2 .cal-legend i{width:8px;height:8px;border-radius:50%}
   .cal-bar2 .cal-seg{height:var(--ctl-h-sm)}
   .cal-bar2 .cal-seg span{font-size:var(--t-meta)}
   .cal-lay{height:26px;padding:0 9px;border-color:var(--btn-edge, var(--color-divider));font-size:var(--t-meta)}
@@ -1521,7 +1527,31 @@ function calStep(n){
 function calSetView(v){ if(!CAL_VIEWS.includes(v)||v===calView()) return; calState.view=v; renderCalendar(); }
 function calSetScope(s){ const v=s==='mine'?'mine':'all'; if(v===calScope()) return; calState.scope=v; renderCalendar(); }
 
+/* ---- THE SIX WEEKS FIT THE WINDOW (owner picked it, 13 Oct 2026, after the
+   laptop report: "the key sits on the last week") ----
+   The month draws six rows of one fixed height; on a laptop's shorter page six
+   rows of 76 did not fit the room under the bars, the month's box shrank and
+   the key landed on the last week. The day box's height is now measured from
+   the room the window leaves (CAL_DAY_MIN–CAL_DAY_MAX) and every row keeps it:
+   still one size for all six, still never stretched by its contents, and the
+   key lives in the filter row. Reverses, for the height only, the 9 Oct "a
+   fixed height … on a short window the page body scrolls". */
+const CAL_DAY_MIN = 52, CAL_DAY_MAX = 76;
+function calFitDays(){
+  const view=document.querySelector('.cal-view'); if(!view||view.classList.contains('is-wide')) return;
+  const cs=getComputedStyle(view), pad=(parseFloat(cs.paddingTop)||0)+(parseFloat(cs.paddingBottom)||0);
+  const weeks=view.querySelector('.cal-weeks'), dow=view.querySelector('.cal-dow'), wk=view.querySelector('.cal-wk-card');
+  const gap=weeks?(parseFloat(getComputedStyle(weeks).rowGap)||0):0, head=wk?28:((dow&&dow.offsetHeight)||0);
+  const room=view.clientHeight-pad-head-(weeks?5*gap:0)-2;
+  if(!(room>0)) return;
+  const h=Math.max(CAL_DAY_MIN,Math.min(CAL_DAY_MAX,Math.floor(room/6)));
+  view.style.setProperty('--cal-day-h',h+'px');
+  view.classList.toggle('is-tight',h<70);
+}
+let _calFitBound=false;
 function wireCalendar(evs, byDay, p){
+  calFitDays();
+  if(!_calFitBound&&typeof window!=='undefined'&&typeof window.addEventListener==='function'){ _calFitBound=true; window.addEventListener('resize',()=>{ try{ if(typeof calOnScreen==='function'?calOnScreen():true) calFitDays(); }catch(_){ } }); }
   const $=id=>document.getElementById(id);
   $('cal-prev')?.addEventListener('click',()=>calStep(-1));
   $('cal-next')?.addEventListener('click',()=>calStep(1));
@@ -1928,7 +1958,7 @@ function calWireOwn(){
 const _calPlanState=()=>_calPlan;
 
 Object.assign(window,{calendarDoorCount,calOnScreen,calWireOwn,calState,calPlace,calPlacePut,calMonth,calView,calScope,CAL_VIEWS,CAL_EVENT,CAL_PRIORITY,
-  calendarEvents,calEventMine,calPeriod,calInPeriod,calLegendHtml,calVisible,calDecisionsThisWeek,calWeekBounds,
+  calendarEvents,calEventMine,calPeriod,calInPeriod,calLegendHtml,calFitDays,CAL_DAY_MIN,CAL_DAY_MAX,calVisible,calDecisionsThisWeek,calWeekBounds,
   calToday,calChipText,calIcsFor,calUpcoming,calSummaryLines,calMonthGridHtml,calPanelHtml,
   CAL_AGENDA_DAYS,CAL_AGENDA_WINDOWS,CAL_AGENDA_ROWS,calAgendaDays,calSetAgendaDays,
   calSetView,calSetScope,calStep,openCalendarShare,renderCalendar,
