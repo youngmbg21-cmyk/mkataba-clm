@@ -19,6 +19,11 @@
      7 Settings → Jambo's agents carries one points row per agent; a box left
        is saved for everyone, and the house counts with it
      8 the Board's "The agents" opens this page (one place for the agents)
+     9 no free room (owner, 13 Oct 2026): the agents fill every floor evenly and
+       the rooms widen; a new floor only when every floor holds three
+    10 the period is a transition, not a reload: the page and its house stay;
+       Custom… takes a typed number of days (1–120), refuses others with the
+       reason, and a refresh keeps it
 
    Run: node test/chromium/jambo-agents-verify.js */
 const fs = require('node:fs');
@@ -134,6 +139,41 @@ const CONTRACTS = [
     const w = await page.evaluate(() => parseFloat(document.getElementById('jh-prog').style.width || '0'));
     ok('6b Play moves the replay', w > 5, String(w));
     await page.click('[data-jh-play]');
+
+    console.log('\n9 · no free room: the rooms widen to fill each floor');
+    const fc = await page.evaluate(() => { const bad = [];
+      for (let n = 1; n <= 30; n++){ const c = jhFloorCounts(n), F = Math.ceil(n / 3);
+        if (c.length !== F || c.reduce((s, x) => s + x, 0) !== n || c.some(x => x > 3 || x < Math.max(...c) - 1)) bad.push(n + ':' + c.join(',')); }
+      return bad; });
+    ok('9a any number of agents fills every floor, evenly, never more than three a floor', fc.length === 0, fc.join(' '));
+    const edges = await page.evaluate(() => { const n = AG_KEYS.length, F = Math.ceil(n / 3), out = [];
+      for (let f = 0; f < F; f++){ const y = 70 + (F - f) * 132 - 66; out.push(!!jhRoomAt(210, y) && !!jhRoomAt(1140, y)); } return out; });
+    ok('9b every floor has a room from wall to wall (no empty room at either end)', edges.length > 0 && edges.every(Boolean), JSON.stringify(edges));
+
+    console.log('\n10 · the period: a transition, and a typed number of days');
+    await page.evaluate(() => { document.querySelector('.jh-page').dataset.mark = 'same'; document.getElementById('jh-cv').dataset.mark = 'same'; });
+    await page.click('[data-jh-range="7"]');
+    await page.waitForFunction(() => /7/.test((document.getElementById('jh-total-l') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
+    const kept = await page.evaluate(() => ({ page: (document.querySelector('.jh-page') || {}).dataset?.mark, cv: (document.getElementById('jh-cv') || {}).dataset?.mark,
+      pressed: [...document.querySelectorAll('[data-jh-range]')].filter(x => x.getAttribute('aria-pressed') === 'true').map(x => x.getAttribute('data-jh-range')).join(),
+      words: (document.getElementById('jh-total-l') || {}).textContent }));
+    ok('10a a period press keeps the page and the house (nothing is rebuilt, no flash)', kept.page === 'same' && kept.cv === 'same', JSON.stringify(kept));
+    ok('10b …and says the new period where the total is', kept.pressed === '7' && /7 days/.test(kept.words || ''), JSON.stringify(kept));
+    await page.click('[data-jh-range="custom"]');
+    const boxOpen = await page.evaluate(() => !document.getElementById('jh-days').hidden && document.activeElement && document.activeElement.id === 'jh-days-n');
+    ok('10c Custom… opens a box for the number of days, ready to type', boxOpen);
+    await page.fill('#jh-days-n', '0'); await page.keyboard.press('Enter');
+    const refused = await page.evaluate(() => ({ bad: !document.getElementById('jh-days-bad').hidden, words: document.getElementById('jh-total-l').textContent }));
+    ok('10d a number outside 1–120 is refused, with the reason beside the box', refused.bad && /7 days/.test(refused.words), JSON.stringify(refused));
+    await page.fill('#jh-days-n', '45'); await page.keyboard.press('Enter');
+    await page.waitForFunction(() => /45/.test((document.getElementById('jh-total-l') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
+    const typed = await page.evaluate(() => ({ btn: document.querySelector('[data-jh-range="custom"]').textContent, pressed: document.querySelector('[data-jh-range="custom"]').getAttribute('aria-pressed'),
+      shut: document.getElementById('jh-days').hidden, words: document.getElementById('jh-total-l').textContent, page: document.querySelector('.jh-page').dataset.mark }));
+    ok('10e 45 days is taken: the button says it, the box closes, the page is the same page', typed.btn === '45 days' && typed.pressed === 'true' && typed.shut && /45 days/.test(typed.words) && typed.page === 'same', JSON.stringify(typed));
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForFunction(() => !!document.querySelector('[data-jh-range="custom"]'), null, { timeout: 8000 }).catch(() => {});
+    const back = await page.evaluate(() => { const b = document.querySelector('[data-jh-range="custom"]'); return b ? b.textContent + '|' + b.getAttribute('aria-pressed') : ''; });
+    ok('10f a refresh keeps the typed period', back === '45 days|true', back);
 
     console.log('\n7 · Settings → Jambo\'s agents: the points');
     await page.evaluate(() => openSettingsAt('platform', 'agents'));
