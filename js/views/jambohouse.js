@@ -360,6 +360,10 @@ function jhRoundRect(ctx, x, y, w, h, r){ ctx.beginPath(); if (ctx.roundRect) ct
    first · Do it for me · Leave it to me · Reads only · Switched off), read off
    the status the agents' page already loads (agentsStatus). */
 function jhAgentOff(k){ try { const s = (typeof agentsStatus === 'function') ? agentsStatus() : null; const a = s && s.agents && s.agents[k]; return !!(a && a.on === false); } catch (_) { return false; } }
+/* "1 approval laid out", never "1 approvals" (owner, 13 Oct 2026): the
+   count and its unit agree, through the plural keys jh_unit_<agent>_one/_other
+   (the plain jh_unit_<agent> keys are inert). */
+function jhUnitWords(k, n){ return n + ' ' + _jhTn('jh_unit_' + k, n, { n }); }
 function jhRoomQuietWhy(k){
   if (jhAgentOff(k)) return _jhT('jh_zero_off');
   const reads = typeof AG_READINGS !== 'undefined' && Array.isArray(AG_READINGS) && AG_READINGS.includes(k);
@@ -368,7 +372,7 @@ function jhRoomQuietWhy(k){
 }
 function jhRoomSub(r, s, pieces, mono){
   const all = agPointsTally(r.k, pieces, Infinity);
-  const tail = all.n ? (mono ? String(s.n) : s.n + ' ' + _jhT('jh_unit_' + r.k)) : jhRoomQuietWhy(r.k);
+  const tail = all.n ? (mono ? String(s.n) : jhUnitWords(r.k, s.n)) : jhRoomQuietWhy(r.k);
   return _jhT('ag_' + r.k) + ' · ' + tail;
 }
 function jhRoomStateWords(k){ return jhAgentOff(k) ? _jhT('jh_state_off') : jhLevelWords(k); }
@@ -526,7 +530,7 @@ function jhFrame(now){
       _jh.pops.push({ x: pos.x, y: pos.y - 20, text: (v >= 0 ? '+' : '−') + Math.abs(Math.round(v)) + jhPopRef(p), col: v >= 0 ? _jhRooms[i].col : _jhC.ruby, a: 0 }); if (_jh.pops.length > 80) _jh.pops.shift();
       jhFeedAdd(p);
     }
-    if (_jh.t >= 1){ _jh.playing = false; jhFinish(); }
+    if (_jh.t >= 1){ _jh.playing = false; jhFinish(); jhSetPlayWord(); }
   } else _jh.last = now;
   const ctx = cv.getContext('2d'), kk = cv.width / JH_W;
   ctx.setTransform(kk, 0, 0, kk, 0, 0);
@@ -548,7 +552,7 @@ function jhScorePaint(pieces, upto, xk){
   _jhRooms.forEach(r => { const s = agPointsTally(r.k, pieces, jhUptoFor(r.k, upto)); total += s.pts;
     const el = rows.querySelector(`[data-jh-agent="${r.k}"]`); if (!el) return;
     const p = el.querySelector('[data-jh-p]'), d = el.querySelector('[data-jh-d]');
-    const pt = _jhFmt(mix(xf && xf.oldPts[r.k], s.pts)), dt = s.n + ' ' + _jhT('jh_unit_' + r.k) + (s.n ? ' · ' + _jhT('jh_pct_used', { p: s.n ? Math.round(s.used / s.n * 100) : 0 }) : '');
+    const pt = _jhFmt(mix(xf && xf.oldPts[r.k], s.pts)), dt = jhUnitWords(r.k, s.n) + (s.n ? ' · ' + _jhT('jh_pct_used', { p: s.n ? Math.round(s.used / s.n * 100) : 0 }) : '');
     if (p && p.textContent !== pt) p.textContent = pt; if (d && d.textContent !== dt) d.textContent = dt; });
   const tw = _jhFmt(mix(xf && xf.oldTotal, total)), tot = document.getElementById('jh-total'); if (tot && tot.textContent !== tw) tot.textContent = tw;
   const prog = document.getElementById('jh-prog'); if (prog) prog.style.width = (_jh.t * 100) + '%';
@@ -1200,4 +1204,4 @@ const JH_CSS = `
 try { if (typeof jamboFacePaint === 'function') jamboFacePaint(); } catch (_) {}
 
 Object.assign(window, { AG_POINTS_LAUNCH, AG_POINTS_START_MINS, AG_POINTS_NEW_MINS, AG_POINTS_FIELDS, agPointsKeys, agPointsStart, agPointsCompany, agPointsMine, agPointsOf,
-  agPointsIsNew, agPointsEach, agPointsTally, agPointsSumLine, agPieceSay, agPointsTableHtml, agPointsWire, renderJamboHouse, jhRepaint, jhPlace, jhPlacePut, jhLayout, jhRoomAt, jhFloorCounts, jhGeom, jhFinish, jhUptoFor, jhHoursWords, jhPopsSoft: () => _jh.pops.filter(p => p.soft).length, jhMotionOf: (k, t) => { const r = _jhRooms.find(x => x.k === k); return r ? jhPosAt(r, t) : null; }, jhPopRef, jhRoomQuietWhy, jhRoomStateWords, jhResults });
+  agPointsIsNew, agPointsEach, agPointsTally, agPointsSumLine, agPieceSay, agPointsTableHtml, agPointsWire, renderJamboHouse, jhRepaint, jhPlace, jhPlacePut, jhLayout, jhRoomAt, jhFloorCounts, jhGeom, jhFinish, jhUptoFor, jhHoursWords, jhPopsSoft: () => _jh.pops.filter(p => p.soft).length, jhMotionOf: (k, t) => { const r = _jhRooms.find(x => x.k === k); return r ? jhPosAt(r, t) : null; }, jhPopRef, jhRoomQuietWhy, jhRoomStateWords, jhResults, jhUnitWords });

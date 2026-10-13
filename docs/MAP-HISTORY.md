@@ -29017,3 +29017,7 @@ Owner: "build c though f and merge to main" (the review's C–F after A and B).
 - F. RESULTS BESIDE THE POINTS: contracts touched (distinct contracts), dates caught (renew, ours, week) and chases and nudges (late, link, quiet), counted from the same pieces as of the replay's moment (`jhResults`, `JH_RES_DATES`, `JH_RES_NUDGES`): three tiles under the panel's figures (`#jh-res`) and one line on the end card (`#jh-end-r`, plural keys `jh_res_*_one/_other`).
 - Noticed, not fixed (BUGLOG): the Play button keeps "Pause" after a replay ends by itself; "1 approvals laid out" (unit words not plural-aware).
 - Tests: jambo-agents-verify 16a–16d (63 pass).
+
+## JAMBO'S AGENTS — PLAY COMES BACK, AND "1 APPROVAL" (13 Oct 2026)
+
+Owner: "Fix both and merge to main" (the two noticed in the C–F round). (1) A replay that ended by itself (`jhFrame` → `jhFinish`) left the button reading "Pause"; `jhSetPlayWord()` now follows `jhFinish` there. (2) Room sub-lines and the panel's cards read "1 approvals laid out"; `jhUnitWords(k, n)` says the count with its unit through new plural keys `jh_unit_<agent>_one`/`_other` in both books (the plain `jh_unit_<agent>` keys are inert). Tests: jambo-agents-verify 16e, 16f (65 pass).
