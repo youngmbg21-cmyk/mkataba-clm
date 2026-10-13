@@ -369,8 +369,9 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     check('3 the text size is ONE bordered box, with both presses inside it',
       ctrls.stepH === ctlH && parseFloat(ctrls.stepBorder) >= 1 && ctrls.stepButtons === 2,
       `${ctrls.stepH} (ctl ${ctlH}) border ${ctrls.stepBorder}, ${ctrls.stepButtons} presses, readout "${ctrls.readout}"`);
-    check('3 and the way back ends the row',
-      ctrls.order[ctrls.order.length - 1] === 'rl-livelist', ctrls.order.join(' › '));
+    /* RE-POINTED 13 Oct 2026 (owner): Open workspace · Open document, then Internal | Counterparty ends the row */
+    check('3 and the ways out stand together, Internal | Counterparty after them, last',
+      ctrls.order.slice(-3).join(' › ') === 'rl-livelist › rl-livelist › rl-segwrap', ctrls.order.join(' › '));
 
     /* ---- 4. THE CONTRACT FILLS ITS COLUMN AT A STEADY SIZE ---- */
     const sheet = await page.evaluate(() => {
@@ -701,172 +702,17 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     await page.setViewportSize({ width: 1500, height: 1000 });
     await pause(500);
 
-    /* ---- 13 · THE THREE CHECK SYMBOLS (WO-10, owner-asked 24 Aug 2026) ----
-       "add the red highlighted symbols to where image 3 shows in the
-       negotiation page. They should then act like buttons so you can click on
-       them to run the respective scans but if they were already ran while in
-       the documents page, then the results simply appear from the panel on the
-       right hand side."
-       IN A BROWSER because the two things that could be wrong here cannot be
-       asked anywhere else: whether a NEW control is a dead press — the fault
-       this codebase records more than any other — and whether it lands on the
-       facts line or takes one of its own, which is a cascade question and looks
-       perfectly correct in the source either way. */
-    const checks = await page.evaluate(() => {
-      const g = e => e ? getComputedStyle(e) : null;
-      const box = e => { if (!e) return null; const r = e.getBoundingClientRect();
-        return { t: Math.round(r.top), b: Math.round(r.bottom), l: Math.round(r.left),
-          r: Math.round(r.right), w: Math.round(r.width), h: Math.round(r.height) }; };
-      const wrap = document.querySelector('#view-redline .room-checks');
-      const more = document.querySelector('#view-redline #ws-more');
-      const acts = document.querySelector('#view-redline #ws-head .room-acts');
-      const one = document.querySelector('#view-redline .room-check');
-      const share = document.querySelector('#view-redline #ws-share');
-    /* ---- THE CHECKS ARE THE BUTTONS THAT CARRY A KIND ---- (re-pointed
-       20 Sep 2026) `.room-check` is the group's CLOTHES and three other
-       controls wear it now: Focus mode joined on 19 Sep and the chat door on
-       20 Sep, both deliberately. Read by class, this list had a trailing
-       empty in it from the day Focus arrived — which is why the order claim
-       below was already red at the parent, measuring a control it was never
-       about. The attribute is what names a check. */
-      const btns = [...document.querySelectorAll('#view-redline [data-room-check]')];
-      return { wrap: box(wrap), facets: box(document.querySelector('#view-redline .room-facets')),
-        facts: box(document.querySelector('#view-redline .room-facts')),
-        head: box(document.querySelector('#view-redline #ws-head')),
-        n: btns.length,
-        kinds: btns.map(b => b.getAttribute('data-room-check')),
-        titled: btns.every(b => (b.getAttribute('title') || '').trim().length > 3),
-        labelled: btns.every(b => (b.getAttribute('aria-label') || '').trim().length > 3),
-        /* SYMBOLS ONLY — the owner's ruling. A button carrying a word here
-           would be the strip this page just lost, in new clothes. */
-        wordless: btns.every(b => (b.textContent || '').trim() === ''),
-        /* The button's own text, with the count taken off — a badge is a
-           figure about the check, never a name for it. */
-        wordlessLabel: btns.every(b => {
-          const t = (b.textContent || '').trim();
-          const n = (b.querySelector('.room-badge') || {}).textContent || '';
-          return t.replace(n.trim(), '').trim() === ''; }),
-        painted: btns.every(b => { const r = b.getBoundingClientRect();
-          return r.width > 0 && r.height > 0 && g(b).visibility !== 'hidden'; }),
-        more: box(more), acts: box(acts), share: box(share),
-        inActs: !!(acts && wrap && acts.contains(wrap)),
-        inFacts: !!document.querySelector('#view-redline .room-facts .room-checks'),
-        edge: one ? g(one).borderTopColor : null,
-        accent: getComputedStyle(document.documentElement).getPropertyValue('--accent-solid').trim(),
-        glyph: (() => { const v = one && one.querySelector('svg');
-          return v ? Math.round(v.getBoundingClientRect().width) : 0; })(),
-        /* ---- AND THE MARK SITS IN THE MIDDLE OF THE BOX (Young reported it
-           15 Sep 2026: "the signs are not in the middle of the boxes they sit
-           in") ---- Measured as the four gaps between the glyph's own box and
-           its button's, because "centred" is a RELATION between two rectangles
-           and no number typed here can say it. Against the code of an hour
-           before this read 1px left and 9px right. */
-        gaps: btns.map(b => { const v = b.querySelector('svg'); if (!v) return null;
-          const br = b.getBoundingClientRect(), vr = v.getBoundingClientRect();
-          return { l: Math.round((vr.left - br.left) * 10) / 10,
-                   r: Math.round((br.right - vr.right) * 10) / 10,
-                   t: Math.round((vr.top - br.top) * 10) / 10,
-                   b: Math.round((br.bottom - vr.bottom) * 10) / 10 }; }),
-        /* THE GAP BETWEEN THE THREE, and the gap between them and More —
-           the owner asked for the row's own spacing, so the two are compared
-           rather than typed. */
-        gapIn: (() => { const r = btns.map(b => b.getBoundingClientRect());
-          return r.length > 1 ? Math.round(r[1].left - r[0].right) : null; })(),
-        gapToMore: (more && wrap) ? Math.round(wrap.getBoundingClientRect().left - more.getBoundingClientRect().right) : null,
-        gapShareMore: (share && more) ? Math.round(more.getBoundingClientRect().left - share.getBoundingClientRect().right) : null };
-    });
-    /* ---- TWO SYMBOLS SINCE 20 SEP 2026 ---- Young: "Delete the Playbook
-       Review Symbol button." The reading keeps its door in the More menu, one
-       row away, which section 1b measures. */
-    check('13 two symbols, one per check, in the order they are worked in',
-      checks.n === 2 && checks.kinds.join(',') === 'oblig,risk',
-      checks.kinds.join(','));
-    check('13 they are drawn as visible pixels', !!checks.wrap && checks.painted);
-    check('13 the mark sits in the middle of its box, across and down',
-      checks.gaps.length === 2 && checks.gaps.every(g => g && Math.abs(g.l - g.r) <= 0.6 && Math.abs(g.t - g.b) <= 0.6),
-      JSON.stringify(checks.gaps));
-    /* ---- A COUNT IS NOT A WORD (re-pointed 20 Sep 2026) ----
-       Young asked for a number on these buttons, so `textContent` is no longer
-       empty where a check has something to report. What the ruling banned is a
-       LABEL — a word beside the symbol — and that is what is measured: the
-       button's own text, with the badge taken off. */
-    check('13 symbols only — the name lives on the hover, per the ruling',
-      checks.wordlessLabel && checks.titled && checks.labelled,
-      JSON.stringify({ label: checks.wordlessLabel, titled: checks.titled }));
-    /* THEY SHARE THE FACTS' LINE AND SIT AT ITS RIGHT WALL. `.room-facts` was a
-       plain block when this shipped, so its two children stacked and the
-       `margin-left:auto` had nothing to push against — MEASURED, the symbols
-       took a whole line at the LEFT wall and added 28px to a head meant to be
-       compact. Both halves are pinned, as RELATIONS. */
-    /* ---- REVERSED IN PLACE 15 Sep 2026 (Young: "move the highlighted buttons
-       up and to the right of the more button ... make their outlines blue or
-       green depending on the mode ... bunch them closer so that the spacing
-       matches the more, share and internal review spacing") ----
-       WHAT THESE TWO USED TO SAY was that the symbols shared the FACTS line
-       and sat at its right wall. Both were true and both are why they read as
-       decoration: a page-width away from every other control on this head,
-       with nothing pressable near them. They are the last three things in the
-       ACTS row now. The claims are the same shape — on the right line, in the
-       right place — asked of the row they joined. */
-    check('13 they are in the acts row, not the facts line',
-      checks.inActs && !checks.inFacts,
-      JSON.stringify({ inActs: checks.inActs, inFacts: checks.inFacts }));
-    check('13 and to the RIGHT of More, on its line',
-      checks.wrap && checks.more && checks.wrap.l >= checks.more.r
-        && checks.wrap.t < checks.more.b && checks.wrap.b > checks.more.t,
-      JSON.stringify({ checks: checks.wrap, more: checks.more }));
-    /* THE SPACING IS THE ROW'S OWN, pinned as a RELATION against the gap the
-       row already puts between Share and More — never a typed number. */
-    check('13 spaced like the rest of the row, between themselves and after More',
-      checks.gapIn === checks.gapShareMore && checks.gapToMore === checks.gapShareMore,
-      JSON.stringify({ between: checks.gapIn, afterMore: checks.gapToMore, shareToMore: checks.gapShareMore }));
-    /* ONE RUNG with every other button in the row: a second height would make
-       this one row read as two. */
-    /* RE-POINTED IN PLACE 26 Sep 2026 (the Compact ladder, Young picked it):
-       the glyph grew to a hand-set 18 on 15 Sep so a 16px mark would not look
-       lost in its box. The ladder gives every icon in an everyday button ONE
-       size, the rung's own (--btn-ic, 14), so the claim is asked as that
-       relation — the box is the row's rung and the mark is the rung's icon —
-       read live, never typed. */
-    const btnIc = await page.evaluate(() => { const e = document.createElement('i'); e.style.width = 'var(--btn-ic)'; e.style.display = 'block';
-      document.body.appendChild(e); const v = Math.round(e.getBoundingClientRect().width); e.remove(); return v; });
-    check('13 at the row\'s own rung, and the glyph is the rung\'s icon size',
-      checks.wrap && checks.more && checks.wrap.h === checks.more.h && btnIc > 0 && checks.glyph === btnIc,
-      JSON.stringify({ check: checks.wrap && checks.wrap.h, more: checks.more && checks.more.h, glyph: checks.glyph, btnIc }));
-    /* THE EDGE IS THE WORKSPACE'S ACCENT — green on teal, blue on navy —
-       measured as the RELATION (it is mixed from the brand's own token), never
-       as a colour this file types out. */
-    check('13 their outline is the workspace accent, so it follows the brand',
-      !!checks.edge && /^(rgba?|color)\(/.test(checks.edge)
-        && checks.edge !== 'rgba(0, 0, 0, 0)' && !!checks.accent,
-      `${checks.edge} against an accent of ${checks.accent}`);
-
-    /* ---- AND THE PRESS REALLY LANDS ---- */
-    const before = await page.evaluate(() =>
-      !!document.querySelector('#side-panel, .side-panel'));
-    await page.evaluate(() => { window.__cvBefore =
-      (typeof checkVerdict === 'function')
-        ? !!checkVerdict(getContract(state.activeId), 'oblig') : null; });
-    await page.click('#view-redline .room-check[data-room-check="oblig"]');
-    await pause(2500);
-    const after = await page.evaluate(() => {
-      const p = document.querySelector('#side-panel, .side-panel');
-      const on = p && p.getBoundingClientRect().width > 0;
-      return { on: !!on, ran: window.__cvBefore,
-        /* the panel BORROWS the obligations card by its element id — the same
-           trick openCheckPanel already plays, so it is the card moved whole and
-           never a second rendering */
-        borrowed: !!document.querySelector('#side-panel #obligations-section, .side-panel #obligations-section'),
-        toast: (document.querySelector('#toast-root') || {}).textContent || '' };
-    });
-    void before;
-    check('13 pressing one is not a dead press — something happens',
-      after.on || /\S/.test(after.toast),
-      JSON.stringify({ panel: after.on, alreadyRun: after.ran, toast: after.toast.slice(0, 60) }));
-    check('13 and where the check had already run, the panel shows its findings',
-      after.ran === false || after.borrowed || after.on,
-      JSON.stringify({ alreadyRun: after.ran, borrowed: after.borrowed }));
-    await page.keyboard.press('Escape');
+    /* ---- 13 · THE CHECK SYMBOLS ARE GONE (owner, 13 Oct 2026: "delete the
+       focus, obligations and risk scan buttons") ----
+       RETIRED IN PLACE: the Obligations and Risk scan squares that WO-10 put
+       beside More (24 Aug 2026) are deleted; Obligations lives on Home's panel
+       and its page, risks in the Redlines column. What is held: neither square
+       is drawn, and the Notes door beside More stays. */
+    const checks = await page.evaluate(() => ({
+      squares: [...document.querySelectorAll('#view-redline [data-room-check]')].map(b => b.getAttribute('data-room-check')),
+      notes: !!document.querySelector('#view-redline .room-checks') }));
+    check('13 no Obligations or Risk scan square on the head; the Notes door stays',
+      checks.squares.length === 0 && checks.notes, JSON.stringify(checks));
     await pause(500);
 
     check('no page errors anywhere in the journey', errors.length === 0, errors.slice(0, 3).join(' | '));

@@ -250,9 +250,11 @@ const check = (name, ok, detail) => {
        (data-ws-focus, on its control row), beside the room's ⋯ menu row
        (#ws-focus) — the two doors 11d compares. */
     await page.evaluate((id) => openRedlineWorkbench(id), cid);
-    await page.waitForFunction(() => !!document.querySelector('#view-redline [data-ws-focus]'), null, { timeout: 10000 }).catch(() => {});
+    /* RE-POINTED 13 Oct 2026: the owner deleted the control row's Focus button; Focus on Negotiate is the More menu's row (#ws-focus), opened first */
+    await page.waitForFunction(() => !!document.querySelector('#view-redline #ws-more'), null, { timeout: 10000 }).catch(() => {});
     const focus = await page.evaluate(async () => {
-      const b = document.querySelector('#view-redline [data-ws-focus]');
+      (document.querySelector('#view-redline #ws-more') || { click(){} }).click(); await new Promise(z => setTimeout(z, 350));
+      const b = document.querySelector('#view-redline #ws-focus');
       if (!b) return { err: 'not drawn' };
       const r = b.getBoundingClientRect();
       const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
@@ -264,7 +266,7 @@ const check = (name, ok, detail) => {
       return { w: +r.width.toFixed(1), h: +r.height.toFixed(1), inside, on,
         btnSays: b.getAttribute('aria-pressed') };
     });
-    check('11a the Negotiate page draws a Focus mode door', !focus.err, focus.err || `${focus.w}x${focus.h}`);
+    check('11a the Negotiate page offers a Focus mode door on its More menu', !focus.err, focus.err || `${focus.w}x${focus.h}`);
     check('11b it is PAINTED — nothing sits over it', focus.inside === true, String(focus.inside));
     check('11c and pressing it really hides the head', focus.on === true, String(focus.on));
     /* 11d retired 11 Oct 2026: the Document tab is gone (owner) — and with it
@@ -273,12 +275,13 @@ const check = (name, ok, detail) => {
        Focus (rlPaintFocusBtn paints only data-rl-focus/data-ws-focus): the
        same code at main, logged in BUGLOG, not asserted here. What stays: the
        drawn button says its own state. */
-    check('11d the button says it is pressed', focus.btnSays === 'true', String(focus.btnSays));
+    /* 11d "the button says it is pressed" RETIRED 13 Oct 2026: the drawn button
+       is gone (owner); the More menu row's state is the BUGLOG line above */
     await page.screenshot({ path: path.join(OUT, '11-focus.png') });
 
     /* THE CONTRACT DOES NOT MOVE. Refusal 3, measured rather than assumed: the
        button wears .room-check, which is sized to the row's own rung. */
-    await page.evaluate(() => { const b = document.querySelector('#view-redline [data-ws-focus]'); if (b) b.click(); });
+    await page.evaluate(() => { const x = document.querySelector('#view-redline .rl-focus-exit'); if (x) x.click(); });
     await page.waitForTimeout(400);
     const ink = await page.evaluate(() => {
       const head = document.getElementById('ws-head');

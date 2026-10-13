@@ -124,8 +124,9 @@ const SEED = async () => {
 
     /* ═══════════ 2 · THE SHIELD IS GONE ═══════════ */
     check('2a no playbook shield is drawn', head.shield === 0, `found ${head.shield}`);
-    check('2b two checks where there were three',
-      JSON.stringify(head.kinds) === JSON.stringify(['oblig', 'risk']),
+    /* RE-POINTED 13 Oct 2026: the owner deleted the Obligations and Risk scan squares too */
+    check('2b no check squares are left on the head',
+      JSON.stringify(head.kinds) === JSON.stringify([]),
       JSON.stringify(head.kinds));
 
     /* THE READING KEEPS A DOOR — the More menu's row, opened for real. */
@@ -180,15 +181,11 @@ const SEED = async () => {
       return { oblig: read('[data-room-check="oblig"]'), risk: read('[data-room-check="risk"]') };
     }, undefined, {});
 
-    check('3a the obligations button carries its number, painted',
-      !!(badges.oblig && badges.oblig.drawn && /^\d/.test(badges.oblig.text || '')),
-      badges.oblig ? `"${badges.oblig.text}" drawn ${badges.oblig.drawn}` : 'no button');
-    check('3b and two overdue reads RUBY, not amber',
-      !!(badges.oblig && badges.oblig.bad),
-      badges.oblig ? `is-bad ${badges.oblig.bad} · ${badges.oblig.bg}` : 'no button');
-    check('3c the risk button carries its own count',
-      !!(badges.risk && badges.risk.drawn),
-      badges.risk ? `"${badges.risk.text}"` : 'no button');
+    /* 3a-3c RETIRED 13 Oct 2026: the Obligations and Risk scan squares that
+       carried these counts are deleted (owner); held instead: neither is drawn,
+       even with two overdue duties to count */
+    check('3a with two overdue duties, still no Obligations or Risk scan square is drawn',
+      badges.oblig === null && badges.risk === null, JSON.stringify(badges));
 
     /* SILENT AT ZERO — the half that stops it becoming furniture. */
     const quiet = await drive(page, async id => {
