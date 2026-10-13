@@ -55,6 +55,9 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       window.__bd = { n: 0, refuse: false };
       const o = window.api;
       window.api = async function (p, ...a){
+        if (p === 'ai/breakdown/point'){ window.__dives = (window.__dives || 0) + 1; await new Promise(r => setTimeout(r, 700));
+          return { what: 'Prices could rise in any month with no warning.', theirs: 'Nothing.', usual: 'Ninety days of written notice.', figure: '', how: 'No figure in the wording.',
+            push: 'They will say prices follow the market.', edge: ['Ask for ninety days of notice.'], trade: [], ask: 'The Supplier shall give ninety (90) days written notice of any price change.' }; }
         if (p !== 'ai/breakdown') { (window.__calls = window.__calls || []).push(p); return o.call(this, p, ...a); }
         window.__bd.n++;
         if (window.__bd.refuse) return { error: 'Jambo found no regions in this wording.' };
@@ -77,7 +80,7 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
     const faces = await page.evaluate(() => [...document.querySelectorAll('[data-hb-face]')].map(b => b.dataset.hbFace));
     ok('0 Home has no Breakdown face', faces.length > 0 && !faces.includes('breakdown'), faces.join(','));
     const listed = await page.waitForSelector('#pd-thread .doc-th-row', { timeout: 10000 }).then(() => true, () => false);
-    const read = await page.waitForSelector('#pd-thread .stk-line', { timeout: 10000 }).then(() => true, () => false);
+    const read = await page.waitForSelector('#pd-thread .stk-line', { state: 'attached', timeout: 10000 }).then(() => true, () => false);
     const e1 = await page.evaluate(() => ({ n: window.__bd.n, runBtn: !!document.querySelector('#pd-thread [data-stk-run]') }));
     ok('1 opening Clauses reads the contract once, with no other press', listed && read && e1.n === 1 && !e1.runBtn, JSON.stringify(e1));
 
@@ -104,11 +107,14 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       /* 3b A FILTER NARROWS THE LIST: Found by → Our standards leaves the one
          standards point, on the Payment row; rows with nothing step aside; the
          box keeps the keyboard */
+      /* a point's box shows only under its open clause: open the row that holds Deep dive i */
+      const openRowOf = i => page.evaluate(async i => { const b = document.querySelector(`#pd-thread .doc-th-row [data-stk-dive="${i}"]`);
+        const r = b && b.closest('.doc-th-row'); if (r && !r.classList.contains('is-open')){ r.querySelector('[data-th-go]').click(); await new Promise(z => setTimeout(z, 900)); } }, i);
       const pick = (k, v) => page.evaluate(([k, v]) => { const el = document.querySelector(`#pd-thread [data-stk-f="${k}"]`); el.focus(); el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); }, [k, v]);
       await pick('by', 'std');
       const f1 = await page.evaluate(() => {
         const rows = [...document.querySelectorAll('#pd-thread .doc-th-row')].filter(r => r.offsetParent !== null);
-        return { count: (document.querySelector('#pd-thread .stk-view') || {}).innerText || '', lines: [...document.querySelectorAll('#pd-thread .stk-line')].map(l => l.innerText.split('\n')[0]),
+        return { count: (document.querySelector('#pd-thread .stk-view') || {}).innerText || '', lines: [...document.querySelectorAll('#pd-thread .stk-line .stk-st')].map(l => l.textContent),
           shown: rows.length, onlyKept: rows.every(r => r.classList.contains('is-open') || !!r.querySelector('.stk-line')), focus: document.activeElement && document.activeElement.getAttribute('data-stk-f') };
       });
       ok('3b Found by: Our standards keeps the one standards point and hides rows with none', /1 point\b/.test(f1.count) && f1.lines.length === 1 && /Payment terms/.test(f1.lines[0])
@@ -124,7 +130,7 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
          in Money — so Section: Money keeps it */
       await pick('reg', '1');
       const f3 = await page.evaluate(() => ({ count: (document.querySelector('#pd-thread .stk-view') || {}).innerText || '',
-        lines: [...document.querySelectorAll('#pd-thread .stk-line .stk-st')].map(l => l.innerText) }));
+        lines: [...document.querySelectorAll('#pd-thread .stk-line .stk-st')].map(l => l.textContent) }));
       ok('3d Section: Money keeps the points whose clause sits in Money, the standards one too', /2 points/.test(f3.count) && f3.lines.some(t => /Payment terms/.test(t)) && f3.lines.some(t => /price rise|warning/i.test(t)), JSON.stringify(f3));
       await pick('reg', '');
       /* 3e THE ARTIFACT'S BOXES: a point is a shaded box in its severity's tint,
@@ -136,8 +142,35 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
         return { needBg: bg(need), lookBg: bg(look), ruby: tok('--st-ruby-bg'), amber: tok('--st-amber-bg'), needInk: ink(need), lookInk: ink(look), text: tok('--color-text') };
       });
       ok('3e each point is a shaded box in its severity\'s tint, its words dark', f4.needBg === f4.ruby && f4.lookBg === f4.amber && f4.needInk === f4.text && f4.lookInk === f4.text, JSON.stringify(f4));
+      /* 3f A POINT'S BOX SHOWS ONLY UNDER THE OPEN CLAUSE (owner, 13 Oct 2026:
+         "you should only be able to see this once you click on the clause
+         header"): closed, the row says "1 to review" and no box shows; pressed,
+         its box shows; the dot wears the worst point (red: it needs you) */
+      const f5 = await page.evaluate(async () => {
+        const vis = el => !!el && el.getClientRects().length > 0;
+        const row = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(r => r.querySelector('.stk-line.is-need'));
+        if (!row) return { row: false };
+        const before = { open: row.classList.contains('is-open'), box: vis(row.querySelector('.stk-line')), say: (row.querySelector('.stk-n') || {}).textContent || '' };
+        row.querySelector('[data-th-go]').click(); await new Promise(r => setTimeout(r, 900));
+        const r2 = document.querySelector(`#pd-thread [data-th-row="${row.getAttribute('data-th-row')}"]`);
+        const bead = getComputedStyle(r2.querySelector('.doc-th-bead')).backgroundColor;
+        const tok = n => { const p = document.createElement('span'); p.style.color = `var(${n})`; document.body.appendChild(p); const v = getComputedStyle(p).color; p.remove(); return v; };
+        return { row: true, before, after: { open: r2.classList.contains('is-open'), box: vis(r2.querySelector('.stk-line')) }, bead, ruby: tok('--st-ruby-dot') };
+      });
+      ok('3f a closed clause hides its boxes and says "1 to review"; pressed, its box shows', f5.row && !f5.before.open && !f5.before.box && /1 to review/.test(f5.before.say) && f5.after.open && f5.after.box, JSON.stringify(f5));
+      ok('3g the dot wears its clause\'s worst point: red where a point needs you', f5.row && f5.bead === f5.ruby, JSON.stringify({ bead: f5.bead, ruby: f5.ruby }));
+      /* 3h "Not in the contract" opens the same way: its title is the press */
+      const f6 = await page.evaluate(async () => {
+        const vis = el => !!el && el.getClientRects().length > 0;
+        const t = document.querySelector('#pd-thread .stk-miss-row [data-stk-mopen]'); if (!t) return { t: false };
+        const box = () => vis(t.closest('.stk-miss-row').querySelector('.stk-line'));
+        const a = box(); t.click(); const b = box(); t.click(); const c = box();
+        return { t: true, closed: a, opened: b, again: c };
+      });
+      ok('3h a point not in the contract opens its box on a press of its title, and closes on another', f6.t && !f6.closed && f6.opened && !f6.again, JSON.stringify(f6));
 
       if (process.env.STK_SHOT) await page.screenshot({ path: process.env.STK_SHOT + '-list.png' });
+      await openRowOf(0);
       await page.click('#pd-thread .doc-th-row [data-stk-dive="0"]');
       const dived = await page.waitForSelector('#pd-thread .stk-dv h3', { timeout: 4000 }).then(() => true, () => false);
       const e4 = await page.evaluate(() => {
@@ -161,10 +194,32 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       const t2 = await page.evaluate(() => (document.querySelector('#pd-thread .stk-dv h3') || {}).innerText || '');
       await page.click('#pd-thread [data-stk-back]');
       const back = await page.evaluate(() => ({ dive: !!document.querySelector('#pd-thread .stk-dv'), list: [...document.querySelectorAll('#pd-thread .doc-th-rows')].some(el => el.offsetParent !== null) }));
+      await openRowOf(0);
       await page.click('#pd-thread .doc-th-row [data-stk-dive="0"]');
       await page.keyboard.press('Escape');
       const esc = await page.evaluate(() => !document.querySelector('#pd-thread .stk-dv'));
       ok('5 the arrows walk the points; Back and Esc return to the list', /price rise/.test(t2) && !back.dive && back.list && esc, JSON.stringify({ t2, back, esc }));
+
+      /* 5b TWO STEPS (owner, 13 Oct 2026: the loading took too long): the list
+         read leaves a point's dive for its own read, asked on the press of Deep
+         dive, with the turning ring and its cost while it reads, and kept — a
+         second visit asks nothing */
+      const d1 = await page.evaluate(async () => {
+        const c = getContract('MK-S1'); const p = c.breakdown.points[1];
+        ['what', 'theirs', 'usual', 'figure', 'how', 'push', 'ask'].forEach(f => { p[f] = ''; }); p.edge = []; p.trade = []; delete p._dove;
+        window.__dives = 0;
+        const i = [...document.querySelectorAll('#pd-thread [data-stk-dive]')].map(b => Number(b.getAttribute('data-stk-dive'))).sort((x, y) => y - x)[0];
+        stkDiveOpen(c, 1);
+        await new Promise(r => setTimeout(r, 150));
+        const ring = !!document.querySelector('#pd-thread .stk-dv .stk-busy .ob-spin'), cost = /once for this point/.test((document.querySelector('#pd-thread .stk-dv') || {}).innerText || '');
+        await new Promise(r => setTimeout(r, 1200));
+        const t = (document.querySelector('#pd-thread .stk-dv') || {}).innerText || '';
+        stkDiveClose(c); stkDiveOpen(c, 1); await new Promise(r => setTimeout(r, 300));
+        const t2 = (document.querySelector('#pd-thread .stk-dv') || {}).innerText || '';
+        stkDiveClose(c);
+        return { i, ring, cost, filled: /Ninety days of written notice/.test(t) && /ninety days of notice/i.test(t), busyGone: !/reading this point/.test(t), again: /Ninety days/.test(t2), dives: window.__dives };
+      });
+      ok('5b a point\'s deep dive is its own read on the press: the ring and its cost while it reads, then the dive, asked once', d1.ring && d1.cost && d1.filled && d1.busyGone && d1.again && d1.dives === 1, JSON.stringify(d1));
 
       await page.evaluate(() => { window.__bd.refuse = true; window.__bd.n = 0; pdOpenOnHome('MK-S2', 'doc'); });
       const said = await page.waitForSelector('#pd-thread .stk-err', { timeout: 8000 }).then(() => true, () => false);

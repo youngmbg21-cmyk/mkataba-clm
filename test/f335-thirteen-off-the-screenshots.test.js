@@ -141,8 +141,9 @@ describe('f335 (4) — one door onto the playbook read, never two and never none
   test('and the shield is gone from the checks, so there are not two', () => {
     assert.ok(!/\['playbook','shield','ct_playbook_review'\]/.test(CONTRACT),
       'the shield row is off roomChecksHtml');
-    assert.match(fnBody(CONTRACT, 'roomChecksHtml'), /\['risk','readpaper','ct_copilot_risk_scan'\]/,
-      'the risk check stays');
+    /* RE-POINTED 13 Oct 2026: the owner deleted the obligations and risk scan squares too */
+    assert.match(fnBody(CONTRACT, 'roomChecksHtml'), /const rows=\[\];/,
+      'no check square is drawn any more');
     assert.ok(!/\['playbook'/.test(fnBody(CONTRACT, 'roomChecksHtml')),
       'and nothing drawn carries the playbook kind');
   });
@@ -413,7 +414,7 @@ describe('f335 (11) — one mark, one meaning', () => {
     assert.match(COMPONENTS, /\n  readpaper:'<path/, 'readpaper is in the sprite');
   });
   test('and every reading caller moved onto it', () => {
-    assert.match(CONTRACT, /\['risk','readpaper','ct_copilot_risk_scan'\]/, 'the risk check');
+    /* the risk check square left the negotiate head (owner, 13 Oct 2026) */
     assert.match(REG, /icon\('readpaper','w-2\.5 h-2\.5'\)/, 'the findings badge on a Contracts row');
     assert.match(read('js/playbook.js'), /icon\('readpaper'/, 'the playbook Run button');
     assert.match(read('js/ocr.js'), /icon\('readpaper'/, 'the machine-read line');
@@ -430,16 +431,18 @@ describe('f335 (11) — one mark, one meaning', () => {
        repaint that relabels it, the Document tab's control-row door, the
        negotiate page's control-row door, and the counterparty page's row. No
        head draws a square any more (the owner deleted it the same day). */
-    assert.equal(hits.length, 5,
-      'exactly the five Focus-mode callers, not ' + hits.length + ': ' + hits.join(', '));
+    /* FOUR since 13 Oct 2026: the negotiate page's control-row door is gone (owner) */
+    assert.equal(hits.length, 4,
+      'exactly the four Focus-mode callers, not ' + hits.length + ': ' + hits.join(', '));
     assert.equal(hits.filter(f => f === 'js/views/contract.js').length, 3);
-    assert.equal(hits.filter(f => f === 'js/views/negotiation.js').length, 1);
+    assert.equal(hits.filter(f => f === 'js/views/negotiation.js').length, 0);
     assert.equal(hits.filter(f => f === 'js/views/portal.js').length, 1);
   });
   test('Focus mode is a button on both heads, last in the row', () => {
     /* The square left both heads on 21 Sep 2026; the door is on the negotiate
        page's control row (and the Document tab's) carrying the same attribute. */
-    assert.match(read('js/views/negotiation.js'), /class="ui-btn rl-focus-door" data-ws-focus/, 'the button is drawn');
+    /* RE-POINTED 13 Oct 2026: the negotiate page's Focus button is gone (owner) */
+    assert.ok(!/class="ui-btn rl-focus-door" data-ws-focus/.test(read('js/views/negotiation.js')), 'the negotiate row draws no Focus button');
     assert.match(HTML, /\.room-acts-lead > \.room-focus\{ order:5; \}/,
       'after the checks on a lead row, after Draft new agreement on the other');
   });

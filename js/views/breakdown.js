@@ -75,7 +75,7 @@ function bdBusyHtml(){ return window.busyHtml ? busyHtml(i18t('bd_reading')) : _
    on screen"): a point's words are lit on the paper instead (igQuoteGo).
    Nothing is filed or sent: "Start redlining with this ask" is Negotiate's
    own door, "Ask Jambo about this" only fills Jambo's ask box. */
-const _stk = { id: null, dive: -1, f: { reg: '', sev: '', by: '' }, rows: null, nums: null };
+const _stk = { id: null, dive: -1, f: { reg: '', sev: '', by: '' }, rows: null, nums: null, mOpen: '', diveBusy: {}, diveErr: {} };
 const STK_REGION_TONES = 10;
 const stkOf = c => { const b = bdOf(c); return b && Array.isArray(b.points) ? b : null; };
 const stkNum = s => { const m = /^\s*(?:clause\s+|§\s*)?(\d+(?:\.\d+)*)/i.exec(String(s || '')); return m ? m[1] : ''; };
@@ -184,7 +184,7 @@ const stkAt = (p, nums, rows) => p.missing ? -1 : (p.by === 'std' ? stkRowForQuo
 /* painted after the list's own paint, on Home only */
 function stkDecorate(c, card, rows){
   if (!c || !card) return;
-  if (_stk.id !== String(c.id)){ _stk.id = String(c.id); _stk.dive = -1; _stk.f = { reg: '', sev: '', by: '' }; }
+  if (_stk.id !== String(c.id)){ _stk.id = String(c.id); _stk.dive = -1; _stk.f = { reg: '', sev: '', by: '' }; _stk.mOpen = ''; }
   const b = stkOf(c);
   _stk.rows = rows || null;
   _stk.nums = (rows || []).map(x => (typeof docThreadIsSec === 'function' && docThreadIsSec(x)) ? '' : stkNum(typeof docXrayLabel === 'function' ? docXrayLabel(x) : ''));
@@ -197,6 +197,7 @@ function stkDecorate(c, card, rows){
   if (head) head.innerHTML = stkHeadHtml(c, b);
   card.querySelectorAll('.stk-line, .stk-miss, .stk-rsq, .stk-nomatch').forEach(el => el.remove());
   card.querySelectorAll('.stk-hide').forEach(el => el.classList.remove('stk-hide'));
+  card.querySelectorAll('.stk-b-need, .stk-b-look').forEach(el => el.classList.remove('stk-b-need', 'stk-b-look'));
   const list = card.querySelector('.doc-th-rows');
   if (b && list){
     const nums = _stk.nums;
@@ -204,8 +205,14 @@ function stkDecorate(c, card, rows){
        hover), and says how many of the points on screen stand on it */
     const regOf = {};
     (b.regions || []).forEach((r, ri) => (r.items || []).forEach(it => { const n = stkNum(it.ref); if (n && !(n in regOf)) regOf[n] = ri; }));
-    const onRow = {};
-    shown.forEach(p => { const at = stkAt(p, nums, rows); if (at >= 0) onRow[at] = (onRow[at] || 0) + 1; });
+    const onRow = {}, worstOn = {};
+    shown.forEach(p => { const at = stkAt(p, nums, rows); if (at < 0) return;
+      onRow[at] = (onRow[at] || 0) + 1;
+      if (p.status === 'need' || (p.status === 'look' && worstOn[at] !== 'need')) worstOn[at] = p.status; });
+    /* THE DOT WEARS ITS CLAUSE'S WORST POINT (owner, 13 Oct 2026): red when a
+       point needs you, amber when the worst is worth a look — the older marks'
+       tone stays where it is worse; the paper's own track is not touched */
+    Object.keys(worstOn).forEach(at => { const r = list.querySelector(`[data-th-row="${at}"]`); if (r) r.classList.add('stk-b-' + worstOn[at]); });
     nums.forEach((n, at) => {
       const row = list.querySelector(`[data-th-row="${at}"]`); if (!row || !n) return;
       let ri = regOf[n];
@@ -240,10 +247,38 @@ function stkDecorate(c, card, rows){
        called missing: it stands under its own heading with its clause named */
     const group = (key, ids, dashed) => ids.length ? `<div class="stk-miss" role="listitem"><div class="stk-miss-h">${_bdE(i18t(key, { n: ids.length }))}</div>${ids.map(i => {
       const p = shown[i];
-      return `<div class="stk-miss-row"><span class="stk-miss-bead${dashed ? '' : ' is-other'}" aria-hidden="true"></span><div><div class="stk-miss-t">${p.clause && !dashed ? _bdE(p.clause) + ' · ' : ''}${_bdE(p.title)}</div>${stkLineHtml(p, i)}</div></div>`; }).join('')}</div>` : '';
+      /* its box opens on a press of its title, like a clause's (owner, 13 Oct 2026) */
+      const key = (dashed ? 'm:' : 'o:') + p.title, on = _stk.mOpen === key;
+      return `<div class="stk-miss-row${on ? ' is-open' : ''}"><span class="stk-miss-bead${dashed ? '' : ' is-other'}" aria-hidden="true"></span><div><button type="button" class="stk-miss-t" data-stk-mopen="${_bdE(key)}" aria-expanded="${on ? 'true' : 'false'}">${p.clause && !dashed ? _bdE(p.clause) + ' · ' : ''}${_bdE(p.title)}</button>${stkLineHtml(p, i)}</div></div>`; }).join('')}</div>` : '';
     list.insertAdjacentHTML('beforeend', group('stk_other_h', other, false) + group('stk_missing_h', miss, true));
   }
   stkDivePaint(c, card);
+}
+/* TWO STEPS (owner, 13 Oct 2026): the list read leaves a point's deep dive
+   for its own small read, asked on the press of Deep dive and kept on the
+   reading (`_dove`). A reading made before carries its dive already. */
+const stkDiveOwed = p => !!p && p.by === 'jambo' && !p._dove && !(p.what || p.usual || p.ask || (p.edge || []).length);
+const stkDiveKey = (c, p) => String(c && c.id) + ':' + (bdOf(c) || {}).hash + ':' + (p && p._i);
+async function stkDiveFetch(c, p){
+  if (!c || !p || !stkDiveOwed(p)) return;
+  const k = stkDiveKey(c, p);
+  if (_stk.diveBusy[k]) return;
+  if (!(typeof API_MODE === 'function' && API_MODE() && state.aiConfigured)){ _stk.diveErr[k] = i18t('bd_no_key'); return; }
+  _stk.diveBusy[k] = true; delete _stk.diveErr[k];
+  try {
+    const live = (typeof getContract === 'function' && getContract(c.id)) || c;
+    const r = await api('ai/breakdown/point', 'POST', { text: bdText(live), point: { title: p.title, clause: p.clause, stake: p.stake, quote: p.quote, missing: !!p.missing, after: p.after || '' } }, { quiet: true });
+    if (!r || r.error) throw new Error((r && r.error) || i18t('bd_failed'));
+    const b = live.breakdown, at = b && Array.isArray(b.points) ? b.points[p._i] : null;
+    if (at && b.hash === (bdOf(c) || {}).hash){
+      ['what', 'theirs', 'usual', 'figure', 'how', 'push', 'ask'].forEach(f => { at[f] = String(r[f] || ''); });
+      at.edge = Array.isArray(r.edge) ? r.edge : []; at.trade = Array.isArray(r.trade) ? r.trade : []; at._dove = true;
+      if (typeof persist === 'function') persist(live);
+    }
+  } catch (e){ _stk.diveErr[k] = (e && e.message) || i18t('bd_failed'); }
+  delete _stk.diveBusy[k];
+  const cur = stkContract();
+  if (cur && String(cur.id) === String(c.id) && _stk.dive >= 0) stkDivePaint(cur);
 }
 function stkDiveHtml(c, b, i){
   const shown = stkShown(c, b), p = shown[i], n = shown.length;
@@ -267,8 +302,11 @@ function stkDiveHtml(c, b, i){
     <div class="stk-dv-head"><div class="stk-meta">${bdChip(p.status)}${r ? `<span class="stk-reg"><i></i>${_bdE(r.name)}</span>` : ''}</div>
       <h3>${_bdE(p.title)}</h3><div class="stk-meta">${where}</div></div>
     <div class="stk-dv-body">
+      ${stkDiveOwed(p) ? (_stk.diveErr[stkDiveKey(c, p)]
+        ? `<p class="stk-err" role="alert">${_bdE(_stk.diveErr[stkDiveKey(c, p)])}</p><div class="stk-acts"><button type="button" class="ui-btn ui-btn-sm" data-stk-dive-again="${i}">${_bdE(i18t('stk_again'))}</button><span class="stk-cost">${_bdE(i18t('stk_dive_cost'))}</span></div>`
+        : `<div class="stk-acts"><span class="stk-busy" role="status" aria-live="polite">${window.busyHtml ? busyHtml(i18t('stk_dive_reading')) : _bdE(i18t('stk_dive_reading'))}</span><span class="stk-cost">${_bdE(i18t('stk_dive_cost'))}</span></div>`) : ''}
       ${sec('stk_h_what', p.what ? `<p>${_bdE(p.what)}</p>` : '')}
-      ${p.by === 'std' ? '' : sec('stk_h_cost', cost)}
+      ${p.by === 'std' || stkDiveOwed(p) ? '' : sec('stk_h_cost', cost)}
       ${sec('stk_h_vs', vs)}
       ${sec('stk_h_push', p.push ? `<p class="stk-push">${_bdE(p.push)}</p>` : '')}
       ${sec('stk_h_edge', (p.edge || []).length ? `<ul class="stk-edge">${p.edge.map(e => `<li>${_bdE(e)}</li>`).join('')}</ul>` : '')}
@@ -317,6 +355,7 @@ function stkDiveOpen(c, i){
   stkDivePaint(c);
   const dv = document.querySelector('#pd-thread .stk-dv-scroll'); if (dv) dv.scrollTop = 0;
   stkShow(c, shown[i], i);
+  if (stkDiveOwed(shown[i])) stkDiveFetch(c, shown[i]);
 }
 function stkDiveClose(c){
   _stk.dive = -1; stkDivePaint(c);
@@ -327,6 +366,14 @@ if (typeof document !== 'undefined' && !document._stkWired){
     const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('#pd-thread')) return;
     const c = stkContract(); if (!c) return;
     if (t.closest('[data-stk-run]')){ stkRun(c); return; }
+    const da = t.closest('[data-stk-dive-again]');
+    if (da){ const b0 = stkOf(c), p = b0 ? stkShown(c, b0)[Number(da.getAttribute('data-stk-dive-again'))] : null;
+      if (p){ delete _stk.diveErr[stkDiveKey(c, p)]; stkDivePaint(c); stkDiveFetch(c, p); } return; }
+    const mo = t.closest('[data-stk-mopen]');
+    if (mo){ const k = mo.getAttribute('data-stk-mopen'); _stk.mOpen = _stk.mOpen === k ? '' : k;
+      document.querySelectorAll('#pd-thread [data-stk-mopen]').forEach(b => { const on = b.getAttribute('data-stk-mopen') === _stk.mOpen;
+        b.setAttribute('aria-expanded', on ? 'true' : 'false'); const r = b.closest('.stk-miss-row'); if (r) r.classList.toggle('is-open', on); });
+      return; }
     const dv = t.closest('[data-stk-dive]');
     if (dv){ e.stopPropagation(); if (dv.disabled) return; stkDiveOpen(c, Number(dv.getAttribute('data-stk-dive'))); return; }
     if (t.closest('[data-stk-back]')){ stkDiveClose(c); return; }

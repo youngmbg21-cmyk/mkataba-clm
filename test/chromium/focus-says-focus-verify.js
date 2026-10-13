@@ -42,15 +42,6 @@ const BODY = '<h1>Supply Agreement</h1><p>Between Highland Corporate Ltd and Nor
   + '<h2>2. Payment</h2><p>The Buyer shall pay each invoice within thirty days.</p>'
   + '<h2>3. Signatures</h2><p>Signed for and on behalf of each party by its authorised signatory.</p>';
 
-/* the door's visible words, its mark, and whether its row is one line */
-const doorOf = (page, sel) => page.evaluate(sel => {
-  const d = document.querySelector(sel); if (!d || !d.getClientRects().length) return null;
-  const row = d.parentElement;
-  const kids = [...row.children].filter(k => k.getClientRects().length);
-  const tops = new Set(kids.map(k => Math.round(k.getBoundingClientRect().top / 6)));
-  return { text: d.textContent.replace(/\s+/g, ' ').trim(), mark: !!d.querySelector('svg'),
-    pressed: d.getAttribute('aria-pressed'), oneLine: tops.size <= 1, h: Math.round(d.getBoundingClientRect().height) };
-}, sel);
 
 (async () => {
   const h = await startHati({});
@@ -82,9 +73,14 @@ const doorOf = (page, sel) => page.evaluate(sel => {
       await page.evaluate(id => openWorkspace(id), ID);
       await until(page, () => !!document.getElementById('ws-tabs'));
       await page.evaluate(id => roomGoTab(getContract(id), 'redline'), ID);
-      await until(page, () => !!document.querySelector('.redline-page .rl-focus-door'), null, 10000);
-      const n = await doorOf(page, '.redline-page .rl-focus-door');
-      check(!!n && n.text === 'Focus' && n.mark, `2a @${w} the Negotiate page's Focus door shows the mark and the word "Focus"`, n && JSON.stringify(n));
+      /* RE-POINTED 13 Oct 2026: the owner deleted the Negotiate control row's
+         Focus button; Focus there is the ⋯ row (3). Held: the row draws none,
+         and stays one line */
+      await until(page, () => !!document.querySelector('.redline-page .rl-actions [data-rl-open-doc]'), null, 10000);
+      const n = await page.evaluate(() => { const acts = [...document.querySelectorAll('.redline-page .rl-actions > *')].filter(el => el.getClientRects().length);
+        const tops = acts.map(el => Math.round(el.getBoundingClientRect().top + el.getBoundingClientRect().height / 2));
+        return { door: !!document.querySelector('.redline-page .rl-focus-door'), n: acts.length, oneLine: tops.length > 0 && Math.max(...tops) - Math.min(...tops) <= 4 }; });
+      check(!!n && !n.door, `2a @${w} the Negotiate control row draws no Focus button`, n && JSON.stringify(n));
       check(!!n && n.oneLine, `2b @${w} the Negotiate control row stays one line`, n && JSON.stringify(n));
       await shot(`nego-${w}.png`);
     }
@@ -110,10 +106,8 @@ const doorOf = (page, sel) => page.evaluate(sel => {
     await until(page, () => !!document.getElementById('ws-focus'));
     const sv = await page.evaluate(() => { const b = document.getElementById('ws-focus'); if (!b) return null;
       return { text: [...b.childNodes].filter(k => k.nodeType === 3 || (k.nodeType === 1 && !k.classList.contains('mnote') && k.tagName !== 'svg')).map(k => k.textContent).join('').trim() }; });
-    await page.evaluate(id => roomGoTab(getContract(id), 'redline'), ID);
-    await until(page, () => !!document.querySelector('.redline-page .rl-focus-door'), null, 10000);
-    const svN = await doorOf(page, '.redline-page .rl-focus-door');
-    check(!!sv && !!svN && sv.text === 'Fokus' && svN.text === 'Fokus', '4 in Swedish the ⋯ row and the Negotiate door both say "Fokus"', JSON.stringify({ sv: sv && sv.text, svN: svN && svN.text }));
+    /* RE-POINTED 13 Oct 2026: the Negotiate door is gone (owner); the ⋯ row is Focus's one door */
+    check(!!sv && sv.text === 'Fokus', '4 in Swedish the ⋯ row says "Fokus"', JSON.stringify({ sv: sv && sv.text }));
     await shot('nego-sv.png');
     await page.evaluate(() => langSet('en'));
   } catch (e){

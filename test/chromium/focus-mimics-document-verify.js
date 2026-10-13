@@ -142,7 +142,9 @@ const SHOT = (rowSel) => {
 
     /* ═══════════ 2 · FOCUS KEEPS THE ROW AND THE SHELL ═══════════ */
     const on = await drive(page, async sel => {
-      const b = document.querySelector('#view-redline [data-ws-focus]') /* the control-row door since 21 Sep 2026 */;
+      /* RE-POINTED 13 Oct 2026: the owner deleted the control row's Focus button; Focus on Negotiate is the More menu's row (#ws-focus), opened first */
+      (document.querySelector('#view-redline #ws-more') || { click(){} }).click(); await new Promise(z => setTimeout(z, 350));
+      const b = document.querySelector('#view-redline #ws-focus');
       if (!b) return { err: 'no Focus button on the negotiate page' };
       b.click();
       await new Promise(r => setTimeout(r, 500));

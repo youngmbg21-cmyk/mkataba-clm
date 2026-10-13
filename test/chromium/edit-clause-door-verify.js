@@ -116,18 +116,20 @@ const endOf = (page, sel) => page.evaluate(sel => {
         editor: !!document.querySelector('#clause-editor') }; }, ids[1]);
     ok('2 a click in the wording opens nothing to type in, takes no lock', !!at && !s2.box && !s2.acts && !s2.lock && !s2.editor, JSON.stringify(s2));
 
-    /* ===== 3. EDIT CLAUSE, RIGHT OF FOCUS ===== */
+    /* ===== 3. EDIT CLAUSE, FIRST, THEN OPEN WORKSPACE =====
+       RE-POINTED 13 Oct 2026: the Focus button left this row (owner); Edit
+       clause now leads, with Open workspace to its right on the same line */
     const s3 = await page.evaluate(() => {
       const b = document.querySelector('.redline-page .rl-head [data-rl-edit-clause]');
-      const f = document.querySelector('.redline-page .rl-head .rl-focus-door');
+      const f = document.querySelector('.redline-page .rl-head [data-rl-open-ws]');
       if (!b || !f) return { b: !!b, f: !!f };
       const r = b.getBoundingClientRect(), rf = f.getBoundingClientRect();
       const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
       return { b: true, f: true, text: b.textContent.trim(), to: b.getAttribute('data-rl-edit-clause'), disabled: b.disabled,
-        right: r.left >= rf.right - 1 && Math.abs((r.top + r.height / 2) - (rf.top + rf.height / 2)) < 4,
+        right: r.right <= rf.left + 1 && Math.abs((r.top + r.height / 2) - (rf.top + rf.height / 2)) < 4,
         painted: !!hit && (hit === b || b.contains(hit)) };
     });
-    ok('3a "Edit clause" stands right of Focus, live, and a press reaches it',
+    ok('3a "Edit clause" stands left of Open workspace, live, and a press reaches it',
       !!s3.b && s3.text === 'Edit clause' && s3.to === 'editor' && !s3.disabled && s3.right && s3.painted, JSON.stringify(s3));
     await page.screenshot({ path: path.join(OUT, '3-edit-clause.png') });
     const want3 = await page.evaluate(() => rlClauseInView(document.querySelector('.redline-page')));
