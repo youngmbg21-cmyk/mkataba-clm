@@ -20699,3 +20699,7 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 
 ### Noticed, not fixed (13 Oct 2026, dropdowns wear no dark outline)
 - f148 "no Swedish value is a forgotten copy of the English" is red on main since #248: `stk_by_jambo` is 'Jambo' in both books (a name); it belongs in f148's SAME_IN_BOTH beside `pd_tab_copilot`.
+
+### Noticed, not fixed (13 Oct 2026, the agents' house C–F)
+- Jambo's agents: when a replay ends by itself (jhFrame → jhFinish) the Play button keeps saying "Pause" — jhSetPlayWord is not called there; pre-existing.
+- Jambo's agents: a room's sub-line can read "1 approvals laid out" — the jh_unit_* words are not plural-aware; pre-existing.

@@ -19,6 +19,9 @@
        the Look is a dropdown whose choice is the person's default (owner, 13 Oct 2026)
      6 the speed is a labelled box, and Play moves the replay
     13 the end card closes by its ×, Esc, or a press beside it (owner, 13 Oct 2026)
+    16 C–F: an agent moves only for its real work, a pop names its contract, a
+       quiet room says why and every room its setting, and the panel and end
+       card count contracts touched, dates caught, chases and nudges (13 Oct 2026)
     15 work shows when Jambo prepares it: the four reading agents report what
        they laid out (checked by the server, kept once), the replay shows
        "prepared", and a person's press decides that same piece (13 Oct 2026)
@@ -338,6 +341,22 @@ const CONTRACTS = [
       await api('agents/outcome', 'POST', { agent: 'quiet', contractId: 'MK-JA1', outcome: 'used', ref: 'quiet:MK-JA1' });
       const after = (await api('agents/pieces?days=7')).pieces.filter(p => p.agent === 'quiet'); return { before, after: after.length, open: after.filter(p => !p.outcome).length, used: after.filter(p => p.outcome === 'used').length }; });
     ok('15d a person\'s press decides THAT piece (no second one): waiting 2 → 1, used 1', s15.before === 2 && s15.after === 2 && s15.open === 1 && s15.used === 1, JSON.stringify(s15));
+
+    console.log('\n16 · the house shows the work as it is (C–F)');
+    const c16 = await page.evaluate(() => { const S = []; for (let t = 0; t <= 1.0001; t += 0.01) S.push(t);
+      const still = S.every(t => { const m = jhMotionOf('renew', t); return m && m.kind === 'idle'; });
+      const moves = S.some(t => { const m = jhMotionOf('quiet', t); return m && m.kind !== 'idle'; });
+      return { still, moves }; });
+    ok('16a C: an agent with no work stands still all replay; one with work moves at its moments', c16.still && c16.moves, JSON.stringify(c16));
+    const d16 = await page.evaluate(() => jhPopRef({ cid: 'MK-JA1' }));
+    ok('16b D: a pop names the contract it was on', d16 === ' · MK-JA1', d16);
+    const e16 = await page.evaluate(() => ({ why: jhRoomQuietWhy('renew'), state: jhRoomStateWords('quiet'), stateRound: jhRoomStateWords('round') }));
+    ok('16c E: a quiet room says why, and every room says how its agent is set', e16.why === 'nothing came up' && !!e16.state && !!e16.stateRound, JSON.stringify(e16));
+    const f16 = await page.evaluate(() => ({ res: [...document.querySelectorAll('#jh-res b')].map(b => b.textContent) }));
+    await page.click('[data-jh-play]');
+    await page.waitForFunction(() => !document.getElementById('jh-end').hidden, null, { timeout: 15000 }).catch(() => {});
+    const f16e = await page.evaluate(() => (document.getElementById('jh-end-r') || {}).textContent || '');
+    ok('16d F: the panel shows contracts touched, dates caught, chases and nudges; the end card says them', f16.res.length === 3 && /contracts? touched/.test(f16e) && /chases? (and|or) nudges?/.test(f16e), JSON.stringify({ f16, f16e }));
 
     ok('no page errors', errs.length === 0, errs.join(' | ').slice(0, 300));
   } catch (e) { ok('the run finished', false, e.message); }
