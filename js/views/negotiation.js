@@ -8836,9 +8836,8 @@ if (typeof document !== 'undefined') document.addEventListener('click', e => {
 /* ---- LAND ON THE POINT'S CLAUSE ----
    The clause is the one the Clauses tab named (its id where the paper carries
    one, else the clause holding the point's quote, else its number). Where Edit
-   with Jambo fits, it opens there: a point found by our standards meets its
-   Playbook card (Use our standard · fallback · Jambo's draft); a point Jambo
-   found puts his ask in the ask box, unsent. NOTHING IS FILED OR SENT HERE —
+   with Jambo fits, it opens there with the point's ask waiting on a card in
+   Jambo's panel (Apply · Discard), whoever found the point. NOTHING IS FILED OR SENT HERE —
    the reader presses. Too narrow for the editor, the paper scrolls to it. */
 function rlLandOn(c, land){
   if (!c || !land || !(window.state && state.view === 'redline')) return;
@@ -8858,12 +8857,8 @@ function rlLandOn(c, land){
   const door = _rlEditorDoor && _rlEditorDoor.id === c.id && typeof _rlEditorDoor.open === 'function' ? _rlEditorDoor : null;
   if (door && window.clauseEditorFits && clauseEditorFits()){
     if (!door.open(cl.clauseId)) return;
-    if (land.ask) setTimeout(() => {
-      const box = document.getElementById('ce-ask');
-      if (!box || box.value) return;
-      box.value = i18t('stk_ask_prefill', { ask: land.ask });
-      try{ box.dispatchEvent(new Event('input', { bubbles: true })); }catch(_){ }
-    }, 0);
+    /* the ask waits on a card in Jambo's panel, Apply · Discard (ceOfferAsk) */
+    if (land.ask && window.ceOfferAsk) ceOfferAsk(land.ask, land.quote);
     return;
   }
   rlJumpToClause(cl.clauseId);
