@@ -140,9 +140,15 @@ describe('f449 (3) — what the bar prints', () => {
   });
 
   test('the negotiations door and the separator are gone with the rest of the wording', () => {
-    assert.ok(!/crumb-door/.test(ADOPT),
+    /* RE-POINTED 13 Oct 2026 (owner: "keep this but just make it bold and it
+       should say Back to Clauses"): the ONE crumb door left is the way back
+       to the Clauses tab, drawn only on the trip that began there — never the
+       Negotiations door the rail already carries. */
+    const rest = ADOPT.replace(/if\(window\.rlCameFrom && rlCameFrom\(c\.id\)\)\{[\s\S]*?el\.appendChild\(sep\);\s*\}/, '');
+    assert.notEqual(rest, ADOPT, 'the Back to Clauses crumb is drawn only on its trip (rlCameFrom)');
+    assert.ok(!/crumb-door/.test(rest),
       'one crumb, not two: the rail already carries Negotiations');
-    assert.ok(!/crumb-sep/.test(ADOPT),
+    assert.ok(!/crumb-sep/.test(rest),
       'nothing left to separate');
   });
 
