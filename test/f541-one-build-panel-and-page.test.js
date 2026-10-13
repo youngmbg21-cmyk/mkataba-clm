@@ -80,8 +80,13 @@ test('(D) one way to dress a reference', () => {
 test('(E) every Focus button says "Focus", through one key in both books', () => {
   assert.match(I18N, /ct_focus_word:\s*'Focus'/);
   assert.match(I18N, /ct_focus_word:\s*'Fokus'/);
-  for (const f of ['js/views/contract.js', 'js/views/negotiation.js', 'js/views/portal.js'])
+  /* The Negotiate page draws no Focus button of its own since 13 Oct 2026
+     (owner: Focus is the room's ⋯ row, which contract.js draws), so the
+     word is asked of the two surfaces that still carry the button. */
+  for (const f of ['js/views/contract.js', 'js/views/portal.js'])
     assert.match(code(read(f)), /i18t\('ct_focus_word'\)/, f);
+  assert.ok(!/ct_focus_word/.test(code(read('js/views/negotiation.js'))),
+    'Negotiate draws no Focus button of its own — Focus is the ⋯ row');
 });
 
 test('(F) the pointer only points: a veil, one exit, no hand over a button', () => {
