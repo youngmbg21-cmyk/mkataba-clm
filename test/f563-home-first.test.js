@@ -46,7 +46,8 @@ describe('f563 (2) — no Signing tab; an approval opens where it is decided', (
     const { ctx } = stage();
     const v = n => vm.runInContext(n, ctx);
     /* no Deal and no History tab (owner, 11 Oct 2026) */
-    assert.deepEqual([...v('PD_TABS')], ['copilot', 'facts', 'doc', 'oblig']);
+    /* RE-POINTED 13 Oct 2026: the Overview tab is gone from Home's panel (owner); its old doors land on Jambo */
+    assert.deepEqual([...v('PD_TABS')], ['copilot', 'doc', 'oblig']);
     assert.equal(v('PD_TAB_NAME').doc, 'pd_tab_clauses', 'the Document tab is called Clauses');
     assert.ok(!('sign' in v('PD_BODY')));
     assert.deepEqual(Object.values(v('PD_TAB_GLYPH')), ['\u2726', '\u25A6', '\u25A2', '\u2691', '\u25F7', '\u21C4']);

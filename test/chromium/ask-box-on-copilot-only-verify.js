@@ -40,20 +40,20 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     for (let i = 0; i < 3; i++) {
       await page.evaluate(cid => pdOpenOnHome(cid, 'copilot'), id);
       const up = await page.waitForFunction(cid => !!(window.intel && intel.paper && intel.paper.id === cid
-        && document.querySelector('#ig-dock [data-pd-tab="facts"]')), id, { timeout: 6000 }).then(() => true, () => false);
+        && document.querySelector('#ig-dock [data-pd-tab="doc"]')), id, { timeout: 6000 }).then(() => true, () => false);
       if (up) break;
     }
     const onTab = async t => {
       /* the reader's own press on the tab; if Home's late first draw took the
          face back to the Board meanwhile, the contract is opened again first */
       for (let i = 0; i < 3; i++) {
-        if (!(await page.$('#ig-dock [data-pd-tab="facts"]'))) {
+        if (!(await page.$('#ig-dock [data-pd-tab="doc"]'))) {
           await page.evaluate(cid => pdOpenOnHome(cid, 'copilot'), id);
-          await page.waitForSelector('#ig-dock [data-pd-tab="facts"]', { timeout: 6000 }).catch(() => {});
+          await page.waitForSelector('#ig-dock [data-pd-tab="doc"]', { timeout: 6000 }).catch(() => {});
         }
         await page.evaluate(tab => { const b = document.querySelector(`#ig-dock [data-pd-tab="${tab}"]`); if (b) b.click(); }, t);
         const on = await page.waitForFunction(tab => { const b = document.querySelector('#ig-dock .pd-tab.on');
-          return !!b && b.getAttribute('data-pd-tab') === tab && !!document.querySelector('#ig-dock [data-pd-tab="facts"]'); }, t, { timeout: 4000 }).then(() => true, () => false);
+          return !!b && b.getAttribute('data-pd-tab') === tab && !!document.querySelector('#ig-dock [data-pd-tab="doc"]'); }, t, { timeout: 4000 }).then(() => true, () => false);
         if (on) break;
       }
       return page.evaluate(() => ({ tab: (document.querySelector('#ig-dock .pd-tab.on') || { getAttribute: () => null }).getAttribute('data-pd-tab'),
@@ -61,15 +61,16 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     };
     const cp = await onTab('copilot');
     ok('1 the Copilot tab draws the ask box', cp.tab === 'copilot' && cp.box && cp.go, JSON.stringify(cp));
-    for (const [t, name] of [['facts', 'Overview'], ['doc', 'Clauses'], ['oblig', 'Obligations']]) {
+    /* RE-POINTED 13 Oct 2026: the Overview tab is gone from Home's panel (owner) */
+    for (const [t, name] of [['doc', 'Clauses'], ['oblig', 'Obligations']]) {
       const r = await onTab(t);
       ok(`2 ${name} draws no ask box`, r.tab === t && !r.box && !r.go, JSON.stringify(r));
     }
-    await onTab('facts');
+    await onTab('doc');
     const ready = await page.evaluate(() => { const done = intelAskReady('What does the term clause say?');
       return { done, tab: (document.querySelector('#ig-dock .pd-tab.on') || { getAttribute: () => null }).getAttribute('data-pd-tab'),
         val: (document.getElementById('igd-input') || {}).value || null }; });
-    ok('3 a door that fills the box from Overview turns to the Copilot tab, words in the box',
+    ok('3 a door that fills the box from Clauses turns to the Copilot tab, words in the box',
       ready.done && ready.tab === 'copilot' && ready.val === 'What does the term clause say?', JSON.stringify(ready));
     ok('4 no page errors', errs.length === 0, errs.join(' | ').slice(0, 300));
   } finally { await browser.close(); await h.stop(); }

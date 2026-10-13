@@ -31,8 +31,10 @@
    are tab and its trail the History tab. A door that still asks for Deal
    lands on Clauses with their changes marked on the paper (PD_TAB_ALIAS);
    pdDealHtml and pdHistHtml have no caller and are STALE. */
-const PD_TABS = ['copilot', 'facts', 'doc', 'oblig'];
-const PD_TAB_ALIAS = { deal: 'doc', hist: 'facts' };
+/* THE OVERVIEW TAB IS GONE FROM HOME'S PANEL (owner, 13 Oct 2026: "delete the
+   overview tab from document page"); a door that named it lands on Jambo */
+const PD_TABS = ['copilot', 'doc', 'oblig'];
+const PD_TAB_ALIAS = { deal: 'doc', hist: 'copilot', facts: 'copilot' };
 /* THE ARTIFACT'S SYMBOLS, EXACTLY (owner, 10 Oct 2026: "use the Symbols that
    were in the artifact before not the ones in hati"): typed marks, each held
    to its text face (U+FE0E), never the left menu's drawings. */
@@ -231,7 +233,7 @@ function pdOpenOnHome(id, tab){
     return true;
   }
   if (!(window.state && state.view === 'dashboard') && typeof setView === 'function') setView('dashboard');
-  igWalk([id], 0, { tab: tab || 'facts' });
+  igWalk([id], 0, { tab: tab || 'copilot' });
   return true;
 }
 /* ---- HISTORY: the trail, newest first; the cap is said ---- */

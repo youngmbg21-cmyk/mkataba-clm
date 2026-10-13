@@ -36,7 +36,12 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
 
 (async () => {
   const h = await startHati();
-  await seedWorkspace(h, { contracts: [deal('MK-S1', 'Haulage Stakes'), deal('MK-S2', 'Haulage Refused')], approvalRules: [] });
+  /* the KEPT standards check (owner, 13 Oct 2026: "Found by" — Jambo or Our standards) */
+  const d1 = deal('MK-S1', 'Haulage Stakes');
+  d1.playbook = { key: '_default', source: 'heuristic', verdicts: [
+    { category: 'Payment terms', status: 'deviation', quote: 'Prices are exclusive of VAT and invoices fall due within', position: 'Paid within 14 days', redline: 'Invoices are paid within 14 days of receipt.', escalate: false },
+    { category: 'Governing law', status: 'aligned', quote: '', position: '', redline: '', escalate: false }] };
+  await seedWorkspace(h, { contracts: [d1, deal('MK-S2', 'Haulage Refused')], approvalRules: [] });
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const errs = [];
   try {
@@ -77,9 +82,16 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
     ok('1 opening Clauses reads the contract once, with no other press', listed && read && e1.n === 1 && !e1.runBtn, JSON.stringify(e1));
 
     if (read) {
+      /* RE-POINTED 13 Oct 2026 (owner, as drawn): the head is the title line and
+         three filters; the summary, the ribbon and its key are gone. Each box
+         lists only what this contract's points hold. */
       const e2 = await page.evaluate(() => ({ count: (document.querySelector('#pd-thread .stk-view') || {}).innerText || '',
-        ribbon: document.querySelectorAll('#pd-thread .stk-ribbon i').length }));
-      ok('2 the head says the points and draws the ribbon', /2 points/.test(e2.count) && /1 need you/.test(e2.count) && e2.ribbon === 2, JSON.stringify(e2));
+        boxes: [...document.querySelectorAll('#pd-thread .stk-flt')].map(l => (l.querySelector('span') || {}).innerText),
+        gone: !document.querySelector('#pd-thread .stk-ribbon, #pd-thread .stk-legend, #pd-thread .stk-sum') }));
+      const o2 = await page.evaluate(() => Object.fromEntries(['reg', 'sev', 'by'].map(k => [k, [...document.querySelectorAll(`#pd-thread [data-stk-f="${k}"] option`)].map(o => o.value).join(',')])));
+      ok('2 the head says the points and draws three filters, no summary, ribbon or key',
+        /3 points/.test(e2.count) && /1 need you/.test(e2.count) && e2.boxes.join('|') === 'Region|Severity|Found by' && e2.gone
+        && o2.reg === ',1,2' && o2.sev === ',need,look' && o2.by === ',jambo,std', JSON.stringify({ e2, o2 }));
 
       const e3 = await page.evaluate(() => {
         const rows = [...document.querySelectorAll('#pd-thread .doc-th-row')];
@@ -88,7 +100,24 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
         return { underName: under ? under.querySelector('.doc-th-name').innerText : null, lines: document.querySelectorAll('#pd-thread .doc-th-row .stk-line').length,
           missH: miss ? miss.querySelector('.stk-miss-h').innerText : null, doors: document.querySelectorAll('#pd-thread [data-stk-dive]').length };
       });
-      ok('3 a point stands under its clause; a missing one under Not in the contract', /^3\b/.test(e3.underName || '') && e3.lines === 1 && /Not in the contract \(1\)/.test(e3.missH || '') && e3.doors === 2, JSON.stringify(e3));
+      ok('3 a point stands under its clause; a missing one under Not in the contract', /^2\b/.test(e3.underName || '') && e3.lines === 2 && /Not in the contract \(1\)/.test(e3.missH || '') && e3.doors === 3, JSON.stringify(e3));
+      /* 3b A FILTER NARROWS THE LIST: Found by → Our standards leaves the one
+         standards point, on the Payment row; rows with nothing step aside; the
+         box keeps the keyboard */
+      const pick = (k, v) => page.evaluate(([k, v]) => { const el = document.querySelector(`#pd-thread [data-stk-f="${k}"]`); el.focus(); el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); }, [k, v]);
+      await pick('by', 'std');
+      const f1 = await page.evaluate(() => {
+        const rows = [...document.querySelectorAll('#pd-thread .doc-th-row')].filter(r => r.offsetParent !== null);
+        return { count: (document.querySelector('#pd-thread .stk-view') || {}).innerText || '', lines: [...document.querySelectorAll('#pd-thread .stk-line')].map(l => l.innerText.split('\n')[0]),
+          shown: rows.length, onlyKept: rows.every(r => r.classList.contains('is-open') || !!r.querySelector('.stk-line')), focus: document.activeElement && document.activeElement.getAttribute('data-stk-f') };
+      });
+      ok('3b Found by: Our standards keeps the one standards point and hides rows with none', /1 point\b/.test(f1.count) && f1.lines.length === 1 && /Payment terms/.test(f1.lines[0])
+        && f1.onlyKept && f1.shown <= 2 && f1.focus === 'by', JSON.stringify(f1));
+      await pick('by', '');
+      await pick('sev', 'need');
+      const f2 = await page.evaluate(() => ({ count: (document.querySelector('#pd-thread .stk-view') || {}).innerText || '', lines: document.querySelectorAll('#pd-thread .stk-line').length }));
+      ok('3c Severity: Needs you keeps only what needs us', /1 point · 1 need you/.test(f2.count) && f2.lines === 1, JSON.stringify(f2));
+      await pick('sev', '');
 
       if (process.env.STK_SHOT) await page.screenshot({ path: process.env.STK_SHOT + '-list.png' });
       await page.click('#pd-thread .doc-th-row [data-stk-dive="0"]');
@@ -101,6 +130,14 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       });
       if (process.env.STK_SHOT) await page.screenshot({ path: process.env.STK_SHOT + '-dive.png' });
       ok('4 Deep dive opens its own panel and repeats none of the contract wording', dived && /capped/.test(e4.title || '') && e4.fig === 'KES 675,000' && e4.edge && e4.ask && e4.usual && !e4.wording && !e4.listShown, JSON.stringify(e4));
+      /* 4b THE WHOLE CARD SCROLLS (owner, 13 Oct 2026): the head rides inside the
+         one scroller with the body; only the Back bar stands outside it */
+      const e4b = await page.evaluate(() => {
+        const sc = document.querySelector('#pd-thread .stk-dv-scroll'), body = document.querySelector('#pd-thread .stk-dv-body');
+        return { scroller: !!sc && getComputedStyle(sc).overflowY === 'auto', headInside: !!(sc && sc.querySelector('.stk-dv-head')),
+          bodyStill: !!body && getComputedStyle(body).overflowY === 'visible', barOutside: !!document.querySelector('#pd-thread .stk-dv-top') && !(sc && sc.querySelector('.stk-dv-top')) };
+      });
+      ok('4b the whole card scrolls: the head inside the one scroller, the Back bar outside', e4b.scroller && e4b.headInside && e4b.bodyStill && e4b.barOutside, JSON.stringify(e4b));
 
       await page.click('#pd-thread .stk-pg [data-stk-dive="1"]');
       const t2 = await page.evaluate(() => (document.querySelector('#pd-thread .stk-dv h3') || {}).innerText || '');
@@ -138,6 +175,11 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
     } else {
       ['2', '3', '4', '5', '6'].forEach(k => ok(k + ' (not reached)', false, 'the Clauses tab was never read'));
     }
+    /* 8 THE OVERVIEW TAB IS GONE from Home's panel (owner, 13 Oct 2026); an old
+       door onto it lands on Jambo */
+    const tabs = await page.evaluate(() => { pdOpenOnHome('MK-S1', 'facts');
+      return new Promise(r => setTimeout(() => r({ tabs: [...document.querySelectorAll('#ig-dock [data-pd-tab]')].map(b => b.getAttribute('data-pd-tab')), on: pdTab() }), 900)); });
+    ok('8 Home\'s panel has no Overview tab, and its old door lands on Jambo', tabs.tabs.join(',') === 'copilot,doc,oblig' && tabs.on === 'copilot', JSON.stringify(tabs));
     ok('7 no page errors', errs.length === 0, errs.join(' | ').slice(0, 300));
   } finally { await browser.close(); await h.stop(); }
   console.log(`${pass}/${pass + fail} checks passed`);

@@ -9865,14 +9865,19 @@
   .stk-r6{--stk:var(--stk-r6)} .stk-r7{--stk:var(--stk-r7)} .stk-r8{--stk:var(--stk-r8)} .stk-r9{--stk:var(--stk-r9)} .stk-r10{--stk:var(--stk-r10)}
   .stk-head{padding:10px 14px 12px;border-bottom:1px solid var(--color-divider);display:grid;gap:8px}
   .stk-count{display:flex;align-items:center;gap:10px;font-size:var(--t-label);color:var(--color-neutral-600);font-weight:var(--w-label)}
-  .stk-sum{margin:0;font-size:var(--t-meta);line-height:1.5;color:var(--color-text)} .stk-sum b{font-weight:var(--w-title)}
   .stk-sub{margin:0;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600)}
   .stk-acts{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .stk-cost{font-size:var(--t-label);color:var(--color-neutral-600)}
   .stk-err{margin:0;font-size:var(--t-label);color:var(--st-ruby-fg)}
-  .stk-ribbon{display:flex;height:8px;border-radius:999px;overflow:hidden;gap:2px} .stk-ribbon i{display:block;background:var(--stk)}
-  .stk-legend{display:flex;flex-wrap:wrap;gap:3px 10px;font-size:var(--t-label);color:var(--color-neutral-600)}
-  .stk-legend span{display:inline-flex;align-items:center;gap:5px} .stk-legend i{width:8px;height:8px;border-radius:2px;background:var(--stk)}
+  /* AS DRAWN (owner, 13 Oct 2026): three labelled filters in place of the summary, ribbon and key */
+  .stk-flts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .stk-flt{display:grid;gap:4px;min-width:0;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600)}
+  .stk-flt select{width:100%;min-width:0;height:var(--ctl-h);box-sizing:border-box;padding:0 8px;border:1px solid var(--btn-edge,var(--field-line));border-radius:8px;
+    background:var(--color-surface);color:var(--color-text);font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);cursor:pointer}
+  .stk-flt select:hover{border-color:var(--accent-solid)}
+  .stk-flt select:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:1px}
+  .pd-th .stk-hide{display:none}
+  .stk-nomatch{margin:0;padding:18px 0;text-align:center;font-size:var(--t-label);color:var(--color-neutral-600)}
   .stk-line{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:0 6px 8px 2px;font-size:var(--t-meta);line-height:1.4}
   /* AS DRAWN (owner, 13 Oct 2026): "The company view" and its counts; each row's region square after its name; "1 to review" at its right */
   .stk-view{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:var(--t-label);color:var(--color-neutral-600)}
@@ -9905,7 +9910,9 @@
   .stk-reg{display:inline-flex;align-items:center;gap:5px;font-size:var(--t-label);color:var(--color-neutral-600)} .stk-reg i{width:8px;height:8px;border-radius:2px;background:var(--stk)}
   .stk-src{font-size:var(--t-label);color:var(--color-neutral-600)}
   .stk-lnk{border:0;background:none;padding:0;color:var(--accent-ink);font:inherit;font-size:var(--t-label);font-weight:var(--w-label);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
-  .stk-dv-body{flex:1 1 auto;min-height:0;overflow:auto;padding:12px 16px 18px;display:flex;flex-direction:column;gap:14px}
+  /* THE WHOLE CARD SCROLLS (owner, 13 Oct 2026): its head rides with the body; only the bar above stays */
+  .stk-dv-scroll{flex:1 1 auto;min-height:0;overflow:auto}
+  .stk-dv-body{padding:12px 16px 18px;display:flex;flex-direction:column;gap:14px}
   .stk-sec{display:grid;gap:5px} .stk-sec h4{margin:0;font-size:var(--t-label);font-weight:var(--w-title);color:var(--color-neutral-600)}
   .stk-sec p{margin:0;font-size:var(--t-meta);line-height:1.55}
   .stk-fig{font-size:20px;font-weight:var(--w-title);color:var(--st-ruby-fg);font-variant-numeric:tabular-nums} .stk-fig.is-none{font-size:var(--t-body);color:var(--color-neutral-600)}

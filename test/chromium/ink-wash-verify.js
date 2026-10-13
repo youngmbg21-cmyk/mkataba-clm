@@ -98,6 +98,12 @@
    read starts itself now), and the status ruby text NEW on Document — the
    reading's refusal said where the reader looks (this stage's Jambo cannot
    answer). Every Ink Wash claim passed before and after.
+   RE-RECORDED 13 Oct 2026 (third), OWNER-ASKED ("Yes, update the record"):
+   Home's panel lost its Overview tab, and the company view's summary, ribbon
+   and key gave way to three filters. Audited first as a set difference: only
+   the Document screen moved, and only in counts (light: 13px 245→243, 10px
+   5→4, 15px 5→4; dark: a handful fewer of the same colours). No key new, none
+   gone. Every Ink Wash claim passed before and after.
      node test/chromium/ink-wash-verify.js          (check)
    ============================================================ */
 const fs = require('node:fs');
