@@ -70,7 +70,11 @@ test('F347 — the second five images', async t => {
     /* RE-POINTED 11 Oct 2026 (WORKORDER-four-builds item 1): Calendar is
        Home's second tab and has no rail door; Insights still closes Work */
     assert.equal(doors.indexOf('calendar'), -1, 'Calendar has no rail door — it is Home\'s tab');
-    assert.equal(doors[doors.length - 1], 'intel', 'at the foot of the Work group');
+    /* RE-POINTED 12 Oct 2026 (Young: Insights opens to the right with two
+       folders, Insights and Jambo's agents): the Insights fold still closes
+       Work, its two doors inside it, Insights first */
+    assert.deepEqual(doors.slice(-2), ['intel', 'jambo'], 'at the foot of the Work group, inside the Insights fold');
+    assert.ok(rail.indexOf('data-nav-fold="insights"') >= 0 && rail.indexOf('data-nav-fold="insights"') < rail.indexOf('data-view="intel" class="nav-item'), 'both doors sit inside the Insights fold');
   });
 
   await t.test('(1d) the density segment wears the artifact\'s own word', () => {

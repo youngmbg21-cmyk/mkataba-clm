@@ -1999,6 +1999,7 @@
   .nav-fold.is-hover > .nav-fold-head,.nav-fold.is-open > .nav-fold-head{background:var(--nav-well,var(--color-neutral-100))}
   .nav-fold-head.is-current{background:var(--nav-well,var(--color-neutral-100));font-weight:var(--w-title)}
   .nav-fold-dot{flex:none;width:7px;height:7px;border-radius:50%;background:var(--st-amber-dot)}
+  .nav-item img.nav-jambo-face{flex:none;width:16px;height:16px;border-radius:50%;background:transparent}
   .nav-fold-dot[hidden],.nav-fold.is-hover .nav-fold-dot,.nav-fold.is-open .nav-fold-dot{display:none}
   #app-shell.rail aside .nav-fold-dot{position:absolute;top:6px;right:8px}
   #app-shell.rail aside .nav-fold-chev{display:none}
@@ -13413,12 +13414,37 @@
                [data-view="intel"] rather than on position, so they follow it
                here. The keyboard order is the markup order, so tabbing the
                column reads in this order too. -->
-          <button data-view="intel" class="nav-item" title="Insights — how your portfolio is behaving" data-i18n-title="nav_insights_title">
+          <!-- INSIGHTS OPENS TO THE RIGHT, LIKE CONTRACTS (Young, 12 Oct 2026: "have
+               two folders when you hover over it one for insights and the other for
+               the agents. Just like when you have hover over the contracts page").
+               The row is the opener only (navFoldOpen, the Contracts fold's own
+               wiring); the fly-out holds Insights (the page as it was, still EARNED
+               — hidden below NAV_EARN_AT.intel, its "New" tag inside it) and Jambo's
+               agents (the house, his jobs and his points; js/views/jambohouse.js),
+               which is there from day one, so the opener always has a folder.
+               It carries NO count: Jambo's work ready for the reader is counted on
+               the Board's own card and nowhere else (Young, 7 Oct 2026; f-verify
+               home-prepared-by-copilot 2c). -->
+          <div class="nav-fold" data-nav-fold="insights">
+            <button type="button" class="nav-item nav-fold-head" data-nav-fold-open="insights" aria-haspopup="menu" aria-expanded="false" title="Insights and Jambo's agents" data-i18n-title="nav_insights_group_title">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-insight"/></svg>
-            <span style="flex:1;" data-i18n="nav_insights">Insights</span><span id="nav-intel-new" class="nav-count" data-tone="teal" hidden
-              title="Newly unlocked — your portfolio is big enough for Insights to say something" data-i18n-title="nav_insights_new_title" data-i18n="nav_new_badge">New</span>
+            <span style="flex:1;" data-i18n="nav_insights">Insights</span><i class="nav-fold-dot" data-fold-dot aria-hidden="true" hidden></i><i class="nav-fold-chev" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 2.5 3.5 3.5-3.5 3.5"/></svg></i>
           </button>
+            <div class="nav-sub" role="menu" aria-label="Insights" data-i18n-aria="nav_insights">
+            <button data-view="intel" class="nav-item" role="menuitem" title="Insights — how your portfolio is behaving" data-i18n-title="nav_insights_title">
+              <span class="nav-rail"></span>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-insight"/></svg>
+              <span style="flex:1;" data-i18n="nav_insights">Insights</span><span id="nav-intel-new" class="nav-count" data-tone="teal" hidden
+                title="Newly unlocked — your portfolio is big enough for Insights to say something" data-i18n-title="nav_insights_new_title" data-i18n="nav_new_badge">New</span>
+            </button>
+            <button data-view="jambo" class="nav-item" role="menuitem" title="Jambo's agents — his house, his jobs and his points" data-i18n-title="nav_jambo_title">
+              <span class="nav-rail"></span>
+              <img data-jambo-face="hello" data-ink-exempt class="jambo-face nav-jambo-face" width="16" height="16" alt="" draggable="false">
+              <span style="flex:1;" data-i18n="nav_jambo">Jambo's agents</span>
+            </button>
+            </div>
+          </div>
         </div>
       </div>
 
