@@ -97,8 +97,9 @@ const until = async (page, fn, arg, ms = 8000) => page.waitForFunction(fn, arg, 
     /* ===== 3. NO SIGNING TAB; THE ARTIFACT'S SYMBOLS ===== */
     const tabs = await page.evaluate(() => [...document.querySelectorAll('#ig-dock .igd-head .pd-tab')].map(b => ({ k: b.getAttribute('data-pd-tab'), g: b.querySelector('.pd-tab-g img.jambo-face') ? 'FACE' : ((b.querySelector('.pd-tab-g') || {}).textContent || '').replace('︎', '') })));
     /* RE-POINTED 11 Oct 2026 (owner: "delete the deal tab ... and also delete history") */
-    ok('3a no Signing, Deal or History tab: Copilot · Overview · Clauses · Obligations', tabs.map(t => t.k).join(',') === 'copilot,facts,doc,oblig', JSON.stringify(tabs.map(t => t.k)));
-    ok('3b the symbols are the artifact\'s marks, Jambo\'s tab his face (owner, 12 Oct 2026)', tabs.map(t => t.g).join('') === 'FACE▦▢⚑', tabs.map(t => t.g).join(' '));
+    /* RE-POINTED 13 Oct 2026 (owner: "delete the overview tab from document page") */
+    ok('3a no Overview, Signing, Deal or History tab: Copilot · Clauses · Obligations', tabs.map(t => t.k).join(',') === 'copilot,doc,oblig', JSON.stringify(tabs.map(t => t.k)));
+    ok('3b the symbols are the artifact\'s marks, Jambo\'s tab his face (owner, 12 Oct 2026)', tabs.map(t => t.g).join('') === 'FACE▢⚑', tabs.map(t => t.g).join(' '));
 
     /* ===== 4. WHITE, UNDER THE GREETING ROW ===== */
     const lay = await page.evaluate(() => { const R = e => e.getBoundingClientRect();

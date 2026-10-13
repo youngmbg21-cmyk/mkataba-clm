@@ -89,33 +89,35 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     ok('2b Next moves to the second, "2 of 3"', w2.id === 'MK-HF2' && w2.walk === '2 of 3', JSON.stringify(w2));
 
     /* ===== 3. THE PAPER'S DESK — HEADER ICONS (8 Oct 2026) ===== */
-    await page.waitForSelector('#ig-dock [data-pd-tab="facts"]', { timeout: 5000 }).catch(() => {});
+    await page.waitForSelector('#ig-dock [data-pd-tab="doc"]', { timeout: 5000 }).catch(() => {});
     const head = await page.evaluate(() => ({ title: /Intelligence panel/.test((document.querySelector('#ig-dock .igd-head') || {}).textContent || ''), desk: !!document.getElementById('ig-desk'),
       tabs: [...document.querySelectorAll('#ig-dock .igd-head [data-pd-tab]')].map(b => b.getAttribute('data-pd-tab')) }));
     /* RE-POINTED 10 Oct 2026 (owner: "delete signing tab"), and 11 Oct 2026
-       ("delete the deal tab ... and also delete history"; Document is Clauses) */
-    ok('3a0 the title row is the tabs: Copilot then three; no Signing, Deal or History, no "Intelligence panel", no column beside the paper',
-      !head.title && !head.desk && head.tabs.join(',') === 'copilot,facts,doc,oblig', JSON.stringify(head));
+       ("delete the deal tab ... and also delete history"; Document is Clauses), and
+       13 Oct 2026 ("delete the overview tab from document page") */
+    ok('3a0 the title row is the tabs: Copilot then two; no Overview, Signing, Deal or History, no "Intelligence panel", no column beside the paper',
+      !head.title && !head.desk && head.tabs.join(',') === 'copilot,doc,oblig', JSON.stringify(head));
     const tabs = {};
-    for (const t of ['facts', 'doc', 'oblig']) {
+    for (const t of ['doc', 'oblig']) {
       const b = await page.$(`#ig-dock [data-pd-tab="${t}"]`); if (b) await b.click();
       await page.waitForSelector(`#ig-dock [data-pd-tab="${t}"].on`, { timeout: 3000 }).catch(() => {});
       tabs[t] = await page.evaluate(() => (document.getElementById('pd-body') || {}).innerText || '');
     }
-    ok('3a three contract tabs, each drawn', Object.values(tabs).every(x => x.trim().length > 5), JSON.stringify(Object.fromEntries(Object.entries(tabs).map(([k, v]) => [k, v.slice(0, 60)]))));
+    ok('3a two contract tabs, each drawn', Object.values(tabs).every(x => x.trim().length > 5), JSON.stringify(Object.fromEntries(Object.entries(tabs).map(([k, v]) => [k, v.slice(0, 60)]))));
     /* LIFTED (Young, 8 Oct 2026: "yes to words under the symbols"): every symbol
        carries its word, whole — a word cut to "Docu…" is not a word */
     const sym = await page.evaluate(() => [...document.querySelectorAll('#ig-dock .igd-head .pd-tab')].map(b => { const w = b.querySelector('.pd-tab-w');
       return { k: b.getAttribute('data-pd-tab'), on: b.classList.contains('on'), txt: w ? w.textContent.trim() : '', whole: !!w && w.scrollWidth <= w.clientWidth + 1, glyph: b.querySelector('.pd-tab-g img.jambo-face') ? 'FACE' : ((b.querySelector('.pd-tab-g') || {}).textContent || ''), name: b.getAttribute('title') }; }));
     /* the artifact's symbols, exactly (owner, 10 Oct 2026); Jambo's tab wears his face (owner, 12 Oct 2026) */
-    ok('3a2 symbols — the artifact\'s marks — each with its word under it, whole; one lit', sym.length === 4 && sym.map(s => s.glyph.replace('\uFE0E', '')).join('') === 'FACE\u25A6\u25A2\u2691' && sym.map(s => s.txt).join('|') === 'Jambo|Overview|Clauses|Obligations' && sym.every(s => s.name && s.txt.length > 2 && s.whole) && sym.filter(s => s.on).length === 1, JSON.stringify(sym.map(s => s.glyph + ' ' + s.txt + (s.whole ? '' : ' (cut)'))));
+    ok('3a2 symbols — the artifact\'s marks — each with its word under it, whole; one lit', sym.length === 3 && sym.map(s => s.glyph.replace('\uFE0E', '')).join('') === 'FACE\u25A2\u2691' && sym.map(s => s.txt).join('|') === 'Jambo|Clauses|Obligations' && sym.every(s => s.name && s.txt.length > 2 && s.whole) && sym.filter(s => s.on).length === 1, JSON.stringify(sym.map(s => s.glyph + ' ' + s.txt + (s.whole ? '' : ' (cut)'))));
     /* WHITE, UNDER THE GREETING ROW (owner, 10 Oct 2026; reverses Lifted) */
     const white = await page.evaluate(() => { const d = document.getElementById('ig-dock');
       return { dock: getComputedStyle(d).backgroundColor, card: getComputedStyle(d, '::before').content, top: Math.round(d.getBoundingClientRect().top), bar: Math.round(document.getElementById('ig-strip').getBoundingClientRect().top) }; });
     ok('3a4 the panel is plain white, no lifted card, its top level with the contract strip', white.dock === 'rgb(255, 255, 255)' && (white.card === 'none' || white.card === 'normal') && white.top === white.bar, JSON.stringify(white));
-    await page.click('#ig-dock [data-pd-tab="facts"]');
-    const facts = await page.evaluate(() => (document.getElementById('pd-body') || {}).innerText || '');
-    ok('3b Overview carries the parties', /Kabras Logistics/.test(facts), facts.slice(0, 120));
+    /* 3b "Overview carries the parties" RETIRED 13 Oct 2026: the Overview tab is
+       gone from Home's panel (owner); the parties stay on the room's Overview */
+    const noFacts = await page.evaluate(() => !document.querySelector('#ig-dock [data-pd-tab="facts"]'));
+    ok('3b there is no Overview tab on Home\'s panel', noFacts, String(noFacts));
     /* THE DOCUMENT TAB IS THE CLAUSE LIST (owner, 10 Oct 2026) */
     await page.click('#ig-dock [data-pd-tab="doc"]');
     await page.waitForSelector('#pd-thread .doc-th-row', { timeout: 4000 }).catch(() => {});
