@@ -150,8 +150,8 @@ async function tabAround(page, sel, n = 25) {
     /* Paper sits between Board and Explorer since 8 Oct 2026 (Young: "make the
        paper to be after the Board"), and Calendar between Board and Paper
        since 11 Oct 2026, and Breakdown between Document and Explorer since
-       11 Oct 2026 too, so four steps back reach Board */
-    await page.keyboard.press('Shift+Tab'); await pause(150);
+       11 Oct 2026 too, so four steps back reached Board. RE-POINTED 13 Oct
+       2026: Breakdown is deleted (owner), so three steps back reach Board */
     await page.keyboard.press('Shift+Tab'); await pause(150);
     await page.keyboard.press('Shift+Tab'); await pause(150);
     await page.keyboard.press('Shift+Tab'); await pause(150);

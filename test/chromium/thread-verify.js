@@ -221,14 +221,19 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
     const s3 = await read();
     check('3a pressing a row glides the paper until that clause is at the line', s3.openIdx === 0 && s3.atLine === 0 && s3.scroll < s2.scroll,
       JSON.stringify({ open: s3.openIdx, line: s3.atLine, scroll: s2.scroll + ' → ' + s3.scroll }));
-    await page.click('#pd-thread .doc-th-row.is-open [data-th-step="1"]'); await page.waitForTimeout(1300);
-    await page.click('#pd-thread .doc-th-row.is-open [data-th-step="1"]'); await page.waitForTimeout(1300);
+    /* RE-POINTED 13 Oct 2026 (Stakes as drawn): Home's open row has no ‹ ›
+       steppers, so the walk is pressed on the rows' own heads — the claim
+       (the paper glides to the clause, both ways) is the same. */
+    const stepsGone = await page.evaluate(() => !document.querySelector('#pd-thread [data-th-step]'));
+    check('3-stage Home\'s open row draws no ‹ › steppers (Stakes as drawn)', stepsGone, String(stepsGone));
+    await page.click('#pd-thread .doc-th-row[data-th-row="1"] [data-th-go]'); await page.waitForTimeout(1300);
+    await page.click('#pd-thread .doc-th-row[data-th-row="2"] [data-th-go]'); await page.waitForTimeout(1300);
     const s4 = await read();
-    check('3b › twice opens the third clause, with the paper at it', s4.openIdx === 2 && s4.atLine === 2 && s4.scroll > s3.scroll,
+    check('3b pressing on down opens the third clause, with the paper at it', s4.openIdx === 2 && s4.atLine === 2 && s4.scroll > s3.scroll,
       JSON.stringify({ open: s4.openIdx, line: s4.atLine, scroll: s3.scroll + ' → ' + s4.scroll }));
-    await page.click('#pd-thread .doc-th-row.is-open [data-th-step="-1"]'); await page.waitForTimeout(1300);
+    await page.click('#pd-thread .doc-th-row[data-th-row="1"] [data-th-go]'); await page.waitForTimeout(1300);
     const s4b = await read();
-    check('3c and ‹ steps back the same way', s4b.openIdx === 1 && s4b.atLine === 1, JSON.stringify({ open: s4b.openIdx, line: s4b.atLine }));
+    check('3c and pressing back up glides back the same way', s4b.openIdx === 1 && s4b.atLine === 1, JSON.stringify({ open: s4b.openIdx, line: s4b.atLine }));
     const during = await ink();
     check('3d THE CONTRACT DOES NOT MOVE inside its canvas (refusal 3)',
       !!before && !!during && during.top === before.top && during.left === before.left && during.sheetW === before.sheetW,
@@ -267,11 +272,15 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
       document.querySelector('#pd-thread [data-th-go="' + i + '"]').click(); });
     await page.waitForTimeout(1300);
     const s7 = await read();
-    check('5a the ruby row (Article XI) opens with Worth a look shaded light red', /INDEMNIF/.test(s7.rows[s7.openIdx].name) && s7.lookHas && reddish(s7.lookBg), s7.lookBg);
-    check('5b its mark is a sentence under a coloured rule, wearing its grade', s7.marks.length >= 1 && s7.marks.every(m => m.grade !== '-' && parseFloat(m.rule) >= 2),
+    /* RE-POINTED 13 Oct 2026 (Stakes as drawn, owner: "This is how the panel
+       should look like but with a plain English button"): Home's open row
+       carries only Plain English - Worth a look, its marks and Who does what
+       are not drawn there. 5a/5b/5d/6c assert them ABSENT on the ruby row. */
+    check('5a the ruby row (Article XI) opens with no Worth a look on Home (Stakes as drawn)', /INDEMNIF/.test(s7.rows[s7.openIdx].name) && !s7.lookHas, s7.lookBg);
+    check('5b and no mark is drawn in the open row', s7.marks.length === 0,
       JSON.stringify(s7.marks));
     check('5c and there is NO "Add a note" (the owner removed it)', s7.notes === 0 && !s7.addNote, JSON.stringify({ notes: s7.notes, addNote: s7.addNote }));
-    check('5d Who does what sits under Worth a look, with its lines', s7.whoAfterLook && s7.who >= 1, s7.who + ' lines');
+    check('5d and no Who does what either', !s7.who, s7.who + ' lines');
     await page.evaluate(() => document.querySelector('#pd-thread [data-th-go="0"]').click()); await page.waitForTimeout(1300);
     const s7b = await read();
     check('5e [control] with nothing worth a look (Article VI) the area stays white', !s7b.lookHas && !reddish(s7b.lookBg), s7b.lookBg);
@@ -307,15 +316,18 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
       return { idx: Number(r.dataset.thRow), gap: Math.round(gap), scroll: Math.round(box.scrollTop), max: Math.round(max), want: Math.round(Math.min(box.scrollTop + gap, max)) };
     });
     await page.evaluate(() => document.querySelector('#pd-thread [data-th-go="0"]').click()); await page.waitForTimeout(1400);
-    await page.click('#pd-thread .doc-th-row.is-open [data-th-step="1"]'); await page.waitForTimeout(1500);
+    await page.evaluate(() => document.querySelector('#pd-thread [data-th-go="1"]').click()); await page.waitForTimeout(1500);
+    /* RE-POINTED 13 Oct 2026 (Stakes): with only Plain English in the open
+       row this list fits whole, so "to the top" is "as high as the list
+       allows" - the same relation 8e's control holds. */
     const r1 = await rise();
-    check('8c › brings the next clause\'s head to the TOP of the list, the ones before it scrolled up', !!r1 && r1.idx === 1 && Math.abs(r1.gap) <= 2 && r1.scroll > 0,
+    check('8c the next row pressed rises as high as the list allows', !!r1 && r1.idx === 1 && Math.abs(r1.scroll - r1.want) <= 2,
       JSON.stringify(r1));
     await page.evaluate(() => { const b = document.querySelector('#pd-thread .doc-th-rows'); b.scrollTop = 0; });
     await page.waitForTimeout(300);
     await page.evaluate(() => document.querySelector('#pd-thread [data-th-go="2"]').click()); await page.waitForTimeout(1500);
     const r2 = await rise();
-    check('8d a press on a row already in sight low down brings it to the top too (as high as the list allows)', !!r2 && r2.idx === 2 && Math.abs(r2.scroll - r2.want) <= 2 && r2.scroll > 0,
+    check('8d a press on a row already in sight low down brings it to the top too (as high as the list allows)', !!r2 && r2.idx === 2 && Math.abs(r2.scroll - r2.want) <= 2,
       JSON.stringify(r2));
     await page.screenshot({ path: path.join(OUT, '08-risen.png') });
     await page.evaluate(() => document.querySelector('#pd-thread [data-th-go="4"]').click()); await page.waitForTimeout(1500);
@@ -339,7 +351,7 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
       !s8.hidden && s8.openIdx >= 0 && s8.rows[s8.openIdx].tone === 'ruby' && s8.atLine === s8.openIdx, names(s8) + ' · scroll ' + s8.scroll);
     await page.evaluate(() => { try { setDark(true); } catch (_) { document.documentElement.classList.add('dark'); } }); await page.waitForTimeout(600);
     const night = await read();
-    check('6c at night Worth a look is still the one reddish area', night.lookHas && reddish(night.lookBg), night.lookBg);
+    check('6c at night the open row still draws no Worth a look', !night.lookHas && night.openIdx >= 0, night.lookBg);
     await page.screenshot({ path: path.join(OUT, '06-night.png') });
 
     check('7 [control] no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
