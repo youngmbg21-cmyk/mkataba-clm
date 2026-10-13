@@ -655,14 +655,16 @@ function agPrepRef(it){
 }
 function agReportPrepared(agents){
   try {
-    if (!(typeof API_MODE === 'function' && API_MODE()) || typeof api !== 'function' || !(window.REMOTE && REMOTE.me)) return;
+    /* THE PAGE NEVER TALKS TO THE SERVER ITSELF (f399, f412, f413): the
+       report goes through js/agentruns.js, the one module that does. */
+    if (!(typeof API_MODE === 'function' && API_MODE()) || typeof agentPrepared !== 'function' || !(window.REMOTE && REMOTE.me)) return;
     const out = [];
     ['approve', 'request', 'week', 'quiet'].forEach(k => ((agents[k] && agents[k].ready) || []).forEach(it => {
       const ref = agPrepRef(it); if (ref == null) return;
       const id = k + '|' + (it.cid || '') + '|' + ref; if (_agPrepSaid.has(id)) return;
       _agPrepSaid.add(id); out.push({ agent: k, contractId: it.cid || '', ref });
     }));
-    if (out.length) _agPrepLast = api('agents/prepared', 'POST', { pieces: out }).catch(() => {});
+    if (out.length) _agPrepLast = agentPrepared(out).catch(() => {});
   } catch (_){}
 }
 function agPreparedSettled(){ return _agPrepLast; }
