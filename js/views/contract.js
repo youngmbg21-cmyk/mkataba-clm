@@ -14528,6 +14528,8 @@ function docThreadPaint(c){
   docThreadWire(c);
   docThreadFollowArm();
   if(home&&typeof pdTabCountPaint==='function') pdTabCountPaint('doc', c);
+  /* STAKES (owner, 13 Oct 2026): the deep read's head, stake lines and deep dive, from the kept reading */
+  if(home&&typeof stkDecorate==='function') stkDecorate(c,card,rows);
   if(land>=0) setTimeout(()=>{ try{ docThreadGoTo(docThreadCur(c),land); }catch(_){} },0);
 }
 /* ---------- wire ----------

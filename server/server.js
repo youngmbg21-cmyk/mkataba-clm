@@ -8430,6 +8430,12 @@ app.post('/api/ai/windows', auth, rlAiDeep, aiFeature('windows'), aiBudgetGuard,
    contract is read once until its words change. Nothing is filed or sent. */
 const BREAKDOWN_STATUS = ['need', 'look', 'fine'];
 const BREAKDOWN_KINDS = ['pay', 'get', 'protect'];
+/* THE DEEP READ (owner picked "Stakes", 13 Oct 2026): the same one reading
+   also lists the points that matter to the company, each with its deep dive.
+   A point's quote is checked like a region's: one the wording does not hold
+   is dropped from the point (the point stays; only its pin to the paper goes),
+   and counted. */
+const BREAKDOWN_POINTS_MAX = 10;
 app.post('/api/ai/breakdown', auth, rlAiDeep, aiFeature('breakdown'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
@@ -8466,11 +8472,31 @@ app.post('/api/ai/breakdown', auth, rlAiDeep, aiFeature('breakdown'), aiBudgetGu
       links: { type: 'array', maxItems: 6, items: { type: 'object', properties: {
         a: { type: 'number', description: '1-based number of one region.' }, b: { type: 'number', description: '1-based number of another region.' },
         why: { type: 'string', description: 'How the two connect, a few words.' } }, required: ['a', 'b', 'why'] } },
+      points: { type: 'array', maxItems: BREAKDOWN_POINTS_MAX, description: 'The deep read: the points that matter most to the company, worst first.', items: { type: 'object', properties: {
+        clause: { type: 'string', description: 'The clause number as printed, e.g. "5" or "5.2". Empty when the point is something MISSING from the contract.' },
+        after: { type: 'string', description: 'Only for a missing point: the clause number it would sit after.' },
+        region: { type: 'number', description: '1-based number of the region it belongs to.' },
+        status: { type: 'string', enum: ['need', 'look'], description: 'need = must be dealt with before signing; look = worth raising.' },
+        missing: { type: 'boolean', description: 'True when the point is something the contract does not say at all.' },
+        title: { type: 'string', description: 'At most 12 words: the point, as a plain statement, e.g. "Their liability is capped at 3 months of charges".' },
+        stake: { type: 'string', description: 'ONE plain line, at most 16 words, saying what is at stake for the company: the risk and, where the wording supports it, the money together.' },
+        what: { type: 'string', description: 'Two or three plain sentences: what could happen to us because of this wording.' },
+        theirs: { type: 'string', description: 'What this contract says, one short sentence. "Nothing." for a missing point.' },
+        usual: { type: 'string', description: 'What a careful company in our position would normally get instead, one short sentence.' },
+        figure: { type: 'string', description: 'The money at stake as a short figure in the contract currency, e.g. "KES 13.05M", worked out ONLY from figures the wording states. Empty when it cannot be worked out.' },
+        how: { type: 'string', description: 'One sentence showing how the figure was worked out from the wording, or why there is no figure.' },
+        push: { type: 'string', description: 'Where the other side is likely to push back, one sentence.' },
+        edge: { type: 'array', maxItems: 3, items: { type: 'string' }, description: 'Our edge: one to three practical moves that win the point while protecting the company.' },
+        trade: { type: 'array', maxItems: 3, items: { type: 'object', properties: { give: { type: 'string' }, get: { type: 'string' } }, required: ['give', 'get'] }, description: 'What we could give, and what we get for it.' },
+        ask: { type: 'string', description: 'The wording we would propose instead, in the contract\'s own style. Empty if none.' },
+        quote: { type: 'string', description: 'The key words in the contract that carry the point, verbatim. Empty for a missing point.' + AI_QUOTE_RULE },
+        links: { type: 'array', maxItems: 3, items: { type: 'number' }, description: '1-based numbers of other points this one connects to.' },
+      }, required: ['title', 'stake', 'status'] } },
     }, required: ['regions'] } };
   const mine = side === 'theirs' ? 'the other party' : 'our side (the party using this system)';
-  const prompt = `Read this whole contract from ${mine} and cut it into at most ten regions — groups of clauses that do one job (price, payment, term and exit, service levels, data, liability, law and general, missing details…). Every clause and schedule must sit in exactly one region. For each region say plainly whether it NEEDS the reader (a real risk or a contradiction), is WORTH A LOOK, or is FINE, and why, in short plain English for a non-lawyer. Quote the key words verbatim. Do not invent facts or numbers the text does not state; say "not stated" instead. Return via break_down.\n\nCONTRACT:\n${aiDocText(req, text)}`;
+  const prompt = `Read this whole contract from ${mine} and cut it into at most ten regions — groups of clauses that do one job (price, payment, term and exit, service levels, data, liability, law and general, missing details…). Every clause and schedule must sit in exactly one region. For each region say plainly whether it NEEDS the reader (a real risk or a contradiction), is WORTH A LOOK, or is FINE, and why, in short plain English for a non-lawyer. Quote the key words verbatim. Then, as ONE company view (the legal risk and the money together, never split by department), list the points that matter most, worst first: where this wording leaves us exposed or hands the other side an edge, and anything a careful company would expect that is MISSING. For each, say what could happen, what is at stake, what a careful company would normally get, where the other side will push back, our edge, what we could trade, and the wording we would ask for. Work out money only from figures the wording states. Do not invent facts or numbers the text does not state; say "not stated" instead. Return via break_down.\n\nCONTRACT:\n${aiDocText(req, text)}`;
   try {
-    const resp = await anthropicMessages(key, 'deep', { max_tokens: 8000, tools: [tool], tool_choice: { type: 'tool', name: 'break_down' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'breakdown', who: aiWho(req) });
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 16000, tools: [tool], tool_choice: { type: 'tool', name: 'break_down' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'breakdown', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
@@ -8492,7 +8518,21 @@ app.post('/api/ai/breakdown', auth, rlAiDeep, aiFeature('breakdown'), aiBudgetGu
     if (!regions.length) return res.status(502).json({ error: resp.truncated ? 'Jambo ran out of room before it could cut the contract into regions. Try again.' : 'Jambo found no regions in this wording.' });
     const links = (Array.isArray(block.input.links) ? block.input.links : []).map(l => ({ a: Math.round(Number(l && l.a)), b: Math.round(Number(l && l.b)), why: str(l && l.why, 120) }))
       .filter(l => l.a >= 1 && l.b >= 1 && l.a <= regions.length && l.b <= regions.length && l.a !== l.b && l.why).slice(0, 6);
-    res.json({ head: str(block.input.head, 60), sub: str(block.input.sub, 240), regions, links, dropped, truncated: !!resp.truncated, ...aiNotice(req, resp) });
+    const rawPts = (Array.isArray(block.input.points) ? block.input.points : []).filter(p => p && p.title && p.stake).slice(0, BREAKDOWN_POINTS_MAX);
+    const points = rawPts.map(p => {
+      let quote = str(p.quote, 600);
+      if (quote && !hay.includes(amendNorm(quote))) { dropped++; quote = ''; }
+      const region = Math.round(Number(p.region));
+      const missing = !!p.missing || !String(p.clause || '').trim();
+      return { clause: missing ? '' : str(p.clause, 24), after: missing ? str(p.after, 24) : '', region: region >= 1 && region <= regions.length ? region : 0,
+        status: p.status === 'need' ? 'need' : 'look', missing, title: str(p.title, 140), stake: str(p.stake, 180), what: str(p.what, 600),
+        theirs: str(p.theirs, 240), usual: str(p.usual, 240), figure: str(p.figure, 40), how: str(p.how, 300), push: str(p.push, 240),
+        edge: (Array.isArray(p.edge) ? p.edge : []).map(e => str(e, 300)).filter(Boolean).slice(0, 3),
+        trade: (Array.isArray(p.trade) ? p.trade : []).filter(t => t && t.give && t.get).slice(0, 3).map(t => ({ give: str(t.give, 160), get: str(t.get, 160) })),
+        ask: str(p.ask, 900), quote,
+        links: (Array.isArray(p.links) ? p.links : []).map(n => Math.round(Number(n))).filter(n => n >= 1 && n <= rawPts.length).slice(0, 3) };
+    });
+    res.json({ head: str(block.input.head, 60), sub: str(block.input.sub, 240), regions, links, points, dropped, truncated: !!resp.truncated, ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
