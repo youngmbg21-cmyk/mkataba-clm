@@ -164,7 +164,21 @@ function docxXmlToText(xml){
 /* Read the wording out of .docx bytes. Throws with a human-readable reason on
    anything that is not a readable Word document — the callers surface the
    message verbatim, so it must say what the person can do about it. */
-async function docxExtract(bytes){
+/* ---- THE FILE WITH EVERY TRACKED CHANGE REJECTED (13 Oct 2026, the owner's
+   phase 1: "unmarked in Word", said) ----
+   The readers ACCEPT every tracked change (insertions kept, deletions
+   dropped): that is the wording the other side proposes. Read with every
+   change REJECTED instead (insertions dropped, deletions kept), the file
+   shows the wording they started from — and a clause that still differs from
+   what we sent them was changed with the marks off. docxExtract(bytes,
+   { tracked:'reject' }) reads it so; negoFileProposal compares the two. */
+function docxRejectTracked(xml){
+  return String(xml || '')
+    .replace(/<w:ins\b[^>]*\/>/g, '')
+    .replace(/<w:ins\b[^>]*>[\s\S]*?<\/w:ins>/g, '')
+    .replace(/<w:delText\b([^>]*)>([\s\S]*?)<\/w:delText>/g, '<w:t$1>$2</w:t>');
+}
+async function docxExtract(bytes, opts){
   let entries;
   try{ entries=zipEntries(bytes); }
   catch(e){ throw new Error('this is not a readable .docx file — re-save it from Word and try again'); }
@@ -177,7 +191,9 @@ async function docxExtract(bytes){
   if(doc.method===0) raw=zipEntryBytes(bytes,doc);
   else if(doc.method===8) raw=await inflateRawBytes(zipEntryBytes(bytes,doc));
   else throw new Error('this .docx uses a compression HaTi cannot read — re-save it from Word');
-  const out=docxXmlToText(new TextDecoder().decode(raw));
+  let xml=new TextDecoder().decode(raw);
+  if(opts && opts.tracked==='reject') xml=docxRejectTracked(xml);
+  const out=docxXmlToText(xml);
   if(!out.text) throw new Error('no readable text found in this Word document');
   return out;
 }
@@ -2474,7 +2490,7 @@ function docxExportTracked(html, opts = {}){
     comments: { placed: placed.length, left: (built.comments && built.comments.left) || 0 } };
 }
 
-if(typeof window!=='undefined') Object.assign(window,{docxStyledIsWording,docxStyleTable,docxStyleChain,docxAbsOf,docxLevelForStyle,DOCX_MIME,isWordDoc,docxExtract,docxExtractRich,docxXmlToRich,docxXmlToText,docxNumbering,docxNumberWalker,docxStartOverrides,docxHeadingStyles,docxStyleNums,docxTopBlocks,docxRunsHtml,docxTableHtml,docxNumFormat,docxBulletMark,docxHtmlBlocks,docxHtmlTableRows,docxReadParts,DOCX_PARTS,docLineKind,docClausePrefix,
+if(typeof window!=='undefined') Object.assign(window,{docxStyledIsWording,docxStyleTable,docxStyleChain,docxAbsOf,docxLevelForStyle,DOCX_MIME,isWordDoc,docxExtract,docxRejectTracked,docxExtractRich,docxXmlToRich,docxXmlToText,docxNumbering,docxNumberWalker,docxStartOverrides,docxHeadingStyles,docxStyleNums,docxTopBlocks,docxRunsHtml,docxTableHtml,docxNumFormat,docxBulletMark,docxHtmlBlocks,docxHtmlTableRows,docxReadParts,DOCX_PARTS,docLineKind,docClausePrefix,
   docTextIsRunOn,docBreakRunOn,docBlocksFromText,docRichFromText,docLineWraps,DOC_FURNITURE,DOC_BULLET,DOC_LABEL,DOC_NUMBERED,
   docxStripUiBadges,docxRunsFromHtml,docxTrackedXml,docxDocumentXml,docxExportTracked,docxZip,docxCrc32,
   docxComments,docxCommentQuote,docxCommentsXml,docxCommentsExtendedXml,docxCommentsPrepare,

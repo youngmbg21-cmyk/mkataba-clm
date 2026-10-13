@@ -2236,6 +2236,35 @@ async function negoFileProposal(c, proposedText, opts = {}){
 
   const byId = new Map();
   for (const cl of nextClauses) if (cl.clauseId) byId.set(cl.clauseId, cl);
+  /* ---- WAS IT MARKED IN WORD? (13 Oct 2026, the owner's phase 1) ----
+     opts.wordBack rides only with a returned Word file: the file's count of
+     tracked marks and, when it carried any, the file read with every tracked
+     change REJECTED (docxExtract, tracked:'reject'). A clause whose standing
+     wording is intact in that reading was changed with the marks on; one that
+     is not was changed quietly. A file with no marks at all is the plain case:
+     every difference in it is unmarked. The fact lands on the change
+     (`unmarked`, true or absent — never a guess when the second reading was
+     not to be had), the card and the History line say it, nothing else moves. */
+  const wb = (opts.wordBack && typeof opts.wordBack === 'object') ? opts.wordBack : null;
+  if (wb){ opts = { ...opts }; delete opts.wordBack; }
+  const wbMarks = wb && wb.tracked ? (Number(wb.tracked.ins) || 0) + (Number(wb.tracked.del) || 0) : 0;
+  const rejById = new Map();
+  if (wb && wbMarks && typeof wb.rejectedText === 'string' && wb.rejectedText.trim() && window.clauseSegment){
+    try{ for (const cl of clauseSegment(negoProposedBodyFromText(c, wb.rejectedText))) if (cl.clauseId) rejById.set(cl.clauseId, cl); }
+    catch(_){ rejById.clear(); }
+  }
+  const _wbNorm = s => String(s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  const unmarkedOf = (kind, was, now) => {
+    if (!wb) return null;
+    if (!wbMarks) return true;
+    if (!rejById.size) return null;
+    const rej = rejById.get(was ? was.clauseId : (now && now.clauseId));
+    if (kind === 'modify') return !(rej && _wbNorm(rej.text) === _wbNorm(was.text));
+    if (kind === 'insert') return !!rej;
+    if (kind === 'delete') return !rej;
+    return null;
+  };
+  const stampUnmarked = (ch, kind, was, now) => { if (ch && unmarkedOf(kind, was, now) === true) ch.unmarked = true; return ch; };
   /* Clauses the returned document could not be matched to by id, in order —
      the Word case. */
   const loose = nextClauses.filter(cl => !cl.clauseId || !baseClauses.some(b => b.clauseId === cl.clauseId));
@@ -2355,7 +2384,7 @@ async function negoFileProposal(c, proposedText, opts = {}){
       { ...opts, quiet: true,
         why: negoNoteFor(opts.notes, now.text, was.clauseId) || opts.why || null,
         note: opts.note || null });
-    if (ch) filed.push(ch);
+    if (ch) filed.push(stampUnmarked(ch, 'modify', was, now));
   }
   for (let i = 0; i < loose.length; i++){
     if (usedLoose.has(i)) continue;
@@ -2365,12 +2394,12 @@ async function negoFileProposal(c, proposedText, opts = {}){
     const after = baseClauses[Math.min(i, baseClauses.length) - 1] || null;
     const ch = await negoInsertClause(c, after ? after.clauseId : null,
       { headingText: cl.headingText, bodyHtml: cl.bodyHtml }, { ...opts, quiet: true });
-    if (ch) filed.push(ch);
+    if (ch) filed.push(stampUnmarked(ch, 'insert', null, cl));
   }
   for (const was of baseClauses){
     if (matchedBase.has(was.clauseId)) continue;
     const ch = await negoDeleteClause(c, was.clauseId, { ...opts, quiet: true });
-    if (ch) filed.push(ch);
+    if (ch) filed.push(stampUnmarked(ch, 'delete', was, null));
   }
 
   if (filed.length && window.logAudit){
@@ -2382,7 +2411,9 @@ async function negoFileProposal(c, proposedText, opts = {}){
       `${filed.length} change${filed.length === 1 ? '' : 's'} proposed by ${author}` +
       ` in round ${negoRound(c)} — ${filed.map(x => '#' + x.id).join(', ')}` +
       `${side === 'counterparty' ? ' (the counterparty\'s wording, recorded in their name)' : ''}` +
-      `${opts.via ? ` · received via ${opts.via}` : ''}`);
+      `${opts.via ? ` · received via ${opts.via}` : ''}` +
+      (() => { const n = wb ? filed.filter(x => x && x.unmarked).length : 0;
+        return n ? ` · ${n} of them not marked as ${n === 1 ? 'a change' : 'changes'} in Word` : ''; })());
   }
   /* The answers ride on the array so every caller that reads `filed` as a
      list keeps reading exactly the list it always did. */
@@ -2408,8 +2439,15 @@ async function negoImportReturnedDocx(c, bytes, opts = {}){
   const author = String(opts.author || c.counterparty || 'Counterparty').trim();
   /* readOurAsks: the file answers OUR open asks before anything of theirs is
      filed — see negoFileProposal. `answered` is what they decided in Word. */
+  /* The same file read with every tracked change REJECTED, so the filing can
+     tell a change made with the marks on from one made quietly (wordBack in
+     negoFileProposal). A file with no marks at all needs no second reading. */
+  const marks = (read && read.tracked) ? (Number(read.tracked.ins) || 0) + (Number(read.tracked.del) || 0) : 0;
+  let rejected = null;
+  if (marks){ try{ rejected = await docxExtract(bytes, { tracked: 'reject' }); }catch(_){ rejected = null; } }
   const filed = await negoFileProposal(c, text, { side: 'counterparty', author,
-    via: 'a returned Word file', readOurAsks: true });
+    via: 'a returned Word file', readOurAsks: true,
+    wordBack: { tracked: (read && read.tracked) || { ins: 0, del: 0 }, rejectedText: rejected ? String(rejected.text || '') : null } });
   const answered = Array.isArray(filed.answered) ? filed.answered : [];
   const comments = (window.docxComments ? await docxComments(bytes) : []).map(cm => {
     /* ---- A COMMENT THAT NAMES ITS CHG COMES HOME TO IT (11 Sep 2026) ----

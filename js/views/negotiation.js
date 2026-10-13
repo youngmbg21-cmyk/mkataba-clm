@@ -1631,6 +1631,10 @@ function negoLiveCardsHtml(c, opts){
                 on this line's own hover. */}
         <div style="font-size:var(--t-label);color:var(--n-ink-soft);margin-bottom:7px" title="${_ne(String(ch.author || ''))}">${i18t('ng_author')} <b style="color:var(--n-ink);font-weight:var(--w-strong)">${
           _ne(window.cardName ? cardName(ch.author, _liveOrg) : ch.author)}</b></div>
+        ${''/* "UNMARKED IN WORD", SAID (13 Oct 2026): a difference in a returned
+                Word file that was not a tracked change there — negoFileProposal
+                stamps it, this line says it, History says the count. */}
+        ${ch.unmarked ? `<div style="font-size:var(--t-label);color:var(--n-ink-soft);margin-bottom:7px">${i18t('ng_unmarked_word')}</div>` : ''}
         ${negoCounterLineHtml(c, ch)}
         ${''/* Both renderers carry it — the project's own duplication rule. */}
         ${(side !== 'counterparty' && ch.revisedBy && ch.revisedBy !== ch.author) ? `<div style="font-size:var(--t-label);color:var(--n-ink-soft);margin-bottom:7px"
@@ -19282,6 +19286,9 @@ function redlineChangeCardsHtml(c, opts = {}){
           _nea(String(ch.revisedBy))} / ${_nea(String(ch.author))}">`
         + `<span aria-hidden="true">&#9998;</span> ${i18t('ng_revised_by_after',{who:_ne(_short(ch.revisedBy)),author:_ne(_short(ch.author))})}</div>`
       : '';
+    /* "UNMARKED IN WORD", SAID (13 Oct 2026): the same sentence the live card
+       carries — both renderers, the project's own duplication rule. */
+    const unmarkedBlock = ch.unmarked ? `<div class="rl-card-behalf">${i18t('ng_unmarked_word')}</div>` : '';
     /* ---- THE FOUR VERBS, AND THE COLOUR EACH ONE IS ----
        Accept green, Reject red, Edit grey, Send green. Edit is on every live
        card and not only the decidable ones: revising your own ask is the most
@@ -19691,7 +19698,7 @@ function redlineChangeCardsHtml(c, opts = {}){
        rather than parked in a hidden body only the pop-out could show — the
        pop-out is retired, and a fact behind a control that no longer exists is
        a fact lost. */
-    const info = [dkBy, behalfBlock, revisedBlock, whyBlock, rvNoteBlock].filter(Boolean).join('');
+    const info = [dkBy, behalfBlock, revisedBlock, unmarkedBlock, whyBlock, rvNoteBlock].filter(Boolean).join('');
     /* The preview's verbs are pixels, not presses — deadened WHOLESALE after
        classification, so the receipt/full-card decision and the needs-you
        reading stay exactly the counterparty page's own. See previewSeat. */

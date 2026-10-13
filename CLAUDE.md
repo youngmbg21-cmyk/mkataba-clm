@@ -335,6 +335,7 @@ Tests: f84, f89, f92–f95, f100, f152, f184, f210, f246, nego-redesign, redline
 
 ## THE TRACKED-CHANGES COLUMN
 - "Redlines N"; Send all · N not sent (`rlUnsentSendHtml` → `#nego-send`) and the round label; Close round GONE. Piles `RL_CARD_BANDS` (`rlCardBand`, one pile each); THE ROW IS THE WHOLE OF IT: `rlRowFaceVerbs` — theirs Accept · Reject · Counter; ours Edit · Send · Review · Ladder · Discard (ruby, last); every seat draws it (`banded: true`).
+- "UNMARKED IN WORD", SAID (owner's go, 13 Oct 2026): a returned Word file is read twice (`docxExtract(bytes,{tracked:'reject'})` = insertions dropped, deletions kept); `negoFileProposal` stamps `ch.unmarked` off `opts.wordBack` (true, or absent — never a guess); both card renderers say `ng_unmarked_word` (`negoLiveCardsHtml`, `redlineChangeCardsHtml`); the History line counts them. Tests: word-unmarked. Story: MAP-HISTORY "UNMARKED IN WORD".
 - OUR ANSWERS GO BACK: `negoUnsentDecisions` (RAW), `negWhoseMove` `why:'decided'`, "Send to <them>" (`rlDecisionsSendHtml`). COPILOT'S ANSWER ON THE PAPER: `rlPaintCopilotAnswers` after the render (`.rl-sug-box`, `.rl-glow`, `RL_SUG_VERB`); nothing filed or sent; `ROUND_PREP_VERDICTS` has `reject` both hosts.
 Tests: f246, f37, f93, redline, flat-rows-and-alerts, send-after-refusal, copilot-answer-on-paper verify files.
 
