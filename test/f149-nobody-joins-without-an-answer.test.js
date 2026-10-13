@@ -82,6 +82,7 @@ function stage() {
     roleName: r => ({ admin: 'Admin', legal: 'Editor', viewer: 'Viewer' }[r] || ''),
     saveSettings: async () => {},
     openModal() {}, closeModal() {}, setActiveNav() {},
+    fieldFocus: el => { if (el && el.focus) el.focus(); },
     confirmDialog: async () => false, promptDialog: async () => null,
     lsGet: () => null, lsSet() {}, downloadFile() {},
     clauseLibrary: () => [], getOrg: () => ({}), LS: {}, uid: 'u',
