@@ -175,6 +175,12 @@ function jhSpan(){
 }
 /* The moment the replay has reached, as a time. */
 const jhUpto = () => { const S = jhSpan(); return _jh.t >= 1 ? Infinity : S.from + _jh.t * (S.end - S.from); };
+/* ONE AGENT AT A TIME (owner picked "press the card, and Play follows it",
+   13 Oct 2026): while an agent's card is pressed, a replay plays that agent's
+   work alone — the other rooms stay quiet (nothing counted, nobody walking)
+   until the replay ends; at rest every room shows its whole period again. */
+const jhSoloQuiet = k => !!_jh.sel && k !== _jh.sel && _jh.t < 1;
+const jhUptoFor = (k, upto) => jhSoloQuiet(k) ? 0 : upto;
 
 /* ---------------- THE HOUSE: drawn from the list ---------------- */
 /* THE HOUSE FITS THE SCREEN AND IS DRAWN SHARP (owner, 13 Oct 2026: "the
@@ -328,7 +334,7 @@ function jhDrawPlan(ctx, pieces, upto){
   ctx.fillStyle = C.accentSoft; ctx.fillRect(JH_SX - 26, jhLY(_jhF - 1) - _jhFH + 10, 52, _jhF * _jhFH - 14);
   ctx.strokeStyle = C.line; ctx.lineWidth = 1; for (let y = jhLY(_jhF - 1) - _jhFH + 20; y < jhLY(0) - 6; y += 12){ ctx.beginPath(); ctx.moveTo(JH_SX - 18, y); ctx.lineTo(JH_SX + 18, y); ctx.stroke(); }
   ctx.fillStyle = C.muted; ctx.font = '500 11px Geist, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(_jhT('jh_stairs'), JH_SX, jhLY(_jhF - 1) - _jhFH + 4);
-  _jhRooms.forEach(r => { const c = r.card, s = agPointsTally(r.k, pieces, upto), hov = _jh.hover === r.k || _jh.sel === r.k;
+  _jhRooms.forEach(r => { const c = r.card, s = agPointsTally(r.k, pieces, jhUptoFor(r.k, upto)), hov = _jh.hover === r.k || _jh.sel === r.k;
     ctx.fillStyle = hov ? C.accentSoft : C.card; ctx.strokeStyle = hov ? C.accent : C.line; ctx.lineWidth = hov ? 1.5 : 1;
     jhRoundRect(ctx, c.x, c.y, c.w, c.h, 8); ctx.fill(); ctx.stroke();
     ctx.fillStyle = r.col; ctx.fillRect(c.x, c.y + 8, 3, 30);
@@ -366,7 +372,7 @@ function jhDrawDrawing(ctx, pieces, upto){
     ctx.strokeStyle = ink; ctx.globalAlpha = .5; ctx.beginPath(); ctx.moveTo(84, y); ctx.lineTo(X0, y); ctx.stroke(); ctx.globalAlpha = 1;
   }
   ctx.fillStyle = C.muted; ctx.font = '500 10.5px ' + JH_MONO; ctx.textAlign = 'center'; ctx.fillText(_jhT('jh_stairs').toUpperCase(), JH_SX, top + 14);
-  _jhRooms.forEach(r => { const c = r.card, s = agPointsTally(r.k, pieces, upto), hov = _jh.hover === r.k || _jh.sel === r.k;
+  _jhRooms.forEach(r => { const c = r.card, s = agPointsTally(r.k, pieces, jhUptoFor(r.k, upto)), hov = _jh.hover === r.k || _jh.sel === r.k;
     if (hov){ ctx.fillStyle = C.accentSoft; ctx.fillRect(c.x - 4, c.y - 4, c.w + 8, c.h + 8); }
     ctx.textAlign = 'left'; ctx.fillStyle = ink; ctx.font = '600 13px ' + JH_MONO; const nm = _jhT('jh_room_' + r.k).toUpperCase(); ctx.fillText(nm, c.x + 6, c.y + 18);
     let px = c.x + 12 + ctx.measureText(nm).width;
@@ -390,8 +396,8 @@ function jhOneNo(){ const c = _jh.data && _jh.data.contracts && _jh.data.contrac
 function jhRunners(ctx, pieces){
   const atRest = !_jh.playing && _jh.t >= 1;
   const on = _jh.one ? new Set(pieces.map(p => p.agent)) : null;
-  const pts = _jhRooms.map(r => jhPosAt(r, atRest ? 0 : _jh.t));
-  if (_jh.playing) pts.forEach((p, i) => { const tr = _jh.trails[i] || (_jh.trails[i] = []); tr.push({ x: p.x, y: p.y }); if (tr.length > 110) tr.shift(); });
+  const pts = _jhRooms.map(r => jhPosAt(r, atRest || jhSoloQuiet(r.k) ? 0 : _jh.t));
+  if (_jh.playing) pts.forEach((p, i) => { if (jhSoloQuiet(_jhRooms[i].k)) return; const tr = _jh.trails[i] || (_jh.trails[i] = []); tr.push({ x: p.x, y: p.y }); if (tr.length > 110) tr.shift(); });
   _jh.trails.forEach((tr, i) => { if (!tr || tr.length < 2 || !_jhRooms[i]) return; ctx.save(); ctx.strokeStyle = _jhRooms[i].col; ctx.lineWidth = _jh.look === 1 ? 1.6 : 2; ctx.setLineDash(_jh.look === 1 ? [4, 4] : []);
     for (let j = 1; j < tr.length; j++){ ctx.globalAlpha = (j / tr.length) * (_jh.sel === null ? .45 : _jh.sel === _jhRooms[i].k ? .9 : .08); ctx.beginPath(); ctx.moveTo(tr[j - 1].x, tr[j - 1].y - 10); ctx.lineTo(tr[j].x, tr[j].y - 10); ctx.stroke(); } ctx.restore(); });
   _jh.lastPos = pts.map((p, i) => { const r = _jhRooms[i], lit = _jh.sel === r.k, dim = (_jh.sel !== null && !lit) || (on && !on.has(r.k)), rad = 10 + (lit ? 3 : 0), cy = p.y - rad - 6;
@@ -429,7 +435,7 @@ function jhFrame(now){
     const S = jhSpan(), a = S.from + t0 * (S.end - S.from), b = S.from + _jh.t * (S.end - S.from);
     for (const p of pieces){
       const at = Date.parse(p.decidedAt || '') || 0;
-      if (!p.outcome || at <= a || at > b) continue;
+      if (!p.outcome || at <= a || at > b || (_jh.sel && p.agent !== _jh.sel)) continue;
       const i = _jhRooms.findIndex(r => r.k === p.agent); if (i < 0) continue;
       const pos = _jh.lastPos[i] || { x: JH_W / 2, y: _jhH / 2 }, v = agPointsEach(agPointsOf(p.agent), p.outcome);
       _jh.pops.push({ x: pos.x, y: pos.y - 20, text: (v >= 0 ? '+' : '−') + Math.abs(Math.round(v)), col: v >= 0 ? _jhRooms[i].col : _jhC.ruby, a: 0 }); if (_jh.pops.length > 80) _jh.pops.shift();
@@ -454,7 +460,7 @@ let _jhScKey = '';
 function jhScorePaint(pieces, upto, xk){
   const rows = document.getElementById('jh-rows'); if (!rows) return;
   let total = 0; const xf = _jh.xf && xk < 1 ? _jh.xf : null, mix = (o, n) => (xf && o != null) ? o + (n - o) * xk : n;
-  _jhRooms.forEach(r => { const s = agPointsTally(r.k, pieces, upto); total += s.pts;
+  _jhRooms.forEach(r => { const s = agPointsTally(r.k, pieces, jhUptoFor(r.k, upto)); total += s.pts;
     const el = rows.querySelector(`[data-jh-agent="${r.k}"]`); if (!el) return;
     const p = el.querySelector('[data-jh-p]'), d = el.querySelector('[data-jh-d]');
     const pt = _jhFmt(mix(xf && xf.oldPts[r.k], s.pts)), dt = s.n + ' ' + _jhT('jh_unit_' + r.k) + (s.n ? ' · ' + _jhT('jh_pct_used', { p: s.n ? Math.round(s.used / s.n * 100) : 0 }) : '');
@@ -535,12 +541,12 @@ function jhFeedFill(){
 function jhFinish(){
   const end = document.getElementById('jh-end'); if (!end) return;
   const pieces = jhPieces();
-  const tot = _jhRooms.map(r => ({ k: r.k, s: agPointsTally(r.k, pieces, Infinity) }));
+  const tot = _jhRooms.filter(r => !_jh.sel || r.k === _jh.sel).map(r => ({ k: r.k, s: agPointsTally(r.k, pieces, Infinity) }));
   const total = tot.reduce((a, x) => a + x.s.pts, 0), hrs = tot.reduce((a, x) => a + x.s.hrs, 0);
   const best = tot.slice().sort((a, b) => b.s.pts - a.s.pts)[0];
   document.getElementById('jh-end-t').textContent = _jhT('jh_end_title', { n: _jhFmt(total) });
   document.getElementById('jh-end-l').textContent = !total && !tot.some(x => x.s.used + x.s.changed + x.s.thrown) ? _jhT('jh_end_none')
-    : _jhT(_jh.one ? 'jh_end_line_on' : 'jh_end_line', { h: Math.round(hrs), name: best ? _jhT('ag_' + best.k) : '', no: jhOneNo() });
+    : _jhT(_jh.sel ? (_jh.one ? 'jh_end_agent_on' : 'jh_end_agent') : _jh.one ? 'jh_end_line_on' : 'jh_end_line', { h: Math.round(hrs), name: best ? _jhT('ag_' + best.k) : '', no: jhOneNo() });
   end.hidden = false;
 }
 
@@ -638,7 +644,7 @@ function jhHouseHtml(){
       <div class="jh-left">
         <div class="jh-housecard">
         <div class="jh-sh">
-          <button type="button" class="ui-btn ui-btn-primary jh-play" data-jh-play>${_jhE(_jhT(_jh.playing ? 'jh_pause' : 'jh_play'))}</button>
+          <button type="button" class="ui-btn ui-btn-primary jh-play" data-jh-play>${_jhE(jhPlayWord())}</button>
           <button type="button" class="ui-btn" data-jh-restart>${_jhE(_jhT('jh_again'))}</button>
           <span class="jh-prog" aria-hidden="true"><i id="jh-prog"></i></span>
         </div>
@@ -793,7 +799,8 @@ function jhRepaint(){ if (typeof state !== 'undefined' && state.view === 'jambo'
 function jhReplayFromStart(play){
   _jh.t = play ? 0 : 1; _jh.pops = []; _jh.trails = []; _jh.playing = !!play; _jh.last = 0; _jhScKey = '';
 }
-function jhSetPlayWord(){ const b = document.querySelector('[data-jh-play]'); if (b) b.textContent = _jhT(_jh.playing ? 'jh_pause' : 'jh_play'); const e = document.getElementById('jh-end'); if (e && _jh.playing) e.hidden = true; }
+function jhPlayWord(){ return _jh.playing ? _jhT('jh_pause') : _jh.sel ? _jhT('jh_play_agent', { name: _jhT('ag_' + _jh.sel) }) : _jhT('jh_play'); }
+function jhSetPlayWord(){ const b = document.querySelector('[data-jh-play]'); if (b) b.textContent = jhPlayWord(); const e = document.getElementById('jh-end'); if (e && _jh.playing) e.hidden = true; }
 function jhWire(host){
   if (host.dataset.jhWired) return; host.dataset.jhWired = '1';
   host.addEventListener('click', e => {
@@ -810,7 +817,7 @@ function jhWire(host){
     if (t.closest('[data-jh-restart]')){ jhReplayFromStart(true); jhFeedFill(); jhSetPlayWord(); jhKick(); return; }
     if ((el = t.closest('[data-jh-agent]'))){ const k = el.getAttribute('data-jh-agent'); _jh.sel = _jh.sel === k ? null : k; _jhScKey = '';
       host.querySelectorAll('[data-jh-agent]').forEach(b => { const on = b.getAttribute('data-jh-agent') === _jh.sel; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
-      jhFeedFill(); jhKick(); return; }
+      jhFeedFill(); jhSetPlayWord(); jhKick(); return; }
     if (t.closest('#jh-one-x')){ const i = document.getElementById('jh-one'); if (i) i.value = ''; jhOnePick(''); return; }
   });
   host.addEventListener('pointerdown', e => { const b = e.target && e.target.closest && e.target.closest('[data-jh-one]'); if (b){ e.preventDefault(); jhOnePick(b.getAttribute('data-jh-one')); } });
@@ -1083,4 +1090,4 @@ const JH_CSS = `
 try { if (typeof jamboFacePaint === 'function') jamboFacePaint(); } catch (_) {}
 
 Object.assign(window, { AG_POINTS_LAUNCH, AG_POINTS_START_MINS, AG_POINTS_NEW_MINS, AG_POINTS_FIELDS, agPointsKeys, agPointsStart, agPointsCompany, agPointsMine, agPointsOf,
-  agPointsIsNew, agPointsEach, agPointsTally, agPointsSumLine, agPieceSay, agPointsTableHtml, agPointsWire, renderJamboHouse, jhRepaint, jhPlace, jhPlacePut, jhLayout, jhRoomAt, jhFloorCounts, jhGeom, jhFinish });
+  agPointsIsNew, agPointsEach, agPointsTally, agPointsSumLine, agPieceSay, agPointsTableHtml, agPointsWire, renderJamboHouse, jhRepaint, jhPlace, jhPlacePut, jhLayout, jhRoomAt, jhFloorCounts, jhGeom, jhFinish, jhUptoFor });
