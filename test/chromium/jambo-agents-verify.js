@@ -19,6 +19,9 @@
        the Look is a dropdown whose choice is the person's default (owner, 13 Oct 2026)
      6 the speed is a labelled box, and Play moves the replay
     13 the end card closes by its ×, Esc, or a press beside it (owner, 13 Oct 2026)
+    15 work shows when Jambo prepares it: the four reading agents report what
+       they laid out (checked by the server, kept once), the replay shows
+       "prepared", and a person's press decides that same piece (13 Oct 2026)
     14 one agent at a time: a pressed card names itself on Play, the replay
        plays that agent alone, the end card counts it alone (owner, 13 Oct 2026)
      7 Settings → Jambo's agents carries one points row per agent; a box left
@@ -309,6 +312,32 @@ const CONTRACTS = [
     const board = await page.evaluate(() => { setView('dashboard'); const btn = document.createElement('button'); btn.setAttribute('data-hb-agents-page', ''); document.body.appendChild(btn);
       btn.click(); btn.remove(); return state.view; });
     ok('8a it lands on Jambo\'s agents', board === 'jambo', board);
+
+    console.log('\n15 · work shows when Jambo prepares it');
+    const me15 = await page.evaluate(() => REMOTE.me.id);
+    const r15 = await page.evaluate(async me => { const go = pieces => api('agents/prepared', 'POST', { pieces }).then(r => r, e => ({ err: e.message }));
+      return { first: await go([{ agent: 'quiet', contractId: 'MK-JA1', ref: 'quiet:MK-JA1' }]), again: await go([{ agent: 'quiet', contractId: 'MK-JA1', ref: 'quiet:MK-JA1' }]),
+        wrong: await go([{ agent: 'paper', contractId: 'MK-JA1', ref: 'x' }, { agent: 'request', contractId: '', ref: 'no-such-request' }, { agent: 'week', contractId: '', ref: 'week:2026-10-12:someone-else' }, { agent: 'approve', contractId: '', ref: '' }]),
+        week: await go([{ agent: 'week', contractId: '', ref: 'week:2026-10-12:' + me }]) }; }, me15);
+    ok('15a a reading agent\'s prepared work is kept once, and anything unchecked is refused', r15.first.added === 1 && r15.again.kept === 1 && r15.wrong.refused === 4 && r15.week.added === 1, JSON.stringify(r15));
+    await page.evaluate(() => agReportPrepared({ quiet: { ready: [{ agent: 'quiet', kind: 'quiet', key: 'quiet:MK-JA2', cid: 'MK-JA2' }] }, approve: { ready: [] }, request: { ready: [] }, week: { ready: [] } }));
+    await page.evaluate(() => agPreparedSettled());
+    await page.evaluate(() => { setView('dashboard'); setView('jambo'); });
+    await page.waitForFunction(() => !!document.getElementById('jh-cv') && typeof agPointsTally === 'function', null, { timeout: 8000 }).catch(() => {});
+    await page.selectOption('#jh-range', '7').catch(() => {});
+    await page.waitForFunction(() => /7/.test((document.getElementById('jh-total-l') || {}).textContent || ''), null, { timeout: 6000 }).catch(() => {});
+    const w15 = await page.evaluate(async () => { const d = await api('agents/pieces?days=7'); const q = d.pieces.filter(p => p.agent === 'quiet');
+      return { quiet: q.length, open: q.filter(p => !p.outcome).length, week: d.pieces.filter(p => p.agent === 'week').length }; });
+    ok('15b the page\'s own report lands too: two quiet pieces waiting, one week laid out', w15.quiet === 2 && w15.open === 2 && w15.week === 1, JSON.stringify(w15));
+    await page.click('[data-jh-play]');
+    await page.waitForFunction(() => jhPopsSoft() > 0, null, { timeout: 12000 }).catch(() => {});
+    ok('15c the replay shows the moment Jambo prepared it ("prepared" rises in the room)', await page.evaluate(() => jhPopsSoft() > 0));
+    await page.waitForFunction(() => !document.getElementById('jh-end').hidden, null, { timeout: 15000 }).catch(() => {});
+    await page.evaluate(() => { const x = document.querySelector('[data-jh-end-x]'); if (x) x.click(); });
+    const s15 = await page.evaluate(async () => { const before = (await api('agents/pieces?days=7')).pieces.filter(p => p.agent === 'quiet' && !p.outcome).length;
+      await api('agents/outcome', 'POST', { agent: 'quiet', contractId: 'MK-JA1', outcome: 'used', ref: 'quiet:MK-JA1' });
+      const after = (await api('agents/pieces?days=7')).pieces.filter(p => p.agent === 'quiet'); return { before, after: after.length, open: after.filter(p => !p.outcome).length, used: after.filter(p => p.outcome === 'used').length }; });
+    ok('15d a person\'s press decides THAT piece (no second one): waiting 2 → 1, used 1', s15.before === 2 && s15.after === 2 && s15.open === 1 && s15.used === 1, JSON.stringify(s15));
 
     ok('no page errors', errs.length === 0, errs.join(' | ').slice(0, 300));
   } catch (e) { ok('the run finished', false, e.message); }
