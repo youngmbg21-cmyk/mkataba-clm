@@ -346,7 +346,7 @@ function stkRedlineGo(c){
   }
   if (typeof rlCameFromSet === 'function') rlCameFromSet({ id: String(c.id), dive: _stk.dive, f: { ..._stk.f } });
   if (typeof openRedlineWorkbench !== 'function') return;
-  openRedlineWorkbench(c.id, { from: 'clauses', land: p && !p.missing ? { clauseId, quote: String(p.quote || ''), num: stkNum(p.clause), ask: p.by === 'jambo' ? String(p.ask || '') : '' } : null });
+  openRedlineWorkbench(c.id, { from: 'clauses', land: p && !p.missing ? { clauseId, quote: String(p.quote || ''), num: stkNum(p.clause), ask: String(p.ask || '') } : null });
 }
 /* the way back puts the deep dive where the reader left it */
 function stkResume(f){
@@ -410,7 +410,14 @@ if (typeof document !== 'undefined' && !document._stkWired){
     if (t.closest('[data-stk-redline]')){ stkRedlineGo(c); return; }
     const ak = t.closest('[data-stk-ask]');
     if (ak && b){ const p = stkShown(c, b)[Number(ak.getAttribute('data-stk-ask'))];
-      if (p && typeof intelAskReady === 'function') intelAskReady(i18t('stk_ask_q', { t: p.title })); }
+      /* A WHOLE QUESTION, NOT A STUB (owner, 13 Oct 2026: "the question posed is
+         terribly framed"): the clause by number, the point in plain words with
+         no quote marks (Jambo read a quoted title as a finding to look up), and
+         what we want back. The reader presses Ask, or edits it first. */
+      if (p && typeof intelAskReady === 'function'){
+        const t = String(p.title || '').trim().replace(/[.\s]+$/, ''), n = stkNum(p.clause);
+        intelAskReady(p.missing ? i18t('stk_ask_q_missing', { t }) : n ? i18t('stk_ask_q', { n, t }) : i18t('stk_ask_q_none', { t }));
+      } }
   }, true);
   /* a filter's change repaints the list, and the box keeps the keyboard */
   document.addEventListener('change', e => {

@@ -293,13 +293,30 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
         await new Promise(r => setTimeout(r, 2500));
         const ceId = window.clauseEditorOpen && clauseEditorOpen() ? clauseEditorClauseId() : null;
         const cl = ceId ? negoClauseList(getContract('MK-S1')).find(x => x.clauseId === ceId) : null;
+        const bk = document.querySelector('#shell-title [data-rl-back-clauses]');
+        const pane = document.getElementById('clause-editor'), ptxt = pane ? pane.innerText : '';
         return { title, view: state.view, editor: !!ceId, clause: cl ? clauseLabel(cl) : null,
-          ask: (document.getElementById('ce-ask') || {}).value || '', filed: (getContract('MK-S1').changes || []).length - before,
-          back: (document.querySelector('#shell-title [data-rl-back-clauses]') || {}).textContent || '' };
+          card: /Jambo's proposed ask/.test(ptxt), say: /This is the ask you came with/.test(ptxt), askOnCard: /12 months before the claim/.test(ptxt),
+          apply: !!(pane && [...pane.querySelectorAll('button')].some(b => /^Apply$/.test(b.textContent.trim()))),
+          box: (document.getElementById('ce-ask') || {}).value || '', filed: (getContract('MK-S1').changes || []).length - before,
+          back: bk ? bk.textContent : '', bold: bk ? Number(getComputedStyle(bk).fontWeight) : 0,
+          crumb: (document.getElementById('shell-title') || {}).innerText || '' };
       });
-      ok('5c "Start redlining with this ask" opens its own clause in Edit with Jambo, the ask ready and unsent, nothing filed',
-        j1.view === 'redline' && j1.editor && /\b3\b/.test(j1.clause || '') && /12 months before the claim/.test(j1.ask) && j1.filed === 0, JSON.stringify(j1));
-      ok('5d the bar offers "‹ Back to clauses" on that trip', /Back to clauses/.test(j1.back), j1.back);
+      ok('5c "Start redlining with this ask" opens its own clause in Edit with Jambo, the ask waiting on a card with Apply, nothing filed',
+        j1.view === 'redline' && j1.editor && /\b3\b/.test(j1.clause || '') && j1.card && j1.say && j1.askOnCard && j1.apply && !j1.box && j1.filed === 0, JSON.stringify(j1));
+      ok('5d the bar offers a bold "‹ Back to Clauses" on that trip, and still names the clause being edited',
+        /‹ Back to Clauses/.test(j1.back) && j1.bold >= 600 && /Edit\b/.test(j1.crumb), JSON.stringify({ back: j1.back, bold: j1.bold, crumb: j1.crumb }));
+      const ja = await page.evaluate(async () => {
+        const before = (getContract('MK-S1').changes || []).length;
+        const btn = [...document.querySelectorAll('#clause-editor button')].find(b => /^Apply$/.test(b.textContent.trim()));
+        if (!btn) return { btn: false };
+        btn.click(); await new Promise(r => setTimeout(r, 800));
+        const box = document.getElementById('ce-clausebody') || document.querySelector('#clause-editor [contenteditable]');
+        return { btn: true, dirty: !!(window.clauseEditorDirty && clauseEditorDirty()), inBox: /12 months before the claim/.test(box ? box.innerText : ''),
+          filed: (getContract('MK-S1').changes || []).length - before };
+      });
+      ok('5c2 Apply puts the ask into the clause as a draft; nothing is filed until Save', ja.btn && ja.dirty && ja.inBox && ja.filed === 0, JSON.stringify(ja));
+      if (process.env.STK_SHOT) await page.screenshot({ path: process.env.STK_SHOT + '-landed.png' });
       const j2 = await page.evaluate(async () => {
         document.querySelector('#shell-title [data-rl-back-clauses]').click();
         await new Promise(r => setTimeout(r, 2500));
@@ -313,6 +330,20 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       const j3 = await page.evaluate(async () => { openRedlineWorkbench('MK-S1'); await new Promise(r => setTimeout(r, 1500));
         const out = !document.querySelector('[data-rl-back-clauses]'); setView('dashboard'); pdOpenOnHome('MK-S1', 'doc'); await new Promise(r => setTimeout(r, 1200)); return out; });
       ok('5f Negotiate opened by another door offers no way back to the clauses', j3);
+      /* 5g "ASK JAMBO ABOUT THIS" FILLS A WHOLE QUESTION (owner, 13 Oct 2026:
+         "the question posed is terribly framed"): the clause by number, the
+         point without quote marks, and what we want back — nothing asked yet */
+      const j4 = await page.evaluate(async () => {
+        const c = getContract('MK-S1'); window.__bd.n = window.__bd.n || 0;
+        stkDiveOpen(c, 0); await new Promise(r => setTimeout(r, 400));
+        const calls = (window.__calls || []).length;
+        document.querySelector('#pd-thread [data-stk-ask]').click(); await new Promise(r => setTimeout(r, 800));
+        const box = window.igAskBox ? igAskBox() : null;
+        return { q: box ? box.value : '', asked: (window.__calls || []).filter(p => /ai\/(ask|chat|copilot)/.test(p)).length - 0, calls };
+      });
+      ok('5g "Ask Jambo about this" fills a whole question naming the clause, with no quote marks, unsent',
+        /^In clause 3: Their liability is capped at three months of fees\. Explain in plain English what this means for us, and what we should ask for instead\.$/.test(j4.q) && !/"/.test(j4.q), JSON.stringify(j4));
+      await page.evaluate(() => { const b = window.igAskBox ? igAskBox() : null; if (b) b.value = ''; stkDiveClose(getContract('MK-S1')); });
 
       await page.evaluate(() => { window.__bd.refuse = true; window.__bd.n = 0; pdOpenOnHome('MK-S2', 'doc'); });
       const said = await page.waitForSelector('#pd-thread .stk-err', { timeout: 8000 }).then(() => true, () => false);
