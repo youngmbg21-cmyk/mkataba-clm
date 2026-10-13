@@ -1,5 +1,5 @@
-# Every check, on every push — the proofreader, the node suite, and ALL of the
-# browser harnesses.
+# Every check, on every pull request and every merge to main — the
+# proofreader, the node suite, and ALL of the browser harnesses.
 #
 # The browser checks existed and were green-capable for a day while nine of
 # them sat red, because they only ran when somebody remembered to run them:
@@ -22,9 +22,23 @@
 # keeps a red run meaningful: there is nowhere for a new failure to hide.
 name: tests
 
+# ONE COMMIT, ONE VERDICT. Running on every push AND every pull request
+# tested the same work twice. The pull request run is the one that matters —
+# it tests the branch COMBINED with the latest main — so pushes trigger a run
+# only on main itself, keeping main's own record complete after each merge.
 on:
   push:
+    branches: [main]
   pull_request:
+
+# A NEW PUSH OUTDATES THE QUEUE. Stacked branches mean one merge into main
+# ripples a push down every floor, and each push queues a full run while the
+# previous run for the same branch still waits its turn. Only the newest
+# commit's verdict matters, so a fresh run cancels the one it supersedes —
+# except on main, where every merge keeps its own complete record.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   # The proofreader runs first and alone: it takes seconds, needs no browser,
