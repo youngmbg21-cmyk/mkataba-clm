@@ -182,24 +182,34 @@ const jhUpto = () => { const S = jhSpan(); return _jh.t >= 1 ? Infinity : S.from
    drawing keeps one logical width (JH_W) but its floors shrink to fit the
    window (_jhFH between JH_FH_MIN and JH_FH_MAX), and the canvas is sized to
    its real on-screen box times the screen's pixel density (jhFitCanvas), so
-   nothing is stretched. Below the minimum the house scrolls inside its box. */
-const JH_FH_MAX = 132, JH_FH_MIN = 92, JH_FIT_FOOT = 16, JH_FIT_MIN_CSS = 300;
+   nothing is stretched.
+   THE HOUSE NEVER SCROLLS (owner, 13 Oct 2026: "do not put the graphic on
+   scroll"): where three rooms a floor would make the floors shorter than
+   JH_FH_MIN, the house takes four rooms a floor (fewer floors, still no free
+   room); short of that the floors shrink to JH_FH_HARD and the page, not the
+   house, takes the rest. */
+const JH_FH_MAX = 132, JH_FH_MIN = 92, JH_FH_HARD = 72, JH_FIT_FOOT = 16, JH_FIT_MIN_CSS = 300;
 let _jhFH = JH_FH_MAX, _jhFitH = 0;
-const JH_W = 1160, JH_COLS = 3, JH_SX = 160, JH_RX0 = 206, JH_RX1 = 1144, JH_GAP = 12;
-let _jhTop = 70, _jhF = 1, _jhH = 620, _jhRooms = [];
+const JH_W = 1160, JH_COLS = 3, JH_COLS_MAX = 4, JH_SX = 160, JH_RX0 = 206, JH_RX1 = 1144, JH_GAP = 12;
+let _jhTop = 70, _jhF = 1, _jhH = 620, _jhRooms = [], _jhCols = JH_COLS;
 const jhLY = f => _jhTop + (_jhF - f) * _jhFH;
 const jhFoot = f => jhLY(f) - 18;
 function jhLayout(){
   const keys = agPointsKeys();
   _jhTop = _jh.look === 1 ? 128 : 70;
-  _jhF = Math.max(1, Math.ceil(keys.length / JH_COLS));
-  const foot = _jh.look === 1 ? 104 : 16;
-  _jhFH = _jhFitH ? Math.max(JH_FH_MIN, Math.min(JH_FH_MAX, Math.floor((_jhFitH - _jhTop - foot) / _jhF))) : JH_FH_MAX;
+  /* the drawing's foot holds its ground line and the measuring line only —
+     its title block is gone (owner, 13 Oct 2026: "remove this part") */
+  const foot = _jh.look === 1 ? 48 : 16;
+  const fhFor = cols => Math.floor((_jhFitH - _jhTop - foot) / Math.max(1, Math.ceil(keys.length / cols)));
+  _jhCols = JH_COLS;
+  if (_jhFitH && fhFor(JH_COLS) < JH_FH_MIN && keys.length > JH_COLS) _jhCols = JH_COLS_MAX;
+  _jhF = Math.max(1, Math.ceil(keys.length / _jhCols));
+  _jhFH = _jhFitH ? Math.max(JH_FH_HARD, Math.min(JH_FH_MAX, fhFor(_jhCols))) : JH_FH_MAX;
   _jhH = _jhTop + _jhF * _jhFH + foot;
   /* NO FREE ROOM (owner, 13 Oct 2026: "Just make other rooms bigger. Always
      build it that way."): the agents are shared over the floors as evenly as
      they go, lower floors first, and a floor's rooms widen to fill it. A new
-     floor comes only when every floor already holds JH_COLS rooms. */
+     floor comes only when every floor already holds _jhCols rooms. */
   const per = jhFloorCounts(keys.length);
   let spare = 0, i = 0;
   _jhRooms = [];
@@ -208,7 +218,7 @@ function jhLayout(){
       const look = JH_LOOK[k] || JH_SPARE[spare++ % JH_SPARE.length];
       _jhRooms.push({ k, i, f, col: look[0], hat: look[1], card: { x, y: jhLY(f) - _jhFH + 10, w, h: _jhFH - 22 }, cx: x + w / 2 }); } });
 }
-function jhFloorCounts(n){ const F = Math.max(1, Math.ceil(n / JH_COLS)), base = Math.floor(n / F), extra = n % F;
+function jhFloorCounts(n, cols){ const F = Math.max(1, Math.ceil(n / (cols || _jhCols))), base = Math.floor(n / F), extra = n % F;
   return Array.from({ length: F }, (_, f) => base + (f < extra ? 1 : 0)); }
 const jhFloorRooms = f => _jhRooms.filter(r => r.f === f);
 /* The canvas's own box: as wide as the stage, as tall as the window leaves
@@ -227,8 +237,6 @@ function jhFitCanvas(){
   if (cv.width !== bw) cv.width = bw;
   if (cv.height !== bh) cv.height = bh;
   cv.style.height = cssH + 'px';
-  stage.style.maxHeight = Math.round(avail) + 'px';
-  stage.style.overflowY = cssH > avail + 1 ? 'auto' : '';
   return true;
 }
 /* A new window size or zoom fits and redraws the house where it stands. */
@@ -242,7 +250,7 @@ function jhRefit(force){
 }
 let _jhRefitWin = false;
 if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('resize', () => { _jhRefitWin = true; jhRefit(); });
-const jhGeom = () => ({ top: _jhTop, fh: _jhFH, floors: _jhF, h: _jhH, w: JH_W });
+const jhGeom = () => ({ top: _jhTop, fh: _jhFH, floors: _jhF, h: _jhH, w: JH_W, cols: _jhCols });
 /* Each Jambo's walk: his own room, then two others he hands work to, by the stairs. */
 const JH_SPEED_PX = 240;
 function jhSimulate(r){
@@ -370,9 +378,7 @@ function jhDrawDrawing(ctx, pieces, upto){
   const dy = bot + 34; ctx.strokeStyle = ink; ctx.lineWidth = 1; ctx.globalAlpha = .7;
   jhFloorRooms(0).forEach(r => { const x0 = r.card.x - JH_GAP / 2, x1 = x0 + r.card.w + JH_GAP; ctx.beginPath(); ctx.moveTo(x0, dy); ctx.lineTo(x1, dy); ctx.moveTo(x0, dy - 5); ctx.lineTo(x0, dy + 5); ctx.moveTo(x1, dy - 5); ctx.lineTo(x1, dy + 5); ctx.stroke();
     ctx.fillStyle = ink; ctx.font = '500 11px ' + JH_MONO; ctx.textAlign = 'center'; ctx.fillText((12.6 / jhFloorRooms(0).length).toFixed(2), (x0 + x1) / 2, dy - 6); });
-  ctx.globalAlpha = 1; const tw = 300, tx = JH_W - tw - 16, ty = _jhH - 46; ctx.strokeStyle = ink; ctx.strokeRect(tx, ty, tw, 38); ctx.beginPath(); ctx.moveTo(tx + 200, ty); ctx.lineTo(tx + 200, ty + 38); ctx.stroke();
-  ctx.textAlign = 'left'; ctx.fillStyle = C.fg; ctx.font = '600 11.5px ' + JH_MONO; ctx.fillText(_jhT('jh_drawing_block').toUpperCase(), tx + 10, ty + 16); ctx.fillStyle = C.muted; ctx.font = '400 11px ' + JH_MONO; ctx.fillText('1:50 · A-01', tx + 10, ty + 31);
-  ctx.fillText(jhRangeLabel(_jh.range).toUpperCase(), tx + 210, ty + 23);
+  ctx.globalAlpha = 1;
 }
 function jhHouseSub(){
   const parts = [];
@@ -491,7 +497,8 @@ function jhFitPanel(){
     if (typeof matchMedia === 'function' && !matchMedia('(min-width: 1180px)').matches){ rows.style.maxHeight = '420px'; return; }
     rows.style.maxHeight = '0px';
     const other = panel.offsetHeight;
-    rows.style.maxHeight = Math.max(170, stage.offsetHeight - other) + 'px';
+    const card = stage.closest('.jh-housecard') || stage;
+    rows.style.maxHeight = Math.max(170, card.offsetHeight - other) + 'px';
   });
 }
 function jhRowsHtml(){
@@ -575,21 +582,50 @@ function jhOnePick(id){
 /* ---------------- THE PAGE ---------------- */
 function jhBandHtml(){
   /* No facts line under the title (owner, 13 Oct 2026): the agents are counted
-     on the Jobs tab and in the house, the period and points in the panel. */
+     on the Jobs tab and in the house, the period and points in the panel.
+     THE FILTERS STAND BESIDE THE TABS (owner picked "Beside the tabs", 13 Oct
+     2026, the Contracts page's way): labelled boxes on the tab row, and only
+     the ones that change what this tab shows — the house all four, Jobs its
+     period, How points work none. */
   return `<div class="sap-band jh-band">
     <div class="jh-head"><div style="min-width:0"><h1 class="jh-t">${_jhE(_jhT('nav_jambo'))}</h1></div>
       <div class="jh-acts"><button type="button" class="ui-btn" data-jh-points>${_jhE(_jhT('jh_change_points'))}</button></div></div>
-    <div class="jh-tabs" role="tablist">${JH_TABS.map(t => `<button type="button" role="tab" class="jh-tab" data-jh-tab="${t}" aria-selected="${_jh.tab === t}">${_jhE(_jhT('jh_tab_' + t))}${t === 'jobs' ? ` <span class="jh-quiet">${agPointsKeys().length}</span>` : ''}</button>`).join('')}</div>
+    <div class="jh-tabbar"><div class="jh-tabs" role="tablist">${JH_TABS.map(t => `<button type="button" role="tab" class="jh-tab" data-jh-tab="${t}" aria-selected="${_jh.tab === t}">${_jhE(_jhT('jh_tab_' + t))}${t === 'jobs' ? ` <span class="jh-quiet">${agPointsKeys().length}</span>` : ''}</button>`).join('')}</div>${jhFiltersHtml()}</div>
   </div>`;
 }
-function jhSeg(name, label, opts, cur){
-  return `<span class="jh-lbl">${_jhE(label)}</span><span class="jh-seg" role="group" aria-label="${_jhE(label)}">${opts.map(([v, w]) => `<button type="button" data-jh-${name}="${v}" aria-pressed="${String(v) === String(cur)}">${_jhE(w)}</button>`).join('')}</span>`;
+function jhBoxSel(id, label, opts, cur){
+  return `<label class="jh-box" for="${id}"><span class="jh-box-l">${_jhE(label)}</span><select id="${id}" class="jh-box-v">${opts.map(([v, w]) => `<option value="${_jhE(String(v))}"${String(v) === String(cur) ? ' selected' : ''}>${_jhE(w)}</option>`).join('')}</select></label>`;
 }
-/* The period: four set buttons and Custom…, which opens a box for a number of days. */
-function jhRangeSegHtml(){
-  const typed = !JH_RANGES.includes(_jh.range);
-  return `${jhSeg('range', _jhT('jh_range'), JH_RANGES.map(r => [r, _jhT('jh_r_' + r)]).concat([['custom', typed ? jhRangeLabel(_jh.range) : _jhT('jh_r_custom')]]), typed ? 'custom' : _jh.range)}
-      <span class="jh-days" id="jh-days" hidden><label class="jh-lbl" for="jh-days-n">${_jhE(_jhT('jh_r_custom_last'))}</label><input id="jh-days-n" type="number" min="1" max="${JH_DAYS_MAX}" step="1" inputmode="numeric" value="${_jh.range}"><span class="jh-lbl">${_jhE(_jhT('jh_r_custom_unit'))}</span><button type="button" class="ui-btn" data-jh-days-go>${_jhE(_jhT('jh_r_custom_go'))}</button><span class="jh-days-bad" id="jh-days-bad" hidden>${_jhE(_jhT('jh_r_custom_bad', { n: JH_DAYS_MAX }))}</span></span>`;
+function jhFiltersHtml(){
+  if (_jh.tab === 'how') return '';
+  const range = `<span class="jh-rangewrap">${jhRangeSelHtml()}<span class="jh-range-wait" id="jh-range-wait" hidden>${(typeof busyHtml === 'function') ? busyHtml('') : ''}</span>${jhDaysHtml()}</span>`;
+  if (_jh.tab === 'jobs') return `<div class="jh-fb">${range}</div>`;
+  if (!_jh.data || _jh.loading) return `<div class="jh-fb">${range}</div>`;
+  return `<div class="jh-fb">${range}
+      <span class="jh-combo jh-box"><svg class="jh-combo-ic" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+        <input id="jh-one" type="text" autocomplete="off" spellcheck="false" role="combobox" aria-label="${_jhE(_jhT('jh_contract'))}" aria-expanded="false" aria-controls="jh-one-list" aria-autocomplete="list" placeholder="${_jhE(_jhT('jh_contract_ph'))}">
+        <button type="button" class="jh-combo-x" id="jh-one-x" aria-label="${_jhE(_jhT('jh_contract_all'))}" hidden>×</button>
+        <span class="jh-combo-list" id="jh-one-list" role="listbox" hidden></span></span>
+      ${jhBoxSel('jh-look', _jhT('jh_look'), [[0, _jhT('jh_look_plan')], [1, _jhT('jh_look_drawing')]], _jh.look)}
+      ${jhBoxSel('jh-speed', _jhT('jh_speed'), JH_SPEEDS.map(v => [v, _jhT('jh_sp_' + String(v).replace('.', ''))]), _jh.speed)}
+    </div>`;
+}
+/* The period: one labelled box — the four set periods, a typed one when there
+   is one, and Custom…, which opens a box for a number of days under it. */
+function jhRangeOpts(){
+  const o = JH_RANGES.map(r => [r, _jhT('jh_r_' + r)]);
+  if (!JH_RANGES.includes(_jh.range)) o.push([_jh.range, jhRangeLabel(_jh.range)]);
+  return o.concat([['custom', _jhT('jh_r_custom')]]);
+}
+function jhRangeSelHtml(){ return jhBoxSel('jh-range', _jhT('jh_range'), jhRangeOpts(), _jh.range); }
+function jhDaysHtml(){
+  return `<span class="jh-days" id="jh-days" hidden><label class="jh-lbl" for="jh-days-n">${_jhE(_jhT('jh_r_custom_last'))}</label><input id="jh-days-n" type="number" min="1" max="${JH_DAYS_MAX}" step="1" inputmode="numeric" value="${_jh.range}"><span class="jh-lbl">${_jhE(_jhT('jh_r_custom_unit'))}</span><button type="button" class="ui-btn" data-jh-days-go>${_jhE(_jhT('jh_r_custom_go'))}</button><span class="jh-days-bad" id="jh-days-bad" hidden>${_jhE(_jhT('jh_r_custom_bad', { n: JH_DAYS_MAX }))}</span></span>`;
+}
+/* The box says the period it holds, a typed one too (no flash: only its options). */
+function jhRangeSelPaint(){
+  const sel = document.getElementById('jh-range'); if (!sel) return;
+  sel.innerHTML = jhRangeOpts().map(([v, w]) => `<option value="${_jhE(String(v))}">${_jhE(w)}</option>`).join('');
+  sel.value = String(_jh.range);
 }
 function jhNotesHtml(){ const D = _jh.data || {};
   return [D.static ? _jhT('jh_static') : '', D.error ? D.error : '', D.cut ? _jhT('jh_cut', { n: _jhFmt(D.max) }) : ''].filter(Boolean).map(x => `<p class="jh-note">${_jhE(x)}</p>`).join(''); }
@@ -597,30 +633,22 @@ function jhHouseHtml(){
   const D = _jh.data;
   if (!D || _jh.loading) return `<div class="jh-body"><p class="jh-note">${(typeof busyHtml === 'function') ? busyHtml(_jhT('jh_loading')) : _jhE(_jhT('jh_loading'))}</p></div>`;
   return `<div class="jh-body">
-    <div class="jh-bar">
-      ${jhRangeSegHtml()}
-      <button type="button" class="ui-btn ui-btn-primary jh-play" data-jh-play>${_jhE(_jhT(_jh.playing ? 'jh_pause' : 'jh_play'))}</button>
-      <button type="button" class="ui-btn" data-jh-restart>${_jhE(_jhT('jh_again'))}</button>
-      <span class="jh-prog" aria-hidden="true"><i id="jh-prog"></i></span>
-    </div>
-    <div class="jh-bar">
-      <label class="jh-lbl" for="jh-one">${_jhE(_jhT('jh_contract'))}</label>
-      <span class="jh-combo"><svg class="jh-combo-ic" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
-        <input id="jh-one" type="text" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="jh-one-list" aria-autocomplete="list" placeholder="${_jhE(_jhT('jh_contract_ph'))}">
-        <button type="button" class="jh-combo-x" id="jh-one-x" aria-label="${_jhE(_jhT('jh_contract_all'))}" hidden>×</button>
-        <span class="jh-combo-list" id="jh-one-list" role="listbox" hidden></span></span>
-      <label class="jh-lbl" for="jh-look">${_jhE(_jhT('jh_look'))}</label><select id="jh-look" class="jh-sel">${[[0, 'jh_look_plan'], [1, 'jh_look_drawing']].map(([v, w]) => `<option value="${v}"${_jh.look === v ? ' selected' : ''}>${_jhE(_jhT(w))}</option>`).join('')}</select>
-      ${jhSeg('speed', _jhT('jh_speed'), JH_SPEEDS.map(v => [v, _jhT('jh_sp_' + String(v).replace('.', ''))]), _jh.speed)}
-    </div>
     <div id="jh-notes">${jhNotesHtml()}</div>
     <div class="jh-split">
       <div class="jh-left">
+        <div class="jh-housecard">
+        <div class="jh-sh">
+          <button type="button" class="ui-btn ui-btn-primary jh-play" data-jh-play>${_jhE(_jhT(_jh.playing ? 'jh_pause' : 'jh_play'))}</button>
+          <button type="button" class="ui-btn" data-jh-restart>${_jhE(_jhT('jh_again'))}</button>
+          <span class="jh-prog" aria-hidden="true"><i id="jh-prog"></i></span>
+        </div>
         <div class="jh-stage" id="jh-stage">
           <canvas id="jh-cv" width="${JH_W}" height="${_jhH}" role="img" aria-label="${_jhE(_jhT('jh_house_aria'))}"></canvas>
           <div class="jh-tip" id="jh-tip" role="tooltip" hidden></div>
-          <div class="jh-end" id="jh-end" hidden><div class="jh-end-card">${(typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 56, 'jh-end-face') : ''}
+          <div class="jh-end" id="jh-end" hidden><div class="jh-end-card" role="dialog" aria-labelledby="jh-end-t"><button type="button" class="jh-end-x" data-jh-end-x aria-label="${_jhE(_jhT('jh_end_close'))}" title="${_jhE(_jhT('jh_end_close'))}">×</button>${(typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 56, 'jh-end-face') : ''}
             <h3 id="jh-end-t"></h3><p id="jh-end-l"></p><p class="jh-quiet">${_jhE(_jhT('jh_end_hint'))}</p>
             <button type="button" class="ui-btn ui-btn-primary" data-jh-restart>${_jhE(_jhT('jh_again'))}</button></div></div>
+        </div>
         </div>
         <div class="jh-feedcard"><h4>${_jhE(_jhT('jh_feed_h'))}</h4><div class="jh-feed" id="jh-feed" aria-live="polite"></div></div>
       </div>
@@ -700,19 +728,17 @@ let _jhRangeAsk = 0;
 const jhXfEase = k => 1 - Math.pow(1 - k, 3);
 function jhXfK(){ const x = _jh.xf; if (!x) return 1; const k = Math.min(1, ((typeof performance !== 'undefined' ? performance.now() : Date.now()) - x.at) / JH_XF_MS); if (k >= 1){ _jh.xf = null; return 1; } return jhXfEase(k); }
 function jhReduced(){ try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) { return false; } }
-async function jhSetRange(d, btn){
+async function jhSetRange(d){
   if (!jhDaysOk(d)) return;
   const cv = document.getElementById('jh-cv');
   if (!cv || _jh.tab !== 'house'){ _jh.range = d; _jh.one = ''; _jh.sel = null; jhReplayFromStart(false); if (typeof placeSave === 'function') placeSave(); renderJamboHouse(); return; }
   const ask = ++_jhRangeAsk;
-  document.querySelectorAll('[data-jh-range]').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
-  const word = btn ? btn.textContent : '';
-  if (btn && typeof busySet === 'function') busySet(btn, word);
+  const wait = document.getElementById('jh-range-wait'), sel = document.getElementById('jh-range');
+  if (wait) wait.hidden = false;
   const data = (_jh.data && _jh.data.days === d && !_jh.data.error) ? _jh.data : await jhFetch(d);
   if (ask !== _jhRangeAsk || !document.getElementById('jh-cv')) return;
-  if (!data){ if (btn) btn.textContent = word; return; }
-  if (btn) btn.textContent = JH_RANGES.includes(d) ? word : jhRangeLabel(d);
-  const cb = document.querySelector('[data-jh-range="custom"]'); if (cb && cb !== btn) cb.textContent = _jhT('jh_r_custom');
+  if (wait) wait.hidden = true;
+  if (!data){ if (sel) sel.value = String(_jh.range); return; }
   /* the picture and the numbers as they stand, before anything moves */
   let img = null;
   if (!jhReduced()){ try { img = document.createElement('canvas'); img.width = cv.width; img.height = cv.height; img.getContext('2d').drawImage(cv, 0, 0); } catch (_) { img = null; } }
@@ -720,7 +746,7 @@ async function jhSetRange(d, btn){
   _jhRooms.forEach(r => { const v = agPointsTally(r.k, jhPieces(), upto0).pts; oldPts[r.k] = v; oldTotal += v; });
   _jh.range = d; _jh.data = data; _jh.one = ''; _jh.sel = null; jhReplayFromStart(false);
   if (typeof placeSave === 'function') placeSave();
-  jhRangeWordsPaint();
+  jhRangeSelPaint(); jhRangeWordsPaint();
   _jh.xf = img ? { at: (typeof performance !== 'undefined' ? performance.now() : Date.now()), img, oldPts, oldTotal } : null;
   jhFrame(typeof performance !== 'undefined' ? performance.now() : 0);
 }
@@ -747,11 +773,21 @@ function jhSetLook(v){
     .catch(e => { if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); });
 }
 function jhDaysClose(){ const box = document.getElementById('jh-days'); if (box) box.hidden = true; }
+function jhDaysOpen(){ const box = document.getElementById('jh-days'); if (!box) return; box.hidden = false;
+  const i = document.getElementById('jh-days-n'); if (i){ i.value = String(_jh.range); i.focus(); try { i.select(); } catch (_) {} } }
+/* THE END CARD CLOSES (owner, 13 Oct 2026: "an x exit button … so that you can
+   remove it from screen"): the ×, Esc, or a press beside the card; it comes
+   back only when the next replay ends. */
+function jhEndClose(){ const e = document.getElementById('jh-end'); if (e) e.hidden = true; }
+if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || typeof state === 'undefined' || state.view !== 'jambo') return;
+  const end = document.getElementById('jh-end'); if (end && !end.hidden){ end.hidden = true; e.preventDefault(); }
+});
 function jhDaysGo(){
   const i = document.getElementById('jh-days-n'), bad = document.getElementById('jh-days-bad'); if (!i) return;
   const d = Number(String(i.value).trim()), ok = jhDaysOk(d);
   i.setAttribute('aria-invalid', String(!ok)); if (bad) bad.hidden = ok; if (!ok) return;
-  jhDaysClose(); jhSetRange(d, document.querySelector('[data-jh-range="custom"]'));
+  jhDaysClose(); jhSetRange(d);
 }
 function jhRepaint(){ if (typeof state !== 'undefined' && state.view === 'jambo') renderJamboHouse(); }
 function jhReplayFromStart(play){
@@ -765,14 +801,11 @@ function jhWire(host){
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
     let el;
     if ((el = t.closest('[data-jh-tab]'))){ _jh.tab = el.getAttribute('data-jh-tab'); if (typeof placeSave === 'function') placeSave(); renderJamboHouse(); return; }
-    if (!t.closest('#jh-days') && !t.closest('[data-jh-range="custom"]')) jhDaysClose();
+    if (!t.closest('#jh-days') && !t.closest('#jh-range')) jhDaysClose();
+    if (t.closest('[data-jh-end-x]')){ jhEndClose(); return; }
     if (t.closest('[data-jh-points]')){ jhOpenPoints(); return; }
-    if ((el = t.closest('[data-jh-range]'))){ const v = el.getAttribute('data-jh-range');
-      if (v === 'custom'){ const box = document.getElementById('jh-days'); if (box){ const open = box.hidden; box.hidden = !open; if (open){ const i = document.getElementById('jh-days-n'); if (i){ i.focus(); try { i.select(); } catch (_) {} } } } return; }
-      jhDaysClose(); jhSetRange(Number(v) || 30, el); return; }
+    if (t.closest('.jh-end') && !t.closest('.jh-end-card')){ jhEndClose(); return; }
     if (t.closest('[data-jh-days-go]')){ jhDaysGo(); return; }
-    if ((el = t.closest('[data-jh-speed]'))){ _jh.speed = Number(el.getAttribute('data-jh-speed')) || 1;
-      host.querySelectorAll('[data-jh-speed]').forEach(b => b.setAttribute('aria-pressed', String(b === el))); if (typeof placeSave === 'function') placeSave(); return; }
     if (t.closest('[data-jh-play]')){ if (_jh.playing){ _jh.playing = false; } else { if (_jh.t >= 1){ jhReplayFromStart(true); jhFeedFill(); } else _jh.playing = true; _jh.last = 0; } jhSetPlayWord(); jhKick(); return; }
     if (t.closest('[data-jh-restart]')){ jhReplayFromStart(true); jhFeedFill(); jhSetPlayWord(); jhKick(); return; }
     if ((el = t.closest('[data-jh-agent]'))){ const k = el.getAttribute('data-jh-agent'); _jh.sel = _jh.sel === k ? null : k; _jhScKey = '';
@@ -783,7 +816,12 @@ function jhWire(host){
   host.addEventListener('pointerdown', e => { const b = e.target && e.target.closest && e.target.closest('[data-jh-one]'); if (b){ e.preventDefault(); jhOnePick(b.getAttribute('data-jh-one')); } });
   host.addEventListener('focusin', e => { if (e.target && e.target.id === 'jh-one'){ try { e.target.select(); } catch (_) {} _jhOneAct = 0; jhOnePaintList(); } });
   host.addEventListener('focusout', e => { if (e.target && e.target.id === 'jh-one') setTimeout(jhOneShow, 0); });
-  host.addEventListener('change', e => { if (e.target && e.target.id === 'jh-look') jhSetLook(Number(e.target.value) === 1 ? 1 : 0); });
+  host.addEventListener('change', e => { const id = e.target && e.target.id;
+    if (id === 'jh-look') jhSetLook(Number(e.target.value) === 1 ? 1 : 0);
+    else if (id === 'jh-speed'){ const v = Number(e.target.value); if (JH_SPEEDS.includes(v)){ _jh.speed = v; if (typeof placeSave === 'function') placeSave(); } }
+    else if (id === 'jh-range'){ const v = e.target.value;
+      if (v === 'custom'){ e.target.value = String(_jh.range); jhDaysOpen(); return; }
+      jhDaysClose(); jhSetRange(Number(v) || 30); } });
   host.addEventListener('input', e => { if (e.target && e.target.id === 'jh-one'){ _jhOneAct = 0; jhOnePaintList(); } });
   host.addEventListener('keydown', e => {
     if (e.target && e.target.id === 'jh-days-n'){ if (e.key === 'Enter'){ e.preventDefault(); jhDaysGo(); } else if (e.key === 'Escape'){ e.preventDefault(); jhDaysClose(); } return; }
@@ -926,30 +964,36 @@ const JH_CSS = `
   .jh-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s-3);flex-wrap:wrap}
   .jh-t{margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;line-height:1.2;color:var(--color-text)}
   .jh-acts{display:flex;align-items:center;gap:var(--s-2);flex:none}
-  .jh-tabs{display:flex;gap:4px;overflow-x:auto}
+  .jh-tabbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0 var(--s-4)}
+  .jh-tabs{display:flex;gap:4px;overflow-x:auto;flex:0 1 auto;min-width:0}
+  .jh-fb{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:var(--s-2);margin-left:auto;padding:var(--s-1) 0}
+  .jh-box{display:inline-flex;align-items:center;height:var(--ctl-h,32px);box-sizing:border-box;padding:0 0 0 var(--s-2);border:1px solid var(--chip-edge,var(--color-divider));border-radius:var(--radius);background:var(--color-surface);cursor:pointer;min-width:0}
+  .jh-box:hover{border-color:var(--color-neutral-400)}
+  .jh-box:focus-within{border-color:var(--color-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--color-accent) 25%,transparent)}
+  .jh-box-l{color:var(--color-neutral-600);white-space:nowrap;margin-right:4px}
+  .jh-box-l::after{content:":"}
+  .jh-box-v{border:0;background:none;font:inherit;color:var(--color-text);font-weight:var(--w-label);height:100%;padding:0 6px 0 0;cursor:pointer;outline:none;max-width:200px}
+  .jh-rangewrap{position:relative;display:inline-flex;align-items:center;gap:6px}
+  .jh-range-wait[hidden]{display:none}
+  .jh-rangewrap .jh-days{position:absolute;z-index:31;top:calc(100% + 4px);left:0;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-pop,0 14px 32px -12px rgba(0,0,0,.25));padding:8px 10px;white-space:nowrap;flex-wrap:wrap;max-width:min(420px,calc(100vw - 32px))}
+  .jh-rangewrap .jh-days[hidden]{display:none}
   .jh-tab{border:0;background:none;padding:9px 12px;cursor:pointer;border-bottom:2px solid transparent;color:var(--color-neutral-600);font:inherit;font-weight:var(--w-label);white-space:nowrap}
   .jh-tab[aria-selected="true"]{color:var(--color-accent);border-bottom-color:var(--color-accent)}
   .jh-quiet{color:var(--color-neutral-600);font-weight:400}
   .jh-body{padding:var(--s-4) 0 var(--s-6);display:flex;flex-direction:column;gap:var(--s-3);min-width:0}
-  .jh-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:8px 12px}
   .jh-lbl{font-size:var(--t-label);color:var(--color-neutral-600)}
-  .jh-seg{display:inline-flex;border:1px solid var(--btn-edge,var(--color-divider));border-radius:var(--radius);overflow:hidden}
-  .jh-seg button{border:0;background:none;padding:0 11px;height:var(--ctl-h-sm,28px);cursor:pointer;font:inherit;color:var(--color-text);border-left:1px solid var(--color-divider);white-space:nowrap}
-  .jh-seg button:first-child{border-left:0}
-  .jh-sel{height:var(--ctl-h-sm,28px);font:inherit;padding:0 8px;border:1px solid var(--btn-edge,var(--color-divider));border-radius:var(--radius);background:var(--color-surface);color:var(--color-text);cursor:pointer}
   .jh-days{display:inline-flex;align-items:center;gap:6px}
   .jh-days input{width:64px;height:var(--ctl-h-sm,28px);font:inherit;padding:0 6px;border:1px solid var(--btn-edge,var(--color-divider));border-radius:var(--radius);background:var(--color-surface);color:var(--color-text);font-variant-numeric:tabular-nums}
   .jh-days input[aria-invalid="true"]{border-color:var(--color-danger,#b42318)}
   .jh-days-bad{font-size:12px;color:var(--color-danger,#b42318)}
-  .jh-seg button[aria-pressed="true"]{background:var(--color-accent-50);color:var(--color-accent);font-weight:var(--w-label)}
   .jh-play{min-width:84px}
   .jh-prog{flex:1 1 140px;height:6px;border-radius:3px;background:var(--color-divider);overflow:hidden;min-width:90px}
   .jh-prog i{display:block;height:100%;width:0;background:var(--st-amber-dot)}
   .jh-note{margin:0;font-size:var(--t-label);color:var(--color-neutral-600)}
-  .jh-combo{position:relative;flex:0 1 320px;min-width:min(240px,100%)}
-  .jh-combo input{width:100%;box-sizing:border-box;font:inherit;border:1px solid var(--field-line,var(--color-divider));border-radius:var(--radius);height:var(--ctl-h-sm,28px);padding:0 28px 0 30px;background:var(--color-surface);color:var(--color-text)}
-  .jh-combo input:focus{outline:none;border-color:var(--color-accent)}
-  .jh-combo input.has{border-color:var(--color-accent);font-weight:var(--w-label)}
+  .jh-combo{position:relative;flex:none;width:250px;max-width:100%;padding:0;cursor:text}
+  .jh-combo input{width:100%;height:100%;box-sizing:border-box;font:inherit;border:0;border-radius:var(--radius);padding:0 28px 0 30px;background:none;color:var(--color-text);outline:none}
+  .jh-combo:has(input.has){border-color:var(--color-accent)}
+  .jh-combo input.has{font-weight:var(--w-label)}
   .jh-combo-ic{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--color-neutral-600);pointer-events:none}
   .jh-combo-x{position:absolute;right:3px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--color-neutral-600);font-size:17px;line-height:1;width:22px;height:22px;border-radius:var(--radius);cursor:pointer}
   .jh-combo-x:hover{background:var(--color-neutral-100);color:var(--color-text)}
@@ -965,7 +1009,9 @@ const JH_CSS = `
   .jh-split{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:var(--s-3);align-items:start}
   @media (max-width:1179px){.jh-split{grid-template-columns:minmax(0,1fr)}}
   .jh-left{display:flex;flex-direction:column;gap:var(--s-3);min-width:0}
-  .jh-stage{position:relative;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden;min-width:0}
+  .jh-housecard{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden;min-width:0}
+  .jh-sh{display:flex;align-items:center;gap:8px 10px;padding:8px 12px;border-bottom:1px solid var(--color-divider)}
+  .jh-stage{position:relative;background:var(--color-surface);overflow:hidden;min-width:0}
   .jh-stage canvas{display:block;width:100%;height:auto}
   .jh-tip{position:absolute;z-index:5;width:310px;max-width:calc(100% - 16px);background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:12px 14px;box-shadow:var(--shadow-pop,0 14px 34px -12px rgba(0,0,0,.25));font-size:var(--t-meta);pointer-events:none}
   .jh-tip p{margin:6px 0;color:var(--color-neutral-600)}
@@ -977,10 +1023,12 @@ const JH_CSS = `
   .jh-sum span{display:block;font-weight:400;color:var(--color-neutral-600);font-size:11px;margin-top:2px}
   .jh-end{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--color-bg) 70%,transparent)}
   .jh-end[hidden]{display:none}
-  .jh-end-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:20px 24px;text-align:center;max-width:340px;box-shadow:var(--shadow-pop,0 18px 40px -14px rgba(0,0,0,.25))}
+  .jh-end-card{position:relative;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:20px 24px;text-align:center;max-width:340px;box-shadow:var(--shadow-pop,0 18px 40px -14px rgba(0,0,0,.25))}
   .jh-end-card h3{font-size:22px;font-weight:var(--w-title);margin:6px 0 2px}
   .jh-end-card p{margin:4px 0 10px;color:var(--color-neutral-600)}
   .jh-end-face{border-radius:50%}
+  .jh-end-x{position:absolute;top:8px;right:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:1px solid transparent;border-radius:var(--radius);background:none;color:var(--color-neutral-600);font-size:20px;line-height:1;cursor:pointer}
+  .jh-end-x:hover{border-color:var(--color-divider);color:var(--color-text);background:var(--color-neutral-100)}
   .jh-feedcard{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:12px 14px}
   .jh-feedcard h4{margin:0 0 6px;font-size:var(--t-meta);font-weight:var(--w-strong)}
   .jh-feed{display:flex;flex-direction:column;gap:4px;max-height:150px;overflow:auto;font-size:var(--t-label)}
@@ -1034,4 +1082,4 @@ const JH_CSS = `
 try { if (typeof jamboFacePaint === 'function') jamboFacePaint(); } catch (_) {}
 
 Object.assign(window, { AG_POINTS_LAUNCH, AG_POINTS_START_MINS, AG_POINTS_NEW_MINS, AG_POINTS_FIELDS, agPointsKeys, agPointsStart, agPointsCompany, agPointsMine, agPointsOf,
-  agPointsIsNew, agPointsEach, agPointsTally, agPointsSumLine, agPieceSay, agPointsTableHtml, agPointsWire, renderJamboHouse, jhRepaint, jhPlace, jhPlacePut, jhLayout, jhRoomAt, jhFloorCounts, jhGeom });
+  agPointsIsNew, agPointsEach, agPointsTally, agPointsSumLine, agPieceSay, agPointsTableHtml, agPointsWire, renderJamboHouse, jhRepaint, jhPlace, jhPlacePut, jhLayout, jhRoomAt, jhFloorCounts, jhGeom, jhFinish });
