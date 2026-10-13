@@ -14,7 +14,8 @@
        lands back on the page with the same total
      4 the contract typed by its number: the list narrows as you type, Enter
        takes the top match, and the total is that contract's alone; × widens it
-     5 the architect's drawing is the same house, drawn taller (roof, title block)
+     5 the architect's drawing is the same house, drawn taller (roof, title block);
+       the Look is a dropdown whose choice is the person's default (owner, 13 Oct 2026)
      6 the speed is a pressed choice, and Play moves the replay
      7 Settings → Jambo's agents carries one points row per agent; a box left
        is saved for everyone, and the house counts with it
@@ -125,10 +126,23 @@ const CONTRACTS = [
     await page.keyboard.press('Escape');
 
     console.log('\n5 · the architect\'s drawing');
-    await page.click('[data-jh-look="1"]');
+    await page.evaluate(() => { document.querySelector('.jh-page').dataset.mark5 = 'same'; });
+    await page.selectOption('#jh-look', '1', { timeout: 3000 }).catch(() => {});
+    await page.waitForFunction(() => document.getElementById('jh-cv').height !== 70 + Math.ceil(AG_KEYS.length / 3) * 132 + 16, null, { timeout: 4000 }).catch(() => {});
     const dh = await page.evaluate(() => document.getElementById('jh-cv').height);
     ok('5a the same house, drawn taller for its roof and title block', dh === 128 + floors * 132 + 104, String(dh));
-    await page.click('[data-jh-look="0"]');
+    ok('5b the Look is one dropdown, and changing it redraws in place (no rebuild)', await page.evaluate(() => !document.querySelector('[data-jh-look]') && document.querySelector('.jh-page').dataset.mark5 === 'same'));
+    await page.waitForFunction(() => window.REMOTE && REMOTE.me && REMOTE.me.prefs && REMOTE.me.prefs.agentsLook === 'drawing', null, { timeout: 4000 }).catch(() => {});
+    const noPlace = await page.evaluate(() => !('look' in jhPlace()));
+    await page.evaluate(() => setView('dashboard'));
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForFunction(() => typeof setView === 'function' && state.contracts && state.contracts.length === 5, null, { timeout: 15000 }).catch(() => {});
+    await page.evaluate(() => setView('jambo'));
+    await page.waitForFunction(() => !!document.getElementById('jh-look') && !!document.getElementById('jh-cv'), null, { timeout: 8000 }).catch(() => {});
+    const kept5 = await page.evaluate(() => ({ v: state.view, sel: (document.getElementById('jh-look') || {}).value, h: (document.getElementById('jh-cv') || {}).height }));
+    ok('5c the choice is this person\'s default: a fresh visit opens on it, kept in their account (not the browser\'s place)', noPlace && kept5.sel === '1' && kept5.h === dh, JSON.stringify(kept5) + ' noPlace=' + noPlace);
+    await page.selectOption('#jh-look', '0', { timeout: 3000 }).catch(() => {});
+    await page.waitForFunction(() => window.REMOTE && REMOTE.me && REMOTE.me.prefs && REMOTE.me.prefs.agentsLook === 'plan', null, { timeout: 4000 }).catch(() => {});
 
     console.log('\n6 · speed and play');
     await page.click('[data-jh-speed="4"]');

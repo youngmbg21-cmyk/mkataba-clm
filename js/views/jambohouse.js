@@ -47,6 +47,13 @@ const JH_RANGES = [1, 7, 30, 90];
 /* A TYPED PERIOD (owner, 13 Oct 2026): any whole number of days up to the
    ledger's own reach — the server's AGENT_PIECES_DAYS_MAX says the same 120. */
 const JH_DAYS_MAX = 120;
+/* THE LOOK IS A PERSON'S DEFAULT (owner, 13 Oct 2026): one dropdown; the
+   choice is kept in their own preferences (PUT /api/me/prefs agentsLook), so it
+   follows them to any computer and the house opens on it next time. Without a
+   server (static mode) the browser's place store keeps it instead. */
+const JH_LOOKS = ['plan', 'drawing'];
+function jhLookPref(){ try { const v = window.REMOTE && REMOTE.me && REMOTE.me.prefs && REMOTE.me.prefs.agentsLook; const i = JH_LOOKS.indexOf(v); return i < 0 ? null : i; } catch (_) { return null; } }
+const jhServerKeeps = () => typeof API_MODE === 'function' && API_MODE() && typeof api === 'function';
 const jhDaysOk = d => Number.isInteger(d) && d >= 1 && d <= JH_DAYS_MAX;
 const jhRangeLabel = r => JH_RANGES.includes(r) ? _jhT('jh_r_' + r) : _jhTn('jh_r_days', r, { n: r });
 const JH_SPEEDS = [0.5, 1, 2, 4];
@@ -130,12 +137,12 @@ function agPieceSay(agent, contractId, outcome, ref){
 
 /* ---------------- THE PAGE'S STATE (per sitting) ---------------- */
 const _jh = { tab: 'house', range: 30, look: 0, speed: 1, one: '', sel: null, data: null, loading: false, t: 1, playing: false, last: 0, raf: 0, pops: [], trails: [], lastPos: [], hover: null, fed: [] };
-function jhPlace(){ return { tab: _jh.tab, range: _jh.range, look: _jh.look, speed: _jh.speed }; }
+function jhPlace(){ const p = { tab: _jh.tab, range: _jh.range, speed: _jh.speed }; if (!jhServerKeeps()) p.look = _jh.look; return p; }
 function jhPlacePut(p){
   if (!p || typeof p !== 'object') return;
   if (JH_TABS.includes(p.tab)) _jh.tab = p.tab;
   if (jhDaysOk(Number(p.range))) _jh.range = Number(p.range);
-  if (p.look === 0 || p.look === 1) _jh.look = p.look;
+  if ((p.look === 0 || p.look === 1) && !jhServerKeeps()) _jh.look = p.look;
   if (JH_SPEEDS.includes(Number(p.speed))) _jh.speed = Number(p.speed);
 }
 const jhRangeWords = () => _jh.range === 1 ? _jhT('jh_r_1') : _jhT('jh_last_n', { r: jhRangeLabel(_jh.range) });
@@ -554,7 +561,7 @@ function jhHouseHtml(){
         <input id="jh-one" type="text" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="jh-one-list" aria-autocomplete="list" placeholder="${_jhE(_jhT('jh_contract_ph'))}">
         <button type="button" class="jh-combo-x" id="jh-one-x" aria-label="${_jhE(_jhT('jh_contract_all'))}" hidden>×</button>
         <span class="jh-combo-list" id="jh-one-list" role="listbox" hidden></span></span>
-      ${jhSeg('look', _jhT('jh_look'), [[0, _jhT('jh_look_plan')], [1, _jhT('jh_look_drawing')]], _jh.look)}
+      <label class="jh-lbl" for="jh-look">${_jhE(_jhT('jh_look'))}</label><select id="jh-look" class="jh-sel">${[[0, 'jh_look_plan'], [1, 'jh_look_drawing']].map(([v, w]) => `<option value="${v}"${_jh.look === v ? ' selected' : ''}>${_jhE(_jhT(w))}</option>`).join('')}</select>
       ${jhSeg('speed', _jhT('jh_speed'), JH_SPEEDS.map(v => [v, _jhT('jh_sp_' + String(v).replace('.', ''))]), _jh.speed)}
     </div>
     <div id="jh-notes">${jhNotesHtml()}</div>
@@ -616,7 +623,7 @@ function renderJamboHouse(){
   if (typeof cancelAnimationFrame === 'function' && _jh.raf){ cancelAnimationFrame(_jh.raf); _jh.raf = 0; }
   /* ARRIVING IS AT REST: a replay paused on the way out is not where the page
      opens next time — it opens on the whole period's totals, still. */
-  if (!document.querySelector('.jh-page')) jhReplayFromStart(false);
+  if (!document.querySelector('.jh-page')){ jhReplayFromStart(false); const lp = jhLookPref(); if (lp !== null && jhServerKeeps()) _jh.look = lp; }
   jhColors(); jhLayout(); _jhRooms.forEach(jhSimulate);
   if (!_jh.data || _jh.data.days !== _jh.range){
     if (!_jh.loading) jhLoad().then(() => { if (typeof state !== 'undefined' && state.view === 'jambo') renderJamboHouse(); });
@@ -676,6 +683,19 @@ function jhRangeWordsPaint(){
   const end = document.getElementById('jh-end'); if (end) end.hidden = true;
   jhSetPlayWord(); jhFeedFill(); _jhScKey = '';
 }
+/* A new look redraws the house in place (no rebuild, so no flash) and becomes
+   this person's default. */
+function jhSetLook(v){
+  if (v === _jh.look) return;
+  _jh.look = v; _jh.trails = [];
+  const cv = document.getElementById('jh-cv'), tip = document.getElementById('jh-tip'); if (tip) tip.hidden = true;
+  jhLayout(); _jhRooms.forEach(jhSimulate);
+  if (cv){ if (cv.height !== _jhH) cv.height = _jhH; jhFitPanel(); jhFrame(typeof performance !== 'undefined' ? performance.now() : 0); } else jhRepaint();
+  if (typeof placeSave === 'function') placeSave();
+  if (jhServerKeeps()) api('me/prefs', 'PUT', { agentsLook: JH_LOOKS[v] })
+    .then(r => { if (window.REMOTE && REMOTE.me && r && r.prefs) REMOTE.me.prefs = r.prefs; })
+    .catch(e => { if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); });
+}
 function jhDaysClose(){ const box = document.getElementById('jh-days'); if (box) box.hidden = true; }
 function jhDaysGo(){
   const i = document.getElementById('jh-days-n'), bad = document.getElementById('jh-days-bad'); if (!i) return;
@@ -701,7 +721,6 @@ function jhWire(host){
       if (v === 'custom'){ const box = document.getElementById('jh-days'); if (box){ const open = box.hidden; box.hidden = !open; if (open){ const i = document.getElementById('jh-days-n'); if (i){ i.focus(); try { i.select(); } catch (_) {} } } } return; }
       jhDaysClose(); jhSetRange(Number(v) || 30, el); return; }
     if (t.closest('[data-jh-days-go]')){ jhDaysGo(); return; }
-    if ((el = t.closest('[data-jh-look]'))){ _jh.look = Number(el.getAttribute('data-jh-look')) === 1 ? 1 : 0; _jh.trails = []; if (typeof placeSave === 'function') placeSave(); renderJamboHouse(); return; }
     if ((el = t.closest('[data-jh-speed]'))){ _jh.speed = Number(el.getAttribute('data-jh-speed')) || 1;
       host.querySelectorAll('[data-jh-speed]').forEach(b => b.setAttribute('aria-pressed', String(b === el))); if (typeof placeSave === 'function') placeSave(); return; }
     if (t.closest('[data-jh-play]')){ if (_jh.playing){ _jh.playing = false; } else { if (_jh.t >= 1){ jhReplayFromStart(true); jhFeedFill(); } else _jh.playing = true; _jh.last = 0; } jhSetPlayWord(); jhKick(); return; }
@@ -714,6 +733,7 @@ function jhWire(host){
   host.addEventListener('pointerdown', e => { const b = e.target && e.target.closest && e.target.closest('[data-jh-one]'); if (b){ e.preventDefault(); jhOnePick(b.getAttribute('data-jh-one')); } });
   host.addEventListener('focusin', e => { if (e.target && e.target.id === 'jh-one'){ try { e.target.select(); } catch (_) {} _jhOneAct = 0; jhOnePaintList(); } });
   host.addEventListener('focusout', e => { if (e.target && e.target.id === 'jh-one') setTimeout(jhOneShow, 0); });
+  host.addEventListener('change', e => { if (e.target && e.target.id === 'jh-look') jhSetLook(Number(e.target.value) === 1 ? 1 : 0); });
   host.addEventListener('input', e => { if (e.target && e.target.id === 'jh-one'){ _jhOneAct = 0; jhOnePaintList(); } });
   host.addEventListener('keydown', e => {
     if (e.target && e.target.id === 'jh-days-n'){ if (e.key === 'Enter'){ e.preventDefault(); jhDaysGo(); } else if (e.key === 'Escape'){ e.preventDefault(); jhDaysClose(); } return; }
@@ -866,6 +886,7 @@ const JH_CSS = `
   .jh-seg{display:inline-flex;border:1px solid var(--btn-edge,var(--color-divider));border-radius:var(--radius);overflow:hidden}
   .jh-seg button{border:0;background:none;padding:0 11px;height:var(--ctl-h-sm,28px);cursor:pointer;font:inherit;color:var(--color-text);border-left:1px solid var(--color-divider);white-space:nowrap}
   .jh-seg button:first-child{border-left:0}
+  .jh-sel{height:var(--ctl-h-sm,28px);font:inherit;padding:0 8px;border:1px solid var(--btn-edge,var(--color-divider));border-radius:var(--radius);background:var(--color-surface);color:var(--color-text);cursor:pointer}
   .jh-days{display:inline-flex;align-items:center;gap:6px}
   .jh-days input{width:64px;height:var(--ctl-h-sm,28px);font:inherit;padding:0 6px;border:1px solid var(--btn-edge,var(--color-divider));border-radius:var(--radius);background:var(--color-surface);color:var(--color-text);font-variant-numeric:tabular-nums}
   .jh-days input[aria-invalid="true"]{border-color:var(--color-danger,#b42318)}
