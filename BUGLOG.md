@@ -20717,3 +20717,6 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Home's Document strip reads "Software as a Service Agreement · — · Drafting": the counterparty's name is missing.
 - The clause-number track down the paper's margin lists "3", "7.3", "47.1" after "33.2", out of order.
 - Negotiate's "Progress · 0 of 5 decided" counts our own unsent drafts as things to decide.
+
+### Noticed, not fixed (13 Oct 2026, Ask Jambo from the deep dive)
+- Home's Jambo panel answers a question put in its box by `intelAskReady` (a "readied" ask) through `intelChatAsk`, the whole-book chat, so it does not know the contract on the paper ("I still need to know which contract you're referring to", with "Ask about MK-457…" in the box). The deep dive's Ask Jambo now goes to the edit room; other readied asks on Home still take this path.
