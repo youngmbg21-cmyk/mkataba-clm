@@ -132,7 +132,10 @@ describe('f345 (3) the card is the existing door\'s own form, and this file mint
     assert.match(tf, /if\(ho && ho\.host\)\{[\s\S]*?return \{ create, skip, count \};/);
     assert.match(tf, /getElementById\('tf-create'\)\.addEventListener\('click',create\)/);
     const wm = region(WZ, 'wizardFormMount');
-    assert.match(wm, /return \{ create:\(\)=>createFromWizard\(tid, vars\), skip:\(\)=>createFromWizard\(tid, vars, \{skip:true\}\), count:vars\.length\+1, vars \};/);
+    /* RE-POINTED 13 Oct 2026 (THEIR CONTACT, ASKED BESIDE THEIR EMAIL): the
+       card asks their contact beside their email, so it counts two boxes past
+       the template's own questions, not one. */
+    assert.match(wm, /return \{ create:\(\)=>createFromWizard\(tid, vars\), skip:\(\)=>createFromWizard\(tid, vars, \{skip:true\}\), count:vars\.length\+2, vars \};/);
     assert.match(TL, /function tplLibNewContract\(id, prefill, ho\)[\s\S]{0,600}return openContractEssentials\(\{ \.\.\.\(ho \|\| \{\}\),/);
   });
   test('the answer step and the card draw the question box from ONE renderer', () => {

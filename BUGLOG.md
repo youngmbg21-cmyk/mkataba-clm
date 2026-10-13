@@ -20715,3 +20715,7 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 
 ## Noticed, not fixed — 13 Oct 2026 (the four failing node tests)
 - test/chromium/sent-means-sent-verify.js is red on main (browser shard 3/4, runs 2923–2929): "ON Send all: asks once, naming what travels", "the round reached them and the move is theirs — owner", "it left Drafting — Draft". Not touched while fixing the four node failures (f399 1b, f412 3l, f413 7d, f541 E).
+
+## Noticed, not fixed (13 Oct 2026, evening — while driving the phase-1 PRs)
+- explorer-magnitude-verify check 4a2 failed once on PR #263 (4092327) and passed on the other runs of the same code; a timing flake, not a code fault. Left alone (scope).
+- backfill-has-a-door-verify failed once at its line-128 check (clicking away ends the run) on PR #262 (a37c77a); its sibling run on the same code passed. The check reads the dialog after a fixed 800 ms pause instead of waiting for the state, against the house rule "a wait asks for the state, bounded". Left alone (scope).
