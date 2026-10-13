@@ -224,9 +224,11 @@ describe('f337 (3) — the seat switch fill reaches the edge', () => {
    ══════════════════════════════════════════════════════════════════════════ */
 describe('f337 (4) — the head\'s Focus button is live on both pages', () => {
   test('the button is drawn by ONE builder, for both shells', () => {
-    /* CONTROL — this is what made the fault possible and it is still true. */
-    assert.match(NEGO, /class="ui-btn rl-focus-door" data-ws-focus/,
-      'roomHeadHtml draws it, so every page that draws the head draws it');
+    /* RE-POINTED 13 Oct 2026: the owner deleted the negotiate row's Focus
+       button; Focus stays one press away on the More menu's row (headAct
+       'ws-focus' below), and nothing draws a dead copy */
+    assert.ok(!/class="ui-btn rl-focus-door" data-ws-focus/.test(NEGO),
+      'the negotiate row draws no Focus button');
   });
   test('the negotiate page answers the ATTRIBUTE, not just the menu row\'s id', () => {
     /* THE FAULT: `headAct` looks controls up by ID, and #ws-focus is the MENU

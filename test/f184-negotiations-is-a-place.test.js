@@ -214,8 +214,12 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
     assert.ok(!b.$('[data-rl-live-list]'), 'and "All negotiations" is gone');
     const row = b.$('.redline-page .rl-tabrow');
     assert.ok(row.contains(door), 'it is on the control row');
+    /* RE-POINTED 13 Oct 2026 (owner): Open workspace stands just before it, and
+       Internal | Counterparty now ends the row */
     const acts = [...b.$('.redline-page .rl-actions').children];
-    assert.equal(acts[acts.length - 1], door, 'and it ends the row');
+    const at = acts.indexOf(door);
+    assert.ok(at > 0 && acts[at - 1].hasAttribute('data-rl-open-ws'), 'Open workspace stands just before it');
+    assert.ok(acts[acts.length - 1].classList.contains('rl-segwrap'), 'and Internal | Counterparty ends the row');
     assert.match(door.textContent, /Open document/);
   });
 

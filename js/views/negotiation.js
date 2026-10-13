@@ -10523,8 +10523,8 @@ function renderRedline(){
                    data-ws-focus, so the ONE handler this page binds for the
                    More menu's row answers it and rlPaintFocusBtn paints its
                    state; the head's square is gone on both heads. */}
-            <button type="button" class="ui-btn rl-focus-door" data-ws-focus aria-pressed="false"
-              title="${_nea(i18t('ct_focus_mode'))}" aria-label="${_nea(i18t('ct_focus_mode'))}">${window.icon ? icon('scan','w-3.5 h-3.5') : ''}${_ne(i18t('ct_focus_word'))}</button>
+            ${''/* THE FOCUS BUTTON IS GONE from this row (owner, 13 Oct 2026); the
+                   More menu's Focus row is untouched */}
             ${''/* EDIT CLAUSE, RIGHT OF FOCUS (Young, 9 Oct 2026: "you should not
                    have the ability to edit a paper unless you are in the edit
                    room … there should be a button or door available to bring
@@ -10540,8 +10540,7 @@ function renderRedline(){
                    saying the same word twice; the mockup's own toggle reads
                    Internal | Counterparty, and the group carries the sentence
                    that says what it switches. */}
-            ${_rvPosture ? '' : `<div class="rl-segwrap" role="group" aria-label="${_nea(i18t('ng_view_group'))}"
-              title="${_nea(i18t('ng_view_group'))}">${seg('owner', i18t('ng_internal_view'))}${seg('counterparty', i18t('ng_counterparty_view'))}</div>`}
+            ${''/* INTERNAL | COUNTERPARTY MOVED TO THE END of the row (owner, 13 Oct 2026) */}
             ${''/* ---- AND THE ONE ACT, AT THE FAR RIGHT ----
                    Where Open Negotiate sits on the Document tab, drawn the same
                    way: filled, because it is what this page is for.
@@ -10585,8 +10584,12 @@ function renderRedline(){
         }${''/* ---- "OPEN DOCUMENT" TAKES THE PLACE OF "ALL NEGOTIATIONS" (owner,
                10 Oct 2026) ---- the way back to this contract's Document tab,
                now that the arrow left the name row. The list of negotiations
-               is still the sidebar's door. */}<button type="button" data-rl-open-doc class="rl-livelist"
+               is still the sidebar's door. */}${''/* OPEN WORKSPACE, JUST BEFORE OPEN DOCUMENT (owner,
+               13 Oct 2026): this contract's workspace, the room */}<button type="button" data-rl-open-ws class="rl-livelist"
+            title="${_nea(i18t('ng_open_ws'))}"><span class="rl-word">${i18t('ng_open_ws')}</span></button><button type="button" data-rl-open-doc class="rl-livelist"
             title="${_nea(i18t('ct_open_document'))}"><span class="rl-word">${i18t('ct_open_document')}</span></button>
+            ${_rvPosture ? '' : `<div class="rl-segwrap" role="group" aria-label="${_nea(i18t('ng_view_group'))}"
+              title="${_nea(i18t('ng_view_group'))}">${seg('owner', i18t('ng_internal_view'))}${seg('counterparty', i18t('ng_counterparty_view'))}</div>`}
           </div>
         </section>
       </div>
@@ -10646,6 +10649,13 @@ function renderRedline(){
   /* THE WAY BACK TO THE OTHER NEGOTIATIONS — the sidebar's own door, told to
      land on the list rather than to reopen what is remembered (which is this
      page). One route, one argument; see openNegotiations. */
+  host.querySelectorAll('[data-rl-open-ws]').forEach(el =>
+    el.addEventListener('click', () => {
+      const c = (typeof redlineHeldId === 'function' && window.getContract) ? getContract(redlineHeldId()) : null;
+      if (!c || typeof openWorkspace !== 'function') return;
+      rlResetFocus();   /* leaving Negotiate leaves Focus behind, as every other way out does */
+      openWorkspace(c.id);
+    }));
   host.querySelectorAll('[data-rl-open-doc]').forEach(el =>
     el.addEventListener('click', () => {
       const c = (typeof redlineHeldId === 'function' && window.getContract) ? getContract(redlineHeldId()) : null;

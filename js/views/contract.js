@@ -10420,8 +10420,11 @@ function roomChecksHtml(c){
      wireRoomChecks KEEPS ITS `playbook` BRANCH: nothing drawn carries that
      kind today, and it is three lines that make a returning shield work with
      no other change. Said out loud rather than quietly deleted. */
-  const rows=[['oblig','calendar','ob_obligations'],
-              ['risk','readpaper','ct_copilot_risk_scan']];
+  /* THE OBLIGATIONS AND RISK SCAN SQUARES ARE GONE (owner, 13 Oct 2026: "delete
+     the focus, obligations and risk scan buttons"); the Notes door stays.
+     Obligations live on Home's panel and their page, risks in the Redlines
+     column. wireRoomChecks keeps its branches, inert. */
+  const rows=[];
   return `<div class="room-checks">${roomChatDoorHtml()}${rows.map(([kind,ic,key])=>{
     let v=null; try{ v=checkVerdict(c,kind); }catch(_){}
     const editable=may&&(kind==='oblig'||c.status!=='Signed');

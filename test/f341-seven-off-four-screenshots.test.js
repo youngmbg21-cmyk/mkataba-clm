@@ -128,10 +128,10 @@ describe('f341 (1) — the scan walk asks which canvas is on screen', () => {
    2 — ONE DOOR ONTO THE PLAYBOOK READ, AND IT IS THE RICHER ONE
    ============================================================ */
 describe('f341 (2) — the shield goes, the More-menu row comes back', () => {
-  test('roomChecksHtml draws two checks, and neither is the playbook', () => {
+  test('roomChecksHtml draws no check squares, and never the playbook', () => {
     const b = fnBody(CONTRACT_CODE, 'roomChecksHtml');
-    assert.match(b, /\['oblig','calendar','ob_obligations'\]/, 'obligations stays');
-    assert.match(b, /\['risk','readpaper','ct_copilot_risk_scan'\]/, 'the scan stays');
+    /* RE-POINTED 13 Oct 2026: the owner deleted the obligations and risk scan squares */
+    assert.match(b, /const rows=\[\];/, 'no check squares');
     assert.ok(!/'playbook'/.test(b), 'the shield is gone');
     assert.ok(!/'shield'/.test(b), 'and so is its glyph');
   });
