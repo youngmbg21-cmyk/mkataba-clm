@@ -254,10 +254,11 @@ function jhLayout(){
   const lookOf = k => JH_LOOK[k] || JH_SPARE[spare++ % JH_SPARE.length];
   jhFloorCounts(offices.length).forEach((n, fi) => { const f = SH + fi;
     for (let c = 0; c < n; c++, i++){ const k = offices[i], look = lookOf(k), card = cardOf(f, c, n);
-      _jhRooms.push({ k, i, f, col: look[0], hat: look[1], card, cx: card.x + card.w / 2, seat: { x: card.x + 30, y: card.y + card.h - 4 } }); } });
+      _jhRooms.push({ k, i, f, col: look[0], hat: look[1], card, cx: card.x + card.w / 2, seat: jhCompact(card) ? { x: card.x + 20, y: card.y + card.h / 2 + 12 } : { x: card.x + 30, y: card.y + card.h - 4 } }); } });
   /* the readings: a place each at reception's desk, a magnifying glass, no Jambo */
   const rc = _jhShared.find(s => s.id === 'reception').card, cw = (rc.w - 24) / 2;
-  reads.forEach((k, j) => { const look = lookOf(k), x = rc.x + 12 + (j % 2) * cw, y = rc.y + 36 + Math.floor(j / 2) * Math.max(14, Math.min(20, (rc.h - 44) / 2));
+  const rTop = jhCompact(rc) ? 24 : 36, rGap = jhCompact(rc) ? Math.max(11, Math.min(16, (rc.h - 26) / 2)) : Math.max(14, Math.min(20, (rc.h - 44) / 2));
+  reads.forEach((k, j) => { const look = lookOf(k), x = rc.x + 12 + (j % 2) * cw, y = rc.y + rTop + Math.floor(j / 2) * rGap;
     _jhRooms.push({ k, i: i++, f: 0, col: look[0], hat: look[1], reading: true, card: { x, y: y - 9, w: cw - 6, h: 18 }, cx: x + 12, seat: { x: x + 12, y: y + 6 } }); });
   /* one tray per agent on your desk, in the house's order */
   const d = _jhDesk.card, tw = (d.w - 40) / Math.max(1, _jhRooms.length);
@@ -265,6 +266,16 @@ function jhLayout(){
 }
 function jhFloorCounts(n, cols){ const F = Math.max(1, Math.ceil(n / (cols || _jhCols))), base = Math.floor(n / F), extra = n % F;
   return Array.from({ length: F }, (_, f) => base + (f < extra ? 1 : 0)); }
+/* A SHORT FLOOR GETS A COMPACT CARD (owner, 13 Oct 2026: "why are the images
+   distorted in my laptop but okay in my ipad?"): a laptop's window is shorter,
+   the floors shrink to fit, and a card under 60 high has room for one or two
+   lines only — so it draws only what fits: the name and points, the seat beside
+   them, a pile no taller than the card, your desk's title in the floor column. */
+const jhCompact = c => !!c && c.h < 60;
+/* NOTHING RUNS INTO ITS NEIGHBOUR: a name shrinks to the room it has (never below 8), a line too long ends in an ellipsis */
+function jhFitFont(ctx, txt, maxW, fontOf, size, min){ let fs = size; ctx.font = fontOf(fs); while (fs > (min || 8) && ctx.measureText(txt).width > maxW){ fs -= .5; ctx.font = fontOf(fs); } return fs; }
+function jhClip(ctx, txt, maxW){ if (ctx.measureText(txt).width <= maxW) return txt; let t = String(txt); while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1); return t + '…'; }
+const jhPileMax = (room, cap) => Math.max(0, Math.min(cap, Math.floor(room / 2.2)));
 const jhFloorRooms = f => _jhRooms.filter(r => r.f === f && !r.reading);
 const jhFloorCards = f => [..._jhShared.filter(s => s.f === f).map(s => s.card), ...jhFloorRooms(f).map(r => r.card), ...(_jhDesk && _jhDesk.f === f ? [_jhDesk.card] : [])].sort((a, b) => a.x - b.x);
 /* The canvas's own box: as wide as the stage, as tall as the window leaves
@@ -513,8 +524,10 @@ function jhWaitStack(ctx, r, n, mono){
    drawing: section A–A in ink and IBM Plex Mono). One drawing for both, so the
    two never place a room differently — only the clothes differ. */
 const JH_MONO = '"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
+let _jhPileLog = null;
 function jhPile(ctx, x, y, n, col, max){
-  const m = Math.min(max || 18, n);
+  const m = Math.min(max == null ? 18 : max, n);
+  if (_jhPileLog && m > 0) _jhPileLog.push({ x: x - 11, y: y - (m - 1) * 2.2 - 1, w: 22, h: (m - 1) * 2.2 + 3.6 });
   for (let i = 0; i < m; i++){ const j = ((i * 37) % 7 - 3) * .35; ctx.fillStyle = i % 2 ? '#F6F7FA' : '#FDFDFB'; ctx.strokeStyle = 'rgba(15,26,51,.28)'; ctx.lineWidth = .7;
     ctx.fillRect(x - 11 + j, y - i * 2.2, 22, 2.6); ctx.strokeRect(x - 11 + j, y - i * 2.2, 22, 2.6); }
   if (n > 0 && col){ ctx.fillStyle = col; ctx.fillRect(x - 11, y - (m - 1) * 2.2 - 1, 5, 3); }
@@ -523,6 +536,8 @@ function jhDrawOffice(ctx, pieces, upto, mono){
   const C = _jhC, ink = C.accent, font = (w, s) => mono ? `${w} ${s}px ${JH_MONO}` : `${w} ${s}px Geist, sans-serif`, up = t => mono ? String(t).toUpperCase() : t;
   const topY = jhLY(_jhF - 1) - _jhFH, bot = jhLY(0), X0 = 120, X1 = 1152, mid = (X0 + X1) / 2, tt = _jh.t;
   const pos = _jh.pos || [];
+  let deskTot = 0; const deskOpen = {}; _jhRooms.forEach(r => { deskOpen[r.k] = agPointsTally(r.k, pieces, jhUptoFor(r.k, upto)).open || 0; deskTot += deskOpen[r.k]; });
+  const deskSmall = jhCompact(_jhDesk && _jhDesk.card);
   ctx.fillStyle = C.card; ctx.fillRect(0, 0, JH_W, _jhH);
   if (mono){ ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.globalAlpha = .55;
     for (let x = 0; x < JH_W; x += 20){ ctx.beginPath(); ctx.moveTo(x + .5, 0); ctx.lineTo(x + .5, _jhH); ctx.stroke(); }
@@ -533,7 +548,12 @@ function jhDrawOffice(ctx, pieces, upto, mono){
   // the floors, each with its corridor: the track, two thin rails and a dashed centre
   for (let f = 0; f < _jhF; f++){ const y = jhLY(f);
     if (!mono){ ctx.fillStyle = f % 2 ? C.soft : C.card; ctx.fillRect(0, y - _jhFH, JH_W, _jhFH); ctx.fillStyle = C.line; ctx.fillRect(0, y - 1, JH_W, 1); }
-    ctx.fillStyle = C.muted; ctx.font = font(500, mono ? 10.5 : 12); ctx.textAlign = 'left'; ctx.fillText(up(jhFloorWord(f)), mono ? 14 : 20, y - _jhFH / 2 + 4);
+    ctx.fillStyle = C.muted; ctx.font = font(500, mono ? 10.5 : 12); ctx.textAlign = 'left';
+    if (f === _jhF - 1 && deskSmall){ /* a short top floor: your desk's title and count stand in the floor column */
+      const colW = mono ? 98 : JH_SX - 26 - 26, t1 = up(_jhT('jh_rm_desk')), t2 = up(_jhT('jh_desk_waiting', { n: _jhFmt(deskTot) }));
+      ctx.fillStyle = mono ? ink : C.fg; jhFitFont(ctx, t1, colW, z => font(600, z), mono ? 11.5 : 13); ctx.fillText(t1, mono ? 14 : 20, y - _jhFH / 2 - 2);
+      ctx.fillStyle = deskTot ? C.ok : C.muted; jhFitFont(ctx, t2, colW, z => font(500, z), mono ? 10 : 11.5, 7); ctx.fillText(t2, mono ? 14 : 20, y - _jhFH / 2 + 13);
+    } else ctx.fillText(up(jhFloorWord(f)), mono ? 14 : 20, y - _jhFH / 2 + 4);
     ctx.strokeStyle = mono ? ink : C.line; ctx.lineWidth = 1; ctx.globalAlpha = mono ? .55 : 1;
     [-5, 5].forEach(d => { ctx.beginPath(); ctx.moveTo(JH_SX + 26, jhCorr(f) + d); ctx.lineTo(JH_RX1, jhCorr(f) + d); ctx.stroke(); });
     ctx.setLineDash([3, 6]); ctx.globalAlpha = mono ? .35 : .6; ctx.beginPath(); ctx.moveTo(JH_SX + 26, jhCorr(f)); ctx.lineTo(JH_RX1, jhCorr(f)); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1; }
@@ -565,30 +585,33 @@ function jhDrawOffice(ctx, pieces, upto, mono){
   _jhShared.forEach(s => { const c = s.card, hov = _jh.hover === 'rm:' + s.id, lit = busy.has(s.id);
     box(c, hov, lit); ctx.textAlign = 'left';
     if (s.id === 'reception'){
-      ctx.fillStyle = mono ? ink : C.fg; ctx.font = font(600, mono ? 13 : 15); ctx.fillText(up(_jhT('jh_rm_reception')), lx(c), ly1(c));
-      const w0 = ctx.measureText(up(_jhT('jh_rm_reception'))).width; ctx.fillStyle = C.muted; ctx.font = font(400, mono ? 10.5 : 12); ctx.fillText(up(_jhT('jh_rm_reception_sub')), lx(c) + w0 + 10, ly1(c));
+      const cp = jhCompact(c), ty = cp ? c.y + 15 : ly1(c);
+      ctx.fillStyle = mono ? ink : C.fg; ctx.font = font(600, cp ? (mono ? 11.5 : 13) : (mono ? 13 : 15)); ctx.fillText(up(_jhT('jh_rm_reception')), lx(c), ty);
+      const w0 = ctx.measureText(up(_jhT('jh_rm_reception'))).width; ctx.fillStyle = C.muted; ctx.font = font(400, mono ? 10.5 : 12); if (!cp || c.w > 330) ctx.fillText(up(_jhT('jh_rm_reception_sub')), lx(c) + w0 + 10, ty);
       return; }
-    ctx.fillStyle = ink; ctx.font = font(600, mono ? 13 : 15); ctx.fillText(up(_jhT('jh_rm_' + s.id)), lx(c), ly1(c));
-    if (c.h >= 46){ ctx.fillStyle = C.muted; ctx.font = font(400, mono ? 11.5 : 13); ctx.fillText(up(_jhT('jh_rm_shared')), lx(c), ly2(c));
+    const cp = jhCompact(c), ny = cp ? c.y + c.h / 2 + 5 : ly1(c);
+    ctx.fillStyle = ink; const rn = up(_jhT('jh_rm_' + s.id)); jhFitFont(ctx, rn, c.w * (cp ? .55 : .9), z => font(600, z), mono ? 13 : 15); ctx.fillText(rn, lx(c), ny);
+    if (!cp){ ctx.fillStyle = C.muted; ctx.font = font(400, mono ? 11.5 : 13); ctx.fillText(up(_jhT('jh_rm_shared')), lx(c), ly2(c));
       ctx.font = font(500, mono ? 10.5 : 11.5); ctx.fillStyle = lit ? ink : C.muted; ctx.fillText(up(_jhT(lit ? 'jh_in_use' : 'jh_ready')), lx(c), c.y + c.h - 8); }
     const n = jhSheetsIn(s.id, tt);
-    if (n){ jhPile(ctx, c.x + c.w - 26, c.y + c.h - 8, n, ink, 18); ctx.textAlign = 'right'; ctx.fillStyle = C.fg; ctx.font = font(600, mono ? 11 : 12.5); ctx.fillText(up(_jhTn('jh_rm_sheets', n, { n: _jhFmt(n) })), c.x + c.w - 44, c.y + c.h - 8); } });
+    /* the pile never climbs out of its room */
+    if (n){ jhPile(ctx, c.x + c.w - 26, c.y + c.h - 7, n, ink, jhPileMax(c.h - 12, 18)); ctx.textAlign = 'right'; ctx.fillStyle = C.fg; ctx.font = font(600, mono ? 11 : 12.5); ctx.fillText(up(_jhTn('jh_rm_sheets', n, { n: _jhFmt(n) })), c.x + c.w - 44, cp ? ny : c.y + c.h - 8); } });
   /* your desk: the big office, one tray per agent holding what still waits for a person */
   { const d = _jhDesk, c = d.card, hov = _jh.hover === 'rm:desk', lit = busy.has('desk');
     box(c, hov, lit); ctx.textAlign = 'left';
-    let tot = 0; const open = {}; _jhRooms.forEach(r => { open[r.k] = agPointsTally(r.k, pieces, jhUptoFor(r.k, upto)).open || 0; tot += open[r.k]; });
-    ctx.fillStyle = mono ? ink : C.fg; ctx.font = font(600, mono ? 14 : 17); ctx.fillText(up(_jhT('jh_rm_desk')), lx(c), ly1(c) + 2);
-    const w0 = ctx.measureText(up(_jhT('jh_rm_desk'))).width; ctx.fillStyle = C.muted; ctx.font = font(400, mono ? 11 : 12.5); ctx.fillText(up(_jhT('jh_rm_desk_sub')), lx(c) + w0 + 12, ly1(c) + 2);
-    ctx.textAlign = 'right'; ctx.fillStyle = tot ? C.ok : C.muted; ctx.font = font(600, mono ? 13 : 15); ctx.fillText(up(_jhT('jh_desk_waiting', { n: _jhFmt(tot) })), c.x + c.w - 14, ly1(c) + 2);
-    const base = c.y + c.h - 22;
+    const tot = deskTot, open = deskOpen;
+    if (!deskSmall){ ctx.fillStyle = mono ? ink : C.fg; ctx.font = font(600, mono ? 14 : 17); ctx.fillText(up(_jhT('jh_rm_desk')), lx(c), ly1(c) + 2);
+      const w0 = ctx.measureText(up(_jhT('jh_rm_desk'))).width; ctx.fillStyle = C.muted; ctx.font = font(400, mono ? 11 : 12.5); ctx.fillText(up(_jhT('jh_rm_desk_sub')), lx(c) + w0 + 12, ly1(c) + 2);
+      ctx.textAlign = 'right'; ctx.fillStyle = tot ? C.ok : C.muted; ctx.font = font(600, mono ? 13 : 15); ctx.fillText(up(_jhT('jh_desk_waiting', { n: _jhFmt(tot) })), c.x + c.w - 14, ly1(c) + 2); }
+    const base = c.y + c.h - (deskSmall ? 14 : 22), room = base - 4 - (c.y + (deskSmall ? 4 : 30));
     _jhRooms.forEach(r => { const t = d.trays[r.k], n = open[r.k]; if (!t) return;
       ctx.save(); if (_jh.sel && _jh.sel !== r.k) ctx.globalAlpha = .35;
       ctx.strokeStyle = mono ? ink : C.line; ctx.lineWidth = 1; ctx.strokeRect(t.x - t.w / 2 + 4, base - 2, t.w - 8, 5);
-      jhPile(ctx, t.x, base - 4, n, r.col, 12);
+      jhPile(ctx, t.x, base - 4, n, r.col, jhPileMax(room, 12));
       ctx.textAlign = 'center'; ctx.fillStyle = n ? C.fg : C.muted; ctx.font = font(500, mono ? 9.5 : 10.5);
       const nm = _jhT('jh_room_' + r.k), lab = n ? nm + ' · ' + _jhFmt(n) : nm; let fs = mono ? 9.5 : 10.5; ctx.font = font(500, fs);
       while (fs > 7.5 && ctx.measureText(up(lab)).width > t.w - 4){ fs -= .5; ctx.font = font(500, fs); }
-      ctx.fillText(up(lab), t.x, base + 13); ctx.restore(); }); }
+      ctx.fillText(up(lab), t.x, base + (deskSmall ? 11 : 13)); ctx.restore(); }); }
   /* the offices: the agent's name, points and work; his seat, empty while he is out */
   _jhRooms.forEach((r, i) => { const s = agPointsTally(r.k, pieces, jhUptoFor(r.k, upto)), hov = _jh.hover === r.k || _jh.sel === r.k;
     if (r.reading){ const c = r.card; if (hov){ ctx.fillStyle = mono ? C.card : C.accentSoft; jhRoundRect(ctx, c.x, c.y, c.w, c.h, 9); ctx.fill(); }
@@ -597,17 +620,21 @@ function jhDrawOffice(ctx, pieces, upto, mono){
       jhLens(ctx, r.seat.x, r.seat.y - 6, 6, r.col); return; }
     const c = r.card, p = pos[i], out = p && p.kind !== 'idle';
     box(c, hov, false);
-    if (mono){ ctx.fillStyle = r.col; ctx.beginPath(); ctx.arc(c.x + c.w - 8, c.y + 14, 4, 0, Math.PI * 2); ctx.fill(); } else { ctx.fillStyle = r.col; ctx.fillRect(c.x, c.y + 8, 3, 30); }
-    ctx.textAlign = 'left'; ctx.fillStyle = mono ? ink : C.fg; ctx.font = font(600, mono ? 13 : 15); const nm = up(_jhT('jh_room_' + r.k)); ctx.fillText(nm, lx(c), ly1(c));
-    let px = lx(c) + 6 + ctx.measureText(nm).width;
-    if (agPointsIsNew(r.k)) px += jhPill(ctx, _jhT('jh_new_tag'), px, ly1(c) - 1, C.amber) + 4;
-    if (agPointsMine(r.k)) jhPill(ctx, _jhT('jh_mine_tag'), px, ly1(c) - 1, C.accent);
+    /* a short card: the seat beside the name, the status under it, nothing else */
+    const cp = jhCompact(c), two = c.h >= 36, nx = cp ? c.x + 40 : lx(c), ny = cp ? (two ? c.y + c.h / 2 - 1 : c.y + c.h / 2 + 5) : ly1(c);
+    if (mono){ ctx.fillStyle = r.col; ctx.beginPath(); ctx.arc(c.x + c.w - 8, c.y + 14, 4, 0, Math.PI * 2); ctx.fill(); } else { ctx.fillStyle = r.col; ctx.fillRect(c.x, c.y + (cp ? 6 : 8), 3, cp ? c.h - 12 : 30); }
+    const ptsTxt = up(_jhFmt(s.pts) + ' ' + _jhT('jh_pts')); ctx.font = font(600, mono ? 13 : 16); const ptsW = ctx.measureText(ptsTxt).width, ptsX = c.x + c.w - (mono ? 18 : 12);
+    ctx.textAlign = 'left'; ctx.fillStyle = mono ? ink : C.fg; const nm = up(_jhT('jh_room_' + r.k)); jhFitFont(ctx, nm, ptsX - ptsW - 10 - nx, z => font(600, z), mono ? 13 : 15); ctx.fillText(nm, nx, ny);
+    let px = nx + 6 + ctx.measureText(nm).width;
+    if (agPointsIsNew(r.k)) px += jhPill(ctx, _jhT('jh_new_tag'), px, ny - 1, C.amber) + 4;
+    if (agPointsMine(r.k)) jhPill(ctx, _jhT('jh_mine_tag'), px, ny - 1, C.accent);
     /* the work line only where it clears the seat below it */
-    if (c.h >= 60){ ctx.fillStyle = C.muted; ctx.font = font(400, mono ? 11.5 : 13); ctx.fillText(up(jhRoomSub(r, s, pieces, mono)), lx(c), ly2(c)); }
-    ctx.textAlign = 'right'; ctx.fillStyle = C.accent; ctx.font = font(600, mono ? 13 : 16); ctx.fillText(up(_jhFmt(s.pts) + ' ' + _jhT('jh_pts')), c.x + c.w - (mono ? 18 : 12), ly1(c));
+    if (!cp){ ctx.fillStyle = C.muted; ctx.font = font(400, mono ? 11.5 : 13); ctx.fillText(jhClip(ctx, up(jhRoomSub(r, s, pieces, mono)), c.x + c.w - 10 - lx(c)), lx(c), ly2(c)); }
+    ctx.textAlign = 'right'; ctx.fillStyle = C.accent; ctx.font = font(600, mono ? 13 : 16); ctx.fillText(ptsTxt, ptsX, ny);
     if (out){ ctx.save(); ctx.strokeStyle = r.col; ctx.globalAlpha = .7; ctx.lineWidth = 1.4; ctx.setLineDash([2.5, 3]); ctx.beginPath(); ctx.arc(r.seat.x, r.seat.y - 12, 10, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
     ctx.textAlign = 'left'; ctx.fillStyle = out ? C.ok : C.muted; ctx.font = font(500, mono ? 10.5 : 11.5);
-    if (c.h >= 40) ctx.fillText(up(_jhT(out ? 'jh_out' : 'jh_at_base') + ' · ' + jhRoomStateWords(r.k)), r.seat.x + 18, c.y + c.h - 8); });
+    const stX = cp ? nx : r.seat.x + 18;
+    if (cp ? two : true) ctx.fillText(jhClip(ctx, up(_jhT(out ? 'jh_out' : 'jh_at_base') + ' · ' + jhRoomStateWords(r.k)), c.x + c.w - 10 - stX), stX, cp ? ny + 14 : c.y + c.h - 8); });
   if (mono){ const dy = bot + 34; ctx.strokeStyle = ink; ctx.lineWidth = 1; ctx.globalAlpha = .7;
     const g = jhFloorCards(0);
     g.forEach(c => { const x0 = c.x - JH_GAP / 2, x1 = x0 + c.w + JH_GAP; ctx.beginPath(); ctx.moveTo(x0, dy); ctx.lineTo(x1, dy); ctx.moveTo(x0, dy - 5); ctx.lineTo(x0, dy + 5); ctx.moveTo(x1, dy - 5); ctx.lineTo(x1, dy + 5); ctx.stroke();
@@ -617,6 +644,33 @@ function jhDrawOffice(ctx, pieces, upto, mono){
 const jhFloorWord = f => f === _jhF - 1 && _jhF > 1 ? _jhT('jh_floor_top') : jhFloorName(f);
 function jhLens(ctx, x, y, r, col){ ctx.save(); ctx.fillStyle = _jhC.card; ctx.beginPath(); ctx.arc(x, y, r + 2, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = col; ctx.lineWidth = Math.max(1.4, r * .28);
   ctx.beginPath(); ctx.arc(x - r * .18, y - r * .18, r * .6, 0, Math.PI * 2); ctx.stroke(); ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x + r * .25, y + r * .25); ctx.lineTo(x + r * .8, y + r * .8); ctx.stroke(); ctx.restore(); }
+/* THE OVERLAP AUDIT (owner, 13 Oct 2026, after the laptop report): draws the office
+   once more on a spare canvas and records every word and every pile it put down;
+   a word or pile that leaves its room, or two words that touch inside one room,
+   is a fault. jambo-agents-verify runs it at the owner's shortest screen. */
+function jhOverlapAudit(){
+  if (!_jhDesk) return { ok: false, faults: ['no office'] };
+  const cv = document.createElement('canvas'); cv.width = JH_W; cv.height = Math.ceil(_jhH);
+  const ctx = cv.getContext('2d'), boxes = [], piles = [], ft = ctx.fillText;
+  ctx.fillText = function(t, x, y){ const m = this.measureText(t), w = m.width, a = this.textAlign;
+    const asc = m.actualBoundingBoxAscent || 9, dsc = m.actualBoundingBoxDescent || 2;
+    boxes.push({ t: String(t), x: a === 'right' ? x - w : a === 'center' ? x - w / 2 : x, y: y - asc, w, h: asc + dsc }); return ft.call(this, t, x, y); };
+  _jhPileLog = piles;
+  try { (_jh.look === 1 ? jhDrawDrawing : jhDrawPlan)(ctx, jhPieces(), jhUpto()); } finally { _jhPileLog = null; }
+  const cards = [..._jhShared.map(s => s.card), _jhDesk.card, ..._jhRooms.filter(r => !r.reading).map(r => r.card)];
+  const inside = (b, c) => b.x >= c.x - 1 && b.x + b.w <= c.x + c.w + 1 && b.y >= c.y - 1 && b.y + b.h <= c.y + c.h + 1;
+  const home = b => cards.find(c => b.x + b.w / 2 >= c.x && b.x + b.w / 2 <= c.x + c.w && b.y + b.h / 2 >= c.y && b.y + b.h / 2 <= c.y + c.h);
+  const faults = [], byCard = new Map();
+  /* each agent's seat, where his face sits at base, counts as something in the room */
+  _jhRooms.filter(r => !r.reading).forEach(r => boxes.push({ t: '[seat ' + r.k + ']', x: r.seat.x - 11, y: r.seat.y - 25, w: 22, h: 22 }));
+  boxes.forEach(b => { if (!b.t.trim()) return; const c = home(b); if (!c) return;
+    if (!inside(b, c)) faults.push('leaves its room: ' + b.t);
+    (byCard.get(c) || byCard.set(c, []).get(c)).push(b); });
+  byCard.forEach(list => { for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++){ const a = list[i], b = list[j];
+    if (a.x < b.x + b.w - .5 && b.x < a.x + a.w - .5 && a.y < b.y + b.h - .5 && b.y < a.y + a.h - .5) faults.push('touch: ' + a.t + ' / ' + b.t); } });
+  piles.forEach(p => { const c = home(p); if (c && !inside(p, c)) faults.push('a pile climbs out of its room'); });
+  return { ok: faults.length === 0, faults, words: boxes.length };
+}
 function jhDrawPlan(ctx, pieces, upto){ jhDrawOffice(ctx, pieces, upto, false); }
 function jhDrawDrawing(ctx, pieces, upto){ jhDrawOffice(ctx, pieces, upto, true); }
 function jhHouseSub(){
@@ -1446,5 +1500,5 @@ const JH_CSS = `
 try { if (typeof jamboFacePaint === 'function') jamboFacePaint(); } catch (_) {}
 
 Object.assign(window, { AG_POINTS_LAUNCH, AG_POINTS_START_MINS, AG_POINTS_NEW_MINS, AG_POINTS_FIELDS, agPointsKeys, agPointsStart, agPointsCompany, agPointsMine, agPointsOf,
-  agPointsIsNew, agPointsEach, agPointsTally, agPointsSumLine, agPieceSay, agPointsTableHtml, agPointsWire, renderJamboHouse, jhRepaint, jhPlace, jhPlacePut, jhLayout, jhRoomAt, jhFloorCounts, jhGeom, jhFinish, jhUptoFor, jhHoursWords, jhPopsSoft: () => _jh.pops.filter(p => p.soft).length, jhMotionOf: (k, t) => { const r = _jhRooms.find(x => x.k === k); return r ? jhPosAt(r, t) : null; }, jhPopRef, jhRoomQuietWhy, jhRoomStateWords, jhResults, jhUnitWords, jhSheetsIn, JH_ROUTE, _jhPlaying: () => _jh.playing,
+  agPointsIsNew, agPointsEach, agPointsTally, agPointsSumLine, agPieceSay, agPointsTableHtml, agPointsWire, renderJamboHouse, jhRepaint, jhPlace, jhPlacePut, jhLayout, jhRoomAt, jhFloorCounts, jhGeom, jhFinish, jhUptoFor, jhHoursWords, jhPopsSoft: () => _jh.pops.filter(p => p.soft).length, jhMotionOf: (k, t) => { const r = _jhRooms.find(x => x.k === k); return r ? jhPosAt(r, t) : null; }, jhPopRef, jhRoomQuietWhy, jhRoomStateWords, jhResults, jhUnitWords, jhSheetsIn, JH_ROUTE, _jhPlaying: () => _jh.playing, jhOverlapAudit,
   jhOfficeOf: () => ({ floors: _jhF, desk: _jhDesk && { f: _jhDesk.f, x0: _jhDesk.card.x, x1: _jhDesk.card.x + _jhDesk.card.w }, shared: _jhShared.map(s => ({ id: s.id, f: s.f })), rooms: _jhRooms.map(r => ({ k: r.k, f: r.f, reading: !!r.reading })) }) });
