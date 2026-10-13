@@ -20703,3 +20703,6 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ### Noticed, not fixed (13 Oct 2026, the agents' house C–F)
 - Jambo's agents: when a replay ends by itself (jhFrame → jhFinish) the Play button keeps saying "Pause" — jhSetPlayWord is not called there; pre-existing.
 - Jambo's agents: a room's sub-line can read "1 approvals laid out" — the jh_unit_* words are not plural-aware; pre-existing.
+
+## Noticed, not fixed — 13 Oct 2026 (the four failing node tests)
+- test/chromium/sent-means-sent-verify.js is red on main (browser shard 3/4, runs 2923–2929): "ON Send all: asks once, naming what travels", "the round reached them and the move is theirs — owner", "it left Drafting — Draft". Not touched while fixing the four node failures (f399 1b, f412 3l, f413 7d, f541 E).
