@@ -156,6 +156,13 @@ const check = (name, pass, detail) => {
     const w1 = await cameBack('nego-scroll-work', w0);
     check('5a the Negotiate page comes back on the same contract, scrolled to the same clause', w0 >= 400 && w1 === w0 && (await page.evaluate(() => state.activeId)) === 'MK-R1', JSON.stringify({ w0, w1 }));
 
+    /* the Deal board rides along (bug log, 3 Oct 2026): open it, refresh, it is still up */
+    await page.evaluate(() => { if (window.openDealBoard) openDealBoard(); });
+    const bOn = await until(() => window.rlBoardIsOpen && rlBoardIsOpen() && document.getElementById('rl-boardpage') ? true : null);
+    await reload();
+    const bBack = await until(() => state.view === 'redline' && window.rlBoardIsOpen && rlBoardIsOpen() && document.getElementById('rl-boardpage') ? true : null);
+    check('5b a refresh with the Deal board open lands on the board, on the same contract', bOn === true && bBack === true && (await page.evaluate(() => state.activeId)) === 'MK-R1', JSON.stringify({ bOn, bBack }));
+
     /* ================= 6. THE READER'S HAND WINS ============================= */
     await page.evaluate(() => setView('register'));
     await until(() => document.getElementById('reg-scroll'));
