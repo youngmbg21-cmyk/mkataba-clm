@@ -20706,3 +20706,14 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 
 ## Noticed, not fixed — 13 Oct 2026 (the four failing node tests)
 - test/chromium/sent-means-sent-verify.js is red on main (browser shard 3/4, runs 2923–2929): "ON Send all: asks once, naming what travels", "the round reached them and the move is theirs — owner", "it left Drafting — Draft". Not touched while fixing the four node failures (f399 1b, f412 3l, f413 7d, f541 E).
+
+### Noticed, not fixed (13 Oct 2026, the start-redlining journey work order)
+- Negotiate's "Risks to look at · 0" (scanned 00:02) and the Clauses tab's "2 need you" on the same contract disagree: two readings of one thing.
+- Edit with Jambo's panel says "Your standard is —" (a dash) yet offers "Use our standard"; "Counterparties pushed on Confidentiality 4 times…" is said twice ("What you have settled for" and "What we settled before").
+- 21.2 (a)–(e) are plain paragraphs on Home's paper but hanging-indented in the clause editor (one paper everywhere).
+- Home's Document strip reads "Software as a Service Agreement · — · Drafting": the counterparty's name is missing.
+- The clause-number track down the paper's margin lists "3", "7.3", "47.1" after "33.2", out of order.
+- Negotiate's "Progress · 0 of 5 decided" counts our own unsent drafts as things to decide.
+
+### Noticed, not fixed (13 Oct 2026, Ask Jambo from the deep dive)
+- Home's Jambo panel answers a question put in its box by `intelAskReady` (a "readied" ask) through `intelChatAsk`, the whole-book chat, so it does not know the contract on the paper ("I still need to know which contract you're referring to", with "Ask about MK-457…" in the box). The deep dive's Ask Jambo now goes to the edit room; other readied asks on Home still take this path.
