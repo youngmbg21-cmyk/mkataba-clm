@@ -64,7 +64,7 @@ AND then the iPad's own picker for the same box. The rule is now in CLAUDE.md
   `js/` for every other `.focus()` on a `<select>`.
 - Test with a touch press: one list only, before and after.
 
-## 5. The paper's zoom (− 100% +) sits in the same place on every page
+## 5. Every paper's zoom (− 100% +) looks and sits the same
 
 Owner, 13 Oct 2026, two screenshots: *"the paper adjustment filter seems to be
 in different places and cutoff or joined to the paper. Make it professional to
@@ -79,8 +79,14 @@ be in the grey area but well designed and well placed."*
 - Build: ONE placement for every host: in the grey ground above the sheet,
   its right edge lined up with the paper's right edge, the same clear gap
   above the sheet and below the strip on every page, never touching the paper,
-  a bar, a button or the scrollbar. Drop the per-page nudges. The "+N −N"
-  count on Negotiate sits beside it on the same line.
+  a bar, a button or the scrollbar. Drop the per-page nudges.
+- EVERY PAPER, NOT ONLY NEGOTIATE (owner, 13 Oct 2026: "all papers should be
+  uniform with regard to the zoom control"): Home's Document tab, Negotiate,
+  Details and Signing, the design step, the counterparty's page, AND the clause
+  editor ("Edit with Jambo"), which today draws its own different zoom
+  (`.ce-zoom` in js/views/clauseeditor.js, beside "Redline" and "+69 −110").
+  One builder, one look, one place for all of them; a page's extras (the
+  "+N −N" count, Signing's controls) sit on the same line, to the zoom's left.
 - Check on every page that draws the paper (Home Document, Negotiate,
   Details/Signing, the design step), at desktop and iPad widths, with a
   photograph of each, and keep the ONE ZOOM rule in CLAUDE.md true.
