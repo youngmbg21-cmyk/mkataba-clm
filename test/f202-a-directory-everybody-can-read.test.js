@@ -36,7 +36,10 @@ const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 /* The real view on a real DOM, over whatever roster it is handed — so the
    "what is on the page" questions can be asked of a page built from a REAL
    server's answer rather than from a fixture somebody invented. */
-function stage(users, me) {
+/* `place` puts the page on a tab before it is drawn (the Our people tab keeps
+   the roster's own order — admins first); the Faces page of 13 Oct 2026 draws
+   everyone by name on its Everyone tab. */
+function stage(users, me, place) {
   const dom = new JSDOM('<!doctype html><html><body><div id="content"></div></body></html>',
     { runScripts: 'outside-only', url: 'https://hati.test/' });
   const win = dom.window;
@@ -56,6 +59,7 @@ function stage(users, me) {
   sb.window = sb;
   vm.createContext(sb);
   vm.runInContext(read('js/views/directory.js'), sb, { filename: 'directory.js' });
+  sb.dirPlacePut(place || { tab: 'all' });
   sb.renderDirectory();
   return { sb, doc: win.document, html: win.document.getElementById('content').innerHTML };
 }
@@ -100,17 +104,25 @@ describe('f202 — a restricted member sees every colleague', () => {
     assert.ok(a && a.getAttribute('href').startsWith('mailto:'), 'mailto');
   });
 
-  test('admins are listed first, then everybody by name', () => {
-    const names = [...page.doc.querySelectorAll('.dir-name')].map(n => n.textContent.trim());
+  test('admins are listed first, then everybody by name — on the Our people tab, the roster\'s own order', () => {
+    const ours = stage(boot.users, boot.me, { tab: 'ours' });
+    const names = [...ours.doc.querySelectorAll('.dir-name')].map(n => n.textContent.trim());
     assert.match(names[0], /Amina Otieno/, 'the admin');
     const rest = names.slice(1).map(s => s.toLowerCase());
     assert.deepEqual(Array.from(rest), Array.from(rest.slice().sort()), 'and the rest alphabetically');
   });
 
-  test('nothing on it is a button that changes something', () => {
-    /* One press on the whole page and it is a mailto, which leaves the app. A
-       non-admin has nowhere to be sent, so they are offered nothing. */
-    assert.equal(page.doc.querySelectorAll('#dir-page button').length, 0);
+  test('nothing on it writes — a press chooses a card, switches a tab or narrows; the one link leaves the app', () => {
+    /* The wall of faces (13 Oct 2026) has presses, and every one of them is a
+       reading: a card is chosen, a tab or a filter narrows, a letter scrolls.
+       The only LINK is an address, which leaves the app, and the renderer
+       calls none of the writers — pinned on the source so a door onto editing
+       cannot grow here unnoticed. */
+    const links = [...page.doc.querySelectorAll('#dir-page a')];
+    assert.ok(links.length > 0 && links.every(a => a.getAttribute('href').startsWith('mailto:')), 'the only links are addresses');
+    const src = read('js/views/directory.js');
+    for (const w of ['saveSettings', 'saveContract', 'contactSet(', 'participantAdd', 'participantSet', 'participantRemove', 'fetch('])
+      assert.ok(!src.includes(w), `the directory calls ${w} — it is a reading and writes nothing`);
   });
 });
 
@@ -285,7 +297,9 @@ describe('f202 — it has a door on both shells', () => {
       html.indexOf('<div class="nav-section" data-section="settings">'));
     assert.match(work, /data-view="directory"/,
       'reading who is in the workspace is not an administrative act');
-    assert.match(work, /data-i18n="nav_people"/);
+    /* the door is People's, renamed Directory on 13 Oct 2026; the phone's
+       People screen keeps nav_people */
+    assert.match(work, /data-i18n="nav_directory"/);
   });
 
   test('and it does not share its symbol with Settings & Rules', () => {
@@ -321,7 +335,7 @@ describe('f202 — it has a door on both shells', () => {
   test('the view routes, and survives a session restore', () => {
     const app = read('js/app.js');
     assert.match(app, /view==='directory'\) renderDirectory\(\)/);
-    assert.match(app, /directory:'People'/, 'and it has a name for the failure toast');
+    assert.match(app, /directory:'Directory'/, 'and it has a name for the failure toast');
     const core = read('js/core.js');
     assert.match(core, /'team','directory'/,
       'a view missing from the restore whitelist lands the reader on the dashboard instead');
@@ -354,7 +368,10 @@ describe('f202 — both languages', () => {
   test('every new word is in en and sv', () => {
     const i18n = read('js/i18n.js');
     for (const k of ['nav_people', 'nav_people_title', 'pg_people_sub', 'dir_no_title',
-      'dir_no_email', 'dir_manage', 'dir_empty', 'dir_note']) {
+      'dir_no_email', 'dir_manage', 'dir_empty', 'dir_note',
+      /* the Directory, Faces (13 Oct 2026) */
+      'nav_directory', 'nav_directory_title', 'dir_tab_all', 'dir_tab_ours', 'dir_tab_theirs', 'dir_tab_none',
+      'dir_n_ours', 'dir_n_active', 'dir_not_named', 'dir_az_none', 'cu_people_door', 'brn_p_directory', 'brn_pd_directory']) {
       const hits = i18n.match(new RegExp(`\\b${k}:`, 'g')) || [];
       assert.equal(hits.length, 2, `${k} appears ${hits.length} times, expected en + sv`);
     }
