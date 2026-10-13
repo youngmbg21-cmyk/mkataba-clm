@@ -1,0 +1,17 @@
+{
+  "_what": "Each screen's ratio: its paint time at 3,000 contracts over its paint time at 400 (the 400 floored at 20 ms), as screens-at-3000-verify.js measured it on main the day the check was set. The check fails a screen whose ratio exceeds 1.5x the one recorded here. Re-record on purpose when a screen gets faster; never to make red go away. The owner's goal is 3x on every row.",
+  "_recorded": "2026-10-13",
+  "_how": "the larger of the day's two runs on main at 6804579; every screen sat at 10-16x because updateSidebarCounts costs ~270 ms per navigation at 3,000 contracts (BUGLOG, noticed, not fixed)",
+  "ratios": {
+    "home": 15.3,
+    "calendar": 14.0,
+    "contracts": 11.1,
+    "obligations": 12.0,
+    "customers": 15.1,
+    "intel": 11.8,
+    "friction": 11.2,
+    "oblig": 14.5,
+    "payterms": 14.3,
+    "exposure": 16.3
+  }
+}
