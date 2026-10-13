@@ -50,7 +50,6 @@
   "js/views/adviceportal.js",
   "js/views/approvalsview.js",
   "js/views/designstep.js",
-  "js/views/directory.js",
   "js/views/handover.js",
   "js/views/healthreport.js",
   "js/views/inspector.js",

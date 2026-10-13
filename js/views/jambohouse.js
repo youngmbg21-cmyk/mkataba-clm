@@ -76,6 +76,15 @@ const _jhE = s => (typeof esc === 'function') ? esc(s)
   : String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 const _jhT = (k, v) => (typeof i18t === 'function') ? i18t(k, v || {}) : String(k);
 const _jhTn = (k, n, v) => (typeof i18tn === 'function') ? i18tn(k, n, v || {}) : String(n);
+/* Hours said in words that agree with their number (owner, 13 Oct 2026: no
+   "1 hours"): one decimal under an hour (or when asked), whole hours above;
+   exactly 1 is singular in both books. */
+function jhHoursWords(hrs, digits){
+  const h = Math.max(0, Number(hrs) || 0), d = digits != null ? digits : (h < 1 ? 1 : 0), n = +h.toFixed(d);
+  let shown = String(n);
+  try { shown = n.toLocaleString((typeof langLocale === 'function') ? langLocale() : undefined, { minimumFractionDigits: d, maximumFractionDigits: d }); } catch (_) {}
+  return _jhTn('jh_hrs', n, { n: n === 1 ? '1' : shown });
+}
 const _jhFmt = n => { const v = Math.round(Number(n) || 0); try { return v.toLocaleString((typeof jxLocale === 'function') ? jxLocale() : undefined); } catch (_) { return String(v); } };
 
 /* ---------------- THE POINTS: one reading, one sum ---------------- */
@@ -156,6 +165,11 @@ const jhSignedIn = () => { try { return !!(window.REMOTE && REMOTE.me); } catch 
 async function jhFetch(days){
   if (!(typeof API_MODE === 'function' && API_MODE()) || typeof api !== 'function') return { pieces: [], contracts: {}, static: true, days };
   if (!jhSignedIn()) return null;
+  /* The four reading agents report what they laid out (agReportPrepared) —
+     asked here so the house shows it, waited for a moment, never blocked on. */
+  try { if (typeof agentsData === 'function') agentsData();
+    const st = (typeof agentsStatus === 'function' && !agentsStatus() && typeof agentsStatusLoad === 'function') ? agentsStatusLoad() : null;
+    await Promise.race([Promise.all([typeof agPreparedSettled === 'function' ? agPreparedSettled() : null, st]), new Promise(r => setTimeout(r, 1500))]); } catch (_) {}
   try { const r = await api('agents/pieces?days=' + days); return { pieces: (r && r.pieces) || [], contracts: (r && r.contracts) || {}, cut: !!(r && r.cut), max: r && r.max, days, from: r && r.from }; }
   catch (e){ return { pieces: [], contracts: {}, error: (e && e.message) || String(e), days }; }
 }
@@ -175,6 +189,12 @@ function jhSpan(){
 }
 /* The moment the replay has reached, as a time. */
 const jhUpto = () => { const S = jhSpan(); return _jh.t >= 1 ? Infinity : S.from + _jh.t * (S.end - S.from); };
+/* ONE AGENT AT A TIME (owner picked "press the card, and Play follows it",
+   13 Oct 2026): while an agent's card is pressed, a replay plays that agent's
+   work alone — the other rooms stay quiet (nothing counted, nobody walking)
+   until the replay ends; at rest every room shows its whole period again. */
+const jhSoloQuiet = k => !!_jh.sel && k !== _jh.sel && _jh.t < 1;
+const jhUptoFor = (k, upto) => jhSoloQuiet(k) ? 0 : upto;
 
 /* ---------------- THE HOUSE: drawn from the list ---------------- */
 /* THE HOUSE FITS THE SCREEN AND IS DRAWN SHARP (owner, 13 Oct 2026: "the
@@ -251,31 +271,43 @@ function jhRefit(force){
 let _jhRefitWin = false;
 if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('resize', () => { _jhRefitWin = true; jhRefit(); });
 const jhGeom = () => ({ top: _jhTop, fh: _jhFH, floors: _jhF, h: _jhH, w: JH_W, cols: _jhCols });
-/* Each Jambo's walk: his own room, then two others he hands work to, by the stairs. */
-const JH_SPEED_PX = 240;
+/* EACH JAMBO MOVES ONLY FOR REAL WORK (owner picked C, 13 Oct 2026): he
+   stands in his own room; at each moment his agent prepared a piece, or a
+   person decided one, he steps to his desk, works (the ring) and steps back.
+   No made-up visits to other rooms — the agents do not hand work to each
+   other. The moments come from the pieces on screen (`jhPieces`: the period,
+   the typed contract), read once per data, contract and period. */
+const JH_TRIP = { out: .5, work: 1, back: .5 };
 function jhSimulate(r){
-  const N = _jhRooms.length, total = JH_DURATION_MS / 1000, segs = [];
-  const stops = [r, _jhRooms[(r.i + 4) % N], _jhRooms[(r.i + 7) % N]];
-  const spot = (b, own) => { const off = own ? ((r.i * 3) % 5 - 2) * 22 : ((r.i * 7) % 5 - 2) * 16 + 70; return Math.max(b.card.x + 24, Math.min(b.card.x + b.card.w - 24, b.cx + off)); };
-  let tt = (r.i % 6) * .2, x = spot(r, true), f = r.f, stop = 0;
-  segs.push({ t0: 0, t1: tt, x0: x, y0: jhFoot(f), x1: x, y1: jhFoot(f), kind: 'idle' });
-  while (tt < total){
-    const own = stop % 3 === 0, b = stops[stop % 3], x2 = spot(b, own), legs = [];
-    if (f !== b.f){ legs.push({ x: JH_SX, f, s: 0 }); legs.push({ x: JH_SX, f: b.f, s: 1 }); }
-    legs.push({ x: x2, f: b.f, s: 0 });
-    for (const w of legs){ const y0 = jhFoot(f), y1 = jhFoot(w.f), d = Math.hypot(w.x - x, y1 - y0), dur = d / (w.s ? JH_SPEED_PX * .6 : JH_SPEED_PX);
-      segs.push({ t0: tt, t1: tt + dur, x0: x, y0, x1: w.x, y1, kind: w.s ? 'stairs' : 'walk' }); tt += dur; x = w.x; f = w.f; }
-    const dwell = own ? 1.3 + (r.i % 3) * .2 : .45;
-    segs.push({ t0: tt, t1: tt + dwell, x0: x, y0: jhFoot(f), x1: x, y1: jhFoot(f), kind: own ? 'work' : 'visit' });
-    tt += dwell; stop++;
+  const off = ((r.i * 3) % 5 - 2) * 14;
+  r.home = Math.max(r.card.x + 24, Math.min(r.card.x + r.card.w - 24, r.cx + off));
+  r._ev = null;
+}
+function jhEventsOf(r){
+  const key = (_jh.data || null), one = _jh.one, range = _jh.range;
+  if (r._ev && r._evData === key && r._evOne === one && r._evRange === range) return r._ev;
+  const S = jhSpan(), total = JH_DURATION_MS / 1000, ev = [];
+  for (const p of jhPieces()){
+    if (p.agent !== r.k) continue;
+    [p.at, p.outcome ? p.decidedAt : null].forEach((x, n) => { const t = Date.parse(x || ''); if (!t || t < S.from || t > S.end) return;
+      if (n === 1 && p.decidedAt === p.at) return; ev.push((t - S.from) / (S.end - S.from) * total); });
   }
-  r.segs = segs;
+  ev.sort((a, b) => a - b);
+  r._ev = ev; r._evData = key; r._evOne = one; r._evRange = range;
+  return ev;
 }
 function jhPosAt(r, tt){
-  const s = tt * JH_DURATION_MS / 1000; let g = r.segs[r.segs.length - 1];
-  for (const x of r.segs){ if (s < x.t1){ g = x; break; } }
-  const k = g.t1 > g.t0 ? Math.min(1, Math.max(0, (s - g.t0) / (g.t1 - g.t0))) : 1;
-  return { x: g.x0 + (g.x1 - g.x0) * k, y: g.y0 + (g.y1 - g.y0) * k, kind: g.kind, k };
+  const s = tt * JH_DURATION_MS / 1000, y = jhFoot(r.f), home = r.home != null ? r.home : r.cx;
+  const ev = jhEventsOf(r);
+  for (let n = 0; n < ev.length; n++){
+    const e = ev[n], t0 = e - JH_TRIP.out, t1 = e, t2 = e + JH_TRIP.work, t3 = t2 + JH_TRIP.back;
+    if (s < t0 || s > t3) continue;
+    const desk = Math.max(r.card.x + 24, Math.min(r.card.x + r.card.w - 24, home + (n % 2 ? -1 : 1) * Math.min(70, r.card.w / 4)));
+    if (s < t1){ const k = (s - t0) / JH_TRIP.out; return { x: home + (desk - home) * k, y, kind: 'walk', k }; }
+    if (s < t2) return { x: desk, y, kind: 'work', k: (s - t1) / JH_TRIP.work };
+    const k = (s - t2) / JH_TRIP.back; return { x: desk + (home - desk) * k, y, kind: 'walk', k };
+  }
+  return { x: home, y, kind: 'idle', k: 0 };
 }
 /* The colours from the page's own tokens, read when the house is drawn. */
 const _jhC = {};
@@ -316,6 +348,52 @@ function jhJambo(ctx, r, x, y, rad, lit){
 function jhPill(ctx, text, x, y, col, font){ ctx.font = font || '600 10.5px Geist, sans-serif'; const w = ctx.measureText(text).width + 12; ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y - 11, w, 15, 7.5); else ctx.rect(x, y - 11, w, 15); ctx.stroke(); ctx.fillStyle = col; ctx.textAlign = 'left'; ctx.fillText(text, x + 6, y); return w; }
 const jhFloorName = f => _jhT('jh_floor_' + Math.min(f, 7));
 function jhRoundRect(ctx, x, y, w, h, r){ ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h); }
+/* WORK WAITING ON A PERSON, IN ITS ROOM (owner picked B, 13 Oct 2026): what
+   Jambo prepared and nobody has used, changed or thrown away yet, as of the
+   replay's moment, is a small stack of papers in the room's lower corner with
+   its count. It scores nothing (agPointsTally's `open`); the points come when
+   a person acts. Drawn under the runners, so a Jambo walks in front of it. */
+/* A ROOM SAYS WHY IT IS QUIET, AND HOW ITS AGENT IS SET (owner picked E,
+   13 Oct 2026). With no work in the whole period the sub-line gives the
+   reason — switched off, left to you, or nothing came up — instead of "0";
+   the agent's setting stands in small type in the room's lower left (Ask me
+   first · Do it for me · Leave it to me · Reads only · Switched off), read off
+   the status the agents' page already loads (agentsStatus). */
+function jhAgentOff(k){ try { const s = (typeof agentsStatus === 'function') ? agentsStatus() : null; const a = s && s.agents && s.agents[k]; return !!(a && a.on === false); } catch (_) { return false; } }
+/* "1 approval laid out", never "1 approvals" (owner, 13 Oct 2026): the
+   count and its unit agree, through the plural keys jh_unit_<agent>_one/_other
+   (the plain jh_unit_<agent> keys are inert). */
+function jhUnitWords(k, n){ return n + ' ' + _jhTn('jh_unit_' + k, n, { n }); }
+function jhRoomQuietWhy(k){
+  if (jhAgentOff(k)) return _jhT('jh_zero_off');
+  const reads = typeof AG_READINGS !== 'undefined' && Array.isArray(AG_READINGS) && AG_READINGS.includes(k);
+  if (!reads && typeof agLevelOf === 'function' && agLevelOf(k) === 'mine') return _jhT('jh_zero_mine');
+  return _jhT('jh_zero_none');
+}
+function jhRoomSub(r, s, pieces, mono){
+  const all = agPointsTally(r.k, pieces, Infinity);
+  const tail = all.n ? (mono ? String(s.n) : jhUnitWords(r.k, s.n)) : jhRoomQuietWhy(r.k);
+  return _jhT('ag_' + r.k) + ' · ' + tail;
+}
+function jhRoomStateWords(k){ return jhAgentOff(k) ? _jhT('jh_state_off') : jhLevelWords(k); }
+function jhRoomState(ctx, r, mono){
+  const C = _jhC, c = r.card, w = jhRoomStateWords(r.k);
+  ctx.save(); ctx.textAlign = 'left'; ctx.fillStyle = C.muted; ctx.globalAlpha = .85;
+  ctx.font = mono ? '500 10.5px ' + JH_MONO : '500 11.5px Geist, sans-serif';
+  ctx.fillText(mono ? w.toUpperCase() : w, c.x + (mono ? 6 : 12), c.y + c.h - 10);
+  ctx.restore();
+}
+function jhWaitStack(ctx, r, n, mono){
+  if (!(n > 0)) return;
+  const C = _jhC, c = r.card, x1 = c.x + c.w - 12, y1 = c.y + c.h - 8, sw = 10, sh = 12, k = Math.min(3, n);
+  ctx.save();
+  for (let i = k - 1; i >= 0; i--){ const x = x1 - sw - i * 3, y = y1 - sh - i * 3;
+    ctx.fillStyle = C.card; ctx.strokeStyle = r.col; ctx.lineWidth = 1.2; ctx.fillRect(x, y, sw, sh); ctx.strokeRect(x + .5, y + .5, sw - 1, sh - 1); }
+  ctx.textAlign = 'right'; ctx.fillStyle = C.muted; ctx.font = mono ? '500 11px ' + JH_MONO : '500 12px Geist, sans-serif';
+  const w = mono ? _jhT('jh_waiting_n', { n }).toUpperCase() : _jhT('jh_waiting_n', { n });
+  ctx.fillText(w, x1 - sw - (k - 1) * 3 - 6, y1 - 2);
+  ctx.restore();
+}
 function jhDrawPlan(ctx, pieces, upto){
   const C = _jhC;
   ctx.fillStyle = C.card; ctx.fillRect(0, 0, JH_W, _jhH);
@@ -328,7 +406,7 @@ function jhDrawPlan(ctx, pieces, upto){
   ctx.fillStyle = C.accentSoft; ctx.fillRect(JH_SX - 26, jhLY(_jhF - 1) - _jhFH + 10, 52, _jhF * _jhFH - 14);
   ctx.strokeStyle = C.line; ctx.lineWidth = 1; for (let y = jhLY(_jhF - 1) - _jhFH + 20; y < jhLY(0) - 6; y += 12){ ctx.beginPath(); ctx.moveTo(JH_SX - 18, y); ctx.lineTo(JH_SX + 18, y); ctx.stroke(); }
   ctx.fillStyle = C.muted; ctx.font = '500 11px Geist, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(_jhT('jh_stairs'), JH_SX, jhLY(_jhF - 1) - _jhFH + 4);
-  _jhRooms.forEach(r => { const c = r.card, s = agPointsTally(r.k, pieces, upto), hov = _jh.hover === r.k || _jh.sel === r.k;
+  _jhRooms.forEach(r => { const c = r.card, s = agPointsTally(r.k, pieces, jhUptoFor(r.k, upto)), hov = _jh.hover === r.k || _jh.sel === r.k;
     ctx.fillStyle = hov ? C.accentSoft : C.card; ctx.strokeStyle = hov ? C.accent : C.line; ctx.lineWidth = hov ? 1.5 : 1;
     jhRoundRect(ctx, c.x, c.y, c.w, c.h, 8); ctx.fill(); ctx.stroke();
     ctx.fillStyle = r.col; ctx.fillRect(c.x, c.y + 8, 3, 30);
@@ -336,8 +414,10 @@ function jhDrawPlan(ctx, pieces, upto){
     let px = c.x + 18 + ctx.measureText(nm).width;
     if (agPointsIsNew(r.k)) px += jhPill(ctx, _jhT('jh_new_tag'), px, c.y + 21, C.amber) + 4;
     if (agPointsMine(r.k)) jhPill(ctx, _jhT('jh_mine_tag'), px, c.y + 21, C.accent);
-    ctx.fillStyle = C.muted; ctx.font = '400 13.5px Geist, sans-serif'; ctx.fillText(_jhT('ag_' + r.k) + ' · ' + s.n + ' ' + _jhT('jh_unit_' + r.k), c.x + 12, c.y + 42);
-    ctx.textAlign = 'right'; ctx.fillStyle = C.accent; ctx.font = '600 16px Geist, sans-serif'; ctx.fillText(_jhFmt(s.pts) + ' ' + _jhT('jh_pts'), c.x + c.w - 12, c.y + 22); });
+    ctx.fillStyle = C.muted; ctx.font = '400 13.5px Geist, sans-serif'; ctx.fillText(jhRoomSub(r, s, pieces, false), c.x + 12, c.y + 42);
+    jhRoomState(ctx, r, false);
+    ctx.textAlign = 'right'; ctx.fillStyle = C.accent; ctx.font = '600 16px Geist, sans-serif'; ctx.fillText(_jhFmt(s.pts) + ' ' + _jhT('jh_pts'), c.x + c.w - 12, c.y + 22);
+    jhWaitStack(ctx, r, s.open, false); });
 }
 const JH_MONO = '"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
 function jhDrawDrawing(ctx, pieces, upto){
@@ -366,15 +446,17 @@ function jhDrawDrawing(ctx, pieces, upto){
     ctx.strokeStyle = ink; ctx.globalAlpha = .5; ctx.beginPath(); ctx.moveTo(84, y); ctx.lineTo(X0, y); ctx.stroke(); ctx.globalAlpha = 1;
   }
   ctx.fillStyle = C.muted; ctx.font = '500 10.5px ' + JH_MONO; ctx.textAlign = 'center'; ctx.fillText(_jhT('jh_stairs').toUpperCase(), JH_SX, top + 14);
-  _jhRooms.forEach(r => { const c = r.card, s = agPointsTally(r.k, pieces, upto), hov = _jh.hover === r.k || _jh.sel === r.k;
+  _jhRooms.forEach(r => { const c = r.card, s = agPointsTally(r.k, pieces, jhUptoFor(r.k, upto)), hov = _jh.hover === r.k || _jh.sel === r.k;
     if (hov){ ctx.fillStyle = C.accentSoft; ctx.fillRect(c.x - 4, c.y - 4, c.w + 8, c.h + 8); }
     ctx.textAlign = 'left'; ctx.fillStyle = ink; ctx.font = '600 13px ' + JH_MONO; const nm = _jhT('jh_room_' + r.k).toUpperCase(); ctx.fillText(nm, c.x + 6, c.y + 18);
     let px = c.x + 12 + ctx.measureText(nm).width;
     if (agPointsIsNew(r.k)) px += jhPill(ctx, _jhT('jh_new_tag'), px, c.y + 18, C.amber) + 4;
     if (agPointsMine(r.k)) jhPill(ctx, _jhT('jh_mine_tag'), px, c.y + 18, ink);
     ctx.fillStyle = r.col; ctx.beginPath(); ctx.arc(c.x + c.w - 8, c.y + 14, 4, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = C.muted; ctx.font = '400 12px ' + JH_MONO; ctx.fillText(_jhT('ag_' + r.k) + ' · ' + s.n, c.x + 6, c.y + 36);
-    ctx.textAlign = 'right'; ctx.fillStyle = ink; ctx.font = '600 14px ' + JH_MONO; ctx.fillText(_jhFmt(s.pts) + ' ' + _jhT('jh_pts').toUpperCase(), c.x + c.w - 18, c.y + 18); });
+    ctx.fillStyle = C.muted; ctx.font = '400 12px ' + JH_MONO; ctx.fillText(jhRoomSub(r, s, pieces, true), c.x + 6, c.y + 36);
+    jhRoomState(ctx, r, true);
+    ctx.textAlign = 'right'; ctx.fillStyle = ink; ctx.font = '600 14px ' + JH_MONO; ctx.fillText(_jhFmt(s.pts) + ' ' + _jhT('jh_pts').toUpperCase(), c.x + c.w - 18, c.y + 18);
+    jhWaitStack(ctx, r, s.open, true); });
   const dy = bot + 34; ctx.strokeStyle = ink; ctx.lineWidth = 1; ctx.globalAlpha = .7;
   jhFloorRooms(0).forEach(r => { const x0 = r.card.x - JH_GAP / 2, x1 = x0 + r.card.w + JH_GAP; ctx.beginPath(); ctx.moveTo(x0, dy); ctx.lineTo(x1, dy); ctx.moveTo(x0, dy - 5); ctx.lineTo(x0, dy + 5); ctx.moveTo(x1, dy - 5); ctx.lineTo(x1, dy + 5); ctx.stroke();
     ctx.fillStyle = ink; ctx.font = '500 11px ' + JH_MONO; ctx.textAlign = 'center'; ctx.fillText((12.6 / jhFloorRooms(0).length).toFixed(2), (x0 + x1) / 2, dy - 6); });
@@ -390,8 +472,8 @@ function jhOneNo(){ const c = _jh.data && _jh.data.contracts && _jh.data.contrac
 function jhRunners(ctx, pieces){
   const atRest = !_jh.playing && _jh.t >= 1;
   const on = _jh.one ? new Set(pieces.map(p => p.agent)) : null;
-  const pts = _jhRooms.map(r => jhPosAt(r, atRest ? 0 : _jh.t));
-  if (_jh.playing) pts.forEach((p, i) => { const tr = _jh.trails[i] || (_jh.trails[i] = []); tr.push({ x: p.x, y: p.y }); if (tr.length > 110) tr.shift(); });
+  const pts = _jhRooms.map(r => jhPosAt(r, atRest || jhSoloQuiet(r.k) ? 0 : _jh.t));
+  if (_jh.playing) pts.forEach((p, i) => { if (jhSoloQuiet(_jhRooms[i].k)) return; const tr = _jh.trails[i] || (_jh.trails[i] = []); tr.push({ x: p.x, y: p.y }); if (tr.length > 110) tr.shift(); });
   _jh.trails.forEach((tr, i) => { if (!tr || tr.length < 2 || !_jhRooms[i]) return; ctx.save(); ctx.strokeStyle = _jhRooms[i].col; ctx.lineWidth = _jh.look === 1 ? 1.6 : 2; ctx.setLineDash(_jh.look === 1 ? [4, 4] : []);
     for (let j = 1; j < tr.length; j++){ ctx.globalAlpha = (j / tr.length) * (_jh.sel === null ? .45 : _jh.sel === _jhRooms[i].k ? .9 : .08); ctx.beginPath(); ctx.moveTo(tr[j - 1].x, tr[j - 1].y - 10); ctx.lineTo(tr[j].x, tr[j].y - 10); ctx.stroke(); } ctx.restore(); });
   _jh.lastPos = pts.map((p, i) => { const r = _jhRooms[i], lit = _jh.sel === r.k, dim = (_jh.sel !== null && !lit) || (on && !on.has(r.k)), rad = 10 + (lit ? 3 : 0), cy = p.y - rad - 6;
@@ -414,9 +496,12 @@ function jhDateCard(ctx){
 }
 function jhDrawPops(ctx){
   _jh.pops = _jh.pops.filter(p => p.a < 1); _jh.pops.forEach(p => { p.a += .016;
-    ctx.globalAlpha = 1 - p.a; ctx.font = '700 16px Geist, sans-serif'; ctx.textAlign = 'center';
+    ctx.globalAlpha = (1 - p.a) * (p.soft ? .8 : 1); ctx.font = p.soft ? '600 12px Geist, sans-serif' : '700 16px Geist, sans-serif'; ctx.textAlign = 'center';
     ctx.lineWidth = 4; ctx.strokeStyle = _jhC.card; ctx.strokeText(p.text, p.x, p.y - p.a * 34); ctx.fillStyle = p.col; ctx.fillText(p.text, p.x, p.y - p.a * 34); ctx.globalAlpha = 1; });
 }
+/* A POP SAYS WHAT HAPPENED (owner picked D, 13 Oct 2026): the points, or
+   "prepared", and the contract it was on — "+25 · MK-104". */
+function jhPopRef(p){ const c = p && p.cid && _jh.data && _jh.data.contracts && _jh.data.contracts[p.cid]; return c && c.no ? ' · ' + c.no : ''; }
 /* ONE FRAME: the house, its runners, the date, the points that landed. */
 function jhFrame(now){
   _jh.raf = 0;
@@ -427,15 +512,25 @@ function jhFrame(now){
     const dt = Math.min(60, now - (_jh.last || now)); _jh.last = now;
     const t0 = _jh.t; _jh.t = Math.min(1, _jh.t + dt * _jh.speed / JH_DURATION_MS);
     const S = jhSpan(), a = S.from + t0 * (S.end - S.from), b = S.from + _jh.t * (S.end - S.from);
+    /* THE MOMENT JAMBO DID IT: a piece prepared inside this step rises in its
+       room as "prepared" (softer than points); its points come later, when a
+       person decides. A piece written already decided has no separate moment. */
+    for (const p of pieces){
+      const pAt = Date.parse(p.at || '') || 0;
+      if (!pAt || pAt <= a || pAt > b || (p.outcome && p.decidedAt === p.at) || (_jh.sel && p.agent !== _jh.sel)) continue;
+      const i = _jhRooms.findIndex(r => r.k === p.agent); if (i < 0) continue;
+      const pos = _jh.lastPos[i] || { x: JH_W / 2, y: _jhH / 2 };
+      _jh.pops.push({ x: pos.x, y: pos.y - 20, text: _jhT('jh_pop_prep') + jhPopRef(p), col: _jhRooms[i].col, a: 0, soft: true }); if (_jh.pops.length > 80) _jh.pops.shift();
+    }
     for (const p of pieces){
       const at = Date.parse(p.decidedAt || '') || 0;
-      if (!p.outcome || at <= a || at > b) continue;
+      if (!p.outcome || at <= a || at > b || (_jh.sel && p.agent !== _jh.sel)) continue;
       const i = _jhRooms.findIndex(r => r.k === p.agent); if (i < 0) continue;
       const pos = _jh.lastPos[i] || { x: JH_W / 2, y: _jhH / 2 }, v = agPointsEach(agPointsOf(p.agent), p.outcome);
-      _jh.pops.push({ x: pos.x, y: pos.y - 20, text: (v >= 0 ? '+' : '−') + Math.abs(Math.round(v)), col: v >= 0 ? _jhRooms[i].col : _jhC.ruby, a: 0 }); if (_jh.pops.length > 80) _jh.pops.shift();
+      _jh.pops.push({ x: pos.x, y: pos.y - 20, text: (v >= 0 ? '+' : '−') + Math.abs(Math.round(v)) + jhPopRef(p), col: v >= 0 ? _jhRooms[i].col : _jhC.ruby, a: 0 }); if (_jh.pops.length > 80) _jh.pops.shift();
       jhFeedAdd(p);
     }
-    if (_jh.t >= 1){ _jh.playing = false; jhFinish(); }
+    if (_jh.t >= 1){ _jh.playing = false; jhFinish(); jhSetPlayWord(); }
   } else _jh.last = now;
   const ctx = cv.getContext('2d'), kk = cv.width / JH_W;
   ctx.setTransform(kk, 0, 0, kk, 0, 0);
@@ -454,22 +549,40 @@ let _jhScKey = '';
 function jhScorePaint(pieces, upto, xk){
   const rows = document.getElementById('jh-rows'); if (!rows) return;
   let total = 0; const xf = _jh.xf && xk < 1 ? _jh.xf : null, mix = (o, n) => (xf && o != null) ? o + (n - o) * xk : n;
-  _jhRooms.forEach(r => { const s = agPointsTally(r.k, pieces, upto); total += s.pts;
+  _jhRooms.forEach(r => { const s = agPointsTally(r.k, pieces, jhUptoFor(r.k, upto)); total += s.pts;
     const el = rows.querySelector(`[data-jh-agent="${r.k}"]`); if (!el) return;
     const p = el.querySelector('[data-jh-p]'), d = el.querySelector('[data-jh-d]');
-    const pt = _jhFmt(mix(xf && xf.oldPts[r.k], s.pts)), dt = s.n + ' ' + _jhT('jh_unit_' + r.k) + (s.n ? ' · ' + _jhT('jh_pct_used', { p: s.n ? Math.round(s.used / s.n * 100) : 0 }) : '');
+    const pt = _jhFmt(mix(xf && xf.oldPts[r.k], s.pts)), dt = jhUnitWords(r.k, s.n) + (s.n ? ' · ' + _jhT('jh_pct_used', { p: s.n ? Math.round(s.used / s.n * 100) : 0 }) : '');
     if (p && p.textContent !== pt) p.textContent = pt; if (d && d.textContent !== dt) d.textContent = dt; });
   const tw = _jhFmt(mix(xf && xf.oldTotal, total)), tot = document.getElementById('jh-total'); if (tot && tot.textContent !== tw) tot.textContent = tw;
   const prog = document.getElementById('jh-prog'); if (prog) prog.style.width = (_jh.t * 100) + '%';
   jhScorecard(pieces, upto);
 }
+/* WHAT CHANGED, BESIDE THE POINTS (owner picked F, 13 Oct 2026): contracts
+   Jambo's work touched, dates he caught (renewals, our promises, the week
+   laid out) and chases and nudges he prepared (late promises, links to sign,
+   dropped threads) — counted from the same pieces, as of the replay's moment. */
+const JH_RES_DATES = ['renew', 'ours', 'week'], JH_RES_NUDGES = ['late', 'link', 'quiet'];
+function jhResults(pieces, upto, keys){
+  const lim = upto == null ? Infinity : upto, ids = new Set(); let dates = 0, nudges = 0;
+  for (const p of pieces || []){
+    if (keys && !keys.includes(p.agent)) continue;
+    const at = Date.parse(p.at || '') || 0; if (at > lim) continue;
+    if (p.cid) ids.add(p.cid);
+    if (JH_RES_DATES.includes(p.agent)) dates++;
+    if (JH_RES_NUDGES.includes(p.agent)) nudges++;
+  }
+  return { touched: ids.size, dates, nudges };
+}
+function jhResultsLine(r){ return [_jhTn('jh_res_touched', r.touched, { n: _jhFmt(r.touched) }), _jhTn('jh_res_dates', r.dates, { n: _jhFmt(r.dates) }), _jhTn('jh_res_nudges', r.nudges, { n: _jhFmt(r.nudges) })].join(' · '); }
 function jhScorecard(pieces, upto){
   const host = document.getElementById('jh-sc'); if (!host) return;
   const list = _jh.sel ? [_jh.sel] : _jhRooms.map(r => r.k);
   let n = 0, used = 0, changed = 0, thrown = 0, open = 0, pts = 0, hrs = 0;
   list.forEach(k => { const s = agPointsTally(k, pieces, upto); n += s.n; used += s.used; changed += s.changed; thrown += s.thrown; open += s.open; pts += s.pts; hrs += s.hrs; });
   const title = (_jh.sel ? _jhT('ag_' + _jh.sel) : _jhT('jh_all')) + (_jh.one ? ' · ' + jhOneNo() : '');
-  const key = [title, n, used, changed, thrown, open, pts, JSON.stringify(_jh.sel ? agPointsOf(_jh.sel) : '')].join('|');
+  const res = jhResults(pieces, upto, list);
+  const key = [title, n, used, changed, thrown, open, pts, res.touched, res.dates, res.nudges, JSON.stringify(_jh.sel ? agPointsOf(_jh.sel) : '')].join('|');
   if (key === _jhScKey) return; _jhScKey = key;
   const done = used + changed + thrown, pc = x => done ? Math.round(x / done * 100) : 0;
   const lvl = _jh.sel ? jhLevelWords(_jh.sel) : jhRangeWords();
@@ -480,7 +593,8 @@ function jhScorecard(pieces, upto){
       <i style="width:${pc(used)}%" class="u"></i><i style="width:${pc(changed)}%" class="c"></i><i style="width:${pc(thrown)}%" class="t"></i></div>
     <div class="jh-legend"><span><b class="u"></b>${_jhE(_jhT('jh_used'))} ${pc(used)}%</span><span><b class="c"></b>${_jhE(_jhT('jh_changed'))} ${pc(changed)}%</span><span><b class="t"></b>${_jhE(_jhT('jh_thrown'))} ${pc(thrown)}%</span></div>
     <div class="jh-kpis"><div><small>${_jhE(_jhT('jh_k_pieces'))}</small><b>${_jhFmt(n)}</b></div><div><small>${_jhE(_jhT('jh_k_hours'))}</small><b>${hrs.toFixed(1)}</b></div>
-      <div><small>${_jhE(_jhT('jh_k_waiting'))}</small><b>${_jhFmt(open)}</b></div><div><small>${_jhE(_jhT('jh_k_points'))}</small><b>${_jhFmt(pts)}</b></div></div>${sum}`;
+      <div><small>${_jhE(_jhT('jh_k_waiting'))}</small><b>${_jhFmt(open)}</b></div><div><small>${_jhE(_jhT('jh_k_points'))}</small><b>${_jhFmt(pts)}</b></div></div>
+    <div class="jh-res" id="jh-res"><div><b>${_jhFmt(res.touched)}</b><small>${_jhE(_jhT('jh_k_touched'))}</small></div><div><b>${_jhFmt(res.dates)}</b><small>${_jhE(_jhT('jh_k_dates'))}</small></div><div><b>${_jhFmt(res.nudges)}</b><small>${_jhE(_jhT('jh_k_nudges'))}</small></div></div>${sum}`;
   jhFitPanel();
 }
 function jhLevelWords(k){
@@ -517,7 +631,7 @@ function jhFeedLine(p){
   const c = p.cid && _jh.data && _jh.data.contracts && _jh.data.contracts[p.cid];
   const what = c ? [c.no, c.cp || c.name].filter(Boolean).join(' · ') : '';
   const out = p.outcome ? _jhT('jh_out_' + p.outcome) : _jhT('jh_open');
-  return `<div><b>${_jhE(_jhT('ag_' + p.agent))}</b> ${_jhE(_jhT('jh_act_' + p.agent))}${what ? ' — ' + _jhE(what) : ''} <span class="jh-out is-${p.outcome || 'open'}">${_jhE(out)}</span></div>`;
+  return `<div><b>${_jhE(_jhT('ag_' + p.agent))}</b> ${_jhE(_jhT('jh_act_' + p.agent))}${what ? ' — ' + _jhE(what) : ''} <span class="jh-out is-${p.outcome || 'open'}">${_jhE(out)}</span>${p.rebuilt ? ` <span class="jh-quiet">· ${_jhE(_jhT('jh_rb_tag'))}</span>` : ''}</div>`;
 }
 function jhFeedAdd(p){
   if (_jh.sel && p.agent !== _jh.sel) return;
@@ -535,12 +649,13 @@ function jhFeedFill(){
 function jhFinish(){
   const end = document.getElementById('jh-end'); if (!end) return;
   const pieces = jhPieces();
-  const tot = _jhRooms.map(r => ({ k: r.k, s: agPointsTally(r.k, pieces, Infinity) }));
+  const tot = _jhRooms.filter(r => !_jh.sel || r.k === _jh.sel).map(r => ({ k: r.k, s: agPointsTally(r.k, pieces, Infinity) }));
   const total = tot.reduce((a, x) => a + x.s.pts, 0), hrs = tot.reduce((a, x) => a + x.s.hrs, 0);
   const best = tot.slice().sort((a, b) => b.s.pts - a.s.pts)[0];
   document.getElementById('jh-end-t').textContent = _jhT('jh_end_title', { n: _jhFmt(total) });
   document.getElementById('jh-end-l').textContent = !total && !tot.some(x => x.s.used + x.s.changed + x.s.thrown) ? _jhT('jh_end_none')
-    : _jhT(_jh.one ? 'jh_end_line_on' : 'jh_end_line', { h: Math.round(hrs), name: best ? _jhT('ag_' + best.k) : '', no: jhOneNo() });
+    : _jhT(_jh.sel ? (_jh.one ? 'jh_end_agent_on' : 'jh_end_agent') : _jh.one ? 'jh_end_line_on' : 'jh_end_line', { h: jhHoursWords(hrs), name: best ? _jhT('ag_' + best.k) : '', no: jhOneNo() });
+  const er = document.getElementById('jh-end-r'); if (er) er.textContent = jhResultsLine(jhResults(pieces, Infinity, tot.map(x => x.k)));
   end.hidden = false;
 }
 
@@ -638,7 +753,7 @@ function jhHouseHtml(){
       <div class="jh-left">
         <div class="jh-housecard">
         <div class="jh-sh">
-          <button type="button" class="ui-btn ui-btn-primary jh-play" data-jh-play>${_jhE(_jhT(_jh.playing ? 'jh_pause' : 'jh_play'))}</button>
+          <button type="button" class="ui-btn ui-btn-primary jh-play" data-jh-play>${_jhE(jhPlayWord())}</button>
           <button type="button" class="ui-btn" data-jh-restart>${_jhE(_jhT('jh_again'))}</button>
           <span class="jh-prog" aria-hidden="true"><i id="jh-prog"></i></span>
         </div>
@@ -646,7 +761,7 @@ function jhHouseHtml(){
           <canvas id="jh-cv" width="${JH_W}" height="${_jhH}" role="img" aria-label="${_jhE(_jhT('jh_house_aria'))}"></canvas>
           <div class="jh-tip" id="jh-tip" role="tooltip" hidden></div>
           <div class="jh-end" id="jh-end" hidden><div class="jh-end-card" role="dialog" aria-labelledby="jh-end-t"><button type="button" class="jh-end-x" data-jh-end-x aria-label="${_jhE(_jhT('jh_end_close'))}" title="${_jhE(_jhT('jh_end_close'))}">×</button>${(typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 56, 'jh-end-face') : ''}
-            <h3 id="jh-end-t"></h3><p id="jh-end-l"></p><p class="jh-quiet">${_jhE(_jhT('jh_end_hint'))}</p>
+            <h3 id="jh-end-t"></h3><p id="jh-end-l"></p><p class="jh-end-r" id="jh-end-r"></p><p class="jh-quiet">${_jhE(_jhT('jh_end_hint'))}</p>
             <button type="button" class="ui-btn ui-btn-primary" data-jh-restart>${_jhE(_jhT('jh_again'))}</button></div></div>
         </div>
         </div>
@@ -678,7 +793,7 @@ function jhHowHtml(){
     ? `<h3>${_jhE(_jhT('jh_ex_h', { name: _jhT('ag_' + k), r: jhRangeWords() }))}</h3>
       <p>${_jhE(_jhT('jh_ex_p', { n: s.used + s.changed + s.thrown, m: v.mins }))}</p>
       <ul><li>${_jhE(_jhT('jh_used'))}: ${s.used} × ${n(agPointsEach(v, 'used'))}</li><li>${_jhE(_jhT('jh_changed'))}: ${s.changed} × ${n(agPointsEach(v, 'changed'))} (${v.changed}%)</li><li>${_jhE(_jhT('jh_thrown'))}: ${s.thrown} × ${n(-agPointsEach(v, 'thrown'))} (−${v.thrown}%)</li></ul>
-      <p class="jh-big">${_jhE(_jhT('jh_ex_big', { n: _jhFmt(s.pts), h: s.hrs.toFixed(1) }))}</p>`
+      <p class="jh-big">${_jhE(_jhT('jh_ex_big', { n: _jhFmt(s.pts), h: jhHoursWords(s.hrs, 1) }))}</p>`
     : `<h3>${_jhE(_jhT('jh_ex_h', { name: _jhT('ag_' + k), r: jhRangeWords() }))}</h3><p>${_jhE(_jhT('jh_ex_none', { name: _jhT('ag_' + k) }))}</p>`;
   const card = (t, p) => `<div class="jh-card"><h3>${_jhE(_jhT(t))}</h3><p>${_jhE(_jhT(p))}</p></div>`;
   const out = (cls, t, p, v2) => `<div class="jh-card jh-out-card"><span class="jh-sw ${cls}"></span><div><h3>${_jhE(_jhT(t))}</h3><p>${_jhE(_jhT(p, { v: v2 }))}</p></div></div>`;
@@ -793,7 +908,8 @@ function jhRepaint(){ if (typeof state !== 'undefined' && state.view === 'jambo'
 function jhReplayFromStart(play){
   _jh.t = play ? 0 : 1; _jh.pops = []; _jh.trails = []; _jh.playing = !!play; _jh.last = 0; _jhScKey = '';
 }
-function jhSetPlayWord(){ const b = document.querySelector('[data-jh-play]'); if (b) b.textContent = _jhT(_jh.playing ? 'jh_pause' : 'jh_play'); const e = document.getElementById('jh-end'); if (e && _jh.playing) e.hidden = true; }
+function jhPlayWord(){ return _jh.playing ? _jhT('jh_pause') : _jh.sel ? _jhT('jh_play_agent', { name: _jhT('ag_' + _jh.sel) }) : _jhT('jh_play'); }
+function jhSetPlayWord(){ const b = document.querySelector('[data-jh-play]'); if (b) b.textContent = jhPlayWord(); const e = document.getElementById('jh-end'); if (e && _jh.playing) e.hidden = true; }
 function jhWire(host){
   if (host.dataset.jhWired) return; host.dataset.jhWired = '1';
   host.addEventListener('click', e => {
@@ -810,7 +926,7 @@ function jhWire(host){
     if (t.closest('[data-jh-restart]')){ jhReplayFromStart(true); jhFeedFill(); jhSetPlayWord(); jhKick(); return; }
     if ((el = t.closest('[data-jh-agent]'))){ const k = el.getAttribute('data-jh-agent'); _jh.sel = _jh.sel === k ? null : k; _jhScKey = '';
       host.querySelectorAll('[data-jh-agent]').forEach(b => { const on = b.getAttribute('data-jh-agent') === _jh.sel; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
-      jhFeedFill(); jhKick(); return; }
+      jhFeedFill(); jhSetPlayWord(); jhKick(); return; }
     if (t.closest('#jh-one-x')){ const i = document.getElementById('jh-one'); if (i) i.value = ''; jhOnePick(''); return; }
   });
   host.addEventListener('pointerdown', e => { const b = e.target && e.target.closest && e.target.closest('[data-jh-one]'); if (b){ e.preventDefault(); jhOnePick(b.getAttribute('data-jh-one')); } });
@@ -897,10 +1013,38 @@ function agPointsTableHtml(mode){
   }).join('');
   const anyNew = keys.some(agPointsIsNew), anyMine = keys.some(k => agPointsMine(k));
   const foot = company
-    ? `<div class="ag-pt-foot"><span class="st-note">${_jhE(_jhT('jh_pt_foot_admin'))}</span>${anyNew ? `<button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ag-pt-saveall>${_jhE(_jhT('jh_pt_save_new'))}</button>` : ''}</div>`
+    ? `<div class="ag-pt-foot"><span class="st-note">${_jhE(_jhT('jh_pt_foot_admin'))}</span>${anyNew ? `<button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ag-pt-saveall>${_jhE(_jhT('jh_pt_save_new'))}</button>` : ''}</div>
+       <div class="ag-pt-foot"><span></span><span><button type="button" class="ui-btn ui-btn-sm" data-ag-rebuild>${_jhE(_jhT('jh_rb_btn'))}</button> <button type="button" class="ui-link" data-ag-rebuild-undo>${_jhE(_jhT('jh_rb_undo'))}</button></span></div>`
     : `<div class="ag-pt-foot"><span class="st-note">${_jhE(_jhT('jh_pt_foot_mine'))}</span>${anyMine ? `<button type="button" class="ui-btn ui-btn-sm" data-ag-pt-allback>${_jhE(_jhT('jh_pt_all_back'))}</button>` : ''}</div>`;
   return `<div class="ag-pt" data-ag-pt-mode="${mode}"><style>${AG_PT_CSS}</style><p class="st-note">${_jhE(_jhT(company ? 'jh_pt_sub_admin' : 'jh_pt_sub_mine'))}</p>
     <div class="ag-pt-tw"><table class="ag-pt-table"><thead>${head}</thead><tbody>${body}</tbody></table></div>${foot}</div>`;
+}
+/* THE AGENTS' PAST, REBUILT (owner, 13 Oct 2026): an admin's one-off catch-up
+   from Settings → Jambo's agents. A preview first (POST /api/agents/rebuild
+   {dry}) shows what the records hold per agent; Rebuild writes it, marked as
+   rebuilt; Remove takes every rebuilt piece out again. */
+async function jhRebuildAsk(btn){
+  const say = (m, k) => { if (typeof toast === 'function') toast(m, k || 'ok'); };
+  let pre = null;
+  try { if (typeof busySet === 'function') busySet(btn, _jhT('jh_rb_btn')); pre = await api('agents/rebuild', 'POST', { dry: true }); }
+  catch (e){ say((e && e.message) || String(e), 'err'); return; }
+  finally { btn.textContent = _jhT('jh_rb_btn'); }
+  if (!pre || !pre.total){ say(_jhT('jh_rb_none'), 'warn'); return; }
+  let from = String(pre.from || '').slice(0, 10); try { from = new Date(pre.from).toLocaleDateString((typeof langLocale === 'function') ? langLocale() : undefined, { day: 'numeric', month: 'short', year: 'numeric' }); } catch (_) {}
+  const rows = Object.keys(pre.byAgent || {}).map(k => { const o = pre.byAgent[k]; return '• ' + _jhT('jh_rb_row', { name: _jhT('ag_' + k), n: o.found, used: o.used, changed: o.changed, thrown: o.thrown, waiting: o.waiting }); }).join('\n');
+  const ok = (typeof confirmDialog === 'function') ? await confirmDialog({ title: _jhT('jh_rb_title'), message: _jhT('jh_rb_lead', { from }) + '\n\n' + rows, multiline: true, confirmLabel: _jhT('jh_rb_go') }) : true;
+  if (!ok) return;
+  try { const r = await api('agents/rebuild', 'POST', {}); _jh.data = null; say(_jhT('jh_rb_done', { n: r.written || 0 })); jhRepaint(); }
+  catch (e){ say((e && e.message) || String(e), 'err'); }
+}
+async function jhRebuildUndoAsk(){
+  const say = (m, k) => { if (typeof toast === 'function') toast(m, k || 'ok'); };
+  let n = 0; try { const pre = await api('agents/rebuild', 'POST', { dry: true }); n = (pre && pre.already) || 0; } catch (_) { n = 0; }
+  if (!n){ say(_jhT('jh_rb_undone', { n: 0 }), 'warn'); return; }
+  const ok = (typeof confirmDialog === 'function') ? await confirmDialog({ title: _jhT('jh_rb_undo_title'), message: _jhT('jh_rb_undo_lead', { n }), confirmLabel: _jhT('jh_rb_undo_go'), danger: true }) : true;
+  if (!ok) return;
+  try { const r = await api('agents/rebuild', 'POST', { undo: true }); _jh.data = null; say(_jhT('jh_rb_undone', { n: r.removed || 0 })); jhRepaint(); }
+  catch (e){ say((e && e.message) || String(e), 'err'); }
 }
 /* Wired on the host it is drawn in, once; the value is saved when the box is left. */
 function agPointsWire(host){
@@ -940,6 +1084,8 @@ function agPointsWire(host){
     if ((el = t.closest('[data-ag-pt-own]'))){ const k = el.getAttribute('data-ag-pt-own'); putMine({ [k]: agPointsCompany(k) }, ''); return; }
     if ((el = t.closest('[data-ag-pt-undo]'))){ const k = el.getAttribute('data-ag-pt-undo'); putMine({ [k]: null }, _jhT('jh_pt_undone', { name: _jhT('ag_' + k) })); return; }
     if (t.closest('[data-ag-pt-allback]')){ putMine(null, _jhT('jh_pt_all_back_done')); return; }
+    if ((el = t.closest('[data-ag-rebuild]'))){ jhRebuildAsk(el); return; }
+    if ((el = t.closest('[data-ag-rebuild-undo]'))){ jhRebuildUndoAsk(el); return; }
   });
 }
 
@@ -1028,6 +1174,7 @@ const JH_CSS = `
   .jh-end-card h3{font-size:22px;font-weight:var(--w-title);margin:6px 0 2px}
   .jh-end-card p{margin:4px 0 10px;color:var(--color-neutral-600)}
   .jh-end-face{border-radius:50%}
+  .jh-end-card .jh-end-r{color:var(--color-text);font-weight:var(--w-label);font-size:var(--t-meta)}
   .jh-end-x{position:absolute;top:8px;right:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:1px solid transparent;border-radius:var(--radius);background:none;color:var(--color-neutral-600);font-size:20px;line-height:1;cursor:pointer}
   .jh-end-x:hover{border-color:var(--color-divider);color:var(--color-text);background:var(--color-neutral-100)}
   .jh-feedcard{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:12px 14px}
@@ -1058,6 +1205,10 @@ const JH_CSS = `
   .jh-legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11.5px;color:var(--color-neutral-600)}
   .jh-legend b{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px}
   .jh-kpis{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .jh-res{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:6px}
+  .jh-res > div{border:1px solid var(--color-divider);border-radius:var(--radius);padding:6px 8px;min-width:0}
+  .jh-res b{display:block;font-size:15px;font-weight:var(--w-strong);font-variant-numeric:tabular-nums}
+  .jh-res small{display:block;color:var(--color-neutral-600);font-size:11px;line-height:1.25}
   .jh-kpis > div{background:var(--color-neutral-100);border-radius:var(--radius);padding:7px 9px;min-width:0}
   .jh-kpis small{display:block;color:var(--color-neutral-600);font-size:11px}
   .jh-kpis b{font-size:15px;font-variant-numeric:tabular-nums}
@@ -1083,4 +1234,4 @@ const JH_CSS = `
 try { if (typeof jamboFacePaint === 'function') jamboFacePaint(); } catch (_) {}
 
 Object.assign(window, { AG_POINTS_LAUNCH, AG_POINTS_START_MINS, AG_POINTS_NEW_MINS, AG_POINTS_FIELDS, agPointsKeys, agPointsStart, agPointsCompany, agPointsMine, agPointsOf,
-  agPointsIsNew, agPointsEach, agPointsTally, agPointsSumLine, agPieceSay, agPointsTableHtml, agPointsWire, renderJamboHouse, jhRepaint, jhPlace, jhPlacePut, jhLayout, jhRoomAt, jhFloorCounts, jhGeom, jhFinish });
+  agPointsIsNew, agPointsEach, agPointsTally, agPointsSumLine, agPieceSay, agPointsTableHtml, agPointsWire, renderJamboHouse, jhRepaint, jhPlace, jhPlacePut, jhLayout, jhRoomAt, jhFloorCounts, jhGeom, jhFinish, jhUptoFor, jhHoursWords, jhPopsSoft: () => _jh.pops.filter(p => p.soft).length, jhMotionOf: (k, t) => { const r = _jhRooms.find(x => x.k === k); return r ? jhPosAt(r, t) : null; }, jhPopRef, jhRoomQuietWhy, jhRoomStateWords, jhResults, jhUnitWords });

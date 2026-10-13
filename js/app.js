@@ -296,7 +296,7 @@ function commandMeta(view){
     case 'migration': return [i18t('nav_import'), i18t('pg_import_sub')];
     case 'reports':   return [i18t('pg_reports'), i18t('pg_reports_sub')];
     case 'team':      return [i18t('pg_team'), i18t('pg_team_sub')];
-    case 'directory': return [i18t('nav_people'), i18t('pg_people_sub')];
+    case 'directory': return [i18t('nav_directory'), ''];
     case 'folder': {
       /* The FOLDER'S OWN NAME is the customer's word and stays as typed; only
          the sentence around it turns. */
@@ -409,8 +409,9 @@ function pageActionHtml(kind){
 /* 'brain' joined 27 Sep 2026 (Young: "Make the brain page fill the whole
    screen"): the shell bar already says Brain and the stage card names its own
    view, so the page title was the one row between the brain and the screen. */
-/* 'customers' draws its own head in its white band (its name, figures and Draft new agreement, 10 Oct 2026). */
-const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates', 'calendar', 'mynotes', 'brain', 'customers', 'jambo'];
+/* 'customers' draws its own head in its white band (its name, figures and Draft new agreement, 10 Oct 2026);
+   'directory' the same since it became the wall of faces (13 Oct 2026). */
+const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates', 'calendar', 'mynotes', 'brain', 'customers', 'jambo', 'directory'];
 /* ---- WHOSE PAGE OWNS ITS OWN HEIGHT, AND THEREFORE NEEDS NO SCROLLBAR
    RESERVED (owner-reported 25 Aug 2026, off three screenshots of the top-right
    corner: "the top card on the right corner … is leaving space in the corner.
@@ -954,7 +955,7 @@ function updateSidebarCounts(){
 const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Insights',
   calendar:'Calendar', reports:'Reports', register:'Contracts', migration:'Import contracts',
   pipeline:'Pipeline', advice:'Advice desk', intake:'Requests', obligations:'Obligations', approvals:'Approvals & signing', customers:'Parties', agents:"Jambo's work", jambo:"Jambo's agents", brain:'the Brain', templates:'Templates', playbook:'Our standards',
-  team:'Team & settings', directory:'People', workspace:'the contract workspace',
+  team:'Team & settings', directory:'Directory', workspace:'the contract workspace',
   redline:'Negotiations' };
 
 /* WHAT THE SCREEN SAYS WHEN A RENDER THROWS.
@@ -1381,6 +1382,8 @@ const PLACE_PARTS={
   obligations:['obwPlace','obwPlacePut'],
   redline:['rlPlace','rlPlacePut'],
   customers:['cuPlace','cuPlacePut'],
+  /* the Directory keeps its tab, find box and filters (13 Oct 2026) */
+  directory:['dirPlace','dirPlacePut'],
   /* the Brain keeps only its Stack view's trip and stop (10 Oct 2026); its other views land as before */
   brain:['brPlace','brPlacePut'],
   /* Jambo's agents keeps its tab, period, look and speed (12 Oct 2026) */

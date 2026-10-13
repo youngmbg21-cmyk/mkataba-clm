@@ -3333,45 +3333,15 @@
   .st-person-name{ font-size:var(--t-body); font-weight:var(--w-strong); color:var(--color-text); }
   .st-person-sub{ display:flex; align-items:center; gap:var(--s-2); flex-wrap:wrap;
     font-size:var(--t-label); color:var(--color-neutral-600); }
-  /* ---- PEOPLE: the read-only directory ----
-     Beside the settings roster deliberately, because they list the same people
-     and must not drift apart in look. What differs is what they ARE: that one
-     is a column of buttons that open an editor, this one is a table you read.
-     So no cursor, no hover tint, no ›, and the only press on the page is a
-     mailto — a directory you cannot act on is a list. */
-  .dir-card{ border:1px solid var(--color-divider); border-radius:var(--radius); overflow:hidden;
-    background:var(--color-surface); box-shadow:var(--shadow-sm); }
-  .dir-head{ display:flex; align-items:center; gap:10px; padding:10px 14px;
-    border-bottom:1px solid var(--color-divider); background:var(--color-bg); }
-  .dir-head-n{ font-size:var(--t-micro); font-weight:var(--w-title);  
-    color:var(--color-neutral-600); }
-  .dir-rows{ display:flex; flex-direction:column; }
-  .dir-row{ display:flex; align-items:center; gap:11px; padding:10px 14px;
-    border-bottom:1px solid var(--color-divider); }
-  .dir-row:last-child{ border-bottom:0; }
+  /* ---- PEOPLE → THE DIRECTORY (13 Oct 2026) ----
+     The read-only roster of 14 Aug 2026 became the wall of faces, whose rules
+     travel with js/views/directory.js (DIR_CSS). Two of its classes stay here
+     because the PHONE's People screen wears them too: the initials, and the
+     one grey an absence wears on both shells. */
   .dir-av{ width:30px; height:30px; border-radius:50%; flex:none; display:inline-grid;
     place-items:center; font-size:var(--t-label); font-weight:var(--w-title); font-family:var(--font-mono);
     background:var(--st-steel-bg); color:var(--st-steel-fg); }
-  .dir-main{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
-  .dir-name{ font-size:var(--t-body); font-weight:var(--w-strong); color:var(--color-text); }
-  .dir-you{ font-weight:var(--w-body); color:var(--color-neutral-500); font-size:var(--t-label); }
-  .dir-title{ font-size:var(--t-label); color:var(--color-neutral-600); }
-  .dir-role{ flex:none; font-size:var(--t-label); font-weight:var(--w-strong); letter-spacing:.04em;
-    padding:3px 10px; border-radius:var(--radius); background:var(--st-gray-bg); color:var(--st-gray-fg); }
-  .dir-mail{ flex:none; width:15rem; max-width:38%; font-size:var(--t-label); overflow:hidden;
-    text-overflow:ellipsis; white-space:nowrap; text-align:right; }
-  .dir-mail a{ color:var(--accent-ink-700); text-decoration:none; }
-  .dir-mail a:hover{ text-decoration:underline; }
   .dir-none{ color:var(--color-neutral-400); }
-  .dir-note{ font-size:var(--t-label); color:var(--color-neutral-500); line-height:1.5;
-    padding:9px 14px; border-top:1px solid var(--color-divider); margin:0; }
-  .dir-empty{ padding:18px 14px; font-size:var(--t-meta); color:var(--color-neutral-600); margin:0; }
-  /* On a narrow window the address drops under the name rather than squeezing
-     every column — the same trade the register makes. */
-  @media (max-width:719px){
-    .dir-row{ flex-wrap:wrap; }
-    .dir-mail{ width:100%; max-width:100%; text-align:left; padding-left:41px; }
-  }
   .st-chip{ flex:none; font-size:var(--t-label); font-weight:var(--w-title); border-radius:var(--radius);
     padding:3px 10px; background:var(--st-green-bg); color:var(--st-green-fg); }
   .st-chip[data-tone="warn"]{ background:var(--st-amber-bg); color:var(--st-amber-fg); }
@@ -12596,27 +12566,10 @@
   .ik-cp{display:inline-flex;align-items:center;gap:var(--s-2);min-width:0;}
   .ik-file-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;}
   .ik-file-list .ui-link{display:inline-flex;align-items:center;gap:6px;}
-  /* People (SAP benchmark, batch 2): an empty band under the page's name
-     closes the white head with its rule (no tabs under it); the list is a
-     table on a card. */
-  #dir-page{padding:0 var(--page-pad-x) var(--s-4);height:var(--view-h);box-sizing:border-box;overflow-y:auto;}
-  #dir-page .dir-band{height:var(--s-4);margin-bottom:var(--s-4);}
+  /* The Directory (Faces, 13 Oct 2026) draws its own band, wall and panel
+     rows from js/views/directory.js (DIR_CSS). The empty closing band stays
+     for the pages that still use it (Import). */
   .sap-page > .sap-band.sap-band-close{height:var(--s-4);margin-bottom:var(--s-4);}
-  .dir-table .dir-rows{display:table-row-group;}
-  .dir-table{width:100%;border-collapse:collapse;table-layout:fixed;}
-  .dir-table th{text-align:left;font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600);
-    padding:var(--s-2) var(--s-4);border-bottom:1px solid var(--color-divider);}
-  :root .sap-page .dir-table th{text-transform:none;letter-spacing:0;}
-  .dir-table td{padding:var(--s-2) var(--s-4);border-bottom:1px solid var(--color-divider);font-size:var(--t-body);
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;}
-  .dir-table tr:last-child td{border-bottom:0;}
-  .dir-table .dir-row{display:table-row;padding:0;}
-  .dir-card .dir-head.ins-cardhead{background:var(--color-surface);}
-  .dir-who{display:inline-flex;align-items:center;gap:var(--s-2);min-width:0;}
-  .dir-table .dir-av{width:28px;height:28px;border-radius:var(--radius);font-size:var(--t-label);}
-  .dir-table .dir-name{font-weight:var(--w-body);}
-  .dir-table .dir-role{letter-spacing:0;text-transform:none;}
-  .dir-table .dir-mail{width:auto;max-width:none;text-align:left;}
   /* Settings → People (SAP benchmark, batch 2): one table on a card, the
      tab's count amber, each row the door to its drawer. */
   .st-tab .st-tab-n.is-warn{color:var(--st-amber-fg);background:none;font-family:inherit;font-weight:var(--w-strong);padding:0;}
@@ -13555,10 +13508,10 @@
                do before you ask somebody a question. Every role sees it,
                Viewers included. It edits nothing; Settings → People is where a
                member is changed, and it is admin-only and unmoved. -->
-          <button data-view="directory" class="nav-item" title="People — who is in this workspace, what they do and how to reach them" data-i18n-title="nav_people_title">
+          <button data-view="directory" class="nav-item" title="Directory — everyone HaTi deals with, inside and outside, with their parties and contracts" data-i18n-title="nav_directory_title">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-people"/></svg>
-            <span style="flex:1;" data-i18n="nav_people">People</span>
+            <span style="flex:1;" data-i18n="nav_directory">Directory</span>
           </button>
         </div>
       </div>

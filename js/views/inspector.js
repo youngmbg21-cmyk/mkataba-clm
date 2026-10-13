@@ -844,6 +844,8 @@ const INS_PAGE_REPAINT = {
   register: 'regRepaint',
   approvals: 'renderApprovalsPage',
   customers: 'renderCustomers',
+  /* the Directory's wall of faces takes the inspector where it fits (13 Oct 2026) */
+  directory: 'renderDirectory',
   obligations: 'obwRepaint',
   intake: 'renderIntake',
   /* Not an inspector: the Advice tab of Requests, whose frame follows this
