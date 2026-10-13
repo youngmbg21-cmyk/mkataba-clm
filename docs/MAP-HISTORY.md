@@ -28959,3 +28959,7 @@ Owner: "Fix the cost meter price too". `AI_RATE_DEFAULTS` had claude-sonnet-5 at
 ## UPLOADED-CONTRACT-FIXED-VERIFY 4a/4b RE-POINTED (13 Oct 2026)
 
 Owner: "Fix the uploaded contract who else check too". Red on main since the 13 Oct Details/Overview change: the check went to the Details tab for `#kt-people`, but Details now holds only what the paper owes and the people directory is the Overview's Edit (`data-ov-edit="all"` → `participantsDirHtml` inside `#ov-parties`). Nothing in the product was wrong. The check now presses Edit on the Overview, measures there (list 0 · Add button 0 · column inset 16) and leaves Edit; 18/18.
+
+## BOARD-CHART-STANDARD-VERIFY AT 320 (13 Oct 2026)
+
+Owner: "Fix the board chart check too". CI log (PR #247, 49fe2267): FAIL 1a "at 320 … 928 shown, 294 drawn", FAIL 1b "619" — 560 and 1180 passed. Cause: a background repaint replaced the card between the test's "set the width" and "measure", so for a frame the card was full-width while its chart kept the last measured width (hbFitMeasure corrects it a moment later). The test now asks for the settled state, bounded (A WAIT ASKS FOR THE STATE): a replaced card is styled again, and it measures only when the same card carries the width and the chart's viewBox equals its shown width. No product change.
