@@ -54,6 +54,13 @@ async function agentSendBack(k, body){
   await agentsStatusLoad();
   return r;
 }
+/* THE READING AGENTS SAY WHAT THEY PREPARED (13 Oct 2026): the agents page
+   lays the pieces out (agReportPrepared) and hands them here, because the
+   page itself never talks to the server (f399, f412, f413). Fire and forget
+   on the page's side; the promise is kept so the house can wait for it. */
+function agentPrepared(pieces){
+  return api('agents/prepared', 'POST', { pieces: Array.isArray(pieces) ? pieces : [] });
+}
 async function shareKeepOpen(c, token){
   const r = await api('shares/' + encodeURIComponent(token) + '/extend', 'POST', {});
   if (c && typeof reachTake === 'function') reachTake(c, r);
@@ -148,5 +155,5 @@ function agentsWatch(){
   }, AR_BEAT_MS);
 }
 
-Object.assign(window, { agentsStatus, agentsStatusLoad, agentRunNow, agentSaveCfg, agentSendBack, shareKeepOpen,
+Object.assign(window, { agentsStatus, agentsStatusLoad, agentRunNow, agentSaveCfg, agentSendBack, agentPrepared, shareKeepOpen,
   importQueueRead, contractsTakeRow, contractsTakeChanged, agentsBeat, agentsWatch, AR_BEAT_MS, AR_REACH_MS });
