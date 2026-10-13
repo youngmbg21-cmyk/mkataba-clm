@@ -87,6 +87,15 @@ async function type(page, sel, value, why) {
 /* Fill every EMPTY box inside a container, by type, the way a person would:
    a name where a name is asked, a date where a date is asked. Counts each. */
 async function fillEmpties(page, rootSel, who) {
+  /* HaTi dresses a date box with its own picker on the NEXT animation frame
+     after the form mounts (dlgPinFoot -> popupControlsDress -> datePickDress):
+     the native box goes out of sight and a face stands in its place. Listing
+     the boxes in that one-frame gap would name a box nobody can type into
+     (red on GitHub once, 13 Oct 2026). Ask for the state, bounded: every date
+     box in the form dressed, or two seconds, whichever comes first. */
+  await until(page, root => { const r = document.querySelector(root); if (!r) return false;
+    const dates = [...r.querySelectorAll('input[type="date"]:not([data-native])')];
+    return dates.every(i => i.dataset.dp === '1'); }, 2000, rootSel);
   const boxes = await page.evaluate(root => {
     const r = document.querySelector(root); if (!r) return [];
     const out = [];
@@ -115,6 +124,10 @@ async function fillEmpties(page, rootSel, who) {
     else if (/name|party|company|counterparty/.test(l)) v = 'Nandi Traders Ltd';
     else if (/address/.test(l)) v = 'Plot 12, Nairobi';
     else if (/day|notice|term|year|month/.test(l)) v = '30';
+    /* dressed since it was listed: the box is out of sight now, a person
+       would see the face; it is left as the journey was recorded */
+    const seen = await page.evaluate(s => { const el = document.querySelector(s); return !!(el && el.offsetParent !== null); }, sel);
+    if (!seen) { log(`skip ${sel} (${b.label}) — dressed since it was listed`); continue; }
     await type(page, sel, v, `${b.label} — ${who}`);
   }
   return boxes.length;
