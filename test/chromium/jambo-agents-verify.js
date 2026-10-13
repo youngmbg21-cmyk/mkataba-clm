@@ -55,6 +55,7 @@ const EXEC = process.env.CHROMIUM_BIN
   || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 
 let pass = 0, fail = 0;
+let ptsTab = async () => {};
 const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  FAIL ') + n + (d ? '  → ' + d : '')); };
 
 const DAY = 86400000, ago = d => new Date(Date.now() - d * DAY).toISOString();
@@ -78,6 +79,8 @@ Object.assign(CONTRACTS[2], { signApprovals: [{ id: 'sa1', askedAt: ago(8), stat
   const page = await b.newPage({ viewport: { width: 1440, height: 900 } });
   const errs = [];
   page.on('pageerror', e => errs.push(e.message));
+  /* the agents' cards sit on the panel's Points tab (the Work log is the first) */
+  ptsTab = () => page.evaluate(() => { const t = document.querySelector('[data-jh-ptab="points"]'); if (t && t.getAttribute('aria-selected') !== 'true') t.click(); });
   try {
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke');
@@ -110,6 +113,9 @@ Object.assign(CONTRACTS[2], { signApprovals: [{ id: 'sa1', askedAt: ago(8), stat
     const pg = await page.evaluate(() => ({ view: state.view, cards: [...document.querySelectorAll('[data-jh-agent]')].map(x => x.getAttribute('data-jh-agent')),
       keys: AG_KEYS.slice(), h: document.getElementById('jh-cv').height, tabs: [...document.querySelectorAll('[data-jh-tab]')].map(x => x.getAttribute('data-jh-tab')),
       current: document.querySelector('[data-nav-fold-open="insights"]').classList.contains('is-current') }));
+    /* the agents' cards live on the panel's Points tab; the Work log is the first */
+    const logFirst = await page.evaluate(() => { const lg = document.getElementById('jh-log'); const first = !!lg && !lg.hidden; document.querySelector('[data-jh-ptab="points"]').click(); return first; });
+    ok('2a0 the panel opens on the Work log, the agents\' cards one tab away', logFirst);
     ok('2a one card per agent in AG_KEYS', pg.cards.length === pg.keys.length && pg.keys.every(k => pg.cards.includes(k)), pg.cards.join(' '));
     const fit = () => page.evaluate(() => { const cv = document.getElementById('jh-cv'), st = document.getElementById('jh-stage'), dpr = window.devicePixelRatio || 1;
       return { bottom: Math.round(st.getBoundingClientRect().bottom), win: window.innerHeight, sharp: cv.width === Math.round(cv.clientWidth * dpr) && Math.abs(cv.height - Math.round(cv.clientHeight * dpr)) <= 1,
@@ -209,7 +215,7 @@ Object.assign(CONTRACTS[2], { signApprovals: [{ id: 'sa1', askedAt: ago(8), stat
     ok('13c a press beside the card closes it', await endShut('out'));
 
     console.log('\n14 · one agent at a time');
-    await page.click('[data-jh-agent="paper"]');
+    await ptsTab(); await page.click('[data-jh-agent="paper"]');
     const word14 = await page.evaluate(() => document.querySelector('[data-jh-play]').textContent);
     ok('14a pressing an agent\'s card names it on Play', /Play/.test(word14) && word14.includes(await page.evaluate(() => i18t('ag_paper'))), word14);
     await page.click('[data-jh-play]');
@@ -222,7 +228,7 @@ Object.assign(CONTRACTS[2], { signApprovals: [{ id: 'sa1', askedAt: ago(8), stat
     const hw = await page.evaluate(() => [jhHoursWords(1.2), jhHoursWords(0.4), jhHoursWords(3.6), jhHoursWords(1, 1), jhHoursWords(2.04, 1)]);
     ok('14e hours agree with their number: "about 1 hour", never "1 hours"', /about 1 hour of work/.test(end14.l) && hw.join('|') === '1 hour|0.4 hours|4 hours|1 hour|2.0 hours', JSON.stringify({ l: end14.l, hw }));
     await page.click('[data-jh-end-x]');
-    await page.click('[data-jh-agent="paper"]');
+    await ptsTab(); await page.click('[data-jh-agent="paper"]');
     ok('14d pressing the card again goes back to every agent', await page.evaluate(() => document.querySelector('[data-jh-play]').textContent === i18t('jh_play')));
 
     console.log('\n9 · no free room: the rooms widen to fill each floor');
@@ -397,7 +403,15 @@ Object.assign(CONTRACTS[2], { signApprovals: [{ id: 'sa1', askedAt: ago(8), stat
     ok('18a your desk is the big office across the top floor; the shared rooms below; every agent has an office; the readings sit in reception', o18.top && o18.wall && o18.agentsOk
       && o18.shared === 'jambo@1,mail@1,money@1,people@0,reception@0,vault@0' && o18.reads === 'approve,quiet,request,week', JSON.stringify(o18));
     const t18 = await page.evaluate(() => { const seen = []; for (let t = 0; t <= 1.00001; t += 0.0004){ const m = jhMotionOf('paper', t); if (m && m.stop && seen[seen.length - 1] !== m.stop) seen.push(m.stop); } return seen.join(','); });
-    ok('18b a piece is a trip through the rooms its agent really uses, ending in its tray on your desk', /^(vault,money,jambo,desk,?)+$/.test(t18), t18);
+    ok('18b a piece is a trip through the rooms its agent really uses, ending in its tray on your desk', /^vault,money,jambo,desk/.test(t18), t18);
+    const l18 = await page.evaluate(async () => { document.querySelector('[data-jh-ptab="log"]').click(); document.querySelector('[data-jh-restart]').click();
+      await new Promise(res => { const t0 = Date.now(); (function w(){ if (!_jhPlaying() || Date.now() - t0 > 20000) return res(); setTimeout(w, 200); })(); });
+      const lines = [...document.querySelectorAll('#jh-log .jh-log-l')].map(x => x.textContent); document.querySelector('[data-jh-ptab="points"]').click(); return lines; });
+    ok('18d the Work log writes every step as it happens: the room, what was done there, the contract', l18.length > 0 && l18.some(x => /contract vault/.test(x)) && l18.some(x => /tray on your desk/.test(x)), JSON.stringify(l18.slice(0, 4)));
+    const w18 = await page.evaluate(() => { const r = jhOfficeOf().rooms.find(x => x.k === 'paper'); let maxStep = 0, prev = null, crooked = 0;
+      for (let t = 0; t <= 1.00001; t += 0.0005){ const m = jhMotionOf('paper', t); if (m && m.kind !== 'idle' && prev && prev.kind !== 'idle'){ const dx = Math.abs(m.x - prev.x), dy = Math.abs(m.y - prev.y); maxStep = Math.max(maxStep, Math.hypot(dx, dy)); if (dx > 1 && dy > 1 && m.j === prev.j) crooked++; } prev = m; }
+      return { maxStep: Math.round(maxStep), crooked }; });
+    ok('18e a calm walk on right angles: never a jump across the house, never a diagonal', w18.maxStep < 60 && w18.crooked === 0, JSON.stringify(w18));
     const s18 = await page.evaluate(() => ({ vault: jhSheetsIn('vault', 1), money: jhSheetsIn('money', 1), mail: jhSheetsIn('mail', 0) }));
     ok('18c the paper piles up in the rooms it came through (none before the replay starts)', s18.vault > 0 && s18.money > 0 && s18.mail === 0, JSON.stringify(s18));
     ok('no page errors', errs.length === 0, errs.join(' | ').slice(0, 300));

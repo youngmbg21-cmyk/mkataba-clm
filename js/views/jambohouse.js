@@ -145,7 +145,7 @@ function agPieceSay(agent, contractId, outcome, ref){
 }
 
 /* ---------------- THE PAGE'S STATE (per sitting) ---------------- */
-const _jh = { tab: 'house', range: 30, look: 0, speed: 1, one: '', sel: null, data: null, loading: false, t: 1, playing: false, last: 0, raf: 0, pops: [], trails: [], lastPos: [], hover: null, fed: [] };
+const _jh = { log: [], ptab: 'log', tab: 'house', range: 30, look: 0, speed: 1, one: '', sel: null, data: null, loading: false, t: 1, playing: false, last: 0, raf: 0, pops: [], trails: [], lastPos: [], hover: null, fed: [] };
 function jhPlace(){ const p = { tab: _jh.tab, range: _jh.range, speed: _jh.speed }; if (!jhServerKeeps()) p.look = _jh.look; return p; }
 function jhPlacePut(p){
   if (!p || typeof p !== 'object') return;
@@ -312,9 +312,14 @@ const JH_ROUTE = { renew: ['vault', 'people', 'money', 'jambo'], late: ['vault',
   link: ['vault', 'people', 'mail'], round: ['vault', 'jambo'], paper: ['vault', 'money', 'jambo'], import: ['vault', 'jambo'],
   approve: ['vault'], request: ['vault'], week: ['vault'], quiet: ['vault'] };
 const jhRouteOf = k => JH_ROUTE[k] || ['vault'];
-/* one trip, in replay seconds: walking plus a short stop at every room */
-const JH_TRIP_S = 2.4, JH_STOP_S = 0.22;
-function jhSimulate(r){ r._ev = null; r.trip = jhTripOf(r); }
+/* A CALM WALK (owner, 13 Oct 2026: "the agents are running at lightning speed
+   and taking crooked lines"): a Jambo walks at one steady pace along the
+   corridors and stairs — right angles only — and stops a moment in every room.
+   He is one person: while he is out, the work that comes up waits for his next
+   trip, and work that comes up before he reaches your desk joins the paper he
+   is already carrying (`jhTripsOf`). */
+const JH_WALK = 480, JH_STOP_S = 0.7, JH_TRIP_GAP = 0.5;
+function jhSimulate(r){ r._ev = null; r._trips = null; r.trip = jhTripOf(r); }
 function jhVisitSpot(s, r){
   const c = s.card, q = 0.28 + 0.5 * ((r.i * 3) % 7) / 6;
   return { x: c.x + c.w * q, y: c.y + c.h - 4 };
@@ -323,22 +328,22 @@ function jhTripOf(r){
   const pts = [], stopAt = [];
   let cur = { x: r.seat.x, y: r.seat.y }, curF = r.f;
   pts.push(cur);
+  const add = p => { const l = pts[pts.length - 1]; if (Math.abs(l.x - p.x) > .5 || Math.abs(l.y - p.y) > .5) pts.push(p); };
   const go = (to, f, stop) => { const a = jhCorr(curF), b = jhCorr(f);
-    pts.push({ x: cur.x, y: a }); if (curF !== f){ pts.push({ x: JH_SX, y: a }, { x: JH_SX, y: b }); }
-    pts.push({ x: to.x, y: b }, { x: to.x, y: to.y }); if (stop) stopAt.push({ i: pts.length - 1, id: stop }); cur = to; curF = f; };
+    add({ x: cur.x, y: a }); if (curF !== f){ add({ x: JH_SX, y: a }); add({ x: JH_SX, y: b }); }
+    add({ x: to.x, y: b }); add({ x: to.x, y: to.y }); if (stop) stopAt.push({ i: pts.length - 1, id: stop }); cur = to; curF = f; };
   jhRouteOf(r.k).forEach(id => { const s = _jhShared.find(x => x.id === id); if (s) go(jhVisitSpot(s, r), s.f, id); });
   if (_jhDesk && _jhDesk.trays[r.k]) go({ x: _jhDesk.trays[r.k].x, y: _jhDesk.card.y + _jhDesk.card.h - 4 }, _jhDesk.f, 'desk');
   go({ x: r.seat.x, y: r.seat.y }, r.f, null);
-  let len = 0; for (let j = 1; j < pts.length; j++) len += Math.hypot(pts[j].x - pts[j - 1].x, pts[j].y - pts[j - 1].y);
-  const walkS = Math.max(0.6, JH_TRIP_S - stopAt.length * JH_STOP_S), v = len / walkS || 1;
-  /* the timeline: a walk between every two points, a stop at every room */
+  /* the timeline: a walk between every two points at one pace, a stop at every room */
   const seq = []; let t = 0;
-  for (let j = 1; j < pts.length; j++){ const d = Math.hypot(pts[j].x - pts[j - 1].x, pts[j].y - pts[j - 1].y) / v;
-    if (d > 0){ seq.push({ t0: t, t1: t + d, a: pts[j - 1], b: pts[j], kind: 'walk' }); t += d; }
-    const st = stopAt.find(x => x.i === j); if (st){ seq.push({ t0: t, t1: t + JH_STOP_S, a: pts[j], b: pts[j], kind: 'work', stop: st.id }); t += JH_STOP_S; } }
-  const stopT = {}; seq.forEach(x => { if (x.stop && stopT[x.stop] == null) stopT[x.stop] = x.t0; });
-  return { pts, seq, T: t, stopT, tDesk: stopT.desk != null ? stopT.desk : t / 2 };
+  for (let j = 1; j < pts.length; j++){ const d = Math.hypot(pts[j].x - pts[j - 1].x, pts[j].y - pts[j - 1].y) / JH_WALK;
+    if (d > 0){ seq.push({ t0: t, t1: t + d, a: pts[j - 1], b: pts[j], kind: 'walk', j }); t += d; }
+    stopAt.filter(x => x.i === j).forEach(st => { seq.push({ t0: t, t1: t + JH_STOP_S, a: pts[j], b: pts[j], kind: 'work', stop: st.id, j }); t += JH_STOP_S; }); }
+  const stopT = {}, stops = []; seq.forEach(x => { if (x.stop && stopT[x.stop] == null){ stopT[x.stop] = x.t0; stops.push(x.stop); } });
+  return { pts, seq, T: t, stopT, stops, tDesk: stopT.desk != null ? stopT.desk : t / 2 };
 }
+/* the moments this agent prepared a piece, with the piece, in replay seconds */
 function jhEventsOf(r){
   const key = (_jh.data || null), one = _jh.one, range = _jh.range;
   if (r._ev && r._evData === key && r._evOne === one && r._evRange === range) return r._ev;
@@ -346,31 +351,78 @@ function jhEventsOf(r){
   for (const p of jhPieces()){
     if (p.agent !== r.k) continue;
     const t = Date.parse(p.at || ''); if (!t || t < S.from || t > S.end) continue;
-    ev.push((t - S.from) / (S.end - S.from) * total);
+    ev.push({ t: (t - S.from) / (S.end - S.from) * total, p });
   }
-  ev.sort((a, b) => a - b);
-  r._ev = ev; r._evData = key; r._evOne = one; r._evRange = range;
+  ev.sort((a, b) => a.t - b.t);
+  r._ev = ev; r._evData = key; r._evOne = one; r._evRange = range; r._trips = null;
   return ev;
 }
+/* his trips: one at a time; a piece that comes up before he reaches the desk rides with him */
+function jhTripsOf(r){
+  const ev = jhEventsOf(r);
+  if (r._trips && r._tripsOf === ev) return r._trips;
+  const tr = r.trip || (r.trip = jhTripOf(r)), out = [];
+  for (const e of ev){
+    const cur = out[out.length - 1];
+    if (cur && e.t <= cur.start + tr.tDesk){ cur.pieces.push(e.p); continue; }
+    const start = Math.max(e.t - tr.tDesk, cur ? cur.start + tr.T + JH_TRIP_GAP : -Infinity);
+    out.push({ start, pieces: [e.p] });
+  }
+  r._trips = out; r._tripsOf = ev;
+  return out;
+}
+const jhIdle = r => ({ x: r.seat.x, y: r.seat.y, kind: 'idle', k: 0 });
 function jhPosAt(r, tt){
-  const s = tt * JH_DURATION_MS / 1000, tr = r.trip || (r.trip = jhTripOf(r)), ev = jhEventsOf(r);
-  for (let n = 0; n < ev.length; n++){
-    const t0 = ev[n] - tr.tDesk, q = s - t0;
+  const s = tt * JH_DURATION_MS / 1000, tr = r.trip || (r.trip = jhTripOf(r));
+  for (const trip of jhTripsOf(r)){
+    const q = s - trip.start;
     if (q < 0 || q > tr.T) continue;
     const x = tr.seq.find(z => q >= z.t0 && q <= z.t1) || tr.seq[tr.seq.length - 1];
     const k = x.t1 > x.t0 ? (q - x.t0) / (x.t1 - x.t0) : 1;
-    return { x: x.a.x + (x.b.x - x.a.x) * k, y: x.a.y + (x.b.y - x.a.y) * k, kind: x.kind, k, stop: x.stop || null, carrying: q < tr.tDesk };
+    return { x: x.a.x + (x.b.x - x.a.x) * k, y: x.a.y + (x.b.y - x.a.y) * k, kind: x.kind, k, stop: x.stop || null, carrying: q < tr.tDesk + JH_STOP_S * .6, j: x.j, n: trip.pieces.length, trip };
   }
-  return { x: r.seat.x, y: r.seat.y, kind: 'idle', k: 0 };
+  return jhIdle(r);
 }
-/* THE PAPER THAT CAME THROUGH A ROOM by the replay's moment: every trip that
-   has reached it so far (read from the same trips, so the pile and the Jambos
-   never disagree). At rest it is the whole period's. */
+/* THE PAPER THAT CAME THROUGH A ROOM by the replay's moment: every sheet his
+   trips have brought there so far (read from the same trips, so the pile and
+   the Jambos never disagree). At rest it is the whole period's. */
 function jhSheetsIn(id, tt){
   const s = tt * JH_DURATION_MS / 1000; let n = 0;
   for (const r of _jhRooms){ if (jhSoloQuiet(r.k)) continue; const tr = r.trip; if (!tr || tr.stopT[id] == null) continue;
-    for (const e of jhEventsOf(r)) if (e - tr.tDesk + tr.stopT[id] <= s) n++; }
+    for (const trip of jhTripsOf(r)) if (trip.start + tr.stopT[id] <= s) n += trip.pieces.length; }
   return n;
+}
+/* THE WORK LOG (owner, 13 Oct 2026, from the mock-up: "it is missing the log
+   panel"): every step of every trip as the replay reaches it. A line says who,
+   what he did there and on which contract, stamped with the moment that piece
+   was really prepared (the walk is drawn out so it can be watched; the work
+   itself took seconds). */
+function jhLogWords(r, id, trip){
+  const c = trip.pieces[0] && trip.pieces[0].cid && _jh.data && _jh.data.contracts && _jh.data.contracts[trip.pieces[0].cid];
+  const ref = c && c.no ? c.no : _jhT('jh_log_the_contract'), n = trip.pieces.length;
+  if (id === 'vault') return _jhT('jh_log_vault', { ref });
+  if (id === 'jambo') return _jhT('jh_log_jambo', { job: _jhT(['renew', 'paper', 'round', 'import'].includes(r.k) ? 'jh_log_job_' + r.k : 'jh_log_job') });
+  if (id === 'desk') return _jhTn('jh_log_desk', n, { n: _jhFmt(n) });
+  return _jhT('jh_log_' + id);
+}
+function jhLogStep(s0, s1){
+  if (s1 <= s0) return;
+  const S = jhSpan(), total = JH_DURATION_MS / 1000, rows = [];
+  for (const r of _jhRooms){ if (_jh.sel && r.k !== _jh.sel) continue; const tr = r.trip; if (!tr) continue;
+    for (const trip of jhTripsOf(r)) for (const id of tr.stops){ const at = trip.start + tr.stopT[id];
+      if (at > s0 && at <= s1) rows.push({ at, r, id, trip }); } }
+  rows.sort((a, b) => a.at - b.at).forEach(x => { _jh.log.unshift({ when: Date.parse((x.trip.pieces[0] || {}).at || '') || S.from + Math.max(0, x.at) / total * (S.end - S.from), k: x.r.k, col: x.r.col, reading: !!x.r.reading, words: jhLogWords(x.r, x.id, x.trip) }); });
+  if (rows.length){ _jh.log.length = Math.min(_jh.log.length, 60); jhLogPaint(); }
+}
+function jhLogWhen(ms){
+  try { const d = new Date(ms), loc = (typeof langLocale === 'function') ? langLocale() : undefined;
+    return _jh.range === 1 ? d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString(loc, { weekday: 'short', day: 'numeric', month: 'short' }) + ' · ' + d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' }); }
+  catch (_) { return ''; }
+}
+function jhLogPaint(){
+  const box = document.getElementById('jh-log'); if (!box) return;
+  box.innerHTML = _jh.log.length ? _jh.log.map(l => `<div class="jh-log-l"><span class="jh-log-t">${_jhE(jhLogWhen(l.when))}</span><span><i class="jh-dot" style="background:${l.col}"></i><b>${_jhE(_jhT('jh_room_' + l.k))}</b>${l.reading ? ` <span class="jh-log-rd">${_jhE(_jhT('jh_log_reading'))}</span>` : ''} ${_jhE(l.words)}</span></div>`).join('')
+    : `<p class="jh-none">${_jhE(_jhT('jh_log_none'))}</p>`;
 }
 /* The colours from the page's own tokens, read when the house is drawn. */
 const _jhC = {};
@@ -597,19 +649,20 @@ function jhAlive(ctx, x, y, rad, i, busy, fn){
 function jhRunners(ctx, pieces){
   const atRest = !_jh.playing && _jh.t >= 1;
   const on = _jh.one ? new Set(pieces.map(p => p.agent)) : null;
-  const pts = _jh.pos || _jhRooms.map(r => jhPosAt(r, atRest || jhSoloQuiet(r.k) ? 0 : _jh.t));
-  if (_jh.playing) pts.forEach((p, i) => { if (jhSoloQuiet(_jhRooms[i].k) || p.kind === 'idle') return; const tr = _jh.trails[i] || (_jh.trails[i] = []); tr.push({ x: p.x, y: p.y }); if (tr.length > 110) tr.shift(); });
-  _jh.trails.forEach((tr, i) => { if (!tr || tr.length < 2 || !_jhRooms[i]) return; ctx.save(); ctx.strokeStyle = _jhRooms[i].col; ctx.lineWidth = _jh.look === 1 ? 1.6 : 2; ctx.setLineDash(_jh.look === 1 || _jhRooms[i].reading ? [4, 4] : []);
-    for (let j = 1; j < tr.length; j++){ ctx.globalAlpha = (j / tr.length) * (_jh.sel === null ? .45 : _jh.sel === _jhRooms[i].k ? .9 : .08); ctx.beginPath(); ctx.moveTo(tr[j - 1].x, tr[j - 1].y - 8); ctx.lineTo(tr[j].x, tr[j].y - 8); ctx.stroke(); } ctx.restore(); });
+  const pts = _jh.pos || _jhRooms.map(r => atRest || jhSoloQuiet(r.k) ? jhIdle(r) : jhPosAt(r, _jh.t));
+  /* the path walked so far on this trip, along the track's own right angles (never sampled frames) */
+  pts.forEach((p, i) => { const r = _jhRooms[i]; if (!r || p.kind === 'idle' || !r.trip || p.j == null) return;
+    ctx.save(); ctx.strokeStyle = r.col; ctx.lineWidth = _jh.look === 1 ? 1.6 : 2; ctx.setLineDash(_jh.look === 1 || r.reading ? [4, 4] : []); ctx.globalAlpha = _jh.sel === null ? .5 : _jh.sel === r.k ? .9 : .08;
+    const P = r.trip.pts; ctx.beginPath(); ctx.moveTo(P[0].x, P[0].y - 8); for (let j = 1; j < p.j; j++) ctx.lineTo(P[j].x, P[j].y - 8); ctx.lineTo(p.x, p.y - 8); ctx.stroke(); ctx.restore(); });
   _jh.lastPos = pts.map((p, i) => { const r = _jhRooms[i], lit = _jh.sel === r.k, dim = (_jh.sel !== null && !lit) || (on && !on.has(r.k)), rad = 10 + (lit ? 3 : 0), cy = p.y - rad - 2;
     ctx.save(); if (dim) ctx.globalAlpha = .3;
     /* a reading is not an agent: no Jambo, only its paper moving */
-    if (r.reading){ if (p.kind !== 'idle') jhSheet(ctx, p.x, p.y - 10, 1.05, 0, r.col); ctx.restore(); return { x: p.x, y: p.y - 10 }; }
+    if (r.reading){ if (p.kind !== 'idle' && p.carrying) jhSheet(ctx, p.x, p.y - 10, 1.05, 0, r.col); ctx.restore(); return { x: p.x, y: p.y - 10 }; }
     const work = p.kind === 'work' && !atRest;
     jhAlive(ctx, p.x, cy, rad, i, work, (x, y) => jhJambo(ctx, r, x, y, rad, lit));
     if (work){ ctx.strokeStyle = r.col; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p.x, cy, rad + 6, -Math.PI / 2, -Math.PI / 2 + p.k * Math.PI * 2); ctx.stroke(); }
     const now = (typeof performance !== 'undefined' ? performance.now() : 0);
-    if (p.kind === 'walk' && p.carrying) jhSheet(ctx, p.x + rad * .95, cy - rad - 6 + Math.sin(now / 120 + i) * 1.2, 1, -.18, r.col);
+    if (p.kind === 'walk' && p.carrying) for (let q = Math.min(3, p.n || 1) - 1; q >= 0; q--) jhSheet(ctx, p.x + rad * .95 + q * 1.5, cy - rad - 6 - q * 2.5 + Math.sin(now / 120 + i) * 1.2, 1, -.18, r.col);
     else if (work && p.carrying) jhSheet(ctx, p.x + rad * 1.3, cy + 4 + Math.sin(now / 180 + i) * 1.5, .95, Math.sin(now / 260 + i) * .35, r.col);
     ctx.restore(); return { x: p.x, y: cy }; });
 }
@@ -641,6 +694,7 @@ function jhFrame(now){
   if (_jh.playing){
     const dt = Math.min(60, now - (_jh.last || now)); _jh.last = now;
     const t0 = _jh.t; _jh.t = Math.min(1, _jh.t + dt * _jh.speed / JH_DURATION_MS);
+    jhLogStep(t0 * JH_DURATION_MS / 1000, _jh.t * JH_DURATION_MS / 1000);
     const S = jhSpan(), a = S.from + t0 * (S.end - S.from), b = S.from + _jh.t * (S.end - S.from);
     /* THE MOMENT JAMBO DID IT: a piece prepared inside this step rises in its
        room as "prepared" (softer than points); its points come later, when a
@@ -665,7 +719,7 @@ function jhFrame(now){
   const ctx = cv.getContext('2d'), kk = cv.width / JH_W;
   ctx.setTransform(kk, 0, 0, kk, 0, 0);
   const upto = jhUpto(), atRest = !_jh.playing && _jh.t >= 1;
-  _jh.pos = _jhRooms.map(r => jhPosAt(r, atRest || jhSoloQuiet(r.k) ? 0 : _jh.t));
+  _jh.pos = _jhRooms.map(r => atRest || jhSoloQuiet(r.k) ? jhIdle(r) : jhPosAt(r, _jh.t));
   (_jh.look === 1 ? jhDrawDrawing : jhDrawPlan)(ctx, pieces, upto);
   jhRunners(ctx, pieces); jhDateCard(ctx); jhDrawPops(ctx);
   const xk = jhXfK(), xf = _jh.xf;
@@ -737,15 +791,17 @@ function jhLevelWords(k){
 }
 /* The panel stands as tall as the house; its agent cards scroll inside it. */
 function jhFitPanel(){
+  jhLogPaint();
   const panel = document.querySelector('.jh-panel'), stage = document.getElementById('jh-stage'), rows = document.getElementById('jh-rows');
   if (!panel || !stage || !rows || typeof requestAnimationFrame !== 'function') return;
   requestAnimationFrame(() => {
     if (!document.body.contains(rows)) return;
     if (typeof matchMedia === 'function' && !matchMedia('(min-width: 1180px)').matches){ rows.style.maxHeight = '420px'; return; }
-    rows.style.maxHeight = '0px';
+    const log = document.getElementById('jh-log'), card = stage.closest('.jh-housecard') || stage;
+    rows.style.maxHeight = '0px'; if (log) log.style.maxHeight = '0px';
     const other = panel.offsetHeight;
-    const card = stage.closest('.jh-housecard') || stage;
     rows.style.maxHeight = Math.max(170, card.offsetHeight - other) + 'px';
+    if (log) log.style.maxHeight = Math.max(170, card.offsetHeight - other + ((document.getElementById('jh-sc') || {}).offsetHeight || 0)) + 'px';
   });
 }
 function jhRowsHtml(){
@@ -903,8 +959,12 @@ function jhHouseHtml(){
       <aside class="jh-panel" aria-label="${_jhE(_jhT('jh_k_points'))}">
         <div class="jh-total"><b id="jh-total">0</b><span id="jh-total-l">${_jhE(_jhT('jh_pts'))} · ${_jhE(_jh.one ? jhOneNo() + ' · ' : '')}${_jhE(jhRangeWords())}</span></div>
         <p class="jh-note">${_jhE(_jhT('jh_point_rule'))} ${_jhE(_jhT(agPointsKeys().some(k => agPointsMine(k)) ? 'jh_vals_mine' : 'jh_vals_company'))}</p>
+        <div class="jh-ptabs" role="tablist">${['log', 'points'].map(t => `<button type="button" role="tab" class="jh-ptab" data-jh-ptab="${t}" aria-selected="${_jh.ptab === t}">${_jhE(_jhT('jh_ptab_' + t))}</button>`).join('')}</div>
+        <div class="jh-log" id="jh-log" aria-live="polite"${_jh.ptab === 'log' ? '' : ' hidden'}></div>
+        <div class="jh-pbox" id="jh-pbox"${_jh.ptab === 'points' ? '' : ' hidden'}>
         <div class="jh-rows" id="jh-rows">${jhRowsHtml()}</div>
         <div class="jh-sc" id="jh-sc"></div>
+        </div>
       </aside>
     </div>
   </div>`;
@@ -1039,7 +1099,7 @@ function jhDaysGo(){
 }
 function jhRepaint(){ if (typeof state !== 'undefined' && state.view === 'jambo') renderJamboHouse(); }
 function jhReplayFromStart(play){
-  _jh.t = play ? 0 : 1; _jh.pops = []; _jh.trails = []; _jh.playing = !!play; _jh.last = 0; _jhScKey = '';
+  _jh.t = play ? 0 : 1; _jh.pops = []; _jh.trails = []; _jh.log = []; jhLogPaint(); _jh.playing = !!play; _jh.last = 0; _jhScKey = '';
 }
 function jhPlayWord(){ return _jh.playing ? _jhT('jh_pause') : _jh.sel ? _jhT('jh_play_agent', { name: _jhT('ag_' + _jh.sel) }) : _jhT('jh_play'); }
 function jhSetPlayWord(){ const b = document.querySelector('[data-jh-play]'); if (b) b.textContent = jhPlayWord(); const e = document.getElementById('jh-end'); if (e && _jh.playing) e.hidden = true; }
@@ -1049,6 +1109,9 @@ function jhWire(host){
     if (typeof state === 'undefined' || state.view !== 'jambo') return;
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
     let el;
+    if ((el = t.closest('[data-jh-ptab]'))){ _jh.ptab = el.getAttribute('data-jh-ptab') === 'points' ? 'points' : 'log';
+      document.querySelectorAll('[data-jh-ptab]').forEach(b => b.setAttribute('aria-selected', String(b.getAttribute('data-jh-ptab') === _jh.ptab)));
+      const lg = document.getElementById('jh-log'), pb = document.getElementById('jh-pbox'); if (lg) lg.hidden = _jh.ptab !== 'log'; if (pb) pb.hidden = _jh.ptab !== 'points'; jhFitPanel(); return; }
     if ((el = t.closest('[data-jh-tab]'))){ _jh.tab = el.getAttribute('data-jh-tab'); if (typeof placeSave === 'function') placeSave(); renderJamboHouse(); return; }
     if (!t.closest('#jh-days') && !t.closest('#jh-range')) jhDaysClose();
     if (t.closest('[data-jh-end-x]')){ jhEndClose(); return; }
@@ -1325,6 +1388,18 @@ const JH_CSS = `
   .jh-total{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
   .jh-total b{font-weight:var(--w-title);font-size:28px;line-height:1;font-variant-numeric:tabular-nums}
   .jh-total span{color:var(--color-neutral-600);font-size:var(--t-label);text-align:right}
+  .jh-ptabs{display:flex;gap:4px;border-bottom:1px solid var(--color-divider);flex:none}
+  .jh-ptab{border:0;background:none;padding:6px 10px;cursor:pointer;border-bottom:2px solid transparent;color:var(--color-neutral-600);font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);white-space:nowrap}
+  .jh-ptab[aria-selected="true"]{color:var(--color-accent);border-bottom-color:var(--color-accent)}
+  .jh-log{display:flex;flex-direction:column;overflow-y:auto;overscroll-behavior:contain;max-height:420px;font-size:var(--t-label);padding-right:4px}
+  .jh-log-l{display:grid;grid-template-columns:1fr;gap:1px;padding:7px 0;border-top:1px solid var(--color-divider);color:var(--color-neutral-600);line-height:1.4}
+  .jh-log-l:first-child{border-top:0}
+  .jh-log-l b{color:var(--color-text);font-weight:var(--w-strong)}
+  .jh-log-t{font-variant-numeric:tabular-nums;font-size:11.5px}
+  .jh-log-l .jh-dot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;vertical-align:0}
+  .jh-log-rd{font-size:11px;border:1px solid var(--color-divider);border-radius:999px;padding:0 6px}
+  .jh-pbox{display:flex;flex-direction:column;gap:10px;min-height:0}
+  .jh-pbox[hidden],.jh-log[hidden]{display:none}
   .jh-rows{display:flex;flex-direction:column;gap:8px;overflow-y:auto;overscroll-behavior:contain;padding:2px 4px 2px 0;scroll-snap-type:y proximity;max-height:420px}
   .jh-row{display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--radius-lg);cursor:pointer;border:1px solid var(--color-divider);background:var(--color-surface);flex:none;scroll-snap-align:start;text-align:left;font:inherit;color:var(--color-text)}
   .jh-row:hover{border-color:var(--color-accent)}
@@ -1371,5 +1446,5 @@ const JH_CSS = `
 try { if (typeof jamboFacePaint === 'function') jamboFacePaint(); } catch (_) {}
 
 Object.assign(window, { AG_POINTS_LAUNCH, AG_POINTS_START_MINS, AG_POINTS_NEW_MINS, AG_POINTS_FIELDS, agPointsKeys, agPointsStart, agPointsCompany, agPointsMine, agPointsOf,
-  agPointsIsNew, agPointsEach, agPointsTally, agPointsSumLine, agPieceSay, agPointsTableHtml, agPointsWire, renderJamboHouse, jhRepaint, jhPlace, jhPlacePut, jhLayout, jhRoomAt, jhFloorCounts, jhGeom, jhFinish, jhUptoFor, jhHoursWords, jhPopsSoft: () => _jh.pops.filter(p => p.soft).length, jhMotionOf: (k, t) => { const r = _jhRooms.find(x => x.k === k); return r ? jhPosAt(r, t) : null; }, jhPopRef, jhRoomQuietWhy, jhRoomStateWords, jhResults, jhUnitWords, jhSheetsIn, JH_ROUTE,
+  agPointsIsNew, agPointsEach, agPointsTally, agPointsSumLine, agPieceSay, agPointsTableHtml, agPointsWire, renderJamboHouse, jhRepaint, jhPlace, jhPlacePut, jhLayout, jhRoomAt, jhFloorCounts, jhGeom, jhFinish, jhUptoFor, jhHoursWords, jhPopsSoft: () => _jh.pops.filter(p => p.soft).length, jhMotionOf: (k, t) => { const r = _jhRooms.find(x => x.k === k); return r ? jhPosAt(r, t) : null; }, jhPopRef, jhRoomQuietWhy, jhRoomStateWords, jhResults, jhUnitWords, jhSheetsIn, JH_ROUTE, _jhPlaying: () => _jh.playing,
   jhOfficeOf: () => ({ floors: _jhF, desk: _jhDesk && { f: _jhDesk.f, x0: _jhDesk.card.x, x1: _jhDesk.card.x + _jhDesk.card.w }, shared: _jhShared.map(s => ({ id: s.id, f: s.f })), rooms: _jhRooms.map(r => ({ k: r.k, f: r.f, reading: !!r.reading })) }) });
