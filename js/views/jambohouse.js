@@ -208,39 +208,65 @@ const jhUptoFor = (k, upto) => jhSoloQuiet(k) ? 0 : upto;
    JH_FH_MIN, the house takes four rooms a floor (fewer floors, still no free
    room); short of that the floors shrink to JH_FH_HARD and the page, not the
    house, takes the rest. */
-const JH_FH_MAX = 132, JH_FH_MIN = 92, JH_FH_HARD = 72, JH_FIT_FOOT = 16, JH_FIT_MIN_CSS = 300;
+const JH_FH_MAX = 132, JH_FH_MIN = 92, JH_FH_HARD = 68, JH_FIT_FOOT = 16, JH_FIT_MIN_CSS = 300;
 let _jhFH = JH_FH_MAX, _jhFitH = 0;
 const JH_W = 1160, JH_COLS = 3, JH_COLS_MAX = 4, JH_SX = 160, JH_RX0 = 206, JH_RX1 = 1144, JH_GAP = 12;
 let _jhTop = 70, _jhF = 1, _jhH = 620, _jhRooms = [], _jhCols = JH_COLS;
+/* JAMBO'S OFFICE (owner, 13 Oct 2026: "make the house an office where all the
+   agents have offices and your desk is the big office at the top floor. They
+   then go through the different rooms like contract vault and directory plus
+   to your desk … we also need to see the accumulated paper"). The house keeps
+   its floors, stairs, cards and two looks; it becomes an office block:
+     · the two lowest floors hold the SHARED ROOMS every agent uses — reception
+       (where the four readings sit: they are not agents, so no Jambo), the
+       contract vault, the directory, the spending limits, the Jambo engine and
+       the mail depot (JH_SHARED_FLOORS);
+     · above them every real agent has an office, as evenly as the floors take
+       them (jhFloorCounts — NO FREE ROOM still holds);
+     · YOUR DESK is the big office across the top floor, one tray per agent.
+   Each floor's corridor is the track and the stairs join them (jhCorr). */
+const JH_SHARED_FLOORS = [['reception', 'vault', 'people'], ['money', 'jambo', 'mail']];
+let _jhShared = [], _jhDesk = null;
+const jhIsReading = k => typeof AG_READINGS !== 'undefined' && Array.isArray(AG_READINGS) && AG_READINGS.includes(k);
 const jhLY = f => _jhTop + (_jhF - f) * _jhFH;
 const jhFoot = f => jhLY(f) - 18;
+const jhCorr = f => jhLY(f) - 13;
 function jhLayout(){
-  const keys = agPointsKeys();
+  const keys = agPointsKeys(), offices = keys.filter(k => !jhIsReading(k)), reads = keys.filter(k => jhIsReading(k));
   _jhTop = _jh.look === 1 ? 128 : 70;
   /* the drawing's foot holds its ground line and the measuring line only —
      its title block is gone (owner, 13 Oct 2026: "remove this part") */
-  const foot = _jh.look === 1 ? 48 : 16;
-  const fhFor = cols => Math.floor((_jhFitH - _jhTop - foot) / Math.max(1, Math.ceil(keys.length / cols)));
+  const foot = _jh.look === 1 ? 48 : 16, SH = JH_SHARED_FLOORS.length;
+  const floorsFor = cols => SH + Math.ceil(offices.length / cols) + 1;
+  const fhFor = cols => Math.floor((_jhFitH - _jhTop - foot) / floorsFor(cols));
   _jhCols = JH_COLS;
-  if (_jhFitH && fhFor(JH_COLS) < JH_FH_MIN && keys.length > JH_COLS) _jhCols = JH_COLS_MAX;
-  _jhF = Math.max(1, Math.ceil(keys.length / _jhCols));
+  if (_jhFitH && fhFor(JH_COLS) < JH_FH_MIN && offices.length > JH_COLS) _jhCols = JH_COLS_MAX;
+  _jhF = floorsFor(_jhCols);
   _jhFH = _jhFitH ? Math.max(JH_FH_HARD, Math.min(JH_FH_MAX, fhFor(_jhCols))) : JH_FH_MAX;
   _jhH = _jhTop + _jhF * _jhFH + foot;
-  /* NO FREE ROOM (owner, 13 Oct 2026: "Just make other rooms bigger. Always
-     build it that way."): the agents are shared over the floors as evenly as
-     they go, lower floors first, and a floor's rooms widen to fill it. A new
-     floor comes only when every floor already holds _jhCols rooms. */
-  const per = jhFloorCounts(keys.length);
+  const cardOf = (f, c, n) => { const w = (JH_RX1 - JH_RX0 - JH_GAP * (n - 1)) / n, x = JH_RX0 + c * (w + JH_GAP);
+    return { x, y: jhLY(f) - _jhFH + 8, w, h: _jhFH - 34 }; };
+  _jhShared = [];
+  JH_SHARED_FLOORS.forEach((ids, f) => ids.forEach((id, c) => _jhShared.push({ id, f, card: cardOf(f, c, ids.length) })));
+  _jhDesk = { id: 'desk', f: _jhF - 1, card: cardOf(_jhF - 1, 0, 1) };
   let spare = 0, i = 0;
   _jhRooms = [];
-  per.forEach((n, f) => { const w = (JH_RX1 - JH_RX0 - JH_GAP * (n - 1)) / n;
-    for (let c = 0; c < n; c++, i++){ const k = keys[i], x = JH_RX0 + c * (w + JH_GAP);
-      const look = JH_LOOK[k] || JH_SPARE[spare++ % JH_SPARE.length];
-      _jhRooms.push({ k, i, f, col: look[0], hat: look[1], card: { x, y: jhLY(f) - _jhFH + 10, w, h: _jhFH - 22 }, cx: x + w / 2 }); } });
+  const lookOf = k => JH_LOOK[k] || JH_SPARE[spare++ % JH_SPARE.length];
+  jhFloorCounts(offices.length).forEach((n, fi) => { const f = SH + fi;
+    for (let c = 0; c < n; c++, i++){ const k = offices[i], look = lookOf(k), card = cardOf(f, c, n);
+      _jhRooms.push({ k, i, f, col: look[0], hat: look[1], card, cx: card.x + card.w / 2, seat: { x: card.x + 30, y: card.y + card.h - 4 } }); } });
+  /* the readings: a place each at reception's desk, a magnifying glass, no Jambo */
+  const rc = _jhShared.find(s => s.id === 'reception').card, cw = (rc.w - 24) / 2;
+  reads.forEach((k, j) => { const look = lookOf(k), x = rc.x + 12 + (j % 2) * cw, y = rc.y + 36 + Math.floor(j / 2) * Math.max(14, Math.min(20, (rc.h - 44) / 2));
+    _jhRooms.push({ k, i: i++, f: 0, col: look[0], hat: look[1], reading: true, card: { x, y: y - 9, w: cw - 6, h: 18 }, cx: x + 12, seat: { x: x + 12, y: y + 6 } }); });
+  /* one tray per agent on your desk, in the house's order */
+  const d = _jhDesk.card, tw = (d.w - 40) / Math.max(1, _jhRooms.length);
+  _jhDesk.trays = {}; _jhRooms.forEach((r, j) => { _jhDesk.trays[r.k] = { x: d.x + 20 + tw * j + tw / 2, w: tw }; });
 }
 function jhFloorCounts(n, cols){ const F = Math.max(1, Math.ceil(n / (cols || _jhCols))), base = Math.floor(n / F), extra = n % F;
   return Array.from({ length: F }, (_, f) => base + (f < extra ? 1 : 0)); }
-const jhFloorRooms = f => _jhRooms.filter(r => r.f === f);
+const jhFloorRooms = f => _jhRooms.filter(r => r.f === f && !r.reading);
+const jhFloorCards = f => [..._jhShared.filter(s => s.f === f).map(s => s.card), ...jhFloorRooms(f).map(r => r.card), ...(_jhDesk && _jhDesk.f === f ? [_jhDesk.card] : [])].sort((a, b) => a.x - b.x);
 /* The canvas's own box: as wide as the stage, as tall as the window leaves
    below it, at the screen's pixel density. Lays the house out again for it. */
 function jhFitCanvas(){
@@ -271,17 +297,47 @@ function jhRefit(force){
 let _jhRefitWin = false;
 if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('resize', () => { _jhRefitWin = true; jhRefit(); });
 const jhGeom = () => ({ top: _jhTop, fh: _jhFH, floors: _jhF, h: _jhH, w: JH_W, cols: _jhCols });
-/* EACH JAMBO MOVES ONLY FOR REAL WORK (owner picked C, 13 Oct 2026): he
-   stands in his own room; at each moment his agent prepared a piece, or a
-   person decided one, he steps to his desk, works (the ring) and steps back.
-   No made-up visits to other rooms — the agents do not hand work to each
-   other. The moments come from the pieces on screen (`jhPieces`: the period,
-   the typed contract), read once per data, contract and period. */
-const JH_TRIP = { out: .5, work: 1, back: .5 };
-function jhSimulate(r){
-  const off = ((r.i * 3) % 5 - 2) * 14;
-  r.home = Math.max(r.card.x + 24, Math.min(r.card.x + r.card.w - 24, r.cx + off));
-  r._ev = null;
+/* EACH JAMBO MOVES ONLY FOR REAL WORK (owner picked C, 13 Oct 2026), NOW AS A
+   TRIP THROUGH THE OFFICE (owner, 13 Oct 2026). At each moment his agent
+   prepared a piece he leaves his office carrying the paper, walks the
+   corridor and the stairs through the rooms THAT AGENT REALLY USES (JH_ROUTE,
+   read off what its code does: the renewals office reads the contract in the
+   vault, finds the owner in the directory, checks the spending limits and
+   asks the Jambo engine for the memo), lays the paper in its tray on your
+   desk at the moment the piece was prepared, and walks back. An agent with no
+   work stays in his office. The moments come from the pieces on screen
+   (`jhPieces`: the period, the typed contract), read once per data, contract
+   and period. A person's decision is a pop in his office, not a trip. */
+const JH_ROUTE = { renew: ['vault', 'people', 'money', 'jambo'], late: ['vault', 'people', 'mail'], ours: ['vault', 'people', 'mail'],
+  link: ['vault', 'people', 'mail'], round: ['vault', 'jambo'], paper: ['vault', 'money', 'jambo'], import: ['vault', 'jambo'],
+  approve: ['vault'], request: ['vault'], week: ['vault'], quiet: ['vault'] };
+const jhRouteOf = k => JH_ROUTE[k] || ['vault'];
+/* one trip, in replay seconds: walking plus a short stop at every room */
+const JH_TRIP_S = 2.4, JH_STOP_S = 0.22;
+function jhSimulate(r){ r._ev = null; r.trip = jhTripOf(r); }
+function jhVisitSpot(s, r){
+  const c = s.card, q = 0.28 + 0.5 * ((r.i * 3) % 7) / 6;
+  return { x: c.x + c.w * q, y: c.y + c.h - 4 };
+}
+function jhTripOf(r){
+  const pts = [], stopAt = [];
+  let cur = { x: r.seat.x, y: r.seat.y }, curF = r.f;
+  pts.push(cur);
+  const go = (to, f, stop) => { const a = jhCorr(curF), b = jhCorr(f);
+    pts.push({ x: cur.x, y: a }); if (curF !== f){ pts.push({ x: JH_SX, y: a }, { x: JH_SX, y: b }); }
+    pts.push({ x: to.x, y: b }, { x: to.x, y: to.y }); if (stop) stopAt.push({ i: pts.length - 1, id: stop }); cur = to; curF = f; };
+  jhRouteOf(r.k).forEach(id => { const s = _jhShared.find(x => x.id === id); if (s) go(jhVisitSpot(s, r), s.f, id); });
+  if (_jhDesk && _jhDesk.trays[r.k]) go({ x: _jhDesk.trays[r.k].x, y: _jhDesk.card.y + _jhDesk.card.h - 4 }, _jhDesk.f, 'desk');
+  go({ x: r.seat.x, y: r.seat.y }, r.f, null);
+  let len = 0; for (let j = 1; j < pts.length; j++) len += Math.hypot(pts[j].x - pts[j - 1].x, pts[j].y - pts[j - 1].y);
+  const walkS = Math.max(0.6, JH_TRIP_S - stopAt.length * JH_STOP_S), v = len / walkS || 1;
+  /* the timeline: a walk between every two points, a stop at every room */
+  const seq = []; let t = 0;
+  for (let j = 1; j < pts.length; j++){ const d = Math.hypot(pts[j].x - pts[j - 1].x, pts[j].y - pts[j - 1].y) / v;
+    if (d > 0){ seq.push({ t0: t, t1: t + d, a: pts[j - 1], b: pts[j], kind: 'walk' }); t += d; }
+    const st = stopAt.find(x => x.i === j); if (st){ seq.push({ t0: t, t1: t + JH_STOP_S, a: pts[j], b: pts[j], kind: 'work', stop: st.id }); t += JH_STOP_S; } }
+  const stopT = {}; seq.forEach(x => { if (x.stop && stopT[x.stop] == null) stopT[x.stop] = x.t0; });
+  return { pts, seq, T: t, stopT, tDesk: stopT.desk != null ? stopT.desk : t / 2 };
 }
 function jhEventsOf(r){
   const key = (_jh.data || null), one = _jh.one, range = _jh.range;
@@ -289,25 +345,32 @@ function jhEventsOf(r){
   const S = jhSpan(), total = JH_DURATION_MS / 1000, ev = [];
   for (const p of jhPieces()){
     if (p.agent !== r.k) continue;
-    [p.at, p.outcome ? p.decidedAt : null].forEach((x, n) => { const t = Date.parse(x || ''); if (!t || t < S.from || t > S.end) return;
-      if (n === 1 && p.decidedAt === p.at) return; ev.push((t - S.from) / (S.end - S.from) * total); });
+    const t = Date.parse(p.at || ''); if (!t || t < S.from || t > S.end) continue;
+    ev.push((t - S.from) / (S.end - S.from) * total);
   }
   ev.sort((a, b) => a - b);
   r._ev = ev; r._evData = key; r._evOne = one; r._evRange = range;
   return ev;
 }
 function jhPosAt(r, tt){
-  const s = tt * JH_DURATION_MS / 1000, y = jhFoot(r.f), home = r.home != null ? r.home : r.cx;
-  const ev = jhEventsOf(r);
+  const s = tt * JH_DURATION_MS / 1000, tr = r.trip || (r.trip = jhTripOf(r)), ev = jhEventsOf(r);
   for (let n = 0; n < ev.length; n++){
-    const e = ev[n], t0 = e - JH_TRIP.out, t1 = e, t2 = e + JH_TRIP.work, t3 = t2 + JH_TRIP.back;
-    if (s < t0 || s > t3) continue;
-    const desk = Math.max(r.card.x + 24, Math.min(r.card.x + r.card.w - 24, home + (n % 2 ? -1 : 1) * Math.min(70, r.card.w / 4)));
-    if (s < t1){ const k = (s - t0) / JH_TRIP.out; return { x: home + (desk - home) * k, y, kind: 'walk', k }; }
-    if (s < t2) return { x: desk, y, kind: 'work', k: (s - t1) / JH_TRIP.work };
-    const k = (s - t2) / JH_TRIP.back; return { x: desk + (home - desk) * k, y, kind: 'walk', k };
+    const t0 = ev[n] - tr.tDesk, q = s - t0;
+    if (q < 0 || q > tr.T) continue;
+    const x = tr.seq.find(z => q >= z.t0 && q <= z.t1) || tr.seq[tr.seq.length - 1];
+    const k = x.t1 > x.t0 ? (q - x.t0) / (x.t1 - x.t0) : 1;
+    return { x: x.a.x + (x.b.x - x.a.x) * k, y: x.a.y + (x.b.y - x.a.y) * k, kind: x.kind, k, stop: x.stop || null, carrying: q < tr.tDesk };
   }
-  return { x: home, y, kind: 'idle', k: 0 };
+  return { x: r.seat.x, y: r.seat.y, kind: 'idle', k: 0 };
+}
+/* THE PAPER THAT CAME THROUGH A ROOM by the replay's moment: every trip that
+   has reached it so far (read from the same trips, so the pile and the Jambos
+   never disagree). At rest it is the whole period's. */
+function jhSheetsIn(id, tt){
+  const s = tt * JH_DURATION_MS / 1000; let n = 0;
+  for (const r of _jhRooms){ if (jhSoloQuiet(r.k)) continue; const tr = r.trip; if (!tr || tr.stopT[id] == null) continue;
+    for (const e of jhEventsOf(r)) if (e - tr.tDesk + tr.stopT[id] <= s) n++; }
+  return n;
 }
 /* The colours from the page's own tokens, read when the house is drawn. */
 const _jhC = {};
@@ -316,7 +379,7 @@ function jhColors(){
     const s = getComputedStyle(document.documentElement), g = n => s.getPropertyValue(n).trim();
     Object.assign(_jhC, { card: g('--color-surface') || '#fff', fg: g('--color-text') || '#111', muted: g('--color-neutral-600') || '#667', line: g('--color-divider') || '#dde',
       soft: g('--color-neutral-100') || '#f5f6f8', accent: g('--color-accent') || '#264c9e', accentSoft: g('--color-accent-50') || '#eef2fb', amber: g('--st-amber-fg') || '#b45309',
-      ruby: g('--st-ruby-fg') || '#b42318', gold: g('--st-amber-dot') || '#d99a18' });
+      ruby: g('--st-ruby-fg') || '#b42318', ok: g('--st-green-fg') || '#15803d', gold: g('--st-amber-dot') || '#d99a18' });
   } catch (_) {}
 }
 /* Jambo, in this agent's hat. */
@@ -394,93 +457,160 @@ function jhWaitStack(ctx, r, n, mono){
   ctx.fillText(w, x1 - sw - (k - 1) * 3 - 6, y1 - 2);
   ctx.restore();
 }
-function jhDrawPlan(ctx, pieces, upto){
-  const C = _jhC;
-  ctx.fillStyle = C.card; ctx.fillRect(0, 0, JH_W, _jhH);
-  ctx.textAlign = 'left'; ctx.font = '600 13px Geist, sans-serif'; ctx.fillStyle = C.fg; ctx.fillText(_jhT('jh_house_title'), 20, 30);
-  ctx.font = '400 12px Geist, sans-serif'; ctx.fillStyle = C.muted;
-  ctx.fillText(jhHouseSub(), 20, 48);
-  for (let f = 0; f < _jhF; f++){ const y = jhLY(f); ctx.fillStyle = f % 2 ? C.soft : C.card; ctx.fillRect(0, y - _jhFH, JH_W, _jhFH);
-    ctx.fillStyle = C.line; ctx.fillRect(0, y - 1, JH_W, 1);
-    ctx.fillStyle = C.muted; ctx.font = '500 12px Geist, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(jhFloorName(f), 20, y - _jhFH / 2 + 4); }
-  ctx.fillStyle = C.accentSoft; ctx.fillRect(JH_SX - 26, jhLY(_jhF - 1) - _jhFH + 10, 52, _jhF * _jhFH - 14);
-  ctx.strokeStyle = C.line; ctx.lineWidth = 1; for (let y = jhLY(_jhF - 1) - _jhFH + 20; y < jhLY(0) - 6; y += 12){ ctx.beginPath(); ctx.moveTo(JH_SX - 18, y); ctx.lineTo(JH_SX + 18, y); ctx.stroke(); }
-  ctx.fillStyle = C.muted; ctx.font = '500 11px Geist, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(_jhT('jh_stairs'), JH_SX, jhLY(_jhF - 1) - _jhFH + 4);
-  _jhRooms.forEach(r => { const c = r.card, s = agPointsTally(r.k, pieces, jhUptoFor(r.k, upto)), hov = _jh.hover === r.k || _jh.sel === r.k;
-    ctx.fillStyle = hov ? C.accentSoft : C.card; ctx.strokeStyle = hov ? C.accent : C.line; ctx.lineWidth = hov ? 1.5 : 1;
-    jhRoundRect(ctx, c.x, c.y, c.w, c.h, 8); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = r.col; ctx.fillRect(c.x, c.y + 8, 3, 30);
-    ctx.textAlign = 'left'; ctx.fillStyle = C.fg; ctx.font = '600 15px Geist, sans-serif'; const nm = _jhT('jh_room_' + r.k); ctx.fillText(nm, c.x + 12, c.y + 22);
-    let px = c.x + 18 + ctx.measureText(nm).width;
-    if (agPointsIsNew(r.k)) px += jhPill(ctx, _jhT('jh_new_tag'), px, c.y + 21, C.amber) + 4;
-    if (agPointsMine(r.k)) jhPill(ctx, _jhT('jh_mine_tag'), px, c.y + 21, C.accent);
-    ctx.fillStyle = C.muted; ctx.font = '400 13.5px Geist, sans-serif'; ctx.fillText(jhRoomSub(r, s, pieces, false), c.x + 12, c.y + 42);
-    jhRoomState(ctx, r, false);
-    ctx.textAlign = 'right'; ctx.fillStyle = C.accent; ctx.font = '600 16px Geist, sans-serif'; ctx.fillText(_jhFmt(s.pts) + ' ' + _jhT('jh_pts'), c.x + c.w - 12, c.y + 22);
-    jhWaitStack(ctx, r, s.open, false); });
-}
+/* THE OFFICE, IN THE HOUSE'S TWO LOOKS (Floor plan: Geist on cards; Architect's
+   drawing: section A–A in ink and IBM Plex Mono). One drawing for both, so the
+   two never place a room differently — only the clothes differ. */
 const JH_MONO = '"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
-function jhDrawDrawing(ctx, pieces, upto){
-  const C = _jhC, ink = C.accent, top = jhLY(_jhF - 1) - _jhFH, bot = jhLY(0), X0 = 120, X1 = 1152, mid = (X0 + X1) / 2;
-  ctx.fillStyle = C.card; ctx.fillRect(0, 0, JH_W, _jhH);
-  ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.globalAlpha = .55;
-  for (let x = 0; x < JH_W; x += 20){ ctx.beginPath(); ctx.moveTo(x + .5, 0); ctx.lineTo(x + .5, _jhH); ctx.stroke(); }
-  for (let y = 0; y < _jhH; y += 20){ ctx.beginPath(); ctx.moveTo(0, y + .5); ctx.lineTo(JH_W, y + .5); ctx.stroke(); }
-  ctx.globalAlpha = 1;
-  ctx.textAlign = 'left'; ctx.fillStyle = C.fg; ctx.font = '600 13px ' + JH_MONO; ctx.fillText(_jhT('jh_drawing_title').toUpperCase(), 20, 30);
-  ctx.fillStyle = C.muted; ctx.font = '400 12px ' + JH_MONO; ctx.fillText(jhHouseSub().toUpperCase(), 20, 48);
-  ctx.strokeStyle = ink; ctx.lineWidth = 1.6;
-  ctx.beginPath(); ctx.moveTo(X0 - 26, top); ctx.lineTo(mid, top - 62); ctx.lineTo(X1 + 26, top); ctx.stroke();
-  ctx.lineWidth = 1; ctx.globalAlpha = .5; ctx.beginPath(); ctx.moveTo(X0 + 6, top - 4); ctx.lineTo(mid, top - 50); ctx.lineTo(X1 - 6, top - 4); ctx.stroke(); ctx.globalAlpha = 1;
-  ctx.lineWidth = 2; ctx.strokeRect(X0, top, X1 - X0, bot - top);
-  ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(10, bot + 6); ctx.lineTo(JH_W - 10, bot + 6); ctx.stroke();
-  ctx.globalAlpha = .35; for (let x = 14; x < JH_W - 10; x += 10){ ctx.beginPath(); ctx.moveTo(x, bot + 16); ctx.lineTo(x + 10, bot + 6); ctx.stroke(); } ctx.globalAlpha = 1;
-  for (let f = 0; f < _jhF; f++){ const y = jhLY(f);
-    if (f > 0){ ctx.lineWidth = 1.4; [0, 5].forEach(d => { ctx.beginPath(); ctx.moveTo(X0, y + d); ctx.lineTo(JH_SX - 26, y + d); ctx.moveTo(JH_SX + 26, y + d); ctx.lineTo(X1, y + d); ctx.stroke(); }); }
-    ctx.lineWidth = 1.2; [194].concat(jhFloorRooms(f).slice(1).map(r => r.card.x - JH_GAP / 2)).forEach(x => { ctx.beginPath(); ctx.moveTo(x, y - _jhFH + 6); ctx.lineTo(x, y); ctx.stroke(); });
-    const xa = f % 2 ? JH_SX + 18 : JH_SX - 18, xb = f % 2 ? JH_SX - 18 : JH_SX + 18, yb = y - _jhFH + 6;
-    ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(xa, y); ctx.lineTo(xb, yb); ctx.stroke();
-    for (let s = 1; s < 12; s++){ const k = s / 12, x = xa + (xb - xa) * k, yy = y + (yb - y) * k; ctx.beginPath(); ctx.moveTo(x, yy); ctx.lineTo(x, yy - 6); ctx.stroke(); }
-    ctx.fillStyle = C.muted; ctx.font = '500 11px ' + JH_MONO; ctx.textAlign = 'right'; ctx.fillText(f === 0 ? '±0.00' : '+' + (f * 3.2).toFixed(2), 112, y - 4);
-    ctx.textAlign = 'left'; ctx.font = '500 10.5px ' + JH_MONO; ctx.fillText(jhFloorName(f).toUpperCase(), 14, y - _jhFH / 2 + 4);
-    ctx.strokeStyle = ink; ctx.globalAlpha = .5; ctx.beginPath(); ctx.moveTo(84, y); ctx.lineTo(X0, y); ctx.stroke(); ctx.globalAlpha = 1;
-  }
-  ctx.fillStyle = C.muted; ctx.font = '500 10.5px ' + JH_MONO; ctx.textAlign = 'center'; ctx.fillText(_jhT('jh_stairs').toUpperCase(), JH_SX, top + 14);
-  _jhRooms.forEach(r => { const c = r.card, s = agPointsTally(r.k, pieces, jhUptoFor(r.k, upto)), hov = _jh.hover === r.k || _jh.sel === r.k;
-    if (hov){ ctx.fillStyle = C.accentSoft; ctx.fillRect(c.x - 4, c.y - 4, c.w + 8, c.h + 8); }
-    ctx.textAlign = 'left'; ctx.fillStyle = ink; ctx.font = '600 13px ' + JH_MONO; const nm = _jhT('jh_room_' + r.k).toUpperCase(); ctx.fillText(nm, c.x + 6, c.y + 18);
-    let px = c.x + 12 + ctx.measureText(nm).width;
-    if (agPointsIsNew(r.k)) px += jhPill(ctx, _jhT('jh_new_tag'), px, c.y + 18, C.amber) + 4;
-    if (agPointsMine(r.k)) jhPill(ctx, _jhT('jh_mine_tag'), px, c.y + 18, ink);
-    ctx.fillStyle = r.col; ctx.beginPath(); ctx.arc(c.x + c.w - 8, c.y + 14, 4, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = C.muted; ctx.font = '400 12px ' + JH_MONO; ctx.fillText(jhRoomSub(r, s, pieces, true), c.x + 6, c.y + 36);
-    jhRoomState(ctx, r, true);
-    ctx.textAlign = 'right'; ctx.fillStyle = ink; ctx.font = '600 14px ' + JH_MONO; ctx.fillText(_jhFmt(s.pts) + ' ' + _jhT('jh_pts').toUpperCase(), c.x + c.w - 18, c.y + 18);
-    jhWaitStack(ctx, r, s.open, true); });
-  const dy = bot + 34; ctx.strokeStyle = ink; ctx.lineWidth = 1; ctx.globalAlpha = .7;
-  jhFloorRooms(0).forEach(r => { const x0 = r.card.x - JH_GAP / 2, x1 = x0 + r.card.w + JH_GAP; ctx.beginPath(); ctx.moveTo(x0, dy); ctx.lineTo(x1, dy); ctx.moveTo(x0, dy - 5); ctx.lineTo(x0, dy + 5); ctx.moveTo(x1, dy - 5); ctx.lineTo(x1, dy + 5); ctx.stroke();
-    ctx.fillStyle = ink; ctx.font = '500 11px ' + JH_MONO; ctx.textAlign = 'center'; ctx.fillText((12.6 / jhFloorRooms(0).length).toFixed(2), (x0 + x1) / 2, dy - 6); });
-  ctx.globalAlpha = 1;
+function jhPile(ctx, x, y, n, col, max){
+  const m = Math.min(max || 18, n);
+  for (let i = 0; i < m; i++){ const j = ((i * 37) % 7 - 3) * .35; ctx.fillStyle = i % 2 ? '#F6F7FA' : '#FDFDFB'; ctx.strokeStyle = 'rgba(15,26,51,.28)'; ctx.lineWidth = .7;
+    ctx.fillRect(x - 11 + j, y - i * 2.2, 22, 2.6); ctx.strokeRect(x - 11 + j, y - i * 2.2, 22, 2.6); }
+  if (n > 0 && col){ ctx.fillStyle = col; ctx.fillRect(x - 11, y - (m - 1) * 2.2 - 1, 5, 3); }
 }
+function jhDrawOffice(ctx, pieces, upto, mono){
+  const C = _jhC, ink = C.accent, font = (w, s) => mono ? `${w} ${s}px ${JH_MONO}` : `${w} ${s}px Geist, sans-serif`, up = t => mono ? String(t).toUpperCase() : t;
+  const topY = jhLY(_jhF - 1) - _jhFH, bot = jhLY(0), X0 = 120, X1 = 1152, mid = (X0 + X1) / 2, tt = _jh.t;
+  const pos = _jh.pos || [];
+  ctx.fillStyle = C.card; ctx.fillRect(0, 0, JH_W, _jhH);
+  if (mono){ ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.globalAlpha = .55;
+    for (let x = 0; x < JH_W; x += 20){ ctx.beginPath(); ctx.moveTo(x + .5, 0); ctx.lineTo(x + .5, _jhH); ctx.stroke(); }
+    for (let y = 0; y < _jhH; y += 20){ ctx.beginPath(); ctx.moveTo(0, y + .5); ctx.lineTo(JH_W, y + .5); ctx.stroke(); }
+    ctx.globalAlpha = 1; }
+  ctx.textAlign = 'left'; ctx.fillStyle = C.fg; ctx.font = font(600, 13); ctx.fillText(up(_jhT(mono ? 'jh_office_drawing_title' : 'jh_office_title')), 20, 30);
+  ctx.font = font(400, 12); ctx.fillStyle = C.muted; ctx.fillText(up(jhHouseSub()), 20, 48);
+  // the floors, each with its corridor: the track, two thin rails and a dashed centre
+  for (let f = 0; f < _jhF; f++){ const y = jhLY(f);
+    if (!mono){ ctx.fillStyle = f % 2 ? C.soft : C.card; ctx.fillRect(0, y - _jhFH, JH_W, _jhFH); ctx.fillStyle = C.line; ctx.fillRect(0, y - 1, JH_W, 1); }
+    ctx.fillStyle = C.muted; ctx.font = font(500, mono ? 10.5 : 12); ctx.textAlign = 'left'; ctx.fillText(up(jhFloorWord(f)), mono ? 14 : 20, y - _jhFH / 2 + 4);
+    ctx.strokeStyle = mono ? ink : C.line; ctx.lineWidth = 1; ctx.globalAlpha = mono ? .55 : 1;
+    [-5, 5].forEach(d => { ctx.beginPath(); ctx.moveTo(JH_SX + 26, jhCorr(f) + d); ctx.lineTo(JH_RX1, jhCorr(f) + d); ctx.stroke(); });
+    ctx.setLineDash([3, 6]); ctx.globalAlpha = mono ? .35 : .6; ctx.beginPath(); ctx.moveTo(JH_SX + 26, jhCorr(f)); ctx.lineTo(JH_RX1, jhCorr(f)); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1; }
+  if (mono){
+    ctx.strokeStyle = ink; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(X0 - 26, topY); ctx.lineTo(mid, topY - 62); ctx.lineTo(X1 + 26, topY); ctx.stroke();
+    ctx.lineWidth = 1; ctx.globalAlpha = .5; ctx.beginPath(); ctx.moveTo(X0 + 6, topY - 4); ctx.lineTo(mid, topY - 50); ctx.lineTo(X1 - 6, topY - 4); ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.lineWidth = 2; ctx.strokeRect(X0, topY, X1 - X0, bot - topY);
+    ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(10, bot + 6); ctx.lineTo(JH_W - 10, bot + 6); ctx.stroke();
+    ctx.globalAlpha = .35; for (let x = 14; x < JH_W - 10; x += 10){ ctx.beginPath(); ctx.moveTo(x, bot + 16); ctx.lineTo(x + 10, bot + 6); ctx.stroke(); } ctx.globalAlpha = 1;
+    for (let f = 0; f < _jhF; f++){ const y = jhLY(f);
+      if (f > 0){ ctx.lineWidth = 1.4; [0, 5].forEach(d => { ctx.beginPath(); ctx.moveTo(X0, y + d); ctx.lineTo(JH_SX - 26, y + d); ctx.moveTo(JH_SX + 26, y + d); ctx.lineTo(X1, y + d); ctx.stroke(); }); }
+      ctx.lineWidth = 1.2; [194].concat(jhFloorCards(f).slice(1).map(c => c.x - JH_GAP / 2)).forEach(x => { ctx.beginPath(); ctx.moveTo(x, y - _jhFH + 6); ctx.lineTo(x, y); ctx.stroke(); });
+      const xa = f % 2 ? JH_SX + 18 : JH_SX - 18, xb = f % 2 ? JH_SX - 18 : JH_SX + 18, yb = y - _jhFH + 6;
+      ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(xa, y); ctx.lineTo(xb, yb); ctx.stroke();
+      for (let s = 1; s < 12; s++){ const q = s / 12, x = xa + (xb - xa) * q, yy = y + (yb - y) * q; ctx.beginPath(); ctx.moveTo(x, yy); ctx.lineTo(x, yy - 6); ctx.stroke(); }
+      ctx.fillStyle = C.muted; ctx.font = font(500, 11); ctx.textAlign = 'right'; ctx.fillText(f === 0 ? '±0.00' : '+' + (f * 3.2).toFixed(2), 112, y - 4);
+      ctx.strokeStyle = ink; ctx.globalAlpha = .5; ctx.beginPath(); ctx.moveTo(84, y); ctx.lineTo(X0, y); ctx.stroke(); ctx.globalAlpha = 1; }
+    ctx.fillStyle = C.muted; ctx.font = font(500, 10.5); ctx.textAlign = 'center'; ctx.fillText(_jhT('jh_stairs').toUpperCase(), JH_SX, topY + 14);
+  } else {
+    ctx.fillStyle = C.accentSoft; ctx.fillRect(JH_SX - 26, topY + 10, 52, _jhF * _jhFH - 14);
+    ctx.strokeStyle = C.line; ctx.lineWidth = 1; for (let y = topY + 20; y < bot - 6; y += 12){ ctx.beginPath(); ctx.moveTo(JH_SX - 18, y); ctx.lineTo(JH_SX + 18, y); ctx.stroke(); }
+    ctx.fillStyle = C.muted; ctx.font = font(500, 11); ctx.textAlign = 'center'; ctx.fillText(_jhT('jh_stairs'), JH_SX, topY + 4);
+  }
+  const box = (c, hov, lit) => { if (mono){ if (hov || lit){ ctx.fillStyle = C.accentSoft; ctx.fillRect(c.x - 4, c.y - 4, c.w + 8, c.h + 8); } return; }
+    ctx.fillStyle = hov ? C.accentSoft : C.card; ctx.strokeStyle = hov || lit ? C.accent : C.line; ctx.lineWidth = hov || lit ? 1.5 : 1; jhRoundRect(ctx, c.x, c.y, c.w, c.h, 8); ctx.fill(); ctx.stroke(); };
+  const lx = c => c.x + (mono ? 6 : 12), ly1 = c => c.y + (mono ? 18 : 22), ly2 = c => c.y + (mono ? 34 : 40);
+  /* the shared rooms: what came through them piles up, with its count */
+  const busy = new Set(pos.filter(p => p && p.kind === 'work' && p.stop).map(p => p.stop));
+  _jhShared.forEach(s => { const c = s.card, hov = _jh.hover === 'rm:' + s.id, lit = busy.has(s.id);
+    box(c, hov, lit); ctx.textAlign = 'left';
+    if (s.id === 'reception'){
+      ctx.fillStyle = mono ? ink : C.fg; ctx.font = font(600, mono ? 13 : 15); ctx.fillText(up(_jhT('jh_rm_reception')), lx(c), ly1(c));
+      const w0 = ctx.measureText(up(_jhT('jh_rm_reception'))).width; ctx.fillStyle = C.muted; ctx.font = font(400, mono ? 10.5 : 12); ctx.fillText(up(_jhT('jh_rm_reception_sub')), lx(c) + w0 + 10, ly1(c));
+      return; }
+    ctx.fillStyle = ink; ctx.font = font(600, mono ? 13 : 15); ctx.fillText(up(_jhT('jh_rm_' + s.id)), lx(c), ly1(c));
+    if (c.h >= 46){ ctx.fillStyle = C.muted; ctx.font = font(400, mono ? 11.5 : 13); ctx.fillText(up(_jhT('jh_rm_shared')), lx(c), ly2(c));
+      ctx.font = font(500, mono ? 10.5 : 11.5); ctx.fillStyle = lit ? ink : C.muted; ctx.fillText(up(_jhT(lit ? 'jh_in_use' : 'jh_ready')), lx(c), c.y + c.h - 8); }
+    const n = jhSheetsIn(s.id, tt);
+    if (n){ jhPile(ctx, c.x + c.w - 26, c.y + c.h - 8, n, ink, 18); ctx.textAlign = 'right'; ctx.fillStyle = C.fg; ctx.font = font(600, mono ? 11 : 12.5); ctx.fillText(up(_jhTn('jh_rm_sheets', n, { n: _jhFmt(n) })), c.x + c.w - 44, c.y + c.h - 8); } });
+  /* your desk: the big office, one tray per agent holding what still waits for a person */
+  { const d = _jhDesk, c = d.card, hov = _jh.hover === 'rm:desk', lit = busy.has('desk');
+    box(c, hov, lit); ctx.textAlign = 'left';
+    let tot = 0; const open = {}; _jhRooms.forEach(r => { open[r.k] = agPointsTally(r.k, pieces, jhUptoFor(r.k, upto)).open || 0; tot += open[r.k]; });
+    ctx.fillStyle = mono ? ink : C.fg; ctx.font = font(600, mono ? 14 : 17); ctx.fillText(up(_jhT('jh_rm_desk')), lx(c), ly1(c) + 2);
+    const w0 = ctx.measureText(up(_jhT('jh_rm_desk'))).width; ctx.fillStyle = C.muted; ctx.font = font(400, mono ? 11 : 12.5); ctx.fillText(up(_jhT('jh_rm_desk_sub')), lx(c) + w0 + 12, ly1(c) + 2);
+    ctx.textAlign = 'right'; ctx.fillStyle = tot ? C.ok : C.muted; ctx.font = font(600, mono ? 13 : 15); ctx.fillText(up(_jhT('jh_desk_waiting', { n: _jhFmt(tot) })), c.x + c.w - 14, ly1(c) + 2);
+    const base = c.y + c.h - 22;
+    _jhRooms.forEach(r => { const t = d.trays[r.k], n = open[r.k]; if (!t) return;
+      ctx.save(); if (_jh.sel && _jh.sel !== r.k) ctx.globalAlpha = .35;
+      ctx.strokeStyle = mono ? ink : C.line; ctx.lineWidth = 1; ctx.strokeRect(t.x - t.w / 2 + 4, base - 2, t.w - 8, 5);
+      jhPile(ctx, t.x, base - 4, n, r.col, 12);
+      ctx.textAlign = 'center'; ctx.fillStyle = n ? C.fg : C.muted; ctx.font = font(500, mono ? 9.5 : 10.5);
+      const nm = _jhT('jh_room_' + r.k), lab = n ? nm + ' · ' + _jhFmt(n) : nm; let fs = mono ? 9.5 : 10.5; ctx.font = font(500, fs);
+      while (fs > 7.5 && ctx.measureText(up(lab)).width > t.w - 4){ fs -= .5; ctx.font = font(500, fs); }
+      ctx.fillText(up(lab), t.x, base + 13); ctx.restore(); }); }
+  /* the offices: the agent's name, points and work; his seat, empty while he is out */
+  _jhRooms.forEach((r, i) => { const s = agPointsTally(r.k, pieces, jhUptoFor(r.k, upto)), hov = _jh.hover === r.k || _jh.sel === r.k;
+    if (r.reading){ const c = r.card; if (hov){ ctx.fillStyle = mono ? C.card : C.accentSoft; jhRoundRect(ctx, c.x, c.y, c.w, c.h, 9); ctx.fill(); }
+      ctx.fillStyle = C.fg; ctx.font = font(500, mono ? 10.5 : 12.5); ctx.textAlign = 'left'; let fs = mono ? 10.5 : 12.5; const nm = up(_jhT('jh_room_' + r.k));
+      while (fs > 8 && ctx.measureText(nm).width > c.w - 30){ fs -= .5; ctx.font = font(500, fs); } ctx.fillText(nm, c.x + 24, c.y + 13);
+      jhLens(ctx, r.seat.x, r.seat.y - 6, 6, r.col); return; }
+    const c = r.card, p = pos[i], out = p && p.kind !== 'idle';
+    box(c, hov, false);
+    if (mono){ ctx.fillStyle = r.col; ctx.beginPath(); ctx.arc(c.x + c.w - 8, c.y + 14, 4, 0, Math.PI * 2); ctx.fill(); } else { ctx.fillStyle = r.col; ctx.fillRect(c.x, c.y + 8, 3, 30); }
+    ctx.textAlign = 'left'; ctx.fillStyle = mono ? ink : C.fg; ctx.font = font(600, mono ? 13 : 15); const nm = up(_jhT('jh_room_' + r.k)); ctx.fillText(nm, lx(c), ly1(c));
+    let px = lx(c) + 6 + ctx.measureText(nm).width;
+    if (agPointsIsNew(r.k)) px += jhPill(ctx, _jhT('jh_new_tag'), px, ly1(c) - 1, C.amber) + 4;
+    if (agPointsMine(r.k)) jhPill(ctx, _jhT('jh_mine_tag'), px, ly1(c) - 1, C.accent);
+    /* the work line only where it clears the seat below it */
+    if (c.h >= 60){ ctx.fillStyle = C.muted; ctx.font = font(400, mono ? 11.5 : 13); ctx.fillText(up(jhRoomSub(r, s, pieces, mono)), lx(c), ly2(c)); }
+    ctx.textAlign = 'right'; ctx.fillStyle = C.accent; ctx.font = font(600, mono ? 13 : 16); ctx.fillText(up(_jhFmt(s.pts) + ' ' + _jhT('jh_pts')), c.x + c.w - (mono ? 18 : 12), ly1(c));
+    if (out){ ctx.save(); ctx.strokeStyle = r.col; ctx.globalAlpha = .7; ctx.lineWidth = 1.4; ctx.setLineDash([2.5, 3]); ctx.beginPath(); ctx.arc(r.seat.x, r.seat.y - 12, 10, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
+    ctx.textAlign = 'left'; ctx.fillStyle = out ? C.ok : C.muted; ctx.font = font(500, mono ? 10.5 : 11.5);
+    if (c.h >= 40) ctx.fillText(up(_jhT(out ? 'jh_out' : 'jh_at_base') + ' · ' + jhRoomStateWords(r.k)), r.seat.x + 18, c.y + c.h - 8); });
+  if (mono){ const dy = bot + 34; ctx.strokeStyle = ink; ctx.lineWidth = 1; ctx.globalAlpha = .7;
+    const g = jhFloorCards(0);
+    g.forEach(c => { const x0 = c.x - JH_GAP / 2, x1 = x0 + c.w + JH_GAP; ctx.beginPath(); ctx.moveTo(x0, dy); ctx.lineTo(x1, dy); ctx.moveTo(x0, dy - 5); ctx.lineTo(x0, dy + 5); ctx.moveTo(x1, dy - 5); ctx.lineTo(x1, dy + 5); ctx.stroke();
+      ctx.fillStyle = ink; ctx.font = font(500, 11); ctx.textAlign = 'center'; ctx.fillText((12.6 / g.length).toFixed(2), (x0 + x1) / 2, dy - 6); });
+    ctx.globalAlpha = 1; }
+}
+const jhFloorWord = f => f === _jhF - 1 && _jhF > 1 ? _jhT('jh_floor_top') : jhFloorName(f);
+function jhLens(ctx, x, y, r, col){ ctx.save(); ctx.fillStyle = _jhC.card; ctx.beginPath(); ctx.arc(x, y, r + 2, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = col; ctx.lineWidth = Math.max(1.4, r * .28);
+  ctx.beginPath(); ctx.arc(x - r * .18, y - r * .18, r * .6, 0, Math.PI * 2); ctx.stroke(); ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x + r * .25, y + r * .25); ctx.lineTo(x + r * .8, y + r * .8); ctx.stroke(); ctx.restore(); }
+function jhDrawPlan(ctx, pieces, upto){ jhDrawOffice(ctx, pieces, upto, false); }
+function jhDrawDrawing(ctx, pieces, upto){ jhDrawOffice(ctx, pieces, upto, true); }
 function jhHouseSub(){
   const parts = [];
   if (_jh.one) parts.push(_jhT('jh_only', { no: jhOneNo() }));
-  parts.push(jhRangeLabel(_jh.range), _jhTn('jh_n_agents', _jhRooms.length, { n: _jhRooms.length }), _jhTn('jh_n_floors', _jhF, { n: _jhF }));
+  const nA = _jhRooms.filter(r => !r.reading).length;
+  parts.push(jhRangeLabel(_jh.range), _jhTn('jh_n_agents', nA, { n: nA }), _jhTn('jh_n_floors', _jhF, { n: _jhF }));
   return parts.join(' · ');
 }
 function jhOneNo(){ const c = _jh.data && _jh.data.contracts && _jh.data.contracts[_jh.one]; return c ? c.no : _jh.one; }
+/* one sheet of paper: a page with a folded corner, three lines and its agent's tab */
+function jhSheet(ctx, x, y, s, rot, col){
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot || 0); ctx.scale(s, s);
+  ctx.beginPath(); ctx.moveTo(-6, -8); ctx.lineTo(3, -8); ctx.lineTo(6, -5); ctx.lineTo(6, 8); ctx.lineTo(-6, 8); ctx.closePath();
+  ctx.fillStyle = '#FDFDFB'; ctx.fill(); ctx.strokeStyle = 'rgba(15,26,51,.35)'; ctx.lineWidth = .7; ctx.stroke();
+  ctx.fillStyle = '#E4E8F0'; ctx.beginPath(); ctx.moveTo(3, -8); ctx.lineTo(3, -5); ctx.lineTo(6, -5); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = 'rgba(15,26,51,.32)'; ctx.fillRect(-3.5, -3, 7, .9); ctx.fillRect(-3.5, -.6, 7, .9); ctx.fillRect(-3.5, 1.8, 5, .9);
+  if (col){ ctx.fillStyle = col; ctx.fillRect(-6, -8, 2.2, 5); }
+  ctx.restore();
+}
+/* ALIVE, NEVER A STILL PHOTO (owner, 13 Oct 2026): a Jambo at rest breathes,
+   sways and tilts his hat; at work he moves a little quicker. Each one is out
+   of step with the next. Still for a reader who asked for less motion. */
+function jhAlive(ctx, x, y, rad, i, busy, fn){
+  if (jhReduced()){ fn(x, y); return; }
+  const t = (typeof performance !== 'undefined' ? performance.now() : 0) / 1000 * (busy ? 1.7 : 1) + i * 1.3;
+  const s = 1 + 0.04 * Math.sin(t * 2.1), rot = 0.09 * Math.sin(t * 1.3) + (busy ? 0.05 * Math.sin(t * 5.2) : 0), dy = -Math.abs(Math.sin(t * 1.6)) * rad * 0.12;
+  ctx.save(); ctx.translate(x, y + dy); ctx.rotate(rot); ctx.scale(s, s); fn(0, 0); ctx.restore();
+}
 function jhRunners(ctx, pieces){
   const atRest = !_jh.playing && _jh.t >= 1;
   const on = _jh.one ? new Set(pieces.map(p => p.agent)) : null;
-  const pts = _jhRooms.map(r => jhPosAt(r, atRest || jhSoloQuiet(r.k) ? 0 : _jh.t));
-  if (_jh.playing) pts.forEach((p, i) => { if (jhSoloQuiet(_jhRooms[i].k)) return; const tr = _jh.trails[i] || (_jh.trails[i] = []); tr.push({ x: p.x, y: p.y }); if (tr.length > 110) tr.shift(); });
-  _jh.trails.forEach((tr, i) => { if (!tr || tr.length < 2 || !_jhRooms[i]) return; ctx.save(); ctx.strokeStyle = _jhRooms[i].col; ctx.lineWidth = _jh.look === 1 ? 1.6 : 2; ctx.setLineDash(_jh.look === 1 ? [4, 4] : []);
-    for (let j = 1; j < tr.length; j++){ ctx.globalAlpha = (j / tr.length) * (_jh.sel === null ? .45 : _jh.sel === _jhRooms[i].k ? .9 : .08); ctx.beginPath(); ctx.moveTo(tr[j - 1].x, tr[j - 1].y - 10); ctx.lineTo(tr[j].x, tr[j].y - 10); ctx.stroke(); } ctx.restore(); });
-  _jh.lastPos = pts.map((p, i) => { const r = _jhRooms[i], lit = _jh.sel === r.k, dim = (_jh.sel !== null && !lit) || (on && !on.has(r.k)), rad = 10 + (lit ? 3 : 0), cy = p.y - rad - 6;
+  const pts = _jh.pos || _jhRooms.map(r => jhPosAt(r, atRest || jhSoloQuiet(r.k) ? 0 : _jh.t));
+  if (_jh.playing) pts.forEach((p, i) => { if (jhSoloQuiet(_jhRooms[i].k) || p.kind === 'idle') return; const tr = _jh.trails[i] || (_jh.trails[i] = []); tr.push({ x: p.x, y: p.y }); if (tr.length > 110) tr.shift(); });
+  _jh.trails.forEach((tr, i) => { if (!tr || tr.length < 2 || !_jhRooms[i]) return; ctx.save(); ctx.strokeStyle = _jhRooms[i].col; ctx.lineWidth = _jh.look === 1 ? 1.6 : 2; ctx.setLineDash(_jh.look === 1 || _jhRooms[i].reading ? [4, 4] : []);
+    for (let j = 1; j < tr.length; j++){ ctx.globalAlpha = (j / tr.length) * (_jh.sel === null ? .45 : _jh.sel === _jhRooms[i].k ? .9 : .08); ctx.beginPath(); ctx.moveTo(tr[j - 1].x, tr[j - 1].y - 8); ctx.lineTo(tr[j].x, tr[j].y - 8); ctx.stroke(); } ctx.restore(); });
+  _jh.lastPos = pts.map((p, i) => { const r = _jhRooms[i], lit = _jh.sel === r.k, dim = (_jh.sel !== null && !lit) || (on && !on.has(r.k)), rad = 10 + (lit ? 3 : 0), cy = p.y - rad - 2;
     ctx.save(); if (dim) ctx.globalAlpha = .3;
-    jhJambo(ctx, r, p.x, cy, rad, lit);
-    if (p.kind === 'work' && !atRest){ ctx.strokeStyle = r.col; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p.x, cy, rad + 6, -Math.PI / 2, -Math.PI / 2 + p.k * Math.PI * 2); ctx.stroke(); }
-    if (p.kind === 'visit'){ ctx.fillStyle = '#fff'; ctx.strokeStyle = r.col; ctx.lineWidth = 1.2; ctx.fillRect(p.x + rad - 2, cy - rad - 6, 12, 8); ctx.strokeRect(p.x + rad - 2, cy - rad - 6, 12, 8); }
+    /* a reading is not an agent: no Jambo, only its paper moving */
+    if (r.reading){ if (p.kind !== 'idle') jhSheet(ctx, p.x, p.y - 10, 1.05, 0, r.col); ctx.restore(); return { x: p.x, y: p.y - 10 }; }
+    const work = p.kind === 'work' && !atRest;
+    jhAlive(ctx, p.x, cy, rad, i, work, (x, y) => jhJambo(ctx, r, x, y, rad, lit));
+    if (work){ ctx.strokeStyle = r.col; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p.x, cy, rad + 6, -Math.PI / 2, -Math.PI / 2 + p.k * Math.PI * 2); ctx.stroke(); }
+    const now = (typeof performance !== 'undefined' ? performance.now() : 0);
+    if (p.kind === 'walk' && p.carrying) jhSheet(ctx, p.x + rad * .95, cy - rad - 6 + Math.sin(now / 120 + i) * 1.2, 1, -.18, r.col);
+    else if (work && p.carrying) jhSheet(ctx, p.x + rad * 1.3, cy + 4 + Math.sin(now / 180 + i) * 1.5, .95, Math.sin(now / 260 + i) * .35, r.col);
     ctx.restore(); return { x: p.x, y: cy }; });
 }
 function jhDateCard(ctx){
@@ -534,13 +664,16 @@ function jhFrame(now){
   } else _jh.last = now;
   const ctx = cv.getContext('2d'), kk = cv.width / JH_W;
   ctx.setTransform(kk, 0, 0, kk, 0, 0);
-  const upto = jhUpto();
+  const upto = jhUpto(), atRest = !_jh.playing && _jh.t >= 1;
+  _jh.pos = _jhRooms.map(r => jhPosAt(r, atRest || jhSoloQuiet(r.k) ? 0 : _jh.t));
   (_jh.look === 1 ? jhDrawDrawing : jhDrawPlan)(ctx, pieces, upto);
   jhRunners(ctx, pieces); jhDateCard(ctx); jhDrawPops(ctx);
   const xk = jhXfK(), xf = _jh.xf;
   if (xf && xf.img){ ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1 - xk; ctx.drawImage(xf.img, 0, 0, cv.width, cv.height); ctx.restore(); }
   jhScorePaint(pieces, upto, xf ? xk : 1);
   if (_jh.playing || _jh.pops.length || _jh.xf) _jh.raf = requestAnimationFrame(jhFrame);
+  /* at rest the Jambos still breathe: a slow beat, never for a reader who asked for less motion */
+  else if (!jhReduced() && !_jh.idleT) _jh.idleT = setTimeout(() => { _jh.idleT = 0; jhKick(); }, 70);
 }
 function jhKick(){ if (!_jh.raf && typeof requestAnimationFrame === 'function') _jh.raf = requestAnimationFrame(jhFrame); }
 
@@ -969,14 +1102,18 @@ function jhWire(host){
 function jhKickOnce(){ if (!_jh.playing && !_jh.raf) jhFrame(typeof performance !== 'undefined' ? performance.now() : 0); }
 function jhRoomAt(x, y){
   for (const r of _jhRooms){ const c = r.card; if (x >= c.x && x <= c.x + c.w && y >= c.y && y <= c.y + c.h) return r.k; }
+  for (const s of [..._jhShared, ...(_jhDesk ? [_jhDesk] : [])]){ const c = s.card; if (x >= c.x && x <= c.x + c.w && y >= c.y && y <= c.y + c.h) return 'rm:' + s.id; }
   if (Math.abs(x - JH_SX) <= 26 && y >= jhLY(_jhF - 1) - _jhFH && y <= jhLY(0)) return 'stairs';
   return null;
 }
 function jhTipHtml(k){
   if (k === 'stairs') return `<b>${_jhE(_jhT('jh_stairs'))}</b><p>${_jhE(_jhT('jh_tip_stairs'))}</p>`;
+  if (String(k).startsWith('rm:')){ const id = k.slice(3), n = id === 'desk' || id === 'reception' ? null : jhSheetsIn(id, _jh.t);
+    return `<b>${_jhE(_jhT('jh_rm_' + id))}</b><p>${_jhE(_jhT('jh_tip_rm_' + id))}</p>${n != null ? `<p>${_jhE(_jhT('jh_tip_rm_n', { n: _jhFmt(n) }))}</p>` : ''}`; }
   const r = _jhRooms.find(x => x.k === k), s = agPointsTally(k, jhPieces(), jhUpto()), v = agPointsOf(k);
   return `<div class="jh-tip-h"><span class="jh-dot" style="background:${r.col}"></span><b>${_jhE(_jhT('jh_room_' + k))}</b><span>${_jhE(_jhT('ag_' + k))}</span></div>
     <p>${_jhE(_jhT('ag_' + k + '_does'))}</p>
+    <p class="jh-route"><b>${_jhE(_jhT('jh_tip_route'))}</b> ${_jhE([...jhRouteOf(k).map(id => _jhT('jh_rm_' + id)), _jhT('jh_rm_desk')].join(' → '))}</p>
     <dl><dt>${_jhE(_jhT('jh_tip_runs'))}</dt><dd>${_jhE(_jhT('ag_' + k + '_runs'))}</dd><dt>${_jhE(_jhT('jh_tip_act'))}</dt><dd>${_jhE(_jhT('jh_act1_' + k))}</dd>
       <dt>${_jhE(_jhT('jh_tip_used'))}</dt><dd>${_jhE(_jhT('jh_used_' + k))}</dd><dt>${_jhE(_jhT('jh_tip_worth'))}</dt><dd>${_jhE(_jhT('jh_tip_worth_v', { m: v.mins, c: v.changed, t: v.thrown }))}${agPointsMine(k) ? ` <span class="jh-tag">${_jhE(_jhT('jh_mine_tag'))}</span>` : ''}</dd></dl>
     <div class="jh-sum"><small>${_jhE(_jhT('jh_tip_so_far', { a: s.used, e: s.changed, d: s.thrown, o: s.open }))}</small>${_jhE(agPointsSumLine(s, k))}</div>
@@ -1234,4 +1371,5 @@ const JH_CSS = `
 try { if (typeof jamboFacePaint === 'function') jamboFacePaint(); } catch (_) {}
 
 Object.assign(window, { AG_POINTS_LAUNCH, AG_POINTS_START_MINS, AG_POINTS_NEW_MINS, AG_POINTS_FIELDS, agPointsKeys, agPointsStart, agPointsCompany, agPointsMine, agPointsOf,
-  agPointsIsNew, agPointsEach, agPointsTally, agPointsSumLine, agPieceSay, agPointsTableHtml, agPointsWire, renderJamboHouse, jhRepaint, jhPlace, jhPlacePut, jhLayout, jhRoomAt, jhFloorCounts, jhGeom, jhFinish, jhUptoFor, jhHoursWords, jhPopsSoft: () => _jh.pops.filter(p => p.soft).length, jhMotionOf: (k, t) => { const r = _jhRooms.find(x => x.k === k); return r ? jhPosAt(r, t) : null; }, jhPopRef, jhRoomQuietWhy, jhRoomStateWords, jhResults, jhUnitWords });
+  agPointsIsNew, agPointsEach, agPointsTally, agPointsSumLine, agPieceSay, agPointsTableHtml, agPointsWire, renderJamboHouse, jhRepaint, jhPlace, jhPlacePut, jhLayout, jhRoomAt, jhFloorCounts, jhGeom, jhFinish, jhUptoFor, jhHoursWords, jhPopsSoft: () => _jh.pops.filter(p => p.soft).length, jhMotionOf: (k, t) => { const r = _jhRooms.find(x => x.k === k); return r ? jhPosAt(r, t) : null; }, jhPopRef, jhRoomQuietWhy, jhRoomStateWords, jhResults, jhUnitWords, jhSheetsIn, JH_ROUTE,
+  jhOfficeOf: () => ({ floors: _jhF, desk: _jhDesk && { f: _jhDesk.f, x0: _jhDesk.card.x, x1: _jhDesk.card.x + _jhDesk.card.w }, shared: _jhShared.map(s => ({ id: s.id, f: s.f })), rooms: _jhRooms.map(r => ({ k: r.k, f: r.f, reading: !!r.reading })) }) });

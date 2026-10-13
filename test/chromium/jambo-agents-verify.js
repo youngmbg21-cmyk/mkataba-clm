@@ -111,12 +111,12 @@ Object.assign(CONTRACTS[2], { signApprovals: [{ id: 'sa1', askedAt: ago(8), stat
       keys: AG_KEYS.slice(), h: document.getElementById('jh-cv').height, tabs: [...document.querySelectorAll('[data-jh-tab]')].map(x => x.getAttribute('data-jh-tab')),
       current: document.querySelector('[data-nav-fold-open="insights"]').classList.contains('is-current') }));
     ok('2a one card per agent in AG_KEYS', pg.cards.length === pg.keys.length && pg.keys.every(k => pg.cards.includes(k)), pg.cards.join(' '));
-    const floors = Math.ceil(pg.keys.length / 3);
     const fit = () => page.evaluate(() => { const cv = document.getElementById('jh-cv'), st = document.getElementById('jh-stage'), dpr = window.devicePixelRatio || 1;
       return { bottom: Math.round(st.getBoundingClientRect().bottom), win: window.innerHeight, sharp: cv.width === Math.round(cv.clientWidth * dpr) && Math.abs(cv.height - Math.round(cv.clientHeight * dpr)) <= 1,
         floors: jhGeom().floors, fh: jhGeom().fh, scrolls: st.scrollHeight > st.clientHeight + 1 }; });
     const f2 = await fit();
-    ok('2b the house fits the window (no part below the screen) and has a floor per three agents', f2.bottom <= f2.win && f2.floors === floors, JSON.stringify(f2));
+    const offices = await page.evaluate(() => AG_KEYS.filter(k => !AG_READINGS.includes(k)).length), cols2 = await page.evaluate(() => jhGeom().cols);
+    ok('2b the office fits the window (no part below the screen): two floors of shared rooms, the agents\' offices three (or four) a floor, your desk on top', f2.bottom <= f2.win && f2.floors === 3 + Math.ceil(offices / cols2), JSON.stringify({ f2, offices, cols2 }));
     ok('2b2 drawn at its real size on screen, not a stretched picture', f2.sharp, JSON.stringify(f2));
     ok('2b3 no facts line under the title', await page.evaluate(() => !document.getElementById('jh-facts') && !document.querySelector('.jh-band .page-facts')));
     ok('2c three tabs: the house, jobs, how points work', pg.tabs.join(' ') === 'house jobs how', pg.tabs.join(' '));
@@ -389,6 +389,17 @@ Object.assign(CONTRACTS[2], { signApprovals: [{ id: 'sa1', askedAt: ago(8), stat
     const b17 = await page.evaluate(() => { const h = document.createElement('div'); h.innerHTML = agPointsTableHtml('company'); return !!h.querySelector('[data-ag-rebuild]') && !!h.querySelector('[data-ag-rebuild-undo]'); });
     ok('17e Settings → Jambo\'s agents carries Rebuild and Remove', b17);
 
+    console.log('\n18 · Jambo\'s office: offices, shared rooms, your desk on top, paper that piles up');
+    await page.evaluate(() => { const b = document.querySelector('[data-jh-agent].is-on, [data-jh-agent][aria-pressed="true"]'); if (b) b.click(); });
+    const o18 = await page.evaluate(() => { const o = jhOfficeOf(), shared = o.shared.map(s => s.id + '@' + s.f).sort().join(',');
+      const agentsOk = o.rooms.filter(r => !r.reading).every(r => r.f >= 2 && r.f <= o.floors - 2) && o.rooms.filter(r => r.reading).every(r => r.f === 0);
+      return { shared, top: o.desk.f === o.floors - 1, wall: o.desk.x0 <= 206.5 && o.desk.x1 >= 1143.5, agentsOk, reads: o.rooms.filter(r => r.reading).map(r => r.k).sort().join(',') }; });
+    ok('18a your desk is the big office across the top floor; the shared rooms below; every agent has an office; the readings sit in reception', o18.top && o18.wall && o18.agentsOk
+      && o18.shared === 'jambo@1,mail@1,money@1,people@0,reception@0,vault@0' && o18.reads === 'approve,quiet,request,week', JSON.stringify(o18));
+    const t18 = await page.evaluate(() => { const seen = []; for (let t = 0; t <= 1.00001; t += 0.0004){ const m = jhMotionOf('paper', t); if (m && m.stop && seen[seen.length - 1] !== m.stop) seen.push(m.stop); } return seen.join(','); });
+    ok('18b a piece is a trip through the rooms its agent really uses, ending in its tray on your desk', /^(vault,money,jambo,desk,?)+$/.test(t18), t18);
+    const s18 = await page.evaluate(() => ({ vault: jhSheetsIn('vault', 1), money: jhSheetsIn('money', 1), mail: jhSheetsIn('mail', 0) }));
+    ok('18c the paper piles up in the rooms it came through (none before the replay starts)', s18.vault > 0 && s18.money > 0 && s18.mail === 0, JSON.stringify(s18));
     ok('no page errors', errs.length === 0, errs.join(' | ').slice(0, 300));
   } catch (e) { ok('the run finished', false, e.message); }
   finally { await b.close(); await h.stop(); }
