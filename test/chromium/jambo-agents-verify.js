@@ -205,6 +205,8 @@ const CONTRACTS = [
     await page.waitForFunction(() => !document.getElementById('jh-end').hidden, null, { timeout: 15000 }).catch(() => {});
     const end14 = await page.evaluate(() => ({ t: document.getElementById('jh-end-t').textContent, l: document.getElementById('jh-end-l').textContent, total: document.getElementById('jh-total').textContent, back: jhUptoFor('late', 1e15) }));
     ok('14c the end card counts that agent alone (3 briefs × 25 = 75), and every room is back at rest', /^75\b/.test(end14.t) && end14.back === 1e15 && end14.total === '98', JSON.stringify(end14));
+    const hw = await page.evaluate(() => [jhHoursWords(1.2), jhHoursWords(0.4), jhHoursWords(3.6), jhHoursWords(1, 1), jhHoursWords(2.04, 1)]);
+    ok('14e hours agree with their number: "about 1 hour", never "1 hours"', /about 1 hour of work/.test(end14.l) && hw.join('|') === '1 hour|0.4 hours|4 hours|1 hour|2.0 hours', JSON.stringify({ l: end14.l, hw }));
     await page.click('[data-jh-end-x]');
     await page.click('[data-jh-agent="paper"]');
     ok('14d pressing the card again goes back to every agent', await page.evaluate(() => document.querySelector('[data-jh-play]').textContent === i18t('jh_play')));

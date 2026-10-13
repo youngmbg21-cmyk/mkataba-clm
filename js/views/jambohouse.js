@@ -76,6 +76,15 @@ const _jhE = s => (typeof esc === 'function') ? esc(s)
   : String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 const _jhT = (k, v) => (typeof i18t === 'function') ? i18t(k, v || {}) : String(k);
 const _jhTn = (k, n, v) => (typeof i18tn === 'function') ? i18tn(k, n, v || {}) : String(n);
+/* Hours said in words that agree with their number (owner, 13 Oct 2026: no
+   "1 hours"): one decimal under an hour (or when asked), whole hours above;
+   exactly 1 is singular in both books. */
+function jhHoursWords(hrs, digits){
+  const h = Math.max(0, Number(hrs) || 0), d = digits != null ? digits : (h < 1 ? 1 : 0), n = +h.toFixed(d);
+  let shown = String(n);
+  try { shown = n.toLocaleString((typeof langLocale === 'function') ? langLocale() : undefined, { minimumFractionDigits: d, maximumFractionDigits: d }); } catch (_) {}
+  return _jhTn('jh_hrs', n, { n: n === 1 ? '1' : shown });
+}
 const _jhFmt = n => { const v = Math.round(Number(n) || 0); try { return v.toLocaleString((typeof jxLocale === 'function') ? jxLocale() : undefined); } catch (_) { return String(v); } };
 
 /* ---------------- THE POINTS: one reading, one sum ---------------- */
@@ -546,7 +555,7 @@ function jhFinish(){
   const best = tot.slice().sort((a, b) => b.s.pts - a.s.pts)[0];
   document.getElementById('jh-end-t').textContent = _jhT('jh_end_title', { n: _jhFmt(total) });
   document.getElementById('jh-end-l').textContent = !total && !tot.some(x => x.s.used + x.s.changed + x.s.thrown) ? _jhT('jh_end_none')
-    : _jhT(_jh.sel ? (_jh.one ? 'jh_end_agent_on' : 'jh_end_agent') : _jh.one ? 'jh_end_line_on' : 'jh_end_line', { h: Math.round(hrs), name: best ? _jhT('ag_' + best.k) : '', no: jhOneNo() });
+    : _jhT(_jh.sel ? (_jh.one ? 'jh_end_agent_on' : 'jh_end_agent') : _jh.one ? 'jh_end_line_on' : 'jh_end_line', { h: jhHoursWords(hrs), name: best ? _jhT('ag_' + best.k) : '', no: jhOneNo() });
   end.hidden = false;
 }
 
@@ -684,7 +693,7 @@ function jhHowHtml(){
     ? `<h3>${_jhE(_jhT('jh_ex_h', { name: _jhT('ag_' + k), r: jhRangeWords() }))}</h3>
       <p>${_jhE(_jhT('jh_ex_p', { n: s.used + s.changed + s.thrown, m: v.mins }))}</p>
       <ul><li>${_jhE(_jhT('jh_used'))}: ${s.used} × ${n(agPointsEach(v, 'used'))}</li><li>${_jhE(_jhT('jh_changed'))}: ${s.changed} × ${n(agPointsEach(v, 'changed'))} (${v.changed}%)</li><li>${_jhE(_jhT('jh_thrown'))}: ${s.thrown} × ${n(-agPointsEach(v, 'thrown'))} (−${v.thrown}%)</li></ul>
-      <p class="jh-big">${_jhE(_jhT('jh_ex_big', { n: _jhFmt(s.pts), h: s.hrs.toFixed(1) }))}</p>`
+      <p class="jh-big">${_jhE(_jhT('jh_ex_big', { n: _jhFmt(s.pts), h: jhHoursWords(s.hrs, 1) }))}</p>`
     : `<h3>${_jhE(_jhT('jh_ex_h', { name: _jhT('ag_' + k), r: jhRangeWords() }))}</h3><p>${_jhE(_jhT('jh_ex_none', { name: _jhT('ag_' + k) }))}</p>`;
   const card = (t, p) => `<div class="jh-card"><h3>${_jhE(_jhT(t))}</h3><p>${_jhE(_jhT(p))}</p></div>`;
   const out = (cls, t, p, v2) => `<div class="jh-card jh-out-card"><span class="jh-sw ${cls}"></span><div><h3>${_jhE(_jhT(t))}</h3><p>${_jhE(_jhT(p, { v: v2 }))}</p></div></div>`;
@@ -1090,4 +1099,4 @@ const JH_CSS = `
 try { if (typeof jamboFacePaint === 'function') jamboFacePaint(); } catch (_) {}
 
 Object.assign(window, { AG_POINTS_LAUNCH, AG_POINTS_START_MINS, AG_POINTS_NEW_MINS, AG_POINTS_FIELDS, agPointsKeys, agPointsStart, agPointsCompany, agPointsMine, agPointsOf,
-  agPointsIsNew, agPointsEach, agPointsTally, agPointsSumLine, agPieceSay, agPointsTableHtml, agPointsWire, renderJamboHouse, jhRepaint, jhPlace, jhPlacePut, jhLayout, jhRoomAt, jhFloorCounts, jhGeom, jhFinish, jhUptoFor });
+  agPointsIsNew, agPointsEach, agPointsTally, agPointsSumLine, agPieceSay, agPointsTableHtml, agPointsWire, renderJamboHouse, jhRepaint, jhPlace, jhPlacePut, jhLayout, jhRoomAt, jhFloorCounts, jhGeom, jhFinish, jhUptoFor, jhHoursWords });
