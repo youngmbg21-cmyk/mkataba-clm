@@ -46,7 +46,11 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
   d1.playbook = { key: '_default', source: 'heuristic', verdicts: [
     { category: 'Payment terms', status: 'deviation', quote: 'Prices are exclusive of VAT and invoices fall due within', position: 'Paid within 14 days', redline: 'Invoices are paid within 14 days of receipt.', escalate: false },
     { category: 'Governing law', status: 'aligned', quote: '', position: '', redline: '', escalate: false }] };
-  await seedWorkspace(h, { contracts: [d1, deal('MK-S2', 'Haulage Refused')], approvalRules: [] });
+  /* a contract the risk scan read: one finding on clause 4's wording (the paper is the RM template's) */
+  const d3 = deal('MK-S3', 'Haulage Scanned');
+  d3.scan = { findings: [{ id: 'f1', sev: 'high', title: 'Renews on its own for twelve months', why: 'It renews unless notice is given ninety days before the end.',
+    quote: 'The term is three (3) years from the effective date' }], dismissed: [] };
+  await seedWorkspace(h, { contracts: [d1, deal('MK-S2', 'Haulage Refused'), d3], approvalRules: [] });
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const errs = [];
   try {
@@ -355,6 +359,24 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
     } else {
       ['2', '3', '4', '5', '6'].forEach(k => ok(k + ' (not reached)', false, 'the Clauses tab was never read'));
     }
+    /* 9 EVERY COLOURED DOT EXPLAINS ITSELF (owner, 13 Oct 2026: "Yes, build
+       it"): the risk scan's finding is a point under its clause — counted,
+       red, its reason in the open row, "Found by: Risk scan" */
+    const sc = await page.evaluate(async () => {
+      window.__bd.refuse = false;
+      pdOpenOnHome('MK-S3', 'doc');
+      for (let i = 0; i < 40 && !document.querySelector('#pd-thread .stk-line'); i++) await new Promise(r => setTimeout(r, 250));
+      const by = [...document.querySelectorAll('#pd-thread [data-stk-f="by"] option')].map(o => o.value);
+      const row = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(r => /^4\b/.test((r.querySelector('.doc-th-name') || {}).innerText || ''));
+      if (!row) return { row: false, by };
+      const red = row.classList.contains('stk-b-need'), say = (row.querySelector('.stk-n') || {}).textContent || '';
+      if (!row.classList.contains('is-open')){ row.querySelector('[data-th-go]').click(); await new Promise(r => setTimeout(r, 900)); }
+      const r2 = document.querySelector(`#pd-thread .doc-th-row[data-th-row="${row.getAttribute('data-th-row')}"]`);
+      const line = r2 && r2.querySelector('.stk-line'), vis = !!line && line.getClientRects().length > 0;
+      return { row: true, by, red, say, vis, text: line ? line.innerText : '' };
+    });
+    ok('9 a risk-scan finding is a point under its clause: red, counted, its reason shown when opened, "Found by: Risk scan"',
+      sc.row && sc.by.includes('scan') && sc.red && /1 to review/.test(sc.say) && sc.vis && /ninety days/.test(sc.text), JSON.stringify(sc));
     /* 8 THE OVERVIEW TAB IS GONE from Home's panel (owner, 13 Oct 2026); an old
        door onto it lands on Jambo */
     const tabs = await page.evaluate(() => { pdOpenOnHome('MK-S1', 'facts');
