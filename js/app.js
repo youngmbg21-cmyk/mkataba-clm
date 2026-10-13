@@ -595,6 +595,14 @@ function shellCrumbAdopt(c, backBtn){
     const nameRow = backBtn.closest('.room-head') && backBtn.closest('.room-head').querySelector('.room-name');
     if(nameRow){
       backBtn.remove();
+      /* THE WAY BACK TO THE CLAUSES TAB (owner, 13 Oct 2026), only on the trip
+         "Start redlining with this ask" began — a crumb, not a band */
+      if(window.rlCameFrom && rlCameFrom(c.id)){
+        const back=document.createElement('button'); back.type='button'; back.className='crumb-door'; back.setAttribute('data-rl-back-clauses','');
+        back.textContent='\u2039 '+i18t('stk_back');
+        const sep=document.createElement('i'); sep.className='crumb-sep'; sep.setAttribute('aria-hidden','true'); sep.textContent='/';
+        el.appendChild(back); el.appendChild(sep);
+      }
       const s=document.createElement('span'); s.className='crumb-here';
       s.textContent=i18t('tab_negotiate'); s.title=s.textContent;
       el.appendChild(s);

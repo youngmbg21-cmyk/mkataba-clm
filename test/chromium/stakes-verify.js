@@ -12,6 +12,11 @@
    5 ‹ › walk the points; Back and Esc return to the same list
    6 a refusal is said where the reader looks with Try again, and is not
      retried in a loop
+   3i–3l no section squares; every coloured dot explains itself; a filter
+     drops an open clause with nothing it keeps; a finger on a filter opens
+     one list (the box is never focused after a touch)
+   5c–5f Start redlining lands on its clause in Edit with Jambo, nothing
+     filed; \u2039 Back to clauses returns to the same point and filter
    7 no page errors
 
    The Jambo route is stubbed in the page (window.api), so nothing is spent.
@@ -169,6 +174,61 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       });
       ok('3h a point not in the contract opens its box on a press of its title, and closes on another', f6.t && !f6.closed && f6.opened && !f6.again, JSON.stringify(f6));
 
+      /* 3i NO SECTION SQUARE after a clause's name (owner, 13 Oct 2026: "remove
+         these green dots as no one knows what they are for") */
+      const f7 = await page.evaluate(() => ({ sq: document.querySelectorAll('#pd-thread .stk-rsq').length,
+        named: document.querySelectorAll('#pd-thread .doc-th-row .doc-th-name').length }));
+      ok('3i no coloured section square after any clause name', f7.named > 0 && f7.sq === 0, JSON.stringify(f7));
+      /* 3j EVERY COLOURED DOT EXPLAINS ITSELF (owner, 13 Oct 2026: "we have some
+         worth a look but they have no explanation"): an older mark's amber on a
+         clause with no point under it is cleared; the dot is plain */
+      const f8 = await page.evaluate(() => {
+        const c = getContract('MK-S1'), card = document.getElementById('pd-thread');
+        const bare = [...card.querySelectorAll('.doc-th-row')].find(r => !r.querySelector('.stk-n') && !r.querySelector('.stk-line'));
+        if (!bare) return { bare: false };
+        const at = bare.getAttribute('data-th-row');
+        bare.classList.add('is-amber');
+        const plain = getComputedStyle(card.querySelector('.doc-th-row:not(.is-amber):not(.stk-b-need):not(.stk-b-look) .doc-th-bead') || bare).backgroundColor;
+        stkDecorate(c, card, [...document.querySelectorAll('#pd-thread .doc-th-row, #pd-thread .doc-th-sec')].map(() => ({})));
+        const r = card.querySelector(`.doc-th-row[data-th-row="${at}"]`);
+        const out = { bare: true, amber: r.classList.contains('is-amber'), bead: getComputedStyle(r.querySelector('.doc-th-bead')).backgroundColor, plain };
+        docThreadPaint(c);
+        return out;
+      });
+      ok('3j a clause with no point under it wears a plain dot, even where an older mark said amber', f8.bare && !f8.amber && f8.bead === f8.plain, JSON.stringify(f8));
+      /* 3k AN OPEN CLAUSE WITH NOTHING THE FILTER KEEPS LEAVES THE LIST (owner,
+         13 Oct 2026): open the Term row (no points), then Severity: Needs you */
+      const f9 = await page.evaluate(async () => {
+        const row = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(r => /^1\b/.test((r.querySelector('.doc-th-name') || {}).innerText || ''));
+        if (!row) return { row: false };
+        const at = row.getAttribute('data-th-row');
+        if (!row.classList.contains('is-open')){ row.querySelector('[data-th-go]').click(); await new Promise(z => setTimeout(z, 900)); }
+        const el = document.querySelector('#pd-thread [data-stk-f="sev"]'); el.value = 'need'; el.dispatchEvent(new Event('change', { bubbles: true }));
+        const r2 = document.querySelector(`#pd-thread .doc-th-row[data-th-row="${at}"]`);
+        const out = { row: true, open: r2.classList.contains('is-open'), shown: r2.getClientRects().length > 0 };
+        const el2 = document.querySelector('#pd-thread [data-stk-f="sev"]'); el2.value = ''; el2.dispatchEvent(new Event('change', { bubbles: true }));
+        return out;
+      });
+      ok('3k an open clause with nothing the filter keeps leaves the filtered list', f9.row && f9.open && !f9.shown, JSON.stringify(f9));
+      /* 3l ONE DROPDOWN PER PRESS, ON AN iPAD TOO (owner, 3 Oct and again 13 Oct
+         2026): a finger opens HaTi's list, picks from it, and the box is NOT
+         focused afterwards — on iPadOS a focused select IS the system picker */
+      const f10 = await page.evaluate(async () => {
+        const sel = document.querySelector('#pd-thread [data-stk-f="sev"]');
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        const tap = el => { const r = el.getBoundingClientRect();
+          el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerType: 'touch', clientX: r.x + 5, clientY: r.y + 5 })); };
+        tap(sel);
+        const menu = document.querySelector('.hati-selmenu');
+        const row = menu && [...menu.querySelectorAll('[data-sm]')].find(b => /look/i.test(b.textContent));
+        if (row){ tap(row); row.click(); }
+        await new Promise(z => setTimeout(z, 300));
+        const a = document.activeElement;
+        const out = { menu: !!menu, picked: (document.querySelector('#pd-thread [data-stk-f="sev"]') || {}).value, focusedSelect: !!(a && a.tagName === 'SELECT') };
+        const s2 = document.querySelector('#pd-thread [data-stk-f="sev"]'); s2.value = ''; s2.dispatchEvent(new Event('change', { bubbles: true }));
+        return out;
+      });
+      ok('3l a finger picks from HaTi\'s list and the box is not focused (no iPad picker over it)', f10.menu && f10.picked === 'look' && !f10.focusedSelect, JSON.stringify(f10));
       if (process.env.STK_SHOT) await page.screenshot({ path: process.env.STK_SHOT + '-list.png' });
       await openRowOf(0);
       await page.click('#pd-thread .doc-th-row [data-stk-dive="0"]');
@@ -177,10 +237,10 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
         const dv = document.querySelector('#pd-thread .stk-dv'); const t = dv ? dv.innerText : '';
         const listShown = [...document.querySelectorAll('#pd-thread .doc-th-rows')].some(el => el.offsetParent !== null);
         return { title: (dv.querySelector('h3') || {}).innerText, fig: (dv.querySelector('.stk-fig') || {}).innerText, edge: !!dv.querySelector('.stk-edge li'),
-          ask: !!dv.querySelector('.stk-ask'), usual: /Twelve months of fees/.test(t), wording: /fees paid in the last three months/.test(t), listShown };
+          ask: !!dv.querySelector('.stk-ask'), reg: !!dv.querySelector('.stk-reg'), regWord: /\bRisk\b/.test((dv.querySelector('.stk-dv-head .stk-meta') || {}).innerText || ''), usual: /Twelve months of fees/.test(t), wording: /fees paid in the last three months/.test(t), listShown };
       });
       if (process.env.STK_SHOT) await page.screenshot({ path: process.env.STK_SHOT + '-dive.png' });
-      ok('4 Deep dive opens its own panel and repeats none of the contract wording', dived && /capped/.test(e4.title || '') && e4.fig === 'KES 675,000' && e4.edge && e4.ask && e4.usual && !e4.wording && !e4.listShown, JSON.stringify(e4));
+      ok('4 Deep dive opens its own panel, carries no section label, and repeats none of the contract wording', dived && !e4.reg && !e4.regWord && /capped/.test(e4.title || '') && e4.fig === 'KES 675,000' && e4.edge && e4.ask && e4.usual && !e4.wording && !e4.listShown, JSON.stringify(e4));
       /* 4b THE WHOLE CARD SCROLLS (owner, 13 Oct 2026): the head rides inside the
          one scroller with the body; only the Back bar stands outside it */
       const e4b = await page.evaluate(() => {
@@ -220,6 +280,39 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
         return { i, ring, cost, filled: /Ninety days of written notice/.test(t) && /ninety days of notice/i.test(t), busyGone: !/reading this point/.test(t), again: /Ninety days/.test(t2), dives: window.__dives };
       });
       ok('5b a point\'s deep dive is its own read on the press: the ring and its cost while it reads, then the dive, asked once', d1.ring && d1.cost && d1.filled && d1.busyGone && d1.again && d1.dives === 1, JSON.stringify(d1));
+
+      /* 5c "START REDLINING WITH THIS ASK" LANDS ON ITS CLAUSE AND FILES NOTHING,
+         AND THE WAY BACK RETURNS TO THE SAME POINT (owner, 13 Oct 2026) */
+      const j1 = await page.evaluate(async () => {
+        const c = getContract('MK-S1'); const before = (c.changes || []).length;
+        await new Promise(r => { const t = setInterval(() => { if (document.querySelector('#pd-thread .doc-th-row')){ clearInterval(t); r(); } }, 100); setTimeout(r, 4000); });
+        const el = document.querySelector('#pd-thread [data-stk-f="sev"]'); el.value = 'need'; el.dispatchEvent(new Event('change', { bubbles: true }));
+        stkDiveOpen(c, 0); await new Promise(r => setTimeout(r, 300));
+        const title = (document.querySelector('#pd-thread .stk-dv h3') || {}).innerText || '';
+        document.querySelector('#pd-thread [data-stk-redline]').click();
+        await new Promise(r => setTimeout(r, 2500));
+        const ceId = window.clauseEditorOpen && clauseEditorOpen() ? clauseEditorClauseId() : null;
+        const cl = ceId ? negoClauseList(getContract('MK-S1')).find(x => x.clauseId === ceId) : null;
+        return { title, view: state.view, editor: !!ceId, clause: cl ? clauseLabel(cl) : null,
+          ask: (document.getElementById('ce-ask') || {}).value || '', filed: (getContract('MK-S1').changes || []).length - before,
+          back: (document.querySelector('#shell-title [data-rl-back-clauses]') || {}).textContent || '' };
+      });
+      ok('5c "Start redlining with this ask" opens its own clause in Edit with Jambo, the ask ready and unsent, nothing filed',
+        j1.view === 'redline' && j1.editor && /\b3\b/.test(j1.clause || '') && /12 months before the claim/.test(j1.ask) && j1.filed === 0, JSON.stringify(j1));
+      ok('5d the bar offers "‹ Back to clauses" on that trip', /Back to clauses/.test(j1.back), j1.back);
+      const j2 = await page.evaluate(async () => {
+        document.querySelector('#shell-title [data-rl-back-clauses]').click();
+        await new Promise(r => setTimeout(r, 2500));
+        if (document.getElementById('confirm-overlay')){ const go = document.querySelector('#confirm-overlay #cf-ok'); if (go) go.click(); await new Promise(r => setTimeout(r, 2000)); }
+        return { view: state.view, title: (document.querySelector('#pd-thread .stk-dv h3') || {}).innerText || '',
+          sev: (document.querySelector('#pd-thread [data-stk-f="sev"]') || {}).value, crumbGone: !document.querySelector('[data-rl-back-clauses]') };
+      });
+      ok('5e the way back lands on the Clauses tab, the same point open, the same filter', j2.view === 'dashboard' && j2.title === j1.title && j2.sev === 'need' && j2.crumbGone, JSON.stringify(j2));
+      await page.evaluate(() => { const c = getContract('MK-S1'); stkDiveClose(c); const el = document.querySelector('#pd-thread [data-stk-f="sev"]'); if (el){ el.value = ''; el.dispatchEvent(new Event('change', { bubbles: true })); } });
+      /* 5f ANOTHER DOOR ONTO NEGOTIATE FORGETS THE TRIP: no way back offered */
+      const j3 = await page.evaluate(async () => { openRedlineWorkbench('MK-S1'); await new Promise(r => setTimeout(r, 1500));
+        const out = !document.querySelector('[data-rl-back-clauses]'); setView('dashboard'); pdOpenOnHome('MK-S1', 'doc'); await new Promise(r => setTimeout(r, 1200)); return out; });
+      ok('5f Negotiate opened by another door offers no way back to the clauses', j3);
 
       await page.evaluate(() => { window.__bd.refuse = true; window.__bd.n = 0; pdOpenOnHome('MK-S2', 'doc'); });
       const said = await page.waitForSelector('#pd-thread .stk-err', { timeout: 8000 }).then(() => true, () => false);

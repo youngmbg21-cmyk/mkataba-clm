@@ -199,27 +199,28 @@ function stkDecorate(c, card, rows){
   card.querySelectorAll('.stk-hide').forEach(el => el.classList.remove('stk-hide'));
   card.querySelectorAll('.stk-b-need, .stk-b-look').forEach(el => el.classList.remove('stk-b-need', 'stk-b-look'));
   const list = card.querySelector('.doc-th-rows');
+  /* EVERY COLOURED DOT EXPLAINS ITSELF (owner, 13 Oct 2026: "we have some
+     worth a look but they have no explanation"). The older clause marks
+     coloured a row's dot, but Home draws none of those marks, so a clause
+     could be amber with nothing under it to say why. Here a dot is coloured
+     ONLY by the points listed under it (stk-b-need / stk-b-look below). */
+  if (list) list.querySelectorAll('.doc-th-row.is-ruby, .doc-th-row.is-amber, .doc-th-row.is-steel').forEach(el => el.classList.remove('is-ruby', 'is-amber', 'is-steel'));
   if (b && list){
     const nums = _stk.nums;
-    /* AS DRAWN: each row wears its region's colour after its name (named on
-       hover), and says how many of the points on screen stand on it */
-    const regOf = {};
-    (b.regions || []).forEach((r, ri) => (r.items || []).forEach(it => { const n = stkNum(it.ref); if (n && !(n in regOf)) regOf[n] = ri; }));
+    /* each row says how many of the points on screen stand on it. NO SECTION
+       SQUARE after the name (owner, 13 Oct 2026: "remove these green dots as no
+       one knows what they are for"; `.stk-rsq` STALE) — the Section filter
+       says which section a point is in */
     const onRow = {}, worstOn = {};
     shown.forEach(p => { const at = stkAt(p, nums, rows); if (at < 0) return;
       onRow[at] = (onRow[at] || 0) + 1;
       if (p.status === 'need' || (p.status === 'look' && worstOn[at] !== 'need')) worstOn[at] = p.status; });
     /* THE DOT WEARS ITS CLAUSE'S WORST POINT (owner, 13 Oct 2026): red when a
-       point needs you, amber when the worst is worth a look — the older marks'
-       tone stays where it is worse; the paper's own track is not touched */
+       point needs you, amber when the worst is worth a look, plain when none (the older marks'
+       tone is cleared above); the paper's own track is not touched */
     Object.keys(worstOn).forEach(at => { const r = list.querySelector(`[data-th-row="${at}"]`); if (r) r.classList.add('stk-b-' + worstOn[at]); });
     nums.forEach((n, at) => {
       const row = list.querySelector(`[data-th-row="${at}"]`); if (!row || !n) return;
-      let ri = regOf[n];
-      for (let k = n; ri == null && k.includes('.'); ){ k = k.slice(0, k.lastIndexOf('.')); ri = regOf[k]; }
-      if (ri == null){ const pt = b.points.find(p => !p.missing && stkRowFor(p, nums) === at); if (pt && pt.region) ri = pt.region - 1; }
-      const name = row.querySelector('.doc-th-name');
-      if (name && ri != null && b.regions[ri]) name.insertAdjacentHTML('beforeend', `<span class="stk-rsq stk-r${(ri % STK_REGION_TONES) + 1}" title="${_bdE(b.regions[ri].name)}" aria-label="${_bdE(b.regions[ri].name)}"></span>`);
       const st = row.querySelector('[data-th-state]');
       /* the row's count is its points; its Plain English state (Reading… · Read) stays the list's own */
       if (st){
@@ -235,10 +236,12 @@ function stkDecorate(c, card, rows){
       if (row) row.insertAdjacentHTML('afterend', stkLineHtml(p, i)); else other.push(i);
     });
     /* A FILTER NARROWS THE LIST: a row with nothing the filters keep steps
-       aside (the open row stays, and the paper's track is untouched) */
+       aside, AN OPEN ONE TOO (owner, 13 Oct 2026: an open clause stayed in a
+       "Worth a look" list with nothing worth a look under it); the paper's
+       track is untouched */
     if (stkFiltering()){
       list.querySelectorAll('.doc-th-row, .doc-th-sec').forEach(el => {
-        if (el.classList.contains('doc-th-row') && (el.classList.contains('is-open') || onRow[Number(el.getAttribute('data-th-row'))])) return;
+        if (el.classList.contains('doc-th-row') && onRow[Number(el.getAttribute('data-th-row'))]) return;
         el.classList.add('stk-hide');
       });
       if (!shown.length) list.insertAdjacentHTML('beforeend', `<p class="stk-nomatch" role="status">${_bdE(i18t('stk_f_none'))}</p>`);
@@ -282,7 +285,6 @@ async function stkDiveFetch(c, p){
 }
 function stkDiveHtml(c, b, i){
   const shown = stkShown(c, b), p = shown[i], n = shown.length;
-  const r = p.region ? (b.regions || [])[p.region - 1] : null;
   const where = p.by === 'std'
     ? (p.quote ? `<button type="button" class="stk-lnk" data-stk-show="${i}">${_bdE(i18t('stk_show_paper'))}</button>` : `<span class="stk-src">${_bdE(i18t('stk_missing_any'))}</span>`)
     : p.missing || !p.clause
@@ -299,7 +301,7 @@ function stkDiveHtml(c, b, i){
         <button type="button" class="ui-btn ui-btn-icon ui-btn-sm" data-stk-dive="${i - 1}"${i > 0 ? '' : ' disabled'} aria-label="${_bdE(i18t('stk_prev'))}" title="${_bdE(i18t('stk_prev'))}">‹</button>
         <button type="button" class="ui-btn ui-btn-icon ui-btn-sm" data-stk-dive="${i + 1}"${i < n - 1 ? '' : ' disabled'} aria-label="${_bdE(i18t('stk_next'))}" title="${_bdE(i18t('stk_next'))}">›</button></span></div>
     <div class="stk-dv-scroll scroll-thin">
-    <div class="stk-dv-head"><div class="stk-meta">${bdChip(p.status)}${r ? `<span class="stk-reg"><i></i>${_bdE(r.name)}</span>` : ''}</div>
+    <div class="stk-dv-head"><div class="stk-meta">${bdChip(p.status)}</div>
       <h3>${_bdE(p.title)}</h3><div class="stk-meta">${where}</div></div>
     <div class="stk-dv-body">
       ${stkDiveOwed(p) ? (_stk.diveErr[stkDiveKey(c, p)]
@@ -326,6 +328,31 @@ function stkDivePaint(c, card){
   if (!on){ if (dv) dv.remove(); return; }
   if (!dv){ dv = document.createElement('div'); dv.className = 'stk-dive'; card.appendChild(dv); }
   dv.innerHTML = stkDiveHtml(c, b, _stk.dive);
+}
+/* ---- "START REDLINING WITH THIS ASK" LANDS ON ITS CLAUSE (owner, 13 Oct
+   2026: it opened Negotiate at the top of the paper, on another clause's
+   card, with no way back) ----
+   Through Negotiate's one door, carrying the point's clause and its ask:
+   Negotiate opens that clause in Edit with Jambo, the ask ready to use and
+   nothing filed or sent until a person presses. It remembers where the
+   reader came from — this contract's deep dive, its point and its filters —
+   so "‹ Back to clauses" returns to the same point (stkResume). */
+function stkRedlineGo(c){
+  const b = stkOf(c), p = b && _stk.dive >= 0 ? stkShown(c, b)[_stk.dive] : null;
+  let clauseId = '';
+  if (p && !p.missing && _stk.rows){
+    const at = stkAt(p, _stk.nums || [], _stk.rows), x = at >= 0 ? _stk.rows[at] : null;
+    if (x && typeof docXrayClauseId === 'function') clauseId = docXrayClauseId(x) || '';
+  }
+  if (typeof rlCameFromSet === 'function') rlCameFromSet({ id: String(c.id), dive: _stk.dive, f: { ..._stk.f } });
+  if (typeof openRedlineWorkbench !== 'function') return;
+  openRedlineWorkbench(c.id, { from: 'clauses', land: p && !p.missing ? { clauseId, quote: String(p.quote || ''), num: stkNum(p.clause), ask: p.by === 'jambo' ? String(p.ask || '') : '' } : null });
+}
+/* the way back puts the deep dive where the reader left it */
+function stkResume(f){
+  if (!f || !f.id) return;
+  _stk.id = String(f.id); _stk.dive = Number.isInteger(f.dive) ? f.dive : -1;
+  _stk.f = { reg: '', sev: '', by: '', ...(f.f || {}) }; _stk.mOpen = '';
 }
 function stkContract(){ return _stk.id && typeof getContract === 'function' ? getContract(_stk.id) : null; }
 /* light a point's words on the paper; a point with no words goes to its clause */
@@ -380,7 +407,7 @@ if (typeof document !== 'undefined' && !document._stkWired){
     const b = stkOf(c);
     const sh = t.closest('[data-stk-show]');
     if (sh && b){ const k = Number(sh.getAttribute('data-stk-show')); stkShow(c, stkShown(c, b)[k], k); return; }
-    if (t.closest('[data-stk-redline]')){ if (typeof openRedlineWorkbench === 'function') openRedlineWorkbench(c.id); return; }
+    if (t.closest('[data-stk-redline]')){ stkRedlineGo(c); return; }
     const ak = t.closest('[data-stk-ask]');
     if (ak && b){ const p = stkShown(c, b)[Number(ak.getAttribute('data-stk-ask'))];
       if (p && typeof intelAskReady === 'function') intelAskReady(i18t('stk_ask_q', { t: p.title })); }
@@ -394,7 +421,7 @@ if (typeof document !== 'undefined' && !document._stkWired){
     _stk.f[k] = String(sel.value || '');
     _stk.dive = -1;
     stkRepaint(c);
-    const again = document.querySelector(`#pd-thread [data-stk-f="${k}"]`); if (again) try { again.focus(); } catch (_){}
+    const again = document.querySelector(`#pd-thread [data-stk-f="${k}"]`); if (again) fieldFocus(again);
   });
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape' || _stk.dive < 0) return;
@@ -403,4 +430,4 @@ if (typeof document !== 'undefined' && !document._stkWired){
   });
 }
 
-Object.assign(window, { stkDecorate, stkOf, stkRun, stkDiveOpen, stkDiveClose, bdOf, bdStale, bdRun });
+Object.assign(window, { stkRedlineGo, stkResume, stkDecorate, stkOf, stkRun, stkDiveOpen, stkDiveClose, bdOf, bdStale, bdRun });

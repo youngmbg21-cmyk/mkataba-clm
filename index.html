@@ -8855,22 +8855,25 @@
      what each scroller's own padding and the sheet's own margin leave short of
      40 (Home 9 + 20 on Redlined or 9 + 0 clean, Negotiate 29, the Document tab
      0 + 29, the signing copy 0 + 0, the design step 16), so the gap above the
-     sheet is one number on every paper (one-paper-everywhere), and the control
-     stands 6px under the scroller's top edge (--zc-top lifts it out of the
-     row into the padding). The row is height 0 with a margin, the slot draws
+     sheet is one number on every paper (one-paper-everywhere). WHERE THE
+     CONTROL STANDS IS MEASURED, NOT NUDGED (owner, 13 Oct 2026): paperZcFit
+     writes --zc-top so it stands 6px under its scroller's top edge, 6px clear
+     of the sheet, and --paper-zc-right so its right edge is the sheet's. The row is height 0 with a margin, the slot draws
      no box, and the control's anchor is 0x0 with its contents spilling left:
      no wrapper is a painted element, so the colour census counts only what it
      always counted. */
   .paper-zc-row{position:relative;height:0;margin-bottom:var(--zc-room,40px);z-index:4}
   #doc-zc-slot{display:contents}
-  #ig-paper-scroll > .paper-zc-row{--zc-room:31px;--zc-top:-3px}
+  #ig-paper-scroll > .paper-zc-row{--zc-room:31px}
   #ig-paper-scroll > .paper-zc-row:has(+ .ig-zoom .ig-redpaper){--zc-room:11px}
-  #nego-scroll-work > .paper-zc-row{--zc-room:11px;--zc-top:-23px}
+  #nego-scroll-work > .paper-zc-row{--zc-room:11px}
   #doc-zc-slot > .paper-zc-row{--zc-room:11px}
   #doc-zc-slot > .paper-zc-row:has(.sc-step){--zc-room:36px}
-  #ds-docpane > .paper-zc-row{--zc-room:24px;--zc-top:-10px}
+  #ds-docpane > .paper-zc-row{--zc-room:24px}
   .paper-zc{position:absolute;right:var(--paper-zc-right,0);top:var(--zc-top,6px);width:0;height:0;display:flex;justify-content:flex-end;align-items:flex-start;gap:var(--s-3);white-space:nowrap}
-  .paper-zc > *{flex:none}
+  /* align-self:flex-start — the control's own rule centres it (align-self:center),
+     and centred on a row of no height it hung half its height above where it was put */
+  .paper-zc > *{flex:none;align-self:flex-start}
   .paper-zc{color:var(--color-text)}
   .paper-zc .rl-moved{line-height:var(--ctl-h)}
   /* the zoom wears the clothes it wore on the bars it left */
@@ -9862,11 +9865,10 @@
   .pd-th .doc-th-row:not(.is-open) > .stk-line, .pd-th .stk-miss-row:not(.is-open) .stk-line{display:none}
   /* THE DOT WEARS ITS CLAUSE'S WORST POINT (owner, 13 Oct 2026) */
   .pd-th .doc-th-row.stk-b-need .doc-th-bead{background:var(--st-ruby-dot);border-color:var(--st-ruby-dot)}
-  .pd-th .doc-th-row.stk-b-look:not(.is-ruby) .doc-th-bead{background:var(--st-amber-dot);border-color:var(--st-amber-dot)}
+  .pd-th .doc-th-row.stk-b-look .doc-th-bead{background:var(--st-amber-dot);border-color:var(--st-amber-dot)}
   /* AS DRAWN (owner, 13 Oct 2026): "The company view" and its counts; each row's region square after its name; "1 to review" at its right */
   .stk-view{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:var(--t-label);color:var(--color-neutral-600)}
   .stk-view b{font-weight:var(--w-title);color:var(--color-text)}
-  .stk-rsq{display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--stk);margin-left:8px;vertical-align:1px}
   .stk-n{color:var(--st-amber-fg)}
   .pd-th .doc-th-top:empty{display:none}
   .pd-th .doc-th-home-plain{padding:0 6px 10px 2px;display:grid;gap:6px}
@@ -9891,7 +9893,6 @@
   .stk-dv-head{padding:12px 16px 10px;display:grid;gap:6px;background:color-mix(in srgb,var(--stk,var(--accent-fill)) 7%,var(--color-surface));border-bottom:1px solid var(--color-divider)}
   .stk-dv-head h3{margin:0;font-size:var(--t-body);font-weight:var(--w-title);line-height:1.35}
   .stk-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
-  .stk-reg{display:inline-flex;align-items:center;gap:5px;font-size:var(--t-label);color:var(--color-neutral-600)} .stk-reg i{width:8px;height:8px;border-radius:2px;background:var(--stk)}
   .stk-src{font-size:var(--t-label);color:var(--color-neutral-600)}
   .stk-lnk{border:0;background:none;padding:0;color:var(--accent-ink);font:inherit;font-size:var(--t-label);font-weight:var(--w-label);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
   /* THE WHOLE CARD SCROLLS (owner, 13 Oct 2026): its head rides with the body; only the bar above stays */
