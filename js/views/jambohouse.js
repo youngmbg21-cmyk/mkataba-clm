@@ -165,6 +165,9 @@ const jhSignedIn = () => { try { return !!(window.REMOTE && REMOTE.me); } catch 
 async function jhFetch(days){
   if (!(typeof API_MODE === 'function' && API_MODE()) || typeof api !== 'function') return { pieces: [], contracts: {}, static: true, days };
   if (!jhSignedIn()) return null;
+  /* The four reading agents report what they laid out (agReportPrepared) —
+     asked here so the house shows it, waited for a moment, never blocked on. */
+  try { if (typeof agentsData === 'function') agentsData(); if (typeof agPreparedSettled === 'function') await Promise.race([agPreparedSettled(), new Promise(r => setTimeout(r, 1500))]); } catch (_) {}
   try { const r = await api('agents/pieces?days=' + days); return { pieces: (r && r.pieces) || [], contracts: (r && r.contracts) || {}, cut: !!(r && r.cut), max: r && r.max, days, from: r && r.from }; }
   catch (e){ return { pieces: [], contracts: {}, error: (e && e.message) || String(e), days }; }
 }
@@ -331,6 +334,22 @@ function jhJambo(ctx, r, x, y, rad, lit){
 function jhPill(ctx, text, x, y, col, font){ ctx.font = font || '600 10.5px Geist, sans-serif'; const w = ctx.measureText(text).width + 12; ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y - 11, w, 15, 7.5); else ctx.rect(x, y - 11, w, 15); ctx.stroke(); ctx.fillStyle = col; ctx.textAlign = 'left'; ctx.fillText(text, x + 6, y); return w; }
 const jhFloorName = f => _jhT('jh_floor_' + Math.min(f, 7));
 function jhRoundRect(ctx, x, y, w, h, r){ ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h); }
+/* WORK WAITING ON A PERSON, IN ITS ROOM (owner picked B, 13 Oct 2026): what
+   Jambo prepared and nobody has used, changed or thrown away yet, as of the
+   replay's moment, is a small stack of papers in the room's lower corner with
+   its count. It scores nothing (agPointsTally's `open`); the points come when
+   a person acts. Drawn under the runners, so a Jambo walks in front of it. */
+function jhWaitStack(ctx, r, n, mono){
+  if (!(n > 0)) return;
+  const C = _jhC, c = r.card, x1 = c.x + c.w - 12, y1 = c.y + c.h - 8, sw = 10, sh = 12, k = Math.min(3, n);
+  ctx.save();
+  for (let i = k - 1; i >= 0; i--){ const x = x1 - sw - i * 3, y = y1 - sh - i * 3;
+    ctx.fillStyle = C.card; ctx.strokeStyle = r.col; ctx.lineWidth = 1.2; ctx.fillRect(x, y, sw, sh); ctx.strokeRect(x + .5, y + .5, sw - 1, sh - 1); }
+  ctx.textAlign = 'right'; ctx.fillStyle = C.muted; ctx.font = mono ? '500 11px ' + JH_MONO : '500 12px Geist, sans-serif';
+  const w = mono ? _jhT('jh_waiting_n', { n }).toUpperCase() : _jhT('jh_waiting_n', { n });
+  ctx.fillText(w, x1 - sw - (k - 1) * 3 - 6, y1 - 2);
+  ctx.restore();
+}
 function jhDrawPlan(ctx, pieces, upto){
   const C = _jhC;
   ctx.fillStyle = C.card; ctx.fillRect(0, 0, JH_W, _jhH);
@@ -352,7 +371,8 @@ function jhDrawPlan(ctx, pieces, upto){
     if (agPointsIsNew(r.k)) px += jhPill(ctx, _jhT('jh_new_tag'), px, c.y + 21, C.amber) + 4;
     if (agPointsMine(r.k)) jhPill(ctx, _jhT('jh_mine_tag'), px, c.y + 21, C.accent);
     ctx.fillStyle = C.muted; ctx.font = '400 13.5px Geist, sans-serif'; ctx.fillText(_jhT('ag_' + r.k) + ' · ' + s.n + ' ' + _jhT('jh_unit_' + r.k), c.x + 12, c.y + 42);
-    ctx.textAlign = 'right'; ctx.fillStyle = C.accent; ctx.font = '600 16px Geist, sans-serif'; ctx.fillText(_jhFmt(s.pts) + ' ' + _jhT('jh_pts'), c.x + c.w - 12, c.y + 22); });
+    ctx.textAlign = 'right'; ctx.fillStyle = C.accent; ctx.font = '600 16px Geist, sans-serif'; ctx.fillText(_jhFmt(s.pts) + ' ' + _jhT('jh_pts'), c.x + c.w - 12, c.y + 22);
+    jhWaitStack(ctx, r, s.open, false); });
 }
 const JH_MONO = '"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
 function jhDrawDrawing(ctx, pieces, upto){
@@ -389,7 +409,8 @@ function jhDrawDrawing(ctx, pieces, upto){
     if (agPointsMine(r.k)) jhPill(ctx, _jhT('jh_mine_tag'), px, c.y + 18, ink);
     ctx.fillStyle = r.col; ctx.beginPath(); ctx.arc(c.x + c.w - 8, c.y + 14, 4, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = C.muted; ctx.font = '400 12px ' + JH_MONO; ctx.fillText(_jhT('ag_' + r.k) + ' · ' + s.n, c.x + 6, c.y + 36);
-    ctx.textAlign = 'right'; ctx.fillStyle = ink; ctx.font = '600 14px ' + JH_MONO; ctx.fillText(_jhFmt(s.pts) + ' ' + _jhT('jh_pts').toUpperCase(), c.x + c.w - 18, c.y + 18); });
+    ctx.textAlign = 'right'; ctx.fillStyle = ink; ctx.font = '600 14px ' + JH_MONO; ctx.fillText(_jhFmt(s.pts) + ' ' + _jhT('jh_pts').toUpperCase(), c.x + c.w - 18, c.y + 18);
+    jhWaitStack(ctx, r, s.open, true); });
   const dy = bot + 34; ctx.strokeStyle = ink; ctx.lineWidth = 1; ctx.globalAlpha = .7;
   jhFloorRooms(0).forEach(r => { const x0 = r.card.x - JH_GAP / 2, x1 = x0 + r.card.w + JH_GAP; ctx.beginPath(); ctx.moveTo(x0, dy); ctx.lineTo(x1, dy); ctx.moveTo(x0, dy - 5); ctx.lineTo(x0, dy + 5); ctx.moveTo(x1, dy - 5); ctx.lineTo(x1, dy + 5); ctx.stroke();
     ctx.fillStyle = ink; ctx.font = '500 11px ' + JH_MONO; ctx.textAlign = 'center'; ctx.fillText((12.6 / jhFloorRooms(0).length).toFixed(2), (x0 + x1) / 2, dy - 6); });
@@ -429,7 +450,7 @@ function jhDateCard(ctx){
 }
 function jhDrawPops(ctx){
   _jh.pops = _jh.pops.filter(p => p.a < 1); _jh.pops.forEach(p => { p.a += .016;
-    ctx.globalAlpha = 1 - p.a; ctx.font = '700 16px Geist, sans-serif'; ctx.textAlign = 'center';
+    ctx.globalAlpha = (1 - p.a) * (p.soft ? .8 : 1); ctx.font = p.soft ? '600 12px Geist, sans-serif' : '700 16px Geist, sans-serif'; ctx.textAlign = 'center';
     ctx.lineWidth = 4; ctx.strokeStyle = _jhC.card; ctx.strokeText(p.text, p.x, p.y - p.a * 34); ctx.fillStyle = p.col; ctx.fillText(p.text, p.x, p.y - p.a * 34); ctx.globalAlpha = 1; });
 }
 /* ONE FRAME: the house, its runners, the date, the points that landed. */
@@ -442,6 +463,16 @@ function jhFrame(now){
     const dt = Math.min(60, now - (_jh.last || now)); _jh.last = now;
     const t0 = _jh.t; _jh.t = Math.min(1, _jh.t + dt * _jh.speed / JH_DURATION_MS);
     const S = jhSpan(), a = S.from + t0 * (S.end - S.from), b = S.from + _jh.t * (S.end - S.from);
+    /* THE MOMENT JAMBO DID IT: a piece prepared inside this step rises in its
+       room as "prepared" (softer than points); its points come later, when a
+       person decides. A piece written already decided has no separate moment. */
+    for (const p of pieces){
+      const pAt = Date.parse(p.at || '') || 0;
+      if (!pAt || pAt <= a || pAt > b || (p.outcome && p.decidedAt === p.at) || (_jh.sel && p.agent !== _jh.sel)) continue;
+      const i = _jhRooms.findIndex(r => r.k === p.agent); if (i < 0) continue;
+      const pos = _jh.lastPos[i] || { x: JH_W / 2, y: _jhH / 2 };
+      _jh.pops.push({ x: pos.x, y: pos.y - 20, text: _jhT('jh_pop_prep'), col: _jhRooms[i].col, a: 0, soft: true }); if (_jh.pops.length > 80) _jh.pops.shift();
+    }
     for (const p of pieces){
       const at = Date.parse(p.decidedAt || '') || 0;
       if (!p.outcome || at <= a || at > b || (_jh.sel && p.agent !== _jh.sel)) continue;
@@ -1099,4 +1130,4 @@ const JH_CSS = `
 try { if (typeof jamboFacePaint === 'function') jamboFacePaint(); } catch (_) {}
 
 Object.assign(window, { AG_POINTS_LAUNCH, AG_POINTS_START_MINS, AG_POINTS_NEW_MINS, AG_POINTS_FIELDS, agPointsKeys, agPointsStart, agPointsCompany, agPointsMine, agPointsOf,
-  agPointsIsNew, agPointsEach, agPointsTally, agPointsSumLine, agPieceSay, agPointsTableHtml, agPointsWire, renderJamboHouse, jhRepaint, jhPlace, jhPlacePut, jhLayout, jhRoomAt, jhFloorCounts, jhGeom, jhFinish, jhUptoFor, jhHoursWords });
+  agPointsIsNew, agPointsEach, agPointsTally, agPointsSumLine, agPieceSay, agPointsTableHtml, agPointsWire, renderJamboHouse, jhRepaint, jhPlace, jhPlacePut, jhLayout, jhRoomAt, jhFloorCounts, jhGeom, jhFinish, jhUptoFor, jhHoursWords, jhPopsSoft: () => _jh.pops.filter(p => p.soft).length });

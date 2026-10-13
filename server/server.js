@@ -21251,6 +21251,36 @@ app.post('/api/agents/outcome', auth, (req, res) => {
   const out = agentPieceDecide(k, cid || null, outcome, { id: req.user.id, name: req.user.name || req.user.email }, b.ref);
   res.json({ ok: true, ...(out || {}) });
 });
+/* THE FOUR READING AGENTS SAY WHAT THEY PREPARED (owner, 13 Oct 2026: "the
+   agents are great but I am not sure we are showcasing their work"): Approvals,
+   Requests, Week ahead and Dropped threads prepare their work in the page's
+   own reading (js/views/agents.js), so the page reports each piece the moment
+   it is laid out — the same agent, contract and ref its later outcome names,
+   so the outcome decides THIS piece. Checked here, not trusted: the agent is
+   one of the four, a contract is in the reader's streams, a request exists,
+   a week ref is the reader's own; one open piece per agent, contract and ref,
+   and none again within AGENT_PREP_FRESH_DAYS of one decided. A prepared
+   piece scores nothing until a person uses, changes or throws it away. */
+const AGENT_PREPARED_BY_PAGE = ['approve', 'request', 'week', 'quiet'];
+const AGENT_PREP_FRESH_DAYS = 7, AGENT_PREP_MAX = 50;
+app.post('/api/agents/prepared', auth, (req, res) => {
+  const list = Array.isArray(req.body && req.body.pieces) ? req.body.pieces.slice(0, AGENT_PREP_MAX) : [];
+  const scope = folderScopeFor(req.user), since = new Date(Date.now() - AGENT_PREP_FRESH_DAYS * 86400000).toISOString();
+  let added = 0, kept = 0, refused = 0;
+  for (const p of list) {
+    const k = String((p && p.agent) || ''), cid = p && p.contractId ? String(p.contractId) : null, ref = String((p && p.ref) || '').slice(0, 160);
+    let ok = AGENT_PREPARED_BY_PAGE.includes(k);
+    if (ok && cid) ok = idInScope(scope, cid) && !!db.prepare('SELECT 1 FROM contracts WHERE id=?').get(cid);
+    if (ok && (k === 'approve' || k === 'quiet')) ok = !!cid;
+    if (ok && k === 'request') ok = !cid && !!db.prepare('SELECT 1 FROM intake_requests WHERE id=?').get(ref);
+    if (ok && k === 'week') ok = !cid && new RegExp('^week:\\d{4}-\\d{2}-\\d{2}:' + String(req.user.id).replace(/[^\w-]/g, '') + '$').test(ref);
+    if (!ok) { refused++; continue; }
+    const seen = db.prepare('SELECT 1 FROM agent_pieces WHERE agent=? AND contract_id IS ? AND ref=? AND (outcome IS NULL OR decided_at >= ?) LIMIT 1').get(k, cid, ref, since);
+    if (seen) { kept++; continue; }
+    if (agentPieceAdd(k, cid, ref)) added++;
+  }
+  res.json({ ok: true, added, kept, refused });
+});
 /* THE COMPANY'S POINT VALUES — an admin's, per agent, validated whole.
    Body {agent, mins, used, changed, thrown, cap} sets one agent; {agent,
    reset:true} takes it back to the starting values; {saveAll:true} marks
