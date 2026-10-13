@@ -5762,7 +5762,7 @@ function wireKtRows(c){
       /* A SELECT IS A FIELD TOO. The value-stream row's picker is the one on
          this panel that is not an <input>, and it was left unfocused and
          unclosable until it was named here. */
-      const inp=f.querySelector('input:not([type=checkbox]), select'); if(inp){ inp.focus(); inp.select&&inp.select(); }
+      const inp=f.querySelector('input:not([type=checkbox]), select'); if(inp){ fieldFocus(inp); if(inp.tagName!=='SELECT') inp.select&&inp.select(); }
     });
     r.querySelectorAll('.kt-field input, .kt-field select').forEach(inp=>inp.addEventListener('blur',()=>{
       /* Late enough for a click on the checkbox beside it to land first — and
@@ -6144,7 +6144,7 @@ function renderKeyTerms(c){
     const open=row&&row.querySelector('[data-kt-edit="stream"]');
     if(open&&!row.classList.contains('is-open')) open.click();
     const sel=document.querySelector('#kt-rows-record [data-kt-folder], #kt-rows-record select');
-    if(sel&&sel.focus) try{ sel.focus(); }catch(_){}
+    if(sel) fieldFocus(sel);
   }));
   /* The strip is OUTSIDE #kt-rows, so it needs its own paint — and this
      function is what auto-triage's onStep already calls as each reading lands,
