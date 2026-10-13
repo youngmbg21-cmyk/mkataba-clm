@@ -20708,3 +20708,4 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ### Noticed, not fixed (13 Oct 2026, the agents' house C–F)
 - Jambo's agents: when a replay ends by itself (jhFrame → jhFinish) the Play button keeps saying "Pause" — jhSetPlayWord is not called there; pre-existing.
 - Jambo's agents: a room's sub-line can read "1 approvals laid out" — the jh_unit_* words are not plural-aware; pre-existing.
+- Noticed, not fixed (13 Oct 2026, minding PRs #260–#263): main's node suite went from 1 failing test (6804579, 1 of 12,506) to 4 failing (43a2655, after #264 "Directory: the wall of faces", 4 of 12,534); browser shards and lint stay green. The failing names sit before the last 5,000 log lines, which is all the job-log tool returns, so they are not named here; run `npm test` on main to see them.
