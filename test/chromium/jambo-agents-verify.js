@@ -19,6 +19,8 @@
        the Look is a dropdown whose choice is the person's default (owner, 13 Oct 2026)
      6 the speed is a labelled box, and Play moves the replay
     13 the end card closes by its ×, Esc, or a press beside it (owner, 13 Oct 2026)
+    14 one agent at a time: a pressed card names itself on Play, the replay
+       plays that agent alone, the end card counts it alone (owner, 13 Oct 2026)
      7 Settings → Jambo's agents carries one points row per agent; a box left
        is saved for everyone, and the house counts with it
      8 the Board's "The agents" opens this page (one place for the agents)
@@ -191,6 +193,21 @@ const CONTRACTS = [
     ok('13a the × in its corner closes it', await endShut('x'));
     ok('13b Esc closes it', await endShut('esc'));
     ok('13c a press beside the card closes it', await endShut('out'));
+
+    console.log('\n14 · one agent at a time');
+    await page.click('[data-jh-agent="paper"]');
+    const word14 = await page.evaluate(() => document.querySelector('[data-jh-play]').textContent);
+    ok('14a pressing an agent\'s card names it on Play', /Play/.test(word14) && word14.includes(await page.evaluate(() => i18t('ag_paper'))), word14);
+    await page.click('[data-jh-play]');
+    await page.waitForFunction(() => /❚/.test(document.querySelector('[data-jh-play]').textContent), null, { timeout: 3000 }).catch(() => {});
+    const mid14 = await page.evaluate(() => ({ lateQuiet: jhUptoFor('late', 1e15) === 0, paperLive: jhUptoFor('paper', 1e15) === 1e15 }));
+    ok('14b while it plays, the other agents are quiet and the chosen one is live', mid14.lateQuiet && mid14.paperLive, JSON.stringify(mid14));
+    await page.waitForFunction(() => !document.getElementById('jh-end').hidden, null, { timeout: 15000 }).catch(() => {});
+    const end14 = await page.evaluate(() => ({ t: document.getElementById('jh-end-t').textContent, l: document.getElementById('jh-end-l').textContent, total: document.getElementById('jh-total').textContent, back: jhUptoFor('late', 1e15) }));
+    ok('14c the end card counts that agent alone (3 briefs × 25 = 75), and every room is back at rest', /^75\b/.test(end14.t) && end14.back === 1e15 && end14.total === '98', JSON.stringify(end14));
+    await page.click('[data-jh-end-x]');
+    await page.click('[data-jh-agent="paper"]');
+    ok('14d pressing the card again goes back to every agent', await page.evaluate(() => document.querySelector('[data-jh-play]').textContent === i18t('jh_play')));
 
     console.log('\n9 · no free room: the rooms widen to fill each floor');
     const fc = await page.evaluate(() => { const bad = [];
