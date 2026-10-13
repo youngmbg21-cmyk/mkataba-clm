@@ -64,6 +64,27 @@ AND then the iPad's own picker for the same box. The rule is now in CLAUDE.md
   `js/` for every other `.focus()` on a `<select>`.
 - Test with a touch press: one list only, before and after.
 
+## 5. The paper's zoom (− 100% +) sits in the same place on every page
+
+Owner, 13 Oct 2026, two screenshots: *"the paper adjustment filter seems to be
+in different places and cutoff or joined to the paper. Make it professional to
+be in the grey area but well designed and well placed."*
+- What the screenshots show: on Home's Document tab the zoom is tucked under
+  "Another contract" and cut off by the line below the strip; on Negotiate it
+  touches the paper's top edge and runs into the scrollbar.
+- Why: one builder (`rlPaperZoomHtml` → `.paper-zc-row`/`.paper-zc`), but each
+  page nudges it by its own numbers (`--zc-room`, `--zc-top` for
+  `#ig-paper-scroll`, `#nego-scroll-work`, `#doc-zc-slot`, `#ds-docpane`), and
+  it hangs off the scroller's right edge (`--paper-zc-right`), not the paper's.
+- Build: ONE placement for every host: in the grey ground above the sheet,
+  its right edge lined up with the paper's right edge, the same clear gap
+  above the sheet and below the strip on every page, never touching the paper,
+  a bar, a button or the scrollbar. Drop the per-page nudges. The "+N −N"
+  count on Negotiate sits beside it on the same line.
+- Check on every page that draws the paper (Home Document, Negotiate,
+  Details/Signing, the design step), at desktop and iPad widths, with a
+  photograph of each, and keep the ONE ZOOM rule in CLAUDE.md true.
+
 ---
 
 ## For the bug log, not this build (owner: stay focused)
