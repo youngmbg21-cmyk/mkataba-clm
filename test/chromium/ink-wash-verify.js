@@ -68,6 +68,13 @@
    and blue fills and strokes, now one hue squarified; the old agent-icon
    squares' glow grounds; an amber tile edge). Every Ink Wash claim passed
    before and after; the check passes twice running on the new record.
+   RE-RECORDED 13 Oct 2026, OWNER-ASKED ("Yes"): Stakes on Home's Clauses
+   tab (its head: one sentence, "Read the deal" and its cost line). Audited
+   first as a set difference: only the Document screen moved. Light mode: no
+   colour new, gone or moved (12px 51→54, 12.5px 64→67). Dark mode: counts
+   +1 to +6, and per brand three new keys — the filled button's edge in the
+   brand colour (top, bottom, left), a colour the screen already carried as a
+   ground. 0 keys gone; every Ink Wash claim passed before and after.
      node test/chromium/ink-wash-verify.js          (check)
    ============================================================ */
 const fs = require('node:fs');
