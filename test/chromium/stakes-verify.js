@@ -55,6 +55,9 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       window.__bd = { n: 0, refuse: false };
       const o = window.api;
       window.api = async function (p, ...a){
+        if (p === 'ai/breakdown/point'){ window.__dives = (window.__dives || 0) + 1; await new Promise(r => setTimeout(r, 700));
+          return { what: 'Prices could rise in any month with no warning.', theirs: 'Nothing.', usual: 'Ninety days of written notice.', figure: '', how: 'No figure in the wording.',
+            push: 'They will say prices follow the market.', edge: ['Ask for ninety days of notice.'], trade: [], ask: 'The Supplier shall give ninety (90) days written notice of any price change.' }; }
         if (p !== 'ai/breakdown') { (window.__calls = window.__calls || []).push(p); return o.call(this, p, ...a); }
         window.__bd.n++;
         if (window.__bd.refuse) return { error: 'Jambo found no regions in this wording.' };
@@ -196,6 +199,27 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       await page.keyboard.press('Escape');
       const esc = await page.evaluate(() => !document.querySelector('#pd-thread .stk-dv'));
       ok('5 the arrows walk the points; Back and Esc return to the list', /price rise/.test(t2) && !back.dive && back.list && esc, JSON.stringify({ t2, back, esc }));
+
+      /* 5b TWO STEPS (owner, 13 Oct 2026: the loading took too long): the list
+         read leaves a point's dive for its own read, asked on the press of Deep
+         dive, with the turning ring and its cost while it reads, and kept — a
+         second visit asks nothing */
+      const d1 = await page.evaluate(async () => {
+        const c = getContract('MK-S1'); const p = c.breakdown.points[1];
+        ['what', 'theirs', 'usual', 'figure', 'how', 'push', 'ask'].forEach(f => { p[f] = ''; }); p.edge = []; p.trade = []; delete p._dove;
+        window.__dives = 0;
+        const i = [...document.querySelectorAll('#pd-thread [data-stk-dive]')].map(b => Number(b.getAttribute('data-stk-dive'))).sort((x, y) => y - x)[0];
+        stkDiveOpen(c, 1);
+        await new Promise(r => setTimeout(r, 150));
+        const ring = !!document.querySelector('#pd-thread .stk-dv .stk-busy .ob-spin'), cost = /once for this point/.test((document.querySelector('#pd-thread .stk-dv') || {}).innerText || '');
+        await new Promise(r => setTimeout(r, 1200));
+        const t = (document.querySelector('#pd-thread .stk-dv') || {}).innerText || '';
+        stkDiveClose(c); stkDiveOpen(c, 1); await new Promise(r => setTimeout(r, 300));
+        const t2 = (document.querySelector('#pd-thread .stk-dv') || {}).innerText || '';
+        stkDiveClose(c);
+        return { i, ring, cost, filled: /Ninety days of written notice/.test(t) && /ninety days of notice/i.test(t), busyGone: !/reading this point/.test(t), again: /Ninety days/.test(t2), dives: window.__dives };
+      });
+      ok('5b a point\'s deep dive is its own read on the press: the ring and its cost while it reads, then the dive, asked once', d1.ring && d1.cost && d1.filled && d1.busyGone && d1.again && d1.dives === 1, JSON.stringify(d1));
 
       await page.evaluate(() => { window.__bd.refuse = true; window.__bd.n = 0; pdOpenOnHome('MK-S2', 'doc'); });
       const said = await page.waitForSelector('#pd-thread .stk-err', { timeout: 8000 }).then(() => true, () => false);
