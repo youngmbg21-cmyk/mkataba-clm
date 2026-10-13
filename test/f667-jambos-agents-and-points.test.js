@@ -113,6 +113,16 @@ describe('f667 (2–6) — the record and the points', () => {
     const st = await W.admin.json('/api/settings/agent-points', { method: 'PUT', body: { saveAll: true } });
     assert.ok(!st.agentPoints.round, 'and the company\'s values never moved');
   });
+  test('(5b) the house\'s look is a person\'s own default: one of two, or null', async () => {
+    const r1 = await W.restricted.json('/api/me/prefs', { method: 'PUT', body: { agentsLook: 'drawing' } });
+    assert.equal(r1.prefs.agentsLook, 'drawing');
+    const bad = await W.restricted.raw('/api/me/prefs', { method: 'PUT', body: { agentsLook: 'tower' } });
+    assert.equal(bad.status, 400);
+    const other = await W.admin.json('/api/bootstrap');
+    assert.ok(!(other.me.prefs || {}).agentsLook, 'one person\'s look is not another\'s');
+    const r2 = await W.restricted.json('/api/me/prefs', { method: 'PUT', body: { agentsLook: null } });
+    assert.ok(!r2.prefs.agentsLook);
+  });
   test('(6) Our promises: the reminder waits, and marking the promise done uses it', async () => {
     const boot = await W.admin.json('/api/bootstrap');
     const uid = boot.me.id;

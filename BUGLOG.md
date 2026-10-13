@@ -20686,3 +20686,5 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - The Overview's ⋯ "Filing and stream" still opens the filing rows there for an admin's re-file — housekeeping, left as it was (read-only for everyone else).
 - Noticed, not fixed (12 Oct 2026): f385 (6) "drawn icons only" is red on main — js/views/contract.js draws a typed &rarr; in a button (came in with #233).
 - Noticed, not fixed (13 Oct 2026, the Jambo's agents build): uploaded-contract-fixed-verify 4a/4b ("Who else" lines up with its Add button) is red on main at 27aa07f4 — the Overview draws no "Who else" button for it to find.
+- Noticed, not fixed (13 Oct 2026, the agents' cost walk-through): AI_RATE_DEFAULTS in server/server.js prices claude-sonnet-5 at $3/$15 per million tokens; Anthropic's price is $2/$10, so HaTi's spend meter overstates the deep tier by about half.
+- Noticed, not fixed (13 Oct 2026, the house refinement): on a fresh sign-in, opening Jambo's agents straight away can show "Not signed in" above the house (the first read of the agents' record is refused); it reproduces 4 of 4 on untouched main. The note stays until the period changes.

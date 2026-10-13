@@ -18560,9 +18560,18 @@ app.put('/api/me/prefs', auth, (req, res) => {
       if (Object.keys(mine).length) prefs.agentPoints = mine; else delete prefs.agentPoints;
     } else return res.status(400).json({ error: 'agentPoints must be an object or null' });
   }
+  /* HOW THIS PERSON SEES JAMBO'S HOUSE (owner, 13 Oct 2026: "Which ever they
+     choose becomes the default"): one of the two looks, or null for the plan. */
+  if ('agentsLook' in (req.body || {})) {
+    const v = req.body.agentsLook;
+    if (v === null) delete prefs.agentsLook;
+    else if (AGENTS_LOOKS.includes(v)) prefs.agentsLook = v;
+    else return res.status(400).json({ error: 'agentsLook must be one of: ' + AGENTS_LOOKS.join(', ') });
+  }
   db.prepare('UPDATE users SET prefs=? WHERE id=?').run(JSON.stringify(prefs), req.user.id);
   res.json({ ok: true, prefs });
 });
+const AGENTS_LOOKS = ['plan', 'drawing'];
 
 /* ---------- A HOME PANEL GIVEN TO A COLLEAGUE (Young asked 3 Oct 2026) ----------
    "Give to Brian with a note": the panel appears on the colleague's Home with
