@@ -26,6 +26,15 @@ on:
   push:
   pull_request:
 
+# A NEW PUSH OUTDATES THE QUEUE. Stacked branches mean one merge into main
+# ripples a push down every floor, and each push queues a full run while the
+# previous run for the same branch still waits its turn. Only the newest
+# commit's verdict matters, so a fresh run cancels the one it supersedes —
+# except on main, where every merge keeps its own complete record.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   # The proofreader runs first and alone: it takes seconds, needs no browser,
   # and a name that does not exist is worth knowing before anything is booted.
