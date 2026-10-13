@@ -90,7 +90,7 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
         gone: !document.querySelector('#pd-thread .stk-ribbon, #pd-thread .stk-legend, #pd-thread .stk-sum') }));
       const o2 = await page.evaluate(() => Object.fromEntries(['reg', 'sev', 'by'].map(k => [k, [...document.querySelectorAll(`#pd-thread [data-stk-f="${k}"] option`)].map(o => o.value).join(',')])));
       ok('2 the head says the points and draws three filters, no summary, ribbon or key',
-        /3 points/.test(e2.count) && /1 need you/.test(e2.count) && e2.boxes.join('|') === 'Region|Severity|Found by' && e2.gone
+        /3 points/.test(e2.count) && /1 need you/.test(e2.count) && e2.boxes.join('|') === 'Section|Severity|Found by' && e2.gone
         && o2.reg === ',1,2' && o2.sev === ',need,look' && o2.by === ',jambo,std', JSON.stringify({ e2, o2 }));
 
       const e3 = await page.evaluate(() => {
@@ -118,6 +118,24 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       const f2 = await page.evaluate(() => ({ count: (document.querySelector('#pd-thread .stk-view') || {}).innerText || '', lines: document.querySelectorAll('#pd-thread .stk-line').length }));
       ok('3c Severity: Needs you keeps only what needs us', /1 point · 1 need you/.test(f2.count) && f2.lines === 1, JSON.stringify(f2));
       await pick('sev', '');
+      /* 3d A POINT'S SECTION IS READ OFF ITS CLAUSE when Jambo named none (owner,
+         13 Oct 2026: "the Region which we should call Section"): the standards
+         point names no section, yet stands on clause 2, which the reading puts
+         in Money — so Section: Money keeps it */
+      await pick('reg', '1');
+      const f3 = await page.evaluate(() => ({ count: (document.querySelector('#pd-thread .stk-view') || {}).innerText || '',
+        lines: [...document.querySelectorAll('#pd-thread .stk-line .stk-st')].map(l => l.innerText) }));
+      ok('3d Section: Money keeps the points whose clause sits in Money, the standards one too', /2 points/.test(f3.count) && f3.lines.some(t => /Payment terms/.test(t)) && f3.lines.some(t => /price rise|warning/i.test(t)), JSON.stringify(f3));
+      await pick('reg', '');
+      /* 3e THE ARTIFACT'S BOXES: a point is a shaded box in its severity's tint,
+         its words dark — the colour is the box, never the writing */
+      const f4 = await page.evaluate(() => {
+        const tok = n => { const p = document.createElement('span'); p.style.color = `var(${n})`; document.body.appendChild(p); const v = getComputedStyle(p).color; p.remove(); return v; };
+        const need = document.querySelector('#pd-thread .stk-line.is-need'), look = document.querySelector('#pd-thread .stk-line.is-look');
+        const bg = el => el ? getComputedStyle(el).backgroundColor : null, ink = el => el ? getComputedStyle(el.querySelector('.stk-st')).color : null;
+        return { needBg: bg(need), lookBg: bg(look), ruby: tok('--st-ruby-bg'), amber: tok('--st-amber-bg'), needInk: ink(need), lookInk: ink(look), text: tok('--color-text') };
+      });
+      ok('3e each point is a shaded box in its severity\'s tint, its words dark', f4.needBg === f4.ruby && f4.lookBg === f4.amber && f4.needInk === f4.text && f4.lookInk === f4.text, JSON.stringify(f4));
 
       if (process.env.STK_SHOT) await page.screenshot({ path: process.env.STK_SHOT + '-list.png' });
       await page.click('#pd-thread .doc-th-row [data-stk-dive="0"]');

@@ -9878,7 +9878,11 @@
   .stk-flt select:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:1px}
   .pd-th .stk-hide{display:none}
   .stk-nomatch{margin:0;padding:18px 0;text-align:center;font-size:var(--t-label);color:var(--color-neutral-600)}
-  .stk-line{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:0 6px 8px 2px;font-size:var(--t-meta);line-height:1.4}
+  /* AS DRAWN (owner, 13 Oct 2026: "use the artifact approach"): each point is a SHADED BOX in its severity's
+     tint, the words dark, the Deep dive door white inside it — the colour is the box, never the writing */
+  .stk-line{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:start;margin:0 6px 8px 2px;padding:9px 10px;border-radius:6px;
+    background:var(--surface-2,var(--color-surface));font-size:var(--t-meta);line-height:1.45}
+  .stk-line.is-need{background:var(--st-ruby-bg)} .stk-line.is-look{background:var(--st-amber-bg)}
   /* AS DRAWN (owner, 13 Oct 2026): "The company view" and its counts; each row's region square after its name; "1 to review" at its right */
   .stk-view{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:var(--t-label);color:var(--color-neutral-600)}
   .stk-view b{font-weight:var(--w-title);color:var(--color-text)}
@@ -9886,9 +9890,8 @@
   .stk-n{color:var(--st-amber-fg)}
   .pd-th .doc-th-top:empty{display:none}
   .pd-th .doc-th-home-plain{padding:0 6px 10px 2px;display:grid;gap:6px}
-  .stk-st{color:var(--color-text);font-weight:var(--w-label)}
-  .stk-line.is-need .stk-st{color:var(--st-ruby-fg)} .stk-line.is-look .stk-st{color:var(--st-amber-fg)}
-  .stk-go{border:1px solid var(--btn-edge,var(--field-line));background:var(--color-surface);color:var(--accent-ink);border-radius:999px;padding:1px 10px;
+  .stk-st{color:var(--color-text);font-weight:400}
+  .stk-go{border:1px solid var(--btn-edge,var(--field-line));background:var(--color-surface);color:var(--accent-ink);border-radius:6px;padding:2px 8px;
     font:inherit;font-size:var(--t-label);font-weight:var(--w-label);white-space:nowrap;cursor:pointer}
   .stk-go:hover{background:color-mix(in srgb,var(--accent-fill) 8%,var(--color-surface))}
   .stk-go:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:1px}

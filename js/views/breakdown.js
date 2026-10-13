@@ -75,7 +75,7 @@ function bdBusyHtml(){ return window.busyHtml ? busyHtml(i18t('bd_reading')) : _
    on screen"): a point's words are lit on the paper instead (igQuoteGo).
    Nothing is filed or sent: "Start redlining with this ask" is Negotiate's
    own door, "Ask Jambo about this" only fills Jambo's ask box. */
-const _stk = { id: null, dive: -1, f: { reg: '', sev: '', by: '' } };
+const _stk = { id: null, dive: -1, f: { reg: '', sev: '', by: '' }, rows: null, nums: null };
 const STK_REGION_TONES = 10;
 const stkOf = c => { const b = bdOf(c); return b && Array.isArray(b.points) ? b : null; };
 const stkNum = s => { const m = /^\s*(?:clause\s+|§\s*)?(\d+(?:\.\d+)*)/i.exec(String(s || '')); return m ? m[1] : ''; };
@@ -109,10 +109,27 @@ function stkStdPoints(c){
       theirs: missing ? '' : String(v.quote || ''), usual: pos, ask: String(v.redline || ''), quote: missing ? '' : String(v.quote || '') };
   });
 }
+/* A POINT'S SECTION (owner, 13 Oct 2026: "the Region which we should call
+   Section"): the one Jambo named, else the section that holds its clause —
+   read off the reading's own section lists, the clause's number or, for a
+   standard, the row whose wording holds its quote */
+function stkSectionOf(b, p){
+  if (Number(p.region) >= 1 && (b.regions || [])[p.region - 1]) return Number(p.region);
+  let n = p.by === 'std' ? '' : stkNum(p.clause);
+  if (!n && p.by === 'std' && p.quote && _stk.rows && _stk.nums){ const at = stkRowForQuote(p.quote, _stk.rows); if (at >= 0) n = _stk.nums[at] || ''; }
+  if (!n) return 0;
+  const regs = b.regions || [];
+  for (let k = n; k; k = k.includes('.') ? k.slice(0, k.lastIndexOf('.')) : ''){
+    const ri = regs.findIndex(r => (r.items || []).some(it => stkNum(it.ref) === k));
+    if (ri >= 0) return ri + 1;
+  }
+  return 0;
+}
 /* every point, Jambo's first; the list the filters read */
 function stkAll(c, b){
   if (!b) return [];
-  return b.points.map((p, i) => Object.assign({}, p, { by: 'jambo', _i: i })).concat(stkStdPoints(c));
+  return b.points.map((p, i) => Object.assign({}, p, { by: 'jambo', _i: i })).concat(stkStdPoints(c))
+    .map(p => Object.assign(p, { region: stkSectionOf(b, p) }));
 }
 const stkKeep = (p, f) => (!f.reg || String(p.region || 0) === f.reg) && (!f.sev || p.status === f.sev) && (!f.by || p.by === f.by);
 const stkFiltering = () => !!(_stk.f.reg || _stk.f.sev || _stk.f.by);
@@ -169,6 +186,8 @@ function stkDecorate(c, card, rows){
   if (!c || !card) return;
   if (_stk.id !== String(c.id)){ _stk.id = String(c.id); _stk.dive = -1; _stk.f = { reg: '', sev: '', by: '' }; }
   const b = stkOf(c);
+  _stk.rows = rows || null;
+  _stk.nums = (rows || []).map(x => (typeof docThreadIsSec === 'function' && docThreadIsSec(x)) ? '' : stkNum(typeof docXrayLabel === 'function' ? docXrayLabel(x) : ''));
   const shown = stkShown(c, b);
   if (_stk.dive >= 0 && !shown[_stk.dive]) _stk.dive = -1;
   if (!b) stkAutoRun(c);
@@ -180,7 +199,7 @@ function stkDecorate(c, card, rows){
   card.querySelectorAll('.stk-hide').forEach(el => el.classList.remove('stk-hide'));
   const list = card.querySelector('.doc-th-rows');
   if (b && list){
-    const nums = (rows || []).map(x => (typeof docThreadIsSec === 'function' && docThreadIsSec(x)) ? '' : stkNum(typeof docXrayLabel === 'function' ? docXrayLabel(x) : ''));
+    const nums = _stk.nums;
     /* AS DRAWN: each row wears its region's colour after its name (named on
        hover), and says how many of the points on screen stand on it */
     const regOf = {};
