@@ -2370,17 +2370,21 @@ const dismissNote = async pg => {
       || document.querySelector('#ce-doc'); return el ? Math.round(el.getBoundingClientRect().width) : 0; };
     const strip = () => Math.round(
       document.querySelector('.ce-barrow').getBoundingClientRect().height);
-    const val = () => (document.getElementById('ce-zoom-val') || {}).textContent;
+    /* RE-POINTED 13 Oct 2026 (owner: "all papers should be uniform with regard
+       to the zoom control"): the editor wears every paper's one control,
+       rlTypeStepHtml, and its one remembered value */
+    const ZQ = '.ce-readbar .rl-type-step';
+    const val = () => (document.querySelector(ZQ + ' .rl-type-out') || {}).textContent;
+    const press = d => document.querySelector(`${ZQ} [data-rl-type="${d}"]`).click();
     const was = { w: sheet(), v: val(), strip: strip() };
-    document.querySelector('[data-ce-zoom="in"]').click();
+    press(1);
     await new Promise(r => setTimeout(r, 350));
     const bigger = { w: sheet(), v: val(), strip: strip() };
-    document.querySelector('[data-ce-zoom="out"]').click();
-    document.querySelector('[data-ce-zoom="out"]').click();
+    press(-1); press(-1);
     await new Promise(r => setTimeout(r, 350));
     const smaller = { w: sheet(), v: val() };
     /* and back to where it started, so nothing after this measures a zoomed page */
-    document.querySelector('[data-ce-zoom="in"]').click();
+    press(1);
     await new Promise(r => setTimeout(r, 300));
     return { was, bigger, smaller, back: val() };
   });
