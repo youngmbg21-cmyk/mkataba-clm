@@ -330,7 +330,12 @@ function cuPaintCustomerPanel(tb){
         eyebrow: _cuE(i18tn('cu_n_contracts', r.items.length, { n: r.items.length })) + ' · ' + _cuE(i18tn('cu_n_streams', r.streams.length, { n: r.streams.length })),
         title: r.name,
         acts: [{ k: 'open', kind: 'accent', label: i18t('cu_open_customer'), iconEnd: 'chevR', run: x => cuOpenCustomer(x.id) },
-          { k: 'explorer', label: i18t('cu_open_explorer'), run: x => cuOpenExplorer(x.id) }] },
+          { k: 'explorer', label: i18t('cu_open_explorer'), run: x => cuOpenExplorer(x.id) },
+          /* THE PEOPLE AT THIS PARTY are the Directory's (13 Oct 2026): one
+             door onto it, already narrowed to the party, and the number on
+             the door is the rows it lands on. Not drawn when nobody is named. */
+          ...((() => { const n = (typeof dirPeopleOfParty === 'function') ? dirPeopleOfParty(r.key).length : 0;
+            return n ? [{ k: 'people', label: i18t('cu_people_door', { n }), run: x => { if (typeof dirOpenParty === 'function') dirOpenParty(x.id); } }] : []; })())] },
       body: (typeof insKvHtml === 'function' ? insKvHtml(facts) : '')
         + (streams && typeof insSecHtml === 'function' ? insSecHtml(i18t('cu_panel_streams'), r.streams.length, `<div class="cu-panel-streams">${streams}</div>`) : '') });
   };
@@ -375,4 +380,6 @@ function cuWire(host, INS){
 }
 
 Object.assign(window, { cuNameOf, cuKeyOf, cuBook, cuBucket, cuCustomers, cuCustomerOf, cuDoorCount, cuNextEnd, cuFilterItems, cuView, cuIdsOf,
-  cuPlace, cuPlacePut, cuOpenCustomer, cuOpenExplorer, cuDraftFor, renderCustomers, cuRepaint });
+  cuPlace, cuPlacePut, cuOpenCustomer, cuOpenExplorer, cuDraftFor, renderCustomers, cuRepaint,
+  /* the one filter-box builder the band's clothes dress; the Directory draws its boxes with it too (13 Oct 2026) */
+  cuChip });

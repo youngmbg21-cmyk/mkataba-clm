@@ -20733,6 +20733,8 @@ db.exec(`CREATE TABLE IF NOT EXISTS agent_pieces (
   run_id TEXT, prepared_at TEXT NOT NULL, outcome TEXT, decided_at TEXT, by_id TEXT, by_name TEXT);
   CREATE INDEX IF NOT EXISTS idx_agent_pieces_at ON agent_pieces(prepared_at);
   CREATE INDEX IF NOT EXISTS idx_agent_pieces_open ON agent_pieces(agent, contract_id, outcome);`);
+/* A piece rebuilt from the records afterwards (agentRebuild) says so. */
+addColumnIfMissing('agent_pieces', 'rebuilt', 'INTEGER NOT NULL DEFAULT 0');
 /* ONE LIST OF AGENTS, the page's AG_KEYS (js/views/agents.js) — a test holds
    the two equal, so a new agent cannot reach the page without a points row. */
 const AGENT_POINT_KEYS = ['approve', 'request', 'week', 'quiet', 'round', 'link', 'renew', 'paper', 'late', 'ours', 'import'];
@@ -21233,7 +21235,7 @@ app.get('/api/agents/pieces', auth, (req, res) => {
       names.set(id, { no: no || id, name: r.name || '', cp: r.counterparty || '' }); }
   }
   const pieces = rows.slice(0, AGENT_PIECES_MAX).filter(r => !r.contract_id || mayIds.has(r.contract_id)).map(r => ({
-    id: r.id, agent: r.agent, cid: r.contract_id || '', at: r.prepared_at, outcome: r.outcome || null, decidedAt: r.decided_at || null }));
+    id: r.id, agent: r.agent, cid: r.contract_id || '', at: r.prepared_at, outcome: r.outcome || null, decidedAt: r.decided_at || null, rebuilt: !!r.rebuilt }));
   const contracts = {}; for (const [id, v] of names) contracts[id] = v;
   res.json({ pieces, contracts, days, from, cut, max: AGENT_PIECES_MAX });
 });
@@ -21250,6 +21252,151 @@ app.post('/api/agents/outcome', auth, (req, res) => {
     return res.status(404).json({ error: 'Contract not found' });
   const out = agentPieceDecide(k, cid || null, outcome, { id: req.user.id, name: req.user.name || req.user.email }, b.ref);
   res.json({ ok: true, ...(out || {}) });
+});
+/* THE FOUR READING AGENTS SAY WHAT THEY PREPARED (owner, 13 Oct 2026: "the
+   agents are great but I am not sure we are showcasing their work"): Approvals,
+   Requests, Week ahead and Dropped threads prepare their work in the page's
+   own reading (js/views/agents.js), so the page reports each piece the moment
+   it is laid out — the same agent, contract and ref its later outcome names,
+   so the outcome decides THIS piece. Checked here, not trusted: the agent is
+   one of the four, a contract is in the reader's streams, a request exists,
+   a week ref is the reader's own; one open piece per agent, contract and ref,
+   and none again within AGENT_PREP_FRESH_DAYS of one decided. A prepared
+   piece scores nothing until a person uses, changes or throws it away. */
+const AGENT_PREPARED_BY_PAGE = ['approve', 'request', 'week', 'quiet'];
+const AGENT_PREP_FRESH_DAYS = 7, AGENT_PREP_MAX = 50;
+app.post('/api/agents/prepared', auth, (req, res) => {
+  const list = Array.isArray(req.body && req.body.pieces) ? req.body.pieces.slice(0, AGENT_PREP_MAX) : [];
+  const scope = folderScopeFor(req.user), since = new Date(Date.now() - AGENT_PREP_FRESH_DAYS * 86400000).toISOString();
+  let added = 0, kept = 0, refused = 0;
+  for (const p of list) {
+    const k = String((p && p.agent) || ''), cid = p && p.contractId ? String(p.contractId) : null, ref = String((p && p.ref) || '').slice(0, 160);
+    let ok = AGENT_PREPARED_BY_PAGE.includes(k);
+    if (ok && cid) ok = idInScope(scope, cid) && !!db.prepare('SELECT 1 FROM contracts WHERE id=?').get(cid);
+    if (ok && (k === 'approve' || k === 'quiet')) ok = !!cid;
+    if (ok && k === 'request') ok = !cid && !!db.prepare('SELECT 1 FROM intake_requests WHERE id=?').get(ref);
+    if (ok && k === 'week') ok = !cid && new RegExp('^week:\\d{4}-\\d{2}-\\d{2}:' + String(req.user.id).replace(/[^\w-]/g, '') + '$').test(ref);
+    if (!ok) { refused++; continue; }
+    const seen = db.prepare('SELECT 1 FROM agent_pieces WHERE agent=? AND contract_id IS ? AND ref=? AND (outcome IS NULL OR decided_at >= ?) LIMIT 1').get(k, cid, ref, since);
+    if (seen) { kept++; continue; }
+    if (agentPieceAdd(k, cid, ref)) added++;
+  }
+  res.json({ ok: true, added, kept, refused });
+});
+/* THE AGENTS' PAST, REBUILT FROM THE RECORDS (owner, 13 Oct 2026: "is it
+   possible to retrospectively go back 2 months to review all the work done in
+   Hati and allocate the work done to the agents?" — "build it according to
+   your suggestion"). One admin-run catch-up, previewed first (dry), that reads
+   what HaTi already keeps and writes each piece it finds with rebuilt=1:
+     round  — round_prep answers; the decision on the ask (agentRoundSettle's
+              rule) is the outcome, at the change's resolvedAt
+     link   — linkwatch reminders; outcome unknown → waiting while unsigned
+     late   — latechase reminders; outcome unknown → waiting while not done
+     ours   — our-promise reminders; done (completedAt) → used
+     request— intake requests; turned into a contract → used; still open → waiting
+     renew  — renewal_advice; a renewal decision after it → used
+     import — imported files (migration.importedAt); checked ('Migration review') → used
+     paper  — the overnight playbook reading (audit 'Playbook' by HaTi); outcome
+              unknown → waiting while not executed
+     approve— sign approvals asked; decided → used
+   SCORED ONLY WHERE THE RECORD MAKES THE RESULT CLEAR; a piece whose result
+   cannot be known is kept as waiting only while its matter is still live, and
+   otherwise not written (nothing is guessed). Week ahead and Dropped threads
+   kept no record and are not rebuilt. Never doubles: a piece already in the
+   ledger (agent, contract, ref) is skipped, and nothing at or after an agent's
+   first live piece is rebuilt. Undo removes every rebuilt piece. */
+const AGENT_REBUILD_DAYS = 60;
+function agentRebuild(days, write) {
+  const from = new Date(Date.now() - Math.max(1, Math.min(AGENT_PIECES_DAYS_MAX, days || AGENT_REBUILD_DAYS)) * 86400000).toISOString();
+  const firstLive = {};
+  for (const r of db.prepare('SELECT agent, MIN(prepared_at) AS t FROM agent_pieces WHERE rebuilt=0 GROUP BY agent').all()) firstLive[r.agent] = r.t;
+  const out = {}, all = [];
+  const C = new Map(), cOf = id => { if (!id) return null; if (C.has(id)) return C.get(id); let v = null; const r = db.prepare('SELECT json, status FROM contracts WHERE id=?').get(id);
+    if (r) { try { v = JSON.parse(r.json) || null; } catch (_) { v = null; } if (v && !v.status) v.status = r.status; } C.set(id, v); return v; };
+  const exists = db.prepare('SELECT 1 FROM agent_pieces WHERE agent=? AND contract_id IS ? AND ref=? LIMIT 1');
+  const add = (k, cid, ref, at, outcome, decidedAt, byName) => {
+    if (!at || at < from || (firstLive[k] && at >= firstLive[k]) || at > now()) return;
+    if (exists.get(k, cid || null, String(ref || ''))) return;
+    if (all.some(p => p.k === k && p.cid === (cid || null) && p.ref === String(ref || ''))) return;
+    if (outcome && (!decidedAt || decidedAt < at)) decidedAt = at;
+    all.push({ k, cid: cid || null, ref: String(ref || '').slice(0, 160), at, outcome: outcome || null, decidedAt: outcome ? decidedAt : null, byName: byName || null });
+  };
+  const live = c => !!c && !isExecutedRow(c) && c.status !== 'Declined' && !c.archived;
+  // round
+  for (const r of db.prepare('SELECT contract_id, pkey, json, created_at FROM round_prep WHERE created_at>=?').all(from)) {
+    const c = cOf(r.contract_id); if (!c) continue;
+    let a = null; try { a = JSON.parse(r.json); } catch (_) { a = null; } if (!a) continue;
+    const ch = (Array.isArray(c.changes) ? c.changes : []).find(x => x && x.authorSide === 'counterparty' && roundPrepKey(x.clauseId, x.newText) === r.pkey);
+    if (!ch) continue;
+    if (ch.status === 'pending') { add('round', c.id, r.pkey, r.created_at); continue; }
+    if (a.verdict === 'escalate') continue;
+    const ours = (c.changes || []).find(x => x && x.authorSide !== 'counterparty' && (String(x.counterOf || '') === String(ch.id) || String(ch.supersededBy || '') === String(x.id)));
+    const decided = ch.status === 'accepted' ? 'accept' : ch.status === 'rejected' ? 'reject' : (ch.status === 'countered' || ch.status === 'superseded') && ours ? 'counter' : '';
+    if (!decided || !ch.resolvedAt) continue;
+    let o = decided === a.verdict ? 'used' : 'thrown';
+    if (decided === 'counter' && a.verdict === 'counter' && _apWords(ours.newText) !== _apWords(a.wording)) o = 'changed';
+    add('round', c.id, r.pkey, r.created_at, o, ch.resolvedAt, ch.resolvedBy && (ch.resolvedBy.name || ch.resolvedBy));
+  }
+  // reminders: link, late, ours
+  const firstOf = new Map();
+  for (const r of db.prepare('SELECT rkey, created_at FROM reminders WHERE created_at>=? ORDER BY created_at').all(from)) {
+    let m;
+    if ((m = /^linkwatch:([^:]+):([^:]+):/.exec(r.rkey))) { const key = 'link|' + m[1] + '|' + m[2]; if (!firstOf.has(key)) firstOf.set(key, { k: 'link', cid: m[1], ref: m[2], at: r.created_at }); }
+    else if ((m = /^latechase:[^:]+:([^:]+):([^:]+):/.exec(r.rkey))) { const key = 'late|' + m[1] + '|' + m[2]; if (!firstOf.has(key)) firstOf.set(key, { k: 'late', cid: m[1], ref: m[2], at: r.created_at }); }
+    else if ((m = /^(.+):ob:([^:]+):/.exec(r.rkey))) { const key = 'ours|' + m[1] + '|' + m[2]; if (!firstOf.has(key)) firstOf.set(key, { k: 'ours', cid: m[1], ref: m[2], at: r.created_at }); }
+  }
+  for (const x of firstOf.values()) {
+    const c = cOf(x.cid); if (!c) continue;
+    if (x.k === 'link') { if (live(c)) add('link', c.id, x.ref, x.at); continue; }
+    const o = (Array.isArray(c.obligations) ? c.obligations : []).find(y => y && String(y.id) === String(x.ref)); if (!o) continue;
+    if (x.k === 'ours' && o.status === 'done' && o.completedAt) add('ours', c.id, x.ref, x.at, 'used', o.completedAt);
+    else if (o.status !== 'done' && live(c)) add(x.k, c.id, x.ref, x.at);
+  }
+  // request
+  for (const r of db.prepare('SELECT id, status, contract_id, decided_by, decided_at, updated_at, created_at FROM intake_requests WHERE created_at>=?').all(from)) {
+    if (r.contract_id) add('request', null, r.id, r.created_at, 'used', r.decided_at || r.updated_at, r.decided_by);
+    else if (r.status === 'open') add('request', null, r.id, r.created_at);
+  }
+  // renew
+  for (const r of db.prepare('SELECT contract_id, created_at FROM renewal_advice WHERE created_at>=?').all(from)) {
+    const c = cOf(r.contract_id); if (!c) continue;
+    const d = c.renewalDecision;
+    if (d && d.at && d.at >= r.created_at) add('renew', c.id, '', r.created_at, 'used', d.at, d.by && (d.by.name || d.by));
+    else if (!d) add('renew', c.id, '', r.created_at);
+  }
+  // import, paper, approve — read off every contract once
+  for (const row of db.prepare('SELECT id FROM contracts').all()) {
+    const c = cOf(row.id); if (!c) continue;
+    const audit = Array.isArray(c.audit) ? c.audit : [];
+    const mg = c.migration;
+    if (mg && mg.importedAt && mg.importedAt >= from) {
+      const chk = audit.find(e => e && e.action === 'Migration review' && e.at >= mg.importedAt);
+      if (chk) add('import', c.id, '', mg.importedAt, 'used', chk.at, chk.user);
+      else if (mg.needsReview !== false) add('import', c.id, '', mg.importedAt);
+    }
+    const pb = audit.find(e => e && e.action === 'Playbook' && e.user === 'HaTi' && e.at >= from);
+    if (pb && live(c)) add('paper', c.id, '', pb.at);
+    for (const q of (Array.isArray(c.signApprovals) ? c.signApprovals : [])) {
+      if (!q || !q.askedAt || q.askedAt < from) continue;
+      if ((q.status === 'approved' || q.status === 'refused') && q.decidedAt) add('approve', c.id, '', q.askedAt, 'used', q.decidedAt, q.decidedBy && (q.decidedBy.name || q.decidedBy));
+      else if (q.status === 'pending' && live(c)) add('approve', c.id, '', q.askedAt);
+    }
+  }
+  for (const p of all) {
+    const o = out[p.k] || (out[p.k] = { found: 0, used: 0, changed: 0, thrown: 0, waiting: 0 });
+    o.found++; if (p.outcome) o[p.outcome]++; else o.waiting++;
+  }
+  if (write) {
+    const ins = db.prepare('INSERT INTO agent_pieces (id,agent,contract_id,ref,run_id,prepared_at,outcome,decided_at,by_id,by_name,rebuilt) VALUES (?,?,?,?,?,?,?,?,?,?,1)');
+    txn(() => { for (const p of all) ins.run('ap_' + rid(10), p.k, p.cid, p.ref, null, p.at, p.outcome || null, p.decidedAt || null, null, p.byName ? String(p.byName).slice(0, 120) : null); });
+  }
+  const already = db.prepare('SELECT COUNT(*) AS n FROM agent_pieces WHERE rebuilt=1').get().n;
+  return { from, byAgent: out, total: all.length, written: write ? all.length : 0, already };
+}
+app.post('/api/agents/rebuild', auth, admin, (req, res) => {
+  const b = req.body || {};
+  if (b.undo) { const r = db.prepare('DELETE FROM agent_pieces WHERE rebuilt=1').run(); return res.json({ ok: true, removed: r.changes }); }
+  res.json({ ok: true, ...agentRebuild(Number(b.days) || AGENT_REBUILD_DAYS, !b.dry) });
 });
 /* THE COMPANY'S POINT VALUES — an admin's, per agent, validated whole.
    Body {agent, mins, used, changed, thrown, cap} sets one agent; {agent,

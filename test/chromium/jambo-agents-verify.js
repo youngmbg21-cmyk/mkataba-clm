@@ -19,6 +19,16 @@
        the Look is a dropdown whose choice is the person's default (owner, 13 Oct 2026)
      6 the speed is a labelled box, and Play moves the replay
     13 the end card closes by its ×, Esc, or a press beside it (owner, 13 Oct 2026)
+    17 the agents' past rebuilt from the records: previewed, written marked as
+       rebuilt, scored only where clear, never twice, removable (13 Oct 2026)
+    16 C–F: an agent moves only for its real work, a pop names its contract, a
+       quiet room says why and every room its setting, and the panel and end
+       card count contracts touched, dates caught, chases and nudges (13 Oct 2026)
+    15 work shows when Jambo prepares it: the four reading agents report what
+       they laid out (checked by the server, kept once), the replay shows
+       "prepared", and a person's press decides that same piece (13 Oct 2026)
+    14 one agent at a time: a pressed card names itself on Play, the replay
+       plays that agent alone, the end card counts it alone (owner, 13 Oct 2026)
      7 Settings → Jambo's agents carries one points row per agent; a box left
        is saved for everyone, and the house counts with it
      8 the Board's "The agents" opens this page (one place for the agents)
@@ -47,6 +57,7 @@ const EXEC = process.env.CHROMIUM_BIN
 let pass = 0, fail = 0;
 const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  FAIL ') + n + (d ? '  → ' + d : '')); };
 
+const DAY = 86400000, ago = d => new Date(Date.now() - d * DAY).toISOString();
 const CONTRACTS = [
   H.fixtureContract('MK-JA1', 'Raw milk supply', 'Nandi Dairy', H.FOLDER_A, 12e6, 'Signed'),
   H.fixtureContract('MK-JA2', 'Cold chain logistics', 'Siginon Group', H.FOLDER_A, 8e6, 'Under Review'),
@@ -54,6 +65,11 @@ const CONTRACTS = [
   H.fixtureContract('MK-JA4', 'Packaging services', 'Nampak Kenya', H.FOLDER_B, 3e6, 'Draft'),
   H.fixtureContract('MK-JA5', 'Mutual NDA', 'Juno Ltd', H.FOLDER_A, 0, 'Signed'),
 ];
+/* History for the rebuild (section 17): a file imported 10 days ago and checked
+   a day later; an approval asked 8 days ago and given the next day. */
+Object.assign(CONTRACTS[3], { migration: { importedAt: ago(10), needsReview: false },
+  audit: [{ at: ago(9), user: 'Ama Reviewer', action: 'Migration review', detail: 'Extracted details confirmed' }] });
+Object.assign(CONTRACTS[2], { signApprovals: [{ id: 'sa1', askedAt: ago(8), status: 'approved', decidedAt: ago(7), decidedBy: { name: 'Ama Approver' } }] });
 
 (async () => {
   const h = await H.startHati();
@@ -192,6 +208,23 @@ const CONTRACTS = [
     ok('13b Esc closes it', await endShut('esc'));
     ok('13c a press beside the card closes it', await endShut('out'));
 
+    console.log('\n14 · one agent at a time');
+    await page.click('[data-jh-agent="paper"]');
+    const word14 = await page.evaluate(() => document.querySelector('[data-jh-play]').textContent);
+    ok('14a pressing an agent\'s card names it on Play', /Play/.test(word14) && word14.includes(await page.evaluate(() => i18t('ag_paper'))), word14);
+    await page.click('[data-jh-play]');
+    await page.waitForFunction(() => /❚/.test(document.querySelector('[data-jh-play]').textContent), null, { timeout: 3000 }).catch(() => {});
+    const mid14 = await page.evaluate(() => ({ lateQuiet: jhUptoFor('late', 1e15) === 0, paperLive: jhUptoFor('paper', 1e15) === 1e15 }));
+    ok('14b while it plays, the other agents are quiet and the chosen one is live', mid14.lateQuiet && mid14.paperLive, JSON.stringify(mid14));
+    await page.waitForFunction(() => !document.getElementById('jh-end').hidden, null, { timeout: 15000 }).catch(() => {});
+    const end14 = await page.evaluate(() => ({ t: document.getElementById('jh-end-t').textContent, l: document.getElementById('jh-end-l').textContent, total: document.getElementById('jh-total').textContent, back: jhUptoFor('late', 1e15) }));
+    ok('14c the end card counts that agent alone (3 briefs × 25 = 75), and every room is back at rest', /^75\b/.test(end14.t) && end14.back === 1e15 && end14.total === '98', JSON.stringify(end14));
+    const hw = await page.evaluate(() => [jhHoursWords(1.2), jhHoursWords(0.4), jhHoursWords(3.6), jhHoursWords(1, 1), jhHoursWords(2.04, 1)]);
+    ok('14e hours agree with their number: "about 1 hour", never "1 hours"', /about 1 hour of work/.test(end14.l) && hw.join('|') === '1 hour|0.4 hours|4 hours|1 hour|2.0 hours', JSON.stringify({ l: end14.l, hw }));
+    await page.click('[data-jh-end-x]');
+    await page.click('[data-jh-agent="paper"]');
+    ok('14d pressing the card again goes back to every agent', await page.evaluate(() => document.querySelector('[data-jh-play]').textContent === i18t('jh_play')));
+
     console.log('\n9 · no free room: the rooms widen to fill each floor');
     const fc = await page.evaluate(() => { const bad = [];
       for (let n = 1; n <= 30; n++){ const c = jhFloorCounts(n, 3), F = Math.ceil(n / 3);
@@ -290,6 +323,71 @@ const CONTRACTS = [
     const board = await page.evaluate(() => { setView('dashboard'); const btn = document.createElement('button'); btn.setAttribute('data-hb-agents-page', ''); document.body.appendChild(btn);
       btn.click(); btn.remove(); return state.view; });
     ok('8a it lands on Jambo\'s agents', board === 'jambo', board);
+
+    console.log('\n15 · work shows when Jambo prepares it');
+    const me15 = await page.evaluate(() => REMOTE.me.id);
+    const r15 = await page.evaluate(async me => { const go = pieces => api('agents/prepared', 'POST', { pieces }).then(r => r, e => ({ err: e.message }));
+      return { first: await go([{ agent: 'quiet', contractId: 'MK-JA1', ref: 'quiet:MK-JA1' }]), again: await go([{ agent: 'quiet', contractId: 'MK-JA1', ref: 'quiet:MK-JA1' }]),
+        wrong: await go([{ agent: 'paper', contractId: 'MK-JA1', ref: 'x' }, { agent: 'request', contractId: '', ref: 'no-such-request' }, { agent: 'week', contractId: '', ref: 'week:2026-10-12:someone-else' }, { agent: 'approve', contractId: '', ref: '' }]),
+        week: await go([{ agent: 'week', contractId: '', ref: 'week:2026-10-12:' + me }]) }; }, me15);
+    ok('15a a reading agent\'s prepared work is kept once, and anything unchecked is refused', r15.first.added === 1 && r15.again.kept === 1 && r15.wrong.refused === 4 && r15.week.added === 1, JSON.stringify(r15));
+    await page.evaluate(() => agReportPrepared({ quiet: { ready: [{ agent: 'quiet', kind: 'quiet', key: 'quiet:MK-JA2', cid: 'MK-JA2' }] }, approve: { ready: [] }, request: { ready: [] }, week: { ready: [] } }));
+    await page.evaluate(() => agPreparedSettled());
+    await page.evaluate(() => { setView('dashboard'); setView('jambo'); });
+    await page.waitForFunction(() => !!document.getElementById('jh-cv') && typeof agPointsTally === 'function', null, { timeout: 8000 }).catch(() => {});
+    await page.selectOption('#jh-range', '7').catch(() => {});
+    await page.waitForFunction(() => /7/.test((document.getElementById('jh-total-l') || {}).textContent || ''), null, { timeout: 6000 }).catch(() => {});
+    const w15 = await page.evaluate(async () => { const d = await api('agents/pieces?days=7'); const q = d.pieces.filter(p => p.agent === 'quiet');
+      return { quiet: q.length, open: q.filter(p => !p.outcome).length, week: d.pieces.filter(p => p.agent === 'week').length }; });
+    ok('15b the page\'s own report lands too: two quiet pieces waiting, one week laid out', w15.quiet === 2 && w15.open === 2 && w15.week === 1, JSON.stringify(w15));
+    await page.click('[data-jh-play]');
+    await page.waitForFunction(() => jhPopsSoft() > 0, null, { timeout: 12000 }).catch(() => {});
+    ok('15c the replay shows the moment Jambo prepared it ("prepared" rises in the room)', await page.evaluate(() => jhPopsSoft() > 0));
+    await page.waitForFunction(() => !document.getElementById('jh-end').hidden, null, { timeout: 15000 }).catch(() => {});
+    await page.evaluate(() => { const x = document.querySelector('[data-jh-end-x]'); if (x) x.click(); });
+    const s15 = await page.evaluate(async () => { const before = (await api('agents/pieces?days=7')).pieces.filter(p => p.agent === 'quiet' && !p.outcome).length;
+      await api('agents/outcome', 'POST', { agent: 'quiet', contractId: 'MK-JA1', outcome: 'used', ref: 'quiet:MK-JA1' });
+      const after = (await api('agents/pieces?days=7')).pieces.filter(p => p.agent === 'quiet'); return { before, after: after.length, open: after.filter(p => !p.outcome).length, used: after.filter(p => p.outcome === 'used').length }; });
+    ok('15d a person\'s press decides THAT piece (no second one): waiting 2 → 1, used 1', s15.before === 2 && s15.after === 2 && s15.open === 1 && s15.used === 1, JSON.stringify(s15));
+
+    console.log('\n16 · the house shows the work as it is (C–F)');
+    const c16 = await page.evaluate(() => { const S = []; for (let t = 0; t <= 1.0001; t += 0.01) S.push(t);
+      const still = S.every(t => { const m = jhMotionOf('renew', t); return m && m.kind === 'idle'; });
+      const moves = S.some(t => { const m = jhMotionOf('quiet', t); return m && m.kind !== 'idle'; });
+      return { still, moves }; });
+    ok('16a C: an agent with no work stands still all replay; one with work moves at its moments', c16.still && c16.moves, JSON.stringify(c16));
+    const d16 = await page.evaluate(() => jhPopRef({ cid: 'MK-JA1' }));
+    ok('16b D: a pop names the contract it was on', d16 === ' · MK-JA1', d16);
+    const e16 = await page.evaluate(() => ({ why: jhRoomQuietWhy('renew'), state: jhRoomStateWords('quiet'), stateRound: jhRoomStateWords('round') }));
+    ok('16c E: a quiet room says why, and every room says how its agent is set', e16.why === 'nothing came up' && !!e16.state && !!e16.stateRound, JSON.stringify(e16));
+    const f16 = await page.evaluate(() => ({ res: [...document.querySelectorAll('#jh-res b')].map(b => b.textContent) }));
+    await page.click('[data-jh-play]');
+    await page.waitForFunction(() => !document.getElementById('jh-end').hidden, null, { timeout: 15000 }).catch(() => {});
+    const f16e = await page.evaluate(() => (document.getElementById('jh-end-r') || {}).textContent || '');
+    ok('16d F: the panel shows contracts touched, dates caught, chases and nudges; the end card says them', f16.res.length === 3 && /contracts? touched/.test(f16e) && /chases? (and|or) nudges?/.test(f16e), JSON.stringify({ f16, f16e }));
+    const w16 = await page.evaluate(() => ({ btn: document.querySelector('[data-jh-play]').textContent, play: i18t('jh_play'), one: jhUnitWords('approve', 1), two: jhUnitWords('approve', 2) }));
+    ok('16e a replay that ends by itself puts Play back on the button', w16.btn === w16.play, JSON.stringify(w16));
+    ok('16f a count and its unit agree: "1 approval laid out", "2 approvals laid out"', w16.one === '1 approval laid out' && w16.two === '2 approvals laid out', JSON.stringify(w16));
+
+    console.log('\n17 · the agents\' past, rebuilt from the records');
+    const r17 = await page.evaluate(async () => {
+      await api('intake', 'POST', { title: 'A supply deal', need: 'We need a supply contract with a new vendor.' });
+      const dry = await api('agents/rebuild', 'POST', { dry: true });
+      const before = (await api('agents/pieces?days=60')).pieces.length;
+      const run = await api('agents/rebuild', 'POST', {});
+      const after = await api('agents/pieces?days=60');
+      const again = await api('agents/rebuild', 'POST', { dry: true });
+      return { dry, before, run, after: after.pieces.length, rebuilt: after.pieces.filter(p => p.rebuilt).map(p => p.agent + ':' + (p.outcome || 'waiting')).sort(), again: again.total, already: again.already };
+    });
+    ok('17a the preview finds the import (used), the approval (used) and the open request (waiting), writing nothing', r17.dry.byAgent.import && r17.dry.byAgent.import.used === 1 && r17.dry.byAgent.approve && r17.dry.byAgent.approve.used === 1
+      && r17.dry.byAgent.request && r17.dry.byAgent.request.waiting === 1 && r17.dry.written === 0, JSON.stringify(r17.dry));
+    ok('17b Rebuild writes them, each marked as rebuilt, and nothing for agents whose live record has begun', r17.run.written === r17.dry.total && r17.after === r17.before + r17.dry.total
+      && r17.rebuilt.join() === 'approve:used,import:used,request:waiting' && !r17.dry.byAgent.paper && !r17.dry.byAgent.round, JSON.stringify(r17));
+    ok('17c running it again adds nothing', r17.again === 0 && r17.already === 3, JSON.stringify({ again: r17.again, already: r17.already }));
+    const u17 = await page.evaluate(async () => { const r = await api('agents/rebuild', 'POST', { undo: true }); const left = (await api('agents/pieces?days=60')).pieces.filter(p => p.rebuilt).length; return { removed: r.removed, left }; });
+    ok('17d Remove takes every rebuilt piece out again, and only those', u17.removed === 3 && u17.left === 0, JSON.stringify(u17));
+    const b17 = await page.evaluate(() => { const h = document.createElement('div'); h.innerHTML = agPointsTableHtml('company'); return !!h.querySelector('[data-ag-rebuild]') && !!h.querySelector('[data-ag-rebuild-undo]'); });
+    ok('17e Settings → Jambo\'s agents carries Rebuild and Remove', b17);
 
     ok('no page errors', errs.length === 0, errs.join(' | ').slice(0, 300));
   } catch (e) { ok('the run finished', false, e.message); }

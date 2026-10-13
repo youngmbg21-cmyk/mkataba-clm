@@ -578,6 +578,14 @@ function agRequestItems(){
    decisions and duties, never a negotiation round — each with the door that
    deals with it. One item, so the card says "N dates" once. */
 const AG_WEEK_DAYS = 7;
+/* One week's piece per person: its Monday and the reader, so a week laid out
+   is one piece of work, not one a day (POST /api/agents/prepared checks it). */
+function agWeekKey(today){
+  const d = new Date(String(today) + 'T00:00:00'); d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  const mon = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  let me = ''; try { me = (window.REMOTE && REMOTE.me && REMOTE.me.id) || ''; } catch (_){ me = ''; }
+  return 'week:' + mon + ':' + String(me).replace(/[^\w-]/g, '');
+}
 function agWeekItems(){
   if (typeof calendarEvents !== 'function') return [];
   let evs = [];
@@ -589,7 +597,7 @@ function agWeekItems(){
     && (typeof calEventMine !== 'function' || calEventMine(e)))
     .sort((a, b) => String(a.date).localeCompare(String(b.date)));
   if (!mine.length) return [];
-  return [{ agent: 'week', kind: 'week', key: 'week:' + today, evs: mine, from: today, to: end, cid: null, c: null, at: today, n: mine.length }];
+  return [{ agent: 'week', kind: 'week', key: agWeekKey(today), evs: mine, from: today, to: end, cid: null, c: null, at: today, n: mine.length }];
 }
 /* DROPPED THREADS: a note from the other side that nobody on ours has
    answered for AG_QUIET_DAYS or more — the newest note in its thread is
@@ -631,6 +639,33 @@ function agLevelOf(k){
     return a && a.level ? String(a.level) : 'ask';
   } catch (_){ return 'ask'; }
 }
+/* THE FOUR READING AGENTS SAY WHAT THEY PREPARED (owner, 13 Oct 2026, the
+   agents' house): Approvals, Requests (the open ones), Week ahead and Dropped
+   threads lay their work out here, so each piece is reported once a sitting
+   with the agent, contract and ref its outcome will name (agRunAct's `said`),
+   and the server keeps one piece per piece of work. Fire and forget; a static
+   copy has nowhere to say it. The last report is kept so the house can wait
+   for it before it reads. */
+const _agPrepSaid = new Set();
+let _agPrepLast = Promise.resolve();
+function agPrepRef(it){
+  if (it.agent === 'approve') return '';
+  if (it.agent === 'request') return it.kind === 'request' && it.r ? String(it.r.id) : null;
+  return it.key || null;
+}
+function agReportPrepared(agents){
+  try {
+    if (!(typeof API_MODE === 'function' && API_MODE()) || typeof api !== 'function' || !(window.REMOTE && REMOTE.me)) return;
+    const out = [];
+    ['approve', 'request', 'week', 'quiet'].forEach(k => ((agents[k] && agents[k].ready) || []).forEach(it => {
+      const ref = agPrepRef(it); if (ref == null) return;
+      const id = k + '|' + (it.cid || '') + '|' + ref; if (_agPrepSaid.has(id)) return;
+      _agPrepSaid.add(id); out.push({ agent: k, contractId: it.cid || '', ref });
+    }));
+    if (out.length) _agPrepLast = api('agents/prepared', 'POST', { pieces: out }).catch(() => {});
+  } catch (_){}
+}
+function agPreparedSettled(){ return _agPrepLast; }
 function agentsData(list){
   if (!list && _agData) return _agData;
   const cs = agBook(list);
@@ -653,6 +688,7 @@ function agentsData(list){
      has set so prepares nothing on the Board — it still watches and tells by
      email, as its own runner does. */
   AG_KEYS.forEach(k => { if (agLevelOf(k) === 'mine'){ agents[k].ready = []; agents[k].leftToYou = true; } });
+  agReportPrepared(agents);
   /* The finished lists are newest first, and bounded. */
   AG_KEYS.forEach(k => {
     const a = agents[k];
@@ -2292,7 +2328,7 @@ async function agFreshLink(key){
   }
 }
 
-Object.assign(window, { AG_REPLY_WAIT_MS, agReplyPrompt, agDraftReply, agUseReply, agLevelOf, AG_READINGS, AG_WEEK_DAYS, AG_QUIET_DAYS, agApproveItems, agRequestItems, agWeekItems, agQuietItems, agApproveBody, agRequestBody, agWeekBody, agQuietBody, agSelKey, AG_KEYS, AG_DEF, AG_RECENT_DAYS, AG_DONE_MAX, agSel, agSetSel, agBook, agentsData, agentsDoorCount,
+Object.assign(window, { agReportPrepared, agPreparedSettled, agWeekKey, AG_REPLY_WAIT_MS, agReplyPrompt, agDraftReply, agUseReply, agLevelOf, AG_READINGS, AG_WEEK_DAYS, AG_QUIET_DAYS, agApproveItems, agRequestItems, agWeekItems, agQuietItems, agApproveBody, agRequestBody, agWeekBody, agQuietBody, agSelKey, AG_KEYS, AG_DEF, AG_RECENT_DAYS, AG_DONE_MAX, agSel, agSetSel, agBook, agentsData, agentsDoorCount,
   agRoundItems, agRoundDone, agRenewItems, agRenewDone, agLateItems, agLateDone, agPaperItems, agPaperWorking, agPaperDone,
   agImportBatches, agImportItems, agImportDone, agImportWorking, agFind, agCardParts, agCardHtml, agPageHtml, agListHtml,
   agStepsHtml, agFactsHtml, agPanelBody, agPanelActs, agOpenItem, agDrawPanel, agWarmUp, AG_NEEDS_WHOLE, AG_OPEN_WAIT_MS, agRunAct, agPaintHead, agRepaint, renderAgentsPage,
