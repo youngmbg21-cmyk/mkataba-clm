@@ -12680,12 +12680,14 @@ function rlSetDocZoom(z){
   const v = rlDzClamp(z);
   try { localStorage.setItem(RL_ZOOM_KEY, String(v)); } catch (e) {}
   rlApplyDocZoom(document);
+  if (window.ceApplyZoom) ceApplyZoom();
   if (window.applyDocZoom) applyDocZoom();
   if (window.dsApplyZoom) dsApplyZoom();
   if (window.igApplyZoom) igApplyZoom();
   /* the Document tab's Track measures the paper, whose length just moved */
   try { if (window.igTrackPlace && window.docTrackHost) igTrackPlace(docTrackHost()); } catch (_) {}
   document.querySelectorAll('.rl-type-out').forEach(el => { el.textContent = v + '%'; });
+  paperZcSoon();
   document.querySelectorAll('[data-rl-type]').forEach(b => {
     const d = Number(b.getAttribute('data-rl-type'));
     b.disabled = (d < 0 && v <= RL_DZ_MIN) || (d > 0 && v >= RL_DZ_MAX);
@@ -12833,6 +12835,60 @@ function rlPaperZoomHtml(extra, zoomHtml){
    is repainted on every act) answers without being wired. rlWireTypeStep stays
    for its callers and does nothing. */
 function rlWireTypeStep(){}
+/* ---- ONE PLACE FOR THE ZOOM ON EVERY PAPER (owner, 13 Oct 2026: "the paper
+   adjustment filter seems to be in different places and cutoff or joined to
+   the paper. Make it professional to be in the grey area but well designed
+   and well placed"; "all papers should be uniform with regard to the zoom
+   control") ----
+   Each page used to lift the control by its own number (--zc-top per
+   scroller), and the numbers drifted: measured at 1200px wide, Home's and
+   Negotiate's sat 8px ABOVE their scroller's top edge (cut off under the
+   strip), the Signing tab's was 5px off the sheet and Details' overlapped
+   it by 9. ONE PLACER now measures instead of guessing: the control's top
+   stands PAPER_ZC_TOP below its scroller's top edge — in the grey band
+   above the sheet, which is the same 40px on every paper — and its right
+   edge on the sheet's right edge. It runs when a row is painted, when the
+   window or a sheet changes size, and on every zoom. Nothing about the
+   contract moves: the row is still height 0. */
+const PAPER_ZC_TOP = 6;
+const PAPER_ZC_SHEET = '.pg-sheet, article.nego-doc, .doc-sheet, .rl-paper';
+function _paperZcScroller(el){
+  for (let e = el && el.parentElement; e && e !== document.body; e = e.parentElement){
+    const o = getComputedStyle(e).overflowY; if (o === 'auto' || o === 'scroll') return e; }
+  return null;
+}
+function paperZcFit(){
+  if (typeof document === 'undefined') return;
+  document.querySelectorAll('.paper-zc-row').forEach(row => {
+    const sc = _paperZcScroller(row), zc = row.querySelector('.paper-zc');
+    if (!sc || !zc || !row.getClientRects().length) return;
+    const rr = row.getBoundingClientRect(), sr = sc.getBoundingClientRect();
+    const down = rr.top - sr.top + sc.scrollTop;
+    row.style.setProperty('--zc-top', Math.round(PAPER_ZC_TOP - down) + 'px');
+    const sheet = [...sc.querySelectorAll(PAPER_ZC_SHEET)].find(e => e.getBoundingClientRect().width > 200);
+    if (sheet){
+      const right = Math.round(rr.right - sheet.getBoundingClientRect().right);
+      row.style.setProperty('--paper-zc-right', right + 'px');
+      if (_paperZcRO && !sheet.dataset.zcWatched){ sheet.dataset.zcWatched = '1'; _paperZcRO.observe(sheet); }
+    }
+  });
+}
+let _paperZcRaf = 0, _paperZcRO = null;
+function paperZcSoon(){
+  if (_paperZcRaf || typeof requestAnimationFrame !== 'function') return;
+  _paperZcRaf = requestAnimationFrame(() => { _paperZcRaf = 0; paperZcFit(); });
+}
+if (typeof document !== 'undefined' && typeof MutationObserver === 'function'){
+  if (typeof ResizeObserver === 'function') _paperZcRO = new ResizeObserver(paperZcSoon);
+  const arm = () => {
+    new MutationObserver(muts => {
+      for (const m of muts) for (const n of m.addedNodes){
+        if (n.nodeType === 1 && (n.classList.contains('paper-zc-row') || n.querySelector('.paper-zc-row'))){ paperZcSoon(); return; } }
+    }).observe(document.body, { childList: true, subtree: true });
+    window.addEventListener('resize', paperZcSoon);
+  };
+  if (document.body) arm(); else document.addEventListener('DOMContentLoaded', arm);
+}
 if (typeof document !== 'undefined') document.addEventListener('click', e => {
   const b = e.target && e.target.closest && e.target.closest('[data-rl-type]');
   if (!b || b.disabled) return;
@@ -21560,7 +21616,7 @@ function redlineSyncProxies(host){
   });
 }
 
-if (typeof window !== 'undefined') Object.assign(window, { rlRoundPrepLineHtml, rlUnsentList, rlAddClauseBtnHtml, rlAddClause, rlEditClauseBtnHtml, rlClauseInView, rlEditClausePress,
+if (typeof window !== 'undefined') Object.assign(window, { paperZcFit, rlRoundPrepLineHtml, rlUnsentList, rlAddClauseBtnHtml, rlAddClause, rlEditClauseBtnHtml, rlClauseInView, rlEditClausePress,
   rlInlineClick, rlInlineSave, rlInlineDirty, rlInlineOn, rlInlineEnd,
   renderRedline, redlineRoundLabel, redlineSyncProxies,
   rlToggleDiscussion, rlSideMode, rlSetSideMode, rlLayoutResizer, rlWireResizer, rlWireClauseTools,

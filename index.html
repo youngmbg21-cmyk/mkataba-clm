@@ -8855,22 +8855,25 @@
      what each scroller's own padding and the sheet's own margin leave short of
      40 (Home 9 + 20 on Redlined or 9 + 0 clean, Negotiate 29, the Document tab
      0 + 29, the signing copy 0 + 0, the design step 16), so the gap above the
-     sheet is one number on every paper (one-paper-everywhere), and the control
-     stands 6px under the scroller's top edge (--zc-top lifts it out of the
-     row into the padding). The row is height 0 with a margin, the slot draws
+     sheet is one number on every paper (one-paper-everywhere). WHERE THE
+     CONTROL STANDS IS MEASURED, NOT NUDGED (owner, 13 Oct 2026): paperZcFit
+     writes --zc-top so it stands 6px under its scroller's top edge, 6px clear
+     of the sheet, and --paper-zc-right so its right edge is the sheet's. The row is height 0 with a margin, the slot draws
      no box, and the control's anchor is 0x0 with its contents spilling left:
      no wrapper is a painted element, so the colour census counts only what it
      always counted. */
   .paper-zc-row{position:relative;height:0;margin-bottom:var(--zc-room,40px);z-index:4}
   #doc-zc-slot{display:contents}
-  #ig-paper-scroll > .paper-zc-row{--zc-room:31px;--zc-top:-3px}
+  #ig-paper-scroll > .paper-zc-row{--zc-room:31px}
   #ig-paper-scroll > .paper-zc-row:has(+ .ig-zoom .ig-redpaper){--zc-room:11px}
-  #nego-scroll-work > .paper-zc-row{--zc-room:11px;--zc-top:-23px}
+  #nego-scroll-work > .paper-zc-row{--zc-room:11px}
   #doc-zc-slot > .paper-zc-row{--zc-room:11px}
   #doc-zc-slot > .paper-zc-row:has(.sc-step){--zc-room:36px}
-  #ds-docpane > .paper-zc-row{--zc-room:24px;--zc-top:-10px}
+  #ds-docpane > .paper-zc-row{--zc-room:24px}
   .paper-zc{position:absolute;right:var(--paper-zc-right,0);top:var(--zc-top,6px);width:0;height:0;display:flex;justify-content:flex-end;align-items:flex-start;gap:var(--s-3);white-space:nowrap}
-  .paper-zc > *{flex:none}
+  /* align-self:flex-start — the control's own rule centres it (align-self:center),
+     and centred on a row of no height it hung half its height above where it was put */
+  .paper-zc > *{flex:none;align-self:flex-start}
   .paper-zc{color:var(--color-text)}
   .paper-zc .rl-moved{line-height:var(--ctl-h)}
   /* the zoom wears the clothes it wore on the bars it left */
