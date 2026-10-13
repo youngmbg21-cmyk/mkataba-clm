@@ -45,6 +45,9 @@ const check = (name, pass, detail) => {
     const page = await browser.newPage({ viewport: { width: 1500, height: 950 }, deviceScaleFactor: 1 });
     page.on('pageerror', e => errors.push(String(e)));
     page.on('console', m => { if (m.type() === 'error' && !/favicon|404/i.test(m.text())) errors.push(m.text().slice(0, 140)); });
+    /* Stakes (13 Oct 2026): opening Home's Clauses reads the contract once; this
+       file's provider has no such reading, so the read answers a plain refusal */
+    await page.route('**/api/ai/breakdown', r => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ error: 'not staged here' }) }));
     /* EVERY DRIVEN HALF IS GUARDED. Run against a build without the feature
        this file must REPORT each claim as failed, not die on the first click
        waiting thirty seconds for a control that is not there — which is what
@@ -254,8 +257,11 @@ const check = (name, pass, detail) => {
     /* RE-POINTED 10 Oct 2026 (owner: "hide it when it says nothing"): Worth
        a look is always said; Who does what is drawn only where it places at
        least one line — never a box of Unclear, never "found nothing" */
-    check('4h it says what is known, borrowed — Worth a look, and Who does what only where it places a line',
-      xr.look && (!xr.whoBox || xr.whoPlaced) && !xr.whoNone, JSON.stringify(xr.secs));
+    /* RE-POINTED 13 Oct 2026 (owner, Stakes as drawn: "This is how the panel
+       should look like but with a plain English button"): on Home the open
+       row carries ONLY its Plain English — no Worth a look, no Who does what */
+    check('4h the open row carries only its Plain English — no Worth a look, no Who does what',
+      !xr.look && !xr.whoBox, JSON.stringify(xr.secs));
     /* THE CARD IS A REAL SURFACE, asked live. */
     const cards = await page.evaluate(() => {
       /* on Home the list is drawn on the panel itself (#ig-dock), not a card of its own */
@@ -381,13 +387,10 @@ const check = (name, pass, detail) => {
     check('7b2 and the Thread takes the column, never the paper', !!fa && fa.overlap === false, fa ? 'overlap:' + fa.overlap : 'no thread');
     check('7b3 a press opens its row, exactly one, at the line', !!fa && fa.i >= 0 && fa.lit === 1 && fa.got === fa.i && fa.line === fa.i,
       fa ? JSON.stringify({ i: fa.i, got: fa.got, line: fa.line, lit: fa.lit, head: fa.head }) : 'no thread');
-    check('7c every mark on the clause names its source AND wears its grade',
-      !!panel && panel.look.length >= 2 && panel.look.every(m => m.grade !== '-' && m.tag.length > 1)
-        && panel.look.some(m => m.grade === 'ruby') && panel.look.some(m => m.grade === 'amber'),
-      panel ? JSON.stringify(panel.look) : 'no row');
-    check('7d the brief’s watchout reached the clause its wording sits on',
-      !!panel && panel.look.some(m => /XRWATCH/.test(m.say) && m.grade === 'amber'),
-      panel ? JSON.stringify(panel.look.map(m => m.say)) : 'no row');
+    /* 7c/7d RE-POINTED 13 Oct 2026: the marks still grade the beads (7b); the
+       open row on Home no longer lists them (Stakes as drawn) */
+    check('7c the marks grade the beads, and the open row lists none of them',
+      !!panel && panel.look.length === 0, panel ? JSON.stringify(panel.look) : 'no row');
     /* REVERSED IN PLACE 25 Sep 2026 (Young: "this 'about contract x' portion
        should be excluded from the x-ray so there is only one red highlighted
        area which is the worth a look area"). What lands on no clause is never
@@ -398,11 +401,7 @@ const check = (name, pass, detail) => {
     check('7f a watchout with no wording is never guessed onto a clause',
       !!panel && !panel.look.some(m => /XRLOOSE/.test(m.say)),
       panel ? JSON.stringify(panel.look.map(m => m.say)) : 'no row');
-    /* GATED on the clause's own list holding something: "not in a block" is
-       satisfied by a build that draws nothing, which proves nothing. */
-    check('7g and one that DID land is said on its clause, once',
-      !!panel && panel.look.length > 0 && panel.look.filter(m => /XRWATCH/.test(m.say)).length === 1,
-      panel ? JSON.stringify(panel.look.map(m => m.say)) : 'no row');
+    /* 7g RETIRED 13 Oct 2026 with the open row's marks (7c) */
 
     const afterXr = await ink();
     check('7h THE CONTRACT DOES NOT MOVE with the whole thread drawn (refusal 3)',

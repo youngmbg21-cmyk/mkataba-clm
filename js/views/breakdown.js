@@ -109,7 +109,7 @@ function stkHeadHtml(c, b){
     const view = `<div class="stk-view"><b>${_bdE(i18t('stk_view'))}</b></div>`;
     if (busy || (!err && !noKey && !_bd.tried[stkKey(c)])) return `<div class="stk-head is-empty">${view}<div class="stk-acts"><span class="stk-busy" role="status" aria-live="polite">${bdBusyHtml()}</span><span class="stk-cost">${_bdE(i18t('bd_cost'))}</span></div></div>`;
     const why = err || (noKey ? i18t('bd_no_key') : i18t('stk_read_sub'));
-    return `<div class="stk-head is-empty">${view}<p class="${err || noKey ? 'stk-err' : 'stk-sub'}" role="${err ? 'alert' : 'status'}">${_bdE(why)}</p>${noKey ? '' : `<div class="stk-acts"><button type="button" class="ui-btn ui-btn-sm" data-stk-run>${_bdE(i18t('stk_again'))}</button><span class="stk-cost">${_bdE(i18t('bd_cost'))}</span></div>`}</div>`;
+    return `<div class="stk-head is-empty">${view}<p class="${err ? 'stk-err' : 'stk-sub'}" role="${err ? 'alert' : 'status'}">${_bdE(why)}</p>${noKey ? '' : `<div class="stk-acts"><button type="button" class="ui-btn ui-btn-sm" data-stk-run>${_bdE(i18t('stk_again'))}</button><span class="stk-cost">${_bdE(i18t('bd_cost'))}</span></div>`}</div>`;
   }
   const pts = b.points, need = pts.filter(p => p.status === 'need').length;
   const regs = b.regions || [];
@@ -154,7 +154,11 @@ function stkDecorate(c, card, rows){
       const name = row.querySelector('.doc-th-name');
       if (name && ri != null && b.regions[ri]) name.insertAdjacentHTML('beforeend', `<span class="stk-rsq stk-r${(ri % STK_REGION_TONES) + 1}" title="${_bdE(b.regions[ri].name)}" aria-label="${_bdE(b.regions[ri].name)}"></span>`);
       const st = row.querySelector('[data-th-state]');
-      if (st) st.innerHTML = onRow[at] ? `<span class="stk-n">${_bdE(i18tn('stk_review', onRow[at], { n: onRow[at] }))}</span>` : '';
+      /* the row's count is its points; its Plain English state (Reading… · Read) stays the list's own */
+      if (st){
+        st.querySelectorAll('.is-ruby, .is-amber, .is-steel, .stk-n').forEach(el => el.remove());
+        if (onRow[at]) st.insertAdjacentHTML('afterbegin', `<span class="stk-n">${_bdE(i18tn('stk_review', onRow[at], { n: onRow[at] }))}</span>`);
+      }
     });
     const miss = [], other = [];
     b.points.forEach((p, i) => {

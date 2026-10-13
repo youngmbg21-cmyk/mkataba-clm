@@ -82,7 +82,8 @@ const until = async (page, fn, arg, ms = 8000) => page.waitForFunction(fn, arg, 
     });
     ok('1a Home\'s Document tab is the clause list, a bead per clause', listUp && one.rows === 9 && one.beads === 9, JSON.stringify({ rows: one.rows, beads: one.beads }));
     ok('1b the marked clauses wear their colour: two amber, one red', one.amber === 2 && one.ruby === 1, JSON.stringify({ amber: one.amber, ruby: one.ruby }));
-    ok('1c the head says "3 to review" and the Document symbol counts the same', one.sum === '3 to review' && one.badge === 3, JSON.stringify({ sum: one.sum, badge: one.badge }));
+    /* 1c re-pointed 13 Oct 2026: Home's list head is Stakes' (no "N to review" title row); the symbol still counts */
+    ok('1c the Document symbol counts the three clauses to review', one.badge === 3, JSON.stringify({ sum: one.sum, badge: one.badge }));
     ok('1d what was there is gone: no blanks, no copies, no "left edge" line, no ×', !/still blank|Copies|left edge/i.test(one.body) && !one.close, one.body.slice(0, 120));
     await page.screenshot({ path: path.join(OUT, '1-home-document.png') });
 
@@ -140,24 +141,21 @@ const until = async (page, fn, arg, ms = 8000) => page.waitForFunction(fn, arg, 
     ok('6c while the paper scrolls, a row opens in one step — no animation', still.some(v => v === '0s') && !still.some(v => v !== '0s' && v !== 'idle' && v !== 'none'), still.join(' '));
     await page.screenshot({ path: path.join(OUT, '6-home-still.png') });
 
-    /* ===== 8. HOME'S HEAD: THE FILTER AT THE LEFT, "GO TO DOCUMENT" AT THE RIGHT =====
+    /* ===== 8. HOME'S HEAD (was: the filter at the left, "Go to document" at the right) =====
        (owner, 10 Oct 2026: "move the highlighted buttons to the far left and
        then add a door to the document tab on the far right", drawn as
        "→ Go to document"). Measured as painted boxes against the head. */
     await page.evaluate(() => setView('dashboard'));
     await until(page, () => typeof pdOpenOnHome === 'function' && !!document.querySelector('[data-hb-face="board"]'));
     await page.evaluate(() => pdOpenOnHome('MK-HP1', 'doc'));
-    const headUp = await until(page, () => !!document.querySelector('#pd-thread .doc-th-hd .doc-th-chips'));
-    ok('8a GATE — Home\'s clause list head is drawn', headUp);
-    const hd = await page.evaluate(() => {
-      const t = document.getElementById('pd-thread'); if (!t) return null;
-      const r = sel => { const e = t.querySelector(sel); if (!e) return null; const b = e.getBoundingClientRect(); return { l: Math.round(b.left), r: Math.round(b.right), t: Math.round(b.top), b: Math.round(b.bottom) }; };
-      const door = t.querySelector('[data-th-open-doc]');
-      const hit = door ? (() => { const b = door.getBoundingClientRect(); const e = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return !!(e && door.contains(e)); })() : false;
-      return { head: r('.doc-th-hd'), title: r('.doc-th-title'), chips: r('.doc-th-chips'), door: r('[data-th-open-doc]'), hit,
-        word: door ? door.textContent.replace(/\s+/g, ' ').trim() : '', arrow: !!(door && door.querySelector('svg')), x: !!t.querySelector('[data-th-close]') };
-    });
-    ok('8b the filter starts at the left, under the title', !!(hd && hd.chips && hd.title && Math.abs(hd.chips.l - hd.title.l) <= 2), JSON.stringify(hd && { chips: hd.chips, title: hd.title }));
+    /* 8a/8b RE-POINTED 13 Oct 2026 (owner, Stakes as drawn: "This is how the
+       panel should look like"): Home's head is Stakes' own — "The company
+       view" — with no title row and no colour filter. */
+    const headUp = await until(page, () => !!document.querySelector('#pd-thread .stk-head .stk-view'));
+    ok('8a GATE — Home\'s clause list head is drawn, as Stakes\' company view', headUp);
+    const hd = await page.evaluate(() => { const t = document.getElementById('pd-thread');
+      return t ? { title: !!t.querySelector('.doc-th-hd'), chips: !!t.querySelector('.doc-th-chips'), x: !!t.querySelector('[data-th-close]') } : null; });
+    ok('8b no title row and no colour filter on Home', !!hd && !hd.title && !hd.chips && !hd.x, JSON.stringify(hd));
     /* 8c ("→ Go to document" ends the row) and 8d (it opens the contract on
        its Document tab) RETIRED 11 Oct 2026: the Document tab is gone (owner);
        Home's Document IS the document, so the list drops the door. */

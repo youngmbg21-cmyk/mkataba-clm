@@ -189,9 +189,8 @@ const answer = say => b => [{ type: 'tool_use', id: 'tu', name: 'clause_readings
       JSON.stringify({ opened, thread: s2.threadShown }));
     check('2b it opens on the clause at the paper\'s line', opened && !!(second && second.open) && s2.openIdx === s2.atLine, (second ? second.name : '-') + ' · open ' + s2.openIdx + ' · line ' + s2.atLine);
     /* on Home the list IS the panel: no × (home-paper-clauses 1d) */
-    check('2c no ×, and the filter: All · Red · Amber · Blue with their counts', !s2.close && s2.chips.length === 4
-      && /All 7/.test(s2.chips[0].text) && /Red 1/.test(s2.chips[1].text) && /Amber 1/.test(s2.chips[2].text) && /Blue 0/.test(s2.chips[3].text),
-      s2.chips.map(c => c.text).join(' | '));
+    /* 2c re-pointed 13 Oct 2026 (owner, Stakes as drawn): Home's list has no × and no colour filter */
+    check('2c no ×, and no colour filter on Home', !s2.close && s2.chips.length === 0, s2.chips.map(c => c.text).join(' | '));
     check('2d a part title is a label — no bead, no button', s2.secs.length >= 1 && s2.secs.every(x => !x.bead && !x.button) && s2.secs.some(x => /PART B/i.test(x.text)),
       JSON.stringify(s2.secs));
     check('2e ONE scroller: the open row grows, the list scrolls', !!(s2.bodyScroll && s2.bodyScroll.y !== 'auto' && s2.bodyScroll.max === 'none' && s2.listScroll === 'auto'),
@@ -200,28 +199,10 @@ const answer = say => b => [{ type: 'tool_use', id: 'tu', name: 'clause_readings
       JSON.stringify({ before: ink1, after: ink2 }));
     await page.screenshot({ path: path.join(OUT, '02-drawer.png') });
 
-    /* ===== 3. THE COLOUR FILTER ===== */
-    const blue = s2.chips.find(c => c.tone === 'steel');
-    check('3a a colour nobody carries is greyed and says why', !!(blue && blue.dead && /No clause is marked blue/.test(blue.title)), JSON.stringify(blue));
-    await chip('ruby');
-    const s3 = await read();
-    const shown3 = s3.rows.filter(r => r.shown);
-    check('3b Red shows the red clause alone, and says "1 of 1 shown"', shown3.length === 1 && shown3[0].tone === 'ruby' && shown3[0].open && /1 of 1 shown/.test(s3.openText),
-      shown3.map(r => r.name).join(' | ') + ' · ' + s3.openText.slice(0, 60));
-    check('3c while filtering the part titles step aside', s3.secs.length >= 1 && s3.secs.every(x => !x.shown), JSON.stringify(s3.secs));
-    await chip('amber');
-    let s4 = await read();
-    const shown4 = s4.rows.filter(r => r.shown);
-    check('3d Red and Amber together show the two', shown4.length === 2 && shown4.every(r => r.tone === 'ruby' || r.tone === 'amber'), shown4.map(r => r.name + ':' + r.tone).join(' | '));
-    /* ‹ from the red one steps to the amber one, the paper gliding there */
-    const amberIdx = (shown4.find(r => r.tone === 'amber') || {}).i;
-    await page.evaluate(() => { const b = document.querySelector('#pd-thread .doc-th-row.is-open [data-th-step="-1"]'); if (b && !b.disabled) b.click(); });
-    await page.waitForTimeout(1400);
-    s4 = await read();
-    check('3e ‹ steps only through the shown clauses, and the paper glides there', s4.openIdx === amberIdx && s4.atLine === amberIdx,
-      JSON.stringify({ open: s4.openIdx, line: s4.atLine, want: amberIdx }));
-    await page.screenshot({ path: path.join(OUT, '03-filter.png') });
-    await chip('');
+    /* ===== 3. THE COLOUR FILTER — RETIRED 13 Oct 2026 =====
+       The owner's Stakes panel ("This is how the panel should look like")
+       draws no filter on Home, and the room's own drawer is gone; checked
+       instead by 2c (no filter is drawn) and stakes-verify. */
 
     /* ===== 4. PLAIN NEVER ENDS IN SILENCE ===== */
     const deliv = await page.evaluate(() => { const r = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(x => /Delivery Information/.test(x.textContent)); return r ? r.dataset.thRow : null; });
@@ -278,10 +259,11 @@ const answer = say => b => [{ type: 'tool_use', id: 'tu', name: 'clause_readings
     await page.evaluate(() => { if (typeof setDark === 'function') setDark(true); });
     await page.waitForTimeout(700);
     /* on Home the list is drawn on the panel itself (#ig-dock) */
-    const night = await page.evaluate(() => { const th = document.getElementById('pd-thread'); const dock = document.getElementById('ig-dock'); const ch = th && th.querySelector('[data-th-tone=""]');
+    /* the chip it read is gone (no filter on Home, 13 Oct 2026): the open row's Plain English button is what must stand out */
+    const night = await page.evaluate(() => { const th = document.getElementById('pd-thread'); const dock = document.getElementById('ig-dock'); const ch = th && th.querySelector('[data-th-explain]');
       return { bg: dock ? getComputedStyle(dock).backgroundColor : '', body: getComputedStyle(document.body).backgroundColor, chip: ch ? getComputedStyle(ch).backgroundColor : '' }; });
     const dark = c => { const v = (String(c).match(/[\d.]+/g) || []).map(Number); return v.length >= 3 && v[0] < 80 && v[1] < 80 && v[2] < 80; };
-    check('8 at night the clause panel is dark, and the pressed chip stands out of it', dark(night.bg) && !!night.chip && night.chip !== night.bg, JSON.stringify(night));
+    check('8 at night the clause panel is dark', dark(night.bg), JSON.stringify(night));
     await page.screenshot({ path: path.join(OUT, '07-night.png') });
     await page.evaluate(() => { if (typeof setDark === 'function') setDark(false); });
 
