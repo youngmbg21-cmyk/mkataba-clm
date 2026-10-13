@@ -1016,7 +1016,7 @@ async function sha256(str){
 }
 const generatePseudo = seed => { let h=0; for(const ch of seed) h=(h*33+ch.charCodeAt(0))>>>0; return h.toString(16).padStart(60,'0').slice(0,60); };
 
-Object.assign(window,{NAV_EARN_AT,navShowEverything,navSetShowEverything,navEarned,navSeen,navMarkSeen,STATUS_META,SHARE_META,RISK_PAL,STREAM_SHORT,UPLOAD_MAX,UPLOAD_MAX_API,uploadMax,uploadMaxLabel,uploadTooBigMsg,EXTRACT_MAX_CHARS,approvalLabel,cIcon,cKind,cParty,cPrimary,cSecondary,contractRisk,folderContracts,generatePseudo,getContract,isMonetary,isUpload,mk,nextId,ownerInitials,riskBand,riskPal,riskChip,seedComments,sha256,sha256IsReal,shareChip,shareDot,shareDotStyle,shareLinkCell,shareLegendHtml,SHARE_LEGEND,state,statusChip,statusLabel,streamLabel,toast,uid});
+Object.assign(window,{NAV_EARN_AT,navShowEverything,navSetShowEverything,navEarned,navSeen,navMarkSeen,STATUS_META,SHARE_META,RISK_PAL,STREAM_SHORT,UPLOAD_MAX,UPLOAD_MAX_API,uploadMax,uploadMaxLabel,uploadTooBigMsg,EXTRACT_MAX_CHARS,approvalLabel,cIcon,cKind,cParty,cPrimary,cSecondary,contractRisk,folderContracts,generatePseudo,getContract,isMonetary,isUpload,mk,nextId,ownerInitials,riskBand,riskPal,riskChip,seedComments,sha256,sha256IsReal,shareChip,shareDot,shareDotStyle,shareLinkCell,shareLegendHtml,SHARE_LEGEND,state,statusChip,statusLabel,streamLabel,toast,toastsClear,uid});
 /* ============================================================
    PLATFORM CORE — persistence · auth · audit · sharing · export
    MVP runs fully client-side (localStorage) so it deploys as a
@@ -2797,7 +2797,7 @@ function renderNegotiationSection(c){
            The contract page's own toast has said this correctly all along
            (see the quiet branch in js/views/contract.js); this is the two
            surfaces agreeing rather than a new sentence. */
-        toast(i18t('co_round_on_standing_link',{who:esc(who)}));
+        toast(i18t('co_round_on_standing_link',{who}),'ok');
       } else if(out.channel==='whatsapp' && out.recipient.phone){
         // the same route the first share uses — nothing sends WhatsApp for us
         try{ window.open(waShareLink(out.recipient.phone, shareMessageText(c, out.link, '', null)),'_blank'); }catch(_){}
@@ -8369,7 +8369,7 @@ async function renderSharesSection(c){
       if(out.stranded) toast(reshareStrandedLine(who),'err');
       else if(out.delivered) toast(`Sent again to ${who}`,'ok');
       /* Deliberately quiet, not refused — see the note on the other caller. */
-      else if(out.quiet) toast(i18t('co_round_on_standing_link',{who:esc(who)}));
+      else if(out.quiet) toast(i18t('co_round_on_standing_link',{who}),'ok');
       else reshareNotSentModal(c, out, who);
       renderAuditSection(c); renderSharesSection(c);
     }catch(err){ toast(err.message,'err'); }

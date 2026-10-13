@@ -9135,11 +9135,19 @@ let _rlShowingList = false;
 /* A REFRESH LANDS WHERE YOU WERE (Young, 28 Sep 2026): the list, with its
    search and filters, or the contract on the bench — read by placeSave and put
    back by placeResume (js/app.js) before the first paint, as a bare repaint. */
-function rlPlace(){ return { list: _rlShowingList, held: _redlineHeldId || null, st: (_rlShowingList && state.regNego) ? { ...state.regNego } : null }; }
+/* The Deal board rides along (bug log, 3 Oct 2026): open, its pick and its
+   filter, so a refresh with the board up lands on the board. */
+function rlPlace(){ return { list: _rlShowingList, held: _redlineHeldId || null, st: (_rlShowingList && state.regNego) ? { ...state.regNego } : null,
+  board: (!_rlShowingList && _redlineHeldId && _rlBoardOpen) ? { pick: _rlBoardPick, f: _rlBoardFilter } : null }; }
 function rlPlacePut(p){
   if (!p) return;
   if (p.list){ _rlShowingList = true; _redlineHeldId = null; if (p.st) state.regNego = { ...p.st }; }
-  else if (p.held){ _rlShowingList = false; _redlineHeldId = p.held; }
+  else if (p.held){ _rlShowingList = false; _redlineHeldId = p.held;
+    /* the first paint of a fresh page counts as arriving on a new contract
+       and would close the board (rlCardForgetPins); a fresh page has nothing
+       else open to forget, so it is told this contract is already the one. */
+    if (p.board){ _rlPinnedFor = String(p.held); _rlBoardOpen = true; _rlBoardPick = p.board.pick == null ? null : String(p.board.pick);
+      _rlBoardFilter = RL_BOARD_FILTERS.includes(p.board.f) ? p.board.f : 'all'; } }
 }
 
 /* ---- WHOSE MOVE IS IT ON THIS AGREEMENT ----
@@ -10978,7 +10986,7 @@ function renderRedline(){
            beside this toast said the move was still ours — negWhoseMove is the
            ONE reading of whose move it is, so the sentence asks it too. */
         const theirsNow = (typeof negWhoseMove === 'function') ? ((negWhoseMove(c) || {}).k === 'them') : moved;
-        const turnLine = (moved && theirsNow) ? ' — it is now their turn' : '';
+        const turnLine = (moved && theirsNow) ? i18t('ng_solo_turn') : '';
         /* A SECOND LIVE LINK IS SAID ON SCREEN, not only in the audit trail.
            This is the state reported on MK-255: the round published, the owner
            was told it had gone, and the counterparty reloaded the URL they
@@ -11020,7 +11028,7 @@ function renderRedline(){
         /* A solo send says what it deliberately left on the desk — silence
            about the other drafts is how a partial send reads as a full one. */
         const kept = window.negoHeldBackIds ? negoHeldBackIds(c).length : 0;
-        const keptLine = kept ? ` — ${kept} other draft${kept === 1 ? '' : 's'} still unsent` : '';
+        const keptLine = kept ? i18tn('ng_solo_kept', kept, { n: kept }) : '';
         /* THE TURN EMAIL'S OWN THREE OUTCOMES (4 Oct 2026): where the send
            tried to tell them it is their turn, the toast says whether that
            email went, is waiting in the outbox, or was refused and why. */
@@ -11041,9 +11049,9 @@ function renderRedline(){
             onClick: () => { try{ navigator.clipboard.writeText(link); }catch(e){}
               if (window.toast) toast(i18t('ng_link_copied'), 'ok'); } } } : undefined);
         else if (window.toast) toast(out && out.stranded
-          ? `${window.reshareStrandedLine ? reshareStrandedLine(to) : 'A NEW link was created for ' + to + '.'}${turnLine ? ' It is now their turn.' : ''}`
+          ? `${window.reshareStrandedLine ? reshareStrandedLine(to) : 'A NEW link was created for ' + to + '.'}${turnLine ? i18t('ng_solo_turn_end') : ''}`
           : delivered
-          ? `Sent to ${to}${turnLine}${keptLine}`
+          ? `${i18t('ng_solo_sent', { who: to })}${turnLine}${keptLine}`
           /* A sentence that ends in a full stop loses it before a tail is
              joined on — "not emailed. — 1 other draft" read as two broken
              sentences (26 Sep 2026, the overnight clean-up). */
@@ -11056,7 +11064,7 @@ function renderRedline(){
               if (window.toast) toast(i18t('ng_link_copied'), 'ok'); } } } : undefined);
       }catch(err){
         btns.forEach(b => { b.disabled = false; });
-        if (window.toast) toast(`Could not send to ${to} — ${(err && err.message) || err}`, 'err');
+        if (window.toast) toast(i18t('ng_solo_failed', { who: to, why: (err && err.message) || err }), 'err');
         return;
       }
       renderRedline();

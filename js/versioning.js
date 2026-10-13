@@ -8,7 +8,10 @@
    normText stays as-is for seal hashing — this is only the WORKING copy. */
 function htmlToStructuredText(html){
   const d=document.createElement('div'); d.innerHTML=html||'';
-  d.querySelectorAll('script,style').forEach(n=>n.remove());
+  /* A mark drawn ON the paper (a scan flag's "Deviation" tag beside a
+     clause heading) is not wording: read into the working copy it became part
+     of the clause's title in Negotiate, the editor and what Jambo is sent. */
+  d.querySelectorAll('script,style,[data-not-wording]').forEach(n=>n.remove());
   const BLOCK=new Set(['P','DIV','H1','H2','H3','H4','H5','H6','LI','TR','TABLE','UL','OL','SECTION','ARTICLE','HEADER','FOOTER','BLOCKQUOTE','ADDRESS']);
   let out='';
   (function walk(node){

@@ -20699,3 +20699,22 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 
 ### Noticed, not fixed (13 Oct 2026, dropdowns wear no dark outline)
 - f148 "no Swedish value is a forgotten copy of the English" is red on main since #248: `stk_by_jambo` is 'Jambo' in both books (a name); it belongs in f148's SAME_IN_BOTH beside `pd_tab_copilot`.
+
+## Bug log clean-up — 13 Oct 2026 (owner: "Clean up GitHub bugs so that I am green. After that, start tackling the bug log one by one"; read newest first, in chunks)
+- FIXED: main's one red node check, f541 (E), re-pointed to the Negotiate row without its own Focus button.
+- FIXED: Swedish "Jambo är inte anslutet" now "ansluten" (ct_triage_optin_sub_noai, th_cannot_noai; f615).
+- FIXED: "Open contract" on Our standards and on Jambo's agents lands on Home's Document like every list's (sdOpenContract, agGo 'contract').
+- FIXED: the round-on-a-standing-link toast printed nothing and escaped the name twice; toastsClear is published.
+- FIXED: approval rule Save/Remove and the counterparty's "Comment sent" toasts are seen ('ok'; di_comment_sent_to in both books); "Plain View" reads "Plain" (ov_r_plain).
+- FIXED: a Signed or Declined contract asks nobody's approval (approvalDecidableNow), so the checklist no longer says "Your approval is asked for" on one.
+- FIXED: POST /api/users refuses a name another member already has (409, the same wall as PATCH).
+- FIXED: the desk's Send for review and the triage card's Decline go through the one act (contractLeavesDrafting, contractDecline; f273 re-pointed).
+- FIXED: a scan flag's "Deviation"/"Check" tag beside a template clause heading is no longer read in as wording (data-not-wording, htmlToStructuredText; f669).
+- FIXED: the board's risks pack names risks by their short title (riskTitleOf).
+- FIXED: Explorer reads a number in words in a top N ("the top two", "the three smallest", "topp fem"; f532).
+- FIXED: Word files write w:spacing before w:ind, Word's own order (f288).
+- FIXED: Negotiate's solo-send toasts are in both books (ng_solo_*).
+- FIXED: a refresh with the Deal board open lands back on the board (rlPlace/rlPlacePut; refresh-keeps-your-spot-verify 5b).
+- CHECKED, ALREADY FIXED EARLIER: stk_by_jambo both books, the Scanning toast's ring, the draft-delete toast, the fill form's "[object Object]" side list, PD_ROOM_TAB keys, "Rests on: Rests on:", Send back with a note on a signed contract, the MK reference in your own chat bubble, "Decided by somebody", the respond route's sign-check wording, SIGN_STAGE_OF keys, the Contracts row's Decline, the value inside an approval stamp.
+- PARKED FOR THE OWNER: the CLAUDE.md trim (about 84 KB, over its 80 KB line); Outlook/Google calendar sync; the upload light row's blank count; Simplify on Home's highlight menu; the Notes drawer covering the Chat door; the sign-in welcome toasts (showing them is a new message on screen); the Sign button's count ("5 to settle") against signBlockers' list (which one is right is a product call).
+- LEFT AS IS: approveContract in both core.js and approvals.js (f48 allows the pair on purpose); their-edit-page-verify's retired discard press and theme-tokens-verify's 'signing' stage key (test files on KNOWN_RED, not reached this round).

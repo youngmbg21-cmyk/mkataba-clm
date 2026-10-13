@@ -2191,7 +2191,7 @@ const portalNegoComment = p => async (_c, ch, msg) => {
         topicLabel: ch ? `Change #${ch.id}${ch.clauseLabel?' · '+ch.clauseLabel:''}` : i18t('di_contract_generally'),
         body:msg.text, meta:(window.negoNoteMeta?negoNoteMeta(msg):undefined) });
     PORTAL_OPTS.messages=(res&&res.messages)||PORTAL_OPTS.messages||[];
-    toast(`Comment sent to ${(p&&p.org)||'the sender'} — the contract is unchanged`);
+    toast(i18t('di_comment_sent_to',{ who:(p&&p.org)||i18t('di_the_sender') }),'ok');
     portalNotesAfterPost();
     return { ok:true };
   }catch(e){ toast(portalErrText(e,'Could not send your comment'),'err'); return { ok:false }; }

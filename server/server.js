@@ -14844,6 +14844,10 @@ app.post('/api/users', auth, admin, async (req, res) => {
   if (!password || String(password).length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
   if (db.prepare('SELECT id FROM users WHERE email=?').get(email))
     return res.status(409).json({ error: 'A member with that email already exists' });
+  /* The same wall as PATCH /api/users/:id: a named approver is matched by
+     name where a rule has no id, so two members may not share one name. */
+  if (db.prepare('SELECT id FROM users WHERE lower(name)=lower(?)').get(name))
+    return res.status(409).json({ error: 'Another member already has that name.' });
   const salt = rid(16);
   // The admin chooses this password, so it is not the member's yet: they are
   // required to replace it on first sign-in before the account can do anything.

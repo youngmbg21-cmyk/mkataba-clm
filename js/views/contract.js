@@ -3592,7 +3592,7 @@ function docBody(c){
     const a=key||('c'+n);
     const p=flags[a]?FLAGPAL[flags[a].sev]:null;
     const wrap=p?` style="background:${p.box};outline:1px solid ${p.line};border-radius:var(--radius);padding:6px 10px;margin-bottom:14px"`:'';
-    const tag=p?`<span style="font-size:var(--t-figure);font-weight:var(--w-title);background:${p.bg};color:${p.fg};padding:1px 6px;border-radius:var(--radius);flex:none">${p.tag}</span>`:'';
+    const tag=p?`<span data-not-wording style="font-size:var(--t-figure);font-weight:var(--w-title);background:${p.bg};color:${p.fg};padding:1px 6px;border-radius:var(--radius);flex:none">${p.tag}</span>`:'';
     /* NO FIXED-SIZE UTILITY ON THE PAPER. These carried `text-[13.5px]` and
        `text-[13px]`, and both LIE: the 22 Aug size sweep moved the compiled
        values to 15px and 14px and left the class NAMES saying 13.5 and 13.
@@ -4397,14 +4397,10 @@ function wireActionBar(c){
       return;
     }
     if(kind==='review'){
-      /* THE SAME MOMENT AS contractLeavesDrafting, REACHED BY A DIFFERENT DOOR.
-         This one press does the funnel's job by hand rather than calling it —
-         drift that predates today and is reported, not fixed here — so the
-         reading has to be asked for by name. See AND COPILOT READS IT,
-         WHATEVER DOOR MADE IT in js/core.js for why this is the right moment
-         and why triageAndPaint refuses a second reading of its own accord. */
-      if(c.status==='Draft'){ c.status='Under Review'; c.lastAction=todayStr(); logAudit(c,'Status changed','Draft → Under Review (sent for review)'); persist(c); updateStatusUI(c); renderWorkspace(); toast(i18t('ct_moved_to_review'));
-        try{ triageAndPaint(c); }catch(_){} }
+      /* A STAGE IS A CLAIM, AND IT HAS ONE ACT (the phone's press since 9 Oct
+         2026, the desk's since 13 Oct): contractLeavesDrafting moves the stage,
+         writes the trail and asks Jambo's reading (triageAndPaint(c)) itself. */
+      if(c.status==='Draft' && contractLeavesDrafting(c, 'sent for review')){ persist(c); renderWorkspace(); toast(i18t('ct_moved_to_review')); }
       return;
     }
     /* The route lives on the Signing tab, so the button goes there and opens
