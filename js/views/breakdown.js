@@ -329,6 +329,31 @@ function stkDivePaint(c, card){
   if (!dv){ dv = document.createElement('div'); dv.className = 'stk-dive'; card.appendChild(dv); }
   dv.innerHTML = stkDiveHtml(c, b, _stk.dive);
 }
+/* ---- "START REDLINING WITH THIS ASK" LANDS ON ITS CLAUSE (owner, 13 Oct
+   2026: it opened Negotiate at the top of the paper, on another clause's
+   card, with no way back) ----
+   Through Negotiate's one door, carrying the point's clause and its ask:
+   Negotiate opens that clause in Edit with Jambo, the ask ready to use and
+   nothing filed or sent until a person presses. It remembers where the
+   reader came from — this contract's deep dive, its point and its filters —
+   so "‹ Back to clauses" returns to the same point (stkResume). */
+function stkRedlineGo(c){
+  const b = stkOf(c), p = b && _stk.dive >= 0 ? stkShown(c, b)[_stk.dive] : null;
+  let clauseId = '';
+  if (p && !p.missing && _stk.rows){
+    const at = stkAt(p, _stk.nums || [], _stk.rows), x = at >= 0 ? _stk.rows[at] : null;
+    if (x && typeof docXrayClauseId === 'function') clauseId = docXrayClauseId(x) || '';
+  }
+  if (typeof rlCameFromSet === 'function') rlCameFromSet({ id: String(c.id), dive: _stk.dive, f: { ..._stk.f } });
+  if (typeof openRedlineWorkbench !== 'function') return;
+  openRedlineWorkbench(c.id, { from: 'clauses', land: p && !p.missing ? { clauseId, quote: String(p.quote || ''), num: stkNum(p.clause), ask: p.by === 'jambo' ? String(p.ask || '') : '' } : null });
+}
+/* the way back puts the deep dive where the reader left it */
+function stkResume(f){
+  if (!f || !f.id) return;
+  _stk.id = String(f.id); _stk.dive = Number.isInteger(f.dive) ? f.dive : -1;
+  _stk.f = { reg: '', sev: '', by: '', ...(f.f || {}) }; _stk.mOpen = '';
+}
 function stkContract(){ return _stk.id && typeof getContract === 'function' ? getContract(_stk.id) : null; }
 /* light a point's words on the paper; a point with no words goes to its clause */
 function stkShow(c, p, i){
@@ -382,7 +407,7 @@ if (typeof document !== 'undefined' && !document._stkWired){
     const b = stkOf(c);
     const sh = t.closest('[data-stk-show]');
     if (sh && b){ const k = Number(sh.getAttribute('data-stk-show')); stkShow(c, stkShown(c, b)[k], k); return; }
-    if (t.closest('[data-stk-redline]')){ if (typeof openRedlineWorkbench === 'function') openRedlineWorkbench(c.id); return; }
+    if (t.closest('[data-stk-redline]')){ stkRedlineGo(c); return; }
     const ak = t.closest('[data-stk-ask]');
     if (ak && b){ const p = stkShown(c, b)[Number(ak.getAttribute('data-stk-ask'))];
       if (p && typeof intelAskReady === 'function') intelAskReady(i18t('stk_ask_q', { t: p.title })); }
@@ -405,4 +430,4 @@ if (typeof document !== 'undefined' && !document._stkWired){
   });
 }
 
-Object.assign(window, { stkDecorate, stkOf, stkRun, stkDiveOpen, stkDiveClose, bdOf, bdStale, bdRun });
+Object.assign(window, { stkRedlineGo, stkResume, stkDecorate, stkOf, stkRun, stkDiveOpen, stkDiveClose, bdOf, bdStale, bdRun });

@@ -15,6 +15,8 @@
    3i–3l no section squares; every coloured dot explains itself; a filter
      drops an open clause with nothing it keeps; a finger on a filter opens
      one list (the box is never focused after a touch)
+   5c–5f Start redlining lands on its clause in Edit with Jambo, nothing
+     filed; \u2039 Back to clauses returns to the same point and filter
    7 no page errors
 
    The Jambo route is stubbed in the page (window.api), so nothing is spent.
@@ -278,6 +280,39 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
         return { i, ring, cost, filled: /Ninety days of written notice/.test(t) && /ninety days of notice/i.test(t), busyGone: !/reading this point/.test(t), again: /Ninety days/.test(t2), dives: window.__dives };
       });
       ok('5b a point\'s deep dive is its own read on the press: the ring and its cost while it reads, then the dive, asked once', d1.ring && d1.cost && d1.filled && d1.busyGone && d1.again && d1.dives === 1, JSON.stringify(d1));
+
+      /* 5c "START REDLINING WITH THIS ASK" LANDS ON ITS CLAUSE AND FILES NOTHING,
+         AND THE WAY BACK RETURNS TO THE SAME POINT (owner, 13 Oct 2026) */
+      const j1 = await page.evaluate(async () => {
+        const c = getContract('MK-S1'); const before = (c.changes || []).length;
+        await new Promise(r => { const t = setInterval(() => { if (document.querySelector('#pd-thread .doc-th-row')){ clearInterval(t); r(); } }, 100); setTimeout(r, 4000); });
+        const el = document.querySelector('#pd-thread [data-stk-f="sev"]'); el.value = 'need'; el.dispatchEvent(new Event('change', { bubbles: true }));
+        stkDiveOpen(c, 0); await new Promise(r => setTimeout(r, 300));
+        const title = (document.querySelector('#pd-thread .stk-dv h3') || {}).innerText || '';
+        document.querySelector('#pd-thread [data-stk-redline]').click();
+        await new Promise(r => setTimeout(r, 2500));
+        const ceId = window.clauseEditorOpen && clauseEditorOpen() ? clauseEditorClauseId() : null;
+        const cl = ceId ? negoClauseList(getContract('MK-S1')).find(x => x.clauseId === ceId) : null;
+        return { title, view: state.view, editor: !!ceId, clause: cl ? clauseLabel(cl) : null,
+          ask: (document.getElementById('ce-ask') || {}).value || '', filed: (getContract('MK-S1').changes || []).length - before,
+          back: (document.querySelector('#shell-title [data-rl-back-clauses]') || {}).textContent || '' };
+      });
+      ok('5c "Start redlining with this ask" opens its own clause in Edit with Jambo, the ask ready and unsent, nothing filed',
+        j1.view === 'redline' && j1.editor && /\b3\b/.test(j1.clause || '') && /12 months before the claim/.test(j1.ask) && j1.filed === 0, JSON.stringify(j1));
+      ok('5d the bar offers "‹ Back to clauses" on that trip', /Back to clauses/.test(j1.back), j1.back);
+      const j2 = await page.evaluate(async () => {
+        document.querySelector('#shell-title [data-rl-back-clauses]').click();
+        await new Promise(r => setTimeout(r, 2500));
+        if (document.getElementById('confirm-overlay')){ const go = document.querySelector('#confirm-overlay #cf-ok'); if (go) go.click(); await new Promise(r => setTimeout(r, 2000)); }
+        return { view: state.view, title: (document.querySelector('#pd-thread .stk-dv h3') || {}).innerText || '',
+          sev: (document.querySelector('#pd-thread [data-stk-f="sev"]') || {}).value, crumbGone: !document.querySelector('[data-rl-back-clauses]') };
+      });
+      ok('5e the way back lands on the Clauses tab, the same point open, the same filter', j2.view === 'dashboard' && j2.title === j1.title && j2.sev === 'need' && j2.crumbGone, JSON.stringify(j2));
+      await page.evaluate(() => { const c = getContract('MK-S1'); stkDiveClose(c); const el = document.querySelector('#pd-thread [data-stk-f="sev"]'); if (el){ el.value = ''; el.dispatchEvent(new Event('change', { bubbles: true })); } });
+      /* 5f ANOTHER DOOR ONTO NEGOTIATE FORGETS THE TRIP: no way back offered */
+      const j3 = await page.evaluate(async () => { openRedlineWorkbench('MK-S1'); await new Promise(r => setTimeout(r, 1500));
+        const out = !document.querySelector('[data-rl-back-clauses]'); setView('dashboard'); pdOpenOnHome('MK-S1', 'doc'); await new Promise(r => setTimeout(r, 1200)); return out; });
+      ok('5f Negotiate opened by another door offers no way back to the clauses', j3);
 
       await page.evaluate(() => { window.__bd.refuse = true; window.__bd.n = 0; pdOpenOnHome('MK-S2', 'doc'); });
       const said = await page.waitForSelector('#pd-thread .stk-err', { timeout: 8000 }).then(() => true, () => false);

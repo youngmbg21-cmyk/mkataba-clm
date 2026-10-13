@@ -8774,6 +8774,10 @@ function openRedlineWorkbench(id, opts = {}){
     });
     return false;
   }
+  /* WHERE THE READER CAME FROM (owner, 13 Oct 2026): a door that is not the
+     Clauses tab's "Start redlining with this ask" forgets it, so "‹ Back to
+     clauses" is offered only on the trip it belongs to. */
+  if (opts.from !== 'clauses') rlCameFromSet(null);
   redlineEvict(target, opts);
   if (window.state) state.activeId = target;
   /* IT SAYS THAT IT NAMED ONE, rather than leaving the next paint to infer it
@@ -8783,7 +8787,82 @@ function openRedlineWorkbench(id, opts = {}){
   _rlDoorAsked = 'named';
   if (typeof setView === 'function') setView('redline');
   else renderRedline();
+  if (opts.land && held) setTimeout(() => rlLandOn(held, opts.land), 0);
   return true;
+}
+/* ---- WHERE THE READER CAME FROM, AND THE WAY BACK (owner, 13 Oct 2026:
+   "After you go through the journey, how do you get back to where you
+   were?") ----
+   Held for this browser tab (a refresh keeps it), one trip at a time. The bar
+   draws "‹ Back to clauses" on this contract's Negotiate while it stands
+   (shellCrumbAdopt); a press returns to Home's Clauses with the deep dive on
+   the same point and the same filters. */
+const RL_FROM_KEY = 'hati.v1.rlFrom';
+function rlCameFrom(id){
+  try{ const f = JSON.parse(sessionStorage.getItem(RL_FROM_KEY) || 'null');
+    return f && f.id && (id == null || String(f.id) === String(id)) ? f : null; }catch(_){ return null; }
+}
+function rlCameFromSet(f){
+  try{ if (f) sessionStorage.setItem(RL_FROM_KEY, JSON.stringify(f)); else sessionStorage.removeItem(RL_FROM_KEY); }catch(_){ }
+}
+function rlBackToClauses(){
+  const f = rlCameFrom(); if (!f) return false;
+  const go = () => {
+    if (typeof setView === 'function') setView('dashboard');
+    if (window.state && state.view !== 'dashboard') return;   // a draft on the paper asked first; the reader stayed
+    rlCameFromSet(null);
+    if (window.stkResume) stkResume(f);
+    if (window.pdOpenOnHome) pdOpenOnHome(f.id, 'doc');
+  };
+  /* THE EDITOR'S OWN GUARD: an unfiled draft is asked about before it goes */
+  if (window.clauseEditorOpen && clauseEditorOpen()){
+    const shut = () => { if (window.rlCloseClauseEditor) rlCloseClauseEditor(); go(); };
+    if (window.ceLeaveGuard) ceLeaveGuard(shut); else shut();
+    return true;
+  }
+  go();
+  return true;
+}
+if (typeof document !== 'undefined') document.addEventListener('click', e => {
+  const b = e.target && e.target.closest && e.target.closest('[data-rl-back-clauses]');
+  if (!b) return;
+  e.preventDefault();
+  rlBackToClauses();
+});
+/* ---- LAND ON THE POINT'S CLAUSE ----
+   The clause is the one the Clauses tab named (its id where the paper carries
+   one, else the clause holding the point's quote, else its number). Where Edit
+   with Jambo fits, it opens there: a point found by our standards meets its
+   Playbook card (Use our standard · fallback · Jambo's draft); a point Jambo
+   found puts his ask in the ask box, unsent. NOTHING IS FILED OR SENT HERE —
+   the reader presses. Too narrow for the editor, the paper scrolls to it. */
+function rlLandOn(c, land){
+  if (!c || !land || !(window.state && state.view === 'redline')) return;
+  const norm = x => String(x || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  const list = negoClauseList(c);
+  const textOf = cl => norm(window.richToText ? richToText(cl.body || cl.text || '') : (cl.text || ''));
+  let cl = land.clauseId ? list.find(x => x.clauseId === land.clauseId) : null;
+  const q = norm(land.quote).slice(0, 80);
+  if (!cl && q.length >= 12) cl = list.find(x => textOf(x).includes(q));
+  /* by number: "21.1" sits in the clause numbered 21.1, else in 21 */
+  const numOf = x => { const m = /(\d+(?:\.\d+)*)/.exec(window.clauseLabel ? clauseLabel(x) : ''); return m ? m[1] : ''; };
+  for (let n = String(land.num || ''); !cl && n; n = n.includes('.') ? n.slice(0, n.lastIndexOf('.')) : '')
+    cl = list.find(x => numOf(x) === n) || null;
+  if (!cl) return;
+  /* THROUGH THE MOUNT'S OWN DOOR (_rlEditorDoor, the one place a press onto
+     the editor is decided, f245) — exactly as the Edit clause button goes */
+  const door = _rlEditorDoor && _rlEditorDoor.id === c.id && typeof _rlEditorDoor.open === 'function' ? _rlEditorDoor : null;
+  if (door && window.clauseEditorFits && clauseEditorFits()){
+    if (!door.open(cl.clauseId)) return;
+    if (land.ask) setTimeout(() => {
+      const box = document.getElementById('ce-ask');
+      if (!box || box.value) return;
+      box.value = i18t('stk_ask_prefill', { ask: land.ask });
+      try{ box.dispatchEvent(new Event('input', { bubbles: true })); }catch(_){ }
+    }, 0);
+    return;
+  }
+  rlJumpToClause(cl.clauseId);
 }
 /* ============================================================
    THE WORKBENCH AS A COMPONENT — one negotiation surface, both sides
@@ -21616,7 +21695,7 @@ function redlineSyncProxies(host){
   });
 }
 
-if (typeof window !== 'undefined') Object.assign(window, { paperZcFit, rlRoundPrepLineHtml, rlUnsentList, rlAddClauseBtnHtml, rlAddClause, rlEditClauseBtnHtml, rlClauseInView, rlEditClausePress,
+if (typeof window !== 'undefined') Object.assign(window, { paperZcFit, rlCameFrom, rlCameFromSet, rlBackToClauses, rlLandOn, rlRoundPrepLineHtml, rlUnsentList, rlAddClauseBtnHtml, rlAddClause, rlEditClauseBtnHtml, rlClauseInView, rlEditClausePress,
   rlInlineClick, rlInlineSave, rlInlineDirty, rlInlineOn, rlInlineEnd,
   renderRedline, redlineRoundLabel, redlineSyncProxies,
   rlToggleDiscussion, rlSideMode, rlSetSideMode, rlLayoutResizer, rlWireResizer, rlWireClauseTools,

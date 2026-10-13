@@ -7306,7 +7306,7 @@ if (typeof document !== 'undefined' && !document._ceWired){
 }
 
 Object.assign(window, {
-  ceApplyZoom, ceStacksOn, ceTypingRefusal, ceMarkedHtml, ceTwinHtml, ceTwinPaint,
+  ceApplyZoom, ceLeaveGuard, ceStacksOn, ceTypingRefusal, ceMarkedHtml, ceTwinHtml, ceTwinPaint,
   clauseEditorOpen, clauseEditorClauseId, clauseEditorContract, clauseEditorDirty, ceCanFile, clauseEditorCss,
   clauseEditorLeaveAsk,
   clauseEditorHtml, clauseEditorRefusal, clauseEditorFits,

@@ -168,7 +168,7 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
       return new Promise(r => setTimeout(() => r({ shared: !!document.querySelector('.ce-readbar .rl-type-step [data-rl-type]'), own: !!document.querySelector('.ce-zoom, [data-ce-zoom]'),
         out: (document.querySelector('.ce-readbar .rl-type-out') || {}).textContent, want: rlDocZoom() + '%' }), 1500)); }, id);
     ok('6e the clause editor draws the same zoom, at the remembered value — no second control', ce.shared && !ce.own && ce.out === ce.want, JSON.stringify(ce));
-    await page.evaluate(() => { if (window.clauseEditorOpen && clauseEditorOpen() && window.ceClose) ceClose(); }).catch(() => {});
+    await page.evaluate(() => { if (window.clauseEditorOpen && window.clauseEditorOpen() && window.rlCloseClauseEditor) window.rlCloseClauseEditor(); }).catch(() => {});
 
     ok('5 no page errors', errs.length === 0, errs.slice(0, 2).join(' | ') || null);
   } catch (e) { fail++; console.log('FAIL  the check threw — ' + e.message); }
