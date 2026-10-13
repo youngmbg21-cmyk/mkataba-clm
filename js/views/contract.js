@@ -14477,6 +14477,12 @@ function docThreadPaint(c){
   /* WHICH HOME this paint is for; a move between them starts the open row,
      the walk and the list's place afresh — they belonged to the other paper. */
   const want=thHostFor(c);
+  /* A PAINT WITH NOWHERE TO DRAW TAKES NOTHING (13 Oct 2026): a paint for a
+     contract that is not on Home's panel, where no room list is drawn either,
+     used to move the host to 'doc' and stop - leaving Home's list drawn but
+     its presses reading a paper that is not there ("There is no wording here
+     to read yet." on Plain English). */
+  if(want!==_thHost&&!document.getElementById(TH_HOSTS[want].card)) return;
   if(want!==_thHost){ _thHost=want; _docThreadOn=-1; _docThreadRows=[]; _docThreadCache=null; _docThreadRevealed=-1; }
   const home=thOnHome();
   const card=thEl('card');
