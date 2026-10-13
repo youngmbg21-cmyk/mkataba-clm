@@ -218,6 +218,11 @@ const SEED = () => {
        the KEYBOARD order, which are the two things a reader actually follows.
        Every door keeps its own data-view, and the "New" badge travels inside
        the block it is in. */
+    /* RE-POINTED 12 Oct 2026 (Young: Insights opens to the right with two
+       folders, Insights and Jambo's agents): the Insights door is inside the
+       fly-out now, so the fly-out is opened before the doors are read — it
+       floats level with its opener, so the painted order still holds. */
+    await page.evaluate(() => { const f = document.querySelector('.nav-fold[data-nav-fold="insights"]'); if (f && typeof navFoldOpen === 'function') navFoldOpen(f); });
     const nav = await page.evaluate(() => {
       const items = [...document.querySelectorAll('#side-nav .nav-item[data-view]')];
       return { order: items.map(b => b.getAttribute('data-view')),

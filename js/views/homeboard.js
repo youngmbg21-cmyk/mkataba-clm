@@ -9117,7 +9117,10 @@ function hbOnClick(e){
   if ((el = on('[data-hb-ser]'))){ hbSerToggle(el.getAttribute('data-hb-ser-key'), el.getAttribute('data-hb-ser')); hbPaintBoard(); return; }
   if (on('[data-hb-figpick]')){ _hbFigPick = !_hbFigPick; hbPaintBoard(); return; }
   if ((el = on('[data-hb-figkey]'))){ if (!el.disabled){ hbFigToggle(el.getAttribute('data-hb-figkey')); hbPaintBoard(); } return; }
-  if (on('[data-hb-agents-page]')){ hbDig('ag:', false, true); return; }
+  /* THE AGENTS HAVE ONE PLACE (12 Oct 2026): the card's "The agents" opens
+     Jambo's agents behind Insights — his house, his jobs and his points —
+     rather than a second table of them here. */
+  if (on('[data-hb-agents-page]')){ if (typeof setView === 'function') setView('jambo'); return; }
   if (on('[data-hb-ins-fold]')){ const st = hbS(); st.insFold = !st.insFold; hbSave(); hbPaintBoard(); return; }
   if ((el = on('[data-hm-agent]'))){ e.stopPropagation(); hbOpenAgent(el.getAttribute('data-hm-agent')); return; }
   if (on('[data-hb-sheet-x]')){ hbSheetClose(); return; }

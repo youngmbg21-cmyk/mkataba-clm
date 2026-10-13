@@ -1999,6 +1999,7 @@
   .nav-fold.is-hover > .nav-fold-head,.nav-fold.is-open > .nav-fold-head{background:var(--nav-well,var(--color-neutral-100))}
   .nav-fold-head.is-current{background:var(--nav-well,var(--color-neutral-100));font-weight:var(--w-title)}
   .nav-fold-dot{flex:none;width:7px;height:7px;border-radius:50%;background:var(--st-amber-dot)}
+  .nav-item img.nav-jambo-face{flex:none;width:16px;height:16px;border-radius:50%;background:transparent}
   .nav-fold-dot[hidden],.nav-fold.is-hover .nav-fold-dot,.nav-fold.is-open .nav-fold-dot{display:none}
   #app-shell.rail aside .nav-fold-dot{position:absolute;top:6px;right:8px}
   #app-shell.rail aside .nav-fold-chev{display:none}
@@ -4557,22 +4558,16 @@
   }
   #kt-overview{ container:ovpane / inline-size; }
   /* ---- THE DETAILS TAB (owner, 12 Oct 2026): the paper left, the boxes
-     right. The one card in its edit posture stacks in the narrow column (the
-     same container rule as the Overview), two boxes to a row. */
-  #kt-det-terms{ container:ovpane / inline-size; }
+     right — only what the paper owes since 13 Oct 2026. */
   /* AN EMPTY BLANK ON THE PAPER IS YELLOW while the Details tab holds it
      (owner, 12 Oct 2026), until it is answered; the light of the box being
      typed (contractFieldLight, .is-fieldlit) is left out, so its green wins. */
   #doc-grid[data-tab="details"] #doc-canvas [data-doc-answer].is-empty:not(.is-fieldlit),
   #doc-grid[data-tab="details"] #doc-canvas .hati-field[data-field-key]:not(.is-fieldlit){ background-color:var(--st-amber-bg); }
-  #kt-det-terms:empty, #det-head:empty{ display:none; }
-  #kt-det-terms .sec-fields{ grid-template-columns:repeat(2,minmax(0,1fr)); }
-  #kt-det-terms .ov-pty-list{ max-height:none; }
-  #kt-det-terms .ov-top{ margin-bottom:8px; }
+  #det-head:empty{ display:none; }
   /* THE DETAILS COLUMN AS A FORM (owner, 13 Oct 2026): one card of plain,
-     visible boxes (the New agreement page's own .cd-fld), the other terms one
-     fold away; the parties, people and filing folded underneath, with no
-     scroll area of their own inside the column's one scroll. */
+     visible boxes (the New agreement page's own .cd-fld) holding what the
+     paper owes; everything else is the Overview's. */
   .det-card{ background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:12px 14px; display:flex; flex-direction:column; gap:12px; }
   .det-card:empty{ display:none; }
   .det-card-h{ display:flex; align-items:center; gap:var(--s-2); }
@@ -4583,15 +4578,6 @@
   #det-basics .cd-fld :is(input,select):focus{ outline:none; background-color:var(--color-surface); border-color:var(--accent-fill); box-shadow:0 0 0 3px var(--color-accent-100); }
   #det-basics .cd-fld input[type="checkbox"]{ height:13px; padding:0; }
   #det-basics .ov-val-edit{ flex-wrap:wrap; }
-  .det-fold > summary, .det-more > summary{ cursor:pointer; font-size:var(--t-label); font-weight:var(--w-label); color:var(--accent-ink); padding:2px 0; }
-  .det-fold > .det-grid{ margin-top:10px; }
-  .det-more{ background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:10px 14px; }
-  .det-more[open] > summary{ margin-bottom:10px; }
-  #kt-det-terms .ov-ess{ border:0; box-shadow:none; }
-  #kt-det-terms .ov-ess-body{ grid-template-columns:minmax(0,1fr); }
-  #kt-det-terms .ov-ess-p{ border-right:0; padding:0; }
-  #kt-det-terms .ov-pty-list{ contain:none; flex:none; min-height:0; max-height:none; overflow:visible; }
-  .det-top-t{ flex:1; font-size:var(--t-card); font-weight:var(--w-strong); color:var(--color-text); }
   .det-head{ background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
   .det-h-row{ display:flex; align-items:center; gap:var(--s-2); }
   .det-h-t{ flex:1; font-family:var(--font-heading); font-size:var(--t-card); font-weight:var(--w-strong); color:var(--color-text); }
@@ -11738,11 +11724,13 @@
   .ui-btn-primary:disabled,.ui-btn-primary[aria-disabled="true"]{color:#fff;background:var(--accent-fill);border-color:var(--accent-fill);}
   .ui-btn-plain:disabled,.ui-btn-plain[aria-disabled="true"]{border-color:transparent;}
   .ui-btn.ui-btn-danger:disabled{color:var(--st-ruby-fg);border-color:var(--st-ruby-line);}
-  /* ONE EDGE FOR EVERY OUTLINED CONTROL (button, stepper, segmented switch):
-     the token every one of them already reads becomes the accent; at night
-     the accent's lighter ink, so the edge stays visible on the dark ground. */
-  :root{ --btn-lift:rgba(10,20,40,.18); --btn-edge:var(--accent-solid); }
-  html.dark{ --btn-lift:rgba(0,0,0,.45); --btn-edge:var(--accent-ink); }
+  /* ONE EDGE FOR EVERY OUTLINED CONTROL (button, stepper, segmented switch)
+     IS THE THIN GREY HAIRLINE AGAIN (owner, 13 Oct 2026: "revert all the
+     buttons back to the previous thin grey outline that was changed earlier
+     today"): 12 Oct's accent edge is undone; by night the stronger rule so
+     the edge stays visible. The accent still lights an edge on hover. */
+  :root{ --btn-lift:rgba(10,20,40,.18); --btn-edge:var(--color-divider); }
+  html.dark{ --btn-lift:rgba(0,0,0,.45); --btn-edge:var(--rule-strong); }
   /* A FILTER IS NOT A BUTTON: on the Contracts filter bar the accent edge is
      what says a filter is IN FORCE, so a resting chip keeps the hairline
      (--chip-edge, the old grey by day and night) and only an active one wears
@@ -13487,12 +13475,37 @@
                [data-view="intel"] rather than on position, so they follow it
                here. The keyboard order is the markup order, so tabbing the
                column reads in this order too. -->
-          <button data-view="intel" class="nav-item" title="Insights — how your portfolio is behaving" data-i18n-title="nav_insights_title">
+          <!-- INSIGHTS OPENS TO THE RIGHT, LIKE CONTRACTS (Young, 12 Oct 2026: "have
+               two folders when you hover over it one for insights and the other for
+               the agents. Just like when you have hover over the contracts page").
+               The row is the opener only (navFoldOpen, the Contracts fold's own
+               wiring); the fly-out holds Insights (the page as it was, still EARNED
+               — hidden below NAV_EARN_AT.intel, its "New" tag inside it) and Jambo's
+               agents (the house, his jobs and his points; js/views/jambohouse.js),
+               which is there from day one, so the opener always has a folder.
+               It carries NO count: Jambo's work ready for the reader is counted on
+               the Board's own card and nowhere else (Young, 7 Oct 2026; f-verify
+               home-prepared-by-copilot 2c). -->
+          <div class="nav-fold" data-nav-fold="insights">
+            <button type="button" class="nav-item nav-fold-head" data-nav-fold-open="insights" aria-haspopup="menu" aria-expanded="false" title="Insights and Jambo's agents" data-i18n-title="nav_insights_group_title">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-insight"/></svg>
-            <span style="flex:1;" data-i18n="nav_insights">Insights</span><span id="nav-intel-new" class="nav-count" data-tone="teal" hidden
-              title="Newly unlocked — your portfolio is big enough for Insights to say something" data-i18n-title="nav_insights_new_title" data-i18n="nav_new_badge">New</span>
+            <span style="flex:1;" data-i18n="nav_insights">Insights</span><i class="nav-fold-dot" data-fold-dot aria-hidden="true" hidden></i><i class="nav-fold-chev" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 2.5 3.5 3.5-3.5 3.5"/></svg></i>
           </button>
+            <div class="nav-sub" role="menu" aria-label="Insights" data-i18n-aria="nav_insights">
+            <button data-view="intel" class="nav-item" role="menuitem" title="Insights — how your portfolio is behaving" data-i18n-title="nav_insights_title">
+              <span class="nav-rail"></span>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-insight"/></svg>
+              <span style="flex:1;" data-i18n="nav_insights">Insights</span><span id="nav-intel-new" class="nav-count" data-tone="teal" hidden
+                title="Newly unlocked — your portfolio is big enough for Insights to say something" data-i18n-title="nav_insights_new_title" data-i18n="nav_new_badge">New</span>
+            </button>
+            <button data-view="jambo" class="nav-item" role="menuitem" title="Jambo's agents — his house, his jobs and his points" data-i18n-title="nav_jambo_title">
+              <span class="nav-rail"></span>
+              <img data-jambo-face="hello" data-ink-exempt class="jambo-face nav-jambo-face" width="16" height="16" alt="" draggable="false">
+              <span style="flex:1;" data-i18n="nav_jambo">Jambo's agents</span>
+            </button>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -2083,22 +2083,28 @@ async function agRunAct(key, act){
   const it = agFind(key);
   if (!it) return;
   const c = it.c ? ((typeof getContract === 'function' && getContract(it.cid)) || it.c) : null;
+  /* WHAT BECAME OF JAMBO'S WORK (12 Oct 2026, the agents page's points): an
+     act that used it, changed it or put it away says so to the server, after
+     the act has happened (agPieceSay, js/views/jambohouse.js). Opening a page
+     is not using the work, so the doors below say nothing. */
+  const said = (o, ref) => { try { if (typeof agPieceSay === 'function') agPieceSay(it.agent, it.cid || '', o, ref || ''); } catch (_){} };
   /* a row's own door: "go|<contract>|<tab>" (Week ahead's rows) */
   if (String(act).startsWith('go|')){ const [, cid, tab] = String(act).split('|'); return agGo(tab === 'oblig' ? 'oblig' : 'terms', cid); }
   if (act === 'approve' || act === 'refuse'){
     if (!c || typeof approvalDecideAsk !== 'function') return agGo('sign', it.cid);
     const ok = await approvalDecideAsk(c, act === 'approve' ? 'approved' : 'refused');
-    if (ok) agRepaint();
+    if (ok){ said('used'); agRepaint(); }
     return;
   }
-  if (act === 'ikdraft'){ if (it.r && typeof intakeDraft === 'function') intakeDraft(it.r.id); return; }
-  if (act === 'draftreply') return agDraftReply(key);
-  if (act === 'usereply') return agUseReply(key);
+  if (act === 'ikdraft'){ if (it.r && typeof intakeDraft === 'function'){ intakeDraft(it.r.id); said('used', it.r.id); } return; }
+  if (act === 'draftreply'){ const was = _agReplies.get(key); if (was && was.state === 'done') said('changed', key); return agDraftReply(key); }
+  if (act === 'usereply'){ said('used', key); return agUseReply(key); }
   if (act === 'ikopen'){ if (it.r && typeof intakeGoTo === 'function') intakeGoTo(it.r.id); return; }
   if (act === 'calendar'){ if (typeof setView === 'function') setView('calendar'); return; }
   if (act === 'ics'){
     if (typeof calIcsFor !== 'function' || typeof downloadFile !== 'function' || !it.evs) return;
     downloadFile('hati-week-ahead.ics', calIcsFor(it.evs), 'text/calendar');
+    said('used', key);
     if (typeof toast === 'function') toast(_agTn('ag_ics_done', it.evs.length, { n: it.evs.length }), 'ok');
     return;
   }
@@ -2112,7 +2118,7 @@ async function agRunAct(key, act){
   if (act === 'oblig') return agGo('oblig', it.cid);
   if (act === 'import') return agGo('import');
   if (act === 'signing') return agGo('sign', it.cid);
-  if (act === 'fresh') return agFreshLink(key);
+  if (act === 'fresh'){ await agFreshLink(key); if (!agFind(key)) said('used'); return; }
   if (act === 'keepopen'){
     if (!c || typeof shareKeepOpen !== 'function' || !it.soon) return;
     /* MORE TIME IS STILL REACH (4 Oct 2026): the one link check's keeping
@@ -2127,6 +2133,7 @@ async function agRunAct(key, act){
     catch (e){ if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); return; }
     if (typeof closeModal === 'function') try { closeModal(); } catch (_){}
     if (typeof toast === 'function') toast(_agT('ag_kept_open', { date: _agDay(r && r.expiresAt) }), 'ok');
+    said('used');
     agRepaint();
     return;
   }
@@ -2136,6 +2143,7 @@ async function agRunAct(key, act){
     const pid = it.party && it.party.partyId;
     await openShareModal(c, { purpose: 'negotiate', handOver: true, onSent(){
       if (typeof roundHandedOver === 'function') roundHandedOver(c);
+      said('used');
       agRepaint();
     } });
     /* THE PARTY IS CHOSEN on the dialog's own control, which says so and can be
@@ -2148,6 +2156,7 @@ async function agRunAct(key, act){
     if (typeof obligationChase !== 'function' || !it.ob) return;
     await obligationChase(it.cid, it.ob.id, { firm: true });
     const still = agFind(key);
+    if (!still) said('used', it.ob.id);
     if (!still && typeof closeModal === 'function') try { closeModal(); } catch (_){}
     agRepaint();
     return;
@@ -2159,6 +2168,7 @@ async function agRunAct(key, act){
        hand-over, and the turn moved only once something has really gone. */
     openShareModal(c, { purpose: 'negotiate', handOver: true, onSent(){
       if (typeof roundHandedOver === 'function') roundHandedOver(c);
+      said('used');
       agRepaint();
     } });
     return;
@@ -2178,6 +2188,7 @@ async function agRunAct(key, act){
     const onBoard = typeof state !== 'undefined' && state && state.view === 'dashboard';
     if (!onBoard && typeof selectContract === 'function') selectContract(c.id);
     if (typeof openCheckPanel === 'function') setTimeout(() => { try { openCheckPanel(getContract(c.id) || c, 'brief'); } catch (_){} }, 0);
+    said('used');
     return;
   }
   if (act === 'obs'){
@@ -2189,13 +2200,14 @@ async function agRunAct(key, act){
     const load = agLoadWhole(c);
     if (load) await load;
     if (typeof closeModal === 'function') try { closeModal(); } catch (_){}
-    try { await runFindObligations(c); } catch (_){}
+    try { await runFindObligations(c); said('used'); } catch (_){}
     return;
   }
   if (act === 'away'){
     if (c && typeof deskDismiss === 'function' && deskDismiss(c, it.deskKey)){
       if (typeof closeModal === 'function') try { closeModal(); } catch (_){}
       if (typeof toast === 'function') toast(_agT('ag_put_away'), 'ok');
+      said('thrown');
       agRepaint();
     }
     return;
@@ -2204,6 +2216,7 @@ async function agRunAct(key, act){
     if (c && typeof triageAck === 'function' && triageAck(c)){
       if (typeof closeModal === 'function') try { closeModal(); } catch (_){}
       if (typeof toast === 'function') toast(_agT('ag_marked_read'), 'ok');
+      said('used');
       agRepaint();
     }
     return;
@@ -2214,6 +2227,7 @@ async function agRunAct(key, act){
        obligation — nothing here repeats any of it. */
     await obligationChase(it.cid, it.ob.id);
     const still = agFind(key);
+    if (!still) said('used', it.ob.id);
     if (!still && typeof closeModal === 'function') try { closeModal(); } catch (_){}
     agRepaint();
     return;

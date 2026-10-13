@@ -131,18 +131,22 @@ const HELPERS = `(() => {
          3e), and the Thread's own step squares take the edge too. */
       const step = pick('#ig-paper .rl-type-step');
       const thStep = pick('#pd-thread .doc-th-row.is-open .doc-th-step');
-      return { want, light: b.tok('--color-neutral-200'), accent: b.tok('--accent-solid'), fill: b.bg('--accent-fill'),
+      /* RE-POINTED 13 Oct 2026 (owner: the paper's zoom goes back to what it
+         was): the stepper is the paper's instrument, not an act, and reads
+         the hairline (--chip-edge); Open Negotiate keeps the accent edge. */
+      return { want, hair: b.tok('--chip-edge'), light: b.tok('--color-neutral-200'), accent: b.tok('--accent-solid'), fill: b.bg('--accent-fill'),
         nego: negoEdge, step: b.edge(step), thStep: b.edge(thStep), switchGone: !document.querySelector('[data-doc-read]') };
     }, negoEdge);
     ok('3a the controls the owner photographed paint ONE edge — Open Negotiate and the stepper; the switch is gone',
-      !!(row.nego && row.step) && row.switchGone && [row.nego, row.step].every(c => c === row.want),
-      `Open Negotiate ${row.nego} · stepper ${row.step} · token ${row.want}${row.switchGone ? '' : ' · a switch is still drawn'}`);
+      !!(row.nego && row.step) && row.switchGone && row.nego === row.want && row.step === row.hair,
+      `Open Negotiate ${row.nego} (want ${row.want}) · stepper ${row.step} (want the hairline ${row.hair})${row.switchGone ? '' : ' · a switch is still drawn'}`);
     /* RE-POINTED 9 Oct 2026 (Ink Wash: light mode has no grey; the light edge
        is the ramp's divider step, black + the theme colour). Same claim, as a
        RELATION: the edge is the LIGHT step, not a darker one. */
-    /* RE-POINTED 12 Oct 2026 (the SAP way, the owner's pick by name): the one
-       edge is the ACCENT now, not the ramp's light divider step. */
-    ok('3b and it is the accent edge, the SAP way', !!row.accent && row.want === row.accent && row.want !== row.light, `${row.want} vs accent ${row.accent}`);
+    /* RE-POINTED 12 Oct 2026 to the accent (the SAP way), and BACK 13 Oct 2026
+       (owner: "revert all the buttons back to the previous thin grey
+       outline"): the one edge is the ramp's light divider step again. */
+    ok('3b and it is the LIGHT edge, the ramp\'s divider step', !!row.light && row.want === row.light && row.want !== row.accent, `${row.want} vs ${row.light}`);
     ok('3c the Thread\'s ‹ › squares take the same edge', !!row.thStep && row.thStep === row.want, `step ${row.thStep}`);
 
     await page.evaluate(i => openRedlineWorkbench(i, { blanksAsked: true }), id);
@@ -169,6 +173,7 @@ const HELPERS = `(() => {
         if (el.closest('#top-header')) continue;          /* the navy bar's controls are white-on-navy by design */
         if (el.classList.contains('nav-section-head')) continue;   /* on the 64px rail a group is a hairline divider, not an outlined control */
         if (el.matches('.reg-filterbar .reg-chip:not(.on)')) continue;   /* a resting FILTER keeps its hairline (--chip-edge); the accent says it is in force */
+        if (el.matches('.rl-type-step')) continue;   /* the paper's zoom keeps its hairline (owner, 13 Oct 2026) */
         const cs = getComputedStyle(el);
         if (!(parseFloat(cs.borderTopWidth) >= 0.5) || cs.borderTopStyle === 'none') continue;
         const col = cs.borderTopColor; if (/rgba\\([^)]*,\\s*0\\)$/.test(col) || col === 'transparent') continue;
