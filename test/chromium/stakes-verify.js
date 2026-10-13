@@ -179,23 +179,6 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       const f7 = await page.evaluate(() => ({ sq: document.querySelectorAll('#pd-thread .stk-rsq').length,
         named: document.querySelectorAll('#pd-thread .doc-th-row .doc-th-name').length }));
       ok('3i no coloured section square after any clause name', f7.named > 0 && f7.sq === 0, JSON.stringify(f7));
-      /* 3j EVERY COLOURED DOT EXPLAINS ITSELF (owner, 13 Oct 2026: "we have some
-         worth a look but they have no explanation"): an older mark's amber on a
-         clause with no point under it is cleared; the dot is plain */
-      const f8 = await page.evaluate(() => {
-        const c = getContract('MK-S1'), card = document.getElementById('pd-thread');
-        const bare = [...card.querySelectorAll('.doc-th-row')].find(r => !r.querySelector('.stk-n') && !r.querySelector('.stk-line'));
-        if (!bare) return { bare: false };
-        const at = bare.getAttribute('data-th-row');
-        bare.classList.add('is-amber');
-        const plain = getComputedStyle(card.querySelector('.doc-th-row:not(.is-amber):not(.stk-b-need):not(.stk-b-look) .doc-th-bead') || bare).backgroundColor;
-        stkDecorate(c, card, [...document.querySelectorAll('#pd-thread .doc-th-row, #pd-thread .doc-th-sec')].map(() => ({})));
-        const r = card.querySelector(`.doc-th-row[data-th-row="${at}"]`);
-        const out = { bare: true, amber: r.classList.contains('is-amber'), bead: getComputedStyle(r.querySelector('.doc-th-bead')).backgroundColor, plain };
-        docThreadPaint(c);
-        return out;
-      });
-      ok('3j a clause with no point under it wears a plain dot, even where an older mark said amber', f8.bare && !f8.amber && f8.bead === f8.plain, JSON.stringify(f8));
       /* 3k AN OPEN CLAUSE WITH NOTHING THE FILTER KEEPS LEAVES THE LIST (owner,
          13 Oct 2026): open the Term row (no points), then Severity: Needs you */
       const f9 = await page.evaluate(async () => {

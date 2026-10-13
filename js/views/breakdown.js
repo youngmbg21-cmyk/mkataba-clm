@@ -199,12 +199,10 @@ function stkDecorate(c, card, rows){
   card.querySelectorAll('.stk-hide').forEach(el => el.classList.remove('stk-hide'));
   card.querySelectorAll('.stk-b-need, .stk-b-look').forEach(el => el.classList.remove('stk-b-need', 'stk-b-look'));
   const list = card.querySelector('.doc-th-rows');
-  /* EVERY COLOURED DOT EXPLAINS ITSELF (owner, 13 Oct 2026: "we have some
-     worth a look but they have no explanation"). The older clause marks
-     coloured a row's dot, but Home draws none of those marks, so a clause
-     could be amber with nothing under it to say why. Here a dot is coloured
-     ONLY by the points listed under it (stk-b-need / stk-b-look below). */
-  if (list) list.querySelectorAll('.doc-th-row.is-ruby, .doc-th-row.is-amber, .doc-th-row.is-steel').forEach(el => el.classList.remove('is-ruby', 'is-amber', 'is-steel'));
+  /* THE OLDER MARKS' TONE STAYS (restored 13 Oct 2026): clearing it so that
+     only Stakes points coloured a dot broke the scan's red and the brief's
+     amber on this list, which the risk door and six checks stand on; how a
+     marked clause explains itself here is the owner's call (asked). */
   if (b && list){
     const nums = _stk.nums;
     /* each row says how many of the points on screen stand on it. NO SECTION
@@ -216,8 +214,8 @@ function stkDecorate(c, card, rows){
       onRow[at] = (onRow[at] || 0) + 1;
       if (p.status === 'need' || (p.status === 'look' && worstOn[at] !== 'need')) worstOn[at] = p.status; });
     /* THE DOT WEARS ITS CLAUSE'S WORST POINT (owner, 13 Oct 2026): red when a
-       point needs you, amber when the worst is worth a look, plain when none (the older marks'
-       tone is cleared above); the paper's own track is not touched */
+       point needs you, amber when the worst is worth a look — the older marks'
+       tone stays where it is worse; the paper's own track is not touched */
     Object.keys(worstOn).forEach(at => { const r = list.querySelector(`[data-th-row="${at}"]`); if (r) r.classList.add('stk-b-' + worstOn[at]); });
     nums.forEach((n, at) => {
       const row = list.querySelector(`[data-th-row="${at}"]`); if (!row || !n) return;
