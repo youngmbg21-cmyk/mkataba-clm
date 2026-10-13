@@ -5,8 +5,12 @@ journey on MK-457 (Software as a Service Agreement):
 Home → Document → Clauses → Deep dive on 21.1 → "Start redlining with this ask"
 → Negotiate → Edit 21. Confidentiality.
 
-**NOT STARTED.** The owner has more to ask before building. Build in the order
-below, one at a time. Run the Six Questions and the Nine Flow Rules on each.
+**BUILT 13 Oct 2026** (owner: "Build all seven, remove the General label too").
+- Item 1: the button never filed anything; the five drafts in the screenshot
+  are what "Draft from our standards" files. It now opens the point's clause
+  in Edit with Jambo, the ask ready and unsent.
+- Item 6: the deep dive's "■ General" label went too (owner's answer).
+- The bug-log list at the end went to BUGLOG.md.
 
 ---
 
