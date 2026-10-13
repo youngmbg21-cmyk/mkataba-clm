@@ -15,7 +15,6 @@ const path = require('node:path');
 
 const SRV = fs.readFileSync(path.join(__dirname, '..', 'server', 'server.js'), 'utf8');
 const src = (SRV.match(/function aiClip\(v, n\)\{[\s\S]*?\n\}/) || [''])[0];
-// eslint-disable-next-line no-new-func
 const aiClip = new Function(src + '\nreturn aiClip;')();
 const route = name => { const i = SRV.indexOf(`app.post('${name}'`); return SRV.slice(i, SRV.indexOf('\n});', i)); };
 
