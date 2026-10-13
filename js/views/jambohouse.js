@@ -254,10 +254,11 @@ function jhLayout(){
   const lookOf = k => JH_LOOK[k] || JH_SPARE[spare++ % JH_SPARE.length];
   jhFloorCounts(offices.length).forEach((n, fi) => { const f = SH + fi;
     for (let c = 0; c < n; c++, i++){ const k = offices[i], look = lookOf(k), card = cardOf(f, c, n);
-      _jhRooms.push({ k, i, f, col: look[0], hat: look[1], card, cx: card.x + card.w / 2, seat: { x: card.x + 30, y: card.y + card.h - 4 } }); } });
+      _jhRooms.push({ k, i, f, col: look[0], hat: look[1], card, cx: card.x + card.w / 2, seat: jhCompact(card) ? { x: card.x + 20, y: card.y + card.h / 2 + 12 } : { x: card.x + 30, y: card.y + card.h - 4 } }); } });
   /* the readings: a place each at reception's desk, a magnifying glass, no Jambo */
   const rc = _jhShared.find(s => s.id === 'reception').card, cw = (rc.w - 24) / 2;
-  reads.forEach((k, j) => { const look = lookOf(k), x = rc.x + 12 + (j % 2) * cw, y = rc.y + 36 + Math.floor(j / 2) * Math.max(14, Math.min(20, (rc.h - 44) / 2));
+  const rTop = jhCompact(rc) ? 24 : 36, rGap = jhCompact(rc) ? Math.max(11, Math.min(16, (rc.h - 26) / 2)) : Math.max(14, Math.min(20, (rc.h - 44) / 2));
+  reads.forEach((k, j) => { const look = lookOf(k), x = rc.x + 12 + (j % 2) * cw, y = rc.y + rTop + Math.floor(j / 2) * rGap;
     _jhRooms.push({ k, i: i++, f: 0, col: look[0], hat: look[1], reading: true, card: { x, y: y - 9, w: cw - 6, h: 18 }, cx: x + 12, seat: { x: x + 12, y: y + 6 } }); });
   /* one tray per agent on your desk, in the house's order */
   const d = _jhDesk.card, tw = (d.w - 40) / Math.max(1, _jhRooms.length);
@@ -265,6 +266,13 @@ function jhLayout(){
 }
 function jhFloorCounts(n, cols){ const F = Math.max(1, Math.ceil(n / (cols || _jhCols))), base = Math.floor(n / F), extra = n % F;
   return Array.from({ length: F }, (_, f) => base + (f < extra ? 1 : 0)); }
+/* A SHORT FLOOR GETS A COMPACT CARD (owner, 13 Oct 2026: "why are the images
+   distorted in my laptop but okay in my ipad?"): a laptop's window is shorter,
+   the floors shrink to fit, and a card under 60 high has room for one or two
+   lines only — so it draws only what fits: the name and points, the seat beside
+   them, a pile no taller than the card, your desk's title in the floor column. */
+const jhCompact = c => !!c && c.h < 60;
+const jhPileMax = (room, cap) => Math.max(0, Math.min(cap, Math.floor(room / 2.2)));
 const jhFloorRooms = f => _jhRooms.filter(r => r.f === f && !r.reading);
 const jhFloorCards = f => [..._jhShared.filter(s => s.f === f).map(s => s.card), ...jhFloorRooms(f).map(r => r.card), ...(_jhDesk && _jhDesk.f === f ? [_jhDesk.card] : [])].sort((a, b) => a.x - b.x);
 /* The canvas's own box: as wide as the stage, as tall as the window leaves
