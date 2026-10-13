@@ -4225,6 +4225,28 @@ function wsNextAction(c){
      readiness list; when nothing does, it signs. One kind, one door. */
   return { get label(){ return signHeadLabel(c); }, ic:'finger', get guide(){ return i18t('ct_g_sign'); }, kind:'sign' };
 }
+/* ---- THE SEND LEADS WHEN SENDING IS THE NEXT STEP (owner's pick, 13 Oct
+   2026, phase 1 item 5 of the best-in-class plan: "Create lands on Send") ----
+   Measured on a first contract: after Create the room's head carried More ·
+   Share · Draft new agreement and NO filled act, because the ladder's rung for
+   a fresh draft ("run the checks") draws no button by the owner's own 22 Aug
+   ruling, and the send itself lost its slot on 23 Sep ("send to counterparty
+   is redundant as the share button already does this"). So the one thing a
+   first contract is waiting for was the one act nothing pointed at.
+
+   ONE READING, BOTH SHELLS: true where the ladder says the contract is
+   waiting to go out — a draft whose facts are in (the reading rung and the
+   "move it into review" rung, both of which sending also settles, since a
+   send moves the contract out of Drafting) and the "share it" rung a pending
+   approval leaves. Every other rung (a round to answer, signers to name, a
+   signature, the evidence pack) keeps its own filled button and Share stays
+   an outline, so a head still carries at most one filled act. */
+const SEND_LEAD_KINDS = ['checks', 'review', 'share'];
+function shareLeadsHead(c, na){
+  if(!c || !na) return false;
+  if(c.status!=='Draft' && c.status!=='Under Review') return false;
+  return SEND_LEAD_KINDS.includes(na.kind);
+}
 /* THE HEAD FOLLOWS THE LIST: the head is built once per render and never by
    a tab change, so after an act on the Signing tab moves the count, its Sign
    button is re-worded here — a text patch on the surviving element, never a
@@ -10714,8 +10736,14 @@ function roomHeadHtml(c,opts={}){
      still the head's LEAD (it is built first and `order` keeps More last); it
      leads by position now rather than by shouting. */
   let primary='';
+  /* THE SEND LEADS WHEN SENDING IS NEXT (owner's pick, 13 Oct 2026; see
+     shareLeadsHead): Share wears the one fill, and a rung that still draws
+     its own button ("Send for review") steps down to an outline beside it.
+     Only on a head that owns its primary — the workbench passes its own. */
+  let sendLeads=false;
   if(opts.primary===undefined){
     const na=(!locked&&may&&window.wsNextAction)?wsNextAction(c):null;
+    sendLeads=!locked&&may&&c.status!=='Declined'&&shareLeadsHead(c,na);
     primary=locked
       ? `<button id="ws-evidence" class="ui-btn">${icon('download','w-3.5 h-3.5')} Evidence pack</button>`
       /* A next action may have no button of its own — see wsNextAction's
@@ -10726,7 +10754,7 @@ function roomHeadHtml(c,opts={}){
          22 Aug flat head for exactly one act): the reference fills the send
          and nothing else on the row. Only that kind; every other next act
          keeps its outline, so a page still carries at most one filled act. */
-      : (na && !na.noButton) ? `<button id="ws-next-action" data-na="${na.kind}" class="ui-btn ui-btn-primary">${icon(na.ic,'w-3.5 h-3.5')} ${na.label}</button>`
+      : (na && !na.noButton) ? `<button id="ws-next-action" data-na="${na.kind}" class="ui-btn${sendLeads?'':' ui-btn-primary'}">${icon(na.ic,'w-3.5 h-3.5')} ${na.label}</button>`
       : '';
   }
   /* ---- DRAFT NEW AGREEMENT SITS AFTER THE CONTRACT'S OWN NEXT ACT ----
@@ -11131,7 +11159,7 @@ function roomHeadHtml(c,opts={}){
              (the owner's own screenshot of it asked only for the borders), so
              this is a per-page choice rather than a rewrite of both. */}
       ${opts.primaryFirst?(typeof opts.primary==='string'?opts.primary:primary):''}
-      ${(may&&c.status!=='Declined')?`<button id="ws-share" class="ui-btn" title="${esc(i18t('ct_share_with_cp'))}">${icon('share','w-3.5 h-3.5')} ${i18t('ct_share')}</button>`:''}
+      ${(may&&c.status!=='Declined')?`<button id="ws-share" class="ui-btn${sendLeads?' ui-btn-primary':''}"${opts.primary===undefined?` data-send-lead="${sendLeads?1:0}"`:''} title="${esc(i18t('ct_share_with_cp'))}">${icon('share','w-3.5 h-3.5')} ${i18t('ct_share')}</button>`:''}
       ${''/* THE CONTRACT'S NEXT ACT IS LAST AND FILLED (Young, 7 Oct 2026, off the
              HaTi Platform mockup): Share · Draft new · then the next act, the
              one filled button, at the right-hand end where the eye finishes. */}
@@ -11253,6 +11281,18 @@ function roomHeadRefresh(c){
       tmp.innerHTML=roomFactsHtml(c);
       const nf=tmp.firstElementChild;
       if(nf){ if(facts.classList.contains('is-folded')) nf.classList.add('is-folded'); facts.replaceWith(nf); }
+    }
+    /* THE SEND'S FILL FOLLOWS THE CONTRACT (13 Oct 2026, see shareLeadsHead):
+       once it has gone out, the next rung is not a send and Share steps back
+       to an outline. A CLASS FLIP on the surviving buttons, never a rebuild —
+       their handlers stay. Only a head that owns its primary carries the
+       marker; the workbench's Share is never filled from here. */
+    const sh=head.querySelector('#ws-share[data-send-lead]');
+    if(sh){
+      let na=null; try{ na=(window.wsNextAction&&c.status!=='Signed')?wsNextAction(c):null; }catch(_){ na=null; }
+      const lead=c.status!=='Declined'&&shareLeadsHead(c,na);
+      sh.classList.toggle('ui-btn-primary',lead); sh.setAttribute('data-send-lead',lead?'1':'0');
+      const nx=head.querySelector('#ws-next-action'); if(nx) nx.classList.toggle('ui-btn-primary',!lead);
     }
     /* ---- THE BAR'S CRUMB IS NOT THIS FUNCTION'S ANY MORE (4 Oct 2026) ----
        It used to write "REF · title" into the shell bar, and both halves of
@@ -17950,7 +17990,7 @@ Object.assign(window,{docReadLongSplit,DOC_READ_LONG_WORDS,DOC_READ_RUN_MIN,docT
      the recovery from a zero-width measurement — the whole point of that fix —
      never ran on a plain tab swap. It only appeared to work because the routes
      I walked it on re-rendered the workspace, which measures on the way in. */
-  layoutDocResizer,renderSignButton,renderSignSide,roomFactsHtml,signBlockHtml,signReadinessCardHtml,signRowTitle,signWhyShort,SIGN_WHY_WORDS,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireCompliance,wireDocumentSync,wsNextAction,
+  layoutDocResizer,renderSignButton,renderSignSide,roomFactsHtml,signBlockHtml,signReadinessCardHtml,signRowTitle,signWhyShort,SIGN_WHY_WORDS,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireCompliance,wireDocumentSync,wsNextAction,shareLeadsHead,SEND_LEAD_KINDS,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
   ROOM_TABS,formOnHome,formHostEl,formPaperEl,formHeldContract,formRepaint,docTermFill,docNoticeFill,docSyncWrite,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPlace,roomPlacePut,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,checkVerdict,tplFormOpenCount,tplFormOpenFields,detailsOf,detailsSections,blankFormLive,DET_RECORD_KEYS,detHeadHtml,detPaintHead,detailsChanged,detPaintPaperEmpties,detBasicsHtml,detPaintBasics,detMarkOpen,openCompleteDetails,cdRepaintCounts,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill,

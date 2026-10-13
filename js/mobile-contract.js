@@ -643,6 +643,13 @@ function mActionBarHtml(c){
      (10 Aug 2026). Honoured here for the same reason the phone reads
      wsNextAction at all: one authority, or the two shells drift. */
   const btn = na && !na.noButton;
+  /* ---- THE SEND LEADS WHEN SENDING IS NEXT (owner's pick, 13 Oct 2026) ----
+     The desktop's own reading, shareLeadsHead: where the contract is waiting
+     to go out, the bar's one button is the send — the phone's share sheet,
+     through the 'share' kind mDoNextAction already answers. A rung that drew
+     its own button there ("Send for review") gives way, because the bar holds
+     one button and sending moves the contract out of Drafting as well. */
+  const sendLeads = !viewer && typeof window.shareLeadsHead==='function' && shareLeadsHead(c, na);
   /* ---- A SIGN THAT CANNOT SIGN IS GREY, AND SAYS WHAT STANDS (9 Oct 2026) ----
      It was a filled button that always refused, naming tabs the phone does not
      have. signBlockers(c) is the one list the desktop's button and
@@ -660,9 +667,9 @@ function mActionBarHtml(c){
       <div class="m-note" style="margin-bottom:8px">${mEsc(i18t('mc_settle_on_computer'))}</div>` : '';
   return `
     <div class="m-actionbar">
-      <div class="m-note" style="margin-bottom:${btn?'8px':'0'}">${guide}</div>
-      ${blHtml}
-      ${btn?(bl.length
+      <div class="m-note" style="margin-bottom:${(btn||sendLeads)?'8px':'0'}">${guide}</div>
+      ${sendLeads?'':blHtml}
+      ${sendLeads?`<button class="m-btn m-btn-primary" data-m-na="share">${mEsc(i18t('ct_share'))}</button>`:btn?(bl.length
         ? `<button class="m-btn" data-m-na="${mEsc(na.kind)}" disabled aria-disabled="true">${mEsc(na.label)}</button>`
         : `<button class="m-btn m-btn-primary" data-m-na="${mEsc(na.kind)}">${mEsc(na.label)}</button>`):''}
     </div>`;

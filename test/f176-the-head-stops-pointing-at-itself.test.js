@@ -161,7 +161,10 @@ describe('F176 — the intent-to-sign step speaks without a button', () => {
       'mActionBarHtml suppresses the button too');
     /* RE-POINTED 9 Oct 2026: the flag still keys the markup; a Sign that
        signBlockers holds is drawn greyed rather than filled. */
-    assert.match(mob, /\$\{btn\?\(bl\.length/,
+    /* RE-POINTED 13 Oct 2026 (the send leads when sending is next): the
+       send's own button comes first where shareLeadsHead says so, and the
+       next act's flag still keys everything after it. */
+    assert.match(mob, /\$\{sendLeads\?`<button class="m-btn m-btn-primary" data-m-na="share">[^`]*`:btn\?\(bl\.length/,
       'and it is that flag the markup keys off');
     assert.match(mob, /`<button class="m-btn m-btn-primary" data-m-na=/);
   });

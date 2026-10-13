@@ -275,6 +275,7 @@ Four tabs (People · Platform settings · Build & launch · You); every row open
 ## THE CONTRACT ROOM — six tabs, one shell
 - Tabs from `roomTabsHtml()` via `roomGoTab()` (+ `stands`); add tabs in `ROOM_TABS` (Details first since 12 Oct 2026; no Document since 11 Oct); never a second tab row; `data-back="contract"` lands on Home's Document.
 - The head is built once: what changes needs a SLOT painted from `applyWsTabs`; `roomHeadRefresh(c)` after a write; `roomHeadSubHtml`, `roomFactsHtml`, `roomChecksHtml`; one filled button; Focus `wsFocusToggle`.
+- THE SEND LEADS WHEN SENDING IS NEXT (owner's pick, 13 Oct 2026): `shareLeadsHead(c, na)` (`SEND_LEAD_KINDS` checks · review · share; Draft / Under Review) fills #ws-share and steps #ws-next-action to an outline; the phone's bar asks the same (`data-m-na="share"`); `roomHeadRefresh` flips the fill (`data-send-lead`); the workbench's Share never. Tests: send-leads, send-leads-verify. Story: MAP-HISTORY "THE SEND LEADS".
 - A new draft or upload opens on Details ONCE, "Complete the details" over it (`roomOpenOnTerms` → `_detOpenFull`; seven sites, f170); `contractArrived(c,opts)` at every site; `c.owner` (`contractOwnerStamp`, `contractOwnerName`, `contractOwnedBy`); hold `contractSetHold`; `negoMayStart(c)`; a stage is a claim: `contractLeavesDrafting(c, why)`. History newest first on the tab only (`roomHistoryEvents` oldest first), `histWhen`.
 Tests: f91, f148, f170, f184, f198, f241, f278, f301, f380, room-head-fold, history-timeline verify.
 
