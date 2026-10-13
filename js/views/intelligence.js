@@ -7231,21 +7231,130 @@ function igPickListHtml(q){
       <b class="hati-ref">${igEsc(window.contractRef?contractRef(c):c.id)}</b><span class="n">${igEsc(c.name||'')}</span><span class="q">${igEsc(c.counterparty||'—')} · ${igEsc((typeof statusLabel==='function')?statusLabel(c.status):(c.status||''))}</span></button>`).join('')}</div>
     ${rows.length>shown.length?`<p class="ig-pick-more">${igEsc(i18t('int_pick_more',{k:shown.length,n:rows.length}))}</p>`:''}`;
 }
-function igPickHtml(q){
-  return `<div class="ig-pick"><div class="ig-pick-card">
-    <h2>${igEsc(i18t('int_pick_title'))}</h2><p class="ig-pick-sub">${igEsc(i18t('int_pick_sub'))}</p>
-    <input type="search" class="ig-pick-find" data-ig-pick-find value="${igEsc(q||'')}" placeholder="${igEsc(i18t('int_pick_find'))}" aria-label="${igEsc(i18t('int_pick_find'))}">
-    <div data-ig-pick-rows>${igPickListHtml(q)}</div></div></div>`;
+/* ---- THE WALL OF PAPER (owner picked "Wall of paper", 13 Oct 2026) ----
+   Home's Document tab with nothing chosen shows EVERY contract igPickRows
+   reads as a small paper with its number beneath — about six a line on a
+   laptop with Jambo's panel open. Find · sort · stage narrow it; a press is
+   igAnalyze, the same one door. NOTHING IS CAPPED here (the 12-row list stays
+   Breakdown's): a card off screen costs no paint (content-visibility). The
+   little paper is drawn from the RECORD — its stage, whether changes are on
+   the table (c.changes RAW), its signatures — never from its wording, so the
+   light list draws it whole. A stage with nothing in it is not listed. */
+const IG_WALL_SORTS=['recent','ref','cp','end','value'];
+const IG_WALL_STAGES=['all','need','Draft','Under Review','Signed','expired'];
+const igWall={q:'',sort:'recent',stage:'all'};
+let _igWallNeed=null;
+function igWallStage(c){ return (typeof contractExpired==='function'&&contractExpired(c))?'expired':String(c&&c.status||'Draft'); }
+/* who needs this reader — needsYouOf over the book once per paint, never per keystroke */
+function igWallNeedSet(){
+  const s=new Set(); if(typeof needsYouOf!=='function') return s;
+  (state.contracts||[]).forEach(c=>{ try{ if(c&&!c.archived&&needsYouOf(c).length) s.add(String(c.id)); }catch(_){ /* a missing source adds nothing */ } });
+  return s;
+}
+function igWallNeed(){ return _igWallNeed||(_igWallNeed=igWallNeedSet()); }
+function igWallSortFn(k){
+  const ref=c=>window.contractRef?contractRef(c):String(c.id||'');
+  const loc=(typeof langLocale==='function')?langLocale():undefined;
+  if(k==='ref') return (a,b)=>ref(b).localeCompare(ref(a),undefined,{numeric:true});
+  if(k==='cp') return (a,b)=>String(a.counterparty||'').localeCompare(String(b.counterparty||''),loc,{sensitivity:'base'});
+  if(k==='end'){
+    /* still to come first (soonest on top), then the ones already past, then no date */
+    const today=(typeof todayISO==='function')?todayISO():'';
+    const end=c=>{ const d=window.effectiveExpiry?effectiveExpiry(c):(c.expiry||''); return d?String(d).slice(0,10):''; };
+    const band=d=>!d?2:(d<today?1:0);
+    return (a,b)=>{ const x=end(a), y=end(b); return band(x)-band(y) || (band(x)===1?y.localeCompare(x):x.localeCompare(y)); };
+  }
+  if(k==='value'){
+    /* compared in the home currency; no rate on file or no money passing sorts last, never guessed */
+    const val=c=>{ if(typeof isMonetary==='function'&&!isMonetary(c)) return -1; const f=(typeof fxHome==='function')?fxHome(c):{v:Number(c.value)||0}; return f.missing?-1:(Number(f.v)||0); };
+    return (a,b)=>val(b)-val(a);
+  }
+  return null;   // 'recent' is igPickRows' own order
+}
+function igWallRows(){
+  let r=igPickRows(igWall.q);
+  const st=igWall.stage;
+  if(st==='need'){ const need=igWallNeed(); r=r.filter(c=>need.has(String(c.id))); }
+  else if(st!=='all') r=r.filter(c=>igWallStage(c)===st);
+  const by=igWallSortFn(igWall.sort);
+  return by?r.slice().sort(by):r;
+}
+function igWallStageWord(k){
+  if(k==='all') return i18t('igw_all');
+  if(k==='need') return i18t('igw_need');
+  if(k==='expired') return i18t('status_expired');
+  return (typeof statusLabel==='function')?statusLabel(k):k;
+}
+function igWallSheetHtml(c){
+  const st=igWallStage(c);
+  const sigs=Array.isArray(c.signatures)?c.signatures.length:0;
+  const changes=Array.isArray(c.changes)&&c.changes.length>0;
+  let marks='', sig='';
+  if(st==='Draft') marks=`<span class="igw-stamp">${igEsc(statusLabel('Draft'))}</span>`;
+  if(st==='expired') marks=`<span class="igw-stamp is-end">${igEsc(i18t('status_expired'))}</span>`;
+  if(st==='Under Review'&&changes) marks+='<span class="igw-red" aria-hidden="true"><i class="d"></i><i class="a"></i><i class="d"></i><i class="a"></i></span>';
+  if(st==='Signed'||st==='expired') sig='<span class="igw-sigs"><i class="on"></i><i class="on"></i></span>';
+  else if(st==='Under Review'&&sigs) sig='<span class="igw-sigs"><i class="on"></i><i></i></span>';
+  return `<span class="igw-sheet${sig?' has-sig':''}" aria-hidden="true">${marks}<span class="igw-t">${igEsc(c.name||'')}</span><span class="igw-p">${igEsc(c.counterparty||'')}</span><span class="igw-ln"></span>${sig}</span>`;
+}
+function igWallCardHtml(c,need){
+  const st=igWallStage(c);
+  const dot=st==='expired'?'var(--st-ruby-dot)':(STATUS_DOT[c.status]||'var(--st-gray-dot)');
+  const word=igWallStageWord(st==='expired'?'expired':String(c.status||'Draft'));
+  const ref=window.contractRef?contractRef(c):String(c.id||'');
+  const label=[ref,c.name,c.counterparty,word].filter(Boolean).join(', ');
+  return `<button type="button" role="listitem" class="igw-card" data-ig-pick="${igEsc(c.id)}" aria-label="${igEsc(label)}">
+    ${igWallSheetHtml(c)}
+    <span class="igw-m"><span class="igw-dot" style="background:${dot}"></span><span>${igEsc(word)}</span>${need?`<span class="igw-need">${igEsc(i18t('igw_need'))}</span>`:''}</span>
+    <span class="igw-ref">${window.refHtml?refHtml(c):igEsc(ref)}</span>
+    <span class="igw-nm">${igEsc([c.counterparty,c.name].filter(Boolean).join(' · '))}</span></button>`;
+}
+function igWallBodyHtml(){
+  const searched=igPickRows(igWall.q), need=igWallNeed(), all=igPickRows('').length;
+  const countOf=k=>k==='all'?searched.length:k==='need'?searched.filter(c=>need.has(String(c.id))).length:searched.filter(c=>igWallStage(c)===k).length;
+  /* A FILTER'S CHOICE THAT GIVES NOTHING IS NOT LISTED — except the one being used, so it can be let go */
+  const chips=IG_WALL_STAGES.map(k=>({k,n:countOf(k)})).filter(x=>x.k==='all'||x.n>0||x.k===igWall.stage)
+    .map(x=>`<button type="button" class="igw-chip" data-igw-stage="${igEsc(x.k)}" aria-pressed="${igWall.stage===x.k}">${igEsc(igWallStageWord(x.k))}${x.k==='all'?'':` <span class="n">${x.n}</span>`}</button>`).join('');
+  const rows=igWallRows();
+  return `<div class="igw-chips" role="group" aria-label="${igEsc(i18t('igw_stage_label'))}">${chips}<span class="igw-count">${igEsc(i18t('igw_count',{k:rows.length,n:all}))}</span></div>
+    ${rows.length?`<div class="igw-grid" role="list">${rows.map(c=>igWallCardHtml(c,need.has(String(c.id)))).join('')}</div>`:`<p class="ig-pick-none">${igEsc(i18t('int_pick_none'))}</p>`}`;
+}
+function igPickHtml(){
+  _igWallNeed=null;
+  const sorts=IG_WALL_SORTS.map(k=>`<option value="${k}"${igWall.sort===k?' selected':''}>${igEsc(i18t('igw_sort_'+k))}</option>`).join('');
+  return `<div class="ig-pick ig-wall" id="ig-wall">
+    <div class="igw-tools"><input type="search" class="ig-pick-find" data-ig-pick-find value="${igEsc(igWall.q)}" placeholder="${igEsc(i18t('int_pick_find'))}" aria-label="${igEsc(i18t('int_pick_find'))}" autocomplete="off">
+      <select class="igw-sort" data-igw-sort aria-label="${igEsc(i18t('igw_sort_label'))}">${sorts}</select></div>
+    <div data-igw-body>${igWallBodyHtml()}</div></div>`;
+}
+function igWallRepaint(host){
+  const body=host.querySelector('[data-igw-body]'); if(body) body.innerHTML=igWallBodyHtml();
+  if(typeof placeSave==='function'){ try{ placeSave(); }catch(_){ /* the place is a convenience */ } }
+}
+/* the refresh pair rides Home's (hbPlace carries it while nothing is chosen) */
+function igWallPlace(){ return { q:igWall.q, sort:igWall.sort, stage:igWall.stage }; }
+function igWallPlacePut(p){
+  if(!p) return;
+  if(typeof p.q==='string') igWall.q=p.q.slice(0,200);
+  if(IG_WALL_SORTS.includes(p.sort)) igWall.sort=p.sort;
+  if(IG_WALL_STAGES.includes(p.stage)) igWall.stage=p.stage;
 }
 function igPickWire(host){
   if(host.dataset.igPickBound) return; host.dataset.igPickBound='1';
   host.addEventListener('click',e=>{
+    const ch=e.target.closest&&e.target.closest('[data-igw-stage]');
+    /* press a lit stage again and it lets go (back to All) */
+    if(ch){ const k=ch.getAttribute('data-igw-stage'); igWall.stage=(igWall.stage===k)?'all':k; igWallRepaint(host); return; }
     const b=e.target.closest&&e.target.closest('[data-ig-pick]'); if(!b) return;
     igAnalyze(b.getAttribute('data-ig-pick'));
   });
   host.addEventListener('input',e=>{
     const f=e.target.closest&&e.target.closest('[data-ig-pick-find]'); if(!f) return;
-    const rows=host.querySelector('[data-ig-pick-rows]'); if(rows) rows.innerHTML=igPickListHtml(f.value);
+    igWall.q=f.value; igWallRepaint(host);
+  });
+  host.addEventListener('change',e=>{
+    const sel=e.target.closest&&e.target.closest('[data-igw-sort]'); if(!sel) return;
+    if(IG_WALL_SORTS.includes(sel.value)) igWall.sort=sel.value; igWallRepaint(host);
   });
 }
 function igStripWire(){
@@ -7334,7 +7443,7 @@ function igPaintPaper(){
     strip.hidden=true; strip.innerHTML='';
     if(page) page.classList.remove('ig-focus');
     /* HOME'S PAPER SIDE WITH NOTHING CHOSEN YET asks which contract to read */
-    if(homePaper){ host.innerHTML=igPickHtml(''); host.dataset.for='__pick'; host.hidden=false; igPickWire(host); return; }
+    if(homePaper){ host.innerHTML=igPickHtml(); host.dataset.for='__pick'; host.hidden=false; igPickWire(host); return; }
     host.hidden=true; host.innerHTML=''; delete host.dataset.for;
     return;
   }
@@ -7787,7 +7896,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
   });
 }
 
-Object.assign(window,{igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
+Object.assign(window,{igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,IG_WALL_SORTS,IG_WALL_STAGES,igWall,igWallStage,igWallRows,igWallSortFn,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
 Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});

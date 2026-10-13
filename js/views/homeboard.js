@@ -8941,6 +8941,8 @@ function hbPlace(){
   if (s.face === 'paper' && typeof window.pdContract === 'function'){ try { const c = pdContract(); if (c){ p.paper = { id: String(c.id), tab: typeof pdTab === 'function' ? pdTab() : '' };
     /* and the Clauses list's colour filter (BUGLOG 11 Oct 2026) */
     const tones = typeof window.docThreadTonesNow === 'function' ? docThreadTonesNow(c.id) : []; if (tones.length) p.paper.tones = tones; } } catch (_){} }
+  /* with nothing chosen, the wall of paper keeps its search, sort and stage (13 Oct 2026) */
+  if (s.face === 'paper' && !p.paper && typeof window.igWallPlace === 'function'){ try { p.wall = igWallPlace(); } catch (_){} }
   return p;
 }
 function hbPlacePut(p){
@@ -8952,6 +8954,7 @@ function hbPlacePut(p){
   if (p.recipe && typeof igRecipeSet === 'function'){ try { igRecipeSet(p.recipe); } catch (_){} }
   if (p.cam && Array.isArray(p.cam.w) && window.intel && typeof IGB_NV !== 'undefined' && p.cam.w.length === IGB_NV) intel.cam = { ...p.cam, w: p.cam.w.slice() };
   if (p.cal && typeof window.calPlacePut === 'function'){ try { calPlacePut(p.cal); } catch (_){} }
+  if (p.wall && typeof window.igWallPlacePut === 'function'){ try { igWallPlacePut(p.wall); } catch (_){} }
   /* the contract goes back on the Document face once the list holds it,
      through the one door (igWalk), bounded; a contract chosen meanwhile wins */
   if (p.paper && p.paper.id && p.face === 'paper'){
