@@ -22,6 +22,7 @@
      8 the Board's "The agents" opens this page (one place for the agents)
      2 the house fits the window and is drawn at its real size (owner, 13 Oct
        2026: "too big … grainy"); no facts line under the title
+    12 opened a moment before sign-in finishes, the page waits and reads after it
     11 a 2× screen gets twice the pixels; a short window shrinks the floors
      9 no free room (owner, 13 Oct 2026): the agents fill every floor evenly and
        the rooms widen; a new floor only when every floor holds three
@@ -213,6 +214,20 @@ const CONTRACTS = [
     await p2.waitForFunction(fh => jhGeom().fh > fh, f11.fh, { timeout: 4000 }).catch(() => {});
     ok('11c a taller window lets the floors grow back (refits on resize)', await p2.evaluate(fh => jhGeom().fh > fh, f11.fh));
     await ctx2.close();
+
+    console.log('\n12 · opened before sign-in finishes: no "Not signed in"');
+    const ctx3 = await b.newContext({ viewport: { width: 1440, height: 900 } });
+    const p3 = await ctx3.newPage(); const refused12 = []; p3.on('pageerror', e => errs.push(e.message));
+    p3.on('response', r => { if (/\/api\/agents\/pieces/.test(r.url()) && r.status() === 401) refused12.push(r.status()); });
+    await p3.goto(h.base + '/', { waitUntil: 'networkidle' });
+    await p3.evaluate(() => { try { setView('jambo'); } catch (_) {} });
+    await p3.fill('#li-email', 'admin@example.co.ke'); await p3.fill('#li-pass', 'adminpassword1'); await p3.click('#li-go');
+    await p3.waitForFunction(() => window.REMOTE && REMOTE.me, null, { timeout: 15000 }).catch(() => {});
+    await p3.evaluate(() => setView('jambo'));
+    await p3.waitForFunction(() => !!document.getElementById('jh-cv') && !!document.getElementById('jh-notes'), null, { timeout: 8000 }).catch(() => {});
+    const n12 = await p3.evaluate(() => (document.getElementById('jh-notes') || {}).textContent || '');
+    ok('12a the agents\' record is never asked for before sign-in, and the page carries no "Not signed in"', refused12.length === 0 && !/not signed in/i.test(n12), JSON.stringify({ refused12, n12 }));
+    await ctx3.close();
 
     console.log('\n7 · Settings → Jambo\'s agents: the points');
     await page.evaluate(() => openSettingsAt('platform', 'agents'));

@@ -148,15 +148,21 @@ function jhPlacePut(p){
 const jhRangeWords = () => _jh.range === 1 ? _jhT('jh_r_1') : _jhT('jh_last_n', { r: jhRangeLabel(_jh.range) });
 
 /* jhFetch reads a period without touching the page; jhLoad keeps it as the page's. */
+/* NOT BEFORE SIGN-IN, AND A REFUSAL IS NOT AN ANSWER (owner, 13 Oct 2026: "Fix
+   the Not signed in message"): with a server and nobody signed in yet the read
+   is not sent at all (null = not yet); a read that failed is kept only to say
+   so, and the next drawing of the page asks again (renderJamboHouse). */
+const jhSignedIn = () => { try { return !!(window.REMOTE && REMOTE.me); } catch (_) { return false; } };
 async function jhFetch(days){
   if (!(typeof API_MODE === 'function' && API_MODE()) || typeof api !== 'function') return { pieces: [], contracts: {}, static: true, days };
+  if (!jhSignedIn()) return null;
   try { const r = await api('agents/pieces?days=' + days); return { pieces: (r && r.pieces) || [], contracts: (r && r.contracts) || {}, cut: !!(r && r.cut), max: r && r.max, days, from: r && r.from }; }
   catch (e){ return { pieces: [], contracts: {}, error: (e && e.message) || String(e), days }; }
 }
 async function jhLoad(){
   if (_jh.loading) return;
   _jh.loading = true;
-  try { _jh.data = await jhFetch(_jh.range); } finally { _jh.loading = false; }
+  try { const d = await jhFetch(_jh.range); if (d) _jh.data = d; } finally { _jh.loading = false; }
 }
 /* The pieces this page counts: the period's, and only the typed contract's. */
 function jhPieces(){
@@ -660,15 +666,17 @@ function jhHowHtml(){
     <div class="jh-grid">${card('jh_rule_list_t', 'jh_rule_list')}${card('jh_rule_move_t', 'jh_rule_move')}${card('jh_rule_check_t', 'jh_rule_check')}</div>
   </div>`;
 }
-function renderJamboHouse(){
+function renderJamboHouse(opts){
   const host = document.getElementById('content'); if (!host) return;
   if (typeof cancelAnimationFrame === 'function' && _jh.raf){ cancelAnimationFrame(_jh.raf); _jh.raf = 0; }
   /* ARRIVING IS AT REST: a replay paused on the way out is not where the page
      opens next time — it opens on the whole period's totals, still. */
   if (!document.querySelector('.jh-page')){ jhReplayFromStart(false); const lp = jhLookPref(); if (lp !== null && jhServerKeeps()) _jh.look = lp; }
   jhColors(); jhLayout(); _jhRooms.forEach(jhSimulate);
-  if (!_jh.data || _jh.data.days !== _jh.range){
-    if (!_jh.loading) jhLoad().then(() => { if (typeof state !== 'undefined' && state.view === 'jambo') renderJamboHouse(); });
+  const stale = !_jh.data || _jh.data.days !== _jh.range || (_jh.data.error && !(opts && opts.fromLoad));
+  if (stale && !_jh.loading && (jhSignedIn() || !(typeof API_MODE === 'function' && API_MODE()))){
+    if (_jh.data && _jh.data.error) _jh.data = null;
+    jhLoad().then(() => { if (typeof state !== 'undefined' && state.view === 'jambo') renderJamboHouse({ fromLoad: true }); });
   }
   const body = _jh.tab === 'jobs' ? (_jh.data ? jhJobsHtml() : jhHouseHtml()) : _jh.tab === 'how' ? jhHowHtml() : jhHouseHtml();
   host.innerHTML = `<style>${JH_CSS}</style><div class="view-enter sap-page jh-page" data-jh-tab-on="${_jh.tab}">${jhBandHtml()}${body}</div>`;
@@ -700,8 +708,9 @@ async function jhSetRange(d, btn){
   document.querySelectorAll('[data-jh-range]').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
   const word = btn ? btn.textContent : '';
   if (btn && typeof busySet === 'function') busySet(btn, word);
-  const data = (_jh.data && _jh.data.days === d) ? _jh.data : await jhFetch(d);
+  const data = (_jh.data && _jh.data.days === d && !_jh.data.error) ? _jh.data : await jhFetch(d);
   if (ask !== _jhRangeAsk || !document.getElementById('jh-cv')) return;
+  if (!data){ if (btn) btn.textContent = word; return; }
   if (btn) btn.textContent = JH_RANGES.includes(d) ? word : jhRangeLabel(d);
   const cb = document.querySelector('[data-jh-range="custom"]'); if (cb && cb !== btn) cb.textContent = _jhT('jh_r_custom');
   /* the picture and the numbers as they stand, before anything moves */
