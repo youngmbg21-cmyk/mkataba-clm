@@ -149,7 +149,6 @@ let _cePlaceAt = null;      /* where the clause moved TO was on screen — see c
 /* How much of the draft the leave warning quotes back. A confirm dialog is ONE
    paragraph — see clauseEditorLeaveAsk. */
 const CE_LEAVE_SNIP = 120;
-let _ceZoom = 100;          /* how big the page looks — never a font size */
 let _ceLead = null;         /* the change this editor opened on, if any */
 /* ---- THE SPELL CHECK AT SAVE (28 Sep 2026, js/spell.js) ----
    The words the reader was last shown, and the draft they were shown FOR. A
@@ -507,6 +506,10 @@ function clauseEditorCss(){
     gap:10px; padding:12px var(--s-4) var(--s-4)}
   .ce-readbar{flex:none; display:flex; align-items:center; gap:var(--s-3); min-height:26px}
   .ce-readbar .g{flex:1; min-width:4px}
+  /* the one paper zoom wears every paper's clothes here too (owner, 13 Oct 2026) */
+  .ce-readbar .rl-type-step{height:var(--ctl-h); padding:0 3px}
+  .ce-readbar .rl-type-step button{font-size:var(--t-body); font-weight:var(--w-label)}
+  .ce-readbar .rl-type-step .rl-type-out{font-size:var(--t-body); font-weight:var(--w-body)}
   .ce-band{flex:none}
   .ce-band:empty{display:none}
   /* The paper's own frame. position:relative because the one-sentence popup
@@ -530,14 +533,6 @@ function clauseEditorCss(){
      rail do not — a zoom that grew the furniture would be a text-size stepper
      wearing a percentage. */
   .ce-paperwrap .rl-doc{zoom:var(--ce-zoom, 1)}
-  .ce-zoom{flex:none; display:flex; align-items:center; height:var(--ctl-h); box-sizing:border-box;
-    border:1px solid var(--color-divider); background:var(--color-surface)}
-  .ce-zoom button{width:var(--ctl-h-sm); height:var(--ctl-h-sm); background:none; border:0; padding:0;
-    font:inherit; font-size:var(--t-meta); color:var(--color-text); cursor:pointer}
-  .ce-zoom button[disabled]{opacity:.35; cursor:default}
-  .ce-zoom .out{font-family:var(--font-mono); font-size:var(--t-micro);
-    color:var(--color-neutral-600); min-width:38px; text-align:center;
-    font-variant-numeric:tabular-nums}
   /* ---- NO MARGIN BAR ON THE CLAUSE BEING WORKED ON (owner-asked 29 Aug 2026,
      ringing it: "delete the green line bar on highlighted in the attached") ----
      The live clause's own rule carried a 3px accent bar in the left margin
@@ -2605,7 +2600,7 @@ function rlCloseClauseEditor(opts = {}){
   _ceRiskCard = null;
   _cePrep = null;
   _ceSpellList = []; _ceSpellFor = null;
-  _ceRendering = false; _ceZoom = 100;
+  _ceRendering = false;
   /* the page is gone: a moved Copilot window that stepped aside comes back (ai.js) */
   try{ if (window.aiFloatSync) aiFloatSync(); }catch(_){}
   _ceOpenText = '';
@@ -3985,38 +3980,26 @@ function ceRenderReadBar(){
    contract: the other side sees it and so does the signed PDF. This changes how
    big the page looks to THIS READER and nothing in the document. Both exist in
    Word for the same reason they exist here, and the percentage is what keeps
-   them apart on screen — a number of pixels beside a number of pixels would be
-   two controls nobody can tell apart.
+   them apart on screen.
 
-   IT IS NOT PERSISTED. A reading posture for this sitting, like the readings
-   themselves; a stored zoom would follow a reader onto a contract they have
-   never opened and look like a broken page. */
-const CE_ZOOM_MIN = 60, CE_ZOOM_MAX = 200, CE_ZOOM_STEP = 10;
+   THE SAME ZOOM AS EVERY OTHER PAPER (owner, 13 Oct 2026: "all papers should
+   be uniform with regard to the zoom control"). This page drew its own
+   smaller "− 100% +" that forgot itself on every visit; it is now the one
+   control (rlTypeStepHtml) and the one remembered value (rlDocZoom), so the
+   page opens at the size the reader chose on Home or Negotiate. */
 function ceZoomHtml(){
-  const z = _ceZoom;
-  const b = (act, lab, off) => `<button type="button" data-ce-zoom="${act}"`
-    + `${off ? ' disabled' : ''} aria-label="${_ceea(_cet(lab))}"`
-    + ` title="${_ceea(_cet(lab))}">${act === 'out' ? '&minus;' : '+'}</button>`;
-  return `<span class="ce-zoom">${b('out', 'ce_zoom_out', z <= CE_ZOOM_MIN)}`
-    + `<span class="out" id="ce-zoom-val">${z}%</span>`
-    + `${b('in', 'ce_zoom_in', z >= CE_ZOOM_MAX)}</span>`;
+  return window.rlTypeStepHtml ? rlTypeStepHtml() : '';
 }
 /* The paper's own scale, written where the sheet reads it. A CSS variable
    rather than a repaint: the reader's place, their caret and their selection
    all survive a zoom, which is what makes it feel like Word's. */
-function ceSetZoom(next){
-  const z = Math.max(CE_ZOOM_MIN, Math.min(CE_ZOOM_MAX, Number(next) || 100));
-  if (z === _ceZoom) return;
-  _ceZoom = z;
-  ceApplyZoom();
-  ceRenderReadBar();
-}
 function ceApplyZoom(){
   /* ON THE WRAPPER, not on the scroller inside it: .rl-doc is the PARENT of
      #ce-doc, so a variable written on the child never reaches the rule that
      reads it — measured, the readout moved and the paper did not. */
   const wrap = _ceQ('.ce-paperwrap');
-  if (wrap) wrap.style.setProperty('--ce-zoom', String(_ceZoom / 100));
+  const z = window.rlDocZoom ? rlDocZoom() : 100;
+  if (wrap) wrap.style.setProperty('--ce-zoom', String(z / 100));
 }
 
 /* A clause's text carries ONE SUB-PARAGRAPH PER LINE, and that is what the
@@ -6901,12 +6884,6 @@ function ceWirePage(page){
       if (id && id !== _ceClauseId) ceGoClause(id); else ceScrollToClause();
       return; }
 
-    const zoom = hit('[data-ce-zoom]');
-    if (zoom){ ev.preventDefault();
-      ceSetZoom(_ceZoom + (zoom.getAttribute('data-ce-zoom') === 'in'
-        ? CE_ZOOM_STEP : -CE_ZOOM_STEP));
-      return; }
-
     /* ---- THE PENCIL IS THE ONLY WAY IN (owner-ruled 1 Sep 2026) ----
        *"I am reversing this ... and essentially saying only after clicking on
        the pencil can you have the ability to edit."*
@@ -7329,7 +7306,7 @@ if (typeof document !== 'undefined' && !document._ceWired){
 }
 
 Object.assign(window, {
-  ceStacksOn, ceTypingRefusal, ceMarkedHtml, ceTwinHtml, ceTwinPaint,
+  ceApplyZoom, ceLeaveGuard, ceStacksOn, ceTypingRefusal, ceMarkedHtml, ceTwinHtml, ceTwinPaint,
   clauseEditorOpen, clauseEditorClauseId, clauseEditorContract, clauseEditorDirty, ceCanFile, clauseEditorCss,
   clauseEditorLeaveAsk,
   clauseEditorHtml, clauseEditorRefusal, clauseEditorFits,
