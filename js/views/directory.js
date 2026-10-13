@@ -376,9 +376,16 @@ function dirBandHtml(book){
 function dirCardHtml(rows, book){
   const admin = _dCall('isAdmin') === true;
   const ic = n => (typeof icon === 'function') ? icon(n, 'w-3.5 h-3.5') : '';
+  /* "There is nothing here" wears the product's one shape (emptyStateHtml,
+     f238); nobody matching a search is the same shape with the search's
+     own sentence. */
+  const emptyWords = book.length ? i18t('dir_none_match') : i18t('dir_empty');
+  const empty = (typeof window !== 'undefined' && typeof window.emptyStateHtml === 'function')
+    ? `<div class="dir-empty">${window.emptyStateHtml({ icon: 'users', title: emptyWords })}</div>`
+    : `<div class="ap-empty dir-empty">${_dE(emptyWords)}</div>`;
   const wall = rows.length
     ? `<div class="dir-wall" id="dir-wall" role="listbox" aria-label="${_dE(i18t('nav_directory'))}">${rows.map(dirFaceHtml).join('')}</div>`
-    : `<div class="ap-empty dir-empty">${_dE(book.length ? i18t('dir_none_match') : i18t('dir_empty'))}</div>`;
+    : empty;
   const foot = [i18t('dir_shown_of', { n: rows.length, total: book.length }), dirPartNote()].filter(Boolean).map(_dE).join(' · ');
   return `<section class="ap-card dir-card">
     <div class="ap-card-h"><h2 class="ap-card-t">${_dE(i18t('nav_directory'))} <span class="ap-card-n">(${rows.length})</span></h2>
