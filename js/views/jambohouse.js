@@ -631,7 +631,7 @@ function jhFeedLine(p){
   const c = p.cid && _jh.data && _jh.data.contracts && _jh.data.contracts[p.cid];
   const what = c ? [c.no, c.cp || c.name].filter(Boolean).join(' · ') : '';
   const out = p.outcome ? _jhT('jh_out_' + p.outcome) : _jhT('jh_open');
-  return `<div><b>${_jhE(_jhT('ag_' + p.agent))}</b> ${_jhE(_jhT('jh_act_' + p.agent))}${what ? ' — ' + _jhE(what) : ''} <span class="jh-out is-${p.outcome || 'open'}">${_jhE(out)}</span></div>`;
+  return `<div><b>${_jhE(_jhT('ag_' + p.agent))}</b> ${_jhE(_jhT('jh_act_' + p.agent))}${what ? ' — ' + _jhE(what) : ''} <span class="jh-out is-${p.outcome || 'open'}">${_jhE(out)}</span>${p.rebuilt ? ` <span class="jh-quiet">· ${_jhE(_jhT('jh_rb_tag'))}</span>` : ''}</div>`;
 }
 function jhFeedAdd(p){
   if (_jh.sel && p.agent !== _jh.sel) return;
@@ -1013,10 +1013,38 @@ function agPointsTableHtml(mode){
   }).join('');
   const anyNew = keys.some(agPointsIsNew), anyMine = keys.some(k => agPointsMine(k));
   const foot = company
-    ? `<div class="ag-pt-foot"><span class="st-note">${_jhE(_jhT('jh_pt_foot_admin'))}</span>${anyNew ? `<button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ag-pt-saveall>${_jhE(_jhT('jh_pt_save_new'))}</button>` : ''}</div>`
+    ? `<div class="ag-pt-foot"><span class="st-note">${_jhE(_jhT('jh_pt_foot_admin'))}</span>${anyNew ? `<button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ag-pt-saveall>${_jhE(_jhT('jh_pt_save_new'))}</button>` : ''}</div>
+       <div class="ag-pt-foot"><span></span><span><button type="button" class="ui-btn ui-btn-sm" data-ag-rebuild>${_jhE(_jhT('jh_rb_btn'))}</button> <button type="button" class="ui-link" data-ag-rebuild-undo>${_jhE(_jhT('jh_rb_undo'))}</button></span></div>`
     : `<div class="ag-pt-foot"><span class="st-note">${_jhE(_jhT('jh_pt_foot_mine'))}</span>${anyMine ? `<button type="button" class="ui-btn ui-btn-sm" data-ag-pt-allback>${_jhE(_jhT('jh_pt_all_back'))}</button>` : ''}</div>`;
   return `<div class="ag-pt" data-ag-pt-mode="${mode}"><style>${AG_PT_CSS}</style><p class="st-note">${_jhE(_jhT(company ? 'jh_pt_sub_admin' : 'jh_pt_sub_mine'))}</p>
     <div class="ag-pt-tw"><table class="ag-pt-table"><thead>${head}</thead><tbody>${body}</tbody></table></div>${foot}</div>`;
+}
+/* THE AGENTS' PAST, REBUILT (owner, 13 Oct 2026): an admin's one-off catch-up
+   from Settings → Jambo's agents. A preview first (POST /api/agents/rebuild
+   {dry}) shows what the records hold per agent; Rebuild writes it, marked as
+   rebuilt; Remove takes every rebuilt piece out again. */
+async function jhRebuildAsk(btn){
+  const say = (m, k) => { if (typeof toast === 'function') toast(m, k || 'ok'); };
+  let pre = null;
+  try { if (typeof busySet === 'function') busySet(btn, _jhT('jh_rb_btn')); pre = await api('agents/rebuild', 'POST', { dry: true }); }
+  catch (e){ say((e && e.message) || String(e), 'err'); return; }
+  finally { btn.textContent = _jhT('jh_rb_btn'); }
+  if (!pre || !pre.total){ say(_jhT('jh_rb_none'), 'warn'); return; }
+  let from = String(pre.from || '').slice(0, 10); try { from = new Date(pre.from).toLocaleDateString((typeof langLocale === 'function') ? langLocale() : undefined, { day: 'numeric', month: 'short', year: 'numeric' }); } catch (_) {}
+  const rows = Object.keys(pre.byAgent || {}).map(k => { const o = pre.byAgent[k]; return '• ' + _jhT('jh_rb_row', { name: _jhT('ag_' + k), n: o.found, used: o.used, changed: o.changed, thrown: o.thrown, waiting: o.waiting }); }).join('\n');
+  const ok = (typeof confirmDialog === 'function') ? await confirmDialog({ title: _jhT('jh_rb_title'), message: _jhT('jh_rb_lead', { from }) + '\n\n' + rows, multiline: true, confirmLabel: _jhT('jh_rb_go') }) : true;
+  if (!ok) return;
+  try { const r = await api('agents/rebuild', 'POST', {}); _jh.data = null; say(_jhT('jh_rb_done', { n: r.written || 0 })); jhRepaint(); }
+  catch (e){ say((e && e.message) || String(e), 'err'); }
+}
+async function jhRebuildUndoAsk(){
+  const say = (m, k) => { if (typeof toast === 'function') toast(m, k || 'ok'); };
+  let n = 0; try { const pre = await api('agents/rebuild', 'POST', { dry: true }); n = (pre && pre.already) || 0; } catch (_) { n = 0; }
+  if (!n){ say(_jhT('jh_rb_undone', { n: 0 }), 'warn'); return; }
+  const ok = (typeof confirmDialog === 'function') ? await confirmDialog({ title: _jhT('jh_rb_undo_title'), message: _jhT('jh_rb_undo_lead', { n }), confirmLabel: _jhT('jh_rb_undo_go'), danger: true }) : true;
+  if (!ok) return;
+  try { const r = await api('agents/rebuild', 'POST', { undo: true }); _jh.data = null; say(_jhT('jh_rb_undone', { n: r.removed || 0 })); jhRepaint(); }
+  catch (e){ say((e && e.message) || String(e), 'err'); }
 }
 /* Wired on the host it is drawn in, once; the value is saved when the box is left. */
 function agPointsWire(host){
@@ -1056,6 +1084,8 @@ function agPointsWire(host){
     if ((el = t.closest('[data-ag-pt-own]'))){ const k = el.getAttribute('data-ag-pt-own'); putMine({ [k]: agPointsCompany(k) }, ''); return; }
     if ((el = t.closest('[data-ag-pt-undo]'))){ const k = el.getAttribute('data-ag-pt-undo'); putMine({ [k]: null }, _jhT('jh_pt_undone', { name: _jhT('ag_' + k) })); return; }
     if (t.closest('[data-ag-pt-allback]')){ putMine(null, _jhT('jh_pt_all_back_done')); return; }
+    if ((el = t.closest('[data-ag-rebuild]'))){ jhRebuildAsk(el); return; }
+    if ((el = t.closest('[data-ag-rebuild-undo]'))){ jhRebuildUndoAsk(el); return; }
   });
 }
 

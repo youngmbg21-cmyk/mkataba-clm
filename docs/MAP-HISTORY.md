@@ -29022,6 +29022,13 @@ Owner: "build c though f and merge to main" (the review's C–F after A and B).
 
 Owner: "Fix both and merge to main" (the two noticed in the C–F round). (1) A replay that ended by itself (`jhFrame` → `jhFinish`) left the button reading "Pause"; `jhSetPlayWord()` now follows `jhFinish` there. (2) Room sub-lines and the panel's cards read "1 approvals laid out"; `jhUnitWords(k, n)` says the count with its unit through new plural keys `jh_unit_<agent>_one`/`_other` in both books (the plain `jh_unit_<agent>` keys are inert). Tests: jambo-agents-verify 16e, 16f (65 pass).
 
+## JAMBO'S AGENTS — THE PAST REBUILT FROM THE RECORDS (13 Oct 2026)
+
+Owner asked: "is it possible to retrospectively go back 2 months to review all the work done in Hati and allocate the work done to the agents?" then "Go ahead, build it according to your suggestion".
+Built: `agentRebuild(days, write)` + POST /api/agents/rebuild (admin). It reads round preps and their changes' resolutions, the reminder sweeps (link watch, late chase, our promises), requests, renewal advice and decisions, imports and their Migration review audit line, Playbook proposals by HaTi, and sign approvals. For each agent it stops before that agent's first live (rebuilt=0) piece, so nothing doubles; it skips a piece already present by agent + contract + ref. A result is written only when the records say it (resolved, decided, done); a matter still open becomes "waiting" only while the contract is live — closed and unclear ones are left out. Every piece is marked `rebuilt` (new column, default 0); Settings → Jambo's agents shows Rebuild (preview in a confirm dialog first, then write) and Remove (deletes rebuilt pieces only). The feed shows "· from records".
+Fix on the way: the first draft called `db.transaction` (better-sqlite3's API); this server runs node:sqlite, so the write uses the house `txn()`; undefined values became null for node:sqlite.
+Tests: jambo-agents-verify 17a–17e (preview, write, run twice adds nothing, Remove, buttons).
+
 ## THE DIRECTORY — FACES (13 Oct 2026)
 
 The owner: "Propose the design of a directory to be built in Hati?" Three options were drawn full size on HaTi's own page in one artifact ("Directory Three Ways", kept at docs/design/directory-three-ways.html): The SAP Way (one quiet table of everyone), Shelves (people under their party) and Faces (a wall of contact cards with an A to Z edge), with the table and a recommendation for The SAP Way. The owner: "Go with faces, build it and merge".
