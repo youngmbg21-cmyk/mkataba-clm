@@ -1243,6 +1243,11 @@
     outline-offset:var(--focus-offset);
     box-shadow:var(--focus);
   }
+  /* A DROPDOWN WEARS NO DARK RING (owner, 13 Oct 2026: "drop down buttons
+     should not have a dark outline"): an opened or keyed-to select shows the
+     faint accent glow and keeps its grey hairline, never the navy ring. */
+  select:focus-visible{outline:none;
+    box-shadow:0 0 0 2px color-mix(in srgb,var(--accent-fill) 22%,transparent);}
   /* A control that owns an elevation keeps it and gains the ring beside it. */
   .lift:focus-visible,.hati-card:focus-visible{box-shadow:var(--focus),var(--shadow-md);}
 
@@ -9875,7 +9880,7 @@
   .stk-flt select{width:100%;min-width:0;height:var(--ctl-h);box-sizing:border-box;padding:0 8px;border:1px solid var(--btn-edge,var(--field-line));border-radius:8px;
     background:var(--color-surface);color:var(--color-text);font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);cursor:pointer}
   .stk-flt select:hover{border-color:var(--accent-solid)}
-  .stk-flt select:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:1px}
+  .stk-flt select:focus-visible{outline:none;box-shadow:0 0 0 2px color-mix(in srgb,var(--accent-fill) 22%,transparent)}
   .pd-th .stk-hide{display:none}
   .stk-nomatch{margin:0;padding:18px 0;text-align:center;font-size:var(--t-label);color:var(--color-neutral-600)}
   /* AS DRAWN (owner, 13 Oct 2026: "use the artifact approach"): each point is a SHADED BOX in its severity's

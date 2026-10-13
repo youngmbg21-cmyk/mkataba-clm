@@ -752,7 +752,7 @@ function clauseEditorCss(){
   .ce-pick select{flex:1; min-width:0; height:var(--ctl-h); padding:0 26px 0 26px; font:inherit; font-size:var(--t-meta);
     font-weight:var(--w-strong); color:var(--color-text); background-color:var(--color-surface);
     border:1px solid var(--color-divider); border-radius:var(--radius); text-overflow:ellipsis; cursor:pointer}
-  .ce-pick select:focus-visible{box-shadow:var(--focus); outline:none}
+  .ce-pick select:focus-visible{box-shadow:0 0 0 2px color-mix(in srgb,var(--accent-fill) 22%,transparent); outline:none}
   .ce-pick-dot{position:absolute; left:24px; top:50%; width:8px; height:8px; margin-top:-4px; border-radius:50%; pointer-events:none}
   .ce-pick-dot.is-their, .ce-pick-dot.is-med{background:var(--st-amber-fg)}
   .ce-pick-dot.is-us{background:var(--accent-solid)}
