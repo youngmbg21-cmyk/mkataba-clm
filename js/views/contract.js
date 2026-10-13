@@ -13255,6 +13255,9 @@ function docXrayRows(c, root){
     const marks=docXrayMarks(c,r);
     return { i, el:r.el, row:r, words:_xrWords(docXrayRowText(r)), marks, tone:docXrayTone(marks),
       name:String(r.ownHead||'').trim(),
+      /* A ROW HAS A NAME (owner, 13 Oct 2026: "2.1 This clause"): a numbered
+         paragraph with no heading of its own is named by its opening words */
+      lead:_xrLead(docXrayRowText(r), String(r.cite||r.num||'')),
       /* a numbered paragraph carries its number on `num`, a heading on `cite` */
       cite:String(r.cite||r.num||''), sep:String(r.sep||'') };
   });
@@ -13262,7 +13265,15 @@ function docXrayRows(c, root){
   out.forEach(x=>{ x.share=Math.round(x.words/total*100); });
   return out;
 }
-const docXrayLabel = x => ((x.cite?x.cite+(x.sep||(/\./.test(x.cite)?'':'.'))+' ':'')+(x.name||i18t('xr_unnamed'))).trim();
+const XR_LEAD_WORDS=7;
+function _xrLead(text, cite){
+  let t=String(text||'').replace(/\s+/g,' ').trim();
+  if(cite&&t.indexOf(cite)===0) t=t.slice(cite.length);
+  t=t.replace(/^[\s.):\-\u2013\u2014]+/,'').replace(/^\(?[a-z0-9ivx]{1,4}[.)]\s+/i,'');
+  const w=t.split(' ').filter(Boolean);
+  return w.length?w.slice(0,XR_LEAD_WORDS).join(' ').replace(/[,;:]$/,'')+(w.length>XR_LEAD_WORDS?'\u2026':''):'';
+}
+const docXrayLabel = x => ((x.cite?x.cite+(x.sep||(/\./.test(x.cite)?'':'.'))+' ':'')+(x.name||x.lead||i18t('xr_unnamed'))).trim();
 
 /* ================================================================
    WHO DOES WHAT — the X-ray panel's third section
@@ -14053,14 +14064,10 @@ function docThreadTopHtml(c, rows, has){
         title="${esc(tip)}"><i aria-hidden="true"></i>${esc(name)} <b>${n}</b></button>`;
     })).join('');
   const filter=`<div class="doc-th-chips" role="group" aria-label="${esc(i18t('th_filter_label'))}">${chips}</div>`;
-  /* ON HOME'S PAPER THE FILTER STANDS AT THE LEFT AND THE WAY TO THE ROOM AT
-     THE RIGHT (owner, 10 Oct 2026: "move the highlighted buttons to the far
-     left and then add a door to the document tab on the far right", drawn as
-     "→ Go to document"): one row under the title, the filter first, the door a
-     text link ending it. The room's own drawer is already on the Document tab,
-     so it keeps the one-line head below. */
-  if(thOnHome()) return `<div class="doc-th-hd is-home"><span class="doc-th-title">${esc(i18t('th_clauses'))} <span class="doc-th-tn">(${clauses.length})</span></span>${docThreadSumHtml(rows,'doc-th-sum')}
-    <div class="doc-th-bar">${filter}${''/* "→ Go to document" is GONE (11 Oct 2026): this IS the document now — the room's Document tab was retired into Home's */}</div></div>`;
+  /* ON HOME THE HEAD IS STAKES' (stkHeadHtml: "The company view", the
+     points, the summary and the ribbon) — no title row and no colour filter
+     (owner, 13 Oct 2026, Stakes as drawn) */
+  if(thOnHome()) return '';
   /* ONE LINE, AS DRAWN (SAP batch 3): "Clauses (n)" and the colour filter as
      one segmented control on the head's right. */
   return `<div class="doc-th-hd"><span class="doc-th-title">${esc(i18t('th_clauses'))} <span class="doc-th-tn">(${clauses.length})</span></span>${docThreadSumHtml(rows,'doc-th-sum')}
@@ -14096,10 +14103,10 @@ function docThreadRowHtml(x,i){
         <span class="doc-th-name">${esc(docXrayLabel(x))}</span>
         <span class="doc-th-state" data-th-state="${i}"></span>
       </button>
-      <span class="doc-th-steps">
+      ${thOnHome()?''/* Stakes as drawn: a row is pressed, not stepped */:`<span class="doc-th-steps">
         <button type="button" class="ui-btn ui-btn-icon doc-th-step" data-th-step="-1" title="${prev}" aria-label="${prev}">${icon('chevL','w-3.5 h-3.5')}</button>
         <button type="button" class="ui-btn ui-btn-icon doc-th-step" data-th-step="1" title="${next}" aria-label="${next}">${icon('chevR','w-3.5 h-3.5')}</button>
-      </span>
+      </span>`}
     </div>
     <div class="doc-th-body"><div class="doc-th-in"></div></div>
   </div>`;
@@ -14176,7 +14183,7 @@ function docThreadExplainHtml(c,rows,i){
   const dead=docThreadNoAi();
   return `<div class="doc-th-ask">
     <button type="button" class="ui-btn" data-th-explain="${i}"${dead?' disabled aria-disabled="true"':''}
-      title="${esc(i18t(dead?'th_no_ai':'th_plain_title'))}">${esc(i18t('th_plain'))}</button>
+      title="${esc(i18t(dead?'th_no_ai':'th_plain_title'))}">${esc(i18t(thOnHome()?'th_plain_en':'th_plain'))}</button>
     <span class="doc-th-cost">${esc(i18t('th_cost'))}</span>
   </div>`;
 }
@@ -14233,6 +14240,11 @@ function docThreadBodyHtml(c,rows,i,plain,sheet){
       parts.push(`<p class="doc-th-cannot"><b>${esc(i18t('th_cannot_head'))}</b> ${esc(i18t(docThreadCannotWhy(c,i)))}</p>`);
     parts.push(docThreadExplainHtml(c,rows,i));
   }
+  /* ON HOME THE OPEN ROW CARRIES ONLY ITS PLAIN ENGLISH (owner, 13 Oct 2026,
+     Stakes as drawn: "This is how the panel should look like but with a plain
+     English button"): what is at stake and why is the deep dive's; the
+     marks, duties and figures below are the room's drawer's. */
+  if(thOnHome()) return `<div class="doc-th-home-plain">${parts.slice(1).join('')}</div>`;
   /* WORTH A LOOK — the one light-red area (Young ruled 25 Sep 2026), only
      while it holds something; every mark names who said it and why. */
   const marks=(x.marks||[]).map(m=>docXrayMarkHtml(m,'')).join('');
@@ -14477,6 +14489,7 @@ function docThreadPaint(c){
   if(home&&c){ const id=String(c.id);
     if(_docThreadTonesFor!==id){ _docThreadTonesFor=id; _docThreadTones=[];
       const k=_docThreadKeep; if(k&&String(k.id)===id){ _docThreadKeep=null; _docThreadTones=docThreadTonesClean(k.tones); } } }
+  if(home) _docThreadTones=[];   /* no filter is drawn on Home (Stakes, 13 Oct 2026), so none may hide a row there */
   const rows=on?docXrayRows(c,thEl('canvas')):[];
   /* the Track in the paper's left margin (docTrackPaint) reads the same rows */
   if(!home) docTrackPaint(c, on?rows:null);

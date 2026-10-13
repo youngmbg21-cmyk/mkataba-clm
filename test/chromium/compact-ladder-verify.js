@@ -236,9 +236,11 @@ const HELPERS = `(() => {
     const slot = c3row.concat(c3.zoom);
     ok('3a the Overview\'s tab-row door and the Document\'s zoom are one height (28)',
       c3row.length >= 1 && c3.zoom.length >= 1 && slot.every(b => near(b.h, 28)), JSON.stringify(slot.map(b => b.t.slice(0, 14) + ':' + b.h)));
-    ok('3b the Thread\'s ‹ › are squares of the small rung (22)',
-      c3.segs.length === 2 && c3.segs.every(b => near(b.w, b.h) && near(b.h, 22)),
-      JSON.stringify(c3.segs.map(b => b.w + '×' + b.h)));
+    /* RE-POINTED 13 Oct 2026 (Stakes as drawn, owner: "This is how the
+       panel should look like"): Home's open row carries no ‹ › steppers -
+       the deep dive walks the points instead. Asserted as absent. */
+    ok('3b Home\'s open row draws no ‹ › steppers (Stakes as drawn)',
+      c3.segs.length === 0, JSON.stringify(c3.segs.map(b => b.w + '×' + b.h)));
     /* 3c "the Thread's text buttons (Explain all, Run) are the text button"
        RETIRED 11 Oct 2026: the Document tab is gone (owner), and the Thread's
        Run lines were that tab's alone - on Home they would press the room

@@ -160,13 +160,14 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   check(!!seg, '2- the Thread draws the marked clauses in their tone', seg);
   /* open the marked clause (Payment) */
   await page.evaluate(() => { const b = document.querySelector('#pd-thread .doc-th-row.is-ruby [data-th-go], #pd-thread .doc-th-row.is-amber [data-th-go], #pd-thread .doc-th-row.is-steel [data-th-go]'); if (b) b.click(); });
+  /* 2a/2b RE-POINTED 13 Oct 2026 (Stakes as drawn (owner, 13 Oct 2026): on Home the open row carries only its Plain English): no marks list there, so no
+     "Draft a redline" and no "Add a note" can be drawn on it */
   const go = await until(page, () => {
     const open = document.querySelector('#pd-thread .doc-th-row.is-open');
-    const m = open && open.querySelector('.doc-th-look .doc-xr-mark');
-    return m ? { draft: open.querySelectorAll('[data-rk-go]').length, notes: open.querySelectorAll('[data-rk-note]').length,
-      text: open.querySelector('.doc-th-look').textContent.replace(/\s+/g, ' ').trim().slice(0, 80) } : null;
+    return open ? { look: !!open.querySelector('.doc-th-look'), draft: open.querySelectorAll('[data-rk-go]').length, notes: open.querySelectorAll('[data-rk-note]').length,
+      text: open.textContent.replace(/\s+/g, ' ').trim().slice(0, 80) } : null;
   });
-  check(!!go && go.draft === 0, '2a the Payment mark in the Thread draws no "Draft a redline" (one door for edits)', go && JSON.stringify(go));
+  check(!!go && go.draft === 0 && !go.look, '2a the open marked clause draws no marks list and no "Draft a redline" (one door for edits)', go && JSON.stringify(go));
   check(!!go && go.notes === 0 && !/Add a note/.test(go.text), '2b and no "Add a note" (removed 5 Oct 2026)', go && go.text);
   await page.screenshot({ path: path.join(OUT, '02-thread.png') });
   await page.evaluate(id => openRedlineWorkbench(id), ID);   /* from Home (section 2) */

@@ -213,7 +213,12 @@ const login = async page => {
     /* ---- 8. THE PRESSED CHIP IN THE DARK ---- */
     await page.evaluate(() => { try { setDark(true); } catch (_) { document.documentElement.classList.add('dark'); } });
     await page.evaluate(i => pdOpenOnHome(i, 'doc'), id);
-    await page.waitForFunction(() => !!document.querySelector('#pd-thread .doc-th-chip[aria-pressed="true"]'), null, { timeout: 15000 }).catch(() => {});
+    /* RE-POINTED 13 Oct 2026 (Stakes as drawn): Home's Clauses list draws no
+       colour filter, so there is no pressed chip to be a pale block. The
+       claim is held as: the list is up, dark, and no chip is drawn. */
+    await page.waitForFunction(() => document.querySelectorAll('#pd-thread .doc-th-row').length > 0, null, { timeout: 15000 }).catch(() => {});
+    const noChip = await page.evaluate(() => ({ rows: document.querySelectorAll('#pd-thread .doc-th-row').length,
+      chips: document.querySelectorAll('#pd-thread .doc-th-chip').length, dark: document.documentElement.classList.contains('dark') }));
     const chip = await page.evaluate(() => {
       const c = document.querySelector('#pd-thread .doc-th-chip[aria-pressed="true"]:not(.is-ruby):not(.is-amber):not(.is-steel)');
       if (!c) return null;
@@ -222,7 +227,7 @@ const login = async page => {
       return { bg: getComputedStyle(c).backgroundColor, lum: (0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]) * a,
         dark: document.documentElement.classList.contains('dark') };
     });
-    check('8a in the dark the pressed "All" chip is not a pale block', chip && chip.dark && chip.lum < 90, JSON.stringify(chip));
+    check('8a in the dark Home\'s Clauses list draws no pale chip — no chip at all (Stakes as drawn)', !chip && noChip.rows > 0 && noChip.chips === 0 && noChip.dark, JSON.stringify({ chip, noChip }));
     const el = await page.$('#pd-thread .doc-th-chips'); if (el) await el.screenshot({ path: path.join(OUT, '04-dark-chips.png') });
 
     check('9 no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));

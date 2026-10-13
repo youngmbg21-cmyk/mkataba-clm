@@ -88,6 +88,16 @@
    +1 to +6, and per brand three new keys — the filled button's edge in the
    brand colour (top, bottom, left), a colour the screen already carried as a
    ground. 0 keys gone; every Ink Wash claim passed before and after.
+   RE-RECORDED 13 Oct 2026 (second), OWNER-ASKED (the build: "You were also
+   supposed to delete breakdown", "This is how the panel should look like but
+   with a plain English button", then "merge to main once tests pass"): the
+   Breakdown face left Home's pill, and Home's Clauses lost its title row,
+   colour filter and the open row's marks. Audited first as a set difference:
+   only Home, Calendar and Document moved. Light mode: text-size counts only.
+   Dark mode: counts, the filled "Read the deal" button's brand edge GONE (the
+   read starts itself now), and the status ruby text NEW on Document — the
+   reading's refusal said where the reader looks (this stage's Jambo cannot
+   answer). Every Ink Wash claim passed before and after.
      node test/chromium/ink-wash-verify.js          (check)
    ============================================================ */
 const fs = require('node:fs');

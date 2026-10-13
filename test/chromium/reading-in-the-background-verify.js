@@ -69,6 +69,16 @@ function startProvider(){
       let raw = ''; req.on('data', d => { raw += d; });
       req.on('end', () => {
         let b = {}; try { b = JSON.parse(raw); } catch (_) {}
+        /* Stakes (owner, 13 Oct 2026): opening Home's Clauses reads the whole
+           contract once (the break_down tool). That read is not a Plain press,
+           so it is answered empty and not counted here — stakes-verify owns it. */
+        if ((b.tools || []).some(t => t && t.name === 'break_down')) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'stub',
+            content: [{ type: 'tool_use', id: 'tu', name: 'break_down', input: { regions: [{ name: 'All', status: 'fine', headline: 'x', items: [] }], points: [] } }],
+            usage: { input_tokens: 1, output_tokens: 1 }, stop_reason: 'end_turn' }));
+          return;
+        }
         calls.push(b);
         const reply = () => {
           res.writeHead(200, { 'Content-Type': 'application/json' });

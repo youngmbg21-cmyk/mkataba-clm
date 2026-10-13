@@ -170,9 +170,10 @@ const BODY =
     });
     check('2d pressing the red row opens it on that clause',
       !!(pressed && /No suspension/.test(pressed.head + pressed.mark)), pressed ? pressed.head : 'no red row');
-    check('2e the scan finding is on it, with its reason under it',
-      !!(pressed && /No right to suspend/.test(pressed.mark) && /Your only lever/.test(pressed.why)),
-      pressed ? pressed.why : '—');
+    /* 2e RE-POINTED 13 Oct 2026 (Stakes as drawn (owner, 13 Oct 2026): on Home the open row carries only its Plain English): the finding grades the bead (2b) and
+       is on the Risks list; the open row on Home does not list it */
+    check('2e the open row does not list the finding (Plain English only)',
+      !!(pressed && pressed.head && !/No right to suspend/.test(pressed.mark || '')), pressed ? (pressed.mark || '(none)') : '—');
     /* REVERSED IN PLACE 25 Sep 2026 (Young: "this 'about contract x' portion
        should be excluded from the x-ray"). A finding that lands on no clause
        was said in About this contract; that block is gone and the finding
@@ -185,8 +186,8 @@ const BODY =
        browser, and to rgb() in others — both are read. */
     const rgb = (pressed && pressed.bg.match(/[\d.]+/g) || []).map(Number)
       .map(v => /srgb/.test(pressed.bg) ? v * 255 : v);
-    check('2g Worth a look, holding the scan finding, is shaded a light red',
-      rgb.length >= 3 && rgb[0] > rgb[1] && rgb[0] > rgb[2] && rgb[1] > 200, pressed ? pressed.bg : '—');
+    /* 2g RETIRED 13 Oct 2026 with Home's Worth a look (2e) */
+    void rgb;
     await page.screenshot({ path: path.join(OUT, '02-thread.png') });
 
     /* ===== 3. THE OBLIGATIONS TILE ===== */

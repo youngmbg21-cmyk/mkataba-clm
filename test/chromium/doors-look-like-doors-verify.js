@@ -10,11 +10,8 @@
    A  Complete the details: Cancel is the last button in the foot; it puts
       back what the boxes held when the page opened and closes the page;
       "Save and finish later" still keeps what was typed.
-   B  Home's Breakdown panel: the four steps are buttons (Deal pressed on
-      arrival — the landing is unchanged, owner's word); Region opens the
-      first region on the left; a step with nothing behind it greys and says
-      why; every clause row, connected region and region in the list wears an
-      Open sign, and the row still opens it.
+   B  (retired 13 Oct 2026: the Breakdown face was deleted by the owner; its
+      reading is drawn on Document → Clauses, see stakes-verify.js)
 
      node test/chromium/doors-look-like-doors-verify.js
    ============================================================ */
@@ -85,57 +82,10 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       check('A3 "Save and finish later" still keeps what was typed', kept === 7000, `value ${kept}`);
     }
 
-    /* ===== B. THE BREAKDOWN PANEL ===== */
-    await page.evaluate(() => {
-      const c = getContract('MK-B1');
-      c.breakdown = { ok: true, hash: String(triageWordingHash(c) || ''), at: new Date().toISOString(), head: 'Fix one', sub: 'Start with payment.',
-        links: [{ a: 1, b: 2, why: 'The term limits how long you pay' }], dropped: 0, truncated: false,
-        regions: [
-          { name: 'Term', clauses: '1', status: 'fine', kind: 'protect', headline: 'Two years', items: [{ ref: '1', title: 'Term', status: 'fine', note: 'Runs two years' }], quotes: [] },
-          { name: 'Payment', clauses: '2', status: 'need', kind: 'pay', headline: 'You pay in thirty days',
-            items: [{ ref: '2', title: 'Payment', status: 'need', note: 'Thirty days' }, { ref: '2.1', title: 'Late fees', status: 'look', note: 'None stated' }],
-            quotes: [{ text: 'Invoices are paid within thirty days of receipt.', source: 'Clause 2', mark: ['thirty days'] }] }] };
-      setView('dashboard'); hbSetFace('breakdown');
-    });
-    await waitFor(page, () => !!document.querySelector('#hb-bd [data-bd-pick="MK-B1"]'));
-    await page.click('#hb-bd [data-bd-pick="MK-B1"]');
-    const up = await waitFor(page, () => !!document.querySelector('.bd-lens .bd-lvls'));
-    const S = () => [...document.querySelectorAll('.bd-lens .bd-lvls > *')].map(b => ({ tag: b.tagName, k: b.getAttribute('data-bd-step'),
-      sel: b.getAttribute('aria-selected'), off: !!b.disabled, why: b.title || '' }));
-    let st = up ? await page.evaluate(S) : [];
-    await page.screenshot({ path: path.join(OUT, '02-breakdown-deal.png') });
-    check('B1 the four steps are buttons, Deal pressed on arrival (the landing is unchanged)',
-      st.length === 4 && st.every(x => x.tag === 'BUTTON') && st[0].sel === 'true' && st.slice(1).every(x => !x.off), JSON.stringify(st));
-    const dealOpen = await page.evaluate(() => [...document.querySelectorAll('.bd-lens .bd-slist button')].map(b => !!b.querySelector('.bd-open')));
-    check('B2 every region in the whole-deal list wears an Open sign', dealOpen.length === 2 && dealOpen.every(Boolean), JSON.stringify(dealOpen));
-
-    await page.click('.bd-lens [data-bd-step="region"]'); await pause(200);
-    const reg = await page.evaluate(() => ({ kick: (document.querySelector('.bd-lens .bd-kick') || {}).textContent || '',
-      sel: (document.querySelector('.bd-lens [aria-selected="true"]') || {}).getAttribute?.('data-bd-step'),
-      rows: [...document.querySelectorAll('.bd-lens .bd-cls button')].map(b => ((b.querySelector('.bd-open') || {}).textContent || '').trim()),
-      links: [...document.querySelectorAll('.bd-lens .bd-links button')].map(b => ((b.querySelector('.bd-open') || {}).textContent || '').trim()),
-      leftFirst: ((document.querySelector('#hb-bd .bd-table tbody tr td b') || {}).textContent || '') }));
-    await page.screenshot({ path: path.join(OUT, '03-breakdown-region.png') });
-    check('B3 Region opens the first region on the left, and its step is pressed',
-      reg.sel === 'region' && /Region 2/.test(reg.kick) && /Payment/.test(reg.leftFirst), JSON.stringify(reg));
-    check('B4 every clause row says "Open clause", every connected region "Open region"',
-      reg.rows.length === 2 && reg.rows.every(x => x === 'Open clause') && reg.links.length === 1 && reg.links[0] === 'Open region', JSON.stringify(reg));
-
-    await page.click('.bd-lens .bd-cls button:nth-child(2)'); await pause(200);
-    const cl = await page.evaluate(() => ({ sel: (document.querySelector('.bd-lens [aria-selected="true"]') || {}).getAttribute?.('data-bd-step'),
-      h: (document.querySelector('.bd-lens-body h2') || {}).textContent || '' }));
-    check('B5 a clause row still opens its clause', cl.sel === 'clause' && cl.h === 'Late fees', JSON.stringify(cl));
-    await page.click('.bd-lens [data-bd-step="words"]'); await pause(200);
-    const wd = await page.evaluate(() => ({ sel: (document.querySelector('.bd-lens [aria-selected="true"]') || {}).getAttribute?.('data-bd-step'),
-      quote: !!document.querySelector('.bd-lens .bd-words mark') }));
-    check('B6 the Words step opens the region\'s wording', wd.sel === 'words' && wd.quote, JSON.stringify(wd));
-
-    /* a region with no wording: Words greys and says why */
-    await page.click('.bd-lens [data-bd-step="deal"]'); await pause(150);
-    await page.click('.bd-lens .bd-slist button:nth-child(2)'); await pause(200);
-    st = await page.evaluate(S);
-    const w = st.find(x => x.k === 'words') || {};
-    check('B7 a step with nothing behind it greys and says why', w.off === true && /no wording/i.test(w.why), JSON.stringify(w));
+    /* ===== B. THE BREAKDOWN PANEL — RETIRED 13 Oct 2026 =====
+       The owner deleted Home's Breakdown face ("You were also supposed to
+       delete breakdown"); its reading is drawn on Document → Clauses and is
+       checked by stakes-verify.js. */
 
     check('9 no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) { fail++; console.log('FAIL  the run threw — ' + e.message); }
