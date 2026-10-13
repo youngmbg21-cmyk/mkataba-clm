@@ -20726,3 +20726,4 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Home's Document strip reads "Software as a Service Agreement · — · Drafting": the counterparty's name is missing.
 - The clause-number track down the paper's margin lists "3", "7.3", "47.1" after "33.2", out of order.
 - Negotiate's "Progress · 0 of 5 decided" counts our own unsent drafts as things to decide.
+- Main went red at 84f04e7 (the merge of #271, the start-redlining journey), run 38456600867: node suite 2 failing tests; browser home-paper-clauses, one-door-for-edits, runway-and-xray, thread, risks-in-the-redlines-card (7a/7d: the risk door no longer lands on Home's Document, Clauses tab), six-off-five-images, nine-jobs, uploaded-contract-fixed. The phase-1 stack (#260–#269) inherits it. Left alone (scope); noted on #260.
