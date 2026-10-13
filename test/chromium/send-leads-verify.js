@@ -146,9 +146,20 @@ async function login(page, base) {
       const phone = await (await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })).newPage();
       phone.on('pageerror', e => errors.push('phone: ' + e.message));
       await login(phone, h.base);
-      await phone.evaluate(id => { state.activeId = id; if (window.mGo) mGo('contract'); }, draftId);
-      const bar = await until(phone, () => { const b = document.querySelector('.m-actionbar button'); return b ? { na: b.getAttribute('data-m-na'), text: b.textContent.trim(), primary: b.classList.contains('m-btn-primary') } : null; }, 10000);
-      check('C1 the phone\'s one button is the send', !!(bar && bar.na === 'share' && bar.primary), bar);
+      /* ASK FOR THE STATE: on a busy CI runner the phone's first screen can
+         paint after our step and take the room away again (13 Oct 2026, run
+         38450813513: no action bar within 10 s; 15/15 here). So the wait
+         itself goes back to the draft while no bar is drawn, at most once a
+         second, and only once the draft is in the phone's list. */
+      const bar = await until(phone, id => {
+        const b = document.querySelector('.m-actionbar button');
+        if (b) return { na: b.getAttribute('data-m-na'), text: b.textContent.trim(), primary: b.classList.contains('m-btn-primary') };
+        const now = Date.now();
+        if (window.mGo && (state.contracts || []).some(c => c.id === id) && !(window.__slWent > now - 1000)) {
+          window.__slWent = now; state.activeId = id; mGo('contract'); }
+        return null;
+      }, 15000, draftId);
+      check('C1 the phone\'s one button is the send', !!(bar && bar.na === 'share' && bar.primary), bar || 'no action bar drawn');
       if (bar && bar.na === 'share') {
         await phone.$eval('.m-actionbar button[data-m-na="share"]', b => b.click());
         const sheet = await until(phone, () => { const e = document.getElementById('m-share-email'); return e ? (e.value || '(empty)') : null; }, 8000);
