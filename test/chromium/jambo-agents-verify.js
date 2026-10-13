@@ -20,6 +20,9 @@
      7 Settings → Jambo's agents carries one points row per agent; a box left
        is saved for everyone, and the house counts with it
      8 the Board's "The agents" opens this page (one place for the agents)
+     2 the house fits the window and is drawn at its real size (owner, 13 Oct
+       2026: "too big … grainy"); no facts line under the title
+    11 a 2× screen gets twice the pixels; a short window shrinks the floors
      9 no free room (owner, 13 Oct 2026): the agents fill every floor evenly and
        the rooms widen; a new floor only when every floor holds three
     10 the period is a transition, not a reload: the page and its house stay;
@@ -86,7 +89,13 @@ const CONTRACTS = [
       current: document.querySelector('[data-nav-fold-open="insights"]').classList.contains('is-current') }));
     ok('2a one card per agent in AG_KEYS', pg.cards.length === pg.keys.length && pg.keys.every(k => pg.cards.includes(k)), pg.cards.join(' '));
     const floors = Math.ceil(pg.keys.length / 3);
-    ok('2b the house is as tall as its floors need', pg.h === 70 + floors * 132 + 16, `${pg.h} for ${floors} floors`);
+    const fit = () => page.evaluate(() => { const cv = document.getElementById('jh-cv'), st = document.getElementById('jh-stage'), dpr = window.devicePixelRatio || 1;
+      return { bottom: Math.round(st.getBoundingClientRect().bottom), win: window.innerHeight, sharp: cv.width === Math.round(cv.clientWidth * dpr) && Math.abs(cv.height - Math.round(cv.clientHeight * dpr)) <= 1,
+        floors: jhGeom().floors, fh: jhGeom().fh, scrolls: st.scrollHeight > st.clientHeight + 1 }; });
+    const f2 = await fit();
+    ok('2b the house fits the window (no part below the screen) and has a floor per three agents', f2.bottom <= f2.win && f2.floors === floors, JSON.stringify(f2));
+    ok('2b2 drawn at its real size on screen, not a stretched picture', f2.sharp, JSON.stringify(f2));
+    ok('2b3 no facts line under the title', await page.evaluate(() => !document.getElementById('jh-facts') && !document.querySelector('.jh-band .page-facts')));
     ok('2c three tabs: the house, jobs, how points work', pg.tabs.join(' ') === 'house jobs how', pg.tabs.join(' '));
     ok('2d the opener wears "you are here" on the page', pg.current);
     const painted = await page.evaluate(() => { const cv = document.getElementById('jh-cv'), x = cv.getContext('2d'), d = x.getImageData(0, 0, cv.width, cv.height).data;
@@ -128,9 +137,9 @@ const CONTRACTS = [
     console.log('\n5 · the architect\'s drawing');
     await page.evaluate(() => { document.querySelector('.jh-page').dataset.mark5 = 'same'; });
     await page.selectOption('#jh-look', '1', { timeout: 3000 }).catch(() => {});
-    await page.waitForFunction(() => document.getElementById('jh-cv').height !== 70 + Math.ceil(AG_KEYS.length / 3) * 132 + 16, null, { timeout: 4000 }).catch(() => {});
-    const dh = await page.evaluate(() => document.getElementById('jh-cv').height);
-    ok('5a the same house, drawn taller for its roof and title block', dh === 128 + floors * 132 + 104, String(dh));
+    await page.waitForFunction(() => jhGeom().top === 128, null, { timeout: 4000 }).catch(() => {});
+    const f5 = await fit(), g5 = await page.evaluate(() => jhGeom());
+    ok('5a the drawing (roof and title block) fits the same window, sharp', g5.top === 128 && f5.bottom <= f5.win && f5.sharp, JSON.stringify({ f5, g5 }));
     ok('5b the Look is one dropdown, and changing it redraws in place (no rebuild)', await page.evaluate(() => !document.querySelector('[data-jh-look]') && document.querySelector('.jh-page').dataset.mark5 === 'same'));
     await page.waitForFunction(() => window.REMOTE && REMOTE.me && REMOTE.me.prefs && REMOTE.me.prefs.agentsLook === 'drawing', null, { timeout: 4000 }).catch(() => {});
     const noPlace = await page.evaluate(() => !('look' in jhPlace()));
@@ -140,7 +149,7 @@ const CONTRACTS = [
     await page.evaluate(() => setView('jambo'));
     await page.waitForFunction(() => !!document.getElementById('jh-look') && !!document.getElementById('jh-cv'), null, { timeout: 8000 }).catch(() => {});
     const kept5 = await page.evaluate(() => ({ v: state.view, sel: (document.getElementById('jh-look') || {}).value, h: (document.getElementById('jh-cv') || {}).height }));
-    ok('5c the choice is this person\'s default: a fresh visit opens on it, kept in their account (not the browser\'s place)', noPlace && kept5.sel === '1' && kept5.h === dh, JSON.stringify(kept5) + ' noPlace=' + noPlace);
+    ok('5c the choice is this person\'s default: a fresh visit opens on it, kept in their account (not the browser\'s place)', noPlace && kept5.sel === '1', JSON.stringify(kept5) + ' noPlace=' + noPlace);
     await page.selectOption('#jh-look', '0', { timeout: 3000 }).catch(() => {});
     await page.waitForFunction(() => window.REMOTE && REMOTE.me && REMOTE.me.prefs && REMOTE.me.prefs.agentsLook === 'plan', null, { timeout: 4000 }).catch(() => {});
 
@@ -160,8 +169,8 @@ const CONTRACTS = [
         if (c.length !== F || c.reduce((s, x) => s + x, 0) !== n || c.some(x => x > 3 || x < Math.max(...c) - 1)) bad.push(n + ':' + c.join(',')); }
       return bad; });
     ok('9a any number of agents fills every floor, evenly, never more than three a floor', fc.length === 0, fc.join(' '));
-    const edges = await page.evaluate(() => { const n = AG_KEYS.length, F = Math.ceil(n / 3), out = [];
-      for (let f = 0; f < F; f++){ const y = 70 + (F - f) * 132 - 66; out.push(!!jhRoomAt(210, y) && !!jhRoomAt(1140, y)); } return out; });
+    const edges = await page.evaluate(() => { const g = jhGeom(), out = [];
+      for (let f = 0; f < g.floors; f++){ const y = g.top + (g.floors - f) * g.fh - g.fh / 2; out.push(!!jhRoomAt(210, y) && !!jhRoomAt(1140, y)); } return out; });
     ok('9b every floor has a room from wall to wall (no empty room at either end)', edges.length > 0 && edges.every(Boolean), JSON.stringify(edges));
 
     console.log('\n10 · the period: a transition, and a typed number of days');
@@ -188,6 +197,22 @@ const CONTRACTS = [
     await page.waitForFunction(() => !!document.querySelector('[data-jh-range="custom"]'), null, { timeout: 8000 }).catch(() => {});
     const back = await page.evaluate(() => { const b = document.querySelector('[data-jh-range="custom"]'); return b ? b.textContent + '|' + b.getAttribute('aria-pressed') : ''; });
     ok('10f a refresh keeps the typed period', back === '45 days|true', back);
+
+    console.log('\n11 · a sharp screen and a short window');
+    const ctx2 = await b.newContext({ viewport: { width: 1440, height: 760 }, deviceScaleFactor: 2, storageState: await page.context().storageState() });
+    const p2 = await ctx2.newPage(); p2.on('pageerror', e => errs.push(e.message));
+    await p2.goto(h.base + '/', { waitUntil: 'networkidle' });
+    await p2.waitForFunction(() => typeof setView === 'function' && state.contracts && state.contracts.length === 5, null, { timeout: 15000 }).catch(() => {});
+    await p2.evaluate(() => setView('jambo'));
+    await p2.waitForFunction(() => !!document.getElementById('jh-cv') && typeof jhGeom === 'function', null, { timeout: 8000 }).catch(() => {});
+    const f11 = await p2.evaluate(() => { const cv = document.getElementById('jh-cv'), st = document.getElementById('jh-stage');
+      return { dpr: window.devicePixelRatio, bw: cv.width, cw: cv.clientWidth, bottom: Math.round(st.getBoundingClientRect().bottom), win: window.innerHeight, fh: jhGeom().fh }; });
+    ok('11a on a 2× screen the house is drawn with twice the pixels (crisp, not grainy)', f11.dpr === 2 && f11.bw === Math.round(f11.cw * 2), JSON.stringify(f11));
+    ok('11b in a short window the floors shrink so the house still ends on screen', f11.bottom <= f11.win && f11.fh < 132, JSON.stringify(f11));
+    await p2.setViewportSize({ width: 1440, height: 1000 });
+    await p2.waitForFunction(fh => jhGeom().fh > fh, f11.fh, { timeout: 4000 }).catch(() => {});
+    ok('11c a taller window lets the floors grow back (refits on resize)', await p2.evaluate(fh => jhGeom().fh > fh, f11.fh));
+    await ctx2.close();
 
     console.log('\n7 · Settings → Jambo\'s agents: the points');
     await page.evaluate(() => openSettingsAt('platform', 'agents'));

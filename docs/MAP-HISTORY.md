@@ -28939,3 +28939,12 @@ The owner, after seeing the page: "there should be no free room in the house. Ju
 
 ## THE THREAD — A PAINT WITH NOWHERE TO DRAW TAKES NOTHING (13 Oct 2026)
 Owner's screenshot: Home's Clauses list drawn, "Jambo is reading…" never ending, and Plain English answering "There is no wording here to read yet." Cause: `docThreadPaint` for a contract not on Home's panel set `_thHost` to 'doc' and returned (the room's list is gone since 11 Oct), so the list on Home stayed drawn while its presses read `#doc-canvas` (absent) and the company read's repaint went nowhere. Fix: a paint whose host has no card returns WITHOUT moving the host. Test: stakes-verify 6b (red at the parent with the owner's exact sentence).
+
+
+## JAMBO'S AGENTS — THE HOUSE AND HIS POINTS: FITS THE SCREEN, DRAWN SHARP (13 Oct 2026)
+
+The owner, with a screenshot: "the graphic is too big on screen so make it fit for the screen. Delete the highlighted space and the graphic both in floor plan and in architect are both grainy and not fit for release."
+- WHY GRAINY: the canvas was a fixed 1160 × (70 + floors × 132 + 16) bitmap stretched by CSS to the stage's width (`width:100%;height:auto`), with no regard for devicePixelRatio — on a 1400px stage on a 2× screen every pixel was blown up ~2.4×. WHY TOO BIG: the height followed the width, so a wide stage pushed the lower floors below the window.
+- NOW: `jhFitCanvas` measures the stage (its width, and the window height left below its top), lays the house out with floors between `JH_FH_MIN` 92 and `JH_FH_MAX` 132 logical px so it ends on screen (below the minimum the stage scrolls inside itself), sizes the backing store to the box × devicePixelRatio (capped 3) and `jhFrame` draws through one transform; the cross-fade's snapshot is drawn back untransformed. `jhRefit` follows a window resize or zoom and a ResizeObserver on the stage's width. The side panel matches the fitted stage (`jhFitPanel`, no 480 floor). Hit-testing is unchanged (logical coordinates).
+- The facts line under the title is gone (its two facts are on the Jobs tab, in the house's own sub-line and in the points panel); `jh_n_pieces_in` is inert.
+- Measured: 1440×900 plan fh 132 bottom 826 ≤ 900; drawing fh 112 bottom 884; 1440×760 at 2× → backing 2060 for 1030 css, fh 111, bottom 744 ≤ 760; a taller window grows the floors back. Tests: jambo-agents-verify 2b–2b3, 5a, 9b, 11a–11c.
