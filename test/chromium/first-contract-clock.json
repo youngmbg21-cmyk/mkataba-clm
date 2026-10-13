@@ -1,0 +1,9 @@
+{
+  "_what": "The first contract's path, as first-contract-clock-verify.js walked it the day the clock was set: sign-up, pick the NDA, answer its questions, Create, Send to sign, name who signs, run the readings, read the brief, sign, the other side's code and signature. A change that adds a screen, a press or a typed field fails the check; one that removes any is recorded here on purpose, like the colour census.",
+  "_recorded": "2026-10-13",
+  "_seconds_note": "robot time with Jambo answered instantly by the file's stand-in; a real model adds its seconds on top; guarded as a relation (3x), never an absolute",
+  "screens": 12,
+  "presses": 30,
+  "typed": 14,
+  "seconds": 38
+}

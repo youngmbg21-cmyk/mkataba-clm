@@ -20700,6 +20700,9 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ### Noticed, not fixed (13 Oct 2026, dropdowns wear no dark outline)
 - f148 "no Swedish value is a forgotten copy of the English" is red on main since #248: `stk_by_jambo` is 'Jambo' in both books (a name); it belongs in f148's SAME_IN_BOTH beside `pd_tab_copilot`.
 
+## Noticed, not fixed — 13 Oct 2026 (the 30-minute clock, phase 1)
+- The sign check's obligations row says "the wording moved after the obligations were read" on every template-drafted contract, even right after a fresh read: obligationsReadStamp hashes obligationsText(c) (contractPlainText) while signCheckObligations hashes playbookText(c) (docPlainText), and on a drafted NDA the two texts differ (3,067 vs 3,056 characters). Measured by the clock's probe on main. It drops to "noted" after the re-read and does not hold the signature; left alone, the two readings need one text.
+- New agreement's rail search reads template NAMES only: typing "non-disclosure" finds nothing, "NDA" finds the NDA. A plain-English search term should find the template; left alone.
 ### Noticed, not fixed (13 Oct 2026, the agents' house C–F)
 - Jambo's agents: when a replay ends by itself (jhFrame → jhFinish) the Play button keeps saying "Pause" — jhSetPlayWord is not called there; pre-existing.
 - Jambo's agents: a room's sub-line can read "1 approvals laid out" — the jh_unit_* words are not plural-aware; pre-existing.
@@ -20717,3 +20720,4 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 
 ### Noticed, not fixed (13 Oct 2026, Ask Jambo from the deep dive)
 - Home's Jambo panel answers a question put in its box by `intelAskReady` (a "readied" ask) through `intelChatAsk`, the whole-book chat, so it does not know the contract on the paper ("I still need to know which contract you're referring to", with "Ask about MK-457…" in the box). The deep dive's Ask Jambo now goes to the edit room; other readied asks on Home still take this path.
+- 13 Oct 2026 (noticed while watching PR #260 CI): auto-triage-verify 7b ("pressing it files the contract AND starts the reading") failed once in CI on #260 ccb4335 (run 38473593194, browser 2/4) with {"made":false,"source":"upload","started":true}: the upload's filing had not landed when the check read it. Passes 67/67 locally on that commit. Likely the check reads `made` without waiting for it (bounded wait on the record); not fixed here.

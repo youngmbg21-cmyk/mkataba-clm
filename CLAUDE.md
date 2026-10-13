@@ -84,6 +84,7 @@ For a DESIGN QUESTION (how should it look, a new look, a redesign — an exact i
 - Browser files start a real Chrome (11–40 s each): only the ones for the screen you changed. `node test/chromium/run-all.js` is CI's whole set; KNOWN_RED lists expected failures with reasons — take a file off the day it goes green.
 - **A TEST WHOSE ANSWER DEPENDS ON THE DAY IT RUNS IS WORSE THAN NO TEST.** Build fixture dates with `monthSpan(off)` or quarter boundaries. Faking node's clock does not move jsdom's.
 - **SAVE TOKENS**: never read a >300 KB file whole (negotiation.js, i18n.js, server.js, contract.js, index.html, core.js are 0.5–1.2 MB) — grep, then read a slice. Prefer doing work yourself over spawning helper agents: each one reloads this file.
+- **THE 30-MINUTE CLOCK** (owner's go, 13 Oct 2026): `first-contract-clock-verify.js` walks sign-up → NDA → Create → Send to sign → both signatures and pins screens · presses · typed in `first-contract-clock.json` (counts only shrink on purpose; seconds a 3× relation; Jambo answered by the file's own `startClockAi`). A change that adds a screen or a press to the first contract fails it. Story: MAP-HISTORY "THE 30-MINUTE CLOCK".
 
 ## STANDING LESSONS — the defect classes this codebase has paid for repeatedly
 
