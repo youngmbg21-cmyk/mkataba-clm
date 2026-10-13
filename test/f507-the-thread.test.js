@@ -317,9 +317,10 @@ describe('f507 (7) — the colour filter', () => {
 
 describe('f507 (8) — Plain always turns the clause into plain English, and never ends in silence', () => {
   /* RE-POINTED 6 Oct 2026: "All N clauses" is gone; th_plain_all_* inert. */
-  test('the button says Plain, and nothing sits beside it', () => {
+  /* RE-POINTED 13 Oct 2026: on Home (Stakes as drawn) the same button reads "Plain English" (th_plain_en) */
+  test('the button says Plain (Plain English on Home), and nothing sits beside it', () => {
     const ex = region(CONTRACT, 'docThreadExplainHtml');
-    assert.match(ex, /i18t\('th_plain'\)/);
+    assert.match(ex, /i18t\(thOnHome\(\)\?'th_plain_en':'th_plain'\)/);
     assert.ok(!/th_plain_all/.test(ex), 'no "All N clauses in plain English"');
     assert.ok(!/i18t\('th_explain'\)|th_explain_all'/.test(THREAD), 'the old words are drawn nowhere');
   });

@@ -1,14 +1,17 @@
 /* Chromium verification: STAKES — Home's Clauses tab carries the deep read
    (owner picked "Stakes" by name, 13 Oct 2026; one company view).
 
-   1 with no reading, the tab offers "Read the deal" and says the cost first
-   2 one press reads once; the head says the points and draws the region ribbon
+   0 Home has no Breakdown face any more (owner, 13 Oct 2026)
+   1 opening Clauses is the press: the contract is read ONCE with no other
+     press, and the cost is said while it reads
+   2 the head says the points and draws the region ribbon
    3 each point stands under its clause as ONE company line with a Deep dive door;
      a point about something missing stands under "Not in the contract"
    4 Deep dive opens its own panel (title, cost, what we should get, our edge,
      the ask) and repeats none of the contract's wording
    5 ‹ › walk the points; Back and Esc return to the same list
-   6 a refusal is said where the reader looks, never silent
+   6 a refusal is said where the reader looks with Try again, and is not
+     retried in a loop
    7 no page errors
 
    The Jambo route is stubbed in the page (window.api), so nothing is spent.
@@ -66,16 +69,17 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       setView('dashboard');
       pdOpenOnHome('MK-S1', 'doc');
     });
+    const faces = await page.evaluate(() => [...document.querySelectorAll('[data-hb-face]')].map(b => b.dataset.hbFace));
+    ok('0 Home has no Breakdown face', faces.length > 0 && !faces.includes('breakdown'), faces.join(','));
     const listed = await page.waitForSelector('#pd-thread .doc-th-row', { timeout: 10000 }).then(() => true, () => false);
-    const e1 = await page.evaluate(() => ({ btn: !!document.querySelector('#pd-thread [data-stk-run]'), cost: (document.querySelector('#pd-thread .stk-cost') || {}).innerText || '', n: window.__bd.n }));
-    ok('1 with no reading the tab offers Read the deal and says the cost first', listed && e1.btn && /Jambo once/.test(e1.cost) && e1.n === 0, JSON.stringify(e1));
+    const read = await page.waitForSelector('#pd-thread .stk-line', { timeout: 10000 }).then(() => true, () => false);
+    const e1 = await page.evaluate(() => ({ n: window.__bd.n, runBtn: !!document.querySelector('#pd-thread [data-stk-run]') }));
+    ok('1 opening Clauses reads the contract once, with no other press', listed && read && e1.n === 1 && !e1.runBtn, JSON.stringify(e1));
 
-    if (e1.btn) {
-      await page.click('#pd-thread [data-stk-run]');
-      const read = await page.waitForSelector('#pd-thread .stk-line', { timeout: 8000 }).then(() => true, () => false);
-      const e2 = await page.evaluate(() => ({ n: window.__bd.n, count: (document.querySelector('#pd-thread .stk-count') || {}).innerText || '',
+    if (read) {
+      const e2 = await page.evaluate(() => ({ count: (document.querySelector('#pd-thread .stk-view') || {}).innerText || '',
         ribbon: document.querySelectorAll('#pd-thread .stk-ribbon i').length }));
-      ok('2 one press reads once; the head says the points and draws the ribbon', read && e2.n === 1 && /2 points/.test(e2.count) && /1 need you/.test(e2.count) && e2.ribbon === 2, JSON.stringify(e2));
+      ok('2 the head says the points and draws the ribbon', /2 points/.test(e2.count) && /1 need you/.test(e2.count) && e2.ribbon === 2, JSON.stringify(e2));
 
       const e3 = await page.evaluate(() => {
         const rows = [...document.querySelectorAll('#pd-thread .doc-th-row')];
@@ -107,13 +111,14 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       const esc = await page.evaluate(() => !document.querySelector('#pd-thread .stk-dv'));
       ok('5 the arrows walk the points; Back and Esc return to the list', /price rise/.test(t2) && !back.dive && back.list && esc, JSON.stringify({ t2, back, esc }));
 
-      await page.evaluate(() => { window.__bd.refuse = true; pdOpenOnHome('MK-S2', 'doc'); });
-      await page.waitForSelector('#pd-thread [data-stk-run]', { timeout: 8000 });
-      await page.click('#pd-thread [data-stk-run]');
+      await page.evaluate(() => { window.__bd.refuse = true; window.__bd.n = 0; pdOpenOnHome('MK-S2', 'doc'); });
       const said = await page.waitForSelector('#pd-thread .stk-err', { timeout: 8000 }).then(() => true, () => false);
-      ok('6 a refusal is said where the reader looks', said, said ? await page.evaluate(() => document.querySelector('#pd-thread .stk-err').innerText) : 'no message');
+      await page.waitForTimeout(1500);   // a loop would have asked again by now
+      const f = await page.evaluate(() => ({ n: window.__bd.n, err: (document.querySelector('#pd-thread .stk-err') || {}).innerText || null,
+        again: !!document.querySelector('#pd-thread [data-stk-run]') }));
+      ok('6 a refusal is said with Try again, and is not retried in a loop', said && f.n === 1 && !!f.err && f.again, JSON.stringify(f));
     } else {
-      ['2', '3', '4', '5', '6'].forEach(k => ok(k + ' (not reached)', false, 'no Read the deal button on the Clauses tab'));
+      ['2', '3', '4', '5', '6'].forEach(k => ok(k + ' (not reached)', false, 'the Clauses tab was never read'));
     }
     ok('7 no page errors', errs.length === 0, errs.join(' | ').slice(0, 300));
   } finally { await browser.close(); await h.stop(); }

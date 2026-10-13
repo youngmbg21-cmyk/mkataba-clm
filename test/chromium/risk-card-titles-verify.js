@@ -292,7 +292,9 @@ async function shot(page, name){ try{ await page.screenshot({ path: path.join(OU
     }, null, 10000);
     const thWhy = thread ? '' : await page.evaluate(() => JSON.stringify({ view: state.view, thread: !!document.getElementById('pd-thread'),
       mt: [...document.querySelectorAll('.doc-xr-mt')].map(x => x.textContent.replace(/\s+/g, ' ').trim().slice(0, 80)), tab: state.wsTab || null }));
-    check(!!thread, '6 the Clauses tab\'s Worth a look reads "title — sentence"', thread || thWhy);
+    /* 6 RE-POINTED 13 Oct 2026 (Stakes as drawn (owner, 13 Oct 2026): on Home the open row carries only its Plain English): Home's Clauses draws no Worth a look,
+       so its risk titles are read on the Risks list (5) */
+    check(!thread, '6 Home\'s Clauses tab draws no Worth a look list (Stakes as drawn)', thread || thWhy);
     await shot(page, '5-worth-a-look.png');
 
     check(errors.length === 0, '9 no page errors', errors.join(' | ') || 'none');

@@ -352,18 +352,16 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
        Thread lives on Home's Document, its Clauses tab. */
     await page.evaluate(id => { pdOpenOnHome(id, 'doc'); }, ID);
     await until(page, () => { const t = document.getElementById('pd-thread'); return t && !t.hidden && t.querySelectorAll('.doc-th-row').length ? true : null; });
-    /* every marked row pressed until one carries a risk mark */
+    /* 7a/7b RE-POINTED 13 Oct 2026 (Stakes as drawn (owner, 13 Oct 2026): on Home the open row carries only its Plain English): a marked row, opened, draws no
+       marks list, no "Draft a redline" and no "Add a note" */
     const rv = await until(page, () => {
       const th = document.getElementById('pd-thread'); if (!th) return null;
-      const read = () => { const open = th.querySelector('.doc-th-row.is-open'); if (!open) return null;
-        const marks = open.querySelectorAll('.doc-th-look .doc-xr-mark').length;
-        return marks ? { marks, notes: open.querySelectorAll('[data-rk-note]').length, go: open.querySelectorAll('[data-rk-go]').length, text: open.innerText } : null; };
-      let got = read(); if (got) return got;
-      for (const b of th.querySelectorAll('.doc-th-row.is-ruby [data-th-go], .doc-th-row.is-amber [data-th-go]')){ b.click(); got = read(); if (got) return got; }
-      return null;
+      const b = th.querySelector('.doc-th-row.is-ruby [data-th-go], .doc-th-row.is-amber [data-th-go]'); if (!b) return null;
+      b.click(); const open = th.querySelector('.doc-th-row.is-open'); if (!open) return null;
+      return { marks: open.querySelectorAll('.doc-th-look .doc-xr-mark').length, notes: open.querySelectorAll('[data-rk-note]').length, go: open.querySelectorAll('[data-rk-go]').length, text: open.innerText };
     });
     check(!!rv && rv.go === 0 && !/Draft a redline/.test(rv.text), '7a the Thread draws no "Draft a redline"', rv && rv.go);
-    check(!!rv && rv.marks > 0 && rv.notes === 0 && !/Add a note/.test(rv.text), '7b the marks are there, and "Add a note" is not (removed 5 Oct 2026)', rv && JSON.stringify({ marks: rv.marks, notes: rv.notes }));
+    check(!!rv && rv.marks === 0 && rv.notes === 0 && !/Add a note/.test(rv.text), '7b no marks list on Home\'s open row, and no "Add a note"', rv && JSON.stringify({ marks: rv.marks, notes: rv.notes }));
     await shot('7-thread.png');
 
     /* ============ 8. SAFETY NET ============ */

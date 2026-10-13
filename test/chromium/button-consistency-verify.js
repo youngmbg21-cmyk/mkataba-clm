@@ -116,7 +116,7 @@ const HELPERS = `(() => {
     await page.evaluate(i => pdOpenOnHome(i, 'doc'), id);
     await page.waitForFunction(() => !!document.querySelector('#ig-paper .rl-type-step') && document.querySelectorAll('#pd-thread .doc-th-row').length > 0, null, { timeout: 15000 }).catch(() => {});
     await page.evaluate(() => { if (!document.querySelector('#pd-thread .doc-th-row.is-open')) { const g = document.querySelector('#pd-thread [data-th-go]'); if (g) g.click(); } });
-    await page.waitForFunction(() => !!document.querySelector('#pd-thread .doc-th-row.is-open .doc-th-step'), null, { timeout: 5000 }).catch(() => {});
+    await page.waitForFunction(() => !!document.querySelector('#pd-thread .doc-th-row.is-open [data-th-explain]'), null, { timeout: 5000 }).catch(() => {});
     await load(); await rest();
     await page.screenshot({ path: path.join(OUT, '01-home-document.png') });
     const row = await page.evaluate(negoEdge => {
@@ -130,7 +130,9 @@ const HELPERS = `(() => {
          went with the switch (the negotiate page's seat switch keeps them in
          3e), and the Thread's own step squares take the edge too. */
       const step = pick('#ig-paper .rl-type-step');
-      const thStep = pick('#pd-thread .doc-th-row.is-open .doc-th-step');
+      /* RE-POINTED 13 Oct 2026 (Stakes as drawn): Home's open row has no
+         ‹ › squares; its one button is Plain English, and it takes the edge. */
+      const thStep = pick('#pd-thread .doc-th-row.is-open [data-th-explain]');
       /* RE-POINTED 13 Oct 2026 (owner: the paper's zoom goes back to what it
          was): the stepper is the paper's instrument, not an act, and reads
          the hairline (--chip-edge); Open Negotiate keeps the accent edge. */
@@ -147,7 +149,7 @@ const HELPERS = `(() => {
        (owner: "revert all the buttons back to the previous thin grey
        outline"): the one edge is the ramp's light divider step again. */
     ok('3b and it is the LIGHT edge, the ramp\'s divider step', !!row.light && row.want === row.light && row.want !== row.accent, `${row.want} vs ${row.light}`);
-    ok('3c the Thread\'s ‹ › squares take the same edge', !!row.thStep && row.thStep === row.want, `step ${row.thStep}`);
+    ok('3c the open row\'s Plain English takes the same edge', !!row.thStep && row.thStep === row.want, `step ${row.thStep}`);
 
     await page.evaluate(i => openRedlineWorkbench(i, { blanksAsked: true }), id);
     await page.waitForTimeout(1800); await load(); await rest();

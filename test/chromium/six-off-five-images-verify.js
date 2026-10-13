@@ -155,15 +155,20 @@ const ok = (name, good, detail) => {
       if (go) { go.click(); await new Promise(r => setTimeout(r, 1200)); }
       const xr = document.querySelector('#pd-thread .doc-th-row.is-open .doc-xr-why b');
       const xw = xr ? Number(getComputedStyle(xr).fontWeight) : null;
+      const open = !!document.querySelector('#pd-thread .doc-th-row.is-open');
       openCheckPanel(state.contracts[0], 'brief');
       await new Promise(r => setTimeout(r, 700));
       const br = document.querySelector('#brief-section .br-why b');
       const bw = br ? Number(getComputedStyle(br).fontWeight) : null;
       /* The side panel is closed the way its own ✕ closes it. */
       if (typeof closeModal === 'function') closeModal();
-      return { want, xw, bw };
+      return { want, xw, bw, open };
     });
-    ok('5a the Thread\'s "Why it matters:" is bold', weights.xw != null && weights.xw >= weights.want && weights.xw > 500,
+    /* RE-POINTED 13 Oct 2026 (Stakes as drawn, owner: "This is how the panel
+       should look like but with a plain English button"): Home's open row
+       carries only Plain English - the marks and their "Why it matters:" are
+       not drawn there. Asserted as absent on an open row. */
+    ok('5a Home\'s open row draws no "Why it matters:" (Stakes as drawn)', weights.open && weights.xw == null,
       JSON.stringify(weights));
     ok('5b and so is the brief panel\'s', weights.bw != null && weights.bw >= weights.want && weights.bw > 500,
       JSON.stringify(weights));

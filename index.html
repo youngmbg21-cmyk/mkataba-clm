@@ -9849,77 +9849,9 @@
   #hb-head .hb-faces .hb-thumb{position:absolute;top:3px;bottom:3px;left:3px;width:calc((100% - 6px) / var(--hb-fn, 5));border-radius:calc(var(--radius-lg) - 2px);background:var(--color-surface);box-shadow:0 1px 2px rgba(9,25,56,.16),0 0 0 1px rgba(9,25,56,.06);transform:translateX(calc(var(--hb-fi, 0) * 100%));transition:transform var(--dur-3) cubic-bezier(.22,.61,.36,1);pointer-events:none}
   @media (prefers-reduced-motion:reduce){#hb-head .hb-faces .hb-thumb{transition:none}}
   .hb-cal{position:absolute;inset:0;z-index:4;overflow:hidden;background:var(--color-bg);display:flex;flex-direction:column;min-height:0}
-  /* ---- HOME'S BREAKDOWN (owner picked the SAP way, 11 Oct 2026; js/views/breakdown.js) ----
-     The Calendar's own cover over the stage; a white band strip, figure cards
-     and a quiet table; the zoom lives in Home's one panel (.bd-lens). */
-  .hb-bd[hidden]{display:none}
-  .hb-bd > .bd-pick{flex:1;min-height:0;height:auto}
-  .bd-strip{display:flex;align-items:center;gap:10px;padding:10px 18px;background:var(--color-surface);border-bottom:1px solid var(--color-divider);font-size:var(--t-meta);min-width:0}
-  .bd-strip-ref{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .bd-strip .q{color:var(--color-neutral-600)} .bd-sp{flex:1}
-  .bd-scroll{flex:1;min-height:0;overflow:auto;padding:16px 18px 24px}
-  .bd-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden}
-  .bd-card-h{display:grid;gap:2px;padding:12px 16px;border-bottom:1px solid var(--color-divider)} .bd-card-h h3{margin:0;font-size:var(--t-body);font-weight:var(--w-title)}
-  .bd-small{font-size:var(--t-label);color:var(--color-neutral-600)}
-  .bd-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-bottom:1px solid var(--color-divider)}
-  .bd-kpis>div{padding:12px 14px;border-right:1px solid var(--color-divider);display:grid;gap:2px;min-width:0} .bd-kpis>div:last-child{border-right:0}
-  .bd-kpis span{font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .bd-kpis b{font-size:20px;font-weight:var(--w-title);font-variant-numeric:tabular-nums}
-  .bd-kpis b.is-need{color:var(--st-ruby-fg)} .bd-kpis b.is-look{color:var(--st-amber-fg)} .bd-kpis b.is-fine{color:var(--st-green-fg)}
-  .bd-tscroll{overflow-x:auto}
-  .bd-table{width:100%;border-collapse:collapse;font-size:var(--t-meta);min-width:620px}
-  .bd-table th{text-align:left;font-weight:var(--w-label);font-size:var(--t-label);color:var(--color-neutral-600);padding:8px 14px;background:var(--color-bg);border-bottom:1px solid var(--color-divider)}
-  .bd-table td{padding:10px 14px;border-bottom:1px solid var(--color-divider);vertical-align:top} .bd-table td.num{font-variant-numeric:tabular-nums}
-  .bd-table tr[data-bd-go]{cursor:pointer} .bd-table tr[data-bd-go]:hover td,.bd-table tr.sel td{background:var(--color-accent-50)}
+  /* the reading's status chip (need · look · fine), drawn in Stakes' deep dive */
   .bd-chip{display:inline-flex;align-items:center;font-size:var(--t-label);padding:2px 9px;border-radius:999px;font-weight:var(--w-label);white-space:nowrap}
   .bd-chip.is-need{background:var(--st-ruby-bg);color:var(--st-ruby-fg)} .bd-chip.is-look{background:var(--st-amber-bg);color:var(--st-amber-fg)} .bd-chip.is-fine{background:var(--st-green-bg);color:var(--st-green-fg)}
-  .bd-empty{flex:1;min-height:0;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:40px 18px}
-  .bd-empty-card{max-width:560px;width:100%;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:22px 24px;display:grid;gap:10px}
-  .bd-empty-card h2{margin:0;font-size:var(--t-card);font-weight:var(--w-title)} .bd-empty-card p{margin:0;color:var(--color-neutral-600);font-size:var(--t-meta);line-height:1.5}
-  .bd-empty-acts{display:flex;align-items:center;gap:12px;flex-wrap:wrap} .bd-cost{font-size:var(--t-label);color:var(--color-neutral-600)}
-  /* a reading redone over one on screen says so, with the ring that turns (busyHtml) */
-  .bd-busy{display:inline-flex;align-items:center;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap}
-  .bd-empty-card p.bd-err{color:var(--st-ruby-fg)}
-  .bd-lens{display:flex;flex-direction:column;min-height:0;height:100%}
-  .bd-lens-head{display:flex;align-items:center;gap:6px;padding:10px 12px;border-bottom:1px solid var(--color-divider);font-size:var(--t-meta)}
-  .bd-lens-top{padding:10px 16px 8px;border-bottom:1px solid var(--color-divider);display:grid;gap:8px}
-  .bd-lens-body{flex:1;min-height:0;overflow:auto;padding:12px 16px 16px;display:flex;flex-direction:column;gap:6px}
-  .bd-lens-body h2{margin:0;font-size:var(--t-body);font-weight:var(--w-title);line-height:1.35}
-  .bd-lens-body h4{margin:12px 0 4px;font-size:var(--t-label);font-weight:var(--w-title);color:var(--color-neutral-600)}
-  .bd-kick{margin:0;font-size:var(--t-micro);font-weight:var(--w-label);color:var(--color-neutral-600)}
-  .bd-lead{margin:0;color:var(--color-neutral-600);font-size:var(--t-meta);line-height:1.5}
-  .bd-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  /* THE FOUR STEPS ARE PRESSABLE TABS (owner, 13 Oct 2026): one outlined
-     segmented row, the pop-ups' .sap-seg look, the step shown filled pale. */
-  .bd-lvls{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--btn-edge,var(--field-line));border-radius:var(--radius);overflow:hidden}
-  .bd-lvls button{border:0;border-right:1px solid var(--btn-edge,var(--field-line));background:var(--color-surface);font:inherit;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-700);cursor:pointer;height:28px;padding:0 6px;white-space:nowrap}
-  .bd-lvls button:last-child{border-right:0}
-  .bd-lvls button:hover:not(:disabled){background:color-mix(in srgb,var(--accent-fill) 6%,var(--color-surface));color:var(--accent-ink)}
-  .bd-lvls button.on{color:var(--accent-ink)}
-  .bd-lvls button[aria-selected="true"]{background:color-mix(in srgb,var(--accent-fill) 10%,var(--color-surface));color:var(--accent-ink);font-weight:var(--w-strong);box-shadow:inset 0 -2px 0 var(--accent-fill)}
-  .bd-lvls button:disabled{cursor:not-allowed;color:var(--color-neutral-400)}
-  /* a row that opens something wears its sign at its end */
-  .bd-open{pointer-events:none;justify-self:end;align-self:center;white-space:nowrap}
-  .bd-crumbs{display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:var(--t-label)} .bd-crumbs i{font-style:normal;color:var(--color-neutral-600)}
-  .bd-crumbs button{background:none;border:0;padding:0;color:var(--color-accent-700);font:inherit;font-weight:var(--w-label);cursor:pointer}
-  .bd-slist{display:grid} .bd-slist button{display:grid;grid-template-columns:10px 1fr auto auto;gap:10px;align-items:center;background:none;border:0;border-bottom:1px solid var(--color-divider);padding:8px 2px;text-align:left;font:inherit;color:inherit;cursor:pointer}
-  .bd-dot{width:8px;height:8px;border-radius:50%} .bd-dot.need{background:var(--st-ruby-fg)} .bd-dot.look{background:var(--st-amber-fg)} .bd-dot.fine{background:var(--st-green-fg)}
-  .bd-sn{font-size:var(--t-meta)} .bd-sf{font-size:var(--t-label);color:var(--color-neutral-600)}
-  .bd-stack{display:flex;height:10px;border-radius:999px;overflow:hidden;gap:2px} .bd-stack i,.bd-stackk i{display:block}
-  .bd-stack .sp,.bd-stackk .sp{background:var(--st-amber-fg)} .bd-stack .sg,.bd-stackk .sg{background:var(--st-green-fg)} .bd-stack .spr,.bd-stackk .spr{background:var(--color-accent-700)}
-  .bd-stackk{display:flex;flex-wrap:wrap;gap:12px;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:6px} .bd-stackk i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px}
-  .bd-vs{display:grid;grid-template-columns:1fr 1fr;gap:6px} .bd-vs>div{border-radius:var(--radius-lg);padding:9px 11px;font-size:var(--t-meta)} .bd-vs span{display:block;font-size:var(--t-micro);color:var(--color-neutral-600);margin-bottom:3px} .bd-vs p{margin:0}
-  .bd-vs .ours{background:var(--color-accent-50)} .bd-vs .here{background:var(--color-bg)} .bd-vs .here.need{background:var(--st-ruby-bg)} .bd-vs .here.look{background:var(--st-amber-bg)}
-  .bd-stake{margin:0;font-size:var(--t-meta);border-left:3px solid var(--color-accent-700);padding:2px 0 2px 10px}
-  .bd-cls{display:grid;gap:4px} .bd-cls button{display:grid;grid-template-columns:64px 1fr auto;gap:10px;text-align:left;background:var(--color-bg);border:0;border-left:3px solid var(--st-green-fg);border-radius:var(--radius);padding:7px 10px;font:inherit;color:inherit;cursor:pointer}
-  .bd-cls button.look{border-left-color:var(--st-amber-fg)} .bd-cls button.need{border-left-color:var(--st-ruby-fg)} .bd-cls .ref{font-size:var(--t-label);color:var(--color-neutral-600)}
-  .bd-cls b{display:block;font-weight:var(--w-label);font-size:var(--t-meta)} .bd-cls em{font-style:normal;font-size:var(--t-label);color:var(--color-neutral-600)}
-  .bd-links{display:grid;gap:6px} .bd-links button{text-align:left;background:none;border:1px dashed var(--color-divider);border-radius:var(--radius);padding:8px 10px;display:grid;grid-template-columns:1fr auto;gap:2px 10px;font:inherit;color:inherit;cursor:pointer}
-  .bd-links span:not(.bd-open){font-size:var(--t-label);color:var(--color-neutral-600);grid-column:1} .bd-links b{grid-column:1} .bd-links .bd-open{grid-column:2;grid-row:1 / span 2}
-  .bd-fix{margin-top:10px;background:var(--color-accent-50);border-radius:var(--radius-lg);padding:9px 11px} .bd-fix span{font-size:var(--t-micro);color:var(--color-accent-700);font-weight:var(--w-label)} .bd-fix p{margin:2px 0 0;font-size:var(--t-meta)}
-  .bd-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-  .bd-words{margin:8px 0 0;background:var(--color-doc-surface,var(--color-surface));border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:11px 13px}
-  .bd-words figcaption{font-size:var(--t-micro);color:var(--color-neutral-600);margin-bottom:5px} .bd-words p{margin:0;font-family:var(--font-doc);font-size:var(--t-body);line-height:1.6}
-  .bd-words mark{background:var(--st-amber-bg);color:inherit;border-radius:2px;padding:0 2px}
   /* STAKES (owner picked it, 13 Oct 2026): Home's Clauses list carries the
      deep read. The REGIONS ARE COLOURED (owner: "the colors are helpful"):
      ten region tones, defined here once for both themes, used only by the
@@ -9941,8 +9873,14 @@
   .stk-ribbon{display:flex;height:8px;border-radius:999px;overflow:hidden;gap:2px} .stk-ribbon i{display:block;background:var(--stk)}
   .stk-legend{display:flex;flex-wrap:wrap;gap:3px 10px;font-size:var(--t-label);color:var(--color-neutral-600)}
   .stk-legend span{display:inline-flex;align-items:center;gap:5px} .stk-legend i{width:8px;height:8px;border-radius:2px;background:var(--stk)}
-  .stk-line{display:grid;grid-template-columns:8px minmax(0,1fr) auto;gap:8px;align-items:baseline;padding:0 6px 7px 2px;font-size:var(--t-label);line-height:1.4}
-  .stk-rs{width:8px;height:8px;border-radius:2px;background:var(--stk,var(--color-neutral-300));align-self:center}
+  .stk-line{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:0 6px 8px 2px;font-size:var(--t-meta);line-height:1.4}
+  /* AS DRAWN (owner, 13 Oct 2026): "The company view" and its counts; each row's region square after its name; "1 to review" at its right */
+  .stk-view{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:var(--t-label);color:var(--color-neutral-600)}
+  .stk-view b{font-weight:var(--w-title);color:var(--color-text)}
+  .stk-rsq{display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--stk);margin-left:8px;vertical-align:1px}
+  .stk-n{color:var(--st-amber-fg)}
+  .pd-th .doc-th-top:empty{display:none}
+  .pd-th .doc-th-home-plain{padding:0 6px 10px 2px;display:grid;gap:6px}
   .stk-st{color:var(--color-text);font-weight:var(--w-label)}
   .stk-line.is-need .stk-st{color:var(--st-ruby-fg)} .stk-line.is-look .stk-st{color:var(--st-amber-fg)}
   .stk-go{border:1px solid var(--btn-edge,var(--field-line));background:var(--color-surface);color:var(--accent-ink);border-radius:999px;padding:1px 10px;

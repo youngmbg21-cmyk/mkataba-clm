@@ -68,6 +68,11 @@ const drive = async (page, fn, arg, fallback) => {
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const ctx = await browser.newContext({ viewport: { width: 1500, height: 1000 } });
   const page = await ctx.newPage();
+  /* RE-POINTED 13 Oct 2026 (Stakes): opening Clauses on Home reads the
+     contract once as the company view. That read is not this file's subject;
+     it is answered here so it neither eats a scripted Plain answer nor
+     prints a provider error. */
+  await page.route('**/api/ai/breakdown', r => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ error: 'not staged here' }) }));
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => { if (m.type() === 'error' && !/favicon|404/i.test(m.text())) errors.push(m.text().slice(0, 140)); });

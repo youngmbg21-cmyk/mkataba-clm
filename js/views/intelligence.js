@@ -4145,7 +4145,6 @@ function renderIntel(){
         </div>
         ${onHome?`<div id="hb-board" class="hb-board scroll-thin"></div>
           ${''/* CALENDAR, HOME'S SECOND TAB (owner, 11 Oct 2026, WORKORDER-four-builds item 1) */}<div id="hb-cal" class="hb-cal" hidden></div>
-          ${''/* BREAKDOWN, NEXT TO DOCUMENT (owner, 11 Oct 2026): js/views/breakdown.js */}<div id="hb-bd" class="hb-cal hb-bd" hidden></div>
           <div id="hb-tools" class="hb-tools"></div><canvas id="hb-ink" class="hb-ink" aria-hidden="true"></canvas>
           ${''/* the red dot lives on the pointer's veil (hbVeilPaint) */}`:''}
       </div>
@@ -6631,16 +6630,6 @@ function renderIntelDock(){
     const fold=document.getElementById('igd-collapse');
     if(fold) fold.addEventListener('click',()=>{ intel.dockOpen=false; renderIntelDock(); igSyncDockWidth(); });
     if(typeof window.calWireOwn==='function') calWireOwn();
-    return;
-  }
-  /* ---- AND ON THE BREAKDOWN TAB: its zoom (deal → region → clause → words)
-     stands in this one panel (owner, 11 Oct 2026; js/views/breakdown.js) ---- */
-  if(typeof window.bdOnScreen==='function'&&bdOnScreen()&&typeof window.bdLensHtml==='function'){
-    dock.innerHTML=bdLensHtml();
-    const head=dock.querySelector('.bd-lens-head');
-    if(head) head.insertAdjacentHTML('beforeend',`<button id="igd-collapse" title="${i18t('int_collapse_panel')}" aria-label="${i18t('int_collapse_panel')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('chevR')}</button>`);
-    const fold=document.getElementById('igd-collapse');
-    if(fold) fold.addEventListener('click',()=>{ intel.dockOpen=false; renderIntelDock(); igSyncDockWidth(); });
     return;
   }
   dock.innerHTML=`
