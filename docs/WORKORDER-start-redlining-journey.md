@@ -10,19 +10,14 @@ below, one at a time. Run the Six Questions and the Nine Flow Rules on each.
 
 ---
 
-## 1. Negotiate shows a blank paper
-
-After "Start redlining with this ask", Negotiate's Redline tab draws an empty
-sheet (only the "HATI" running head) while the counter reads "+209 −119" and
-the column lists five drafts. The wording must be on the paper.
-- Find why the sheet paints empty on this path (and whether any other door into
-  Negotiate does the same), fix it at the cause, and photograph the paper.
-
-## 2. The button lands on the clause you came from, and files nothing
+## 1. The button lands on the clause you came from, and files nothing
 
 Today `data-stk-redline` (js/views/breakdown.js) only calls
 `openRedlineWorkbench(c.id)`. Negotiate opens at the top, and the lit card is
 "5. Charges", not "21. Confidentiality".
+- The paper is NOT blank (owner corrected, 13 Oct 2026): it opens scrolled to
+  the top of page 1, which is empty, so it LOOKS blank. Landing on the clause
+  (below) fixes this too.
 - Carry the point's clause (and Jambo's ask) through the one door
   (`openRedlineWorkbench`): land on that clause, its card lit, Jambo's ask
   ready to use.
@@ -33,7 +28,7 @@ Today `data-stk-redline` (js/views/breakdown.js) only calls
   filing a person's own press (flow rule 7, "Copilot prepares, a person
   decides").
 
-## 3. A way back to where you were
+## 2. A way back to where you were
 
 There is no way back from Negotiate to the Clauses review: no back link, and
 the button does not remember where you came from.
@@ -43,7 +38,7 @@ the button does not remember where you came from.
 - Pressing it returns to the same deep dive point, so the reader carries on to
   the next one. A refresh keeps it (`PLACE_PARTS`).
 
-## 4. Jambo changes only what is needed
+## 3. Jambo changes only what is needed
 
 Jambo's ask for 21.1 keeps the existing sentence and adds one survival sentence,
 but the filed change (CHG-004) strikes ALL of 21.1, including the number and
