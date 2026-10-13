@@ -1548,8 +1548,8 @@ describe('f277 (16) the number sits beside the name', () => {
     const i = src.indexOf('const docXrayLabel = x =>');
     assert.ok(i > 0, 'one builder');
     const line = src.slice(i, src.indexOf('\n', i));
-    assert.ok(line.includes("x.cite?x.cite+(x.sep||") && line.includes("+' ':''") && line.includes("(x.name||i18t('xr_unnamed'))"),
-      'number, separator, a space, the name — or "This clause" where the paper names none');
+    assert.ok(line.includes("x.cite?x.cite+(x.sep||") && line.includes("+' ':''") && line.includes("(x.name||x.lead||i18t('xr_unnamed'))"),
+      'number, separator, a space, the name — else its opening words (owner, 13 Oct 2026) — or "This clause" where there are none');
     assert.match(src, /class="doc-th-name">\$\{esc\(docXrayLabel\(x\)\)\}/, 'and the row prints it');
   });
 });

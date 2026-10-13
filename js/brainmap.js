@@ -243,8 +243,9 @@ const BRAIN_PARTS = [
      counts read by the route that reads the code */
   ['stackview', 'brStackPaint', 'see', 0],
   ['brainread', 'GET /api/brain', 'wall', 2],
-  /* Home's Breakdown (owner, 11 Oct 2026): the whole contract in regions, read once per wording */
-  ['breakdown', 'renderBreakdown', 'see', 0],
+  /* the deep read (Stakes, owner 13 Oct 2026; the Breakdown face is gone): read once per
+     wording, drawn on Home's Document → Clauses */
+  ['breakdown', 'stkDecorate', 'see', 0],
   ['breakread', 'POST /api/ai/breakdown', 'ai', 2],
   /* Jambo's agents behind Insights (12 Oct 2026): the house, his jobs and his points,
      read off the record of each piece of work and what a person did with it */

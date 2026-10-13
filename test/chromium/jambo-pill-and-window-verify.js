@@ -1,7 +1,8 @@
 /* JAMBO, THE SLIDING PILL, THE WINDOW THAT MOVES, AND A WAIT THAT MOVES
    (owner, 11 Oct 2026: "Build all three together" — Copilot renamed Jambo with
-   his face in the chats; Home's five faces as one sliding pill in the order
-   Board · Document · Breakdown · Calendar · Explorer, all one size; the Jambo
+   his face in the chats; Home's faces as one sliding pill in the order
+   Board · Document · Calendar · Explorer (the Breakdown face was deleted by the
+   owner, 13 Oct 2026), all one size; the Jambo
    window dragged and resized up to today's expanded size, stepping aside where
    Jambo is already on the page; and "when something is loading, there should
    be some type of movement on screen").
@@ -9,7 +10,8 @@
    Asked where the reader looks: the head's buttons in both languages, the pill
    under the pressed face, the door on Home going to Home's own panel, the
    window's limits measured, its stepping aside and coming back, Jambo's face
-   beside his words, and the Breakdown's wait wearing a turning ring. */
+   beside his words, and Jambo's read of a contract's Clauses wearing a turning
+   ring while it waits. */
 const path = require('node:path');
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
@@ -38,37 +40,35 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     /* ---- 1 the sliding pill ---- */
     const faces = () => page.evaluate(() => [...document.querySelectorAll('[data-hb-face]')].map(b => ({ f: b.dataset.hbFace, w: Math.round(b.getBoundingClientRect().width) })));
     const en = await faces();
-    ok('1a the order is Board · Document · Breakdown · Calendar · Explorer', en.map(x => x.f).join(',') === 'board,paper,breakdown,calendar,explorer', en.map(x => x.f).join(','));
-    ok('1b all five are one width', new Set(en.map(x => x.w)).size === 1, en.map(x => x.w).join(','));
+    ok('1a the order is Board · Document · Calendar · Explorer (no Breakdown)', en.map(x => x.f).join(',') === 'board,paper,calendar,explorer', en.map(x => x.f).join(','));
+    ok('1b all four are one width', new Set(en.map(x => x.w)).size === 1, en.map(x => x.w).join(','));
     const filled = await page.evaluate(() => getComputedStyle(document.querySelector('[data-hb-face][aria-selected="true"]')).backgroundColor);
     ok('1c the chosen face is not a filled button (the pill marks it)', /rgba\(0, 0, 0, 0\)|transparent/.test(filled), filled);
-    await page.click('[data-hb-face="breakdown"]');
-    const slid = await until(page, () => { const t = document.querySelector('#hb-head .hb-thumb'), b = document.querySelector('[data-hb-face="breakdown"]');
+    await page.click('[data-hb-face="calendar"]');
+    const slid = await until(page, () => { const t = document.querySelector('#hb-head .hb-thumb'), b = document.querySelector('[data-hb-face="calendar"]');
       return t && b && Math.abs(t.getBoundingClientRect().left - b.getBoundingClientRect().left) < 2; }, null, 3000);
     ok('1d the pill slides under the pressed face', slid);
     await page.screenshot({ path: path.join(OUT, '1-pill.png'), clip: { x: 0, y: 0, width: 1500, height: 130 } });
     await page.evaluate(() => { if (typeof langSet === 'function') langSet('sv'); if (typeof applyLanguage === 'function') applyLanguage(); if (typeof setView === 'function') setView('dashboard'); });
-    await until(page, () => document.querySelectorAll('[data-hb-face]').length === 5, null, 5000);
+    await until(page, () => document.querySelectorAll('[data-hb-face]').length === 4, null, 5000);
     const sv = await faces();
     ok('1e Swedish: still one width, the same as English', new Set(sv.map(x => x.w)).size === 1 && Math.abs(sv[0].w - en[0].w) <= 1, sv.map(x => x.w).join(','));
     await page.evaluate(() => { if (typeof langSet === 'function') langSet('en'); if (typeof applyLanguage === 'function') applyLanguage(); if (typeof setView === 'function') setView('dashboard'); });
-    await until(page, () => document.querySelectorAll('[data-hb-face]').length === 5, null, 5000);
+    await until(page, () => document.querySelectorAll('[data-hb-face]').length === 4, null, 5000);
 
     /* ---- 2 the name ---- */
     const door = await page.evaluate(() => (document.getElementById('cmd-ai') || {}).title || '');
     ok('2a the top bar door says Ask Jambo', /Ask Jambo/.test(door), door);
 
-    /* ---- 3 the Breakdown's wait moves ---- */
+    /* ---- 3 Jambo's read of a contract's Clauses: the wait moves ---- */
     await page.route('**/api/ai/breakdown', () => {});   // never answers: the wait stays on screen
-    await page.click('[data-hb-face="breakdown"]').catch(() => {});
-    await page.evaluate(() => { if (window.state) state.aiConfigured = true; });
-    const picked = await page.evaluate(() => { const b = document.querySelector('[data-bd-pick]'); if (b){ b.click(); return true; } return !!document.querySelector('[data-bd-run], .bd-reading'); });
-    /* the pick starts the read (11 Oct 2026); where a press is still asked, press it */
-    await page.evaluate(() => { if (window.state) state.aiConfigured = true; const b = document.querySelector('[data-bd-run]'); if (b) b.click(); });
-    const ring = await until(page, () => { const s = document.querySelector('.bd-reading .ob-spin, [data-bd-run][disabled] .ob-spin, .bd-busy .ob-spin');
-      return !!(s && getComputedStyle(s).animationName === 'obSpin'); }, null, 6000);
-    ok('3a "Jambo is reading…" carries a turning ring while it waits', picked && ring, picked ? '' : 'no contract to pick');
-    await page.screenshot({ path: path.join(OUT, '3-breakdown-wait.png') });
+    const picked = await page.evaluate(() => { if (window.state) state.aiConfigured = true;
+      const c = (state.contracts || []).find(x => x && x.id); if (!c) return false;
+      if (typeof hbSetFace === 'function') hbSetFace('paper'); return pdOpenOnHome(c.id, 'doc'); });
+    const ring = await until(page, () => { const s = document.querySelector('#pd-thread .stk-busy .ob-spin');
+      return !!(s && getComputedStyle(s).animationName === 'obSpin'); }, null, 8000);
+    ok('3a "Jambo is reading…" carries a turning ring while it waits', picked && ring, picked ? '' : 'no contract to open');
+    await page.screenshot({ path: path.join(OUT, '3-clauses-wait.png') });
     await page.unroute('**/api/ai/breakdown');
 
     /* ---- 4 on Home, the door goes to Home's own Jambo ---- */
@@ -137,8 +137,10 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await until(page, () => !!document.querySelector('#ig-dock [data-pd-tab="copilot"]'), null, 6000);
     const tab = await page.evaluate(() => { const t = document.querySelector('#ig-dock [data-pd-tab="copilot"]'); return t ? { face: !!t.querySelector('img.jambo-face'), word: (t.querySelector('.pd-tab-w') || {}).textContent } : null; });
     ok('11c the panel\'s Jambo tab shows his face', !!tab && tab.face && tab.word === 'Jambo', JSON.stringify(tab));
-    const noAsk = await page.evaluate(() => typeof bdLensHtml === 'function' ? !/bd-ask/.test(String(bdLensHtml)) : 'no lens');
-    ok('11d the Breakdown panel has no ask box', noAsk === true, String(noAsk));
+    /* 11d re-pointed 13 Oct 2026: the Breakdown face and its panel are gone, so
+       its panel cannot carry an ask box; the reading's Clauses tab carries none */
+    const noAsk = await page.evaluate(() => ({ lens: typeof window.bdLensHtml, ask: !!document.querySelector('#pd-thread #igd-input') }));
+    ok('11d no Breakdown panel, and no ask box on the Clauses reading', noAsk.lens === 'undefined' && !noAsk.ask, JSON.stringify(noAsk));
 
     /* ---- 10 the "Scanning…" toast wears the turning ring ---- */
     const scanRing = await page.evaluate(async () => {
