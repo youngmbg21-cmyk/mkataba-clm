@@ -135,8 +135,15 @@ const FACE = () => {
     check('2b leaving the box stores it, the count drops, the cursor moves on in the face', left1 === left0 - 1 && f.inFace && new RegExp('^' + left1 + ' ').test(f.pill), `${left0} → ${left1} · pill "${f.pill}" · focus ${f.focus}`);
 
     /* ===== 3. A PRESS ON A BLANK ON THE PAPER ===== */
-    const sp = await page.$('#ig-canvas span.up-blank[data-upblank="up_supplier_representative"]');
-    if (sp) { await sp.scrollIntoViewIfNeeded(); await sp.click(); }
+    /* The paper may be painted again after the save in 2b (seen on GitHub's
+       runner, 14 Oct 2026: "Element is not attached to the DOM"); find the
+       blank again at the press, a bounded few times — a real press. */
+    let sp = null;
+    for (let k = 0; k < 4; k++) {
+      sp = await page.$('#ig-canvas span.up-blank[data-upblank="up_supplier_representative"]');
+      if (!sp) break;
+      try { await sp.scrollIntoViewIfNeeded(); await sp.click(); break; } catch (e) { if (!/not attached/i.test(String(e && e.message))) throw e; sp = null; }
+    }
     await waitFor(page, () => document.activeElement && document.activeElement.getAttribute('data-blankf') === 'up_supplier_representative', 3000);
     f = await page.evaluate(FACE);
     check('3 a press on a blank on the paper lands on its box', !!sp && f.focus === 'up_supplier_representative' && f.inFace, f.focus);
