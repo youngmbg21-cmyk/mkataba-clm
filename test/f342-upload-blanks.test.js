@@ -477,13 +477,17 @@ describe('f342 (6) bounds, and the file itself', () => {
         k + ' is not in both books');
   });
   test('6h the mark costs the contract no layout', () => {
-    const m = /#doc-canvas span\.up-blank\{([\s\S]*?)\}/.exec(INDEX);
+    /* 14 Oct 2026 (the one-page Home plan, stage 2): one rule dresses the
+       room's paper and Home's — :is(#doc-canvas,#ig-canvas) */
+    const C = '(?:#doc-canvas|:is\\(#doc-canvas,#ig-canvas\\))';
+    const m = new RegExp(C + ' span\\.up-blank\\{([\\s\\S]*?)\\}').exec(INDEX);
     assert.ok(m, '.up-blank has no rule');
     for(const bad of ['padding', 'margin', 'border:', 'font-size', 'font-weight', 'display'])
       assert.ok(!m[1].includes(bad), '.up-blank states ' + bad + ' — it would move their wording');
   });
   test('6i two states, and neither is the redline\'s own grammar', () => {
-    const m = /#doc-canvas span\.up-blank\{([\s\S]*?)\}[\s\S]*?#doc-canvas span\.up-blank\.is-filled\{([\s\S]*?)\}/.exec(INDEX);
+    const C = '(?:#doc-canvas|:is\\(#doc-canvas,#ig-canvas\\))';
+    const m = new RegExp(C + ' span\\.up-blank\\{([\\s\\S]*?)\\}[\\s\\S]*?' + C + ' span\\.up-blank\\.is-filled\\{([\\s\\S]*?)\\}').exec(INDEX);
     assert.ok(m, 'no filled state');
     assert.ok(/--st-amber/.test(m[1]), 'unanswered is amber');
     assert.ok(!/--st-green|--st-ruby/.test(m[1] + m[2]), 'green and red are the redline\'s');
