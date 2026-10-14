@@ -1626,7 +1626,7 @@ function signCheckRefusal(c, opts){
       : 'Something on the check before signing is still held: ')
     + open.slice(0, 3).join('; ')
     + (open.length > 3 ? `, and ${open.length - 3} more` : '')
-    + '. Settle or accept each one on the Signing tab first.';
+    + '. Settle or accept each one in Before you sign first.';
 }
 /* THE COUNTERPARTY'S SENTENCE for every hold that is our business — the
    approval, the approval rules and the check before signing alike. Who has to
@@ -1701,9 +1701,9 @@ function srvSignApprovalRefusal(stored) {
   if (!open.length) return null;
   const r = open[0], appr = r.need.approverName || 'an admin';
   if (r.status === 'pending') return `This contract is waiting on ${appr}'s approval, and nobody signs until they approve.`;
-  if (r.status === 'refused') return `${appr} refused to approve this contract. Revise it and send it for approval again from the Signing tab.`;
+  if (r.status === 'refused') return `${appr} refused to approve this contract. Revise it and send it for approval again from Before you sign.`;
   if (r.status === 'lapsed') return `This contract changed after ${appr} approved it, so it has to be sent for approval again.`;
-  return `This contract needs ${appr}'s approval before anyone signs it. Send it for approval from the Signing tab first.`;
+  return `This contract needs ${appr}'s approval before anyone signs it. Send it for approval from Before you sign first.`;
 }
 /* ---- THE REQUESTS ARE MERGED, NEVER OVERWRITTEN ----
    A save carries the whole record, and a browser holding an older copy would
@@ -2085,7 +2085,7 @@ function srvApprovalChainRefusal(c, prev) {
   const open = srvApprovalChainOpenOf(c, prev);
   if (!open.length) return null;
   const s = open[0];
-  if (s.status === 'rejected') return `The approval step “${s.name}” was refused. Revise the contract and send it back for approval from the Signing tab.`;
+  if (s.status === 'rejected') return `The approval step “${s.name}” was refused. Revise the contract and send it back for approval from Before you sign.`;
   if (s.status === 'stale') return `This contract changed after “${s.name}” was approved, so it has to be approved again before anyone signs it.`;
   return `This contract needs its approval step “${s.name}” before anyone signs it.`;
 }
@@ -5036,7 +5036,7 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
       && c.status === 'Draft' && prev.status !== 'Draft')
     return res.status(409).json({ immutable: ['status'], signedFreeze: true,
       error: `${contractRef(prev)} has been signed by at least one person, so it cannot go back to Draft. `
-        + 'Restart the signing on the Signing tab first if the wording has to be worked on again.' });
+        + 'Restart the signing in Before you sign first if the wording has to be worked on again.' });
   /* ---------- A CLOSED DEAL IS REOPENED BY ITS OWNER OR AN ADMIN (B14) ----------
      Declining stamps the stage it was declined from (`declinedFrom`, the
      server's to write); reopening must come from the contract's owner or an
@@ -5097,7 +5097,7 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   if (prev && !isExecutedRow(prev) && isExecutedRow(c) && c.execution && c.execution.offPlatform) {
     if (!handoverActive(prev))
       return res.status(409).json({ error: 'A contract signed outside HaTi is filed on the file that was handed over for signature. '
-        + 'Hand it over from the Signing tab first — that is where the approvals and the checks are asked.', handoverNeeded: true });
+        + 'Hand it over from Before you sign first — that is where the approvals and the checks are asked.', handoverNeeded: true });
     if (c.execution.method !== 'outside')
       return res.status(400).json({ error: 'A signed copy is filed as signed outside HaTi.' });
     if (!SIGNED_VIA.includes(String(c.execution.via || '')))
@@ -5993,7 +5993,7 @@ app.delete('/api/contracts/:id', auth, editor, (req, res) => {
   if (c && (anySignatureRow(c) || srvSignResponsesWaiting(req.params.id).length)) {
     return res.status(409).json({ signed: true,
       error: `${contractRef(c)} has been signed by at least one person, so it cannot be deleted — a signature is evidence. `
-        + 'If the signing has to start again, an admin restarts it on the Signing tab, which clears the signatures; it can be deleted after that.' });
+        + 'If the signing has to start again, an admin restarts it in Before you sign, which clears the signatures; it can be deleted after that.' });
   }
   const fileIds = [];
   if (c && c.upload && c.upload.fileId) fileIds.push(c.upload.fileId);
@@ -13614,7 +13614,7 @@ app.post('/api/contracts/:id/handover', auth, editor, async (req, res) => {
   /* ---- AGREE AND HAND OVER ---- */
   if (act === 'hand') {
     if (signRouteOf(c) !== 'outside')
-      return res.status(409).json({ error: 'HaTi runs the signing on this contract. Choose "They run the signing" on the Signing tab first.' });
+      return res.status(409).json({ error: 'HaTi runs the signing on this contract. Choose "They run the signing" in Before you sign first.' });
     if (handoverOf(c)) return res.status(409).json({ error: `${ref} has already been handed over.` });
     if (!srvMayLeadHandover(c, req.user))
       return res.status(403).json({ error: `Only ${deskLeadName(c)} — or an admin — hands this over.` });
@@ -16157,16 +16157,16 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
      signing this contract does not have. */
   if (rvStored && !contractIsExecuted(shareId) && signRouteOf(rvStored) === 'outside') {
     if (purp === 'sign') return res.status(409).json({
-      error: `They run the signing on ${contractRef(rvStored)}: the agreed words are handed over as a Word file from the Signing tab, not signed on a HaTi link.`,
+      error: `They run the signing on ${contractRef(rvStored)}: the agreed words are handed over as a Word file from Before you sign, not signed on a HaTi link.`,
       theySign: true });
     if (purp === 'negotiate' && handoverActive(rvStored)) return res.status(409).json({
-      error: `${contractRef(rvStored)} is out with them for signature, so its words are locked. Reopen the negotiation from the Signing tab to send another round.`,
+      error: `${contractRef(rvStored)} is out with them for signature, so its words are locked. Reopen the negotiation from Before you sign to send another round.`,
       handedOver: true });
   }
   if (purp === 'sign' && !signingRouteOpen(shareId) && !contractIsExecuted(shareId))
     return res.status(409).json({
       error: 'Nobody has been named to sign this contract, so a signing link cannot be issued. '
-        + 'Add the signers on the Signing tab — that is what starts the signing process — and send again.',
+        + 'Add the signers in Before you sign — that is what starts the signing process — and send again.',
       needsSigners: true });
   /* ---- NOBODY SIGNS BEFORE THE APPROVAL (23 Sep 2026) ----
      Where a personal approval before signing is outstanding, a signing link

@@ -230,7 +230,9 @@ describe('f676 (7) the words and the brain', () => {
   });
   test('7b the brain names the face and starts the signing flow there', () => {
     assert.match(BRAIN, /\['signface', 'pdSignOpen', 'see', 0\]/);
-    assert.match(BRAIN, /\['signtab', 'signface', 'linkcheck'\]/);
+    /* stage 6 (14 Oct 2026): the face HEADS the step — the brain draws and plays a step by its first part */
+    assert.match(BRAIN, /\['signface', 'signtab', 'linkcheck'\]/);
+    assert.match(BRAIN, /\['redface', 'negpage', 'startnego', 'here', 'follow'\]/);
   });
   test('7c the face wears its own scoped clothes', () => {
     assert.match(HTML, /#pd-signface \.pd-sf-foot\{/);

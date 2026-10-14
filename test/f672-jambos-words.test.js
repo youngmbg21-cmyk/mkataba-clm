@@ -106,6 +106,14 @@ describe('f672 (1) a word opens its place; a sentence is still a question', () =
     assert.equal(go('/fyll-i'), 'fill');
     assert.equal(go('historik'), 'history');
     assert.equal(go('öppna tavlan'), 'board');
+    /* THE PLAN'S SWEDISH, POLISHED (stage 6, 14 Oct 2026): the Board's own name
+       for the deal board, the book's spelling of the paper and the faces' own
+       names are words too; the older words keep working */
+    assert.equal(go('förhandlingstavlan'), 'deal');
+    assert.equal(go('papperet'), 'document');
+    assert.equal(go('pappret'), 'document');
+    assert.equal(go('innan du signerar'), 'sign');
+    assert.equal(go('fyll i uppgifterna'), 'fill');
   });
   test('1c a sentence goes on as a question; an older reading keeps its words', () => {
     const { ctx } = stage();
@@ -198,6 +206,19 @@ describe('f672 (4) the chips lead with the checklist', () => {
     assert.ok(L.every(x => !x.owed));
     assert.deepEqual(J(chips({ paper: null }).map(x => x.k)), ['upload', 'draft', 'board', 'calendar']);
     assert.equal(chips({ face: 'board' }), null, 'the Board keeps its own suggestions');
+  });
+  /* STAGE 6 (14 Oct 2026): a chip whose door is shut for this contract is not
+     offered; the next useful word takes its place */
+  test('4e a signed, held or handed-over contract offers no redline chip; obligations takes its place', () => {
+    const s = stage(); const asked = [];
+    s.ctx.negoMayStart = c => { asked.push(c && c.id); return { ok: false, why: 'sealed' }; };
+    const L = s.ctx.caPaperChips();
+    assert.deepEqual(J(L.map(x => x.k)), ['deal', 'sign', 'history', 'oblig']);
+    assert.deepEqual(asked, ['MK-9'], 'asked of the contract on the paper');
+    const t = stage({ need: ['quiet'] }); t.ctx.negoMayStart = () => ({ ok: false, why: 'held' });
+    assert.ok(!t.ctx.caPaperChips().some(x => x.k === 'redline'), 'not even as the lead');
+    const o = stage(); o.ctx.negoMayStart = () => ({ ok: true, why: '' });
+    assert.deepEqual(J(o.ctx.caPaperChips().map(x => x.k)), ['redline', 'deal', 'sign', 'history'], 'an open door keeps its chip');
   });
   test('4d a chip is the word in the reader\'s language, and asks it', () => {
     const { ctx } = stage({ lang: 'sv', need: ['details'] });

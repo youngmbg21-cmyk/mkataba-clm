@@ -29,7 +29,8 @@ describe('f582 (1) the wall', () => {
     const r = await W.admin.raw('/api/contracts/MK-DL1', { method: 'DELETE' });
     assert.equal(r.status, 409, r.text);
     assert.match(r.json.error, /signed by at least one person, so it cannot be deleted/);
-    assert.match(r.json.error, /restarts it on the Signing tab/);
+    /* RE-WORDED 14 Oct 2026 (stage 6): the Signing tab went home as Before you sign */
+    assert.match(r.json.error, /restarts it in Before you sign/);
     assert.ok(await W.admin.json('/api/contracts/MK-DL1'), 'still there');
   });
   test('…nor moved back to Draft while the signature stands', async () => {

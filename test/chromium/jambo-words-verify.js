@@ -153,7 +153,9 @@ const DOC = 'SOFTWARE AS A SERVICE AGREEMENT\n\n1. TERM\n\nThis Agreement runs f
     ok('7a the chips are Swedish words', c7[0] === 'fyll i' && c7.includes('förhandla') && c7.includes('signera'), JSON.stringify(c7));
     const back7 = await page.evaluate(() => { const b = document.querySelector('.ca-back'); return b ? b.textContent.trim() : ''; });
     /* the redlines are on the paper now (stage 3): the way back is to it, and the face is there */
-    ok('7c the way back names the page it returns to', back7 === '‹ Tillbaka till MK-W2 på pappret', back7);
+    /* RE-WORDED 14 Oct 2026 (the one-page Home plan, stage 6): the plan's Swedish
+       spells the paper as the book mostly does, "papperet" */
+    ok('7c the way back names the page it returns to', back7 === '‹ Tillbaka till MK-W2 på papperet', back7);
     await page.screenshot({ path: path.join(OUT, '7-svenska.png') });
     await type('kalender', true);
     const svCal = await page.waitForFunction(() => hbFace() === 'calendar', null, { timeout: 5000 }).then(() => true, () => false);

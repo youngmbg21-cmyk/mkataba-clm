@@ -162,7 +162,8 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
     await page.waitForTimeout(600);
     const running = await page.evaluate(seen => eval(seen)('#ws-to-nego'), SEEN);
     check('once something is on the table the door says how much is waiting',
-      !!running && /Open Negotiate/i.test(running.text) && /1 waiting/i.test(running.text),
+      /* RE-WORDED 14 Oct 2026 (the one-page Home plan, stage 6): "Open the redlines" */
+      !!running && /Open the redlines/i.test(running.text) && /1 waiting/i.test(running.text),
       running && running.text);
 
     /* ---- 4. THE SIGNAL THE TAB'S COUNT USED TO CARRY ---- */

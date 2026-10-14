@@ -20747,3 +20747,10 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - With nothing pending, Jambo's Redlines face lands beside the clean working copy; pdf-structure and upload-structure (the negotiation paper's own drawing) now open the Negotiate page by name.
 - Presence ("on this contract") runs while one of Jambo's three faces is open on Home; a contract merely on Home's paper, no face, is not counted (the room counted anyone on it).
 - The calendar and the closed dock leave renderIntelDock early, so the bar's "‹ Back to Clauses" is not taken down on those two paints; the next paint of Jambo's panel does.
+
+### Noticed, not fixed (14 Oct 2026, the one-page Home plan, stage 6 — polish, and the proof)
+- "The wording is read-only here. Change it on the Negotiate page…" (ct_wording_elsewhere) can no longer be shown: it listens on #doc-canvas, which no computer screen draws since the Document and Signing tabs went home; its Swedish also lacks å/ä/ö ("Ordalydelsen ar skrivskyddad har").
+- "Send to Docs tab for signature" and "Agreed wording carried to the Docs tab" (ng_send_to_docs, ct_agreed_carried, ng_agreed_carried) live only on the old negotiation room (openNegotiationOwnerRoom), which nothing opens any more.
+- The brain's "inline" part (rlInlineSave, "click in a clause on Negotiate and type") works only on the Negotiate page opened by name; Home's paper has no inline typing, and the brain's "mistake" flow still names it.
+- In Svenska, the Sign button's list still says "The next signature is <name>'s, and they sign on their own link — not here." in English (the 'turn' rows in signBlockers are English literals), and the signing copy's "partially signed" stamp and "The marks below are already on this contract…" are English too.
+- Outside the plan's own words the Swedish book still mixes "pappret" (about 35 places) with "papperet", and writes "på Tavlan" twice where it otherwise says "på tavlan".

@@ -673,7 +673,9 @@ describe('F184 (4) — the way in, and the only way out', () => {
       'a fresh draft must still have a door into its own negotiation');
     theirAsk(c, 'CHG-1');
     const running = b.win.wsTabRowEndHtml(c);
-    assert.match(running, /Open Negotiate/);
+    /* RE-WORDED 14 Oct 2026 (the one-page Home plan, stage 6): the door opens
+       the redlines beside Home's paper, and says so — "Open the redlines". */
+    assert.match(running, /Open the redlines/);
     assert.match(running, /1 waiting/, 'and it says what is owed before you press it');
     assert.match(running, /ws-to-nego-due/, 'marked as owed, not merely available');
   });

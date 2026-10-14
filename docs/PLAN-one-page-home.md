@@ -184,6 +184,20 @@ the page (three named ideas, one The SAP Way), and the owner picks by name.
    BESIDE THE PAPER".
 6. **Polish.** Svenska wording pass, the chips' wording, a sweep of every old
    door, the brain (`BRAIN_PARTS`, lanes, stages) brought up to date.
+   **Built 14 Oct 2026 (the owner: "Can we go to the next step?").** No
+   design round: nothing new was drawn. Every sentence that sent a person to
+   a retired place now names where it went (Before you sign, the redlines
+   beside the paper, the deal board on the Board, Fill in the details), in
+   both books and in the server's own refusals; three sentences left on a
+   screen nothing opens any more are logged, not changed. The plan's Swedish
+   speaks with one voice ("papperet", "förhandlingstavla" as the Board's
+   switch says), and Jambo reads those words. The chips follow the contract:
+   a word whose door is shut for it (the redlines of a signed, held,
+   handed-over or archived contract) is not offered, and they change the
+   moment a face changes the contract. The brain's redlining and signing
+   flows start at the faces. The proof walk is
+   `test/chromium/one-page-home-walk-verify.js`. Story: MAP-HISTORY "STAGE 6
+   — POLISH, AND THE PROOF".
 
 **The proof the plan worked**: one contract from upload → fill in → redline →
 edit → sign → share, without leaving Home once — the demo's own walk, in the

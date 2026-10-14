@@ -647,12 +647,24 @@ function caChipLead(c){
   if (need.includes('sign')) return 'sign';
   return null;
 }
+/* A CHIP IS A DOOR THAT OPENS (the one-page Home plan, stage 6, 14 Oct 2026):
+   a word whose door is shut for THIS contract — the redlines of a signed, held,
+   handed-over or archived one, negoMayStart's own answer — is not offered (the
+   owner's rule for a choice that cannot give a result, 10 Oct 2026), and the
+   next useful word takes its place. Typed, the word still meets the door's
+   own reason. */
+const CA_CHIPS_MORE = ['oblig', 'share'];
+function caChipShut(c, k){
+  if (k === 'redline') return typeof negoMayStart === 'function' && !negoMayStart(c).ok;
+  return false;
+}
 function caPaperChips(){
   if (typeof igHomePaperFace !== 'function' || igHomePaperFace() !== true) return null;
   const c = caOpenContract();
   if (!c) return CA_CHIPS_WALL.map(k => ({ ask: _caT('ca_w_' + k), k }));
   const lead = caChipLead(c);
-  const list = lead ? [lead].concat(CA_CHIPS.filter(k => k !== lead)).slice(0, CA_CHIPS.length) : CA_CHIPS;
+  const list = (lead ? [lead].concat(CA_CHIPS.filter(k => k !== lead)) : CA_CHIPS.slice()).concat(CA_CHIPS_MORE)
+    .filter((k, i, all) => all.indexOf(k) === i && !caChipShut(c, k)).slice(0, CA_CHIPS.length);
   return list.map(k => ({ ask: _caT('ca_w_' + k), k, owed: k === lead }));
 }
 function caChipsHtml(){
@@ -838,14 +850,14 @@ Object.assign(window, { CA_PICK_MAX, CA_NOTE_MAX, CA_SEND_RE, caPeople, caContra
    in both books is a word read here. */
 const CA_PLACES = [
   { k: 'redline', need: 'one', w: ['redline', 'redlines', 'redlining', 'negotiate', 'negotiation', 'changes', 'förhandla', 'förhandlingen', 'ändringar', 'rödlinjer'] },
-  { k: 'deal', need: 'one', w: ['deal board', 'dealboard', 'affärstavla', 'affärstavlan'] },
-  { k: 'sign', need: 'one', w: ['sign', 'signing', 'before you sign', 'signera', 'signering', 'underteckna'] },
+  { k: 'deal', need: 'one', w: ['deal board', 'dealboard', 'förhandlingstavla', 'förhandlingstavlan', 'affärstavla', 'affärstavlan'] },
+  { k: 'sign', need: 'one', w: ['sign', 'signing', 'before you sign', 'signera', 'signering', 'underteckna', 'innan du signerar'] },
   { k: 'share', need: 'one', w: ['share', 'send', 'dela', 'skicka'] },
-  { k: 'fill', need: 'one', w: ['fill', 'fill in', 'fill in the details', 'details', 'fyll i', 'uppgifter', 'detaljer'] },
+  { k: 'fill', need: 'one', w: ['fill', 'fill in', 'fill in the details', 'details', 'fyll i', 'fyll i uppgifterna', 'uppgifter', 'detaljer'] },
   { k: 'oblig', need: 'any', w: ['obligations', 'duties', 'åtaganden', 'skyldigheter'] },
   { k: 'history', need: 'any', w: ['history', 'trail', 'historik', 'historiken'] },
   { k: 'board', w: ['board', 'tavla', 'tavlan'] },
-  { k: 'document', w: ['document', 'paper', 'dokument', 'dokumentet', 'pappret'] },
+  { k: 'document', w: ['document', 'paper', 'dokument', 'dokumentet', 'papperet', 'pappret'] },
   { k: 'calendar', w: ['calendar', 'kalender', 'kalendern'] },
   { k: 'explorer', w: ['explorer', 'utforskaren'] },
   { k: 'wall', w: ['another contract', 'all contracts', 'every contract', 'contracts', 'ett annat avtal', 'alla avtal', 'avtal'] },

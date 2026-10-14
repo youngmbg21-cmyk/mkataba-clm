@@ -414,12 +414,19 @@ function pdFillCounts(c){
   const fin = host.querySelector('[data-pd-ff-done]'); if (fin) fin.innerHTML = pdFillDoneHtml(c);
   try { if (typeof detMarkOpen === 'function') detMarkOpen(c); } catch (_){}
   try { if (typeof detPaintPaperEmpties === 'function') detPaintPaperEmpties(); } catch (_){}
-  if (typeof window !== 'undefined' && window.caChipsHtml){
-    const chips = document.querySelector('#ig-dock [data-ig-chips]');
-    if (chips){ const h = caChipsHtml();
-      /* drawn again with their press, as renderIntelDock binds them */
-      if (h){ chips.innerHTML = h; chips.querySelectorAll('[data-igsug]').forEach(b => b.addEventListener('click', () => { if (typeof intelAsk === 'function') intelAsk(b.getAttribute('data-igsug')); })); } }
-  }
+  pdChipsRepaint();
+}
+/* THE CHIPS FOLLOW THE CONTRACT AS A FACE CHANGES IT (stage 6): what is owed
+   leads them, and a door the contract has shut is not offered — a box filled
+   in, or a signature given (which freezes the wording), changes both without
+   the panel being drawn again. Drawn again with their press, as
+   renderIntelDock binds them. */
+function pdChipsRepaint(){
+  if (typeof window === 'undefined' || !window.caChipsHtml) return;
+  const chips = document.querySelector('#ig-dock [data-ig-chips]'); if (!chips) return;
+  const h = caChipsHtml(); if (!h || h === chips.innerHTML) return;
+  chips.innerHTML = h;
+  chips.querySelectorAll('[data-igsug]').forEach(b => b.addEventListener('click', () => { if (typeof intelAsk === 'function') intelAsk(b.getAttribute('data-igsug')); }));
 }
 /* what a box holds, shown on the paper at once (display only: the box's own
    writer stores it when the box is left, and the paper is drawn again from
@@ -847,6 +854,7 @@ function pdSignCounts(c){
   if (root && root.classList.contains('is-closed') !== pdSignState(c).closed){ setTimeout(() => { if (pdSignShows() && typeof renderIntelDock === 'function') renderIntelDock(); }, 0); }
   const paper = document.getElementById('ig-paper');
   if (paper && paper.dataset.pdSfSig != null && paper.dataset.pdSfSig !== pdSignPaperSig(c)){ setTimeout(() => { if (pdSignShows()) pdSignPaper(c.id); }, 0); }
+  pdChipsRepaint();
 }
 /* bound once per face host: × and the receipt's next step; every other press
    in the column is bound by the painter that drew it */
