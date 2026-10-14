@@ -114,7 +114,11 @@ const BAR = () => {
     await page.evaluate(() => hbSetFace('board'));
     await waitFor(page, () => !!document.getElementById('hb-cv-bar'), 5000);
     b = await page.evaluate(BAR);
-    check('1b with a contract on the paper: Your book · Deal board 3 · Obligations 1 · History', b.up && JSON.stringify(b.tabs) === JSON.stringify(['Your book', 'Deal board3', 'Obligations1', 'History']), JSON.stringify(b.tabs));
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+       Obligations tab went home to this view, and its count with it — what
+       is still owed (2 here), late-coloured while one is overdue */
+    const late1 = await page.evaluate(() => !!document.querySelector('#hb-cv-bar [data-hb-cv="oblig"] .hb-cv-n.is-late'));
+    check('1b with a contract on the paper: Your book · Deal board 3 · Obligations 2 (late) · History', b.up && JSON.stringify(b.tabs) === JSON.stringify(['Your book', 'Deal board3', 'Obligations2', 'History']) && late1, JSON.stringify({ tabs: b.tabs, late: late1 }));
     check('1c it says whose views they are, and Your book is shown, the book drawn as before', /^for MK-V1 · Parcelway ApS$/.test(b.who) && b.on === 'book' && b.book && !b.body && !b.acts.length, JSON.stringify(b));
     await shot('1-switch-book');
     /* a missing switch reports here rather than timing out on every press below */
@@ -167,14 +171,15 @@ const BAR = () => {
     const ob = await page.evaluate(() => { const host = document.getElementById('hb-cv-body');
       const tabs = [...host.querySelectorAll('[data-obt-view]')].map(x => x.textContent.replace(/\s+/g, ' ').trim());
       return { tabs, rows: host.querySelectorAll('.ob-lt [data-ins-row]').length, panel: !!host.querySelector('#obt-panel'), ins: host.classList.contains('is-ins') }; });
-    check('3a the room\'s own obligations: its tabs, its rows, its panel; Overdue 1 is the switch\'s number', ob.ins && ob.panel && ob.tabs.some(t => /^Overdue\s*1$/.test(t)) && ob.rows >= 1, JSON.stringify(ob));
+    check('3a the room\'s own obligations: its tabs, its rows, its panel; Overdue 1 among them', ob.ins && ob.panel && ob.tabs.some(t => /^Overdue\s*1$/.test(t)) && ob.rows >= 1, JSON.stringify(ob));
     await page.click('#hb-cv-body [data-obt-view="all"]'); await pause(300);
     check('3b its tabs work where it stands: All shows both duties', await page.evaluate(() => document.querySelectorAll('#hb-cv-body .ob-lt [data-ins-row]').length === 2 && !!document.getElementById('hb-cv-bar')));
     await page.click('#hb-cv-body .ob-lt [data-ins-row]'); await pause(300);
     check('3c a row press shows its panel, with Mark done', await page.evaluate(() => /Mark done/.test((document.getElementById('obt-panel') || {}).textContent || '')));
     await shot('3-obligations');
     await page.evaluate(() => { const c = getContract('MK-V1'); const i = c.obligations.findIndex(o => o.id === 'o1'); toggleObligation(c, i, { from: 'test' }); });
-    const redrawn = await waitFor(page, () => !/Obligations1/.test(document.getElementById('hb-cv-bar').textContent.replace(/\s+/g, '')) && /Completed\s*1/.test(document.getElementById('hb-cv-body').textContent), 5000);
+    /* stage 5: one duty still owed and none overdue — the count drops to 1 and loses its late colour */
+    const redrawn = await waitFor(page, () => /Obligations1/.test(document.getElementById('hb-cv-bar').textContent.replace(/\s+/g, '')) && !document.querySelector('#hb-cv-bar [data-hb-cv="oblig"] .hb-cv-n.is-late') && /Completed\s*1/.test(document.getElementById('hb-cv-body').textContent), 5000);
     check('3d a duty done anywhere repaints the view and the switch\'s number', redrawn, await page.evaluate(() => document.getElementById('hb-cv-bar').textContent.replace(/\s+/g, ' ')));
 
     /* ===== 4. HISTORY ===== */

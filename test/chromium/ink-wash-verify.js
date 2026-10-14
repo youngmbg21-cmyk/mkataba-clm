@@ -110,6 +110,16 @@
    the Negotiate screen moved, and only in counts (light: 13px 269→257; dark:
    fewer of the same colours). No key new, none gone. Every Ink Wash claim
    passed before and after.
+   RE-RECORDED 14 Oct 2026, OWNER-ASKED ("Yes, re-record it"): stage 5 of
+   the one-page Home plan redrew five screens — Overview (two room tabs),
+   Document, Signing (Jambo's Before you sign face beside the signing copy),
+   History (the Board's view) and Negotiate (the Redlines face beside Home's
+   paper). Audited first as a set difference: only those five moved; nothing
+   new in light mode; the values new to the whole record are existing styles
+   now seen on these screens — 11.5px (the panel's pill, .pd-pill), the navy
+   theme's accent-400 rgb(91,130,207) on Jambo's suggestion chips in dark, and
+   the Board's own dark text inks on History. Gone: the Negotiate page's paper
+   frame and kicker. Every Ink Wash claim passed before and after.
      node test/chromium/ink-wash-verify.js          (check)
    ============================================================ */
 const fs = require('node:fs');
