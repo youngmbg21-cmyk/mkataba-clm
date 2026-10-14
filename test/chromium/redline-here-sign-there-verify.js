@@ -130,15 +130,17 @@ const AGREED = [
     if (!(await page.evaluate(() => document.getElementById('up-cp').value))) await page.fill('#up-cp', 'Nordkust Industri AB');
     await page.click('#up-go');
     await page.waitForTimeout(2500);
-    /* A NEW UPLOAD OPENS "Complete the details" over its Details tab (owner,
-       12 Oct 2026): this stage saves and finishes later, as a person would. */
-    await page.waitForFunction(() => !!document.getElementById('cd-page'), null, { timeout: 4000 }).catch(() => {});
+    /* A NEW UPLOAD LANDS ON HOME'S PAPER WITH JAMBO'S PANEL ON FILL IN (the
+       one-page Home plan, stage 2; owner, 14 Oct 2026; was "Complete the
+       details" over the room's Details tab): this stage finishes later, as a
+       person would, and opens the room where it measures the room. */
+    await page.waitForFunction(() => !!document.getElementById('pd-fillface') || !!document.getElementById('cd-page'), null, { timeout: 4000 }).catch(() => {});
     await page.evaluate(() => { const b = document.getElementById('cd-later'); if (b) b.click(); });
     await page.waitForTimeout(400);
     const made = await page.evaluate(() => { const c = getContract(state.activeId);
-      return c ? { id: c.id, route: c.signRoute || '', no: c.contractNo || '', view: state.view } : null; });
+      return c ? { id: c.id, route: c.signRoute || '', no: c.contractNo || '', view: state.view, face: !!document.getElementById('pd-fillface') } : null; });
     check('1c it opens a working file with a working reference and no contract number yet',
-      made && /^RL-\d{3}$/.test(made.id) && made.route === 'outside' && !made.no && made.view === 'workspace', JSON.stringify(made));
+      made && /^RL-\d{3}$/.test(made.id) && made.route === 'outside' && !made.no && made.view === 'dashboard' && made.face, JSON.stringify(made));
     const RL = made && made.id;
 
     /* ===== 2. IT LIVES ON NEGOTIATIONS ===== */
@@ -330,13 +332,15 @@ const AGREED = [
     await page.fill('#up-cp', 'Kijani Foods Ltd');
     await page.click('#up-go');
     await page.waitForTimeout(2500);
-    /* A NEW UPLOAD OPENS "Complete the details" over its Details tab (owner,
-       12 Oct 2026): this stage saves and finishes later, as a person would. */
-    await page.waitForFunction(() => !!document.getElementById('cd-page'), null, { timeout: 4000 }).catch(() => {});
+    /* A NEW UPLOAD LANDS ON HOME'S PAPER WITH JAMBO'S PANEL ON FILL IN (the
+       one-page Home plan, stage 2; owner, 14 Oct 2026; was "Complete the
+       details" over the room's Details tab): this stage finishes later, as a
+       person would, and opens the room where it measures the room. */
+    await page.waitForFunction(() => !!document.getElementById('pd-fillface') || !!document.getElementById('cd-page'), null, { timeout: 4000 }).catch(() => {});
     await page.evaluate(() => { const b = document.getElementById('cd-later'); if (b) b.click(); });
     await page.waitForTimeout(400);
     const RL2 = await page.evaluate(() => { const c = getContract(state.activeId); return c && c.signRoute === 'outside' ? c.id : ''; });
-    await page.evaluate(() => roomGoTab(getContract(state.activeId), 'sign'));
+    await page.evaluate(() => { openWorkspace(state.activeId); roomGoTab(getContract(state.activeId), 'sign'); });
     await page.waitForTimeout(700);
     const staged2 = await stageReady();
     check('8 · stage: a second working file, its list settled', /^RL-\d{3}$/.test(RL2) && RL2 !== RL && staged2.ok && staged2.n === 0, JSON.stringify({ RL2, staged2 }));

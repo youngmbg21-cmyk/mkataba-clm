@@ -150,7 +150,10 @@ describe('f673 (2)(3) the face: one contract, Jambo\'s tab, counted with details
     assert.doesNotMatch(strip(PD.slice(PD.indexOf('FILL IN THE DETAILS, BESIDE THE PAPER'), PD.indexOf('function pdFillRefresh('))), /contractBlankSet\(|\.counterparty\s*=|persist\(/, 'no writer of its own');
     const dock = strip(fnBody(IG, 'renderIntelDock'));
     assert.match(dock, /pdFillShows\(\)\)\?`<div id="pd-fillface"/, 'where the conversation stands');
-    assert.match(dock, /closest\('#ig-dock #pd-fill, #ig-dock #pd-fillface'\)/, 'never redrawn under the typing hand');
+    /* never redrawn under the typing hand — while Fill in is still the face:
+       a hand left in a box does not hold it once another tab is asked for
+       (14 Oct 2026; uploaded-contract-fixed and pdf-structure caught it) */
+    assert.match(dock, /ae\.closest\('#ig-dock #pd-fillface'\)\?\(window\.pdFillShows&&pdFillShows\(\)\):ae\.closest\('#ig-dock #pd-fill'\)\)\) return;/);
   });
 });
 

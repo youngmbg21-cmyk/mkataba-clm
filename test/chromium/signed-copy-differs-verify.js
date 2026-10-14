@@ -92,10 +92,12 @@ const signedOf = (cp, signer) => [
       await page.fill('#up-cp', cp);
       await page.click('#up-go');
       await page.waitForTimeout(2500);
-      /* A NEW UPLOAD OPENS "Complete the details" over its Details tab (owner,
-         12 Oct 2026); this stage answers through the record, so it saves and
-         finishes later, as a person would. */
-      await page.waitForFunction(() => !!document.getElementById('cd-page'), null, { timeout: 4000 }).catch(() => {});
+      /* A NEW UPLOAD LANDS ON HOME'S PAPER WITH JAMBO'S PANEL ON FILL IN (the
+         one-page Home plan, stage 2; owner, 14 Oct 2026; was "Complete the
+         details" over the room's Details tab); this stage answers through the
+         record, finishes later, as a person would, and opens the room for its
+         Signing tab. */
+      await page.waitForFunction(() => !!document.getElementById('pd-fillface') || !!document.getElementById('cd-page'), null, { timeout: 4000 }).catch(() => {});
       await page.evaluate(() => { const b = document.getElementById('cd-later'); if (b) b.click(); });
       await page.waitForTimeout(400);
       const staged = await page.evaluate(async () => {
@@ -111,6 +113,7 @@ const signedOf = (cp, signer) => [
           c.playbook = { label: 'Default', wordingHash: hash, verdicts: [] };
           c.obligationsReadHash = hash; c.signCheck = { at: new Date().toISOString(), wordingHash: hash };
           persist(c); await flushSaves();
+          if (state.view !== 'workspace') openWorkspace(c.id);
           renderWorkspace();
           await new Promise(r => setTimeout(r, 300));
           roomGoTab(c, 'sign');

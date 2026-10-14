@@ -6593,7 +6593,11 @@ function renderIntelDock(){
   /* A BOX IN THE OVERVIEW TAB'S FILL FORM UNDER THE READER'S HAND IS NEVER
      REDRAWN (owner, 11 Oct 2026): a save after an answer repaints Home, and the
      next box must keep the cursor the Tab key just gave it. */
-  if(intel.dockOpen&&document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#ig-dock #pd-fill, #ig-dock #pd-fillface')) return;
+  /* THE FILL IN FACE HOLDS ONLY WHILE IT IS STILL THE FACE (14 Oct 2026): a
+     hand left in one of its boxes must not keep it on screen once the reader
+     has asked for another tab or face (a door, the Clauses tab, a word). */
+  { const ae=document.activeElement;
+    if(intel.dockOpen&&ae&&ae.closest&&(ae.closest('#ig-dock #pd-fillface')?(window.pdFillShows&&pdFillShows()):ae.closest('#ig-dock #pd-fill'))) return; }
   if(!intel.dockOpen){
     dock.innerHTML=`
       <button id="igd-expand" class="igd-door" title="${i18t('int_open_panel')}" aria-label="${i18t('int_open_panel')}">
