@@ -20714,3 +20714,7 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Home's Document strip reads "Software as a Service Agreement · — · Drafting": the counterparty's name is missing.
 - The clause-number track down the paper's margin lists "3", "7.3", "47.1" after "33.2", out of order.
 - Negotiate's "Progress · 0 of 5 decided" counts our own unsent drafts as things to decide.
+
+### Noticed, not fixed (14 Oct 2026, the one-page Home plan, stage 1 — Jambo's words)
+- The ⌘K search prints each row's kind as a raw English code word ("folder", "ask") in Svenska too (`r.tag||r.kind` in openCommandPalette); the new "place" row carries a translated tag, the older rows do not.
+- CLAUDE.md is about 82 KB, above its own "under about 80 KB" target (it was 81.6 KB before this change; stage 1 added one MAP line).

@@ -207,6 +207,9 @@ function caActOf(q){
   const send = caReadSend(t); if (send) return send;
   const job = caReadJob(t); if (job) return job;
   const door = caReadDoor(t); if (door) return door;
+  /* a place word reads only what no older reading takes ("show obligations"
+     stays the list card; "obligations" alone goes there) */
+  const go = caReadPlace(t); if (go) return go;
   if (typeof caReadDraft === 'function'){ const d = caReadDraft(t); if (d){ setTimeout(() => { caDraftRun(d); }, 0); return d; } }
   return null;
 }
@@ -225,6 +228,7 @@ function caCardHtml(a, i){
   if (a.kind === 'draft' && typeof caDraftCardHtml === 'function') return caDraftCardHtml(a, i);
   if (CA_JOBS.includes(a.kind)) return caJobCardHtml(a, i);
   if (a.kind === 'door') return caDoorCardHtml(a, i);
+  if (a.kind === 'go') return caGoCardHtml(a, i);
   if (a.kind !== 'send') return '';
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   const B = (act, label, cls) => `<button type="button" class="ui-btn ui-btn-sm${cls === 'lead' ? ' ui-btn-primary' : ''}" data-ca-act="${act}" data-ca-turn="${i}">${_caE(label)}</button>`;
@@ -259,6 +263,7 @@ async function caCardPress(i, act, btn){
   if (a.kind === 'draft' && typeof caDraftPress === 'function') return caDraftPress(i, act, btn);
   if (CA_JOBS.includes(a.kind)) return caJobPress(i, act, btn);
   if (a.kind === 'door') return caDoorPress(i, act);
+  if (a.kind === 'go') return caGoPress(a, act);
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   if (act === 'sendscreen'){ if (c && typeof openShareModal === 'function') openShareModal(c); return; }
   if (act === 'note'){
@@ -619,25 +624,40 @@ async function caDoorPress(i, act){
   if (typeof renderIntelDock === 'function') try { renderIntelDock(); } catch (_){}
 }
 
-/* THE PREPARED ASKS on Home's Paper side, while the conversation is empty:
-   one press each. Send for review writes "Send #REF to @" into the box and
-   opens the people list — the person is the reader's to choose. */
+/* THE CHIPS ARE JAMBO'S WORDS (the one-page Home plan, stage 1; the owner
+   picked "Chips" by name, 14 Oct 2026): on Home's Document they stand above
+   the box at every turn, not only on an empty conversation, and say the next
+   words for where THIS contract stands. The lead comes from the side panel's
+   own checklist (needsYouOf), so the chip and the checklist cannot disagree:
+   details owed → "fill in", their side waiting on us → "redline", your
+   signature → "sign". The lead is amber because it is work owed. With
+   nothing chosen (the wall of paper) they are the ways in. A press asks the
+   word, so a chip and a typed word are one path (caReadPlace). */
+const CA_CHIPS = ['redline', 'deal', 'sign', 'history'];
+const CA_CHIPS_WALL = ['upload', 'draft', 'board', 'calendar'];
+function caChipLead(c){
+  let need = [];
+  try { need = ((typeof needsYouOf === 'function') ? needsYouOf(c) : []).map(x => x && x.kind); } catch (_){ need = []; }
+  if (need.includes('details')) return 'fill';
+  if (need.includes('quiet') || need.includes('refused') || need.includes('suggest')) return 'redline';
+  if (need.includes('sign')) return 'sign';
+  return null;
+}
 function caPaperChips(){
-  const p = (typeof intel === 'object' && intel) ? intel.paper : null;
-  const c = p && typeof getContract === 'function' ? getContract(p.id) : null;
-  if (!c || typeof igHomePaperFace !== 'function' || igHomePaperFace() !== true) return null;
-  return [
-    { ask: _caT('ca_chip_ready') },
-    { ask: _caT('ca_chip_oblig') },
-    { ask: _caT('ca_chip_std') },
-    { fill: `${_caT('ca_chip_send_word')} #${caRef(c)} ${_caT('ca_chip_send_to')} @`, label: _caT('ca_chip_send') },
-  ];
+  if (typeof igHomePaperFace !== 'function' || igHomePaperFace() !== true) return null;
+  const c = caOpenContract();
+  if (!c) return CA_CHIPS_WALL.map(k => ({ ask: _caT('ca_w_' + k), k }));
+  const lead = caChipLead(c);
+  const list = lead ? [lead].concat(CA_CHIPS.filter(k => k !== lead)).slice(0, CA_CHIPS.length) : CA_CHIPS;
+  return list.map(k => ({ ask: _caT('ca_w_' + k), k, owed: k === lead }));
 }
 function caChipsHtml(){
   const L = caPaperChips(); if (!L) return '';
-  return L.map(x => x.fill
+  return L.map(x => x.owed
+    ? `<button type="button" data-igsug="${_caE(x.ask)}" data-ca-chip="${_caE(x.k)}" class="ca-chip-owed text-[10.5px] rounded-full px-2.5 py-1 transition text-left">${_caE(x.ask)}</button>`
+    : x.fill
     ? `<button type="button" data-ca-fill="${_caE(x.fill)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${_caE(x.label)}</button>`
-    : `<button type="button" data-igsug="${_caE(x.ask)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${_caE(x.ask)}</button>`).join('');
+    : `<button type="button" data-igsug="${_caE(x.ask)}"${x.k ? ` data-ca-chip="${_caE(x.k)}"` : ''} class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${_caE(x.ask)}</button>`).join('');
 }
 if (typeof document !== 'undefined') document.addEventListener('keydown', e => {
   if (e.key !== 'Enter' && e.key !== ' ') return;
@@ -795,3 +815,272 @@ Object.assign(window, { CA_PICK_MAX, CA_NOTE_MAX, CA_SEND_RE, caPeople, caContra
   CA_DRAFT_RE, CA_DRAFT_NOUN, CA_DRAFT_OPTS, caReadDraft, caDraftScore, caDraftRank, caDraftRun, caDraftCardHtml, caDraftPress,
   CA_JOBS, CA_JOB_RE, caReadJob, caNamedOrUp, caRowsWithQuotes, caRiskList, caObligList, caListCardHtml, caReadyDoor, caJobCardHtml, caJobPress, caPaperChips, caChipsHtml,
   CA_SEL_ACTIONS, caSelKill, caSelClauseId, caSelOpen, caSelPick, CA_RISK_MAX, caRiskMark });
+
+/* ============================================================
+   JAMBO'S WORDS — A PLACE TAKES YOU THERE, WORK OPENS ITS DOOR
+   (the one-page Home plan, stage 1: docs/PLAN-one-page-home.md; the owner
+   agreed the plan on 14 Oct 2026 and picked "Chips" by name)
+   ============================================================
+   A WHOLE ask that is one known word — "redline", "sign", "board",
+   "/history", "deal board MK-458", "gå till kalendern" — is read here with
+   no model and opens TODAY's door for it. Anything longer is a question and
+   goes on exactly as before: a word is matched whole, never found inside a
+   sentence ("what does the board say about liability?" is a question).
+   TYPING NEVER SIGNS, SENDS OR FILES: a word opens a page or a card, and the
+   act is still a press there (the Sign button, the send screen's Send).
+   THE WORDS ARE DATA IN BOTH LANGUAGES, never read back from the books and
+   never a regex built from them (CLAUDE.md, two languages); the chips' and
+   the "/" list's labels come from the books, and f671 pins that every label
+   in both books is a word read here. */
+const CA_PLACES = [
+  { k: 'redline', need: 'one', w: ['redline', 'redlines', 'redlining', 'negotiate', 'negotiation', 'changes', 'förhandla', 'förhandlingen', 'ändringar', 'rödlinjer'] },
+  { k: 'deal', need: 'one', w: ['deal board', 'dealboard', 'affärstavla', 'affärstavlan'] },
+  { k: 'sign', need: 'one', w: ['sign', 'signing', 'before you sign', 'signera', 'signering', 'underteckna'] },
+  { k: 'share', need: 'one', w: ['share', 'send', 'dela', 'skicka'] },
+  { k: 'fill', need: 'one', w: ['fill', 'fill in', 'fill in the details', 'details', 'fyll i', 'uppgifter', 'detaljer'] },
+  { k: 'oblig', need: 'any', w: ['obligations', 'duties', 'åtaganden', 'skyldigheter'] },
+  { k: 'history', need: 'any', w: ['history', 'trail', 'historik', 'historiken'] },
+  { k: 'board', w: ['board', 'tavla', 'tavlan'] },
+  { k: 'document', w: ['document', 'paper', 'dokument', 'dokumentet', 'pappret'] },
+  { k: 'calendar', w: ['calendar', 'kalender', 'kalendern'] },
+  { k: 'explorer', w: ['explorer', 'utforskaren'] },
+  { k: 'wall', w: ['another contract', 'all contracts', 'every contract', 'contracts', 'ett annat avtal', 'alla avtal', 'avtal'] },
+  { k: 'upload', w: ['upload', 'ladda upp'] },
+  { k: 'draft', w: ['draft', 'new agreement', 'nytt avtal', 'utkast'] },
+  { k: 'back', w: ['back', 'go back', 'tillbaka'] },
+  { k: 'help', w: ['help', 'what can you do', 'hjälp'] },
+];
+/* "go to", "open", "show me", "take me back to", "gå till", "öppna", "visa" */
+const CA_PLACE_LEAD = /^(?:please\s+)?(?:(?:go|take me|bring me|jump|switch)\s+(?:back\s+)?to\s+|open\s+|show\s+(?:me\s+)?|gå\s+(?:tillbaka\s+)?till\s+|öppna\s+|visa\s+(?:mig\s+)?)/i;
+const CA_PLACE_MAX = 60;          // longer than this is a sentence, never a word
+const CA_PLACE_MIN_TYPED = 3;     // letters the top bar's search waits for before a place leads
+function caPlaceOf(q){
+  let t = String(q || '').trim(); if (!t || t.length > CA_PLACE_MAX) return null;
+  const slash = t[0] === '/'; if (slash) t = t.slice(1);
+  let cid = null;
+  for (const [label, v] of _caChosen) if (v.kind === 'contract' && t.includes(label)){ cid = cid || v.id; t = t.split(label).join(' '); }
+  /* a reference names the contract only when it IS one: "deal-board" is a word */
+  t = t.replace(/#?\b([A-Za-z]{2,4}-[A-Za-z0-9]+)\b/g, (m0, ref) => {
+    const c = caContracts().find(x => String(caRef(x)).toUpperCase() === ref.toUpperCase() || String(x.id).toUpperCase() === ref.toUpperCase());
+    if (!c) return m0;
+    cid = cid || c.id; return ' ';
+  });
+  t = t.toLowerCase().replace(/[?.!]+\s*$/, '').replace(/\s+/g, ' ').trim();
+  t = (t + ' ').replace(CA_PLACE_LEAD, '').replace(/^(?:the|my|our)\s+/, '').replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
+  /* ON THE BOARD ITS OWN READER KEEPS ITS WORDS: "obligations" is its
+     obligations panel, "MK-458" the contract's card, a saved view its name.
+     Only a move between faces ("board", "explorer") is the same either way. */
+  if (caOnBoard() && typeof hbParse === 'function'){ let r = null; try { r = hbParse(q); } catch (_){ r = null; } if (r && r.act !== 'face') return null; }
+  /* a reference on its own ("MK-458", "open #MK-458") is that contract's paper */
+  if (!t && cid) return { kind: 'go', place: 'document', cid, slash, state: 'ready' };
+  const p = CA_PLACES.find(x => x.w.includes(t)); if (!p) return null;
+  return { kind: 'go', place: p.k, cid, slash, state: 'ready' };
+}
+function caOnBoard(){ try { return typeof state !== 'undefined' && !!state && state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'board'; } catch (_){ return false; } }
+/* The contract a word is about: the one it names, else the paper that is up.
+   A word that needs one and has none is answered "which contract?" and the
+   wall of paper is opened to choose from — never a guess. */
+function caReadPlace(q){
+  const a = caPlaceOf(q); if (!a) return null;
+  const p = CA_PLACES.find(x => x.k === a.place);
+  if (!a.cid && p.need){ const c = caOpenContract(); if (c) a.cid = c.id; }
+  if (p.need === 'one' && !a.cid) a.missing = true;
+  return a;
+}
+
+/* ---- THE PLACES YOU USE MOST, per person, in this browser ----
+   Its own key, not LS.ui: LS.ui is written whole by the page store
+   (app.js), which would drop a count kept beside it. */
+const CA_USES_KEY = 'hati.v1.jamboUses';
+function caUsesAll(){ try { return JSON.parse(localStorage.getItem(CA_USES_KEY) || '{}') || {}; } catch (_){ return {}; } }
+function caUsesWho(){ const me = (typeof currentUser === 'function') ? currentUser() : null; return String((me && me.id) || 'me'); }
+function caUses(){ const u = caUsesAll()[caUsesWho()]; return (u && typeof u === 'object') ? u : {}; }
+function caUseBump(k){
+  try { const all = caUsesAll(); const w = caUsesWho(); const u = (all[w] && typeof all[w] === 'object') ? all[w] : (all[w] = {});
+    u[k] = (Number(u[k]) || 0) + 1; localStorage.setItem(CA_USES_KEY, JSON.stringify(all)); } catch (_){}
+}
+/* ---- "/" — THE PLACES, MOST USED FIRST ----
+   Drawn by the Board's own list (hbAskPopRows), so there is one "/" list:
+   these rows first, and on the Board its chart moves after them. Ties keep
+   this order, which is the plan's order of a working day. */
+const CA_SLASH = ['redline', 'sign', 'board', 'deal', 'document', 'share', 'oblig', 'history', 'fill', 'calendar', 'explorer', 'draft', 'upload'];
+const CA_SLASH_MAX = 8;
+function caSlashWord(k){ return String(_caT('ca_w_' + k)).trim().replace(/\s+/g, '-'); }
+function caSlashRows(w, opts = {}){
+  const u = caUses(); const q = String(w || '').toLowerCase();
+  return CA_SLASH.map((k, i) => ({ k, i, word: caSlashWord(k), n: Number(u[k]) || 0 }))
+    .filter(r => !q || r.word.toLowerCase().startsWith(q) || r.word.toLowerCase().split('-').some(x => x.startsWith(q)))
+    .sort((a, b) => (b.n - a.n) || (a.i - b.i))
+    .slice(0, opts.max || CA_SLASH_MAX)
+    .map(r => ({ kind: 'place', k: r.k, word: '/' + r.word, sub: _caT('ca_sl_' + r.k), n: r.n }));
+}
+
+/* ---- THE WAY BACK (the plan: "the panel always offers ‹ Back to …") ----
+   Every move a word makes leaves the place it left on a short trail; the
+   panel's back row returns there. A place the reader has since gone back to
+   by hand is dropped rather than offered as a door that goes nowhere. */
+const CA_TRAIL_MAX = 12;
+const _caTrail = [];
+function caPlaceNow(){
+  const view = (typeof state !== 'undefined' && state) ? state.view : '';
+  const face = (view === 'dashboard' && typeof hbFace === 'function') ? hbFace() : null;
+  const c = caOpenContract();
+  /* off Home, a contract's page remembers its contract (Negotiate, the room) */
+  const act = (typeof state !== 'undefined' && state) ? state.activeId : null;
+  return { view, face, id: (face === 'paper' && c) ? c.id : (view === 'redline' || view === 'workspace') ? (act || null) : null };
+}
+const caSamePlace = (a, b) => !!(a && b && a.view === b.view && a.face === b.face && a.id === b.id);
+function caTrailPush(){
+  const n = caPlaceNow(); if (caSamePlace(_caTrail[_caTrail.length - 1], n)) return;
+  _caTrail.push(n); if (_caTrail.length > CA_TRAIL_MAX) _caTrail.shift();
+}
+function caTrailTop(){
+  const now = caPlaceNow();
+  while (_caTrail.length && caSamePlace(_caTrail[_caTrail.length - 1], now)) _caTrail.pop();
+  return _caTrail[_caTrail.length - 1] || null;
+}
+/* the name of a place on the trail: "the Board", "MK-458 on the paper" */
+function caTrailLabel(p){
+  if (!p) return '';
+  if (p.view !== 'dashboard'){
+    const pc = p.id && typeof getContract === 'function' ? getContract(p.id) : null;
+    if (pc && (p.view === 'redline' || p.view === 'workspace')) return _caT(p.view === 'redline' ? 'ca_place_nego' : 'ca_place_room', { ref: caRef(pc) });
+    return _caT('ca_place_page');
+  }
+  if (p.face === 'paper'){ const c = p.id && typeof getContract === 'function' ? getContract(p.id) : null;
+    return c ? _caT('ca_place_paper', { ref: caRef(c) }) : _caT('ca_place_wall'); }
+  return _caT('ca_place_' + (p.face || 'board'));
+}
+function caTrailBack(){
+  const p = caTrailTop(); if (!p) return false;
+  _caTrail.pop();
+  if (p.view !== 'dashboard'){
+    const pc = p.id && typeof getContract === 'function' ? getContract(p.id) : null;
+    if (pc && p.view === 'redline' && typeof openRedlineWorkbench === 'function') openRedlineWorkbench(pc.id);
+    else if (pc && p.view === 'workspace' && typeof openWorkspace === 'function') openWorkspace(pc.id);
+    else if (typeof setView === 'function') setView(p.view || 'dashboard');
+    return true;
+  }
+  if (p.face === 'paper'){
+    if (p.id && typeof getContract === 'function' && getContract(p.id) && typeof pdOpenOnHome === 'function') pdOpenOnHome(p.id, 'copilot');
+    else caHomeWall();
+    return true;
+  }
+  caHomeFace(p.face || 'board'); return true;
+}
+function caBackRowHtml(){
+  const p = caTrailTop(); if (!p) return '';
+  return `<button type="button" class="ca-back" data-ca-back>${_caE('‹ ' + _caT('ca_back', { where: caTrailLabel(p) }))}</button>`;
+}
+
+/* ---- WHERE EACH WORD GOES TODAY (stage 1 opens today's doors; later
+   stages bring the work into the panel, docs/PLAN-one-page-home.md §7) ---- */
+function caHomeFace(f){
+  if (typeof hbS !== 'function') return false;
+  if (typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof hbSetFace === 'function'){ hbSetFace(f); return true; }
+  const s = hbS(); s.face = f; if (typeof hbSave === 'function') hbSave();
+  if (typeof setView === 'function') setView('dashboard');
+  return true;
+}
+function caHomeWall(){ caHomeFace('paper'); if (typeof igPickAgain === 'function') igPickAgain(); return true; }
+function caRoomTab(c, k){ if (typeof openWorkspace === 'function') openWorkspace(c.id); if (typeof roomGoTab === 'function') try { roomGoTab(getContract(c.id) || c, k); } catch (_){} return true; }
+const CA_GO = {
+  board: () => caHomeFace('board'),
+  document: c => (c && typeof pdOpenOnHome === 'function') ? pdOpenOnHome(c.id, 'copilot') : caHomeFace('paper'),
+  calendar: () => typeof hbOpenCalendar === 'function' && hbOpenCalendar(),
+  explorer: () => typeof hbOpenExplorer === 'function' && hbOpenExplorer(),
+  wall: () => caHomeWall(),
+  redline: c => openRedlineWorkbench(c.id),
+  deal: c => { if (openRedlineWorkbench(c.id) && typeof openDealBoard === 'function') openDealBoard(); return true; },
+  sign: c => caRoomSign(c),
+  fill: c => caRoomTab(c, 'details'),
+  oblig: c => c ? pdOpenOnHome(c.id, 'oblig') : (typeof setView === 'function' && setView('obligations')),
+  history: c => c ? caRoomTab(c, 'history') : (typeof openPanel === 'function' && openPanel('activity')),
+  upload: () => typeof openUploadModal === 'function' && openUploadModal(),
+  draft: () => typeof openNewDoors === 'function' && openNewDoors(),
+};
+/* what Jambo says as he goes — one line, no card (share and help are cards) */
+function caGoSay(a){
+  if (!a) return '';
+  const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
+  if (a.missing) return _caT('ca_go_need', { word: _caT('ca_w_' + a.place) });
+  if (a.place === 'back'){ const p = caTrailTop(); return p ? _caT('ca_go_back', { where: caTrailLabel(p) }) : _caT('ca_go_back_none'); }
+  const p = CA_PLACES.find(x => x.k === a.place) || {};
+  return _caT('ca_go_' + a.place + (p.need === 'any' && !c ? '_all' : ''), { ref: c ? caRef(c) : '' });
+}
+/* THE ONE PLACE A WORD MOVES THE READER: intelAsk calls it after the line is
+   said; the top bar's search calls it with no conversation. */
+function caGo(a){
+  if (!a || a.kind !== 'go') return false;
+  if (a.place === 'back'){ const ok = caTrailBack(); caGoRepaint(); return ok; }
+  if (a.place === 'help') return true;
+  caUseBump(a.place);
+  if (a.place === 'share') return true;
+  const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
+  caTrailPush();
+  if (a.missing){ caHomeWall(); caGoRepaint(); return true; }
+  const go = CA_GO[a.place]; if (typeof go !== 'function') return false;
+  try { go(c); } catch (e){ if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); return false; }
+  caGoRepaint();
+  return true;
+}
+/* a move that stays on Home repaints the panel so its back row is current */
+function caGoRepaint(){ setTimeout(() => { try { if (typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof renderIntelDock === 'function') renderIntelDock(); } catch (_){} }, 0); }
+/* the top bar's search: the same words, and the same move */
+function caPlaceRows(q){
+  const t = String(q || '').trim().toLowerCase().replace(/^\//, '');
+  /* three letters before a place leads the search, so a name search ("Sa…")
+     is not pushed down by "sign" and "share" */
+  if (t.length < CA_PLACE_MIN_TYPED) return [];
+  return CA_SLASH.filter(k => CA_PLACES.find(p => p.k === k).w.some(w => w.startsWith(t)) || caSlashWord(k).toLowerCase().startsWith(t))
+    .slice(0, 3).map(k => ({ k, word: _caT('ca_w_' + k), sub: _caT('ca_sl_' + k) }));
+}
+function caPlaceRun(k){
+  const word = _caT('ca_w_' + k);
+  if (typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof intelAsk === 'function') return intelAsk(word);
+  const a = caReadPlace(word); if (!a) return false;
+  if (a.place === 'share' || a.place === 'help'){ caUseBump(a.place); if (typeof setView === 'function') setView('dashboard'); setTimeout(() => { if (typeof intelAsk === 'function') intelAsk(word); }, 0); return true; }
+  return caGo(a);
+}
+
+/* ---- THE TWO WORDS THAT ANSWER WITH A CARD ----
+   SHARE: two choices, each the existing door (the send screen; a colleague
+   through the pass Jambo already prepares). HELP: the words, said once. */
+function caGoCardHtml(a, i){
+  const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
+  if (a.place === 'share' && c && !a.missing){
+    const them = String(c.counterparty || '').trim();
+    const B = (act, label, lead) => `<button type="button" class="ui-btn ui-btn-sm${lead ? ' ui-btn-primary' : ''}" data-ca-act="${act}" data-ca-turn="${i}">${_caE(label)}</button>`;
+    return `<div class="ca-card" data-ca-card="${i}"><div class="ca-ct">${_caE(_caT('ca_share_title', { ref: caRef(c) }))}</div>
+      <p class="ca-foot" style="margin-top:0">${_caE(_caT('ca_share_says'))}</p>
+      <div class="ca-acts">${B('shareout', them ? _caT('ca_share_out', { who: them }) : _caT('ca_share_out_none'), true)}${B('sharein', _caT('ca_share_in'))}</div></div>`;
+  }
+  if (a.place === 'help'){
+    return `<div class="ca-card" data-ca-card="${i}"><div class="ca-ct">${_caE(_caT('ca_help_title'))}</div>
+      <p class="ca-foot" style="margin-top:0">${_caE(_caT('ca_help_places'))}</p>
+      <p class="ca-foot" style="margin-top:0">${_caE(_caT('ca_help_work'))}</p>
+      <p class="ca-foot" style="margin-top:0">${_caE(_caT('ca_help_rest'))}</p></div>`;
+  }
+  return '';
+}
+function caGoPress(a, act){
+  const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null; if (!c) return;
+  if (act === 'shareout'){ if (typeof openShareModal === 'function') openShareModal(c); return; }
+  if (act === 'sharein'){
+    const inp = document.getElementById('igd-input'); if (!inp) return;
+    inp.value = `${_caT('ca_chip_send_word')} #${caRef(c)} ${_caT('ca_chip_send_to')} @`;
+    _caChosen.set('#' + caRef(c), { kind: 'contract', id: c.id, name: c.name || '' });
+    try { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); } catch (_){}
+    caPopRead(inp);
+  }
+}
+if (typeof document !== 'undefined' && !document._caBackWired){
+  document._caBackWired = true;
+  document.addEventListener('click', e => {
+    const b = e.target && e.target.closest ? e.target.closest('[data-ca-back]') : null; if (!b) return;
+    e.preventDefault(); caTrailBack(); caGoRepaint();
+  });
+}
+Object.assign(window, { CA_PLACES, CA_PLACE_LEAD, CA_PLACE_MAX, CA_PLACE_MIN_TYPED, caPlaceOf, caOnBoard, caReadPlace, CA_USES_KEY, caUses, caUseBump, CA_SLASH, CA_SLASH_MAX, caSlashWord, caSlashRows,
+  CA_TRAIL_MAX, caPlaceNow, caTrailPush, caTrailTop, caTrailLabel, caTrailBack, caBackRowHtml, caHomeFace, caHomeWall, caRoomTab, CA_GO, caGoSay, caGo, caGoRepaint,
+  caPlaceRows, caPlaceRun, caGoCardHtml, caGoPress, CA_CHIPS, CA_CHIPS_WALL, caChipLead });

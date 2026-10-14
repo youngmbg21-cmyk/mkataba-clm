@@ -1681,6 +1681,12 @@ function commandPaletteResults(q){
      granted, so listing it here offers a door that answers "no access" — and
      names a stream they were not meant to know about. */
   const folders=(typeof visibleFolders==='function')?visibleFolders():Object.values(FOLDERS||{});
+  /* JAMBO'S WORDS LEAD (the one-page Home plan, stage 1: one brain for every
+     box): "red" offers Redlines, "kal" the Calendar — the same move the
+     word makes in Jambo's box (caPlaceRun). */
+  if(q&&typeof window.caPlaceRows==='function'){
+    caPlaceRows(q).forEach(p=>out.push({kind:'place',id:p.k,title:p.word,sub:p.sub,tag:i18t('ca_place_tag'),ic:'chevR'}));
+  }
   if(q){
     folders.filter(f=>f.name.toLowerCase().includes(q)).slice(0,4)
       .forEach(f=>out.push({kind:'folder',id:f.id,title:f.name,get sub(){ return i18t('ap_value_stream'); },ic:f.ic||'folder'}));
@@ -1748,6 +1754,7 @@ function openCommandPalette(){
       if(ai){ ai.value=it.q; ai.focus(); }
       return;
     }
+    if(it.kind==='place'){ close(); if(window.caPlaceRun) caPlaceRun(it.id); return; }
     close(); if(it.kind==='folder') openFolder(it.id); else openWorkspace(it.id);
   };
   const ftsPlan=()=>{

@@ -117,6 +117,11 @@ the page (three named ideas, one The SAP Way), and the owner picks by name.
    useful on day one. The top-bar search reads the same table.
    *Done when:* every word in §2 lands where §3–4 say, in English and
    Svenska, and anything else still reaches Jambo as a question.
+   **Built 14 Oct 2026 (the owner picked "Chips").** Two changes from the
+   wording above: the use counts live under their own key
+   (`hati.v1.jamboUses`), because `LS.ui` is written whole by the page store;
+   and on the Board its own reader keeps the words it already answered
+   ("obligations" is its panel there). Story: MAP-HISTORY "JAMBO'S WORDS".
 2. **Fill in the details in the panel.** An upload lands on the Document face
    with the panel on the fill-in face; typing in a box fills the paper's blank
    at once; one writer (`contractBlankSet` / the Details writers), nothing new
@@ -141,8 +146,9 @@ real app.
 
 ## 8. Open questions, settled at each stage's design round
 
-- **The Board's own "/" list** (chart moves: /compare, /trend…): one list with
-  two sections (places, then moves), or places only off the Board.
+- ~~**The Board's own "/" list**~~ — settled in stage 1: one list, the
+  places first, then on the Board its chart moves; off the Board the places
+  alone.
 - **Where "Before you sign" sits once signed by both**: the face stays as a
   receipt, or hands over to Where we are.
 - **The rail's Negotiations door** after stage 5: removed, or kept as a list

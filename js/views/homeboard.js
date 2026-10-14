@@ -9479,6 +9479,10 @@ if (typeof document !== 'undefined' && !document._hbTipWired){
      anywhere on the board opens the moves (A10).
    Nothing here asks Copilot or spends anything by itself. */
 const HB_MYQ_MAX = 20, HB_ASKPOP_MAX = 8, HB_ASK_HIST = 20;
+/* the places a "/" lists on the Board before its own moves (Jambo's words, the one-page Home plan, stage 1) */
+const HB_SLASH_PLACES = 5;
+/* rows a long list draws (the gallery; "/" with places and moves); the rest scroll */
+const HB_ASKPOP_LONG = 30;
 const HB_SLASH = ['compare', 'trend', 'top', 'split', 'growth', 'explain', 'whatif', 'forecast', 'save'];
 const HB_SLASH_ACT = { explain: 1, whatif: 1, save: 1 };
 const HB_GALLERY = [
@@ -9498,7 +9502,9 @@ const HB_GW_SHOW = ['status', 'folder', 'counterparty', 'owner', 'kind', 'side',
 const HB_IN_WORDS = ['hb_in_l12', 'hb_in_l3', 'hb_in_ty', 'hb_in_tq', 'hb_in_n6'];
 let _hbPop = null;            // { mode, rows, on, moved, start }
 const _hbAskHist = []; let _hbHistAt = -1;
-function hbAskBoxUp(){ try { return !!(window.state && state.view === 'dashboard' && hbS().face === 'board'); } catch (_){ return false; } }
+/* THE BOX ON HOME'S DOCUMENT TOO (the one-page Home plan, stage 1): "/" there
+   lists the places; the gallery and the "by"/"in" helpers stay the Board's */
+function hbAskBoxUp(){ try { return !!(window.state && state.view === 'dashboard' && (hbS().face === 'board' || hbS().face === 'paper')); } catch (_){ return false; } }
 /* the groupings this book has (two groups or more), in the reader's words */
 let _hbGwMemo = null;
 function hbGroupingsHere(){
@@ -9510,12 +9516,20 @@ function hbGroupingsHere(){
 }
 function hbAskPopRows(v){
   const t = String(v || '');
+  const onBoard = hbS().face === 'board';
   if (!t.trim()){
+    if (!onBoard) return null;
     const myq = (hbS().myq || []).map((q, i) => ({ kind: 'myq', i, word: q.name, sub: i18t('hb_myq_sub') }));
     return { mode: 'gallery', rows: myq.concat(HB_GALLERY.map(g => ({ kind: 'gal', k: g.k, word: i18t('hb_gal_' + g.k), sub: i18t('hb_gal_' + g.k + '_s') }))) };
   }
-  let m = /^\s*\/(\w*)$/.exec(t);
-  if (m){ const w = m[1].toLowerCase(); return { mode: 'slash', rows: HB_SLASH.filter(k => k.startsWith(w)).map(k => ({ kind: 'slash', k, word: '/' + k, sub: i18t('hb_sl_' + k) })) }; }
+  /* ONE "/" LIST: Jambo's places first (most used first, caSlashRows), then
+     on the Board its own moves. Off the Board, the places alone. */
+  let m = /^\s*\/([\w\-åäöÅÄÖ]*)$/.exec(t);
+  if (m){ const w = m[1].toLowerCase();
+    const places = (typeof window.caSlashRows === 'function') ? caSlashRows(w, { max: onBoard ? HB_SLASH_PLACES : HB_ASKPOP_MAX }) : [];
+    const moves = onBoard ? HB_SLASH.filter(k => k.startsWith(w)).map(k => ({ kind: 'slash', k, word: '/' + k, sub: i18t('hb_sl_' + k) })) : [];
+    return { mode: 'slash', rows: places.concat(moves) }; }
+  if (!onBoard) return null;
   m = /\b(?:by|per|efter)\s+([a-zåäö-]*)$/i.exec(t);
   if (m){ const w = m[1].toLowerCase(), start = t.length - m[1].length;
     const rows = hbGroupingsHere().map(k => ({ kind: 'word', word: i18t('hb_gw_' + k) })).filter(r => !w || r.word.toLowerCase().split(/\s+/).some(x => x.startsWith(w)) || r.word.toLowerCase().startsWith(w));
@@ -9529,10 +9543,12 @@ function hbAskPopRows(v){
 function hbAskPopHtml(P){
   const head = i18t('hb_pop_' + P.mode);
   let lastKind = null;
-  const rows = P.rows.slice(0, P.mode === 'gallery' ? 30 : HB_ASKPOP_MAX).map((r, i) => {
-    const sec = P.mode === 'gallery' && r.kind !== lastKind ? `<h5>${_hbE(i18t(r.kind === 'myq' ? 'hb_myq_head' : 'hb_gal_head'))}</h5>` : ''; lastKind = r.kind;
-    return sec + `<div class="ca-opt hb-pop-opt${i === P.on ? ' on' : ''}" role="option" aria-selected="${i === P.on}" data-hb-pop="${i}"><span class="who"><b>${_hbE(r.word)}</b>${r.sub ? `<small>${_hbE(r.sub)}</small>` : ''}</span>${r.kind === 'myq' ? `<button type="button" class="hb-myq-x" data-hb-myq-del="${r.i}" title="${_hbE(i18t('hb_myq_del'))}" aria-label="${_hbE(i18t('hb_myq_del'))}">×</button>` : ''}</div>`; }).join('');
-  return `${P.mode === 'gallery' ? '' : `<h5>${_hbE(head)}</h5>`}<div role="listbox">${rows}</div><p class="ca-hint">${_hbE(i18t(P.mode === 'by' || P.mode === 'in' ? 'hb_pop_keys_tab' : 'hb_pop_keys'))}</p>`;
+  const grouped = P.mode === 'gallery' || P.mode === 'slash';
+  const secHead = r => P.mode === 'gallery' ? i18t(r.kind === 'myq' ? 'hb_myq_head' : 'hb_gal_head') : i18t(r.kind === 'place' ? 'hb_pop_places' : 'hb_pop_slash');
+  const rows = P.rows.slice(0, grouped ? HB_ASKPOP_LONG : HB_ASKPOP_MAX).map((r, i) => {
+    const sec = grouped && r.kind !== lastKind ? `<h5>${_hbE(secHead(r))}</h5>` : ''; lastKind = r.kind;
+    return sec + `<div class="ca-opt hb-pop-opt${i === P.on ? ' on' : ''}" role="option" aria-selected="${i === P.on}" data-hb-pop="${i}"><span class="who"><b>${_hbE(r.word)}</b>${r.sub ? `<small>${_hbE(r.sub)}</small>` : ''}</span>${r.kind === 'myq' ? `<button type="button" class="hb-myq-x" data-hb-myq-del="${r.i}" title="${_hbE(i18t('hb_myq_del'))}" aria-label="${_hbE(i18t('hb_myq_del'))}">×</button>` : ''}${r.kind === 'place' && r.n ? `<em class="hb-pop-n">${_hbE(i18t('hb_pop_used', { n: r.n }))}</em>` : ''}</div>`; }).join('');
+  return `${grouped ? '' : `<h5>${_hbE(head)}</h5>`}<div role="listbox">${rows}</div><p class="ca-hint">${_hbE(i18t(P.mode === 'by' || P.mode === 'in' ? 'hb_pop_keys_tab' : 'hb_pop_keys'))}</p>`;
 }
 function hbAskPopClose(){ _hbPop = null; const el = document.getElementById('hb-askpop'); if (el) el.remove(); }
 function hbAskPopPaint(inp){
@@ -9560,6 +9576,15 @@ function hbAskPopChoose(inp, i){
   const P = _hbPop; const r = P && P.rows[i]; if (!r) return;
   hbAskPopClose();
   if (r.kind === 'word'){ const v = String(inp.value || ''); _hbAskSet(inp, v.slice(0, P.start) + r.word + ' '); return; }
+  if (r.kind === 'place'){
+    if (r.k === 'draft'){ _hbAskSet(inp, r.word.slice(1) + ' '); return; }
+    _hbAskSet(inp, '');
+    /* a word the Board's own reader answers here ("/obligations" is its
+       panel) is still a use of the place */
+    if (typeof window.caReadPlace === 'function' && !caReadPlace(r.word) && typeof window.caUseBump === 'function') caUseBump(r.k);
+    if (typeof window.intelAsk === 'function') intelAsk(r.word);
+    return;
+  }
   if (r.kind === 'slash'){
     if (HB_SLASH_ACT[r.k]){ _hbAskSet(inp, ''); hbSlashAct(r.k); return; }
     _hbAskSet(inp, i18t('hb_sl_' + r.k + '_q')); return;
@@ -9620,7 +9645,7 @@ if (typeof document !== 'undefined' && !document._hbAskWired){
     /* A10: what was asked is kept for ↑ (the box's own handler asks after this) */
     if (e.key === 'Enter' && !e.shiftKey && !_hbPop && String(t.value || '').trim()){ _hbAskHist.unshift(String(t.value).trim()); _hbAskHist.length = Math.min(_hbAskHist.length, HB_ASK_HIST); _hbHistAt = -1; return; }
     if (_hbPop){
-      const n = Math.min(_hbPop.rows.length, _hbPop.mode === 'gallery' ? 30 : HB_ASKPOP_MAX);
+      const n = Math.min(_hbPop.rows.length, (_hbPop.mode === 'gallery' || _hbPop.mode === 'slash') ? HB_ASKPOP_LONG : HB_ASKPOP_MAX);
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); e.stopPropagation(); _hbPop.on = (_hbPop.on + (e.key === 'ArrowDown' ? 1 : n - 1)) % n; _hbPop.moved = true; hbAskPopPaint(t); return; }
       const takesEnter = _hbPop.mode === 'slash' || _hbPop.mode === 'gallery' || _hbPop.moved;
       if ((e.key === 'Tab' || (e.key === 'Enter' && takesEnter && !e.ctrlKey && !e.metaKey)) && n){ e.preventDefault(); e.stopPropagation(); hbAskPopChoose(t, _hbPop.on); return; }
@@ -9672,7 +9697,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { hbOpenCalendar, hbAngleOf, hbAngleText, HB_ANGLE, hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgentWorkPress, hbOpenAgent, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_FACE_ICON, hbFaceWordsHtml, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
+Object.assign(window, { hbOpenCalendar, hbAngleOf, hbAngleText, HB_ANGLE, HB_SLASH_PLACES, HB_ASKPOP_LONG, hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgentWorkPress, hbOpenAgent, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_FACE_ICON, hbFaceWordsHtml, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,
