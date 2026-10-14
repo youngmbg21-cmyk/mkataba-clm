@@ -62,8 +62,15 @@ const HELPERS = `(() => {
   const label = el => (el.innerText || el.getAttribute('aria-label') || el.title || '').replace(/\\s+/g, ' ').trim().slice(0, 40);
   const who = el => (el.id ? '#' + el.id : '') + '.' + String(el.className || '').trim().split(/\\s+/).slice(0, 3).join('.');
   /* A LABELLED button: short words, nothing block-level inside, not a card. */
+  /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): Signing's twin
+     is Jambo's Before you sign face, a narrower column than the room's tab,
+     where "Signing it their way …? Hand it over instead" (#sign-paper) wraps.
+     That is a SENTENCE with its act in it (.ui-link-say), which wraps by the
+     product's own rule (Young, 8 Oct 2026: "wrap the words so they do not
+     disappear on the sides") — not a labelled button. (label() slices to 40,
+     so the 48-character test below never caught a sentence.) */
   const labelled = () => [...document.querySelectorAll('button, a.ui-btn, a.ui-link, [role=button], summary')]
-    .filter(vis).filter(b => { const t = label(b); return t && t.length <= 48
+    .filter(vis).filter(b => !b.matches('.ui-link-say')).filter(b => { const t = label(b); return t && t.length <= 48
       && !b.querySelector('div,p,li,ul,table,h1,h2,h3,h4,section') && b.getBoundingClientRect().height <= 44; });
   const wraps = () => labelled().filter(b => lines(b) > 1).map(b => who(b) + ' "' + label(b) + '" ' + Math.round(b.getBoundingClientRect().height) + 'px');
   const tok = v => { const e = document.createElement('i'); e.style.cssText = 'position:absolute;left:-9999px;border:1px solid var(' + v + ')';
@@ -151,7 +158,13 @@ const HELPERS = `(() => {
     ok('3b and it is the LIGHT edge, the ramp\'s divider step', !!row.light && row.want === row.light && row.want !== row.accent, `${row.want} vs ${row.light}`);
     ok('3c the open row\'s Plain English takes the same edge', !!row.thStep && row.thStep === row.want, `step ${row.thStep}`);
 
-    await page.evaluate(i => openRedlineWorkbench(i, { blanksAsked: true }), id);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): every door
+       onto Negotiate lands on Jambo's Redlines face on Home, which has no
+       Internal | Counterparty switch (Their view is the paper line's toggle).
+       This claim's subject IS the Negotiate page's own switch, so the page is
+       asked for by name ({ page: true }). */
+    await page.evaluate(i => openRedlineWorkbench(i, { blanksAsked: true, page: true }), id);
+    await page.waitForFunction(() => !!document.querySelector('#view-redline .rl-actions'), null, { timeout: 8000 }).catch(() => {});
     await page.waitForTimeout(1800); await load(); await rest();
     await page.screenshot({ path: path.join(OUT, '02-negotiate.png') });
     const nego = await page.evaluate(() => {
@@ -193,11 +206,21 @@ const HELPERS = `(() => {
     await sweepAt('negotiations', () => openNegotiations({ list: true }));
     await sweepAt('approvals', () => setView('approvals'));
     await sweepAt('calendar', () => setView('calendar'));
+    /* RE-POINTED 14 Oct 2026 (stage 5): the room's Signing tab went home —
+       the same door (roomGoTab 'sign') opens its twin, Jambo's Before you sign
+       face beside Home's paper, which is what is swept as 'signing' now */
     await sweepAt('signing', () => { const i = (state.contracts.find(c => c.status === 'Under Review') || {}).id; openWorkspace(i); setTimeout(() => { try { roomGoTab(getContract(i), 'sign'); } catch (e) {} }, 50); });
     ok('3f a sweep of seven working pages finds no outlined control resting on another edge',
       swept.length === 0, swept.length ? swept.slice(0, 8).join(' | ') : 'every one reads --btn-edge');
 
-    const night = await page.evaluate(() => { try { setDark(true); applyAppearance(); } catch (e) {}
+    /* RE-POINTED 14 Oct 2026 (stage 5): the sweep above now ends on Home
+       (Signing's twin), whose buttons ease their edge in over 0.12s
+       (transition: border-color) — read at once, a button reports the edge it
+       is leaving. So the turn to night is waited for, bounded, then read. */
+    await page.evaluate(() => { try { setDark(true); applyAppearance(); } catch (e) {} });
+    await page.waitForFunction(() => { const b = window.__b; const el = [...document.querySelectorAll('.ui-btn:not(.ui-btn-primary)')].find(b.vis);
+      return !!el && b.edge(el) === b.tok('--btn-edge'); }, null, { timeout: 2000 }).catch(() => {});
+    const night = await page.evaluate(() => {
       const b = window.__b; const want = b.tok('--btn-edge');
       const el = [...document.querySelectorAll('.ui-btn:not(.ui-btn-primary)')].find(b.vis);
       const div = b.tok('--color-divider');
@@ -262,8 +285,11 @@ const HELPERS = `(() => {
     await wrapAt('negotiations', () => openNegotiations({ list: true }));
     await wrapAt('approvals', () => setView('approvals'));
     /* the room's tabs since 11 Oct 2026 (no Document tab), and Home's Document where its paper went */
-    for (const tab of ['terms', 'sign'])
-      await wrapAt('room-' + tab, i => { openWorkspace(i[0]); setTimeout(() => { try { roomGoTab(getContract(i[0]), i[1]); } catch (e) {} }, 50); }, [id, tab]);
+    /* RE-POINTED 14 Oct 2026 (stage 5): the room keeps Overview and Where we
+       are; 'sign' opens Signing's twin on Home (Jambo's Before you sign face)
+       and 'negotiate' the Redlines face — each door's own landing */
+    for (const tab of ['terms', 'stands', 'sign'])
+      await wrapAt((tab === 'sign' ? 'home-signing' : 'room-' + tab), i => { openWorkspace(i[0]); setTimeout(() => { try { roomGoTab(getContract(i[0]), i[1]); } catch (e) {} }, 50); }, [id, tab]);
     await wrapAt('home-document', i => pdOpenOnHome(i, 'doc'), id);
     await wrapAt('negotiate', i => openRedlineWorkbench(i, { blanksAsked: true }), id);
     ok('1b at a 1024 window no labelled button on the working pages takes two lines', wrapped.length === 0,

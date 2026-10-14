@@ -5335,6 +5335,9 @@ const ROOM_TABS_HOME = { details:'fill', sign:'signing', oblig:'oblig', history:
 function roomTabHome(c,k){
   if(!c||!ROOM_TABS_HOME[k]) return false;
   if(typeof window!=='undefined'&&window.innerWidth&&window.innerWidth<768) return false;
+  /* only where Home's paper is loaded: its doors fall back to this router
+     when it is not (pdOpenOnHome, hbOpenView), and asking them would go round */
+  if(typeof window.igWalk!=='function'||typeof window.igPaperHold!=='function') return false;
   if(k==='details'){
     let d=null; try{ d=detailsOf(c); }catch(_){ d=null; }
     if(!(d&&d.live&&d.all)||!window.pdFillOpen) return false;

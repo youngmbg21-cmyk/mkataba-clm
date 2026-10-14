@@ -266,7 +266,12 @@ async function tabAround(page, sel, n = 25) {
     persist(c);
   });
   await pause(400);
-  await page.evaluate(() => openRedlineWorkbench('MK-82'));
+  /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): every door
+     onto Negotiate lands on Jambo's Redlines face on Home, which has no
+     paper|column divider of its own. Sections 10 and 11 are about the
+     Negotiate PAGE's own furniture — its split divider (#rl-resizer) and its
+     reading posture (renderRedline) — so the page is asked for by name. */
+  await page.evaluate(() => openRedlineWorkbench('MK-82', { page: true }));
   await page.waitForSelector('#view-redline #rl-doc', { timeout: 10000 }); await pause(900);
   {
     const rez = await page.evaluate(() => {

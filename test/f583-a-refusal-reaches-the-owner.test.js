@@ -83,7 +83,9 @@ describe('f583 (3) the bell, the checklist and the "your turn" row', () => {
     const H = read('js/views/home.js'), I = read('js/views/inspector.js');
     assert.match(H, /NEEDS_YOU_ORDER = \['quiet','review','look','approval','refused',/);
     assert.match(H, /out\.push\(\{ kind:'refused', urgent:true/);
-    assert.match(H, /if\(kind==='refused'\)\{ openWorkspace\(c\.id\);/);
+    /* since stage 5 of the one-page Home plan the refused row opens the
+       contract's signing where it now lives (roomOpenAt → Before you sign) */
+    assert.match(H, /if\(kind==='refused'\)\{ if\(window\.roomOpenAt\) roomOpenAt\(c\.id,'sign'\);/);
     assert.match(I, /refused: 'ins_need_v_refused'/);
     assert.match(I, /refused: 'ins_need_go_refused'/);
   });

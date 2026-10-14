@@ -129,7 +129,11 @@ const seen = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
     }
 
     /* ================= 1. DECIDED CHANGES SINK ============================= */
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the door now
+       lands on Jambo's Redlines face beside Home's paper; the column (#rl-changes)
+       is the page's own builder, so its order is read there */
     await page.evaluate(id => openRedlineWorkbench(id), built.id);
+    await page.waitForFunction(() => state.view === 'dashboard' && !!document.querySelector('#pd-redface #rl-changes [data-nego-card]'), null, { timeout: 10000 }).catch(() => {});
     await page.waitForTimeout(1800);
     await page.screenshot({ path: path.join(OUT, '01-negotiate.png') });
 
@@ -198,6 +202,14 @@ const seen = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
       `${theirs.ids.join(',')} vs ${theirs.cards.join(',')}`);
 
     /* ================= 2. NO BANDS ON NEGOTIATE =========================== */
+    /* RE-POINTED 14 Oct 2026 (stage 5): this section is the Negotiate PAGE's
+       own top — the strip between its tab row and its paper, and its head's
+       status word — which the face beside Home's paper does not draw; so the
+       page is opened by name ({ page: true }), the engine the face is built
+       from */
+    await page.evaluate(id => openRedlineWorkbench(id, { page: true }), built.id);
+    await page.waitForFunction(() => state.view === 'redline' && !!document.querySelector('.rl-tabrow') && !!document.querySelector('#rl-doc'), null, { timeout: 10000 }).catch(() => {});
+    await page.waitForTimeout(900);
     const negoBands = await page.evaluate(BAND_SCAN);
     check('Negotiate: nothing bands the strip between the tabs and the contract',
       negoBands.scanned && negoBands.bands.length === 0,
@@ -331,40 +343,49 @@ const seen = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
       const b = document.querySelector(`#ws-tabs [data-ws-tab="${k2}"]`);
       return !!b && b.classList.contains('on');
     }, k, { timeout: 5000 }).catch(() => {});
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room has
+       two tabs now, Overview and Where we are; History and Signing went to
+       Home. "Another tab that carries neither control" is Where we are
+       ('stands'), and the signing copy's size control stands on Home's paper
+       beside Before you sign (roomGoTab(c, 'sign') opens it there:
+       #ig-paper .paper-zc). */
     journey.push(['arrived on the room', await cornerNow()]);
-    await page.evaluate(() => document.querySelector('[data-ws-tab="history"]').click());
-    await tabOn('history');
-    journey.push(['on History', await cornerNow()]);
+    await page.evaluate(() => document.querySelector('[data-ws-tab="stands"]').click());
+    await tabOn('stands');
+    journey.push(['on Where we are', await cornerNow()]);
     await page.evaluate(id => openWorkspace(id), built.id);     // the room re-renders under them
     await page.waitForTimeout(1300);
-    await page.evaluate(() => document.querySelector('[data-ws-tab="history"]').click());
-    await tabOn('history');
-    journey.push(['room re-rendered, then on History', await cornerNow()]);
+    await page.evaluate(() => document.querySelector('[data-ws-tab="stands"]').click());
+    await tabOn('stands');
+    journey.push(['room re-rendered, then on Where we are', await cornerNow()]);
     await page.evaluate(() => document.querySelector('[data-ws-tab="terms"]').click());
     await tabOn('terms');
     await page.waitForFunction(() => !!document.getElementById('ws-to-nego'), null, { timeout: 4000 }).catch(() => {});
     const back = await cornerNow();
     journey.push(['pressed Overview', back]);
     await page.screenshot({ path: path.join(OUT, '04-tabrow.png') });
-    await page.evaluate(() => document.querySelector('[data-ws-tab="sign"]').click());
-    await tabOn('sign');
-    await page.waitForFunction(() => { const z = document.querySelector('#doc-zc-slot .paper-zc [data-sc-zoom="1"], #doc-zc-slot .paper-zc [data-rl-type="1"]'); return !!z && z.getBoundingClientRect().width > 0; }, null, { timeout: 6000 }).catch(() => {});
-    const onSign = await cornerNow();
-    journey.push(['pressed Signing', onSign]);
+    await page.evaluate(id => roomGoTab(getContract(id), 'sign'), built.id);
+    await page.waitForFunction(() => { const z = document.querySelector('#pd-signface') && document.querySelector('#ig-paper .paper-zc [data-rl-type="1"]'); return !!z && z.getBoundingClientRect().width > 0; }, null, { timeout: 6000 }).catch(() => {});
+    const onSign = await page.evaluate(([s]) => ({ stepper: eval(s)(document.querySelector('#ig-paper .paper-zc [data-rl-type="1"]')) }), [seen]);
+    journey.push(['opened Before you sign', onSign]);
 
-    check('the size control is visible pixels on the Signing tab\'s paper, after switching to it',
+    check('the size control is visible pixels on the signing copy\'s paper (Before you sign, Home), after switching to it',
       !!onSign.stepper && onSign.stepper.on, JSON.stringify(onSign.stepper));
     check('and Open Negotiate is visible pixels on the Overview tab - the corner the reader found empty',
       !!back.toNego && back.toNego.on, JSON.stringify(back.toNego));
-    const onOther = journey.find(j => j[0] === 'room re-rendered, then on History')[1];
+    const onOther = journey.find(j => j[0] === 'room re-rendered, then on Where we are')[1];
     check('and they are correctly absent on a tab that carries neither',
       (!onOther.stepper || !onOther.stepper.on) && (!onOther.toNego || !onOther.toNego.on),
       onOther.tab);
 
     /* AND THE DOOR STILL WORKS EXACTLY ONCE. Repainting a slot on every tab
        press is how a handler comes to be added twice. */
+    /* RE-POINTED 14 Oct 2026 (stage 5): back in the room, six presses across
+       the two tabs it still draws */
+    await page.evaluate(id => openWorkspace(id), built.id);
+    await page.waitForFunction(() => !!document.querySelector('[data-ws-tab="stands"]'), null, { timeout: 6000 }).catch(() => {});
     const pressed = await page.evaluate(async () => {
-      for (const k of ['terms', 'sign', 'terms', 'history', 'sign', 'terms']){
+      for (const k of ['terms', 'stands', 'terms', 'stands', 'stands', 'terms']){
         document.querySelector(`[data-ws-tab="${k}"]`).click();
         await new Promise(r => setTimeout(r, 90));
       }

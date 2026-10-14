@@ -46,8 +46,13 @@ const ok = (name, good, detail) => {
 /* Everything the page is asked, in one probe, so the light and dark readings
    are the same measurement. Returns null parts rather than throwing on a build
    without the design, so each claim REPORTS instead of timing out. */
+/* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+   History tab went home — its twin is the Board's History view, drawn by the
+   room's own painter (roomPaintHistory) into #hb-cv-body[data-hb-cv="hist"]
+   with the same inner markup; the room's #ws-history-pane is gone. */
+const HP = '#hb-cv-body[data-hb-cv="hist"]';
 const PROBE = `(() => {
-  const pane = document.getElementById('ws-history-pane');
+  const pane = document.querySelector(${JSON.stringify(HP)}) || document.getElementById('ws-history-pane');
   if (!pane) return { mounted: false };
   const tok = v => { const s = document.createElement('span');
     s.style.color = 'var(' + v + ')'; pane.appendChild(s);
@@ -141,8 +146,12 @@ const PROBE = `(() => {
     });
     await page.evaluate(i => window.openWorkspace(i), id);
     await page.waitForTimeout(1200);
-    await page.click('#ws-tabs [data-room-tab="history"]');
-    await page.waitForTimeout(800);
+    /* RE-POINTED 14 Oct 2026 (stage 5): the room has no History tab to press;
+       the door that named it (roomOpenAt / roomGoTab 'history') opens the
+       Board's History view for this contract, which may first show "Reading…"
+       while the whole record loads — so the wait asks for the trail itself. */
+    await page.evaluate(i => roomOpenAt(i, 'history'), id);
+    await page.waitForFunction(sel => !!document.querySelector(sel + ' .hist-ev'), HP, { timeout: 10000 }).catch(() => {});
 
     /* Three system entries on known days, written straight onto the record the
        tab is drawing and repainted through the tab's own painter. Built from
@@ -159,15 +168,22 @@ const PROBE = `(() => {
         { at: at(earlier), user: 'Amina Otieno', action: 'Staged', detail: 'three days ago' },
         { at: at(today), user: 'Amina Otieno', action: 'Staged', detail: 'today' },
       ]);
-      roomPaintHistory(c);
+      /* RE-POINTED 14 Oct 2026 (stage 5): the painter, into the Board's host */
+      const host = document.querySelector('#hb-cv-body[data-hb-cv="hist"]');
+      if (host) roomPaintHistory(c, host._histF || {}, host); else roomPaintHistory(c);
     }, id);
     await page.waitForTimeout(400);
     /* The pane is looked up afresh for every photograph: a theme change
        repaints the room and a handle taken earlier would point at nothing. */
-    const shot = async name => { const el = await page.$('#ws-history-pane');
+    const shot = async name => { const el = await page.$(HP) || await page.$('#ws-history-pane');
       if (el) await el.screenshot({ path: path.join(OUT, name) }); };
     await shot('01-history-light.png');
 
+    /* RE-POINTED 14 Oct 2026 (stage 5): on the Board the trail sits where the
+       pointer was left by the sign-in press, and a hovered row fills its ring;
+       the claims are about the trail at rest, so the pointer is moved off it. */
+    await page.mouse.move(2, 2);
+    await page.waitForTimeout(150);
     const m = await page.evaluate(PROBE);
     ok('0 the History tab mounts with the staged record on it', m.mounted && m.rows.length >= 5,
       m.mounted ? m.rows.length + ' rows' : 'no pane');
@@ -225,7 +241,7 @@ const PROBE = `(() => {
     const dots = rows.map(r => r.dot).filter(Boolean);
     ok('3a every entry carries a ring: a hollow disc in the page\'s own surface',
       dots.length === rows.length && dots.every(d => d.fill === m.surface && d.ringW >= 2),
-      dots.slice(0, 3).map(d => `${d.w}px fill ${d.fill} ring ${d.ringW}px`).join(' | '));
+      dots.slice(0, 3).map(d => `${d.w}px fill ${d.fill} ring ${d.ringW}px`).join(' | ') + ' · surface ' + m.surface + ' · ' + dots.length + ' rings on ' + rows.length + ' rows');
     const toneSet = Object.values(m.tones || {});
     ok('3b and the ring carries one of the kinds\' own tones, never a colour nobody chose',
       dots.length === rows.length && dots.every(d => toneSet.includes(d.ring)),
@@ -280,13 +296,13 @@ const PROBE = `(() => {
     ok('7a the five filters fold behind Filter', m.filters === 0, m.filters + ' filters showing');
     await page.click('#hist-filter-btn');
     await page.waitForTimeout(300);
-    const f5 = await page.evaluate(() => [...document.querySelectorAll('#ws-history-pane .hist-f select')].filter(s => s.getBoundingClientRect().width > 0).length);
+    const f5 = await page.evaluate(sel => [...document.querySelectorAll(sel + ' .hist-f select')].filter(s => s.getBoundingClientRect().width > 0).length, HP);
     ok('7a2 and Filter opens all five', f5 === 5, f5 + ' filters');
     await page.click('#hist-filter-btn');
     await page.waitForTimeout(300);
     await page.click('#hist-detail');
     await page.waitForTimeout(500);
-    const wording = await page.evaluate(() => document.querySelectorAll('#ws-history-pane .hist-redline').length);
+    const wording = await page.evaluate(sel => document.querySelectorAll(sel + ' .hist-redline').length, HP);
     ok('7b CONTROL "Show the wording" still prints a proposal\'s redline', wording > 0, wording + ' redlines');
     const w2 = await page.evaluate(PROBE);
     ok('7c and with the wording open every entry is still on the page', (w2.rows || []).length === rows.length,
@@ -296,7 +312,9 @@ const PROBE = `(() => {
     await page.waitForTimeout(300);
 
     /* ================= 8. THE DARK THEME ================= */
-    await page.evaluate(() => { if (typeof setDark === 'function') setDark(true); roomPaintHistory(getContract(state.activeId)); });
+    await page.evaluate(i => { if (typeof setDark === 'function') setDark(true);
+      const host = document.querySelector('#hb-cv-body[data-hb-cv="hist"]');
+      if (host) roomPaintHistory(getContract(i), host._histF || {}, host); else roomPaintHistory(getContract(i)); }, id);
     await page.waitForTimeout(400);
     const d = await page.evaluate(PROBE);
     const dRows = d.rows || [];
