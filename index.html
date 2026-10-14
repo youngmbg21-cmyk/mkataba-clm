@@ -8724,13 +8724,11 @@
   .ig-red button{border:0;background:var(--color-surface,#fff);font-size:12px;padding:3px 10px;color:var(--color-neutral-600);cursor:pointer;white-space:nowrap}
   .ig-red button+button{border-left:1px solid var(--color-neutral-300)}
   .ig-red button[aria-pressed="true"]{background:var(--color-accent-50);color:var(--accent-ink);font-weight:var(--w-strong)}
-  /* the paper's own copy, said on its line while the signing copy is up (stage 5) — the Clean | Redline toggle's selected face, unpressable */
   /* the paper's line takes the contract's own acts (stage 5): Notes · Share · More, the line's height kept */
   .ig-acts{display:inline-flex;align-items:center;gap:6px;flex:none}
   .ig-acts #hdr-chat.room-check{width:var(--ctl-h-sm);height:var(--ctl-h-sm);font-size:var(--t-meta);font-weight:var(--w-strong)}
   .ig-more{position:relative;display:inline-flex}
   .ig-more .ig-more-btn{width:var(--ctl-h-sm);padding:0;justify-content:center}
-  .ig-copy-chip{display:inline-flex;align-items:center;flex:none;margin-right:6px;padding:3px 10px;border:1px solid var(--color-neutral-300);border-radius:var(--radius);background:var(--color-accent-50);color:var(--accent-ink);font-size:12px;font-weight:var(--w-strong);white-space:nowrap}
   .ig-redpaper{background:transparent}
   /* Clean on the same canvas: the wording that stands, no step labels (8 Oct 2026) */
   .ig-redpaper.is-clean .rl-rung{display:none}
@@ -8809,6 +8807,8 @@
   #pd-redface .rl-face .pd-rf-foot{flex:none;margin:0;padding:10px 16px;border-top:1px solid var(--color-divider);display:grid;grid-template-columns:1fr 1fr;gap:6px}
   #pd-redface .rl-face .pd-rf-foot button{height:var(--ctl-h-sm);padding:0 10px;font-size:12.5px;justify-content:center;min-width:0}
   #pd-redface .rl-face .pd-rf-foot button[data-rl-prepare]{grid-column:1 / -1}
+  /* an empty column already offers the same three doors (rlEmptyColumnActsHtml): the foot stands down, so no act is drawn twice */
+  #pd-redface .rl-face:has(.rl-cards-empty .rl-empty-acts) .pd-rf-foot{display:none}
   /* BEFORE YOU SIGN, BESIDE THE PAPER (the one-page Home plan, stage 5; owner picked "Checklist", 14 Oct 2026): the Signing column's own four slots as a face of Jambo's tab — its head, the list and the cards scrolling under it, and the Sign button held at the foot */
   #pd-signface{display:flex;flex-direction:column;overflow:hidden}
   #pd-signface .pd-sf{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--color-surface)}
@@ -8832,8 +8832,8 @@
   #pd-signface .pd-sf-foot{flex:none;padding:10px 14px 12px;border-top:1px solid var(--color-divider);background:var(--color-surface)}
   #pd-signface .pd-sf-foot:has(#sign-wrap:empty){display:none}
   #pd-signface .pd-sf-foot #sign-wrap > p{margin-bottom:0}
-  /* the signing copy on Home's paper: its A4 pages fitted to the column (signCopyFit), centred; the sheet's own rules dress it */
-  #ig-paper .ig-signpaper{padding:20px 0 40px;display:flex;flex-direction:column;align-items:center}
+  /* the signing copy on Home's paper: its A4 pages sized by its own controls (scApplyZoom), centred; the sheet's own rules dress it; it starts where the working copy's sheet starts (nothing grows above the paper) */
+  #ig-paper .ig-signpaper{padding:0 0 40px;display:flex;flex-direction:column;align-items:center}
   .pd-h{font-size:10.5px;color:var(--cap-ink);margin:18px 0 7px}
   .pd-h:first-child,.pd-top+.pd-h{margin-top:0}
   .pd-list{border:1px solid var(--color-neutral-200);border-radius:var(--radius-lg);overflow:hidden;background:var(--color-surface)}

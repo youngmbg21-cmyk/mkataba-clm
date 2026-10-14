@@ -8995,10 +8995,14 @@ function hbCvNow(){
   return { v: (_hbCv.id === String(c.id) && HB_CVIEWS.includes(_hbCv.v)) ? _hbCv.v : 'book', c };
 }
 function hbCvSet(v, id){ _hbCv = { v: HB_CVIEWS.includes(v) ? v : 'book', id: id == null ? null : String(id) }; _hbCvShare = false; }
+/* THE OBLIGATIONS COUNT IS THE ROOM TAB'S (stage 5: the tab went home to
+   this view, and its number with it): what is still owed and can be worked
+   on (obligationTabState — the count the room's Obligations tab carried),
+   coloured late only when one of them is overdue, the sidebar counts' rule */
 function hbCvCounts(c){
-  const n = { deal: 0, oblig: 0 };
+  const n = { deal: 0, oblig: 0, obligLate: false };
   try { if (typeof window.dealBoardFacts === 'function') n.deal = dealBoardFacts(c, 'owner').n.you; } catch (_){}
-  try { if (typeof window.obtRowsOf === 'function') n.oblig = obtRowsOf(c).filter(r => obtPass(r, 'overdue')).length; } catch (_){}
+  try { if (typeof window.obligationTabState === 'function'){ const st = obligationTabState(c); n.oblig = st.open; n.obligLate = st.overdue > 0; } } catch (_){}
   return n;
 }
 /* the history reads the trail, which the light list leaves out: until the
@@ -9011,7 +9015,8 @@ function hbCvSwitchHtml(now){
   const n = hbCvCounts(c);
   const ic = k => (typeof icon === 'function') ? icon(k, 'hb-cv-ic', 2) : '';
   const tab = v => { const k = v === 'deal' ? n.deal : v === 'oblig' ? n.oblig : 0;
-    return `<button type="button" role="tab" data-hb-cv="${v}" aria-selected="${now.v === v}">${_hbE(i18t(HB_CV_WORD[v]))}${k ? `<span class="hb-cv-n is-${v === 'oblig' ? 'late' : 'owed'}">${k}</span>` : ''}</button>`; };
+    const tone = v === 'oblig' ? (n.obligLate ? ' is-late' : '') : ' is-owed';
+    return `<button type="button" role="tab" data-hb-cv="${v}" aria-selected="${now.v === v}">${_hbE(i18t(HB_CV_WORD[v]))}${k ? `<span class="hb-cv-n${tone}">${k}</span>` : ''}</button>`; };
   const ready = hbCvReady(now), wait = ready ? '' : ` disabled title="${_hbE(i18t('hb_cv_reading'))}"`;
   const act = (k, word, tip, extra) => `<button type="button" class="hb-btn" data-hb-cv-act="${k}"${ready ? ` title="${_hbE(i18t(tip))}"` : wait}${extra || ''}>${ic(k === 'down' ? 'download' : k === 'print' ? 'printer' : 'share')}${_hbE(i18t(word))}</button>`;
   const acts = now.v === 'book' ? '' : `<span class="hb-cv-acts">${act('print', 'hb_cv_print', 'hb_cv_print_tip')}<span class="hb-cv-share-w">${act('share', 'act_share', 'hb_cv_share_tip', ` aria-haspopup="dialog" aria-expanded="${_hbCvShare}"`)}${_hbCvShare && ready ? hbCvShareFormHtml(now) : ''}</span>${act('down', 'act_download', 'hb_cv_down_tip')}</span>`;
@@ -9205,7 +9210,11 @@ function hbPlace(){
      contract's own Document tab is gone, so this is where a refresh lands) */
   if (s.face === 'paper' && typeof window.pdContract === 'function'){ try { const c = pdContract(); if (c){ p.paper = { id: String(c.id), tab: typeof pdTab === 'function' ? pdTab() : '' };
     /* and the Clauses list's colour filter (BUGLOG 11 Oct 2026) */
-    const tones = typeof window.docThreadTonesNow === 'function' ? docThreadTonesNow(c.id) : []; if (tones.length) p.paper.tones = tones; } } catch (_){} }
+    const tones = typeof window.docThreadTonesNow === 'function' ? docThreadTonesNow(c.id) : []; if (tones.length) p.paper.tones = tones;
+    /* and the face of Jambo's tab that was open beside it — Fill in,
+       Redlines, Before you sign (stage 5: the pages a refresh used to land
+       back on are these faces now) */
+    const face = typeof window.pdFaceNow === 'function' ? pdFaceNow() : ''; if (face) p.paper.face = face; } } catch (_){} }
   /* the Board keeps a contract's view and its contract (stage 4, 14 Oct 2026) */
   if (s.face === 'board'){ const now = hbCvNow(); if (now.c && now.v !== 'book') p.cv = { v: now.v, id: String(now.c.id) }; }
   /* with nothing chosen, the wall of paper keeps its search, sort and stage (13 Oct 2026) */
@@ -9244,7 +9253,11 @@ function hbPlacePut(p){
     if (Array.isArray(want.tones) && typeof window.docThreadKeepTones === 'function') docThreadKeepTones(want.id, want.tones);
     const go = () => {
       if (!(window.state && state.view === 'dashboard' && hbS().face === 'paper') || (window.intel && intel.paper)) return;
-      if (typeof getContract === 'function' && getContract(want.id) && typeof window.igWalk === 'function'){ igWalk([want.id], 0, { tab: want.tab || undefined }); return; }
+      if (typeof getContract === 'function' && getContract(want.id) && typeof window.igWalk === 'function'){
+        /* the face through its own door (pdOpenOnHome), which puts the
+           contract on the paper the same way */
+        if (want.face && window.PD_FACE_WORDS && PD_FACE_WORDS.includes(want.face) && typeof window.pdOpenOnHome === 'function'){ pdOpenOnHome(want.id, want.face); return; }
+        igWalk([want.id], 0, { tab: want.tab || undefined }); return; }
       if (++n < 60) setTimeout(go, 150);
     };
     setTimeout(go, 0);

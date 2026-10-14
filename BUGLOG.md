@@ -20739,3 +20739,11 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - At 1440 wide with Jambo's panel open, the history card's head wraps its "More" button onto a second line on the Board (the room's tab is wider).
 - Ordinary Board cards and stories given to a colleague still do not ring the colleague's bell (only a contract's view does now); the stage 4 design page said they did. Asked of the owner.
 - CLAUDE.md is about 85.5 KB after stage 4's MAP line (target "under about 80 KB"); the trim owed since stage 1 is still owed.
+
+### Noticed, not fixed (14 Oct 2026, the one-page Home plan, stage 5 — before you sign beside the paper; the duplicates retired)
+- "Complete the details" (openCompleteDetails) has no door left in the product: its way in was the room's Details tab ("Open the full form", data-det-full), which went home to Jambo's Fill in face; doors-look-like-doors-verify now opens it directly.
+- contrast-verify's 'keyterms' visit has quietly measured Home since the Document tab left (11 Oct 2026), not the room's key terms.
+- Home's Redlined paper is one long sheet; the Negotiate page's paper was cut into pages (rlPaginate, the 25 Sep 2026 "looks like Word" ruling). The face kept the column, not the paged paper.
+- With nothing pending, Jambo's Redlines face lands beside the clean working copy; pdf-structure and upload-structure (the negotiation paper's own drawing) now open the Negotiate page by name.
+- Presence ("on this contract") runs while one of Jambo's three faces is open on Home; a contract merely on Home's paper, no face, is not counted (the room counted anyone on it).
+- The calendar and the closed dock leave renderIntelDock early, so the bar's "‹ Back to Clauses" is not taken down on those two paints; the next paint of Jambo's panel does.

@@ -10,8 +10,9 @@
        Signing column's four slots and asks the column's one painter
        (renderSignButton) to fill them; it signs nothing and files nothing.
    (2) THE PAPER BESIDE IT IS THE SIGNING COPY while it is open — never the
-       redline — said by a chip on the paper's line, with the places to sign
-       and every signature marked by the Signing tab's own painters.
+       redline, no banner word over it, no Track beside it — with the places
+       to sign and every signature marked by the Signing tab's own painters,
+       and its page arrows.
    (3) ITS PILL READS THE ONE LIST THE SIGN BUTTON READS (signReadiness);
        once signed it is the receipt — no Sign foot, no pill, and "What starts
        now" one press from the Board's Obligations view.
@@ -28,6 +29,14 @@
    (7) Both books carry the new words; the brain names the face.
    (8) Found on the way: a landing on an answered box opens its fold, and a
        press on an answer on Home's paper never opens a retired tab.
+   (9) What the room's Signing tab had, on Home too: the page arrows and
+       size, the walk, a server's answer drawn there, a review row that reads
+       without writing, the stage word, a refresh keeping the face, the
+       Obligations count, doors that use Home only where it is loaded.
+  (10) What the Negotiate page did, the Redlines face does: the glow, the
+       live probe and presence, watching for their answer, the one send,
+       risk cards finding clauses, the paper following the face SHOWING, the
+       way back to the Clauses tab, no door drawn twice.
    AT THE PARENT every claim FAILS: none of these names exist there.
    ═══════════════════════════════════════════════════════════════════════════ */
 const { test, describe } = require('node:test');
@@ -97,14 +106,17 @@ describe('f676 (2) the paper beside it is the signing copy', () => {
   });
   test('2b the places to sign and the signatures given are the Signing tab\'s own painters', () => {
     const pp = strip(fnBody(PD, 'pdSignPaperPaint'));
-    ['signSpotsPaint(c, cv)', 'pagesSignFlags(cv, 0)', 'pagesSignMarks(cv, pagesSignRows(c, c.signatures || []))', 'signCopyWatch(', 'signCopyFit('].forEach(w =>
+    ['signSpotsPaint(c, cv)', 'pagesSignFlags(cv, 0)', 'pagesSignMarks(cv, pagesSignRows(c, c.signatures || []))', 'signCopyWatch(', 'scApplyZoom()', 'scPaintPage()', 'scWireControls(zc)'].forEach(w =>
       assert.ok(pp.includes(w), w));
     assert.match(strip(fnBody(CT, 'signSpotsPaint')), /function signSpotsPaint\(c, ?cv\)/, 'the painter takes the canvas it marks');
   });
-  test('2c the paper\'s line says which copy it shows', () => {
+  test('2c no banner word over the signing copy (the owner\'s 10 Oct 2026 ruling), and no Clean | Redline', () => {
     const s = strip(fnBody(IG, 'igStripHtml'));
-    assert.match(s, /igSignOn\(c\)\?`<span class="ig-copy-chip">\$\{igEsc\(i18t\('int_sign_copy'\)\)\}<\/span>`/);
+    assert.doesNotMatch(s, /ig-copy-chip|int_sign_copy|sc_signing_copy/);
     assert.match(s, /!igSignOn\(c\)&&window\.pdRedOk/, 'no Clean | Redline while the signing copy shows');
+  });
+  test('2d no Track beside the signing copy: its pages are scaled, a clause\'s line would sit beside the wrong words', () => {
+    assert.match(strip(fnBody(IG, 'igStrandPaint')), /if\(igSignOn\(c\)\)\{ sp\.hidden=true;/);
   });
 });
 
@@ -213,7 +225,7 @@ describe('f676 (7) the words and the brain', () => {
   const books = (() => { const i = I18N.indexOf('\n  sv: {'); return [I18N.slice(0, i), I18N.slice(i)]; })();
   test('7a both books carry every new word', () => {
     ['pd_sf_title', 'pd_sf_next_head', 'pd_sf_next_n_one', 'pd_sf_next_n_other', 'pd_sf_next_nodue_one', 'pd_sf_next_nodue_other',
-      'pd_sf_next_none', 'pd_sf_next_go', 'int_sign_copy', 'int_red_theirs', 'int_red_theirs_title'].forEach(k =>
+      'pd_sf_next_none', 'pd_sf_next_go', 'int_red_theirs', 'int_red_theirs_title'].forEach(k =>
       books.forEach((b, n) => assert.match(b, new RegExp('\\b' + k + ':'), k + (n ? ' (sv)' : ' (en)'))));
   });
   test('7b the brain names the face and starts the signing flow there', () => {
@@ -236,5 +248,95 @@ describe('f676 (8) found on the way: the doors into Fill in that now carry the r
     const block = strip(CT.slice(i, CT.indexOf('\n}\n', i)));
     assert.match(block, /pdFillOpen\(c\.id, \{ key \}\)/);
     assert.doesNotMatch(block, /roomGoTab\(/, 'no room tab on the way');
+  });
+});
+
+describe('f676 (9) what the room\'s Signing tab had, on Home too (found by the re-pointed checks)', () => {
+  test('9a the signing copy keeps its page arrows and size — the room\'s controls, finding either paper', () => {
+    assert.match(strip(fnBody(IG, 'igZoomCornerHtml')), /if\(igSignOn\(c\)&&typeof window\.scControlsHtml==='function'\) return rlPaperZoomHtml\('', scControlsHtml\(c\)\);/);
+    assert.match(strip(fnBody(IG, 'igPaperHtml')), /zoom:\$\{igSignOn\(c\)\?1:/, 'the reading zoom stays off the signing copy');
+    const els = strip(fnBody(CT, 'scEls'));
+    assert.match(els, /getElementById\('doc-signwrap'\)/);
+    assert.match(els, /getElementById\('ig-signwrap'\)/);
+    ['scPaintPage', 'scPageGo', 'scApplyZoom', 'scZoomFit'].forEach(f => assert.match(strip(fnBody(CT, f)), /scEls\(\)/, f));
+  });
+  test('9b the walk to the places to sign stands on the paper\'s line and finds Home\'s paper', () => {
+    assert.match(strip(fnBody(IG, 'igStripHtml')), /igSignOn\(c\)&&window\.signWalkHtml\?signWalkHtml\(c,\{ home:true \}\)/);
+    assert.match(strip(fnBody(IG, 'igStripActsWire')), /#ws-walk/);
+    assert.match(strip(fnBody(CT, 'signWalkGo')), /getElementById\('doc-canvas'\) \|\| document\.getElementById\('ig-canvas'\)/);
+  });
+  test('9c a server\'s answer about the contract on Home\'s paper is drawn there (the seal, the duties it starts)', () => {
+    assert.match(strip(fnBody(CORE, 'contractOnHome')), /pdContract\(\); return !!\(p&&String\(p\.id\)===String\(c\.id\)\)/);
+    assert.ok((strip(CORE).match(/contractOnScreen\(c\)\|\|contractOnHome\(c\)/g) || []).length >= 3, 'the sealed-meanwhile, refused-save and arrival repaints');
+    assert.match(strip(OB), /!contractOnScreen\(c\) && !\(window\.contractOnHome && contractOnHome\(c\)\)/);
+  });
+  test('9d READING MUST NOT WRITE: the paper line\'s review row reads the stored review only', () => {
+    const st = strip(fnBody(NEGO, 'rlReviewDoorState'));
+    assert.doesNotMatch(st, /reviewState\(/, 'reviewState reads the negotiation\'s unsent asks, which creates one');
+    assert.match(st, /reviewOpenList\(c\)\.some\(r => reviewIsReviewer\(r, me\)\)/);
+  });
+  test('9e the paper\'s line says the stage the room\'s head says', () => {
+    assert.match(strip(fnBody(IG, 'igStripHtml')), /contractStatusMeta\(c\)/);
+  });
+  test('9f a refresh brings back the face that was open beside the paper', () => {
+    assert.match(strip(fnBody(PD, 'pdFaceNow')), /pdSignShows\(\)\) return 'signing';[\s\S]*pdRedShows\(\)\) return 'red';[\s\S]*pdFillShows\(\)\) return 'fill';/);
+    const HB = R('js/views/homeboard.js');
+    assert.match(strip(fnBody(HB, 'hbPlace')), /p\.paper\.face = face/);
+    assert.match(strip(fnBody(HB, 'hbPlacePut')), /PD_FACE_WORDS\.includes\(want\.face\)[\s\S]*pdOpenOnHome\(want\.id, want\.face\)/);
+  });
+  test('9g Fill in after another face of the same contract draws the working copy again', () => {
+    assert.match(strip(fnBody(PD, 'pdOpenOnHome')), /const turned = _pdSign === String\(id\) \|\| _pdRed === String\(id\);[\s\S]*if \(turned\) pdSignPaper\(id\);/);
+  });
+  test('9h the Board\'s Obligations count is the room tab\'s: what is still owed, late only when overdue', () => {
+    const HB = R('js/views/homeboard.js');
+    assert.match(strip(fnBody(HB, 'hbCvCounts')), /obligationTabState\(c\)/);
+  });
+  test('9i the retired tabs\' doors use Home only where its paper is loaded', () => {
+    assert.match(strip(fnBody(CT, 'roomTabHome')), /typeof window\.igWalk!=='function'\|\|typeof window\.igPaperHold!=='function'\) return false;/);
+  });
+});
+
+describe('f676 (10) what the Negotiate page did, the Redlines face does too (found by the re-pointed checks)', () => {
+  const RK = R('js/risks.js');
+  const APPJ = R('js/app.js');
+  test('10a Jambo\'s answer glows on the face: the page\'s after-paint is published, and the review door glows on the menu', () => {
+    assert.match(NEGO, /Object\.assign\(window, \{ negoAfterPaint, negoTurnBannerHtml,/);
+    assert.match(NEGO, /escalate: \(\) => '\[data-rl-review\], #ig-strip #ws-more'/);
+  });
+  test('10b the live probe and the presence beat run for the face', () => {
+    assert.match(strip(fnBody(NEGO, 'rlLiveHere')), /pdRedShows\(\)/);
+    const poll = strip(fnBody(NEGO, 'rlStartLivePoll'));
+    assert.match(poll, /if \(!rlLiveHere\(id\)\)\{/);
+    assert.doesNotMatch(poll, /renderRedline\(\)/, 'each host repaints its own (rlLiveRepaint)');
+    const paint = strip(fnBody(PD, 'pdRedFacePaint'));
+    assert.match(paint, /rlStartLivePoll\(c\)/);
+    assert.match(paint, /pdPresenceOn\(c\)/);
+    assert.match(strip(fnBody(PD, 'pdRedClose')), /pdPresenceOff\(id\)/);
+  });
+  test('10c their answer is collected while the face watches', () => {
+    assert.match(strip(fnBody(CORE, 'pollWaitingOnThem')), /const onHome=face==='red'\|\|face==='signing';/);
+    assert.match(strip(fnBody(PD, 'pdArrived')), /pollNow\('opened face'\)/);
+  });
+  test('10d "Send to <them>" has the page\'s one send to press', () => {
+    assert.match(strip(fnBody(PD, 'pdRedFaceHtml')), /<div hidden data-pd-rf-send>/);
+  });
+  test('10e a risk card finds its clause on Home\'s paper', () => {
+    const g = strip(fnBody(RK, 'riskGoClause'));
+    assert.match(g, /getElementById\('ig-paper'\)/);
+    assert.match(g, /#ig-canvas \[data-clause=/);
+  });
+  test('10f the paper follows the face that is SHOWING, and a tab press gives it back', () => {
+    assert.match(strip(fnBody(IG, 'igSignOn')), /pdSignShows\(\)/);
+    assert.match(strip(fnBody(IG, 'igRedOn')), /pdRedShows\(\)&&pdRedFor\(\)===String\(p\.id\)/);
+    assert.match(strip(PD), /pdSetTab\(tab\.getAttribute\('data-pd-tab'\)\);[\s\S]{0,260}igPaintPaper\(\)/);
+  });
+  test('10g the way back to the Clauses tab stands in Home\'s bar on that trip', () => {
+    const h = strip(fnBody(APPJ, 'shellCrumbHome'));
+    assert.match(h, /rlCameFrom\(id\)/);
+    assert.match(h, /data-rl-back-clauses/);
+    assert.match(strip(fnBody(IG, 'renderIntelDock')), /shellCrumbHome\(\)/);
+  });
+  test('10h an empty column\'s doors are not drawn twice', () => {
+    assert.match(HTML, /#pd-redface \.rl-face:has\(\.rl-cards-empty \.rl-empty-acts\) \.pd-rf-foot\{display:none\}/);
   });
 });

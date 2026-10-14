@@ -8,7 +8,8 @@
    Driven in a real browser:
      1  the checklist's signing door lands on Home with Jambo's Before you
         sign face, the room never drawn on the way; the paper beside it is the
-        signing copy, said by a chip; no Clean | Redline toggle over it
+        signing copy, with no banner word, no Track and no Clean | Redline
+        over it, and its page arrows
      2  the face is the Signing column: the before-you-sign list, the Sign
         button at its foot; its pill counts what the list holds
      3  readied, the Sign button signs: the pad with its intent line, and the
@@ -60,7 +61,10 @@ const FACE = () => {
     list: !!document.querySelector('#pd-signface #sign-check'),
     copy: !!document.querySelector('#ig-paper .pg-sheet.pg-sign'),
     chip: ((document.querySelector('#ig-strip .ig-copy-chip') || {}).textContent || '').trim(),
-    toggle: !!document.querySelector('#ig-strip [data-ig-red]') };
+    toggle: !!document.querySelector('#ig-strip [data-ig-red]'),
+    track: !!(document.getElementById('ig-spine') && !document.getElementById('ig-spine').hidden),
+    pages: ((document.querySelector('#ig-paper #sc-page-out') || {}).textContent || '').trim(),
+    pageBtns: document.querySelectorAll('#ig-paper [data-sc-page]').length };
 };
 
 (async () => {
@@ -92,7 +96,11 @@ const FACE = () => {
     const frames = await page.evaluate(() => [...new Set(window._frames || [])]);
     check('1a the checklist\'s signing door lands on Home with the face on that contract', up1 && f1.view === 'dashboard' && f1.for === 'MK-A2', JSON.stringify(f1));
     check('1b the room is never drawn on the way', !frames.includes('other:workspace'), JSON.stringify(frames));
-    check('1c the paper beside it is the signing copy, and the line says so', f1.copy && f1.chip === 'Signing copy', JSON.stringify({ copy: f1.copy, chip: f1.chip }));
+    /* no banner word over it (the owner's 10 Oct 2026 ruling on the Signing
+       tab: "remove any banner words … the space should only be there for the
+       buttons"), no Track beside it, and the copy's own page arrows */
+    check('1c the paper beside it is the signing copy, with no banner word and no Track', f1.copy && !f1.chip && !f1.track, JSON.stringify({ copy: f1.copy, chip: f1.chip, track: f1.track }));
+    check('1e the signing copy keeps its page arrows', /\d/.test(f1.pages) && f1.pageBtns === 2, JSON.stringify({ pages: f1.pages, btns: f1.pageBtns }));
     check('1d no Clean | Redline toggle over the signing copy', !f1.toggle);
     await page.screenshot({ path: path.join(OUT, '1-face.png') });
 
@@ -207,8 +215,8 @@ const FACE = () => {
     const sv = await page.$('.lang-btn[data-lang="sv"]'); if (sv) { await sv.click(); await pause(800); }
     await page.evaluate(() => { if (!document.getElementById('pd-signface') && window.pdSignOpen) pdSignOpen('MK-A2'); });
     await waitFor(page, () => !!document.querySelector('#pd-signface h3'), 5000);
-    const s9 = await page.evaluate(() => ({ title: ((document.querySelector('#pd-signface h3') || {}).textContent || '').trim(), chip: ((document.querySelector('#ig-strip .ig-copy-chip') || {}).textContent || '').trim() }));
-    check('9a Svenska: the face and the chip speak the reader\'s language', !!sv && s9.title === 'Innan du signerar' && !!s9.chip && s9.chip !== 'Signing copy', JSON.stringify(s9));
+    const s9 = await page.evaluate(() => ({ title: ((document.querySelector('#pd-signface h3') || {}).textContent || '').trim() }));
+    check('9a Svenska: the face speaks the reader\'s language', !!sv && s9.title === 'Innan du signerar', JSON.stringify(s9));
     await page.screenshot({ path: path.join(OUT, '9-svenska.png') });
     const en2 = await page.$('.lang-btn[data-lang="en"]'); if (en2) { await en2.click(); await pause(500); }
     await page.setViewportSize({ width: 390, height: 844 }); await pause(600);

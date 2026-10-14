@@ -634,6 +634,29 @@ function shellCrumbLayer(label){
   const s=document.createElement('span'); s.className='crumb-here crumb-layer'; s.textContent=label; s.title=label;
   el.appendChild(i); el.appendChild(s);
 }
+/* ---- THE WAY BACK TO THE CLAUSES TAB, ON HOME (the one-page Home plan,
+   stage 5) ---- the trip "Start redlining with this ask" begins now passes
+   through Jambo's Redlines face beside Home's paper, so Home's bar carries
+   the crumb while the face is up on that contract: the same link, word and
+   handler shellCrumbAdopt hung on the Negotiate page, a crumb and not a band.
+   Asked after every paint of Jambo's panel; gone when the trip or the face
+   is. */
+function shellCrumbHome(){
+  const el=document.getElementById('shell-title'); if(!el||!window.state||state.view!=='dashboard') return;
+  const id=(typeof window.pdRedShows==='function'&&pdRedShows()&&typeof window.pdRedFor==='function')?pdRedFor():null;
+  const trip=!!(id&&window.rlCameFrom&&rlCameFrom(id));
+  const drawn=!!el.querySelector('[data-rl-back-clauses]');
+  if(!trip){ if(drawn) paintShellTitle('dashboard'); return; }
+  if(drawn) return;
+  el.innerHTML='';
+  const back=document.createElement('button'); back.type='button'; back.className='crumb-door crumb-door-back'; back.setAttribute('data-rl-back-clauses','');
+  back.textContent='\u2039 '+i18t('rl_back_clauses');
+  const sep=document.createElement('i'); sep.className='crumb-sep'; sep.setAttribute('aria-hidden','true'); sep.textContent='/';
+  const s=document.createElement('span'); s.className='crumb-here'; s.textContent=i18t('ce_view_redlines'); s.title=s.textContent;
+  el.appendChild(back); el.appendChild(sep); el.appendChild(s);
+  el.classList.add('is-crumb');
+  if(_shellLayerLabel) shellCrumbLayer(_shellLayerLabel);
+}
 function renderPageHeader(view){
   paintShellTitle(view);
   /* THE RAIL SAYS WHOSE WORKSPACE THIS IS (the redesign, 20 Sep 2026): the
@@ -4196,6 +4219,6 @@ if (typeof window !== 'undefined' && window.addEventListener){
   window.addEventListener('afterprint', clearPrintRoot);
 }
 
-Object.assign(window,{printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,notesPanelShowing,notesPanelFollow,
+Object.assign(window,{shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,notesPanelShowing,notesPanelFollow,
   buildAlerts,alertCount,updateAlertBadge,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

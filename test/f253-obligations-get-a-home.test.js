@@ -136,14 +136,15 @@ describe('f253 (2) — the count, and the one thing it colours', () => {
     /* A count that is always coloured is a warning nobody reads — the sidebar
        counts' own rule, applied to a tab. */
     /* RE-POINTED 14 OCT 2026 (stage 5): the room's tab went home, and its
-       count with it — the Board's Obligations view carries the count now, and
-       it counts and colours only what is overdue (hbCvCounts), the same rule. */
+       count with it — the Board's Obligations view carries the count now, the
+       tab's own (obligationTabState: what is still owed), coloured late only
+       when something is overdue (hbCvCounts), the same rule. */
     const late = bench([{ id: 'o1', desc: 'a', due: day(-2), status: 'open' }]);
     assert.ok(!/room-tab-n/.test(late.win.roomTabsHtml(late.c, 'terms')), 'the room\'s row carries no Obligations count');
     const HB = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js', 'views', 'homeboard.js'), 'utf8');
     const counts = HB.slice(HB.indexOf('function hbCvCounts('), HB.indexOf('function hbCvReady('));
-    assert.match(counts, /obtPass\(r, 'overdue'\)/, 'the Board view counts only what is overdue');
-    assert.match(HB, /is-\$\{v === 'oblig' \? 'late' : 'owed'\}/, 'and wears the late colour');
+    assert.match(counts, /const st = obligationTabState\(c\); n\.oblig = st\.open; n\.obligLate = st\.overdue > 0;/, 'the Board view counts what is still owed, as the tab did');
+    assert.match(HB, /v === 'oblig' \? \(n\.obligLate \? ' is-late' : ''\)/, 'and wears the late colour only when something is overdue');
   });
 
   test('and a contract with nothing outstanding draws no count at all', () => {

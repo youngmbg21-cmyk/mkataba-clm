@@ -90,9 +90,18 @@ const BODY = '<h1>Lease Agreement</h1><p>Between Highland Corporate Ltd and Nord
       window._swAsk = 0;
       window.copilotAsk = async () => { window._swAsk++; return { answer: JSON.stringify({ proposedText: window._swText, advice: 'Add interest on late payment.' }) }; };
     }, RENT_NEW);
+    /* the contract itself known before its doors are pressed (a bounded wait
+       for the state: an unknown id makes roomGoTab a silent no-op) */
+    await until(page, id => !!(typeof getContract === 'function' && getContract(id)), ID, 15000);
     await page.evaluate(id => openWorkspace(id), ID);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+       'redline' door now lands on Jambo's Redlines face beside Home's paper;
+       Edit with Jambo opens over Home from there, and the paper the reader
+       reads the struck words on (G2-G6) is Home's (#ig-paper, Redlined while
+       a change is pending), repainted by the face's host (pdRedRepaint) — the
+       page's renderRedline would draw the Negotiate page over Home */
     await page.evaluate(id => roomGoTab(getContract(id), 'redline'), ID);
-    await until(page, () => !!document.querySelector('.redline-page #rl-changes'));
+    await until(page, () => !!document.querySelector('#pd-redface #rl-changes'));
     const cl = await page.evaluate(id => {
       const c = getContract(id);
       const x = negoClauseList(c).find(k => /Rent/.test(k.headingText || k.title || '') && !/Premises/.test(k.headingText || ''));
@@ -174,23 +183,23 @@ const BODY = '<h1>Lease Agreement</h1><p>Between Highland Corporate Ltd and Nord
       await negoEditClause(c, cid, String(window._swText).replace(RENT, 'The Tenant shall pay rent.'), { side: 'owner' });
       const prem = negoClauseList(c).find(k => /Premises/.test(k.headingText || k.title || ''));
       await negoEditClause(c, prem.clauseId, '<p>The Landlord lets the premises to the Tenant.</p>', { side: 'counterparty' });
-      renderRedline();
+      if (window.pdRedRepaint) pdRedRepaint();
     }, [ID, cl.id, RENT]);
-    const paper = await until(page, () => document.querySelector('.redline-page del.rl-us') && document.querySelector('.redline-page del.rl-them') ? true : null, null, 10000);
+    const paper = await until(page, () => document.querySelector('#ig-paper del.rl-us') && document.querySelector('#ig-paper del.rl-them') ? true : null, null, 10000);
     check(!!paper, 'G2 the paper draws a struck run of ours and one of theirs');
-    const us = await delOf(page, '.redline-page .rl-doc del.rl-us, .redline-page del.rl-us');
-    const them = await delOf(page, '.redline-page .rl-doc del.rl-them, .redline-page del.rl-them');
+    const us = await delOf(page, '#ig-paper del.rl-us');
+    const them = await delOf(page, '#ig-paper del.rl-them');
     check(!!us && us.color === r0 && us.lineColor === r0 && /line-through/.test(us.line), 'G3 OUR struck words on the paper are red, line and all', us && JSON.stringify(us));
     check(!!them && them.color === r0 && them.lineColor === r0 && /line-through/.test(them.line), 'G4 THEIR struck words on the paper are red, line and all', them && JSON.stringify(them));
-    const ins = await page.evaluate(() => { const i = document.querySelector('.redline-page ins.rl-us'); return i ? getComputedStyle(i).color : null; });
+    const ins = await page.evaluate(() => { const i = document.querySelector('#ig-paper ins.rl-us'); return i ? getComputedStyle(i).color : null; });
     check(!!ins && ins !== r0, 'G5 an insertion keeps its side\'s colour', ins);
     await shot('5-paper-light.png');
     await page.evaluate(id => { setDark(true); roomGoTab(getContract(id), 'redline'); }, ID);
     await page.waitForTimeout(300);
     const r1 = await ruby();
-    await until(page, () => document.querySelector('.redline-page del.rl-us') && document.querySelector('.redline-page del.rl-them') ? true : null, null, 10000);
-    const usD = await delOf(page, '.redline-page del.rl-us');
-    const themD = await delOf(page, '.redline-page del.rl-them');
+    await until(page, () => document.querySelector('#ig-paper del.rl-us') && document.querySelector('#ig-paper del.rl-them') ? true : null, null, 10000);
+    const usD = await delOf(page, '#ig-paper del.rl-us');
+    const themD = await delOf(page, '#ig-paper del.rl-them');
     check(!!usD && !!themD && r1 !== r0 && usD.color === r1 && themD.color === r1 && usD.lineColor === r1, 'G6 at night the struck words take the dark ruby', JSON.stringify({ r1, usD, themD }));
     await shot('6-paper-dark.png');
   } catch (e){

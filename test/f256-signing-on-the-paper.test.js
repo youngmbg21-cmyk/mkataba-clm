@@ -276,7 +276,7 @@ describe('f256 (6) — the walk reads this reader’s own spots, in document ord
     assert.equal(win.signWalkNext(c), null);
     /* The words change with the state, so the control cannot promise a place
        that is not there. */
-    const m = ROOM.match(/function signWalkHtml\(c\)\{[\s\S]*?\n\}/)[0];
+    const m = ROOM.match(/function signWalkHtml\(c(?:, opts)?\)\{[\s\S]*?\n\}/)[0];
     assert.match(m, /ct_walk_done/, 'it says so');
   });
 
@@ -284,7 +284,7 @@ describe('f256 (6) — the walk reads this reader’s own spots, in document ord
     const m = ROOM.match(/function wsTabRowEndHtml\(c\)\{[\s\S]*?\n\}/)[0];
     assert.match(m, /_wsTab==='sign'[\s\S]{0,80}signWalkHtml/,
       'drawn in the in-flow strip the standing rule allows');
-    const w = ROOM.match(/function signWalkHtml\(c\)\{[\s\S]*?\n\}/)[0];
+    const w = ROOM.match(/function signWalkHtml\(c(?:, opts)?\)\{[\s\S]*?\n\}/)[0];
     assert.ok(!/position:\s*fixed|position:\s*absolute/.test(w),
       'NOTHING FLOATS OVER THE PAGE');
   });

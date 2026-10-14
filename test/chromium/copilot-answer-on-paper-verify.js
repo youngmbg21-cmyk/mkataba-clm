@@ -89,8 +89,10 @@ function answer(body){
       await page.waitForFunction(() => state.view === 'dashboard' && document.querySelector('#pd-redface [data-nego-accept]') && document.querySelector('#ig-paper .rl-paper'), null, { timeout: 10000 });
       await page.waitForTimeout(500);
     };
+    /* RE-POINTED 14 Oct 2026 (stage 5): on Home the review door is a row of
+       the paper line's ⋯ menu, so the menu's own button is what glows */
     const look = () => page.evaluate(() => {
-      const glows = [...document.querySelectorAll('.rl-glow')].map(b => b.getAttribute('data-nego-accept') ? 'accept' : b.getAttribute('data-nego-reject') ? 'reject' : b.hasAttribute('data-rl-cp-editor-change') ? 'counter' : b.hasAttribute('data-rl-review') ? 'review' : 'other');
+      const glows = [...document.querySelectorAll('.rl-glow')].map(b => b.getAttribute('data-nego-accept') ? 'accept' : b.getAttribute('data-nego-reject') ? 'reject' : b.hasAttribute('data-rl-cp-editor-change') ? 'counter' : (b.hasAttribute('data-rl-review') || (b.id === 'ws-more' && b.closest('#ig-strip'))) ? 'review' : 'other');
       const g = document.querySelector('.rl-glow'); let top = null;
       if (g){ g.scrollIntoView({ block: 'center' }); const r = g.getBoundingClientRect(); const t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); top = !!t && (t === g || g.contains(t)); }
       const sec = document.querySelector('.rl-sug'); const box = document.querySelector('.rl-sug-box');

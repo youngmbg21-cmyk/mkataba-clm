@@ -149,7 +149,9 @@ describe('f675 (3) the number on a switch is the list\'s own', () => {
     assert.match(strip(fnBody(OB, 'roomObligationsInspector')), /const all = obtRowsOf\(c\);\s*const pass = obtPass;/);
     const n = strip(fnBody(HB, 'hbCvCounts'));
     assert.match(n, /dealBoardFacts\(c, 'owner'\)\.n\.you/);
-    assert.match(n, /obtRowsOf\(c\)\.filter\(r => obtPass\(r, 'overdue'\)\)\.length/);
+    /* stage 5: the room's Obligations tab went home to this view, and its
+       count with it (obligationTabState, the number the tab carried) */
+    assert.match(n, /obligationTabState\(c\)/);
   });
   test('3b running: the counts on a real book', async () => {
     const w = await world();

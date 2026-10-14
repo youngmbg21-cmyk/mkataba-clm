@@ -88,12 +88,15 @@ const DOC = ['RAW MATERIAL SUPPLY AGREEMENT', '', '1. Supply', '', 'The Supplier
       const t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return { text: b.textContent.trim(), top: !!t && (t === b || b.contains(t)) }; });
     ok('3 "Send to Nandi Dairy" is in the column head, on top of everything', go && top && top.top && /Send to Nandi Dairy/.test(top.text), JSON.stringify(top));
     await page.screenshot({ path: path.join(OUT, '1-send.png') });
-    if (go) await page.click('.rl-unsent-go[data-rl-decided]');
+    /* GUARDED (14 Oct 2026, stage 5): a dead button reports in 4 rather than
+       timing the stage out on a press that cannot land */
+    const live = await page.evaluate(() => { const b = document.querySelector('.rl-unsent-go[data-rl-decided]'); return b ? { disabled: b.disabled, title: b.title } : null; });
+    if (go) await page.click('.rl-unsent-go[data-rl-decided]', { timeout: 5000 }).catch(() => {});
     const conf = await page.$('#prompt-overlay #pd-ok, [data-confirm-ok]'); if (conf) await conf.click().catch(() => {});
     const handed = await page.waitForFunction(() => { const c = getContract('MK-SR1'); return c.negotiation && c.negotiation.turn === 'counterparty'; }, null, { timeout: 10000 }).then(() => true, () => false);
     await page.waitForTimeout(600);
     const gone = await page.evaluate(() => !document.querySelector('.rl-unsent-go[data-rl-decided]'));
-    ok('4 pressing it hands the round back, and the button goes', handed && gone, await page.evaluate(() => JSON.stringify({ turn: getContract('MK-SR1').negotiation.turn, move: negWhoseMove(getContract('MK-SR1')).k })));
+    ok('4 pressing it hands the round back, and the button goes', handed && gone, await page.evaluate(l => JSON.stringify({ turn: getContract('MK-SR1').negotiation.turn, move: negWhoseMove(getContract('MK-SR1')).k, button: l }), live));
     ok('no page errors', !errs.length, errs.join(' | '));
   } catch (e) {
     ok('the stage ran', false, String(e && e.stack || e).slice(0, 400));

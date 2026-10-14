@@ -3295,6 +3295,16 @@ function docPaginate(c){
    a page fits the column, never above 100%; the reader's own choice is kept in
    this browser. */
 const SC_ZOOMS=[0.5,0.67,0.75,0.9,1,1.1,1.25,1.5,1.75,2];
+/* WHERE THE SIGNING COPY IS DRAWN: the room's sheet (#doc-signwrap in
+   #doc-scroll) or, since stage 5 of the one-page Home plan, Home's paper
+   beside Jambo's Before you sign face (#ig-signwrap in #ig-paper-scroll).
+   One view draws at a time, so at most one of the two is on the page. */
+function scEls(){
+  const room=document.getElementById('doc-signwrap');
+  const wrap=room||document.getElementById('ig-signwrap');
+  const sc=document.getElementById(room?'doc-scroll':'ig-paper-scroll');
+  return { wrap, sc, sheet: wrap?wrap.querySelector('.pg-sheet'):null };
+}
 const SC_ZOOM_KEY='hati.v1.signZoom';
 function scZoomPref(){
   let v=null; try{ v=(typeof lsGet==='function')?lsGet(SC_ZOOM_KEY):localStorage.getItem(SC_ZOOM_KEY); }catch(_){ v=null; }
@@ -3305,16 +3315,14 @@ function scZoomSet(v){
   try{ if(typeof lsSet==='function') lsSet(SC_ZOOM_KEY,v); else localStorage.setItem(SC_ZOOM_KEY,String(v)); }catch(_){}
 }
 function scZoomFit(){
-  const col=document.getElementById('doc-scroll');
-  const sh=document.querySelector('#doc-signwrap .pg-sheet');
+  const { sc:col, sheet:sh }=scEls();
   const W=(sh&&sh.offsetWidth)||window.PG_SIGN_W||794;
   const avail=col?Math.max(200,col.clientWidth-28):W;
   return Math.max(0.4,Math.min(1,avail/W));
 }
 function scZoomNow(){ const p=scZoomPref(); return p==='fit'?scZoomFit():p; }
 function scApplyZoom(){
-  const wrap=document.getElementById('doc-signwrap');
-  const sheet=wrap&&wrap.querySelector('.pg-sheet');
+  const { wrap, sheet, sc:col0 }=scEls();
   if(!sheet) return;
   const z=scZoomNow();
   sheet.style.transform=Math.abs(z-1)<0.001?'':`scale(${z})`;
@@ -3322,8 +3330,11 @@ function scApplyZoom(){
   wrap.style.height=(sheet.offsetHeight*z)+'px';
   const out=document.getElementById('sc-zoom-out');
   if(out) out.textContent=Math.round(z*100)+'%';
+  /* the zoom corner stands on the sheet's edge, so it is placed again when
+     the sheet's size moves (paperZcFit) */
+  if(typeof window.paperZcFit==='function') try{ paperZcFit(); }catch(_){ }
   if(!wrap._scFitWatch&&typeof ResizeObserver==='function'){
-    const col=document.getElementById('doc-scroll');
+    const col=col0;
     if(col){
       let t=0;
       wrap._scFitWatch=new ResizeObserver(()=>{ if(t) clearTimeout(t); t=setTimeout(()=>{ if(!wrap.isConnected){ try{ wrap._scFitWatch.disconnect(); }catch(_){} return; } if(scZoomPref()==='fit') scApplyZoom(); },80); });
@@ -3342,19 +3353,18 @@ function scZoomStep(dir){
 }
 /* "Page 2 of 6" follows the reading. */
 function scPaintPage(){
-  const sheet=document.querySelector('#doc-signwrap .pg-sheet');
+  const { sheet, sc }=scEls();
   const out=document.getElementById('sc-page-out');
   if(!sheet||!out||!window.pagesAtView) return;
   const info=sheet._pgInfo; if(!info) return;
-  const at=pagesAtView(sheet,document.getElementById('doc-scroll'));
+  const at=pagesAtView(sheet,sc);
   out.textContent=window.pagesNumberLabel?pagesNumberLabel(at,info.n):`${at} / ${info.n}`;
   const prev=document.getElementById('sc-page-prev'), next=document.getElementById('sc-page-next');
   if(prev) prev.disabled=at<=1;
   if(next) next.disabled=at>=info.n;
 }
 function scPageGo(dir){
-  const sheet=document.querySelector('#doc-signwrap .pg-sheet');
-  const sc=document.getElementById('doc-scroll');
+  const { sheet, sc }=scEls();
   if(!sheet||!sc||!window.pagesGoTo) return;
   const at=pagesAtView(sheet,sc);
   pagesGoTo(sheet,sc,at+dir);
@@ -3385,7 +3395,7 @@ function scWireControls(host){
   if(!host) return;
   host.querySelectorAll('[data-sc-zoom]').forEach(b=>b.addEventListener('click',()=>scZoomStep(Number(b.getAttribute('data-sc-zoom'))||0)));
   host.querySelectorAll('[data-sc-page]').forEach(b=>b.addEventListener('click',()=>scPageGo(Number(b.getAttribute('data-sc-page'))||0)));
-  const sc=document.getElementById('doc-scroll');
+  const { sc }=scEls();
   if(sc&&!sc._scPageBound){
     sc._scPageBound=true;
     let raf=0;
@@ -5118,7 +5128,9 @@ function docZoomCornerHtml(c){
 }
 function wsPaintTabRowEnd(c){
   const end=document.getElementById('ws-tabrow-end');
-  if(!end) return;
+  /* on Home the walk stands on the paper's line while the signing copy is up
+     (stage 5): the line is drawn again, the paper only if its copy moved */
+  if(!end){ if(c&&state.view==='dashboard'&&window.igSignOn&&window.igPaintPaper&&igSignOn(c)) try{ igPaintPaper(); }catch(_){} return; }
   end.innerHTML=wsTabRowEndHtml(c);
   const zc=document.getElementById('doc-zc-slot');
   if(zc){ zc.innerHTML=docZoomCornerHtml(c); if(zc.querySelector('[data-sc-zoom]')) scWireControls(zc); }
@@ -17236,8 +17248,11 @@ function signSpotsPaint(c, cv){
    wherever the reader has scrolled. It counts only the spots that are THIS
    reader's, because a walk through somebody else's is a walk to nowhere. */
 function signWalkNext(c){ return signSpotsLeft(c)[0] || null; }
-function signWalkHtml(c){
-  if(!c || _wsTab !== 'sign') return '';
+/* opts.home: Home's paper line while the signing copy is up beside Jambo's
+   Before you sign face — the tab row's twin since stage 5 of the one-page
+   Home plan */
+function signWalkHtml(c, opts){
+  if(!c || (_wsTab !== 'sign' && !(opts && opts.home))) return '';
   const mine = signSpotsMine(c);
   if(!mine.length) return '';
   const left = mine.filter(s => !s.image).length;
@@ -17248,7 +17263,8 @@ function signWalkHtml(c){
 }
 function signWalkGo(c){
   const next = signWalkNext(c);
-  const canvas = document.getElementById('doc-canvas');
+  /* the room's paper, or Home's while the signing copy is up (stage 5) */
+  const canvas = document.getElementById('doc-canvas') || document.getElementById('ig-canvas');
   if(!canvas) return;
   if(next){
     const el = canvas.querySelector(`[data-sig-spot="${String(next.id).replace(/"/g, '')}"]`);

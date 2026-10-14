@@ -125,16 +125,18 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
        Signing tab is gone — roomGoTab(c, 'sign') opens Jambo's Before you sign
        face beside Home's paper, and that paper is THE SIGNING COPY
-       (#ig-paper .pg-sheet.pg-sign) under Home's one zoom (.paper-zc on
-       #ig-paper-scroll; the .ig-zoom wrapper scales the A4 pages whole, so
-       they never re-break). "The tab row" is Home's paper line (#ig-strip). */
+       (#ig-paper .pg-sheet.pg-sign), its corner (.paper-zc on
+       #ig-paper-scroll) carrying the signing copy's own page arrows and
+       "− N% +" ([data-sc-zoom], scControlsHtml, as the Signing tab drew them;
+       the A4 pages are scaled whole and never re-break). "The tab row" is
+       Home's paper line (#ig-strip). */
     await page.evaluate(id => roomGoTab(getContract(id), 'sign'), id);
-    const sgUp = await until(page, () => !!document.querySelector('#pd-signface') && !!document.querySelector('#ig-paper .paper-zc .rl-type-step') && !!document.querySelector('#ig-paper .pg-sheet.pg-sign'), null, 10000);
+    const sgUp = await until(page, () => !!document.querySelector('#pd-signface') && !!document.querySelector('#ig-paper .paper-zc [data-sc-zoom]') && !!document.querySelector('#ig-paper .pg-sheet.pg-sign'), null, 10000);
     ok('4a the signing copy (Before you sign, Home) carries the zoom, on the paper', sgUp);
     ok('4a2 and none on the paper\'s line', await page.evaluate(() => !document.querySelector('#ig-strip .rl-type-step, #ig-strip [data-sc-zoom]')));
     if (sgUp) {
       const s0 = await page.evaluate(() => {
-        const st = document.querySelector('#ig-paper .paper-zc .rl-type-step');
+        const st = document.querySelector('#ig-paper .paper-zc [data-sc-zoom]').closest('.sc-step');
         const z = document.querySelector('#ig-paper .paper-zc').getBoundingClientRect();
         const sh = document.querySelector('#ig-paper .pg-sheet.pg-sign').getBoundingClientRect();
         return { ctl: st.textContent.replace(/\s+/g, ' ').trim(), zb: Math.round(z.bottom), st: Math.round(sh.top), w: Math.round(sh.width),
@@ -142,7 +144,7 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
       });
       ok('4b it reads "− N% +", no A⁻ / A⁺, no words-moved count', /^− \d+% \+$/.test(s0.ctl) && !s0.textSize && !s0.moved, s0.ctl);
       ok('4c it stands in the grey above the sheet', s0.zb <= s0.st, JSON.stringify({ zb: s0.zb, st: s0.st }));
-      await page.click('#ig-paper .paper-zc [data-rl-type="1"]');
+      await page.click('#ig-paper .paper-zc [data-sc-zoom="1"]');
       /* "larger" is at least 1% (a step is 9-10%): the sheet's rendered width
          wobbles by under a pixel as Home's paper repaints, which is not a
          page turned larger */

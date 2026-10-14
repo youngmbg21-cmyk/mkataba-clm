@@ -1069,11 +1069,13 @@ function riskGoClause(c, key){
   if (!c || !key || typeof document === 'undefined') return false;
   const it = riskItemsOf(c).find(x => x.key === key);
   if (!it || it.missing) return false;
-  const page = document.getElementById('view-redline') || document.querySelector('.redline-page.rl-embed');
+  /* the Negotiate page's paper, or Home's beside Jambo's Redlines face (the
+     one-page Home plan, stage 5) */
+  const page = document.getElementById('view-redline') || document.querySelector('.redline-page.rl-embed') || document.getElementById('ig-paper');
   let clauseId = (it.covered && it.covered.clauseId) ? String(it.covered.clauseId) : '';
   if (!clauseId){ const cl = riskClauseOf(c, it); clauseId = cl ? String(cl.clauseId) : ''; }
   const q = v => (window.CSS && CSS.escape) ? CSS.escape(v) : v;
-  const el = (page && clauseId) ? page.querySelector('#rl-doc [data-clause="' + q(clauseId) + '"]') : null;
+  const el = (page && clauseId) ? page.querySelector('#rl-doc [data-clause="' + q(clauseId) + '"], #ig-canvas [data-clause="' + q(clauseId) + '"]') : null;
   if (!el){
     if (typeof toast === 'function') toast(_rkT('rk_go_none'), 'warn');
     return false;
@@ -1090,7 +1092,8 @@ function riskGoClause(c, key){
 /* ================= PAINT AND PRESS ================= */
 function _rkContract(){
   if (typeof getContract !== 'function' || typeof state === 'undefined') return null;
-  const id = (typeof redlineHeldId === 'function' && redlineHeldId()) || state.activeId;
+  const face = (typeof pdRedShows === 'function' && pdRedShows() && typeof pdRedFor === 'function') ? pdRedFor() : null;
+  const id = face || (typeof redlineHeldId === 'function' && redlineHeldId()) || state.activeId;
   return getContract(id) || null;
 }
 function rkRepaint(c){

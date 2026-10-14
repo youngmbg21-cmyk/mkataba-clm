@@ -1165,7 +1165,7 @@ async function runFindObligations(c, opts){
      contract's review window over it, whose Add then wrote here and painted
      there (measured). Where the reader has moved on, nothing is painted and
      no window opens; they are told, with the way back to review it. */
-  if(window.contractOnScreen && !contractOnScreen(c)){
+  if(window.contractOnScreen && !contractOnScreen(c) && !(window.contractOnHome && contractOnHome(c))){
     const ref=(window.contractRef?contractRef(c):c.id);
     toast(i18t('ob_found_elsewhere',{ ref, n:found.length }),'warn',found.length?{ action:{ label:i18t('ob_open_contract'),
       onClick:()=>{ /* the contract's Obligations: the Board's view since stage 5 of the one-page Home plan */

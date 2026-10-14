@@ -173,7 +173,13 @@ const VERDICTS = [
   const hasRow = doors.menu === 1;
   check(hasRow && doors.column === 1 && doors.all === 2,
     '1a one door at the column\'s foot (the page\'s More row) and one button in the empty column — two doors, no third', JSON.stringify(doors));
-  check(hasRow && await visible(page, MENU), '1b and the foot\'s door is VISIBLE PIXELS');
+  /* RE-POINTED 14 Oct 2026 (stage 5): on an EMPTY column the face's foot
+     stands down — the column already draws the same three doors, and two
+     filled "Draft from our standards" on one panel break the one-filled-
+     button rule — so exactly one of the two doors is pixels at a time; the
+     foot's carries the act once the column has cards */
+  const shown1 = hasRow ? await visible(page, MENU) : null, shownCol = await visible(page, COLUMN);
+  check(hasRow && !shown1 && shownCol, '1b on an empty column the column\'s door is VISIBLE PIXELS and the foot\'s stands down — never two', JSON.stringify({ foot: shown1, column: shownCol }));
   const row = hasRow ? await page.evaluate(s => { const b = document.querySelector(s); return { text: b.textContent.trim(), dead: b.disabled, title: b.title }; }, MENU) : { text: '', dead: true, title: '' };
   check(/draft from our standards/i.test(row.text) && !row.dead, '1c it says what it is and is live on a readable draft', JSON.stringify(row));
   check(/nothing goes to the other side/i.test(row.title), '1d its hover says nothing is sent', row.title);

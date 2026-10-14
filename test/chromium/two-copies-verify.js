@@ -235,15 +235,15 @@ const PAGES = sel => `(() => {
     } else check('3i pressing next page brings page two into view and says so', false, 'one page only');
 
     /* ================= 4 — THE SIZE CONTROL ZOOMS, IT DOES NOT RE-BREAK (4A)
-       RE-POINTED 14 Oct 2026 (stage 5): the size control above the signing
-       copy on Home is the paper's ONE ZOOM, "− 100% +" (.paper-zc
-       [data-rl-type]), which scales the whole paper (.ig-zoom) — the room's
-       own [data-sc-zoom] pair is drawn only above the room's sheet. */
+       RE-POINTED 14 Oct 2026 (stage 5): the signing copy on Home keeps the
+       room's own size pair ([data-sc-zoom], scControlsHtml) in the paper's
+       zoom corner (.paper-zc), and the reading zoom stays off it — the pages
+       are laid out once at A4 and scaled whole, as the Signing tab did. */
     const z0 = await page.evaluate(PAGES(SIGN));
-    const zBtn = await page.$('#ig-paper .paper-zc [data-rl-type="1"]') || await page.$('#doc-zc-slot [data-sc-zoom="1"]');
+    const zBtn = await page.$('#ig-paper .paper-zc [data-sc-zoom="1"]') || await page.$('#doc-zc-slot [data-sc-zoom="1"]');
     if (zBtn) { await zBtn.click(); await page.waitForTimeout(700); }
     const z1 = await page.evaluate(PAGES(SIGN));
-    const zOut = await page.evaluate(() => ((document.querySelector('#ig-paper .paper-zc .rl-type-out') || document.getElementById('sc-zoom-out') || {}).textContent) || null);
+    const zOut = await page.evaluate(() => (document.getElementById('sc-zoom-out') || {}).textContent || null);
     check('4a pressing Larger makes the WHOLE page larger', !!(zBtn && z0 && z1 && z1.scale > z0.scale),
       z0 && z1 ? `${z0.scale} → ${z1.scale} (${zOut})` : 'no size control');
     /* RE-POINTED 14 Oct 2026 (stage 5): Home's one zoom is CSS zoom on the
@@ -257,7 +257,7 @@ const PAGES = sel => `(() => {
     check('4b …and the pages break exactly where they broke — nothing re-flows',
       !!(z0 && z1 && zBtn && z0.n === z1.n && sameBreaks && z1.W === 794),
       z0 && z1 ? `${z0.n} → ${z1.n} pages, breaks ${z0.push === z1.push ? 'identical' : sameBreaks ? 'on the same blocks, within a pixel' : 'moved ' + z0.push + ' → ' + z1.push}` : '—');
-    const zb = await page.$('#ig-paper .paper-zc [data-rl-type="-1"]') || await page.$('#doc-zc-slot [data-sc-zoom="-1"]');
+    const zb = await page.$('#ig-paper .paper-zc [data-sc-zoom="-1"]') || await page.$('#doc-zc-slot [data-sc-zoom="-1"]');
     if (zb) { await zb.click(); await page.waitForTimeout(400); }
     await page.evaluate(() => { try { localStorage.removeItem('hati.v1.signZoom'); } catch (_) {} });
 

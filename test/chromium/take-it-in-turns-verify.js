@@ -114,7 +114,13 @@ const DEAL = {
       const c = getContract('MK-T1');
       c._loaded = false; await ensureFull(c);
       const s = window.clauseLockSign ? clauseLockSign(c, cid) : null;
-      await openRedlineWorkbench('MK-T1');
+      /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): every door
+         now lands on Jambo's Redlines face beside Home's paper, which is
+         drawn read-only and carries no lock signs; the sign and its "Ask for
+         it" stand on the Negotiate PAGE's own paper (#rl-doc), so the page is
+         opened by name ({ page: true }), the engine the face is built from */
+      await openRedlineWorkbench('MK-T1', { page: true });
+      for (let i = 0; i < 40 && !document.querySelector('#rl-doc [data-clause]'); i++) await new Promise(r => setTimeout(r, 100));
       await new Promise(r => setTimeout(r, 1000));
       const slot = document.querySelector('.rl-cp-lock');
 

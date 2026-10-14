@@ -82,10 +82,15 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     await pause(1500);
 
     /* THE OWNER SITS ON THE NEGOTIATION PAGE — the whole point of the report. */
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the door now
+       lands on Jambo's Redlines face beside Home's paper — that is where the
+       owner sits and watches the round now (view 'dashboard', #pd-redface on
+       this contract); "watching" is still the product's own reading of it */
     await own.evaluate(id => openRedlineWorkbench(id), cid);
+    await own.waitForFunction(id => state.view === 'dashboard' && !!(window.pdRedShows && pdRedShows()) && String(pdRedFor()) === String(id), cid, { timeout: 10000 }).catch(() => {});
     await pause(2200);
-    const watching = await own.evaluate(() => ({ view: state.view, waiting: pollWaitingOnThem() }));
-    check('1 the owner is on the negotiation page', watching.view === 'redline', watching.view);
+    const watching = await own.evaluate(id => ({ view: state.view, face: !!(window.pdRedShows && pdRedShows()) && String(pdRedFor()) === String(id), waiting: pollWaitingOnThem() }), cid);
+    check('1 the owner is on the negotiation page', watching.view === 'dashboard' && watching.face, watching.view + ' · face ' + watching.face);
     check('1 and that page counts as WATCHING — the fast beat, not the slow one',
       watching.waiting === true,
       watching.waiting ? 'yes' : 'no — this is the bug: it answered false about itself');
@@ -247,6 +252,8 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     /* Past pollNow's four-second throttle first, so this measures the DOOR
        rather than the throttle. */
     await pause(4500);
+    /* RE-POINTED 14 Oct 2026 (stage 5): re-opening is the same door, which
+       lands on the face again */
     await own.evaluate(id => openRedlineWorkbench(id), cid);
     await pause(2500);
     const reopened = await seen();
@@ -322,6 +329,13 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       busy.hist === true && busy.cmp === true,
       JSON.stringify(busy) + ' — so they follow the contract, not a regression');
 
+    /* RE-POINTED 14 Oct 2026 (stage 5): Jambo's Redlines face WATCHES, as
+       the Negotiate page did (pollWaitingOnThem), so an owner left on it
+       collects this claim within a beat — before the change below that makes
+       it stale. The owner steps off it first, so the claim waits for the four
+       polls this stage measures. */
+    await own.evaluate(() => setView('intel'));
+    await pause(600);
     const readyBtn = await cp2.evaluate(() => {
       const b = document.getElementById('pt-nego-ready');
       if (!b || b.disabled) return false;
@@ -429,7 +443,11 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
        shown, and the only place to ask that is #toast-root on a real send
        through the real proxy. Read as a RELATION — which kind's ground the box
        wears — never as a typed colour. */
+    /* RE-POINTED 14 Oct 2026 (stage 5): the column's own act is on Jambo's
+       Redlines face beside Home's paper, repainted by its host (pdRedRepaint —
+       the page's renderRedline would draw the Negotiate page over Home) */
     await own.evaluate(id => openRedlineWorkbench(id), cid);
+    await own.waitForFunction(id => !!(window.pdRedShows && pdRedShows()) && String(pdRedFor()) === String(id), cid, { timeout: 10000 }).catch(() => {});
     await pause(2200);
     await own.evaluate(async (a) => {
       const [t, id] = a;
@@ -462,11 +480,11 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
         { author: 'Young Mbagaya', side: 'owner', why: 'Second round.' });
       persist(c); await flushSaves();
       const r = document.getElementById('toast-root'); if (r) r.innerHTML = '';
-      renderRedline();
+      if (window.pdRedRepaint) pdRedRepaint();
     }, [tok, cid]);
     await pause(1800);
     const sent = await own.evaluate(async () => {
-      const b = document.querySelector('.rl-idx-top [data-redline-proxy="nego-send"]');
+      const b = document.querySelector('#pd-redface .rl-idx-top [data-redline-proxy="nego-send"]');
       if (!b){ let dbg = ''; try {
         const held = redlineHeldId(); const cc = held && getContract(held);
         dbg = JSON.stringify({ view: state.view, held, hasC: !!cc,

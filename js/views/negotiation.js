@@ -10595,13 +10595,20 @@ function rlBenchOpts(c, o = {}){
    door used to open a dialog whose whole message was "there is nobody to
    ask". The door greys with that reason instead; a hand-back ('yours') is
    never greyed. */
+/* READING MUST NOT WRITE (stage 5): Home's paper line draws this for any
+   contract on the paper, so the phase is read off the stored review alone
+   (reviewOpenList, reviewIsReviewer) — never through reviewState, whose scope
+   reads the negotiation's unsent asks and so CREATES one (negoInit), writing
+   clause ids into the wording of a contract that was only being looked at */
 function rlReviewDoorState(c){
-  const st = window.reviewState ? reviewState(c) : { phase: 'none' };
-  const label = st.phase === 'yours' ? i18t('rv_head_return') : i18t('rv_head_ask');
   const me = (typeof currentUser === 'function' && currentUser()) || {};
-  const nobody = st.phase !== 'yours' && typeof getUsers === 'function'
+  let yours = false;
+  try { yours = !!(window.reviewOpenList && window.reviewIsReviewer) && reviewOpenList(c).some(r => reviewIsReviewer(r, me)); } catch (_){ yours = false; }
+  const phase = yours ? 'yours' : 'none';
+  const label = yours ? i18t('rv_head_return') : i18t('rv_head_ask');
+  const nobody = !yours && typeof getUsers === 'function'
     && !(getUsers() || []).some(u => u && u.id !== me.id);
-  return { phase: st.phase, label, nobody };
+  return { phase, label, nobody };
 }
 function rlReviewDoor(c, after){
   const st = window.reviewState ? reviewState(c) : { phase: 'none' };
@@ -11512,6 +11519,24 @@ function rlEditorOpen(){
 function rlLiveFlush(){
   if(!_rlLivePending || rlEditorOpen()) return;
   _rlLivePending = false;
+  rlLiveRepaint();
+}
+/* ---- THE LIVE PROBE ALSO WATCHES JAMBO'S REDLINES FACE (the one-page Home
+   plan, stage 5: the Negotiate page folded into Home) ---- the page on its
+   bench, or the face beside Home's paper on that contract; each repaints its
+   own host */
+function rlLiveHere(id){
+  if (!window.state) return false;
+  if (state.view === 'redline' && state.activeId === id) return true;
+  return state.view === 'dashboard' && typeof window.pdRedShows === 'function' && pdRedShows()
+    && typeof window.pdRedFor === 'function' && String(pdRedFor()) === String(id);
+}
+function rlLiveRepaint(){
+  if (window.state && state.view === 'dashboard' && typeof window.pdRedRepaint === 'function'){
+    pdRedRepaint();
+    if (typeof window.igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){}
+    return;
+  }
   renderRedline();
 }
 function rlStartLivePoll(c){
@@ -11525,7 +11550,7 @@ function rlStartLivePoll(c){
   if (_rlLiveTimer){ clearInterval(_rlLiveTimer); _rlLiveTimer = null; }
   const id = c.id;
   _rlLiveTimer = setInterval(async () => {
-    if (!window.state || state.view !== 'redline' || state.activeId !== id){
+    if (!rlLiveHere(id)){
       clearInterval(_rlLiveTimer); _rlLiveTimer = null; return;
     }
     rlLiveFlush();          /* an arrival held back while somebody was typing */
@@ -11546,7 +11571,7 @@ function rlStartLivePoll(c){
          is open — a repaint rebuilds the box somebody is typing into, and the
          next tick draws it the moment they stop. */
       if (st && cur && window.clauseLockMerge && clauseLockMerge(cur, st.locks || {})
-          && !rlEditorOpen() && state.view === 'redline' && state.activeId === id) renderRedline();
+          && !rlEditorOpen() && rlLiveHere(id)) rlLiveRepaint();
       /* ---- COPILOT'S ANSWERS TO THEIR ROUND RIDE THE SAME PROBE (Young, 9 Oct
          2026, change 1) ---- A redo — here, in another tab, by a colleague —
          writes its own table and moves no version, so it never reached the
@@ -11564,7 +11589,7 @@ function rlStartLivePoll(c){
           if (fresh){
             if (fresh._roundPrep) cur._roundPrep = fresh._roundPrep; else delete cur._roundPrep;
             if (rlEditorOpen()) _rlLivePending = true;
-            else if (state.view === 'redline' && state.activeId === id) renderRedline();
+            else if (rlLiveHere(id)) rlLiveRepaint();
           }
         }
       }
@@ -11593,7 +11618,7 @@ function rlStartLivePoll(c){
           _rlLivePending = true;
           if (window.toast) toast(i18t('ng_live_held_for_editor', { id: window.contractRef ? contractRef(fresh) : id }), 'warn');
         } else {
-          renderRedline();
+          rlLiveRepaint();
           if (window.toast) toast(i18t('ng_live_updated', { id: window.contractRef ? contractRef(fresh) : id }), 'ok');
         }
       }
@@ -18371,7 +18396,9 @@ const RL_SUG_VERB = {
   counter: id => `[data-rl-cp-editor-change="${id}"]`,
   reject: id => `[data-nego-reject="${id}"]`,
   accept: id => `[data-nego-accept="${id}"]`,
-  escalate: () => '[data-rl-review]',
+  /* on Home the review door is a row of the paper line's ⋯ menu (stage 5), so
+     the menu's own button glows while the menu is shut */
+  escalate: () => '[data-rl-review], #ig-strip #ws-more',
 };
 const _rlGlowDone = new Set();
 /* RAW: their pending asks carrying an answer the reader sent back. */
@@ -21967,7 +21994,7 @@ function redlineSyncProxies(host){
   });
 }
 
-if (typeof window !== 'undefined') Object.assign(window, { rlHomeTakesIt, rlReviewDoor, rlReviewDoorState, rlLandWhenReady, RL_LAND_TRIES, RL_LAND_MS, paperZcFit, rlCameFrom, rlCameFromSet, rlBackToClauses, rlLandOn, rlRoundPrepLineHtml, rlUnsentList, rlAddClauseBtnHtml, rlAddClause, rlEditClauseBtnHtml, rlClauseInView, rlEditClausePress,
+if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoTurnBannerHtml, rlLiveHere, rlLiveRepaint, rlStartLivePoll, rlHomeTakesIt, rlReviewDoor, rlReviewDoorState, rlLandWhenReady, RL_LAND_TRIES, RL_LAND_MS, paperZcFit, rlCameFrom, rlCameFromSet, rlBackToClauses, rlLandOn, rlRoundPrepLineHtml, rlUnsentList, rlAddClauseBtnHtml, rlAddClause, rlEditClauseBtnHtml, rlClauseInView, rlEditClausePress,
   rlInlineClick, rlInlineSave, rlInlineDirty, rlInlineOn, rlInlineEnd,
   renderRedline, redlineRoundLabel, redlineSyncProxies,
   rlToggleDiscussion, rlSideMode, rlSetSideMode, rlLayoutResizer, rlWireResizer, rlWireClauseTools,

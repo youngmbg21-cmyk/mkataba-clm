@@ -347,8 +347,9 @@ const seen = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
        two tabs now, Overview and Where we are; History and Signing went to
        Home. "Another tab that carries neither control" is Where we are
        ('stands'), and the signing copy's size control stands on Home's paper
-       beside Before you sign (roomGoTab(c, 'sign') opens it there:
-       #ig-paper .paper-zc). */
+       beside Before you sign (roomGoTab(c, 'sign') opens it there, in the
+       paper's corner: #ig-paper .paper-zc, the signing copy's own
+       [data-sc-zoom] or the paper's zoom). */
     journey.push(['arrived on the room', await cornerNow()]);
     await page.evaluate(() => document.querySelector('[data-ws-tab="stands"]').click());
     await tabOn('stands');
@@ -365,8 +366,8 @@ const seen = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
     journey.push(['pressed Overview', back]);
     await page.screenshot({ path: path.join(OUT, '04-tabrow.png') });
     await page.evaluate(id => roomGoTab(getContract(id), 'sign'), built.id);
-    await page.waitForFunction(() => { const z = document.querySelector('#pd-signface') && document.querySelector('#ig-paper .paper-zc [data-rl-type="1"]'); return !!z && z.getBoundingClientRect().width > 0; }, null, { timeout: 6000 }).catch(() => {});
-    const onSign = await page.evaluate(([s]) => ({ stepper: eval(s)(document.querySelector('#ig-paper .paper-zc [data-rl-type="1"]')) }), [seen]);
+    await page.waitForFunction(() => { const z = document.querySelector('#pd-signface') && document.querySelector('#ig-paper .paper-zc [data-sc-zoom="1"], #ig-paper .paper-zc [data-rl-type="1"]'); return !!z && z.getBoundingClientRect().width > 0; }, null, { timeout: 6000 }).catch(() => {});
+    const onSign = await page.evaluate(([s]) => ({ stepper: eval(s)(document.querySelector('#ig-paper .paper-zc [data-sc-zoom="1"], #ig-paper .paper-zc [data-rl-type="1"]')) }), [seen]);
     journey.push(['opened Before you sign', onSign]);
 
     check('the size control is visible pixels on the signing copy\'s paper (Before you sign, Home), after switching to it',
