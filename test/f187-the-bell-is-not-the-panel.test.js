@@ -158,7 +158,10 @@ describe('f187 (2) — the alerts are borrowed counts, never new ones', () => {
     /* Each push carries a `go` that opens the thing needing doing. */
     const pushes = body.match(/push\('/g) || [];
     assert.ok(pushes.length >= 6, 'six kinds of alert');
-    assert.match(body, /openRedlineWorkbench\(c\.id\)/);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 3): a negotiation
+       row opens Jambo's Redlines face beside Home's paper, through the
+       Negotiate page's own door and walls. */
+    assert.match(body, /openRedlineWorkbench\(c\.id, \{ face: true \}\)/);
     assert.match(body, /roomGoTab\(c,'sign'\)/);
     /* RE-POINTED 10 Oct 2026 (SAP pop-ups: Alerts grouped): one row builder,
        alertRowHtml, draws every row — alone or in a group — and alertsPanelHtml

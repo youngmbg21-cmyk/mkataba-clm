@@ -227,16 +227,30 @@ const BODY =
       const t = document.querySelector('[data-kt-tri-go="oblig"]');
       if (!t) return { none: true };
       t.click();
-      await new Promise(z => setTimeout(z, 900));
-      const on = document.querySelector('#ws-tabs .room-tab.is-on, #ws-tabs [aria-selected="true"]');
-      return { modal: !!document.querySelector('[data-ob-pick]'),
-        tab: on ? on.getAttribute('data-ws-tab') : null };
+      return { pressed: true };
     });
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+       Obligations tab went home — its twin is the Board's Obligations view
+       (#hb-cv-body[data-hb-cv="oblig"]), so "the tab" the tile goes to is that
+       view, on Home, for this contract. */
+    if (tile2 && !tile2.none) await page.waitForFunction(() => !!document.querySelector('#hb-cv-body[data-hb-cv="oblig"]')
+      || !!document.querySelector('[data-ob-pick]') || !!document.querySelector('#ws-tabs [data-ws-tab="oblig"][aria-selected="true"]'), null, { timeout: 8000 }).catch(() => {});
+    if (tile2 && !tile2.none) Object.assign(tile2, await page.evaluate(() => {
+      const view = document.querySelector('#hb-cv-body[data-hb-cv="oblig"]');
+      const on = document.querySelector('#ws-tabs .room-tab.is-on, #ws-tabs [aria-selected="true"]');
+      const forThis = !!(view && window.pdContract && pdContract() && String(pdContract().id) === String(window.__cid));
+      return { modal: !!document.querySelector('[data-ob-pick]'),
+        tab: (view && state.view === 'dashboard' && forThis) ? 'oblig' : (on ? on.getAttribute('data-ws-tab') : null) };
+    }));
     check('3b once the tab has obligations, the tile goes straight to the tab',
       !!(tile2 && !tile2.modal && tile2.tab === 'oblig'), JSON.stringify(tile2));
 
     /* ===== 4. THE THREE OVERVIEW CARDS ===== */
-    await page.evaluate(() => roomGoTab(getContract(window.__cid), 'terms'));
+    /* RE-POINTED 14 Oct 2026 (stage 5): 3b left the reader on Home's Board, and
+       roomGoTab only switches a room that is drawn, so the Overview is opened
+       through roomOpenAt — "open this contract on that tab, from anywhere". */
+    await page.evaluate(() => roomOpenAt(window.__cid, 'terms'));
+    await page.waitForFunction(() => state.view === 'workspace' && !!document.getElementById('ws-tabs'), null, { timeout: 8000 }).catch(() => {});
     await page.waitForTimeout(1200);
     /* RE-POINTED IN PLACE 1 Oct 2026 (Read Down): nothing folds, so every
        section is open as drawn — found by its head's words, not pressed. */

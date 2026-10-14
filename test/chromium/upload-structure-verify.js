@@ -465,7 +465,14 @@ const BODY =
         return c ? c.id : null;
       });
       if (id9){
-        await page.evaluate(i => openRedlineWorkbench(i), id9);
+        /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the
+           Negotiate page folded into Home and its doors land on Jambo's
+           Redlines face, whose paper — with no change on the table, as here —
+           is the clean working copy, not the negotiation's clause drawing. The
+           SUBJECT here is that drawing (.rl-doc's clauses and section titles,
+           redlineDocHtml — the renderer Home's Redlined paper shares), so the
+           page is asked for by name. */
+        await page.evaluate(i => openRedlineWorkbench(i, { page: true }), id9);
         await page.waitForSelector('.redline-page .rl-doc', { timeout: 15000 }).catch(() => {});
         await page.waitForTimeout(1500);
       }

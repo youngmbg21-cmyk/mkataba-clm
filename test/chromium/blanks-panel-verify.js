@@ -77,23 +77,25 @@ const typeInto = async (page, sel, value, ev) => {
 };
 
 /* RE-POINTED 12 Oct 2026: the fill form lives on the contract room's Details
-   tab (#tplform-section, owner: "paper on the left and the entry fields on the
-   right"), beside the room's paper (#doc-canvas, read-only answers). */
+   tab (#pd-fill, owner: "paper on the left and the entry fields on the
+   right"), beside the room's paper (#ig-canvas, read-only answers). */
+/* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+   Details tab is gone; the same form is Jambo's Fill in face (#pd-fill)
+   beside Home's paper (#ig-canvas), the door roomGoTab(c,'details') opens. */
 const openRoom = async (page, id) => {
   for (let t0 = Date.now(); Date.now() - t0 < 10000;) {
-    if (await page.evaluate(x => state.view === 'workspace' && state.activeId === x && roomCurrentTab() === 'details'
-      && !!document.querySelector('#doc-canvas') && !!document.getElementById('tplform-section'), id)) break;
-    await page.evaluate(x => { if (state.view !== 'workspace' || state.activeId !== x) openWorkspace(x);
-      roomGoTab(getContract(x), 'details'); }, id);
+    if (await page.evaluate(x => state.view === 'dashboard' && window.pdFillShows && pdFillShows()
+      && !!document.querySelector('#ig-canvas') && !!document.querySelector(`#pd-fillface .pd-ff[data-pd-ff="${x}"] #pd-fill`), id)) break;
+    await page.evaluate(x => { roomGoTab(getContract(x), 'details'); }, id);
     await page.waitForTimeout(300);
   }
-  await page.waitForFunction(() => !!document.querySelector('#tplform-section [data-blankf], #tplform-section [data-tplf]'),
+  await page.waitForFunction(() => !!document.querySelector('#pd-fill [data-blankf], #pd-fill [data-tplf]'),
     null, { timeout: 2500 }).catch(() => {});
 };
 
 /* WHAT IS PAINTED, read off the rendered page and never off the source. */
 const PANEL = () => {
-  const host = document.getElementById('tplform-section');
+  const host = document.getElementById('pd-fill');
   if (!host) return { there: false };
   const r = host.getBoundingClientRect();
   const boxes = [...host.querySelectorAll('[data-blankf]')].map(b => ({
@@ -103,7 +105,7 @@ const PANEL = () => {
     w: Math.round(b.getBoundingClientRect().width),
     folded: !!b.closest('details.pd-fill-done'),
   }));
-  const paper = document.getElementById('doc-canvas');
+  const paper = document.getElementById('ig-canvas');
   const pr = paper ? paper.getBoundingClientRect() : null;
   /* THE FIRST LINE OF THE WORDING, which is what refusal 3 measures. */
   const firstInk = paper ? (() => {
@@ -186,7 +188,7 @@ const CONTRACT = (id, over) => Object.assign({
     /* ============ 1. THE PANEL IS DRAWN, BESIDE THE PAPER ============ */
     await openRoom(page, built.id);
     const p = await page.evaluate(PANEL);
-    check('1a the slot is on the page at all', p.there, p.there ? 'yes' : '#tplform-section missing');
+    check('1a the slot is on the page at all', p.there, p.there ? 'yes' : '#pd-fill missing');
     check('1b the panel is DRAWN on a built-in template\'s contract', p.drawn,
       p.there ? p.w + 'px wide' : 'not drawn');
     check('1c and it is beside the paper, not over it', p.drawn && p.paperX != null && p.x > p.paperX + p.paperW - 40,
@@ -212,9 +214,9 @@ const CONTRACT = (id, over) => Object.assign({
       && Number(p.count.split(/\s+/)[2]) === p.boxes.length, p.count);
 
     /* ============ 3. TWO DOORS, ONE ACT — PANEL TO PAPER ============ */
-    const drove = await typeInto(page, '#tplform-section [data-blankf="forecastWeeks"]', '11', 'change');
+    const drove = await typeInto(page, '#pd-fill [data-blankf="forecastWeeks"]', '11', 'change');
     const toPaper = drove ? await page.evaluate(() => ({
-      paper: ((document.querySelector('#doc-canvas [data-field="forecastWeeks"]') || {}).value || '').trim(),
+      paper: ((document.querySelector('#ig-canvas [data-field="forecastWeeks"]') || {}).textContent || '').trim(),
       record: (state.contracts.find(x => x.id === 'MK-BF1') || { fields: {} }).fields.forecastWeeks,
       count: ((document.querySelector('[data-blankf-count]') || {}).textContent || '').trim(),
     })) : { paper: null, record: null, count: null };
@@ -225,7 +227,7 @@ const CONTRACT = (id, over) => Object.assign({
        carries the drafting's own default (`N('forecastWeeks',8)` draws 8), so
        it was never open and filling it could not move a counter of open
        blanks. packType is the one with nothing in it. */
-    const droveOpen = await typeInto(page, '#tplform-section [data-blankf="packType"]', 'PET preforms', 'change');
+    const droveOpen = await typeInto(page, '#pd-fill [data-blankf="packType"]', 'PET preforms', 'change');
     const counted = droveOpen ? await page.evaluate(() =>
       ((document.querySelector('[data-blankf-count]') || {}).textContent || '').trim()) : null;
     check('3c and the counter moves when an OPEN blank is answered', !!counted && counted !== p.count,
@@ -235,14 +237,13 @@ const CONTRACT = (id, over) => Object.assign({
     /* REVERSED 9 Oct 2026 (Young, the Paper and Counter review, change 5:
        "the Document tab is never edited"): the paper shows the answers and
        takes no typing; a press on a blank goes to its box in this panel. */
-    await typeInto(page, '#tplform-section [data-blankf="payDays"]', '45', 'change');
+    await typeInto(page, '#pd-fill [data-blankf="payDays"]', '45', 'change');
     const toPanel = await page.evaluate(() => {
-      const paper = document.querySelector('#doc-canvas [data-field="payDays"]');
+      const paper = document.querySelector('#ig-canvas [data-field="payDays"]');
       /* Home's paper is the read-only copy: the answer is a frozen word, and
          there is no box on it to type in at all. */
-      /* the room's paper keeps the blanks as boxes, read-only (change 5) */
-      return { paper: paper ? String(paper.value || '').trim() : null,
-        readOnly: !!paper && paper.readOnly === true,
+      return { paper: paper ? (paper.textContent || '').trim() : null,
+        readOnly: !!paper && !document.querySelector('#ig-canvas input, #ig-canvas textarea'),
         record: (state.contracts.find(x => x.id === 'MK-BF1') || { fields: {} }).fields.payDays };
     });
     check('4a the paper shows the panel\'s answer, and takes no typing of its own', toPanel.paper === '45' && toPanel.readOnly,
@@ -251,7 +252,7 @@ const CONTRACT = (id, over) => Object.assign({
 
     /* A RECORD FIELD GOES THROUGH THE PAGE'S OWN HANDLER, so the value the
        register reads really moves — the panel writes no record field itself. */
-    await typeInto(page, '#tplform-section [data-blankf="counterparty"]', 'Juno LLC', 'change');
+    await typeInto(page, '#pd-fill [data-blankf="counterparty"]', 'Juno LLC', 'change');
     const rec = await page.evaluate(() => {
       const c = state.contracts.find(x => x.id === 'MK-BF1') || {};
       return { cp: c.counterparty, fields: (c.fields || {}).counterparty };
@@ -266,10 +267,10 @@ const CONTRACT = (id, over) => Object.assign({
        null: two papers are not a before and after. */
     const withPanel = await page.evaluate(PANEL);
     const without = await page.evaluate(() => {
-      const host = document.getElementById('tplform-section');
+      const host = document.getElementById('pd-fill');
       const was = host ? host.style.display : null;
       if (host) host.style.display = 'none';
-      const paper = document.getElementById('doc-canvas');
+      const paper = document.getElementById('ig-canvas');
       const q = paper && paper.querySelector('p');
       const out = { firstInk: q ? Math.round(q.getBoundingClientRect().top) : null,
         paperW: paper ? Math.round(paper.getBoundingClientRect().width) : null };
@@ -296,7 +297,9 @@ const CONTRACT = (id, over) => Object.assign({
        no layout, so nothing in f329 could tell a lit word from an unlit one.
        Back on the contract that has ordinary blanks. */
     await openRoom(page, built.id);
-    const boxes9 = await page.$$('#tplform-section [data-blankf]');
+    /* the boxes in sight: Fill in folds the answered ones under "Show N filled" */
+    const boxes9 = [];
+    for (const b of await page.$$('#pd-fill [data-blankf]')) if (await b.isVisible()) boxes9.push(b);
     if (!boxes9.length){
       for (const [n, what] of [['9a', 'a cursor in a box lights its word on the paper'],
         ['9b', 'exactly one word is lit'], ['9c', 'the contract does not move a pixel'],
@@ -315,21 +318,21 @@ const CONTRACT = (id, over) => Object.assign({
          ever ran. So layout is measured INSIDE the document, where scrolling
          cannot reach it, and the scroll gets a claim of its own below. */
       const inkBefore9 = await page.evaluate(() => {
-        const q = document.querySelector('#doc-canvas p');
-        const paper = document.getElementById('doc-canvas');
+        const q = document.querySelector('#ig-canvas p');
+        const paper = document.getElementById('ig-canvas');
         return q ? { top: q.offsetTop, w: Math.round(paper.getBoundingClientRect().width) } : null; });
       await boxes9[0].click(); await pause(250);
       const lit = await page.evaluate(() => {
         const all = [...document.querySelectorAll('.is-fieldlit')];
-        const onPaper = all.filter(e => e.closest('#doc-canvas'));
-        const q = document.querySelector('#doc-canvas p');
+        const onPaper = all.filter(e => e.closest('#ig-canvas'));
+        const q = document.querySelector('#ig-canvas p');
         const cs = onPaper[0] ? getComputedStyle(onPaper[0]) : null;
         return { n: all.length, paper: onPaper.length,
           tag: onPaper[0] ? onPaper[0].tagName + '.' + onPaper[0].className : null,
           outline: cs ? cs.outlineWidth : null, ostyle: cs ? cs.outlineStyle : null, greenBg: (() => { const e = document.createElement('i'); e.style.background = 'var(--st-green-bg)'; document.body.appendChild(e); const c = getComputedStyle(e).backgroundColor; e.remove(); return c; })(),
           ocolor: cs ? cs.outlineColor : null, bg: cs ? cs.backgroundColor : null,
           ink: q ? { top: q.offsetTop,
-            w: Math.round(document.getElementById('doc-canvas').getBoundingClientRect().width) } : null };
+            w: Math.round(document.getElementById('ig-canvas').getBoundingClientRect().width) } : null };
       });
       check('9a a cursor in a box lights its word on the paper',
         lit.paper === 1, JSON.stringify(lit));
@@ -367,10 +370,10 @@ const CONTRACT = (id, over) => Object.assign({
          only shows on a field that is not already on screen. MEASURED before
          the fix: doc-scroll's scrollTop stayed 0 for a field 781px down. */
       const low9 = await page.evaluate(() => {
-        const sc = document.getElementById('doc-scroll');
+        const sc = document.getElementById('ig-paper-scroll');
         if (sc) sc.scrollTop = 0;
         if (document.activeElement) document.activeElement.blur();
-        const boxes = [...document.querySelectorAll('#tplform-section [data-blankf]')];
+        const boxes = [...document.querySelectorAll('#pd-fill [data-blankf]')];
         const last = boxes[boxes.length - 1];
         const fold = last && last.closest('details'); if (fold) fold.open = true;
         return { key: last ? last.getAttribute('data-blankf') : null,
@@ -380,10 +383,10 @@ const CONTRACT = (id, over) => Object.assign({
       if (!low9.key){
         check('9f a cursor in a field low on the paper scrolls the contract to it', false, 'no box');
       } else {
-        await page.click(`#tplform-section [data-blankf="${low9.key}"]`); await pause(500);
+        await page.click(`#pd-fill [data-blankf="${low9.key}"]`); await pause(500);
         const moved9 = await page.evaluate(() => {
-          const sc = document.getElementById('doc-scroll');
-          const lit = document.querySelector('#doc-canvas .is-fieldlit');
+          const sc = document.getElementById('ig-paper-scroll');
+          const lit = document.querySelector('#ig-canvas .is-fieldlit');
           const r = lit ? lit.getBoundingClientRect() : null;
           const s = sc ? sc.getBoundingClientRect() : null;
           return { doc: sc ? sc.scrollTop : null,
@@ -405,19 +408,19 @@ const CONTRACT = (id, over) => Object.assign({
       /* RE-POINTED 11 Oct 2026: Home's paper carries the answers as frozen
          words that keep their key; a press on one takes the caret to its box,
          opening the "Show N filled" fold where the box sits in it. */
-      const pin = await page.$('#doc-canvas [data-field="payDays"]');
+      const pin = await page.$('#ig-canvas [data-field="payDays"]');
       if (!pin){
         check('9e a press on a blank on the paper takes the caret to its box in the panel',
           false, 'no blank on this paper');
       } else {
-        await page.evaluate(() => { document.querySelectorAll('#tplform-section details').forEach(d => { d.open = false; });
+        await page.evaluate(() => { document.querySelectorAll('#pd-fill details').forEach(d => { d.open = false; });
           if (document.activeElement) document.activeElement.blur(); });
         await pin.scrollIntoViewIfNeeded(); await pin.click(); await pause(250);
         const back = await page.evaluate(() => {
           const a = document.activeElement;
           return { box: a && a.getAttribute ? a.getAttribute('data-blankf') : null,
-            caretOnPaper: !!(a && a.closest && a.closest('#doc-canvas')),
-            caretInPanel: !!(a && a.closest && a.closest('#tplform-section')) && a.getAttribute('data-blankf') === 'payDays' };
+            caretOnPaper: !!(a && a.closest && a.closest('#ig-canvas')),
+            caretInPanel: !!(a && a.closest && a.closest('#pd-fill')) && a.getAttribute('data-blankf') === 'payDays' };
         });
         /* REVERSED 9 Oct 2026 (change 5, "the Document tab is never edited"): a
            press on the paper's blank takes the caret to ITS box in the panel. */
@@ -443,11 +446,11 @@ const CONTRACT = (id, over) => Object.assign({
        form's boxes and was silent on the rest. */
     await openRoom(page, filled.id);
     const cs = await page.evaluate(() => {
-      const panel = document.getElementById('tplform-section');
-      const canvas = document.getElementById('doc-canvas');
+      const panel = document.getElementById('pd-fill');
+      const canvas = document.getElementById('ig-canvas');
       const boxes = panel ? [...panel.querySelectorAll('[data-tplf]')] : [];
       /* the contract the form is about: Home's paper's (formHeldContract) */
-      const c = (window.formHeldContract && formHeldContract(null)) || getContract(state.activeId);
+      const c = (window.formHeldContract && formHeldContract(null)) || getContract(intel.paper.id);
       const out = boxes.map(b => {
         const key = window.contractFieldKeyOf ? contractFieldKeyOf(b, c) : '';
         return { key, peer: !!(key && window.contractFieldPeer && contractFieldPeer(key, 'paper')) };
@@ -480,13 +483,13 @@ const CONTRACT = (id, over) => Object.assign({
       `answered same ink ${cs.sameInk} · no box ${cs.noBox} · blank still boxed ${cs.blankBoxed}`);
     /* AND THE PRESS REALLY MOVES THE PAPER — the field paragraph is far down. */
     const jump = await page.evaluate(async () => {
-      const s = document.getElementById('doc-scroll');
-      const b = document.querySelector('#tplform-section [data-tplf]');
+      const s = document.getElementById('ig-paper-scroll');
+      const b = document.querySelector('#pd-fill [data-tplf]');
       if (!s || !b) return null;
       s.scrollTop = 0;
       b.focus();
       await new Promise(r => setTimeout(r, 400));
-      const el = document.querySelector('#doc-canvas .is-fieldlit');
+      const el = document.querySelector('#ig-canvas .is-fieldlit');
       const sr = s.getBoundingClientRect(), er = el ? el.getBoundingClientRect() : null;
       return { top: s.scrollTop, range: s.scrollHeight - s.clientHeight, lit: !!el,
         inView: !!(er && er.top >= sr.top - 2 && er.bottom <= sr.bottom + 2) };

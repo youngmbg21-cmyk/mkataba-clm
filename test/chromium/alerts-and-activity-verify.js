@@ -151,10 +151,13 @@ const BOX = `(sel => { const el = document.querySelector(sel); if (!el) return n
       const skip = await page.$('#confirm-overlay #cf-cancel');
       if (skip) { await skip.click(); await page.waitForTimeout(900); }
     }
-    const went = await page.evaluate(() => ({ view: state.view, held: redlineHeldId(),
-      panelOpen: !!state.panelOpen }));
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 3; owner's yes:
+       every door from outside opens the Redlines face): the negotiation, on
+       Home's paper, with Jambo's panel on its redlines. */
+    const went = await page.evaluate(() => ({ view: state.view, held: (window.intel && intel.paper && intel.paper.id) || null,
+      face: !!document.getElementById('pd-redface'), panelOpen: !!state.panelOpen }));
     check('pressing an alert goes to the thing that needs doing, not to a list',
-      went.view === 'redline' && went.held === cid, `${went.view} / ${went.held}`);
+      went.view === 'dashboard' && went.held === cid && went.face, `${went.view} / ${went.held} / face ${went.face}`);
     check('and the panel gets out of the way', went.panelOpen === false);
 
     /* ---- 5. THE DOT CLEARS WHEN THE WORK IS DONE, NOT WHEN IT IS LOOKED AT ---- */

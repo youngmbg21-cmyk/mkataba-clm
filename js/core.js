@@ -1214,6 +1214,14 @@ function contractOnScreen(c){
   return !!c && state.activeId!=null && String(state.activeId)===String(c.id)
     && (state.view==='workspace'||state.view==='doc');
 }
+/* ON HOME'S PAPER (the one-page Home plan, stage 5): signing, its seal and
+   the duties it starts are worked beside Home's paper now, so a server's
+   answer about the contract on it is drawn there too. A separate reading on
+   purpose — contractOnScreen's other callers repaint the room's own parts. */
+function contractOnHome(c){
+  if(!c||!window.state||state.view!=='dashboard'||typeof window.pdContract!=='function') return false;
+  const p=pdContract(); return !!(p&&String(p.id)===String(c.id));
+}
 async function contractSetHold(c,on,why){
   /* THE GRANT, NOT canEdit (19 Sep 2026): freezing a contract is no longer an
      everyday editor's act. The server's mayHoldRow is the wall; this refuses
@@ -1566,7 +1574,7 @@ async function saveContract(c){
          the sealed record and says so. */
       if(fresh && fresh.status==='Signed' && c.status!=='Signed'){
         Object.assign(c,fresh); c._v=fresh._v; c._loaded=true; c._light=false;
-        try{ if(window.contractOnScreen && contractOnScreen(c) && typeof renderWorkspace==='function') renderWorkspace(); }catch(_){}
+        try{ if(window.contractOnScreen && (contractOnScreen(c)||contractOnHome(c)) && typeof renderWorkspace==='function') renderWorkspace(); }catch(_){}
         toast(i18t('co_sealed_meanwhile',{ ref:(window.contractRef?contractRef(c):c.id) }),'ok');
         return;
       }
@@ -1595,7 +1603,7 @@ async function saveContract(c){
       if(fresh){
         Object.assign(c,fresh); c._v=fresh._v; c._loaded=true; c._light=false;
         try{
-          if(window.contractOnScreen && contractOnScreen(c) && typeof renderWorkspace==='function') renderWorkspace();
+          if(window.contractOnScreen && (contractOnScreen(c)||contractOnHome(c)) && typeof renderWorkspace==='function') renderWorkspace();
           else if(state.view==='redline' && window.redlineHeldId && String(redlineHeldId())===String(c.id) && window.renderRedline) renderRedline();
         }catch(_){}
       }
@@ -2512,7 +2520,15 @@ function openFromHash(){
      yours" look the same from the browser and must read the same. */
   if(!c){ if(window.toast) toast(i18t('co_open_link_gone',{id}),'err'); return false; }
   state.activeId=c.id; state.selId=c.id;
-  setView('workspace');
+  /* ---- A LINK NAMING ONE OF THE FOUR TABS THAT WENT HOME OPENS ITS TWIN
+     THERE (the one-page Home plan, stage 5) ---- the approval email's
+     &tab=sign&go=approval opens Jambo's Before you sign face, whose first card
+     is the approval asked of you; History opens the Board's view. The room is
+     not drawn on the way; the phone keeps its own (roomTabHome says false). */
+  const goTab=go&&go.tab?go.tab:'';
+  const homeTab=[tab,goTab].find(k=>k&&window.ROOM_TABS_HOME&&window.ROOM_TABS_HOME[k])||'';
+  const home=!!(homeTab&&window.roomTabHome&&window.roomTabHome(c,homeTab));
+  if(!home) setView('workspace');
   /* The tab is asked for AFTER the room exists, through the room's own router —
      never by writing its private state from out here. An unknown tab name is
      simply not asked for, and the room opens where it always would.
@@ -2524,7 +2540,7 @@ function openFromHash(){
      the one place they can do that is the negotiation — the same reason the
      signer's mail asks for 'sign'. Both links are built by one function on the
      server (contractUrl), and this is the one place either is honoured. */
-  if(tab && window.roomGoTab && ['terms','docs','sign','history','redline'].includes(tab)){
+  if(!home && tab && window.roomGoTab && ['terms','docs','sign','history','redline'].includes(tab)){
     try{ roomGoTab(c, tab); }catch(_){}
   }
   /* AFTER THE ROOM HAS PAINTED, and asked of the screen rather than assumed:
@@ -2533,7 +2549,7 @@ function openFromHash(){
      Signing tab's own cards are built by two other modules and a reader who
      never gets one must not leave a timer running for ever. */
   if(go){
-    if(go.tab && window.roomGoTab && go.tab!==tab){ try{ roomGoTab(c, go.tab); }catch(_){} }
+    if(!home && go.tab && window.roomGoTab && go.tab!==tab){ try{ roomGoTab(c, go.tab); }catch(_){} }
     let tries=0;
     const land=()=>{
       const el=document.querySelector(go.sel);
@@ -9344,7 +9360,7 @@ async function responseFiledOnServer(c, item){
   }
   toast(i18t(c.status==='Signed'?'co_arr_signed_sealed':'co_arr_signed',{ who:r.name||c.counterparty||'' }),'ok');
   try{
-    if(window.contractOnScreen && contractOnScreen(c) && typeof renderWorkspace==='function') renderWorkspace();
+    if(window.contractOnScreen && (contractOnScreen(c)||contractOnHome(c)) && typeof renderWorkspace==='function') renderWorkspace();
     else if(state.view==='redline' && window.redlineHeldId && String(redlineHeldId())===String(c.id) && window.renderRedline) renderRedline();
     if(window.updateAlertBadge) updateAlertBadge();
   }catch(_){}
@@ -9356,6 +9372,7 @@ async function pollPendingResponses(){
   try{ list=await api('shares/pending'); }
   catch(e){ return; }             // transient network — the next beat retries
   const before=_pollStuck.size;
+  let homeTouched=false;
   for(const item of list){
     const key=String(item.responseId||item.token||'');
     const c=getContract(item.response&&item.response.id);
@@ -9367,6 +9384,10 @@ async function pollPendingResponses(){
     if(c){ try{ ok=await applyResponse(c, item.response, {background:true}); }
            catch(e){ ok=false; } }
     if(ok){
+      /* THE FACE BESIDE HOME'S PAPER CATCHES UP TOO (stage 5): an answer
+         applied for the contract on it is drawn there, once the round's
+         acknowledgement is done (below) */
+      if(c && contractOnHome(c)) homeTouched=true;
       _pollTrouble.delete(key); _pollStuck.delete(key);
       // A durable link carries one row per round, so the acknowledgement names
       // the answer just applied. Marking the whole link applied would silence
@@ -9392,6 +9413,7 @@ async function pollPendingResponses(){
         who:String((item.response&&item.response.name)||'') });
     }
   }
+  if(homeTouched&&state.view==='dashboard'&&typeof renderWorkspace==='function'){ try{ renderWorkspace(); }catch(_){} }
   /* The panel is not repainted on a beat that changed nothing — this loop runs
      every twelve seconds on a watched contract, and rebuilding the open panel
      each time would fight a reader scrolling it. */
@@ -9440,9 +9462,15 @@ function pollWaitingOnThem(){
      above the function has always claimed ("the open contract"). Read through
      `window`, because this module cannot see the negotiation view's own
      names. */
-  if(state.view!=='workspace' && state.view!=='redline') return false;
+  /* AND JAMBO'S REDLINES AND BEFORE YOU SIGN FACES ON HOME (the one-page
+     Home plan, stage 5): the negotiation and the signing are watched beside
+     Home's paper now, on the contract the paper holds */
+  const face=(state.view==='dashboard' && typeof window!=='undefined' && typeof window.pdFaceNow==='function') ? pdFaceNow() : '';
+  const onHome=face==='red'||face==='signing';
+  if(state.view!=='workspace' && state.view!=='redline' && !onHome) return false;
   const id = state.view==='redline'
     ? (typeof window!=='undefined' && window.redlineHeldId ? redlineHeldId() : null)
+    : onHome ? ((window.pdContract && pdContract()) || {}).id
     : state.activeId;
   if(!id) return false;
   const c=getContract(id);
@@ -9540,4 +9568,4 @@ const END_STATES = [
 const endStateSays = k => { const x = END_STATES.find(e => e.k === k); return x ? x.says : ''; };
 Object.assign(window,{END_STATES,endStateSays});
 
-Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,fieldFocus,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,selectFaceDress,datePickDress,datePickOpen,dlgPageAdopt,datePickClose,datePickWords,popupControlsDress,DATE_PICK_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,dateFmtOf,sigImageSrc,contractOnScreen,userById,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});
+Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,fieldFocus,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,selectFaceDress,datePickDress,datePickOpen,dlgPageAdopt,datePickClose,datePickWords,popupControlsDress,DATE_PICK_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,dateFmtOf,sigImageSrc,contractOnScreen,contractOnHome,userById,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});

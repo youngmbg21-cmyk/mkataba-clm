@@ -74,15 +74,20 @@ const typeInto = async (page, sel, value, ev) => {
 
 /* RE-POINTED 12 Oct 2026: the blanks panel is the room's Details tab
    (#tplform-section, owner) beside the room's paper (#doc-canvas). */
+/* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the Details tab
+   went home. Its twin is Jambo's Fill in face beside Home's paper — opened by
+   its direct door pdFillOpen — whose form (the same paintContractForm) is
+   drawn into #pd-fill, beside the paper #ig-canvas. Home holds no
+   state.activeId for the paper's contract, so every reading below asks the
+   paper's own contract (pdContract) first. */
 const openRoom = async (page, id) => {
   for (let t0 = Date.now(); Date.now() - t0 < 10000;) {
-    if (await page.evaluate(x => state.view === 'workspace' && state.activeId === x && roomCurrentTab() === 'details'
-      && !!document.querySelector('#doc-canvas') && !!document.getElementById('tplform-section'), id)) break;
-    await page.evaluate(x => { if (document.getElementById('cd-page') && window.closeModal) closeModal();
-      if (state.view !== 'workspace' || state.activeId !== x) openWorkspace(x); roomGoTab(getContract(x), 'details'); }, id);
+    if (await page.evaluate(x => state.view === 'dashboard' && !!(window.pdContract && pdContract() && pdContract().id === x)
+      && !!document.querySelector('#ig-canvas') && !!document.querySelector('#pd-fillface #pd-fill'), id)) break;
+    await page.evaluate(x => { if (document.getElementById('cd-page') && window.closeModal) closeModal(); pdFillOpen(x); }, id);
     await page.waitForTimeout(300);
   }
-  await page.waitForFunction(() => !!document.querySelector('#tplform-section [data-blankf]'), null, { timeout: 2500 }).catch(() => {});
+  await page.waitForFunction(() => !!document.querySelector('#pd-fill [data-blankf]'), null, { timeout: 2500 }).catch(() => {});
 };
 /* the contract room, for its Overview and Signing tabs */
 const openContractRoom = async (page, id) => {
@@ -111,8 +116,8 @@ const WORDING = [
 
 /* WHAT IS PAINTED, read off the rendered page and never off the source. */
 const SEEN = () => {
-  const canvas = document.getElementById('doc-canvas');
-  const host = document.getElementById('tplform-section');
+  const canvas = document.getElementById('ig-canvas');
+  const host = document.getElementById('pd-fill');
   const wording = canvas ? canvas.querySelector('[data-upwording]') : null;
   const marks = canvas ? [...canvas.querySelectorAll('span.up-blank')] : [];
   const boxes = host ? [...host.querySelectorAll('[data-blankf]')] : [];
@@ -127,6 +132,10 @@ const SEEN = () => {
   }) : [];
   return {
     canvas: !!canvas, wording: !!wording,
+    /* WHICH COPY the paper beside the panel is (RE-POINTED 14 Oct 2026, stage
+       5): Home's one paper is the working copy beside Fill in and the signing
+       copy beside Before you sign, and the marks belong to the working copy. */
+    copy: (canvas && canvas.closest('.pg-sheet') && canvas.closest('.pg-sheet').getAttribute('data-copy')) || null,
     markKeys: marks.map(m => m.getAttribute('data-upblank')),
     markText: marks.map(m => (m.textContent || '').trim()),
     /* PAINTED, not merely present: a rect is not a painted pixel. */
@@ -150,8 +159,8 @@ const SEEN = () => {
     outsideMarks: canvas ? [...canvas.querySelectorAll('span.up-blank')]
       .filter(m => !(wording && wording.contains(m))).length : 0,
     /* WHAT THE READING ITSELF SAYS, so the page and the record can be compared. */
-    seq: (window.uploadBlankSeq ? uploadBlankSeq(getContract(state.activeId)) : []).map(x => x.key),
-    stored: (getContract(state.activeId) || {}).redlineText || '',
+    seq: (window.uploadBlankSeq ? uploadBlankSeq(getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId)) : []).map(x => x.key),
+    stored: (getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId) || {}).redlineText || '',
   };
 };
 
@@ -252,7 +261,7 @@ const CONTRACT = (id, over) => Object.assign({
 
     /* ============ 3. THE PANEL ============ */
     check('3a the panel is DRAWN on a received document', s.panel && s.panelW > 2,
-      s.panel ? s.panelW + 'px' : '#tplform-section missing');
+      s.panel ? s.panelW + 'px' : '#pd-fill missing');
     check('3b beside the paper, never over it',
       s.panelW > 2 && s.canvasRight != null && s.panelX > s.canvasRight - 40,
       `panel x ${s.panelX}, paper ends ${s.canvasRight}`);
@@ -268,11 +277,11 @@ const CONTRACT = (id, over) => Object.assign({
       /^\d+ \S+ \d+$/.test(s.count) && Number(s.count.split(/\s+/)[2]) === s.boxKeys.length, s.count);
 
     /* ============ 4. TYPING IN THE PANEL CHANGES THE PAGE ============ */
-    const drove = await typeInto(page, '#tplform-section [data-blankf="up_insert_company_name"]',
+    const drove = await typeInto(page, '#pd-fill [data-blankf="up_insert_company_name"]',
       'Highland Corporate Ltd', 'change');
     const after = drove ? await page.evaluate(() => {
-      const c = getContract(state.activeId);
-      const marks = [...document.querySelectorAll('#doc-canvas span.up-blank[data-upblank="up_insert_company_name"]')];
+      const c = getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId);
+      const marks = [...document.querySelectorAll('#ig-canvas span.up-blank[data-upblank="up_insert_company_name"]')];
       return {
         text: marks.map(m => (m.textContent || '').trim()),
         filled: marks.filter(m => m.classList.contains('is-filled')).length,
@@ -302,9 +311,9 @@ const CONTRACT = (id, over) => Object.assign({
     const off = await page.evaluate(() => {
       if(typeof uploadBlanksClear !== 'function' || typeof uploadBlanksPaint !== 'function')
         return { blocks: [], back: [], missing: true };
-      const c = getContract(state.activeId);
-      uploadBlanksClear(document.getElementById('doc-canvas'));
-      const w = document.querySelector('#doc-canvas [data-upwording]');
+      const c = getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId);
+      uploadBlanksClear(document.getElementById('ig-canvas'));
+      const w = document.querySelector('#ig-canvas [data-upwording]');
       const blocks = w ? [...w.querySelectorAll('p,h1,h4')].map(el => {
         const r = el.getBoundingClientRect();
         return [Math.round(r.top), Math.round(r.height)].join(':');
@@ -324,7 +333,7 @@ const CONTRACT = (id, over) => Object.assign({
     /* AND THE MARK REALLY IS DRAWN, or 5a is satisfied by a page with none. */
     check('5b GATE — the marks were on when 5a measured them',
       off.back.length > 3 && (await page.evaluate(() =>
-        document.querySelectorAll('#doc-canvas span.up-blank').length)) >= 4,
+        document.querySelectorAll('#ig-canvas span.up-blank').length)) >= 4,
       'marks re-painted');
 
     /* ============ 6. ONCE THE WORDING IS OURS, THIS STANDS DOWN ============ */
@@ -357,11 +366,11 @@ const CONTRACT = (id, over) => Object.assign({
       /Buyer name/.test(f.boxLabels.join(' | ')) && /Registered address/.test(f.boxLabels.join(' | '))
       && /Fee/.test(f.boxLabels.join(' | ')), f.boxLabels.join(' | '));
     check('8e an EMPTY box is still a gap', f.boxKeys.includes('up_fee'), f.boxKeys.join(', '));
-    const droveF = await typeInto(page, '#tplform-section [data-blankf="up_buyer_name"]',
+    const droveF = await typeInto(page, '#pd-fill [data-blankf="up_buyer_name"]',
       'Highland Corporate Ltd', 'change');
     const afterF = droveF ? await page.evaluate(() => {
-      const c = getContract(state.activeId);
-      const sp = document.querySelector('#doc-canvas span[data-upblank="up_buyer_name"]');
+      const c = getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId);
+      const sp = document.querySelector('#ig-canvas span[data-upblank="up_buyer_name"]');
       return { text: sp ? (sp.textContent || '').trim() : null,
         stillField: !!(sp && sp.classList.contains('hati-wfield')),
         filled: !!(sp && sp.classList.contains('is-filled')),
@@ -374,15 +383,15 @@ const CONTRACT = (id, over) => Object.assign({
       afterF ? ('field ' + afterF.stillField + ' · filled ' + afterF.filled) : 'not driven');
     check('8h and the received document is not rewritten',
       !!afterF && afterF.stored === FORM_WORDING && /Enter buyer name/.test(afterF.stored),
-      afterF ? (afterF.stored === FORM_WORDING ? 'byte-identical' : 'THE WORDING MOVED') : 'not driven');
+      afterF ? (afterF.stored === FORM_WORDING ? 'byte-identical' : 'THE WORDING MOVED' + (/data-clause-id/.test(afterF.stored) && !/data-clause-id/.test(FORM_WORDING) ? ' — clause ids were stamped into it' : '')) : 'not driven');
     const offF = await page.evaluate(() => {
       if(typeof uploadBlanksClear !== 'function') return { missing: true };
-      const c = getContract(state.activeId);
-      const w = document.querySelector('#doc-canvas [data-upwording]');
+      const c = getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId);
+      const w = document.querySelector('#ig-canvas [data-upwording]');
       const shot = () => w ? [...w.querySelectorAll('p,h1,h4')].map(el => {
         const r = el.getBoundingClientRect(); return [Math.round(r.top), Math.round(r.height)].join(':');
       }) : [];
-      uploadBlanksClear(document.getElementById('doc-canvas'));
+      uploadBlanksClear(document.getElementById('ig-canvas'));
       const off = shot();
       const kept = w ? w.querySelectorAll('span.hati-wfield').length : 0;
       uploadBlanksPaint(c);
@@ -419,7 +428,7 @@ const CONTRACT = (id, over) => Object.assign({
     /* The first line of THEIR wording, measured on the page: the right-hand
        column changes and the paper may not move because of it. */
     const inkOf = () => page.evaluate(() => {
-      const w = document.querySelector('#doc-canvas [data-upwording]');
+      const w = document.querySelector('#ig-canvas [data-upwording]');
       const el = w && w.querySelector('h1,h4,p');
       return el ? Math.round(el.getBoundingClientRect().top) : null;
     });
@@ -427,7 +436,7 @@ const CONTRACT = (id, over) => Object.assign({
     /* AN ARRIVAL NOTE THAT COUNTED THE BLANKS, as a reading on HaTi's own
        route would have written it — the tile has to follow the route LIVE. */
     const openNow = await page.evaluate(() => {
-      const c = getContract(state.activeId);
+      const c = getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId);
       const n = (window.contractBlanksOpen ? contractBlanksOpen(c) : []).length;
       c.triage = { at: new Date().toISOString(),
         steps: { fill: { ok: true, filled: [], left: n, none: null } } };
@@ -446,12 +455,14 @@ const CONTRACT = (id, over) => Object.assign({
     /* THE WORDING AS THE ROOM LEAVES IT, just before the door is pressed (re-
        pointed 11 Oct 2026: the measurement above is on Home, before the room
        has been opened at all, and the room stamps clause ids on arrival) */
-    const stored0 = await page.evaluate(() => (getContract(state.activeId) || {}).redlineText || '');
+    const stored0 = await page.evaluate(() => (getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId) || {}).redlineText || '');
+    /* RE-POINTED 14 Oct 2026 (stage 5): the Signing tab's door is on Jambo's
+       Before you sign face now — the room's Signing tab went home — so it is
+       opened through roomOpenAt(id, 'sign') and the door is pressed there. */
     const pressRoute = async (sel) => {
-      await openContractRoom(page, up.id);
-      await page.click('#ws-tabs [data-ws-tab="sign"]').catch(() => {});
-      await page.waitForTimeout(1400);
-      const there = await page.evaluate(x => !!document.querySelector(x), sel);
+      await page.evaluate(x => roomOpenAt(x, 'sign'), up.id);
+      await page.waitForFunction(x => !!document.querySelector('#pd-signface ' + x), sel, { timeout: 8000 }).catch(() => {});
+      const there = await page.evaluate(x => !!document.querySelector('#pd-signface ' + x), sel);
       if (!there) return false;
       await page.click(sel);
       await page.waitForTimeout(600);
@@ -460,7 +471,7 @@ const CONTRACT = (id, over) => Object.assign({
       return true;
     };
     const toTheirs = await pressRoute('#sign-paper');
-    const route1 = await page.evaluate(() => (getContract(state.activeId) || {}).signRoute || 'inside');
+    const route1 = await page.evaluate(() => (getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId) || {}).signRoute || 'inside');
     check('9a GATE — the Signing tab\'s own door moved this contract to their signing',
       toTheirs && route1 === 'outside' && drew9,
       (toTheirs ? 'pressed' : 'no #sign-paper door') + ' · route ' + route1
@@ -472,16 +483,19 @@ const CONTRACT = (id, over) => Object.assign({
     check('9b THEIR SIGNING: no blanks panel beside their paper',
       ok9 && t9.boxKeys.length === 0 && !/Blanks in this document/i.test(t9.panelHead),
       ok9 ? (t9.boxKeys.length + ' boxes · heading "' + (t9.panelHead || '') + '"') : 'GATE not met');
+    /* GATED (14 Oct 2026, stage 5) on the paper beside the panel being the
+       WORKING copy — the copy marks are drawn on — or "none marked" is true of
+       a signing copy left standing on Home's paper. */
     check('9c and no placeholder is marked on their wording',
-      ok9 && t9.wording && t9.markKeys.length === 0,
-      ok9 ? (t9.wording ? (t9.markKeys.join(', ') || 'none') : 'no wording drawn') : 'GATE not met');
+      ok9 && t9.wording && t9.copy === 'work' && t9.markKeys.length === 0,
+      ok9 ? (t9.wording ? (t9.markKeys.join(', ') || 'none') + ' · on the ' + t9.copy + ' copy' : 'no wording drawn') : 'GATE not met');
     check('9d CONTROL — the wording itself is untouched, byte for byte',
       ok9 && t9.stored === stored0 && /\[Insert Company Name\]/.test(t9.stored),
       ok9 ? (t9.stored === stored0 ? 'byte-identical' : 'THE WORDING MOVED ' + JSON.stringify([stored0, t9.stored])) : 'GATE not met');
     const ink1 = await inkOf();
     check('9e CONTROL — THE CONTRACT DOES NOT MOVE: its first line sits where it sat',
       ok9 && ink0 != null && ink1 === ink0, 'first line ' + ink0 + ' → ' + ink1);
-    const kept = await page.evaluate(() => ((getContract(state.activeId) || {}).fields || {}).up_insert_company_name);
+    const kept = await page.evaluate(() => ((getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId) || {}).fields || {}).up_insert_company_name);
     check('9f CONTROL — the answer typed before is still on the record', ok9 && kept === 'Highland Corporate Ltd',
       String(kept));
     check('9g the arrival tile says whose blanks they are, not how many are open',
@@ -490,7 +504,7 @@ const CONTRACT = (id, over) => Object.assign({
     /* AND BACK, through the route card's own link — the other half of one
        door, not a second one. */
     const toOurs = await pressRoute('[data-ho-route="inside"]');
-    const route2 = await page.evaluate(() => (getContract(state.activeId) || {}).signRoute || 'inside');
+    const route2 = await page.evaluate(() => (getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId) || {}).signRoute || 'inside');
     await openRoom(page, up.id);
     const b9 = await page.evaluate(SEEN);
     check('9h CONTROL — switched back to HaTi\'s own signing, the panel returns with every box',
@@ -499,7 +513,7 @@ const CONTRACT = (id, over) => Object.assign({
     check('9i CONTROL — and the marks return, printing the answer that was kept',
       ok9 && b9.markKeys.join('|') === m9.markKeys.join('|')
         && b9.markText.filter(x => x === 'Highland Corporate Ltd').length === 2,
-      b9.markText.join(' | '));
+      (b9.markText.join(' | ') || 'no marks') + ' · the paper beside the panel is the ' + b9.copy + ' copy');
     const tile2 = await tileHead();
     /* RE-POINTED 27 Sep 2026 (the overnight clean-up): a tile with fields still
        open used to draw a TICK over "N still open" — the head saying done in
@@ -514,7 +528,7 @@ const CONTRACT = (id, over) => Object.assign({
       return t ? ((t.querySelector('.kt-tri-chip') || {}).textContent || '').trim() : '';
     });
     const open2 = await page.evaluate(() => {
-      const c = getContract(state.activeId);
+      const c = getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId);
       return (window.contractBlanksOpen ? contractBlanksOpen(c) : []).length;
     });
     check('9j CONTROL — and the arrival tile counts the open blanks again',

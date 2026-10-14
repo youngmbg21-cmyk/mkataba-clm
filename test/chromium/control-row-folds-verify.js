@@ -107,7 +107,12 @@ const READ = () => {
 const OPEN = async page => {
   await page.evaluate(() => window.openWorkspace(window.state.contracts[0].id));
   await page.waitForTimeout(400);
-  await page.evaluate(() => window.setView('redline'));
+  /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): a bare
+     setView('redline') now lands on Jambo's Redlines face beside Home's paper,
+     which draws no head and no control row; this file measures how the
+     Negotiate PAGE's own control row folds, so it opens the page by name
+     ({ page: true }), the engine the face is built from. */
+  await page.evaluate(() => window.openRedlineWorkbench(window.state.contracts[0].id, { page: true }));
   await page.waitForTimeout(1100);
 };
 

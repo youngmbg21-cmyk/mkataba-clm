@@ -78,7 +78,12 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await page.screenshot({ path: path.join(OUT, '1-home-document.png') });
 
     /* 2. NEGOTIATE: the same zoom, and the words moved */
-    await page.evaluate(id => openRedlineWorkbench(id), id);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): every door now
+       lands on Jambo's Redlines face beside Home's paper (Home's own zoom, 1);
+       this section is the Negotiate PAGE's own paper and its "+N −N" count,
+       so the page is opened by name ({ page: true }), the engine the face is
+       built from. */
+    await page.evaluate(id => openRedlineWorkbench(id, { page: true }), id);
     const ngUp = await until(page, () => !!document.querySelector('#view-redline .paper-zc .rl-type-step') && !!document.querySelector('#view-redline .rl-zoom'));
     ok('2a Negotiate carries the zoom, on the paper', ngUp);
     ok('2a2 and none on the control row', await page.evaluate(() => !document.querySelector('#view-redline .rl-head .rl-type-step')));
@@ -117,22 +122,33 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
        re-break), so it is the signing copy's own "− N% +". */
     await page.evaluate(id => openWorkspace(id), id);
     await until(page, () => !!document.querySelector('.room-tabrow'), null, 10000);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+       Signing tab is gone — roomGoTab(c, 'sign') opens Jambo's Before you sign
+       face beside Home's paper, and that paper is THE SIGNING COPY
+       (#ig-paper .pg-sheet.pg-sign), its corner (.paper-zc on
+       #ig-paper-scroll) carrying the signing copy's own page arrows and
+       "− N% +" ([data-sc-zoom], scControlsHtml, as the Signing tab drew them;
+       the A4 pages are scaled whole and never re-break). "The tab row" is
+       Home's paper line (#ig-strip). */
     await page.evaluate(id => roomGoTab(getContract(id), 'sign'), id);
-    const sgUp = await until(page, () => !!document.querySelector('#doc-zc-slot .paper-zc [data-sc-zoom]') && !!document.querySelector('#doc-signwrap .pg-sheet'), null, 10000);
-    ok('4a the Signing tab carries the zoom, on the paper', sgUp);
-    ok('4a2 and none on the tab row', await page.evaluate(() => !document.querySelector('#ws-tabrow-end .rl-type-step, #ws-tabrow-end [data-sc-zoom]')));
+    const sgUp = await until(page, () => !!document.querySelector('#pd-signface') && !!document.querySelector('#ig-paper .paper-zc [data-sc-zoom]') && !!document.querySelector('#ig-paper .pg-sheet.pg-sign'), null, 10000);
+    ok('4a the signing copy (Before you sign, Home) carries the zoom, on the paper', sgUp);
+    ok('4a2 and none on the paper\'s line', await page.evaluate(() => !document.querySelector('#ig-strip .rl-type-step, #ig-strip [data-sc-zoom]')));
     if (sgUp) {
       const s0 = await page.evaluate(() => {
-        const st = document.querySelector('#doc-zc-slot .paper-zc [data-sc-zoom]').closest('.sc-step');
-        const z = document.querySelector('#doc-zc-slot .paper-zc').getBoundingClientRect();
-        const sh = document.querySelector('#doc-signwrap .pg-sheet').getBoundingClientRect();
+        const st = document.querySelector('#ig-paper .paper-zc [data-sc-zoom]').closest('.sc-step');
+        const z = document.querySelector('#ig-paper .paper-zc').getBoundingClientRect();
+        const sh = document.querySelector('#ig-paper .pg-sheet.pg-sign').getBoundingClientRect();
         return { ctl: st.textContent.replace(/\s+/g, ' ').trim(), zb: Math.round(z.bottom), st: Math.round(sh.top), w: Math.round(sh.width),
-          textSize: /A⁻|A⁺/.test(document.body.innerText), moved: !!document.querySelector('#view-workspace .rl-moved') };
+          textSize: /A⁻|A⁺/.test(document.body.innerText), moved: !!document.querySelector('#ig-paper .rl-moved') };
       });
       ok('4b it reads "− N% +", no A⁻ / A⁺, no words-moved count', /^− \d+% \+$/.test(s0.ctl) && !s0.textSize && !s0.moved, s0.ctl);
       ok('4c it stands in the grey above the sheet', s0.zb <= s0.st, JSON.stringify({ zb: s0.zb, st: s0.st }));
-      await page.click('#doc-zc-slot [data-sc-zoom="1"]');
-      const grew = await until(page, w => { const sh = document.querySelector('#doc-signwrap .pg-sheet'); return !!sh && Math.round(sh.getBoundingClientRect().width) > w; }, s0.w);
+      await page.click('#ig-paper .paper-zc [data-sc-zoom="1"]');
+      /* "larger" is at least 1% (a step is 9-10%): the sheet's rendered width
+         wobbles by under a pixel as Home's paper repaints, which is not a
+         page turned larger */
+      const grew = await until(page, w => { const sh = document.querySelector('#ig-paper .pg-sheet.pg-sign'); return !!sh && sh.getBoundingClientRect().width > w * 1.01; }, s0.w);
       ok('4d a press turns the signing page larger, whole', grew);
       await page.screenshot({ path: path.join(OUT, '4-signing.png') });
     }
@@ -155,11 +171,24 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
       return { top: Math.round(z.top - r.top), clear: Math.round(sh.top - z.bottom), right: Math.round(z.right - sh.right) };
     });
     const placed = {};
+    /* RE-POINTED 14 Oct 2026 (stage 5): section 4 left Before you sign open
+       beside Home's paper (the signing copy); "home" is Home's Document, its
+       working copy, so the face's own × puts it away first */
+    await page.evaluate(() => { const x = document.querySelector('#pd-signface [data-pd-sf-close]'); if (x) x.click(); });
+    await until(page, () => !document.querySelector('#pd-signface'), null, 5000);
     await page.evaluate(id => { setView('dashboard'); igAnalyze(id); }, id); await page.waitForTimeout(1500); placed.home = await PLACE();
-    await page.evaluate(id => openRedlineWorkbench(id), id); await page.waitForTimeout(1500); placed.negotiate = await PLACE();
+    /* RE-POINTED 14 Oct 2026 (stage 5): "Negotiate" is the PAGE's own paper,
+       opened by name; Details and Signing are gone from the room — their
+       doors open Fill in and Before you sign beside Home's paper, so their
+       paper is Home's (the working copy, then the signing copy) */
+    await page.evaluate(id => openRedlineWorkbench(id, { page: true }), id); await page.waitForTimeout(1500); placed.negotiate = await PLACE();
     await page.evaluate(id => openWorkspace(id), id); await page.waitForTimeout(1000);
-    await page.evaluate(id => roomGoTab(getContract(id), 'details'), id); await page.waitForTimeout(1500); placed.details = await PLACE();
-    await page.evaluate(id => roomGoTab(getContract(id), 'sign'), id); await page.waitForTimeout(1500); placed.signing = await PLACE();
+    await page.evaluate(id => roomGoTab(getContract(id), 'details'), id);
+    await until(page, () => !!document.querySelector('#pd-fillface') && !!document.querySelector('#ig-paper .paper-zc'), null, 10000);
+    await page.waitForTimeout(1500); placed.details = await PLACE();
+    await page.evaluate(id => roomGoTab(getContract(id), 'sign'), id);
+    await until(page, () => !!document.querySelector('#pd-signface') && !!document.querySelector('#ig-paper .pg-sheet.pg-sign'), null, 10000);
+    await page.waitForTimeout(1500); placed.signing = await PLACE();
     for (const [k, v] of Object.entries(placed))
       ok(`6 ${k}: the zoom stands 6px inside the grey above the sheet, clear of it, on the sheet's right edge`,
         !!v && v.top >= 4 && v.top <= 8 && v.clear >= 4 && Math.abs(v.right) <= 2, JSON.stringify(v));

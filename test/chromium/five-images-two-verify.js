@@ -278,8 +278,14 @@ const ok = (name, good, detail) => {
       Array.isArray(tiles.names), JSON.stringify(tiles.names));
 
     /* ════════ 5. THE NEGOTIATE HEAD ════════ */
-    await page.evaluate(o => openRedlineWorkbench(o.id), cid);
-    await page.waitForTimeout(2500);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): every door
+       onto Negotiate now lands on Jambo's Redlines face on Home, which draws
+       no head. This claim's subject IS the Negotiate page's own head card,
+       so the page is asked for by name ({ page: true }), and waited for. */
+    await page.evaluate(o => openRedlineWorkbench(o.id, { page: true }), cid);
+    await page.waitForFunction(id => state.view === 'redline' && !!document.querySelector('#ws-head')
+      && (window.redlineHeldId && redlineHeldId()) === id, cid.id, { timeout: 8000 }).catch(() => {});
+    await page.waitForTimeout(600);
     await page.screenshot({ path: path.join(OUT, '04-negotiate.png') });
     const head = await page.evaluate(() => {
       const el = document.getElementById('ws-head');

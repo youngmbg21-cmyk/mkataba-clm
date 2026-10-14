@@ -60,10 +60,18 @@ const SCREENS = [
   ['templates', async p => { await p.evaluate(() => setView('templates')); await pause(600); }],
   ['contract',  async p => { await p.evaluate(() => { openWorkspace('MK-82'); roomGoTab(getContract('MK-82'), 'docs'); }); await pause(800); }],
   ['keyterms',  async p => { await p.evaluate(() => roomGoTab(getContract('MK-82'), 'terms'));   await pause(600); }],
-  ['signing',   async p => { await p.evaluate(() => roomGoTab(getContract('MK-82'), 'signing')); await pause(600); }],
-  ['history',   async p => { await p.evaluate(() => roomGoTab(getContract('MK-82'), 'history')); await pause(600); }],
+  /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+     Signing and History tabs went home, and the Negotiate page folded into
+     Home. Each screen is its twin there, reached by its own door and waited
+     for: Jambo's Before you sign face beside the signing copy (roomGoTab
+     'sign' — 'signing' was never a room key), the Board's History view, and
+     Jambo's Redlines face beside Home's paper. */
+  ['signing',   async p => { await p.evaluate(() => roomGoTab(getContract('MK-82'), 'sign'));
+                             await p.waitForSelector('#pd-signface .pd-sf[data-pd-sf="MK-82"]', { timeout: 10000 }).catch(() => {}); await pause(600); }],
+  ['history',   async p => { await p.evaluate(() => roomGoTab(getContract('MK-82'), 'history'));
+                             await p.waitForFunction(() => { const b = document.querySelector('#hb-cv-body[data-hb-cv="hist"][data-hb-cv-cid="MK-82"]'); return !!b && !b.querySelector('.hb-cv-wait'); }, null, { timeout: 10000 }).catch(() => {}); await pause(600); }],
   ['negotiate', async p => { await p.evaluate(() => openRedlineWorkbench('MK-82'));
-                             await p.waitForSelector('#view-redline #rl-doc', { timeout: 10000 }); await pause(800); }],
+                             await p.waitForSelector('#pd-redface .pd-rf[data-pd-rf="MK-82"], #pd-redface [data-pd-rf="MK-82"]', { timeout: 10000 }); await pause(800); }],
 ];
 
 /* THE INK THIS PASS DELIBERATELY DID NOT SWEEP, named so the count below is a

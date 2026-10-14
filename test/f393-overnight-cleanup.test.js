@@ -345,7 +345,12 @@ describe('f393 (5) the contract room', () => {
       'and the upload sentence no longer says HaTi cannot read blanks it reads');
   });
   test('the room\'s More menu and the brief card listen once, not once per paint', () => {
-    assert.match(code(region(CT, 'wireRoomHead')), /document\._wsMoreOutsideWired/);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the menu's
+       wiring moved out of wireRoomHead into roomMenuWire, the one wiring for
+       every page that draws the menu (the room, Negotiate, Home's paper line);
+       wireRoomHead calls it */
+    assert.match(code(region(CT, 'roomMenuWire')), /document\._wsMoreOutsideWired/);
+    assert.match(code(region(CT, 'wireRoomHead')), /roomMenuWire\(c\)/);
     assert.match(code(CT), /dataset\.ktBriefBound/);
   });
   test('a slow reading lands on its own contract', () => {

@@ -175,15 +175,22 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     ok('1h Enter opens the contract on Home\'s Document, its Obligations tab', !!sel && onHome.view === 'dashboard' && onHome.tab === 'oblig', onHome);
 
     /* ================= 2 · THE CONTRACT'S OBLIGATIONS TAB ================= */
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+       Obligations tab went home — the same door (roomGoTab 'oblig') opens the
+       Board's Obligations view for this contract, drawn by the tab's own
+       painter (roomPaintObligations) into #hb-cv-body[data-hb-cv="oblig"]
+       (the old #ws-obligations-pane). Waited for by this contract's id. */
+    const OBV = `#hb-cv-body[data-hb-cv="oblig"][data-hb-cv-cid="${staged.c1}"]`;
     await page.evaluate(id => { openWorkspace(id); }, staged.c1); await page.waitForTimeout(1200);
-    await page.evaluate(id => roomGoTab(getContract(id), 'oblig'), staged.c1); await page.waitForTimeout(900);
+    await page.evaluate(id => roomGoTab(getContract(id), 'oblig'), staged.c1);
+    await page.waitForFunction(sel => !!document.querySelector(sel + ' [data-ins-row]') && !!document.querySelector(sel + ' #obt-panel h2'), OBV, { timeout: 8000 }).catch(() => {});
     await page.screenshot({ path: path.join(OUT, '2-tab.png') });
-    const tab = await page.evaluate(() => ({ ins: !!document.querySelector('#ws-obligations-pane.is-ins'),
-      rows: document.querySelectorAll('#ws-obligations-pane [data-ins-row]').length,
-      line: (document.querySelector('.obt-line') || {}).textContent || '', title: (document.querySelector('#obt-panel h2') || {}).textContent || '' }));
+    const tab = await page.evaluate(sel => ({ ins: !!document.querySelector(sel + '.is-ins'),
+      rows: document.querySelectorAll(sel + ' [data-ins-row]').length,
+      line: (document.querySelector(sel + ' .obt-line') || {}).textContent || '', title: (document.querySelector(sel + ' #obt-panel h2') || {}).textContent || '' }), OBV);
     ok('2a the tab is a list and a panel on the same builder', tab.ins && tab.rows >= 3 && !!tab.title, tab);
-    await page.click('[data-obt-view="all"]').catch(() => {}); await page.waitForTimeout(400);
-    const allN = await page.evaluate(() => document.querySelectorAll('#ws-obligations-pane [data-ins-row]').length);
+    await page.click(OBV + ' [data-obt-view="all"]').catch(() => {}); await page.waitForTimeout(400);
+    const allN = await page.evaluate(sel => document.querySelectorAll(sel + ' [data-ins-row]').length, OBV);
     ok('2b the switch shows what is completed too', allN === tab.rows + 1, { outstanding: tab.rows, all: allN });
     const before = await page.evaluate(id => getContract(id).obligations.length, staged.c1);
     await page.click('#obt-panel [data-ins-more]').catch(() => {}); await page.waitForTimeout(200);

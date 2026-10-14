@@ -35,6 +35,8 @@ const { STRINGS, I18N_DEFAULT, LANGUAGES } = i18n;
 /* Words that are legitimately identical in both languages, so an equal-to-
    English value is a real translation rather than a forgotten one. */
 const SAME_IN_BOTH = new Set([ 'na_tab_hati', 'cal_k_plan', 'pd_tab_copilot', 'stk_by_jambo', 'pd_doc_pdf',
+  /* Jambo's words (stage 1 of the one-page Home plan, 14 Oct 2026): "3×", how often a place was used, is a number */
+  'hb_pop_used',
   /* Jambo's agents (12 Oct 2026): "1 agent", "Normal" and "Agent" are the same word in Swedish */
   'jh_n_agents_one', 'jh_sp_1', 'jh_col_agent', 'jh_pt_col_ex',
   /* the Brain's Stack view (10 Oct 2026): product and service names (Node.js, Render, GitHub…), the
@@ -707,7 +709,7 @@ describe('f148 — the shared renderers follow the language in both shells', () 
       ['Draft', 'Under Review', 'Signed', 'Declined']);
   });
 
-  test('the room tab row — workspace view and phone (six tabs, both languages)', () => {
+  test('the room tab row — workspace view and phone (two tabs, both languages)', () => {
     /* REVERSED IN PLACE 29 Aug 2026: Obligations joined the row (J-2.1), after
        Signing and before History, which is the order a contract's life runs in.
        The claim is unchanged — every tab is translated and the row is read from
@@ -731,12 +733,16 @@ describe('f148 — the shared renderers follow the language in both shells', () 
     /* AND AGAIN 12 OCT 2026: Details leads (owner) — the one place a contract
        is filled in — with its count while anything is empty (an empty
        contract owes the other party, the value and the start date). */
+    /* AND AGAIN 14 OCT 2026 (the one-page Home plan, stage 5; the owner's yes
+       to decision 2): Details, Signing, Obligations and History went home —
+       Jambo's Fill in and Before you sign faces, the Board's Obligations and
+       History views. The room keeps Overview and Where we are. */
     win.langSet('en', { repaint: false });
     assert.equal(strip(win.roomTabsHtml({}, 'terms')),
-      'Details 3 left Overview Where we are Signing Obligations History');
+      'Overview Where we are');
     win.langSet('sv', { repaint: false });
     assert.equal(strip(win.roomTabsHtml({}, 'terms')),
-      'Uppgifter 3 kvar Översikt Var vi är Undertecknande Åtaganden Historik');
+      'Översikt Var vi är');
     assert.ok(!strip(win.roomTabsHtml({}, 'terms')).includes('Förhandla'));
   });
 

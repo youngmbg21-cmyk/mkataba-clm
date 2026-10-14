@@ -56,6 +56,16 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
     await waitFor(page, () => !!document.getElementById('wz-counterparty'));
     await page.fill('#wz-counterparty', 'Original Ltd');
     await page.click('#na-create');
+    /* A new draft lands beside the paper on Home now (the one-page Home plan,
+       stage 2, 14 Oct 2026); the full page is the Details tab's own "Open the
+       full form", pressed here as a reader in the room presses it. */
+    await waitFor(page, () => !!document.getElementById('pd-fillface'), null, 10000);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+       Details tab went home, and with it its "Open the full form" press
+       ([data-det-full]) — Jambo's Fill in face draws no such door. The page
+       itself is unchanged, so it is opened here by its own one door,
+       openCompleteDetails, as A3 below already does. */
+    await page.evaluate(() => { const i = intel.paper.id; openCompleteDetails(getContract(i)); });
     const cd = await waitFor(page, () => !!document.getElementById('cd-page'), null, 10000);
     const foot = cd ? await page.evaluate(() => [...document.querySelectorAll('#cd-page .cd-foot button')].map(b => b.id)) : [];
     check('A1 Complete the details has a Cancel, the last button in its foot', foot[foot.length - 1] === 'cd-cancel', JSON.stringify(foot));

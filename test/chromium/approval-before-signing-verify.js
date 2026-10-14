@@ -147,7 +147,10 @@ let H;
       const b = document.getElementById('sign-btn');
       const row = document.querySelector('#sign-check [data-sc-row^="sa:"]');
       const cp = Array.from(document.querySelectorAll('#signing-order .font-mono')).map(x => x.textContent.trim());
-      const canvas = document.getElementById('doc-canvas');
+      /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the Signing
+         tab went home — Jambo's Before you sign face, the signing copy on
+         Home's paper beside it (#ig-canvas) */
+      const canvas = document.getElementById('ig-canvas');
       const first = canvas && canvas.getBoundingClientRect().top;
       return { label: b ? b.textContent.replace(/\s+/g, ' ').trim() : '', ask: b ? b.getAttribute('data-sa-ask-btn') : null,
         row: row ? row.textContent.replace(/\s+/g, ' ').trim() : '', rowHolds: !!(row && row.classList.contains('is-hold')),

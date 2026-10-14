@@ -82,11 +82,17 @@ function answer(body){
       await page.waitForFunction(() => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-CP1'), null, { timeout: 20000 });
       await page.keyboard.press('Escape').catch(() => {});
       await page.evaluate(async () => { const c = getContract('MK-CP1'); const x = await api('contracts/MK-CP1'); if (x && x._roundPrep) c._roundPrep = x._roundPrep; openRedlineWorkbench('MK-CP1'); });
-      await page.waitForFunction(() => state.view === 'redline' && document.querySelector('[data-nego-accept]'), null, { timeout: 10000 });
+      /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the door now
+         lands on Jambo's Redlines face beside Home's paper — the row and its
+         verbs in #pd-redface, the paper Home's own (#ig-paper, Redlined while a
+         change is pending), where the dashed box is painted */
+      await page.waitForFunction(() => state.view === 'dashboard' && document.querySelector('#pd-redface [data-nego-accept]') && document.querySelector('#ig-paper .rl-paper'), null, { timeout: 10000 });
       await page.waitForTimeout(500);
     };
+    /* RE-POINTED 14 Oct 2026 (stage 5): on Home the review door is a row of
+       the paper line's ⋯ menu, so the menu's own button is what glows */
     const look = () => page.evaluate(() => {
-      const glows = [...document.querySelectorAll('.rl-glow')].map(b => b.getAttribute('data-nego-accept') ? 'accept' : b.getAttribute('data-nego-reject') ? 'reject' : b.hasAttribute('data-rl-cp-editor-change') ? 'counter' : b.hasAttribute('data-rl-review') ? 'review' : 'other');
+      const glows = [...document.querySelectorAll('.rl-glow')].map(b => b.getAttribute('data-nego-accept') ? 'accept' : b.getAttribute('data-nego-reject') ? 'reject' : b.hasAttribute('data-rl-cp-editor-change') ? 'counter' : (b.hasAttribute('data-rl-review') || (b.id === 'ws-more' && b.closest('#ig-strip'))) ? 'review' : 'other');
       const g = document.querySelector('.rl-glow'); let top = null;
       if (g){ g.scrollIntoView({ block: 'center' }); const r = g.getBoundingClientRect(); const t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); top = !!t && (t === g || g.contains(t)); }
       const sec = document.querySelector('.rl-sug'); const box = document.querySelector('.rl-sug-box');
@@ -105,15 +111,24 @@ function answer(body){
     await page.screenshot({ path: path.join(OUT, '1-counter.png') });
     /* 1d Home's Document, Redlined: the paper carries the box. RE-POINTED 11 Oct
        2026 (owner: "delete the deal tab"): the Deal tab and its glowing door
-       are gone; a door asking for Deal opens Clauses with the paper Redlined. */
-    await page.evaluate(() => { setView('dashboard'); pdOpenOnHome('MK-CP1', 'deal'); });
+       are gone; a door asking for Deal opens Clauses with the paper Redlined.
+       RE-POINTED 14 Oct 2026 (stage 4 of the one-page Home plan): the panel's
+       Deal DOOR opens the Board's own deal board now; what still asks the
+       PAPER for Deal is a walk naming it (the agents' Review), so 1d walks. */
+    await page.evaluate(() => { setView('dashboard'); igWalk(['MK-CP1'], 0, { tab: 'deal' }); });
     const home = await page.waitForFunction(() => document.querySelector('#ig-paper .rl-sug-box') ? { box: document.querySelector('#ig-paper .rl-sug-box').textContent.trim() } : null, null, { timeout: 10000 }).then(h => h.jsonValue(), () => null);
     ok('1d on Home\'s Document the box is drawn too', !!home && /60 days/.test(home.box), JSON.stringify(home));
     await page.screenshot({ path: path.join(OUT, '1d-home.png') });
     await page.evaluate(() => openRedlineWorkbench('MK-CP1'));
-    await page.waitForFunction(() => state.view === 'redline' && document.querySelector('.rl-glow'), null, { timeout: 10000 }).catch(() => {});
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the door lands
+       on Jambo's Redlines face beside Home's paper; the glowing verb is its row's */
+    await page.waitForFunction(() => state.view === 'dashboard' && document.querySelector('#pd-redface .rl-glow'), null, { timeout: 10000 }).catch(() => {});
     /* 2 the press */
-    await page.click('.rl-glow');
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the press is the
+       glowing verb on the face's row; where no glow was painted (1b reports
+       that) the press is the same row's Counter, so 2 still measures what
+       Counter opens rather than timing out on a missing glow */
+    await page.click(await page.$('#pd-redface .rl-glow') ? '#pd-redface .rl-glow' : '#pd-redface [data-rl-cp-editor-change]');
     /* The owner's Paper and Counter review (9 Oct 2026, S3): the ONE card says
        "In the box" — no Apply left to press. */
     const applied = await page.waitForFunction(() => /60 days/.test([...document.querySelectorAll('.rl-paper, [contenteditable]')].map(e => e.innerText).join(' ')) && !!document.querySelector('#ce-lane .ce-inbox') && !document.querySelector('#ce-lane [data-ce-apply]'), null, { timeout: 10000 }).then(() => true, () => false);
@@ -126,11 +141,15 @@ function answer(body){
     await openNego(); L = await look();
     ok('3b reject: a dashed line through their words, Reject alone glows', /rl-sug-reject/.test(L.sug) && !L.box && L.glows.join() === 'reject', JSON.stringify(L));
     await page.screenshot({ path: path.join(OUT, '3-reject.png') });
-    await page.click('.rl-glow');
+    /* RE-POINTED 14 Oct 2026 (stage 5): the press is the face's glowing verb, or
+       its Reject where none glows; 3c now also asks that a glow WAS there, so a
+       glow never painted cannot read as one put out */
+    const glowBefore = await page.evaluate(() => document.querySelectorAll('#pd-redface .rl-glow').length);
+    await page.click(glowBefore ? '#pd-redface .rl-glow' : '#pd-redface [data-nego-reject]');
     const cancel = await page.waitForSelector('#prompt-overlay #pd-cancel', { timeout: 5000 }).then(() => true, () => false);
     if (cancel) await page.click('#prompt-overlay #pd-cancel');
     await page.waitForTimeout(400);
-    ok('3c a press on it puts the glow out', (await page.evaluate(() => document.querySelectorAll('.rl-glow').length)) === 0);
+    ok('3c a press on it puts the glow out', glowBefore > 0 && (await page.evaluate(() => document.querySelectorAll('.rl-glow').length)) === 0, `glowing before the press: ${glowBefore}`);
 
     /* 4 accept */
     await redo('Accept their 90 days.');

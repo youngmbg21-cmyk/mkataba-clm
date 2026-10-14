@@ -73,7 +73,7 @@ const day = off => {
 
 /* ================================================ 1 — THE FIFTH TAB */
 describe('f253 (1) — a fifth tab, and one list behind it', () => {
-  test('ROOM_TABS carries it, after Signing and before History', () => {
+  test('the tab went home: ROOM_TABS_HOME names the Board\'s Obligations view', () => {
     const { win } = bench();
     /* Array.from, because the stage is another realm and a foreign Array does
        not pass a strict deep-equal against one of ours. */
@@ -83,10 +83,12 @@ describe('f253 (1) — a fifth tab, and one list behind it', () => {
        length of the list — it is that Obligations sits AFTER Signing and
        BEFORE History, which is the order a contract's life runs in. Asked as
        that relation now, so the next tab costs no edit here. */
-    const ix = k => keys.indexOf(k);
-    assert.ok(ix('oblig') > ix('sign') && ix('oblig') < ix('history'),
-      'the order a contract’s life runs in: what it says, who signs it, '
-      + 'what it commits you to, then the record of all three');
+    /* RE-POINTED 14 OCT 2026 (the one-page Home plan, stage 5; the owner's
+       yes to decision 2): the tab went home. Its twin is the Board's
+       Obligations view — the same builder (roomPaintObligations) in a second
+       host — and every door that names the tab opens it there. */
+    assert.ok(!keys.includes('oblig'), 'the Obligations tab went home');
+    assert.equal(win.ROOM_TABS_HOME.oblig, 'oblig', 'its door opens the Board\'s Obligations view');
   });
 
   test('THE ROW AND THE GUARD READ THE SAME LIST', () => {
@@ -133,11 +135,16 @@ describe('f253 (2) — the count, and the one thing it colours', () => {
   test('AMBER ONLY WHEN SOMETHING IS OVERDUE', () => {
     /* A count that is always coloured is a warning nobody reads — the sidebar
        counts' own rule, applied to a tab. */
+    /* RE-POINTED 14 OCT 2026 (stage 5): the room's tab went home, and its
+       count with it — the Board's Obligations view carries the count now, the
+       tab's own (obligationTabState: what is still owed), coloured late only
+       when something is overdue (hbCvCounts), the same rule. */
     const late = bench([{ id: 'o1', desc: 'a', due: day(-2), status: 'open' }]);
-    const soon = bench([{ id: 'o1', desc: 'a', due: day(9), status: 'open' }]);
-    assert.match(late.win.roomTabsHtml(late.c, 'docs'), /room-tab-n is-late/);
-    assert.ok(!/is-late/.test(soon.win.roomTabsHtml(soon.c, 'docs')),
-      'work that is merely coming up is a fact, not a warning');
+    assert.ok(!/room-tab-n/.test(late.win.roomTabsHtml(late.c, 'terms')), 'the room\'s row carries no Obligations count');
+    const HB = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js', 'views', 'homeboard.js'), 'utf8');
+    const counts = HB.slice(HB.indexOf('function hbCvCounts('), HB.indexOf('function hbCvReady('));
+    assert.match(counts, /const st = obligationTabState\(c\); n\.oblig = st\.open; n\.obligLate = st\.overdue > 0;/, 'the Board view counts what is still owed, as the tab did');
+    assert.match(HB, /v === 'oblig' \? \(n\.obligLate \? ' is-late' : ''\)/, 'and wears the late colour only when something is overdue');
   });
 
   test('and a contract with nothing outstanding draws no count at all', () => {
@@ -169,7 +176,7 @@ describe('f253 (3) — one verb, one reading, nothing new written', () => {
        first, so the press opens the dialog and THE DIALOG presses the verb.
        The claim is unchanged and is stronger for being asked of both halves —
        there is still exactly one place that decides what completing means. */
-    const paint = OB_CODE.match(/function roomPaintObligations\(c\)\{[\s\S]*?\n\}/)[0];
+    const paint = OB_CODE.match(/function roomPaintObligations\(c(?:, at)?\)\{[\s\S]*?\n\}/)[0];
     assert.match(paint, /openObligationDone\(c, i\)/, 'completing asks first');
     assert.match(paint, /toggleObligation\(c, i, \{ from: 'obligations tab' \}\)/,
       'and reopening presses the verb directly — there is nothing to ask');

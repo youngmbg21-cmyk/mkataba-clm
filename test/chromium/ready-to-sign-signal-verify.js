@@ -209,9 +209,18 @@ let AMBER_BG = null;    /* --st-amber-dot */
        too many, and the one that took a row over the work is the one that went.
        It is said by the status word beside the contract's name and by the row
        in the panel, both of which this file already measures. */
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the Negotiate
+       page folded into Home — openRedlineWorkbench lands on Jambo's Redlines
+       face beside Home's paper, which draws no room head (#ws-status). The
+       status word beside the contract's name THERE is the paper line's
+       (#ig-strip .ig-strip-ref), so that is where the head's sentence is asked. */
+    await page.waitForFunction(() => !!document.querySelector('#ig-strip .ig-strip-ref'), null, { timeout: 8000 }).catch(() => {});
+    const headSays = await page.evaluate(() => {
+      const e = document.querySelector('#ig-strip .ig-strip-ref') || document.getElementById('ws-status');
+      return e ? e.textContent.replace(/\s+/g, ' ').trim() : '';
+    });
     check('the head says it instead — no card, no press, no floating box',
-      await page.evaluate(() =>
-        /ready to sign/i.test((document.getElementById('ws-status') || {}).textContent || '')));
+      /ready to sign/i.test(headSays), headSays);
 
     await page.evaluate(() => document.getElementById('hdr-notify').click());
     await page.waitForTimeout(900);

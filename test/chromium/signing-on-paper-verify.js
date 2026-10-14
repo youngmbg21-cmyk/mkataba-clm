@@ -56,7 +56,10 @@ const seen = (page, sel) => page.evaluate(s => {
 const INK_TOP = `(() => {
   const box = document.getElementById('doc-canvas');
   if (!box) return null;
-  const sc = box.closest('.nego-scroll, [style*="overflow"]') || document.scrollingElement;
+  /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): Home's paper
+     scrolls in #ig-paper-scroll, the nearest scroller to #ig-canvas, so it is
+     the one put back to the top before a line is measured. */
+  const sc = box.closest('.nego-scroll, #ig-paper-scroll, [style*="overflow"]') || document.scrollingElement;
   if (sc) sc.scrollTop = 0;
   const walk = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
   while (walk.nextNode()) {
@@ -74,8 +77,11 @@ const INK_TOP = `(() => {
    halves 1c needs since the Signing tab draws the signing copy (25 Sep 2026).
    The sheet is the element the canvas sits on: the page-maker's .pg-sheet, or
    the older .blueprint on a build without it. */
+/* RE-POINTED 14 Oct 2026 (stage 5): the signing copy is drawn on Home's
+   paper now (#ig-canvas inside .pg-sheet.pg-sign), so the sheet is found from
+   there. */
 const SHEET_TOP = `(() => {
-  const box = document.getElementById('doc-canvas');
+  const box = document.getElementById('ig-canvas');
   const sh = box && box.closest('.pg-sheet, .blueprint');
   if (!sh) return null;
   return { top: Math.round(sh.getBoundingClientRect().top),
@@ -167,13 +173,29 @@ const SHEET_TOP = `(() => {
       docInkAgain != null && inkWithSpot != null && Math.abs(docInkAgain - inkWithSpot) <= 1,
       `without the marks ${docInkAgain} · with one ${inkWithSpot}`);
 
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+       Signing tab went home. roomGoTab(c,'sign') opens Jambo's Before you sign
+       face beside Home's paper, and the paper turns to THE SIGNING COPY
+       (#ig-paper .pg-sheet.pg-sign, canvas #ig-canvas, scroller
+       #ig-paper-scroll) — the room's #doc-canvas / #doc-scroll are gone. The
+       working copy's own gap above its sheet is measured first, on the same
+       paper, for 1c. */
+    const gapAbove = () => page.evaluate(() => {
+      const sc = document.getElementById('ig-paper-scroll');
+      const cv = document.getElementById('ig-canvas'); const sh = cv && cv.closest('.pg-sheet, .blueprint');
+      if (!sc || !sh) return null;
+      sc.scrollTop = 0;
+      const st = sc.getBoundingClientRect().top + (parseFloat(getComputedStyle(sc).paddingTop) || 0);
+      return { gap: Math.round(sh.getBoundingClientRect().top - st), sign: sh.classList.contains('pg-sign') };
+    });
+    const workAbove = await gapAbove();
     await page.evaluate(id => openWorkspace(id), built.id);
     await page.waitForFunction(() => !!document.querySelector('.room-tabrow'), null, { timeout: 15000 }).catch(() => {});
     await page.evaluate(() => roomGoTab(getContract(state.activeId), 'sign'));
-    await page.waitForFunction(() => { const b = document.getElementById('doc-canvas'); return !!b && b.getBoundingClientRect().height > 50 && !!b.closest('.pg-sheet'); }, null, { timeout: 15000 }).catch(() => {});
-    const signInk = await page.evaluate(INK_TOP);
+    await page.waitForFunction(() => { const b = document.getElementById('ig-canvas'); return !!b && b.getBoundingClientRect().height > 50 && !!b.closest('.pg-sheet.pg-sign'); }, null, { timeout: 15000 }).catch(() => {});
+    const signInk = await inkTopOf('ig-canvas');
     const signSheet = await page.evaluate(SHEET_TOP);
-    const signBox = await seen(page, '#doc-canvas');
+    const signBox = await page.evaluate(() => !!document.querySelector('#ig-paper .pg-sheet.pg-sign #ig-canvas')) ? await seen(page, '#ig-canvas') : null;
     check('1b the Signing tab draws the signing copy', !!(signBox && signBox.on),
       signBox ? `${signBox.w}x${signBox.h}` : 'absent');
     /* 1c — REFUSAL 3, NO CHROME GREW ABOVE THE SIGNING COPY. Until 11 Oct 2026
@@ -182,26 +204,26 @@ const SHEET_TOP = `(() => {
        paper's scroller (inside its padding) and the sheet stands the zoom
        row's band (36px, 8633d72) and nothing else; and the first line sits
        inside the page, below the page's own margin. */
-    const above = await page.evaluate(() => {
-      const sc = document.getElementById('doc-scroll');
-      const cv = document.getElementById('doc-canvas'); const sh = cv && cv.closest('.pg-sheet');
-      if (!sc || !sh) return null;
-      sc.scrollTop = 0;
-      const st = sc.getBoundingClientRect().top + (parseFloat(getComputedStyle(sc).paddingTop) || 0);
-      return { gap: Math.round(sh.getBoundingClientRect().top - st) };
-    });
+    /* RE-POINTED 14 Oct 2026 (stage 5): both copies are now drawn on ONE paper,
+       Home's, so the claim is asked in its first form again (before 11 Oct):
+       the signing sheet starts no lower under the paper's scroller than the
+       working copy's sheet did — nothing grew above it — and its first line
+       sits inside the page, below the page's own margin. */
+    const above = await gapAbove();
     const inkIn = (ink, sh) => (ink != null && sh) ? ink - sh.top - sh.pad : null;
     check('1c no chrome grew above the signing copy, and its first line sits inside its own page’s margin',
-      above && signSheet && above.gap <= 36 + 1 && inkIn(signInk, signSheet) != null && inkIn(signInk, signSheet) >= 0,
-      `${JSON.stringify(above)} · signing ink ${signInk} (sheet ${signSheet && signSheet.top} + ${signSheet && signSheet.pad})`);
+      above && above.sign && workAbove && !workAbove.sign && signSheet && above.gap <= workAbove.gap + 1 && inkIn(signInk, signSheet) != null && inkIn(signInk, signSheet) >= 0,
+      `signing ${JSON.stringify(above)} · working ${JSON.stringify(workAbove)} · signing ink ${signInk} (sheet ${signSheet && signSheet.top} + ${signSheet && signSheet.pad})`);
 
     /* THE COLUMN SWAPS AND THE PAPER DOES NOT. */
+    /* RE-POINTED 14 Oct 2026 (stage 5): the room's two right-hand columns
+       (#doc-right [data-doc-col]) are gone with the tab. On Home the signing
+       column is Jambo's Before you sign face (#pd-signface) and the Checks
+       column's twin is his Clauses tab (#pd-thread): the face shows, the
+       Clauses tab's body does not. */
     const cols = await page.evaluate(() => {
-      const out = {};
-      document.querySelectorAll('#doc-right [data-doc-col]').forEach(el => {
-        out[el.getAttribute('data-doc-col')] = getComputedStyle(el).display !== 'none';
-      });
-      return out;
+      const vis = el => !!el && getComputedStyle(el).display !== 'none' && el.getBoundingClientRect().width > 0;
+      return { sign: vis(document.querySelector('#pd-signface .pd-sf')), docs: vis(document.getElementById('pd-thread')) };
     });
     check('1d on Signing the signing column shows and the Checks column does not',
       cols.sign === true && cols.docs === false, JSON.stringify(cols));
@@ -230,11 +252,11 @@ const SHEET_TOP = `(() => {
     check('2c pressing Add places one spot', placed === 1, `${placed} spot(s)`);
 
     /* ================= 3 — THE MARK IS ON THE PAPER */
-    const spot = await seen(page, '#doc-canvas .sig-spot');
+    const spot = await seen(page, '#ig-canvas .sig-spot');
     check('3a the spot draws ON the sheet as visible pixels', !!(spot && spot.on),
       spot ? `${spot.w}x${spot.h}` : 'absent');
     const inClause = await page.evaluate(() => {
-      const el = document.querySelector('#doc-canvas .sig-spot');
+      const el = document.querySelector('#ig-canvas .sig-spot');
       if (!el) return null;
       /* It must sit AFTER the execution clause's last block and before any
          next clause — a mark between a heading and its own first line reads as
@@ -253,7 +275,7 @@ const SHEET_TOP = `(() => {
        a spot was placed on it. */
     const wordingSame = await page.evaluate(() => {
       const c = getContract(state.activeId);
-      const t = document.getElementById('doc-canvas').textContent.replace(/\s+/g, ' ');
+      const t = (document.getElementById('ig-canvas') || { textContent: '' }).textContent.replace(/\s+/g, ' ');
       return { has: t.includes('thirty (30) days'), stored: /thirty \(30\) days/.test(c.redlineText) };
     });
     check('3d the agreement’s own wording is untouched',
@@ -273,7 +295,7 @@ const SHEET_TOP = `(() => {
       const c = getContract(state.activeId);
       return { sigs: (c.signatures || []).length, status: c.status, hash: c.hash || null };
     });
-    await page.click('#doc-canvas .sig-spot');
+    await page.click('#ig-canvas .sig-spot');
     await page.waitForSelector('#sig-pad', { timeout: 8000 });
     check('4a0 pressing a spot opens the picker HaTi already has — never a second one',
       true, 'the signature pad');
@@ -289,7 +311,7 @@ const SHEET_TOP = `(() => {
       const c = getContract(state.activeId);
       return { sigs: (c.signatures || []).length, status: c.status, hash: c.hash || null,
         marked: !!(c.signSpots || [])[0].image,
-        img: !!document.querySelector('#doc-canvas .sig-spot img') };
+        img: !!document.querySelector('#ig-canvas .sig-spot img') };
     });
     check('4a the mark lands on the paper', afterSign.marked && afterSign.img,
       JSON.stringify(afterSign));
@@ -308,7 +330,7 @@ const SHEET_TOP = `(() => {
     });
     await page.waitForTimeout(600);
     const theirs = await page.evaluate(() => {
-      const el = document.querySelector('#doc-canvas .sig-spot.is-theirs');
+      const el = document.querySelector('#ig-canvas .sig-spot.is-theirs');
       if (!el) return null;
       const cs = getComputedStyle(el);
       return { tag: el.tagName, cursor: cs.cursor, on: el.getBoundingClientRect().height > 0 };
@@ -318,7 +340,13 @@ const SHEET_TOP = `(() => {
       theirs && theirs.tag !== 'BUTTON' && theirs.cursor !== 'pointer',
       theirs ? `${theirs.tag} / ${theirs.cursor}` : 'absent');
 
-    /* ================= 6 — THE WALK, PRESSED FOR REAL */
+    /* ================= 6 — THE WALK, PRESSED FOR REAL
+       RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the walk was
+       drawn on the room's tab row (#ws-tabrow-end), which went with the
+       Signing tab. On Home it is looked for wherever it is drawn — the room's
+       row, Home's paper line (#ig-strip) or the Before you sign face — and
+       every press is GUARDED, so a walk Home does not draw is reported here
+       rather than stopping the journey before sections 7 and 8. */
     await page.evaluate(() => {
       const c = getContract(state.activeId);
       signSpotAdd(c, 'cl_spa00002', 'r1', 'initials');
@@ -336,7 +364,7 @@ const SHEET_TOP = `(() => {
        and whether anything between it and that row is taken out of flow. */
     const walkFlow = await page.evaluate(() => {
       const el = document.getElementById('ws-walk'); if (!el) return null;
-      const row = document.getElementById('ws-tabrow-end');
+      const row = ['ws-tabrow-end', 'ig-strip', 'pd-signface'].map(id => document.getElementById(id)).find(r => r && r.contains(el));
       if (!row || !row.contains(el)) return { inRow: false };
       let n = el, pos = [];
       while (n && n !== row) { pos.push(getComputedStyle(n).position); n = n.parentElement; }
@@ -346,7 +374,7 @@ const SHEET_TOP = `(() => {
       !!(walkFlow && walkFlow.inRow && !walkFlow.pos.includes('fixed')
          && !walkFlow.pos.includes('absolute')), JSON.stringify(walkFlow));
 
-    const walkLabel = await page.$eval('#ws-walk', el => el.textContent.trim());
+    const walkLabel = await page.$eval('#ws-walk', el => el.textContent.trim()).catch(() => '(no walk drawn)');
     /* By this point one of the reader's two places is already marked, so the
        honest reading is "2 of 2" — the control says which of MINE is next, not
        how many are left. Asserted against the model's own arithmetic rather
@@ -369,7 +397,7 @@ const SHEET_TOP = `(() => {
       return { id: next.id, top: el ? Math.round(el.getBoundingClientRect().top) : null,
         onScreen: el ? (el.getBoundingClientRect().top > 0 && el.getBoundingClientRect().bottom < window.innerHeight) : null };
     });
-    await page.click('#ws-walk');
+    const walkPressed = await page.click('#ws-walk', { timeout: 3000 }).then(() => true).catch(() => false);
     await page.waitForTimeout(1200);
     const after = await page.evaluate(id => {
       const el = document.querySelector(`[data-sig-spot="${id}"]`);
@@ -379,7 +407,7 @@ const SHEET_TOP = `(() => {
         walking: el.classList.contains('is-walking') };
     }, before.id);
     check('6d pressing it brings the next place onto the screen',
-      !!(after && after.onScreen), `before top ${before.top} · after top ${after && after.top}`);
+      walkPressed && !!(after && after.onScreen), `${walkPressed ? '' : 'no walk to press · '}before top ${before.top} · after top ${after && after.top}`);
     check('6e and marks it, so the reader’s eye finds it',
       !!(after && after.walking), after ? String(after.walking) : 'absent');
 
@@ -410,7 +438,7 @@ const SHEET_TOP = `(() => {
     const doneLabel = await page.$eval('#ws-walk', el => el.textContent.trim()).catch(() => null);
     check('6f with none left the control names the signature block',
       !!doneLabel && !/1\s*(of|av)/.test(doneLabel), doneLabel);
-    await page.click('#ws-walk');
+    const lastPressed = await page.click('#ws-walk', { timeout: 3000 }).then(() => true).catch(() => false);
     await page.waitForTimeout(1200);
     const atBlock = await page.evaluate(() => {
       const b = document.getElementById('sign-btn');
@@ -419,7 +447,7 @@ const SHEET_TOP = `(() => {
       return { onScreen: r.top > -20 && r.top < window.innerHeight };
     });
     check('6g and the last press lands on it',
-      !!(atBlock && atBlock.onScreen), JSON.stringify(atBlock));
+      lastPressed && !!(atBlock && atBlock.onScreen), JSON.stringify({ pressed: lastPressed, ...(atBlock || {}) }));
 
     /* ================= 7 — THE REFUSAL */
     const refusal = await page.evaluate(() => {

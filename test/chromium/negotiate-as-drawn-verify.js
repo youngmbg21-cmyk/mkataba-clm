@@ -58,11 +58,20 @@ const LIVE = { ...H.fixtureContract('MK-N1', 'Raw Milk Collection', 'Nandi Dairy
       const R = e => { if (!e) return null; const b = e.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top)]; };
       return { t: R(t), l: R(l) };
     });
-    await page.evaluate(() => { const c = getContract('MK-N1'); roomGoTab(c, 'sign'); });
-    await page.waitForFunction(() => !!document.querySelector('#ws-tabs [data-ws-tab="sign"].on'), null, { timeout: 8000 }).catch(() => {});
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+       Signing tab is gone (roomGoTab(c, 'sign') opens Before you sign beside
+       Home's paper, which draws no room head); the room's head is measured on
+       the tab the room still draws, as openWorkspace landed it (the facts
+       strip sits UNDER the title and its line, so the pixels compared are the
+       same head's). */
+    await page.waitForFunction(() => !!document.querySelector('.room-head .room-name h1') && !!document.querySelector('.room-head .room-headsub'), null, { timeout: 8000 }).catch(() => {});
     await page.waitForTimeout(500);
     const docSpot = await spot();
-    await page.evaluate(() => openRedlineWorkbench('MK-N1'));
+    /* RE-POINTED 14 Oct 2026 (stage 5): every door now lands on Jambo's
+       Redlines face beside Home's paper, which has no head, control row or
+       key row; this file pins the Negotiate PAGE as drawn, so it opens the
+       page by name ({ page: true }), the engine the face is built from. */
+    await page.evaluate(() => openRedlineWorkbench('MK-N1', { page: true }));
     await page.waitForFunction(() => !!document.querySelector('#view-redline #ws-head .room-name h1'), null, { timeout: 10000 }).catch(() => {});
     await page.waitForTimeout(1200);
 
@@ -107,7 +116,7 @@ const LIVE = { ...H.fixtureContract('MK-N1', 'Raw Milk Collection', 'Nandi Dairy
     ok('2c the title row is white, like the Document tab\'s band', r.headBg === 'rgb(255, 255, 255)', r.headBg);
     console.log('\n3 · the quiet line');
     ok('3a it names no person — no Lead, no Owner', !/Lead|Owner/.test(r.sub) && /MK-N1/.test(r.sub), r.sub);
-    ok('3b the title and its line hold the room\'s pixels (its Signing tab)',
+    ok('3b the title and its line hold the room\'s pixels (the room\'s own head; its Signing tab went in stage 5)',
       !!docSpot.t && !!docSpot.l && JSON.stringify(docSpot) === JSON.stringify(negSpot),
       JSON.stringify({ docSpot, negSpot }));
     console.log('\n4 · the facts');

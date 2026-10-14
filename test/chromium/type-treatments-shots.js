@@ -87,9 +87,13 @@ const CROPS = [
   { key: 'kt-rows',    label: 'Key terms — the fact rows',
     go: async p => { await p.evaluate(() => { openWorkspace('MK-82'); roomGoTab(getContract('MK-82'), 'terms'); }); await pause(1000); },
     sel: '[data-kt-row]', rows: 5 },
+  /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the
+     Negotiate page folded into Home — openRedlineWorkbench lands on Jambo's
+     Redlines face (#pd-redface), which holds the page's own column
+     (#rl-changes-col and its cards); that is where a tracked change is read */
   { key: 'change-card', label: 'Negotiation — a tracked change',
     go: async p => { await p.evaluate(() => openRedlineWorkbench('MK-82'));
-                     await p.waitForSelector('#view-redline #rl-doc', { timeout: 10000 }); await pause(1000); },
+                     await p.waitForSelector('#pd-redface #rl-changes-col [data-rl-card], #pd-redface #rl-changes-col article', { timeout: 10000 }); await pause(1000); },
     sel: '#rl-changes-col [data-rl-card], #rl-changes-col article' },
   { key: 'room-head',  label: 'Contract room — the header facts',
     go: async p => { await p.evaluate(() => { openWorkspace('MK-82'); }); await pause(900); },

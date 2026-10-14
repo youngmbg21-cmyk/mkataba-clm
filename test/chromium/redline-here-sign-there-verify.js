@@ -130,15 +130,17 @@ const AGREED = [
     if (!(await page.evaluate(() => document.getElementById('up-cp').value))) await page.fill('#up-cp', 'Nordkust Industri AB');
     await page.click('#up-go');
     await page.waitForTimeout(2500);
-    /* A NEW UPLOAD OPENS "Complete the details" over its Details tab (owner,
-       12 Oct 2026): this stage saves and finishes later, as a person would. */
-    await page.waitForFunction(() => !!document.getElementById('cd-page'), null, { timeout: 4000 }).catch(() => {});
+    /* A NEW UPLOAD LANDS ON HOME'S PAPER WITH JAMBO'S PANEL ON FILL IN (the
+       one-page Home plan, stage 2; owner, 14 Oct 2026; was "Complete the
+       details" over the room's Details tab): this stage finishes later, as a
+       person would, and opens the room where it measures the room. */
+    await page.waitForFunction(() => !!document.getElementById('pd-fillface') || !!document.getElementById('cd-page'), null, { timeout: 4000 }).catch(() => {});
     await page.evaluate(() => { const b = document.getElementById('cd-later'); if (b) b.click(); });
     await page.waitForTimeout(400);
     const made = await page.evaluate(() => { const c = getContract(state.activeId);
-      return c ? { id: c.id, route: c.signRoute || '', no: c.contractNo || '', view: state.view } : null; });
+      return c ? { id: c.id, route: c.signRoute || '', no: c.contractNo || '', view: state.view, face: !!document.getElementById('pd-fillface') } : null; });
     check('1c it opens a working file with a working reference and no contract number yet',
-      made && /^RL-\d{3}$/.test(made.id) && made.route === 'outside' && !made.no && made.view === 'workspace', JSON.stringify(made));
+      made && /^RL-\d{3}$/.test(made.id) && made.route === 'outside' && !made.no && made.view === 'dashboard' && made.face, JSON.stringify(made));
     const RL = made && made.id;
 
     /* ===== 2. IT LIVES ON NEGOTIATIONS ===== */
@@ -162,21 +164,36 @@ const AGREED = [
     /* ===== 3. THE SIGNING TAB IS THE HANDOVER ===== */
     await page.evaluate(id => { openWorkspace(id); }, RL);
     await page.waitForTimeout(700);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+       Signing tab went home — roomGoTab(c,'sign') opens Jambo's Before you sign
+       face beside Home's paper, the same slots (#sign-block, #sign-wrap…)
+       filled by the same painter, and the paper beside it is Home's
+       (#ig-canvas), so the "Sign here" flags are counted there, not on the
+       room's retired #doc-canvas. */
     await page.evaluate(() => roomGoTab(getContract(state.activeId), 'sign'));
-    await page.waitForTimeout(900);
+    await page.waitForFunction(() => !!document.querySelector('#pd-signface #sign-block .ho-route') && !!document.getElementById('ig-canvas'),
+      null, { timeout: 10000 }).catch(() => {});
     const tab = await page.evaluate(() => ({
       card: !!document.querySelector('#sign-block .ho-route'),
-      flags: document.querySelectorAll('#doc-canvas [data-pg-flag]').length,
+      canvas: !!document.getElementById('ig-canvas'),
+      flags: document.querySelectorAll('#ig-canvas [data-pg-flag]').length,
       btn: (document.getElementById('ho-hand') || {}).textContent || '',
       sign: !!document.getElementById('sign-btn'),
-      head: ((document.getElementById('ws-next-action') || {}).textContent || '').trim(),
     }));
     await page.screenshot({ path: path.join(OUT, '3-signing-tab.png') });
     check('3a the Signing tab says who runs the signing', tab.card);
-    check('3b HaTi\'s page draws no "Sign here" on a file they sign', tab.flags === 0, `${tab.flags} flags`);
+    check('3b HaTi\'s page draws no "Sign here" on a file they sign', tab.canvas && tab.flags === 0, `${tab.flags} flags · paper ${tab.canvas}`);
     check('3c the one button is the handover, holding on the one list, and there is no Sign button',
       /Hand over/.test(tab.btn) && /to settle/.test(tab.btn) && !tab.sign, tab.btn.trim());
+    /* RE-POINTED 14 Oct 2026 (stage 5): Home's face draws no room head, so the
+       room's next step is read in the room itself (its head still carries
+       #ws-next-action), then the face is opened again for the handover. */
+    await page.evaluate(id => openWorkspace(id), RL);
+    await page.waitForFunction(() => state.view === 'workspace' && !!document.getElementById('ws-next-action'), null, { timeout: 8000 }).catch(() => {});
+    tab.head = await page.evaluate(() => ((document.getElementById('ws-next-action') || {}).textContent || '').trim());
     check('3d the room\'s next step says the same', /Hand over/.test(tab.head), tab.head);
+    await page.evaluate(() => roomGoTab(getContract(state.activeId), 'sign'));
+    await page.waitForFunction(() => !!document.querySelector('#pd-signface #ho-hand'), null, { timeout: 10000 }).catch(() => {});
 
     /* ===== 4. AGREE AND HAND OVER ===== */
     const staged = await stageReady();
@@ -208,9 +225,15 @@ const AGREED = [
       !!d && bytes.slice(0, 2).toString() === 'PK' && new RegExp(RL + '-agreed\\.docx').test(d.suggestedFilename()), d ? d.suggestedFilename() : 'no download');
     const out = await page.evaluate(() => { const c = getContract(state.activeId);
       return { ho: !!(c.handover && c.handover.at), frozen: !!(window.negoWordingFrozen && negoWordingFrozen(c)),
-        start: window.negoMayStart ? negoMayStart(c).why : '', status: (document.querySelector('.room-head') || {}).innerText || '',
+        start: window.negoMayStart ? negoMayStart(c).why : '',
         card: !!document.getElementById('ho-wait'), file: !!document.getElementById('ho-file') }; });
     await page.screenshot({ path: path.join(OUT, '4-out.png') });
+    /* RE-POINTED 14 Oct 2026 (stage 5): the handover is pressed on Home's
+       Before you sign face, which draws no room head; the status word beside
+       the days is the room head's, so it is read in the room. */
+    await page.evaluate(id => openWorkspace(id), RL);
+    await page.waitForFunction(() => state.view === 'workspace' && !!document.querySelector('.room-head'), null, { timeout: 8000 }).catch(() => {});
+    out.status = await page.evaluate(() => (document.querySelector('.room-head') || {}).innerText || '');
     check('4c it is out with them: the status word says so, beside the days', /With them for signature/.test(out.status), out.status.split('\n').slice(0, 3).join(' | '));
     check('4d the words lock — the negotiation will not take a change', out.frozen && out.start === 'handover', JSON.stringify({ frozen: out.frozen, start: out.start }));
     check('4e the waiting card stands where the list stood, and the one button is filing the signed copy', out.card && out.file);
@@ -255,6 +278,12 @@ const AGREED = [
     if (fileBtn) { await fileBtn.click(); await page.waitForTimeout(3000); }
     await page.evaluate(() => { const b = [...document.querySelectorAll('#modal-root button')].find(x => /cancel/i.test(x.textContent)); if (b) b.click(); });
     await page.waitForTimeout(500);
+    /* RE-POINTED 14 Oct 2026 (stage 5): filing the signed copy now leaves the
+       reader on Home (the Signing tab went home), where there is no room head
+       or room breadcrumb; the claims below are about the ROOM's head, its
+       breadcrumb and its shell bar, so the room is opened to read them. */
+    await page.evaluate(id => openWorkspace(id), RL);
+    await page.waitForFunction(() => state.view === 'workspace' && !!document.querySelector('.room-crumb-here'), null, { timeout: 8000 }).catch(() => {});
     const filed = await page.evaluate(() => { const c = getContract(state.activeId);
       return { id: c.id, no: c.contractNo || '', status: c.status, sub: ((document.querySelector('.room-sub-id') || {}).textContent || '').trim(),
         crumb: ((document.getElementById('shell-title') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
@@ -330,13 +359,15 @@ const AGREED = [
     await page.fill('#up-cp', 'Kijani Foods Ltd');
     await page.click('#up-go');
     await page.waitForTimeout(2500);
-    /* A NEW UPLOAD OPENS "Complete the details" over its Details tab (owner,
-       12 Oct 2026): this stage saves and finishes later, as a person would. */
-    await page.waitForFunction(() => !!document.getElementById('cd-page'), null, { timeout: 4000 }).catch(() => {});
+    /* A NEW UPLOAD LANDS ON HOME'S PAPER WITH JAMBO'S PANEL ON FILL IN (the
+       one-page Home plan, stage 2; owner, 14 Oct 2026; was "Complete the
+       details" over the room's Details tab): this stage finishes later, as a
+       person would, and opens the room where it measures the room. */
+    await page.waitForFunction(() => !!document.getElementById('pd-fillface') || !!document.getElementById('cd-page'), null, { timeout: 4000 }).catch(() => {});
     await page.evaluate(() => { const b = document.getElementById('cd-later'); if (b) b.click(); });
     await page.waitForTimeout(400);
     const RL2 = await page.evaluate(() => { const c = getContract(state.activeId); return c && c.signRoute === 'outside' ? c.id : ''; });
-    await page.evaluate(() => roomGoTab(getContract(state.activeId), 'sign'));
+    await page.evaluate(() => { openWorkspace(state.activeId); roomGoTab(getContract(state.activeId), 'sign'); });
     await page.waitForTimeout(700);
     const staged2 = await stageReady();
     check('8 · stage: a second working file, its list settled', /^RL-\d{3}$/.test(RL2) && RL2 !== RL && staged2.ok && staged2.n === 0, JSON.stringify({ RL2, staged2 }));

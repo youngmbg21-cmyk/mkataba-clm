@@ -97,15 +97,18 @@ describe('F184 (1) — Negotiate is a place and not a tab in the room', () => {
        claim was about is their ORDER relative to each other, which is
        unchanged — and the Overview still leads, which is what roomOpenOnTerms
        lands on. */
-    /* Details leads since 12 Oct 2026 (owner), the Overview right after it. */
-    assert.equal(keys[0], 'details', 'Details leads, and the landing with it');
-    assert.equal(keys[1], 'terms', 'the Overview right after it');
-    const ix = k => keys.indexOf(k);
+    /* RE-POINTED 14 OCT 2026 (the one-page Home plan, stage 5; the owner's yes
+       to decision 2): Details, Signing, Obligations and History went home, so
+       the room is the Overview, then Where we are. Each of the four still
+       routes — ROOM_TABS_HOME names its twin on Home. */
+    assert.equal(keys[0], 'terms', 'the Overview leads, and the landing with it');
+    assert.equal(keys[1], 'stands', 'Where we are right after it');
     /* the Document tab went 11 Oct 2026 (owner); its use is Home's Document */
     assert.ok(!keys.includes('docs'), 'no Document tab');
-    assert.ok(ix('terms') < ix('sign') && ix('sign') < ix('history'),
-      'and the tabs that were always here are still in the order a contract\'s life runs in');
-    assert.ok(keys.includes('history'), 'the trail is still one of them');
+    for (const k of ['details', 'sign', 'oblig', 'history']){
+      assert.ok(!keys.includes(k), k + ' went home');
+      assert.ok(w.win.ROOM_TABS_HOME[k], k + ' routes to its twin on Home');
+    }
   });
 
   test('the row draws one button per tab, and no Negotiate tab', () => {
@@ -670,7 +673,9 @@ describe('F184 (4) — the way in, and the only way out', () => {
       'a fresh draft must still have a door into its own negotiation');
     theirAsk(c, 'CHG-1');
     const running = b.win.wsTabRowEndHtml(c);
-    assert.match(running, /Open Negotiate/);
+    /* RE-WORDED 14 Oct 2026 (the one-page Home plan, stage 6): the door opens
+       the redlines beside Home's paper, and says so — "Open the redlines". */
+    assert.match(running, /Open the redlines/);
     assert.match(running, /1 waiting/, 'and it says what is owed before you press it');
     assert.match(running, /ws-to-nego-due/, 'marked as owed, not merely available');
   });

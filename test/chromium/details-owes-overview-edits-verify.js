@@ -73,12 +73,18 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
     await page.evaluate(() => closeModal());
 
     /* ===== 3. DETAILS: ONLY WHAT THE PAPER OWES ===== */
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+       Details tab went home — the same door opens Jambo's Fill in face beside
+       Home's paper; its root .pd-ff[data-pd-ff="MK-DO1"] is the old
+       [data-doc-col="details"] column, its #pd-fill the old #tplform-section.
+       Waited for by THIS contract's id: the last contract's face can still be
+       up for a beat. */
     await page.evaluate(() => { openWorkspace('MK-DO1'); roomGoTab(getContract('MK-DO1'), 'details'); });
-    await until(() => !!document.querySelector('#det-basics [data-cd-key]'));
+    await until(() => !!document.querySelector('#pd-fillface .pd-ff[data-pd-ff="MK-DO1"] #det-basics [data-cd-key]'));
     const det = await page.evaluate(() => ({
       keys: [...document.querySelectorAll('#det-basics [data-cd-key]')].map(e => e.getAttribute('data-cd-key')),
-      fold: !!document.querySelector('[data-doc-col="details"] details'), more: !!document.getElementById('det-more'),
-      parties: !!document.querySelector('[data-doc-col="details"] #ov-parties'), q: !!document.querySelector('#tplform-section [data-tplf]') }));
+      fold: !!document.querySelector('.pd-ff[data-pd-ff="MK-DO1"] details'), more: !!document.getElementById('det-more'),
+      parties: !!document.querySelector('.pd-ff[data-pd-ff="MK-DO1"] #ov-parties'), q: !!document.querySelector('#pd-fill [data-tplf]') }));
     await page.screenshot({ path: path.join(OUT, '02-details.png') });
     check('3a Details asks only who we are, the other party, the value and the start date',
       JSON.stringify(det.keys) === JSON.stringify(['party', 'counterparty', 'value', 'effDate']), JSON.stringify(det.keys));
@@ -97,7 +103,9 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
     await page.fill(cp, 'Nordic Bites AB'); await page.press(cp, 'Tab'); await pause(300);
 
     /* ===== 4. THE OVERVIEW EDITS AGAIN ===== */
-    await page.evaluate(() => roomGoTab(getContract('MK-DO1'), 'terms'));
+    /* RE-POINTED 14 Oct 2026 (stage 5): Details is on Home now, so the
+       Overview is reached by opening the room first, then its tab */
+    await page.evaluate(() => { openWorkspace('MK-DO1'); roomGoTab(getContract('MK-DO1'), 'terms'); });
     await until(() => !!document.querySelector('#kt-ov-terms #ov-ess'));
     const ov = await page.evaluate(() => ({ edit: !!document.querySelector('#kt-ov-terms [data-ov-edit="all"]'),
       add: !!document.querySelector('#kt-ov-terms [data-py-add]'), door: !!document.querySelector('#kt-ov-terms [data-ov-go-details]'),

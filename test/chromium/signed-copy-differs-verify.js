@@ -92,10 +92,12 @@ const signedOf = (cp, signer) => [
       await page.fill('#up-cp', cp);
       await page.click('#up-go');
       await page.waitForTimeout(2500);
-      /* A NEW UPLOAD OPENS "Complete the details" over its Details tab (owner,
-         12 Oct 2026); this stage answers through the record, so it saves and
-         finishes later, as a person would. */
-      await page.waitForFunction(() => !!document.getElementById('cd-page'), null, { timeout: 4000 }).catch(() => {});
+      /* A NEW UPLOAD LANDS ON HOME'S PAPER WITH JAMBO'S PANEL ON FILL IN (the
+         one-page Home plan, stage 2; owner, 14 Oct 2026; was "Complete the
+         details" over the room's Details tab); this stage answers through the
+         record, finishes later, as a person would, and opens the room for its
+         Signing tab. */
+      await page.waitForFunction(() => !!document.getElementById('pd-fillface') || !!document.getElementById('cd-page'), null, { timeout: 4000 }).catch(() => {});
       await page.evaluate(() => { const b = document.getElementById('cd-later'); if (b) b.click(); });
       await page.waitForTimeout(400);
       const staged = await page.evaluate(async () => {
@@ -111,6 +113,7 @@ const signedOf = (cp, signer) => [
           c.playbook = { label: 'Default', wordingHash: hash, verdicts: [] };
           c.obligationsReadHash = hash; c.signCheck = { at: new Date().toISOString(), wordingHash: hash };
           persist(c); await flushSaves();
+          if (state.view !== 'workspace') openWorkspace(c.id);
           renderWorkspace();
           await new Promise(r => setTimeout(r, 300));
           roomGoTab(c, 'sign');
@@ -204,11 +207,33 @@ const signedOf = (cp, signer) => [
     /* THE DUTIES ARE READ OFF THE SIGNED COPY (FIXED 10 Oct 2026, BUGLOG 10
        Oct): the suggestions that open after filing quoted the agreed "thirty
        days" while the signed copy of record says sixty. */
-    const duties = await page.waitForFunction(() => { const d = document.querySelector('.obd'); return d ? d.innerText.replace(/\s+/g, ' ') : ''; },
-      null, { timeout: 15000 }).then(x => x.jsonValue()).catch(() => '');
+    /* RE-POINTED 14 Oct 2026 (stage 5, see 5d): the wait also stops on the
+       obligations scan's own toast, so what the page said instead is caught
+       while it is still on screen. */
+    const toastNow = () => page.evaluate(() => [...document.querySelectorAll('#toast-root *')]
+      .filter(e => !e.children.length).map(e => e.textContent.trim()).filter(Boolean).join(' · '));
+    await page.waitForFunction(() => !!document.querySelector('.obd')
+      || /obligations scan/i.test((document.getElementById('toast-root') || {}).textContent || ''), null, { timeout: 15000 }).catch(() => {});
+    const duties = await page.evaluate(() => { const d = document.querySelector('.obd'); return d ? d.innerText.replace(/\s+/g, ' ') : ''; });
     await page.screenshot({ path: path.join(OUT, '5-duties.png') });
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the filing is
+       now pressed on Jambo's Before you sign face on Home (the room's Signing
+       tab went home), with this very contract on Home's paper. The claim is
+       unchanged — the suggestions open after filing and quote the signed copy
+       — so the waiting toast is said in the detail when they do not open. */
+    const toastSaid = duties ? '' : await toastNow();
     check('5d the duties suggested after filing quote the signed copy — sixty days — never the agreed thirty',
-      /sixty days/i.test(duties) && !/thirty days/i.test(duties), duties.slice(0, 220));
+      /sixty days/i.test(duties) && !/thirty days/i.test(duties), duties ? duties.slice(0, 220) : `no suggestions opened · view ${await page.evaluate(() => state.view)} · toast: ${toastSaid}`);
+    /* AND WHAT THEY QUOTE, through the way forward the page offered: when the
+       suggestions did not open by themselves, the toast's own Open is pressed
+       and the same reading is asked of what it opens. */
+    if (!duties) {
+      await page.evaluate(() => { const b = [...document.querySelectorAll('#toast-root button')].find(x => /^open/i.test(x.textContent.trim())); if (b) b.click(); });
+      const viaToast = await page.waitForFunction(() => { const d = document.querySelector('.obd'); return d ? d.innerText.replace(/\s+/g, ' ') : ''; },
+        null, { timeout: 10000 }).then(x => x.jsonValue()).catch(() => '');
+      check('5d2 opened from the toast, the suggestions quote the signed copy — sixty days — never the agreed thirty',
+        /sixty days/i.test(viaToast) && !/thirty days/i.test(viaToast), viaToast.slice(0, 220));
+    }
     await page.waitForTimeout(500);
     await page.evaluate(() => { const b = [...document.querySelectorAll('#modal-root button')].find(x => /^(cancel|close)$/i.test(x.textContent.trim())); if (b) b.click(); });
     await page.waitForTimeout(500);

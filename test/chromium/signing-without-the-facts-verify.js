@@ -132,8 +132,13 @@ const readRow = page => page.evaluate(() => {
     check('1f pressing Sign signs nothing and opens no signature pad', after.sigs === before && !after.pad, JSON.stringify(after));
 
     /* ===== 2. THE OVERVIEW MARKS THE ONE BOX IT OWNS ===== */
-    await page.evaluate(() => { roomGoTab(getContract('MK-A2'), 'terms'); });
-    await page.waitForTimeout(900);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the Signing
+       tab went home, so section 1 was read on Jambo's Before you sign face on
+       Home and the room is not on screen; roomGoTab only switches a room that
+       is drawn. The Overview is opened through roomOpenAt, the door "open
+       this contract on that tab, from anywhere". */
+    await page.evaluate(() => { roomOpenAt('MK-A2', 'terms'); });
+    await page.waitForFunction(() => state.view === 'workspace' && !!document.querySelector('.sec-fields .sec-f'), null, { timeout: 8000 }).catch(() => {});
     const ov = await page.evaluate(() => {
       const cells = [...document.querySelectorAll('.sec-fields .sec-f')];
       /* The eight-terms Overview (8 Oct 2026) carries the start date in the
@@ -148,10 +153,24 @@ const readRow = page => page.evaluate(() => {
     check('2a the Overview\'s Effective cell says it is needed to sign', ov.eff && ov.hold && /needed to sign/i.test(ov.note), JSON.stringify(ov));
     check('2b and its hover names the boxes the signature waits on', /Start date/.test(ov.title), ov.title);
     await page.evaluate(() => { const b = document.querySelector('.sec-f-n.is-hold[data-ov-fix="effDate"]'); if (b) b.click(); });
-    await page.waitForTimeout(1600);
-    const landed = await page.evaluate(() => { const a = document.activeElement;
-      return { key: a && a.getAttribute && a.getAttribute('data-kt'), type: a && a.type }; });
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): a box the Fill
+       in face asks is landed on THERE, beside Home's paper (focusKeyTerms →
+       pdFillOpen), and its date box wears HaTi's own date face (datePickDress:
+       the box is hidden and its face, drawn right after it, takes the cursor —
+       inp.focus() is the face's). So the box the cursor is in is the focused
+       element's, or, on a date face, the dressed box it stands for. */
+    const boxOfFocus = () => page.evaluate(() => { const a = document.activeElement;
+      const box = a && a.classList && a.classList.contains('dp-face') && a.previousElementSibling && a.previousElementSibling.matches('input') ? a.previousElementSibling : a;
+      return { key: box && box.getAttribute && box.getAttribute('data-kt'), blank: box && box.getAttribute && (box.getAttribute('data-blankf') || box.getAttribute('data-field') || ''),
+        type: box && box.type, face: !!(a && a.classList && a.classList.contains('dp-face')),
+        inPanel: !!(a && a.closest && a.closest('#tplform-section, #pd-fill')), fill: !!(window.pdFillShows && pdFillShows()) }; });
+    await page.waitForFunction(() => { const a = document.activeElement; return !!(a && a.matches && a.matches('.dp-face, [data-kt]')); },
+      null, { timeout: 8000 }).catch(() => {});
+    const landed = await boxOfFocus();
     check('2c the mark is a door: it lands the cursor in the Effective date box', landed.key === 'effDate', JSON.stringify(landed));
+    /* RE-POINTED 14 Oct 2026 (stage 5): the box typed into is the one the mark
+       landed on — the Fill in face's own [data-kt="effDate"] — the record's
+       one box, which the Overview reads back. */
     await page.evaluate(() => {
       const el = document.querySelector('[data-kt="effDate"]');
       if (el) { el.value = '2026-10-01'; el.dispatchEvent(new Event('change', { bubbles: true })); }
@@ -186,10 +205,14 @@ const readRow = page => page.evaluate(() => {
     r = await readRow(page);
     check('3a in Draft the row\'s door is the fill panel', draft && r.acts.length === 1 && r.acts[0] === 'Fill them in', JSON.stringify(r.acts));
     await page.evaluate(() => { const b = document.querySelector('#sign-check [data-sc-row="bl:blanks"] [data-sc-blanks]'); if (b) b.click(); });
-    await page.waitForTimeout(1200);
-    const focus = await page.evaluate(() => { const a = document.activeElement;
-      return { inPanel: !!(a && a.closest && a.closest('#tplform-section')), key: a && a.getAttribute && (a.getAttribute('data-blankf') || a.getAttribute('data-field') || ''),
-        tab: (document.querySelector('#ws-tabs .on, #ws-tabs [aria-selected="true"]') || {}).textContent || '' }; });
+    /* RE-POINTED 14 Oct 2026 (stage 5): the Details tab went home — its twin is
+       Jambo's Fill in face beside Home's paper (#pd-fillface), whose form
+       holds the paper's questions in #pd-fill; the "tab" is that face. */
+    await page.waitForFunction(() => { const a = document.activeElement;
+      return !!(a && a.closest && a.closest('#tplform-section, #pd-fill')); }, null, { timeout: 8000 }).catch(() => {});
+    const fb = await boxOfFocus();
+    const focus = { inPanel: fb.inPanel, key: fb.blank, face: fb.face,
+      tab: fb.fill ? 'Fill in' : await page.evaluate(() => (document.querySelector('#ws-tabs .on, #ws-tabs [aria-selected="true"]') || {}).textContent || '') };
     /* RE-POINTED 12 Oct 2026: the form is the room's Details tab (owner). */
     check('3b pressing it lands on the Details tab, with the cursor in the first empty box', focus.inPanel && focus.key === 'effDate', JSON.stringify(focus));
     await page.evaluate(() => openShareModal(getContract('MK-A2')));
@@ -269,7 +292,8 @@ const readRow = page => page.evaluate(() => {
     await page.waitForTimeout(1800);
     const filed = await page.evaluate(() => { const c = state.contracts[0];
       return { id: c.id, eff: (c.fields || {}).effDate || '', exp: c.expiry || '' }; });
-    await page.evaluate(() => { roomGoTab(getContract(state.contracts[0].id), 'terms'); });
+    /* the upload lands beside the paper on Home now (stage 2, 14 Oct 2026): the room is opened here */
+    await page.evaluate(() => { openWorkspace(state.contracts[0].id); roomGoTab(getContract(state.contracts[0].id), 'terms'); });
     await page.waitForTimeout(900);
     const effCell = await page.evaluate(() => {
       const all = [...document.querySelectorAll('.sec-fields .sec-f')];

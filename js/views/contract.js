@@ -3080,6 +3080,18 @@ function docSignPaperParts(b){
 const _docAsAmended=new Set();
 function docAsAmendedOn(c){ return !!(c&&_docAsAmended.has(c.id)&&window.asAmendedItems&&asAmendedItems(c).length); }
 function docAsAmendedSet(c,on){ if(!c) return; if(on) _docAsAmended.add(c.id); else _docAsAmended.delete(c.id); docRepaintSheet(c); wsPaintTabRowEnd(c); }
+/* A COMPANY TEMPLATE'S ANSWERS SHOW ON THE PAPER AS THEY ARE TYPED (the
+   one-page Home plan, stage 2; the owner's yes on 14 Oct 2026, keeping 7
+   Oct's rule): while Fill the document is owed (tplFormPending) the WORKING
+   copy draws the wording the answers would make; the stored wording changes
+   only on that press (tplFormApply). Display only: the signing copy, the
+   exports and every reading keep c.redlineText. */
+function docWorkPreviewOf(c){
+  try{
+    if(!c||!c.templateForm||typeof tplFormPending!=='function'||!tplFormPending(c)||typeof templateFormDocHtml!=='function') return c;
+    return Object.assign({}, c, { redlineText: templateFormDocHtml(c.templateForm) });
+  }catch(_){ return c; }
+}
 function docSheetHtml(c, o){
   o=o||{};
   if(docAsAmendedOn(c) && window.asAmendedHtml){
@@ -3095,7 +3107,8 @@ function docSheetHtml(c, o){
        Counter review, change 5): a Draft's blanks are filled from the side
        panel's form, which lists them; the paper shows the answers
        (docPaperAnswersHtml) and a press on one goes to its box in the panel. */
-    const body=(!o.readOnly&&docFillable(c))?docPaperAnswersHtml(docBody(c)):readOnlyDocHtml(docBody(c),{ open:c.status==='Draft' });
+    const src=docWorkPreviewOf(c);
+    const body=(!o.readOnly&&docFillable(c))?docPaperAnswersHtml(docBody(src)):readOnlyDocHtml(docBody(src),{ open:c.status==='Draft' });
     const accent=(b&&window.docDesignPaperStyle)?((docDesignPaperStyle(b).match(/--doc-design-accent:[^;]*;/)||[''])[0]):'';
     /* The design's TYPEFACE comes (docDesignBodyAttr); its structure and its
        page decorations do not — the working copy looks the same whatever the
@@ -3240,6 +3253,10 @@ function docSheetSig(c){
 }
 function docRepaintSheet(c){
   const host=document.getElementById('doc-sheet-host');
+  /* NO ROOM SHEET, AND THE SIGNING COPY IS ON HOME'S PAPER (the one-page Home
+     plan, stage 5): a signature, a seal or a mark changed what is drawn there,
+     so Home's paper is drawn again — the same moment the room's sheet was */
+  if(!host&&c&&window.pdSignFor&&pdSignFor()===String(c.id)&&window.igPaperRefresh){ try{ igPaperRefresh(); }catch(_){} return; }
   if(!host||!c) return;
   const old=host.querySelector('.pg-sheet');
   if(old&&window.pagesUnwatch) pagesUnwatch(old);
@@ -3278,6 +3295,16 @@ function docPaginate(c){
    a page fits the column, never above 100%; the reader's own choice is kept in
    this browser. */
 const SC_ZOOMS=[0.5,0.67,0.75,0.9,1,1.1,1.25,1.5,1.75,2];
+/* WHERE THE SIGNING COPY IS DRAWN: the room's sheet (#doc-signwrap in
+   #doc-scroll) or, since stage 5 of the one-page Home plan, Home's paper
+   beside Jambo's Before you sign face (#ig-signwrap in #ig-paper-scroll).
+   One view draws at a time, so at most one of the two is on the page. */
+function scEls(){
+  const room=document.getElementById('doc-signwrap');
+  const wrap=room||document.getElementById('ig-signwrap');
+  const sc=document.getElementById(room?'doc-scroll':'ig-paper-scroll');
+  return { wrap, sc, sheet: wrap?wrap.querySelector('.pg-sheet'):null };
+}
 const SC_ZOOM_KEY='hati.v1.signZoom';
 function scZoomPref(){
   let v=null; try{ v=(typeof lsGet==='function')?lsGet(SC_ZOOM_KEY):localStorage.getItem(SC_ZOOM_KEY); }catch(_){ v=null; }
@@ -3288,16 +3315,14 @@ function scZoomSet(v){
   try{ if(typeof lsSet==='function') lsSet(SC_ZOOM_KEY,v); else localStorage.setItem(SC_ZOOM_KEY,String(v)); }catch(_){}
 }
 function scZoomFit(){
-  const col=document.getElementById('doc-scroll');
-  const sh=document.querySelector('#doc-signwrap .pg-sheet');
+  const { sc:col, sheet:sh }=scEls();
   const W=(sh&&sh.offsetWidth)||window.PG_SIGN_W||794;
   const avail=col?Math.max(200,col.clientWidth-28):W;
   return Math.max(0.4,Math.min(1,avail/W));
 }
 function scZoomNow(){ const p=scZoomPref(); return p==='fit'?scZoomFit():p; }
 function scApplyZoom(){
-  const wrap=document.getElementById('doc-signwrap');
-  const sheet=wrap&&wrap.querySelector('.pg-sheet');
+  const { wrap, sheet, sc:col0 }=scEls();
   if(!sheet) return;
   const z=scZoomNow();
   sheet.style.transform=Math.abs(z-1)<0.001?'':`scale(${z})`;
@@ -3305,8 +3330,11 @@ function scApplyZoom(){
   wrap.style.height=(sheet.offsetHeight*z)+'px';
   const out=document.getElementById('sc-zoom-out');
   if(out) out.textContent=Math.round(z*100)+'%';
+  /* the zoom corner stands on the sheet's edge, so it is placed again when
+     the sheet's size moves (paperZcFit) */
+  if(typeof window.paperZcFit==='function') try{ paperZcFit(); }catch(_){ }
   if(!wrap._scFitWatch&&typeof ResizeObserver==='function'){
-    const col=document.getElementById('doc-scroll');
+    const col=col0;
     if(col){
       let t=0;
       wrap._scFitWatch=new ResizeObserver(()=>{ if(t) clearTimeout(t); t=setTimeout(()=>{ if(!wrap.isConnected){ try{ wrap._scFitWatch.disconnect(); }catch(_){} return; } if(scZoomPref()==='fit') scApplyZoom(); },80); });
@@ -3325,19 +3353,18 @@ function scZoomStep(dir){
 }
 /* "Page 2 of 6" follows the reading. */
 function scPaintPage(){
-  const sheet=document.querySelector('#doc-signwrap .pg-sheet');
+  const { sheet, sc }=scEls();
   const out=document.getElementById('sc-page-out');
   if(!sheet||!out||!window.pagesAtView) return;
   const info=sheet._pgInfo; if(!info) return;
-  const at=pagesAtView(sheet,document.getElementById('doc-scroll'));
+  const at=pagesAtView(sheet,sc);
   out.textContent=window.pagesNumberLabel?pagesNumberLabel(at,info.n):`${at} / ${info.n}`;
   const prev=document.getElementById('sc-page-prev'), next=document.getElementById('sc-page-next');
   if(prev) prev.disabled=at<=1;
   if(next) next.disabled=at>=info.n;
 }
 function scPageGo(dir){
-  const sheet=document.querySelector('#doc-signwrap .pg-sheet');
-  const sc=document.getElementById('doc-scroll');
+  const { sheet, sc }=scEls();
   if(!sheet||!sc||!window.pagesGoTo) return;
   const at=pagesAtView(sheet,sc);
   pagesGoTo(sheet,sc,at+dir);
@@ -3368,7 +3395,7 @@ function scWireControls(host){
   if(!host) return;
   host.querySelectorAll('[data-sc-zoom]').forEach(b=>b.addEventListener('click',()=>scZoomStep(Number(b.getAttribute('data-sc-zoom'))||0)));
   host.querySelectorAll('[data-sc-page]').forEach(b=>b.addEventListener('click',()=>scPageGo(Number(b.getAttribute('data-sc-page'))||0)));
-  const sc=document.getElementById('doc-scroll');
+  const { sc }=scEls();
   if(sc&&!sc._scPageBound){
     sc._scPageBound=true;
     let raf=0;
@@ -4486,14 +4513,24 @@ const KT_FIELD_HOME = {
 function focusKeyTerms(c, field){
   const home = KT_FIELD_HOME[String(field||'')] || KT_FIELD_HOME.counterparty;
   const key = OV_KEY(c, home.sec);
+  /* ---- DETAILS WENT HOME (the one-page Home plan, stage 5) ---- a box the
+     Fill in face asks (who we are, the other party, the value, the start) is
+     landed on there, beside the paper; every other box is the Overview's
+     Edit, in the room. */
+  if(window.pdFillOpen&&!(typeof window!=='undefined'&&window.innerWidth&&window.innerWidth<768)){
+    let asks=false; try{ const d=detailsOf(c); asks=!!(d.live&&d.items.some(x=>x.kind==='kt'&&x.key===home.kt)); }catch(_){ asks=false; }
+    if(asks){ pdFillOpen(c.id,{ key:home.kt }); return; }
+  }
   /* Posture BEFORE the tab change: both are plain in-memory reads that the
      next paint obeys, so the reader sees one render rather than a grid that
      flips into boxes under their eyes. */
   try{ if(window.sectionSetOpen) sectionSetOpen(key, true); }catch(_){}
   try{ ovSetEditing(key, true); }catch(_){}
-  /* EVERY FIELD IS FILLED IN ON DETAILS (owner, 12 Oct 2026) — the Overview
-     reads; the signing list's "Fix" lands on the box there. */
-  roomGoTab(c,'details');
+  /* EVERY FIELD WAS FILLED IN ON DETAILS (owner, 12 Oct 2026); since stage 5
+     the boxes Fill in does not ask are the Overview's Edit (the posture set
+     above), in the room — opened first where the reader is elsewhere. */
+  if(!(state.view==='workspace'&&String(state.activeId)===String(c.id))&&window.openWorkspace) openWorkspace(c.id);
+  roomGoTab(c,'terms');
   /* AND THE POSTURE HAS TO BE PAINTED, THEN WAITED FOR. Measured in a browser,
      twice:
        · setting the two flags is not enough — `roomGoTab` is a NO-OP when the
@@ -4565,6 +4602,10 @@ function focusKeyTerms(c, field){
 function ovOpenFiling(c){
   if(!c) return;
   ovSetEditing(OV_KEY(c,'record'), true);
+  /* the More menu stands over Home's paper too since stage 5 of the one-page
+     Home plan: the filing rows are the Overview's, so the room is opened
+     first where the reader is elsewhere (the posture above is drawn by it) */
+  if(!(state.view==='workspace'&&String(state.activeId)===String(c.id))&&window.openWorkspace) openWorkspace(c.id);
   roomGoTab(c,'terms');
   let tries=0;
   const land=()=>{ const sec=document.getElementById('ov-record');
@@ -4636,7 +4677,33 @@ let _wsTabWant=null;
    there is no single funnel for creation the way negoFileChange is for changes,
    and a flag set in one of them is a flag the other five never set. */
 const _wsNewDrafts=new Set();
-function roomOpenOnTerms(id){ if(id) _wsNewDrafts.add(String(id)); }
+const _wsNewAt=new Map();      /* when each was registered: "just made" is a minute, not forever */
+const ROOM_ARRIVE_MS=60000;
+function roomOpenOnTerms(id){ if(id){ _wsNewDrafts.add(String(id)); _wsNewAt.set(String(id), Date.now()); } }
+/* ---- …AND NOW IT LANDS ON HOME'S DOCUMENT, THE PANEL ON FILL IN (the
+   one-page Home plan, stage 2; the owner picked "Form" by name on 14 Oct 2026
+   and said yes to "drafts and uploads alike") ----
+   setView('workspace') asks this first, so all seven creation sites land the
+   same way without a second registration: the paper on Home, Jambo's panel on
+   its Fill in face while something is owed. Spent once, like the flag above.
+   An executed import and the phone keep the room (the phone draws its own
+   Details page). REVERSES 12 Oct's "a new contract lands on Details with
+   Complete the details over it"; that page is still the Details tab's own. */
+function roomArrivesOnHome(id){
+  const k=String(id==null?'':id);
+  if(!k||!_wsNewDrafts.has(k)) return false;
+  /* JUST MADE, NOT MADE ONCE: a bulk import registers every row it files, and
+     one of them opened next week keeps the room as before */
+  if(!(Date.now()-(_wsNewAt.get(k)||0)<=ROOM_ARRIVE_MS)) return false;
+  if(typeof window!=='undefined'&&((window.mPhone&&mPhone())||(window.innerWidth&&window.innerWidth<768))) return false;
+  if(typeof pdOpenOnHome!=='function'||typeof pdFillOpen!=='function') return false;
+  const c=getContract(k); if(!c) return false;
+  if((typeof negoExecuted==='function')?negoExecuted(c):(c.status==='Signed')) return false;
+  _wsNewDrafts.delete(k); _wsNewAt.delete(k);
+  let owed=false; try{ owed=!!detailsOf(c).left; }catch(_){ owed=false; }
+  const may=(typeof canEdit!=='function')||canEdit();
+  return (owed&&may)?!!pdFillOpen(k):!!pdOpenOnHome(k,'copilot');
+}
 /* ---- A RENEWAL IS DECIDED ON TODAY'S READING (Young, 27 Sep 2026) ----
    *"when you click on decide and it takes you to the overview page, the 5
    checks … should run all over again so that you can see what they say before
@@ -4770,15 +4837,11 @@ const ROOM_TABS=[
      commercial terms alone. The PHONE still draws `tab_key_terms` and its own
      one-column Key terms tab: it was left alone on purpose, and this is a
      desktop RENDERER, so nothing here reaches it. */
-  /* ---- DETAILS IS FIRST (owner, 12 Oct 2026) ---- the one place the
-     contract is filled in: the paper on the left, the boxes on the right. Its
-     count ("2 left") is drawn only while something is empty; the tab itself
-     always stays — it is where an answer is changed later (owner: "yes
-     option 1"). detailsOf is the one reading. */
-  ['details','tab_details',c=>{
-    let d; try{ d=detailsOf(c); }catch(_){ return ''; }
-    return d&&d.left?`<span class="room-tab-n">${esc(i18tn('det_left_n',d.left,{n:d.left}))}</span>`:'';
-  }],
+  /* ---- DETAILS, SIGNING, OBLIGATIONS AND HISTORY WENT HOME (the one-page
+     Home plan, stage 5; the owner's yes to decision 2, 14 Oct 2026) ---- each
+     has its twin on Home (Jambo's Fill in and Before you sign faces, the
+     Board's Obligations and History views); ROOM_TABS_HOME re-points every
+     door that names one. Details had led this row since 12 Oct 2026. */
   ['terms','tab_overview'],
   /* OVERVIEW 2 (the Time Machine) WAS A TAB HERE, 7 to 9 Oct 2026 — the owner
      asked for it to go (9 Oct: "delete the overview 2 tab … but keep
@@ -4790,21 +4853,6 @@ const ROOM_TABS=[
      and not first so that roomOpenOnTerms is untouched: a new draft still
      lands on the Overview, and f170 still asks it of the same key. */
   ['stands','tab_where_we_are'],
-  /* THE DOCUMENT TAB IS GONE (owner, 11 Oct 2026: "get rid of the document
-     page ... move its use to the paper page in home page"): every door onto it
-     (roomGoTab 'docs' / 'contract') opens the contract on Home's Document, on
-     Copilot; filling in is Home's Overview tab; Download original and Re-read
-     are in More. The Signing tab keeps the shared sheet (#doc-paper-col). */
-  ['sign','tab_signing'],
-  ['oblig','tab_obligations',c=>{
-    if(!c||!window.obligationTabState) return '';
-    let st; try{ st=obligationTabState(c); }catch(_){ return ''; }
-    if(!st.open) return '';
-    /* AMBER ONLY WHEN SOMETHING IS OVERDUE. A count that is always coloured is
-       a warning nobody reads — the sidebar counts' own rule, on a tab. */
-    return `<span class="room-tab-n${st.overdue?' is-late':''}">${st.open}</span>`;
-  }],
-  ['history','tab_history'],
 ];
 function roomTabsHtml(c,active){
   return `<div id="ws-tabs" class="room-tabs" role="tablist" aria-label="${i18t('tab_room_aria')}">${
@@ -5080,7 +5128,9 @@ function docZoomCornerHtml(c){
 }
 function wsPaintTabRowEnd(c){
   const end=document.getElementById('ws-tabrow-end');
-  if(!end) return;
+  /* on Home the walk stands on the paper's line while the signing copy is up
+     (stage 5): the line is drawn again, the paper only if its copy moved */
+  if(!end){ if(c&&state.view==='dashboard'&&window.igSignOn&&window.igPaintPaper&&igSignOn(c)) try{ igPaintPaper(); }catch(_){} return; }
   end.innerHTML=wsTabRowEndHtml(c);
   const zc=document.getElementById('doc-zc-slot');
   if(zc){ zc.innerHTML=docZoomCornerHtml(c); if(zc.querySelector('[data-sc-zoom]')) scWireControls(zc); }
@@ -5286,6 +5336,37 @@ function applyWsTabs(c){
 /* The one router BOTH shells press. From the Docs page a tab is a pane swap;
    from the workbench every tab but Negotiate is a journey back to this view,
    which is why the wanted tab is parked rather than applied. */
+/* ---- FOUR TABS WENT HOME (the one-page Home plan, stage 5; the owner's yes
+   to decision 2, 14 Oct 2026) ---- Details, Signing, Obligations and History
+   each have their twin on Home — Jambo's Fill in and Before you sign faces,
+   and the Board's Obligations and History views — so the room keeps Overview
+   and Where we are. Every door that names one of the four opens its twin; the
+   phone draws its own screens and keeps its own tabs. Details with nothing
+   left to ask (a signed or declined contract) lands on the Overview. */
+const ROOM_TABS_HOME = { details:'fill', sign:'signing', oblig:'oblig', history:'hist' };
+function roomTabHome(c,k){
+  if(!c||!ROOM_TABS_HOME[k]) return false;
+  if(typeof window!=='undefined'&&window.innerWidth&&window.innerWidth<768) return false;
+  /* only where Home's paper is loaded: its doors fall back to this router
+     when it is not (pdOpenOnHome, hbOpenView), and asking them would go round */
+  if(typeof window.igWalk!=='function'||typeof window.igPaperHold!=='function') return false;
+  if(k==='details'){
+    let d=null; try{ d=detailsOf(c); }catch(_){ d=null; }
+    if(!(d&&d.live&&d.all)||!window.pdFillOpen) return false;
+    return !!pdFillOpen(c.id);
+  }
+  if(k==='sign') return !!(window.pdSignOpen&&pdSignOpen(c.id));
+  return !!(window.hbOpenView&&hbOpenView(c.id,ROOM_TABS_HOME[k]));
+}
+/* "open this contract on that tab", from anywhere: the twin on Home, else
+   the room on the tab (the phone's, or one Home has no twin for) */
+function roomOpenAt(id,k){
+  const c=(typeof getContract==='function')?getContract(id):null; if(!c) return false;
+  if(roomTabHome(c,k)) return true;
+  if(window.openWorkspace) openWorkspace(c.id);
+  if(k&&window.roomGoTab) try{ roomGoTab(getContract(c.id)||c,k); }catch(_){}
+  return true;
+}
 function roomGoTab(c,k){
   if(!c) return;
   /* NO DOCUMENT TAB (owner, 11 Oct 2026): the one door every old way in passes
@@ -5293,6 +5374,8 @@ function roomGoTab(c,k){
      Document tab, so below 768px nothing changes. */
   if((k==='docs'||k==='contract') && !(typeof window!=='undefined'&&window.innerWidth&&window.innerWidth<768)
     && typeof pdOpenOnHome==='function' && pdOpenOnHome(c.id,'copilot')) return;
+  /* the four tabs that went home (stage 5); one Home cannot open lands on the Overview */
+  if(ROOM_TABS_HOME[k]){ if(roomTabHome(c,k)) return; if(!ROOM_TABS.some(t=>t[0]===k)) k='terms'; }
   if(k==='redline'){
     if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
     else if(window.toast) toast(i18t('ct_workbench_unavailable'),'err');
@@ -8184,7 +8267,7 @@ function histWhen(at, now){
   }
   return { day, time };
 }
-function roomHistoryHtml(c,f={}){
+function roomHistoryHtml(c,f={},opts={}){
   /* ---- NEWEST FIRST (Young ruled 24 Sep 2026: "The way the history is
      chronicled") ----
      The canvas reads "N events · newest first" with Today at the top; this page
@@ -8326,8 +8409,11 @@ function roomHistoryHtml(c,f={}){
           ${icon('more')}${i18t('ct_more')}${icon('chevD')}</button>
         <div id="hist-more-menu" class="room-menu hidden" style="min-width:250px">
           <button type="button" id="ht-verify">${icon('shield','w-3.5 h-3.5')}Verify integrity<span class="mnote">${i18t('ct_recompute_fingerprints')}</span></button>
-          <button type="button" id="ht-export">${icon('download','w-3.5 h-3.5')}${i18t('ct_export_history')}<span class="mnote">${i18t('ct_standalone_file')}</span></button>
-          <button type="button" id="ht-print">${icon('printer','w-3.5 h-3.5')}Print history<span class="mnote">${i18t('ct_same_report_paper')}</span></button>
+          ${''/* ON HOME'S BOARD (stage 4) Print and Download stand on the
+                 Board's own line and press these same two acts — one door
+                 each, so the menu there keeps Verify alone. */}
+          ${opts.board?'':`<button type="button" id="ht-export">${icon('download','w-3.5 h-3.5')}${i18t('ct_export_history')}<span class="mnote">${i18t('ct_standalone_file')}</span></button>
+          <button type="button" id="ht-print">${icon('printer','w-3.5 h-3.5')}Print history<span class="mnote">${i18t('ct_same_report_paper')}</span></button>`}
         </div>
       </div>
     </div>
@@ -8375,10 +8461,16 @@ function roomVersionsHtml(c){
     </div>`).join('')
     :`<p style="margin:0;font-size:var(--t-meta);line-height:1.55;color:var(--color-neutral-600)">${i18t('ct_no_saved_versions')}</p>`}`;
 }
-function roomPaintHistory(c,f={}){
-  const host=document.getElementById('ws-history-pane');
+/* A SECOND HOST (the one-page Home plan, stage 4, 14 Oct 2026): Home's Board
+   draws this same trail for the contract on the paper. `at` is that host;
+   absent, the room's own pane. The filters it was drawn with ride on the host
+   (`_histF`), so the Board drawing it again keeps them. */
+function roomPaintHistory(c,f={},at){
+  const host=at||document.getElementById('ws-history-pane');
   if(!host) return;
-  host.innerHTML=roomHistoryHtml(c,f);
+  host._histF=f;
+  const html=roomHistoryHtml(c,f,{ board:!!at });
+  host.innerHTML=html; host._histHtml=html;
   /* THE VERSIONS CARD IS RETIRED — see the pane above. roomVersionsHtml is
      kept as an exported builder with no caller, this file's own convention for
      a builder whose feature has gone, so a third caller cannot bring the
@@ -8386,16 +8478,16 @@ function roomPaintHistory(c,f={}){
   const read=()=>{ const g=k=>{ const el=host.querySelector(`[data-ht-filter="${k}"]`); return el&&el.value?el.value:''; };
     return {clauseId:g('clauseId'),actor:g('actor'),side:g('side'),round:g('round'),outcome:g('outcome')}; };
   host.querySelectorAll('[data-ht-filter]').forEach(s=>
-    s.addEventListener('change',()=>roomPaintHistory(c,read())));
+    s.addEventListener('change',()=>roomPaintHistory(c,read(),at)));
   /* Clear puts every filter back, side among them — one way back rather than
      two, now that side is one of the five rather than a control of its own. */
-  host.querySelector('#ht-clear')?.addEventListener('click',()=>roomPaintHistory(c,{}));
-  host.querySelector('#hist-filter-btn')?.addEventListener('click',()=>{ _histFiltersOpen=!_histFiltersOpen; roomPaintHistory(c,read()); });
+  host.querySelector('#ht-clear')?.addEventListener('click',()=>roomPaintHistory(c,{},at));
+  host.querySelector('#hist-filter-btn')?.addEventListener('click',()=>{ _histFiltersOpen=!_histFiltersOpen; roomPaintHistory(c,read(),at); });
   const qi=host.querySelector('#hist-q');
-  if(qi) qi.addEventListener('input',()=>{ _histQ=qi.value; const at=qi.selectionStart; roomPaintHistory(c,read());
-    const again=document.getElementById('hist-q'); if(again){ again.focus(); try{ again.setSelectionRange(at,at); }catch(_){} } });
+  if(qi) qi.addEventListener('input',()=>{ _histQ=qi.value; const caret=qi.selectionStart; roomPaintHistory(c,read(),at);
+    const again=host.querySelector('#hist-q'); if(again){ again.focus(); try{ again.setSelectionRange(caret,caret); }catch(_){} } });
   host.querySelector('#hist-detail')?.addEventListener('click',()=>{
-    _histDetail=!_histDetail; roomPaintHistory(c,read());
+    _histDetail=!_histDetail; roomPaintHistory(c,read(),at);
   });
   /* THE MENU SAYS WHETHER IT IS OPEN. Now that the button carries a word and a
      chevron, aria-expanded is what turns the chevron over and what a screen
@@ -9191,13 +9283,16 @@ function detMarkOpen(c){
    a box the panel filled stops being yellow at once. A value of 0 is an
    empty value (the paper prints its unset figure as 0). */
 function detPaintPaperEmpties(){
-  const cv = document.getElementById('doc-canvas'); if(!cv) return;
-  cv.querySelectorAll('[data-doc-answer]').forEach(i => {
+  const cv = document.getElementById('doc-canvas');
+  if(cv) cv.querySelectorAll('[data-doc-answer]').forEach(i => {
     const v = String(i.value == null ? '' : i.value).trim();
     i.classList.toggle('is-empty', v === '' || (i.getAttribute('data-sync') === 'value' && /^0+$/.test(v)));
   });
-  /* …and the boxes of the paper's questions beside it, the same way */
-  const panel = document.getElementById('tplform-section');
+  /* …and the boxes of the paper's questions beside it, the same way — the
+     room's Details tab, or Home's Fill in face (stage 2) */
+  ['tplform-section','pd-fill'].map(id => document.getElementById(id)).filter(Boolean).forEach(panel => detTintEmpties(panel));
+}
+function detTintEmpties(panel){
   /* (their boxes carry their own inline background, so the tint is set on
      the box itself: amber while empty and not being typed in) */
   /* EVERY KIND OF BOX (owner, 13 Oct 2026: "across the platform"): a long
@@ -9219,6 +9314,8 @@ function detPaintPaperEmpties(){
 function detailsChanged(c){
   if(!c) return;
   try{ wsPaintTabCounts(c); }catch(_){}
+  /* Home's Fill in face counts in place too (the one-page Home plan, stage 2) */
+  try{ if(window.pdFillCounts) pdFillCounts(c); }catch(_){}
   if(_wsTab === 'details' && state.activeId === c.id){ try{ detPaintHead(c); }catch(_){} try{ detPaintPaperEmpties(); }catch(_){} try{ detMarkOpen(c); }catch(_){} }
 }
 /* ============================================================
@@ -9301,7 +9398,7 @@ function formHeldContract(c){
 /* after a write that moves the record's own facts, the page the reader is on
    is drawn again: Home's paper and panel, or the room */
 function formRepaint(){
-  if(formOnHome()){ try{ if(window.igPaperRefresh) igPaperRefresh(); }catch(_){ } return; }
+  if(formOnHome()){ try{ if(window.igPaperRefresh) igPaperRefresh(); }catch(_){ } try{ if(window.pdFillRefresh) pdFillRefresh(); }catch(_){ } return; }
   if(typeof renderWorkspace === 'function') renderWorkspace();
 }
 function renderBlankFormSection(c){
@@ -10675,6 +10772,106 @@ function roomHeadSubHtml(c, opts = {}){
      would be a band about an absence. */
   return `<div class="room-sub room-headsub">${bits.join(' &middot; ')}${needs}<span data-pz-slot="head"></span></div>`;
 }
+/* ---- THE MORE MENU, ONE BUILDER (the one-page Home plan, stage 5) ----
+   Lifted word for word out of roomHeadHtml, so the contract page's head and
+   the line above Home's paper draw one menu: every row keeps its id, so one
+   wiring (roomMenuWire) answers it wherever it is drawn. `opts.menuRow` is the
+   page's own rows, as before; `opts.noFocus` leaves Focus out where the page
+   has none (Home's paper has no Focus, owner 8 Oct 2026). */
+function roomMoreMenuHtml(c,opts={}){
+  const may=(typeof canEdit!=='function')||canEdit();
+  return `
+        <div id="ws-more-menu" class="room-menu hidden">
+          <div class="mgroup">${i18t('ct_this_contract')}</div>
+          ${''/* ---- A PAGE MAY PUT ONE OF ITS OWN ROWS IN HERE ----
+                 (owner-approved render, 22 Aug 2026: the negotiation head
+                 carries FOUR buttons.) The workbench had five plus a chip, and
+                 the one that had to give was the playbook pass — it is a check
+                 you run once at the start of a round, not an act you reach for
+                 while working one, and the More menu is where this product
+                 already keeps the once-a-round jobs.
+
+                 THE ROW IS BUILT BY THE PAGE, NOT BY THIS FILE. The workbench
+                 owns that button's label, its dead-in-preview state and its
+                 permission rules; a copy here would be a second opinion about
+                 all three. It is passed in and placed, exactly as `primary`
+                 already is. */}
+          ${opts.menuRow || ''}
+          ${''/* NAMED FOR THE THING THE READER IS HOLDING (owner-asked, 13 Aug
+                 2026). It read "Import their response", which says nothing
+                 about a Word document the other side marked up and emailed
+                 back — the commonest reason anybody opens it. The id is
+                 untouched, so every handler and every test presses exactly what
+                 it always pressed.
+
+                 IT CARRIES NO SECOND LINE, and that was measured rather than
+                 guessed. The box takes a pasted response code as well, so the
+                 first build put "or a response code" in an .mnote like PDF's
+                 "clean copy" — and at the menu's 252px the row wrapped to two
+                 lines in BOTH languages (54px against every other row's 35px),
+                 with the Swedish label wrapping even on a shortened note. A row
+                 that stands twice as tall as its neighbours to footnote the
+                 rarer of its two jobs is a poor trade: the code route is the
+                 FIRST thing inside the box, under its own instruction line, so
+                 nobody holding a code can miss it. */}
+          ${may?`<button type="button" id="ws-import" title="${i18t('ct_read_word_back')}">${icon('download','w-3.5 h-3.5')}${i18t('ct_import_word_file')}</button>`:''}
+          ${(window.compareHasTwo && !compareHasTwo(c))
+            ? `<button type="button" id="ws-compare" disabled aria-disabled="true" title="${i18t('ve_only_one_title')}">${icon('columns','w-3.5 h-3.5')}Compare versions<span class="mnote">${i18t('ve_one_so_far')}</span></button>`
+            : `<button type="button" id="ws-compare" title="${i18t('ct_compare_review')}">${icon('columns','w-3.5 h-3.5')}Compare versions</button>`}
+          ${''/* "Save as template" LEFT THIS MENU (Young's go on "One Door to
+                 Standards", 24 Sep 2026): the same start lives behind the
+                 Templates page's one button — "From one of our contracts" —
+                 where it keeps the contract's tables and files the standard
+                 in the contract's own value stream. #ws-tpl and
+                 ct_save_as_reusable are STALE; the key stays inert. */}
+          <hr>
+          <div class="mgroup">${i18t('ct_export')}</div>
+          ${''/* THE FILE'S OWN TWO ACTS, FROM THE DOCUMENT TAB'S STRIP (owner, 11 Oct
+                 2026: the tab is gone): the same link and the same re-read. */}
+          ${(isUpload(c)&&c.upload&&docFileUrl(c))?`<button type="button" id="ws-dl-original">${icon('download','w-3.5 h-3.5')}${esc(i18t('ct_menu_dl_original'))}</button>`:''}
+          ${(isUpload(c)&&c.upload&&canEdit())?(()=>{ const kept=rereadKeepsWording(c);
+            return `<button type="button" id="ws-reread"${kept?' disabled aria-disabled="true"':''} title="${esc(i18t(kept?'ct_reread_kept_title':'ct_read_original_again'))}">${icon('history','w-3.5 h-3.5')}${esc(i18t('ct_menu_reread'))}</button>`; })():''}
+          <button type="button" id="ws-pdf" title="${i18t('ct_clean_copy')}">${icon('printer','w-3.5 h-3.5')}PDF<span class="mnote">clean copy</span></button>
+          <button type="button" id="ws-word" title="${i18t('ct_redline_word')}">${icon('file','w-3.5 h-3.5')}Word<span class="mnote">tracked changes</span></button>
+          ${(window.printIsHatiExecuted&&printIsHatiExecuted(c))?`<button type="button" id="ws-pdf-record" title="The full record for your own file — the document plus HaTi's seal and the audit trail">${icon('shield','w-3.5 h-3.5')}Record<span class="mnote">sealed + audit</span></button>`:''}
+          <hr>
+          <div class="mgroup">${i18t('ct_view')}</div>
+          <button type="button" id="ws-filing">${icon('folder','w-3.5 h-3.5')}${esc(i18t('ct_menu_filing'))}</button>
+          ${''/* MY NOTES (Young, 10 Oct 2026): a private note on this contract, in the person's own ledger */}
+          <button type="button" id="ws-mynote">${icon('pencil','w-3.5 h-3.5')}${esc(i18t('mn_add_to'))}</button>
+          ${opts.noFocus?'':`<button type="button" id="ws-focus" aria-pressed="false" title="${i18t('ct_hide_header')}">${icon('scan','w-3.5 h-3.5')}${esc(i18t('ct_focus_word'))}<span class="mnote">${i18t('ct_esc_to_leave')}</span></button>`}
+          ${may?`<hr>
+          ${''/* THE SAME SENTENCE AS THE CONTRACTS ROW (21 Sep 2026, the
+                 process review's sixth item): endStateSays is the one place
+                 the three end states are worded, so this menu and that one
+                 cannot tell a reader different things about what archiving
+                 does. The restore direction keeps its own title — it undoes a
+                 state the reader can see, and needs no comparison. */}
+          <button type="button" id="ws-archive" title="${esc(c.archived?i18t('ar_restore_title'):((typeof endStateSays==='function'&&endStateSays('archive'))||i18t('ar_archive_title')))}">${icon(c.archived?'history':'folder','w-3.5 h-3.5')}${c.archived?i18t('reg_restore'):i18t('reg_archive')}</button>
+          ${''/* ---- AND THE HOLD, ON THE SAME MENU AS ARCHIVE (upgrade 8) ----
+                 The two are opposites and belong beside each other: one takes a
+                 contract off every list, the other freezes it and leaves it on
+                 all of them. Same act shape, same one repaint. */}
+          ${''/* ---- ASK AN OUTSIDE ADVISER (upgrade 9, 18 Sep 2026) ----
+                 Its own row rather than a fifth segment on the send dialog's
+                 purpose picker: that row asks what THIS ROUND is for and every
+                 answer on it goes to the counterparty. This is a different
+                 person being asked a different question, and the screen has to
+                 ask which clauses. */}
+          <button type="button" id="ws-advice" title="${i18t('asl_title')}">${icon('users','w-3.5 h-3.5')}${i18t('asl_menu_row')}</button>
+          ${(window.contractMayReopen&&contractMayReopen(c))?`<button type="button" id="ws-reopen" title="${esc(i18t('end_reopen_says'))}">${icon('history','w-3.5 h-3.5')}${i18t('end_reopen')}</button>`:''}
+          ${(()=>{ if(typeof mayHoldContract==='function'&&!mayHoldContract()) return '';
+            /* a closed deal has nothing to freeze (B14) — Reopen is its door */
+            if(c.status==='Declined') return '';
+            const held=!!(window.contractOnHold&&contractOnHold(c));
+            return `<button type="button" id="ws-hold" title="${esc(held?i18t('hd_release_title'):((typeof endStateSays==='function'&&endStateSays('hold'))||i18t('hd_hold_title')))}">${icon(held?'history':'shield','w-3.5 h-3.5')}${held?i18t('hd_release'):i18t('hd_hold')}</button>`; })()}`:''}
+          ${(may&&(window.contractDeletable?contractDeletable(c):(c.status==='Draft'||c.status==='Under Review')))?`<hr>
+          <button type="button" id="ws-delete" class="danger" title="${i18t('ct_delete_draft')}">${icon('trash','w-3.5 h-3.5')}${i18t('ct_delete_this_draft')}</button>`:''}
+          ${''/* ws-new keeps its id and its data-page-new: it is a real button
+                 on the Document tab now, so it is not repeated here. */}
+        </div>
+`;
+}
 function roomHeadHtml(c,opts={}){
   const _wr=state.wsReturn||{};
   /* window.FOLDERS, not the bare global. The negotiation workbench calls this
@@ -11022,95 +11219,7 @@ function roomHeadHtml(c,opts={}){
                same. Three named groups, an icon on each row, and Delete alone
                at the foot in its own colour. Every id is the id it has always
                had. */}
-        <div id="ws-more-menu" class="room-menu hidden">
-          <div class="mgroup">${i18t('ct_this_contract')}</div>
-          ${''/* ---- A PAGE MAY PUT ONE OF ITS OWN ROWS IN HERE ----
-                 (owner-approved render, 22 Aug 2026: the negotiation head
-                 carries FOUR buttons.) The workbench had five plus a chip, and
-                 the one that had to give was the playbook pass — it is a check
-                 you run once at the start of a round, not an act you reach for
-                 while working one, and the More menu is where this product
-                 already keeps the once-a-round jobs.
-
-                 THE ROW IS BUILT BY THE PAGE, NOT BY THIS FILE. The workbench
-                 owns that button's label, its dead-in-preview state and its
-                 permission rules; a copy here would be a second opinion about
-                 all three. It is passed in and placed, exactly as `primary`
-                 already is. */}
-          ${opts.menuRow || ''}
-          ${''/* NAMED FOR THE THING THE READER IS HOLDING (owner-asked, 13 Aug
-                 2026). It read "Import their response", which says nothing
-                 about a Word document the other side marked up and emailed
-                 back — the commonest reason anybody opens it. The id is
-                 untouched, so every handler and every test presses exactly what
-                 it always pressed.
-
-                 IT CARRIES NO SECOND LINE, and that was measured rather than
-                 guessed. The box takes a pasted response code as well, so the
-                 first build put "or a response code" in an .mnote like PDF's
-                 "clean copy" — and at the menu's 252px the row wrapped to two
-                 lines in BOTH languages (54px against every other row's 35px),
-                 with the Swedish label wrapping even on a shortened note. A row
-                 that stands twice as tall as its neighbours to footnote the
-                 rarer of its two jobs is a poor trade: the code route is the
-                 FIRST thing inside the box, under its own instruction line, so
-                 nobody holding a code can miss it. */}
-          ${may?`<button type="button" id="ws-import" title="${i18t('ct_read_word_back')}">${icon('download','w-3.5 h-3.5')}${i18t('ct_import_word_file')}</button>`:''}
-          ${(window.compareHasTwo && !compareHasTwo(c))
-            ? `<button type="button" id="ws-compare" disabled aria-disabled="true" title="${i18t('ve_only_one_title')}">${icon('columns','w-3.5 h-3.5')}Compare versions<span class="mnote">${i18t('ve_one_so_far')}</span></button>`
-            : `<button type="button" id="ws-compare" title="${i18t('ct_compare_review')}">${icon('columns','w-3.5 h-3.5')}Compare versions</button>`}
-          ${''/* "Save as template" LEFT THIS MENU (Young's go on "One Door to
-                 Standards", 24 Sep 2026): the same start lives behind the
-                 Templates page's one button — "From one of our contracts" —
-                 where it keeps the contract's tables and files the standard
-                 in the contract's own value stream. #ws-tpl and
-                 ct_save_as_reusable are STALE; the key stays inert. */}
-          <hr>
-          <div class="mgroup">${i18t('ct_export')}</div>
-          ${''/* THE FILE'S OWN TWO ACTS, FROM THE DOCUMENT TAB'S STRIP (owner, 11 Oct
-                 2026: the tab is gone): the same link and the same re-read. */}
-          ${(isUpload(c)&&c.upload&&docFileUrl(c))?`<button type="button" id="ws-dl-original">${icon('download','w-3.5 h-3.5')}${esc(i18t('ct_menu_dl_original'))}</button>`:''}
-          ${(isUpload(c)&&c.upload&&canEdit())?(()=>{ const kept=rereadKeepsWording(c);
-            return `<button type="button" id="ws-reread"${kept?' disabled aria-disabled="true"':''} title="${esc(i18t(kept?'ct_reread_kept_title':'ct_read_original_again'))}">${icon('history','w-3.5 h-3.5')}${esc(i18t('ct_menu_reread'))}</button>`; })():''}
-          <button type="button" id="ws-pdf" title="${i18t('ct_clean_copy')}">${icon('printer','w-3.5 h-3.5')}PDF<span class="mnote">clean copy</span></button>
-          <button type="button" id="ws-word" title="${i18t('ct_redline_word')}">${icon('file','w-3.5 h-3.5')}Word<span class="mnote">tracked changes</span></button>
-          ${(window.printIsHatiExecuted&&printIsHatiExecuted(c))?`<button type="button" id="ws-pdf-record" title="The full record for your own file — the document plus HaTi's seal and the audit trail">${icon('shield','w-3.5 h-3.5')}Record<span class="mnote">sealed + audit</span></button>`:''}
-          <hr>
-          <div class="mgroup">${i18t('ct_view')}</div>
-          <button type="button" id="ws-filing">${icon('folder','w-3.5 h-3.5')}${esc(i18t('ct_menu_filing'))}</button>
-          ${''/* MY NOTES (Young, 10 Oct 2026): a private note on this contract, in the person's own ledger */}
-          <button type="button" id="ws-mynote">${icon('pencil','w-3.5 h-3.5')}${esc(i18t('mn_add_to'))}</button>
-          <button type="button" id="ws-focus" aria-pressed="false" title="${i18t('ct_hide_header')}">${icon('scan','w-3.5 h-3.5')}${esc(i18t('ct_focus_word'))}<span class="mnote">${i18t('ct_esc_to_leave')}</span></button>
-          ${may?`<hr>
-          ${''/* THE SAME SENTENCE AS THE CONTRACTS ROW (21 Sep 2026, the
-                 process review's sixth item): endStateSays is the one place
-                 the three end states are worded, so this menu and that one
-                 cannot tell a reader different things about what archiving
-                 does. The restore direction keeps its own title — it undoes a
-                 state the reader can see, and needs no comparison. */}
-          <button type="button" id="ws-archive" title="${esc(c.archived?i18t('ar_restore_title'):((typeof endStateSays==='function'&&endStateSays('archive'))||i18t('ar_archive_title')))}">${icon(c.archived?'history':'folder','w-3.5 h-3.5')}${c.archived?i18t('reg_restore'):i18t('reg_archive')}</button>
-          ${''/* ---- AND THE HOLD, ON THE SAME MENU AS ARCHIVE (upgrade 8) ----
-                 The two are opposites and belong beside each other: one takes a
-                 contract off every list, the other freezes it and leaves it on
-                 all of them. Same act shape, same one repaint. */}
-          ${''/* ---- ASK AN OUTSIDE ADVISER (upgrade 9, 18 Sep 2026) ----
-                 Its own row rather than a fifth segment on the send dialog's
-                 purpose picker: that row asks what THIS ROUND is for and every
-                 answer on it goes to the counterparty. This is a different
-                 person being asked a different question, and the screen has to
-                 ask which clauses. */}
-          <button type="button" id="ws-advice" title="${i18t('asl_title')}">${icon('users','w-3.5 h-3.5')}${i18t('asl_menu_row')}</button>
-          ${(window.contractMayReopen&&contractMayReopen(c))?`<button type="button" id="ws-reopen" title="${esc(i18t('end_reopen_says'))}">${icon('history','w-3.5 h-3.5')}${i18t('end_reopen')}</button>`:''}
-          ${(()=>{ if(typeof mayHoldContract==='function'&&!mayHoldContract()) return '';
-            /* a closed deal has nothing to freeze (B14) — Reopen is its door */
-            if(c.status==='Declined') return '';
-            const held=!!(window.contractOnHold&&contractOnHold(c));
-            return `<button type="button" id="ws-hold" title="${esc(held?i18t('hd_release_title'):((typeof endStateSays==='function'&&endStateSays('hold'))||i18t('hd_hold_title')))}">${icon(held?'history':'shield','w-3.5 h-3.5')}${held?i18t('hd_release'):i18t('hd_hold')}</button>`; })()}`:''}
-          ${(may&&(window.contractDeletable?contractDeletable(c):(c.status==='Draft'||c.status==='Under Review')))?`<hr>
-          <button type="button" id="ws-delete" class="danger" title="${i18t('ct_delete_draft')}">${icon('trash','w-3.5 h-3.5')}${i18t('ct_delete_this_draft')}</button>`:''}
-          ${''/* ws-new keeps its id and its data-page-new: it is a real button
-                 on the Document tab now, so it is not repeated here. */}
-        </div>
+        ${roomMoreMenuHtml(c,opts)}
       </div>
       ${''/* SOLID GREEN, on the owner's call (Young, 09 Aug 2026) — "make the
              Share buttons both in Document and Negotiate tabs visible in green
@@ -11271,6 +11380,99 @@ function roomHeadRefresh(c){
 /* Opening and closing the "⋯". The items themselves are wired where they
    always were — ws-share, ws-import, ws-compare and the exports keep their
    ids, so wireWorkspaceActions binds them without knowing they moved. */
+/* ---- THE MORE MENU'S ONE WIRING (the one-page Home plan, stage 5) ----
+   Lifted out of wireRoomHead (the toggle and the end states) and renderWorkspace
+   (the import, compare, exports, filing and my-notes rows), where the room drew
+   them, and out of the Negotiate page's own copy of the same rows: the menu
+   is one builder (roomMoreMenuHtml), so it has one wiring, called by every
+   page that draws it — the contract page and the Negotiate page through
+   wireRoomHead, and the line above Home's paper. The page's own rows
+   (opts.menuRow) and Focus stay the page's to wire. */
+function roomMenuWire(c){
+  const btn=document.getElementById('ws-more'), menu=document.getElementById('ws-more-menu');
+  if(btn&&menu){
+    const shut=()=>{ menu.classList.add('hidden'); btn.setAttribute('aria-expanded','false'); };
+    btn.addEventListener('click',e=>{ e.stopPropagation();
+      const open=menu.classList.toggle('hidden');
+      btn.setAttribute('aria-expanded',open?'false':'true'); });
+    menu.addEventListener('click',()=>setTimeout(shut,0));
+    /* ---- THE PRESS OUTSIDE THE MENU IS HEARD ONCE, NOT ONCE PER PAINT (26 Sep
+       2026, the overnight clean-up) ----
+       This added a fresh listener to the DOCUMENT every time the head was
+       drawn — every room render, every repaint of the negotiate page — and each
+       one held the head it was drawn with, so the old pages could never be
+       freed (measured: thousands of detached nodes after a dozen renders). One
+       listener, armed once, finds the menu that is on the page at the press
+       (roomPaintHistory's own _moreWired pattern). */
+    if(!document._wsMoreOutsideWired){
+      document._wsMoreOutsideWired=true;
+      document.addEventListener('click',ev=>{
+        const m=document.getElementById('ws-more-menu'), b=document.getElementById('ws-more');
+        if(!m||!b||m.classList.contains('hidden')) return;
+        if(!m.contains(ev.target)&&!b.contains(ev.target)){ m.classList.add('hidden'); b.setAttribute('aria-expanded','false'); }
+      });
+    }
+  }
+  // WP-2.1 — read-only by nature, so no canEdit gate: a viewer reads the story too.
+  document.getElementById('ws-import')?.addEventListener('click',()=>openImportModal(c));
+  document.getElementById('ws-compare')?.addEventListener('click',()=>openCompareModal(c));
+  // No ws-edit wiring: the button is gone, and leaving the listener behind is
+  // how a removed feature comes back the next time someone re-adds the markup.
+  /* No ws-tpl wiring: "Save as template" is the one door's third start now
+     (js/views/newstandard.js). Leaving the listener behind is how a removed
+     row comes back the next time somebody re-adds the markup. */
+  document.getElementById('ws-pdf')?.addEventListener('click',()=>exportPDF(c));
+  document.getElementById('ws-dl-original')?.addEventListener('click',()=>{
+    const a=document.createElement('a'); a.href=docFileUrl(c); a.download=String((c.upload||{}).fileName||'contract');
+    document.body.appendChild(a); a.click(); a.remove(); });
+  document.getElementById('ws-reread')?.addEventListener('click',e=>rereadUploadText(c, e.currentTarget));
+  document.getElementById('ws-filing')?.addEventListener('click',()=>ovOpenFiling(c));
+  document.getElementById('ws-mynote')?.addEventListener('click',()=>{ if(window.myNotesNew) myNotesNew({ contractId:c.id }); });
+  document.getElementById('ws-pdf-record')?.addEventListener('click',()=>exportPDF(c,{record:true}));
+  document.getElementById('ws-word')?.addEventListener('click',()=>exportWordTracked(c));
+  /* ---- DELETE BELONGS TO THE HEAD, NOT TO ONE OF THE TABS THAT WEARS IT ----
+     roomHeadHtml draws this menu for BOTH the Document tab and the Negotiate
+     workbench, but each tab used to wire the menu's buttons for itself, and
+     the workbench's list — ws-share, ws-import, ws-compare, ws-pdf, ws-word,
+     ws-tpl, ws-focus — simply did not include ws-delete. So on
+     Negotiate the item rendered, opened nothing, said nothing and did nothing.
+     A dead button is worse than a missing one: it reads as a refusal, and a
+     refusal with no reason is something you try again.
+
+     It is wired HERE, in the one function both views call, so it cannot come
+     apart again. deleteContract already explains every refusal it makes — a
+     viewer's role, a status past review, or the server's own answer for an
+     executed agreement — and none of those messages could be reached from
+     this tab before, because the click never arrived. */
+  document.getElementById('ws-delete')?.addEventListener('click',()=>
+    deleteContract(c.id).then(ok=>{ if(ok) setView('register'); }));
+  /* REOPEN A CLOSED DEAL (B14): the same act and question as the Contracts row. */
+  document.getElementById('ws-reopen')?.addEventListener('click',()=>{
+    if(window.regReopenAsk) regReopenAsk(c, ()=>{ try{ renderWorkspace(); }catch(_){} });
+  });
+  /* the archive shelf (WO-5): the same act as the register row's, repainting
+     the room so the menu's word and the sub-line's tag both turn over */
+  document.getElementById('ws-archive')?.addEventListener('click',()=>{
+    if(window.contractSetArchived) contractSetArchived(c,!c.archived).then(ok=>{ if(ok) renderWorkspace(); });
+  });
+  /* THE HOLD ASKS FOR ITS REASON. A freeze nobody can explain three months
+     later is the thing this feature exists to avoid, so putting one on costs a
+     sentence; releasing it does not. */
+  document.getElementById('ws-advice')?.addEventListener('click',()=>{
+    if(window.openAdviserLink) openAdviserLink(c);
+  });
+  document.getElementById('ws-hold')?.addEventListener('click',async()=>{
+    if(!window.contractSetHold) return;
+    const on=!(window.contractOnHold&&contractOnHold(c));
+    let why='';
+    if(on){
+      why=window.promptDialog ? await promptDialog({ title:i18t('hd_ask_title'), message:i18t('hd_ask_msg'),
+        placeholder:i18t('hd_ask_ph'), confirmLabel:i18t('hd_hold'), multiline:true }) : '';
+      if(why==null) return;
+    }
+    contractSetHold(c,on,why).then(ok=>{ if(ok) renderWorkspace(); });
+  });
+}
 function wireRoomHead(c){
   wireRoomChecks();
   /* ---- THE CHAT DOOR'S STATE IS PAINTED, NOT BUILT ---- (20 Sep 2026)
@@ -11334,30 +11536,8 @@ function wireRoomHead(c){
        you fold it is a head you stop folding. */
   }
 
-  const btn=document.getElementById('ws-more'), menu=document.getElementById('ws-more-menu');
-  if(btn&&menu){
-    const shut=()=>{ menu.classList.add('hidden'); btn.setAttribute('aria-expanded','false'); };
-    btn.addEventListener('click',e=>{ e.stopPropagation();
-      const open=menu.classList.toggle('hidden');
-      btn.setAttribute('aria-expanded',open?'false':'true'); });
-    menu.addEventListener('click',()=>setTimeout(shut,0));
-    /* ---- THE PRESS OUTSIDE THE MENU IS HEARD ONCE, NOT ONCE PER PAINT (26 Sep
-       2026, the overnight clean-up) ----
-       This added a fresh listener to the DOCUMENT every time the head was
-       drawn — every room render, every repaint of the negotiate page — and each
-       one held the head it was drawn with, so the old pages could never be
-       freed (measured: thousands of detached nodes after a dozen renders). One
-       listener, armed once, finds the menu that is on the page at the press
-       (roomPaintHistory's own _moreWired pattern). */
-    if(!document._wsMoreOutsideWired){
-      document._wsMoreOutsideWired=true;
-      document.addEventListener('click',ev=>{
-        const m=document.getElementById('ws-more-menu'), b=document.getElementById('ws-more');
-        if(!m||!b||m.classList.contains('hidden')) return;
-        if(!m.contains(ev.target)&&!b.contains(ev.target)){ m.classList.add('hidden'); b.setAttribute('aria-expanded','false'); }
-      });
-    }
-  }
+  /* the More menu and every row on it: one wiring, wherever the menu is drawn (roomMenuWire) */
+  roomMenuWire(c);
   /* ONE HANDLER, TWO DESTINATIONS, decided by what the head drew rather than by
      what state.view happens to say — the workbench and the contract page share
      this wiring, and reading the view here would make the arrow's meaning a
@@ -11410,51 +11590,20 @@ function wireRoomHead(c){
      change after it. Wiring it here as well would put a second handler on the
      button that paint has just drawn, and this head is re-wired on every
      render: the exact fault the note on wireWsTabs records for #ws-to-nego. */
-  /* ---- DELETE BELONGS TO THE HEAD, NOT TO ONE OF THE TABS THAT WEARS IT ----
-     roomHeadHtml draws this menu for BOTH the Document tab and the Negotiate
-     workbench, but each tab used to wire the menu's buttons for itself, and
-     the workbench's list — ws-share, ws-import, ws-compare, ws-pdf, ws-word,
-     ws-tpl, ws-focus — simply did not include ws-delete. So on
-     Negotiate the item rendered, opened nothing, said nothing and did nothing.
-     A dead button is worse than a missing one: it reads as a refusal, and a
-     refusal with no reason is something you try again.
-
-     It is wired HERE, in the one function both views call, so it cannot come
-     apart again. deleteContract already explains every refusal it makes — a
-     viewer's role, a status past review, or the server's own answer for an
-     executed agreement — and none of those messages could be reached from
-     this tab before, because the click never arrived. */
-  document.getElementById('ws-delete')?.addEventListener('click',()=>
-    deleteContract(c.id).then(ok=>{ if(ok) setView('register'); }));
-  /* REOPEN A CLOSED DEAL (B14): the same act and question as the Contracts row. */
-  document.getElementById('ws-reopen')?.addEventListener('click',()=>{
-    if(window.regReopenAsk) regReopenAsk(c, ()=>{ try{ renderWorkspace(); }catch(_){} });
-  });
-  /* the archive shelf (WO-5): the same act as the register row's, repainting
-     the room so the menu's word and the sub-line's tag both turn over */
-  document.getElementById('ws-archive')?.addEventListener('click',()=>{
-    if(window.contractSetArchived) contractSetArchived(c,!c.archived).then(ok=>{ if(ok) renderWorkspace(); });
-  });
-  /* THE HOLD ASKS FOR ITS REASON. A freeze nobody can explain three months
-     later is the thing this feature exists to avoid, so putting one on costs a
-     sentence; releasing it does not. */
-  document.getElementById('ws-advice')?.addEventListener('click',()=>{
-    if(window.openAdviserLink) openAdviserLink(c);
-  });
-  document.getElementById('ws-hold')?.addEventListener('click',async()=>{
-    if(!window.contractSetHold) return;
-    const on=!(window.contractOnHold&&contractOnHold(c));
-    let why='';
-    if(on){
-      why=window.promptDialog ? await promptDialog({ title:i18t('hd_ask_title'), message:i18t('hd_ask_msg'),
-        placeholder:i18t('hd_ask_ph'), confirmLabel:i18t('hd_hold'), multiline:true }) : '';
-      if(why==null) return;
-    }
-    contractSetHold(c,on,why).then(ok=>{ if(ok) renderWorkspace(); });
-  });
 }
 
 function renderWorkspace(){
+  /* ---- ON HOME, THE ROOM IS NOT DRAWN OVER IT (the one-page Home plan,
+     stage 5) ---- A dialog the Signing column opens (the signing order's
+     editor, a restart, a handover act) repaints "the room" when it closes, by
+     calling this. With that column in Jambo's Before you sign face, the room
+     is not the page on screen: the face and the paper beside it are drawn
+     again instead, and #content is left as it is. */
+  if(state.view==='dashboard'){
+    if(window.renderIntelDock) try{ renderIntelDock(); }catch(_){}
+    if(window.igPaperRefresh) try{ igPaperRefresh(); }catch(_){}
+    return;
+  }
   const c=getContract(state.activeId);
   const content=document.getElementById('content');
   if(!c){
@@ -11993,25 +12142,9 @@ function renderWorkspace(){
   window.updateAIBadge&&updateAIBadge();   // the Copilot's unread dot lives on the sidebar launcher now
 
   document.getElementById('ws-share')?.addEventListener('click',()=>openShareModal(c));   // ws-evidence is wired by wireActionBar
-  // WP-2.1 — read-only by nature, so no canEdit gate: a viewer reads the story too.
-  // ws-delete is wired in wireRoomHead — the one function BOTH the Document tab
-  // and the Negotiate workbench call. A second listener here would fire twice.
-  document.getElementById('ws-import')?.addEventListener('click',()=>openImportModal(c));
-  document.getElementById('ws-compare')?.addEventListener('click',()=>openCompareModal(c));
-  // No ws-edit wiring: the button is gone, and leaving the listener behind is
-  // how a removed feature comes back the next time someone re-adds the markup.
-  /* No ws-tpl wiring: "Save as template" is the one door's third start now
-     (js/views/newstandard.js). Leaving the listener behind is how a removed
-     row comes back the next time somebody re-adds the markup. */
-  document.getElementById('ws-pdf')?.addEventListener('click',()=>exportPDF(c));
-  document.getElementById('ws-dl-original')?.addEventListener('click',()=>{
-    const a=document.createElement('a'); a.href=docFileUrl(c); a.download=String((c.upload||{}).fileName||'contract');
-    document.body.appendChild(a); a.click(); a.remove(); });
-  document.getElementById('ws-reread')?.addEventListener('click',e=>rereadUploadText(c, e.currentTarget));
-  document.getElementById('ws-filing')?.addEventListener('click',()=>ovOpenFiling(c));
-  document.getElementById('ws-mynote')?.addEventListener('click',()=>{ if(window.myNotesNew) myNotesNew({ contractId:c.id }); });
-  document.getElementById('ws-pdf-record')?.addEventListener('click',()=>exportPDF(c,{record:true}));
-  document.getElementById('ws-word')?.addEventListener('click',()=>exportWordTracked(c));
+  /* The More menu's rows (import, compare, the exports, filing, my notes, the
+     end states) are wired with the menu, in roomMenuWire, which wireRoomHead
+     calls above — the one wiring for every page that draws the menu. */
   // The text-size stepper on the tab row: the control, its styles and its
   // state all live with the workbench (rlTypeStepHtml/rlWireTypeStep), so the
   // two tabs render one component reading one persisted preference. The
@@ -14763,31 +14896,21 @@ function docAnswersWire(c){
 if(typeof document !== 'undefined' && !document._homeAnswerWired){
   document._homeAnswerWired = true;
   document.addEventListener('click', e => {
-    const w = e.target && e.target.closest ? e.target.closest('#ig-canvas [data-field], #ig-canvas [data-sync]') : null;
+    const w = e.target && e.target.closest ? e.target.closest('#ig-canvas [data-field], #ig-canvas [data-sync], #ig-canvas [data-field-key], #ig-canvas [data-upblank]') : null;
     if(!w) return;
-    const key = w.getAttribute('data-field') || w.getAttribute('data-sync');
+    const key = w.getAttribute('data-field') || w.getAttribute('data-sync') || w.getAttribute('data-field-key') || w.getAttribute('data-upblank');
     if(!key || typeof contractFieldPeer !== 'function') return;
-    /* THE FORM LEFT HOME FOR THE ROOM'S DETAILS TAB (owner, 12 Oct 2026):
-       a press on an answer on Home's paper opens that tab and lands on the
-       box, through the one door that already lands on a box (focusKeyTerms'
-       bounded wait, asked here of the blank's own box). */
     const id = (typeof intel === 'object' && intel && intel.paper) ? intel.paper.id : null;
     const c = id && typeof getContract === 'function' ? getContract(id) : null;
-    if(!c || typeof openWorkspace !== 'function') return;
-    openWorkspace(c.id);
-    try{ roomGoTab(getContract(c.id) || c, 'details'); }catch(_){ }
-    let tries = 0;
-    const land = () => {
-      const peer = contractFieldPeer(key, 'panel');
-      const r = peer && peer.getBoundingClientRect ? peer.getBoundingClientRect() : null;
-      if(peer && r && (r.width > 0 || peer.closest('details'))){
-        const fold = peer.closest('details'); if(fold && !fold.open) fold.open = true;
-        try{ peer.scrollIntoView({ block: 'center' }); peer.focus(); }catch(_){ }
-        return;
-      }
-      if(++tries < KT_FOCUS_TRIES) setTimeout(land, 120);
-    };
-    setTimeout(land, 120);
+    if(!c) return;
+    /* THE FORM IS BESIDE THE PAPER AGAIN (the one-page Home plan, stage 2;
+       owner picked "Form", 14 Oct 2026): a press on a blank opens Jambo's
+       Fill in face and lands on its box, a filled box's fold opened. */
+    let live = false; try{ const d = detailsOf(c); live = !!(d.live && d.all); }catch(_){ live = false; }
+    if(live && typeof pdFillOpen === 'function'){ pdFillOpen(c.id, { key }); return; }
+    /* NOTHING LEFT TO ASK (a sealed record): the answer is read where it
+       stands. The room's Details tab it used to open went home with stage 5
+       of the one-page Home plan, and its twin is the face above. */
   });
 }
 /* Bound once per canvas element. `docFillable` is the product's own reading of
@@ -15394,7 +15517,7 @@ function wireKeyTerms(c){
     /* The contract is read at PRESS time: a listener bound once must not close
        over the record this paint happened to hold. */
     fill.addEventListener('click',()=>fillKeyTermsFromDocument(
-      (window.getContract&&getContract(state.activeId))||c));
+      (window.formHeldContract&&formHeldContract(c))||(window.getContract&&getContract(state.activeId))||c));
   }
   wireKtFolder(c);
 }
@@ -15459,7 +15582,10 @@ async function fillKeyTermsFromDocument(c){
     logAudit(c,'Edited',`Filled ${filled.join(', ')} from the document (${meta._source==='ai'?'Jambo':'pattern match'})`);
     persist(c);
     toast(`Filled ${filled.join(', ')} — check it before signing`,'ok');
-    renderWorkspace();
+    /* the page the reader is on: Home's paper and its Fill in face, or the
+       room (the one-page Home plan, stage 2) — renderWorkspace alone would
+       draw the room over Home */
+    formRepaint();
   }catch(e){
     toast(i18t('ct_could_not_read_doc')+(e.message||'try again'),'err');
   }finally{
@@ -15591,6 +15717,7 @@ function renderSignButton(c){
        exactly what somebody opens a closed contract to read. It is drawn and
        made INERT rather than dropped; see renderSignSide. */
     renderSignSide(c);
+    if(window.pdSignCounts) try{ pdSignCounts(c); }catch(_){}
     return;
   }
   /* ---- THEY RUN THE SIGNING (26 Sep 2026, redline here, sign there) ----
@@ -15598,7 +15725,7 @@ function renderSignButton(c){
      filled button is Hand over for signing, and after it File the signed copy.
      js/views/handover.js draws both, reading the same one list this button
      reads, so the two routes cannot disagree about what is ready. */
-  if(window.renderOutsideSign && window.signRouteOf && signRouteOf(c)==='outside'){ renderOutsideSign(c); return; }
+  if(window.renderOutsideSign && window.signRouteOf && signRouteOf(c)==='outside'){ renderOutsideSign(c); if(window.pdSignCounts) try{ pdSignCounts(c); }catch(_){} return; }
   if(!canEdit()){
     wrap.innerHTML=`<div class="text-center text-[11px] text-brand-800/65 py-2">${i18t('ct_viewer_no_signing')}</div>`;
     return;
@@ -15717,6 +15844,8 @@ function renderSignButton(c){
   renderSignSide(c);
   wireApprovalPanel(c);
   document.getElementById('sign-block')&&(document.getElementById('sign-block').innerHTML=signBlockHtml(c));
+  /* the Before you sign face's head says what this column says (stage 5) */
+  if(window.pdSignCounts) try{ pdSignCounts(c); }catch(_){}
 }
 /* ---- THE SIGNING TAB'S RIGHT-HAND COLUMN ----
    What is holding the signature up, and who is queued behind it. Both were
@@ -16314,7 +16443,8 @@ function signLandOn(sel){
   return true;
 }
 function signLandOnList(c){
-  if(window.roomGoTab&&typeof _wsTab!=='undefined'&&_wsTab!=='sign') roomGoTab(c,'sign');
+  /* the list is in Jambo's Before you sign face when it is open (stage 5) */
+  if(!(window.pdSignShows&&pdSignShows())&&window.roomGoTab&&typeof _wsTab!=='undefined'&&_wsTab!=='sign') roomGoTab(c,'sign');
   setTimeout(()=>{
     const card=document.getElementById('sign-check');
     const row=card&&(card.querySelector('.sc-find.is-hold')||card.querySelector('.sc-find:not(.is-done)'));
@@ -17081,8 +17211,12 @@ function signSpotsCardHtml(c, o){
             esc(i18t('ct_spots_no_signers'))}</p>`}` : ''}
   </section>`;
 }
-function signSpotsPaint(c){
-  const canvas = document.getElementById('doc-canvas');
+/* `cv` (the one-page Home plan, stage 5): the canvas the signing copy is on —
+   Home's paper (#ig-canvas) while Jambo's Before you sign face is open; the
+   room's sheet when none is named */
+function signSpotsPaint(c, cv){
+  const canvas = cv || document.getElementById('doc-canvas')
+    || ((c && window.pdSignFor && pdSignFor() === String(c.id)) ? document.getElementById('ig-canvas') : null);
   if(!canvas || !c) return;
   canvas.querySelectorAll('.sig-spot').forEach(n => n.remove());
   const list = signSpots(c);
@@ -17099,7 +17233,7 @@ function signSpotsPaint(c){
     ev.preventDefault(); ev.stopPropagation();
     const id = b.getAttribute('data-sig-spot');
     await signSpotFill(c, id);
-    signSpotsPaint(c);
+    signSpotsPaint(c, cv);
     renderSignButton(c);
     wsPaintTabRowEnd(c);
   }));
@@ -17114,8 +17248,11 @@ function signSpotsPaint(c){
    wherever the reader has scrolled. It counts only the spots that are THIS
    reader's, because a walk through somebody else's is a walk to nowhere. */
 function signWalkNext(c){ return signSpotsLeft(c)[0] || null; }
-function signWalkHtml(c){
-  if(!c || _wsTab !== 'sign') return '';
+/* opts.home: Home's paper line while the signing copy is up beside Jambo's
+   Before you sign face — the tab row's twin since stage 5 of the one-page
+   Home plan */
+function signWalkHtml(c, opts){
+  if(!c || (_wsTab !== 'sign' && !(opts && opts.home))) return '';
   const mine = signSpotsMine(c);
   if(!mine.length) return '';
   const left = mine.filter(s => !s.image).length;
@@ -17126,7 +17263,8 @@ function signWalkHtml(c){
 }
 function signWalkGo(c){
   const next = signWalkNext(c);
-  const canvas = document.getElementById('doc-canvas');
+  /* the room's paper, or Home's while the signing copy is up (stage 5) */
+  const canvas = document.getElementById('doc-canvas') || document.getElementById('ig-canvas');
   if(!canvas) return;
   if(next){
     const el = canvas.querySelector(`[data-sig-spot="${String(next.id).replace(/"/g, '')}"]`);
@@ -17950,9 +18088,9 @@ Object.assign(window,{docReadLongSplit,DOC_READ_LONG_WORDS,DOC_READ_RUN_MIN,docT
      the recovery from a zero-width measurement — the whole point of that fix —
      never ran on a plain tab swap. It only appeared to work because the routes
      I walked it on re-rendered the workspace, which measures on the way in. */
-  layoutDocResizer,renderSignButton,renderSignSide,roomFactsHtml,signBlockHtml,signReadinessCardHtml,signRowTitle,signWhyShort,SIGN_WHY_WORDS,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireCompliance,wireDocumentSync,wsNextAction,
+  layoutDocResizer,roomChatDoorHtml,ROOM_TABS_HOME,roomTabHome,roomOpenAt,roomMoreMenuHtml,roomMenuWire,renderSignButton,renderSignSide,roomFactsHtml,signBlockHtml,signReadinessCardHtml,signRowTitle,signWhyShort,SIGN_WHY_WORDS,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,formOnHome,formHostEl,formPaperEl,formHeldContract,formRepaint,docTermFill,docNoticeFill,docSyncWrite,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPlace,roomPlacePut,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,checkVerdict,tplFormOpenCount,tplFormOpenFields,detailsOf,detailsSections,blankFormLive,DET_RECORD_KEYS,detHeadHtml,detPaintHead,detailsChanged,detPaintPaperEmpties,detBasicsHtml,detPaintBasics,detMarkOpen,openCompleteDetails,cdRepaintCounts,openCheckPanel,roomHeadHtml,wireRoomHead,
+  ROOM_TABS,docWorkPreviewOf,formOnHome,formHostEl,formPaperEl,formHeldContract,formRepaint,docTermFill,docNoticeFill,docSyncWrite,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomArrivesOnHome,ROOM_ARRIVE_MS,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPlace,roomPlacePut,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,checkVerdict,tplFormOpenCount,tplFormOpenFields,detailsOf,detailsSections,blankFormLive,DET_RECORD_KEYS,detHeadHtml,detPaintHead,detailsChanged,detPaintPaperEmpties,detTintEmpties,detBasicsHtml,detPaintBasics,detMarkOpen,openCompleteDetails,cdRepaintCounts,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill,
   /* idea 7 — the plain-English layer. Published because a name read through
      window from another module, or from a test stage, is silence when it is

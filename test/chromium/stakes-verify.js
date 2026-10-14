@@ -282,15 +282,18 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
         const cl = ceId ? negoClauseList(getContract('MK-S1')).find(x => x.clauseId === ceId) : null;
         const bk = document.querySelector('#shell-title [data-rl-back-clauses]');
         const pane = document.getElementById('clause-editor'), ptxt = pane ? pane.innerText : '';
-        return { title, view: state.view, editor: !!ceId, clause: cl ? clauseLabel(cl) : null,
+        return { title, view: state.view, face: !!(window.pdRedFor && String(pdRedFor()) === 'MK-S1'), editor: !!ceId, clause: cl ? clauseLabel(cl) : null,
           card: /Jambo's proposed ask/.test(ptxt), say: /This is the ask you came with/.test(ptxt), askOnCard: /12 months before the claim/.test(ptxt),
           apply: !!(pane && [...pane.querySelectorAll('button')].some(b => /^Apply$/.test(b.textContent.trim()))),
           box: (document.getElementById('ce-ask') || {}).value || '', filed: (getContract('MK-S1').changes || []).length - before,
           back: bk ? bk.textContent : '', bold: bk ? Number(getComputedStyle(bk).fontWeight) : 0,
           crumb: (document.getElementById('shell-title') || {}).innerText || '' };
       });
+      /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the trip now
+         passes through Jambo's Redlines face beside Home's paper (view
+         'dashboard', the face on MK-S1), the clause editor opening over Home */
       ok('5c "Start redlining with this ask" opens its own clause in Edit with Jambo, the ask waiting on a card with Apply, nothing filed',
-        j1.view === 'redline' && j1.editor && /\b3\b/.test(j1.clause || '') && j1.card && j1.say && j1.askOnCard && j1.apply && !j1.box && j1.filed === 0, JSON.stringify(j1));
+        j1.view === 'dashboard' && j1.face && j1.editor && /\b3\b/.test(j1.clause || '') && j1.card && j1.say && j1.askOnCard && j1.apply && !j1.box && j1.filed === 0, JSON.stringify(j1));
       ok('5d the bar offers a bold "‹ Back to Clauses" on that trip, and still names the clause being edited',
         /‹ Back to Clauses/.test(j1.back) && j1.bold >= 600 && /Edit\b/.test(j1.crumb), JSON.stringify({ back: j1.back, bold: j1.bold, crumb: j1.crumb }));
       const ja = await page.evaluate(async () => {
@@ -304,18 +307,27 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       });
       ok('5c2 Apply puts the ask into the clause as a draft; nothing is filed until Save', ja.btn && ja.dirty && ja.inBox && ja.filed === 0, JSON.stringify(ja));
       if (process.env.STK_SHOT) await page.screenshot({ path: process.env.STK_SHOT + '-landed.png' });
+      /* GUARDED (14 Oct 2026, stage 5): where the bar draws no "‹ Back to
+         Clauses" (5d reports that), the way back is pressed through the very
+         handler that link presses (rlBackToClauses), so 5e still measures
+         where the way back LANDS instead of the stage stopping on a null */
       const j2 = await page.evaluate(async () => {
-        document.querySelector('#shell-title [data-rl-back-clauses]').click();
+        const link = document.querySelector('#shell-title [data-rl-back-clauses]');
+        if (link) link.click(); else if (window.rlBackToClauses) rlBackToClauses();
         await new Promise(r => setTimeout(r, 2500));
         if (document.getElementById('confirm-overlay')){ const go = document.querySelector('#confirm-overlay #cf-ok'); if (go) go.click(); await new Promise(r => setTimeout(r, 2000)); }
         return { view: state.view, title: (document.querySelector('#pd-thread .stk-dv h3') || {}).innerText || '',
-          sev: (document.querySelector('#pd-thread [data-stk-f="sev"]') || {}).value, crumbGone: !document.querySelector('[data-rl-back-clauses]') };
+          sev: (document.querySelector('#pd-thread [data-stk-f="sev"]') || {}).value, crumbGone: !document.querySelector('[data-rl-back-clauses]'),
+          via: link ? 'the bar\'s link' : 'rlBackToClauses (no link in the bar)' };
       });
       ok('5e the way back lands on the Clauses tab, the same point open, the same filter', j2.view === 'dashboard' && j2.title === j1.title && j2.sev === 'need' && j2.crumbGone, JSON.stringify(j2));
       await page.evaluate(() => { const c = getContract('MK-S1'); stkDiveClose(c); const el = document.querySelector('#pd-thread [data-stk-f="sev"]'); if (el){ el.value = ''; el.dispatchEvent(new Event('change', { bubbles: true })); } });
       /* 5f ANOTHER DOOR ONTO NEGOTIATE FORGETS THE TRIP: no way back offered */
+      /* RE-POINTED 14 Oct 2026 (stage 5): another door lands on the face,
+         which draws no bar link at all, so "offers no way back" is also asked
+         of the product's own memory of the trip (rlCameFrom) — forgotten */
       const j3 = await page.evaluate(async () => { openRedlineWorkbench('MK-S1'); await new Promise(r => setTimeout(r, 1500));
-        const out = !document.querySelector('[data-rl-back-clauses]'); setView('dashboard'); pdOpenOnHome('MK-S1', 'doc'); await new Promise(r => setTimeout(r, 1200)); return out; });
+        const out = !document.querySelector('[data-rl-back-clauses]') && !(window.rlCameFrom && rlCameFrom('MK-S1')); setView('dashboard'); pdOpenOnHome('MK-S1', 'doc'); await new Promise(r => setTimeout(r, 1200)); return out; });
       ok('5f Negotiate opened by another door offers no way back to the clauses', j3);
       /* 5g "ASK JAMBO ABOUT THIS" TAKES THE QUESTION TO JAMBO IN THE EDIT ROOM
          (owner, 13 Oct 2026: "the question posed is terribly framed", then
@@ -327,11 +339,12 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
         stkDiveOpen(c, 0); await new Promise(r => setTimeout(r, 400));
         document.querySelector('#pd-thread [data-stk-ask]').click(); await new Promise(r => setTimeout(r, 2500));
         const box = document.getElementById('ce-ask');
-        return { view: state.view, editor: !!(window.clauseEditorOpen && clauseEditorOpen()), q: box ? box.value : '',
+        return { view: state.view, face: !!(window.pdRedFor && String(pdRedFor()) === 'MK-S1'), editor: !!(window.clauseEditorOpen && clauseEditorOpen()), q: box ? box.value : '',
           filed: (getContract('MK-S1').changes || []).length - before, back: !!document.querySelector('[data-rl-back-clauses]') };
       });
+      /* RE-POINTED 14 Oct 2026 (stage 5): through the face, over Home */
       ok('5g "Ask Jambo about this" opens the clause in Edit with Jambo, a whole question in his ask box, unsent',
-        j4.view === 'redline' && j4.editor && /^In clause 3: Their liability is capped at three months of fees\. Explain in plain English what this means for us, and what we should ask for instead\.$/.test(j4.q) && !/"/.test(j4.q) && j4.filed === 0 && j4.back, JSON.stringify(j4));
+        j4.view === 'dashboard' && j4.face && j4.editor && /^In clause 3: Their liability is capped at three months of fees\. Explain in plain English what this means for us, and what we should ask for instead\.$/.test(j4.q) && !/"/.test(j4.q) && j4.filed === 0 && j4.back, JSON.stringify(j4));
       await page.evaluate(async () => { const b = document.getElementById('ce-ask'); if (b) b.value = '';
         if (window.rlBackToClauses) rlBackToClauses(); await new Promise(r => setTimeout(r, 1500));
         if (document.getElementById('confirm-overlay')){ const go = document.querySelector('#confirm-overlay #cf-ok'); if (go) go.click(); await new Promise(r => setTimeout(r, 1200)); }

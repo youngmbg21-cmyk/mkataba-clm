@@ -52,8 +52,11 @@ const DOC = ['RAW MATERIAL SUPPLY AGREEMENT', '', '1. Supply', '', 'The Supplier
       negoProposed: [{ clauseId: q.id, clauseLabel: q.label, oldText: q.text, newText: '', changeType: 'deleteClause', why: 'No rejection window' }] } });
     await page.evaluate(async () => { await pollPendingResponses(); });
     await page.waitForFunction(() => (getContract('MK-SR1').changes || []).length, null, { timeout: 10000 });
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the door now
+       lands on Jambo's Redlines face beside Home's paper — the column, its
+       verbs and its head's send (#pd-redface) */
     await page.evaluate(() => openRedlineWorkbench('MK-SR1'));
-    await page.waitForFunction(() => state.view === 'redline' && document.querySelector('[data-nego-reject]'), null, { timeout: 10000 });
+    await page.waitForFunction(() => state.view === 'dashboard' && document.querySelector('#pd-redface [data-nego-reject]'), null, { timeout: 10000 });
 
     const before = await page.evaluate(() => !!document.querySelector('.rl-unsent-go[data-rl-decided]'));
     ok('1 before deciding, no hand-back send in the column', !before);
@@ -63,21 +66,37 @@ const DOC = ['RAW MATERIAL SUPPLY AGREEMENT', '', '1. Supply', '', 'The Supplier
     if (asked) { await page.fill('#prompt-overlay #pd-input, #prompt-overlay textarea', 'The clause stays.'); await page.click('#prompt-overlay #pd-ok'); }
     await page.waitForFunction(() => (getContract('MK-SR1').changes || []).some(x => x.status === 'rejected'), null, { timeout: 8000 }).catch(() => {});
     const go = await page.waitForSelector('.rl-unsent-go[data-rl-decided]', { timeout: 8000 }).then(() => true, () => false);
-    const m = await page.evaluate(() => { const c = getContract('MK-SR1'); const w = negWhoseMove(c); const say = negoMoveSay(c);
-      const facts = [...document.querySelectorAll('*')].find(e => /^Whose move$/i.test((e.textContent || '').trim()) && e.children.length === 0);
-      const cell = facts && facts.parentElement ? facts.parentElement.innerText : '';
-      return { k: w.k, why: w.why, word: say.word, cell }; });
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the face
+       beside Home's paper draws no head, so no "Whose move" fact stands on
+       it; where the reader reads whose move now is the list's pill (the
+       Negotiations list's Whose move cell, as this file's header says). It is
+       read there — on the full table, whose one-word cell this is (from about
+       1104 wide the list draws the Inspector instead; insForce(false) is the
+       page's own stage door, as negotiations-door-verify uses it) — and the
+       door brings the reader back to the face. */
+    const go0 = await page.evaluate(() => !!document.querySelector('.rl-unsent-go[data-rl-decided]'));
+    await page.evaluate(() => { if (window.insForce) insForce(false); openNegotiations({ list: true }); });
+    const listCell = await page.waitForFunction(() => { const r = document.querySelector('#reg-tbody tr[data-row="MK-SR1"] .ngl-w');
+      return r ? (r.textContent.trim() + ' — ' + (r.getAttribute('title') || '')) : null; }, null, { timeout: 8000 }).then(x => x.jsonValue(), () => '');
+    const m = await page.evaluate(cell => { const c = getContract('MK-SR1'); const w = negWhoseMove(c); const say = negoMoveSay(c);
+      return { k: w.k, why: w.why, word: say.word, cell }; }, listCell);
+    await page.evaluate(() => { if (window.insForce) insForce(null); openRedlineWorkbench('MK-SR1'); });
+    await page.waitForFunction(was => state.view === 'dashboard' && !!document.querySelector('#pd-redface [data-nego-card]')
+      && (!was || !!document.querySelector('.rl-unsent-go[data-rl-decided]')), go0, { timeout: 10000 }).catch(() => {});
     ok('2 Whose move reads Mine, with an answer waiting to go back', m.k === 'you' && m.why === 'decided' && /Mine/i.test(m.cell), JSON.stringify(m));
     const top = await page.evaluate(() => { const b = document.querySelector('.rl-unsent-go[data-rl-decided]'); if (!b) return null; const r = b.getBoundingClientRect();
       const t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return { text: b.textContent.trim(), top: !!t && (t === b || b.contains(t)) }; });
     ok('3 "Send to Nandi Dairy" is in the column head, on top of everything', go && top && top.top && /Send to Nandi Dairy/.test(top.text), JSON.stringify(top));
     await page.screenshot({ path: path.join(OUT, '1-send.png') });
-    if (go) await page.click('.rl-unsent-go[data-rl-decided]');
+    /* GUARDED (14 Oct 2026, stage 5): a dead button reports in 4 rather than
+       timing the stage out on a press that cannot land */
+    const live = await page.evaluate(() => { const b = document.querySelector('.rl-unsent-go[data-rl-decided]'); return b ? { disabled: b.disabled, title: b.title } : null; });
+    if (go) await page.click('.rl-unsent-go[data-rl-decided]', { timeout: 5000 }).catch(() => {});
     const conf = await page.$('#prompt-overlay #pd-ok, [data-confirm-ok]'); if (conf) await conf.click().catch(() => {});
     const handed = await page.waitForFunction(() => { const c = getContract('MK-SR1'); return c.negotiation && c.negotiation.turn === 'counterparty'; }, null, { timeout: 10000 }).then(() => true, () => false);
     await page.waitForTimeout(600);
     const gone = await page.evaluate(() => !document.querySelector('.rl-unsent-go[data-rl-decided]'));
-    ok('4 pressing it hands the round back, and the button goes', handed && gone, await page.evaluate(() => JSON.stringify({ turn: getContract('MK-SR1').negotiation.turn, move: negWhoseMove(getContract('MK-SR1')).k })));
+    ok('4 pressing it hands the round back, and the button goes', handed && gone, await page.evaluate(l => JSON.stringify({ turn: getContract('MK-SR1').negotiation.turn, move: negWhoseMove(getContract('MK-SR1')).k, button: l }), live));
     ok('no page errors', !errs.length, errs.join(' | '));
   } catch (e) {
     ok('the stage ran', false, String(e && e.stack || e).slice(0, 400));

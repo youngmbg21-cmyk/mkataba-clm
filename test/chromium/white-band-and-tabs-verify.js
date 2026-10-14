@@ -193,7 +193,14 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
         actionbarInside: room.actionbarInBand });
 
     /* ================= 2 · NO GREY SEAM ON THE NEGOTIATION PAGE ============= */
-    await page.evaluate(id => openRedlineWorkbench(id), cid);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): every door
+       onto Negotiate now lands on Jambo's Redlines face on Home, which has no
+       head and no tab row. This section's subject IS the Negotiate page's own
+       head and tab row (and section 3 stands on its rail door on purpose), so
+       the page is asked for by name ({ page: true }), and waited for. */
+    await page.evaluate(id => openRedlineWorkbench(id, { page: true }), cid);
+    await page.waitForFunction(() => !!document.querySelector('#view-redline #ws-head') && !!document.querySelector('#view-redline .rl-tabrow'),
+      null, { timeout: 8000 }).catch(() => {});
     await pause(2200);
     await page.screenshot({ path: path.join(OUT, '02-nego.png') });
 
@@ -676,10 +683,14 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     await page.evaluate(id => openWorkspace(id), cid);
     await pause(2200);
     const tabsSeen = [];
-    for (const want of ['Key terms', 'Signing', 'History', 'Document']){
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+       Signing, History and Details tabs went home (and Document on 11 Oct);
+       the room draws Overview and Where we are. "No tab" is asked of every
+       tab the room still draws, read off its own tab row by key. */
+    const roomTabs = await page.evaluate(() => [...document.querySelectorAll('#ws-tabs .room-tab[data-room-tab]')].map(t => t.getAttribute('data-room-tab')));
+    for (const want of roomTabs){
       await page.evaluate(w => {
-        const t = [...document.querySelectorAll('.room-tab')]
-          .find(x => x.textContent.trim().startsWith(w));
+        const t = document.querySelector(`#ws-tabs .room-tab[data-room-tab="${w}"]`);
         if (t) t.click();
       }, want);
       await pause(1100);
@@ -690,7 +701,7 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
           text: bar ? bar.textContent.trim().length : 0 };
       }, want));
     }
-    check('8a the status strip draws on NO tab', tabsSeen.every(t => !t.drawn && !t.text),
+    check('8a the status strip draws on NO tab', tabsSeen.length >= 2 && tabsSeen.every(t => !t.drawn && !t.text),
       tabsSeen.map(t => `${t.tab}:${t.drawn ? 'drawn' : 'hidden'}/${t.text}`));
 
     await page.evaluate(() => {

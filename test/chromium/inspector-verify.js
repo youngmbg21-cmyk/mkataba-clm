@@ -277,9 +277,17 @@ const ok = (name, good, detail) => {
       /* RE-POINTED 4 Oct 2026 (the process review, approved): a step this
          reader may decide now LEADS with Approve and Refuse (f466), so the door
          to the Signing tab is pressed by its own name — it is still there. */
-      await page.click('#ins-panel [data-ins-act="gate"]'); await page.waitForTimeout(1200);
-      const g = await page.evaluate(() => ({ view: state.view, id: state.activeId, tab: (typeof roomCurrentTab === 'function') ? roomCurrentTab() : null }));
-      ok('3c the panel’s Signing-tab door opens that contract on its Signing tab', g.view === 'workspace' && g.id === ap.rows[1] && (g.tab === 'sign' || g.tab == null), JSON.stringify(g));
+      /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+         Signing tab went home — its door (apOpenSigning → roomTabHome) opens
+         Jambo's Before you sign face beside Home's paper, on that contract
+         (#pd-signface .pd-sf[data-pd-sf="<id>"], the paper Home's #ig-canvas
+         drawn as the signing copy). Waited for by that contract's id. */
+      await page.click('#ins-panel [data-ins-act="gate"]');
+      await page.waitForFunction(id => !!document.querySelector(`#pd-signface .pd-sf[data-pd-sf="${id}"]`), ap.rows[1], { timeout: 8000 }).catch(() => {});
+      const g = await page.evaluate(() => { const f = document.querySelector('#pd-signface .pd-sf[data-pd-sf]');
+        return { view: state.view, id: f ? f.getAttribute('data-pd-sf') : null, paper: window.pdContract && pdContract() ? pdContract().id : null,
+          sheet: !!document.querySelector('#ig-paper .pg-sheet.pg-sign #ig-canvas') }; });
+      ok('3c the panel’s Signing-tab door opens that contract on its Signing tab', g.view === 'dashboard' && g.id === ap.rows[1] && g.paper === ap.rows[1] && g.sheet, JSON.stringify(g));
     } else {
       ok('3b a press selects on Approvals too', false, 'fewer than two approval rows, or no panel');
       ok('3c the panel’s lead act opens that contract on its Signing tab', false, 'nothing to press');

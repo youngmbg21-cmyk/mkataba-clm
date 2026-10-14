@@ -254,7 +254,12 @@ const check = (name, pass, detail) => {
     }
 
     /* ================= 14. BACK TO DOCUMENT, IN A RING ===================== */
-    await page.evaluate(() => { const c = state.contracts.find(x => x.id === 'MK-A2'); if (c && typeof negoInit === 'function') negoInit(c); openRedlineWorkbench('MK-A2', { blanksAsked: true }); });
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): every door
+       onto Negotiate lands on Jambo's Redlines face on Home, which has no head
+       control row. This claim's subject IS the Negotiate page's own control
+       row (its back arrow, its "Open document"), so the page is asked for by
+       name ({ page: true }). */
+    await page.evaluate(() => { const c = state.contracts.find(x => x.id === 'MK-A2'); if (c && typeof negoInit === 'function') negoInit(c); openRedlineWorkbench('MK-A2', { blanksAsked: true, page: true }); });
     /* REVERSED 10 Oct 2026 (owner: "delete the back to document writing and the
        arrow but replace the all negotiation button with Open document button").
        14a/14b asked for the ring and the words; now they ask that both are gone

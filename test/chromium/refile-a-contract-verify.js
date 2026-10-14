@@ -244,10 +244,13 @@ const seed = (id, name, folder, over = {}) => ({
     await openKeyTerms(p2, 'MK-RF1');
     /* RE-POINTED 12-13 Oct 2026: the Overview reads, so a non-admin's filing
        rows are on the Details tab, under "Parties, people and filing" */
-    await p2.evaluate(() => roomGoTab(getContract('MK-RF1'), 'details'));
-    await p2.waitForFunction(() => !!document.getElementById('det-more'), null, { timeout: 5000 }).catch(() => {});
-    await p2.evaluate(() => { const m = document.getElementById('det-more'); if (m) m.open = true; });
-    await p2.waitForTimeout(400);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the Details
+       tab went home — its twin, Jambo's Fill in face, holds only what the
+       paper owes and draws no filing rows. The filing rows are the ones the
+       ⋯ "Filing and stream" door (openKeyTerms above) opens on the room's
+       Overview (#kt-rows-record), so they are measured there, as the admin's
+       were in sections 3 and 4. */
+    await p2.waitForFunction(() => !!document.querySelector('#kt-rows-record [data-kt-row="stream"]'), null, { timeout: 5000 }).catch(() => {});
 
     const asEditor = await page2State(p2);
     check('the Editor still sees which drawer it is in', asEditor.rowText.length > 0,

@@ -632,7 +632,7 @@ describe('f313 — the clause ladder', () => {
     assert.match(html, /data-rl-board-go="cl_4"/, 'the card opens its clause');
     const nego = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'negotiation.js'), 'utf8');
     const press = nego.slice(nego.indexOf("const bpick = t.closest('[data-rl-board-pick]');"), nego.indexOf("const bf = t.closest('[data-rl-board-f]');"));
-    assert.match(press, /aria-current'\) === 'true'\)\{ rlBoardGoClause\(pid\)/, 'a second press on the shown row opens the clause');
+    assert.match(press, /aria-current'\) === 'true'\)\{ rlBoardGoClause\(pid\b/, 'a second press on the shown row opens the clause');
   });
 
   test('(42) the verdict is arithmetic on the playbook\'s own figures, and the counts are its filters', async () => {

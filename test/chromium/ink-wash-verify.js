@@ -110,6 +110,16 @@
    the Negotiate screen moved, and only in counts (light: 13px 269→257; dark:
    fewer of the same colours). No key new, none gone. Every Ink Wash claim
    passed before and after.
+   RE-RECORDED 14 Oct 2026, OWNER-ASKED ("Yes, re-record it"): stage 5 of
+   the one-page Home plan redrew five screens — Overview (two room tabs),
+   Document, Signing (Jambo's Before you sign face beside the signing copy),
+   History (the Board's view) and Negotiate (the Redlines face beside Home's
+   paper). Audited first as a set difference: only those five moved; nothing
+   new in light mode; the values new to the whole record are existing styles
+   now seen on these screens — 11.5px (the panel's pill, .pd-pill), the navy
+   theme's accent-400 rgb(91,130,207) on Jambo's suggestion chips in dark, and
+   the Board's own dark text inks on History. Gone: the Negotiate page's paper
+   frame and kicker. Every Ink Wash claim passed before and after.
      node test/chromium/ink-wash-verify.js          (check)
    ============================================================ */
 const fs = require('node:fs');
@@ -260,7 +270,19 @@ const diff = (a, b) => {
     });
 
     const SCREENS = [
-      ['home',        () => setView('dashboard')],
+      /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): 'signing',
+         'history' and 'negotiate' are drawn on Home now (below), and each
+         leaves Home turned to its own face — the Board's History view, Jambo's
+         Before you sign and Redlines faces, the paper Redlined while the last
+         is open. So Home is put back as the census always saw it, as the
+         'document' visit's face was put back before: the face it had, Your
+         book on the Board, Jambo's faces put away and the panel on the tab
+         the Document door leaves it on. Nothing to put back on the first round. */
+      ['home',        () => { if (window.__hbFaceWas) {
+        if (window.pdRedAway) pdRedAway(); if (window.pdSignAway) pdSignAway(); if (window.pdFillAway) pdFillAway();
+        if (window.hbCvSet) hbCvSet('book', null); if (window.pdSetTab) pdSetTab('doc');
+        hbS().face = window.__hbFaceWas; hbSave(); delete window.__hbFaceWas; }
+        setView('dashboard'); }],
       ['contracts',   () => setView('register')],
       ['obligations', () => setView('obligations')],
       ['calendar',    () => setView('calendar')],
@@ -275,8 +297,13 @@ const diff = (a, b) => {
          that tab gone it drew none — it measures the real Signing tab
          ('sign') now, where the signing copy lives. */
       ['document',    id => { window.__hbFaceWas = hbFace(); pdOpenOnHome(id, 'doc'); }],
-      ['signing',     id => { if (window.__hbFaceWas) { hbS().face = window.__hbFaceWas; hbSave(); delete window.__hbFaceWas; }
-        openWorkspace(id); roomGoTab(getContract(id), 'sign'); }],
+      /* RE-POINTED 14 Oct 2026 (stage 5): the room's Signing and History tabs
+         went home, by their own doors — 'signing' is Jambo's Before you sign
+         face beside the signing copy on Home's paper, 'history' the Board's
+         History view; 'negotiate' is Jambo's Redlines face beside Home's paper
+         (every door onto Negotiate lands there). Home's face is put back at
+         the next round's 'home', above. */
+      ['signing',     id => { openWorkspace(id); roomGoTab(getContract(id), 'sign'); }],
       ['history',     id => { openWorkspace(id); roomGoTab(getContract(id), 'history'); }],
       ['negotiate',   id => openRedlineWorkbench(id)],
     ];
@@ -308,9 +335,11 @@ const diff = (a, b) => {
       for (const [name, go] of [...SCREENS, ...POPUPS]) {
         const isPop = POPUPS.some(x => x[0] === name);
         await page.evaluate(`(${go.toString()})(${JSON.stringify(cid)})`);
-        if (name === 'negotiate') await page.waitForSelector('#view-redline #rl-doc', { timeout: 10000 }).catch(() => {});
+        /* RE-POINTED 14 Oct 2026 (stage 5): each twin on Home waited for, by this contract's id */
+        if (name === 'negotiate') await page.waitForFunction(id => !!document.querySelector(`#pd-redface [data-pd-rf="${id}"]`) && !!document.querySelector('#ig-canvas'), cid, { timeout: 10000 }).catch(() => {});
         if (name === 'document') await page.waitForSelector('#ig-canvas', { timeout: 10000 }).catch(() => {});
-        if (name === 'signing') await page.waitForSelector('#doc-signwrap .pg-sheet', { timeout: 10000 }).catch(() => {});
+        if (name === 'signing') await page.waitForFunction(id => !!document.querySelector(`#pd-signface .pd-sf[data-pd-sf="${id}"]`) && !!document.querySelector('#ig-paper .pg-sheet.pg-sign'), cid, { timeout: 10000 }).catch(() => {});
+        if (name === 'history') await page.waitForFunction(id => { const b = document.querySelector(`#hb-cv-body[data-hb-cv="hist"][data-hb-cv-cid="${id}"]`); return !!b && !b.querySelector('.hb-cv-wait'); }, cid, { timeout: 10000 }).catch(() => {});
         await pause(name === 'home' ? 1400 : 800);
         const r = {};
         if (dark) r.all = await page.evaluate(CENSUS, ['body', COLOUR_PROPS]);

@@ -55,7 +55,11 @@ const check = (name, pass, detail) => {
       b.ours.status === 'superseded' && b.ours.supersededBy === b.theirs.id
         && b.theirs.counterOf === b.ours.id, JSON.stringify(b));
 
-    await page.evaluate(id => openRedlineWorkbench(id), ID);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): every door
+       lands on Jambo's Redlines face on Home; the Negotiate page stays as the
+       engine, opened BY NAME — its bench (the paper, the clause panel) is what
+       this file measures. */
+    await page.evaluate(id => openRedlineWorkbench(id, { page: true }), ID);
     await page.waitForTimeout(1800);
 
     const bench = await page.evaluate(({ oursId, theirsId }) => {

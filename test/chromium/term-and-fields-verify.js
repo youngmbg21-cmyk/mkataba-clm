@@ -237,12 +237,21 @@ const check = (name, pass, detail) => {
       await page.evaluate(() => (getContract(state.activeId) || {}).expiry) == null);
     await page.evaluate(() => { const b = document.querySelector('#ws-tabs [data-ws-tab="docs"]'); if (b) b.click(); });
     await page.waitForTimeout(1000);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 2): a draft that
+       owes nothing lands on Home's paper with Jambo's conversation, and the
+       term blank is an optional answer on the paper — a press on it is the
+       way in, and opens Fill in beside the paper on its box. */
+    await page.evaluate(() => { const b = document.querySelector('#ig-canvas [data-field="termYears"]'); if (b) b.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    await page.waitForFunction(() => !!(window.contractFieldPeer && contractFieldPeer('termYears', 'panel')), null, { timeout: 5000 }).catch(() => {});
     const typed = await page.evaluate(() => {
       /* RE-POINTED 11 Oct 2026: THE DOCUMENT TAB IS NEVER EDITED (Young,
          9 Oct) — the paper draws the blank as a read-only answer and the
          reader types in its peer on the panel (docAnswersWire →
          contractFieldPeer(key, 'panel')). */
-      const onPaper = document.querySelector('#doc-canvas [data-field="termYears"]');
+      /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 2): a new draft
+         lands on Home's paper (#ig-canvas) with Jambo's panel on Fill in, whose
+         form is the panel this peer is looked for in. */
+      const onPaper = document.querySelector('#ig-canvas [data-field="termYears"], #doc-canvas [data-field="termYears"]');
       if (!onPaper) return { found: false };
       const el = (window.contractFieldPeer && contractFieldPeer('termYears', 'panel')) || null;
       if (!el) return { found: true, peer: false };
@@ -254,7 +263,7 @@ const check = (name, pass, detail) => {
     await page.waitForTimeout(900);
     const after = await page.evaluate(id => {
       const c = state.contracts.find(x => x.id === id);
-      const doc = (document.getElementById('doc-canvas') || {}).textContent || '';
+      const doc = (document.getElementById('ig-canvas') || document.getElementById('doc-canvas') || {}).textContent || '';
       return { expiry: c.expiry, meta: (c.metadata || {}).expiryDate, doc: doc.replace(/\s+/g, ' ') };
     }, filled);
     check('the term blank is drawn while the record has no end date', typed.found);

@@ -98,23 +98,31 @@ const visible = (page, sel) => page.evaluate(s => {
     built.ids.length ? built.ids.join(', ') + (built.gave ? '' : ' — but the withdrawal was refused') : `only ${built.clauses} clauses`);
   if (!built.ids.length){ console.log('\nfixture too small'); await browser.close(); await h.stop(); process.exit(1); }
 
+  /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the Negotiate
+     door now lands on Jambo's Redlines face beside Home's paper, and the
+     page's own More rows ride the ⋯ menu on Home's paper line (#ig-strip
+     #ws-more): the memo row there is [data-ig-memo] (igStripActsHtml), its
+     press the same openNegoMemo. The negotiation behind it is Home's paper,
+     Redlined while a change is pending. */
   await page.evaluate(id => openRedlineWorkbench(id), built.id);
-  await page.waitForTimeout(1800);
+  await page.waitForFunction(() => state.view === 'dashboard' && !!document.querySelector('#pd-redface [data-nego-card]') && !!document.querySelector('#ig-strip #ws-more'), null, { timeout: 10000 }).catch(() => {});
+  await page.waitForTimeout(600);
+  const MEMO = '#ig-strip [data-ig-memo]', MORE = '#ig-strip #ws-more';
 
   /* ============ 1. THE ROW IS IN THE MENU, AND ON SCREEN ============ */
   /* EVERY DRIVEN HALF BELOW IS GUARDED. A build without the feature must
      REPORT its failures rather than time out on a click that will never find
      its target — a probe that throws proves nothing, and a crash reads as an
      infrastructure problem rather than as a missing feature. */
-  const hasRow = await page.locator('[data-rl-memo]').count() === 1;
+  const hasRow = await page.locator(MEMO).count() === 1;
   check(hasRow, '1a the negotiation page puts exactly one memo row in the More menu');
   /* The menu is in the DOM the whole time and starts hidden, so a presence
      check alone passes on a row nobody can reach — open it first. */
-  await page.click('#ws-more');
+  if (await page.locator(MORE).count()) await page.click(MORE);
   await page.waitForTimeout(400);
-  check(hasRow && await visible(page, '[data-rl-memo]'),
+  check(hasRow && await visible(page, MEMO),
     '1b and once the menu is open the row is VISIBLE PIXELS');
-  const rowText = hasRow ? await page.locator('[data-rl-memo]').innerText() : '';
+  const rowText = hasRow ? await page.locator(MEMO).innerText() : '';
   check(/memo|notat/i.test(rowText), '1c it says what it is', rowText.trim() || 'no row');
   await page.screenshot({ path: path.join(OUT, '01-menu.png') });
 
@@ -125,7 +133,7 @@ const visible = (page, sel) => page.evaluate(s => {
       json: JSON.stringify((c.changes || []).map(x => [x.id, x.status, !!x.withdrawn])) };
   }, built.id);
 
-  if (hasRow){ await page.click('[data-rl-memo]'); await page.waitForTimeout(900); }
+  if (hasRow){ await page.click(MEMO); await page.waitForTimeout(900); }
 
   const memo = await page.evaluate(() => {
     const p = document.getElementById('side-panel');
@@ -347,13 +355,15 @@ const visible = (page, sel) => page.evaluate(s => {
   if (wasOpen){ await page.click('#side-panel-x'); await page.waitForTimeout(500); }
   check(wasOpen && await page.locator('#side-panel').count() === 0,
     '6a the ✕ closes it', wasOpen ? '' : 'it never opened');
+  /* RE-POINTED 14 Oct 2026 (stage 5): the negotiation is Home's paper with
+     Jambo's Redlines face beside it, so "still on it" is that face, up */
   const stillThere = await page.evaluate(() => !!document.querySelector('.rl-paper, .rl-doc, #rl-doc')
-    && (window.state || {}).view);
-  check(stillThere === 'redline', '6b and leaves the reader on the negotiation', String(stillThere));
+    && !!document.querySelector('#pd-redface [data-nego-card]') && (window.state || {}).view);
+  check(stillThere === 'dashboard', '6b and leaves the reader on the negotiation', String(stillThere));
 
   if (hasRow){
-    await page.click('#ws-more'); await page.waitForTimeout(300);
-    await page.click('[data-rl-memo]'); await page.waitForTimeout(700);
+    await page.click(MORE); await page.waitForTimeout(300);
+    await page.click(MEMO); await page.waitForTimeout(700);
   }
   const reopened = await page.locator('#side-panel').count() === 1;
   check(reopened, '6c it opens again');
@@ -372,8 +382,8 @@ const visible = (page, sel) => page.evaluate(s => {
      promises, and the one that lets the whole journey be driven end to end and
      the message read back. */
   if (hasRow){
-    await page.click('#ws-more'); await page.waitForTimeout(300);
-    await page.click('[data-rl-memo]'); await page.waitForTimeout(700);
+    await page.click(MORE); await page.waitForTimeout(300);
+    await page.click(MEMO); await page.waitForTimeout(700);
   }
   const panelText = await page.evaluate(() => {
     const p = document.getElementById('side-panel'); return p ? p.innerText : ''; });

@@ -139,15 +139,16 @@ const FORM = () => {
      document, which is a template full of blanks you have not filled in — it
      should land on the terms those blanks are filled FROM. Read off the tab row
      the reader is actually looking at, not off the module's variable. */
-  const landed = await page.evaluate(() => {
-    const on = document.querySelector('#ws-tabs [data-ws-tab][aria-selected="true"]');
-    return { tab: on && on.getAttribute('data-ws-tab'),
-             label: on && on.textContent.trim(),
-             view: window.state.view };
-  });
-  /* RE-POINTED 12 Oct 2026: a new draft lands on Details (owner) */
-  check('a new draft lands on Details, not on the document',
-    landed.tab === 'details', `tab=${landed.tab} "${landed.label}" view=${landed.view}`);
+  const landed = await page.evaluate(() => ({ view: window.state.view, paper: window.intel && intel.paper && intel.paper.id,
+    face: !!document.getElementById('pd-fillface') }));
+  /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 2, owner picked
+     "Form"): a new draft lands on Home's paper with Jambo's panel on Fill in
+     (12 Oct 2026: the room's Details tab) */
+  check('a new draft lands beside the paper, Jambo\'s panel on Fill in',
+    landed.view === 'dashboard' && landed.paper === skipped.id && landed.face, JSON.stringify(landed));
+  /* the room's head is what 2c measures: opened as a reader opens it */
+  await page.evaluate(id => window.openWorkspace(id), skipped.id);
+  await page.waitForTimeout(600);
 
   /* ---------- 2c. THE HEAD DOES NOT OFFER A DOOR TO THE PAGE YOU ARE ON ----
      Owner-asked 9 Sep 2026: "delete the complete key terms button." This is
@@ -192,7 +193,9 @@ const FORM = () => {
 
   /* RE-POINTED 11 Oct 2026: the Document tab is gone (owner) — retired from
      this loop; the head is asked on every tab the room still draws. */
-  for (const t of ['stands', 'sign', 'oblig', 'history']) {
+  /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): Signing,
+     Obligations and History went home; the room draws Overview and Where we are. */
+  for (const t of ['stands']) {
     const h = await headOn(t);
     check(`nor on the ${t} tab — the head is the same head on every tab`,
       h.says === 0 && !h.na && h.acts.length >= 2,

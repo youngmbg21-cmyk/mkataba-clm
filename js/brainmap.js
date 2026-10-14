@@ -144,6 +144,19 @@ const BRAIN_PARTS = [
   /* the Details tab and "Complete the details" (owner, 12 Oct 2026): the one
      place a contract is filled in, and the one count of what is left */
   ['details', 'detailsOf', 'in', 1],
+  /* Fill in, beside the paper (the one-page Home plan, stage 2, 14 Oct 2026):
+     Jambo's panel turns to the Details tab's own form; a new contract lands here */
+  ['fillface', 'pdFillOpen', 'in', 1],
+  /* Redlines, beside the paper (the one-page Home plan, stage 3, 14 Oct 2026):
+     Jambo's panel draws the Negotiate page's own column; doors from outside land here */
+  ['redface', 'pdRedOpen', 'see', 0],
+  /* the contract's views on the Board (the one-page Home plan, stage 4, 14 Oct
+     2026): the deal board, obligations and history of the contract on the paper */
+  ['boardviews', 'hbOpenView', 'see', 0],
+  /* Before you sign, beside the paper (the one-page Home plan, stage 5, 14 Oct
+     2026): Jambo's panel draws the Signing column's own four slots; the paper
+     turns to the signing copy; every door into signing lands here */
+  ['signface', 'pdSignOpen', 'see', 0],
   ['essentials', 'openContractEssentials', 'in', 0],
   ['outbyhand', 'roundReachedByHand', 'out', 1],
   ['issuelinks', 'issueSigningRouteLinks', 'sign', 1],
@@ -266,20 +279,20 @@ const BRAIN_PARTS = [
    brn_step_<flow>_<n> in the dictionary. A flow is a STORY a person wrote;
    the reading only checks that every part it names is still in the code. */
 const BRAIN_FLOWS = [
-  { id: 'upload', steps: [['upload', 'book', 'draftcard'], ['docx', 'pdf'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed'], ['brief', 'playbook', 'oblscan', 'obdesk', 'risk', 'datedwin', 'papermark'], ['model'], ['details', 'blanks'], ['overview', 'constellation', 'bell']] },
+  { id: 'upload', steps: [['upload', 'book', 'draftcard'], ['docx', 'pdf'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed'], ['brief', 'playbook', 'oblscan', 'obdesk', 'risk', 'datedwin', 'papermark'], ['model'], ['details', 'fillface', 'blanks'], ['overview', 'constellation', 'bell']] },
   /* The new parts join STEPS THAT ALREADY EXIST rather than adding steps of
      their own: a step inserted in the middle renumbers every sentence after
      it in both books, and these are not new stages of the story — they are
      who else is on the page while you do it, and who may rule on it. */
-  { id: 'redline', steps: [['negpage', 'startnego', 'here', 'follow'], ['editor', 'baton', 'askkeep', 'risklist', 'riskwalk'], ['funnel'], ['desk', 'suggest'], ['ladder'], ['review', 'kept', 'asks'], ['payload'], ['shares', 'linkcheck'], ['email', 'mailkey', 'cplink', 'turnmail', 'wordmark'], ['whosemove', 'bell', 'roundauto']] },
-  { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop', 'roundsettle'], ['ladder'], ['whosemove', 'decidedsend'], ['bell', 'home', 'negpage', 'stands', 'stale', 'dealpaper', 'onepaper', 'answeronpaper'], ['webhook']] },
-  { id: 'sign', steps: [['signtab', 'linkcheck'], ['readiness', 'signgate', 'rules', 'paperjobs'], ['approvals', 'namedyes', 'decide', 'undoyes', 'rulestep', 'asks', 'approvalpaper', 'freshen'], ['brief', 'playbook', 'blanks'], ['pad'], ['putguard', 'srvseal', 'sealtext'], ['seal', 'frozen', 'issuelinks'], ['obligations', 'renewal', 'calendar', 'mynotes', 'mine', 'myitems', 'myitemsget', 'myitemsput', 'myitemsdel', 'plan'], ['email', 'copies']] },
+  { id: 'redline', steps: [['redface', 'negpage', 'startnego', 'here', 'follow'], ['editor', 'baton', 'askkeep', 'risklist', 'riskwalk'], ['funnel'], ['desk', 'suggest'], ['ladder'], ['review', 'kept', 'asks'], ['payload'], ['shares', 'linkcheck'], ['email', 'mailkey', 'cplink', 'turnmail', 'wordmark'], ['whosemove', 'bell', 'roundauto']] },
+  { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop', 'roundsettle'], ['ladder'], ['whosemove', 'decidedsend'], ['bell', 'home', 'negpage', 'boardviews', 'stands', 'stale', 'dealpaper', 'onepaper', 'answeronpaper'], ['webhook']] },
+  { id: 'sign', steps: [['signface', 'signtab', 'linkcheck'], ['readiness', 'signgate', 'rules', 'paperjobs'], ['approvals', 'namedyes', 'decide', 'undoyes', 'rulestep', 'asks', 'approvalpaper', 'freshen'], ['brief', 'playbook', 'blanks'], ['pad'], ['putguard', 'srvseal', 'sealtext'], ['seal', 'frozen', 'issuelinks'], ['obligations', 'renewal', 'calendar', 'mynotes', 'mine', 'myitems', 'myitemsget', 'myitemsput', 'myitemsdel', 'plan'], ['email', 'copies']] },
   { id: 'night', steps: [['reminders', 'lanes', 'agentlevel', 'linkkeep', 'agentpieces', 'agentpoints'], ['renewal', 'renewact'], ['renewprep'], ['model', 'boardjudge', 'bookread'], ['db'], ['obligations'], ['email', 'boardmoved', 'looktell'], ['desknight', 'home', 'insights', 'readings', 'chasemany', 'draftreply', 'agentoutcome', 'agentprepared', 'agentrebuild', 'piecesget', 'jambohouse']] },
   { id: 'ask', steps: [['copilotask', 'homepaper', 'breakdown', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook', 'stackview'], ['db', 'dealfacts', 'brainread'], ['model', 'breakread', 'breakdive', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote', 'citedoor', 'walkset', 'paperdesk'], ['contracts', 'customers', 'directory', 'passroute', 'lookask', 'copilotdoors'], ['explorer', 'cellfold', 'readchips', 'nextq', 'boardmarks']] },
   /* THE OVERNIGHT REVIEW'S FLOWS (9 Oct 2026): the commonest start, a request,
      the other side's signature, an amendment, the end of a contract, and the
      ways a step can go wrong — none of which the six flows above walked. */
-  { id: 'draft', steps: [['newagr', 'essentials'], ['putguard', 'db'], ['details', 'tplform', 'blanks'], ['triage'], ['shares', 'linkcheck'], ['email', 'outbyhand', 'wordfile'], ['whosemove', 'bell']] },
+  { id: 'draft', steps: [['newagr', 'essentials'], ['putguard', 'db'], ['details', 'fillface', 'tplform', 'blanks'], ['triage'], ['shares', 'linkcheck'], ['email', 'outbyhand', 'wordfile'], ['whosemove', 'bell']] },
   { id: 'request', steps: [['request', 'kinds', 'intake', 'mailroom', 'reqfiles'], ['bell'], ['lanes', 'laneowner'], ['arrivalowed', 'triage'], ['newagr']] },
   { id: 'theysign', steps: [['theirsign', 'issuelinks'], ['cplink', 'guestcode'], ['respond', 'filesig'], ['srvseal', 'sealtext', 'frozen'], ['copies', 'email'], ['obligations', 'renewal', 'calendar']] },
   { id: 'amend', steps: [['amend'], ['blanks'], ['readiness', 'approvals'], ['srvseal'], ['renewal', 'overview']] },
@@ -301,11 +314,11 @@ const BRAIN_LANE_OF = {
   /* a colleague: the requester, the reviewer, the contributor, the approver */
   req: ['request', 'kinds', 'reqfiles', 'review', 'suggest', 'rules', 'namedyes', 'decide', 'undoyes', 'approvalpaper', 'lookask'],
   /* the person working the contract: what they see and press */
-  own: ['upload', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'negpage', 'startnego', 'here', 'follow',
-    'editor', 'baton', 'askkeep', 'risklist', 'riskwalk', 'stands', 'dealpaper', 'onepaper', 'decidedsend', 'signtab', 'pad', 'calendar', 'desknight', 'insights', 'readings',
+  own: ['upload', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'negpage', 'redface', 'boardviews', 'startnego', 'here', 'follow',
+    'editor', 'baton', 'askkeep', 'risklist', 'riskwalk', 'stands', 'dealpaper', 'onepaper', 'decidedsend', 'signtab', 'signface', 'pad', 'calendar', 'desknight', 'insights', 'readings',
     'chasemany', 'copilotask', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs',
     'phrasebook', 'boardtools', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'citedoor', 'walkset', 'paperdesk', 'contracts', 'customers', 'directory', 'cellfold',
-    'readchips', 'nextq', 'newagr', 'essentials', 'tplform', 'details', 'outbyhand', 'amend', 'decline', 'reopen', 'archive', 'hold', 'served', 'obdone', 'inline', 'stackview', 'mynotes', 'breakdown', 'jambohouse'],
+    'readchips', 'nextq', 'newagr', 'essentials', 'tplform', 'details', 'fillface', 'outbyhand', 'amend', 'decline', 'reopen', 'archive', 'hold', 'served', 'obdone', 'inline', 'stackview', 'mynotes', 'breakdown', 'jambohouse'],
   /* HaTi itself: the readings, Copilot, the agents, the server's checks, the mail it sends */
   hati: ['docx', 'clauses', 'putguard', 'db', 'triage', 'arrivalowed', 'datedwin', 'brief', 'playbook', 'oblscan', 'risk', 'model', 'blanks', 'laneowner',
     'funnel', 'desk', 'ladder', 'kept', 'asks', 'payload', 'shares', 'linkcheck', 'email', 'turnmail', 'wordmark', 'whosemove', 'roundauto',

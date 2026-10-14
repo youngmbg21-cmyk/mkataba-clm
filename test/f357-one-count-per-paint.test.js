@@ -114,7 +114,7 @@ describe('f357 (2) one look-up per obligation tick', () => {
        painters rather than assumed by the caller */
     const CT = R('js/views/contract.js');
     assert.ok(/function paintOverviewDocs\(c\)\{\s*\n?\s*if\(!document\.getElementById\('kt-side'\)\) return;/.test(CT));
-    assert.ok(/function roomPaintObligations\(c\)\{[\s\S]{0,160}?if\(!host \|\| !c\) return;/.test(OBL));
+    assert.ok(/function roomPaintObligations\(c(?:, at)?\)\{[\s\S]{0,160}?if\(!host \|\| !c\) return;/.test(OBL));
   });
 });
 

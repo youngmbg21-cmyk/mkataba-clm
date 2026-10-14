@@ -322,7 +322,7 @@ function insDoorActs(c, opt){
   const doc = { k: 'door-doc', door: true, icon: 'file', label: i18t('ins_door_doc'),
     run: typeof o.doc === 'function' ? () => o.doc(c) : (() => { if (!(typeof pdOpenOnHome === 'function' && pdOpenOnHome(c.id, 'copilot'))) openWorkspace(c.id); }) };
   const nego = { k: 'door-nego', door: true, icon: 'msg', label: i18t('ins_door_nego'),
-    disabled: !ns.ok, title: ns.ok ? '' : ns.why, run: () => { if (insNegoDoorState(c).ok) openRedlineWorkbench(c.id); } };
+    disabled: !ns.ok, title: ns.ok ? '' : ns.why, run: () => { if (insNegoDoorState(c).ok) openRedlineWorkbench(c.id, { face: true }); } };   /* Jambo's Redlines face beside Home's paper (stage 3) */
   const ws = { k: 'door-ws', door: true, icon: 'folderOpen', label: i18t('ins_door_ws'),
     /* the Workspace lands on Details while anything is left to fill in
        (owner, 12 Oct 2026), on the Overview otherwise */
@@ -854,8 +854,11 @@ const INS_PAGE_REPAINT = {
   playbook: 'renderPlaybookPage',
   /* the Templates list takes the inspector where it fits (SAP benchmark, batch 2) */
   templates: 'renderTemplatesPage',
-  oblig: () => { const c = (typeof getContract === 'function' && typeof state !== 'undefined') ? getContract(state.activeId) : null;
-    if (c && typeof roomPaintObligations === 'function') roomPaintObligations(c); },
+  /* the host says its contract and is repainted where it stands: the room's
+     pane, or Home's Board drawing the same tab (stage 4, 14 Oct 2026) */
+  oblig: page => { const own = page && page.getAttribute('data-ins-cid');
+    const c = (typeof getContract === 'function' && typeof state !== 'undefined') ? getContract(own || state.activeId) : null;
+    if (c && typeof roomPaintObligations === 'function') roomPaintObligations(c, page && page.id !== 'ws-obligations-pane' ? page : null); },
 };
 function insWatchWidth(){
   if (typeof document === 'undefined' || document._insWidthWired) return;
@@ -872,7 +875,7 @@ function insWatchWidth(){
     const k = page.getAttribute('data-ins-page');
     try {
       const p = INS_PAGE_REPAINT[k];
-      if (typeof p === 'function') p();
+      if (typeof p === 'function') p(page);
       else if (p && typeof window[p] === 'function') window[p]();
     } catch (err) { if (typeof console !== 'undefined') console.warn('inspector: repaint on resize failed', err); }
   };

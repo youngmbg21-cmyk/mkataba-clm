@@ -148,10 +148,18 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
     await own.screenshot({ path: path.join(OUT, '1-bell-agreed.png') });
     const pressed = await own.$('#context-panel [data-alert-kind="cp-accepted"]');
     if (pressed) { await pressed.click({ timeout: 5000 }).catch(() => {}); await pause(1600); }
-    const land1 = await own.evaluate(() => ({ view: state.view, id: state.activeId,
-      tab: (typeof roomCurrentTab === 'function') ? roomCurrentTab() : null }));
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+       Signing tab went home — its door opens Jambo's Before you sign face
+       beside Home's paper, so "that contract on its Signing tab" is the face
+       up (pdSignShows) for MK-A2 (pdSignFor). */
+    await own.waitForFunction(() => !!(window.pdSignShows && pdSignShows()), null, { timeout: 5000 }).catch(() => {});
+    const land1 = await own.evaluate(() => {
+      const sf = (typeof pdSignFor === 'function') ? pdSignFor() : null;
+      const up = !!(typeof pdSignShows === 'function' && pdSignShows());
+      return { view: state.view, id: sf || state.activeId,
+        tab: up ? 'sign' : ((typeof roomCurrentTab === 'function') ? roomCurrentTab() : null) }; });
     ok('1d pressing it opens that contract on its Signing tab — the next step is a signature',
-      !!row && land1.view === 'workspace' && land1.id === 'MK-A2' && land1.tab === 'sign', JSON.stringify(land1));
+      !!row && land1.view === 'dashboard' && land1.id === 'MK-A2' && land1.tab === 'sign', JSON.stringify(land1));
     /* GUARDED: where there was no row to press, the bell is still open over the
        page — and every press below would wait on a covered element and time
        out rather than report. Closed either way. */

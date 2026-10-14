@@ -634,6 +634,29 @@ function shellCrumbLayer(label){
   const s=document.createElement('span'); s.className='crumb-here crumb-layer'; s.textContent=label; s.title=label;
   el.appendChild(i); el.appendChild(s);
 }
+/* ---- THE WAY BACK TO THE CLAUSES TAB, ON HOME (the one-page Home plan,
+   stage 5) ---- the trip "Start redlining with this ask" begins now passes
+   through Jambo's Redlines face beside Home's paper, so Home's bar carries
+   the crumb while the face is up on that contract: the same link, word and
+   handler shellCrumbAdopt hung on the Negotiate page, a crumb and not a band.
+   Asked after every paint of Jambo's panel; gone when the trip or the face
+   is. */
+function shellCrumbHome(){
+  const el=document.getElementById('shell-title'); if(!el||!window.state||state.view!=='dashboard') return;
+  const id=(typeof window.pdRedShows==='function'&&pdRedShows()&&typeof window.pdRedFor==='function')?pdRedFor():null;
+  const trip=!!(id&&window.rlCameFrom&&rlCameFrom(id));
+  const drawn=!!el.querySelector('[data-rl-back-clauses]');
+  if(!trip){ if(drawn) paintShellTitle('dashboard'); return; }
+  if(drawn) return;
+  el.innerHTML='';
+  const back=document.createElement('button'); back.type='button'; back.className='crumb-door crumb-door-back'; back.setAttribute('data-rl-back-clauses','');
+  back.textContent='\u2039 '+i18t('rl_back_clauses');
+  const sep=document.createElement('i'); sep.className='crumb-sep'; sep.setAttribute('aria-hidden','true'); sep.textContent='/';
+  const s=document.createElement('span'); s.className='crumb-here'; s.textContent=i18t('ce_view_redlines'); s.title=s.textContent;
+  el.appendChild(back); el.appendChild(sep); el.appendChild(s);
+  el.classList.add('is-crumb');
+  if(_shellLayerLabel) shellCrumbLayer(_shellLayerLabel);
+}
 function renderPageHeader(view){
   paintShellTitle(view);
   /* THE RAIL SAYS WHOSE WORKSPACE THIS IS (the redesign, 20 Sep 2026): the
@@ -1138,6 +1161,18 @@ function setView(view){
     window.hbOpenCalendar();
     return;
   }
+  /* ---- THE NEGOTIATE PAGE FOLDED INTO HOME (the one-page Home plan, stage
+     5; the owner's yes to decision 1) ---- a negotiation this view would put
+     on its bench opens Jambo's Redlines face beside Home's paper instead,
+     decided before anything is drawn (rlHomeTakesIt); the list stays here. */
+  if(view==='redline' && typeof window!=='undefined' && typeof window.rlHomeTakesIt==='function'
+    && !(typeof window.mPhone==='function' && window.mPhone()) && window.rlHomeTakesIt()) return;
+  /* ---- A CONTRACT JUST MADE OR UPLOADED LANDS ON HOME'S DOCUMENT, Jambo's
+     panel on Fill in (the one-page Home plan, stage 2; owner, 14 Oct 2026):
+     every creation site opens the room, so the room's door asks first —
+     roomArrivesOnHome spends the site's own registration (roomOpenOnTerms). */
+  if(view==='workspace' && typeof window!=='undefined' && typeof window.roomArrivesOnHome==='function'
+    && state && state.activeId && window.roomArrivesOnHome(state.activeId)) return;
   if(!viewLayersClosed(view)) return;
   /* ---- LEAVING THE ROOM LEAVES THE ROOM (idea 5, 4 Oct 2026) ----
      A beat that carried on after the reader went to Insights would keep
@@ -1681,6 +1716,12 @@ function commandPaletteResults(q){
      granted, so listing it here offers a door that answers "no access" — and
      names a stream they were not meant to know about. */
   const folders=(typeof visibleFolders==='function')?visibleFolders():Object.values(FOLDERS||{});
+  /* JAMBO'S WORDS LEAD (the one-page Home plan, stage 1: one brain for every
+     box): "red" offers Redlines, "kal" the Calendar — the same move the
+     word makes in Jambo's box (caPlaceRun). */
+  if(q&&typeof window.caPlaceRows==='function'){
+    caPlaceRows(q).forEach(p=>out.push({kind:'place',id:p.k,title:p.word,sub:p.sub,tag:i18t('ca_place_tag'),ic:'chevR'}));
+  }
   if(q){
     folders.filter(f=>f.name.toLowerCase().includes(q)).slice(0,4)
       .forEach(f=>out.push({kind:'folder',id:f.id,title:f.name,get sub(){ return i18t('ap_value_stream'); },ic:f.ic||'folder'}));
@@ -1748,6 +1789,7 @@ function openCommandPalette(){
       if(ai){ ai.value=it.q; ai.focus(); }
       return;
     }
+    if(it.kind==='place'){ close(); if(window.caPlaceRun) caPlaceRun(it.id); return; }
     close(); if(it.kind==='folder') openFolder(it.id); else openWorkspace(it.id);
   };
   const ftsPlan=()=>{
@@ -2078,6 +2120,11 @@ const ALERT_KINDS = [
      never sent anywhere. Amber: worth a look, nobody else is waiting on it.
      Ranked under the work somebody is owed and over what only waits. */
   { k:'watch',       tone:'amber', ic:'&#128065;' },
+  /* ---- A VIEW A COLLEAGUE GAVE YOU (the one-page Home plan, stage 4) ----
+     A contract's deal board, obligations or history, given from the Board's
+     Share with a note (hbGiftAlerts). Amber: a colleague asked you to look.
+     It clears once seen — drawn on your Board, or opened from here. */
+  { k:'gift',        tone:'amber', ic:'&#127873;' },
   /* ---- A NOTE OF YOUR OWN TO LOOK AT AGAIN (Young, 10 Oct 2026) ----
      My notes whose review day has come (mineNotesDue, js/mine.js) — private,
      so only ever this reader's own. Amber: work this reader set themselves.
@@ -2152,7 +2199,7 @@ function buildAlerts(){
       /* On a file they sign the next move is the handover, not a link. */
       const theySign=!!(window.signRouteOf&&signRouteOf(c)==='outside');
       push('cp-ready',c,i18t('al_cp_ready'),
-        ()=>{ if(window.openWorkspace) openWorkspace(c.id); if(theySign&&window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} },
+        ()=>{ if(theySign&&window.roomOpenAt){ roomOpenAt(c.id,'sign'); return; } if(window.openWorkspace) openWorkspace(c.id); if(theySign&&window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} },
         theySign?{ news, sub:i18t('ho_al_ready_sub') }:{ news });
     });
   }
@@ -2170,7 +2217,7 @@ function buildAlerts(){
       if(ready) return;
       const who=String(a.by||'').trim()||c.counterparty||i18t('home_no_counterparty');
       push('cp-accepted',c,i18t('al_cp_accepted'),
-        ()=>{ if(window.openWorkspace) openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} },
+        ()=>{ if(window.roomOpenAt) roomOpenAt(c.id,'sign'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} } },
         { sub:i18t('al_cp_accepted_sub',{ who }) });
     });
   }
@@ -2191,7 +2238,7 @@ function buildAlerts(){
         : st==='stale'?i18t('al_ho_live',{ wait:i18tn('ho_days',n,{n}) })
         : (Number.isFinite(first)&&nowMs>=first)?i18t('al_ho_wait',{ wait }) : '';
       if(!text) return;
-      push('handover',c,text,()=>{ if(window.openWorkspace) openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} });
+      push('handover',c,text,()=>{ if(window.roomOpenAt) roomOpenAt(c.id,'sign'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} } });
     });
   }
   /* 1b. AN ANSWER FROM THE OTHER SIDE THAT THIS BROWSER CANNOT TAKE IN.
@@ -2224,12 +2271,17 @@ function buildAlerts(){
          than becoming a strip on a page — the cheapest channel that carries the
          fact, and no band. */
       let sub=''; try{ sub = window.negoRoundLine ? negoRoundLine(c) : ''; }catch(_){ sub=''; }
-      if(n) push('negotiation',c,i18tn('al_nego',n,{n}),()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); },
+      /* every negotiation row here opens Jambo's Redlines face beside Home's
+         paper (the one-page Home plan, stage 3): the page's own door, its
+         walls first; the phone carries on to its own page */
+      if(n) push('negotiation',c,i18tn('al_nego',n,{n}),()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id, { face: true }); },
         sub?{ sub }:null);
     });
   }
   /* 3. Reviews: what I owe a verdict on, and what I am waiting on. Both from
-        reviewState, which answers from the READER's chair. */
+        reviewState, which answers from the READER's chair. They open the
+        Negotiate page, not the Redlines face (stage 3): handing a review back
+        is the page's review notice, which the face does not draw. */
   if(window.reviewState && window.reviewSeatShowsReview){
     cs.forEach(c=>{
       /* ---- ASKED ONLY OF A CONTRACT THAT HAS A REVIEW ON IT ----
@@ -2270,7 +2322,7 @@ function buildAlerts(){
       let wait=[], back=[];
       try{ wait=window.deskSuggestionsFor?deskSuggestionsFor(c):[]; }catch(_){ wait=[]; }
       try{ back=window.deskSuggestionsBackTo?deskSuggestionsBackTo(c):[]; }catch(_){ back=[]; }
-      const go=()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); };
+      const go=()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id, { face: true }); };
       if(wait.length) push('suggest',c,i18tn('al_suggest',wait.length,{ n:wait.length,
         who:(wait[0].suggested&&wait[0].suggested.by)||'' }),go);
       if(back.length) push('suggest-back',c,i18tn('al_suggest_back',back.length,{ n:back.length,
@@ -2297,7 +2349,8 @@ function buildAlerts(){
       let d=null; try{ d=detailsOf(c); }catch(_){ d=null; }
       if(!d||!d.left) return;
       push('details',c,i18tn('det_to_fill',d.left,{n:d.left}),
-        ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(getContract(c.id)||c,'details'); }catch(_){} });
+        /* beside the paper, Jambo's panel on Fill in (stage 2, 14 Oct 2026) */
+        ()=>{ if(window.pdFillOpen){ pdFillOpen(c.id); return; } openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(getContract(c.id)||c,'details'); }catch(_){} });
     });
   }
   /* 3b. Notes a colleague gave this reader. negoNotesForMe reads c.thread and
@@ -2329,7 +2382,7 @@ function buildAlerts(){
   if(D){
     /* rule 6 (8 Oct 2026): the bell opens it on Home's Paper, the pack on Signing */
     (D.myApprovals||[]).filter(x=>x.mine).forEach(x=>push('approval',x.c,
-      i18t('al_approval'),()=>{ if(window.pdOpenOnHome&&pdOpenOnHome(x.c.id,'sign')) return; openWorkspace(x.c.id); if(window.roomGoTab) try{ roomGoTab(x.c,'sign'); }catch(_){} }));
+      i18t('al_approval'),()=>{ if(window.pdOpenOnHome&&pdOpenOnHome(x.c.id,'sign')) return; if(window.roomOpenAt) roomOpenAt(x.c.id,'sign'); else { openWorkspace(x.c.id); if(window.roomGoTab) try{ roomGoTab(x.c,'sign'); }catch(_){} } }));
     /* AND A REFUSAL COMES BACK TO THE PERSON WHO ASKED (23 Sep 2026): the
        approval before signing was refused, and the reason is on the Signing
        tab. Read off their own contracts' rows above — nothing new is walked. */
@@ -2338,7 +2391,7 @@ function buildAlerts(){
       const bad=((x.st&&x.st.chain)||[]).find(s=>s.sa&&s.status==='rejected'&&s.req&&s.req.askedBy
         &&meNow&&String(s.req.askedBy.id)===String(meNow.id));
       if(bad) push('approval',x.c,i18t('al_sa_refused',{who:bad.by||''}),
-        ()=>{ openWorkspace(x.c.id); if(window.roomGoTab) try{ roomGoTab(x.c,'sign'); }catch(_){} });
+        ()=>{ if(window.roomOpenAt) roomOpenAt(x.c.id,'sign'); else { openWorkspace(x.c.id); if(window.roomGoTab) try{ roomGoTab(x.c,'sign'); }catch(_){} } });
     });
     /* ---- AND A REFUSED RULE STEP IS THE OWNER'S TO REVISE (B5) ---- */
     if(meNow) cs.forEach(c=>{
@@ -2347,7 +2400,7 @@ function buildAlerts(){
       const bad=(Array.isArray(c.approvalChain)?c.approvalChain:[]).find(s=>s&&s.status==='rejected');
       if(!bad) return;
       push('ap-refused',c,i18t('al_ap_refused',{ step:bad.name||'', who:bad.by||'' }),
-        ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} },
+        ()=>{ if(window.roomOpenAt) roomOpenAt(c.id,'sign'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} } },
         bad.comment?{ sub:'“'+String(bad.comment).slice(0,140)+'”' }:undefined);
     });
     /* ---- AND WHEN THE LAST RULE STEP IS GIVEN, THE OWNER IS TOLD ----
@@ -2362,7 +2415,7 @@ function buildAlerts(){
       /* A named person's yes still owed is not "cleared" — that row says so. */
       try{ if(typeof signApprovalStateOf==='function'&&signApprovalStateOf(c).rows.some(r=>r.status!=='approved')) return; }catch(_){}
       push('ap-cleared',c,i18t('al_ap_cleared'),
-        ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} });
+        ()=>{ if(window.roomOpenAt) roomOpenAt(c.id,'sign'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} } });
     });
     /* ---- A NEGOTIATION GONE QUIET, AND A COLLEAGUE ASKING TO JOIN ----
        (24 Sep 2026.) Read off the same slices the approvals above ride on —
@@ -2380,7 +2433,7 @@ function buildAlerts(){
         st.n?(window.deskStaleSub?deskStaleSub(st):i18tn('dk_stale_sub',st.n,{n:st.n,who:(st.lead&&st.lead.name)||''})):''].filter(Boolean).join(' · ');
       push('desk-quiet',x.c,
         i18t('dk_stale_card',{who:x.c.counterparty||i18t('home_no_counterparty')}),
-        ()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(x.c.id); else openWorkspace(x.c.id); },
+        ()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(x.c.id, { face: true }); else openWorkspace(x.c.id); },
         sub?{ sub }:null); });
     /* ---- THE JOIN ROW AND THE TWO RENEWAL ROWS GO STRAIGHT THERE ----
        (27 Sep 2026, Young: "Yes, make them go straight to the right place".)
@@ -2473,7 +2526,7 @@ function buildAlerts(){
         && typeof contractOwnedBy==='function' && contractOwnedBy(c, me)) return;
       if(held.length && !n) n=held.length;
       push('signature',c,held.length?i18tn('ins_need_sign',n,{n}):i18t('al_signature'),
-        ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} },
+        ()=>{ if(window.roomOpenAt) roomOpenAt(c.id,'sign'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} } },
         n?{ sub:i18tn('al_sign_sub',n,{n}) }:undefined);
     });
   }
@@ -2508,7 +2561,7 @@ function buildAlerts(){
         : o.days===0 ? i18t('al_ob_today',{desc})
         : i18tn('al_ob_due',o.days,{n:o.days,desc});
       push('obligation',c,text,
-        ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'oblig'); }catch(_){} });
+        ()=>{ if(window.roomOpenAt) roomOpenAt(c.id,'oblig'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'oblig'); }catch(_){} } });
     });
   }
   /* ---- A REQUIRED DOCUMENT HAS LAPSED (S8) ----
@@ -2587,6 +2640,9 @@ function buildAlerts(){
      (hbWatchAlerts); the press lands on that figure's dig-in. */
   try{
     if(typeof window.hbWatchAlerts==='function') hbWatchAlerts().forEach(w=>push('watch',null,w.text,w.go));
+  }catch(e){}
+  try{
+    if(typeof window.hbGiftAlerts==='function') hbGiftAlerts().forEach(g=>push('gift',g.c,g.text,g.go));
   }catch(e){}
   try{
     if(typeof window.mineNotesDue==='function') mineNotesDue().forEach(n=>{
@@ -2668,6 +2724,9 @@ function panelSuppressed(){
    last opened anywhere. Read through window, the ES-module rule; on a stage
    without that module the fallback is the whole of it. */
 function chatContractId(){
+  /* ON HOME, THE CONTRACT ON THE PAPER (the one-page Home plan, stage 5): the
+     Notes door stands on the paper's line, so it opens that contract's notes */
+  try{ if(state.view==='dashboard'&&window.pdOnPaper&&pdOnPaper()&&window.pdContract){ const p=pdContract(); if(p) return p.id; } }catch(_){}
   try{ if(window.redlineHeldId){ const id=redlineHeldId(); if(id) return id; } }catch(_){}
   return (window.state&&state.activeId)||null;
 }
@@ -3349,7 +3408,11 @@ function renderContextPanel(){
       if(marked) try{ updateAlertBadge(); }catch(_){}
     }
   } else {
-    body.querySelectorAll('[data-sel-act]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-sel-act'))));
+    /* A ROW OF THE TRAIL OPENS THAT CONTRACT'S HISTORY ON THE BOARD (the
+       one-page Home plan, stage 4, 14 Oct 2026); the phone's room as before */
+    body.querySelectorAll('[data-sel-act]').forEach(el=>el.addEventListener('click',()=>{
+      const id=el.getAttribute('data-sel-act');
+      if(!(typeof window.hbOpenView==='function'&&hbOpenView(id,'hist'))) selectContract(id); }));
   }
 }
 function activityPanelHtml(){
@@ -4156,6 +4219,6 @@ if (typeof window !== 'undefined' && window.addEventListener){
   window.addEventListener('afterprint', clearPrintRoot);
 }
 
-Object.assign(window,{printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,notesPanelShowing,notesPanelFollow,
+Object.assign(window,{shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,notesPanelShowing,notesPanelFollow,
   buildAlerts,alertCount,updateAlertBadge,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

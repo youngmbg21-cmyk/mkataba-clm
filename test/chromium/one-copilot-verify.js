@@ -132,7 +132,12 @@ const closeEditor = async page => {
   await page.fill('#li-pass', 'adminpassword1');
   await page.click('#li-go');
   await pause(2400);
-  await page.evaluate(id => openRedlineWorkbench(id), ID);
+  /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): every door now
+     lands on Jambo's Redlines face beside Home's paper; this file drags its
+     highlights across the Negotiate PAGE's own paper (.rl-doc, its parties
+     block and clauses) and its selection menu, so it opens the page by name
+     ({ page: true }), the engine the face is built from. */
+  await page.evaluate(id => openRedlineWorkbench(id, { page: true }), ID);
   await page.waitForSelector('.redline-page .rl-doc', { timeout: 15000 }).catch(() => {});
   await pause(1500);
 

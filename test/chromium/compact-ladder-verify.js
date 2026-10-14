@@ -272,7 +272,12 @@ const HELPERS = `(() => {
     await sweep('signing');
 
     /* ════════ 5. THE NEGOTIATE PAGE ════════ */
-    await page.evaluate(id => openRedlineWorkbench(id), ids.rev);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): every door now
+       lands on Jambo's Redlines face beside Home's paper, which draws no head
+       control row, no seat switch and no room head; this section measures the
+       Negotiate PAGE's own furniture, so it opens the page by name
+       ({ page: true }), the engine the face is built from. */
+    await page.evaluate(id => openRedlineWorkbench(id, { page: true }), ids.rev);
     await page.waitForTimeout(2000);
     await load();
     await page.screenshot({ path: path.join(OUT, '05-negotiate.png') });

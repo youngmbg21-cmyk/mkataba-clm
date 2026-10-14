@@ -6643,11 +6643,12 @@
      under it, because what is printed there is OURS and a reader has to be
      able to tell it from the words the file arrived with. Neither is green or
      ruby: those are the redline's own grammar and nothing has been proposed. */
-  #doc-canvas span.up-blank{
+  /* …and on Home's paper, where the Fill in face fills them (the one-page Home plan, stage 2) */
+  :is(#doc-canvas,#ig-canvas) span.up-blank{
     background:var(--st-amber-bg);
     box-shadow:inset 0 -2px 0 0 var(--st-amber-dot);
     border-radius:1px; }
-  #doc-canvas span.up-blank.is-filled{
+  :is(#doc-canvas,#ig-canvas) span.up-blank.is-filled{
     background:transparent; color:var(--accent-ink);
     box-shadow:inset 0 -1px 0 0 var(--accent-ink); }
 
@@ -8654,6 +8655,11 @@
   .ca-foot{margin:10px 0 0;font-size:11.5px;color:var(--color-neutral-600)}
   .ca-why{margin:0 0 10px;padding:8px 10px;border-radius:var(--radius);background:var(--st-amber-bg);color:var(--color-text)}
   .ca-said{margin:6px 0 0;font-weight:var(--w-strong)}
+  /* JAMBO'S WORDS (the one-page Home plan, stage 1): the chip for work owed wears amber; the way back is a bold link above the conversation */
+  .ca-chip-owed{background:var(--st-amber-bg);border:1px solid var(--st-amber-line);color:var(--st-amber-fg);font-weight:var(--w-label)}
+  .ca-chip-owed:hover{border-color:var(--st-amber-dot)}
+  .ca-back{flex-shrink:0;align-self:flex-start;margin:8px 14px 0;padding:2px 0;border:0;background:none;font-size:12.5px;font-weight:var(--w-strong);color:var(--accent-ink);cursor:pointer;white-space:nowrap;max-width:calc(100% - 28px);overflow:hidden;text-overflow:ellipsis}
+  .ca-back:hover{text-decoration:underline;text-underline-offset:3px}
   /* HOME FIRST (8 Oct 2026): an answer's doors, the walk through a set, the Paper's desk */
   #ig-dock .igd-doors{display:flex;flex-wrap:wrap;gap:6px}
   #ig-dock .igd-small{display:flex;gap:14px;flex-wrap:wrap;padding-left:2px;font-size:11.5px}
@@ -8718,6 +8724,11 @@
   .ig-red button{border:0;background:var(--color-surface,#fff);font-size:12px;padding:3px 10px;color:var(--color-neutral-600);cursor:pointer;white-space:nowrap}
   .ig-red button+button{border-left:1px solid var(--color-neutral-300)}
   .ig-red button[aria-pressed="true"]{background:var(--color-accent-50);color:var(--accent-ink);font-weight:var(--w-strong)}
+  /* the paper's line takes the contract's own acts (stage 5): Notes · Share · More, the line's height kept */
+  .ig-acts{display:inline-flex;align-items:center;gap:6px;flex:none}
+  .ig-acts #hdr-chat.room-check{width:var(--ctl-h-sm);height:var(--ctl-h-sm);font-size:var(--t-meta);font-weight:var(--w-strong)}
+  .ig-more{position:relative;display:inline-flex}
+  .ig-more .ig-more-btn{width:var(--ctl-h-sm);padding:0;justify-content:center}
   .ig-redpaper{background:transparent}
   /* Clean on the same canvas: the wording that stands, no step labels (8 Oct 2026) */
   .ig-redpaper.is-clean .rl-rung{display:none}
@@ -8764,6 +8775,65 @@
   .pd-pill.is-warn{background:var(--st-amber-bg);color:var(--st-amber-fg)} .pd-pill.is-warn i{background:var(--st-amber-dot)}
   .pd-pill.is-ok{background:var(--st-green-bg);color:var(--st-green-fg)} .pd-pill.is-ok i{background:var(--st-green-dot)}
   .pd-pill.is-quiet{background:var(--st-gray-bg);color:var(--st-gray-fg)} .pd-pill.is-quiet i{background:var(--st-gray-dot)}
+  /* FILL IN THE DETAILS, BESIDE THE PAPER (the one-page Home plan, stage 2; owner picked "Form", 14 Oct 2026): a face of Jambo's tab, one column at the panel's width; its head stays in sight while the form scrolls */
+  #pd-fillface{padding:0 14px 12px}
+  #pd-fillface .pd-ff{display:flex;flex-direction:column;gap:12px}
+  #pd-fillface .pd-ff-h{position:sticky;top:0;z-index:1;background:var(--color-surface);padding:12px 0 10px;border-bottom:1px solid var(--color-divider);display:flex;flex-direction:column;gap:6px}
+  #pd-fillface .pd-ff-r{display:flex;align-items:center;gap:8px}
+  #pd-fillface .pd-ff-r h3{margin:0;font-size:var(--t-card);font-weight:var(--w-strong);color:var(--color-text)}
+  #pd-fillface .pd-ff-x{margin-left:auto;width:26px;height:26px;border:0;border-radius:var(--radius);background:none;color:var(--color-neutral-600);font-size:18px;line-height:1;cursor:pointer}
+  #pd-fillface .pd-ff-x:hover{background:var(--color-bg);color:var(--color-text)}
+  #pd-fillface .pd-ff-n{font-size:11.5px;color:var(--color-neutral-600)}
+  #pd-fillface .cd-grid{grid-template-columns:minmax(0,1fr)}
+  #pd-fillface .pd-ff-done{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border-radius:var(--radius);background:var(--st-green-bg);color:var(--st-green-fg);font-size:12.5px}
+  #pd-fillface .pd-ff-done i{font-style:normal;font-weight:var(--w-strong)}
+  #pd-fillface .pd-ff-next{display:flex;flex-direction:column;align-items:stretch;gap:6px;margin-top:8px}
+  #pd-fillface [data-pd-ff-done]:not(:empty){margin-top:4px}
+  #pd-fillface .pd-ff-next .ui-btn{justify-content:center}
+  #pd-fillface [data-pd-ff-done]:empty{display:none}
+  /* REDLINES, BESIDE THE PAPER (the one-page Home plan, stage 3; owner picked "Column", 14 Oct 2026): the Negotiate page's own column as a face of Jambo's tab — the panel is its frame, the rows scroll under its head, and the head takes a second line at the panel's width: Redlines · Send all · ×, then the round · Open Negotiate */
+  #pd-redface{display:flex;flex-direction:column;overflow:hidden}
+  #pd-redface .rl-face{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--color-surface)}
+  #pd-redface .rl-face #nego-root{flex:1;min-height:0;display:flex;flex-direction:column}
+  #pd-redface .rl-face #rl-side.rl-col{flex:1;min-height:0;border:0;border-radius:0;box-shadow:none;margin:0;width:auto;max-width:none}
+  #pd-redface .rl-face .rl-idx-top{flex-wrap:wrap;row-gap:4px}
+  #pd-redface .rl-face .rl-idx-top>.pd-rf-x{order:2;width:26px;height:26px;border:0;border-radius:var(--radius);background:none;color:var(--color-neutral-600);font-size:18px;line-height:1;cursor:pointer;flex:none}
+  #pd-redface .rl-face .rl-idx-top>.pd-rf-x:hover{background:var(--color-bg);color:var(--color-text)}
+  #pd-redface .rl-face .rl-idx-top>.pd-rf-br{order:3;flex-basis:100%;height:0}
+  #pd-redface .rl-face .rl-idx-top>.rl-round-at{order:4}
+  /* the Negotiate page's notices, above the column since the page folded into Home (stage 5) */
+  #pd-redface .rl-face .pd-rf-notices{flex:none;padding:10px 12px 0}
+  #pd-redface .rl-face .pd-rf-notices .rl-notices{margin:0}
+  #pd-redface .rl-face .pd-rf-foot{flex:none;margin:0;padding:10px 16px;border-top:1px solid var(--color-divider);display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  #pd-redface .rl-face .pd-rf-foot button{height:var(--ctl-h-sm);padding:0 10px;font-size:12.5px;justify-content:center;min-width:0}
+  #pd-redface .rl-face .pd-rf-foot button[data-rl-prepare]{grid-column:1 / -1}
+  /* an empty column already offers the same three doors (rlEmptyColumnActsHtml): the foot stands down, so no act is drawn twice */
+  #pd-redface .rl-face:has(.rl-cards-empty .rl-empty-acts) .pd-rf-foot{display:none}
+  /* BEFORE YOU SIGN, BESIDE THE PAPER (the one-page Home plan, stage 5; owner picked "Checklist", 14 Oct 2026): the Signing column's own four slots as a face of Jambo's tab — its head, the list and the cards scrolling under it, and the Sign button held at the foot */
+  #pd-signface{display:flex;flex-direction:column;overflow:hidden}
+  #pd-signface .pd-sf{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--color-surface)}
+  #pd-signface .pd-sf-h{flex:none;padding:12px 14px 10px;border-bottom:1px solid var(--color-divider)}
+  #pd-signface .pd-sf-r{display:flex;align-items:center;gap:8px}
+  #pd-signface .pd-sf-r h3{margin:0;font-size:var(--t-card);font-weight:var(--w-strong);color:var(--color-text)}
+  #pd-signface .pd-sf-x{margin-left:auto;width:26px;height:26px;border:0;border-radius:var(--radius);background:none;color:var(--color-neutral-600);font-size:18px;line-height:1;cursor:pointer}
+  #pd-signface .pd-sf-x:hover{background:var(--color-bg);color:var(--color-text)}
+  #pd-signface .pd-sf-body.sign-one{flex:1;min-height:0;overflow-y:auto;border:0;border-radius:0;display:flex;flex-direction:column}
+  #pd-signface .pd-sf-body > #sign-side > * + *, #pd-signface .pd-sf-body > .pd-sf-block{border-top:1px solid var(--color-divider)}
+  #pd-signface .pd-sf-block{padding:13px 15px}
+  #pd-signface .pd-sf-block:has(#sign-block:empty){display:none}
+  #pd-signface [data-pd-sf-next]:empty{display:none}
+  /* the face's head already says "Before you sign · N to settle": the list's own head is said once, and only while it is reading (its turning ring) */
+  #pd-signface #sign-check:not(.is-busy) > .kt-tri-head{display:none}
+  #pd-signface .pd-sf-next{padding:12px 15px;border-bottom:1px solid var(--color-divider);font-size:12.5px;color:var(--color-neutral-700)}
+  #pd-signface .pd-sf-next h6{margin:0 0 3px;font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text)}
+  #pd-signface .pd-sf-next p{margin:0 0 4px;line-height:1.5}
+  #pd-signface .pd-sf-next .pd-go{padding-left:0}
+  #pd-signface .pd-sf-wrap{padding:12px 15px;border-bottom:1px solid var(--color-divider)}
+  #pd-signface .pd-sf-foot{flex:none;padding:10px 14px 12px;border-top:1px solid var(--color-divider);background:var(--color-surface)}
+  #pd-signface .pd-sf-foot:has(#sign-wrap:empty){display:none}
+  #pd-signface .pd-sf-foot #sign-wrap > p{margin-bottom:0}
+  /* the signing copy on Home's paper: its A4 pages sized by its own controls (scApplyZoom), centred; the sheet's own rules dress it; it starts where the working copy's sheet starts (nothing grows above the paper) */
+  #ig-paper .ig-signpaper{padding:0 0 40px;display:flex;flex-direction:column;align-items:center}
   .pd-h{font-size:10.5px;color:var(--cap-ink);margin:18px 0 7px}
   .pd-h:first-child,.pd-top+.pd-h{margin-top:0}
   .pd-list{border:1px solid var(--color-neutral-200);border-radius:var(--radius-lg);overflow:hidden;background:var(--color-surface)}
@@ -9137,6 +9207,39 @@
   #hb-page{height:var(--view-h);display:flex;flex-direction:column;min-height:0}
   #hb-page .hb-col{position:relative;flex:1;min-height:0}
   .hb-note{display:flex;align-items:center;gap:var(--s-2);font-size:var(--t-micro);color:var(--hb-mute)}
+  /* ═══ THE CONTRACT'S VIEWS ON THE BOARD (the one-page Home plan, stage 4, the
+     owner picked "Views", 14 Oct 2026) ═══ One line: the switch, whose contract,
+     and Print · Share · Download for the view shown. A view takes the Board
+     whole and scrolls inside itself; the book scrolls as before. */
+  .hb-cv-bar{display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap;flex:none}
+  .hb-cv-seg button{display:inline-flex;align-items:center;gap:6px}
+  .hb-cv-n{font-size:11px;font-weight:var(--w-strong);font-variant-numeric:tabular-nums}
+  .hb-cv-n.is-owed{color:var(--st-amber-fg)}
+  .hb-cv-n.is-late{color:var(--st-ruby-fg)}
+  .hb-cv-seg button[aria-selected="true"] .hb-cv-n{color:inherit}
+  .hb-cv-for{font-size:var(--t-meta);color:var(--hb-mute,var(--color-neutral-600));white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .hb-cv-acts{display:inline-flex;align-items:center;gap:var(--s-2)}
+  .hb-cv-acts .hb-btn{display:inline-flex;align-items:center;gap:6px}
+  .hb-cv-ic{width:14px;height:14px;flex:none}
+  .hb-cv-share-w{position:relative;display:inline-flex}
+  .hb-cv-share{position:absolute;right:0;top:calc(100% + 6px);z-index:30;width:340px;max-width:calc(100vw - 32px);display:flex;flex-direction:column;gap:var(--s-2);
+    padding:var(--s-3);background:var(--color-surface);color:var(--color-text);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg)}
+  .hb-cv-sh-h{display:flex;align-items:center;gap:var(--s-2)}
+  .hb-cv-sh-h b{flex:1;min-width:0;font-weight:var(--w-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hb-cv-sh-l{display:flex;flex-direction:column;gap:4px;font-size:var(--t-meta);color:var(--color-neutral-600)}
+  .hb-cv-sh-l select,.hb-cv-sh-l textarea{font:inherit;font-size:var(--t-body);color:var(--color-text);background:var(--color-surface);border:1px solid var(--field-line,var(--color-divider));border-radius:var(--radius);padding:6px 8px}
+  .hb-cv-sh-l select{height:var(--ctl-h)}
+  .hb-cv-sh-l textarea{resize:vertical;min-height:52px}
+  .hb-cv-share .hb-quiet{margin:0;font-size:var(--t-label)}
+  .hb-cv-sh-f{display:flex;gap:var(--s-2)}
+  .hb-board.is-cview{overflow:hidden}
+  .hb-cv-body{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+  .hb-cv-body.hb-cv-hist{display:block;overflow:auto;background:var(--color-surface);color:var(--color-text);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm)}
+  .hb-cv-body.hb-cv-hist #hist-filters{padding:10px var(--s-4) 0}
+  .hb-cv-body.hb-cv-oblig.is-ins{gap:12px}
+  .hb-cv-body.hb-cv-oblig:not(.is-ins){display:block;overflow:auto;background:var(--color-surface);color:var(--color-text);border:1px solid var(--color-divider);border-radius:var(--radius-lg)}
+  .hb-cv-body.hb-cv-deal{color:var(--color-text)}
+  .hb-cv-wait{margin:var(--s-4);font-size:var(--t-meta);color:var(--color-neutral-600);display:flex;align-items:center;gap:8px}
   .hb-live{display:inline-flex;align-items:center;gap:6px;color:var(--hb-glow)}
   .hb-live i{width:6px;height:6px;border-radius:50%;background:var(--hb-glow);box-shadow:0 0 8px var(--hb-glow);animation:hbPulse 2.4s ease-in-out infinite}
   @keyframes hbPulse{50%{opacity:.35}}
@@ -9524,6 +9627,7 @@
   .hb-askpop h5{margin-top:6px}
   .hb-myq-x{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:20px;height:20px;border:0;border-radius:4px;background:none;color:var(--color-neutral-600);cursor:pointer;font-size:15px;line-height:1}
   .hb-myq-x:hover{background:rgba(0,0,0,.06)}
+  .hb-askpop .hb-pop-n{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--cap-ink);font-variant-numeric:tabular-nums}
   /* C6 + A9: how this was counted, and what it stands on */
   .hb-how{font-size:var(--t-meta);color:var(--hb-ink-2);margin:-6px 0 var(--s-2);line-height:1.45}
   .hb-how b{color:var(--hb-ink);font-weight:var(--w-strong)}

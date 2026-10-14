@@ -143,8 +143,20 @@ const until = async (fn, ms = 8000, step = 150) => { const end = Date.now() + ms
       return { text: th === c.execution.textHash, seal: h2 === c.hash, status: c.status };
     });
     check('4b  the page\'s own verifySeal reading agrees with the server\'s seal', verdict.text && verdict.seal, JSON.stringify(verdict));
-    const sec = await page.evaluate(() => (document.getElementById('sign-btn') || {}).textContent || '');
-    check('4c  the page draws it executed — no Sign button left', !/^Sign/.test(sec.trim()), sec.trim().slice(0, 40));
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+       Signing tab went home — roomGoTab(c,'sign') above opened Jambo's Before
+       you sign face beside Home's paper, holding the same #sign-btn slot. The
+       open page is that face now, so it is asked there (bounded, for the
+       catch-up's repaint), with the face's own executed shape (.is-closed, the
+       receipt) in the detail. */
+    await page.waitForFunction(() => { const b = document.getElementById('sign-btn');
+      return !b || !/^Sign/.test((b.textContent || '').trim()); }, null, { timeout: 6000 }).catch(() => {});
+    const face = await page.evaluate(() => ({ up: !!document.querySelector('#pd-signface .pd-sf[data-pd-sf="MK-A2"]'),
+      closed: !!document.querySelector('#pd-signface .pd-sf.is-closed'),
+      btn: ((document.getElementById('sign-btn') || {}).textContent || '').trim() }));
+    const sec = face.btn;
+    check('4c  the page draws it executed — no Sign button left', face.up && !/^Sign/.test(sec.trim()),
+      sec.trim().slice(0, 40) + ' · ' + JSON.stringify({ face: face.up, receipt: face.closed }));
     check('5   no page errors', !page.__errors.length && !by.__errors.length, [...page.__errors, ...by.__errors].join(' | ').slice(0, 200));
   } catch (e) {
     check('the run itself', false, e && e.stack);

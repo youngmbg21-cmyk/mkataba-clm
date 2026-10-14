@@ -171,7 +171,13 @@ const PAGES = sel => `(() => {
       }, ID)), workD ? `${workD.heads.length} heads` : '—');
     await page.screenshot({ path: path.join(OUT, '02-working-copy-faded-letterhead.png') });
 
-    /* ================= 3 — THE SIGNING COPY IS THE DESIGN AT FULL STRENGTH */
+    /* ================= 3 — THE SIGNING COPY IS THE DESIGN AT FULL STRENGTH
+       RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+       Signing tab went home. roomGoTab(c,'sign') opens Jambo's Before you sign
+       face, and Home's paper beside it turns to the SIGNING copy — the same
+       signCopySheetHtml, wrapped in #ig-signwrap (the room's was
+       #doc-signwrap), scrolled in #ig-paper-scroll (was #doc-scroll). */
+    const SIGN = '#ig-signwrap .pg-sheet.pg-sign';
     await page.evaluate(id => openWorkspace(id), ID);
     await page.waitForFunction(() => !!document.querySelector('.room-tabrow'), null, { timeout: 15000 }).catch(() => {});
     await page.evaluate(() => {
@@ -180,13 +186,13 @@ const PAGES = sel => `(() => {
       signSpotAdd(c, 'cl_tcv00012', (c.signerPlan.find(r => r.party === 'internal') || c.signerPlan[0]).id, 'signature');
       roomGoTab(c, 'sign');
     });
-    await page.waitForFunction(() => { const s = document.querySelector('#doc-signwrap .pg-sheet.pg-sign'); return !!(s && s._pgInfo); }, null, { timeout: 15000 }).catch(() => {});
+    await page.waitForFunction(sel => { const s = document.querySelector(sel); return !!(s && s._pgInfo); }, SIGN, { timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(600);
-    const sign = await page.evaluate(PAGES('#doc-signwrap .pg-sheet.pg-sign'));
+    const sign = await page.evaluate(PAGES(SIGN));
     check('3a the Signing tab draws the SIGNING copy on fixed A4 pages', !!(sign && sign.W === 794
       && Math.abs(sign.pageH - 794 * 297 / 210) < 1), sign ? `${sign.W} x ${sign.pageH} · ${sign.n} page(s)` : 'no signing copy');
     const head = await page.evaluate(() => {
-      const sh = document.querySelector('#doc-signwrap .pg-sheet.pg-sign');
+      const sh = document.querySelector('#ig-signwrap .pg-sheet.pg-sign');
       const d = sh && sh.querySelector(':scope > [data-doc-design]');
       return d ? Math.round(d.getBoundingClientRect().top - sh.getBoundingClientRect().top) : null;
     });
@@ -203,9 +209,9 @@ const PAGES = sel => `(() => {
       !!(sign && sign.n >= 2 && sign.runs.length === sign.n - 1 && sign.runs.every(r => r === DESIGN.companyName)),
       sign ? JSON.stringify(sign.runs) : '—');
     const spots = await page.evaluate(() => ({
-      sign: document.querySelectorAll('#doc-signwrap .sig-spot').length,
-      flags: document.querySelectorAll('#doc-signwrap .rl-sigline[data-pg-flag]').length,
-      mine: (() => { const m = document.querySelector('#doc-signwrap .rl-sigline.pg-mine[data-pg-flag]');
+      sign: document.querySelectorAll('#ig-signwrap .sig-spot').length,
+      flags: document.querySelectorAll('#ig-signwrap .rl-sigline[data-pg-flag]').length,
+      mine: (() => { const m = document.querySelector('#ig-signwrap .rl-sigline.pg-mine[data-pg-flag]');
         return m ? getComputedStyle(m, '::before').content : null; })() }));
     check('3f the places to sign are marked ON the signing copy (5A)', spots.sign >= 1 && spots.flags >= 2,
       JSON.stringify(spots));
@@ -213,33 +219,54 @@ const PAGES = sel => `(() => {
       String(spots.mine));
     await page.screenshot({ path: path.join(OUT, '03-signing-copy.png') });
 
-    /* The page stepper names where the reader is and moves them. */
+    /* The page stepper names where the reader is and moves them.
+       RE-POINTED 14 Oct 2026 (stage 5): asked wherever the stepper is drawn —
+       the room drew it in the zoom corner above the signing copy; on Home that
+       corner is the paper's one zoom (.paper-zc). The press is GUARDED, so a
+       stepper Home does not draw is reported rather than timing out. */
     const step = await page.evaluate(() => (document.getElementById('sc-page-out') || {}).textContent || null);
-    check('3h the control row says which page is in view', !!(step && sign && new RegExp(`1\\D+${sign.n}`).test(step)), step);
+    check('3h the control row says which page is in view', !!(step && sign && new RegExp(`1\\D+${sign.n}`).test(step)), step == null ? 'no page stepper drawn' : step);
     if (sign && sign.n >= 2) {
-      await page.click('#sc-page-next');
+      const pressed = await page.click('#sc-page-next', { timeout: 3000 }).then(() => true).catch(() => false);
       await page.waitForTimeout(500);
       const step2 = await page.evaluate(() => (document.getElementById('sc-page-out') || {}).textContent || null);
-      check('3i pressing next page brings page two into view and says so', !!(step2 && /^\D*2\D/.test(step2)), step2);
-      await page.evaluate(() => { const s = document.getElementById('doc-scroll'); if (s) s.scrollTop = 0; });
+      check('3i pressing next page brings page two into view and says so', !!(pressed && step2 && /^\D*2\D/.test(step2)), pressed ? step2 : 'no next-page control to press');
+      await page.evaluate(() => { const s = document.getElementById('ig-paper-scroll') || document.getElementById('doc-scroll'); if (s) s.scrollTop = 0; });
     } else check('3i pressing next page brings page two into view and says so', false, 'one page only');
 
-    /* ================= 4 — THE SIZE CONTROL ZOOMS, IT DOES NOT RE-BREAK (4A) */
-    const z0 = await page.evaluate(PAGES('#doc-signwrap .pg-sheet.pg-sign'));
-    const zBtn = await page.$('#doc-zc-slot [data-sc-zoom="1"]');
+    /* ================= 4 — THE SIZE CONTROL ZOOMS, IT DOES NOT RE-BREAK (4A)
+       RE-POINTED 14 Oct 2026 (stage 5): the signing copy on Home keeps the
+       room's own size pair ([data-sc-zoom], scControlsHtml) in the paper's
+       zoom corner (.paper-zc), and the reading zoom stays off it — the pages
+       are laid out once at A4 and scaled whole, as the Signing tab did. */
+    const z0 = await page.evaluate(PAGES(SIGN));
+    const zBtn = await page.$('#ig-paper .paper-zc [data-sc-zoom="1"]') || await page.$('#doc-zc-slot [data-sc-zoom="1"]');
     if (zBtn) { await zBtn.click(); await page.waitForTimeout(700); }
-    const z1 = await page.evaluate(PAGES('#doc-signwrap .pg-sheet.pg-sign'));
+    const z1 = await page.evaluate(PAGES(SIGN));
     const zOut = await page.evaluate(() => (document.getElementById('sc-zoom-out') || {}).textContent || null);
     check('4a pressing Larger makes the WHOLE page larger', !!(zBtn && z0 && z1 && z1.scale > z0.scale),
       z0 && z1 ? `${z0.scale} → ${z1.scale} (${zOut})` : 'no size control');
+    /* RE-POINTED 14 Oct 2026 (stage 5): Home's one zoom is CSS zoom on the
+       paper, not a transform on the sheet, so the page-maker measures again at
+       the new size and each push can differ by a sub-pixel rounding. The claim
+       is unchanged — every page starts on the SAME block, nothing moves by a
+       pixel, the page stays 794 wide — and it is asked as that. */
+    const pushes = z => { try { return JSON.parse(z.push) || []; } catch (_) { return null; } };
+    const p0 = z0 && pushes(z0), p1 = z1 && pushes(z1);
+    const sameBreaks = !!(p0 && p1 && p0.length === p1.length && p0.every((v, i) => (v > 0) === (p1[i] > 0) && Math.abs(v - p1[i]) < 1));
     check('4b …and the pages break exactly where they broke — nothing re-flows',
-      !!(z0 && z1 && zBtn && z0.n === z1.n && z0.push === z1.push && z1.W === 794),
-      z0 && z1 ? `${z0.n} → ${z1.n} pages, pushes ${z0.push === z1.push ? 'identical' : 'moved'}` : '—');
-    const zb = await page.$('#doc-zc-slot [data-sc-zoom="-1"]');
+      !!(z0 && z1 && zBtn && z0.n === z1.n && sameBreaks && z1.W === 794),
+      z0 && z1 ? `${z0.n} → ${z1.n} pages, breaks ${z0.push === z1.push ? 'identical' : sameBreaks ? 'on the same blocks, within a pixel' : 'moved ' + z0.push + ' → ' + z1.push}` : '—');
+    const zb = await page.$('#ig-paper .paper-zc [data-sc-zoom="-1"]') || await page.$('#doc-zc-slot [data-sc-zoom="-1"]');
     if (zb) { await zb.click(); await page.waitForTimeout(400); }
     await page.evaluate(() => { try { localStorage.removeItem('hati.v1.signZoom'); } catch (_) {} });
 
-    /* ================= 5 — THE WORKING COPY CARRIES NO PLACE TO SIGN (5A) */
+    /* ================= 5 — THE WORKING COPY CARRIES NO PLACE TO SIGN (5A)
+       RE-POINTED 14 Oct 2026 (stage 5): Home's paper is the signing copy while
+       the Before you sign face is open on it, and the face stays open behind
+       another of Jambo's tabs; its × (pdSignClose) puts the working copy back,
+       which is how a reader leaves the signing copy on Home. */
+    await page.evaluate(() => { const x = document.querySelector('#pd-signface [data-pd-sf-close]'); if (x) x.click(); else if (window.pdSignClose) pdSignClose(); });
     await page.evaluate(id => pdOpenOnHome(id, 'doc'), ID);
     await workUp();
     const workSpots = await page.evaluate(id => ({
@@ -256,10 +283,11 @@ const PAGES = sel => `(() => {
     const darkWork = await page.evaluate(() => { const s = document.querySelector('#ig-paper .pg-work'); return s ? getComputedStyle(s).backgroundColor : null; });
     await page.evaluate(id => openWorkspace(id), ID);
     await page.waitForFunction(() => !!document.querySelector('.room-tabrow'), null, { timeout: 15000 }).catch(() => {});
+    /* RE-POINTED 14 Oct 2026 (stage 5): the signing copy is on Home's paper. */
     await page.evaluate(() => roomGoTab(getContract(state.activeId), 'sign'));
-    await page.waitForFunction(() => !!document.querySelector('#doc-signwrap .pg-sign'), null, { timeout: 15000 }).catch(() => {});
+    await page.waitForFunction(() => !!document.querySelector('#ig-signwrap .pg-sign'), null, { timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(500);
-    const darkSign = await page.evaluate(() => { const s = document.querySelector('#doc-signwrap .pg-sign'); return s ? getComputedStyle(s).backgroundColor : null; });
+    const darkSign = await page.evaluate(() => { const s = document.querySelector('#ig-signwrap .pg-sign'); return s ? getComputedStyle(s).backgroundColor : null; });
     check('6a under the dark theme the working copy is the dark paper…', !!darkWork && darkWork !== 'rgb(255, 255, 255)', darkWork);
     check('6b …and the signing copy stays WHITE — it is the page that gets signed and printed',
       darkSign === 'rgb(255, 255, 255)', darkSign);
@@ -269,7 +297,8 @@ const PAGES = sel => `(() => {
 
     /* ================= 7 — THE PAGES YOU READ ARE THE PAGES THAT PRINT */
     const printed = await page.evaluate(() => {
-      const s = document.querySelector('#doc-signwrap .pg-sheet.pg-sign');
+      /* RE-POINTED 14 Oct 2026 (stage 5): the signing copy on Home's paper. */
+      const s = document.querySelector('#ig-signwrap .pg-sheet.pg-sign');
       if (!s || !window.pagesPrintPages) return null;
       const box = document.createElement('div'); box.innerHTML = pagesPrintPages(s);
       const pp = box.querySelectorAll('.pp-page');
@@ -281,11 +310,17 @@ const PAGES = sel => `(() => {
         && printed.feet.every((f, k) => new RegExp(`\\b${k + 1}\\b.*\\b${printed.n}\\b`).test(f))),
       JSON.stringify(printed));
 
-    /* ================= 8 — THE NEGOTIATE PAGE IS THE WORKING COPY TOO */
+    /* ================= 8 — THE NEGOTIATE PAGE IS THE WORKING COPY TOO
+       RE-POINTED 14 Oct 2026 (stage 5): the Negotiate page folded into Home —
+       its door (openRedlineWorkbench) lands on Jambo's Redlines face beside
+       Home's paper. The paper the door lands on is asked: with no change on the
+       table (this fixture) it is the clean working copy (.pg-sheet); a
+       Redlined paper would be .rl-paper. */
     await page.evaluate(id => openRedlineWorkbench(id), ID);
-    await page.waitForSelector('.redline-page .rl-paper', { timeout: 15000 }).catch(() => {});
-    await page.waitForTimeout(1600);
-    const nego = await page.evaluate(PAGES('.redline-page .rl-paper.pg-sheet'));
+    await page.waitForFunction(() => { const s = document.querySelector('#pd-redface') && document.querySelector('#ig-paper .pg-sheet:not(.pg-sign), #ig-paper .rl-paper.pg-sheet');
+      return !!(s && s._pgInfo); }, null, { timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(600);
+    const nego = await page.evaluate(PAGES('#ig-paper .pg-sheet:not(.pg-sign)'));
     check('8a the Negotiate page\'s paper is pages, with Word\'s corner marks',
       !!(nego && nego.n >= 1 && nego.corners === 4 * nego.n), nego ? `${nego.n} page(s), ${nego.corners} marks` : 'no paged paper');
     check('8b no line of wording crosses a gap there either',

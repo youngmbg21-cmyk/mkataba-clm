@@ -216,8 +216,12 @@ describe('f335 (6) — Fill it in opens the box it is looking for', () => {
     assert.match(body, /ovSetEditing\(key, true\)/, 'and its rows turned on');
     const open = body.indexOf('sectionSetOpen');
     /* RE-POINTED 12 Oct 2026: every field is filled in on Details (owner) */
-    const tab = body.indexOf("roomGoTab(c,'details')");
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): Details went
+       home — a box the Fill in face asks lands there (pdFillOpen, with the
+       field's key); every other box is the Overview's Edit, in the room */
+    const tab = body.indexOf("roomGoTab(c,'terms')");
     assert.ok(open > 0 && tab > open, 'posture first, so ONE render does it');
+    assert.match(body, /pdFillOpen\(c\.id,\{ key:home\.kt \}\)/, 'a box Fill in asks is landed on beside the paper');
   });
   test('and it honours the field it is handed', () => {
     assert.match(body, /KT_FIELD_HOME\[String\(field\|\|''\)\]/, 'the field decides');

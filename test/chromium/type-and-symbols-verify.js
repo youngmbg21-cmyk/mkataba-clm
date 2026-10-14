@@ -388,9 +388,15 @@ const SHELL_ICONS = [
       if (window.openRedlineWorkbench) openRedlineWorkbench(c.id);
       return c.id;
     });
-    await page.waitForTimeout(1600);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the
+       Negotiate page folded into Home — openRedlineWorkbench lands on Jambo's
+       Redlines face (#pd-redface), which holds the page's own column
+       (rlColumnHtml), its rows and their verbs. Waited for, bounded. */
+    await page.waitForFunction(() => document.querySelectorAll('#pd-redface .rl-card-d .rl-card-face button').length >= 4,
+      null, { timeout: 8000 }).catch(() => {});
+    await page.waitForTimeout(400);
     const rowMarks = await page.evaluate(() => {
-      const btns = [...document.querySelectorAll('#view-redline .rl-card-d .rl-card-face button')];
+      const btns = [...document.querySelectorAll('#pd-redface .rl-card-d .rl-card-face button')];
       return btns.map(b => {
         const i = b.querySelector('.rl-verb-i');
         const u = i && i.querySelector('use');

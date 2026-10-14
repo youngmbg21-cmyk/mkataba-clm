@@ -216,7 +216,7 @@ describe('f534 (5) the server', () => {
   });
   test('a story can be given: its three names are gift kinds', () => {
     /* RE-POINTED 11 Oct 2026: a kept chart ('view') is a gift kind too, by its name and how it is drawn */
-    assert.match(SERVER, /const HOME_GIFT_KINDS = \['view', 'obl', 'fric', 'ren', 'pay', 'exp', 'val', 'sy_friction', 'sy_renewals', 'sy_spend', 'sy_pipeline', 'sy_risk', 'sy_payterms', 'sy_obligations', 'sy_party', 'sy_stream', 'sy_quarter'\];/);
+    assert.match(SERVER, /const HOME_GIFT_KINDS = \['view', (?:'cv', )?'obl', 'fric', 'ren', 'pay', 'exp', 'val', 'sy_friction', 'sy_renewals', 'sy_spend', 'sy_pipeline', 'sy_risk', 'sy_payterms', 'sy_obligations', 'sy_party', 'sy_stream', 'sy_quarter'\];/);
   });
 });
 

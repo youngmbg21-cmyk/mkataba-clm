@@ -79,7 +79,13 @@ const endOf = (page, sel) => page.evaluate(sel => {
     const en = await page.$('.lang-btn[data-lang="en"]'); if (en) { await en.click(); await page.waitForTimeout(300); }
     const ids = await page.evaluate(async () => { const c = getContract('MK-CT1'); if (window.ensureFull) await ensureFull(c);
       return negoClauseList(c).map(x => x.clauseId); });
-    await page.evaluate(() => openRedlineWorkbench('MK-CT1'));
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): every door now
+       lands on Jambo's Redlines face beside Home's paper, which has no head
+       control row, no Edit clause in it and no clause panel; this file's
+       subject is the Negotiate PAGE's own paper and its door into the edit
+       room, so it opens the page by name ({ page: true }), the engine the
+       face is built from. */
+    await page.evaluate(() => openRedlineWorkbench('MK-CT1', { page: true }));
     await until(page, () => !!document.querySelector('.redline-page .rl-paper [data-nego-working]'), null, 10000);
     const sec = id => `.redline-page .rl-paper [data-nego-working="${id}"]`;
 
@@ -190,16 +196,22 @@ const endOf = (page, sel) => page.evaluate(sel => {
       await page.evaluate(() => { const b = document.querySelector('#ig-canvas [data-field], #ig-canvas [data-sync]'); b.scrollIntoView({ block: 'center' }); });
       const r = await page.evaluate(() => { const b = document.querySelector('#ig-canvas [data-field], #ig-canvas [data-sync]').getBoundingClientRect(); return { x: b.left + 4, y: b.top + b.height / 2 }; });
       await page.mouse.click(r.x, r.y);
-      /* RE-POINTED 12 Oct 2026: the form is the room's Details tab (owner); the
-         press opens it and lands on the box. */
-      const s7b = await until(page, () => { const a = document.activeElement; return a && a.closest && a.closest('#tplform-section') && roomCurrentTab() === 'details' ? (a.getAttribute('data-blankf') || a.getAttribute('data-tplf') || a.tagName) : null; }, null, 4000);
-      ok('6b a press on one opens the Details tab on its box', !!s7b && s7b === s7.key, `${s7b} vs ${s7.key}`);
+      /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 2, owner picked
+         "Form"): the press opens Jambo's Fill in face beside the paper and
+         lands on the box (12 Oct 2026: the room's Details tab). A date's box
+         is focused through HaTi's date face, the button after it. */
+      const s7b = await until(page, () => { let a = document.activeElement; if (!(a && a.closest && a.closest('#pd-fillface'))) return null;
+        if (a.classList.contains('dp-face') && a.previousElementSibling) a = a.previousElementSibling;
+        return a.getAttribute('data-blankf') || a.getAttribute('data-kt') || a.getAttribute('data-tplf') || a.tagName; }, null, 4000);
+      ok('6b a press on one opens the Fill in face beside the paper on its box', !!s7b && s7b === s7.key, `${s7b} vs ${s7.key}`);
     } else ok('6b a press on one goes to its box in the side panel\'s form', false, 'no blanks');
     await page.screenshot({ path: path.join(OUT, '7-document.png') });
 
     /* ===== 7. A TABLET (820px) ===== */
     await page.setViewportSize({ width: 820, height: 1000 });
-    await page.evaluate(() => openRedlineWorkbench('MK-CT1'));
+    /* RE-POINTED 14 Oct 2026 (stage 5): the clause panel is the page's own, so
+       the page is opened by name here too ({ page: true }) */
+    await page.evaluate(() => openRedlineWorkbench('MK-CT1', { page: true }));
     await until(page, () => !!document.querySelector('.redline-page .rl-paper [data-nego-working]'), null, 8000);
     const s7c = await until(page, id => { if (window.rlCpSetShown) rlCpSetShown(document.querySelector('.redline-page') || document, id);
       const b = document.querySelector(`.rl-cp-src[data-rl-cp-for="${id}"] .rl-cp-act-ai`);

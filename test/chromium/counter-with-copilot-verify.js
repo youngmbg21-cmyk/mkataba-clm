@@ -63,13 +63,17 @@ async function login(page, base){
 const until = async (page, fn, arg, ms = 8000) => { let v; const t0 = Date.now();
   while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(150); }
   return v; };
+/* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the Negotiate door
+   now lands on Jambo's Redlines face beside Home's paper — the row and its
+   verbs (the glow) in #pd-redface, the wording on Home's paper (#ig-paper,
+   Redlined while their ask is pending), where the dashed box is painted. */
 const openNego = async page => {
   await page.evaluate(() => openRedlineWorkbench('MK-CP1'));
-  return until(page, () => !!document.querySelector('.redline-page .rl-clause') && state.view === 'redline', null, 10000);
+  return until(page, () => !!document.querySelector('#pd-redface [data-nego-card]') && !!document.querySelector('#ig-paper .rl-paper .rl-clause') && state.view === 'dashboard', null, 10000);
 };
 const paperRead = page => page.evaluate(() => {
-  const box = document.querySelector('.redline-page .rl-sug-box');
-  const glow = document.querySelector('.redline-page .rl-glow');
+  const box = document.querySelector('#ig-paper .rl-sug-box');
+  const glow = document.querySelector('#pd-redface .rl-glow');
   return { box: box ? box.textContent.replace(/\s+/g, ' ').trim() : null, ins: box ? [...box.querySelectorAll('.rl-sug-new')].map(x => x.textContent.trim()) : [],
     dashed: box ? getComputedStyle(box).borderTopStyle : null, glow: glow ? glow.textContent.trim() : null,
     glowShadow: glow ? getComputedStyle(glow).boxShadow : null };
@@ -147,7 +151,7 @@ const paperRead = page => page.evaluate(() => {
 
     /* ===== 4. NEGOTIATE HERE: THE DASHED BOX AND THE LIT COUNTER ===== */
     await openNego(page);
-    const p4 = await until(page, () => { const b = document.querySelector('.redline-page .rl-sug-box'); return b ? true : null; }, null, 6000)
+    const p4 = await until(page, () => { const b = document.querySelector('#ig-paper .rl-sug-box'); return b ? true : null; }, null, 6000)
       ? await paperRead(page) : await paperRead(page);
     ok('4a Copilot\'s counter sits under their wording in a dashed box', !!p4.box && /60 days/.test(p4.box) && p4.dashed === 'dashed', JSON.stringify(p4));
     ok('4b the words it adds are marked (60), nothing struck', p4.ins.some(t => /60/.test(t)), JSON.stringify(p4.ins));
@@ -156,13 +160,18 @@ const paperRead = page => page.evaluate(() => {
     await page.screenshot({ path: path.join(OUT, '4-nego.png') });
 
     /* ===== 3. THE COLLEAGUE'S TAB CATCHES UP ON ITS OWN BEAT ===== */
-    const caught = await until(other, () => !!document.querySelector('.redline-page .rl-sug-box'), null, 30000);
+    /* RE-POINTED 14 Oct 2026 (stage 5): the colleague's tab stands on the face
+       too; the box it catches up is on Home's paper */
+    const caught = await until(other, () => !!document.querySelector('#ig-paper .rl-sug-box'), null, 30000);
     ok('3 a tab already on Negotiate draws the redone answer without reopening', !!caught);
     await other.screenshot({ path: path.join(OUT, '3-other-tab.png') });
     await ctx2.close();
 
     /* ===== 5. COUNTER OPENS THE EDITOR WITH THE COUNTER IN THE BOX ===== */
-    if (p4.glow) await page.click('.redline-page .rl-glow');
+    /* RE-POINTED 14 Oct 2026 (stage 5): the press is the face's glowing verb;
+       where none glows (4c reports that) it is the same row's Counter, so 5
+       still measures what Counter opens */
+    await page.click(p4.glow ? '#pd-redface .rl-glow' : '#pd-redface [data-rl-cp-editor-change]').catch(() => {});
     const ed = await until(page, () => !!document.querySelector('#clause-editor #ce-lane .ce-card'), null, 8000);
     const e5 = ed ? await page.evaluate(() => {
       const lane = document.querySelector('#ce-lane');
@@ -190,7 +199,9 @@ const paperRead = page => page.evaluate(() => {
       ok('5e Apply puts it back In the box', !!(await until(page, () => !!document.querySelector('#ce-lane .ce-inbox'), null, 4000)));
       await page.fill('#ce-prep-note', 'We can meet you part-way: 60 days. Our standard is 45 days.');
       await page.click('[data-ce-act="save"]');
-      const back = await until(page, () => !document.querySelector('#clause-editor') && state.view === 'redline', null, 8000);
+      /* RE-POINTED 14 Oct 2026 (stage 5): back to where Counter was pressed —
+         Jambo's Redlines face beside Home's paper */
+      const back = await until(page, () => !document.querySelector('#clause-editor') && state.view === 'dashboard' && !!document.querySelector('#pd-redface [data-nego-card]'), null, 8000);
       ok('7a Save counter goes back to Negotiate', !!back);
       const s7 = await page.evaluate(() => {
         const c = getContract('MK-CP1');

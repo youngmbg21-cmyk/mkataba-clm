@@ -197,7 +197,12 @@ const check = (name, ok, detail) => {
        tab back, which is a fault in the PROBE and not in the product. */
     await page.evaluate((id) => openWorkspace(id), cid);
     await page.waitForTimeout(1200);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+       Signing tab went home — the same door opens Jambo's Before you sign
+       face beside Home's paper, the card the reader stands on now; waited
+       for by this contract's id */
     await page.evaluate((id) => roomGoTab(getContract(id), 'sign'), cid);
+    await page.waitForFunction(id => !!document.querySelector(`#pd-signface .pd-sf[data-pd-sf="${id}"]`), cid, { timeout: 8000 }).catch(() => {});
     await page.waitForTimeout(1200);
     const fill = await page.evaluate(async (id) => {
       const c = getContract(id);
@@ -249,7 +254,11 @@ const check = (name, ok, detail) => {
        gone (owner). The drawn Focus button that stays is the Negotiate page's
        (data-ws-focus, on its control row), beside the room's ⋯ menu row
        (#ws-focus) — the two doors 11d compares. */
-    await page.evaluate((id) => openRedlineWorkbench(id), cid);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): every door
+       onto Negotiate lands on Jambo's Redlines face on Home, which has no
+       Focus (Home's paper has none). Focus is the Negotiate PAGE's own mode,
+       so the page is asked for by name ({ page: true }). */
+    await page.evaluate((id) => openRedlineWorkbench(id, { page: true }), cid);
     /* RE-POINTED 13 Oct 2026: the owner deleted the control row's Focus button; Focus on Negotiate is the More menu's row (#ws-focus), opened first */
     await page.waitForFunction(() => !!document.querySelector('#view-redline #ws-more'), null, { timeout: 10000 }).catch(() => {});
     const focus = await page.evaluate(async () => {

@@ -86,7 +86,14 @@ const SEED = async () => {
     check('0a the stage is real — a contract with a live negotiation', !!cid, String(cid));
 
     /* ═══════════ 1 · THE CHAT DOOR IS IN THE CONTRACT'S OWN ROW ═══════════ */
-    await drive(page, id => openRedlineWorkbench(id), cid, null);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): every door
+       onto Negotiate now lands on Jambo's Redlines face on Home (whose paper
+       line carries Notes · Share · ⋯ in the owner's own order). Sections 1–4
+       are about the Negotiate PAGE's own furniture — its head's acts row, its
+       More menu, its head squares and its sheet #rl-doc — so the page is
+       asked for by name ({ page: true }) at each of its three opens. */
+    await drive(page, id => openRedlineWorkbench(id, { page: true }), cid, null);
+    await page.waitForFunction(() => !!document.querySelector('#view-redline #ws-head .room-acts'), null, { timeout: 8000 }).catch(() => {});
     await pause(2200);
     await page.screenshot({ path: path.join(OUT, '01-negotiate-head.png') });
 
@@ -164,7 +171,7 @@ const SEED = async () => {
        drawn at all (`backC` is the workbench's own flag) — so the read landed
        on a page with no buttons on it and every badge claim reported "no
        button" while the badges were perfectly fine. */
-    await drive(page, id => openRedlineWorkbench(id), cid, null);
+    await drive(page, id => openRedlineWorkbench(id, { page: true }), cid, null);
     await pause(1800);
     await page.screenshot({ path: path.join(OUT, '03-badges.png') });
 
@@ -205,7 +212,8 @@ const SEED = async () => {
        THE REPORTED FAULT, REPRODUCED AND THEN MEASURED. The press is a real
        press on the real panel, and what is measured is whether the PAPER
        MOVED — a handler that returns false silently looks identical. */
-    await drive(page, id => openRedlineWorkbench(id), cid, null);
+    await drive(page, id => openRedlineWorkbench(id, { page: true }), cid, null);
+    await page.waitForFunction(() => !!document.getElementById('rl-doc'), null, { timeout: 8000 }).catch(() => {});
     await pause(1600);
     const goto = await drive(page, async () => {
       const c = getContract(redlineHeldId());

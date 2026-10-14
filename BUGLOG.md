@@ -20715,5 +20715,42 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - The clause-number track down the paper's margin lists "3", "7.3", "47.1" after "33.2", out of order.
 - Negotiate's "Progress · 0 of 5 decided" counts our own unsent drafts as things to decide.
 
+### Noticed, not fixed (14 Oct 2026, the one-page Home plan, stage 1 — Jambo's words)
+- The ⌘K search prints each row's kind as a raw English code word ("folder", "ask") in Svenska too (`r.tag||r.kind` in openCommandPalette); the new "place" row carries a translated tag, the older rows do not.
+- CLAUDE.md is about 82 KB, above its own "under about 80 KB" target (it was 81.6 KB before this change; stage 1 added one MAP line).
 ### Noticed, not fixed (13 Oct 2026, Ask Jambo from the deep dive)
 - Home's Jambo panel answers a question put in its box by `intelAskReady` (a "readied" ask) through `intelChatAsk`, the whole-book chat, so it does not know the contract on the paper ("I still need to know which contract you're referring to", with "Ask about MK-457…" in the box). The deep dive's Ask Jambo now goes to the edit room; other readied asks on Home still take this path.
+
+### Noticed, not fixed (14 Oct 2026, the one-page Home plan, stage 2 — Fill in beside the paper)
+- GitHub's node suite is red on main itself (its last four runs, from #273 on) with one failing test this session could not name: the job log the tools return is cut to its last ~2,600 lines and the full log's host is refused by the network policy.
+- An uploaded contract asks its other party twice: the record's "Other party" and the paper's own "[Supplier name]" blank are two boxes in Details (and now in the Fill in face) for one fact; detailsOf only folds a blank whose key is `counterparty`.
+- CLAUDE.md is about 84 KB after stage 2's MAP lines (target "under about 80 KB"); a trim is owed.
+
+### Noticed, not fixed (14 Oct 2026, the one-page Home plan, stage 3 — Redlines beside the paper)
+- After a change is saved in the clause editor, the filing's note ask opens the Notes drawer; "Skip" takes the note card away but leaves the drawer open, so on Home it stays over Jambo's panel until its × is pressed (same on Negotiate, where it sits beside the column).
+- Saving a typed change in the clause editor leaves the editor open (Exit needed), while saving a counter prepared by Jambo closes it and goes back; two endings for one Save.
+- A review's hand-back (and the desk's "you are only reading" notice) live in the Negotiate page's notice stack above the grid, not in the column, so the Redlines face cannot show them; review doors were left on the page and the owner asked before a strip is drawn in the panel.
+- CLAUDE.md is about 84.6 KB after stage 3's MAP line (target "under about 80 KB"); the trim owed since stage 1 is still owed.
+
+### Noticed, not fixed (14 Oct 2026, the one-page Home plan, stage 4 — the contract's views on the Board)
+- The history card's own head says "History", and its menu "Verify integrity" and "Print history", in English in both books (literals in roomHistoryHtml); Svenska readers see them on the room's tab and now on the Board.
+- History's Export (and so the Board's Download on History) confirms with a bare toast (no kind), which prints nothing; the file is saved, but nothing says so.
+- In Svenska the deal board has two names: "Förhandlingstavla" on Negotiate's tab and the Board's switch, "affärstavla" in Jambo's words and chip; Jambo does not read "förhandlingstavla".
+- At 1440 wide with Jambo's panel open, the history card's head wraps its "More" button onto a second line on the Board (the room's tab is wider).
+- Ordinary Board cards and stories given to a colleague still do not ring the colleague's bell (only a contract's view does now); the stage 4 design page said they did. Asked of the owner.
+- CLAUDE.md is about 85.5 KB after stage 4's MAP line (target "under about 80 KB"); the trim owed since stage 1 is still owed.
+
+### Noticed, not fixed (14 Oct 2026, the one-page Home plan, stage 5 — before you sign beside the paper; the duplicates retired)
+- "Complete the details" (openCompleteDetails) has no door left in the product: its way in was the room's Details tab ("Open the full form", data-det-full), which went home to Jambo's Fill in face; doors-look-like-doors-verify now opens it directly.
+- contrast-verify's 'keyterms' visit has quietly measured Home since the Document tab left (11 Oct 2026), not the room's key terms.
+- Home's Redlined paper is one long sheet; the Negotiate page's paper was cut into pages (rlPaginate, the 25 Sep 2026 "looks like Word" ruling). The face kept the column, not the paged paper.
+- With nothing pending, Jambo's Redlines face lands beside the clean working copy; pdf-structure and upload-structure (the negotiation paper's own drawing) now open the Negotiate page by name.
+- Presence ("on this contract") runs while one of Jambo's three faces is open on Home; a contract merely on Home's paper, no face, is not counted (the room counted anyone on it).
+- The calendar and the closed dock leave renderIntelDock early, so the bar's "‹ Back to Clauses" is not taken down on those two paints; the next paint of Jambo's panel does.
+
+### Noticed, not fixed (14 Oct 2026, the one-page Home plan, stage 6 — polish, and the proof)
+- "The wording is read-only here. Change it on the Negotiate page…" (ct_wording_elsewhere) can no longer be shown: it listens on #doc-canvas, which no computer screen draws since the Document and Signing tabs went home; its Swedish also lacks å/ä/ö ("Ordalydelsen ar skrivskyddad har").
+- "Send to Docs tab for signature" and "Agreed wording carried to the Docs tab" (ng_send_to_docs, ct_agreed_carried, ng_agreed_carried) live only on the old negotiation room (openNegotiationOwnerRoom), which nothing opens any more.
+- The brain's "inline" part (rlInlineSave, "click in a clause on Negotiate and type") works only on the Negotiate page opened by name; Home's paper has no inline typing, and the brain's "mistake" flow still names it.
+- In Svenska, the Sign button's list still says "The next signature is <name>'s, and they sign on their own link — not here." in English (the 'turn' rows in signBlockers are English literals), and the signing copy's "partially signed" stamp and "The marks below are already on this contract…" are English too.
+- Outside the plan's own words the Swedish book still mixes "pappret" (about 35 places) with "papperet", and writes "på Tavlan" twice where it otherwise says "på tavlan".

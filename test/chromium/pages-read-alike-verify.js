@@ -157,15 +157,25 @@ const SEED = async () => {
        top and the quiet line's bottom. */
     /* RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner); the
        room's paper tab is Signing now, so its head is the one compared. */
-    await page.evaluate(id => roomGoTab(getContract(id), 'sign'), cid);
-    await page.waitForFunction(() => !!document.querySelector('#view-workspace #doc-signwrap, #doc-zc-slot .paper-zc') && !!document.querySelector('#ws-head .room-sub'), null, { timeout: 10000 }).catch(() => {});
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+       Signing tab went home (Jambo's Before you sign face, which draws no
+       room head). The room keeps Overview and Where we are, and its head is
+       one builder on both; it is measured on Where we are — the room's other
+       tab, which is not the Overview the card's facts were read on above. */
+    await page.evaluate(id => roomGoTab(getContract(id), 'stands'), cid);
+    await page.waitForFunction(() => state.view === 'workspace' && !!document.querySelector('#ws-tabs [data-ws-tab="stands"].on') && !!document.querySelector('#ws-head .room-sub'), null, { timeout: 10000 }).catch(() => {});
     const roomDoc = await page.evaluate(() => {
       const h1 = document.querySelector('#ws-head .room-name h1');
       const sub = document.querySelector('#ws-head .room-sub');
       return { top: h1 ? Math.round(h1.getBoundingClientRect().top * 10) / 10 : null,
         sub: sub ? Math.round(sub.getBoundingClientRect().bottom * 10) / 10 : null };
     });
-    await page.evaluate(id => openRedlineWorkbench(id), cid);
+    /* RE-POINTED 14 Oct 2026 (stage 5): every door onto Negotiate lands on
+       Jambo's Redlines face on Home, which draws no head. This file's subject
+       IS the Negotiate page's own head and reading switch, compared with the
+       room's, so the page is asked for by name ({ page: true }). */
+    await page.evaluate(id => openRedlineWorkbench(id, { page: true }), cid);
+    await page.waitForFunction(() => !!document.querySelector('#view-redline #ws-head .room-name h1'), null, { timeout: 8000 }).catch(() => {});
     await pause(2200);
     await page.screenshot({ path: path.join(OUT, '02-negotiation.png') });
     const nego = await page.evaluate(() => {
@@ -308,7 +318,10 @@ const SEED = async () => {
     /* ---- 3 · THE TWO TAB ROWS READ ALIKE ---- */
     /* RE-POINTED IN PLACE 23 Sep 2026: the negotiate page's reading switch
        offers the redline alone now (As agreed and With changes are gone). */
-    check('3 both rows really drew', room.tabs >= 3 && nego.segs >= 1,
+    /* RE-POINTED 14 Oct 2026 (stage 5): the room draws TWO tabs now —
+       Overview and Where we are (Details, Signing, Obligations and History
+       went home) — so a real row is two, one live and one resting */
+    check('3 both rows really drew', room.tabs >= 2 && nego.segs >= 1,
       { room: room.tabs, nego: nego.segs });
     /* A RESTING TAB NEEDS TWO: with one reading offered the negotiate row has
        no resting tab left to compare (23 Sep 2026), so these two are asked
@@ -394,7 +407,8 @@ const SEED = async () => {
        the same complaint wearing different clothes. */
     /* Section 4 left the page on the Negotiations LIST — reopen the bench, or
        this reads an empty row and passes on nothing. */
-    await page.evaluate(id => openRedlineWorkbench(id), cid);
+    /* RE-POINTED 14 Oct 2026 (stage 5): the page by name, as in 1 */
+    await page.evaluate(id => openRedlineWorkbench(id, { page: true }), cid);
     await pause(2200);
     const heads = await page.evaluate(() => {
       const read = sel => [...document.querySelectorAll(sel)]
@@ -490,7 +504,8 @@ const SEED = async () => {
     await page.evaluate(id => openWorkspace(id), cid);
     await pause(1800);
     const chipRoom = await page.evaluate(READ_CHIP);
-    await page.evaluate(id => openRedlineWorkbench(id), cid);
+    /* RE-POINTED 14 Oct 2026 (stage 5): the page's own head, by name */
+    await page.evaluate(id => openRedlineWorkbench(id, { page: true }), cid);
     await pause(2200);
     const chipNego = await page.evaluate(READ_CHIP);
     check('6 the chip really drew on both pages',
@@ -639,7 +654,9 @@ const SEED = async () => {
       ['Import',       () => setView('migration')],
       /* The two the first pass missed, and the two that were really out. */
       ['Contract room',    id => openWorkspace(id)],
-      ['Negotiation page', id => openRedlineWorkbench(id)],
+      /* RE-POINTED 14 Oct 2026 (stage 5): the page by name — every other door
+         onto Negotiate lands on the Redlines face on Home, measured as Home */
+      ['Negotiation page', id => openRedlineWorkbench(id, { page: true })],
     ];
     /* ---- AND IT SWEEPS AT TWO HEIGHTS (owner-reported 25 Aug 2026: "i do not
        see this in the platform as the headers are still vary as far as
@@ -742,7 +759,8 @@ const SEED = async () => {
     await pause(1900);
     const f9room = await page.evaluate(FACTS9);
     await page.screenshot({ path: path.join(OUT, '09-room-facts.png') });
-    await page.evaluate(id => openRedlineWorkbench(id), cid);
+    /* RE-POINTED 14 Oct 2026 (stage 5): the page's own head, by name */
+    await page.evaluate(id => openRedlineWorkbench(id, { page: true }), cid);
     await pause(2200);
     const f9nego = await page.evaluate(FACTS9);
     await page.screenshot({ path: path.join(OUT, '09-nego-facts.png') });
@@ -783,7 +801,11 @@ const SEED = async () => {
       /* THE LEAD BLOCK is the thing the two screens differed on — the DATED /
          title / parties run a printed agreement opens with. */
       const first = head && head.querySelector('.rl-paper-kick p');
-      if (!first) return { head: !!head, first: null };
+      /* PAINTED, not merely in the markup (14 Oct 2026): a sheet in a hidden
+         pane answers every computed style while drawing nothing */
+      const pr = paper.getBoundingClientRect();
+      const painted = pr.width > 0 && pr.height > 0;
+      if (!first) return { head: !!head, first: null, painted };
       const cs = getComputedStyle(first);
       /* THE TRACKING IS PINNED AS A RATIO, never as a pixel: `.rl-paper-kick`
          states it in em and both sizes ride `--doc-scale`, which is the
@@ -791,7 +813,7 @@ const SEED = async () => {
          and 2.52px on the other is the same typography at two sizes; the same
          RATIO is what "set the same way" means here. */
       const em = parseFloat(cs.letterSpacing) / (parseFloat(cs.fontSize) || 1);
-      return { head: true, align: cs.textAlign, ls: cs.letterSpacing,
+      return { head: true, painted, align: cs.textAlign, ls: cs.letterSpacing,
         em: Math.round(em * 1000) / 1000,
         tt: cs.textTransform, txt: (first.textContent || '').trim().slice(0, 30) };
     };
@@ -811,13 +833,22 @@ const SEED = async () => {
       persist(c);
     }, cid);
     await pause(700);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room
+       draws no sheet now (its Details and Signing tabs went home; Document
+       went on 11 Oct) — the #doc-canvas this read was a hidden pane's,
+       answering styles while painting nothing. The Document is Home's paper
+       (#ig-canvas), where the room's own door to it (roomGoTab 'docs') lands. */
     await page.evaluate(id => { openWorkspace(id); }, cid);
     await pause(1600);
-    await page.evaluate(() => roomGoTab('docs'));
-    await pause(1500);
-    const doc10 = await page.evaluate(FRONT10, '#doc-canvas .hati-doc, #doc-canvas');
+    await page.evaluate(id => roomGoTab(getContract(id), 'docs'), cid);
+    await page.waitForFunction(id => state.view === 'dashboard' && window.pdContract && pdContract() && pdContract().id === id
+      && !!document.querySelector('#ig-canvas header.rl-paper-head'), cid, { timeout: 8000 }).catch(() => {});
+    await pause(800);
+    const doc10 = await page.evaluate(FRONT10, '#ig-canvas');
     await page.screenshot({ path: path.join(OUT, '10-doc-front.png') });
-    await page.evaluate(id => openRedlineWorkbench(id), cid);
+    /* RE-POINTED 14 Oct 2026 (stage 5): the page's own sheet (#rl-doc), by name */
+    await page.evaluate(id => openRedlineWorkbench(id, { page: true }), cid);
+    await page.waitForFunction(() => !!document.querySelector('#rl-doc header.rl-paper-head'), null, { timeout: 8000 }).catch(() => {});
     await pause(2200);
     const neg10 = await page.evaluate(FRONT10, '#rl-doc, .rl-doc');
     await page.screenshot({ path: path.join(OUT, '10-nego-front.png') });
@@ -825,7 +856,7 @@ const SEED = async () => {
        head of HaTi's own there. What it proves is that both stages really
        painted a sheet, so the claim under it is measuring two documents. */
     check('10 (control) both sheets painted a paper head to measure',
-      !!(doc10 && doc10.head && neg10 && neg10.head),
+      !!(doc10 && doc10.head && doc10.painted && neg10 && neg10.head && neg10.painted),
       JSON.stringify({ doc: doc10 && doc10.head, nego: neg10 && neg10.head }));
     check('10 and the front matter is set the same way on both',
       !!(doc10 && neg10 && doc10.first !== null && neg10.first !== null

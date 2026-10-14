@@ -127,6 +127,9 @@ function apValueCell(c){
 }
 function apOpenSigning(id){
   const c=(state.contracts||[]).find(x=>x.id===id); if(!c) return;
+  /* SIGNING IS BESIDE THE PAPER (the one-page Home plan, stage 5): Jambo's
+     Before you sign face on Home; the phone keeps its own screens */
+  if(window.roomTabHome&&roomTabHome(c,'sign')) return;
   openWorkspace(id);
   /* the head is built by the render; the tab is pressed after it lands */
   setTimeout(()=>{ try{ roomGoTab(c,'sign'); }catch(_){} },80);

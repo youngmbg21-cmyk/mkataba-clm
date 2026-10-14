@@ -520,12 +520,19 @@ async function negoHistoryExportRun(c){
    cannot be built, so a blocked or failed run leaves nothing behind. */
 async function negoHistoryPrintRun(c){
   if (!window.negoIntegrityReport) return;
+  return printWindowRun(async () => negoHistoryExportHtml(c, await negoIntegrityReport(c)), 'ng_could_not_build_history');
+}
+/* ONE PRINT RUNNER (stage 4 of the one-page Home plan, 14 Oct 2026): the
+   history's own, lifted out so the Board's Deal board and Obligations views
+   print through the very same window, latch and close. `build` makes the
+   standalone document (it may await); `failKey` is said if it cannot. */
+async function printWindowRun(build, failKey){
   const w = window.open('', '_blank');
   if (!w){ if (window.toast) toast(i18t('ng_allow_popups'), 'err'); return; }
   try {
-    const r = await negoIntegrityReport(c);
+    const html = await build();
     w.document.open();
-    w.document.write(negoHistoryExportHtml(c, r));
+    w.document.write(html);
     w.document.close();
     /* ---- ONE DIALOG, AND IT GOES AWAY WHEN YOU DISMISS IT ----
        (owner-reported 23 Aug 2026: "you click on print history then decide to
@@ -568,7 +575,7 @@ async function negoHistoryPrintRun(c){
     setTimeout(ask, 350);
   } catch (e){
     try { w.close(); } catch (e2) {}
-    if (window.toast) toast(i18t('ng_could_not_build_history'), 'err');
+    if (window.toast) toast(i18t(failKey || 'ng_could_not_build_history'), 'err');
   }
 }
 function negoVerifyResultHtml(r){
@@ -8028,16 +8035,12 @@ function dealBoardVerdict(r){
   if (r.standard) return out('out', 'ng_board_v_out_std', { n: Math.abs(r.theirFig - r.standard.value), unit });
   return out('none', 'ng_board_v_noplay');
 }
-function dealBoardHtml(c, side){
-  if (typeof window.ladderBoard !== 'function') return '';
-  const rows = ladderBoard(c, side);
-  const names = rlLegendNames(c, side);
-  const cp = names.them;
-  const memo = `<button type="button" class="ui-btn" data-rl-board-memo title="${_nea(i18t('ng_board_memo_title'))}">${_ne(i18t('ng_board_memo'))}</button>`;
-  if (!rows.length){
-    return `<div class="db"><div class="db-sum"><b>${_ne(i18t('ng_board_head'))}</b><span class="sp"></span>${memo}</div>
-      <p class="db-empty">${_ne(i18t('ng_board_empty'))}</p></div>`;
-  }
+/* THE BOARD'S FACTS, READ ONCE: every point argued with its pile and its
+   verdict, and how many sit in each. The head's filters count these, and so
+   does the number on the Board's own Deal board switch (the one-page Home
+   plan, stage 4) — one reading, so the door and the list behind it agree. */
+function dealBoardFacts(c, side){
+  const rows = (typeof window.ladderBoard === 'function') ? ladderBoard(c, side) : [];
   const facts = rows.map(r => ({ r, g: dealBoardGroupOf(c, r, side), v: dealBoardVerdict(r) }));
   const n = {
     all: facts.length,
@@ -8047,7 +8050,28 @@ function dealBoardHtml(c, side){
     beyond: facts.filter(x => x.g !== 'done' && x.v.within === false).length,
     done: facts.filter(x => x.g === 'done').length
   };
-  const f = (RL_BOARD_FILTERS.includes(_rlBoardFilter) && (_rlBoardFilter === 'all' || n[_rlBoardFilter])) ? _rlBoardFilter : 'all';
+  return { rows, facts, n };
+}
+/* Whose move a point waits on, in the board's own words: [tone, words]. */
+function dealBoardMoveOf(c, r, side){
+  const unsent = r.state === 'with' && r.top && typeof window.ladderUnsent === 'function' && ladderUnsent(c, r.top, side);
+  return r.state === 'awaiting' ? ['you', i18t('ng_board_move_you')]
+    : r.state === 'with' ? (unsent ? ['you', i18t('ng_board_move_draft')] : ['them', i18t('ng_board_move_them')])
+    : r.state === 'settled' ? ['ok', i18t('ng_board_move_settled')]
+    : r.state === 'refused' ? ['quiet', i18t('ng_board_move_refused')]
+    : ['quiet', i18t('ng_board_move_none')];
+}
+function dealBoardHtml(c, side){
+  if (typeof window.ladderBoard !== 'function') return '';
+  const { rows, facts, n } = dealBoardFacts(c, side);
+  const names = rlLegendNames(c, side);
+  const cp = names.them;
+  const memo = `<button type="button" class="ui-btn" data-rl-board-memo title="${_nea(i18t('ng_board_memo_title'))}">${_ne(i18t('ng_board_memo'))}</button>`;
+  if (!rows.length){
+    return `<div class="db"><div class="db-sum"><b>${_ne(i18t('ng_board_head'))}</b><span class="sp"></span>${memo}</div>
+      <p class="db-empty">${_ne(i18t('ng_board_empty'))}</p></div>`;
+  }
+  const f =(RL_BOARD_FILTERS.includes(_rlBoardFilter) && (_rlBoardFilter === 'all' || n[_rlBoardFilter])) ? _rlBoardFilter : 'all';
   const passes = x => f === 'all' || (f === 'within' ? x.g !== 'done' && x.v.within === true
     : f === 'beyond' ? x.g !== 'done' && x.v.within === false : x.g === f);
   /* THE HEAD LINE'S NUMBERS ARE ITS FILTERS (it was a line of facts). A zero
@@ -8064,12 +8088,7 @@ function dealBoardHtml(c, side){
       ${chip('done', i18tn('ng_board_f_done', n.done, { n: n.done }))}
       <span class="sp"></span>${memo}</div>`;
   const move = r => {
-    const unsent = r.state === 'with' && r.top && typeof window.ladderUnsent === 'function' && ladderUnsent(c, r.top, side);
-    const k = r.state === 'awaiting' ? ['you', i18t('ng_board_move_you')]
-      : r.state === 'with' ? (unsent ? ['you', i18t('ng_board_move_draft')] : ['them', i18t('ng_board_move_them')])
-      : r.state === 'settled' ? ['ok', i18t('ng_board_move_settled')]
-      : r.state === 'refused' ? ['quiet', i18t('ng_board_move_refused')]
-      : ['quiet', i18t('ng_board_move_none')];
+    const k = dealBoardMoveOf(c, r, side);
     return `<span class="db-move db-move-${k[0]}">${_ne(k[1])}</span>`;
   };
   const verdict = v => `<span class="db-vd db-vd-${v.k}"><i aria-hidden="true"></i>${_ne(v.text)}</span>`;
@@ -8226,25 +8245,135 @@ function dealBoardCardHtml(c, r, side, k){
       <button type="button" class="ui-btn ui-btn-primary" data-rl-board-go="${_nea(id)}">${_ne(i18t('ng_board_go'))}</button></footer>
   </article>`;
 }
+/* ---- THE DEAL BOARD ON PAPER AND AS A FILE (the one-page Home plan, stage 4,
+   14 Oct 2026: Print and Download on Home's Board) ----
+   ONE DOCUMENT BOTH WAYS: Print hands it to the printer (printWindowRun),
+   Download saves it, so the paper and the file can never say different
+   things. Every point, piled as the board piles it, read off the board's own
+   readings (dealBoardFacts, dealBoardMoveOf, dealBoardVerdict) and its
+   wording drawn by rlChangeWordingHtml with the memo's inline marks. OUR SEAT
+   ONLY: it carries the standard and the fallback and is never sent outside.
+   A STANDALONE DOCUMENT CARRIES NO :root — literal values only (MEMO_DOC). */
+function dealBoardReportHtml(c, side = 'owner'){
+  const D = MEMO_DOC;
+  const { facts } = dealBoardFacts(c, side);
+  const cp = rlLegendNames(c, side).them;
+  const ref = window.contractRef ? contractRef(c) : c.id;
+  const loc = typeof langLocale === 'function' ? langLocale() : undefined;
+  let when = ''; try { when = new Date().toLocaleString(loc, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (_){}
+  const wording = ch => (ch && typeof rlChangeWordingHtml === 'function') ? rlChangeWordingHtml(ch, { side, changedOnly: true,
+    insStyle: `color:${D.ins};text-decoration:underline`, delStyle: `color:${D.del};text-decoration:line-through`, blockStyle: 'margin:0 0 4px' }) : '';
+  const fig = (n, u) => `${n}${u ? ' ' + u : ''}`;
+  const tone = { you: '#92400e', them: '#1d4ed8', ok: '#047857', quiet: D.quiet };
+  const point = ({ r, v }) => {
+    const mv = dealBoardMoveOf(c, r, side);
+    const op = r.standard ? (r.standard.op === '<=' ? '≤ ' : r.standard.op === '>=' ? '≥ ' : '') : '';
+    const figs = [
+      r.theirFig != null ? [i18t('ng_board_col_theirs'), fig(r.theirFig, r.unit)] : null,
+      r.ourFig != null ? [i18t('ng_board_col_ours'), fig(r.ourFig, r.unit)] : null,
+      r.dist != null ? [i18t('ng_board_col_gap'), fig(r.dist, r.unit)] : null,
+      r.standard ? [i18t('ng_pb_std'), op + fig(r.standard.value, r.unit)] : null,
+      v.fbN != null ? [i18t('ng_pb_fb'), fig(v.fbN, r.unit)] : null,
+    ].filter(Boolean);
+    const theirs = r.theirs ? wording(r.theirs.ch) : `<p class="q">${_ne(i18t('ng_board_c_none_theirs'))}</p>`;
+    const settled = r.state === 'settled' && r.accepted;
+    const ours = settled ? wording(r.accepted.ch) : r.ours ? wording(r.ours.ch) : `<p class="q">${_ne(i18t('ng_board_as_drafted_words'))}</p>`;
+    return `<article><header><h3>${_ne(r.label || r.clauseId)}</h3><span class="mv" style="color:${tone[mv[0]] || D.quiet}">${_ne(mv[1])}</span><span class="vd">${_ne(v.text)}</span></header>
+      ${figs.length ? `<dl>${figs.map(([k, x]) => `<div><dt>${_ne(k)}</dt><dd>${_ne(x)}</dd></div>`).join('')}</dl>` : ''}
+      <div class="two"><section><h4>${_ne(i18t('ng_board_c_theirs'))}</h4>${theirs}</section><section><h4>${_ne(i18t(settled ? 'ng_base_agreed' : 'ng_board_c_ours'))}</h4>${ours}</section></div></article>`;
+  };
+  const groups = [['you', i18t('ng_board_g_you')], ['them', i18t('ng_board_g_them', { cp })], ['done', i18t('ng_board_g_done')]];
+  const body = facts.length ? groups.map(([g, label]) => {
+    const inG = facts.filter(x => x.g === g);
+    return inG.length ? `<h2>${_ne(label)} <span>${inG.length}</span></h2>${inG.map(point).join('')}` : '';
+  }).join('') : `<p class="q">${_ne(i18t('ng_board_empty'))}</p>`;
+  const title = `${i18t('ng_board_head')} · ${ref}`;
+  return `<!doctype html><html lang="${typeof langId === 'function' ? langId() : 'en'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${_ne(title)}</title><style>
+body{margin:0;background:#fff;color:${D.ink};font-family:${D.font};font-size:10.5pt;line-height:1.45}
+.wrap{max-width:780px;margin:0 auto;padding:32px 28px}
+h1{font-size:16pt;margin:0}
+.sub{color:${D.quiet};font-size:9.5pt;margin-top:2px}
+h2{font-size:11pt;margin:22px 0 6px;padding-bottom:4px;border-bottom:1px solid ${D.rule}}
+h2 span{color:${D.quiet};font-weight:normal}
+article{border:1px solid ${D.rule};border-radius:6px;padding:10px 12px;margin:0 0 10px;break-inside:avoid}
+article header{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+h3{font-size:11pt;margin:0}
+.mv{font-size:9.5pt;font-weight:bold}
+.vd{font-size:9.5pt;color:${D.quiet};margin-left:auto}
+dl{display:flex;flex-wrap:wrap;gap:4px 18px;margin:8px 0 0}
+dl div{display:flex;gap:6px}
+dt{color:${D.quiet}}
+dd{margin:0;font-weight:bold}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px}
+h4{font-size:9pt;color:${D.quiet};margin:0 0 3px;font-weight:normal}
+.q{color:${D.quiet};margin:0}
+footer{margin-top:22px;color:${D.quiet};font-size:9pt;border-top:1px solid ${D.rule};padding-top:8px}
+@media print{.wrap{padding:0}}
+</style></head><body><div class="wrap">
+<header><h1>${_ne(i18t('ng_board_head'))}</h1><div class="sub">${_ne([c.name || '', ref, c.counterparty || ''].filter(Boolean).join(' · '))}</div></header>
+${body}
+<footer>${_ne(i18t('ng_board_rep_foot', { when }))}</footer>
+</div></body></html>`;
+}
 /* Repaint the board in place (a pick or a filter): the list keeps its scroll,
    and a keyboard pick keeps its focus. */
-function rlBoardRepaint(focusPick){
+/* THE BOARD HAS TWO HOSTS (the one-page Home plan, stage 4, 14 Oct 2026): the
+   Negotiate page's own (#rl-boardpage, the bench's contract) and Home's Board,
+   whose host names its contract (data-db-host). A press finds the host it was
+   made in, so each repaints itself, with its own contract. */
+function rlBoardHostOf(el){
+  const h = el && el.closest ? el.closest('[data-db-host]') : null;
+  if (h) return { host: h, c: (window.getContract && getContract(h.getAttribute('data-db-host'))) || null, home: true };
+  return { host: (typeof document !== 'undefined') ? document.getElementById('rl-boardpage') : null, c: rlLadderContract(), home: false };
+}
+function rlBoardRepaint(focusPick, at){
   if (typeof document === 'undefined') return;
-  const host = document.getElementById('rl-boardpage');
-  const c = rlLadderContract();
+  const { host, c } = rlBoardHostOf(at);
   if (!host || !c) return;
-  const was = document.getElementById('db-list');
+  const was = host.querySelector('#db-list');
   const keep = was ? was.scrollTop : 0;
-  host.innerHTML = dealBoardHtml(c, 'owner');
-  const now = document.getElementById('db-list');
+  /* what was drawn is kept on the host, so Home's Board does not draw it twice */
+  const html = dealBoardHtml(c, 'owner');
+  host.innerHTML = html; host._dbHtml = html;
+  const now = host.querySelector('#db-list');
   if (now) now.scrollTop = keep;
   if (focusPick){
     const b = host.querySelector('.db-irow.is-on');
     if (b){ b.focus({ preventScroll: true }); if (b.scrollIntoView) b.scrollIntoView({ block: 'nearest' }); }
   }
 }
+/* From Home's Board the clause opens on Home's paper, with Jambo's Redlines
+   face beside it (stage 3's face: the one door onto that contract's redlines),
+   lit once the paper has drawn it — bounded. */
+const RL_BOARD_LAND_TRIES = 40;
+const RL_BOARD_LAND_MS = 120;
+const RL_BOARD_SETTLE_BEATS = 12;
+function rlBoardGoOnHome(c, gid){
+  if (!c || typeof window.pdRedOpen !== 'function' || !pdRedOpen(c.id)) return false;
+  /* the paper turns Redlined once the face is up and is drawn again then: the
+     clause is lit on THAT paper (their marks drawn), or past half the wait on
+     whatever paper stands */
+  let n = 0, lit = null, k = 0;
+  /* and while the panel settles the paper may be drawn once more: the clause
+     is lit again on the paper that stands, for a few beats, never otherwise */
+  const settle = () => setTimeout(() => {
+    if (lit && !lit.isConnected){ const again = rlJumpToClause(gid); if (again) lit = again; }
+    if (++k < RL_BOARD_SETTLE_BEATS) settle();
+  }, RL_BOARD_LAND_MS);
+  const go = () => {
+    const red = document.querySelector('.redline-page.rl-face') && document.querySelector('#ig-paper [data-nego-card-anchor]');
+    lit = (red || n > RL_BOARD_LAND_TRIES / 2) ? rlJumpToClause(gid) : null;
+    if (lit){ settle(); return; }
+    if (++n < RL_BOARD_LAND_TRIES) setTimeout(go, RL_BOARD_LAND_MS);
+  };
+  setTimeout(go, 0);
+  return true;
+}
 /* The board's one door: the clause, on the paper, with its ladder. */
-function rlBoardGoClause(gid){
+function rlBoardGoClause(gid, at){
+  const on = rlBoardHostOf(at);
+  if (on.home){ rlBoardGoOnHome(on.c, gid); return; }
   rlBoardSet(false);
   if (typeof renderRedline === 'function') renderRedline();
   rlBoardPaintTitle();
@@ -8261,13 +8390,14 @@ if (typeof document !== 'undefined' && !document._rlBoardKeysWired){
     if (ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp') return;
     const row = ev.target && ev.target.closest ? ev.target.closest('[data-rl-board-pick]') : null;
     if (!row) return;
-    const all = [...document.querySelectorAll('#db-list [data-rl-board-pick]')];
+    const list = row.closest('#db-list') || document;
+    const all = [...list.querySelectorAll('[data-rl-board-pick]')];
     const at = all.indexOf(row);
     const next = all[at + (ev.key === 'ArrowDown' ? 1 : -1)];
     if (!next) return;
     ev.preventDefault();
     rlBoardPickSet(next.getAttribute('data-rl-board-pick'));
-    rlBoardRepaint(true);
+    rlBoardRepaint(true, row);
   });
 }
 /* OUR SEAT ONLY. The board reads our playbook and our precedent; it is not
@@ -8729,6 +8859,13 @@ async function negoBlanksAsk(c){
    leaving, with the cursor already in the first box that is still empty and
    its word lit on the paper. Every step is a door the product already has. */
 function negoBlanksFill(c){
+  /* BESIDE THE PAPER (the one-page Home plan, stage 2; owner, 14 Oct 2026):
+     Home's Document, Jambo's panel on Fill in, the cursor in the first box
+     still empty; the phone lands on its own Details page. */
+  if(typeof pdFillOpen === 'function'){
+    const first = (typeof contractBlanksOpen === 'function') ? ((contractBlanksOpen(c)[0] || {}).key || null) : null;
+    if(pdFillOpen(c.id, { key: first })) return;
+  }
   /* The form is the room's Details tab (owner, 12 Oct 2026: every way back to
      filling in lands there); on the phone roomGoTab opens its Details page. */
   if(typeof openWorkspace === 'function') openWorkspace(c.id);
@@ -8778,6 +8915,26 @@ function openRedlineWorkbench(id, opts = {}){
      Clauses tab's "Start redlining with this ask" forgets it, so "‹ Back to
      clauses" is offered only on the trip it belongs to. */
   if (opts.from !== 'clauses') rlCameFromSet(null);
+  /* ---- OR BESIDE HOME'S PAPER (the one-page Home plan, stage 3; the owner
+     picked "Column", 14 Oct 2026) ----
+     Past both walls, a door that asks for the face lands on Jambo's Redlines
+     face beside Home's paper (pdRedLand) rather than on this page: the same
+     column, the same verbs, the same funnel. Where Home has no paper — the
+     phone — it carries on here. */
+  /* ---- AND SINCE STAGE 5 EVERY DOOR LANDS THERE (the owner's yes to
+     decision 1, 14 Oct 2026: the Negotiate page folds into Home) ---- a named
+     negotiation opens Jambo's Redlines face beside Home's paper, wherever the
+     door is — a list row, the bell, the checklist, an email link, a refresh,
+     the Clauses tab's "Start redlining with this ask" (opts.land, landed once
+     the face's editor door is up). This page stays as the engine the face is
+     built from, drawn only where Home has no paper (the phone) or where a
+     caller asks for it by name (opts.page). */
+  if ((opts.face || !opts.page) && typeof window.pdRedLand === 'function' && pdRedLand(target)){
+    if (window.state) state.activeId = target;
+    if (opts.land && held) rlLandWhenReady(held, opts.land);
+    return true;
+  }
+  _rlPageFor = String(target);
   redlineEvict(target, opts);
   if (window.state) state.activeId = target;
   /* IT SAYS THAT IT NAMED ONE, rather than leaving the next paint to infer it
@@ -8835,8 +8992,20 @@ if (typeof document !== 'undefined') document.addEventListener('click', e => {
    with Jambo fits, it opens there with the point's ask waiting on a card in
    Jambo's panel (Apply · Discard), whoever found the point. NOTHING IS FILED OR SENT HERE —
    the reader presses. Too narrow for the editor, the paper scrolls to it. */
+/* the Clauses tab's landing, once the Redlines face beside Home's paper has
+   set its editor door (stage 5) — bounded, as every landing here is */
+const RL_LAND_TRIES = 40, RL_LAND_MS = 120;
+function rlLandWhenReady(c, land){
+  let n = 0;
+  const go = () => {
+    if (_rlEditorDoor && _rlEditorDoor.id === c.id && window.pdRedShows && pdRedShows()){ rlLandOn(c, land); return; }
+    if (++n < RL_LAND_TRIES) setTimeout(go, RL_LAND_MS);
+  };
+  setTimeout(go, 0);
+}
 function rlLandOn(c, land){
-  if (!c || !land || !(window.state && state.view === 'redline')) return;
+  const onFace = !!(window.pdRedShows && pdRedShows() && window.pdRedFor && String(pdRedFor()) === String(c && c.id));
+  if (!c || !land || !(onFace || (window.state && state.view === 'redline'))) return;
   const norm = x => String(x || '').replace(/\s+/g, ' ').trim().toLowerCase();
   const list = negoClauseList(c);
   const textOf = cl => norm(window.richToText ? richToText(cl.body || cl.text || '') : (cl.text || ''));
@@ -9195,7 +9364,11 @@ function negoLastOpened(){
    "where is the list", free to drift from the first — and the list is not a
    view of its own, it is what renderRedline draws when nothing is named. */
 function openNegotiations(opts){
-  _rlDoorAsked = (opts && opts.list) ? 'list' : 'reopen';
+  /* THE LIST STAYS (the owner's yes to decision 1, stage 5): where Home has a
+     paper, the door is the list of negotiations, each row opening Home's
+     Redlines face; reopening the last one is the phone's */
+  const home = typeof window !== 'undefined' && window.innerWidth && window.innerWidth >= 768 && typeof window.pdRedLand === 'function';
+  _rlDoorAsked = (opts && opts.list) || home ? 'list' : 'reopen';
   if (typeof setView === 'function') setView('redline');
   else renderRedline();
   return true;
@@ -9207,6 +9380,32 @@ function openNegotiations(opts){
    anywhere in the app. 'list' is the third answer: take me to ALL of them,
    whatever is remembered. */
 let _rlDoorAsked = false;
+/* ---- A NEGOTIATION THIS PAGE WAS NOT ASKED FOR BY NAME LANDS ON HOME (the
+   one-page Home plan, stage 5) ---- asked by setView BEFORE anything is drawn:
+   a refresh restoring this view, a bare setView('redline'), a door that
+   reopens the last one — the contract renderRedline would put on the bench is
+   read the same way it reads it, and on a screen with Home's paper it opens
+   Jambo's Redlines face there instead (openRedlineWorkbench's own rule). The
+   list, the phone, a sealed contract and a page asked for by name
+   (_rlPageFor) are left to this page. */
+function rlHomeTakesIt(){
+  if (!(typeof window !== 'undefined' && window.innerWidth && window.innerWidth >= 768) || typeof window.pdRedLand !== 'function') return false;
+  const doorAsked = _rlDoorAsked;
+  if (doorAsked === 'list') return false;
+  const pick = id => (id && typeof getContract === 'function') ? getContract(id) : null;
+  let c = null;
+  if (doorAsked === 'reopen') c = negoLastOpened();
+  else if (doorAsked === 'named') c = pick(window.state && state.activeId);
+  else c = _rlShowingList ? null : pick(_redlineHeldId || (window.state && state.activeId));
+  if (!c || String(c.id) === _rlPageFor) return false;
+  if (window.negoMayStart && !negoMayStart(c).ok) return false;
+  if (!pdRedLand(c.id)) return false;
+  _rlDoorAsked = false;
+  return true;
+}
+/* The contract this page was asked for BY NAME (openRedlineWorkbench with
+   opts.page) — the one negotiation it still draws where Home has a paper. */
+let _rlPageFor = null;
 /* Whether the LIST is what this page is currently showing. Not derivable from
    _redlineHeldId, where null means both "the list is up" and "nothing has been
    painted yet" — and those want opposite answers on a bare repaint. Per sitting,
@@ -10034,6 +10233,389 @@ function renderNegotiationsList(host){
     hostId: (el.id || 'content'), head: cs => negoListHeadHtml(cs) });
 }
 
+/* ---- THE BENCH'S OPTIONS, ONE SET FOR EVERY OWNER HOST (the one-page Home
+   plan, stage 3, 14 Oct 2026) ----
+   Everything the Negotiate page hands its column — the seat, the sealed and
+   the desk walls, the live link caught up after a decision, the one-press
+   send of a round with its three outcomes said, a reply that leaves the
+   building, the signing hand-off. Built here once, and asked by both owner
+   hosts: renderRedline (the page) and Jambo's Redlines face beside Home's
+   paper (pdRedFacePaint). o.again is how the host repaints; o.scope is the
+   root its send buttons live under (they grey while a send is in flight).
+   Lifted out of renderRedline word for word; renderRedline() became again(). */
+/* ---- WHAT AN OWNER'S BENCH LOADS AFTER IT PAINTS (stage 3: two hosts) ----
+   The thread their page writes to (c._messages — a reply filed on the
+   discussion channel) and whether the other side holds a live copy (the share
+   list: negoTheirCopy reads it, and Send all goes in one press only when it
+   knows their address). Once per sitting each — the flag is the load-bearing
+   part: guarding on "is the cache filled" spins forever where there is
+   nothing to fetch. `again` repaints the host that asked, if it still shows c.
+   Lifted out of renderRedline word for word. */
+function rlBenchCatchUp(c, again){
+  if (!c) return;
+  const redo = () => { if (typeof again === 'function') again(); };
+  if (window.API_MODE && API_MODE() && window.api && !Array.isArray(c._messages) && !c._msgFetch){
+    c._msgFetch = true;
+    api('contracts/' + c.id + '/messages')
+      .then(r => { c._messages = (r && r.messages) || []; redo(); })
+      .catch(() => { c._messages = c._messages || []; });
+  }
+  if (window.API_MODE && API_MODE() && window.ensureSharesCached
+      && window.sharesKnown && !sharesKnown(c) && !c._shareFetch){
+    c._shareFetch = true;
+    ensureSharesCached(c).then(() => redo()).catch(() => {});
+  }
+}
+function rlBenchOpts(c, o = {}){
+  const side = o.side === 'counterparty' ? 'counterparty' : 'owner';
+  const previewing = side === 'counterparty';
+  const again = typeof o.again === 'function' ? o.again : () => renderRedline();
+  const scope = o.scope || '#view-redline';
+  const opts = { hostId: o.hostId || 'redline-host', side, preview: previewing,
+    /* ---------- A SEALED CONTRACT SHOWS NO VERBS ----------
+       The closed banner at negoBannerHtml has fired on 'Signed' for a long
+       time, and the panes underneath it went on rendering Direct Edit, Propose
+       deletion and a live Save change bar — the banner said finished and the
+       buttons said otherwise, and the buttons won (MK-248).
+
+       Everything in the workbench that can act is gated on this one flag —
+       canAct in the cards, the index, the action bar and the panes, editable in
+       the document — so the fix is to ask the question once, here, rather than
+       to hunt those gates down individually. negoExecuted, not `status ===
+       'Signed'`: a contract carrying a seal or an execution stamp is executed
+       whatever its status field says.
+
+       This is the sign on the door. The lock is in negoFileChange, which
+       refuses the write even if a caller reaches it another way; both ship,
+       because a lock with no sign is a button that errors at a reader who
+       should never have been offered it. */
+    readonly: previewing || ((typeof negoExecuted === 'function') ? negoExecuted(c) : false),
+    /* ---- READING IS NOT WORKING ----
+       Somebody with stream access who is not on this desk keeps the whole
+       document, every redline and the full history — locking the READ would
+       break the register, the reports and the search, and would send people to
+       the telephone, which is the fragmentation this product exists to end. It
+       is the hands that close. `editable` in both card renderers and the
+       document's own edit affordances already read this flag, so one answer
+       here reaches all of them. */
+    canEdit: rlMayRedline(c, { side, readonly: previewing }),
+    /* ---- THE PREVIEW EXPLAINS ITSELF BY BEING OBVIOUS, NOT BY TALKING ----
+       Counterparty View used to open a four-line grey paragraph at the top of
+       the Tracked Changes column: what the view is, that nothing can be entered
+       from it, where to go instead, and where their answers come from. Removed
+       (Young, 10 Aug 2026).
+
+       IT WAS ANSWERING A QUESTION NOBODY ASKS TWICE. The reader got here by
+       pressing "Counterparty" on a two-state switch that is still on screen
+       and still reading Counterparty; the seat is named at the top of the page
+       and the verbs are visibly absent. A paragraph restating that is a note
+       from the product to itself, and it cost the column its first screen —
+       the cards it exists to show started below the fold.
+
+       EXECUTED STILL SPEAKS, and the distinction is the whole rule: a sealed
+       contract is a FACT about the deal that the screen cannot otherwise
+       convey and that changes what the reader should do next. "You are in the
+       view you just switched to" is neither. */
+    readonlyWhy: ((typeof negoExecuted === 'function') && negoExecuted(c))
+      ? 'This contract is executed — its wording is sealed. Record an amendment instead.'
+      : null,
+    messages: c._messages || [], seenScope: c.id,
+    shares: (window.cachedShares ? cachedShares(c) : []), onChange(){ if (window.persist) persist(c); },
+    /* ---- AN ANSWER HAS TO REACH THE PAGE IT IS AN ANSWER TO ----
+       Reported exactly as it happens (Young, 10 Aug 2026): the owner accepts
+       the counterparty's ask, our column says "adopted", and their link still
+       shows it open with Accept all / Reject all on it.
+
+       Their copy of the negotiation is not this one — it is the payload on
+       their share link — and `decide` says so in its own words: whoever mounts
+       this component is responsible for what a decision costs on the other
+       side. THE ROOM SUPPLIED THESE TWO HOOKS AND THIS PAGE NEVER DID, and
+       every owner route now lands here rather than in the room, so nothing was
+       catching the live link up at all. That is this codebase's own
+       duplication rule, walked again: a fix in one renderer is not a fix in
+       the other.
+
+       ONLY ANSWERS TRAVEL THIS WAY — a decision, or an ask taken back. Wording
+       we have newly PROPOSED is not pushed down a live link (holdUnsent inside
+       refreshLiveShareQuietly enforces it): what the reader is being asked to
+       look at changes when somebody presses Publish Round, never as a side
+       effect. Silent, and fire-and-forget: the record is right either way and
+       the link catches up on the next one. */
+    onDecided(){ if (window.refreshLiveShareQuietly) refreshLiveShareQuietly(c); },
+    onWithdraw(){ if (window.refreshLiveShareQuietly) refreshLiveShareQuietly(c); },
+    /* Highlighting wording on this page drives the SIDE PANEL, never a
+       standalone popover with a dialog behind it. rlSelMenu is the only floating
+       layer left here, and it is a three-item menu that dismisses itself the
+       moment one is chosen — everything it hands off to lands either in the
+       Copilot column or in the Discussion column.
+
+       In Counterparty View, selecting text is just reading — the same stub the
+       portal mounts, so no menu and no Copilot route opens from the preview. */
+    noAi: previewing || undefined,
+    selMenu: previewing ? (() => {}) : ctx => rlSelMenu({ ...ctx, c, opts, again: () => again() }),
+    /* ---- ONE CLICK, NO DIALOG, WHEN WE KNOW WHERE IT GOES ----
+       #nego-send has always taken the direct route when the mount supplied a
+       contact and an onSendDirect — that is how the contract room sends
+       without asking. This page supplied neither, so every send here fell
+       through to the share dialog: a form, three fields and a Next, to do
+       something the app already had everything it needed to do.
+
+       So the same two are supplied, off the same helpers the room uses. The
+       dialog is still the fallback and has to be: with no address on record
+       there is nowhere to send, and the form is what collects one. That is not
+       a confirmation step — it is the missing information — and it stops
+       appearing the moment there is an address to remember. */
+    contact: (window.counterpartyContact
+      ? counterpartyContact(c, (window.cachedShares ? cachedShares(c) : [])) : null),
+    /* THE EMAIL IS SET ONCE, HERE. The strip that records it renders in the
+       banner slot (see redlinePanesHtml) until a contact exists, and never
+       again after — every later send goes straight to the standing link. */
+    onSetCounterparty(x){
+      /* THROUGH THE ADDRESS BOOK (4 Oct 2026) — see ctSetTheirEmail. */
+      if (window.ctSetTheirEmail) ctSetTheirEmail(c, (x && x.email) || '', x && x.name);
+      else {
+        c.counterpartyEmail = String((x && x.email) || '').trim();
+        if (x && x.name) c.counterpartyName = x.name;
+      }
+      if (window.logAudit) logAudit(c, 'Negotiation',
+        `Counterparty contact set — changes on this contract go to ${c.counterpartyEmail}`);
+      if (window.persist) persist(c);
+      if (window.toast) toast(`Saved — changes now go straight to ${c.counterpartyEmail}`);
+      again();
+    },
+    async onSendDirect(){
+      /* ---- SOLO OR BATCH, DECIDED BEFORE ANYTHING LEAVES ----
+         Read on the first line, before the first await, because the marker
+         lives only for the synchronous press that set it. A solo send holds
+         every OTHER unsent draft back (negoHoldOthers — buildSharePayload
+         subtracts the held set unconditionally, the same way it subtracts a
+         reviewer's holds); a batch send releases any standing hold so drafts
+         a solo send kept back finally travel with it. `released` is
+         remembered because the turn arithmetic cannot see those drafts once
+         the hold is lifted — negoHandOver is told work left anyway. */
+      const solo = _rlSoloSendId; _rlSoloSendId = null;
+      let released = false;
+      /* How many drafts a batch door is about to free — counted for the turn
+         email's "what moved" line, before the hold is lifted. */
+      const freed = (!solo && window.negoHeldBackIds) ? negoHeldBackIds(c).length : 0;
+      if (solo && window.negoHoldOthers) negoHoldOthers(c, solo);
+      else if (window.negoReleaseHold) released = negoReleaseHold(c);
+      const to = c.counterpartyName || c.counterparty || 'the counterparty';
+      const btns = [...document.querySelectorAll(`${scope} [data-rl-send], ${scope} [data-rl-blast]`)];
+      btns.forEach(b => { b.disabled = true; });
+      try{
+        /* handOver: this is a round send, so where it hands the table to
+           them one "it is your turn" email rides with it (roundTurnMail). */
+        const out = await reshareToLastRecipient(c, { purpose: 'negotiate',
+          handOver: { sentAnyway: released, released: released ? freed : 0 } });
+        /* THE TURN MOVES ONLY AFTER SOMETHING HAS LEFT. Every "Sent" this page
+           draws — the badge, the amber button, the count on the toolbar — is
+           read back from negoUnsentAsks, which is measured against this
+           timestamp. Moving it first and sending after would put the word
+           "Sent" on a card while the send was still in flight, and leave it
+           there if the send failed. */
+        /* D1 (9 Oct 2026): a round that reached nobody — queued in the outbox
+           or refused — hands nothing over; the toast below offers the
+           sender's own hand-over (roundReachedByHand). */
+        const reached = !(out && out.reached === false);
+        const handed = reached && negoHandOver(c, { to: 'counterparty',
+          by: opts.by || (window.currentUser && currentUser()?.name),
+          /* Drafts a solo send once held back read as SENT the moment the
+             hold lifts (their createdAt predates the last turn stamp), so
+             the arithmetic alone would call this batch a no-op. It was not:
+             the payload above carried them. */
+          sentAnyway: released });
+        if (window.persist) persist(c);
+        /* "It is now their turn" is only true when the turn actually moved. A
+           second batch sent while it was already theirs must not claim the
+           table changed hands — see negoHandOver. */
+        const moved = handed ? handed.moved !== false : false;
+        /* …AND ONLY WHERE THE PAGE AGREES (26 Sep 2026, the overnight
+           clean-up): a solo send with another draft still on the desk, or one
+           of their asks still undecided, moved the stamp while the fact row
+           beside this toast said the move was still ours — negWhoseMove is the
+           ONE reading of whose move it is, so the sentence asks it too. */
+        const theirsNow = (typeof negWhoseMove === 'function') ? ((negWhoseMove(c) || {}).k === 'them') : moved;
+        const turnLine = (moved && theirsNow) ? ' — it is now their turn' : '';
+        /* A SECOND LIVE LINK IS SAID ON SCREEN, not only in the audit trail.
+           This is the state reported on MK-255: the round published, the owner
+           was told it had gone, and the counterparty reloaded the URL they
+           actually held to find nothing had moved — because it was not the URL
+           we had refreshed. Where the send could not reuse their copy, that is
+           the whole news, so it outranks the ordinary sentence. */
+        /* ---- THE THREE OUTCOMES ARE THREE STATES NOW (15 Aug 2026, OI-10) ----
+           This call is the one the owner reported: publishing a round to an
+           existing link came back RED, reading as a failure over an act that had
+           worked. It was marked an error on purpose, because until now a toast
+           that was not an error was thrown away and the sentence "send them the
+           link if it was not emailed" would never have been seen.
+
+           Delivered is DONE. Published-but-not-emailed and a stranded second
+           link are both NEEDS YOU — something worked and something is left for
+           the sender to do — so they are amber and they CARRY THE LINK, which
+           is the thing the old sentence asked for and did not hand over. */
+        const delivered = !!(out && out.delivered && !out.stranded);
+        /* ---- A ROUND ON A STANDING LINK IS DELIVERED (owner-reported
+           27 Aug 2026) ----
+           `delivered` above is `emailSent`, and a round published onto the
+           link the counterparty is already holding sends no email ON PURPOSE —
+           the link was emailed once, when the negotiation began, and every
+           round after that travels through the platform. So every round but
+           the first came back AMBER reading "not emailed", with a Copy link
+           beside it offering the owner a link the other side already has.
+
+           THE AUDIT TRAIL HAS SAID THIS SINCE `quiet` WAS INTRODUCED, in its
+           own words — "the platform is the channel" — and the toast was simply
+           never told. It reads the same flag now, so the two cannot disagree
+           about whether a round arrived.
+
+           NO WARNING IS WEAKENED. A genuine mail failure — an email channel
+           that tried and did not send — is not quiet, keeps its amber and
+           keeps its link; so does a stranded second link, which outranks
+           everything because the copy they hold has gone dead. */
+        const standing = !!(out && out.quiet && !out.stranded);
+        const link = (out && out.link) || null;
+        /* A solo send says what it deliberately left on the desk — silence
+           about the other drafts is how a partial send reads as a full one. */
+        const kept = window.negoHeldBackIds ? negoHeldBackIds(c).length : 0;
+        const keptLine = kept ? ` — ${kept} other draft${kept === 1 ? '' : 's'} still unsent` : '';
+        /* THE TURN EMAIL'S OWN THREE OUTCOMES (4 Oct 2026): where the send
+           tried to tell them it is their turn, the toast says whether that
+           email went, is waiting in the outbox, or was refused and why. */
+        const tm = !!(out && out.turnMail && !out.stranded);
+        if (!reached){
+          const why = (out && out.outbox) || (out && out.emailConfigured === false)
+            ? i18t('ng_round_why_outbox') : `${(out && out.emailError) || ''}.`;
+          if (window.toast) toast(i18t('ng_round_not_reached', { who: to, why }), 'warn',
+            (link && window.roundReachedByHand) ? { action: { label: i18t('ng_by_hand_link'),
+              onClick: async () => { await roundReachedByHand(c, out); again(); } } } : undefined);
+        } else if (window.toast && tm) toast(delivered
+          ? `${i18t('ng_turn_emailed', { who: to })}${keptLine}`
+          : out.outbox
+          ? `${i18t('ng_turn_mail_outbox', { who: to })}${keptLine}`
+          : `${i18t('ng_turn_mail_failed', { who: to, why: (out && out.emailError) || '' })}${keptLine}`,
+          delivered ? 'ok' : 'warn',
+          (!delivered && link) ? { action: { label: i18t('ng_copy_link'),
+            onClick: () => { try{ navigator.clipboard.writeText(link); }catch(e){}
+              if (window.toast) toast(i18t('ng_link_copied'), 'ok'); } } } : undefined);
+        else if (window.toast) toast(out && out.stranded
+          ? `${window.reshareStrandedLine ? reshareStrandedLine(to) : 'A NEW link was created for ' + to + '.'}${turnLine ? ' It is now their turn.' : ''}`
+          : delivered
+          ? `Sent to ${to}${turnLine}${keptLine}`
+          /* A sentence that ends in a full stop loses it before a tail is
+             joined on — "not emailed. — 1 other draft" read as two broken
+             sentences (26 Sep 2026, the overnight clean-up). */
+          : standing
+          ? `${(turnLine || keptLine) ? i18t('ng_round_sent_standing', { who: to }).replace(/\.\s*$/, '') : i18t('ng_round_sent_standing', { who: to })}${turnLine}${keptLine}`
+          : `${(turnLine || keptLine) ? i18t('ng_published_not_emailed', { who: to }).replace(/\.\s*$/, '') : i18t('ng_published_not_emailed', { who: to })}${turnLine}${keptLine}`,
+          (delivered || standing) ? 'ok' : 'warn',
+          (!delivered && !standing && link) ? { action: { label: i18t('ng_copy_link'),
+            onClick: () => { try{ navigator.clipboard.writeText(link); }catch(e){}
+              if (window.toast) toast(i18t('ng_link_copied'), 'ok'); } } } : undefined);
+      }catch(err){
+        btns.forEach(b => { b.disabled = false; });
+        if (window.toast) toast(`Could not send to ${to} — ${(err && err.message) || err}`, 'err');
+        return;
+      }
+      again();
+    },
+    /* Counterparty View no longer acts, so it has nothing waiting to send —
+       the counts that used to render their postbox here (and, before that,
+       stalled the six-round loop when they were missing) are gone with the
+       verbs. The real counterparty's postbox lives on their own page, where
+       the portal supplies these from its held state. */
+    pendingProposals: 0,
+    pendingDecisions: 0,
+    org: window.FIRST_PARTY || 'the owner',
+    /* No onSendDecisions here any more. It was negoHandOver recorded as made
+       BY the counterparty — a record of the other side handing the table back
+       when they had done nothing at all — and a read-only preview has nothing
+       to hand back anyway. The portal supplies its own; this mount supplies
+       none, so even a stray #nego-send-decisions could wire to nothing. */
+    /* ---- A SHARED REPLY HAS TO LEAVE THE BUILDING ----
+       negoPostComment writes it onto our record, which is what this page's
+       thread reads — and on this page that was the whole of it, so an answer
+       typed here reached the counterparty only when the next round happened
+       to refresh their link. Found in the cross-party audit: the owner
+       confirmed a point in the thread and Erik's page never showed it. It
+       goes down the discussion channel as well, under the change's own
+       topic, which is the store their page reads live. */
+    async onComment(_c, ch, msg){
+      if (!window.API_MODE || !API_MODE() || !ch) return;
+      try{
+        const res = await api('contracts/' + c.id + '/messages', 'POST', {
+          topic: (window.negoTopicFor ? negoTopicFor(ch) : 'change:' + ch.id),
+          topicLabel: `Change #${ch.id}${ch.clauseLabel ? ' · ' + _neClause(ch.clauseLabel) : ''}`,
+          body: msg.text });
+        c._messages = (res && res.messages) || c._messages || [];
+        if (window.toast) toast(`Comment posted on #${ch.id} — ${c.counterparty || 'the counterparty'} sees it on the same change. The contract is unchanged.`);
+      }catch(e){
+        if (window.toast) toast(`Saved on the change, but it could not be sent to ${c.counterparty || 'the counterparty'}: ${(e && e.message) || 'the message channel is unavailable'}`, 'err');
+      }
+    },
+    /* ---- THE HAND-OFF LIVES HERE NOW ----
+       The readiness banner's "Issue a signing link" is wired to this hook, and
+       the room that used to supply it is retired — without it the one button
+       that moves an aligned negotiation to signature answered "not available
+       on this screen", on the only owner surface left. Found in the
+       cross-party audit. Same share dialog as every other send; the 'sign'
+       purpose is what supersedes the standing negotiation link. */
+    onIssueSigningLink(){
+      if (typeof window.openShareModal !== 'function'){
+        if (window.toast) toast(i18t('ng_sharing_unavailable'), 'err');
+        return;
+      }
+      openShareModal(c, { purpose: 'sign',
+        onSent(){
+          if (window.logAudit) logAudit(c, 'Shared', 'A signing link was issued — the negotiation links on this contract are superseded and can no longer be answered');
+          if (window.persist) persist(c);
+          again();
+        } });
+    },
+    rerender: () => again() };
+  return opts;
+}
+
+/* ---- ASK FOR REVIEW, THE ONE DOOR ----
+   The head's button on this page, and since the one-page Home plan's stage 5
+   the row in the More menu over Home's paper, press this one function.
+   Owe a verdict → hand it back. Otherwise → ask, whether or not something
+   else is already out with somebody.
+   THE ONE DOOR. With more than one review open with this person the picker
+   asks which, naming each by its change tags; with one it goes straight
+   through. The banner rows no longer carry a button of their own — see
+   reviewBannerHtml. Otherwise the door opens on a CHOICE — assign
+   contributors (the desk) or send for review (the ask). See
+   openReviewEntryChooser for why the hand-back is not routed through it.
+   Falls back to the ask dialog on a stage without the chooser, which is what
+   this handler always did. `after` is the host's own repaint. */
+/* THE DOOR'S OWN WORD AND WHETHER IT CAN BE PRESSED — one reading for the
+   head's button and the More menu's row. NOBODY TO ASK, NO POP-UP (SAP
+   pop-ups, owner's go 10 Oct 2026): with no colleague in the workspace the
+   door used to open a dialog whose whole message was "there is nobody to
+   ask". The door greys with that reason instead; a hand-back ('yours') is
+   never greyed. */
+/* READING MUST NOT WRITE (stage 5): Home's paper line draws this for any
+   contract on the paper, so the phase is read off the stored review alone
+   (reviewOpenList, reviewIsReviewer) — never through reviewState, whose scope
+   reads the negotiation's unsent asks and so CREATES one (negoInit), writing
+   clause ids into the wording of a contract that was only being looked at */
+function rlReviewDoorState(c){
+  const me = (typeof currentUser === 'function' && currentUser()) || {};
+  let yours = false;
+  try { yours = !!(window.reviewOpenList && window.reviewIsReviewer) && reviewOpenList(c).some(r => reviewIsReviewer(r, me)); } catch (_){ yours = false; }
+  const phase = yours ? 'yours' : 'none';
+  const label = yours ? i18t('rv_head_return') : i18t('rv_head_ask');
+  const nobody = !yours && typeof getUsers === 'function'
+    && !(getUsers() || []).some(u => u && u.id !== me.id);
+  return { phase, label, nobody };
+}
+function rlReviewDoor(c, after){
+  const st = window.reviewState ? reviewState(c) : { phase: 'none' };
+  if (st.phase === 'yours') openReviewReturnPicker(c, { after });
+  else if (window.openReviewEntryChooser) openReviewEntryChooser(c, { after });
+  else openReviewAskModal(c, { after });
+}
 function renderRedline(){
   const host = document.getElementById('content');
   if (!host) return;
@@ -10140,13 +10722,10 @@ function renderRedline(){
      nowhere on the owner's screen until some other view happened to load it.
      Fire-and-forget, one fetch per sitting: the page paints immediately and
      repaints when the replies land. */
-  if (window.API_MODE && API_MODE() && window.api && !Array.isArray(c._messages) && !c._msgFetch){
-    c._msgFetch = true;
-    api('contracts/' + c.id + '/messages')
-      .then(r => { c._messages = (r && r.messages) || [];
-        if (document.getElementById('view-redline') && _redlineHeldId === c.id) renderRedline(); })
-      .catch(() => { c._messages = c._messages || []; });
-  }
+  /* Both catch-ups below live in rlBenchCatchUp now (stage 3, 14 Oct 2026):
+     Jambo's Redlines face asks them too. This page repaints only while it is
+     still showing this contract. */
+  rlBenchCatchUp(c, () => { if (document.getElementById('view-redline') && _redlineHeldId === c.id) renderRedline(); });
   /* ---- AND WHETHER THE OTHER SIDE HOLDS A LIVE COPY ----
      Same shape, same reason, one fetch per sitting: this page decides whether
      to CLAIM that the deal is waiting on them (negoTheirCopy), and the share
@@ -10163,13 +10742,6 @@ function renderRedline(){
      every repaint would schedule another repaint and the page would spin
      forever. Caught by the browser journey, which simply stopped responding to
      a click. */
-  if (window.API_MODE && API_MODE() && window.ensureSharesCached
-      && window.sharesKnown && !sharesKnown(c) && !c._shareFetch){
-    c._shareFetch = true;
-    ensureSharesCached(c).then(() => {
-      if (document.getElementById('view-redline') && _redlineHeldId === c.id) renderRedline();
-    }).catch(() => {});
-  }
   const side = _redlineSide === 'counterparty' ? 'counterparty' : 'owner';
   /* ---- THE COUNTERPARTY VIEW IS A PREVIEW, NOT A DIFFERENT CHAIR ----
      (owner-asked, 19 Aug 2026.) `side` still decides what the DOCUMENT and the
@@ -10317,18 +10889,10 @@ function renderRedline(){
                the door. Its word follows the state, because the reviewer and
                the requester press the same place for opposite acts. */}
         ${(typeof canEdit !== 'function' || canEdit()) && window.reviewState ? (() => {
-          const st = reviewState(c);
-          const label = st.phase === 'yours' ? i18t('rv_head_return') : i18t('rv_head_ask');
-          /* NOBODY TO ASK, NO POP-UP (SAP pop-ups, owner's go 10 Oct 2026):
-             with no colleague in the workspace the door used to open a dialog
-             whose whole message was "there is nobody to ask". The door greys
-             with that reason instead; a hand-back ('yours') is never greyed. */
-          const me = (typeof currentUser === 'function' && currentUser()) || {};
-          const nobody = st.phase !== 'yours' && typeof getUsers === 'function'
-            && !(getUsers() || []).some(u => u && u.id !== me.id);
-          const nobodyAttrs = nobody ? ` disabled aria-disabled="true" data-rl-dead="1" title="${_nea(i18t('rv_no_colleagues'))}"` : '';
+          const d = rlReviewDoorState(c);
+          const nobodyAttrs = d.nobody ? ` disabled aria-disabled="true" data-rl-dead="1" title="${_nea(i18t('rv_no_colleagues'))}"` : '';
           return `<button type="button" data-rl-review class="rl-pb-btn"
-            data-rv-phase="${_nea(st.phase)}"${deadAttrs || nobodyAttrs || ` title="${_nea(i18t('rv_head_title'))}"`}>${icon('users','w-3.5 h-3.5')}<span class="rl-word">${_ne(label)}</span></button>`;
+            data-rv-phase="${_nea(d.phase)}"${deadAttrs || nobodyAttrs || ` title="${_nea(i18t('rv_head_title'))}"`}>${icon('users','w-3.5 h-3.5')}<span class="rl-word">${_ne(d.label)}</span></button>`;
         })() : ''}
   `;
   const mayMenu = !_rvPosture && (typeof canEdit !== 'function' || canEdit());
@@ -10759,13 +11323,9 @@ function renderRedline(){
   if (window.wireRoomHead) wireRoomHead(c);
   const headAct = (id, fn) => host.querySelector('#' + id)?.addEventListener('click', fn);
   headAct('ws-share', () => window.openShareModal && openShareModal(c));
-  headAct('ws-import', () => window.openImportModal && openImportModal(c));
-  headAct('ws-compare', () => window.openCompareModal && openCompareModal(c));
-  headAct('ws-pdf', () => window.exportPDF && exportPDF(c));
-  headAct('ws-word', () => window.exportWordTracked && exportWordTracked(c));
-  headAct('ws-pdf-record', () => window.exportPDF && exportPDF(c, { record: true }));
-  headAct('ws-filing', () => window.ovOpenFiling && ovOpenFiling(c));
-  headAct('ws-mynote', () => window.myNotesNew && myNotesNew({ contractId: c.id }));
+  /* THE MENU'S ROWS — import, compare, the exports, filing, my notes — are
+     wired with the menu (roomMenuWire, through wireRoomHead above) since the
+     one-page Home plan's stage 5: one menu builder, one wiring. */
   /* ws-tpl is GONE from the room's menu (one door to standards, 24 Sep 2026):
      "From one of our contracts" behind the Templates page's one button. */
   headAct('ws-focus', () => rlSetFocus(!rlFocusOn()));
@@ -10791,22 +11351,7 @@ function renderRedline(){
      back, and anyone looking at a review already out gets the banner's Cancel
      instead of a second way to do it. */
   host.querySelectorAll('[data-rl-review]').forEach(el =>
-    el.addEventListener('click', () => {
-      const st = window.reviewState ? reviewState(c) : { phase: 'none' };
-      /* Owe a verdict → hand it back. Otherwise → ask, whether or not something
-         else is already out with somebody. */
-      /* THE ONE DOOR. With more than one review open with this person the
-         picker asks which, naming each by its change tags; with one it goes
-         straight through. The banner rows no longer carry a button of their
-         own — see reviewBannerHtml. */
-      if (st.phase === 'yours') openReviewReturnPicker(c, { after: () => renderRedline() });
-      /* Otherwise the door opens on a CHOICE — assign contributors (the desk)
-         or send for review (the ask). See openReviewEntryChooser for why the
-         hand-back is not routed through it. Falls back to the ask dialog on a
-         stage without the chooser, which is what this handler always did. */
-      else if (window.openReviewEntryChooser) openReviewEntryChooser(c, { after: () => renderRedline() });
-      else openReviewAskModal(c, { after: () => renderRedline() });
-    }));
+    el.addEventListener('click', () => rlReviewDoor(c, () => renderRedline())));
   /* Focus in, focus out — ONE button, toggling. A class flip, not a repaint —
      see rlSetFocus. The paint call lines the fresh button's face up with the
      mode the page came back in. */
@@ -10891,310 +11436,9 @@ function renderRedline(){
 
      The lock is layered like the executed-contract lock directly below: this
      flag is the sign on the door, and wireNegotiationTab refuses decide/file
-     under readonly even if a stray path reaches them. */
-  const previewing = side === 'counterparty';
-  const opts = { hostId: 'redline-host', side, preview: previewing,
-    /* ---------- A SEALED CONTRACT SHOWS NO VERBS ----------
-       The closed banner at negoBannerHtml has fired on 'Signed' for a long
-       time, and the panes underneath it went on rendering Direct Edit, Propose
-       deletion and a live Save change bar — the banner said finished and the
-       buttons said otherwise, and the buttons won (MK-248).
-
-       Everything in the workbench that can act is gated on this one flag —
-       canAct in the cards, the index, the action bar and the panes, editable in
-       the document — so the fix is to ask the question once, here, rather than
-       to hunt those gates down individually. negoExecuted, not `status ===
-       'Signed'`: a contract carrying a seal or an execution stamp is executed
-       whatever its status field says.
-
-       This is the sign on the door. The lock is in negoFileChange, which
-       refuses the write even if a caller reaches it another way; both ship,
-       because a lock with no sign is a button that errors at a reader who
-       should never have been offered it. */
-    readonly: previewing || ((typeof negoExecuted === 'function') ? negoExecuted(c) : false),
-    /* ---- READING IS NOT WORKING ----
-       Somebody with stream access who is not on this desk keeps the whole
-       document, every redline and the full history — locking the READ would
-       break the register, the reports and the search, and would send people to
-       the telephone, which is the fragmentation this product exists to end. It
-       is the hands that close. `editable` in both card renderers and the
-       document's own edit affordances already read this flag, so one answer
-       here reaches all of them. */
-    canEdit: rlMayRedline(c, { side, readonly: previewing }),
-    /* ---- THE PREVIEW EXPLAINS ITSELF BY BEING OBVIOUS, NOT BY TALKING ----
-       Counterparty View used to open a four-line grey paragraph at the top of
-       the Tracked Changes column: what the view is, that nothing can be entered
-       from it, where to go instead, and where their answers come from. Removed
-       (Young, 10 Aug 2026).
-
-       IT WAS ANSWERING A QUESTION NOBODY ASKS TWICE. The reader got here by
-       pressing "Counterparty" on a two-state switch that is still on screen
-       and still reading Counterparty; the seat is named at the top of the page
-       and the verbs are visibly absent. A paragraph restating that is a note
-       from the product to itself, and it cost the column its first screen —
-       the cards it exists to show started below the fold.
-
-       EXECUTED STILL SPEAKS, and the distinction is the whole rule: a sealed
-       contract is a FACT about the deal that the screen cannot otherwise
-       convey and that changes what the reader should do next. "You are in the
-       view you just switched to" is neither. */
-    readonlyWhy: ((typeof negoExecuted === 'function') && negoExecuted(c))
-      ? 'This contract is executed — its wording is sealed. Record an amendment instead.'
-      : null,
-    messages: c._messages || [], seenScope: c.id,
-    shares: (window.cachedShares ? cachedShares(c) : []), onChange(){ if (window.persist) persist(c); },
-    /* ---- AN ANSWER HAS TO REACH THE PAGE IT IS AN ANSWER TO ----
-       Reported exactly as it happens (Young, 10 Aug 2026): the owner accepts
-       the counterparty's ask, our column says "adopted", and their link still
-       shows it open with Accept all / Reject all on it.
-
-       Their copy of the negotiation is not this one — it is the payload on
-       their share link — and `decide` says so in its own words: whoever mounts
-       this component is responsible for what a decision costs on the other
-       side. THE ROOM SUPPLIED THESE TWO HOOKS AND THIS PAGE NEVER DID, and
-       every owner route now lands here rather than in the room, so nothing was
-       catching the live link up at all. That is this codebase's own
-       duplication rule, walked again: a fix in one renderer is not a fix in
-       the other.
-
-       ONLY ANSWERS TRAVEL THIS WAY — a decision, or an ask taken back. Wording
-       we have newly PROPOSED is not pushed down a live link (holdUnsent inside
-       refreshLiveShareQuietly enforces it): what the reader is being asked to
-       look at changes when somebody presses Publish Round, never as a side
-       effect. Silent, and fire-and-forget: the record is right either way and
-       the link catches up on the next one. */
-    onDecided(){ if (window.refreshLiveShareQuietly) refreshLiveShareQuietly(c); },
-    onWithdraw(){ if (window.refreshLiveShareQuietly) refreshLiveShareQuietly(c); },
-    /* Highlighting wording on this page drives the SIDE PANEL, never a
-       standalone popover with a dialog behind it. rlSelMenu is the only floating
-       layer left here, and it is a three-item menu that dismisses itself the
-       moment one is chosen — everything it hands off to lands either in the
-       Copilot column or in the Discussion column.
-
-       In Counterparty View, selecting text is just reading — the same stub the
-       portal mounts, so no menu and no Copilot route opens from the preview. */
-    noAi: previewing || undefined,
-    selMenu: previewing ? (() => {}) : ctx => rlSelMenu({ ...ctx, c, opts, again: () => renderRedline() }),
-    /* ---- ONE CLICK, NO DIALOG, WHEN WE KNOW WHERE IT GOES ----
-       #nego-send has always taken the direct route when the mount supplied a
-       contact and an onSendDirect — that is how the contract room sends
-       without asking. This page supplied neither, so every send here fell
-       through to the share dialog: a form, three fields and a Next, to do
-       something the app already had everything it needed to do.
-
-       So the same two are supplied, off the same helpers the room uses. The
-       dialog is still the fallback and has to be: with no address on record
-       there is nowhere to send, and the form is what collects one. That is not
-       a confirmation step — it is the missing information — and it stops
-       appearing the moment there is an address to remember. */
-    contact: (window.counterpartyContact
-      ? counterpartyContact(c, (window.cachedShares ? cachedShares(c) : [])) : null),
-    /* THE EMAIL IS SET ONCE, HERE. The strip that records it renders in the
-       banner slot (see redlinePanesHtml) until a contact exists, and never
-       again after — every later send goes straight to the standing link. */
-    onSetCounterparty(x){
-      /* THROUGH THE ADDRESS BOOK (4 Oct 2026) — see ctSetTheirEmail. */
-      if (window.ctSetTheirEmail) ctSetTheirEmail(c, (x && x.email) || '', x && x.name);
-      else {
-        c.counterpartyEmail = String((x && x.email) || '').trim();
-        if (x && x.name) c.counterpartyName = x.name;
-      }
-      if (window.logAudit) logAudit(c, 'Negotiation',
-        `Counterparty contact set — changes on this contract go to ${c.counterpartyEmail}`);
-      if (window.persist) persist(c);
-      if (window.toast) toast(`Saved — changes now go straight to ${c.counterpartyEmail}`);
-      renderRedline();
-    },
-    async onSendDirect(){
-      /* ---- SOLO OR BATCH, DECIDED BEFORE ANYTHING LEAVES ----
-         Read on the first line, before the first await, because the marker
-         lives only for the synchronous press that set it. A solo send holds
-         every OTHER unsent draft back (negoHoldOthers — buildSharePayload
-         subtracts the held set unconditionally, the same way it subtracts a
-         reviewer's holds); a batch send releases any standing hold so drafts
-         a solo send kept back finally travel with it. `released` is
-         remembered because the turn arithmetic cannot see those drafts once
-         the hold is lifted — negoHandOver is told work left anyway. */
-      const solo = _rlSoloSendId; _rlSoloSendId = null;
-      let released = false;
-      /* How many drafts a batch door is about to free — counted for the turn
-         email's "what moved" line, before the hold is lifted. */
-      const freed = (!solo && window.negoHeldBackIds) ? negoHeldBackIds(c).length : 0;
-      if (solo && window.negoHoldOthers) negoHoldOthers(c, solo);
-      else if (window.negoReleaseHold) released = negoReleaseHold(c);
-      const to = c.counterpartyName || c.counterparty || 'the counterparty';
-      const btns = [...document.querySelectorAll('#view-redline [data-rl-send], #view-redline [data-rl-blast]')];
-      btns.forEach(b => { b.disabled = true; });
-      try{
-        /* handOver: this is a round send, so where it hands the table to
-           them one "it is your turn" email rides with it (roundTurnMail). */
-        const out = await reshareToLastRecipient(c, { purpose: 'negotiate',
-          handOver: { sentAnyway: released, released: released ? freed : 0 } });
-        /* THE TURN MOVES ONLY AFTER SOMETHING HAS LEFT. Every "Sent" this page
-           draws — the badge, the amber button, the count on the toolbar — is
-           read back from negoUnsentAsks, which is measured against this
-           timestamp. Moving it first and sending after would put the word
-           "Sent" on a card while the send was still in flight, and leave it
-           there if the send failed. */
-        /* D1 (9 Oct 2026): a round that reached nobody — queued in the outbox
-           or refused — hands nothing over; the toast below offers the
-           sender's own hand-over (roundReachedByHand). */
-        const reached = !(out && out.reached === false);
-        const handed = reached && negoHandOver(c, { to: 'counterparty',
-          by: opts.by || (window.currentUser && currentUser()?.name),
-          /* Drafts a solo send once held back read as SENT the moment the
-             hold lifts (their createdAt predates the last turn stamp), so
-             the arithmetic alone would call this batch a no-op. It was not:
-             the payload above carried them. */
-          sentAnyway: released });
-        if (window.persist) persist(c);
-        /* "It is now their turn" is only true when the turn actually moved. A
-           second batch sent while it was already theirs must not claim the
-           table changed hands — see negoHandOver. */
-        const moved = handed ? handed.moved !== false : false;
-        /* …AND ONLY WHERE THE PAGE AGREES (26 Sep 2026, the overnight
-           clean-up): a solo send with another draft still on the desk, or one
-           of their asks still undecided, moved the stamp while the fact row
-           beside this toast said the move was still ours — negWhoseMove is the
-           ONE reading of whose move it is, so the sentence asks it too. */
-        const theirsNow = (typeof negWhoseMove === 'function') ? ((negWhoseMove(c) || {}).k === 'them') : moved;
-        const turnLine = (moved && theirsNow) ? ' — it is now their turn' : '';
-        /* A SECOND LIVE LINK IS SAID ON SCREEN, not only in the audit trail.
-           This is the state reported on MK-255: the round published, the owner
-           was told it had gone, and the counterparty reloaded the URL they
-           actually held to find nothing had moved — because it was not the URL
-           we had refreshed. Where the send could not reuse their copy, that is
-           the whole news, so it outranks the ordinary sentence. */
-        /* ---- THE THREE OUTCOMES ARE THREE STATES NOW (15 Aug 2026, OI-10) ----
-           This call is the one the owner reported: publishing a round to an
-           existing link came back RED, reading as a failure over an act that had
-           worked. It was marked an error on purpose, because until now a toast
-           that was not an error was thrown away and the sentence "send them the
-           link if it was not emailed" would never have been seen.
-
-           Delivered is DONE. Published-but-not-emailed and a stranded second
-           link are both NEEDS YOU — something worked and something is left for
-           the sender to do — so they are amber and they CARRY THE LINK, which
-           is the thing the old sentence asked for and did not hand over. */
-        const delivered = !!(out && out.delivered && !out.stranded);
-        /* ---- A ROUND ON A STANDING LINK IS DELIVERED (owner-reported
-           27 Aug 2026) ----
-           `delivered` above is `emailSent`, and a round published onto the
-           link the counterparty is already holding sends no email ON PURPOSE —
-           the link was emailed once, when the negotiation began, and every
-           round after that travels through the platform. So every round but
-           the first came back AMBER reading "not emailed", with a Copy link
-           beside it offering the owner a link the other side already has.
-
-           THE AUDIT TRAIL HAS SAID THIS SINCE `quiet` WAS INTRODUCED, in its
-           own words — "the platform is the channel" — and the toast was simply
-           never told. It reads the same flag now, so the two cannot disagree
-           about whether a round arrived.
-
-           NO WARNING IS WEAKENED. A genuine mail failure — an email channel
-           that tried and did not send — is not quiet, keeps its amber and
-           keeps its link; so does a stranded second link, which outranks
-           everything because the copy they hold has gone dead. */
-        const standing = !!(out && out.quiet && !out.stranded);
-        const link = (out && out.link) || null;
-        /* A solo send says what it deliberately left on the desk — silence
-           about the other drafts is how a partial send reads as a full one. */
-        const kept = window.negoHeldBackIds ? negoHeldBackIds(c).length : 0;
-        const keptLine = kept ? ` — ${kept} other draft${kept === 1 ? '' : 's'} still unsent` : '';
-        /* THE TURN EMAIL'S OWN THREE OUTCOMES (4 Oct 2026): where the send
-           tried to tell them it is their turn, the toast says whether that
-           email went, is waiting in the outbox, or was refused and why. */
-        const tm = !!(out && out.turnMail && !out.stranded);
-        if (!reached){
-          const why = (out && out.outbox) || (out && out.emailConfigured === false)
-            ? i18t('ng_round_why_outbox') : `${(out && out.emailError) || ''}.`;
-          if (window.toast) toast(i18t('ng_round_not_reached', { who: to, why }), 'warn',
-            (link && window.roundReachedByHand) ? { action: { label: i18t('ng_by_hand_link'),
-              onClick: async () => { await roundReachedByHand(c, out); renderRedline(); } } } : undefined);
-        } else if (window.toast && tm) toast(delivered
-          ? `${i18t('ng_turn_emailed', { who: to })}${keptLine}`
-          : out.outbox
-          ? `${i18t('ng_turn_mail_outbox', { who: to })}${keptLine}`
-          : `${i18t('ng_turn_mail_failed', { who: to, why: (out && out.emailError) || '' })}${keptLine}`,
-          delivered ? 'ok' : 'warn',
-          (!delivered && link) ? { action: { label: i18t('ng_copy_link'),
-            onClick: () => { try{ navigator.clipboard.writeText(link); }catch(e){}
-              if (window.toast) toast(i18t('ng_link_copied'), 'ok'); } } } : undefined);
-        else if (window.toast) toast(out && out.stranded
-          ? `${window.reshareStrandedLine ? reshareStrandedLine(to) : 'A NEW link was created for ' + to + '.'}${turnLine ? ' It is now their turn.' : ''}`
-          : delivered
-          ? `Sent to ${to}${turnLine}${keptLine}`
-          /* A sentence that ends in a full stop loses it before a tail is
-             joined on — "not emailed. — 1 other draft" read as two broken
-             sentences (26 Sep 2026, the overnight clean-up). */
-          : standing
-          ? `${(turnLine || keptLine) ? i18t('ng_round_sent_standing', { who: to }).replace(/\.\s*$/, '') : i18t('ng_round_sent_standing', { who: to })}${turnLine}${keptLine}`
-          : `${(turnLine || keptLine) ? i18t('ng_published_not_emailed', { who: to }).replace(/\.\s*$/, '') : i18t('ng_published_not_emailed', { who: to })}${turnLine}${keptLine}`,
-          (delivered || standing) ? 'ok' : 'warn',
-          (!delivered && !standing && link) ? { action: { label: i18t('ng_copy_link'),
-            onClick: () => { try{ navigator.clipboard.writeText(link); }catch(e){}
-              if (window.toast) toast(i18t('ng_link_copied'), 'ok'); } } } : undefined);
-      }catch(err){
-        btns.forEach(b => { b.disabled = false; });
-        if (window.toast) toast(`Could not send to ${to} — ${(err && err.message) || err}`, 'err');
-        return;
-      }
-      renderRedline();
-    },
-    /* Counterparty View no longer acts, so it has nothing waiting to send —
-       the counts that used to render their postbox here (and, before that,
-       stalled the six-round loop when they were missing) are gone with the
-       verbs. The real counterparty's postbox lives on their own page, where
-       the portal supplies these from its held state. */
-    pendingProposals: 0,
-    pendingDecisions: 0,
-    org: window.FIRST_PARTY || 'the owner',
-    /* No onSendDecisions here any more. It was negoHandOver recorded as made
-       BY the counterparty — a record of the other side handing the table back
-       when they had done nothing at all — and a read-only preview has nothing
-       to hand back anyway. The portal supplies its own; this mount supplies
-       none, so even a stray #nego-send-decisions could wire to nothing. */
-    /* ---- A SHARED REPLY HAS TO LEAVE THE BUILDING ----
-       negoPostComment writes it onto our record, which is what this page's
-       thread reads — and on this page that was the whole of it, so an answer
-       typed here reached the counterparty only when the next round happened
-       to refresh their link. Found in the cross-party audit: the owner
-       confirmed a point in the thread and Erik's page never showed it. It
-       goes down the discussion channel as well, under the change's own
-       topic, which is the store their page reads live. */
-    async onComment(_c, ch, msg){
-      if (!window.API_MODE || !API_MODE() || !ch) return;
-      try{
-        const res = await api('contracts/' + c.id + '/messages', 'POST', {
-          topic: (window.negoTopicFor ? negoTopicFor(ch) : 'change:' + ch.id),
-          topicLabel: `Change #${ch.id}${ch.clauseLabel ? ' · ' + _neClause(ch.clauseLabel) : ''}`,
-          body: msg.text });
-        c._messages = (res && res.messages) || c._messages || [];
-        if (window.toast) toast(`Comment posted on #${ch.id} — ${c.counterparty || 'the counterparty'} sees it on the same change. The contract is unchanged.`);
-      }catch(e){
-        if (window.toast) toast(`Saved on the change, but it could not be sent to ${c.counterparty || 'the counterparty'}: ${(e && e.message) || 'the message channel is unavailable'}`, 'err');
-      }
-    },
-    /* ---- THE HAND-OFF LIVES HERE NOW ----
-       The readiness banner's "Issue a signing link" is wired to this hook, and
-       the room that used to supply it is retired — without it the one button
-       that moves an aligned negotiation to signature answered "not available
-       on this screen", on the only owner surface left. Found in the
-       cross-party audit. Same share dialog as every other send; the 'sign'
-       purpose is what supersedes the standing negotiation link. */
-    onIssueSigningLink(){
-      if (typeof window.openShareModal !== 'function'){
-        if (window.toast) toast(i18t('ng_sharing_unavailable'), 'err');
-        return;
-      }
-      openShareModal(c, { purpose: 'sign',
-        onSent(){
-          if (window.logAudit) logAudit(c, 'Shared', 'A signing link was issued — the negotiation links on this contract are superseded and can no longer be answered');
-          if (window.persist) persist(c);
-          renderRedline();
-        } });
-    },
-    rerender: () => renderRedline() };
+     under readonly even if a stray path reaches them. The flag is set where
+     the options are built now, rlBenchOpts (stage 3, 14 Oct 2026). */
+  const opts = rlBenchOpts(c, { side });
   mount.innerHTML = redlinePanesHtml(c, opts);
   /* ---- AND THE TWO PANELS UNDER THE CONTRACT ----
      Filled HERE, from the same `opts` the panes were just built with. That is
@@ -11275,6 +11519,24 @@ function rlEditorOpen(){
 function rlLiveFlush(){
   if(!_rlLivePending || rlEditorOpen()) return;
   _rlLivePending = false;
+  rlLiveRepaint();
+}
+/* ---- THE LIVE PROBE ALSO WATCHES JAMBO'S REDLINES FACE (the one-page Home
+   plan, stage 5: the Negotiate page folded into Home) ---- the page on its
+   bench, or the face beside Home's paper on that contract; each repaints its
+   own host */
+function rlLiveHere(id){
+  if (!window.state) return false;
+  if (state.view === 'redline' && state.activeId === id) return true;
+  return state.view === 'dashboard' && typeof window.pdRedShows === 'function' && pdRedShows()
+    && typeof window.pdRedFor === 'function' && String(pdRedFor()) === String(id);
+}
+function rlLiveRepaint(){
+  if (window.state && state.view === 'dashboard' && typeof window.pdRedRepaint === 'function'){
+    pdRedRepaint();
+    if (typeof window.igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){}
+    return;
+  }
   renderRedline();
 }
 function rlStartLivePoll(c){
@@ -11288,7 +11550,7 @@ function rlStartLivePoll(c){
   if (_rlLiveTimer){ clearInterval(_rlLiveTimer); _rlLiveTimer = null; }
   const id = c.id;
   _rlLiveTimer = setInterval(async () => {
-    if (!window.state || state.view !== 'redline' || state.activeId !== id){
+    if (!rlLiveHere(id)){
       clearInterval(_rlLiveTimer); _rlLiveTimer = null; return;
     }
     rlLiveFlush();          /* an arrival held back while somebody was typing */
@@ -11309,7 +11571,7 @@ function rlStartLivePoll(c){
          is open — a repaint rebuilds the box somebody is typing into, and the
          next tick draws it the moment they stop. */
       if (st && cur && window.clauseLockMerge && clauseLockMerge(cur, st.locks || {})
-          && !rlEditorOpen() && state.view === 'redline' && state.activeId === id) renderRedline();
+          && !rlEditorOpen() && rlLiveHere(id)) rlLiveRepaint();
       /* ---- COPILOT'S ANSWERS TO THEIR ROUND RIDE THE SAME PROBE (Young, 9 Oct
          2026, change 1) ---- A redo — here, in another tab, by a colleague —
          writes its own table and moves no version, so it never reached the
@@ -11327,7 +11589,7 @@ function rlStartLivePoll(c){
           if (fresh){
             if (fresh._roundPrep) cur._roundPrep = fresh._roundPrep; else delete cur._roundPrep;
             if (rlEditorOpen()) _rlLivePending = true;
-            else if (state.view === 'redline' && state.activeId === id) renderRedline();
+            else if (rlLiveHere(id)) rlLiveRepaint();
           }
         }
       }
@@ -11356,7 +11618,7 @@ function rlStartLivePoll(c){
           _rlLivePending = true;
           if (window.toast) toast(i18t('ng_live_held_for_editor', { id: window.contractRef ? contractRef(fresh) : id }), 'warn');
         } else {
-          renderRedline();
+          rlLiveRepaint();
           if (window.toast) toast(i18t('ng_live_updated', { id: window.contractRef ? contractRef(fresh) : id }), 'ok');
         }
       }
@@ -12072,17 +12334,24 @@ function rlCardNeedsYou(verbs){
 
 function rlLinkFocus(c, changeId, source){
   const page = document.getElementById('view-redline')
-    || document.querySelector('.redline-page.rl-embed');
+    || document.querySelector('.redline-page.rl-embed')
+    || document.querySelector('.redline-page.rl-face');
   const id = String(changeId == null ? '' : changeId);
   if (!page || !id) return false;
   const q = v => (window.CSS && CSS.escape) ? CSS.escape(v) : v;
+  /* ON HOME (the one-page Home plan, stage 3) the column is Jambo's Redlines
+     face and the paper is Home's own, outside the column's page: the clause
+     end of the link is looked for there (#ig-paper). */
+  const homePaper = page.classList.contains('rl-face') ? document.getElementById('ig-paper') : null;
+  if (homePaper) homePaper.querySelectorAll('.is-linked').forEach(n => n.classList.remove('is-linked'));
   page.querySelectorAll('.is-linked').forEach(n => n.classList.remove('is-linked'));
   /* [~=] — attribute word match. The anchor carries EVERY change on the
      clause, space-separated (the queue's data-rl-queue-ids pattern), so each
      card finds its clause whichever position its id holds in the list. This
      is the line that made half the cards dead when two asks shared a clause:
      an exact match against a one-id attribute that only ever named the newest. */
-  const clause = page.querySelector('#rl-doc [data-nego-card-anchor~="' + q(id) + '"]');
+  const clause = homePaper ? homePaper.querySelector('[data-nego-card-anchor~="' + q(id) + '"]')
+    : page.querySelector('#rl-doc [data-nego-card-anchor~="' + q(id) + '"]');
   const card = page.querySelector('#rl-changes [data-nego-card="' + q(id) + '"]');
   /* The change's THREAD is the same thing again in the discussion panel, so
      it lights with the pair — and whichever sidebar face is showing is the
@@ -12128,10 +12397,13 @@ function rlLinkFocus(c, changeId, source){
    on this page rather than two that can disagree. */
 function rlJumpToClause(clauseId, opts = {}){
   const page = document.getElementById('view-redline')
-    || document.querySelector('.redline-page.rl-embed');
+    || document.querySelector('.redline-page.rl-embed')
+    || document.querySelector('.redline-page.rl-face');
   if (!page) return null;
   const sel = `[data-clause="${window.CSS && CSS.escape ? CSS.escape(clauseId) : clauseId}"]`;
-  const clause = page.querySelector('#rl-doc ' + sel) || page.querySelector(sel);
+  /* Jambo's Redlines face (stage 3): the clause is on Home's paper */
+  const homePaper = page.classList.contains('rl-face') ? document.getElementById('ig-paper') : null;
+  const clause = homePaper ? homePaper.querySelector(sel) : (page.querySelector('#rl-doc ' + sel) || page.querySelector(sel));
   if (!clause) return null;
   if (clause.scrollIntoView) clause.scrollIntoView({ block: 'center', behavior: 'smooth' });
   /* rl-arrived, NOT rl-jump: the toolbar's contract picker owns that word, and
@@ -14944,19 +15216,23 @@ function rlAddClauseBtnHtml(c, opts = {}, side = 'owner', cls = ''){
    clause" does: the editor, or the clause panel where the window is too narrow.
    Greyed with the reason in our preview of their seat or once the wording is
    frozen by a signature. */
-function rlEditClauseBtnHtml(c, opts = {}, side = 'owner'){
+function rlEditClauseBtnHtml(c, opts = {}, side = 'owner', cls = 'ui-btn rl-edit-clause-door'){
   if (side === 'counterparty' || rlOnTheirPage()) return '';
-  const why = opts.preview ? i18t('ng_preview_dead')
-    : (window.negoWordingFrozen && negoWordingFrozen(c)) ? i18t('ce_wording_frozen') : '';
   const to = rlEditorTakesIt(side, opts) ? 'editor' : 'panel';
-  return `<button type="button" class="ui-btn rl-edit-clause-door" data-rl-edit-clause="${to}"${why ? ' disabled aria-disabled="true" data-rl-dead="1"' : ''}
+  /* A MOUNT WITH NO CLAUSE PANEL (Jambo's Redlines face, stage 3) has nowhere
+     for the narrow-window destination to open: greyed with the reason. */
+  const why = opts.preview ? i18t('ng_preview_dead')
+    : (window.negoWordingFrozen && negoWordingFrozen(c)) ? i18t('ce_wording_frozen')
+    : (to === 'panel' && opts.cpPanel === false) ? i18t('ce_too_narrow') : '';
+  return `<button type="button" class="${cls}" data-rl-edit-clause="${to}"${why ? ' disabled aria-disabled="true" data-rl-dead="1"' : ''}
       title="${_nea(why || i18t('ng_edit_clause_door_title'))}">${icon('pencil', 'w-3.5 h-3.5')}${_ne(i18t('ng_edit_clause'))}</button>`;
 }
 function rlClauseInView(scope){
   const root = (scope && scope.querySelectorAll) ? scope : document;
   const secs = [...root.querySelectorAll('.rl-paper [data-nego-working]')];
   if (!secs.length) return '';
-  const sc = root.querySelector('#nego-scroll-work') || document.getElementById('nego-scroll-work');
+  const sc = root.querySelector('#nego-scroll-work') || document.getElementById('nego-scroll-work')
+    || document.getElementById('ig-paper-scroll');   /* Home's paper (stage 3) */
   const top = sc ? sc.getBoundingClientRect().top : 0;
   const hit = secs.find(el => el.getBoundingClientRect().bottom > top + 24) || secs[0];
   return String(hit.getAttribute('data-nego-working') || '');
@@ -14964,7 +15240,9 @@ function rlClauseInView(scope){
 function rlEditClausePress(c, btn){
   if (!c || !btn || btn.disabled) return false;
   const scope = btn.closest('.redline-page') || document;
-  const id = rlClauseInView(scope) || rlFirstClauseId(c);
+  /* on Jambo's Redlines face the clause being read is on Home's paper (stage 3) */
+  const paper = (scope.classList && scope.classList.contains('rl-face') && document.getElementById('ig-paper')) || scope;
+  const id = rlClauseInView(paper) || rlFirstClauseId(c);
   if (!id){ if (window.toast) toast(i18t('ng_empty_none'), 'warn'); return false; }
   if (btn.getAttribute('data-rl-edit-clause') === 'editor'){
     if (!_rlEditorDoor || _rlEditorDoor.id !== c.id || typeof _rlEditorDoor.open !== 'function') return false;
@@ -18118,7 +18396,9 @@ const RL_SUG_VERB = {
   counter: id => `[data-rl-cp-editor-change="${id}"]`,
   reject: id => `[data-nego-reject="${id}"]`,
   accept: id => `[data-nego-accept="${id}"]`,
-  escalate: () => '[data-rl-review]',
+  /* on Home the review door is a row of the paper line's ⋯ menu (stage 5), so
+     the menu's own button glows while the menu is shut */
+  escalate: () => '[data-rl-review], #ig-strip #ws-more',
 };
 const _rlGlowDone = new Set();
 /* RAW: their pending asks carrying an answer the reader sent back. */
@@ -21103,7 +21383,7 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
         const bgo = t.closest('[data-rl-board-go]');
         if (bgo){
           ev.preventDefault(); ev.stopPropagation();
-          rlBoardGoClause(bgo.getAttribute('data-rl-board-go'));
+          rlBoardGoClause(bgo.getAttribute('data-rl-board-go'), bgo);
           return;
         }
         /* THE INSPECTOR'S GRAMMAR (3 Oct 2026): a press selects, a second
@@ -21112,9 +21392,9 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
         if (bpick){
           ev.preventDefault(); ev.stopPropagation();
           const pid = bpick.getAttribute('data-rl-board-pick');
-          if (bpick.getAttribute('aria-current') === 'true'){ rlBoardGoClause(pid); return; }
+          if (bpick.getAttribute('aria-current') === 'true'){ rlBoardGoClause(pid, bpick); return; }
           rlBoardPickSet(pid);
-          rlBoardRepaint(ev.detail === 0);
+          rlBoardRepaint(ev.detail === 0, bpick);
           return;
         }
         const bf = t.closest('[data-rl-board-f]');
@@ -21123,13 +21403,13 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
           const fk = bf.getAttribute('data-rl-board-f');
           rlBoardFilterSet(fk === _rlBoardFilter ? 'all' : fk);
           rlBoardPickSet(null);
-          rlBoardRepaint(false);
+          rlBoardRepaint(false, bf);
           return;
         }
         const memo = t.closest('[data-rl-board-memo]');
         if (memo){
           ev.preventDefault(); ev.stopPropagation();
-          const mc = rlLadderContract();
+          const mc = rlBoardHostOf(memo).c;
           const txt = mc ? rlBoardMemoText(mc) : '';
           const ok = () => { if (window.toast) toast(i18t('ng_board_memo_ok'), 'ok'); };
           const no = () => { if (window.toast) toast(i18t('ng_board_memo_fail'), 'warn'); };
@@ -21168,32 +21448,15 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
 /* The design's grid. Everything inside it is the engine's, arranged the way the
    design arranges it rather than the way the comparison workbench does. */
 function redlinePanesHtml(c, opts = {}){
-  /* Which chair this is being rendered for. The panes are shared markup and
-     were reading only opts.readonly, which is why the owner's risk-derived
+  /* Which chair this is being rendered for is read from opts.side by the
+     column (rlColumnHtml), which is where the panes used it — the panes were
+     reading only opts.readonly once, which is why the owner's risk-derived
      bulk verb rendered on the counterparty's screen (D2). */
-  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   /* Before anything reads the baseline: an UNTOUCHED negotiation re-reads it
      from the document, so key terms filled on the Doc page after the first
      paint show here too. Guarded inside the engine — one filed change, one
      archived round or one issued hash and the baseline may not move. */
   if (window.negoFreshenBaseline) negoFreshenBaseline(c);
-  const p = (typeof negoProgress === 'function') ? negoProgress(c) : { done:0, total:0, pct:0, pending:0 };
-  const canAct = !opts.readonly && !rlActorHeld(c, opts);   /* see rlActorHeld */
-  const threadTotal = redlineThreads(c, opts).length;
-  const mode = rlSideMode();
-  /* The Tracked Changes tab's count: the LIVE redlines this seat can see —
-     the same live-and-through-the-wall reading the card stack itself renders,
-     so the pill and the stack can never disagree. */
-  const tabSide = opts.side === 'counterparty' ? 'counterparty' : 'owner';
-  const tabHidden = Array.isArray(opts.hiddenIds) ? new Set(opts.hiddenIds) : rlHiddenFrom(c, tabSide);
-  /* COUNT WHAT THE STACK DRAWS. This counted live asks only, while the stack
-     below also renders contested asks (refused and not withdrawn), held
-     decisions and sent ones — so a column showing four cards sat under a pill
-     reading 0, and the pill is what a reader checks to see whether anything
-     arrived. redlineCardIds is the stack's own predicate, so the two cannot
-     drift again. */
-  const changeTotal = (typeof redlineCardIds === 'function')
-    ? redlineCardIds(c, { ...opts, hiddenIds: [...tabHidden] }).length : 0;
   /* ---- THE DOCUMENT IS BUILT BEFORE THE PANEL, BECAUSE THE PANEL IS ITS
      OUTPUT. redlineDocHtml fills _cpBodies as it walks the clauses — one
      reading of the wall, the fold and the change grouping — and the panel is
@@ -21316,7 +21579,63 @@ function redlinePanesHtml(c, opts = {}){
 
              What survives is the engine's own #nego-send, kept mounted and
              visually hidden: it is the control Publish Round presses. */}
-      <aside class="rl-col rl-side${rlReadOnlyReading() ? ' is-reading' : ''}" id="rl-side" aria-label="${_nea(i18t('ng_tracked_changes'))}">
+      ${rlColumnHtml(c, opts)}
+      <!-- THE CLAUSE PANEL, on the other wall and on the same mechanism as the
+           queue. Built here rather than on the workbench toolbar, which is what
+           makes it reach every mount — the owner's bench, the contract tab's
+           embed and the COUNTERPARTY's page, which renders these panes and has
+           no toolbar of its own.
+
+           WRITTEN LAST, and that is the opposite of the queue's placement for a
+           reason of its own. The queue goes first because it is READ first and
+           its edge door has to exist before a reader looks for it. This panel
+           has no door on the page's edge — its door is the pill on the clause —
+           and it holds a copy of every clause's wording, so written first it
+           would answer to the sheet's own selectors before the sheet did.
+           paper-grows-verify caught exactly that, measuring a 0x0 box for a
+           clause tool that was really a hidden button in here. It is
+           position:absolute, so where it appears is unaffected. -->
+      ${rlClausePanelHtml(_cpBodies)}
+    </div>
+    ${''/* OVER THE PAGE, NOT ABOVE IT — see rlFloatingNoticesHtml. Last in the
+           markup and position:fixed, so it floats clear of the grid rather than
+           taking a row from it. The readiness signal rides in as an extra: it
+           was a band in #rl-banner until 12 Aug 2026, it is a card here now, and
+           it is passed rather than built inside the stack because it is this
+           page's own notice with this page's own button on it. */}
+  </div>`;
+}
+
+/* ---- THE REDLINES COLUMN, ONE BUILDER WITH TWO HOSTS (the one-page Home
+   plan, stage 3; the owner picked "Column", 14 Oct 2026) ----
+   The column the Negotiate page draws beside its paper — the head with
+   Redlines N, Send all and the round, the piles (RL_CARD_BANDS), every row
+   with its verbs (rlRowFaceVerbs), the progress pile and Risks to look at —
+   and the same column Jambo's panel draws beside Home's paper on its
+   Redlines face (pdRedFaceHtml). One painter; the host only says where to
+   draw (the Thread's TH_HOSTS pattern). opts.cpPanel false = no clause
+   panel in this mount, so the rows draw no Open door onto one. Lifted out of
+   redlinePanesHtml word for word, with the readings only it used. */
+function rlColumnHtml(c, opts = {}){
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  const p = (typeof negoProgress === 'function') ? negoProgress(c) : { done:0, total:0, pct:0, pending:0 };
+  const canAct = !opts.readonly && !rlActorHeld(c, opts);   /* see rlActorHeld */
+  const threadTotal = redlineThreads(c, opts).length;
+  const mode = rlSideMode();
+  /* The Tracked Changes tab's count: the LIVE redlines this seat can see —
+     the same live-and-through-the-wall reading the card stack itself renders,
+     so the pill and the stack can never disagree. */
+  const tabSide = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  const tabHidden = Array.isArray(opts.hiddenIds) ? new Set(opts.hiddenIds) : rlHiddenFrom(c, tabSide);
+  /* COUNT WHAT THE STACK DRAWS. This counted live asks only, while the stack
+     below also renders contested asks (refused and not withdrawn), held
+     decisions and sent ones — so a column showing four cards sat under a pill
+     reading 0, and the pill is what a reader checks to see whether anything
+     arrived. redlineCardIds is the stack's own predicate, so the two cannot
+     drift again. */
+  const changeTotal = (typeof redlineCardIds === 'function')
+    ? redlineCardIds(c, { ...opts, hiddenIds: [...tabHidden] }).length : 0;
+  return `<aside class="rl-col rl-side${rlReadOnlyReading() ? ' is-reading' : ''}" id="rl-side" aria-label="${_nea(i18t('ng_tracked_changes'))}">
         ${''/* ---- THE COLUMN STANDS DOWN ON A READING (owner-asked 24 Aug
                2026) ---- On 'As agreed' and 'With changes' the paper is drawn
                without its marks, so a verb here would decide a change against a
@@ -21413,6 +21732,9 @@ function redlinePanesHtml(c, opts = {}){
                      already settled and therefore said nothing about rounds
                      until the moment you no longer needed telling. */}
               ${rlRoundLabelHtml(c, opts)}
+              ${''/* A HOST'S OWN WAY OUT (stage 3): Jambo's Redlines face puts
+                     its Open Negotiate and its × here, at the end of the head
+                     it shares; the Negotiate page passes nothing. */}${opts.headEnd || ''}
             </div>
             ${''/* ---- THE COLUMN'S OWN KEY (Young ruled 14 Sep 2026) ----
                    Two colours carry the whole page — one side's marks and the
@@ -21559,37 +21881,13 @@ function redlinePanesHtml(c, opts = {}){
           ${''/* cpPanel: this mount renders the clause panel a few lines below,
                  so the rows may draw their Open door onto it. A caller that
                  renders cards with no panel (none today) draws no door. */}
-          <div class="nego-index-scroll rl-cards" id="nego-cards">${negoLinkedBarHtml()}<div id="rl-changes">${redlineChangeCardsHtml(c, { ...opts, cpPanel: true })}</div>${rlProgressPileHtml(c, p, side)}${
+          <div class="nego-index-scroll rl-cards" id="nego-cards">${negoLinkedBarHtml()}<div id="rl-changes">${redlineChangeCardsHtml(c, { ...opts, cpPanel: opts.cpPanel !== false })}</div>${rlProgressPileHtml(c, p, side)}${
             /* RISKS TO LOOK AT (Young picked it 4 Oct 2026): the risk scan's
                findings and the brief's watchouts, read here one by one. Our
                seat only — js/risks.js decides, and draws nothing elsewhere. */
             (typeof window.rlRisksPileHtml === 'function') ? window.rlRisksPileHtml(c, { ...opts, side }) : ''}</div>
         </div>
-      </aside>
-      <!-- THE CLAUSE PANEL, on the other wall and on the same mechanism as the
-           queue. Built here rather than on the workbench toolbar, which is what
-           makes it reach every mount — the owner's bench, the contract tab's
-           embed and the COUNTERPARTY's page, which renders these panes and has
-           no toolbar of its own.
-
-           WRITTEN LAST, and that is the opposite of the queue's placement for a
-           reason of its own. The queue goes first because it is READ first and
-           its edge door has to exist before a reader looks for it. This panel
-           has no door on the page's edge — its door is the pill on the clause —
-           and it holds a copy of every clause's wording, so written first it
-           would answer to the sheet's own selectors before the sheet did.
-           paper-grows-verify caught exactly that, measuring a 0x0 box for a
-           clause tool that was really a hidden button in here. It is
-           position:absolute, so where it appears is unaffected. -->
-      ${rlClausePanelHtml(_cpBodies)}
-    </div>
-    ${''/* OVER THE PAGE, NOT ABOVE IT — see rlFloatingNoticesHtml. Last in the
-           markup and position:fixed, so it floats clear of the grid rather than
-           taking a row from it. The readiness signal rides in as an extra: it
-           was a band in #rl-banner until 12 Aug 2026, it is a card here now, and
-           it is passed rather than built inside the stack because it is this
-           page's own notice with this page's own button on it. */}
-  </div>`;
+      </aside>`;
 }
 
 /* THE THIRD COLUMN — the threads that hang off the changes.
@@ -21696,7 +21994,7 @@ function redlineSyncProxies(host){
   });
 }
 
-if (typeof window !== 'undefined') Object.assign(window, { paperZcFit, rlCameFrom, rlCameFromSet, rlBackToClauses, rlLandOn, rlRoundPrepLineHtml, rlUnsentList, rlAddClauseBtnHtml, rlAddClause, rlEditClauseBtnHtml, rlClauseInView, rlEditClausePress,
+if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoTurnBannerHtml, rlLiveHere, rlLiveRepaint, rlStartLivePoll, rlHomeTakesIt, rlReviewDoor, rlReviewDoorState, rlLandWhenReady, RL_LAND_TRIES, RL_LAND_MS, paperZcFit, rlCameFrom, rlCameFromSet, rlBackToClauses, rlLandOn, rlRoundPrepLineHtml, rlUnsentList, rlAddClauseBtnHtml, rlAddClause, rlEditClauseBtnHtml, rlClauseInView, rlEditClausePress,
   rlInlineClick, rlInlineSave, rlInlineDirty, rlInlineOn, rlInlineEnd,
   renderRedline, redlineRoundLabel, redlineSyncProxies,
   rlToggleDiscussion, rlSideMode, rlSetSideMode, rlLayoutResizer, rlWireResizer, rlWireClauseTools,
@@ -21767,7 +22065,7 @@ if (typeof window !== 'undefined') Object.assign(window, { paperZcFit, rlCameFro
      ending on every screen that draws a document — which is what the shared
      builder was for. */
   rlPaperFootHtml,
-  redlinePanesHtml, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, rlCardNotesHtml, negoWhen,
+  redlinePanesHtml, rlColumnHtml, rlBenchOpts, rlBenchCatchUp, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, rlCardNotesHtml, negoWhen,
   NOTE_ROOMS, negoNoteRoom, negoRoomNotes, negoNoteCounts, notesMayWrite,
   negoNoteParty, negoNoteRoomKey, negoNoteRoomList, negoRoomIsExternal,
   negoRoomPartyId, negoRoomKey, rlNpRoomsHtml, rlNpRoomNow,
@@ -21802,7 +22100,7 @@ if (typeof window !== 'undefined') Object.assign(window, { paperZcFit, rlCameFro
   rlLadderContract, openLadderCompare, rlSideWho, rlClauseShape, rlBaselineHtml,
   rlPlaybookSecHtml, rlScaleHtml, rlNotesSecHtml, rlLadderTailHtml,
   rlBoardIsOpen, rlBoardSet, rlBoardPaintTitle, rlBoardPageHtml, rlBoardMemoText, dealBoardHtml, openDealBoard,
-  dealBoardCardHtml, dealBoardVerdict, dealBoardGroupOf, rlBoardPickSet, rlBoardFilterSet, rlBoardRepaint, rlBoardGoClause, rlPrecedentSay, RL_BOARD_FILTERS,
+  dealBoardCardHtml, dealBoardVerdict, dealBoardGroupOf, dealBoardFacts, dealBoardMoveOf, dealBoardReportHtml, rlBoardHostOf, rlBoardGoOnHome, RL_BOARD_LAND_TRIES, RL_BOARD_LAND_MS, RL_BOARD_SETTLE_BEATS, printWindowRun, rlBoardPickSet, rlBoardFilterSet, rlBoardRepaint, rlBoardGoClause, rlPrecedentSay, RL_BOARD_FILTERS,
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,
   negoCleanView, negoSetCleanView, negoCleanDocHtml, negoCleanBarHtml,
   negoRichBody, negoFlatBody,

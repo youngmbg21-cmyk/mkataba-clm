@@ -112,10 +112,15 @@ const DEAL = {
        room opens on the Overview; Where we are still never takes the landing. */
     ok('1a an existing contract opens on the Overview, never on Where we are', tabs.on === 'terms', tabs.on);
     const landing = await page.evaluate(() => ({ first: (window.ROOM_TABS || [[]])[0][0],
-      onTerms: typeof roomOpenOnTerms === 'function' }));
+      onTerms: typeof roomOpenOnTerms === 'function',
+      details: (window.ROOM_TABS_HOME || {}).details || null }));
     /* RE-POINTED 12 Oct 2026: Details leads the row (owner) and a new draft lands there. */
-    ok('1a2 and Details leads the row, which is where a new draft lands',
-      landing.first === 'details', JSON.stringify(landing));
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the Details tab
+       went home — its twin is Jambo's Fill in face beside Home's paper
+       (ROOM_TABS_HOME.details = 'fill'), where a new draft lands — so the
+       Overview leads the room's row again; Where we are still never leads. */
+    ok('1a2 and the Overview leads the row; Details went to Fill in on Home, where a new draft lands',
+      landing.first === 'terms' && landing.onTerms && landing.details === 'fill', JSON.stringify(landing));
     /* RE-POINTED 7 Oct 2026: Overview 2 (owner-instructed, work order O-36)
        sat right after the Overview; it went on 9 Oct 2026 (owner-asked). */
     ok('1b Where we are sits right after the Overview',

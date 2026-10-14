@@ -111,9 +111,16 @@ const CERT = '<h1>CERTIFICATE OF DESIGNATION</h1><h2>SANERGY, INC.</h2><p>A Dela
          the pressed row is the open one and carries its Plain, bounded. */
       await page.waitForFunction(k => { const r = document.querySelector('#pd-thread .doc-th-row.is-open');
         return !!(r && r.querySelector(`[data-th-go="${k}"]`) && r.querySelector('[data-th-explain]')); }, i, { timeout: 10000 }).catch(() => {});
-      const btn = await page.$('#pd-thread .doc-th-row.is-open [data-th-explain]');
-      if (!btn) return false;
-      await btn.click(); return true;
+      /* A ROW THAT REDRAWS UNDER THE PRESS (14 Oct 2026): on GitHub's runner
+         the open row was sometimes painted again between finding Plain and
+         pressing it ("Element is not attached to the DOM"). Find it again at
+         the press, a bounded few times — a real press on the live button. */
+      for (let k = 0; k < 4; k++) {
+        const btn = await page.$('#pd-thread .doc-th-row.is-open [data-th-explain]');
+        if (!btn) return false;
+        try { await btn.click(); return true; } catch (e) { if (!/not attached/i.test(String(e && e.message))) throw e; }
+      }
+      return false;
     };
     const openText = () => page.evaluate(() => { const r = document.querySelector('#pd-thread .doc-th-row.is-open'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : ''; });
 

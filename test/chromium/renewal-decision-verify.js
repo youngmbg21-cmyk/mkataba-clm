@@ -81,8 +81,12 @@ const check = (name, pass, detail) => {
     }, id);
     /* away and back so the Overview repaints off the fixture — via History
        since 11 Oct 2026 (the Document tab is gone, owner) */
-    await page.click('[data-ws-tab="history"]'); await page.waitForTimeout(600);
-    await page.click('[data-ws-tab="terms"]'); await page.waitForTimeout(1600);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the History
+       tab went home (a Board view); the room keeps Overview and Where we are,
+       so the trip away and back is through Where we are. */
+    await page.click('[data-ws-tab="stands"]'); await page.waitForTimeout(600);
+    await page.click('[data-ws-tab="terms"]');
+    await page.waitForFunction(() => !!document.querySelector('#renewal-section [data-rn-decide]'), null, { timeout: 8000 }).catch(() => {});
 
     /* ---- 1 · the question, on the card that already asks everything else --- */
     const undec = await page.evaluate(() => {

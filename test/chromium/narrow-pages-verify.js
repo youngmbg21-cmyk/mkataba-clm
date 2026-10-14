@@ -107,10 +107,16 @@ const isoIn = off => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d
     /* ================= 2 · THE CONTRACT'S OBLIGATIONS TAB ================= */
     await page.evaluate(async () => { const c = getContract('MK-A1'); await ensureFull(c); openWorkspace(c.id); });
     await page.waitForTimeout(1500);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+       Obligations tab went home — the same door (roomGoTab 'oblig') opens the
+       Board's Obligations view for this contract, drawn by the tab's own
+       painter (roomPaintObligations) into #hb-cv-body[data-hb-cv="oblig"]
+       (the old #ws-obligations-pane). Waited for by this contract's id. */
     await page.evaluate(() => { const c = getContract('MK-A1'); roomGoTab(c, 'oblig'); });
-    await page.waitForTimeout(1200);
+    await page.waitForFunction(() => !!document.querySelector('#hb-cv-body[data-hb-cv="oblig"][data-hb-cv-cid="MK-A1"] [data-obt-row]'), null, { timeout: 8000 }).catch(() => {});
+    await page.waitForTimeout(300);
     const tab = await page.evaluate(() => {
-      const host = document.getElementById('ws-obligations-pane');
+      const host = document.querySelector('#hb-cv-body[data-hb-cv="oblig"][data-hb-cv-cid="MK-A1"]');
       const row = id => host && host.querySelector(`[data-obt-row="${id}"]`);
       const chip = host && host.querySelector('.obt-chip.is-done');
       const c = getContract('MK-A1');
@@ -127,7 +133,7 @@ const isoIn = off => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d
     check('2c the paid step\'s chip says "Paid" — and no date on the tab is a raw string', tab.chip === tab.paid && tab.dues.every(t => !ISO.test(t)),
       JSON.stringify({ chip: tab.chip, dues: tab.dues.slice(0, 4) }));
     if (tab.chase) {
-      await page.click('[data-obt-chase="o-theirs"]');
+      await page.click('#hb-cv-body [data-obt-chase="o-theirs"]');
       await page.waitForTimeout(500);
     }
     /* The chase asks first, as it does everywhere: confirmDialog's own layer. */

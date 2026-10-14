@@ -179,6 +179,7 @@ describe('f570 (5)(6) a dead door is greyed; the Document tab is read', () => {
     const { win } = buildWorld({ contractView: true });
     const out = win.docPaperAnswersHtml('<p>Paid within <input class="field" data-field="days" value="30"> days.</p>');
     assert.match(out, /readonly=""/); assert.match(out, /tabindex="-1"/); assert.match(out, /data-doc-answer="1"/);
-    assert.match(region(R('js/views/contract.js'), 'docSheetHtml'), /docFillable\(c\)\)\?docPaperAnswersHtml\(docBody\(c\)\)/);
+    /* 14 Oct 2026: drawn from docWorkPreviewOf(c) (stage 2, a template's typed answers). */
+    assert.match(region(R('js/views/contract.js'), 'docSheetHtml'), /const src=docWorkPreviewOf\(c\);[\s\S]*docFillable\(c\)\)\?docPaperAnswersHtml\(docBody\(src\)\)/);
   });
 });

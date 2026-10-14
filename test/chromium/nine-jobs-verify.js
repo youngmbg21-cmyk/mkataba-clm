@@ -183,8 +183,15 @@ const BODY = '<h1>SOFTWARE AS A SERVICE AGREEMENT</h1>'
     check('4b and after another page too', pageBack === true, String(pageBack));
 
     /* ===== 9. THE NEGOTIATE PAGE ===== */
-    await page.evaluate(() => { if (window.openRedlineWorkbench) openRedlineWorkbench('MK-N1'); });
-    await page.waitForTimeout(1800);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): every door now
+       lands on Jambo's Redlines face beside Home's paper, which has no reading
+       switch of its own (Home's paper line carries Clean | Redline | Their
+       view); the switch measured here is the Negotiate PAGE's own (.rl-readwrap),
+       so the page is opened by name ({ page: true }), the engine the face is
+       built from */
+    await page.evaluate(() => { if (window.openRedlineWorkbench) openRedlineWorkbench('MK-N1', { page: true }); });
+    await page.waitForFunction(() => !!document.querySelector('.rl-readwrap [data-rl-read]'), null, { timeout: 8000 }).catch(() => {});
+    await page.waitForTimeout(600);
     const segs = await page.evaluate(() => [...document.querySelectorAll('.rl-readwrap [data-rl-read]')].map(b => b.getAttribute('data-rl-read')));
     check('9 the reading switch offers Redlined alone', segs.length >= 1 && segs.every(v => v === 'marks'), JSON.stringify(segs));
     await page.screenshot({ path: path.join(OUT, '04-negotiate.png') });

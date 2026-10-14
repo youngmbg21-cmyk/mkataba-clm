@@ -278,6 +278,12 @@ const SEED = t => {
         global in the real app — it is a module function — so a call from here
         does nothing at all and every measurement after it reads a hidden pane.
         The tab button is what a reader presses and it is what this presses. */
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 2, owner picked
+       "Form"): an upload now lands on Home's paper with Jambo's panel on Fill
+       in, so the room is opened here, as a reader opens it, before its
+       Overview is measured. */
+    await drive(() => { const c = state.contracts[0]; if (c && window.openWorkspace) openWorkspace(c.id); });
+    await pause(900);
     await drive(() => { const b = document.querySelector('#ws-tabs [data-ws-tab="terms"]');
       if (b) b.click(); });
     await pause(900);
@@ -298,7 +304,7 @@ const SEED = t => {
         tiles: e.querySelectorAll('.kt-tri-tile').length,
         txt: e.textContent.replace(/\s+/g, ' ').trim().slice(0, 120) };
     }, undefined, { drawn: false });
-    check('8a · the strip is visible pixels on the tab the upload lands on',
+    check('8a · the strip is visible pixels on the room\'s Overview',
       strip.drawn === true && strip.w > 200 && strip.h > 30 && strip.inPane === true,
       strip);
     check('8b · above the Key terms card, not beside or under it',
@@ -446,6 +452,9 @@ const SEED = t => {
     const badId = await drive(() => state.contracts[0] && state.contracts[0].id,
       undefined, null);
     await pause(1400);
+    /* the upload lands beside the paper on Home now (stage 2, 14 Oct 2026): its room is opened here */
+    await drive(id => { if (id && state.view !== 'workspace' && window.openWorkspace) openWorkspace(id); }, badId);
+    await pause(900);
     await drive(() => { const b = document.querySelector('#ws-tabs [data-ws-tab="terms"]');
       if (b) b.click(); });
     await pause(700);
@@ -777,6 +786,8 @@ const SEED = t => {
        (owner, 12 Oct 2026); the strip is the Overview's, so the reader steps
        there first. */
     await drive(() => { if (document.getElementById('cd-page') && window.closeModal) closeModal();
+      /* a new contract lands beside the paper on Home now (stage 2, 14 Oct 2026): its room is opened here */
+      if (window.openWorkspace && state.activeId && state.view !== 'workspace') openWorkspace(state.activeId);
       if (window.roomGoTab && state.activeId) roomGoTab(getContract(state.activeId), 'terms'); });
     await pause(700);
     const spin = await drive(id => {

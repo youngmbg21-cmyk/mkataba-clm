@@ -52,10 +52,8 @@ const check = (name, pass, detail) => {
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-A2') && typeof openWorkspace === 'function', null, { timeout: 20000 });
-    const tab = async k => {
-      await page.evaluate(k => { if (state.activeId !== 'MK-A2' || state.view !== 'workspace') openWorkspace('MK-A2'); setTimeout(() => roomGoTab(getContract('MK-A2'), k), 250); }, k);
-      return until(k => !!document.querySelector(`#ws-tabs [data-ws-tab="${k}"].on`) && !!document.getElementById('doc-canvas'), k, 10000);
-    };
+    /* (the room-tab helper `tab` went with stage 5: Signing is opened on Home
+       by signUp below) */
     /* RE-POINTED 11 Oct 2026: the contract's Document tab is gone (owner); its
        use is Home's Document face, whose Track (#ig-spine) stands in the
        paper's margin with the Clauses tab (#pd-thread) beside it. 1–3 are
@@ -109,44 +107,70 @@ const check = (name, pass, detail) => {
     await page.screenshot({ path: path.join(OUT, '2-after-press.png') });
 
     console.log('\n4 · the tab line (asked on Signing below)');
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+       Signing tab went home — roomGoTab(c,'sign') opens Jambo's Before you
+       sign face (#pd-signface .pd-sf[data-pd-sf]) beside Home's paper, which
+       draws THE SIGNING COPY (#ig-paper .pg-sheet.pg-sign). The room's tab
+       line (#ws-tabs + #ws-tabrow-end) has its twin in the paper's line
+       (#ig-strip), where the paper's buttons stand now; the Track is #ig-spine
+       (the room's #doc-track); the zoom is Home's one zoom on the paper's
+       ground (.paper-zc), and the signing copy's page arrows were [data-sc-page]. */
     const line = async () => page.evaluate(() => {
       const vis = el => !!el && el.getClientRects().length > 0 && getComputedStyle(el).display !== 'none';
-      const t = document.querySelector('#ws-tabs .room-tab.on'), slot = document.getElementById('ws-tabrow-end');
-      const a = t.getBoundingClientRect(), r = slot.getBoundingClientRect();
-      const words = (slot.textContent || '').replace(/\s+/g, ' ');
-      return { inRow: !!document.querySelector('.room-tabrow > #ws-tabrow-end'), bar: vis(document.querySelector('.room-toolrow')),
-        same: Math.abs((a.top + a.bottom) / 2 - (r.top + r.bottom) / 2) < 12, slotH: Math.round(r.height),
-        words: /Signing copy|Signed copy|Executed and locked|agreed in round|as drafted|rebuilt from their file/.test(words) ? words : '' };
+      const st = document.getElementById('ig-strip');
+      if (!st) return { strip: false };
+      const sr = st.getBoundingClientRect();
+      const kids = [...st.children].filter(e => e.getClientRects().length && e.getBoundingClientRect().height > 0);
+      const mid = (sr.top + sr.bottom) / 2;
+      const off = kids.filter(e => { const r = e.getBoundingClientRect(); return Math.abs((r.top + r.bottom) / 2 - mid) >= 12; })
+        .map(e => e.className || e.id);
+      const words = (st.textContent || '').replace(/\s+/g, ' ');
+      return { strip: true, bar: vis(document.querySelector('.room-toolrow')), same: off.length === 0, off, h: Math.round(sr.height),
+        words: /Signing copy|Signed copy|Executed and locked|agreed in round|as drafted|rebuilt from their file/.test(words)
+          ? (words.match(/Signing copy|Signed copy|Executed and locked|agreed in round|as drafted|rebuilt from their file/) || [''])[0] : '' };
     });
+    const signUp = async () => {
+      await page.evaluate(() => { if (state.view === 'workspace' && state.activeId === 'MK-A2') return; openWorkspace('MK-A2'); });
+      await page.evaluate(() => roomGoTab(getContract('MK-A2'), 'sign'));
+      return until(() => state.view === 'dashboard' && !!document.querySelector('#pd-signface .pd-sf[data-pd-sf="MK-A2"]')
+        && !!document.querySelector('#ig-paper .pg-sheet.pg-sign #ig-canvas'), null, 10000);
+    };
     /* 4a/4b retired 11 Oct 2026: the Document tab is gone (owner). The same
        claims stand for the Signing tab in 5c. */
 
     console.log('\n5 · Signing');
-    check('5a the Signing tab is open', !!(await tab('sign')));
+    check('5a the Signing tab is open', !!(await signUp()));
     await page.waitForTimeout(500);
-    const sg = await page.evaluate(() => { const sp = document.getElementById('doc-track'); return !sp || sp.hidden || !sp.getClientRects().length; });
+    const sg = await page.evaluate(() => { const sp = document.getElementById('ig-spine'); return !sp || sp.hidden || !sp.getClientRects().length || !sp.querySelector('.ig-trk-lab'); });
     check('5b no Track on the Signing tab', sg);
     const s = await line();
     /* RE-POINTED 11 Oct 2026 (owner: the zoom "inside the page area"): the signing
        copy's page arrows and zoom left the tab line for the paper's own ground;
        what stays on the line (the walk, when there is one) still stands on it. */
-    check('5c Signing: no bar, no words; what is on the tab line stands on it', s.inRow && (s.slotH === 0 || s.same) && !s.bar && !s.words, JSON.stringify(s));
-    const zc = await page.evaluate(() => !!document.querySelector('#doc-zc-slot .paper-zc .sc-step'));
-    check('5d Signing: the page arrows and the zoom stand on the paper', zc);
+    check('5c Signing: no bar, no words; what is on the tab line stands on it', s.strip && s.same && !s.bar && !s.words, JSON.stringify(s));
+    const zc = await page.evaluate(() => {
+      const z = document.querySelector('#ig-paper .paper-zc'), st = document.getElementById('ig-strip');
+      return { zoom: !!z && !(st && st.contains(z)), arrows: !!document.querySelector('#ig-paper [data-sc-page]') };
+    });
+    check('5d Signing: the page arrows and the zoom stand on the paper', zc.zoom && zc.arrows, JSON.stringify(zc));
     await page.screenshot({ path: path.join(OUT, '3-signing.png') });
 
     console.log('\n6 · a narrow window');
     await page.setViewportSize({ width: 900, height: 900 });
     /* RE-POINTED 11 Oct 2026: the Document tab is gone; the narrow window is
        asked on the Signing tab, which still carries buttons on its tab line. */
-    await tab('sign');
+    /* RE-POINTED 14 Oct 2026 (stage 5): on Home's paper line with the signing
+       copy up — its parts never overlap one another, nothing runs off */
+    await signUp();
+    await page.waitForTimeout(400);
     const nw = await page.evaluate(() => {
-      const tabs = [...document.querySelectorAll('#ws-tabs .room-tab')].map(t => t.getBoundingClientRect());
-      const btns = [...document.querySelectorAll('#ws-tabrow-end > *')].filter(e => e.getClientRects().length).map(e => e.getBoundingClientRect());
-      let hit = 0; tabs.forEach(t => btns.forEach(b => { if (b.left < t.right && b.right > t.left && b.top < t.bottom && b.bottom > t.top) hit++; }));
-      return { hit, wide: document.documentElement.scrollWidth <= document.documentElement.clientWidth };
+      const st = document.getElementById('ig-strip');
+      const parts = st ? [...st.children].filter(e => e.getClientRects().length && e.getBoundingClientRect().width > 0 && e.getBoundingClientRect().height > 0).map(e => e.getBoundingClientRect()) : [];
+      let hit = 0; for (let i = 0; i < parts.length; i++) for (let j = i + 1; j < parts.length; j++) { const a = parts[i], b = parts[j];
+        if (b.left < a.right - 0.5 && b.right > a.left + 0.5 && b.top < a.bottom - 0.5 && b.bottom > a.top + 0.5) hit++; }
+      return { parts: parts.length, hit, wide: document.documentElement.scrollWidth <= document.documentElement.clientWidth };
     });
-    check('6a tabs and buttons never overlap; nothing runs off the window', nw.hit === 0 && nw.wide, JSON.stringify(nw));
+    check('6a tabs and buttons never overlap; nothing runs off the window', nw.parts > 0 && nw.hit === 0 && nw.wide, JSON.stringify(nw));
     await page.screenshot({ path: path.join(OUT, '4-narrow.png') });
     /* 6b asked on Home's Document (re-pointed 11 Oct 2026, the Document tab is gone) */
     await page.evaluate(() => { setView('dashboard'); pdOpenOnHome('MK-A2', 'doc'); });
