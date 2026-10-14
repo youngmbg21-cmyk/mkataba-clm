@@ -20725,3 +20725,9 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - GitHub's node suite is red on main itself (its last four runs, from #273 on) with one failing test this session could not name: the job log the tools return is cut to its last ~2,600 lines and the full log's host is refused by the network policy.
 - An uploaded contract asks its other party twice: the record's "Other party" and the paper's own "[Supplier name]" blank are two boxes in Details (and now in the Fill in face) for one fact; detailsOf only folds a blank whose key is `counterparty`.
 - CLAUDE.md is about 84 KB after stage 2's MAP lines (target "under about 80 KB"); a trim is owed.
+
+### Noticed, not fixed (14 Oct 2026, the one-page Home plan, stage 3 — Redlines beside the paper)
+- After a change is saved in the clause editor, the filing's note ask opens the Notes drawer; "Skip" takes the note card away but leaves the drawer open, so on Home it stays over Jambo's panel until its × is pressed (same on Negotiate, where it sits beside the column).
+- Saving a typed change in the clause editor leaves the editor open (Exit needed), while saving a counter prepared by Jambo closes it and goes back; two endings for one Save.
+- A review's hand-back (and the desk's "you are only reading" notice) live in the Negotiate page's notice stack above the grid, not in the column, so the Redlines face cannot show them; review doors were left on the page and the owner asked before a strip is drawn in the panel.
+- CLAUDE.md is about 84.6 KB after stage 3's MAP line (target "under about 80 KB"); the trim owed since stage 1 is still owed.

@@ -339,7 +339,8 @@ Tests: f84, f89, f92–f95, f100, f152, f184, f210, f246, nego-redesign, redline
 ## THE TRACKED-CHANGES COLUMN
 - "Redlines N"; Send all · N not sent (`rlUnsentSendHtml` → `#nego-send`) and the round label; Close round GONE. Piles `RL_CARD_BANDS` (`rlCardBand`, one pile each); THE ROW IS THE WHOLE OF IT: `rlRowFaceVerbs` — theirs Accept · Reject · Counter; ours Edit · Send · Review · Ladder · Discard (ruby, last); every seat draws it (`banded: true`).
 - OUR ANSWERS GO BACK: `negoUnsentDecisions` (RAW), `negWhoseMove` `why:'decided'`, "Send to <them>" (`rlDecisionsSendHtml`). COPILOT'S ANSWER ON THE PAPER: `rlPaintCopilotAnswers` after the render (`.rl-sug-box`, `.rl-glow`, `RL_SUG_VERB`); nothing filed or sent; `ROUND_PREP_VERDICTS` has `reject` both hosts.
-Tests: f246, f37, f93, redline, flat-rows-and-alerts, send-after-refusal, copilot-answer-on-paper verify files.
+- REDLINES BESIDE THE PAPER (plan stage 3, owner picked "Column", 14 Oct 2026): ONE builder `rlColumnHtml`, two hosts — the page and Jambo's Redlines face (`#pd-redface`, `pdRedFaceHtml`/`pdRedFacePaint`), which gets the page's options `rlBenchOpts`, catch-up `rlBenchCatchUp` and wiring; its door is the page's (`pdRedOpen` → `openRedlineWorkbench(id,{face:true})` → `pdRedLand`, walls first; phone stays). Paper Redlined while open (`igRedOn` reads `pdRedFor`). Outside doors open it, a review's excepted (hand-back is the page's notice); a row's note count opens Negotiate.
+Tests: f246, f37, f93, f674, redline, flat-rows-and-alerts, send-after-refusal, copilot-answer-on-paper, redlines-beside-the-paper verify files.
 
 ## THE CLAUSE PANEL AND THE LADDER
 

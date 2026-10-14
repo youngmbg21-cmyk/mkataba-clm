@@ -322,7 +322,7 @@ function insDoorActs(c, opt){
   const doc = { k: 'door-doc', door: true, icon: 'file', label: i18t('ins_door_doc'),
     run: typeof o.doc === 'function' ? () => o.doc(c) : (() => { if (!(typeof pdOpenOnHome === 'function' && pdOpenOnHome(c.id, 'copilot'))) openWorkspace(c.id); }) };
   const nego = { k: 'door-nego', door: true, icon: 'msg', label: i18t('ins_door_nego'),
-    disabled: !ns.ok, title: ns.ok ? '' : ns.why, run: () => { if (insNegoDoorState(c).ok) openRedlineWorkbench(c.id); } };
+    disabled: !ns.ok, title: ns.ok ? '' : ns.why, run: () => { if (insNegoDoorState(c).ok) openRedlineWorkbench(c.id, { face: true }); } };   /* Jambo's Redlines face beside Home's paper (stage 3) */
   const ws = { k: 'door-ws', door: true, icon: 'folderOpen', label: i18t('ins_door_ws'),
     /* the Workspace lands on Details while anything is left to fill in
        (owner, 12 Oct 2026), on the Overview otherwise */

@@ -1651,7 +1651,14 @@ function needsYouGo(kind, id){
      the two rows that already land there, so the reader is not taken through
      the room on the way (4 Oct 2026). */
   if(kind==='quiet'||kind==='review'||kind==='suggest'){
-    if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); else openWorkspace(c.id);
+    /* BESIDE THE PAPER (the one-page Home plan, stage 3; owner, 14 Oct 2026):
+       their waiting redlines and a colleague's suggestion are answered on the
+       rows themselves, so they open Jambo's Redlines face on Home, through the
+       page's own walls (the phone carries on to its own page). A REVIEW still
+       opens the Negotiate page: handing it back is the page's review notice,
+       which the face does not draw (a strip in the panel is the owner's to
+       allow). */
+    if(window.openRedlineWorkbench) openRedlineWorkbench(c.id, kind==='review' ? {} : { face: true }); else openWorkspace(c.id);
     return true;
   }
   /* A RENEWAL IS DECIDED ON TODAY'S READING (Young, 27 Sep 2026: "the 5

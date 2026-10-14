@@ -8,7 +8,8 @@
      3  a typed word moves the reader ("board"), and the panel offers the way
         back; Back returns to the same paper
      4  "/" on the Board is one list: the places first, then its own moves
-     5  a word that is work opens today's door ("redline" → Negotiate)
+     5  a word that is work opens its door ("redline" → the Redlines face
+        beside the paper, stage 3; was Negotiate)
      6  the top bar's search offers the same places ("calen" → the Calendar)
      7  Svenska: the chips are Swedish words, and a Swedish word goes
    AT THE PARENT every claim FAILS: no chips with words, no places in "/",
@@ -124,8 +125,10 @@ const DOC = 'SOFTWARE AS A SERVICE AGREEMENT\n\n1. TERM\n\nThis Agreement runs f
     await onPaper('MK-W2');
     await page.waitForSelector('[data-ig-chips] [data-ca-chip]', { timeout: 8000 }).catch(() => {});
     await type('redline', true);
-    const nego = await page.waitForFunction(() => state.view === 'redline' && state.activeId === 'MK-W2', null, { timeout: 8000 }).then(() => true, () => false);
-    ok('5 "redline" opens the redlines of the contract on the paper', nego, await page.evaluate(() => state.view + ' ' + state.activeId));
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 3): the redlines
+       open beside the paper, in Jambo's panel */
+    const nego = await page.waitForFunction(() => state.view === 'dashboard' && !!document.getElementById('pd-redface') && intel.paper && intel.paper.id === 'MK-W2', null, { timeout: 8000 }).then(() => true, () => false);
+    ok('5 "redline" opens the redlines of the contract on the paper', nego, await page.evaluate(() => state.view + ' ' + (intel.paper && intel.paper.id) + ' face ' + !!document.getElementById('pd-redface')));
 
     /* ===== 6. THE TOP BAR'S SEARCH ===== */
     await page.evaluate(() => openCommandPalette());
@@ -149,7 +152,8 @@ const DOC = 'SOFTWARE AS A SERVICE AGREEMENT\n\n1. TERM\n\nThis Agreement runs f
     const c7 = await page.evaluate(() => [...document.querySelectorAll('[data-ig-chips] [data-ca-chip]')].map(b => b.textContent.trim()));
     ok('7a the chips are Swedish words', c7[0] === 'fyll i' && c7.includes('förhandla') && c7.includes('signera'), JSON.stringify(c7));
     const back7 = await page.evaluate(() => { const b = document.querySelector('.ca-back'); return b ? b.textContent.trim() : ''; });
-    ok('7c the way back names the page it returns to', back7 === '‹ Tillbaka till ändringarna i MK-W2', back7);
+    /* the redlines are on the paper now (stage 3): the way back is to it, and the face is there */
+    ok('7c the way back names the page it returns to', back7 === '‹ Tillbaka till MK-W2 på pappret', back7);
     await page.screenshot({ path: path.join(OUT, '7-svenska.png') });
     await type('kalender', true);
     const svCal = await page.waitForFunction(() => hbFace() === 'calendar', null, { timeout: 5000 }).then(() => true, () => false);

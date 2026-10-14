@@ -230,12 +230,17 @@ const ok = (name, good, detail) => {
       await b.click(); await page.waitForTimeout(1200);
       return page.evaluate(() => ({ view: state.view, id: state.activeId,
         held: (typeof redlineHeldId === 'function') ? redlineHeldId() : null,
+        face: (document.getElementById('pd-redface') && window.intel && intel.paper) ? intel.paper.id : null,
         tab: (typeof roomCurrentTab === 'function') ? roomCurrentTab() : null,
         sheet: !!document.getElementById('dk-close') }));
     };
     const g1 = await press('MK-149', 'quiet');
-    ok('3a Answer opens the negotiation on that contract', g1.view === 'redline' && g1.held === 'MK-149', JSON.stringify(g1));
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 3; owner's yes:
+       every door from outside opens the Redlines face): their waiting
+       redlines are answered beside Home's paper, in Jambo's panel. */
+    ok('3a Answer opens the negotiation on that contract', g1.view === 'dashboard' && g1.face === 'MK-149', JSON.stringify(g1));
     const g2 = await press('MK-149', 'review');
+    /* a REVIEW stays on the Negotiate page (stage 3): handing it back is the page's review notice */
     ok('3b Review opens the negotiation too — where the review is handed back', g2.view === 'redline' && g2.held === 'MK-149', JSON.stringify(g2));
     const g3 = await press('MK-158', 'sign');
     ok('3c Sign opens that contract on its Signing tab', g3.view === 'workspace' && g3.id === 'MK-158' && g3.tab === 'sign', JSON.stringify(g3));

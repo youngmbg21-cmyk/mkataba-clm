@@ -212,7 +212,7 @@ function pdDocHtml(c){
 /* the room's / the phone's own tab keys (ROOM_TABS, M_TAB_FOR_ROOM): the phone
    fallback below lands on them (BUGLOG 10 Oct 2026: 'contract' and
    'obligations' were no tab's key, so those two landed nowhere) */
-const PD_ROOM_TAB = { facts: 'terms', oblig: 'oblig', sign: 'sign', hist: 'history', deal: 'redline', doc: 'docs', copilot: 'terms', fill: 'details' };
+const PD_ROOM_TAB = { facts: 'terms', oblig: 'oblig', sign: 'sign', hist: 'history', deal: 'redline', doc: 'docs', copilot: 'terms', fill: 'details', red: 'redline' };
 function pdOpenOnHome(id, tab){
   const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c) return false;
   /* SIGNING LEFT THE PAPER (10 Oct 2026): an approval waiting on you opens
@@ -234,7 +234,7 @@ function pdOpenOnHome(id, tab){
   }
   /* THE FILL IN FACE (stage 2): Jambo's tab, with the face open on this contract */
   if (tab === 'fill'){
-    _pdFill = String(id); tab = 'copilot';
+    _pdFill = String(id); _pdRed = null; tab = 'copilot';
     /* already on this paper: the panel turns, nothing else moves */
     if (window.state && state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'paper'
       && typeof intel === 'object' && intel && intel.paper && String(intel.paper.id) === String(id)){
@@ -244,6 +244,20 @@ function pdOpenOnHome(id, tab){
       pdFillLand();
       return true;
     }
+  }
+  /* THE REDLINES FACE (stage 3): Jambo's tab, the face open on this contract,
+     the paper Redlined while it is (pdRedPaper) */
+  if (tab === 'red'){
+    _pdRed = String(id); _pdFill = null; _pdFillKey = null; tab = 'copilot';
+    if (window.state && state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'paper'
+      && typeof intel === 'object' && intel && intel.paper && String(intel.paper.id) === String(id)){
+      pdSetTab('copilot'); intel.dockOpen = true;
+      pdRedPaper(id);
+      if (typeof renderIntelDock === 'function') renderIntelDock();
+      if (typeof igSyncDockWidth === 'function') try { igSyncDockWidth(); } catch (_){}
+      return true;
+    }
+    pdRedPaper(id, { quiet: true });
   }
   if (!(window.state && state.view === 'dashboard') && typeof setView === 'function') setView('dashboard');
   igWalk([id], 0, { tab: tab || 'copilot' });
@@ -326,7 +340,8 @@ function pdFillDoneHtml(c){
   if (!press && may){
     const nego = (typeof negoMayStart !== 'function') || !!(negoMayStart(c) || {}).ok;
     const them = String(c.counterparty || '').trim();
-    if (nego && typeof openRedlineWorkbench === 'function') acts += pdBtn(_pdT('pd_ff_redlines'), () => openRedlineWorkbench(c.id), { lead: true });
+    /* the redlines beside the paper (stage 3) */
+    if (nego && typeof openRedlineWorkbench === 'function') acts += pdBtn(_pdT('pd_ff_redlines'), () => pdRedOpen(c.id), { lead: true });
     if (typeof openShareModal === 'function') acts += pdBtn(them ? _pdT('ca_share_out', { who: them }) : _pdT('ca_share_out_none'), () => openShareModal(getContract(c.id) || c));
   }
   return `<div class="pd-ff-done"><i aria-hidden="true">✓</i><span>${_pdE(_pdT(press ? 'pd_ff_done_press' : 'pd_ff_done'))}</span></div>${acts ? `<div class="pd-acts pd-ff-next">${acts}</div>` : ''}`;
@@ -447,6 +462,176 @@ function pdFillRefresh(){
   if (a && a.closest && a.closest('#pd-fillface')) { pdFillCounts(pdContract()); return; }
   if (typeof renderIntelDock === 'function') renderIntelDock();
 }
+/* ============================================================
+   REDLINES, BESIDE THE PAPER
+   (the one-page Home plan, stage 3, docs/PLAN-one-page-home.md; the owner
+   picked "Column" by name on 14 Oct 2026, with all three recommendations:
+   the paper turns Redlined while the face is open and goes back when it
+   closes; every door from outside opens this face, the Negotiate page
+   staying on the rail until stage 5; notes stay on Negotiate until stage 5,
+   a row's note count opening Negotiate on that change)
+   ============================================================
+   A FACE OF JAMBO'S TAB, like Fill in: it stands where the conversation
+   stands, the box and the chips at the panel's foot. IT OWNS NO BUILDER AND
+   NO WRITER. The column is the Negotiate page's own (rlColumnHtml) with the
+   page's own options (rlBenchOpts), wired by the page's own wiring
+   (wireNegotiationTab, rlWireClauseTools) scoped to this host — every verb
+   files through the one funnel with the same refusals, and nothing leaves
+   until Send. Its door is the page's door: pdRedOpen asks
+   openRedlineWorkbench, whose walls (sealed, blanks) come first, and which
+   hands over to pdRedLand. Edit and Counter open the clause editor over
+   Home; Exit lands back here, at the same spot. */
+let _pdRed = null;           // the contract the face is open for, or null
+function pdRedFor(){ return _pdRed; }
+/* the face is up: Home's paper holds the contract it was opened for and
+   Jambo's tab is lit */
+function pdRedShows(){
+  if (!_pdRed || _pdTab !== 'copilot' || !pdOnPaper()) return false;
+  const c = pdContract(); return !!(c && String(c.id) === _pdRed);
+}
+/* THE FACE'S DOOR IS THE NEGOTIATE PAGE'S DOOR: its walls first */
+function pdRedOpen(id){
+  if (typeof openRedlineWorkbench !== 'function') return false;
+  return openRedlineWorkbench(id, { face: true });
+}
+/* past the walls: the face on this contract. False where Home has no paper
+   (the phone), and the caller carries on to the Negotiate page. */
+function pdRedLand(id){
+  const phone = typeof window !== 'undefined' && window.innerWidth && window.innerWidth < 768;
+  if (phone || typeof igWalk !== 'function') return false;
+  return pdOpenOnHome(id, 'red');
+}
+/* another contract asked for puts the face away (igAnalyze), as Fill in's */
+function pdRedSeen(id){ if (_pdRed && String(id) !== _pdRed) _pdRed = null; }
+function pdRedAway(){ _pdRed = null; }
+function pdRedClose(){
+  const id = _pdRed; _pdRed = null;
+  pdRedPaper(id);
+  if (typeof renderIntelDock === 'function') renderIntelDock();
+}
+/* THE PAPER TURNS REDLINED WHILE THE FACE IS OPEN, AND BACK WHEN IT CLOSES
+   (the owner's yes, decision 1): igRedOn reads pdRedFor, so nothing is stored.
+   A Clean chosen before the face opened is let go so the marks show; a press
+   on Clean while it is open still wins; closing leaves what was there. */
+function pdRedPaper(id, o){
+  if (_pdRed && typeof intel === 'object' && intel && intel.paper && String(intel.paper.id) === String(id) && intel.paper.red === false) delete intel.paper.red;
+  if (o && o.quiet) return;
+  if (typeof igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){}
+}
+/* the face's own way out, at the end of the column's head: Open Negotiate
+   (the page itself, still on the rail) and × back to the conversation */
+function pdRedHeadEndHtml(c){
+  const close = _pdT('act_close');
+  /* three siblings of the head's own parts: the sheet puts × at the end of
+     the first line, and Open Negotiate under it, at the end of the round's */
+  return `<button type="button" class="pd-rf-x" data-pd-rf-close title="${_pdE(close)}" aria-label="${_pdE(close)}">×</button>`
+    + `<span class="pd-rf-br" aria-hidden="true"></span>`
+    + `<button type="button" class="ui-link pd-rf-nego" data-pd-rf-nego="${_pdE(c.id)}">${_pdE(_pdT('ct_open_negotiate'))}</button>`;
+}
+/* the Negotiate page's own options, this host's repaint and root */
+function pdRedOpts(c){
+  const base = (typeof rlBenchOpts === 'function')
+    ? rlBenchOpts(c, { side: 'owner', hostId: 'pd-redface', again: pdRedRepaint, scope: '#pd-redface' })
+    : { side: 'owner', hostId: 'pd-redface', rerender: pdRedRepaint };
+  return Object.assign({}, base, { cpPanel: false, headEnd: pdRedHeadEndHtml(c) });
+}
+function pdRedFaceHtml(c){
+  if (!c || typeof rlColumnHtml !== 'function') return '';
+  try { if (typeof negoEnsureStyle === 'function') negoEnsureStyle(); } catch (_){}
+  try { if (typeof redlineLayoutCss === 'function') redlineLayoutCss(); } catch (_){}
+  let col = '';
+  try { col = rlColumnHtml(c, pdRedOpts(c)); } catch (e){ col = pdEmpty((e && e.message) || String(e), 'alert'); }
+  return `<div class="redline-page rl-face" data-rl-side-mode="changes" data-pd-rf="${_pdE(c.id)}"><div id="nego-root" class="rl-root">${col}</div>${pdRedFootHtml(c)}</div>`;
+}
+/* THE COLUMN'S OWN ACTS, AT ITS FOOT (the design the owner picked): the
+   Negotiate page's own three buttons from their own builders — Draft from our
+   standards (its More row), Edit a clause (its control row; the clause being
+   read on Home's paper) and Add a clause — wired by rlWireClauseTools as there.
+   Each greys itself with its reason; nothing here files or sends. */
+function pdRedFootHtml(c){
+  if (!c || typeof rlPrepareRowHtml !== 'function') return '';
+  const o = { side: 'owner', cpPanel: false };
+  const executed = !!(typeof negoExecuted === 'function' && negoExecuted(c));
+  const edit = (typeof rlEditClauseBtnHtml === 'function') ? rlEditClauseBtnHtml(c, o, 'owner', 'rl-empty-edit rl-edit-clause-door') : '';
+  const add = (!executed && typeof rlAddClauseBtnHtml === 'function') ? rlAddClauseBtnHtml(c, o, 'owner', 'rl-empty-edit') : '';
+  return `<div class="rl-empty-acts pd-rf-foot">${executed ? '' : rlPrepareRowHtml(c, false)}${edit}${add}</div>`;
+}
+/* where the column was scrolled, read before a repaint and put back after */
+function pdRedScrollOf(){
+  const sc = (typeof document !== 'undefined') ? document.querySelector('#pd-redface #nego-cards') : null;
+  return sc ? sc.scrollTop : 0;
+}
+/* the host's repaint: the paper (its marks moved) and the face, same spot */
+function pdRedRepaint(){
+  if (!pdRedShows()) return;
+  const top = pdRedScrollOf();
+  if (typeof igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){}
+  _pdRedTop = top;
+  if (typeof renderIntelDock === 'function') renderIntelDock();
+}
+let _pdRedTop = null;        // a scroll the next paint puts back, once
+/* after renderIntelDock drew the face: the Negotiate page's own wiring,
+   scoped to this host, and the scroll put back */
+function pdRedFacePaint(c, top){
+  const host = document.getElementById('pd-redface'); if (!host || !c) return;
+  const opts = pdRedOpts(c);
+  const root = host.querySelector('.redline-page'); if (root) root._rlRerender = opts.rerender;
+  try { if (typeof wireNegotiationTab === 'function') wireNegotiationTab(c, opts); } catch (_){}
+  try { if (typeof negoAfterPaint === 'function') negoAfterPaint(c, opts, host); } catch (_){}
+  try { if (typeof rlWireClauseTools === 'function') rlWireClauseTools(c, host, opts); } catch (_){}
+  try { if (typeof redlineSyncProxies === 'function') redlineSyncProxies(host); } catch (_){}
+  try { if (typeof chatFieldWire === 'function') chatFieldWire(host); } catch (_){}
+  pdRedWire(host);
+  pdRedPaperWire();
+  /* what the Negotiate page loads after it paints — the thread from their
+     page and the share list (Send all in one press needs their address) */
+  try { if (typeof rlBenchCatchUp === 'function') rlBenchCatchUp(c, () => { if (pdRedShows() && String(pdRedFor()) === String(c.id)) pdRedRepaint(); }); } catch (_){}
+  const keep = _pdRedTop != null ? _pdRedTop : top; _pdRedTop = null;
+  const sc = host.querySelector('#nego-cards');
+  if (sc && keep){ if (typeof rlRestoreScroll === 'function') rlRestoreScroll(sc, keep); else sc.scrollTop = keep; }
+}
+/* the face's own presses, bound once per host: ×, Open Negotiate, and a row's
+   note count (notes stay on Negotiate until stage 5: it opens there, on that
+   change, with the change's notes up — the page's own press) */
+function pdRedWire(host){
+  if (!host || host.dataset.pdRfBound) return;
+  host.dataset.pdRfBound = '1';
+  host.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    if (t.closest('[data-pd-rf-close]')){ e.preventDefault(); pdRedClose(); return; }
+    const go = t.closest('[data-pd-rf-nego]');
+    if (go){ e.preventDefault(); if (typeof openRedlineWorkbench === 'function') openRedlineWorkbench(go.getAttribute('data-pd-rf-nego')); return; }
+    const notes = t.closest('[data-rl-notes]');
+    if (notes){
+      e.preventDefault(); e.stopPropagation();
+      const c = pdContract(); const id = notes.getAttribute('data-rl-notes');
+      if (!c || typeof openRedlineWorkbench !== 'function' || !openRedlineWorkbench(c.id)) return;
+      setTimeout(() => {
+        const cc = (typeof getContract === 'function' && getContract(c.id)) || c;
+        try { if (typeof rlLinkFocus === 'function') rlLinkFocus(cc, id, 'face'); } catch (_){}
+        const q = (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(String(id)) : String(id);
+        const b = document.querySelector(`#view-redline [data-rl-notes="${q}"]`);
+        if (b) b.click();
+      }, 0);
+    }
+  });
+}
+/* A PRESS ON A CHANGED CLAUSE ON THE PAPER PICKS ITS ROW, as on the Negotiate
+   page — while the face is up. Bound once on Home's paper host. */
+function pdRedPaperWire(){
+  const paper = document.getElementById('ig-paper');
+  if (!paper || paper.dataset.pdRfBound) return;
+  paper.dataset.pdRfBound = '1';
+  paper.addEventListener('click', e => {
+    if (!pdRedShows()) return;
+    const a = e.target && e.target.closest ? e.target.closest('[data-nego-card-anchor]') : null;
+    if (!a) return;
+    const id = String(a.getAttribute('data-nego-card-anchor') || '').split(/\s+/)[0];
+    const c = pdContract();
+    if (id && c && typeof rlLinkFocus === 'function') try { rlLinkFocus(c, id, 'clause'); } catch (_){}
+  });
+}
+
 /* ---- HISTORY: the trail, newest first; the cap is said ---- */
 function pdHistHtml(c){
   let ev = [];
@@ -630,4 +815,5 @@ if (typeof document !== 'undefined' && !document._pdWired){
 
 Object.assign(window, { PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
+  pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedHeadEndHtml, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   PD_FILL_TRIES, PD_FILL_BEAT_MS, pdFillFor, pdFillShows, pdFillOpen, pdFillSeen, pdFillAway, pdFillClose, pdFillHeadHtml, pdFillDoneHtml, pdFillFaceHtml, pdFillFacePaint, pdFillCounts, pdFillKeyOf, pdFillEcho, pdFillWire, pdFillLand, pdFillRefresh });

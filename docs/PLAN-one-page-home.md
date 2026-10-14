@@ -135,6 +135,14 @@ the page (three named ideas, one The SAP Way), and the owner picks by name.
    Jambo's panel; Edit opens the clause editor; Exit returns to the panel
    face at the same scroll. The paper on the Document face shows the changes
    as Negotiate's paper does today.
+   **Built 14 Oct 2026 (the owner picked "Column", and yes to: the paper
+   turns Redlined while the face is open and back when it closes; every door
+   from outside opens the face, the Negotiate page staying on the rail until
+   stage 5; notes stay on Negotiate until stage 5, a row's note count opening
+   it).** One difference from the wording above: a review's own doors still
+   open the Negotiate page, because handing a review back is that page's
+   notice, which the face does not draw (a strip in the panel is the owner's
+   to allow). Story: MAP-HISTORY "REDLINES, BESIDE THE PAPER".
 4. **The Board grows.** Deal board, obligations and history as Board views,
    each with Print · Share · Download; their old panel aliases
    (`PD_TAB_ALIAS`) point there.

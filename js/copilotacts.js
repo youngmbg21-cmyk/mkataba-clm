@@ -990,7 +990,8 @@ const CA_GO = {
   calendar: () => typeof hbOpenCalendar === 'function' && hbOpenCalendar(),
   explorer: () => typeof hbOpenExplorer === 'function' && hbOpenExplorer(),
   wall: () => caHomeWall(),
-  redline: c => openRedlineWorkbench(c.id),
+  /* beside the paper: Jambo's own Redlines face (stage 3), through the page's walls */
+  redline: c => (typeof pdRedOpen === 'function') ? pdRedOpen(c.id) : openRedlineWorkbench(c.id),
   deal: c => { if (openRedlineWorkbench(c.id) && typeof openDealBoard === 'function') openDealBoard(); return true; },
   sign: c => caRoomSign(c),
   /* beside the paper: Jambo's own Fill in face (stage 2) */

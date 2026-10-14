@@ -8786,6 +8786,20 @@
   #pd-fillface [data-pd-ff-done]:not(:empty){margin-top:4px}
   #pd-fillface .pd-ff-next .ui-btn{justify-content:center}
   #pd-fillface [data-pd-ff-done]:empty{display:none}
+  /* REDLINES, BESIDE THE PAPER (the one-page Home plan, stage 3; owner picked "Column", 14 Oct 2026): the Negotiate page's own column as a face of Jambo's tab — the panel is its frame, the rows scroll under its head, and the head takes a second line at the panel's width: Redlines · Send all · ×, then the round · Open Negotiate */
+  #pd-redface{display:flex;flex-direction:column;overflow:hidden}
+  #pd-redface .rl-face{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--color-surface)}
+  #pd-redface .rl-face #nego-root{flex:1;min-height:0;display:flex;flex-direction:column}
+  #pd-redface .rl-face #rl-side.rl-col{flex:1;min-height:0;border:0;border-radius:0;box-shadow:none;margin:0;width:auto;max-width:none}
+  #pd-redface .rl-face .rl-idx-top{flex-wrap:wrap;row-gap:4px}
+  #pd-redface .rl-face .rl-idx-top>.pd-rf-x{order:2;width:26px;height:26px;border:0;border-radius:var(--radius);background:none;color:var(--color-neutral-600);font-size:18px;line-height:1;cursor:pointer;flex:none}
+  #pd-redface .rl-face .rl-idx-top>.pd-rf-x:hover{background:var(--color-bg);color:var(--color-text)}
+  #pd-redface .rl-face .rl-idx-top>.pd-rf-br{order:3;flex-basis:100%;height:0}
+  #pd-redface .rl-face .rl-idx-top>.rl-round-at{order:4}
+  #pd-redface .rl-face .rl-idx-top>.pd-rf-nego{order:5;margin-left:auto;font-size:12.5px;white-space:nowrap}
+  #pd-redface .rl-face .pd-rf-foot{flex:none;margin:0;padding:10px 16px;border-top:1px solid var(--color-divider);display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  #pd-redface .rl-face .pd-rf-foot button{height:var(--ctl-h-sm);padding:0 10px;font-size:12.5px;justify-content:center;min-width:0}
+  #pd-redface .rl-face .pd-rf-foot button[data-rl-prepare]{grid-column:1 / -1}
   .pd-h{font-size:10.5px;color:var(--cap-ink);margin:18px 0 7px}
   .pd-h:first-child,.pd-top+.pd-h{margin-top:0}
   .pd-list{border:1px solid var(--color-neutral-200);border-radius:var(--radius-lg);overflow:hidden;background:var(--color-surface)}

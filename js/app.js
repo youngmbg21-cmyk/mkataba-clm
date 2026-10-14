@@ -2237,12 +2237,17 @@ function buildAlerts(){
          than becoming a strip on a page — the cheapest channel that carries the
          fact, and no band. */
       let sub=''; try{ sub = window.negoRoundLine ? negoRoundLine(c) : ''; }catch(_){ sub=''; }
-      if(n) push('negotiation',c,i18tn('al_nego',n,{n}),()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); },
+      /* every negotiation row here opens Jambo's Redlines face beside Home's
+         paper (the one-page Home plan, stage 3): the page's own door, its
+         walls first; the phone carries on to its own page */
+      if(n) push('negotiation',c,i18tn('al_nego',n,{n}),()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id, { face: true }); },
         sub?{ sub }:null);
     });
   }
   /* 3. Reviews: what I owe a verdict on, and what I am waiting on. Both from
-        reviewState, which answers from the READER's chair. */
+        reviewState, which answers from the READER's chair. They open the
+        Negotiate page, not the Redlines face (stage 3): handing a review back
+        is the page's review notice, which the face does not draw. */
   if(window.reviewState && window.reviewSeatShowsReview){
     cs.forEach(c=>{
       /* ---- ASKED ONLY OF A CONTRACT THAT HAS A REVIEW ON IT ----
@@ -2283,7 +2288,7 @@ function buildAlerts(){
       let wait=[], back=[];
       try{ wait=window.deskSuggestionsFor?deskSuggestionsFor(c):[]; }catch(_){ wait=[]; }
       try{ back=window.deskSuggestionsBackTo?deskSuggestionsBackTo(c):[]; }catch(_){ back=[]; }
-      const go=()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); };
+      const go=()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id, { face: true }); };
       if(wait.length) push('suggest',c,i18tn('al_suggest',wait.length,{ n:wait.length,
         who:(wait[0].suggested&&wait[0].suggested.by)||'' }),go);
       if(back.length) push('suggest-back',c,i18tn('al_suggest_back',back.length,{ n:back.length,
@@ -2394,7 +2399,7 @@ function buildAlerts(){
         st.n?(window.deskStaleSub?deskStaleSub(st):i18tn('dk_stale_sub',st.n,{n:st.n,who:(st.lead&&st.lead.name)||''})):''].filter(Boolean).join(' · ');
       push('desk-quiet',x.c,
         i18t('dk_stale_card',{who:x.c.counterparty||i18t('home_no_counterparty')}),
-        ()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(x.c.id); else openWorkspace(x.c.id); },
+        ()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(x.c.id, { face: true }); else openWorkspace(x.c.id); },
         sub?{ sub }:null); });
     /* ---- THE JOIN ROW AND THE TWO RENEWAL ROWS GO STRAIGHT THERE ----
        (27 Sep 2026, Young: "Yes, make them go straight to the right place".)

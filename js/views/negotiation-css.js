@@ -5780,11 +5780,15 @@ function redlineLayoutCss(){
     background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);padding:3px 6px;pointer-events:none}
   #clause-editor:not(.ce-typed) .redline-page .rl-cp-pill.rl-cp-pill-save{visibility:hidden}
   
-  .redline-page .rl-baseline{display:flex;flex-wrap:wrap;gap:4px 18px;margin:8px 0 16px;
+  ${''/* ONE LINE, TWO PAPERS (the one-page Home plan, stage 3): Home's Redlined
+         paper draws the same line under a stacked clause, so it wears the
+         same clothes — :is() keeps each rule one rule, scoped. */}
+  :is(.redline-page, .ig-redpaper) .rl-baseline{display:flex;flex-wrap:wrap;gap:4px 18px;margin:8px 0 16px;
     font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5}
-  .redline-page .rl-baseline b{color:var(--color-text);font-weight:var(--w-title)}
-  .redline-page .rl-baseline button{border:0;background:none;padding:0;font:inherit;cursor:pointer;
+  :is(.redline-page, .ig-redpaper) .rl-baseline b{color:var(--color-text);font-weight:var(--w-title)}
+  :is(.redline-page, .ig-redpaper) .rl-baseline button{border:0;background:none;padding:0;font:inherit;cursor:pointer;
     color:var(--accent-ink);text-decoration:underline;text-underline-offset:2px}
+  .ig-redpaper.is-clean .rl-baseline{display:none}
   .redline-page .rl-rung-static{cursor:default}
   .redline-page .rl-rung:hover{filter:brightness(.96)}
   .redline-page .rl-rung:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:1px}
