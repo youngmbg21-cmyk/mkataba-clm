@@ -161,7 +161,12 @@ for (let i = 1; i <= 12; i++)
       await page.reload({ waitUntil: 'networkidle' });
       await pause(2000);
       const after = await page.evaluate(() => state.view);
-      if (after !== v) lost.push(`${v}→${after}`);
+      /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the
+         Negotiate page folded into Home — openRedlineWorkbench lands on
+         Jambo's Redlines face beside Home's paper, so the page the reader was
+         on is Home (view 'dashboard'); where on it is refresh-keeps-your-spot's */
+      const was = v === 'redline' ? 'dashboard' : v;
+      if (after !== was) lost.push(`${v}→${after}`);
     }
     check('4a a refresh returns you to the page you were on, on every page',
       lost.length === 0, lost.length ? lost.join(' · ') : `${PAGES.length} pages, none lost`);
@@ -455,10 +460,16 @@ for (let i = 1; i <= 12; i++)
     /* ============================================================
        5 · A NAV PRESS WITH EDIT WITH COPILOT OPEN
        ============================================================ */
-    await page.evaluate(() => setView('redline'));
-    await pause(1200);
+    /* RE-POINTED 14 Oct 2026 (stage 5): setView('redline') with nothing
+       named is the LIST of negotiations now, and every named door lands on
+       Jambo's Redlines face on Home; Edit with Copilot opens over Home from
+       there. So the face is opened on the staged contract (pdRedFor) and the
+       editor opened on it, as before. */
+    await page.evaluate(id => openRedlineWorkbench(id), staged);
+    await page.waitForFunction(id => window.pdRedFor && pdRedFor() === id && !!document.getElementById('pd-redface'), staged, { timeout: 8000 }).catch(() => {});
+    await pause(600);
     const opened = await page.evaluate(() => {
-      const c = getContract(redlineHeldId());
+      const c = getContract((window.pdRedFor && pdRedFor()) || redlineHeldId());
       const cl = negoClauseList(c)[0];
       return !!(window.rlOpenClauseEditor && rlOpenClauseEditor(c, cl.clauseId, {}));
     });
@@ -484,10 +495,13 @@ for (let i = 1; i <= 12; i++)
       JSON.stringify(afterNav));
 
     /* AND WITH WORDING IN THE BOX IT ASKS FIRST. */
-    await page.evaluate(() => setView('redline'));
-    await pause(1200);
+    /* RE-POINTED 14 Oct 2026 (stage 5): the same way in, onto the face */
+    await page.evaluate(id => openRedlineWorkbench(id), staged);
+    await page.waitForFunction(id => window.pdRedFor && pdRedFor() === id && !!document.getElementById('pd-redface'), staged, { timeout: 8000 }).catch(() => {});
+    await pause(600);
+    const viewWas = await page.evaluate(() => state.view);
     await page.evaluate(() => {
-      const c = getContract(redlineHeldId());
+      const c = getContract((window.pdRedFor && pdRedFor()) || redlineHeldId());
       const cl = negoClauseList(c)[0];
       rlOpenClauseEditor(c, cl.clauseId, {});
     });
@@ -503,8 +517,10 @@ for (let i = 1; i <= 12; i++)
       view: state.view,
       editorStillUp: !!document.getElementById('clause-editor'),
     }));
+    /* RE-POINTED 14 Oct 2026 (stage 5): "stays put" is the page the editor
+       was opened over — Home now, where it was 'redline' */
     check('5d it asks before throwing away wording, and stays put until answered',
-      guard.asked && guard.view === 'redline' && guard.editorStillUp, JSON.stringify(guard));
+      guard.asked && guard.view === viewWas && guard.editorStillUp, JSON.stringify({ ...guard, was: viewWas }));
     await page.screenshot({ path: path.join(OUT, '05-leave-guard.png') });
     /* Answering it lets the press through — a guard that cannot be got past is
        a wall, not a question. */

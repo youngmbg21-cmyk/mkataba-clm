@@ -207,16 +207,21 @@ const signedOf = (cp, signer) => [
     /* THE DUTIES ARE READ OFF THE SIGNED COPY (FIXED 10 Oct 2026, BUGLOG 10
        Oct): the suggestions that open after filing quoted the agreed "thirty
        days" while the signed copy of record says sixty. */
-    const duties = await page.waitForFunction(() => { const d = document.querySelector('.obd'); return d ? d.innerText.replace(/\s+/g, ' ') : ''; },
-      null, { timeout: 15000 }).then(x => x.jsonValue()).catch(() => '');
+    /* RE-POINTED 14 Oct 2026 (stage 5, see 5d): the wait also stops on the
+       obligations scan's own toast, so what the page said instead is caught
+       while it is still on screen. */
+    const toastNow = () => page.evaluate(() => [...document.querySelectorAll('#toast-root *')]
+      .filter(e => !e.children.length).map(e => e.textContent.trim()).filter(Boolean).join(' · '));
+    await page.waitForFunction(() => !!document.querySelector('.obd')
+      || /obligations scan/i.test((document.getElementById('toast-root') || {}).textContent || ''), null, { timeout: 15000 }).catch(() => {});
+    const duties = await page.evaluate(() => { const d = document.querySelector('.obd'); return d ? d.innerText.replace(/\s+/g, ' ') : ''; });
     await page.screenshot({ path: path.join(OUT, '5-duties.png') });
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the filing is
        now pressed on Jambo's Before you sign face on Home (the room's Signing
        tab went home), with this very contract on Home's paper. The claim is
        unchanged — the suggestions open after filing and quote the signed copy
        — so the waiting toast is said in the detail when they do not open. */
-    const toastSaid = duties ? '' : await page.evaluate(() => [...document.querySelectorAll('#toast-root *')]
-      .filter(e => !e.children.length).map(e => e.textContent.trim()).filter(Boolean).join(' · '));
+    const toastSaid = duties ? '' : await toastNow();
     check('5d the duties suggested after filing quote the signed copy — sixty days — never the agreed thirty',
       /sixty days/i.test(duties) && !/thirty days/i.test(duties), duties ? duties.slice(0, 220) : `no suggestions opened · view ${await page.evaluate(() => state.view)} · toast: ${toastSaid}`);
     /* AND WHAT THEY QUOTE, through the way forward the page offered: when the

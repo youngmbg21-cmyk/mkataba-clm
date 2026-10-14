@@ -94,7 +94,12 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     await pause(2400);
     const cid = await page.evaluate(SEED);
     await pause(1800);
-    await page.evaluate(id => openRedlineWorkbench(id), cid);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): every door now
+       lands on Jambo's Redlines face beside Home's paper; this file's subject
+       is the Negotiate PAGE's own treatment (its head, control row, reading
+       tabs, paper and column), so it opens the page by name ({ page: true }),
+       the engine the face is built from. */
+    await page.evaluate(id => openRedlineWorkbench(id, { page: true }), cid);
     await pause(2200);
     await page.screenshot({ path: path.join(OUT, '01-workbench.png') });
 
