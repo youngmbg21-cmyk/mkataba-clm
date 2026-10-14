@@ -10535,7 +10535,7 @@ const STRINGS = {
     rk_src_mine: 'Marked by a person',
     ca_intro_job: 'Here is what I found. Each step is yours to press.',
     /* JAMBO'S WORDS (the one-page Home plan, stage 1, 14 Oct 2026). Every
-       ca_w_ word must be a word copilotacts.js reads (CA_PLACES); f671 pins it. */
+       ca_w_ word must be a word copilotacts.js reads (CA_PLACES); f672 pins it. */
     ca_w_redline: 'redline',
     ca_w_deal: 'deal board',
     ca_w_sign: 'sign',
@@ -13989,6 +13989,7 @@ const STRINGS = {
     bd_st_need: 'Needs you',
     bd_st_look: 'Worth a look',
     bd_st_fine: 'Fine',
+    bd_st_note: 'Good to know',
     bd_again_title: 'Read the wording into regions again',
     bd_again_changed: 'Wording changed: read again',
     bd_again: 'Read again',
@@ -14052,6 +14053,8 @@ const STRINGS = {
     stk_f_none: 'No points match these filters.',
     stk_by_jambo: 'Jambo',
     stk_by_std: 'Our standards',
+    stk_by_scan: 'Risk scan',
+    stk_by_brief: 'Brief',
     stk_std_dev_t: '{cat} departs from our standard',
     stk_std_miss_t: 'Our {cat} standard is missing',
     stk_std_dev: 'Departs from our standard on {cat}.',
@@ -25451,7 +25454,7 @@ const STRINGS = {
     rk_src_mine: 'Markerad av en person',
     ca_intro_job: 'Det här hittade jag. Varje steg är ditt att trycka på.',
     /* JAMBOS ORD (planen för en sida, steg 1, 14 okt 2026). Varje ca_w_-ord
-       måste vara ett ord som copilotacts.js läser (CA_PLACES); f671 låser det. */
+       måste vara ett ord som copilotacts.js läser (CA_PLACES); f672 låser det. */
     ca_w_redline: 'förhandla',
     ca_w_deal: 'affärstavla',
     ca_w_sign: 'signera',
@@ -28765,6 +28768,7 @@ const STRINGS = {
     bd_st_need: 'Behöver dig',
     bd_st_look: 'Värt en titt',
     bd_st_fine: 'Bra',
+    bd_st_note: 'Bra att veta',
     bd_again_title: 'Läs in texten i områden igen',
     bd_again_changed: 'Texten har ändrats: läs igen',
     bd_again: 'Läs igen',
@@ -28827,6 +28831,8 @@ const STRINGS = {
     stk_f_none: 'Inga punkter matchar filtren.',
     stk_by_jambo: 'Jambo',
     stk_by_std: 'Våra standarder',
+    stk_by_scan: 'Riskgenomgång',
+    stk_by_brief: 'Sammanfattning',
     stk_std_dev_t: '{cat} avviker från vår standard',
     stk_std_miss_t: 'Vår standard för {cat} saknas',
     stk_std_dev: 'Avviker från vår standard för {cat}.',

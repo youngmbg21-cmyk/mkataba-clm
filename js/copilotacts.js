@@ -830,7 +830,7 @@ Object.assign(window, { CA_PICK_MAX, CA_NOTE_MAX, CA_SEND_RE, caPeople, caContra
    act is still a press there (the Sign button, the send screen's Send).
    THE WORDS ARE DATA IN BOTH LANGUAGES, never read back from the books and
    never a regex built from them (CLAUDE.md, two languages); the chips' and
-   the "/" list's labels come from the books, and f671 pins that every label
+   the "/" list's labels come from the books, and f672 pins that every label
    in both books is a word read here. */
 const CA_PLACES = [
   { k: 'redline', need: 'one', w: ['redline', 'redlines', 'redlining', 'negotiate', 'negotiation', 'changes', 'förhandla', 'förhandlingen', 'ändringar', 'rödlinjer'] },

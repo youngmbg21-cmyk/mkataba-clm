@@ -96,8 +96,8 @@ const stkKey = c => String(c && c.id) + ':' + bdHash(c);
    Severity · Found by): Jambo's company read, and every standard this
    contract departs from or lacks, from the KEPT standards check (c.playbook,
    read RAW — nothing is run or spent here) */
-const STK_BY = ['jambo', 'std'];
-const STK_SEVS = ['need', 'look', 'fine'];
+const STK_BY = ['jambo', 'std', 'scan', 'brief'];
+const STK_SEVS = ['need', 'look', 'note', 'fine'];
 const _stkNorm = s => String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();
 function stkStdPoints(c){
   const vs = (typeof stdDepartures === 'function') ? stdDepartures(c) : [];
@@ -125,10 +125,39 @@ function stkSectionOf(b, p){
   }
   return 0;
 }
+/* ---- EVERY COLOURED DOT EXPLAINS ITSELF (owner, 13 Oct 2026: "we have some
+   worth a look but they have no explanation"; then "Yes, build it") ----
+   A clause's dot also wears the marks the paper's other readings put on it
+   — the risk scan's findings, the brief's watch-outs and its unusual terms
+   (docXrayMarks, the same reading that colours the dot) — and those used to
+   have nothing behind them on Home. Each is now a POINT under its clause, in
+   the same shaded box, counted, filtered ("Found by": Risk scan · Brief) and
+   walked by the deep dive. Placed on the row the mark was found on, so a mark
+   that lands nowhere is never guessed onto a clause. A standards mark is the
+   standards point already there, never said twice. Nothing is run here. */
+const STK_MARK_BY = { scan: 'scan', brief: 'brief', odd: 'brief', pb: 'std' };
+const STK_GRADE_SEV = { ruby: 'need', amber: 'look', steel: 'note' };
+function stkMarkPoints(stdRows){
+  const out = [];
+  (_stk.rows || []).forEach((x, at) => {
+    if (!x || !Array.isArray(x.marks) || (typeof docThreadIsSec === 'function' && docThreadIsSec(x))) return;
+    x.marks.forEach(m => {
+      if (!m || !STK_MARK_BY[m.k]) return;
+      if (m.k === 'pb' && stdRows.has(at)) return;
+      const lead = String(m.lead || '').trim(), say = String(m.say || '').trim(), why = String(m.why || '').trim();
+      out.push({ by: STK_MARK_BY[m.k], status: STK_GRADE_SEV[m.grade] || 'look', missing: false, region: 0, links: [],
+        clause: (_stk.nums || [])[at] || '', _at: at, title: lead || say || why, stake: [lead && say ? say : '', why].filter(Boolean).join(' ') || lead || say,
+        what: why, theirs: '', usual: '', ask: '', quote: '' });
+    });
+  });
+  return out;
+}
 /* every point, Jambo's first; the list the filters read */
 function stkAll(c, b){
   if (!b) return [];
-  return b.points.map((p, i) => Object.assign({}, p, { by: 'jambo', _i: i })).concat(stkStdPoints(c))
+  const std = stkStdPoints(c);
+  const stdRows = new Set(std.map(p => p.quote && _stk.rows ? stkRowForQuote(p.quote, _stk.rows) : -1).filter(at => at >= 0));
+  return b.points.map((p, i) => Object.assign({}, p, { by: 'jambo', _i: i })).concat(std, stkMarkPoints(stdRows))
     .map(p => Object.assign(p, { region: stkSectionOf(b, p) }));
 }
 const stkKeep = (p, f) => (!f.reg || String(p.region || 0) === f.reg) && (!f.sev || p.status === f.sev) && (!f.by || p.by === f.by);
@@ -180,7 +209,7 @@ function stkRowForQuote(q, rows){
   const n = _stkNorm(q).slice(0, 80); if (n.length < 12) return -1;
   return (rows || []).findIndex(x => x && x.row && _stkNorm((x.row.heading || '') + ' ' + (x.row.text || '')).includes(n));
 }
-const stkAt = (p, nums, rows) => p.missing ? -1 : (p.by === 'std' ? stkRowForQuote(p.quote, rows) : stkRowFor(p, nums));
+const stkAt = (p, nums, rows) => p.missing ? -1 : (p._at != null ? p._at : p.by === 'std' ? stkRowForQuote(p.quote, rows) : stkRowFor(p, nums));
 /* painted after the list's own paint, on Home only */
 function stkDecorate(c, card, rows){
   if (!c || !card) return;
@@ -197,12 +226,10 @@ function stkDecorate(c, card, rows){
   if (head) head.innerHTML = stkHeadHtml(c, b);
   card.querySelectorAll('.stk-line, .stk-miss, .stk-rsq, .stk-nomatch').forEach(el => el.remove());
   card.querySelectorAll('.stk-hide').forEach(el => el.classList.remove('stk-hide'));
-  card.querySelectorAll('.stk-b-need, .stk-b-look').forEach(el => el.classList.remove('stk-b-need', 'stk-b-look'));
+  card.querySelectorAll('.stk-b-need, .stk-b-look, .stk-b-note').forEach(el => el.classList.remove('stk-b-need', 'stk-b-look', 'stk-b-note'));
   const list = card.querySelector('.doc-th-rows');
-  /* THE OLDER MARKS' TONE STAYS (restored 13 Oct 2026): clearing it so that
-     only Stakes points coloured a dot broke the scan's red and the brief's
-     amber on this list, which the risk door and six checks stand on; how a
-     marked clause explains itself here is the owner's call (asked). */
+  /* THE OLDER MARKS' TONE STAYS: every mark that colours a dot is now a
+     point under its clause (stkMarkPoints), so the dot explains itself */
   if (b && list){
     const nums = _stk.nums;
     /* each row says how many of the points on screen stand on it. NO SECTION
@@ -212,7 +239,8 @@ function stkDecorate(c, card, rows){
     const onRow = {}, worstOn = {};
     shown.forEach(p => { const at = stkAt(p, nums, rows); if (at < 0) return;
       onRow[at] = (onRow[at] || 0) + 1;
-      if (p.status === 'need' || (p.status === 'look' && worstOn[at] !== 'need')) worstOn[at] = p.status; });
+      const rank = { need: 3, look: 2, note: 1 };
+      if ((rank[p.status] || 0) > (rank[worstOn[at]] || 0)) worstOn[at] = p.status; });
     /* THE DOT WEARS ITS CLAUSE'S WORST POINT (owner, 13 Oct 2026): red when a
        point needs you, amber when the worst is worth a look — the older marks'
        tone stays where it is worse; the paper's own track is not touched */
@@ -290,7 +318,9 @@ function stkDiveHtml(c, b, i){
     : `<button type="button" class="stk-lnk" data-stk-show="${i}">${_bdE(i18t('stk_clause', { n: p.clause }))}</button>`;
   const sec = (h, body) => body ? `<section class="stk-sec"><h4>${_bdE(i18t(h))}</h4>${body}</section>` : '';
   const vs = p.theirs || p.usual ? `<table class="stk-vs"><tr class="is-theirs"><td>${_bdE(i18t('stk_this'))}</td><td>${_bdE(p.theirs || '—')}</td></tr><tr class="is-usual"><td>${_bdE(i18t('stk_usual'))}</td><td>${_bdE(p.usual || '—')}</td></tr></table>` : '';
-  const cost = `<div class="stk-fig${p.figure ? '' : ' is-none'}">${_bdE(p.figure || i18t('stk_no_figure'))}</div>${p.how ? `<p class="stk-how">${_bdE(p.how)}</p>` : ''}`;
+  /* a "figure" with no number in it is a sentence (an older read kept one): no figure, its words go to how */
+  const fig = /\d/.test(String(p.figure || '')) ? String(p.figure) : '', how = [fig ? '' : String(p.figure || ''), String(p.how || '')].filter(Boolean).join(' ');
+  const cost = `<div class="stk-fig${fig ? '' : ' is-none'}">${_bdE(fig || i18t('stk_no_figure'))}</div>${how ? `<p class="stk-how">${_bdE(how)}</p>` : ''}`;
   /* a link names Jambo's point by its place in his read; it opens where that point stands on screen */
   const links = (p.links || []).map(k => shown.findIndex(q => q.by === 'jambo' && q._i === k - 1)).filter(at => at >= 0 && at !== i);
   return `<div class="stk-dv${stkTone(p)}">
@@ -306,7 +336,7 @@ function stkDiveHtml(c, b, i){
         ? `<p class="stk-err" role="alert">${_bdE(_stk.diveErr[stkDiveKey(c, p)])}</p><div class="stk-acts"><button type="button" class="ui-btn ui-btn-sm" data-stk-dive-again="${i}">${_bdE(i18t('stk_again'))}</button><span class="stk-cost">${_bdE(i18t('stk_dive_cost'))}</span></div>`
         : `<div class="stk-acts"><span class="stk-busy" role="status" aria-live="polite">${window.busyHtml ? busyHtml(i18t('stk_dive_reading')) : _bdE(i18t('stk_dive_reading'))}</span><span class="stk-cost">${_bdE(i18t('stk_dive_cost'))}</span></div>`) : ''}
       ${sec('stk_h_what', p.what ? `<p>${_bdE(p.what)}</p>` : '')}
-      ${p.by === 'std' || stkDiveOwed(p) ? '' : sec('stk_h_cost', cost)}
+      ${p.by !== 'jambo' || stkDiveOwed(p) ? '' : sec('stk_h_cost', cost)}
       ${sec('stk_h_vs', vs)}
       ${sec('stk_h_push', p.push ? `<p class="stk-push">${_bdE(p.push)}</p>` : '')}
       ${sec('stk_h_edge', (p.edge || []).length ? `<ul class="stk-edge">${p.edge.map(e => `<li>${_bdE(e)}</li>`).join('')}</ul>` : '')}
@@ -335,7 +365,7 @@ function stkDivePaint(c, card){
    nothing filed or sent until a person presses. It remembers where the
    reader came from — this contract's deep dive, its point and its filters —
    so "‹ Back to clauses" returns to the same point (stkResume). */
-function stkRedlineGo(c){
+function stkRedlineGo(c, opts){
   const b = stkOf(c), p = b && _stk.dive >= 0 ? stkShown(c, b)[_stk.dive] : null;
   let clauseId = '';
   if (p && !p.missing && _stk.rows){
@@ -344,7 +374,8 @@ function stkRedlineGo(c){
   }
   if (typeof rlCameFromSet === 'function') rlCameFromSet({ id: String(c.id), dive: _stk.dive, f: { ..._stk.f } });
   if (typeof openRedlineWorkbench !== 'function') return;
-  openRedlineWorkbench(c.id, { from: 'clauses', land: p && !p.missing ? { clauseId, quote: String(p.quote || ''), num: stkNum(p.clause), ask: String(p.ask || '') } : null });
+  const q = opts && opts.question ? String(opts.question) : '';
+  openRedlineWorkbench(c.id, { from: 'clauses', land: p && !p.missing ? { clauseId, quote: String(p.quote || ''), num: stkNum(p.clause), ask: q ? '' : String(p.ask || ''), question: q } : null });
 }
 /* the way back puts the deep dive where the reader left it */
 function stkResume(f){
@@ -412,9 +443,18 @@ if (typeof document !== 'undefined' && !document._stkWired){
          terribly framed"): the clause by number, the point in plain words with
          no quote marks (Jambo read a quoted title as a finding to look up), and
          what we want back. The reader presses Ask, or edits it first. */
-      if (p && typeof intelAskReady === 'function'){
+      if (p){
         const t = String(p.title || '').trim().replace(/[.\s]+$/, ''), n = stkNum(p.clause);
-        intelAskReady(p.missing ? i18t('stk_ask_q_missing', { t }) : n ? i18t('stk_ask_q', { n, t }) : i18t('stk_ask_q_none', { t }));
+        const q = p.missing ? i18t('stk_ask_q_missing', { t }) : n ? i18t('stk_ask_q', { n, t }) : i18t('stk_ask_q_none', { t });
+        /* TO JAMBO IN THE EDIT ROOM (owner, 13 Oct 2026: "ask jambo is supposed
+           to take me to the jambo in the redline editing page"): the clause
+           opens in Edit with Jambo, the question waiting in his ask box,
+           unsent — he knows the contract and the clause there. A point about
+           nothing in the contract, or a window too narrow for the editor,
+           asks on Home as before. */
+        const fits = typeof clauseEditorFits === 'function' && clauseEditorFits();
+        if (!p.missing && fits) stkRedlineGo(c, { question: q });
+        else if (typeof intelAskReady === 'function') intelAskReady(q);
       } }
   }, true);
   /* a filter's change repaints the list, and the box keeps the keyboard */

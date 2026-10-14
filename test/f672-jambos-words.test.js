@@ -1,6 +1,6 @@
 'use strict';
 /* ═══════════════════════════════════════════════════════════════════════════
-   f671 — JAMBO'S WORDS (the one-page Home plan, stage 1; the owner agreed the
+   f672 — JAMBO'S WORDS (the one-page Home plan, stage 1; the owner agreed the
    plan on 14 Oct 2026 and picked "Chips" by name)
 
    (1) A whole ask that is one known word opens its place, in English and in
@@ -78,7 +78,7 @@ function stage({ lang = 'en', paper = 'MK-9', face = 'paper', need = [], uses = 
   return { ctx, calls, hb, store };
 }
 
-describe('f671 (1) a word opens its place; a sentence is still a question', () => {
+describe('f672 (1) a word opens its place; a sentence is still a question', () => {
   test('1a the place words, whole, on the paper that is up', () => {
     const { ctx } = stage();
     const go = q => { const a = ctx.caActOf(q); return a && a.kind === 'go' ? [a.place, a.cid || null] : a && a.kind; };
@@ -134,7 +134,7 @@ describe('f671 (1) a word opens its place; a sentence is still a question', () =
   });
 });
 
-describe('f671 (2) every word a label offers is a word Jambo reads, in both books', () => {
+describe('f672 (2) every word a label offers is a word Jambo reads, in both books', () => {
   const { ctx } = stage();
   for (const lang of ['en', 'sv']){
     test('2 ' + lang, () => {
@@ -152,7 +152,7 @@ describe('f671 (2) every word a label offers is a word Jambo reads, in both book
   }
 });
 
-describe('f671 (3) "/" lists the places, most used first', () => {
+describe('f672 (3) "/" lists the places, most used first', () => {
   test('3a with no uses, the working day\'s order; with uses, most used first', () => {
     const fresh = stage().ctx.caSlashRows('');
     assert.equal(fresh[0].word, '/redline'); assert.equal(fresh.length, 8);
@@ -180,7 +180,7 @@ describe('f671 (3) "/" lists the places, most used first', () => {
   });
 });
 
-describe('f671 (4) the chips lead with the checklist', () => {
+describe('f672 (4) the chips lead with the checklist', () => {
   const chips = o => stage(o).ctx.caPaperChips();
   test('4a details owed → fill in, amber', () => {
     const L = chips({ need: ['details'] });
@@ -206,7 +206,7 @@ describe('f671 (4) the chips lead with the checklist', () => {
   });
 });
 
-describe('f671 (5) the way back', () => {
+describe('f672 (5) the way back', () => {
   test('5 a word leaves its place on the trail; Back returns there', () => {
     const { ctx, calls } = stage();
     assert.equal(ctx.caBackRowHtml(), '', 'nothing to go back to yet');
@@ -220,7 +220,7 @@ describe('f671 (5) the way back', () => {
   });
 });
 
-describe('f671 (5b) the way back to a contract\'s own page', () => {
+describe('f672 (5b) the way back to a contract\'s own page', () => {
   test('5b from Negotiate, Back names it and reopens that contract\'s redlines', () => {
     const { ctx, calls } = stage({ paper: null });
     ctx.state.view = 'redline'; ctx.state.activeId = 'MK-12';
@@ -231,7 +231,7 @@ describe('f671 (5b) the way back to a contract\'s own page', () => {
   });
 });
 
-describe('f671 (6)(7) the top bar reads the same words; reading spends nothing', () => {
+describe('f672 (6)(7) the top bar reads the same words; reading spends nothing', () => {
   test('6 the palette offers a place from three letters', () => {
     const { ctx } = stage();
     assert.deepEqual(J(ctx.caPlaceRows('red').map(r => r.k)), ['redline']);

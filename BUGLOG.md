@@ -20718,3 +20718,5 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ### Noticed, not fixed (14 Oct 2026, the one-page Home plan, stage 1 — Jambo's words)
 - The ⌘K search prints each row's kind as a raw English code word ("folder", "ask") in Svenska too (`r.tag||r.kind` in openCommandPalette); the new "place" row carries a translated tag, the older rows do not.
 - CLAUDE.md is about 82 KB, above its own "under about 80 KB" target (it was 81.6 KB before this change; stage 1 added one MAP line).
+### Noticed, not fixed (13 Oct 2026, Ask Jambo from the deep dive)
+- Home's Jambo panel answers a question put in its box by `intelAskReady` (a "readied" ask) through `intelChatAsk`, the whole-book chat, so it does not know the contract on the paper ("I still need to know which contract you're referring to", with "Ask about MK-457…" in the box). The deep dive's Ask Jambo now goes to the edit room; other readied asks on Home still take this path.
