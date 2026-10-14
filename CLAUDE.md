@@ -379,6 +379,7 @@ ONE CODE, ONE PROOF, TWO GATES (opening and signing) on the existing `share_otp`
 ## THE SEND SCREEN
 
 One screen: title (`shareLeadTitle`) → what travels → purpose (`sharePurposePickerHtml`: Sign · Negotiate · View · Adviser) → channel → name/email → one note → readiness (`readinessPanelHtml`) → Send; opens on email. The record ("history") kind never reuses a contract link (409). Word is a channel (`wordTrackedFile`/`wordHistoryFile`), never for Adviser. Adviser links (js/adviserlink.js, NOT js/advice.js): chosen clauses (`shareAdviceBody`, `adviserClauseKey`), 14 days, notes never reach the counterparty (`MSG_SIDE_ADVISER`). Tests: f17, f42, f307, f310, f333, share-recipient-verify.
+- THEIR CONTACT, ASKED BESIDE THEIR EMAIL (owner's pick, 13 Oct 2026): every door that asks "Their email" asks "Their contact" (`wzContactPairHtml`, essentials `cpname`, `tf-cpname`, `up-cpname`, the request's `cpname` in `INTAKE_ANSWER_KEYS`, server `counterpartyName`), written with the address through `contactSet` (`contactAdopt` on arrival); never owed (`NEED_NEVER`). Send and who-signs open filled; the clock's typed count fell 14 → 13. Tests: contact-at-creation, contact-at-creation-verify.
 
 ## THE TEMPLATES PAGE, THE BUILDER, AND NEW STANDARDS
 

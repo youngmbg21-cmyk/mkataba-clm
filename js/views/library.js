@@ -80,6 +80,7 @@ function buildFromCustomTemplate(t, values, opts){
   const body=fillTemplateBody(templateBody(t), values, tFmt);
   const cp=(()=>{ const f=fs.find(x=>x.maps==='counterparty'); return f?String(values[f.key]||''):''; })();
   const cpEmail=String((opts&&opts.counterpartyEmail)||'').trim();
+  const cpName=String((opts&&opts.counterpartyName)||'').trim();
   // The mapped counterparty field is the counterparty — recorded, not only
   // spelled into the title. See js/wizard.js for the fault this closes.
   const c={ id:nextId(), name:t.name+(cp?' — '+cp:''),   /* no "(Draft)" in a name: the stage says it, and a name outlives the stage (the owner's list, 27 Sep 2026) */ counterparty:cp,
@@ -120,7 +121,8 @@ function buildFromCustomTemplate(t, values, opts){
   }
   /* THEIR ADDRESS GOES INTO THE ADDRESS BOOK through its one writer
      (js/participants.js), which keeps the record's copy in step. */
-  if(cpEmail){ if(window.contactSet) contactSet(c,{ main:true, email:cpEmail }); else c.counterpartyEmail=cpEmail; }
+  if(cpEmail||cpName){ if(window.contactSet) contactSet(c,{ main:true, ...(cpEmail?{ email:cpEmail }:{}), ...(cpName?{ name:cpName }:{}) });
+    else { if(cpEmail) c.counterpartyEmail=cpEmail; if(cpName) c.counterpartyName=cpName; } }
   /* The essentials, when this template had no blanks of its own to carry them.
      Same mapping, applied after so a template field always wins over the
      generic question if a template happened to ask both. */
@@ -216,6 +218,12 @@ function openTemplateFillModal(t, prefill, ho){
              form, so adding the address to the guided wizard alone left every
              contract made from "Counterparty Templates" back where it started: asked in
              the negotiation room, and again by the share dialog. */}
+      ${''/* THEIR CONTACT, beside their email (13 Oct 2026, phase 1 item 6:
+             "Send is one press") — the same question every creation door asks,
+             so the Send screen and the signing route open with the name. */}
+      <label style="display:block">
+        <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('wz_their_contact')}</span>
+        <input id="tf-cpname" type="text" autocomplete="off" placeholder="${_tplEsc(i18t('wz_their_contact_ph'))}" style="width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none"/></label>
       <label style="display:block">
         <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('lib_their_email')}</span>
         <input id="tf-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none"/></label>
@@ -243,14 +251,16 @@ function openTemplateFillModal(t, prefill, ho){
     const cpEmail=(document.getElementById('tf-cpemail')||{}).value||'';
     if(cpEmail.trim() && !/.+@.+\..+/.test(cpEmail.trim()))
       errs.push(`"${cpEmail.trim()}" is not an email address — leave it blank if you do not have it yet.`);
+    const cpName=((document.getElementById('tf-cpname')||{}).value||'').trim();
+    if(cpName.length>120) errs.push('Their contact\'s name is longer than 120 characters — use the name they go by.');
     if(errs.length){ const er=document.getElementById('tf-err'); if(er) er.textContent=errs[0]; return false; }
     const party=((document.getElementById('tf-party')||{}).value||'').trim();
     const folder=tfFolder();
     const side=((document.getElementById('tf-side')||{}).value||'').trim();
-    closeModal(); buildFromCustomTemplate(t, values, { counterpartyEmail:cpEmail.trim(), party, folder, side });
+    closeModal(); buildFromCustomTemplate(t, values, { counterpartyEmail:cpEmail.trim(), party, folder, side, counterpartyName:cpName });
     return true;
   };
-  const count=fs.length+3+(sideF?1:0);
+  const count=fs.length+4+(sideF?1:0);
   if(ho && ho.host){
     ho.host.innerHTML=fieldsHtml+errHtml;
     if(typeof bindFolderSelect==='function') bindFolderSelect(document.getElementById('tf-folder'));

@@ -357,7 +357,7 @@ function openWizard(preTid, prefill){
       <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-4);line-height:1.5;">${t.blurb||''}</p>
       <div id="wz-cols" style="display:grid;grid-template-columns:${_pv?'minmax(0,1fr) minmax(0,1fr)':'minmax(0,1fr)'};gap:var(--s-4);align-items:start">
       <div class="field-grid" style="${(typeof FIELD_GRID_CSS==='string'?FIELD_GRID_CSS:'display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s-3)')};">${vars.map(input).join('')}
-        ${wzEmailHtml()}
+        ${wzContactPairHtml()}
       </div>
       ${_pv?fillPreviewPaneHtml(vars.filter(v=>!String(v.def||'').trim()).length):''}
       </div>
@@ -442,6 +442,9 @@ function createFromWizard(tid, vars, opts){
      may not know the address yet, and refusing to create the contract over it
      would be worse than asking again later. */
   const cpEmail=val('cpemail');
+  const cpName=val('cpname');
+  if(cpName.length>120)
+    errs.push('Their contact\'s name is longer than 120 characters — use the name they go by.');
   if(cpEmail && !/.+@.+\..+/.test(cpEmail))
     errs.push(`"${cpEmail}" is not an email address — leave it blank if you do not have it yet.`);
   /* U-10: show ALL the problems at once, not just the first. The full list is
@@ -485,7 +488,8 @@ function createFromWizard(tid, vars, opts){
   // c.metadata, with no separate data-entry step
   /* THEIR ADDRESS GOES INTO THE ADDRESS BOOK through its one writer
      (js/participants.js), which keeps the record's copy in step. */
-  if(cpEmail){ if(window.contactSet) contactSet(c,{ main:true, email:cpEmail }); else c.counterpartyEmail=cpEmail; }
+  if(cpEmail||cpName){ if(window.contactSet) contactSet(c,{ main:true, ...(cpEmail?{ email:cpEmail }:{}), ...(cpName?{ name:cpName }:{}) });
+    else { if(cpEmail) c.counterpartyEmail=cpEmail; if(cpName) c.counterpartyName=cpName; } }
   applyTemplateValues(c, vars, values);
   if(t.valueType==='none'){ c.value=0; c.valueType='none'; }
   c._loaded=true; c._light=false; c._v=0;
@@ -544,6 +548,25 @@ function wzFieldHtml(v){
    share dialog when you pressed Send. Three times for one fact, in one
    sitting. Once it is on the contract the strip never appears and the send
    goes straight out. */
+/* THEIR CONTACT, ASKED BESIDE THEIR EMAIL (13 Oct 2026, phase 1 item 6 of
+   the best-in-class plan: "Send is one press"). The address was asked here;
+   the PERSON was asked twice later — the Send screen's name box and the
+   signing route's "who signs for them" — for one fact. Asked once, it lands
+   in the address book with the address (contactSet), and both of those open
+   with it in place. Optional, like the address: never owed, never amber. */
+function wzContactHtml(val){
+  return `<label style="display:block;">
+    <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${i18t('wz_their_contact')}</span>
+    <input id="wz-cpname" type="text" autocomplete="off" value="${String(val||'').replace(/[&"<>]/g,ch=>({'&':'&amp;','"':'&quot;','<':'&lt;','>':'&gt;'}[ch]))}" placeholder="${i18t('wz_their_contact_ph')}" style="${WZ_ST}"/></label>`;
+}
+/* THE PERSON AND THEIR ADDRESS STAND TOGETHER, on a row of their own across
+   the grid, whatever number of questions the template asked before them —
+   otherwise an odd count put "Their contact" beside the last question and
+   left "Their email" alone on the next line. */
+function wzContactPairHtml(prefill){
+  const grid=(typeof FIELD_GRID_CSS==='string'?FIELD_GRID_CSS:'display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s-3)');
+  return `<div class="wz-contact-pair" style="grid-column:1/-1;${grid}">${wzContactHtml(prefill&&prefill.cpname)}${wzEmailHtml(prefill&&prefill.cpemail)}</div>`;
+}
 function wzEmailHtml(val){
   return `<label style="display:block;">
     <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${i18t('wz_their_email')}</span>
@@ -559,7 +582,7 @@ function wizardFormMount(o, tid, prefill){
   const t=TEMPLATES[tid]; if(!t || !o || !o.host) return null;
   const vars=(prefill && typeof draftApplyPrefill==='function')
     ? draftApplyPrefill(templateVars(tid), prefill) : templateVars(tid);
-  o.host.innerHTML=`<div class="field-grid" style="${(typeof FIELD_GRID_CSS==='string'?FIELD_GRID_CSS:'display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s-3)')};">${vars.map(wzFieldHtml).join('')}${wzEmailHtml(prefill&&prefill.cpemail)}</div>${WZ_ERR_HTML}`;
+  o.host.innerHTML=`<div class="field-grid" style="${(typeof FIELD_GRID_CSS==='string'?FIELD_GRID_CSS:'display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s-3)')};">${vars.map(wzFieldHtml).join('')}${wzContactPairHtml(prefill)}</div>${WZ_ERR_HTML}`;
   if(typeof bindFolderSelect==='function')
     vars.filter(v=>v.type==='stream').forEach(v=>{
       const el=document.getElementById('wz-'+String(v.key).replace(/[:]/g,'_'));
@@ -573,7 +596,7 @@ function wizardFormMount(o, tid, prefill){
       return { tid, vars, values }; };
     fillPreviewWire(o.root||o.host, 'builtin', readNow);
   }
-  return { create:()=>createFromWizard(tid, vars), skip:()=>createFromWizard(tid, vars, {skip:true}), count:vars.length+1, vars };
+  return { create:()=>createFromWizard(tid, vars), skip:()=>createFromWizard(tid, vars, {skip:true}), count:vars.length+2, vars };
 }
 
 /* ============================================================
@@ -1197,4 +1220,4 @@ function naPickFromDraft(pick, prefill){
   return true;
 }
 
-Object.assign(window,{openNewDoors,TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naCarryRead,naCarryWrite,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_RAIL_W,NA_ROWS_MIN_H,NA_ROWS_FOOT,NA_FRAME_NARROW_W});
+Object.assign(window,{openNewDoors,TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzContactHtml,wzContactPairHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naCarryRead,naCarryWrite,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_RAIL_W,NA_ROWS_MIN_H,NA_ROWS_FOOT,NA_FRAME_NARROW_W});

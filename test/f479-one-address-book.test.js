@@ -165,10 +165,13 @@ describe('f479 (4) the send screen picks from the book and adds to it', () => {
 });
 
 describe('f479 (5) every box goes through the one pair', () => {
+  /* RE-POINTED 13 Oct 2026 (THEIR CONTACT, ASKED BESIDE THEIR EMAIL): the
+     creation doors now hand the book the contact's name with the address, in
+     the same one call; still the one writer, still the main contact. */
   const sites = {
-    'js/wizard.js': /contactSet\(c,\{ main:true, email:cpEmail \}\)/,
-    'js/views/library.js': /contactSet\(c,\{ main:true, email:cpEmail \}\)/,
-    'js/templatefields.js': /window\.contactSet\(c,\{ main:true, email:em \}\)/,
+    'js/wizard.js': /contactSet\(c,\{ main:true, \.\.\.\(cpEmail\?\{ email:cpEmail \}:\{\}\), \.\.\.\(cpName\?\{ name:cpName \}:\{\}\) \}\)/,
+    'js/views/library.js': /contactSet\(c,\{ main:true, \.\.\.\(cpEmail\?\{ email:cpEmail \}:\{\}\), \.\.\.\(cpName\?\{ name:cpName \}:\{\}\) \}\)/,
+    'js/templatefields.js': /window\.contactSet\(c,\{ main:true, \.\.\.\(em\?\{ email:em \}:\{\}\), \.\.\.\(nm\?\{ name:nm \}:\{\}\) \}\)/,
     'js/views/handover.js': /_hoBookEmail\(c\)/,
     'js/family.js': /window\.contactSet\(c, \{ main:true, email:cpMail/,
     'js/approvals.js': /contactSet\(c, \{ role:'cpsign'/,
@@ -180,7 +183,7 @@ describe('f479 (5) every box goes through the one pair', () => {
   test('the Overview, the upload and the parties editor', () => {
     const CT = strip(read('js/views/contract.js'));
     assert.match(CT, /else if\(key==='cpEmail'\) ctSetTheirEmail\(c, inp\.value\)/);
-    assert.match(CT, /if\(cpEmail\) ctSetTheirEmail\(c, cpEmail\)/);
+    assert.match(CT, /if\(cpEmail\|\|cpName\) ctSetTheirEmail\(c, cpEmail, cpName\)/, 'the upload: address and name, one call');
     assert.match(CT, /ctSetTheirEmail\(c, next\.email, null, next\.id\)/);
     const rest = CT.replace(/function ctSetTheirEmail\([\s\S]*?\n\}/, '');
     assert.ok(!/c\.counterpartyEmail=/.test(rest), 'no box in the room writes the mirror by hand');

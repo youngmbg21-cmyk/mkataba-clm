@@ -22983,6 +22983,10 @@ app.post('/api/templates/:id/contracts', auth, editor, (req, res) => {
        beside the questions draws them from the same resolution. */
     ...(clean(b.party) ? { party: clean(b.party).slice(0, 120) } : {}),
     counterpartyEmail: /.+@.+\..+/.test(String(b.counterpartyEmail || '')) ? clean(b.counterpartyEmail).slice(0, 160) : '',
+    /* THEIR CONTACT, asked beside their email (13 Oct 2026, phase 1 item 6):
+       the person's name, which the browser's address book adopts on arrival
+       with the address (contactAdopt). Absent where the box was left empty. */
+    ...(clean(b.counterpartyName) ? { counterpartyName: clean(b.counterpartyName).slice(0, 120) } : {}),
     value: Number(b.value) > 0 ? Number(b.value) : 0,
     /* ---- A VALUE LEFT EMPTY IS NOT "NO MONEY PASSES" (Young's go, 23 Sep 2026) ----
        The recommendation the owner approved: "Non-monetary" should never

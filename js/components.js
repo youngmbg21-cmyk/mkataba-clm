@@ -168,7 +168,7 @@ Object.assign(window,{ICONS,icon,plusLed,JAMBO_FACE,jamboFaceHtml,jamboFacePaint
    outranks: their background reads `var(--need-bg, var(--color-surface))`.
    On the paper and in Complete the details the same amber comes from the
    record's own reading (.cd-fld.is-open), never from this. */
-const NEED_NEVER = new Set(['party', 'cpemail', 'cpEmail', 'expiry', 'side', 'folder', 'stream']);
+const NEED_NEVER = new Set(['party', 'cpemail', 'cpEmail', 'cpname', 'expiry', 'side', 'folder', 'stream']);
 const NEED_BG = 'var(--need-bg,var(--color-surface))';
 function needKind(f){
   if (!f || f.type === 'stream') return '';

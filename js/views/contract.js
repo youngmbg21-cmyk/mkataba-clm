@@ -1673,6 +1673,9 @@ function uploadConfirmHtml(ext, meta){
         <datalist id="up-party-list">${uploadPartyOptions().map(p=>`<option value="${attr(p)}"></option>`).join('')}</datalist>
         ${fld('up-cp','Received from (counterparty)',{value:has('counterparty')?m.counterparty:'', ph:'e.g. Acme Ltd', read:has('counterparty'), foundKey:'counterparty'})}
         ${fld('up-cpemail','Their email (so you can send it back)',{ph:'them@company.co.ke', type:'email', sub:ext?'the one thing a document never carries — add it and the first send is one click':''})}
+        ${''/* THEIR CONTACT (13 Oct 2026, phase 1 item 6), under the pair it
+               belongs to: "Received from" stays level with their email. */}
+        ${fld('up-cpname',i18t('wz_their_contact'),{ph:i18t('wz_their_contact_ph')})}
       </div>
       <div class="grid sm:grid-cols-2 gap-2 mb-3 up-grid">
         ${cell(i18t('ct_file_under'),
@@ -1943,6 +1946,8 @@ async function submitUpload(){
   const party=fval('up-party');
   const cpEmail=fval('up-cpemail');
   if(cpEmail && !/.+@.+\..+/.test(cpEmail)){ toast(`"${cpEmail}" is not an email address`,'err'); return; }
+  /* THEIR CONTACT, asked beside their email (13 Oct 2026, phase 1 item 6). */
+  const cpName=fval('up-cpname').slice(0,120);
   const name=fval('up-name')||_ctFileTitle(file.name);
   const folder=document.getElementById('up-folder').value;
   const vtype=document.getElementById('up-vtype').value;
@@ -2025,8 +2030,9 @@ async function submitUpload(){
     if(body && body.replace(/<[^>]*>/g,'').trim()){ c.redlineText=body; c.format='rich'; }
   }
   c._loaded=true; c._light=false; c._v=0;
-  /* THEIR ADDRESS GOES INTO THE ADDRESS BOOK, through the one writer. */
-  if(cpEmail) ctSetTheirEmail(c, cpEmail);
+  /* THEIR ADDRESS GOES INTO THE ADDRESS BOOK, through the one writer —
+     with the person's name where it was given (13 Oct 2026). */
+  if(cpEmail||cpName) ctSetTheirEmail(c, cpEmail, cpName);
   if(meta){
     const conf=meta.confidence||{};
     const out={ confidence:{} };

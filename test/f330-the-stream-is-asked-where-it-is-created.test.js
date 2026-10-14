@@ -242,7 +242,9 @@ describe('f330 (4) — every creation door asks where it is filed', () => {
     const src = strip(LIB);
     assert.match(src, /id="tf-folder"/, 'the box is drawn');
     assert.match(src, /bindFolderSelect\(document\.getElementById\('tf-folder'\)\)/, 'and wired');
-    assert.match(src, /buildFromCustomTemplate\(t, values, \{ counterpartyEmail:cpEmail\.trim\(\), party, folder(?:, side)? \}\)/,
+    /* RE-POINTED 13 Oct 2026 (phase 1 item 6): their contact's name rides
+       last on the same call; the three record facts are where they were. */
+    assert.match(src, /buildFromCustomTemplate\(t, values, \{ counterpartyEmail:cpEmail\.trim\(\), party, folder(?:, side)?(?:, counterpartyName:cpName)? \}\)/,
       'the answer travels with the other two record facts');
     assert.match(src, /folder:\(opts&&FOLDERS\[opts\.folder\]\) \? opts\.folder : \(FOLDERS\[t\.folder\]\?t\.folder:'corp'\)/,
       'the reader’s answer, else the template’s, else Other — one rung added on top');

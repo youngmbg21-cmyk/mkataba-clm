@@ -333,9 +333,12 @@ const check = (name, pass, detail) => {
      to answer. The seven are CONTRACT_ESSENTIALS, exactly as before. */
   /* RE-POINTED 11 Oct 2026: CONTRACT_ESSENTIALS gained "Our side" (ce-side,
      maps the category) — eight now; still exactly the essentials, nothing more. */
+  /* RE-POINTED 13 Oct 2026 (phase 1 item 6): CONTRACT_ESSENTIALS gained
+     "Their contact" (ce-cpname) beside their email — nine now; still exactly
+     the essentials, nothing more. */
   check('7c the questions are the basic entries, CONTRACT_ESSENTIALS and nothing more',
-    ['ce-party','ce-counterparty','ce-cpemail','ce-value','ce-side','ce-effDate','ce-expiry','ce-folder']
-      .every(id => std.boxes.includes(id)) && std.boxes.length === 8, std.boxes.join(','));
+    ['ce-party','ce-counterparty','ce-cpname','ce-cpemail','ce-value','ce-side','ce-effDate','ce-expiry','ce-folder']
+      .every(id => std.boxes.includes(id)) && std.boxes.length === 9, std.boxes.join(','));
   /* "N blanks left" counts empty ANSWERS; here the answers are record facts and
      the wording is already complete, so a count would be a number about the
      form printed on the paper. */
@@ -385,7 +388,8 @@ const check = (name, pass, detail) => {
       boxes: [...document.querySelectorAll('#modal-root input, #modal-root select')].map(e => e.id).filter(Boolean).length };
   });
   check('7g under 1000px the door is one column again, with the same questions',
-    narrow7.pane === false && narrow7.boxes === 8, JSON.stringify(narrow7));
+    /* nine since 13 Oct 2026: "Their contact" joined the essentials (7c) */
+    narrow7.pane === false && narrow7.boxes === 9, JSON.stringify(narrow7));
   await page.evaluate(() => { if (window.closeModal) closeModal(); });
 
   check('no page errors', errors.length === 0, errors.slice(0, 2).join(' | '));
