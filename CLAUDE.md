@@ -415,7 +415,7 @@ Tests: f96, f238, f310, f312, f377, f385, f386, f458 (9), contrast, button-consi
 
 ## TWO LANGUAGES ≠ TWO MARKETS
 
-LANGUAGE is the person's (js/i18n.js); MARKET is the company's (js/jurisdiction.js). Months follow the language (`langLocale()`), numbers the market; CONTRACT TEXT IS NEVER TRANSLATED. `i18t()`/`i18tn()`, never `t()`, never inside a regex, never branch on translated words; `srvMsg` translates a server sentence. Tests: f148.
+LANGUAGE is the person's (js/i18n.js); MARKET is the company's (js/jurisdiction.js). Months follow the language (`langLocale()`), numbers the market; CONTRACT TEXT IS NEVER TRANSLATED. `i18t()`/`i18tn()`, never `t()`, never inside a regex, never branch on translated words; `srvMsg` translates a server sentence; ordinals `i18ord` (`ord_*`). The signing screen reads `sgx_*`; the market's law line keeps its own. Tests: f148, f677, signing-screen-svenska-verify.
 
 ## WHAT COUNTS AS A CLAUSE (js/clausemodel.js)
 

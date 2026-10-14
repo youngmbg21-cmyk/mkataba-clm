@@ -2212,7 +2212,10 @@ function signerRouteHtml(c, opts){
     const sorted=plan.slice().sort((a,b)=>a.order-b.order);
     const ns=nextSigner(c);
     const signedCount=sorted.filter(s=>s.signed).length;
-    const ord=n=>{ const t=['th','st','nd','rd'], v=n%100; return n+(t[(v-20)%10]||t[v]||t[0]); };
+    /* in the reader's language ("1st" · "1:a"), 14 Oct 2026 */
+    const ord=n=>(window.i18ord?i18ord(n):String(n));
+    const formWord=f=>(window.sigFormWord?sigFormWord(f):f+' signature');
+    const partyWord=p=>{ const k='sgx_party_'+p, v=i18t(k); return v===k?String(p||''):v; };
     /* ---- THE STEPS, DRAWN ONLY WHERE THERE ARE ANY ----
        A route whose every step holds one row is the strict queue this card has
        always drawn, and it draws NO headings — so nothing on file moved. The
@@ -2262,7 +2265,7 @@ function signerRouteHtml(c, opts){
     html+=`<div class="${bare?'':'rounded-xl border border-line bg-white p-3 mb-2'}">
       ${bare?'':`<div class="flex items-center gap-2 mb-2"><span class="text-[11px] font-600 text-ink">${i18t('ap_signature_progress')}</span>
         <span class="text-[9.5px] font-mono px-1.5 py-0.5 rounded-full ${signedCount===sorted.length?'bg-brand-50 text-brand-600':'bg-gold-50 text-gold-700'}">${i18t('ap_n_signed',{done:signedCount,total:sorted.length})}</span>
-        ${canEdit()&&c.status!=='Signed'?`<button id="sp-edit" type="button" class="ui-link" style="margin-left:auto">edit route</button>`:''}</div>`}
+        ${canEdit()&&c.status!=='Signed'?`<button id="sp-edit" type="button" class="ui-link" style="margin-left:auto">${i18t('sgx_edit_route')}</button>`:''}</div>`}
       <div class="relative">
         ${sorted.map((s,i)=>{
           /* ---- WHOSE TURN IS A STEP, NOT A ROW (22 Sep 2026) ----
@@ -2292,46 +2295,46 @@ function signerRouteHtml(c, opts){
              question, and offers the same deliberate resend beside it. */
           const nst=(s.party!=='counterparty') ? signerNoticeState(c,s) : 'link';
           const notice=mine=>({
-            notified:`${ord(mine.order)} · their turn now — told by email`,
-            'notify-failed':`${ord(mine.order)} · their turn now — the email did not go, resend it below`,
-            outbox:`${ord(mine.order)} · their turn now — ${i18t('sp_notice_outbox')}`,
-            'no-address':`${ord(mine.order)} · their turn now — no email address on file, so they cannot be told`,
-            untold:`${ord(mine.order)} · their turn now — not told yet`,
+            notified:`${ord(mine.order)} · ${i18t('sgx_n_told')}`,
+            'notify-failed':`${ord(mine.order)} · ${i18t('sgx_n_failed')}`,
+            outbox:`${ord(mine.order)} · ${i18t('sgx_n_outbox',{outbox:i18t('sp_notice_outbox')})}`,
+            'no-address':`${ord(mine.order)} · ${i18t('sgx_n_noaddr')}`,
+            untold:`${ord(mine.order)} · ${i18t('sgx_n_untold')}`,
           })[nst]||null;
           const meta=s.signed
-            ? `${ord(s.order)} · ${s.at?fmtDT(s.at):''}${s.signature&&s.signature.form?' · '+s.signature.form+' signature':''}`
+            ? `${ord(s.order)} · ${s.at?fmtDT(s.at):''}${s.signature&&s.signature.form?' · '+formWord(s.signature.form):''}`
             : theySign ? `${ord(s.order)} · ${i18t(s.party==='counterparty'?'ho_row_theirs':'ho_row_ours')}`
             : saHold ? `${ord(s.order)} · ${i18t('sa_route_waits')}`
             : notice(s) ? notice(s)
-            : ls==='opened' ? `${ord(s.order)} · contract opened — awaiting their signature`
-            : ls==='sent' ? `${ord(s.order)} · contract sent — not opened yet`
-            : ls==='failed' ? `${ord(s.order)} · the automatic email did not go — resend it below`
+            : ls==='opened' ? `${ord(s.order)} · ${i18t('sgx_m_opened')}`
+            : ls==='sent' ? `${ord(s.order)} · ${i18t('sgx_m_sent')}`
+            : ls==='failed' ? `${ord(s.order)} · ${i18t('sgx_m_failed')}`
             : ls==='outbox' ? `${ord(s.order)} · ${i18t('sp_link_outbox')}`
-            : ls==='held' ? `${ord(s.order)} · link ready — it goes out when their turn arrives`
-            : gated ? `${ord(s.order)} · link opens once internal signing is complete`
+            : ls==='held' ? `${ord(s.order)} · ${i18t('sgx_m_held')}`
+            : gated ? `${ord(s.order)} · ${i18t('sgx_m_gated')}`
             : ls==='unsent' ? (isCur
-                ? `${ord(s.order)} · not sent yet — send the contract to start their turn`
-                : `${ord(s.order)} · waiting — link not issued yet`)
-            : isCur ? `${ord(s.order)} · their turn now`
-            : `${ord(s.order)} · waiting`;
+                ? `${ord(s.order)} · ${i18t('sgx_m_unsent_now')}`
+                : `${ord(s.order)} · ${i18t('sgx_m_unsent')}`)
+            : isCur ? `${ord(s.order)} · ${i18t('sgx_m_turn')}`
+            : `${ord(s.order)} · ${i18t('sgx_m_wait')}`;
           const tag=(cls,txt)=>`<span class="text-[8.5px] font-mono px-1 py-px rounded ${cls}">${txt}</span>`;
           /* WHILE THE APPROVAL HOLDS, NOBODY'S TURN HAS COME: no "signing now",
              no "not sent yet", no stale email verdict — the meta line says the
              row waits, and that is the whole of it. */
           const badge=s.signed ? ''
             : (saHold||theySign) ? ''
-            : nst==='notified' ? tag('bg-gold-100 text-gold-700','TOLD')
-            : nst==='notify-failed' ? tag('bg-rose-50 text-rose-600','EMAIL FAILED')
-            : nst==='outbox' ? tag('bg-slate-100 text-ink/50','IN OUTBOX')
-            : nst==='no-address' ? tag('bg-rose-50 text-rose-600','NO ADDRESS')
-            : nst==='untold' ? tag('bg-gold-100 text-gold-700','SIGNING NOW')
-            : ls==='opened' ? tag('bg-gold-100 text-gold-700','OPENED')
-            : ls==='sent' ? tag('bg-gold-100 text-gold-700','SENT')
-            : ls==='failed' ? tag('bg-rose-50 text-rose-600','SEND FAILED')
-            : ls==='outbox' ? tag('bg-slate-100 text-ink/50','IN OUTBOX')
-            : ls==='held' ? tag('bg-slate-100 text-ink/50','LINK READY')
-            : (ls==='unsent'&&isCur&&!gated) ? tag('bg-rose-50 text-rose-600','NOT SENT YET')
-            : (ls==='unknown'||ls==='internal')&&isCur ? tag('bg-gold-100 text-gold-700','SIGNING NOW') : '';
+            : nst==='notified' ? tag('bg-gold-100 text-gold-700',i18t('sgx_b_told'))
+            : nst==='notify-failed' ? tag('bg-rose-50 text-rose-600',i18t('sgx_b_mailfail'))
+            : nst==='outbox' ? tag('bg-slate-100 text-ink/50',i18t('sgx_b_outbox'))
+            : nst==='no-address' ? tag('bg-rose-50 text-rose-600',i18t('sgx_b_noaddr'))
+            : nst==='untold' ? tag('bg-gold-100 text-gold-700',i18t('sgx_b_now'))
+            : ls==='opened' ? tag('bg-gold-100 text-gold-700',i18t('sgx_b_opened'))
+            : ls==='sent' ? tag('bg-gold-100 text-gold-700',i18t('sgx_b_sent'))
+            : ls==='failed' ? tag('bg-rose-50 text-rose-600',i18t('sgx_b_sendfail'))
+            : ls==='outbox' ? tag('bg-slate-100 text-ink/50',i18t('sgx_b_outbox'))
+            : ls==='held' ? tag('bg-slate-100 text-ink/50',i18t('sgx_b_ready'))
+            : (ls==='unsent'&&isCur&&!gated) ? tag('bg-rose-50 text-rose-600',i18t('sgx_b_unsent'))
+            : (ls==='unknown'||ls==='internal')&&isCur ? tag('bg-gold-100 text-gold-700',i18t('sgx_b_now')) : '';
           return stepHead+`<div class="flex gap-3 ${i<sorted.length-1?'pb-3':''} relative">
             ${i<sorted.length-1?`<span class="absolute left-[13px] top-7 bottom-0 w-0.5 ${s.signed?'bg-brand-500':'bg-slate-200'}"></span>`:''}
             ${node(st, s.signed?'✓':String(s.order))}
@@ -2340,12 +2343,12 @@ function signerRouteHtml(c, opts){
                 <span class="text-[12.5px] font-600 ${s.signed?'text-ink':'text-ink/70'}">${(s.name||'').replace(/</g,'&lt;')}</span>
                 ${s.role?`<span class="text-[10.5px] text-ink/50">· ${s.role.replace(/</g,'&lt;')}</span>`:''}
                 ${orgOf(s)?`<span class="text-[10.5px] text-ink/60">· ${esc1(orgOf(s))}</span>`:''}
-                <span class="text-[8.5px] font-mono px-1 py-px rounded ${s.party==='counterparty'?'bg-gold-50 text-gold-700':'bg-brand-50 text-brand-600'}">${s.party}</span>
+                <span class="text-[8.5px] font-mono px-1 py-px rounded ${s.party==='counterparty'?'bg-gold-50 text-gold-700':'bg-brand-50 text-brand-600'}">${esc1(partyWord(s.party))}</span>
                 ${badge}
               </div>
               <div class="text-[10px] font-mono text-ink/45 mt-0.5">${meta}</div>
               ${(!s.signed&&!theySign&&s.party==='counterparty'&&(ls==='unsent'||ls==='failed')&&!gated&&canEdit())
-                ? `<button data-sp-send="${String(s.id).replace(/"/g,'&quot;')}"${sendNo?` disabled aria-disabled="true" title="${esc1(sendNo)}"`:''} class="ui-btn ui-btn-sm mt-1${sendNo?' opacity-50 cursor-not-allowed':''}">${ls==='failed'?'Resend their signing link':'Email their signing link'}</button>`
+                ? `<button data-sp-send="${String(s.id).replace(/"/g,'&quot;')}"${sendNo?` disabled aria-disabled="true" title="${esc1(sendNo)}"`:''} class="ui-btn ui-btn-sm mt-1${sendNo?' opacity-50 cursor-not-allowed':''}">${i18t(ls==='failed'?'sgx_resend_link':'sgx_email_link')}</button>`
                 : ''}
               ${''/* THE INTERNAL ROW'S OWN DOOR. A resend is a deliberate act
                      with a visible result, never a silent retry — so it is
@@ -2359,9 +2362,9 @@ function signerRouteHtml(c, opts){
               ${(!s.signed&&!theySign&&s.party!=='counterparty'&&canEdit()&&!saHold
                  &&['notified','notify-failed','untold','outbox'].includes(nst))
                 ? `<button data-sp-notify="${String(s.id).replace(/"/g,'&quot;')}" class="ui-btn ui-btn-sm mt-1">${
-                    nst==='untold'?'Tell them it is their turn'
-                    : (nst==='notify-failed'||nst==='outbox')?'Try the email again'
-                    : 'Remind them'}</button>`
+                    i18t(nst==='untold'?'sgx_tell'
+                    : (nst==='notify-failed'||nst==='outbox')?'sgx_retry_mail'
+                    : 'sgx_remind')}</button>`
                 : ''}
             </div></div>`; }).join('')}
       </div>

@@ -20754,3 +20754,9 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - The brain's "inline" part (rlInlineSave, "click in a clause on Negotiate and type") works only on the Negotiate page opened by name; Home's paper has no inline typing, and the brain's "mistake" flow still names it.
 - In Svenska, the Sign button's list still says "The next signature is <name>'s, and they sign on their own link — not here." in English (the 'turn' rows in signBlockers are English literals), and the signing copy's "partially signed" stamp and "The marks below are already on this contract…" are English too.
 - Outside the plan's own words the Swedish book still mixes "pappret" (about 35 places) with "papperet", and writes "på Tavlan" twice where it otherwise says "på tavlan".
+
+### Noticed, not fixed (14 Oct 2026, the signing screen in Svenska)
+- The send screen's readiness list still has English rows the signing screen never shows: "No expiry or term end is recorded…", "No effective date is recorded.", "This contract is still a Draft.", and the approval rows (contractReadiness), and core.js's "Internal approval is outstanding: … This contract cannot go out for signature" on the send door.
+- The server's own refusals reach a Swedish screen in English (srvMsg passes unknown sentences through): e.g. "Internal approval is outstanding: …" (POST /api/shares) and every "… in Before you sign first." refusal.
+- The signature pad's image errors ("Could not read that image", "Could not read that file") are English literals in js/signature.js.
+- With an approval rule on, the rule's own name reads "Value ≥ KES 5M" in Swedish too — the default rule is stored with an English name.

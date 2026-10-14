@@ -3882,15 +3882,15 @@ function externalExecutionBlock(c){
           <div class="flex items-center gap-2"><span class="font-display font-700 text-[17px] text-ink">${i18t('ct_executed_outside_hati')}</span>${statusChip('Signed')}</div>
           <div class="mt-1 text-xs text-brand-800/60">${i18t('ct_signed_before_migration')} <strong>${i18t('ct_no_esig_here')}</strong> ${i18t('ct_sigs_on_original')}</div>
           <div class="mt-3 grid sm:grid-cols-2 gap-3 text-xs">
-            ${cell('Filed into HaTi by', filedBy, filedAt)}
-            ${cell('Executed on (as recorded)', (window.contractSignedLabel?contractSignedLabel(c):c.signedAt)||'—', 'from the migrated record, not verified by HaTi')}
+            ${cell(i18t('sgx_filed_by'), filedBy, filedAt)}
+            ${cell(i18t('sgx_exec_on'), (window.contractSignedLabel?contractSignedLabel(c):c.signedAt)||'—', i18t('sgx_exec_on_sub'))}
           </div>
           <div class="mt-3 rounded-lg bg-brand-900 p-3 font-mono text-[11px] leading-relaxed">
-            <div class="flex items-center gap-1.5 text-gold-400 mb-1">${icon('hash','w-3 h-3')} ORIGINAL FILE FINGERPRINT (SHA-256)</div>
+            <div class="flex items-center gap-1.5 text-gold-400 mb-1">${icon('hash','w-3 h-3')} ${i18t('sgx_orig_fp')}</div>
             <div class="text-brand-100 break-all">${u.fileHash||'—'}</div>
-            <div class="text-brand-300 mt-1.5">${u.fileName||'original document'}</div>
+            <div class="text-brand-300 mt-1.5">${u.fileName||i18t('sgx_orig_doc')}</div>
           </div>
-          <div class="mt-2 text-[10px] text-brand-800/60 leading-snug">For a migrated contract this fingerprint is the evidence of record — it proves the stored file has not changed since it was filed. It is not a signature and identifies no signer.</div>
+          <div class="mt-2 text-[10px] text-brand-800/60 leading-snug">${i18t('sgx_migrated_note')}</div>
         </div>
       </div>
     </div>`;
@@ -3907,7 +3907,7 @@ function signatureBlock(c){
   if(locked){
     const hashDisplay=c.hash&&c.hash!=='PRE-SEEDED'?c.hash:('sample-'+generatePseudo(c.id).slice(0,32));
     const sigs=(c.signatures||[]);
-    const partyLabel=s=> s.party==='counterparty'?'Counterparty' : s.party==='first'?'First party' : (s.role||'Signer');
+    const partyLabel=s=> s.party==='counterparty'?i18t('sgx_pl_cp') : s.party==='first'?i18t('sgx_pl_first') : (s.role||i18t('sgx_pl_signer'));
     /* The face of a signed document carries WHO signed, HOW, and WHEN. The
        signer's IP address and browser are evidence about the act, not part of
        the agreement, and they are on the document face where every reader —
@@ -3925,13 +3925,13 @@ function signatureBlock(c){
        where it IS one (sigImageSrc) — a counterparty's signature arrives down a
        public route (26 Sep 2026, the overnight clean-up). asWord's span is
        markup of this file's own and is the one part left as it is. */
-    const sub=s=>`<div class="text-[10px] text-brand-800/65 font-normal leading-snug">${[esc(s.email||''),s.form?esc(s.form)+' signature':esc(s.method||''),asWord(s),s.at?esc(fmtDT(s.at)):''].filter(Boolean).join(' · ')}</div>`;
+    const sub=s=>`<div class="text-[10px] text-brand-800/65 font-normal leading-snug">${[esc(s.email||''),s.form?esc(window.sigFormWord?sigFormWord(s.form):s.form+' signature'):esc(s.method||''),asWord(s),s.at?esc(fmtDT(s.at)):''].filter(Boolean).join(' · ')}</div>`;
     const card=s=>{ const img=(window.sigImageSrc?sigImageSrc(s.image):''); return `<div class="rounded-lg bg-white border border-brand-100 p-2.5">
       <div class="text-brand-800/65 text-[10px] mb-1 flex items-center gap-1">${icon(s.party==='counterparty'?'users':'finger','w-3 h-3')} ${partyLabel(s)}</div>
-      ${img?`<img src="${img}" alt="signature of ${esc(s.name||'')}" style="height:40px;max-width:190px;object-fit:contain;margin:2px 0 5px"/>`:''}
+      ${img?`<img src="${img}" alt="${esc(i18t('sgx_sig_of',{name:s.name||''}))}" style="height:40px;max-width:190px;object-fit:contain;margin:2px 0 5px"/>`:''}
       <div class="font-medium text-brand-700">${(s.name||'').replace(/</g,'&lt;')}${signatureCapacity(s)?', '+signatureCapacity(s).replace(/</g,'&lt;'):''}</div>${sub(s)}</div>`; };
     const sigList = sigs.length ? sigs.map(card).join('')
-      : `<div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/60 text-xs">${c.signatory?('Signed by '+c.signatory):'Not recorded'}</div></div>`;
+      : `<div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/60 text-xs">${esc(c.signatory?i18t('sgx_signed_by',{name:c.signatory}):i18t('sgx_not_recorded'))}</div></div>`;
     return `
     <div class="seal-in mt-8 rounded-2xl elev-3 bg-gradient-to-br from-brand-50 to-white p-6">
       <div class="flex items-start gap-4">
@@ -3950,9 +3950,9 @@ function signatureBlock(c){
           <div class="mt-3 rounded-lg bg-brand-900 p-3 font-mono text-[11px] leading-relaxed">
             <div class="flex items-center gap-1.5 text-gold-400 mb-1">${icon('hash','w-3 h-3')} ${i18t('ct_document_seal')}</div>
             <div class="text-brand-100 break-all">${hashDisplay}</div>
-            <div class="text-brand-300 mt-1.5">${(window.contractSignedLabel?contractSignedLabel(c):c.signedAt)||'Timestamp recorded'}</div>
+            <div class="text-brand-300 mt-1.5">${(window.contractSignedLabel?contractSignedLabel(c):c.signedAt)||i18t('sgx_ts_recorded')}</div>
           </div>
-          <div class="mt-2 text-[10px] text-brand-800/60 leading-snug">Signer identity is verified by account session (first party) and email one-time code (counterparty). Government IPRS identity and CAK-accredited PKI are on the roadmap and not yet active.</div>
+          <div class="mt-2 text-[10px] text-brand-800/60 leading-snug">${i18t('sgx_identity_note')}</div>
         </div>
       </div>
     </div>`;
@@ -3965,20 +3965,22 @@ function signatureBlock(c){
      still only applies when every party has signed. */
   const sofar=(c.signatures||[]);
   if(sofar.length){
-    const partyLabel=s=> s.party==='counterparty'?'Counterparty' : s.party==='first'?'First party' : (s.role||'Signer');
+    /* the reader's language (14 Oct 2026): this block is a status, not the
+       record — the executed card above, the sealed record, keeps its words */
+    const partyLabel=s=> s.party==='counterparty'?i18t('sgx_pl_cp') : s.party==='first'?i18t('sgx_pl_first') : (s.role||i18t('sgx_pl_signer'));
     const cap=s=>(window.signatureCapacity?signatureCapacity(s):(s.title||''))||'';
     /* Escaped, and the image drawn only where it is one — see the executed
        card above. */
     const card=s=>{ const img=(window.sigImageSrc?sigImageSrc(s.image):''); return `<div class="rounded-lg bg-white border border-brand-100 p-2.5">
       <div class="text-brand-800/65 text-[10px] mb-1">${partyLabel(s)}</div>
-      ${img?`<img src="${img}" alt="signature of ${esc(s.name||'')}" style="height:40px;max-width:190px;object-fit:contain;margin:2px 0 5px"/>`:''}
+      ${img?`<img src="${img}" alt="${esc(i18t('sgx_sig_of',{name:s.name||''}))}" style="height:40px;max-width:190px;object-fit:contain;margin:2px 0 5px"/>`:''}
       <div class="font-medium text-brand-700">${(s.name||'').replace(/</g,'&lt;')}${cap(s)?', '+cap(s).replace(/</g,'&lt;'):''}</div>
-      <div class="text-[10px] text-brand-800/65 font-normal leading-snug">${esc([s.email,s.form?s.form+' signature':s.method,s.at?fmtDT(s.at):''].filter(Boolean).join(' · '))}</div></div>`; };
+      <div class="text-[10px] text-brand-800/65 font-normal leading-snug">${esc([s.email,s.form?(window.sigFormWord?sigFormWord(s.form):s.form+' signature'):s.method,s.at?fmtDT(s.at):''].filter(Boolean).join(' · '))}</div></div>`; };
     return `
     <div class="mt-8 rounded-xl border border-brand-200 bg-brand-50/30 p-5" data-anchor="sig">
       <div class="flex items-center gap-2"><span class="text-sm font-semibold text-brand-800/80">${i18t('ct_sigs_so_far')}</span>
-        <span class="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-gold-50 text-gold-700">partially signed</span></div>
-      <div class="text-xs text-brand-800/65 mt-0.5 mb-3">The marks below are already on this contract. It is not yet fully executed — the seal is applied when every party has signed.</div>
+        <span class="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-gold-50 text-gold-700">${esc(i18t('sgx_partial'))}</span></div>
+      <div class="text-xs text-brand-800/65 mt-0.5 mb-3">${esc(i18t('sgx_partial_note'))}</div>
       <div class="grid sm:grid-cols-2 gap-3 text-xs">${sofar.map(card).join('')}</div>
     </div>`;
   }
@@ -15831,7 +15833,7 @@ function renderSignButton(c){
     <button id="sign-btn" data-sign-holds="${holdsN}"${saAsk?' data-sa-ask-btn="1"':''} title="${esc(signTitle)}" class="ui-btn ui-btn-lg ${ready||saAsk?'ui-btn-primary':'sign-held'}" style="width:100%">
       ${icon(saAsk?'share':'finger','w-[18px] h-[18px]')} ${esc(signLabel)}
     </button>
-    ${ready?`<p class="mt-2 text-[11px] text-center text-brand-800/65">Freezes the exact text, applies a tamper-evident SHA-256 seal${planned?' when the last signer signs':''}.</p>`
+    ${ready?`<p class="mt-2 text-[11px] text-center text-brand-800/65">${esc(i18t(planned?'sgx_seal_line_planned':'sgx_seal_line'))}</p>`
            :`<p class="mt-2 text-[11px] text-center text-brand-800/65">${esc(i18t(saAsk?'sa_btn_ask_line':saWait?'sa_btn_wait_line':'sc_btn_held_line'))}</p>`}
     ${paperRoute}`;
   document.getElementById('sign-btn').addEventListener('click',()=>{
@@ -17337,11 +17339,11 @@ function signBlockers(c){
     if(ap && ap.required && nextRule){
       const refused=rules.filter(s=>s.status==='rejected')[0], stale=rules.filter(s=>s.status==='stale')[0];
       add('approval', refused
-          ? `Internal approval was refused${refused.by?` by ${refused.by}`:''} — “${refused.name}” is unresolved.`
+          ? (refused.by ? i18t('sgx_ap_refused_by',{by:refused.by,name:refused.name}) : i18t('sgx_ap_refused',{name:refused.name}))
           : stale
-          ? `“${stale.name}” was approved and the contract has changed since — it needs approving again.`
-          : `Internal approval is outstanding: “${nextRule.name}” is waiting on ${window.approverLabelOf?approverLabelOf(nextRule.approver):'an approver'}.`,
-        'approvals outstanding');
+          ? i18t('sgx_ap_stale',{name:stale.name})
+          : i18t('sgx_ap_waiting',{name:nextRule.name,who:window.approverLabelOf?approverLabelOf(nextRule.approver):i18t('sgx_an_approver')}),
+        i18t('sgx_ap_short'));
     }
   }catch(_){}
   if(!noSa) try{
@@ -17355,8 +17357,8 @@ function signBlockers(c){
     const plan=(window.signerPlan?signerPlan(c):[]);
     const ns=(window.nextSigner?nextSigner(c):null);
     if(plan.length && ns && ns.party!=='internal')
-      add('turn',`The next signature is ${ns.name}'s, and they sign on their own link — not here.`,
-        `waiting on ${ns.name}`);
+      add('turn',i18t('sgx_turn_link',{name:ns.name}),
+        i18t('sgx_turn_short',{name:ns.name}));
     /* …AND AN INTERNAL STEP IS SIGNED BY THE PERSON IT NAMES (26 Sep 2026, the
        overnight clean-up). The button stayed live for any colleague, the pad
        recorded the step's name, and the server refused the save as a
@@ -17369,8 +17371,8 @@ function signBlockers(c){
       const mine=!!me && (ns.memberId ? String(ns.memberId)===String(me.id)
         : ns.email ? mail(ns.email)===mail(me.email)
         : String(ns.name||'').trim()===String(me.name||'').trim());
-      if(me && !mine) add('turn',`The next signature is ${ns.name}'s — they sign it themselves, signed in as themselves.`,
-        `waiting on ${ns.name}`);
+      if(me && !mine) add('turn',i18t('sgx_turn_self',{name:ns.name}),
+        i18t('sgx_turn_short',{name:ns.name}));
     }
   }catch(_){}
   /* THE NEGOTIATION. A signature freezes the wording, and it does not go on top
@@ -17385,10 +17387,10 @@ function signBlockers(c){
   try{
     const hasTable=!!(c.negotiation||(Array.isArray(c.changes)&&c.changes.length));
     const nb=(hasTable&&window.negoSigningBlockers?negoSigningBlockers(c)
-      :((window.unresolvedRedlines&&unresolvedRedlines(c))?[`${unresolvedRedlines(c)} proposed edit(s) from the counterparty are still open`]:[]));
+      :((window.unresolvedRedlines&&unresolvedRedlines(c))?[i18t('sgx_cp_edits_open',{n:unresolvedRedlines(c)})]:[]));
     if(nb.length) add('negotiation',
-      `${nb.join('; ')}. Settle the negotiation first: every change has to be accepted, or refused and withdrawn.`,
-      'the negotiation is not settled');
+      i18t('sgx_nego_settle',{list:nb.join('; ')}),
+      i18t('sgx_nego_short'));
   }catch(_){}
   /* ---- NOBODY NAMED TO SIGN (13 Sep 2026) ----
      Naming the signers is what opens signing (11 Aug 2026): the share dialog,
@@ -17403,9 +17405,9 @@ function signBlockers(c){
   /* THE BLANKS — and only these three wear the "fill these in" sentence. */
   const readiness=(window.contractReadiness?contractReadiness(c):[]);
   for(const b of readiness.filter(x=>x.severity==='block'&&READINESS_FIELD_KEYS.includes(x.key)))
-    add(b.key, b.label, b.key==='counterparty'?'add the counterparty'
-      : b.key==='value'?'add the contract value'
-      : b.key==='blanks'?i18t('sc_short_blanks') : 'fill the blanks in the wording',
+    add(b.key, b.label, b.key==='counterparty'?i18t('sgx_short_cp')
+      : b.key==='value'?i18t('sgx_short_value')
+      : b.key==='blanks'?i18t('sc_short_blanks') : i18t('sgx_short_blanks'),
       Array.isArray(b.fields)?{ fields:b.fields.slice() }:null);
   /* ---- A BLANK STILL IN THE AGREED WORDS (26 Sep 2026, redline here, sign
      there) ----
@@ -17425,8 +17427,8 @@ function signBlockers(c){
     if(c.templateForm && window.templateFormProblems){
       const probs=templateFormProblems(c.templateForm);
       if(probs.length) add('fields',
-        `${probs.length} field${probs.length===1?' needs':'s need'} attention first: ${probs.slice(0,3).map(p=>p.label).join(', ')}${probs.length>3?'…':''}`,
-        'fill the remaining fields');
+        i18tn('sgx_fields',probs.length,{n:probs.length,list:probs.slice(0,3).map(p=>p.label).join(', ')+(probs.length>3?'…':'')}),
+        i18t('sgx_fields_short'));
     }
   }catch(_){}
   /* Answers kept but not yet put into the wording — see tplFormPending. */
@@ -17540,8 +17542,8 @@ async function signDocument(c){
   // mark; the seal is applied only when the last signature lands.
   const plan=signerPlan(c), ns=nextSigner(c);
   if(plan.length && ns){
-    if(ns.party!=='internal'){ toast(`Next signer is ${ns.name} (counterparty) — share the link to collect their signature`,'err'); return; }
-    if(ns.memberId && u && u.id!==ns.memberId){ toast(`This step is reserved for ${ns.name}. Sign in as ${ns.name} to sign here.`,'err'); return; }
+    if(ns.party!=='internal'){ toast(i18t('sgx_next_cp',{name:ns.name}),'err'); return; }
+    if(ns.memberId && u && u.id!==ns.memberId){ toast(i18t('sgx_reserved',{name:ns.name}),'err'); return; }
     const sig=await captureSignature(ns.name);   // free choice: draw / type / upload
     if(!sig) return;                              // signer cancelled the pad
     signConsentStamp(c,sig);
@@ -17587,21 +17589,21 @@ async function signDocument(c){
         try{ out=window.issueSigningRouteLinks ? await issueSigningRouteLinks(c) : null; }catch(e){ out=null; }
         if(out && out.links){
           const first=out.links.find(x=>!x.heldForTurn);
-          toast(`Internal signing complete — ${first&&first.emailSent
-            ? `${first.signer.name} has been emailed their own signing link`
-            : 'the signing links are issued from the route'}${out.links.length>1?'; the rest release automatically as each signer signs':''}`,'ok');
+          toast((first&&first.emailSent
+            ? i18t('sgx_int_done_mailed',{name:first.signer.name})
+            : i18t('sgx_int_done_route'))+(out.links.length>1?i18t('sgx_int_done_rest'):''),'ok');
           renderSignButton(c); renderAuditSection(c);
         } else {
           if(out && out.refused)
             toast(out.refused,'warn');
           else if(out && out.missingEmails)
-            toast(`The signing route has no email address for ${out.missingEmails.map(s=>s.name).join(', ')} — add it, or share a link by hand`,'err');
+            toast(i18t('sgx_no_email',{names:out.missingEmails.map(s=>s.name).join(', ')}),'err');
           else
             toast(i18t('ct_internal_complete'),'ok');
           setTimeout(()=>{ try{ openShareModal(c); }catch(e){} },500);
         }
       } else {
-        toast(`Recorded — ${signersRemaining(c)} signer(s) remaining`,'ok');
+        toast(i18t('sgx_recorded',{n:signersRemaining(c)}),'ok');
         notifyNextSigner(c, nxt);
       }
       return;
@@ -17676,8 +17678,8 @@ async function sealOnServer(c){
   if(c.status!=='Signed'){ toast(i18t('ct_signed_seal_pending'),'warn'); return; }
   const waiting = window.bothPartiesSigned && !bothPartiesSigned(c);
   toast(waiting
-    ? `Sealed with your signature — ${c.counterparty||'the counterparty'} still has to sign. Copies go out when their signature lands.`
-    : 'Signed & sealed — the exact text is frozen and fingerprinted', 'ok');
+    ? i18t('sgx_sealed_wait',{them:c.counterparty||i18t('sgx_the_cp')})
+    : i18t('sgx_sealed'), 'ok');
 }
 
 /* Open the free-choice signature pad; falls back to a metadata-only signature
@@ -17719,9 +17721,9 @@ async function attachPaperSignature(c, file, opts={}){
      a signature page is the same claim about the parties, and asked only about
      the old round model it let a room negotiation straight past. */
   const paperBlockers=(window.negoSigningBlockers?negoSigningBlockers(c):
-    (window.unresolvedRedlines&&unresolvedRedlines(c)?['there are still open proposed edits']:[]));
+    (window.unresolvedRedlines&&unresolvedRedlines(c)?[i18t('sgx_paper_open_edits')]:[]));
   if(paperBlockers.length){
-    toast(`${paperBlockers.join('; ')} — settle the negotiation before recording a signature`,'err'); return null; }
+    toast(i18t('sgx_paper_settle',{list:paperBlockers.join('; ')}),'err'); return null; }
   /* A signature on paper is still a signature (23 Sep 2026): where a personal
      approval is outstanding, recording one would be the way round it. The
      server refuses the same save. */
@@ -18016,7 +18018,7 @@ function distributionPanelHtml(c){
   const dot=st=>['delivered','queued','sent'].includes(st)?'var(--st-green-dot)'
     :['failed','bounced'].includes(st)?'var(--st-ruby-dot)'
     :st==='outbox'?'var(--st-amber-dot)':'#8a8f95';
-  const stTxt=st=>st==='delivered'?'Delivered':(st==='queued'||st==='sent')?'Sent':st==='failed'?'Failed':st==='bounced'?'Bounced':st==='mailto'?'Ready to email':st==='outbox'?'In outbox — email not set up':st;
+  const stTxt=st=>st==='delivered'?i18t('sgx_st_delivered'):(st==='queued'||st==='sent')?i18t('sgx_st_sent'):st==='failed'?i18t('sgx_st_failed'):st==='bounced'?i18t('sgx_st_bounced'):st==='mailto'?i18t('sgx_st_mailto'):st==='outbox'?i18t('sgx_st_outbox'):st;
   /* WHY NOTHING HAS GONE OUT YET, said before anyone has to wonder. The copy is
      held until every party has signed; a panel that simply showed the button
      and never fired it would read as a broken feature rather than a rule. */
@@ -18026,11 +18028,11 @@ function distributionPanelHtml(c){
     return `<div class="mt-2 rounded-xl border border-line bg-white p-3">
       <div class="text-[11px] font-600 text-ink mb-1">${i18t('ct_distribute_copies')}</div>
       <div class="text-[10.5px] text-ink/60 mb-2">${ex.fully
-        ? 'Email a sealed copy of the executed contract to every party for their records — the platform keeps the master copy.'
-        : `Held: only <b>${(ex.ourName||'one party').replace(/</g,'&lt;')}</b> has signed, so the copy is not going out. Both parties have to sign before the contract is shared. Sending now delivers a progress notice — who has signed, who has not — with no copy and no seal in it.`}</div>
+        ? i18t('sgx_copy_send_note')
+        : i18t('sgx_copy_held',{who:(ex.ourName||i18t('sgx_one_party')).replace(/&/g,'&amp;').replace(/</g,'&lt;')})}</div>
       <button style="width:100%" id="dist-send" class="${ex.fully?'ui-btn ui-btn-primary':'ui-btn'}">${icon('share','w-3.5 h-3.5')} ${ex.fully
-        ? 'Send signed copies to all parties'
-        : 'Send a progress notice to all parties'}</button>
+        ? i18t('sgx_copy_send')
+        : i18t('sgx_copy_notice')}</button>
     </div>`;
   }
   const rows=(d.recipients||[]).map(r=>`<div class="py-1 text-[11px]">
@@ -18045,7 +18047,7 @@ function distributionPanelHtml(c){
       <span class="text-[9px] font-mono text-ink/45 ml-auto">${d.at?fmtDT(d.at):''}</span></div>
     ${rows||`<div class="text-[10.5px] text-ink/50">${i18t('ct_no_recipients')}</div>`}
     ${d.error?`<div class="text-[10px] text-rose-600 mt-1">${String(d.error).replace(/</g,'&lt;')}</div>`:''}
-    ${canEdit()?`<button style="width:100%;margin-top:var(--s-2)" id="dist-send" class="ui-btn ui-btn-sm">${icon('share','w-3 h-3')} Send again</button>`:''}
+    ${canEdit()?`<button style="width:100%;margin-top:var(--s-2)" id="dist-send" class="ui-btn ui-btn-sm">${icon('share','w-3 h-3')} ${i18t('sgx_copy_again')}</button>`:''}
     ${!API_MODE()?`<div class="text-[9.5px] text-ink/45 mt-1.5">${i18t('ct_static_mode_email')}</div>`:''}
   </div>`;
 }

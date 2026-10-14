@@ -4412,21 +4412,18 @@ function negoBlockerClauses(list){
 function negoSigningBlockers(c){
   const out = [];
   const rounds = (window.unresolvedRedlines ? unresolvedRedlines(c) : 0);
-  if (rounds) out.push(`${rounds} proposed edit${rounds === 1 ? '' : 's'} from the counterparty`
-    + ` ${rounds === 1 ? 'is' : 'are'} still open`);
+  /* in the reader's language (14 Oct 2026): the signing screen reads these */
+  if (rounds) out.push(i18tn('sgx_nb_rounds', rounds, { n: rounds }));
   const a = negoAlignment(c);
   if (a.pending.length){
     const where = negoBlockerClauses(a.pending);
-    out.push(`${a.pending.length} change${a.pending.length === 1 ? '' : 's'}`
-      + ` ${a.pending.length === 1 ? 'has' : 'have'} not been answered`
-      + (where ? `, on ${where}` : ''));
+    out.push(i18tn('sgx_nb_pending', a.pending.length, { n: a.pending.length })
+      + (where ? i18t('sgx_nb_on', { where }) : ''));
   }
   if (a.contested.length){
     const where = negoBlockerClauses(a.contested);
-    out.push(`${a.contested.length} refused ask${a.contested.length === 1 ? '' : 's'}`
-      + ` ${a.contested.length === 1 ? 'is' : 'are'} still outstanding — the side that asked has not withdrawn`
-      + ` ${a.contested.length === 1 ? 'it' : 'them'}`
-      + (where ? `, on ${where}` : ''));
+    out.push(i18tn('sgx_nb_contested', a.contested.length, { n: a.contested.length })
+      + (where ? i18t('sgx_nb_on', { where }) : ''));
   }
   /* ---- AND CLOSING THE ROUND DOES NOT SETTLE A REFUSAL (audit finding 6) ----
      negoAlignment reads the LIVE c.changes, which negoAdvanceRound empties: it
@@ -4446,10 +4443,8 @@ function negoSigningBlockers(c){
   const seen = new Set(a.contested.map(x => String(x.id)));
   const buried = (window.negoOpenPoints ? negoOpenPoints(c) : [])
     .filter(p => p && !seen.has(String(p.id)));
-  if (buried.length) out.push(`${buried.length} refused ask${buried.length === 1 ? '' : 's'}`
-    + ` from an earlier round ${buried.length === 1 ? 'is' : 'are'} still outstanding —`
-    + ` closing a round does not withdraw ${buried.length === 1 ? 'it' : 'them'}`
-    + ` (${buried.map(x => '#' + x.id).join(', ')})`);
+  if (buried.length) out.push(i18tn('sgx_nb_buried', buried.length,
+    { n: buried.length, ids: buried.map(x => '#' + x.id).join(', ') }));
   return out;
 }
 /* What is stopping this, in words, for the disabled button to say. Never
