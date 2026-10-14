@@ -153,7 +153,11 @@ describe('f673 (2)(3) the face: one contract, Jambo\'s tab, counted with details
     /* never redrawn under the typing hand — while Fill in is still the face:
        a hand left in a box does not hold it once another tab is asked for
        (14 Oct 2026; uploaded-contract-fixed and pdf-structure caught it) */
-    assert.match(dock, /ae\.closest\('#ig-dock #pd-fillface'\)\?\(window\.pdFillShows&&pdFillShows\(\)\):ae\.closest\('#ig-dock #pd-fill'\)\)\) return;/);
+    /* and only while the face drawn is THIS contract's (stage 5): a door to
+       another contract's Fill in must not leave the last one's face standing */
+    assert.match(dock, /const ff=ae&&ae\.closest\?ae\.closest\('#ig-dock #pd-fillface'\):null;/);
+    assert.match(dock, /r\.getAttribute\('data-pd-ff'\)===pdFillFor\(\)/);
+    assert.match(dock, /\(ff\?\(window\.pdFillShows&&pdFillShows\(\)&&ffMine\(\)\):ae\.closest\('#ig-dock #pd-fill'\)\)\) return;/);
   });
 });
 

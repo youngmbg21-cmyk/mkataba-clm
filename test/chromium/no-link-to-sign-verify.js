@@ -224,13 +224,20 @@ const inRound = (id, name, cp) => {
       await page.waitForTimeout(3000);
       signed = await page.evaluate(async () => {
         const r = await api('contracts/MK-NS1/shares');
-        return { view: state.view, id: state.activeId, live: (r.shares || []).filter(s => s.purpose === 'sign' && !s.revokedAt).length,
+        /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+           Signing tab went home — the press now opens Jambo's Before you sign
+           face beside Home's paper, so "lands on the contract" reads the face's
+           contract (pdSignFor) and the paper's (pdContract), not the room's. */
+        const onPaper = (typeof pdContract === 'function' && pdContract()) || null;
+        return { view: state.view, id: (typeof pdSignFor === 'function' && pdSignFor()) || state.activeId,
+          paper: onPaper ? onPaper.id : null, face: !!document.querySelector('#pd-signface .pd-sf[data-pd-sf="MK-NS1"] #sign-wrap'),
+          live: (r.shares || []).filter(s => s.purpose === 'sign' && !s.revokedAt).length,
           sign: (r.reach || {}).sign || null, fresh: ((r.reach || {}).fresh || []).map(f => f.kind) };
       });
     }
     ok('2k the signing link goes on the panel\'s one press, the panel naming the signer whose turn it is', !!signAsk && !signAsk.asked && signAsk.named, JSON.stringify(signAsk));
     ok('2l it lands on the contract and the signing route issues a fresh link — the Signing tab\'s own act',
-      !!signed && signed.view === 'workspace' && signed.id === 'MK-NS1' && signed.live >= 1 && signed.sign === null && signed.fresh.includes('sign'),
+      !!signed && signed.view === 'dashboard' && signed.id === 'MK-NS1' && signed.paper === 'MK-NS1' && signed.face && signed.live >= 1 && signed.sign === null && signed.fresh.includes('sign'),
       JSON.stringify(signed));
     await page.screenshot({ path: path.join(OUT, 'signing-tab.png') });
 

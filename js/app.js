@@ -1138,6 +1138,12 @@ function setView(view){
     window.hbOpenCalendar();
     return;
   }
+  /* ---- THE NEGOTIATE PAGE FOLDED INTO HOME (the one-page Home plan, stage
+     5; the owner's yes to decision 1) ---- a negotiation this view would put
+     on its bench opens Jambo's Redlines face beside Home's paper instead,
+     decided before anything is drawn (rlHomeTakesIt); the list stays here. */
+  if(view==='redline' && typeof window!=='undefined' && typeof window.rlHomeTakesIt==='function'
+    && !(typeof window.mPhone==='function' && window.mPhone()) && window.rlHomeTakesIt()) return;
   /* ---- A CONTRACT JUST MADE OR UPLOADED LANDS ON HOME'S DOCUMENT, Jambo's
      panel on Fill in (the one-page Home plan, stage 2; owner, 14 Oct 2026):
      every creation site opens the room, so the room's door asks first —
@@ -2170,7 +2176,7 @@ function buildAlerts(){
       /* On a file they sign the next move is the handover, not a link. */
       const theySign=!!(window.signRouteOf&&signRouteOf(c)==='outside');
       push('cp-ready',c,i18t('al_cp_ready'),
-        ()=>{ if(window.openWorkspace) openWorkspace(c.id); if(theySign&&window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} },
+        ()=>{ if(theySign&&window.roomOpenAt){ roomOpenAt(c.id,'sign'); return; } if(window.openWorkspace) openWorkspace(c.id); if(theySign&&window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} },
         theySign?{ news, sub:i18t('ho_al_ready_sub') }:{ news });
     });
   }
@@ -2188,7 +2194,7 @@ function buildAlerts(){
       if(ready) return;
       const who=String(a.by||'').trim()||c.counterparty||i18t('home_no_counterparty');
       push('cp-accepted',c,i18t('al_cp_accepted'),
-        ()=>{ if(window.openWorkspace) openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} },
+        ()=>{ if(window.roomOpenAt) roomOpenAt(c.id,'sign'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} } },
         { sub:i18t('al_cp_accepted_sub',{ who }) });
     });
   }
@@ -2209,7 +2215,7 @@ function buildAlerts(){
         : st==='stale'?i18t('al_ho_live',{ wait:i18tn('ho_days',n,{n}) })
         : (Number.isFinite(first)&&nowMs>=first)?i18t('al_ho_wait',{ wait }) : '';
       if(!text) return;
-      push('handover',c,text,()=>{ if(window.openWorkspace) openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} });
+      push('handover',c,text,()=>{ if(window.roomOpenAt) roomOpenAt(c.id,'sign'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} } });
     });
   }
   /* 1b. AN ANSWER FROM THE OTHER SIDE THAT THIS BROWSER CANNOT TAKE IN.
@@ -2353,7 +2359,7 @@ function buildAlerts(){
   if(D){
     /* rule 6 (8 Oct 2026): the bell opens it on Home's Paper, the pack on Signing */
     (D.myApprovals||[]).filter(x=>x.mine).forEach(x=>push('approval',x.c,
-      i18t('al_approval'),()=>{ if(window.pdOpenOnHome&&pdOpenOnHome(x.c.id,'sign')) return; openWorkspace(x.c.id); if(window.roomGoTab) try{ roomGoTab(x.c,'sign'); }catch(_){} }));
+      i18t('al_approval'),()=>{ if(window.pdOpenOnHome&&pdOpenOnHome(x.c.id,'sign')) return; if(window.roomOpenAt) roomOpenAt(x.c.id,'sign'); else { openWorkspace(x.c.id); if(window.roomGoTab) try{ roomGoTab(x.c,'sign'); }catch(_){} } }));
     /* AND A REFUSAL COMES BACK TO THE PERSON WHO ASKED (23 Sep 2026): the
        approval before signing was refused, and the reason is on the Signing
        tab. Read off their own contracts' rows above — nothing new is walked. */
@@ -2362,7 +2368,7 @@ function buildAlerts(){
       const bad=((x.st&&x.st.chain)||[]).find(s=>s.sa&&s.status==='rejected'&&s.req&&s.req.askedBy
         &&meNow&&String(s.req.askedBy.id)===String(meNow.id));
       if(bad) push('approval',x.c,i18t('al_sa_refused',{who:bad.by||''}),
-        ()=>{ openWorkspace(x.c.id); if(window.roomGoTab) try{ roomGoTab(x.c,'sign'); }catch(_){} });
+        ()=>{ if(window.roomOpenAt) roomOpenAt(x.c.id,'sign'); else { openWorkspace(x.c.id); if(window.roomGoTab) try{ roomGoTab(x.c,'sign'); }catch(_){} } });
     });
     /* ---- AND A REFUSED RULE STEP IS THE OWNER'S TO REVISE (B5) ---- */
     if(meNow) cs.forEach(c=>{
@@ -2371,7 +2377,7 @@ function buildAlerts(){
       const bad=(Array.isArray(c.approvalChain)?c.approvalChain:[]).find(s=>s&&s.status==='rejected');
       if(!bad) return;
       push('ap-refused',c,i18t('al_ap_refused',{ step:bad.name||'', who:bad.by||'' }),
-        ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} },
+        ()=>{ if(window.roomOpenAt) roomOpenAt(c.id,'sign'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} } },
         bad.comment?{ sub:'“'+String(bad.comment).slice(0,140)+'”' }:undefined);
     });
     /* ---- AND WHEN THE LAST RULE STEP IS GIVEN, THE OWNER IS TOLD ----
@@ -2386,7 +2392,7 @@ function buildAlerts(){
       /* A named person's yes still owed is not "cleared" — that row says so. */
       try{ if(typeof signApprovalStateOf==='function'&&signApprovalStateOf(c).rows.some(r=>r.status!=='approved')) return; }catch(_){}
       push('ap-cleared',c,i18t('al_ap_cleared'),
-        ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} });
+        ()=>{ if(window.roomOpenAt) roomOpenAt(c.id,'sign'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} } });
     });
     /* ---- A NEGOTIATION GONE QUIET, AND A COLLEAGUE ASKING TO JOIN ----
        (24 Sep 2026.) Read off the same slices the approvals above ride on —
@@ -2497,7 +2503,7 @@ function buildAlerts(){
         && typeof contractOwnedBy==='function' && contractOwnedBy(c, me)) return;
       if(held.length && !n) n=held.length;
       push('signature',c,held.length?i18tn('ins_need_sign',n,{n}):i18t('al_signature'),
-        ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} },
+        ()=>{ if(window.roomOpenAt) roomOpenAt(c.id,'sign'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} } },
         n?{ sub:i18tn('al_sign_sub',n,{n}) }:undefined);
     });
   }
@@ -2532,7 +2538,7 @@ function buildAlerts(){
         : o.days===0 ? i18t('al_ob_today',{desc})
         : i18tn('al_ob_due',o.days,{n:o.days,desc});
       push('obligation',c,text,
-        ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'oblig'); }catch(_){} });
+        ()=>{ if(window.roomOpenAt) roomOpenAt(c.id,'oblig'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'oblig'); }catch(_){} } });
     });
   }
   /* ---- A REQUIRED DOCUMENT HAS LAPSED (S8) ----
@@ -2695,6 +2701,9 @@ function panelSuppressed(){
    last opened anywhere. Read through window, the ES-module rule; on a stage
    without that module the fallback is the whole of it. */
 function chatContractId(){
+  /* ON HOME, THE CONTRACT ON THE PAPER (the one-page Home plan, stage 5): the
+     Notes door stands on the paper's line, so it opens that contract's notes */
+  try{ if(state.view==='dashboard'&&window.pdOnPaper&&pdOnPaper()&&window.pdContract){ const p=pdContract(); if(p) return p.id; } }catch(_){}
   try{ if(window.redlineHeldId){ const id=redlineHeldId(); if(id) return id; } }catch(_){}
   return (window.state&&state.activeId)||null;
 }

@@ -58,7 +58,10 @@ describe('f674 (1) one column, two hosts', () => {
   });
   test('1b the face is that builder, with the page\'s own options and wiring', () => {
     const html = strip(fnBody(PD, 'pdRedFaceHtml'));
-    assert.match(html, /rlColumnHtml\(c, pdRedOpts\(c\)\)/);
+    /* stage 5: the options are read once, for the column and the page's notices above it */
+    assert.match(html, /const o = pdRedOpts\(c\);/);
+    assert.match(html, /rlColumnHtml\(c, o\)/);
+    assert.match(html, /rlFloatingNoticesHtml\(c, o\)/, 'the Negotiate page\'s notices came with it (stage 5)');
     assert.match(html, /class="redline-page rl-face"/, 'the column\'s clothes are scoped to .redline-page');
     const opts = strip(fnBody(PD, 'pdRedOpts'));
     assert.match(opts, /rlBenchOpts\(c, \{ side: 'owner', hostId: 'pd-redface', again: pdRedRepaint, scope: '#pd-redface' \}\)/);
@@ -98,7 +101,8 @@ describe('f674 (2) the face\'s door is the page\'s door', () => {
   });
   test('2b the sealed wall and the blanks ask come first', () => {
     const w = strip(fnBody(NEGO, 'openRedlineWorkbench'));
-    const wall = w.indexOf('negoMayStart(held).ok'), blanks = w.indexOf('negoBlanksAsk(held)'), face = w.indexOf('opts.face && typeof window.pdRedLand');
+    /* since stage 5 every door takes the face (opts.page asks for the page by name) */
+    const wall = w.indexOf('negoMayStart(held).ok'), blanks = w.indexOf('negoBlanksAsk(held)'), face = w.indexOf('(opts.face || !opts.page) && typeof window.pdRedLand');
     assert.ok(wall > 0 && blanks > wall && face > blanks, 'wall, then blanks, then the face');
     assert.ok(face < w.indexOf("setView('redline')"), 'the face is taken before the page is drawn');
   });
@@ -114,7 +118,7 @@ describe('f674 (3) the paper turns Redlined while the face is open', () => {
   test('3a igRedOn reads pdRedFor, and a press on Clean still wins', () => {
     const r = strip(fnBody(IG, 'igRedOn'));
     assert.match(r, /pdRedFor\(\)===String\(p\.id\)/);
-    assert.match(r, /p\.red===true\|\|\(p\.red!==false&&/);
+    assert.match(r, /p\.red===true\|\|p\.red==='theirs'\|\|\(p\.red!==false&&/, 'Their view is the Redlined paper too (stage 5)');
   });
   test('3b opening lets go of a Clean chosen before; nothing is stored', () => {
     const p = strip(fnBody(PD, 'pdRedPaper'));
@@ -132,10 +136,12 @@ describe('f674 (4) every door from outside opens the face', () => {
   test('4a the word', () => {
     assert.match(CA, /redline: c => \(typeof pdRedOpen === 'function'\) \? pdRedOpen\(c\.id\)/);
   });
-  test('4b the checklist\'s waiting redlines and suggestions; a review still on the page', () => {
+  test('4b the checklist\'s waiting redlines, suggestions and reviews', () => {
     const g = strip(fnBody(HOME, 'needsYouGo'));
-    assert.match(g, /openRedlineWorkbench\(c\.id, kind==='review' \? \{\} : \{ face: true \}\)/,
-      'handing a review back is the page\'s review notice, which the face does not draw');
+    /* RE-POINTED 14 Oct 2026 (stage 5): a review opens the face too — the
+       page's review notice, with the hand-back, stands at its top now */
+    assert.match(g, /openRedlineWorkbench\(c\.id, \{ face: true \}\)/);
+    assert.ok(!/kind==='review' \? \{\}/.test(g), 'no review is sent to the page any more');
   });
   test('4c the bell\'s negotiation, suggestion and quiet-desk rows; its review rows still on the page', () => {
     const b = strip(APP.slice(APP.indexOf('function buildAlerts'), APP.indexOf('function alertCount')));
@@ -153,13 +159,15 @@ describe('f674 (4) every door from outside opens the face', () => {
   });
 });
 
-describe('f674 (5) notes stay on Negotiate until stage 5', () => {
-  test('5 a row\'s note count opens Negotiate on that change, and the page\'s own press shows its notes', () => {
+describe('f674 (5) notes open beside the paper since stage 5', () => {
+  test('5 a row\'s note count opens the note here, the page\'s own press for this face\'s contract', () => {
+    /* RE-POINTED 14 Oct 2026 (stage 5: the Negotiate page folded into Home) */
     const w = strip(fnBody(PD, 'pdRedWire'));
     assert.match(w, /closest\('\[data-rl-notes\]'\)/);
-    assert.match(w, /e\.stopPropagation\(\)/, 'the document\'s own note dialog does not open over Home');
-    assert.match(w, /openRedlineWorkbench\(c\.id\)/);
-    assert.match(w, /#view-redline \[data-rl-notes="\$\{q\}"\]/);
+    assert.match(w, /e\.stopPropagation\(\)/, 'the document\'s delegated door does not answer as well');
+    assert.match(w, /openChangeNoteDialog\(c, ch,/, 'the note\'s own window, on our seat');
+    assert.match(w, /openNotesPanel\(c\.id, id\)/, 'else the change\'s thread in the shell\'s drawer');
+    assert.ok(!/openRedlineWorkbench/.test(w), 'and never the Negotiate page');
   });
 });
 

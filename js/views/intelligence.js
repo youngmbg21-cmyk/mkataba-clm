@@ -1884,6 +1884,7 @@ async function intelAsk(qRaw){
      "fill in" opens the face again (caGo) */
   if(typeof window.pdFillAway==='function') pdFillAway();
   if(typeof window.pdRedAway==='function') pdRedAway();
+  if(typeof window.pdSignAway==='function') pdSignAway();
   const readied=!!_igReadyAsk && q===_igReadyAsk; _igReadyAsk='';
   if(readied){
     intel.history.push({role:'user', text:q});
@@ -6596,8 +6597,13 @@ function renderIntelDock(){
   /* THE FILL IN FACE HOLDS ONLY WHILE IT IS STILL THE FACE (14 Oct 2026): a
      hand left in one of its boxes must not keep it on screen once the reader
      has asked for another tab or face (a door, the Clauses tab, a word). */
+  /* AND ONLY WHILE IT IS STILL THAT CONTRACT'S (stage 5): a door asking for
+     another contract's Fill in turns the paper, and the face drawn for the
+     last one must not stay beside it */
   { const ae=document.activeElement;
-    if(intel.dockOpen&&ae&&ae.closest&&(ae.closest('#ig-dock #pd-fillface')?(window.pdFillShows&&pdFillShows()):ae.closest('#ig-dock #pd-fill'))) return; }
+    const ff=ae&&ae.closest?ae.closest('#ig-dock #pd-fillface'):null;
+    const ffMine=()=>{ const r=ff.querySelector('.pd-ff[data-pd-ff]'); return !!(r&&window.pdFillFor&&r.getAttribute('data-pd-ff')===pdFillFor()); };
+    if(intel.dockOpen&&ae&&ae.closest&&(ff?(window.pdFillShows&&pdFillShows()&&ffMine()):ae.closest('#ig-dock #pd-fill'))) return; }
   if(!intel.dockOpen){
     dock.innerHTML=`
       <button id="igd-expand" class="igd-door" title="${i18t('int_open_panel')}" aria-label="${i18t('int_open_panel')}">
@@ -6675,7 +6681,10 @@ function renderIntelDock(){
     :(window.pdFillShows&&pdFillShows())?`<div id="pd-fillface" class="pd-fillface flex-1 min-h-0 overflow-y-auto scroll-thin">${pdFillFaceHtml(pdContract())}</div><div id="igd-feed" hidden></div>`
     /* THE REDLINES FACE (stage 3): the Negotiate page's own column, the box
        and the chips kept at the foot */
-    :(window.pdRedShows&&pdRedShows())?`<div id="pd-redface" class="pd-redface flex-1 min-h-0">${pdRedFaceHtml(pdContract())}</div><div id="igd-feed" hidden></div>`:`
+    :(window.pdRedShows&&pdRedShows())?`<div id="pd-redface" class="pd-redface flex-1 min-h-0">${pdRedFaceHtml(pdContract())}</div><div id="igd-feed" hidden></div>`
+    /* THE BEFORE YOU SIGN FACE (stage 5): the Signing column's four slots,
+       filled by its own painter; the box and the chips kept at the foot */
+    :(window.pdSignShows&&pdSignShows())?`<div id="pd-signface" class="pd-signface flex-1 min-h-0">${pdSignFaceHtml(pdContract())}</div><div id="igd-feed" hidden></div>`:`
     ${(state.view==='dashboard'&&typeof window.caBackRowHtml==='function')?caBackRowHtml():''}
     <div id="igd-feed" class="flex-1 min-h-0 overflow-y-auto scroll-thin px-3.5 py-3 space-y-3" style="background:transparent">
       ${msgs||`<div class="ig-welcome text-[12.5px] text-ink/50 leading-relaxed pt-2">${i18t('int_notebook_welcome')}</div>`}
@@ -6721,6 +6730,8 @@ function renderIntelDock(){
   if(document.getElementById('pd-fillface')&&typeof window.pdFillFacePaint==='function'){ const pc=pdContract(); if(pc) try{ pdFillFacePaint(pc); }catch(_){ } }
   /* the Redlines face, wired by the Negotiate page's own wiring (stage 3) */
   if(document.getElementById('pd-redface')&&typeof window.pdRedFacePaint==='function'){ const pc=pdContract(); if(pc) try{ pdRedFacePaint(pc,_redTop); }catch(_){ } }
+  /* the Before you sign face, filled by the Signing column's own painter (stage 5) */
+  if(document.getElementById('pd-signface')&&typeof window.pdSignFacePaint==='function'){ const pc=pdContract(); if(pc) try{ pdSignFacePaint(pc); }catch(_){ } }
   /* the Overview tab's fill form, drawn by the room's own builder (owner, 11 Oct 2026) */
   if(window.pdShowsDesk&&pdShowsDesk()&&window.pdTab&&pdTab()==='facts'&&typeof window.pdFillPaint==='function'){ const pc=pdContract(); if(pc) try{ pdFillPaint(pc); }catch(_){ } }
   // charts in dock answers come back to life after every repaint
@@ -6937,6 +6948,7 @@ function igPaperHold(id){
   if(intel.walk&&!intel.walk.ids.includes(id)) intel.walk=null;
   if(typeof window.pdFillSeen==='function') pdFillSeen(id);
   if(typeof window.pdRedSeen==='function') pdRedSeen(id);
+  if(typeof window.pdSignSeen==='function') pdSignSeen(id);
   intel.paper={ id:c.id, mode:igHomePaperFace()===true?'paper':'graph', focus:false, pins:[], seq:0, on:null, ...igPaperCost(c) };
   return true;
 }
@@ -7051,6 +7063,7 @@ async function igAnalyze(id){
   /* the Fill in face belongs to one contract: asking for another puts it away */
   if(typeof window.pdFillSeen==='function') pdFillSeen(id);
   if(typeof window.pdRedSeen==='function') pdRedSeen(id);
+  if(typeof window.pdSignSeen==='function') pdSignSeen(id);
   /* ---- THE WHOLE RECORD FIRST (26 Sep 2026, the overnight clean-up) ----
      The book in memory is the LIGHT list, and the server's HEAVY strip takes
      an upload's extracted text (and a sealed record's execution copy) off
@@ -7220,6 +7233,42 @@ function igQuoteGo(text,ob){
   else if(typeof toast==='function') toast(i18t('int_cite_lost'),'warn');
 }
 /* ---- the strip ---- */
+/* ---- THE PAPER'S LINE TAKES THE CONTRACT'S ACTS (the one-page Home plan,
+   stage 5; the owner's yes to decision 1: the Negotiate page folds into Home)
+   ---- Notes, Share and More — the contract page's own three, from their own
+   builders: the Notes door (roomChatDoorHtml, the shell's drawer behind it),
+   the send screen (openShareModal) and the More menu (roomMoreMenuHtml, wired
+   by roomMenuWire). The Negotiate page's own rows ride in the menu: Ask for
+   review (rlReviewDoor), Review vs Playbook and the negotiation memo. Focus is
+   left out (Home's paper has none). The line keeps its height, so the paper
+   does not move. */
+function igStripActsHtml(c){
+  if(!c||PORTAL_MODE) return '';
+  const may=(typeof canEdit!=='function')||canEdit();
+  const sealed=!!(window.negoExecuted&&negoExecuted(c));
+  let rows='';
+  if(may&&!sealed&&window.rlReviewDoorState){
+    const d=rlReviewDoorState(c);
+    rows+=`<button type="button" data-ig-review${d.nobody?` disabled aria-disabled="true" title="${igEsc(i18t('rv_no_colleagues'))}"`:` title="${igEsc(i18t('rv_head_title'))}"`}>${icon('users','w-3.5 h-3.5')}${igEsc(d.label)}</button>`;
+  }
+  if(may&&!sealed&&window.rlOpenPlaybookReview) rows+=`<button type="button" data-ig-pbreview title="${igEsc(i18t('ng_review_vs_playbook_title'))}"><span aria-hidden="true">&#10022;</span>${igEsc(i18t('ng_review_vs_playbook'))}</button>`;
+  if(may&&window.openNegoMemo) rows+=`<button type="button" data-ig-memo title="${igEsc(i18t('ng_memo_title'))}"><span aria-hidden="true">&#9636;</span>${igEsc(i18t('ng_memo'))}</button>`;
+  const share=(may&&c.status!=='Declined')?`<button type="button" id="ws-share" class="ui-btn ui-btn-sm" title="${igEsc(i18t('ct_share_with_cp'))}">${icon('share','w-3.5 h-3.5')}${igEsc(i18t('ct_share'))}</button>`:'';
+  const more=window.roomMoreMenuHtml?`<span class="ig-more"><button type="button" id="ws-more" class="ui-btn ui-btn-sm ig-more-btn" aria-haspopup="true" aria-expanded="false" title="${igEsc(i18t('ct_everything_else'))}" aria-label="${igEsc(i18t('ct_everything_else'))}">${icon('more','w-3.5 h-3.5')}</button>${roomMoreMenuHtml(c,{ menuRow:rows, noFocus:true })}</span>`:'';
+  const notes=window.roomChatDoorHtml?roomChatDoorHtml():'';
+  return `<span class="ig-acts">${notes}${share}${more}</span>`;
+}
+/* their presses: the menu's one wiring, then the Negotiate rows' own acts */
+function igStripActsWire(c){
+  const strip=document.getElementById('ig-strip'); if(!strip||!c) return;
+  if(window.roomMenuWire) try{ roomMenuWire(c); }catch(_){ }
+  const again=()=>{ igPaintPaper(); renderIntelDock(); };
+  strip.querySelector('#ws-share')?.addEventListener('click',()=>{ if(window.openShareModal) openShareModal(getContract(c.id)||c); });
+  strip.querySelector('[data-ig-review]')?.addEventListener('click',()=>{ if(window.rlReviewDoor) rlReviewDoor(getContract(c.id)||c, again); });
+  strip.querySelector('[data-ig-pbreview]')?.addEventListener('click',()=>{ if(window.rlOpenPlaybookReview) rlOpenPlaybookReview(getContract(c.id)||c, again); });
+  strip.querySelector('[data-ig-memo]')?.addEventListener('click',()=>{ if(window.openNegoMemo) openNegoMemo(getContract(c.id)||c); });
+  if(window.paintChatDoor) try{ paintChatDoor(); }catch(_){ }
+}
 function igStripHtml(c,p){
   const up=p.mode==='paper';
   const ref=(window.contractRef?contractRef(c):c.id);
@@ -7236,12 +7285,16 @@ function igStripHtml(c,p){
     <span class="ig-strip-ref" title="${igEsc(c.name)}"><span class="ig-strip-dot" style="background:${dot}"></span><b class="hati-ref">${igEsc(ref)}</b><span class="q"> · </span>${igEsc(c.name)}<span class="q"> · ${igEsc(c.counterparty||'—')} · ${igEsc(st)}</span></span>
     <span class="ig-strip-sp"></span>
     ${up&&n?`<span class="ig-strip-pins">${igEsc(i18tn('int_pins',n,{n}))}</span><button type="button" class="ui-link" data-ig-pins-clear title="${igEsc(i18t('int_pins_clear_title'))}">${igEsc(i18t('int_pins_clear'))}</button>`:''}
-    ${up&&onHome&&window.pdRedOk&&pdRedOk(c)?(()=>{ const n=c.changes.filter(x=>x&&x.status==='pending').length, red=igRedOn(c);
-      return `<span class="ig-red" role="group" aria-label="${igEsc(i18t('int_red_label'))}"><button type="button" data-ig-red="0" aria-pressed="${red?'false':'true'}">${igEsc(i18t('int_red_clean'))}</button><button type="button" data-ig-red="1" aria-pressed="${red?'true':'false'}">${igEsc(i18t('int_red_marked',{ n }))}</button></span>`; })():''}
+    ${/* THE PAPER SAYS WHICH COPY IT SHOWS while Jambo's Before you sign face is
+       open (stage 5): the signing copy, the pages that are signed */''}${up&&onHome&&igSignOn(c)?`<span class="ig-copy-chip">${igEsc(i18t('int_sign_copy'))}</span>`:''}
+    ${up&&onHome&&!igSignOn(c)&&window.pdRedOk&&pdRedOk(c)?(()=>{ const n=c.changes.filter(x=>x&&x.status==='pending').length, red=igRedOn(c);
+      const theirs=igTheirsOn(c);
+      return `<span class="ig-red" role="group" aria-label="${igEsc(i18t('int_red_label'))}"><button type="button" data-ig-red="0" aria-pressed="${red?'false':'true'}">${igEsc(i18t('int_red_clean'))}</button><button type="button" data-ig-red="1" aria-pressed="${red&&!theirs?'true':'false'}">${igEsc(i18t('int_red_marked',{ n }))}</button><button type="button" data-ig-red="theirs" aria-pressed="${theirs?'true':'false'}" title="${igEsc(i18t('int_red_theirs_title'))}">${igEsc(i18t('int_red_theirs'))}</button></span>`; })():''}
     ${/* NO FOCUS ON HOME'S PAPER (owner, 8 Oct 2026: "the removal of the focus
        button from the paper tab"); the map's own paper keeps it */''}${up&&igHomePaperFace()!==true?`<button type="button" class="ui-btn ui-btn-sm" data-ig-focus aria-pressed="${p.focus?'true':'false'}" title="${igEsc(i18t(p.focus?'int_focus_exit_title':'int_focus_title'))}">${icon(p.focus?'x':'scan','w-3.5 h-3.5')}${igEsc(i18t(p.focus?'int_focus_exit':'int_focus'))}</button>`:''}
     ${/* THE ZOOM LEFT THIS STRIP for the paper's own ground (owner, 11 Oct
        2026): igPaperHtml draws it, top right above the sheet */''}
+    ${onHome?igStripActsHtml(c):''}
     ${onHome?`<button type="button" class="ui-btn ui-btn-sm" data-ig-pick-again>${igEsc(i18t('int_pick_change'))}</button>`:''}
     ${onHome?'':`<button type="button" class="ui-btn ui-btn-sm" data-ig-ws="${c.id}">${icon('folderOpen','w-3.5 h-3.5')}${igEsc(i18t('int_open_workspace'))}</button>`}`;
 }
@@ -7401,7 +7454,7 @@ function igStripWire(){
     if(e.target.closest('[data-ig-pick-again]')){ igPickAgain(); return; }
     const wk=e.target.closest('[data-ig-walk]'); if(wk){ igWalkStep(Number(wk.getAttribute('data-ig-walk'))); return; }
     if(e.target.closest('[data-ig-focus]')){ p.focus=!p.focus; igPaintPaper(); return; }
-    const red=e.target.closest('[data-ig-red]'); if(red){ p.red=red.getAttribute('data-ig-red')==='1'; igPaintPaper(); return; }
+    const red=e.target.closest('[data-ig-red]'); if(red){ const v=red.getAttribute('data-ig-red'); p.red=v==='theirs'?'theirs':v==='1'; igPaintPaper(); return; }
     const ws=e.target.closest('[data-ig-ws]'); if(ws){ openWorkspace(ws.getAttribute('data-ig-ws')); }
   });
 }
@@ -7410,27 +7463,39 @@ function igStripWire(){
    own canvas, read-only — their changes struck and underlined exactly as they
    are drawn there. Offered only while a live negotiation has something open
    (pdRedOk), so drawing it never starts one. */
+/* THE SIGNING COPY ON HOME'S PAPER while Jambo's Before you sign face is open
+   on it (the one-page Home plan, stage 5): the pages that are signed, with the
+   places to sign marked — and never the redline, which is not what is signed */
+function igSignOn(c){ const p=intel.paper; if(!p||!c) return false;
+  return typeof window.pdSignFor==='function'&&pdSignFor()===String(p.id)&&String(c.id)===String(p.id)&&typeof window.signCopySheetHtml==='function'; }
 function igRedOn(c){ const p=intel.paper; if(!p) return false;
+  if(igSignOn(c)) return false;
   /* and while Jambo's Redlines face is open on it (stage 3; the owner's yes:
      Redlined while the face is open, back when it closes) */
   const face=typeof window.pdRedFor==='function'&&pdRedFor()===String(p.id);
-  const want=p.red===true||(p.red!==false&&((Array.isArray(intel._redFor)&&intel._redFor.includes(p.id))||face));
+  const want=p.red===true||p.red==='theirs'||(p.red!==false&&((Array.isArray(intel._redFor)&&intel._redFor.includes(p.id))||face));
   return !!(want&&window.pdRedOk&&pdRedOk(c)&&typeof window.redlineDocHtml==='function'); }
 /* ONE PAPER ON HOME (owner, 8 Oct 2026: "the clean paper should look the same
    exact way but without the redlines"): where Redlined is offered, Clean is
    the SAME canvas with every change still open hidden — the wording that
    stands (an agreed change keeps its words, its marks taken off in the
    stylesheet), no step labels — so pressing Clean | Redlined never moves the page. */
-function igCleanOnRed(c){ return !igRedOn(c)&&igHomePaperFace()!==null&&!!(window.pdRedOk&&pdRedOk(c))&&typeof window.redlineDocHtml==='function'; }
-function igPaperKey(c){ return c.id+(igRedOn(c)?':red':igCleanOnRed(c)?':clean':''); }
+function igCleanOnRed(c){ return !igSignOn(c)&&!igRedOn(c)&&igHomePaperFace()!==null&&!!(window.pdRedOk&&pdRedOk(c))&&typeof window.redlineDocHtml==='function'; }
+/* THEIR VIEW (stage 5: the Negotiate page's Internal | Counterparty, folded
+   into Home): the same Redlined paper drawn from their seat, as a preview —
+   what the other side reads, nothing to press */
+function igTheirsOn(c){ return igRedOn(c)&&!!(intel.paper&&intel.paper.red==='theirs'); }
+function igPaperKey(c){ return c.id+(igSignOn(c)?':sign':igTheirsOn(c)?':theirs':igRedOn(c)?':red':igCleanOnRed(c)?':clean':''); }
 function igPaperHtml(c){
   let sheet='';
   const clean=igCleanOnRed(c);
-  if(igRedOn(c)||clean){
+  if(igSignOn(c)){ try{ sheet=`<div class="ig-signpaper">${signCopySheetHtml(c,{ canvasId:'ig-canvas', wrapId:'ig-signwrap' })}</div>`; }catch(_){ sheet=''; } }
+  if(sheet){ /* the signing copy, drawn above */ }
+  else if(igRedOn(c)||clean){
     if(typeof window.negoEnsureStyle==='function') try{ negoEnsureStyle(); }catch(_){ }
     if(typeof window.redlineLayoutCss==='function') try{ redlineLayoutCss(); }catch(_){ }
     const hide=clean?(Array.isArray(c.changes)?c.changes:[]).filter(x=>x&&x.status!=='accepted').map(x=>x.id):null;
-    let body=''; try{ body=redlineDocHtml(c,{ side:'owner', readonly:true, ...(hide?{ hiddenIds:hide }:{}) }); }catch(_){ body=''; }
+    let body=''; try{ body=redlineDocHtml(c,igTheirsOn(c)?{ side:'counterparty', readonly:true, preview:true }:{ side:'owner', readonly:true, ...(hide?{ hiddenIds:hide }:{}) }); }catch(_){ body=''; }
     sheet=`<div class="ig-redpaper nego-onpaper${clean?' is-clean':''}" style="padding:20px 0 40px"><article id="ig-canvas" class="doc-surface rl-paper" style="max-width:var(--doc-sheet-max,860px);margin:0 auto">${body}</article></div>`;
   }
   else if(typeof docSheetHtml==='function') sheet=docSheetHtml(c,{ copy:'work', canvasId:'ig-canvas', readOnly:true });
@@ -7451,7 +7516,7 @@ function igApplyZoom(){
   try{ if(typeof igTrackPlace==='function') igTrackPlace(); }catch(_){ }
 }
 function igPaperPaginate(c){
-  const host=document.getElementById('ig-paper'); const sheet=host&&host.querySelector('.pg-sheet');
+  const host=document.getElementById('ig-paper'); const sheet=host&&host.querySelector('.pg-sheet:not(.pg-sign)');
   if(!sheet||!window.pagesWatch||sheet._pgRO) return;
   try{ pagesWatch(sheet,{ mode:'work', gap:window.PG_GAP, corners:true,
     name:window.pagesLetterheadName?pagesLetterheadName(c):'', ref:(window.contractRef?contractRef(c):c.id)||'' }); }catch(_){ }
@@ -7489,6 +7554,7 @@ function igPaintPaper(){
   else if(homePaper===false){ p.mode='graph'; p.focus=false; }
   if(homePaper===false){ strip.hidden=true; strip.innerHTML=''; host.hidden=true; if(page) page.classList.remove('ig-focus'); return; }
   strip.hidden=false; strip.innerHTML=igStripHtml(c,p); igStripWire();
+  if(igHomePaperFace()!==null) igStripActsWire(c);
   const up=p.mode==='paper';
   const focus=!!(up&&p.focus);
   if(page) page.classList.toggle('ig-focus',focus);
@@ -7503,7 +7569,9 @@ function igPaintPaper(){
        upload's placeholders and our amendment's ruled lines, painted on the
        paper the Overview tab's form fills — never stored, as on the room's. */
     const cv=document.getElementById('ig-canvas');
-    if(cv&&!igRedOn(c)){ try{ if(window.uploadBlanksPaint) uploadBlanksPaint(c,cv); }catch(_){ } try{ if(window.ownBlanksPaint) ownBlanksPaint(c,cv); }catch(_){ } }
+    if(cv&&!igRedOn(c)&&!igSignOn(c)){ try{ if(window.uploadBlanksPaint) uploadBlanksPaint(c,cv); }catch(_){ } try{ if(window.ownBlanksPaint) ownBlanksPaint(c,cv); }catch(_){ } }
+    /* the signing copy's pages, places and signatures (stage 5) */
+    if(igSignOn(c)&&typeof window.pdSignPaperPaint==='function') try{ pdSignPaperPaint(c); }catch(_){ }
     /* ONE READING OF "IS THIS FILE FLAT": the strip says so as soon as the
        paper is up, not only once the Clauses tab has painted (BUGLOG 11 Oct
        2026) — the same question the Clauses list asks (docThreadFlatSay). */
@@ -7932,7 +8000,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
   });
 }
 
-Object.assign(window,{igPickAgain,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,IG_WALL_SORTS,IG_WALL_STAGES,igWall,igWallStage,igWallRows,igWallSortFn,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
+Object.assign(window,{igStripActsHtml,igStripActsWire,igSignOn,igTheirsOn,igPickAgain,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,IG_WALL_SORTS,IG_WALL_STAGES,igWall,igWallStage,igWallRows,igWallSortFn,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
 Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});

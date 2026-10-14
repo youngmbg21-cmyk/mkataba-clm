@@ -109,30 +109,38 @@ const login = async page => {
     check('2c and the text size stepper never reaches it', pv && pv.sizeAfter === '13px', pv && pv.sizeAfter);
     check('2d nor the rest of the clause panel', pv && (pv.nameAfter === null || pv.nameAfter === '13px'), pv && pv.nameAfter);
 
-    /* ---- 4. THE SIGNING COPY KEEPS THE SERIF ---- */
-    await page.evaluate(i => openWorkspace(i), id);
-    await page.waitForFunction(() => !!document.querySelector('.room-tabrow'), null, { timeout: 10000 }).catch(() => {});
+    /* ---- 4. THE SIGNING COPY KEEPS THE SERIF ----
+       RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the Signing
+       tab went home — the door opens Jambo's Before you sign face, the
+       signing copy on Home's paper beside it. */
     await page.evaluate(i => roomGoTab(getContract(i), 'sign'), id);
-    await page.waitForFunction(() => !!document.querySelector('.pg-sign'), null, { timeout: 15000 }).catch(() => {});
-    const signFace = await paperFace(page, '.pg-sign');
+    await page.waitForFunction(() => !!document.querySelector('#ig-paper .pg-sign') && !!document.getElementById('pd-signface'), null, { timeout: 15000 }).catch(() => {});
+    const signFace = await paperFace(page, '#ig-paper .pg-sign');
     check('4a the signing copy keeps the book serif', first(signFace) === 'Source Serif 4', signFace);
 
-    /* ---- 3. THE ROOM'S DIVIDER IS BESIDE THE SCROLLBAR, NOT OVER IT ----
+    /* ---- 3. THE DIVIDER IS BESIDE THE SCROLLBAR, NOT OVER IT ----
        RE-POINTED 11 Oct 2026: the Document tab is gone (owner); the same
        divider (#doc-resizer, between the paper and the side column) stands on
-       the Signing tab, so it is measured there. */
-    const docSeam = await seamRead(page, '#doc-resizer',
-      () => { const g = document.getElementById('doc-grid'); return g.firstElementChild.getBoundingClientRect().right; });
-    check('3a Signing tab: a press beside the seam reaches the scrollbar, not the divider',
+       the Signing tab, so it is measured there.
+       RE-POINTED 14 Oct 2026 (stage 5): with the Signing tab gone the room
+       draws no paper; the signing copy stands on Home's paper, whose divider
+       is Home's (#ig-resizer) — measured here with the signing copy up. */
+    const docSeam = await seamRead(page, '#ig-resizer',
+      () => document.getElementById('ig-dock').getBoundingClientRect().left);
+    check('3a Signing: a press beside the seam reaches the paper\'s scrollbar, not the divider',
       docSeam && !docSeam.hidden && !docSeam.leftIsRez, JSON.stringify(docSeam));
     check('3b and the grip is still the divider', docSeam && docSeam.gripIsRez, JSON.stringify(docSeam));
 
     /* ---- 5. NEGOTIATE AND THE CLAUSE EDITOR ---- */
+    /* RE-POINTED 14 Oct 2026 (stage 5): the Negotiate page folded into Home;
+       the agreement being negotiated is Home's paper, Redlined beside
+       Jambo's Redlines face */
     await page.evaluate(i => openRedlineWorkbench(i), id);
-    await page.waitForSelector('.redline-page .rl-paper', { timeout: 15000 }).catch(() => {});
+    await page.waitForFunction(() => !!document.querySelector('#ig-paper #ig-canvas') && !!document.getElementById('pd-redface'), null, { timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(1400);
-    const negFace = await paperFace(page, '.redline-page .rl-paper');
-    check('5a the Negotiate page sets the agreement in Clean Sans', first(negFace) === 'Geist', negFace);
+    /* Redlined where a change is open, the clean copy otherwise: either way Home's one canvas */
+    const negFace = await paperFace(page, '#ig-paper #ig-canvas');
+    check('5a the paper being negotiated is set in Clean Sans', first(negFace) === 'Geist', negFace);
     const opened = await page.evaluate(i => {
       const c = getContract(i);
       const cl = (negoClauseList(c) || []).find(x => x && x.clauseId && x.clauseId !== 'front');

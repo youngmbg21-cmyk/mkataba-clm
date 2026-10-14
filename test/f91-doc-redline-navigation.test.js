@@ -434,7 +434,7 @@ describe('F91 (1,2) — the Doc page header and its sub-navigation', () => {
       'one draw, one wiring — a second here is a handler that stacks');
   });
 
-  test('the room has four tabs, built once for both shells', () => {
+  test('the room\'s tabs, built once for both shells', () => {
     /* WO N1 renamed the tab's LABEL from "Redline" to plain English; the
        internal key stays 'redline', so every route and stored state built on
        it keeps working.
@@ -460,12 +460,21 @@ describe('F91 (1,2) — the Doc page header and its sub-navigation', () => {
     /* AND THE DOCUMENT TAB WENT 11 OCT 2026 (owner: "get rid of the document
        page"): its use is Home's Document; the key routes there (roomGoTab). */
     assert.ok(!s.includes(`['docs','tab_document']`), 'the Document tab is not a tab any more');
-    [['terms', 'tab_overview', 'Overview'], ['sign', 'tab_signing', 'Signing'],
-      ['history', 'tab_history', 'History']].forEach(([k, key, english]) => {
+    /* AND SIGNING AND HISTORY WENT HOME 14 OCT 2026 (the one-page Home plan,
+       stage 5, with Details and Obligations): their keys still route — to
+       Jambo's Before you sign face and the Board's History view
+       (ROOM_TABS_HOME) — and their words stay live for the phone, which keeps
+       its own tabs. */
+    [['terms', 'tab_overview', 'Overview']].forEach(([k, key, english]) => {
       assert.ok(s.includes(`['${k}','${key}']`), `${english} is a tab, keyed '${k}'`);
       assert.equal(STRINGS.en[key], english, `and still reads "${english}" in English`);
       assert.ok(STRINGS.sv[key], `and has a Swedish label`);
     });
+    for (const [k, key] of [['sign', 'tab_signing'], ['history', 'tab_history']]){
+      assert.ok(!s.includes(`['${k}','${key}']`), `'${k}' is no longer a tab here`);
+      assert.match(s, new RegExp(k + ":'"), `but '${k}' still routes, to its twin on Home`);
+      assert.ok(STRINGS.en[key] && STRINGS.sv[key], `and its words stay live for the phone`);
+    }
     /* NEGOTIATE IS NOT ONE OF THEM, and the row must not grow it back. */
     assert.ok(!s.includes(`['redline','tab_negotiate']`), 'Negotiate is not a tab any more');
     const list = s.slice(s.indexOf('const ROOM_TABS=['), s.indexOf('function roomTabsHtml'));

@@ -1168,9 +1168,10 @@ async function runFindObligations(c, opts){
   if(window.contractOnScreen && !contractOnScreen(c)){
     const ref=(window.contractRef?contractRef(c):c.id);
     toast(i18t('ob_found_elsewhere',{ ref, n:found.length }),'warn',found.length?{ action:{ label:i18t('ob_open_contract'),
-      onClick:()=>{ if(window.openWorkspace) openWorkspace(c.id);
+      onClick:()=>{ /* the contract's Obligations: the Board's view since stage 5 of the one-page Home plan */
+        if(window.roomOpenAt) roomOpenAt(c.id,'oblig'); else if(window.openWorkspace) openWorkspace(c.id);
         setTimeout(()=>{ const live=(window.getContract&&getContract(c.id))||c;
-          if(window.roomGoTab) try{ roomGoTab(live,'oblig'); }catch(_){}
+          if(!window.roomOpenAt&&window.roomGoTab) try{ roomGoTab(live,'oblig'); }catch(_){}
           openObligationsReview(live, found); }, 0); } } }:undefined);
     return;
   }
@@ -3288,6 +3289,9 @@ function obOpenContract(cid, key){
     if(typeof window.insSelect === 'function') insSelect('oblig:' + cid, key);
     if(_obtView[cid] === 'done') _obtView[cid] = 'open';
   }
+  /* the room's Obligations tab went home (the one-page Home plan, stage 5):
+     the Board's Obligations view, the row chosen there the same way */
+  if(typeof window.roomOpenAt === 'function'){ roomOpenAt(cid, 'oblig'); return; }
   openWorkspace(cid);
   const c = window.getContract ? getContract(cid) : null;
   if(c && window.roomGoTab) try{ roomGoTab(c, 'oblig'); }catch(_){}

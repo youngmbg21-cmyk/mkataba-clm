@@ -124,7 +124,12 @@ describe('f170 · a new draft lands on Key terms', () => {
 
   test('Key terms is the first tab in the row, so the landing is also the leftmost', () => {
     const { win } = world();
-    assert.equal(win.ROOM_TABS[0][0], 'details', 'Details is the first tab (owner, 12 Oct 2026)');
+    /* RE-POINTED 14 OCT 2026 (the one-page Home plan, stage 5): Details went
+       home (Jambo's Fill in face, where a new draft lands since stage 2), so
+       the Overview leads the room's row again. */
+    assert.equal(win.ROOM_TABS[0][0], 'terms', 'the Overview is the first tab (Details went home, stage 5)');
+    assert.ok(!win.ROOM_TABS.some(t => t[0] === 'details'), 'no Details tab in the room');
+    assert.equal(win.ROOM_TABS_HOME.details, 'fill', 'a door naming Details opens the Fill in face');
   });
 });
 

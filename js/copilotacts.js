@@ -574,7 +574,11 @@ function caReadDoor(q){
   return { kind: 'door', door: hit[0], cid: c.id, state: 'ready' };
 }
 /* the Signing tab's own approval card (#sa-card): asked and reminded there */
-function caRoomSign(c){ if (typeof openWorkspace === 'function') openWorkspace(c.id); if (typeof roomGoTab === 'function') try { roomGoTab(getContract(c.id) || c, 'sign'); } catch (_){} }
+/* since stage 5 of the one-page Home plan, Jambo's Before you sign face on
+   Home (pdSignOpen); the phone keeps the room's own */
+function caRoomSign(c){
+  if (typeof pdSignOpen === 'function' && !(typeof window !== 'undefined' && window.innerWidth && window.innerWidth < 768) && pdSignOpen(c.id)) return;
+  if (typeof openWorkspace === 'function') openWorkspace(c.id); if (typeof roomGoTab === 'function') try { roomGoTab(getContract(c.id) || c, 'sign'); } catch (_){} }
 const CA_DOOR_GO = {
   sendback: c => (typeof pdSendWaiting === 'function') ? pdSendWaiting(c) : (typeof openRedlineWorkbench === 'function' && openRedlineWorkbench(c.id)),
   signlink: c => openShareModal(c, { purpose: 'sign' }),

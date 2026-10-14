@@ -72,7 +72,12 @@ const BODY = '<h1>Supply Agreement</h1><p>Between Highland Corporate Ltd and Nor
          Focus door on its control row with it. */
       await page.evaluate(id => openWorkspace(id), ID);
       await until(page, () => !!document.getElementById('ws-tabs'));
-      await page.evaluate(id => roomGoTab(getContract(id), 'redline'), ID);
+      /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+         'redline' door now lands on Jambo's Redlines face beside Home's paper,
+         which has no control row; 2a-2b measure the Negotiate PAGE's own
+         control row, so the page is opened by name ({ page: true }), the
+         engine the face is built from. */
+      await page.evaluate(id => openRedlineWorkbench(id, { page: true }), ID);
       /* RE-POINTED 13 Oct 2026: the owner deleted the Negotiate control row's
          Focus button; Focus there is the ⋯ row (3). Held: the row draws none,
          and stays one line */

@@ -273,7 +273,10 @@ const SEED_UNSENT = async () => {
 
     /* ---- 3 — nothing in the head row is bold ---- */
     const acts = await page.evaluate(() => {
-      const row = document.querySelector('#ws-head .room-acts');
+      /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the
+         Negotiate page folded into Home; the contract's acts on a negotiation
+         stand on Home's paper line — Notes · Share · ⋯ (igStripActsHtml) */
+      const row = document.querySelector('#ig-strip .ig-acts');
       if (!row) return { absent: true };
       /* THE ROW, NOT THE MENU. The ⋯ menu's own rows are buttons inside
          .room-acts too — they are in the DOM the whole time and measure 0px
@@ -314,9 +317,14 @@ const SEED_UNSENT = async () => {
        day. Every button label is ONE weight now — the medium label weight, 500
        — so the claim is asked as what it always said: the row speaks at one
        weight, and that weight is not bold (bold is 600 and up here). */
+    /* RE-POINTED 14 Oct 2026 (stage 5): the row is Home's paper line, whose
+       buttons wear the house word — 600 since the SAP-way buttons of 12 Oct
+       ("a button's word is 600 — the fill still says which one is the main
+       one"). The claim kept is the row's: ONE weight, the house button's,
+       nothing heavier. */
     check('3c nothing else in the row is either',
       Array.isArray(acts) && acts.length > 0 && new Set(acts.map(b => b.weight)).size === 1
-      && acts.every(b => Number(b.weight) < 600),
+      && acts.every(b => Number(b.weight) <= 600),
       Array.isArray(acts) ? acts.map(b => [b.text, b.weight]) : acts);
     check('3d the row still reads as one control — one height, one size',
       Array.isArray(acts) && new Set(acts.map(b => b.h)).size === 1

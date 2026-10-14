@@ -1310,8 +1310,10 @@ function agGo(where, cid){
   if (where === 'nego'){ if (typeof openRedlineWorkbench === 'function') openRedlineWorkbench(cid); else if (typeof selectContract === 'function') selectContract(cid); return; }
   if (where === 'import'){ if (typeof setView === 'function') setView('migration'); return; }
   if (!c || typeof openWorkspace !== 'function') return;
-  openWorkspace(cid);
   const tab = where === 'oblig' ? 'oblig' : where === 'sign' ? 'sign' : where === 'contract' ? null : 'terms';
+  /* the room's Signing and Obligations tabs went home (the one-page Home plan, stage 5) */
+  if (tab && typeof roomTabHome === 'function' && roomTabHome(c, tab)) return;
+  openWorkspace(cid);
   if (tab && typeof roomGoTab === 'function') try { roomGoTab(getContract(cid), tab); } catch (_){}
 }
 

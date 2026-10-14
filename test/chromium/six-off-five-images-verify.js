@@ -180,7 +180,13 @@ const ok = (name, good, detail) => {
        that stays on every tab, so it is pressed on the Signing tab. */
     await page.evaluate(() => { openWorkspace(state.contracts[0].id); });
     await page.waitForFunction(() => !!document.querySelector('.room-tabrow'), null, { timeout: 10000 }).catch(() => {});
-    await page.evaluate(() => { roomGoTab(state.contracts[0], 'sign'); });
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+       Signing tab went home (Jambo's Before you sign face, where Home has no
+       Focus); the room keeps Overview and Where we are, and its ⋯ row is on
+       both — pressed on the Overview */
+    await page.evaluate(() => { roomGoTab(state.contracts[0], 'terms'); });
+    await page.waitForFunction(() => state.view === 'workspace' && !!document.querySelector('#ws-tabs [data-ws-tab="terms"].on') && !!document.getElementById('ws-more'),
+      null, { timeout: 8000 }).catch(() => {});
     await page.click('#ws-more').catch(() => {});
     const door = await page.waitForSelector('#ws-focus', { state: 'visible', timeout: 5000 }).catch(() => null);
     ok('6-stage the room offers its focus door (the ⋯ menu row)', !!door);

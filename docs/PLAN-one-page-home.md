@@ -91,6 +91,10 @@ build that does it — never before.
    views**, not panel tabs.
 3. **"Negotiate is a place" (its own sidebar door and page).** Stage 5 folds
    the Negotiate paper into the Document face; until then both stand.
+   (Done in stage 5: the door stays as the list of negotiations.)
+4. **The contract room's six tabs (12 Oct 2026, Details first).** Stage 5
+   keeps Overview and Where we are; Details, Signing, Obligations and History
+   open their twins on Home.
 
 ## 6. What does not move
 
@@ -160,6 +164,24 @@ the page (three named ideas, one The SAP Way), and the owner picks by name.
    already in stage 1); the Negotiate page's own paper folds into the
    Document face; old doors (sidebar, bell, email links, refresh) are
    re-pointed so none lands on a page that no longer exists.
+   **Built 14 Oct 2026 (the owner picked "Checklist", and yes to: the
+   Negotiate page folds into Home — the paper's line gets Notes · Share · ⋯,
+   the notes drawer opens beside the paper, "Their view" joins Clean and
+   Redline, and the rail's Negotiations door stays as a list whose rows open
+   Home; the room's Details, Signing, Obligations and History tabs go, every
+   door that named one opening its twin on Home, the contract page keeping
+   Overview and Where we are, the phone keeping its own screens; once both
+   have signed, Before you sign stays as the receipt).** "Before you sign"
+   is a face of Jambo's tab drawing the Signing column's own four slots, the
+   paper beside it the signing copy; no separate "share" face — Share on the
+   paper's line opens the one send screen. Differences from the wording
+   above: the Negotiate page's notices stand at the top of the Redlines face
+   (they no longer float, the owner's 23 Aug ruling), so a review's doors
+   open the face too; Home's ⋯ leaves out Deal board (a Board view since
+   stage 4), Focus (Home's paper has none) and the two rows already on the
+   face's foot; the Negotiate page's code stays as the engine the face is
+   built from and as the phone's page. Story: MAP-HISTORY "BEFORE YOU SIGN,
+   BESIDE THE PAPER".
 6. **Polish.** Svenska wording pass, the chips' wording, a sweep of every old
    door, the brain (`BRAIN_PARTS`, lanes, stages) brought up to date.
 
@@ -172,7 +194,8 @@ real app.
 - ~~**The Board's own "/" list**~~ — settled in stage 1: one list, the
   places first, then on the Board its chart moves; off the Board the places
   alone.
-- **Where "Before you sign" sits once signed by both**: the face stays as a
-  receipt, or hands over to Where we are.
-- **The rail's Negotiations door** after stage 5: removed, or kept as a list
-  that opens contracts on Home.
+- ~~**Where "Before you sign" sits once signed by both**~~ — settled in
+  stage 5: the face stays as a receipt (who signed, the seal, the copies and
+  "What starts now").
+- ~~**The rail's Negotiations door** after stage 5~~ — settled in stage 5:
+  kept as a list; every row opens the contract on Home.

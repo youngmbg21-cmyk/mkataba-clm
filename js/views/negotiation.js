@@ -8921,10 +8921,20 @@ function openRedlineWorkbench(id, opts = {}){
      face beside Home's paper (pdRedLand) rather than on this page: the same
      column, the same verbs, the same funnel. Where Home has no paper — the
      phone — it carries on here. */
-  if (opts.face && typeof window.pdRedLand === 'function' && pdRedLand(target)){
+  /* ---- AND SINCE STAGE 5 EVERY DOOR LANDS THERE (the owner's yes to
+     decision 1, 14 Oct 2026: the Negotiate page folds into Home) ---- a named
+     negotiation opens Jambo's Redlines face beside Home's paper, wherever the
+     door is — a list row, the bell, the checklist, an email link, a refresh,
+     the Clauses tab's "Start redlining with this ask" (opts.land, landed once
+     the face's editor door is up). This page stays as the engine the face is
+     built from, drawn only where Home has no paper (the phone) or where a
+     caller asks for it by name (opts.page). */
+  if ((opts.face || !opts.page) && typeof window.pdRedLand === 'function' && pdRedLand(target)){
     if (window.state) state.activeId = target;
+    if (opts.land && held) rlLandWhenReady(held, opts.land);
     return true;
   }
+  _rlPageFor = String(target);
   redlineEvict(target, opts);
   if (window.state) state.activeId = target;
   /* IT SAYS THAT IT NAMED ONE, rather than leaving the next paint to infer it
@@ -8982,8 +8992,20 @@ if (typeof document !== 'undefined') document.addEventListener('click', e => {
    with Jambo fits, it opens there with the point's ask waiting on a card in
    Jambo's panel (Apply · Discard), whoever found the point. NOTHING IS FILED OR SENT HERE —
    the reader presses. Too narrow for the editor, the paper scrolls to it. */
+/* the Clauses tab's landing, once the Redlines face beside Home's paper has
+   set its editor door (stage 5) — bounded, as every landing here is */
+const RL_LAND_TRIES = 40, RL_LAND_MS = 120;
+function rlLandWhenReady(c, land){
+  let n = 0;
+  const go = () => {
+    if (_rlEditorDoor && _rlEditorDoor.id === c.id && window.pdRedShows && pdRedShows()){ rlLandOn(c, land); return; }
+    if (++n < RL_LAND_TRIES) setTimeout(go, RL_LAND_MS);
+  };
+  setTimeout(go, 0);
+}
 function rlLandOn(c, land){
-  if (!c || !land || !(window.state && state.view === 'redline')) return;
+  const onFace = !!(window.pdRedShows && pdRedShows() && window.pdRedFor && String(pdRedFor()) === String(c && c.id));
+  if (!c || !land || !(onFace || (window.state && state.view === 'redline'))) return;
   const norm = x => String(x || '').replace(/\s+/g, ' ').trim().toLowerCase();
   const list = negoClauseList(c);
   const textOf = cl => norm(window.richToText ? richToText(cl.body || cl.text || '') : (cl.text || ''));
@@ -9342,7 +9364,11 @@ function negoLastOpened(){
    "where is the list", free to drift from the first — and the list is not a
    view of its own, it is what renderRedline draws when nothing is named. */
 function openNegotiations(opts){
-  _rlDoorAsked = (opts && opts.list) ? 'list' : 'reopen';
+  /* THE LIST STAYS (the owner's yes to decision 1, stage 5): where Home has a
+     paper, the door is the list of negotiations, each row opening Home's
+     Redlines face; reopening the last one is the phone's */
+  const home = typeof window !== 'undefined' && window.innerWidth && window.innerWidth >= 768 && typeof window.pdRedLand === 'function';
+  _rlDoorAsked = (opts && opts.list) || home ? 'list' : 'reopen';
   if (typeof setView === 'function') setView('redline');
   else renderRedline();
   return true;
@@ -9354,6 +9380,32 @@ function openNegotiations(opts){
    anywhere in the app. 'list' is the third answer: take me to ALL of them,
    whatever is remembered. */
 let _rlDoorAsked = false;
+/* ---- A NEGOTIATION THIS PAGE WAS NOT ASKED FOR BY NAME LANDS ON HOME (the
+   one-page Home plan, stage 5) ---- asked by setView BEFORE anything is drawn:
+   a refresh restoring this view, a bare setView('redline'), a door that
+   reopens the last one — the contract renderRedline would put on the bench is
+   read the same way it reads it, and on a screen with Home's paper it opens
+   Jambo's Redlines face there instead (openRedlineWorkbench's own rule). The
+   list, the phone, a sealed contract and a page asked for by name
+   (_rlPageFor) are left to this page. */
+function rlHomeTakesIt(){
+  if (!(typeof window !== 'undefined' && window.innerWidth && window.innerWidth >= 768) || typeof window.pdRedLand !== 'function') return false;
+  const doorAsked = _rlDoorAsked;
+  if (doorAsked === 'list') return false;
+  const pick = id => (id && typeof getContract === 'function') ? getContract(id) : null;
+  let c = null;
+  if (doorAsked === 'reopen') c = negoLastOpened();
+  else if (doorAsked === 'named') c = pick(window.state && state.activeId);
+  else c = _rlShowingList ? null : pick(_redlineHeldId || (window.state && state.activeId));
+  if (!c || String(c.id) === _rlPageFor) return false;
+  if (window.negoMayStart && !negoMayStart(c).ok) return false;
+  if (!pdRedLand(c.id)) return false;
+  _rlDoorAsked = false;
+  return true;
+}
+/* The contract this page was asked for BY NAME (openRedlineWorkbench with
+   opts.page) — the one negotiation it still draws where Home has a paper. */
+let _rlPageFor = null;
 /* Whether the LIST is what this page is currently showing. Not derivable from
    _redlineHeldId, where null means both "the list is up" and "nothing has been
    painted yet" — and those want opposite answers on a bare repaint. Per sitting,
@@ -10524,6 +10576,39 @@ function rlBenchOpts(c, o = {}){
   return opts;
 }
 
+/* ---- ASK FOR REVIEW, THE ONE DOOR ----
+   The head's button on this page, and since the one-page Home plan's stage 5
+   the row in the More menu over Home's paper, press this one function.
+   Owe a verdict → hand it back. Otherwise → ask, whether or not something
+   else is already out with somebody.
+   THE ONE DOOR. With more than one review open with this person the picker
+   asks which, naming each by its change tags; with one it goes straight
+   through. The banner rows no longer carry a button of their own — see
+   reviewBannerHtml. Otherwise the door opens on a CHOICE — assign
+   contributors (the desk) or send for review (the ask). See
+   openReviewEntryChooser for why the hand-back is not routed through it.
+   Falls back to the ask dialog on a stage without the chooser, which is what
+   this handler always did. `after` is the host's own repaint. */
+/* THE DOOR'S OWN WORD AND WHETHER IT CAN BE PRESSED — one reading for the
+   head's button and the More menu's row. NOBODY TO ASK, NO POP-UP (SAP
+   pop-ups, owner's go 10 Oct 2026): with no colleague in the workspace the
+   door used to open a dialog whose whole message was "there is nobody to
+   ask". The door greys with that reason instead; a hand-back ('yours') is
+   never greyed. */
+function rlReviewDoorState(c){
+  const st = window.reviewState ? reviewState(c) : { phase: 'none' };
+  const label = st.phase === 'yours' ? i18t('rv_head_return') : i18t('rv_head_ask');
+  const me = (typeof currentUser === 'function' && currentUser()) || {};
+  const nobody = st.phase !== 'yours' && typeof getUsers === 'function'
+    && !(getUsers() || []).some(u => u && u.id !== me.id);
+  return { phase: st.phase, label, nobody };
+}
+function rlReviewDoor(c, after){
+  const st = window.reviewState ? reviewState(c) : { phase: 'none' };
+  if (st.phase === 'yours') openReviewReturnPicker(c, { after });
+  else if (window.openReviewEntryChooser) openReviewEntryChooser(c, { after });
+  else openReviewAskModal(c, { after });
+}
 function renderRedline(){
   const host = document.getElementById('content');
   if (!host) return;
@@ -10797,18 +10882,10 @@ function renderRedline(){
                the door. Its word follows the state, because the reviewer and
                the requester press the same place for opposite acts. */}
         ${(typeof canEdit !== 'function' || canEdit()) && window.reviewState ? (() => {
-          const st = reviewState(c);
-          const label = st.phase === 'yours' ? i18t('rv_head_return') : i18t('rv_head_ask');
-          /* NOBODY TO ASK, NO POP-UP (SAP pop-ups, owner's go 10 Oct 2026):
-             with no colleague in the workspace the door used to open a dialog
-             whose whole message was "there is nobody to ask". The door greys
-             with that reason instead; a hand-back ('yours') is never greyed. */
-          const me = (typeof currentUser === 'function' && currentUser()) || {};
-          const nobody = st.phase !== 'yours' && typeof getUsers === 'function'
-            && !(getUsers() || []).some(u => u && u.id !== me.id);
-          const nobodyAttrs = nobody ? ` disabled aria-disabled="true" data-rl-dead="1" title="${_nea(i18t('rv_no_colleagues'))}"` : '';
+          const d = rlReviewDoorState(c);
+          const nobodyAttrs = d.nobody ? ` disabled aria-disabled="true" data-rl-dead="1" title="${_nea(i18t('rv_no_colleagues'))}"` : '';
           return `<button type="button" data-rl-review class="rl-pb-btn"
-            data-rv-phase="${_nea(st.phase)}"${deadAttrs || nobodyAttrs || ` title="${_nea(i18t('rv_head_title'))}"`}>${icon('users','w-3.5 h-3.5')}<span class="rl-word">${_ne(label)}</span></button>`;
+            data-rv-phase="${_nea(d.phase)}"${deadAttrs || nobodyAttrs || ` title="${_nea(i18t('rv_head_title'))}"`}>${icon('users','w-3.5 h-3.5')}<span class="rl-word">${_ne(d.label)}</span></button>`;
         })() : ''}
   `;
   const mayMenu = !_rvPosture && (typeof canEdit !== 'function' || canEdit());
@@ -11239,13 +11316,9 @@ function renderRedline(){
   if (window.wireRoomHead) wireRoomHead(c);
   const headAct = (id, fn) => host.querySelector('#' + id)?.addEventListener('click', fn);
   headAct('ws-share', () => window.openShareModal && openShareModal(c));
-  headAct('ws-import', () => window.openImportModal && openImportModal(c));
-  headAct('ws-compare', () => window.openCompareModal && openCompareModal(c));
-  headAct('ws-pdf', () => window.exportPDF && exportPDF(c));
-  headAct('ws-word', () => window.exportWordTracked && exportWordTracked(c));
-  headAct('ws-pdf-record', () => window.exportPDF && exportPDF(c, { record: true }));
-  headAct('ws-filing', () => window.ovOpenFiling && ovOpenFiling(c));
-  headAct('ws-mynote', () => window.myNotesNew && myNotesNew({ contractId: c.id }));
+  /* THE MENU'S ROWS — import, compare, the exports, filing, my notes — are
+     wired with the menu (roomMenuWire, through wireRoomHead above) since the
+     one-page Home plan's stage 5: one menu builder, one wiring. */
   /* ws-tpl is GONE from the room's menu (one door to standards, 24 Sep 2026):
      "From one of our contracts" behind the Templates page's one button. */
   headAct('ws-focus', () => rlSetFocus(!rlFocusOn()));
@@ -11271,22 +11344,7 @@ function renderRedline(){
      back, and anyone looking at a review already out gets the banner's Cancel
      instead of a second way to do it. */
   host.querySelectorAll('[data-rl-review]').forEach(el =>
-    el.addEventListener('click', () => {
-      const st = window.reviewState ? reviewState(c) : { phase: 'none' };
-      /* Owe a verdict → hand it back. Otherwise → ask, whether or not something
-         else is already out with somebody. */
-      /* THE ONE DOOR. With more than one review open with this person the
-         picker asks which, naming each by its change tags; with one it goes
-         straight through. The banner rows no longer carry a button of their
-         own — see reviewBannerHtml. */
-      if (st.phase === 'yours') openReviewReturnPicker(c, { after: () => renderRedline() });
-      /* Otherwise the door opens on a CHOICE — assign contributors (the desk)
-         or send for review (the ask). See openReviewEntryChooser for why the
-         hand-back is not routed through it. Falls back to the ask dialog on a
-         stage without the chooser, which is what this handler always did. */
-      else if (window.openReviewEntryChooser) openReviewEntryChooser(c, { after: () => renderRedline() });
-      else openReviewAskModal(c, { after: () => renderRedline() });
-    }));
+    el.addEventListener('click', () => rlReviewDoor(c, () => renderRedline())));
   /* Focus in, focus out — ONE button, toggling. A class flip, not a repaint —
      see rlSetFocus. The paint call lines the fresh button's face up with the
      mode the page came back in. */
@@ -21909,7 +21967,7 @@ function redlineSyncProxies(host){
   });
 }
 
-if (typeof window !== 'undefined') Object.assign(window, { paperZcFit, rlCameFrom, rlCameFromSet, rlBackToClauses, rlLandOn, rlRoundPrepLineHtml, rlUnsentList, rlAddClauseBtnHtml, rlAddClause, rlEditClauseBtnHtml, rlClauseInView, rlEditClausePress,
+if (typeof window !== 'undefined') Object.assign(window, { rlHomeTakesIt, rlReviewDoor, rlReviewDoorState, rlLandWhenReady, RL_LAND_TRIES, RL_LAND_MS, paperZcFit, rlCameFrom, rlCameFromSet, rlBackToClauses, rlLandOn, rlRoundPrepLineHtml, rlUnsentList, rlAddClauseBtnHtml, rlAddClause, rlEditClauseBtnHtml, rlClauseInView, rlEditClausePress,
   rlInlineClick, rlInlineSave, rlInlineDirty, rlInlineOn, rlInlineEnd,
   renderRedline, redlineRoundLabel, redlineSyncProxies,
   rlToggleDiscussion, rlSideMode, rlSetSideMode, rlLayoutResizer, rlWireResizer, rlWireClauseTools,

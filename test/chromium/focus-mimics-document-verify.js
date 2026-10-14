@@ -127,7 +127,12 @@ const SHOT = (rowSel) => {
     /* ═══════════ 1 · THE NEGOTIATE PAGE AT REST ═══════════
        The CONTROLS. If the page does not draw a head card and a control row at
        rest, everything after this is measuring nothing. */
-    await drive(page, id => openRedlineWorkbench(id), cid, null);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): every door now
+       lands on Jambo's Redlines face beside Home's paper, which has no head,
+       no control row and no Focus; this file's subject is Focus mode on the
+       Negotiate PAGE, so it opens the page by name ({ page: true }), the
+       engine the face is built from. */
+    await drive(page, id => openRedlineWorkbench(id, { page: true }), cid, null);
     await pause(2400);
     const rest = await drive(page, SHOT, '#view-redline .rl-tabrow', {});
     check('1a CONTROL — the dark bar is drawn', !!rest.bar && rest.bar.h > 0,

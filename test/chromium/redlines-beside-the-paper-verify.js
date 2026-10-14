@@ -3,14 +3,17 @@
    picked "Column" by name on 14 Oct 2026, with all three recommendations:
    the paper turns Redlined while the face is open and back when it closes;
    every door from outside opens the face, the Negotiate page staying on the
-   rail until stage 5; notes stay on Negotiate until stage 5)
+   rail until stage 5; notes stay on Negotiate until stage 5. RE-POINTED for
+   stage 5, 14 Oct 2026: the page folded into Home — the head has no Open
+   Negotiate, the rail's door is the list whose rows open this face, and a
+   note count opens the note on Home)
    ============================================================
    Their round has three asks on a SaaS agreement. Driven in a real browser:
      1  the checklist's door lands on Home's paper with Jambo's panel on the
         Negotiate page's own column; the paper turns Redlined; the Negotiate
         page is never drawn on the way
      2  the column as on Negotiate: Redlines N, the piles, every row's verbs,
-        Risks to look at; its head carries × and Open Negotiate; its foot the
+        Risks to look at; its head carries × (no Open Negotiate since stage 5); its foot the
         page's three acts
      3  a row's press takes the paper to its clause; a press on a changed
         clause picks its row
@@ -21,10 +24,11 @@
      6  a counter saved there lands under "Your drafts", Send all · 1 not sent,
         same spot; Send all asks the page's own question and sends
      7  Clean still wins while it is open; × goes back to the conversation and
-        the paper back to Clean
+        the paper back to Clean; Their view draws their seat (stage 5)
      8  the word "redline", the bell's row and the list panel's Negotiation
-        door open it; Open Negotiate opens the page
-     9  a row's note count opens Negotiate on that change with its notes
+        door open it; the rail's Negotiations door shows the list, and its row
+        opens the face (stage 5)
+     9  a row's note count opens the notes drawer on Home on that change (stage 5)
     10  the owner's three screens: the paper neither moves nor shrinks when
         the face opens; the face fits; its head and foot are in sight
     11  Svenska; the phone carries on to its own page
@@ -130,7 +134,9 @@ const bands = () => [...document.querySelectorAll('#pd-redface .rl-band')].map(b
     });
     check('2a Redlines with its count, the round, and the piles', /Redlines\s*3/.test(col.title.replace(/\s+/g, ' ')) && /Round 1/.test(col.round) && /Awaiting you\s*3/.test(col.bands.join('|')), JSON.stringify([col.title, col.round, col.bands]));
     check('2b each of their rows carries Accept · Reject · Counter · Ladder', col.rows.length === 3 && col.rows.every(r => ['Accept', 'Reject', 'Counter', 'Ladder'].every(v => r.some(t => t.endsWith(v)))), JSON.stringify(col.rows[0]));
-    check('2c the head carries × and Open Negotiate', col.x && col.nego === 'Open Negotiate', col.nego);
+    /* RE-POINTED 14 Oct 2026 (stage 5): the page folded into Home, so the
+       head has no way back to it */
+    check('2c the head carries ×, and no Open Negotiate', col.x && col.nego === '', col.nego);
     check('2d Risks to look at, and the foot\'s three acts', col.risks && col.foot.length === 3 && /Draft from our standards/.test(col.foot[0]) && /Edit clause/.test(col.foot[1]) && /Add a clause/.test(col.foot[2]), JSON.stringify(col.foot));
     check('2e the same column the Negotiate page draws (one builder)', await page.evaluate(() => !!document.querySelector('#pd-redface .redline-page.rl-face #rl-side.rl-col #rl-changes-col #nego-cards')));
 
@@ -221,6 +227,20 @@ const bands = () => [...document.querySelectorAll('#pd-redface .rl-band')].map(b
     await page.click('#pd-redface [data-pd-rf-close]'); await pause(400);
     const z7 = await page.evaluate(FACE);
     check('7c opened from Clean it turns Redlined, and closing puts Clean back', o7.red && !z7.red, `${o7.red} → ${z7.red}`);
+    /* THEIR VIEW (stage 5, 14 Oct 2026): the Negotiate page's Internal |
+       Counterparty switch, folded into Home's paper line as Clean | Redline |
+       Their view — the same Redlined paper drawn from their seat */
+    await page.evaluate(() => pdRedOpen('MK-R1'));
+    await waitFor(page, () => !!document.querySelector('#ig-strip [data-ig-red="theirs"]'), 6000);
+    if (await page.$('#ig-strip [data-ig-red="theirs"]')) await page.click('#ig-strip [data-ig-red="theirs"]');
+    const tv = await waitFor(page, () => /:theirs$/.test(((document.getElementById('ig-paper') || {}).dataset || {}).for || '')
+      && (document.querySelector('#ig-strip [data-ig-red="theirs"]') || {}).getAttribute?.('aria-pressed') === 'true'
+      && !!document.querySelector('#ig-paper .ig-redpaper #ig-canvas'), 5000);
+    check('7d Their view draws the Redlined paper from their seat, and the toggle says so', tv);
+    if (await page.$('#ig-strip [data-ig-red="1"]')) await page.click('#ig-strip [data-ig-red="1"]');
+    const back7 = await waitFor(page, () => /:red$/.test(((document.getElementById('ig-paper') || {}).dataset || {}).for || ''), 5000);
+    check('7e and Redline puts our own seat back', back7);
+    await page.evaluate(() => pdRedClose()); await pause(300);
 
     /* ===== 8. THE OTHER DOORS ===== */
     await page.fill('#igd-input', 'redline'); await page.keyboard.press('Enter');
@@ -233,17 +253,27 @@ const bands = () => [...document.querySelectorAll('#pd-redface .rl-band')].map(b
     await page.evaluate(() => { const d = (insDoorActs(getContract('MK-R1')) || []).find(x => x.k === 'door-nego'); window._d8 = d ? d.k : null; if (d) d.run(); });
     const ins8 = await waitFor(page, () => !!document.getElementById('pd-redface') && state.view === 'dashboard', 6000);
     check('8c the list panel\'s Negotiation door opens the face', ins8, String(await page.evaluate(() => window._d8)));
-    await page.click('#pd-redface [data-pd-rf-nego]');
-    check('8d Open Negotiate opens the page itself', await waitFor(page, () => state.view === 'redline' && !!document.querySelector('#view-redline #rl-side'), 8000));
+    /* RE-POINTED 14 Oct 2026 (stage 5; the owner's yes to decision 1): the
+       rail's Negotiations door stays, as the LIST — never a bench — and a
+       row opened from it lands on this face */
+    await page.evaluate(() => { pdRedClose(); openNegotiations(); });
+    const list8 = await waitFor(page, () => state.view === 'redline' && !document.querySelector('#rl-side') && /MK-R1|SaaS/.test((document.getElementById('content') || {}).innerText || ''), 8000);
+    check('8d the rail\'s Negotiations door shows the list, not a bench', list8);
+    await page.evaluate(() => regOpenRow('MK-R1', true));
+    check('8e a row on that list opens the face on Home', await waitFor(page, () => state.view === 'dashboard' && !!document.getElementById('pd-redface') && intel.paper && intel.paper.id === 'MK-R1', 8000));
 
-    /* ===== 9. A ROW'S NOTE COUNT OPENS NEGOTIATE ON THAT CHANGE ===== */
+    /* ===== 9. A ROW'S NOTE COUNT OPENS THAT CHANGE'S NOTE ON HOME =====
+       RE-POINTED 14 Oct 2026 (stage 5): the Negotiate page folded into Home;
+       the count opens the notes drawer beside Home's paper on that change,
+       the face kept */
     await page.evaluate(() => { const c = getContract('MK-R1'); negoPostComment(c, 'CHG-003', 'Check with finance first', { side: 'owner', visibility: 'internal' }); if (window.persist) persist(c); });
     await page.evaluate(() => pdRedOpen('MK-R1'));
     await waitFor(page, () => !!document.querySelector('#pd-redface [data-rl-notes="CHG-003"]'), 6000);
     await page.click('#pd-redface [data-rl-notes="CHG-003"]');
-    const n9 = await waitFor(page, () => state.view === 'redline' && !!document.querySelector('#context-panel.open'), 8000);
-    const n9b = await page.evaluate(() => ({ view: state.view, drawer: ((document.querySelector('#context-panel.open') || {}).innerText || '').replace(/\s+/g, ' ').slice(0, 400) }));
-    check('9 a row\'s note count opens Negotiate on that change, its notes up', n9 && /CHG-003/.test(n9b.drawer) && /finance/.test(n9b.drawer), JSON.stringify(n9b));
+    const n9 = await waitFor(page, () => state.view === 'dashboard' && !!document.querySelector('#context-panel.open'), 8000);
+    const n9b = await page.evaluate(() => ({ view: state.view, face: !!document.getElementById('pd-redface'),
+      drawer: ((document.querySelector('#context-panel.open') || {}).innerText || '').replace(/\s+/g, ' ').slice(0, 400) }));
+    check('9 a row\'s note count opens the notes drawer on Home on that change, the face kept', n9 && n9b.face && /CHG-003/.test(n9b.drawer) && /finance/.test(n9b.drawer), JSON.stringify(n9b));
     await page.evaluate(() => { const x = document.getElementById('panel-close'); if (x) x.click(); });
 
     /* ===== 10. THE OWNER'S THREE SCREENS ===== */
@@ -276,7 +306,7 @@ const bands = () => [...document.querySelectorAll('#pd-redface .rl-band')].map(b
     await waitFor(page, () => !!document.getElementById('pd-redface'), 5000);
     const s11 = await page.evaluate(() => ({ nego: ((document.querySelector('#pd-redface [data-pd-rf-nego]') || {}).textContent || '').trim(),
       title: ((document.querySelector('#pd-redface .rl-idx-title') || {}).textContent || '').trim(), x: (document.querySelector('#pd-redface [data-pd-rf-close]') || {}).title }));
-    check('11a Svenska: the face speaks the reader\'s language', s11.nego === 'Öppna Förhandla' && !/Redlines/.test(s11.title) && !/Close/.test(s11.x || ''), JSON.stringify(s11));
+    check('11a Svenska: the face speaks the reader\'s language', !s11.nego && !/Redlines/.test(s11.title) && !/Close/.test(s11.x || ''), JSON.stringify(s11));
     await shot('11-svenska');
     const en2 = await page.$('.lang-btn[data-lang="en"]'); if (en2) { await en2.click(); await pause(500); }
     await page.setViewportSize({ width: 390, height: 844 }); await pause(600);

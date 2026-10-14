@@ -170,7 +170,12 @@ describe('f442 (1) the essentials card holds every term, once', () => {
       'the ⋯ row turns the same posture on and goes to the Overview');
     assert.ok(/id="ws-filing"/.test(CONTRACT) && /ws-filing'\)\?\.addEventListener\('click',\(\)=>ovOpenFiling\(c\)\)/.test(CONTRACT),
       'the row is on the room\'s ⋯ menu');
-    assert.ok(/headAct\('ws-filing'/.test(read('js/views/negotiation.js')), 'and answered on the negotiate page too');
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): one wiring for
+       the menu wherever it is drawn (roomMenuWire) — the room, Negotiate and
+       Home's paper line — so the negotiate page's own copy went */
+    assert.ok(/ws-filing'\)\?\.addEventListener\('click',\(\)=>ovOpenFiling\(c\)\)/.test(fnBody(CONTRACT, 'roomMenuWire')), 'answered by the menu\'s one wiring');
+    assert.ok(!/headAct\('ws-filing'/.test(read('js/views/negotiation.js')), 'and nowhere a second time');
+    assert.match(fnBody(CONTRACT, 'ovOpenFiling'), /openWorkspace\(c\.id\)/, 'from Home it opens the room first');
   });
 });
 

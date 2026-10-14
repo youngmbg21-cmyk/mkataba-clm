@@ -193,7 +193,9 @@ const FORM = () => {
 
   /* RE-POINTED 11 Oct 2026: the Document tab is gone (owner) — retired from
      this loop; the head is asked on every tab the room still draws. */
-  for (const t of ['stands', 'sign', 'oblig', 'history']) {
+  /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): Signing,
+     Obligations and History went home; the room draws Overview and Where we are. */
+  for (const t of ['stands']) {
     const h = await headOn(t);
     check(`nor on the ${t} tab — the head is the same head on every tab`,
       h.says === 0 && !h.na && h.acts.length >= 2,

@@ -3,8 +3,9 @@
    (the owner picked "Form" by name on 14 Oct 2026, with all three
    recommendations: drafts and uploads land here alike; every way into filling
    in from outside the room opens this face, the room's Details tab staying
-   until stage 5; a company template's answers show on the paper as typed and
-   reach the wording on Fill the document)
+   until stage 5 — gone since, its door opening this face too; a company
+   template's answers show on the paper as typed and reach the wording on Fill
+   the document)
    ============================================================
      1  an upload lands on Home's paper, Jambo's panel on Fill in, the cursor
         in the first owed box, the room never drawn; owed boxes are amber
@@ -18,7 +19,8 @@
      6  the last box: All in, and the next step offered
      7  × goes back to the conversation; "fill in" opens the face again
      8  the checklist, the Contracts filter and Negotiate's "Fill them in"
-        open the face; the room's Details tab still draws its form
+        open the face; since stage 5 so does the room's old Details door, and
+        the room offers no Details tab
      9  the owner's three screens: the face fits, the box stays in sight, the
         paper does not move or shrink when the face opens
     10  Svenska
@@ -224,9 +226,17 @@ const FACE = () => {
     await page.evaluate(() => { try { regState().view = 'all'; } catch (_) {} setView('register'); }); await pause(300);
     await page.evaluate(() => negoBlanksFill(getContract('MK-F2')));
     check('8c Negotiate\'s "Fill them in" opens the face', await waitFor(page, () => !!document.getElementById('pd-fillface') && intel.paper && intel.paper.id === 'MK-F2', 6000));
-    await page.evaluate(() => { openWorkspace('MK-F2'); roomGoTab(getContract('MK-F2'), 'details'); });
-    const room = await waitFor(page, () => state.view === 'workspace' && !!document.querySelector('#det-basics [data-kt]') && !!document.querySelector('#tplform-section [data-blankf]'), 6000);
-    check('8d the room\'s Details tab still draws its form for someone already in the room', room);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5; the owner's
+       yes to decision 2): the room's Details tab went home — the door that
+       named it, from inside the room, opens this face, the room never left
+       drawn behind it, and the room's tab row no longer offers it. */
+    await page.evaluate(() => { openWorkspace('MK-F2'); });
+    await waitFor(page, () => state.view === 'workspace' && !!document.querySelector('.room-tabrow'), 6000);
+    const roomTabs = await page.evaluate(() => [...document.querySelectorAll('.room-tabrow [data-ws-tab]')].map(b => b.getAttribute('data-ws-tab')));
+    await page.evaluate(() => { roomGoTab(getContract('MK-F2'), 'details'); });
+    const room = await waitFor(page, () => state.view === 'dashboard' && !!document.querySelector('#pd-fillface .pd-ff[data-pd-ff="MK-F2"] #det-basics [data-kt]')
+      && !!document.querySelector('#pd-fillface #pd-fill [data-blankf]') && !document.getElementById('tplform-section'), 6000);
+    check('8d the room\'s Details door opens this face, and the room offers no Details tab', room && !roomTabs.includes('details'), JSON.stringify(roomTabs));
 
     /* ===== 9. THE OWNER'S THREE SCREENS ===== */
     for (const [w, hgt] of SCREENS) {

@@ -67,7 +67,13 @@ const DEAL = {
      the stage measures what the feature measures and cannot drift from it. */
   const where = p => p.evaluate(() => (window.presenceSpotNow ? presenceSpotNow() : null));
   const openBench = async (p) => {
-    await p.evaluate(() => openRedlineWorkbench('MK-F1'));
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): every door now
+       lands on Jambo's Redlines face beside Home's paper, which draws no room
+       head (no presence slot) and no #rl-doc; Follow me walks the Negotiate
+       PAGE's own paper from its head's faces (presenceSpotNow reads #rl-doc),
+       so the page is opened by name ({ page: true }), the engine the face is
+       built from. */
+    await p.evaluate(() => openRedlineWorkbench('MK-F1', { page: true }));
     await until(p, () => !!document.querySelector('#rl-doc [data-clause]'), null, 16000);
     await p.waitForTimeout(600);
   };

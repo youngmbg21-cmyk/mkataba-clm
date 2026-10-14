@@ -435,8 +435,12 @@ describe('f311 (7) — the check has to have been run (owner-reported 13 Sep 202
     const d = /async function signRiskDismiss\([\s\S]*?\n\}/.exec(strip(CONTRACT));
     assert.match(d[0], /multiline:true/);
     const { STRINGS } = require('../js/i18n.js');
-    assert.match(STRINGS.en.sc_accept_msg, /History tab/);
-    assert.match(STRINGS.sv.sc_accept_msg, /Historik/);
+    /* RE-POINTED 14 OCT 2026 (the one-page Home plan, stage 5): the History
+       tab went home (the Board's History view), so the sentence says where the
+       reason lives without naming a tab that is gone */
+    assert.match(STRINGS.en.sc_accept_msg, /history/);
+    assert.match(STRINGS.sv.sc_accept_msg, /historik/);
+    assert.ok(!/History tab/.test(STRINGS.en.sc_accept_msg) && !/fliken Historik/.test(STRINGS.sv.sc_accept_msg), 'no tab that is gone');
   });
 });
 

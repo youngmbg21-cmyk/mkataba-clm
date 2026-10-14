@@ -417,7 +417,7 @@ describe('f412 (3) — the sixth agent, "No link to sign"', () => {
     const acts = win.agPanelActs(reply);
     assert.match(acts, /^<button type="button" class="ui-btn ui-btn-primary" data-ag-act="fresh">Send a fresh link<\/button>/);
     assert.match(acts, /data-ag-act="sendscreen">Choose who it goes to/);
-    assert.match(win.agPanelActs(sign), /data-ag-act="fresh"[\s\S]*data-ag-act="signing">Open the Signing tab/);
+    assert.match(win.agPanelActs(sign), /data-ag-act="fresh"[\s\S]*data-ag-act="signing">Open Before you sign/, 'the Signing tab went home (stage 5): the act opens Before you sign beside the paper');
     win.canEdit = () => false;
     assert.ok(!/data-ag-act="fresh"/.test(win.agPanelActs(reply)) && !/data-ag-act="fresh"/.test(win.agPanelActs(sign)),
       'somebody who may not send is shown where the work lives, and nothing that sends');

@@ -210,8 +210,25 @@ const signedOf = (cp, signer) => [
     const duties = await page.waitForFunction(() => { const d = document.querySelector('.obd'); return d ? d.innerText.replace(/\s+/g, ' ') : ''; },
       null, { timeout: 15000 }).then(x => x.jsonValue()).catch(() => '');
     await page.screenshot({ path: path.join(OUT, '5-duties.png') });
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the filing is
+       now pressed on Jambo's Before you sign face on Home (the room's Signing
+       tab went home), with this very contract on Home's paper. The claim is
+       unchanged — the suggestions open after filing and quote the signed copy
+       — so the waiting toast is said in the detail when they do not open. */
+    const toastSaid = duties ? '' : await page.evaluate(() => [...document.querySelectorAll('#toast-root *')]
+      .filter(e => !e.children.length).map(e => e.textContent.trim()).filter(Boolean).join(' · '));
     check('5d the duties suggested after filing quote the signed copy — sixty days — never the agreed thirty',
-      /sixty days/i.test(duties) && !/thirty days/i.test(duties), duties.slice(0, 220));
+      /sixty days/i.test(duties) && !/thirty days/i.test(duties), duties ? duties.slice(0, 220) : `no suggestions opened · view ${await page.evaluate(() => state.view)} · toast: ${toastSaid}`);
+    /* AND WHAT THEY QUOTE, through the way forward the page offered: when the
+       suggestions did not open by themselves, the toast's own Open is pressed
+       and the same reading is asked of what it opens. */
+    if (!duties) {
+      await page.evaluate(() => { const b = [...document.querySelectorAll('#toast-root button')].find(x => /^open/i.test(x.textContent.trim())); if (b) b.click(); });
+      const viaToast = await page.waitForFunction(() => { const d = document.querySelector('.obd'); return d ? d.innerText.replace(/\s+/g, ' ') : ''; },
+        null, { timeout: 10000 }).then(x => x.jsonValue()).catch(() => '');
+      check('5d2 opened from the toast, the suggestions quote the signed copy — sixty days — never the agreed thirty',
+        /sixty days/i.test(viaToast) && !/thirty days/i.test(viaToast), viaToast.slice(0, 220));
+    }
     await page.waitForTimeout(500);
     await page.evaluate(() => { const b = [...document.querySelectorAll('#modal-root button')].find(x => /^(cancel|close)$/i.test(x.textContent.trim())); if (b) b.click(); });
     await page.waitForTimeout(500);

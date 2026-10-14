@@ -212,7 +212,13 @@ const drive = async (page, fn, arg, fallback) => {
       const c = (state.contracts || []).find(x => x.status !== 'Signed') || state.contracts[0];
       return c ? c.id : null;
     }, undefined, null);
-    await drive(page, id => openRedlineWorkbench(id), cid, null);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): every door
+       onto Negotiate now lands on Jambo's Redlines face on Home, which draws
+       no seat switch (Their view is the paper line's toggle there). This
+       claim's subject IS the Negotiate page's own Internal | Counterparty
+       switch, so the page is asked for by name ({ page: true }). */
+    await drive(page, id => openRedlineWorkbench(id, { page: true }), cid, null);
+    await page.waitForFunction(() => !!document.querySelector('#view-redline .rl-actions'), null, { timeout: 8000 }).catch(() => {});
     await pause(2400);
 
     const seg = await drive(page, () => {
@@ -262,7 +268,11 @@ const drive = async (page, fn, arg, fallback) => {
        The hole yesterday's check left: it pressed the button in the CONTRACT
        ROOM, where it has always worked. The negotiate page draws the SAME
        button from the SAME builder and wired only the menu row's id. */
-    await drive(page, id => openRedlineWorkbench(id), cid, null);
+    /* RE-POINTED 14 Oct 2026 (stage 5): Focus is the Negotiate PAGE's own
+       mode (Home's paper and the Redlines face have none), so the page is
+       asked for by name ({ page: true }) */
+    await drive(page, id => openRedlineWorkbench(id, { page: true }), cid, null);
+    await page.waitForFunction(() => !!document.querySelector('#view-redline #ws-more'), null, { timeout: 8000 }).catch(() => {});
     await pause(2200);
     const nf = await drive(page, async () => {
       /* RE-POINTED 13 Oct 2026: the owner deleted the control row's Focus button; Focus on Negotiate is the More menu's row (#ws-focus), opened first */

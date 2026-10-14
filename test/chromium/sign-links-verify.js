@@ -283,25 +283,34 @@ const ROUTE = [
     const landed = await page.evaluate(id => {
       location.hash = '#contract=' + id + '&tab=sign';
       const done = window.openFromHash();
-      return { done, view: state.view, active: state.activeId,
-        tab: window.roomCurrentTab ? roomCurrentTab() : null,
+      /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+         Signing tab went home — the link's &tab=sign opens Jambo's Before you
+         sign face beside Home's paper (openFromHash → roomTabHome), so "its
+         signing step" is the face's contract (pdSignFor) on Home. */
+      const sf = window.pdSignFor ? pdSignFor() : null;
+      return { done, view: state.view, active: sf || state.activeId,
+        tab: sf ? 'sign' : (window.roomCurrentTab ? roomCurrentTab() : null),
         hash: location.hash };
     }, noticed.id);
     await page.waitForTimeout(500);
     check('#contract=<id>&tab=sign opens that contract on its signing step',
-      landed.done && landed.view === 'workspace' && landed.active === noticed.id
+      landed.done && landed.view === 'dashboard' && landed.active === noticed.id
       && landed.tab === 'sign',
       `${landed.view}/${landed.tab}`);
     check('and the hash is spent, so a refresh does not jump them back',
       !landed.hash || landed.hash === '#' || landed.hash === '', `"${landed.hash}"`);
-    const tabPixels = await page.evaluate(() => {
-      const el = document.querySelector('#ws-tabs [data-ws-tab="sign"]');
+    /* RE-POINTED 14 Oct 2026 (stage 5): no Signing tab is drawn any more; the
+       live signing step on screen is the Before you sign face on Jambo's tab
+       (#pd-signface), asked for real pixels and for being the face shown. */
+    await page.waitForFunction(id => !!document.querySelector(`#pd-signface .pd-sf[data-pd-sf="${id}"]`), noticed.id, { timeout: 8000 }).catch(() => {});
+    const tabPixels = await page.evaluate(id => {
+      const el = document.querySelector(`#pd-signface .pd-sf[data-pd-sf="${id}"]`);
       if (!el) return null;
       const r = el.getBoundingClientRect();
-      return { on: el.classList.contains('on'), w: Math.round(r.width) };
-    });
+      return { on: !!(window.pdSignShows && pdSignShows()), w: Math.round(r.width) };
+    }, noticed.id);
     check('the Signing tab is the live one on screen', !!(tabPixels && tabPixels.on && tabPixels.w > 20),
-      tabPixels ? `${tabPixels.w}px on=${tabPixels.on}` : 'no tab row');
+      tabPixels ? `${tabPixels.w}px on=${tabPixels.on}` : 'no signing face');
 
     /* ============= 5. THE BUTTON DOES NOT PROMISE WHAT THE PRESS REFUSES ====
        (owner-reported, 12 Aug 2026.) "Sign as Young Ochoka" was drawn live,
@@ -409,11 +418,15 @@ const ROUTE = [
     await page.waitForTimeout(1200);
     await page.evaluate(id => openWorkspace(id), execId);
     await page.waitForTimeout(2000);
-    await page.evaluate(() => { const b = document.querySelector('#ws-tabs [data-room-tab="sign"]'); if (b) b.click(); });
-    await page.waitForTimeout(1400);
-    const closed = await page.evaluate(() => {
-      const side = document.getElementById('sign-side');
-      const c = state.contracts.find(x => x.id === state.activeId);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room has no
+       Signing tab to press; its door (roomGoTab 'sign') opens the Before you
+       sign face on Home, which for an executed contract is the receipt
+       (.pd-sf.is-closed) and holds the same #sign-side column. */
+    await page.evaluate(id => roomGoTab(getContract(id), 'sign'), execId);
+    await page.waitForFunction(id => !!document.querySelector(`#pd-signface .pd-sf[data-pd-sf="${id}"] #sign-side section`), execId, { timeout: 8000 }).catch(() => {});
+    const closed = await page.evaluate(id => {
+      const side = document.querySelector('#pd-signface #sign-side') || document.getElementById('sign-side');
+      const c = state.contracts.find(x => x.id === id);
       const r = side && side.getBoundingClientRect();
       const ctrls = side ? [...side.querySelectorAll('button,select,input,textarea')] : [];
       return { executed: c.status === 'Signed',
@@ -426,7 +439,7 @@ const ROUTE = [
         anyLive: ctrls.some(b => !b.disabled),
         liveLinks: side ? side.querySelectorAll('a[href]').length : 0,
         addSigner: !!(side && side.querySelector('#sp-add-signer')) };
-    });
+    }, execId);
     check('executed: the fixture really is executed', closed.executed, JSON.stringify(closed));
     check('executed: the signing column is still drawn',
       closed.visible && closed.cards >= 1 && closed.saysOrder, JSON.stringify(closed));

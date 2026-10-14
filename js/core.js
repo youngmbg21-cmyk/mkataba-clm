@@ -2512,7 +2512,15 @@ function openFromHash(){
      yours" look the same from the browser and must read the same. */
   if(!c){ if(window.toast) toast(i18t('co_open_link_gone',{id}),'err'); return false; }
   state.activeId=c.id; state.selId=c.id;
-  setView('workspace');
+  /* ---- A LINK NAMING ONE OF THE FOUR TABS THAT WENT HOME OPENS ITS TWIN
+     THERE (the one-page Home plan, stage 5) ---- the approval email's
+     &tab=sign&go=approval opens Jambo's Before you sign face, whose first card
+     is the approval asked of you; History opens the Board's view. The room is
+     not drawn on the way; the phone keeps its own (roomTabHome says false). */
+  const goTab=go&&go.tab?go.tab:'';
+  const homeTab=[tab,goTab].find(k=>k&&window.ROOM_TABS_HOME&&window.ROOM_TABS_HOME[k])||'';
+  const home=!!(homeTab&&window.roomTabHome&&window.roomTabHome(c,homeTab));
+  if(!home) setView('workspace');
   /* The tab is asked for AFTER the room exists, through the room's own router —
      never by writing its private state from out here. An unknown tab name is
      simply not asked for, and the room opens where it always would.
@@ -2524,7 +2532,7 @@ function openFromHash(){
      the one place they can do that is the negotiation — the same reason the
      signer's mail asks for 'sign'. Both links are built by one function on the
      server (contractUrl), and this is the one place either is honoured. */
-  if(tab && window.roomGoTab && ['terms','docs','sign','history','redline'].includes(tab)){
+  if(!home && tab && window.roomGoTab && ['terms','docs','sign','history','redline'].includes(tab)){
     try{ roomGoTab(c, tab); }catch(_){}
   }
   /* AFTER THE ROOM HAS PAINTED, and asked of the screen rather than assumed:
@@ -2533,7 +2541,7 @@ function openFromHash(){
      Signing tab's own cards are built by two other modules and a reader who
      never gets one must not leave a timer running for ever. */
   if(go){
-    if(go.tab && window.roomGoTab && go.tab!==tab){ try{ roomGoTab(c, go.tab); }catch(_){} }
+    if(!home && go.tab && window.roomGoTab && go.tab!==tab){ try{ roomGoTab(c, go.tab); }catch(_){} }
     let tries=0;
     const land=()=>{
       const el=document.querySelector(go.sel);

@@ -1640,8 +1640,8 @@ function needsYouGo(kind, id){
   const c=(typeof getContract==='function')?getContract(id):null;
   if(!c) return false;
   if(kind==='look') return lookDone(c);
-  if(kind==='approval'){ if(window.pdOpenOnHome&&pdOpenOnHome(c.id,'sign')) return true; openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} return true; }
-  if(kind==='refused'){ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} return true; }
+  if(kind==='approval'){ if(window.pdOpenOnHome&&pdOpenOnHome(c.id,'sign')) return true; if(window.roomOpenAt) roomOpenAt(c.id,'sign'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} } return true; }
+  if(kind==='refused'){ if(window.roomOpenAt) roomOpenAt(c.id,'sign'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} } return true; }
   /* DETAILS ARE FILLED IN BESIDE THE PAPER (the one-page Home plan, stage 2;
      owner, 14 Oct 2026): Home's Document, Jambo's panel on Fill in. The phone
      lands on its own Details page (pdOpenOnHome's phone branch). */
@@ -1654,11 +1654,10 @@ function needsYouGo(kind, id){
     /* BESIDE THE PAPER (the one-page Home plan, stage 3; owner, 14 Oct 2026):
        their waiting redlines and a colleague's suggestion are answered on the
        rows themselves, so they open Jambo's Redlines face on Home, through the
-       page's own walls (the phone carries on to its own page). A REVIEW still
-       opens the Negotiate page: handing it back is the page's review notice,
-       which the face does not draw (a strip in the panel is the owner's to
-       allow). */
-    if(window.openRedlineWorkbench) openRedlineWorkbench(c.id, kind==='review' ? {} : { face: true }); else openWorkspace(c.id);
+       page's own walls (the phone carries on to its own page). SINCE STAGE 5
+       A REVIEW DOES TOO: the Negotiate page folded into Home and its review
+       notice, with the hand-back, stands at the top of the face. */
+    if(window.openRedlineWorkbench) openRedlineWorkbench(c.id, { face: true }); else openWorkspace(c.id);
     return true;
   }
   /* A RENEWAL IS DECIDED ON TODAY'S READING (Young, 27 Sep 2026: "the 5
@@ -1668,6 +1667,9 @@ function needsYouGo(kind, id){
      why it is not started here. Every home that presses this door inherits it:
      the checklist's Decide, Home's renewal row and the bell's renewal rows. */
   if(kind==='renewal' && window.roomReadOnArrival) try{ roomReadOnArrival(c.id); }catch(_){}
+  /* SIGNING IS BESIDE THE PAPER (the one-page Home plan, stage 5): Jambo's
+     Before you sign face on Home, without the room drawn on the way */
+  if(kind==='sign' && window.roomOpenAt){ roomOpenAt(c.id,'sign'); return true; }
   openWorkspace(c.id);
   /* A GIVEN NOTE IS ANSWERED IN THE DRAWER IT LIVES IN — the same door the
      note's own count presses, so there is one way to reach a note. */

@@ -113,10 +113,19 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       const skip = await page.$('#confirm-overlay #cf-cancel');
       if (skip) { await skip.click(); await pause(1200); }
     }
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the
+       Negotiate page folded into Home — openRedlineWorkbench lands on Jambo's
+       Redlines face (#pd-redface) beside Home's paper. The contract on it is
+       pdRedFor() (the page's redlineHeldId() is null there), and the stage
+       word the page's head said (#ws-status) is said on the paper's line
+       (.ig-strip-ref: "ref · name · counterparty · stage"). Waited for, by
+       THIS contract's id. */
+    await page.waitForFunction(id => window.pdRedFor && pdRedFor() === id
+      && !!document.querySelector('#pd-redface .rl-idx-top'), staged.id, { timeout: 8000 }).catch(() => {});
     const before = await page.evaluate(() => {
-      const e = document.getElementById('ws-status');
-      return { word: e ? e.textContent.trim() : null,
-        status: getContract(redlineHeldId()).status };
+      const e = document.querySelector('#ig-strip .ig-strip-ref');
+      const c = getContract((window.pdRedFor && pdRedFor()) || redlineHeldId());
+      return { word: e ? e.textContent.trim() : null, status: c ? c.status : null };
     });
     check('1b the head says Drafting, as the owner saw it',
       before.status === 'Draft' && /draft/i.test(before.word || ''), before);
@@ -130,8 +139,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
        proxy by its ATTRIBUTE rather than by a label: the journey under test is
        "a round that goes out moves the stage", and that must not be hostage to
        what the button is called. */
+    /* RE-POINTED 14 Oct 2026 (stage 5): the column head is the face's */
     const pressed = await page.evaluate(() => {
-      const b = document.querySelector('.rl-idx-top [data-redline-proxy="nego-send"]');
+      const b = document.querySelector('#pd-redface .rl-idx-top [data-redline-proxy="nego-send"]');
       if (!b) return false;
       b.click(); return true;
     });
@@ -148,16 +158,21 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     await pause(4000);
     await page.screenshot({ path: path.join(OUT, '02-after.png') });
 
-    const after = await page.evaluate(() => {
-      const c = getContract(redlineHeldId());
-      const e = document.getElementById('ws-status');
+    /* RE-POINTED 14 Oct 2026 (stage 5): the face's contract, and the stage
+       word on Home's paper line — asked for, bounded: the line is drawn again
+       once the send has moved the stage */
+    await page.waitForFunction(id => /review/i.test((document.querySelector('#ig-strip .ig-strip-ref') || {}).textContent || '')
+      && getContract(id).status === 'Under Review', staged.id, { timeout: 6000 }).catch(() => {});
+    const after = await page.evaluate(id => {
+      const c = getContract(id);
+      const e = document.querySelector('#ig-strip .ig-strip-ref');
       return { status: c.status,
         word: e ? e.textContent.trim() : null,
         audit: (c.audit || []).map(a => `${a.action}: ${a.detail}`),
         source: c.source || null,
         triage: c.triage ? Object.keys(c.triage.steps || {}).sort() : null,
         round: (c.negotiation && c.negotiation.round) || null };
-    });
+    }, staged.id);
     check('1d THE REPORTED FAULT: publishing a round leaves Drafting behind',
       after.status === 'Under Review', { status: after.status });
     check('1e and the head says so without a reload',
@@ -239,8 +254,10 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       walked.map(x => `${x.id}:${x.status}`));
     check('2c and writes nothing to anybody’s history about it',
       walked.every(x => !x.demoted), walked.filter(x => x.demoted));
+    /* RE-POINTED 14 Oct 2026 (stage 5): the bench is the Redlines face now;
+       pdRedFor() records which contract is on it */
     check('2d the bench still records which contract is on it',
-      await page.evaluate(() => redlineHeldId()) === bench[bench.length - 1]);
+      await page.evaluate(() => (window.pdRedFor && pdRedFor()) || redlineHeldId()) === bench[bench.length - 1]);
 
     /* THE ANNOUNCEMENT THAT NEVER WAS. The removed feature rested on a toast
        that was a BARE call and therefore drew nothing — the reason nobody could

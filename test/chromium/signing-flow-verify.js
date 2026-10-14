@@ -123,6 +123,21 @@ const check = (name, pass, detail) => {
       setup.rows.join(' ‖ '));
     check('1c  the ordinary departure is shown, not held', setup.rows.some(r => !/is-hold/.test(r) && /Payment terms/.test(r)));
     check('1d  the intent tick-box is no longer on the page', setup.tick === false);
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+       Signing tab went home — roomGoTab(c,'sign') above opened Jambo's Before
+       you sign face beside Home's paper, which draws no room head. The head's
+       Sign (#ws-next-action) is still the ROOM head's, so it is read in the
+       room, and the face is opened again for the presses that follow. */
+    const roomHead = async () => {
+      await page.evaluate(() => openWorkspace('MK-A2'));
+      await page.waitForFunction(() => state.view === 'workspace' && !!document.getElementById('ws-next-action'), null, { timeout: 8000 }).catch(() => {});
+      const said = await page.evaluate(() => { const hd = document.getElementById('ws-next-action');
+        return hd ? hd.textContent.replace(/\s+/g, ' ').trim() : ''; });
+      await page.evaluate(() => roomGoTab(getContract('MK-A2'), 'sign'));
+      await page.waitForFunction(() => !!document.querySelector('#pd-signface #sign-btn'), null, { timeout: 8000 }).catch(() => {});
+      return said;
+    };
+    setup.headLabel = await roomHead();
     check('5a  the head\'s Sign carries the same count', /1 to settle/.test(setup.headLabel), setup.headLabel);
 
     /* 1 · the held button is a door onto the first held row */
@@ -178,6 +193,8 @@ const check = (name, pass, detail) => {
     check('3a  accepted by the admin, nothing holds: the button reads "Sign — 1 noted" and names the row on the hover',
       after.role === 'admin' && after.n === 0 && /^Sign — 1 noted/.test(after.label || '') && /Payment terms/.test(after.title || ''), `${after.label} · ${after.title}`);
     check('3b  the settled row folds under its count', after.settled === 1);
+    /* RE-POINTED 14 Oct 2026 (stage 5): read in the room, as 5a above. */
+    after.headLabel = await roomHead();
     check('5b  the head\'s Sign no longer carries a count', after.headLabel === 'Sign', after.headLabel);
 
     /* 4 · the pad, and its first line */

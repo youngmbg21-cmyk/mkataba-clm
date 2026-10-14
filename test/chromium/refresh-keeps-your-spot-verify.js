@@ -99,13 +99,20 @@ const check = (name, pass, detail) => {
        the paper came back to. */
     const pm = await until(() => { const o = document.querySelector('#pd-thread .doc-th-row.is-open'); return o && window.docThreadAtLine ? { open: Number(o.dataset.thRow), line: docThreadAtLine() } : null; });
     check('2b the Thread\'s open row is the one at the line the paper came back to', !!pm && pm.open === pm.line && pm.open > 0, JSON.stringify(pm));
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+       History tab went home — the same door (roomGoTab 'history') opens the
+       Board's History view for this contract (#hb-cv-body[data-hb-cv="hist"],
+       kept over a refresh by hbPlace's `cv`). What must come back is that
+       view, on that contract. */
     await page.evaluate(() => openWorkspace('MK-R3'));
     await until(() => state.view === 'workspace' && state.activeId === 'MK-R3');
     await page.evaluate(() => roomGoTab(getContract('MK-R3'), 'history'));
+    await until(() => state.view === 'dashboard' && window.hbCvNow && hbCvNow().v === 'hist' && !!document.querySelector('#hb-cv-body[data-hb-cv="hist"]'));
     await page.waitForTimeout(400);
     await reload();
-    const ht = await until(() => { const p = document.querySelector('[data-ws-pane~="history"]'); return window.roomCurrentTab && roomCurrentTab() === 'history' && p && getComputedStyle(p).display !== 'none' ? roomCurrentTab() : null; });
-    check('2c the History tab comes back as History', ht === 'history', JSON.stringify({ ht, now: await page.evaluate(() => [window.roomCurrentTab && roomCurrentTab(), state.view, state.activeId]) }));
+    const ht = await until(() => { const p = document.querySelector('#hb-cv-body[data-hb-cv="hist"]'); const n = window.hbCvNow ? hbCvNow() : null;
+      return n && n.v === 'hist' && n.c && n.c.id === 'MK-R3' && p && p.getClientRects().length && getComputedStyle(p).display !== 'none' ? 'history' : null; });
+    check('2c the History tab comes back as History', ht === 'history', JSON.stringify({ ht, now: await page.evaluate(() => { const n = window.hbCvNow ? hbCvNow() : {}; return [n.v, n.c && n.c.id, state.view]; }) }));
 
     /* ================= 3. INSIGHTS: THE TAB, AND THE EXPLORER'S PICTURE ====== */
     await page.evaluate(() => { intel.tab = 'friction'; setView('intel'); });
@@ -148,13 +155,20 @@ const check = (name, pass, detail) => {
     check('4c the Calendar comes back on Horizon', cv === 'horizon', cv);
 
     /* ================= 5. THE NEGOTIATE PAGE ================================= */
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the
+       Negotiate page folded into Home — openRedlineWorkbench lands on Jambo's
+       Redlines face (#pd-redface) beside Home's paper, whose scroller is
+       #ig-paper-scroll (the page's was #nego-scroll-work). What must come back
+       is the face on the same contract, the paper at the same clause. */
     await page.evaluate(() => openRedlineWorkbench('MK-R1'));
-    await until(() => state.view === 'redline' && document.getElementById('nego-scroll-work'));
-    await until(() => { const e = document.getElementById('nego-scroll-work'); return e && e.scrollHeight > e.clientHeight + 600; });
-    const w0 = await scrollTo('nego-scroll-work', 500);
+    await until(() => state.view === 'dashboard' && window.pdRedFor && pdRedFor() === 'MK-R1' && document.getElementById('pd-redface') && document.getElementById('ig-paper-scroll'));
+    await until(() => { const e = document.getElementById('ig-paper-scroll'); return e && e.scrollHeight > e.clientHeight + 600; });
+    const w0 = await scrollTo('ig-paper-scroll', 500);
     await reload();
-    const w1 = await cameBack('nego-scroll-work', w0);
-    check('5a the Negotiate page comes back on the same contract, scrolled to the same clause', w0 >= 400 && w1 === w0 && (await page.evaluate(() => state.activeId)) === 'MK-R1', JSON.stringify({ w0, w1 }));
+    await until(() => window.pdRedFor && pdRedFor() === 'MK-R1' && !!document.getElementById('pd-redface'));
+    const w1 = await cameBack('ig-paper-scroll', w0);
+    const wOn = await page.evaluate(() => ({ view: state.view, face: window.pdRedFor ? pdRedFor() : null, paper: window.pdContract && pdContract() ? pdContract().id : null }));
+    check('5a the Negotiate page comes back on the same contract, scrolled to the same clause', w0 >= 400 && w1 === w0 && wOn.face === 'MK-R1' && wOn.paper === 'MK-R1', JSON.stringify({ w0, w1, wOn }));
 
     /* ================= 6. THE READER'S HAND WINS ============================= */
     await page.evaluate(() => setView('register'));

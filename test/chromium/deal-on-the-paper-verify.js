@@ -83,7 +83,11 @@ const DOC = ['SUPPLY AGREEMENT', '', 'Article 1 Term', '', 'This Agreement runs 
 
     /* ===== 1. CLEAN | REDLINED, AND THE DEAL TAB TURNS IT ON ===== */
     const sw = await page.evaluate(() => [...document.querySelectorAll('#ig-strip .ig-red button')].map(b => b.textContent.trim() + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')));
-    ok('1a the strip offers Clean | Redline · 2, Clean at rest', sw.join('|') === 'Clean*|Redline · 2', JSON.stringify(sw));
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the Negotiate
+       page's Internal | Counterparty switch folded into this one as its third
+       choice, "Their view" (igTheirsOn); the switch is still read whole, in
+       order, with Clean at rest */
+    ok('1a the strip offers Clean | Redline · 2 | Their view, Clean at rest', sw.join('|') === 'Clean*|Redline · 2|Their view', JSON.stringify(sw));
     const tabs = await page.evaluate(() => [...document.querySelectorAll('#ig-dock [data-pd-tab]')].map(b => b.getAttribute('data-pd-tab')));
     ok('1a2 no Deal and no History tab', !tabs.includes('deal') && !tabs.includes('hist'), JSON.stringify(tabs));
     await page.evaluate(() => igWalk(['MK-DP1'], 0, { tab: 'deal' }));
