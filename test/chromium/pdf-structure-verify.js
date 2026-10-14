@@ -327,9 +327,15 @@ const INK = `(() => {
     check('3b and the walk finds real clauses to read',
       sw.clauses >= 4, String(sw.clauses));
 
-    /* ============ 4. THE NEGOTIATE PAGE KEEPS THE SHAPE ============ */
-    await page.evaluate(i => openRedlineWorkbench(i), id);
-    await page.waitForTimeout(2600);
+    /* ============ 4. THE NEGOTIATE PAGE KEEPS THE SHAPE ============
+       RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the
+       Negotiate page folded into Home and its doors land on Jambo's Redlines
+       face, whose paper — with no change on the table, as here — is the
+       working copy section 2 already measured. The SUBJECT here is the
+       negotiation's own paper (#rl-doc, drawn by redlineDocHtml, the renderer
+       Home's Redlined paper shares), so the page is asked for by name. */
+    await page.evaluate(i => openRedlineWorkbench(i, { page: true }), id);
+    await page.waitForFunction(() => !!document.querySelector('.rl-doc h2, #rl-grid h2, .redline-page .rl-paper h2'), null, { timeout: 10000 }).catch(() => {});
     await page.screenshot({ path: path.join(OUT, '02-negotiate.png') });
     const nego = await page.evaluate(() => {
       const root = document.querySelector('.rl-doc, #rl-grid, .redline-page');

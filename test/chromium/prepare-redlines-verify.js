@@ -42,8 +42,14 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
    querySelector would press whichever the markup happened to put first, which
    is exactly the ambiguity that made the column's button dead in the first
    place. MENU is what sections 1 to 5 are about; COLUMN is section 6's. */
-const MENU = '#ws-more-menu [data-rl-prepare]';
-const COLUMN = '.rl-empty-acts [data-rl-prepare]';
+/* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the Negotiate
+   door now lands on Jambo's Redlines face beside Home's paper, the column's
+   new home. The page's More row for this act went to the face's FOOT
+   (pdRedFootHtml: "Draft from our standards (its More row)"), so MENU is that
+   door now; the empty column's button is COLUMN, inside .rl-cards-empty (the
+   foot wears .rl-empty-acts too, so the column is named by its box). */
+const MENU = '#pd-redface .pd-rf-foot [data-rl-prepare]';
+const COLUMN = '#pd-redface .rl-cards-empty [data-rl-prepare]';
 const pressIn = (page, sel) => page.evaluate(s => { const b = document.querySelector(s); if (!b || b.disabled) return false; b.click(); return true; }, sel);
 const pressRow = page => pressIn(page, MENU);
 /* ON SCREEN, not merely in the markup — f180's rule. */
@@ -149,6 +155,7 @@ const VERDICTS = [
   check(!!tok && !!theirsBefore, '0a their page exists, from a real link', tok);
 
   await page.evaluate(id => openRedlineWorkbench(id), ID);
+  await page.waitForFunction(() => state.view === 'dashboard' && !!document.querySelector('#pd-redface .pd-rf-foot'), null, { timeout: 10000 }).catch(() => {});
   await pause(1800);
 
   /* ============ 1. THE ROW IS IN THE MENU, AND ON SCREEN ============ */
@@ -158,20 +165,26 @@ const VERDICTS = [
      stay, so the true claim is one door in each place and nothing anywhere
      else — still a count, still falsifiable, and it now also catches a third
      copy appearing. */
-  const doors = await page.evaluate(() => ({
+  /* RE-POINTED 14 Oct 2026 (stage 5): the More row's door is the face's foot */
+  const doors = await page.evaluate(([m, k]) => ({
     all: document.querySelectorAll('[data-rl-prepare]').length,
-    menu: document.querySelectorAll('#ws-more-menu [data-rl-prepare]').length,
-    column: document.querySelectorAll('.rl-empty-acts [data-rl-prepare]').length }));
+    menu: document.querySelectorAll(m).length,
+    column: document.querySelectorAll(k).length }), [MENU, COLUMN]);
   const hasRow = doors.menu === 1;
   check(hasRow && doors.column === 1 && doors.all === 2,
-    '1a one row in the More menu and one button in the empty column — two doors, no third', JSON.stringify(doors));
-  await page.click('#ws-more');
-  await pause(400);
-  check(hasRow && await visible(page, MENU), '1b and once the menu is open the row is VISIBLE PIXELS');
+    '1a one door at the column\'s foot (the page\'s More row) and one button in the empty column — two doors, no third', JSON.stringify(doors));
+  check(hasRow && await visible(page, MENU), '1b and the foot\'s door is VISIBLE PIXELS');
   const row = hasRow ? await page.evaluate(s => { const b = document.querySelector(s); return { text: b.textContent.trim(), dead: b.disabled, title: b.title }; }, MENU) : { text: '', dead: true, title: '' };
   check(/draft from our standards/i.test(row.text) && !row.dead, '1c it says what it is and is live on a readable draft', JSON.stringify(row));
   check(/nothing goes to the other side/i.test(row.title), '1d its hover says nothing is sent', row.title);
-  check(hasRow && await visible(page, '[data-rl-memo]') && await visible(page, '[data-rl-pbreview]'), '1e beside the memo and the playbook pass');
+  /* RE-POINTED 14 Oct 2026 (stage 5): the memo and the playbook pass did not
+     come to the foot — they ride the ⋯ menu on Home's paper line
+     (igStripActsHtml), beside the same column; the nearest true "beside" is
+     both on this one screen, reachable in that menu */
+  if (await page.locator('#ig-strip #ws-more').count()) await page.click('#ig-strip #ws-more');
+  await pause(400);
+  check(hasRow && await visible(page, '#ig-strip [data-ig-memo]') && await visible(page, '#ig-strip [data-ig-pbreview]'), '1e beside the memo and the playbook pass (Home\'s ⋯ on the same screen)');
+  await page.keyboard.press('Escape').catch(() => {}); await pause(300);
   await page.screenshot({ path: path.join(OUT, '01-menu.png') });
 
   /* ============ 2. THE PRESS ASKS BEFORE IT SPENDS ============ */
@@ -190,7 +203,7 @@ const VERDICTS = [
   check(refused.changes === before.changes && !refused.review, '2c refusing the dialog files nothing and runs no review', JSON.stringify(refused));
 
   /* ============ 3. THE PRESS FILES THE DRAFTS ============ */
-  await page.click('#ws-more'); await pause(300);
+  /* RE-POINTED 14 Oct 2026 (stage 5): the door is the face's foot, no menu */
   await pressRow(page); await pause(700);
   if (await page.locator('#cf-ok').count()){ await page.click('#cf-ok'); }
   await pause(2500);
@@ -234,7 +247,7 @@ const VERDICTS = [
   await cp.close();
 
   /* ============ 5. A SECOND PRESS FILES NOTHING NEW ============ */
-  await page.click('#ws-more'); await pause(300);
+  /* RE-POINTED 14 Oct 2026 (stage 5): the door is the face's foot, no menu */
   await pressRow(page); await pause(700);
   const ask2 = await page.evaluate(() => { const ok = document.getElementById('cf-ok'); return ok ? (ok.closest('[role="dialog"]') || ok.parentElement.parentElement).innerText : ''; });
   check(/already on file/i.test(ask2) && /costs nothing/i.test(ask2), '5a the second ask says the review is on file and the press costs nothing', ask2.slice(0, 120));
@@ -263,16 +276,19 @@ const VERDICTS = [
      STAGED BY EMPTYING THE COLUMN, the state this is entirely about: the
      drafts filed above are cleared off the record so the page draws the state
      a reader meets on a freshly received contract. */
-  await page.evaluate(id => { const c = state.contracts.find(x => x.id === id); c.changes = []; renderRedline(); }, ID);
+  /* RE-POINTED 14 Oct 2026 (stage 5): the column is the face's, repainted by
+     its host (pdRedRepaint), and read inside its own empty box */
+  await page.evaluate(id => { const c = state.contracts.find(x => x.id === id); c.changes = []; pdRedRepaint(); }, ID);
+  await page.waitForFunction(() => !!document.querySelector('#pd-redface .rl-cards-empty .rl-empty-acts'), null, { timeout: 8000 }).catch(() => {});
   await pause(900);
   const emptyDoors = await page.evaluate(() => {
-    const box = document.querySelector('.rl-cards-empty');
-    const acts = document.querySelector('.rl-empty-acts');
+    const box = document.querySelector('#pd-redface .rl-cards-empty');
+    const acts = document.querySelector('#pd-redface .rl-cards-empty .rl-empty-acts');
     const seen = el => { if (!el) return false; const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
     const btns = acts ? [...acts.querySelectorAll('button')] : [];
     return { box: !!box, acts: !!acts, n: btns.length,
       labels: btns.map(b => b.textContent.trim()), dead: btns.map(b => !!b.disabled),
-      onScreen: btns.map(seen), lead: (document.querySelector('.rl-empty-lead') || {}).textContent || '',
+      onScreen: btns.map(seen), lead: (document.querySelector('#pd-redface .rl-empty-lead') || {}).textContent || '',
       /* THE SENTENCE THE BUTTONS REPLACE must be gone from this state — a door
          AND a paragraph describing the door is the fault printed twice. */
       blurb: /Press the .{0,3} Edit/i.test(box ? box.textContent : '') };
@@ -574,15 +590,16 @@ const VERDICTS = [
      At the parent the toast read "Every playbook position is aligned". */
   await page.evaluate(id => {
     const c = state.contracts.find(x => x.id === id);
-    c.changes = []; delete c.playbook; renderRedline();
+    c.changes = []; delete c.playbook; pdRedRepaint();
   }, ID);
+  /* RE-POINTED 14 Oct 2026 (stage 5): the face's own repaint, and its foot's
+     door (there is no More menu to open on the face) */
+  await page.waitForFunction(m => !!document.querySelector(m), MENU, { timeout: 8000 }).catch(() => {});
   await pause(900);
   ai.script({ content: [{ type: 'tool_use', id: 'tu_pb_cut', name: 'playbook_review',
     input: { verdicts: [{ category: 'Governing law', status: 'aligned', quote: '' }] } }], stopReason: 'max_tokens' });
   const callsBefore9 = ai.calls.length;
   await page.evaluate(() => { const t = document.getElementById('toast-root'); if (t) t.innerHTML = ''; });
-  await page.click('#ws-more').catch(() => {});
-  await pause(400);
   const pressed9 = await pressRow(page); await pause(700);
   if (pressed9){ await page.evaluate(() => { const b = document.getElementById('cf-ok'); b && b.click(); }); }
   await pause(4000);
