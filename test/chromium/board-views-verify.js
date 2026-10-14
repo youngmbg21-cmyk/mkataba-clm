@@ -17,7 +17,8 @@
      3  Obligations: the room's own table and panel, the overdue count the
         switch's; a duty done repaints the view and the switch
      4  History: the room's own trail, its search keeps the typed word; its
-        menu keeps Verify alone (Print and Download stand on the Board's line)
+        menu keeps Verify alone (Print and Download stand on the Board's line);
+        something new put on the Board (an agent's work) lands on Your book
      5  Print and Download: one page each way, for every view
      6  Share: the form opens and closes (again, Esc, outside); Give reaches a
         colleague's bell and Board; the server refuses a colleague who cannot
@@ -194,6 +195,11 @@ const BAR = () => {
     check('4c its search narrows where it stands, and a Board repaint keeps the typed word', hq.v === 'Round' && hq.focus === 'hist-q' && hq.rows < hi.rows && hq2.v === 'Round' && hq2.focus === 'hist-q', JSON.stringify([hq, hq2]));
     await page.fill('#hb-cv-body #hist-q', ''); await pause(300);
     await shot('4-history');
+    /* something new put on the book while a view shows (an agent's work, an answer) is shown on the book */
+    await page.evaluate(() => hbOpenAgent('round'));
+    const stepped = await waitFor(page, () => !document.getElementById('hb-cv-body') && !!document.querySelector('#hb-board .hb-note') && !!document.getElementById('hb-focus')
+      && (document.querySelector('#hb-cv-bar [data-hb-cv][aria-selected="true"]') || {}).getAttribute?.('data-hb-cv') === 'book', 6000);
+    check('4d something new put on the Board while a view shows lands on Your book, in sight', stepped, await page.evaluate(() => JSON.stringify({ body: !!document.getElementById('hb-cv-body'), focus: !!document.getElementById('hb-focus') })));
 
     /* ===== 5. PRINT AND DOWNLOAD ===== */
     await page.evaluate(() => {

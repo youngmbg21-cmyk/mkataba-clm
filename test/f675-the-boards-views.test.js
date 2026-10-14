@@ -81,6 +81,9 @@ describe('f675 (1) one switch, for the contract on the paper', () => {
     assert.match(sw, /act\('print', 'hb_cv_print'[\s\S]*act\('share', 'act_share'[\s\S]*act\('down', 'act_download'/);
     assert.match(sw, /i18t\('hb_cv_for'\)/);
   });
+  test('1d something new put on the book (a card, an answer, a dig) steps the view aside, so it is never drawn behind it', () => {
+    assert.match(strip(fnBody(HB, 'hbSave')), /if \(_hbCv\.v !== 'book' && _hbShape != null && hbShapeOf\(s\) !== _hbShape\) _hbCv = \{ v: 'book', id: _hbCv\.id \};\s*hbUndoMark\(s\);/);
+  });
   test('1c a view takes the Board whole; the book is drawn as before under the switch', () => {
     const b = strip(fnBody(HB, 'hbBoardHtml'));
     assert.match(b, /const cv = hbCvNow\(\), sw = hbCvSwitchHtml\(cv\);\s*if \(cv\.v !== 'book'\) return sw \+ hbCvBodyHtml\(cv\);/);

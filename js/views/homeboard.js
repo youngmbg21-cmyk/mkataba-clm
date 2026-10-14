@@ -125,6 +125,9 @@ function hbUid(){
   return (u && u.id) || 'anon';
 }
 let _hbS = null, _hbSUid = null;
+/* a contract's view on the Board (stage 4, see hbCvNow); declared here because
+   hbSave reads it */
+let _hbCv = { v: 'book', id: null };
 function hbFresh(){
   return { face: 'board', lens: 'all', panels: [], path: [], prep: 'open', screen: null, scrPick: 0,
     watches: [], chartWatches: [], seen: null, saved: [], seq: 0, found: null, recipe: {}, digBig: false,
@@ -240,6 +243,10 @@ function hbS(){
 }
 function hbSave(){
   const s = hbS();
+  /* SOMETHING NEW PUT ON THE BOOK SHOWS ON THE BOOK (stage 4): a card, an
+     answer or a dig changes the board's shape, and a contract's view steps
+     aside so it is not drawn behind the view */
+  if (_hbCv.v !== 'book' && _hbShape != null && hbShapeOf(s) !== _hbShape) _hbCv = { v: 'book', id: _hbCv.id };
   hbUndoMark(s);
   try { localStorage.setItem(HB_LS + hbUid(), JSON.stringify(s)); } catch (_){}
 }
@@ -8979,7 +8986,6 @@ const HB_CVIEWS = ['book', 'deal', 'oblig', 'hist'];
 const HB_CV_WORD = { book: 'hb_book', deal: 'ng_board', oblig: 'tab_obligations', hist: 'tab_history' };
 /* the phone draws the room: a view's own tab there */
 const HB_CV_ROOM_TAB = { deal: 'redline', oblig: 'oblig', hist: 'history' };
-let _hbCv = { v: 'book', id: null };
 let _hbCvShare = false;
 function hbCvContract(){ try { return (typeof window.pdContract === 'function') ? pdContract() : null; } catch (_){ return null; } }
 /* the view shown: a contract's view only while that contract is the paper's */

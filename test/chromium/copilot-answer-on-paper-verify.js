@@ -105,8 +105,11 @@ function answer(body){
     await page.screenshot({ path: path.join(OUT, '1-counter.png') });
     /* 1d Home's Document, Redlined: the paper carries the box. RE-POINTED 11 Oct
        2026 (owner: "delete the deal tab"): the Deal tab and its glowing door
-       are gone; a door asking for Deal opens Clauses with the paper Redlined. */
-    await page.evaluate(() => { setView('dashboard'); pdOpenOnHome('MK-CP1', 'deal'); });
+       are gone; a door asking for Deal opens Clauses with the paper Redlined.
+       RE-POINTED 14 Oct 2026 (stage 4 of the one-page Home plan): the panel's
+       Deal DOOR opens the Board's own deal board now; what still asks the
+       PAPER for Deal is a walk naming it (the agents' Review), so 1d walks. */
+    await page.evaluate(() => { setView('dashboard'); igWalk(['MK-CP1'], 0, { tab: 'deal' }); });
     const home = await page.waitForFunction(() => document.querySelector('#ig-paper .rl-sug-box') ? { box: document.querySelector('#ig-paper .rl-sug-box').textContent.trim() } : null, null, { timeout: 10000 }).then(h => h.jsonValue(), () => null);
     ok('1d on Home\'s Document the box is drawn too', !!home && /60 days/.test(home.box), JSON.stringify(home));
     await page.screenshot({ path: path.join(OUT, '1d-home.png') });

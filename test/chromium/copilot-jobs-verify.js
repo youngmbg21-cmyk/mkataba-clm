@@ -4,7 +4,7 @@
    ============================================================
      1  "Put MK-J1 on hold" is a card; its one press asks the reason (the
         hold's own question) and the contract is held
-     2  "What is still open on MK-J1" opens the Paper at Deal
+     2  "What is still open on MK-J1" opens the Board's deal board (stage 4)
      3  "Send MK-J1 for signing" names the send screen; "Make an amendment to
         MK-J1" is the amendment's card, not a new draft
      4  a dropped thread: "Draft a reply" says plainly why no reply came when
@@ -80,9 +80,13 @@ const DOC = 'SUPPLY AGREEMENT\n\nArticle 1 Term\n\nThis Agreement runs for twelv
     const o = await ask('What is still open on MK-J2?');
     ok('2a "What is still open" is the Deal card', !!o && o.door === 'open', JSON.stringify(o));
     await page.click('#igd-feed [data-ca-act="door"] >> nth=-1').catch(() => {});
-    /* RE-POINTED 11 Oct 2026 (owner: "delete the deal tab"): the Deal door lands on Clauses */
-    const deal = await page.waitForFunction(() => window.intel && intel.paper && intel.paper.id === 'MK-J2' && pdTab() === 'doc', null, { timeout: 8000 }).then(() => true, () => false);
-    ok('2b its press opens Home\'s Document at Clauses', deal, await page.evaluate(() => JSON.stringify({ id: intel.paper && intel.paper.id, tab: pdTab() })));
+    /* RE-POINTED 11 Oct 2026 (owner: "delete the deal tab"): the Deal door lands on Clauses.
+       RE-POINTED 14 Oct 2026 (stage 4 of the one-page Home plan, the owner's
+       "Views, and yes to all three recommendations"): Jambo's door cards open
+       the Board's own deal board for that contract (board-views-verify 7). */
+    const deal = await page.waitForFunction(() => window.intel && intel.paper && intel.paper.id === 'MK-J2' && hbFace() === 'board'
+      && (document.getElementById('hb-cv-body') || {}).getAttribute?.('data-hb-cv') === 'deal', null, { timeout: 8000 }).then(() => true, () => false);
+    ok('2b its press opens the Board\'s deal board for MK-J2', deal, await page.evaluate(() => JSON.stringify({ id: intel.paper && intel.paper.id, face: hbFace(), view: (document.getElementById('hb-cv-body') || {}).getAttribute?.('data-hb-cv') || null })));
     await page.evaluate(() => { document.querySelector('#ig-dock [data-pd-tab="copilot"]')?.click(); });
 
     /* ===== 3. SIGNING AND AMENDMENT ===== */
