@@ -235,8 +235,11 @@ const PROBE = () => {
     const room = await page.evaluate(PROBE);
     const roomTabs = await page.evaluate(() =>
       [...document.querySelectorAll('#ws-tabs .room-tab')].map(b => b.textContent.trim()));
+    // RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room keeps
+    // two tabs, Overview and Where we are ("Översikt · Var vi är"); History
+    // ("Historik") went to the Board, so the Swedish is asked of the two left.
     check(`${S.name}: the contract room reads in Swedish`,
-      roomTabs.some(t => /Nyckelvillkor|Dokument|Historik/.test(t)),
+      roomTabs.some(t => /Översikt|Var vi är/.test(t)),
       roomTabs.join(' · ') || '(no tabs at this width)');
     check(`${S.name}: the contract room fits`,
       room.cut.length === 0 && room.spill.length === 0,

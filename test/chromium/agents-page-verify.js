@@ -185,8 +185,19 @@ const ok = (name, good, detail) => {
     ok('2c and it offers the negotiation, never a decision', !!rp && rp.acts.includes('nego') && !rp.acts.some(a => /accept|reject|counter/.test(a)), rp && rp.acts.join(','));
     await page.screenshot({ path: path.join(OUT, '2-round-panel.png') });
     if (roundPanel) await act('nego');
-    const landed = await page.evaluate(() => ({ view: state.view, held: (typeof redlineHeldId === 'function') ? redlineHeldId() : null, panel: !!document.querySelector('.hb-ag-works') }));
-    ok('2d "Answer on the negotiation" lands on that contract\'s negotiation, and the Board goes', landed.view === 'redline' && String(landed.held) === 'MK-149' && !landed.panel, JSON.stringify(landed));
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the Negotiate
+       page folded into Home — openRedlineWorkbench lands on Jambo's Redlines
+       face for the contract, Home's paper beside it, and the Board steps aside
+       (its prepared-work panel is still in the page, drawn at no width). The
+       wait asks for the face itself. */
+    await page.waitForFunction(() => typeof pdRedFor === 'function' && pdRedFor() === 'MK-149' && !!document.querySelector('#pd-redface'), null, { timeout: 8000 }).catch(() => {});
+    const landed = await page.evaluate(() => {
+      const w = document.querySelector('.hb-ag-works'); const r = w && w.getBoundingClientRect();
+      return { view: state.view, face: (typeof hbFace === 'function') ? hbFace() : null,
+        red: (typeof pdRedFor === 'function') ? pdRedFor() : null, paper: (intel && intel.paper) ? String(intel.paper.id) : null,
+        panel: !!(r && r.width > 0 && r.height > 0) };
+    });
+    ok('2d "Answer on the negotiation" lands on that contract\'s negotiation, and the Board goes', landed.view === 'dashboard' && landed.face === 'paper' && landed.red === 'MK-149' && landed.paper === 'MK-149' && !landed.panel, JSON.stringify(landed));
 
     /* ---- 3. renewals: the notice ---- */
     await back();
