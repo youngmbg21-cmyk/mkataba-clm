@@ -854,8 +854,11 @@ const INS_PAGE_REPAINT = {
   playbook: 'renderPlaybookPage',
   /* the Templates list takes the inspector where it fits (SAP benchmark, batch 2) */
   templates: 'renderTemplatesPage',
-  oblig: () => { const c = (typeof getContract === 'function' && typeof state !== 'undefined') ? getContract(state.activeId) : null;
-    if (c && typeof roomPaintObligations === 'function') roomPaintObligations(c); },
+  /* the host says its contract and is repainted where it stands: the room's
+     pane, or Home's Board drawing the same tab (stage 4, 14 Oct 2026) */
+  oblig: page => { const own = page && page.getAttribute('data-ins-cid');
+    const c = (typeof getContract === 'function' && typeof state !== 'undefined') ? getContract(own || state.activeId) : null;
+    if (c && typeof roomPaintObligations === 'function') roomPaintObligations(c, page && page.id !== 'ws-obligations-pane' ? page : null); },
 };
 function insWatchWidth(){
   if (typeof document === 'undefined' || document._insWidthWired) return;
@@ -872,7 +875,7 @@ function insWatchWidth(){
     const k = page.getAttribute('data-ins-page');
     try {
       const p = INS_PAGE_REPAINT[k];
-      if (typeof p === 'function') p();
+      if (typeof p === 'function') p(page);
       else if (p && typeof window[p] === 'function') window[p]();
     } catch (err) { if (typeof console !== 'undefined') console.warn('inspector: repaint on resize failed', err); }
   };

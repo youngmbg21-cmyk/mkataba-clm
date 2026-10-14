@@ -2066,9 +2066,13 @@ function roomObligationsHtml(c){
    nobody opens this tab on pays nothing for it. The handlers are bound HERE,
    where the markup is written, because this repaints on every completion and a
    listener bound elsewhere would be attached to nodes that have gone. */
-function roomPaintObligations(c){
-  const host = document.getElementById('ws-obligations-pane');
+/* A SECOND HOST (the one-page Home plan, stage 4, 14 Oct 2026): Home's Board
+   draws this same tab for the contract on the paper. `at` is that host; absent,
+   the room's own pane. Every repaint below stays in the host it was made in. */
+function roomPaintObligations(c, at){
+  const host = at || document.getElementById('ws-obligations-pane');
   if(!host || !c) return;
+  host.setAttribute('data-ins-cid', String(c.id));
   /* ---- THE INSPECTOR WHERE THE WIDTH HOLDS IT (26 Sep 2026) ----
      The host is the room's card and carries its dress inline; the Inspector
      draws its own two cards (the list and the panel), so the host sheds the
@@ -2084,9 +2088,9 @@ function roomPaintObligations(c){
     host.setAttribute('style', 'width:100%;min-height:0');
     /* A REPAINT KEEPS THE READER'S PLACE: this runs on every completion, and
        the list and the panel each scroll inside themselves. */
-    const was = ['obt-scroll', 'obt-panel'].map(id => { const el = document.getElementById(id); return el ? el.scrollTop : null; });
+    const was = ['obt-scroll', 'obt-panel'].map(id => { const el = host.querySelector('#' + id); return el ? el.scrollTop : null; });
     roomObligationsInspector(c, host);
-    ['obt-scroll', 'obt-panel'].forEach((id, n) => { const el = document.getElementById(id); if(el && was[n] != null) el.scrollTop = was[n]; });
+    ['obt-scroll', 'obt-panel'].forEach((id, n) => { const el = host.querySelector('#' + id); if(el && was[n] != null) el.scrollTop = was[n]; });
     return;
   }
   host.setAttribute('style', host.dataset.obtStyle);
@@ -2115,7 +2119,7 @@ function roomPaintObligations(c){
     if(o) logAudit(c, 'Obligation', `Removed: ${o.desc}`);
     persist(c);
     if(window.renderObligationsSection) renderObligationsSection(c);
-    roomPaintObligations(c);
+    roomPaintObligations(c, host);
     obligationSurfacesChanged();
   }));
   /* CHASE, through the one act the worklist and the wide tab press. */
@@ -3518,14 +3522,72 @@ function renderObligationsInspector(host){
 const OBT_VIEWS = [['all','ob_v_all'],['open','ob_v_out'],['overdue','ob_v_over'],['done','ob_v_done']];   /* All first (owner, 9 Oct 2026) */
 const _obtView = {};
 function obtView(cid){ const v = _obtView[cid]; return OBT_VIEWS.some(x => x[0] === v) ? v : 'open'; }
+/* ---- THE CONTRACT'S OBLIGATIONS ON PAPER AND AS A FILE (the one-page Home
+   plan, stage 4, 14 Oct 2026: Print and Download on Home's Board) ----
+   ONE DOCUMENT BOTH WAYS, so the paper and the file say the same: every
+   obligation of the contract, grouped by when as the tab groups them, each
+   cell read off the tab's own readers (obligationDueSay, obligationFactsLine,
+   obWhoCellHtml, obAmountCellHtml) with their markup taken off — the text
+   they draw, already escaped. Amounts only where this reader may see money.
+   A STANDALONE DOCUMENT CARRIES NO :root — literal values only. */
+function obReportHtml(c){
+  const txt = h => String(h == null ? '' : h).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+  const rows = obtRowsOf(c).sort(obByWhen);
+  const money = obligationMoneyVisible() && rows.some(r => obligationHasAmount(r));
+  const ref = (typeof window.contractRef === 'function') ? contractRef(c) : c.id;
+  const loc = typeof langLocale === 'function' ? langLocale() : undefined;
+  let when = ''; try { when = new Date().toLocaleString(loc, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (_){}
+  const tone = { ruby: '#be123c', amber: '#b45309', steel: '#0e1a18', gray: '#54635f', green: '#047857' };
+  const head = `<tr><th style="width:130px">${_obEsc(i18t('ob_col_when'))}</th><th>${_obEsc(i18t('ob_col_what'))}</th><th style="width:140px">${_obEsc(i18t('ob_f_whose'))}</th>${money ? `<th class="r" style="width:110px">${_obEsc(i18t('ob_amount'))}</th>` : ''}</tr>`;
+  let body = '';
+  for(const [k, key, t] of OB_WINDOWS){
+    const g = rows.filter(r => r.win === k);
+    if(!g.length) continue;
+    body += `<tr class="g"><td colspan="${money ? 4 : 3}" style="color:${tone[t] || '#0e1a18'}">${_obEsc(i18t(key))} · ${g.length}</td></tr>` + g.map(r => {
+      const due = obligationDueSay(r, c), facts = txt(obligationFactsLine(r, c, false));
+      return `<tr><td><b>${_obEsc(due.day)}</b><br><span class="q">${_obEsc(due.sub)}</span></td><td><b>${_obEsc(r.desc || '')}</b>${facts ? `<br><span class="q">${facts}</span>` : ''}</td><td>${txt(obWhoCellHtml(r, true))}</td>${money ? `<td class="r">${txt(obAmountCellHtml(r, c))}</td>` : ''}</tr>`;
+    }).join('');
+  }
+  const title = `${i18t('tab_obligations')} · ${ref}`;
+  return `<!doctype html><html lang="${typeof langId === 'function' ? langId() : 'en'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${_obEsc(title)}</title><style>
+body{margin:0;background:#fff;color:#0e1a18;font-family:Aptos,Calibri,'Segoe UI',Arial,sans-serif;font-size:10.5pt;line-height:1.45}
+.wrap{max-width:860px;margin:0 auto;padding:32px 28px}
+h1{font-size:16pt;margin:0}
+.sub,.q{color:#54635f}
+.sub{font-size:9.5pt;margin-top:2px}
+table{width:100%;border-collapse:collapse;margin-top:18px}
+th{text-align:left;font-weight:normal;color:#54635f;font-size:9pt;border-bottom:1px solid #dfe4e3;padding:6px 8px}
+td{vertical-align:top;border-bottom:1px solid #dfe4e3;padding:7px 8px}
+tr.g td{background:#f4f6f5;font-weight:bold;font-size:9.5pt}
+tr{break-inside:avoid}
+.r{text-align:right}
+.q{font-size:9pt}
+footer{margin-top:22px;color:#54635f;font-size:9pt;border-top:1px solid #dfe4e3;padding-top:8px}
+@media print{.wrap{padding:0}}
+</style></head><body><div class="wrap">
+<header><h1>${_obEsc(i18t('tab_obligations'))}</h1><div class="sub">${_obEsc([c.name || '', ref, c.counterparty || ''].filter(Boolean).join(' · '))}</div></header>
+${rows.length ? `<table>${head}${body}</table>` : `<p class="q">${_obEsc(i18t('ob_none_tracked'))}</p>`}
+<footer>${_obEsc(i18t('ob_rep_foot', { when }))}</footer>
+</div></body></html>`;
+}
+/* THE TAB'S ROWS AND ITS FOUR CUTS, read once: the tab's own counts, and the
+   overdue number on the Board's Obligations switch (stage 4), so the door and
+   the list behind it agree. */
+function obtRowsOf(c){
+  return ((c && c.obligations) || []).map((o, i) => ({ ...o, cid: c.id, counterparty: c.counterparty || '', st: obState(o),
+    win: obligationWindow(o, c), days: obligationDue(o) ? daysUntil(obligationDue(o)) : null, _c: c, _i: i, _key: obKeyOf(c.id, o, i) }));
+}
+function obtPass(r, v){
+  return v === 'all' ? true : v === 'done' ? r.st === 'done'
+    : v === 'overdue' ? (r.st !== 'done' && r.win === 'overdue') : r.st !== 'done';
+}
 function roomObligationsInspector(c, host){
   const obs = c.obligations || [];
   const editable = (typeof canEdit === 'function') ? canEdit() : false;
   const view = obtView(c.id);
-  const all = obs.map((o, i) => ({ ...o, cid: c.id, counterparty: c.counterparty || '', st: obState(o),
-    win: obligationWindow(o, c), days: obligationDue(o) ? daysUntil(obligationDue(o)) : null, _c: c, _i: i, _key: obKeyOf(c.id, o, i) }));
-  const pass = (r, v) => v === 'all' ? true : v === 'done' ? r.st === 'done'
-    : v === 'overdue' ? (r.st !== 'done' && r.win === 'overdue') : r.st !== 'done';
+  const all = obtRowsOf(c);
+  const pass = obtPass;
   const rows = all.filter(r => pass(r, view)).sort(obByWhen);
   /* THE VIEWS ARE TABS ON THE LIST'S OWN CARD (SAP batch 3, as drawn):
      Outstanding · Overdue · Completed · All, Add and Find on the card's head.
@@ -3544,7 +3606,7 @@ function roomObligationsInspector(c, host){
       </section>
       <aside id="obt-panel" class="ins-panel" aria-label="${_obEsc(i18t('ob_panel_label'))}"></aside>
     </div>`;
-  host.querySelectorAll('[data-obt-view]').forEach(b => b.addEventListener('click', () => { _obtView[c.id] = b.getAttribute('data-obt-view'); roomPaintObligations(c); }));
+  host.querySelectorAll('[data-obt-view]').forEach(b => b.addEventListener('click', () => { _obtView[c.id] = b.getAttribute('data-obt-view'); roomPaintObligations(c, host); }));
   host.querySelector('#obt-add')?.addEventListener('click', () => openObligationForm(c));
   host.querySelector('#obt-find')?.addEventListener('click', () => runFindObligations(c));
   const seat = 'oblig:' + c.id;
@@ -3676,5 +3738,5 @@ Object.assign(window,{obligationIsDoc,obligationDocUntil,obligationDocFile,oblig
   obligationDueSay,obWhoCellHtml,obAmountCellHtml,obligationReminderLine,obAvHtml,obwHomeSum,obMoneyWords,obPageLine2,obligationFactsLine,obligationStatusSay,
   obligationReminderSay,obligationHistory,obligationStampHistory,obHistoryHtml,obChainSectionHtml,obDocSectionHtml,obWordingSectionHtml,
   obligationShowInContract,obKeyOf,obLocate,obPanelActs,obligationRemove,obOpenContract,obPanelOpts,obPaintPanel,obListHtml,obTableHtml,
-  OBW_VIEWS,OBW_CHIPS,obwPlace,obwPlacePut,obwBook,obwPass,obwPaintHead,renderObligationsInspector,OBT_VIEWS,obtView,roomObligationsInspector,
+  OBW_VIEWS,OBW_CHIPS,obwPlace,obwPlacePut,obwBook,obwPass,obwPaintHead,renderObligationsInspector,OBT_VIEWS,obtView,obtRowsOf,obtPass,obReportHtml,roomObligationsInspector,
   OBLIG_RECUR,obRecurLabel,OBLIG_BANDS,OBLIG_TEXT_MIN,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwNarrowing,obwOnly,obwOnlyChipHtml,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationOwnerTo,obligationIsMine,obligationRemindsMe,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,RENEWAL_ANSWERS,renewalQuestionOf,renewalDecisionOf,renewalRecordedOf,renewalDecisionStale,renewalDecided,RENEWAL_PAPER_KINDS,renewalNextStep,renewalNoticeTo,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,obligationsText,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview,OB_KINDS,OB_WHOSE,obKindOf,obWhoseOf,obReviewOf,obReviewMark,obReviewDecision,obReviewTally,obReviewWaiting,obKindSplitText,obFindWord});

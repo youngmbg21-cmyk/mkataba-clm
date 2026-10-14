@@ -20731,3 +20731,11 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Saving a typed change in the clause editor leaves the editor open (Exit needed), while saving a counter prepared by Jambo closes it and goes back; two endings for one Save.
 - A review's hand-back (and the desk's "you are only reading" notice) live in the Negotiate page's notice stack above the grid, not in the column, so the Redlines face cannot show them; review doors were left on the page and the owner asked before a strip is drawn in the panel.
 - CLAUDE.md is about 84.6 KB after stage 3's MAP line (target "under about 80 KB"); the trim owed since stage 1 is still owed.
+
+### Noticed, not fixed (14 Oct 2026, the one-page Home plan, stage 4 — the contract's views on the Board)
+- The history card's own head says "History", and its menu "Verify integrity" and "Print history", in English in both books (literals in roomHistoryHtml); Svenska readers see them on the room's tab and now on the Board.
+- History's Export (and so the Board's Download on History) confirms with a bare toast (no kind), which prints nothing; the file is saved, but nothing says so.
+- In Svenska the deal board has two names: "Förhandlingstavla" on Negotiate's tab and the Board's switch, "affärstavla" in Jambo's words and chip; Jambo does not read "förhandlingstavla".
+- At 1440 wide with Jambo's panel open, the history card's head wraps its "More" button onto a second line on the Board (the room's tab is wider).
+- Ordinary Board cards and stories given to a colleague still do not ring the colleague's bell (only a contract's view does now); the stage 4 design page said they did. Asked of the owner.
+- CLAUDE.md is about 85.5 KB after stage 4's MAP line (target "under about 80 KB"); the trim owed since stage 1 is still owed.

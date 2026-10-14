@@ -30,7 +30,10 @@
    and also delete history"): the deal's progress is the contract's Where we
    are tab and its trail the History tab. A door that still asks for Deal
    lands on Clauses with their changes marked on the paper (PD_TAB_ALIAS);
-   pdDealHtml and pdHistHtml have no caller and are STALE. */
+   pdDealHtml and pdHistHtml have no caller and are STALE. SINCE STAGE 4 OF
+   THE ONE-PAGE HOME PLAN (14 Oct 2026) they come back as Board views:
+   pdOpenOnHome(id, 'deal' | 'hist') opens the Board's own (hbOpenView); the
+   alias is left for a walk through several contracts on the paper. */
 /* THE OVERVIEW TAB IS GONE FROM HOME'S PANEL (owner, 13 Oct 2026: "delete the
    overview tab from document page"); a door that named it lands on Jambo */
 const PD_TABS = ['copilot', 'doc', 'oblig'];
@@ -215,6 +218,12 @@ function pdDocHtml(c){
 const PD_ROOM_TAB = { facts: 'terms', oblig: 'oblig', sign: 'sign', hist: 'history', deal: 'redline', doc: 'docs', copilot: 'terms', fill: 'details', red: 'redline' };
 function pdOpenOnHome(id, tab){
   const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c) return false;
+  /* THE DEAL AND HISTORY DOORS LAND ON THE BOARD (the one-page Home plan,
+     stage 4, 14 Oct 2026): the Board's own view for this contract — the
+     Negotiate page's deal board and the room's trail, drawn a second time.
+     (A walk on the paper that names Deal still marks their changes there,
+     PD_TAB_ALIAS; that is a walk through several contracts, not this door.) */
+  if ((tab === 'deal' || tab === 'hist') && typeof hbOpenView === 'function') return hbOpenView(c.id, tab);
   /* SIGNING LEFT THE PAPER (10 Oct 2026): an approval waiting on you opens
      the Approvals & signing page with its row chosen — the page that already
      decides it (Approve · Refuse in its panel). */

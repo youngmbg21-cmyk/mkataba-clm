@@ -1190,7 +1190,12 @@ function redlineLayoutCss(){
      drawn in the shell's own side panel, a body-level sibling of both, which
      is exactly the fault this codebase has already paid for once. Its wording
      block joins the list; it needs these four and nothing else. */
-  .redline-page, .ng-memo-wording{
+  ${''/* THE DEAL BOARD HAS A SECOND HOST (the one-page Home plan, stage 4): Home's
+         Board draws it in .hb-cv-deal, which is not the Negotiate page (code
+         reads .redline-page as "that page is up"). So each rule on the board's
+         own parts — .db-*, .rl-cp-src, the scale — names .hb-cv-deal beside
+         .redline-page, and the two read alike. */}
+  .redline-page, .ng-memo-wording, .hb-cv-deal{
     --n-ins-bg:#e4f1ea; --n-ins-fg:var(--st-green-fg);
     --n-del-bg:var(--st-ruby-bg); --n-del-fg:var(--st-ruby-dot)}
   /* The block renderer emits an h4 for a heading line, which at a heading's own
@@ -2329,7 +2334,7 @@ function redlineLayoutCss(){
   .redline-page .rl-doc .rl-hang{padding-left:2.6em;text-indent:-2.6em}
   /* And in the clause panel, which renders the same builder's output at its own
      size. Same measure, its own scale. */
-  .redline-page .rl-cp-src .rl-hang{padding-left:2.6em;text-indent:-2.6em}
+  .hb-cv-deal .rl-cp-src .rl-hang,.redline-page .rl-cp-src .rl-hang{padding-left:2.6em;text-indent:-2.6em}
   /* ---- AND THE MARKER FILLS THE MEASURE, SO FIRST LINE AND WRAPS AGREE ----
      (owner-reported 16 Aug 2026, off a screenshot of a bulleted sub-clause:
      "specifications and provided needs to start at the same line as
@@ -2346,7 +2351,7 @@ function redlineLayoutCss(){
      block container that would otherwise inherit the line's -2.6em into its own
      first line. Same rule in the panel's copy — one geometry, both homes. */
   .redline-page .rl-doc .rl-hang .rl-marker,
-  .redline-page .rl-cp-src .rl-hang .rl-marker{display:inline-block;min-width:2.6em;text-indent:0}
+  .hb-cv-deal .rl-cp-src .rl-hang .rl-marker,.redline-page .rl-cp-src .rl-hang .rl-marker{display:inline-block;min-width:2.6em;text-indent:0}
   /* ---- AND A SUB-BULLET SITS UNDER ITS PARENT (owner-reported 2 Sep 2026) ----
      "the dented bullet point ... does not stick". The depth arrives as the
      marker glyph itself — the ladder richToText projects, read back by
@@ -2360,24 +2365,24 @@ function redlineLayoutCss(){
      emitted by the Word reader where the FILE stated an indent, and by the
      gutter walk where the MARKER is all there is. Two names for one step is
      how they come to disagree about how wide a step is. */
-    .redline-page .rl-doc .hati-lv-1,.redline-page .rl-cp-src .hati-lv-1{margin-left:2.6em;}
-    .redline-page .rl-doc .hati-lv-2,.redline-page .rl-cp-src .hati-lv-2{margin-left:5.2em;}
-    .redline-page .rl-doc .hati-lv-3,.redline-page .rl-cp-src .hati-lv-3{margin-left:7.8em;}
+    .redline-page .rl-doc .hati-lv-1,.hb-cv-deal .rl-cp-src .hati-lv-1,.redline-page .rl-cp-src .hati-lv-1{margin-left:2.6em;}
+    .redline-page .rl-doc .hati-lv-2,.hb-cv-deal .rl-cp-src .hati-lv-2,.redline-page .rl-cp-src .hati-lv-2{margin-left:5.2em;}
+    .redline-page .rl-doc .hati-lv-3,.hb-cv-deal .rl-cp-src .hati-lv-3,.redline-page .rl-cp-src .hati-lv-3{margin-left:7.8em;}
   /* A label directly above its value — the file said no space after it. */
-    .redline-page .rl-doc .hati-tight,.redline-page .rl-cp-src .hati-tight{margin-bottom:0;}
+    .redline-page .rl-doc .hati-tight,.hb-cv-deal .rl-cp-src .hati-tight,.redline-page .rl-cp-src .hati-tight{margin-bottom:0;}
   /* Where the page ended. A rule and air on screen; a real break in print and
      in anything that paginates. */
-    .redline-page .rl-doc .hati-pb,.redline-page .rl-cp-src .hati-pb{margin:1.6em 0;border-top:1px solid var(--color-doc-rule,rgba(0,0,0,.14));
+    .redline-page .rl-doc .hati-pb,.hb-cv-deal .rl-cp-src .hati-pb,.redline-page .rl-cp-src .hati-pb{margin:1.6em 0;border-top:1px solid var(--color-doc-rule,rgba(0,0,0,.14));
     break-before:page;page-break-before:always;}
   /* A contents row: the entry at the left, its page number at the right wall. */
-    .redline-page .rl-doc .hati-toc,.redline-page .rl-cp-src .hati-toc{overflow:hidden;}
-    .redline-page .rl-doc .hati-toc-n,.redline-page .rl-cp-src .hati-toc-n{float:right;padding-left:1.2em;}
+    .redline-page .rl-doc .hati-toc,.hb-cv-deal .rl-cp-src .hati-toc,.redline-page .rl-cp-src .hati-toc{overflow:hidden;}
+    .redline-page .rl-doc .hati-toc-n,.hb-cv-deal .rl-cp-src .hati-toc-n,.redline-page .rl-cp-src .hati-toc-n{float:right;padding-left:1.2em;}
   /* A real list gets the same shape from the browser, but only if it is allowed
      its gutter: the sheet's reset leaves ul/ol at the user-agent padding on
      some surfaces and at zero on others, and at zero the marker sits ON the
      first word. Stated once, here, for both. */
   .redline-page .rl-doc .nego-body ul,.redline-page .rl-doc .nego-body ol,
-  .redline-page .rl-cp-src ul,.redline-page .rl-cp-src ol{
+  .hb-cv-deal .rl-cp-src ul,.redline-page .rl-cp-src ul,.hb-cv-deal .rl-cp-src ol,.redline-page .rl-cp-src ol{
     margin:0 0 .5em;padding-left:2.1em;list-style-position:outside}
   /* ---- AND THE MARKER ITSELF, WHICH NOTHING RESTORED ----
      OWNER-REPORTED 28 Aug 2026: "bullet points does not give you the bullet
@@ -2392,11 +2397,11 @@ function redlineLayoutCss(){
      so this one declaration is the whole of the fault.
      WRITTEN IN HaTi'S OWN SHEET, never the blob, which is generated and drops
      the change on the next build (the font-600 lesson). */
-  .redline-page .rl-doc .nego-body ul,.redline-page .rl-cp-src ul{list-style-type:disc}
-  .redline-page .rl-doc .nego-body ul ul,.redline-page .rl-cp-src ul ul{list-style-type:circle}
-  .redline-page .rl-doc .nego-body ol,.redline-page .rl-cp-src ol{list-style-type:decimal}
-  .redline-page .rl-doc .nego-body ol ol,.redline-page .rl-cp-src ol ol{list-style-type:lower-alpha}
-  .redline-page .rl-doc .nego-body li,.redline-page .rl-cp-src li{margin:0 0 .3em}
+  .redline-page .rl-doc .nego-body ul,.hb-cv-deal .rl-cp-src ul,.redline-page .rl-cp-src ul{list-style-type:disc}
+  .redline-page .rl-doc .nego-body ul ul,.hb-cv-deal .rl-cp-src ul ul,.redline-page .rl-cp-src ul ul{list-style-type:circle}
+  .redline-page .rl-doc .nego-body ol,.hb-cv-deal .rl-cp-src ol,.redline-page .rl-cp-src ol{list-style-type:decimal}
+  .redline-page .rl-doc .nego-body ol ol,.hb-cv-deal .rl-cp-src ol ol,.redline-page .rl-cp-src ol ol{list-style-type:lower-alpha}
+  .redline-page .rl-doc .nego-body li,.hb-cv-deal .rl-cp-src li,.redline-page .rl-cp-src li{margin:0 0 .3em}
   /* the sheet keeps its auto margins — margin:0 here beat the centring rule
      (three classes to two) and pinned the paper to the left of the column */
   .redline-page .rl-doc .nego-doc{margin:0 auto;font-size:var(--rl-doc-type);line-height:1.75;color:var(--color-text)}
@@ -4564,7 +4569,7 @@ function redlineLayoutCss(){
   /* The panel had its own copy of the plain-green rule while the paper still
      carried the convention. The paper does not any more (see .nego-ins), so the
      copy is gone: one fact, one rule. */
-  .redline-page .rl-cp-src ins.hati-ins{font-weight:inherit}
+  .hb-cv-deal .rl-cp-src ins.hati-ins,.redline-page .rl-cp-src ins.hati-ins{font-weight:inherit}
   /* ---- THE LAYERED REDLINE: colour says who, the line says what (13 Sep 2026) ----
      Their marks amber, ours the accent — the notes rooms' own convention — and
      a deletion of ours inside an insertion of theirs is drawn nested: their
@@ -4661,19 +4666,19 @@ function redlineLayoutCss(){
      the panel's toolbar and its Save button following a setting about the
      CONTRACT's type — a control shrinking because somebody made the paper
      smaller. The paper scales; the panel does not. */
-  .redline-page .rl-cp-src{--doc-scale:1}
-  .redline-page .rl-cp-src .nego-editing{border:1px solid var(--accent-solid);border-radius:var(--radius);
+  .hb-cv-deal .rl-cp-src,.redline-page .rl-cp-src{--doc-scale:1}
+  .hb-cv-deal .rl-cp-src .nego-editing,.redline-page .rl-cp-src .nego-editing{border:1px solid var(--accent-solid);border-radius:var(--radius);
     padding:9px 11px;min-height:120px;font-size:var(--t-card);line-height:1.65;
     background:var(--color-surface);color:var(--color-text);outline:none}
-  .redline-page .rl-cp-src .nego-editing.is-review{border-color:var(--color-divider);
+  .hb-cv-deal .rl-cp-src .nego-editing.is-review,.redline-page .rl-cp-src .nego-editing.is-review{border-color:var(--color-divider);
     background:var(--color-neutral-50)}
-  .redline-page .rl-cp-src .nego-fmt-bar{margin-bottom:6px}
-  .redline-page .rl-cp-src .nego-reason{display:block;margin-top:9px}
-  .redline-page .rl-cp-src .nego-edit-bar{margin-top:9px}
+  .hb-cv-deal .rl-cp-src .nego-fmt-bar,.redline-page .rl-cp-src .nego-fmt-bar{margin-bottom:6px}
+  .hb-cv-deal .rl-cp-src .nego-reason,.redline-page .rl-cp-src .nego-reason{display:block;margin-top:9px}
+  .hb-cv-deal .rl-cp-src .nego-edit-bar,.redline-page .rl-cp-src .nego-edit-bar{margin-top:9px}
   /* While the panel is being written in, the ＋ that opened it stands down: it
      is a door the reader is already standing in, and pressing it again would
      be refused in silence (the handler returns on an open bar). */
-  .redline-page .rl-cp-src.is-editing .rl-cp-acts{display:none}
+  .hb-cv-deal .rl-cp-src.is-editing .rl-cp-acts,.redline-page .rl-cp-src.is-editing .rl-cp-acts{display:none}
   .redline-page .rl-cp-act.rl-cp-act-ai{background:#f5f3ff;border-color:#ddd6fe;color:#5b21b6}
   .redline-page .rl-cp-act.rl-cp-act-ai:hover{background:#ede9fe;border-color:#7c3aed}
   html.dark .redline-page .rl-cp-act.rl-cp-act-edit{background:rgba(5,150,105,.16);border-color:rgba(5,150,105,.45);color:#6ee7b7}
@@ -5847,12 +5852,12 @@ function redlineLayoutCss(){
   ${''/* ---- THE LADDER IS A LIST THAT CARRIES ITS OWN NUMBERS ----
          Written plainly as .redline-page .rl-ladder this LOSES: the clause
          panel restores real list markers to every ol inside it
-         (.redline-page .rl-cp-src ol, above), and a TYPE selector makes that
+         (.hb-cv-deal .rl-cp-src ol,.redline-page .rl-cp-src ol, above), and a TYPE selector makes that
          rule (0,2,1) against this one's (0,2,0). Measured on a real page, the
          ladder drew "1. 2. 3." beside its own "R3 R2 R1" — two numbering
          systems on one list. Fixed by SCOPE, never !important, which is this
          codebase's own rule for a cascade fight. */}
-  .redline-page .rl-cp-src ol.rl-ladder,
+  .hb-cv-deal .rl-cp-src ol.rl-ladder,.redline-page .rl-cp-src ol.rl-ladder,
   .redline-page ol.rl-ladder{list-style:none;margin:var(--s-2) 0 0;padding:0;position:relative}
   .redline-page .rl-rung-row{position:relative;padding:9px 0 9px 22px;
     border-bottom:1px solid var(--color-divider)}
@@ -6015,24 +6020,24 @@ function redlineLayoutCss(){
   .redline-page .rl-pbook b{color:var(--color-text);font-weight:var(--w-title)}
   .redline-page .rl-pbook .rl-pb-prec{color:var(--color-neutral-600)}
   .redline-page .rl-pb-none{color:var(--color-neutral-400)}
-  .redline-page .rl-scale{margin:6px 0 0;padding:16px 0 0}
-  .redline-page .rl-sc-line{position:relative;height:42px;border-bottom:1px solid var(--color-divider);margin:0 10px}
-  .redline-page .rl-sc-tick{position:absolute;bottom:-1px;transform:translateX(-50%);font-size:var(--t-micro);
+  .hb-cv-deal .rl-scale,.redline-page .rl-scale{margin:6px 0 0;padding:16px 0 0}
+  .hb-cv-deal .rl-sc-line,.redline-page .rl-sc-line{position:relative;height:42px;border-bottom:1px solid var(--color-divider);margin:0 10px}
+  .hb-cv-deal .rl-sc-tick,.redline-page .rl-sc-tick{position:absolute;bottom:-1px;transform:translateX(-50%);font-size:var(--t-micro);
     color:var(--color-neutral-600);padding-top:26px;font-family:var(--font-code)}
-  .redline-page .rl-sc-tick::before{content:'';position:absolute;left:50%;top:18px;width:1px;height:8px;background:var(--color-divider)}
-  .redline-page .rl-sc-mark{position:absolute;transform:translateX(-50%);top:0;font-size:var(--t-micro);font-weight:var(--w-title);
+  .hb-cv-deal .rl-sc-tick::before,.redline-page .rl-sc-tick::before{content:'';position:absolute;left:50%;top:18px;width:1px;height:8px;background:var(--color-divider)}
+  .hb-cv-deal .rl-sc-mark,.redline-page .rl-sc-mark{position:absolute;transform:translateX(-50%);top:0;font-size:var(--t-micro);font-weight:var(--w-title);
     line-height:1;padding:3px 6px;border-radius:var(--radius);white-space:nowrap}
-  .redline-page .rl-sc-mark::after{content:'';position:absolute;left:50%;bottom:-8px;width:8px;height:8px;border-radius:50%;transform:translateX(-50%)}
-  .redline-page .rl-sc-them{background:var(--st-amber-bg);color:var(--st-amber-fg)}
-  .redline-page .rl-sc-them::after{background:var(--st-amber-dot)}
-  .redline-page .rl-sc-you{background:var(--st-steel-bg);color:var(--accent-ink)}
-  .redline-page .rl-sc-you::after{background:var(--color-accent-600)}
-  .redline-page .rl-sc-grey{background:var(--color-neutral-100);color:var(--color-neutral-600)}
-  .redline-page .rl-sc-grey::after{background:var(--color-neutral-400)}
-  .redline-page .rl-sc-below{top:auto;bottom:-34px}
-  .redline-page .rl-sc-below::after{bottom:auto;top:-8px}
-  .redline-page .rl-sc-zone{position:absolute;top:28px;height:4px;background:var(--st-green-bg)}
-  .redline-page .rl-sc-note{font-size:var(--t-label);color:var(--color-neutral-600);margin:40px 0 0}
+  .hb-cv-deal .rl-sc-mark::after,.redline-page .rl-sc-mark::after{content:'';position:absolute;left:50%;bottom:-8px;width:8px;height:8px;border-radius:50%;transform:translateX(-50%)}
+  .hb-cv-deal .rl-sc-them,.redline-page .rl-sc-them{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .hb-cv-deal .rl-sc-them::after,.redline-page .rl-sc-them::after{background:var(--st-amber-dot)}
+  .hb-cv-deal .rl-sc-you,.redline-page .rl-sc-you{background:var(--st-steel-bg);color:var(--accent-ink)}
+  .hb-cv-deal .rl-sc-you::after,.redline-page .rl-sc-you::after{background:var(--color-accent-600)}
+  .hb-cv-deal .rl-sc-grey,.redline-page .rl-sc-grey{background:var(--color-neutral-100);color:var(--color-neutral-600)}
+  .hb-cv-deal .rl-sc-grey::after,.redline-page .rl-sc-grey::after{background:var(--color-neutral-400)}
+  .hb-cv-deal .rl-sc-below,.redline-page .rl-sc-below{top:auto;bottom:-34px}
+  .hb-cv-deal .rl-sc-below::after,.redline-page .rl-sc-below::after{bottom:auto;top:-8px}
+  .hb-cv-deal .rl-sc-zone,.redline-page .rl-sc-zone{position:absolute;top:28px;height:4px;background:var(--st-green-bg)}
+  .hb-cv-deal .rl-sc-note,.redline-page .rl-sc-note{font-size:var(--t-label);color:var(--color-neutral-600);margin:40px 0 0}
   .redline-page .rl-figrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:var(--t-meta);margin-top:12px}
   .redline-page .rl-figrow input[type=number]{font:inherit;font-family:var(--font-code);width:72px;height:var(--ctl-h);
     border:1px solid var(--field-line,var(--color-divider));padding:0 8px;border-radius:var(--radius);background:var(--color-surface);color:var(--color-text)}
@@ -6095,9 +6100,9 @@ function redlineLayoutCss(){
   .db-two>section+section{border-left:1px solid var(--color-divider)}
   .db-h4{margin:0 0 6px;font-size:var(--t-label);font-weight:var(--w-title);color:var(--color-neutral-500)}
   .db-who{margin:0 0 6px;font-size:var(--t-label);color:var(--color-neutral-600)}
-  .redline-page .db-words{font-family:var(--font-doc);font-size:var(--t-body);line-height:1.6;color:var(--color-text)}
-  .redline-page .db-words p{margin:0 0 8px}
-  .redline-page .db-words>*:last-child{margin-bottom:0}
+  .hb-cv-deal .db-words,.redline-page .db-words{font-family:var(--font-doc);font-size:var(--t-body);line-height:1.6;color:var(--color-text)}
+  .hb-cv-deal .db-words p,.redline-page .db-words p{margin:0 0 8px}
+  .hb-cv-deal .db-words>*:last-child,.redline-page .db-words>*:last-child{margin-bottom:0}
   .db-why{margin:10px 0 0;font-size:var(--t-meta);color:var(--color-neutral-600)}
   .db-why b{color:var(--color-text);font-weight:500}
   .db-none-say{margin:0;font-size:var(--t-meta);color:var(--color-neutral-600)}
@@ -6106,7 +6111,7 @@ function redlineLayoutCss(){
   .db-pb-grid dt{font-size:var(--t-label);color:var(--color-neutral-500);margin:0 0 3px}
   .db-pb-grid dd{margin:0;font-size:var(--t-meta)}
   .db-pb-grid dd b{font-weight:var(--w-title)}
-  .redline-page .db-pb-grid .db-words{font-size:var(--t-meta);margin-top:4px}
+  .hb-cv-deal .db-pb-grid .db-words,.redline-page .db-pb-grid .db-words{font-size:var(--t-meta);margin-top:4px}
   .db-pb-note{display:block;color:var(--color-neutral-600);font-size:var(--t-label);margin-top:2px}
   .db-moves-sec{padding:14px 18px}
   .db-moves-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
@@ -6331,7 +6336,7 @@ function redlineLayoutCss(){
   .redline-page .rl-cp-sec{margin:0;padding:12px 16px;border-bottom:1px solid var(--color-divider)}
   .redline-page .rl-cp-h{margin:0 0 8px;font-size:var(--t-micro);letter-spacing:.08em;
     color:var(--color-neutral-500)}
-  .redline-page .rl-cp-src ol.rl-ladder,
+  .hb-cv-deal .rl-cp-src ol.rl-ladder,.redline-page .rl-cp-src ol.rl-ladder,
   .redline-page ol.rl-ladder{display:flex;flex-direction:column;gap:6px;margin:0}
   .redline-page .rl-rung-row{padding:6px 8px;border:1px solid var(--color-divider);
     border-radius:var(--radius)}
@@ -6346,23 +6351,23 @@ function redlineLayoutCss(){
   .redline-page .rl-rung-who{font-size:var(--t-label)}
   .redline-page .rl-rung-when{margin-left:auto}
   .redline-page .rl-rung-when + .rl-rung-fig{margin-left:0}
-  .redline-page .rl-scale{margin:10px 4px 4px;padding:0}
-  .redline-page .rl-sc-line{height:28px;border-bottom:0;margin:0}
-  .redline-page .rl-sc-line::before{content:'';position:absolute;left:0;right:0;top:12px;height:2px;
+  .hb-cv-deal .rl-scale,.redline-page .rl-scale{margin:10px 4px 4px;padding:0}
+  .hb-cv-deal .rl-sc-line,.redline-page .rl-sc-line{height:28px;border-bottom:0;margin:0}
+  .hb-cv-deal .rl-sc-line::before,.redline-page .rl-sc-line::before{content:'';position:absolute;left:0;right:0;top:12px;height:2px;
     background:var(--rule-strong)}
-  .redline-page .rl-sc-tick,.redline-page .rl-sc-zone{display:none}
-  .redline-page .rl-sc-mark,.redline-page .rl-sc-mark.rl-sc-below{top:24px;bottom:auto;background:none;
+  .hb-cv-deal .rl-sc-tick,.redline-page .rl-sc-tick,.hb-cv-deal .rl-sc-zone,.redline-page .rl-sc-zone{display:none}
+  .hb-cv-deal .rl-sc-mark,.redline-page .rl-sc-mark,.hb-cv-deal .rl-sc-mark.rl-sc-below,.redline-page .rl-sc-mark.rl-sc-below{top:24px;bottom:auto;background:none;
     padding:0;font-family:var(--font-mono);font-size:10px;font-weight:var(--w-label);
     color:var(--color-neutral-500);line-height:1.2}
-  .redline-page .rl-sc-mark::after,.redline-page .rl-sc-mark.rl-sc-below::after{bottom:auto;top:-18px;
+  .hb-cv-deal .rl-sc-mark::after,.redline-page .rl-sc-mark::after,.hb-cv-deal .rl-sc-mark.rl-sc-below::after,.redline-page .rl-sc-mark.rl-sc-below::after{bottom:auto;top:-18px;
     width:14px;height:14px;box-sizing:border-box;border:2px solid var(--color-neutral-500);
     background:var(--color-surface)}
-  .redline-page .rl-sc-them::after{border-color:var(--st-amber-dot);background:var(--st-amber-dot)}
-  .redline-page .rl-sc-you::after{border-color:var(--color-accent-600);background:var(--color-accent-600)}
-  .redline-page .rl-sc-grey::after{border-color:var(--color-neutral-500);background:var(--color-surface)}
-  .redline-page .rl-sc-std::after{border-color:var(--color-accent-600);background:var(--color-surface)}
-  .redline-page .rl-sc-fb::after{border-color:var(--color-accent-600);background:var(--color-accent-600)}
-  .redline-page .rl-sc-note{margin:14px 0 0}
+  .hb-cv-deal .rl-sc-them::after,.redline-page .rl-sc-them::after{border-color:var(--st-amber-dot);background:var(--st-amber-dot)}
+  .hb-cv-deal .rl-sc-you::after,.redline-page .rl-sc-you::after{border-color:var(--color-accent-600);background:var(--color-accent-600)}
+  .hb-cv-deal .rl-sc-grey::after,.redline-page .rl-sc-grey::after{border-color:var(--color-neutral-500);background:var(--color-surface)}
+  .hb-cv-deal .rl-sc-std::after,.redline-page .rl-sc-std::after{border-color:var(--color-accent-600);background:var(--color-surface)}
+  .hb-cv-deal .rl-sc-fb::after,.redline-page .rl-sc-fb::after{border-color:var(--color-accent-600);background:var(--color-accent-600)}
+  .hb-cv-deal .rl-sc-note,.redline-page .rl-sc-note{margin:14px 0 0}
   ${''/* THREE LABEL ROWS UNDER ONE LINE. The reference's demo has three
          distinct figures; a real clause has five readings that often
          COINCIDE (a standard equal to its fallback, our figure equal to
@@ -6370,10 +6375,10 @@ function redlineLayoutCss(){
          standard and their figure sit on row one, the fallback and ours on
          row two, the agreed R0 on row three — a dot at the same value is the
          same value, and stays where it is. */}
-  .redline-page .rl-sc-mark.rl-sc-fb,.redline-page .rl-sc-mark.rl-sc-you{top:38px}
-  .redline-page .rl-sc-mark.rl-sc-fb::after,.redline-page .rl-sc-mark.rl-sc-you::after{top:-32px}
-  .redline-page .rl-sc-mark.rl-sc-below{top:52px}
-  .redline-page .rl-sc-mark.rl-sc-below::after{top:-46px}
+  .hb-cv-deal .rl-sc-mark.rl-sc-fb,.redline-page .rl-sc-mark.rl-sc-fb,.hb-cv-deal .rl-sc-mark.rl-sc-you,.redline-page .rl-sc-mark.rl-sc-you{top:38px}
+  .hb-cv-deal .rl-sc-mark.rl-sc-fb::after,.redline-page .rl-sc-mark.rl-sc-fb::after,.hb-cv-deal .rl-sc-mark.rl-sc-you::after,.redline-page .rl-sc-mark.rl-sc-you::after{top:-32px}
+  .hb-cv-deal .rl-sc-mark.rl-sc-below,.redline-page .rl-sc-mark.rl-sc-below{top:52px}
+  .hb-cv-deal .rl-sc-mark.rl-sc-below::after,.redline-page .rl-sc-mark.rl-sc-below::after{top:-46px}
   .redline-page .rl-fig-sec .rl-scale{margin-bottom:38px}
   .redline-page .rl-pbook{display:flex;flex-wrap:wrap;column-gap:16px;row-gap:6px;font-size:var(--t-label)}
   .redline-page .rl-pbook > span:not(.rl-pb-prec){color:var(--color-neutral-500);margin-right:-11px}

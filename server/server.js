@@ -18633,8 +18633,25 @@ function homeGiftSpec(b){
   const str = JSON.stringify(out);
   return str.length <= 4000 ? str : null;
 }
+/* A CONTRACT'S VIEW is given by its name too (kind 'cv'; the one-page Home
+   plan, stage 4, 14 Oct 2026): which view — deal board, obligations, history —
+   and which contract, never a figure. The giver must be able to open the
+   contract (it reads as not found otherwise, as every contract route does),
+   and so must the colleague: the Board draws it from their own reach, so a
+   gift they could never open is refused in words rather than kept. */
+const HOME_GIFT_CVIEWS = ['deal', 'oblig', 'hist'];
+function homeGiftCvSpec(b, giver, taker){
+  const v = b && typeof b === 'object' ? b : null;
+  const view = v && typeof v.v === 'string' ? v.v : '';
+  const cid = v && typeof v.cid === 'string' ? v.cid.trim().slice(0, 120) : '';
+  if (!HOME_GIFT_CVIEWS.includes(view) || !cid) return { error: 'A contract’s view is given by its name: deal, oblig or hist, and the contract’s id.', code: 400 };
+  const row = db.prepare('SELECT folder FROM contracts WHERE id=?').get(cid);
+  if (!row || !inScope(folderScopeFor(giver), row.folder)) return { error: 'Contract not found', code: 404 };
+  if (!inScope(folderScopeFor(taker), row.folder)) return { error: `${taker.name} cannot open this contract, so it cannot be given to them.`, code: 400 };
+  return { spec: JSON.stringify({ v: view, cid }) };
+}
 /* a STORY is given by its name too (sy_<topic>; Young, 6 Oct 2026) */
-const HOME_GIFT_KINDS = ['view', 'obl', 'fric', 'ren', 'pay', 'exp', 'val', 'sy_friction', 'sy_renewals', 'sy_spend', 'sy_pipeline', 'sy_risk', 'sy_payterms', 'sy_obligations', 'sy_party', 'sy_stream', 'sy_quarter'];
+const HOME_GIFT_KINDS = ['view', 'cv', 'obl', 'fric', 'ren', 'pay', 'exp', 'val', 'sy_friction', 'sy_renewals', 'sy_spend', 'sy_pipeline', 'sy_risk', 'sy_payterms', 'sy_obligations', 'sy_party', 'sy_stream', 'sy_quarter'];
 const HOME_GIFT_LENSES = ['all', 'suppliers', 'customers'];
 /* A PERSON'S HOME HOLDS AT MOST THIS MANY GIFTS STILL ON IT; one more is
    refused in words, never dropped (a cap is a fact). */
@@ -18655,14 +18672,15 @@ app.post('/api/home/gifts', auth, (req, res) => {
   const b = req.body || {};
   if (b.email || b.address) return res.status(400).json({ error: 'Send the colleague’s id, not an address.' });
   const to = clean(b.to);
-  const u = to ? db.prepare('SELECT id, name FROM users WHERE id=?').get(to) : null;
+  const u = to ? db.prepare('SELECT id, name, role FROM users WHERE id=?').get(to) : null;
   if (!u) return res.status(400).json({ error: 'That person is not a member of this workspace.' });
   if (String(u.id) === String(req.user.id)) return res.status(400).json({ error: 'A panel is given to somebody else.' });
   const kind = clean(b.kind);
   if (!HOME_GIFT_KINDS.includes(kind)) return res.status(400).json({ error: 'kind must be one of: ' + HOME_GIFT_KINDS.join(', ') });
   const lens = HOME_GIFT_LENSES.includes(clean(b.lens)) ? clean(b.lens) : 'all';
-  const spec = kind === 'view' ? homeGiftSpec(b.spec) : '';
+  let spec = kind === 'view' ? homeGiftSpec(b.spec) : '';
   if (spec === null) return res.status(400).json({ error: 'A chart is given by its name and how it is drawn (key q:, cd: or ls:).' });
+  if (kind === 'cv'){ const cv = homeGiftCvSpec(b.spec, req.user, u); if (cv.error) return res.status(cv.code).json({ error: cv.error }); spec = cv.spec; }
   const open = db.prepare('SELECT COUNT(*) AS n FROM home_gifts WHERE to_id=? AND dismissed_at IS NULL').get(u.id).n;
   if (open >= HOME_GIFT_OPEN_MAX) return res.status(409).json({ error: `${u.name} already has ${HOME_GIFT_OPEN_MAX} panels waiting on their Home. Ask them to clear some first.` });
   const g = { id: 'g_' + rid(8), from_id: req.user.id, to_id: u.id, kind, lens, split: b.split ? 1 : 0,

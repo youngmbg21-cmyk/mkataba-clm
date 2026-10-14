@@ -2091,6 +2091,11 @@ const ALERT_KINDS = [
      never sent anywhere. Amber: worth a look, nobody else is waiting on it.
      Ranked under the work somebody is owed and over what only waits. */
   { k:'watch',       tone:'amber', ic:'&#128065;' },
+  /* ---- A VIEW A COLLEAGUE GAVE YOU (the one-page Home plan, stage 4) ----
+     A contract's deal board, obligations or history, given from the Board's
+     Share with a note (hbGiftAlerts). Amber: a colleague asked you to look.
+     It clears once seen — drawn on your Board, or opened from here. */
+  { k:'gift',        tone:'amber', ic:'&#127873;' },
   /* ---- A NOTE OF YOUR OWN TO LOOK AT AGAIN (Young, 10 Oct 2026) ----
      My notes whose review day has come (mineNotesDue, js/mine.js) — private,
      so only ever this reader's own. Amber: work this reader set themselves.
@@ -2606,6 +2611,9 @@ function buildAlerts(){
      (hbWatchAlerts); the press lands on that figure's dig-in. */
   try{
     if(typeof window.hbWatchAlerts==='function') hbWatchAlerts().forEach(w=>push('watch',null,w.text,w.go));
+  }catch(e){}
+  try{
+    if(typeof window.hbGiftAlerts==='function') hbGiftAlerts().forEach(g=>push('gift',g.c,g.text,g.go));
   }catch(e){}
   try{
     if(typeof window.mineNotesDue==='function') mineNotesDue().forEach(n=>{
@@ -3368,7 +3376,11 @@ function renderContextPanel(){
       if(marked) try{ updateAlertBadge(); }catch(_){}
     }
   } else {
-    body.querySelectorAll('[data-sel-act]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-sel-act'))));
+    /* A ROW OF THE TRAIL OPENS THAT CONTRACT'S HISTORY ON THE BOARD (the
+       one-page Home plan, stage 4, 14 Oct 2026); the phone's room as before */
+    body.querySelectorAll('[data-sel-act]').forEach(el=>el.addEventListener('click',()=>{
+      const id=el.getAttribute('data-sel-act');
+      if(!(typeof window.hbOpenView==='function'&&hbOpenView(id,'hist'))) selectContract(id); }));
   }
 }
 function activityPanelHtml(){

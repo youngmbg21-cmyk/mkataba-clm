@@ -8223,7 +8223,7 @@ function histWhen(at, now){
   }
   return { day, time };
 }
-function roomHistoryHtml(c,f={}){
+function roomHistoryHtml(c,f={},opts={}){
   /* ---- NEWEST FIRST (Young ruled 24 Sep 2026: "The way the history is
      chronicled") ----
      The canvas reads "N events · newest first" with Today at the top; this page
@@ -8365,8 +8365,11 @@ function roomHistoryHtml(c,f={}){
           ${icon('more')}${i18t('ct_more')}${icon('chevD')}</button>
         <div id="hist-more-menu" class="room-menu hidden" style="min-width:250px">
           <button type="button" id="ht-verify">${icon('shield','w-3.5 h-3.5')}Verify integrity<span class="mnote">${i18t('ct_recompute_fingerprints')}</span></button>
-          <button type="button" id="ht-export">${icon('download','w-3.5 h-3.5')}${i18t('ct_export_history')}<span class="mnote">${i18t('ct_standalone_file')}</span></button>
-          <button type="button" id="ht-print">${icon('printer','w-3.5 h-3.5')}Print history<span class="mnote">${i18t('ct_same_report_paper')}</span></button>
+          ${''/* ON HOME'S BOARD (stage 4) Print and Download stand on the
+                 Board's own line and press these same two acts — one door
+                 each, so the menu there keeps Verify alone. */}
+          ${opts.board?'':`<button type="button" id="ht-export">${icon('download','w-3.5 h-3.5')}${i18t('ct_export_history')}<span class="mnote">${i18t('ct_standalone_file')}</span></button>
+          <button type="button" id="ht-print">${icon('printer','w-3.5 h-3.5')}Print history<span class="mnote">${i18t('ct_same_report_paper')}</span></button>`}
         </div>
       </div>
     </div>
@@ -8414,10 +8417,16 @@ function roomVersionsHtml(c){
     </div>`).join('')
     :`<p style="margin:0;font-size:var(--t-meta);line-height:1.55;color:var(--color-neutral-600)">${i18t('ct_no_saved_versions')}</p>`}`;
 }
-function roomPaintHistory(c,f={}){
-  const host=document.getElementById('ws-history-pane');
+/* A SECOND HOST (the one-page Home plan, stage 4, 14 Oct 2026): Home's Board
+   draws this same trail for the contract on the paper. `at` is that host;
+   absent, the room's own pane. The filters it was drawn with ride on the host
+   (`_histF`), so the Board drawing it again keeps them. */
+function roomPaintHistory(c,f={},at){
+  const host=at||document.getElementById('ws-history-pane');
   if(!host) return;
-  host.innerHTML=roomHistoryHtml(c,f);
+  host._histF=f;
+  const html=roomHistoryHtml(c,f,{ board:!!at });
+  host.innerHTML=html; host._histHtml=html;
   /* THE VERSIONS CARD IS RETIRED — see the pane above. roomVersionsHtml is
      kept as an exported builder with no caller, this file's own convention for
      a builder whose feature has gone, so a third caller cannot bring the
@@ -8425,16 +8434,16 @@ function roomPaintHistory(c,f={}){
   const read=()=>{ const g=k=>{ const el=host.querySelector(`[data-ht-filter="${k}"]`); return el&&el.value?el.value:''; };
     return {clauseId:g('clauseId'),actor:g('actor'),side:g('side'),round:g('round'),outcome:g('outcome')}; };
   host.querySelectorAll('[data-ht-filter]').forEach(s=>
-    s.addEventListener('change',()=>roomPaintHistory(c,read())));
+    s.addEventListener('change',()=>roomPaintHistory(c,read(),at)));
   /* Clear puts every filter back, side among them — one way back rather than
      two, now that side is one of the five rather than a control of its own. */
-  host.querySelector('#ht-clear')?.addEventListener('click',()=>roomPaintHistory(c,{}));
-  host.querySelector('#hist-filter-btn')?.addEventListener('click',()=>{ _histFiltersOpen=!_histFiltersOpen; roomPaintHistory(c,read()); });
+  host.querySelector('#ht-clear')?.addEventListener('click',()=>roomPaintHistory(c,{},at));
+  host.querySelector('#hist-filter-btn')?.addEventListener('click',()=>{ _histFiltersOpen=!_histFiltersOpen; roomPaintHistory(c,read(),at); });
   const qi=host.querySelector('#hist-q');
-  if(qi) qi.addEventListener('input',()=>{ _histQ=qi.value; const at=qi.selectionStart; roomPaintHistory(c,read());
-    const again=document.getElementById('hist-q'); if(again){ again.focus(); try{ again.setSelectionRange(at,at); }catch(_){} } });
+  if(qi) qi.addEventListener('input',()=>{ _histQ=qi.value; const caret=qi.selectionStart; roomPaintHistory(c,read(),at);
+    const again=host.querySelector('#hist-q'); if(again){ again.focus(); try{ again.setSelectionRange(caret,caret); }catch(_){} } });
   host.querySelector('#hist-detail')?.addEventListener('click',()=>{
-    _histDetail=!_histDetail; roomPaintHistory(c,read());
+    _histDetail=!_histDetail; roomPaintHistory(c,read(),at);
   });
   /* THE MENU SAYS WHETHER IT IS OPEN. Now that the button carries a word and a
      chevron, aria-expanded is what turns the chevron over and what a screen

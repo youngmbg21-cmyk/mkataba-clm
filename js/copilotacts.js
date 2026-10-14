@@ -593,15 +593,15 @@ const CA_DOOR_GO = {
   refile: c => { if (typeof openWorkspace === 'function') openWorkspace(c.id); if (typeof ovOpenFiling === 'function') ovOpenFiling(getContract(c.id) || c); },
   amend: c => openCreateAmendmentModal(getContract(c.id) || c),
   memo: c => openNegoMemo(getContract(c.id) || c),
-  open: c => pdOpenOnHome(c.id, 'deal'),
-  minor: c => pdOpenOnHome(c.id, 'deal'),
+  open: c => hbOpenView(c.id, 'deal'),
+  minor: c => hbOpenView(c.id, 'deal'),
   counter: c => openRedlineWorkbench(c.id),
   lock: c => openRedlineWorkbench(c.id),
 };
 /* the function each door needs, so a stage that does not load it greys the card in words */
 const CA_DOOR_NEEDS = { sendback: 'openRedlineWorkbench', signlink: 'openShareModal', resend: 'openShareModal', adviser: 'openShareModal', word: 'openShareModal',
   approval: 'openWorkspace', chase: 'pdOpenOnHome', done: 'pdOpenOnHome', hold: 'contractSetHold', refile: 'ovOpenFiling', amend: 'openCreateAmendmentModal',
-  memo: 'openNegoMemo', open: 'pdOpenOnHome', minor: 'pdOpenOnHome', counter: 'openRedlineWorkbench', lock: 'openRedlineWorkbench' };
+  memo: 'openNegoMemo', open: 'hbOpenView', minor: 'hbOpenView', counter: 'openRedlineWorkbench', lock: 'openRedlineWorkbench' };
 function caDoorCardHtml(a, i){
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   const B = (act, label, lead) => `<button type="button" class="ui-btn ui-btn-sm${lead ? ' ui-btn-primary' : ''}" data-ca-act="${act}" data-ca-turn="${i}">${_caE(label)}</button>`;
@@ -992,12 +992,14 @@ const CA_GO = {
   wall: () => caHomeWall(),
   /* beside the paper: Jambo's own Redlines face (stage 3), through the page's walls */
   redline: c => (typeof pdRedOpen === 'function') ? pdRedOpen(c.id) : openRedlineWorkbench(c.id),
-  deal: c => { if (openRedlineWorkbench(c.id) && typeof openDealBoard === 'function') openDealBoard(); return true; },
+  /* on the Board, for that contract (stage 4): the view, the Negotiate page's
+     own board drawn a second time */
+  deal: c => (typeof hbOpenView === 'function') ? hbOpenView(c.id, 'deal') : (openRedlineWorkbench(c.id) && typeof openDealBoard === 'function' && (openDealBoard(), true)),
   sign: c => caRoomSign(c),
   /* beside the paper: Jambo's own Fill in face (stage 2) */
   fill: c => (typeof pdFillOpen === 'function') ? pdFillOpen(c.id) : caRoomTab(c, 'details'),
   oblig: c => c ? pdOpenOnHome(c.id, 'oblig') : (typeof setView === 'function' && setView('obligations')),
-  history: c => c ? caRoomTab(c, 'history') : (typeof openPanel === 'function' && openPanel('activity')),
+  history: c => c ? ((typeof hbOpenView === 'function') ? hbOpenView(c.id, 'hist') : caRoomTab(c, 'history')) : (typeof openPanel === 'function' && openPanel('activity')),
   upload: () => typeof openUploadModal === 'function' && openUploadModal(),
   draft: () => typeof openNewDoors === 'function' && openNewDoors(),
 };

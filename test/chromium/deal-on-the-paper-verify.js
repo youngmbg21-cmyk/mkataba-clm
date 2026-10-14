@@ -17,6 +17,12 @@
    still asks for Deal (a Copilot card, the agents' review) lands on Clauses
    with the paper Redlined; the sorting and "Answer on Negotiate" went with the
    tab. Steps 2 and 3b are retired; 1 and 3a stand.
+
+   RE-POINTED 14 Oct 2026 (stage 4 of the one-page Home plan, owner: "Views,
+   and yes to all three recommendations"): the panel's Deal DOOR
+   (pdOpenOnHome(id, 'deal')) opens the Board's own deal board now
+   (board-views-verify 7a). What still asks the PAPER for Deal is a walk
+   naming it — the agents' "Their round came back" Review — so 1b walks.
    ============================================================ */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -80,7 +86,7 @@ const DOC = ['SUPPLY AGREEMENT', '', 'Article 1 Term', '', 'This Agreement runs 
     ok('1a the strip offers Clean | Redline · 2, Clean at rest', sw.join('|') === 'Clean*|Redline · 2', JSON.stringify(sw));
     const tabs = await page.evaluate(() => [...document.querySelectorAll('#ig-dock [data-pd-tab]')].map(b => b.getAttribute('data-pd-tab')));
     ok('1a2 no Deal and no History tab', !tabs.includes('deal') && !tabs.includes('hist'), JSON.stringify(tabs));
-    await page.evaluate(() => pdOpenOnHome('MK-DP1', 'deal'));
+    await page.evaluate(() => igWalk(['MK-DP1'], 0, { tab: 'deal' }));
     await page.waitForFunction(() => !!document.querySelector('#ig-paper .ig-redpaper:not(.is-clean)'), null, { timeout: 8000 }).catch(() => {});
     const red = await page.evaluate(() => {
       const cv = document.getElementById('ig-canvas'); const t = cv ? cv.innerText : '';
@@ -88,7 +94,7 @@ const DOC = ['SUPPLY AGREEMENT', '', 'Article 1 Term', '', 'This Agreement runs 
         tab: (document.querySelector('#ig-dock [data-pd-tab][aria-selected="true"]') || {}).getAttribute?.('data-pd-tab'),
         both: /twelve/.test(t) && /six/.test(t), marks: cv ? cv.querySelectorAll('del, ins, .rl-del, .rl-ins, [class*="del"], [class*="ins"]').length : 0 };
     });
-    ok('1b a door asking for Deal draws the paper Redlined, on Clauses: their words struck and inserted', red.paper && /Redline/.test(red.lit || '') && red.both && red.marks > 0 && red.tab === 'doc', JSON.stringify(red));
+    ok('1b a walk asking for Deal draws the paper Redlined, on Clauses: their words struck and inserted', red.paper && /Redline/.test(red.lit || '') && red.both && red.marks > 0 && red.tab === 'doc', JSON.stringify(red));
     await page.screenshot({ path: path.join(OUT, '1-redlined.png') });
 
     /* ===== 3. ANSWER ON NEGOTIATE, AND BACK TO CLEAN ===== */

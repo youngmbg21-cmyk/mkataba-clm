@@ -169,7 +169,7 @@ describe('f253 (3) — one verb, one reading, nothing new written', () => {
        first, so the press opens the dialog and THE DIALOG presses the verb.
        The claim is unchanged and is stronger for being asked of both halves —
        there is still exactly one place that decides what completing means. */
-    const paint = OB_CODE.match(/function roomPaintObligations\(c\)\{[\s\S]*?\n\}/)[0];
+    const paint = OB_CODE.match(/function roomPaintObligations\(c(?:, at)?\)\{[\s\S]*?\n\}/)[0];
     assert.match(paint, /openObligationDone\(c, i\)/, 'completing asks first');
     assert.match(paint, /toggleObligation\(c, i, \{ from: 'obligations tab' \}\)/,
       'and reopening presses the verb directly — there is nothing to ask');

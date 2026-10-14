@@ -520,12 +520,19 @@ async function negoHistoryExportRun(c){
    cannot be built, so a blocked or failed run leaves nothing behind. */
 async function negoHistoryPrintRun(c){
   if (!window.negoIntegrityReport) return;
+  return printWindowRun(async () => negoHistoryExportHtml(c, await negoIntegrityReport(c)), 'ng_could_not_build_history');
+}
+/* ONE PRINT RUNNER (stage 4 of the one-page Home plan, 14 Oct 2026): the
+   history's own, lifted out so the Board's Deal board and Obligations views
+   print through the very same window, latch and close. `build` makes the
+   standalone document (it may await); `failKey` is said if it cannot. */
+async function printWindowRun(build, failKey){
   const w = window.open('', '_blank');
   if (!w){ if (window.toast) toast(i18t('ng_allow_popups'), 'err'); return; }
   try {
-    const r = await negoIntegrityReport(c);
+    const html = await build();
     w.document.open();
-    w.document.write(negoHistoryExportHtml(c, r));
+    w.document.write(html);
     w.document.close();
     /* ---- ONE DIALOG, AND IT GOES AWAY WHEN YOU DISMISS IT ----
        (owner-reported 23 Aug 2026: "you click on print history then decide to
@@ -568,7 +575,7 @@ async function negoHistoryPrintRun(c){
     setTimeout(ask, 350);
   } catch (e){
     try { w.close(); } catch (e2) {}
-    if (window.toast) toast(i18t('ng_could_not_build_history'), 'err');
+    if (window.toast) toast(i18t(failKey || 'ng_could_not_build_history'), 'err');
   }
 }
 function negoVerifyResultHtml(r){
@@ -8028,16 +8035,12 @@ function dealBoardVerdict(r){
   if (r.standard) return out('out', 'ng_board_v_out_std', { n: Math.abs(r.theirFig - r.standard.value), unit });
   return out('none', 'ng_board_v_noplay');
 }
-function dealBoardHtml(c, side){
-  if (typeof window.ladderBoard !== 'function') return '';
-  const rows = ladderBoard(c, side);
-  const names = rlLegendNames(c, side);
-  const cp = names.them;
-  const memo = `<button type="button" class="ui-btn" data-rl-board-memo title="${_nea(i18t('ng_board_memo_title'))}">${_ne(i18t('ng_board_memo'))}</button>`;
-  if (!rows.length){
-    return `<div class="db"><div class="db-sum"><b>${_ne(i18t('ng_board_head'))}</b><span class="sp"></span>${memo}</div>
-      <p class="db-empty">${_ne(i18t('ng_board_empty'))}</p></div>`;
-  }
+/* THE BOARD'S FACTS, READ ONCE: every point argued with its pile and its
+   verdict, and how many sit in each. The head's filters count these, and so
+   does the number on the Board's own Deal board switch (the one-page Home
+   plan, stage 4) — one reading, so the door and the list behind it agree. */
+function dealBoardFacts(c, side){
+  const rows = (typeof window.ladderBoard === 'function') ? ladderBoard(c, side) : [];
   const facts = rows.map(r => ({ r, g: dealBoardGroupOf(c, r, side), v: dealBoardVerdict(r) }));
   const n = {
     all: facts.length,
@@ -8047,7 +8050,28 @@ function dealBoardHtml(c, side){
     beyond: facts.filter(x => x.g !== 'done' && x.v.within === false).length,
     done: facts.filter(x => x.g === 'done').length
   };
-  const f = (RL_BOARD_FILTERS.includes(_rlBoardFilter) && (_rlBoardFilter === 'all' || n[_rlBoardFilter])) ? _rlBoardFilter : 'all';
+  return { rows, facts, n };
+}
+/* Whose move a point waits on, in the board's own words: [tone, words]. */
+function dealBoardMoveOf(c, r, side){
+  const unsent = r.state === 'with' && r.top && typeof window.ladderUnsent === 'function' && ladderUnsent(c, r.top, side);
+  return r.state === 'awaiting' ? ['you', i18t('ng_board_move_you')]
+    : r.state === 'with' ? (unsent ? ['you', i18t('ng_board_move_draft')] : ['them', i18t('ng_board_move_them')])
+    : r.state === 'settled' ? ['ok', i18t('ng_board_move_settled')]
+    : r.state === 'refused' ? ['quiet', i18t('ng_board_move_refused')]
+    : ['quiet', i18t('ng_board_move_none')];
+}
+function dealBoardHtml(c, side){
+  if (typeof window.ladderBoard !== 'function') return '';
+  const { rows, facts, n } = dealBoardFacts(c, side);
+  const names = rlLegendNames(c, side);
+  const cp = names.them;
+  const memo = `<button type="button" class="ui-btn" data-rl-board-memo title="${_nea(i18t('ng_board_memo_title'))}">${_ne(i18t('ng_board_memo'))}</button>`;
+  if (!rows.length){
+    return `<div class="db"><div class="db-sum"><b>${_ne(i18t('ng_board_head'))}</b><span class="sp"></span>${memo}</div>
+      <p class="db-empty">${_ne(i18t('ng_board_empty'))}</p></div>`;
+  }
+  const f =(RL_BOARD_FILTERS.includes(_rlBoardFilter) && (_rlBoardFilter === 'all' || n[_rlBoardFilter])) ? _rlBoardFilter : 'all';
   const passes = x => f === 'all' || (f === 'within' ? x.g !== 'done' && x.v.within === true
     : f === 'beyond' ? x.g !== 'done' && x.v.within === false : x.g === f);
   /* THE HEAD LINE'S NUMBERS ARE ITS FILTERS (it was a line of facts). A zero
@@ -8064,12 +8088,7 @@ function dealBoardHtml(c, side){
       ${chip('done', i18tn('ng_board_f_done', n.done, { n: n.done }))}
       <span class="sp"></span>${memo}</div>`;
   const move = r => {
-    const unsent = r.state === 'with' && r.top && typeof window.ladderUnsent === 'function' && ladderUnsent(c, r.top, side);
-    const k = r.state === 'awaiting' ? ['you', i18t('ng_board_move_you')]
-      : r.state === 'with' ? (unsent ? ['you', i18t('ng_board_move_draft')] : ['them', i18t('ng_board_move_them')])
-      : r.state === 'settled' ? ['ok', i18t('ng_board_move_settled')]
-      : r.state === 'refused' ? ['quiet', i18t('ng_board_move_refused')]
-      : ['quiet', i18t('ng_board_move_none')];
+    const k = dealBoardMoveOf(c, r, side);
     return `<span class="db-move db-move-${k[0]}">${_ne(k[1])}</span>`;
   };
   const verdict = v => `<span class="db-vd db-vd-${v.k}"><i aria-hidden="true"></i>${_ne(v.text)}</span>`;
@@ -8226,25 +8245,135 @@ function dealBoardCardHtml(c, r, side, k){
       <button type="button" class="ui-btn ui-btn-primary" data-rl-board-go="${_nea(id)}">${_ne(i18t('ng_board_go'))}</button></footer>
   </article>`;
 }
+/* ---- THE DEAL BOARD ON PAPER AND AS A FILE (the one-page Home plan, stage 4,
+   14 Oct 2026: Print and Download on Home's Board) ----
+   ONE DOCUMENT BOTH WAYS: Print hands it to the printer (printWindowRun),
+   Download saves it, so the paper and the file can never say different
+   things. Every point, piled as the board piles it, read off the board's own
+   readings (dealBoardFacts, dealBoardMoveOf, dealBoardVerdict) and its
+   wording drawn by rlChangeWordingHtml with the memo's inline marks. OUR SEAT
+   ONLY: it carries the standard and the fallback and is never sent outside.
+   A STANDALONE DOCUMENT CARRIES NO :root — literal values only (MEMO_DOC). */
+function dealBoardReportHtml(c, side = 'owner'){
+  const D = MEMO_DOC;
+  const { facts } = dealBoardFacts(c, side);
+  const cp = rlLegendNames(c, side).them;
+  const ref = window.contractRef ? contractRef(c) : c.id;
+  const loc = typeof langLocale === 'function' ? langLocale() : undefined;
+  let when = ''; try { when = new Date().toLocaleString(loc, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (_){}
+  const wording = ch => (ch && typeof rlChangeWordingHtml === 'function') ? rlChangeWordingHtml(ch, { side, changedOnly: true,
+    insStyle: `color:${D.ins};text-decoration:underline`, delStyle: `color:${D.del};text-decoration:line-through`, blockStyle: 'margin:0 0 4px' }) : '';
+  const fig = (n, u) => `${n}${u ? ' ' + u : ''}`;
+  const tone = { you: '#92400e', them: '#1d4ed8', ok: '#047857', quiet: D.quiet };
+  const point = ({ r, v }) => {
+    const mv = dealBoardMoveOf(c, r, side);
+    const op = r.standard ? (r.standard.op === '<=' ? '≤ ' : r.standard.op === '>=' ? '≥ ' : '') : '';
+    const figs = [
+      r.theirFig != null ? [i18t('ng_board_col_theirs'), fig(r.theirFig, r.unit)] : null,
+      r.ourFig != null ? [i18t('ng_board_col_ours'), fig(r.ourFig, r.unit)] : null,
+      r.dist != null ? [i18t('ng_board_col_gap'), fig(r.dist, r.unit)] : null,
+      r.standard ? [i18t('ng_pb_std'), op + fig(r.standard.value, r.unit)] : null,
+      v.fbN != null ? [i18t('ng_pb_fb'), fig(v.fbN, r.unit)] : null,
+    ].filter(Boolean);
+    const theirs = r.theirs ? wording(r.theirs.ch) : `<p class="q">${_ne(i18t('ng_board_c_none_theirs'))}</p>`;
+    const settled = r.state === 'settled' && r.accepted;
+    const ours = settled ? wording(r.accepted.ch) : r.ours ? wording(r.ours.ch) : `<p class="q">${_ne(i18t('ng_board_as_drafted_words'))}</p>`;
+    return `<article><header><h3>${_ne(r.label || r.clauseId)}</h3><span class="mv" style="color:${tone[mv[0]] || D.quiet}">${_ne(mv[1])}</span><span class="vd">${_ne(v.text)}</span></header>
+      ${figs.length ? `<dl>${figs.map(([k, x]) => `<div><dt>${_ne(k)}</dt><dd>${_ne(x)}</dd></div>`).join('')}</dl>` : ''}
+      <div class="two"><section><h4>${_ne(i18t('ng_board_c_theirs'))}</h4>${theirs}</section><section><h4>${_ne(i18t(settled ? 'ng_base_agreed' : 'ng_board_c_ours'))}</h4>${ours}</section></div></article>`;
+  };
+  const groups = [['you', i18t('ng_board_g_you')], ['them', i18t('ng_board_g_them', { cp })], ['done', i18t('ng_board_g_done')]];
+  const body = facts.length ? groups.map(([g, label]) => {
+    const inG = facts.filter(x => x.g === g);
+    return inG.length ? `<h2>${_ne(label)} <span>${inG.length}</span></h2>${inG.map(point).join('')}` : '';
+  }).join('') : `<p class="q">${_ne(i18t('ng_board_empty'))}</p>`;
+  const title = `${i18t('ng_board_head')} · ${ref}`;
+  return `<!doctype html><html lang="${typeof langId === 'function' ? langId() : 'en'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${_ne(title)}</title><style>
+body{margin:0;background:#fff;color:${D.ink};font-family:${D.font};font-size:10.5pt;line-height:1.45}
+.wrap{max-width:780px;margin:0 auto;padding:32px 28px}
+h1{font-size:16pt;margin:0}
+.sub{color:${D.quiet};font-size:9.5pt;margin-top:2px}
+h2{font-size:11pt;margin:22px 0 6px;padding-bottom:4px;border-bottom:1px solid ${D.rule}}
+h2 span{color:${D.quiet};font-weight:normal}
+article{border:1px solid ${D.rule};border-radius:6px;padding:10px 12px;margin:0 0 10px;break-inside:avoid}
+article header{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+h3{font-size:11pt;margin:0}
+.mv{font-size:9.5pt;font-weight:bold}
+.vd{font-size:9.5pt;color:${D.quiet};margin-left:auto}
+dl{display:flex;flex-wrap:wrap;gap:4px 18px;margin:8px 0 0}
+dl div{display:flex;gap:6px}
+dt{color:${D.quiet}}
+dd{margin:0;font-weight:bold}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px}
+h4{font-size:9pt;color:${D.quiet};margin:0 0 3px;font-weight:normal}
+.q{color:${D.quiet};margin:0}
+footer{margin-top:22px;color:${D.quiet};font-size:9pt;border-top:1px solid ${D.rule};padding-top:8px}
+@media print{.wrap{padding:0}}
+</style></head><body><div class="wrap">
+<header><h1>${_ne(i18t('ng_board_head'))}</h1><div class="sub">${_ne([c.name || '', ref, c.counterparty || ''].filter(Boolean).join(' · '))}</div></header>
+${body}
+<footer>${_ne(i18t('ng_board_rep_foot', { when }))}</footer>
+</div></body></html>`;
+}
 /* Repaint the board in place (a pick or a filter): the list keeps its scroll,
    and a keyboard pick keeps its focus. */
-function rlBoardRepaint(focusPick){
+/* THE BOARD HAS TWO HOSTS (the one-page Home plan, stage 4, 14 Oct 2026): the
+   Negotiate page's own (#rl-boardpage, the bench's contract) and Home's Board,
+   whose host names its contract (data-db-host). A press finds the host it was
+   made in, so each repaints itself, with its own contract. */
+function rlBoardHostOf(el){
+  const h = el && el.closest ? el.closest('[data-db-host]') : null;
+  if (h) return { host: h, c: (window.getContract && getContract(h.getAttribute('data-db-host'))) || null, home: true };
+  return { host: (typeof document !== 'undefined') ? document.getElementById('rl-boardpage') : null, c: rlLadderContract(), home: false };
+}
+function rlBoardRepaint(focusPick, at){
   if (typeof document === 'undefined') return;
-  const host = document.getElementById('rl-boardpage');
-  const c = rlLadderContract();
+  const { host, c } = rlBoardHostOf(at);
   if (!host || !c) return;
-  const was = document.getElementById('db-list');
+  const was = host.querySelector('#db-list');
   const keep = was ? was.scrollTop : 0;
-  host.innerHTML = dealBoardHtml(c, 'owner');
-  const now = document.getElementById('db-list');
+  /* what was drawn is kept on the host, so Home's Board does not draw it twice */
+  const html = dealBoardHtml(c, 'owner');
+  host.innerHTML = html; host._dbHtml = html;
+  const now = host.querySelector('#db-list');
   if (now) now.scrollTop = keep;
   if (focusPick){
     const b = host.querySelector('.db-irow.is-on');
     if (b){ b.focus({ preventScroll: true }); if (b.scrollIntoView) b.scrollIntoView({ block: 'nearest' }); }
   }
 }
+/* From Home's Board the clause opens on Home's paper, with Jambo's Redlines
+   face beside it (stage 3's face: the one door onto that contract's redlines),
+   lit once the paper has drawn it — bounded. */
+const RL_BOARD_LAND_TRIES = 40;
+const RL_BOARD_LAND_MS = 120;
+const RL_BOARD_SETTLE_BEATS = 12;
+function rlBoardGoOnHome(c, gid){
+  if (!c || typeof window.pdRedOpen !== 'function' || !pdRedOpen(c.id)) return false;
+  /* the paper turns Redlined once the face is up and is drawn again then: the
+     clause is lit on THAT paper (their marks drawn), or past half the wait on
+     whatever paper stands */
+  let n = 0, lit = null, k = 0;
+  /* and while the panel settles the paper may be drawn once more: the clause
+     is lit again on the paper that stands, for a few beats, never otherwise */
+  const settle = () => setTimeout(() => {
+    if (lit && !lit.isConnected){ const again = rlJumpToClause(gid); if (again) lit = again; }
+    if (++k < RL_BOARD_SETTLE_BEATS) settle();
+  }, RL_BOARD_LAND_MS);
+  const go = () => {
+    const red = document.querySelector('.redline-page.rl-face') && document.querySelector('#ig-paper [data-nego-card-anchor]');
+    lit = (red || n > RL_BOARD_LAND_TRIES / 2) ? rlJumpToClause(gid) : null;
+    if (lit){ settle(); return; }
+    if (++n < RL_BOARD_LAND_TRIES) setTimeout(go, RL_BOARD_LAND_MS);
+  };
+  setTimeout(go, 0);
+  return true;
+}
 /* The board's one door: the clause, on the paper, with its ladder. */
-function rlBoardGoClause(gid){
+function rlBoardGoClause(gid, at){
+  const on = rlBoardHostOf(at);
+  if (on.home){ rlBoardGoOnHome(on.c, gid); return; }
   rlBoardSet(false);
   if (typeof renderRedline === 'function') renderRedline();
   rlBoardPaintTitle();
@@ -8261,13 +8390,14 @@ if (typeof document !== 'undefined' && !document._rlBoardKeysWired){
     if (ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp') return;
     const row = ev.target && ev.target.closest ? ev.target.closest('[data-rl-board-pick]') : null;
     if (!row) return;
-    const all = [...document.querySelectorAll('#db-list [data-rl-board-pick]')];
+    const list = row.closest('#db-list') || document;
+    const all = [...list.querySelectorAll('[data-rl-board-pick]')];
     const at = all.indexOf(row);
     const next = all[at + (ev.key === 'ArrowDown' ? 1 : -1)];
     if (!next) return;
     ev.preventDefault();
     rlBoardPickSet(next.getAttribute('data-rl-board-pick'));
-    rlBoardRepaint(true);
+    rlBoardRepaint(true, row);
   });
 }
 /* OUR SEAT ONLY. The board reads our playbook and our precedent; it is not
@@ -21168,7 +21298,7 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
         const bgo = t.closest('[data-rl-board-go]');
         if (bgo){
           ev.preventDefault(); ev.stopPropagation();
-          rlBoardGoClause(bgo.getAttribute('data-rl-board-go'));
+          rlBoardGoClause(bgo.getAttribute('data-rl-board-go'), bgo);
           return;
         }
         /* THE INSPECTOR'S GRAMMAR (3 Oct 2026): a press selects, a second
@@ -21177,9 +21307,9 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
         if (bpick){
           ev.preventDefault(); ev.stopPropagation();
           const pid = bpick.getAttribute('data-rl-board-pick');
-          if (bpick.getAttribute('aria-current') === 'true'){ rlBoardGoClause(pid); return; }
+          if (bpick.getAttribute('aria-current') === 'true'){ rlBoardGoClause(pid, bpick); return; }
           rlBoardPickSet(pid);
-          rlBoardRepaint(ev.detail === 0);
+          rlBoardRepaint(ev.detail === 0, bpick);
           return;
         }
         const bf = t.closest('[data-rl-board-f]');
@@ -21188,13 +21318,13 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
           const fk = bf.getAttribute('data-rl-board-f');
           rlBoardFilterSet(fk === _rlBoardFilter ? 'all' : fk);
           rlBoardPickSet(null);
-          rlBoardRepaint(false);
+          rlBoardRepaint(false, bf);
           return;
         }
         const memo = t.closest('[data-rl-board-memo]');
         if (memo){
           ev.preventDefault(); ev.stopPropagation();
-          const mc = rlLadderContract();
+          const mc = rlBoardHostOf(memo).c;
           const txt = mc ? rlBoardMemoText(mc) : '';
           const ok = () => { if (window.toast) toast(i18t('ng_board_memo_ok'), 'ok'); };
           const no = () => { if (window.toast) toast(i18t('ng_board_memo_fail'), 'warn'); };
@@ -21885,7 +22015,7 @@ if (typeof window !== 'undefined') Object.assign(window, { paperZcFit, rlCameFro
   rlLadderContract, openLadderCompare, rlSideWho, rlClauseShape, rlBaselineHtml,
   rlPlaybookSecHtml, rlScaleHtml, rlNotesSecHtml, rlLadderTailHtml,
   rlBoardIsOpen, rlBoardSet, rlBoardPaintTitle, rlBoardPageHtml, rlBoardMemoText, dealBoardHtml, openDealBoard,
-  dealBoardCardHtml, dealBoardVerdict, dealBoardGroupOf, rlBoardPickSet, rlBoardFilterSet, rlBoardRepaint, rlBoardGoClause, rlPrecedentSay, RL_BOARD_FILTERS,
+  dealBoardCardHtml, dealBoardVerdict, dealBoardGroupOf, dealBoardFacts, dealBoardMoveOf, dealBoardReportHtml, rlBoardHostOf, rlBoardGoOnHome, RL_BOARD_LAND_TRIES, RL_BOARD_LAND_MS, RL_BOARD_SETTLE_BEATS, printWindowRun, rlBoardPickSet, rlBoardFilterSet, rlBoardRepaint, rlBoardGoClause, rlPrecedentSay, RL_BOARD_FILTERS,
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,
   negoCleanView, negoSetCleanView, negoCleanDocHtml, negoCleanBarHtml,
   negoRichBody, negoFlatBody,

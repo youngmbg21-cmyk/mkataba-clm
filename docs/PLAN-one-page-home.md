@@ -146,6 +146,16 @@ the page (three named ideas, one The SAP Way), and the owner picks by name.
 4. **The Board grows.** Deal board, obligations and history as Board views,
    each with Print · Share · Download; their old panel aliases
    (`PD_TAB_ALIAS`) point there.
+   **Built 14 Oct 2026 (the owner picked "Views", and yes to: Share reaches
+   colleagues inside HaTi only, their bell and their Board, with a note;
+   Download is one file per view that looks like its print; every door from
+   outside opens the Board's views, the Negotiate page's Deal board tab and
+   the room's Obligations and History tabs staying until stage 5, Jambo's
+   Obligations tab staying beside the paper).** One difference from the
+   wording above: the alias itself is left for a walk through several
+   contracts on the paper (an agent's Review); the panel's Deal and History
+   DOORS (`pdOpenOnHome`) open the Board. Story: MAP-HISTORY "THE CONTRACT'S
+   VIEWS ON THE BOARD".
 5. **Retire the duplicates.** "sign" and "share" faces in the panel (if not
    already in stage 1); the Negotiate page's own paper folds into the
    Document face; old doors (sidebar, bell, email links, refresh) are

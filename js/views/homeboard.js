@@ -5443,6 +5443,9 @@ function hbGridBalanced(html){
 }
 /* ---- THE BOARD ---- */
 function hbBoardHtml(){
+  /* a contract's view takes the Board whole; the switch leads either way */
+  const cv = hbCvNow(), sw = hbCvSwitchHtml(cv);
+  if (cv.v !== 'book') return sw + hbCvBodyHtml(cv);
   const s = hbS();
   const d = hbBookData(s.lens);
   const base = hbSeenTick(hbBookData('all', { whole: true }));
@@ -5463,13 +5466,14 @@ function hbBoardHtml(){
   hbMovedSync();
   const panels = s.panels.slice().reverse().map(p => hbPanelHtml(p, s.lens, { sent: gifts.sent[p.id] || null })).join('');
   const received = gifts.received.map(g => /^sy_/.test(g.kind) ? hbStoryGiftHtml(g)
+    : g.kind === 'cv' ? hbCvGiftHtml(g)
     : g.kind === 'view' ? hbViewPanelHtml({ id: 'gift:' + g.id, kind: 'view', key: g.spec.key, title: g.spec.title || '', recipe: g.spec.recipe || null, big: false }, HB_LENSES.includes(g.lens) ? g.lens : 'all', { from: g })
     : hbPanelHtml({ id: 'gift:' + g.id, kind: g.kind, split: !!g.split, big: false }, HB_LENSES.includes(g.lens) ? g.lens : 'all', { from: g })).join('');
   /* and the freshness line too: WHEN it was counted is a fact the reader
      cannot know; "all contracts" is one they chose. */
   const cut = [hbCountLabel(s.lens), s.lens === 'all' ? '' : i18t('hb_lens_' + s.lens).toLowerCase()].filter(Boolean).join(' · ');
   const bs = hbBoardSumHtml();
-  return `<div class="hb-note"><span class="hb-live"><i></i>${_hbE(i18t('hb_live'))}</span><span>${_hbE(cut ? i18t('hb_counted', { time, lens: cut }) : i18t('hb_counted_plain', { time }))}</span><span class="hb-grow"></span>${s.panels.some(p => p.kind === 'view') ? `<button type="button" class="hb-btn is-sm" data-hb-pack-dl>${_hbE(i18t('hb_pack_btn'))}</button>` : ''}${bs.btn}</div>
+  return `${sw}<div class="hb-note"><span class="hb-live"><i></i>${_hbE(i18t('hb_live'))}</span><span>${_hbE(cut ? i18t('hb_counted', { time, lens: cut }) : i18t('hb_counted_plain', { time }))}</span><span class="hb-grow"></span>${s.panels.some(p => p.kind === 'view') ? `<button type="button" class="hb-btn is-sm" data-hb-pack-dl>${_hbE(i18t('hb_pack_btn'))}</button>` : ''}${bs.btn}</div>
     ${bs.box}
     ${hbBookHtml(d, moved, base && base.at)}
     ${hbPrepHtml(A, base && base.at)}
@@ -6382,6 +6386,8 @@ function hbMorphKids(cur, next){
     if (!c){ cur.appendChild(w); continue; }
     if (c.nodeType === 1 && w.nodeType === 1 && c.outerHTML === w.outerHTML) continue;
     if (c.nodeType === 3 && w.nodeType === 3){ if (c.nodeValue !== w.nodeValue) c.nodeValue = w.nodeValue; continue; }
+    /* a host its own painter fills (a contract's view, hbCvPaint) keeps its inside */
+    if (w.nodeType === 1 && w.hasAttribute('data-hb-own') && hbMorphSameShell(c, w)) continue;
     /* a form control's live value is the reader's, not the markup's: replace
        rather than walk into one whose shell moved */
     if (hbMorphSameShell(c, w) && w.nodeType === 1 && !/^(INPUT|TEXTAREA|SELECT|CANVAS)$/.test(w.nodeName)){ hbMorphKids(c, w); continue; }
@@ -6502,6 +6508,10 @@ function hbPaintBoard(opts){
   const glide = hbGlideTake(host);
   hbMorph(host, hbBoardHtml());
   hbGlidePlay(host, glide);
+  /* a contract's view (stage 4): its host is filled by its own painter */
+  host.classList.toggle('is-cview', !!host.querySelector(':scope > #hb-cv-body'));
+  hbCvPaint();
+  hbGiftsSeenSay();
   hbPaintHead();
   /* an expanded chart takes the room: the dock FOLDS to its door (it is not
      hidden — the door is the way to Copilot), and opens again when the card
@@ -8806,7 +8816,7 @@ let _hbGifts = { received: [], sent: [], at: 0 };
 function hbGiftsFor(){
   const sent = {};
   (_hbGifts.sent || []).forEach(g => { if (g && g.pid && !sent[g.pid]) sent[g.pid] = g; });
-  return { received: (_hbGifts.received || []).filter(g => g && ((g.kind === 'view' && g.spec && /^(q|cd|ls):/.test(String(g.spec.key || ''))) || HB_KINDS[g.kind] || (/^sy_/.test(g.kind) && HB_STORIES.includes(g.kind.slice(3)) && !!hbStoryGiftHtml(g)))), sent };
+  return { received: (_hbGifts.received || []).filter(g => g && ((g.kind === 'view' && g.spec && /^(q|cd|ls):/.test(String(g.spec.key || ''))) || HB_KINDS[g.kind] || hbCvGiftValid(g) || (/^sy_/.test(g.kind) && HB_STORIES.includes(g.kind.slice(3)) && !!hbStoryGiftHtml(g)))), sent };
 }
 function hbGiftsLoad(force){
   if (typeof API_MODE !== 'function' || !API_MODE() || typeof api !== 'function') return;
@@ -8826,9 +8836,13 @@ function hbGiftsLoad(force){
     const before = JSON.stringify([_hbGifts.received, _hbGifts.sent]);
     _hbGifts.received = Array.isArray(r.received) ? r.received : [];
     _hbGifts.sent = Array.isArray(r.sent) ? r.sent : [];
-    /* SEEN IS SAID WHEN IT IS DRAWN, once per panel, on the reader's own Home. */
-    _hbGifts.received.filter(g => !g.seenAt).forEach(g => { g.seenAt = new Date().toISOString(); api('home/gifts/' + encodeURIComponent(g.id) + '/seen', 'POST', {}).catch(() => {}); });
-    if (JSON.stringify([_hbGifts.received, _hbGifts.sent]) !== before && state.view === 'dashboard' && hbS().face === 'board') hbPaintBoard();
+    /* SEEN IS SAID WHEN IT IS DRAWN, once per panel, on the reader's own
+       Board (hbGiftsSeenSay, from the paint) — never by this read, which the
+       bell makes on any page (stage 4, 14 Oct 2026) */
+    if (JSON.stringify([_hbGifts.received, _hbGifts.sent]) !== before){
+      if (state.view === 'dashboard' && hbS().face === 'board') hbPaintBoard();
+      hbAlertsChanged();
+    }
   }).catch(() => {}).then(() => { _hbGifts.busy = false; if (_hbGifts.again){ _hbGifts.again = false; hbGiftsLoad(); } });
 }
 /* ONCE PER PERSON WHO IS SIGNED IN: the board's paint asks for the gifts when
@@ -8941,6 +8955,237 @@ function hbPresent(on){
   if (typeof igSyncDockWidth === 'function') setTimeout(() => { try { if (typeof igFitSplit === 'function') igFitSplit(); } catch (_){} }, 60);
 }
 
+/* ============================================================
+   THE CONTRACT'S VIEWS ON THE BOARD (the one-page Home plan, stage 4,
+   docs/PLAN-one-page-home.md; the owner picked "Views" by name on 14 Oct
+   2026, with all three recommendations: Share gives a view to colleagues
+   inside HaTi only; Download is one file per view that looks like its
+   print; every door from outside lands here — the Negotiate page's Deal
+   board tab and the room's Obligations and History tabs stay until stage 5,
+   and Jambo's Obligations tab stays beside the paper for working)
+   ============================================================
+   ONE SWITCH AT THE BOARD'S TOP: Your book · Deal board · Obligations ·
+   History, the last three for the contract on the paper (pdContract — the
+   one fact both faces read), drawn only while one is there. One view at a
+   time at the Board's full width, Print · Share · Download on the same line.
+   EACH VIEW IS THE ROOM'S OWN BUILDER IN A SECOND HOST — dealBoardHtml (its
+   presses find their host, rlBoardHostOf), roomPaintObligations and
+   roomPaintHistory — so the Board, the room and the Negotiate page can never
+   disagree. Its body is painted by its own painter (hbCvPaint) and the
+   Board's morph leaves it alone (data-hb-own). Per sitting; a refresh keeps
+   it (hbPlace). The number on a switch is the list's own: the deal board's
+   "Needs you" (dealBoardFacts) and the tab's overdue (obtRowsOf/obtPass). */
+const HB_CVIEWS = ['book', 'deal', 'oblig', 'hist'];
+const HB_CV_WORD = { book: 'hb_book', deal: 'ng_board', oblig: 'tab_obligations', hist: 'tab_history' };
+/* the phone draws the room: a view's own tab there */
+const HB_CV_ROOM_TAB = { deal: 'redline', oblig: 'oblig', hist: 'history' };
+let _hbCv = { v: 'book', id: null };
+let _hbCvShare = false;
+function hbCvContract(){ try { return (typeof window.pdContract === 'function') ? pdContract() : null; } catch (_){ return null; } }
+/* the view shown: a contract's view only while that contract is the paper's */
+function hbCvNow(){
+  const c = hbCvContract();
+  if (!c) return { v: 'book', c: null };
+  return { v: (_hbCv.id === String(c.id) && HB_CVIEWS.includes(_hbCv.v)) ? _hbCv.v : 'book', c };
+}
+function hbCvSet(v, id){ _hbCv = { v: HB_CVIEWS.includes(v) ? v : 'book', id: id == null ? null : String(id) }; _hbCvShare = false; }
+function hbCvCounts(c){
+  const n = { deal: 0, oblig: 0 };
+  try { if (typeof window.dealBoardFacts === 'function') n.deal = dealBoardFacts(c, 'owner').n.you; } catch (_){}
+  try { if (typeof window.obtRowsOf === 'function') n.oblig = obtRowsOf(c).filter(r => obtPass(r, 'overdue')).length; } catch (_){}
+  return n;
+}
+/* the history reads the trail, which the light list leaves out: until the
+   whole record is here its Print, Share and Download say so, greyed */
+function hbCvReady(now){
+  return !(now.v === 'hist' && now.c && typeof API_MODE === 'function' && API_MODE() && now.c._light && !now.c._loaded);
+}
+function hbCvSwitchHtml(now){
+  const c = now.c; if (!c) return '';
+  const n = hbCvCounts(c);
+  const ic = k => (typeof icon === 'function') ? icon(k, 'hb-cv-ic', 2) : '';
+  const tab = v => { const k = v === 'deal' ? n.deal : v === 'oblig' ? n.oblig : 0;
+    return `<button type="button" role="tab" data-hb-cv="${v}" aria-selected="${now.v === v}">${_hbE(i18t(HB_CV_WORD[v]))}${k ? `<span class="hb-cv-n is-${v === 'oblig' ? 'late' : 'owed'}">${k}</span>` : ''}</button>`; };
+  const ready = hbCvReady(now), wait = ready ? '' : ` disabled title="${_hbE(i18t('hb_cv_reading'))}"`;
+  const act = (k, word, tip, extra) => `<button type="button" class="hb-btn" data-hb-cv-act="${k}"${ready ? ` title="${_hbE(i18t(tip))}"` : wait}${extra || ''}>${ic(k === 'down' ? 'download' : k === 'print' ? 'printer' : 'share')}${_hbE(i18t(word))}</button>`;
+  const acts = now.v === 'book' ? '' : `<span class="hb-cv-acts">${act('print', 'hb_cv_print', 'hb_cv_print_tip')}<span class="hb-cv-share-w">${act('share', 'act_share', 'hb_cv_share_tip', ` aria-haspopup="dialog" aria-expanded="${_hbCvShare}"`)}${_hbCvShare && ready ? hbCvShareFormHtml(now) : ''}</span>${act('down', 'act_download', 'hb_cv_down_tip')}</span>`;
+  const ref = (typeof window.refHtml === 'function') ? refHtml(c) : _hbE((typeof contractRef === 'function') ? contractRef(c) : c.id);
+  return `<div class="hb-cv-bar" id="hb-cv-bar"><div class="hb-seg hb-cv-seg" role="tablist" aria-label="${_hbE(i18t('hb_cv_label'))}">${HB_CVIEWS.map(tab).join('')}</div>
+    <span class="hb-cv-for">${_hbE(i18t('hb_cv_for'))} ${ref}${c.counterparty ? ` · ${_hbE(c.counterparty)}` : ''}</span><span class="hb-grow"></span>${acts}</div>`;
+}
+function hbCvBodyHtml(now){
+  const id = _hbE(String(now.c.id));
+  return `<div class="hb-cv-body hb-cv-${now.v}" id="hb-cv-body" data-hb-own data-hb-cv="${now.v}" data-hb-cv-cid="${id}"${now.v === 'deal' ? ` data-db-host="${id}"` : ''}></div>`;
+}
+/* THE VIEW'S OWN PAINTER: the room's builder into the Board's host, and only
+   when what it would draw has changed — the Board repaints on many presses,
+   and a search half-typed in the history or a row chosen in the list stays. */
+let _hbCvAsked = null, _hbCvFail = null;
+function hbCvPaint(force){
+  const host = document.getElementById('hb-cv-body'); if (!host) return;
+  const v = host.getAttribute('data-hb-cv');
+  const c = (typeof getContract === 'function') ? getContract(host.getAttribute('data-hb-cv-cid')) : null;
+  if (!c) return;
+  if (v === 'deal'){
+    if (typeof window.dealBoardHtml !== 'function') return;
+    /* the board's own sheet, which only the Negotiate page had asked for */
+    if (typeof window.redlineLayoutCss === 'function') try { redlineLayoutCss(); } catch (_){}
+    const html = dealBoardHtml(c, 'owner');
+    if (!force && host._dbHtml === html) return;
+    const keep = ['#db-list', '#db-pane'].map(s => { const el = host.querySelector(s); return el ? el.scrollTop : 0; });
+    host.innerHTML = html; host._dbHtml = html;
+    ['#db-list', '#db-pane'].forEach((s, i) => { const el = host.querySelector(s); if (el && keep[i]) el.scrollTop = keep[i]; });
+    return;
+  }
+  if (v === 'oblig'){
+    if (typeof window.roomPaintObligations !== 'function') return;
+    let sig = '';
+    try { sig = JSON.stringify([c.obligations || [], c.obReview || null, typeof obtView === 'function' ? obtView(c.id) : '', typeof insFits === 'function' ? insFits() : '', typeof langId === 'function' ? langId() : '']); } catch (_){ sig = String(Math.random()); }
+    if (!force && host._obSig === sig) return;
+    host._obSig = sig;
+    roomPaintObligations(c, host);
+    return;
+  }
+  if (v === 'hist'){
+    if (typeof window.roomPaintHistory !== 'function' || typeof window.roomHistoryHtml !== 'function') return;
+    if (!hbCvReady({ v, c })){
+      /* a read that failed says so, with its way forward — never a ring that turns for ever */
+      if (_hbCvFail === String(c.id)){
+        host.innerHTML = `<p class="hb-cv-wait">${_hbE(i18t('hb_cv_read_fail'))} <button type="button" class="hb-btn" data-hb-cv-again>${_hbE(i18t('act_retry'))}</button></p>`;
+        return;
+      }
+      /* the whole record first, once per contract; the trail is drawn when it lands */
+      if (!host.querySelector('.ob-spin')) host.innerHTML = `<p class="hb-cv-wait">${typeof busyHtml === 'function' ? busyHtml(i18t('hb_cv_reading')) : _hbE(i18t('hb_cv_reading'))}</p>`;
+      if (_hbCvAsked !== String(c.id) && typeof window.ensureFull === 'function'){
+        const id = String(c.id); _hbCvAsked = id;
+        Promise.resolve(ensureFull(c)).then(() => { _hbCvFail = null; }, () => { _hbCvFail = id; _hbCvAsked = null; })
+          .then(() => { if (window.state && state.view === 'dashboard' && hbS().face === 'board') hbPaintBoard(); });
+      }
+      return;
+    }
+    const f = host._histF || {};
+    if (!force && host._histHtml === roomHistoryHtml(c, f, { board: true })) return;
+    const top = host.scrollTop;
+    roomPaintHistory(c, f, host);
+    host.scrollTop = top;
+  }
+}
+/* THE ONE DOOR FROM OUTSIDE: the contract goes on the paper (igPaperHold, the
+   page does not turn) and the Board turns to that view. Below the phone line
+   Home draws no Board: the room's own tab. */
+function hbOpenView(id, v){
+  const c = (typeof getContract === 'function') ? getContract(id) : null;
+  if (!c || !HB_CVIEWS.includes(v) || v === 'book') return false;
+  const phone = typeof window !== 'undefined' && window.innerWidth && window.innerWidth < 768;
+  if (phone || typeof window.igPaperHold !== 'function'){
+    if (typeof openWorkspace === 'function') openWorkspace(c.id);
+    if (typeof roomGoTab === 'function') try { roomGoTab(getContract(c.id) || c, HB_CV_ROOM_TAB[v]); } catch (_){}
+    return true;
+  }
+  igPaperHold(c.id);
+  hbCvSet(v, c.id);
+  const s = hbS();
+  if (window.state && state.view === 'dashboard' && hbPage() && hbHost()){
+    if (s.face !== 'board') hbSetFace('board');
+    hbPaintBoard();
+    if (typeof window.renderIntelDock === 'function') try { renderIntelDock(); } catch (_){}
+  } else { s.face = 'board'; hbSave(); if (typeof setView === 'function') setView('dashboard'); }
+  return true;
+}
+function hbCvPick(v){
+  const now = hbCvNow(); if (!now.c || !HB_CVIEWS.includes(v)) return;
+  hbCvSet(v, now.c.id);
+  hbPaintBoard();
+}
+/* PRINT AND DOWNLOAD ARE ONE PAGE: the history's own report (its export and
+   its print, unchanged), and for the other two the page each view makes of
+   itself (dealBoardReportHtml, obReportHtml) — printed through the one print
+   runner (printWindowRun), saved through the one saver (downloadFile). */
+function hbCvReportOf(v){ return v === 'deal' ? window.dealBoardReportHtml : v === 'oblig' ? window.obReportHtml : null; }
+function hbCvPrint(){
+  const now = hbCvNow(); if (!now.c || now.v === 'book' || !hbCvReady(now)) return;
+  if (now.v === 'hist'){ if (typeof window.negoHistoryPrintRun === 'function') negoHistoryPrintRun(now.c); return; }
+  const build = hbCvReportOf(now.v);
+  if (typeof build === 'function' && typeof window.printWindowRun === 'function') printWindowRun(() => build(now.c), 'hb_cv_print_fail');
+}
+function hbCvDownload(){
+  const now = hbCvNow(); if (!now.c || now.v === 'book' || !hbCvReady(now)) return;
+  if (now.v === 'hist'){ if (typeof window.negoHistoryExportRun === 'function') negoHistoryExportRun(now.c); return; }
+  const build = hbCvReportOf(now.v); if (typeof build !== 'function' || typeof window.downloadFile !== 'function') return;
+  const ref = (typeof contractRef === 'function') ? contractRef(now.c) : now.c.id;
+  downloadFile(`${ref}-${now.v === 'deal' ? 'deal-board' : 'obligations'}.html`, build(now.c), 'text/html');
+  if (typeof toast === 'function') toast(i18t('hb_cv_saved', { what: i18t(HB_CV_WORD[now.v]), ref }), 'ok');
+}
+/* SHARE: COLLEAGUES INSIDE HaTi ONLY (decision 1). The view is given by its
+   NAME — which view, which contract — as a Board card is given (hbGive):
+   never a figure; the colleague's own Home draws it from what they may see,
+   and the server refuses a colleague who cannot open the contract. */
+function hbCvShareFormHtml(now){
+  const me = typeof currentUser === 'function' ? currentUser() : null;
+  const people = (typeof getUsers === 'function' ? (getUsers() || []) : []).filter(u => u && u.id && (!me || u.id !== me.id));
+  const ref = (typeof contractRef === 'function') ? contractRef(now.c) : now.c.id;
+  const head = `<div class="hb-cv-sh-h"><b>${_hbE(i18t(HB_CV_WORD[now.v]) + ' · ' + ref)}</b><button type="button" class="hb-ib" data-hb-cv-act="share" title="${_hbE(i18t('hb_cancel'))}" aria-label="${_hbE(i18t('hb_cancel'))}">${_hbX}</button></div>`;
+  if (!people.length) return `<div class="hb-cv-share" role="dialog" aria-label="${_hbE(i18t('act_share'))}">${head}<p class="hb-quiet">${_hbE(i18t('hb_give_nobody'))}</p></div>`;
+  return `<form class="hb-cv-share" data-hb-cv-give role="dialog" aria-label="${_hbE(i18t('act_share'))}">${head}
+    <label class="hb-cv-sh-l"><span>${_hbE(i18t('hb_give_to'))}</span><select name="to">${people.map(u => `<option value="${_hbE(u.id)}">${_hbE(u.name || u.email || u.id)}</option>`).join('')}</select></label>
+    <label class="hb-cv-sh-l"><span>${_hbE(i18t('hb_cv_note_l'))}</span><textarea name="note" rows="2" maxlength="500" placeholder="${_hbE(i18t('hb_give_note_ph'))}"></textarea></label>
+    <p class="hb-quiet">${_hbE(i18t('hb_cv_share_note', { them: String(now.c.counterparty || '').trim() || i18t('hb_cv_them_none') }))}</p>
+    <div class="hb-cv-sh-f"><button type="submit" class="hb-btn is-primary">${_hbE(i18t('hb_give_go'))}</button><button type="button" class="hb-btn" data-hb-cv-act="share">${_hbE(i18t('hb_cancel'))}</button></div></form>`;
+}
+async function hbCvGive(f){
+  const now = hbCvNow(); if (!now.c || now.v === 'book' || !f) return;
+  if (typeof API_MODE !== 'function' || !API_MODE()){ if (typeof toast === 'function') toast(i18t('hb_give_local'), 'warn'); return; }
+  try {
+    const r = await api('home/gifts', 'POST', { to: f.to.value, kind: 'cv', note: String(f.note.value || '').slice(0, 500), spec: { v: now.v, cid: String(now.c.id) } });
+    if (r && r.gift) _hbGifts.sent.unshift(r.gift);
+    _hbCvShare = false; hbPaintBoard();
+    if (typeof toast === 'function') toast(i18t('hb_given_toast', { who: (r && r.gift && r.gift.toName) || '' }), 'ok');
+  } catch (e){ if (typeof toast === 'function') toast(e.message || String(e), 'err'); }
+}
+/* A VIEW GIVEN TO YOU: a card on your Board with the note, and a row in your
+   bell until it is seen (drawn on your Board, or opened from the bell). */
+function hbCvGiftValid(g){ return !!(g && g.kind === 'cv' && g.spec && HB_CVIEWS.includes(g.spec.v) && g.spec.v !== 'book' && g.spec.cid); }
+function hbCvGiftHtml(g){
+  if (!hbCvGiftValid(g)) return '';
+  const c = (typeof getContract === 'function') ? getContract(g.spec.cid) : null;
+  const ref = c ? ((typeof contractRef === 'function') ? contractRef(c) : c.id) : '';
+  return `<section class="hb-card hb-panel" data-hb-pid="${_hbE('gift:' + g.id)}"><header class="hb-ch"><span class="hb-ct">${_hbE(i18t(HB_CV_WORD[g.spec.v]) + (ref ? ' · ' + ref : ''))}</span>
+    <span class="hb-given is-from" title="${_hbE(g.note || '')}">${_hbE(i18t('hb_from', { who: g.fromName || '' }))}</span><span class="hb-grow"></span>
+    <button type="button" class="hb-ib" data-hb-act="x" title="${_hbE(i18t('hb_sy_gift_away'))}" aria-label="${_hbE(i18t('hb_sy_gift_away'))}">${_hbX}</button></header>
+    <div class="hb-cb">${c ? `<p class="hb-quiet">${_hbE([c.name || '', c.counterparty || ''].filter(Boolean).join(' · '))}</p>` : ''}${g.note ? `<p class="hb-sy-note">${_hbE(g.note)}</p>` : ''}
+    ${c ? `<button type="button" class="hb-btn is-primary" data-hb-cv-gift="${_hbE(g.id)}">${_hbE(i18t('act_open'))}</button>` : `<p class="hb-quiet">${_hbE(i18t('hb_cv_gift_gone'))}</p>`}</div></section>`;
+}
+function hbGiftSeen(g){
+  if (!g || g.seenAt) return;
+  g.seenAt = new Date().toISOString();
+  if (typeof api === 'function') api('home/gifts/' + encodeURIComponent(g.id) + '/seen', 'POST', {}).catch(() => {});
+  hbAlertsChanged();
+}
+function hbCvGiftOpen(id){
+  const g = (_hbGifts.received || []).find(x => x && x.id === id);
+  if (!hbCvGiftValid(g)) return false;
+  hbGiftSeen(g);
+  return hbOpenView(g.spec.cid, g.spec.v);
+}
+/* SEEN IS SAID WHEN IT IS DRAWN, on the reader's own Board (the gift card's
+   own rule, now kept to the letter: a read made for the bell on another page
+   draws nothing, so it says nothing) */
+function hbGiftsSeenSay(){
+  if (!(window.state && state.view === 'dashboard' && hbS().face === 'board' && hbCvNow().v === 'book')) return;
+  hbGiftsFor().received.filter(g => !g.seenAt).forEach(hbGiftSeen);
+}
+/* THE BELL'S ROWS: a view given to this reader and not yet seen. Reading the
+   bell asks for the gifts at most once a minute (hbGiftsLoad); nothing is
+   written by reading. */
+function hbGiftAlerts(){
+  try { if (window.REMOTE && REMOTE.me) hbGiftsLoad(); } catch (_){}
+  return (_hbGifts.received || []).filter(g => hbCvGiftValid(g) && !g.seenAt).map(g => {
+    const c = (typeof getContract === 'function') ? getContract(g.spec.cid) : null; if (!c) return null;
+    const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
+    return { c, text: i18t('hb_cv_gift_bell', { who: g.fromName || '', what: i18t(HB_CV_WORD[g.spec.v]), ref }), go: () => hbCvGiftOpen(g.id) };
+  }).filter(Boolean);
+}
+
 /* ---------------- WHERE YOU WERE ----------------
    The place store's pair for Home (PLACE_PARTS.dashboard): the side of the
    screen and the dig-in come back on a refresh — the board itself is already
@@ -8955,6 +9200,8 @@ function hbPlace(){
   if (s.face === 'paper' && typeof window.pdContract === 'function'){ try { const c = pdContract(); if (c){ p.paper = { id: String(c.id), tab: typeof pdTab === 'function' ? pdTab() : '' };
     /* and the Clauses list's colour filter (BUGLOG 11 Oct 2026) */
     const tones = typeof window.docThreadTonesNow === 'function' ? docThreadTonesNow(c.id) : []; if (tones.length) p.paper.tones = tones; } } catch (_){} }
+  /* the Board keeps a contract's view and its contract (stage 4, 14 Oct 2026) */
+  if (s.face === 'board'){ const now = hbCvNow(); if (now.c && now.v !== 'book') p.cv = { v: now.v, id: String(now.c.id) }; }
   /* with nothing chosen, the wall of paper keeps its search, sort and stage (13 Oct 2026) */
   if (s.face === 'paper' && !p.paper && typeof window.igWallPlace === 'function'){ try { p.wall = igWallPlace(); } catch (_){} }
   return p;
@@ -8969,6 +9216,20 @@ function hbPlacePut(p){
   if (p.cam && Array.isArray(p.cam.w) && window.intel && typeof IGB_NV !== 'undefined' && p.cam.w.length === IGB_NV) intel.cam = { ...p.cam, w: p.cam.w.slice() };
   if (p.cal && typeof window.calPlacePut === 'function'){ try { calPlacePut(p.cal); } catch (_){} }
   if (p.wall && typeof window.igWallPlacePut === 'function'){ try { igWallPlacePut(p.wall); } catch (_){} }
+  /* a contract's view comes back once the list holds its contract, bounded;
+     a contract put on the paper meanwhile wins */
+  if (p.cv && p.face === 'board' && HB_CVIEWS.includes(p.cv.v) && p.cv.id){
+    const want = p.cv; let n = 0;
+    const go = () => {
+      if (window.intel && intel.paper && String(intel.paper.id) !== String(want.id)) return;
+      if (typeof getContract === 'function' && getContract(want.id) && typeof window.igPaperHold === 'function'){
+        igPaperHold(want.id); hbCvSet(want.v, want.id);
+        if (window.state && state.view === 'dashboard' && hbS().face === 'board' && hbHost()) hbPaintBoard();
+        return; }
+      if (++n < 60) setTimeout(go, 150);
+    };
+    go();
+  }
   /* the contract goes back on the Document face once the list holds it,
      through the one door (igWalk), bounded; a contract chosen meanwhile wins */
   if (p.paper && p.paper.id && p.face === 'paper'){
@@ -9030,6 +9291,18 @@ function hbOnClick(e){
     if (_hbToolsMenu){ _hbToolsMenu = null; if (!t.closest('.hb-tools-menu')) hbPaintBoard(); } }
   const on = sel => t.closest(sel);
   let el;
+  /* THE CONTRACT'S VIEWS (stage 4): the switch, the three acts on its line,
+     and a given view's Open. The Share form shuts on its own button pressed
+     again, on × and Cancel, on Esc, and on a press anywhere else. */
+  if (_hbCvShare && !t.closest('.hb-cv-share-w')){ _hbCvShare = false; hbPaintBoard(); }
+  if ((el = on('[data-hb-cv]'))){ hbCvPick(el.getAttribute('data-hb-cv')); return; }
+  if ((el = on('[data-hb-cv-act]'))){ if (el.disabled) return; const k = el.getAttribute('data-hb-cv-act');
+    if (k === 'share'){ _hbCvShare = !_hbCvShare; hbPaintBoard(); }
+    else if (k === 'print') hbCvPrint();
+    else if (k === 'down') hbCvDownload();
+    return; }
+  if ((el = on('[data-hb-cv-gift]'))){ hbCvGiftOpen(el.getAttribute('data-hb-cv-gift')); return; }
+  if (on('[data-hb-cv-again]')){ _hbCvFail = null; hbCvPaint(true); return; }
   /* the hover card's own presses (G4): Ask about this fills the ask box; its
      door is the piece's own, pressed below, with the card taken down first */
   if (on('[data-hb-tip-ask]')){ e.preventDefault(); hbTipAsk(); return; }
@@ -9189,7 +9462,9 @@ function hbOnSubmit(e){
   if (f && f.matches && f.matches('[data-hb-give-form]')){
     e.preventDefault();
     hbGive(f.getAttribute('data-hb-give-form'), f.to.value, f.note.value);
+    return;
   }
+  if (f && f.matches && f.matches('[data-hb-cv-give]')){ e.preventDefault(); hbCvGive(f); }
 }
 function hbOnPointer(e){
   /* a page left by the keyboard takes the veil with it */
@@ -9224,6 +9499,8 @@ function hbOnKey(e){
     e.preventDefault(); const ok = hbUndo(); hbPaintBoard();
     if (typeof toast === 'function') toast(i18t(ok ? 'hb_undo_done' : 'hb_undo_none'), ok ? 'ok' : 'warn'); return;
   }
+  if (e.key === 'Escape' && _hbCvShare){ _hbCvShare = false; hbPaintBoard();
+    const b = document.querySelector('[data-hb-cv-act="share"]'); if (b) try { b.focus({ preventScroll: true }); } catch (_){} return; }
   if (e.key === 'Escape' && _hbSheet && document.querySelector('.hb-sheet')){ if (_hbSheet.cid){ _hbSheet.cid = null; hbPaintBoard(); hbSheetFocus(); } else hbSheetClose(); return; }
   if (e.key === 'Escape' && _hbFigPick){ _hbFigPick = false; hbPaintBoard(); const b = document.querySelector('[data-hb-figpick]'); if (b) try { b.focus({ preventScroll: true }); } catch (_){} return; }
   if (e.key === 'Escape' && (_hbDrawnOpen || _hbToolsMenu)){
@@ -9697,7 +9974,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { hbOpenCalendar, hbAngleOf, hbAngleText, HB_ANGLE, HB_SLASH_PLACES, HB_ASKPOP_LONG, hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgentWorkPress, hbOpenAgent, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_FACE_ICON, hbFaceWordsHtml, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
+Object.assign(window, { hbOpenCalendar, HB_CVIEWS, HB_CV_WORD, HB_CV_ROOM_TAB, hbCvNow, hbCvSet, hbCvCounts, hbCvReady, hbCvSwitchHtml, hbCvBodyHtml, hbCvPaint, hbOpenView, hbCvPick, hbCvReportOf, hbCvPrint, hbCvDownload, hbCvShareFormHtml, hbCvGive, hbCvGiftValid, hbCvGiftHtml, hbGiftSeen, hbCvGiftOpen, hbGiftsSeenSay, hbGiftAlerts, hbAngleOf, hbAngleText, HB_ANGLE, HB_SLASH_PLACES, HB_ASKPOP_LONG, hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgentWorkPress, hbOpenAgent, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_FACE_ICON, hbFaceWordsHtml, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,

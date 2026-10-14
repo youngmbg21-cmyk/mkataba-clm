@@ -9173,6 +9173,39 @@
   #hb-page{height:var(--view-h);display:flex;flex-direction:column;min-height:0}
   #hb-page .hb-col{position:relative;flex:1;min-height:0}
   .hb-note{display:flex;align-items:center;gap:var(--s-2);font-size:var(--t-micro);color:var(--hb-mute)}
+  /* ═══ THE CONTRACT'S VIEWS ON THE BOARD (the one-page Home plan, stage 4, the
+     owner picked "Views", 14 Oct 2026) ═══ One line: the switch, whose contract,
+     and Print · Share · Download for the view shown. A view takes the Board
+     whole and scrolls inside itself; the book scrolls as before. */
+  .hb-cv-bar{display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap;flex:none}
+  .hb-cv-seg button{display:inline-flex;align-items:center;gap:6px}
+  .hb-cv-n{font-size:11px;font-weight:var(--w-strong);font-variant-numeric:tabular-nums}
+  .hb-cv-n.is-owed{color:var(--st-amber-fg)}
+  .hb-cv-n.is-late{color:var(--st-ruby-fg)}
+  .hb-cv-seg button[aria-selected="true"] .hb-cv-n{color:inherit}
+  .hb-cv-for{font-size:var(--t-meta);color:var(--hb-mute,var(--color-neutral-600));white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .hb-cv-acts{display:inline-flex;align-items:center;gap:var(--s-2)}
+  .hb-cv-acts .hb-btn{display:inline-flex;align-items:center;gap:6px}
+  .hb-cv-ic{width:14px;height:14px;flex:none}
+  .hb-cv-share-w{position:relative;display:inline-flex}
+  .hb-cv-share{position:absolute;right:0;top:calc(100% + 6px);z-index:30;width:340px;max-width:calc(100vw - 32px);display:flex;flex-direction:column;gap:var(--s-2);
+    padding:var(--s-3);background:var(--color-surface);color:var(--color-text);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg)}
+  .hb-cv-sh-h{display:flex;align-items:center;gap:var(--s-2)}
+  .hb-cv-sh-h b{flex:1;min-width:0;font-weight:var(--w-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hb-cv-sh-l{display:flex;flex-direction:column;gap:4px;font-size:var(--t-meta);color:var(--color-neutral-600)}
+  .hb-cv-sh-l select,.hb-cv-sh-l textarea{font:inherit;font-size:var(--t-body);color:var(--color-text);background:var(--color-surface);border:1px solid var(--field-line,var(--color-divider));border-radius:var(--radius);padding:6px 8px}
+  .hb-cv-sh-l select{height:var(--ctl-h)}
+  .hb-cv-sh-l textarea{resize:vertical;min-height:52px}
+  .hb-cv-share .hb-quiet{margin:0;font-size:var(--t-label)}
+  .hb-cv-sh-f{display:flex;gap:var(--s-2)}
+  .hb-board.is-cview{overflow:hidden}
+  .hb-cv-body{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+  .hb-cv-body.hb-cv-hist{display:block;overflow:auto;background:var(--color-surface);color:var(--color-text);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm)}
+  .hb-cv-body.hb-cv-hist #hist-filters{padding:10px var(--s-4) 0}
+  .hb-cv-body.hb-cv-oblig.is-ins{gap:12px}
+  .hb-cv-body.hb-cv-oblig:not(.is-ins){display:block;overflow:auto;background:var(--color-surface);color:var(--color-text);border:1px solid var(--color-divider);border-radius:var(--radius-lg)}
+  .hb-cv-body.hb-cv-deal{color:var(--color-text)}
+  .hb-cv-wait{margin:var(--s-4);font-size:var(--t-meta);color:var(--color-neutral-600);display:flex;align-items:center;gap:8px}
   .hb-live{display:inline-flex;align-items:center;gap:6px;color:var(--hb-glow)}
   .hb-live i{width:6px;height:6px;border-radius:50%;background:var(--hb-glow);box-shadow:0 0 8px var(--hb-glow);animation:hbPulse 2.4s ease-in-out infinite}
   @keyframes hbPulse{50%{opacity:.35}}
