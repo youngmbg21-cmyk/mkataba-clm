@@ -1880,6 +1880,9 @@ function intelAskReady(q){
 async function intelAsk(qRaw){
   const q=(qRaw||'').trim();
   if(!q||intel.busy) return;
+  /* a question asked while the Fill in face is up shows its answer there;
+     "fill in" opens the face again (caGo) */
+  if(typeof window.pdFillAway==='function') pdFillAway();
   const readied=!!_igReadyAsk && q===_igReadyAsk; _igReadyAsk='';
   if(readied){
     intel.history.push({role:'user', text:q});
@@ -6589,7 +6592,7 @@ function renderIntelDock(){
   /* A BOX IN THE OVERVIEW TAB'S FILL FORM UNDER THE READER'S HAND IS NEVER
      REDRAWN (owner, 11 Oct 2026): a save after an answer repaints Home, and the
      next box must keep the cursor the Tab key just gave it. */
-  if(intel.dockOpen&&document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#ig-dock #pd-fill')) return;
+  if(intel.dockOpen&&document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#ig-dock #pd-fill, #ig-dock #pd-fillface')) return;
   if(!intel.dockOpen){
     dock.innerHTML=`
       <button id="igd-expand" class="igd-door" title="${i18t('int_open_panel')}" aria-label="${i18t('int_open_panel')}">
@@ -6659,7 +6662,10 @@ function renderIntelDock(){
         </span>`).join('')}
       <button id="igd-clear" class="text-[10.5px] font-600 text-brand-600 hover:text-brand-800 ml-auto">${i18t('int_clear_all')}</button>
     </div>`:''}
-    ${(window.pdShowsDesk&&pdShowsDesk())?`<div id="pd-body" class="pd-body flex-1 min-h-0 overflow-y-auto scroll-thin" role="tabpanel">${pdBodyHtml(pdContract())}</div><div id="igd-feed" hidden></div>`:`
+    ${(window.pdShowsDesk&&pdShowsDesk())?`<div id="pd-body" class="pd-body flex-1 min-h-0 overflow-y-auto scroll-thin" role="tabpanel">${pdBodyHtml(pdContract())}</div><div id="igd-feed" hidden></div>`
+    /* THE FILL IN FACE (the one-page Home plan, stage 2): where the
+       conversation stands, the box and the chips kept at the foot */
+    :(window.pdFillShows&&pdFillShows())?`<div id="pd-fillface" class="pd-fillface flex-1 min-h-0 overflow-y-auto scroll-thin">${pdFillFaceHtml(pdContract())}</div><div id="igd-feed" hidden></div>`:`
     ${(state.view==='dashboard'&&typeof window.caBackRowHtml==='function')?caBackRowHtml():''}
     <div id="igd-feed" class="flex-1 min-h-0 overflow-y-auto scroll-thin px-3.5 py-3 space-y-3" style="background:transparent">
       ${msgs||`<div class="ig-welcome text-[12.5px] text-ink/50 leading-relaxed pt-2">${i18t('int_notebook_welcome')}</div>`}
@@ -6701,6 +6707,8 @@ function renderIntelDock(){
   /* THE DOCUMENT TAB IS THE CLAUSE LIST (10 Oct 2026): its host is drawn
      empty and filled by the Document tab's own painter. */
   if(window.pdShowsDesk&&pdShowsDesk()&&window.pdTab&&pdTab()==='doc'&&typeof window.docThreadPaint==='function'){ const pc=pdContract(); if(pc) try{ docThreadPaint(pc); }catch(_){ } }
+  /* the Fill in face's parts, from their own painters (stage 2) */
+  if(document.getElementById('pd-fillface')&&typeof window.pdFillFacePaint==='function'){ const pc=pdContract(); if(pc) try{ pdFillFacePaint(pc); }catch(_){ } }
   /* the Overview tab's fill form, drawn by the room's own builder (owner, 11 Oct 2026) */
   if(window.pdShowsDesk&&pdShowsDesk()&&window.pdTab&&pdTab()==='facts'&&typeof window.pdFillPaint==='function'){ const pc=pdContract(); if(pc) try{ pdFillPaint(pc); }catch(_){ } }
   // charts in dock answers come back to life after every repaint
@@ -7014,6 +7022,8 @@ function igAskCost(){
    paper's own and go with it (said in the summary, not hidden). */
 async function igAnalyze(id){
   const c=getContract(id); if(!c) return;
+  /* the Fill in face belongs to one contract: asking for another puts it away */
+  if(typeof window.pdFillSeen==='function') pdFillSeen(id);
   /* ---- THE WHOLE RECORD FIRST (26 Sep 2026, the overnight clean-up) ----
      The book in memory is the LIGHT list, and the server's HEAVY strip takes
      an upload's extracted text (and a sealed record's execution copy) off

@@ -269,7 +269,8 @@ const readRow = page => page.evaluate(() => {
     await page.waitForTimeout(1800);
     const filed = await page.evaluate(() => { const c = state.contracts[0];
       return { id: c.id, eff: (c.fields || {}).effDate || '', exp: c.expiry || '' }; });
-    await page.evaluate(() => { roomGoTab(getContract(state.contracts[0].id), 'terms'); });
+    /* the upload lands beside the paper on Home now (stage 2, 14 Oct 2026): the room is opened here */
+    await page.evaluate(() => { openWorkspace(state.contracts[0].id); roomGoTab(getContract(state.contracts[0].id), 'terms'); });
     await page.waitForTimeout(900);
     const effCell = await page.evaluate(() => {
       const all = [...document.querySelectorAll('.sec-fields .sec-f')];

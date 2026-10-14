@@ -3080,6 +3080,18 @@ function docSignPaperParts(b){
 const _docAsAmended=new Set();
 function docAsAmendedOn(c){ return !!(c&&_docAsAmended.has(c.id)&&window.asAmendedItems&&asAmendedItems(c).length); }
 function docAsAmendedSet(c,on){ if(!c) return; if(on) _docAsAmended.add(c.id); else _docAsAmended.delete(c.id); docRepaintSheet(c); wsPaintTabRowEnd(c); }
+/* A COMPANY TEMPLATE'S ANSWERS SHOW ON THE PAPER AS THEY ARE TYPED (the
+   one-page Home plan, stage 2; the owner's yes on 14 Oct 2026, keeping 7
+   Oct's rule): while Fill the document is owed (tplFormPending) the WORKING
+   copy draws the wording the answers would make; the stored wording changes
+   only on that press (tplFormApply). Display only: the signing copy, the
+   exports and every reading keep c.redlineText. */
+function docWorkPreviewOf(c){
+  try{
+    if(!c||!c.templateForm||typeof tplFormPending!=='function'||!tplFormPending(c)||typeof templateFormDocHtml!=='function') return c;
+    return Object.assign({}, c, { redlineText: templateFormDocHtml(c.templateForm) });
+  }catch(_){ return c; }
+}
 function docSheetHtml(c, o){
   o=o||{};
   if(docAsAmendedOn(c) && window.asAmendedHtml){
@@ -3095,7 +3107,8 @@ function docSheetHtml(c, o){
        Counter review, change 5): a Draft's blanks are filled from the side
        panel's form, which lists them; the paper shows the answers
        (docPaperAnswersHtml) and a press on one goes to its box in the panel. */
-    const body=(!o.readOnly&&docFillable(c))?docPaperAnswersHtml(docBody(c)):readOnlyDocHtml(docBody(c),{ open:c.status==='Draft' });
+    const src=docWorkPreviewOf(c);
+    const body=(!o.readOnly&&docFillable(c))?docPaperAnswersHtml(docBody(src)):readOnlyDocHtml(docBody(src),{ open:c.status==='Draft' });
     const accent=(b&&window.docDesignPaperStyle)?((docDesignPaperStyle(b).match(/--doc-design-accent:[^;]*;/)||[''])[0]):'';
     /* The design's TYPEFACE comes (docDesignBodyAttr); its structure and its
        page decorations do not — the working copy looks the same whatever the
@@ -4636,7 +4649,33 @@ let _wsTabWant=null;
    there is no single funnel for creation the way negoFileChange is for changes,
    and a flag set in one of them is a flag the other five never set. */
 const _wsNewDrafts=new Set();
-function roomOpenOnTerms(id){ if(id) _wsNewDrafts.add(String(id)); }
+const _wsNewAt=new Map();      /* when each was registered: "just made" is a minute, not forever */
+const ROOM_ARRIVE_MS=60000;
+function roomOpenOnTerms(id){ if(id){ _wsNewDrafts.add(String(id)); _wsNewAt.set(String(id), Date.now()); } }
+/* ---- …AND NOW IT LANDS ON HOME'S DOCUMENT, THE PANEL ON FILL IN (the
+   one-page Home plan, stage 2; the owner picked "Form" by name on 14 Oct 2026
+   and said yes to "drafts and uploads alike") ----
+   setView('workspace') asks this first, so all seven creation sites land the
+   same way without a second registration: the paper on Home, Jambo's panel on
+   its Fill in face while something is owed. Spent once, like the flag above.
+   An executed import and the phone keep the room (the phone draws its own
+   Details page). REVERSES 12 Oct's "a new contract lands on Details with
+   Complete the details over it"; that page is still the Details tab's own. */
+function roomArrivesOnHome(id){
+  const k=String(id==null?'':id);
+  if(!k||!_wsNewDrafts.has(k)) return false;
+  /* JUST MADE, NOT MADE ONCE: a bulk import registers every row it files, and
+     one of them opened next week keeps the room as before */
+  if(!(Date.now()-(_wsNewAt.get(k)||0)<=ROOM_ARRIVE_MS)) return false;
+  if(typeof window!=='undefined'&&((window.mPhone&&mPhone())||(window.innerWidth&&window.innerWidth<768))) return false;
+  if(typeof pdOpenOnHome!=='function'||typeof pdFillOpen!=='function') return false;
+  const c=getContract(k); if(!c) return false;
+  if((typeof negoExecuted==='function')?negoExecuted(c):(c.status==='Signed')) return false;
+  _wsNewDrafts.delete(k); _wsNewAt.delete(k);
+  let owed=false; try{ owed=!!detailsOf(c).left; }catch(_){ owed=false; }
+  const may=(typeof canEdit!=='function')||canEdit();
+  return (owed&&may)?!!pdFillOpen(k):!!pdOpenOnHome(k,'copilot');
+}
 /* ---- A RENEWAL IS DECIDED ON TODAY'S READING (Young, 27 Sep 2026) ----
    *"when you click on decide and it takes you to the overview page, the 5
    checks … should run all over again so that you can see what they say before
@@ -9191,13 +9230,16 @@ function detMarkOpen(c){
    a box the panel filled stops being yellow at once. A value of 0 is an
    empty value (the paper prints its unset figure as 0). */
 function detPaintPaperEmpties(){
-  const cv = document.getElementById('doc-canvas'); if(!cv) return;
-  cv.querySelectorAll('[data-doc-answer]').forEach(i => {
+  const cv = document.getElementById('doc-canvas');
+  if(cv) cv.querySelectorAll('[data-doc-answer]').forEach(i => {
     const v = String(i.value == null ? '' : i.value).trim();
     i.classList.toggle('is-empty', v === '' || (i.getAttribute('data-sync') === 'value' && /^0+$/.test(v)));
   });
-  /* …and the boxes of the paper's questions beside it, the same way */
-  const panel = document.getElementById('tplform-section');
+  /* …and the boxes of the paper's questions beside it, the same way — the
+     room's Details tab, or Home's Fill in face (stage 2) */
+  ['tplform-section','pd-fill'].map(id => document.getElementById(id)).filter(Boolean).forEach(panel => detTintEmpties(panel));
+}
+function detTintEmpties(panel){
   /* (their boxes carry their own inline background, so the tint is set on
      the box itself: amber while empty and not being typed in) */
   /* EVERY KIND OF BOX (owner, 13 Oct 2026: "across the platform"): a long
@@ -9219,6 +9261,8 @@ function detPaintPaperEmpties(){
 function detailsChanged(c){
   if(!c) return;
   try{ wsPaintTabCounts(c); }catch(_){}
+  /* Home's Fill in face counts in place too (the one-page Home plan, stage 2) */
+  try{ if(window.pdFillCounts) pdFillCounts(c); }catch(_){}
   if(_wsTab === 'details' && state.activeId === c.id){ try{ detPaintHead(c); }catch(_){} try{ detPaintPaperEmpties(); }catch(_){} try{ detMarkOpen(c); }catch(_){} }
 }
 /* ============================================================
@@ -9301,7 +9345,7 @@ function formHeldContract(c){
 /* after a write that moves the record's own facts, the page the reader is on
    is drawn again: Home's paper and panel, or the room */
 function formRepaint(){
-  if(formOnHome()){ try{ if(window.igPaperRefresh) igPaperRefresh(); }catch(_){ } return; }
+  if(formOnHome()){ try{ if(window.igPaperRefresh) igPaperRefresh(); }catch(_){ } try{ if(window.pdFillRefresh) pdFillRefresh(); }catch(_){ } return; }
   if(typeof renderWorkspace === 'function') renderWorkspace();
 }
 function renderBlankFormSection(c){
@@ -14763,17 +14807,25 @@ function docAnswersWire(c){
 if(typeof document !== 'undefined' && !document._homeAnswerWired){
   document._homeAnswerWired = true;
   document.addEventListener('click', e => {
-    const w = e.target && e.target.closest ? e.target.closest('#ig-canvas [data-field], #ig-canvas [data-sync]') : null;
+    const w = e.target && e.target.closest ? e.target.closest('#ig-canvas [data-field], #ig-canvas [data-sync], #ig-canvas [data-field-key], #ig-canvas [data-upblank]') : null;
     if(!w) return;
-    const key = w.getAttribute('data-field') || w.getAttribute('data-sync');
+    const key = w.getAttribute('data-field') || w.getAttribute('data-sync') || w.getAttribute('data-field-key') || w.getAttribute('data-upblank');
     if(!key || typeof contractFieldPeer !== 'function') return;
+    const id = (typeof intel === 'object' && intel && intel.paper) ? intel.paper.id : null;
+    const c = id && typeof getContract === 'function' ? getContract(id) : null;
+    if(!c) return;
+    /* THE FORM IS BESIDE THE PAPER AGAIN (the one-page Home plan, stage 2;
+       owner picked "Form", 14 Oct 2026): a press on a blank opens Jambo's
+       Fill in face and lands on its box. Where nothing is left to ask (a
+       sealed record), the room's Details tab as before. */
+    let live = false; try{ const d = detailsOf(c); live = !!(d.live && d.all); }catch(_){ live = false; }
+    if(live && typeof pdFillOpen === 'function'){ pdFillOpen(c.id, { key }); return; }
+    if(w.hasAttribute('data-field-key') || w.hasAttribute('data-upblank')) return;
     /* THE FORM LEFT HOME FOR THE ROOM'S DETAILS TAB (owner, 12 Oct 2026):
        a press on an answer on Home's paper opens that tab and lands on the
        box, through the one door that already lands on a box (focusKeyTerms'
        bounded wait, asked here of the blank's own box). */
-    const id = (typeof intel === 'object' && intel && intel.paper) ? intel.paper.id : null;
-    const c = id && typeof getContract === 'function' ? getContract(id) : null;
-    if(!c || typeof openWorkspace !== 'function') return;
+    if(typeof openWorkspace !== 'function') return;
     openWorkspace(c.id);
     try{ roomGoTab(getContract(c.id) || c, 'details'); }catch(_){ }
     let tries = 0;
@@ -15394,7 +15446,7 @@ function wireKeyTerms(c){
     /* The contract is read at PRESS time: a listener bound once must not close
        over the record this paint happened to hold. */
     fill.addEventListener('click',()=>fillKeyTermsFromDocument(
-      (window.getContract&&getContract(state.activeId))||c));
+      (window.formHeldContract&&formHeldContract(c))||(window.getContract&&getContract(state.activeId))||c));
   }
   wireKtFolder(c);
 }
@@ -15459,7 +15511,10 @@ async function fillKeyTermsFromDocument(c){
     logAudit(c,'Edited',`Filled ${filled.join(', ')} from the document (${meta._source==='ai'?'Jambo':'pattern match'})`);
     persist(c);
     toast(`Filled ${filled.join(', ')} — check it before signing`,'ok');
-    renderWorkspace();
+    /* the page the reader is on: Home's paper and its Fill in face, or the
+       room (the one-page Home plan, stage 2) — renderWorkspace alone would
+       draw the room over Home */
+    formRepaint();
   }catch(e){
     toast(i18t('ct_could_not_read_doc')+(e.message||'try again'),'err');
   }finally{
@@ -17952,7 +18007,7 @@ Object.assign(window,{docReadLongSplit,DOC_READ_LONG_WORDS,DOC_READ_RUN_MIN,docT
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,renderSignButton,renderSignSide,roomFactsHtml,signBlockHtml,signReadinessCardHtml,signRowTitle,signWhyShort,SIGN_WHY_WORDS,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,formOnHome,formHostEl,formPaperEl,formHeldContract,formRepaint,docTermFill,docNoticeFill,docSyncWrite,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPlace,roomPlacePut,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,checkVerdict,tplFormOpenCount,tplFormOpenFields,detailsOf,detailsSections,blankFormLive,DET_RECORD_KEYS,detHeadHtml,detPaintHead,detailsChanged,detPaintPaperEmpties,detBasicsHtml,detPaintBasics,detMarkOpen,openCompleteDetails,cdRepaintCounts,openCheckPanel,roomHeadHtml,wireRoomHead,
+  ROOM_TABS,docWorkPreviewOf,formOnHome,formHostEl,formPaperEl,formHeldContract,formRepaint,docTermFill,docNoticeFill,docSyncWrite,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomArrivesOnHome,ROOM_ARRIVE_MS,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPlace,roomPlacePut,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,checkVerdict,tplFormOpenCount,tplFormOpenFields,detailsOf,detailsSections,blankFormLive,DET_RECORD_KEYS,detHeadHtml,detPaintHead,detailsChanged,detPaintPaperEmpties,detTintEmpties,detBasicsHtml,detPaintBasics,detMarkOpen,openCompleteDetails,cdRepaintCounts,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill,
   /* idea 7 — the plain-English layer. Published because a name read through
      window from another module, or from a test stage, is silence when it is

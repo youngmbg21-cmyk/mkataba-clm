@@ -20720,3 +20720,8 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - CLAUDE.md is about 82 KB, above its own "under about 80 KB" target (it was 81.6 KB before this change; stage 1 added one MAP line).
 ### Noticed, not fixed (13 Oct 2026, Ask Jambo from the deep dive)
 - Home's Jambo panel answers a question put in its box by `intelAskReady` (a "readied" ask) through `intelChatAsk`, the whole-book chat, so it does not know the contract on the paper ("I still need to know which contract you're referring to", with "Ask about MK-457…" in the box). The deep dive's Ask Jambo now goes to the edit room; other readied asks on Home still take this path.
+
+### Noticed, not fixed (14 Oct 2026, the one-page Home plan, stage 2 — Fill in beside the paper)
+- GitHub's node suite is red on main itself (its last four runs, from #273 on) with one failing test this session could not name: the job log the tools return is cut to its last ~2,600 lines and the full log's host is refused by the network policy.
+- An uploaded contract asks its other party twice: the record's "Other party" and the paper's own "[Supplier name]" blank are two boxes in Details (and now in the Fill in face) for one fact; detailsOf only folds a blank whose key is `counterparty`.
+- CLAUDE.md is about 84 KB after stage 2's MAP lines (target "under about 80 KB"); a trim is owed.

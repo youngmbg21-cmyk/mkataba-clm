@@ -993,7 +993,8 @@ const CA_GO = {
   redline: c => openRedlineWorkbench(c.id),
   deal: c => { if (openRedlineWorkbench(c.id) && typeof openDealBoard === 'function') openDealBoard(); return true; },
   sign: c => caRoomSign(c),
-  fill: c => caRoomTab(c, 'details'),
+  /* beside the paper: Jambo's own Fill in face (stage 2) */
+  fill: c => (typeof pdFillOpen === 'function') ? pdFillOpen(c.id) : caRoomTab(c, 'details'),
   oblig: c => c ? pdOpenOnHome(c.id, 'oblig') : (typeof setView === 'function' && setView('obligations')),
   history: c => c ? caRoomTab(c, 'history') : (typeof openPanel === 'function' && openPanel('activity')),
   upload: () => typeof openUploadModal === 'function' && openUploadModal(),

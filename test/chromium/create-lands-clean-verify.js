@@ -11,10 +11,13 @@
       are, their email and the end date are not; typing takes the amber off.
    2  A HaTi template's form: the same.
    3  Create draft on a company standard (the server mints it — slowed here so
-      the gap is measurable): no frame between New agreement and "Complete the
-      details" shows anything else; the pressed button turns while it waits.
+      the gap is measurable): no frame between New agreement and Home's paper
+      with Jambo's Fill in face shows anything else; the pressed button turns
+      while it waits. (Until 14 Oct 2026 the landing was the room's Details tab
+      with "Complete the details" over it; the one-page Home plan, stage 2,
+      moved it beside the paper — the owner picked "Form".)
    4  Create draft on a HaTi template: the same, with no server between.
-   5  "Complete the details": an owed date's face is amber like its neighbours.
+   5  The Fill in face: an owed date's face is amber like its neighbours.
 
      node test/chromium/create-lands-clean-verify.js
    ============================================================ */
@@ -47,10 +50,10 @@ const TONES = sels => {
   return out;
 };
 
-/* Every animation frame from the press until "Complete the details" is up:
+/* Every animation frame from the press until Home's Fill in face is up:
    which screen stood in the window. */
 const WATCH = () => { window._frames = []; let n = 0;
-  const tick = () => { const s = document.getElementById('na-root') ? 'na' : document.getElementById('cd-page') ? 'cd' : ('other:' + state.view);
+  const tick = () => { const s = document.getElementById('na-root') ? 'na' : document.getElementById('pd-fillface') ? 'cd' : ('other:' + state.view);
     window._frames.push(s); if (s !== 'cd' && n++ < 2000) requestAnimationFrame(tick); };
   requestAnimationFrame(tick); };
 
@@ -102,22 +105,22 @@ const WATCH = () => { window._frames = []; let n = 0;
       return { up: !!document.getElementById('na-root'), disabled: !!(b && b.disabled), ring: !!(b && b.querySelector('.ob-spin')) }; });
     check('3a while the server makes it, the page stays and the pressed button turns',
       busy.up && busy.disabled && busy.ring, JSON.stringify(busy));
-    const cd1 = await waitFor(page, () => !!document.getElementById('cd-page'), 10000);
+    const cd1 = await waitFor(page, () => !!document.getElementById('pd-fillface'), 10000);
     await pause(200);
     let frames = await page.evaluate(() => window._frames || []);
     const others1 = frames.filter(f => f !== 'na' && f !== 'cd');
-    check('3b New agreement hands straight over to "Complete the details" — no frame of another screen',
+    check('3b New agreement hands straight over to Home\'s paper, Jambo\'s panel on Fill in — no frame of another screen',
       cd1 && others1.length === 0 && frames.includes('na'), `${frames.length} frames · others ${JSON.stringify([...new Set(others1)])} · landed ${cd1}`);
     await page.screenshot({ path: path.join(OUT, '02-complete.png') });
 
-    /* ===== 5. ON "COMPLETE THE DETAILS", AN OWED DATE IS AMBER TOO ===== */
+    /* ===== 5. ON THE FILL IN FACE, AN OWED DATE IS AMBER TOO ===== */
     const cdt = await page.evaluate(() => {
       const probe = document.createElement('div'); probe.style.background = 'var(--st-amber-bg)'; document.body.appendChild(probe);
       const amber = getComputedStyle(probe).backgroundColor; probe.remove();
-      const faces = [...document.querySelectorAll('#cd-page .cd-fld.is-open .dp-face')];
+      const faces = [...document.querySelectorAll('#pd-fillface .cd-fld.is-open .dp-face')];
       return { n: faces.length, amber: faces.filter(f => getComputedStyle(f).backgroundColor === amber).length };
     });
-    check('5a every owed date on the page wears the amber its neighbours wear', cdt.n > 0 && cdt.amber === cdt.n, JSON.stringify(cdt));
+    check('5a every owed date on the face wears the amber its neighbours wear', cdt.n > 0 && cdt.amber === cdt.n, JSON.stringify(cdt));
     await page.unroute('**/api/templates/*/contracts');
     await page.evaluate(() => { const b = document.getElementById('cd-later'); if (b) b.click(); }); await pause(500);
     await page.evaluate(() => setView('register')); await pause(500);
@@ -134,11 +137,11 @@ const WATCH = () => { window._frames = []; let n = 0;
     await page.fill('#wz-counterparty', 'Popup Test Ltd');
     await page.evaluate(WATCH);
     await page.click('#na-create');
-    const cd2 = await waitFor(page, () => !!document.getElementById('cd-page'), 10000);
+    const cd2 = await waitFor(page, () => !!document.getElementById('pd-fillface'), 10000);
     await pause(200);
     frames = await page.evaluate(() => window._frames || []);
     const others2 = frames.filter(f => f !== 'na' && f !== 'cd');
-    const left2 = await page.evaluate(() => { const c = getContract(state.activeId); return c ? detailsOf(c).left : -1; });
+    const left2 = await page.evaluate(() => { const c = getContract(intel.paper && intel.paper.id); return c ? detailsOf(c).left : -1; });
     check('4a a HaTi template hands straight over too', cd2 && others2.length === 0,
       `${frames.length} frames · others ${JSON.stringify([...new Set(others2)])} · landed ${cd2} · details left ${left2}`);
 

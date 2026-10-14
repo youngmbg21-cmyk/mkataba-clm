@@ -8729,6 +8729,13 @@ async function negoBlanksAsk(c){
    leaving, with the cursor already in the first box that is still empty and
    its word lit on the paper. Every step is a door the product already has. */
 function negoBlanksFill(c){
+  /* BESIDE THE PAPER (the one-page Home plan, stage 2; owner, 14 Oct 2026):
+     Home's Document, Jambo's panel on Fill in, the cursor in the first box
+     still empty; the phone lands on its own Details page. */
+  if(typeof pdFillOpen === 'function'){
+    const first = (typeof contractBlanksOpen === 'function') ? ((contractBlanksOpen(c)[0] || {}).key || null) : null;
+    if(pdFillOpen(c.id, { key: first })) return;
+  }
   /* The form is the room's Details tab (owner, 12 Oct 2026: every way back to
      filling in lands there); on the phone roomGoTab opens its Details page. */
   if(typeof openWorkspace === 'function') openWorkspace(c.id);

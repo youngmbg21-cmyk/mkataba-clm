@@ -212,7 +212,7 @@ function pdDocHtml(c){
 /* the room's / the phone's own tab keys (ROOM_TABS, M_TAB_FOR_ROOM): the phone
    fallback below lands on them (BUGLOG 10 Oct 2026: 'contract' and
    'obligations' were no tab's key, so those two landed nowhere) */
-const PD_ROOM_TAB = { facts: 'terms', oblig: 'oblig', sign: 'sign', hist: 'history', deal: 'redline', doc: 'docs', copilot: 'terms' };
+const PD_ROOM_TAB = { facts: 'terms', oblig: 'oblig', sign: 'sign', hist: 'history', deal: 'redline', doc: 'docs', copilot: 'terms', fill: 'details' };
 function pdOpenOnHome(id, tab){
   const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c) return false;
   /* SIGNING LEFT THE PAPER (10 Oct 2026): an approval waiting on you opens
@@ -232,9 +232,220 @@ function pdOpenOnHome(id, tab){
     if (tab && typeof roomGoTab === 'function') try { roomGoTab(getContract(id), PD_ROOM_TAB[tab] || 'terms'); } catch (_){}
     return true;
   }
+  /* THE FILL IN FACE (stage 2): Jambo's tab, with the face open on this contract */
+  if (tab === 'fill'){
+    _pdFill = String(id); tab = 'copilot';
+    /* already on this paper: the panel turns, nothing else moves */
+    if (window.state && state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'paper'
+      && typeof intel === 'object' && intel && intel.paper && String(intel.paper.id) === String(id)){
+      pdSetTab('copilot'); intel.dockOpen = true;
+      if (typeof renderIntelDock === 'function') renderIntelDock();
+      if (typeof igSyncDockWidth === 'function') try { igSyncDockWidth(); } catch (_){}
+      pdFillLand();
+      return true;
+    }
+  }
   if (!(window.state && state.view === 'dashboard') && typeof setView === 'function') setView('dashboard');
   igWalk([id], 0, { tab: tab || 'copilot' });
+  if (_pdFill === String(id)) pdFillLand();
   return true;
+}
+
+/* ============================================================
+   FILL IN THE DETAILS, BESIDE THE PAPER
+   (the one-page Home plan, stage 2, docs/PLAN-one-page-home.md; the owner
+   picked "Form" by name on 14 Oct 2026, with all three recommendations: a new
+   draft and an upload land here alike; every way into filling in from outside
+   the room opens this face — the room's Details tab stays for someone already
+   in the room until stage 5; a company template's answers show on the paper
+   as they are typed and reach its wording on Fill the document)
+   ============================================================
+   A FACE OF JAMBO'S TAB, NOT A FOURTH TAB: while it is open it stands where
+   the conversation stands, and the box and the chips stay at the panel's
+   foot, so a word can still be typed. Its × goes back to the conversation.
+   IT OWNS NO WRITER. The contract's own details are the Details tab's boxes
+   (detPaintBasics → wireKeyTerms), the paper's questions are its form
+   (paintContractForm into #pd-fill, the Home host formHostEl already knows),
+   and what is owed is detailsOf — the count the checklist, the bell and the
+   Contracts filter read. As a box is typed in, its words are shown on the
+   paper at once (pdFillEcho, display only); the writer stores them when the
+   box is left, and the paper is drawn again from the record. */
+let _pdFill = null;          // the contract the face is open for, or null
+let _pdFillKey = null;       // the box a landing asked for (a blank's key), once
+const PD_FILL_TRIES = 25;    // a landing waits for the face's boxes at most this many beats
+const PD_FILL_BEAT_MS = 80;
+function pdFillFor(){ return _pdFill; }
+function pdFillDetails(c){ try { return (typeof detailsOf === 'function') ? detailsOf(c) : null; } catch (_){ return null; } }
+/* the face is up: Home's paper holds the contract it was opened for, Jambo's
+   tab is lit, and the contract still has details to ask */
+function pdFillShows(){
+  if (!_pdFill || _pdTab !== 'copilot' || !pdOnPaper()) return false;
+  const c = pdContract(); if (!c || String(c.id) !== _pdFill) return false;
+  const d = pdFillDetails(c);
+  return !!(d && d.live && d.all);
+}
+function pdFillOpen(id, opts){
+  const o = opts || {};
+  _pdFillKey = o.key ? String(o.key) : null;
+  return pdOpenOnHome(id, 'fill');
+}
+/* ANOTHER CONTRACT ASKED FOR PUTS THE FACE AWAY: read off the request
+   (igAnalyze), never off a paint — a paint can still show the last contract
+   while the new one loads, and that must not close the face it came for */
+function pdFillSeen(id){ if (_pdFill && String(id) !== _pdFill){ _pdFill = null; _pdFillKey = null; } }
+/* put away without a paint: a question asked in the box shows its answer */
+function pdFillAway(){ _pdFill = null; _pdFillKey = null; }
+function pdFillClose(){
+  _pdFill = null; _pdFillKey = null;
+  /* the panel is never redrawn under a hand in the face (renderIntelDock's
+     guard) — and the × itself is in the face, so the hand is let go first */
+  const a = (typeof document !== 'undefined') ? document.activeElement : null;
+  if (a && a.closest && a.closest('#pd-fillface') && typeof a.blur === 'function') a.blur();
+  if (typeof renderIntelDock === 'function') renderIntelDock();
+}
+function pdFillHeadHtml(c){
+  const d = pdFillDetails(c) || { all: 0, left: 0 };
+  const done = d.all - d.left;
+  const pct = d.all ? Math.round(done * 100 / d.all) : 100;
+  const close = _pdT('act_close');
+  return `<div class="pd-ff-r"><h3>${_pdE(_pdT('pd_ff_title'))}</h3><span data-pd-ff-pill>${
+      d.left ? pdPill('warn', _pdTn('det_left_n', d.left, { n: d.left })) : pdPill('ok', _pdT('pd_ff_all_in'))}</span>
+      <button type="button" class="pd-ff-x" data-pd-ff-close title="${_pdE(close)}" aria-label="${_pdE(close)}">×</button></div>
+    <div class="det-bar" aria-hidden="true"><i data-pd-ff-bar style="width:${pct}%"></i></div>
+    <span class="pd-ff-n" data-pd-ff-count>${_pdE(_pdT('det_n_of_m', { done, all: d.all }))} · ${_pdE(_pdT('det_saved_note'))}</span>`;
+}
+/* EVERY STEP STARTS THE NEXT (rule 4): with nothing left, the face says so
+   and offers the next act — the redlines, or the send screen. A company
+   template whose answers have not reached its wording says that instead: the
+   press is the form's own Fill the document, just below. */
+function pdFillDoneHtml(c){
+  const d = pdFillDetails(c); if (!d || d.left) return '';
+  const press = !!(typeof tplFormPending === 'function' && tplFormPending(c));
+  const may = (typeof canEdit !== 'function') || canEdit();
+  let acts = '';
+  if (!press && may){
+    const nego = (typeof negoMayStart !== 'function') || !!(negoMayStart(c) || {}).ok;
+    const them = String(c.counterparty || '').trim();
+    if (nego && typeof openRedlineWorkbench === 'function') acts += pdBtn(_pdT('pd_ff_redlines'), () => openRedlineWorkbench(c.id), { lead: true });
+    if (typeof openShareModal === 'function') acts += pdBtn(them ? _pdT('ca_share_out', { who: them }) : _pdT('ca_share_out_none'), () => openShareModal(getContract(c.id) || c));
+  }
+  return `<div class="pd-ff-done"><i aria-hidden="true">✓</i><span>${_pdE(_pdT(press ? 'pd_ff_done_press' : 'pd_ff_done'))}</span></div>${acts ? `<div class="pd-acts pd-ff-next">${acts}</div>` : ''}`;
+}
+function pdFillFaceHtml(c){
+  _pdActs.clear();
+  return `<div class="pd-ff" data-pd-ff="${_pdE(c.id)}">
+    <div class="pd-ff-h" data-pd-ff-head>${pdFillHeadHtml(c)}
+      ${''/* in the head that stays in sight: the last box is at the foot of the form */}<div data-pd-ff-done>${pdFillDoneHtml(c)}</div></div>
+    <div id="det-basics" class="pd-ff-basics"></div>
+    <div id="pd-fill" class="pd-ff-paper"></div>
+  </div>`;
+}
+/* the count, the bar, the pill and the next step, IN PLACE — never a repaint
+   under the hand that is typing */
+function pdFillCounts(c){
+  const host = document.getElementById('pd-fillface'); if (!host) return;
+  c = (c && typeof getContract === 'function' && getContract(c.id)) || c || pdContract();
+  if (!c || String(c.id) !== _pdFill) return;
+  const d = pdFillDetails(c); if (!d) return;
+  const done = d.all - d.left;
+  const pill = host.querySelector('[data-pd-ff-pill]');
+  if (pill) pill.innerHTML = d.left ? pdPill('warn', _pdTn('det_left_n', d.left, { n: d.left })) : pdPill('ok', _pdT('pd_ff_all_in'));
+  const bar = host.querySelector('[data-pd-ff-bar]'); if (bar) bar.style.width = (d.all ? Math.round(done * 100 / d.all) : 100) + '%';
+  const n = host.querySelector('[data-pd-ff-count]'); if (n) n.textContent = `${_pdT('det_n_of_m', { done, all: d.all })} · ${_pdT('det_saved_note')}`;
+  const fin = host.querySelector('[data-pd-ff-done]'); if (fin) fin.innerHTML = pdFillDoneHtml(c);
+  try { if (typeof detMarkOpen === 'function') detMarkOpen(c); } catch (_){}
+  try { if (typeof detPaintPaperEmpties === 'function') detPaintPaperEmpties(); } catch (_){}
+  if (typeof window !== 'undefined' && window.caChipsHtml){
+    const chips = document.querySelector('#ig-dock [data-ig-chips]');
+    if (chips){ const h = caChipsHtml();
+      /* drawn again with their press, as renderIntelDock binds them */
+      if (h){ chips.innerHTML = h; chips.querySelectorAll('[data-igsug]').forEach(b => b.addEventListener('click', () => { if (typeof intelAsk === 'function') intelAsk(b.getAttribute('data-igsug')); })); } }
+  }
+}
+/* what a box holds, shown on the paper at once (display only: the box's own
+   writer stores it when the box is left, and the paper is drawn again from
+   the record then) */
+function pdFillKeyOf(el, c){
+  if (!el || !el.getAttribute) return '';
+  const kt = el.getAttribute('data-kt'); if (kt) return ['counterparty', 'value', 'effDate'].includes(kt) ? kt : '';
+  const bf = el.getAttribute('data-blankf'); if (bf) return bf;
+  const tf = el.getAttribute('data-tplf');
+  if (tf != null && c && c.templateForm && Array.isArray(c.templateForm.fields)){ const f = c.templateForm.fields[Number(tf)]; return f && f.fieldKey ? String(f.fieldKey) : ''; }
+  return '';
+}
+function pdFillEcho(key, value){
+  const cv = document.getElementById('ig-canvas'); if (!cv || !key) return 0;
+  const q = (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(String(key)) : String(key).replace(/["\\]/g, '\\$&');
+  const v = String(value == null ? '' : value).trim();
+  let n = 0;
+  cv.querySelectorAll(`span[data-sync="${q}"],span[data-field="${q}"],span[data-field-key="${q}"]`).forEach(sp => {
+    if (!sp.hasAttribute('data-pd-was')) sp.setAttribute('data-pd-was', sp.textContent);
+    sp.textContent = v || sp.getAttribute('data-pd-was'); n++;
+  });
+  if (typeof uploadBlankPaint === 'function') try { n += uploadBlankPaint(key, value) || 0; } catch (_){}
+  return n;
+}
+/* bound once per face host: the echo while typing, the counts and the paper
+   after a box is left, and the × */
+function pdFillWire(host){
+  if (!host || host.dataset.pdFfBound) return;
+  host.dataset.pdFfBound = '1';
+  host.addEventListener('input', e => { const c = pdContract(); const k = pdFillKeyOf(e.target, c); if (k) pdFillEcho(k, e.target.value); });
+  host.addEventListener('change', () => {
+    setTimeout(() => { const c = pdContract(); if (!c) return;
+      pdFillCounts(c);
+      /* a contract detail's own writer moves only the record: the paper beside
+         it is drawn again here, as the blanks' writer already does */
+      if (typeof igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){} }, 0);
+  });
+  host.addEventListener('click', e => {
+    if (e.target.closest && e.target.closest('[data-pd-ff-close]')){ e.preventDefault(); pdFillClose(); }
+  });
+}
+/* after renderIntelDock drew the face's host: its parts, from their own painters */
+function pdFillFacePaint(c){
+  const host = document.getElementById('pd-fillface'); if (!host) return;
+  c = c || pdContract(); if (!c) return;
+  try { if (typeof detPaintBasics === 'function') detPaintBasics(c); } catch (_){}
+  try { if (typeof paintContractForm === 'function') paintContractForm(c); } catch (_){}
+  /* the room's own clothes: HaTi's date faces, an owed empty box amber */
+  try { if (typeof popupControlsDress === 'function') popupControlsDress(host); } catch (_){}
+  try { if (typeof detPaintPaperEmpties === 'function') detPaintPaperEmpties(); } catch (_){}
+  pdFillWire(host);
+}
+/* land the cursor in the box asked for, else the first one still owed —
+   bounded, because the face is painted by the render a landing asks for */
+function pdFillLand(){
+  let tries = 0;
+  const go = () => {
+    const host = document.getElementById('pd-fillface');
+    const c = pdContract();
+    if (host && c && host.querySelector('[data-kt],[data-blankf],[data-tplf]')){
+      const key = _pdFillKey; _pdFillKey = null;
+      /* a hand already in one of the face's boxes is never moved: the reader
+         got there first */
+      const here = document.activeElement;
+      if (!key && here && here !== host && host.contains(here)) return;
+      let box = null;
+      if (key) box = (typeof contractFieldPeer === 'function' ? contractFieldPeer(key, 'panel') : null) || host.querySelector(`[data-kt="${key}"]`);
+      if (!box) box = host.querySelector('.cd-fld.is-open input, .cd-fld.is-open select')
+        || host.querySelector('[data-blankf]:not([value]), [data-blankf][value=""]')
+        || host.querySelector('[data-tplf]');
+      if (box){ try { box.focus({ preventScroll: true }); } catch (_){ try { box.focus(); } catch (_e){} }
+        try { box.scrollIntoView({ block: 'center' }); } catch (_){} }
+      return;
+    }
+    if (++tries < PD_FILL_TRIES) setTimeout(go, PD_FILL_BEAT_MS);
+  };
+  setTimeout(go, PD_FILL_BEAT_MS);
+}
+/* a write that moved the record's facts from elsewhere (Fill from document):
+   the face is drawn again, unless a box in it is under the reader's hand */
+function pdFillRefresh(){
+  if (!pdFillShows()) return;
+  const a = document.activeElement;
+  if (a && a.closest && a.closest('#pd-fillface')) { pdFillCounts(pdContract()); return; }
+  if (typeof renderIntelDock === 'function') renderIntelDock();
 }
 /* ---- HISTORY: the trail, newest first; the cap is said ---- */
 function pdHistHtml(c){
@@ -418,4 +629,5 @@ if (typeof document !== 'undefined' && !document._pdWired){
 }
 
 Object.assign(window, { PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml,
-  pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint });
+  pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
+  PD_FILL_TRIES, PD_FILL_BEAT_MS, pdFillFor, pdFillShows, pdFillOpen, pdFillSeen, pdFillAway, pdFillClose, pdFillHeadHtml, pdFillDoneHtml, pdFillFaceHtml, pdFillFacePaint, pdFillCounts, pdFillKeyOf, pdFillEcho, pdFillWire, pdFillLand, pdFillRefresh });

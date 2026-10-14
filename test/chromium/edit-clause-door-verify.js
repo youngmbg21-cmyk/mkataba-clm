@@ -190,10 +190,14 @@ const endOf = (page, sel) => page.evaluate(sel => {
       await page.evaluate(() => { const b = document.querySelector('#ig-canvas [data-field], #ig-canvas [data-sync]'); b.scrollIntoView({ block: 'center' }); });
       const r = await page.evaluate(() => { const b = document.querySelector('#ig-canvas [data-field], #ig-canvas [data-sync]').getBoundingClientRect(); return { x: b.left + 4, y: b.top + b.height / 2 }; });
       await page.mouse.click(r.x, r.y);
-      /* RE-POINTED 12 Oct 2026: the form is the room's Details tab (owner); the
-         press opens it and lands on the box. */
-      const s7b = await until(page, () => { const a = document.activeElement; return a && a.closest && a.closest('#tplform-section') && roomCurrentTab() === 'details' ? (a.getAttribute('data-blankf') || a.getAttribute('data-tplf') || a.tagName) : null; }, null, 4000);
-      ok('6b a press on one opens the Details tab on its box', !!s7b && s7b === s7.key, `${s7b} vs ${s7.key}`);
+      /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 2, owner picked
+         "Form"): the press opens Jambo's Fill in face beside the paper and
+         lands on the box (12 Oct 2026: the room's Details tab). A date's box
+         is focused through HaTi's date face, the button after it. */
+      const s7b = await until(page, () => { let a = document.activeElement; if (!(a && a.closest && a.closest('#pd-fillface'))) return null;
+        if (a.classList.contains('dp-face') && a.previousElementSibling) a = a.previousElementSibling;
+        return a.getAttribute('data-blankf') || a.getAttribute('data-kt') || a.getAttribute('data-tplf') || a.tagName; }, null, 4000);
+      ok('6b a press on one opens the Fill in face beside the paper on its box', !!s7b && s7b === s7.key, `${s7b} vs ${s7.key}`);
     } else ok('6b a press on one goes to its box in the side panel\'s form', false, 'no blanks');
     await page.screenshot({ path: path.join(OUT, '7-document.png') });
 

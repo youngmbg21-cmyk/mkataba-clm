@@ -6643,11 +6643,12 @@
      under it, because what is printed there is OURS and a reader has to be
      able to tell it from the words the file arrived with. Neither is green or
      ruby: those are the redline's own grammar and nothing has been proposed. */
-  #doc-canvas span.up-blank{
+  /* …and on Home's paper, where the Fill in face fills them (the one-page Home plan, stage 2) */
+  :is(#doc-canvas,#ig-canvas) span.up-blank{
     background:var(--st-amber-bg);
     box-shadow:inset 0 -2px 0 0 var(--st-amber-dot);
     border-radius:1px; }
-  #doc-canvas span.up-blank.is-filled{
+  :is(#doc-canvas,#ig-canvas) span.up-blank.is-filled{
     background:transparent; color:var(--accent-ink);
     box-shadow:inset 0 -1px 0 0 var(--accent-ink); }
 
@@ -8769,6 +8770,22 @@
   .pd-pill.is-warn{background:var(--st-amber-bg);color:var(--st-amber-fg)} .pd-pill.is-warn i{background:var(--st-amber-dot)}
   .pd-pill.is-ok{background:var(--st-green-bg);color:var(--st-green-fg)} .pd-pill.is-ok i{background:var(--st-green-dot)}
   .pd-pill.is-quiet{background:var(--st-gray-bg);color:var(--st-gray-fg)} .pd-pill.is-quiet i{background:var(--st-gray-dot)}
+  /* FILL IN THE DETAILS, BESIDE THE PAPER (the one-page Home plan, stage 2; owner picked "Form", 14 Oct 2026): a face of Jambo's tab, one column at the panel's width; its head stays in sight while the form scrolls */
+  #pd-fillface{padding:0 14px 12px}
+  #pd-fillface .pd-ff{display:flex;flex-direction:column;gap:12px}
+  #pd-fillface .pd-ff-h{position:sticky;top:0;z-index:1;background:var(--color-surface);padding:12px 0 10px;border-bottom:1px solid var(--color-divider);display:flex;flex-direction:column;gap:6px}
+  #pd-fillface .pd-ff-r{display:flex;align-items:center;gap:8px}
+  #pd-fillface .pd-ff-r h3{margin:0;font-size:var(--t-card);font-weight:var(--w-strong);color:var(--color-text)}
+  #pd-fillface .pd-ff-x{margin-left:auto;width:26px;height:26px;border:0;border-radius:var(--radius);background:none;color:var(--color-neutral-600);font-size:18px;line-height:1;cursor:pointer}
+  #pd-fillface .pd-ff-x:hover{background:var(--color-bg);color:var(--color-text)}
+  #pd-fillface .pd-ff-n{font-size:11.5px;color:var(--color-neutral-600)}
+  #pd-fillface .cd-grid{grid-template-columns:minmax(0,1fr)}
+  #pd-fillface .pd-ff-done{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border-radius:var(--radius);background:var(--st-green-bg);color:var(--st-green-fg);font-size:12.5px}
+  #pd-fillface .pd-ff-done i{font-style:normal;font-weight:var(--w-strong)}
+  #pd-fillface .pd-ff-next{display:flex;flex-direction:column;align-items:stretch;gap:6px;margin-top:8px}
+  #pd-fillface [data-pd-ff-done]:not(:empty){margin-top:4px}
+  #pd-fillface .pd-ff-next .ui-btn{justify-content:center}
+  #pd-fillface [data-pd-ff-done]:empty{display:none}
   .pd-h{font-size:10.5px;color:var(--cap-ink);margin:18px 0 7px}
   .pd-h:first-child,.pd-top+.pd-h{margin-top:0}
   .pd-list{border:1px solid var(--color-neutral-200);border-radius:var(--radius-lg);overflow:hidden;background:var(--color-surface)}

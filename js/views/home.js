@@ -1642,6 +1642,10 @@ function needsYouGo(kind, id){
   if(kind==='look') return lookDone(c);
   if(kind==='approval'){ if(window.pdOpenOnHome&&pdOpenOnHome(c.id,'sign')) return true; openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} return true; }
   if(kind==='refused'){ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} return true; }
+  /* DETAILS ARE FILLED IN BESIDE THE PAPER (the one-page Home plan, stage 2;
+     owner, 14 Oct 2026): Home's Document, Jambo's panel on Fill in. The phone
+     lands on its own Details page (pdOpenOnHome's phone branch). */
+  if(kind==='details'&&typeof window.pdFillOpen==='function'){ pdFillOpen(c.id); return true; }
   /* AND A SUGGESTION IS ADOPTED WHERE IT IS DRAWN — the negotiate page, where
      the strip and its two verbs are. On this branch rather than below, with
      the two rows that already land there, so the reader is not taken through

@@ -126,6 +126,11 @@ the page (three named ideas, one The SAP Way), and the owner picks by name.
    with the panel on the fill-in face; typing in a box fills the paper's blank
    at once; one writer (`contractBlankSet` / the Details writers), nothing new
    stored.
+   **Built 14 Oct 2026 (the owner picked "Form", and yes to: drafts land here
+   as uploads do; every door from outside the room opens this face, the
+   room's Details tab staying until stage 5; a company template's answers
+   show on the paper as typed and reach the wording on Fill the document).**
+   Story: MAP-HISTORY "FILL IN, BESIDE THE PAPER".
 3. **Redlines in the panel.** The Negotiate column gets its second host in
    Jambo's panel; Edit opens the clause editor; Exit returns to the panel
    face at the same scroll. The paper on the Document face shows the changes

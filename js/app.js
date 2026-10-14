@@ -1138,6 +1138,12 @@ function setView(view){
     window.hbOpenCalendar();
     return;
   }
+  /* ---- A CONTRACT JUST MADE OR UPLOADED LANDS ON HOME'S DOCUMENT, Jambo's
+     panel on Fill in (the one-page Home plan, stage 2; owner, 14 Oct 2026):
+     every creation site opens the room, so the room's door asks first —
+     roomArrivesOnHome spends the site's own registration (roomOpenOnTerms). */
+  if(view==='workspace' && typeof window!=='undefined' && typeof window.roomArrivesOnHome==='function'
+    && state && state.activeId && window.roomArrivesOnHome(state.activeId)) return;
   if(!viewLayersClosed(view)) return;
   /* ---- LEAVING THE ROOM LEAVES THE ROOM (idea 5, 4 Oct 2026) ----
      A beat that carried on after the reader went to Insights would keep
@@ -2304,7 +2310,8 @@ function buildAlerts(){
       let d=null; try{ d=detailsOf(c); }catch(_){ d=null; }
       if(!d||!d.left) return;
       push('details',c,i18tn('det_to_fill',d.left,{n:d.left}),
-        ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(getContract(c.id)||c,'details'); }catch(_){} });
+        /* beside the paper, Jambo's panel on Fill in (stage 2, 14 Oct 2026) */
+        ()=>{ if(window.pdFillOpen){ pdFillOpen(c.id); return; } openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(getContract(c.id)||c,'details'); }catch(_){} });
     });
   }
   /* 3b. Notes a colleague gave this reader. negoNotesForMe reads c.thread and

@@ -1855,8 +1855,13 @@ function regOpenRow(id, negoRow){
    pdOpenOnHome is the product's own way onto a contract on Home; below 768px
    it opens the contract's own page, which the phone draws instead. */
 function regOpenContract(id){
-  /* FROM "DETAILS TO FILL" A ROW OPENS ON ITS DETAILS TAB (owner, 12 Oct
-     2026: every way back to filling in lands there). */
+  /* FROM "DETAILS TO FILL" A ROW OPENS WHERE DETAILS ARE FILLED IN: beside
+     the paper, Jambo's panel on Fill in (the one-page Home plan, stage 2;
+     owner, 14 Oct 2026; was the room's Details tab, 12 Oct). */
+  if(regScope()!=='negotiations'&&regState().view==='details'&&typeof window.pdFillOpen==='function'){
+    const c=(typeof getContract==='function')?getContract(id):null;
+    if(c&&pdFillOpen(id)) return;
+  }
   if(regScope()!=='negotiations'&&regState().view==='details'&&typeof openWorkspace==='function'){
     const c=(typeof getContract==='function')?getContract(id):null;
     if(c){ openWorkspace(id); if(typeof roomGoTab==='function') try{ roomGoTab(getContract(id)||c,'details'); }catch(_){} return; }

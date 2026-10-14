@@ -35,6 +35,8 @@ const { STRINGS, I18N_DEFAULT, LANGUAGES } = i18n;
 /* Words that are legitimately identical in both languages, so an equal-to-
    English value is a real translation rather than a forgotten one. */
 const SAME_IN_BOTH = new Set([ 'na_tab_hati', 'cal_k_plan', 'pd_tab_copilot', 'stk_by_jambo', 'pd_doc_pdf',
+  /* Jambo's words (stage 1 of the one-page Home plan, 14 Oct 2026): "3×", how often a place was used, is a number */
+  'hb_pop_used',
   /* Jambo's agents (12 Oct 2026): "1 agent", "Normal" and "Agent" are the same word in Swedish */
   'jh_n_agents_one', 'jh_sp_1', 'jh_col_agent', 'jh_pt_col_ex',
   /* the Brain's Stack view (10 Oct 2026): product and service names (Node.js, Render, GitHub…), the

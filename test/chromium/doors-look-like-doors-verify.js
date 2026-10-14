@@ -56,6 +56,13 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
     await waitFor(page, () => !!document.getElementById('wz-counterparty'));
     await page.fill('#wz-counterparty', 'Original Ltd');
     await page.click('#na-create');
+    /* A new draft lands beside the paper on Home now (the one-page Home plan,
+       stage 2, 14 Oct 2026); the full page is the Details tab's own "Open the
+       full form", pressed here as a reader in the room presses it. */
+    await waitFor(page, () => !!document.getElementById('pd-fillface'), null, 10000);
+    await page.evaluate(() => { const i = intel.paper.id; openWorkspace(i); roomGoTab(getContract(i), 'details'); });
+    await waitFor(page, () => !!document.querySelector('[data-det-full]'), null, 6000);
+    await page.evaluate(() => { const b = document.querySelector('[data-det-full]'); if (b) b.click(); });
     const cd = await waitFor(page, () => !!document.getElementById('cd-page'), null, 10000);
     const foot = cd ? await page.evaluate(() => [...document.querySelectorAll('#cd-page .cd-foot button')].map(b => b.id)) : [];
     check('A1 Complete the details has a Cancel, the last button in its foot', foot[foot.length - 1] === 'cd-cancel', JSON.stringify(foot));
