@@ -84,7 +84,12 @@ const M = () => {
        paper that door reaches — it must be the reference paper itself. */
     out.document = await at(async () => { await page.evaluate(() => openWorkspace('MK-OP1')); await page.waitForFunction(() => !!document.querySelector('.room-tabrow'), null, { timeout: 10000 });
       await page.evaluate(() => roomGoTab(getContract('MK-OP1'), 'contract')); await page.waitForFunction(() => !!document.querySelector('#ig-canvas article.nego-doc'), null, { timeout: 10000 }); });
-    out.negotiate = await at(async () => { await page.evaluate(() => openRedlineWorkbench('MK-OP1')); });
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): every door now
+       lands on Jambo's Redlines face beside Home's paper — which IS the
+       reference paper (Home Redlined, on Home's ground); "negotiate" here is
+       the Negotiate PAGE's own paper column (#rl-doc), so the page is opened
+       by name ({ page: true }), the engine the face is built from. */
+    out.negotiate = await at(async () => { await page.evaluate(() => openRedlineWorkbench('MK-OP1', { page: true })); });
     const cp = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
     await cp.goto(h.base + '/#share=t:' + s.token, { waitUntil: 'networkidle' }); await cp.waitForTimeout(2500);
     out.theirs = await at(async () => { await cp.evaluate(() => { if (typeof portalSetTab === 'function') portalSetTab('redlines'); }).catch(() => {}); }, cp);

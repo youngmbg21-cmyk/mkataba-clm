@@ -79,8 +79,13 @@ const openDoc = async (page, id) => {
   await goDoc(page, id);
   return page.evaluate(READ_AT(DOC_PAPER));
 };
+/* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): every door now
+   lands on Jambo's Redlines face beside Home's paper (Home's own #ig-canvas,
+   which openDoc already reads); this file's subject is the Negotiate PAGE's
+   own paper wearing the document's design, so it opens the page by name
+   ({ page: true }), the engine the face is built from. */
 const openNego = async (page, id) => {
-  await page.evaluate(i => openRedlineWorkbench(i), id);
+  await page.evaluate(i => openRedlineWorkbench(i, { page: true }), id);
   await page.waitForSelector('.redline-page .rl-paper', { timeout: 15000 }).catch(() => {});
   await page.waitForTimeout(1400);
   return page.evaluate(READ_AT(NEG_PAPER));

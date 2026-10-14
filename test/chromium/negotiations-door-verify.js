@@ -61,6 +61,15 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     on: r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none',
     text: (el.textContent || '').trim().slice(0, 60) }; })`;
 
+/* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): every door onto a
+   named negotiation now lands on Jambo's Redlines face beside Home's paper
+   (#pd-redface, the view 'dashboard'); this asks, in the page, whether that
+   face is up for the contract named. The Negotiate PAGE itself is drawn only
+   when asked for by name ({ page: true }), and the claims below about its own
+   furniture (its head's doors, its Focus, its grid) open it that way. */
+const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(window.pdRedShows && pdRedShows())
+  && String(window.pdRedFor && pdRedFor()) === String(id) && !!document.querySelector('#pd-redface [data-pd-rf="' + id + '"]');
+
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
@@ -171,6 +180,22 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     await page.click('#ws-to-nego');
     await pause(400); await passBlanks(page);
     await page.waitForTimeout(1600);
+    /* RE-POINTED 14 Oct 2026 (stage 5): the door lands on Jambo's Redlines face
+       beside Home's paper — the negotiation screen now — which draws no room
+       tabs anywhere on the page */
+    const landedOn = await page.evaluate(`(${ON_FACE})(${JSON.stringify(cid)})`);
+    const faceTabs = await page.evaluate(() => document.querySelectorAll('#ws-tabs .room-tab').length);
+    check('pressing it lands on the negotiation screen', landedOn === true,
+      await page.evaluate(() => state.view + ' · face ' + (window.pdRedFor ? pdRedFor() : null)));
+    check('which draws no room tabs at all', faceTabs === 0, faceTabs + ' tabs');
+    /* RE-POINTED 14 Oct 2026 (stage 5): the next three are the Negotiate PAGE's
+       own head and the shell around it (its way off, its title door, its rail
+       door lit) — the face beside Home's paper has no head and Home stays lit
+       there — so they are read off the page opened by name. Section 7 presses
+       that page's Open document. */
+    await page.evaluate(id => openRedlineWorkbench(id, { page: true }), cid);
+    await page.waitForFunction(() => state.view === 'redline' && !!document.querySelector('#view-redline .rl-actions [data-rl-open-doc]'), null, { timeout: 10000 }).catch(() => {});
+    await page.waitForTimeout(600);
     const inside = await page.evaluate(seen => ({
       view: state.view,
       tabs: document.querySelectorAll('#view-redline #ws-tabs .room-tab').length,
@@ -180,8 +205,6 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       title: eval(seen)('#view-redline #ws-back-title'),
       navOn: [...document.querySelectorAll('#nav .nav-item.active')].map(b => b.getAttribute('data-view')),
     }), SEEN);
-    check('pressing it lands on the negotiation screen', inside.view === 'redline', inside.view);
-    check('which draws no room tabs at all', inside.tabs === 0, inside.tabs + ' tabs');
     /* REVERSED 10 Oct 2026 (owner): the arrow is gone; "Open document" ends the row. */
     check('no back arrow — "Open document" is the way off the page',
       !(inside.back && inside.back.on) && !!inside.openDoc && inside.openDoc.on,
@@ -402,8 +425,10 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     /* Pressing a row goes in — to the NEGOTIATION, not the contract page. */
     await page.click(`#reg-tbody tr[data-row="${cid}"]`);
     await page.waitForTimeout(1500);
+    /* RE-POINTED 14 Oct 2026 (stage 5): a row opens Jambo's Redlines face
+       beside Home's paper on that contract */
     check('pressing a row opens that negotiation',
-      await page.evaluate(() => redlineHeldId()) === cid);
+      await page.evaluate(`(${ON_FACE})(${JSON.stringify(cid)})`) === true);
 
     /* ---- 10. COUNTING NEVER STARTED A NEGOTIATION ----
        The whole journey above changed views a dozen times, and each one ran the
@@ -426,6 +451,11 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        Open document button"). The row's last door goes to THIS contract's
        Document tab; the way to the LIST is the sidebar's Negotiations door,
        which opens the list every time (24 Aug 2026). */
+    /* RE-POINTED 14 Oct 2026 (stage 5): these are the Negotiate PAGE's own
+       control row and the rail beside it, so the page is opened by name */
+    await page.evaluate(id => openRedlineWorkbench(id, { page: true }), cid);
+    await page.waitForFunction(() => state.view === 'redline' && !!document.querySelector('.redline-page [data-rl-open-doc]'), null, { timeout: 10000 }).catch(() => {});
+    await page.waitForTimeout(400);
     const backDoor = await page.evaluate(seen => {
       const b = document.querySelector('.redline-page [data-rl-open-doc]');
       const row = document.querySelector('.redline-page .rl-tabrow');
@@ -516,8 +546,10 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     await page.click(`#reg-tbody tr[data-row="${cid2}"]`);
     await page.waitForTimeout(1600);
     await passBlanks(page);
+    /* RE-POINTED 14 Oct 2026 (stage 5): the row opens the face, on cid2 */
+    await page.waitForFunction(ON_FACE, cid2, { timeout: 8000 }).catch(() => {});
     check('a row opens the other negotiation',
-      await page.evaluate(() => redlineHeldId()) === cid2);
+      await page.evaluate(`(${ON_FACE})(${JSON.stringify(cid2)})`) === true);
     await page.hover('[data-nav-fold-open="register"]'); await page.click('#side-nav [data-view="redline"]');
     await page.waitForTimeout(1500);
     check('and the door works from that one as well',
@@ -588,22 +620,24 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        repainted list, a row must still open its own negotiation. */
     await page.click(`#reg-tbody tr[data-row="${cid2}"]`);
     await page.waitForTimeout(1100);
-    const stillOpens = await page.evaluate(() => ({
-      held: window.redlineHeldId ? redlineHeldId() : null,
-      bench: !!document.querySelector('.redline-page .rl-paper') }));
+    /* RE-POINTED 14 Oct 2026 (stage 5): a row opens Jambo's Redlines face on
+       that contract, with its paper (Home's, Redlined while their ask is
+       pending) drawn beside it */
+    await page.waitForFunction(ON_FACE, cid2, { timeout: 8000 }).catch(() => {});
+    const faceOf = () => page.evaluate(`({ held: window.pdRedFor ? pdRedFor() : null, face: (${ON_FACE})(${JSON.stringify(cid2)}),
+      bench: !!document.querySelector('#ig-paper .rl-paper') })`);
+    const stillOpens = await faceOf();
     check('9 and a row on the repainted list still opens its negotiation',
-      stillOpens.held === cid2 && stillOpens.bench,
-      `held ${stillOpens.held} (wanted ${cid2}) · sheet drawn ${stillOpens.bench}`);
+      stillOpens.face && stillOpens.bench,
+      `face on ${stillOpens.held} (wanted ${cid2}) · sheet drawn ${stillOpens.bench}`);
     /* And a repaint of a BENCH keeps that bench — the same rule from the other
        side, which is the half a "always show the list" fix would have broken. */
     await page.evaluate(() => setTheme(themeNow() === 'green' ? 'navy' : 'green'));
     await page.waitForTimeout(900);
-    const benchHeld = await page.evaluate(() => ({
-      held: window.redlineHeldId ? redlineHeldId() : null,
-      bench: !!document.querySelector('.redline-page .rl-paper') }));
+    const benchHeld = await faceOf();
     check('9 a theme change INSIDE a negotiation keeps that negotiation',
-      benchHeld.held === cid2 && benchHeld.bench,
-      `held ${benchHeld.held} · sheet drawn ${benchHeld.bench}`);
+      benchHeld.face && benchHeld.bench,
+      `face on ${benchHeld.held} · sheet drawn ${benchHeld.bench}`);
 
     /* ---- 10. FOCUS MODE KEEPS THE PAGE AT THE WALL ----
        Owner-reported 16 Aug 2026: a wide dead-white void LEFT of the contract
@@ -621,6 +655,11 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        below: a column whose content is NARROW, so an implicit auto-sized track
        would follow it rather than the window. A card with no verbs and a
        one-line summary is that content, and it is what a sent ask draws. */
+    /* RE-POINTED 14 Oct 2026 (stage 5): Focus mode and the grid are the
+       Negotiate PAGE's own, so the page is opened by name on the same
+       contract the theme change left up (cid2) */
+    await page.evaluate(id => openRedlineWorkbench(id, { page: true }), cid2);
+    await page.waitForFunction(() => state.view === 'redline' && !!document.querySelector('.redline-page .rl-grid'), null, { timeout: 10000 }).catch(() => {});
     await page.evaluate(async () => {
       localStorage.setItem('hati.v1.rlLeftFrac', '0.45');
       const c = getContract(redlineHeldId());
@@ -879,17 +918,21 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       /* THESE TWO ASK THAT THE QUESTION WAS REALLY THERE FIRST. "It carries on
          into the negotiation" and "it does not ask twice" are both satisfied
          by a build that never asks at all, which is a description. */
+      /* RE-POINTED 14 Oct 2026 (stage 5): "into the negotiation" is Jambo's
+         Redlines face beside Home's paper, on that contract */
+      await page.waitForFunction(ON_FACE, staged10.id, { timeout: 8000 }).catch(() => {});
       check('10e dismissing it carries on into the negotiation',
-        dlg10.up === true && await page.evaluate(() => (window.state || {}).view === 'redline'),
+        dlg10.up === true && await page.evaluate(`(${ON_FACE})(${JSON.stringify(staged10.id)})`) === true,
         'landed');
       /* ONCE PER CONTRACT PER SITTING. */
       await page.evaluate(() => setView('register')); await pause(300);
       await page.evaluate(id => { openRedlineWorkbench(id); }, staged10.id);
       await pause(500);
-      const again10 = await page.evaluate(() => ({
-        up: !!document.getElementById('confirm-overlay'), view: (window.state || {}).view }));
+      /* RE-POINTED 14 Oct 2026 (stage 5): the second press lands on the face */
+      await page.waitForFunction(ON_FACE, staged10.id, { timeout: 8000 }).catch(() => {});
+      const again10 = await page.evaluate(`({ up: !!document.getElementById('confirm-overlay'), face: (${ON_FACE})(${JSON.stringify(staged10.id)}) })`);
       check('10f and it does not ask twice in one sitting — an alert you answer twice stops being read',
-        dlg10.up === true && again10.up === false && again10.view === 'redline',
+        dlg10.up === true && again10.up === false && again10.face === true,
         `asked once: ${dlg10.up} · asked again: ${again10.up}`);
     }
 
@@ -922,10 +965,13 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
           await page.click(`.ngs-row[data-ngs-id="${pick11.first}"]`);
           await page.click('#ngs-go'); await pause(700);
           await passBlanks(page);
-          const at11 = await page.evaluate(() => ({ view: state.view,
-            modal: !!document.querySelector('#ngs-list') }));
-          check('12d the pick opens Negotiate through the one funnel', at11.view === 'redline' && !at11.modal,
-            `view ${at11.view}`);
+          /* RE-POINTED 14 Oct 2026 (stage 5): the one funnel lands on Jambo's
+             Redlines face beside Home's paper, on the contract picked */
+          await page.waitForFunction(ON_FACE, pick11.first, { timeout: 8000 }).catch(() => {});
+          const at11 = await page.evaluate(`({ view: state.view, face: (${ON_FACE})(${JSON.stringify(pick11.first)}),
+            modal: !!document.querySelector('#ngs-list') })`);
+          check('12d the pick opens Negotiate through the one funnel', at11.face === true && !at11.modal,
+            `view ${at11.view} · face ${at11.face}`);
         }
       }
     }

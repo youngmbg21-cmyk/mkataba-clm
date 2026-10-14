@@ -157,15 +157,25 @@ const SEED = async () => {
        top and the quiet line's bottom. */
     /* RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner); the
        room's paper tab is Signing now, so its head is the one compared. */
-    await page.evaluate(id => roomGoTab(getContract(id), 'sign'), cid);
-    await page.waitForFunction(() => !!document.querySelector('#view-workspace #doc-signwrap, #doc-zc-slot .paper-zc') && !!document.querySelector('#ws-head .room-sub'), null, { timeout: 10000 }).catch(() => {});
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
+       Signing tab went home (Jambo's Before you sign face, which draws no
+       room head). The room keeps Overview and Where we are, and its head is
+       one builder on both; it is measured on Where we are — the room's other
+       tab, which is not the Overview the card's facts were read on above. */
+    await page.evaluate(id => roomGoTab(getContract(id), 'stands'), cid);
+    await page.waitForFunction(() => state.view === 'workspace' && !!document.querySelector('#ws-tabs [data-ws-tab="stands"].on') && !!document.querySelector('#ws-head .room-sub'), null, { timeout: 10000 }).catch(() => {});
     const roomDoc = await page.evaluate(() => {
       const h1 = document.querySelector('#ws-head .room-name h1');
       const sub = document.querySelector('#ws-head .room-sub');
       return { top: h1 ? Math.round(h1.getBoundingClientRect().top * 10) / 10 : null,
         sub: sub ? Math.round(sub.getBoundingClientRect().bottom * 10) / 10 : null };
     });
-    await page.evaluate(id => openRedlineWorkbench(id), cid);
+    /* RE-POINTED 14 Oct 2026 (stage 5): every door onto Negotiate lands on
+       Jambo's Redlines face on Home, which draws no head. This file's subject
+       IS the Negotiate page's own head and reading switch, compared with the
+       room's, so the page is asked for by name ({ page: true }). */
+    await page.evaluate(id => openRedlineWorkbench(id, { page: true }), cid);
+    await page.waitForFunction(() => !!document.querySelector('#view-redline #ws-head .room-name h1'), null, { timeout: 8000 }).catch(() => {});
     await pause(2200);
     await page.screenshot({ path: path.join(OUT, '02-negotiation.png') });
     const nego = await page.evaluate(() => {
@@ -394,7 +404,8 @@ const SEED = async () => {
        the same complaint wearing different clothes. */
     /* Section 4 left the page on the Negotiations LIST — reopen the bench, or
        this reads an empty row and passes on nothing. */
-    await page.evaluate(id => openRedlineWorkbench(id), cid);
+    /* RE-POINTED 14 Oct 2026 (stage 5): the page by name, as in 1 */
+    await page.evaluate(id => openRedlineWorkbench(id, { page: true }), cid);
     await pause(2200);
     const heads = await page.evaluate(() => {
       const read = sel => [...document.querySelectorAll(sel)]
@@ -490,7 +501,8 @@ const SEED = async () => {
     await page.evaluate(id => openWorkspace(id), cid);
     await pause(1800);
     const chipRoom = await page.evaluate(READ_CHIP);
-    await page.evaluate(id => openRedlineWorkbench(id), cid);
+    /* RE-POINTED 14 Oct 2026 (stage 5): the page's own head, by name */
+    await page.evaluate(id => openRedlineWorkbench(id, { page: true }), cid);
     await pause(2200);
     const chipNego = await page.evaluate(READ_CHIP);
     check('6 the chip really drew on both pages',
@@ -639,7 +651,9 @@ const SEED = async () => {
       ['Import',       () => setView('migration')],
       /* The two the first pass missed, and the two that were really out. */
       ['Contract room',    id => openWorkspace(id)],
-      ['Negotiation page', id => openRedlineWorkbench(id)],
+      /* RE-POINTED 14 Oct 2026 (stage 5): the page by name — every other door
+         onto Negotiate lands on the Redlines face on Home, measured as Home */
+      ['Negotiation page', id => openRedlineWorkbench(id, { page: true })],
     ];
     /* ---- AND IT SWEEPS AT TWO HEIGHTS (owner-reported 25 Aug 2026: "i do not
        see this in the platform as the headers are still vary as far as
@@ -742,7 +756,8 @@ const SEED = async () => {
     await pause(1900);
     const f9room = await page.evaluate(FACTS9);
     await page.screenshot({ path: path.join(OUT, '09-room-facts.png') });
-    await page.evaluate(id => openRedlineWorkbench(id), cid);
+    /* RE-POINTED 14 Oct 2026 (stage 5): the page's own head, by name */
+    await page.evaluate(id => openRedlineWorkbench(id, { page: true }), cid);
     await pause(2200);
     const f9nego = await page.evaluate(FACTS9);
     await page.screenshot({ path: path.join(OUT, '09-nego-facts.png') });
@@ -817,7 +832,9 @@ const SEED = async () => {
     await pause(1500);
     const doc10 = await page.evaluate(FRONT10, '#doc-canvas .hati-doc, #doc-canvas');
     await page.screenshot({ path: path.join(OUT, '10-doc-front.png') });
-    await page.evaluate(id => openRedlineWorkbench(id), cid);
+    /* RE-POINTED 14 Oct 2026 (stage 5): the page's own sheet (#rl-doc), by name */
+    await page.evaluate(id => openRedlineWorkbench(id, { page: true }), cid);
+    await page.waitForFunction(() => !!document.querySelector('#rl-doc header.rl-paper-head'), null, { timeout: 8000 }).catch(() => {});
     await pause(2200);
     const neg10 = await page.evaluate(FRONT10, '#rl-doc, .rl-doc');
     await page.screenshot({ path: path.join(OUT, '10-nego-front.png') });

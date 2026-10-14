@@ -231,6 +231,11 @@ const ok = (name, good, detail) => {
       return page.evaluate(() => ({ view: state.view, id: state.activeId,
         held: (typeof redlineHeldId === 'function') ? redlineHeldId() : null,
         face: (document.getElementById('pd-redface') && window.intel && intel.paper) ? intel.paper.id : null,
+        /* stage 5: the review notice at the top of the Redlines face, and
+           Jambo's Before you sign face (the Signing tab's twin on Home) */
+        notices: ((document.querySelector('#pd-redface .pd-rf-notices') || {}).textContent || '').replace(/\s+/g, ' ').trim().slice(0, 80),
+        signFace: (document.querySelector('#pd-signface .pd-sf[data-pd-sf]') || { getAttribute: () => null }).getAttribute('data-pd-sf'),
+        signSheet: !!document.querySelector('#ig-paper .pg-sheet.pg-sign #ig-canvas'),
         tab: (typeof roomCurrentTab === 'function') ? roomCurrentTab() : null,
         sheet: !!document.getElementById('dk-close') }));
     };
@@ -241,9 +246,16 @@ const ok = (name, good, detail) => {
     ok('3a Answer opens the negotiation on that contract', g1.view === 'dashboard' && g1.face === 'MK-149', JSON.stringify(g1));
     const g2 = await press('MK-149', 'review');
     /* a REVIEW stays on the Negotiate page (stage 3): handing it back is the page's review notice */
-    ok('3b Review opens the negotiation too — where the review is handed back', g2.view === 'redline' && g2.held === 'MK-149', JSON.stringify(g2));
+    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the
+       Negotiate page folded into Home, and its notices stand at the top of
+       Jambo's Redlines face (.pd-rf-notices) — so a review's door opens the
+       face too, where the review is handed back now */
+    ok('3b Review opens the negotiation too — where the review is handed back', g2.view === 'dashboard' && g2.face === 'MK-149' && !!g2.notices, JSON.stringify(g2));
     const g3 = await press('MK-158', 'sign');
-    ok('3c Sign opens that contract on its Signing tab', g3.view === 'workspace' && g3.id === 'MK-158' && g3.tab === 'sign', JSON.stringify(g3));
+    /* RE-POINTED 14 Oct 2026 (stage 5): the Signing tab went home — Sign
+       opens Jambo's Before you sign face on that contract, beside Home's
+       paper drawn as the signing copy */
+    ok('3c Sign opens that contract on its Signing tab', g3.view === 'dashboard' && g3.signFace === 'MK-158' && g3.signSheet, JSON.stringify(g3));
     const g4 = await press('MK-143', 'renewal');
     ok('3d Decide opens that contract on its Overview, where the renewal card records the decision', g4.view === 'workspace' && g4.id === 'MK-143' && g4.tab === 'terms', JSON.stringify(g4));
 
