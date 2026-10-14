@@ -130,7 +130,11 @@ describe('f392 (2) the press puts the paper where the nodes were, and nothing is
     /* 9 Oct 2026 (change 5): the Document tab is never typed in — a fillable
        Draft's paper shows the answers (docPaperAnswersHtml). */
     /* 12 Oct 2026: a Draft's read-only paper says its blank is "not filled in yet" ({ open }) */
-    assert.match(d, /\(!o\.readOnly&&docFillable\(c\)\)\?docPaperAnswersHtml\(docBody\(c\)\):readOnlyDocHtml\(docBody\(c\),\{ open:c\.status==='Draft' \}\)/);
+    /* 14 Oct 2026 (stage 2 of the one-page Home plan): the body is drawn from
+       docWorkPreviewOf(c), the record itself unless a company template's
+       answers are typed and not yet written into the wording. */
+    assert.match(d, /const src=docWorkPreviewOf\(c\);/);
+    assert.match(d, /\(!o\.readOnly&&docFillable\(c\)\)\?docPaperAnswersHtml\(docBody\(src\)\):readOnlyDocHtml\(docBody\(src\),\{ open:c\.status==='Draft' \}\)/);
   });
   test('[wall] the room\'s own call is unchanged: docSheetHtml(c) still draws #doc-canvas and decides the copy by the tab', () => {
     assert.match(CT, /docSheetHtml\(c\)/);
