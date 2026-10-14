@@ -106,7 +106,7 @@ function openSignaturePad(opts={}){
         </label>`:''}
         <div style="display:flex;align-items:center;gap:var(--s-3);padding:var(--s-3) 20px 18px;flex-wrap:wrap;border-top:1px solid ${C};margin-top:var(--s-2)">
           <label style="display:flex;align-items:center;gap:7px;font-size:var(--t-meta);color:${N7};cursor:pointer">
-            <input id="sig-adopt" type="checkbox" ${saved?'checked':''} style="width:15px;height:15px;accent-color:${ACC}"/> Save my signature for next time
+            <input id="sig-adopt" type="checkbox" ${saved?'checked':''} style="width:15px;height:15px;accent-color:${ACC}"/> ${i18t('sgx_save_sig')}
           </label>
           <div style="margin-left:auto;display:flex;gap:var(--s-2)">
             <button data-dlg-cancel id="sig-cancel" class="ui-btn">${i18t('act_cancel')}</button>
@@ -217,4 +217,11 @@ function openSignaturePad(opts={}){
   });
 }
 
-Object.assign(window,{openSignaturePad,getSavedSignature,setSavedSignature,renderTypedSignature,SIG_FONTS});
+/* THE WORD FOR HOW A SIGNATURE WAS MADE, in the reader's language (draw ·
+   type · upload; 14 Oct 2026): one reading for the signing order and the
+   signatures so far on the signing copy. An unknown form keeps its own word. */
+function sigFormWord(form){
+  const f = String(form || ''); const k = 'sgx_form_' + f; const v = i18t(k);
+  return v === k ? i18t('sgx_form_any', { form: f }) : v;
+}
+Object.assign(window,{openSignaturePad,getSavedSignature,setSavedSignature,renderTypedSignature,SIG_FONTS,sigFormWord});

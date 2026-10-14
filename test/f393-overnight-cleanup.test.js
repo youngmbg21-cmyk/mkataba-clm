@@ -489,7 +489,9 @@ describe('f393 (9) the trail loaders, and the outbox', () => {
   });
   test('the route says so, and keeps the door to send it again', () => {
     const r = code(region(AP, 'signerRouteHtml'));
-    assert.match(r, /nst==='outbox' \? tag\('bg-slate-100 text-ink\/50','IN OUTBOX'\)/);
+    /* RE-WORDED 14 Oct 2026 (the Swedish signing screen): the badge reads its
+       word from the book — "IN OUTBOX" / "I UTKORGEN" (sgx_b_outbox) */
+    assert.match(r, /nst==='outbox' \? tag\('bg-slate-100 text-ink\/50',i18t\('sgx_b_outbox'\)\)/);
     assert.match(r, /\['notified','notify-failed','untold','outbox'\]\.includes\(nst\)/);
   });
 });
