@@ -109,13 +109,16 @@ const check = (name, pass, detail) => {
        view, on that contract. */
     await page.evaluate(() => openWorkspace('MK-R3', { room: true }));
     await until(() => state.view === 'workspace' && state.activeId === 'MK-R3');
+    /* RE-POINTED 15 Oct 2026 (owner: the contract's views went; "History is in
+       the board contract card"): the door opens the strip's History page, and
+       that is what must come back */
     await page.evaluate(() => roomGoTab(getContract('MK-R3'), 'history'));
-    await until(() => state.view === 'dashboard' && window.hbCvNow && hbCvNow().v === 'hist' && !!document.querySelector('#hb-cv-body[data-hb-cv="hist"]'));
+    await until(() => state.view === 'dashboard' && !!document.querySelector('#bs-strip-MK-R3 [data-bs-host="hist"]'));
     await page.waitForTimeout(400);
     await reload();
-    const ht = await until(() => { const p = document.querySelector('#hb-cv-body[data-hb-cv="hist"]'); const n = window.hbCvNow ? hbCvNow() : null;
-      return n && n.v === 'hist' && n.c && n.c.id === 'MK-R3' && p && p.getClientRects().length && getComputedStyle(p).display !== 'none' ? 'history' : null; });
-    check('2c the History tab comes back as History', ht === 'history', JSON.stringify({ ht, now: await page.evaluate(() => { const n = window.hbCvNow ? hbCvNow() : {}; return [n.v, n.c && n.c.id, state.view]; }) }));
+    const ht = await until(() => { const p = document.querySelector('#bs-strip-MK-R3 [data-bs-host="hist"]');
+      return state.view === 'dashboard' && p && p.getClientRects().length && getComputedStyle(p).display !== 'none' ? 'history' : null; });
+    check('2c the History page comes back as History, on that contract\'s strip', ht === 'history', JSON.stringify({ ht, now: await page.evaluate(() => [state.view, window.hbFace && hbFace(), (document.querySelector('#bs-strips > .bs-strip') || { getAttribute: () => null }).getAttribute('data-bs-on')]) }));
 
     /* ================= 3. INSIGHTS: THE TAB, AND THE EXPLORER'S PICTURE ====== */
     await page.evaluate(() => { intel.tab = 'friction'; setView('intel'); });

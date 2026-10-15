@@ -137,7 +137,9 @@ const bands = () => [...document.querySelectorAll('#pd-redface .rl-band')].map(b
     /* RE-POINTED 14 Oct 2026 (stage 5): the page folded into Home, so the
        head has no way back to it */
     check('2c the head carries ×, and no Open Negotiate', col.x && col.nego === '', col.nego);
-    check('2d Risks to look at, and the foot\'s three acts', col.risks && col.foot.length === 3 && /Draft from our standards/.test(col.foot[0]) && /Edit clause/.test(col.foot[1]) && /Add a clause/.test(col.foot[2]), JSON.stringify(col.foot));
+    /* RE-POINTED 15 Oct 2026 (owner: "these need to go to the menu as well"):
+       with changes in the column the foot's three acts live on the Menu tab */
+    check('2d Risks to look at, and no foot: the three acts went to the Menu tab', col.risks && col.foot.length === 0, JSON.stringify(col.foot));
     check('2e the same column the Negotiate page draws (one builder)', await page.evaluate(() => !!document.querySelector('#pd-redface .redline-page.rl-face #rl-side.rl-col #rl-changes-col #nego-cards')));
 
     /* ===== 3. A ROW AND ITS CLAUSE ARE ONE THING SHOWN TWICE ===== */
@@ -287,14 +289,14 @@ const bands = () => [...document.querySelectorAll('#pd-redface .rl-band')].map(b
       await page.setViewportSize({ width: w, height: hh }); await pause(600);
       const fit = await page.evaluate(() => {
         const f = document.getElementById('pd-redface'); const fr = f.getBoundingClientRect();
-        const head = f.querySelector('.rl-idx-top').getBoundingClientRect(), foot = f.querySelector('.pd-rf-foot').getBoundingClientRect();
+        const head = f.querySelector('.rl-idx-top').getBoundingClientRect(), footEl = f.querySelector('.pd-rf-foot'), foot = footEl ? footEl.getBoundingClientRect() : fr;
         const x = f.querySelector('[data-pd-rf-close]').getBoundingClientRect();
         const box = document.getElementById('igd-input').getBoundingClientRect();
         const wide = [...f.querySelectorAll('*')].filter(n => n.getBoundingClientRect().right > fr.right + 1 && n.getClientRects().length).map(n => n.className || n.tagName).slice(0, 3);
         return { headIn: head.top >= fr.top - 1 && head.bottom <= fr.bottom, footIn: foot.top >= fr.top && foot.bottom <= fr.bottom + 1, xIn: x.right <= fr.right + 1,
           boxIn: box.bottom <= innerHeight + 1, wide, docW: document.documentElement.scrollWidth - document.documentElement.clientWidth };
       });
-      check(`10b ${w}×${hh}: the face fits — head, × and foot in sight, the box at the panel's foot, nothing wider than the panel`,
+      check(`10b ${w}×${hh}: the face fits — head, × (and a foot where drawn) in sight, the box at the panel's foot, nothing wider than the panel`,
         fit.headIn && fit.footIn && fit.xIn && fit.boxIn && !fit.wide.length && fit.docW <= 0, JSON.stringify(fit));
       await shot(`10-${w}x${hh}`);
     }

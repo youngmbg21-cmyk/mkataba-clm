@@ -84,9 +84,11 @@ const DOC = 'SUPPLY AGREEMENT\n\nArticle 1 Term\n\nThis Agreement runs for twelv
        RE-POINTED 14 Oct 2026 (stage 4 of the one-page Home plan, the owner's
        "Views, and yes to all three recommendations"): Jambo's door cards open
        the Board's own deal board for that contract (board-views-verify 7). */
-    const deal = await page.waitForFunction(() => window.intel && intel.paper && intel.paper.id === 'MK-J2' && hbFace() === 'board'
-      && (document.getElementById('hb-cv-body') || {}).getAttribute?.('data-hb-cv') === 'deal', null, { timeout: 8000 }).then(() => true, () => false);
-    ok('2b its press opens the Board\'s deal board for MK-J2', deal, await page.evaluate(() => JSON.stringify({ id: intel.paper && intel.paper.id, face: hbFace(), view: (document.getElementById('hb-cv-body') || {}).getAttribute?.('data-hb-cv') || null })));
+    /* RE-POINTED 15 Oct 2026 (owner: the contract's views page went, the deal board with it): the
+       door opens Jambo's Redlines face beside MK-J2's paper, where the open points are answered */
+    const deal = await page.waitForFunction(() => window.intel && intel.paper && intel.paper.id === 'MK-J2' && hbFace() === 'paper'
+      && !!document.getElementById('pd-redface'), null, { timeout: 8000 }).then(() => true, () => false);
+    ok('2b its press opens the Redlines face beside MK-J2', deal, await page.evaluate(() => JSON.stringify({ id: intel.paper && intel.paper.id, face: hbFace(), red: !!document.getElementById('pd-redface') })));
     await page.evaluate(() => { document.querySelector('#ig-dock [data-pd-tab="copilot"]')?.click(); });
 
     /* ===== 3. SIGNING AND AMENDMENT ===== */

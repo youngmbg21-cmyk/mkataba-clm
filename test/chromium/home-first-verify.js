@@ -97,7 +97,7 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
        ("delete the deal tab ... and also delete history"; Document is Clauses), and
        13 Oct 2026 ("delete the overview tab from document page") */
     ok('3a0 the title row is the tabs: Copilot then two; no Overview, Signing, Deal or History, no "Intelligence panel", no column beside the paper',
-      !head.title && !head.desk && head.tabs.join(',') === 'copilot,doc,oblig', JSON.stringify(head));
+      !head.title && !head.desk && head.tabs.join(',') === 'copilot,doc,oblig,menu', JSON.stringify(head));   /* + the Menu tab, 15 Oct 2026 */
     const tabs = {};
     for (const t of ['doc', 'oblig']) {
       const b = await page.$(`#ig-dock [data-pd-tab="${t}"]`); if (b) await b.click();
@@ -110,7 +110,7 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     const sym = await page.evaluate(() => [...document.querySelectorAll('#ig-dock .igd-head .pd-tab')].map(b => { const w = b.querySelector('.pd-tab-w');
       return { k: b.getAttribute('data-pd-tab'), on: b.classList.contains('on'), txt: w ? w.textContent.trim() : '', whole: !!w && w.scrollWidth <= w.clientWidth + 1, glyph: b.querySelector('.pd-tab-g img.jambo-face') ? 'FACE' : ((b.querySelector('.pd-tab-g') || {}).textContent || ''), name: b.getAttribute('title') }; }));
     /* the artifact's symbols, exactly (owner, 10 Oct 2026); Jambo's tab wears his face (owner, 12 Oct 2026) */
-    ok('3a2 symbols — the artifact\'s marks — each with its word under it, whole; one lit', sym.length === 3 && sym.map(s => s.glyph.replace('\uFE0E', '')).join('') === 'FACE\u25A2\u2691' && sym.map(s => s.txt).join('|') === 'Jambo|Clauses|Obligations' && sym.every(s => s.name && s.txt.length > 2 && s.whole) && sym.filter(s => s.on).length === 1, JSON.stringify(sym.map(s => s.glyph + ' ' + s.txt + (s.whole ? '' : ' (cut)'))));
+    ok('3a2 symbols — the artifact\'s marks — each with its word under it, whole; one lit', sym.length === 4 && sym.map(s => s.glyph.replace('\uFE0E', '')).join('') === 'FACE\u25A2\u2691\u2630' && sym.map(s => s.txt).join('|') === 'Jambo|Clauses|Obligations|Menu' && sym.every(s => s.name && s.txt.length > 2 && s.whole) && sym.filter(s => s.on).length === 1, JSON.stringify(sym.map(s => s.glyph + ' ' + s.txt + (s.whole ? '' : ' (cut)'))));
     /* WHITE, UNDER THE GREETING ROW (owner, 10 Oct 2026; reverses Lifted) */
     const white = await page.evaluate(() => { const d = document.getElementById('ig-dock');
       return { dock: getComputedStyle(d).backgroundColor, card: getComputedStyle(d, '::before').content, top: Math.round(d.getBoundingClientRect().top), bar: Math.round(document.getElementById('ig-strip').getBoundingClientRect().top) }; });

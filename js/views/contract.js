@@ -8602,10 +8602,11 @@ function roomHistoryHtml(c,f={},opts={}){
           ${icon('more')}${i18t('ct_more')}${icon('chevD')}</button>
         <div id="hist-more-menu" class="room-menu hidden" style="min-width:250px">
           <button type="button" id="ht-verify">${icon('shield','w-3.5 h-3.5')}${esc(i18t('ct_hist_verify'))}<span class="mnote">${i18t('ct_recompute_fingerprints')}</span></button>
-          ${''/* ON HOME'S BOARD (stage 4) Print and Download stand on the
-                 Board's own line and press these same two acts — one door
-                 each, so the menu there keeps Verify alone. */}
-          ${opts.board?'':`<button type="button" id="ht-export">${icon('download','w-3.5 h-3.5')}${i18t('ct_export_history')}<span class="mnote">${i18t('ct_standalone_file')}</span></button>
+          ${''/* Print and Download stood on the Board's own line while the
+                 contract's views lived (stage 4); since they went (owner, 15
+                 Oct 2026) the history's own menu carries them in every host,
+                 the strip's History page among them. */}
+          ${`<button type="button" id="ht-export">${icon('download','w-3.5 h-3.5')}${i18t('ct_export_history')}<span class="mnote">${i18t('ct_standalone_file')}</span></button>
           <button type="button" id="ht-print">${icon('printer','w-3.5 h-3.5')}${esc(i18t('ct_hist_print'))}<span class="mnote">${i18t('ct_same_report_paper')}</span></button>`}
         </div>
       </div>
@@ -11659,7 +11660,11 @@ function roomMenuWire(c){
   document.getElementById('ws-m-nego')?.addEventListener('click',()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); });
   document.getElementById('ws-m-signers')?.addEventListener('click',()=>{ const k=getContract(c.id)||c; roomGoTab(k,'sign');
     setTimeout(()=>{ if(window.openSignerPlanEditor) openSignerPlanEditor(getContract(c.id)||k); },180); });
-  document.getElementById('ws-m-amend')?.addEventListener('click',()=>{ const k=getContract(c.id)||c; if(window.amendmentExecuted&&amendmentExecuted(k)&&window.openCreateAmendmentModal) openCreateAmendmentModal(k); });
+  /* AMEND, BESIDE THE PAPER (owner, 15 Oct 2026): Jambo's Amend face on Home's
+     paper; the dialog where Home has no paper (the phone, a stage without it) */
+  document.getElementById('ws-m-amend')?.addEventListener('click',()=>{ const k=getContract(c.id)||c; if(!(window.amendmentExecuted&&amendmentExecuted(k))) return;
+    if(window.pdAmendOpen&&pdAmendOpen(k.id)) return;
+    if(window.openCreateAmendmentModal) openCreateAmendmentModal(k); });
   document.getElementById('ws-m-link')?.addEventListener('click',()=>{ const k=getContract(c.id)||c;
     if(window.openLinkModal) openLinkModal(k,()=>{ try{ renderWorkspace(); }catch(_){} },{ mode:'parent' }); });
   document.getElementById('ws-mynote')?.addEventListener('click',()=>{ if(window.myNotesNew) myNotesNew({ contractId:c.id }); });

@@ -175,7 +175,9 @@ const day = off => { const d = new Date(); d.setDate(d.getDate() + off); return 
       blank && blank.has === false, JSON.stringify(blank));
 
     /* ============ 3. THE WORKLIST: COLUMN, BAND SUMS, ONE TOTAL ======== */
-    await page.evaluate(() => setView('obligations'));
+    /* RE-POINTED 15 Oct 2026: the contract's door now opens this page narrowed
+       to it; the rail's own door (obwGoFiltered, fresh filters) is the worklist */
+    await page.evaluate(() => obwGoFiltered({}));
     await page.waitForTimeout(1200);
     await page.screenshot({ path: path.join(OUT, '03-worklist.png') });
     const wl = await page.evaluate(() => ({

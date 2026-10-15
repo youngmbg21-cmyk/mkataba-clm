@@ -399,7 +399,7 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
        door onto it lands on Jambo */
     const tabs = await page.evaluate(() => { pdOpenOnHome('MK-S1', 'facts');
       return new Promise(r => setTimeout(() => r({ tabs: [...document.querySelectorAll('#ig-dock [data-pd-tab]')].map(b => b.getAttribute('data-pd-tab')), on: pdTab() }), 900)); });
-    ok('8 Home\'s panel has no Overview tab, and its old door lands on Jambo', tabs.tabs.join(',') === 'copilot,doc,oblig' && tabs.on === 'copilot', JSON.stringify(tabs));
+    ok('8 Home\'s panel has no Overview tab, and its old door lands on Jambo', tabs.tabs.join(',') === 'copilot,doc,oblig,menu' && tabs.on === 'copilot'   /* + the Menu tab, 15 Oct 2026 */, JSON.stringify(tabs));
     ok('7 no page errors', errs.length === 0, errs.join(' | ').slice(0, 300));
   } finally { await browser.close(); await h.stop(); }
   console.log(`${pass}/${pass + fail} checks passed`);

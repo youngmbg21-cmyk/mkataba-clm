@@ -130,6 +130,16 @@
    History screen moved; no colour or size new or gone in any appearance,
    only counts (green-light 12px 77→80 and 13px 271→272; in dark the same
    colours a few more times). Every other screen and pop-up byte for byte.
+   RE-RECORDED 15 Oct 2026 (second), OWNER-ASKED ("Yes, update it"): the
+   seven fixes and Amend beside the paper. The contract's views went, so the
+   History door opens the Board's contract card; the paper's ⋯ and the
+   Redlines face's foot went; the panel gained the Menu tab. Audited first as
+   a set difference: only Document, Signing, History and Negotiate moved. In
+   light mode one size new to History (16px, the Board's own) and Negotiate's
+   12.5px gone (the foot). In dark the values new to History are the Board's
+   own dark palette (--hb-gw 56,205,184, its ink and line rgba, the amber
+   242,178,76), seen there because History now opens on the Board; gone: the
+   ⋯ icon's fill on three screens. No colour new to the product.
      node test/chromium/ink-wash-verify.js          (check)
    ============================================================ */
 const fs = require('node:fs');

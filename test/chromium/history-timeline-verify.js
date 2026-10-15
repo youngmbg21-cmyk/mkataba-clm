@@ -50,7 +50,10 @@ const ok = (name, good, detail) => {
    History tab went home — its twin is the Board's History view, drawn by the
    room's own painter (roomPaintHistory) into #hb-cv-body[data-hb-cv="hist"]
    with the same inner markup; the room's #ws-history-pane is gone. */
-const HP = '#hb-cv-body[data-hb-cv="hist"]';
+/* RE-POINTED 15 Oct 2026 (owner: the contract's views went; "History is in
+   the board contract card"): the same painter draws the trail on the strip's
+   History page (#bs-strips [data-bs-host="hist"]) */
+const HP = '#bs-strips [data-bs-host="hist"]';
 const PROBE = `(() => {
   const pane = document.querySelector(${JSON.stringify(HP)}) || document.getElementById('ws-history-pane');
   if (!pane) return { mounted: false };
@@ -169,7 +172,7 @@ const PROBE = `(() => {
         { at: at(today), user: 'Amina Otieno', action: 'Staged', detail: 'today' },
       ]);
       /* RE-POINTED 14 Oct 2026 (stage 5): the painter, into the Board's host */
-      const host = document.querySelector('#hb-cv-body[data-hb-cv="hist"]');
+      const host = document.querySelector('#bs-strips [data-bs-host="hist"]');
       if (host) roomPaintHistory(c, host._histF || {}, host); else roomPaintHistory(c);
     }, id);
     await page.waitForTimeout(400);
@@ -317,7 +320,7 @@ const PROBE = `(() => {
 
     /* ================= 8. THE DARK THEME ================= */
     await page.evaluate(i => { if (typeof setDark === 'function') setDark(true);
-      const host = document.querySelector('#hb-cv-body[data-hb-cv="hist"]');
+      const host = document.querySelector('#bs-strips [data-bs-host="hist"]');
       if (host) roomPaintHistory(getContract(i), host._histF || {}, host); else roomPaintHistory(getContract(i)); }, id);
     await page.waitForTimeout(400);
     const d = await page.evaluate(PROBE);

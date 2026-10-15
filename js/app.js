@@ -1166,6 +1166,11 @@ function viewPaint(what, fn){
 }
 let _roomByName=null;   /* the contract whose room was opened BY NAME (openWorkspace's opts.room, step 8) */
 function setView(view){
+  /* ONE CONTRACT'S OBLIGATIONS LAST THE VISIT (15 Oct 2026): only a contract's
+     own door (obOpenOnPage) narrows the Obligations page; arriving any other
+     way, or leaving, ends that narrowing (a repaint of the page, a language
+     switch or a refresh keeps it) */
+  if(typeof window!=='undefined' && typeof window.obwOneEnd==='function' && typeof state!=='undefined' && state && state.view!==view && (view==='obligations' || state.view==='obligations')) window.obwOneEnd();
   /* ---- COPILOT'S WORK IS ON THE BOARD NOW (Young, 7 Oct 2026) ----
      The page's own door is gone; any way in that still names it (a refresh
      restoring it, an old link, a test) lands on the Board with that agent's

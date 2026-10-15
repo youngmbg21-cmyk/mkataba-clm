@@ -214,7 +214,8 @@ const WATCH = () => { window._walk = {}; const tick = () => {
     if (stored) await waitFor(page, () => !document.querySelector('[data-ig-chips] [data-ca-chip="redline"]'), 4000);
     const chips5 = await page.evaluate(() => [...document.querySelectorAll('[data-ig-chips] [data-ca-chip]')].map(b => b.getAttribute('data-ca-chip')));
     check('5c once signed, at once, the chips no longer offer "redline"; obligations takes its place — the face still open',
-      stored >= 1 && chips5.length === 4 && !chips5.includes('redline') && chips5.includes('oblig') && await page.evaluate(() => !!document.getElementById('pd-signface')), JSON.stringify(chips5));
+      /* three since the deal chip went (15 Oct 2026) */
+      stored >= 1 && chips5.length === 3 && !chips5.includes('redline') && chips5.includes('oblig') && await page.evaluate(() => !!document.getElementById('pd-signface')), JSON.stringify(chips5));
     await shot('5c-chips-after-signing');
 
     /* ===== 6. SHARE ===== */
