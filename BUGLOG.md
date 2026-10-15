@@ -20810,3 +20810,15 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - (correction, same day) board-views-verify was NOT red at the parent on GitHub (it failed only locally); it is now rewritten to pin the views' removal and passes.
 
 - Noticed, not fixed (15 Oct 2026): doors-look-like-doors-verify A2 failed once on GitHub after PR #285 merged (the typed counterparty "Changed AB" never reached the record; the value did). It passes 6 of 6 locally on main and at the parent, and the file was not changed. Likely a timing race: the check waits with fixed pauses (pause(300)) instead of asking for the state, against the "a wait asks for the state, bounded" rule.
+
+### Fixed (15 Oct 2026, the review's easy fixes, round one — the owner's "Go")
+- The Board's contract card read the brief as `summary`/`text`, a shape no stored brief has, so it always said there was none; it now asks `triageBriefLine` (f688 (1)).
+- History's "Ours" dropped every trail entry; with Ours alone it now keeps entries written in the name of one of our own people (an upload, a re-file). Entries in HaTi's own name stay out (the other side's signature is written so), and a trail line about one of their changes is matched against the whole timeline and folded away (f688 (3)).
+- The paper put away for the wall, or turned to another contract, now ends the presence beat for the contract that was on it (`pdPresenceLeft`, asked by `igPaperHold` and `igPaintPaper`; Home only) (f688 (4)).
+- A file's underscores read as spaces where it becomes a contract's name (`fileTitleOf`, `srvFileTitleOf`; hyphens kept) (f457 (5)).
+- The signing route's two refusals ("signed out of order", "signing step is already recorded") are in both books (`co_sign_out_of_order`, `co_sign_step_done`) (f688 (9)).
+- Found already fixed, nothing done: Jambo's agents "Not signed in" (49fe226, 13 Oct, after its note); `bd_placed` singular (12 Oct); f385 (6) typed arrow (green).
+- Left on purpose: the re-file and upload confirmations stay silent (the screen already says both: the lit stream choice, the paper opening with its stream); the read-only wording hint (`docReadOnlyHint`) listens on `#doc-canvas`, which no computer draws — where and whether it speaks on Home's paper is the owner's call.
+
+### Noticed, not fixed (15 Oct 2026, the easy fixes, round one)
+- core.js's share-response check still has two English-only refusals ("This response is for … not …", "… is already executed — a share response cannot change it"); kept for round two's Swedish sweep.

@@ -1006,7 +1006,7 @@ function hbCardData(c){
   let blockers = [];
   try { blockers = (typeof signBlockers === 'function' && c.status !== 'Signed') ? (signBlockers(c) || []).map(b => String(b.say || b.text || b.msg || b.why || b.kind || '')).filter(Boolean).slice(0, 4) : []; } catch (_){ blockers = []; }
   const audit = Array.isArray(c.audit) ? c.audit.slice(-4).reverse().map(a => ({ at: a.at || a.date || a.ts || '', what: a.action || '', who: a.user || '' })) : null;
-  const brief = c._brief && (c._brief.summary || c._brief.text) ? String(c._brief.summary || c._brief.text) : null;
+  const brief = (c._brief && typeof triageBriefLine === 'function') ? (triageBriefLine(c._brief) || null) : null;
   return { id: c.id, ref: hbRef(c), name: c.name || '', cp: c.counterparty || '', status: c.status || '',
     side: hbSideOf(c), owner: (typeof contractOwnerName === 'function') ? (contractOwnerName(c) || '') : (c.owner || ''),
     value: money ? Number(c.value || 0) : null, money,

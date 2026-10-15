@@ -1036,12 +1036,14 @@ window.REMOTE=null; // {org, me, users} when a HaTi server is present
    "17.04.01%20BPS…"). A file that came through a web link keeps the link's
    spelling — %20 for a space — so the name is decoded once, where it can be;
    a name that does not decode (a lone % in "50% Rebate.pdf") is kept as it
-   came. The extension goes. A stored name is never rewritten: this is read
-   where a file BECOMES a name, at the upload and the import. */
+   came. The extension goes, and an underscore standing for a space
+   ("Courier_Services_Agreement") is one; a hyphen is kept ("Non-Disclosure").
+   A stored name is never rewritten: this is read where a file BECOMES a name,
+   at the upload and the import. */
 function fileTitleOf(name){
   let s=String(name||'').replace(/\.[^.\/\\]+$/,'');
   if(/%[0-9a-f]{2}/i.test(s)){ try{ s=decodeURIComponent(s); }catch(_){ /* not an encoded name: keep it */ } }
-  return s.replace(/\s+/g,' ').trim();
+  return s.replace(/_+/g,' ').replace(/\s+/g,' ').trim();
 }
 Object.assign(window,{LS,REMOTE,lsGet,lsSet,fileTitleOf});
 
@@ -8702,13 +8704,13 @@ async function applyResponse(c, r, opts={}){
       boundRow=signerPlan(c).find(x=>x && String(x.id)===String(r.signerId))||null;
       if(boundRow){
         if(boundRow.signed){
-          if(!opts.background) toast(`${boundRow.name}'s signing step is already recorded — this signature was not applied again`,'err');
+          if(!opts.background) toast(i18t('co_sign_step_done',{name:boundRow.name}),'err');
           return false;
         }
         const earlier=signerPlan(c).filter(x=>x && (x.order||0)<(boundRow.order||0) && !x.signed)
           .sort((a,b)=>(a.order||0)-(b.order||0));
         if(earlier.length){
-          if(!opts.background) toast(`${r.name} signed out of order — ${earlier[0].name} signs first. Refused rather than filed on the wrong step.`,'err');
+          if(!opts.background) toast(i18t('co_sign_out_of_order',{name:r.name,first:earlier[0].name}),'err');
           return false;
         }
       } else {

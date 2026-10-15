@@ -6987,6 +6987,7 @@ function igPaperHold(id){
   if(typeof window.pdRedSeen==='function') pdRedSeen(id);
   if(typeof window.pdSignSeen==='function') pdSignSeen(id);
   if(typeof window.pdAmendSeen==='function') pdAmendSeen(id);
+  if(typeof window.pdPresenceLeft==='function') pdPresenceLeft(c.id);
   intel.paper={ id:c.id, mode:igHomePaperFace()===true?'paper':'graph', focus:false, pins:[], seq:0, on:null, ...igPaperCost(c) };
   return true;
 }
@@ -7582,6 +7583,7 @@ function igPaintPaper(){
   const homePaper=igHomePaperFace();
   if(!c){
     intel.paper=null;
+    if(typeof window.pdPresenceLeft==='function') pdPresenceLeft(null);
     strip.hidden=true; strip.innerHTML='';
     if(page) page.classList.remove('ig-focus');
     /* HOME'S PAPER SIDE WITH NOTHING CHOSEN YET asks which contract to read */

@@ -8360,11 +8360,20 @@ function _histKey(at,txt){
 }
 function roomHistoryEvents(c,f={}){
   const filtered=Object.values(f||{}).some(v=>v);
+  /* "Ours" ALONE keeps what our own people did (an upload, a fill-in, a
+     re-file): a system entry written in the name of one of our people. An
+     entry in HaTi's own name stays out, because the other side's acts (a
+     signature on their link) are written that way too and the trail does not
+     say whose they were. */
+  const oursOnly=filtered&&Object.keys(f).every(k=>k==='side'?f[k]==='owner':!f[k]);
   const nego=(window.negoTimeline?negoTimeline(c,f):[]).map(e=>({...e,_k:e.kind||'proposed'}));
-  /* System events carry no clause, side or round, so no filter can match one.
-     They drop out the moment a filter is on rather than sitting there looking
-     as though the filter had missed them. */
-  if(filtered) return nego.sort((a,b)=>String(a.at||'').localeCompare(String(b.at||'')));
+  /* System events carry no clause, side or round, so no other filter can
+     match one. They drop out the moment such a filter is on rather than
+     sitting there looking as though the filter had missed them. */
+  if(filtered&&!oursOnly) return nego.sort((a,b)=>String(a.at||'').localeCompare(String(b.at||'')));
+  /* Twins are matched against the WHOLE timeline, so a trail line about one
+     of their changes is folded away under "Ours" too, not shown as ours. */
+  const twinSrc=oursOnly?(window.negoTimeline?negoTimeline(c,{}):[]).map(e=>({...e,_k:e.kind||'proposed'})):nego;
   /* A change id inside a system entry is the strongest signal that it is the
      twin of a negotiation event: the trail writes "#CHG-002 proposed by …".
 
@@ -8380,14 +8389,14 @@ function roomHistoryEvents(c,f={}){
     :/\b(accepted|rejected)\b/i.test(d)?'decided'
     :/\bproposed\b/i.test(d)?'proposed':'';
   const byChange=new Map();
-  nego.forEach(e=>{ if(e.ch&&e.ch.id){
+  twinSrc.forEach(e=>{ if(e.ch&&e.ch.id){
     const id=String(e.ch.id);
     if(!byChange.has(id)) byChange.set(id,{});
     /* First wins per kind: two events of one kind on one change is not a shape
        the timeline produces, and if it ever were, the earlier is the original. */
     if(!byChange.get(id)[e._k]) byChange.get(id)[e._k]=e;
   }});
-  const said=new Map(nego.map(e=>[_histKey(e.at,e.text),e]));
+  const said=new Map(twinSrc.map(e=>[_histKey(e.at,e.text),e]));
   const sys=[];
   (c.audit||[]).forEach(a=>{
     const detail=String(a.detail||'');
@@ -8401,7 +8410,18 @@ function roomHistoryEvents(c,f={}){
     sys.push({ _k:'system', at:a.at||'', actor:a.user||'System',
       text:`${a.action||'Recorded'}${detail?' — '+detail:''}`, clauseLabel:'', round:null, _audit:a });
   });
-  return nego.concat(sys).sort((a,b)=>String(a.at||'').localeCompare(String(b.at||'')));
+  const ours=oursOnly?_histOurPeople():null;
+  const keep=ours?sys.filter(e=>ours.has(String(e.actor||'').trim().toLowerCase())):sys;
+  return nego.concat(keep).sort((a,b)=>String(a.at||'').localeCompare(String(b.at||'')));
+}
+/* The names our own people write the trail under: the workspace's members and
+   whoever is signed in (logAudit writes currentUser's name). */
+function _histOurPeople(){
+  const s=new Set();
+  const add=u=>{ const n=String((u&&u.name)||'').trim().toLowerCase(); if(n) s.add(n); };
+  try{ ((typeof getUsers==='function'?getUsers():[])||[]).forEach(add); }catch(_){}
+  try{ add(typeof currentUser==='function'?currentUser():null); }catch(_){}
+  return s;
 }
 /* A stored clause name on its way to the screen, in the product's one format —
    negotiation.js's own reading, reached through window so a stage without that

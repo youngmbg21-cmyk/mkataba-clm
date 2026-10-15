@@ -166,7 +166,9 @@ describe('F457 (5) — a file\'s name read as a title, never "%20" (item 9)', ()
   const browser = vm.runInNewContext('(' + grab(read('js/core.js'), 'fileTitleOf') + ')');
   const server = vm.runInNewContext('(' + grab(read('server/server.js'), 'srvFileTitleOf') + ')');
   for (const [raw, want] of [['17.04.01%20BPS%20Agreement.pdf', '17.04.01 BPS Agreement'], ['Supply Agreement.docx', 'Supply Agreement'],
-    ['50% Rebate.pdf', '50% Rebate'], ['Lease%2C%20Westlands.docx', 'Lease, Westlands'], ['', '']])
+    ['50% Rebate.pdf', '50% Rebate'], ['Lease%2C%20Westlands.docx', 'Lease, Westlands'], ['', ''],
+    /* an underscore stands for a space; a hyphen is part of the word (15 Oct 2026) */
+    ['Courier_Services_Agreement.docx', 'Courier Services Agreement'], ['Non-Disclosure__Agreement.pdf', 'Non-Disclosure Agreement']])
     test(JSON.stringify(raw), () => { assert.equal(browser(raw), want); assert.equal(server(raw), want, 'the server reads it the same way'); });
   test('every place a file becomes a contract\'s name reads it so', () => {
     assert.match(read('js/views/contract.js'), /const fileBase=ext\?_ctFileTitle\(ext\.file\.name\)/);
