@@ -29485,3 +29485,165 @@ THE CHECKERS' ROUND (15 Oct 2026, the same night). Two checkers read the built s
 - SMALL ONES: a row's ⋯ near the List's foot opens upward when the room below cannot hold it (`regMenuFit`, one builder, so the full table is served too); Value takes 14 parts of the List, not 10 ("KES 2.20M" was cut to "KES 2.20…"), and the Ends words ("in 25 days", "ended") sit under the day on the place, never cut; a number pressed on the Board reads the same on the Wall's count line ("7 of 7 contracts", where it read "6 of 6 contracts · 1 amendment") — only a party's shelf counts by agreement, the amendments beside (`regShowOnly(ids, label, { party: true })`, kept by `regPlacePut`); the archive shelf counts against itself ("1 of 1", not "1 of 8"; `regRestBase`); Jambo's "contracts" puts the tab, filters and search at rest, so "Every contract is here" is true; his help card names contracts, wall and list in both books.
 - LEFT FOR THE OWNER, unchanged: the colour record (ink-wash-verify stays red on its 24 census rows until it is re-taken with the owner's yes — GitHub's check is red on that one file until then); where the old panel's "needs you" checklist lives on a computer (go-aheads' renewal stays staged 20 days out; no check now measures the 34-day case).
 
+
+## CLAUDE.MD TRIM, 15 OCT 2026
+
+Asked by the overnight build's work order (docs/WORKORDER-one-page-finish.md, steps 1–8): bring THE MAP up to date with what was built and keep CLAUDE.md under its 80 KB line. **79,974 → 79,848 bytes.** CLAUDE.md stood at 79,974 bytes with steps 1 and 2 already in it; the builders' proposed MAP lines for steps 3 to 8, as written, would have taken it to about 83,200. Only THE MAP and the three pointer lines at the top of the file were changed — the owner's rules, the Bug Fix Rules, the Six Questions, the Nine Flow Rules, the One-Page Home Plan and the Standing Lessons are untouched. The builders' fuller lines are in the step stories above ("FINISHING THE ONE PAGE — Steps 3 to 6", "— Step 7", "— Step 8").
+
+WHAT CHANGED IN THE MAP
+- Added, short: the upload's one reader and Jambo's drop area (THE UPLOAD), Jambo's tab opening on what is in front — chips, the Draft and New agreement cards, the drop area, "at a glance" (HOME), Contracts as a place on Home, Wall | List (CONTRACTS AND NEGOTIATIONS ARE ONE TABLE), the rail's Contracts opener and Home door (THE SHELL), the stream in Fill in and `ktFolderMove` as the one re-filing writer (THE DETAILS TAB, STREAM ACCESS), the one form from Home and Jambo (NEW AGREEMENT), History's Side in the open (SAP BATCH 3), the strip as a host of Where we are, the Overview's sheet and History (WHERE THE DEAL STANDS, THE OVERVIEW, A LINK LANDS), and the inspector no longer on Contracts (THE LIST INSPECTOR, SAP BATCH 1).
+- REPLACED: "THE CONTRACT ROOM — two tabs, one shell" by "THE LIFELINE STRIP, AND THE ROOM RETIRED" (step 8); the room's names that still hold (`ROOM_TABS` by name, `roomArrivesOnHome`, `contractArrived`, `contractOwnerStamp`, hold, `negoMayStart`, `contractLeavesDrafting`, the ⋯ builder) moved into it.
+- CORRECTED against the code as it stands: the drop's one-at-a-time sentence is `pd_drop_single` (the proposal's `pd_drop_one` was renamed); the ink-wash colour census was NOT re-recorded — test/chromium/ink-wash-verify.js is on KNOWN_RED in test/chromium/run-all.js waiting on the owner's yes (steps 3 and 8 moved its counts; no colour is new), so the step 8 proposal's "re-recorded without the owner's yes" sentence was not taken; CUSTOMER FOLDERS named `igWallShowOnly`, which step 7 retired — Open party now reads `regShowOnly(cuIdsOf(v), name, { party: true })`.
+- STALE, newly (HOME's line now points here): `#hero-draft` on Home; the draft's three option cards and their Use this; the wall's own tabs, sorts and find — `igWall`, `igWallShowOnly`, `igWallBase`, `igWallRows`, `IG_WALL_SORTS`, `IG_WALL_STAGES`, `data-igw-stage`, `data-igw-sort`, `data-ig-pick-find`; the rail's `data-view="register"` / `data-count="register"`; the Board's contract card (a contract is its strip; `hbCardHtml` is only the side sheet's card). Home's older stale names are in its section below, word for word.
+- TRIMMED to make room (each section stands below as it was): a few dates and who-picked-it notes inside lines; `RICH_KEEP_SPACE` and `docxLayoutOf` (THE UPLOAD); counterparty over name in one cell, `.reg-stg-slot` (`regStageSlotFit`), `regDotDate` and the invisible chip selects `.reg-chip-sel` (ONE TABLE); labels bold, answers not (`#ov-ess .ov-ess-g`) and the map's outer `<g transform>` (THE OVERVIEW); Brand lands on Blue once (`brandBlueOnce`), no ☰ hide (`NAV_HIDE_KEY`) and "no capitals on labels", which the TYPE line already says (LOOKS); the button and dropdown rulings' dates (LOOKS); Details' stale names (THE DETAILS TAB); "sentence-case heads" (SAP BATCH 1, said in LOOKS); the second mention of `rlPaintCopilotAnswers` (THE OVERNIGHT RUN; THE TRACKED-CHANGES COLUMN keeps it); the story pointer of BEFORE YOU SIGN (its own words in the line grep to it).
+- POINTERS ONLY, no wording lost: every `MAP-HISTORY "CLAUDE.MD TRIM, <d> OCT 2026"` became `MAP-HISTORY <d> Oct trim`; a bare "Long form: MAP-HISTORY …" pointer was dropped where a grep for the section's heading finds the block (the MAP's opening line now says to grep; list below); runs of "a-verify, b-verify" in Tests lines became "a, b verify", and "verify files" became "verify"; the tails of fifteen headings (who picked it, "story in MAP-HISTORY") were dropped (old headings below). The top of the file's "latest:" line names this trim.
+
+THE TOP OF THE FILE, AS IT STOOD (the three lines changed)
+- (the 27 Sep and 4 Oct 2026 blocks near the end hold every section of this file verbatim as it stood before each trim; the evening trim's three sections follow them, then the night trim's Home section)
+- Each heading is a short form of its MAP-HISTORY heading; the 4 Oct 2026 block there holds the long form of every line below.
+- latest: 87 → under 80 KB, 14 Oct 2026.
+
+THE SECTIONS, WORD FOR WORD AS THEY STOOD BEFORE THIS TRIM
+
+## THE OVERVIEW — READ DOWN, ONE SHEET
+- `js/section.js` the grammar. THE OVERVIEW EDITS AGAIN (owner, 13 Oct 2026, reverses 12 Oct's "reads"): `.ov-top` = Read the brief + Edit these details (`data-ov-edit="all"`, `ovEditing(dealK)`) + Fill from document; + Add a party; `data-ov-go-details` STALE. ESSENTIALS `#ov-ess`: parties `.ov-pty-list`; terms = the EIGHT `OV_ESS_REST` (`ovEssRestHtml`; Edit draws the same eight, `ovEssEditHtml`; the card never grows; an answer two lines max); labels bold, answers not (`#ov-ess .ov-ess-g`); filing on ⋯ (`ovOpenFiling`); parties in Edit = the directory (`participantsDirHtml`). DUTIES map `#ov-map` (`ovMapData` → `ovMapSvg`; node place on an outer `<g transform>`; `ovMapPane`, `ovMapDutyRow`). Related agreements (`renderKeyTermsSide`); `data-ov-route`.
+- Label `tab_overview`, KEY `'terms'`; `ktFactReads(c)`; `signFieldMarks(c)`; `focusKeyTerms`. STALE: MAP-HISTORY 9 Oct trim.
+Tests: f176, f178, f280, f325, f351, f352, f359 (10), f361, f362, f442, duties-map, edit-keeps-the-card, overview-as-drawn, refile-a-contract, overview-and-obligations-polish verify.
+
+## THE UPLOAD
+
+- A file becomes a name through `fileTitleOf` / `srvFileTitleOf`; stored names are never rewritten. Upload asks WHO WE ARE (`up-party`, `uploadPartyOptions` offers never refuses); `uploadDocBody` uses `contractParty(c)`. The received-document header is GONE (`ct_external_received` stale).
+- Structure: `extractWordText` is the ONE door (`docxExtractRich`, `DOCX_PARTS`); numbering is a WALK, never invented (`numStyleLink`, `basedOn`, `docxStyleChain`); a styled heading that is really wording is a paragraph (`docxStyledIsWording`); a structureless file stores no body; `RICH_KEEP_SPACE`. PDFs `extractPdfRich` (text identical to `extractPdfText`); `js/pdfrich.js` has NO CALLER (owner's call). Re-read refuses a sealed or edited record, carries ids (`clauseCarryIds`). `docxLayoutOf` for the signing copy. Word form fields marked (`hati-wfield`).
+- Sidebar counts: plain white, amber only above zero (NAV_COUNT_TONE).
+Tests: f257, f286, f233, f366, f370, upload-party-verify, upload-structure-verify, pdf-structure-verify.
+
+## STREAM ACCESS, PEOPLE, RE-FILING
+
+The server filters every query (`folderScopeFor`); browser `userFolderAccess`, `canAccessFolder`, `visibleFolders()`. A new member is a VIEWER. THE DIRECTORY (js/views/directory.js): a READING, nothing filed — `dirBook` joins users, contacts, participants and `orgDirectory()` by address; `dirFaceHtml`, `dirAzHtml`, `dirPaintPanel`, `dirOpenParty`, `dirPlace`; the phone keeps People (`dirPeople`). Re-filing is an admin's act, delegable (`mayReFile`), guarded as a difference, writes 'Re-filed'. Category and stream are the COMPANY's lists (`PUT /api/settings/filing`, `foldersFromSettings()`); the stream is asked at every creation door. Long form: MAP-HISTORY "CLAUDE.MD TRIM, 13 OCT 2026". Tests: f1, f160, f200, f202, f326, f330, f669, people-directory, refile-a-contract verify.
+
+## THE SHELL — RAIL, BAR, PANELS
+- One white rail (Work · Library · Company); Insights and Contracts OPEN TO THE RIGHT (`data-nav-fold`, `navFoldOpen`/`navFoldCloseAll`); 48px bar; below 1440 the rail FLOATS (`navDrawerActive()`); `#cmd-ai` the one Copilot door, ⌘K stays.
+- COPILOT IS CALLED JAMBO on every label, both books and `SRV_MSG`; code keeps `copilot`; provenance readers take both (`NEGO_PROVENANCE_RE`, `SRV_NEGO_PROVENANCE_RE`); his face `JAMBO_FACE`/`aiFaceHtml`; the window moves (`aiFloat*`, `aiGoEmbedded`).
+- ONE PANEL, THREE FACES (`PANEL_FACES`, `openPanel`): Activity, Alerts (`buildAlerts`), Notes. `pdOpenOnHome`; `placeLanguageSwitch`; `setBrand`/`setDark`. Long form + STALE: MAP-HISTORY 8, 12 and 13 Oct trims.
+Tests: f96, f187, f238, f240, f251, f264, f284, f449, f543, nav-floats, nav-fold, alerts-and-activity, home-page, pages-read-alike, language-switch-stays, jambo-pill-and-window verify.
+
+## HOME — THE BOARD AND THE MAP (js/views/homeboard.js)
+- `HB_FACES` Board · Document (`paper`) · Calendar · Explorer (`.hb-faces`); desktop Home IS Explorer's page (`hbRender`); every number a door (`hbDigData`); ONE reading `hbAskReadingOf`, applier `hbBoardApply`, fact sheet `hbFactSheet`/`hbFactCheck` (server `numbersOutside`); Copilot prepares, you press (js/copilotacts.js, `caActOf`, no model). THE WALL OF PAPER `igPickHtml` → `igWallBodyHtml`; THE TRACK `igTrackSize`/`docTrackPaint`.
+- JAMBO'S WORDS (stage 1): a one-word ask opens a door (`CA_PLACES`, `caReadPlace`, ONE mover `caGo`); "/" `caSlashRows` + `HB_SLASH_PLACES`; chips `caChipLead`, a shut door's chip steps aside (`caChipShut`, `CA_CHIPS_MORE`), redrawn as a face changes the contract (`pdChipsRepaint`); back `caTrailBack`; ⌘K `caPlaceRows`. Panel tabs Copilot · Clauses · Obligations (`PD_TAB_ALIAS`, `pdDocHtml`); Clean | Redline | Their view (`igRedOn`, `igTheirsOn`); the paper's line Notes · Share · ⋯ (`igStripActsHtml`, stage 5); a refresh brings back the open face (`pdFaceNow`).
+- THE CONTRACT'S VIEWS (stage 4): Your book · Deal board · Obligations · History (`hbCvSwitchHtml`; `hbCvPaint` puts the room's own builders in `#hb-cv-body`); ONE door `hbOpenView`; Print · Download · Share (gift kind `cv`, `hbGiftAlerts`); `hbSave` steps a view aside.
+- Board parts: `hbRcShown`, `hbFigSeries`, `hbShelfCards`, `hbPayFigs`, `hbEdgeHtml`, `hbSheetOpen`. STALE: `#hb-bd`, `bd*`, `.hb-recipe`, `data-hb-rc`, `data-hb-lines`, `.hb-ins-row`, `ca_chip_ready`/`_oblig`/`_std`/`_send`. Long form: MAP-HISTORY "CLAUDE.MD TRIM, 14 OCT 2026".
+Tests: f447, f448, f482, f483, f496–f504, f511–f521, f524–f543, f549–f552, f560, f562–f567, f657, f658, f660, f672, f675; board-*/chart-*/home-*/copilot-*, document-wall, jambo-words, board-views, one-page-home-walk (the plan's proof) verify files.
+
+## THE LIST INSPECTOR
+
+js/views/inspector.js (Contracts, Negotiations, Approvals & signing, Obligations, Our standards, Requests): a press SELECTS, a second press (Enter / double-click / the panel's button) OPENS; `insFits()` against `INS_MIN_W` 1040, else the full table; `insForce` a stage override; everything borrowed, nothing writes; `insLatest`; `insParties(c)` only where `partiesMulti`. The checklist `insNeedsHtml` draws `needsYouOf(c)`; `needsYouGo(kind, id)` the one door. THREE DOORS on every list panel (owner, 12 Oct 2026): Document · Negotiation · Workspace from `insDoorActs` (own row `.ins-doors`; page's door filled, none beside a page verb; Negotiation greys via `insNegoDoorState`; each door on ITS contract; Workspace → Home, `roomHomeLand`); "Open contract/negotiation" STALE. Tests: f387, f390, f391, f395, f664, f678, inspector-verify, inspector-checklist-verify.
+
+## THE SAP BENCHMARK, BATCH 1 — THE LISTS (owner-approved 9 Oct 2026; story in MAP-HISTORY)
+- `.sap-page` roots + `.sap-band`: #page-head and the band are ONE white strip; filters are labelled boxes in the band (`.reg-fb`) — on Contracts, Negotiations and Customers they sit BESIDE the tabs, label inside the box (`.reg-tabbar`, owner 10 Oct 2026; reverses 9 Oct's own row there); the list's head `.reg-cardhead` = `regListTitle` + `regSortIconHtml` + Display; sentence-case heads; the panel draws only the drawing's four facts + What Copilot read. Negotiations: whose-move tabs (`negoBandTabsHtml`), `ngStartPickerOpen`. Approvals: `AP_LATE_DAYS` 7, Undo (`approvalUndo`, `AP_UNDO_MS`). Obligations: Filter fold, Unassigned in grey, no facts line (not in `PAGE_HEAD_PAINT`; band = Approvals' height), All the first tab (`OBW_VIEWS`, `OBT_VIEWS`). Long form: MAP-HISTORY. Tests: sap-lists-verify, negotiations-door-verify 12.
+
+## THE SAP BENCHMARK, BATCH 3 — THE CONTRACT ROOM (owner: "Build exactly the drawings of SAP way", 9 Oct 2026; story in MAP-HISTORY)
+- HEAD white (`.room-band`); bar `nav_contracts` (`shellTitleFor`); `.room-cp` initials. SIGNING one panel `.sign-one`, sealed acts on top `#sign-seal-acts` (now Jambo's Before you sign face). WHERE WE ARE (`standsHtml`, server `dealPageHtml`): `dsOwnerActsHtml`, Still open TABLE (`dsWhat`).
+- OBLIGATIONS and HISTORY (the Board's views since stage 5, the same builders): `OBT_VIEWS`, `obWhoCellHtml`; history `#hist-q`, day headings, `histOutcome`, ONE LINE PER DAY (`.hist-trail .hist-ev::before`, phone `.m-hist-line`). `:not(#_)` lifts past the caps list. STALE: `#ws-tabrow-end`, and MAP-HISTORY "THE SAP BENCHMARK, BATCH 3". Long form: MAP-HISTORY "CLAUDE.MD TRIM, 14 OCT 2026".
+Tests: room-tabs-as-drawn; deal-stands, where-we-are, status-link, their-page-parties, history-timeline, nego-redesign verify; f225, f380, f457, f459, f490, f622.
+
+## CUSTOMER FOLDERS — SHELVES, THE SAP WAY (js/views/customers.js; owner 10 Oct 2026; story in MAP-HISTORY)
+- A READING, NOTHING FILED: one shelf per counterparty (`cuCustomers`, `cuKeyOf`), Active/Expired (`cuBucket`), `cuBook`; rail door second; numbers read the filtered set (`cuView`). Open party → Home's wall narrowed, counted as here (`igWallShowOnly(cuIdsOf)`, `igWallCountWords`); Open on Explorer `cuOpenExplorer(key)`. `cuCustomerHtml`, `CU_TABS` STALE. Refresh `cuPlace`; draft prefill `cuDraftFor`. Not on the phone yet.
+Tests: customers, contracts-page 12 verify; f399, f412, f561, f564.
+
+## CONTRACTS AND NEGOTIATIONS ARE ONE TABLE (renderRegister)
+`regSetScope`/`regScope` first; `state.reg`/`state.regNego`; `regRepaint()`; `regFiltered` + `regNarrowed()`; doors land on fresh filters (`regGoFiltered`); Open contract → Home's Document on Copilot (`regOpenContract`; Approvals and Requests alike). Counterparty over name in one cell; `.reg-stg-slot` (`regStageSlotFit`); widths sum to 100; `regDotDate`. The TAB ROW IS THE STAGES (`regStageTabsHtml`, `REG_STAGE_TABS`, `regStageBase`); quick filters + saved views = ONE box `#reg-view-sel` (`regViewOptsHtml`). Filter chips are invisible selects (`.reg-chip-sel`, `selectMenuSweep`). Negotiations: bands by `negWhoseMove`, `negoNeedsYouIds`. `clauseNameShown` the ONE presenting reading; `clauseLabel` builds a RECORD. `aiPageContext`; answers → `regShowOnly`.
+Tests: f97, f240, f258, f281–f283, f324, f346, f350, f378, f379, f397, contracts-page, contracts-stage-tabs, counterparty-leads verify.
+
+## CALENDAR
+A HOME TAB, no rail door (every `setView('calendar')` → `hbOpenCalendar`); drawn into `#hb-cal` (`renderCalendar`); its Copilot is Home's panel (`calPlanHtml`); `calOnScreen()`; count `calendarDoorCount`; refresh `hbPlace` `cal`. One card `#cal-stage` + `#cal-plan`; POST /api/ai/plan, `planBlocksCheck` ≤8; SIX WEEKS FIT THE WINDOW (13 Oct 2026; reverses 9 Oct's scroll for the height): `calFitDays` → `--cal-day-h` 52–76; the key in the filter row (`.cal-bar2-l`). Week Mon–Fri (`CAL_WEEK_DAYS`); empty hour → `calEventDialog`; `calToday()` via `todayISO`. Next 14 days GONE (`calPanelHtml`). Long form: MAP-HISTORY "CLAUDE.MD TRIM, 13 OCT 2026".
+Tests: f80, f83, f261, f458, f641, calendar-on-home, calendar-day, calendar-redesign, calendar-holds-still, my-calendar verify.
+
+## THE CONTRACT ROOM — two tabs, one shell
+- `ROOM_TABS` = Overview (`terms`) · Where we are (`stands`) (stage 5, owner, 14 Oct 2026); Details, Signing, Obligations, History open their twins on Home (`ROOM_TABS_HOME`, `roomTabHome`, `roomOpenAt`; the phone keeps its own), routed by `roomGoTab`; ⋯ is ONE builder `roomMoreMenuHtml` + ONE wiring `roomMenuWire` (the room and Home's paper line). The head is built once; what changes needs a SLOT (`applyWsTabs`, `roomHeadRefresh`).
+- A new draft or upload LANDS ON HOME'S PAPER on Fill in (stage 2): the sites register `roomOpenOnTerms` (f170), `roomArrivesOnHome`, `contractArrived(c,opts)` at every site; `c.owner` (`contractOwnerStamp`); hold `contractSetHold`; `negoMayStart(c)`; `contractLeavesDrafting(c, why)`. Long form: MAP-HISTORY "CLAUDE.MD TRIM, 14 OCT 2026".
+Tests: f91, f148, f170, f184, f198, f241, f278, f301, f380, room-head-fold, history-timeline verify.
+
+## THE DETAILS TAB — THE ONE PLACE A CONTRACT IS FILLED IN (owner, 12 Oct 2026; story in MAP-HISTORY)
+- `detailsOf(c)` the ONE reading of what is owed (the face's count, checklist + bell kind `details`, Contracts filter `details`, the phone `mDetHtml`). The tab went home (stage 5) as FILL IN, BESIDE THE PAPER (stage 2, "Form"): Jambo's face (`pdFillOpen`/`pdFillShows`, `#pd-fillface`) hosting the tab's painters (`detPaintBasics`, `paintContractForm` → `#pd-fill`), `pdFillCounts`, `pdFillEcho`, `pdFillDoneHtml`; every door opens it, `roomGoTab(c,'details')` too.
+- A FORM, nothing else: `#det-basics` (`detBasicsHtml`) and the paper's questions; "Complete the details" `openCompleteDetails` owns no writer. AN EMPTY OWED BOX IS AMBER EVERYWHERE (`needAttrs`/`needMark`, `--need-bg`). STALE: `DET_MORE_TERMS`, `#det-more`, `#kt-det-terms`. Long form: MAP-HISTORY "CLAUDE.MD TRIM, 14 OCT 2026".
+Tests: f148, f170, f442, f673, f676, fill-in-beside-the-paper, fill-the-document, details-as-a-form, create-lands-clean verify.
+
+## WHERE THE DEAL STANDS — ONE PAGE EVERY PARTY READS (js/dealstands.js)
+- THE OVERLAP, NOT THE SUM: only what every party may see — never the review, who was asked, notes, unshared money, advice, or ANY PERSON'S NAME; whose move is a PARTY name.
+- `dealStands(c)` the ONE reading (`dsLive`/`dsOpen`/`dsSettled`/`dsPoints`/`dsLately`), RAW, spends nothing; an inside id is "a clause" (`DS_INSIDE_ID` = `SRV_DS_INSIDE_ID`). ONE builder `standsHtml(c,{head})` on all three surfaces (`opts.mine`, `opts.you`, `ds_foot_*`); `paintStandsPane`; `opts.head` empty until filled.
+- STATUS LINK `GET /deal/:token` from the STORED record (`srvDealStands`); three walls (browser sends `contract:{id}` alone, server reduces to that, `GET /api/shares/:token` refuses a status token 403); `standsOwnerHeadHtml`. Their Where we are = `portalWhereHtml` → `standsHtml`, `portalWhereMineHtml`; copies in More (`portalMoreMenuHtml`). STALE names: MAP-HISTORY "CLAUDE.MD TRIM, 8 OCT 2026".
+Tests: f451, f459 (B), deal-stands-verify, status-link-verify, where-we-are-verify.
+
+## THE THREAD — A DRAWER OVER FORM & LINKS (Young picked Thread, then Drawer, 5 Oct 2026)
+- On Home's Document → Clauses only since 11 Oct 2026 (`docThreadPlace`), drawn as Stakes since 13 Oct (no filter, no head, Plain English only in the open row there). Open row at `DOC_THREAD_LINE` (`docThreadAtLine`, `docThreadGoTo`, `docThreadFill`); filter by WORST mark (`docThreadShown`, room host only); `.doc-th-plain`. PLAIN = ONE clause (`docReadRun(c,{only:[i],out})`; `readEmptyClauseDrop`, `docReadWhyOf`); `docXrayMarks`; `xrWhoSaysSomething`. Hosts `TH_HOSTS`/`thHostFor`/`thOnHome`, `.th-still`, `th_look_n`. Long parts `docReadLongSplit`/`DOC_READ_LONG_WORDS`, `readPiecesOf`/`READ_PIECES_MAX`. Long form + STALE: MAP-HISTORY 7 Oct and 12 Oct trims.
+Tests: f277, f300, f315, f364, f373, f384, f507, f536, f656, thread, thread-drawer, home-paper-clauses, runway-and-xray, reading-in-the-background, xray-who-does-what verify.
+
+## SIGNING — ONE LIST BEFORE THE SIGNATURE
+- `signBlockers(c)` the ONE list for `renderSignButton` and `signDocument` (never desk, never review); `signReadiness(c)` in `SIGN_STAGES`; gate `signCheckGate()` off · advise · require; server `signCheckRefusal`; the brief last (`signCheckBriefStands`). Pad intent line (`openSignaturePad({intent:true})`); an empty value never stamped 'none' (only `nda`).
+- WITH THE OTHER SIDE: a signature is a MARK painted after the render (`pagesSignRows`/`pagesSignMarks`); an open owner ask refuses 409 (`srvSignOpenAsks`, `portalSignHold`); `portalReceiptHtml`.
+- BEFORE YOU SIGN, BESIDE THE PAPER (stage 5, owner picked "Checklist", 14 Oct 2026): Jambo's face (`pdSignOpen`, `#pd-signface`) draws the Signing column's four slots for `renderSignButton`, owns no writer; the signing copy on Home's paper (`igSignOn`, `pdSignPaperPaint`) — no banner word over it (owner, 10 Oct), no Track, its own page arrows and size (`igZoomCornerHtml`, `scEls`), the walk on the paper's line (`signWalkHtml(c,{home})`); pill = `signReadiness` (`pdSignState`); signed, the RECEIPT (`pdSignNextHtml`); a server's answer redraws Home (`contractOnHome`). `pdOpenOnHome(id,'sign')` opens Approvals (the bell: the face). Story: MAP-HISTORY "BEFORE YOU SIGN, BESIDE THE PAPER".
+Tests: f308, f311, f319, f353, f367, f543, f676, signing-flow, sign-beside-the-paper verify.
+
+## A LINK LANDS ON WHAT YOU CAME TO DO
+
+THE OWNER REFUSED A ONE-TIME CODE IN THE MAIL: nothing secret goes to our own staff's inbox (app URL, not token). `contractUrl(req, id, tab, go)`; `saSendApprovalMail` passes `'approval'` on ask · remind · escalate only; `HASH_GO` is the narrow table `openFromHash` resolves (an unknown word is ignored). The arrival scrolls to `#sa-card` and lights it, PRESSES NOTHING, costs no layout, bounded (`HASH_GO_TRIES`). Tests: f445, approval-before-signing-verify 4L.
+
+## NEGOTIATE — FOLDED INTO HOME, AND ITS PAGE (the engine)
+- FOLDED (plan stage 5, owner, 14 Oct 2026): every door through `openRedlineWorkbench` (sealed wall, then `negoBlanksAsk`) lands on Jambo's Redlines face; the page only by name (`{page:true}`, `_rlPageFor`) or on the phone; a bare visit asks `rlHomeTakesIt` in `setView` first; the rail door is the LIST (`openNegotiations`); notices ride the face (`rlFloatingNoticesHtml`); Ask for review `rlReviewDoor` (its label read RAW, `rlReviewDoorState`); Internal | Counterparty = Their view (`igTheirsOn`); the face keeps the page's live probe (`rlLiveHere`), presence (`pdPresenceOn`), watching (`pollWaitingOnThem`) and "‹ Back to Clauses" (`shellCrumbHome`); the paper follows the face SHOWING (`pdRedShows`). The page (`renderRedline`, `redlineLayoutCss`) keeps its head and control row for the checks that open it by name (owner kept them, 14 Oct 2026).
+- The paper wears the design, not its structure (`docDesignPaperAttr`, `rlClauseShape`); insertions wear their side (`rlSideWho`); nothing floats; a card's Send sends that card (`negoHoldOthers`); "Edit clause" `rlEditClausePress`; highlights `rlPaperOfferFromRange` (two clauses: never Edit); the sidebar number `negoNeedsYouTotal`. Long form: MAP-HISTORY "CLAUDE.MD TRIM, 14 OCT 2026".
+Tests: f84, f89, f92–f95, f100, f152, f184, f210, f246, nego-redesign, redline, parity, negotiations-door, focus-*, edit-clause-door, negotiate-as-drawn verify.
+
+## NEW AGREEMENT, DRAFT FROM A SENTENCE, THE FILL FORMS
+
+"+ Draft new agreement" → `openNewDoors`. `openNewAgreement`: the ask on top (`#dr-say`), a search list (`#na-q`, `NA_TABS`, nothing pre-picked, Create greys), the template's questions mounted (`wizardFormMount`, `openContractEssentials`, `openTemplateFillModal`), no paper; rows card ends level with the questions (`fitRows`, `NA_ROWS_MIN_H`/`NA_ROWS_FOOT`); mints nothing. js/draft.js mints nothing: `POST /api/ai/draft`, a value only reaches a declared box (`draftApplyPrefill`), "nothing fits" → Requests. Fill forms draw the paper beside (`fillPreviewFits` ≥1000); `FIELD_GRID_CSS` `minmax(0,1fr)`. Long form: MAP-HISTORY "CLAUDE.MD TRIM, 13 OCT 2026". Tests: f270, f340, f345, f360, f368, new-agreement-verify, form-and-picker-verify.
+
+## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS
+- Tokens in `:root` of index.html; `--radius` 4 / `--radius-lg` 8; Geist screen + read paper (`--font-doc`), Source Serif 4 signing/print; refs via ONE dress `refHtml(c)` (never in PDF, Word, email, toast, `<option>`). A changed font file gets a NEW NAME.
+- Brand lands on Blue once (`brandBlueOnce`). TYPE 400 · `--w-label` · `--w-strong` · `--w-title`; labels sentence case, no tracking. BUTTONS `--ctl-h-sm`/`--ctl-h`/`--ctl-h-lg`, THE SAP WAY (owner picked, 12 Oct 2026: 8px, accent ink, one lift `--btn-lift`; `.hb-btn` alike) but the EDGE is the thin grey hairline again (owner, 13 Oct 2026: `--btn-edge` = `--color-divider`, night `--rule-strong`; the accent only on hover); a dropdown wears NO DARK RING when open (owner, 13 Oct 2026: `select:focus-visible` a faint glow, grey edge kept; `.stk-flt`, `.ce-pick`, `.jh-box` alike); no ☰ hide (`NAV_HIDE_KEY` cleared once); one filled button per area; drawn icons only (f385); words never wrap (f386). `openModal({maxWidth})`, `confirmDialog`; retire a sentence by not calling it (f310).
+- INK WASH: no grey in light mode (black + the theme colour); dark mode, the paper, danger and status colours unchanged; no capitals on labels. Census ink-wash-baseline.json re-recorded ONLY with an owner-asked palette change.
+Tests: f96, f238, f310, f312, f377, f385, f386, f458 (9), contrast, button-consistency, theme-tokens, dark-no-white-patches, one-reference-face, ink-wash verify.
+
+## OTHER PAGES AND SERVICES
+- APPROVALS & SIGNING decides through `approvalDecidableNow`/`approvalDecideAsk` (f344, f466). NOTICE DESK `noticeDraft`; MAILROOM files, does not read; MEMO `negoMemo` (no model).
+- COPILOT'S WORK on the Board (`hbOpenAgent`, `hbAgentWorkHtml` → `agRunAct`); LADDER `auto`·`ask`·`mine`, all start `ask` (`agentLevel`, `AGENT_AUTO_OK` = link only); every run via `runAgent` into `agent_runs`; `HATI_AGENTS_AUTO=off` in tests; NO AGENT SENDS TO THE OTHER SIDE (f413 7c).
+- OUR PROMISES `runOurPromises`. THE BRAIN (js/views/brain.js, js/brainmap.js): `BRAIN_PARTS`, `BRAIN_FILE_REGION`, `brLanesHtml`; STACK view (`BRAIN_STACK_VIEW`, `brStackPaint`, `BR_STACK_TRIPS`, GET /api/brain `stack` via `brainStackRead`, `PLACE_PARTS.brain`). Long form: MAP-HISTORY 9 Oct trim and "THE BRAIN'S FIFTH VIEW: STACK".
+Tests: f274, f322–f324, f344, f358, f390, f399, f400, f412, f413, f560, f564, f659, agents-page, brain-page, brain-lanes, brain-stack, no-link-to-sign verify.
+
+## THE OVERNIGHT RUN (9 Oct 2026) — story in MAP-HISTORY "THE OVERNIGHT RUN, 9 OCT 2026"
+- SEAL ON THE SERVER: `srvSealNow`/`srvSealString` (= `sealString`), `sealPrepStamp`, `srvDrawSealPrep`, `sealPlainText`, `runSealCatchUp`, `srvSendExecutedCopies`. `ourSideAddressOf` = `srvOurSideAddressOf`; `renewTermFill`/`srvAutoRenewFill`; `roundReachedByHand`, `mailKey()`; `linkOpenAsks` = `srvLinkOpenAsks`; `saveDecision`/`decisionFreshen`; `contractDeletable`, `contractReopen`; `negoMayDiscard` = `srvMayDiscard`; `srvPartiesOnPayload`; `rlPaintCopilotAnswers`, `_cePrep`. Long form: MAP-HISTORY 9 Oct and 12 Oct trims. Tests f570, f580–f626, f651.
+
+THE HEADINGS WHOSE TAILS WERE DROPPED, AS THEY STOOD
+- STAKES — THE CLAUSES TAB CARRIES THE DEEP READ (owner picked it, 13 Oct 2026; story in MAP-HISTORY)
+- THE SAP BENCHMARK, BATCH 1 — THE LISTS (owner-approved 9 Oct 2026; story in MAP-HISTORY)
+- THE SAP BENCHMARK, BATCH 2 — THE LIBRARY PAGES (owner's "go", 9 Oct 2026; story in MAP-HISTORY)
+- THE SAP BENCHMARK, BATCH 3 — THE CONTRACT ROOM (owner: "Build exactly the drawings of SAP way", 9 Oct 2026; story in MAP-HISTORY)
+- CUSTOMER FOLDERS — SHELVES, THE SAP WAY (js/views/customers.js; owner 10 Oct 2026; story in MAP-HISTORY)
+- MY NOTES AND MY OWN EVENTS (js/mine.js, js/views/mynotes.js; Young, 10 Oct 2026)
+- THE DETAILS TAB — THE ONE PLACE A CONTRACT IS FILLED IN (owner, 12 Oct 2026; story in MAP-HISTORY)
+- ONE PAPER EVERYWHERE — THE HOME PAPER (owner picked it, 8 Oct 2026: "No differences at all")
+- THE THREAD — A DRAWER OVER FORM & LINKS (Young picked Thread, then Drawer, 5 Oct 2026)
+- OVERVIEW 2 — THE TIME MACHINE (js/views/overview2.js, work order O-36..O-42)
+- RISKS TO LOOK AT — THE RISK SCAN LIVES IN THE REDLINES CARD (js/risks.js; Young picked it 4 Oct 2026)
+- THE POP-UPS, THE SAP WAY (owner's go, 10 Oct 2026; story in MAP-HISTORY)
+- JAMBO'S AGENTS — THE HOUSE AND HIS POINTS (js/views/jambohouse.js; Young, 12 Oct 2026; story in MAP-HISTORY)
+- THE OVERNIGHT RUN (9 Oct 2026) — story in MAP-HISTORY "THE OVERNIGHT RUN, 9 OCT 2026"
+- THE PROCESS REVIEW'S FIXES (4 Oct 2026, owner: "build all the fixes") — story in MAP-HISTORY.md
+
+THE LONG-FORM POINTERS DROPPED (section, as it is headed now → the pointer as it stood)
+- STREAM ACCESS, PEOPLE, RE-FILING → Long form: MAP-HISTORY "CLAUDE.MD TRIM, 13 OCT 2026".
+- STAKES — THE CLAUSES TAB CARRIES THE DEEP READ (13 Oct 2026) → Long form: MAP-HISTORY "CLAUDE.MD TRIM, 14 OCT 2026".
+- INSIGHTS → Long form: MAP-HISTORY "CLAUDE.MD TRIM, 14 OCT 2026".
+- THE SAP BENCHMARK, BATCH 1 — THE LISTS (9 Oct 2026) → Long form: MAP-HISTORY.
+- THE SAP BENCHMARK, BATCH 2 — THE LIBRARY PAGES (9 Oct 2026) → Long form: MAP-HISTORY.
+- THE SAP BENCHMARK, BATCH 3 — THE CONTRACT ROOM (9 Oct 2026) → Long form: MAP-HISTORY "CLAUDE.MD TRIM, 14 OCT 2026".
+- CALENDAR → Long form: MAP-HISTORY "CLAUDE.MD TRIM, 13 OCT 2026".
+- THE DETAILS TAB — THE ONE PLACE A CONTRACT IS FILLED IN (12 Oct 2026) → Long form: MAP-HISTORY "CLAUDE.MD TRIM, 14 OCT 2026".
+- ONE PAPER EVERYWHERE — THE HOME PAPER (8 Oct 2026) → Long form: MAP-HISTORY "CLAUDE.MD TRIM, 14 OCT 2026".
+- THE DOCUMENT TAB, AND THE TWO COPIES (js/pages.js) → Long form: MAP-HISTORY "CLAUDE.MD TRIM, 14 OCT 2026".
+- NEGOTIATE — FOLDED INTO HOME, AND ITS PAGE (the engine) → Long form: MAP-HISTORY "CLAUDE.MD TRIM, 14 OCT 2026".
+- THE TRACKED-CHANGES COLUMN → Long form: MAP-HISTORY "CLAUDE.MD TRIM, 14 OCT 2026".
+- THE CLAUSE PANEL AND THE LADDER → Long form: MAP-HISTORY "CLAUDE.MD TRIM, 14 OCT 2026".
+- NEW AGREEMENT, DRAFT FROM A SENTENCE, THE FILL FORMS → Long form: MAP-HISTORY "CLAUDE.MD TRIM, 13 OCT 2026".
+- OVERVIEW 2 — THE TIME MACHINE (js/views/overview2.js) → Long form: MAP-HISTORY.
+- OUR STANDARDS, THE PLAYBOOK, PREPARE REDLINES → Long form: MAP-HISTORY "CLAUDE.MD TRIM, 14 OCT 2026".
+- JAMBO'S AGENTS — THE HOUSE AND HIS POINTS (js/views/jambohouse.js) → Long form: MAP-HISTORY "CLAUDE.MD TRIM, 14 OCT 2026".
