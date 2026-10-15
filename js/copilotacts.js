@@ -958,7 +958,8 @@ const CA_PLACES = [
   { k: 'oblig', need: 'any', w: ['obligations', 'duties', 'åtaganden', 'skyldigheter'] },
   { k: 'history', need: 'any', w: ['history', 'trail', 'historik', 'historiken'] },
   { k: 'board', w: ['board', 'tavla', 'tavlan'] },
-  { k: 'document', w: ['document', 'paper', 'dokument', 'dokumentet', 'papperet', 'pappret'] },
+  /* the tab is called Workspace since 15 Oct 2026 (owner): its name opens it, and the old words still do */
+  { k: 'document', w: ['workspace', 'the workspace', 'arbetsyta', 'arbetsytan', 'document', 'paper', 'dokument', 'dokumentet', 'papperet', 'pappret'] },
   { k: 'calendar', w: ['calendar', 'kalender', 'kalendern'] },
   { k: 'explorer', w: ['explorer', 'utforskaren'] },
   /* THE CONTRACTS PLACE (the overnight work order, step 7): "contracts" opens

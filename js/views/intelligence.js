@@ -1670,17 +1670,27 @@ function igRoleSays(role, fact){
 function igChoiceButtons(fact){
   return [['group',fact],['floors',fact],['colour',fact]].map(([role,f])=>({ label:igRoleSays(role,f).replace(/\.$/,''), acts:[{ role, fact:f }].concat(role==='floors'?[{ view:2 }]:[]) }));
 }
-function igViewsRead(){ try{ const v=JSON.parse(localStorage.getItem(IG_VIEWS_KEY)||'[]'); return Array.isArray(v)?v:[]; }catch(_){ return []; } }
+/* ONE VIEW PER NAME (owner, 15 Oct 2026: "ensure the functionality is
+   sound" — two views both called "Value" stood side by side): the newest of
+   a name is the one kept, so a store written before the fix reads as one. */
+function igViewsRead(){ try{ const v=JSON.parse(localStorage.getItem(IG_VIEWS_KEY)||'[]'); if(!Array.isArray(v)) return [];
+  const seen=new Set(); return v.slice().reverse().filter(x=>{ if(!x||!x.name) return false; const k=_igNorm(x.name); if(seen.has(k)) return false; seen.add(k); return true; }).reverse(); }catch(_){ return []; } }
 function igViewsWrite(list){ try{ localStorage.setItem(IG_VIEWS_KEY, JSON.stringify(list.slice(-IG_VIEWS_MAX))); return true; }catch(_){ return false; } }
 function igViewName(){ const bits=[graphGroupingWord(intel.groupBy)].concat(igRecipeSays()).concat(intel.lenses.filter(l=>l.on).map(l=>l.label)); const s=bits.join(' · '); return s.charAt(0).toUpperCase()+s.slice(1); }
 /* Recipes are saved without their ids' badges' prose, and a lens keeps its
    ids: a saved view opened next week shows the same contracts it named. */
 function igViewSave(name){
-  const list=igViewsRead().filter(v=>v.name!==name);
-  list.push({ name:name||igViewName(), recipe:igRecipeNow(), at:(typeof todayISO==='function')?todayISO():'' });
-  return igViewsWrite(list)?(name||list[list.length-1].name):null;
+  /* the name is settled FIRST, so a view saved without one (it names itself,
+     igViewName) replaces its namesake instead of standing beside it */
+  const nm=name||igViewName(), k=_igNorm(nm);
+  const list=igViewsRead().filter(v=>_igNorm(v.name)!==k);
+  list.push({ name:nm, recipe:igRecipeNow(), at:(typeof todayISO==='function')?todayISO():'' });
+  return igViewsWrite(list)?nm:null;
 }
-function igViewFind(name){ const n=_igNorm(name); return igViewsRead().slice().reverse().find(v=>_igNorm(v.name)===n||_igNorm(v.name).startsWith(n)||_igNorm(v.name).includes(n))||null; }
+/* a name said whole wins over one it only starts or sits inside: opening
+   "Value" never opens a newer "Value · Customers" */
+function igViewFind(name){ const n=_igNorm(name), L=igViewsRead().slice().reverse();
+  return L.find(v=>_igNorm(v.name)===n)||L.find(v=>_igNorm(v.name).startsWith(n))||L.find(v=>_igNorm(v.name).includes(n))||null; }
 /* THE STARTING VIEW (Young, 4 Oct 2026: "reset" always comes back here):
    grouped by value stream, small dots, names on, nothing folded by a person,
    no bundle, no names on the edges. The lenses are "everything"'s. */
@@ -6704,9 +6714,9 @@ function renderIntelDock(){
         return top+(msgs||(top?'':`<div class="ig-welcome text-[12.5px] text-ink/50 leading-relaxed pt-2">${i18t('int_notebook_welcome')}</div>`)); })()}
       ${typing}
     </div>`}
-    ${''/* SAVED VIEWS — the reader's own recipes, one press each (the view
-           recipe, 28 Sep 2026). Drawn only when there is one. */}
-    ${(()=>{ const v=(window.pdShowsDesk&&pdShowsDesk())?[]:igViewsRead(); return v.length?`<div class="px-3.5 pb-1.5 shrink-0 flex flex-wrap items-center gap-1.5" data-ig-views><span class="text-[10.5px] text-ink/40">${i18t('int_saved_views')}</span>${v.slice(-4).reverse().map(x=>`<button type="button" data-ig-saved="${igEsc(x.name)}" title="${igEsc(x.name)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 px-2.5 py-1 text-brand-700 transition text-left" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${igEsc(x.name)}</button>`).join('')}</div>`:''; })()}
+    ${''/* SAVED VIEWS LEFT THE PANEL (owner, 15 Oct 2026): they stand on the
+           Board's head beside Make a pack (hbSavedViewsHtml), and a press
+           opens the view on Explorer, where the map is. */}
     ${(!intel.history.length||igHomePaperFace()===true)&&!(window.pdShowsDesk&&pdShowsDesk())?`
     <div class="px-3.5 pb-2 shrink-0 flex flex-wrap gap-1.5" data-ig-chips>
       ${(typeof window.caChipsHtml==='function'&&caChipsHtml())||((state.view==='dashboard'&&typeof hbSuggestions==='function'&&hbSuggestions())||IG_SUGGESTIONS.slice(0,3)).map(s=>`<button data-igsug="${igEsc(s)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${igEsc(s)}</button>`).join('')}
@@ -6809,8 +6819,7 @@ function renderIntelDock(){
     /* a choice on Home's board is that card's recipe, pressed through the board's one applier (work order Part 6) */
     if(Array.isArray(c.board)&&typeof window.hbChoicePress==='function'){ const out=hbChoicePress(c); if(out) intel.history.push(Object.assign({ role:'assistant', text:out.html }, out.undo?{ undo:out.undo }:{})); renderIntelDock(); return; }
     igRecipeRun({ acts:c.acts }); renderIntelDock(); updateIntelNote(); }));
-  dock.querySelectorAll('[data-ig-saved]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
-    const name=b.getAttribute('data-ig-saved'); intel.history.push({ role:'user', text:name }); igRecipeRun({ acts:[{ open:name }] }); renderIntelDock(); updateIntelNote(); }));
+
   dock.querySelectorAll('[data-ig-list]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
     const m=intel.history[Number(b.getAttribute('data-ig-list'))]; if(!m||!m.listIds||typeof regShowOnly!=='function') return;
     regShowOnly(m.listIds.filter(id=>getContract(id)), m.listTitle||i18t(IG_TAB_LABEL.map)); }));

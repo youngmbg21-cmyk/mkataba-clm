@@ -29741,3 +29741,42 @@ with Workspace (filled) where they led with Document. `ins_door_doc` stays
 as a word: the People directory's contract chips use it as their hover.
 Tests re-pointed: f664, f387 (2c, 2k, 3c), f678 2c, inspector-verify 3d/3e,
 sap-lists-verify 2c, every-door-lands-on-home-verify (the doors row).
+
+## THE TAB IS CALLED WORKSPACE, AND SAVED VIEWS MOVE TO THE BOARD (owner, 15 Oct 2026)
+
+The owner: "go with your suggestion on this 'Rename the tab Workspace and
+leave those sentences alone … I'd still rename Workspace status to System
+status' and delete saved views function … from the panel and add it on top
+of the board next to Make a pack. Also ensure the functionality is sound."
+
+THE TAB. Home's Document face reads Workspace (sv Arbetsyta), the word the
+Workspace doors on the lists, the Board's cards and the row menus already
+used for the place they open. Every sentence that sent the reader to it by
+name follows ("Open it in Workspace", "Read all 3 in Workspace", "Back to
+Workspace", the Brain's part names). "Workspace status" at the foot of the
+rail is "System status" (sv Systemstatus). Left alone on purpose: the about
+forty sentences where "workspace" means the company's account (sign-in,
+admin: "Create your workspace", "not a member of this workspace"); the
+phone's own Document tab; Explorer's Graph | Document switch off Home (the
+paper view of the map, not this tab). Jambo opens the tab on "workspace" and
+"arbetsyta" as well as the old words.
+
+SAVED VIEWS. They were the map's own saved recipes (igViewsRead, kept in
+this browser) drawn as chips in Jambo's panel; pressed there, Jambo said
+"Opened …" while the map stayed off screen, and a view saved without a name
+stood twice under the same name ("Value", "Value"), because igViewSave
+filtered on the name it was GIVEN (none) before naming the view itself. Now:
+- The panel draws none. The Board's head carries "Saved views ▾" beside
+  Make a pack (hbSavedViewsHtml), only where one is saved; it opens and
+  shuts like a card's ⋯ (the same _hbToolsMenu: pressed again, Esc or a
+  press outside). A row opens Explorer with that view (hbOpenSavedView: the
+  face turns first, its arrival setting the Board's lens on the map, then
+  the recipe is laid over it with one step on the map's Undo; nothing is
+  said in Jambo's conversation).
+- One view per name: igViewSave settles the name before filtering;
+  igViewsRead keeps the newest of a name, so a store written before the fix
+  reads as one. igViewFind prefers the whole name, so "Value" never opens a
+  newer "Value · Customers".
+Tests: explorer-recipe-verify 6a, 6a2, 6b, 6c (re-pointed from the panel's
+chips; 6a and 6c are red at the parent), home-first-verify 1a.
+CLAUDE.md: 79,989 → 80,000 bytes (lines amended and tightened, none added).

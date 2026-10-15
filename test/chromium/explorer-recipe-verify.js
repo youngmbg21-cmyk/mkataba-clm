@@ -112,13 +112,35 @@ const check = (name, pass, detail) => {
     /* ================= 6. SAVED VIEWS ========================================= */
     await ask('floors by governing law');
     await ask('save this view as Law floors');
-    const chip = await until(() => { const b = document.querySelector('#ig-dock [data-ig-saved="Law floors"]'); return b ? b.textContent.trim() : null; });
-    check('6a "save this view as Law floors" keeps it, and a press on its chip is there', chip === 'Law floors', chip);
+    /* RE-POINTED 15 Oct 2026 (owner: "delete saved views function ... from the
+       panel and add it on top of the board next to Make a pack. Also ensure
+       the functionality is sound"): the views stand on the Board's head, one
+       button, a row each; a row opens Explorer with that view */
+    const VIEWS = '[data-hb-tools-more="views|board"]';
+    const toBoard = async () => { await page.evaluate(() => hbSetFace('board')); await until(() => hbFace() === 'board' && !!document.querySelector('.hb-note') ? true : null); };
+    await toBoard();
+    if (await page.$(VIEWS)) await page.click(VIEWS);
+    const row = await until(() => { const b = document.querySelector('.hb-views-menu [data-hb-sview="Law floors"]'); return b ? b.textContent.trim() : null; });
+    const dock = await page.evaluate(() => !!document.querySelector('#ig-dock [data-ig-views], #ig-dock [data-ig-saved]'));
+    check('6a "save this view as Law floors" keeps it: a row under Saved views on the Board, none left in Jambo\'s panel', /Law floors/.test(row || '') && !dock, JSON.stringify({ row, dock }));
+    if (await page.$(VIEWS)) await page.click(VIEWS);
+    const shut = await until(() => !document.querySelector('.hb-views-menu') ? true : null);
+    check('6a2 pressed again, the list shuts', !!shut);
+    await page.evaluate(() => hbSetFace('explorer'));
     await ask('floors by owner');
-    await page.click('#ig-dock [data-ig-saved="Law floors"]');
-    const back = await until(() => intel.floorsBy === 'law' ? intel.floorsBy : null);
-    check('6b pressing the saved view brings its recipe back', back === 'law', back);
+    await toBoard();
+    if (await page.$(VIEWS)) await page.click(VIEWS);
+    await until(() => document.querySelector('.hb-views-menu [data-hb-sview="Law floors"]') ? true : null);
+    const said0 = await page.evaluate(() => intel.history.length);
+    if (await page.$('.hb-views-menu [data-hb-sview="Law floors"]')) await page.click('.hb-views-menu [data-hb-sview="Law floors"]');
+    const back = await until(() => hbFace() === 'explorer' && intel.floorsBy === 'law' ? intel.floorsBy : null);
+    const said1 = await page.evaluate(() => intel.history.length);
+    check('6b a row opens Explorer with the saved view on the map, and says nothing in Jambo\'s conversation', back === 'law' && said1 === said0, JSON.stringify({ back, said0, said1 }));
     await page.screenshot({ path: path.join(OUT, '6-saved-view.png') });
+    /* a view saved twice without a name is ONE view (the panel showed "Value" twice) */
+    await ask('save this view'); await ask('save this view');
+    const names = await page.evaluate(() => igViewsRead().map(v => v.name));
+    check('6c a view saved twice under its own name is kept once', names.length === new Set(names.map(n => n.toLowerCase())).size, JSON.stringify(names));
 
     /* ================= 7. A WORDING QUESTION IS NOT THE MAP'S ================ */
     const map0 = await page.evaluate(() => JSON.stringify({ f: intel.floorsBy, g: intel.groupBy, l: intel.lenses.length }));

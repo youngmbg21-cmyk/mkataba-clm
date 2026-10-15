@@ -10101,6 +10101,8 @@
   .hb-tools-w{position:relative;flex:none;display:inline-flex;align-items:center}
   .hb-open-tools{align-items:center}
   .hb-tools-menu{min-width:220px}
+  /* Saved views on the Board's head (15 Oct 2026): the word and its caret on one line */
+  .hb-views-w .hb-btn{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
   .hb-pmenu{position:absolute;right:0;top:calc(100% + 4px);z-index:5;min-width:180px;display:flex;flex-direction:column;padding:4px;border:1px solid rgba(var(--hb-ln),.3);border-radius:var(--radius);background:var(--hb-menu);box-shadow:0 8px 24px rgba(0,0,0,.25)}
   .hb-pmenu button{all:unset;cursor:pointer;padding:6px 10px;border-radius:var(--radius);font-size:var(--t-meta);color:var(--hb-ink);white-space:nowrap}
   .hb-pmenu button:hover,.hb-pmenu button:focus-visible{background:rgba(var(--hb-ln),.14)}
@@ -13925,9 +13927,9 @@
          handle both close it. The card's ids are untouched, so
          updateSidebarStatus writes exactly where it always wrote. -->
     <div class="foot-wrap" id="foot-wrap" style="position:relative;border-top:1px solid var(--color-divider);">
-      <button id="foot-toggle" type="button" class="foot-handle" aria-expanded="false" aria-controls="foot-sheet" title="Workspace status" data-i18n-title="foot_status_title">
+      <button id="foot-toggle" type="button" class="foot-handle" aria-expanded="false" aria-controls="foot-sheet" title="System status" data-i18n-title="foot_status_title">
         <span class="live-ping status-pulse" style="width:7px;height:7px;border-radius:50%;background:#10b981;flex:none;"></span>
-        <span class="foot-card-title" data-i18n="foot_status_title">Workspace status</span>
+        <span class="foot-card-title" data-i18n="foot_status_title">System status</span>
         <svg class="foot-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"/></svg>
       </button>
       <div id="foot-sheet" class="foot-sheet" aria-hidden="true">
