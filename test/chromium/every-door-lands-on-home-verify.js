@@ -455,7 +455,7 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
        presses (insNeedsHtml draws needsYouOf) ---- */
     const NEED = {
       details: id => ({ expect: E.fill(id), says: SAYS.fill }),
-      approval: (id, view) => ({ expect: E.page('approvals'), says: 'the Approvals list (the checklist keeps its door: the owner moved the bell only)', same: view === 'approvals' }),
+      approval: id => ({ expect: E.signing(id), says: SAYS.signing + ' (as the bell\'s row: owner, 15 Oct 2026)' }),
       refused: id => ({ expect: E.signing(id), says: SAYS.signing }), sign: id => ({ expect: E.signing(id), says: SAYS.signing }),
       quiet: id => ({ expect: E.red(id), says: SAYS.red }), review: id => ({ expect: E.red(id), says: SAYS.red }), suggest: id => ({ expect: E.red(id), says: SAYS.red }),
       look: (id, view) => ({ expect: L => L.view === view && !L.room, says: 'answered where it stands (Done)', same: true }),

@@ -332,3 +332,12 @@ time on this branch; the owner merges in the morning.
   (and its "needs you" checklist), its nine-column table and its Signed
   column are no longer drawn on a computer (the Signed sort and filter
   stay). Story: MAP-HISTORY "FINISHING THE ONE PAGE — Step 7".
+
+- **The owner's answers after the merge (15 Oct 2026).** "Read the brief" on
+  the strip's What Jambo read; Signed back on the Contracts List; the
+  checklist's approval row opens Before you sign, as the bell's does; a tap
+  on Contracts opens the place alone (a second tap, the fly-out); Details in
+  the strip's ⋯. Kept as they were: the renewal more than 30 days away, the
+  stream asked at the drop, and the drop area's and Jambo's tab's text sizes
+  (already Jambo's panel's own). Story: MAP-HISTORY "THE OWNER'S EIGHT
+  ANSWERS, 15 OCT 2026".

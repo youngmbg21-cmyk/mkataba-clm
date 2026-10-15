@@ -29,8 +29,8 @@
        count line counts the set the way Parties counted it (agreements, an
        amendment said beside them); the place's one set chip has a drawn ×.
    (4) THE BELL'S APPROVAL ROW OPENS BEFORE YOU SIGN through the walls
-       (roomOpenAt 'sign'); the side panel's checklist keeps its door to the
-       Approvals page (the owner moved the bell only).
+       (roomOpenAt 'sign'); so does the side panel's checklist row since 15
+       Oct 2026 (the owner: "go with your suggestions").
    (5) THE CENSUS RUNS IN CI and a PENDING row never fails it.
    AT THE PARENT (9cf3a18) (1)–(4) fail: roomHomeLand and igWallShowOnly do
    not exist, obOpenContract opens the paper's panel tab, the bell opens the
@@ -272,8 +272,11 @@ describe('f678 (4) the bell\'s approval row opens Before you sign', () => {
     assert.match(row[1], /^ if\(window\.roomOpenAt\) roomOpenAt\(x\.c\.id,'sign'\);/);
     assert.doesNotMatch(row[1], /pdOpenOnHome/);
   });
-  test('4b the side panel\'s checklist keeps its door (the owner moved the bell only)', () => {
-    assert.match(HOME, /if\(kind==='approval'\)\{ if\(window\.pdOpenOnHome&&pdOpenOnHome\(c\.id,'sign'\)\) return true;/);
+  test('4b the side panel\'s checklist row lands there too (owner, 15 Oct 2026): through the walls, never the Approvals page', () => {
+    const row = HOME.match(/if\(kind==='approval'\)\{([^\n]*)\n/);
+    assert.ok(row, 'the row');
+    assert.match(row[1], /^ if\(window\.roomOpenAt\) roomOpenAt\(c\.id,'sign'\);/);
+    assert.doesNotMatch(row[1], /pdOpenOnHome/);
   });
 });
 

@@ -19,9 +19,9 @@
        Home draws the name, the facts line, the filter boxes (Stream · Quick
        filters · Category · Adapt filters), the six stage tabs and Wall | List;
        the Wall is #ig-wall of the very rows the List holds; the List is the
-       same table with no inspector, its six columns the drawing's (Ref ·
-       Counterparty and agreement · Stage · Owner · Ends · Value) and the row's
-       own ⋯ after them, a row's one press opening the paper; a host that is
+       same table with no inspector, its columns the drawing's six (Ref ·
+       Counterparty and agreement · Stage · Owner · Ends · Value) with Signed
+       back before Ends (owner, 15 Oct 2026) and the row's own ⋯ after them, a row's one press opening the paper; a host that is
        gone draws nothing, never a list over another page.
    (3) THE RAIL: the fold holds Negotiations and Parties, the Contracts item
        and its count are gone, the opener keeps its name and is the Contracts
@@ -153,10 +153,10 @@ describe('f687 (2) one head, one set of tabs and filters, Wall | List', () => {
     const { win, doc } = world('list');
     assert.ok(!doc.getElementById('ins-panel') && !doc.querySelector('[data-ins-page]'), 'no inspector, nothing for its width watcher');
     assert.equal(win.regInspecting(), false, 'even where the inspector would fit');
-    assert.deepEqual(J(win.regColKeys()), ['mk', 'counterparty', 'stage', 'owner', 'expiry', 'value', 'acts']);
+    assert.deepEqual(J(win.regColKeys()), ['mk', 'counterparty', 'stage', 'owner', 'signed', 'expiry', 'value', 'acts']);
     assert.equal(win.REG_COL_W_HOME.reduce((a, b) => a + b, 0), 100, 'the widths sum to 100');
     const heads = [...doc.querySelectorAll('[data-reg-home] .reg-table thead th')].map(th => th.textContent.trim().replace(/[▲▼]/g, '').trim());
-    assert.deepEqual(heads, ['Ref', 'Counterparty and agreement', 'Stage', 'Owner', 'Ends', 'Value', ''], 'the drawing\'s six, the ⋯ unheaded');
+    assert.deepEqual(heads, ['Ref', 'Counterparty and agreement', 'Stage', 'Owner', 'Signed', 'Ends', 'Value', ''], 'the drawing\'s six, Signed back before Ends (owner, 15 Oct 2026), the ⋯ unheaded');
     assert.equal(doc.querySelectorAll('#reg-tbody [data-row] [data-menu]').length, 3, 'every row keeps its ⋯');
     assert.ok(!doc.getElementById('ig-wall'), 'no wall on the List');
     /* the same builder: its Display cog is the page's, Table · Board, density and the amendment fold (f387 4g) */
@@ -220,8 +220,11 @@ describe('f687 (3) the rail: the fold keeps Negotiations and Parties; the opener
      mouse press covered the place's own head, so a pointer that can hover
      gets the place alone (navFoldRest, until it leaves the row); the keyboard
      and a touch screen still get the fly-out from the press */
-  test('3b a press on the opener opens the place; the fly-out too only for the keyboard or a screen with no hover; pressed again on the place, the fly-out shuts', () => {
-    assert.match(APP, /const k=opener\.getAttribute\('data-nav-fold-open'\);\s*if\(f\.classList\.contains\('is-open'\) && \(k!=='register' \|\| \(window\.regPlaceUp&&regPlaceUp\(\)\)\)\) navFoldCloseAll\(\);\s*else if\(k!=='register'\) navFoldOpen\(f, e\.detail===0\);\s*else \{ setView\('register'\); if\(navFoldPressFlies\(e\)\) navFoldOpen\(f, e\.detail===0\); else navFoldRest\(f\); \}/);
+  test('3b a press on the opener opens the place; the fly-out too for the keyboard, or a tap ON the place on a screen with no hover; pressed again on the place, the fly-out shuts', () => {
+    /* RE-POINTED 15 Oct 2026 (owner: "go with your suggestions"): a TOUCH from
+       anywhere else opens the place alone; a touch ON the place brings the
+       fly-out (nav-fold-verify 7a–7c press it); the keyboard keeps both */
+    assert.match(APP, /const k=opener\.getAttribute\('data-nav-fold-open'\);\s*const here=k==='register' && !!\(window\.regPlaceUp&&regPlaceUp\(\)\);\s*if\(f\.classList\.contains\('is-open'\) && \(k!=='register' \|\| here\)\) navFoldCloseAll\(\);\s*else if\(k!=='register'\) navFoldOpen\(f, e\.detail===0\);\s*else \{ setView\('register'\);\s*if\(!navFoldPressFlies\(e\)\) navFoldRest\(f\);\s*else if\(e\.detail===0 \|\| here\) navFoldOpen\(f, e\.detail===0\);\s*else navFoldCloseAll\(\); \}/);
     const src = APP.slice(APP.indexOf('function navFoldPressFlies('), APP.indexOf('function wireNavFolds('));
     const flies = hover => { const ctx = { matchMedia: () => ({ matches: hover }) }; vm.createContext(ctx);
       vm.runInContext(src.replace(/function navFoldRest[\s\S]*$/, '') + '\nthis.f=navFoldPressFlies;', ctx); return ctx.f; };

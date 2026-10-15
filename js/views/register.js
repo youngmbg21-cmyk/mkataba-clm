@@ -672,12 +672,18 @@ const REG_INS_COL_PX = { mk:84, stage:216, move:216, value:124, round:72, change
    the one place a row's acts live (Decline · close has no other door).
    Its cell is 6 parts, not the full table's 3: Home's paper is narrower than
    the page was, and at 1024 three parts cut the ⋯ square (button-consistency 1c). */
-const REG_COL_KEYS_HOME = ['mk','counterparty','stage','owner','expiry','value','acts'];
+/* SIGNED CAME BACK (owner, 15 Oct 2026: "go with your suggestions" — the
+   column asked for on 31 Aug had gone with the drawing's six): the day it was
+   signed, immediately before Ends, as on the full table. */
+const REG_COL_KEYS_HOME = ['mk','counterparty','stage','owner','signed','expiry','value','acts'];
 /* Value is 14, not 10 (the checkers of step 7): at 10 parts of a 900px column
    "KES 2.20M" was cut to "KES 2.20…", hiding whether it was thousands or
    millions; the four parts come out of the counterparty, whose names end in an
-   ellipsis with the whole on the hover. */
-const REG_COL_W_HOME    = [9,25,17,14,15,14,6];
+   ellipsis with the whole on the hover. Signed's parts came out of the
+   counterparty, Ends (its words sit under the day, so the day is the width
+   it needs) and Value; Owner kept enough for a full name — measured at the
+   owner's three screens (signed-and-columns-verify). */
+const REG_COL_W_HOME    = [9,18,16,14,12,12,13,6];
 /* THE PLACE'S LIST FITS ITS COLUMN: Home's paper column can be narrow (an
    820 tablet, a 1024 window, the split dragged toward the paper), so below
    REG_HOME_NARROW_W of PLACE — measured, the host's own width — the List

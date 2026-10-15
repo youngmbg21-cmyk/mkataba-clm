@@ -18,7 +18,8 @@
      5. on any of the three pages the row wears "you are here" and the
         fly-out stays shut once the pointer leaves
      6. the keyboard opens it (Enter), moves in it, and Esc shuts it
-     7. a screen with no hover opens it with a tap on the row
+     7. a screen with no hover: the first tap opens Contracts alone, a tap
+        on the place brings the fly-out, a third shuts it (owner, 15 Oct 2026)
      8. no page errors
    RE-POINTED AT STEP 7 OF THE OVERNIGHT WORK ORDER (15 Oct 2026): the fold
    keeps only Negotiations and Parties; its Contracts item went, and the
@@ -152,10 +153,22 @@ const VIS = `el => !!el && el.getClientRects().length > 0 && getComputedStyle(el
     const touch = await (await browser.newContext({ viewport: { width: 1280, height: 900 }, hasTouch: true, isMobile: true })).newPage();
     await login(touch);
     const t0 = await read(touch);
-    await touch.tap('#side-nav [data-nav-fold-open="register"]').catch(() => touch.click('#side-nav [data-nav-fold-open="register"]'));
-    await touch.waitForTimeout(400);
-    const t1 = await read(touch);
-    check('7. a screen with no hover: a tap on the row opens the fly-out', !t0.nego && t1.nego && t1.parties && !t1.item, JSON.stringify({ before: t0.nego, after: t1 }));
+    /* A TAP OPENS THE PLACE ALONE (owner, 15 Oct 2026): the first tap from
+       elsewhere opens Contracts with nothing over it; a tap ON the place
+       brings the fly-out; a third shuts it */
+    const tapRow = () => touch.tap('#side-nav [data-nav-fold-open="register"]').catch(() => touch.click('#side-nav [data-nav-fold-open="register"]'));
+    const placeUp = () => touch.evaluate(() => !!(window.regPlaceUp && regPlaceUp()));
+    const tapWait = async want => { for (let i = 0; i < 30; i++) { const r = await read(touch); if (want(r)) return r; await touch.waitForTimeout(100); } return read(touch); };
+    await tapRow();
+    const t1 = await tapWait(r => !r.nego);
+    const up1 = await placeUp();
+    check('7a. a screen with no hover: the first tap opens Contracts alone, no fly-out over it', !t0.nego && up1 && !t1.nego && !t1.parties, JSON.stringify({ before: t0.nego, up1, after: t1 }));
+    await tapRow();
+    const t2 = await tapWait(r => r.nego && r.parties);
+    check('7b. a tap ON Contracts brings the fly-out: Negotiations and Parties, no Contracts item', t2.nego && t2.parties && !t2.item && (await placeUp()), JSON.stringify(t2));
+    await tapRow();
+    const t3 = await tapWait(r => !r.nego);
+    check('7c. tapped again, it shuts, and Contracts stays', !t3.nego && (await placeUp()), JSON.stringify(t3));
   } catch (e) {
     console.log('ERROR', e && e.stack || e); failures++;
   } finally {

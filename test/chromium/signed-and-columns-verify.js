@@ -83,27 +83,59 @@ const check = (name, ok, detail) => {
     /* RE-POINTED (21 Sep 2026): eleven since Move and Own joined — asked as
        the relation to the seat's own key list, never a count. */
     /* RE-POINTED 15 Oct 2026 (the overnight work order, step 7): the List of
-       Home's Contracts place draws its own seat's keys — the drawing's six
-       (Ref · Counterparty and agreement · Stage · Owner · Ends · Value) and
-       the row's ⋯ — asked of REG_COL_KEYS_HOME, never a count.
-       THE SIGNED COLUMN IS NOT ONE OF THEM (the drawing, version 4, owner's
-       "Go", 14 Oct 2026). It was the full table's, which the page drew only
-       below the inspector's width since 26 Sep; the place draws no inspector
-       and no full table, so its subject is gone on the computer. RETIRED with
-       it: "Signed is drawn, and immediately before Expiry", "and it is a
-       painted box", and section 2's three cell checks (a real day, an
-       em-dash, the legacy string). What stays is asked below: the Signed
-       SORT and the Signed FILTER, read off each row's own signed day
-       (regSignedOn — the reading the column printed). */
+       Home's Contracts place draws its own seat's keys, asked of
+       REG_COL_KEYS_HOME, never a count. SIGNED CAME BACK THE SAME DAY (owner:
+       "go with your suggestions" — the column asked for on 31 Aug had gone
+       with the drawing's six), so the checks step 7 retired with it are
+       restored here, asked of the List: drawn immediately before Ends, a
+       painted box, a real day or an em-dash in every cell. */
     const nKeys = await page.evaluate(() => REG_COL_KEYS_HOME.length);
     check('the Contracts List head draws one column per key of its own seat', head.n === nKeys, JSON.stringify(head.text));
-    check('and no Signed column, as the drawing has it', !head.text.some(t => /^Signed$/i.test(t)), JSON.stringify(head.text));
-    /* each row's own signed day, by the reading the column printed */
+    /* Ends is found by its own sort key (the column's identity), never by its words */
+    const iSig = head.text.findIndex(t => /^Signed$/i.test(t));
+    const iExp = await page.evaluate(() => [...document.querySelectorAll('.reg-table thead th')]
+      .findIndex(t => t.getAttribute('data-reg-sort') === 'expiry'));
+    check('Signed is drawn, and immediately before Ends', iSig >= 0 && iExp === iSig + 1, `signed@${iSig} expiry@${iExp}`);
+    check('and it is a painted box, not merely present', head.widths[iSig] > 40, head.widths[iSig] + 'px');
+    /* each row's own signed day, by the reading the column prints */
     const SIGNED_OF = `[...document.querySelectorAll('tr[data-row]')].map(tr => {
       const c = state.contracts.find(x => String(x.id) === tr.getAttribute('data-row'));
       return (c && regSignedOn(c)) || '—'; })`;
 
-    /* ============ 2. THE CELLS — RETIRED with the column (above) ============ */
+    /* ============ 2. THE CELLS: A DATE, AND AN EM-DASH ============ */
+    const cells = await page.evaluate(i => [...document.querySelectorAll('tr[data-row]')].slice(0, 12)
+      .map(tr => tr.children[i] ? tr.children[i].textContent.trim() : null).filter(t => t != null), iSig);
+    /* the day as the product prints it (`30 Jun 2027`, the month following the
+       LANGUAGE), asked as a pattern rather than one spelling */
+    const DAY = /\d{1,2}\s+\p{L}+\.?\s+\d{4}/u;
+    check('a signed contract prints a real day', cells.some(t => DAY.test(t)), JSON.stringify(cells.slice(0, 4)));
+    check('and one that is not signed prints an em-dash, never an empty cell', cells.some(t => t === '—'), JSON.stringify(cells.slice(0, 4)));
+    check('the legacy display string reads as a real date too', cells.some(t => DAY.test(t) && /2026/.test(t)), JSON.stringify(cells.slice(0, 4)));
+    /* NOTHING IN THE LIST IS CUT AT THE OWNER'S THREE SCREENS: the day, the
+       end, the value, the stage and the owner's name each fit their cell
+       (the counterparty is the give: its name may end in an ellipsis, the
+       whole on the hover) */
+    for (const [w, hh] of [[1440, 780], [1536, 730], [1366, 950]]) {
+      await page.setViewportSize({ width: w, height: hh });
+      await page.waitForTimeout(500);
+      const cut = await page.evaluate(() => {
+        const keys = regColKeys(), out = [];
+        for (const tr of [...document.querySelectorAll('#reg-tbody tr[data-row]')].slice(0, 20))
+          [...tr.children].forEach((td, i) => { const k = keys[i];
+            if (!['signed', 'expiry', 'value', 'stage', 'mk', 'owner'].includes(k)) return;
+            /* strict: an ellipsis is drawn at ONE pixel over (measured: "Amina
+               Otieno" at 80 in a 79px box read "Amina Otie…") */
+            const inner = [...td.querySelectorAll('*')].concat(td).some(el => el.scrollWidth > el.clientWidth && getComputedStyle(el).overflow !== 'visible')
+              || td.scrollWidth > td.clientWidth;
+            if (inner) out.push(k + ':' + td.textContent.trim().slice(0, 30)); });
+        return { narrow: regHomeNarrow(), keys: keys.join(','), cut: out.slice(0, 6) };
+      });
+      check(`at ${w}×${hh} the List draws Signed and cuts no day, end, value, stage or owner`, !cut.narrow && /signed,expiry/.test(cut.keys) && !cut.cut.length, JSON.stringify(cut));
+      await page.screenshot({ path: path.join(OUT, `02-list-${w}.png`) });
+    }
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.waitForTimeout(400);
+
     /* ============ 3. NO SIDEWAYS SCROLL, AT EVERY LAPTOP WIDTH ============ */
     for (const wpx of [1280, 1366, 1440, 1500]) {
       await page.setViewportSize({ width: wpx, height: 900 });

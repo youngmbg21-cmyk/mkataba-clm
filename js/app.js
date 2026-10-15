@@ -2442,7 +2442,8 @@ function buildAlerts(){
        for the bell only): Jambo's face beside that contract's paper, which
        carries the approval asked of you (Approve · Reject) — through the walls
        (roomOpenAt: the phone keeps its own Signing tab). The Approvals page
-       stays on the rail, and the side panel's checklist keeps its door. */
+       stays on the rail; the side panel's checklist row lands here too since
+       15 Oct 2026 (needsYouGo). */
     (D.myApprovals||[]).filter(x=>x.mine).forEach(x=>push('approval',x.c,
       i18t('al_approval'),()=>{ if(window.roomOpenAt) roomOpenAt(x.c.id,'sign'); else { openWorkspace(x.c.id); if(window.roomGoTab) try{ roomGoTab(x.c,'sign'); }catch(_){} } }));
     /* AND A REFUSAL COMES BACK TO THE PERSON WHO ASKED (23 Sep 2026): the
@@ -3873,12 +3874,21 @@ function wireShell(){
        fly-out shut until it leaves the row (navFoldRest — the fly-out had
        covered the place's head); the keyboard and a touch screen get the
        place AND the fly-out with Negotiations and Parties (the one way to
-       them there), and pressed again ON the place the fly-out shuts. */
+       them there), and pressed again ON the place the fly-out shuts.
+       A TAP OPENS THE PLACE ALONE (owner, 15 Oct 2026: "go with your
+       suggestions" — on the iPad the fly-out came up over the place with
+       every tap): a touch from anywhere else opens the place and nothing
+       over it; a touch ON the place brings the fly-out; again, it shuts. The
+       keyboard keeps the place and the fly-out together. */
     const opener=e.target.closest('[data-nav-fold-open]');
     if(opener){ const f=opener.closest('.nav-fold'); if(f){ const k=opener.getAttribute('data-nav-fold-open');
-      if(f.classList.contains('is-open') && (k!=='register' || (window.regPlaceUp&&regPlaceUp()))) navFoldCloseAll();
+      const here=k==='register' && !!(window.regPlaceUp&&regPlaceUp());
+      if(f.classList.contains('is-open') && (k!=='register' || here)) navFoldCloseAll();
       else if(k!=='register') navFoldOpen(f, e.detail===0);
-      else { setView('register'); if(navFoldPressFlies(e)) navFoldOpen(f, e.detail===0); else navFoldRest(f); } } return; }
+      else { setView('register');
+        if(!navFoldPressFlies(e)) navFoldRest(f);
+        else if(e.detail===0 || here) navFoldOpen(f, e.detail===0);
+        else navFoldCloseAll(); } } return; }
     const btn=e.target.closest('[data-view]');
     if(btn){ navFoldCloseAll();
       const v=btn.getAttribute('data-view');
