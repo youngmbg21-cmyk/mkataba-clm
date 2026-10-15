@@ -17,10 +17,15 @@
 const _bd = { busy: false, err: '', runFor: null, tried: {} };
 const _bdE = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 function bdHash(c){ try { return (typeof triageWordingHash === 'function') ? String(triageWordingHash(c) || '') : ''; } catch (_){ return ''; } }
-/* the kept reading, only while it is the reading of THESE words */
+/* THE READING FOLLOWS THE READER (owner, 15 Oct 2026: "Make the deep dive
+   answer in the reader's language"): Jambo writes it in the reader's language
+   (the server's readLangOf), and the reading keeps that language — one made
+   before carries none and was written in English */
+function bdLang(){ try { return (typeof langId === 'function' && langId()) || 'en'; } catch (_){ return 'en'; } }
+/* the kept reading, only while it is the reading of THESE words, in THIS reader's language */
 function bdOf(c){
   const b = c && c.breakdown;
-  return (b && b.ok && Array.isArray(b.regions) && b.hash === bdHash(c)) ? b : null;
+  return (b && b.ok && Array.isArray(b.regions) && b.hash === bdHash(c) && (b.lang || 'en') === bdLang()) ? b : null;
 }
 function bdStale(c){ const b = c && c.breakdown; return !!(b && b.ok && b.hash !== bdHash(c)); }
 function bdText(c){
@@ -40,11 +45,17 @@ async function bdRun(c){
     if (!(typeof API_MODE === 'function' && API_MODE() && state.aiConfigured)) throw new Error(i18t('bd_no_key'));
     const r = await api('ai/breakdown', 'POST', { text }, { quiet: true });
     if (!r || !Array.isArray(r.regions) || !r.regions.length) throw new Error((r && r.error) || i18t('bd_failed'));
-    live.breakdown = { ok: true, hash: bdHash(live), at: (typeof nowISO === 'function') ? nowISO() : new Date().toISOString(),
+    live.breakdown = { ok: true, hash: bdHash(live), lang: r.lang || 'en', at: (typeof nowISO === 'function') ? nowISO() : new Date().toISOString(),
       head: r.head || '', sub: r.sub || '', regions: r.regions, links: Array.isArray(r.links) ? r.links : [],
       points: Array.isArray(r.points) ? r.points : [],
       dropped: Number(r.dropped) || 0, truncated: !!r.truncated };
     if (typeof persist === 'function') persist(live);
+    /* the reading in one language replaced the other's: that language may read
+       again on its next opening (a switch there and back in one sitting). By
+       the contract, not the hash: a paper drawn from a template hashes
+       differently in each language */
+    const mine = stkKey(live), base = String(live.id) + ':';
+    Object.keys(_bd.tried).forEach(k => { if (k !== mine && k.startsWith(base)) delete _bd.tried[k]; });
   } catch (e){
     _bd.err = (e && e.message) || i18t('bd_failed');
   }
@@ -91,7 +102,7 @@ function stkRowFor(p, nums){
 function stkTone(p){ return p && p.region ? ' stk-r' + (((p.region - 1) % STK_REGION_TONES) + 1) : ''; }
 /* the reading this list owes: none of these words yet, or one made before the deep read */
 const stkOwed = c => !stkOf(c);
-const stkKey = c => String(c && c.id) + ':' + bdHash(c);
+const stkKey = c => String(c && c.id) + ':' + bdHash(c) + ':' + bdLang();
 /* THE POINTS AND WHO FOUND THEM (owner, 13 Oct 2026, as drawn: Region ·
    Severity · Found by): Jambo's company read, and every standard this
    contract departs from or lacks, from the KEPT standards check (c.playbook,
@@ -299,7 +310,8 @@ async function stkDiveFetch(c, p){
     const r = await api('ai/breakdown/point', 'POST', { text: bdText(live), point: { title: p.title, clause: p.clause, stake: p.stake, quote: p.quote, missing: !!p.missing, after: p.after || '' } }, { quiet: true });
     if (!r || r.error) throw new Error((r && r.error) || i18t('bd_failed'));
     const b = live.breakdown, at = b && Array.isArray(b.points) ? b.points[p._i] : null;
-    if (at && b.hash === (bdOf(c) || {}).hash){
+    /* kept only on the reading it was asked for: these words, and the language it came back in */
+    if (at && b.hash === (bdOf(c) || {}).hash && (b.lang || 'en') === (r.lang || 'en')){
       ['what', 'theirs', 'usual', 'figure', 'how', 'push', 'ask'].forEach(f => { at[f] = String(r[f] || ''); });
       at.edge = Array.isArray(r.edge) ? r.edge : []; at.trade = Array.isArray(r.trade) ? r.trade : []; at._dove = true;
       if (typeof persist === 'function') persist(live);

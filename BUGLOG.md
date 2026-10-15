@@ -20803,6 +20803,8 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - friction-fits-the-screen-verify drew nothing at 1440 on one GitHub run (run 38699309179, shard 1: "not drawn", 15 of 46 red) and passed on the other run of the same commit, at 1920 in the same run, and locally 46/46: a wait in it reads the Friction tab before it has painted on a slow runner.
 ### Noticed, not fixed (15 Oct 2026, PR 283's checks, second note)
 - one-page-home-walk-verify step 4a went red on one GitHub run of ebf99df ("elementHandle.click: Element is not attached to the DOM" on the Redlines face's Edit door) and passed on the other run of the same code and locally 19/19: it holds an element handle across a repaint instead of pressing by selector.
+### Noticed, not fixed (15 Oct 2026, the deep dive in the reader's language)
+- triageWordingHash (= playbookHashOf) of a contract drawn from a template is not the same in English and Swedish (6 of 6 seeded fixtures; an upload's is): a language switch looks like new wording to every reading keyed on it, so the arrival read (triageNeedsRead) and the standards check may count as owed again after a switch. Measured with a probe, not fixed.
 ### Noticed, not fixed (15 Oct 2026, the seven fixes and Amend beside the paper)
 - board-views-verify describes the contract's views the owner removed today and was already red at the parent (1 passed, 3 failed); left as it was — retiring it is the owner's call. The views' builders (hbCvSwitchHtml, hbCvPaint, hbCvPrint, hbCvDownload, hbCvGive, the 'cv' gift kind) are no longer reached from the Board and stay in the code unremoved.
 - notes-two-rooms-verify is 88/92 before and after this round (on KNOWN_RED); unchanged.
@@ -20834,3 +20836,5 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - six-round-audit needs re-pointing from the retired Negotiate page (#view-redline #rl-doc) to the Redlines face before any of its six rounds can run.
 - Many other server refusals still reach a Swedish screen in English (srvMsg passes them through); round two translated only the signing path's.
 - The signing check's own list items inside the server's refusal ("a departure from our standards (…)") are English words; srvMsg keeps them verbatim inside the Swedish sentence.
+### Noticed, not fixed (15 Oct 2026, PR 287's checks)
+- jambo-agents-verify step 11b2 went red on one GitHub run of 937bd72a (run 38774712143: "bottom":739 in a 600 window, the 760 window's measure) and passed on the other run of the same commit (38774684638) and locally 78/78: it reads the house before the resize to 600 has refitted it.
