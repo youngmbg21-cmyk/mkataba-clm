@@ -79,7 +79,7 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
        [data-doc-col="details"] column, its #pd-fill the old #tplform-section.
        Waited for by THIS contract's id: the last contract's face can still be
        up for a beat. */
-    await page.evaluate(() => { openWorkspace('MK-DO1'); roomGoTab(getContract('MK-DO1'), 'details'); });
+    await page.evaluate(() => { openWorkspace('MK-DO1', { room: true }); roomGoTab(getContract('MK-DO1'), 'details'); });
     await until(() => !!document.querySelector('#pd-fillface .pd-ff[data-pd-ff="MK-DO1"] #det-basics [data-cd-key]'));
     const det = await page.evaluate(() => ({
       keys: [...document.querySelectorAll('#det-basics [data-cd-key]')].map(e => e.getAttribute('data-cd-key')),
@@ -105,8 +105,11 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
     /* ===== 4. THE OVERVIEW EDITS AGAIN ===== */
     /* RE-POINTED 14 Oct 2026 (stage 5): Details is on Home now, so the
        Overview is reached by opening the room first, then its tab */
-    await page.evaluate(() => { openWorkspace('MK-DO1'); roomGoTab(getContract('MK-DO1'), 'terms'); });
-    await until(() => !!document.querySelector('#kt-ov-terms #ov-ess'));
+    /* RE-POINTED 15 Oct 2026 (step 8, the room retired): the Overview's sheet
+       is the contract strip's Details page on Home's Board, opened by its one
+       door (roomOverviewOpen) — and it reads what Details just saved */
+    await page.evaluate(() => { roomOverviewOpen(getContract('MK-DO1')); });
+    await until(() => !!document.querySelector('[data-bs-host="details"][data-bs-cid="MK-DO1"] #kt-ov-terms #ov-ess'));
     const ov = await page.evaluate(() => ({ edit: !!document.querySelector('#kt-ov-terms [data-ov-edit="all"]'),
       add: !!document.querySelector('#kt-ov-terms [data-py-add]'), door: !!document.querySelector('#kt-ov-terms [data-ov-go-details]'),
       reads: /Nordic Bites AB/.test((document.getElementById('ov-ess') || {}).textContent || '') }));

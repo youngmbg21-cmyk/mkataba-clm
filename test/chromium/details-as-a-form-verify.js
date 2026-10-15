@@ -65,7 +65,7 @@ const check = (name, pass, detail) => {
        root .pd-ff[data-pd-ff="MK-DF1"] (the old [data-doc-col="details"]
        column); the face's scroller #pd-fillface is the column's one scroll
        (the old #doc-right); the tab's count is the face's own "N left" pill. */
-    await page.evaluate(() => { openWorkspace('MK-DF1'); roomGoTab(getContract('MK-DF1'), 'details'); });
+    await page.evaluate(() => { openWorkspace('MK-DF1', { room: true }); roomGoTab(getContract('MK-DF1'), 'details'); });
     const up = await until(() => !!document.querySelector('#pd-fillface .pd-ff[data-pd-ff="MK-DF1"] #pd-fill [data-tplf]'));
     if (!up) { check('0 the Details tab draws its form', false); throw new Error('not drawn'); }
 

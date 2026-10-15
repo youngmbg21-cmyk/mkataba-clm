@@ -20773,3 +20773,9 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - On Home's wall narrowed to a party, a closed (Declined) contract of that party is drawn and counted but has no stage chip of its own; it shows only under All.
 - Obligations' "Show it in the contract" calls openWorkspace before turning to Home's paper, so the room is drawn on the way (the door census prints it as PENDING step 8).
 - The side panel's checklist rows for a renewal, a given note and a request to join still open the room (needsYouGo falls through to openWorkspace); the door census prints them as PENDING step 8.
+
+### Noticed, not fixed (15 Oct 2026, the overnight work order, step 8 — the Lifeline strip, the room retires)
+- The Board side list's contract sheet (hbSheetHtml → hbCardHtml) reads the brief as c._brief.summary or c._brief.text, but a stored brief is { data: { overview, … } }, so that card always says there is no brief (triageBriefLine is the reading that knows the shape).
+- The pop-out history record (openHistoryTimeline, #ht-f-side) and the counterparty's read-only copy still offer Side as a dropdown among their filters, while the Board's History (and the strip's) now has Side in the open as All sides · Ours · Theirs.
+- Under a Side choice the trail drops every system entry (uploaded, filled in, read): roomHistoryEvents keeps only negotiation events once any filter is on, so "Ours" does not show our own uploads.
+- A narrow Contracts table row's ⋯ "PDF" (regRunRowAct's last else) opens the contract through openWorkspace, which now brings up its strip on the Board rather than a PDF.

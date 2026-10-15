@@ -93,7 +93,7 @@ const check = (name, pass, detail) => {
     check('5c. Undo puts it back to review', !!reopened);
 
     /* 6. a contract's ⋯ menu */
-    await page.evaluate(() => openWorkspace('MK-A2'));
+    await page.evaluate(() => openWorkspace('MK-A2', { room: true }));
     await until(() => !!document.getElementById('ws-mynote'));
     await page.evaluate(() => document.getElementById('ws-mynote').click());
     const fromRoom = await until(() => state.view === 'mynotes' && document.querySelector('.mn-chosen') ? document.querySelector('.mn-chosen').textContent.replace(/\s+/g, ' ').trim() : null);

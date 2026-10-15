@@ -2159,7 +2159,8 @@ function triageAndPaint(c, opts){
    press repaints the same surfaces through the same one list. */
 function triageRepaintSurfaces(x){
       if(!x) return;
-      if(window.contractOnScreen && !contractOnScreen(x)) return;
+      /* the Overview's sheet may stand on the Board (the strip's Details, step 8) */
+      if(window.contractOnScreen && !(window.contractOverviewShown ? contractOverviewShown(x) : contractOnScreen(x))) return;
       if(document.getElementById('kt-rows')) renderKeyTerms(x);
       if(document.getElementById('kt-side')) renderKeyTermsSide(x);
       if(document.getElementById('kt-triage-slot')) paintKtTriage(x);
@@ -4531,8 +4532,7 @@ function focusKeyTerms(c, field){
   /* EVERY FIELD WAS FILLED IN ON DETAILS (owner, 12 Oct 2026); since stage 5
      the boxes Fill in does not ask are the Overview's Edit (the posture set
      above), in the room — opened first where the reader is elsewhere. */
-  if(!(state.view==='workspace'&&String(state.activeId)===String(c.id))&&window.openWorkspace) openWorkspace(c.id);
-  roomGoTab(c,'terms');
+  roomOverviewOpen(c);
   /* AND THE POSTURE HAS TO BE PAINTED, THEN WAITED FOR. Measured in a browser,
      twice:
        · setting the two flags is not enough — `roomGoTab` is a NO-OP when the
@@ -4606,9 +4606,11 @@ function ovOpenFiling(c){
   ovSetEditing(OV_KEY(c,'record'), true);
   /* the More menu stands over Home's paper too since stage 5 of the one-page
      Home plan: the filing rows are the Overview's, so the room is opened
-     first where the reader is elsewhere (the posture above is drawn by it) */
-  if(!(state.view==='workspace'&&String(state.activeId)===String(c.id))&&window.openWorkspace) openWorkspace(c.id);
-  roomGoTab(c,'terms');
+     first where the reader is elsewhere (the posture above is drawn by it).
+     SINCE STEP 8 THE ROOM IS RETIRED: the Overview's sheet is the contract
+     strip's Details page on the Board (roomOverviewOpen), the room only by
+     name or on the phone. */
+  roomOverviewOpen(c);
   let tries=0;
   const land=()=>{ const sec=document.getElementById('ov-record');
     if(!sec){ try{ if(document.getElementById('kt-ov-terms')) renderKeyTerms(c); }catch(_){} }
@@ -4617,6 +4619,44 @@ function ovOpenFiling(c){
     if(++tries<KT_FOCUS_TRIES) setTimeout(land,120); };
   setTimeout(land,60);
 }
+/* ---- THE OVERVIEW'S SHEET, WHEREVER IT IS DRAWN (the overnight work order,
+   step 8; owner's "Go", 14 Oct 2026: "the room retires") ----
+   The room's Overview — Edit these details, Fill from document, the parties
+   and signers, the duties map, the renewal card, the filing rows, people on
+   this contract, related agreements — is not lost with the room: it is the
+   contract strip's Details page on the Board (js/views/boardstrip.js), the
+   same two hosts painted by the same painters. ovSheetPaint fills a host;
+   roomOverviewOpen is the one door every caller that wanted "the Overview of
+   this contract" now presses: the room where it is open by name (or on the
+   phone, where the strip is not), else the strip. */
+function ovSheetPaint(c,host){
+  if(!c||!host) return;
+  /* the arrival reading's strip leads, as in the room: its Read again and
+     Try again are the only doors onto a stale or failed reading */
+  host.innerHTML='<div id="kt-triage-slot"></div><div class="ov-stack" id="kt-overview"><div id="kt-ov-terms"></div><div id="kt-side"></div></div>';
+  try{ paintKtTriage(c); }catch(_){}
+  renderKeyTermsSide(c); renderKeyTerms(c);
+  if(window.wireKtParties) wireKtParties(c);
+  /* a renewal's Decide asked for every reading again (roomReadOnArrival) */
+  if(roomReadAgainDue(c)) triageAndPaint(c,{ again:true, fresh:true });
+}
+function ovRecordOpen(c){ if(c) ovSetEditing(OV_KEY(c,'record'), true); }
+function roomOverviewOpen(c){
+  if(!c) return false;
+  if(state.view==='workspace'&&String(state.activeId)===String(c.id)){ roomGoTab(c,'terms'); return true; }
+  if(window.roomRetiredLand&&roomRetiredLand(c.id,'details')){
+    /* the strip's host is filled after its paint; asked again so a posture
+       set just now (Edit, the filing rows) is the one drawn */
+    const host=document.querySelector(`[data-bs-host="details"][data-bs-cid="${CSS.escape(String(c.id))}"]`);
+    if(host) ovSheetPaint(getContract(c.id)||c,host);
+    return true;
+  }
+  if(window.openWorkspace) openWorkspace(c.id);
+  roomGoTab(c,'terms');
+  return true;
+}
+/* published beside their definitions (the file's export list stays the one at its end) */
+Object.assign(window, { ovSheetPaint, ovRecordOpen, roomOverviewOpen, ovEssRestCells });
 /* ---- Document workspace right-panel: two tabs (Screening | Signing) --------
    Screening (default while a contract is in progress) stacks Playbook review →
    Insert clause → Copilot Contract Scan, with a "Next: Signing" button. Signing
@@ -5401,6 +5441,12 @@ function roomGoTab(c,k){
     else if(window.toast) toast(i18t('ct_workbench_unavailable'),'err');
     return;
   }
+  /* ---- THE ROOM IS RETIRED (the overnight work order, step 8; owner's "Go",
+     14 Oct 2026) ---- its two tabs open the contract's strip on the Board:
+     Overview, or Where we are for 'stands'. Inside the room opened by name
+     (state.view 'workspace') a tab is still a pane swap; the phone keeps its
+     own screens (roomRetiredLand says false there). */
+  if((k==='terms'||k==='stands') && state.view!=='workspace' && window.roomRetiredLand && roomRetiredLand(c.id,k)) return;
   if(state.view==='redline'){
     _wsTabWant=k;
     if(window.openWorkspace) openWorkspace(c.id);
@@ -7003,15 +7049,21 @@ async function ovRenewTermAsk(id){
   persist(now);
   try{ await flushSaves(); }catch(_){}
   toast(i18t('ov_rn_term_saved',{ n }),'ok');
-  try{ if(window.contractOnScreen&&contractOnScreen(now)) renderKeyTerms(now); }catch(_){}
+  try{ if(window.contractOverviewShown&&contractOverviewShown(now)) renderKeyTerms(now); }catch(_){}
 }
 if(typeof document!=='undefined') document.addEventListener('click',e=>{
   const b=e.target&&e.target.closest&&e.target.closest('[data-ov-renew-term]'); if(!b) return;
   e.preventDefault(); ovRenewTermAsk(b.getAttribute('data-ov-renew-term'));
 });
-function ovEssRestHtml(c,marks){
+/* THE EIGHT AS CELLS, ONE READING FOR TWO SURFACES (step 8, 15 Oct 2026):
+   the Overview's grid draws them and the Lifeline strip's Key terms lists
+   them (js/views/boardstrip.js), so the strip cannot say a term the sheet
+   does not. Each cell carries its key (`_key`). */
+function ovEssRestHtml(c,marks){ return sectionFieldsHtml(ovEssRestCells(c,marks)); }
+function ovEssRestCells(c,marks){
   const cells=OV_ESS_REST.map(k=>{
     const cell=ktFieldCell(c,k,false,marks); if(!cell) return null;
+    cell._key=k;
     if(k==='renewalType'){ cell[0]=i18t('ov_f_renewal'); cell[1]=ovEssRenewalRead(c);
       /* the renewal term's door rides the cell's own line under it (a hold, below, wins it) */
       const door=ovRenewTermDoorHtml(c,ovMapRenewal(c)); if(door&&!cell[4]) cell[4]=`<span class="sec-f-n">${door}</span>`; }
@@ -7026,7 +7078,7 @@ function ovEssRestHtml(c,marks){
   });
   const shown=new Set(OV_ESS_REST.concat(...Object.values(OV_ESS_REST_PEERS)));
   const held=marks?OV_ESS_FIELDS.filter(k=>!shown.has(k)&&(ovFieldMarkOf(marks,k)||{}).holds):[];
-  return sectionFieldsHtml(cells.concat(held.map(k=>ktFieldCell(c,k,false,marks))).filter(Boolean));
+  return cells.concat(held.map(k=>{ const x=ktFieldCell(c,k,false,marks); if(x) x._key=k; return x; })).filter(Boolean);
 }
 /* ---- THE EIGHT IN EDIT TOO (Young, 9 Oct 2026: "for the terms field,
    there should be no more fields than what is in image 1. Delete all else")
@@ -7977,7 +8029,12 @@ function wireKtBriefCard(c,opts){
          2026, the overnight clean-up): the brief is stored on `c` either way;
          where the reader has moved on, nothing here repaints another
          contract's page or opens this contract's panel over it. */
-      if(!(window.contractOnScreen?contractOnScreen(c):String(state.activeId)===String(c.id))){ b.disabled=false; b.textContent=word; return; }
+      /* The sheet may stand on the Board as the contract strip's Details page
+         (step 8): contractOverviewShown asks for either host, as the sheet's
+         other repaints do — asked of the room alone, a brief paid for on the
+         strip left the button saying Write the brief, and a second press paid
+         again with force. */
+      if(!(window.contractOverviewShown?contractOverviewShown(c):window.contractOnScreen?contractOnScreen(c):String(state.activeId)===String(c.id))){ b.disabled=false; b.textContent=word; return; }
       /* The column repaints so the card states what it now holds; the panel
          opens only where a brief actually arrived — a dead panel over a failed
          read is the fault the renewal card was just corrected for. */
@@ -7990,6 +8047,8 @@ function wireKtBriefCard(c,opts){
          two agree. */
       try{ paintKtTriage(c); }catch(_){}
       try{ if(after) after(); }catch(_){}
+      /* …and the strip around it, whose band reads the brief too */
+      try{ if(state.view==='dashboard'&&window.bsRefresh) bsRefresh(); }catch(_){}
       if(r) openCheckPanel(c,'brief');
     }catch(e){ b.disabled=false; b.textContent=word; }
   }); });
@@ -8077,8 +8136,9 @@ function renderKeyTermsSide(c){
   host.querySelectorAll('[data-ov-doc-chase]').forEach(b=>b.addEventListener('click',async()=>{
     if(!window.obligationChase) return;
     await obligationChase(c.id, b.getAttribute('data-ov-doc-chase'));
-    /* Its own contract, never the one open now (see contractOnScreen). */
-    if(window.contractOnScreen && !contractOnScreen(c)) return;
+    /* Its own contract, never the one open now (see contractOnScreen); the
+       sheet may stand on the Board (contractOverviewShown, step 8). */
+    if(window.contractOverviewShown && !contractOverviewShown(c)) return;
     renderKeyTermsSide(c);
   }));
   host.querySelector('[data-ov-doc-add]')?.addEventListener('click',()=>{
@@ -8304,8 +8364,13 @@ function roomHistoryHtml(c,f={},opts={}){
      one event in both, so "7 of 11" can never appear over a page that is
      hiding nothing. */
   const all=roomHistoryEvents(c,{}).length;
-  const onF=Object.values(f||{}).filter(Boolean).length;
-  const on=onF+(q?1:0);
+  /* THE SIDE IS IN THE OPEN (the overnight work order, step 8; owner's "Go",
+     14 Oct 2026: "History ... gets filtering on sides"): All sides · Ours ·
+     Theirs as one switch beside the search, the other four behind Filter. It
+     is still ONE handle on f.side — the Side dropdown left the fold with it.
+     The Filter button counts the four it holds. */
+  const onF=HIST_FOLD_FILTERS.filter(k=>f&&f[k]).length;
+  const on=onF+((f&&f.side)?1:0)+(q?1:0);
   const row=e=>{
     const m=HIST_KIND[e._k]||HIST_KIND.system;
     /* ---- THE TIME LEADS THE ROW (owner-approved render, 24 Aug 2026) ----
@@ -8335,7 +8400,7 @@ function roomHistoryHtml(c,f={},opts={}){
        green-added / red-removed convention, on the screen too. */
     const body=(_histDetail&&e._k==='proposed'&&e.ch&&window.negoChangeHtml)
       ? `<div class="hist-redline">${negoChangeHtml(e.ch)}</div>` : '';
-    const why=e.note?`<div class="hist-note">Why they asked: ${esc(e.note)}</div>`:'';
+    const why=e.note?`<div class="hist-note">${esc(i18t('ct_hist_why_asked',{text:e.note}))}</div>`:'';
     const reply=(e._k==='decided'&&e.reply)?`<div class="hist-note">${i18t('ct_reply_prefix',{text:esc(e.reply)})}</div>`:'';
     /* The system twin this row absorbed — its fingerprint and its actor kept on
        the row rather than printed as a second event. */
@@ -8411,11 +8476,13 @@ function roomHistoryHtml(c,f={},opts={}){
      entries. The count joins the sentence rather than wearing a pill of its
      own: it is a fact about the list, not a status. */
   return `<div class="hist-head">
-      <h6 style="margin:0;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading)">History</h6>
+      <h6 style="margin:0;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading)">${esc(i18t('tab_history'))}</h6>
       <span class="hist-cap">${esc(i18t('ct_hist_reading'))} · ${on?esc(i18t('ct_hist_n_of',{n:evs.length,all}))
         :esc(i18tn('ct_hist_events',all,{n:all}))}</span>
       <span style="flex:1;min-width:4px"></span>
       <label class="hist-q"><span class="sr-only">${esc(i18t('ct_hist_search'))}</span>${icon('search','w-3.5 h-3.5')}<input id="hist-q" type="search" value="${esc(_histQ)}" placeholder="${esc(i18t('ct_hist_search'))}" autocomplete="off"></label>
+      <div class="hist-side" role="group" aria-label="${esc(i18t('ct_hf_side'))}">${HIST_SIDES.map(([v,k])=>
+        `<button type="button" data-ht-side="${v}" aria-pressed="${String((f&&f.side)||'')===v}">${esc(i18t(k))}</button>`).join('')}</div>
       <button id="hist-filter-btn" class="ui-btn" aria-expanded="${(_histFiltersOpen||onF)?'true':'false'}" aria-controls="hist-filters">${icon('filter','w-3.5 h-3.5')}${esc(i18t('ct_hist_filter'))}${onF?` <span class="hist-fn">${onF}</span>`:''}${icon('chevD')}</button>
       ${''/* The long reading. Named for what pressing it does, not for the mode
              it is in — "Detailed" tells you nothing about which way you are
@@ -8428,12 +8495,12 @@ function roomHistoryHtml(c,f={},opts={}){
           style="display:inline-flex;align-items:center">
           ${icon('more')}${i18t('ct_more')}${icon('chevD')}</button>
         <div id="hist-more-menu" class="room-menu hidden" style="min-width:250px">
-          <button type="button" id="ht-verify">${icon('shield','w-3.5 h-3.5')}Verify integrity<span class="mnote">${i18t('ct_recompute_fingerprints')}</span></button>
+          <button type="button" id="ht-verify">${icon('shield','w-3.5 h-3.5')}${esc(i18t('ct_hist_verify'))}<span class="mnote">${i18t('ct_recompute_fingerprints')}</span></button>
           ${''/* ON HOME'S BOARD (stage 4) Print and Download stand on the
                  Board's own line and press these same two acts — one door
                  each, so the menu there keeps Verify alone. */}
           ${opts.board?'':`<button type="button" id="ht-export">${icon('download','w-3.5 h-3.5')}${i18t('ct_export_history')}<span class="mnote">${i18t('ct_standalone_file')}</span></button>
-          <button type="button" id="ht-print">${icon('printer','w-3.5 h-3.5')}Print history<span class="mnote">${i18t('ct_same_report_paper')}</span></button>`}
+          <button type="button" id="ht-print">${icon('printer','w-3.5 h-3.5')}${esc(i18t('ct_hist_print'))}<span class="mnote">${i18t('ct_same_report_paper')}</span></button>`}
         </div>
       </div>
     </div>
@@ -8447,6 +8514,10 @@ function roomHistoryHtml(c,f={},opts={}){
     ${evs.length?`<div class="hist-trail">${grouped()}</div>`
       :`<p class="hist-empty">${on?esc(i18t('ct_hist_none_match')):esc(i18t('ct_hist_none_yet'))}</p>`}`;
 }
+/* the four filters behind Filter, and the side switch's three positions
+   (the values are the record's own keys; only the words are translated) */
+const HIST_FOLD_FILTERS=['clauseId','actor','round','outcome'];
+const HIST_SIDES=[['','ct_hist_side_all'],['owner','ct_hf_ours'],['counterparty','ct_hf_theirs']];
 function roomHistoryFiltersHtml(c,f){
   const all=window.negoTimeline?negoTimeline(c):[];
   const uniq=pairs=>Array.from(new Map(pairs.filter(x=>x&&String(x[0])).map(x=>[String(x[0]),x])).values());
@@ -8461,11 +8532,9 @@ function roomHistoryFiltersHtml(c,f){
            record's English keys — only what is printed moved. */}
     ${sel('clauseId',i18t('ct_hf_clause'),uniq(all.map(e=>[e.clauseId||'',e.clauseLabel||''])))}
     ${sel('actor',i18t('ct_hf_person'),uniq(all.map(e=>[e.actor||'',e.actor||''])))}
-    ${''/* Plain words, and the words the chips above used to carry — "Owner
-           side" was stiffer than anything else on the tab, and it is our own
-           record we are reading. The counterparty's copy of this row says the
-           same fact from THEIR chair (negoTimelineScreenHtml, seat option). */}
-    ${sel('side',i18t('ct_hf_side'),[['owner',i18t('ct_hf_ours')],['counterparty',i18t('ct_hf_theirs')]])}
+    ${''/* SIDE LEFT THIS ROW FOR THE SWITCH IN THE OPEN (step 8, 15 Oct 2026):
+           All sides · Ours · Theirs beside the search (HIST_SIDES). The
+           counterparty's copy and the pop-out record keep their own row. */}
     ${sel('round',i18t('ct_hf_round'),uniq(all.filter(e=>e.round!=null&&e.round!=='').map(e=>[e.round,i18t('ct_round_n',{n:e.round})])))}
     ${sel('outcome',i18t('ct_hf_outcome'),[['accepted',i18t('ct_hf_accepted')],['rejected',i18t('ct_hf_rejected')],['pending',i18t('ct_hf_pending')],['withdrawn',i18t('ct_hf_withdrawn')]])}
     <button id="ht-clear" class="ui-btn" style="align-self:flex-end">${i18t('ct_clear2')}</button>
@@ -8496,9 +8565,13 @@ function roomPaintHistory(c,f={},at){
      a builder whose feature has gone, so a third caller cannot bring the
      column back through a door nobody remembered. */
   const read=()=>{ const g=k=>{ const el=host.querySelector(`[data-ht-filter="${k}"]`); return el&&el.value?el.value:''; };
-    return {clauseId:g('clauseId'),actor:g('actor'),side:g('side'),round:g('round'),outcome:g('outcome')}; };
+    const sd=host.querySelector('[data-ht-side][aria-pressed="true"]');
+    return {clauseId:g('clauseId'),actor:g('actor'),side:sd?sd.getAttribute('data-ht-side'):'',round:g('round'),outcome:g('outcome')}; };
   host.querySelectorAll('[data-ht-filter]').forEach(s=>
     s.addEventListener('change',()=>roomPaintHistory(c,read(),at)));
+  /* the side switch, in the open: one press, the list follows */
+  host.querySelectorAll('[data-ht-side]').forEach(b=>
+    b.addEventListener('click',()=>roomPaintHistory(c,Object.assign(read(),{ side:b.getAttribute('data-ht-side')||'' }),at)));
   /* Clear puts every filter back, side among them — one way back rather than
      two, now that side is one of the five rather than a control of its own. */
   host.querySelector('#ht-clear')?.addEventListener('click',()=>roomPaintHistory(c,{},at));
@@ -10798,6 +10871,30 @@ function roomHeadSubHtml(c, opts = {}){
    wiring (roomMenuWire) answers it wherever it is drawn. `opts.menuRow` is the
    page's own rows, as before; `opts.noFocus` leaves Focus out where the page
    has none (Home's paper has no Focus, owner 8 Oct 2026). */
+/* ---- THE ROOM'S ACTS THAT HAD NO OTHER HOME (the overnight work order,
+   step 8; owner's "Go", 14 Oct 2026: "reached from the paper's ⋯ menu on
+   Home — nothing is lost") ---- the room's head carried Start negotiating and
+   Add signers, and its Overview Create an amendment and Add a signed
+   document. Each row presses the door that act already had: the Redlines
+   face, Before you sign with the signing order's editor, the amendment's own
+   dialog, the link dialog. A row whose act cannot be done here is greyed
+   with the reason (a dead button says why), never hidden behind a guess. */
+function roomActsRowsHtml(c,may){
+  if(!c||!may) return '';
+  const rows=[];
+  const dead=why=>` disabled aria-disabled="true" title="${esc(why||'')}"`;
+  const started=!!(c.negotiation&&Array.isArray(c.changes)&&c.changes.length);
+  if(!started){ const ok=window.negoMayStart?negoMayStart(c):{ ok:true };
+    rows.push(`<button type="button" id="ws-m-nego"${ok.ok?` title="${esc(i18t('ct_open_negotiate_title'))}"`:dead(window.negoMayStartLine?negoMayStartLine(c):'')}>${icon('columns','w-3.5 h-3.5')}${esc(i18t('ct_start_negotiating'))}</button>`); }
+  const executed=(typeof negoExecuted==='function')?negoExecuted(c):c.status==='Signed';
+  if(!executed) rows.push(`<button type="button" id="ws-m-signers"${(window.signingLocked&&signingLocked(c))?dead(i18t('py_locked')):''}>${icon('users','w-3.5 h-3.5')}${esc(i18t('ct_add_signers'))}</button>`);
+  if(!c.parentId){
+    const live=(typeof amendmentExecuted==='function')?amendmentExecuted(c):executed;
+    rows.push(`<button type="button" id="ws-m-amend"${live?'':dead(i18t('fa_draft_no_amend'))}>${icon('filenew','w-3.5 h-3.5')}${esc(i18t('fa_create_amendment'))}</button>`);
+    rows.push(`<button type="button" id="ws-m-link">${icon('link','w-3.5 h-3.5')}${esc(i18t('fa_link_existing'))}</button>`);
+  }
+  return rows.join('');
+}
 function roomMoreMenuHtml(c,opts={}){
   const may=(typeof canEdit!=='function')||canEdit();
   return `
@@ -10838,6 +10935,7 @@ function roomMoreMenuHtml(c,opts={}){
           ${(window.compareHasTwo && !compareHasTwo(c))
             ? `<button type="button" id="ws-compare" disabled aria-disabled="true" title="${i18t('ve_only_one_title')}">${icon('columns','w-3.5 h-3.5')}Compare versions<span class="mnote">${i18t('ve_one_so_far')}</span></button>`
             : `<button type="button" id="ws-compare" title="${i18t('ct_compare_review')}">${icon('columns','w-3.5 h-3.5')}Compare versions</button>`}
+          ${roomActsRowsHtml(c,may)}
           ${''/* "Save as template" LEFT THIS MENU (Young's go on "One Door to
                  Standards", 24 Sep 2026): the same start lives behind the
                  Templates page's one button — "From one of our contracts" —
@@ -11447,6 +11545,13 @@ function roomMenuWire(c){
     document.body.appendChild(a); a.click(); a.remove(); });
   document.getElementById('ws-reread')?.addEventListener('click',e=>rereadUploadText(c, e.currentTarget));
   document.getElementById('ws-filing')?.addEventListener('click',()=>ovOpenFiling(c));
+  /* the room's own acts, each through the door it already had (roomActsRowsHtml) */
+  document.getElementById('ws-m-nego')?.addEventListener('click',()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); });
+  document.getElementById('ws-m-signers')?.addEventListener('click',()=>{ const k=getContract(c.id)||c; roomGoTab(k,'sign');
+    setTimeout(()=>{ if(window.openSignerPlanEditor) openSignerPlanEditor(getContract(c.id)||k); },180); });
+  document.getElementById('ws-m-amend')?.addEventListener('click',()=>{ const k=getContract(c.id)||c; if(window.amendmentExecuted&&amendmentExecuted(k)&&window.openCreateAmendmentModal) openCreateAmendmentModal(k); });
+  document.getElementById('ws-m-link')?.addEventListener('click',()=>{ const k=getContract(c.id)||c;
+    if(window.openLinkModal) openLinkModal(k,()=>{ try{ renderWorkspace(); }catch(_){} },{ mode:'parent' }); });
   document.getElementById('ws-mynote')?.addEventListener('click',()=>{ if(window.myNotesNew) myNotesNew({ contractId:c.id }); });
   document.getElementById('ws-pdf-record')?.addEventListener('click',()=>exportPDF(c,{record:true}));
   document.getElementById('ws-word')?.addEventListener('click',()=>exportWordTracked(c));
@@ -11622,6 +11727,8 @@ function renderWorkspace(){
   if(state.view==='dashboard'){
     if(window.renderIntelDock) try{ renderIntelDock(); }catch(_){}
     if(window.igPaperRefresh) try{ igPaperRefresh(); }catch(_){}
+    /* and the contracts' strips on the Board (step 8) read the record again */
+    if(window.bsRefresh) try{ bsRefresh(); }catch(_){}
     return;
   }
   const c=getContract(state.activeId);
@@ -16717,7 +16824,8 @@ function renderSignSide(c){
     if(b.getAttribute('data-sc-blanks')==='nego'){ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); return; }
     /* THE FORM IS THE ROOM'S DETAILS TAB (owner, 12 Oct 2026); on the phone
        roomGoTab's hook opens the phone's own Details page */
-    if(state.view!=='workspace'||state.activeId!==c.id) openWorkspace(c.id);
+    /* the room retired (step 8): on the desktop roomGoTab goes straight to Fill in on Home */
+    if((state.view!=='workspace'||state.activeId!==c.id) && !(window.pdFillOpen && !(window.innerWidth&&window.innerWidth<768))) openWorkspace(c.id);
     if(window.roomGoTab) roomGoTab(getContract(c.id)||c,'details');
     const first=(window.contractBoxesOpen?(contractBoxesOpen(c)[0]||{}):{}).key||'';
     setTimeout(()=>{ try{ if(window.contractFieldFocus) contractFieldFocus(c, first); }catch(_){ } },0);

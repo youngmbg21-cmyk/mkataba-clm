@@ -114,7 +114,7 @@ let AMBER_BG = null;    /* --st-amber-dot */
       staged.status === 'Under Review', staged.status);
 
     /* ---------- 1. the status word (the owner's image 3 & 4) ---------- */
-    await page.evaluate(id => openWorkspace(id), cid);
+    await page.evaluate(id => openWorkspace(id, { room: true }), cid);
     await page.waitForTimeout(2000);
     const st = await page.evaluate(() => {
       const e = document.querySelector('.room-head .room-stat');

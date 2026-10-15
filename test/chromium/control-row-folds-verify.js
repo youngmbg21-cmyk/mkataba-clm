@@ -105,7 +105,7 @@ const READ = () => {
 };
 
 const OPEN = async page => {
-  await page.evaluate(() => window.openWorkspace(window.state.contracts[0].id));
+  await page.evaluate(() => window.openWorkspace(window.state.contracts[0].id, { room: true }));
   await page.waitForTimeout(400);
   /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): a bare
      setView('redline') now lands on Jambo's Redlines face beside Home's paper,

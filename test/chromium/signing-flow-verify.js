@@ -89,7 +89,7 @@ const check = (name, pass, detail) => {
          signature this section presses is refused by the server. */
       await saveSettings();
       persist(c); await flushSaves();
-      openWorkspace(c.id);
+      openWorkspace(c.id, { room: true });
       await new Promise(r => setTimeout(r, 500));
       roomGoTab(c, 'sign');
       await new Promise(r => setTimeout(r, 500));
@@ -129,7 +129,7 @@ const check = (name, pass, detail) => {
        Sign (#ws-next-action) is still the ROOM head's, so it is read in the
        room, and the face is opened again for the presses that follow. */
     const roomHead = async () => {
-      await page.evaluate(() => openWorkspace('MK-A2'));
+      await page.evaluate(() => openWorkspace('MK-A2', { room: true }));
       await page.waitForFunction(() => state.view === 'workspace' && !!document.getElementById('ws-next-action'), null, { timeout: 8000 }).catch(() => {});
       const said = await page.evaluate(() => { const hd = document.getElementById('ws-next-action');
         return hd ? hd.textContent.replace(/\s+/g, ' ').trim() : ''; });
@@ -254,7 +254,7 @@ const check = (name, pass, detail) => {
          signature this section presses is refused by the server. */
       await saveSettings();
       persist(c); await flushSaves();
-      openWorkspace(c.id); roomGoTab(c, 'sign');
+      openWorkspace(c.id, { room: true }); roomGoTab(c, 'sign');
       await new Promise(r => setTimeout(r, 900));
       /* ASSERT THE STATE YOU CREATED BEFORE YOU ATTACK IT: a refused save
          would have put the signers back. */
@@ -413,7 +413,7 @@ const check = (name, pass, detail) => {
         { id: 'r3', name: 'Leases', order: 3, cond: { type: 'kind', value: 'lease' }, approver: { kind: 'role', role: 'admin' } },
         { id: 'r4', name: 'Foreign law', order: 4, cond: { type: 'foreignLaw' }, approver: { kind: 'role', role: 'legal' } },
         { id: 'r5', name: 'Departures', order: 5, cond: { type: 'deviation' }, approver: { kind: 'role', role: 'legal' } } ] };
-      openWorkspace(c.id); roomGoTab(c, 'sign');
+      openWorkspace(c.id, { room: true }); roomGoTab(c, 'sign');
       await new Promise(r => setTimeout(r, 1100));
       return { id: c.id, required: approvalState(c).required };
     });

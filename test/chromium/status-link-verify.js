@@ -117,7 +117,7 @@ const DEAL = {
 
     /* ===== 3. THE OWNER'S QUIET LINE ===== */
     await page.evaluate(() => { try { delete window._dsShares; } catch (_){} });
-    await page.evaluate(() => openWorkspace('MK-S9'));
+    await page.evaluate(() => openWorkspace('MK-S9', { room: true }));
     await until(page, () => state.view === 'workspace' && !!document.getElementById('ws-tabs'));
     await page.click('#ws-tabs [data-ws-tab="stands"]').catch(() => {});
     const lineOn = await until(page, () => {

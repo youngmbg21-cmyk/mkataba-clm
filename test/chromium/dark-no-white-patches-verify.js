@@ -168,7 +168,7 @@ const SWEEP = (bright) => {
     const opened = await page.evaluate(() => {
       const c = state.contracts[0];
       if (!c || typeof openWorkspace !== 'function') return null;
-      openWorkspace(c.id); return c.id;
+      openWorkspace(c.id, { room: true }); return c.id;
     });
     ok('2a a contract room opens, so its tabs can be walked', !!opened, opened || 'no contract');
     if (opened){

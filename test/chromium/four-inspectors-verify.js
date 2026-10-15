@@ -188,7 +188,7 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
        painter (roomPaintObligations) into #hb-cv-body[data-hb-cv="oblig"]
        (the old #ws-obligations-pane). Waited for by this contract's id. */
     const OBV = `#hb-cv-body[data-hb-cv="oblig"][data-hb-cv-cid="${staged.c1}"]`;
-    await page.evaluate(id => { openWorkspace(id); }, staged.c1); await page.waitForTimeout(1200);
+    await page.evaluate(id => { openWorkspace(id, { room: true }); }, staged.c1); await page.waitForTimeout(1200);
     await page.evaluate(id => roomGoTab(getContract(id), 'oblig'), staged.c1);
     await page.waitForFunction(sel => !!document.querySelector(sel + ' [data-ins-row]') && !!document.querySelector(sel + ' #obt-panel h2'), OBV, { timeout: 8000 }).catch(() => {});
     await page.screenshot({ path: path.join(OUT, '2-tab.png') });

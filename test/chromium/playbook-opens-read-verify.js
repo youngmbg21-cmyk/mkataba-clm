@@ -76,7 +76,7 @@ const REVIEW = {
       state.activeId = c.id; state.selId = c.id;
       return c.id;
     }, REVIEW);
-    await page.evaluate(() => setView('workspace'));
+    await page.evaluate(() => openWorkspace(state.activeId, { room: true }));
     await page.waitForTimeout(1600);
     await page.evaluate(id => openCheckPanel(getContract(id), 'playbook'), cid);
     await page.waitForTimeout(700);
@@ -154,7 +154,7 @@ const REVIEW = {
        modules, so the builder is not reachable from here — and the page is
        where the owner saw it anyway. */
     await page.evaluate(id => { if (window.closeSidePanel) closeSidePanel();
-      state.activeId = id; state.selId = id; setView('workspace'); }, cid);
+      state.activeId = id; state.selId = id; openWorkspace(state.activeId, { room: true }); }, cid);
     await page.waitForTimeout(1600);
     await page.evaluate(() => { const b = document.querySelector('#ws-tabs [data-ws-tab="terms"]'); if (b) b.click(); });
     await page.waitForTimeout(1000);
@@ -201,7 +201,7 @@ const REVIEW = {
        left in another looks identical in a grep.
        ================================================================ */
     await page.evaluate(id => { const c = getContract(id);
-      state.activeId = c.id; setView('workspace'); }, cid);
+      state.activeId = c.id; openWorkspace(state.activeId, { room: true }); }, cid);
     await page.waitForTimeout(1500);
     await page.evaluate(id => openCheckPanel(getContract(id), 'playbook'), cid);
     await page.waitForTimeout(800);

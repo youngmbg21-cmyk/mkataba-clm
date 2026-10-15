@@ -299,7 +299,7 @@ const SEED = async () => {
       c.counterparty = c.counterparty || 'Nordic Supply AB';
       if (!(Number(c.value) > 0)) c.value = 120000;
       c.fields = Object.assign({}, c.fields, { effDate: (c.fields && c.fields.effDate) || '2026-01-01' });
-      openWorkspace(id); roomGoTab(c, 'terms');
+      openWorkspace(id, { room: true }); roomGoTab(c, 'terms');
       await new Promise(r => setTimeout(r, 900));
       const tiles = [...document.querySelectorAll('.kt-tri-tile')];
       const h = tiles.map(t => Math.round(t.getBoundingClientRect().height));
@@ -387,7 +387,7 @@ const SEED = async () => {
          right. Staged as the real thing: a contract in negotiation, where the
          reading deliberately does not look. */
       c.triage.steps.fill = { ok: true, filled: [], left: 0, none: 'nego' };
-      openWorkspace(id); roomGoTab(c, 'terms');
+      openWorkspace(id, { room: true }); roomGoTab(c, 'terms');
       await new Promise(r => setTimeout(r, 800));
       const tiles = [...document.querySelectorAll('.kt-tri-tile')];
       const t = tiles.find(x => /field/i.test(x.textContent || ''));
@@ -423,7 +423,7 @@ const SEED = async () => {
          the first build measured — a true sentence about a different case.) */
       c.templateForm = { fields: [{ fieldKey: 'a', required: true, label: 'Signer name' }],
         values: { a: '' } };
-      openWorkspace(id); roomGoTab(c, 'terms');
+      openWorkspace(id, { room: true }); roomGoTab(c, 'terms');
       await new Promise(r => setTimeout(r, 800));
       const t = [...document.querySelectorAll('.kt-tri-tile')].find(x => /field/i.test(x.textContent || ''));
       if (!t) return { found: false };

@@ -207,7 +207,7 @@ const ok = (name, good, detail) => {
     });
     ok('4-stage the staged readings are really readable',
       cid && cid.findings === 1, JSON.stringify(cid && cid.findings));
-    await page.evaluate(o => openWorkspace(o.id), cid);
+    await page.evaluate(o => openWorkspace(o.id, { room: true }), cid);
     await page.waitForTimeout(3000);
     /* THE ROOM LANDS ON THE DOCUMENT TAB for a contract already past Draft, so
        the Overview has to be asked for. */

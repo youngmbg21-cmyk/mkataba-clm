@@ -71,7 +71,7 @@ const until = async (fn, ms = 8000, step = 150) => { const end = Date.now() + ms
       c.obligationsReadHash = hash;
       c.compliance = {};
       persist(c); await flushSaves();
-      openWorkspace(c.id);
+      openWorkspace(c.id, { room: true });
       await new Promise(r => setTimeout(r, 500));
       roomGoTab(c, 'sign');
       await new Promise(r => setTimeout(r, 500));
@@ -123,7 +123,7 @@ const until = async (fn, ms = 8000, step = 150) => { const end = Date.now() + ms
 
     /* ---- 3 · A BYSTANDER SIGNS IN ---- */
     const by = await login('everything@example.co.ke', 'their-own-pass-9');
-    await by.evaluate(async () => { try { await pollNow(); } catch (_) {} const c = getContract('MK-A2'); if (c) { await ensureFull(c); openWorkspace(c.id); } });
+    await by.evaluate(async () => { try { await pollNow(); } catch (_) {} const c = getContract('MK-A2'); if (c) { await ensureFull(c); openWorkspace(c.id, { room: true }); } });
     await by.waitForTimeout(2500);
     const after3 = await W.admin.json('/api/contracts/MK-A2');
     check('3a  a colleague opening HaTi afterwards moves nothing — seal, signatory and seal line stand',

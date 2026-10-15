@@ -1836,7 +1836,10 @@ function regRunRowAct(act, id){
     if(sc2){ sc2.scrollTop=top;
       if(typeof requestAnimationFrame==='function') requestAnimationFrame(()=>{ sc2.scrollTop=top; }); }
   } });
-  else openWorkspace(id); // Export PDF is completed inside the workspace
+  /* Export PDF is finished from the paper's ⋯ (its PDF row), so the press
+     lands on Home's paper — the room it once opened retired at step 8, and
+     the strip it would land on carries no export */
+  else if(!(act==='pdf'&&window.pdOpenOnHome&&pdOpenOnHome(id,'copilot'))) openWorkspace(id);
 }
 /* ---- WHAT OPENING A ROW MEANS — one answer for the row press, Enter, a
    double-click and the panel's own button ----

@@ -255,7 +255,7 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
     const stamp = after && after.triageAt;
     const quietFrom = Date.now();
     await own.evaluate(() => { regSetScope(null); setView('register'); }); await pause(1000);
-    await own.evaluate(() => { openWorkspace('MK-R9'); }); await pause(900);
+    await own.evaluate(() => { openWorkspace('MK-R9', { room: true }); }); await pause(900);
     await own.evaluate(() => { const c = getContract('MK-R9'); roomGoTab(c, 'terms'); }); await pause(2500);
     const quiet = await own.evaluate(() => { const c = getContract('MK-R9');
       return { tab: roomCurrentTab(), triageAt: c.triage ? c.triage.at : null, busy: !!c._triaging }; });

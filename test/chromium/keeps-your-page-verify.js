@@ -155,7 +155,7 @@ const check = (name, pass, detail) => {
        since the allowlist restores view AND activeId together — the parent
        genuinely opens that contract's page under the wrong name. */
     await page.evaluate(() => {
-      const c = state.contracts[0]; openWorkspace(c.id);
+      const c = state.contracts[0]; openWorkspace(c.id, { room: true });
     });
     await page.waitForTimeout(1200);
     await page.evaluate(() => setView('dashboard'));
@@ -173,7 +173,7 @@ const check = (name, pass, detail) => {
     /* ============ 4. A CONTRACT IS STILL REMEMBERED, id and all ============ */
     const cid = await page.evaluate(() => {
       const c = state.contracts.find(x => x.status !== 'Signed') || state.contracts[0];
-      openWorkspace(c.id); return c.id;
+      openWorkspace(c.id, { room: true }); return c.id;
     });
     await page.waitForTimeout(1400);
     const s4 = await stored();
@@ -181,10 +181,15 @@ const check = (name, pass, detail) => {
       !!(s4 && s4.view === 'workspace' && s4.activeId === cid),
       s4 ? `${s4.view} / ${s4.activeId}` : 'nothing stored');
     await reload();
-    const after4 = await page.evaluate(() => ({ view: state.view, id: state.activeId }));
-    check('4b and a refresh comes back to that same contract',
-      after4.view === 'workspace' && after4.id === cid,
-      `${after4.view} / ${after4.id}`);
+    /* RE-POINTED 15 Oct 2026 (step 8, the room retired): the room opened by
+       name is not a page a refresh restores — the same contract comes back as
+       its strip on Home's Board (board-strip-verify 7d) */
+    await page.waitForFunction(id => !!document.getElementById('bs-strip-' + id), cid, { timeout: 8000 }).catch(() => {});
+    const after4 = await page.evaluate(() => { const top = document.querySelector('#bs-strips > .bs-strip');
+      return { view: state.view, id: state.activeId, strip: top ? top.getAttribute('data-bs-id') : null }; });
+    check('4b and a refresh comes back to that same contract (its strip on the Board)',
+      after4.view === 'dashboard' && after4.id === cid && after4.strip === cid,
+      `${after4.view} / ${after4.id} / strip ${after4.strip}`);
   } catch (e) {
     check('the journey ran', false, e.message);
   }

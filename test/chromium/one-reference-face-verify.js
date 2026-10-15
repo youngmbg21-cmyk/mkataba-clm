@@ -99,7 +99,7 @@ const geist = f => /^"?Geist Mono"?/.test(f || '');
     check(val === null || !/^"?Geist Mono/.test(val), 'Approvals: the value beside it keeps its own face', val);
     await pageCheck('Obligations', () => setView('obligations'), () => /MK-RF1/.test(document.getElementById('content').textContent), '#content');
     await pageCheck('Calendar', () => setView('calendar'), () => /MK-RF1/.test(document.getElementById('content').textContent), '#content');
-    await pageCheck('the room head', () => openWorkspace('MK-RF2'), () => !!document.querySelector('.room-head'), '.room-head');
+    await pageCheck('the room head', () => openWorkspace('MK-RF2', { room: true }), () => !!document.querySelector('.room-head'), '.room-head');
     await pageCheck('Negotiate', () => roomGoTab(getContract('MK-RF2'), 'redline'), () => !!document.querySelector('.redline-page'), '#content');
     await pageCheck('the search palette', () => { setView('contracts'); if (typeof window.openPalette === 'function') window.openPalette('MK-RF'); else document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true })); },
       () => /MK-RF/.test(document.body.textContent), null);

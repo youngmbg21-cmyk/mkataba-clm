@@ -1189,7 +1189,7 @@ const check = (name, ok, detail) => {
       const out = {};
       const first = (state.contracts[0] || {}).id || null;
       /* Open one, then walk back — the journey that leaves the global set. */
-      if (first) openWorkspace(first);
+      if (first) openWorkspace(first, { room: true });
       out.room = (() => { const c = aiChatContext();
         return { id: c.activeContractId || null, page: c.page ? c.page.name : null,
           tab: c.page ? c.page.tab || null : null }; })();

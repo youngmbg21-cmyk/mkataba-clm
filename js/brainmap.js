@@ -153,6 +153,10 @@ const BRAIN_PARTS = [
   /* the contract's views on the Board (the one-page Home plan, stage 4, 14 Oct
      2026): the deal board, obligations and history of the contract on the paper */
   ['boardviews', 'hbOpenView', 'see', 0],
+  /* the Lifeline strip (the overnight work order, step 8, 15 Oct 2026): a
+     contract brought up on the Board, Where we are and History behind its ⋯;
+     every door that opened the contract room lands here */
+  ['strip', 'hbStripBring', 'see', 0],
   /* Before you sign, beside the paper (the one-page Home plan, stage 5, 14 Oct
      2026): Jambo's panel draws the Signing column's own four slots; the paper
      turns to the signing copy; every door into signing lands here */
@@ -279,7 +283,7 @@ const BRAIN_PARTS = [
    brn_step_<flow>_<n> in the dictionary. A flow is a STORY a person wrote;
    the reading only checks that every part it names is still in the code. */
 const BRAIN_FLOWS = [
-  { id: 'upload', steps: [['upload', 'book', 'draftcard'], ['docx', 'pdf'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed'], ['brief', 'playbook', 'oblscan', 'obdesk', 'risk', 'datedwin', 'papermark'], ['model'], ['details', 'fillface', 'blanks'], ['overview', 'constellation', 'bell']] },
+  { id: 'upload', steps: [['upload', 'book', 'draftcard'], ['docx', 'pdf'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed'], ['brief', 'playbook', 'oblscan', 'obdesk', 'risk', 'datedwin', 'papermark'], ['model'], ['details', 'fillface', 'blanks'], ['overview', 'constellation', 'bell', 'strip']] },
   /* The new parts join STEPS THAT ALREADY EXIST rather than adding steps of
      their own: a step inserted in the middle renumbers every sentence after
      it in both books, and these are not new stages of the story — they are
@@ -288,7 +292,7 @@ const BRAIN_FLOWS = [
   { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop', 'roundsettle'], ['ladder'], ['whosemove', 'decidedsend'], ['bell', 'home', 'negpage', 'boardviews', 'stands', 'stale', 'dealpaper', 'onepaper', 'answeronpaper'], ['webhook']] },
   { id: 'sign', steps: [['signface', 'signtab', 'linkcheck'], ['readiness', 'signgate', 'rules', 'paperjobs'], ['approvals', 'namedyes', 'decide', 'undoyes', 'rulestep', 'asks', 'approvalpaper', 'freshen'], ['brief', 'playbook', 'blanks'], ['pad'], ['putguard', 'srvseal', 'sealtext'], ['seal', 'frozen', 'issuelinks'], ['obligations', 'renewal', 'calendar', 'mynotes', 'mine', 'myitems', 'myitemsget', 'myitemsput', 'myitemsdel', 'plan'], ['email', 'copies']] },
   { id: 'night', steps: [['reminders', 'lanes', 'agentlevel', 'linkkeep', 'agentpieces', 'agentpoints'], ['renewal', 'renewact'], ['renewprep'], ['model', 'boardjudge', 'bookread'], ['db'], ['obligations'], ['email', 'boardmoved', 'looktell'], ['desknight', 'home', 'insights', 'readings', 'chasemany', 'draftreply', 'agentoutcome', 'agentprepared', 'agentrebuild', 'piecesget', 'jambohouse']] },
-  { id: 'ask', steps: [['copilotask', 'homepaper', 'breakdown', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook', 'stackview'], ['db', 'dealfacts', 'brainread'], ['model', 'breakread', 'breakdive', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote', 'citedoor', 'walkset', 'paperdesk'], ['contracts', 'customers', 'directory', 'passroute', 'lookask', 'copilotdoors'], ['explorer', 'cellfold', 'readchips', 'nextq', 'boardmarks']] },
+  { id: 'ask', steps: [['copilotask', 'strip', 'homepaper', 'breakdown', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook', 'stackview'], ['db', 'dealfacts', 'brainread'], ['model', 'breakread', 'breakdive', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote', 'citedoor', 'walkset', 'paperdesk'], ['contracts', 'customers', 'directory', 'passroute', 'lookask', 'copilotdoors'], ['explorer', 'cellfold', 'readchips', 'nextq', 'boardmarks']] },
   /* THE OVERNIGHT REVIEW'S FLOWS (9 Oct 2026): the commonest start, a request,
      the other side's signature, an amendment, the end of a contract, and the
      ways a step can go wrong — none of which the six flows above walked. */
@@ -314,7 +318,7 @@ const BRAIN_LANE_OF = {
   /* a colleague: the requester, the reviewer, the contributor, the approver */
   req: ['request', 'kinds', 'reqfiles', 'review', 'suggest', 'rules', 'namedyes', 'decide', 'undoyes', 'approvalpaper', 'lookask'],
   /* the person working the contract: what they see and press */
-  own: ['upload', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'negpage', 'redface', 'boardviews', 'startnego', 'here', 'follow',
+  own: ['upload', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'negpage', 'redface', 'boardviews', 'strip', 'startnego', 'here', 'follow',
     'editor', 'baton', 'askkeep', 'risklist', 'riskwalk', 'stands', 'dealpaper', 'onepaper', 'decidedsend', 'signtab', 'signface', 'pad', 'calendar', 'desknight', 'insights', 'readings',
     'chasemany', 'copilotask', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs',
     'phrasebook', 'boardtools', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'citedoor', 'walkset', 'paperdesk', 'contracts', 'customers', 'directory', 'cellfold',

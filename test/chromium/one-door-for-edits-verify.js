@@ -130,7 +130,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
         return { answer: JSON.stringify({ proposedText: words, advice: 'Drafted.' }) };
       };
     }, { LIAB_NEW, LIAB_FIRM });
-    await page.evaluate(id => openWorkspace(id), ID);
+    await page.evaluate(id => openWorkspace(id, { room: true }), ID);
     await page.evaluate(id => roomGoTab(getContract(id), 'redline'), ID);
     await until(page, () => !!document.querySelector('.redline-page #rl-changes'));
     /* OUR STANDARDS' REDLINE ON PAYMENT, filed through the funnel as
@@ -365,7 +365,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
     await shot('7-thread.png');
 
     /* ============ 8. SAFETY NET ============ */
-    await page.evaluate(id => openWorkspace(id), ID);   /* back from Home (section 7) */
+    await page.evaluate(id => openWorkspace(id, { room: true }), ID);   /* back from Home (section 7) */
     await until(page, () => !!document.getElementById('ws-tabs'));
     await page.evaluate(id => roomGoTab(getContract(id), 'redline'), ID);
     await until(page, () => !!document.getElementById('rl-risks'));

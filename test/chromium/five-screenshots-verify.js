@@ -326,7 +326,7 @@ const drive = async (page, fn, arg, fallback) => {
 
     /* THE ROOM'S OWN BUTTON WAS NEVER BROKEN — the control that says this fix
        is narrow. */
-    await drive(page, id => { openWorkspace(id); }, cid, null);
+    await drive(page, id => { openWorkspace(id, { room: true }); }, cid, null);
     await pause(1500);
     const room = await drive(page, async () => {
       /* RE-POINTED 11 Oct 2026: the Document tab and its control-row door are

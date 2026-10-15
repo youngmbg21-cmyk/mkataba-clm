@@ -91,7 +91,7 @@ const openRoom = async (page, id) => {
 };
 /* the contract room, for its Overview and Signing tabs */
 const openContractRoom = async (page, id) => {
-  await page.evaluate(x => { if (state.view !== 'workspace' || state.activeId !== x) openWorkspace(x); }, id);
+  await page.evaluate(x => { if (state.view !== 'workspace' || state.activeId !== x) openWorkspace(x, { room: true }); }, id);
   await page.waitForFunction(() => !!document.querySelector('#ws-tabs'), null, { timeout: 8000 }).catch(() => {});
 };
 

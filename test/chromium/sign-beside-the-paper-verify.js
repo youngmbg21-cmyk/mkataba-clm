@@ -157,13 +157,13 @@ const FACE = () => {
     await page.screenshot({ path: path.join(OUT, '5-receipt.png') });
 
     /* ===== 6. THE ROOM, AND THE OLD DOORS ===== */
-    await page.evaluate(() => openWorkspace('MK-A2'));
+    await page.evaluate(() => openWorkspace('MK-A2', { room: true }));
     await waitFor(page, () => state.view === 'workspace' && !!document.querySelector('.room-tabrow [data-ws-tab]'), 8000);
     const tabs = await page.evaluate(() => [...document.querySelectorAll('.room-tabrow [data-ws-tab]')].map(b => b.getAttribute('data-ws-tab')));
     check('6a the room keeps Overview and Where we are', JSON.stringify(tabs) === JSON.stringify(['terms', 'stands']), JSON.stringify(tabs));
     await page.evaluate(() => roomGoTab(getContract('MK-A2'), 'oblig'));
     check('6b its old Obligations door opens the Board\'s Obligations view', await waitFor(page, () => state.view === 'dashboard' && !!document.querySelector('#hb-cv-body[data-hb-cv="oblig"]'), 8000));
-    await page.evaluate(() => { openWorkspace('MK-A2'); });
+    await page.evaluate(() => { openWorkspace('MK-A2', { room: true }); });
     await waitFor(page, () => state.view === 'workspace', 6000);
     await page.evaluate(() => roomGoTab(getContract('MK-A2'), 'history'));
     check('6c its old History door opens the Board\'s History view', await waitFor(page, () => state.view === 'dashboard' && !!document.querySelector('#hb-cv-body[data-hb-cv="hist"]'), 8000));
@@ -220,7 +220,7 @@ const FACE = () => {
     await page.screenshot({ path: path.join(OUT, '9-svenska.png') });
     const en2 = await page.$('.lang-btn[data-lang="en"]'); if (en2) { await en2.click(); await pause(500); }
     await page.setViewportSize({ width: 390, height: 844 }); await pause(600);
-    await page.evaluate(() => { openWorkspace('MK-A2'); roomGoTab(getContract('MK-A2'), 'sign'); });
+    await page.evaluate(() => { openWorkspace('MK-A2', { room: true }); roomGoTab(getContract('MK-A2'), 'sign'); });
     await pause(1200);
     const ph = await page.evaluate(() => ({ view: state.view, face: !!document.getElementById('pd-signface') }));
     check('9b the phone keeps the room\'s own Signing tab', ph.view === 'workspace' && !ph.face, JSON.stringify(ph));

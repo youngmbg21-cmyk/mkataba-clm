@@ -236,7 +236,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
        carries nothing about it now, which is the first thing checked. */
     check(1, 'the bench carries no email strip — that question moved to Key terms',
       !(await owner.$('#nego-cp-setup')));
-    await owner.evaluate(id => { openWorkspace(id); }, CID);
+    await owner.evaluate(id => { openWorkspace(id, { room: true }); }, CID);
     /* RE-POINTED 11 Oct 2026: the Overview redesign (8 Oct) moved their
        email into the filing details, opened by the ⋯ row "Filing and
        stream" (ws-filing → ovOpenFiling) — the same row, the same handler. */
@@ -573,7 +573,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     });
     check(6, 'the owner sees the readiness signal, with nothing to press first',
       /ready to sign/i.test(signal.said) && !signal.floating, JSON.stringify(signal));
-    await owner.evaluate(id => { openWorkspace(id); }, CID);
+    await owner.evaluate(id => { openWorkspace(id, { room: true }); }, CID);
     await pause(1200);
     const handoff = await owner.evaluate(() => {
       const b = document.querySelector('#ws-next-action[data-na="issue-signing"]');
@@ -595,7 +595,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     await ownerOpenBench();
     /* RE-POINTED with the block above: the hand-off is the room head's own
        lead act now, so the room is where it is pressed. */
-    await owner.evaluate(id => { openWorkspace(id); }, CID);
+    await owner.evaluate(id => { openWorkspace(id, { room: true }); }, CID);
     await owner.waitForSelector('#ws-next-action[data-na="issue-signing"]', { timeout: 10000 });
     /* A toast still fading over the corner intercepts the press exactly as the
        panel does. Both are cleared rather than clicked through: forcing a click
@@ -667,7 +667,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
 
     // The owner countersigns LAST, through the real sign panel: consent, Sign,
     // the signature pad, adopt.
-    await owner.evaluate(id => { openWorkspace(id); }, CID);
+    await owner.evaluate(id => { openWorkspace(id, { room: true }); }, CID);
     await owner.waitForSelector('[data-comp="consent"]', { state: 'attached', timeout: 10000 });
     await owner.evaluate(() => { const b = document.querySelector('[data-comp="consent"]');
       if (b && !b.checked) b.click(); });

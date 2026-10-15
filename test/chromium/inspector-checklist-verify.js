@@ -237,6 +237,10 @@ const ok = (name, good, detail) => {
         signFace: (document.querySelector('#pd-signface .pd-sf[data-pd-sf]') || { getAttribute: () => null }).getAttribute('data-pd-sf'),
         signSheet: !!document.querySelector('#ig-paper .pg-sheet.pg-sign #ig-canvas'),
         tab: (typeof roomCurrentTab === 'function') ? roomCurrentTab() : null,
+        /* step 8: the contract's strip on the Board (its id and page) */
+        strip: (() => { const t = document.querySelector('#bs-strips > .bs-strip'); return t ? t.getAttribute('data-bs-id') + ':' + t.getAttribute('data-bs-on') : null; })(),
+        renewal: !!document.querySelector('#bs-strips [data-bs-host="details"] #renewal-host'),
+        room: !!document.getElementById('ws-tabs'),
         sheet: !!document.getElementById('dk-close') }));
     };
     const g1 = await press('MK-149', 'quiet');
@@ -257,7 +261,10 @@ const ok = (name, good, detail) => {
        paper drawn as the signing copy */
     ok('3c Sign opens that contract on its Signing tab', g3.view === 'dashboard' && g3.signFace === 'MK-158' && g3.signSheet, JSON.stringify(g3));
     const g4 = await press('MK-143', 'renewal');
-    ok('3d Decide opens that contract on its Overview, where the renewal card records the decision', g4.view === 'workspace' && g4.id === 'MK-143' && g4.tab === 'terms', JSON.stringify(g4));
+    /* RE-POINTED 15 Oct 2026 (step 8, the room retired): the Overview's
+       sheet, renewal card and all, is the contract strip's Details page on
+       Home's Board — Decide opens it there, the room not drawn */
+    ok('3d Decide opens that contract on its Overview, where the renewal card records the decision', g4.view === 'dashboard' && g4.id === 'MK-143' && g4.strip === 'MK-143:details' && g4.renewal && !g4.room, JSON.stringify(g4));
 
     /* ================= 4 · A COLLEAGUE ASKING TO JOIN — A THIRD ROW, AND ITS DOOR ================= */
     await page.evaluate(() => { const d = deskOf(getContract('MK-149')); d.joinRequests = (d.joinRequests || []).concat([{ id: 'u-peter', name: 'Peter Kamau', email: 'peter@example.co.ke',
@@ -270,7 +277,9 @@ const ok = (name, good, detail) => {
       j.rows ? j.rows.map(x => `${x.kind}: ${x.title} / ${x.sub}`).join(' · ') : 'none');
     await page.screenshot({ path: path.join(OUT, '4-three-things.png') });
     const g5 = await press('MK-149', 'join');
-    ok('4b Answer on a join request opens the contract with the sheet where the lead lets them in', g5.view === 'workspace' && g5.id === 'MK-149' && g5.sheet, JSON.stringify(g5));
+    /* RE-POINTED 15 Oct 2026 (step 8): the contract opens as its strip on the
+       Board, the desk's sheet over it */
+    ok('4b Answer on a join request opens the contract with the sheet where the lead lets them in', g5.view === 'dashboard' && g5.id === 'MK-149' && /^MK-149:/.test(g5.strip || '') && g5.sheet && !g5.room, JSON.stringify(g5));
     await page.keyboard.press('Escape').catch(() => {});
     await page.evaluate(() => { try { closeModal(); } catch (_) {} const d = deskOf(getContract('MK-149')); d.joinRequests = []; });
 
@@ -324,16 +333,22 @@ const ok = (name, good, detail) => {
        room remembers its tab per contract: without that, a row that only
        opened the contract would land on Signing because section 3 left it
        there, and the claim would pass on the fault. */
+    /* step 8: a landing names the contract's strip (id:page) too, so two
+       doors agree only where they open the same strip on the same page */
     const landOf = g => g.view === 'redline' ? 'negotiate:' + g.held
-      : g.view + ':' + g.id + ':' + g.tab + (g.sheet ? ':sheet' : '');
-    const want = (g, id) => landOf(Object.assign({}, g, { id, held: id }));
+      : g.view + ':' + g.id + ':' + g.tab + (g.sheet ? ':sheet' : '') + (g.strip ? ':strip=' + g.strip : '');
+    const want = (g, id) => landOf(Object.assign({}, g, { id, held: id, strip: g.strip ? String(g.strip).replace(/^[^:]*/, id) : g.strip }));
     const elsewhere = async () => {
-      await page.evaluate(() => { try { closeModal(); } catch (_) {} openWorkspace('MK-150'); });
+      await page.evaluate(() => { try { closeModal(); } catch (_) {} openWorkspace('MK-150', { room: true }); });
       await page.waitForTimeout(700);
     };
     const landing = () => page.evaluate(() => ({ view: state.view, id: state.activeId,
       held: (typeof redlineHeldId === 'function') ? redlineHeldId() : null,
       tab: (typeof roomCurrentTab === 'function') ? roomCurrentTab() : null,
+      /* step 8: the contract's strip on the Board (its id and page) */
+      strip: (() => { const t = document.querySelector('#bs-strips > .bs-strip'); return t ? t.getAttribute('data-bs-id') + ':' + t.getAttribute('data-bs-on') : null; })(),
+      renewal: !!document.querySelector('#bs-strips [data-bs-host="details"] #renewal-host'),
+      room: !!document.getElementById('ws-tabs'),
       sheet: !!document.getElementById('dk-close') }));
     /* RE-POINTED 28 Sep 2026 (Young: "lets add just this part to the home
        page and discard the current 2 cards"): Home's decisions card is gone,

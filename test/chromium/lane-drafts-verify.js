@@ -122,19 +122,25 @@ const until = async (page, fn, arg, ms = 8000) => {
     const el = row.asElement();
     ok('3e the row is drawn in the panel', !!el);
     if (el) await el.click();
-    const landed = await until(p2, id => state.view === 'workspace' && state.activeId === id, cid, 8000);
-    ok('3f the press opens the draft', landed, await p2.evaluate(() => ({ view: state.view, id: state.activeId })));
+    /* RE-POINTED 15 Oct 2026 (the overnight work order, step 8): the room
+       retired — the row opens the draft's Lifeline strip on Home's Board, and
+       what Copilot read on arrival is the strip's own band ("What Jambo read
+       on upload", .bs-jb), where the room's triage strip used to say it */
+    const landed = await until(p2, id => state.view === 'dashboard' && !!document.getElementById('bs-strip-' + id)
+      && (document.querySelector('#bs-strips > .bs-strip') || {}).getAttribute?.('data-bs-id') === id, cid, 8000);
+    ok('3f the press opens the draft', landed, await p2.evaluate(() => ({ view: state.view, id: state.activeId, strip: (document.querySelector('#bs-strips > .bs-strip') || {}).id })));
     await p2.waitForTimeout(800);
-    /* PAINTED, not merely present: the strip's own pixels answer to it. */
-    const strip = await p2.evaluate(() => {
-      const el = document.getElementById('kt-triage-slot');
+    /* PAINTED, not merely present: the band's own pixels answer to it. */
+    const strip = await p2.evaluate(id => {
+      const el = document.querySelector('#bs-strip-' + id + ' .bs-jb');
+      if (el) el.scrollIntoView({ block: 'center' });
       const r = el ? el.getBoundingClientRect() : null;
       const hit = r && r.height > 0 ? document.elementFromPoint(r.left + Math.min(40, r.width / 2), r.top + Math.min(12, r.height / 2)) : null;
       const tab = document.querySelector('.room-tab.is-on, .room-tab[aria-selected="true"], [data-room-tab].is-on');
       return { painted: !!(hit && el.contains(hit)), text: ((el || {}).textContent || '').replace(/\s+/g, ' ').trim().slice(0, 120),
         tab: tab ? tab.textContent.trim() : null };
-    });
-    ok('3g it lands on the Overview, where the strip says Copilot read it', strip.painted && /read/i.test(strip.text), strip);
+    }, cid);
+    ok('3g it lands on the strip\'s Overview, where the band says Jambo read it, and when', strip.painted && /Read \d/.test(strip.text), strip);
     await p2.screenshot({ path: path.join(OUT, '3-opened.png') });
 
     /* ---- 4 · NOBODY READS IT TWICE ---- */

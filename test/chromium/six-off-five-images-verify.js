@@ -178,7 +178,7 @@ const ok = (name, good, detail) => {
        then back. RE-POINTED 11 Oct 2026: the Document tab (and its control-row
        door) is gone (owner); the room's ⋯ menu row (#ws-focus) is the door
        that stays on every tab, so it is pressed on the Signing tab. */
-    await page.evaluate(() => { openWorkspace(state.contracts[0].id); });
+    await page.evaluate(() => { openWorkspace(state.contracts[0].id, { room: true }); });
     await page.waitForFunction(() => !!document.querySelector('.room-tabrow'), null, { timeout: 10000 }).catch(() => {});
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
        Signing tab went home (Jambo's Before you sign face, where Home has no
@@ -210,7 +210,7 @@ const ok = (name, good, detail) => {
     /* ESCAPE ON ANOTHER PAGE IS THAT PAGE'S KEY, not the room's. */
     await page.keyboard.press('Escape');
     await page.waitForTimeout(300);
-    await page.evaluate(() => openWorkspace(state.contracts[0].id));
+    await page.evaluate(() => openWorkspace(state.contracts[0].id, { room: true }));
     await page.waitForTimeout(1200);
     const back = await page.evaluate(() => ({
       chip: !!document.getElementById('ws-focus-out'),

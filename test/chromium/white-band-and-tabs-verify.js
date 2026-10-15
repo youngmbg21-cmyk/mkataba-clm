@@ -134,7 +134,7 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     await pause(1800);
 
     /* ================= 1 · THE CONTRACT ROOM'S HEAD IS A WHITE BAND ========= */
-    await page.evaluate(id => openWorkspace(id), cid);
+    await page.evaluate(id => openWorkspace(id, { room: true }), cid);
     await pause(2000);
     await page.screenshot({ path: path.join(OUT, '01-room.png') });
 
@@ -680,7 +680,7 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
       { ink: live[0] && live[0].ink, accentInk });
 
     /* ================= 8 · THE STRIP IS GONE AND THE CARDS MOVED UP ======== */
-    await page.evaluate(id => openWorkspace(id), cid);
+    await page.evaluate(id => openWorkspace(id, { room: true }), cid);
     await pause(2200);
     const tabsSeen = [];
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's

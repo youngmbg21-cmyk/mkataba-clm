@@ -282,7 +282,7 @@ const SEED = t => {
        "Form"): an upload now lands on Home's paper with Jambo's panel on Fill
        in, so the room is opened here, as a reader opens it, before its
        Overview is measured. */
-    await drive(() => { const c = state.contracts[0]; if (c && window.openWorkspace) openWorkspace(c.id); });
+    await drive(() => { const c = state.contracts[0]; if (c && window.openWorkspace) openWorkspace(c.id, { room: true }); });
     await pause(900);
     await drive(() => { const b = document.querySelector('#ws-tabs [data-ws-tab="terms"]');
       if (b) b.click(); });
@@ -453,7 +453,7 @@ const SEED = t => {
       undefined, null);
     await pause(1400);
     /* the upload lands beside the paper on Home now (stage 2, 14 Oct 2026): its room is opened here */
-    await drive(id => { if (id && state.view !== 'workspace' && window.openWorkspace) openWorkspace(id); }, badId);
+    await drive(id => { if (id && state.view !== 'workspace' && window.openWorkspace) openWorkspace(id, { room: true }); }, badId);
     await pause(900);
     await drive(() => { const b = document.querySelector('#ws-tabs [data-ws-tab="terms"]');
       if (b) b.click(); });
@@ -517,7 +517,7 @@ const SEED = t => {
         playbook: { ok: true, dev: 1, miss: 0, cats: ['Payment terms'] },
         oblig: { ok: true, found: [] } } };
       delete c._brief; delete c._hasBrief;
-      if (window.openWorkspace) openWorkspace(c.id);
+      if (window.openWorkspace) openWorkspace(c.id, { room: true });
       return { staged: true };
     }, cid, { staged: false });
     await pause(900);
@@ -577,7 +577,7 @@ const SEED = t => {
         why: 'The answer was cut short, so it was not kept — write the brief again.' };
       c._brief = { at: new Date().toISOString(),
         data: { overview: 'A haulage contract for the northern route.' } };
-      if (window.openWorkspace) openWorkspace(c.id);
+      if (window.openWorkspace) openWorkspace(c.id, { room: true });
       return { ok: true };
     }, cid, null);
     await pause(900);
@@ -637,7 +637,7 @@ const SEED = t => {
       delete c._brief; delete c._hasBrief;
       delete (c.triage || {}).seenAt;
       state.aiConfigured = true;
-      if (window.openWorkspace) openWorkspace(c.id);
+      if (window.openWorkspace) openWorkspace(c.id, { room: true });
       return { ok: true };
     }, cid, null);
     await pause(900);
@@ -787,7 +787,7 @@ const SEED = t => {
        there first. */
     await drive(() => { if (document.getElementById('cd-page') && window.closeModal) closeModal();
       /* a new contract lands beside the paper on Home now (stage 2, 14 Oct 2026): its room is opened here */
-      if (window.openWorkspace && state.activeId && state.view !== 'workspace') openWorkspace(state.activeId);
+      if (window.openWorkspace && state.activeId && state.view !== 'workspace') openWorkspace(state.activeId, { room: true });
       if (window.roomGoTab && state.activeId) roomGoTab(getContract(state.activeId), 'terms'); });
     await pause(700);
     const spin = await drive(id => {

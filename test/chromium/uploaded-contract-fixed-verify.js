@@ -191,7 +191,7 @@ const BODY =
     await page.screenshot({ path: path.join(OUT, '02-thread.png') });
 
     /* ===== 3. THE OBLIGATIONS TILE ===== */
-    await page.evaluate(() => openWorkspace(window.__cid));
+    await page.evaluate(() => openWorkspace(window.__cid, { room: true }));
     await page.waitForFunction(() => state.view === 'workspace' && !!document.getElementById('ws-tabs'),
       null, { timeout: 15000 }).catch(() => {});
     const tile = await page.evaluate(async () => {
@@ -249,8 +249,11 @@ const BODY =
     /* RE-POINTED 14 Oct 2026 (stage 5): 3b left the reader on Home's Board, and
        roomGoTab only switches a room that is drawn, so the Overview is opened
        through roomOpenAt — "open this contract on that tab, from anywhere". */
-    await page.evaluate(() => roomOpenAt(window.__cid, 'terms'));
-    await page.waitForFunction(() => state.view === 'workspace' && !!document.getElementById('ws-tabs'), null, { timeout: 8000 }).catch(() => {});
+    /* RE-POINTED 15 Oct 2026 (step 8, the room retired): the Overview's
+       sheet — its Edit and its parties — is the contract strip's Details page
+       on Home's Board, opened by its one door (roomOverviewOpen) */
+    await page.evaluate(() => roomOverviewOpen(getContract(window.__cid)));
+    await page.waitForFunction(() => state.view === 'dashboard' && !!document.querySelector(`[data-bs-host="details"][data-bs-cid="${window.__cid}"] #kt-ov-terms`), null, { timeout: 8000 }).catch(() => {});
     await page.waitForTimeout(1200);
     /* RE-POINTED IN PLACE 1 Oct 2026 (Read Down): nothing folds, so every
        section is open as drawn — found by its head's words, not pressed. */
@@ -264,7 +267,6 @@ const BODY =
        and THE OVERVIEW EDITS AGAIN): the people directory is the Overview's
        Edit (data-ov-edit="all" → participantsDirHtml in #ov-parties), so the
        check presses Edit on the Overview and measures there. */
-    await page.evaluate(() => roomGoTab(getContract(window.__cid), 'terms'));
     await page.waitForFunction(() => !!document.querySelector('[data-ov-edit="all"]'), null, { timeout: 6000 }).catch(() => {});
     await page.evaluate(() => { const b = document.querySelector('[data-ov-edit="all"]'); if (b) b.click(); });
     await page.waitForFunction(() => !!document.querySelector('#ov-parties #kt-people'), null, { timeout: 6000 }).catch(() => {});
@@ -283,7 +285,7 @@ const BODY =
       return out;
     });
     await page.evaluate(() => { const b = document.querySelector('[data-ov-edit="all"]'); if (b && document.querySelector('#ov-parties #kt-people')) b.click(); });
-    await page.evaluate(() => roomGoTab(getContract(window.__cid), 'terms'));
+    await page.evaluate(() => roomOverviewOpen(getContract(window.__cid)));
     await page.waitForTimeout(800);
     const rest = await page.evaluate(() => {
       const col = document.getElementById('ov-parties'); const hd = col && col.querySelector('.ov-ess-h');

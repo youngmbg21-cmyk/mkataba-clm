@@ -116,7 +116,7 @@ const SCAN = { at: '5 Oct 2026, 15:10', on: '2026-10-05', lang: 'en', dismissed:
         return { answer: JSON.stringify({ proposedText: words, advice: 'Drafted.' }) };
       };
     }, { LIAB_NEW });
-    await page.evaluate(id => openWorkspace(id), ID);
+    await page.evaluate(id => openWorkspace(id, { room: true }), ID);
     await page.evaluate(id => roomGoTab(getContract(id), 'redline'), ID);
     await until(page, () => !!document.querySelector('.redline-page #rl-changes'));
 

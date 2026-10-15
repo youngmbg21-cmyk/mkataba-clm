@@ -162,7 +162,7 @@ const AGREED = [
     check('2c the Negotiations page lists it from the day it is opened, before a change is filed', onNego);
 
     /* ===== 3. THE SIGNING TAB IS THE HANDOVER ===== */
-    await page.evaluate(id => { openWorkspace(id); }, RL);
+    await page.evaluate(id => { openWorkspace(id, { room: true }); }, RL);
     await page.waitForTimeout(700);
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
        Signing tab went home — roomGoTab(c,'sign') opens Jambo's Before you sign
@@ -188,7 +188,7 @@ const AGREED = [
     /* RE-POINTED 14 Oct 2026 (stage 5): Home's face draws no room head, so the
        room's next step is read in the room itself (its head still carries
        #ws-next-action), then the face is opened again for the handover. */
-    await page.evaluate(id => openWorkspace(id), RL);
+    await page.evaluate(id => openWorkspace(id, { room: true }), RL);
     await page.waitForFunction(() => state.view === 'workspace' && !!document.getElementById('ws-next-action'), null, { timeout: 8000 }).catch(() => {});
     tab.head = await page.evaluate(() => ((document.getElementById('ws-next-action') || {}).textContent || '').trim());
     check('3d the room\'s next step says the same', /Hand over/.test(tab.head), tab.head);
@@ -231,7 +231,7 @@ const AGREED = [
     /* RE-POINTED 14 Oct 2026 (stage 5): the handover is pressed on Home's
        Before you sign face, which draws no room head; the status word beside
        the days is the room head's, so it is read in the room. */
-    await page.evaluate(id => openWorkspace(id), RL);
+    await page.evaluate(id => openWorkspace(id, { room: true }), RL);
     await page.waitForFunction(() => state.view === 'workspace' && !!document.querySelector('.room-head'), null, { timeout: 8000 }).catch(() => {});
     out.status = await page.evaluate(() => (document.querySelector('.room-head') || {}).innerText || '');
     check('4c it is out with them: the status word says so, beside the days', /With them for signature/.test(out.status), out.status.split('\n').slice(0, 3).join(' | '));
@@ -282,7 +282,7 @@ const AGREED = [
        reader on Home (the Signing tab went home), where there is no room head
        or room breadcrumb; the claims below are about the ROOM's head, its
        breadcrumb and its shell bar, so the room is opened to read them. */
-    await page.evaluate(id => openWorkspace(id), RL);
+    await page.evaluate(id => openWorkspace(id, { room: true }), RL);
     await page.waitForFunction(() => state.view === 'workspace' && !!document.querySelector('.room-crumb-here'), null, { timeout: 8000 }).catch(() => {});
     const filed = await page.evaluate(() => { const c = getContract(state.activeId);
       return { id: c.id, no: c.contractNo || '', status: c.status, sub: ((document.querySelector('.room-sub-id') || {}).textContent || '').trim(),
@@ -312,7 +312,7 @@ const AGREED = [
     check('6g and off the Negotiations page', !still);
 
     /* ===== 7. THE RECORD ===== */
-    await page.evaluate(id => { openWorkspace(id); }, RL);
+    await page.evaluate(id => { openWorkspace(id, { room: true }); }, RL);
     await page.waitForTimeout(700);
     await page.evaluate(() => roomGoTab(getContract(state.activeId), 'docs'));
     await page.waitForTimeout(1200);
@@ -367,7 +367,7 @@ const AGREED = [
     await page.evaluate(() => { const b = document.getElementById('cd-later'); if (b) b.click(); });
     await page.waitForTimeout(400);
     const RL2 = await page.evaluate(() => { const c = getContract(state.activeId); return c && c.signRoute === 'outside' ? c.id : ''; });
-    await page.evaluate(() => { openWorkspace(state.activeId); roomGoTab(getContract(state.activeId), 'sign'); });
+    await page.evaluate(() => { openWorkspace(state.activeId, { room: true }); roomGoTab(getContract(state.activeId), 'sign'); });
     await page.waitForTimeout(700);
     const staged2 = await stageReady();
     check('8 · stage: a second working file, its list settled', /^RL-\d{3}$/.test(RL2) && RL2 !== RL && staged2.ok && staged2.n === 0, JSON.stringify({ RL2, staged2 }));
@@ -443,7 +443,7 @@ const AGREED = [
     }, RL2);
     check('8d filed, the record keeps what was written in each blank, and the trail says how many',
       kept.status === 'Signed' && kept.filled === 3 && kept.fills.includes('Name: Wanjiru Kamau') && /3 blanks filled in/.test(kept.line), JSON.stringify(kept).slice(0, 300));
-    await page.evaluate(id => { openWorkspace(id); }, RL2);
+    await page.evaluate(id => { openWorkspace(id, { room: true }); }, RL2);
     await page.waitForTimeout(700);
     await page.evaluate(() => roomGoTab(getContract(state.activeId), 'docs'));
     await page.waitForTimeout(1200);

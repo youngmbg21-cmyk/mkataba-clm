@@ -244,3 +244,26 @@ time on this branch; the owner merges in the morning.
   panels' checklist rows, Show it in the contract and the other Workspace
   doors, and prints the bell's room rows this book does not draw. Story:
   MAP-HISTORY "FINISHING THE ONE PAGE — Steps 1 and 2".
+- **Step 8 — Overview, Where we are and History on the Board as the Lifeline
+  strip; the contract room retires. Built 15 Oct 2026.** "Bring up MK-…"
+  (Jambo's box, its chip, ⌘K, a row on the Board) lands the contract on the
+  Board as a strip below Today's insights, newest first, drawn as version 4
+  of the picture: who it is with, five figures (value, term, next
+  obligation, notice by, whose move), the contract's life to scale with its
+  obligations as dots, Key terms beside Obligations in their own scroll box,
+  what Jambo read on upload with a door from each cell, and Open · Keep ·
+  Ask why · Let it go. Every figure is read from the record; a missing one
+  is said. Its ⋯ holds Where we are (the one builder) and History (the
+  room's trail, Side in the open as All sides · Ours · Theirs, Show the
+  wording, scrolling inside the card); Key terms' Edit opens the Overview's
+  own sheet in the strip (Details), so nothing the room's Overview did is
+  lost. Every door that opened the room now opens the strip; the room is
+  drawn only by name (for the checks) and on the phone. The paper's ⋯ gained
+  the room's last acts: Start negotiating, Add signers, Create an amendment,
+  Add a signed document. Proof: `test/chromium/board-strip-verify.js`, and
+  every step 8 row of the door census passing. The checkers' round fixed a
+  restored strip that never read its brief, Details going stale, the brief
+  and standards doors (one paid without showing, one ran a fresh check),
+  the life line's uncounted dots, "bring up" beside the paper, and kept
+  Edit from growing the card on the strip. Story: MAP-HISTORY
+  "FINISHING THE ONE PAGE — Step 8" and "THE CHECKERS' ROUND ON STEP 8".

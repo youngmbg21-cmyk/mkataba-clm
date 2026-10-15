@@ -292,7 +292,7 @@ const check = (name, ok, detail) => {
 
     /* ============ 4 · THE BRIEF IS THE LAST BUTTON BEFORE SIGNING ========= */
     const id = await page.evaluate(() => (state.contracts || [])[0] && state.contracts[0].id);
-    await page.evaluate(i => openWorkspace(i), id);
+    await page.evaluate(i => openWorkspace(i, { room: true }), id);
     await page.waitForTimeout(800);
     await page.evaluate(i => roomGoTab(state.contracts.find(x => x.id === i), 'sign'), id);
     await page.waitForTimeout(1400);

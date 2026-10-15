@@ -68,7 +68,7 @@ const CONTRACTS = [
     const pd = await order(['#pd-ok', '#pd-cancel']);
     ok('1b "type an answer": the act first, Cancel last', pd && pd.dom && pd.drawn, JSON.stringify(pd));
     await page.click('#pd-cancel').catch(() => {});
-    await page.evaluate(() => { const c = getContract('MK-P1'); state.activeId = c.id; setView('workspace'); });
+    await page.evaluate(() => { const c = getContract('MK-P1'); state.activeId = c.id; openWorkspace(state.activeId, { room: true }); });
     await page.waitForTimeout(900);
     await page.evaluate(() => openObligationForm(getContract('MK-P1')));
     const formUp = await wait(page, () => !!document.querySelector('#modal-root [role="dialog"] [data-dlg-cancel]'));
@@ -137,7 +137,7 @@ const CONTRACTS = [
 
     /* ---- 5. COMPARE, ONE VERSION: GREY WITH ITS REASON ---- */
     console.log('\n5 · no pop-up to say no');
-    await page.evaluate(() => { const c = getContract('MK-P1'); state.activeId = c.id; setView('workspace'); });
+    await page.evaluate(() => { const c = getContract('MK-P1'); state.activeId = c.id; openWorkspace(state.activeId, { room: true }); });
     await page.waitForTimeout(1000);
     const cmp = await page.evaluate(() => { const b = document.getElementById('ws-compare');
       return b ? { dis: b.disabled, why: b.title, note: (b.querySelector('.mnote') || {}).textContent || '' } : null; });
