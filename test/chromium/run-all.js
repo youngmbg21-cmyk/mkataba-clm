@@ -75,6 +75,12 @@ const KNOWN_RED = {
     'accepted change. Green again the day the body returns; delete it the day ' +
     'the owner says the feature is not coming back.',
   'six-round-audit.js':
+    'MEASURED 15 Oct 2026: it now stops in ROUND 1 — ownerOpenBench waits for ' +
+    '#view-redline #rl-doc, the Negotiate page that folded into Home on 14 Oct ' +
+    '(stage 5), so it needs re-pointing to the Redlines face before any round ' +
+    'can run. The endgame fault named below is NOT the product\'s any more: every ' +
+    'Issue a signing link door (the room, the Negotiate engine, the phone) opens ' +
+    'the send screen with purpose sign (issueSigningAct). The older note: ' +
     'ROUNDS 1-6 NOW PASS; the ENDGAME does not. Re-pointed 21 Aug 2026: the ' +
     'clause tool row it filed through (pill -> panel -> plus now), the ask tag ' +
     'it read a refusal reason off, the #rl-threads column that no longer ' +

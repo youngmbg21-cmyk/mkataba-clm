@@ -3342,11 +3342,16 @@ function _selMenuArmDoc(){
      closing"). This listener is in the CAPTURE phase so a scroll anywhere
      under the menu's anchor shuts it — and a scroll INSIDE the list reached
      it too, so the one act a long list asks for closed it. A scroll whose
-     target is the menu (or inside it) is the reader moving the list. */
+     target is the menu (or inside it) is the reader moving the list.
+     AND A SCROLL THAT DOES NOT MOVE THE CONTROL LEAVES IT OPEN (15 Oct 2026):
+     a box elsewhere scrolling itself (Jambo's conversation behind an open
+     list) shut the list in the moment it opened. Only the page, or a box the
+     control sits in, carries the control away from the list. */
   window.addEventListener('scroll', ev => {
     if (!_selMenuEl) return;
     const t = ev && ev.target;
     if (t && t.nodeType === 1 && (t === _selMenuEl || _selMenuEl.contains(t))) return;
+    if (t && t.nodeType === 1 && _selMenuFor && _selMenuFor.isConnected && !t.contains(_selMenuFor)) return;
     selectMenuClose();
   }, true);
 }
@@ -4542,7 +4547,7 @@ function contractReadiness(c){
   if(isMonetary(c) && !(Number(c.value)>0) && !c.parentId)
     add('block','value',i18t('sgx_rd_value'));
   if(!c.expiry && !(c.fields&&c.fields.expiry) && (c.metadata||{}).renewalType!=='evergreen')
-    add('warn','term','No expiry or term end is recorded, so no renewal reminder can be scheduled.');
+    add('warn','term',i18t('sgx_rd_term'));
   /* ---- AN EMPTY BOX IN OUR OWN PAPER HOLDS, LIKE A [NAME] DOES (Young's go,
      23 Sep 2026) ----
      From the recommendation the owner approved: *"Empty boxes in our own paper: flag them at the first send, using the
@@ -4565,7 +4570,7 @@ function contractReadiness(c){
      already names it, and a second line under "also worth knowing" repeating it
      is the same fact printed twice. */
   if(!c.effectiveDate && !(c.fields&&c.fields.effDate) && !boxes.some(b=>b.key==='effDate'))
-    add('warn','effective','No effective date is recorded.');
+    add('warn','effective',i18t('sgx_rd_effective'));
   const ph=contractPlaceholders(c);
   if(ph.length) add('block','placeholders',
     i18tn('sgx_rd_ph',ph.length,{n:ph.length,list:ph.slice(0,5).join(', ')+(ph.length>5?', …':'')}));
@@ -4637,11 +4642,11 @@ function contractReadiness(c){
     const nextRule=(ap && isRule(ap.next)) ? ap.next : null;
     if(ap && ap.required && !ap.ok && (refused || stale || nextRule)){
       if(refused) add('block','approval',
-        `Internal approval was refused${refused.by?` by ${refused.by}`:''} — “${refused.name}” is unresolved.`);
+        refused.by ? i18t('sgx_ap_refused_by',{by:refused.by,name:refused.name}) : i18t('sgx_ap_refused',{name:refused.name}));
       else if(stale) add('block','approval',
-        `“${stale.name}” was approved and the contract has changed since — it needs approving again.`);
+        i18t('sgx_ap_stale',{name:stale.name}));
       else add('warn','approval',
-        `Internal approval is outstanding: “${nextRule.name}” is waiting on ${ap.approverLabel||'an approver'}. This contract cannot go out for signature until it clears.`);
+        i18t('sgx_ap_waiting',{name:nextRule.name,who:ap.approverLabel||i18t('sgx_an_approver')})+' '+i18t('sgx_rd_ap_hold'));
     }
   }catch(_){ /* a readiness list that cannot be built is not a reason to block */ }
   /* AND THE OTHER GATE, THE EARLIER ONE. Approval above governs SIGNING; this
@@ -4670,7 +4675,7 @@ function contractReadiness(c){
       if(rm) add('block','review',rm);
     }
   }catch(_){ /* same: an unreadable gate must not take the panel down with it */ }
-  if(c.status==='Draft') add('warn','status','This contract is still a Draft.');
+  if(c.status==='Draft') add('warn','status',i18t('sgx_rd_draft'));
   /* ---- A WARNING THAT COULD NEVER FIRE, REMOVED (23 Aug 2026) ----
      It was `if(window.SIGN_ROUTE_ON && !sig.length)`, and SIGN_ROUTE_ON is set
      by NOTHING in this product — so the guard was always false and the check
@@ -8628,7 +8633,7 @@ async function applyResponse(c, r, opts={}){
      kinds landed. It cannot fire from the poller, which looks the contract up
      by this very id; it fires on the paste-a-code path, where the reader has
      just handed us the wrong code and is owed the sentence. */
-  if(r.id!==c.id){ toast(`This response is for ${r.id}, not ${c.id}`,'err'); return false; }
+  if(r.id!==c.id){ toast(i18t('co_resp_wrong_contract',{got:r.id,here:c.id}),'err'); return false; }
   // The caller may hand us a LIGHT register row — the list endpoint strips
   // audit, comments, execution.html and the upload's text off every row. This
   // function appends to the record and persists the whole object, so acting on
@@ -8642,7 +8647,7 @@ async function applyResponse(c, r, opts={}){
   // re-open. A stale or replayed link must not be able to flip a signed
   // contract to Declined or bolt another signature onto a sealed record.
   if((c.execution && c.execution.at) || isExternallyExecuted(c)){
-    if(!opts.background) toast(`${(window.contractRef?contractRef(c):c.id)} is already executed — a share response cannot change it. Record an amendment instead.`,'err');
+    if(!opts.background) toast(i18t('co_resp_executed',{ref:(window.contractRef?contractRef(c):c.id)}),'err');
     return false;
   }
   const currentHash=await sha256(canonicalDoc(c));
@@ -8658,7 +8663,7 @@ async function applyResponse(c, r, opts={}){
      Refused the same way an out-of-order signature is refused above: return
      false so nothing is written and the response stays visible as pending. */
   if(docChanged && (r.action==='sign' || r.action==='accept' || r.action==='ready')){
-    if(!opts.background) toast(`${r.name||'The counterparty'} responded to an earlier copy of ${(window.contractRef?contractRef(c):c.id)} — the wording changed after their link was sent, so their ${r.action==='sign'?'signature':'response'} was NOT applied. Reshare the current version so they respond to the document you actually have.`,'err');
+    if(!opts.background) toast(i18t(r.action==='sign'?'co_resp_earlier_sign':'co_resp_earlier',{who:r.name||i18t('co_resp_cp'),ref:(window.contractRef?contractRef(c):c.id)}),'err');
     return false;
   }
   if(docChanged)

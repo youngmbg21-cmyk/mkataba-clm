@@ -44,8 +44,8 @@ function normaliseUploadedSignature(file){
       ctx.drawImage(img,(SIG_W-w)/2,(SIG_H-h)/2,w,h);
       resolve(cv.toDataURL('image/png'));
     };
-    img.onerror=()=>reject(new Error('Could not read that image'));
-    const rd=new FileReader(); rd.onload=()=>{ img.src=rd.result; }; rd.onerror=()=>reject(new Error('Could not read that file')); rd.readAsDataURL(file);
+    img.onerror=()=>reject(new Error(i18t('si_img_fail')));
+    const rd=new FileReader(); rd.onload=()=>{ img.src=rd.result; }; rd.onerror=()=>reject(new Error(i18t('si_file_fail'))); rd.readAsDataURL(file);
   });
 }
 
@@ -182,7 +182,7 @@ function openSignaturePad(opts={}){
       const f=e.target.files&&e.target.files[0]; if(!f) return;
       try{ uploadedDataUrl=await normaliseUploadedSignature(f);
         q('#sig-upload-label').innerHTML=`<img src="${uploadedDataUrl}" alt="signature" style="max-height:${SIG_H-30}px;max-width:100%"/>`;
-      }catch(err){ toast(err.message||'Could not read that image','err'); }
+      }catch(err){ toast(err.message||i18t('si_img_fail'),'err'); }
     });
 
     showTab(saved?'saved':'draw');

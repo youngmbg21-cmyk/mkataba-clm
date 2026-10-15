@@ -1820,7 +1820,7 @@ async function uploadReadFile(file, opts){
   if(file.size>uploadMax()) return { refused:uploadTooBigMsg(file) };
   step(1);   // Step 1 — Reading document
   const dataUrl=await new Promise((res,rej)=>{ const rd=new FileReader(); rd.onload=()=>res(rd.result); rd.onerror=()=>rej(new Error('read failed')); rd.readAsDataURL(file); }).catch(()=>null);
-  if(!dataUrl) return { refused:'Could not read that file' };
+  if(!dataUrl) return { refused:i18t('ct_up_read_fail') };
   const mime=file.type||'application/octet-stream';
   // Legacy .doc is still refused BEFORE anything is read — a silent empty
   // shell in the register is worse than a clear refusal. Modern .docx is read
@@ -1834,7 +1834,7 @@ async function uploadReadFile(file, opts){
     // refusal, not an empty shell — the person can re-save and try again
     try{ const w=await extractWordText(dataUrl); extractedText=w.text; wordTracked=w.tracked;
       wordHtml=w.html||''; wordReport=w.report||null; }
-    catch(e){ return { refused:'Could not read this Word file: '+e.message }; }
+    catch(e){ return { refused:i18t('ct_up_word_fail',{why:e.message}) }; }
   } else if(/pdf/.test(mime) && window.readPdfStructured){
     /* ---- A PDF IS READ THE WAY A WORD FILE IS (J-3.4) ----
        Same reader as before for the WORDING — readPdfStructured's `text` is
@@ -1862,10 +1862,10 @@ async function uploadReadFile(file, opts){
   let ocr=null, textSource=word==='docx'?'docx-text':(extractedText.length>=OCR_TEXT_FLOOR?'pdf-text':'none');
   if(word!=='docx' && ocrNeeded(mime, extractedText)){
     if(API_MODE()&&!state.aiCfg){ try{ state.aiCfg=await api('ai/config'); }catch(e){} }
-    step(1, 'This looks like a scan — reading it with OCR…');
+    step(1, i18t('ct_up_scan'));
     ocr=await ocrDocument(dataUrl, mime, {
       onProgress:(done,total,tier)=>step(1,
-        `Reading page ${Math.min(done+1,total)} of ${total}${tier==='local'?' (offline recogniser — slower and less accurate)':''}…`),
+        i18t(tier==='local'?'ct_up_page_local':'ct_up_page',{n:Math.min(done+1,total),total})),
     });
     if(ocr.text){ extractedText=ocr.text.slice(0,EXTRACT_MAX_CHARS); textSource=ocr.textSource; }
     else if(ocr.error) toast(i18t('ct_could_not_read_scan')+ocr.error,'err');
@@ -1897,7 +1897,7 @@ async function uploadReadMeta(rd, step){
   const st=(typeof step==='function')?step:()=>{};
   rd.meta=null;
   if(rd.extractedText && rd.extractedText.length>200){
-    st(2, isOcrText(rd.textSource)?'Reading details out of the machine-read text…':null);
+    st(2, isOcrText(rd.textSource)?i18t('ct_up_machine'):null);
     rd.meta=await extractMetadata(rd.extractedText, null);
     // Anything read out of an OCR'd scan is capped at medium confidence — OCR
     // misreads dates and amounts, and those are what the reminders fire on.

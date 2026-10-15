@@ -20822,3 +20822,15 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 
 ### Noticed, not fixed (15 Oct 2026, the easy fixes, round one)
 - core.js's share-response check still has two English-only refusals ("This response is for … not …", "… is already executed — a share response cannot change it"); kept for round two's Swedish sweep.
+
+### Fixed (15 Oct 2026, the review's easy fixes, round two)
+- HaTi's own dropdown list shut on ANY scroll (core.js's capture listener), so a box elsewhere scrolling itself (Jambo's conversation) closed a list the moment it opened; it now shuts only when the page, or a box the control sits in, scrolls (f689 (13)).
+- The Swedish sweep of signing and sending: the upload reader's lines (and the Library upload's twins), the signature pad's two errors, the send screen's six English readiness rows (two now reuse the signing checklist's own sgx_ap_* sentences), and core.js's three share-response refusals are read from both books. The server's signing refusals with a name inside (the approval-rule refusals, the handover's "Internal approval is outstanding", "cannot go back to Draft", the check-before-signing refusal) are translated by a new pattern table in srvMsg (SRV_MSG_PATTERN; the captured name or list is kept verbatim), and "HaTi runs the signing…" joins SRV_MSG. Svenska speaks one voice: "papperet" (30 "pappret" in the book changed; Jambo still understands "pappret" typed) and "på tavlan" (f689 (14)).
+- one-page-home-walk-verify presses the Edit and Share doors by selector, not by a handle held across a repaint; friction-fits-the-screen-verify waits, bounded, for the list and panel it measures (it went red on round one's own GitHub run, 4a, exactly as noted on main).
+- Found already fixed, nothing done: "Who else" on an uploaded contract's Overview (uploaded-contract-fixed-verify 18/18); the signing checklist's turn rows and the signing copy's partial stamp (sgx_*). The ready-to-sign hand-off already issues a signing link at every door (issueSigningAct, purpose sign); six-round-audit's KNOWN_RED reason is corrected — it now stops in round 1 on the Negotiate page that folded into Home.
+- Left on purpose: the default approval rule's stored name ("Value ≥ KES 5M") stays English — a label that is also a record keeps English.
+
+### Noticed, not fixed (15 Oct 2026, the easy fixes, round two)
+- six-round-audit needs re-pointing from the retired Negotiate page (#view-redline #rl-doc) to the Redlines face before any of its six rounds can run.
+- Many other server refusals still reach a Swedish screen in English (srvMsg passes them through); round two translated only the signing path's.
+- The signing check's own list items inside the server's refusal ("a departure from our standards (…)") are English words; srvMsg keeps them verbatim inside the Swedish sentence.

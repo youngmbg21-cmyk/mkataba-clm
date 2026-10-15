@@ -153,6 +153,15 @@ function measure() {
   const lens = async (page, k) => {
     await drive(page, l => { const b = document.querySelector(`#ig-friction [data-igf-lens="${l}"]`); if (b) b.click(); }, k, null);
     await waitFor(page, l => document.querySelector(`#ig-friction [data-igf-list="${l}"]`), k);
+    /* AND THE PARTS THE MEASUREMENT READS ARE PAINTED (15 Oct 2026): on one
+       slow GitHub runner the lens was lit but the list and its panel not yet
+       laid out, and every claim read "not drawn". Asked as a state, bounded. */
+    await waitFor(page, () => {
+      const h = document.getElementById('ig-friction');
+      const l = h && h.querySelector('.igf-led-list'), d = h && h.querySelector('.igf-led-detail');
+      return !!(l && d && l.getBoundingClientRect().height > 0 && d.getBoundingClientRect().height > 0
+        && h.querySelector('.igx-figs > .igx-fig'));
+    });
   };
 
   try {
