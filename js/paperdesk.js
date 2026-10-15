@@ -1326,8 +1326,8 @@ function pdDealHtml(c){
 const PD_MENU_NEXT = {
   Draft: ['[data-rl-prepare]', '[data-ig-review]', '#ws-m-signers'],
   'Under Review': ['#ws-import', '[data-ig-memo]', '#ws-m-signers'],
-  Signed: ['#ws-m-amend', '#ws-pdf', '#ws-archive'],
-  Declined: ['#ws-reopen', '#ws-pdf', '#ws-archive']
+  Signed: ['#ws-m-amend', '#ws-pdf', '#ws-end'],
+  Declined: ['#ws-reopen', '#ws-pdf', '#ws-end']
 };
 function pdMenuGroups(c){
   if (typeof document === 'undefined' || typeof roomMoreMenuHtml !== 'function') return [];

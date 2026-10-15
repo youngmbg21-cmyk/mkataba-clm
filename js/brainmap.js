@@ -26,6 +26,8 @@ const BRAIN_PARTS = [
   ['home', 'hmDecisionItems', 'see', 0],
   /* Needs you, Jambo's note (15 Oct 2026): what is owed by name, on the Board, above Jambo's work */
   ['needsme', 'hbNeedsHtml', 'see', 0],
+  /* End or pause (15 Oct 2026): one question, three answers — decline, archive, hold */
+  ['endpause', 'endOrPauseOpen', 'time', 1],
   ['bell', 'buildAlerts', 'see', 0],
   ['contracts', 'renderRegister', 'see', 0],
   /* Customer folders (10 Oct 2026): one shelf per customer, read off the counterparty */
@@ -324,7 +326,7 @@ const BRAIN_FLOWS = [
   { id: 'request', steps: [['request', 'kinds', 'intake', 'mailroom', 'reqfiles'], ['bell'], ['lanes', 'laneowner'], ['arrivalowed', 'triage'], ['newagr']] },
   { id: 'theysign', steps: [['theirsign', 'issuelinks'], ['cplink', 'guestcode'], ['respond', 'filesig'], ['srvseal', 'sealtext', 'frozen'], ['copies', 'email'], ['obligations', 'renewal', 'calendar']] },
   { id: 'amend', steps: [['amendface', 'amend'], ['blanks'], ['readiness', 'approvals'], ['srvseal'], ['renewal', 'overview']] },
-  { id: 'end', steps: [['served', 'renewact'], ['autorenew'], ['obdone'], ['decline', 'reopen'], ['archive', 'hold']] },
+  { id: 'end', steps: [['served', 'renewact'], ['autorenew'], ['obdone'], ['endpause', 'decline', 'reopen'], ['archive', 'hold']] },
   { id: 'mistake', steps: [['leaveguard', 'inline'], ['discard'], ['freshen'], ['outbyhand', 'mailkey'], ['linkkeep', 'whosemove']] }
 ];
 
@@ -346,7 +348,7 @@ const BRAIN_LANE_OF = {
     'editor', 'baton', 'askkeep', 'risklist', 'riskwalk', 'stands', 'dealpaper', 'onepaper', 'decidedsend', 'signtab', 'signface', 'pad', 'calendar', 'desknight', 'insights', 'readings',
     'chasemany', 'copilotask', 'menuask', 'nextsteps', 'reflink', 'menutab', 'amendface', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs',
     'phrasebook', 'boardtools', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'citedoor', 'walkset', 'paperdesk', 'contracts', 'contractsplace', 'customers', 'directory', 'cellfold',
-    'readchips', 'nextq', 'newagr', 'essentials', 'tplform', 'details', 'fillface', 'outbyhand', 'amend', 'decline', 'reopen', 'archive', 'hold', 'served', 'obdone', 'inline', 'stackview', 'mynotes', 'breakdown', 'jambohouse'],
+    'readchips', 'nextq', 'newagr', 'essentials', 'tplform', 'details', 'fillface', 'outbyhand', 'amend', 'endpause', 'decline', 'reopen', 'archive', 'hold', 'served', 'obdone', 'inline', 'stackview', 'mynotes', 'breakdown', 'jambohouse'],
   /* HaTi itself: the readings, Copilot, the agents, the server's checks, the mail it sends */
   hati: ['docx', 'clauses', 'putguard', 'db', 'triage', 'arrivalowed', 'datedwin', 'brief', 'playbook', 'oblscan', 'risk', 'model', 'blanks', 'laneowner',
     'funnel', 'desk', 'ladder', 'kept', 'asks', 'payload', 'shares', 'linkcheck', 'email', 'turnmail', 'wordmark', 'whosemove', 'roundauto',

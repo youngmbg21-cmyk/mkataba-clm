@@ -131,12 +131,13 @@ const RULES = [{ id: 'r-fin', name: 'Finance director', order: 1,
     await page.keyboard.press('Escape');
     await page.evaluate(() => setView('contracts'));
     await page.waitForTimeout(600);
-    await page.evaluate(() => regDeclineAsk(getContract('MK-AFL-3')));
-    const dq = await until(page, () => !!document.getElementById('pd-input'));
+    /* RE-POINTED 15 Oct 2026: decline is an answer in the one End or pause door */
+    await page.evaluate(() => { endOrPauseOpen(getContract('MK-AFL-3'), { pick: 'decline' }); });
+    const dq = await until(page, () => !!document.getElementById('end-note'));
     check('3a. Decline & close asks the reason', dq);
     if (dq) {
-      await page.fill('#pd-input', 'They chose another supplier.');
-      await page.click('#pd-ok');
+      await page.fill('#end-note', 'They chose another supplier.');
+      await page.click('#end-go');
     }
     let d = null;
     for (let i = 0; i < 30; i++) { d = await stored('MK-AFL-3'); if (d.status === 'Declined') break; await page.waitForTimeout(150); }

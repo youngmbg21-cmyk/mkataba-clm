@@ -253,28 +253,28 @@ describe('f358 (5) eight switches, one summary', () => {
 });
 
 /* ---------- 6 · the words that tell the end states apart ---------- */
-describe('f358 (6) four end states, and the difference is shown', () => {
-  test('6a END_STATES is the one place the three sentences live', () => {
-    assert.ok(/const END_STATES = \[/.test(CORE));
+describe('f358 (6) four end states, and the difference is shown — now ONE door (15 Oct 2026)', () => {
+  /* REVERSED by name: the owner picked "One question" off the end-or-pause
+     options page. END_STATES (a sentence on each of three rows' hovers) is
+     deleted; one door asks "What is happening with this deal?", each answer
+     saying what it does and naming its act. */
+  test('6a END_STATES is gone; its words are inert in both books', () => {
+    assert.ok(!/const END_STATES = \[/.test(CORE));
     for(const k of ['end_decline_says','end_archive_says','end_hold_says'])
-      assert.ok(CORE.includes(k), k);
+      assert.equal((EN.match(new RegExp('\\n    ' + k + ':[^\\n]*inert', 'g')) || []).length, 2, k);
   });
-  test('6b the Contracts row carries each on its hover', () => {
+  test('6b the Contracts row carries the one door, with its sentence on the hover', () => {
     const list = REG.slice(REG.indexOf('const REG_ROW_ACTIONS=['), REG.indexOf('];', REG.indexOf('const REG_ROW_ACTIONS=[')));
-    for(const k of ['end_decline_says','end_archive_says','end_hold_says'])
-      assert.ok(list.includes(k), k + ' is not on its row');
-    assert.ok(/a\.says\?` title="\$\{esc\(a\.says\)\}"`/.test(REG), 'and the row markup prints it');
+    assert.ok(list.includes("{k:'end'") && list.includes('end_door_says'));
+    for(const k of ["{k:'decline'","{k:'archive'","{k:'hold'"]) assert.ok(!list.includes(k), k + ' is an answer, not a row');
+    for(const k of ["{k:'restore'","{k:'release'","{k:'reopen'"]) assert.ok(list.includes(k), k + ' — the way back keeps its row');
   });
-  test('6c the contract’s own menu says the SAME thing', () => {
-    assert.ok(/endStateSays\('archive'\)/.test(CT));
-    assert.ok(/endStateSays\('hold'\)/.test(CT));
+  test('6c the paper’s own menu carries the SAME door', () => {
+    assert.ok(/id="ws-end"/.test(CT) && /endOrPauseOpen\(c\)/.test(CT));
   });
-  test('6d THE THREE ROWS STAY — a chooser was NOT built, deliberately', () => {
-    const list = REG.slice(REG.indexOf('const REG_ROW_ACTIONS=['), REG.indexOf('];', REG.indexOf('const REG_ROW_ACTIONS=[')));
-    for(const k of ["{k:'decline'","{k:'archive'","{k:'hold'","{k:'restore'","{k:'release'"])
-      assert.ok(list.includes(k), k + ' left the row menu');
-    assert.ok(!/openEndStateDialog/.test(CORE + REG + CT),
-      'the owner ruled Hold onto that row by name on 19 Sep — a chooser puts it one press further away');
+  test('6d each answer says what it does and is the existing act', () => {
+    for(const k of ['decline','archive','hold']) assert.ok(/end_a_' \+ a\.k \+ '_says'/.test(CORE) && EN.includes('end_a_' + k + '_says:'), k);
+    assert.ok(/contractDecline\(c, why\)/.test(CORE) && /contractSetArchived\(c, true, why\)/.test(CORE) && /contractSetHold\(c, true, why\)/.test(CORE));
   });
   test('6e the undo keeps no comparison, because there is nothing to compare', () => {
     const list = REG.slice(REG.indexOf('const REG_ROW_ACTIONS=['), REG.indexOf('];', REG.indexOf('const REG_ROW_ACTIONS=[')));

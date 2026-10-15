@@ -756,12 +756,8 @@ const CA_DOOR_GO = {
   approval: c => caRoomSign(c),
   chase: c => pdOpenOnHome(c.id, 'oblig'),
   done: c => pdOpenOnHome(c.id, 'oblig'),
-  hold: async c => {
-    if (typeof contractSetHold !== 'function' || typeof promptDialog !== 'function') return false;
-    const why = await promptDialog({ title: _caT('hd_ask_title'), message: _caT('hd_ask_msg'), placeholder: _caT('hd_ask_ph'), confirmLabel: _caT('hd_hold'), multiline: true });
-    if (why == null) return false;
-    return contractSetHold(getContract(c.id) || c, true, why);
-  },
+  /* the one end-or-pause door, its hold answer chosen (owner picked "One question", 15 Oct 2026) */
+  hold: c => (typeof endOrPauseOpen === 'function') ? endOrPauseOpen(getContract(c.id) || c, { pick: 'hold' }) : false,
   refile: c => { if (typeof openWorkspace === 'function') openWorkspace(c.id); if (typeof ovOpenFiling === 'function') ovOpenFiling(getContract(c.id) || c); },
   /* the Amend face beside the signed paper (owner, 15 Oct 2026); the dialog where Home has no paper */
   amend: c => ((typeof pdAmendOpen === 'function' && pdAmendOpen(c.id)) ? true : openCreateAmendmentModal(getContract(c.id) || c)),
@@ -827,8 +823,10 @@ const CA_MENU = [
   ['signers', /\bsigners?\b|\bsignerare\b/i, ['#ws-m-signers']],
   ['filing', /\bfiling\b|\barkivering\b|\bstream\b/i, ['#ws-filing']],
   ['mynote', /\bmy notes?\b|\bprivate note\b|\bmina anteckningar\b/i, ['#ws-mynote']],
-  ['archive', /\b(?:un)?archive\b|\brestore\b|\barkivera\b|\båterställ\b/i, ['#ws-archive']],
-  ['hold', /\bhold\b|\brelease\b|\bpausa\b/i, ['#ws-hold']],
+  /* the way back keeps its own rows; ending or pausing is the one door (End or pause, 15 Oct 2026) */
+  ['restore', /\bunarchive\b|\brestore\b|\båterställ\b/i, ['#ws-archive']],
+  ['release', /\brelease\b|\bsläpp\b|\bunfreeze\b/i, ['#ws-hold']],
+  ['end', /\barchive\b|\barkivera\b|\bhold\b|\bpausa\b|\bfreeze\b|\bfrys\b|\bdecline\b|\bavböj\b|\bend or pause\b|\bclose (?:this|it|the deal|the contract)\b|\bstäng (?:det|avtalet|affären)\b/i, ['#ws-end']],
   ['reopen', /\bre-?open\b|\böppna igen\b/i, ['#ws-reopen']],
   ['delete', /\bdelete\b|\bradera\b|\bta bort utkastet\b/i, ['#ws-delete']],
   ['review', /\b(?:ask for|internal|request a?)\s*review\b|\bgranskning\b/i, ['[data-ig-review]']],
