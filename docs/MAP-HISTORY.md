@@ -29720,3 +29720,10 @@ strip's Details page, two presses deep. The answers, as built:
    itself, so nothing changed, and the owner was told the earlier summary had
    it wrong.
 CLAUDE.md: 79,883 → 79,989 bytes (four MAP lines amended, none added).
+REVERSED THE SAME DAY (owner: "I have changed my mind on adding signed date
+so please remove then merge to main"): answer 2 is undone. The Contracts
+List is the drawing's six columns again (REG_COL_KEYS_HOME, widths
+[9,25,17,14,15,14,6]); signed-and-columns-verify, inspector-verify 1b and
+f687 2c are back as step 7 left them; the Signed sort and filter stay. The
+ink-wash census needs no re-record (the Signed cells were all it moved), so
+its KNOWN_RED line came off with it.

@@ -19,9 +19,9 @@
        Home draws the name, the facts line, the filter boxes (Stream · Quick
        filters · Category · Adapt filters), the six stage tabs and Wall | List;
        the Wall is #ig-wall of the very rows the List holds; the List is the
-       same table with no inspector, its columns the drawing's six (Ref ·
-       Counterparty and agreement · Stage · Owner · Ends · Value) with Signed
-       back before Ends (owner, 15 Oct 2026) and the row's own ⋯ after them, a row's one press opening the paper; a host that is
+       same table with no inspector, its six columns the drawing's (Ref ·
+       Counterparty and agreement · Stage · Owner · Ends · Value) and the row's
+       own ⋯ after them, a row's one press opening the paper; a host that is
        gone draws nothing, never a list over another page.
    (3) THE RAIL: the fold holds Negotiations and Parties, the Contracts item
        and its count are gone, the opener keeps its name and is the Contracts
@@ -153,10 +153,10 @@ describe('f687 (2) one head, one set of tabs and filters, Wall | List', () => {
     const { win, doc } = world('list');
     assert.ok(!doc.getElementById('ins-panel') && !doc.querySelector('[data-ins-page]'), 'no inspector, nothing for its width watcher');
     assert.equal(win.regInspecting(), false, 'even where the inspector would fit');
-    assert.deepEqual(J(win.regColKeys()), ['mk', 'counterparty', 'stage', 'owner', 'signed', 'expiry', 'value', 'acts']);
+    assert.deepEqual(J(win.regColKeys()), ['mk', 'counterparty', 'stage', 'owner', 'expiry', 'value', 'acts']);
     assert.equal(win.REG_COL_W_HOME.reduce((a, b) => a + b, 0), 100, 'the widths sum to 100');
     const heads = [...doc.querySelectorAll('[data-reg-home] .reg-table thead th')].map(th => th.textContent.trim().replace(/[▲▼]/g, '').trim());
-    assert.deepEqual(heads, ['Ref', 'Counterparty and agreement', 'Stage', 'Owner', 'Signed', 'Ends', 'Value', ''], 'the drawing\'s six, Signed back before Ends (owner, 15 Oct 2026), the ⋯ unheaded');
+    assert.deepEqual(heads, ['Ref', 'Counterparty and agreement', 'Stage', 'Owner', 'Ends', 'Value', ''], 'the drawing\'s six, the ⋯ unheaded');
     assert.equal(doc.querySelectorAll('#reg-tbody [data-row] [data-menu]').length, 3, 'every row keeps its ⋯');
     assert.ok(!doc.getElementById('ig-wall'), 'no wall on the List');
     /* the same builder: its Display cog is the page's, Table · Board, density and the amendment fold (f387 4g) */

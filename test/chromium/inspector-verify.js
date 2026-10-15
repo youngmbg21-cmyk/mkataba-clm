@@ -108,8 +108,7 @@ const ok = (name, good, detail) => {
       panel: !!document.getElementById('ins-panel'),
     }));
     ok('1a Contracts at 1440 is Home\'s Contracts place, the List, and no panel beside it', shape.place && !shape.panel && shape.ins === null, JSON.stringify(shape));
-    /* Signed came back before Ends (owner, 15 Oct 2026: "go with your suggestions") */
-    ok('1b the List is the drawing\'s six columns with Signed back before Ends, in plain words, and the row\'s ⋯ unheaded', shape.heads.join('|') === 'Ref|Counterparty and agreement|Stage|Owner|Signed|Ends|Value|', shape.heads.join(' | '));
+    ok('1b the List is the drawing\'s six columns, in plain words, and the row\'s ⋯ unheaded', shape.heads.join('|') === 'Ref|Counterparty and agreement|Stage|Owner|Ends|Value|', shape.heads.join(' | '));
     await page.screenshot({ path: path.join(OUT, '1-contracts-1440.png') });
 
     const rows = await page.$$('#reg-tbody tr[data-row]');

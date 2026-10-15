@@ -60,8 +60,6 @@ const KNOWN_RED = {
      goes green. */
   'notes-two-rooms-verify.js':
     'RE-POINTED 11 Oct 2026 and now RED ON THE PRODUCT, not the file: Chat left the shell bar for the contract\'s acts row (20 Sep 2026), and the open Notes drawer covers that row, so the SECOND press that should shut it (owner-asked 10 Sep: "when i click on it again it should collapse") cannot be made — Playwright reports the drawer\'s header intercepting the press. Where the drawer starts or where the door sits is the owner\'s call (BUGLOG, 11 Oct 2026). Every other check in the file passes.',
-  'ink-wash-verify.js':
-    'WAITING ON THE OWNER\'S YES, 15 Oct 2026: the Signed column came back on the Contracts List (owner: "go with your suggestions"), so the Contracts screen and the three pop-ups drawn over it count more of the same pieces (13px 338 → 346, 12px 97 → 99, and the dark themes\' existing colours up by the same cells). Audited as a set difference: no colour and no text size is new. The census is re-recorded only on the owner\'s word; take this line off when it is.',
   'theme-tokens-verify.js':
     'Red on main before 28 Sep 2026 (a837d09), the same way: dashboard--light · register--light · calendar--light · templates--light · contract--light · keyterms--light · and 14 more.',
   /* --- retired feature, net kept for the restore --- */
