@@ -111,9 +111,13 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
     check('the sidebar carries a Negotiations door', !!door.box && door.box.on,
       door.box ? `${door.box.w}x${door.box.h}` : 'missing');
     check('it reads Negotiations — a noun among nouns', door.label === 'Negotiations', door.label);
+    /* RE-POINTED AT STEP 7 OF THE OVERNIGHT WORK ORDER: the fold's Contracts
+       item went (its opener is the Contracts door), so Negotiations is the
+       fold's FIRST door, under the Contracts row */
+    const fold = await page.evaluate(() => [...document.querySelectorAll('.nav-fold[data-nav-fold="register"] .nav-sub .nav-item[data-view]')].map(el => el.getAttribute('data-view')));
     check('and it sits directly under Contracts',
-      door.order.indexOf('redline') === door.order.indexOf('register') + 1,
-      door.order.join(' › '));
+      fold[0] === 'redline' && !door.order.includes('register'),
+      fold.join(' › ') + ' · rail ' + door.order.join(' › '));
 
     await page.screenshot({ path: path.join(OUT, '01-sidebar.png') });
 
@@ -261,14 +265,15 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
       roomBar.back === false, `#ws-back present: ${roomBar.back}`);
     check('7b and the bar names the section instead, without the contract after it',
       roomBar.word.length > 0 && !roomBar.word.includes('·'), `"${roomBar.word}"`);
-    const railOut = await page.evaluate(() => {
-      const b = document.querySelector('#side-nav .nav-item[data-view="register"]')
-        || document.querySelector('.nav-item[data-view="register"]');
+    /* the rail's Contracts door is the fold's opener since step 7: Home's Contracts place */
+    const railOut = await page.evaluate(async () => {
+      const b = document.querySelector('#side-nav [data-nav-fold-open="register"]');
       if (b) b.click();
-      return { had: !!b, view: state.view };
+      await new Promise(r => setTimeout(r, 600));
+      return { had: !!b, view: state.view, place: !!document.querySelector('[data-reg-home]'), paper: (window.intel && intel.paper) ? intel.paper.id : null };
     });
     check('7b and the rail\'s own door lands on Contracts, never on the negotiation',
-      railOut.had === true && railOut.view === 'register', `${railOut.had} · ${railOut.view}`);
+      railOut.had === true && railOut.view === 'dashboard' && railOut.place && !railOut.paper, JSON.stringify(railOut));
 
     /* ---- 8. THE DOOR OPENS THE LIST, FROM ANYWHERE ----
        REVERSED IN PLACE 24 Aug 2026 (WO-17, owner-asked: "when i click on the

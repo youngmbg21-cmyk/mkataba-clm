@@ -176,8 +176,10 @@ const BODY = '<h1>SOFTWARE AS A SERVICE AGREEMENT</h1>'
       thread: !document.getElementById('pd-thread')?.hidden && document.querySelectorAll('#pd-thread .doc-th-row').length > 0,
       switchGone: !document.querySelector('[data-doc-read]') }));
     check('4 back on the Clauses tab the paper and the thread are both up, and there is no switch', tabBack.paper && tabBack.thread && tabBack.switchGone, JSON.stringify(tabBack));
-    await page.evaluate(() => setView('register'));
-    await page.waitForFunction(() => state.view === 'register', null, { timeout: 5000 }).catch(() => {});
+    /* RE-POINTED 15 Oct 2026 (the overnight work order, step 7): Contracts is
+       Home's own place now, not another page, so the page left is Obligations */
+    await page.evaluate(() => setView('obligations'));
+    await page.waitForFunction(() => state.view === 'obligations', null, { timeout: 5000 }).catch(() => {});
     await homeDoc();
     const pageBack = await page.evaluate(() => !document.getElementById('pd-thread')?.hidden && document.querySelectorAll('#pd-thread .doc-th-row').length > 0 && !document.querySelector('[data-doc-read]'));
     check('4b and after another page too', pageBack === true, String(pageBack));

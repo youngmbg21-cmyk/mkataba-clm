@@ -245,6 +245,9 @@ const diff = (a, b) => {
   return out;
 };
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
@@ -293,7 +296,7 @@ const diff = (a, b) => {
         if (window.hbCvSet) hbCvSet('book', null); if (window.pdSetTab) pdSetTab('doc');
         hbS().face = window.__hbFaceWas; hbSave(); delete window.__hbFaceWas; }
         setView('dashboard'); }],
-      ['contracts',   () => setView('register')],
+      ['contracts',   () => (regPlaceSet({ show: 'list' }), setView('register'))],
       ['obligations', () => setView('obligations')],
       ['calendar',    () => setView('calendar')],
       ['ourpaper',    () => setView('templates')],
@@ -320,9 +323,9 @@ const diff = (a, b) => {
     /* THE POP-UPS the owner named: a dialog (with a danger button), the one
        panel (alerts), a toast. Each opened over the Contracts page. */
     const POPUPS = [
-      ['dialog', () => { setView('register'); confirmDialog({ title: 'Delete this draft?', message: 'It cannot be brought back.', confirmLabel: 'Delete', danger: true }); }],
-      ['alerts', () => { setView('register'); const b = document.querySelector('#hdr-notify'); if (b) b.click(); }],
-      ['toast',  () => { setView('register'); toast('Saved', 'ok'); }],
+      ['dialog', () => { (regPlaceSet({ show: 'list' }), setView('register')); confirmDialog({ title: 'Delete this draft?', message: 'It cannot be brought back.', confirmLabel: 'Delete', danger: true }); }],
+      ['alerts', () => { (regPlaceSet({ show: 'list' }), setView('register')); const b = document.querySelector('#hdr-notify'); if (b) b.click(); }],
+      ['toast',  () => { (regPlaceSet({ show: 'list' }), setView('register')); toast('Saved', 'ok'); }],
     ];
     const closeLayers = async () => { await page.keyboard.press('Escape'); await pause(150); await page.keyboard.press('Escape'); await pause(150);
       await page.evaluate(() => { document.querySelectorAll('.modal-bg, [data-modal-bg]').forEach(n => n.remove()); window.toastsClear && toastsClear(); }); };

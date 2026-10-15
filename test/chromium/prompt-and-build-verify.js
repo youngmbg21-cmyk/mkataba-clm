@@ -390,7 +390,8 @@ const RAIL = () => {
        replaces #content under the builder, and nothing asked. */
     /* the Contracts page's door is inside the menu's fly-out since 10 Oct 2026
        (the row itself only opens the fly-out) */
-    await page.evaluate(() => { const b = document.querySelector('#side-nav .nav-item[data-view="register"]') || [...document.querySelectorAll('#side-nav .nav-item')].find(x => /Contract/i.test(x.textContent)); b && b.click(); });
+    /* the Contracts door is the fold's opener since step 7 of the overnight work order */
+    await page.evaluate(() => { const b = document.querySelector('#side-nav [data-nav-fold-open="register"]'); b && b.click(); });
     await pause(1400);
     d = await kept();
     check('14b · a sidebar press still leaves without a question — and the work is kept anyway',

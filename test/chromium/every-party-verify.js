@@ -125,6 +125,15 @@ async function readHead(page, hostSel, sel){
       const errC = C ? three(C) : 'no contract departs';
       /* D — the control: a contract nobody has named a third party on. */
       const D = live.find(c => ![A, B, C].includes(c) && !(Array.isArray(c.parties) && c.parties.length));
+      /* …on Negotiations too, an ask from the other side as A has, so the
+         control stands on a list that still draws the panel (step 7) */
+      if (D){ try { await ensureFull(D); } catch (e) {}
+        D.changes = []; delete D.negotiation; negoInit(D);
+        const dcl = negoClauseList(D).filter(x => x && x.clauseId && x.clauseId !== 'front');
+        const dk = dcl[Math.min(2, dcl.length - 1)]; const dnow = negoClauseNowById(D, dk.clauseId);
+        const dbody = (dnow && dnow.bodyHtml) || '<p>' + ((dnow && dnow.text) || '') + '</p>';
+        await negoEditClause(D, dk.clauseId, dbody.replace(/<\/p>(?![\s\S]*<\/p>)/, ' Payment is due within sixty (60) days.</p>'), { side: 'counterparty', author: D.counterparty });
+        persist(D); }
       [A, B, C].filter(Boolean).forEach(c => persist(c));
       try { await flushSaves(); } catch (e) {}
       return { A: A.id, B: B && B.id, C: C && C.id, D: D && D.id, errA, errB, errC,
@@ -138,8 +147,13 @@ async function readHead(page, hostSel, sel){
     const listed = (r, cp) => !!r && r.box && r.many && r.names.join(' | ') === expectNames(cp)
       && r.shown.every(Boolean) && r.tops.length === 2 && r.tops[1] > r.tops[0] && r.inside;
 
-    /* ================= 1 · CONTRACTS ================= */
-    const toContracts = async () => { await page.evaluate(() => { regSetScope(null); setView('register'); }); await page.waitForTimeout(1000); };
+    /* ================= 1 · THE LIST'S PANEL ================= */
+    /* RE-POINTED AT STEP 7 OF THE OVERNIGHT WORK ORDER (15 Oct 2026): the
+       Contracts page is Home's Contracts place, its List drawn with no side
+       panel (the owner's drawing), so the panel that describes a contract is
+       read where it still stands for these contracts — Negotiations (A, and
+       the control D, each given the other side's ask). */
+    const toContracts = async () => { await page.evaluate(() => openNegotiations({ list: true })); await page.waitForTimeout(1000); };
     const pickRow = async (tbodySel, attr, id) => {
       const row = await page.$(`${tbodySel} tr[${attr}="${id}"]`);
       if (!row) return false;
@@ -149,7 +163,7 @@ async function readHead(page, hostSel, sel){
     await toContracts();
     const onA = await pickRow('#reg-tbody', 'data-row', staged.A);
     const c1 = onA ? await readHead(page, '#ins-panel', 'h2.ins-cp') : null;
-    ok('1a Contracts: the panel names both outside parties, each on a line of its own', listed(c1, staged.cpA),
+    ok('1a the list\'s panel names both outside parties, each on a line of its own', listed(c1, staged.cpA),
       c1 ? { id: c1.id, names: c1.names, tops: c1.tops, text: c1.text } : `row ${staged.A} not on the first page or no panel`);
     ok('1b the word the paper calls each party is beside its name', !!c1 && c1.roles.join(' | ') === 'Customer | Guarantor', c1 && c1.roles);
     ok('1c no "+1" — the names are the count', !!c1 && c1.box && !c1.plusN, c1 && c1.text);
@@ -218,7 +232,7 @@ async function readHead(page, hostSel, sel){
     await pickRow('#reg-tbody', 'data-row', staged.A);
     const night = await inkOf();
     ok('6b and at night', !!night && night.ratio >= 4.5, night);
-    await page.screenshot({ path: path.join(OUT, '6-contracts-night.png') });
+    await page.screenshot({ path: path.join(OUT, '6-panel-night.png') });
     await page.evaluate(() => { setDark(false); applyAppearance(); });
 
     ok('no page errors', errs.length === 0, errs.slice(0, 3).join(' | '));

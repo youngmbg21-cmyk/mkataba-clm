@@ -85,11 +85,15 @@ function book(){
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
     await page.waitForTimeout(3000);
+    /* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+       place; every door lands there in the view last chosen, so the List is
+       chosen once and the rows are read off it */
+    await page.evaluate(() => regPlaceSet({ show: 'list' }));
 
     /* What the page says is on screen, read the way the reader reads it. */
     const onContracts = () => page.evaluate(() => {
       const R = window.regState ? regState() : {};
-      return { view: state.view,
+      return { view: document.querySelector('[data-reg-home]') ? 'contracts-place' : state.view,
         rows: [...document.querySelectorAll('tr[data-row]')].map(r => r.getAttribute('data-row')).sort(),
         /* RE-POINTED 9 Oct 2026: on Contracts the stage is a lit TAB, not a lit box. */
         tab: ((document.querySelector('.reg-stage-tabs .reg-vtab.on') || {}).getAttribute || (() => null)).call(document.querySelector('.reg-stage-tabs .reg-vtab.on'), 'data-reg-stage'),
@@ -128,7 +132,7 @@ function book(){
     await page.waitForTimeout(1100);
     const a1 = await onContracts();
     check('A1 the stage bar opens Contracts on Drafting (control — the first press works either way)',
-      a1.view === 'register' && a1.stage === 'Draft' && a1.rows.join(',') === 'MK-D1,MK-D2',
+      a1.view === 'contracts-place' && a1.stage === 'Draft' && a1.rows.join(',') === 'MK-D1,MK-D2',
       `${a1.view} · stage ${a1.stage} · ${a1.rows.join(', ')}`);
     await page.screenshot({ path: path.join(OUT, '01-drafting-from-the-map.png') });
 
@@ -139,7 +143,8 @@ function book(){
     await goHome();
     const noSeeAll = await page.evaluate(() => !document.querySelector('[data-hm-go="needsyou"]'));
     check('A2 Home has no See all onto a named set any more', noSeeAll);
-    await page.hover('[data-nav-fold-open="register"]').catch(() => {}); await page.click('#side-nav [data-view="register"]').catch(() => {});
+    /* the rail's Contracts is the fold's opener since its item went (step 7) */
+    await page.click('#side-nav [data-nav-fold-open="register"]').catch(() => {});
     await page.waitForTimeout(900);
 
     /* ================ B. STALE PAGE FILTERS UNDER THE STAGE BAR ============ */
@@ -152,7 +157,7 @@ function book(){
     await page.waitForTimeout(700);
     const b0 = await onContracts();
     check('B0 typed on Contracts, the search narrows inside what is there — the stream stays (control)',
-      b0.view === 'register' && b0.type === FOLDER_A && b0.query === 'Raw',
+      b0.view === 'contracts-place' && b0.type === FOLDER_A && b0.query === 'Raw',
       `stream ${b0.type} · query "${b0.query}"`);
 
     await goHome();
@@ -164,7 +169,7 @@ function book(){
     const b1 = await onContracts();
     await page.screenshot({ path: path.join(OUT, '03-signed-from-the-map.png') });
     check('B1 the stage bar lands on its whole stage — the number on the bar',
-      b1.view === 'register' && b1.stage === 'Signed' && b1.rows.length === signedN,
+      b1.view === 'contracts-place' && b1.stage === 'Signed' && b1.rows.length === signedN,
       `bar said ${signedN} · list shows ${b1.rows.length} (${b1.rows.join(', ') || 'nothing'})`);
     check('B2 and the stream, the search and the named set left behind are gone',
       b1.type === 'all' && b1.query === '' && b1.onlyIds === null && b1.lit.length === 0 && b1.tab === 'Signed',
@@ -179,7 +184,7 @@ function book(){
     const c1 = await onContracts();
     await page.screenshot({ path: path.join(OUT, '04-search-from-home.png') });
     check('C1 a search typed on Home lands on every match, whatever stage was left on',
-      c1.view === 'register' && c1.stage === 'all' && c1.query === 'Naivas' && c1.rows.join(',') === 'MK-R2,MK-S3',
+      c1.view === 'contracts-place' && c1.stage === 'all' && c1.query === 'Naivas' && c1.rows.join(',') === 'MK-R2,MK-S3',
       `stage ${c1.stage} · query "${c1.query}" · ${c1.rows.join(', ') || 'nothing'}`);
 
     await page.evaluate(() => { const b = document.querySelector('.reg-stage-tabs [data-reg-stage="Signed"]'); if (b) b.click(); });

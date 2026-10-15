@@ -184,9 +184,13 @@ function setActiveNav(view){
   });
   /* on any page behind a fly-out, its opener wears the "you are here" well
      (the fly-out itself stays shut — it would sit over the page) */
+  /* …and the Contracts opener is itself the door to Home's Contracts place
+     (the overnight work order, step 7): 'register' lights it */
   document.querySelectorAll('.nav-fold').forEach(f=>{
     const head=f.querySelector('.nav-fold-head');
-    if(head) head.classList.toggle('is-current', !!f.querySelector(`.nav-sub .nav-item[data-view="${navFor}"]`));
+    const own=f.getAttribute('data-nav-fold')===navFor;
+    if(head){ head.classList.toggle('is-current', own||!!f.querySelector(`.nav-sub .nav-item[data-view="${navFor}"]`));
+      if(own) head.setAttribute('aria-current','page'); else head.removeAttribute('aria-current'); }
   });
 }
 /* ---- THE FLY-OUT BESIDE CONTRACTS (owner, 10 Oct 2026) ----
@@ -221,12 +225,27 @@ function navFoldOpen(f, focusFirst){
   navFoldCloseAll(f); navFoldSet(f,'is-open',true);
   if(focusFirst){ const first=f.querySelector('.nav-sub .nav-item:not([hidden])'); if(first) try{ first.focus(); }catch(_){} }
 }
+/* ---- A PRESS THAT IS ALSO A DOOR LEAVES THE PAGE CLEAR (the checkers of
+   step 7, 15 Oct 2026) ---- The Contracts opener is the Contracts door, and
+   the place's own head (its name, facts and stage tabs) sits right where the
+   fly-out floats; a fly-out left open by the press covered it, and on the
+   1536 laptop the next press on Drafting landed on Parties. So a POINTER that
+   can hover presses the door and nothing else: the fly-out shuts, and stays
+   shut until the pointer has left the row (navFoldRest), the way a hover menu
+   steps aside for a press. The keyboard and a screen with no hover still get
+   it from the press, the one way to Negotiations and Parties there. */
+function navFoldPressFlies(e){
+  if(!e || e.detail===0) return true;                          // the keyboard (and a press made by code)
+  if(e.pointerType==='touch' || e.pointerType==='pen') return true;
+  return typeof matchMedia==='function' && !matchMedia('(hover:hover)').matches;
+}
+function navFoldRest(f){ if(!f) return; navFoldCloseAll(); f._navFoldRest=true; }
 function wireNavFolds(){
   document.querySelectorAll('.nav-fold').forEach(f=>{
     if(f.dataset.foldWired) return; f.dataset.foldWired='1';
     if(typeof f.addEventListener!=='function') return;
-    f.addEventListener('mouseenter',()=>{ if(typeof matchMedia!=='function'||matchMedia('(hover:hover)').matches){ clearTimeout(f._navFoldT); navFoldSet(f,'is-hover',true); } });
-    f.addEventListener('mouseleave',()=>{ clearTimeout(f._navFoldT); f._navFoldT=setTimeout(()=>navFoldSet(f,'is-hover',false),NAV_FOLD_GRACE_MS); });
+    f.addEventListener('mouseenter',()=>{ if(f._navFoldRest) return; if(typeof matchMedia!=='function'||matchMedia('(hover:hover)').matches){ clearTimeout(f._navFoldT); navFoldSet(f,'is-hover',true); } });
+    f.addEventListener('mouseleave',()=>{ f._navFoldRest=false; clearTimeout(f._navFoldT); f._navFoldT=setTimeout(()=>navFoldSet(f,'is-hover',false),NAV_FOLD_GRACE_MS); });
     f.addEventListener('focusin',()=>navFoldPlace(f));
     f.addEventListener('keydown',e=>{
       const items=[...f.querySelectorAll('.nav-sub .nav-item')].filter(b=>!b.hidden&&b.getClientRects().length);
@@ -876,9 +895,12 @@ function navCounts(){
 function updateSidebarCounts(){
   const cs=state.contracts;
   const nc=navCounts();
+  /* the book's size, still read by the earned doors below */
   const total=(state.serverStats&&state.serverStats.total!=null)?state.serverStats.total:cs.length;
+  /* THE CONTRACTS COUNT WENT WITH ITS ITEM (the overnight work order, step 7):
+     the fold keeps Negotiations and Parties; the place's own head says how
+     many are live (regHeadFactsHtml) */
   const counts={
-    register: total,
     /* HOW MANY CUSTOMERS — the list the Customers page draws (cuDoorCount), so the door and the page cannot disagree. A size, never amber. */
     customers: (typeof cuDoorCount==='function')?cuDoorCount():0,
     pipeline: nc.pipeline,
@@ -919,7 +941,7 @@ function updateSidebarCounts(){
   /* Tone of the count pill: teal = size of the portfolio, amber = items
      waiting on a person. A zero drops to neutral so an amber tag never cries
      wolf over an empty queue. */
-  const NAV_COUNT_TONE={register:'teal',calendar:'amber',mynotes:'amber',migration:'amber',pipeline:'amber',negotiations:'amber',intake:'amber',obligations:'amber',approvals:'amber',agents:'amber'};
+  const NAV_COUNT_TONE={calendar:'amber',mynotes:'amber',migration:'amber',pipeline:'amber',negotiations:'amber',intake:'amber',obligations:'amber',approvals:'amber',agents:'amber'};
   document.querySelectorAll('[data-count]').forEach(el=>{
     const k=el.getAttribute('data-count'); const v=counts[k];
     /* A door that only counts WORK says nothing at zero (the Import door,
@@ -1167,6 +1189,20 @@ function setView(view){
      5; the owner's yes to decision 1) ---- a negotiation this view would put
      on its bench opens Jambo's Redlines face beside Home's paper instead,
      decided before anything is drawn (rlHomeTakesIt); the list stays here. */
+  /* ---- THE CONTRACTS PAGE OPENS HOME (the overnight work order, step 7;
+     owner's "Go", 14 Oct 2026) ---- every door that names it (the rail, a
+     number pressed elsewhere through regShowOnly / regGoFiltered, a Delete, a
+     refresh) lands on Home's Document face with no paper chosen — the
+     Contracts place, drawn by the same builder (renderRegister on Home). The
+     phone keeps its own Contracts screen. */
+  if(view==='register' && typeof window!=='undefined' && typeof window.hbOpenContracts==='function'
+    && !(typeof window.mPhone==='function' && window.mPhone())){
+    /* a layer over the page (the clause editor, the builder) is asked first,
+       as on any page change: Home's own face turning would slip past it */
+    if(!viewLayersClosed(view)) return;
+    window.hbOpenContracts();
+    return;
+  }
   if(view==='redline' && typeof window!=='undefined' && typeof window.rlHomeTakesIt==='function'
     && !(typeof window.mPhone==='function' && window.mPhone()) && window.rlHomeTakesIt()) return;
   /* ---- A CONTRACT JUST MADE OR UPLOADED LANDS ON HOME'S DOCUMENT, Jambo's
@@ -1321,7 +1357,8 @@ function setView(view){
   }catch(e){ try{ console.error('[hati] could not record where you are', e); }catch(_){} }
   /* A FAILING PAINT MUST NOT BE SILENT — six unguarded calls that could take a
      navigation down without a word is the fault underneath the fault. */
-  viewPaint('setActiveNav', ()=>setActiveNav(view));
+  /* Home's Contracts place lights the rail's Contracts, as the drawing does (step 7) */
+  viewPaint('setActiveNav', ()=>setActiveNav(view==='dashboard'&&window.regPlaceUp&&regPlaceUp()?'register':view));
   viewPaint('updateCommandBar', ()=>updateCommandBar(view));
   viewPaint('updateSidebarCounts', ()=>updateSidebarCounts());
   viewPaint('applyPanelLayout', ()=>applyPanelLayout());
@@ -3829,9 +3866,19 @@ function wireShell(){
     // a section header (+/-) toggles its tabs; a tab navigates
     const head=e.target.closest('[data-section-toggle]');
     if(head){ const sec=head.closest('.nav-section'); openNavSection(sec,!sec.classList.contains('open')); return; }
-    /* the fly-out's opener goes to no page: a press opens it, or shuts it */
+    /* THE CONTRACTS OPENER IS THE CONTRACTS DOOR (the overnight work order,
+       step 7, the drawing's "the rail's Contracts door opens Home's Document
+       face with no paper chosen"): its item went, so a press opens the
+       Contracts place. A pointer that can hover gets the place alone, the
+       fly-out shut until it leaves the row (navFoldRest — the fly-out had
+       covered the place's head); the keyboard and a touch screen get the
+       place AND the fly-out with Negotiations and Parties (the one way to
+       them there), and pressed again ON the place the fly-out shuts. */
     const opener=e.target.closest('[data-nav-fold-open]');
-    if(opener){ const f=opener.closest('.nav-fold'); if(f){ if(f.classList.contains('is-open')) navFoldCloseAll(); else navFoldOpen(f, e.detail===0); } return; }
+    if(opener){ const f=opener.closest('.nav-fold'); if(f){ const k=opener.getAttribute('data-nav-fold-open');
+      if(f.classList.contains('is-open') && (k!=='register' || (window.regPlaceUp&&regPlaceUp()))) navFoldCloseAll();
+      else if(k!=='register') navFoldOpen(f, e.detail===0);
+      else { setView('register'); if(navFoldPressFlies(e)) navFoldOpen(f, e.detail===0); else navFoldRest(f); } } return; }
     const btn=e.target.closest('[data-view]');
     if(btn){ navFoldCloseAll();
       const v=btn.getAttribute('data-view');
@@ -3866,6 +3913,9 @@ function wireShell(){
            no number, so there is nothing for the list to match and narrowing
            to an empty cut would be a door onto a blank page. */
         obwGoFiltered((window.obligationsDoorCount&&obligationsDoorCount())?{state:'overdue'}:{});
+      /* THE HOME DOOR LEAVES THE CONTRACTS PLACE FOR THE BOARD (step 7, the
+         drawing): the place is the Contracts door's, so Home is not it. */
+      else if(v==='dashboard'&&window.hbOpenHome&&!(window.mPhone&&mPhone())) hbOpenHome();
       else setView(v);
       // On a phone the nav is a drawer over the page: having chosen a
       // destination, get out of the way of it.
@@ -3894,6 +3944,9 @@ function wireShell(){
          happened to be on the Negotiations page would write its answer into
          that page's filters and then open a register that had never heard of
          it." Same door, same fix, one line. */
+      /* the list is ON SCREEN on the Contracts page (the phone) or on Home's
+         Contracts place (step 7): typing there narrows it where it stands */
+      const here=state.view==='register'||!!(window.regPlaceUp&&regPlaceUp());
       if(window.regSetScope){ regSetScope(null); }
       if(window.regState){ const R=regState();
         /* TYPED ON ANOTHER PAGE, IT IS A DOOR, AND A DOOR LANDS ON FRESH
@@ -3902,9 +3955,9 @@ function wireShell(){
            while Contracts is on screen it narrows inside what is there, as
            every filter on the page does. The box itself is kept — it holds
            what the reader is typing. */
-        if(state.view!=='register' && window.regFiltersAtRest) regFiltersAtRest(R);
+        if(!here && window.regFiltersAtRest) regFiltersAtRest(R);
         R.query=q; R.page=1; }
-      if(state.view!=='register'){ setView('register'); }
+      if(!here){ setView('register'); }
       else if(window.renderRegisterBody){ renderRegisterBody(); }
       const rs=document.getElementById('reg-search'); if(rs&&rs!==search) rs.value=q;
     });
@@ -4244,6 +4297,6 @@ if (typeof window !== 'undefined' && window.addEventListener){
   window.addEventListener('afterprint', clearPrintRoot);
 }
 
-Object.assign(window,{shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,notesPanelShowing,notesPanelFollow,
+Object.assign(window,{shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,notesPanelShowing,notesPanelFollow,
   buildAlerts,alertCount,updateAlertBadge,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

@@ -38,6 +38,9 @@ const check = (name, pass, detail) => {
 };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   const h = await startHati();
   const W = await seedWorkspace(h);
@@ -61,7 +64,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.waitForTimeout(2200);
     /* The full table, where one press opens a row (the Inspector's own stage
        door; a selection there loads the record first and would hide nothing). */
-    await page.evaluate(() => { if (window.insForce) insForce(false); setView('register'); });
+    await page.evaluate(() => { if (window.insForce) insForce(false); (regPlaceSet({ show: 'list' }), setView('register')); });
     await page.waitForTimeout(900);
 
     const stored = async id => page.evaluate(async x => {
@@ -108,7 +111,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.unroute('**/api/contracts/MK-A2');
 
     /* ================= 2 · AN EDIT MADE WHILE THE OPEN'S READ IS OUT ================= */
-    await page.evaluate(() => { setView('register'); });
+    await page.evaluate(() => { (regPlaceSet({ show: 'list' }), setView('register')); });
     await page.waitForTimeout(700);
     let heldRead = null;
     await page.route('**/api/contracts/MK-B2', async route => {
@@ -144,7 +147,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.unroute('**/api/contracts/MK-B2');
 
     /* ================= 3 · CONTROL: NOTHING PENDING, THE WHOLE RECORD LOADS ================= */
-    await page.evaluate(() => { setView('register'); });
+    await page.evaluate(() => { (regPlaceSet({ show: 'list' }), setView('register')); });
     await page.waitForTimeout(700);
     const b1was = await page.evaluate(() => { const c = getContract('MK-B1'); return { light: !!c._light, audit: (c.audit || []).length }; });
     await page.click('#reg-tbody tr[data-row="MK-B1"] .reg-title');

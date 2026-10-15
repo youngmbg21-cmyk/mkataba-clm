@@ -45,6 +45,9 @@ const lum = c => { const [r, g, b] = c.match(/\d+/g).map(Number);
 const ratio = (a, b) => { const x = lum(a), y = lum(b);
   return +(((Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)).toFixed(2)); };
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
@@ -225,7 +228,7 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       }
       return out;
     });
-    await page.evaluate(() => setView('register'));
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(1200);
     const listTones = await page.evaluate(() => {
       const out = {};
@@ -236,8 +239,10 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       });
       return out;
     });
+    /* back to the Board by the rail's Home door: the place is Home's Document
+       face, so a bare setView('dashboard') stays on it (step 7, 15 Oct 2026) */
     await page.evaluate(() => { (window.__s3c || []).forEach(({ c, status }) => { c.status = status; });
-      delete window.__s3c; setView('dashboard'); });
+      delete window.__s3c; document.querySelector('#side-nav .nav-item[data-view="dashboard"]').click(); });
     await page.waitForTimeout(1000);
     const toneRows = ['Draft', 'Under Review', 'Signed'].map(k => ({ k, list: listTones[k] || null,
       bar: mapTones[k] && mapTones[k].bar, square: mapTones[k] && mapTones[k].square }));
@@ -301,17 +306,19 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     /* RE-POINTED 11 Oct 2026 (the Board as drawn): the figure opens its list in
        the side list on the right; its foot's "Open these" opens the register */
     const listed = await page.evaluate(() => document.querySelectorAll('.hb-sheet [data-hb-sheet-c]').length);
+    /* the door lands on Home's Contracts place (step 7); its List is where the rows are counted */
+    await page.evaluate(() => { if (window.state && state.reg) state.reg.show = 'list'; });
     await page.click('.hb-sheet [data-hb-open]').catch(() => {});
     await page.waitForTimeout(1500);
     const landed = await page.evaluate(() => ({
-      view: state.view,
+      view: state.view, place: !!document.querySelector('[data-reg-home]'),
       rows: document.querySelectorAll('#reg-body tr[data-row], tr[data-row]').length,
     }));
     check('6 the figure, its dig-in and the list it opens all say the same number',
       !!promised && promised.n >= 3 && promised.printed === promised.n && listed === promised.n,
       `figure ${promised && promised.printed} · reading ${promised && promised.n} · dig-in ${listed}`);
     check('6 "Open these" opens the register, exactly as long',
-      landed.view === 'register' && !!promised && landed.rows === promised.n,
+      landed.view === 'dashboard' && landed.place && !!promised && landed.rows === promised.n,
       `${landed.view} · list shows ${landed.rows}`);
     await page.screenshot({ path: path.join(OUT, '02-door-landed.png') });
     await page.evaluate(() => {
@@ -330,7 +337,7 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
        heard of it. RE-POINTED IN PLACE 3 Oct 2026: on the board a stage digs
        in, and its "Open these" is the door onto Contracts on that stage. */
     await page.evaluate(() => { if (window.regSetScope) regSetScope('negotiations');
-      const R = regState(); R.stage = 'all'; setView('dashboard'); });
+      const R = regState(); R.stage = 'all'; document.querySelector('#side-nav .nav-item[data-view="dashboard"]').click(); });
     await page.waitForTimeout(900);
     const stageDoor = await page.evaluate(async () => {
       const b = document.querySelector('#hb-book .hb-stagekey [data-hb-dig^="st:"]');
@@ -343,11 +350,11 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       if (!open) return { k, want, open: false };
       open.click();
       await new Promise(r => setTimeout(r, 900));
-      return { k, want, view: state.view, scope: window.regScope ? regScope() : null,
+      return { k, want, view: state.view, place: !!document.querySelector('[data-reg-home]'), scope: window.regScope ? regScope() : null,
         stage: regState().stage, got: window.regFiltered ? regFiltered().length : -1 };
     });
     check('6b a stage door opens the Contracts seat on that stage, whatever page came before',
-      !!stageDoor && stageDoor.view === 'register' && !stageDoor.scope && stageDoor.stage === stageDoor.k,
+      !!stageDoor && stageDoor.view === 'dashboard' && stageDoor.place && !stageDoor.scope && stageDoor.stage === stageDoor.k,
       JSON.stringify(stageDoor));
     check('6b and the list holds exactly the number on the door',
       !!stageDoor && stageDoor.got === stageDoor.want,

@@ -66,6 +66,9 @@ const AGREED = [
   '4. Governing law. This Agreement is governed by the laws of Denmark.',
 ];
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   const h = await startHati();
   await seedWorkspace(h);
@@ -144,7 +147,7 @@ const AGREED = [
     const RL = made && made.id;
 
     /* ===== 2. IT LIVES ON NEGOTIATIONS ===== */
-    await page.evaluate(() => setView('register'));
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(900);
     const onContracts = await page.evaluate(id => !!document.querySelector(`.reg-table tr[data-row="${id}"], .reg-table [data-sel="${id}"], .reg-table [data-row-id="${id}"]`)
       || [...document.querySelectorAll('.reg-table .reg-mk')].some(td => td.textContent.trim() === id), RL);
@@ -302,7 +305,7 @@ const AGREED = [
     check('6e2 and the shell bar says the one word it was ruled to say, whatever the head does',
       !!filed.barWord && filed.crumb === filed.barWord && !filed.crumb.includes(RL),
       `${filed.crumb} · want ${filed.barWord}`);
-    await page.evaluate(() => setView('register'));
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(900);
     const row = await page.evaluate(no => [...document.querySelectorAll('.reg-table .reg-mk')].some(td => td.textContent.trim() === no), filed.no);
     check('6f it is on the Contracts list now, under its number', row);

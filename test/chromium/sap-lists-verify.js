@@ -40,6 +40,9 @@ const wait = async (page, fn, arg, ms = 5000) => {
   try { await page.waitForFunction(fn, arg, { timeout: ms }); return true; } catch (_) { return false; }
 };
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   const h = await H.startHati();
   await H.seedWorkspace(h, { contracts: CONTRACTS });
@@ -58,7 +61,7 @@ const wait = async (page, fn, arg, ms = 5000) => {
     /* The foot's money note is drawn only for a reader who may see values, so
        wait until that is known before the list is painted. */
     await wait(page, () => typeof canViewValues === 'function' && canViewValues(), null, 8000);
-    await page.evaluate(() => { if (window.regSetScope) regSetScope(null); setView('register'); });
+    await page.evaluate(() => { if (window.regSetScope) regSetScope(null); (regPlaceSet({ show: 'list' }), setView('register')); });
     await wait(page, () => !!document.querySelector('#reg-tbody tr'));
     const reg = await page.evaluate(() => {
       const tt = document.getElementById('reg-tt');

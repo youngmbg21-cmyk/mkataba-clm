@@ -295,3 +295,40 @@ time on this branch; the owner merges in the morning.
   the life line's uncounted dots, "bring up" beside the paper, and kept
   Edit from growing the card on the strip. Story: MAP-HISTORY
   "FINISHING THE ONE PAGE — Step 8" and "THE CHECKERS' ROUND ON STEP 8".
+- **Step 7 — Contracts opens Home (Wall | List); the rail's fold keeps
+  Negotiations and Parties. Built 15 Oct 2026.** Every door that opened the
+  Contracts page (`setView('register')` by name, `regShowOnly` /
+  `regGoFiltered` and the Board's numbers through them, Jambo's
+  "contracts", Delete, a refresh) lands on Home's Document face with no paper
+  chosen — the Contracts place (`hbOpenContracts`; the phone keeps its own
+  screen). One head, drawn by the register itself on Home
+  (`renderRegister({home:true})`): "Contracts" and its facts line, the
+  filter boxes (Stream · Quick filters · Category), Wall | List on the right,
+  the stage tabs (All · Drafting · In Review · Awaiting counterparty ·
+  Executed · Closed) and Adapt filters under them. ONE set of tabs and
+  filters for both views (`state.reg`, the one home of every narrowing, Open
+  party's set too): the Wall is the wall of papers (`igWallBodyHtml`) of the
+  very rows the List holds, in its sort; the List is the same table with no
+  inspector, the drawing's six columns (Ref · Counterparty and agreement ·
+  Stage · Owner · Ends · Value) and the row's own ⋯, a row's one press
+  opening the paper; where Home's paper column is narrow (an 820 tablet, a
+  1024 window) it draws the four loudest (Ref · Counterparty · Stage · ⋯)
+  and never pans sideways; its Display cog is the page's own (Table ·
+  Board, density, the amendment fold). Wall or
+  List, tab and filters come back on a refresh (Home's place pair carries the
+  register's). The rail: the fold holds Negotiations and Parties; its
+  Contracts item and count are gone; the opener keeps its name and is the
+  Contracts door (a mouse press opens the place alone, the fly-out stepping
+  aside until the pointer leaves the row; a tap or the keyboard opens the
+  place and the fly-out; pressed again on the place, the fly-out shuts; it
+  lights on the place). The rail's Home
+  door is not the place: from it Home is the Board, as the drawing has it.
+  Jambo's "list" and "wall" turn the place, "contracts" opens it with every
+  contract (filters at rest), and he reads the place as the Contracts list. The paper's way back reads
+  "‹ Contracts". Differences from the work order's wording, for the morning:
+  the wall's own find box, sort select and "Needs you" / "Expired" chips
+  went with its own filters (one set of tabs; the sort is the List's, on the
+  count line; "Needs you" stays on each paper); the old page's side panel
+  (and its "needs you" checklist), its nine-column table and its Signed
+  column are no longer drawn on a computer (the Signed sort and filter
+  stay). Story: MAP-HISTORY "FINISHING THE ONE PAGE — Step 7".

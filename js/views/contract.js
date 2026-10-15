@@ -4721,8 +4721,14 @@ function ovSheetPaint(c,host){
   try{ paintKtTriage(c); }catch(_){}
   renderKeyTermsSide(c); renderKeyTerms(c);
   if(window.wireKtParties) wireKtParties(c);
-  /* a renewal's Decide asked for every reading again (roomReadOnArrival) */
+  /* a renewal's Decide asked for every reading again (roomReadOnArrival).
+     The strip draws this sheet while the list row is still light, and
+     roomReadAgainDue waits for the whole record — so the sheet asks for it
+     here and spends the reading once it lands (the room did the same through
+     its own load before its paint). */
   if(roomReadAgainDue(c)) triageAndPaint(c,{ again:true, fresh:true });
+  else if(_wsReadAgain.has(String(c.id)) && c._light && !c._loaded && window.ensureFull)
+    ensureFull(c).then(()=>{ if(roomReadAgainDue(c)) triageAndPaint(c,{ again:true, fresh:true }); }).catch(()=>{});
 }
 function ovRecordOpen(c){ if(c) ovSetEditing(OV_KEY(c,'record'), true); }
 function roomOverviewOpen(c){

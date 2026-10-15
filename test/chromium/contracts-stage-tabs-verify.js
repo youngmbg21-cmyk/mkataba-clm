@@ -23,6 +23,9 @@ const EXEC = process.env.CHROMIUM_BIN
 let pass = 0, fail = 0;
 const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  FAIL ') + n + (d ? '  → ' + d : '')); };
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   const h = await startHati();
   await seedWorkspace(h);
@@ -36,7 +39,7 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
     await page.waitForFunction(() => typeof setView === 'function' && state && state.contracts && state.contracts.length > 0, null, { timeout: 15000 });
-    await page.evaluate(() => { try { localStorage.removeItem('hati.v1.regSavedViews'); } catch (_) {} setView('register'); });
+    await page.evaluate(() => { try { localStorage.removeItem('hati.v1.regSavedViews'); } catch (_) {} (regPlaceSet({ show: 'list' }), setView('register')); });
     await page.waitForSelector('#reg-tbody [data-row]', { timeout: 10000 }).catch(() => {});
 
     const read = () => page.evaluate(() => {

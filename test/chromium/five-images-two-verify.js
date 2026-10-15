@@ -31,6 +31,9 @@ const ok = (name, good, detail) => {
   console.log(`${good ? 'PASS' : 'FAIL'}  ${name}${detail != null ? ' — ' + detail : ''}`);
 };
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
@@ -54,7 +57,7 @@ const ok = (name, good, detail) => {
        1b/1c are about the TABLE's two date columns, which the page still draws
        at every narrower window; insForce(false) is its own stage door. */
     await page.evaluate(() => { if (window.insForce) insForce(false); });
-    await page.evaluate(() => setView('register'));
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(1400);
     await page.screenshot({ path: path.join(OUT, '01-contracts.png') });
 

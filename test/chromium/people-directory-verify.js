@@ -170,9 +170,10 @@ const PAGE = () => {
        Contracts page narrowed by its chip): Open party is Parties' own door
        (cuOpenCustomer), which lands on Home's wall of paper, nothing chosen,
        narrowed to that party by its one lit chip. Asked of the state, bounded. */
-    await page.waitForFunction(() => state.view === 'dashboard' && !!document.querySelector('#ig-wall [data-igw-only-clear]'), null, { timeout: 8000 }).catch(() => {});
+    /* since step 7 the set is the Contracts place's own (state.reg), its one chip in the place's head */
+    await page.waitForFunction(() => state.view === 'dashboard' && !!document.querySelector('#ig-wall') && !!document.querySelector('[data-reg-home] #reg-only-chip'), null, { timeout: 8000 }).catch(() => {});
     const landed = await page.evaluate(() => ({ view: state.view, face: window.hbFace ? hbFace() : null, paper: !!(window.intel && intel.paper),
-      only: !!(window.igWall && igWall.only && igWall.only.ids.length), chip: !!document.querySelector('#ig-wall [data-igw-only-clear]'),
+      only: !!(state.reg && state.reg.only && state.reg.only.ids.length), chip: !!document.querySelector('[data-reg-home] #reg-only-chip'),
       cards: document.querySelectorAll('#ig-wall [data-ig-pick]').length }));
     check('Open party lands on Home\'s wall narrowed to that party', landed.view === 'dashboard' && landed.face === 'paper' && !landed.paper
       && landed.only && landed.chip && landed.cards >= 1, JSON.stringify(landed));

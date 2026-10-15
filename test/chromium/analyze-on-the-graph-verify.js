@@ -143,7 +143,7 @@ const deliver = (id, answer, citations) => ({ content: [{ type: 'tool_use', id, 
       return { hidden: paper.hidden, covered: !!(at && paper.contains(at)), canvas: !!canvas,
         words: (canvas && canvas.textContent || '').replace(/\s+/g, ' ').trim().split(' ').length,
         nodes: IG.nodes.length, same: IG.nodes.length === n0, svgThere: !!document.getElementById('ig-svg'),
-        strip: !!strip && !strip.hidden, sw: sw && sw.getAttribute('data-ig-mode'), stripText: strip && strip.textContent.replace(/\s+/g, ' ').trim(),
+        strip: !!strip && !strip.hidden, sw: sw && sw.getAttribute('data-ig-mode'), stripText: strip && strip.textContent.replace(/\s+/g, ' ').trim(), back: strip && strip.querySelector('[data-ig-pick-again]') ? strip.querySelector('[data-ig-pick-again]').textContent.trim() : null,
         placeholder: inp.placeholder, title: inp.title, sheet: !!sheet, ink };
     }, card.nodes);
     check('1b Analyze covers the nodes with MK-A2\'s paper: the point where the graph was hit-tests to the paper, and the wording is there',
@@ -155,7 +155,8 @@ const deliver = (id, answer, citations) => ({ content: [{ type: 'tool_use', id, 
        contract and offers another, with no second Graph | Paper switch. */
     const face = await page.evaluate(() => (typeof hbFace === 'function') ? hbFace() : null);
     check('1d the strip is drawn on Home\'s Paper side with the contract named, and no second switch', up.strip && !up.sw && face === 'paper'
-      && /MK-A2/.test(up.stripText) && /Another contract/.test(up.stripText), face + ' · ' + up.stripText);
+      /* the way back names the place since the overnight work order's step 7: "‹ Contracts" (was "Another contract") */
+      && /MK-A2/.test(up.stripText) && up.back === 'Contracts', face + ' · ' + up.stripText + ' · back: ' + up.back);
     check('1e the ask box says which contract it asks about, and its hover says what a question costs',
       /MK-A2/.test(up.placeholder) && /MK-A2/.test(up.title) && /\d/.test(up.title), `${up.placeholder} · ${up.title}`);
     check('1f the paper is the working copy — the same sheet the Document tab draws', up.sheet, `first ink ${up.ink}px from the top of the window`);

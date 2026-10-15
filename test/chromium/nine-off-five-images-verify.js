@@ -83,7 +83,9 @@ const MARK = cid => {
     await page.goto(h.base + '/', { waitUntil: 'networkidle' }); await pause(400);
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go'); await pause(2600);
-    await page.evaluate(async () => { try { await tplLibRefresh(); } catch (_) {} setView('register'); });
+    /* the page head's Draft new agreement, where it still stands since step 7 of the
+       overnight work order took the Contracts page's head to Home: My Queue's head */
+    await page.evaluate(async () => { try { await tplLibRefresh(); } catch (_) {} setView('pipeline'); });
     await pause(1000);
 
     /* ═══ 1 · THE NEW AGREEMENT CARDS ═══ */
