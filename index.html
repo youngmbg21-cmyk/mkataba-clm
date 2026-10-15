@@ -9623,6 +9623,20 @@
   .bs-menu hr{border:0;border-top:1px solid rgba(var(--hb-ln),.18);margin:4px 2px}
   .bs-sec{padding:16px 20px;border-top:1px solid rgba(var(--hb-ln),.14);min-width:0}
   .bs-head + .bs-sec{border-top:0}
+  /* the agreement family (owner picked "Family line", 16 Oct 2026): one row under the head, the open one lit */
+  .bs-fam{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;padding:8px 20px;border-top:1px solid rgba(var(--hb-ln),.14);font-size:var(--t-meta)}
+  .bs-head + .bs-fam{border-top:0}
+  .bs-fam + .bs-sec{border-top:1px solid rgba(var(--hb-ln),.14)}
+  .bs-fam-k{color:var(--hb-mute);font-weight:var(--w-label);margin-right:2px}
+  .bs-fam-p{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:7px;max-width:100%;min-width:0;padding:3px 9px;border:1px solid rgba(var(--hb-ln),.22);border-radius:var(--radius);color:var(--hb-ink);cursor:pointer;font-size:var(--t-meta)}
+  .bs-fam-p:hover{border-color:var(--hb-glow)}
+  .bs-fam-p:focus-visible{outline:2px solid var(--hb-glow);outline-offset:1px}
+  .bs-fam-p.is-here{cursor:default;border-color:var(--hb-glow);background:rgba(var(--hb-gw),.1)}
+  .bs-fam-r{font-family:var(--font-mono);color:var(--hb-mute);white-space:nowrap}
+  .bs-fam-w{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .bs-fam-s{white-space:nowrap;color:var(--hb-mute)}
+  .bs-fam-s.is-good{color:var(--hb-green)} .bs-fam-s.is-warn{color:var(--hb-amber)} .bs-fam-s.is-bad{color:var(--hb-ruby)}
+  .bs-fam-a{color:var(--hb-mute)}
   .bs-sec-h{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 12px;margin:0 0 12px}
   .bs-sec-h h5{margin:0;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--hb-ink)}
   .bs-note{font-size:var(--t-meta);color:var(--hb-mute)}

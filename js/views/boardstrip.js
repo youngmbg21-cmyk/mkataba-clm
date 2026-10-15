@@ -351,7 +351,42 @@ function bsStripHtml(st){
     <header class="hb-ch bs-head"><span class="hb-ct">${bsE(c.name || bsRef(c))}</span><span class="bs-ref">${ref}${c.counterparty ? ' · ' + bsE(c.counterparty) : ''}</span>${pill}${crumbs}<span class="hb-grow"></span>
       <span class="bs-dwrap"><button type="button" class="hb-ib bs-dots${open ? ' is-on' : ''}" data-bs-dots="${id}" aria-haspopup="menu" aria-expanded="${open}" aria-label="${bsE(bsT('bs_more', { ref: bsRef(c) }))}" title="${bsE(bsT('bs_more', { ref: bsRef(c) }))}">⋯</button>${menu}</span>
       <button type="button" class="hb-ib hb-x" data-bs-x="${id}" aria-label="${bsE(bsT('bs_close'))}" title="${bsE(bsT('bs_close'))}">${_bsX}</button></header>
-    ${body}</section>`;
+    ${bsFamHtml(c)}${body}</section>`;
+}
+
+/* ---- THE AGREEMENT FAMILY (owner picked "Family line" by name, 16 Oct
+   2026): a contract tied to an amendment says so on its card, and so does
+   the amendment — one row under the head naming the whole family in order,
+   the original first, then each child numbered per kind as the paper numbers
+   it (amendmentOrdinal's rule), the open card lit. Every other member is a
+   door: it brings that contract's card up (hbStripBring, the one door). A
+   READING of familyOf, nothing filed; a contract with no family draws nothing. */
+function bsFamRows(c){
+  if (typeof familyOf !== 'function') return [];
+  const fam = familyOf(c) || [];
+  if (fam.length < 2) return [];
+  const head = fam[0];
+  const when = x => String(x.createdAt || x._raisedAt || '');
+  const kids = fam.slice(1).filter(Boolean).sort((a, b) => when(a).localeCompare(when(b)) || String(a.id).localeCompare(String(b.id)));
+  const seen = {};
+  const R = (typeof RELATION_LABEL === 'object' && RELATION_LABEL) || {};
+  return [{ c: head, label: bsT('bs_fam_original') }].concat(kids.map(k => {
+    const rel = k.relation || 'amendment';
+    seen[rel] = (seen[rel] || 0) + 1;
+    return { c: k, label: bsT('bs_fam_nth', { word: R[rel] || R.amendment || 'Amendment', n: seen[rel] }) };
+  }));
+}
+function bsFamHtml(c){
+  const rows = bsFamRows(c); if (!rows.length) return '';
+  const pill = r => {
+    const here = String(r.c.id) === String(c.id);
+    const st = (typeof statusLabel === 'function') ? statusLabel(r.c.status) : r.c.status;
+    const inner = `<span class="bs-fam-r">${bsE(bsRef(r.c))}</span><span class="bs-fam-w">${bsE(r.label)}</span><span class="bs-fam-s ${bsTone(r.c.status)}">${bsE(st || '')}</span>`;
+    return here
+      ? `<span class="bs-fam-p is-here" aria-current="true" title="${bsE(r.c.name || '')}">${inner}</span>`
+      : `<button type="button" class="bs-fam-p" data-bs-fam="${bsE(r.c.id)}" title="${bsE(bsT('bs_fam_open', { ref: bsRef(r.c), name: r.c.name || '' }))}">${inner}</button>`;
+  };
+  return `<div class="bs-fam" role="group" aria-label="${bsE(bsT('bs_fam_label'))}"><span class="bs-fam-k">${bsE(bsT('bs_fam_label'))}</span>${rows.map(pill).join('<span class="bs-fam-a" aria-hidden="true">→</span>')}</div>`;
 }
 
 /* ---- THE OVERVIEW: who, five figures, the life line, terms and
@@ -666,6 +701,8 @@ if (typeof document !== 'undefined' && !document._bsWired){
     if (_bsMenu && !t.closest('.bs-menu')){ _bsMenu = null; bsRepaint(); }
     if ((el = t.closest('[data-bs-page]'))){ take(); bsStripPage(el.getAttribute('data-bs-id'), el.getAttribute('data-bs-page')); return; }
     if ((el = t.closest('[data-bs-x]'))){ take(); bsStripClose(el.getAttribute('data-bs-x')); return; }
+    /* a member of the agreement family brings its own card up (the one door) */
+    if ((el = t.closest('[data-bs-fam]'))){ take(); hbStripBring(el.getAttribute('data-bs-fam')); return; }
     if ((el = t.closest('[data-bs-keep]'))){ take(); if (!el.disabled) bsStripKeep(el.getAttribute('data-bs-keep')); return; }
     if ((el = t.closest('[data-bs-letgo]'))){ take(); bsStripLetGo(el.getAttribute('data-bs-letgo')); return; }
     /* Open: the contract on Home's paper — the one landing every Workspace door shares */
@@ -683,7 +720,7 @@ if (typeof document !== 'undefined' && !document._bsWired){
   }, true);
 }
 
-if (typeof window !== 'undefined') Object.assign(window, {
+if (typeof window !== 'undefined') Object.assign(window, { bsFamRows, bsFamHtml,
   BS_PAGES, BS_MENU_PAGES, BS_MAX,
   hbStripBring, bsStrips, bsStrip, bsStripPage, bsStripClose, bsStripKeep, bsStripLetGo, bsRefresh, bsRepaint,
   roomRetiredLand, bsLifeData, bsObRows, bsCaption, bsStripsHtml, bsStripHtml, bsLifeHtml, bsChartSvg, bsPaintHosts, bsDay,
