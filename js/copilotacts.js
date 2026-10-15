@@ -1188,6 +1188,8 @@ const CA_PLACES = [
   { k: 'oblig', need: 'any', w: ['obligations', 'duties', 'åtaganden', 'skyldigheter'] },
   { k: 'history', need: 'any', w: ['history', 'trail', 'historik', 'historiken'] },
   { k: 'board', w: ['board', 'tavla', 'tavlan'] },
+  /* "needs me" (Jambo's note, 15 Oct 2026): the Board's Needs you card, every item */
+  { k: 'needs', w: ['needs me', 'what needs me', 'needs you', 'what needs you', 'waiting on me', 'what is waiting on me', "what's waiting on me", 'väntar på mig', 'vad väntar på mig', 'behöver mig', 'vad behöver mig'] },
   /* the tab is called Workspace since 15 Oct 2026 (owner): its name opens it, and the old words still do */
   { k: 'document', w: ['workspace', 'the workspace', 'arbetsyta', 'arbetsytan', 'document', 'paper', 'dokument', 'dokumentet', 'papperet', 'pappret'] },
   { k: 'calendar', w: ['calendar', 'kalender', 'kalendern'] },
@@ -1258,7 +1260,7 @@ function caUseBump(k){
    Drawn by the Board's own list (hbAskPopRows), so there is one "/" list:
    these rows first, and on the Board its chart moves after them. Ties keep
    this order, which is the plan's order of a working day. */
-const CA_SLASH = ['redline', 'sign', 'board', 'document', 'share', 'oblig', 'history', 'fill', 'calendar', 'explorer', 'draft', 'upload'];
+const CA_SLASH = ['redline', 'needs', 'sign', 'board', 'document', 'share', 'oblig', 'history', 'fill', 'calendar', 'explorer', 'draft', 'upload'];
 const CA_SLASH_MAX = 8;
 function caSlashWord(k){ return String(_caT('ca_w_' + k)).trim().replace(/\s+/g, '-'); }
 function caSlashRows(w, opts = {}){
@@ -1341,6 +1343,7 @@ function caHomeWall(){ caHomeFace('paper'); if (typeof igPickAgain === 'function
 function caRoomTab(c, k){ if (typeof openWorkspace === 'function') openWorkspace(c.id); if (typeof roomGoTab === 'function') try { roomGoTab(getContract(c.id) || c, k); } catch (_){} return true; }
 const CA_GO = {
   board: () => caHomeFace('board'),
+  needs: () => (typeof hbNeedsOpen === 'function') ? hbNeedsOpen() : caHomeFace('board'),
   document: c => (c && typeof pdOpenOnHome === 'function') ? pdOpenOnHome(c.id, 'copilot') : caHomeFace('paper'),
   calendar: () => typeof hbOpenCalendar === 'function' && hbOpenCalendar(),
   explorer: () => typeof hbOpenExplorer === 'function' && hbOpenExplorer(),

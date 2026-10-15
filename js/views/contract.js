@@ -15097,27 +15097,6 @@ function wireDocCanvas(c){
   try{ if(window.uploadBlanksPaint) uploadBlanksPaint(c); }catch(_){ }
   /* And our own amendment's ruled lines, keyed so the panel can find them. */
   try{ if(window.ownBlanksPaint) ownBlanksPaint(c); }catch(_){ }
-  /* ---- AND WHERE THE WORDING IS CHANGED, WHEN SOMEBODY TRIES TO CHANGE IT
-     HERE (21 Sep 2026, the process review's eighth item) ----
-
-     The Document tab and the Negotiate page both show the agreement, and
-     whether you can change wording depends on which one you are on, which
-     seat you hold and — on one of them — how wide your window is. The rules
-     are each individually defensible. What was wrong is that NO SCREEN STATED
-     THEM: every other refusal in HaTi carries its way forward on the same
-     screen, and this one was silent.
-
-     NOT A BAND, AND NOT A HOVER EITHER. The way to change wording is already
-     on this screen — the Negotiate button twelve pixels up — so a line saying
-     so would be that fact printed twice, which is the band rule. It ARRIVES
-     WHEN NEEDED instead: a person who clicks into the wording expecting to
-     type is told, once, where typing happens. It costs the contract no
-     pixels, and a reader who never tries never sees it.
-
-     ONLY WHERE IT IS TRUE: a draft's blanks are real inputs and this must not
-     fire on them, and on the phone and the counterparty's page there is no
-     Negotiate page to send anybody to. */
-  try{ docReadOnlyHint(c); }catch(_){ }
   try{ docAnswersWire(c); }catch(_){ }
 }
 /* ---- THE PAPER SHOWS THE ANSWERS (change 5, 9 Oct 2026) ----
@@ -15173,28 +15152,6 @@ if(typeof document !== 'undefined' && !document._homeAnswerWired){
     /* NOTHING LEFT TO ASK (a sealed record): the answer is read where it
        stands. The room's Details tab it used to open went home with stage 5
        of the one-page Home plan, and its twin is the face above. */
-  });
-}
-/* Bound once per canvas element. `docFillable` is the product's own reading of
-   "may wording be typed here", so this cannot disagree with what the page
-   actually allows. */
-const DOC_HINT_MS = 9000;
-let _docHintAt = 0;
-function docReadOnlyHint(c){
-  const cv = document.getElementById('doc-canvas');
-  if(!cv || cv.dataset.roHintBound) return;
-  if(!c || PORTAL_MODE || docFillable(c)) return;
-  cv.dataset.roHintBound = '1';
-  cv.addEventListener('click', e => {
-    /* a press on a control, a link or a box the reader may really type in is
-       that control's press and nothing else */
-    if(e.target && e.target.closest('button,a,input,textarea,select,[contenteditable="true"],[data-field-key],[data-upwording] .hati-field')) return;
-    const sel = (typeof window.getSelection === 'function') ? window.getSelection() : null;
-    if(sel && !sel.isCollapsed) return;               /* a drag is a highlight, not a try */
-    const now = Date.now();
-    if(now - _docHintAt < DOC_HINT_MS) return;        /* said once, not on every click */
-    _docHintAt = now;
-    if(typeof toast === 'function') toast(i18t('ct_wording_elsewhere'), 'warn');
   });
 }
 

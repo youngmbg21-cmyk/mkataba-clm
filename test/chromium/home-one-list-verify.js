@@ -1,4 +1,11 @@
-/* WAITING ON YOU IS NOT ON HOME — measured in a real browser.
+/* WAITING ON YOU IS NOT IN JAMBO'S WORK — measured in a real browser.
+ *
+ * NARROWED 15 Oct 2026: the owner picked "Jambo's note" by name and the list
+ * of what is owed by name is back on the Board as ITS OWN card, first above
+ * Jambo's work (test/chromium/needs-you-card-verify.js drives it). What this
+ * file still holds is the half of the 4 Oct ruling that stands: Jambo's work
+ * card draws none of it, and the 4 Oct merged card's rows and reading
+ * ([data-hb-need], .hb-need, hbNeedsData) stay gone.
  *
  * This stage used to drive the opposite, and keeps its name because it guards
  * the same ruling, reversed. Young picked **One list, one place** by name on

@@ -214,10 +214,10 @@ describe('f331 (5) — every door refuses the same way', () => {
        before the draft is made (js/views/newstandard.js). The count is the
        doors that remain in the library file plus the one door's two askers. */
     const s = strip(TPLLIB);
-    assert.ok((s.match(/if\(newPaperBlock\(\)\) return/g) || []).length >= 3,
-      'the builder\'s two named doors plus the create modal');
-    assert.match(s, /function tplLibCreateModal\(\) \{\s*\n?\s*if\(newPaperBlock\(\)\) return;/,
-      'minting a template asks first');
+    /* the create modal (tplLibCreateModal) is deleted, 15 Oct 2026: it had
+       no caller since the one door to standards (f376) */
+    assert.ok((s.match(/if\(newPaperBlock\(\)\) return/g) || []).length >= 2,
+      'the builder\'s two named doors');
     const NS = strip(read('js/views/newstandard.js'));
     assert.match(NS, /if \(NS_GATED\.includes\(k\) && typeof newPaperBlock === 'function' && newPaperBlock\(\)\) return;/,
       'the one door asks before a gated start opens');

@@ -59,38 +59,7 @@ const KNOWN_RED = {
      the run is an alarm again rather than a list. Take a file off the day it
      goes green. */
   'notes-two-rooms-verify.js':
-    'RE-POINTED 11 Oct 2026 and now RED ON THE PRODUCT, not the file: Chat left the shell bar for the contract\'s acts row (20 Sep 2026), and the open Notes drawer covers that row, so the SECOND press that should shut it (owner-asked 10 Sep: "when i click on it again it should collapse") cannot be made — Playwright reports the drawer\'s header intercepting the press. Where the drawer starts or where the door sits is the owner\'s call (BUGLOG, 11 Oct 2026). Every other check in the file passes.',
-  'theme-tokens-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: dashboard--light · register--light · calendar--light · templates--light · contract--light · keyterms--light · and 14 more.',
-  /* --- retired feature, net kept for the restore --- */
-  'copilot-band-verify.js':
-    'THE BAND IT MEASURES NO LONGER DRAWS. WO-3, 24 Aug 2026, owner-asked: ' +
-    '"delete the copilot first pass feature completely", then "Just delete the ' +
-    'strip for now". rlPlanBandHtml is a `return \'\'` stub and nothing mounts ' +
-    'it; js/redlineplan.js, the rp_* wording and the .rl-plan rules are ' +
-    'untouched and dormant. THE FILE IS KEPT RATHER THAN DELETED because ' +
-    'restoring the band is putting one function body back, and this is the only ' +
-    'thing that would prove the restore worked — it presses the bar for real, ' +
-    'counts the rows as visible pixels and drives "Take it" through to an ' +
-    'accepted change. Green again the day the body returns; delete it the day ' +
-    'the owner says the feature is not coming back.',
-  'six-round-audit.js':
-    'MEASURED 15 Oct 2026: it now stops in ROUND 1 — ownerOpenBench waits for ' +
-    '#view-redline #rl-doc, the Negotiate page that folded into Home on 14 Oct ' +
-    '(stage 5), so it needs re-pointing to the Redlines face before any round ' +
-    'can run. The endgame fault named below is NOT the product\'s any more: every ' +
-    'Issue a signing link door (the room, the Negotiate engine, the phone) opens ' +
-    'the send screen with purpose sign (issueSigningAct). The older note: ' +
-    'ROUNDS 1-6 NOW PASS; the ENDGAME does not. Re-pointed 21 Aug 2026: the ' +
-    'clause tool row it filed through (pill -> panel -> plus now), the ask tag ' +
-    'it read a refusal reason off, the #rl-threads column that no longer ' +
-    'renders at all, a reply composer addressed as "whichever is first" when ' +
-    'the panel now renders one per clause, the readiness notice that arrives ' +
-    'folded behind a bell, a panel left open over the next button, and the ' +
-    'missing nameASigner the 11 Aug signing rule requires. WHAT IS LEFT: the ' +
-    'endgame issues a NEGOTIATE link where it wants a signing one, so the ' +
-    'share dialog opened by the readiness hand-off needs the same treatment. ' +
-    'Naming a signer was necessary and not sufficient.',
+    'MEASURED 15 Oct 2026: 88/92, the same four red at unmodified main — all about the contract room\'s acts row (Chat beside More, the drawer edge against the paper, the row\'s bare verbs and their ink), which retired with the room on 15 Oct (step 8); they need re-pointing to Home\'s paper line by whoever owns that screen. The drawer\'s close is RULED by the owner (15 Oct 2026: "leave it as it is and you can simply just click the x to exit") and now pressed through its ×, which passes.',
   'their-edit-page-verify.js':
     'RED ON GITHUB ONLY, 10 Oct 2026: section 4 — typing after a save on THEIR seat — never holds on GitHub\'s runner (the words typed are gone each time); it passes every time locally, even at a 10x CPU throttle. The foot\'s Discard claims (2b, 3a2, 6a2) were re-pointed 11 Oct to the one-panel foot and pass. Logged in BUGLOG (a repaint may be taking a person\'s typing). Take it off when section 4 holds on GitHub.',
   /* NOT LISTED, deliberately: analytics-verify.js. It was two faults wearing

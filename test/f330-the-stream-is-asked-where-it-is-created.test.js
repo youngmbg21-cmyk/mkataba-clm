@@ -148,20 +148,9 @@ describe('f330 (2) — the button says what it does', () => {
 });
 
 describe('f330 (3) — converting a document files it', () => {
-  test('the dialog asks with the SAME builder the other dialog uses', () => {
-    const fn = realBody(strip(TLIB), 'function tplLibUploadModal(');
-    assert.match(fn, /tplLibCatStreamRowHtml\('tpllib-up-cat', 'tpllib-up-stream'/,
-      'one builder, so the two screens cannot ask the question differently');
-    assert.match(fn, /tplLibWireCatStream\('tpllib-up-cat', 'tpllib-up-stream'\)/,
-      'and one wiring, so neither grows a dead option');
-  });
-  test('a sentinel never reaches the route', () => {
-    const fn = realBody(strip(TLIB), 'function tplLibUploadModal(');
-    assert.match(fn, /category: tplLibPick\('tpllib-up-cat', 'other'\)/, 'the category through the guard');
-    assert.match(fn, /folder: tplLibPick\('tpllib-up-stream', ''\) \|\| null/, 'and the stream');
-    assert.ok(!/document\.getElementById\('tpllib-up-stream'\)\.value/.test(fn),
-      'never read raw off the box');
-  });
+  /* The upload-and-convert dialog (tplLibUploadModal) is deleted (owner,
+     15 Oct 2026: "Delete the retired features"); it had no caller since the
+     one door to standards (f376). The route below is still the one door's. */
   test('THE SERVER FILES IT, with the same two readings the other route uses', () => {
     const src = strip(SRV);
     const at = src.indexOf("app.post('/api/templates/upload'");

@@ -108,6 +108,9 @@ function pdEmpty(title, ic){
    the duties recorded, Deal = their changes still open. Nothing is counted
    that the tab does not draw. */
 function pdTabCount(t, c){
+  /* HIS TAB CARRIES THE COUNT while no paper is up (Jambo's note, 15 Oct
+     2026): what needs you, the Board's "Needs you" card's own number */
+  if (!c && t === 'copilot'){ const n = (typeof hbNeedsCount === 'function') ? hbNeedsCount() : 0; return n ? { n, tone: 'warn' } : null; }
   if (!c) return null;
   try {
     if (t === 'doc'){
@@ -1699,7 +1702,9 @@ function pdGlanceRepaint(){
 /* what Jambo's tab draws at its top on Home's Document face: the wall's
    greeting and drop area, or the paper's contract at a glance */
 function pdJamboTopHtml(){
-  if (typeof igHomePaperFace !== 'function' || igHomePaperFace() !== true) return '';
+  /* ON THE BOARD: his greeting names what needs you (hbNeedsHelloHtml, the
+     "Needs you" card's own reading; owner picked Jambo's note, 15 Oct 2026) */
+  if (typeof igHomePaperFace !== 'function' || igHomePaperFace() !== true) return (typeof hbNeedsHelloHtml === 'function') ? hbNeedsHelloHtml() : '';
   const c = pdContract();
   return c ? pdGlanceHtml(c) : pdWallHtml();
 }

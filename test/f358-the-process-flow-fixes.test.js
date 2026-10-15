@@ -323,31 +323,16 @@ describe('f358 (7) the guest’s one-time code was ALREADY built', () => {
   });
 });
 
-/* ---------- 8 · where the wording is changed ---------- */
-describe('f358 (8) the Document tab says where wording is changed', () => {
-  test('8a it arrives when needed, and is not a band', () => {
-    assert.ok(/function docReadOnlyHint\(c\)/.test(CT));
-    const fn = code((CT.match(/function docReadOnlyHint\(c\)\{[\s\S]*?\n\}/) || [''])[0]);
-    assert.ok(/toast\(/.test(fn), 'a transient confirmation, not furniture');
-    assert.ok(!/innerHTML|insertAdjacent|appendChild/.test(fn), 'nothing is added to the page');
+/* ---------- 8 · where the wording is changed — RETIRED ----------
+   The hint listened on the Document tab's canvas, which no computer screen
+   draws since the Document tab went home; the owner let it go (15 Oct 2026:
+   "Let the hint go"). Its sentence stays inert in both books. */
+describe('f358 (8) the read-only wording hint is retired', () => {
+  test('8a nothing defines or calls it', () => {
+    assert.ok(!/docReadOnlyHint/.test(code(CT)));
+    assert.ok(!/ct_wording_elsewhere/.test(code(CT)));
   });
-  test('8b it asks the product’s OWN reading of "may wording be typed here"', () => {
-    const fn = code((CT.match(/function docReadOnlyHint\(c\)\{[\s\S]*?\n\}/) || [''])[0]);
-    assert.ok(/docFillable\(c\)/.test(fn), 'so it cannot disagree with what the page allows');
-    assert.ok(/PORTAL_MODE/.test(fn), 'and never on the counterparty’s page');
-  });
-  test('8c a press on a control, a real box or a highlight is not a try', () => {
-    const fn = code((CT.match(/function docReadOnlyHint\(c\)\{[\s\S]*?\n\}/) || [''])[0]);
-    assert.ok(/closest\('button,a,input,textarea,select/.test(fn));
-    assert.ok(/isCollapsed/.test(fn), 'a drag is a highlight');
-  });
-  test('8d said once, not on every click, and bound once per canvas', () => {
-    const fn = code((CT.match(/function docReadOnlyHint\(c\)\{[\s\S]*?\n\}/) || [''])[0]);
-    assert.ok(/roHintBound/.test(fn));
-    assert.ok(/DOC_HINT_MS/.test(fn));
-  });
-  test('8e and it names where, in both books', () => {
+  test('8b its sentence stays inert in both books', () => {
     assert.equal((EN.match(/\n    ct_wording_elsewhere:/g) || []).length, 2);
-    assert.ok(/Negotiate page/.test(EN), 'the way forward is on the same screen as the refusal');
   });
 });

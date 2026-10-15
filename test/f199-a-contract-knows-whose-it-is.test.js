@@ -293,7 +293,7 @@ const owned = (by, over = {}) => ({ id: 'MK-1', name: 'Deal', value: 100, status
 describe('f199 — overseen by', () => {
   test('OFF by default — a named overseer adds no step at all', () => {
     const { sb, asha } = chainStage();
-    assert.equal(sb.overseerEnforced(), false);
+    assert.equal(sb.overseerCfg().on, false);
     assert.deepEqual(Array.from(sb.buildApprovalChain(owned(asha))), []);
   });
 

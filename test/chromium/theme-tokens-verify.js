@@ -70,7 +70,9 @@ const SCREENS = [
   ['keyterms',  async p => { await p.evaluate(() => { openWorkspace('MK-82', { room: true }); roomGoTab(getContract('MK-82'), 'terms'); }); await p.waitForSelector('.room-tabrow', { timeout: 10000 }).catch(() => {}); await pause(600); }],
   ['signing',   async p => { await p.evaluate(() => roomGoTab(getContract('MK-82'), 'signing')); await pause(600); }],
   ['history',   async p => { await p.evaluate(() => roomGoTab(getContract('MK-82'), 'history')); await pause(600); }],
-  ['negotiate', async p => { await p.evaluate(() => openRedlineWorkbench('MK-82'));
+  /* RE-POINTED 15 Oct 2026: Negotiate folded into Home (stage 5); its page is
+     opened by name for the checks, as the others do. */
+  ['negotiate', async p => { await p.evaluate(() => openRedlineWorkbench('MK-82', { blanksAsked: true, page: true }));
                              await p.waitForSelector('#view-redline [id="rl-doc"]', { timeout: 10000 }); await pause(800); }],
   ['menu',      async p => { await p.evaluate(() => { openWorkspace('MK-82', { room: true }); });
                              await p.waitForSelector('#ws-more'); await p.click('#ws-more'); await pause(300); }],

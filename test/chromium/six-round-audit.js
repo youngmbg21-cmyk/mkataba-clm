@@ -84,7 +84,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       fields: {}, metadata: {}, comments: [], audit: [], signatures: [],
       obligations: [], rounds: [], versions: [],
       redlineText: BASE_TEXT, format: 'text',
-    }], settings: {} },
+    }], settings: { signCheckGate: 'off' } },
   } });
 
   /* Every email the counterparty has ever been sent. The MAIL invariant is
@@ -101,6 +101,15 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      refusing. It is the PRECONDITION of the endgame, not its subject: the six
      rounds under audit are unchanged by it. */
   await nameASigner(admin, CID, { name: 'Erik Lindqvist', email: ERIK });
+  /* OUR STEP IS THE OWNER'S OWN (15 Oct 2026). The helper names its usual
+     colleague on our side; here the owner countersigns, and an internal step
+     is signed by the person it names (signBlockers 'turn'), so the step is
+     put in her name. The pre-sign reading check (signCheckGate) is set off in
+     the seed for the same reason: neither is what these rounds audit. */
+  { const full = await admin.json('/api/contracts/' + CID); const baseVersion = full._v; delete full._v;
+    full.signerPlan = (full.signerPlan || []).map(sg => sg.party === 'internal'
+      ? { ...sg, name: 'Wanjiru Kamau', email: 'wanjiru@wcl.co.ke' } : sg);
+    await admin.json('/api/contracts/' + CID, { method: 'PUT', body: { contract: full, baseVersion } }); }
 
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
 
@@ -120,7 +129,10 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   cp.on('pageerror', e => check('-', 'counterparty page error', false, e.message));
 
   const ownerOpenBench = async () => {
-    await owner.evaluate(id => { openRedlineWorkbench(id); }, CID);
+    /* BY NAME, 15 Oct 2026: Negotiate folded into Home's Redlines face on
+       14 Oct (stage 5); this audit drives the page's own controls, so it opens
+       the page by name, as every check that measures the page does. */
+    await owner.evaluate(id => { openRedlineWorkbench(id, { blanksAsked: true, page: true }); }, CID);
     await owner.waitForSelector('#view-redline [id="rl-doc"]', { timeout: 10000 });
   };
   const ownerPoll = async () => {
@@ -491,7 +503,10 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       input.dispatchEvent(new Event('input', { bubbles: true }));
       const send = document.querySelector('#context-panel [data-rl-np-send], #context-panel [data-rl-chat-send]');
       if (!send) return 'no note send for ' + id;
-      send.click(); await wait(500);
+      send.click(); await wait(400);
+      /* Posting into the OUTSIDE room asks "Send this to …?" first (the
+         crossing's confirm, rlNotesSend); the owner says yes, as a person would. */
+      const ok = document.getElementById('cf-ok'); if (ok) { ok.click(); await wait(500); }
       if (window.closeContextPanel) closeContextPanel();
       return 'ok';
     }, replyOn);
@@ -512,7 +527,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       return t;
     });
     check(5, 'the reply is on Erik\'s page without any re-send',
-      /Confirmed — storage stays/.test(cpNotes), cpNotes.slice(0, 120));
+      /Confirmed — storage stays/.test(cpNotes), cpNotes.slice(0, 400));
     await mailCheck(5, 2, 'a comment is a comment — no email');
   }
 
@@ -607,22 +622,43 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       const tr = document.getElementById('toast-root'); if (tr) tr.innerHTML = '';
     });
     await pause(300);
+    await owner.evaluate(() => {
+      window.__said = [];
+      const t0 = window.toast;
+      window.toast = function (m) { window.__said.push(String(m)); return t0.apply(this, arguments); };
+    });
     await owner.click('#ws-next-action[data-na="issue-signing"]');
-    /* ONE SCREEN since 13 Sep 2026: what is going out and who it goes to are
-       drawn together, so there is no Next between the dialog opening and the
-       address being on screen. */
-    await owner.waitForSelector('#share-send', { timeout: 10000 });
-    const prefill = await owner.evaluate(() =>
-      (document.getElementById('sh-email') || {}).value || '');
-    check('E', 'the signing dialog is prefilled with the set-once address',
-      prefill === ERIK, prefill);
-    await owner.click('#share-send');
+    /* TWO HONEST ENDINGS (re-pointed 15 Oct 2026). With a signer named on
+       the route (nameASigner, round 1) the press issues the signer's OWN link
+       itself and says so in a toast (issueSigningAct → issueSigningRouteLinks);
+       the send screen opens only where no route can. Either is the product
+       working; anything else is reported with what the press said, rather
+       than left to a timeout. */
+    const ended = await owner.waitForFunction(() =>
+      document.getElementById('share-send') ? 'dialog'
+        : (window.__said || []).some(m => /signing link/i.test(m)) ? 'route' : null,
+      null, { timeout: 10000 }).then(r => r.jsonValue(), () => null);
+    if (!ended) {
+      const said = await owner.evaluate(() => JSON.stringify(window.__said || []));
+      check('E', 'the hand-off issues a signing link', false, said.slice(0, 300));
+      throw new Error('endgame stopped: no signing link issued');
+    }
+    if (ended === 'dialog') {
+      const prefill = await owner.evaluate(() =>
+        (document.getElementById('sh-email') || {}).value || '');
+      check('E', 'the signing dialog is prefilled with the set-once address',
+        prefill === ERIK, prefill);
+      await owner.click('#share-send');
+    } else {
+      check('E', 'the named signer\'s own link was issued by the press itself', true,
+        (await owner.evaluate(() => window.__said.join(' | '))).slice(0, 200));
+    }
     await pause(2000); await ownerFlush();
     const shares2 = (await admin.json(`/api/contracts/${CID}/shares`)).shares || [];
     const signShare = shares2.find(s => s.purpose === 'sign');
     check('E', 'a signing link exists, separate from the standing link', !!signShare,
       shares2.map(s => s.purpose).join(','));
-    await mailCheck('E', 2, 'the signing link is the second email — a link delivery again');
+    await mailCheck('E', 4, 'the signing link follows the three negotiation emails — a link delivery again');
 
     // The standing negotiation link is now retired for answering.
     const gate = await admin.raw('/api/shares/' + token + '/respond', { method: 'POST', body: {
@@ -637,19 +673,27 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     await cp.waitForSelector('#pt-name', { timeout: 15000 });
     await pause(500);
     await cp.fill('#pt-name', 'Erik Lindqvist');
-    const hasEmailField = await cp.$('#pt-email');
+    /* The signer's own link carries their address (a hidden field since the
+       route issues it), so it is typed only where it is asked for. */
+    const hasEmailField = await cp.$('#pt-email:not([type="hidden"])');
     if (hasEmailField) await cp.fill('#pt-email', ERIK);
     await cp.click('#pt-sign');
     await cp.waitForSelector('#sig-pad', { timeout: 10000 });
     await cp.click('[data-sig-tab="type"]');
     await cp.fill('#sig-typed', 'Erik Lindqvist');
+    /* The pad's intent line (openSignaturePad intent:true) is ticked where it
+       is drawn: a signature without it is refused by the pad itself. */
+    await cp.evaluate(() => { const t = document.getElementById('sig-intent'); if (t && !t.checked) t.click(); });
     await pause(300);
     await cp.click('#sig-adopt-go');
     /* No mail provider on this server, so the page offers the unverified-sign
        confirmation — the signature is real, the record says it was not
        independently verified. */
-    await cp.waitForSelector('#pt-unver-go', { timeout: 10000 });
-    await cp.click('#pt-unver-go');
+    /* Asked only where the page still offers it (re-pointed 15 Oct 2026):
+       the signer's own link may sign without the extra confirmation; the
+       server's record below is the claim either way. */
+    const unver = await cp.waitForSelector('#pt-unver-go', { timeout: 6000 }).then(() => true, () => false);
+    if (unver) await cp.click('#pt-unver-go');
     await pause(2500);
     const signResp = ((await admin.json(`/api/contracts/${CID}/shares`)).shares || [])
       .find(s => s.token === signShare.token);
@@ -667,16 +711,34 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
 
     // The owner countersigns LAST, through the real sign panel: consent, Sign,
     // the signature pad, adopt.
-    await owner.evaluate(id => { openWorkspace(id, { room: true }); }, CID);
-    await owner.waitForSelector('[data-comp="consent"]', { state: 'attached', timeout: 10000 });
-    await owner.evaluate(() => { const b = document.querySelector('[data-comp="consent"]');
-      if (b && !b.checked) b.click(); });
-    await pause(600);
-    await owner.waitForSelector('#sign-btn:not([disabled])', { state: 'attached', timeout: 10000 });
-    await owner.evaluate(() => document.getElementById('sign-btn').click());
-    await owner.waitForSelector('#sig-pad', { timeout: 10000 });
+    /* RE-POINTED 15 Oct 2026: the room's consent box retired into the pad's
+       own intent line, and signing went home as Jambo's Before you sign face
+       (pdSignOpen, stage 5). Its Sign button is pressed where it is drawn; a
+       button still grey reports what holds it (signBlockers), not a timeout. */
+    await owner.evaluate(id => { pdSignOpen(id); }, CID);
+    const signable = await owner.waitForSelector('#pd-signface #sign-btn:not([disabled])',
+      { state: 'attached', timeout: 10000 }).then(() => true, () => false);
+    if (!signable) {
+      const why = await owner.evaluate(id => { try { return JSON.stringify(signBlockers(getContract(id))); }
+        catch (e) { return 'no sign button: ' + e.message; } }, CID);
+      check('E', 'the owner\'s Sign button is live on Before you sign', false, String(why).slice(0, 300));
+      throw new Error('endgame stopped: the owner cannot sign');
+    }
+    await owner.evaluate(() => { window.__said = []; document.querySelector('#pd-signface #sign-btn').click(); });
+    const padUp = await owner.waitForSelector('#sig-pad', { timeout: 10000 }).then(() => true, () => false);
+    if (!padUp) {
+      const what = await owner.evaluate(() => JSON.stringify({ said: window.__said,
+        btn: ((document.querySelector('#pd-signface #sign-btn') || {}).textContent || '').trim(),
+        holds: (signReadiness(getContract('MK-NEG')).holds || []).map(x => x.key || x.id || x.what || JSON.stringify(x).slice(0, 80)),
+        dlg: ((document.querySelector('.modal-backdrop, [role=dialog]') || {}).textContent || '').replace(/\s+/g, ' ').slice(0, 200) }));
+      check('E', 'Sign opens the signature pad', false, what.slice(0, 400));
+      throw new Error('endgame stopped: no signature pad');
+    }
     await owner.click('[data-sig-tab="type"]');
     await owner.fill('#sig-typed', 'Wanjiru Kamau');
+    /* The pad's intent line (openSignaturePad intent:true) is ticked where it
+       is drawn: a signature without it is refused by the pad itself. */
+    await owner.evaluate(() => { const t = document.getElementById('sig-intent'); if (t && !t.checked) t.click(); });
     await pause(300);
     await owner.click('#sig-adopt-go');
     await pause(2500); await ownerFlush(); await pause(600);
@@ -694,8 +756,10 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     check('E', 'and it carries his door to the signed copy', !!finalMail
       && /#share=/.test(String(finalMail.body)), finalMail && finalMail.body
         && (String(finalMail.body).match(/#share=[\w:]+/) || [])[0]);
-    check('E', 'emails to Erik, whole negotiation: 3 (link, signing link, signed copy)',
-      mails.length === 3, `${mails.length}`);
+    /* FIVE since the "your turn" emails (rounds 3 and 6, counted in round 6):
+       the link, two hand-overs, the signing link, the signed copy. */
+    check('E', 'emails to Erik, whole negotiation: 5 (link, two "your turn", signing link, signed copy)',
+      mails.length === 5, `${mails.length}: ${mails.map(m => m.subject).join(' | ')}`.slice(0, 400));
 
     // The standing link is dead for action, alive for reading the sealed copy.
     const after = await admin.raw('/api/shares/' + token);

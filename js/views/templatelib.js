@@ -304,68 +304,6 @@ function tplCompanySectionHtml() {
     </section>`;
 }
 
-/* ---------- upload-and-convert: a Word document becomes a draft ---------- */
-function tplLibUploadModal() {
-  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
-  openModal(`
-    <div style="padding:24px">
-      <h3 style="margin:0 0 var(--s-1);font-family:var(--font-heading);font-size:16px;font-weight:var(--w-title)">${i18t('tl_convert_doc')}</h3>
-      <p style="margin:0 0 14px;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5">${i18t('tl_convert_line')}</p>
-      <input type="file" id="tpllib-up-file" accept=".docx,.pdf" style="display:block;margin-bottom:var(--s-3);font-size:var(--t-meta)">
-      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tl_template_name')} <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">${i18t('tl_defaults_filename')}</span></span>
-        <input id="tpllib-up-name" style="${INP}" maxlength="160"></label>
-      ${''/* ---- A CONVERTED DOCUMENT IS FILED LIKE ANY OTHER TEMPLATE (Young
-             ruled 18 Sep 2026: "there should have an option to categorize it
-             into a Value Stream") ----
-             The SAME builder the "New standard template" dialog draws, so the
-             two screens cannot ask the question differently or offer different
-             streams — that drift is what tplLibCatStreamRowHtml exists to
-             prevent. Both answers stay optional: a converted document nobody
-             has filed yet says so, which is the picker's own empty row. */}
-      ${tplLibCatStreamRowHtml('tpllib-up-cat', 'tpllib-up-stream', 'other', '')}
-      <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
-        <button data-dlg-cancel class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
-        <button id="tpllib-up-go" class="ui-btn ui-btn-primary">${i18t('tl_upload_convert')}</button>
-      </div>
-    </div>`);
-  tplLibWireCatStream('tpllib-up-cat', 'tpllib-up-stream');
-  document.getElementById('tpllib-up-go')?.addEventListener('click', () => {
-    const file = document.getElementById('tpllib-up-file').files?.[0];
-    if (!file) { toast(i18t('tl_choose_file_first'), 'err'); return; }
-    /* A fast, friendly no for the obvious cases. It is not the gate: the server
-       checks the real file signature, the page count and whether the PDF is
-       encrypted, because those decide whether we spend money on a model call
-       and must not be forgeable from here. */
-    if (!/\.(docx|pdf)$/i.test(file.name)) { toast(i18t('tl_docx_pdf_only'), 'err'); return; }
-    if (file.size > 8 * 1024 * 1024) { toast(i18t('tl_under_8mb'), 'err'); return; }
-    const btn = document.getElementById('tpllib-up-go');
-    btn.disabled = true; btn.textContent = 'Reading the document…';
-    const r = new FileReader();
-    r.onload = async () => {
-      try {
-        const d = await api('templates/upload', 'POST', {
-          dataUrl: String(r.result), fileName: file.name,
-          name: document.getElementById('tpllib-up-name').value.trim(),
-          category: tplLibPick('tpllib-up-cat', 'other'),
-          folder: tplLibPick('tpllib-up-stream', '') || null,
-        });
-        closeModal();
-        if (d.notice) toast(d.notice, 'err');
-        if (!d.converted) {
-          toast(d.errorNote || 'The conversion did not produce a draft — the original file is stored', 'err');
-          openTemplateLibDetail(d.templateId);
-          return;
-        }
-        openTemplateConfirm(d.templateId, d.versionId);
-      } catch (e) {
-        btn.disabled = false; btn.textContent = 'Upload & convert';
-        toast(e.message, 'err');
-      }
-    };
-    r.readAsDataURL(file);
-  });
-}
-
 /* The confirmation step — required, minimal, and unskippable: no path from
    upload to published avoids this screen, and there is no auto-approve. The
    user checks the detected fields (low confidence first), fixes, adds or
@@ -852,39 +790,6 @@ function newPaperBlock(){
   toast(newPaperBlockLine(),'warn',{ action:{ label:i18t('np_ask_team'),
     onClick(){ if(typeof setView==='function') setView('intake'); } } });
   return true;
-}
-
-function tplLibCreateModal() {
-  if(newPaperBlock()) return;
-  openModal(`
-    <div style="padding:24px">
-      <h3 style="margin:0 0 var(--s-1);font-family:var(--font-heading);font-size:16px;font-weight:var(--w-title)">${i18t('tl_new_standard')}</h3>
-      <p style="margin:0 0 14px;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5">${i18t('tl_new_standard_line')}</p>
-      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tl_name')}</span>
-        <input id="tpllib-name" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)" placeholder="e.g. Account Opening Form" maxlength="160"></label>
-      ${tplLibCatStreamRowHtml('tpllib-cat', 'tpllib-stream', 'other', '')}
-      <label style="display:block;margin-bottom:var(--s-4)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tl_description')} <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">(optional)</span></span>
-        <textarea id="tpllib-desc" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none;min-height:60px" maxlength="2000" placeholder="${i18t('tl_what_for')}"></textarea></label>
-      <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-        <button data-dlg-cancel class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
-        <button id="tpllib-create" class="ui-btn ui-btn-primary">${i18t('tl_create_draft')}</button>
-      </div>
-    </div>`);
-  tplLibWireCatStream('tpllib-cat', 'tpllib-stream');
-  document.getElementById('tpllib-create')?.addEventListener('click', async () => {
-    const name = document.getElementById('tpllib-name').value.trim();
-    if (!name) { toast(i18t('tl_needs_name'), 'err'); return; }
-    try {
-      const d = await api('templates', 'POST', {
-        name, category: tplLibPick('tpllib-cat', 'other'),
-        folder: tplLibPick('tpllib-stream', '') || null,
-        description: document.getElementById('tpllib-desc').value.trim(),
-      });
-      closeModal();
-      toast(`“${name}” created as a draft`);
-      openTemplateLibDetail(d.template.id);
-    } catch (e) { toast(e.message, 'err'); }
-  });
 }
 
 /* saveContractToLibrary — the "Save as template" dialog that asked a name and
@@ -1409,7 +1314,7 @@ Object.assign(window, { tplFormInputHtml, newPaperBlocked, newPaperBlockLine, ne
      templates as rows of their own (the Templates page's library table)
      rather than through renderCompanyTemplatesSection's card grid. */
   tplLibAll: () => ({ list: _tplLib.list.slice(), canManage: _tplLib.canManage, loaded: _tplLib.loaded, failed: _tplLib.failed || false }),
-  tplLibUploadModal, tplLibCreateModal,
+
   renderCompanyTemplatesSection, tplLibPublished, tplLibCount, tplLibRefresh, tplLibReady,
   openTemplateLibDetail, tplLibEdit, tplLibCanManage, tplLibCancelPending,
   tplLibSheetHtml, tplLibRestore, tplLibArchivedAsk,

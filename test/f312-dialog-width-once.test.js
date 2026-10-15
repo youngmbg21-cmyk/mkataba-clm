@@ -172,14 +172,13 @@ describe('f312 (4) — “New standard template” fills its frame, and “Other
     return cap;
   };
   const cat = (html, id) => { const i = html.indexOf(`id="${id}"`); return html.slice(i, html.indexOf('</select>', i)); };
-  test('the create dialog: no width on the box, 24 on every side', () => {
-    const cap = stage(w => w.tplLibCreateModal());
-    assert.ok(cap.html, 'the dialog opened');
-    assert.ok(!/max-width/.test(cap.html));
-    assert.match(cap.html, /^\s*<div style="padding:24px">/);
-  });
+  /* RE-POINTED 15 Oct 2026: the create dialog (tplLibCreateModal) is deleted
+     (owner: "Delete the retired features"); the row it drew is the shared
+     builder every remaining dialog uses, so the claims are asked of it. */
+  let cap0 = null;
+  const catRow = w => ({ html: w.tplLibCatStreamRowHtml('tpllib-cat', 'tpllib-stream', 'other', '') });
   test('Category and Value stream share one row', () => {
-    const cap = stage(w => w.tplLibCreateModal());
+    const cap = stage(w => { cap0 = catRow(w); }) && cap0;
     const row = cap.html.slice(cap.html.indexOf('grid-template-columns:repeat(auto-fit,minmax(180px,1fr))'));
     const end = row.indexOf('</div>');
     assert.ok(row.slice(0, end).includes('id="tpllib-cat"') && row.slice(0, end).includes('id="tpllib-stream"'),
@@ -191,7 +190,7 @@ describe('f312 (4) — “New standard template” fills its frame, and “Other
      asserted LAST by name, because a create option that drifted to the top
      would take the default's place. */
   test('“Other” appears ONCE, first, and is the default', () => {
-    const cap = stage(w => w.tplLibCreateModal());
+    const cap = stage(w => { cap0 = catRow(w); }) && cap0;
     const sel = cat(cap.html, 'tpllib-cat');
     assert.equal((sel.match(/value="other"/g) || []).length, 1, 'once — the owner saw it twice');
     assert.match(sel, /<option value="other" selected>Other<\/option><option value="sales">/, 'first and selected');

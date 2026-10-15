@@ -185,29 +185,15 @@ describe('F223 — what it will and will not answer for', () => {
 
 describe('F223 — it decides nothing', () => {
   const neg = read('js/views/negotiation.js');
-  const band = neg.slice(neg.indexOf('function rlPlanBandHtml'), neg.indexOf('function rlUnsentBandHtml'));
-
-  /* REVERSED IN PLACE 24 Aug 2026 (WO-3, owner-asked: "delete the copilot first
-     pass feature completely", then "Just delete the strip for now"). The band
-     draws nothing at all — rlPlanBandHtml is a `return ''` STUB, kept rather
-     than deleted because it is published on window and a third caller must not
-     be able to bring the strip back through a door nobody remembered.
-     WHAT THE THREE MARKUP CLAIMS BELOW USED TO PIN is recorded here rather than
-     deleted, because it is the reason removing this took no capability away:
-     every button the band drew carried the CARDS' OWN attributes
-     (data-nego-accept, data-rl-ask-review, data-rl-cp-open) and was picked up
-     by the ordinary per-paint handlers, so a press ran the ordinary funnel —
-     desk rule, review gate, accept guard, live-link catch-up. It decided
-     nothing and filed nothing. The engine claim below is untouched and is the
-     half that still has something to guard. */
-  test('the band draws nothing, so there is no second decision path at all', () => {
-    assert.match(band, /return '';/, 'the builder is a stub');
-    for (const forbidden of ['negoResolve(', 'negoFileChange(', 'changes.push', 'persist('])
-      assert.ok(!band.includes(forbidden), 'the band must not ' + forbidden);
-    /* And nothing mounts it: the one call site went with the strip. */
-    const mounts = neg.split('\n').filter(l => /rlPlanBandHtml\(/.test(l)
-      && !/function rlPlanBandHtml/.test(l) && !/^\s*(\/\*|\*|.*\*\/)/.test(l));
-    assert.deepEqual(mounts, [], 'no caller draws it — ' + mounts.join(' | '));
+  const css = read('js/views/negotiation-css.js');
+  /* THE BAND IS DELETED (owner, 15 Oct 2026: "Delete the retired features").
+     It was a `return ''` stub since 24 Aug 2026 (WO-3, "delete the copilot
+     first pass feature completely"). Its engine, js/redlineplan.js, stays:
+     the change cards (rlCardReadHtml) and Jambo's agents read its verdicts. */
+  test('the band, its fold and its styling are gone', () => {
+    for (const gone of ['rlPlanBandHtml', 'rlPlanIsOpen', 'rlPlanSetOpen', '_rlPlanOpen', 'data-rl-plan-toggle'])
+      assert.ok(!neg.includes(gone), gone + ' is deleted');
+    assert.ok(!/\.rl-plan/.test(css), 'no .rl-plan rule is left');
   });
 
   test('the plan engine writes nothing at all', () => {
@@ -217,82 +203,11 @@ describe('F223 — it decides nothing', () => {
     assert.ok(!/ai\//.test(src), 'and it calls no model — the judging is deterministic and explainable');
   });
 
-  test('the band is never drawn on ANY seat now', () => {
-    /* REVERSED IN PLACE (WO-3). This used to pin three refusals — the
-       counterparty's seat, a read-only copy, a narrowed reviewer — because our
-       playbook and our history read aloud must never reach the other side.
-       The strongest form of all three is that it draws for nobody. */
-    const body = band.slice(0, band.indexOf('let _rlPlanOpen'))
-      .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s/g, '');
-    assert.equal(body, "functionrlPlanBandHtml(){return'';}",
-      'the whole body is a stub — ' + body);
-  });
-
-  test('the fold is a posture, and its rows are deliberately not wired', () => {
-    const wire = neg.slice(neg.indexOf("data-rl-plan-toggle]')"), neg.indexOf("data-nego-accept]')"));
-    assert.match(wire, /rlPlanSetOpen\(!rlPlanIsOpen\(\)\)/);
-    assert.match(neg, /their buttons carry the cards' own attributes and are picked up\n     by the very handlers below/,
-      'said out loud, because wiring them here would be the second path');
-  });
-
-  /* ============================================================
-     THE STEPPER DOES NOT REACH THE BAND (owner-reported 22 Aug 2026)
-     ============================================================
-     "The font adjuster should not adjust the fonts in the copilot's first
-     pass ... it should be stagnant like the cards but the fonts should be
-     bigger as it is barely legible." Every size in the band was written as
-     calc(px * var(--doc-scale,1)) and --doc-scale is what the A-/A+ stepper
-     writes on the page root, while the change cards below are plain px. At
-     the reported 11px setting that is a scale of 0.73: an 8.4px heading and
-     7.3px chips beside a 12.5px card badge.
-
-     Both halves are pinned here — nothing in the band may follow the stepper
-     again, and nothing in it may be smaller than the cards it reads. */
-  const planRules = () => {
-    const css = read('js/views/negotiation-css.js');
-    return css.split('\n').filter(l => /\.rl-plan/.test(l) && !/^\s*(\/\*|\*|.*\$\{'')/.test(l));
-  };
-
-  test('no size in the band follows the reader\'s document type', () => {
-    const bad = planRules().filter(l => /doc-scale/.test(l) && !/--doc-scale:1/.test(l));
-    assert.deepEqual(bad, [], 'the paper scales; the furniture does not');
-    assert.match(read('js/views/negotiation-css.js'),
-      /\.rl-plan\{[^}]*--doc-scale:1/,
-      'and the pin is there besides, so a rule added inside the band later cannot bring it back');
-  });
-
-  test('the shut band is one line: empty verdicts draw no chip, and the title gives', () => {
-    /* Four chips plus a title plus a caret do not fit a 300px column once the
-       band stops shrinking with the reader's document type — measured, the
-       title wrapped to four lines, and a folded band is meant to be one. A
-       chip reading zero is furniture (the alert dot's own rule), and the
-       verdict itself is not lost: every row below still names its own. */
-    /* REVERSED IN PLACE (WO-3): the band draws nothing, so its three markup
-       claims — a zero verdict drawing no chip, never a literal 0, the whole
-       sentence on the bar's hover — have nothing to measure. The SHEET half
-       survives and is still checkable, and is what a restore would need. */
-    assert.match(read('js/views/negotiation-css.js'),
-      /\.rl-plan-title\{[^}]*white-space:nowrap/,
-      'the title gives and the chips do not — one line while it is shut');
-  });
-
-  test('and nothing in the band is smaller than the cards it is a reading of', () => {
-    /* The card's own type: id 11.5 mono, badge 12.5, meta 12. The band takes
-       that neighbourhood, so the two objects measure alike. */
-    /* RE-POINTED 25 Aug 2026 — through the one token resolver, because these
-       sizes are now names. The claim is the relation, unchanged. */
-    const sizes = (planRules().join('\n').match(/font-size:[^;}]+/g) || [])
-      .map(tokenPx).filter(n => !Number.isNaN(n));
-    assert.ok(sizes.length >= 8, 'every piece of the band states a size — ' + sizes.length);
-    assert.equal(sizes.filter(n => n < 11.5).length, 0,
-      'nothing under the card id\'s 11.5 — ' + sizes.join(', '));
-    assert.ok(sizes.includes(13), 'the bar\'s heading leads at 13');
-  });
-
-  test('the words exist in both languages', () => {
+  test('the engine\'s words stay in both languages; the band\'s own are inert', () => {
     const i18n = read('js/i18n.js');
-    for (const k of ['rp_title', 'rp_note', 'rp_v_accept', 'rp_v_push', 'rp_v_escalate', 'rp_v_review',
-      'rp_why_within', 'rp_why_outside', 'rp_why_no_standard'])
+    for (const k of ['rp_v_accept', 'rp_v_push', 'rp_v_escalate', 'rp_v_review', 'rp_why_within', 'rp_why_outside', 'rp_why_no_standard'])
       assert.equal((i18n.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k);
+    for (const k of ['rp_title', 'rp_note'])
+      assert.equal((i18n.match(new RegExp('\\b' + k + ':[^\\n]*inert since 15 Oct 2026', 'g')) || []).length, 2, k + ' inert in both books');
   });
 });
