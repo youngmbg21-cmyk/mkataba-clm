@@ -29995,3 +29995,72 @@ GitHub ran the whole set on the first push and four things went red that the tar
 - ink-wash-verify: headcounts moved on Home, History and the screens drawn over Home; the card's buttons had brought a 12.5px size the census never held — changed to the house 13px. Re-recorded on the owner's "approve a record" after the set difference showed no colour and no size new.
 - home-page-verify 3 (the Board's card order), board-upgrade-verify (its chart now below the fold at a short window: brought into view before the hover), contracts-page-verify 14c and copilot-jobs-verify 1b/1c (archive and hold are answers in End or pause), and f582 (END_STATES' reopen entry; the hold row's closed-deal rule) re-pointed.
 - (15 Oct 2026, later) explorer-magnitude-verify 4a2 went red twice on GitHub (the Brain view's dot strayed 15.8px in a still map, the limit 14) after Jambo's tab began carrying the count on every Home face: each redraw of his tab walked the whole book (329 contracts in that check). The count is now drawn on the Board only, where the card is (`pdTabCount`); the walk no longer runs under Explorer, Calendar or the wall. Not reproduced locally (7–9.5px either way, three runs at once); the change also matches the design, which put the count beside the card.
+## THE BOARD WALK-THROUGH'S FIXES (owner's overnight order, 15 Oct 2026)
+
+The owner asked for an analyst's walk over the Board and an iPad walk, then:
+"In an autonomous overnight run, fix all these bugs along with the bug in the
+attached picture where side panels are overlapping jambo behind the other as
+opposed to the top. Merge to main after completion." The report is the
+owner's doc "Board walk-through report — analyst and iPad".
+
+- THE SIDE LIST BEHIND JAMBO (the screenshot). `.hb-sheet` is `position:fixed`
+  but was drawn INSIDE `#hb-board`, a scrolling box with its own z-index. iPad
+  Safari clipped it to the board: it ended at Jambo's panel and under the page
+  head. Chrome drew it whole, which is why no laptop check ever saw it. It is
+  now painted into `#hb-sheet-host` on the page beside the board
+  (`hbSheetPaint`, after every `hbMorph` of the board); hidden with the board
+  on the other faces (`#ig-page:has(#hb-board[hidden]) #hb-sheet-host`). No
+  board-scoped rule matched anything in the list (measured before the move).
+- PRESS IT AGAIN AND IT CLOSES now holds for the side list (`_hbSheet.from`).
+- A contract read in the side list stayed on "Loading the whole record…"
+  forever: nothing asked `ensureFull` on that path (`hbSheetLoadFull`). Its
+  dates were ISO; they are `_hbDayWord` now, Jambo's "Bring up" line too.
+- "nobody owns this" sat on obligations the OTHER side owes on the Board
+  (overdue panel, the dig, the card) — the narrow pages' rule (f411) had never
+  reached the Board. `obligationIsTheirs` now decides.
+- THE NUMBERS: "Our promises 24" opened 8 with no way to the rest — Show N
+  more (`_hbAgMore`). "Week ahead 1" beside "8 dates" — the pill counts the
+  dates (`pill`), and "N ready" sums the pills. The value tile's "8 left out —
+  no exchange rate" lived only in a hover tip; it is on the tile, the codes
+  named (`hbLeftCodes`; the old tip said "for " with nothing after). A figure's
+  definition is the side list's first line (iPads never hover). "Which
+  contracts end this quarter?" said "All contracts: 54" over a chart of 18 —
+  `hbAnswerSay` counts the window and names it.
+- "ENDING IN 90 DAYS" COUNTS DRAFTS: changing it to signed only broke f66
+  (Home's thirty-day bucket is the same reading, used by the KPIs, the phone,
+  the bell and the health report). Left counting, the definition now says
+  "signed or still being agreed" — a question for the owner, not a quiet
+  change.
+- TWO FINDINGS WERE THE TEST DATA'S: "Live 54 vs the bar's 47" and "KES 2.05B
+  vs 1.80B" came from fixtures stored with status "Expired", which no product
+  path writes (Expired is a reading of Signed past its end). Not changed.
+- THE BELL repeated "1 detail to fill" three times: `alertGroupsOf` grouped
+  only NEIGHBOURS; it groups by words now, the group where its first row was.
+- "Summarise my board" typed answered "Back to the board." (`HB_RX.boardSum`,
+  act `boardsum`). A summary that did not finish was kept under "Every number
+  in it is on HaTi's fact sheet" — `res.unfinished` is now an error.
+- THE RAW JSON IN JAMBO'S ANSWER (the screenshot's right side): a model that
+  types the deliver_answer arguments as text was printed as it came
+  (`copilotTextAnswer`, both plain-text doors of the Copilot route).
+- "352" ON ITS OWN drew a chart titled "352": `caRefFix` reads a bare number
+  that numbers exactly one contract.
+- iPAD: Explorer's idle jiggle kept a slowed iPad busy ~37% of the time with
+  no touch. Stopping it on touch-only screens, then slowing it to 2 frames a
+  second, both broke the owner's explorer-magnitude-verify 4a2/4f on GitHub
+  (Still's dots "only jiggle a little" on an iPad) — reverted; the freeze cost
+  stays, a question for the owner. The divider lets go on `pointercancel`. The five tiles went 4 + 1 when the
+  board narrowed (inline auto-fit); a container query on the book makes it
+  3 + 2 (`.is-nN`). "Make bigger" opened below the screen; it is brought into
+  view. Explorer's hubs read "In KES 0 · Out KES 0" when no contract records
+  its side — said as `int_flow_unsided`. "Click" → "Press" on the Board's tips.
+- LEFT ALONE, said to the owner: the six places late obligations appear
+  (removing one is the owner's call); two different contract cards (the side
+  list's and the strip — the side list's card is the owner's design, 11 Oct);
+  Renewals listing a contract already past its end (that decision is still
+  owed); Explorer's overlapping labels; the shelf thumbnails' unlabelled blocks;
+  Jambo's 340px floor in portrait.
+Tests: f690 (17 checks), board-walkthrough-fixes verify (10; 6 red at the parent,
+1b passes there in Chrome — the clip is Safari's). f660 (3) is unchanged: the
+first try named the custom property `--hb-fig-n`, which its slice read as the
+number's class.
+CLAUDE.md: 80,104 → 80,267 bytes (one line for the side list; one line tightened).
