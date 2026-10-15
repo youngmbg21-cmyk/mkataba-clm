@@ -110,13 +110,17 @@ const isoIn = off => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
        Obligations tab went home — the same door (roomGoTab 'oblig') opens the
        Board's Obligations view for this contract, drawn by the tab's own
-       painter (roomPaintObligations) into #hb-cv-body[data-hb-cv="oblig"]
+       painter (roomPaintObligations) into #obw-one-host
        (the old #ws-obligations-pane). Waited for by this contract's id. */
+/* RE-POINTED 15 Oct 2026 (owner: the contract's views went; "Obligations
+   page, filtered"): the same door now opens the Obligations page narrowed to
+   the contract, which draws the contract's own table (roomPaintObligations)
+   into #obw-one-host — the host this file reads. */
     await page.evaluate(() => { const c = getContract('MK-A1'); roomGoTab(c, 'oblig'); });
-    await page.waitForFunction(() => !!document.querySelector('#hb-cv-body[data-hb-cv="oblig"][data-hb-cv-cid="MK-A1"] [data-obt-row]'), null, { timeout: 8000 }).catch(() => {});
+    await page.waitForFunction(() => !!document.querySelector('#obw-one-host[data-ins-cid="MK-A1"] [data-obt-row]'), null, { timeout: 8000 }).catch(() => {});
     await page.waitForTimeout(300);
     const tab = await page.evaluate(() => {
-      const host = document.querySelector('#hb-cv-body[data-hb-cv="oblig"][data-hb-cv-cid="MK-A1"]');
+      const host = document.querySelector('#obw-one-host[data-ins-cid="MK-A1"]');
       const row = id => host && host.querySelector(`[data-obt-row="${id}"]`);
       const chip = host && host.querySelector('.obt-chip.is-done');
       const c = getContract('MK-A1');
@@ -133,7 +137,7 @@ const isoIn = off => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d
     check('2c the paid step\'s chip says "Paid" — and no date on the tab is a raw string', tab.chip === tab.paid && tab.dues.every(t => !ISO.test(t)),
       JSON.stringify({ chip: tab.chip, dues: tab.dues.slice(0, 4) }));
     if (tab.chase) {
-      await page.click('#hb-cv-body [data-obt-chase="o-theirs"]');
+      await page.click('#obw-one-host [data-obt-chase="o-theirs"]');
       await page.waitForTimeout(500);
     }
     /* The chase asks first, as it does everywhere: confirmDialog's own layer. */

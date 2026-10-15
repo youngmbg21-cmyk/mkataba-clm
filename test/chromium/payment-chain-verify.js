@@ -269,7 +269,7 @@ const day = off => { const d = new Date(); d.setDate(d.getDate() + off);
     await page.screenshot({ path: path.join(OUT, '03-freed.png') });
 
     /* ============ 7. THE WORKLIST ============ */
-    await page.evaluate(() => setView('obligations'));
+    await page.evaluate(() => obwGoFiltered({}));   /* the rail's door: the whole book (15 Oct 2026: the contract's door narrows this page) */
     await page.waitForTimeout(1600);
     await page.screenshot({ path: path.join(OUT, '04-worklist.png') });
     const wl = await page.evaluate(() => {

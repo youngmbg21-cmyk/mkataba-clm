@@ -174,20 +174,26 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     /* RE-POINTED 14 Oct 2026 (the overnight work order, step 2; was Home's
        Document on the panel's Obligations tab, 11 Oct): Enter opens the
        Board's Obligations view for that row's contract. Asked of the state, bounded. */
-    await page.waitForFunction(() => state.view === 'dashboard' && window.hbFace && hbFace() === 'board'
-      && window.hbCvNow && hbCvNow().v === 'oblig', null, { timeout: 8000 }).catch(() => {});
-    const onHome = await page.evaluate(() => { const v = window.hbCvNow ? hbCvNow() : null;
-      return { view: state.view, face: window.hbFace ? hbFace() : null, v: v ? v.v : null, id: v && v.c ? v.c.id : null }; });
-    ok('1h Enter opens the contract on the Board\'s Obligations view', !!sel && onHome.view === 'dashboard' && onHome.face === 'board'
-      && onHome.v === 'oblig' && !!selCid && onHome.id === selCid, { ...onHome, selCid });
+    /* RE-POINTED 15 Oct 2026 (the Board's views went; "Obligations page,
+       filtered"): Enter opens the page narrowed to the row's contract, its own
+       table, that row chosen */
+    await page.waitForFunction(() => state.view === 'obligations' && !!document.querySelector('#obw-one-host .is-sel[data-ob-key]'), null, { timeout: 8000 }).catch(() => {});
+    const onHome = await page.evaluate(() => { const h = document.querySelector('#obw-one-host'); const r = h && h.querySelector('.is-sel[data-ob-key]');
+      return { view: state.view, id: h ? h.getAttribute('data-ins-cid') : null, row: r ? r.getAttribute('data-ob-key') : null }; });
+    ok('1h Enter opens the Obligations page narrowed to the row\'s contract, the row chosen', !!sel && onHome.view === 'obligations'
+      && !!selCid && onHome.id === selCid && !!onHome.row, { ...onHome, selCid });
 
     /* ================= 2 · THE CONTRACT'S OBLIGATIONS TAB ================= */
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
        Obligations tab went home — the same door (roomGoTab 'oblig') opens the
        Board's Obligations view for this contract, drawn by the tab's own
-       painter (roomPaintObligations) into #hb-cv-body[data-hb-cv="oblig"]
+       painter (roomPaintObligations) into #obw-one-host
        (the old #ws-obligations-pane). Waited for by this contract's id. */
-    const OBV = `#hb-cv-body[data-hb-cv="oblig"][data-hb-cv-cid="${staged.c1}"]`;
+/* RE-POINTED 15 Oct 2026 (owner: the contract's views went; "Obligations
+   page, filtered"): the same door now opens the Obligations page narrowed to
+   the contract, which draws the contract's own table (roomPaintObligations)
+   into #obw-one-host — the host this file reads. */
+    const OBV = `#obw-one-host[data-ins-cid="${staged.c1}"]`;
     await page.evaluate(id => { openWorkspace(id, { room: true }); }, staged.c1); await page.waitForTimeout(1200);
     await page.evaluate(id => roomGoTab(getContract(id), 'oblig'), staged.c1);
     await page.waitForFunction(sel => !!document.querySelector(sel + ' [data-ins-row]') && !!document.querySelector(sel + ' #obt-panel h2'), OBV, { timeout: 8000 }).catch(() => {});

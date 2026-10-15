@@ -29781,6 +29781,114 @@ Tests: explorer-recipe-verify 6a, 6a2, 6b, 6c (re-pointed from the panel's
 chips; 6a and 6c are red at the parent), home-first-verify 1a.
 CLAUDE.md: 79,989 → 80,000 bytes (lines amended and tightened, none added).
 
+## THE SEVEN FIXES AND AMEND BESIDE THE PAPER (15 Oct 2026)
+The owner's words: "go with beside paper and build the rest as well", after the
+Seven Fixes artifact (answers: A yes, B yes, C keep) and the amendment designs
+(picked "Beside the paper" by name).
+1. HIGHLIGHT → COMMENT KEEPS ITS WORDS. Home's highlight menu (caSelPick 'note')
+   only passed a clause id the negotiation baseline held, so on a contract not
+   negotiated yet the note was pinned with no clause and negoNoteAnchor dropped
+   the quote on save. caSelClauseId now takes the paper's own data-anchor when
+   no baseline exists (read RAW). Measured: the saved note showed "On these
+   words" only after the fix (menu-and-amend-verify 4). The pin's removal is
+   still its "Unpin" link (the artifact drew an ×; not changed).
+2. REDLINES: the face's foot (pdRedFootHtml rows) went; with changes the three
+   acts (Draft from our standards, Edit a clause, Add a clause) are the Menu
+   tab's; the empty column keeps them at the top of the panel.
+3. THE CONTRACT'S VIEWS WENT (Your book · Deal board · Obligations · History,
+   Print · Share · Download). hbBoardHtml draws no switch; hbOpenView reroutes:
+   Obligations → the panel's Obligations tab (pdOpenOnHome 'oblig'; the row the
+   list pressed is marked .pd-ob.is-chosen via insSelected and scrolled into
+   sight), History → the strip's History page, anything else → Where we are.
+   The deal word and chip went (CA_CHIPS = redline · sign · history); Jambo's
+   open/minor doors open the Redlines face. Found on the way and fixed because
+   the views' removal caused them: the strip's History had lost Print and
+   Download (they stood on the Board's line, opts.board) — the history menu
+   carries them in every host again; the panel's Obligations tab did not redraw
+   after Mark done — obligationSurfacesChanged now repaints it; Jambo's
+   "ask a colleague" glow pointed at the paper's ⋯ — it lights the Menu tab
+   (or its Ask for review row). The hbCv* builders, the 'cv' gift kind and
+   board-views-verify (already red at the parent: 1 passed, 3 failed) stay,
+   unreached, for the owner to retire.
+4. A CONTRACT NUMBER IN ANY FORM. caRefFix (copilotacts.js) writes "mk 450",
+   "mk450", "#MK-450", "open mk450" and "contract 450" as the reference, but
+   only where a visible contract carries it ("in 2026" stays words; a number
+   nobody can see stays as typed for "not one you can see"). Read by caActOf,
+   caFindContract, hbFindContract and hbParse. A number alone or after an
+   opening word (hbOpenRef, HB_OPEN_REF_LEAD) opens it on Home
+   (regOpenContract), said "Opening MK-450 · name"; "bring up" keeps the strip;
+   a question naming one keeps the Board's card. caRefLinkPaint marks every
+   visible contract's reference in an answer (refHtml spans and the model's
+   words) as a link (data-ref-open, Enter too), in Home's dock and the floating
+   window; not on the phone.
+5. THE MENU TAB, DRAWN AS "NEXT UP": PD_TABS gains 'menu' (☰). One builder:
+   roomMoreMenuHtml's own rows (every id kept, roomMenuWire answers them) plus
+   igNegoRowsHtml and the Redlines three, grouped by the ⋯'s headings ("Work on
+   it", "Export", "View", "The contract"), three stage suggestions first
+   (PD_MENU_NEXT; a grey row is never suggested). The ⋯ left the paper's line.
+6. THE ZOOM HOLDS STILL: paperZcFit anchors the control to the grey's right edge
+   (PAPER_ZC_GUTTER) instead of the sheet's; one-zoom-verify 6f (red at the
+   parent: the + moved 72px at 1536×730, zoom 80→100).
+7. ASK JAMBO FOR ANY MENU ROW: CA_MENU (export, pdf, word, record, signed
+   document, adviser, import, compare, signers, filing, my notes, archive,
+   hold, reopen, delete, review, playbook, draft from standards, add/edit a
+   clause), read after places so older words keep theirs; a question
+   ("who are the signers?", CA_MENU_ASKS) stays a question. The card's
+   buttons ARE the Menu rows (caMenuRows reads pdMenuGroups: label, grey and
+   reason); a press opens the Menu tab and presses the row (pdMenuPress).
+   Nothing is spent.
+8. AMEND, BESIDE THE PAPER: a face of Jambo's tab (pdAmendOpen, 'amend' in
+   pdOpenOnHome and PD_FACE_WORDS) only where amendmentExecuted; the Menu row
+   ws-m-amend and the 'amend' door (now also the bare word) open it, the
+   dialog where Home has no paper. A press on a clause of the signed paper adds
+   a numbered change; the paper shows the number in the margin, the signed
+   words struck and the new words under them — painted after every paint
+   (pdAmendPaperPaint), never stored. The panel lists the same numbered items
+   (reword / delete instead / remove; + Add a new clause; "Ask Jambo to draft
+   the changes" opens the dialog) and the amended deal (new end date, new
+   value where money passes). "Create amendment draft" calls createAmendment
+   with the same items and facts the dialog passes, then opens the draft. The
+   signed agreement is untouched (menu-and-amend-verify 5e).
+Tests re-pointed to the new truth (each said in place): f563, f672, f675, f676;
+redlines-beside-the-paper, prepare-redlines, sign-beside-the-paper,
+copilot-jobs, copilot-answer-on-paper, every-door-lands-on-home,
+history-timeline, history-head, negotiation-memo, obligations-tab (sections
+1–7 now the panel tab; the banded per-contract table was the view's),
+board-strip, refresh-keeps-your-spot, four-inspectors, narrow-pages,
+uploaded-contract-fixed. New: menu-and-amend-verify (red at the parent).
+The ink-wash census moved (History now shows the Board with the strip; the ⋯
+icon's fill and the old foot's 12.5px gone) — re-recorded on the owner's yes
+("Yes, update it"); the dark values new to History are the Board's own palette.
+
+## CLAUDE.MD TRIM, 15 Oct 2026 (second)
+80,000 → 80,612 bytes after this round's map lines, then → 79,979. Cut verbatim:
+[THE OVERNIGHT RUN (9 Oct 2026)]
+- SEAL ON THE SERVER: `srvSealNow`/`srvSealString` (= `sealString`), `sealPrepStamp`, `srvDrawSealPrep`, `sealPlainText`, `runSealCatchUp`, `srvSendExecutedCopies`. `ourSideAddressOf` = `srvOurSideAddressOf`; `renewTermFill`/`srvAutoRenewFill`; `roundReachedByHand`, `mailKey()`; `linkOpenAsks` = `srvLinkOpenAsks`; `saveDecision`/`decisionFreshen`; `contractDeletable`, `contractReopen`; `negoMayDiscard` = `srvMayDiscard`; `srvPartiesOnPayload`; `_cePrep`. Tests f570, f580–f626, f651.
+
+[THE OVERNIGHT CLEAN-UP RULES (names)]
+ `negoReasonOf`, `rlLegendNames`, `deskWaitDays`, `docSheetSig`, `PREP_OUTAGE_STREAK`, `isHollow`.
+
+[OVERVIEW 2 — THE TIME MACHINE]
+THE TAB IS GONE (owner, 9 Oct 2026); js/views/overview2.js stays loaded only for `runDatedWindows` (POST /api/ai/windows → `c.datedWindows`, run in `triageRun`, not a TRIAGE_STEP; brain part `datedwin`); `paintOverview2` has no caller. Tests: f558.
+
+## THE SEVEN FIXES — GITHUB'S FIRST RUN, AND OBLIGATIONS ON THEIR PAGE (15 Oct 2026, later)
+GitHub's checks on PR 285 found 13 browser files red that the local runs had
+not covered, among them board-views-verify (green on main in CI; it had failed
+locally for another reason, so the BUGLOG line calling it "already red at the
+parent" was wrong — corrected there). They showed the removed views had
+carried the full per-contract obligations table (Overdue tab, amounts, payment
+chain, Find / "Review N proposed", its panel). Asked, the owner picked
+"Obligations page, filtered": hbOpenView 'oblig' and obOpenContract open the
+Obligations page narrowed by its `only` chip (obOpenOnPage), and a narrowing
+naming one contract draws THAT contract's own table on the page
+(obwPaintContract → roomPaintObligations), so nothing was lost. The narrowing
+lasts the visit: arriving any other way or leaving ends it (setView →
+obwOneEnd, held for obOpenOnPage's own setView and for a refresh,
+obwPlacePut); a repaint or a language switch keeps it. On the Board "show me /
+open MK-…" keep the contract card again (board-says-it-plain 2a); only a bare
+number opens the paper (HB_OPEN_REF_LEAD). board-views-verify now pins the
+removal and the landings. CLAUDE.md 79,979 → 79,991 bytes (lines amended and
+tightened).
 ## STAKES — THE DEEP DIVE IN THE READER'S LANGUAGE, IN PLAIN WORDS (15 Oct 2026)
 
 The owner asked: "are the explanations or content in the deep dive section in
@@ -29824,5 +29932,5 @@ the clause reading uses." (The other two offered, rewording "redlining" and
 Tests: f668 (3) five checks, all red at the parent; f277 (5) re-pointed to the
 shared lines' region; stakes-verify 10 (red at the parent: the kept reading
 never says Swedish) and 10b.
-CLAUDE.md: 80,000 → 80,179 bytes (the Stakes entry gains one line; its first
+CLAUDE.md: 79,991 → 80,170 bytes, measured after merging main (the Stakes entry gains one line; its first
 line tightened).

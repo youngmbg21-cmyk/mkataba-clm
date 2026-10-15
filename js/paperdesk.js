@@ -36,17 +36,17 @@
    alias is left for a walk through several contracts on the paper. */
 /* THE OVERVIEW TAB IS GONE FROM HOME'S PANEL (owner, 13 Oct 2026: "delete the
    overview tab from document page"); a door that named it lands on Jambo */
-const PD_TABS = ['copilot', 'doc', 'oblig'];
+const PD_TABS = ['copilot', 'doc', 'oblig', 'menu'];
 const PD_TAB_ALIAS = { deal: 'doc', hist: 'copilot', facts: 'copilot' };
 /* THE ARTIFACT'S SYMBOLS, EXACTLY (owner, 10 Oct 2026: "use the Symbols that
    were in the artifact before not the ones in hati"): typed marks, each held
    to its text face (U+FE0E), never the left menu's drawings. */
-const PD_TAB_GLYPH = { copilot: '\u2726', facts: '\u25A6', doc: '\u25A2', oblig: '\u2691', hist: '\u25F7', deal: '\u21C4' };
+const PD_TAB_GLYPH = { copilot: '\u2726', facts: '\u25A6', doc: '\u25A2', oblig: '\u2691', hist: '\u25F7', deal: '\u21C4', menu: '\u2630' };
 const PD_TAB_ICON = PD_TAB_GLYPH;
 /* the room's own words for its tabs; Copilot and Deal have no room tab */
 /* THE DOCUMENT TAB IS CALLED CLAUSES (owner, 11 Oct 2026): Home's face is
    "Document" now, and this tab holds the clause list. */
-const PD_TAB_NAME = { copilot: 'pd_tab_copilot', facts: 'tab_overview', doc: 'pd_tab_clauses', oblig: 'tab_obligations', hist: 'tab_history', deal: 'pd_tab_deal' };
+const PD_TAB_NAME = { copilot: 'pd_tab_copilot', facts: 'tab_overview', doc: 'pd_tab_clauses', oblig: 'tab_obligations', hist: 'tab_history', deal: 'pd_tab_deal', menu: 'pd_tab_menu' };
 const PD_HIST_MAX = 40;          // trail rows drawn; the rest are counted and one press away
 let _pdTab = 'copilot';
 const _pdActs = new Map();       // act id -> function, refilled at every paint (resolved at press time)
@@ -180,15 +180,20 @@ function pdFactsHtml(c){
 function pdObligHtml(c){
   const obs = Array.isArray(c.obligations) ? c.obligations : [];
   const may = (typeof canEdit !== 'function') || canEdit();
+  /* THE ROW PRESSED IS THE ROW CHOSEN (15 Oct 2026: the Board's Obligations
+     view went; an obligation's row on the list lands here): the list's own
+     choice for this contract (insSelected, set by obOpenContract) is marked */
+  const chosen = (typeof insSelected === 'function') ? insSelected('oblig:' + c.id) : null;
   const rows = obs.map((o, i) => {
     if (!o) return '';
+    let key = ''; try { key = (typeof obKeyOf === 'function') ? String(obKeyOf(c.id, o, i)) : ''; } catch (_){ key = ''; }
     let due = '';
     try { const d = (typeof obligationDueSay === 'function') ? obligationDueSay(o, c) : null; due = d && typeof d === 'object' ? [d.day, d.sub].filter(Boolean).join(' · ') : String(o.due || ''); } catch (_){ due = String(o.due || ''); }
     const theirs = (typeof obligationIsTheirs === 'function') ? obligationIsTheirs(o) : o.party === 'theirs';
     let acts = [];
     try { acts = (typeof obPanelActs === 'function') ? obPanelActs(o, c, i, 'tab').filter(a => a.k !== 'reopen') : []; } catch (_){ acts = []; }
     const words = (o.quote && typeof igQuoteGo === 'function') ? pdBtn(_pdT('pd_show_words'), () => igQuoteGo(o.quote, true)) : '';
-    return `<div class="pd-ob ${theirs ? 'is-theirs' : 'is-ours'}"><div class="pd-ob-h"><span class="pd-tag ${theirs ? 'is-theirs' : 'is-ours'}">${_pdE(_pdT(theirs ? 'pd_theirs' : 'pd_ours'))}</span><span class="pd-ob-t">${_pdE(o.desc || o.title || '')}</span></div>
+    return `<div class="pd-ob ${theirs ? 'is-theirs' : 'is-ours'}${chosen && key === String(chosen) ? ' is-chosen' : ''}" data-pd-ob-key="${_pdE(key)}"><div class="pd-ob-h"><span class="pd-tag ${theirs ? 'is-theirs' : 'is-ours'}">${_pdE(_pdT(theirs ? 'pd_theirs' : 'pd_ours'))}</span><span class="pd-ob-t">${_pdE(o.desc || o.title || '')}</span></div>
       ${due ? `<small>${_pdE(due)}</small>` : ''}<div class="pd-acts">${acts.map(a => pdBtn(a.label, a.run, { lead: a.kind === 'accent', title: a.title })).join('')}${words}</div></div>`;
   }).join('');
   const n = obs.filter(Boolean).length;
@@ -250,7 +255,7 @@ function pdOpenOnHome(id, tab){
     /* coming from this contract's Redlines or Before you sign face, the paper
        beside it was drawn for that face (Redlined, the signing copy) */
     const turned = _pdSign === String(id) || _pdRed === String(id);
-    _pdFill = String(id); _pdRed = null; _pdSign = null; tab = 'copilot';
+    _pdFill = String(id); _pdRed = null; _pdSign = null; _pdAmend = null; tab = 'copilot';
     /* already on this paper: the panel turns, nothing else moves */
     if (window.state && state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'paper'
       && typeof intel === 'object' && intel && intel.paper && String(intel.paper.id) === String(id)){
@@ -265,7 +270,7 @@ function pdOpenOnHome(id, tab){
   /* THE REDLINES FACE (stage 3): Jambo's tab, the face open on this contract,
      the paper Redlined while it is (pdRedPaper) */
   if (tab === 'red'){
-    _pdRed = String(id); _pdFill = null; _pdFillKey = null; _pdSign = null; tab = 'copilot';
+    _pdRed = String(id); _pdFill = null; _pdFillKey = null; _pdSign = null; _pdAmend = null; tab = 'copilot';
     pdArrived();
     if (window.state && state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'paper'
       && typeof intel === 'object' && intel && intel.paper && String(intel.paper.id) === String(id)){
@@ -280,7 +285,7 @@ function pdOpenOnHome(id, tab){
   /* THE BEFORE YOU SIGN FACE (stage 5): Jambo's tab, the face open on this
      contract, the paper the signing copy while it is (igPaperHtml) */
   if (tab === 'signing'){
-    _pdSign = String(id); _pdRed = null; _pdFill = null; _pdFillKey = null; tab = 'copilot';
+    _pdSign = String(id); _pdRed = null; _pdFill = null; _pdFillKey = null; _pdAmend = null; tab = 'copilot';
     pdArrived();
     if (window.state && state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'paper'
       && typeof intel === 'object' && intel && intel.paper && String(intel.paper.id) === String(id)){
@@ -288,6 +293,19 @@ function pdOpenOnHome(id, tab){
       pdSignPaper(id);
       if (typeof renderIntelDock === 'function') renderIntelDock();
       if (typeof igSyncDockWidth === 'function') try { igSyncDockWidth(); } catch (_){}
+      return true;
+    }
+  }
+  /* THE AMEND FACE (owner, 15 Oct 2026, "Beside the paper"): Jambo's tab, the
+     face open on this signed agreement, the paper marked while it is */
+  if (tab === 'amend'){
+    _pdAmend = String(id); _pdRed = null; _pdFill = null; _pdFillKey = null; _pdSign = null; tab = 'copilot';
+    if (window.state && state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'paper'
+      && typeof intel === 'object' && intel && intel.paper && String(intel.paper.id) === String(id)){
+      pdSetTab('copilot'); intel.dockOpen = true;
+      if (typeof renderIntelDock === 'function') renderIntelDock();
+      if (typeof igSyncDockWidth === 'function') try { igSyncDockWidth(); } catch (_){}
+      pdAmendPaperPaint();
       return true;
     }
   }
@@ -299,7 +317,7 @@ function pdOpenOnHome(id, tab){
   if (tab === 'plain'){
     const turned = _pdSign === String(id) || _pdRed === String(id);
     const was = _pdFill || _pdRed || _pdSign;
-    _pdFill = null; _pdFillKey = null; _pdRed = null; _pdSign = null; tab = 'copilot';
+    _pdFill = null; _pdFillKey = null; _pdRed = null; _pdSign = null; _pdAmend = null; tab = 'copilot';
     if (was) pdPresenceOff(was);
     if (window.state && state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'paper'
       && typeof intel === 'object' && intel && intel.paper && String(intel.paper.id) === String(id)){
@@ -310,8 +328,18 @@ function pdOpenOnHome(id, tab){
       return true;
     }
   }
+  /* already on this paper: the Menu tab turns, nothing else moves (Jambo's Menu card) */
+  if (tab === 'menu' && window.state && state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'paper'
+    && typeof intel === 'object' && intel && intel.paper && String(intel.paper.id) === String(id)){
+    pdSetTab('menu'); intel.dockOpen = true;
+    if (typeof renderIntelDock === 'function') renderIntelDock();
+    return true;
+  }
   if (!(window.state && state.view === 'dashboard') && typeof setView === 'function') setView('dashboard');
   igWalk([id], 0, { tab: tab || 'copilot' });
+  /* the chosen obligation is brought into sight once the tab is drawn (bounded) */
+  if (tab === 'oblig' && typeof document !== 'undefined'){ let n = 0; const go = () => { const r = document.querySelector('#pd-body .pd-ob.is-chosen');
+    if (r){ try { r.scrollIntoView({ block: 'nearest' }); } catch (_){} return; } if (++n < 20) setTimeout(go, 50); }; setTimeout(go, 0); }
   if (_pdFill === String(id)) pdFillLand();
   return true;
 }
@@ -678,9 +706,13 @@ function pdRedFaceHtml(c){
   if (!/id="nego-send"/.test(col) && typeof negoTurnBannerHtml === 'function'){
     try { const m = String(negoTurnBannerHtml(c, o) || '').match(/<button id="nego-send"[\s\S]*?<\/button>/); if (m) send = `<div hidden data-pd-rf-send>${m[0]}</div>`; } catch (_){ send = ''; }
   }
-  return `<div class="redline-page rl-face" data-rl-side-mode="changes" data-pd-rf="${_pdE(c.id)}">${notices ? `<div class="pd-rf-notices">${notices}</div>` : ''}<div id="nego-root" class="rl-root">${col}${send}</div>${pdRedFootHtml(c)}</div>`;
+  return `<div class="redline-page rl-face" data-rl-side-mode="changes" data-pd-rf="${_pdE(c.id)}">${notices ? `<div class="pd-rf-notices">${notices}</div>` : ''}<div id="nego-root" class="rl-root">${col}${send}</div></div>`;
 }
-/* THE COLUMN'S OWN ACTS, AT ITS FOOT (the design the owner picked): the
+/* THE FOOT IS NOT DRAWN (owner, 15 Oct 2026): with changes on the table the
+   face shows only them; Draft from our standards, Edit a clause and Add a
+   clause are Menu rows (pdMenuHtml). The empty column keeps its own three at
+   its top (rlEmptyColumnActsHtml). This builder stays for the Menu's rows.
+   WAS: THE COLUMN'S OWN ACTS, AT ITS FOOT (the design the owner picked): the
    Negotiate page's own three buttons from their own builders — Draft from our
    standards (its More row), Edit a clause (its control row; the clause being
    read on Home's paper) and Add a clause — wired by rlWireClauseTools as there.
@@ -812,12 +844,13 @@ function pdSignOpen(id){ return pdOpenOnHome(id, 'signing'); }
    same spot; stage 5 — the Negotiate page a refresh used to land back on
    folded into the Redlines face): the face's door word, or '' */
 function pdFaceNow(){
+  if (pdAmendShows()) return 'amend';
   if (pdSignShows()) return 'signing';
   if (pdRedShows()) return 'red';
   if (pdFillShows()) return 'fill';
   return '';
 }
-const PD_FACE_WORDS = ['fill', 'red', 'signing'];
+const PD_FACE_WORDS = ['fill', 'red', 'signing', 'amend'];
 /* another contract asked for puts the face away (igAnalyze), as Fill in's */
 function pdSignSeen(id){ if (_pdSign && String(id) !== _pdSign) _pdSign = null; }
 function pdSignAway(){ _pdSign = null; }
@@ -973,6 +1006,206 @@ function pdSignPaperPaint(c){
   } else if (sheet) fit();
 }
 
+/* ============================================================
+   AMEND, BESIDE THE PAPER (owner, 15 Oct 2026: picked "Beside the paper" by
+   name from the amendment designs)
+   ============================================================
+   A FACE OF JAMBO'S TAB, like Fill in, Redlines and Before you sign. Offered
+   only on a signed agreement (amendmentExecuted, the Menu row's own test).
+   Pressing a clause on the signed paper adds it as a numbered change; the
+   paper shows each change as a redline mark painted after the render (the
+   number, the signed words struck, the new words under them) — MARKS IT NEVER
+   STORES: nothing here touches the signed record. The panel lists the same
+   numbered changes with the amended deal's facts (a new end date, a new
+   value), and "Create amendment draft" makes the linked draft through the one
+   creator every amendment uses (createAmendment, js/family.js) with the same
+   items and facts the dialog passes — no second minting path (rule 2). The
+   changes are this sitting's; Jambo's drafting stays the dialog's ("Ask Jambo
+   to draft the changes" opens it). */
+let _pdAmend = null;                 // the signed agreement the face is open for
+const _pdAm = { id: null, items: [], expiry: '', value: '' };
+const PD_AMEND_ITEMS_MAX = 20;
+function pdAmendFor(){ return _pdAmend; }
+function pdAmendShows(){
+  if (!_pdAmend || _pdTab !== 'copilot' || !pdOnPaper()) return false;
+  const c = pdContract(); return !!(c && String(c.id) === _pdAmend);
+}
+function pdAmendMay(c){ return !!(c && !c.parentId && typeof amendmentExecuted === 'function' && amendmentExecuted(c)); }
+/* the one door: false where Home has no paper (the phone) or the agreement is
+   not signed — the caller keeps the dialog */
+function pdAmendOpen(id){
+  const c = (typeof getContract === 'function') ? getContract(id) : null;
+  if (!pdAmendMay(c)) return false;
+  if (typeof window !== 'undefined' && window.innerWidth && window.innerWidth < 768) return false;
+  if (_pdAm.id !== String(id)){ _pdAm.id = String(id); _pdAm.items = []; _pdAm.expiry = ''; _pdAm.value = ''; }
+  return pdOpenOnHome(id, 'amend');
+}
+function pdAmendSeen(id){ if (_pdAmend && String(id) !== _pdAmend) _pdAmend = null; }
+function pdAmendAway(){ _pdAmend = null; }
+function pdAmendClose(){
+  _pdAmend = null;
+  const a = (typeof document !== 'undefined') ? document.activeElement : null;
+  if (a && a.closest && a.closest('#pd-amendface') && typeof a.blur === 'function') a.blur();
+  pdAmendPaperPaint();
+  if (typeof renderIntelDock === 'function') renderIntelDock();
+}
+/* the signed agreement's clauses, read off the wording it is drawn from (the
+   dialog's own reading, amendParentClauses); a clause pressed on the paper is
+   matched by id, else by its heading */
+function pdAmendClauseOf(c, el){
+  const id = String(el.getAttribute('data-anchor') || '');
+  const head = el.querySelector('h1,h2,h3,h4,h5,h6,.rl-clause-top,strong');
+  const label = String((head && head.textContent) || '').replace(/\s+/g, ' ').trim();
+  const text = String(el.textContent || '').replace(/\s+/g, ' ').trim();
+  let cls = []; try { cls = (typeof amendParentClauses === 'function') ? amendParentClauses(c) : []; } catch (_){ cls = []; }
+  const hit = cls.find(x => x.id && x.id === id) || (label && cls.find(x => x.label === label)) || null;
+  const signed = hit ? hit.text : (label && text.startsWith(label) ? text.slice(label.length).trim() : text);
+  return { clauseId: id, clauseLabel: (hit && hit.label) || label, clauseNumber: (hit && hit.num) || '', op: 'replace', signed, amended: signed };
+}
+function pdAmendAdd(el){
+  const c = pdContract(); if (!c || !el) return;
+  const id = String(el.getAttribute('data-anchor') || '');
+  if (!id || _pdAm.items.some(x => x.clauseId === id)) return;
+  if (_pdAm.items.length >= PD_AMEND_ITEMS_MAX){ if (typeof toast === 'function') toast(_pdT('pd_am_max', { n: PD_AMEND_ITEMS_MAX }), 'warn'); return; }
+  _pdAm.items.push(pdAmendClauseOf(c, el));
+  pdAmendRepaint();
+}
+function pdAmendHeadHtml(c){
+  const close = _pdT('act_close');
+  return `<div class="pd-sf-r"><h3>${_pdE(_pdT('pd_am_title', { ref: (typeof contractRef === 'function') ? contractRef(c) : c.id }))}</h3>
+      <button type="button" class="pd-sf-x" data-pd-am-close title="${_pdE(close)}" aria-label="${_pdE(close)}">×</button></div>
+    <p class="pd-am-sub">${_pdE(_pdT('pd_am_sub'))}</p>`;
+}
+function pdAmendItemHtml(it, i){
+  const op = it.op === 'delete' ? 'delete' : it.op === 'insert' ? 'insert' : 'replace';
+  const name = it.clauseLabel || _pdT(op === 'insert' ? 'fa_new_clause' : 'pd_a_clause');
+  return `<li class="pd-am-it" data-pd-am-i="${i}"><div class="pd-am-ih"><b class="pd-am-n">${i + 1}</b><span class="pd-am-nm">${_pdE(name)}</span>
+      <span class="pd-am-op">${_pdE(_pdT('fa_op_' + op))}</span>
+      <button type="button" class="pd-am-rm" data-pd-am-rm="${i}" title="${_pdE(_pdT('pd_am_remove'))}" aria-label="${_pdE(_pdT('pd_am_remove'))}">×</button></div>
+    ${op === 'delete' ? `<p class="pd-am-del">${_pdE(it.signed || '')}</p>`
+      : `<label class="pd-am-lb">${_pdE(_pdT('fa_amended_wording'))}<textarea rows="3" data-pd-am-txt="${i}">${_pdE(it.amended || '')}</textarea></label>`}
+    ${op === 'insert' ? '' : `<button type="button" class="pd-am-lk" data-pd-am-op="${i}">${_pdE(_pdT(op === 'delete' ? 'pd_am_reword' : 'pd_am_delete'))}</button>`}</li>`;
+}
+function pdAmendFactsHtml(c){
+  const end = (typeof dateOnly === 'function') ? (dateOnly(c.expiry) || '') : String(c.expiry || '').slice(0, 10);
+  const money = (typeof isMonetary !== 'function') || isMonetary(c);
+  const now = (typeof fmtMoneyOf === 'function' && Number(c.value) > 0) ? fmtMoneyOf(c) : '';
+  return `<section class="pd-am-facts"><h6>${_pdE(_pdT('pd_am_deal'))}</h6>
+    <label class="pd-am-f"><span>${_pdE(_pdT('pd_am_end'))}${end ? `<small>${_pdE(_pdT('pd_am_now', { v: end }))}</small>` : ''}</span><input type="date" data-pd-am-fact="expiry" value="${_pdE(_pdAm.expiry)}"></label>
+    ${money ? `<label class="pd-am-f"><span>${_pdE(_pdT('pd_am_value'))}${now ? `<small>${_pdE(_pdT('pd_am_now', { v: now }))}</small>` : ''}</span><input type="number" min="0" step="any" inputmode="decimal" data-pd-am-fact="value" value="${_pdE(_pdAm.value)}"></label>` : ''}
+  </section>`;
+}
+function pdAmendReady(){ return _pdAm.items.length > 0 || !!_pdAm.expiry || Number(_pdAm.value) > 0; }
+function pdAmendFaceHtml(c){
+  if (!c) return '';
+  const list = _pdAm.items.length
+    ? `<ol class="pd-am-list">${_pdAm.items.map(pdAmendItemHtml).join('')}</ol>`
+    : `<p class="pd-am-none">${_pdE(_pdT('pd_am_none'))}</p>`;
+  const ready = pdAmendReady();
+  return `<div class="pd-sf pd-am" data-pd-am="${_pdE(c.id)}">
+    <div class="pd-sf-h">${pdAmendHeadHtml(c)}</div>
+    <div class="pd-am-body scroll-thin">
+      ${list}
+      <div class="pd-am-adds"><button type="button" class="ui-btn ui-btn-sm" data-pd-am-new>+ ${_pdE(_pdT('fa_add_new_clause'))}</button>
+        ${typeof openCreateAmendmentModal === 'function' ? `<button type="button" class="pd-am-lk" data-pd-am-jambo>${_pdE(_pdT('pd_am_jambo'))}</button>` : ''}</div>
+      ${pdAmendFactsHtml(c)}
+    </div>
+    <div class="pd-sf-foot pd-am-foot"><button type="button" class="ui-btn ui-btn-primary" data-pd-am-go${ready ? '' : ` disabled aria-disabled="true" title="${_pdE(_pdT('pd_am_go_why'))}"`}>${_pdE(_pdT('pd_am_go'))}</button>
+      <button type="button" class="ui-btn" data-pd-am-close>${_pdE(_pdT('act_cancel'))}</button></div>
+  </div>`;
+}
+/* the face's body in place (the panel itself is not rebuilt), then the marks */
+function pdAmendRepaint(){
+  const host = (typeof document !== 'undefined') ? document.getElementById('pd-amendface') : null;
+  const c = pdContract();
+  if (host && c){ const sc = host.querySelector('.pd-am-body'); const top = sc ? sc.scrollTop : 0; host.innerHTML = pdAmendFaceHtml(c); const sc2 = host.querySelector('.pd-am-body'); if (sc2) sc2.scrollTop = top; }
+  pdAmendPaperPaint();
+}
+/* THE MARKS ON THE SIGNED PAPER: painted after every paint of the paper and
+   after every change of the list, removed whole first — the canvas's markup
+   is never kept with them */
+function pdAmendPaperPaint(){
+  const cv = (typeof document !== 'undefined') ? document.getElementById('ig-canvas') : null; if (!cv) return;
+  cv.querySelectorAll('.pd-am-mk, .pd-am-insert').forEach(n => n.remove());
+  cv.querySelectorAll('.pd-am-on').forEach(n => n.classList.remove('pd-am-on', 'pd-am-struck'));
+  cv.classList.toggle('pd-am-picking', pdAmendShows());
+  if (!pdAmendShows()) return;
+  _pdAm.items.forEach((it, i) => {
+    if (!it.clauseId) return;
+    const el = cv.querySelector(`[data-anchor="${CSS.escape(it.clauseId)}"]`); if (!el) return;
+    el.classList.add('pd-am-on');
+    const mk = document.createElement('span'); mk.className = 'pd-am-mk'; mk.textContent = String(i + 1); mk.setAttribute('aria-hidden', 'true');
+    el.insertBefore(mk, el.firstChild);
+    const moved = it.op === 'delete' || String(it.amended || '').trim() !== String(it.signed || '').trim();
+    if (moved) el.classList.add('pd-am-struck');
+    if (it.op !== 'delete' && moved){
+      const ins = document.createElement('div'); ins.className = 'pd-am-insert'; ins.textContent = String(it.amended || '');
+      el.insertAdjacentElement('afterend', ins);
+    }
+  });
+}
+async function pdAmendCreate(){
+  const c = pdContract(); if (!c || !pdAmendMay(c) || !pdAmendReady() || typeof createAmendment !== 'function') return;
+  const items = _pdAm.items.map(it => ({ clauseId: it.clauseId || '', clauseLabel: it.clauseLabel || '', clauseNumber: it.clauseNumber || '', op: it.op, signed: it.signed || '', amended: it.amended || '', manual: true }));
+  const facts = {}; if (_pdAm.expiry) facts.expiry = _pdAm.expiry; if (Number(_pdAm.value) > 0) facts.value = Number(_pdAm.value);
+  const made = createAmendment(c, { relation: 'amendment', expiry: _pdAm.expiry || null, items, facts, skeleton: true });
+  if (!made || made.error){ if (typeof toast === 'function') toast((made && made.error) || _pdT('pd_failed'), 'err'); return; }
+  const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
+  if (typeof toast === 'function') toast(_pdT('fa_created', { id: (typeof contractRef === 'function') ? contractRef(made.contract) : made.contract.id, pid: ref, rel: _pdT('pd_am_rel') }), 'ok');
+  _pdAm.id = null; _pdAm.items = []; _pdAm.expiry = ''; _pdAm.value = ''; _pdAmend = null;
+  if (typeof updateSidebarCounts === 'function') updateSidebarCounts();
+  /* the draft lands where it is written: Home's paper (the dialog's own landing) */
+  if (typeof regOpenContract === 'function') regOpenContract(made.contract.id);
+  else if (typeof openWorkspace === 'function'){ openWorkspace(made.contract.id); if (typeof roomGoTab === 'function') roomGoTab(getContract(made.contract.id) || made.contract, 'docs'); }
+}
+function pdAmendWire(host){
+  if (!host || host.dataset.pdAmBound) return;
+  host.dataset.pdAmBound = '1';
+  host.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    if (t.closest('[data-pd-am-close]')){ e.preventDefault(); pdAmendClose(); return; }
+    const rm = t.closest('[data-pd-am-rm]');
+    if (rm){ e.preventDefault(); _pdAm.items.splice(Number(rm.getAttribute('data-pd-am-rm')), 1); pdAmendRepaint(); return; }
+    const op = t.closest('[data-pd-am-op]');
+    if (op){ e.preventDefault(); const it = _pdAm.items[Number(op.getAttribute('data-pd-am-op'))]; if (it){ it.op = it.op === 'delete' ? 'replace' : 'delete'; } pdAmendRepaint(); return; }
+    if (t.closest('[data-pd-am-new]')){
+      e.preventDefault();
+      if (_pdAm.items.length >= PD_AMEND_ITEMS_MAX) return;
+      _pdAm.items.push({ clauseId: '', clauseLabel: '', clauseNumber: '', op: 'insert', signed: '', amended: '' });
+      pdAmendRepaint();
+      const box = host.querySelector(`[data-pd-am-txt="${_pdAm.items.length - 1}"]`); if (box) box.focus();
+      return;
+    }
+    if (t.closest('[data-pd-am-jambo]')){ e.preventDefault(); const c = pdContract(); if (c && typeof openCreateAmendmentModal === 'function') openCreateAmendmentModal(getContract(c.id) || c); return; }
+    const go = t.closest('[data-pd-am-go]');
+    if (go && !go.disabled){ e.preventDefault(); pdAmendCreate(); }
+  });
+  host.addEventListener('input', e => {
+    const tx = e.target && e.target.closest ? e.target.closest('[data-pd-am-txt]') : null;
+    if (tx){ const it = _pdAm.items[Number(tx.getAttribute('data-pd-am-txt'))]; if (it) it.amended = String(tx.value || '').slice(0, 4000); pdAmendPaperPaint(); }
+    const f = e.target && e.target.closest ? e.target.closest('[data-pd-am-fact]') : null;
+    if (f) _pdAm[f.getAttribute('data-pd-am-fact')] = String(f.value || '');
+    const go = host.querySelector('[data-pd-am-go]');
+    if (go){ const ok = pdAmendReady(); go.disabled = !ok; if (ok){ go.removeAttribute('aria-disabled'); go.removeAttribute('title'); } else { go.setAttribute('aria-disabled', 'true'); go.title = _pdT('pd_am_go_why'); } }
+  });
+}
+function pdAmendFacePaint(){
+  const host = document.getElementById('pd-amendface'); if (!host) return;
+  pdAmendWire(host);
+  pdAmendPaperPaint();
+}
+/* a press on a clause of the signed paper while the face is up adds it —
+   never while words are being highlighted (that is the highlight menu's) */
+if (typeof document !== 'undefined'){
+  document.addEventListener('click', e => {
+    if (!pdAmendShows()) return;
+    const el = e.target && e.target.closest ? e.target.closest('#ig-canvas [data-anchor]') : null; if (!el) return;
+    if (e.target.closest('.pd-am-mk, .pd-am-insert, a, button, input, textarea')) return;
+    const sel = window.getSelection && window.getSelection(); if (sel && !sel.isCollapsed) return;
+    pdAmendAdd(el);
+  });
+}
+
 /* ---- HISTORY: the trail, newest first; the cap is said ---- */
 function pdHistHtml(c){
   let ev = [];
@@ -1065,7 +1298,113 @@ function pdDealHtml(c){
   return dealTop + (send ? `<div class="pd-acts">${send}</div>` : '') + `<div class="pd-deal">${sheet}</div>` + changes + (go ? `<div class="pd-acts">${go}</div>` : '');
 }
 
-const PD_BODY = { facts: pdFactsHtml, doc: pdDocHtml, oblig: pdObligHtml };
+/* ---- THE MENU TAB, DRAWN AS "NEXT UP" (owner, 15 Oct 2026: "add these lists
+   in a new tab next to obligation called Menu"; picked "Next up" by name) ----
+   ONE BUILDER, NOT A COPY: the rows are the paper's old ⋯ menu itself
+   (roomMoreMenuHtml, every id kept, so roomMenuWire answers them), plus the
+   Negotiate page's three (igNegoRowsHtml) and, on top of "Work on it", the
+   Redlines column's three that left its foot (Draft from our standards, Edit
+   a clause, Add a clause — their own builders). Three suggestions for the
+   contract's stage come first; each presses the row it names, so the
+   suggestion and the row are one act. A row that cannot be used stays grey
+   with its reason, as it did in the ⋯. */
+const PD_MENU_NEXT = {
+  Draft: ['[data-rl-prepare]', '[data-ig-review]', '#ws-m-signers'],
+  'Under Review': ['#ws-import', '[data-ig-memo]', '#ws-m-signers'],
+  Signed: ['#ws-m-amend', '#ws-pdf', '#ws-archive'],
+  Declined: ['#ws-reopen', '#ws-pdf', '#ws-archive']
+};
+function pdMenuGroups(c){
+  if (typeof document === 'undefined' || typeof roomMoreMenuHtml !== 'function') return [];
+  const may = (typeof canEdit !== 'function') || canEdit();
+  const executed = !!(typeof negoExecuted === 'function' && negoExecuted(c));
+  let clause = '';
+  if (may && !executed){
+    const o = { side: 'owner', cpPanel: false };
+    try { clause += (typeof rlPrepareRowHtml === 'function') ? rlPrepareRowHtml(c, false) : ''; } catch (_){}
+    try { clause += (typeof rlEditClauseBtnHtml === 'function') ? rlEditClauseBtnHtml(c, o, 'owner', 'rl-edit-clause-door') : ''; } catch (_){}
+    try { clause += (typeof rlAddClauseBtnHtml === 'function') ? rlAddClauseBtnHtml(c, o, 'owner', '') : ''; } catch (_){}
+  }
+  let nego = ''; try { nego = (typeof igNegoRowsHtml === 'function') ? igNegoRowsHtml(c) : ''; } catch (_){}
+  const box = document.createElement('div');
+  box.innerHTML = roomMoreMenuHtml(c, { menuRow: clause + nego, noFocus: true });
+  const menu = box.querySelector('#ws-more-menu') || box;
+  /* each group keeps the ⋯ menu's own heading; "This contract" is called
+     "Work on it" and the unheaded last group "The contract" (owner's names) */
+  const head = { [_pdT('ct_this_contract')]: 'pd_menu_work', [_pdT('ct_export')]: 'ct_export', [_pdT('ct_view')]: 'ct_view' };
+  const groups = []; let g = null;
+  const open = () => { g = { key: 'pd_menu_contract', rows: [] }; groups.push(g); };
+  open(); g.key = 'pd_menu_work';
+  [...menu.children].forEach(el => {
+    if (el.tagName === 'HR'){ open(); return; }
+    if (el.classList.contains('mgroup')){ g.key = head[el.textContent.trim()] || g.key; return; }
+    if (el.tagName === 'BUTTON') g.rows.push(el.outerHTML);
+  });
+  const out = [];
+  groups.filter(x => x.rows.length).forEach(x => { const same = out.find(o => o.key === x.key); if (same) same.rows.push(...x.rows); else out.push(x); });
+  return out.map(x => ({ key: x.key, title: _pdT(x.key), rows: x.rows }));
+}
+function pdMenuHtml(c){
+  if (!c) return '';
+  const groups = pdMenuGroups(c);
+  if (!groups.length) return pdEmpty(_pdT('pd_failed'), 'alert');
+  /* the suggestions read the rows as drawn: a grey row is never suggested */
+  const box = document.createElement('div');
+  box.innerHTML = groups.map(g => g.rows.join('')).join('');
+  const st = (typeof negoExecuted === 'function' && negoExecuted(c)) ? 'Signed' : (PD_MENU_NEXT[c.status] ? c.status : 'Draft');
+  const picked = [];
+  const take = sel => { const b = box.querySelector(sel); if (b && !b.disabled && !picked.includes(b) && picked.length < 3) picked.push(b); };
+  PD_MENU_NEXT[st].forEach(take);
+  if (picked.length < 3) [...box.querySelectorAll('button')].forEach(b => { if (!b.disabled && !picked.includes(b) && picked.length < 3) picked.push(b); });
+  const key = b => b.id ? '#' + b.id : ['data-rl-prepare', 'data-rl-edit-clause', 'data-rl-add-clause', 'data-rl-edit-first', 'data-ig-review', 'data-ig-pbreview', 'data-ig-memo'].map(a => b.hasAttribute(a) ? `[${a}]` : '').find(Boolean) || '';
+  const word = b => { const x = b.cloneNode(true); x.querySelectorAll('[aria-hidden="true"], svg, .mnote').forEach(n => n.remove()); return x.textContent.replace(/\s+/g, ' ').trim(); };
+  const cards = picked.filter(b => key(b)).map((b, i) => `<button type="button" class="pd-mn-card${i === 0 ? ' is-lead' : ''}" data-pd-mn-go="${_pdE(key(b))}"><b>${_pdE(word(b))}</b>${b.title ? `<small>${_pdE(b.title)}</small>` : ''}<span class="pd-mn-go">${_pdE(_pdT(i === 0 ? 'pd_menu_start' : 'pd_menu_open'))}</span></button>`).join('');
+  const stWord = (typeof statusLabel === 'function') ? statusLabel(st === 'Signed' ? 'Signed' : c.status) : '';
+  return `<div class="pd-menu" data-pd-menu="${_pdE(c.id)}">
+    ${cards ? `<div class="pd-mn-lead">${_pdE(_pdT('pd_menu_next', { stage: String(stWord) }))}</div><div class="pd-mn-cards">${cards}</div>` : ''}
+    ${groups.map((g, i) => `<details class="pd-mn-g"${i === 0 ? ' open' : ''}><summary><span>${_pdE(g.title)}</span><span class="pd-mn-n">${g.rows.length}</span></summary><div class="pd-mn-rows room-menu">${g.rows.join('')}</div></details>`).join('')}
+  </div>`;
+}
+/* its presses: the ⋯ menu's one wiring (roomMenuWire, by id), the Negotiate
+   rows and the Redlines rows through their own doors; bound once per drawing */
+function pdMenuWire(c){
+  const m = (typeof document !== 'undefined') ? document.querySelector('#pd-body .pd-menu') : null;
+  if (!m || !c || m.dataset.wired) return;
+  m.dataset.wired = '1';
+  const k = () => getContract(c.id) || c;
+  const again = () => { if (typeof igPaintPaper === 'function') try { igPaintPaper(); } catch (_){} if (typeof renderIntelDock === 'function') renderIntelDock(); };
+  if (typeof roomMenuWire === 'function') try { roomMenuWire(k()); } catch (_){}
+  m.querySelector('[data-ig-review]')?.addEventListener('click', () => { if (typeof rlReviewDoor === 'function') rlReviewDoor(k(), again); });
+  m.querySelector('[data-ig-pbreview]')?.addEventListener('click', () => { if (typeof rlOpenPlaybookReview === 'function') rlOpenPlaybookReview(k(), again); });
+  m.querySelector('[data-ig-memo]')?.addEventListener('click', () => { if (typeof openNegoMemo === 'function') openNegoMemo(k()); });
+  m.querySelector('[data-rl-prepare]')?.addEventListener('click', () => { if (typeof rlPrepareRedlines === 'function') rlPrepareRedlines(k(), again); });
+  m.querySelector('[data-rl-add-clause]')?.addEventListener('click', ev => { ev.preventDefault(); if (ev.currentTarget.disabled) return; if (typeof rlAddClause === 'function') rlAddClause(k()); });
+  m.querySelector('[data-rl-edit-clause]')?.addEventListener('click', ev => { ev.preventDefault(); if (typeof rlEditClausePress === 'function') rlEditClausePress(k(), ev.currentTarget); });
+  m.querySelectorAll('[data-pd-mn-go]').forEach(card => card.addEventListener('click', () => {
+    const row = m.querySelector('.pd-mn-rows ' + card.getAttribute('data-pd-mn-go'));
+    if (row && !row.disabled) row.click();
+  }));
+}
+
+/* ONE PRESS FROM OUTSIDE THE TAB (Jambo's Menu card, caMenuPress): open the
+   Menu tab on that contract and press the row itself once it is drawn — the
+   row's own wiring decides, so no second door is built (rule 2) */
+const PD_MENU_PRESS_TRIES = 40;
+function pdMenuPress(id, sel){
+  if (!id || !sel || typeof pdOpenOnHome !== 'function') return false;
+  if (pdOpenOnHome(id, 'menu') === false) return false;
+  let n = 0;
+  const tryPress = () => {
+    const m = document.querySelector(`#pd-body .pd-menu[data-pd-menu="${CSS.escape(String(id))}"]`);
+    const row = m && m.dataset.wired ? m.querySelector('.pd-mn-rows ' + sel) : null;
+    if (row){ if (!row.disabled){ row.closest('details')?.setAttribute('open', ''); row.click(); } return; }
+    if (++n < PD_MENU_PRESS_TRIES) setTimeout(tryPress, 50);
+  };
+  setTimeout(tryPress, 0);
+  return true;
+}
+
+const PD_BODY = { facts: pdFactsHtml, doc: pdDocHtml, oblig: pdObligHtml, menu: pdMenuHtml };
 /* THE TITLE ROW: one button per tab, the lit one carrying its name. `brain`
    is the engine's own words (copilotBrainInfo), said on Copilot's hover. */
 /* JAMBO'S OWN TAB WEARS HIS FACE (owner, 12 Oct 2026: "replace where there
@@ -1126,6 +1465,7 @@ function pdPaint(c){
       const miss = host.querySelector('[data-pd-missing]'); if (miss) miss.remove();
     } else pdFillPaint(c);
   }
+  if (_pdTab === 'menu') pdMenuWire(c);
   if (host.dataset.for === c.id + ':' + _pdTab) host.scrollTop = top;
   host.dataset.for = c.id + ':' + _pdTab;
 }
@@ -1370,7 +1710,7 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
     if (g && !g.disabled){ e.preventDefault(); const row = PD_GLANCE[g.getAttribute('data-pd-glance')]; if (row && typeof intelAsk === 'function') intelAsk(_pdT(row[2])); }
   });
 }
-Object.assign(window, { pdPresenceOn, pdPresenceOff, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml,
+Object.assign(window, { pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedHeadEndHtml, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,

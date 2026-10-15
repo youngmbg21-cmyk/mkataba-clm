@@ -105,20 +105,24 @@ const visible = (page, sel) => page.evaluate(s => {
      press the same openNegoMemo. The negotiation behind it is Home's paper,
      Redlined while a change is pending. */
   await page.evaluate(id => openRedlineWorkbench(id), built.id);
-  await page.waitForFunction(() => state.view === 'dashboard' && !!document.querySelector('#pd-redface [data-nego-card]') && !!document.querySelector('#ig-strip #ws-more'), null, { timeout: 10000 }).catch(() => {});
+  /* RE-POINTED 15 Oct 2026 (owner, answer B): the ⋯ left the paper's line;
+     its rows, the memo's among them, are the panel's Menu tab */
+  await page.waitForFunction(() => state.view === 'dashboard' && !!document.querySelector('#pd-redface [data-nego-card]') && !!document.querySelector('#ig-dock [data-pd-tab="menu"]'), null, { timeout: 10000 }).catch(() => {});
   await page.waitForTimeout(600);
-  const MEMO = '#ig-strip [data-ig-memo]', MORE = '#ig-strip #ws-more';
+  const MEMO = '#pd-body .pd-menu [data-ig-memo]', MORE = '#ig-dock [data-pd-tab="menu"]';
 
   /* ============ 1. THE ROW IS IN THE MENU, AND ON SCREEN ============ */
   /* EVERY DRIVEN HALF BELOW IS GUARDED. A build without the feature must
      REPORT its failures rather than time out on a click that will never find
      its target — a probe that throws proves nothing, and a crash reads as an
      infrastructure problem rather than as a missing feature. */
+  if (await page.locator(MORE).count()) await page.click(MORE);
+  await page.waitForFunction(m => !!document.querySelector(m), MEMO, { timeout: 6000 }).catch(() => {});
+  await page.evaluate(m => { const r = document.querySelector(m); if (r && r.closest('details')) r.closest('details').open = true; }, MEMO);
   const hasRow = await page.locator(MEMO).count() === 1;
   check(hasRow, '1a the negotiation page puts exactly one memo row in the More menu');
   /* The menu is in the DOM the whole time and starts hidden, so a presence
      check alone passes on a row nobody can reach — open it first. */
-  if (await page.locator(MORE).count()) await page.click(MORE);
   await page.waitForTimeout(400);
   check(hasRow && await visible(page, MEMO),
     '1b and once the menu is open the row is VISIBLE PIXELS');
@@ -357,8 +361,10 @@ const visible = (page, sel) => page.evaluate(s => {
     '6a the ✕ closes it', wasOpen ? '' : 'it never opened');
   /* RE-POINTED 14 Oct 2026 (stage 5): the negotiation is Home's paper with
      Jambo's Redlines face beside it, so "still on it" is that face, up */
-  const stillThere = await page.evaluate(() => !!document.querySelector('.rl-paper, .rl-doc, #rl-doc')
-    && !!document.querySelector('#pd-redface [data-nego-card]') && (window.state || {}).view);
+  /* RE-POINTED 15 Oct 2026: the memo is pressed on the Menu tab, so "still on
+     it" is the same contract's paper on Home, with the tab it was pressed on */
+  const stillThere = await page.evaluate(id => !!document.querySelector('#ig-paper .rl-paper, #ig-paper .rl-doc, #ig-canvas')
+    && !!(window.intel && intel.paper && intel.paper.id === id) && (window.state || {}).view, built.id);
   check(stillThere === 'dashboard', '6b and leaves the reader on the negotiation', String(stillThere));
 
   if (hasRow){

@@ -157,7 +157,8 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
        filter seems to be in different places and cutoff or joined to the
        paper"; "all papers should be uniform"). At the owner's 1200px: the
        control stands wholly inside its scroller, 6px under its top edge, clear
-       of the sheet, its right edge on the sheet's right edge — on Home,
+       of the sheet, its right edge 16px inside the grey area's right edge
+       (15 Oct 2026: no longer the sheet's, so a zoom never moves it) — on Home,
        Negotiate, Details and Signing alike; and the clause editor draws the
        same control (no second zoom). */
     await page.setViewportSize({ width: 1200, height: 860 });
@@ -168,7 +169,7 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
       const sheet = sc && [...sc.querySelectorAll('.pg-sheet, article.nego-doc, .doc-sheet, .rl-paper')].find(e => e.getBoundingClientRect().width > 200);
       if (!sc || !sheet) return null;
       const z = box.getBoundingClientRect(), r = sc.getBoundingClientRect(), sh = sheet.getBoundingClientRect();
-      return { top: Math.round(z.top - r.top), clear: Math.round(sh.top - z.bottom), right: Math.round(z.right - sh.right) };
+      return { top: Math.round(z.top - r.top), clear: Math.round(sh.top - z.bottom), right: Math.round(z.right - (r.left + sc.clientLeft + sc.clientWidth - 16)) };
     });
     const placed = {};
     /* RE-POINTED 14 Oct 2026 (stage 5): section 4 left Before you sign open
@@ -190,8 +191,27 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await until(page, () => !!document.querySelector('#pd-signface') && !!document.querySelector('#ig-paper .pg-sheet.pg-sign'), null, 10000);
     await page.waitForTimeout(1500); placed.signing = await PLACE();
     for (const [k, v] of Object.entries(placed))
-      ok(`6 ${k}: the zoom stands 6px inside the grey above the sheet, clear of it, on the sheet's right edge`,
+      ok(`6 ${k}: the zoom stands 6px inside the grey above the sheet, clear of it, 16px in from the grey area's right edge`,
         !!v && v.top >= 4 && v.top <= 8 && v.clear >= 4 && Math.abs(v.right) <= 2, JSON.stringify(v));
+    /* 6f THE CONTROL STANDS STILL (owner, 15 Oct 2026: "have the zoom button
+       stay in the same location as you press to expand as opposed to chasing
+       the button"): on Home's paper, two presses of + widen the sheet and the
+       + under the pointer does not move */
+    await page.evaluate(() => { const x = document.querySelector('#pd-signface [data-pd-sf-close]'); if (x) x.click(); });
+    await until(page, () => !document.querySelector('#pd-signface'), null, 5000);
+    await page.setViewportSize({ width: 1536, height: 730 });
+    await page.evaluate(id => { rlSetDocZoom(80); setView('dashboard'); igAnalyze(id); }, id); await page.waitForTimeout(1500);
+    const still = await page.evaluate(async () => {
+      const plus = () => [...document.querySelectorAll('.paper-zc [data-rl-type="1"]')].find(b => b.getClientRects().length);
+      const sheet = () => [...document.querySelectorAll('#ig-paper .pg-sheet, #ig-paper article.nego-doc, #ig-paper .doc-sheet, #ig-paper .rl-paper')].find(e => e.getBoundingClientRect().width > 200);
+      const b0 = plus(), s0 = sheet(); if (!b0 || !s0) return { b0: !!b0, s0: !!s0, view: (window.state||{}).view, zc: [...document.querySelectorAll('.paper-zc')].map(z=>z.innerHTML.slice(0,300)), kids: [...(document.querySelector('#ig-paper')||{children:[]}).children].map(e=>e.className).slice(0,6) };
+      const x0 = Math.round(b0.getBoundingClientRect().right), w0 = Math.round(s0.getBoundingClientRect().width), z0 = rlDocZoom();
+      for (let i = 0; i < 2; i++){ plus().click(); await new Promise(r => setTimeout(r, 400)); }
+      const b1 = plus(), s1 = sheet();
+      const out = { x0, x1: Math.round(b1.getBoundingClientRect().right), z0, z1: rlDocZoom(), w0, w1: Math.round(s1.getBoundingClientRect().width * (parseFloat((s1.closest('.ig-zoom') || {style:{}}).style.zoom) || 1)) };
+      rlSetDocZoom(110); return out;
+    });
+    ok('6f two presses of + widen the paper and the + stays under the pointer', !!still && still.z1 > still.z0 && still.w1 > still.w0 && Math.abs(still.x1 - still.x0) <= 1, JSON.stringify(still));
     await page.evaluate(id => openRedlineWorkbench(id), id); await page.waitForTimeout(1200);
     const ce = await page.evaluate(id => { const c = getContract(id); const L = negoClauseList(c); rlOpenClauseEditor(c, L[1].clauseId);
       return new Promise(r => setTimeout(() => r({ shared: !!document.querySelector('.ce-readbar .rl-type-step [data-rl-type]'), own: !!document.querySelector('.ce-zoom, [data-ce-zoom]'),
