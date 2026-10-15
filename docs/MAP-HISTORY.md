@@ -30045,8 +30045,10 @@ owner's doc "Board walk-through report — analyst and iPad".
 - "352" ON ITS OWN drew a chart titled "352": `caRefFix` reads a bare number
   that numbers exactly one contract.
 - iPAD: Explorer's idle jiggle kept a slowed iPad busy ~37% of the time with
-  no touch; a touch-only screen rests it like reduced motion (`igTouchOnly`).
-  The divider lets go on `pointercancel`. The five tiles went 4 + 1 when the
+  no touch. Stopping it on touch-only screens, then slowing it to 2 frames a
+  second, both broke the owner's explorer-magnitude-verify 4a2/4f on GitHub
+  (Still's dots "only jiggle a little" on an iPad) — reverted; the freeze cost
+  stays, a question for the owner. The divider lets go on `pointercancel`. The five tiles went 4 + 1 when the
   board narrowed (inline auto-fit); a container query on the book makes it
   3 + 2 (`.is-nN`). "Make bigger" opened below the screen; it is brought into
   view. Explorer's hubs read "In KES 0 · Out KES 0" when no contract records
@@ -30057,7 +30059,7 @@ owner's doc "Board walk-through report — analyst and iPad".
   Renewals listing a contract already past its end (that decision is still
   owed); Explorer's overlapping labels; the shelf thumbnails' unlabelled blocks;
   Jambo's 340px floor in portrait.
-Tests: f690 (18 checks), board-walkthrough-fixes verify (10; 6 red at the parent,
+Tests: f690 (17 checks), board-walkthrough-fixes verify (10; 6 red at the parent,
 1b passes there in Chrome — the clip is Safari's). f660 (3) is unchanged: the
 first try named the custom property `--hb-fig-n`, which its slice read as the
 number's class.
