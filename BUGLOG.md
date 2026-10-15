@@ -20853,3 +20853,9 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - notes-two-rooms-verify: 88/92, the same four red at unmodified main — all about the retired room's acts row; they need re-pointing to Home's paper line.
 - The old Home triage card (home.js, `[data-tri-act]` decline) still writes Declined itself rather than through `contractDecline` or the End or pause door; it may no longer be drawn anywhere.
 - Issuing a signing link from the room head said "nothing was emailed — check the outbox" in the six-round audit's server (no mail provider there, so the outbox is right); worth a look on a configured server.
+
+### Fixed (15 Oct 2026, GitHub's first run of the owner's rulings)
+- The Needs you reading returned nothing in a stage whose timer runs at once (f500 Ctrl+Z): it now returns the list from its own name.
+- The count on Jambo's tab (and every amber tab count beside the paper) read white on amber at 2.17:1; it wears the bell's own dark ink on amber now (contrast-verify 33/33).
+- The ink-wash census re-recorded on the owner's "approve a record": headcounts only, no colour or text size new; the card's buttons use the house 13px.
+- board-upgrade, home-page, contracts-page, copilot-jobs verify and f582 re-pointed to the Needs you card and the End or pause door.

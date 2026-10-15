@@ -105,11 +105,13 @@ describe('f582 (3) a closed deal can be reopened, by the right person, with a re
     const CORE = fs.readFileSync(path.join(__dirname, '..', 'js', 'core.js'), 'utf8');
     const CV = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'contract.js'), 'utf8');
     const RG = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'register.js'), 'utf8');
-    assert.match(CORE, /\{ k:'reopen',\s+get label\(\)\{ return i18t\('end_reopen'\)/);
+    /* END_STATES went with the one End or pause door (15 Oct 2026); Reopen keeps its row */
+    assert.match(RG, /\{k:'reopen', ic:'history',\s+get label\(\)\{ return i18t\('end_reopen'\)/);
     assert.match(CORE, /async function contractReopen\(c,why\)\{[\s\S]{0,400}end_reopen_needs_why/);
     assert.match(RG, /\{k:'reopen', ic:'history'[\s\S]{0,200}contractMayReopen\(c\)/);
     assert.match(CV, /id="ws-reopen"/);
     assert.match(CV, /\(may&&c\.status!=='Declined'\)\?`<button id="ws-share"/);
-    assert.match(CV, /if\(c\.status==='Declined'\) return '';\s*const held=/);
+    /* a closed deal has nothing to freeze: the door greys its hold answer, Reopen is its way */
+    assert.match(CORE, /c\.status === 'Declined' \? 'end_hold_closed'/);
   });
 });

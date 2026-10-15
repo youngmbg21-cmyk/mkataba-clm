@@ -20,6 +20,12 @@
 
      node test/chromium/ink-wash-verify.js --save   (record, on the code BEFORE)
 
+   RE-RECORDED 15 Oct 2026, on the owner's "approve a record": the Needs you
+   card on Home's Board (and the count on Jambo's tab, now in the bell's own
+   dark ink on amber) moved headcounts on Home and History and the screens
+   drawn over Home; the dark surface colour appears as the count's ring on
+   eight dark screens. Audited as a set difference: no colour and no text size
+   new to the census. Every Ink Wash claim passed after.
    RE-RECORDED 10 Oct 2026, OWNER-ASKED ("yes, update the record"): the
    page redesigns after 9 Oct (SAP batches, pop-ups as drawn, the obligations
    table, the History fold) moved the headcounts and a few dark-mode colours.

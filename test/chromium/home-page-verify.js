@@ -177,7 +177,7 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       const book = document.getElementById('hb-book'), board = document.getElementById('hb-board');
       return {
         cards: [...document.querySelectorAll('#hb-board > .hb-card > .hb-ch .hb-ct')].map(e => e.textContent.trim()),
-        book: i18t('hb_book'), agents: i18t('hm_ag_title'), ins: i18t('hb_ins_title'),
+        book: i18t('hb_book'), needs: i18t('hb_ny_title'), agents: i18t('hm_ag_title'), ins: i18t('hb_ins_title'),
         tiles: document.querySelectorAll('.hm-tile').length,
         choose: !!document.getElementById('kpi-customize'),
         map: !!document.getElementById('hm-map'),
@@ -188,9 +188,12 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       };
     });
     /* RE-POINTED 11 Oct 2026 (the Board as drawn): Today's insights is its own card under Copilot's work */
-    check('3 Your book leads, then Copilot\'s work and Today\'s insights only',
-      shape.cards[0] === shape.book && shape.cards.length <= 3
-        && shape.cards.slice(1).every(t => t === shape.agents || t === shape.ins),
+    /* RE-POINTED 15 Oct 2026: the owner picked "Jambo's note" — Needs you is
+       its own card, first under Your book, above Copilot's work */
+    check('3 Your book leads, then Needs you, Copilot\'s work and Today\'s insights only',
+      shape.cards[0] === shape.book && shape.cards.length <= 4
+        && shape.cards.slice(1).every(t => t === shape.needs || t === shape.agents || t === shape.ins)
+        && (shape.cards.indexOf(shape.needs) < 0 || shape.cards.indexOf(shape.needs) === 1),
       shape.cards.join(' · '));
     check('3 no tiles, no "Choose tiles" and no Map — the board took their place',
       shape.tiles === 0 && !shape.choose && !shape.map, `${shape.tiles} tiles · choose ${shape.choose} · map ${shape.map}`);

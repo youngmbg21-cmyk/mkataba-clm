@@ -29987,3 +29987,10 @@ REVERSES the 21 Sep note in END_STATES and the 19 Sep reasoning behind it ("a ch
 - from the DESIGN OPTIONS heading: "; borrowed from emilkowalski/skills, MIT, written here not installed"
 - from ONE DROPDOWN PER PRESS: "(owner, 3 Oct and AGAIN 13 Oct 2026)" → "(owner, 3 and 13 Oct 2026)".
 Left about 300 bytes over 80,000: nothing else was the owner's to lose for it.
+
+## HOME — THE BOARD AND THE MAP: NEEDS YOU, JAMBO'S NOTE — GITHUB'S FIRST RUN (15 Oct 2026)
+GitHub ran the whole set on the first push and four things went red that the targeted runs had not covered:
+- f500 drives the Board in a stage whose `setTimeout` runs at once; `hbNeedsList` cleared its one-task memo before returning it and handed back null. The list is now returned from its own name.
+- contrast-verify measured the count on Jambo's tab for the first time (it is drawn wherever no paper is up): `.pd-tab-n.is-warn` was white on amber, 2.17:1. It now wears the bell's own count dress (`#hdr-notify-dot`: dark #2A1B04 ink on `--st-amber-dot`), which fixes every amber tab count beside the paper too.
+- ink-wash-verify: headcounts moved on Home, History and the screens drawn over Home; the card's buttons had brought a 12.5px size the census never held — changed to the house 13px. Re-recorded on the owner's "approve a record" after the set difference showed no colour and no size new.
+- home-page-verify 3 (the Board's card order), board-upgrade-verify (its chart now below the fold at a short window: brought into view before the hover), contracts-page-verify 14c and copilot-jobs-verify 1b/1c (archive and hold are answers in End or pause), and f582 (END_STATES' reopen entry; the hold row's closed-deal rule) re-pointed.

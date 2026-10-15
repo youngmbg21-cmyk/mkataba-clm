@@ -1373,12 +1373,15 @@ function hbNeedsList(){
   /* THE URGENT FIRST, THEN THE OLDEST, then the checklist's own order
      (needsYouOf already ranks within one contract; a tie keeps it) */
   const rank = k => { const o = (typeof NEEDS_YOU_ORDER !== 'undefined' && NEEDS_YOU_ORDER) || []; const i = o.indexOf(k); return i < 0 ? 99 : i; };
-  _hbNyMemo = out.map((x, i) => ({ x, i }))
+  const L = out.map((x, i) => ({ x, i }))
     .sort((a, b) => (Number(!!b.x.it.urgent) - Number(!!a.x.it.urgent)) || ((b.x.age == null ? -1 : b.x.age) - (a.x.age == null ? -1 : a.x.age))
       || (rank(a.x.it.kind) - rank(b.x.it.kind)) || (a.i - b.i))
     .map(o => o.x);
+  /* kept for this task only; the list is returned from its own name, so a
+     stage whose timer runs at once still gets it */
+  _hbNyMemo = L;
   setTimeout(() => { _hbNyMemo = null; }, 0);
-  return _hbNyMemo;
+  return L;
 }
 function hbNeedsCount(){ try { return hbNeedsList().length; } catch (_){ return 0; } }
 /* the words of one item: the checklist's own title (insNeedWords), and when */
