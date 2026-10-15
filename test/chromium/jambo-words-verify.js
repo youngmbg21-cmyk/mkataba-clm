@@ -150,7 +150,7 @@ const DOC = 'SOFTWARE AS A SERVICE AGREEMENT\n\n1. TERM\n\nThis Agreement runs f
     await onPaper('MK-W1');
     await page.waitForSelector('[data-ig-chips] [data-ca-chip]', { timeout: 8000 }).catch(() => {});
     const c7 = await page.evaluate(() => [...document.querySelectorAll('[data-ig-chips] [data-ca-chip]')].map(b => b.textContent.trim()));
-    ok('7a the chips are Swedish words', c7[0] === 'fyll i' && c7.includes('förhandla') && c7.includes('signera'), JSON.stringify(c7));
+    ok('7a the chips are Swedish words', c7[0] === 'fyll i' && c7.includes('förhandla') && c7.includes('dela') /* re-pointed 15 Oct 2026: the next steps, redlines → share → sign */, JSON.stringify(c7));
     const back7 = await page.evaluate(() => { const b = document.querySelector('.ca-back'); return b ? b.textContent.trim() : ''; });
     /* the redlines are on the paper now (stage 3): the way back is to it, and the face is there */
     /* RE-WORDED 14 Oct 2026 (the one-page Home plan, stage 6): the plan's Swedish

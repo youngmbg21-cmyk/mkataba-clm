@@ -729,7 +729,7 @@ const CA_DOORS = [
   ['done', /\bmark\b[^.?!]*\b(?:done|paid|complete|completed|delivered)\b/i],
   ['hold', /\b(?:put|place)\b[^.?!]*\bon hold\b/i],
   ['refile', /\b(?:move|re-?file)\b[^.?!]*\b(?:stream|folder)\b/i],
-  ['amend', /\b(?:make|create|start|draft)\b[^.?!]*\bamendment\b|\bamend (?:it|this|the)\b|^\s*(?:please\s+)?(?:amend|an? amendment|ändra avtalet|tillägg)\s*[.!?]?\s*$/i],
+  ['amend', /\b(?:make|create|start|draft)\b[^.?!]*\bamendment\b|\bamend (?:it|this|the)\b|^\s*(?:please\s+)?(?:amend|an? amendment|amendments?|ändra avtalet|tillägg)\s*[.!?]?\s*$/i],
   ['memo', /\bstatus (?:note|update|memo|report)\b|\bnegotiation memo\b/i],
   ['open', /\bwhat(?:'s| is)? (?:still )?open\b|\bwhere (?:does|do) (?:the deal|we|it) stand\b/i],
   ['minor', /\baccept\b[^.?!]*\b(?:small|minor|wording)\b/i],
@@ -773,6 +773,10 @@ const CA_DOOR_GO = {
   lock: c => openRedlineWorkbench(c.id),
 };
 /* the function each door needs, so a stage that does not load it greys the card in words */
+/* A DOOR THIS CONTRACT HAS SHUT SAYS WHY, AND OFFERS NO BUTTON (owner, 15 Oct
+   2026: "a button that will not take you anywhere is a waste — simply give a
+   reason"): the door's own answer, never a second rule */
+const CA_DOOR_SHUT = { amend: c => (typeof amendmentShutWhy === 'function') ? amendmentShutWhy(c) : '' };
 const CA_DOOR_NEEDS = { sendback: 'openRedlineWorkbench', signlink: 'openShareModal', resend: 'openShareModal', adviser: 'openShareModal', word: 'openShareModal',
   approval: 'openWorkspace', chase: 'pdOpenOnHome', done: 'pdOpenOnHome', hold: 'contractSetHold', refile: 'ovOpenFiling', amend: 'openCreateAmendmentModal',
   memo: 'openNegoMemo', open: 'openRedlineWorkbench', minor: 'openRedlineWorkbench', counter: 'openRedlineWorkbench', lock: 'openRedlineWorkbench' };
@@ -781,15 +785,18 @@ function caDoorCardHtml(a, i){
   const B = (act, label, lead) => `<button type="button" class="ui-btn ui-btn-sm${lead ? ' ui-btn-primary' : ''}" data-ca-act="${act}" data-ca-turn="${i}">${_caE(label)}</button>`;
   const head = c ? `<dl class="ca-dl"><dt>${_caE(_caT('ca_l_contract'))}</dt><dd>${_caE(caRef(c) + ' · ' + (c.name || ''))}</dd></dl>` : '';
   const may = !!(c && typeof window[CA_DOOR_NEEDS[a.door]] === 'function');
+  const shut = c && CA_DOOR_SHUT[a.door] ? CA_DOOR_SHUT[a.door](c) : '';
   return `<div class="ca-card" data-ca-card="${i}"><div class="ca-ct">${_caE(_caT('ca_door_' + a.door))}</div>${head}
     <p class="ca-foot" style="margin-top:0">${_caE(_caT('ca_door_' + a.door + '_says'))}</p>
     ${a.state === 'done' ? `<p class="ca-said is-ok">${_caE(_caT('ca_job_opened'))}</p>`
+      : shut ? `<p class="ca-why">${_caE(shut)}</p>`
       : may ? `<div class="ca-acts">${B('door', _caT('ca_door_' + a.door + '_go'), true)}</div>`
       : `<p class="ca-why">${_caE(_caT('ca_door_cannot'))}</p>`}</div>`;
 }
 async function caDoorPress(i, act){
   const m = caTurn(i); const a = m && m.act; if (!a || act !== 'door') return;
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null; if (!c) return;
+  if (CA_DOOR_SHUT[a.door] && CA_DOOR_SHUT[a.door](c)) return;
   const go = CA_DOOR_GO[a.door]; if (typeof go !== 'function') return;
   let r = null;
   try { r = await go(c); } catch (e){ if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); return; }
@@ -905,6 +912,69 @@ function caChipLead(c){
 const CA_CHIPS_MORE = ['oblig', 'share'];
 function caChipShut(c, k){
   if (k === 'redline') return typeof negoMayStart === 'function' && !negoMayStart(c).ok;
+  /* NO BUTTON THAT TAKES YOU NOWHERE (owner, 15 Oct 2026): nothing is left to
+     sign on an executed or expired agreement; an amendment asks its own one
+     answer (amendmentShutWhy); "edit a clause" only where the Edit a clause
+     row itself is live */
+  if (k === 'sign') return !!((typeof negoExecuted === 'function' && negoExecuted(c)) || (typeof contractExpired === 'function' && contractExpired(c)));
+  if (k === 'amend') return !(typeof pdAmendMay === 'function' && pdAmendMay(c));
+  if (k === 'edit') return !caEditChipBtn(c);
+  if (k === 'fill') return caChipLead(c) !== 'fill';
+  return false;
+}
+/* THE EDIT A CLAUSE ROW, AS ITS OWN BUILDER DRAWS IT (rlEditClauseBtnHtml): the
+   chip is offered only on Jambo's Redlines face, where the row opens the
+   clause editor, and only when that row is live (not frozen, a wide enough
+   window, someone who may edit) */
+function caEditChipBtn(c){
+  if (!c || typeof document === 'undefined' || typeof rlEditClauseBtnHtml !== 'function' || typeof rlEditClausePress !== 'function') return null;
+  if (!(typeof pdRedShows === 'function' && pdRedShows())) return null;
+  if (typeof canEdit === 'function' && !canEdit()) return null;
+  /* the empty column already shows its own Edit a clause: no second button for it */
+  if (document.querySelector && document.querySelector('#pd-redface [data-rl-edit-first]')) return null;
+  const box = document.createElement('div');
+  try { box.innerHTML = rlEditClauseBtnHtml(c, { side: 'owner', cpPanel: false }, 'owner', ''); } catch (_){ return null; }
+  const b = box.querySelector('[data-rl-edit-clause="editor"]');
+  return b && !b.disabled ? b : null;
+}
+/* ---- WHAT COMES NEXT (owner, 15 Oct 2026: "there is no point of having the
+   redline button ... because you are already looking at it, so it should
+   transition to ... the next natural step") ----
+   The ONE reading the chips and Jambo's "what's next?" card both draw, so they
+   cannot disagree:
+   - work owed leads (caChipLead, the side panel's own checklist);
+   - then the next stage of the contract's journey: on Redlines, editing a
+     clause and then Before you sign; before signing, redlines → share → sign;
+     once signed, obligations → amend → history;
+   - never the face that is open now (fill · redlines · before you sign ·
+     amend), and never a door this contract has shut (caChipShut).
+   Read live, spends nothing, writes nothing. */
+const CA_NEXT_FACE = { fill: 'fill', red: 'redline', signing: 'sign', amend: 'amend' };
+const CA_NEXT_MAX = 3;
+function caNextSteps(c){
+  if (!c) return [];
+  const face = (typeof pdFaceNow === 'function') ? pdFaceNow() : '';
+  const here = CA_NEXT_FACE[face] || '';
+  const executed = !!(typeof negoExecuted === 'function' && negoExecuted(c));
+  const ladder = executed ? ['oblig', 'amend', 'history']
+    : face === 'red' ? ['edit', 'sign', 'share']
+    : ['redline', 'share', 'sign'];
+  const lead = caChipLead(c);
+  return (lead ? [lead] : []).concat(ladder, ['history', 'oblig', 'share'])
+    .filter((k, i, all) => all.indexOf(k) === i && k !== here && !caChipShut(c, k))
+    .slice(0, CA_NEXT_MAX);
+}
+/* a step's words: a place word Jambo reads (ca_w_*), or the two that press
+   their own row (edit a clause, amend) */
+const CA_NEXT_GO = ['edit', 'amend'];
+function caNextLabel(k){ return CA_NEXT_GO.includes(k) ? _caT('ca_next_' + k) : _caT('ca_w_' + k); }
+/* a step pressed: a place is asked as its word (one path with typing,
+   caReadPlace); edit and amend press the act their row presses */
+function caNextRun(c, k){
+  if (!c) return false;
+  if (k === 'edit'){ const b = caEditChipBtn(c); return b ? rlEditClausePress(getContract(c.id) || c, b) : false; }
+  if (k === 'amend') return (typeof pdAmendOpen === 'function') ? pdAmendOpen(c.id) : false;
+  if (typeof intelAsk === 'function') return intelAsk(_caT('ca_w_' + k));
   return false;
 }
 /* who may bring a contract in: an editor (a viewer's upload is refused at the creator too) */
@@ -915,13 +985,13 @@ function caPaperChips(){
   /* a viewer adds nothing: the upload chip steps aside, as a shut door's chip does on a paper (caChipShut) */
   if (!c) return CA_CHIPS_WALL.filter(k => k !== 'upload' || caMayAdd()).map(k => ({ ask: _caT(CA_CHIP_WALL_WORD[k] || ('ca_w_' + k)), k }));
   const lead = caChipLead(c);
-  const list = (lead ? [lead].concat(CA_CHIPS.filter(k => k !== lead)) : CA_CHIPS.slice()).concat(CA_CHIPS_MORE)
-    .filter((k, i, all) => all.indexOf(k) === i && !caChipShut(c, k)).slice(0, CA_CHIPS.length);
-  return list.map(k => ({ ask: _caT('ca_w_' + k), k, owed: k === lead }));
+  return caNextSteps(c).map(k => CA_NEXT_GO.includes(k) ? { go: k, label: caNextLabel(k), k } : { ask: _caT('ca_w_' + k), k, owed: k === lead });
 }
 function caChipsHtml(){
   const L = caPaperChips(); if (!L) return '';
-  return L.map(x => x.owed
+  return L.map(x => x.go
+    ? `<button type="button" data-ca-next="${_caE(x.go)}" data-ca-chip="${_caE(x.k)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${_caE(x.label)}</button>`
+    : x.owed
     ? `<button type="button" data-igsug="${_caE(x.ask)}" data-ca-chip="${_caE(x.k)}" class="ca-chip-owed text-[10.5px] rounded-full px-2.5 py-1 transition text-left">${_caE(x.ask)}</button>`
     : x.fill
     ? `<button type="button" data-ca-fill="${_caE(x.fill)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${_caE(x.label)}</button>`
@@ -931,6 +1001,10 @@ if (typeof document !== 'undefined') document.addEventListener('keydown', e => {
   if (e.key !== 'Enter' && e.key !== ' ') return;
   const r = e.target && e.target.closest ? e.target.closest('.ca-row[data-ig-cite]') : null; if (!r) return;
   e.preventDefault(); r.click();
+});
+if (typeof document !== 'undefined') document.addEventListener('click', e => {
+  const b = e.target && e.target.closest ? e.target.closest('#ig-dock [data-ca-next]') : null; if (!b) return;
+  caNextRun(caOpenContract(), b.getAttribute('data-ca-next'));
 });
 if (typeof document !== 'undefined') document.addEventListener('click', e => {
   const b = e.target && e.target.closest ? e.target.closest('[data-ca-fill]') : null; if (!b) return;
@@ -1083,11 +1157,11 @@ async function caDraftReply(prompt, cid){
   }
 }
 Object.assign(window, { caDraftReply });
-Object.assign(window, { caRefFix, CA_REF_RE, caRefLinkPaint, caRefOpen, CA_MENU, caReadMenu, caMenuRows, caMenuCardHtml, caMenuPress, CA_DOORS, caReadDoor, caRoomSign, CA_DOOR_GO, CA_DOOR_NEEDS, caDoorCardHtml, caDoorPress });
+Object.assign(window, { caRefFix, CA_REF_RE, caRefLinkPaint, caRefOpen, CA_MENU, caReadMenu, caMenuRows, caMenuCardHtml, caMenuPress, CA_DOORS, caReadDoor, caRoomSign, CA_DOOR_GO, CA_DOOR_SHUT, CA_DOOR_NEEDS, caDoorCardHtml, caDoorPress });
 Object.assign(window, { CA_PICK_MAX, CA_NOTE_MAX, CA_SEND_RE, caPeople, caContracts, caOpenContract, caTokenAt, caMatches, caPopHtml, caPopClose, caPopRead, caChoose,
   caFindContract, caFindPerson, caNoteOf, caReadSend, caActOf, caSendBlock, caCardHtml, caCardPress,
   CA_DRAFT_RE, CA_DRAFT_NOUN, CA_DRAFT_OPTS, caReadDraft, caDraftScore, caDraftRank, caDraftRun, caDraftCardHtml, caDraftPress, CA_DRAFT_WITH, CA_DRAFT_WITH_MAX, caDraftWith, CA_DRAFT_NOT_PARTY, CA_DRAFT_TERM_WORD, caDraftBest, caDraftTitleOf, caDraftWho, caDraftForm,
-  CA_JOBS, CA_JOB_RE, caReadJob, caNamedOrUp, caRowsWithQuotes, caRiskList, caObligList, caListCardHtml, caReadyDoor, caJobCardHtml, caJobPress, caMayAdd, caPaperChips, caChipsHtml,
+  CA_JOBS, CA_JOB_RE, caReadJob, caNamedOrUp, caRowsWithQuotes, caRiskList, caObligList, caListCardHtml, caReadyDoor, caJobCardHtml, caJobPress, caMayAdd, caPaperChips, caChipsHtml, caNextSteps, caNextRun, caNextLabel, caEditChipBtn, CA_NEXT_FACE, CA_NEXT_MAX, CA_NEXT_GO,
   CA_SEL_ACTIONS, caSelKill, caSelClauseId, caSelOpen, caSelPick, CA_RISK_MAX, caRiskMark });
 
 /* ============================================================
@@ -1128,6 +1202,8 @@ const CA_PLACES = [
   { k: 'draft', w: ['draft', 'new agreement', 'draft a new agreement', 'a new agreement', 'nytt avtal', 'utkast', 'skriv ett nytt avtal', 'ett nytt avtal'] },
   { k: 'back', w: ['back', 'go back', 'tillbaka'] },
   { k: 'help', w: ['help', 'what can you do', 'hjälp'] },
+  /* "what's next?" answers with the chips' own steps on a card (caNextSteps) */
+  { k: 'next', need: 'one', w: ['next', 'next step', 'next steps', "what's next", 'whats next', 'what is next', 'what next', 'what now', 'nästa', 'nästa steg', 'vad är nästa steg', 'vad händer nu', 'vad nu'] },
 ];
 /* "go to", "open", "show me", "take me back to", "gå till", "öppna", "visa" */
 const CA_PLACE_LEAD = /^(?:please\s+)?(?:(?:go|take me|bring me|jump|switch)\s+(?:back\s+)?to\s+|open\s+|show\s+(?:me\s+)?|gå\s+(?:tillbaka\s+)?till\s+|öppna\s+|visa\s+(?:mig\s+)?)/i;
@@ -1315,7 +1391,7 @@ function caGo(a){
   if (a.place === 'help') return true;
   caUseBump(a.place);
   /* share and draft answer with a card in the panel (caGoCardHtml) and move nothing */
-  if (a.place === 'share' || a.place === 'draft') return true;
+  if (a.place === 'share' || a.place === 'draft' || a.place === 'next') return true;
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   caTrailPush();
   if (a.missing){ caHomeWall(); caGoRepaint(); return true; }
@@ -1339,7 +1415,7 @@ function caPlaceRun(k){
   const word = _caT('ca_w_' + k);
   if (typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof intelAsk === 'function') return intelAsk(word);
   const a = caReadPlace(word); if (!a) return false;
-  if (a.place === 'share' || a.place === 'help' || a.place === 'draft'){ caUseBump(a.place); if (typeof setView === 'function') setView('dashboard'); setTimeout(() => { if (typeof intelAsk === 'function') intelAsk(word); }, 0); return true; }
+  if (a.place === 'share' || a.place === 'help' || a.place === 'draft' || a.place === 'next'){ caUseBump(a.place); if (typeof setView === 'function') setView('dashboard'); setTimeout(() => { if (typeof intelAsk === 'function') intelAsk(word); }, 0); return true; }
   return caGo(a);
 }
 
@@ -1355,14 +1431,25 @@ function caGoCardHtml(a, i){
       <p class="ca-foot" style="margin-top:0">${_caE(_caT('ca_share_says'))}</p>
       <div class="ca-acts">${B('shareout', them ? _caT('ca_share_out', { who: them }) : _caT('ca_share_out_none'), true)}${B('sharein', _caT('ca_share_in'))}</div></div>`;
   }
-  /* DRAFT A NEW AGREEMENT (step 3, as the demo draws it): one sentence, and the one form */
+  /* DRAFT A NEW AGREEMENT (step 3, as the demo draws it): one sentence, and
+     the one form. OUR PAPER OR THEIRS (owner, 15 Oct 2026: "you do not have
+     an option to choose between that and an uploaded paper"): the card asks
+     which, and each answer is the existing door — the form (caDraftForm) or
+     the file picker the wall's "upload" uses (CA_GO.upload) */
   if (a.place === 'draft'){
     const may = (typeof canEdit !== 'function') || canEdit(), no = _caT('wz_viewers_no_create');
-    const open = may ? `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-ca-act="draftform" data-ca-turn="${i}">${_caE(_caT('ca_dr_open'))}</button>`
-      : `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary" disabled aria-disabled="true" title="${_caE(no)}">${_caE(_caT('ca_dr_open'))}</button>`;
+    const B = (act, label, lead) => may ? `<button type="button" class="ui-btn ui-btn-sm${lead ? ' ui-btn-primary' : ''}" data-ca-act="${act}" data-ca-turn="${i}">${_caE(label)}</button>`
+      : `<button type="button" class="ui-btn ui-btn-sm${lead ? ' ui-btn-primary' : ''}" disabled aria-disabled="true" title="${_caE(no)}">${_caE(label)}</button>`;
     return `<div class="ca-card ca-dr" data-ca-card="${i}"><div class="ca-ct">${_caE(_caT('ca_dr_title'))}</div>
       <p class="ca-foot" style="margin-top:0">${_caE(_caT('ca_dr_says'))}</p>${may ? '' : `<p class="ca-why">${_caE(no)}</p>`}
-      <div class="ca-acts">${open}</div></div>`;
+      <div class="ca-acts">${B('draftform', _caT('ca_dr_ours'), true)}${B('draftupload', _caT('ca_dr_theirs'), false)}</div></div>`;
+  }
+  /* WHAT COMES NEXT: the chips' own steps, each the chip's own press; with none, said */
+  if (a.place === 'next' && c && !a.missing){
+    const L = caNextSteps(c);
+    const btns = L.map((k, n) => `<button type="button" class="ui-btn ui-btn-sm${n === 0 ? ' ui-btn-primary' : ''}" data-ca-act="next:${_caE(k)}" data-ca-turn="${i}">${_caE(caNextLabel(k))}</button>`).join('');
+    return `<div class="ca-card" data-ca-card="${i}"><div class="ca-ct">${_caE(_caT('ca_next_title', { ref: caRef(c) }))}</div>
+      ${L.length ? `<div class="ca-acts">${btns}</div>` : `<p class="ca-why">${_caE(_caT('ca_next_none'))}</p>`}</div>`;
   }
   if (a.place === 'help'){
     return `<div class="ca-card" data-ca-card="${i}"><div class="ca-ct">${_caE(_caT('ca_help_title'))}</div>
@@ -1373,8 +1460,9 @@ function caGoCardHtml(a, i){
   return '';
 }
 function caGoPress(a, act){
-  if (a.place === 'draft'){ if (act === 'draftform') caDraftForm(null); return; }
+  if (a.place === 'draft'){ if (act === 'draftform') caDraftForm(null); else if (act === 'draftupload') CA_GO.upload(); return; }
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null; if (!c) return;
+  if (String(act).startsWith('next:')){ caNextRun(c, String(act).slice(5)); return; }
   if (act === 'shareout'){ if (typeof openShareModal === 'function') openShareModal(c); return; }
   if (act === 'sharein'){
     const inp = document.getElementById('igd-input'); if (!inp) return;

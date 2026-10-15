@@ -11000,8 +11000,8 @@ function roomActsRowsHtml(c,may){
   const executed=(typeof negoExecuted==='function')?negoExecuted(c):c.status==='Signed';
   if(!executed) rows.push(`<button type="button" id="ws-m-signers"${(window.signingLocked&&signingLocked(c))?dead(i18t('py_locked')):''}>${icon('users','w-3.5 h-3.5')}${esc(i18t('ct_add_signers'))}</button>`);
   if(!c.parentId){
-    const live=(typeof amendmentExecuted==='function')?amendmentExecuted(c):executed;
-    rows.push(`<button type="button" id="ws-m-amend"${live?'':dead(i18t('fa_draft_no_amend'))}>${icon('filenew','w-3.5 h-3.5')}${esc(i18t('fa_create_amendment'))}</button>`);
+    const shut=(typeof amendmentShutWhy==='function')?amendmentShutWhy(c):(executed?'':i18t('fa_draft_no_amend'));
+    rows.push(`<button type="button" id="ws-m-amend"${shut?dead(shut):''}>${icon('filenew','w-3.5 h-3.5')}${esc(i18t('fa_create_amendment'))}</button>`);
     rows.push(`<button type="button" id="ws-m-link">${icon('link','w-3.5 h-3.5')}${esc(i18t('fa_link_existing'))}</button>`);
   }
   return rows.join('');
@@ -11662,7 +11662,7 @@ function roomMenuWire(c){
     setTimeout(()=>{ if(window.openSignerPlanEditor) openSignerPlanEditor(getContract(c.id)||k); },180); });
   /* AMEND, BESIDE THE PAPER (owner, 15 Oct 2026): Jambo's Amend face on Home's
      paper; the dialog where Home has no paper (the phone, a stage without it) */
-  document.getElementById('ws-m-amend')?.addEventListener('click',()=>{ const k=getContract(c.id)||c; if(!(window.amendmentExecuted&&amendmentExecuted(k))) return;
+  document.getElementById('ws-m-amend')?.addEventListener('click',()=>{ const k=getContract(c.id)||c; if(!window.amendmentShutWhy||amendmentShutWhy(k)) return;
     if(window.pdAmendOpen&&pdAmendOpen(k.id)) return;
     if(window.openCreateAmendmentModal) openCreateAmendmentModal(k); });
   document.getElementById('ws-m-link')?.addEventListener('click',()=>{ const k=getContract(c.id)||c;

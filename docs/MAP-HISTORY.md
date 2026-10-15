@@ -29889,3 +29889,21 @@ open MK-…" keep the contract card again (board-says-it-plain 2a); only a bare
 number opens the paper (HB_OPEN_REF_LEAD). board-views-verify now pins the
 removal and the landings. CLAUDE.md 79,979 → 79,991 bytes (lines amended and
 tightened).
+
+## JAMBO'S WORDS — THE CHIPS ARE THE NEXT STEPS, AND NO BUTTON TAKES YOU NOWHERE (15 Oct 2026)
+
+The owner, looking at the Redlines face with a "redline" chip under it: *"whenever this page is open, then there is no point of having the redline button at the bottom because you are already looking at it so it should transition to something else like a button that would take you to the next natural step"*; then, at an expired MK-329 where Jambo answered "amendment" with "Open MK-329 in Workspace" while MK-329 was open: *"a button that will not take you anywhere so that is a waste. Simply give a reason for such cases but do not offer a button for pressing"*; and *"when you ask to draft ... it takes you right to drafting an in house contract. You do not have an option to choose between that and an uploaded paper."* The owner said "build the fixes above".
+
+What was built:
+- `caNextSteps(c)` (js/copilotacts.js) is the ONE reading of what comes next: work owed first (`caChipLead`, the side panel's checklist), then the journey — before signing redlines → share → sign; on the Redlines face edit a clause → sign → share; signed obligations → amend → history — never the face open now (`CA_NEXT_FACE` over `pdFaceNow`) and never a door the contract has shut (`caChipShut`: redline by `negoMayStart`, sign once executed or expired, amend by `amendmentShutWhy`, edit only where the Edit a clause row is live and the empty list does not already draw its own). The chips (`caPaperChips`) and the new "what's next?" place card (`CA_PLACES` 'next', `caGoCardHtml`) both draw it. "edit a clause" and "amend" press the act their Menu row presses (`caNextRun` → `rlEditClausePress`, `pdAmendOpen`); `pdRedFacePaint` repaints the chips after the face is drawn.
+- `amendmentShutWhy(c)` (js/family.js) is the one reason an amendment cannot be made: a draft, a child document, or an EXPIRED agreement (`contractExpired`). Every Amend door asks it: the Menu/⋯ row, the family section, Overview 2, Jambo's Amend face (`pdAmendMay`), the dialog itself (renewal exempt), and Jambo's amend door card (`CA_DOOR_SHUT`), which says the reason with no button. "amendment" alone is now the amend door word.
+- An answer about the one contract already on Home's paper says so (`.igd-here`, `int_already_on_paper`) instead of drawing "Open … in Workspace" (`igDoorsHtml`).
+- The Draft card asks our paper or theirs: Use our template (the one form) · Upload their paper (the wall's file picker, `CA_GO.upload`).
+
+Not done, and said to the owner: the "Progress" heading the owner circled is the Redlines list's progress bar ("0 of 1 decided"), not a label for the chips, so it was not renamed. The Menu tab's "Next up" cards still pick Menu rows by stage (`PD_MENU_NEXT`); they are not yet drawn from `caNextSteps`.
+
+Re-pointed checks (the chip order changed on purpose): f672 4c/4e, jambo-words 7a, every-door-lands-on-home (the share chip now drawn; each chip pressed from a paper with no face open). New: f672 4f–4j, f563 4c, next-step-chips-verify (red at the parent: the names do not exist there).
+
+## CLAUDE.MD TRIM, 15 Oct 2026 (third)
+
+80,206 → 79,999 bytes, to fit the lines above. Cut verbatim: in THE MAP only, the year " 2026" after every "<day> Sep" / "<day> Oct" date; the dates in "(owner, 11 Oct 2026)", "(owner, 13 Oct 2026)", "(owner, 15 Oct 2026)" (TWO DOORS), "(10 Oct 2026)", "(12 Oct 2026)", "(13 Oct 2026)", "AMEND BESIDE THE PAPER (15 Oct 2026)", "THE CONTRACT'S VIEWS ARE GONE (15 Oct 2026)", "No Document tab (owner, 11 Oct 2026)"; "pressed clauses painted as numbered marks" → "pressed clauses numbered on the paper"; "live only on an executed agreement (`amendmentExecuted`)" replaced by the `amendmentShutWhy` line; "chips `caChipLead`, a shut door's chip steps aside (`caChipShut`, `CA_CHIPS_MORE`), redrawn as a face changes the contract (`pdChipsRepaint`)" replaced by the next-steps line.
