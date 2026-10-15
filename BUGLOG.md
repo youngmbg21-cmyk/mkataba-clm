@@ -20838,3 +20838,5 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - The signing check's own list items inside the server's refusal ("a departure from our standards (…)") are English words; srvMsg keeps them verbatim inside the Swedish sentence.
 ### Noticed, not fixed (15 Oct 2026, PR 287's checks)
 - jambo-agents-verify step 11b2 went red on one GitHub run of 937bd72a (run 38774712143: "bottom":739 in a 600 window, the 760 window's measure) and passed on the other run of the same commit (38774684638) and locally 78/78: it reads the house before the resize to 600 has refitted it.
+
+- Noticed, not fixed (15 Oct 2026, PR 289's checks): board-lists-and-search-verify failed dark steps 1 and 2 ("the open list's ground is solid", "no dark ring") on one GitHub run of 663e136 (38787380971, shard 1) with no measurement printed — the list was not found — and passed on the other run of the same commit (38787347198), on 4ab4796, and locally on every run; it likely reads the open list before it has been drawn after the theme change.
