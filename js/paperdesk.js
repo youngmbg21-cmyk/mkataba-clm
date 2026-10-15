@@ -110,7 +110,13 @@ function pdEmpty(title, ic){
 function pdTabCount(t, c){
   /* HIS TAB CARRIES THE COUNT while no paper is up (Jambo's note, 15 Oct
      2026): what needs you, the Board's "Needs you" card's own number */
-  if (!c && t === 'copilot'){ const n = (typeof hbNeedsCount === 'function') ? hbNeedsCount() : 0; return n ? { n, tone: 'warn' } : null; }
+  /* on the Board only, where the card is: the count walks the book, and
+     Explorer, Calendar and the wall redraw this tab often (measured: the walk
+     on every redraw held Explorer's still map long enough to shift its dots) */
+  if (!c && t === 'copilot'){
+    const onBoard = !!(window.state && state.view === 'dashboard') && (typeof hbFace === 'function') && hbFace() === 'board';
+    const n = (onBoard && typeof hbNeedsCount === 'function') ? hbNeedsCount() : 0;
+    return n ? { n, tone: 'warn' } : null; }
   if (!c) return null;
   try {
     if (t === 'doc'){
