@@ -77,8 +77,9 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     ok('2e the press presses the Menu\'s own row (Filing and stream lands on the filing rows)', landed);
 
     /* 3 a contract number in any form */
-    const forms = await page.evaluate(() => ['mk B1', 'mkB1', 'MK-B1', 'open mk b1', 'show me mkB1'].map(q => { const r = hbParse(q); return r && r.act === 'openc' ? r.id : String(r && r.act); }));
-    ok('3a every form reads as the one contract', forms.every(x => x === 'MK-B1'), JSON.stringify(forms));
+    const forms = await page.evaluate(() => ['mk B1', 'mkB1', 'MK-B1', '#mk-b1'].map(q => { const r = hbParse(q); return r && r.act === 'openc' ? r.id : String(r && r.act); })
+      .concat(['open mk b1', 'show me mkB1'].map(q => { const f = hbFindContract(q); return f && f.c ? f.c.id : 'none'; })));
+    ok('3a every form reads as the one contract (alone it opens it)', forms.every(x => x === 'MK-B1'), JSON.stringify(forms));
     ok('3b words that only look like a number stay words', await page.evaluate(() => caRefFix('in 2026') === 'in 2026' && hbParse('what is the value of mk B1').act === 'card'));
     await page.click('#ig-dock [data-pd-tab="copilot"]').catch(() => {});
     await until(page, () => !!document.querySelector('#igd-input'), null, 5000);

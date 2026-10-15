@@ -1112,10 +1112,11 @@ function hbAnalyzeObject(q){
     .replace(/^\s*(?:open|öppna|bring up|pull up)\s+/i, '').replace(/[?.!]+$/, '').replace(/\s+/g, ' ').trim();
 }
 /* A CONTRACT NUMBER ON ITS OWN OPENS IT ON HOME (owner, 15 Oct 2026): "mk 450",
-   "MK-450", "open mk450", "show me contract 450" — the number alone, or after
-   an opening word, and nothing else. "bring up" keeps the strip (hbBringOf),
-   and a question that names a contract stays a question about it. */
-const HB_OPEN_REF_LEAD = /^\s*(?:(?:can|could|would) you |please )*(?:(?:open|show(?:\s+me)?|go to|take me to|jump to|öppna|visa(?:\s+mig)?|gå till)\s+)?(?:the\s+)?(?:contract\s+|agreement\s+|avtalet\s+)?#?/i;
+   "MK-450", "mk450", "contract 450" — the number alone and nothing else. On
+   the Board "show me / open / bring up MK-…" keep their contract card (the
+   strip, hbOpenOne / hbBringOf); on the paper "open MK-…" is that paper
+   (caPlaceOf); a question that names a contract stays a question about it. */
+const HB_OPEN_REF_LEAD = /^\s*(?:the\s+)?(?:contract\s+|agreement\s+|avtalet\s+)?#?/i;
 function hbOpenRef(qRaw){
   const q = (typeof caRefFix === 'function') ? caRefFix(String(qRaw || '').trim()) : String(qRaw || '').trim();
   const rest = q.replace(HB_OPEN_REF_LEAD, '').replace(/[?.!\s]+$/, '');
@@ -9221,6 +9222,8 @@ function hbOpenView(id, v){
   /* EVERY OLD DOOR LANDS ON ITS BETTER HOME (owner, 15 Oct 2026): the
      obligations on Jambo's own Obligations tab beside the paper; the history
      and where the deal stands on the contract's strip on the Board */
+  /* Obligations: the Obligations page narrowed to this contract (owner, 15 Oct 2026, "Obligations page, filtered") */
+  if (v === 'oblig' && typeof window.obOpenOnPage === 'function') return obOpenOnPage(c.id);
   if (v === 'oblig' && typeof window.pdOpenOnHome === 'function') return pdOpenOnHome(c.id, 'oblig');
   if (typeof window.hbStripBring === 'function' && hbStripBring(c.id, v === 'hist' ? 'hist' : 'where')) return true;
   if (typeof openWorkspace === 'function') openWorkspace(c.id);

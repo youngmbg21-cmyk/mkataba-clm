@@ -29870,3 +29870,22 @@ icon's fill and the old foot's 12.5px gone) — re-recorded on the owner's yes
 
 [OVERVIEW 2 — THE TIME MACHINE]
 THE TAB IS GONE (owner, 9 Oct 2026); js/views/overview2.js stays loaded only for `runDatedWindows` (POST /api/ai/windows → `c.datedWindows`, run in `triageRun`, not a TRIAGE_STEP; brain part `datedwin`); `paintOverview2` has no caller. Tests: f558.
+
+## THE SEVEN FIXES — GITHUB'S FIRST RUN, AND OBLIGATIONS ON THEIR PAGE (15 Oct 2026, later)
+GitHub's checks on PR 285 found 13 browser files red that the local runs had
+not covered, among them board-views-verify (green on main in CI; it had failed
+locally for another reason, so the BUGLOG line calling it "already red at the
+parent" was wrong — corrected there). They showed the removed views had
+carried the full per-contract obligations table (Overdue tab, amounts, payment
+chain, Find / "Review N proposed", its panel). Asked, the owner picked
+"Obligations page, filtered": hbOpenView 'oblig' and obOpenContract open the
+Obligations page narrowed by its `only` chip (obOpenOnPage), and a narrowing
+naming one contract draws THAT contract's own table on the page
+(obwPaintContract → roomPaintObligations), so nothing was lost. The narrowing
+lasts the visit: arriving any other way or leaving ends it (setView →
+obwOneEnd, held for obOpenOnPage's own setView and for a refresh,
+obwPlacePut); a repaint or a language switch keeps it. On the Board "show me /
+open MK-…" keep the contract card again (board-says-it-plain 2a); only a bare
+number opens the paper (HB_OPEN_REF_LEAD). board-views-verify now pins the
+removal and the landings. CLAUDE.md 79,979 → 79,991 bytes (lines amended and
+tightened).

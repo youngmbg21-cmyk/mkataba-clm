@@ -162,8 +162,8 @@ const FACE = () => {
     const tabs = await page.evaluate(() => [...document.querySelectorAll('.room-tabrow [data-ws-tab]')].map(b => b.getAttribute('data-ws-tab')));
     check('6a the room keeps Overview and Where we are', JSON.stringify(tabs) === JSON.stringify(['terms', 'stands']), JSON.stringify(tabs));
     await page.evaluate(() => roomGoTab(getContract('MK-A2'), 'oblig'));
-    /* RE-POINTED 15 Oct 2026 (owner: the contract's views page went): Obligations is the panel's own tab, History the Board's contract card */
-    check('6b its old Obligations door opens the panel\'s Obligations tab beside the paper', await waitFor(page, () => state.view === 'dashboard' && window.pdTab && pdTab() === 'oblig' && intel.paper && intel.paper.id === 'MK-A2', 8000));
+    /* RE-POINTED 15 Oct 2026 (owner: the contract's views page went): Obligations is the Obligations page narrowed to the contract, History the Board's contract card */
+    check('6b its old Obligations door opens the Obligations page narrowed to the contract', await waitFor(page, () => state.view === 'obligations' && !!document.querySelector('#obw-one-host[data-ins-cid="MK-A2"]'), 8000));
     await page.evaluate(() => { openWorkspace('MK-A2', { room: true }); });
     await waitFor(page, () => state.view === 'workspace', 6000);
     await page.evaluate(() => roomGoTab(getContract('MK-A2'), 'history'));

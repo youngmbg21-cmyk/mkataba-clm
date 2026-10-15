@@ -232,7 +232,7 @@ describe('f675 (6) every door from outside lands on the Board\'s view', () => {
     const o = strip(fnBody(HB, 'hbOpenView'));
     assert.match(o, /window\.innerWidth < 768/);
     assert.match(o, /roomGoTab\([^;]*HB_CV_ROOM_TAB\[v\]\)/);
-    assert.match(o, /if \(v === 'oblig' && typeof window\.pdOpenOnHome === 'function'\) return pdOpenOnHome\(c\.id, 'oblig'\);/, 'Obligations: the panel\'s own tab');
+    assert.match(o, /if \(v === 'oblig' && typeof window\.obOpenOnPage === 'function'\) return obOpenOnPage\(c\.id\);/, 'Obligations: the Obligations page narrowed to the contract');
     assert.match(o, /hbStripBring\(c\.id, v === 'hist' \? 'hist' : 'where'\)/, 'History and the rest: the Board\'s contract card');
     assert.doesNotMatch(o, /hbCvSet\(/, 'no view is turned');
   });

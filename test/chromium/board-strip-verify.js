@@ -268,9 +268,9 @@ const OBS = [
     /* the doors land where they say, nothing spent */
     await page.click(`${strip('MK-L1')} [data-bs-go="oblig"]`);
     /* RE-POINTED 15 Oct 2026 (owner: the contract's views went; "obligations has its own panel") */
-    const ob = await waitFor(page, () => state.view === 'dashboard' && hbFace() === 'paper' && window.pdTab && pdTab() === 'oblig' && intel.paper && intel.paper.id === 'MK-L1', 6000);
-    check('2t "Review the obligations ›" opens its paper with the panel\'s Obligations tab', ob);
-    await page.evaluate(() => hbSetFace('board'));
+    const ob = await waitFor(page, () => state.view === 'obligations' && !!document.querySelector('#obw-one-host[data-ins-cid="MK-L1"]'), 6000);
+    check('2t "Review the obligations ›" opens the Obligations page narrowed to it', ob);
+    await page.evaluate(() => { setView('dashboard'); hbSetFace('board'); });
     await waitFor(page, () => hbFace() === 'board' && !!document.querySelector('#bs-strip-MK-L1'), 6000);
     await page.click(`${strip('MK-L1')} [data-bs-open]`);
     const opened = await waitFor(page, () => state.view === 'dashboard' && hbFace() === 'paper' && window.intel && intel.paper && intel.paper.id === 'MK-L1', 6000);

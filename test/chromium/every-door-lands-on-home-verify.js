@@ -153,7 +153,8 @@ const LAND = () => {
     rlList: state.view === 'redline' && !document.getElementById('rl-doc'),
     dialog: !!document.querySelector('.modal-overlay:not(.hidden), #confirm-overlay:not(.hidden), #cmd-palette'),
     /* the obligation the Board's view has chosen, and the wall's count line */
-    obSel: (() => { const r = document.querySelector('#hb-cv-body tr.is-sel[data-ob-key], #pd-body .pd-ob.is-chosen[data-pd-ob-key]'); return r ? (r.getAttribute('data-ob-key') || r.getAttribute('data-pd-ob-key')) : null; })(),
+    obCid: (() => { const h = document.querySelector('#obw-one-host'); return h ? h.getAttribute('data-ins-cid') : null; })(),
+    obSel: (() => { const r = document.querySelector('#obw-one-host .is-sel[data-ob-key]'); return r ? r.getAttribute('data-ob-key') : null; })(),
     count: (() => { const n = document.querySelector('#ig-wall .igw-count'); return n ? n.textContent.trim() : null; })(),
     /* Jambo's Share card in the panel (the glance's Share asks his word "share", which answers with it) */
     shareCard: !!document.querySelector('#ig-dock [data-ca-act="shareout"]'),
@@ -162,10 +163,10 @@ const LAND = () => {
     stripPage: (() => { const n = document.querySelector('#bs-strips > .bs-strip'); return n ? n.getAttribute('data-bs-on') : null; })(),
   };
 };
-const KEY = L => [L.view, L.room, L.negPage, L.face, L.paper, L.pd, L.tab, L.cv, L.wall, L.only, L.place, L.show, L.stage, L.strip, L.stripPage].join('|');
+const KEY = L => [L.view, L.room, L.negPage, L.face, L.paper, L.pd, L.tab, L.cv, L.wall, L.only, L.place, L.show, L.stage, L.strip, L.stripPage, L.obCid, L.obSel].join('|');
 const SAY = L => `${L.view}${L.face && L.view === 'dashboard' ? '/' + L.face : ''}${L.paper ? ' paper ' + L.paper : ''}${L.pd ? ' face ' + L.pd : ''}`
   + `${L.view === 'dashboard' && L.face === 'paper' && L.paper && !L.pd ? ' tab ' + L.tab : ''}${L.cv && L.face === 'board' ? ' view ' + L.cv : ''}`
-  + `${L.place && !L.paper && L.face === 'paper' ? ' Contracts ' + (L.show || '?') + (L.stage && L.stage !== 'all' ? ' tab ' + L.stage : '') + (L.only ? ' (' + L.only + ' sent' + (L.wall ? ', "' + L.count + '"' : '') + ')' : '') : ''}${L.obSel && L.face === 'board' ? ' row ' + L.obSel : ''}${L.strip && L.face === 'board' && L.view === 'dashboard' && (!L.cv || /^book:/.test(L.cv)) ? ' strip ' + L.strip + ' (' + L.stripPage + ')' : ''}${L.room ? ' ROOM' : ''}${L.negPage ? ' NEGOTIATE-PAGE' : ''}`;
+  + `${L.view === 'obligations' && L.obCid ? ' narrowed to ' + L.obCid + (L.obSel ? ' row ' + L.obSel : '') : ''}${L.place && !L.paper && L.face === 'paper' ? ' Contracts ' + (L.show || '?') + (L.stage && L.stage !== 'all' ? ' tab ' + L.stage : '') + (L.only ? ' (' + L.only + ' sent' + (L.wall ? ', "' + L.count + '"' : '') + ')' : '') : ''}${L.obSel && L.face === 'board' ? ' row ' + L.obSel : ''}${L.strip && L.face === 'board' && L.view === 'dashboard' && (!L.cv || /^book:/.test(L.cv)) ? ' strip ' + L.strip + ' (' + L.stripPage + ')' : ''}${L.room ? ' ROOM' : ''}${L.negPage ? ' NEGOTIATE-PAGE' : ''}`;
 /* the room and the Negotiate page drawn on any frame between the press and the landing */
 const WATCH = () => {
   window._door = { room: false, neg: false };
@@ -192,9 +193,11 @@ const E = {
   /* RE-POINTED 15 Oct 2026 (owner: the contract's views went): a door that
      opened the Board's view lands on its home — Obligations on the panel's
      tab, History on the strip's History page, the rest on Where we are */
-  board: (id, v) => L => v === 'oblig' ? E.obTab(id)(L) : E.strip(id, v === 'hist' ? 'hist' : 'where')(L),
-  /* the panel's Obligations tab with THAT row chosen */
-  obRow: (id, key) => L => E.obTab(id)(L) && L.obSel === key,
+  board: (id, v) => L => v === 'oblig' ? E.obPage(id)(L) : E.strip(id, v === 'hist' ? 'hist' : 'where')(L),
+  /* Obligations: the Obligations page narrowed to the contract (owner, 15 Oct 2026, "Obligations page, filtered") */
+  obPage: id => L => L.view === 'obligations' && L.obCid === id,
+  /* ... THAT row chosen there */
+  obRow: (id, key) => L => E.obPage(id)(L) && L.obSel === key,
   boardFace: L => L.view === 'dashboard' && L.face === 'board',
   wall: n => L => L.view === 'dashboard' && L.face === 'paper' && !L.paper && L.place && L.show === 'wall' && L.wall && (n == null ? !L.only : L.only === n),
   /* the Contracts place drawn as the List (step 7), and on a stage's tab */
@@ -209,7 +212,7 @@ const E = {
   ngList: L => L.view === 'redline' && L.rlList,
 };
 const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'Fill in beside the paper', red: 'Redlines beside the paper',
-  signing: 'Before you sign beside the paper', obTab: 'the paper, Jambo\'s Obligations tab', board: 'its home (the panel\'s Obligations tab or the strip)', wall: 'Home\'s Contracts place, the Wall',
+  signing: 'Before you sign beside the paper', obTab: 'the paper, Jambo\'s Obligations tab', obPage: 'the Obligations page, narrowed to the contract', board: 'its home (the Obligations page or the strip)', wall: 'Home\'s Contracts place, the Wall',
   list: 'Home\'s Contracts place, the List',
   strip: 'its strip on the Board', stripWhere: 'its strip on the Board, on Where we are', stripDetails: 'its strip on the Board, on Details (the Overview\'s sheet)' };
 
@@ -306,7 +309,11 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
       record(area, name, !bad.length, SAY(L), bad.join('; '), o.pending);
     } catch (e) { record(area, name, false, 'the press threw', String(e && e.message || e).slice(0, 160), o.pending); }
   };
-  const go = view => page.evaluate(v => { if (v === 'redline' && typeof openNegotiations === 'function') openNegotiations({ list: true }); else setView(v); }, view);
+  /* the Obligations page is reached as the rail reaches it (fresh filters, obwGoFiltered): a
+     contract's door narrows that page to the contract since 15 Oct 2026, and a press of the
+     rail is what takes it back to the whole book */
+  const go = view => page.evaluate(v => { if (v === 'redline' && typeof openNegotiations === 'function') openNegotiations({ list: true });
+    else if (v === 'obligations' && typeof obwGoFiltered === 'function') obwGoFiltered({}); else setView(v); }, view);
   /* A ROW DOES NOT DEPEND ON WHERE THE LAST DOOR LEFT THE PAGE: a page that
      is not ready in its bound is reached again from a neutral one */
   const goPage = async (view, ready, arg) => { const ok = () => waitFor(page, ready || (v => state.view === v), 8000, ready ? arg : view);
@@ -493,9 +500,9 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
     await door(A, 'Approvals Open, narrow (MK-A2)', { start: () => goPage('approvals', () => !!document.querySelector('[data-ap-open="MK-A2"]')), press: () => click('[data-ap-open="MK-A2"]'), expect: E.signing('MK-A2'), says: SAYS.signing });
     /* narrow, the Board's view is the full table too: every row drawn, none chosen (no panel) */
     await door(A, 'Obligations row, one press, narrow (MK-A1)', { start: () => goPage('obligations', () => !!document.querySelector('.obw-table tr[data-obw-row="ob-a1-1"]')),
-      press: () => click('.obw-table tr[data-obw-row="ob-a1-1"] .obw-when'), expect: E.board('MK-A1', 'oblig'), says: SAYS.obTab });
+      press: () => click('.obw-table tr[data-obw-row="ob-a1-1"] .obw-when'), expect: E.obPage('MK-A1'), says: SAYS.obPage });
     await door(A, 'Obligations Open contract, narrow (MK-A1, a later one)', { start: () => goPage('obligations', () => !!document.querySelector('tr[data-obw-row="ob-a1-3"] [data-obw-open]')),
-      press: () => click('tr[data-obw-row="ob-a1-3"] [data-obw-open]'), expect: E.board('MK-A1', 'oblig'), says: SAYS.obTab });
+      press: () => click('tr[data-obw-row="ob-a1-3"] [data-obw-open]'), expect: E.obPage('MK-A1'), says: SAYS.obPage });
     await door(A, 'Parties row, one press, narrow (Naivas)', { start: () => goPage('customers', s => !!document.querySelector(s), CU), press: () => click(CU), expect: PARTY, says: PSAYS });
     await door(A, 'Requests Open, narrow (→ MK-A2)', { start: async () => { await goPage('intake'); await domClick('[data-ik-view="all"]'); await waitFor(page, () => !!document.querySelector('[data-ik-open="MK-A2"]'), 6000); },
       press: () => click('[data-ik-open="MK-A2"]'), expect: E.paper('MK-A2'), says: SAYS.paper });
@@ -749,7 +756,7 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
       ['on the Redlines face (MK-R1)', () => page.evaluate(() => pdRedOpen('MK-R1')), E.red('MK-R1'), SAYS.red, null],
       ['on Fill in (MK-A2)', () => page.evaluate(() => pdFillOpen('MK-A2')), E.fill('MK-A2'), SAYS.fill, null],
       ['on Before you sign (MK-A2)', () => page.evaluate(() => pdSignOpen('MK-A2')), E.signing('MK-A2'), SAYS.signing, null],
-      ['on the Board\'s Obligations view (MK-A1)', () => page.evaluate(() => hbOpenView('MK-A1', 'oblig')), E.board('MK-A1', 'oblig'), SAYS.obTab, null],
+      ['on the Obligations page narrowed to a contract (MK-A1)', () => page.evaluate(() => hbOpenView('MK-A1', 'oblig')), E.obPage('MK-A1'), SAYS.obPage, null],
       ['on the wall narrowed to a party', () => page.evaluate(() => cuOpenCustomer('naivas supermarkets')), PARTY, PSAYS, null],
       ['on the Negotiations list', () => go('redline'), E.ngList, 'the Negotiations list', null],
       /* the room by name (the checks' own door) and a refresh standing on it: the strip */

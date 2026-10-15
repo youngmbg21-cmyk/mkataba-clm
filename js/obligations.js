@@ -2344,7 +2344,7 @@ const OBW_DEF = { whose:'all', state:'open', side:'all', folder:'all', due:'all'
    across a reload, read by placeSave and put back by placeResume (js/app.js)
    BEFORE the first paint. */
 function obwPlace(){ return { ...obwFilters() }; }
-function obwPlacePut(p){ if(p) _obwF={ ...OBW_DEF, ...p }; }
+function obwPlacePut(p){ if(p){ _obwF={ ...OBW_DEF, ...p }; if(p.only && p.only.cid) _obwOneHold = true; } }   /* a refresh keeps one contract's narrowing */
 function obwFilters(){
   if(!_obwF) _obwF = { ...OBW_DEF };
   return _obwF;
@@ -2371,6 +2371,37 @@ function obwOnly(f){
   if(!o || !Array.isArray(o.keys)) return null;
   if(!o._set) Object.defineProperty(o, '_set', { value: new Set(o.keys), enumerable: false });
   return o;
+}
+/* ONE CONTRACT'S OBLIGATIONS ON THIS PAGE (owner, 15 Oct 2026: the
+   contract's views went; "Obligations page, filtered"): a door that opened
+   the Board's Obligations view of a contract lands here, narrowed to that
+   contract by the `only` chip (its × is the way back to every contract). The
+   page then draws THAT CONTRACT'S OWN TABLE — the builder the view drew
+   (roomPaintObligations: its tabs, amounts, payment chain, Find / "Review N
+   proposed" and panel) — so nothing the view carried is lost; its row is
+   picked when the door carries one. */
+function obOpenOnPage(cid, key){
+  const c = window.getContract ? getContract(cid) : null; if(!c) return false;
+  const keys = (c.obligations || []).map((o, i) => o ? obKeyOf(c.id, o, i) : null).filter(Boolean);
+  const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
+  if(key){
+    if(typeof window.insSelect === 'function') insSelect('oblig:' + c.id, String(key));
+    const r = obtRowsOf(c).find(x => x._key === String(key));
+    if(r && !obtPass(r, obtView(c.id))) _obtView[c.id] = r.st === 'done' ? 'done' : 'open';
+  }
+  _obwOneHold = true;
+  obwGoFiltered({ state: 'all', only: { keys, label: ref + ' · ' + (c.name || ''), cid: String(c.id) } });
+  _obwOneHold = false;
+  return true;
+}
+let _obwOneHold = false;   // raised by obOpenOnPage for the one setView it makes
+function obwOneEnd(){ if(_obwOneHold){ _obwOneHold = false; return; } const f = obwFilters(); if(f.only && f.only.cid) f.only = null; }
+function obwPaintContract(host, c, f){
+  _obwHeadFacts = '';
+  obwPaintHead();
+  host.innerHTML = `<div class="obw-one"><div class="obw-filters">${obwOnlyChipHtml(f)}</div><div id="obw-one-host"></div></div>`;
+  host.querySelector('[data-obw-only-clear]')?.addEventListener('click', () => { f.only = null; obwRepaint(); });
+  roomPaintObligations(c, host.querySelector('#obw-one-host'));
 }
 function obwOnlyChipHtml(f){
   const o = obwOnly(f);
@@ -2543,6 +2574,9 @@ function obwRepaint(){
 function renderObligationsList(){
   const host = document.getElementById('content');
   if(!host) return;
+  /* one contract asked for: its own table (obOpenOnPage) */
+  { const fo = obwOnly(obwFilters()); const one = fo && fo.cid && window.getContract ? getContract(fo.cid) : null;
+    if(one){ obwPaintContract(host, one, obwFilters()); return; } }
   /* THE INSPECTOR WHERE THE WIDTH HOLDS IT (26 Sep 2026). Below INS_MIN_W the
      table below is drawn exactly as before, because a panel squeezed beside a
      list too narrow for its columns cuts both. */
@@ -3290,7 +3324,8 @@ async function obligationRemove(c, i){
    Reminder Line's dots): that row is picked on the tab before it paints, and
    a tab left on Completed is put back on Outstanding, where an open one is. */
 function obOpenContract(cid, key){
-  /* AN OBLIGATION OPENS ITS CONTRACT ON THE BOARD'S OBLIGATIONS VIEW (the
+  /* AN OBLIGATION OPENS ITS CONTRACT'S OWN TABLE — the Board's Obligations
+     view until 15 Oct 2026, the narrowed Obligations page since (the
      overnight work order, step 2; owner's "Go", 14 Oct 2026; was Home's
      Document on Jambo's Obligations tab, 11 Oct): the list's rows, a
      double-click, Enter and the narrow table's Open all land there, the row
@@ -3311,6 +3346,11 @@ function obOpenContract(cid, key){
   /* the room's Obligations tab went home (the one-page Home plan, stage 5):
      the Board's Obligations view, the row chosen there the same way; the
      phone, where Home has no Board view, opens its own tab */
+  /* SINCE 15 OCT 2026 the Board's view is gone (owner: "Obligations page,
+     filtered"): the Obligations page narrowed to the contract, its own table,
+     the row chosen there the same way */
+  const phone = typeof window !== 'undefined' && window.innerWidth && window.innerWidth < 768;
+  if(!phone && typeof window.obOpenOnPage === 'function' && obOpenOnPage(cid, key)) return;
   if(typeof window.roomOpenAt === 'function'){ roomOpenAt(cid, 'oblig'); return; }
   if(!window.openWorkspace) return;
   openWorkspace(cid);
@@ -3764,4 +3804,4 @@ Object.assign(window,{obligationIsDoc,obligationDocUntil,obligationDocFile,oblig
   obligationReminderSay,obligationHistory,obligationStampHistory,obHistoryHtml,obChainSectionHtml,obDocSectionHtml,obWordingSectionHtml,
   obligationShowInContract,obKeyOf,obLocate,obPanelActs,obligationRemove,obOpenContract,obPanelOpts,obPaintPanel,obListHtml,obTableHtml,
   OBW_VIEWS,OBW_CHIPS,obwPlace,obwPlacePut,obwBook,obwPass,obwPaintHead,renderObligationsInspector,OBT_VIEWS,obtView,obtRowsOf,obtPass,obReportHtml,roomObligationsInspector,
-  OBLIG_RECUR,obRecurLabel,OBLIG_BANDS,OBLIG_TEXT_MIN,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwNarrowing,obwOnly,obwOnlyChipHtml,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationOwnerTo,obligationIsMine,obligationRemindsMe,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,RENEWAL_ANSWERS,renewalQuestionOf,renewalDecisionOf,renewalRecordedOf,renewalDecisionStale,renewalDecided,RENEWAL_PAPER_KINDS,renewalNextStep,renewalNoticeTo,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,obligationsText,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview,OB_KINDS,OB_WHOSE,obKindOf,obWhoseOf,obReviewOf,obReviewMark,obReviewDecision,obReviewTally,obReviewWaiting,obKindSplitText,obFindWord});
+  OBLIG_RECUR,obRecurLabel,OBLIG_BANDS,OBLIG_TEXT_MIN,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwNarrowing,obwOnly,obwOnlyChipHtml,obOpenOnPage,obwPaintContract,obwOneEnd,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationOwnerTo,obligationIsMine,obligationRemindsMe,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,RENEWAL_ANSWERS,renewalQuestionOf,renewalDecisionOf,renewalRecordedOf,renewalDecisionStale,renewalDecided,RENEWAL_PAPER_KINDS,renewalNextStep,renewalNoticeTo,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,obligationsText,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview,OB_KINDS,OB_WHOSE,obKindOf,obWhoseOf,obReviewOf,obReviewMark,obReviewDecision,obReviewTally,obReviewWaiting,obKindSplitText,obFindWord});

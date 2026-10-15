@@ -20807,3 +20807,4 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - board-views-verify describes the contract's views the owner removed today and was already red at the parent (1 passed, 3 failed); left as it was — retiring it is the owner's call. The views' builders (hbCvSwitchHtml, hbCvPaint, hbCvPrint, hbCvDownload, hbCvGive, the 'cv' gift kind) are no longer reached from the Board and stay in the code unremoved.
 - notes-two-rooms-verify is 88/92 before and after this round (on KNOWN_RED); unchanged.
 - the amendment's "signed wording" read by amendParentClauses leaves a filled blank's value out ("an estimated metric tonnes" where the paper shows 5000); the same reading the amendment dialog has always used, not changed here.
+- (correction, same day) board-views-verify was NOT red at the parent on GitHub (it failed only locally); it is now rewritten to pin the views' removal and passes.
