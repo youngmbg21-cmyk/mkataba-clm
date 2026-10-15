@@ -29780,3 +29780,49 @@ filtered on the name it was GIVEN (none) before naming the view itself. Now:
 Tests: explorer-recipe-verify 6a, 6a2, 6b, 6c (re-pointed from the panel's
 chips; 6a and 6c are red at the parent), home-first-verify 1a.
 CLAUDE.md: 79,989 → 80,000 bytes (lines amended and tightened, none added).
+
+## STAKES — THE DEEP DIVE IN THE READER'S LANGUAGE, IN PLAIN WORDS (15 Oct 2026)
+
+The owner asked: "are the explanations or content in the deep dive section in
+hati in plain english?" The answer found: the headings and buttons were plain,
+but Jambo was asked for plain English in ONE line ("Short plain English for a
+non-lawyer"), against the Plain English edition's full rule; and neither read
+behind the Clauses tab (the list, POST /api/ai/breakdown, and a point's dive,
+POST /api/ai/breakdown/point) said which language to write in, so a Swedish
+reader saw Swedish headings over English prose — the half-translated screen
+READ_LANGS was written to end. The owner: "do these 2: Make the deep dive
+answer in the reader's language. Give it the same fuller plain-English rules
+the clause reading uses." (The other two offered, rewording "redlining" and
+"not filed", were not asked for and are unchanged.)
+
+- ONE HOME FOR THE SHARED LINES: PLAIN_FOR_WHOM (no lawyer, everyday words, a
+  legal term said with its meaning) and PLAIN_TONE (professional, plain, not
+  chatty) stand above READ_PLAIN_RULE, which uses them in place; the edition's
+  prompt is byte-identical. STAKES_PLAIN_RULE borrows them plus the figures
+  and naming rules; the rest of the edition's rule is a translation's and is
+  NOT borrowed — the deep read judges and advises (that is its job), and calls
+  our side "we" because its headings do ("What it costs us", "Our edge").
+- THE READER'S LANGUAGE: stakesWriteRule(req) = "WRITE EVERYTHING IN
+  <readLangOf>" + the rule, on BOTH reads — the list too, because its point
+  titles head every dive. The contract's own words stay the contract's: quotes,
+  clause numbers and the ask (the ask's description says "the contract's own
+  language and style").
+- THE LANGUAGE IS IN THE KEY, as the edition's is: each answer says `lang`;
+  bdRun keeps it on c.breakdown; bdOf serves a reading only to a reader of its
+  language (none kept = English, as every reading before was). One kept reading
+  per contract, so in a team reading one contract in both languages the reading
+  is made again (one list read, on opening Clauses) when the other language
+  opens it, and points' dives are asked again on their press. Chosen over two
+  kept readings because the reading rides every list row (HEAVY does not strip
+  it).
+- THE LATCH LETS A SWITCH BACK READ: stkKey carries the language, and a read
+  made in one language frees the others' "tried" latches for that contract
+  (bdRun), so English → Svenska → English in one sitting reads again instead of
+  waiting on Read again. By the contract id, not the hash: a probe found
+  triageWordingHash of a template-drawn paper differs between the languages
+  (6 of 6 fixtures; an upload's does not) — logged in BUGLOG, not fixed.
+Tests: f668 (3) five checks, all red at the parent; f277 (5) re-pointed to the
+shared lines' region; stakes-verify 10 (red at the parent: the kept reading
+never says Swedish) and 10b.
+CLAUDE.md: 80,000 → 80,179 bytes (the Stakes entry gains one line; its first
+line tightened).

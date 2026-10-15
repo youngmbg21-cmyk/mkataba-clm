@@ -219,9 +219,10 @@ Below 768px js/mobile*.js draws instead: same readings, files NO changes of its 
 Tests: f447, f448, f482, f483, f496–f504, f511–f521, f524–f543, f549–f552, f560, f562–f567, f657, f658, f660, f672, f675, f679; board-*/chart-*/home-*/copilot-*, document-wall, jambo-words, board-views, draft-upload-glance, one-page-home-walk verify.
 
 ## STAKES — THE CLAUSES TAB CARRIES THE DEEP READ (13 Oct 2026)
-- Drawn by `stkDecorate` (js/views/breakdown.js) from ONE kept reading `c.breakdown`: POST /api/ai/breakdown the list (`BREAKDOWN_POINTS_MAX`), POST /api/ai/breakdown/point the dive (`stkDiveFetch`, `_dove`); opening Clauses is the press (`stkAutoRun`, `_bd.tried`); filters `stkShown`; points = Jambo's + departures (`stkStdPoints`) + every dot's mark (`stkMarkPoints`); no wording in the panel (`igQuoteGo`).
+- `stkDecorate` (js/views/breakdown.js) draws ONE kept reading `c.breakdown`: POST /api/ai/breakdown the list (`BREAKDOWN_POINTS_MAX`), …/point the dive (`stkDiveFetch`, `_dove`); opening Clauses is the press (`stkAutoRun`, `_bd.tried`); filters `stkShown`; points = Jambo's + departures (`stkStdPoints`) + every dot's mark (`stkMarkPoints`); no wording in the panel (`igQuoteGo`).
 - "Start redlining with this ask" (`stkRedlineGo` → `rlLandOn`) opens Edit with Jambo, the ask on a card (`ceOfferAsk`), nothing filed; "‹ Back to Clauses" (`rlCameFrom`, `rlBackToClauses` → `stkResume`); "Ask Jambo about this" leaves a question unsent (`land.question`); prose clipped at a word (`aiClip`). STALE: `.stk-rsq`, `.stk-reg`.
-Tests: stakes-verify, jambo-pill-and-window 3a, f671.
+- READER'S LANGUAGE, PLAIN WORDS (15 Oct 2026): both reads take `stakesWriteRule` (`readLangOf`; `STAKES_PLAIN_RULE` shares `PLAIN_FOR_WHOM`/`PLAIN_TONE`); `bdOf` asks the kept `lang`.
+Tests: stakes-verify (10), jambo-pill-and-window 3a, f668, f671, f277 (5).
 
 ## INSIGHTS
 - COUNTING IS NOT DRAWING: a `*Data` + a renderer per panel; `pfPanelData`/`PF_PANEL_DATA` the one door (`get_insights_panel` both hosts); `IG_TABS` Portfolio · Friction · Obligations · Payment terms · Exposure; `.igx-fig` the ONE tile; doors → `regShowOnly`; `exposureGridData` (no score, unseen streams never named).

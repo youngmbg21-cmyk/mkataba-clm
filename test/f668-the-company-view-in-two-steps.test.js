@@ -75,3 +75,69 @@ describe('f668 (2) — a point\'s deep dive is its own read', () => {
     assert.ok(r && (r.error || r.status === 400 || /point is required/.test(String(r.message || ''))), 'refused: ' + JSON.stringify(r));
   });
 });
+
+/* f668 (3) — IN THE READER'S LANGUAGE, IN PLAIN WORDS (owner, 15 Oct 2026:
+   "Make the deep dive answer in the reader's language. Give it the same
+   fuller plain-English rules the clause reading uses"). Both reads are asked
+   in the caller's own language and carry the Plain English edition's shared
+   lines; each answer says the language it was written in, so the browser
+   keeps it only for a reader of that language. */
+describe('f668 (3) — the reader\'s language, and the plain words', () => {
+  const LIST = { type: 'tool_use', id: 'tu', name: 'break_down', input: {
+    regions: [{ name: 'Risk', status: 'need', items: [{ ref: '2' }] }],
+    points: [{ clause: '2', region: 1, status: 'need', title: 'Capped liability', stake: 'A failure could cost us more.' }] } };
+  const DIVE = { type: 'tool_use', id: 'tu', name: 'dive_point', input: { what: 'Det kan kosta oss mer.', usual: 'Tolv månader.' } };
+  const POINT = { title: 'Capped liability', clause: '2', stake: 'A failure could cost us more.' };
+  const setLang = lang => W.admin.json('/api/me/lang', { method: 'PUT', body: { lang } });
+  after(() => setLang('en'));
+  const promptOf = () => JSON.stringify(ai.calls[ai.calls.length - 1].body.messages);
+
+  test('a Swedish reader is answered in Swedish, on both reads', async () => {
+    await setLang('sv');
+    ai.reset(); ai.script([LIST]);
+    const r = await W.admin.json('/api/ai/breakdown', { method: 'POST', body: { text: TEXT } });
+    assert.equal(r.lang, 'sv', 'the list says the language it was written in');
+    assert.match(promptOf(), /WRITE EVERYTHING IN Swedish, whatever language the contract itself is written in/);
+    ai.reset(); ai.script([DIVE]);
+    const d = await W.admin.json('/api/ai/breakdown/point', { method: 'POST', body: { text: TEXT, point: POINT } });
+    assert.equal(d.lang, 'sv', 'and so does the dive');
+    assert.match(promptOf(), /WRITE EVERYTHING IN Swedish/);
+  });
+  test('an English reader is answered in English', async () => {
+    await setLang('en');
+    ai.reset(); ai.script([DIVE]);
+    const d = await W.admin.json('/api/ai/breakdown/point', { method: 'POST', body: { text: TEXT, point: POINT } });
+    assert.equal(d.lang, 'en');
+    assert.match(promptOf(), /WRITE EVERYTHING IN English/);
+  });
+  test('the contract\'s own words are never translated', async () => {
+    ai.reset(); ai.script([DIVE]);
+    await W.admin.json('/api/ai/breakdown/point', { method: 'POST', body: { text: TEXT, point: POINT } });
+    assert.match(promptOf(), /never translated: the key words you quote, clause numbers, and any wording meant to go into the contract/);
+    const ask = ai.calls[ai.calls.length - 1].body.tools.find(t => t.name === 'dive_point').input_schema.properties.ask.description;
+    assert.match(ask, /in the contract's own language and style/, 'the wording we would ask for is the contract\'s');
+  });
+  test('both reads carry the Plain English edition\'s own lines, said once in one home', async () => {
+    const SRC = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'server', 'server.js'), 'utf8');
+    const whom = /const PLAIN_FOR_WHOM = '([^']+)'/.exec(SRC), tone = /const PLAIN_TONE = '([^']+)'/.exec(SRC);
+    assert.ok(whom && tone, 'the shared lines have one home');
+    for (const [route, call] of [['/api/ai/breakdown', LIST], ['/api/ai/breakdown/point', DIVE]]){
+      ai.reset(); ai.script([call]);
+      await W.admin.json(route, { method: 'POST', body: { text: TEXT, point: POINT } });
+      const p = JSON.parse(promptOf())[0].content;
+      assert.ok(p.includes(whom[1]), route + ': written for somebody with no lawyer, everyday words');
+      assert.ok(p.includes(tone[1]), route + ': plain, not chatty');
+      assert.match(p, /KEEP EVERY FIGURE the wording states/, route + ': the figures kept, in plain words');
+      assert.match(p, /Call our own side "we" and "us"/, route + ': our side as the headings call it');
+    }
+    assert.doesNotMatch(SRC, /Short plain English for a non-lawyer/, 'the old one-line ask is gone');
+  });
+  test('the browser keeps a reading only for a reader of its language', () => {
+    const BD = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js', 'views', 'breakdown.js'), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+    const bdOf = BD.slice(BD.indexOf('function bdOf'), BD.indexOf('function bdStale'));
+    assert.match(bdOf, /\(b\.lang \|\| 'en'\) === bdLang\(\)/, 'a reading in another language is not this reader\'s');
+    assert.match(BD, /live\.breakdown = \{ ok: true, hash: bdHash\(live\), lang: r\.lang \|\| 'en'/, 'the reading keeps the language it came back in');
+    assert.match(BD, /const stkKey = c => String\(c && c\.id\) \+ ':' \+ bdHash\(c\) \+ ':' \+ bdLang\(\);/, 'a language switch may read again in the same sitting');
+  });
+});

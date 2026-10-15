@@ -400,6 +400,37 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
     const tabs = await page.evaluate(() => { pdOpenOnHome('MK-S1', 'facts');
       return new Promise(r => setTimeout(() => r({ tabs: [...document.querySelectorAll('#ig-dock [data-pd-tab]')].map(b => b.getAttribute('data-pd-tab')), on: pdTab() }), 900)); });
     ok('8 Home\'s panel has no Overview tab, and its old door lands on Jambo', tabs.tabs.join(',') === 'copilot,doc,oblig' && tabs.on === 'copilot', JSON.stringify(tabs));
+    /* 10 THE READING FOLLOWS THE READER (owner, 15 Oct 2026: "Make the deep
+       dive answer in the reader's language"): the reading made in English (the
+       scanned contract, read in step 9 and untouched since) is not served to a
+       Swedish reader — opening Clauses reads it again, once, the server naming
+       the language it wrote in, and that one is kept; back in English, the
+       same sitting, it reads again once (the latch does not hold it shut) */
+    const lg = await page.evaluate(async () => {
+      const wait = async f => { for (let i = 0; i < 40 && !f(); i++) await new Promise(r => setTimeout(r, 250)); return !!f(); };
+      const o = window.api;
+      window.api = async function (p, ...a){ const r = await o.call(this, p, ...a); if (p === 'ai/breakdown' && r && !r.error) r.lang = langId(); return r; };
+      const n0 = window.__bd.n, was = (getContract('MK-S3').breakdown || {}).lang || 'en';
+      langSet('sv');
+      pdOpenOnHome('MK-S3', 'doc');
+      const read = await wait(() => (getContract('MK-S3').breakdown || {}).lang === 'sv' && document.querySelector('#pd-thread .stk-line'));
+      const n1 = window.__bd.n;
+      pdOpenOnHome('MK-S3', 'copilot'); await new Promise(r => setTimeout(r, 300));
+      pdOpenOnHome('MK-S3', 'doc'); await wait(() => document.querySelector('#pd-thread .stk-line'));
+      await new Promise(r => setTimeout(r, 800));
+      const n2 = window.__bd.n;
+      langSet('en');
+      pdOpenOnHome('MK-S3', 'copilot'); await new Promise(r => setTimeout(r, 300));
+      pdOpenOnHome('MK-S3', 'doc');
+      const back = await wait(() => (getContract('MK-S3').breakdown || {}).lang === 'en' && document.querySelector('#pd-thread .stk-line'));
+      const n3 = window.__bd.n, again = !!document.querySelector('#pd-thread [data-stk-run]');
+      window.api = o;
+      return { was, read, n0, n1, n2, back, n3, again };
+    });
+    ok('10 a Swedish reader is not served the English reading: Clauses reads it again once, in Swedish, and keeps it',
+      lg.was === 'en' && lg.read && lg.n1 === lg.n0 + 1 && lg.n2 === lg.n1, JSON.stringify(lg));
+    ok('10b back in English the same sitting, it reads again once in English, with no Read again press',
+      lg.back && lg.n3 === lg.n2 + 1 && !lg.again, JSON.stringify(lg));
     ok('7 no page errors', errs.length === 0, errs.join(' | ').slice(0, 300));
   } finally { await browser.close(); await h.stop(); }
   console.log(`${pass}/${pass + fail} checks passed`);
