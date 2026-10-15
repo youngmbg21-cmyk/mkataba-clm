@@ -20808,3 +20808,5 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - notes-two-rooms-verify is 88/92 before and after this round (on KNOWN_RED); unchanged.
 - the amendment's "signed wording" read by amendParentClauses leaves a filled blank's value out ("an estimated metric tonnes" where the paper shows 5000); the same reading the amendment dialog has always used, not changed here.
 - (correction, same day) board-views-verify was NOT red at the parent on GitHub (it failed only locally); it is now rewritten to pin the views' removal and passes.
+
+- Noticed, not fixed (15 Oct 2026): doors-look-like-doors-verify A2 failed once on GitHub after PR #285 merged (the typed counterparty "Changed AB" never reached the record; the value did). It passes 6 of 6 locally on main and at the parent, and the file was not changed. Likely a timing race: the check waits with fixed pauses (pause(300)) instead of asking for the state, against the "a wait asks for the state, bounded" rule.
