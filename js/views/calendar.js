@@ -1471,6 +1471,9 @@ function calStyleCss(){ return `
   .cal-cop{border-left:1px solid var(--color-divider);display:flex;flex-direction:column;min-width:0;min-height:0}
   .cal-cop .cal-plan-head{padding:12px 14px}
   .cal-cop .cal-plan-head b{font-size:var(--t-body)}
+  /* HIS FACE, NOT A SPARKLE (owner, 15 Oct 2026: "jambos emoji is not there just his name") — the chats wear his face */
+  .cal-plan-head b{display:inline-flex;align-items:center;gap:7px}
+  .cal-plan-head .cal-plan-face{flex:none;border-radius:50%}
   .cal-cop .cal-plan-lv{font-size:var(--t-meta);color:var(--color-neutral-600)}
   .cal-cop .cal-plan-lv select{border:0;background:none;font-weight:var(--w-label);color:var(--color-text);padding:0 2px;height:auto;cursor:pointer}
   .cal-cop .cal-plan-body{padding:12px 14px;gap:10px}
@@ -1814,7 +1817,7 @@ function calPlanHtml(){
   const nx=calPlanNextRef();
   const off=_calPlan.busy?' disabled':'';
   return `<aside class="cal-cop" id="cal-plan" aria-label="${_esc(i18t('ce_copilot'))}">
-    <div class="cal-plan-head"><b>&#10022; ${_esc(i18t('ce_copilot'))}</b>
+    <div class="cal-plan-head"><b>${(window.jamboFaceHtml ? jamboFaceHtml('hello', 18, 'cal-plan-face').replace('<img', '<img data-ink-exempt') : '&#10022;')}${_esc(i18t('ce_copilot'))}</b>
       <label class="cal-plan-lv">${_esc(i18t('cal_plan_level'))}
         <select id="cal-plan-level"><option value="ask"${auto?'':' selected'}>${_esc(i18t('cal_plan_ask'))}</option><option value="auto"${auto?' selected':''}>${_esc(i18t('cal_plan_auto'))}</option></select></label></div>
     <div class="cal-plan-body scroll-thin" id="cal-plan-body">${you}${answer}</div>

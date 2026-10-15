@@ -50,6 +50,11 @@ test('f558 (1) the tab is gone, the Overview stays, the module still loads', () 
   assert.doesNotMatch(CT, /_wsTab==='ov2'/);
   assert.doesNotMatch(CT, /<div data-ws-pane="ov2"/);
   assert.match(read('js/app.js'), /import '\.\/views\/overview2\.js';/);
+  /* THE PAGE IS DELETED (owner, 15 Oct 2026: "Delete the retired features"):
+     the module keeps the two readings still read, and nothing else. */
+  assert.match(OV2, /Object\.assign\(window, \{ ov2Model, runDatedWindows \}\);/);
+  for (const gone of ['paintOverview2', 'ov2Measure', 'ov2Can', 'ov2OccState', 'ov2TrackSvg', 'ov2EssHtml', 'OV2_PLAY_MS'])
+    assert.ok(!OV2.includes(gone), gone + ' is deleted');
 });
 
 test('f558 (2) the model reads the record\'s own dates', () => {
@@ -74,39 +79,10 @@ test('f558 (3) a duty\'s state on a date; repeats are drawn, never stored', () =
   const M = w.ov2Model(c);
   assert.ok(M.occ.filter(x => x.t === 'Pay').length > 5, 'the monthly duty repeats on the track');
   assert.equal(c.obligations.length, 2, 'and nothing was stored');
-  const late = M.occ.find(x => x.t === 'Pay' && !x.projected), soon = M.occ.find(x => x.t === 'Report');
-  assert.equal(w.ov2OccState(late, M.today, M.today), 'r');
-  assert.equal(w.ov2OccState(soon, M.today, M.today), 'a');
-  assert.equal(w.ov2OccState(Object.assign({}, soon, { done: M.today }), M.today, M.today), 'g');
 });
 
-test('f558 (4) the measure: money, else the term left, else nothing', () => {
-  const w = load();
-  w.contractSignedAt = c => c.signedAt; w.effectiveExpiry = c => c.expiry; w.isMonetary = () => true;
-  const M = w.ov2Model(base({ obligations: [{ id: 'a', desc: 'Pay', due: dayIn(-30), status: 'done', completedAt: dayIn(-28), amount: 100 }, { id: 'b', desc: 'Pay 2', due: dayIn(30), status: 'open', amount: 300 }] }));
-  const m = w.ov2Measure(M, M.today);
-  assert.equal(m.big, 100); assert.equal(m.frac, 0.25);
-  const later = w.ov2Measure(M, new Date(+M.today + 40 * 864e5));
-  assert.equal(later.big, 400, 'expected by a later date');
-  const t = w.ov2Measure(w.ov2Model(base()), w.ov2Model(base()).today);
-  assert.match(t.cap, /ov2_ms_term_left/);
-  assert.equal(t.big, 500);
-  assert.equal(w.ov2Measure(w.ov2Model(base({ expiry: '', fields: {}, signedAt: '' })), w.ov2Model(base()).today), null, 'nothing to measure is not drawn');
-});
-
-test('f558 (5) what you can do on a date', () => {
-  const w = load();
-  w.contractSignedAt = c => c.signedAt; w.effectiveExpiry = c => c.expiry;
-  const c = base(); c.datedWindows = { ok: true, windows: [{ label: 'Prices fixed', kind: 'fixed', from: dayIn(-200), to: dayIn(100), clause: '4.1', rule: 'Prices cannot change.' }] };
-  const M = w.ov2Model(c);
-  const now = w.ov2Can(M, M.today).map(r => r[1]);
-  assert.equal(now.join(','), 'ov2_c_stop,Prices fixed,ov2_c_nolate');
-  assert.equal(w.ov2Can(M, M.today)[0][0], 'g', 'renewal can still be stopped');
-  const after = w.ov2Can(M, new Date(+M.noticeBy + 864e5));
-  assert.equal(after[0][0], 'r', 'too late after the notice deadline');
-  assert.ok(!after.some(r => r[1] === 'Prices fixed'), 'the window is over');
-});
-
+/* (4) the measure and (5) what you can do drew the deleted page; they went
+   with it on 15 Oct 2026. */
 describe('f558 (6) the dated windows are checked against the wording', () => {
   let h, ai, W;
   before(async () => { ai = await startScriptedAi(); h = await startHati({ ANTHROPIC_BASE_URL: ai.base }); W = await seedWorkspace(h, { approvalRules: [] }); });
@@ -124,16 +100,12 @@ describe('f558 (6) the dated windows are checked against the wording', () => {
   });
 });
 
-test('f558 (7) the design\'s colours, scoped to the tab, light and dark', () => {
-  for (const v of ['--ov2-surface:#FFFFFF', '--ov2-text:#141F1D', '--ov2-acc-fill:#264C9E', '--ov2-alt:#12796D', '--ov2-p3:#6E4BB8', '--ov2-g-bg:#DFF2E7', '--ov2-a-dot:#E8A317', '--ov2-r-fg:#B3261E', '--ov2-s-dot:#6F86BF'])
-    assert.ok(HTML.includes(v), v);
-  for (const v of ['--ov2-surface:#151B1A', '--ov2-acc-fill:#3560B4', '--ov2-a-fg:#EBAD46', '--ov2-s-fg:#8FA8DE'])
-    assert.ok(HTML.includes(v), 'dark ' + v);
-  assert.match(HTML, /:root:not\(\[data-brand="navy"\]\)\{--ov2-acc-fill:var\(--accent-fill/, 'Green takes its own accent ladder');
-  assert.ok(!/\.ov2[^{]*\{[^}]*!important/.test(HTML), 'never !important');
+test("f558 (7) the page's colours went with it", () => {
+  assert.ok(!/--ov2-/.test(HTML), 'no --ov2-* token is left');
+  assert.ok(!/\.ov2[ .{]/.test(HTML), 'no .ov2 rule is left');
 });
 
-test('f558 (8) every new word is in both books', () => {
+test('f558 (8) its words stay in both books (the Lifeline strip reads some; the rest are inert)', () => {
   for (const k of ['tab_overview_2', 'ov2_life', 'ov2_play', 'ov2_today', 'ov2_duties', 'ov2_can', 'ov2_fam_title', 'ov2_fam_alone', 'ov2_fam_wins', 'ov2_parties',
     'ov2_m_signed', 'ov2_m_notice', 'ov2_b_renewal_year', 'ov2_c_stop', 'ov2_c_stop_late', 'ov2_say_nolate', 'ov2_say_next', 'ov2_ring_days', 'ov2_win_unread', 'ov2_ms_term_left'])
     assert.ok(inBoth(k), k);

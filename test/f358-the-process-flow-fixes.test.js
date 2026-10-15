@@ -253,28 +253,28 @@ describe('f358 (5) eight switches, one summary', () => {
 });
 
 /* ---------- 6 · the words that tell the end states apart ---------- */
-describe('f358 (6) four end states, and the difference is shown', () => {
-  test('6a END_STATES is the one place the three sentences live', () => {
-    assert.ok(/const END_STATES = \[/.test(CORE));
+describe('f358 (6) four end states, and the difference is shown — now ONE door (15 Oct 2026)', () => {
+  /* REVERSED by name: the owner picked "One question" off the end-or-pause
+     options page. END_STATES (a sentence on each of three rows' hovers) is
+     deleted; one door asks "What is happening with this deal?", each answer
+     saying what it does and naming its act. */
+  test('6a END_STATES is gone; its words are inert in both books', () => {
+    assert.ok(!/const END_STATES = \[/.test(CORE));
     for(const k of ['end_decline_says','end_archive_says','end_hold_says'])
-      assert.ok(CORE.includes(k), k);
+      assert.equal((EN.match(new RegExp('\\n    ' + k + ':[^\\n]*inert', 'g')) || []).length, 2, k);
   });
-  test('6b the Contracts row carries each on its hover', () => {
+  test('6b the Contracts row carries the one door, with its sentence on the hover', () => {
     const list = REG.slice(REG.indexOf('const REG_ROW_ACTIONS=['), REG.indexOf('];', REG.indexOf('const REG_ROW_ACTIONS=[')));
-    for(const k of ['end_decline_says','end_archive_says','end_hold_says'])
-      assert.ok(list.includes(k), k + ' is not on its row');
-    assert.ok(/a\.says\?` title="\$\{esc\(a\.says\)\}"`/.test(REG), 'and the row markup prints it');
+    assert.ok(list.includes("{k:'end'") && list.includes('end_door_says'));
+    for(const k of ["{k:'decline'","{k:'archive'","{k:'hold'"]) assert.ok(!list.includes(k), k + ' is an answer, not a row');
+    for(const k of ["{k:'restore'","{k:'release'","{k:'reopen'"]) assert.ok(list.includes(k), k + ' — the way back keeps its row');
   });
-  test('6c the contract’s own menu says the SAME thing', () => {
-    assert.ok(/endStateSays\('archive'\)/.test(CT));
-    assert.ok(/endStateSays\('hold'\)/.test(CT));
+  test('6c the paper’s own menu carries the SAME door', () => {
+    assert.ok(/id="ws-end"/.test(CT) && /endOrPauseOpen\(c\)/.test(CT));
   });
-  test('6d THE THREE ROWS STAY — a chooser was NOT built, deliberately', () => {
-    const list = REG.slice(REG.indexOf('const REG_ROW_ACTIONS=['), REG.indexOf('];', REG.indexOf('const REG_ROW_ACTIONS=[')));
-    for(const k of ["{k:'decline'","{k:'archive'","{k:'hold'","{k:'restore'","{k:'release'"])
-      assert.ok(list.includes(k), k + ' left the row menu');
-    assert.ok(!/openEndStateDialog/.test(CORE + REG + CT),
-      'the owner ruled Hold onto that row by name on 19 Sep — a chooser puts it one press further away');
+  test('6d each answer says what it does and is the existing act', () => {
+    for(const k of ['decline','archive','hold']) assert.ok(/end_a_' \+ a\.k \+ '_says'/.test(CORE) && EN.includes('end_a_' + k + '_says:'), k);
+    assert.ok(/contractDecline\(c, why\)/.test(CORE) && /contractSetArchived\(c, true, why\)/.test(CORE) && /contractSetHold\(c, true, why\)/.test(CORE));
   });
   test('6e the undo keeps no comparison, because there is nothing to compare', () => {
     const list = REG.slice(REG.indexOf('const REG_ROW_ACTIONS=['), REG.indexOf('];', REG.indexOf('const REG_ROW_ACTIONS=[')));
@@ -323,31 +323,16 @@ describe('f358 (7) the guest’s one-time code was ALREADY built', () => {
   });
 });
 
-/* ---------- 8 · where the wording is changed ---------- */
-describe('f358 (8) the Document tab says where wording is changed', () => {
-  test('8a it arrives when needed, and is not a band', () => {
-    assert.ok(/function docReadOnlyHint\(c\)/.test(CT));
-    const fn = code((CT.match(/function docReadOnlyHint\(c\)\{[\s\S]*?\n\}/) || [''])[0]);
-    assert.ok(/toast\(/.test(fn), 'a transient confirmation, not furniture');
-    assert.ok(!/innerHTML|insertAdjacent|appendChild/.test(fn), 'nothing is added to the page');
+/* ---------- 8 · where the wording is changed — RETIRED ----------
+   The hint listened on the Document tab's canvas, which no computer screen
+   draws since the Document tab went home; the owner let it go (15 Oct 2026:
+   "Let the hint go"). Its sentence stays inert in both books. */
+describe('f358 (8) the read-only wording hint is retired', () => {
+  test('8a nothing defines or calls it', () => {
+    assert.ok(!/docReadOnlyHint/.test(code(CT)));
+    assert.ok(!/ct_wording_elsewhere/.test(code(CT)));
   });
-  test('8b it asks the product’s OWN reading of "may wording be typed here"', () => {
-    const fn = code((CT.match(/function docReadOnlyHint\(c\)\{[\s\S]*?\n\}/) || [''])[0]);
-    assert.ok(/docFillable\(c\)/.test(fn), 'so it cannot disagree with what the page allows');
-    assert.ok(/PORTAL_MODE/.test(fn), 'and never on the counterparty’s page');
-  });
-  test('8c a press on a control, a real box or a highlight is not a try', () => {
-    const fn = code((CT.match(/function docReadOnlyHint\(c\)\{[\s\S]*?\n\}/) || [''])[0]);
-    assert.ok(/closest\('button,a,input,textarea,select/.test(fn));
-    assert.ok(/isCollapsed/.test(fn), 'a drag is a highlight');
-  });
-  test('8d said once, not on every click, and bound once per canvas', () => {
-    const fn = code((CT.match(/function docReadOnlyHint\(c\)\{[\s\S]*?\n\}/) || [''])[0]);
-    assert.ok(/roHintBound/.test(fn));
-    assert.ok(/DOC_HINT_MS/.test(fn));
-  });
-  test('8e and it names where, in both books', () => {
+  test('8b its sentence stays inert in both books', () => {
     assert.equal((EN.match(/\n    ct_wording_elsewhere:/g) || []).length, 2);
-    assert.ok(/Negotiate page/.test(EN), 'the way forward is on the same screen as the refusal');
   });
 });

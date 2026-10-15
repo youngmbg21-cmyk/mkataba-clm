@@ -1861,7 +1861,7 @@ function clauseEditorHtml(){
              keyboard can reach them — and ceNoAi is the one reading. */}
       <aside class="ce-rail">
         <div class="ce-ah">
-          ${ceNoAi() ? '' : `<span class="sp">&#10022; ${_cet('ce_copilot')}</span>`}
+          ${ceNoAi() ? '' : `<span class="sp">${(window.jamboFaceHtml ? jamboFaceHtml('hello', 18, 'ce-ah-face').replace('<img', '<img data-ink-exempt') : '&#10022;')}${_cet('ce_copilot')}</span>`}
           ${''/* THE CLAUSE NAME AFTER "Copilot" IS GONE (Young, 5 Oct 2026, "Copilot
                  Panel Tidy"), reversing the 21 Sep ruling: the top bar ("Edit
                  …") and the Selected card over the box name the clause. .ce-ah-cl

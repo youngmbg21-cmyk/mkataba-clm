@@ -131,7 +131,8 @@ describe('F216 — the client\'s rules, pinned at the source', () => {
       'one pair of lines: the view shows the shelf, everything else excludes it');
     assert.match(reg, /\{k:'archived',\s*get label\(\)\{ return i18t\('reg_view_archived'\); \}\}/,
       'and the view is offered where the saved views live');
-    assert.match(reg, /\{k:'archive',/); assert.match(reg, /\{k:'restore',/);
+    /* archiving is an answer in the one End or pause door since 15 Oct 2026; Restore keeps its row */
+    assert.match(reg, /\{k:'end',/); assert.match(reg, /\{k:'restore',/);
     assert.match(reg, /folderContracts\(f\.id\)\.filter\(c=>!c\.archived\)/,
       'the stream drawer is a daily list too');
   });
@@ -172,7 +173,9 @@ describe('F216 — the client\'s rules, pinned at the source', () => {
     assert.match(act, /logAudit\(c,on\?'Archived':'Restored'/, 'both directions leave an English record');
     assert.match(act, /still searchable/, 'and the record says what filing means');
     const ct = read('js/views/contract.js');
-    assert.match(ct, /id="ws-archive"/, 'the room\'s ⋯ carries the same act');
+    assert.match(ct, /id="ws-end"/, 'the paper\'s ⋯ carries the one End or pause door');
+    assert.match(ct, /id="ws-archive"/, 'and Restore keeps its own row');
+    assert.match(read('js/core.js'), /k === 'archive' \? await contractSetArchived\(c, true, why\)/, 'the door\'s archive answer is this act');
     /* The one sub-line builder for both heads says it since 21 Sep 2026. */
     assert.match(ct, /if \(c && c\.archived\) bits\.push\(esc\(i18t\('ct_archived_tag'\)\)\);/, 'and the room\'s sub-line says so');
   });

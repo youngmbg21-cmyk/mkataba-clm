@@ -11090,17 +11090,13 @@ function roomMoreMenuHtml(c,opts={}){
           <button type="button" id="ws-mynote">${icon('pencil','w-3.5 h-3.5')}${esc(i18t('mn_add_to'))}</button>
           ${opts.noFocus?'':`<button type="button" id="ws-focus" aria-pressed="false" title="${i18t('ct_hide_header')}">${icon('scan','w-3.5 h-3.5')}${esc(i18t('ct_focus_word'))}<span class="mnote">${i18t('ct_esc_to_leave')}</span></button>`}
           ${may?`<hr>
-          ${''/* THE SAME SENTENCE AS THE CONTRACTS ROW (21 Sep 2026, the
-                 process review's sixth item): endStateSays is the one place
-                 the three end states are worded, so this menu and that one
-                 cannot tell a reader different things about what archiving
-                 does. The restore direction keeps its own title — it undoes a
-                 state the reader can see, and needs no comparison. */}
-          <button type="button" id="ws-archive" title="${esc(c.archived?i18t('ar_restore_title'):((typeof endStateSays==='function'&&endStateSays('archive'))||i18t('ar_archive_title')))}">${icon(c.archived?'history':'folder','w-3.5 h-3.5')}${c.archived?i18t('reg_restore'):i18t('reg_archive')}</button>
-          ${''/* ---- AND THE HOLD, ON THE SAME MENU AS ARCHIVE (upgrade 8) ----
-                 The two are opposites and belong beside each other: one takes a
-                 contract off every list, the other freezes it and leaves it on
-                 all of them. Same act shape, same one repaint. */}
+          ${''/* ---- END OR PAUSE — ONE QUESTION (owner picked it by name, 15 Oct
+                 2026): Archive, Hold and Decline were three rows in two menus;
+                 now one door asks what is happening with the deal
+                 (endOrPauseOpen). The way back keeps its own row: Restore,
+                 Release, and Reopen below. */}
+          ${(window.endOrPauseOffered&&endOrPauseOffered(c))?`<button type="button" id="ws-end" title="${esc(i18t('end_door_says'))}">${icon('ban','w-3.5 h-3.5')}${esc(i18t('end_door'))}</button>`:''}
+          ${c.archived?`<button type="button" id="ws-archive" title="${esc(i18t('ar_restore_title'))}">${icon('history','w-3.5 h-3.5')}${i18t('reg_restore')}</button>`:''}
           ${''/* ---- ASK AN OUTSIDE ADVISER (upgrade 9, 18 Sep 2026) ----
                  Its own row rather than a fifth segment on the send dialog's
                  purpose picker: that row asks what THIS ROUND is for and every
@@ -11109,11 +11105,7 @@ function roomMoreMenuHtml(c,opts={}){
                  ask which clauses. */}
           <button type="button" id="ws-advice" title="${i18t('asl_title')}">${icon('users','w-3.5 h-3.5')}${i18t('asl_menu_row')}</button>
           ${(window.contractMayReopen&&contractMayReopen(c))?`<button type="button" id="ws-reopen" title="${esc(i18t('end_reopen_says'))}">${icon('history','w-3.5 h-3.5')}${i18t('end_reopen')}</button>`:''}
-          ${(()=>{ if(typeof mayHoldContract==='function'&&!mayHoldContract()) return '';
-            /* a closed deal has nothing to freeze (B14) — Reopen is its door */
-            if(c.status==='Declined') return '';
-            const held=!!(window.contractOnHold&&contractOnHold(c));
-            return `<button type="button" id="ws-hold" title="${esc(held?i18t('hd_release_title'):((typeof endStateSays==='function'&&endStateSays('hold'))||i18t('hd_hold_title')))}">${icon(held?'history':'shield','w-3.5 h-3.5')}${held?i18t('hd_release'):i18t('hd_hold')}</button>`; })()}`:''}
+          ${(window.contractOnHold&&contractOnHold(c)&&(typeof mayHoldContract!=='function'||mayHoldContract()))?`<button type="button" id="ws-hold" title="${esc(i18t('hd_release_title'))}">${icon('history','w-3.5 h-3.5')}${i18t('hd_release')}</button>`:''}`:''}
           ${(may&&(window.contractDeletable?contractDeletable(c):(c.status==='Draft'||c.status==='Under Review')))?`<hr>
           <button type="button" id="ws-delete" class="danger" title="${i18t('ct_delete_draft')}">${icon('trash','w-3.5 h-3.5')}${i18t('ct_delete_this_draft')}</button>`:''}
           ${''/* ws-new keeps its id and its data-page-new: it is a real button
@@ -11715,22 +11707,20 @@ function roomMenuWire(c){
   document.getElementById('ws-archive')?.addEventListener('click',()=>{
     if(window.contractSetArchived) contractSetArchived(c,!c.archived).then(ok=>{ if(ok) renderWorkspace(); });
   });
+  /* END OR PAUSE — the one door (15 Oct 2026); the act it ends in repaints as Archive and Hold did */
+  document.getElementById('ws-end')?.addEventListener('click',()=>{
+    if(window.endOrPauseOpen) endOrPauseOpen(c).then(ok=>{ if(ok) renderWorkspace(); });
+  });
   /* THE HOLD ASKS FOR ITS REASON. A freeze nobody can explain three months
      later is the thing this feature exists to avoid, so putting one on costs a
      sentence; releasing it does not. */
   document.getElementById('ws-advice')?.addEventListener('click',()=>{
     if(window.openAdviserLink) openAdviserLink(c);
   });
-  document.getElementById('ws-hold')?.addEventListener('click',async()=>{
-    if(!window.contractSetHold) return;
-    const on=!(window.contractOnHold&&contractOnHold(c));
-    let why='';
-    if(on){
-      why=window.promptDialog ? await promptDialog({ title:i18t('hd_ask_title'), message:i18t('hd_ask_msg'),
-        placeholder:i18t('hd_ask_ph'), confirmLabel:i18t('hd_hold'), multiline:true }) : '';
-      if(why==null) return;
-    }
-    contractSetHold(c,on,why).then(ok=>{ if(ok) renderWorkspace(); });
+  /* the row is Release only now: putting a hold on is an answer in End or pause */
+  document.getElementById('ws-hold')?.addEventListener('click',()=>{
+    if(!window.contractSetHold||!(window.contractOnHold&&contractOnHold(c))) return;
+    contractSetHold(c,false,'').then(ok=>{ if(ok) renderWorkspace(); });
   });
 }
 function wireRoomHead(c){
@@ -15097,27 +15087,6 @@ function wireDocCanvas(c){
   try{ if(window.uploadBlanksPaint) uploadBlanksPaint(c); }catch(_){ }
   /* And our own amendment's ruled lines, keyed so the panel can find them. */
   try{ if(window.ownBlanksPaint) ownBlanksPaint(c); }catch(_){ }
-  /* ---- AND WHERE THE WORDING IS CHANGED, WHEN SOMEBODY TRIES TO CHANGE IT
-     HERE (21 Sep 2026, the process review's eighth item) ----
-
-     The Document tab and the Negotiate page both show the agreement, and
-     whether you can change wording depends on which one you are on, which
-     seat you hold and — on one of them — how wide your window is. The rules
-     are each individually defensible. What was wrong is that NO SCREEN STATED
-     THEM: every other refusal in HaTi carries its way forward on the same
-     screen, and this one was silent.
-
-     NOT A BAND, AND NOT A HOVER EITHER. The way to change wording is already
-     on this screen — the Negotiate button twelve pixels up — so a line saying
-     so would be that fact printed twice, which is the band rule. It ARRIVES
-     WHEN NEEDED instead: a person who clicks into the wording expecting to
-     type is told, once, where typing happens. It costs the contract no
-     pixels, and a reader who never tries never sees it.
-
-     ONLY WHERE IT IS TRUE: a draft's blanks are real inputs and this must not
-     fire on them, and on the phone and the counterparty's page there is no
-     Negotiate page to send anybody to. */
-  try{ docReadOnlyHint(c); }catch(_){ }
   try{ docAnswersWire(c); }catch(_){ }
 }
 /* ---- THE PAPER SHOWS THE ANSWERS (change 5, 9 Oct 2026) ----
@@ -15173,28 +15142,6 @@ if(typeof document !== 'undefined' && !document._homeAnswerWired){
     /* NOTHING LEFT TO ASK (a sealed record): the answer is read where it
        stands. The room's Details tab it used to open went home with stage 5
        of the one-page Home plan, and its twin is the face above. */
-  });
-}
-/* Bound once per canvas element. `docFillable` is the product's own reading of
-   "may wording be typed here", so this cannot disagree with what the page
-   actually allows. */
-const DOC_HINT_MS = 9000;
-let _docHintAt = 0;
-function docReadOnlyHint(c){
-  const cv = document.getElementById('doc-canvas');
-  if(!cv || cv.dataset.roHintBound) return;
-  if(!c || PORTAL_MODE || docFillable(c)) return;
-  cv.dataset.roHintBound = '1';
-  cv.addEventListener('click', e => {
-    /* a press on a control, a link or a box the reader may really type in is
-       that control's press and nothing else */
-    if(e.target && e.target.closest('button,a,input,textarea,select,[contenteditable="true"],[data-field-key],[data-upwording] .hati-field')) return;
-    const sel = (typeof window.getSelection === 'function') ? window.getSelection() : null;
-    if(sel && !sel.isCollapsed) return;               /* a drag is a highlight, not a try */
-    const now = Date.now();
-    if(now - _docHintAt < DOC_HINT_MS) return;        /* said once, not on every click */
-    _docHintAt = now;
-    if(typeof toast === 'function') toast(i18t('ct_wording_elsewhere'), 'warn');
   });
 }
 

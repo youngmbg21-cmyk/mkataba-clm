@@ -508,14 +508,17 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
        panel. The BELL is measured beside it as the CONTROL — it has toggled
        since it was built, so a run where neither closes is a broken stage
        rather than a broken door. */
-    await page.click('#hdr-chat');
-    await page.waitForTimeout(500);
-    check('a SECOND press on Chat shuts the drawer',
+    /* REVERSED IN PLACE 15 Oct 2026 (owner: "leave it as it is and you can
+       simply just click the x to exit"): the open drawer covers the Chat
+       button, so the drawer's own × is its way out. Waits ask for the state. */
+    await page.click('#panel-close');
+    await page.waitForFunction(() => !document.querySelector('#context-panel').classList.contains('open'), null, { timeout: 5000 }).catch(() => {});
+    check('the drawer\'s × shuts it',
       (await page.evaluate(() =>
         !document.querySelector('#context-panel').classList.contains('open'))) === true);
     await page.click('#hdr-chat');
-    await page.waitForTimeout(500);
-    check('and a third opens it again — it is a toggle, not a one-shot',
+    await page.waitForFunction(() => document.querySelector('#context-panel').classList.contains('open'), null, { timeout: 5000 }).catch(() => {});
+    check('and Chat opens it again',
       (await page.evaluate(() =>
         document.querySelector('#context-panel').classList.contains('open'))) === true);
     /* THE SWAP MUST NOT BE READ AS A SECOND PRESS. Pressing the BELL while

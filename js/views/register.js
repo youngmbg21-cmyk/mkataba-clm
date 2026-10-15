@@ -1829,86 +1829,26 @@ const REG_ROW_ACTIONS=[
   {k:'share',  ic:'share',     get label(){ return i18t('reg_share_with_cp'); }},
   {k:'scan',   ic:'sparkle',   get label(){ return i18t('reg_run_scan'); }},
   {k:'pdf',    ic:'printer',   get label(){ return i18t('reg_export_pdf'); }},
-  /* ════ AND THE WORDS THAT TELL THE THREE APART (21 Sep 2026, the process
-     review's sixth item) ══════════════════════════════════════════════════
-     Decline, Archive and Hold are three different things and nothing anywhere
-     said how they differ — a reader deciding what to do with a dead
-     negotiation had to already know that archive hides it, decline closes it
-     and hold freezes it. `END_STATES` is now the ONE place those three
-     sentences live, and each row carries its own on the hover.
-     THE REVIEW ASKED FOR ONE DOOR INSTEAD OF THREE and that is NOT built,
-     deliberately: the owner ruled Hold onto this very row by name on 19 Sep,
-     over a drawing, because reaching it meant opening the contract first —
-     and a chooser would put it one press further away again. The words were
-     the half that was missing; the rows were not. */
-  /* IT DECLINES NOW (4 Oct 2026, the process review): it only opened the
-     contract, where there was no act to finish it with. regDeclineAsk asks
-     the reason and presses contractDecline, the one act. Drawn only where it
-     can work — never on a signed or closed contract, never for a viewer;
-     contractDecline still refuses in words whatever reaches it. */
-  {k:'decline',ic:'ban',       get label(){ return i18t('reg_decline_close'); },
-   get says(){ return i18t('end_decline_says'); }, ruby:true,
-   when:c=>c.status!=='Signed'&&c.status!=='Declined'&&(typeof canEdit!=='function'||canEdit())},
+  /* ════ END OR PAUSE — ONE DOOR (owner picked "One question" by name, 15 Oct
+     2026) ════ Decline, Archive and Hold were three rows here and a fourth
+     and fifth on the paper's ⋯; nothing said how they differ beyond a hover.
+     REVERSES the 19 Sep reasoning (a chooser puts Hold one press further
+     away): the door asks "What is happening with this deal?" and each answer
+     is the existing act (endOrPauseOpen, js/core.js). Drawn where at least
+     one answer can be given; the way back keeps its own row. */
+  {k:'end',    ic:'ban',       get label(){ return i18t('end_door'); },
+   get says(){ return i18t('end_door_says'); },
+   when:c=>!!(window.endOrPauseOffered&&endOrPauseOffered(c))},
   /* AND BACK AGAIN (B14): the owner or an admin, with a reason. */
   {k:'reopen', ic:'history',   get label(){ return i18t('end_reopen'); },
    get says(){ return i18t('end_reopen_says'); },
    when:c=>!!(window.contractMayReopen&&contractMayReopen(c))},
-  /* the archive shelf (WO-5): reversible filing, editor-and-up — the same
-     level as re-filing between streams, and audited the same way */
-  {k:'archive', ic:'folder',  get label(){ return i18t('reg_archive'); },
-   get says(){ return i18t('end_archive_says'); },
-   when:c=>!c.archived&&(typeof canEdit!=='function'||canEdit())},
   {k:'restore', ic:'history', get label(){ return i18t('reg_restore'); }, when:c=>!!c.archived&&(typeof canEdit!=='function'||canEdit())},
-  /* ════ AND THE HOLD, BESIDE ARCHIVE (Young reported it 19 Sep 2026) ═══════
-     "Image 2 shows there is still no option for putting a hold or freezing a
-     contract like it shows in the artifact image." He is right and the
-     drawing is unambiguous: the act belongs on THIS menu — the row you are
-     looking at when you hear about a dispute. It was built on the contract's
-     own ⋯ instead, which means opening the contract first.
-     THE TWO ARE OPPOSITES AND BELONG BESIDE EACH OTHER: one takes a contract
-     off every list, the other freezes it and leaves it on all of them.
-     Same act shape as Archive, and NOT a second door — `contractSetHold` is
-     the one act, pressed from here and from the contract's own menu, exactly
-     as `contractSetArchived` already is.
-     DRAWN ONLY WHERE IT WOULD WORK, which is this catalogue's own rule: the
-     per-person grant decides, the server's mayHoldRow is the wall. */
-  {k:'hold',    ic:'shield',  get label(){ return i18t('hd_hold'); },
-   get says(){ return i18t('end_hold_says'); },
-   when:c=>!contractOnHold(c)&&(typeof mayHoldContract!=='function'||mayHoldContract())},
   {k:'release', ic:'history', get label(){ return i18t('hd_release'); },
    when:c=>!!contractOnHold(c)&&(typeof mayHoldContract!=='function'||mayHoldContract())},
   // permanent delete — only offered while a contract is still a draft or in review
   {k:'delete', ic:'trash',     get label(){ return i18t('reg_delete_permanently'); }, ruby:true, when:c=>(window.contractDeletable?contractDeletable(c):(c.status==='Draft'||c.status==='Under Review'))},
 ];
-/* WHAT EACH OF THE THREE ACTUALLY PRESSES. One place, so the chooser and the
-   rows that survive cannot drift about what an act means. Decline still
-   finishes inside the contract, exactly as the row did: closing a negotiation
-   is a decision with paper attached, not a menu press. */
-function regEndAct(c, k){
-  if(!c) return;
-  if(k === 'archive'){
-    if(window.contractSetArchived) contractSetArchived(c, true).then(ok=>{ if(ok) regRepaint(); });
-    return;
-  }
-  if(k === 'hold'){
-    if(!window.contractSetHold || !window.promptDialog) return;
-    Promise.resolve(promptDialog({ title:i18t('hd_ask_title'), message:i18t('hd_ask_msg'),
-      placeholder:i18t('hd_ask_ph'), confirmLabel:i18t('hd_hold'), multiline:true }))
-      .then(why=>{ if(why==null) return;
-        contractSetHold(c, true, why).then(ok=>{ if(ok) regRepaint(); }); });
-    return;
-  }
-  if(k === 'decline'){ regDeclineAsk(c); return; }
-  openWorkspace(c.id);
-}
-/* The reason, asked before anything is written — the hold's own shape. */
-function regDeclineAsk(c){
-  if(!c || !window.contractDecline || !window.promptDialog) return;
-  Promise.resolve(promptDialog({ title:i18t('end_decline_q'), message:i18t('end_decline_says'),
-    label:i18t('end_decline_why'), placeholder:i18t('end_decline_ph'), confirmLabel:i18t('reg_decline_close'), multiline:true, danger:true }))
-    .then(why=>{ if(why==null) return;
-      contractDecline(c, why).then(ok=>{ if(ok) regRepaint(); }); });
-}
 /* Reopening asks its reason the same way (B14). */
 function regReopenAsk(c, after){
   if(!c || !window.contractReopen || !window.promptDialog) return;
@@ -1921,9 +1861,8 @@ function regReopenAsk(c, after){
    The full table's ⋯ and the list inspector's panel draw the same rows, so a
    verb added tomorrow reaches both and neither can drift. THE SENTENCE RIDES
    THE HOVER, which is this product's own answer for a fact about the
-   machinery: the three that end a contract carry one line each saying what
-   they do, from END_STATES, so the menu and any other home cannot word them
-   differently. A `when` that asks a reading the stage does not carry answers
+   machinery: End or pause and Reopen carry one line each saying what they
+   do. A `when` that asks a reading the stage does not carry answers
    "not offered" rather than throwing through the page. */
 /* `skip` leaves verbs out: the panel's ⋯ drops Workspace, which its doors
    row already carries (one door per act, owner 12 Oct 2026). */
@@ -1941,24 +1880,14 @@ function regRunRowAct(act, id){
   if(act==='open'){ if(!(window.roomHomeLand&&roomHomeLand(id))) openWorkspace(id); }
   else if(act==='share') openShareModal(c);
   else if(act==='scan') runScanFor(c);
-  else if(act==='archive'||act==='restore'){
-    if(window.contractSetArchived) contractSetArchived(c,act==='archive').then(ok=>{ if(ok) regRepaint(); });
+  else if(act==='restore'){
+    if(window.contractSetArchived) contractSetArchived(c,false).then(ok=>{ if(ok) regRepaint(); });
   }
-  else if(act==='decline') regDeclineAsk(c);
+  /* END OR PAUSE — the one door (15 Oct 2026): decline, archive or hold */
+  else if(act==='end'){ if(window.endOrPauseOpen) endOrPauseOpen(c).then(ok=>{ if(ok) regRepaint(); }); }
   else if(act==='reopen') regReopenAsk(c);
-  /* THE REASON IS COMPULSORY, so the press asks for it before anything is
-     written — `contractSetHold` refuses an empty one, and a dialog is the
-     only honest way to collect it. Releasing needs none. Both go through the
-     one act; nothing here writes to the record. */
-  else if(act==='hold'||act==='release'){
-    if(!window.contractSetHold) return;
-    if(act==='release'){ contractSetHold(c,false,'').then(ok=>{ if(ok) regRepaint(); }); return; }
-    if(!window.promptDialog) return;
-    Promise.resolve(promptDialog({ title:i18t('hd_ask_title'), message:i18t('hd_ask_msg'),
-      placeholder:i18t('hd_ask_ph'), confirmLabel:i18t('hd_hold'), multiline:true }))
-      .then(why=>{ if(why==null) return;
-        contractSetHold(c,true,why).then(ok=>{ if(ok) regRepaint(); }); });
-  }
+  /* Release needs no reason; putting a hold on is an answer in End or pause */
+  else if(act==='release'){ if(window.contractSetHold) contractSetHold(c,false,'').then(ok=>{ if(ok) regRepaint(); }); }
   else if(act==='delete') deleteContract(id).then(ok=>{ if(ok){
     /* The reader was three pages down when they pressed Delete; the row goes,
        the place stays. renderRegister() rebuilds the whole view and hard-resets
@@ -3794,7 +3723,7 @@ Object.assign(window,{regOpenContract,regPlace,regPlacePut,regSignedOn,regSigned
   regRowActsHtml,regRunRowAct,regOpenRow,regDisplayHtml,regCloseDisplay,REG_SOON_DAYS,regEndsSay,
   regColWidths,regColSetWidths,regColReset,regColDefaults,regColTrade,regColApply,regWireColResize,
   REG_CMP,REG_SORT_DEFDIR,regBlanksLast,regStreamName,regRefParts,regNarrowed,regClearHtml,regPaintClear,
-  REG_BAR_FILTERS,REG_BAR_DEFAULT,regListTitle,regSortIconHtml,regMovePillHtml,regNegoCols,regNegoBase,negoBandTabsHtml,regAvatarHtml,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,regViewCount,REG_SAVED_KEY,REG_SAVED_FIELDS,regSavedViews,regSaveView,regForgetView,regApplySaved,regSavedMatches,regHeadFactsHtml,regPaintHeadFacts,regPaintViewCounts,regMoveWord,regOwnerCell,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regMode,regSetMode,regViewTabsHtml,regStageTabsHtml,regStageBase,regStageTabsWire,REG_STAGE_TABS,regViewOptsHtml,regSaveViewAsk,regForgetViewAsk,regSegHtml,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,regEndAct,regDeclineAsk,ftsSearch,regAggregate,regCloseMenus,regMenuFit,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,REG_FILTER_REST,regFiltersAtRest,regSearchBoxClear,regGoFiltered,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,
+  REG_BAR_FILTERS,REG_BAR_DEFAULT,regListTitle,regSortIconHtml,regMovePillHtml,regNegoCols,regNegoBase,negoBandTabsHtml,regAvatarHtml,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,regViewCount,REG_SAVED_KEY,REG_SAVED_FIELDS,regSavedViews,regSaveView,regForgetView,regApplySaved,regSavedMatches,regHeadFactsHtml,regPaintHeadFacts,regPaintViewCounts,regMoveWord,regOwnerCell,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regMode,regSetMode,regViewTabsHtml,regStageTabsHtml,regStageBase,regStageTabsWire,REG_STAGE_TABS,regViewOptsHtml,regSaveViewAsk,regForgetViewAsk,regSegHtml,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regMenuFit,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,REG_FILTER_REST,regFiltersAtRest,regSearchBoxClear,regGoFiltered,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,
   regScope,regSetScope,regRepaint,regPageSize,regFitBandOffset,NEGO_BANDS,NEGO_BAND_DOT,negoGroupByMove,negoBandCounts,negoMovePillHtml,negoBandRowHtml,
   /* the Contracts place on Home (the overnight work order, step 7) */
   REG_SHOWS,REG_COL_KEYS_HOME,REG_COL_W_HOME,REG_COL_KEYS_HOME_NARROW,REG_COL_W_HOME_NARROW,REG_HOME_NARROW_W,regHomeNarrow,regHomeWatch,regPlaceSet,regPlaceUp,regHome,regRestBase,regHomeHeadHtml,regHomeWallHtml,regBookSig,regHomeStale});

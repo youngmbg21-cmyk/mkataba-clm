@@ -158,12 +158,12 @@ describe('f326 — the filing lists are the company\'s', () => {
        The claim is unchanged and stronger: every dialog that draws the row is
        wired from the one function, so none of them can grow a dead option. */
     test('every dialog is wired from ONE function, so none has a dead option', () => {
+      /* RE-POINTED 15 Oct 2026: the create and convert dialogs had no caller
+         since the one door to standards (f376) and are deleted (owner: "Delete
+         the retired features"); the details dialog is the one left. */
       const wires = (LIB_CODE.match(/tplLibWireCatStream\(/g) || []).length;
-      assert.equal(wires, 4, 'the definition and exactly three callers');
-      assert.match(LIB_CODE, /tplLibWireCatStream\('tpllib-cat', 'tpllib-stream'\)/);
+      assert.equal(wires, 2, 'the definition and its one caller');
       assert.match(LIB_CODE, /tplLibWireCatStream\('tpllib-m-cat', 'tpllib-m-stream'\)/);
-      assert.match(LIB_CODE, /tplLibWireCatStream\('tpllib-up-cat', 'tpllib-up-stream'\)/,
-        'the convert-a-document dialog too');
     });
     test('a sentinel never reaches the route', () => {
       const w = stage({});

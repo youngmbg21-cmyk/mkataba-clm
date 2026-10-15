@@ -762,7 +762,8 @@ const check = (name, ok, detail) => {
       menu.reachable === menu.items,
       `${menu.reachable}/${menu.items} reachable · missing ${JSON.stringify(menu.unreachable)}`);
     check('14c and it still carries the acts the row menu is for',
-      /archive/i.test(menu.labels.join(' ')) && /delete/i.test(menu.labels.join(' ')),
+      /* archive is an answer in End or pause since 15 Oct 2026 (owner picked "One question") */
+      /end or pause/i.test(menu.labels.join(' ')) && /delete/i.test(menu.labels.join(' ')),
       menu.labels.join(' · '));
     /* THE EXEMPTION IS NARROW, which is the other half: WO-9's clip must still
        be doing its job on every cell that holds text. */

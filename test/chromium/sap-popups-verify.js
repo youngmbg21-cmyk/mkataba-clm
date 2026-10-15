@@ -245,12 +245,15 @@ const CONTRACTS = [
 
     /* ---- 11. A QUESTION THAT ENDS SOMETHING ---- */
     console.log('\n11 · decline');
-    await page.evaluate(() => { regDeclineAsk(getContract('MK-P1')); });
-    await wait(page, () => !!document.getElementById('pd-ok'));
-    const dc = await page.evaluate(() => { const b = document.getElementById('pd-ok');
-      return { bg: getComputedStyle(b).backgroundColor, sign: !!document.querySelector('#prompt-overlay [role="dialog"] svg') }; });
-    ok('11 Decline is a red act with a warning sign', /^rgb\((1[6-9]\d|2\d\d), /.test(dc.bg) && dc.sign, JSON.stringify(dc));
-    await page.click('#pd-cancel').catch(() => {});
+    /* RE-POINTED 15 Oct 2026: decline is an answer in the one End or pause
+       door (owner picked "One question"); its act is red once a reason is written */
+    await page.evaluate(() => { endOrPauseOpen(getContract('MK-P1'), { pick: 'decline' }); });
+    await wait(page, () => !!document.getElementById('end-go'));
+    await page.fill('#end-note', 'They chose another supplier.').catch(() => {});
+    const dc = await page.evaluate(() => { const b = document.getElementById('end-go');
+      return { bg: getComputedStyle(b).backgroundColor, word: b.textContent.trim(), last: !!document.querySelector('#end-overlay .dlg-f > :last-child[data-dlg-cancel]') }; });
+    ok('11 Decline is a red act, named for the answer, Cancel last', /^rgb\((1[6-9]\d|2\d\d), /.test(dc.bg) && dc.word === 'Decline and close' && dc.last, JSON.stringify(dc));
+    await page.click('#end-cancel').catch(() => {});
   } catch (e) {
     fail++; console.log('  FAIL harness — ' + e.message);
   }

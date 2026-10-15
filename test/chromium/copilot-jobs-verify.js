@@ -67,11 +67,16 @@ const DOC = 'SUPPLY AGREEMENT\n\nArticle 1 Term\n\nThis Agreement runs for twelv
     const h1 = await ask('Put MK-J1 on hold, budget freeze');
     ok('1a "Put MK-J1 on hold" is the hold card', !!h1 && h1.kind === 'door' && h1.door === 'hold' && h1.cid === 'MK-J1', JSON.stringify(h1));
     await page.click('#igd-feed [data-ca-act="door"] >> nth=-1');
-    const asked = await page.waitForSelector('#prompt-overlay #pd-input', { timeout: 5000 }).then(() => true, () => false);
+    /* RE-POINTED 15 Oct 2026: the press opens the one End or pause door with
+       its hold answer chosen (owner picked "One question"); the reason is
+       still asked before anything is written */
+    const asked = await page.waitForFunction(() => !!document.querySelector('#end-overlay #end-note')
+      && (document.querySelector('#end-overlay input[name="end-a"]:checked') || {}).value === 'hold'
+      && document.getElementById('end-go').disabled, null, { timeout: 5000 }).then(() => true, () => false);
     ok('1b its press asks the reason first', asked);
     if (asked) {
-      await page.fill('#prompt-overlay #pd-input', 'Budget freeze until January');
-      await page.click('#prompt-overlay #pd-ok');
+      await page.fill('#end-overlay #end-note', 'Budget freeze until January');
+      await page.click('#end-overlay #end-go');
     }
     const held = await page.waitForFunction(() => { const c = getContract('MK-J1'); return !!(c && c.hold && c.hold.at); }, null, { timeout: 8000 }).then(() => true, () => false);
     ok('1c the contract is held, by the hold\'s own act', held);

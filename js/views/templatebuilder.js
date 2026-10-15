@@ -1851,7 +1851,7 @@ function tbRailHtml() {
   const nb = _tb.fields.length + (_tb.proposed || []).length + ((_tb.cands && _tb.cands.rows) || []).length;
   const T = (id, label, n, cls) => `<button type="button" role="tab" data-tb-tab="${id}" aria-selected="${tab === id}" class="${tab === id ? 'is-on' : ''}">${label}${n ? `<span class="n${cls ? ' ' + cls : ''}">${n}</span>` : ''}</button>`;
   return `<aside class="tb-rail" id="tb-rail" aria-label="${i18t('tb_copilot')}">
-    <div class="tb-ah"><span class="sp">✦ ${i18t('tb_copilot')}</span><span class="tb-tabs" role="tablist">${T('build', i18t('tb_tab_build'))}${T('playbook', i18t('tb_pb_playbook'), dev, 'r')}${T('blanks', i18t('tb_tab_blanks'), nb)}</span></div>
+    <div class="tb-ah"><span class="sp">${(window.jamboFaceHtml ? jamboFaceHtml('hello', 18, 'tb-ah-face').replace('<img', '<img data-ink-exempt') : '&#10022;')}${i18t('tb_copilot')}</span><span class="tb-tabs" role="tablist">${T('build', i18t('tb_tab_build'))}${T('playbook', i18t('tb_pb_playbook'), dev, 'r')}${T('blanks', i18t('tb_tab_blanks'), nb)}</span></div>
     <div class="tb-disc"><b>✦</b><span>${i18t(tab === 'playbook' ? 'tb_pb_cover_foot' : 'tb_disc')}</span></div>
     <div class="tb-lane" id="tb-lane">${tab === 'build' ? tbBuildLaneHtml() : tab === 'playbook' ? tbPlaybookLaneHtml(cov) : tbBlanksLaneHtml()}</div>
     ${tab === 'build' ? tbScopeHtml() + tbChipsRowHtml() + tbAskHtml() : ''}
