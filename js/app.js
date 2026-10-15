@@ -3524,11 +3524,16 @@ function activityPanelHtml(){
    them (kind by kind), become one group; anything else is a group of one. */
 const ALERT_GROUP_SHOW=3;
 function alertGroupsOf(rows){
-  const out=[];
+  /* ONE HEADING ONCE (the Board walk-through, 15 Oct 2026): "1 detail to fill"
+     stood three times, split by a "2 details to fill" row between each. A
+     group gathers every row that says the same words, wherever buildAlerts
+     sorted it; the group stands where its first row stood. */
+  const out=[], at=new Map();
   rows.forEach((a,i)=>{
-    const last=out[out.length-1];
-    if(last && last.kind===a.kind && last.text===a.text) last.rows.push({a,i});
-    else out.push({ kind:a.kind, text:a.text, rows:[{a,i}] });
+    const k=a.kind+'\u0001'+a.text;
+    const g=at.get(k);
+    if(g) g.rows.push({a,i});
+    else { const n={ kind:a.kind, text:a.text, rows:[{a,i}] }; at.set(k,n); out.push(n); }
   });
   return out;
 }

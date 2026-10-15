@@ -11840,6 +11840,23 @@ ${[guideLive, guideLegacy].filter(Boolean).join('\n\n')}`;
 /* What an empty model reply becomes. Mirrored in js/ai.js (AI_EMPTY_ANSWER):
    a dead-end sentence taught a real user that reports were impossible, so the
    failure now says what to try instead. */
+/* A REPLY WRITTEN AS THE TOOL'S OWN JSON IS READ, NEVER PRINTED (owner's iPad
+   screenshot, 15 Oct 2026: an answer ended in `fix it.",  "citations":[]`
+   with every quote escaped). A model that answers in text sometimes types
+   the deliver_answer arguments instead of calling the tool; the words are the
+   "answer" field, and anything after it is dropped. Plain prose passes
+   through untouched. */
+function copilotTextAnswer(txt) {
+  const t = String(txt || '').trim();
+  if (!/"answer"\s*:\s*"/.test(t) && !/"citations"\s*:\s*\[/.test(t)) return t;
+  const at = t.indexOf('{');
+  if (at >= 0) { try { const j = JSON.parse(t.slice(at)); if (j && typeof j.answer === 'string') return j.answer.trim(); } catch (_) { /* salvage below */ } }
+  let s = t;
+  const a = s.search(/"answer"\s*:\s*"/);
+  if (a >= 0) s = s.slice(s.indexOf('"', s.indexOf(':', a)) + 1);
+  s = s.replace(/"\s*,\s*"(?:citations|compare|chart|cards)"\s*:[\s\S]*$/, '').replace(/"\s*\}?\s*$/, '');
+  return s.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\').trim();
+}
 const COPILOT_EMPTY_ANSWER = "I couldn't finish an answer to that one. Try a smaller piece of it — one contract, one date range, one counterparty — or say “portfolio health report” and I'll build the full picture as a document instead.";
 
 /* One text, one shape, both sides. Lowercase; smart quotes to straight;
@@ -12002,7 +12019,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
       const toolUses = content.filter(b => b.type === 'tool_use');
       working.push({ role: 'assistant', content });
       if (!toolUses.length) { // model replied as plain text without the tool — accept it
-        const txt = content.filter(b => b.type === 'text').map(b => b.text).join('').trim();
+        const txt = copilotTextAnswer(content.filter(b => b.type === 'text').map(b => b.text).join('').trim());
         final = { answer: txt || COPILOT_EMPTY_ANSWER, citations: [], compare: null, empty: !txt };
         break;
       }
@@ -12339,7 +12356,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
       const toolUses = content.filter(b => b.type === 'tool_use');
       working.push({ role: 'assistant', content });
       if (!toolUses.length) {
-        const txt = content.filter(b => b.type === 'text').map(b => b.text).join('').trim();
+        const txt = copilotTextAnswer(content.filter(b => b.type === 'text').map(b => b.text).join('').trim());
         final = { answer: txt || COPILOT_EMPTY_ANSWER, citations: [], compare: null, empty: !txt };
         break;
       }

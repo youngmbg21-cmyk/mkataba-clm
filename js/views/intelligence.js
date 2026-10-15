@@ -563,6 +563,10 @@ function graphStreamLines(S){
   const money=(typeof canViewValues!=='function')||canViewValues();
   if(!money) return [];
   const L=[];
+  /* NOTHING RECORDED IS SAID, NEVER DRAWN AS ZERO (the Board walk-through,
+     15 Oct 2026: a stream of 18 contracts read "In KES 0 · Out KES 0" because
+     none says which side pays) */
+  if(!S.sided&&S.unsided>0){ L.push({ text:i18t('int_flow_unsided'), fill:'var(--color-accent-200)' }); return L; }
   L.push({ text:`${i18t('int_flow_in')} ${fmtMoneyShort(S.in)} · ${i18t('int_flow_out')} ${fmtMoneyShort(S.out)}`, fill:'var(--color-accent-100)' });
   const sign=S.net>0?'+':S.net<0?'−':'';
   L.push({ text:`${i18t('int_flow_net')} ${sign}${fmtMoneyShort(Math.abs(S.net))} · ${i18t('int_flow_on_paper')}`, fill:S.net>0?'var(--st-green-dot)':S.net<0?'var(--st-ruby-dot)':'var(--color-accent-200)' });
@@ -752,7 +756,7 @@ function igWireSplit(){
   const onMove=e=>{ const x=(e.touches&&e.touches[0])?e.touches[0].clientX:e.clientX; _igDockSave(widthAt(x)); igFitSplit(); };
   const onUp=()=>{ delete rez.dataset.drag; dock.style.transition='';
     document.body.style.cursor=''; document.body.style.userSelect='';
-    window.removeEventListener('pointermove',onMove); window.removeEventListener('pointerup',onUp);
+    window.removeEventListener('pointermove',onMove); window.removeEventListener('pointerup',onUp); window.removeEventListener('pointercancel',onUp);
     igSplitSettle(); };
   rez.addEventListener('pointerdown',e=>{ e.preventDefault(); rez.dataset.drag='1';
     /* the strip's LEFT edge is the seam (it lies on the panel's side) */
@@ -760,7 +764,9 @@ function igWireSplit(){
     /* The panel's width transition would make the handle trail the pointer. */
     dock.style.transition='none';
     document.body.style.cursor='col-resize'; document.body.style.userSelect='none';
-    window.addEventListener('pointermove',onMove); window.addEventListener('pointerup',onUp); });
+    /* SAFARI MAY CANCEL A DRAG (a system swipe, a second finger): a cancel
+       lets go like a lift, or the divider would keep following the finger */
+    window.addEventListener('pointermove',onMove); window.addEventListener('pointerup',onUp); window.addEventListener('pointercancel',onUp); });
   rez.addEventListener('keydown',e=>{
     if(e.key==='Home'||e.key==='Enter'){ e.preventDefault(); _igDockSave(null); igFitSplit(); igSplitSettle(); return; }
     const step=Math.max(8,Math.round(row.clientWidth*0.02));
@@ -2702,6 +2708,13 @@ const igbStatusWord=st=>(typeof statusLabel==='function')?statusLabel(st):st;
 function igbTrim(s,n){ s=String(s==null?'':s); return s.length>n?s.slice(0,n-1)+'…':s; }
 function igbEl(tag,attrs,parent){ const e=document.createElementNS(SVG_NS,tag); if(attrs) for(const k in attrs) e.setAttribute(k,attrs[k]); if(parent) parent.appendChild(e); return e; }
 function igbFloorOf(status){ const i=IGB_FLOOR_STATUS.indexOf(status); if(i>=0) return i; return /expir|terminat|cancel|closed|declin/i.test(String(status||''))?3:1; }
+/* A TOUCH-ONLY SCREEN RESTS THE MAP WHEN NOTHING IS TOUCHED (the Board
+   walk-through, 15 Oct 2026: on an iPad Explorer's idle jiggle kept the
+   page busy a third of the time and every tap waited behind it). The map
+   still moves while it settles and for IG_AWAKE_MS after any touch; only the
+   idle shimmer stops, as it does for a reader who asked for less motion. An
+   iPad with a trackpad or mouse keeps it. */
+function igTouchOnly(){ try{ return !!(window.matchMedia&&matchMedia('(pointer: coarse)').matches&&!matchMedia('(any-pointer: fine)').matches); }catch(_){ return false; } }
 function igbReduced(){ try{ return !!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(_){ return false; } }
 /* THE CAMERA IS THE SITTING'S, in memory: a regroup or a new answer keeps the
    view the reader chose and the way they turned it. Nothing stores it. */
@@ -3785,7 +3798,7 @@ function igLoopStart(myRAF){
     const awake=IG._settle>0||Date.now()-_igWokeAt<IG_AWAKE_MS||!!intel.walk||igbSpinning();
     if(awake){ requestAnimationFrame(step); return; }
     _igKick=step;
-    if(!igbReduced()||wiring) _igTimer=setTimeout(()=>{ _igTimer=0; if(_igKick===step){ _igKick=null; requestAnimationFrame(step); } }, 1000/(wiring?IG_SPIN_FPS:IG_JIG_FPS));
+    if(!(igbReduced()||igTouchOnly())||wiring) _igTimer=setTimeout(()=>{ _igTimer=0; if(_igKick===step){ _igKick=null; requestAnimationFrame(step); } }, 1000/(wiring?IG_SPIN_FPS:IG_JIG_FPS));
   };
   if(_igTimer){ clearTimeout(_igTimer); _igTimer=0; }
   igSetSpin(false);
