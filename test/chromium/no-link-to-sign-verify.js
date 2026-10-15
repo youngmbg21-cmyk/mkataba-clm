@@ -139,7 +139,7 @@ const inRound = (id, name, cp) => {
       (rows['MK-NL1'] || {}).word === 'Mine' && (rows['MK-NL2'] || {}).word === 'Theirs',
       JSON.stringify({ nl1: rows['MK-NL1'], nl2: rows['MK-NL2'] }));
     const fact = await page.evaluate(async () => {
-      openWorkspace('MK-NL1'); await new Promise(r => setTimeout(r, 1500));
+      openWorkspace('MK-NL1', { room: true }); await new Promise(r => setTimeout(r, 1500));
       const f = [...document.querySelectorAll('.room-facts .ngl-w, #ws-head .ngl-w')];
       return f.length ? f[0].textContent.trim() : null;
     });

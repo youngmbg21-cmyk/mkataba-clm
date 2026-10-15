@@ -12,8 +12,8 @@
      · the Our people tab is the roster, admins first, each a card with a
        job title and an address, as visible pixels
      · the Their people tab names the other side's people with their party;
-       a pressed card paints the panel, and its Open party door lands on the
-       Contracts page narrowed to that party
+       a pressed card paints the panel, and its Open party door lands on
+       Home's wall of paper narrowed to that party (step 2, 14 Oct 2026)
      · the A to Z edge moves the wall; a refresh keeps the tab
      · nothing on the page names a folder, a limit or a review
      · a VIEWER gets the same wall (D-3) and no door to Settings
@@ -166,10 +166,17 @@ const PAGE = () => {
       !!open && acts.some(a => a.k === 'draft') && acts.some(a => a.k === 'explorer'), acts.map(a => a.t).join(' · '));
     check('and Open party is live, because that party\'s contracts are loaded', open && !open.dead);
     await page.click('#ins-panel [data-ins-act="party"]');
-    await page.waitForTimeout(1200);
-    const landed = await page.evaluate(() => ({ view: state.view, only: !!(state.reg && state.reg.only && state.reg.only.ids && state.reg.only.ids.length),
-      rows: document.querySelectorAll('#reg-tbody tr, .reg-table tbody tr').length }));
-    check('Open party lands on the Contracts page narrowed to that party', landed.view === 'register' && landed.only, JSON.stringify(landed));
+    /* RE-POINTED 14 Oct 2026 (the overnight work order, step 2; was the
+       Contracts page narrowed by its chip): Open party is Parties' own door
+       (cuOpenCustomer), which lands on Home's wall of paper, nothing chosen,
+       narrowed to that party by its one lit chip. Asked of the state, bounded. */
+    /* since step 7 the set is the Contracts place's own (state.reg), its one chip in the place's head */
+    await page.waitForFunction(() => state.view === 'dashboard' && !!document.querySelector('#ig-wall') && !!document.querySelector('[data-reg-home] #reg-only-chip'), null, { timeout: 8000 }).catch(() => {});
+    const landed = await page.evaluate(() => ({ view: state.view, face: window.hbFace ? hbFace() : null, paper: !!(window.intel && intel.paper),
+      only: !!(state.reg && state.reg.only && state.reg.only.ids.length), chip: !!document.querySelector('[data-reg-home] #reg-only-chip'),
+      cards: document.querySelectorAll('#ig-wall [data-ig-pick]').length }));
+    check('Open party lands on Home\'s wall narrowed to that party', landed.view === 'dashboard' && landed.face === 'paper' && !landed.paper
+      && landed.only && landed.chip && landed.cards >= 1, JSON.stringify(landed));
 
     /* ---- THE EDGE, AND THE REFRESH ---- */
     await page.click('.nav-item[data-view="directory"]');

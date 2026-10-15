@@ -41,6 +41,9 @@ const check = (name, ok, detail) => {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail != null ? ' — ' + detail : ''}`);
 };
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
@@ -64,7 +67,7 @@ const check = (name, ok, detail) => {
        select still HAS a rect — so the options are counted as well. */
     await page.evaluate(() => {
       regBarSetChosen(['stage', 'type', 'view', 'hold']);
-      setView('register');
+      (regPlaceSet({ show: 'list' }), setView('register'));
     });
     await page.waitForTimeout(1200);
     const hold = await page.evaluate(() => {
@@ -195,7 +198,7 @@ const check = (name, ok, detail) => {
        then — an earlier draft of this check pressed 700ms into
        `openWorkspace`, and the room's own render landed afterwards and put the
        tab back, which is a fault in the PROBE and not in the product. */
-    await page.evaluate((id) => openWorkspace(id), cid);
+    await page.evaluate((id) => openWorkspace(id, { room: true }), cid);
     await page.waitForTimeout(1200);
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
        Signing tab went home — the same door opens Jambo's Before you sign

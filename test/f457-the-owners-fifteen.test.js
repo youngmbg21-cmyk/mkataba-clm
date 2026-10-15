@@ -170,7 +170,9 @@ describe('F457 (5) — a file\'s name read as a title, never "%20" (item 9)', ()
     test(JSON.stringify(raw), () => { assert.equal(browser(raw), want); assert.equal(server(raw), want, 'the server reads it the same way'); });
   test('every place a file becomes a contract\'s name reads it so', () => {
     assert.match(read('js/views/contract.js'), /const fileBase=ext\?_ctFileTitle\(ext\.file\.name\)/);
-    assert.match(read('js/views/contract.js'), /fval\('up-name'\)\|\|_ctFileTitle\(file\.name\)/);
+    /* RE-POINTED 15 Oct 2026 (the overnight build, step 4): Jambo's drop area
+       has no name box, so its file is named from the file alone (A, the drop) */
+    assert.match(read('js/views/contract.js'), /\(A\?'':fval\('up-name'\)\)\|\|_ctFileTitle\(file\.name\)/);
     assert.match(read('js/views/contract.js'), /function _ctFileTitle\(n\)\{ return \(typeof fileTitleOf==='function'\)\?fileTitleOf\(n\)/);
     assert.match(read('js/views/migration.js'), /fileTitleOf\(file\.name\)/);
     assert.match(read('server/server.js'), /const f = srvFileTitleOf\(filename\)/);

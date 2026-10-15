@@ -83,7 +83,9 @@ const MARK = cid => {
     await page.goto(h.base + '/', { waitUntil: 'networkidle' }); await pause(400);
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go'); await pause(2600);
-    await page.evaluate(async () => { try { await tplLibRefresh(); } catch (_) {} setView('register'); });
+    /* the page head's Draft new agreement, where it still stands since step 7 of the
+       overnight work order took the Contracts page's head to Home: My Queue's head */
+    await page.evaluate(async () => { try { await tplLibRefresh(); } catch (_) {} setView('pipeline'); });
     await pause(1000);
 
     /* ═══ 1 · THE NEW AGREEMENT CARDS ═══ */
@@ -128,7 +130,7 @@ const MARK = cid => {
     /* THE STRIP IS ON THE OVERVIEW TAB, and a record already Under Review
        opens on the Document tab — so the stage says which tab it means rather
        than hoping. */
-    await page.evaluate(i => { openWorkspace(i); }, id); await pause(1400);
+    await page.evaluate(i => { openWorkspace(i, { room: true }); }, id); await pause(1400);
     await page.evaluate(() => { const b = document.querySelector('#ws-tabs [data-ws-tab="terms"]');
       if (b) b.click(); }); await pause(1200);
     const strip = await page.evaluate(() => {

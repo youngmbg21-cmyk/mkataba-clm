@@ -83,7 +83,7 @@ const day = off => { const d = new Date(); d.setDate(d.getDate() + off);
       { id: 'x1', desc: 'Quarterly maintenance report', due: day(30), status: 'open', party: 'theirs' },
     ]);
     await page.waitForTimeout(1200);
-    await page.evaluate(id => { openWorkspace(id); }, cid);
+    await page.evaluate(id => { openWorkspace(id, { room: true }); }, cid);
     await page.waitForTimeout(1600);
     await page.evaluate(id => roomGoTab(getContract(id), 'oblig'), cid);
     await page.waitForTimeout(900);
@@ -338,7 +338,7 @@ const day = off => { const d = new Date(); d.setDate(d.getDate() + off);
       return c.id;
     });
     await page.waitForTimeout(1400);
-    await page.evaluate(id => openWorkspace(id), plain);
+    await page.evaluate(id => openWorkspace(id, { room: true }), plain);
     await page.waitForTimeout(1800);
     await page.evaluate(id => roomGoTab(getContract(id), 'oblig'), plain);
     await page.waitForTimeout(900);

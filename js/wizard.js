@@ -902,7 +902,10 @@ function openNewAgreement(o){
           </details></div>
       </div>`;
   openModal(`<div id="na-root" class="na-root">
-    <div class="na-head"><div><h3>${i18t('na_title')}</h3><div class="na-sub">${i18t('na_sub')}</div></div>
+    <div class="na-head"><div><h3>${i18t('na_title')}</h3><div class="na-sub">${
+      /* WHERE THE ANSWERS CAME FROM (step 3): opened from Jambo's New
+         agreement card, the line under the title says what was asked */
+      o.asked?esc(i18t('na_sub_asked',{ask:String(o.asked).slice(0,(typeof DRAFT_SENTENCE_MAX==='number')?DRAFT_SENTENCE_MAX:2000)})):i18t('na_sub')}</div></div>
       <button type="button" id="na-x" class="na-x" aria-label="${esc(i18t('act_cancel'))}" title="${esc(i18t('act_cancel'))}">${icon('x','w-4 h-4')}</button></div>
     <div id="na-body" class="na-body">
       ${''/* THE ASK TAKES THE WHOLE TOP LINE (Young, 22-23 Sep 2026: "the
@@ -1000,9 +1003,22 @@ function openNewAgreement(o){
     if(sel){ const b=root.querySelector(`[data-wz-${sel.kind}="${String(sel.id).replace(/["\\]/g,'\\$&')}"]`); if(b) b.classList.add('on'); }
     /* THE ACTS WAKE ON A PICK: Create draft and Skip stay grey, saying why,
        until a template is chosen (they may have moved to the page head). */
-    const on=!!api;
+    /* AND A STREAM (the overnight work order, step 3: "Create greyed with its
+       reason until a template and a stream are chosen"): the form's own
+       stream box — the one select that carries folderOptionsHtml's "new
+       stream" choice — must hold a stream. It starts on the template's own
+       stream, so a pick usually brings one; a box left on nothing greys
+       Create and says so. (The new-stream choice is not "nothing": its own
+       prompt puts the new stream in the box, or the last one back, without
+       a change event — counting it as empty would leave Create grey.) */
+    const sb=api?naStreamBox(document.getElementById('na-form')):null;
+    /* the new-stream choice is not a stream until its prompt puts one in the
+       box (naStreamAsk watches the prompt go, then asks this again) */
+    const noStream=!!sb&&(!sb.value||sb.value==='__new__');
+    const on=!!api&&!noStream;
+    const why=!api?i18t('na_pick_first'):i18t('na_stream_first');
     ['na-create','na-skip'].forEach(id=>{ const b=document.getElementById(id); if(!b) return;
-      b.disabled=!on; b.title=on?(b.getAttribute('data-title-on')||''):i18t('na_pick_first'); }); };
+      b.disabled=!on; b.title=on?(b.getAttribute('data-title-on')||''):why; }); };
   /* THE CARD IS THE CHOSEN DOOR'S OWN FORM. Every branch returns the acts the
      foot presses; the head prints the version where there is one and how
      many boxes were drawn. */
@@ -1020,6 +1036,29 @@ function openNewAgreement(o){
       if(arrow && arrow!==star){ const t=arrow.textContent.replace(/^\s*→\s*/,'').trim(); if(t && !sp.title) sp.title=t; arrow.remove(); }
       sp.style.cssText='display:block;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600);margin-bottom:4px;font-family:var(--font-body);letter-spacing:0;text-transform:none';
     });
+  };
+  /* ---- THE STREAM IS ASKED, NOT TAKEN, WHEN JAMBO OPENS THE FORM (the fix
+     round, 15 Oct 2026; the work order's step 3 and its demo: "Create greyed
+     with its reason until a template and a stream are chosen") ----
+     Opened from Jambo's cards (o.streamAsk), the stream box starts on none —
+     a "Choose a stream" line no press can choose — so Create stays grey with
+     "Choose a stream first." until the person picks one; a stream they chose
+     goes with them to the next template they try. The other doors keep the
+     template's own stream, as before. bindFolderSelect remembers the box's
+     last value for a cancelled "+ New value stream", so the box is told of
+     its new value the way a press tells it (a change event). */
+  let streamPicked='';
+  const naStreamAsk=host=>{
+    if(!o.streamAsk) return;
+    const sb=naStreamBox(host); if(!sb) return;
+    const has=v=>[...sb.options].some(x=>x.value===v);
+    if(!(streamPicked && has(streamPicked))){
+      if(!sb.querySelector('option[data-na-ask]')){
+        const ph=document.createElement('option'); ph.value=''; ph.disabled=true; ph.setAttribute('data-na-ask','');
+        ph.textContent=i18t('na_stream_choose'); sb.insertBefore(ph, sb.firstChild); }
+    }
+    sb.value=(streamPicked && has(streamPicked))?streamPicked:'';
+    try{ sb.dispatchEvent(new Event('change',{ bubbles:true })); }catch(_){}
   };
   const pick=(kind,id,prefill)=>{
     const host=document.getElementById('na-form'); if(!host) return;
@@ -1043,6 +1082,7 @@ function openNewAgreement(o){
     const n=api?api.count:0;
     dress(host);
     naCarryWrite(host, kept);
+    naStreamAsk(host);
     const nm=document.getElementById('na-card-name'), sb=document.getElementById('na-card-sub');
     if(nm) nm.textContent=name;
     /* A COMPANY STANDARD'S BOXES HERE ARE THE ESSENTIALS, and its own
@@ -1054,6 +1094,19 @@ function openNewAgreement(o){
     light();
   };
   root._naPick=pick;
+  /* the stream box is the form's; a change to it wakes or greys Create (light) */
+  document.getElementById('na-form')?.addEventListener('change',e=>{
+    const sb=naStreamBox(document.getElementById('na-form')); if(!e.target||e.target!==sb) return;
+    if(sb.value && sb.value!=='__new__') streamPicked=sb.value;
+    /* "+ New value stream" asks its name in a prompt of its own, which puts
+       the new stream (or the box's last value) back WITHOUT a change event:
+       when that prompt goes, the box is asked again */
+    if(sb.value==='__new__' && typeof MutationObserver==='function'){
+      const ob=new MutationObserver(()=>{ if(document.getElementById('newfolder-overlay')) return; ob.disconnect();
+        setTimeout(()=>{ const b=naStreamBox(document.getElementById('na-form')); if(b && b.value && b.value!=='__new__') streamPicked=b.value; light(); },0); });
+      ob.observe(document.body,{ childList:true });
+    }
+    light(); });
   root.querySelector('#wz-pick')?.addEventListener('click',e=>{
     const b=e.target.closest('[data-wz-lib],[data-wz-mine],[data-wz-tid]'); if(!b||!root.contains(b)) return;
     if(b.hasAttribute('data-wz-lib')) pick('lib', b.getAttribute('data-wz-lib'), o.prefill);
@@ -1186,6 +1239,14 @@ function naCarryWrite(host, kept){
   });
   return n;
 }
+/* THE FORM'S STREAM BOX: the one select drawn by folderOptionsHtml, which
+   alone carries the "new stream" choice (__new__) — whichever of the three
+   forms (wz- / ce- / tf-) is mounted */
+function naStreamBox(host){
+  if(!host||typeof host.querySelectorAll!=='function') return null;
+  for(const sel of host.querySelectorAll('select')) if(sel.querySelector('option[value="__new__"]')) return sel;
+  return null;
+}
 /* The draft-from-a-sentence hand-off lands in the open pop-up: the chosen
    paper lights and its questions arrive pre-filled in the card. Answers false
    where no pop-up is open, and draftHandOff then opens the door itself. */
@@ -1197,4 +1258,4 @@ function naPickFromDraft(pick, prefill){
   return true;
 }
 
-Object.assign(window,{openNewDoors,TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naCarryRead,naCarryWrite,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_RAIL_W,NA_ROWS_MIN_H,NA_ROWS_FOOT,NA_FRAME_NARROW_W});
+Object.assign(window,{openNewDoors,TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naStreamBox,naCarryRead,naCarryWrite,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_RAIL_W,NA_ROWS_MIN_H,NA_ROWS_FOOT,NA_FRAME_NARROW_W});

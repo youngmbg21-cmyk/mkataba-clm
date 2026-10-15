@@ -115,7 +115,7 @@ const ROUTE = [
     check('and there is a door to add or reorder signers', block.editBtn);
 
     /* on screen, in the dialog, on the Sign purpose */
-    await page.evaluate(() => setView('workspace'));
+    await page.evaluate(() => openWorkspace(state.activeId, { room: true }));
     await page.waitForTimeout(1500);
     await page.evaluate(id => openShareModal(getContract(id), { purpose: 'sign' }), cid);
     await page.waitForTimeout(1500);
@@ -326,7 +326,7 @@ const ROUTE = [
       await ensureFull(c);
       c.compliance = { ...(c.compliance || {}), consent: false };   // intent not ticked
       state.activeId = c.id; state.selId = c.id;
-      setView('workspace');
+      openWorkspace(state.activeId, { room: true });
       await new Promise(r => setTimeout(r, 400));
       roomGoTab(c, 'sign');
       await new Promise(r => setTimeout(r, 400));
@@ -416,7 +416,7 @@ const ROUTE = [
       return c.id;
     });
     await page.waitForTimeout(1200);
-    await page.evaluate(id => openWorkspace(id), execId);
+    await page.evaluate(id => openWorkspace(id, { room: true }), execId);
     await page.waitForTimeout(2000);
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room has no
        Signing tab to press; its door (roomGoTab 'sign') opens the Before you

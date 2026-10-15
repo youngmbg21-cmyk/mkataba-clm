@@ -71,7 +71,7 @@ const CERT = '<h1>CERTIFICATE OF DESIGNATION</h1><h2>SANERGY, INC.</h2><p>A Dela
 
     /* ===== 1. NEGOTIATE ON A LONG CONTRACT ===== */
     const negotiateFreeze = async id => {
-      await page.evaluate(i => openWorkspace(i), id);
+      await page.evaluate(i => openWorkspace(i, { room: true }), id);
       /* the room opens on its Overview (11 Oct 2026: no Document tab) */
       await until(i => state.activeId === i && state.view === 'workspace', id);
       await page.waitForTimeout(1500);

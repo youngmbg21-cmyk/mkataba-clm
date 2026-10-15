@@ -59,10 +59,11 @@ const BOOK = [['MK-D0', 0], ['MK-D1', 1], ['MK-D9', 9]];
       if (dark) await page.evaluate(() => setDark(true));
       for (const [id, n] of BOOK) {
         const tag = `${dark ? 'dark' : 'light'} ${width} ${n} duties`;
-        await page.evaluate(id => { state.activeId = id; state.selId = id; setView('workspace'); }, id);
-        await until(() => !!document.querySelector('#ws-tabs [data-ws-tab="terms"]'));
-        await page.click('#ws-tabs [data-ws-tab="terms"]');
-        const up = await until(() => { const m = document.querySelector('#ov-map svg'); return m && m.getBoundingClientRect().width > 100 ? true : null; });
+        /* RE-POINTED 15 Oct 2026 (step 8, the room retired): the duties map
+           is drawn in the Overview's sheet, the contract strip's Details page
+           on Home's Board — where the reader sees it now (roomOverviewOpen) */
+        await page.evaluate(id => { roomOverviewOpen(getContract(id)); }, id);
+        const up = await until(id => { const m = document.querySelector(`[data-bs-host="details"][data-bs-cid="${id}"] #ov-map svg`); return m && m.getBoundingClientRect().width > 100 ? true : null; }, id);
         if (!up) { check(`0. ${tag}: the map is drawn`, false); continue; }
         await page.evaluate(() => document.getElementById('ov-map').scrollIntoView({ block: 'start' }));
         await page.waitForTimeout(800);

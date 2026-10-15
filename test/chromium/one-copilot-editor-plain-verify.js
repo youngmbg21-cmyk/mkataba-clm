@@ -103,7 +103,7 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
             whatItDoes: 'It raises the cap to twelve months and keeps the losses a cap should never cover outside it.', proposedText: words }) };
       };
     }, { LIAB_NEW, QUAL_NEW });
-    await page.evaluate(id => openWorkspace(id), ID);
+    await page.evaluate(id => openWorkspace(id, { room: true }), ID);
     await page.evaluate(id => roomGoTab(getContract(id), 'redline'), ID);
     await until(page, () => !!document.querySelector('.redline-page #rl-changes'));
     const row = await until(page, id => { if (!document.getElementById('rl-risks') && window.renderRedline) renderRedline();

@@ -137,7 +137,7 @@ let H;
     const st0 = await stage();
     check('2a  the lead\'s browser knows the contract needs an approval', st0.needs === 1, JSON.stringify(st0));
     const openSign = async (P) => {
-      await P.evaluate(() => { const c = getContract('MK-A2'); openWorkspace(c.id); });
+      await P.evaluate(() => { const c = getContract('MK-A2'); openWorkspace(c.id, { room: true }); });
       await P.waitForTimeout(700);
       await P.evaluate(() => { const c = getContract('MK-A2'); roomGoTab(c, 'sign'); });
       await P.waitForTimeout(700);

@@ -65,7 +65,8 @@ describe('f673 (1) a contract just made lands on Home, the panel on Fill in', ()
   });
   test('1b nothing owed: Home on Jambo; an executed import and the phone keep the room', () => {
     let s = stage({ left: 0 }); s.ctx.roomOpenOnTerms('MK-1'); assert.equal(s.ctx.roomArrivesOnHome('MK-1'), true);
-    assert.deepEqual(J(s.calls), [['home', 'MK-1', 'copilot']]);
+    /* the Workspace door's landing, plain: no face left up (step 2, 15 Oct 2026) */
+    assert.deepEqual(J(s.calls), [['home', 'MK-1', 'plain']]);
     s = stage({ executed: true }); s.ctx.roomOpenOnTerms('MK-1'); assert.equal(s.ctx.roomArrivesOnHome('MK-1'), false);
     s = stage({ phone: true }); s.ctx.roomOpenOnTerms('MK-1'); assert.equal(s.ctx.roomArrivesOnHome('MK-1'), false);
   });
@@ -78,7 +79,9 @@ describe('f673 (1) a contract just made lands on Home, the panel on Fill in', ()
   });
   test('1d the page router asks it first, for the room only, before the layers question', () => {
     const sv = strip(fnBody(APP, 'setView'));
-    const ask = sv.indexOf("view==='workspace'"), arr = sv.indexOf('roomArrivesOnHome(state.activeId)'), layers = sv.indexOf('viewLayersClosed(view)');
+    /* the general layers question (the LAST one): step 7 of the overnight
+       work order asks it earlier too, inside the Contracts place's own branch */
+    const ask = sv.indexOf("view==='workspace'"), arr = sv.indexOf('roomArrivesOnHome(state.activeId)'), layers = sv.lastIndexOf('viewLayersClosed(view)');
     assert.ok(ask > 0 && arr > ask && layers > arr, 'asked before anything is drawn');
   });
 });

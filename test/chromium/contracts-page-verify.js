@@ -33,6 +33,9 @@ const check = (name, ok, detail) => {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail != null ? ' — ' + detail : ''}`);
 };
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
@@ -57,7 +60,7 @@ const check = (name, ok, detail) => {
        window; insForce(false) is the page's own stage door onto it, held in
        memory for this sitting. The page loads once, so it holds for the file. */
     await page.evaluate(() => { if (window.insForce) insForce(false); });
-    await page.evaluate(() => setView('register'));
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(1500);
     await page.screenshot({ path: path.join(OUT, '01-contracts.png') });
 
@@ -267,7 +270,7 @@ const check = (name, ok, detail) => {
        in the new shape and is what is asked now: the filters and the rows
        they narrow are ONE card, with no seam between them, and the card sits
        on the page's own inset, level with the page's name. */
-    await page.evaluate(() => setView('register'));
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(1500);
     const band = await page.evaluate(() => {
       const box = s => { const e = document.querySelector(s); if (!e) return null;
@@ -277,9 +280,12 @@ const check = (name, ok, detail) => {
       const paint = v => { const d = document.createElement('div'); d.style.background = 'var(' + v + ')';
         document.body.appendChild(d); const c = getComputedStyle(d).backgroundColor; d.remove(); return c; };
       const f = [...document.querySelectorAll('.reg-f')];
-      const h1 = document.querySelector('#page-head h1');
+      /* RE-POINTED 15 Oct 2026 (step 7): the Contracts page is Home's
+         Contracts place; its name is the place head's own (.ct-h) and the
+         page's white band is that head (.ct-head), not Home's #page-head. */
+      const h1 = document.querySelector('.ct-head .ct-h') || document.querySelector('#page-head h1');
       const range = h1 ? (() => { const r = document.createRange(); r.selectNodeContents(h1); return r.getBoundingClientRect(); })() : null;
-      return { head: box('#page-head'), band: box('.reg-band'), body: box('.reg-table'),
+      return { head: box('.ct-head') || box('#page-head'), band: box('.reg-band'), body: box('.reg-table'),
         card: box('.reg-card'), bar: box('.reg-card > .reg-filterbar'),
         surface: paint('--color-surface'), ground: paint('--color-bg'),
         titleLeft: range ? Math.round(range.left) : null,
@@ -346,7 +352,7 @@ const check = (name, ok, detail) => {
        layout is, so this stages 150 with deliberately uneven names and
        counterparties — short ones on the first pages, long ones on the last —
        which is what made the columns move on the owner's own register. */
-    await page.evaluate(() => setView('register'));
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(1200);
     await page.evaluate(() => {
       const base = state.contracts[0];
@@ -358,7 +364,7 @@ const check = (name, ok, detail) => {
         c.value = i % 3 ? 12345678 * (i % 7 + 1) : 0; c.negotiation = null; c.audit = [];
         state.contracts.push(c);
       }
-      renderRegister();
+      regRepaint();
     });
     await page.waitForTimeout(1400);
     const READ = `(() => {
@@ -698,12 +704,15 @@ const check = (name, ok, detail) => {
     /* FIVE SINCE 24 Sep 2026 (Young: "Remove the value stream column from both
        pages as well but not from the filter") — the stream column left both
        seats and its width went back to the counterparty on both. */
-    const SHARED = ['mk', 'counterparty', 'value', 'expiry', 'stage'];
-    const keys = await page.evaluate(() => [REG_COL_KEYS, REG_COL_KEYS_NEGO]);
-    const pair = k => [pages[0].w[keys[0].indexOf(k)], nego && nego.w[keys[1].indexOf(k)]];
-    check('11d and the five columns both tables share are cut identically',
-      nego && SHARED.every(k => { const [a, b] = pair(k); return a != null && a === b; }),
-      nego && SHARED.map(k => { const [a, b] = pair(k); return `${k} ${a}/${b}`; }).join(' · '));
+    /* 11d RETIRED 15 Oct 2026 (the overnight work order, step 7): "the five
+       columns both tables share are cut identically" paired the Contracts
+       page's table with the Negotiations page's, both drawn edge to edge in
+       the same shell. Contracts is now Home's Contracts place — its List sits
+       in Home's paper column beside Jambo's panel, with its own six columns
+       (the drawing's: Ref, Counterparty and agreement, Stage, Owner, Ends,
+       Value) — so the two tables no longer share a width to be cut alike.
+       The pairing's subject is gone; 11a–11c still ask the Negotiations
+       table's own size, type and fixed layout, and 10a–10e the List's. */
 
     /* ---- 14 · THE ROW MENU IS NOT CLIPPED AWAY (owner-reported 25 Aug 2026:
        "Previously, the 3 dots at the end were a filter where I had options to
@@ -719,7 +728,7 @@ const check = (name, ok, detail) => {
        still reports its full rectangle, so a geometry check passes on the
        broken page. document.elementFromPoint at each row's own centre is the
        only honest question, and it is one a browser alone can answer. */
-    await page.evaluate(() => setView('register'));
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(1600);
     await page.click('#reg-tbody [data-menu]');
     await page.waitForTimeout(600);
@@ -787,13 +796,16 @@ const check = (name, ok, detail) => {
       const atPoint = (x, y) => { const top = document.elementFromPoint(x, y);
         let n = top, c = 'rgba(0, 0, 0, 0)';
         while (n && c === 'rgba(0, 0, 0, 0)'){ c = getComputedStyle(n).backgroundColor; n = n.parentElement; }
-        const own = top && top.closest('#page-head, .reg-band');
+        const own = top && top.closest('#page-head, .ct-head, .reg-band');
         return { c, own: own ? (own.id ? '#' + own.id : '.reg-band') : 'OTHER' }; };
       const box = s => { const e = document.querySelector(s); if (!e) return null;
         const r = e.getBoundingClientRect();
         return { right: Math.round(r.right), top: Math.round(r.top), bottom: Math.round(r.bottom) }; };
       const sc = document.getElementById('content-scroll');
-      const head = box('#page-head'), band = box('.reg-band');
+      /* RE-POINTED 15 Oct 2026 (step 7): on Home's Contracts place the
+         page's name sits in the place's own head (.ct-head, which IS the
+         white band); Negotiations keeps the page head. */
+      const head = box('.ct-head') || box('#page-head'), band = box('.reg-band');
       if (!band) return null;
       /* RE-POINTED IN PLACE 26 Sep 2026 (the list Inspector drawing): the
          page's name sits on the page ground now and the ONE card is the
@@ -818,14 +830,16 @@ const check = (name, ok, detail) => {
       const probe = document.createElement('div'); probe.style.background = 'var(--color-bg)';
       document.body.appendChild(probe); const ground = getComputedStyle(probe).backgroundColor; probe.remove();
       const hp = head ? atPoint(Math.min(head.right, innerWidth) - 3, head.top + 4) : null;
+      const place = box('#ct-place');
       return { headRight: head && head.right, bandRight: band.right, win: innerWidth,
+        placeRight: place ? place.right : null,
         headPaint: hp ? hp.c : null, ground,
         card: !!card, cardRight: cr ? Math.round(cr.right) : null, cardTop: cr ? Math.round(cr.top) : null,
         gutter: sc.offsetWidth - sc.clientWidth, surface,
         owners: [...new Set(owners)],
         colours: [...new Set(cols)], samples: cols.length };
     };
-    for (const [name, go] of [['Contracts', () => setView('register')],
+    for (const [name, go] of [['Contracts', () => (regPlaceSet({ show: 'list' }), setView('register'))],
                               ['Negotiations', () => openNegotiations({ list: true })]]){
       /* A CLEAN PAGE FIRST. Section 14 leaves a row menu behind; whatever it
          leaves layered over the page is what elementFromPoint would answer
@@ -848,8 +862,20 @@ const check = (name, ok, detail) => {
           && !e.owners.includes('OTHER'),
         e ? `${e.samples} samples · ${e.colours.join(' | ')} vs surface ${e.surface}`
           + ` · painted by ${e.owners.join(', ')}` : '-');
-      check(`15 ${name}: because a page that cannot scroll reserves no gutter`,
-        !!e && e.gutter === 0, e ? `${e.gutter}px reserved` : '-');
+      /* RE-POINTED 15 Oct 2026 (step 7): Contracts is no longer a page of its
+         own in the shell's scroller — it is a place inside Home's paper
+         column, whose scroller is Home's. What the 25 Aug report asked ("the
+         top white cards should cover all the way to the end") is asked of the
+         place: its band runs to the place's own right edge, with no step.
+         Negotiations is still a page that owns its height, so it keeps the
+         gutter claim. */
+      if (name === 'Contracts')
+        check(`15 ${name}: and its white band runs to the place's own right edge, with no step`,
+          !!e && e.placeRight != null && Math.abs(e.bandRight - e.placeRight) <= 1,
+          e ? `band ends ${e.bandRight} · place ends ${e.placeRight}` : '-');
+      else
+        check(`15 ${name}: because a page that cannot scroll reserves no gutter`,
+          !!e && e.gutter === 0, e ? `${e.gutter}px reserved` : '-');
     }
     /* ---- 15b · AND THE TWO HALVES JOIN AT EVERY WINDOW HEIGHT
        (owner-reported 25 Aug 2026: "there is still a grey gap in the card that
@@ -890,7 +916,7 @@ const check = (name, ok, detail) => {
       await page.waitForTimeout(400);
       await page.evaluate(() => setView('dashboard'));
       await page.waitForTimeout(700);
-      await page.evaluate(() => setView('register'));
+      await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
       await page.waitForTimeout(1500);
       const j = await page.evaluate(JOIN);
       check(`15b at ${H}px tall the filters and the rows meet with no gap, inside the list's one card`,
@@ -978,7 +1004,7 @@ const check = (name, ok, detail) => {
        took the value, and regFiltered had stopped reading it. Only pressing
        the box a reader presses and counting the rows that come back can say
        so. MEASURED before the fix: four rows, type "lease", four rows. */
-    await page.evaluate(() => setView('register'));
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(700);
     /* RE-POINTED IN PLACE 21 Sep 2026: it took the first word of `.reg-title`,
        which is the COUNTERPARTY now — and a seeded book where every row shares
@@ -1058,7 +1084,7 @@ const check = (name, ok, detail) => {
        lesson. And the ORDER is read back off the page, because a head that
        toggles its arrow while the rows stay put is the same dead press wearing
        a tick. */
-    await page.evaluate(() => setView('register'));
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(700);
     const heads = await page.evaluate(() => [...document.querySelectorAll('.reg-table thead th')]
       .map(th => ({ text: th.textContent.replace(/[▲▼↕]/g, '').trim(), sort: th.getAttribute('data-reg-sort') })));
@@ -1152,7 +1178,7 @@ const check = (name, ok, detail) => {
        a row of fixed percentage widths, and Swedish's words are longer. */
     for (const [lang, w] of [['en', 1440], ['sv', 1280]]){
       await page.setViewportSize({ width: w, height: 900 });
-      await page.evaluate(l => { if (window.langSet) langSet(l); if (window.setView) setView('register'); }, lang);
+      await page.evaluate(l => { if (window.langSet) langSet(l); if (window.setView) (regPlaceSet({ show: 'list' }), setView('register')); }, lang);
       await page.waitForTimeout(800);
       const row = await page.evaluate(() => {
         const ths = [...document.querySelectorAll('.reg-table thead th')];
@@ -1183,17 +1209,17 @@ const check = (name, ok, detail) => {
        AND THE CONTRACT'S OWN ROOM IS THE CONTROL: a page that really does show
        one must still name it, or "no contract is claimed" is satisfied by a
        brief that has simply stopped saying anything. */
-    await page.evaluate(() => setView('register'));
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(400);
     const brief = await page.evaluate(() => {
       const out = {};
       const first = (state.contracts[0] || {}).id || null;
       /* Open one, then walk back — the journey that leaves the global set. */
-      if (first) openWorkspace(first);
+      if (first) openWorkspace(first, { room: true });
       out.room = (() => { const c = aiChatContext();
         return { id: c.activeContractId || null, page: c.page ? c.page.name : null,
           tab: c.page ? c.page.tab || null : null }; })();
-      setView('register');
+      (regPlaceSet({ show: 'list' }), setView('register'));
       out.list = (() => { const c = aiChatContext();
         return { id: c.activeContractId || null, page: c.page ? c.page.name : null,
           matching: c.page ? c.page.matching : null,

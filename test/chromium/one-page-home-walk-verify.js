@@ -93,15 +93,15 @@ const WATCH = () => { window._walk = {}; const tick = () => {
       para('2. Fees. The Client shall pay each invoice within thirty (30) days of receipt.'),
       para('3. Term. This Agreement runs for twelve (12) months from signature.'),
     ].join(''))));
+    /* RE-POINTED (the overnight work order, step 4, 15 Oct 2026): "upload"
+       opens the file picker, not the pop-up; the file goes through the upload's
+       own path and lands on the paper, and what the pop-up asked (the other
+       party) is asked by Fill in below */
+    const chooser = page.waitForEvent('filechooser', { timeout: 6000 }).catch(() => null);
     await say('upload');
-    const modal = await waitFor(page, () => !!document.getElementById('up-file'), 6000);
-    check('1a "upload" in Jambo\'s box opens the upload over Home', modal && await page.evaluate(() => state.view === 'dashboard'));
-    if (modal) {
-      await page.setInputFiles('#up-file', file);
-      await waitFor(page, () => { const s = document.getElementById('up-step-2'); return !!s && !s.classList.contains('hidden'); }, 20000);
-      if (!(await page.evaluate(() => (document.getElementById('up-cp') || {}).value))) await page.fill('#up-cp', 'Parcelway ApS');
-      await page.click('#up-go');
-    }
+    const fc = await chooser;
+    check('1a "upload" in Jambo\'s box opens the file picker over Home, no pop-up', !!fc && await page.evaluate(() => state.view === 'dashboard' && !document.getElementById('up-file')));
+    if (fc) await fc.setFiles(file);
     const landed = await waitFor(page, () => state.contracts.length === 1 && !!intel.paper && intel.paper.id === state.contracts[0].id
       && !!document.querySelector('#pd-fillface .pd-ff[data-pd-ff="' + state.contracts[0].id + '"]'), 15000);
     id = await page.evaluate(() => (state.contracts[0] || {}).id || null);

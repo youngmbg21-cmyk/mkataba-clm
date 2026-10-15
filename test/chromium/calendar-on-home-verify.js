@@ -67,8 +67,10 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await page.click('[data-cal-view="month"]');
 
     /* every door that still names the page lands on the tab */
-    await page.evaluate(() => setView('register'));
-    await until(page, () => state.view === 'register');
+    /* RE-POINTED 15 Oct 2026 (the overnight work order, step 7): Contracts is
+       Home's own place now, so the page left first is Obligations */
+    await page.evaluate(() => setView('obligations'));
+    await until(page, () => state.view === 'obligations');
     await page.evaluate(() => setView('calendar'));
     ok('9 setView(\'calendar\') lands on Home\'s Calendar tab', await until(page, () => state.view === 'dashboard' && hbFace() === 'calendar' && !!document.querySelector('#hb-cal .cal-stage')));
 

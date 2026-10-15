@@ -105,7 +105,7 @@ const isoIn = off => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d
     check('1e something due in five days sits under the soon heading', ob.soonBand === 'soon', JSON.stringify(ob.bands));
 
     /* ================= 2 · THE CONTRACT'S OBLIGATIONS TAB ================= */
-    await page.evaluate(async () => { const c = getContract('MK-A1'); await ensureFull(c); openWorkspace(c.id); });
+    await page.evaluate(async () => { const c = getContract('MK-A1'); await ensureFull(c); openWorkspace(c.id, { room: true }); });
     await page.waitForTimeout(1500);
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
        Obligations tab went home — the same door (roomGoTab 'oblig') opens the

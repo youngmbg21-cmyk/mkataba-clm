@@ -82,7 +82,7 @@ const M = () => {
     /* RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner); its old
        door (roomGoTab 'contract') lands on Home's Document, so "document" is the
        paper that door reaches — it must be the reference paper itself. */
-    out.document = await at(async () => { await page.evaluate(() => openWorkspace('MK-OP1')); await page.waitForFunction(() => !!document.querySelector('.room-tabrow'), null, { timeout: 10000 });
+    out.document = await at(async () => { await page.evaluate(() => openWorkspace('MK-OP1', { room: true })); await page.waitForFunction(() => !!document.querySelector('.room-tabrow'), null, { timeout: 10000 });
       await page.evaluate(() => roomGoTab(getContract('MK-OP1'), 'contract')); await page.waitForFunction(() => !!document.querySelector('#ig-canvas article.nego-doc'), null, { timeout: 10000 }); });
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): every door now
        lands on Jambo's Redlines face beside Home's paper — which IS the

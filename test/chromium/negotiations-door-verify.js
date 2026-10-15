@@ -111,16 +111,20 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
     check('the sidebar carries a Negotiations door', !!door.box && door.box.on,
       door.box ? `${door.box.w}x${door.box.h}` : 'missing');
     check('it reads Negotiations — a noun among nouns', door.label === 'Negotiations', door.label);
+    /* RE-POINTED AT STEP 7 OF THE OVERNIGHT WORK ORDER: the fold's Contracts
+       item went (its opener is the Contracts door), so Negotiations is the
+       fold's FIRST door, under the Contracts row */
+    const fold = await page.evaluate(() => [...document.querySelectorAll('.nav-fold[data-nav-fold="register"] .nav-sub .nav-item[data-view]')].map(el => el.getAttribute('data-view')));
     check('and it sits directly under Contracts',
-      door.order.indexOf('redline') === door.order.indexOf('register') + 1,
-      door.order.join(' › '));
+      fold[0] === 'redline' && !door.order.includes('register'),
+      fold.join(' › ') + ' · rail ' + door.order.join(' › '));
 
     await page.screenshot({ path: path.join(OUT, '01-sidebar.png') });
 
     /* ---- 2. THE CONTRACT ROOM SHOWS FOUR TABS AND NO NEGOTIATE ---- */
     const cid = await page.evaluate(() => {
       const c = state.contracts.find(x => x.status !== 'Signed' && x.status !== 'Declined');
-      openWorkspace(c.id); return c.id;
+      openWorkspace(c.id, { room: true }); return c.id;
     });
     await page.waitForTimeout(1200);
     const tabs = await page.evaluate(() =>
@@ -234,7 +238,7 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
     check('Open document opens the agreement on Home\'s Document', out.view === 'dashboard' && !!out.id, JSON.stringify(out));
     check('on the Copilot tab', out.tab === 'copilot', out.tab);
     /* the room itself, opened the way a reader still reaches it */
-    await page.evaluate(id => openWorkspace(id), out.id);
+    await page.evaluate(id => openWorkspace(id, { room: true }), out.id);
     await page.waitForTimeout(1200);
 
     /* ---- 7b. AND THE ROOM HAS NO BACK ARROW AT ALL ----
@@ -261,14 +265,15 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
       roomBar.back === false, `#ws-back present: ${roomBar.back}`);
     check('7b and the bar names the section instead, without the contract after it',
       roomBar.word.length > 0 && !roomBar.word.includes('·'), `"${roomBar.word}"`);
-    const railOut = await page.evaluate(() => {
-      const b = document.querySelector('#side-nav .nav-item[data-view="register"]')
-        || document.querySelector('.nav-item[data-view="register"]');
+    /* the rail's Contracts door is the fold's opener since step 7: Home's Contracts place */
+    const railOut = await page.evaluate(async () => {
+      const b = document.querySelector('#side-nav [data-nav-fold-open="register"]');
       if (b) b.click();
-      return { had: !!b, view: state.view };
+      await new Promise(r => setTimeout(r, 600));
+      return { had: !!b, view: state.view, place: !!document.querySelector('[data-reg-home]'), paper: (window.intel && intel.paper) ? intel.paper.id : null };
     });
     check('7b and the rail\'s own door lands on Contracts, never on the negotiation',
-      railOut.had === true && railOut.view === 'register', `${railOut.had} · ${railOut.view}`);
+      railOut.had === true && railOut.view === 'dashboard' && railOut.place && !railOut.paper, JSON.stringify(railOut));
 
     /* ---- 8. THE DOOR OPENS THE LIST, FROM ANYWHERE ----
        REVERSED IN PLACE 24 Aug 2026 (WO-17, owner-asked: "when i click on the
@@ -798,7 +803,7 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
        then the funnel every named door goes through is called straight and
        measured to refuse. AGAINST THE PARENT: 9a reports a live button, 9b/9c
        report the view on the negotiate page. */
-    await page.evaluate(() => { openWorkspace('MK-A1'); });
+    await page.evaluate(() => { openWorkspace('MK-A1', { room: true }); });
     await pause(1200);
     await page.evaluate(() => { const b = document.querySelector('[data-ws-tab="terms"]'); if (b) b.click(); });
     await pause(700);
@@ -823,15 +828,22 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
     check('9c the funnel every named door goes through refuses too, in words, where the reader stands',
       wall.r === false && wall.view === 'workspace' && /executed|sealed/i.test(wall.toast),
       `returned ${wall.r} · view ${wall.view} · "${wall.toast.slice(0, 80)}"`);
+    /* RE-POINTED 15 Oct 2026 (step 8, the room retired): the link is opened
+       from another page, as a reader arrives from their mail — from inside
+       the room opened by name it measured only that flag. It lands on the
+       contract's strip on the Board, the sealed wall refusing the negotiate
+       page. */
     const stale = await page.evaluate(() => {
+      setView('register');
       location.hash = '#contract=MK-A1&tab=redline';
       if (window.openFromHash) openFromHash();
       return state.view; });
     await pause(600);
-    const after9d = await page.evaluate(() => state.view);
-    check('9d a stale link onto the negotiate page lands on the contract instead',
-      stale !== 'redline' && after9d === 'workspace', `view ${after9d}`);
-    await page.evaluate(() => { location.hash = ''; openWorkspace('MK-A2'); });
+    const after9d = await page.evaluate(() => { const top = document.querySelector('#bs-strips > .bs-strip');
+      return { view: state.view, strip: top ? top.getAttribute('data-bs-id') : null, room: !!document.getElementById('ws-tabs') }; });
+    check('9d a stale link onto the negotiate page lands on the contract instead (its strip on the Board since step 8)',
+      stale !== 'redline' && after9d.view === 'dashboard' && after9d.strip === 'MK-A1' && !after9d.room, JSON.stringify(after9d));
+    await page.evaluate(() => { location.hash = ''; openWorkspace('MK-A2', { room: true }); });
     await pause(1200);
     await page.evaluate(() => { const b = document.querySelector('[data-ws-tab="terms"]'); if (b) b.click(); });
     await pause(700);

@@ -120,6 +120,16 @@
    theme's accent-400 rgb(91,130,207) on Jambo's suggestion chips in dark, and
    the Board's own dark text inks on History. Gone: the Negotiate page's paper
    frame and kicker. Every Ink Wash claim passed before and after.
+   RE-RECORDED 15 Oct 2026 (the overnight run, step 8) WITHOUT THE OWNER'S
+   YES — flagged for his morning summary, to be undone with
+   `git checkout <the step 8 parent> -- test/chromium/ink-wash-baseline.json`
+   if he says no. Not a palette change: the History screen gained the Side
+   switch the step 8 work order draws (All sides · Ours · Theirs, the owner's
+   "History gets filtering on sides"), three more buttons on that screen.
+   Audited first as a set difference against the 14 Oct record: only the
+   History screen moved; no colour or size new or gone in any appearance,
+   only counts (green-light 12px 77→80 and 13px 271→272; in dark the same
+   colours a few more times). Every other screen and pop-up byte for byte.
      node test/chromium/ink-wash-verify.js          (check)
    ============================================================ */
 const fs = require('node:fs');
@@ -235,6 +245,9 @@ const diff = (a, b) => {
   return out;
 };
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
@@ -283,12 +296,12 @@ const diff = (a, b) => {
         if (window.hbCvSet) hbCvSet('book', null); if (window.pdSetTab) pdSetTab('doc');
         hbS().face = window.__hbFaceWas; hbSave(); delete window.__hbFaceWas; }
         setView('dashboard'); }],
-      ['contracts',   () => setView('register')],
+      ['contracts',   () => (regPlaceSet({ show: 'list' }), setView('register'))],
       ['obligations', () => setView('obligations')],
       ['calendar',    () => setView('calendar')],
       ['ourpaper',    () => setView('templates')],
       ['settings',    () => setView('team')],
-      ['overview',    id => { openWorkspace(id); roomGoTab(getContract(id), 'terms'); }],
+      ['overview',    id => { openWorkspace(id, { room: true }); roomGoTab(getContract(id), 'terms'); }],
       /* RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner). The
          paper it drew is read on Home's Document now, so 'document' measures
          that; Home's face is put back afterwards so the next 'home' census
@@ -303,16 +316,16 @@ const diff = (a, b) => {
          History view; 'negotiate' is Jambo's Redlines face beside Home's paper
          (every door onto Negotiate lands there). Home's face is put back at
          the next round's 'home', above. */
-      ['signing',     id => { openWorkspace(id); roomGoTab(getContract(id), 'sign'); }],
-      ['history',     id => { openWorkspace(id); roomGoTab(getContract(id), 'history'); }],
+      ['signing',     id => { openWorkspace(id, { room: true }); roomGoTab(getContract(id), 'sign'); }],
+      ['history',     id => { openWorkspace(id, { room: true }); roomGoTab(getContract(id), 'history'); }],
       ['negotiate',   id => openRedlineWorkbench(id)],
     ];
     /* THE POP-UPS the owner named: a dialog (with a danger button), the one
        panel (alerts), a toast. Each opened over the Contracts page. */
     const POPUPS = [
-      ['dialog', () => { setView('register'); confirmDialog({ title: 'Delete this draft?', message: 'It cannot be brought back.', confirmLabel: 'Delete', danger: true }); }],
-      ['alerts', () => { setView('register'); const b = document.querySelector('#hdr-notify'); if (b) b.click(); }],
-      ['toast',  () => { setView('register'); toast('Saved', 'ok'); }],
+      ['dialog', () => { (regPlaceSet({ show: 'list' }), setView('register')); confirmDialog({ title: 'Delete this draft?', message: 'It cannot be brought back.', confirmLabel: 'Delete', danger: true }); }],
+      ['alerts', () => { (regPlaceSet({ show: 'list' }), setView('register')); const b = document.querySelector('#hdr-notify'); if (b) b.click(); }],
+      ['toast',  () => { (regPlaceSet({ show: 'list' }), setView('register')); toast('Saved', 'ok'); }],
     ];
     const closeLayers = async () => { await page.keyboard.press('Escape'); await pause(150); await page.keyboard.press('Escape'); await pause(150);
       await page.evaluate(() => { document.querySelectorAll('.modal-bg, [data-modal-bg]').forEach(n => n.remove()); window.toastsClear && toastsClear(); }); };

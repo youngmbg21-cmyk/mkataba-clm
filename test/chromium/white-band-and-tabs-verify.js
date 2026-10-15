@@ -113,6 +113,9 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
   return o;
 });
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
@@ -134,7 +137,7 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     await pause(1800);
 
     /* ================= 1 · THE CONTRACT ROOM'S HEAD IS A WHITE BAND ========= */
-    await page.evaluate(id => openWorkspace(id), cid);
+    await page.evaluate(id => openWorkspace(id, { room: true }), cid);
     await pause(2000);
     await page.screenshot({ path: path.join(OUT, '01-room.png') });
 
@@ -425,7 +428,7 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     const oneRungDown = (got) => ref && got
       && parseFloat(got.fontSize) < parseFloat(ref.fontSize)
       && parseFloat(got.fontSize) >= parseFloat(ref.fontSize) - 2;
-    await page.evaluate(() => setView('register'));
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await pause(2400);
     const regTitles = await page.evaluate(READ_TYPE, { sel: '.reg-table tbody .reg-title', props: TYPE });
     check('5d the CONTRACTS list titles share the reference\'s family and tracking',
@@ -680,7 +683,7 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
       { ink: live[0] && live[0].ink, accentInk });
 
     /* ================= 8 · THE STRIP IS GONE AND THE CARDS MOVED UP ======== */
-    await page.evaluate(id => openWorkspace(id), cid);
+    await page.evaluate(id => openWorkspace(id, { room: true }), cid);
     await pause(2200);
     const tabsSeen = [];
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's

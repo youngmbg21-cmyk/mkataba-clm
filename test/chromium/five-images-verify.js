@@ -30,6 +30,9 @@ const ok = (name, good, detail) => {
 };
 const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
@@ -47,7 +50,7 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
 
     /* ════════ 2. THE CONTRACTS PAGE ════════
        Done first because it needs nothing staged. */
-    await page.evaluate(() => setView('register'));
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(1400);
     await page.screenshot({ path: path.join(OUT, '01-contracts.png') });
 
@@ -122,7 +125,11 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
     ok('1-stage a contract really is inside its renewal window',
       !!staged && staged.n > 0, JSON.stringify(staged));
 
-    await page.evaluate(() => setView('dashboard'));
+    /* RE-POINTED 15 Oct 2026 (step 7): section 2 left Home on the Contracts
+       place (Home's Document face, no paper), so Home is reached the way a
+       reader reaches it — the rail's Home door, which lands on the Board. */
+    await page.evaluate(() => { const b = document.querySelector('#side-nav .nav-item[data-view="dashboard"]');
+      if (b) b.click(); else setView('dashboard'); });
     await page.waitForTimeout(1600);
     await page.screenshot({ path: path.join(OUT, '03-home.png'), fullPage: true });
 
@@ -256,9 +263,10 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
                  : segSweep.length + ' measured, none leaking');
 
     /* ════════ 5. A BIT OF COLOUR ON THE FRAME ════════ */
-    await page.evaluate(() => setView('register'));
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(900);
-    await page.evaluate(() => { const b = document.querySelector('.hm-primary'); if (b) b.click(); });
+    /* RE-POINTED 15 Oct 2026 (the overnight build, steps 3 and 7): Home's head and the Contracts place carry no "+ Draft new agreement" (Jambo's panel has it); the two-door menu is the pages' own door, opened here as they open it (openNewDoors). */
+    await page.evaluate(() => { if (typeof openNewDoors === 'function') openNewDoors(); });
     /* 23 Sep 2026: the button opens two doors first; this presses Draft from HaTi. */
     await page.waitForTimeout(400);
     /* RE-POINTED 10 Oct 2026 (SAP pop-ups): New agreement is a PAGE now, with

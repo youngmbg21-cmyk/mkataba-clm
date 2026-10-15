@@ -213,3 +213,122 @@ real app.
   "What starts now").
 - ~~**The rail's Negotiations door** after stage 5~~ — settled in stage 5:
   kept as a list; every row opens the contract on Home.
+
+## Finishing the plan (overnight build, 14-15 Oct 2026)
+
+The owner's "Go" on docs/WORKORDER-one-page-finish.md, built one step at a
+time on this branch; the owner merges in the morning.
+
+- **Steps 1 and 2 — the door census, and the wrong doors. Built 14 Oct
+  2026.** `test/chromium/every-door-lands-on-home-verify.js` presses every
+  door that opens a contract or its work (each list page's rows and panel
+  doors, the rail, the bell, Jambo's words and chips, ⌘K, the paper's ⋯, an
+  email link, a refresh) and fails on the room, the Negotiate page, a retired
+  page or a door that does nothing; the doors steps 7 and 8 move are printed
+  as PENDING and never fail it. The wrong doors it found now land on Home:
+  every Workspace door (Fill in beside the paper while details are owed, else
+  the paper on Jambo — `roomHomeLand`), Obligations rows (the Board's
+  Obligations view, the row chosen), Parties' Open party (Home's wall with no
+  paper chosen, narrowed to that party by one lit chip, until step 7) and the
+  bell's approval row (Before you sign beside the paper). Negotiations rows
+  already opened the Redlines face. Differences from the work order's wording:
+  the email link is `#contract=<id>&tab=…&go=…` (the shape the server mails),
+  not `#/c/<id>/…`; the party's wall is narrowed by the set the Parties row
+  counted rather than by a name, and its count line counts that set the
+  Parties way (agreements, an amendment said beside them), so the number
+  pressed is the number read. After the checkers' round (15 Oct 2026): the
+  Workspace door lands on the paper PLAIN (a face left open on that contract
+  is put away), the Board's contract card and the Negotiate page's Open
+  workspace are Workspace doors too, an Obligations row is the row chosen
+  whatever tab the Board's view was left on, and the census also presses the
+  panels' checklist rows, Show it in the contract and the other Workspace
+  doors, and prints the bell's room rows this book does not draw. Story:
+  MAP-HISTORY "FINISHING THE ONE PAGE — Steps 1 and 2".
+
+- **Steps 3 to 6 — Draft in Jambo's panel, the drop area, at a glance, the
+  stream in Fill in. Built 15 Oct 2026.** Home's head lost "+ Draft new
+  agreement" (the other pages keep their own door). On the wall Jambo's chips
+  lead with "upload a document" and "draft a new agreement". "draft" answers
+  with the Draft card; a "draft … with …" sentence with one New agreement card
+  (What · From · With · Stream, "Not created yet", Open the form · Change the
+  ask); Open the form is the one form (`openNewAgreement`), the template lit
+  and the counterparty in its box, Create grey with its reason until a
+  template and a stream are chosen — never the two-door menu. With no paper
+  chosen, Jambo's tab greets and offers the drop area: a Word or PDF file
+  dropped or chosen (or "upload") goes through the upload's own reader and
+  creator (`uploadReadFile`, `submitUpload`, `fileTitleOf`, `contractArrived`)
+  and lands on its paper with Fill in open; who we are is asked there, our
+  entities offered. With a contract on the paper, the tab opens on "MK-… at a
+  glance": details still empty → Fill in, risks → Redlines, changes not sent →
+  Share, nobody named to sign → Signing, else "Nothing is waiting on you" —
+  each count its own face's reading, nothing spent or written. Fill in asks the
+  stream ("asked, never owed"), moved through the one stream writer
+  (`ktFolderMove`), grey with the reason for a person who may not re-file.
+  Seven small decisions taken without the owner are listed in the story:
+  MAP-HISTORY "FINISHING THE ONE PAGE — Steps 3 to 6". The same night's fix
+  round: the drop area asks the stream (as the pop-up did); the form Jambo
+  opens starts on no stream, Create grey until one is chosen (as the demo);
+  the glance asks for signers only while signing is ahead and counts risks
+  only where the Redlines face lists them; the card's example drafts in both
+  books; "with" names a party or nobody.
+
+- **Step 8 — Overview, Where we are and History on the Board as the Lifeline
+  strip; the contract room retires. Built 15 Oct 2026.** "Bring up MK-…"
+  (Jambo's box, its chip, ⌘K, a row on the Board) lands the contract on the
+  Board as a strip below Today's insights, newest first, drawn as version 4
+  of the picture: who it is with, five figures (value, term, next
+  obligation, notice by, whose move), the contract's life to scale with its
+  obligations as dots, Key terms beside Obligations in their own scroll box,
+  what Jambo read on upload with a door from each cell, and Open · Keep ·
+  Ask why · Let it go. Every figure is read from the record; a missing one
+  is said. Its ⋯ holds Where we are (the one builder) and History (the
+  room's trail, Side in the open as All sides · Ours · Theirs, Show the
+  wording, scrolling inside the card); Key terms' Edit opens the Overview's
+  own sheet in the strip (Details), so nothing the room's Overview did is
+  lost. Every door that opened the room now opens the strip; the room is
+  drawn only by name (for the checks) and on the phone. The paper's ⋯ gained
+  the room's last acts: Start negotiating, Add signers, Create an amendment,
+  Add a signed document. Proof: `test/chromium/board-strip-verify.js`, and
+  every step 8 row of the door census passing. The checkers' round fixed a
+  restored strip that never read its brief, Details going stale, the brief
+  and standards doors (one paid without showing, one ran a fresh check),
+  the life line's uncounted dots, "bring up" beside the paper, and kept
+  Edit from growing the card on the strip. Story: MAP-HISTORY
+  "FINISHING THE ONE PAGE — Step 8" and "THE CHECKERS' ROUND ON STEP 8".
+- **Step 7 — Contracts opens Home (Wall | List); the rail's fold keeps
+  Negotiations and Parties. Built 15 Oct 2026.** Every door that opened the
+  Contracts page (`setView('register')` by name, `regShowOnly` /
+  `regGoFiltered` and the Board's numbers through them, Jambo's
+  "contracts", Delete, a refresh) lands on Home's Document face with no paper
+  chosen — the Contracts place (`hbOpenContracts`; the phone keeps its own
+  screen). One head, drawn by the register itself on Home
+  (`renderRegister({home:true})`): "Contracts" and its facts line, the
+  filter boxes (Stream · Quick filters · Category), Wall | List on the right,
+  the stage tabs (All · Drafting · In Review · Awaiting counterparty ·
+  Executed · Closed) and Adapt filters under them. ONE set of tabs and
+  filters for both views (`state.reg`, the one home of every narrowing, Open
+  party's set too): the Wall is the wall of papers (`igWallBodyHtml`) of the
+  very rows the List holds, in its sort; the List is the same table with no
+  inspector, the drawing's six columns (Ref · Counterparty and agreement ·
+  Stage · Owner · Ends · Value) and the row's own ⋯, a row's one press
+  opening the paper; where Home's paper column is narrow (an 820 tablet, a
+  1024 window) it draws the four loudest (Ref · Counterparty · Stage · ⋯)
+  and never pans sideways; its Display cog is the page's own (Table ·
+  Board, density, the amendment fold). Wall or
+  List, tab and filters come back on a refresh (Home's place pair carries the
+  register's). The rail: the fold holds Negotiations and Parties; its
+  Contracts item and count are gone; the opener keeps its name and is the
+  Contracts door (a mouse press opens the place alone, the fly-out stepping
+  aside until the pointer leaves the row; a tap or the keyboard opens the
+  place and the fly-out; pressed again on the place, the fly-out shuts; it
+  lights on the place). The rail's Home
+  door is not the place: from it Home is the Board, as the drawing has it.
+  Jambo's "list" and "wall" turn the place, "contracts" opens it with every
+  contract (filters at rest), and he reads the place as the Contracts list. The paper's way back reads
+  "‹ Contracts". Differences from the work order's wording, for the morning:
+  the wall's own find box, sort select and "Needs you" / "Expired" chips
+  went with its own filters (one set of tabs; the sort is the List's, on the
+  count line; "Needs you" stays on each paper); the old page's side panel
+  (and its "needs you" checklist), its nine-column table and its Signed
+  column are no longer drawn on a computer (the Signed sort and filter
+  stay). Story: MAP-HISTORY "FINISHING THE ONE PAGE — Step 7".

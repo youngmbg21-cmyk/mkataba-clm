@@ -75,7 +75,11 @@ const BRAIN_PARTS = [
   ['askpreview', 'hbAskReadingOf', 'see', 1],
   ['boardmoved', 'movedSec', 'out', 2],
   ['upload', 'submitUpload', 'in', 0],
+  /* the drop area on Jambo's panel (the overnight work order, step 4): a file dropped or chosen, through the upload's own path */
+  ['dropin', 'pdDropTake', 'in', 0],
   ['newagr', 'openNewAgreement', 'in', 0],
+  /* Jambo's New agreement card opens the one form with the sentence's facts in it (step 3) */
+  ['draftform', 'caDraftForm', 'ai', 1],
   ['mailroom', 'POST /api/mailroom', 'in', 2],
   ['intake', 'intake_requests', 'in', 2, { def: 'CREATE TABLE IF NOT EXISTS intake_requests', men: '\\bintake_requests\\b' }],
   ['docx', 'docxExtractRich', 'read', 1],
@@ -147,12 +151,20 @@ const BRAIN_PARTS = [
   /* Fill in, beside the paper (the one-page Home plan, stage 2, 14 Oct 2026):
      Jambo's panel turns to the Details tab's own form; a new contract lands here */
   ['fillface', 'pdFillOpen', 'in', 1],
+  /* the one stream writer: the room's row and Fill in's stream (step 6) */
+  ['refile', 'ktFolderMove', 'in', 1],
+  /* a contract at a glance, at the top of Jambo's tab (step 5) */
+  ['glance', 'pdGlanceHtml', 'see', 1],
   /* Redlines, beside the paper (the one-page Home plan, stage 3, 14 Oct 2026):
      Jambo's panel draws the Negotiate page's own column; doors from outside land here */
   ['redface', 'pdRedOpen', 'see', 0],
   /* the contract's views on the Board (the one-page Home plan, stage 4, 14 Oct
      2026): the deal board, obligations and history of the contract on the paper */
   ['boardviews', 'hbOpenView', 'see', 0],
+  /* the Lifeline strip (the overnight work order, step 8, 15 Oct 2026): a
+     contract brought up on the Board, Where we are and History behind its ⋯;
+     every door that opened the contract room lands here */
+  ['strip', 'hbStripBring', 'see', 0],
   /* Before you sign, beside the paper (the one-page Home plan, stage 5, 14 Oct
      2026): Jambo's panel draws the Signing column's own four slots; the paper
      turns to the signing copy; every door into signing lands here */
@@ -226,6 +238,9 @@ const BRAIN_PARTS = [
   ['paperjobs', 'caReadJob', 'ai', 1],
   ['papermark', 'caRiskMark', 'see', 1],
   ['homepaper', 'igHomePaperFace', 'see', 0],
+  /* the Contracts place on Home (the overnight work order, step 7): every door
+     onto the Contracts page lands here, Wall | List under one head */
+  ['contractsplace', 'hbOpenContracts', 'see', 0],
   ['citedoor', 'igCiteGo', 'see', 1],
   /* Home first (8 Oct 2026): a set walked on the Paper, the Paper's desk beside it */
   ['walkset', 'igWalk', 'see', 1],
@@ -279,7 +294,7 @@ const BRAIN_PARTS = [
    brn_step_<flow>_<n> in the dictionary. A flow is a STORY a person wrote;
    the reading only checks that every part it names is still in the code. */
 const BRAIN_FLOWS = [
-  { id: 'upload', steps: [['upload', 'book', 'draftcard'], ['docx', 'pdf'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed'], ['brief', 'playbook', 'oblscan', 'obdesk', 'risk', 'datedwin', 'papermark'], ['model'], ['details', 'fillface', 'blanks'], ['overview', 'constellation', 'bell']] },
+  { id: 'upload', steps: [['upload', 'dropin', 'book', 'draftcard'], ['docx', 'pdf'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed'], ['brief', 'playbook', 'oblscan', 'obdesk', 'risk', 'datedwin', 'papermark'], ['model'], ['details', 'fillface', 'refile', 'blanks'], ['overview', 'constellation', 'glance', 'bell', 'strip']] },
   /* The new parts join STEPS THAT ALREADY EXIST rather than adding steps of
      their own: a step inserted in the middle renumbers every sentence after
      it in both books, and these are not new stages of the story — they are
@@ -288,11 +303,11 @@ const BRAIN_FLOWS = [
   { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop', 'roundsettle'], ['ladder'], ['whosemove', 'decidedsend'], ['bell', 'home', 'negpage', 'boardviews', 'stands', 'stale', 'dealpaper', 'onepaper', 'answeronpaper'], ['webhook']] },
   { id: 'sign', steps: [['signface', 'signtab', 'linkcheck'], ['readiness', 'signgate', 'rules', 'paperjobs'], ['approvals', 'namedyes', 'decide', 'undoyes', 'rulestep', 'asks', 'approvalpaper', 'freshen'], ['brief', 'playbook', 'blanks'], ['pad'], ['putguard', 'srvseal', 'sealtext'], ['seal', 'frozen', 'issuelinks'], ['obligations', 'renewal', 'calendar', 'mynotes', 'mine', 'myitems', 'myitemsget', 'myitemsput', 'myitemsdel', 'plan'], ['email', 'copies']] },
   { id: 'night', steps: [['reminders', 'lanes', 'agentlevel', 'linkkeep', 'agentpieces', 'agentpoints'], ['renewal', 'renewact'], ['renewprep'], ['model', 'boardjudge', 'bookread'], ['db'], ['obligations'], ['email', 'boardmoved', 'looktell'], ['desknight', 'home', 'insights', 'readings', 'chasemany', 'draftreply', 'agentoutcome', 'agentprepared', 'agentrebuild', 'piecesget', 'jambohouse']] },
-  { id: 'ask', steps: [['copilotask', 'homepaper', 'breakdown', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook', 'stackview'], ['db', 'dealfacts', 'brainread'], ['model', 'breakread', 'breakdive', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote', 'citedoor', 'walkset', 'paperdesk'], ['contracts', 'customers', 'directory', 'passroute', 'lookask', 'copilotdoors'], ['explorer', 'cellfold', 'readchips', 'nextq', 'boardmarks']] },
+  { id: 'ask', steps: [['copilotask', 'strip', 'homepaper', 'breakdown', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook', 'stackview'], ['db', 'dealfacts', 'brainread'], ['model', 'breakread', 'breakdive', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote', 'citedoor', 'walkset', 'paperdesk'], ['contracts', 'contractsplace', 'customers', 'directory', 'passroute', 'lookask', 'copilotdoors'], ['explorer', 'cellfold', 'readchips', 'nextq', 'boardmarks']] },
   /* THE OVERNIGHT REVIEW'S FLOWS (9 Oct 2026): the commonest start, a request,
      the other side's signature, an amendment, the end of a contract, and the
      ways a step can go wrong — none of which the six flows above walked. */
-  { id: 'draft', steps: [['newagr', 'essentials'], ['putguard', 'db'], ['details', 'fillface', 'tplform', 'blanks'], ['triage'], ['shares', 'linkcheck'], ['email', 'outbyhand', 'wordfile'], ['whosemove', 'bell']] },
+  { id: 'draft', steps: [['newagr', 'draftform', 'essentials'], ['putguard', 'db'], ['details', 'fillface', 'tplform', 'blanks'], ['triage'], ['shares', 'linkcheck'], ['email', 'outbyhand', 'wordfile'], ['whosemove', 'bell']] },
   { id: 'request', steps: [['request', 'kinds', 'intake', 'mailroom', 'reqfiles'], ['bell'], ['lanes', 'laneowner'], ['arrivalowed', 'triage'], ['newagr']] },
   { id: 'theysign', steps: [['theirsign', 'issuelinks'], ['cplink', 'guestcode'], ['respond', 'filesig'], ['srvseal', 'sealtext', 'frozen'], ['copies', 'email'], ['obligations', 'renewal', 'calendar']] },
   { id: 'amend', steps: [['amend'], ['blanks'], ['readiness', 'approvals'], ['srvseal'], ['renewal', 'overview']] },
@@ -314,10 +329,10 @@ const BRAIN_LANE_OF = {
   /* a colleague: the requester, the reviewer, the contributor, the approver */
   req: ['request', 'kinds', 'reqfiles', 'review', 'suggest', 'rules', 'namedyes', 'decide', 'undoyes', 'approvalpaper', 'lookask'],
   /* the person working the contract: what they see and press */
-  own: ['upload', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'negpage', 'redface', 'boardviews', 'startnego', 'here', 'follow',
+  own: ['upload', 'dropin', 'draftform', 'refile', 'glance', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'negpage', 'redface', 'boardviews', 'strip', 'startnego', 'here', 'follow',
     'editor', 'baton', 'askkeep', 'risklist', 'riskwalk', 'stands', 'dealpaper', 'onepaper', 'decidedsend', 'signtab', 'signface', 'pad', 'calendar', 'desknight', 'insights', 'readings',
     'chasemany', 'copilotask', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs',
-    'phrasebook', 'boardtools', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'citedoor', 'walkset', 'paperdesk', 'contracts', 'customers', 'directory', 'cellfold',
+    'phrasebook', 'boardtools', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'citedoor', 'walkset', 'paperdesk', 'contracts', 'contractsplace', 'customers', 'directory', 'cellfold',
     'readchips', 'nextq', 'newagr', 'essentials', 'tplform', 'details', 'fillface', 'outbyhand', 'amend', 'decline', 'reopen', 'archive', 'hold', 'served', 'obdone', 'inline', 'stackview', 'mynotes', 'breakdown', 'jambohouse'],
   /* HaTi itself: the readings, Copilot, the agents, the server's checks, the mail it sends */
   hati: ['docx', 'clauses', 'putguard', 'db', 'triage', 'arrivalowed', 'datedwin', 'brief', 'playbook', 'oblscan', 'risk', 'model', 'blanks', 'laneowner',

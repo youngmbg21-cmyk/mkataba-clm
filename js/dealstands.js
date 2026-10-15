@@ -415,8 +415,12 @@ function standsHtml(c, opts = {}){
 }
 /* The owner's tab. A SLOT painted on arrival, because what it says moves with
    every change filed or answered. */
-function paintStandsPane(c){
-  const host = (typeof document !== 'undefined') && document.getElementById('ws-stands-pane');
+/* A SECOND HOST (the overnight work order, step 8): the contract strip on
+   Home's Board turns to Where we are through its ⋯ and passes its own host,
+   which carries the contract it is about (data-ds-cid) — so the owner's
+   acts below act on THAT contract, not on whatever the room last opened. */
+function paintStandsPane(c, at){
+  const host = at || ((typeof document !== 'undefined') && document.getElementById('ws-stands-pane'));
   if (!host || !c) return;
   /* THE OWNER'S OWN LINE goes through opts.head. It is painted rather than
      built: whether a status page is on is the server's answer and arrives
@@ -502,9 +506,22 @@ async function dsLoadShares(c){
   _dsShares[c.id] = null;
   if (typeof window.contractShares !== 'function') return;
   try { _dsShares[c.id] = await contractShares(c); } catch (_){ _dsShares[c.id] = null; }
-  const host = document.getElementById('ws-stands-pane');
-  const slot = host && host.querySelector('[data-ds-own]');
-  if (slot) slot.outerHTML = standsOwnerHeadHtml(c);
+  dsHostsFor(c).forEach(host => { const slot = host.querySelector('[data-ds-own]'); if (slot) slot.outerHTML = standsOwnerHeadHtml(c); });
+}
+/* every sheet on screen about this contract: the room's pane and the strips' */
+function dsHostsFor(c){
+  if (!c || typeof document === 'undefined') return [];
+  const out = [];
+  const room = document.getElementById('ws-stands-pane');
+  if (room && window.state && String(state.activeId) === String(c.id)) out.push(room);
+  document.querySelectorAll('[data-ds-cid]').forEach(h => { if (String(h.getAttribute('data-ds-cid')) === String(c.id)) out.push(h); });
+  return out;
+}
+/* the contract a press is about: its sheet's own, else the room's */
+function dsPressContract(el){
+  const host = el && el.closest && el.closest('[data-ds-cid]');
+  const id = host ? host.getAttribute('data-ds-cid') : (window.state ? state.activeId : null);
+  return (window.getContract && id != null) ? getContract(id) : null;
 }
 /* THE TWO ACTS, delegated once at module load so a repainted sheet keeps
    them. Copying a link is a convenience; switching the page off is a promise
@@ -524,7 +541,7 @@ function dsWireOwner(){
     const off = e.target.closest && e.target.closest('[data-ds-off]');
     if (off){
       e.preventDefault();
-      const c = (window.getContract && window.state) ? getContract(state.activeId) : null;
+      const c = dsPressContract(off);
       if (!c) return;
       /* A PROMISE WITHDRAWN IS A DECISION, so it is asked for rather than
          taken on one press — the parties are reading this page right now. */
@@ -534,26 +551,29 @@ function dsWireOwner(){
       catch (err){ if (window.toast) toast((err && err.message) || dsT('ds_off_failed'), 'err'); return; }
       delete _dsShares[c.id];
       if (window.toast) toast(dsT('ds_off_done'), 'ok');
-      paintStandsPane(c); dsLoadShares(c);
+      dsHostsFor(c).forEach(h => paintStandsPane(c, h.id === 'ws-stands-pane' ? null : h)); dsLoadShares(c);
       return;
     }
     const go = e.target.closest && e.target.closest('[data-ds-go]');
     if (go){
       e.preventDefault();
-      const c = (window.getContract && window.state) ? getContract(state.activeId) : null;
+      const c = dsPressContract(go);
       if (!c) return;
+      /* on a strip, See history turns the strip itself to its History */
+      const strip = go.closest('[data-bs-id]');
       if (go.getAttribute('data-ds-go') === 'negotiate'){ if (window.openRedlineWorkbench) openRedlineWorkbench(c.id); }
+      else if (strip && window.bsStripPage) bsStripPage(c.id, 'hist');
       else if (window.roomGoTab) roomGoTab(c, 'history');
       return;
     }
     const sh = e.target.closest && e.target.closest('[data-ds-share]');
     if (sh){
       e.preventDefault();
-      const c = (window.getContract && window.state) ? getContract(state.activeId) : null;
+      const c = dsPressContract(sh);
       if (c && window.openShareModal) openShareModal(c, { purpose: 'status' });
     }
   });
 }
 if (typeof window !== 'undefined') Object.assign(window, {
-  standsOwnerHeadHtml, dsOwnerActsHtml, dsLoadShares, dsStatusShare, dsStatusUrl, dsAudience, dsWireOwner,
+  standsOwnerHeadHtml, dsOwnerActsHtml, dsLoadShares, dsStatusShare, dsStatusUrl, dsAudience, dsWireOwner, dsHostsFor, dsPressContract,
 });

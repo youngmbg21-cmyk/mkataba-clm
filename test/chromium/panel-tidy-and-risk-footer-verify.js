@@ -91,7 +91,7 @@ const LIAB_NEW = 'Each party\'s total liability under this Agreement shall not e
       state.aiConfigured = true;
       window.copilotAsk = async () => ({ answer: JSON.stringify({ proposedText: LIAB_NEW, advice: 'Raise the cap and carve out the usual exceptions.' }) });
     }, LIAB_NEW);
-    await page.evaluate(id => openWorkspace(id), ID);
+    await page.evaluate(id => openWorkspace(id, { room: true }), ID);
     await page.evaluate(id => roomGoTab(getContract(id), 'redline'), ID);
     await until(page, () => !!document.querySelector('.redline-page #rl-changes'));
     /* a redline on the table, as the Negotiate page holds one before its risks list shows */

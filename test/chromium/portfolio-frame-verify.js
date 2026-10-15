@@ -237,10 +237,13 @@ const PANELS = () => {
     if (d6.doors.includes('past')) {
       await page.evaluate(() => document.querySelector('[data-pf-go="past"]').click());
       await page.waitForTimeout(900);
-      const landed = await page.evaluate(() => ({ view: state.view,
+      /* RE-POINTED 15 Oct 2026 (the overnight work order, step 7): every door
+         that opened the Contracts page lands on Home's Contracts place (the
+         Document face, no paper chosen), narrowed the same way */
+      const landed = await page.evaluate(() => ({ view: state.view, place: !!document.querySelector('[data-reg-home]'),
         only: (regState().only && regState().only.ids) ? regState().only.ids.slice() : [] }));
       check('6 pressing it opens Contracts narrowed to EXACTLY those contracts',
-        landed.view === 'register' && landed.only.join('|') === d6.past.join('|'), JSON.stringify(landed));
+        landed.view === 'dashboard' && landed.place && landed.only.join('|') === d6.past.join('|'), JSON.stringify(landed));
       await page.evaluate(() => { regState().only = null; });
       await openFrame();
     } else check('6 pressing it opens Contracts narrowed to EXACTLY those contracts', false, 'no door to press');

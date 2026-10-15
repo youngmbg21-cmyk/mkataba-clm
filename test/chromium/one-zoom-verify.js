@@ -120,7 +120,7 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
        stands on the same grey, top right, beside the signing copy's page
        arrows. It scales the A4 pages whole (the pages that get signed never
        re-break), so it is the signing copy's own "− N% +". */
-    await page.evaluate(id => openWorkspace(id), id);
+    await page.evaluate(id => openWorkspace(id, { room: true }), id);
     await until(page, () => !!document.querySelector('.room-tabrow'), null, 10000);
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
        Signing tab is gone — roomGoTab(c, 'sign') opens Jambo's Before you sign
@@ -182,7 +182,7 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
        doors open Fill in and Before you sign beside Home's paper, so their
        paper is Home's (the working copy, then the signing copy) */
     await page.evaluate(id => openRedlineWorkbench(id, { page: true }), id); await page.waitForTimeout(1500); placed.negotiate = await PLACE();
-    await page.evaluate(id => openWorkspace(id), id); await page.waitForTimeout(1000);
+    await page.evaluate(id => openWorkspace(id, { room: true }), id); await page.waitForTimeout(1000);
     await page.evaluate(id => roomGoTab(getContract(id), 'details'), id);
     await until(page, () => !!document.querySelector('#pd-fillface') && !!document.querySelector('#ig-paper .paper-zc'), null, 10000);
     await page.waitForTimeout(1500); placed.details = await PLACE();

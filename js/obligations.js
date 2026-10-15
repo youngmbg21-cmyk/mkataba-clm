@@ -1156,7 +1156,7 @@ async function runFindObligations(c, opts){
     c.triage.steps.oblig = { ok: true, found: found.slice(), cut: '' };
     persist(c);
     if(typeof window.paintKtTriage === 'function' && document.getElementById('kt-triage-slot')
-      && (!window.contractOnScreen || contractOnScreen(c))) paintKtTriage(c);
+      && (!window.contractOnScreen || (window.contractOverviewShown ? contractOverviewShown(c) : contractOnScreen(c)))) paintKtTriage(c);
   }
   /* ---- THE ANSWER STAYS WITH ITS OWN CONTRACT (26 Sep 2026, the overnight
      clean-up) ----
@@ -2571,7 +2571,8 @@ function renderObligationsList(){
        chase about. A verb that cannot work is not drawn. */
     const chase = (theirs && o.st !== 'done' && (typeof canEdit !== 'function' || canEdit()))
       ? `<button type="button" data-obw-chase="${_obEsc(o.id)}" data-obw-cid="${_obEsc(o.cid)}">${_obEsc(i18t('ob_chase'))}</button>` : '';
-    return `<tr data-obw-row="${_obEsc(o.id)}" data-obw-cid="${_obEsc(o.cid)}">
+    const okey = obKeyOf(o.cid, o, o._i);
+    return `<tr data-obw-row="${_obEsc(o.id)}" data-obw-cid="${_obEsc(o.cid)}" data-obw-key="${_obEsc(okey)}">
       ${''/* ---- A CHAINED ROW NAMES ITS PLACE (L-3) ----
              There is no room to draw the chain itself here, so the row says
              where in one it sits — and a held-back row says what it waits on,
@@ -2622,7 +2623,7 @@ function renderObligationsList(){
         ? (o.completedAt ? (obDay(o.completedAt) || o.completedAt) : i18t('ob_done_unknown'))
         : (o.due ? (obDay(o.due) || o.due) : i18t('ob_no_date')))}${
         o.chasedAt ? `<span class="obw-chased" title="${_obEsc(i18t('ob_chased_on', { date: obDay(o.chasedAt) || o.chasedAt, who: o.chasedBy || '' }))}">${_obEsc(i18t('ob_chased'))}</span>` : ''}</td>
-      <td class="obw-acts">${chase}<button type="button" data-obw-open="${_obEsc(o.cid)}">${_obEsc(i18t('ob_open_contract'))}</button></td>
+      <td class="obw-acts">${chase}<button type="button" data-obw-open="${_obEsc(o.cid)}" data-obw-key="${_obEsc(okey)}">${_obEsc(i18t('ob_open_contract'))}</button></td>
     </tr>`;
   };
 
@@ -2744,11 +2745,11 @@ function renderObligationsList(){
   host.querySelector('[data-obw-only-clear]')?.addEventListener('click', () => { f.only = null; obwRepaint(); });
   /* WHERE THE READER ENDS UP: the contract, on the tab this row is about. A row
      that opened the Document tab would make them hunt for what they pressed. */
-  const go = cid => obOpenContract(cid);
+  const go = (cid, key) => obOpenContract(cid, key);
   host.querySelectorAll('[data-obw-open]').forEach(b => b.addEventListener('click', ev => {
-    ev.stopPropagation(); go(b.getAttribute('data-obw-open')); }));
+    ev.stopPropagation(); go(b.getAttribute('data-obw-open'), b.getAttribute('data-obw-key')); }));
   host.querySelectorAll('[data-obw-row]').forEach(tr => tr.addEventListener('click', () =>
-    go(tr.getAttribute('data-obw-cid'))));
+    go(tr.getAttribute('data-obw-cid'), tr.getAttribute('data-obw-key'))));
   host.querySelectorAll('[data-obw-chase]').forEach(b => b.addEventListener('click', ev => {
     ev.stopPropagation();
     obligationChase(b.getAttribute('data-obw-cid'), b.getAttribute('data-obw-chase'));
@@ -3186,12 +3187,17 @@ function obligationShowInContract(cid, quote){
   const c = window.getContract ? getContract(cid) : null;
   if(!c) return;
   const inRoom = (typeof state !== 'undefined') && state.view === 'workspace' && String(state.activeId) === String(cid);
-  if(!inRoom && window.openWorkspace) openWorkspace(cid);
+  /* THE PASSAGE IS ON HOME'S PAPER (the room retired, the overnight work
+     order, step 8): straight there, the way the room's Document door went
+     (pdOpenOnHome on Jambo); the room only by name or on the phone */
+  const home = !inRoom && !(typeof window !== 'undefined' && window.innerWidth && window.innerWidth < 768)
+    && typeof window.pdOpenOnHome === 'function' && !!pdOpenOnHome(cid, 'copilot');
+  if(!inRoom && !home && window.openWorkspace) openWorkspace(cid);
   let n = 0;
   const tryIt = () => {
     n++;
     const live = window.getContract ? getContract(cid) : c;
-    if(n === 1 && window.roomGoTab){ try{ roomGoTab(live, 'docs'); }catch(_){} }
+    if(n === 1 && !home && window.roomGoTab){ try{ roomGoTab(live, 'docs'); }catch(_){} }
     let ok = false;
     try{ ok = !!(typeof window.scrollToQuote === 'function' && window.scanCanvas && scanCanvas() && scrollToQuote(quote)); }catch(_){ ok = false; }
     if(ok) return;
@@ -3245,7 +3251,9 @@ function obPanelActs(o, c, i, ctx){
   } else {
     /* the three doors every list draws (owner, 12 Oct 2026); Document lands
        on Home's Document at its Obligations tab, as Open contract did */
-    if(typeof insDoorActs === 'function') acts.push(...insDoorActs(c, { doc: () => obOpenContract(c.id) }));
+    /* the Document door is the paper's: Jambo's panel on its Obligations tab */
+    if(typeof insDoorActs === 'function') acts.push(...insDoorActs(c, { doc: () => {
+      if(!(typeof window.pdOpenOnHome === 'function' && pdOpenOnHome(c.id, 'oblig'))) obOpenContract(c.id); } }));
   }
   return acts;
 }
@@ -3280,18 +3288,29 @@ async function obligationRemove(c, i){
    Reminder Line's dots): that row is picked on the tab before it paints, and
    a tab left on Completed is put back on Outstanding, where an open one is. */
 function obOpenContract(cid, key){
-  /* OPEN CONTRACT LANDS ON HOME'S DOCUMENT (owner, 11 Oct 2026), on its
-     Obligations tab. A press on one obligation (a key) still opens the room's
-     Obligations tab with that row chosen. */
-  if(!key && typeof window.pdOpenOnHome === 'function' && pdOpenOnHome(cid, 'oblig')) return;
-  if(!window.openWorkspace) return;
+  /* AN OBLIGATION OPENS ITS CONTRACT ON THE BOARD'S OBLIGATIONS VIEW (the
+     overnight work order, step 2; owner's "Go", 14 Oct 2026; was Home's
+     Document on Jambo's Obligations tab, 11 Oct): the list's rows, a
+     double-click, Enter and the narrow table's Open all land there, the row
+     chosen when the press carries its key. The panel's Document door keeps
+     the paper (obPanelActs). */
   if(key){
     if(typeof window.insSelect === 'function') insSelect('oblig:' + cid, key);
-    if(_obtView[cid] === 'done') _obtView[cid] = 'open';
+    /* THE ROW PRESSED IS THE ROW CHOSEN: the view's tab is moved to one that
+       shows it (a completed row to Completed, an open one off a Completed or
+       Overdue tab that would hide it to Outstanding) — else the view would
+       choose its first row and the panel would describe, and Mark done, a
+       different obligation */
+    const c = window.getContract ? getContract(cid) : null;
+    const r = c ? obtRowsOf(c).find(x => x._key === String(key)) : null;
+    if(r && !obtPass(r, obtView(cid))) _obtView[cid] = r.st === 'done' ? 'done' : 'open';
+    else if(!r && _obtView[cid] === 'done') _obtView[cid] = 'open';
   }
   /* the room's Obligations tab went home (the one-page Home plan, stage 5):
-     the Board's Obligations view, the row chosen there the same way */
+     the Board's Obligations view, the row chosen there the same way; the
+     phone, where Home has no Board view, opens its own tab */
   if(typeof window.roomOpenAt === 'function'){ roomOpenAt(cid, 'oblig'); return; }
+  if(!window.openWorkspace) return;
   openWorkspace(cid);
   const c = window.getContract ? getContract(cid) : null;
   if(c && window.roomGoTab) try{ roomGoTab(c, 'oblig'); }catch(_){}
@@ -3513,7 +3532,7 @@ function renderObligationsInspector(host){
   paint(id);
   if(tb) insListWire(tb, { rowSel:'[data-ins-row]', idOf,
     onSelect: k => { insSelect('obligations', k); insMarkRow(tb, '[data-ins-row]', idOf, k); paint(k); },
-    onOpen: k => { const r = byKey.get(k); if(r) obOpenContract(r.cid); } });
+    onOpen: k => { const r = byKey.get(k); if(r) obOpenContract(r.cid, k); } });
   if(typeof insWatchWidth === 'function') insWatchWidth();
   if(window.setActiveNav) setActiveNav('obligations');
 }

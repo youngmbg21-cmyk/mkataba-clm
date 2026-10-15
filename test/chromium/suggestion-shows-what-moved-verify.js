@@ -93,7 +93,7 @@ const BODY = '<h1>Lease Agreement</h1><p>Between Highland Corporate Ltd and Nord
     /* the contract itself known before its doors are pressed (a bounded wait
        for the state: an unknown id makes roomGoTab a silent no-op) */
     await until(page, id => !!(typeof getContract === 'function' && getContract(id)), ID, 15000);
-    await page.evaluate(id => openWorkspace(id), ID);
+    await page.evaluate(id => openWorkspace(id, { room: true }), ID);
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
        'redline' door now lands on Jambo's Redlines face beside Home's paper;
        Edit with Jambo opens over Home from there, and the paper the reader

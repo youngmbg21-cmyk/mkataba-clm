@@ -8,6 +8,15 @@
 
    Red at the parent: the Document tab drew a card of at most 12 text rows, no
    paper, no sort, no stage buttons.
+   RE-POINTED AT STEP 7 OF THE OVERNIGHT WORK ORDER (15 Oct 2026): the wall is
+   the Contracts place's Wall, under ONE head shared with its List — the
+   register's stage tabs, filters, set and sort (state.reg). So the wall's own
+   find box, sort select and stage chips are the place's: the search is the
+   top bar's box (it narrows the place where it stands), the sort is the
+   List's Sort on the wall's count line (its own directions: a reference runs
+   lowest first, a counterparty A to Z), and a stage is a tab — a tab with
+   nothing in it stays quiet (no count) rather than leaving the row, and All
+   lets a stage go. The papers are the very rows the List holds (regFiltered).
 
    Driven at 1280 × 800 (a ThinkPad at 150%), where the rail floats and
    Jambo's panel stands open beside the wall.
@@ -37,7 +46,7 @@ const check = (name, pass, detail) => {
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
-  const wallUp = () => page.waitForFunction(() => !!document.querySelector('#ig-paper .ig-wall [data-igw-body]'), null, { timeout: 15000 }).then(() => true, () => false);
+  const wallUp = () => page.waitForFunction(() => !!document.querySelector('#ig-paper [data-reg-home][data-ct-show="wall"] #ig-wall .igw-count'), null, { timeout: 15000 }).then(() => true, () => false);
 
   try {
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
@@ -70,14 +79,14 @@ const check = (name, pass, detail) => {
 
     /* ================= 1. EVERY CONTRACT, AS A PAPER, NUMBER BELOW ========= */
     const all = await page.evaluate(() => {
-      const want = igPickRows('').map(c => contractRef(c));
+      const want = regFiltered().map(c => contractRef(c));
       const cards = [...document.querySelectorAll('#ig-paper .igw-card')];
       const got = cards.map(b => b.querySelector('.igw-ref').textContent.trim());
       const below = cards.every(b => b.querySelector('.igw-ref').getBoundingClientRect().top >= b.querySelector('.igw-sheet').getBoundingClientRect().bottom);
       return { want: want.length, got: got.length, same: JSON.stringify(want) === JSON.stringify(got), below,
         count: document.querySelector('.igw-count').textContent.trim(), list: !!document.querySelector('#ig-paper .ig-pick-list') };
     });
-    check('1a every contract the tab can read stands on the wall, newest work first — no cap',
+    check('1a every contract the tab can read stands on the wall, in the List\'s own order (newest work first) — no cap',
       all.want > 12 && all.got === all.want && all.same && !all.list, JSON.stringify(all));
     check('1b each contract\'s number sits below its paper', all.below);
     check('1c the count says how many are shown of how many', new RegExp(`^${all.want} of ${all.want} `).test(all.count), all.count);
@@ -99,28 +108,29 @@ const check = (name, pass, detail) => {
       fit.w >= 110 && fit.w <= 160 && Math.abs(fit.h / fit.w - 1.414) < 0.08, JSON.stringify(fit));
     check('2c the first paper is painted where it stands', fit.painted);
 
-    /* ================= 3. SEARCH NARROWS ================================== */
-    const one = await page.evaluate(() => contractRef(igPickRows('')[0]));
-    await page.fill('#ig-paper [data-ig-pick-find]', one);
-    await page.waitForTimeout(200);
+    /* ================= 3. SEARCH NARROWS (the top bar's box, the place's one search) ================= */
+    const one = await page.evaluate(() => contractRef(regFiltered()[0]));
+    await page.fill('#cmd-search', one);
+    await page.waitForTimeout(400);
     const found = await page.evaluate(() => ({ refs: [...document.querySelectorAll('#ig-paper .igw-ref')].map(e => e.textContent.trim()),
-      focus: document.activeElement && document.activeElement.matches('[data-ig-pick-find]') }));
-    check('3a typing a contract number narrows the wall to it, and the box keeps the caret',
-      found.refs.includes(one) && found.refs.length >= 1 && found.refs.length < all.want && found.focus, JSON.stringify({ one, ...found }));
-    await page.fill('#ig-paper [data-ig-pick-find]', '');
-    await page.waitForTimeout(200);
+      place: !!document.querySelector('#ig-paper [data-reg-home][data-ct-show="wall"]'),
+      focus: document.activeElement && document.activeElement.id === 'cmd-search' }));
+    check('3a typing a contract number narrows the wall to it, where it stands, and the box keeps the caret',
+      found.place && found.refs.includes(one) && found.refs.length >= 1 && found.refs.length < all.want && found.focus, JSON.stringify({ one, ...found }));
+    await page.fill('#cmd-search', '');
+    await page.waitForTimeout(400);
 
-    /* ================= 4. SORT ============================================ */
-    await page.selectOption('#ig-paper [data-igw-sort]', 'ref');
-    await page.waitForTimeout(200);
+    /* ================= 4. SORT (the List's Sort, on the wall's count line) ================= */
+    await page.selectOption('#ig-paper #ig-wall #reg-sort', 'ref');
+    await page.waitForTimeout(400);
     const sorted = await page.evaluate(() => {
       const got = [...document.querySelectorAll('#ig-paper .igw-ref')].map(e => e.textContent.trim());
-      const want = got.slice().sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
-      return { ok: JSON.stringify(got) === JSON.stringify(want), first: got.slice(0, 3) };
+      const want = got.slice().sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+      return { ok: JSON.stringify(got) === JSON.stringify(want), first: got.slice(0, 3), list: state.reg.sort };
     });
-    check('4a sorting by contract number puts the highest number first', sorted.ok, JSON.stringify(sorted));
-    await page.selectOption('#ig-paper [data-igw-sort]', 'cp');
-    await page.waitForTimeout(200);
+    check('4a sorting by contract number runs lowest first, as the List does', sorted.ok && sorted.list === 'ref', JSON.stringify(sorted));
+    await page.selectOption('#ig-paper #ig-wall #reg-sort', 'party');
+    await page.waitForTimeout(400);
     const byCp = await page.evaluate(() => {
       const ids = [...document.querySelectorAll('#ig-paper .igw-card')].map(b => b.getAttribute('data-ig-pick'));
       const cps = ids.map(id => String(getContract(id).counterparty || ''));
@@ -128,37 +138,38 @@ const check = (name, pass, detail) => {
     });
     check('4b sorting by counterparty runs A to Z', byCp);
 
-    /* ================= 5. STAGE BUTTONS =================================== */
-    const chips = await page.evaluate(() => [...document.querySelectorAll('#ig-paper [data-igw-stage]')].map(b => ({ k: b.getAttribute('data-igw-stage'), n: Number((b.querySelector('.n') || {}).textContent || -1) })));
-    check('5a a stage with nothing in it is not listed', chips.length >= 2 && chips.every(c => c.k === 'all' || c.n > 0), JSON.stringify(chips));
-    const stage = chips.find(c => c.k !== 'all' && c.k !== 'need');
+    /* ================= 5. STAGE TABS (the place's, over the Wall and the List) ================= */
+    const chips = await page.evaluate(() => [...document.querySelectorAll('#ig-paper [data-reg-home] [data-reg-stage]')].map(b => ({ k: b.getAttribute('data-reg-stage'),
+      n: Number((b.querySelector('.n') || {}).textContent || 0), quiet: b.classList.contains('is-zero') })));
+    check('5a a stage with nothing in it is quiet — no count — and every other carries its number', chips.length === 6 && chips.every(c => c.k === 'all' || (c.n > 0) !== c.quiet), JSON.stringify(chips));
+    const stage = chips.find(c => c.k !== 'all' && c.k !== 'awaiting' && c.n > 0);
     if (stage){
-      await page.click(`#ig-paper [data-igw-stage="${stage.k}"]`);
-      await page.waitForTimeout(200);
+      await page.click(`#ig-paper [data-reg-home] [data-reg-stage="${stage.k}"]`);
+      await page.waitForTimeout(400);
       const on = await page.evaluate(k => {
         const ids = [...document.querySelectorAll('#ig-paper .igw-card')].map(b => b.getAttribute('data-ig-pick'));
-        return { n: ids.length, all: ids.every(id => igWallStage(getContract(id)) === k),
-          pressed: document.querySelector(`#ig-paper [data-igw-stage="${k}"]`).getAttribute('aria-pressed') };
+        return { n: ids.length, all: ids.every(id => getContract(id).status === k),
+          pressed: document.querySelector(`#ig-paper [data-reg-stage="${k}"]`).getAttribute('aria-selected') };
       }, stage.k);
-      check('5b a stage button shows only that stage, and its number matches the papers behind it',
+      check('5b a stage tab shows only that stage, and its number matches the papers behind it',
         on.all && on.n === stage.n && on.pressed === 'true', JSON.stringify({ stage, on }));
-      await page.click(`#ig-paper [data-igw-stage="${stage.k}"]`);
-      await page.waitForTimeout(200);
-      const back = await page.evaluate(() => ({ n: document.querySelectorAll('#ig-paper .igw-card').length, stage: igWall.stage }));
-      check('5c pressing the lit stage again lets it go — back to All', back.stage === 'all' && back.n === all.want, JSON.stringify(back));
-    } else check('5b a stage button to press', false, JSON.stringify(chips));
+      await page.click('#ig-paper [data-reg-home] [data-reg-stage="all"]');
+      await page.waitForTimeout(400);
+      const back = await page.evaluate(() => ({ n: document.querySelectorAll('#ig-paper .igw-card').length, stage: state.reg.stage }));
+      check('5c All lets it go — every paper again', back.stage === 'all' && back.n === all.want, JSON.stringify(back));
+    } else check('5b a stage tab to press', false, JSON.stringify(chips));
 
     /* ================= 6. A REFRESH KEEPS THE SORT ======================== */
     await page.evaluate(() => { if (window.placeSave) placeSave(); });
     await page.reload({ waitUntil: 'networkidle' });
     await page.waitForFunction(() => window.state && Array.isArray(state.contracts) && state.contracts.length > 0, null, { timeout: 20000 });
-    const kept = await wallUp() && await page.evaluate(() => ({ sort: igWall.sort, sel: document.querySelector('#ig-paper [data-igw-sort]').value }));
-    check('6a a refresh lands on the wall with the same sort', kept && kept.sort === 'cp' && kept.sel === 'cp', JSON.stringify(kept));
+    const kept = await wallUp() && await page.evaluate(() => ({ sort: state.reg.sort, sel: (document.querySelector('#ig-paper #ig-wall #reg-sort') || {}).value }));
+    check('6a a refresh lands on the wall with the same sort', kept && kept.sort === 'party' && kept.sel === 'party', JSON.stringify(kept));
 
     /* ================= 7. A PRESS OPENS THE PAPER ========================= */
     const pick = await page.evaluate(() => document.querySelector('#ig-paper .igw-card').getAttribute('data-ig-pick'));
     await page.click(`#ig-paper .igw-card[data-ig-pick="${pick}"]`);
-    const opened = await page.waitForFunction(id => window.intel && intel.paper && String(intel.paper.id) === String(id) && !document.querySelector('#ig-paper .ig-wall'), pick, { timeout: 15000 }).then(() => true, () => false);
+    const opened = await page.waitForFunction(id => window.intel && intel.paper && String(intel.paper.id) === String(id) && !document.querySelector('#ig-paper #ig-wall'), pick, { timeout: 15000 }).then(() => true, () => false);
     check('7a pressing a paper opens that contract on the Document tab', opened, pick);
     await page.screenshot({ path: path.join(OUT, '2-opened.png') });
 

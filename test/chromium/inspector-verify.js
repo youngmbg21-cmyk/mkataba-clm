@@ -90,38 +90,36 @@ const ok = (name, good, detail) => {
     });
     ok('the stage: two live negotiations, one waiting on us and one with them', !!staged, JSON.stringify(staged));
 
-    /* ================= 1 · CONTRACTS, IN THE INSPECTOR'S SHAPE ================= */
-    const toContracts = async () => { await page.evaluate(() => { regSetScope(null); setView('register'); }); await page.waitForTimeout(1000); };
+    /* ================= 1 · CONTRACTS: HOME'S CONTRACTS PLACE, THE LIST ================= */
+    /* RE-POINTED AT STEP 7 OF THE OVERNIGHT WORK ORDER (15 Oct 2026): the
+       Contracts page is Home's Contracts place and its List is drawn "without
+       the inspector side panel" (the owner's drawing), six columns, a row's one
+       press opening the paper. 1a–1b measure that; 1c–1e (a press selects, the
+       arrows move the selection on Contracts) retired with the panel — the
+       inspector's own mechanics are measured where it still stands
+       (four-inspectors-verify, and section 4 below on Negotiations). */
+    const toContracts = async () => { await page.evaluate(() => { regPlaceSet({ show: 'list' }); setView('register'); }); await page.waitForTimeout(1000); };
+    const toNego = async () => { await page.evaluate(() => openNegotiations({ list: true })); await page.waitForTimeout(1000); };
     await toContracts();
     const shape = await page.evaluate(() => ({
+      place: !!document.querySelector('[data-reg-home][data-ct-show="list"]'),
       ins: document.querySelector('[data-ins-page]') ? document.querySelector('[data-ins-page]').getAttribute('data-ins') : null,
       heads: [...document.querySelectorAll('.reg-table thead th')].map(t => t.textContent.replace(/[▲▼↕]/g, '').trim()),
-      widths: [...document.querySelectorAll('.reg-table thead th')].map(t => +t.getBoundingClientRect().width.toFixed(1)),
       panel: !!document.getElementById('ins-panel'),
-      sel: (document.querySelector('#reg-tbody tr.is-sel') || { getAttribute: () => null }).getAttribute('data-row'),
-      pid: (document.getElementById('ins-panel') || { getAttribute: () => null }).getAttribute('data-ins-id'),
     }));
-    ok('1a Contracts at 1440 draws the list and the panel beside it', shape.ins === '1' && shape.panel, JSON.stringify({ ins: shape.ins, panel: shape.panel }));
-    ok('1b the list is four columns, in plain words', shape.heads.join('|') === 'Ref|Counterparty and agreement|Stage|Value', shape.heads.join(' | '));
-    ok('1c the first row is chosen on arrival and the panel names it', !!shape.sel && shape.sel === shape.pid, `row ${shape.sel} · panel ${shape.pid}`);
+    ok('1a Contracts at 1440 is Home\'s Contracts place, the List, and no panel beside it', shape.place && !shape.panel && shape.ins === null, JSON.stringify(shape));
+    ok('1b the List is the drawing\'s six columns, in plain words, and the row\'s ⋯ unheaded', shape.heads.join('|') === 'Ref|Counterparty and agreement|Stage|Owner|Ends|Value|', shape.heads.join(' | '));
     await page.screenshot({ path: path.join(OUT, '1-contracts-1440.png') });
 
     const rows = await page.$$('#reg-tbody tr[data-row]');
-    if (rows.length > 2 && shape.panel) {
-      const id3 = await rows[2].getAttribute('data-row');
-      await rows[2].click(); await page.waitForTimeout(300);
-      const after = await page.evaluate(() => ({ view: state.view, pid: document.getElementById('ins-panel').getAttribute('data-ins-id'),
-        sel: document.querySelector('#reg-tbody tr.is-sel').getAttribute('data-row') }));
-      ok('1d a press SELECTS — the panel follows and nothing opens', after.view === 'register' && after.pid === id3 && after.sel === id3, JSON.stringify(after));
-      await page.keyboard.press('ArrowDown'); await page.waitForTimeout(250);
-      const arrow = await page.evaluate(() => document.getElementById('ins-panel').getAttribute('data-ins-id'));
-      const id4 = await rows[3].getAttribute('data-row');
-      ok('1e the arrow key moves the selection, and the panel with it', arrow === id4, `${id3} → ${arrow}`);
-      await page.click('#ins-panel [data-ins-act="door-doc"]'); await page.waitForTimeout(900);
-      /* 1f–1h RE-POINTED 11 Oct 2026 (owner): Open contract lands on Home's Document, on that contract */
+    if (rows.length > 2) {
+      /* 1f–1h: a row opens that contract on Home's Document — one press, a
+         double-click, Enter (the panel's Open contract went with the panel) */
       const HOME = () => ({ view: state.view, id: (window.intel && intel.paper) ? intel.paper.id : null });
+      const id3 = await rows[2].getAttribute('data-row');
+      await page.click(`#reg-tbody tr[data-row="${id3}"] td:nth-child(2)`); await page.waitForTimeout(900);
       const opened = await page.evaluate(HOME);
-      ok('1f the panel’s Open contract opens that contract, on Home\'s Document', opened.view === 'dashboard' && opened.id === id4, JSON.stringify(opened));
+      ok('1f a row\'s one press opens that contract, on Home\'s Document', opened.view === 'dashboard' && opened.id === id3, JSON.stringify(opened));
       await toContracts();
       const rows2 = await page.$$('#reg-tbody tr[data-row]');
       const id2 = await rows2[1].getAttribute('data-row');
@@ -129,23 +127,27 @@ const ok = (name, good, detail) => {
       const dbl = await page.evaluate(HOME);
       ok('1g a double-click opens it', dbl.view === 'dashboard' && dbl.id === id2, JSON.stringify(dbl));
       await toContracts();
-      await page.focus('#reg-tbody tr.is-sel'); await page.keyboard.press('Enter'); await page.waitForTimeout(900);
-      const ent = await page.evaluate(() => ({ view: state.view }));
-      ok('1h Enter opens it', ent.view === 'dashboard', JSON.stringify(ent));
+      const id1 = await page.evaluate(() => document.querySelector('#reg-tbody tr[data-row]').getAttribute('data-row'));
+      await page.focus('#reg-tbody tr[data-row]'); await page.keyboard.press('Enter'); await page.waitForTimeout(900);
+      const ent = await page.evaluate(HOME);
+      ok('1h Enter opens it', ent.view === 'dashboard' && ent.id === id1, JSON.stringify(ent));
       await toContracts();
     } else {
-      for (const n of ['1d a press SELECTS', '1e the arrow key moves the selection', '1f the panel’s Open contract opens that contract', '1g a double-click opens it', '1h Enter opens it'])
-        ok(n, false, 'no panel on the page to drive');
+      for (const n of ['1f a row\'s one press opens that contract', '1g a double-click opens it', '1h Enter opens it'])
+        ok(n, false, 'fewer than three rows on the List');
     }
 
     /* the floor, on the screen */
     const floor = await page.evaluate(() => {
       const rowsText = [...document.querySelectorAll('#reg-tbody tr[data-row]')].map(r => r.innerText).join('\n');
       const heads = [...document.querySelectorAll('.reg-table thead th')].map(t => t.textContent);
-      const mk = document.querySelector('#reg-tbody tr:not(.is-sel) .reg-mk');
-      const selMk = document.querySelector('#reg-tbody tr.is-sel .reg-mk');
+      const mk = document.querySelector('#reg-tbody tr .reg-mk');
       const tok = v => { const e = document.createElement('i'); e.style.cssText = 'position:absolute;color:var(' + v + ')'; document.body.appendChild(e); const c = getComputedStyle(e).color; e.remove(); return c; };
-      const filled = [...document.querySelectorAll('#page-head button, #content button')].filter(b => {
+      /* the Wall | List switch's lit half is a STATE drawn the way the paper's
+         Clean | Redline switch draws it, not an act: it is counted apart */
+      /* THE HEAD IS HOME'S (#hb-head) now that the place is on Home; Jambo's
+         panel beside it (#ig-dock, its Ask) is an area of its own */
+      const filled = [...document.querySelectorAll('#page-head button, #hb-head button')].filter(b => !b.hasAttribute('data-ct-show')).filter(b => {
         const r = b.getBoundingClientRect(); if (!(r.width > 0 && r.height > 0)) return false;
         const cs = getComputedStyle(b); return cs.backgroundColor === tok('--accent-fill').replace('rgb(', 'rgb(') && cs.color === 'rgb(255, 255, 255)'; });
       const bgOf = el => getComputedStyle(el).backgroundColor;
@@ -155,7 +157,13 @@ const ok = (name, good, detail) => {
         zeroCounts: [...document.querySelectorAll('.reg-vtab.is-zero .n')].length,
         zeroTabs: document.querySelectorAll('.reg-vtab.is-zero').length,
         idle: heads.some(t => /↕/.test(t)),
-        mkInk: mk ? getComputedStyle(mk).color : null, selInk: selMk ? getComputedStyle(selMk).color : null,
+        mkInk: mk ? getComputedStyle(mk).color : null,
+        /* a button the reader can see (the Display cog's closed pop-up holds
+           its own lit density switch, which is not on screen) */
+        placeFilled: [...document.querySelectorAll('[data-reg-home] button')].filter(b => !b.hasAttribute('data-ct-show')).filter(b => {
+          const r = b.getBoundingClientRect(); if (!(r.width > 0 && r.height > 0)) return false;
+          const cs = getComputedStyle(b); return cs.backgroundColor === tok('--accent-fill') && cs.color === 'rgb(255, 255, 255)'; }).length,
+        litShow: [...document.querySelectorAll('[data-reg-home] [data-ct-show][aria-pressed="true"]')].map(b => b.getAttribute('data-ct-show')),
         accent: tok('--accent-ink'),
         filled: filled.map(b => b.innerText.trim()),
         barInCard: !!document.querySelector('.reg-card > .reg-cardhead'),
@@ -168,12 +176,15 @@ const ok = (name, good, detail) => {
     ok('1k the head counts the live book, and says so', /\blive\b/.test(floor.facts), floor.facts);
     ok('1l a view with nothing in it prints no count', floor.zeroTabs > 0 && floor.zeroCounts === 0, `${floor.zeroTabs} quiet tabs, ${floor.zeroCounts} counts on them`);
     ok('1m no idle sort arrows', !floor.idle);
-    ok('1n the resting reference is not an accent; the selected one is', floor.mkInk && floor.mkInk !== floor.accent && floor.selInk === floor.accent,
-      `resting ${floor.mkInk} · selected ${floor.selInk} · accent ${floor.accent}`);
+    /* (its "the selected one is" half retired with the selection, step 7) */
+    ok('1n the resting reference is not an accent', floor.mkInk && floor.mkInk !== floor.accent,
+      `resting ${floor.mkInk} · accent ${floor.accent}`);
     /* RE-POINTED 7 Oct 2026 (Young, the mockup's panel): one filled button PER
        AREA — the page head's Draft new agreement and the panel's lead act. */
-    ok('1o one filled button in each area: the page head and the panel', floor.filled.length === 2
-      && floor.filled.some(t => /draft/i.test(t)) && floor.filled.some(t => /^document$/i.test(t)), floor.filled.join(' | '));  /* 12 Oct 2026: the lead door says Document */
+    /* RE-POINTED AT STEP 7: no panel, so the place itself fills no act; the
+       page head fills at most one; the switch lights the one view shown */
+    ok('1o one filled button in each area: none in the Contracts place (its switch lights its view), at most one in the head', floor.placeFilled === 0
+      && floor.filled.length <= 1 && floor.litShow.join() === 'list', floor.filled.join(' | ') + ' · lit ' + floor.litShow.join());
     /* RE-POINTED 9 Oct 2026 (SAP benchmark, owner-approved): the filters sit in
        the page's white band; the list's own head (name, count, Sort, Display)
        is its card's top row. */
@@ -201,7 +212,10 @@ const ok = (name, good, detail) => {
         lineRep.push({ lang, W, ...m });
       }
     }
-    const bad = lineRep.filter(r => r.ins !== '1' || r.lines !== 1 || !r.fits || r.over > 0);
+    /* the List has no inspector line to cross since step 7; its own line (four
+       columns below REG_HOME_NARROW_W of place) sits below these widths and is
+       crossed in 4d–4f */
+    const bad = lineRep.filter(r => r.lines !== 1 || !r.fits || r.over > 0);
     ok('1q the filter row is one line and the list fits its pane, 1104–1920, both languages', bad.length === 0,
       bad.length ? JSON.stringify(bad) : `${lineRep.length} measured`);
     const back = await page.$('.lang-btn[data-lang="en"]'); if (back) { await back.click(); await page.waitForTimeout(700); }
@@ -254,9 +268,13 @@ const ok = (name, good, detail) => {
        counterparty 32px wider on this seat. */
     /* RE-POINTED 9 Oct 2026: Value is not a Negotiations column in the drawing,
        so the two columns both pages still share are the ones held equal. */
-    const shared = [0, 1].map(i => [shape.widths && shape.widths[i], ng.widths && ng.widths[i]]);
-    ok('2e the columns both pages share are cut identically, in pixels — reference, counterparty',
-      shared.every(([a, b]) => a > 0 && b > 0 && Math.abs(a - b) <= 0.5), shared.map(([a, b]) => `${a}/${b}`).join(' · '));
+    /* 2e RETIRED 15 Oct 2026 (the overnight work order, step 7): "the columns
+       both pages share are cut identically, in pixels" paired the Contracts
+       page's inspector list with the Negotiations page's. Contracts is now
+       Home's Contracts place, with no inspector, its List in Home's paper
+       column beside Jambo's panel — the two lists no longer share a width
+       to be cut alike (contracts-page-verify 11d and counterparty-leads-
+       verify 2f retire with it). 2a–2d still ask the Negotiations list. */
     await page.screenshot({ path: path.join(OUT, '2-negotiations-1440.png') });
 
     /* ================= 3 · APPROVALS & SIGNING ================= */
@@ -319,25 +337,46 @@ const ok = (name, good, detail) => {
     } else ok('3e Obligations: Open contract lands on Home\'s Document', false, 'no Open contract in the panel');
 
     /* ================= 4 · BELOW THE LINE, AND A WIDTH THAT CROSSES IT ================= */
-    await page.setViewportSize({ width: 1024, height: 800 }); await toContracts();
+    /* RE-POINTED AT STEP 7: the Contracts List draws no inspector, so the
+       inspector's line is measured where it still stands — Negotiations, the
+       same builder on its own seat; the List's own line (its four narrow
+       columns) is crossed in 4d–4f */
+    await page.setViewportSize({ width: 1024, height: 800 }); await toNego();
     const narrow = await page.evaluate(() => ({ ins: document.querySelector('[data-ins-page]')?.getAttribute('data-ins'), panel: !!document.getElementById('ins-panel'),
-      heads: document.querySelectorAll('.reg-table thead th').length, keys: REG_COL_KEYS.length }));
-    ok('4a [control] at 1024 the page keeps its full table', narrow.ins !== '1' && !narrow.panel && narrow.heads === narrow.keys, JSON.stringify(narrow));
+      heads: document.querySelectorAll('.reg-table thead th').length, keys: regColKeys().length, full: !regInspecting() }));
+    ok('4a [control] at 1024 Negotiations keeps its full table', narrow.ins !== '1' && !narrow.panel && narrow.full && narrow.heads === narrow.keys, JSON.stringify(narrow));
     const nrow = await page.$('#reg-tbody tr[data-row]');
     const nid = nrow ? await nrow.getAttribute('data-row') : null;
-    if (nrow) { await nrow.click(); await page.waitForTimeout(900); }
-    /* RE-POINTED 11 Oct 2026 (owner: "when you ... click open contract, it will then
-       take you to the home page under document"): the list's open lands on Home's
-       Document, on that contract. */
-    const nopen = await page.evaluate(() => ({ view: state.view, id: (window.intel && intel.paper) ? intel.paper.id : null }));
-    ok('4b [control] and one press opens it, on Home\'s Document', nopen.view === 'dashboard' && nopen.id === nid, JSON.stringify(nopen));
-    await toContracts();
+    if (nrow) { await page.click(`#reg-tbody tr[data-row="${nid}"] td:nth-child(2)`); await page.waitForTimeout(900); }
+    /* a Negotiations row opens Jambo's Redlines face beside Home's paper (stage 5) */
+    const nopen = await page.evaluate(() => ({ view: state.view, id: (window.intel && intel.paper) ? intel.paper.id : null, face: window.pdFaceNow ? pdFaceNow() : '' }));
+    ok('4b [control] and one press opens it, on Home\'s paper, Redlines beside it', nopen.view === 'dashboard' && nopen.id === nid && nopen.face === 'red', JSON.stringify(nopen));
+    await toNego();
     await page.setViewportSize({ width: 1440, height: 900 }); await page.waitForTimeout(700);
     const grown = await page.evaluate(() => ({ ins: document.querySelector('[data-ins-page]')?.getAttribute('data-ins'), view: state.view }));
-    ok('4c widening the window past the line repaints the page into the inspector’s shape', grown.ins === '1' && grown.view === 'register', JSON.stringify(grown));
+    ok('4c widening the window past the line repaints the page into the inspector’s shape', grown.ins === '1' && grown.view === 'redline', JSON.stringify(grown));
+    /* THE CONTRACTS PLACE'S LIST HAS A LINE OF ITS OWN (step 7; the checkers
+       found it unguarded in a browser): below REG_HOME_NARROW_W of PLACE it
+       draws its four narrow columns, and a width crossing that line repaints
+       it in the same sitting (regHomeWatch) — both ways, never panning */
+    const listShape = () => page.evaluate(() => { const t = document.querySelector('[data-reg-home] .reg-table'), sc = document.querySelector('[data-reg-home] #reg-scroll');
+      return { heads: document.querySelectorAll('[data-reg-home] .reg-table thead th').length, narrow: !!(t && t.classList.contains('is-hnarrow')),
+        wide: REG_COL_KEYS_HOME.length, few: REG_COL_KEYS_HOME_NARROW.length, pan: sc ? sc.scrollWidth - sc.clientWidth : -1,
+        place: (document.getElementById('ct-place') || {}).clientWidth || 0 }; });
+    const shapeIs = (want, ms = 5000) => (async () => { const t0 = Date.now(); let v;
+      while (Date.now() - t0 < ms) { v = await listShape(); if (want(v)) return v; await page.waitForTimeout(150); } return v; })();
+    await toContracts();
+    const w1 = await shapeIs(v => v.heads === v.wide && !v.narrow);
+    ok('4d [control] at 1440 the place\'s List draws its wide columns', w1.heads === w1.wide && !w1.narrow && w1.pan <= 1, JSON.stringify(w1));
+    await page.setViewportSize({ width: 820, height: 1180 });
+    const n1 = await shapeIs(v => v.heads === v.few && v.narrow);
+    ok('4e narrowed to an 820 tablet in the same sitting, it repaints to its four columns and does not pan', n1.heads === n1.few && n1.narrow && n1.pan <= 1, JSON.stringify(n1));
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const w2 = await shapeIs(v => v.heads === v.wide && !v.narrow);
+    ok('4f widened again, its wide columns come back', w2.heads === w2.wide && !w2.narrow && w2.pan <= 1, JSON.stringify(w2));
 
     /* ================= 5 · NIGHT ================= */
-    await page.evaluate(() => { setDark(true); applyAppearance(); }); await toContracts();
+    await page.evaluate(() => { setDark(true); applyAppearance(); }); await toNego();
     const night = await page.evaluate(() => {
       const p = document.getElementById('ins-panel'); if (!p) return null;
       const rgb = s => (s.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
@@ -347,8 +386,8 @@ const ok = (name, good, detail) => {
       const cp = getComputedStyle(p.querySelector('.ins-cp')).color, dt = getComputedStyle(p.querySelector('.ins-facts dt')).color;
       return { bg, cp: ratio(cp, bg), dt: ratio(dt, bg) };
     });
-    ok('5a at night the panel is the dark surface and its words read (AA)', !!night && night.cp >= 4.5 && night.dt >= 4.5, JSON.stringify(night));
-    await page.screenshot({ path: path.join(OUT, '5-contracts-night.png') });
+    ok('5a at night the panel (Negotiations) is the dark surface and its words read (AA)', !!night && night.cp >= 4.5 && night.dt >= 4.5, JSON.stringify(night));
+    await page.screenshot({ path: path.join(OUT, '5-negotiations-night.png') });
     await page.evaluate(() => { setDark(false); applyAppearance(); });
 
     ok('no page errors', errs.length === 0, errs.slice(0, 3).join(' | '));

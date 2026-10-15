@@ -53,7 +53,7 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
 
   const cid = await page.evaluate(() => {
     const c = (state.contracts || []).find(x => x && x.id);
-    if (c) openWorkspace(c.id);
+    if (c) openWorkspace(c.id, { room: true });
     return c && c.id;
   });
   await page.waitForTimeout(1600);

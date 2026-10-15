@@ -219,7 +219,7 @@ function pdDocHtml(c){
    pages the Redlines and Before you sign faces replaced, stage 5): what came
    in meanwhile is collected now, not on the next slow beat */
 function pdArrived(){ if (typeof pollNow === 'function') try { pollNow('opened face'); } catch (_){} }
-const PD_ROOM_TAB = { facts: 'terms', oblig: 'oblig', sign: 'sign', hist: 'history', deal: 'redline', doc: 'docs', copilot: 'terms', fill: 'details', red: 'redline', signing: 'sign' };
+const PD_ROOM_TAB = { facts: 'terms', oblig: 'oblig', sign: 'sign', hist: 'history', deal: 'redline', doc: 'docs', copilot: 'terms', plain: 'terms', fill: 'details', red: 'redline', signing: 'sign' };
 function pdOpenOnHome(id, tab){
   const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c) return false;
   /* THE DEAL AND HISTORY DOORS LAND ON THE BOARD (the one-page Home plan,
@@ -286,6 +286,25 @@ function pdOpenOnHome(id, tab){
       && typeof intel === 'object' && intel && intel.paper && String(intel.paper.id) === String(id)){
       pdSetTab('copilot'); intel.dockOpen = true;
       pdSignPaper(id);
+      if (typeof renderIntelDock === 'function') renderIntelDock();
+      if (typeof igSyncDockWidth === 'function') try { igSyncDockWidth(); } catch (_){}
+      return true;
+    }
+  }
+  /* THE PAPER, PLAIN (the overnight work order, step 2: the Workspace door
+     lands on "the paper on Jambo's tab"): a face left open on this contract
+     (Fill in, Redlines, Before you sign) is put away, so the door lands on
+     the conversation, not on the face an earlier press left up. 'copilot'
+     keeps a face for the same contract (pdRedSeen's rule); 'plain' does not. */
+  if (tab === 'plain'){
+    const turned = _pdSign === String(id) || _pdRed === String(id);
+    const was = _pdFill || _pdRed || _pdSign;
+    _pdFill = null; _pdFillKey = null; _pdRed = null; _pdSign = null; tab = 'copilot';
+    if (was) pdPresenceOff(was);
+    if (window.state && state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'paper'
+      && typeof intel === 'object' && intel && intel.paper && String(intel.paper.id) === String(id)){
+      pdSetTab('copilot'); intel.dockOpen = true;
+      if (turned && typeof igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){}
       if (typeof renderIntelDock === 'function') renderIntelDock();
       if (typeof igSyncDockWidth === 'function') try { igSyncDockWidth(); } catch (_){}
       return true;
@@ -397,7 +416,50 @@ function pdFillFaceHtml(c){
       ${''/* in the head that stays in sight: the last box is at the foot of the form */}<div data-pd-ff-done>${pdFillDoneHtml(c)}</div></div>
     <div id="det-basics" class="pd-ff-basics"></div>
     <div id="pd-fill" class="pd-ff-paper"></div>
+    ${pdFillStreamHtml(c)}
   </div>`;
+}
+/* ---- THE STREAM, ASKED AND NEVER OWED (the overnight work order, step 6;
+   the demo's fillFace) ----
+   A segmented choice of the company's streams — FOLDERS, the one map
+   foldersFromSettings fills, as far as this reader may see them
+   (visibleFolders), the contract's own kept on the list — with the current
+   one lit. NEVER COUNTED: it is not in detailsOf, has no data-kt, and
+   pdFillKeyOf reads past it. A press moves the contract through the ONE
+   stream writer (ktFolderMove: the question, the 'Re-filed' line, the save);
+   a person who may not re-file sees the choice greyed with the reason, which
+   is the server's own wall (403 folderMove) said before the press. */
+function pdFillStreamMay(){
+  return (typeof mayReFile === 'function') && !!mayReFile() && !(typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE)
+    && ((typeof canEdit !== 'function') || canEdit());
+}
+function pdFillStreamHtml(c){
+  if (!c) return '';
+  const F = (typeof FOLDERS === 'object' && FOLDERS) || {};
+  const list = ((typeof visibleFolders === 'function') ? visibleFolders() : Object.values(F)).slice();
+  if (c.folder && F[c.folder] && !list.some(f => f.id === c.folder)) list.unshift(F[c.folder]);
+  if (!list.length) return '';
+  const may = pdFillStreamMay();
+  const why = may ? '' : _pdT('pd_ff_stream_ro');
+  const seg = list.map(f => `<button type="button" data-pd-stream="${_pdE(f.id)}" aria-pressed="${f.id === c.folder ? 'true' : 'false'}"${may ? '' : ` disabled aria-disabled="true" title="${_pdE(why)}"`}>${_pdE(f.name)}</button>`).join('');
+  return `<div class="pd-ff-stream" data-pd-ff-stream>
+    <span class="pd-ff-sl">${_pdE(_pdT('pd_ff_stream'))} <span>· ${_pdE(_pdT('pd_ff_stream_never'))}</span></span>
+    <div class="pd-ff-seg" role="group" aria-label="${_pdE(_pdT('pd_ff_stream'))}">${seg}</div>
+    ${may ? '' : `<span class="pd-ff-ro">${_pdE(why)}</span>`}
+  </div>`;
+}
+function pdFillStreamRepaint(c){
+  const el = (typeof document !== 'undefined') ? document.querySelector('#pd-fillface [data-pd-ff-stream]') : null; if (!el || !c) return;
+  const t = document.createElement('div'); t.innerHTML = pdFillStreamHtml(c);
+  if (t.firstElementChild) el.replaceWith(t.firstElementChild);
+}
+async function pdFillStreamPick(id){
+  const c = pdContract(); if (!c || !id || String(c.folder || '') === String(id)) return false;
+  if (!pdFillStreamMay() || typeof ktFolderMove !== 'function') return false;
+  let ok = false;
+  try { ok = await ktFolderMove(c, id); } catch (_){ ok = false; }
+  pdFillStreamRepaint((typeof getContract === 'function' && getContract(c.id)) || c);
+  return ok;
 }
 /* the count, the bar, the pill and the next step, IN PLACE — never a repaint
    under the hand that is typing */
@@ -423,6 +485,7 @@ function pdFillCounts(c){
    renderIntelDock binds them. */
 function pdChipsRepaint(){
   if (typeof window === 'undefined' || !window.caChipsHtml) return;
+  pdGlanceRepaint();
   const chips = document.querySelector('#ig-dock [data-ig-chips]'); if (!chips) return;
   const h = caChipsHtml(); if (!h || h === chips.innerHTML) return;
   chips.innerHTML = h;
@@ -465,7 +528,9 @@ function pdFillWire(host){
       if (typeof igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){} }, 0);
   });
   host.addEventListener('click', e => {
-    if (e.target.closest && e.target.closest('[data-pd-ff-close]')){ e.preventDefault(); pdFillClose(); }
+    if (e.target.closest && e.target.closest('[data-pd-ff-close]')){ e.preventDefault(); pdFillClose(); return; }
+    const sb = e.target.closest ? e.target.closest('[data-pd-stream]') : null;
+    if (sb && !sb.disabled){ e.preventDefault(); pdFillStreamPick(sb.getAttribute('data-pd-stream')); }
   });
 }
 /* after renderIntelDock drew the face's host: its parts, from their own painters */
@@ -1093,8 +1158,223 @@ if (typeof document !== 'undefined' && !document._pdWired){
   });
 }
 
+/* ============================================================
+   JAMBO'S TAB ON HOME'S DOCUMENT FACE: THE WALL'S GREETING AND DROP AREA,
+   AND A CONTRACT AT A GLANCE (the overnight work order, steps 4 and 5; the
+   owner's "Go" on the demo's homeFace, 14 Oct 2026)
+   ============================================================
+   Drawn at the top of Jambo's conversation while no face is open, in place
+   of the notebook's generic greeting (renderIntelDock):
+   - THE WALL (no paper chosen): the greeting and the drop area. A Word or PDF
+     file dropped there, or chosen with its button (the chip "upload a
+     document" and the word "upload" open the same picker), goes through the
+     existing upload path — uploadFromDrop: the reader, who we are, the name
+     off the file (fileTitleOf), contractArrived — and lands on the paper with
+     Fill in open while anything is owed (roomArrivesOnHome). The drop area's
+     own sentence promises the reading, and its cost is said under it, the
+     sentence the pop-up's tick-box carried (Six Questions 4). Reading, the
+     area wears the turning ring; a refusal is said in it and in a toast.
+   - A CONTRACT ON THE PAPER: "MK-… at a glance" — its stage (the head's own
+     pill, contractStatusTextHtml), then one row per thing waiting, each with
+     the button that opens its face. EVERY COUNT IS THE READING ITS OWN FACE
+     USES — detailsOf (Fill in), riskOpenOf (Redlines' risks), the Send all
+     count rlUnsentCount, signBlockers' signers row (Before you sign) — asked
+     RAW: it spends nothing and writes nothing (no negotiation is started to
+     count none, pdDealHtml's guard). A button asks Jambo's own word for its
+     face (caReadPlace, the chips' one path), so a press and a typed word land
+     alike; a door the contract has shut is grey with its reason. */
+const PD_DROP_ACCEPT = '.pdf,.docx,.txt,.png,.jpg,.jpeg';
+let _pdDrop = null;          // { state: 'reading' | 'refused', name, note, why }, or null
+function pdDropMay(){ return (typeof canEdit !== 'function') || !!canEdit(); }
+function pdWallHelloHtml(){
+  const me = (typeof currentUser === 'function') ? currentUser() : null;
+  const hour = new Date().getHours();
+  const greet = _pdT(hour < 12 ? 'home_greet_morning' : hour < 17 ? 'home_greet_afternoon' : 'home_greet_evening');
+  const first = String((me && me.name) || '').trim().split(/\s+/)[0] || _pdT('home_greet_there');
+  const say = _pdT(pdDropMay() ? 'pd_wall_hello' : 'pd_wall_hello_view', { greet, name: first });
+  const face = (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 24, 'ai-face shrink-0 mt-0.5') : '';
+  return `<div class="ai-msg flex gap-2 pd-hello">${face}<div class="min-w-0 flex-1"><div class="ai-bub rounded-2xl rounded-tl-md border px-3.5 py-2 text-[13px] leading-relaxed bg-canvas border-brand-100 text-brand-900">${_pdE(say)}</div></div></div>`;
+}
+function pdDropInner(){
+  const d = _pdDrop;
+  if (d && d.state === 'reading'){
+    const w = _pdT('pd_drop_reading', { name: d.name });
+    return `<span class="pd-drop-busy" aria-live="polite">${(typeof busyHtml === 'function') ? busyHtml(w) : _pdE(w)}</span>${d.note ? `<span class="pd-drop-sub">${_pdE(d.note)}</span>` : ''}`;
+  }
+  const ai = (typeof copilotAvailable !== 'function') || copilotAvailable();
+  const ic = (typeof icon === 'function') ? icon('upload', 'w-5 h-5') : '';
+  return `<span class="pd-drop-ic" aria-hidden="true">${ic}</span><b>${_pdE(_pdT('pd_drop_t'))}</b>
+    <span class="pd-drop-sub">${_pdE(_pdT('pd_drop_sub'))}</span>
+    <span class="pd-drop-cost">${_pdE(_pdT(ai ? 'pd_drop_cost' : 'pd_drop_cost_noai'))}</span>
+    ${d && d.state === 'refused' ? `<span class="pd-drop-why" role="alert">${_pdE(d.why)}</span>` : ''}
+    ${pdDropStreamHtml()}
+    ${''/* HOME'S ONE FILLED ACT WEARS HOME'S DRESS (.hm-primary, the act
+           "+ Draft new agreement" wore in the head until step 3): one class,
+           so its night rung — the fill that stands off the dark page — is
+           the same act's */}<button type="button" class="hm-primary" data-pd-drop-pick>${_pdE(_pdT(d && d.state === 'refused' ? 'pd_drop_again' : 'pd_drop_pick'))}</button>`;
+}
+/* ---- THE STREAM IS ASKED AT THE DROP (the fix round, 15 Oct 2026; the
+   owner's ruling of 18 Sep: the stream is asked at every creation door) ----
+   The pop-up asked every editor which stream a file goes into (#up-folder,
+   the first stream they may see already chosen); a drop with no such box
+   filed it silently, and Fill in's stream is a re-filer's only — the server
+   refuses anyone else a move (403 folderMove). So the drop area asks it, the
+   same choice the pop-up drew: the streams this person may see, the first
+   chosen until they choose another, kept for the sitting. One stream asks
+   nothing. Its press opens HaTi's own list (the body-wide selectMenuSweep). */
+let _pdDropStream = '';
+function pdDropStreams(){
+  const F = (typeof FOLDERS === 'object' && FOLDERS) || {};
+  return ((typeof visibleFolders === 'function') ? visibleFolders() : Object.values(F)).filter(f => f && f.id);
+}
+function pdDropStreamNow(){
+  const L = pdDropStreams();
+  return (L.find(f => f.id === _pdDropStream) || L[0] || {}).id || '';
+}
+function pdDropStreamHtml(){
+  const L = pdDropStreams(); if (L.length < 2) return '';
+  const now = pdDropStreamNow(), lab = _pdT('pd_ff_stream');
+  return `<label class="pd-drop-stream"><span>${_pdE(lab)}</span><select id="pd-drop-stream" data-pd-drop-stream aria-label="${_pdE(lab)}">${
+    L.map(f => `<option value="${_pdE(f.id)}"${f.id === now ? ' selected' : ''}>${_pdE(f.name || f.id)}</option>`).join('')}</select></label>`;
+}
+/* A viewer files nothing: no drop area, and the greeting does not offer one */
+function pdDropHtml(){
+  if (!pdDropMay()) return '';
+  return `<div id="pd-drop" class="pd-drop${_pdDrop && _pdDrop.state === 'reading' ? ' is-busy' : ''}" data-pd-drop>${pdDropInner()}</div>`;
+}
+function pdDropPaint(){
+  const el = (typeof document !== 'undefined') ? document.getElementById('pd-drop') : null; if (!el) return;
+  el.classList.toggle('is-busy', !!(_pdDrop && _pdDrop.state === 'reading'));
+  el.innerHTML = pdDropInner();
+}
+function pdWallHtml(){ return `<div class="pd-wall">${pdWallHelloHtml()}${pdDropHtml()}</div>`; }
+/* THE FILE PICKER: one input, kept outside the panel (the panel is redrawn
+   under it), found at press time, so a chip's press opens it in the press */
+function pdDropInput(){
+  let inp = document.getElementById('pd-drop-file');
+  if (!inp){
+    inp = document.createElement('input');
+    inp.type = 'file'; inp.id = 'pd-drop-file'; inp.accept = PD_DROP_ACCEPT; inp.hidden = true; inp.tabIndex = -1;
+    inp.setAttribute('aria-hidden', 'true');
+    inp.addEventListener('change', () => { const f = inp.files && inp.files[0]; inp.value = ''; if (f) pdDropTake(f); });
+    document.body.appendChild(inp);
+  }
+  return inp;
+}
+function pdDropBusyNow(){ return !!(_pdDrop && _pdDrop.state === 'reading') || ((typeof uploadDropBusy === 'function') && uploadDropBusy()); }
+function pdDropPick(){
+  if (!pdDropMay()){ if (typeof toast === 'function') toast(_pdT('ct_viewers_no_add'), 'err'); return false; }
+  if (pdDropBusyNow()){ if (typeof toast === 'function') toast(_pdT('ca_drop_busy'), 'warn'); return false; }
+  pdDropInput().click();
+  return true;
+}
+/* WHEN SOMETHING LOADS, SOMETHING MOVES — WHEREVER THE READ STARTED (the
+   fix round, 15 Oct 2026): "upload" typed with a contract on the paper, or
+   from ⌘K on another page, opens the same picker with no drop area on
+   screen to turn its ring, so the read is said in a toast that turns
+   (toast {busy:true}) and goes when the file lands or is refused. */
+const PD_DROP_TOAST_MS = 600000;
+function pdDropToastOff(msg){
+  if (typeof document === 'undefined') return;
+  document.querySelectorAll('#toast-root [data-toast-msg]').forEach(el => { if (el.dataset.toastMsg === msg) el.remove(); });
+}
+async function pdDropTake(file){
+  if (!file || typeof uploadFromDrop !== 'function') return null;
+  if (pdDropBusyNow()){ if (typeof toast === 'function') toast(_pdT('ca_drop_busy'), 'warn'); return { refused: _pdT('ca_drop_busy') }; }
+  _pdDrop = { state: 'reading', name: file.name, note: '' };
+  pdDropPaint();
+  const said = _pdT('pd_drop_reading', { name: file.name });
+  const away = !(typeof document !== 'undefined' && document.getElementById('pd-drop'));
+  if (away && typeof toast === 'function') toast(said, 'ok', { busy: true, dwell: PD_DROP_TOAST_MS });
+  let r = null;
+  try {
+    r = await uploadFromDrop(file, { folder: pdDropStreamNow(), step: (n, note) => { if (_pdDrop && _pdDrop.state === 'reading'){ _pdDrop.note = note || ''; pdDropPaint(); } } });
+  } catch (e){ r = { refused: (e && e.message) || String(e) }; }
+  if (away) pdDropToastOff(said);
+  if (r && r.refused){
+    _pdDrop = { state: 'refused', name: file.name, why: r.refused };
+    if (typeof toast === 'function') toast(r.refused, 'err');
+  } else _pdDrop = null;
+  pdDropPaint();
+  return r;
+}
+/* ---- A CONTRACT AT A GLANCE ---- */
+const PD_GLANCE = { fill: ['pd_gl_details', 'pd_gl_fill', 'ca_w_fill'], redline: ['pd_gl_risks', 'pd_gl_redlines', 'ca_w_redline'],
+  share: ['pd_gl_unsent', 'pd_gl_share', 'ca_w_share'], sign: ['pd_gl_signers', 'pd_gl_signing', 'ca_w_sign'] };
+function pdGlanceRows(c){
+  const rows = []; if (!c) return rows;
+  let d = null; try { d = pdFillDetails(c); } catch (_){ d = null; }
+  if (d && d.live && d.left) rows.push({ k: 'fill', n: d.left });
+  /* THE RISKS THE REDLINES FACE DRAWS (rlRisksPileHtml): a list only where
+     the scan has run and this person may act on the wording (riskMayAct) —
+     before a scan the face offers the scan, not a count, so neither does this */
+  let rk = 0; try { rk = (c.scan && typeof riskOpenOf === 'function' && (typeof riskMayAct !== 'function' || riskMayAct(c, {}))) ? riskOpenOf(c).length : 0; } catch (_){ rk = 0; }
+  if (rk) rows.push({ k: 'redline', n: rk });
+  let un = 0; try { un = (c.negotiation && typeof rlUnsentCount === 'function') ? rlUnsentCount(c, {}) : 0; } catch (_){ un = 0; }
+  if (un) rows.push({ k: 'share', n: un });
+  /* NOBODY NAMED TO SIGN only while signing is still ahead: signed, sealed or
+     declined, the Before you sign face reads "Signed", and so does this card */
+  let nobody = false; try { nobody = pdSignAhead(c) && (typeof signBlockers === 'function') && signBlockers(c).some(b => b && b.key === 'signers'); } catch (_){ nobody = false; }
+  if (nobody) rows.push({ k: 'sign', n: 1 });
+  return rows;
+}
+/* the Before you sign face's own "closed" (pdSignState), without its readiness read, and a declined deal */
+function pdSignAhead(c){
+  if (!c || c.status === 'Signed' || c.status === 'Declined') return false;
+  return !(typeof negoExecuted === 'function' && negoExecuted(c));
+}
+function pdGlanceHtml(c){
+  if (!c) return '';
+  const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
+  let pill = ''; try { pill = (typeof contractStatusTextHtml === 'function') ? contractStatusTextHtml(c) : ''; } catch (_){ pill = ''; }
+  const shut = k => (k === 'redline' && typeof negoMayStartLine === 'function') ? negoMayStartLine(c) : '';
+  const btn = r => { const why = shut(r.k), label = _pdE(_pdT(PD_GLANCE[r.k][1]));
+    return why ? `<button type="button" class="ui-btn ui-btn-sm" disabled aria-disabled="true" title="${_pdE(why)}">${label}</button>`
+      : `<button type="button" class="ui-btn ui-btn-sm" data-pd-glance="${r.k}">${label}</button>`; };
+  const rows = pdGlanceRows(c);
+  const body = rows.length
+    ? rows.map(r => `<div class="pd-gl-row" data-pd-gl="${r.k}"><span>${_pdE(r.k === 'sign' ? _pdT(PD_GLANCE.sign[0]) : _pdTn(PD_GLANCE[r.k][0], r.n, { n: r.n }))}</span>${btn(r)}</div>`).join('')
+    : `<div class="pd-gl-none"><i aria-hidden="true">✓</i><span>${_pdE(_pdT('pd_gl_none'))}</span></div>`;
+  return `<div id="pd-glance" class="pd-glance" data-pd-glance-for="${_pdE(c.id)}"><div class="pd-gl-h"><b>${_pdE(_pdT('pd_gl_title', { ref }))}</b><span class="pd-gl-sp"></span>${pill}</div><div class="pd-gl-b">${body}</div></div>`;
+}
+/* in place, as the chips are, when a face or a save changes what is waiting */
+function pdGlanceRepaint(){
+  const el = (typeof document !== 'undefined') ? document.getElementById('pd-glance') : null; if (!el) return;
+  const c = pdContract(); if (!c || String(c.id) !== el.getAttribute('data-pd-glance-for')) return;
+  const t = document.createElement('div'); t.innerHTML = pdGlanceHtml(c);
+  const nu = t.firstElementChild; if (nu && nu.outerHTML !== el.outerHTML) el.replaceWith(nu);
+}
+/* what Jambo's tab draws at its top on Home's Document face: the wall's
+   greeting and drop area, or the paper's contract at a glance */
+function pdJamboTopHtml(){
+  if (typeof igHomePaperFace !== 'function' || igHomePaperFace() !== true) return '';
+  const c = pdContract();
+  return c ? pdGlanceHtml(c) : pdWallHtml();
+}
+/* the presses, delegated once: the panel is redrawn under them */
+if (typeof document !== 'undefined' && !document._pdJamboTopWired){
+  document._pdJamboTopWired = true;
+  const zone = e => (e.target && e.target.closest) ? e.target.closest('#pd-drop') : null;
+  document.addEventListener('dragover', e => { const z = zone(e); if (!z) return; e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'; z.classList.add('is-over'); });
+  document.addEventListener('dragleave', e => { const z = zone(e); if (z && !(e.relatedTarget && z.contains(e.relatedTarget))) z.classList.remove('is-over'); });
+  document.addEventListener('drop', e => { const z = zone(e); if (!z) return; e.preventDefault(); z.classList.remove('is-over');
+    const fl = (e.dataTransfer && e.dataTransfer.files) || [], f = fl[0];
+    /* A CAP IS A FACT, NEVER A SILENT TRIM: two files dropped at once — the first is read, and that is said */
+    if (f && fl.length > 1 && !pdDropBusyNow() && typeof toast === 'function') toast(_pdT('pd_drop_single', { name: f.name }), 'warn');
+    if (f) pdDropTake(f); });
+  document.addEventListener('change', e => { const s = (e.target && e.target.closest) ? e.target.closest('[data-pd-drop-stream]') : null; if (s) _pdDropStream = s.value || ''; });
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    if (t.closest('[data-pd-drop-pick]')){ e.preventDefault(); pdDropPick(); return; }
+    const g = t.closest('[data-pd-glance]');
+    if (g && !g.disabled){ e.preventDefault(); const row = PD_GLANCE[g.getAttribute('data-pd-glance')]; if (row && typeof intelAsk === 'function') intelAsk(_pdT(row[2])); }
+  });
+}
 Object.assign(window, { pdPresenceOn, pdPresenceOff, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedHeadEndHtml, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,
-  PD_FILL_TRIES, PD_FILL_BEAT_MS, pdFillFor, pdFillShows, pdFillOpen, pdFillSeen, pdFillAway, pdFillClose, pdFillHeadHtml, pdFillDoneHtml, pdFillFaceHtml, pdFillFacePaint, pdFillCounts, pdFillKeyOf, pdFillEcho, pdFillWire, pdFillLand, pdFillRefresh });
+  PD_FILL_TRIES, PD_FILL_BEAT_MS, pdFillFor, pdFillShows, pdFillOpen, pdFillSeen, pdFillAway, pdFillClose, pdFillHeadHtml, pdFillDoneHtml, pdFillFaceHtml, pdFillFacePaint, pdFillCounts, pdFillKeyOf, pdFillEcho, pdFillWire, pdFillLand, pdFillRefresh,
+  pdFillStreamMay, pdFillStreamHtml, pdFillStreamRepaint, pdFillStreamPick,
+  PD_DROP_ACCEPT, pdDropMay, pdWallHelloHtml, pdDropInner, pdDropStreams, pdDropStreamNow, pdDropStreamHtml, pdDropHtml, pdDropPaint, pdWallHtml, pdDropInput, pdDropBusyNow, pdDropPick, PD_DROP_TOAST_MS, pdDropToastOff, pdDropTake,
+  PD_GLANCE, pdGlanceRows, pdSignAhead, pdGlanceHtml, pdGlanceRepaint, pdJamboTopHtml });

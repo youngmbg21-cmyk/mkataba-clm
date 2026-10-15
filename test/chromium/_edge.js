@@ -51,7 +51,7 @@ async function measure(p,sel,name,file){
   await p2.goto(h.base+'/',{waitUntil:'networkidle'});
   await p2.fill('#li-email','admin@example.co.ke'); await p2.fill('#li-pass','adminpassword1');
   await p2.click('#li-go'); await p2.waitForTimeout(2500);
-  await p2.evaluate(()=>openWorkspace(state.contracts[0].id)); await p2.waitForTimeout(2000);
+  await p2.evaluate(()=>openWorkspace(state.contracts[0].id, { room: true })); await p2.waitForTimeout(2000);
   await p2.evaluate(()=>document.fonts.ready);
   await measure(p2,'.room-head h1','HaTi title','h-title.png');
   await measure(p2,'.room-facets','HaTi facts','h-facts.png');

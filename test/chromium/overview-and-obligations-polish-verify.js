@@ -43,7 +43,7 @@ const SIGNED = { ...H.fixtureContract('MK-P1', 'Warehousing Services', 'Apex Log
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
     await page.waitForFunction(() => typeof openWorkspace === 'function' && state.contracts && state.contracts.length > 0, null, { timeout: 15000 });
-    await page.evaluate(() => openWorkspace('MK-P1'));
+    await page.evaluate(() => openWorkspace('MK-P1', { room: true }));
     await page.waitForFunction(() => !!document.querySelector('#ws-tabs'), null, { timeout: 10000 }).catch(() => {});
     await page.waitForTimeout(1200);
     await page.evaluate(() => roomGoTab(getContract('MK-P1'), 'terms'));
@@ -107,7 +107,7 @@ const SIGNED = { ...H.fixtureContract('MK-P1', 'Warehousing Services', 'Apex Log
 
     console.log('\n4 · All is first');
     ok('4a on the Obligations page', ob.tabs[0] === 'all', ob.tabs.join(','));
-    await page.evaluate(() => { openWorkspace('MK-P1'); setTimeout(() => roomGoTab(getContract('MK-P1'), 'oblig'), 300); });
+    await page.evaluate(() => { openWorkspace('MK-P1', { room: true }); setTimeout(() => roomGoTab(getContract('MK-P1'), 'oblig'), 300); });
     await page.waitForFunction(() => !!document.querySelector('.obt-head [data-obt-view]'), null, { timeout: 8000 }).catch(() => {});
     const tabV = await page.evaluate(() => [...document.querySelectorAll('.obt-head [data-obt-view]')].map(x => x.getAttribute('data-obt-view')));
     ok('4b and on the contract\'s Obligations tab', tabV[0] === 'all', tabV.join(','));

@@ -1,0 +1,935 @@
+<title>Contracts and Overview on Home</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap">
+<style>
+/* Layout: an intro and a step strip above one scaled app frame (1360 x 840) drawn in HaTi's own Blue look, then what moves where. Light only, like the real app's default. */
+:root{
+  --page:#E4E9F2; --bar:#264c9e; --accent:#264c9e; --accent-hover:#1F4088; --accent-700:#1c3872;
+  --a50:#f0f4fb; --a100:#e1e9f7; --a200:#b6c8eb; --a300:#8aa8e2;
+  --bg:#F3F6FB; --surface:#ffffff; --surface-2:#EEF2F9; --ink:#091938; --ink-2:#374A6D; --ink-3:#50648A;
+  --line:#DAE2F1; --line-2:#BAC8E4;
+  --amber-bg:#FBEEDB; --amber:#A24E07; --amber-dot:#E8A317; --amber-line:#EBCB8E;
+  --green-bg:#E3F3EF; --green:#0E5F58; --green-dot:#12796D;
+  --violet:#5B3FC4; --violet-bg:#EFEBFB; --grey-bg:#EEF1F6; --grey:#50648A;
+  --paper:#ffffff; --paper-ink:#141F1D;
+  --font-ui:'Geist','IBM Plex Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif;
+  --font-ref:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --font-paper:'Source Serif 4','IBM Plex Serif',Georgia,'Times New Roman',serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--page);color:var(--ink);font-family:var(--font-ui);font-size:15px;line-height:1.5;margin:0;padding-block:22px 36px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+button{font-family:inherit;color:inherit}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.pg{max-width:1500px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* intro + tour */
+.intro{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.intro .eb{margin:0;font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--accent)}
+.intro h1{margin:2px 0 0;font-size:clamp(22px,3vw,30px);font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+.intro p.l{margin:4px 0 0;color:var(--ink-2);max-width:72ch}
+.tour{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.tour-steps{display:flex;gap:6px;flex-wrap:wrap}
+.tour-steps button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 11px 4px 5px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.tour-steps button b{display:inline-flex;width:20px;height:20px;border-radius:50%;background:var(--surface-2);color:var(--ink-2);align-items:center;justify-content:center;font-size:11.5px}
+.tour-steps button.on{border-color:var(--accent);background:var(--a50);font-weight:600}
+.tour-steps button.on b{background:var(--accent);color:#fff}
+.tour-cap{display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap}
+.tour-cap .tx{min-width:0;max-width:90ch}
+.tour-cap .tx b{display:block;font-size:15px}
+.tour-cap .tx span{color:var(--ink-2);font-size:14px}
+.tour-btns{display:flex;gap:8px}
+.tour-btns button{border:1px solid var(--line-2);background:var(--surface);border-radius:8px;padding:7px 14px;font-weight:600;cursor:pointer;white-space:nowrap}
+.tour-btns button.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.tour-btns button:disabled{opacity:.45;cursor:default}
+
+/* the scaled frame */
+.stagebox{position:relative;width:100%;overflow:hidden}
+#app{position:absolute;top:0;left:0;width:1360px;height:840px;transform-origin:0 0;background:var(--bg);border:1px solid var(--line-2);border-radius:10px;overflow:hidden;box-shadow:0 10px 30px rgba(9,25,56,.12);font-size:14px;display:flex}
+
+/* rail */
+.rail{width:56px;flex:none;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;padding:8px 0;gap:4px}
+.rail .logo{width:28px;height:28px;border-radius:6px;background:var(--accent);color:#fff;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.rail button{width:38px;height:36px;border:0;background:transparent;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-2);position:relative}
+.rail button:hover{background:var(--surface-2)}
+.rail button.on{background:var(--a100);color:var(--accent)}
+.rail button.on::before{content:"";position:absolute;left:-9px;top:8px;bottom:8px;width:3px;border-radius:2px;background:var(--accent)}
+.rail .sep{width:30px;border-top:1px solid var(--line);margin:6px 0}
+.rail svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.rail .tip{position:absolute;left:46px;top:50%;transform:translateY(-50%);background:var(--ink);color:#fff;font-size:12px;padding:2px 8px;border-radius:4px;white-space:nowrap;opacity:0;pointer-events:none;z-index:5}
+.rail button:hover .tip{opacity:1}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+
+/* bar */
+.bar{height:48px;flex:none;background:var(--bar);color:#fff;display:flex;align-items:center;gap:14px;padding:0 14px}
+.bar .nm{font-weight:500;font-size:15px;white-space:nowrap;padding-left:12px;border-left:1px solid rgba(255,255,255,.25)}
+.bar .srch{margin-left:auto;margin-right:auto;width:380px;height:32px;border-radius:6px;background:rgba(255,255,255,.13);display:flex;align-items:center;gap:8px;padding:0 10px;color:rgba(255,255,255,.85);font-size:14px}
+.bar .srch kbd{margin-left:auto;font-family:var(--font-ui);font-size:12px;border:1px solid rgba(255,255,255,.4);border-radius:4px;padding:0 5px}
+.bar .lang{display:flex;background:rgba(255,255,255,.14);border-radius:6px;padding:2px}
+.bar .lang span{font-weight:600;font-size:13.5px;padding:4px 10px;border-radius:4px}
+.bar .lang span.on{background:#fff;color:var(--ink)}
+.bar .av{width:32px;height:32px;border-radius:50%;background:#fff;color:var(--accent);font-weight:700;font-size:12.5px;display:flex;align-items:center;justify-content:center}
+
+/* home head */
+.hd{height:58px;flex:none;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:20px;padding:0 20px}
+.hd h2{margin:0;font-size:22px;font-weight:700;letter-spacing:-.01em;white-space:nowrap}
+.faces{display:flex;background:var(--surface-2);border-radius:8px;padding:3px;gap:2px}
+.faces button{border:0;background:transparent;border-radius:6px;padding:6px 14px;font-size:14.5px;font-weight:500;color:var(--ink-2);cursor:pointer;white-space:nowrap}
+.faces button.on{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(9,25,56,.12)}
+.hd .sp{flex:1}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--accent-700);border-radius:8px;height:34px;padding:0 14px;font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:7px;cursor:pointer;white-space:nowrap;box-shadow:0 1px 1px rgba(9,25,56,.04)}
+.btn:hover{border-color:var(--accent)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.pri:hover{background:var(--accent-hover)}
+.btn.sm{height:30px;padding:0 11px;font-size:13.5px;border-radius:6px}
+.lnk{border:0;background:transparent;color:var(--accent);font-weight:600;cursor:pointer;padding:0;font-size:inherit}
+.lnk:hover{text-decoration:underline}
+
+.mn{flex:1;min-height:0;display:flex}
+.cv{flex:1;min-width:0;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.pn{width:390px;flex:none;background:var(--surface);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.pn.fold{width:44px}
+.pn.fold .pn-body,.pn.fold .pn-tabs .tb{display:none}
+
+/* status pills, like the Contracts page */
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:1px 10px;font-size:13px;font-weight:500;white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.p-Drafting{background:var(--grey-bg);color:var(--grey)}
+.p-Review{background:var(--amber-bg);color:var(--amber)}
+.p-Awaiting{background:var(--violet-bg);color:var(--violet)}
+.p-Executed{background:var(--green-bg);color:var(--green)}
+.p-Closed{background:var(--grey-bg);color:var(--ink-3)}
+.ini{width:30px;height:30px;border-radius:6px;background:var(--green-bg);color:var(--green);font-weight:600;font-size:12px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ref{font-family:var(--font-ref);font-size:13.5px}
+
+/* ---------- Contracts place: one head for wall and list ---------- */
+.ch{flex:none;background:var(--surface);border-bottom:1px solid var(--line);padding:12px 20px 0}
+.ch-top{display:flex;align-items:center;gap:12px}
+.ch-top h3{margin:0;font-size:20px;font-weight:700}
+.ch-top .sub{color:var(--ink-2);font-size:13.5px}
+.ch-top .sp{flex:1}
+.seg{display:flex;border:1px solid var(--line-2);border-radius:8px;overflow:hidden;height:32px}
+.seg button{border:0;background:var(--surface);padding:0 13px;font-size:13.5px;font-weight:600;color:var(--ink-2);display:flex;align-items:center;gap:6px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line-2)}
+.seg button.on{background:var(--accent);color:#fff}
+.seg svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7}
+.ch-row{display:flex;align-items:flex-end;gap:12px;margin-top:6px}
+.tabs{display:flex;gap:2px;flex:1;min-width:0}
+.tabs button{border:0;background:transparent;padding:8px 11px 10px;font-size:14px;color:var(--ink-2);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;display:flex;gap:6px;align-items:center}
+.tabs button.on{color:var(--ink);font-weight:600;border-bottom-color:var(--accent)}
+.tabs button i{font-style:normal;background:var(--surface-2);color:var(--ink-2);border-radius:4px;font-size:12px;padding:0 6px}
+.fb{display:flex;gap:8px;align-items:center}
+.fb span{border:1px solid var(--line-2);border-radius:6px;height:30px;padding:0 10px;font-size:13.5px;display:flex;align-items:center;gap:5px;white-space:nowrap;color:var(--ink-2)}
+.fb span b{font-weight:500;color:var(--ink)}
+.fb span::after{content:"";border:4px solid transparent;border-top-color:var(--ink-3);margin:4px 0 0 4px}
+.fb .lnk{align-self:center;font-size:13.5px;white-space:nowrap}
+
+/* wall */
+.wall{flex:1;min-height:0;overflow:auto;padding:16px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:14px;align-content:start}
+.mini{background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:12px 12px 10px;height:246px;display:flex;flex-direction:column;cursor:pointer;text-align:left;transition:box-shadow .15s,border-color .15s}
+.mini:hover{border-color:var(--accent);box-shadow:0 4px 14px rgba(9,25,56,.1)}
+.mini .r{font-family:var(--font-ref);font-size:11.5px;color:var(--ink-3)}
+.mini h4{margin:2px 0 8px;font-family:var(--font-paper);font-size:15px;line-height:1.25;color:var(--paper-ink)}
+.mini .ln{height:4px;border-radius:2px;background:#E7EBF2;margin:4px 0}
+.mini .cp{margin-top:auto;font-size:12.5px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini .pill{font-size:11.5px;padding:0 8px;align-self:flex-start;margin-top:3px}
+
+/* list: today's Contracts card, full width, no inspector */
+.lwrap{flex:1;min-height:0;padding:14px 20px 16px;display:flex}
+.lcard{flex:1;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;overflow:hidden}
+.lhead{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.lhead b{font-size:15px}
+.lhead .n{color:var(--ink-2);font-weight:400}
+.lhead .sp{flex:1}
+.lhead svg{width:17px;height:17px;fill:none;stroke:var(--ink-2);stroke-width:1.6}
+.lscroll{flex:1;min-height:0;overflow:auto}
+table.reg{width:100%;border-collapse:collapse;font-size:14px}
+table.reg th{text-align:left;font-weight:500;color:var(--ink-2);font-size:13.5px;padding:9px 14px;border-bottom:1px solid var(--line);background:var(--surface);position:sticky;top:0}
+table.reg td{padding:7px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.reg tr.row{cursor:pointer}
+table.reg tr.row:hover td{background:var(--a50)}
+table.reg .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.reg .who{display:flex;gap:10px;align-items:center}
+table.reg .who b{display:block;font-weight:600;font-size:14px}
+table.reg .who span{display:block;color:var(--ink-2);font-size:13px}
+table.reg .muted{color:var(--ink-3)}
+.lfoot{padding:8px 14px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-2)}
+.lfoot b{color:var(--ink)}
+
+/* paper (a row or a page pressed) */
+.strip{height:46px;flex:none;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:0 16px;white-space:nowrap}
+.strip .ttl{font-size:15px}
+.strip .cpn{color:var(--ink-2)}
+.strip .sp{flex:1}
+.scroller{flex:1;min-height:0;overflow:auto;background:var(--bg)}
+.sheet{width:640px;margin:18px auto 30px;background:var(--paper);border:1px solid var(--line);padding:44px 54px 50px;font-family:var(--font-paper);color:var(--paper-ink);font-size:15px;line-height:1.75}
+.sheet .org{text-align:center;font-weight:700;letter-spacing:.14em}
+.sheet h1{text-align:center;font-size:24px;margin:.4em 0 .8em;line-height:1.25}
+.sheet h5{font-size:15.5px;margin:1em 0 .2em}
+.sheet p{margin:0}
+
+/* ---------- Board: Your book, Today's insights, and the contract's strip ---------- */
+.bscroll{flex:1;min-height:0;overflow:auto;padding:12px 20px 24px;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth}
+.live{font-size:12.5px;color:var(--ink-3);display:flex;align-items:center;gap:6px}
+.live i{width:7px;height:7px;border-radius:50%;background:var(--a300)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px}
+.card-h{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--line)}
+.card-h b{font-size:15px;white-space:nowrap}
+.card-h .q{color:var(--ink-2);font-size:13px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-h .sp{flex:1}
+.figs{display:grid;grid-template-columns:repeat(5,1fr)}
+.figs>div{padding:11px 14px;min-width:0}
+.figs>div+div{border-left:1px solid var(--line)}
+.figs small{display:block;color:var(--ink-2);font-size:13px}
+.figs b{display:block;font-size:21px;font-variant-numeric:tabular-nums;line-height:1.3}
+.figs span{font-size:12px;color:var(--ink-3)}
+.figs svg{display:block;width:100%;height:18px;margin-top:4px}
+.stbar{display:flex;height:9px;border-radius:3px;overflow:hidden;gap:2px}
+.stkey{display:flex;gap:16px;font-size:12.5px;color:var(--ink-2)}
+.stkey i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px}
+.ins2{display:grid;grid-template-columns:1fr 1fr}
+.ins2>div{padding:12px 16px;min-width:0}
+.ins2>div+div{border-left:1px solid var(--line)}
+.ins2 h5{margin:0 0 6px;font-size:14px}
+.ins2 svg{display:block;width:100%;height:84px}
+.cap{font-size:13px;color:var(--ink-2);margin:6px 0 0}
+.acts4{display:flex;gap:8px;align-items:center;margin-top:8px}
+.acts4 .o{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:2px 10px;font-size:13px;cursor:pointer;color:var(--ink)}
+.acts4 .u{border:0;background:transparent;color:var(--accent);text-decoration:underline;font-size:13px;cursor:pointer;padding:0}
+.acts4 .g{border:0;background:transparent;color:var(--accent);font-size:13px;cursor:pointer;padding:0}
+.hint{border:1px dashed var(--line-2);border-radius:8px;padding:16px;text-align:center;color:var(--ink-2);font-size:13.5px}
+
+/* the contract's strip */
+.cstrip{scroll-margin-top:10px}
+.cstrip.arrive{animation:arrive .9s ease}
+@keyframes arrive{0%{box-shadow:0 0 0 4px var(--a200)}100%{box-shadow:0 0 0 0 transparent}}
+.cstrip .card-h .rf{font-size:13px;color:var(--ink-2);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cstrip .crumbs{font-size:13px;color:var(--ink-2);white-space:nowrap}
+.cstrip .crumbs button{border:0;background:transparent;color:var(--accent);font-weight:600;cursor:pointer;padding:0;font-size:13px}
+.dots{border:1px solid var(--line);background:var(--surface);border-radius:6px;width:30px;height:28px;cursor:pointer;font-size:16px;line-height:1;color:var(--ink-2);position:relative}
+.dots.on{border-color:var(--accent);color:var(--accent);background:var(--a50)}
+.x{border:0;background:transparent;color:var(--ink-3);font-size:17px;cursor:pointer;width:24px;height:24px;border-radius:4px}
+.x:hover{background:var(--surface-2)}
+.menu{position:absolute;right:0;top:34px;background:var(--surface);border:1px solid var(--line-2);border-radius:8px;box-shadow:0 8px 24px rgba(9,25,56,.16);padding:5px;min-width:230px;z-index:20;text-align:left}
+.menu button{display:block;width:100%;border:0;background:transparent;text-align:left;padding:7px 10px;border-radius:5px;cursor:pointer;font-size:14px;color:var(--ink)}
+.menu button small{display:block;color:var(--ink-3);font-size:12px}
+.menu button:hover,.menu button.here{background:var(--a50)}
+.menu button.here{font-weight:600}
+.menu hr{border:0;border-top:1px solid var(--line);margin:4px 2px}
+.dwrap{position:relative}
+.cbody{padding:12px 16px 14px}
+.sub{font-size:13px;color:var(--ink-2)}
+.sub b{color:var(--ink);font-weight:600}
+.need{color:var(--amber);font-weight:600}
+.needbox{background:var(--amber-bg);border-radius:3px;box-shadow:inset 3px 0 0 var(--amber-dot);padding:0 6px 0 9px}
+
+/* the contract's strip, version 3: full width, sections stacked, Jambo's reading at the foot */
+.cbody{padding:0}
+.sec{padding:16px 20px;border-top:1px solid var(--line)}
+.sec:first-child{border-top:0}
+.sec-h{display:flex;align-items:baseline;gap:12px;margin:0 0 12px}
+.sec-h h5{margin:0;font-size:14.5px;font-weight:600}
+.sec-h .sp{flex:1}
+.sec-h .note{font-size:12.5px;color:var(--ink-3)}
+.idline{font-size:13.5px;color:var(--ink-2);margin:0 0 14px}
+.idline b{color:var(--ink);font-weight:600}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border:1px solid var(--line);border-radius:8px}
+.kpis>div{padding:12px 16px;min-width:0}
+.kpis>div+div{border-left:1px solid var(--line)}
+.kpis small{display:block;color:var(--ink-2);font-size:12.5px;margin-bottom:2px}
+.kpis b{display:block;font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.25;white-space:nowrap}
+.kpis span{display:block;font-size:12.5px;color:var(--ink-3);margin-top:2px}
+.kpis .amber b{color:var(--amber)}
+.lg{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-2)}
+.lg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.lg i.dot{border-radius:50%}
+.chart{display:block;width:100%;height:auto}
+.chart text{font-family:var(--font-ui)}
+.cap2{font-size:13.5px;color:var(--ink-2);margin:10px 0 0;max-width:90ch}
+.twocol{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0}
+.twocol>.sec{border-top:0}
+.twocol>.sec+.sec{border-left:1px solid var(--line)}
+.dl{display:grid;grid-template-columns:132px minmax(0,1fr);gap:9px 14px;margin:0;font-size:13.5px}
+.dl dt{color:var(--ink-2)}
+.dl dd{margin:0;color:var(--ink)}
+.dl dd.owed{color:var(--amber);font-weight:600}
+.dl dd.owed::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--amber-dot);margin-right:7px;vertical-align:1px}
+table.dt{width:100%;border-collapse:collapse;font-size:13.5px}
+table.dt th{text-align:left;font-weight:500;color:var(--ink-2);font-size:12.5px;padding:0 10px 7px 0;border-bottom:1px solid var(--line)}
+table.dt td{padding:8px 10px 8px 0;border-bottom:1px solid var(--line);vertical-align:top}
+table.dt tr:last-child td{border-bottom:0}
+table.dt .d{white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--ink-2)}
+table.dt .who{white-space:nowrap}
+table.dt .who i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+table.dt .nx{font-size:11.5px;font-weight:600;color:var(--accent-700);background:var(--a100);border-radius:4px;padding:0 6px;margin-left:6px}
+.jb{background:var(--surface-2)}
+.jb .brief{font-size:14px;line-height:1.6;color:var(--ink);margin:0 0 14px;max-width:96ch}
+.jgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.jcell{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.jcell small{color:var(--ink-2);font-size:12.5px}
+.jcell b{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.2}
+.jcell b.amber{color:var(--amber)}
+.jcell ul{margin:0;padding-left:16px;font-size:13px;color:var(--ink-2);display:flex;flex-direction:column;gap:2px}
+.jcell .go{margin-top:auto;align-self:flex-start;border:0;background:transparent;color:var(--accent);font-weight:600;font-size:13px;cursor:pointer;padding:0}
+.jcell .go:hover{text-decoration:underline}
+.jmeta{font-size:12.5px;color:var(--ink-3);margin-top:12px}
+.sfoot{display:flex;align-items:center;gap:8px;padding:12px 20px;border-top:1px solid var(--line)}
+.sfoot .acts4{margin:0}
+.sfoot .sp{flex:1}
+.sfoot .meta{font-size:12.5px;color:var(--ink-3)}
+.pair3{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.pair3>.sec{border-top:0}
+.pair3>.sec+.sec{border-left:1px solid var(--line)}
+.sapcols{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.sapcols>div{padding:0 18px;min-width:0}
+.sapcols>div:first-child{padding-left:0}
+.sapcols>div+div{border-left:1px solid var(--line)}
+.kv{display:flex;flex-direction:column;gap:5px;font-size:13.5px}
+.kv div{display:flex;flex-direction:column}
+.kv small{color:var(--ink-3);font-size:12px}
+.sapcols h6{margin:0 0 10px;font-size:12.5px;font-weight:600;color:var(--ink-2)}
+.sapcols .kv{gap:10px}
+.facets{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.facets>div{border:1px solid var(--line);border-radius:8px;padding:12px 14px;min-width:0}
+.facets small{display:block;color:var(--ink-2);font-size:12.5px}
+.facets b{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+.facets .of{font-size:13px;color:var(--ink-2)}
+.meter{height:8px;background:var(--surface-2);border-radius:4px;margin-top:10px;display:flex;gap:2px;overflow:hidden}
+.meter i{display:block;height:100%}
+.facets .mk{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-3);margin-top:6px}
+
+/* History inside the strip */
+.hhead{display:flex;flex-direction:column;gap:10px;margin-bottom:10px}
+.hcap b{font-size:14.5px}
+.hcap span{font-size:12.5px;color:var(--ink-3);margin-left:6px}
+.htools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.hsearch{flex:1;min-width:200px;max-width:320px;display:flex}
+.hsearch input{flex:1;min-width:0;height:30px;border:1px solid var(--line-2);border-radius:6px;padding:0 10px;font:inherit;font-size:13.5px;color:var(--ink);background:var(--surface)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.hside{display:flex;border:1px solid var(--line-2);border-radius:6px;overflow:hidden;height:30px}
+.hside button{border:0;background:var(--surface);padding:0 12px;font-size:13.5px;cursor:pointer;color:var(--ink-2)}
+.hside button+button{border-left:1px solid var(--line-2)}
+.hside button.on{background:var(--accent);color:#fff;font-weight:600}
+.hbtn{height:30px;border:1px solid var(--line-2);background:var(--surface);border-radius:6px;padding:0 12px;font-size:13.5px;font-weight:600;color:var(--accent-700);cursor:pointer;white-space:nowrap}
+.hbtn.on{background:var(--a50);border-color:var(--a300)}
+.hfilters{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;padding:10px 12px;background:var(--surface-2);border-radius:6px;margin-bottom:10px}
+.hsel{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--ink-2)}
+.hsel select{height:30px;border:1px solid var(--line-2);border-radius:6px;padding:0 8px;font:inherit;font-size:13px;color:var(--ink);background:var(--surface);min-width:150px}
+.htrail{max-height:430px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:4px 14px 8px}
+.hgroup{position:relative}
+.hdayh{position:sticky;top:0;background:var(--surface);font-size:12.5px;font-weight:600;color:var(--ink-2);padding:10px 0 4px;z-index:1}
+.hev{position:relative;padding:6px 0 6px 24px}
+.hev::before{content:"";position:absolute;left:5px;top:0;bottom:0;border-left:1px solid var(--line)}
+.hgroup .hev:first-of-type::before{top:12px}
+.hgroup .hev:last-child::before{bottom:calc(100% - 14px)}
+.ring{position:absolute;left:0;top:9px;width:11px;height:11px;border-radius:50%;border:2px solid var(--surface);z-index:1}
+.ring.ours{background:#264c9e}
+.ring.theirs{background:#7E66D6}
+.hrow{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;font-size:13.5px}
+.kind{font-size:11.5px;font-weight:600;border-radius:4px;padding:0 7px;white-space:nowrap}
+.k-prop{background:var(--amber-bg);color:var(--amber)}
+.k-them{background:var(--violet-bg);color:var(--violet)}
+.k-sent{background:var(--a100);color:var(--accent-700)}
+.k-ok{background:var(--green-bg);color:var(--green)}
+.k-neu{background:var(--surface-2);color:var(--ink-2)}
+.ht{color:var(--ink);min-width:0}
+.hm{color:var(--ink-3);font-size:12.5px;margin-left:auto;white-space:nowrap}
+.hword{margin:6px 0 2px;padding:8px 12px;border-left:3px solid var(--line-2);background:var(--paper);font-family:var(--font-paper);font-size:14px;line-height:1.6;color:var(--paper-ink)}
+.hword del{color:#B42318;text-decoration-color:#B42318}
+.hword ins{color:#173f95;background:var(--a50);text-decoration:underline;text-decoration-color:var(--accent);text-underline-offset:3px}
+.hfoot{font-size:12.5px;color:var(--ink-3);margin-top:8px}
+.obscroll{max-height:312px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:0 12px}
+.obscroll table.dt th{position:sticky;top:0;background:var(--surface);padding-top:9px;z-index:1}
+
+/* Where we are and History inside the strip */
+.steps{display:grid;grid-template-columns:repeat(4,1fr);margin:6px 0 4px}
+.steps div{position:relative;padding-top:20px;font-size:13px}
+.steps div::before{content:"";position:absolute;top:4px;left:0;width:11px;height:11px;border-radius:50%;border:2px solid var(--line-2);background:var(--surface);z-index:1}
+.steps div::after{content:"";position:absolute;top:9px;left:13px;right:4px;border-top:2px solid var(--line)}
+.steps div:last-child::after{display:none}
+.steps div.done::before{background:var(--accent);border-color:var(--accent)}
+.steps div.done::after{border-color:var(--accent)}
+.steps div.now::before{border-color:var(--amber)}
+.steps b{display:block;font-size:13.5px}
+.steps div.now b{color:var(--amber)}
+.steps span{color:var(--ink-2)}
+.wnums{display:flex;gap:28px;margin:10px 0 2px;flex-wrap:wrap}
+.wnums small{display:block;color:var(--ink-2);font-size:12.5px}
+.wnums b{font-size:19px;font-variant-numeric:tabular-nums}
+.wgrid{display:grid;grid-template-columns:1.5fr 1fr;gap:12px;margin-top:10px}
+.wgrid h6{margin:0 0 4px;font-size:13.5px}
+table.op{width:100%;border-collapse:collapse;font-size:13px}
+table.op th{text-align:left;font-weight:500;color:var(--ink-2);padding:5px 8px 5px 0;border-bottom:1px solid var(--line)}
+table.op td{padding:6px 8px 6px 0;border-bottom:1px solid var(--line);vertical-align:top}
+.wm{color:var(--amber);font-weight:600;white-space:nowrap}
+.li{padding:5px 0;font-size:13px;border-bottom:1px solid var(--line);display:flex;gap:10px}
+.li .d{color:var(--ink-3);white-space:nowrap;min-width:48px}
+.hist{display:flex;flex-direction:column}
+.hday{display:grid;grid-template-columns:96px 1fr;gap:12px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.hday:last-child{border-bottom:0}
+.hday .d{color:var(--ink-2);font-variant-numeric:tabular-nums}
+.hday .who{color:var(--ink-3)}
+.hq{display:flex;gap:8px;margin-bottom:6px}
+.hq span{border:1px solid var(--line-2);border-radius:6px;height:28px;padding:0 10px;font-size:13px;display:flex;align-items:center;color:var(--ink-3);flex:1;max-width:280px}
+
+/* option switcher above the frame */
+.opts{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.opts .lb{font-size:13.5px;color:var(--ink-2)}
+.opts .sw{display:flex;border:1px solid var(--line-2);border-radius:8px;overflow:hidden;background:var(--surface)}
+.opts .sw button{border:0;background:transparent;padding:6px 14px;font-weight:600;font-size:14px;cursor:pointer;color:var(--ink-2);white-space:nowrap}
+.opts .sw button+button{border-left:1px solid var(--line-2)}
+.opts .sw button.on{background:var(--accent);color:#fff}
+.opts .sw button kbd{font-family:var(--font-ui);font-size:11px;font-weight:500;opacity:.7;margin-left:6px}
+.opts .rec{font-size:12px;font-weight:700;background:var(--green-bg);color:var(--green);border-radius:4px;padding:0 6px;margin-left:6px}
+.opts .sw button.on .rec{background:rgba(255,255,255,.2);color:#fff}
+
+/* Jambo's panel */
+.pn-tabs{height:60px;flex:none;border-bottom:1px solid var(--line);display:flex;align-items:flex-end;padding:0 10px;gap:4px}
+.pn-tabs .tb{border:0;background:transparent;padding:0 14px 8px;font-size:13px;color:var(--ink-2);border-bottom:2px solid transparent;cursor:default;display:flex;flex-direction:column;align-items:center;gap:2px}
+.pn-tabs .tb.on{color:var(--accent);font-weight:600;border-bottom-color:var(--accent)}
+.pn-tabs .tb svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6}
+.pn-tabs .fold{margin-left:auto;margin-bottom:14px;border:0;background:transparent;cursor:pointer;color:var(--ink-2);font-size:18px;width:28px;height:28px;border-radius:6px}
+.pn-tabs .fold:hover{background:var(--surface-2)}
+.pn.fold .pn-tabs{padding:0 8px}
+.pn.fold .pn-tabs .fold{margin-left:0}
+.pn-body{flex:1;min-height:0;display:flex;flex-direction:column}
+.chat{flex:1;min-height:0;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.msg{font-size:14px;line-height:1.5;max-width:92%}
+.msg.j{background:var(--surface-2);border-radius:10px;padding:9px 12px;align-self:flex-start}
+.msg.u{background:var(--accent);color:#fff;border-radius:10px;padding:8px 12px;align-self:flex-end}
+.msg .act{display:flex;gap:8px;margin-top:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;padding:10px 14px 0}
+.chips button{border:1px solid var(--line-2);background:var(--surface);border-radius:999px;padding:4px 12px;font-size:13.5px;cursor:pointer;color:var(--ink)}
+.chips button.lead{background:var(--a50);border-color:var(--a300);font-weight:600;color:var(--accent-700)}
+.chips button:hover{border-color:var(--accent)}
+.ask{margin:10px 14px 14px;border:1px solid var(--line-2);border-radius:8px;display:flex;align-items:center;padding:4px 4px 4px 12px;gap:6px}
+.ask input{flex:1;min-width:0;border:0;font:inherit;font-size:14px;outline:none;background:transparent;color:var(--ink)}
+.ask button{border:0;background:var(--accent);color:#fff;border-radius:6px;padding:5px 12px;font-weight:600;cursor:pointer}
+.ask.glow{box-shadow:0 0 0 3px var(--a200);border-color:var(--accent)}
+.lit{animation:lit 1.6s ease}
+@keyframes lit{0%{box-shadow:0 0 0 4px var(--amber-dot)}100%{box-shadow:0 0 0 0 transparent}}
+
+/* below the frame */
+.notes{display:grid;grid-template-columns:1.25fr 1fr;gap:14px}
+.notes>section{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+.notes h2{margin:0 0 8px;font-size:17px}
+.notes ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;color:var(--ink-2);font-size:14.5px}
+.notes ul b{color:var(--ink)}
+.mv{width:100%;border-collapse:collapse;font-size:14px}
+.mv th{text-align:left;color:var(--ink-2);font-weight:500;border-bottom:1px solid var(--line);padding:6px 8px}
+.mv td{border-bottom:1px solid var(--line);padding:7px 8px;vertical-align:top}
+.mv td:first-child{font-weight:600;white-space:nowrap}
+.tw{overflow-x:auto}
+@media (max-width:900px){.notes{grid-template-columns:1fr}}
+</style>
+
+<div class="pg">
+  <header class="intro">
+    <div>
+      <p class="eb">Steps 7 and 8 of the one-page plan · version 4 · a picture to approve, nothing built yet</p>
+      <h1>Contracts on Home, and a contract on the Board</h1>
+      <p class="l">The rail's Contracts door opens Home as a wall of papers or a list. Ask Jambo to "bring up" a contract and it lands on the Board as one more strip, like Today's insights. The strip shows the contract's overview, drawn from what was filled in when it was uploaded. Its ⋯ menu holds Where we are and History. The contract page goes away.</p>
+    </div>
+  </header>
+
+  <div class="tour" aria-label="The walk">
+    <div class="tour-steps" id="steps"></div>
+    <div class="tour-cap">
+      <div class="tx"><b id="cap-t"></b><span id="cap-s"></span></div>
+      <div class="tour-btns"><button id="t-back" type="button">Back</button><button id="t-next" class="pri" type="button">Next</button></div>
+    </div>
+  </div>
+
+  <div class="stagebox" id="stagebox">
+    <div id="app">
+      <nav class="rail" id="rail" aria-label="Rail"></nav>
+      <div class="main">
+        <div class="bar">
+          <span class="nm">Contract Lifecycle Management</span>
+          <span class="srch">Search contracts, clauses, counterparties… <kbd>⌘K</kbd></span>
+          <span class="lang"><span class="on">English</span><span>Svenska</span></span>
+          <span class="av">YM</span>
+        </div>
+        <div class="hd">
+          <h2>Good evening, Young</h2>
+          <div class="faces" id="faces"></div>
+          <div class="sp"></div>
+          <button class="btn" type="button">Present</button>
+          <button class="btn pri" type="button">+ Draft new agreement</button>
+        </div>
+        <div class="mn">
+          <div class="cv" id="cv"></div>
+          <aside class="pn" id="pn">
+            <div class="pn-tabs" id="pn-tabs"></div>
+            <div class="pn-body">
+              <div class="chat" id="chat"></div>
+              <div class="chips" id="chips"></div>
+              <div class="ask" id="ask"><input id="ask-in" type="text" placeholder="Ask Jambo, or type where to go…" autocomplete="off"><button id="ask-go" type="button">Ask</button></div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <section>
+      <h2>Decided so far</h2>
+      <ul>
+        <li><b>Lifeline is the strip.</b> "Bring up" lands it on the Board below Today's insights, newest first.</li>
+        <li><b>Duties are called obligations</b> everywhere on the strip: the chart's key, the next-obligation figure, the list and Jambo's count.</li>
+        <li><b>A long list scrolls inside its own box.</b> The obligations list shows about seven rows, with its headings staying in view. The card keeps the same height whether a contract has six obligations or sixty.</li>
+        <li><b>History keeps today's tools:</b> search, Show the wording, and the Filter for clause, person, round and outcome. Side (All sides · Ours · Theirs) now sits in the open instead of behind Filter. The trail scrolls inside the card too.</li>
+        <li><b>Verify integrity, export and print</b> stay in the trail's ⋯ More, as today.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>What the strip reads</h2>
+      <ul>
+        <li><b>Everything on it comes from the upload.</b> That means the Fill in details (parties, value, dates, renewal, notice, law, payment, liability), the obligations Jambo found and Jambo's first reading (brief, risks, standards). A detail still owed shows in amber, as it does everywhere.</li>
+        <li><b>The ⋯ menu</b> holds Where we are and History. Each opens inside the same strip, and "‹ Overview" or ⋯ goes back. Pressing ⋯ again closes the menu.</li>
+        <li><b>The strip's own buttons</b> copy the insight panels: Open (the paper), Keep (stays on your Board), Ask why (Jambo) and Let it go (removes it). × closes it.</li>
+        <li><b>Contracts on Home (steps 1 to 3)</b> are unchanged.</li>
+      </ul>
+    </section>
+  </div>
+</div>
+
+<script>
+const BOOK = [
+  {id:'MK-451', t:'Packaging Film Supply Agreement', cp:'Nordfilm Packaging AB', ini:'NP', st:'In Review', v:'SEK 4,200,000', vs:'SEK 4.2M', ends:'31 Dec 2029', own:'Young Mbugua'},
+  {id:'MK-447', t:'Data Processing Agreement', cp:'Aurora Data Oy', ini:'AD', st:'Awaiting counterparty', v:'EUR 180,000', vs:'EUR 180K', ends:'30 Jun 2027', own:'Amina Otieno'},
+  {id:'MK-439', t:'Vegetable Fats Supply Agreement', cp:'Fjäll Ingredients AB', ini:'FI', st:'Executed', v:'SEK 12,000,000', vs:'SEK 12M', ends:'31 Mar 2028', own:'Young Mbugua'},
+  {id:'MK-432', t:'Warehouse Lease – Torsvik DC', cp:'Västra Hamnen Fastigheter AB', ini:'VH', st:'Executed', v:'SEK 2,800,000', vs:'SEK 2.8M', ends:'30 Sep 2029', own:'Amina Otieno'},
+  {id:'MK-428', t:'Co-packing Agreement', cp:'Brightwater Co-Pack AB', ini:'BC', st:'Drafting', v:'SEK 6,500,000', vs:'SEK 6.5M', ends:'', own:'Young Mbugua'},
+  {id:'MK-415', t:'Road Freight Framework Agreement', cp:'Kallax Freight AB', ini:'KF', st:'Executed', v:'SEK 3,100,000', vs:'SEK 3.1M', ends:'14 Feb 2027', own:'Amina Otieno'},
+  {id:'MK-402', t:'Mutual Non-disclosure Agreement', cp:'Nordlys Retail AS', ini:'NR', st:'Executed', v:'', vs:'', ends:'1 Mar 2028', own:'Young Mbugua'},
+  {id:'MK-390', t:'Trade Marketing Services', cp:'Solberg Media AB', ini:'SM', st:'Closed', v:'SEK 1,100,000', vs:'SEK 1.1M', ends:'31 Aug 2026', own:'Amina Otieno'}
+];
+const STAGES = ['All','Drafting','In Review','Awaiting counterparty','Executed','Closed'];
+const PCLS = {'Drafting':'p-Drafting','In Review':'p-Review','Awaiting counterparty':'p-Awaiting','Executed':'p-Executed','Closed':'p-Closed'};
+const ICON = {
+  home:'<path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"/>',
+  doc:'<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/>',
+  check:'<path d="m4 12 5 5L20 6"/>',
+  flag:'<path d="M5 21V4h11l-2 4 2 4H5"/>',
+  edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  chart:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  book:'<path d="M4 4h16v16H4zM4 9h16M9 9v11"/>',
+  down:'<path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/>',
+  inbox:'<path d="M3 13h5l1 3h6l1-3h5M5 5h14l2 8v6H3v-6z"/>',
+  people:'<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5M16 5a3 3 0 0 1 0 6M18 15c2 .6 3 2.4 3 5"/>',
+  gear:'<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
+  wall:'<rect x="3" y="3" width="7" height="8"/><rect x="14" y="3" width="7" height="8"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>',
+  list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1"/>',
+  sort:'<path d="M7 4v16m-4-4 4 4 4-4M17 20V4m-4 4 4-4 4 4"/>',
+  cog:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/>',
+  clauses:'<rect x="5" y="4" width="14" height="16" rx="2"/>'
+};
+const svg = (k) => '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICON[k] + '</svg>';
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const S = { face:'paper', view:'wall', stage:'All', paper:null, fold:false, chat:[], typed:'', strips:[], menu:null, scrollTo:null, hSide:'all', hFilters:false, hWording:false };
+const RAIL = [['home','Home'],['doc','Contracts'],['check','Approvals & signing'],['flag','Obligations'],['edit','Negotiations'],['chart','Insights'],null,['book','Our paper'],['down','Import'],['inbox','Requests'],['people','People'],null,['gear','Settings']];
+function paintRail(){
+  const lit = S.face === 'paper' && !S.paper ? 'doc' : 'home';
+  document.getElementById('rail').innerHTML = '<div class="logo">Ha</div>' + RAIL.map(r => r ? `<button type="button" data-rail="${r[0]}" class="${r[0] === lit ? 'on' : ''}" aria-label="${r[1]}">${svg(r[0])}<span class="tip">${r[1]}</span></button>` : '<div class="sep"></div>').join('');
+}
+function paintFaces(){
+  document.getElementById('faces').innerHTML = [['board','Board'],['paper','Document'],['cal','Calendar'],['exp','Explorer']].map(f => `<button type="button" data-face="${f[0]}" class="${S.face === f[0] ? 'on' : ''}">${f[1]}</button>`).join('');
+}
+const shown = () => BOOK.filter(c => S.stage === 'All' || c.st === S.stage);
+const count = st => st === 'All' ? BOOK.length : BOOK.filter(c => c.st === st).length;
+
+function contractsHead(){
+  const live = BOOK.filter(c => c.st !== 'Closed').length;
+  return `<div class="ch">
+    <div class="ch-top">
+      <div><h3>Contracts</h3><div class="sub">${live} live · ${BOOK.length} on file · press one to open it</div></div>
+      <div class="sp"></div>
+      <div class="fb"><span>Stream: <b>All streams</b></span><span>Quick filters: <b>All</b></span><span>Category: <b>Any</b></span></div>
+      <div class="seg" role="group" aria-label="Show as">
+        <button type="button" data-view="wall" class="${S.view === 'wall' ? 'on' : ''}" aria-pressed="${S.view === 'wall'}">${svg('wall')}Wall</button>
+        <button type="button" data-view="list" class="${S.view === 'list' ? 'on' : ''}" aria-pressed="${S.view === 'list'}">${svg('list')}List</button>
+      </div>
+    </div>
+    <div class="ch-row">
+      <div class="tabs">${STAGES.map(s => { const n = count(s); return `<button type="button" data-stage="${s}" class="${S.stage === s ? 'on' : ''}">${s}${n && s !== 'Drafting' && s !== 'Closed' ? ` <i>${n}</i>` : ''}</button>`; }).join('')}</div>
+      <button class="lnk" type="button" style="align-self:center;font-size:13.5px;white-space:nowrap">Adapt filters</button>
+    </div>
+  </div>`;
+}
+function wallHtml(){
+  return `<div class="wall">${shown().map(c => `<button type="button" class="mini" data-open="${c.id}"><span class="r">${c.id}</span><h4>${esc(c.t)}</h4>${'<span class="ln"></span>'.repeat(3)}<span class="ln" style="width:70%"></span>${'<span class="ln"></span>'.repeat(2)}<span class="ln" style="width:55%"></span><span class="cp">${esc(c.cp)}</span><span class="pill ${PCLS[c.st]}">${c.st}</span></button>`).join('')}</div>`;
+}
+function listHtml(){
+  const rows = shown();
+  return `<div class="lwrap"><div class="lcard">
+    <div class="lhead"><b>Contracts <span class="n">(${rows.length})</span></b><span class="sp"></span>${svg('sort')}${svg('cog')}</div>
+    <div class="lscroll"><table class="reg">
+      <thead><tr><th style="width:90px">Ref</th><th>Counterparty and agreement</th><th style="width:180px">Stage</th><th style="width:130px">Owner</th><th style="width:105px">Ends</th><th class="num" style="width:95px">Value</th></tr></thead>
+      <tbody>${rows.map(c => `<tr class="row" data-open="${c.id}" tabindex="0"><td class="ref">${c.id}</td><td><div class="who"><span class="ini">${c.ini}</span><div><b>${esc(c.cp)}</b><span>${esc(c.t)}</span></div></div></td><td><span class="pill ${PCLS[c.st]}">${c.st}</span></td><td>${c.own}</td><td>${c.ends || '<span class="muted">—</span>'}</td><td class="num">${c.vs || '<span class="muted">—</span>'}</td></tr>`).join('')}</tbody>
+    </table></div>
+    <div class="lfoot">Showing <b>1–${rows.length}</b> of <b>${rows.length}</b> · page 1 of 1</div>
+  </div></div>`;
+}
+function paperHtml(){
+  const c = BOOK.find(x => x.id === S.paper);
+  return `<div class="strip"><span class="ref">${c.id}</span><span class="ttl">${esc(c.t)}</span><span class="cpn">· ${esc(c.cp)}</span><span class="pill ${PCLS[c.st]}">${c.st}</span><span class="sp"></span><button class="btn sm" type="button" data-back-contracts>‹ Contracts</button></div>
+  <div class="scroller"><div class="sheet"><div class="org">HATI</div><h1>${esc(c.t)}</h1>
+    <p>This Agreement is made between Hati AB (556123-4567), Gothenburg, and ${esc(c.cp)} (the "Supplier").</p>
+    <h5>1. Supply</h5><p>The Supplier shall deliver the Products in accordance with the Specifications and each accepted Purchase Order.</p>
+    <h5>2. Price and adjustment</h5><p>Prices are fixed for twelve (12) months and may thereafter be adjusted once per year by no more than the change in the agreed index.</p>
+    <h5>3. Payment</h5><p>Hati shall pay each correct invoice within forty-five (45) days of receipt.</p></div></div>`;
+}
+/* ---------- version 2: the Board and the contract's strip ---------- */
+const DEAL = {
+  id:'MK-451', our:'Hati AB', type:'Supply', cat:'Supplier', stream:'Procurement', own:'Young Mbugua',
+  value:'SEK 4,200,000', perYear:'SEK 1.4M', starts:'1 Jan 2027', ends:'31 Dec 2029', term:'3 years',
+  renewal:'12 months at a time', notice:'3 months', noticeBy:'30 Sep 2029', law:'Sweden', disputes:'SCC arbitration, Stockholm',
+  pay:'45 days from invoice', price:'Fixed 12 months, then yearly index review', signers:'Young Mbugua · Erik Lund',
+  brief:'Nordfilm supplies packaging film to Hati for three years from 1 Jan 2027. The price is fixed for the first year, then reviewed once a year against the index.',
+  duties:[
+    {t:'Nordfilm delivers the first call-off', who:'them', d:'15 Jan 2027', m:4.5},
+    {t:'Nordfilm shows its insurance certificate', who:'them', d:'31 Jan 2027', m:5},
+    {t:'Nordfilm sends the yearly quality certificate', who:'them', d:'1 Mar 2027', m:6},
+    {t:'Quarterly volume review', who:'us', d:'1 Apr 2027', m:7},
+    {t:'Quarterly volume review', who:'us', d:'1 Oct 2027', m:13},
+    {t:'We send the yearly forecast', who:'us', d:'15 Dec 2027', m:15.5},
+    {t:'Price review with Nordfilm', who:'us', d:'1 Jan 2028', m:16},
+    {t:'Nordfilm sends the yearly quality certificate', who:'them', d:'1 Mar 2028', m:18},
+    {t:'Quarterly volume review', who:'us', d:'1 Apr 2028', m:19},
+    {t:'Quarterly volume review', who:'us', d:'1 Oct 2028', m:25},
+    {t:'We send the yearly forecast', who:'us', d:'15 Dec 2028', m:27.5},
+    {t:'Price review with Nordfilm', who:'us', d:'1 Jan 2029', m:28},
+    {t:'Nordfilm sends the yearly quality certificate', who:'them', d:'1 Mar 2029', m:30},
+    {t:'Nordfilm hands over its exit plan', who:'them', d:'30 Jun 2029', m:34}
+  ]
+};
+const OPTS = [['life','Lifeline'],['pair','Two charts'],['sap','The SAP Way']];
+const MX = m => 16 + m * (568 / 40);       /* months from 1 Sep 2026 → x on a 600-wide line */
+
+function sparkline(pts){
+  const max = Math.max(...pts, 1), w = 160, h = 18;
+  const d = pts.map((v, i) => (i ? 'L' : 'M') + (i * w / (pts.length - 1)).toFixed(1) + ' ' + (h - 3 - (v / max) * (h - 6)).toFixed(1)).join(' ');
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path d="${d}" fill="none" stroke="var(--accent)" stroke-width="1.6"/><circle cx="${w - 2}" cy="${(h - 3 - (pts[pts.length - 1] / max) * (h - 6)).toFixed(1)}" r="2.4" fill="var(--accent)"/></svg>`;
+}
+function bookCard(){
+  const st = [['Drafting','#B7C3D6',1],['In Review','#E8A317',1],['Awaiting counterparty','#7E66D6',1],['Executed','#12796D',4],['Closed','#D5DBE6',1]];
+  return `<div class="live"><i></i>Live · counted 21:13</div>
+  <div class="card"><div class="card-h"><b>Your book</b></div><div class="figs">
+    <div><small>Live contracts</small><b>7</b><span>Same · vs 6 months ago</span>${sparkline([6,6,7,7,7,7])}</div>
+    <div><small>Value under contract</small><b>SEK 31M</b><span>+4.2M · vs 6 months ago</span>${sparkline([24,25,25,27,29,31])}</div>
+    <div><small>Ending in 90 days</small><b>0</b><span>Same</span>${sparkline([1,0,1,0,0,0])}</div>
+    <div><small>Past end date</small><b>1</b><span>MK-390</span>${sparkline([0,0,0,0,1,1])}</div>
+    <div><small>Obligations overdue</small><b>0</b><span>Same</span>${sparkline([1,1,0,0,0,0])}</div></div></div>
+  <div class="stbar">${st.map(s => `<span style="flex:${s[2]};background:${s[1]}"></span>`).join('')}</div>
+  <div class="stkey">${st.map(s => `<span><i style="background:${s[1]}"></i>${s[0]} <b>${s[2]}</b></span>`).join('')}</div>`;
+}
+function acts4(){ return `<div class="acts4"><button class="o" type="button">Open</button><button class="o" type="button">Keep</button><button class="u" type="button">Ask why</button><button class="g" type="button">Let it go</button></div>`; }
+function insightsCard(){
+  const q = [0,1,0,2,1,0,1,0], max = 2;
+  const cols = q.map((v, i) => `<rect x="${30 + i * 52}" y="${70 - v / max * 54}" width="22" height="${v / max * 54}" fill="var(--accent)"/>`).join('');
+  return `<div class="card"><div class="card-h"><b>Today's insights</b><span class="q">the usual pictures</span><span class="sp"></span><button class="lnk" type="button" style="font-size:13px">Hide</button></div>
+  <div class="ins2">
+    <div><h5>Contracts ending by quarter</h5><svg viewBox="0 0 450 84"><line x1="20" y1="70" x2="440" y2="70" stroke="var(--line-2)"/>${cols}<text x="20" y="82" font-size="10" fill="var(--ink-3)">Q4 2026</text><text x="440" y="82" font-size="10" fill="var(--ink-3)" text-anchor="end">Q3 2028</text></svg>
+      <p class="cap">The next ending is MK-415 on 14 Feb 2027.</p>${acts4()}</div>
+    <div><h5>Value by counterparty</h5><svg viewBox="0 0 450 84"><rect x="60" y="6" width="150" height="64" fill="var(--accent)"/><rect x="212" y="6" width="80" height="64" fill="var(--a300)"/><rect x="294" y="6" width="56" height="64" fill="var(--a200)"/><rect x="352" y="6" width="38" height="64" fill="var(--a100)"/></svg>
+      <p class="cap">Fjäll Ingredients AB holds the most: 39% of the value.</p>${acts4()}</div>
+  </div></div>`;
+}
+
+/* the strip: head, ⋯ menu, body by page */
+function stripHtml(s){
+  const c = BOOK.find(x => x.id === s.id);
+  const pages = {ov:'Overview', ww:'Where we are', hist:'History'};
+  const crumbs = s.page === 'ov' ? '' : `<span class="crumbs"><button type="button" data-strip-page="ov" data-id="${s.id}">‹ Overview</button> · ${pages[s.page]}</span>`;
+  const menu = S.menu === s.id ? `<div class="menu" role="menu">
+      ${s.page !== 'ov' ? `<button type="button" role="menuitem" data-strip-page="ov" data-id="${s.id}">Overview<small>Back to the strip's chart</small></button>` : ''}
+      <button type="button" role="menuitem" class="${s.page === 'ww' ? 'here' : ''}" data-strip-page="ww" data-id="${s.id}">Where we are<small>The round, what is settled, whose move</small></button>
+      <button type="button" role="menuitem" class="${s.page === 'hist' ? 'here' : ''}" data-strip-page="hist" data-id="${s.id}">History<small>Every step, with the wording if you want it</small></button>
+    </div>` : '';
+  const body = s.page === 'ww' ? `<div class="sec">${whereBody(c)}</div>` : s.page === 'hist' ? `<div class="sec">${histBody(c)}</div>` : lifeBody(c);
+  return `<div class="card cstrip ${s.arrive ? 'arrive' : ''}" id="strip-${s.id}">
+    <div class="card-h"><b>${esc(c.t)}</b><span class="rf">${c.id} · ${esc(c.cp)}</span><span class="pill ${PCLS[c.st]}">${c.st}</span>${crumbs}<span class="sp"></span>
+      <span class="dwrap"><button type="button" class="dots ${S.menu === s.id ? 'on' : ''}" data-dots="${s.id}" aria-label="More for ${c.id}" aria-expanded="${S.menu === s.id}">⋯</button>${menu}</span>
+      <button type="button" class="x" data-x="${s.id}" aria-label="Close">×</button></div>
+    <div class="cbody">${body}</div></div>`;
+}
+/* ---------- the strip's body, version 3 ---------- */
+const OURS = '#264c9e', THEIRS = '#7E66D6';
+const RISKS = ['Liability is not capped', 'Price may be reviewed twice a year if their ask is accepted'];
+const cpShort = 'Nordfilm';
+function kpiRow(c){
+  return `<div class="kpis">
+    <div><small>Value</small><b>${c.vs}</b><span>${DEAL.perYear} a year</span></div>
+    <div><small>Term</small><b>${DEAL.term}</b><span>From ${DEAL.starts}</span></div>
+    <div><small>Next obligation</small><b>15 Jan 2027</b><span>${cpShort}: first call-off</span></div>
+    <div><small>Notice by</small><b>${DEAL.noticeBy}</b><span>Or it renews 12 months</span></div>
+    <div class="amber"><small>Whose move</small><b>Yours</b><span>Round 2 · 3 open</span></div>
+  </div>`;
+}
+function idLine(c){
+  return `<p class="idline"><b>${esc(c.cp)}</b> is the ${DEAL.cat.toLowerCase()} · ${DEAL.type} agreement · ${DEAL.stream} · owned by <b>${DEAL.own}</b> · uploaded 26 Sep 2026</p>`;
+}
+function lifeChart(){
+  const W = 840, X = m => 24 + m * ((W - 48) / 40), BAR = 106;
+  const lab = (m, lane, text, anchor, bold) => { const y = [22, 46, 70][lane];
+    return `<line x1="${X(m)}" y1="${y + 6}" x2="${X(m)}" y2="${BAR - 3}" stroke="var(--line-2)" stroke-width="1"/><text x="${X(m) + (anchor === 'end' ? -4 : 4)}" y="${y}" font-size="12.5" ${bold ? 'font-weight="600"' : ''} fill="var(--ink)" text-anchor="${anchor || 'start'}">${text}</text>`; };
+  const seg = (a, b, fill, t) => `<rect x="${X(a) + 1}" y="${BAR}" width="${Math.max(2, X(b) - X(a) - 2)}" height="10" rx="2" fill="${fill}"><title>${t}</title></rect>`;
+  const duty = d => `<circle cx="${X(d.m)}" cy="142" r="6" fill="${d.who === 'us' ? OURS : THEIRS}" stroke="var(--surface)" stroke-width="2"><title>${esc(d.t)} · ${d.d}</title></circle>`;
+  const years = [[1.45 - 1.45, 'Sep 2026'], [4, '2027'], [16, '2028'], [28, '2029'], [40, '2030']];
+  const axis = `<line x1="${X(0)}" y1="166" x2="${X(40)}" y2="166" stroke="var(--line)" stroke-width="1"/>` + years.map(([m, t], i) => `<line x1="${X(m)}" y1="166" x2="${X(m)}" y2="171" stroke="var(--line-2)"/><text x="${X(m)}" y="186" font-size="12" fill="var(--ink-3)" text-anchor="${i === 0 ? 'start' : i === years.length - 1 ? 'end' : 'middle'}">${t}</text>`).join('');
+  return `<svg class="chart" viewBox="0 0 ${W} 194" role="img" aria-label="The contract's life, from sharing in September 2026 to its end on 31 December 2029">
+    ${seg(0.9, 4, '#F2C46B', 'Negotiation, from 28 Sep 2026 until signing')}
+    ${seg(4, 37, 'var(--a200)', 'The term, 1 Jan 2027 to 31 Dec 2029')}
+    ${seg(37, 40, 'var(--amber-dot)', 'Notice window: give notice by 30 Sep 2029 or it renews')}
+    <line x1="${X(1.45)}" y1="${BAR - 2}" x2="${X(1.45)}" y2="152" stroke="var(--ink)" stroke-width="1.5"/>
+    ${lab(1.45, 0, 'Today · round 2, your move', 'start', true)}
+    ${lab(4, 2, 'Starts 1 Jan 2027')}
+    ${lab(16, 1, 'Price review · 1 Jan 2028')}
+    ${lab(28, 1, 'Price review · 1 Jan 2029')}
+    ${lab(37, 2, 'Notice by 30 Sep 2029', 'end')}
+    ${lab(40, 0, 'Ends 31 Dec 2029', 'end')}
+    ${DEAL.duties.map(duty).join('')}
+    ${axis}
+  </svg>`;
+}
+function lifeLegend(){
+  return `<div class="lg"><span><i style="background:#F2C46B"></i>Negotiation</span><span><i style="background:var(--a200)"></i>Term</span><span><i style="background:var(--amber-dot)"></i>Notice window</span><span><i class="dot" style="background:${OURS}"></i>Our obligations (8)</span><span><i class="dot" style="background:${THEIRS}"></i>Their obligations (6)</span></div>`;
+}
+function termsDl(){
+  return `<dl class="dl">
+    <dt>Our side</dt><dd>${DEAL.our}</dd>
+    <dt>Signers</dt><dd>${DEAL.signers}</dd>
+    <dt>Governing law</dt><dd>${DEAL.law}</dd>
+    <dt>Disputes</dt><dd>${DEAL.disputes}</dd>
+    <dt>Payment</dt><dd>${DEAL.pay}</dd>
+    <dt>Price</dt><dd>${DEAL.price}</dd>
+    <dt>Renewal</dt><dd>${DEAL.renewal}, ${DEAL.notice}' notice</dd>
+    <dt>Liability cap</dt><dd class="owed">Not filled in · needed before signing</dd>
+  </dl>`;
+}
+function dutiesTable(){
+  return `<div class="obscroll" tabindex="0" aria-label="Obligations, scrolls"><table class="dt"><thead><tr><th>Obligation</th><th>Who</th><th>Due</th></tr></thead><tbody>${DEAL.duties.map((d, i) =>
+    `<tr><td>${esc(d.t.replace(/^Nordfilm |^We /, s => s))}${i === 0 ? '<span class="nx">Next</span>' : ''}</td><td class="who"><i style="background:${d.who === 'us' ? OURS : THEIRS}"></i>${d.who === 'us' ? 'Hati AB' : cpShort}</td><td class="d">${d.d}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function termsAndDuties(){
+  return `<div class="twocol">
+    <div class="sec"><div class="sec-h"><h5>Key terms</h5><span class="sp"></span><span class="note">From Fill in</span></div>${termsDl()}</div>
+    <div class="sec"><div class="sec-h"><h5>Obligations (14)</h5><span class="sp"></span><span class="note">8 ours · 6 theirs · next first</span></div>${dutiesTable()}</div>
+  </div>`;
+}
+function jamboBand(){
+  return `<div class="sec jb"><div class="sec-h"><h5>What Jambo read on upload</h5><span class="sp"></span><span class="note">Read 27 Sep 2026 · Packaging Film Supply Agreement.docx</span></div>
+    <p class="brief">${esc(DEAL.brief)}</p>
+    <div class="jgrid">
+      <div class="jcell"><small>Risks found</small><b>2</b><ul>${RISKS.map(r => `<li>${esc(r)}</li>`).join('')}</ul><button class="go" type="button">See the risks ›</button></div>
+      <div class="jcell"><small>Our standards</small><b>6 of 8 met</b><ul><li>1 missing: liability cap</li><li>1 differs: payment, 45 days</li></ul><button class="go" type="button">See the standards ›</button></div>
+      <div class="jcell"><small>Details to fill</small><b class="amber">1</b><ul><li>Liability cap</li></ul><button class="go" type="button">Fill in ›</button></div>
+      <div class="jcell"><small>Obligations found</small><b>14</b><ul><li>8 ours · 6 theirs</li><li>First due 15 Jan 2027</li></ul><button class="go" type="button">Review the obligations ›</button></div>
+    </div></div>`;
+}
+function stripFoot(){
+  return `<div class="sfoot">${acts4()}<span class="sp"></span><span class="meta">Brought up by you · 21:14</span></div>`;
+}
+function lifeBody(c){
+  return `<div class="sec">${idLine(c)}${kpiRow(c)}</div>
+  <div class="sec"><div class="sec-h"><h5>The contract's life</h5><span class="sp"></span>${lifeLegend()}</div>${lifeChart()}
+    <p class="cap2">Once signed, it runs for three years from 1 Jan 2027. If neither side gives notice by 30 Sep 2029, it renews ${DEAL.renewal}. The first obligation is ${cpShort}'s: the first call-off by 15 Jan 2027.</p></div>
+  ${termsAndDuties()}${jamboBand()}${stripFoot()}`;
+}
+function colPath(x, base, w, h){ const r = 4; const t = base - h; return `M${x} ${base}V${t + r}Q${x} ${t} ${x + r} ${t}H${x + w - r}Q${x + w} ${t} ${x + w} ${t + r}V${base}Z`; }
+function whereBody(c){
+  return `<div class="sub">Seen by every party · last moved 12 Oct 2026</div>
+  <div class="steps"><div class="done"><b>Shared</b><span>28 Sep 2026</span></div><div class="now"><b>Negotiating</b><span>Round 2 · 3 still open</span></div><div><b>Agreed</b><span>Not yet</span></div><div><b>Signed</b><span>Not yet</span></div></div>
+  <div class="wnums"><div><small>Round</small><b>2</b></div><div><small>Settled</small><b>5 of 8</b></div><div><small>Waiting on Hati AB</small><b>3</b></div><div><small>Waiting on Nordfilm</small><b>0</b></div></div>
+  <div class="wgrid">
+    <div><h6>Still open (3)</h6><table class="op"><thead><tr><th>Clause</th><th>What is asked</th><th>Whose move</th></tr></thead><tbody>
+      <tr><td>2. Price and adjustment</td><td>Two price reviews a year instead of one</td><td class="wm">Hati AB</td></tr>
+      <tr><td>3. Payment</td><td>30 days instead of 45</td><td class="wm">Hati AB</td></tr>
+      <tr><td>9. Liability</td><td>A cap at 100% of yearly fees</td><td class="wm">Hati AB</td></tr></tbody></table></div>
+    <div><h6>Lately</h6><div class="li"><span class="d">12 Oct</span>Nordfilm answered 4 changes</div><div class="li"><span class="d">3 Oct</span>Hati AB sent round 2</div><div class="li"><span class="d">28 Sep</span>Shared with Nordfilm</div></div>
+  </div>
+  <div class="acts4"><button class="o" type="button" data-open="${c.id}">Open the redlines</button><button class="o" type="button">Share a status link</button></div>`;
+}
+/* History in the strip: today's tools — search, Side in the open, Filter for the rest, Show the wording */
+const HIST = [
+  {day:'12 Oct 2026', evs:[
+    {k:'Answered', t:'Nordfilm Packaging AB answered 4 changes', who:'Erik Lund', side:'theirs', at:'16:42'},
+    {k:'Proposed', t:'3. Payment: 30 days instead of 45', who:'Erik Lund', side:'theirs', at:'16:40', r:2,
+      w:'Hati shall pay each correct invoice within <del>forty-five (45)</del> <ins>thirty (30)</ins> days of receipt.'},
+    {k:'Proposed', t:'9. Liability: a cap at 100% of yearly fees', who:'Erik Lund', side:'theirs', at:'16:38', r:2,
+      w:'Each Party\'s aggregate liability <ins>shall not exceed 100% of the Charges paid in the twelve (12) months preceding the claim</ins>, save for fraud and wilful misconduct.'}]},
+  {day:'3 Oct 2026', evs:[
+    {k:'Sent', t:'Round 2 sent to Nordfilm Packaging AB', who:'Young Mbugua', side:'ours', at:'11:05'},
+    {k:'Proposed', t:'2. Price and adjustment: once a year, not at any time', who:'Young Mbugua', side:'ours', at:'10:52', r:2,
+      w:'Prices are fixed for twelve (12) months and may thereafter be adjusted <del>at any time</del> <ins>once per year</ins> by no more than the change in the agreed index.'},
+    {k:'Accepted', t:'5. Quality: their wording accepted', who:'Young Mbugua', side:'ours', at:'10:31', r:1}]},
+  {day:'30 Sep 2026', evs:[
+    {k:'Proposed', t:'2. Price and adjustment: reviews twice a year', who:'Erik Lund', side:'theirs', at:'14:18', r:1,
+      w:'Prices are fixed for twelve (12) months and may thereafter be adjusted <ins>twice per year</ins> by no more than the change in the agreed index.'}]},
+  {day:'28 Sep 2026', evs:[
+    {k:'Shared', t:'Shared with Nordfilm Packaging AB for negotiation', who:'Young Mbugua', side:'ours', at:'09:12'}]},
+  {day:'27 Sep 2026', evs:[
+    {k:'Filled in', t:'Details filled in: value, dates, renewal, law', who:'Young Mbugua', side:'ours', at:'15:30'},
+    {k:'Read', t:'Jambo read it: 2 risks, 14 obligations found', who:'Jambo', side:'ours', at:'15:02'}]},
+  {day:'26 Sep 2026', evs:[
+    {k:'Uploaded', t:'Uploaded Packaging Film Supply Agreement.docx', who:'Young Mbugua', side:'ours', at:'14:55'}]}
+];
+const KIND_TONE = {Proposed:'k-prop', Answered:'k-them', Sent:'k-sent', Accepted:'k-ok', Shared:'k-sent', 'Filled in':'k-neu', Read:'k-neu', Uploaded:'k-neu'};
+function histBody(c){
+  const all = HIST.reduce((n, d) => n + d.evs.length, 0);
+  const days = HIST.map(d => ({day:d.day, evs:d.evs.filter(e => S.hSide === 'all' || e.side === S.hSide)})).filter(d => d.evs.length);
+  const n = days.reduce((k, d) => k + d.evs.length, 0);
+  const sel = (label, opts) => `<label class="hsel"><span>${label}</span><select><option>All</option>${opts.map(o => `<option>${esc(o)}</option>`).join('')}</select></label>`;
+  return `<div class="hhead">
+      <div class="hcap"><b>History</b> <span>Newest first · every entry names who and when · ${n === all ? all + ' events' : n + ' of ' + all + ' events'}</span></div>
+      <div class="htools">
+        <label class="hsearch"><span class="sr">Search the trail</span><input id="hist-q" type="search" placeholder="Search the trail" autocomplete="off"></label>
+        <div class="hside" role="group" aria-label="Side">${[['all','All sides'],['ours','Ours'],['theirs','Theirs']].map(s => `<button type="button" data-hside="${s[0]}" class="${S.hSide === s[0] ? 'on' : ''}" aria-pressed="${S.hSide === s[0]}">${s[1]}</button>`).join('')}</div>
+        <button type="button" class="hbtn ${S.hFilters ? 'on' : ''}" data-hfilters aria-expanded="${S.hFilters}">Filter ⌄</button>
+        <button type="button" class="hbtn ${S.hWording ? 'on' : ''}" data-hwording aria-pressed="${S.hWording}">${S.hWording ? 'Hide the wording' : 'Show the wording'}</button>
+      </div></div>
+    ${S.hFilters ? `<div class="hfilters">${sel('Clause', ['2. Price and adjustment', '3. Payment', '5. Quality', '9. Liability'])}${sel('Person', ['Young Mbugua', 'Erik Lund', 'Jambo'])}${sel('Round', ['Round 1', 'Round 2'])}${sel('Outcome', ['Accepted', 'Rejected', 'Pending', 'Withdrawn'])}<button type="button" class="hbtn" data-hclear>Clear</button></div>` : ''}
+    <div class="htrail">${days.map(d => `<div class="hgroup"><div class="hdayh">${d.day}</div>${d.evs.map(e => `
+      <div class="hev"><span class="ring ${e.side}"></span><div class="hrow"><span class="kind ${KIND_TONE[e.k] || 'k-neu'}">${e.k}</span><span class="ht">${esc(e.t)}</span><span class="hm">${esc(e.who)} · ${e.side === 'ours' ? 'Hati AB' : 'Nordfilm'}${e.r ? ' · round ' + e.r : ''} · ${e.at}</span></div>
+        ${S.hWording && e.w ? `<div class="hword">${e.w}</div>` : ''}</div>`).join('')}</div>`).join('')}</div>
+    <div class="hfoot">Verify integrity, export and print stay in the trail's ⋯ More, as today.</div>`;
+}
+
+function boardHtml(){
+  const strips = S.strips.map(stripHtml).join('');
+  return `<div class="bscroll" id="bscroll" style="position:relative">${bookCard()}${insightsCard()}${strips || '<div class="hint">Ask Jambo on the right, or press a suggestion. Each answer lands here as a strip, newest first.</div>'}</div>`;
+}
+
+function paintCanvas(){
+  const cv = document.getElementById('cv');
+  if (S.face === 'paper') cv.innerHTML = S.paper ? paperHtml() : contractsHead() + (S.view === 'wall' ? wallHtml() : listHtml());
+  else if (S.face === 'board') {
+    cv.innerHTML = boardHtml();
+    if (S.scrollTo) { const sc = document.getElementById('bscroll'), el = document.getElementById('strip-' + S.scrollTo);
+      if (sc && el) { sc.style.scrollBehavior = 'auto'; sc.scrollTop = el.offsetTop - 12; sc.style.scrollBehavior = ''; } S.scrollTo = null; }
+    S.strips.forEach(s => { s.arrive = false; });
+  } else cv.innerHTML = `<div class="bscroll"><div class="hint">${S.face === 'cal' ? 'The Calendar' : 'Explorer'} is unchanged.</div></div>`;
+}
+function paintPanel(){
+  const pn = document.getElementById('pn');
+  pn.classList.toggle('fold', S.fold);
+  const tabs = S.face === 'board' ? [['clauses','Jambo']] : [['clauses','Jambo'],['doc','Clauses'],['flag','Obligations']];
+  document.getElementById('pn-tabs').innerHTML = tabs.map((t, i) => `<span class="tb ${i ? '' : 'on'}">${svg(t[0])}${t[1]}</span>`).join('') + `<button class="fold" type="button" id="fold" aria-label="${S.fold ? 'Open' : 'Fold'} Jambo's panel">${S.fold ? '‹' : '›'}</button>`;
+  const hello = S.face === 'board'
+    ? "Hi! I'm Jambo. Ask for a number, a list or a contract. Say \"bring up\" and a contract's name, and it lands on your Board as a strip."
+    : (S.paper ? 'This is the paper. Ask me about it, or press a clause.' : 'Every contract is here. Press one, type its name, or switch to the list.');
+  document.getElementById('chat').innerHTML = `<div class="msg j">${esc(hello)}</div>` + S.chat.map(m => m.who === 'u' ? `<div class="msg u">${esc(m.t)}</div>` : `<div class="msg j">${m.t}</div>`).join('');
+  const chips = S.face === 'board' ? ['Bring up MK-451','Which obligations are overdue?','Where are negotiations slowest?'] : (S.paper ? ['fill in the details','redline','board'] : ['list','MK-451','upload a document','board']);
+  document.getElementById('chips').innerHTML = chips.map((c, i) => `<button type="button" data-chip="${esc(c)}" class="${i ? '' : 'lead'}">${esc(c)}</button>`).join('');
+  const inp = document.getElementById('ask-in'); if (inp.value !== S.typed) inp.value = S.typed;
+}
+function paintOpts(){}
+function paint(){ paintRail(); paintFaces(); paintCanvas(); paintPanel(); paintOpts(); }
+
+function bringUp(id){
+  let s = S.strips.find(x => x.id === id);
+  if (!s) { s = {id, page:'ov'}; S.strips.unshift(s); }
+  s.page = 'ov'; s.arrive = true; S.face = 'board'; S.menu = null; S.scrollTo = id;
+}
+/* Jambo's words: places only, typing never acts */
+function say(text){
+  const w = text.trim(); if (!w) return;
+  S.chat.push({who:'u', t:w}); S.typed = '';
+  const m = w.match(/\b(MK-\d{3})\b/i), id = m && m[1].toUpperCase();
+  if (/bring up|on the board/i.test(w) && id === 'MK-451') {
+    bringUp(id); S.chat.push({who:'j', t:`<b>${id}</b> is on your Board as a strip, with its overview. Its <b>⋯</b> holds Where we are and History.`});
+  } else if (/bring up|on the board/i.test(w) && id && BOOK.some(c => c.id === id)) {
+    S.chat.push({who:'j', t:`In this picture only <b>MK-451</b> is drawn in full. In HaTi, ${id} would land the same way.`});
+  } else if (/^list$/i.test(w)) { Object.assign(S, {face:'paper', paper:null, view:'list'}); S.chat.push({who:'j', t:'Your contracts as a list.'}); }
+  else if (/^(wall|contracts)$/i.test(w)) { Object.assign(S, {face:'paper', paper:null, view:'wall'}); S.chat.push({who:'j', t:'Your contracts as a wall of papers.'}); }
+  else if (/^board$/i.test(w)) { S.face = 'board'; S.chat.push({who:'j', t:'Your Board.'}); }
+  else if (id && BOOK.some(c => c.id === id)) { Object.assign(S, {face:'paper', paper:id}); S.chat.push({who:'j', t:`${id} is on the paper.`}); }
+  else S.chat.push({who:'j', t:'In HaTi I would answer this as a question. In this picture, try <b>Bring up MK-451</b>.'});
+  S.chat = S.chat.slice(-6);
+  paint(); markStep();
+}
+
+const BROUGHT = [{who:'u', t:'Bring up MK-451'}, {who:'j', t:'<b>MK-451</b> is on your Board as a strip, with its overview. Its <b>⋯</b> holds Where we are and History.'}];
+const ensureStrip = () => { if (!S.strips.some(s => s.id === 'MK-451')) S.strips.unshift({id:'MK-451', page:'ov'}); if (!S.chat.length) S.chat = BROUGHT.slice(); };
+const STEPS = [
+  {t:'Contracts opens Home', s:'The rail\'s Contracts door opens Home\'s Document face with no paper chosen: every contract as a small page. The Wall | List switch sits on the right.',
+    go(){ Object.assign(S, {face:'paper', paper:null, view:'wall', stage:'All', fold:false, menu:null}); }},
+  {t:'Switch to List, the filing cabinet', s:'The same contracts, tabs and filters as today\'s Contracts page, without the side panel. Owner and Ends get their own columns.',
+    go(){ Object.assign(S, {face:'paper', paper:null, view:'list'}); }},
+  {t:'One press opens the paper', s:'A row or a page opens that contract on Home\'s paper. "‹ Contracts" takes you back as you left it.',
+    go(){ Object.assign(S, {face:'paper', paper:'MK-451'}); }},
+  {t:'Ask Jambo to bring it up', s:'On the Board, type "Bring up MK-451", or press the chip. Typing only changes what you see. It never signs, sends or files anything. Press Ask.',
+    go(){ Object.assign(S, {face:'board', paper:null, strips:[], chat:[], menu:null, typed:'Bring up MK-451'}); }},
+  {t:'It lands on the Board as a strip', s:'The contract lands below Today\'s insights, in the same frame as the insight panels. Its overview is drawn from what was filled in at upload, plus Jambo\'s first reading. Obligations sit in their own box, which scrolls when there are many, so the card never grows past what it needs.',
+    go(){ Object.assign(S, {face:'board', menu:null, typed:''}); ensureStrip(); S.strips.forEach(s => { s.page = 'ov'; }); S.scrollTo = 'MK-451'; }},
+  {t:'⋯ holds Where we are and History', s:'Press ⋯ on the strip. The menu lists Where we are and History. Pressing ⋯ again closes it.',
+    go(){ Object.assign(S, {face:'board'}); ensureStrip(); S.strips[0].page = 'ov'; S.menu = 'MK-451'; S.scrollTo = 'MK-451'; }},
+  {t:'Where we are, in the same strip', s:'The strip turns to Where we are: the four steps, what is settled, what is still open and whose move it is. "‹ Overview" or ⋯ takes you back.',
+    go(){ Object.assign(S, {face:'board', menu:null}); ensureStrip(); S.strips[0].page = 'ww'; S.scrollTo = 'MK-451'; }},
+  {t:'History, in the same strip', s:'The contract\'s trail, newest first, with today\'s tools: search, the Side switch (All sides · Ours · Theirs) in the open, Filter for clause, person, round and outcome, and Show the wording. The trail scrolls inside the card.',
+    go(){ Object.assign(S, {face:'board', menu:null, hSide:'all', hWording:false, hFilters:false}); ensureStrip(); S.strips[0].page = 'hist'; S.scrollTo = 'MK-451'; }},
+  {t:'Show the wording, and pick a side', s:'Show the wording puts the words each proposal changed under it, struck out and added, as on today\'s History tab. Theirs keeps only Nordfilm\'s moves. Press All sides to see both again.',
+    go(){ Object.assign(S, {face:'board', menu:null, hSide:'theirs', hWording:true, hFilters:false}); ensureStrip(); S.strips[0].page = 'hist'; S.scrollTo = 'MK-451'; }}
+];
+let at = 0;
+function goStep(i){ at = Math.max(0, Math.min(STEPS.length - 1, i)); STEPS[at].go(); paint(); markStep(true); }
+function stepOfState(){
+  if (S.face === 'paper') return S.paper ? 2 : (S.view === 'list' ? 1 : 0);
+  if (S.face === 'board') { const s = S.strips[0]; if (!s) return 3; if (S.menu) return 5; return s.page === 'ww' ? 6 : s.page === 'hist' ? ((S.hWording || S.hSide !== 'all') ? 8 : 7) : 4; }
+  return at;
+}
+function markStep(keep){
+  if (!keep) at = stepOfState();
+  document.getElementById('steps').innerHTML = STEPS.map((s, i) => `<button type="button" data-step="${i}" class="${i === at ? 'on' : ''}"><b>${i + 1}</b>${s.t}</button>`).join('');
+  document.getElementById('cap-t').textContent = (at + 1) + '. ' + STEPS[at].t;
+  document.getElementById('cap-s').textContent = STEPS[at].s;
+  document.getElementById('t-back').disabled = at === 0;
+  document.getElementById('t-next').disabled = at === STEPS.length - 1;
+  document.getElementById('ask').classList.toggle('glow', at === 3);
+}
+
+document.addEventListener('click', e => {
+  const t = e.target.closest('button, tr.row');
+  if (S.menu && !(t && (t.dataset.dots || t.closest('.menu')))) { S.menu = null; paint(); markStep(); if (!t) return; }
+  if (!t) return;
+  if (t.dataset.step != null) return goStep(+t.dataset.step);
+  if (t.id === 't-next') return goStep(at + 1);
+  if (t.id === 't-back') return goStep(at - 1);
+  if (t.dataset.hside) { S.hSide = t.dataset.hside; paint(); return markStep(); }
+  if (t.hasAttribute('data-hfilters')) { S.hFilters = !S.hFilters; return paint(); }
+  if (t.hasAttribute('data-hwording')) { S.hWording = !S.hWording; paint(); return markStep(); }
+  if (t.hasAttribute('data-hclear')) { S.hSide = 'all'; return paint(); }
+  if (t.id === 'fold') { S.fold = !S.fold; return paint(); }
+  if (t.id === 'ask-go') return say(document.getElementById('ask-in').value);
+  if (t.dataset.chip) return say(t.dataset.chip);
+  if (t.dataset.dots) { S.menu = S.menu === t.dataset.dots ? null : t.dataset.dots; paint(); return markStep(); }
+  if (t.dataset.stripPage) { const s = S.strips.find(x => x.id === t.dataset.id); s.page = t.dataset.stripPage; S.menu = null; paint(); return markStep(); }
+  if (t.dataset.x) { S.strips = S.strips.filter(x => x.id !== t.dataset.x); S.menu = null; paint(); return markStep(); }
+  if (t.dataset.rail) { if (t.dataset.rail === 'doc') Object.assign(S, {face:'paper', paper:null}); else if (t.dataset.rail === 'home') S.face = 'board'; paint(); return markStep(); }
+  if (t.dataset.face) { S.face = t.dataset.face; paint(); return markStep(); }
+  if (t.dataset.view) { S.view = t.dataset.view; paint(); return markStep(); }
+  if (t.dataset.stage) { S.stage = S.stage === t.dataset.stage && t.dataset.stage !== 'All' ? 'All' : t.dataset.stage; return paint(); }
+  if (t.dataset.open) { Object.assign(S, {face:'paper', paper:t.dataset.open}); paint(); return markStep(); }
+  if (t.hasAttribute('data-back-contracts')) { S.paper = null; paint(); return markStep(); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && S.menu) { S.menu = null; paint(); return markStep(); }
+  if (e.target.id === 'ask-in') { if (e.key === 'Enter') { e.preventDefault(); say(e.target.value); } return; }
+  if (e.target.matches && e.target.matches('tr.row') && e.key === 'Enter') { Object.assign(S, {face:'paper', paper:e.target.dataset.open}); paint(); return markStep(); }
+});
+document.getElementById('ask-in').addEventListener('input', e => { S.typed = e.target.value; });
+
+function fit(){
+  const box = document.getElementById('stagebox'), app = document.getElementById('app');
+  const k = Math.min(1, box.clientWidth / 1362);
+  app.style.transform = `scale(${k})`; box.style.height = Math.ceil(842 * k) + 'px';
+}
+window.addEventListener('resize', fit);
+goStep(0); fit();
+</script>

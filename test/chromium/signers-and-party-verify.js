@@ -183,7 +183,7 @@ const contract = () => ({
        Two faults behind one question — the default was the refused answer, and
        the read-only purpose was built, enforced, offered on the phone, and
        missing from this dialog. */
-    await page.evaluate(() => { state.activeId = 'MK-SP1'; setView('workspace'); });
+    await page.evaluate(() => { state.activeId = 'MK-SP1'; openWorkspace(state.activeId, { room: true }); });
     await page.waitForTimeout(1200);
     const defaults = await page.evaluate(async () => {
       const c = state.contracts.find(x => x.id === 'MK-SP1');

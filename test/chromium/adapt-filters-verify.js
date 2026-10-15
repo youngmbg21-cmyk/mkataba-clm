@@ -21,6 +21,9 @@ const EXEC = process.env.CHROMIUM_BIN
 let pass = 0, fail = 0;
 const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  FAIL ') + n + (d ? '  → ' + d : '')); };
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   const h = await startHati();
   await seedWorkspace(h);
@@ -34,7 +37,7 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   await page.fill('#li-pass', 'adminpassword1');
   await page.click('#li-go');
   await page.waitForTimeout(1600);
-  await page.evaluate(() => setView('register'));
+  await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
   await page.waitForTimeout(900);
 
   const onBar = () => page.evaluate(() => ({
@@ -156,7 +159,7 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   console.log('\n3 · it is the reader\'s own, and it lasts');
   await page.reload({ waitUntil: 'networkidle' });
   await page.waitForTimeout(1600);
-  await page.evaluate(() => setView('register'));
+  await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
   await page.waitForTimeout(900);
   ok('remembered across a reload', (await onBar()).renewal === true);
 

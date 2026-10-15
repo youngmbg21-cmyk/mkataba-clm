@@ -93,7 +93,7 @@ const BODY = '<h1>Supply Agreement</h1><p>Between Highland Corporate Ltd and Nor
     await until(page, () => !!(window.state && state.contracts && state.contracts.length));
     await until(page, id => !!(typeof getContract === 'function' && getContract(id)), ID, 15000);
     await page.evaluate(() => { state.aiConfigured = true; window._asked = []; window.copilotAsk = async m => { window._asked.push(m); return { answer: '{}' }; }; });
-    await page.evaluate(id => openWorkspace(id), ID);
+    await page.evaluate(id => openWorkspace(id, { room: true }), ID);
     await page.evaluate(id => roomGoTab(getContract(id), 'redline'), ID);
     await until(page, () => !!document.querySelector('.redline-page #rl-changes'));
     const opened = await page.evaluate(id => { const c = getContract(id); const cl = negoClauseList(c).find(x => /Payment/.test(x.title || x.headingText || ''));

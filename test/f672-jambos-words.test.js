@@ -62,6 +62,7 @@ function stage({ lang = 'en', paper = 'MK-9', face = 'paper', need = [], uses = 
     hbOpenCalendar: () => { calls.push(['calendar']); hb.face = 'calendar'; ctx.state.view = 'dashboard'; },
     hbOpenExplorer: () => { calls.push(['explorer']); hb.face = 'explorer'; },
     igPickAgain: () => { calls.push(['wall']); ctx.intel.paper = null; },
+    regPlaceSet: patch => calls.push(['place', JSON.parse(JSON.stringify(patch))]),
     openRedlineWorkbench: id => { calls.push(['redline', id]); return true; },
     openDealBoard: () => calls.push(['deal']),
     openWorkspace: id => calls.push(['room', id]),
@@ -94,7 +95,13 @@ describe('f672 (1) a word opens its place; a sentence is still a question', () =
     assert.deepEqual(go('obligations'), ['oblig', 'MK-9']);
     assert.deepEqual(go('history MK-12'), ['history', 'MK-12'], 'a reference names the contract');
     assert.deepEqual(go('MK-12'), ['document', 'MK-12'], 'a reference on its own is that paper');
-    assert.deepEqual(go('another contract'), ['wall', null]);
+    /* THE CONTRACTS PLACE (the overnight work order, step 7): "contracts"
+       opens it, "list" and "wall" turn it */
+    assert.deepEqual(go('another contract'), ['contracts', null]);
+    assert.deepEqual(go('contracts'), ['contracts', null]);
+    assert.deepEqual(go('list'), ['list', null]);
+    assert.deepEqual(go('show me the list'), ['list', null]);
+    assert.deepEqual(go('wall'), ['wall', null]);
   });
   test('1b the same words in Svenska', () => {
     const { ctx } = stage({ lang: 'sv' });
@@ -114,6 +121,9 @@ describe('f672 (1) a word opens its place; a sentence is still a question', () =
     assert.equal(go('pappret'), 'document');
     assert.equal(go('innan du signerar'), 'sign');
     assert.equal(go('fyll i uppgifterna'), 'fill');
+    assert.equal(go('alla avtal'), 'contracts');
+    assert.equal(go('visa listan'), 'list');
+    assert.equal(go('väggen'), 'wall');
   });
   test('1c a sentence goes on as a question; an older reading keeps its words', () => {
     const { ctx } = stage();
@@ -139,6 +149,20 @@ describe('f672 (1) a word opens its place; a sentence is still a question', () =
     assert.equal(ctx.caActOf('deal board').place, 'deal');
     assert.equal(ctx.caActOf('history').place, 'history');
     assert.equal(ctx.caActOf('calendar').place, 'calendar');
+  });
+});
+
+describe('f672 (1f) the Contracts place\'s words (step 7): the set let go, the view turned, the paper put down', () => {
+  test('1f contracts · list · wall', () => {
+    const { ctx, calls } = stage();
+    ctx.caGo(ctx.caActOf('list'));
+    assert.deepEqual(J(calls.slice(-3)), [['place', { show: 'list' }], ['face', 'paper'], ['wall']], 'list: the List, then the place (the paper put down)');
+    ctx.caGo(ctx.caActOf('wall'));
+    assert.deepEqual(J(calls.slice(-3)), [['place', { show: 'wall' }], ['face', 'paper'], ['wall']]);
+    ctx.caGo(ctx.caActOf('contracts'));
+    assert.deepEqual(J(calls.slice(-3)), [['place', { only: null }], ['face', 'paper'], ['wall']], 'contracts: every contract, as it was last looked at');
+    for (const lang of ['en', 'sv']) for (const k of ['contracts', 'wall', 'list'])
+      assert.ok(BOOKS[lang]['ca_go_' + k], `ca_go_${k} in the ${lang} book`);
   });
 });
 

@@ -18,6 +18,9 @@ const MOD = process.platform === 'darwin' ? 'Meta' : 'Control';
 let pass = 0, fail = 0;
 const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  FAIL ') + n + (d ? '  → ' + d : '')); };
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   const h = await startHati();
   await seedWorkspace(h);
@@ -144,7 +147,7 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   console.log('\n7 · arrows walk the contract list');
   /* MEASURED before this shipped: zero ArrowDown handling in register.js, and
      on Negotiations the row press was the SOLE route in. */
-  await page.evaluate(() => setView('register'));
+  await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
   await page.waitForTimeout(900);
   const rowInfo = () => page.evaluate(() => {
     const rows = [...document.querySelectorAll('#reg-tbody [data-row]')];

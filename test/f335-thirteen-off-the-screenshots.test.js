@@ -219,8 +219,15 @@ describe('f335 (6) — Fill it in opens the box it is looking for', () => {
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): Details went
        home — a box the Fill in face asks lands there (pdFillOpen, with the
        field's key); every other box is the Overview's Edit, in the room */
-    const tab = body.indexOf("roomGoTab(c,'terms')");
+    /* RE-POINTED 15 Oct 2026 (the overnight work order, step 8): the room
+       retired, so the Overview's sheet is opened through its one door,
+       roomOverviewOpen — the contract strip's Details on the Board, the room
+       only by name or on the phone */
+    const tab = body.indexOf("roomOverviewOpen(c)");
     assert.ok(open > 0 && tab > open, 'posture first, so ONE render does it');
+    const door = fnBody(CONTRACT, 'roomOverviewOpen');
+    assert.match(door, /roomRetiredLand\(c\.id,'details'\)/, 'the Overview\'s sheet is the strip\'s Details page');
+    assert.match(door, /roomGoTab\(c,'terms'\)/, 'and the room\'s Overview where the room is open by name or on the phone');
     assert.match(body, /pdFillOpen\(c\.id,\{ key:home\.kt \}\)/, 'a box Fill in asks is landed on beside the paper');
   });
   test('and it honours the field it is handed', () => {

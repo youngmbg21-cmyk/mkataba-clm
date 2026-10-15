@@ -93,6 +93,9 @@ const HELPERS = `(() => {
   window.__m = { vis, box, tok, ink, glyphs };
 })()`;
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
@@ -148,14 +151,18 @@ const HELPERS = `(() => {
        insForce(false) is the page's own stage door onto it, in memory, and
        is handed back after this section. */
     await page.evaluate(() => { if (window.insForce) insForce(false); });
-    await page.evaluate(() => { try { regSetScope(null); } catch (e) {} setView('register'); });
+    await page.evaluate(() => { try { regSetScope(null); } catch (e) {} (regPlaceSet({ show: 'list' }), setView('register')); });
     await page.waitForFunction(() => [...document.querySelectorAll('.reg-row-more')].some(b => b.getBoundingClientRect().height > 0)
-      && !!document.querySelector('#page-head button'), null, { timeout: 10000 }).catch(() => {});
+      && !!document.querySelector('#page-head button, .ct-head .reg-seg'), null, { timeout: 10000 }).catch(() => {});
     await page.waitForTimeout(300);
     await page.screenshot({ path: path.join(OUT, '01-contracts.png') });
     const c1 = await page.evaluate(() => {
       const m = window.__m;
-      const head = [...document.querySelectorAll('#page-head button, .page-head button')].filter(m.vis).map(m.box);
+      /* RE-POINTED 15 Oct 2026 (step 7): the Contracts head is the place's
+         own head on Home — its controls are the Wall | List switch (measured
+         whole, as the bar measures a switch) and Adapt filters; "+ Draft new
+         agreement" left the head in step 3. */
+      const head = [...document.querySelectorAll('#page-head button, .page-head button, .ct-head .reg-seg, .ct-head button.reg-chip')].filter(m.vis).map(m.box);
       /* RE-POINTED 9 Oct 2026 (SAP benchmark): a band filter is a label over a
          BOX — the box is the control, so the box is what sits on the rung. */
       /* RE-POINTED 10 Oct 2026 — follows "filters BESIDE the tabs, label
@@ -186,7 +193,7 @@ const HELPERS = `(() => {
     await page.evaluate(() => { if (window.insForce) insForce(null); });
 
     /* ════════ 2. THE CONTRACT ROOM'S HEAD (Overview) ════════ */
-    await page.evaluate(id => openWorkspace(id), ids.rev);
+    await page.evaluate(id => openWorkspace(id, { room: true }), ids.rev);
     await page.waitForTimeout(1500);
     await load();
     await page.screenshot({ path: path.join(OUT, '02-room-overview.png') });
@@ -255,7 +262,7 @@ const HELPERS = `(() => {
     await sweep('document');
 
     /* ════════ 4. THE SIGNING TAB ════════ */
-    await page.evaluate(id => openWorkspace(id), ids.rev);   /* back from Home (section 3) */
+    await page.evaluate(id => openWorkspace(id, { room: true }), ids.rev);   /* back from Home (section 3) */
     await page.waitForFunction(() => !!document.querySelector('#ws-tabs [data-ws-tab="sign"]'), null, { timeout: 8000 }).catch(() => {});
     await page.evaluate(id => roomGoTab(getContract(id), 'sign'), ids.rev);
     await page.waitForTimeout(1500);
@@ -314,7 +321,7 @@ const HELPERS = `(() => {
     /* ════════ 6. A DIALOG IN A SHORT WINDOW ════════
        The obligation form is long enough to scroll at 460px and short enough
        not to at 900 — the one dialog that shows both halves of the rule. */
-    await page.evaluate(id => openWorkspace(id), ids.rev);
+    await page.evaluate(id => openWorkspace(id, { room: true }), ids.rev);
     await page.waitForTimeout(1200);
     await page.setViewportSize({ width: 1280, height: 460 });
     await page.evaluate(id => openObligationForm(getContract(id)), ids.rev);

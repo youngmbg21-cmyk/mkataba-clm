@@ -48,7 +48,7 @@ const LIVE = { ...H.fixtureContract('MK-N1', 'Raw Milk Collection', 'Nandi Dairy
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
     await page.waitForFunction(() => typeof openRedlineWorkbench === 'function' && state.contracts && state.contracts.length > 0, null, { timeout: 15000 });
-    await page.evaluate(() => openWorkspace('MK-N1'));
+    await page.evaluate(() => openWorkspace('MK-N1', { room: true }));
     await page.waitForFunction(() => !!document.querySelector('#ws-tabs'), null, { timeout: 10000 }).catch(() => {});
     await page.waitForTimeout(1200);
     const spot = () => page.evaluate(() => {

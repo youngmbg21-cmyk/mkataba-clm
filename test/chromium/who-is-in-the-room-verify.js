@@ -83,7 +83,7 @@ const DEAL = {
     ok('0 two people are signed in', names.every(Boolean), names.join(' + '));
 
     /* ===== 1. ALONE IN THE ROOM ===== */
-    await a.p.evaluate(() => openWorkspace('MK-R1'));
+    await a.p.evaluate(() => openWorkspace('MK-R1', { room: true }));
     await until(a.p, () => state.view === 'workspace' && !!document.querySelector('[data-pz-slot]'));
     await a.p.waitForTimeout(700);
     const alone = await slot(a.p);
@@ -97,7 +97,7 @@ const DEAL = {
         top: paper ? +paper.getBoundingClientRect().top.toFixed(4) : null }; });
 
     /* ===== 2. A COLLEAGUE ARRIVES ===== */
-    await b.p.evaluate(() => openWorkspace('MK-R1'));
+    await b.p.evaluate(() => openWorkspace('MK-R1', { room: true }));
     await until(b.p, () => state.view === 'workspace');
     /* A WAIT ASKS FOR THE STATE, BOUNDED — never a fixed pause before
        measuring. The first browser learns on its own next beat. */
@@ -220,7 +220,7 @@ const DEAL = {
        stops and the row does not lie about it. */
     const after5a = await b.p.evaluate(() => (window.presenceWatching ? presenceWatching() : 'no-fn'));
     ok('5c and coming back to the contract starts it again', await (async () => {
-      await b.p.evaluate(() => openWorkspace('MK-R1'));
+      await b.p.evaluate(() => openWorkspace('MK-R1', { room: true }));
       await until(b.p, () => (window.presenceWatching ? presenceWatching() : null) === 'MK-R1', null, 12000);
       return (await b.p.evaluate(() => (window.presenceWatching ? presenceWatching() : null))) === 'MK-R1';
     })(), JSON.stringify(after5a));

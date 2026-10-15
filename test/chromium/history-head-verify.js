@@ -113,6 +113,8 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
       return {
         mounted: true,
         chips: host.querySelectorAll('.hist-seg, [data-ht-side]').length,
+        sideSwitch: [...host.querySelectorAll('.hist-side [data-ht-side]')].map(b => b.getAttribute('data-ht-side') + '=' + b.textContent.trim()),
+        sideSeen: seen(host.querySelector('.hist-side')),
         lid: !!host.querySelector('#hist-filter'),
         btn: seen(host.querySelector('#hist-filter-btn')),
         btnExp: (host.querySelector('#hist-filter-btn') || {}).getAttribute
@@ -132,8 +134,13 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
     })()`);
 
     check('the History tab mounts with its record on it', head.mounted && head.rows > 0, `${head.rows} events`);
-    check('the Everyone / Ours / Theirs chips are gone from the head',
-      head.chips === 0, `${head.chips} found`);
+    /* RE-POINTED 15 Oct 2026 (the overnight work order, step 8; owner's "Go",
+       14 Oct 2026: History "gets filtering on sides"): Side is in the open
+       again as ONE switch — All sides · Ours · Theirs — and the Side box left
+       the fold with it, so it is still one handle on one switch (the 13 Aug
+       complaint was two). */
+    check('Side is ONE switch in the open (All sides · Ours · Theirs), on screen without a press',
+      head.chips === 3 && head.sideSwitch.length === 3 && !!(head.sideSeen && head.sideSeen.on), `${head.chips} found · ${head.sideSwitch.join(' · ')}`);
     check('the old Filter lid (#hist-filter) is gone', !head.lid, head.lid ? 'still there' : 'none');
     /* RE-POINTED 10 Oct 2026 — follows SAP batch 3 (e0e3035, 9 Oct 2026, owner:
        "Build exactly the drawings of SAP way"): the History tab draws a search
@@ -161,18 +168,18 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
     check('one press on Filter opens the row into visible pixels, and the button says so',
       !!(opened1.row && opened1.row.on) && opened1.exp === 'true',
       opened1.row ? `${opened1.row.w}x${opened1.row.h} · expanded ${opened1.exp}` : 'absent');
-    check('all five filters are on screen, side among them',
-      opened1.selects.length === 5 && opened1.selects.every(s => s.on),
+    check('the four other filters are on screen in the fold, and side is NOT among them (one handle)',
+      opened1.selects.length === 4 && opened1.selects.every(s => s.on) && !opened1.selects.some(s => s.k === 'side')
+      && JSON.stringify(opened1.selects.map(s => s.k)) === JSON.stringify(['clauseId', 'actor', 'round', 'outcome']),
       opened1.selects.map(s => `${s.k}:${s.w}x${s.h}`).join(' · '));
     check('and its Clear is on screen with them', !!(opened1.clear && opened1.clear.on),
       opened1.clear ? `${opened1.clear.w}x${opened1.clear.h}` : 'absent');
-    check('the row still names each filter', head.labels.length === 5, head.labels.join(' | '));
+    check('the row still names each filter', head.labels.length === 4, head.labels.join(' | '));
 
     /* ---- the Side control says Ours / Theirs, in the owner's chair ---- */
-    const sideOpts = await page.evaluate(`${OPTS}(document.querySelector('#hb-cv-body[data-hb-cv="hist"] [data-ht-filter="side"]'))`);
-    check('Side offers exactly All / Ours / Theirs — our own record, in plain words',
-      JSON.stringify(sideOpts) === JSON.stringify(['=All', 'owner=Ours', 'counterparty=Theirs']),
-      (sideOpts || []).join(' · '));
+    check('Side offers exactly All sides / Ours / Theirs — our own record, in plain words',
+      JSON.stringify(head.sideSwitch) === JSON.stringify(['=All sides', 'owner=Ours', 'counterparty=Theirs']),
+      head.sideSwitch.join(' · '));
 
     /* ============ 2. "MORE" IS NAMED, AND IS STILL A MENU =============== */
     check('the ⋯ button carries a word now', !!(head.more && /More/.test(head.more.text)),
@@ -222,14 +229,14 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
 
     /* ============ 3. FILTERING, FROM THE ROW IN THE OPEN ================ */
     const before = head.rows;
-    await page.selectOption('#hb-cv-body[data-hb-cv="hist"] [data-ht-filter="side"]', 'owner');
+    await page.click('#hb-cv-body[data-hb-cv="hist"] .hist-side [data-ht-side="owner"]');
     await page.waitForTimeout(700);
     await page.screenshot({ path: path.join(OUT, '03-filtered-ours.png') });
     const narrowed = await page.evaluate(`(() => {
       const host = document.querySelector('#hb-cv-body[data-hb-cv="hist"]');
       return { rows: host.querySelectorAll('.hist-ev').length,
         pill: ((host.querySelector('.hist-cap') || {}).textContent || '').trim(),
-        side: (host.querySelector('[data-ht-filter="side"]') || {}).value,
+        side: (host.querySelector('[data-ht-side][aria-pressed="true"]') || {}).getAttribute?.('data-ht-side'),
         row: ${SEEN}(host.querySelector('.hist-filters')) };
     })()`);
     check('picking Ours narrows the record', narrowed.rows > 0 && narrowed.rows < before,
@@ -244,9 +251,9 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
        filter change, and it used to add a document listener per paint. Proved
        from the reader's chair — after several repaints the menu must still take
        exactly one press to open and one to shut. */
-    await page.selectOption('#hb-cv-body[data-hb-cv="hist"] [data-ht-filter="side"]', 'counterparty');
+    await page.click('#hb-cv-body[data-hb-cv="hist"] .hist-side [data-ht-side="counterparty"]');
     await page.waitForTimeout(450);
-    await page.selectOption('#hb-cv-body[data-hb-cv="hist"] [data-ht-filter="side"]', 'owner');
+    await page.click('#hb-cv-body[data-hb-cv="hist"] .hist-side [data-ht-side="owner"]');
     await page.waitForTimeout(450);
     await page.click('#hist-more');
     await page.waitForTimeout(300);
@@ -265,7 +272,7 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
     const cleared = await page.evaluate(`(() => {
       const host = document.querySelector('#hb-cv-body[data-hb-cv="hist"]');
       return { rows: host.querySelectorAll('.hist-ev').length,
-        side: (host.querySelector('[data-ht-filter="side"]') || {}).value,
+        side: (host.querySelector('[data-ht-side][aria-pressed="true"]') || {}).getAttribute?.('data-ht-side'),
         pill: ((host.querySelector('.hist-cap') || {}).textContent || '').trim() };
     })()`);
     check('Clear is the one way back, and it puts side back with the rest',

@@ -55,7 +55,7 @@ const LIVE = { ...H.fixtureContract('MK-R2', 'Raw Milk Collection', 'Nandi Dairy
   const errs = [];
   page.on('pageerror', e => errs.push(e.message));
   const tab = async (id, k) => {
-    await page.evaluate(([id, k]) => { openWorkspace(id); setTimeout(() => roomGoTab(getContract(id), k), 300); }, [id, k]);
+    await page.evaluate(([id, k]) => { openWorkspace(id, { room: true }); setTimeout(() => roomGoTab(getContract(id), k), 300); }, [id, k]);
     await page.waitForFunction(k => !!document.querySelector(`#ws-tabs [data-ws-tab="${k}"].on`), k, { timeout: 8000 }).catch(() => {});
     await page.waitForTimeout(700);
   };

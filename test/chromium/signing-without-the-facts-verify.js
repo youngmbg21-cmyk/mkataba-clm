@@ -93,7 +93,7 @@ const readRow = page => page.evaluate(() => {
         c.fields = { value: String(c.value) };
         state.settings = { ...(state.settings || {}), approvalRules: [] };
         persist(c); await flushSaves();
-        openWorkspace(c.id);
+        openWorkspace(c.id, { room: true });
         await new Promise(r => setTimeout(r, 500));
         roomGoTab(c, 'sign');
         await new Promise(r => setTimeout(r, 700));
@@ -113,7 +113,7 @@ const readRow = page => page.evaluate(() => {
         return cv ? [...cv.querySelectorAll('.field-frozen')].filter(x => x.textContent.trim() === '—').length : -1; });
     };
     const dashesBefore = await dashes();
-    await page.evaluate(() => { openWorkspace('MK-A2'); roomGoTab(getContract('MK-A2'), 'sign'); });
+    await page.evaluate(() => { openWorkspace('MK-A2', { room: true }); roomGoTab(getContract('MK-A2'), 'sign'); });
     await page.waitForTimeout(700);
     let r = await readRow(page);
     await page.screenshot({ path: path.join(OUT, '1-signing-tab.png') });
@@ -137,10 +137,13 @@ const readRow = page => page.evaluate(() => {
        Home and the room is not on screen; roomGoTab only switches a room that
        is drawn. The Overview is opened through roomOpenAt, the door "open
        this contract on that tab, from anywhere". */
-    await page.evaluate(() => { roomOpenAt('MK-A2', 'terms'); });
-    await page.waitForFunction(() => state.view === 'workspace' && !!document.querySelector('.sec-fields .sec-f'), null, { timeout: 8000 }).catch(() => {});
+    /* RE-POINTED 15 Oct 2026 (step 8, the room retired): the Overview's
+       sheet is the contract strip's Details page on Home's Board, opened by
+       its one door (roomOverviewOpen) — where the reader edits it now */
+    await page.evaluate(() => { roomOverviewOpen(getContract('MK-A2')); });
+    await page.waitForFunction(() => state.view === 'dashboard' && !!document.querySelector('[data-bs-host="details"][data-bs-cid="MK-A2"] .sec-fields .sec-f'), null, { timeout: 8000 }).catch(() => {});
     const ov = await page.evaluate(() => {
-      const cells = [...document.querySelectorAll('.sec-fields .sec-f')];
+      const cells = [...document.querySelectorAll('[data-bs-host="details"][data-bs-cid="MK-A2"] .sec-fields .sec-f')];
       /* The eight-terms Overview (8 Oct 2026) carries the start date in the
          Term cell; an Effective cell is read where a page still draws one. */
       const eff = cells.find(f => /effective/i.test((f.querySelector('.sec-f-l') || {}).textContent || ''))
@@ -152,7 +155,7 @@ const readRow = page => page.evaluate(() => {
     await page.screenshot({ path: path.join(OUT, '2-overview-mark.png') });
     check('2a the Overview\'s Effective cell says it is needed to sign', ov.eff && ov.hold && /needed to sign/i.test(ov.note), JSON.stringify(ov));
     check('2b and its hover names the boxes the signature waits on', /Start date/.test(ov.title), ov.title);
-    await page.evaluate(() => { const b = document.querySelector('.sec-f-n.is-hold[data-ov-fix="effDate"]'); if (b) b.click(); });
+    await page.evaluate(() => { const b = document.querySelector('[data-bs-host="details"] .sec-f-n.is-hold[data-ov-fix="effDate"]'); if (b) b.click(); });
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): a box the Fill
        in face asks is landed on THERE, beside Home's paper (focusKeyTerms →
        pdFillOpen), and its date box wears HaTi's own date face (datePickDress:
@@ -185,7 +188,7 @@ const readRow = page => page.evaluate(() => {
        paint, so a term typed on the Overview reaches the paper on the next
        paint of the room, not on a tab switch — true at the parent too, and
        logged as its own finding rather than folded into this change. */
-    await page.evaluate(() => { openWorkspace('MK-A2'); });
+    await page.evaluate(() => { openWorkspace('MK-A2', { room: true }); });
     await page.waitForTimeout(800);
     const dashesNow = await dashes();
     check('2e and the paper itself now carries the date where it drew a dash — one empty box left on it, not two',
@@ -196,7 +199,7 @@ const readRow = page => page.evaluate(() => {
       const c = getContract('MK-A2');
       c.status = 'Draft'; c.fields = { value: String(c.value) };
       persist(c); await flushSaves();
-      openWorkspace(c.id);
+      openWorkspace(c.id, { room: true });
       await new Promise(r => setTimeout(r, 400));
       roomGoTab(c, 'sign');
       await new Promise(r => setTimeout(r, 700));
@@ -293,7 +296,7 @@ const readRow = page => page.evaluate(() => {
     const filed = await page.evaluate(() => { const c = state.contracts[0];
       return { id: c.id, eff: (c.fields || {}).effDate || '', exp: c.expiry || '' }; });
     /* the upload lands beside the paper on Home now (stage 2, 14 Oct 2026): the room is opened here */
-    await page.evaluate(() => { openWorkspace(state.contracts[0].id); roomGoTab(getContract(state.contracts[0].id), 'terms'); });
+    await page.evaluate(() => { openWorkspace(state.contracts[0].id, { room: true }); roomGoTab(getContract(state.contracts[0].id), 'terms'); });
     await page.waitForTimeout(900);
     const effCell = await page.evaluate(() => {
       const all = [...document.querySelectorAll('.sec-fields .sec-f')];
@@ -337,7 +340,7 @@ const readRow = page => page.evaluate(() => {
     }
     check('5 · stage: a contract made from a company standard with "Skip for now"', made.ok, made.err);
     check('5a it is not stored as "no money passes"', made.vt === '(absent)' && made.mon === true, JSON.stringify(made));
-    await page.evaluate(id => { openWorkspace(id); roomGoTab(getContract(id), 'terms'); }, made.id);
+    await page.evaluate(id => { openWorkspace(id, { room: true }); roomGoTab(getContract(id), 'terms'); }, made.id);
     await page.waitForTimeout(1200);
     const valueCell = await page.evaluate(() => {
       const f = [...document.querySelectorAll('.sec-fields .sec-f')].find(x => /value/i.test((x.querySelector('.sec-f-l') || {}).textContent || ''));

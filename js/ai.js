@@ -379,7 +379,9 @@ async function runScanFor(c){
      prints NOTHING — so on a clean contract, which is the commonest outcome,
      the scan ran, cost money, wrote an audit line and answered with silence. */
   toast(n ? i18tn('ai_scan_found',n,{n}) : i18t('ai_scan_clean'), 'ok');
-  if(state.view==='register'&&window.renderRegister) renderRegister();
+  /* the list on Home's Contracts place repaints where it stands (step 7) */
+  if(window.regPlaceUp&&regPlaceUp()&&window.regRepaint) regRepaint();
+  else if(state.view==='register'&&window.renderRegister) renderRegister();
   else if(state.view==='folder'&&window.renderFolder) renderFolder();
   if(window.updateSidebarCounts) updateSidebarCounts();
 }
@@ -1828,6 +1830,11 @@ function aiPageContext(){
   let view = '';
   try{ view = (typeof state === 'object' && state && state.view) || ''; }catch(_){ return null; }
   if (!view) return null;
+  /* THE CONTRACTS PLACE (step 7, 15 Oct 2026): Contracts is drawn on Home's
+     Document face with no paper chosen, so the view is 'dashboard' while the
+     reader is looking at the Contracts list. It names itself as Contracts and
+     reads through the register's own readings, as the page did. */
+  try{ if (view === 'dashboard' && typeof regPlaceUp === 'function' && regPlaceUp()) view = 'register'; }catch(_){}
   const page = { view };
   if (AI_PAGE_NAMES[view]) page.name = AI_PAGE_NAMES[view];
   /* The reader's own word for this page, in their own language — what they
@@ -5065,7 +5072,7 @@ function renderRenewalSection(c){
     /* The note is stored on its own contract; where the reader has opened
        another one meanwhile, this card is not repainted over theirs (26 Sep
        2026, the overnight clean-up — see contractOnScreen). */
-    if(window.contractOnScreen && !contractOnScreen(c)) return;
+    if(window.contractOverviewShown && !contractOverviewShown(c)) return;
     renderRenewalSection(c);
     if(!r&&!had){ const b2=document.querySelector('[data-rn-ask]'); if(b2){ b2.disabled=false; b2.textContent=i18t('rn_ask'); } }
   });

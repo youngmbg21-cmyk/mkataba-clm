@@ -54,10 +54,11 @@ const EIGHT = ['contractType', 'governingLaw', 'disputes', 'value', 'effDate', '
       await page.click('#li-go');
       await page.waitForFunction(() => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-EK1'), null, { timeout: 20000 });
       if (dark) await page.evaluate(() => setDark(true));
-      await page.evaluate(() => { state.activeId = 'MK-EK1'; state.selId = 'MK-EK1'; setView('workspace'); });
-      await until(() => !!document.querySelector('#ws-tabs [data-ws-tab="terms"]'));
-      await page.click('#ws-tabs [data-ws-tab="terms"]');
-      const up = await until(() => !!document.querySelector('#ov-ess [data-ov-edit="all"], #kt-overview [data-ov-edit="all"]'));
+      /* RE-POINTED 15 Oct 2026 (step 8, the room retired): the Overview's
+         sheet is the contract strip's Details page on Home's Board — where the
+         reader edits it now — opened by its one door (roomOverviewOpen) */
+      await page.evaluate(() => { roomOverviewOpen(getContract('MK-EK1')); });
+      const up = await until(() => !!document.querySelector('[data-bs-host="details"][data-bs-cid="MK-EK1"] #ov-ess [data-ov-edit="all"], [data-bs-host="details"][data-bs-cid="MK-EK1"] #kt-overview [data-ov-edit="all"]'));
       if (!up) { check(`0. ${tag}: the Overview and its Edit are drawn`, false); await page.close(); continue; }
       const H = () => page.evaluate(() => document.getElementById('ov-ess').getBoundingClientRect().height);
       check(`1. ${tag}: no sentence beside Read the brief`, await page.evaluate(() => !document.querySelector('.ov-top-note')

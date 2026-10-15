@@ -20760,3 +20760,42 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - The server's own refusals reach a Swedish screen in English (srvMsg passes unknown sentences through): e.g. "Internal approval is outstanding: …" (POST /api/shares) and every "… in Before you sign first." refusal.
 - The signature pad's image errors ("Could not read that image", "Could not read that file") are English literals in js/signature.js.
 - With an approval rule on, the rule's own name reads "Value ≥ KES 5M" in Swedish too — the default rule is stored with an English name.
+
+### Noticed, not fixed (14 Oct 2026, finishing the one page, steps 1 and 2 — the door census, and the wrong doors)
+- A list panel's Document door (and every pdOpenOnHome(id,'copilot')) keeps a face left open for that contract: pressed after the Redlines, Fill in or Before you sign face was open on it, "Document" lands on that face (the paper Redlined or the signing copy), not on Jambo's conversation beside the plain paper.
+- The side panel's checklist row for an approval asked of you (needsYouGo 'approval') still opens the Approvals page; the bell's row for the same approval now opens Before you sign on Home (the owner moved the bell only).
+- The bell's approval row lands on Before you sign with the face at its top; the "Approval gate" card with Approve · Reject sits below the fold and is not brought into view (only the email's &go=approval lights a card, and only #sa-card, a named person's yes).
+- Requests' row double-click and Enter (intake.js onOpen) still open the contract room through openWorkspace, while its own panel's Document and Workspace doors open Home; the census holds it as PENDING for step 8.
+- A narrow Contracts table row's ⋯ "PDF" (regRunRowAct's last else) still opens the contract room ("Export PDF is completed inside the workspace").
+
+### Noticed, not fixed (15 Oct 2026, the overnight work order, steps 1 and 2: the checkers' round)
+- Below the inspector width the Board's Obligations view is the full banded table with no panel, so an obligation pressed on the Obligations list is shown among the rest but not marked or scrolled to.
+- On Home's wall narrowed to a party, a closed (Declined) contract of that party is drawn and counted but has no stage chip of its own; it shows only under All.
+- Obligations' "Show it in the contract" calls openWorkspace before turning to Home's paper, so the room is drawn on the way (the door census prints it as PENDING step 8).
+- The side panel's checklist rows for a renewal, a given note and a request to join still open the room (needsYouGo falls through to openWorkspace); the door census prints them as PENDING step 8.
+
+### Noticed, not fixed (15 Oct 2026, the overnight work order, steps 3 to 6 — draft in Jambo's panel, the drop area, at a glance, the stream in Fill in)
+- The re-file confirmation ("Moved to …", ct_refile_done) is a bare toast with no kind, so it prints nothing; the room's row and Fill in's stream both rely on the lit choice alone.
+- An upload filed inside HaTi says "Contract uploaded and filed in …" through a bare toast (submitUpload passes no kind unless the route is outside), so that line prints nothing either.
+- The upload reader's own sentences ("Could not read that file", "This looks like a scan — reading it with OCR…", "Reading page N of M…", "Reading details out of the machine-read text…", "Could not read this Word file: …") are English literals, now shown in the drop area on a Swedish screen too.
+- js/views/home.js's renderDashboard still draws its own "+ Draft new agreement" (#hero-draft) for the case hbRender does not run; Home's head (hbHeadHtml) no longer does.
+- An upload's name keeps the file's underscores ("Courier_Services_Agreement") — fileTitleOf trims the extension and spaces only.
+- Jambo's conversation is kept when the paper turns to another contract, so the new "MK-… at a glance" card sits above answers about the last one (only the bin clears intel.history).
+
+### Noticed, not fixed (15 Oct 2026, the overnight work order, steps 3 to 6: the fix round)
+- Going from a face (Before you sign, Redlines) to Home's wall (caHomeWall, the word "contracts") leaves presence beating for the contract that was on the paper: presenceWatching() still names it on the wall.
+- HaTi's own dropdown list shuts on a scroll of any element (core.js's capture listener), including Jambo's conversation scrolling itself behind an open pop-up, so a press on a dropdown in that moment opens and shuts the list at once (the door census caught it on the new-agreement form's stream box in 3 runs of 6).
+### Noticed, not fixed (15 Oct 2026, the overnight work order, step 8 — the Lifeline strip, the room retires)
+- The Board side list's contract sheet (hbSheetHtml → hbCardHtml) reads the brief as c._brief.summary or c._brief.text, but a stored brief is { data: { overview, … } }, so that card always says there is no brief (triageBriefLine is the reading that knows the shape).
+- The pop-out history record (openHistoryTimeline, #ht-f-side) and the counterparty's read-only copy still offer Side as a dropdown among their filters, while the Board's History (and the strip's) now has Side in the open as All sides · Ours · Theirs.
+- Under a Side choice the trail drops every system entry (uploaded, filled in, read): roomHistoryEvents keeps only negotiation events once any filter is on, so "Ours" does not show our own uploads.
+- A narrow Contracts table row's ⋯ "PDF" (regRunRowAct's last else) opens the contract through openWorkspace, which now brings up its strip on the Board rather than a PDF.
+### Noticed, not fixed (15 Oct 2026, the overnight work order, step 7 — Contracts opens Home)
+- f149 (settings: the access question when adding somebody) is red at the parent too: settingsSavePerson calls fieldFocus, which the test world (test/world.js) does not load ("fieldFocus is not defined").
+- The bell's "a colleague asked you to look" row opens the contract room on its Overview, where nothing answers the look; on a computer the only Done for a contract that stands on no other list was the Contracts page's side panel, which step 7 retired (the phone still answers it).
+- The shell header still draws a #reg-head-facts slot and the cohort slot for view 'register' (renderPageHeader, PAGE_ACTIONS.register); on a computer that view now hands over to Home before it paints, so they are reached only by a stage that paints the page by name.
+- The Contracts seat's full nine-column table, its narrow table and its inspector shape (REG_COL_KEYS, REG_COL_KEYS_NARROW, REG_COL_KEYS_INS, regInsSeat 'contracts') are no longer drawn on a computer; the code stays because Negotiations and the Contracts place share the builder.
+- The register's stage labels in REG_STAGES ('Drafting', 'In Review', 'Executed', 'Closed') are plain English on the Negotiations seat's Stage box; the stage tabs now read statusLabel, the box does not.
+- (step 7, later the same night) The Contracts side panel's "needs you" checklist went with the panel (the drawing's place has none). Its rows still ring on the bell (a renewal decision only within 30 days), show as the wall card's Needs you pill and answer on the phone, but on a computer a renewal decision 31+ days out, a look's Done and "nothing owed" have no door on Contracts now. Removed with the panel, not moved; the owner decides where the checklist lives on Home.
+### Noticed, not fixed (15 Oct 2026, the MAP update after the overnight build)
+- CLAUDE.md's SAP BENCHMARK, BATCH 2 line names `dirRowHtml` for the People table, but no such function exists any more (the directory builds its rows with `dirRows`); left as it was, outside tonight's steps.

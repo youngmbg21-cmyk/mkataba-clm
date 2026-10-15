@@ -78,7 +78,8 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     ok('4a on Home the window does not appear; the cursor goes to Home\'s Jambo', !home.open && home.focus === 'igd-input', JSON.stringify(home));
 
     /* ---- 5 the window ---- */
-    await page.evaluate(() => setView('register'));
+    /* a page that is not Home: Contracts is Home's Contracts place since step 7, so Approvals */
+    await page.evaluate(() => setView('approvals'));
     await page.click('#cmd-ai');
     await until(page, () => document.getElementById('ai-panel').classList.contains('open'));
     const first = await page.evaluate(() => { const p = document.getElementById('ai-panel'), r = p.getBoundingClientRect();
@@ -114,7 +115,7 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await page.evaluate(() => setView('dashboard'));
     const aside = await until(page, () => getComputedStyle(document.getElementById('ai-panel')).visibility === 'hidden', null, 4000);
     ok('6a on Home it steps aside', aside);
-    await page.evaluate(() => setView('register'));
+    await page.evaluate(() => setView('approvals'));
     const back = await until(page, () => getComputedStyle(document.getElementById('ai-panel')).visibility === 'visible', null, 4000);
     r = await (await page.$('#ai-panel')).boundingBox();
     ok('6b leaving Home, it comes back where it was', back && Math.round(r.x) === before.x && Math.round(r.y) === before.y, `${Math.round(r.x)},${Math.round(r.y)}`);

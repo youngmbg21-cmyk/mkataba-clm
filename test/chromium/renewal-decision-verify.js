@@ -57,7 +57,7 @@ const check = (name, pass, detail) => {
     await page.waitForTimeout(3500);
 
     const id = await page.evaluate(() => (state.contracts.find(x => x.status !== 'Declined') || state.contracts[0]).id);
-    await page.evaluate(i => openWorkspace(i), id);
+    await page.evaluate(i => openWorkspace(i, { room: true }), id);
     await page.waitForTimeout(2200);
     /* SET THE FIXTURE ON THE LOADED RECORD, not before — opening the room
        re-fetches the whole contract and would replace anything written first.

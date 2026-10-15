@@ -107,7 +107,10 @@ async function login(browser, email, pass, errors) {
     });
     check('2c the bell says it too, with the same line', bell.says && bell.line, JSON.stringify(bell));
     await O.page.keyboard.press('Escape');
-    await O.page.evaluate(() => { if (window.insForce) insForce(true); setView('register'); });
+    /* the Contracts page's panel went with the page (step 7 of the overnight
+       work order: Home's Contracts place, its List with no panel); the same
+       checklist is the Negotiations page's panel, where this negotiation stands */
+    await O.page.evaluate(() => { if (window.insForce) insForce(true); openNegotiations({ list: true }); });
     await O.page.waitForTimeout(1200);
     const row = O.page.locator('#reg-tbody tr[data-row="MK-A2"]').first();
     if (await row.count()) { await row.click(); await O.page.waitForTimeout(1000); }
@@ -115,7 +118,7 @@ async function login(browser, email, pass, errors) {
       const box = document.querySelector('.ins-need');
       return { drawn: !!box, text: box ? box.textContent.replace(/\s+/g, ' ').trim() : '' };
     });
-    check('2d and the side panel\'s checklist on the Contracts page asks for an answer',
+    check('2d and the side panel\'s checklist on its list page asks for an answer',
       panel.drawn && /Answer Nandi Dairy/.test(panel.text), panel.text.slice(0, 140) || 'no checklist');
     await O.ctx.close();
 

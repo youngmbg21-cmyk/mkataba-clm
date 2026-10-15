@@ -111,7 +111,7 @@ const SEED = async () => {
     await pause(1800);
 
     /* ---- THE ROOM, then THE NEGOTIATION PAGE, on the SAME contract ---- */
-    await page.evaluate(id => openWorkspace(id), cid);
+    await page.evaluate(id => openWorkspace(id, { room: true }), cid);
     await pause(2000);
     /* RE-POINTED 9 Oct 2026 (SAP batch 3): the Document and Signing tabs hide
        the facts strip, as drawn, so the card is measured on the Overview — the
@@ -472,7 +472,7 @@ const SEED = async () => {
       heads.nego.length > 0 && new Set(heads.nego.map(b => b.fw)).size === 1 && heads.nego.every(b => Number(b.fw) < 600),
       heads.nego.map(b => `${b.t}:${b.fw}`));
 
-    await page.evaluate(id => openWorkspace(id), cid);
+    await page.evaluate(id => openWorkspace(id, { room: true }), cid);
     await pause(1800);
     const room2 = await page.evaluate(() => [...document.querySelectorAll('.room-head .room-acts button')]
       .filter(b => b.getBoundingClientRect().height > 0)
@@ -501,7 +501,7 @@ const SEED = async () => {
        ASSERTED AS A RELATION on both halves — same words AND same dress — so
        this catches a future page that re-boxes it as readily as one that makes
        it say something else. */
-    await page.evaluate(id => openWorkspace(id), cid);
+    await page.evaluate(id => openWorkspace(id, { room: true }), cid);
     await pause(1800);
     const chipRoom = await page.evaluate(READ_CHIP);
     /* RE-POINTED 14 Oct 2026 (stage 5): the page's own head, by name */
@@ -561,7 +561,7 @@ const SEED = async () => {
     check('7 none of them is shaded inside',
       oNego.every(b => b.bg === 'rgba(0, 0, 0, 0)' || b.bg === surfaceBg), oNego.map(b => `${b.t}:${b.bg}`));
 
-    await page.evaluate(id => openWorkspace(id), cid);
+    await page.evaluate(id => openWorkspace(id, { room: true }), cid);
     await pause(1800);
     const oRoom = await outlines();
     check('7 the contract room\'s head agrees with itself the same way',
@@ -653,7 +653,7 @@ const SEED = async () => {
       /* The page the 25 Aug subtitle ask was screenshotted on. */
       ['Import',       () => setView('migration')],
       /* The two the first pass missed, and the two that were really out. */
-      ['Contract room',    id => openWorkspace(id)],
+      ['Contract room',    id => openWorkspace(id, { room: true })],
       /* RE-POINTED 14 Oct 2026 (stage 5): the page by name — every other door
          onto Negotiate lands on the Redlines face on Home, measured as Home */
       ['Negotiation page', id => openRedlineWorkbench(id, { page: true })],
@@ -755,7 +755,7 @@ const SEED = async () => {
       return { k: l && l.textContent.trim(),
         lw: gl && gl.fontWeight, vw: gv && gv.fontWeight, vs: gv && gv.fontSize };
     });
-    await page.evaluate(id => openWorkspace(id), cid);
+    await page.evaluate(id => openWorkspace(id, { room: true }), cid);
     await pause(1900);
     const f9room = await page.evaluate(FACTS9);
     await page.screenshot({ path: path.join(OUT, '09-room-facts.png') });
@@ -838,7 +838,7 @@ const SEED = async () => {
        went on 11 Oct) — the #doc-canvas this read was a hidden pane's,
        answering styles while painting nothing. The Document is Home's paper
        (#ig-canvas), where the room's own door to it (roomGoTab 'docs') lands. */
-    await page.evaluate(id => { openWorkspace(id); }, cid);
+    await page.evaluate(id => { openWorkspace(id, { room: true }); }, cid);
     await pause(1600);
     await page.evaluate(id => roomGoTab(getContract(id), 'docs'), cid);
     await page.waitForFunction(id => state.view === 'dashboard' && window.pdContract && pdContract() && pdContract().id === id
