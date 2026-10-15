@@ -20859,3 +20859,9 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - The count on Jambo's tab (and every amber tab count beside the paper) read white on amber at 2.17:1; it wears the bell's own dark ink on amber now (contrast-verify 33/33).
 - The ink-wash census re-recorded on the owner's "approve a record": headcounts only, no colour or text size new; the card's buttons use the house 13px.
 - board-upgrade, home-page, contracts-page, copilot-jobs verify and f582 re-pointed to the Needs you card and the End or pause door.
+
+### Fixed (15 Oct 2026, the owner: "in the chat panel in the calendar page, jambos emoji is not there just his name")
+- Jambo's panels named him with a ✦ where his chats wear his face (the owner's 12 Oct rule). His face now heads the Calendar's Jambo panel, the clause editor's Jambo rail and the template builder's Jambo rail (`jamboFaceHtml`). The ink-wash census re-recorded for the extra picture (headcounts; the face's dark ground was already in the census).
+
+### Noticed, not fixed (15 Oct 2026)
+- Buttons and small marks still wear the ✦ beside Jambo's name ("✦ Ask Jambo" on the Negotiate page, the clause panel's Jambo button, "✦ read from the document", the calendar's suggested blocks): components.js says buttons and pages keep the sparkle, so they were left; the owner may want them changed too.
