@@ -192,23 +192,26 @@ describe('f676 (5) the Negotiate page folds into Home', () => {
     assert.match(strip(HOME), /openRedlineWorkbench\(c\.id, \{ face: true \}\)/, 'a review lands on the face too');
     /* the page's Ask for review and Home's ⋯ row are one door */
     assert.match(strip(NEGO), /rlReviewDoor\(c, \(\) => renderRedline\(\)\)/);
-    assert.match(strip(fnBody(IG, 'igStripActsWire')), /rlReviewDoor\(getContract\(c\.id\)\|\|c, again\)/);
+    /* the ⋯ left the paper's line for the panel's Menu tab (owner, 15 Oct 2026): the same row, the same door */
+    assert.match(strip(fnBody(PD, 'pdMenuWire')), /rlReviewDoor\(k\(\), again\)/);
   });
 });
 
 describe('f676 (6) the paper\'s line takes the contract\'s acts', () => {
-  test('6a Notes · Share · ⋯ from the contract page\'s own builders', () => {
+  test('6a Notes · Share on the paper\'s line; the ⋯ rows are the panel\'s Menu tab, from the same builders (owner, 15 Oct 2026)', () => {
     const a = strip(fnBody(IG, 'igStripActsHtml'));
     assert.match(a, /roomChatDoorHtml\(\)/);
     assert.match(a, /id="ws-share"/);
-    assert.match(a, /roomMoreMenuHtml\(c,\{ menuRow:rows, noFocus:true \}\)/);
-    ['data-ig-review', 'data-ig-pbreview', 'data-ig-memo'].forEach(r => assert.ok(a.includes(r), r));
+    assert.doesNotMatch(a, /roomMoreMenuHtml|ws-more/, 'no ⋯ on the paper\'s line');
+    assert.match(strip(fnBody(PD, 'pdMenuGroups')), /roomMoreMenuHtml\(c, \{ menuRow: clause \+ nego, noFocus: true \}\)/);
+    const rows = strip(fnBody(IG, 'igNegoRowsHtml'));
+    ['data-ig-review', 'data-ig-pbreview', 'data-ig-memo'].forEach(r => assert.ok(rows.includes(r), r));
     assert.match(strip(fnBody(IG, 'igStripHtml')), /\$\{onHome\?igStripActsHtml\(c\):''\}/);
   });
   test('6b ONE menu builder and ONE wiring, for the room and for Home', () => {
     const head = strip(fnBody(CT, 'wireRoomHead'));
     assert.match(head, /roomMenuWire\(c\);/);
-    assert.match(strip(fnBody(IG, 'igStripActsWire')), /roomMenuWire\(c\)/);
+    assert.match(strip(fnBody(PD, 'pdMenuWire')), /roomMenuWire\(k\(\)\)/);
     const more = strip(fnBody(CT, 'roomMoreMenuHtml'));
     assert.match(more, /opts\.noFocus/);
     assert.match(more, /opts\.menuRow/);
@@ -235,7 +238,7 @@ describe('f676 (7) the words and the brain', () => {
     assert.match(BRAIN, /\['redface', 'negpage', 'startnego', 'here', 'follow'\]/);
   });
   test('7c the face wears its own scoped clothes', () => {
-    assert.match(HTML, /#pd-signface \.pd-sf-foot\{/);
+    assert.match(HTML, /#pd-signface \.pd-sf-foot[,{]/);
     assert.match(HTML, /#ig-paper \.ig-signpaper\{/);
     assert.match(HTML, /#ig-strip \.ig-acts\{|\.ig-acts\{/);
   });
@@ -303,7 +306,8 @@ describe('f676 (10) what the Negotiate page did, the Redlines face does too (fou
   const APPJ = R('js/app.js');
   test('10a Jambo\'s answer glows on the face: the page\'s after-paint is published, and the review door glows on the menu', () => {
     assert.match(NEGO, /Object\.assign\(window, \{ negoAfterPaint, negoTurnBannerHtml,/);
-    assert.match(NEGO, /escalate: \(\) => '\[data-rl-review\], #ig-strip #ws-more'/);
+    /* RE-POINTED 15 Oct 2026: the ⋯ went; the Menu tab's review row, or the tab itself while it is shut, glows */
+    assert.match(NEGO, /escalate: \(\) => '\[data-rl-review\], #pd-body \.pd-menu \[data-ig-review\], #ig-dock \[data-pd-tab="menu"\]'/);
   });
   test('10b the live probe and the presence beat run for the face', () => {
     assert.match(strip(fnBody(NEGO, 'rlLiveHere')), /pdRedShows\(\)/);

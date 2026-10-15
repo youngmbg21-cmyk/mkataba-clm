@@ -205,6 +205,20 @@ const amendmentDate = c => (c&&((c.metadata&&c.metadata.effectiveDate) || (c.fie
    negoExecuted and the server's isExecutedRow read, and reducing this to the
    status alone is the narrowing both of those exist to prevent. */
 const amendmentExecuted = k => !!(k && (k.status==='Signed' || k.hash || (k.execution && k.execution.at)));
+/* WHY NO AMENDMENT CAN BE MADE HERE, or '' when one can (owner, 15 Oct 2026:
+   "a button that will not take you anywhere is a waste — give a reason").
+   The ONE answer every Amend door asks: a draft is changed directly, a child
+   document is not amended again, and an agreement that has EXPIRED is no
+   longer in force, so there is nothing left to amend — a renewal or a new
+   agreement is the way on (the renewal door, openCreateAmendmentModal with
+   relation 'renewal', is not an amendment and does not ask this). */
+function amendmentShutWhy(c){
+  if(!c) return '';
+  if(c.parentId) return i18t('fa_child_cannot_amend');
+  if(!amendmentExecuted(c)) return i18t('fa_draft_no_amend');
+  if(typeof contractExpired==='function' && contractExpired(c)) return i18t('fa_expired_no_amend');
+  return '';
+}
 const _termKids = c => familyChildren(c.id)
   .filter(k=>k.status!=='Declined' && TERM_CHANGING.has(k.relation) && ownExpiry(k));
 /* most recent amendment that actually states a term wins */
@@ -687,12 +701,13 @@ function renderFamilySection(c,opts){
   const acts=[];
   let reverse='';
   if(canEdit() && !parent){
-    const signedHere=amendmentExecuted(c);
-    acts.push(signedHere
+    const shut=amendmentShutWhy(c);
+    acts.push(!shut
       ? `<button id="fam-create" class="ui-btn ui-btn-sm ui-btn-primary">${icon('filenew','w-3 h-3')} ${i18t('fa_create_amendment')}</button>`
-      : `<button id="fam-create" class="ui-btn ui-btn-sm ui-btn-primary" disabled title="${_famAttr(i18t('fa_draft_no_amend'))}">${icon('filenew','w-3 h-3')} ${i18t('fa_create_amendment')}</button>`);
+      : `<button id="fam-create" class="ui-btn ui-btn-sm ui-btn-primary" disabled title="${_famAttr(shut)}">${icon('filenew','w-3 h-3')} ${i18t('fa_create_amendment')}</button>`);
     acts.push(`<button id="fam-add" style="${btn}">${i18t('fa_link_existing')}</button>`);
-    if(!signedHere) acts.push(`<span class="fam-why" style="font-size:var(--t-label);color:var(--color-neutral-600);align-self:center">${i18t('fa_draft_no_amend')} <button type="button" id="fam-edit" class="ui-link">${i18t('fa_edit_draft')}</button></span>`);
+    if(!amendmentExecuted(c)) acts.push(`<span class="fam-why" style="font-size:var(--t-label);color:var(--color-neutral-600);align-self:center">${i18t('fa_draft_no_amend')} <button type="button" id="fam-edit" class="ui-link">${i18t('fa_edit_draft')}</button></span>`);
+    else if(shut) acts.push(`<span class="fam-why" style="font-size:var(--t-label);color:var(--color-neutral-600);align-self:center">${i18t('fa_expired_no_amend')}</span>`);
     if(!kids.length) reverse=`<p class="fam-rev" style="font-size:var(--t-label);color:var(--color-neutral-600);margin:var(--s-2) 0 0">${i18t('fa_is_itself')} <button type="button" id="fam-link" class="ui-link">${i18t('fa_link_parent')}</button></p>`;
   }
   /* ---- CHECK THE FAMILY (S12), the third act the artifact names ----
@@ -742,7 +757,7 @@ function renderFamilySection(c,opts){
   document.getElementById('fam-link')?.addEventListener('click',()=>openLinkModal(c, again, {mode:'child'}));
   document.getElementById('fam-confirm')?.addEventListener('click',()=>openLinkModal(c, again, {mode:'child'}));
   document.getElementById('fam-add')?.addEventListener('click',()=>openLinkModal(c, again, {mode:'parent'}));
-  document.getElementById('fam-create')?.addEventListener('click',()=>{ if(amendmentExecuted(c)) openCreateAmendmentModal(c); });
+  document.getElementById('fam-create')?.addEventListener('click',()=>{ if(!amendmentShutWhy(c)) openCreateAmendmentModal(c); });
   document.getElementById('fam-edit')?.addEventListener('click',()=>{ if(window.roomGoTab) roomGoTab(c,'docs'); });
   amendChangesWire(c, again);
   /* CHECK THE FAMILY (S12). One press, one reading, nothing written and
@@ -1103,6 +1118,7 @@ function openCreateAmendmentModal(parent, onDone, opts){
   if(!canEdit()){ toast(i18t('fa_viewers_no_change'),'err'); return; }
   if(!parent) return;
   if(parent.parentId){ toast(i18t('fa_child_cannot_amend'),'err'); return; }
+  if(!(opts && opts.relation && opts.relation!=='amendment') && typeof contractExpired==='function' && contractExpired(parent)){ toast(i18t('fa_expired_no_amend'),'warn'); return; }
   /* ---- ONE QUESTION FIRST: WHAT DO YOU WANT TO CHANGE? (7 Oct 2026, O-10) ----
      The form used to ask for paperwork — which of seven kinds, a name, an end
      date, a note, a tick box — and never for the change itself, then opened
@@ -1336,7 +1352,7 @@ async function unlinkContract(c, onDone){
   if(onDone) onDone(); else if(typeof setView==='function') setView(state.view||'workspace');
 }
 
-Object.assign(window,{familyOrder,familyCheck,amendSetsValue,effectiveExpiryFrom,asAmendedItems,asAmendedHtml,effectiveTerm,effectiveValueView,EFFECTIVE_TERMS,amendSuggestions,amendChangesHtml,amendmentItemHtml,amendParentClauses,amendParentText,amendParentHtml,FAMILY_TERMS,familyAgreement,familyAgreeLine,
+Object.assign(window,{familyOrder,familyCheck,amendmentShutWhy,amendSetsValue,effectiveExpiryFrom,asAmendedItems,asAmendedHtml,effectiveTerm,effectiveValueView,EFFECTIVE_TERMS,amendSuggestions,amendChangesHtml,amendmentItemHtml,amendParentClauses,amendParentText,amendParentHtml,FAMILY_TERMS,familyAgreement,familyAgreeLine,
   openLinkModal,unlinkContract,renderFamilySection,
   openCreateAmendmentModal,createAmendment,amendmentDefaultName,amendmentOrdinal,
   amendmentSkeletonBody,RELATION_DOC_WORD,FAMILY_BLANK_BODY,

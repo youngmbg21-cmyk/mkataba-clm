@@ -50,6 +50,76 @@ function caContracts(){
   return cs.filter(c => c && !c.archived && c.status !== 'Declined');
 }
 function caRef(c){ return (typeof contractRef === 'function') ? contractRef(c) : (c && c.id) || ''; }
+/* A CONTRACT NUMBER IN ANY FORM (owner, 15 Oct 2026: "mk 450" was answered
+   "no contract MK-450", though it exists): "mk 450", "mk450", "#MK-450" and
+   "contract 450" are written as the contract's own reference, but only where a
+   contract the reader can see carries it — "in 2026" stays words, and a number
+   nobody can see is left as typed for the honest "not one you can see". The
+   ONE normaliser, read by Jambo's words (caActOf) and the Board's (hbParse). */
+function caRefFix(q){
+  const cs = ((typeof state !== 'undefined' && state && Array.isArray(state.contracts)) ? state.contracts : []).filter(c => c && !c.archived);
+  const find = cand => cs.find(x => String(caRef(x)).toUpperCase() === cand || String(x.id).toUpperCase() === cand);
+  /* the letters may run into the number ("mkB2"): every split is tried */
+  const fit = (a, b) => { const w = (a + b).toUpperCase(); for (const k of [a.length, 2, 3, 4]){ const c = k < w.length && find(w.slice(0, k) + '-' + w.slice(k)); if (c) return c; } return null; };
+  let s = String(q || '').replace(/#?\b([A-Za-z]{2,4})([- ]?)([A-Za-z0-9]*\d[A-Za-z0-9]*)\b/g, (m0, a, sep, b) => {
+    const c = fit(a, b); if (c) return caRef(c);
+    /* "open mkB2": the word before is not the letters — the number may stand alone */
+    const t = sep === ' ' && /^([A-Za-z]{2,4})([A-Za-z0-9]*\d[A-Za-z0-9]*)$/.exec(b); const c2 = t && fit(t[1], t[2]);
+    return c2 ? a + sep + caRef(c2) : m0;
+  });
+  s = s.replace(/\b(?:contract|agreement|avtal(?:et)?)\s+(?:no\.?\s*|number\s+|nr\.?\s*)?#?(\d+)\b/gi, (m0, n) => {
+    const hits = cs.filter(x => String(caRef(x)).replace(/^\D+/, '') === n);
+    return hits.length === 1 ? caRef(hits[0]) : m0;
+  });
+  return s;
+}
+/* EVERY NUMBER IN AN ANSWER IS A LINK (owner, 15 Oct 2026): after a feed is
+   painted, a contract reference in an answer — drawn by refHtml or written as
+   words by the model — becomes a press that opens that contract on Home
+   (regOpenContract, the Contracts place's own door). Only a reference a
+   contract the reader can see carries; the reader's own words stay words. */
+const CA_REF_RE = /\b[A-Z]{2,4}-[A-Z0-9]*\d[A-Z0-9]*\b/g;
+function caRefLinkPaint(root){
+  if (!root || typeof document === 'undefined' || !root.querySelectorAll) return;
+  const cs = ((typeof state !== 'undefined' && state && Array.isArray(state.contracts)) ? state.contracts : []).filter(c => c && !c.archived);
+  if (!cs.length) return;
+  const by = new Map(); cs.forEach(c => { by.set(String(caRef(c)).toUpperCase(), c.id); by.set(String(c.id).toUpperCase(), c.id); });
+  const mark = (el, id) => { el.setAttribute('data-ref-open', id); el.setAttribute('role', 'link'); el.tabIndex = 0; el.classList.add('is-link'); };
+  root.querySelectorAll('.hati-ref:not([data-ref-open])').forEach(el => { const id = by.get(el.textContent.trim().toUpperCase()); if (id) mark(el, id); });
+  root.querySelectorAll('.ai-bub:not(.ig-bub-me)').forEach(bub => {
+    const walk = document.createTreeWalker(bub, NodeFilter.SHOW_TEXT, { acceptNode: n => (n.parentElement && n.parentElement.closest('a, button, code, textarea, input, .hati-ref, [data-ref-open]')) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+    const nodes = []; let n; while ((n = walk.nextNode())) if (CA_REF_RE.test(n.nodeValue)){ CA_REF_RE.lastIndex = 0; nodes.push(n); }
+    nodes.forEach(t => {
+      const txt = t.nodeValue; const frag = document.createDocumentFragment(); let at = 0, m, hit = false;
+      CA_REF_RE.lastIndex = 0;
+      while ((m = CA_REF_RE.exec(txt))){
+        const id = by.get(m[0].toUpperCase()); if (!id) continue;
+        hit = true; frag.appendChild(document.createTextNode(txt.slice(at, m.index)));
+        const sp = document.createElement('span'); sp.className = 'hati-ref'; sp.textContent = m[0]; mark(sp, id); frag.appendChild(sp);
+        at = m.index + m[0].length;
+      }
+      if (!hit) return;
+      frag.appendChild(document.createTextNode(txt.slice(at)));
+      t.parentNode.replaceChild(frag, t);
+    });
+  });
+}
+function caRefOpen(id){
+  if (!id) return;
+  if (typeof regOpenContract === 'function') return regOpenContract(id);
+  if (typeof openWorkspace === 'function') openWorkspace(id);
+}
+if (typeof document !== 'undefined'){
+  document.addEventListener('click', e => {
+    const el = e.target && e.target.closest ? e.target.closest('[data-ref-open]') : null; if (!el) return;
+    e.preventDefault(); caRefOpen(el.getAttribute('data-ref-open'));
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const el = e.target && e.target.closest ? e.target.closest('[data-ref-open]') : null; if (!el) return;
+    e.preventDefault(); caRefOpen(el.getAttribute('data-ref-open'));
+  });
+}
 /* The contract the panel is ABOUT, when there is one: the paper that is up. */
 function caOpenContract(){
   try {
@@ -174,6 +244,7 @@ if (typeof document !== 'undefined' && !document._caWired){
    reference, or the paper that is up). The note is what follows "note:" (or
    "saying", "message"); "for review" is kept as the purpose. */
 function caFindContract(q){
+  q = caRefFix(q);
   for (const [label, v] of _caChosen) if (v.kind === 'contract' && q.includes(label)){ const c = (typeof getContract === 'function') ? getContract(v.id) : null; if (c) return c; }
   const m = String(q).match(/\b([A-Z]{2,4}-[A-Z0-9]+)\b/);
   if (m){ const c = caContracts().find(x => caRef(x).toUpperCase() === m[1].toUpperCase() || String(x.id).toUpperCase() === m[1].toUpperCase()); if (c) return c; }
@@ -203,13 +274,14 @@ function caReadSend(q){
 /* THE ONE ENTRY intelAsk calls before anything else: an act Copilot can
    prepare from the words alone, or null (and the question goes on as before). */
 function caActOf(q){
-  const t = String(q || '').trim(); if (!t) return null;
+  const t = caRefFix(String(q || '').trim()); if (!t) return null;
   const send = caReadSend(t); if (send) return send;
   const job = caReadJob(t); if (job) return job;
   const door = caReadDoor(t); if (door) return door;
   /* a place word reads only what no older reading takes ("show obligations"
      stays the list card; "obligations" alone goes there) */
   const go = caReadPlace(t); if (go) return go;
+  const menu = caReadMenu(t); if (menu) return menu;
   if (typeof caReadDraft === 'function'){ const d = caReadDraft(t); if (d){ setTimeout(() => { caDraftRun(d); }, 0); return d; } }
   return null;
 }
@@ -228,6 +300,7 @@ function caCardHtml(a, i){
   if (a.kind === 'draft' && typeof caDraftCardHtml === 'function') return caDraftCardHtml(a, i);
   if (CA_JOBS.includes(a.kind)) return caJobCardHtml(a, i);
   if (a.kind === 'door') return caDoorCardHtml(a, i);
+  if (a.kind === 'menu') return caMenuCardHtml(a, i);
   if (a.kind === 'go') return caGoCardHtml(a, i);
   if (a.kind !== 'send') return '';
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
@@ -263,6 +336,7 @@ async function caCardPress(i, act, btn){
   if (a.kind === 'draft' && typeof caDraftPress === 'function') return caDraftPress(i, act, btn);
   if (CA_JOBS.includes(a.kind)) return caJobPress(i, act, btn);
   if (a.kind === 'door') return caDoorPress(i, act);
+  if (a.kind === 'menu') return caMenuPress(i, act);
   if (a.kind === 'go') return caGoPress(a, act);
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   if (act === 'sendscreen'){ if (c && typeof openShareModal === 'function') openShareModal(c); return; }
@@ -655,7 +729,7 @@ const CA_DOORS = [
   ['done', /\bmark\b[^.?!]*\b(?:done|paid|complete|completed|delivered)\b/i],
   ['hold', /\b(?:put|place)\b[^.?!]*\bon hold\b/i],
   ['refile', /\b(?:move|re-?file)\b[^.?!]*\b(?:stream|folder)\b/i],
-  ['amend', /\b(?:make|create|start|draft)\b[^.?!]*\bamendment\b|\bamend (?:it|this|the)\b/i],
+  ['amend', /\b(?:make|create|start|draft)\b[^.?!]*\bamendment\b|\bamend (?:it|this|the)\b|^\s*(?:please\s+)?(?:amend|an? amendment|amendments?|ändra avtalet|tillägg)\s*[.!?]?\s*$/i],
   ['memo', /\bstatus (?:note|update|memo|report)\b|\bnegotiation memo\b/i],
   ['open', /\bwhat(?:'s| is)? (?:still )?open\b|\bwhere (?:does|do) (?:the deal|we|it) stand\b/i],
   ['minor', /\baccept\b[^.?!]*\b(?:small|minor|wording)\b/i],
@@ -689,35 +763,119 @@ const CA_DOOR_GO = {
     return contractSetHold(getContract(c.id) || c, true, why);
   },
   refile: c => { if (typeof openWorkspace === 'function') openWorkspace(c.id); if (typeof ovOpenFiling === 'function') ovOpenFiling(getContract(c.id) || c); },
-  amend: c => openCreateAmendmentModal(getContract(c.id) || c),
+  /* the Amend face beside the signed paper (owner, 15 Oct 2026); the dialog where Home has no paper */
+  amend: c => ((typeof pdAmendOpen === 'function' && pdAmendOpen(c.id)) ? true : openCreateAmendmentModal(getContract(c.id) || c)),
   memo: c => openNegoMemo(getContract(c.id) || c),
-  open: c => hbOpenView(c.id, 'deal'),
-  minor: c => hbOpenView(c.id, 'deal'),
+  /* the Board's deal board view went (owner, 15 Oct 2026): a point opens on Jambo's Redlines face */
+  open: c => (typeof pdRedOpen === 'function') ? pdRedOpen(c.id) : openRedlineWorkbench(c.id),
+  minor: c => (typeof pdRedOpen === 'function') ? pdRedOpen(c.id) : openRedlineWorkbench(c.id),
   counter: c => openRedlineWorkbench(c.id),
   lock: c => openRedlineWorkbench(c.id),
 };
 /* the function each door needs, so a stage that does not load it greys the card in words */
+/* A DOOR THIS CONTRACT HAS SHUT SAYS WHY, AND OFFERS NO BUTTON (owner, 15 Oct
+   2026: "a button that will not take you anywhere is a waste — simply give a
+   reason"): the door's own answer, never a second rule */
+const CA_DOOR_SHUT = { amend: c => (typeof amendmentShutWhy === 'function') ? amendmentShutWhy(c) : '' };
 const CA_DOOR_NEEDS = { sendback: 'openRedlineWorkbench', signlink: 'openShareModal', resend: 'openShareModal', adviser: 'openShareModal', word: 'openShareModal',
   approval: 'openWorkspace', chase: 'pdOpenOnHome', done: 'pdOpenOnHome', hold: 'contractSetHold', refile: 'ovOpenFiling', amend: 'openCreateAmendmentModal',
-  memo: 'openNegoMemo', open: 'hbOpenView', minor: 'hbOpenView', counter: 'openRedlineWorkbench', lock: 'openRedlineWorkbench' };
+  memo: 'openNegoMemo', open: 'openRedlineWorkbench', minor: 'openRedlineWorkbench', counter: 'openRedlineWorkbench', lock: 'openRedlineWorkbench' };
 function caDoorCardHtml(a, i){
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   const B = (act, label, lead) => `<button type="button" class="ui-btn ui-btn-sm${lead ? ' ui-btn-primary' : ''}" data-ca-act="${act}" data-ca-turn="${i}">${_caE(label)}</button>`;
   const head = c ? `<dl class="ca-dl"><dt>${_caE(_caT('ca_l_contract'))}</dt><dd>${_caE(caRef(c) + ' · ' + (c.name || ''))}</dd></dl>` : '';
   const may = !!(c && typeof window[CA_DOOR_NEEDS[a.door]] === 'function');
+  const shut = c && CA_DOOR_SHUT[a.door] ? CA_DOOR_SHUT[a.door](c) : '';
   return `<div class="ca-card" data-ca-card="${i}"><div class="ca-ct">${_caE(_caT('ca_door_' + a.door))}</div>${head}
     <p class="ca-foot" style="margin-top:0">${_caE(_caT('ca_door_' + a.door + '_says'))}</p>
     ${a.state === 'done' ? `<p class="ca-said is-ok">${_caE(_caT('ca_job_opened'))}</p>`
+      : shut ? `<p class="ca-why">${_caE(shut)}</p>`
       : may ? `<div class="ca-acts">${B('door', _caT('ca_door_' + a.door + '_go'), true)}</div>`
       : `<p class="ca-why">${_caE(_caT('ca_door_cannot'))}</p>`}</div>`;
 }
 async function caDoorPress(i, act){
   const m = caTurn(i); const a = m && m.act; if (!a || act !== 'door') return;
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null; if (!c) return;
+  if (CA_DOOR_SHUT[a.door] && CA_DOOR_SHUT[a.door](c)) return;
   const go = CA_DOOR_GO[a.door]; if (typeof go !== 'function') return;
   let r = null;
   try { r = await go(c); } catch (e){ if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); return; }
   if (r === false) return;
+  a.state = 'done';
+  if (typeof renderIntelDock === 'function') try { renderIntelDock(); } catch (_){}
+}
+
+/* ---- ASK JAMBO FOR ANY MENU ROW (owner, 15 Oct 2026: "You can ask jambo for
+   share or, negotiate or export, add a signed document or ask adviser etc. You
+   can ask in short or in full and the button comes up on hati in an instant") ----
+   Read from the words alone (no model, nothing spent). The card's button IS the
+   Menu tab's own row (pdMenuGroups, the ⋯ menu's builder), with its own label
+   and, where it is grey, its own reason; a press opens the Menu tab on that
+   contract and presses that row (pdMenuPress), so the card and the row are one
+   act (rule 2) and nothing happens until the person presses (rule 7). Older
+   readings keep their words: share, negotiate, sign and fill are places, the
+   adviser link, the memo and an amendment are doors. */
+const CA_MENU = [
+  ['export', /^\s*(?:please\s+)?(?:export|download|print|exportera|ladda ner|skriv ut)\b(?![^.?!]*\b(?:pdf|word)\b)/i, ['#ws-pdf', '#ws-word', '#ws-pdf-record']],
+  ['pdf', /\bpdf\b|\bclean copy\b|\bren kopia\b/i, ['#ws-pdf']],
+  ['wordx', /\b(?:export|download|exportera)\b[^.?!]*\bword\b|\b(?:as|in|to|till|som) word\b/i, ['#ws-word']],
+  ['record', /\b(?:sealed|audit)\s+(?:record|copy|trail)\b/i, ['#ws-pdf-record']],
+  ['signed', /\b(?:add|attach|link|upload|lägg till|bifoga)\b[^.?!]*\b(?:signed|undertecknat)\b|\bsigned (?:document|copy|agreement)\b/i, ['#ws-m-link']],
+  ['adviser', /\b(?:ask|consult|get|fråga)\b[^.?!]*\b(?:adviser|advisor|lawyer|counsel|rådgivare|jurist)\b|^\s*(?:an? )?(?:adviser|advisor|rådgivare)\s*$/i, ['#ws-advice']],
+  ['import', /\bimport\b|\bimportera\b|\btheir (?:word )?(?:file|response|markup)\b/i, ['#ws-import']],
+  ['compare', /\bcompare\b|\bjämför\b/i, ['#ws-compare']],
+  ['signers', /\bsigners?\b|\bsignerare\b/i, ['#ws-m-signers']],
+  ['filing', /\bfiling\b|\barkivering\b|\bstream\b/i, ['#ws-filing']],
+  ['mynote', /\bmy notes?\b|\bprivate note\b|\bmina anteckningar\b/i, ['#ws-mynote']],
+  ['archive', /\b(?:un)?archive\b|\brestore\b|\barkivera\b|\båterställ\b/i, ['#ws-archive']],
+  ['hold', /\bhold\b|\brelease\b|\bpausa\b/i, ['#ws-hold']],
+  ['reopen', /\bre-?open\b|\böppna igen\b/i, ['#ws-reopen']],
+  ['delete', /\bdelete\b|\bradera\b|\bta bort utkastet\b/i, ['#ws-delete']],
+  ['review', /\b(?:ask for|internal|request a?)\s*review\b|\bgranskning\b/i, ['[data-ig-review]']],
+  ['playbook', /\bplaybook\b|\bcheck\b[^.?!]*\bstandards\b/i, ['[data-ig-pbreview]']],
+  ['prepare', /\bdraft from (?:our )?standards\b|\bprepare (?:the )?redlines\b/i, ['[data-rl-prepare]']],
+  ['addclause', /\badd (?:a |new |another )?clause\b|\blägg till (?:en )?klausul\b/i, ['[data-rl-add-clause]']],
+  ['editclause', /\bedit (?:a |the |this )?clause\b|\bredigera (?:en )?klausul\b/i, ['[data-rl-edit-clause]']],
+];
+const CA_MENU_MAX = 140;
+/* a question about the thing ("who are the signers?") is for Jambo to answer, not a press */
+const CA_MENU_ASKS = /^\s*(?:what|who|whom|why|how|when|which|where|vad|vem|varför|hur|när|vilken|vilka)\b/i;   // a longer question is a question for the model, not a press
+function caReadMenu(q){
+  const t = String(q || ''); if (t.length > CA_MENU_MAX || CA_MENU_ASKS.test(t)) return null;
+  const hit = CA_MENU.find(([, re]) => re.test(t)); if (!hit) return null;
+  const c = caFindContract(t); if (!c) return null;
+  return { kind: 'menu', menu: hit[0], sels: hit[2], cid: c.id, state: 'ready' };
+}
+/* the Menu tab's rows as drawn for this contract, by selector (a row the
+   contract does not offer is absent; a grey one keeps its reason) */
+function caMenuRows(c, sels){
+  if (typeof document === 'undefined' || typeof pdMenuGroups !== 'function') return [];
+  const box = document.createElement('div');
+  try { box.innerHTML = pdMenuGroups(c).map(g => g.rows.join('')).join(''); } catch (_){ return []; }
+  return sels.map(sel => {
+    const b = box.querySelector(sel); if (!b) return null;
+    const x = b.cloneNode(true); x.querySelectorAll('[aria-hidden="true"], svg, .mnote').forEach(n => n.remove());
+    return { sel, word: x.textContent.replace(/\s+/g, ' ').trim(), off: !!b.disabled, why: b.disabled ? (b.getAttribute('title') || '') : '' };
+  }).filter(Boolean);
+}
+function caMenuCardHtml(a, i){
+  const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
+  const rows = c ? caMenuRows(c, a.sels || []) : [];
+  const head = c ? `<dl class="ca-dl"><dt>${_caE(_caT('ca_l_contract'))}</dt><dd>${_caE(caRef(c) + ' · ' + (c.name || ''))}</dd></dl>` : '';
+  const live = rows.filter(r => !r.off);
+  const btns = rows.map((r, k) => `<button type="button" class="ui-btn ui-btn-sm${!r.off && r === live[0] ? ' ui-btn-primary' : ''}" data-ca-act="menu:${k}" data-ca-turn="${i}"${r.off ? ` disabled aria-disabled="true" title="${_caE(r.why)}"` : ''}>${_caE(r.word)}</button>`).join('');
+  const why = rows.length && !live.length ? rows.map(r => r.why).filter(Boolean)[0] || '' : '';
+  return `<div class="ca-card" data-ca-card="${i}" data-ca-menu="${_caE(a.menu)}"><div class="ca-ct">${_caE(_caT('ca_menu_title'))}</div>${head}
+    ${a.state === 'done' ? `<p class="ca-said is-ok">${_caE(_caT('ca_job_opened'))}</p>`
+      : rows.length ? `<div class="ca-acts">${btns}</div>${why ? `<p class="ca-why">${_caE(why)}</p>` : `<p class="ca-foot">${_caE(_caT('ca_menu_foot'))}</p>`}`
+      : `<p class="ca-why">${_caE(_caT('ca_menu_none'))}</p>`}</div>`;
+}
+function caMenuPress(i, act){
+  const m = caTurn(i); const a = m && m.act; if (!a || !String(act).startsWith('menu:')) return;
+  const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null; if (!c) return;
+  const r = caMenuRows(c, a.sels || [])[Number(String(act).slice(5))];
+  if (!r || r.off || typeof pdMenuPress !== 'function') return;
+  if (pdMenuPress(c.id, r.sel) === false) return;
   a.state = 'done';
   if (typeof renderIntelDock === 'function') try { renderIntelDock(); } catch (_){}
 }
@@ -731,7 +889,7 @@ async function caDoorPress(i, act){
    signature → "sign". The lead is amber because it is work owed. With
    nothing chosen (the wall of paper) they are the ways in. A press asks the
    word, so a chip and a typed word are one path (caReadPlace). */
-const CA_CHIPS = ['redline', 'deal', 'sign', 'history'];
+const CA_CHIPS = ['redline', 'sign', 'history'];
 const CA_CHIPS_WALL = ['upload', 'draft', 'board', 'calendar'];
 /* ON THE WALL THE TWO WAYS IN ARE SAID IN FULL (the overnight work order,
    steps 3 and 4): "upload a document" first, "draft a new agreement" — words
@@ -754,6 +912,69 @@ function caChipLead(c){
 const CA_CHIPS_MORE = ['oblig', 'share'];
 function caChipShut(c, k){
   if (k === 'redline') return typeof negoMayStart === 'function' && !negoMayStart(c).ok;
+  /* NO BUTTON THAT TAKES YOU NOWHERE (owner, 15 Oct 2026): nothing is left to
+     sign on an executed or expired agreement; an amendment asks its own one
+     answer (amendmentShutWhy); "edit a clause" only where the Edit a clause
+     row itself is live */
+  if (k === 'sign') return !!((typeof negoExecuted === 'function' && negoExecuted(c)) || (typeof contractExpired === 'function' && contractExpired(c)));
+  if (k === 'amend') return !(typeof pdAmendMay === 'function' && pdAmendMay(c));
+  if (k === 'edit') return !caEditChipBtn(c);
+  if (k === 'fill') return caChipLead(c) !== 'fill';
+  return false;
+}
+/* THE EDIT A CLAUSE ROW, AS ITS OWN BUILDER DRAWS IT (rlEditClauseBtnHtml): the
+   chip is offered only on Jambo's Redlines face, where the row opens the
+   clause editor, and only when that row is live (not frozen, a wide enough
+   window, someone who may edit) */
+function caEditChipBtn(c){
+  if (!c || typeof document === 'undefined' || typeof rlEditClauseBtnHtml !== 'function' || typeof rlEditClausePress !== 'function') return null;
+  if (!(typeof pdRedShows === 'function' && pdRedShows())) return null;
+  if (typeof canEdit === 'function' && !canEdit()) return null;
+  /* the empty column already shows its own Edit a clause: no second button for it */
+  if (document.querySelector && document.querySelector('#pd-redface [data-rl-edit-first]')) return null;
+  const box = document.createElement('div');
+  try { box.innerHTML = rlEditClauseBtnHtml(c, { side: 'owner', cpPanel: false }, 'owner', ''); } catch (_){ return null; }
+  const b = box.querySelector('[data-rl-edit-clause="editor"]');
+  return b && !b.disabled ? b : null;
+}
+/* ---- WHAT COMES NEXT (owner, 15 Oct 2026: "there is no point of having the
+   redline button ... because you are already looking at it, so it should
+   transition to ... the next natural step") ----
+   The ONE reading the chips and Jambo's "what's next?" card both draw, so they
+   cannot disagree:
+   - work owed leads (caChipLead, the side panel's own checklist);
+   - then the next stage of the contract's journey: on Redlines, editing a
+     clause and then Before you sign; before signing, redlines → share → sign;
+     once signed, obligations → amend → history;
+   - never the face that is open now (fill · redlines · before you sign ·
+     amend), and never a door this contract has shut (caChipShut).
+   Read live, spends nothing, writes nothing. */
+const CA_NEXT_FACE = { fill: 'fill', red: 'redline', signing: 'sign', amend: 'amend' };
+const CA_NEXT_MAX = 3;
+function caNextSteps(c){
+  if (!c) return [];
+  const face = (typeof pdFaceNow === 'function') ? pdFaceNow() : '';
+  const here = CA_NEXT_FACE[face] || '';
+  const executed = !!(typeof negoExecuted === 'function' && negoExecuted(c));
+  const ladder = executed ? ['oblig', 'amend', 'history']
+    : face === 'red' ? ['edit', 'sign', 'share']
+    : ['redline', 'share', 'sign'];
+  const lead = caChipLead(c);
+  return (lead ? [lead] : []).concat(ladder, ['history', 'oblig', 'share'])
+    .filter((k, i, all) => all.indexOf(k) === i && k !== here && !caChipShut(c, k))
+    .slice(0, CA_NEXT_MAX);
+}
+/* a step's words: a place word Jambo reads (ca_w_*), or the two that press
+   their own row (edit a clause, amend) */
+const CA_NEXT_GO = ['edit', 'amend'];
+function caNextLabel(k){ return CA_NEXT_GO.includes(k) ? _caT('ca_next_' + k) : _caT('ca_w_' + k); }
+/* a step pressed: a place is asked as its word (one path with typing,
+   caReadPlace); edit and amend press the act their row presses */
+function caNextRun(c, k){
+  if (!c) return false;
+  if (k === 'edit'){ const b = caEditChipBtn(c); return b ? rlEditClausePress(getContract(c.id) || c, b) : false; }
+  if (k === 'amend') return (typeof pdAmendOpen === 'function') ? pdAmendOpen(c.id) : false;
+  if (typeof intelAsk === 'function') return intelAsk(_caT('ca_w_' + k));
   return false;
 }
 /* who may bring a contract in: an editor (a viewer's upload is refused at the creator too) */
@@ -764,13 +985,13 @@ function caPaperChips(){
   /* a viewer adds nothing: the upload chip steps aside, as a shut door's chip does on a paper (caChipShut) */
   if (!c) return CA_CHIPS_WALL.filter(k => k !== 'upload' || caMayAdd()).map(k => ({ ask: _caT(CA_CHIP_WALL_WORD[k] || ('ca_w_' + k)), k }));
   const lead = caChipLead(c);
-  const list = (lead ? [lead].concat(CA_CHIPS.filter(k => k !== lead)) : CA_CHIPS.slice()).concat(CA_CHIPS_MORE)
-    .filter((k, i, all) => all.indexOf(k) === i && !caChipShut(c, k)).slice(0, CA_CHIPS.length);
-  return list.map(k => ({ ask: _caT('ca_w_' + k), k, owed: k === lead }));
+  return caNextSteps(c).map(k => CA_NEXT_GO.includes(k) ? { go: k, label: caNextLabel(k), k } : { ask: _caT('ca_w_' + k), k, owed: k === lead });
 }
 function caChipsHtml(){
   const L = caPaperChips(); if (!L) return '';
-  return L.map(x => x.owed
+  return L.map(x => x.go
+    ? `<button type="button" data-ca-next="${_caE(x.go)}" data-ca-chip="${_caE(x.k)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${_caE(x.label)}</button>`
+    : x.owed
     ? `<button type="button" data-igsug="${_caE(x.ask)}" data-ca-chip="${_caE(x.k)}" class="ca-chip-owed text-[10.5px] rounded-full px-2.5 py-1 transition text-left">${_caE(x.ask)}</button>`
     : x.fill
     ? `<button type="button" data-ca-fill="${_caE(x.fill)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${_caE(x.label)}</button>`
@@ -780,6 +1001,10 @@ if (typeof document !== 'undefined') document.addEventListener('keydown', e => {
   if (e.key !== 'Enter' && e.key !== ' ') return;
   const r = e.target && e.target.closest ? e.target.closest('.ca-row[data-ig-cite]') : null; if (!r) return;
   e.preventDefault(); r.click();
+});
+if (typeof document !== 'undefined') document.addEventListener('click', e => {
+  const b = e.target && e.target.closest ? e.target.closest('#ig-dock [data-ca-next]') : null; if (!b) return;
+  caNextRun(caOpenContract(), b.getAttribute('data-ca-next'));
 });
 if (typeof document !== 'undefined') document.addEventListener('click', e => {
   const b = e.target && e.target.closest ? e.target.closest('[data-ca-fill]') : null; if (!b) return;
@@ -821,6 +1046,12 @@ function caSelClauseId(node){
   /* only a clause the record holds (read RAW, never initialised) */
   const p = (typeof intel === 'object' && intel) ? intel.paper : null;
   const c = p && typeof getContract === 'function' ? getContract(p.id) : null;
+  /* NOT NEGOTIATED YET (owner, 15 Oct 2026: a highlight's Comment lost its
+     words): with no baseline on the record the paper as drawn is the only
+     reading of which clause the words sit in, so its own clause id carries the
+     note — read RAW, nothing initialised. Once negotiated, only a clause the
+     baseline holds. */
+  if (id && !(c && c.negotiation && c.negotiation.baselineBody)) return id;
   let known = [];
   try { known = (c && c.negotiation && c.negotiation.baselineBody && typeof clauseSegment === 'function') ? clauseSegment(c.negotiation.baselineBody) : []; } catch (_){ known = []; }
   return id && known.some(x => x && String(x.id) === id) ? id : '';
@@ -926,11 +1157,11 @@ async function caDraftReply(prompt, cid){
   }
 }
 Object.assign(window, { caDraftReply });
-Object.assign(window, { CA_DOORS, caReadDoor, caRoomSign, CA_DOOR_GO, CA_DOOR_NEEDS, caDoorCardHtml, caDoorPress });
+Object.assign(window, { caRefFix, CA_REF_RE, caRefLinkPaint, caRefOpen, CA_MENU, caReadMenu, caMenuRows, caMenuCardHtml, caMenuPress, CA_DOORS, caReadDoor, caRoomSign, CA_DOOR_GO, CA_DOOR_SHUT, CA_DOOR_NEEDS, caDoorCardHtml, caDoorPress });
 Object.assign(window, { CA_PICK_MAX, CA_NOTE_MAX, CA_SEND_RE, caPeople, caContracts, caOpenContract, caTokenAt, caMatches, caPopHtml, caPopClose, caPopRead, caChoose,
   caFindContract, caFindPerson, caNoteOf, caReadSend, caActOf, caSendBlock, caCardHtml, caCardPress,
   CA_DRAFT_RE, CA_DRAFT_NOUN, CA_DRAFT_OPTS, caReadDraft, caDraftScore, caDraftRank, caDraftRun, caDraftCardHtml, caDraftPress, CA_DRAFT_WITH, CA_DRAFT_WITH_MAX, caDraftWith, CA_DRAFT_NOT_PARTY, CA_DRAFT_TERM_WORD, caDraftBest, caDraftTitleOf, caDraftWho, caDraftForm,
-  CA_JOBS, CA_JOB_RE, caReadJob, caNamedOrUp, caRowsWithQuotes, caRiskList, caObligList, caListCardHtml, caReadyDoor, caJobCardHtml, caJobPress, caMayAdd, caPaperChips, caChipsHtml,
+  CA_JOBS, CA_JOB_RE, caReadJob, caNamedOrUp, caRowsWithQuotes, caRiskList, caObligList, caListCardHtml, caReadyDoor, caJobCardHtml, caJobPress, caMayAdd, caPaperChips, caChipsHtml, caNextSteps, caNextRun, caNextLabel, caEditChipBtn, CA_NEXT_FACE, CA_NEXT_MAX, CA_NEXT_GO,
   CA_SEL_ACTIONS, caSelKill, caSelClauseId, caSelOpen, caSelPick, CA_RISK_MAX, caRiskMark });
 
 /* ============================================================
@@ -951,7 +1182,6 @@ Object.assign(window, { CA_PICK_MAX, CA_NOTE_MAX, CA_SEND_RE, caPeople, caContra
    in both books is a word read here. */
 const CA_PLACES = [
   { k: 'redline', need: 'one', w: ['redline', 'redlines', 'redlining', 'negotiate', 'negotiation', 'changes', 'förhandla', 'förhandlingen', 'ändringar', 'rödlinjer'] },
-  { k: 'deal', need: 'one', w: ['deal board', 'dealboard', 'förhandlingstavla', 'förhandlingstavlan', 'affärstavla', 'affärstavlan'] },
   { k: 'sign', need: 'one', w: ['sign', 'signing', 'before you sign', 'signera', 'signering', 'underteckna', 'innan du signerar'] },
   { k: 'share', need: 'one', w: ['share', 'send', 'dela', 'skicka'] },
   { k: 'fill', need: 'one', w: ['fill', 'fill in', 'fill in the details', 'details', 'fyll i', 'fyll i uppgifterna', 'uppgifter', 'detaljer'] },
@@ -972,6 +1202,8 @@ const CA_PLACES = [
   { k: 'draft', w: ['draft', 'new agreement', 'draft a new agreement', 'a new agreement', 'nytt avtal', 'utkast', 'skriv ett nytt avtal', 'ett nytt avtal'] },
   { k: 'back', w: ['back', 'go back', 'tillbaka'] },
   { k: 'help', w: ['help', 'what can you do', 'hjälp'] },
+  /* "what's next?" answers with the chips' own steps on a card (caNextSteps) */
+  { k: 'next', need: 'one', w: ['next', 'next step', 'next steps', "what's next", 'whats next', 'what is next', 'what next', 'what now', 'nästa', 'nästa steg', 'vad är nästa steg', 'vad händer nu', 'vad nu'] },
 ];
 /* "go to", "open", "show me", "take me back to", "gå till", "öppna", "visa" */
 const CA_PLACE_LEAD = /^(?:please\s+)?(?:(?:go|take me|bring me|jump|switch)\s+(?:back\s+)?to\s+|open\s+|show\s+(?:me\s+)?|gå\s+(?:tillbaka\s+)?till\s+|öppna\s+|visa\s+(?:mig\s+)?)/i;
@@ -1026,7 +1258,7 @@ function caUseBump(k){
    Drawn by the Board's own list (hbAskPopRows), so there is one "/" list:
    these rows first, and on the Board its chart moves after them. Ties keep
    this order, which is the plan's order of a working day. */
-const CA_SLASH = ['redline', 'sign', 'board', 'deal', 'document', 'share', 'oblig', 'history', 'fill', 'calendar', 'explorer', 'draft', 'upload'];
+const CA_SLASH = ['redline', 'sign', 'board', 'document', 'share', 'oblig', 'history', 'fill', 'calendar', 'explorer', 'draft', 'upload'];
 const CA_SLASH_MAX = 8;
 function caSlashWord(k){ return String(_caT('ca_w_' + k)).trim().replace(/\s+/g, '-'); }
 function caSlashRows(w, opts = {}){
@@ -1128,9 +1360,6 @@ const CA_GO = {
   list: () => { if (typeof regPlaceSet === 'function') regPlaceSet({ show: 'list' }); return caHomeWall(); },
   /* beside the paper: Jambo's own Redlines face (stage 3), through the page's walls */
   redline: c => (typeof pdRedOpen === 'function') ? pdRedOpen(c.id) : openRedlineWorkbench(c.id),
-  /* on the Board, for that contract (stage 4): the view, the Negotiate page's
-     own board drawn a second time */
-  deal: c => (typeof hbOpenView === 'function') ? hbOpenView(c.id, 'deal') : (openRedlineWorkbench(c.id) && typeof openDealBoard === 'function' && (openDealBoard(), true)),
   sign: c => caRoomSign(c),
   /* beside the paper: Jambo's own Fill in face (stage 2) */
   fill: c => (typeof pdFillOpen === 'function') ? pdFillOpen(c.id) : caRoomTab(c, 'details'),
@@ -1162,7 +1391,7 @@ function caGo(a){
   if (a.place === 'help') return true;
   caUseBump(a.place);
   /* share and draft answer with a card in the panel (caGoCardHtml) and move nothing */
-  if (a.place === 'share' || a.place === 'draft') return true;
+  if (a.place === 'share' || a.place === 'draft' || a.place === 'next') return true;
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   caTrailPush();
   if (a.missing){ caHomeWall(); caGoRepaint(); return true; }
@@ -1186,7 +1415,7 @@ function caPlaceRun(k){
   const word = _caT('ca_w_' + k);
   if (typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof intelAsk === 'function') return intelAsk(word);
   const a = caReadPlace(word); if (!a) return false;
-  if (a.place === 'share' || a.place === 'help' || a.place === 'draft'){ caUseBump(a.place); if (typeof setView === 'function') setView('dashboard'); setTimeout(() => { if (typeof intelAsk === 'function') intelAsk(word); }, 0); return true; }
+  if (a.place === 'share' || a.place === 'help' || a.place === 'draft' || a.place === 'next'){ caUseBump(a.place); if (typeof setView === 'function') setView('dashboard'); setTimeout(() => { if (typeof intelAsk === 'function') intelAsk(word); }, 0); return true; }
   return caGo(a);
 }
 
@@ -1202,14 +1431,25 @@ function caGoCardHtml(a, i){
       <p class="ca-foot" style="margin-top:0">${_caE(_caT('ca_share_says'))}</p>
       <div class="ca-acts">${B('shareout', them ? _caT('ca_share_out', { who: them }) : _caT('ca_share_out_none'), true)}${B('sharein', _caT('ca_share_in'))}</div></div>`;
   }
-  /* DRAFT A NEW AGREEMENT (step 3, as the demo draws it): one sentence, and the one form */
+  /* DRAFT A NEW AGREEMENT (step 3, as the demo draws it): one sentence, and
+     the one form. OUR PAPER OR THEIRS (owner, 15 Oct 2026: "you do not have
+     an option to choose between that and an uploaded paper"): the card asks
+     which, and each answer is the existing door — the form (caDraftForm) or
+     the file picker the wall's "upload" uses (CA_GO.upload) */
   if (a.place === 'draft'){
     const may = (typeof canEdit !== 'function') || canEdit(), no = _caT('wz_viewers_no_create');
-    const open = may ? `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-ca-act="draftform" data-ca-turn="${i}">${_caE(_caT('ca_dr_open'))}</button>`
-      : `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary" disabled aria-disabled="true" title="${_caE(no)}">${_caE(_caT('ca_dr_open'))}</button>`;
+    const B = (act, label, lead) => may ? `<button type="button" class="ui-btn ui-btn-sm${lead ? ' ui-btn-primary' : ''}" data-ca-act="${act}" data-ca-turn="${i}">${_caE(label)}</button>`
+      : `<button type="button" class="ui-btn ui-btn-sm${lead ? ' ui-btn-primary' : ''}" disabled aria-disabled="true" title="${_caE(no)}">${_caE(label)}</button>`;
     return `<div class="ca-card ca-dr" data-ca-card="${i}"><div class="ca-ct">${_caE(_caT('ca_dr_title'))}</div>
       <p class="ca-foot" style="margin-top:0">${_caE(_caT('ca_dr_says'))}</p>${may ? '' : `<p class="ca-why">${_caE(no)}</p>`}
-      <div class="ca-acts">${open}</div></div>`;
+      <div class="ca-acts">${B('draftform', _caT('ca_dr_ours'), true)}${B('draftupload', _caT('ca_dr_theirs'), false)}</div></div>`;
+  }
+  /* WHAT COMES NEXT: the chips' own steps, each the chip's own press; with none, said */
+  if (a.place === 'next' && c && !a.missing){
+    const L = caNextSteps(c);
+    const btns = L.map((k, n) => `<button type="button" class="ui-btn ui-btn-sm${n === 0 ? ' ui-btn-primary' : ''}" data-ca-act="next:${_caE(k)}" data-ca-turn="${i}">${_caE(caNextLabel(k))}</button>`).join('');
+    return `<div class="ca-card" data-ca-card="${i}"><div class="ca-ct">${_caE(_caT('ca_next_title', { ref: caRef(c) }))}</div>
+      ${L.length ? `<div class="ca-acts">${btns}</div>` : `<p class="ca-why">${_caE(_caT('ca_next_none'))}</p>`}</div>`;
   }
   if (a.place === 'help'){
     return `<div class="ca-card" data-ca-card="${i}"><div class="ca-ct">${_caE(_caT('ca_help_title'))}</div>
@@ -1220,8 +1460,9 @@ function caGoCardHtml(a, i){
   return '';
 }
 function caGoPress(a, act){
-  if (a.place === 'draft'){ if (act === 'draftform') caDraftForm(null); return; }
+  if (a.place === 'draft'){ if (act === 'draftform') caDraftForm(null); else if (act === 'draftupload') CA_GO.upload(); return; }
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null; if (!c) return;
+  if (String(act).startsWith('next:')){ caNextRun(c, String(act).slice(5)); return; }
   if (act === 'shareout'){ if (typeof openShareModal === 'function') openShareModal(c); return; }
   if (act === 'sharein'){
     const inp = document.getElementById('igd-input'); if (!inp) return;

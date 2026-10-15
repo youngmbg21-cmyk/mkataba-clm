@@ -13202,11 +13202,12 @@ function rlWireTypeStep(){}
    it by 9. ONE PLACER now measures instead of guessing: the control's top
    stands PAPER_ZC_TOP below its scroller's top edge — in the grey band
    above the sheet, which is the same 40px on every paper — and its right
-   edge on the sheet's right edge. It runs when a row is painted, when the
+   edge PAPER_ZC_GUTTER inside the grey area's right edge (15 Oct 2026; it
+   used to follow the sheet's edge and ran from the pointer on every zoom). It runs when a row is painted, when the
    window or a sheet changes size, and on every zoom. Nothing about the
    contract moves: the row is still height 0. */
 const PAPER_ZC_TOP = 6;
-const PAPER_ZC_SHEET = '.pg-sheet, article.nego-doc, .doc-sheet, .rl-paper';
+const PAPER_ZC_GUTTER = 16;
 function _paperZcScroller(el){
   for (let e = el && el.parentElement; e && e !== document.body; e = e.parentElement){
     const o = getComputedStyle(e).overflowY; if (o === 'auto' || o === 'scroll') return e; }
@@ -13220,12 +13221,14 @@ function paperZcFit(){
     const rr = row.getBoundingClientRect(), sr = sc.getBoundingClientRect();
     const down = rr.top - sr.top + sc.scrollTop;
     row.style.setProperty('--zc-top', Math.round(PAPER_ZC_TOP - down) + 'px');
-    const sheet = [...sc.querySelectorAll(PAPER_ZC_SHEET)].find(e => e.getBoundingClientRect().width > 200);
-    if (sheet){
-      const right = Math.round(rr.right - sheet.getBoundingClientRect().right);
-      row.style.setProperty('--paper-zc-right', right + 'px');
-      if (_paperZcRO && !sheet.dataset.zcWatched){ sheet.dataset.zcWatched = '1'; _paperZcRO.observe(sheet); }
-    }
+    /* THE CONTROL STANDS STILL (owner, 15 Oct 2026: "have the zoom button
+       stay in the same location as you press to expand as opposed to chasing
+       the button"). Its right edge is the GREY AREA's — the scroller's inner
+       right edge less PAPER_ZC_GUTTER — never the sheet's, so a press of +
+       widens the paper under it and the button stays under the pointer. */
+    const right = Math.round(rr.right - (sr.left + sc.clientLeft + sc.clientWidth - PAPER_ZC_GUTTER));
+    row.style.setProperty('--paper-zc-right', right + 'px');
+    if (_paperZcRO && !sc.dataset.zcWatched){ sc.dataset.zcWatched = '1'; _paperZcRO.observe(sc); }
   });
 }
 let _paperZcRaf = 0, _paperZcRO = null;
@@ -18399,9 +18402,10 @@ const RL_SUG_VERB = {
   counter: id => `[data-rl-cp-editor-change="${id}"]`,
   reject: id => `[data-nego-reject="${id}"]`,
   accept: id => `[data-nego-accept="${id}"]`,
-  /* on Home the review door is a row of the paper line's ⋯ menu (stage 5), so
-     the menu's own button glows while the menu is shut */
-  escalate: () => '[data-rl-review], #ig-strip #ws-more',
+  /* on Home the review door is a row of the panel's Menu tab (15 Oct 2026; the
+     paper line's ⋯ went), so the row glows where the tab is open and the tab's
+     own button while it is shut */
+  escalate: () => '[data-rl-review], #pd-body .pd-menu [data-ig-review], #ig-dock [data-pd-tab="menu"]',
 };
 const _rlGlowDone = new Set();
 /* RAW: their pending asks carrying an answer the reader sent back. */

@@ -24,6 +24,12 @@
        door cards and the bell's trail rows open the Board's view.
    (7) A refresh keeps the view; the brain names the part.
    AT THE PARENT every claim FAILS: none of these names exist there.
+   THE SWITCH WENT (owner, 15 Oct 2026: "the whole page needs to go as they
+   are redundant ... History is in the board contract card, obligations has
+   its own panel and your book is useless"): the Board draws no switch, and
+   every door that opened a view lands on its home — History on the Board's
+   contract card (the strip), Obligations on the panel's tab, the rest on the
+   strip's Where we are. (1c), (6) and (7a) now pin that.
    ═══════════════════════════════════════════════════════════════════════════ */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
@@ -84,10 +90,10 @@ describe('f675 (1) one switch, for the contract on the paper', () => {
   test('1d something new put on the book (a card, an answer, a dig) steps the view aside, so it is never drawn behind it', () => {
     assert.match(strip(fnBody(HB, 'hbSave')), /if \(_hbCv\.v !== 'book' && _hbShape != null && hbShapeOf\(s\) !== _hbShape\) _hbCv = \{ v: 'book', id: _hbCv\.id \};\s*hbUndoMark\(s\);/);
   });
-  test('1c a view takes the Board whole; the book is drawn as before under the switch', () => {
+  test('1c the Board draws no switch and no view: the book is the Board (owner, 15 Oct 2026)', () => {
     const b = strip(fnBody(HB, 'hbBoardHtml'));
-    assert.match(b, /const cv = hbCvNow\(\), sw = hbCvSwitchHtml\(cv\);\s*if \(cv\.v !== 'book'\) return sw \+ hbCvBodyHtml\(cv\);/);
-    assert.match(b, /return `\$\{sw\}<div class="hb-note">/);
+    assert.doesNotMatch(b, /hbCvSwitchHtml|hbCvBodyHtml/);
+    assert.match(b, /return `<div class="hb-note">/);
   });
 });
 
@@ -132,9 +138,10 @@ describe('f675 (2) the room\'s own builders, in a second host', () => {
     assert.match(paint, /Promise\.resolve\(ensureFull\(c\)\)\.then\(\(\) => \{ _hbCvFail = null; \}, \(\) => \{ _hbCvFail = id; _hbCvAsked = null; \}\)/);
     assert.match(strip(fnBody(HB, 'hbCvSwitchHtml')), /const ready = hbCvReady\(now\), wait = ready \? '' : ` disabled title=/, 'Print, Share and Download grey with the reason meanwhile');
   });
-  test('2e the history\'s menu keeps Verify alone where the Board\'s line carries Print and Download', () => {
+  test('2e the history\'s menu carries Print and Download in every host again, the Board\'s line being gone (15 Oct 2026)', () => {
     const h = fnBody(CT, 'roomHistoryHtml');
-    assert.match(h, /\$\{opts\.board\?'':`<button type="button" id="ht-export">/);
+    assert.doesNotMatch(h, /opts\.board\?'':`<button type="button" id="ht-export">/);
+    assert.match(h, /id="ht-export"/); assert.match(h, /id="ht-print"/);
   });
   test('2f the deal board\'s own parts read alike in both hosts (the scale, the wording), not as the Negotiate page', () => {
     assert.match(NCSS, /\.hb-cv-deal \.rl-sc-line,\.redline-page \.rl-sc-line\{/);
@@ -211,10 +218,11 @@ describe('f675 (5) share: colleagues inside HaTi only', () => {
 });
 
 describe('f675 (6) every door from outside lands on the Board\'s view', () => {
-  test('6a the words and the chips', () => {
-    assert.match(CA, /deal: c => \(typeof hbOpenView === 'function'\) \? hbOpenView\(c\.id, 'deal'\)/);
+  test('6a the words and the chips: no deal word; History opens on the strip; Jambo\'s points open the Redlines face', () => {
+    assert.doesNotMatch(CA, /\bdeal: c =>/);
     assert.match(CA, /history: c => c \? \(\(typeof hbOpenView === 'function'\) \? hbOpenView\(c\.id, 'hist'\)/);
-    assert.match(CA, /open: c => hbOpenView\(c\.id, 'deal'\),\s*minor: c => hbOpenView\(c\.id, 'deal'\),/, 'Jambo\'s door cards');
+    assert.match(CA, /open: c => \(typeof pdRedOpen === 'function'\) \? pdRedOpen\(c\.id\)/);
+    assert.match(CA, /minor: c => \(typeof pdRedOpen === 'function'\) \? pdRedOpen\(c\.id\)/);
   });
   test('6b the panel\'s old Deal and History doors', () => {
     assert.match(strip(fnBody(PD, 'pdOpenOnHome')), /if \(\(tab === 'deal' \|\| tab === 'hist'\) && typeof hbOpenView === 'function'\) return hbOpenView\(c\.id, tab\);/);
@@ -224,8 +232,9 @@ describe('f675 (6) every door from outside lands on the Board\'s view', () => {
     const o = strip(fnBody(HB, 'hbOpenView'));
     assert.match(o, /window\.innerWidth < 768/);
     assert.match(o, /roomGoTab\([^;]*HB_CV_ROOM_TAB\[v\]\)/);
-    assert.match(o, /igPaperHold\(c\.id\);\s*hbCvSet\(v, c\.id\);/, 'the contract goes on the paper; the page does not turn');
-    assert.match(strip(fnBody(IG, 'igPaperHold')), /mode:igHomePaperFace\(\)===true\?'paper':'graph'/);
+    assert.match(o, /if \(v === 'oblig' && typeof window\.obOpenOnPage === 'function'\) return obOpenOnPage\(c\.id\);/, 'Obligations: the Obligations page narrowed to the contract');
+    assert.match(o, /hbStripBring\(c\.id, v === 'hist' \? 'hist' : 'where'\)/, 'History and the rest: the Board\'s contract card');
+    assert.doesNotMatch(o, /hbCvSet\(/, 'no view is turned');
   });
   test('[wall] 6d the room\'s tabs and Negotiate\'s Deal board tab stay until stage 5', () => {
     assert.match(NEGO, /function openDealBoard\(\)\{/);
@@ -234,11 +243,9 @@ describe('f675 (6) every door from outside lands on the Board\'s view', () => {
 });
 
 describe('f675 (7) a refresh, and the brain', () => {
-  test('7a the place store keeps the view and its contract; a contract chosen meanwhile wins', () => {
-    assert.match(strip(fnBody(HB, 'hbPlace')), /p\.cv = \{ v: now\.v, id: String\(now\.c\.id\) \}/);
-    const put = strip(fnBody(HB, 'hbPlacePut'));
-    assert.match(put, /if \(window\.intel && intel\.paper && String\(intel\.paper\.id\) !== String\(want\.id\)\) return;/);
-    assert.match(put, /igPaperHold\(want\.id\); hbCvSet\(want\.v, want\.id\);/);
+  test('7a the place store keeps no view: an old one is dropped', () => {
+    assert.doesNotMatch(strip(fnBody(HB, 'hbPlace')), /p\.cv\b/);
+    assert.doesNotMatch(strip(fnBody(HB, 'hbPlacePut')), /hbCvSet\(/);
   });
   test('7b the brain names the part, in a step and a lane', () => {
     const B = require('../js/brainmap.js');
