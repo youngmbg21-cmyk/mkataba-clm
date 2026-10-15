@@ -145,10 +145,16 @@ const CONTRACTS = [
 
     /* ---- 6. THE TWO DOORS ARE A MENU ---- */
     console.log('\n6 · the two doors');
-    await page.evaluate(() => setView('register'));
-    await page.waitForTimeout(900);
-    const newBtn = await page.evaluateHandle(() => [...document.querySelectorAll('button')].find(b => b.getClientRects().length && /Draft new agreement/.test(b.textContent)));
-    if (newBtn && await newBtn.evaluate(b => !!b)) {
+    /* RE-POINTED 15 Oct 2026 (the overnight build, steps 3 and 7): Home's head and the Contracts place carry no "+ Draft new agreement" (Jambo's panel has it); the two-door menu is the pages' own door, pressed here on a stream's folder page (PAGE_ACTIONS folder: 'new'). */
+    let newBtn = null;
+    for (const v of ['folder', 'pipeline']) {
+      await page.evaluate(x => { if (x === 'folder' && window.state && !state.folder && typeof visibleFolders === 'function') { const f = visibleFolders()[0]; if (f) state.folder = f.id || f; } setView(x); }, v);
+      await page.waitForTimeout(700);
+      newBtn = await page.$('#page-head [data-page-new]');
+      if (newBtn && await newBtn.isVisible()) break;
+      newBtn = null;
+    }
+    if (newBtn) {
       await newBtn.click();
       const m = await wait(page, () => !!document.querySelector('#nd-menu [data-nd-door="draft"]'));
       const md = m ? await page.evaluate(() => ({ dlg: !!document.querySelector('#modal-root [role="dialog"]'),
@@ -156,7 +162,7 @@ const CONTRACTS = [
       ok('6 the doors drop as a menu, with no dialog behind them', md && !md.dlg && md.n === 2, JSON.stringify(md));
       await page.keyboard.press('Escape');
       ok('6b Escape folds the menu away', await wait(page, () => !document.getElementById('nd-menu')));
-    } else ok('6 the Draft new agreement button is on the page', false);
+    } else ok('6 the pages\' two-door menu (openNewDoors) is there', false);
 
     /* ---- 7. THEIR RESPONSE ON TWO TABS ---- */
     console.log('\n7 · their response');

@@ -125,7 +125,8 @@ const ok = (name, good, detail) => {
         && opts.optColor !== opts.optBg, JSON.stringify(opts));
 
     /* ════════ 2. THE NEW AGREEMENT CARDS ════════ */
-    await page.evaluate(() => { const b = document.querySelector('.hm-primary'); if (b) b.click(); });
+    /* RE-POINTED 15 Oct 2026 (the overnight build, steps 3 and 7): Home's head and the Contracts place carry no "+ Draft new agreement" (Jambo's panel has it); the two-door menu is the pages' own door, opened here as they open it (openNewDoors). */
+    await page.evaluate(() => { if (typeof openNewDoors === 'function') openNewDoors(); });
     /* 23 Sep 2026: the button opens two doors first; this presses Draft from HaTi. */
     await page.waitForTimeout(400);
     await page.evaluate(() => { const d = document.querySelector('[data-nd-door="draft"]'); if (d) d.click(); });
