@@ -1927,6 +1927,14 @@ async function intelAsk(qRaw){
      me to that location on the paper"): the board's own reader is skipped, so
      the question reaches igPaperAsk and its answer carries its passages. */
   const onPaperSide=igHomePaperFace()===true&&igPaperUp();
+  /* …except "bring up MK-…" (step 8): the contract's strip on the Board, read
+     beside the paper too before any model, free (hbBringOf, the one reader;
+     the Board's own reader then lands it, hbAsk → hbStripBring) */
+  if(state.view==='dashboard' && onPaperSide && typeof window.hbBringOf==='function' && typeof window.hbAsk==='function'){
+    let br=null; try{ br=hbBringOf(q); }catch(_){ br=null; }
+    let said=null; if(br){ try{ said=hbAsk(q); }catch(_){ said=null; } }
+    if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{})); renderIntelDock(); return; }
+  }
   if(state.view==='dashboard' && !onPaperSide && typeof window.hbAsk==='function'){
     let said=null; try{ said=hbAsk(q); }catch(e){ said=null; }
     if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{}, rdOf(), typeof window.hbBoardReplyMeta==='function'?hbBoardReplyMeta():{})); renderIntelDock(); return; }

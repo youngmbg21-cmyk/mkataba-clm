@@ -47,7 +47,7 @@ const until = async (fn, ms = 8000, step = 150) => { const end = Date.now() + ms
     return page;
   };
   const openSigning = page => page.evaluate(async () => { const c = getContract('MK-A2'); await ensureFull(c);
-    openWorkspace(c.id); await new Promise(r => setTimeout(r, 500)); roomGoTab(c, 'sign'); await new Promise(r => setTimeout(r, 500)); });
+    openWorkspace(c.id, { room: true }); await new Promise(r => setTimeout(r, 500)); roomGoTab(c, 'sign'); await new Promise(r => setTimeout(r, 500)); });
   const stored = () => W.admin.json('/api/contracts/MK-A2');
   const stepOf = x => (x.approvalChain || []).find(s => s.ruleId === 'r1') || {};
   try {

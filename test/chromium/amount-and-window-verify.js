@@ -66,7 +66,7 @@ const day = off => { const d = new Date(); d.setDate(d.getDate() + off); return 
       { id: 'ob_4', desc: 'Insurance certificate', due: day(-40), status: 'done', completedAt: day(-38), amount: 250000, party: 'ours' },
     ]);
     await page.waitForTimeout(1200);
-    await page.evaluate(id => { openWorkspace(id); }, cid);
+    await page.evaluate(id => { openWorkspace(id, { room: true }); }, cid);
     await page.waitForTimeout(1600);
     await page.evaluate(id => roomGoTab(getContract(id), 'oblig'), cid);
     await page.waitForTimeout(900);
@@ -194,7 +194,7 @@ const day = off => { const d = new Date(); d.setDate(d.getDate() + off); return 
       wl.cols === 6 && (wl.over === null || wl.over <= 1), JSON.stringify(wl));
 
     /* ============ 4. FIND OBLIGATIONS — THE DUPLICATE IS SHOWN ========= */
-    await page.evaluate(id => { openWorkspace(id); }, cid);
+    await page.evaluate(id => { openWorkspace(id, { room: true }); }, cid);
     await page.waitForTimeout(1000);
     await page.evaluate(id => roomGoTab(getContract(id), 'oblig'), cid);
     await page.waitForTimeout(700);

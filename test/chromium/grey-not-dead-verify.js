@@ -78,7 +78,7 @@ const READ = sel => {
     const c = window.state.contracts.find(x => x.status === 'Under Review')
       || window.state.contracts.find(x => x.status !== 'Signed');
     await (window.ensureFull ? window.ensureFull(c) : Promise.resolve());
-    window.openWorkspace(c.id);
+    window.openWorkspace(c.id, { room: true });
     await new Promise(r => setTimeout(r, 900));
     return c.id;
   });

@@ -195,7 +195,7 @@ const check = (name, ok, detail) => {
        then — an earlier draft of this check pressed 700ms into
        `openWorkspace`, and the room's own render landed afterwards and put the
        tab back, which is a fault in the PROBE and not in the product. */
-    await page.evaluate((id) => openWorkspace(id), cid);
+    await page.evaluate((id) => openWorkspace(id, { room: true }), cid);
     await page.waitForTimeout(1200);
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
        Signing tab went home — the same door opens Jambo's Before you sign

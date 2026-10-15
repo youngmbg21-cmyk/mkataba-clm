@@ -131,7 +131,7 @@ let _hbCv = { v: 'book', id: null };
 function hbFresh(){
   return { face: 'board', lens: 'all', panels: [], path: [], prep: 'open', screen: null, scrPick: 0,
     watches: [], chartWatches: [], seen: null, saved: [], seq: 0, found: null, recipe: {}, digBig: false,
-    ins: null, insKept: {}, insOff: {}, keptSent: '', why: {}, undo: [], undoSeq: 0, an: {}, sy: {}, refs: {}, myq: [] };
+    ins: null, insKept: {}, insOff: {}, keptSent: '', why: {}, undo: [], undoSeq: 0, an: {}, sy: {}, refs: {}, myq: [], strips: [] };
 }
 /* The board as this person left it. Read once per sitting and per person; a
    value that does not parse, or a word this version does not know, falls
@@ -173,6 +173,18 @@ function hbS(){
     if (typeof v.keptSent === 'string') s.keptSent = v.keptSent.slice(0, 4000);
     if (typeof v.insFold === 'boolean') s.insFold = v.insFold;
     if (Array.isArray(v.path)) s.path = v.path.filter(k => typeof k === 'string').slice(-HB_PATH_MAX);
+    /* THE CONTRACTS BROUGHT UP, AS STRIPS (the overnight work order, step 8;
+       js/views/boardstrip.js): one not kept belongs to the day it was brought
+       up, a kept one stays until it is closed. A trail that ended on a
+       contract's old card (a 'c:' key) comes back as that contract's strip. */
+    if (Array.isArray(v.strips)) s.strips = v.strips.filter(x => x && typeof x.id === 'string' && x.id).slice(0, 12)
+      .map(x => ({ id: x.id.slice(0, 80), page: ['ov', 'where', 'hist', 'details'].includes(x.page) ? x.page : 'ov', kept: !!x.kept,
+        day: /^\d{4}-\d{2}-\d{2}$/.test(String(x.day || '')) ? x.day : '', at: String(x.at || '').slice(0, 8) }))
+      .filter(x => x.kept || x.day === hbToday());
+    { const ck = s.path.filter(k => /^c:/.test(k));
+      if (ck.length){ const id = ck[ck.length - 1].slice(2);
+        if (id && !s.strips.some(x => x.id === id)) s.strips.unshift({ id, page: 'ov', kept: false, day: hbToday(), at: '' });
+        s.path = s.path.filter(k => !/^c:/.test(k)); } }
     if (Array.isArray(v.figs)) s.figs = v.figs.filter(k => HB_FIG_KEYS.includes(k)).filter((k, i, a) => a.indexOf(k) === i).slice(0, HB_FIGS_MAX);
     if (Array.isArray(v.watches)) s.watches = v.watches.filter(w => w && HB_FIG_KEYS.includes(w.k)
       && (w.dir === 'above' || w.dir === 'below') && isFinite(Number(w.n))).slice(0, HB_WATCH_MAX)
@@ -5486,6 +5498,7 @@ function hbBoardHtml(){
     ${bs.box}
     ${hbBookHtml(d, moved, base && base.at)}
     ${hbPrepHtml(A, base && base.at)}
+    ${typeof window.bsStripsHtml === 'function' ? window.bsStripsHtml() : ''}
     ${hbFocusHtml()}
     <div class="hb-grid">${(received || panels) ? hbGridBalanced(received + panels) : `<div class="hb-empty">${_hbE(i18t('hb_empty'))}${hbSetupDoorHtml()}</div>`}</div>${hbSheetHtml()}`;
 }
@@ -6520,6 +6533,8 @@ function hbPaintBoard(opts){
   /* a contract's view (stage 4): its host is filled by its own painter */
   host.classList.toggle('is-cview', !!host.querySelector(':scope > #hb-cv-body'));
   hbCvPaint();
+  /* the contracts' strips (step 8): Where we are, History and Details are filled by their own painters */
+  if (typeof window.bsPaintHosts === 'function') try { window.bsPaintHosts(); } catch (_){}
   hbGiftsSeenSay();
   hbPaintHead();
   /* an expanded chart takes the room: the dock FOLDS to its door (it is not
@@ -6792,6 +6807,12 @@ function hbShowOnMap(ids, label){
    of starting a fresh trail that drops Juno. A typed question still starts
    afresh (`keep` is the press's, never the asker's). */
 function hbDig(key, deeper, keep){
+  /* ---- A CONTRACT LANDS AS ITS STRIP (the overnight work order, step 8;
+     owner's "Go", 14 Oct 2026) ---- "Bring up MK-…", its chip, ⌘K and a
+     contract row pressed on the Board all ask for 'c:<id>'; the old card
+     (hbCardHtml) is redrawn as the Lifeline strip below Today's insights
+     (js/views/boardstrip.js). The side list's sheet keeps its own card. */
+  if (/^c:/.test(String(key || '')) && typeof window.hbStripBring === 'function' && window.hbStripBring(String(key).slice(2))) return;
   const s = hbS();
   const path = s.path || [];
   const ck = (keep && !deeper && !/^(q:|ls$)/.test(hbRootKey(key)) && hbCountLabel(s.lens)) ? hbCountKey() : null;
@@ -8553,11 +8574,26 @@ function hbOpenOne(raw){
   const f = hbFindContract(t);
   return f && f.c ? f.c : null;
 }
+/* "BRING UP MK-…" ON THE PAPER TOO (step 8): the strip is the Board's, but
+   the words are read where Jambo's box stands beside the paper as well,
+   before any model, and land through the one door (hbDig 'c:' →
+   hbStripBring), free. Only the explicit bringing words: on the paper "open
+   MK-…" stays that contract's paper (caPlaceOf) and a question that merely
+   names a contract stays a question about it. EXPLORER STAYS AS DESIGNED
+   (the owner's words; f447 (3)): the map answers there, as it always did. */
+const HB_BRING_RE = /^\s*(?:(?:can|could|would) you |please )*(?:bring up|pull up|ta fram)\s+\S/i;
+function hbBringOf(qRaw){
+  const raw = String(qRaw == null ? '' : qRaw);
+  if (!HB_BRING_RE.test(raw)) return null;
+  const c = hbOpenOne(raw);
+  return c ? { id: c.id } : null;
+}
 function hbAskReadingOf(qRaw){
   const raw = String(qRaw == null ? '' : qRaw);
   if (!raw.trim()) return null;
   const s = hbS();
   if (HB_WHY_ASK_RE.test(raw)) return { road: 'copilot', why: true, q: raw };
+  if (s.face === 'paper'){ const br = hbBringOf(raw); if (br) return { road: 'free', kind: 'card', r: { act: 'card', id: br.id }, q: raw }; }
   /* A VERIFIED VIEW ANSWERS FIRST (Part 9): the company's own answer to the
      questions an admin named, exact after normalising, before any reading */
   if (s.face === 'board'){ const v = hbVerifiedHit(raw); if (v) return { road: 'free', kind: 'verified', v, q: raw }; }
@@ -10023,6 +10059,6 @@ Object.assign(window, { hbOpenCalendar, HB_CVIEWS, HB_CV_WORD, HB_CV_ROOM_TAB, h
   hbCardEdit, hbHowWord, hbRecipeWords, hbSplitModelWord, hbOrderWord, hbReadCompareOf, hbReadTwoOf, hbReadingCore, hbRcCur, hbRcCurHas,
   hbBucketPrev, hbBucketMove, hbBucketStart, hbBucketEnd, hbWinSpanOk,
   HB_BOARD_ACTIONS, HB_ACTIONS_MAX, hbWhichOf, hbAddCard, hbPanelAct, hbCrumb, hbArrange, hbPanelName, hbActionClean, hbCardRef, hbBoardApply, hbRcMoreToggle, HB_GUIDE_TOP, HB_GUIDE_MAX, hbDataGuide,
-  HB_CHK_GROUPS_MAX, HB_CHK_EMPTY_SHARE, hbCardCheck, hbActionCheck, hbActionsCheck, hbRepairNote, hbActionTitle, hbBoardTakesChecked, hbBoardNoMap, hbMapAsked, hbRecipeOfRead, hbOpenOne, HB_MAP_FIELDS, HB_NAMES_CHART_RE,
+  HB_CHK_GROUPS_MAX, HB_CHK_EMPTY_SHARE, hbCardCheck, hbActionCheck, hbActionsCheck, hbRepairNote, hbActionTitle, hbBoardTakesChecked, hbBoardNoMap, hbMapAsked, hbRecipeOfRead, hbOpenOne, HB_BRING_RE, hbBringOf, HB_MAP_FIELDS, HB_NAMES_CHART_RE,
   HB_UNDO_MAX, hbShapeOf, hbUndoMark, hbUndoTop, hbUndo, hbNoteUndo, hbUndoHtml, hbTakeMeta, hbPreviewHtml, hbIsBig, hbActionWords, hbBoardAnswer, hbPreviewPress, hbPreviewSettle,
-  HB_CHOICES_MAX, hbAmbiguity, hbChoicePress });
+  HB_CHOICES_MAX, hbAmbiguity, hbChoicePress, hbHost, hbPage });

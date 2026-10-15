@@ -276,7 +276,7 @@ const seen = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
     /* ================= 3. NO BANDS ON THE ROOM'S FIRST TAB =================
        The room opens on the Overview since the Document tab went (11 Oct 2026,
        owner); the scan below is of whichever tab it opens on. */
-    await page.evaluate(id => openWorkspace(id), built.id);
+    await page.evaluate(id => openWorkspace(id, { room: true }), built.id);
     await page.waitForTimeout(1600);
     await page.screenshot({ path: path.join(OUT, '03-document.png') });
     const docBands = await page.evaluate(BAND_SCAN);
@@ -354,7 +354,7 @@ const seen = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
     await page.evaluate(() => document.querySelector('[data-ws-tab="stands"]').click());
     await tabOn('stands');
     journey.push(['on Where we are', await cornerNow()]);
-    await page.evaluate(id => openWorkspace(id), built.id);     // the room re-renders under them
+    await page.evaluate(id => openWorkspace(id, { room: true }), built.id);     // the room re-renders under them
     await page.waitForTimeout(1300);
     await page.evaluate(() => document.querySelector('[data-ws-tab="stands"]').click());
     await tabOn('stands');
@@ -383,7 +383,7 @@ const seen = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
        press is how a handler comes to be added twice. */
     /* RE-POINTED 14 Oct 2026 (stage 5): back in the room, six presses across
        the two tabs it still draws */
-    await page.evaluate(id => openWorkspace(id), built.id);
+    await page.evaluate(id => openWorkspace(id, { room: true }), built.id);
     await page.waitForFunction(() => !!document.querySelector('[data-ws-tab="stands"]'), null, { timeout: 6000 }).catch(() => {});
     const pressed = await page.evaluate(async () => {
       for (const k of ['terms', 'stands', 'terms', 'stands', 'stands', 'terms']){

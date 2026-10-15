@@ -226,7 +226,7 @@ const owed = (page, id) => page.evaluate(x => {
     let ov2 = ov;
     if (!ov2) {
       /* Fill from document rides the Details tab (12 Oct 2026) */
-      await page.evaluate(() => { openWorkspace('MK-FD2'); roomGoTab(getContract('MK-FD2'), 'details'); });
+      await page.evaluate(() => { openWorkspace('MK-FD2', { room: true }); roomGoTab(getContract('MK-FD2'), 'details'); });
       await waitFor(page, () => !!document.getElementById('kt-fill'));
       ov2 = await page.evaluate(() => {
         const b = document.getElementById('kt-fill');

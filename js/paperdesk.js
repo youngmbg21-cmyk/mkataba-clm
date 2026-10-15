@@ -1360,7 +1360,7 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
   document.addEventListener('drop', e => { const z = zone(e); if (!z) return; e.preventDefault(); z.classList.remove('is-over');
     const fl = (e.dataTransfer && e.dataTransfer.files) || [], f = fl[0];
     /* A CAP IS A FACT, NEVER A SILENT TRIM: two files dropped at once — the first is read, and that is said */
-    if (f && fl.length > 1 && !pdDropBusyNow() && typeof toast === 'function') toast(_pdT('pd_drop_one', { name: f.name }), 'warn');
+    if (f && fl.length > 1 && !pdDropBusyNow() && typeof toast === 'function') toast(_pdT('pd_drop_single', { name: f.name }), 'warn');
     if (f) pdDropTake(f); });
   document.addEventListener('change', e => { const s = (e.target && e.target.closest) ? e.target.closest('[data-pd-drop-stream]') : null; if (s) _pdDropStream = s.value || ''; });
   document.addEventListener('click', e => {

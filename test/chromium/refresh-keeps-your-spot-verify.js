@@ -104,7 +104,7 @@ const check = (name, pass, detail) => {
        Board's History view for this contract (#hb-cv-body[data-hb-cv="hist"],
        kept over a refresh by hbPlace's `cv`). What must come back is that
        view, on that contract. */
-    await page.evaluate(() => openWorkspace('MK-R3'));
+    await page.evaluate(() => openWorkspace('MK-R3', { room: true }));
     await until(() => state.view === 'workspace' && state.activeId === 'MK-R3');
     await page.evaluate(() => roomGoTab(getContract('MK-R3'), 'history'));
     await until(() => state.view === 'dashboard' && window.hbCvNow && hbCvNow().v === 'hist' && !!document.querySelector('#hb-cv-body[data-hb-cv="hist"]'));

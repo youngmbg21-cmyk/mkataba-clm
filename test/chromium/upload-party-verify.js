@@ -74,7 +74,7 @@ const check = (name, pass, detail) => {
       /* RE-POINTED 11 Oct 2026: the room's Document tab is gone (owner); the
          room opens on the Overview and the paper is Home's Document face. */
       state.activeId = 'UPX-1';
-      setView('workspace');
+      openWorkspace(state.activeId, { room: true });
     });
     await page.waitForFunction(() => /3rd Party Contract/.test(document.getElementById('content').innerText),
       null, { timeout: 8000 }).catch(() => {});
@@ -111,7 +111,7 @@ const check = (name, pass, detail) => {
     await page.evaluate(() => {
       const c = state.contracts.find(x => x.id === 'UPX-1');
       c.party = 'Highland Juice Kenya Ltd';
-      setView('workspace');
+      openWorkspace(state.activeId, { room: true });
     });
     await page.waitForTimeout(600);
     body = await page.evaluate(() => document.getElementById('content').innerText);
@@ -243,7 +243,7 @@ const check = (name, pass, detail) => {
       filed.source === 'upload' && filed.party === 'Momo Beach Distillers Ltd',
       JSON.stringify(filed));
 
-    await page.evaluate(() => setView('workspace'));
+    await page.evaluate(() => openWorkspace(state.activeId, { room: true }));
     await page.waitForTimeout(700);
     body = await page.evaluate(() => document.getElementById('content').innerText);
     check('and the freshly filed upload\'s page draws, naming that entity — the loop the owner was stuck in, closed',

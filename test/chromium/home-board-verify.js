@@ -126,16 +126,20 @@ const CONTRACTS = [
     await page.screenshot({ path: path.join(OUT, '3-side-by-side.png') });
 
     /* ===== 4. THE CONTRACT CARD, AND SHOW ON THE MAP ===== */
+    /* RE-POINTED 15 Oct 2026 (the overnight work order, step 8): the contract
+       card is the Lifeline strip now, below Today's insights; Show on the map
+       is one press away in its ⋯ */
     await ask(page, 'bring up MK-S1');
-    ok('4a "bring up MK-S1" draws the contract card', await until(page, () =>
-      !!document.querySelector('#hb-focus .hb-cref') && /MK-S1/.test(document.querySelector('#hb-focus .hb-cref').textContent)));
-    await page.click('#hb-focus [data-hb-map]').catch(() => {});
+    ok('4a "bring up MK-S1" draws the contract\'s strip', await until(page, () =>
+      !!document.querySelector('#bs-strip-MK-S1 .bs-ref') && /MK-S1/.test(document.querySelector('#bs-strip-MK-S1 .bs-ref').textContent)));
+    await page.click('#bs-strip-MK-S1 [data-bs-dots]').catch(() => {});
+    await page.click('#bs-strip-MK-S1 .bs-menu [data-hb-map]').catch(() => {});
     ok('4b "show on the map" flips to Explorer and builds the map', await until(page, () =>
       hbS().face === 'explorer' && igMapUp() && document.getElementById('hb-board').hidden, null, 10000));
     ok('4c the contract is lit on the map', await until(page, () => (intel.lenses || []).some(l => (l.ids || []).includes('MK-S1'))));
     await page.click('[data-hb-face="board"]').catch(() => {});
     await until(page, () => hbS().face === 'board' && !document.getElementById('hb-board').hidden);
-    await page.click('[data-hb-crumb="-1"]').catch(() => {});
+    await page.click('[data-bs-x="MK-S1"]').catch(() => {});
 
     /* ===== 5. WHAT MOVED ===== */
     await page.evaluate(() => { const s = hbS(); const base = JSON.parse(JSON.stringify(hbSeenNow(hbBookData('all'))));

@@ -152,7 +152,7 @@ async function readWin(page){
     ok('the stage: an NDA, a contract with a guarantor, a contract with no route', !!(staged.nda && staged.dist && staged.fresh), staged);
 
     const openOn = async id => {
-      await page.evaluate(id => { if (document.getElementById('sr-win')) closeModal(); openWorkspace(id); }, id); await pause(1000);
+      await page.evaluate(id => { if (document.getElementById('sr-win')) closeModal(); openWorkspace(id, { room: true }); }, id); await pause(1000);
       await page.evaluate(id => { roomGoTab(getContract(id), 'sign'); }, id); await pause(900);
       await page.evaluate(id => { openSignerPlanEditor(getContract(id)); }, id); await pause(500);
       return readWin(page);

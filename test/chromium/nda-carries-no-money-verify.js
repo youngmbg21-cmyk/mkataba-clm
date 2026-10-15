@@ -166,7 +166,7 @@ const check = (name, pass, detail) => {
       both.noteItems > 0 && both.splitLine, `${both.noteItems} note(s)`);
 
     /* ---- and on screen, in the dialog itself ---- */
-    await page.evaluate(id => { state.activeId = id; state.selId = id; setView('workspace'); }, cid);
+    await page.evaluate(id => { state.activeId = id; state.selId = id; openWorkspace(state.activeId, { room: true }); }, cid);
     await page.waitForTimeout(1600);
     await page.evaluate(id => openShareModal(getContract(id)), cid);
     await page.waitForTimeout(1400);

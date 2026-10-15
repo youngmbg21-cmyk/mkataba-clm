@@ -60,7 +60,7 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
      the room is the row menu's Open workspace, which is openWorkspace. */
   await page.evaluate(() => {
     const row = document.querySelector('#reg-tbody [data-row]');
-    openWorkspace(row.getAttribute('data-row'));
+    openWorkspace(row.getAttribute('data-row'), { room: true });
   });
   await page.waitForTimeout(1400);
 

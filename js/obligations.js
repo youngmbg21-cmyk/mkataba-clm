@@ -1156,7 +1156,7 @@ async function runFindObligations(c, opts){
     c.triage.steps.oblig = { ok: true, found: found.slice(), cut: '' };
     persist(c);
     if(typeof window.paintKtTriage === 'function' && document.getElementById('kt-triage-slot')
-      && (!window.contractOnScreen || contractOnScreen(c))) paintKtTriage(c);
+      && (!window.contractOnScreen || (window.contractOverviewShown ? contractOverviewShown(c) : contractOnScreen(c)))) paintKtTriage(c);
   }
   /* ---- THE ANSWER STAYS WITH ITS OWN CONTRACT (26 Sep 2026, the overnight
      clean-up) ----
@@ -3187,12 +3187,17 @@ function obligationShowInContract(cid, quote){
   const c = window.getContract ? getContract(cid) : null;
   if(!c) return;
   const inRoom = (typeof state !== 'undefined') && state.view === 'workspace' && String(state.activeId) === String(cid);
-  if(!inRoom && window.openWorkspace) openWorkspace(cid);
+  /* THE PASSAGE IS ON HOME'S PAPER (the room retired, the overnight work
+     order, step 8): straight there, the way the room's Document door went
+     (pdOpenOnHome on Jambo); the room only by name or on the phone */
+  const home = !inRoom && !(typeof window !== 'undefined' && window.innerWidth && window.innerWidth < 768)
+    && typeof window.pdOpenOnHome === 'function' && !!pdOpenOnHome(cid, 'copilot');
+  if(!inRoom && !home && window.openWorkspace) openWorkspace(cid);
   let n = 0;
   const tryIt = () => {
     n++;
     const live = window.getContract ? getContract(cid) : c;
-    if(n === 1 && window.roomGoTab){ try{ roomGoTab(live, 'docs'); }catch(_){} }
+    if(n === 1 && !home && window.roomGoTab){ try{ roomGoTab(live, 'docs'); }catch(_){} }
     let ok = false;
     try{ ok = !!(typeof window.scrollToQuote === 'function' && window.scanCanvas && scanCanvas() && scrollToQuote(quote)); }catch(_){ ok = false; }
     if(ok) return;

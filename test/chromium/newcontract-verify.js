@@ -147,7 +147,7 @@ const FORM = () => {
   check('a new draft lands beside the paper, Jambo\'s panel on Fill in',
     landed.view === 'dashboard' && landed.paper === skipped.id && landed.face, JSON.stringify(landed));
   /* the room's head is what 2c measures: opened as a reader opens it */
-  await page.evaluate(id => window.openWorkspace(id), skipped.id);
+  await page.evaluate(id => window.openWorkspace(id, { room: true }), skipped.id);
   await page.waitForTimeout(600);
 
   /* ---------- 2c. THE HEAD DOES NOT OFFER A DOOR TO THE PAGE YOU ARE ON ----
@@ -210,9 +210,9 @@ const FORM = () => {
      is behaviour this page has always had and which the landing must not
      disturb. So the round trip goes via a different agreement. */
   const other = await page.evaluate(() => (window.state.contracts.find(x => x.id !== window.state.activeId) || {}).id);
-  await page.evaluate(id => window.openWorkspace(id), other);
+  await page.evaluate(id => window.openWorkspace(id, { room: true }), other);
   await page.waitForTimeout(1000);
-  await page.evaluate(id => window.openWorkspace(id), skipped.id);
+  await page.evaluate(id => window.openWorkspace(id, { room: true }), skipped.id);
   await page.waitForTimeout(1200);
   const again = await page.evaluate(() => {
     const on = document.querySelector('#ws-tabs [data-ws-tab][aria-selected="true"]');

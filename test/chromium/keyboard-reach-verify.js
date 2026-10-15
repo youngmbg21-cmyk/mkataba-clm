@@ -225,7 +225,7 @@ async function tabAround(page, sel, n = 25) {
   }
 
   /* ---------- 9 · THE CONTRACT ROOM'S TAB ROW ---------- */
-  await page.evaluate(() => { openWorkspace('MK-82'); }); await pause(900);
+  await page.evaluate(() => { openWorkspace('MK-82', { room: true }); }); await pause(900);
   {
     const t0 = await page.evaluate(() => [...document.querySelectorAll('#ws-tabs [data-ws-tab]')]
       .map(b => ({ k: b.getAttribute('data-ws-tab'), sel: b.getAttribute('aria-selected'), tab: b.tabIndex })));

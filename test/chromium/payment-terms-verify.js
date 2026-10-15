@@ -352,10 +352,13 @@ const EXTRA = [
     const target = tbl.rows[0] && tbl.rows[0].id;
     await page.click(`#ig-pt [data-pt-open="${target}"]`);
     await page.waitForTimeout(1400);
-    const landed = await page.evaluate(() => ({ view: state.view, id: state.activeId }));
-    check('5k pressing a row opens that contract',
-      landed.view === 'workspace' && landed.id === target,
-      `${landed.view} · ${landed.id} (wanted ${target})`);
+    /* RE-POINTED 15 Oct 2026 (step 8, the room retired): a row's door opens
+       the contract's strip on Home's Board, at the top, the room not drawn */
+    const landed = await page.evaluate(() => { const top = document.querySelector('#bs-strips > .bs-strip');
+      return { view: state.view, id: state.activeId, strip: top ? top.getAttribute('data-bs-id') : null, room: !!document.getElementById('ws-tabs') }; });
+    check('5k pressing a row opens that contract (its strip on the Board)',
+      landed.view === 'dashboard' && landed.id === target && landed.strip === target && !landed.room,
+      `${landed.view} · ${landed.id} · strip ${landed.strip} (wanted ${target})`);
 
     /* ─── 6 · nothing is folded away ─── */
     await page.evaluate(() => { intel.tab = 'payterms'; setView('intel'); });

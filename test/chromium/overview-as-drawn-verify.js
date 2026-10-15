@@ -135,7 +135,7 @@ const SEC = (suffix) => {
     const page = await ctx.newPage();
     page.on('pageerror', e => errors.push(e.message));
     await signIn(page, h.base, 'admin@example.co.ke', 'adminpassword1');
-    await page.evaluate(x => { state.activeId = x; state.selId = x; setView('workspace'); }, c.id);
+    await page.evaluate(x => { state.activeId = x; state.selId = x; openWorkspace(state.activeId, { room: true }); }, c.id);
     await page.waitForTimeout(1600);
     await page.click('#ws-tabs [data-ws-tab="terms"]');
     await page.waitForTimeout(1200);
@@ -579,7 +579,7 @@ const SEC = (suffix) => {
        drops the remembered folds; the session cookie keeps us signed in. */
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.waitForTimeout(1600);
-    await page.evaluate(x => { state.activeId = x; state.selId = x; setView('workspace'); }, c.id);
+    await page.evaluate(x => { state.activeId = x; state.selId = x; openWorkspace(state.activeId, { room: true }); }, c.id);
     await page.waitForTimeout(1400);
     await page.click('#ws-tabs [data-ws-tab="terms"]');
     await page.waitForTimeout(1200);

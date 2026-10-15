@@ -230,7 +230,7 @@ const PROBE = () => {
       bad.length === 0, bad.slice(0, 4).join(' | '));
 
     // ---- a contract open, then the workbench ----
-    await page.evaluate(() => window.openWorkspace(window.state.contracts[0].id));
+    await page.evaluate(() => window.openWorkspace(window.state.contracts[0].id, { room: true }));
     await page.waitForTimeout(700);
     const room = await page.evaluate(PROBE);
     const roomTabs = await page.evaluate(() =>

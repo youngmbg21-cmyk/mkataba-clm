@@ -58,7 +58,7 @@ const SCREENS = [
   ['reports',   async p => { await p.evaluate(() => setView('reports'));   await pause(900); }],
   ['calendar',  async p => { await p.evaluate(() => setView('calendar'));  await pause(600); }],
   ['templates', async p => { await p.evaluate(() => setView('templates')); await pause(600); }],
-  ['contract',  async p => { await p.evaluate(() => { openWorkspace('MK-82'); roomGoTab(getContract('MK-82'), 'docs'); }); await pause(800); }],
+  ['contract',  async p => { await p.evaluate(() => { openWorkspace('MK-82', { room: true }); roomGoTab(getContract('MK-82'), 'docs'); }); await pause(800); }],
   ['keyterms',  async p => { await p.evaluate(() => roomGoTab(getContract('MK-82'), 'terms'));   await pause(600); }],
   /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
      Signing and History tabs went home, and the Negotiate page folded into
@@ -296,7 +296,7 @@ const SWEEP = KNOWN => {
   /* ---------- 4 · THE TEXT-SIZE STEPPER AT NIGHT ---------- */
   {
     const { ctx, page } = await open('dark');
-    await page.evaluate(() => { openWorkspace('MK-82'); roomGoTab(getContract('MK-82'), 'docs'); });
+    await page.evaluate(() => { openWorkspace('MK-82', { room: true }); roomGoTab(getContract('MK-82'), 'docs'); });
     await pause(800);
     const step = await page.evaluate(() => {
       const b = document.querySelector('.rl-type-step button');

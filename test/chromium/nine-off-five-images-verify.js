@@ -128,7 +128,7 @@ const MARK = cid => {
     /* THE STRIP IS ON THE OVERVIEW TAB, and a record already Under Review
        opens on the Document tab — so the stage says which tab it means rather
        than hoping. */
-    await page.evaluate(i => { openWorkspace(i); }, id); await pause(1400);
+    await page.evaluate(i => { openWorkspace(i, { room: true }); }, id); await pause(1400);
     await page.evaluate(() => { const b = document.querySelector('#ws-tabs [data-ws-tab="terms"]');
       if (b) b.click(); }); await pause(1200);
     const strip = await page.evaluate(() => {

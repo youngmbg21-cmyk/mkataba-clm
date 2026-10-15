@@ -62,7 +62,7 @@ const BODY = '<h1>SOFTWARE AS A SERVICE AGREEMENT</h1>'
     await page.waitForTimeout(2400);
 
     /* ===== 7. NO SEND TO COUNTERPARTY ===== */
-    await page.evaluate(() => openWorkspace('MK-N1'));
+    await page.evaluate(() => openWorkspace('MK-N1', { room: true }));
     await page.waitForTimeout(1500);
     const head = await page.evaluate(() => ({
       send: !!document.querySelector('#ws-next-action[data-na="share"]'),

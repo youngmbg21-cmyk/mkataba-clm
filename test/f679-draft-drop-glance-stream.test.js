@@ -287,7 +287,7 @@ describe('f679 (4) the drop area: the upload\'s own path, no pop-up', () => {
     assert.match(t, /const away = !\(typeof document !== 'undefined' && document\.getElementById\('pd-drop'\)\);/);
     assert.match(t, /if \(away && typeof toast === 'function'\) toast\(said, 'ok', \{ busy: true, dwell: PD_DROP_TOAST_MS \}\);/);
     assert.match(t, /if \(away\) pdDropToastOff\(said\);/);
-    assert.match(strip(PD), /fl\.length > 1 [^\n]*toast\(_pdT\('pd_drop_one', \{ name: f\.name \}\), 'warn'\)/);
+    assert.match(strip(PD), /fl\.length > 1 [^\n]*toast\(_pdT\('pd_drop_single', \{ name: f\.name \}\), 'warn'\)/);
   });
   test('4e who we are is asked in Fill in, our entities offered', () => {
     const b = fnBody(CONTRACT, 'detBasicsHtml');
@@ -421,7 +421,7 @@ describe('f679 (6) the stream in Fill in', () => {
 describe('f679 (7) every word in both books', () => {
   const KEYS = ['ca_wall_upload', 'ca_wall_draft', 'ca_dr_title', 'ca_dr_says', 'ca_dr_open', 'ca_dr_new', 'ca_dr_not_yet', 'ca_dr_what', 'ca_dr_from',
     'ca_dr_with', 'ca_dr_stream', 'ca_dr_what_none', 'ca_dr_from_none', 'ca_dr_with_none', 'ca_dr_stream_form', 'ca_dr_change', 'ca_dr_no_ai',
-    'na_sub_asked', 'na_stream_first', 'na_stream_choose', 'pd_drop_one', 'pd_ff_stream', 'pd_ff_stream_never', 'pd_ff_stream_ro', 'pd_wall_hello', 'pd_wall_hello_view', 'pd_drop_t',
+    'na_sub_asked', 'na_stream_first', 'na_stream_choose', 'pd_drop_single', 'pd_ff_stream', 'pd_ff_stream_never', 'pd_ff_stream_ro', 'pd_wall_hello', 'pd_wall_hello_view', 'pd_drop_t',
     'pd_drop_sub', 'pd_drop_cost', 'pd_drop_cost_noai', 'pd_drop_pick', 'pd_drop_again', 'pd_drop_reading', 'ca_drop_busy', 'pd_gl_title',
     'pd_gl_details_one', 'pd_gl_details_other', 'pd_gl_risks_one', 'pd_gl_risks_other', 'pd_gl_unsent_one', 'pd_gl_unsent_other', 'pd_gl_signers',
     'pd_gl_fill', 'pd_gl_redlines', 'pd_gl_share', 'pd_gl_signing', 'pd_gl_none',

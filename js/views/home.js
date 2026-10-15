@@ -1670,6 +1670,23 @@ function needsYouGo(kind, id){
   /* SIGNING IS BESIDE THE PAPER (the one-page Home plan, stage 5): Jambo's
      Before you sign face on Home, without the room drawn on the way */
   if(kind==='sign' && window.roomOpenAt){ roomOpenAt(c.id,'sign'); return true; }
+  /* ---- THE ROOM IS RETIRED (the overnight work order, step 8; owner's "Go",
+     14 Oct 2026) ---- a renewal is decided on the Overview's own renewal
+     card, which is the contract strip's Details page on Home's Board now
+     (roomOverviewOpen: the room only on the phone); a given note opens beside
+     Home's paper, where the notes drawer lives (the paper's Notes door). */
+  if(kind==='renewal' && window.roomOverviewOpen){
+    roomOverviewOpen(c);
+    let n=0; const land=()=>{ const el=document.getElementById('renewal-host');
+      if(el&&el.getBoundingClientRect().height>0){ try{ el.scrollIntoView({ block:'center' }); }catch(_){} return; }
+      if(++n<20) setTimeout(land,120); };
+    setTimeout(land,60);
+    return true;
+  }
+  if(kind==='note' && window.pdOpenOnHome && !(window.innerWidth&&window.innerWidth<768) && pdOpenOnHome(c.id,'plain')){
+    if(window.openNotesPanel) try{ openNotesPanel(c.id,null,{force:true}); }catch(_){}
+    return true;
+  }
   openWorkspace(c.id);
   /* A GIVEN NOTE IS ANSWERED IN THE DRAWER IT LIVES IN — the same door the
      note's own count presses, so there is one way to reach a note. */

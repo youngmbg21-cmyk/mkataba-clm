@@ -120,7 +120,7 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
     /* ---- 2. THE CONTRACT ROOM SHOWS FOUR TABS AND NO NEGOTIATE ---- */
     const cid = await page.evaluate(() => {
       const c = state.contracts.find(x => x.status !== 'Signed' && x.status !== 'Declined');
-      openWorkspace(c.id); return c.id;
+      openWorkspace(c.id, { room: true }); return c.id;
     });
     await page.waitForTimeout(1200);
     const tabs = await page.evaluate(() =>
@@ -234,7 +234,7 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
     check('Open document opens the agreement on Home\'s Document', out.view === 'dashboard' && !!out.id, JSON.stringify(out));
     check('on the Copilot tab', out.tab === 'copilot', out.tab);
     /* the room itself, opened the way a reader still reaches it */
-    await page.evaluate(id => openWorkspace(id), out.id);
+    await page.evaluate(id => openWorkspace(id, { room: true }), out.id);
     await page.waitForTimeout(1200);
 
     /* ---- 7b. AND THE ROOM HAS NO BACK ARROW AT ALL ----
@@ -798,7 +798,7 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
        then the funnel every named door goes through is called straight and
        measured to refuse. AGAINST THE PARENT: 9a reports a live button, 9b/9c
        report the view on the negotiate page. */
-    await page.evaluate(() => { openWorkspace('MK-A1'); });
+    await page.evaluate(() => { openWorkspace('MK-A1', { room: true }); });
     await pause(1200);
     await page.evaluate(() => { const b = document.querySelector('[data-ws-tab="terms"]'); if (b) b.click(); });
     await pause(700);
@@ -823,15 +823,22 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
     check('9c the funnel every named door goes through refuses too, in words, where the reader stands',
       wall.r === false && wall.view === 'workspace' && /executed|sealed/i.test(wall.toast),
       `returned ${wall.r} · view ${wall.view} · "${wall.toast.slice(0, 80)}"`);
+    /* RE-POINTED 15 Oct 2026 (step 8, the room retired): the link is opened
+       from another page, as a reader arrives from their mail — from inside
+       the room opened by name it measured only that flag. It lands on the
+       contract's strip on the Board, the sealed wall refusing the negotiate
+       page. */
     const stale = await page.evaluate(() => {
+      setView('register');
       location.hash = '#contract=MK-A1&tab=redline';
       if (window.openFromHash) openFromHash();
       return state.view; });
     await pause(600);
-    const after9d = await page.evaluate(() => state.view);
-    check('9d a stale link onto the negotiate page lands on the contract instead',
-      stale !== 'redline' && after9d === 'workspace', `view ${after9d}`);
-    await page.evaluate(() => { location.hash = ''; openWorkspace('MK-A2'); });
+    const after9d = await page.evaluate(() => { const top = document.querySelector('#bs-strips > .bs-strip');
+      return { view: state.view, strip: top ? top.getAttribute('data-bs-id') : null, room: !!document.getElementById('ws-tabs') }; });
+    check('9d a stale link onto the negotiate page lands on the contract instead (its strip on the Board since step 8)',
+      stale !== 'redline' && after9d.view === 'dashboard' && after9d.strip === 'MK-A1' && !after9d.room, JSON.stringify(after9d));
+    await page.evaluate(() => { location.hash = ''; openWorkspace('MK-A2', { room: true }); });
     await pause(1200);
     await page.evaluate(() => { const b = document.querySelector('[data-ws-tab="terms"]'); if (b) b.click(); });
     await pause(700);

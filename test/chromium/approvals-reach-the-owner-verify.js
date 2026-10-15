@@ -53,7 +53,7 @@ const until = async (fn, ms = 8000, step = 150) => { const end = Date.now() + ms
   try {
     /* 1 · THE APPROVER REFUSES */
     const appr = await login('everything@example.co.ke', 'their-own-pass-9');
-    await appr.evaluate(async () => { const c = getContract('MK-A2'); await ensureFull(c); openWorkspace(c.id);
+    await appr.evaluate(async () => { const c = getContract('MK-A2'); await ensureFull(c); openWorkspace(c.id, { room: true });
       await new Promise(r => setTimeout(r, 500)); roomGoTab(c, 'sign'); await new Promise(r => setTimeout(r, 400)); });
     await appr.click('#ap-reject');
     await appr.waitForSelector('#pd-input', { timeout: 5000 });

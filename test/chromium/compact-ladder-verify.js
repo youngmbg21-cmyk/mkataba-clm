@@ -186,7 +186,7 @@ const HELPERS = `(() => {
     await page.evaluate(() => { if (window.insForce) insForce(null); });
 
     /* ════════ 2. THE CONTRACT ROOM'S HEAD (Overview) ════════ */
-    await page.evaluate(id => openWorkspace(id), ids.rev);
+    await page.evaluate(id => openWorkspace(id, { room: true }), ids.rev);
     await page.waitForTimeout(1500);
     await load();
     await page.screenshot({ path: path.join(OUT, '02-room-overview.png') });
@@ -255,7 +255,7 @@ const HELPERS = `(() => {
     await sweep('document');
 
     /* ════════ 4. THE SIGNING TAB ════════ */
-    await page.evaluate(id => openWorkspace(id), ids.rev);   /* back from Home (section 3) */
+    await page.evaluate(id => openWorkspace(id, { room: true }), ids.rev);   /* back from Home (section 3) */
     await page.waitForFunction(() => !!document.querySelector('#ws-tabs [data-ws-tab="sign"]'), null, { timeout: 8000 }).catch(() => {});
     await page.evaluate(id => roomGoTab(getContract(id), 'sign'), ids.rev);
     await page.waitForTimeout(1500);
@@ -314,7 +314,7 @@ const HELPERS = `(() => {
     /* ════════ 6. A DIALOG IN A SHORT WINDOW ════════
        The obligation form is long enough to scroll at 460px and short enough
        not to at 900 — the one dialog that shows both halves of the rule. */
-    await page.evaluate(id => openWorkspace(id), ids.rev);
+    await page.evaluate(id => openWorkspace(id, { room: true }), ids.rev);
     await page.waitForTimeout(1200);
     await page.setViewportSize({ width: 1280, height: 460 });
     await page.evaluate(id => openObligationForm(getContract(id)), ids.rev);

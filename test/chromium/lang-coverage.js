@@ -86,7 +86,7 @@ const SV=/[åäöÅÄÖ]|\b(och|eller|för|med|att|som|den|det|inte|är|var|har|
     await p.evaluate(x=>window.setView(x),v); await p.waitForTimeout(500);
     await sweep(v);
   }
-  await p.evaluate(()=>window.openWorkspace(window.state.contracts[0].id)); await p.waitForTimeout(900);
+  await p.evaluate(()=>window.openWorkspace(window.state.contracts[0].id, { room: true })); await p.waitForTimeout(900);
   await sweep('contract');
   for(const tab of ['keyterms','signing','history','negotiate']){
     const btn=await p.$(`#ws-tabs [data-room-tab="${tab}"]`);

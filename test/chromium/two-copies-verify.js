@@ -178,7 +178,7 @@ const PAGES = sel => `(() => {
        signCopySheetHtml, wrapped in #ig-signwrap (the room's was
        #doc-signwrap), scrolled in #ig-paper-scroll (was #doc-scroll). */
     const SIGN = '#ig-signwrap .pg-sheet.pg-sign';
-    await page.evaluate(id => openWorkspace(id), ID);
+    await page.evaluate(id => openWorkspace(id, { room: true }), ID);
     await page.waitForFunction(() => !!document.querySelector('.room-tabrow'), null, { timeout: 15000 }).catch(() => {});
     await page.evaluate(() => {
       const c = getContract(state.activeId);
@@ -281,7 +281,7 @@ const PAGES = sel => `(() => {
     await page.evaluate(() => { if (window.setDark) setDark(true); else document.documentElement.classList.add('dark'); });
     await page.waitForTimeout(500);
     const darkWork = await page.evaluate(() => { const s = document.querySelector('#ig-paper .pg-work'); return s ? getComputedStyle(s).backgroundColor : null; });
-    await page.evaluate(id => openWorkspace(id), ID);
+    await page.evaluate(id => openWorkspace(id, { room: true }), ID);
     await page.waitForFunction(() => !!document.querySelector('.room-tabrow'), null, { timeout: 15000 }).catch(() => {});
     /* RE-POINTED 14 Oct 2026 (stage 5): the signing copy is on Home's paper. */
     await page.evaluate(() => roomGoTab(getContract(state.activeId), 'sign'));

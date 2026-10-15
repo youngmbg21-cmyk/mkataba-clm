@@ -144,7 +144,7 @@ const PROBE = `(() => {
       persist(c);
       return c.id;
     });
-    await page.evaluate(i => window.openWorkspace(i), id);
+    await page.evaluate(i => window.openWorkspace(i, { room: true }), id);
     await page.waitForTimeout(1200);
     /* RE-POINTED 14 Oct 2026 (stage 5): the room has no History tab to press;
        the door that named it (roomOpenAt / roomGoTab 'history') opens the
@@ -293,11 +293,15 @@ const PROBE = `(() => {
 
     /* ================= 7. CONTROLS ================= */
     /* RE-POINTED 9 Oct 2026: the five fold behind one Filter button, as drawn. */
-    ok('7a the five filters fold behind Filter', m.filters === 0, m.filters + ' filters showing');
+    /* RE-POINTED 15 Oct 2026 (the overnight work order, step 8): Side left
+       the fold for one switch in the open (All sides · Ours · Theirs); the
+       other four fold behind Filter */
+    const side = await page.evaluate(sel => [...document.querySelectorAll(sel + ' .hist-side [data-ht-side]')].filter(b => b.getBoundingClientRect().width > 0).map(b => b.textContent.trim()), HP);
+    ok('7a the four other filters fold behind Filter, Side in the open as one switch', m.filters === 0 && JSON.stringify(side) === JSON.stringify(['All sides', 'Ours', 'Theirs']), m.filters + ' filters showing · ' + side.join(' · '));
     await page.click('#hist-filter-btn');
     await page.waitForTimeout(300);
-    const f5 = await page.evaluate(sel => [...document.querySelectorAll(sel + ' .hist-f select')].filter(s => s.getBoundingClientRect().width > 0).length, HP);
-    ok('7a2 and Filter opens all five', f5 === 5, f5 + ' filters');
+    const f5 = await page.evaluate(sel => [...document.querySelectorAll(sel + ' .hist-f select')].filter(s => s.getBoundingClientRect().width > 0).map(s => s.getAttribute('data-ht-filter')), HP);
+    ok('7a2 and Filter opens the other four (clause, person, round, outcome)', JSON.stringify(f5) === JSON.stringify(['clauseId', 'actor', 'round', 'outcome']), f5.join(' · '));
     await page.click('#hist-filter-btn');
     await page.waitForTimeout(300);
     await page.click('#hist-detail');

@@ -20785,3 +20785,8 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ### Noticed, not fixed (15 Oct 2026, the overnight work order, steps 3 to 6: the fix round)
 - Going from a face (Before you sign, Redlines) to Home's wall (caHomeWall, the word "contracts") leaves presence beating for the contract that was on the paper: presenceWatching() still names it on the wall.
 - HaTi's own dropdown list shuts on a scroll of any element (core.js's capture listener), including Jambo's conversation scrolling itself behind an open pop-up, so a press on a dropdown in that moment opens and shuts the list at once (the door census caught it on the new-agreement form's stream box in 3 runs of 6).
+### Noticed, not fixed (15 Oct 2026, the overnight work order, step 8 — the Lifeline strip, the room retires)
+- The Board side list's contract sheet (hbSheetHtml → hbCardHtml) reads the brief as c._brief.summary or c._brief.text, but a stored brief is { data: { overview, … } }, so that card always says there is no brief (triageBriefLine is the reading that knows the shape).
+- The pop-out history record (openHistoryTimeline, #ht-f-side) and the counterparty's read-only copy still offer Side as a dropdown among their filters, while the Board's History (and the strip's) now has Side in the open as All sides · Ours · Theirs.
+- Under a Side choice the trail drops every system entry (uploaded, filled in, read): roomHistoryEvents keeps only negotiation events once any filter is on, so "Ours" does not show our own uploads.
+- A narrow Contracts table row's ⋯ "PDF" (regRunRowAct's last else) opens the contract through openWorkspace, which now brings up its strip on the Board rather than a PDF.

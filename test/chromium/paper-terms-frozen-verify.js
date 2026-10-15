@@ -66,7 +66,7 @@ const contract = (id, signed) => ({
     /* Open the Overview with BOTH sections in their edit posture — the acts a
        person presses — and read which printed terms are boxes. */
     const boxesOn = async id => {
-      await page.evaluate(x => { state.activeId = x; state.selId = x; setView('workspace'); }, id);
+      await page.evaluate(x => { state.activeId = x; state.selId = x; openWorkspace(state.activeId, { room: true }); }, id);
       await page.waitForTimeout(1500);
       await page.click('#ws-tabs [data-ws-tab="terms"]');
       await page.waitForTimeout(1000);

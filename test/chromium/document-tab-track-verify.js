@@ -130,7 +130,7 @@ const check = (name, pass, detail) => {
           ? (words.match(/Signing copy|Signed copy|Executed and locked|agreed in round|as drafted|rebuilt from their file/) || [''])[0] : '' };
     });
     const signUp = async () => {
-      await page.evaluate(() => { if (state.view === 'workspace' && state.activeId === 'MK-A2') return; openWorkspace('MK-A2'); });
+      await page.evaluate(() => { if (state.view === 'workspace' && state.activeId === 'MK-A2') return; openWorkspace('MK-A2', { room: true }); });
       await page.evaluate(() => roomGoTab(getContract('MK-A2'), 'sign'));
       return until(() => state.view === 'dashboard' && !!document.querySelector('#pd-signface .pd-sf[data-pd-sf="MK-A2"]')
         && !!document.querySelector('#ig-paper .pg-sheet.pg-sign #ig-canvas'), null, 10000);

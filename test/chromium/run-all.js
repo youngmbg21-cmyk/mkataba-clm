@@ -64,7 +64,7 @@ const KNOWN_RED = {
     'Red on main before 28 Sep 2026 (a837d09), the same way: dashboard--light · register--light · calendar--light · templates--light · contract--light · keyterms--light · and 14 more.',
   /* --- waiting on the owner's yes to re-record (CLAUDE.md: the census is re-recorded only on the owner's word) --- */
   'ink-wash-verify.js':
-    'RED SINCE THE OVERNIGHT BUILD OF 15 Oct 2026, ON PURPOSE AND AUDITED: the owner ordered "+ Draft new agreement" off Home\'s head (step 3 of docs/WORKORDER-one-page-finish.md). As a set difference against ink-wash-baseline.json NO colour is new; light mode loses three 13px pieces on each of the six screens Home hosts, dark mode only counts drop (the button\'s own fill and edge are gone). Re-record with --save once the owner says yes, then take this line off.',
+    'RED SINCE THE OVERNIGHT BUILD OF 15 Oct 2026, ON PURPOSE AND AUDITED: the owner ordered "+ Draft new agreement" off Home\'s head (step 3 of docs/WORKORDER-one-page-finish.md). As a set difference against ink-wash-baseline.json NO colour is new; light mode loses three 13px pieces on each of the six screens Home hosts, dark mode only counts drop (the button\'s own fill and edge are gone). Step 8 adds the History screen\'s Side switch (All sides · Ours · Theirs): three buttons, so that screen\'s counts move, with no colour or text size new or gone. Re-record with --save once the owner says yes, then take this line off.',
   /* --- retired feature, net kept for the restore --- */
   'copilot-band-verify.js':
     'THE BAND IT MEASURES NO LONGER DRAWS. WO-3, 24 Aug 2026, owner-asked: ' +

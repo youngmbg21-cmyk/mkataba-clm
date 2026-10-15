@@ -70,7 +70,7 @@ const longBody = n => '<h1>SOFTWARE AS A SERVICE AGREEMENT</h1>' + Array.from({ 
     await page.waitForTimeout(2400);
 
     /* ===== 1. THE BROKEN RECORD PRINTS CLEAN ===== */
-    await page.evaluate(() => openWorkspace('MK-LC1'));
+    await page.evaluate(() => openWorkspace('MK-LC1', { room: true }));
     await page.waitForTimeout(1200);
     await page.evaluate(() => roomGoTab(getContract('MK-LC1'), 'terms'));
     await page.waitForTimeout(1400);

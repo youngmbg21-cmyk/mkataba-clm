@@ -113,7 +113,7 @@ const signedOf = (cp, signer) => [
           c.playbook = { label: 'Default', wordingHash: hash, verdicts: [] };
           c.obligationsReadHash = hash; c.signCheck = { at: new Date().toISOString(), wordingHash: hash };
           persist(c); await flushSaves();
-          if (state.view !== 'workspace') openWorkspace(c.id);
+          if (state.view !== 'workspace') openWorkspace(c.id, { room: true });
           renderWorkspace();
           await new Promise(r => setTimeout(r, 300));
           roomGoTab(c, 'sign');
@@ -246,7 +246,7 @@ const signedOf = (cp, signer) => [
     check('5a with a reason it is filed as signed and takes its contract number', filed.status === 'Signed' && /^MK-\d+$/.test(filed.no), JSON.stringify(filed));
     check('5b the record keeps that the words differ, who accepted it, and the reason in their words',
       !filed.same && filed.by === 'Amina Otieno' && filed.why === WHY, JSON.stringify(filed));
-    await page.evaluate(id => { openWorkspace(id); }, A.id);
+    await page.evaluate(id => { openWorkspace(id, { room: true }); }, A.id);
     await page.waitForTimeout(700);
     await page.evaluate(() => roomGoTab(getContract(state.activeId), 'docs'));
     await page.waitForTimeout(1200);

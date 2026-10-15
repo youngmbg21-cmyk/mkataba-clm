@@ -112,6 +112,7 @@ import './workshape.js';       // which shapes this business has, and what it ca
 import './views/portfolio.js';    // the universal frame: six panels every business gets
 import './views/intelligence.js';
 import './views/homeboard.js';   // Home is the board and the map: the headline numbers, Copilot's prepared work, the answers to what is asked (3 Oct 2026)
+import './views/boardstrip.js';  // the Lifeline strip: a contract brought up on the Board, with Where we are and History behind its ⋯ (step 8, 15 Oct 2026)
 import './ai.js';
 import './views/settings.js';
 import './views/directory.js';    // People: the roster, read-only, for every role
@@ -1141,6 +1142,7 @@ function viewPaint(what, fn){
   try{ fn(); }
   catch(e){ try{ console.error('[hati] '+what+' failed after a view change', e); }catch(_){} }
 }
+let _roomByName=null;   /* the contract whose room was opened BY NAME (openWorkspace's opts.room, step 8) */
 function setView(view){
   /* ---- COPILOT'S WORK IS ON THE BOARD NOW (Young, 7 Oct 2026) ----
      The page's own door is gone; any way in that still names it (a refresh
@@ -1173,7 +1175,20 @@ function setView(view){
      roomArrivesOnHome spends the site's own registration (roomOpenOnTerms). */
   if(view==='workspace' && typeof window!=='undefined' && typeof window.roomArrivesOnHome==='function'
     && state && state.activeId && window.roomArrivesOnHome(state.activeId)) return;
+  /* ---- THE ROOM RETIRES (the overnight work order, step 8; owner's "Go",
+     14 Oct 2026) ---- every door that opened the contract room — a list's
+     row, the bell, an email link, ⌘K, a refresh standing on it — opens the
+     contract's Lifeline strip on Home's Board instead (roomRetiredLand), so
+     the room is never drawn on the way. The room is still drawn BY NAME
+     (openWorkspace(id, { room:true }), the precedent the Negotiate page set
+     at stage 5) and on the phone, which keeps its own contract screens. */
+  if(view==='workspace' && typeof window!=='undefined' && typeof window.roomRetiredLand==='function'
+    && state && state.activeId && _roomByName!==String(state.activeId) && window.roomRetiredLand(state.activeId)) return;
   if(!viewLayersClosed(view)) return;
+  /* THE ROOM BY NAME IS FOR THE VISIT THAT NAMED IT: once the reader leaves
+     it for any other page, a later door to the same contract (an email link,
+     a bare setView) lands on its strip like every other door. */
+  if(view!=='workspace'&&view!=='doc') _roomByName=null;
   /* ---- LEAVING THE ROOM LEAVES THE ROOM (idea 5, 4 Oct 2026) ----
      A beat that carried on after the reader went to Insights would keep
      telling a colleague somebody is reading a contract nobody has open. The
@@ -1544,7 +1559,12 @@ function openFolder(fid){
   if(typeof canAccessFolder==='function' && !canAccessFolder(fid)){ toast(i18t('ap_no_stream_access'),'err'); setView('register'); return; }
   state.folderId=fid; state.folderQuery=''; state.folderShown=50; setView('folder');
 }
-function openWorkspace(id){ state.activeId=id; state.selId=id; setView('workspace'); }
+/* THE ROOM BY NAME (step 8): a door opens the contract's strip on the Board
+   (setView asks roomRetiredLand); `opts.room` draws the room itself, for the
+   checks that test its insides. Remembered for the contract it named
+   (_roomByName, declared above setView), so the room's own repaints
+   (setView('workspace') again) stay in the room. */
+function openWorkspace(id, opts){ _roomByName=(opts&&opts.room)?String(id):null; state.activeId=id; state.selId=id; setView('workspace'); }
 /* Create a draft from a built-in template WITHOUT the guided fill — every field
    left blank for the user to complete in the document. No interface path calls
    this any more: both routes into a built-in template (the Templates page and

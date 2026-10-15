@@ -118,7 +118,7 @@ async function shot(page, name){ try{ await page.screenshot({ path: path.join(OU
     await until(page, () => !!(window.state && state.contracts && state.contracts.length));
     if (!(await page.evaluate(() => typeof riskItemsOf === 'function'))) throw new Error('this build has no risk list');
     await until(page, id => !!(typeof getContract === 'function' && getContract(id)), ID, 15000);
-    await page.evaluate(id => openWorkspace(id), ID);
+    await page.evaluate(id => openWorkspace(id, { room: true }), ID);
     await page.evaluate(({ id, BRIEF }) => { const c = getContract(id); c._brief = BRIEF; c._hasBrief = true; roomGoTab(c, 'redline'); }, { id: ID, BRIEF });
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
        'redline' door now lands on Jambo's Redlines face beside Home's paper —

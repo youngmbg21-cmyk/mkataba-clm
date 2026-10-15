@@ -208,10 +208,14 @@ const check = (name, pass, detail) => {
     await page.evaluate(() => { intel.paper = null; const st = hbS(); st.face = 'board'; hbSave(); setView('dashboard'); });
     await until(() => hbS().face === 'board' && document.querySelectorAll('#hb-board .hb-fig').length === 6);
     await page.fill('#igd-input', 'bring up MK-A2'); await page.keyboard.press('Enter');
-    const cardBtn = await until(() => !!document.querySelector('#hb-focus [data-hb-analyze="MK-A2"]'));
-    check('13a the Board\'s contract card carries "Analyze contract"', !!cardBtn,
-      await page.evaluate(() => [...document.querySelectorAll('#hb-focus .hb-acts button')].map(b => b.textContent.trim()).join(' | ')));
-    if (cardBtn) await page.click('#hb-focus [data-hb-analyze="MK-A2"]');
+    /* RE-POINTED 15 Oct 2026 (the overnight work order, step 8): the contract
+       card is the Lifeline strip now; Analyze contract is one press away in
+       its ⋯, the Board's own door (data-hb-analyze) */
+    if (await until(() => !!document.querySelector('#bs-strip-MK-A2 [data-bs-dots]'))) await page.click('#bs-strip-MK-A2 [data-bs-dots]');
+    const cardBtn = await until(() => !!document.querySelector('#bs-strip-MK-A2 .bs-menu [data-hb-analyze="MK-A2"]'));
+    check('13a the Board\'s contract strip carries "Analyze contract" (its ⋯)', !!cardBtn,
+      await page.evaluate(() => [...document.querySelectorAll('#bs-strip-MK-A2 .bs-menu button')].map(b => b.textContent.trim()).join(' | ')));
+    if (cardBtn) await page.click('#bs-strip-MK-A2 .bs-menu [data-hb-analyze="MK-A2"]');
     /* the paper has its own side on Home (Young, 7–8 Oct 2026: Board · Paper · Explorer) — hbAnalyze lands there */
     const up = await until(() => { const p = document.getElementById('ig-paper'); return hbS().face === 'paper' && intel.paper && intel.paper.id === 'MK-A2' && p && !p.hidden && !!p.querySelector('.pg-sheet'); }, null, 10000);
     check('13b pressed, Home\'s Paper side opens with that contract\'s paper up', !!up);

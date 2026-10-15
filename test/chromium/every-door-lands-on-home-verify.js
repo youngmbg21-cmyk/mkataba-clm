@@ -47,11 +47,17 @@
    on where the last door left the page.
    PENDING, PRINTED ON EVERY RUN, NEVER A FAILURE: a door the work order's
    later steps move — step 7 (the rail's Contracts item, setView('register'),
-   the top bar's search, Delete, a refresh on Contracts) and step 8 (anything
-   still opening the room through openWorkspace: Requests' row, the bell's
-   and the checklist's room rows, Show it in the contract, ⋯ Filing and
-   stream, ⌘K's contract rows, a bare email link, a refresh on the room).
-   Each later step takes its rows off PENDING and adds its own.
+   the top bar's search, Delete, a refresh on Contracts). Each later step
+   takes its rows off PENDING and adds its own.
+   STEP 8 TOOK ITS ROWS OFF (15 Oct 2026): the room retired, so every door
+   that opened it lands on the contract's Lifeline strip on Home's Board
+   (E.strip: the strip first, on Overview, or on Where we are / Details where
+   the door named them); Show it in the contract lands on that passage on
+   Home's paper, a given note beside the paper, the Board's contract card is
+   the strip and its Open is the Workspace doors' landing. The three bell
+   kinds this book did not draw (cp-ready, cert-lapsed, desk-join) are seeded
+   and pressed. Rows added: "bring up" in Jambo's box, &tab=stands, and a
+   refresh standing on the strip.
    AT THE PARENT (9cf3a18, before step 2) and AT THE BUILDER'S FIRST PASS:
    docs/MAP-HISTORY.md, "FINISHING THE ONE PAGE — Steps 1 and 2".
      node test/chromium/every-door-lands-on-home-verify.js
@@ -99,6 +105,14 @@ const BOOK = [
   fixtureContract('MK-B3', 'Old Listing', 'Naivas Supermarkets', FOLDER_B, 1000000, 'Declined'),
   fixtureContract('MK-DEL', 'Spare draft to delete', 'Mumias Packaging', FOLDER_A, 1200000, 'Draft'),
 ];
+/* THE BELL'S THREE ROOM KINDS THIS BOOK DID NOT DRAW (step 8 seeds them): a
+   counterparty that said it is ready to sign, a required certificate that has
+   lapsed, and a colleague asking to join a desk this reader leads */
+const NOW = new Date().toISOString();
+BOOK.push(Object.assign(fixtureContract('MK-CR', 'Cold Room Lease', 'Tana Cold Stores', FOLDER_A, 900000, 'Under Review'),
+  { negotiation: { rounds: [], ready: { counterparty: { at: NOW, name: 'Otieno', by: 'Otieno' } } } }));
+BOOK.push(Object.assign(fixtureContract('MK-CL', 'Transport Services', 'Rift Haulage', FOLDER_A, 700000, 'Signed'),
+  { obligations: [{ id: 'ob-cl-1', desc: 'Keep the goods-in-transit insurance certificate current', due: day(-60), party: 'theirs', status: 'done', doc: { file: 'insurance.pdf', until: day(-3) } }] }));
 
 /* ---- WHERE A PRESS LANDED, read off the screen ---- */
 const LAND = () => {
@@ -122,12 +136,16 @@ const LAND = () => {
     count: (() => { const n = document.querySelector('#ig-wall .igw-count'); return n ? n.textContent.trim() : null; })(),
     /* Jambo's Share card in the panel (the glance's Share asks his word "share", which answers with it) */
     shareCard: !!document.querySelector('#ig-dock [data-ca-act="shareout"]'),
+    /* the contract's Lifeline strip on top of the Board (step 8), and its page */
+    strip: (() => { const n = document.querySelector('#bs-strips > .bs-strip'); return n ? n.getAttribute('data-bs-id') : null; })(),
+    stripPage: (() => { const n = document.querySelector('#bs-strips > .bs-strip'); return n ? n.getAttribute('data-bs-on') : null; })(),
   };
 };
-const KEY = L => [L.view, L.room, L.negPage, L.face, L.paper, L.pd, L.tab, L.cv, L.wall, L.only].join('|');
+const KEY = L => [L.view, L.room, L.negPage, L.face, L.paper, L.pd, L.tab, L.cv, L.wall, L.only, L.strip, L.stripPage].join('|');
 const SAY = L => `${L.view}${L.face && L.view === 'dashboard' ? '/' + L.face : ''}${L.paper ? ' paper ' + L.paper : ''}${L.pd ? ' face ' + L.pd : ''}`
   + `${L.view === 'dashboard' && L.face === 'paper' && L.paper && !L.pd ? ' tab ' + L.tab : ''}${L.cv && L.face === 'board' ? ' view ' + L.cv : ''}`
-  + `${L.wall && !L.paper && L.face === 'paper' ? ' wall' + (L.only ? ' (' + L.only + ' sent, "' + L.count + '")' : '') : ''}${L.obSel && L.face === 'board' ? ' row ' + L.obSel : ''}${L.room ? ' ROOM' : ''}${L.negPage ? ' NEGOTIATE-PAGE' : ''}`;
+  + `${L.wall && !L.paper && L.face === 'paper' ? ' wall' + (L.only ? ' (' + L.only + ' sent, "' + L.count + '")' : '') : ''}${L.obSel && L.face === 'board' ? ' row ' + L.obSel : ''}`
+  + `${L.strip && L.face === 'board' && L.view === 'dashboard' && (!L.cv || /^book:/.test(L.cv)) ? ' strip ' + L.strip + ' (' + L.stripPage + ')' : ''}${L.room ? ' ROOM' : ''}${L.negPage ? ' NEGOTIATE-PAGE' : ''}`;
 /* the room and the Negotiate page drawn on any frame between the press and the landing */
 const WATCH = () => {
   window._door = { room: false, neg: false };
@@ -159,11 +177,14 @@ const E = {
   /* narrowed to a party: its set, and the count line reading the number the party's row showed */
   party: (n, said) => L => E.wall(n)(L) && L.count === said,
   face: f => L => L.view === 'dashboard' && L.face === f,
+  /* the contract's Lifeline strip, newest on the Board, on its page (step 8) */
+  strip: (id, page) => L => L.view === 'dashboard' && L.face === 'board' && (!L.cv || /^book:/.test(L.cv)) && L.strip === id && L.stripPage === (page || 'ov'),
   page: v => L => L.view === v && !L.room,
   list: L => L.view === 'redline' && L.rlList,
 };
 const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'Fill in beside the paper', red: 'Redlines beside the paper',
-  signing: 'Before you sign beside the paper', obTab: 'the paper, Jambo\'s Obligations tab', board: 'the Board\'s view', wall: 'Home\'s wall' };
+  signing: 'Before you sign beside the paper', obTab: 'the paper, Jambo\'s Obligations tab', board: 'the Board\'s view', wall: 'Home\'s wall',
+  strip: 'its strip on the Board', stripWhere: 'its strip on the Board, on Where we are', stripDetails: 'its strip on the Board, on Details (the Overview\'s sheet)' };
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
@@ -188,6 +209,11 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
   x1.metadata.expiryDate = day(20); x1.owner = { id: me.id, name: me.name };
   await W.admin.json('/api/contracts/MK-X1', { method: 'PUT', body: { contract: x1, baseVersion: 0 } });
   for (const id of ['MK-X1', 'MK-B1']) await W.unrestricted.json(`/api/contracts/${id}/pass`, { method: 'POST', body: { memberId: me.id, note: 'Please look over the term' } });
+  /* a colleague asking to join a desk this reader leads (the bell's desk-join row, step 8) */
+  const dj = { ...fixtureContract('MK-DJ', 'Cleaning Services', 'Sparkle Cleaners', FOLDER_A, 400000, 'Under Review'),
+    desk: { leadId: me.id, leadName: me.name, roster: [{ id: me.id, name: me.name, seat: 'lead' }],
+      joinRequests: [{ id: 'u-join', name: 'Wanjiru Kamau', status: 'pending', why: 'I know this supplier', at: new Date().toISOString() }] } };
+  await W.admin.json('/api/contracts/MK-DJ', { method: 'PUT', body: { contract: dj, baseVersion: 0 } });
 
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 780 } });
@@ -339,7 +365,7 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
       press: () => dbl(OBR(3)), expect: E.obRow('MK-A1', OBK(3)), says: OBSAYS });
     await threeDoors(A + ' · Obligations', 'obligations', OBROW, 'MK-A1', { doc: E.obTab('MK-A1'), docSays: SAYS.obTab });
     await door(A, 'Obligations panel, Show it in the contract (MK-A1)', { start: async () => { await goPage('obligations', s => !!document.querySelector(s), OBROW); await selectRow(OBROW); },
-      press: () => domClick('#ins-panel [data-ob-show]'), expect: E.paper('MK-A1'), says: 'that passage on Home\'s paper', pending: 8 });
+      press: () => domClick('#ins-panel [data-ob-show]'), expect: E.paper('MK-A1'), says: 'that passage on Home\'s paper' });
     /* Parties */
     const CU = 'tr[data-cu-cust="naivas supermarkets"]';
     const naivas = await page.evaluate(() => (typeof cuIdsOf === 'function' && typeof cuView === 'function') ? cuIdsOf(cuView(cuCustomerOf('naivas supermarkets'))).length : 0);
@@ -358,8 +384,8 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
     /* Requests */
     const RQ = rqId ? `.ik-lt tbody [data-ik-row="${rqId}"]` : '#none';
     const toRequests = async () => { await goPage('intake'); await domClick('[data-ik-view="all"]'); await waitFor(page, s => !!document.querySelector(s), 6000, RQ); };
-    await door(A, 'Requests row, double-click (→ MK-A2)', { start: toRequests, press: () => dbl(RQ), expect: E.paper('MK-A2'), says: SAYS.paper, pending: 8 });
-    await door(A, 'Requests row, Enter (→ MK-A2)', { start: toRequests, press: () => enter(RQ), expect: E.paper('MK-A2'), says: SAYS.paper, pending: 8 });
+    await door(A, 'Requests row, double-click (→ MK-A2)', { start: toRequests, press: () => dbl(RQ), expect: E.strip('MK-A2'), says: SAYS.strip });
+    await door(A, 'Requests row, Enter (→ MK-A2)', { start: toRequests, press: () => enter(RQ), expect: E.strip('MK-A2'), says: SAYS.strip });
     await threeDoors(A + ' · Requests', 'intake', RQ, 'MK-A2');
     /* THE WORKSPACE DOOR PUTS AWAY A FACE LEFT OPEN: on a contract that owes
        nothing it lands on the paper with Jambo, whatever face an earlier press
@@ -381,9 +407,9 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
       refused: id => ({ expect: E.signing(id), says: SAYS.signing }), sign: id => ({ expect: E.signing(id), says: SAYS.signing }),
       quiet: id => ({ expect: E.red(id), says: SAYS.red }), review: id => ({ expect: E.red(id), says: SAYS.red }), suggest: id => ({ expect: E.red(id), says: SAYS.red }),
       look: (id, view) => ({ expect: L => L.view === view && !L.room, says: 'answered where it stands (Done)', same: true }),
-      renewal: () => ({ expect: L => !L.room, says: 'the renewal decision on Home', pending: 8 }),
-      note: () => ({ expect: L => !L.room, says: 'the note on Home', pending: 8 }),
-      join: () => ({ expect: L => !L.room, says: 'the desk on Home', pending: 8 }),
+      renewal: id => ({ expect: E.strip(id, 'details'), says: SAYS.stripDetails + ', its renewal card' }),
+      note: id => ({ expect: E.paper(id), says: 'beside Home\'s paper, the notes drawer open' }),
+      join: id => ({ expect: E.strip(id), says: SAYS.strip + ', the desk sheet over it' }),
     };
     const checklist = async (area, view, reach, rowSel, id, skip = []) => {
       const at = async () => { await reach(); await selectRow(rowSel); };
@@ -429,9 +455,11 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
     /* ================= W · EVERY OTHER DOOR NAMED WORKSPACE (roomHomeLand) ================= */
     const WS = 'W the other Workspace doors';
     const wsSays = async id => ((await owedFor(id)) ? SAYS.fill : SAYS.copilot);
-    await door(WS, 'the Board\'s contract card (MK-A1)', {
-      start: async () => { await page.evaluate(() => { setView('dashboard'); hbSetFace('board'); hbDig('c:MK-A1'); }); await waitFor(page, () => !!document.querySelector('[data-hb-room="MK-A1"]'), 8000); },
-      press: () => domClick('[data-hb-room="MK-A1"]'), expect: await wsExpect('MK-A1'), says: await wsSays('MK-A1') });
+    /* RE-POINTED (step 8): the Board's contract card is the Lifeline strip
+       now, and its Open is the Workspace doors' one landing (roomHomeLand) */
+    await door(WS, 'the Board\'s contract strip, Open (MK-A1)', {
+      start: async () => { await page.evaluate(() => { setView('dashboard'); hbSetFace('board'); hbDig('c:MK-A1'); }); await waitFor(page, () => !!document.querySelector('#bs-strip-MK-A1 [data-bs-open="MK-A1"]'), 8000); },
+      press: () => domClick('#bs-strip-MK-A1 [data-bs-open="MK-A1"]'), expect: await wsExpect('MK-A1'), says: await wsSays('MK-A1') });
     await door(WS, 'Explorer\'s card (MK-A1)', {
       start: async () => { await page.evaluate(() => { setView('dashboard'); hbOpenExplorer(); }); await waitFor(page, () => window.hbFace && hbFace() === 'explorer', 8000);
         await page.evaluate(() => igExplain('MK-A1')); await waitFor(page, () => !!document.querySelector('[data-ig-ws="MK-A1"]'), 8000); },
@@ -465,10 +493,13 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
       link: () => E.boardFace, watch: () => E.boardFace, gift: () => E.boardFace,
       request: () => E.page('intake'), 'note-due': () => E.page('mynotes'),
     };
-    /* the bell's rows that still open the room through openWorkspace (step 8);
-       a request row that carries a contract (a lane's draft) opens its room too */
+    /* the bell's rows that opened the room through openWorkspace land on the
+       contract's strip since step 8 (a renewal on its Details, where the
+       renewal card is); a request row that carries a contract (a lane's
+       draft) opens its strip too */
     const BELL_ROOM = ['cp-ready', 'look', 'cert-lapsed', 'desk-join', 'renewal'];
     const roomRow = a => BELL_ROOM.includes(a.kind) || (a.kind === 'request' && !!a.id);
+    const stripRow = a => a.kind === 'renewal' ? E.strip(a.id, 'details') : E.strip(a.id);
     /* one row of every kind the bell draws on this book, and every approval row (step 2's own door) */
     const alerts = await page.evaluate(() => buildAlerts().map((a, i) => ({ i, kind: a.kind, id: a.id })));
     const seen = new Set();
@@ -482,16 +513,15 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
           return page.evaluate(x => { const rows = buildAlerts(); const i = rows.findIndex(r => r.kind === x.kind && r.id === x.id);
             const b = i >= 0 ? document.querySelector(`#context-panel [data-alert-i="${i}"]`) : null; if (!b) return false; b.click(); return true; }, a);
         },
-        expect: roomRow(a) ? (L => !L.room && !L.negPage) : (want || (L => !L.room && !L.negPage)),
-        says: roomRow(a) ? 'its place on Home (step 8)' : want ? 'its place on Home' : 'anywhere but the room',
-        pending: roomRow(a) ? 8 : null });
+        expect: roomRow(a) ? stripRow(a) : (want || (L => !L.room && !L.negPage)),
+        says: roomRow(a) ? (a.kind === 'renewal' ? SAYS.stripDetails : SAYS.strip) : want ? 'its place on Home' : 'anywhere but the room' });
     }
     if (!alerts.some(a => a.kind === 'approval')) record(C, 'approval row present', false, 'no approval row on this book', 'the fixture lost its approval');
-    /* A ROW THIS BOOK DOES NOT DRAW IS NOT MEASURED, AND SAYS SO ON EVERY RUN:
-       a room-bound kind is a PENDING row for step 8 to seed and take off */
+    /* EVERY ROOM-BOUND KIND IS DRAWN AND PRESSED (step 8 seeded the three
+       this book did not draw); one missing is a fixture lost, and fails */
     const drawn = new Set(alerts.map(a => a.kind));
     for (const k of BELL_ROOM.filter(k => !drawn.has(k)))
-      record(C, `${k} — not drawn on this book`, false, 'not drawn, so not pressed', 'unmeasured: seed it when its door moves', 8);
+      record(C, `${k} — not drawn on this book`, false, 'not drawn, so not pressed', 'the fixture lost this row', null);
     const unseen = Object.keys(BELL).filter(k => !drawn.has(k));
     if (unseen.length) console.log(`  the bell's kinds not drawn on this book (not pressed): ${unseen.join(' ')}`);
 
@@ -612,7 +642,10 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
       press: async () => { await page.evaluate(() => openCommandPalette()); if (!(await waitFor(page, () => !!document.getElementById('cp-input'), 4000))) return false;
         await page.type('#cp-input', 'Kabras', { delay: 10 });
         return page.evaluate(() => { const i = commandPaletteResults('Kabras').findIndex(r => r.kind === 'contract'); const b = i >= 0 ? document.getElementById('cp-opt-' + i) : null; if (!b) return false; b.click(); return true; }); },
-      expect: E.paper('MK-A1'), says: 'that contract on Home', pending: 8 });
+      expect: E.strip('MK-A1'), says: SAYS.strip });
+    /* "bring up" in Jambo's box on the Board (step 8): the strip, below Today's insights */
+    await door(D, 'Jambo\'s box on the Board, "bring up MK-A2"', { start: async () => { await page.evaluate(() => { setView('dashboard'); hbSetFace('board'); }); await waitFor(page, () => !!document.getElementById('igd-input'), 8000); },
+      press: say('bring up MK-A2'), expect: E.strip('MK-A2'), says: SAYS.strip });
     await door(D, 'the top bar\'s search', { start: atStart,
       press: async () => { if (!(await page.$('#cmd-search'))) return false; await page.fill('#cmd-search', 'Kabras'); return true; },
       expect: E.wall(null), says: 'Home\'s Contracts place', pending: 7 });
@@ -624,7 +657,7 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
     const menuOpen = id => async () => { await onPaper(id)(); await domClick('#ig-strip #ws-more'); await waitFor(page, () => !!document.querySelector('#ws-more-menu:not(.hidden)'), 4000); };
     const items = await (async () => { await menuOpen('MK-A2')(); return page.evaluate(() => [...document.querySelectorAll('#ws-more-menu button')].map(b => b.id).filter(Boolean)); })();
     console.log(`  the ⋯ menu on Home's paper holds: ${items.join(' ')}`);
-    await door(EM, 'Filing and stream (MK-A2)', { start: menuOpen('MK-A2'), press: () => domClick('#ws-more-menu #ws-filing'), expect: L => !L.room, says: 'the filing on Home', pending: 8 });
+    await door(EM, 'Filing and stream (MK-A2)', { start: menuOpen('MK-A2'), press: () => domClick('#ws-more-menu #ws-filing'), expect: E.strip('MK-A2', 'details'), says: SAYS.stripDetails + ', its filing rows' });
     await door(EM, 'Delete (MK-DEL)', { start: menuOpen('MK-DEL'),
       press: async () => { if (!(await domClick('#ws-more-menu #ws-delete'))) return false;
         const conf = await waitFor(page, () => [...document.querySelectorAll('button')].some(b => /^Delete/.test(b.textContent.trim()) && b.closest('.modal-overlay, #confirm-overlay, [role="dialog"]')), 4000);
@@ -639,8 +672,9 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
     const link = hash => async () => { await page.goto(`${h.base}/?n=${++n}#${hash}`, { waitUntil: 'networkidle' });
       await waitFor(page, () => window.state && Array.isArray(state.contracts) && state.contracts.length > 0 && !/contract=/.test(location.hash), 15000); return true; };
     const LINKS = [
-      ['#contract=MK-A2 (no tab)', 'contract=MK-A2', E.paper('MK-A2'), SAYS.paper, 8],
-      ['&tab=terms (MK-A2)', 'contract=MK-A2&tab=terms', E.paper('MK-A2'), SAYS.paper, 8],
+      ['#contract=MK-A2 (no tab)', 'contract=MK-A2', E.strip('MK-A2'), SAYS.strip, null],
+      ['&tab=terms (MK-A2)', 'contract=MK-A2&tab=terms', E.strip('MK-A2'), SAYS.strip, null],
+      ['&tab=stands (MK-A2)', 'contract=MK-A2&tab=stands', E.strip('MK-A2', 'where'), SAYS.stripWhere, null],
       ['&tab=sign&go=approval (MK-A2)', 'contract=MK-A2&tab=sign&go=approval', E.signing('MK-A2'), SAYS.signing, null],
       ['&tab=redline (MK-R1)', 'contract=MK-R1&tab=redline', E.red('MK-R1'), SAYS.red, null],
       ['&tab=history (MK-A1)', 'contract=MK-A1&tab=history', E.board('MK-A1', 'hist'), 'the Board\'s History view', null],
@@ -659,7 +693,9 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
       ['on the Board\'s Obligations view (MK-A1)', () => page.evaluate(() => hbOpenView('MK-A1', 'oblig')), E.board('MK-A1', 'oblig'), 'the Board\'s Obligations view', null],
       ['on the wall narrowed to a party', () => page.evaluate(() => cuOpenCustomer('naivas supermarkets')), PARTY, PSAYS, null],
       ['on the Negotiations list', () => go('redline'), E.list, 'the Negotiations list', null],
-      ['on the room (MK-A1)', () => page.evaluate(() => openWorkspace('MK-A1')), E.paper('MK-A1'), SAYS.paper, 8],
+      /* the room by name (the checks' own door) and a refresh standing on it: the strip */
+      ['on the room, opened by name (MK-A1)', () => page.evaluate(() => openWorkspace('MK-A1', { room: true })), E.strip('MK-A1'), SAYS.strip, null],
+      ['on the strip, on Where we are (MK-A1)', () => page.evaluate(() => hbStripBring('MK-A1', 'where')), E.strip('MK-A1', 'where'), SAYS.stripWhere, null],
       ['on the Contracts page', () => go('register'), E.wall(null), 'Home\'s Contracts place', 7],
     ];
     for (const [nm, put, want, says, p] of REFRESH)

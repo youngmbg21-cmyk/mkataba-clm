@@ -165,7 +165,10 @@ for (let i = 1; i <= 12; i++)
          Negotiate page folded into Home — openRedlineWorkbench lands on
          Jambo's Redlines face beside Home's paper, so the page the reader was
          on is Home (view 'dashboard'); where on it is refresh-keeps-your-spot's */
-      const was = v === 'redline' ? 'dashboard' : v;
+      /* RE-POINTED 15 Oct 2026 (step 8): the room retired — setView('workspace')
+         opens the contract's strip on Home's Board, so that is the page a
+         refresh must come back to */
+      const was = (v === 'redline' || v === 'workspace') ? 'dashboard' : v;
       if (after !== was) lost.push(`${v}→${after}`);
     }
     check('4a a refresh returns you to the page you were on, on every page',

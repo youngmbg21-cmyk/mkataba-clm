@@ -164,7 +164,7 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
        for signing. */
     await page.setViewportSize({ width: 1100, height: 900 });
     await page.evaluate(() => { const c = state.contracts.find(x => x.status !== 'Signed' && !x.parentId);
-      openWorkspace(c.id); roomGoTab(c, 'sign'); });
+      openWorkspace(c.id, { room: true }); roomGoTab(c, 'sign'); });
     const p8 = await waitFor(page, () => {
       const b = Array.from(document.querySelectorAll('#sign-paper')).find(x => x.getBoundingClientRect().width > 0);
       if (!b) return null;
