@@ -87,7 +87,7 @@ describe('F690 (4) — the side list lies outside the board and its door closes 
   });
   test('it is painted into its own host on the page after every board paint', () => {
     assert.match(bodyOf(HB, 'hbSheetPaint'), /hb-sheet-host[\s\S]*hbPage\(\)|hbPage\(\)[\s\S]*hb-sheet-host/);
-    assert.match(strip(bodyOf(HB, 'hbPaintBoard')), /hbMorph\(host, hbBoardHtml\(\)\);\s*hbSheetPaint\(\);/);
+    assert.match(strip(bodyOf(HB, 'hbPaintBoard')), /hbMorph\(host, hbBoardHtml\(\)\);[\s\S]{0,400}?hbCvPaint\(\);\s*hbSheetPaint\(\);/);
   });
   test('hidden with the board on the other faces', () => {
     assert.match(CSS, /#ig-page:has\(#hb-board\[hidden\]\) #hb-sheet-host/);

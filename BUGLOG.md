@@ -20866,3 +20866,5 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ### Noticed, not fixed (15 Oct 2026)
 - Buttons and small marks still wear the ✦ beside Jambo's name ("✦ Ask Jambo" on the Negotiate page, the clause panel's Jambo button, "✦ read from the document", the calendar's suggested blocks): components.js says buttons and pages keep the sparkle, so they were left; the owner may want them changed too.
 - (15 Oct 2026) Jambo's tab count is drawn on the Board only: on every other Home face each redraw of his tab walked the whole book, and explorer-magnitude-verify 4a2 went red twice on GitHub while it did.
+
+- Noticed, not fixed (15 Oct 2026, PR 291): f149 "unanswered is refused" fails at unmodified main — settings.js now calls fieldFocus(accSel), and f149's sandbox stands in for core.js without a fieldFocus. Proposed patch: add `fieldFocus: el => { if (el && el.focus) el.focus(); },` to the sandbox in test/f149-nobody-joins-without-an-answer.test.js.

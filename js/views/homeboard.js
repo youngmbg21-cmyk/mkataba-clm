@@ -6761,11 +6761,11 @@ function hbPaintBoard(opts){
   const had = (act && host.contains(act)) ? hbFocusKey(act) : null;
   const glide = hbGlideTake(host);
   hbMorph(host, hbBoardHtml());
-  hbSheetPaint();
   hbGlidePlay(host, glide);
   /* a contract's view (stage 4): its host is filled by its own painter */
   host.classList.toggle('is-cview', !!host.querySelector(':scope > #hb-cv-body'));
   hbCvPaint();
+  hbSheetPaint();
   /* the contracts' strips (step 8): Where we are, History and Details are filled by their own painters */
   if (typeof window.bsPaintHosts === 'function') try { window.bsPaintHosts(); } catch (_){}
   hbGiftsSeenSay();
