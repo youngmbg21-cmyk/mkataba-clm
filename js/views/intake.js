@@ -1148,10 +1148,11 @@ function ikActs(r, asker){
   const live=IK_LIVE.includes(r.status);
   const acts=[], menu=[];
   const track=!!intakeTrackUrl(r);
-  /* A REQUEST THAT BECAME A CONTRACT carries the three doors every list draws
-     (owner, 12 Oct 2026), Document filled, in place of "Open MK-…". */
+  /* A REQUEST THAT BECAME A CONTRACT carries the doors every list draws
+     (owner, 12 Oct 2026), Workspace filled since the Document door went
+     (15 Oct 2026), in place of "Open MK-…". */
   const doorC=r.contractId&&typeof getContract==='function'?getContract(r.contractId):null;
-  const doorActs=()=>doorC&&typeof insDoorActs==='function'?insDoorActs(doorC,{ lead:'doc' })
+  const doorActs=()=>doorC&&typeof insDoorActs==='function'?insDoorActs(doorC,{ lead:'ws' })
     :(r.contractId?[{ k:'open', kind:'accent', label:i18t('ik_act_open_mk',{id:r.contractId}), run:()=>openWorkspace(r.contractId) }]:[]);
   const openAct=r.contractId?true:null;
   if(asker){

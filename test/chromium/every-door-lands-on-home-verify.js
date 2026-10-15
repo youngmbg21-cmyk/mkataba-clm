@@ -328,14 +328,13 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
     if (st.dead) return { dead: true, title: st.title };
     await page.click(`#ins-panel [data-ins-act="${k}"]`); return true;
   };
-  /* a list page's three doors, on the row chosen */
-  const threeDoors = async (area, view, rowSel, id, opt = {}) => {
-    for (const [k, nm] of [['door-doc', 'Document door'], ['door-nego', 'Negotiation door'], ['door-ws', 'Workspace door']]) {
-      /* the Document door is Home's paper on that contract: a face still open
-         for it from an earlier press stays up (pdOpenOnHome keeps it), so its
-         measure is the paper, not the face (BUGLOG, 14 Oct 2026) */
-      const want = k === 'door-doc' ? (opt.doc || E.paper(id)) : k === 'door-nego' ? E.red(id) : await wsExpect(id);
-      const says = k === 'door-doc' ? (opt.docSays || SAYS.paper) : k === 'door-nego' ? SAYS.red : ((await owedFor(id)) ? SAYS.fill : SAYS.copilot);
+  /* a list page's doors, on the row chosen — Negotiation · Workspace since the
+     owner took the Document door off (15 Oct 2026: "we have 2 buttons to the
+     same page so document will simply need to be deleted") */
+  const threeDoors = async (area, view, rowSel, id) => {
+    for (const [k, nm] of [['door-nego', 'Negotiation door'], ['door-ws', 'Workspace door']]) {
+      const want = k === 'door-nego' ? E.red(id) : await wsExpect(id);
+      const says = k === 'door-nego' ? SAYS.red : ((await owedFor(id)) ? SAYS.fill : SAYS.copilot);
       await door(area, `${nm} (${id})`, { start: async () => { await goPage(view); await waitFor(page, s => !!document.querySelector(s), 6000, rowSel); await selectRow(rowSel); },
         press: () => panelDoor(k), expect: want, says });
     }
@@ -419,7 +418,7 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
       start: async () => { await page.evaluate(() => hbOpenView('MK-A1', 'oblig')); await waitFor(page, () => !!document.querySelector('#hb-cv-body [data-obt-view="overdue"]'), 6000);
         await domClick('#hb-cv-body [data-obt-view="overdue"]'); await goPage('obligations', s => !!document.querySelector(s), OBR(3)); },
       press: () => dbl(OBR(3)), expect: E.obRow('MK-A1', OBK(3)), says: OBSAYS });
-    await threeDoors(A + ' · Obligations', 'obligations', OBROW, 'MK-A1', { doc: E.obTab('MK-A1'), docSays: SAYS.obTab });
+    await threeDoors(A + ' · Obligations', 'obligations', OBROW, 'MK-A1');
     await door(A, 'Obligations panel, Show it in the contract (MK-A1)', { start: async () => { await goPage('obligations', s => !!document.querySelector(s), OBROW); await selectRow(OBROW); },
       press: () => domClick('#ins-panel [data-ob-show]'), expect: E.paper('MK-A1'), says: 'that passage on Home\'s paper' });
     /* Parties */

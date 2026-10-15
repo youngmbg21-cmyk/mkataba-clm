@@ -3249,11 +3249,9 @@ function obPanelActs(o, c, i, ctx){
     if(may && w === 'done') acts.push({ k:'reopen', label: i18t('ob_reopen_cap'), run: () => { const h = obLocate(obKeyOf(c.id, o, i)); if(h) toggleObligation(h.c, h.i, { from:'obligations tab' }); } });
     if(may) acts.push({ k:'edit', label: i18t('ob_edit_cap'), icon:'pencil', run: () => { const h = obLocate(obKeyOf(c.id, o, i)); if(h) openObligationForm(h.c, { ...h.o, _i: h.i }); } });
   } else {
-    /* the three doors every list draws (owner, 12 Oct 2026); Document lands
-       on Home's Document at its Obligations tab, as Open contract did */
-    /* the Document door is the paper's: Jambo's panel on its Obligations tab */
-    if(typeof insDoorActs === 'function') acts.push(...insDoorActs(c, { doc: () => {
-      if(!(typeof window.pdOpenOnHome === 'function' && pdOpenOnHome(c.id, 'oblig'))) obOpenContract(c.id); } }));
+    /* the doors every list draws: Negotiation · Workspace (the Document door
+       went, owner 15 Oct 2026; the row itself opens the Board's Obligations) */
+    if(typeof insDoorActs === 'function') acts.push(...insDoorActs(c));
   }
   return acts;
 }

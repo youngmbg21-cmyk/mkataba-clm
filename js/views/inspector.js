@@ -321,8 +321,9 @@ function insDoorActs(c, opt){
   if (!c) return [];
   const o = opt || {};
   const ns = insNegoDoorState(c);
-  const doc = { k: 'door-doc', door: true, icon: 'file', label: i18t('ins_door_doc'),
-    run: typeof o.doc === 'function' ? () => o.doc(c) : (() => { if (!(typeof pdOpenOnHome === 'function' && pdOpenOnHome(c.id, 'copilot'))) openWorkspace(c.id); }) };
+  /* THE DOCUMENT DOOR IS GONE (owner, 15 Oct 2026: "we have 2 buttons to the
+     same page so document will simply need to be deleted"): it and Workspace
+     both landed on Home's paper. Two doors stay: Negotiation · Workspace. */
   const nego = { k: 'door-nego', door: true, icon: 'msg', label: i18t('ins_door_nego'),
     disabled: !ns.ok, title: ns.ok ? '' : ns.why, run: () => { if (insNegoDoorState(c).ok) openRedlineWorkbench(c.id, { face: true }); } };   /* Jambo's Redlines face beside Home's paper (stage 3) */
   const ws = { k: 'door-ws', door: true, icon: 'folderOpen', label: i18t('ins_door_ws'),
@@ -335,10 +336,10 @@ function insDoorActs(c, opt){
       openWorkspace(c.id); try { const live = getContract(c.id) || c;
       let left = 0; try { left = (typeof detailsOf === 'function') ? detailsOf(live).left : 0; } catch (_){ left = 0; }
       if (typeof roomGoTab === 'function') roomGoTab(live, left ? 'details' : 'terms'); } catch (_){} } };
-  const all = { doc, nego, ws };
+  const all = { nego, ws };
   /* the lead door goes first and is filled; the rest keep the drawn order */
   if (o.lead && all[o.lead] && !(o.lead === 'nego' && !ns.ok)) all[o.lead].kind = 'accent';
-  const order = o.lead === 'nego' && ns.ok ? ['nego', 'doc', 'ws'] : ['doc', 'nego', 'ws'];
+  const order = o.lead === 'ws' ? ['ws', 'nego'] : ['nego', 'ws'];
   return order.map(k => all[k]);
 }
 function insActsHtml(list, menuHtml, moreAria){

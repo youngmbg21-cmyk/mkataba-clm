@@ -2432,13 +2432,13 @@ function regNegoFacts(c){
 function regInsSeat(){ return regScope()==='negotiations' ? 'negotiations' : 'contracts'; }
 function regInsActs(c){
   if(!c) return [];
-  /* THREE DOORS ON BOTH SEATS (owner, 12 Oct 2026): Document · Negotiation ·
-     Workspace, from the one builder (insDoorActs). Each seat fills its own
-     door — the Contracts page its Document, the Negotiations page its
-     Negotiation (SAP benchmark, 9 Oct 2026). A press on the row itself still
-     opens the negotiation on that seat (regOpenRow). */
+  /* THE DOORS ON BOTH SEATS (owner, 12 Oct 2026; the Document door went 15
+     Oct 2026): Negotiation · Workspace, from the one builder (insDoorActs).
+     Each seat fills its own door — the Contracts seat its Workspace, the
+     Negotiations page its Negotiation (SAP benchmark, 9 Oct 2026). A press on
+     the row itself still opens the negotiation on that seat (regOpenRow). */
   const neg=regScope()==='negotiations';
-  return insDoorActs(c, { lead: neg ? 'nego' : 'doc', doc: x=>regOpenContract(x.id) });
+  return insDoorActs(c, { lead: neg ? 'nego' : 'ws' });
 }
 /* ---- "YOUR MOVE" STANDS IN ONE STRAIGHT LINE (Young, 7 Oct 2026) ----
    The stage pills are different widths ("Drafting", "In Review", and longer

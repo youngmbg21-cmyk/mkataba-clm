@@ -29727,3 +29727,17 @@ List is the drawing's six columns again (REG_COL_KEYS_HOME, widths
 f687 2c are back as step 7 left them; the Signed sort and filter stay. The
 ink-wash census needs no re-record (the Signed cells were all it moved), so
 its KNOWN_RED line came off with it.
+
+## THE DOCUMENT DOOR GOES (owner, 15 Oct 2026: "that also means we have 2 buttons to the same page so document will simply need to be deleted")
+
+The list panels' Document · Negotiation · Workspace (THREE DOORS, 12 Oct
+2026) are two now: Negotiation · Workspace. Document and Workspace both
+landed on Home's paper (Document on Jambo's tab; Workspace on Fill in while
+details are owed, else the same paper on Jambo's tab). What went with it:
+the Obligations panel's Document door opened Jambo's Obligations tab; the
+row itself still opens the Board's Obligations view for that row, and the
+Workspace door opens Home. The Requests panel and the Contracts seat lead
+with Workspace (filled) where they led with Document. `ins_door_doc` stays
+as a word: the People directory's contract chips use it as their hover.
+Tests re-pointed: f664, f387 (2c, 2k, 3c), f678 2c, inspector-verify 3d/3e,
+sap-lists-verify 2c, every-door-lands-on-home-verify (the doors row).
