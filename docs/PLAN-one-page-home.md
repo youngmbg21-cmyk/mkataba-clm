@@ -342,3 +342,10 @@ time on this branch; the owner merges in the morning.
   stream asked at the drop, and the drop area's and Jambo's tab's text sizes
   (already Jambo's panel's own). Story: MAP-HISTORY "THE OWNER'S EIGHT
   ANSWERS, 15 OCT 2026".
+
+- **The tab is called Workspace (15 Oct 2026).** Home's Document face reads
+  Workspace, as the Workspace doors that open it; "Workspace status" is
+  "System status". Saved views left Jambo's panel for the Board's head,
+  beside Make a pack: one list, a row opens that view on Explorer. Story:
+  MAP-HISTORY "THE TAB IS CALLED WORKSPACE, AND SAVED VIEWS MOVE TO THE
+  BOARD".

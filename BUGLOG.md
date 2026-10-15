@@ -20801,3 +20801,5 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - CLAUDE.md's SAP BENCHMARK, BATCH 2 line names `dirRowHtml` for the People table, but no such function exists any more (the directory builds its rows with `dirRows`); left as it was, outside tonight's steps.
 ### Noticed, not fixed (15 Oct 2026, PR 283's checks)
 - friction-fits-the-screen-verify drew nothing at 1440 on one GitHub run (run 38699309179, shard 1: "not drawn", 15 of 46 red) and passed on the other run of the same commit, at 1920 in the same run, and locally 46/46: a wait in it reads the Friction tab before it has painted on a slow runner.
+### Noticed, not fixed (15 Oct 2026, PR 283's checks, second note)
+- one-page-home-walk-verify step 4a went red on one GitHub run of ebf99df ("elementHandle.click: Element is not attached to the DOM" on the Redlines face's Edit door) and passed on the other run of the same code and locally 19/19: it holds an element handle across a repaint instead of pressing by selector.

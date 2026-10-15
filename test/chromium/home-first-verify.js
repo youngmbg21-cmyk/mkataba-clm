@@ -73,8 +73,9 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
         small: [...document.querySelectorAll('#ig-dock .igd-small .ui-link')].map(b => b.textContent.trim()),
         smallAfter: !!(row && row.nextElementSibling && row.nextElementSibling.classList.contains('igd-small')) };
     });
-    ok('1a the answer leads with Read all 3 in Document (filled; Paper is called Document, owner 11 Oct 2026), then Show on the Board',
-      doors.btns.join('|') === 'Read all 3 in Document*|Show on the Board', JSON.stringify(doors));
+    /* the tab is called Workspace since 15 Oct 2026 (owner), so the door names it */
+    ok('1a the answer leads with Read all 3 in Workspace (filled; Paper was called Document 11 Oct 2026, Workspace 15 Oct), then Show on the Board',
+      doors.btns.join('|') === 'Read all 3 in Workspace*|Show on the Board', JSON.stringify(doors));
     ok('1b the Contracts page and Export are small links after them', doors.smallAfter && doors.small.length === 2 && /Contracts page/.test(doors.small[0]), JSON.stringify(doors.small));
     await page.screenshot({ path: path.join(OUT, '1-answer.png') });
 
