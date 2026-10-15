@@ -2380,9 +2380,14 @@ function buildAlerts(){
         bell and the Home card cannot disagree. And 4/5 ride on the same read. */
   let D=null; try{ D=(window.hmDashSlices?hmDashSlices():null); }catch(_){ D=null; }
   if(D){
-    /* rule 6 (8 Oct 2026): the bell opens it on Home's Paper, the pack on Signing */
+    /* THE BELL OPENS BEFORE YOU SIGN ON HOME (the overnight work order, step
+       2; owner's "Go", 14 Oct 2026; reverses stage 5's "the Approvals page"
+       for the bell only): Jambo's face beside that contract's paper, which
+       carries the approval asked of you (Approve · Reject) — through the walls
+       (roomOpenAt: the phone keeps its own Signing tab). The Approvals page
+       stays on the rail, and the side panel's checklist keeps its door. */
     (D.myApprovals||[]).filter(x=>x.mine).forEach(x=>push('approval',x.c,
-      i18t('al_approval'),()=>{ if(window.pdOpenOnHome&&pdOpenOnHome(x.c.id,'sign')) return; if(window.roomOpenAt) roomOpenAt(x.c.id,'sign'); else { openWorkspace(x.c.id); if(window.roomGoTab) try{ roomGoTab(x.c,'sign'); }catch(_){} } }));
+      i18t('al_approval'),()=>{ if(window.roomOpenAt) roomOpenAt(x.c.id,'sign'); else { openWorkspace(x.c.id); if(window.roomGoTab) try{ roomGoTab(x.c,'sign'); }catch(_){} } }));
     /* AND A REFUSAL COMES BACK TO THE PERSON WHO ASKED (23 Sep 2026): the
        approval before signing was refused, and the reason is on the Signing
        tab. Read off their own contracts' rows above — nothing new is walked. */

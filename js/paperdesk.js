@@ -219,7 +219,7 @@ function pdDocHtml(c){
    pages the Redlines and Before you sign faces replaced, stage 5): what came
    in meanwhile is collected now, not on the next slow beat */
 function pdArrived(){ if (typeof pollNow === 'function') try { pollNow('opened face'); } catch (_){} }
-const PD_ROOM_TAB = { facts: 'terms', oblig: 'oblig', sign: 'sign', hist: 'history', deal: 'redline', doc: 'docs', copilot: 'terms', fill: 'details', red: 'redline', signing: 'sign' };
+const PD_ROOM_TAB = { facts: 'terms', oblig: 'oblig', sign: 'sign', hist: 'history', deal: 'redline', doc: 'docs', copilot: 'terms', plain: 'terms', fill: 'details', red: 'redline', signing: 'sign' };
 function pdOpenOnHome(id, tab){
   const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c) return false;
   /* THE DEAL AND HISTORY DOORS LAND ON THE BOARD (the one-page Home plan,
@@ -286,6 +286,25 @@ function pdOpenOnHome(id, tab){
       && typeof intel === 'object' && intel && intel.paper && String(intel.paper.id) === String(id)){
       pdSetTab('copilot'); intel.dockOpen = true;
       pdSignPaper(id);
+      if (typeof renderIntelDock === 'function') renderIntelDock();
+      if (typeof igSyncDockWidth === 'function') try { igSyncDockWidth(); } catch (_){}
+      return true;
+    }
+  }
+  /* THE PAPER, PLAIN (the overnight work order, step 2: the Workspace door
+     lands on "the paper on Jambo's tab"): a face left open on this contract
+     (Fill in, Redlines, Before you sign) is put away, so the door lands on
+     the conversation, not on the face an earlier press left up. 'copilot'
+     keeps a face for the same contract (pdRedSeen's rule); 'plain' does not. */
+  if (tab === 'plain'){
+    const turned = _pdSign === String(id) || _pdRed === String(id);
+    const was = _pdFill || _pdRed || _pdSign;
+    _pdFill = null; _pdFillKey = null; _pdRed = null; _pdSign = null; tab = 'copilot';
+    if (was) pdPresenceOff(was);
+    if (window.state && state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'paper'
+      && typeof intel === 'object' && intel && intel.paper && String(intel.paper.id) === String(id)){
+      pdSetTab('copilot'); intel.dockOpen = true;
+      if (turned && typeof igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){}
       if (typeof renderIntelDock === 'function') renderIntelDock();
       if (typeof igSyncDockWidth === 'function') try { igSyncDockWidth(); } catch (_){}
       return true;

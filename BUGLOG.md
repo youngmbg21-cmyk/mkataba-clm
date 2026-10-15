@@ -20760,3 +20760,16 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - The server's own refusals reach a Swedish screen in English (srvMsg passes unknown sentences through): e.g. "Internal approval is outstanding: …" (POST /api/shares) and every "… in Before you sign first." refusal.
 - The signature pad's image errors ("Could not read that image", "Could not read that file") are English literals in js/signature.js.
 - With an approval rule on, the rule's own name reads "Value ≥ KES 5M" in Swedish too — the default rule is stored with an English name.
+
+### Noticed, not fixed (14 Oct 2026, finishing the one page, steps 1 and 2 — the door census, and the wrong doors)
+- A list panel's Document door (and every pdOpenOnHome(id,'copilot')) keeps a face left open for that contract: pressed after the Redlines, Fill in or Before you sign face was open on it, "Document" lands on that face (the paper Redlined or the signing copy), not on Jambo's conversation beside the plain paper.
+- The side panel's checklist row for an approval asked of you (needsYouGo 'approval') still opens the Approvals page; the bell's row for the same approval now opens Before you sign on Home (the owner moved the bell only).
+- The bell's approval row lands on Before you sign with the face at its top; the "Approval gate" card with Approve · Reject sits below the fold and is not brought into view (only the email's &go=approval lights a card, and only #sa-card, a named person's yes).
+- Requests' row double-click and Enter (intake.js onOpen) still open the contract room through openWorkspace, while its own panel's Document and Workspace doors open Home; the census holds it as PENDING for step 8.
+- A narrow Contracts table row's ⋯ "PDF" (regRunRowAct's last else) still opens the contract room ("Export PDF is completed inside the workspace").
+
+### Noticed, not fixed (15 Oct 2026, the overnight work order, steps 1 and 2: the checkers' round)
+- Below the inspector width the Board's Obligations view is the full banded table with no panel, so an obligation pressed on the Obligations list is shown among the rest but not marked or scrolled to.
+- On Home's wall narrowed to a party, a closed (Declined) contract of that party is drawn and counted but has no stage chip of its own; it shows only under All.
+- Obligations' "Show it in the contract" calls openWorkspace before turning to Home's paper, so the room is drawn on the way (the door census prints it as PENDING step 8).
+- The side panel's checklist rows for a renewal, a given note and a request to join still open the room (needsYouGo falls through to openWorkspace); the door census prints them as PENDING step 8.

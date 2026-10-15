@@ -168,11 +168,18 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     ok('1g the Overdue view lists what the sidebar door counts', door >= 1 && overdueN === door, { door, overdueN });
     await page.click('[data-obw-view="open"]').catch(() => {}); await page.waitForTimeout(400);
     const sel = await page.$('#ins-panel');
+    const selCid = await page.evaluate(() => { const r = document.querySelector('.ob-lt tbody tr.is-sel'); const k = r && r.getAttribute('data-ob-key'); return k ? k.split('::')[0] : null; });
     await page.focus('.ob-lt tbody tr.is-sel').catch(() => {});
-    await page.keyboard.press('Enter'); await page.waitForTimeout(1500);
-    /* RE-POINTED 11 Oct 2026 (owner): Open contract lands on Home's Document, on the panel's Obligations tab */
-    const onHome = await page.evaluate(() => ({ view: state.view, tab: (document.querySelector('#ig-dock .pd-tab.on') || { getAttribute: () => null }).getAttribute('data-pd-tab') }));
-    ok('1h Enter opens the contract on Home\'s Document, its Obligations tab', !!sel && onHome.view === 'dashboard' && onHome.tab === 'oblig', onHome);
+    await page.keyboard.press('Enter');
+    /* RE-POINTED 14 Oct 2026 (the overnight work order, step 2; was Home's
+       Document on the panel's Obligations tab, 11 Oct): Enter opens the
+       Board's Obligations view for that row's contract. Asked of the state, bounded. */
+    await page.waitForFunction(() => state.view === 'dashboard' && window.hbFace && hbFace() === 'board'
+      && window.hbCvNow && hbCvNow().v === 'oblig', null, { timeout: 8000 }).catch(() => {});
+    const onHome = await page.evaluate(() => { const v = window.hbCvNow ? hbCvNow() : null;
+      return { view: state.view, face: window.hbFace ? hbFace() : null, v: v ? v.v : null, id: v && v.c ? v.c.id : null }; });
+    ok('1h Enter opens the contract on the Board\'s Obligations view', !!sel && onHome.view === 'dashboard' && onHome.face === 'board'
+      && onHome.v === 'oblig' && !!selCid && onHome.id === selCid, { ...onHome, selCid });
 
     /* ================= 2 · THE CONTRACT'S OBLIGATIONS TAB ================= */
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's

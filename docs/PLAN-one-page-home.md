@@ -213,3 +213,34 @@ real app.
   "What starts now").
 - ~~**The rail's Negotiations door** after stage 5~~ — settled in stage 5:
   kept as a list; every row opens the contract on Home.
+
+## Finishing the plan (overnight build, 14-15 Oct 2026)
+
+The owner's "Go" on docs/WORKORDER-one-page-finish.md, built one step at a
+time on this branch; the owner merges in the morning.
+
+- **Steps 1 and 2 — the door census, and the wrong doors. Built 14 Oct
+  2026.** `test/chromium/every-door-lands-on-home-verify.js` presses every
+  door that opens a contract or its work (each list page's rows and panel
+  doors, the rail, the bell, Jambo's words and chips, ⌘K, the paper's ⋯, an
+  email link, a refresh) and fails on the room, the Negotiate page, a retired
+  page or a door that does nothing; the doors steps 7 and 8 move are printed
+  as PENDING and never fail it. The wrong doors it found now land on Home:
+  every Workspace door (Fill in beside the paper while details are owed, else
+  the paper on Jambo — `roomHomeLand`), Obligations rows (the Board's
+  Obligations view, the row chosen), Parties' Open party (Home's wall with no
+  paper chosen, narrowed to that party by one lit chip, until step 7) and the
+  bell's approval row (Before you sign beside the paper). Negotiations rows
+  already opened the Redlines face. Differences from the work order's wording:
+  the email link is `#contract=<id>&tab=…&go=…` (the shape the server mails),
+  not `#/c/<id>/…`; the party's wall is narrowed by the set the Parties row
+  counted rather than by a name, and its count line counts that set the
+  Parties way (agreements, an amendment said beside them), so the number
+  pressed is the number read. After the checkers' round (15 Oct 2026): the
+  Workspace door lands on the paper PLAIN (a face left open on that contract
+  is put away), the Board's contract card and the Negotiate page's Open
+  workspace are Workspace doors too, an Obligations row is the row chosen
+  whatever tab the Board's view was left on, and the census also presses the
+  panels' checklist rows, Show it in the contract and the other Workspace
+  doors, and prints the bell's room rows this book does not draw. Story:
+  MAP-HISTORY "FINISHING THE ONE PAGE — Steps 1 and 2".

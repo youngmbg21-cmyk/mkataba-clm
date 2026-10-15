@@ -6783,7 +6783,8 @@ function renderIntelDock(){
     el.addEventListener('pointerenter',()=>igPaintIds([id]));
     el.addEventListener('pointerleave',()=>igPaintIds(null));
   });
-  dock.querySelectorAll('[data-ig-ws]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); openWorkspace(b.getAttribute('data-ig-ws')); }));
+  /* "Workspace" opens Home, never the room (step 2, 14 Oct 2026; roomHomeLand) */
+  dock.querySelectorAll('[data-ig-ws]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); const id=b.getAttribute('data-ig-ws'); if(!(window.roomHomeLand&&roomHomeLand(id))) openWorkspace(id); }));
   /* Analyze contract — the card's first door (26 Sep 2026) — and the passages
      under an answer, each a press that puts those words in front of the
      reader. */
@@ -7314,9 +7315,11 @@ function igStripHtml(c,p){
    is igAnalyze — the one door onto a contract's paper. A CAP IS A FACT: the
    rest are counted and typing narrows them. */
 const IG_PICK_MAX=12;
-function igPickRows(q){
+function igPickRows(q,keep){
   const t=String(q||'').trim().toLowerCase();
-  const all=(state.contracts||[]).filter(c=>c&&!c.archived&&c.status!=='Declined');
+  /* a closed (Declined) contract is off the wall — unless a set sent here
+     names it (`keep`, igWallBase): a party's number counts its closed ones */
+  const all=(state.contracts||[]).filter(c=>c&&!c.archived&&(c.status!=='Declined'||!!(keep&&keep.has(String(c.id)))));
   const hit=t?all.filter(c=>[c.name,c.counterparty,(window.contractRef?contractRef(c):c.id),c.id].some(v=>String(v||'').toLowerCase().includes(t))):all;
   const when=c=>String(c.updatedAt||c.updated_at||c.createdAt||'');
   return hit.slice().sort((a,b)=>when(b).localeCompare(when(a)));
@@ -7339,8 +7342,28 @@ function igPickListHtml(q){
    light list draws it whole. A stage with nothing in it is not listed. */
 const IG_WALL_SORTS=['recent','ref','cp','end','value'];
 const IG_WALL_STAGES=['all','need','Draft','Under Review','Signed','expired'];
-const igWall={q:'',sort:'recent',stage:'all'};
+const igWall={q:'',sort:'recent',stage:'all',only:null};
 let _igWallNeed=null;
+/* ---- A SET SENT HERE FROM ANOTHER SCREEN (the overnight work order, step
+   2; owner's "Go", 14 Oct 2026) ---- Parties' Open party lands on this wall
+   narrowed to that party's contracts — the very ids its row counted, its
+   filters held, the amendments under them and a closed one included
+   (cuIdsOf), so nothing the Parties page counted is missing here. ONE lit
+   chip leading the stage chips names the set and IS the way out (press it);
+   find, sort and stage narrow within it; Jambo's "contracts" lets it go
+   (CA_GO.wall). Nothing new is asked of the record: a reading, kept with the
+   wall's place. (Step 7 makes this the Contracts place's own narrowing.) */
+function igWallShowOnly(ids,label){
+  const list=[...new Set((ids||[]).map(x=>String(x==null?'':x)).filter(Boolean))];
+  igWall.only=list.length?{ ids:list, label:String(label||'').slice(0,200) }:null;
+  igWall.q=''; igWall.stage='all';
+}
+/* what the find box and the set leave standing; the stage chips count within it */
+function igWallBase(){
+  if(!igWall.only) return igPickRows(igWall.q);
+  const set=new Set(igWall.only.ids);
+  return igPickRows(igWall.q,set).filter(c=>set.has(String(c.id)));
+}
 function igWallStage(c){ return (typeof contractExpired==='function'&&contractExpired(c))?'expired':String(c&&c.status||'Draft'); }
 /* who needs this reader — needsYouOf over the book once per paint, never per keystroke */
 function igWallNeedSet(){
@@ -7369,7 +7392,7 @@ function igWallSortFn(k){
   return null;   // 'recent' is igPickRows' own order
 }
 function igWallRows(){
-  let r=igPickRows(igWall.q);
+  let r=igWallBase();
   const st=igWall.stage;
   if(st==='need'){ const need=igWallNeed(); r=r.filter(c=>need.has(String(c.id))); }
   else if(st!=='all') r=r.filter(c=>igWallStage(c)===st);
@@ -7406,14 +7429,28 @@ function igWallCardHtml(c,need){
     <span class="igw-ref">${window.refHtml?refHtml(c):igEsc(ref)}</span>
     <span class="igw-nm">${igEsc([c.counterparty,c.name].filter(Boolean).join(' · '))}</span></button>`;
 }
+/* THE COUNT LINE. Open: every paper on the wall. NARROWED TO A SET (Open
+   party): counted the way the door that sent it counts — agreements, an
+   amendment said beside them (cuBook's rule) — and out of the set's own
+   papers, so the number pressed on Parties is the number read here and the
+   shown are never more than the whole */
+function igWallCountWords(rows){
+  if(!igWall.only) return i18t('igw_count',{k:rows.length,n:igPickRows('').length});
+  const set=new Set(igWall.only.ids);
+  const inSet=igPickRows('',set).filter(c=>set.has(String(c.id)));
+  const lead=c=>!c.parentId, amends=rows.filter(c=>!lead(c)).length;
+  const words=i18t('igw_count',{k:rows.filter(lead).length,n:inSet.filter(lead).length});
+  return amends?words+' \u00b7 '+i18tn('int_dep_amend',amends,{n:amends}):words;
+}
 function igWallBodyHtml(){
-  const searched=igPickRows(igWall.q), need=igWallNeed(), all=igPickRows('').length;
+  const searched=igWallBase(), need=igWallNeed();
   const countOf=k=>k==='all'?searched.length:k==='need'?searched.filter(c=>need.has(String(c.id))).length:searched.filter(c=>igWallStage(c)===k).length;
   /* A FILTER'S CHOICE THAT GIVES NOTHING IS NOT LISTED — except the one being used, so it can be let go */
   const chips=IG_WALL_STAGES.map(k=>({k,n:countOf(k)})).filter(x=>x.k==='all'||x.n>0||x.k===igWall.stage)
     .map(x=>`<button type="button" class="igw-chip" data-igw-stage="${igEsc(x.k)}" aria-pressed="${igWall.stage===x.k}">${igEsc(igWallStageWord(x.k))}${x.k==='all'?'':` <span class="n">${x.n}</span>`}</button>`).join('');
   const rows=igWallRows();
-  return `<div class="igw-chips" role="group" aria-label="${igEsc(i18t('igw_stage_label'))}">${chips}<span class="igw-count">${igEsc(i18t('igw_count',{k:rows.length,n:all}))}</span></div>
+  const only=igWall.only?`<button type="button" class="igw-chip igw-only" data-igw-only-clear aria-pressed="true" title="${igEsc(i18t('igw_only_clear'))}">${igEsc(igWall.only.label||i18t('reg_only_fallback'))}${icon('x','w-3.5 h-3.5')}</button>`:'';
+  return `<div class="igw-chips" role="group" aria-label="${igEsc(i18t('igw_stage_label'))}">${only}${chips}<span class="igw-count">${igEsc(igWallCountWords(rows))}</span></div>
     ${rows.length?`<div class="igw-grid" role="list">${rows.map(c=>igWallCardHtml(c,need.has(String(c.id)))).join('')}</div>`:`<p class="ig-pick-none">${igEsc(i18t('int_pick_none'))}</p>`}`;
 }
 function igPickHtml(){
@@ -7429,10 +7466,14 @@ function igWallRepaint(host){
   if(typeof placeSave==='function'){ try{ placeSave(); }catch(_){ /* the place is a convenience */ } }
 }
 /* the refresh pair rides Home's (hbPlace carries it while nothing is chosen) */
-function igWallPlace(){ return { q:igWall.q, sort:igWall.sort, stage:igWall.stage }; }
+function igWallPlace(){ return { q:igWall.q, sort:igWall.sort, stage:igWall.stage, only:igWall.only }; }
 function igWallPlacePut(p){
   if(!p) return;
   if(typeof p.q==='string') igWall.q=p.q.slice(0,200);
+  /* a set kept by an earlier sitting comes back as it was, or not at all */
+  const o=p.only;
+  igWall.only=(o&&Array.isArray(o.ids)&&o.ids.length&&o.ids.every(x=>typeof x==='string'))
+    ? { ids:o.ids.slice(), label:String(o.label||'').slice(0,200) } : null;
   if(IG_WALL_SORTS.includes(p.sort)) igWall.sort=p.sort;
   if(IG_WALL_STAGES.includes(p.stage)) igWall.stage=p.stage;
 }
@@ -7442,6 +7483,8 @@ function igPickWire(host){
     const ch=e.target.closest&&e.target.closest('[data-igw-stage]');
     /* press a lit stage again and it lets go (back to All) */
     if(ch){ const k=ch.getAttribute('data-igw-stage'); igWall.stage=(igWall.stage===k)?'all':k; igWallRepaint(host); return; }
+    /* the set's chip lets go of it: every contract again */
+    if(e.target.closest&&e.target.closest('[data-igw-only-clear]')){ igWall.only=null; igWallRepaint(host); return; }
     const b=e.target.closest&&e.target.closest('[data-ig-pick]'); if(!b) return;
     igAnalyze(b.getAttribute('data-ig-pick'));
   });
@@ -7466,7 +7509,7 @@ function igStripWire(){
     const wk=e.target.closest('[data-ig-walk]'); if(wk){ igWalkStep(Number(wk.getAttribute('data-ig-walk'))); return; }
     if(e.target.closest('[data-ig-focus]')){ p.focus=!p.focus; igPaintPaper(); return; }
     const red=e.target.closest('[data-ig-red]'); if(red){ const v=red.getAttribute('data-ig-red'); p.red=v==='theirs'?'theirs':v==='1'; igPaintPaper(); return; }
-    const ws=e.target.closest('[data-ig-ws]'); if(ws){ openWorkspace(ws.getAttribute('data-ig-ws')); }
+    const ws=e.target.closest('[data-ig-ws]'); if(ws){ const id=ws.getAttribute('data-ig-ws'); if(!(window.roomHomeLand&&roomHomeLand(id))) openWorkspace(id); }
   });
 }
 /* ---- the paper ---- */
@@ -8026,7 +8069,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
   });
 }
 
-Object.assign(window,{igZoomCornerHtml,igStripActsHtml,igStripActsWire,igSignOn,igTheirsOn,igPickAgain,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,IG_WALL_SORTS,IG_WALL_STAGES,igWall,igWallStage,igWallRows,igWallSortFn,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
+Object.assign(window,{igZoomCornerHtml,igStripActsHtml,igStripActsWire,igSignOn,igTheirsOn,igPickAgain,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,IG_WALL_SORTS,IG_WALL_STAGES,igWall,igWallShowOnly,igWallBase,igWallCountWords,igWallStage,igWallRows,igWallSortFn,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
 Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});

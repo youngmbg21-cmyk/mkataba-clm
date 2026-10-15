@@ -1005,7 +1005,10 @@ const CA_GO = {
   document: c => (c && typeof pdOpenOnHome === 'function') ? pdOpenOnHome(c.id, 'copilot') : caHomeFace('paper'),
   calendar: () => typeof hbOpenCalendar === 'function' && hbOpenCalendar(),
   explorer: () => typeof hbOpenExplorer === 'function' && hbOpenExplorer(),
-  wall: () => caHomeWall(),
+  /* "contracts", "all contracts": every contract — a set another screen
+     sent the wall (Parties' Open party, igWallShowOnly) is let go, as a door
+     to the Contracts page landed on fresh filters (step 2, 14 Oct 2026) */
+  wall: () => { if (typeof igWall === 'object' && igWall) igWall.only = null; return caHomeWall(); },
   /* beside the paper: Jambo's own Redlines face (stage 3), through the page's walls */
   redline: c => (typeof pdRedOpen === 'function') ? pdRedOpen(c.id) : openRedlineWorkbench(c.id),
   /* on the Board, for that contract (stage 4): the view, the Negotiate page's

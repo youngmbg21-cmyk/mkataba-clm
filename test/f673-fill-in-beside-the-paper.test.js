@@ -65,7 +65,8 @@ describe('f673 (1) a contract just made lands on Home, the panel on Fill in', ()
   });
   test('1b nothing owed: Home on Jambo; an executed import and the phone keep the room', () => {
     let s = stage({ left: 0 }); s.ctx.roomOpenOnTerms('MK-1'); assert.equal(s.ctx.roomArrivesOnHome('MK-1'), true);
-    assert.deepEqual(J(s.calls), [['home', 'MK-1', 'copilot']]);
+    /* the Workspace door's landing, plain: no face left up (step 2, 15 Oct 2026) */
+    assert.deepEqual(J(s.calls), [['home', 'MK-1', 'plain']]);
     s = stage({ executed: true }); s.ctx.roomOpenOnTerms('MK-1'); assert.equal(s.ctx.roomArrivesOnHome('MK-1'), false);
     s = stage({ phone: true }); s.ctx.roomOpenOnTerms('MK-1'); assert.equal(s.ctx.roomArrivesOnHome('MK-1'), false);
   });

@@ -564,15 +564,18 @@ const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
     const want = await page.evaluate(() =>
       document.querySelector('.obw-table tr[data-obw-row]').getAttribute('data-obw-cid'));
     await page.click('.obw-table tr[data-obw-row]');
-    await page.waitForTimeout(1400);
-    /* RE-POINTED 11 Oct 2026 (owner): Open contract lands on Home's Document,
-       on the panel's Obligations tab — still the tab the row is about. */
+    /* RE-POINTED 14 Oct 2026 (the overnight work order, step 2; was Home's
+       Document on the panel's Obligations tab, 11 Oct): a row opens the
+       Board's Obligations view for its contract — still the place the row is
+       about. Asked of the state, bounded. */
+    await page.waitForFunction(() => state.view === 'dashboard' && window.hbFace && hbFace() === 'board'
+      && window.hbCvNow && hbCvNow().v === 'oblig', null, { timeout: 8000 }).catch(() => {});
     const back = await page.evaluate(`(() => {
-      const on = document.querySelector('#ig-dock .pd-tab.on');
-      return { view: state.view, id: (window.intel && intel.paper) ? intel.paper.id : null, tab: on ? on.getAttribute('data-pd-tab') : null };
+      const v = window.hbCvNow ? hbCvNow() : null;
+      return { view: state.view, face: window.hbFace ? hbFace() : null, id: v && v.c ? v.c.id : null, v: v ? v.v : null };
     })()`);
-    check('pressing a row opens that contract on its Obligations tab',
-      back.id === want && back.tab === 'oblig', JSON.stringify(back));
+    check('pressing a row opens that contract on the Board\'s Obligations view',
+      back.view === 'dashboard' && back.face === 'board' && back.id === want && back.v === 'oblig', JSON.stringify(back));
 
     /* ---- THE CHASE RECORDS THE FACT WHATEVER THE MAIL DOES ---- */
     await page.click('#side-nav [data-view="obligations"]');

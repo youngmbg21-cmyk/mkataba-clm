@@ -84,7 +84,13 @@ const DOC = 'SUPPLY AGREEMENT\n\nArticle 1 Term\n\nThis Agreement runs for twelv
     const rows = await page.evaluate(() => { const s = hbS(); s.path = []; hbSave(); setView('dashboard'); return hbAgentsData(null).rows.map(r => r.k); });
     ok('3a approvals are kept off the Board\'s card', /const HB_OFF_BOARD = \['approve'\];/.test(src) && !rows.includes('approve'), JSON.stringify(rows));
     const app = fs.readFileSync(path.join(__dirname, '..', '..', 'js', 'app.js'), 'utf8');
-    ok('3b the bell\'s approval row opens the approval through pdOpenOnHome', /push\('approval',x\.c,\s*i18t\('al_approval'\),\(\)=>\{ if\(window\.pdOpenOnHome&&pdOpenOnHome\(x\.c\.id,'sign'\)\) return;/.test(app));
+    /* RE-POINTED 14 Oct 2026 (the overnight work order, step 2): the bell's
+       approval row opens Before you sign on Home through the walls
+       (roomOpenAt), no longer the Approvals page; the press itself is driven
+       by every-door-lands-on-home-verify. pdOpenOnHome(id,'sign') below is the
+       side panel's checklist door, which the owner left on Approvals. */
+    ok('3b the bell\'s approval row opens Before you sign through roomOpenAt', /push\('approval',x\.c,\s*i18t\('al_approval'\),\(\)=>\{ if\(window\.roomOpenAt\) roomOpenAt\(x\.c\.id,'sign'\);/.test(app)
+      && !/push\('approval',x\.c,\s*i18t\('al_approval'\),\(\)=>\{ if\(window\.pdOpenOnHome/.test(app));
     /* RE-POINTED 10 Oct 2026 (owner: "delete signing tab"): the Paper has no
        Signing tab; an approval opens on the Approvals & signing page, its row chosen */
     await page.evaluate(() => pdOpenOnHome('MK-CM1', 'sign'));

@@ -9405,7 +9405,10 @@ function hbOnClick(e){
   if ((el = on('[data-hb-open]'))){ const ids = String(el.getAttribute('data-hb-open') || '').split(',').filter(Boolean);
     if (ids.length && typeof regShowOnly === 'function') regShowOnly(ids, el.getAttribute('data-hb-what') || ''); return; }
   if (on('[data-hb-obl]')){ if (typeof obwGoFiltered === 'function') obwGoFiltered({ state: 'overdue' }); else setView('obligations'); return; }
-  if ((el = on('[data-hb-room]'))){ if (typeof openWorkspace === 'function') openWorkspace(el.getAttribute('data-hb-room')); return; }
+  /* "Workspace" opens Home, never the room (the overnight work order, step 2;
+     roomHomeLand, the one landing every Workspace door shares) */
+  if ((el = on('[data-hb-room]'))){ const id = el.getAttribute('data-hb-room');
+    if (!(window.roomHomeLand && roomHomeLand(id)) && typeof openWorkspace === 'function') openWorkspace(id); return; }
   if ((el = on('[data-hb-why]'))){ hbWhyAsk(el.getAttribute('data-hb-why')); return; }
   /* ⋯ → What could explain this?: the card's reading opens where it stands and
      the same three-point answer is asked for (hbWhyAsk, the one door) */

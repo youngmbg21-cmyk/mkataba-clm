@@ -4702,9 +4702,27 @@ function roomArrivesOnHome(id){
   const c=getContract(k); if(!c) return false;
   if((typeof negoExecuted==='function')?negoExecuted(c):(c.status==='Signed')) return false;
   _wsNewDrafts.delete(k); _wsNewAt.delete(k);
+  return roomHomeLand(k);
+}
+/* ---- THE WORKSPACE DOOR OPENS HOME (the overnight work order, step 2;
+   owner's "Go", 14 Oct 2026: "the inspector's Workspace door opens Home
+   everywhere — Fill in beside the paper while detailsOf owes, else the paper
+   on Jambo's tab — never the room") ---- the ONE landing every door named
+   Workspace shares (the list panel's third door on every list, the Contracts
+   row's ⋯, Explorer's card) and the one a contract just made lands on. Fill
+   in only for somebody who may write; a reader lands on the paper. False on
+   the phone and where Home's paper is not loaded: the caller opens the room,
+   which the phone still draws. (Step 8 points it at the Board's strip.) */
+function roomHomeLand(id){
+  if(typeof window!=='undefined'&&((window.mPhone&&mPhone())||(window.innerWidth&&window.innerWidth<768))) return false;
+  if(typeof pdOpenOnHome!=='function'||typeof pdFillOpen!=='function') return false;
+  const c=(typeof getContract==='function')?getContract(id):null; if(!c) return false;
   let owed=false; try{ owed=!!detailsOf(c).left; }catch(_){ owed=false; }
   const may=(typeof canEdit!=='function')||canEdit();
-  return (owed&&may)?!!pdFillOpen(k):!!pdOpenOnHome(k,'copilot');
+  /* 'plain', not 'copilot': a face an earlier press left open on this
+     contract (Redlines, Before you sign) is put away, so the door lands on
+     the conversation it promises */
+  return (owed&&may)?!!pdFillOpen(c.id):!!pdOpenOnHome(c.id,'plain');
 }
 /* ---- A RENEWAL IS DECIDED ON TODAY'S READING (Young, 27 Sep 2026) ----
    *"when you click on decide and it takes you to the overview page, the 5
@@ -18092,7 +18110,7 @@ Object.assign(window,{docReadLongSplit,DOC_READ_LONG_WORDS,DOC_READ_RUN_MIN,docT
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,roomChatDoorHtml,ROOM_TABS_HOME,roomTabHome,roomOpenAt,roomMoreMenuHtml,roomMenuWire,renderSignButton,renderSignSide,roomFactsHtml,signBlockHtml,signReadinessCardHtml,signRowTitle,signWhyShort,SIGN_WHY_WORDS,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,docWorkPreviewOf,formOnHome,formHostEl,formPaperEl,formHeldContract,formRepaint,docTermFill,docNoticeFill,docSyncWrite,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomArrivesOnHome,ROOM_ARRIVE_MS,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPlace,roomPlacePut,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,checkVerdict,tplFormOpenCount,tplFormOpenFields,detailsOf,detailsSections,blankFormLive,DET_RECORD_KEYS,detHeadHtml,detPaintHead,detailsChanged,detPaintPaperEmpties,detTintEmpties,detBasicsHtml,detPaintBasics,detMarkOpen,openCompleteDetails,cdRepaintCounts,openCheckPanel,roomHeadHtml,wireRoomHead,
+  ROOM_TABS,docWorkPreviewOf,formOnHome,formHostEl,formPaperEl,formHeldContract,formRepaint,docTermFill,docNoticeFill,docSyncWrite,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomArrivesOnHome,roomHomeLand,ROOM_ARRIVE_MS,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPlace,roomPlacePut,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,checkVerdict,tplFormOpenCount,tplFormOpenFields,detailsOf,detailsSections,blankFormLive,DET_RECORD_KEYS,detHeadHtml,detPaintHead,detailsChanged,detPaintPaperEmpties,detTintEmpties,detBasicsHtml,detPaintBasics,detMarkOpen,openCompleteDetails,cdRepaintCounts,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill,
   /* idea 7 — the plain-English layer. Published because a name read through
      window from another module, or from a test stage, is silence when it is

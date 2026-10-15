@@ -163,12 +163,23 @@ function cuPlacePut(p){
 }
 
 /* ---- THE DOORS ---- */
-/* OPEN CUSTOMER = the Contracts page narrowed to this customer, through its
-   own "only" chip (regShowOnly). × on the chip widens it; the rail's
-   Customers door is the way back. */
+/* OPEN PARTY = HOME'S WALL OF PAPER, NARROWED TO THIS PARTY (the overnight
+   work order, step 2; owner's "Go", 14 Oct 2026; was the Contracts page
+   narrowed by its "only" chip). Until step 7 gives Home its Contracts place:
+   Home's Document with no paper chosen, the wall showing the ids this row
+   counted (cuIdsOf: its filters held, amendments with their agreement), one
+   lit chip naming the party as the way out (igWallShowOnly). The phone, and
+   a page where Home's paper is not loaded, keep the Contracts page. */
 function cuOpenCustomer(key){
   const v = cuView(cuCustomerOf(key));
   if (!v || !v.items.length) return;
+  const phone = typeof window !== 'undefined' && ((window.mPhone && mPhone()) || (window.innerWidth && window.innerWidth < 768));
+  if (!phone && typeof igWallShowOnly === 'function' && typeof caHomeWall === 'function'){
+    igWallShowOnly(cuIdsOf(v), v.name);
+    caHomeWall();
+    if (typeof placeSave === 'function'){ try { placeSave(); } catch (_){ /* the place is a convenience */ } }
+    return;
+  }
   if (typeof regShowOnly === 'function') regShowOnly(cuIdsOf(v), `${v.name} · ${v.items.length}`);
 }
 function cuDraftFor(name){
