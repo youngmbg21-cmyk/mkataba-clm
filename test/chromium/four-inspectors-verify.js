@@ -174,41 +174,29 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     /* RE-POINTED 14 Oct 2026 (the overnight work order, step 2; was Home's
        Document on the panel's Obligations tab, 11 Oct): Enter opens the
        Board's Obligations view for that row's contract. Asked of the state, bounded. */
-    await page.waitForFunction(() => state.view === 'dashboard' && window.hbFace && hbFace() === 'board'
-      && window.hbCvNow && hbCvNow().v === 'oblig', null, { timeout: 8000 }).catch(() => {});
-    const onHome = await page.evaluate(() => { const v = window.hbCvNow ? hbCvNow() : null;
-      return { view: state.view, face: window.hbFace ? hbFace() : null, v: v ? v.v : null, id: v && v.c ? v.c.id : null }; });
-    ok('1h Enter opens the contract on the Board\'s Obligations view', !!sel && onHome.view === 'dashboard' && onHome.face === 'board'
-      && onHome.v === 'oblig' && !!selCid && onHome.id === selCid, { ...onHome, selCid });
+    /* RE-POINTED 15 Oct 2026 (owner: the contract's views went; "obligations
+       has its own panel"): Enter opens the row's contract with the panel's
+       Obligations tab lit, that row chosen */
+    await page.waitForFunction(() => state.view === 'dashboard' && window.pdTab && pdTab() === 'oblig' && !!document.querySelector('#pd-body .pd-ob'), null, { timeout: 8000 }).catch(() => {});
+    const onHome = await page.evaluate(() => ({ view: state.view, face: window.hbFace ? hbFace() : null, tab: window.pdTab ? pdTab() : null,
+      id: window.intel && intel.paper ? intel.paper.id : null, chosen: !!document.querySelector('#pd-body .pd-ob.is-chosen') }));
+    ok('1h Enter opens the contract with the panel\'s Obligations tab, the row chosen', !!sel && onHome.view === 'dashboard' && onHome.face === 'paper'
+      && onHome.tab === 'oblig' && !!selCid && onHome.id === selCid && onHome.chosen, { ...onHome, selCid });
 
     /* ================= 2 · THE CONTRACT'S OBLIGATIONS TAB ================= */
-    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
-       Obligations tab went home — the same door (roomGoTab 'oblig') opens the
-       Board's Obligations view for this contract, drawn by the tab's own
-       painter (roomPaintObligations) into #hb-cv-body[data-hb-cv="oblig"]
-       (the old #ws-obligations-pane). Waited for by this contract's id. */
-    const OBV = `#hb-cv-body[data-hb-cv="oblig"][data-hb-cv-cid="${staged.c1}"]`;
+    /* RE-POINTED 15 Oct 2026: the Board's Obligations view (a list and a panel
+       on the room's builder) went with the contract's views; the same door
+       (roomGoTab 'oblig') opens the panel's Obligations tab beside the paper.
+       It lists every obligation, completed ones too; removal stays on the
+       obligation's own form (Edit), so the old 2c has no door here. */
     await page.evaluate(id => { openWorkspace(id, { room: true }); }, staged.c1); await page.waitForTimeout(1200);
     await page.evaluate(id => roomGoTab(getContract(id), 'oblig'), staged.c1);
-    await page.waitForFunction(sel => !!document.querySelector(sel + ' [data-ins-row]') && !!document.querySelector(sel + ' #obt-panel h2'), OBV, { timeout: 8000 }).catch(() => {});
+    await page.waitForFunction(id => window.intel && intel.paper && intel.paper.id === id && window.pdTab && pdTab() === 'oblig' && !!document.querySelector('#pd-body .pd-ob'), staged.c1, { timeout: 8000 }).catch(() => {});
     await page.screenshot({ path: path.join(OUT, '2-tab.png') });
-    const tab = await page.evaluate(sel => ({ ins: !!document.querySelector(sel + '.is-ins'),
-      rows: document.querySelectorAll(sel + ' [data-ins-row]').length,
-      line: (document.querySelector(sel + ' .obt-line') || {}).textContent || '', title: (document.querySelector(sel + ' #obt-panel h2') || {}).textContent || '' }), OBV);
-    ok('2a the tab is a list and a panel on the same builder', tab.ins && tab.rows >= 3 && !!tab.title, tab);
-    await page.click(OBV + ' [data-obt-view="all"]').catch(() => {}); await page.waitForTimeout(400);
-    const allN = await page.evaluate(sel => document.querySelectorAll(sel + ' [data-ins-row]').length, OBV);
-    ok('2b the switch shows what is completed too', allN === tab.rows + 1, { outstanding: tab.rows, all: allN });
-    const before = await page.evaluate(id => getContract(id).obligations.length, staged.c1);
-    await page.click('#obt-panel [data-ins-more]').catch(() => {}); await page.waitForTimeout(200);
-    await page.click('#obt-panel [data-act="remove"]').catch(() => {}); await page.waitForTimeout(500);
-    /* REVERSED 10 Oct 2026 (SAP pop-ups, owner's go): a removal that can be
-       undone does not ask — it goes, and the toast's Undo puts it back. */
-    const gone = await page.evaluate(id => getContract(id).obligations.length, staged.c1);
-    const undone = await page.evaluate(() => { const b = [...document.querySelectorAll('#toast-root [data-toast-act]')].pop(); if (b) { b.click(); return true; } return false; });
-    await page.waitForTimeout(400);
-    const after = await page.evaluate(id => getContract(id).obligations.length, staged.c1);
-    ok('2c Remove goes at once, and its Undo puts it back', gone === before - 1 && undone && after === before, { before, gone, undone, after });
+    const tab = await page.evaluate(id => ({ rows: document.querySelectorAll('#pd-body .pd-ob').length, n: (getContract(id).obligations || []).filter(Boolean).length,
+      done: (getContract(id).obligations || []).filter(o => o && o.status === 'done').length, acts: document.querySelectorAll('#pd-body .pd-ob button').length }), staged.c1);
+    ok('2a the door lands on the panel\'s Obligations tab, each row with its acts', tab.rows >= 3 && tab.acts >= tab.rows, tab);
+    ok('2b the tab shows what is completed too', tab.rows === tab.n && tab.done >= 1, tab);
 
     /* ================= 3 · OUR STANDARDS, THREE TABS ================= */
     await page.evaluate(() => setView('playbook')); await page.waitForTimeout(1200);

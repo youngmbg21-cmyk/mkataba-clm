@@ -153,7 +153,7 @@ const LAND = () => {
     rlList: state.view === 'redline' && !document.getElementById('rl-doc'),
     dialog: !!document.querySelector('.modal-overlay:not(.hidden), #confirm-overlay:not(.hidden), #cmd-palette'),
     /* the obligation the Board's view has chosen, and the wall's count line */
-    obSel: (() => { const r = document.querySelector('#hb-cv-body tr.is-sel[data-ob-key]'); return r ? r.getAttribute('data-ob-key') : null; })(),
+    obSel: (() => { const r = document.querySelector('#hb-cv-body tr.is-sel[data-ob-key], #pd-body .pd-ob.is-chosen[data-pd-ob-key]'); return r ? (r.getAttribute('data-ob-key') || r.getAttribute('data-pd-ob-key')) : null; })(),
     count: (() => { const n = document.querySelector('#ig-wall .igw-count'); return n ? n.textContent.trim() : null; })(),
     /* Jambo's Share card in the panel (the glance's Share asks his word "share", which answers with it) */
     shareCard: !!document.querySelector('#ig-dock [data-ca-act="shareout"]'),
@@ -189,9 +189,12 @@ const E = {
   red: id => L => E.paper(id)(L) && L.pd === 'red',
   signing: id => L => E.paper(id)(L) && L.pd === 'signing',
   obTab: id => L => E.paper(id)(L) && L.pd === '' && L.tab === 'oblig',
-  board: (id, v) => L => L.view === 'dashboard' && L.face === 'board' && L.cv === v + ':' + id,
-  /* the Board's Obligations view with THAT row chosen */
-  obRow: (id, key) => L => E.board(id, 'oblig')(L) && L.obSel === key,
+  /* RE-POINTED 15 Oct 2026 (owner: the contract's views went): a door that
+     opened the Board's view lands on its home — Obligations on the panel's
+     tab, History on the strip's History page, the rest on Where we are */
+  board: (id, v) => L => v === 'oblig' ? E.obTab(id)(L) : E.strip(id, v === 'hist' ? 'hist' : 'where')(L),
+  /* the panel's Obligations tab with THAT row chosen */
+  obRow: (id, key) => L => E.obTab(id)(L) && L.obSel === key,
   boardFace: L => L.view === 'dashboard' && L.face === 'board',
   wall: n => L => L.view === 'dashboard' && L.face === 'paper' && !L.paper && L.place && L.show === 'wall' && L.wall && (n == null ? !L.only : L.only === n),
   /* the Contracts place drawn as the List (step 7), and on a stage's tab */
@@ -206,7 +209,7 @@ const E = {
   ngList: L => L.view === 'redline' && L.rlList,
 };
 const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'Fill in beside the paper', red: 'Redlines beside the paper',
-  signing: 'Before you sign beside the paper', obTab: 'the paper, Jambo\'s Obligations tab', board: 'the Board\'s view', wall: 'Home\'s Contracts place, the Wall',
+  signing: 'Before you sign beside the paper', obTab: 'the paper, Jambo\'s Obligations tab', board: 'its home (the panel\'s Obligations tab or the strip)', wall: 'Home\'s Contracts place, the Wall',
   list: 'Home\'s Contracts place, the List',
   strip: 'its strip on the Board', stripWhere: 'its strip on the Board, on Where we are', stripDetails: 'its strip on the Board, on Details (the Overview\'s sheet)' };
 
@@ -414,9 +417,9 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
       start: async () => { await goPage('obligations'); await domClick('[data-obw-view="done"]'); await waitFor(page, s => !!document.querySelector(s), 6000, OBR(2)); },
       press: () => dbl(OBR(2)), expect: E.obRow('MK-A1', OBK(2)), says: OBSAYS });
     await page.evaluate(() => obwGoFiltered({}));
-    await door(A, 'Obligations row, the Board\'s view left on Overdue (MK-A1, a later one)', {
-      start: async () => { await page.evaluate(() => hbOpenView('MK-A1', 'oblig')); await waitFor(page, () => !!document.querySelector('#hb-cv-body [data-obt-view="overdue"]'), 6000);
-        await domClick('#hb-cv-body [data-obt-view="overdue"]'); await goPage('obligations', s => !!document.querySelector(s), OBR(3)); },
+    /* RE-POINTED 15 Oct 2026: the Board's Obligations view (and its Overdue tab) went; a later row is still the row chosen */
+    await door(A, 'Obligations row, a later one (MK-A1)', {
+      start: async () => { await goPage('obligations', s => !!document.querySelector(s), OBR(3)); },
       press: () => dbl(OBR(3)), expect: E.obRow('MK-A1', OBK(3)), says: OBSAYS });
     await threeDoors(A + ' · Obligations', 'obligations', OBROW, 'MK-A1');
     await door(A, 'Obligations panel, Show it in the contract (MK-A1)', { start: async () => { await goPage('obligations', s => !!document.querySelector(s), OBROW); await selectRow(OBROW); },
@@ -490,9 +493,9 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
     await door(A, 'Approvals Open, narrow (MK-A2)', { start: () => goPage('approvals', () => !!document.querySelector('[data-ap-open="MK-A2"]')), press: () => click('[data-ap-open="MK-A2"]'), expect: E.signing('MK-A2'), says: SAYS.signing });
     /* narrow, the Board's view is the full table too: every row drawn, none chosen (no panel) */
     await door(A, 'Obligations row, one press, narrow (MK-A1)', { start: () => goPage('obligations', () => !!document.querySelector('.obw-table tr[data-obw-row="ob-a1-1"]')),
-      press: () => click('.obw-table tr[data-obw-row="ob-a1-1"] .obw-when'), expect: E.board('MK-A1', 'oblig'), says: 'the Board\'s Obligations view' });
+      press: () => click('.obw-table tr[data-obw-row="ob-a1-1"] .obw-when'), expect: E.board('MK-A1', 'oblig'), says: SAYS.obTab });
     await door(A, 'Obligations Open contract, narrow (MK-A1, a later one)', { start: () => goPage('obligations', () => !!document.querySelector('tr[data-obw-row="ob-a1-3"] [data-obw-open]')),
-      press: () => click('tr[data-obw-row="ob-a1-3"] [data-obw-open]'), expect: E.board('MK-A1', 'oblig'), says: 'the Board\'s Obligations view' });
+      press: () => click('tr[data-obw-row="ob-a1-3"] [data-obw-open]'), expect: E.board('MK-A1', 'oblig'), says: SAYS.obTab });
     await door(A, 'Parties row, one press, narrow (Naivas)', { start: () => goPage('customers', s => !!document.querySelector(s), CU), press: () => click(CU), expect: PARTY, says: PSAYS });
     await door(A, 'Requests Open, narrow (→ MK-A2)', { start: async () => { await goPage('intake'); await domClick('[data-ik-view="all"]'); await waitFor(page, () => !!document.querySelector('[data-ik-open="MK-A2"]'), 6000); },
       press: () => click('[data-ik-open="MK-A2"]'), expect: E.paper('MK-A2'), says: SAYS.paper });
@@ -587,16 +590,16 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
       await page.keyboard.press('Enter'); return true; };
     const R1owed = await owedFor('MK-R1');
     const WORDS = [
-      ['redline', E.red('MK-R1'), SAYS.red], ['deal board', E.board('MK-R1', 'deal'), 'the Board\'s deal view'], ['sign', E.signing('MK-R1'), SAYS.signing],
+      ['redline', E.red('MK-R1'), SAYS.red], ['sign', E.signing('MK-R1'), SAYS.signing],
       ['fill in', R1owed ? E.fill('MK-R1') : E.paper('MK-R1'), SAYS.fill], ['obligations', E.obTab('MK-R1'), SAYS.obTab],
-      ['history', E.board('MK-R1', 'hist'), 'the Board\'s History view'], ['board', E.face('board'), 'the Board'],
+      ['history', E.board('MK-R1', 'hist'), SAYS.strip], ['board', E.face('board'), 'the Board'],
       ['contracts', E.wall(null), SAYS.wall], ['list', E.list(null), SAYS.list], ['wall', E.wall(null), SAYS.wall], ['calendar', E.face('calendar'), 'Home\'s Calendar'], ['explorer', E.face('explorer'), 'Home\'s Explorer'],
       ['MK-A1', E.paper('MK-A1'), 'that contract\'s paper'],
     ];
     for (const [w, want, says] of WORDS)
       await door(D, `the word "${w}" (on MK-R1)`, { start: onPaper('MK-R1'), press: say(w), expect: want, says });
     const chips = await (async () => { await onPaper('MK-R1')(); return page.evaluate(() => [...document.querySelectorAll('[data-ca-chip]')].map(b => b.getAttribute('data-ca-chip'))); })();
-    const CHIP = { redline: E.red('MK-R1'), deal: E.board('MK-R1', 'deal'), sign: E.signing('MK-R1'), history: E.board('MK-R1', 'hist'),
+    const CHIP = { redline: E.red('MK-R1'), sign: E.signing('MK-R1'), history: E.board('MK-R1', 'hist'),
       fill: R1owed ? E.fill('MK-R1') : E.paper('MK-R1'), oblig: E.obTab('MK-R1'), share: L => E.paper('MK-R1')(L) && L.dialog };
     for (const k of [...new Set(chips)])
       await door(D, `the chip "${k}" (on MK-R1)`, { start: onPaper('MK-R1'), press: () => domClick(`[data-ca-chip="${k}"]`), expect: CHIP[k] || (L => !L.room && !L.negPage), says: CHIP[k] ? 'its place on Home' : 'anywhere but the room' });
@@ -705,13 +708,17 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
 
     lap('Jambo');
     /* ================= E · THE PAPER'S ⋯ MENU ================= */
-    const EM = 'E the paper\'s ⋯';
-    const menuOpen = id => async () => { await onPaper(id)(); await domClick('#ig-strip #ws-more'); await waitFor(page, () => !!document.querySelector('#ws-more-menu:not(.hidden)'), 4000); };
-    const items = await (async () => { await menuOpen('MK-A2')(); return page.evaluate(() => [...document.querySelectorAll('#ws-more-menu button')].map(b => b.id).filter(Boolean)); })();
-    console.log(`  the ⋯ menu on Home's paper holds: ${items.join(' ')}`);
-    await door(EM, 'Filing and stream (MK-A2)', { start: menuOpen('MK-A2'), press: () => domClick('#ws-more-menu #ws-filing'), expect: E.strip('MK-A2', 'details'), says: SAYS.stripDetails + ', its filing rows' });
+    /* RE-POINTED 15 Oct 2026 (owner, answer B): the paper's ⋯ went; its rows are the panel's Menu tab */
+    const EM = 'E the panel\'s Menu tab';
+    const MN = '#pd-body .pd-menu .pd-mn-rows';
+    const menuOpen = id => async () => { await onPaper(id)(); await domClick('#ig-dock [data-pd-tab="menu"]');
+      await waitFor(page, () => !!(document.querySelector('#pd-body .pd-menu') || {}).dataset?.wired, 4000);
+      await page.evaluate(() => document.querySelectorAll('#pd-body .pd-mn-g').forEach(d => { d.open = true; })); };
+    const items = await (async () => { await menuOpen('MK-A2')(); return page.evaluate(m => [...document.querySelectorAll(m + ' button')].map(b => b.id).filter(Boolean), MN); })();
+    console.log(`  the Menu tab on Home's paper holds: ${items.join(' ')}`);
+    await door(EM, 'Filing and stream (MK-A2)', { start: menuOpen('MK-A2'), press: () => domClick(MN + ' #ws-filing'), expect: E.strip('MK-A2', 'details'), says: SAYS.stripDetails + ', its filing rows' });
     await door(EM, 'Delete (MK-DEL)', { start: menuOpen('MK-DEL'),
-      press: async () => { if (!(await domClick('#ws-more-menu #ws-delete'))) return false;
+      press: async () => { if (!(await domClick(MN + ' #ws-delete'))) return false;
         const conf = await waitFor(page, () => [...document.querySelectorAll('button')].some(b => /^Delete/.test(b.textContent.trim()) && b.closest('.modal-overlay, #confirm-overlay, [role="dialog"]')), 4000);
         if (conf) await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /^Delete/.test(x.textContent.trim()) && x.closest('.modal-overlay, #confirm-overlay, [role="dialog"]')); b && b.click(); });
         return true; },
@@ -729,7 +736,7 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
       ['&tab=stands (MK-A2)', 'contract=MK-A2&tab=stands', E.strip('MK-A2', 'where'), SAYS.stripWhere, null],
       ['&tab=sign&go=approval (MK-A2)', 'contract=MK-A2&tab=sign&go=approval', E.signing('MK-A2'), SAYS.signing, null],
       ['&tab=redline (MK-R1)', 'contract=MK-R1&tab=redline', E.red('MK-R1'), SAYS.red, null],
-      ['&tab=history (MK-A1)', 'contract=MK-A1&tab=history', E.board('MK-A1', 'hist'), 'the Board\'s History view', null],
+      ['&tab=history (MK-A1)', 'contract=MK-A1&tab=history', E.board('MK-A1', 'hist'), SAYS.strip, null],
       ['&tab=docs (MK-A1)', 'contract=MK-A1&tab=docs', E.paper('MK-A1'), SAYS.paper, null],
     ];
     for (const [nm, hash, want, says, p] of LINKS) await door(F, nm, { start: atStart, press: link(hash), expect: want, says, pending: p });
@@ -742,7 +749,7 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
       ['on the Redlines face (MK-R1)', () => page.evaluate(() => pdRedOpen('MK-R1')), E.red('MK-R1'), SAYS.red, null],
       ['on Fill in (MK-A2)', () => page.evaluate(() => pdFillOpen('MK-A2')), E.fill('MK-A2'), SAYS.fill, null],
       ['on Before you sign (MK-A2)', () => page.evaluate(() => pdSignOpen('MK-A2')), E.signing('MK-A2'), SAYS.signing, null],
-      ['on the Board\'s Obligations view (MK-A1)', () => page.evaluate(() => hbOpenView('MK-A1', 'oblig')), E.board('MK-A1', 'oblig'), 'the Board\'s Obligations view', null],
+      ['on the Board\'s Obligations view (MK-A1)', () => page.evaluate(() => hbOpenView('MK-A1', 'oblig')), E.board('MK-A1', 'oblig'), SAYS.obTab, null],
       ['on the wall narrowed to a party', () => page.evaluate(() => cuOpenCustomer('naivas supermarkets')), PARTY, PSAYS, null],
       ['on the Negotiations list', () => go('redline'), E.ngList, 'the Negotiations list', null],
       /* the room by name (the checks' own door) and a refresh standing on it: the strip */

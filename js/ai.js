@@ -1192,6 +1192,8 @@ function renderAIFeed(typing=false){
     regShowOnly(ids, el.getAttribute('data-ai-worklist-label')||'');
   }));
   if(typeof aiWireProposals==='function') aiWireProposals();
+  /* a contract number in an answer is a link to it (caRefLinkPaint) */
+  if(feed&&typeof window.caRefLinkPaint==='function') caRefLinkPaint(feed);
   /* The panel's own composer and any the feed drew: re-measured on every paint
      so a half-typed question is not clipped back to one line by an answer
      landing above it. */

@@ -112,28 +112,27 @@ const isoIn = off => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d
        Board's Obligations view for this contract, drawn by the tab's own
        painter (roomPaintObligations) into #hb-cv-body[data-hb-cv="oblig"]
        (the old #ws-obligations-pane). Waited for by this contract's id. */
+    /* RE-POINTED 15 Oct 2026 (owner: the contract's views went; "obligations
+       has its own panel"): the door opens the panel's Obligations tab beside
+       Home's paper. Its rows carry the same acts (obPanelActs) and the same
+       dates (obligationDueSay); the table's own words for a held document and
+       a chase ("2b") were the removed view's and are not drawn there. */
     await page.evaluate(() => { const c = getContract('MK-A1'); roomGoTab(c, 'oblig'); });
-    await page.waitForFunction(() => !!document.querySelector('#hb-cv-body[data-hb-cv="oblig"][data-hb-cv-cid="MK-A1"] [data-obt-row]'), null, { timeout: 8000 }).catch(() => {});
+    await page.waitForFunction(() => window.intel && intel.paper && intel.paper.id === 'MK-A1' && window.pdTab && pdTab() === 'oblig' && !!document.querySelector('#pd-body .pd-ob'), null, { timeout: 8000 }).catch(() => {});
     await page.waitForTimeout(300);
     const tab = await page.evaluate(() => {
-      const host = document.querySelector('#hb-cv-body[data-hb-cv="oblig"][data-hb-cv-cid="MK-A1"]');
-      const row = id => host && host.querySelector(`[data-obt-row="${id}"]`);
-      const chip = host && host.querySelector('.obt-chip.is-done');
       const c = getContract('MK-A1');
-      return { shape: host ? host.getAttribute('data-ins') : null,
-        chase: !!(host && host.querySelector('[data-obt-chase="o-theirs"]')), chaseOurs: !!(host && host.querySelector('[data-obt-chase="o-soon"]')),
-        doc: row('o-doc') ? row('o-doc').textContent : '', docSays: obDocSay(c.obligations.find(o => o.id === 'o-doc')).t,
-        chased: row('o-theirs') ? row('o-theirs').textContent : '', chasedWord: i18t('ob_chased_short', { date: '§' }).split('§')[0].trim(),
-        chip: chip ? chip.textContent.trim() : null, paid: i18t('ob_roll_paid'),
-        dues: host ? [...host.querySelectorAll('.obt-due')].map(x => x.textContent) : [] };
+      const rowOf = id => { const i = c.obligations.findIndex(o => o.id === id); return i < 0 ? null : document.querySelector(`#pd-body .pd-ob[data-pd-ob-key="${CSS.escape(String(obKeyOf(c.id, c.obligations[i], i)))}"]`); };
+      const hasChase = r => !!(r && [...r.querySelectorAll('button')].some(b => b.textContent.trim() === i18t('ob_chase')));
+      return { chase: hasChase(rowOf('o-theirs')), chaseOurs: hasChase(rowOf('o-soon')),
+        dues: [...document.querySelectorAll('#pd-body .pd-ob small')].map(x => x.textContent) };
     });
-    check('2a Chase is on the open obligation of theirs, and not on ours', tab.shape === '0' && tab.chase && !tab.chaseOurs, JSON.stringify({ shape: tab.shape, chase: tab.chase, ours: tab.chaseOurs }));
-    check('2b the document they hold says when it ends, and the chased one says it was chased',
-      tab.doc.includes(tab.docSays) && tab.chased.includes(tab.chasedWord), `${tab.doc.slice(0, 80)} | ${tab.chased.slice(0, 80)}`);
-    check('2c the paid step\'s chip says "Paid" — and no date on the tab is a raw string', tab.chip === tab.paid && tab.dues.every(t => !ISO.test(t)),
-      JSON.stringify({ chip: tab.chip, dues: tab.dues.slice(0, 4) }));
+    check('2a Chase is on the open obligation of theirs, and not on ours', tab.chase && !tab.chaseOurs, JSON.stringify({ chase: tab.chase, ours: tab.chaseOurs }));
+    check('2c no date on the tab is a raw string', tab.dues.length > 0 && tab.dues.every(t => !ISO.test(t)), JSON.stringify(tab.dues.slice(0, 4)));
     if (tab.chase) {
-      await page.click('#hb-cv-body [data-obt-chase="o-theirs"]');
+      await page.evaluate(() => { const c = getContract('MK-A1'); const i = c.obligations.findIndex(o => o.id === 'o-theirs');
+        const r = document.querySelector(`#pd-body .pd-ob[data-pd-ob-key="${CSS.escape(String(obKeyOf(c.id, c.obligations[i], i)))}"]`);
+        const b = r && [...r.querySelectorAll('button')].find(x => x.textContent.trim() === i18t('ob_chase')); if (b) b.click(); });
       await page.waitForTimeout(500);
     }
     /* The chase asks first, as it does everywhere: confirmDialog's own layer. */

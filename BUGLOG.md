@@ -20803,3 +20803,7 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - friction-fits-the-screen-verify drew nothing at 1440 on one GitHub run (run 38699309179, shard 1: "not drawn", 15 of 46 red) and passed on the other run of the same commit, at 1920 in the same run, and locally 46/46: a wait in it reads the Friction tab before it has painted on a slow runner.
 ### Noticed, not fixed (15 Oct 2026, PR 283's checks, second note)
 - one-page-home-walk-verify step 4a went red on one GitHub run of ebf99df ("elementHandle.click: Element is not attached to the DOM" on the Redlines face's Edit door) and passed on the other run of the same code and locally 19/19: it holds an element handle across a repaint instead of pressing by selector.
+### Noticed, not fixed (15 Oct 2026, the seven fixes and Amend beside the paper)
+- board-views-verify describes the contract's views the owner removed today and was already red at the parent (1 passed, 3 failed); left as it was — retiring it is the owner's call. The views' builders (hbCvSwitchHtml, hbCvPaint, hbCvPrint, hbCvDownload, hbCvGive, the 'cv' gift kind) are no longer reached from the Board and stay in the code unremoved.
+- notes-two-rooms-verify is 88/92 before and after this round (on KNOWN_RED); unchanged.
+- the amendment's "signed wording" read by amendParentClauses leaves a filled blank's value out ("an estimated metric tonnes" where the paper shows 5000); the same reading the amendment dialog has always used, not changed here.

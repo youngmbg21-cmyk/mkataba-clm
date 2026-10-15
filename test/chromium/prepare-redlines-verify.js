@@ -48,10 +48,19 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
    (pdRedFootHtml: "Draft from our standards (its More row)"), so MENU is that
    door now; the empty column's button is COLUMN, inside .rl-cards-empty (the
    foot wears .rl-empty-acts too, so the column is named by its box). */
-const MENU = '#pd-redface .pd-rf-foot [data-rl-prepare]';
+/* RE-POINTED 15 Oct 2026 (owner: "these need to go to the menu as well"):
+   the face's foot went; the act's row is on the panel's Menu tab ("Next up"),
+   beside the memo and the playbook pass. MENU is that row; pressRow opens the
+   tab first, as a reader would. */
+const MENU = '#pd-body .pd-menu .pd-mn-rows [data-rl-prepare]';
 const COLUMN = '#pd-redface .rl-cards-empty [data-rl-prepare]';
-const pressIn = (page, sel) => page.evaluate(s => { const b = document.querySelector(s); if (!b || b.disabled) return false; b.click(); return true; }, sel);
-const pressRow = page => pressIn(page, MENU);
+const pressIn = (page, sel) => page.evaluate(s => { const b = document.querySelector(s); if (!b || b.disabled) return false; b.closest('details') && (b.closest('details').open = true); b.click(); return true; }, sel);
+const menuOpen = async page => {
+  await page.evaluate(() => { const t = document.querySelector('#ig-dock [data-pd-tab="menu"]'); if (t && !document.querySelector('#pd-body .pd-menu')) t.click(); });
+  await page.waitForFunction(m => !!document.querySelector(m), MENU, { timeout: 6000 }).catch(() => {});
+  await new Promise(r => setTimeout(r, 300));
+};
+const pressRow = async page => { await menuOpen(page); return pressIn(page, MENU); };
 /* ON SCREEN, not merely in the markup — f180's rule. */
 const visible = (page, sel) => page.evaluate(s => {
   const el = document.querySelector(s);
@@ -155,7 +164,7 @@ const VERDICTS = [
   check(!!tok && !!theirsBefore, '0a their page exists, from a real link', tok);
 
   await page.evaluate(id => openRedlineWorkbench(id), ID);
-  await page.waitForFunction(() => state.view === 'dashboard' && !!document.querySelector('#pd-redface .pd-rf-foot'), null, { timeout: 10000 }).catch(() => {});
+  await page.waitForFunction(() => state.view === 'dashboard' && !!document.querySelector('#pd-redface'), null, { timeout: 10000 }).catch(() => {});
   await pause(1800);
 
   /* ============ 1. THE ROW IS IN THE MENU, AND ON SCREEN ============ */
@@ -166,30 +175,19 @@ const VERDICTS = [
      else — still a count, still falsifiable, and it now also catches a third
      copy appearing. */
   /* RE-POINTED 14 Oct 2026 (stage 5): the More row's door is the face's foot */
-  const doors = await page.evaluate(([m, k]) => ({
-    all: document.querySelectorAll('[data-rl-prepare]').length,
-    menu: document.querySelectorAll(m).length,
-    column: document.querySelectorAll(k).length }), [MENU, COLUMN]);
-  const hasRow = doors.menu === 1;
-  check(hasRow && doors.column === 1 && doors.all === 2,
-    '1a one door at the column\'s foot (the page\'s More row) and one button in the empty column — two doors, no third', JSON.stringify(doors));
-  /* RE-POINTED 14 Oct 2026 (stage 5): on an EMPTY column the face's foot
-     stands down — the column already draws the same three doors, and two
-     filled "Draft from our standards" on one panel break the one-filled-
-     button rule — so exactly one of the two doors is pixels at a time; the
-     foot's carries the act once the column has cards */
-  const shown1 = hasRow ? await visible(page, MENU) : null, shownCol = await visible(page, COLUMN);
-  check(hasRow && !shown1 && shownCol, '1b on an empty column the column\'s door is VISIBLE PIXELS and the foot\'s stands down — never two', JSON.stringify({ foot: shown1, column: shownCol }));
+  /* RE-POINTED 15 Oct 2026: on the face, the empty column's button is the
+     one door (no foot); the Menu tab carries the row */
+  const doors = await page.evaluate(k => ({ all: document.querySelectorAll('[data-rl-prepare]').length, column: document.querySelectorAll(k).length,
+    foot: !!document.querySelector('#pd-redface .pd-rf-foot [data-rl-prepare]') }), COLUMN);
+  check(doors.column === 1 && doors.all === 1 && !doors.foot, '1a on the face one door: the empty column\'s button, and no foot', JSON.stringify(doors));
+  const shownCol = await visible(page, COLUMN);
+  check(shownCol, '1b the column\'s door is VISIBLE PIXELS', JSON.stringify({ column: shownCol }));
+  await menuOpen(page);
+  const hasRow = await page.evaluate(m => document.querySelectorAll(m).length === 1, MENU);
   const row = hasRow ? await page.evaluate(s => { const b = document.querySelector(s); return { text: b.textContent.trim(), dead: b.disabled, title: b.title }; }, MENU) : { text: '', dead: true, title: '' };
-  check(/draft from our standards/i.test(row.text) && !row.dead, '1c it says what it is and is live on a readable draft', JSON.stringify(row));
+  check(/draft from our standards/i.test(row.text) && !row.dead, '1c the Menu tab\'s row says what it is and is live on a readable draft', JSON.stringify(row));
   check(/nothing goes to the other side/i.test(row.title), '1d its hover says nothing is sent', row.title);
-  /* RE-POINTED 14 Oct 2026 (stage 5): the memo and the playbook pass did not
-     come to the foot — they ride the ⋯ menu on Home's paper line
-     (igStripActsHtml), beside the same column; the nearest true "beside" is
-     both on this one screen, reachable in that menu */
-  if (await page.locator('#ig-strip #ws-more').count()) await page.click('#ig-strip #ws-more');
-  await pause(400);
-  check(hasRow && await visible(page, '#ig-strip [data-ig-memo]') && await visible(page, '#ig-strip [data-ig-pbreview]'), '1e beside the memo and the playbook pass (Home\'s ⋯ on the same screen)');
+  check(hasRow && await page.evaluate(() => !!document.querySelector('#pd-body .pd-menu [data-ig-memo]') && !!document.querySelector('#pd-body .pd-menu [data-ig-pbreview]')), '1e beside the memo and the playbook pass (the same Menu tab)');
   await page.keyboard.press('Escape').catch(() => {}); await pause(300);
   await page.screenshot({ path: path.join(OUT, '01-menu.png') });
 
@@ -213,6 +211,11 @@ const VERDICTS = [
   await pressRow(page); await pause(700);
   if (await page.locator('#cf-ok').count()){ await page.click('#cf-ok'); }
   await pause(2500);
+  /* the toast is read where the press was made; the column on the Redlines face, where the reader goes next */
+  const toast3 = await page.evaluate(() => (document.getElementById('toast-root') || {}).innerText || '');
+  await page.evaluate(id => pdRedOpen(id), ID);
+  await page.waitForFunction(() => !!document.getElementById('pd-redface'), null, { timeout: 6000 }).catch(() => {});
+  await pause(800);
   const after = await page.evaluate(id => {
     const c = state.contracts.find(x => x.id === id);
     const band = document.querySelector('[data-rl-band="drafts"]');
@@ -231,7 +234,7 @@ const VERDICTS = [
   check(after.bandOn && after.band === after.drafts, '3c the cards sit under "Your drafts" on the real column, and the band\'s count is the record\'s', `band ${after.band} vs ${after.drafts}`);
   check(after.unsent === after.drafts && after.turnAt === before.turnAt, '3d and NONE was sent — every draft still waits on Send and the turn never moved', JSON.stringify({ unsent: after.unsent, turnAt: after.turnAt }));
   check(after.review, '3e the review is on the record, as the review window leaves it');
-  check(new RegExp(after.drafts + ' drafts filed under Your drafts — nothing sent').test(after.toast), '3f one toast says what happened, with the count', after.toast.trim().slice(0, 120));
+  check(new RegExp(after.drafts + ' drafts filed under Your drafts — nothing sent').test(toast3 + after.toast), '3f one toast says what happened, with the count', after.toast.trim().slice(0, 120));
   check(after.audit.length === 1 && new RegExp(after.drafts + ' drafts filed unsent').test(after.audit[0]), '3g one English audit line names the count', after.audit[0]);
   const calls1 = ai.calls.length;
   check(calls1 === 1, '3i and exactly ONE deep Jambo call was spent for it', String(calls1));
@@ -259,6 +262,8 @@ const VERDICTS = [
   check(/already on file/i.test(ask2) && /costs nothing/i.test(ask2), '5a the second ask says the review is on file and the press costs nothing', ask2.slice(0, 120));
   if (await page.locator('#cf-ok').count()){ await page.click('#cf-ok'); }
   await pause(2000);
+  const toast5 = await page.evaluate(() => (document.getElementById('toast-root') || {}).innerText || '');
+  await page.evaluate(id => pdRedOpen(id), ID); await pause(800);
   const again = await page.evaluate(id => {
     const c = state.contracts.find(x => x.id === id);
     const drafts = (c.changes || []).filter(x => x.status === 'pending' && x.authorSide === 'owner' && !x.withdrawn);
@@ -268,7 +273,7 @@ const VERDICTS = [
   }, ID);
   check(again.changes === after.changes && again.drafts === after.drafts && again.revisions === 0 && again.band === after.band,
     '5b nothing new is filed and nothing is revised — the walls refused, not a pre-filter', JSON.stringify(again));
-  check(/No drafts were filed — \d+ already here/.test(again.toast), '5c and the toast says why', again.toast.trim().slice(0, 120));
+  check(/No drafts were filed — \d+ already here/.test(toast5 + again.toast), '5c and the toast says why', again.toast.trim().slice(0, 120));
   check(ai.calls.length === calls1, '5d and the second press spent nothing — the review on file was used', String(ai.calls.length));
   await page.screenshot({ path: path.join(OUT, '05-second-press.png') });
 
@@ -284,7 +289,7 @@ const VERDICTS = [
      a reader meets on a freshly received contract. */
   /* RE-POINTED 14 Oct 2026 (stage 5): the column is the face's, repainted by
      its host (pdRedRepaint), and read inside its own empty box */
-  await page.evaluate(id => { const c = state.contracts.find(x => x.id === id); c.changes = []; pdRedRepaint(); }, ID);
+  await page.evaluate(id => { const c = state.contracts.find(x => x.id === id); c.changes = []; if (!document.getElementById('pd-redface')) pdRedOpen(id); pdRedRepaint(); }, ID);
   await page.waitForFunction(() => !!document.querySelector('#pd-redface .rl-cards-empty .rl-empty-acts'), null, { timeout: 8000 }).catch(() => {});
   await pause(900);
   const emptyDoors = await page.evaluate(() => {

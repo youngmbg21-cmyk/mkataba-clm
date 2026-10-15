@@ -162,11 +162,12 @@ const FACE = () => {
     const tabs = await page.evaluate(() => [...document.querySelectorAll('.room-tabrow [data-ws-tab]')].map(b => b.getAttribute('data-ws-tab')));
     check('6a the room keeps Overview and Where we are', JSON.stringify(tabs) === JSON.stringify(['terms', 'stands']), JSON.stringify(tabs));
     await page.evaluate(() => roomGoTab(getContract('MK-A2'), 'oblig'));
-    check('6b its old Obligations door opens the Board\'s Obligations view', await waitFor(page, () => state.view === 'dashboard' && !!document.querySelector('#hb-cv-body[data-hb-cv="oblig"]'), 8000));
+    /* RE-POINTED 15 Oct 2026 (owner: the contract's views page went): Obligations is the panel's own tab, History the Board's contract card */
+    check('6b its old Obligations door opens the panel\'s Obligations tab beside the paper', await waitFor(page, () => state.view === 'dashboard' && window.pdTab && pdTab() === 'oblig' && intel.paper && intel.paper.id === 'MK-A2', 8000));
     await page.evaluate(() => { openWorkspace('MK-A2', { room: true }); });
     await waitFor(page, () => state.view === 'workspace', 6000);
     await page.evaluate(() => roomGoTab(getContract('MK-A2'), 'history'));
-    check('6c its old History door opens the Board\'s History view', await waitFor(page, () => state.view === 'dashboard' && !!document.querySelector('#hb-cv-body[data-hb-cv="hist"]'), 8000));
+    check('6c its old History door opens the History page of the Board\'s contract card', await waitFor(page, () => state.view === 'dashboard' && !!document.querySelector('#bs-strip-MK-A2 [data-bs-host="hist"]'), 8000));
     /* a real load, as a link from the mail is (a goto that only changes the hash is not one) */
     await page.evaluate(() => { location.hash = '#contract=MK-A2&tab=sign'; });
     await page.reload({ waitUntil: 'networkidle' });
@@ -175,14 +176,12 @@ const FACE = () => {
 
     /* ===== 7. THE PAPER'S LINE ===== */
     const acts = await page.evaluate(() => ({ chat: !!document.querySelector('#ig-strip .ig-acts #hdr-chat'), share: !!document.querySelector('#ig-strip .ig-acts #ws-share'), more: !!document.querySelector('#ig-strip .ig-acts #ws-more') }));
-    check('7a the paper\'s line carries Notes · Share · ⋯', acts.chat && acts.share && acts.more, JSON.stringify(acts));
-    if (acts.more) {
-      await page.click('#ig-strip #ws-more');
-      const m1 = await waitFor(page, () => { const m = document.getElementById('ws-more-menu'); return !!m && !m.classList.contains('hidden') && m.querySelectorAll('button').length > 2; }, 3000);
-      await page.click('#ig-strip #ws-more');
-      const m2 = await waitFor(page, () => { const m = document.getElementById('ws-more-menu'); return !m || m.classList.contains('hidden'); }, 3000);
-      check('7b ⋯ opens the contract\'s menu, and a second press shuts it', m1 && m2, JSON.stringify({ m1, m2 }));
-    } else check('7b ⋯ opens the contract\'s menu, and a second press shuts it', false, 'no ⋯');
+    /* RE-POINTED 15 Oct 2026 (owner, answer B): the ⋯ left the paper's line; its rows are the panel's Menu tab */
+    check('7a the paper\'s line carries Notes · Share, and no ⋯', acts.chat && acts.share && !acts.more, JSON.stringify(acts));
+    await page.click('#ig-dock [data-pd-tab="menu"]').catch(() => {});
+    const mt = await waitFor(page, () => { const m = document.querySelector('#pd-body .pd-menu'); return !!m && m.querySelectorAll('.pd-mn-rows button').length > 2; }, 4000);
+    check('7b the Menu tab holds the contract\'s menu rows', mt);
+    await page.click('#ig-dock [data-pd-tab="copilot"]').catch(() => {});
 
     /* ===== 8. THE OWNER'S THREE SCREENS ===== */
     for (const [w, hh] of SCREENS) {

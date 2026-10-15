@@ -39,8 +39,7 @@ const check = (name, pass, detail) => {
    inner markup; "the tab" is that view's button on the Board's top line
    (.hb-cv-seg [data-hb-cv="oblig"]), whose row is the contract's views
    (Your book · Deal board · Obligations · History). */
-const OBP = '#hb-cv-body[data-hb-cv="oblig"]';
-const OBT = '.hb-cv-seg [data-hb-cv="oblig"]';
+/* (15 Oct 2026: the view went; sections 1–7 measure the panel's tab, PT below) */
 /* Visible pixels, not merely present in the markup. */
 const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect();
   const cs = getComputedStyle(el);
@@ -105,272 +104,138 @@ const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
     await page.waitForTimeout(1400);
     console.log('   fixture: ' + built.id + ' — ' + built.n + ' obligations, signed in as ' + built.me);
 
-    /* ============ 1. THE TAB IS ON SCREEN, AND IT IS THE FIFTH ============
-       RE-POINTED 14 Oct 2026 (stage 5): the contract's views on the Board are
-       opened on another view (History) so that section 2 can PRESS the
-       Obligations one, as it pressed the room's tab. */
-    await page.evaluate(id => hbOpenView(id, 'hist'), built.id);
-    await page.waitForFunction(sel => !!document.querySelector(sel), OBT, { timeout: 8000 }).catch(() => {});
+    /* RE-POINTED 15 Oct 2026 (owner: "the whole page needs to go ... obligations
+       has its own panel"): the Board's Obligations view went with the
+       contract's views, and every "Obligations tab" door lands on the panel's
+       Obligations tab beside Home's paper (pdOpenOnHome 'oblig'). Sections 1–7
+       now measure that tab. The banded full-width table (its four headings,
+       its "nobody owns this" tag, its own count) was the removed view's and is
+       no longer drawn for one contract; the Obligations page (section 8 on)
+       keeps the bands across every contract. */
+    const PT = '#ig-dock [data-pd-tab="oblig"]';
+    const rowOf = desc => `[...document.querySelectorAll('#pd-body .pd-ob')].find(r => r.textContent.includes(${JSON.stringify(desc)}))`;
+    const markDone = desc => page.evaluate(`(() => { const r = ${rowOf(desc)}; const b = r && [...r.querySelectorAll('button')].find(x => /Mark done/.test(x.textContent)); if (b) b.click(); return !!b; })()`);
+
+    /* ============ 1. THE TAB IS ON SCREEN, BESIDE THE PAPER ============ */
+    await page.evaluate(id => roomOpenAt(id, 'oblig'), built.id);
+    await page.waitForFunction(() => !!document.querySelector('#pd-body .pd-ob'), null, { timeout: 8000 }).catch(() => {});
     const row = await page.evaluate(`(() => {
       const seen = ${SEEN};
-      const tabs = [...document.querySelectorAll('.hb-cv-seg [data-hb-cv]')];
-      return {
-        keys: tabs.map(b => b.getAttribute('data-hb-cv')),
-        words: tabs.map(b => (b.textContent || '').replace(/\\s+/g, ' ').trim()),
-        tops: tabs.map(b => Math.round(b.getBoundingClientRect().top)),
-        oblig: seen(document.querySelector(${JSON.stringify(OBT)})),
-        declared: (window.HB_CVIEWS || []).slice(),
-      };
+      const tabs = [...document.querySelectorAll('#ig-dock [data-pd-tab]')];
+      return { keys: tabs.map(b => b.getAttribute('data-pd-tab')), tops: tabs.map(b => Math.round(b.getBoundingClientRect().top)),
+        oblig: seen(document.querySelector(${JSON.stringify(PT)})), lit: (document.querySelector('#ig-dock [data-pd-tab][aria-selected="true"]') || {}).getAttribute?.('data-pd-tab') || null,
+        paper: window.intel && intel.paper ? intel.paper.id : null };
     })()`);
-    /* RE-POINTED 4 Oct 2026: this named the five by hand and went red the day
-       the shared page earned a tab of its own ("Where we are", added second).
-       PIN THE RELATION — the row is ROOM_TABS in its own order, and what this
-       file is about is that Obligations comes AFTER Signing and BEFORE the
-       history, which is the rule CLAUDE.md states for it. */
-    /* RE-POINTED 14 Oct 2026 (stage 5): Signing left the row with the room's
-       tabs (it is Jambo's Before you sign face); on the Board's row the
-       Obligations view sits after the Deal board and before the History. */
-    check('the room draws the tabs it declares, and Obligations sits after Signing',
-      row.keys.length > 0 && row.keys.join(',') === row.declared.join(',')
-        && row.keys.indexOf('oblig') === row.keys.indexOf('deal') + 1
-        && row.keys.indexOf('oblig') < row.keys.indexOf('hist'),
-      row.keys.join(',') + ' | declared ' + row.declared.join(','));
-    check('and it is real pixels, not merely markup',
-      !!(row.oblig && row.oblig.on), JSON.stringify(row.oblig));
-    check('and all of them sit on ONE line at 1500px',
-      new Set(row.tops).size === 1, JSON.stringify(row.tops));
+    check('the door lands on that contract’s paper with the panel’s Obligations tab lit',
+      row.paper === built.id && row.lit === 'oblig', JSON.stringify({ paper: row.paper, lit: row.lit }));
+    check('and the tab is real pixels, beside Clauses and before Menu',
+      !!(row.oblig && row.oblig.on) && row.keys.indexOf('oblig') === row.keys.indexOf('doc') + 1 && row.keys.indexOf('oblig') < row.keys.indexOf('menu'), row.keys.join(','));
+    check('and the tabs sit on ONE line at 1500px', new Set(row.tops).size === 1, JSON.stringify(row.tops));
+    const cnt = await page.evaluate(`(() => { const n = document.querySelector(${JSON.stringify(PT + ' .pd-tab-n')}); return n ? n.textContent.trim() : null; })()`);
+    check('the tab’s number is the list behind it', cnt === String(built.n), `${cnt} for ${built.n} obligations`);
 
-    /* ---- THE COUNT, AND THE ONE THING IT COLOURS ---- */
-    const cnt = await page.evaluate(`(() => {
-      const n = document.querySelector(${JSON.stringify(OBT + ' .hb-cv-n')});
-      if (!n) return { none: true };
-      return { text: n.textContent.trim(), late: n.classList.contains('is-late'),
-        ink: getComputedStyle(n).color };
-    })()`);
-    check('the tab carries the OUTSTANDING count, not the total',
-      cnt.text === '3', `${cnt.text} (the fourth is done)`);
-    check('and it is amber, because something is overdue',
-      cnt.late === true && cnt.ink !== 'rgb(0, 0, 0)', `${cnt.ink}`);
-
-    /* ============ 2. THE PANE, AND ITS BANDS ============================= */
-    await page.click(OBT);
-    await page.waitForFunction(sel => !!document.querySelector(sel + ' .obt-row'), OBP, { timeout: 8000 }).catch(() => {});
+    /* ============ 2. THE LIST ============================================ */
     await page.screenshot({ path: path.join(OUT, '01-obligations-tab.png') });
-    const pane = await page.evaluate(`(() => {
-      const seen = ${SEEN};
-      const host = document.querySelector(${JSON.stringify(OBP)});
-      if (!host) return { mounted: false };
-      const bands = [...host.querySelectorAll('.obt-band')].map(b =>
-        (b.textContent || '').replace(/\\s+/g, ' ').trim());
-      return { mounted: true, box: seen(host),
-        bands, rows: host.querySelectorAll('.obt-row').length,
-        unowned: host.querySelectorAll('.obt-unowned').length,
-        overCap: (host.querySelector('.obt-over') || {}).textContent,
-        wide: Math.round(host.getBoundingClientRect().width),
-        pageWide: Math.round(document.getElementById('content-scroll').clientWidth) };
-    })()`);
-    check('the pane mounts and draws every obligation',
-      pane.mounted && pane.rows === 4, `${pane.rows} rows`);
-    /* RE-POINTED 27 Sep 2026 (T3): this counted three headings, which held
-       only in a month's last days (the "due in three days" row then fell into
-       the next calendar month); since the band became the next 30 days it
-       failed every day. The claim is the four, NAMED, in order. */
-    check('banded overdue · next 30 days · later · completed, and no empty heading',
-      pane.bands.length === 4 && /^Overdue/.test(pane.bands[0]) && /next 30 days/.test(pane.bands[1])
-        && /^Later/.test(pane.bands[2]) && /^Completed/.test(pane.bands[3]),
-      pane.bands.join(' | '));
-    check('ONE FULL-WIDTH CARD — it takes the room’s own measure',
-      pane.box && pane.box.w > 700, `${pane.wide} of ${pane.pageWide}`);
-    check('the head says how many are late, and nothing else is coloured',
-      /1/.test(pane.overCap || ''), pane.overCap);
+    const pane = await page.evaluate(() => ({ rows: document.querySelectorAll('#pd-body .pd-ob').length,
+      ours: document.querySelectorAll('#pd-body .pd-ob.is-ours').length, theirs: document.querySelectorAll('#pd-body .pd-ob.is-theirs').length }));
+    check('the tab draws every obligation, ours and theirs marked', pane.rows === 4 && pane.ours === 2 && pane.theirs === 2, JSON.stringify(pane));
 
-    /* "NOBODY OWNS THIS" — the cheapest fix in the whole job, and it must be
-       on the row it is true of and on no other. Two obligations name a
-       stranger; only the one still open can still be chased.
-       RE-POINTED IN PLACE (27 Sep 2026, the owner's list): both of them are
-       obligations the OTHER SIDE owes, and one of theirs always has an owner —
-       them. This claim asserted the tag on theirs, which is the fault the
-       owner reported ("every obligation the other side owes carries 'Nobody
-       owns this' beside the counterparty's name"). It is drawn on OUR
-       unowned duty only (f411 3a; narrow-pages-verify 1b). */
-    check('"nobody owns this" is never drawn on an obligation they owe — open or closed',
-      pane.unowned === 0, `${pane.unowned} found`);
-
-    /* ============ 3. COMPLETING GOES THROUGH THE ONE VERB ================
-       Since J-2.2 the press asks two questions first — the day it was done and
-       an optional reference — and the DIALOG presses the verb. Driven through
-       rather than short-circuited, because the whole claim is that one press
-       on this tab moves the record and every count that follows it. */
-    const before = await page.evaluate(id =>
-      (getContract(id).obligations.find(o => o.id === 'ob2') || {}).status, built.id);
-    await page.evaluate(sel => {
-      const rows = [...document.querySelectorAll(sel + ' .obt-row')];
-      const r = rows.find(x => x.getAttribute('data-obt-row') === 'ob2');
-      r.querySelector('[data-obt-toggle]').click();
-    }, OBP);
+    /* ============ 3. COMPLETING GOES THROUGH THE ONE VERB ================ */
+    const before = await page.evaluate(id => (getContract(id).obligations.find(o => o.id === 'ob2') || {}).status, built.id);
+    const pressedDone = await markDone('Insurance certificate on file');
     await page.waitForTimeout(500);
     const dlg = await page.evaluate(`(() => {
       const seen = ${SEEN};
       const at = document.getElementById('od-at');
-      /* A pop-up's date wears HaTi's face (SAP pop-ups, 10 Oct 2026): the box
-         seen is the face beside the real one, which holds the value. */
       const face = at && at.dataset.dp === '1' ? at.nextElementSibling : at;
-      return { on: !!(face && seen(face) && seen(face).on),
-        value: at ? at.value : null, max: at ? at.getAttribute('max') : null,
-        note: !!document.getElementById('od-note'),
-        next: (document.getElementById('od-next') || {}).textContent || '' };
+      return { on: !!(face && seen(face) && seen(face).on), value: at ? at.value : null, max: at ? at.getAttribute('max') : null,
+        note: !!document.getElementById('od-note'), next: (document.getElementById('od-next') || {}).textContent || '' };
     })()`);
-    check('completing asks when it was done, defaulting to today',
-      dlg.on === true && dlg.value === dlg.max, JSON.stringify({ v: dlg.value, max: dlg.max }));
-    check('…and offers a reference, and nothing else',
-      dlg.note === true && dlg.next === '', 'ob2 is a one-off, so no next instance is promised');
-    await page.evaluate(() => { document.getElementById('od-note').value = 'REF/2026/118'; });
-    await page.click('#od-go');
+    check('Mark done on the tab asks when it was done, defaulting to today',
+      pressedDone && dlg.on === true && dlg.value === dlg.max, JSON.stringify({ pressedDone, v: dlg.value, max: dlg.max }));
+    check('…and offers a reference, and nothing else', dlg.note === true && dlg.next === '', 'ob2 is a one-off, so no next instance is promised');
+    if (dlg.note){
+      await page.evaluate(() => { document.getElementById('od-note').value = 'REF/2026/118'; });
+      await page.click('#od-go');
+    }
     await page.waitForTimeout(800);
-    const after = await page.evaluate(([id, P, T]) => {
-      const c = getContract(id);
-      const o = c.obligations.find(x => x.id === 'ob2');
-      const n = document.querySelector(T + ' .hb-cv-n');
-      const trail = (c.audit || []).filter(a => a.action === 'Obligation').length;
-      return { status: o.status, at: o.completedAt || '', by: o.completedBy || '',
-        note: o.completedNote || '', count: n ? n.textContent.trim() : 'none',
-        rows: document.querySelectorAll(P + ' .obt-row').length,
-        done: [...document.querySelectorAll(P + ' .obt-band')]
-          .some(b => /Completed|Avklarade/.test(b.textContent)), trail };
-    }, [built.id, OBP, OBT]);
-    check('a press on the new tab completes it on the RECORD',
-      before === 'open' && after.status === 'done', `${before} → ${after.status}`);
+    const after = await page.evaluate(id => {
+      const c = getContract(id); const o = c.obligations.find(x => x.id === 'ob2');
+      return { status: o.status, at: o.completedAt || '', by: o.completedBy || '', note: o.completedNote || '',
+        trail: (c.audit || []).filter(a => a.action === 'Obligation').length };
+    }, built.id);
+    check('a press on the tab completes it on the RECORD', before === 'open' && after.status === 'done', `${before} → ${after.status}`);
     check('…carrying the day it was done, who closed it, and the reference',
-      !!after.at && !!after.by && after.note === 'REF/2026/118',
-      JSON.stringify({ at: after.at, by: after.by, note: after.note }));
-    check('…through the one verb, so the audit trail carries it',
-      after.trail > 0, `${after.trail} obligation entries`);
-    check('…and the tab’s own count follows without a reload',
-      after.count === '2', after.count);
-    check('…and the row moves into Completed', after.done === true, String(after.done));
+      !!after.at && !!after.by && after.note === 'REF/2026/118', JSON.stringify({ at: after.at, by: after.by, note: after.note }));
+    check('…through the one verb, so the audit trail carries it', after.trail > 0, `${after.trail} obligation entries`);
 
     /* ============ 4. THE BELL ============================================ */
     const bell = await page.evaluate(`(() => {
       const rows = buildAlerts().filter(a => a.kind === 'obligation');
-      return { n: rows.length, texts: rows.map(r => r.text),
-        ids: rows.map(r => r.id) };
+      return { n: rows.length, texts: rows.map(r => r.text), ids: rows.map(r => r.id) };
     })()`);
-    /* ob1 is overdue and mine; ob2 was just completed; ob3 is 400 days out and
-       is not mine; ob4 is done. So exactly one row, and it is the overdue one. */
     check('the bell carries the reader’s OWN obligation, inside the window only',
       bell.n === 1 && /Overdue/.test(bell.texts[0] || ''), JSON.stringify(bell.texts));
-    check('and the row names the contract it is on',
-      bell.ids[0] === built.id, `${bell.ids[0]} vs ${built.id}`);
-
-    /* IT OPENS THE CONTRACT ON THE TAB IT IS ABOUT — where the reader ends up
-       is the whole of question six, and a row that opens the wrong page is a
-       door that lies. */
+    check('and the row names the contract it is on', bell.ids[0] === built.id, `${bell.ids[0]} vs ${built.id}`);
     await page.evaluate(() => setView('dashboard'));
     await page.waitForTimeout(700);
     await page.evaluate(() => { const a = buildAlerts().find(x => x.kind === 'obligation'); a.go(); });
-    await page.waitForTimeout(1400);
-    /* RE-POINTED 14 Oct 2026 (stage 5): the row's door (roomOpenAt 'oblig')
-       lands on the Board's Obligations view of that contract. */
-    await page.waitForFunction(sel => !!document.querySelector(sel + ' .obt-row'), OBP, { timeout: 8000 }).catch(() => {});
-    const landed = await page.evaluate(`(() => {
-      const host = document.querySelector(${JSON.stringify(OBP)});
-      const on = document.querySelector('.hb-cv-seg [aria-selected="true"]');
-      return { view: state.view, id: host ? host.getAttribute('data-hb-cv-cid') : state.activeId,
-        tab: on ? on.getAttribute('data-hb-cv') : null,
-        pane: !!(host && host.querySelector('.obt-row')) };
-    })()`);
-    check('pressing it lands on that contract’s Obligations tab',
-      landed.id === built.id && landed.tab === 'oblig' && landed.pane === true,
-      JSON.stringify(landed));
+    await page.waitForFunction(id => window.intel && intel.paper && intel.paper.id === id && window.pdTab && pdTab() === 'oblig' && !!document.querySelector('#pd-body .pd-ob'), built.id, { timeout: 8000 }).catch(() => {});
+    const landed = await page.evaluate(() => ({ view: state.view, id: window.intel && intel.paper ? intel.paper.id : null, tab: window.pdTab ? pdTab() : null, pane: !!document.querySelector('#pd-body .pd-ob') }));
+    check('pressing it lands on that contract’s Obligations tab', landed.id === built.id && landed.tab === 'oblig' && landed.pane === true, JSON.stringify(landed));
 
     /* ============ 5. A CONTRACT WITH NONE ================================ */
     if (built.bare){
-      /* RE-POINTED 14 Oct 2026 (stage 5): the contract's views on the Board,
-         and the Obligations view's own button pressed. */
-      await page.evaluate(id => hbOpenView(id, 'hist'), built.bare);
-      await page.waitForFunction(([sel, id]) => { const b = document.querySelector(sel);
-        return !!b && !!document.querySelector('#hb-cv-body[data-hb-cv-cid="' + id + '"]'); }, [OBT, built.bare], { timeout: 8000 }).catch(() => {});
-      await page.click(OBT);
-      await page.waitForFunction(sel => !!document.querySelector(sel + ' .obt-empty, ' + sel + ' .obt-band'), OBP, { timeout: 8000 }).catch(() => {});
-      const none = await page.evaluate(`(() => {
-        const host = document.querySelector(${JSON.stringify(OBP)});
-        return { count: !!document.querySelector(${JSON.stringify(OBT + ' .hb-cv-n')}),
-          empty: !!host.querySelector('.obt-empty'),
-          bands: host.querySelectorAll('.obt-band').length,
-          text: (host.textContent || '').replace(/\\s+/g,' ').trim().slice(0, 60) };
-      })()`);
-      check('a contract with none draws the tab, an empty state, and NO count',
-        none.count === false && none.empty === true && none.bands === 0, JSON.stringify(none));
-      /* "0 outstanding" over a sentence already saying nothing is tracked is
-         the same fact twice, and the second printing reads like a fault. */
-      check('…and does not also say "0 outstanding" above it',
-        !/0 outstanding/.test(none.text), none.text);
+      await page.evaluate(id => roomOpenAt(id, 'oblig'), built.bare);
+      await page.waitForFunction(id => window.intel && intel.paper && intel.paper.id === id && window.pdTab && pdTab() === 'oblig', built.bare, { timeout: 8000 }).catch(() => {});
+      await page.waitForTimeout(400);
+      const none = await page.evaluate(`(() => ({ count: !!document.querySelector(${JSON.stringify(PT + ' .pd-tab-n')}), rows: document.querySelectorAll('#pd-body .pd-ob').length,
+        text: ((document.getElementById('pd-body') || {}).textContent || '').replace(/\\s+/g,' ').trim().slice(0, 80) }))()`);
+      check('a contract with none draws the tab, an empty state, and NO count', none.count === false && none.rows === 0 && none.text.length > 0, JSON.stringify(none));
+      check('…and does not also say "0 outstanding" above it', !/0 outstanding/.test(none.text), none.text);
       await page.screenshot({ path: path.join(OUT, '02-no-obligations.png') });
     }
 
-    /* ============ 6. THE FIVE FIT, AT A LAPTOP WIDTH, IN BOTH LANGUAGES ==
-       The tab row gaining a tab is the one way this job could cost the
-       contract its pixels, and Swedish is the longer language. */
-    /* RE-POINTED 14 Oct 2026 (stage 5): the row the Obligations door stands
-       on is the Board's contract views now, so that is the row that must fit. */
+    /* ============ 6. THE TABS FIT, AT A LAPTOP WIDTH, IN BOTH LANGUAGES == */
     await page.evaluate(id => roomOpenAt(id, 'oblig'), built.id);
-    await page.waitForFunction(sel => !!document.querySelector(sel + ' .obt-row'), OBP, { timeout: 8000 }).catch(() => {});
+    await page.waitForFunction(() => !!document.querySelector('#pd-body .pd-ob'), null, { timeout: 8000 }).catch(() => {});
     for (const [lang, w] of [['en', 1280], ['sv', 1280], ['sv', 1500]]){
       await page.setViewportSize({ width: w, height: 900 });
       await page.evaluate(l => langSet(l, { repaint: true }), lang);
       await page.waitForTimeout(900);
       const fit = await page.evaluate(`(() => {
-        const tabs = [...document.querySelectorAll('.hb-cv-seg [data-hb-cv]')];
-        return { tops: tabs.map(b => Math.round(b.getBoundingClientRect().top)),
-          words: tabs.map(b => (b.textContent || '').replace(/\\s+/g,' ').trim()),
+        const tabs = [...document.querySelectorAll('#ig-dock [data-pd-tab]')];
+        return { tops: tabs.map(b => Math.round(b.getBoundingClientRect().top)), words: tabs.map(b => (b.textContent || '').replace(/\\s+/g,' ').trim()),
           scrollsSideways: document.documentElement.scrollWidth > document.documentElement.clientWidth };
       })()`);
-      check(`the five tabs stay on one line at ${w}px in ${lang}`,
-        fit.tops.length > 1 && new Set(fit.tops).size === 1, fit.words.join(' | '));
-      check(`and the page does not scroll sideways at ${w}px in ${lang}`,
-        fit.scrollsSideways === false, String(fit.scrollsSideways));
-      if (lang === 'sv' && w === 1280)
-        await page.screenshot({ path: path.join(OUT, '03-sv-1280.png') });
+      check(`the panel’s tabs stay on one line at ${w}px in ${lang}`, fit.tops.length > 1 && new Set(fit.tops).size === 1, fit.words.join(' | '));
+      check(`and the page does not scroll sideways at ${w}px in ${lang}`, fit.scrollsSideways === false, String(fit.scrollsSideways));
+      if (lang === 'sv' && w === 1280) await page.screenshot({ path: path.join(OUT, '03-sv-1280.png') });
     }
     await page.evaluate(() => langSet('en', { repaint: true }));
     await page.waitForTimeout(600);
 
-    /* ============ 7. A REPEATING DUTY OPENS THE NEXT ONE (J-2.2) ==========
-       ob1 is quarterly and overdue. Completing it must open exactly one more,
-       and the dialog must NAME it before the press — a product that opens a
-       new instance in somebody's book silently is one that surprises them. */
-    /* RE-POINTED 14 Oct 2026 (stage 5): the Board's Obligations view, through
-       the door every "Obligations tab" door now opens. */
+    /* ============ 7. A REPEATING DUTY OPENS THE NEXT ONE (J-2.2) ========== */
     await page.evaluate(id => roomOpenAt(id, 'oblig'), built.id);
-    await page.waitForFunction(sel => !!document.querySelector(sel + ' .obt-row[data-obt-row="ob1"]'), OBP, { timeout: 8000 }).catch(() => {});
+    await page.waitForFunction(() => !!document.querySelector('#pd-body .pd-ob'), null, { timeout: 8000 }).catch(() => {});
     const wasN = await page.evaluate(id => getContract(id).obligations.length, built.id);
-    await page.evaluate(sel => {
-      const rows = [...document.querySelectorAll(sel + ' .obt-row')];
-      const r = rows.find(x => x.getAttribute('data-obt-row') === 'ob1');
-      r.querySelector('[data-obt-toggle]').click();
-    }, OBP);
+    await markDone('Quarterly volume report to the buyer');
     await page.waitForTimeout(500);
-    const promised = await page.evaluate(() =>
-      (document.getElementById('od-next') || {}).textContent || '');
-    check('the dialog NAMES the next instance and its date before the press',
-      /\d{4}-\d{2}-\d{2}/.test(promised), promised.trim() || 'nothing promised');
-    await page.click('#od-go');
+    const promised = await page.evaluate(() => (document.getElementById('od-next') || {}).textContent || '');
+    check('the dialog NAMES the next instance and its date before the press', /\d{4}-\d{2}-\d{2}/.test(promised), promised.trim() || 'nothing promised');
+    if (await page.locator('#od-go').count()) await page.click('#od-go');
     await page.waitForTimeout(900);
-    const series = await page.evaluate(([id, P]) => {
+    const series = await page.evaluate(id => {
       const c = getContract(id);
       const first = c.obligations.find(o => o.id === 'ob1');
       const next = c.obligations.filter(o => o.seriesId === 'ob1' && o.id !== 'ob1');
-      return { n: c.obligations.length, done: first.status,
-        made: next.length, id: next[0] ? next[0].id : '', due: next[0] ? next[0].due : '',
+      return { n: c.obligations.length, done: first.status, made: next.length, due: next[0] ? next[0].due : '',
         who: next[0] ? next[0].assignee : '', fresh: next[0] ? next[0].id !== 'ob1' : false,
-        rows: document.querySelectorAll(P + ' .obt-row').length };
-    }, [built.id, OBP]);
-    check('completing it opens EXACTLY ONE next instance, with its own id',
-      series.n === wasN + 1 && series.made === 1 && series.fresh === true, JSON.stringify(series));
-    check('…the date the dialog promised, and the same person still owes it',
-      promised.includes(series.due) && !!series.who, `${series.due} · ${series.who}`);
-    check('…and the tab draws it without a reload',
-      series.rows === wasN + 1, `${series.rows} rows`);
+        rows: document.querySelectorAll('#pd-body .pd-ob').length };
+    }, built.id);
+    check('completing it opens EXACTLY ONE next instance, with its own id', series.n === wasN + 1 && series.made === 1 && series.fresh === true, JSON.stringify(series));
+    check('…the date the dialog promised, and the same person still owes it', promised.includes(series.due) && !!series.who, `${series.due} · ${series.who}`);
+    check('…and the tab draws it without a reload', series.rows === wasN + 1, `${series.rows} rows`);
     await page.screenshot({ path: path.join(OUT, '04-series.png') });
 
     /* ============ 8. THE WORKLIST (J-2.3) ===============================
@@ -568,14 +433,13 @@ const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
        Document on the panel's Obligations tab, 11 Oct): a row opens the
        Board's Obligations view for its contract — still the place the row is
        about. Asked of the state, bounded. */
-    await page.waitForFunction(() => state.view === 'dashboard' && window.hbFace && hbFace() === 'board'
-      && window.hbCvNow && hbCvNow().v === 'oblig', null, { timeout: 8000 }).catch(() => {});
-    const back = await page.evaluate(`(() => {
-      const v = window.hbCvNow ? hbCvNow() : null;
-      return { view: state.view, face: window.hbFace ? hbFace() : null, id: v && v.c ? v.c.id : null, v: v ? v.v : null };
-    })()`);
-    check('pressing a row opens that contract on the Board\'s Obligations view',
-      back.view === 'dashboard' && back.face === 'board' && back.id === want && back.v === 'oblig', JSON.stringify(back));
+    /* RE-POINTED 15 Oct 2026 (the Board's view went): the row opens its
+       contract's paper with the panel's Obligations tab lit, that row chosen */
+    await page.waitForFunction(() => state.view === 'dashboard' && window.pdTab && pdTab() === 'oblig' && !!document.querySelector('#pd-body .pd-ob'), null, { timeout: 8000 }).catch(() => {});
+    const back = await page.evaluate(() => ({ view: state.view, face: window.hbFace ? hbFace() : null, id: window.intel && intel.paper ? intel.paper.id : null,
+      tab: window.pdTab ? pdTab() : null, chosen: !!document.querySelector('#pd-body .pd-ob.is-chosen') }));
+    check('pressing a row opens that contract with the panel\'s Obligations tab, the row chosen',
+      back.view === 'dashboard' && back.face === 'paper' && back.id === want && back.tab === 'oblig' && back.chosen, JSON.stringify(back));
 
     /* ---- THE CHASE RECORDS THE FACT WHATEVER THE MAIL DOES ---- */
     await page.click('#side-nav [data-view="obligations"]');

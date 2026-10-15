@@ -267,9 +267,11 @@ const OBS = [
     check('2s the foot: Open · Keep · Ask why · Let it go, as the insight panels', JSON.stringify(R.foot) === JSON.stringify(['Open', 'Keep', 'Ask why', 'Let it go']), JSON.stringify(R.foot));
     /* the doors land where they say, nothing spent */
     await page.click(`${strip('MK-L1')} [data-bs-go="oblig"]`);
-    const ob = await waitFor(page, () => { const v = hbCvNow(); return state.view === 'dashboard' && hbFace() === 'board' && v.v === 'oblig' && v.c && v.c.id === 'MK-L1'; }, 6000);
-    check('2t "Review the obligations ›" opens the Board\'s Obligations view of it', ob);
-    await page.evaluate(() => hbCvPick('book'));
+    /* RE-POINTED 15 Oct 2026 (owner: the contract's views went; "obligations has its own panel") */
+    const ob = await waitFor(page, () => state.view === 'dashboard' && hbFace() === 'paper' && window.pdTab && pdTab() === 'oblig' && intel.paper && intel.paper.id === 'MK-L1', 6000);
+    check('2t "Review the obligations ›" opens its paper with the panel\'s Obligations tab', ob);
+    await page.evaluate(() => hbSetFace('board'));
+    await waitFor(page, () => hbFace() === 'board' && !!document.querySelector('#bs-strip-MK-L1'), 6000);
     await page.click(`${strip('MK-L1')} [data-bs-open]`);
     const opened = await waitFor(page, () => state.view === 'dashboard' && hbFace() === 'paper' && window.intel && intel.paper && intel.paper.id === 'MK-L1', 6000);
     check('2u Open puts it on Home\'s paper (the Workspace doors\' one landing)', opened && !(await roomSeen()));
@@ -352,14 +354,15 @@ const OBS = [
     const det = await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L1 [data-bs-host="details"] #kt-ov-terms #ov-ess'), 8000);
     check('6a Key terms\' Edit opens the Overview\'s own sheet inside the strip (its Edit, its parties, its renewal)', det && !(await roomSeen()));
     await page.evaluate(() => pdOpenOnHome('MK-L1', 'copilot'));
-    await waitFor(page, () => !!document.querySelector('#ig-strip #ws-more'), 8000);
+    /* RE-POINTED 15 Oct 2026 (owner, answer B): the paper's ⋯ went; its rows are the panel's Menu tab */
+    await waitFor(page, () => !!document.querySelector('#ig-dock [data-pd-tab="menu"]'), 8000);
     await roomReset();
-    await page.evaluate(() => document.querySelector('#ig-strip #ws-more').click());
-    await waitFor(page, () => !!document.querySelector('#ws-more-menu:not(.hidden) #ws-filing'), 4000);
-    const rows = await page.evaluate(() => [...document.querySelectorAll('#ws-more-menu button')].map(b => b.id));
-    check('6b the paper\'s ⋯ carries the room\'s own acts: Start negotiating or Add signers, Create an amendment, Add a signed document',
+    await page.evaluate(() => document.querySelector('#ig-dock [data-pd-tab="menu"]').click());
+    await waitFor(page, () => !!document.querySelector('#pd-body .pd-menu .pd-mn-rows #ws-filing'), 4000);
+    const rows = await page.evaluate(() => [...document.querySelectorAll('#pd-body .pd-menu .pd-mn-rows button')].map(b => b.id));
+    check('6b the Menu tab carries the room\'s own acts: Start negotiating or Add signers, Create an amendment, Add a signed document',
       rows.includes('ws-m-signers') && rows.includes('ws-m-amend') && rows.includes('ws-m-link') && rows.includes('ws-filing'), rows.join(' '));
-    await page.evaluate(() => document.querySelector('#ws-more-menu #ws-filing').click());
+    await page.evaluate(() => { const b = document.querySelector('#pd-body .pd-menu .pd-mn-rows #ws-filing'); b.closest('details').open = true; b.click(); });
     const filing = await waitFor(page, () => state.view === 'dashboard' && hbFace() === 'board' && !!document.querySelector('#bs-strip-MK-L1 [data-bs-host="details"] #ov-record'), 8000);
     check('6c "Filing and stream" lands on the filing rows in the strip, never the room', filing && !(await roomSeen()));
 

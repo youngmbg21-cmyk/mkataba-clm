@@ -87,8 +87,9 @@ describe('f672 (1) a word opens its place; a sentence is still a question', () =
     assert.deepEqual(go('Redlines'), ['redline', 'MK-9']);
     assert.deepEqual(go('sign'), ['sign', 'MK-9']);
     assert.deepEqual(go('/sign'), ['sign', 'MK-9']);
-    assert.deepEqual(go('deal board'), ['deal', 'MK-9']);
-    assert.deepEqual(go('/deal-board'), ['deal', 'MK-9']);
+    /* the deal board view went (owner, 15 Oct 2026): the word is no place */
+    assert.notDeepEqual(go('deal board'), ['deal', 'MK-9']);
+    assert.notDeepEqual(go('/deal-board'), ['deal', 'MK-9']);
     assert.deepEqual(go('go to the board'), ['board', null]);
     assert.deepEqual(go('Show me the calendar.'), ['calendar', null]);
     assert.deepEqual(go('fill in the details'), ['fill', 'MK-9']);
@@ -109,14 +110,14 @@ describe('f672 (1) a word opens its place; a sentence is still a question', () =
     assert.equal(go('förhandla'), 'redline');
     assert.equal(go('signera'), 'sign');
     assert.equal(go('gå till kalendern'), 'calendar');
-    assert.equal(go('affärstavlan'), 'deal');
+    assert.notEqual(go('affärstavlan'), 'deal');
     assert.equal(go('/fyll-i'), 'fill');
     assert.equal(go('historik'), 'history');
     assert.equal(go('öppna tavlan'), 'board');
     /* THE PLAN'S SWEDISH, POLISHED (stage 6, 14 Oct 2026): the Board's own name
        for the deal board, the book's spelling of the paper and the faces' own
        names are words too; the older words keep working */
-    assert.equal(go('förhandlingstavlan'), 'deal');
+    assert.notEqual(go('förhandlingstavlan'), 'deal');
     assert.equal(go('papperet'), 'document');
     assert.equal(go('pappret'), 'document');
     assert.equal(go('innan du signerar'), 'sign');
@@ -146,7 +147,7 @@ describe('f672 (1) a word opens its place; a sentence is still a question', () =
     const { ctx } = stage({ face: 'board' });
     assert.equal(ctx.caActOf('obligations'), null, 'the Board\'s obligations panel');
     assert.equal(ctx.caActOf('MK-12'), null, 'the Board\'s card for the contract');
-    assert.equal(ctx.caActOf('deal board').place, 'deal');
+    assert.notEqual((ctx.caActOf('deal board') || {}).place, 'deal');
     assert.equal(ctx.caActOf('history').place, 'history');
     assert.equal(ctx.caActOf('calendar').place, 'calendar');
   });
@@ -195,7 +196,7 @@ describe('f672 (3) "/" lists the places, most used first', () => {
   test('3b typing narrows; a word of a two-word place counts', () => {
     const { ctx } = stage();
     assert.deepEqual(J(ctx.caSlashRows('si').map(r => r.k)), ['sign']);
-    assert.deepEqual(J(ctx.caSlashRows('bo').map(r => r.k)), ['board', 'deal']);
+    assert.deepEqual(J(ctx.caSlashRows('bo').map(r => r.k)), ['board']);
   });
   test('3c a word that goes counts, per person', () => {
     const { ctx, store } = stage();
@@ -226,7 +227,7 @@ describe('f672 (4) the chips lead with the checklist', () => {
   });
   test('4c nothing owed → the four words, none amber; the wall → the ways in', () => {
     const L = chips();
-    assert.deepEqual(J(L.map(x => x.k)), ['redline', 'deal', 'sign', 'history']);
+    assert.deepEqual(J(L.map(x => x.k)), ['redline', 'sign', 'history']);
     assert.ok(L.every(x => !x.owed));
     assert.deepEqual(J(chips({ paper: null }).map(x => x.k)), ['upload', 'draft', 'board', 'calendar']);
     assert.equal(chips({ face: 'board' }), null, 'the Board keeps its own suggestions');
@@ -237,12 +238,12 @@ describe('f672 (4) the chips lead with the checklist', () => {
     const s = stage(); const asked = [];
     s.ctx.negoMayStart = c => { asked.push(c && c.id); return { ok: false, why: 'sealed' }; };
     const L = s.ctx.caPaperChips();
-    assert.deepEqual(J(L.map(x => x.k)), ['deal', 'sign', 'history', 'oblig']);
+    assert.deepEqual(J(L.map(x => x.k)), ['sign', 'history', 'oblig']);
     assert.deepEqual(asked, ['MK-9'], 'asked of the contract on the paper');
     const t = stage({ need: ['quiet'] }); t.ctx.negoMayStart = () => ({ ok: false, why: 'held' });
     assert.ok(!t.ctx.caPaperChips().some(x => x.k === 'redline'), 'not even as the lead');
     const o = stage(); o.ctx.negoMayStart = () => ({ ok: true, why: '' });
-    assert.deepEqual(J(o.ctx.caPaperChips().map(x => x.k)), ['redline', 'deal', 'sign', 'history'], 'an open door keeps its chip');
+    assert.deepEqual(J(o.ctx.caPaperChips().map(x => x.k)), ['redline', 'sign', 'history'], 'an open door keeps its chip');
   });
   test('4d a chip is the word in the reader\'s language, and asks it', () => {
     const { ctx } = stage({ lang: 'sv', need: ['details'] });

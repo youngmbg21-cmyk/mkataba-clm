@@ -576,6 +576,10 @@ function obligationSurfacesChanged(){
      can change an obligation. docThreadPaint returns at once where there is
      no thread, so this is a no-op everywhere else. */
   if(window.docThreadPaint && here) docThreadPaint(here);
+  /* AND THE PANEL'S OBLIGATIONS TAB BESIDE HOME'S PAPER (15 Oct 2026): the
+     Board's Obligations view went, so every obligation door lands on that tab,
+     and a duty ticked off (or the next one opened) is drawn there at once */
+  if(window.state && state.view==='dashboard' && window.pdTab && pdTab()==='oblig' && window.renderIntelDock) renderIntelDock();
   /* AND THE ROOM'S OWN TAB, which carries the outstanding count and the amber
      that says something is overdue (J-2.1). A new surface joins this funnel or
      it goes stale the first time somebody ticks something off somewhere else —

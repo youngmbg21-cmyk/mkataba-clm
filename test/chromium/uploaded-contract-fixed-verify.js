@@ -233,14 +233,12 @@ const BODY =
        Obligations tab went home — its twin is the Board's Obligations view
        (#hb-cv-body[data-hb-cv="oblig"]), so "the tab" the tile goes to is that
        view, on Home, for this contract. */
-    if (tile2 && !tile2.none) await page.waitForFunction(() => !!document.querySelector('#hb-cv-body[data-hb-cv="oblig"]')
-      || !!document.querySelector('[data-ob-pick]') || !!document.querySelector('#ws-tabs [data-ws-tab="oblig"][aria-selected="true"]'), null, { timeout: 8000 }).catch(() => {});
+    /* RE-POINTED 15 Oct 2026 (owner: the contract's views went): "the tab" is the panel's Obligations tab beside Home's paper */
+    if (tile2 && !tile2.none) await page.waitForFunction(() => (state.view === 'dashboard' && window.pdTab && pdTab() === 'oblig')
+      || !!document.querySelector('[data-ob-pick]'), null, { timeout: 8000 }).catch(() => {});
     if (tile2 && !tile2.none) Object.assign(tile2, await page.evaluate(() => {
-      const view = document.querySelector('#hb-cv-body[data-hb-cv="oblig"]');
-      const on = document.querySelector('#ws-tabs .room-tab.is-on, #ws-tabs [aria-selected="true"]');
-      const forThis = !!(view && window.pdContract && pdContract() && String(pdContract().id) === String(window.__cid));
-      return { modal: !!document.querySelector('[data-ob-pick]'),
-        tab: (view && state.view === 'dashboard' && forThis) ? 'oblig' : (on ? on.getAttribute('data-ws-tab') : null) };
+      const forThis = !!(window.intel && intel.paper && String(intel.paper.id) === String(window.__cid));
+      return { modal: !!document.querySelector('[data-ob-pick]'), tab: (state.view === 'dashboard' && window.pdTab && pdTab() === 'oblig' && forThis) ? 'oblig' : null };
     }));
     check('3b once the tab has obligations, the tile goes straight to the tab',
       !!(tile2 && !tile2.modal && tile2.tab === 'oblig'), JSON.stringify(tile2));
