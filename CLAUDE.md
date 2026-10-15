@@ -412,7 +412,7 @@ Tests: sap-popups, negotiate-as-drawn, new-agreement verify, f390 1h.
 ## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS
 - Tokens in `:root` of index.html; `--radius` 4 / `--radius-lg` 8; Geist screen + read paper (`--font-doc`), Source Serif 4 signing/print; refs via ONE dress `refHtml(c)` (never in PDF, Word, email, toast, `<option>`). A changed font file gets a NEW NAME.
 - TYPE 400 · `--w-label` · `--w-strong` · `--w-title`; labels sentence case, no tracking. BUTTONS `--ctl-h-sm`/`--ctl-h`/`--ctl-h-lg` THE SAP WAY (8px, accent ink, one lift `--btn-lift`; `.hb-btn` alike), the EDGE a grey hairline (`--btn-edge` = `--color-divider`, night `--rule-strong`; accent on hover); an open dropdown wears NO DARK RING (`select:focus-visible` a faint glow; `.stk-flt`, `.ce-pick`, `.jh-box` alike); one filled button per area; drawn icons only (f385); words never wrap (f386). `openModal({maxWidth})`, `confirmDialog`; retire a sentence by not calling it (f310).
-- INK WASH: no grey in light mode (black + the theme colour); dark mode, the paper, danger and status colours unchanged. Census ink-wash-baseline.json re-recorded ONLY with an owner-asked palette change (KNOWN_RED since 15 Oct, waiting on the owner's yes).
+- INK WASH: no grey in light mode (black + the theme colour); dark mode, the paper, danger and status colours unchanged. Census ink-wash-baseline.json re-recorded ONLY with an owner-asked palette change (re-recorded 15 Oct 2026 on the owner's yes: steps 3, 7, 8 moved counts, no colour new).
 Tests: f96, f238, f310, f312, f377, f385, f386, f458 (9), contrast, button-consistency, theme-tokens, dark-no-white-patches, one-reference-face, ink-wash verify.
 
 ## TWO LANGUAGES ≠ TWO MARKETS

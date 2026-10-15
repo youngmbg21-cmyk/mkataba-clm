@@ -29647,3 +29647,15 @@ THE LONG-FORM POINTERS DROPPED (section, as it is headed now → the pointer as 
 - OVERVIEW 2 — THE TIME MACHINE (js/views/overview2.js) → Long form: MAP-HISTORY.
 - OUR STANDARDS, THE PLAYBOOK, PREPARE REDLINES → Long form: MAP-HISTORY "CLAUDE.MD TRIM, 14 OCT 2026".
 - JAMBO'S AGENTS — THE HOUSE AND HIS POINTS (js/views/jambohouse.js) → Long form: MAP-HISTORY "CLAUDE.MD TRIM, 14 OCT 2026".
+
+## THE INK-WASH CENSUS RE-RECORDED, 15 OCT 2026 (the owner: "Yes to color checks")
+
+The overnight build moved ink-wash-verify's counts, so it stood on KNOWN_RED
+waiting on the owner's word. Audited first as a set difference against the
+old record (30 rows red, every one "no text size moved" or "every colour as
+before"): NO colour is new anywhere. Counts moved where step 3 took "+ Draft
+new agreement" off Home's head, where step 8 added History's Side switch
+(All sides · Ours · Theirs), and where step 7 made Contracts a place on Home.
+Two text SIZES are new to the record, both on the Contracts place's head and
+list: 12.5px (7 pieces) and 15px (2 pieces). Re-recorded with --save on the
+owner's yes; 170 of 170 pass; the KNOWN_RED line came off.
