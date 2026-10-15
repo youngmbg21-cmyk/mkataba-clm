@@ -189,7 +189,7 @@ const SHEET_TOP = `(() => {
       return { gap: Math.round(sh.getBoundingClientRect().top - st), sign: sh.classList.contains('pg-sign') };
     });
     const workAbove = await gapAbove();
-    await page.evaluate(id => openWorkspace(id), built.id);
+    await page.evaluate(id => openWorkspace(id, { room: true }), built.id);
     await page.waitForFunction(() => !!document.querySelector('.room-tabrow'), null, { timeout: 15000 }).catch(() => {});
     await page.evaluate(() => roomGoTab(getContract(state.activeId), 'sign'));
     await page.waitForFunction(() => { const b = document.getElementById('ig-canvas'); return !!b && b.getBoundingClientRect().height > 50 && !!b.closest('.pg-sheet.pg-sign'); }, null, { timeout: 15000 }).catch(() => {});

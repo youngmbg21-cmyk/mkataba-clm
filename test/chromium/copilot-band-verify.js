@@ -81,7 +81,7 @@ const BODY = [
     await pause(2500);
 
     /* ---- 1. nothing asked of us, no band ---- */
-    await page.evaluate(() => openWorkspace('MK-C2'));
+    await page.evaluate(() => openWorkspace('MK-C2', { room: true }));
     await pause(1200);
     await page.evaluate(() => openRedlineWorkbench('MK-C2'));
     await pause(1500);
@@ -89,7 +89,7 @@ const BODY = [
       await page.evaluate(() => !document.querySelector('[data-rl-plan]')));
 
     /* ---- 2. a real round of theirs ---- */
-    await page.evaluate(() => openWorkspace('MK-C1'));
+    await page.evaluate(() => openWorkspace('MK-C1', { room: true }));
     await pause(1400);
     await page.evaluate(async () => {
       const c = state.contracts.find(x => x.id === 'MK-C1');

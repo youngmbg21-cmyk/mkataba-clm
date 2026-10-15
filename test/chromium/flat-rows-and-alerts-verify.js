@@ -62,6 +62,9 @@ const SEED_UNSENT = async () => {
   return c.id;
 };
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
@@ -359,7 +362,7 @@ const SEED_UNSENT = async () => {
        shape has no date column. */
     for (const [shape, force] of [['', false], ['i', true]]) {
     await page.evaluate(f => { if (window.insForce) insForce(f); }, force);
-    for (const [label, go] of [['contracts', () => setView('register')],
+    for (const [label, go] of [['contracts', () => (regPlaceSet({ show: 'list' }), setView('register'))],
       ['negotiations', () => openNegotiations({ list: true })]]) {
       await page.evaluate(fn => eval('(' + fn + ')()'), go.toString());
       await pause(1800);

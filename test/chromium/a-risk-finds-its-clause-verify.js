@@ -133,7 +133,7 @@ const NEW_CL = 'Each party shall sign this Agreement in the order the Buyer name
         return { answer: JSON.stringify({ proposedText: words, advice: 'Drafted.' }) };
       };
     }, { QUAL_NEW, SUPPLY_NEW, NEW_CL });
-    await page.evaluate(id => openWorkspace(id), ID);
+    await page.evaluate(id => openWorkspace(id, { room: true }), ID);
     await page.evaluate(id => roomGoTab(getContract(id), 'redline'), ID);
     await until(page, () => !!document.querySelector('.redline-page #rl-changes'));
     const titles = await page.evaluate(id => templateClauseTitles(getContract(id)), ID);

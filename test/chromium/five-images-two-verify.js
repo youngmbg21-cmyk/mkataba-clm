@@ -31,6 +31,9 @@ const ok = (name, good, detail) => {
   console.log(`${good ? 'PASS' : 'FAIL'}  ${name}${detail != null ? ' — ' + detail : ''}`);
 };
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
@@ -54,7 +57,7 @@ const ok = (name, good, detail) => {
        1b/1c are about the TABLE's two date columns, which the page still draws
        at every narrower window; insForce(false) is its own stage door. */
     await page.evaluate(() => { if (window.insForce) insForce(false); });
-    await page.evaluate(() => setView('register'));
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(1400);
     await page.screenshot({ path: path.join(OUT, '01-contracts.png') });
 
@@ -122,7 +125,8 @@ const ok = (name, good, detail) => {
         && opts.optColor !== opts.optBg, JSON.stringify(opts));
 
     /* ════════ 2. THE NEW AGREEMENT CARDS ════════ */
-    await page.evaluate(() => { const b = document.querySelector('.hm-primary'); if (b) b.click(); });
+    /* RE-POINTED 15 Oct 2026 (the overnight build, steps 3 and 7): Home's head and the Contracts place carry no "+ Draft new agreement" (Jambo's panel has it); the two-door menu is the pages' own door, opened here as they open it (openNewDoors). */
+    await page.evaluate(() => { if (typeof openNewDoors === 'function') openNewDoors(); });
     /* 23 Sep 2026: the button opens two doors first; this presses Draft from HaTi. */
     await page.waitForTimeout(400);
     await page.evaluate(() => { const d = document.querySelector('[data-nd-door="draft"]'); if (d) d.click(); });
@@ -207,7 +211,7 @@ const ok = (name, good, detail) => {
     });
     ok('4-stage the staged readings are really readable',
       cid && cid.findings === 1, JSON.stringify(cid && cid.findings));
-    await page.evaluate(o => openWorkspace(o.id), cid);
+    await page.evaluate(o => openWorkspace(o.id, { room: true }), cid);
     await page.waitForTimeout(3000);
     /* THE ROOM LANDS ON THE DOCUMENT TAB for a contract already past Draft, so
        the Overview has to be asked for. */

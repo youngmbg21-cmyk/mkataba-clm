@@ -123,7 +123,7 @@ const PROBE = () => {
       m.cut.forEach(c => bad.push(`${v}: ${c.el} hides ${c.need - c.got}px`));
       m.starved.forEach(c => bad.push(`${v}: ${c.el} has ${c.got}px for a ${c.row}px row`));
     }
-    await page.evaluate(() => window.openWorkspace(window.state.contracts[0].id));
+    await page.evaluate(() => window.openWorkspace(window.state.contracts[0].id, { room: true }));
     await page.waitForTimeout(500);
     await page.evaluate(() => window.setView('redline'));
     await page.waitForTimeout(800);
@@ -205,7 +205,7 @@ const PROBE = () => {
       fill && !fill.sideways && fill.reachable && fill.tiles === 0 && fill.map && fill.clipped === 0,
       fill ? `sideways ${fill.sideways} · reachable ${fill.reachable} · ${fill.tiles} tiles · map ${fill.map} · clipped ${fill.clipped}` : 'no page');
     /* And the change list has room for a change. */
-    await page.evaluate(() => window.openWorkspace(window.state.contracts[0].id));
+    await page.evaluate(() => window.openWorkspace(window.state.contracts[0].id, { room: true }));
     await page.waitForTimeout(400);
     await page.evaluate(() => window.setView('redline'));
     await page.waitForTimeout(800);

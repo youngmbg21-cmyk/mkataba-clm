@@ -14,7 +14,9 @@ const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '
 test('every list panel draws its doors from the one builder', () => {
   assert.match(strip(R('js/views/register.js')), /return insDoorActs\(c, \{ lead: neg \? 'nego' : 'doc'/);
   assert.match(strip(R('js/views/approvalsview.js')), /const open=insDoorActs\(r\.c\);/);
-  assert.match(strip(R('js/obligations.js')), /insDoorActs\(c, \{ doc: \(\) => obOpenContract\(c\.id\) \}\)/);
+  /* RE-POINTED 14 Oct 2026 (step 2): Obligations' Document door keeps the
+     paper (Jambo's Obligations tab) now that obOpenContract opens the Board */
+  assert.match(strip(R('js/obligations.js')), /insDoorActs\(c, \{ doc: \(\) => \{\s*if\(!\(typeof window\.pdOpenOnHome === 'function' && pdOpenOnHome\(c\.id, 'oblig'\)\)\) obOpenContract\(c\.id\); \} \}\)/);
   assert.match(strip(R('js/views/intake.js')), /insDoorActs\(doorC,\{ lead:'doc' \}\)/);
 });
 
@@ -40,9 +42,13 @@ test('the builder: three doors, the lead filled, Negotiation greyed with its rea
   assert.match(body, /icon: 'msg', label: i18t\('ins_door_nego'\)/);
   assert.match(body, /icon: 'folderOpen', label: i18t\('ins_door_ws'\)/);
   assert.match(body, /disabled: !ns\.ok, title: ns\.ok \? '' : ns\.why/);
-  /* RE-POINTED 12 Oct 2026: the Workspace door lands on Details while
-     anything is left to fill in, on the Overview otherwise (owner) */
-  assert.match(body, /roomGoTab\(live, left \? 'details' : 'terms'\)/, 'Workspace lands on Details while owed, else the Overview');
+  /* RE-POINTED 14 Oct 2026 (the overnight work order, step 2; was the room,
+     on Details while owed, 12 Oct): the Workspace door opens Home through the
+     one landing every Workspace door shares — Fill in while owed, else the
+     paper on Jambo — and the room only where Home has no paper (the phone) */
+  const ws = body.slice(body.indexOf("k: 'door-ws'"), body.indexOf('const all ='));
+  assert.match(ws, /run: \(\) => \{ if \(typeof roomHomeLand === 'function' && roomHomeLand\(c\.id\)\) return;\s*openWorkspace\(c\.id\);/, 'Home first, the room only as the fallback');
+  assert.match(body, /roomGoTab\(live, left \? 'details' : 'terms'\)/, 'the phone\'s fallback keeps Details while owed, else the Overview');
   assert.doesNotMatch(body, /x\.id/, 'a door never reads the id of what the panel hands it');
   assert.match(ins, /<div class="ins-acts ins-doors">\$\{doors\}\$\{more\}<\/div>/, 'the doors stand in a row of their own, the ⋯ at its end');
 });

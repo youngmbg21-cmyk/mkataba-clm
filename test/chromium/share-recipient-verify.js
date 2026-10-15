@@ -183,7 +183,7 @@ const ROUTE = [
       const c = getContract(id);
       c.signerPlan = JSON.parse(JSON.stringify(route));
       persist(c);
-      setView('workspace');
+      openWorkspace(state.activeId, { room: true });
     }, [cid, ROUTE]);
     await page.waitForTimeout(1500);
     await page.evaluate(() => { const t = document.querySelector('[data-ws-tab="terms"]'); if (t) t.click(); });

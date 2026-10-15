@@ -97,7 +97,7 @@ const DEAL = {
     await until(page, () => window.state && state.contracts && state.contracts.length > 0, null, 15000);
 
     /* ===== 1. THE LANDING IS STILL THE OVERVIEW ===== */
-    await page.evaluate(() => openWorkspace('MK-D1'));
+    await page.evaluate(() => openWorkspace('MK-D1', { room: true }));
     const opened = await until(page, () => state.view === 'workspace' && !!document.getElementById('ws-tabs'));
     ok('0 the contract opens', opened);
     const tabs = await page.evaluate(() => ({

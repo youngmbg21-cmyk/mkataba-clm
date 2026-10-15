@@ -85,7 +85,7 @@ const CROPS = [
     go: async p => { await p.evaluate(() => setView('dashboard')); await pause(900); },
     sel: '#hm-agent-rows .hm-row', rows: 3 },
   { key: 'kt-rows',    label: 'Key terms — the fact rows',
-    go: async p => { await p.evaluate(() => { openWorkspace('MK-82'); roomGoTab(getContract('MK-82'), 'terms'); }); await pause(1000); },
+    go: async p => { await p.evaluate(() => { openWorkspace('MK-82', { room: true }); roomGoTab(getContract('MK-82'), 'terms'); }); await pause(1000); },
     sel: '[data-kt-row]', rows: 5 },
   /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the
      Negotiate page folded into Home — openRedlineWorkbench lands on Jambo's
@@ -96,7 +96,7 @@ const CROPS = [
                      await p.waitForSelector('#pd-redface #rl-changes-col [data-rl-card], #pd-redface #rl-changes-col article', { timeout: 10000 }); await pause(1000); },
     sel: '#rl-changes-col [data-rl-card], #rl-changes-col article' },
   { key: 'room-head',  label: 'Contract room — the header facts',
-    go: async p => { await p.evaluate(() => { openWorkspace('MK-82'); }); await pause(900); },
+    go: async p => { await p.evaluate(() => { openWorkspace('MK-82', { room: true }); }); await pause(900); },
     sel: '.room-facts, #ws-head' },
 ];
 

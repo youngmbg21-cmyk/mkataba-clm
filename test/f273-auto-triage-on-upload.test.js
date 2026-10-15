@@ -545,10 +545,18 @@ describe('F273 — auto-triage on upload', () => {
        construction rather than by care. Measured as pixels in
        auto-triage-verify; here it is the structure that makes it possible. */
     test('its slot is inside the Key terms pane and nowhere else', () => {
-      assert.equal((CONTRACT.match(/id="kt-triage-slot"/g) || []).length, 1,
-        'exactly one mount');
+      /* RE-POINTED 15 Oct 2026 (the overnight work order, step 8): the room
+         retired and its Overview's sheet is hosted as the Lifeline strip's
+         Details page on the Board (ovSheetPaint), so there are TWO mounts —
+         the room's (by name, the phone) and the strip's — each leading its own
+         sheet, and neither ever on the paper. */
+      assert.equal((CONTRACT.match(/id="kt-triage-slot"/g) || []).length, 2,
+        'one mount in the room, one in the hosted sheet');
+      const sheet = CONTRACT.slice(CONTRACT.indexOf('function ovSheetPaint('), CONTRACT.indexOf('function ovRecordOpen('));
+      assert.ok(sheet.indexOf('id="kt-triage-slot"') >= 0 && sheet.indexOf('id="kt-triage-slot"') < sheet.indexOf('class="ov-stack"'),
+        'the hosted sheet leads with it, above its stack');
       const terms = CONTRACT.indexOf('data-ws-pane="terms"');
-      const slot = CONTRACT.indexOf('id="kt-triage-slot"');
+      const slot = CONTRACT.indexOf('id="kt-triage-slot"', terms);
       /* The grid became one stack of sections on 16 Sep 2026 (the Overview);
          the claim is the same one — the strip is ABOVE everything the tab
          draws, and inside the terms pane, so it can never push the agreement

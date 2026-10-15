@@ -61,6 +61,9 @@ const check = (name, pass, detail) => {
 let GREEN_BG = null;    /* --st-green-dot */
 let AMBER_BG = null;    /* --st-amber-dot */
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   const h = await startHati();
   await seedWorkspace(h);
@@ -114,7 +117,7 @@ let AMBER_BG = null;    /* --st-amber-dot */
       staged.status === 'Under Review', staged.status);
 
     /* ---------- 1. the status word (the owner's image 3 & 4) ---------- */
-    await page.evaluate(id => openWorkspace(id), cid);
+    await page.evaluate(id => openWorkspace(id, { room: true }), cid);
     await page.waitForTimeout(2000);
     const st = await page.evaluate(() => {
       const e = document.querySelector('.room-head .room-stat');
@@ -126,7 +129,7 @@ let AMBER_BG = null;    /* --st-amber-dot */
       !!st && st.color !== 'rgb(180, 83, 9)' && /rgb\(\s*\d+,\s*1[0-9]\d,\s*\d+\s*\)/.test(st.color),
       st && st.color);
 
-    await page.evaluate(() => setView('register'));
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(1600);
     const row = await page.evaluate(id => {
       const tr = [...document.querySelectorAll('#reg-tbody tr')].find(r => r.textContent.includes(id));

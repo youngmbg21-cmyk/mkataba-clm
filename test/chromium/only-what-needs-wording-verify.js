@@ -105,7 +105,7 @@ const BRIEF = { at: new Date().toISOString(), by: 'Stage', truncated: false, dat
     await until(page, () => !!(window.state && state.contracts && state.contracts.length));
     if (!(await page.evaluate(() => typeof riskNeedsWording === 'function'))) throw new Error('this build has no "needs wording" rule');
     await until(page, id => !!(typeof getContract === 'function' && getContract(id)), ID, 15000);
-    await page.evaluate(id => openWorkspace(id), ID);
+    await page.evaluate(id => openWorkspace(id, { room: true }), ID);
     await page.evaluate(({ id, BRIEF }) => { const c = getContract(id); c._brief = BRIEF; c._hasBrief = true; roomGoTab(c, 'redline'); }, { id: ID, BRIEF });
     await until(page, () => !!document.querySelector('.redline-page #rl-changes'));
     const list = await until(page, () => {

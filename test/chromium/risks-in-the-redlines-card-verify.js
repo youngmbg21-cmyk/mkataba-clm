@@ -125,7 +125,7 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   }, { PAY_NEW, INJ_NEW });
 
   /* ============ 1. THE LIST IN THE REDLINES CARD ============ */
-  await page.evaluate(id => openWorkspace(id), ID);
+  await page.evaluate(id => openWorkspace(id, { room: true }), ID);
   await until(page, () => !!document.querySelector('[data-room-check="risk"]'), null, 8000);
   await page.evaluate(id => roomGoTab(getContract(id), 'redline'), ID);
   await until(page, () => !!document.querySelector('.redline-page #rl-changes'), null, 8000);
@@ -276,7 +276,7 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   await until(page, () => !document.getElementById('clause-editor'));
 
   /* ============ 7. THE OLD PANEL'S DOORS LAND ON RISK VIEW ============ */
-  await page.evaluate(id => { openWorkspace(id); }, ID);
+  await page.evaluate(id => { openWorkspace(id, { room: true }); }, ID);
   await until(page, () => !!document.querySelector('#ws-tabs [data-ws-tab="terms"].on'));
   /* RE-POINTED 5 Oct 2026 (the Thread): Risk View became the Thread, and the
      head's risk icon is the NEGOTIATE head's (roomHeadHtml draws the checks
@@ -304,7 +304,7 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   await page.evaluate(id => { const c = getContract(id);
     c.triage = { at: '2026-10-04', steps: { risk: { ok: true, open: 2 }, brief: { ok: false, why: 'No key' },
       playbook: { ok: false, why: 'No key' }, oblig: { ok: false, why: 'No key' }, fill: { ok: true, none: 'none' } } };
-    openWorkspace(id); }, ID);
+    openWorkspace(id, { room: true }); }, ID);
   const tile = await until(page, () => {
     const b = document.querySelector('[data-kt-tri-go="risk"]');
     return b ? b.innerText.replace(/\s+/g, ' ').trim() : null;

@@ -112,6 +112,7 @@ import './workshape.js';       // which shapes this business has, and what it ca
 import './views/portfolio.js';    // the universal frame: six panels every business gets
 import './views/intelligence.js';
 import './views/homeboard.js';   // Home is the board and the map: the headline numbers, Copilot's prepared work, the answers to what is asked (3 Oct 2026)
+import './views/boardstrip.js';  // the Lifeline strip: a contract brought up on the Board, with Where we are and History behind its ⋯ (step 8, 15 Oct 2026)
 import './ai.js';
 import './views/settings.js';
 import './views/directory.js';    // People: the roster, read-only, for every role
@@ -183,9 +184,13 @@ function setActiveNav(view){
   });
   /* on any page behind a fly-out, its opener wears the "you are here" well
      (the fly-out itself stays shut — it would sit over the page) */
+  /* …and the Contracts opener is itself the door to Home's Contracts place
+     (the overnight work order, step 7): 'register' lights it */
   document.querySelectorAll('.nav-fold').forEach(f=>{
     const head=f.querySelector('.nav-fold-head');
-    if(head) head.classList.toggle('is-current', !!f.querySelector(`.nav-sub .nav-item[data-view="${navFor}"]`));
+    const own=f.getAttribute('data-nav-fold')===navFor;
+    if(head){ head.classList.toggle('is-current', own||!!f.querySelector(`.nav-sub .nav-item[data-view="${navFor}"]`));
+      if(own) head.setAttribute('aria-current','page'); else head.removeAttribute('aria-current'); }
   });
 }
 /* ---- THE FLY-OUT BESIDE CONTRACTS (owner, 10 Oct 2026) ----
@@ -220,12 +225,27 @@ function navFoldOpen(f, focusFirst){
   navFoldCloseAll(f); navFoldSet(f,'is-open',true);
   if(focusFirst){ const first=f.querySelector('.nav-sub .nav-item:not([hidden])'); if(first) try{ first.focus(); }catch(_){} }
 }
+/* ---- A PRESS THAT IS ALSO A DOOR LEAVES THE PAGE CLEAR (the checkers of
+   step 7, 15 Oct 2026) ---- The Contracts opener is the Contracts door, and
+   the place's own head (its name, facts and stage tabs) sits right where the
+   fly-out floats; a fly-out left open by the press covered it, and on the
+   1536 laptop the next press on Drafting landed on Parties. So a POINTER that
+   can hover presses the door and nothing else: the fly-out shuts, and stays
+   shut until the pointer has left the row (navFoldRest), the way a hover menu
+   steps aside for a press. The keyboard and a screen with no hover still get
+   it from the press, the one way to Negotiations and Parties there. */
+function navFoldPressFlies(e){
+  if(!e || e.detail===0) return true;                          // the keyboard (and a press made by code)
+  if(e.pointerType==='touch' || e.pointerType==='pen') return true;
+  return typeof matchMedia==='function' && !matchMedia('(hover:hover)').matches;
+}
+function navFoldRest(f){ if(!f) return; navFoldCloseAll(); f._navFoldRest=true; }
 function wireNavFolds(){
   document.querySelectorAll('.nav-fold').forEach(f=>{
     if(f.dataset.foldWired) return; f.dataset.foldWired='1';
     if(typeof f.addEventListener!=='function') return;
-    f.addEventListener('mouseenter',()=>{ if(typeof matchMedia!=='function'||matchMedia('(hover:hover)').matches){ clearTimeout(f._navFoldT); navFoldSet(f,'is-hover',true); } });
-    f.addEventListener('mouseleave',()=>{ clearTimeout(f._navFoldT); f._navFoldT=setTimeout(()=>navFoldSet(f,'is-hover',false),NAV_FOLD_GRACE_MS); });
+    f.addEventListener('mouseenter',()=>{ if(f._navFoldRest) return; if(typeof matchMedia!=='function'||matchMedia('(hover:hover)').matches){ clearTimeout(f._navFoldT); navFoldSet(f,'is-hover',true); } });
+    f.addEventListener('mouseleave',()=>{ f._navFoldRest=false; clearTimeout(f._navFoldT); f._navFoldT=setTimeout(()=>navFoldSet(f,'is-hover',false),NAV_FOLD_GRACE_MS); });
     f.addEventListener('focusin',()=>navFoldPlace(f));
     f.addEventListener('keydown',e=>{
       const items=[...f.querySelectorAll('.nav-sub .nav-item')].filter(b=>!b.hidden&&b.getClientRects().length);
@@ -875,9 +895,12 @@ function navCounts(){
 function updateSidebarCounts(){
   const cs=state.contracts;
   const nc=navCounts();
+  /* the book's size, still read by the earned doors below */
   const total=(state.serverStats&&state.serverStats.total!=null)?state.serverStats.total:cs.length;
+  /* THE CONTRACTS COUNT WENT WITH ITS ITEM (the overnight work order, step 7):
+     the fold keeps Negotiations and Parties; the place's own head says how
+     many are live (regHeadFactsHtml) */
   const counts={
-    register: total,
     /* HOW MANY CUSTOMERS — the list the Customers page draws (cuDoorCount), so the door and the page cannot disagree. A size, never amber. */
     customers: (typeof cuDoorCount==='function')?cuDoorCount():0,
     pipeline: nc.pipeline,
@@ -918,7 +941,7 @@ function updateSidebarCounts(){
   /* Tone of the count pill: teal = size of the portfolio, amber = items
      waiting on a person. A zero drops to neutral so an amber tag never cries
      wolf over an empty queue. */
-  const NAV_COUNT_TONE={register:'teal',calendar:'amber',mynotes:'amber',migration:'amber',pipeline:'amber',negotiations:'amber',intake:'amber',obligations:'amber',approvals:'amber',agents:'amber'};
+  const NAV_COUNT_TONE={calendar:'amber',mynotes:'amber',migration:'amber',pipeline:'amber',negotiations:'amber',intake:'amber',obligations:'amber',approvals:'amber',agents:'amber'};
   document.querySelectorAll('[data-count]').forEach(el=>{
     const k=el.getAttribute('data-count'); const v=counts[k];
     /* A door that only counts WORK says nothing at zero (the Import door,
@@ -1141,6 +1164,7 @@ function viewPaint(what, fn){
   try{ fn(); }
   catch(e){ try{ console.error('[hati] '+what+' failed after a view change', e); }catch(_){} }
 }
+let _roomByName=null;   /* the contract whose room was opened BY NAME (openWorkspace's opts.room, step 8) */
 function setView(view){
   /* ---- COPILOT'S WORK IS ON THE BOARD NOW (Young, 7 Oct 2026) ----
      The page's own door is gone; any way in that still names it (a refresh
@@ -1165,6 +1189,20 @@ function setView(view){
      5; the owner's yes to decision 1) ---- a negotiation this view would put
      on its bench opens Jambo's Redlines face beside Home's paper instead,
      decided before anything is drawn (rlHomeTakesIt); the list stays here. */
+  /* ---- THE CONTRACTS PAGE OPENS HOME (the overnight work order, step 7;
+     owner's "Go", 14 Oct 2026) ---- every door that names it (the rail, a
+     number pressed elsewhere through regShowOnly / regGoFiltered, a Delete, a
+     refresh) lands on Home's Document face with no paper chosen — the
+     Contracts place, drawn by the same builder (renderRegister on Home). The
+     phone keeps its own Contracts screen. */
+  if(view==='register' && typeof window!=='undefined' && typeof window.hbOpenContracts==='function'
+    && !(typeof window.mPhone==='function' && window.mPhone())){
+    /* a layer over the page (the clause editor, the builder) is asked first,
+       as on any page change: Home's own face turning would slip past it */
+    if(!viewLayersClosed(view)) return;
+    window.hbOpenContracts();
+    return;
+  }
   if(view==='redline' && typeof window!=='undefined' && typeof window.rlHomeTakesIt==='function'
     && !(typeof window.mPhone==='function' && window.mPhone()) && window.rlHomeTakesIt()) return;
   /* ---- A CONTRACT JUST MADE OR UPLOADED LANDS ON HOME'S DOCUMENT, Jambo's
@@ -1173,7 +1211,20 @@ function setView(view){
      roomArrivesOnHome spends the site's own registration (roomOpenOnTerms). */
   if(view==='workspace' && typeof window!=='undefined' && typeof window.roomArrivesOnHome==='function'
     && state && state.activeId && window.roomArrivesOnHome(state.activeId)) return;
+  /* ---- THE ROOM RETIRES (the overnight work order, step 8; owner's "Go",
+     14 Oct 2026) ---- every door that opened the contract room — a list's
+     row, the bell, an email link, ⌘K, a refresh standing on it — opens the
+     contract's Lifeline strip on Home's Board instead (roomRetiredLand), so
+     the room is never drawn on the way. The room is still drawn BY NAME
+     (openWorkspace(id, { room:true }), the precedent the Negotiate page set
+     at stage 5) and on the phone, which keeps its own contract screens. */
+  if(view==='workspace' && typeof window!=='undefined' && typeof window.roomRetiredLand==='function'
+    && state && state.activeId && _roomByName!==String(state.activeId) && window.roomRetiredLand(state.activeId)) return;
   if(!viewLayersClosed(view)) return;
+  /* THE ROOM BY NAME IS FOR THE VISIT THAT NAMED IT: once the reader leaves
+     it for any other page, a later door to the same contract (an email link,
+     a bare setView) lands on its strip like every other door. */
+  if(view!=='workspace'&&view!=='doc') _roomByName=null;
   /* ---- LEAVING THE ROOM LEAVES THE ROOM (idea 5, 4 Oct 2026) ----
      A beat that carried on after the reader went to Insights would keep
      telling a colleague somebody is reading a contract nobody has open. The
@@ -1306,7 +1357,8 @@ function setView(view){
   }catch(e){ try{ console.error('[hati] could not record where you are', e); }catch(_){} }
   /* A FAILING PAINT MUST NOT BE SILENT — six unguarded calls that could take a
      navigation down without a word is the fault underneath the fault. */
-  viewPaint('setActiveNav', ()=>setActiveNav(view));
+  /* Home's Contracts place lights the rail's Contracts, as the drawing does (step 7) */
+  viewPaint('setActiveNav', ()=>setActiveNav(view==='dashboard'&&window.regPlaceUp&&regPlaceUp()?'register':view));
   viewPaint('updateCommandBar', ()=>updateCommandBar(view));
   viewPaint('updateSidebarCounts', ()=>updateSidebarCounts());
   viewPaint('applyPanelLayout', ()=>applyPanelLayout());
@@ -1544,7 +1596,12 @@ function openFolder(fid){
   if(typeof canAccessFolder==='function' && !canAccessFolder(fid)){ toast(i18t('ap_no_stream_access'),'err'); setView('register'); return; }
   state.folderId=fid; state.folderQuery=''; state.folderShown=50; setView('folder');
 }
-function openWorkspace(id){ state.activeId=id; state.selId=id; setView('workspace'); }
+/* THE ROOM BY NAME (step 8): a door opens the contract's strip on the Board
+   (setView asks roomRetiredLand); `opts.room` draws the room itself, for the
+   checks that test its insides. Remembered for the contract it named
+   (_roomByName, declared above setView), so the room's own repaints
+   (setView('workspace') again) stay in the room. */
+function openWorkspace(id, opts){ _roomByName=(opts&&opts.room)?String(id):null; state.activeId=id; state.selId=id; setView('workspace'); }
 /* Create a draft from a built-in template WITHOUT the guided fill — every field
    left blank for the user to complete in the document. No interface path calls
    this any more: both routes into a built-in template (the Templates page and
@@ -2380,9 +2437,14 @@ function buildAlerts(){
         bell and the Home card cannot disagree. And 4/5 ride on the same read. */
   let D=null; try{ D=(window.hmDashSlices?hmDashSlices():null); }catch(_){ D=null; }
   if(D){
-    /* rule 6 (8 Oct 2026): the bell opens it on Home's Paper, the pack on Signing */
+    /* THE BELL OPENS BEFORE YOU SIGN ON HOME (the overnight work order, step
+       2; owner's "Go", 14 Oct 2026; reverses stage 5's "the Approvals page"
+       for the bell only): Jambo's face beside that contract's paper, which
+       carries the approval asked of you (Approve · Reject) — through the walls
+       (roomOpenAt: the phone keeps its own Signing tab). The Approvals page
+       stays on the rail, and the side panel's checklist keeps its door. */
     (D.myApprovals||[]).filter(x=>x.mine).forEach(x=>push('approval',x.c,
-      i18t('al_approval'),()=>{ if(window.pdOpenOnHome&&pdOpenOnHome(x.c.id,'sign')) return; if(window.roomOpenAt) roomOpenAt(x.c.id,'sign'); else { openWorkspace(x.c.id); if(window.roomGoTab) try{ roomGoTab(x.c,'sign'); }catch(_){} } }));
+      i18t('al_approval'),()=>{ if(window.roomOpenAt) roomOpenAt(x.c.id,'sign'); else { openWorkspace(x.c.id); if(window.roomGoTab) try{ roomGoTab(x.c,'sign'); }catch(_){} } }));
     /* AND A REFUSAL COMES BACK TO THE PERSON WHO ASKED (23 Sep 2026): the
        approval before signing was refused, and the reason is on the Signing
        tab. Read off their own contracts' rows above — nothing new is walked. */
@@ -3804,9 +3866,19 @@ function wireShell(){
     // a section header (+/-) toggles its tabs; a tab navigates
     const head=e.target.closest('[data-section-toggle]');
     if(head){ const sec=head.closest('.nav-section'); openNavSection(sec,!sec.classList.contains('open')); return; }
-    /* the fly-out's opener goes to no page: a press opens it, or shuts it */
+    /* THE CONTRACTS OPENER IS THE CONTRACTS DOOR (the overnight work order,
+       step 7, the drawing's "the rail's Contracts door opens Home's Document
+       face with no paper chosen"): its item went, so a press opens the
+       Contracts place. A pointer that can hover gets the place alone, the
+       fly-out shut until it leaves the row (navFoldRest — the fly-out had
+       covered the place's head); the keyboard and a touch screen get the
+       place AND the fly-out with Negotiations and Parties (the one way to
+       them there), and pressed again ON the place the fly-out shuts. */
     const opener=e.target.closest('[data-nav-fold-open]');
-    if(opener){ const f=opener.closest('.nav-fold'); if(f){ if(f.classList.contains('is-open')) navFoldCloseAll(); else navFoldOpen(f, e.detail===0); } return; }
+    if(opener){ const f=opener.closest('.nav-fold'); if(f){ const k=opener.getAttribute('data-nav-fold-open');
+      if(f.classList.contains('is-open') && (k!=='register' || (window.regPlaceUp&&regPlaceUp()))) navFoldCloseAll();
+      else if(k!=='register') navFoldOpen(f, e.detail===0);
+      else { setView('register'); if(navFoldPressFlies(e)) navFoldOpen(f, e.detail===0); else navFoldRest(f); } } return; }
     const btn=e.target.closest('[data-view]');
     if(btn){ navFoldCloseAll();
       const v=btn.getAttribute('data-view');
@@ -3841,6 +3913,9 @@ function wireShell(){
            no number, so there is nothing for the list to match and narrowing
            to an empty cut would be a door onto a blank page. */
         obwGoFiltered((window.obligationsDoorCount&&obligationsDoorCount())?{state:'overdue'}:{});
+      /* THE HOME DOOR LEAVES THE CONTRACTS PLACE FOR THE BOARD (step 7, the
+         drawing): the place is the Contracts door's, so Home is not it. */
+      else if(v==='dashboard'&&window.hbOpenHome&&!(window.mPhone&&mPhone())) hbOpenHome();
       else setView(v);
       // On a phone the nav is a drawer over the page: having chosen a
       // destination, get out of the way of it.
@@ -3869,6 +3944,9 @@ function wireShell(){
          happened to be on the Negotiations page would write its answer into
          that page's filters and then open a register that had never heard of
          it." Same door, same fix, one line. */
+      /* the list is ON SCREEN on the Contracts page (the phone) or on Home's
+         Contracts place (step 7): typing there narrows it where it stands */
+      const here=state.view==='register'||!!(window.regPlaceUp&&regPlaceUp());
       if(window.regSetScope){ regSetScope(null); }
       if(window.regState){ const R=regState();
         /* TYPED ON ANOTHER PAGE, IT IS A DOOR, AND A DOOR LANDS ON FRESH
@@ -3877,9 +3955,9 @@ function wireShell(){
            while Contracts is on screen it narrows inside what is there, as
            every filter on the page does. The box itself is kept — it holds
            what the reader is typing. */
-        if(state.view!=='register' && window.regFiltersAtRest) regFiltersAtRest(R);
+        if(!here && window.regFiltersAtRest) regFiltersAtRest(R);
         R.query=q; R.page=1; }
-      if(state.view!=='register'){ setView('register'); }
+      if(!here){ setView('register'); }
       else if(window.renderRegisterBody){ renderRegisterBody(); }
       const rs=document.getElementById('reg-search'); if(rs&&rs!==search) rs.value=q;
     });
@@ -4219,6 +4297,6 @@ if (typeof window !== 'undefined' && window.addEventListener){
   window.addEventListener('afterprint', clearPrintRoot);
 }
 
-Object.assign(window,{shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,notesPanelShowing,notesPanelFollow,
+Object.assign(window,{shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,notesPanelShowing,notesPanelFollow,
   buildAlerts,alertCount,updateAlertBadge,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

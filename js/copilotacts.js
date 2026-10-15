@@ -315,8 +315,12 @@ async function caCardPress(i, act, btn){
    share with the sentence — a reading, not a guess — and "None of these" sends
    the sentence to Requests as its own record. No key: the options are matched
    by name alone and the card says so. */
-const CA_DRAFT_RE = /^\s*(?:please\s+)?(?:draft|create|write|prepare|make|start|set up|draw up)\b/i;
-const CA_DRAFT_NOUN = /\b(agreement|contract|nda|non-?disclosure|lease|licen[cs]e|mou|memorandum|terms|deed|order|sow|statement of work|addendum|amendment)\b/i;
+/* BOTH BOOKS (the overnight fix round, 15 Oct 2026): the Draft card's own
+   example is a sentence Jambo reads, in English and in Svenska — "skriv ett
+   NDA med Volvo" was read as a question. The verb ends at a space or the
+   sentence's end (an ASCII \b does not end "gör"). */
+const CA_DRAFT_RE = /^\s*(?:please\s+|snälla\s+|vänligen\s+)?(?:draft|create|write|prepare|make|start|set up|draw up|skriv|skapa|upprätta|förbered|gör|ta fram|starta|utforma|sätt upp)(?=[\s.,!?:]|$)/i;
+const CA_DRAFT_NOUN = /\b(agreement|contract|nda|non-?disclosure|lease|licen[cs]e|mou|memorandum|terms|deed|order|sow|statement of work|addendum|amendment)\b|avtal|kontrakt|överenskommelse|tillägg|beställning|licens/i;
 const CA_DRAFT_OPTS = 3;
 function caReadDraft(q){
   if (!CA_DRAFT_RE.test(q) || !CA_DRAFT_NOUN.test(q)) return null;
@@ -360,34 +364,124 @@ async function caDraftRun(a){
   a.state = a.options.length ? 'ready' : 'none';
   paint();
 }
+/* ---- THE NEW AGREEMENT CARD (the overnight work order, step 3; the owner's
+   "Go" on the demo, 14 Oct 2026) ----
+   A sentence is answered with ONE card, as the demo draws it: What · From ·
+   With · Stream, "Not created yet", Open the form and Change the ask. It
+   replaces the three option cards and their Use this (the form beside it has
+   its own search of Our paper, so a second list in the panel was a second way
+   to one choice). WHAT and FROM are the closest of our own paper — the
+   model's pick where Jambo is connected, else the one whose name shares the
+   most words with the sentence, and none when nothing shares a word (never a
+   guess dressed as a match). WITH is the counterparty the sentence names
+   (caDraftWith, a reading of the words, no model), else the model's; none is
+   said in amber, because the form will ask it. The STREAM is always the
+   form's to ask. NOTHING IS MINTED HERE: Open the form opens the ONE form
+   (openNewAgreement, never the two-door menu) with these already in it, and
+   Create is still the person's press there (f270's rule). */
+/* "with Volvo", "med Volvo": the words after it, up to a mark or a word that
+   starts the next thought ("for", "to", "about", "starting" …), or the
+   sentence's end. A READING, NEVER A GUESS (the fix round, 15 Oct 2026):
+   "with a two-year term", "with mutual confidentiality" and "with payment
+   terms of 30 days" name no party, so a reading that opens on an article or
+   a number, or carries a word of the deal's terms, is refused — the card
+   then says "Not said yet" in amber and the form asks. */
+const CA_DRAFT_WITH = /(?:^|\s)(?:with|med)\s+(.+?)(?:\s+(?:for|about|on|regarding|covering|starting|from|by|under|to|that|which|who|including|in|at|until|so|om|för|angående|från|gällande|som|till|i|på|under|tills|inklusive)(?=[\s.,!?]|$).*)?[\s.!?]*$/i;
+const CA_DRAFT_WITH_MAX = 120;
+const CA_DRAFT_NOT_PARTY = /^(?:a|an|some|any|our|their|its|no|mutual|one|two|three|en|ett|några|vår|vårt|våra|deras|ömsesidig|ömsesidigt|\d.*)$/i;
+const CA_DRAFT_TERM_WORD = /(?:^|\s)(?:terms?|clauses?|confidentiality|payments?|days?|weeks?|months?|years?|liability|notice|renewal|exclusivity|warrant(?:y|ies)|indemnit(?:y|ies)|price|pricing|fees?|rates?|cap|deposit|discount|penalt(?:y|ies)|obligations?|conditions?|options?|provisions?|interest|vat|tax|villkor|klausul(?:er)?|sekretess|betalning(?:ar)?|dagar|veckor|månader|år|ansvar|uppsägning|förnyelse|pris|avgift(?:er)?|ränta|moms|skatt)(?=[\s.,!?]|$)/i;
+function caDraftWith(sentence){
+  const m = CA_DRAFT_WITH.exec(String(sentence || '').trim()); if (!m) return '';
+  /* a mark ends the name: "with volvo, for a promotion" names Volvo */
+  let who = m[1].split(/[,;:()\[\]]/)[0].replace(/^["“'‘]+|["”'’.!?]+$/g, '').replace(/\s+/g, ' ').trim().slice(0, CA_DRAFT_WITH_MAX);
+  /* "with us", "with them" names nobody */
+  if (!who || /^(?:us|them|me|you|oss|dem|mig|er)$/i.test(who)) return '';
+  /* not a party: an article or a number first, or a word of the terms */
+  if (CA_DRAFT_NOT_PARTY.test(who.split(' ')[0])) return '';
+  /* "with the Kenya Revenue Authority": the sentence's article is grammar, a name's own "The" is kept */
+  who = who.replace(/^the\s+(?=\S)/, '');
+  if (CA_DRAFT_TERM_WORD.test(who)) return '';
+  /* typed all in small letters, a name is given its capitals; typed with its own ("IKEA", "de Beers") it keeps them */
+  if (who === who.toLowerCase()) who = who.replace(/(^|[\s-])(\p{L})/gu, (_, p, ch) => p + ch.toUpperCase());
+  return who;
+}
+/* the paper the card names: the model's pick, else a name that shares a word with the sentence, else none */
+function caDraftBest(a){
+  const opts = (a && a.options) || [];
+  if (a && a.bestId) return opts.find(o => o.id === a.bestId) || null;
+  const o = opts[0];
+  return (o && caDraftScore(a.sentence, o) > 0) ? o : null;
+}
+/* THE MODEL'S READING FIRST where Jambo answered one (it read the whole
+   sentence); the words after "with" only where it did not */
+/* a HaTi template's document title (TEMPLATES[id].name); our own paper's name is its title */
+function caDraftTitleOf(o){
+  if (!o) return '';
+  if (o.kind === 'builtin' && typeof TEMPLATES === 'object' && TEMPLATES && TEMPLATES[o.id]) return String(TEMPLATES[o.id].name || '');
+  return String(o.name || '');
+}
+function caDraftWho(a){ return String((a && a.prefill && a.prefill.counterparty) || '').trim() || caDraftWith(a && a.sentence); }
+/* THE ONE FORM, with what the card read already in it. The values reach only
+   the boxes the chosen paper declares (draftApplyPrefill's wall); the
+   counterparty is a box every one of the three forms declares, so it waits in
+   the form until a template is picked when none was named. */
+function caDraftForm(a){
+  if (typeof openNewAgreement !== 'function') return false;
+  /* THE STREAM IS ASKED, NOT TAKEN (the fix round, 15 Oct 2026; the work
+     order and its demo: "Create greyed with its reason until a template and
+     a stream are chosen"): opened from Jambo's cards the form's stream box
+     starts on none (streamAsk), and the person's choice is the stream */
+  if (!a){ openNewAgreement({ streamAsk: true }); return true; }
+  const best = caDraftBest(a);
+  const prefill = Object.assign({}, (best && typeof draftPrefillFor === 'function') ? draftPrefillFor(best.fields, a.prefill || {}) : {});
+  const who = caDraftWho(a); if (who) prefill.counterparty = who;
+  openNewAgreement({ pick: best ? { kind: best.kind === 'builtin' ? 'tid' : best.kind, id: best.id } : null, prefill, asked: a.sentence, streamAsk: true });
+  return true;
+}
 function caDraftCardHtml(a, i){
   const B = (act, label, lead, extra) => `<button type="button" class="ui-btn ui-btn-sm${lead ? ' ui-btn-primary' : ''}" data-ca-act="${act}" data-ca-turn="${i}"${extra || ''}>${_caE(label)}</button>`;
-  if (a.state === 'reading') return `<div class="ca-card"><p class="ca-foot" style="margin:0">${_caE(_caT('ca_draft_reading'))}</p></div>`;
-  const best = (a.options || []).find(o => o.id === a.bestId) || null;
-  const understood = best ? best.fields.filter(f => a.prefill[f.key]).map(f => [String(f.label || f.key), a.prefill[f.key]]) : [];
-  const und = understood.length
-    ? `<div class="ca-ct">${_caE(_caT('ca_draft_understood'))}</div><dl class="ca-dl">${understood.map(([k, v]) => `<dt>${_caE(k)}</dt><dd>${_caE(v)}</dd>`).join('')}</dl>`
-    : '';
-  const opts = (a.options || []).map((o, k) => `<div class="ca-opt-card${o.id === a.bestId ? ' is-best' : ''}">
-      <div class="ca-oc-h"><b>${_caE(o.name)}</b>${o.id === a.bestId ? ` <span class="hb-chip">${_caE(_caT('ca_draft_best'))}</span>` : ''}</div>
-      ${o.blurb ? `<p>${_caE(o.blurb)}</p>` : ''}
-      <div class="ca-oc-f"><small>${_caE((typeof draftBucketLabel === 'function' ? draftBucketLabel(o.kind) : '') || '')}</small>${B('use', _caT('ca_draft_use'), o.id === a.bestId || (!a.bestId && k === 0), ` data-ca-opt="${_caE(o.id)}"`)}</div></div>`).join('');
-  const note = !a.ai ? `<p class="ca-foot">${_caE(a.aiError || _caT('ca_draft_no_ai'))}</p>`
-    : (a.why ? `<p class="ca-foot">${_caE(a.why)}</p>` : '');
-  const none = (typeof openIntakeForm === 'function') ? `<p class="ca-foot">${_caE(_caT('ca_draft_none_fit'))} ${B('request', _caT('ca_draft_request'), false)}</p>` : '';
-  return `<div class="ca-card" data-ca-card="${i}">${und}
-    <div class="ca-ct">${_caE(_caT(a.state === 'none' ? 'ca_draft_nothing' : 'ca_draft_options'))}</div>${opts}${note}${none}
-    <p class="ca-foot">${_caE(_caT('ca_draft_foot'))}</p></div>`;
+  if (a.state === 'reading') return `<div class="ca-card"><p class="ca-foot" style="margin:0">${(typeof busyHtml === 'function') ? busyHtml(_caT('ca_draft_reading')) : _caE(_caT('ca_draft_reading'))}</p></div>`;
+  /* no paper on any shelf this person may draft from: said, with the request as the way forward */
+  if (a.state === 'none' && !(a.options || []).length){
+    const req = (typeof openIntakeForm === 'function') ? `<div class="ca-acts">${B('request', _caT('ca_draft_request'), true)}</div>` : '';
+    return `<div class="ca-card" data-ca-card="${i}"><div class="ca-ct">${_caE(_caT('ca_draft_nothing'))}</div>${a.why ? `<p class="ca-why">${_caE(a.why)}</p>` : ''}${req}</div>`;
+  }
+  const best = caDraftBest(a), who = caDraftWho(a);
+  const may = (typeof canEdit !== 'function') || canEdit();
+  /* AS THE DEMO DRAWS IT: WHAT is the agreement the paper makes (a HaTi
+     template's own title, "Mutual Non-Disclosure Agreement"), FROM is the
+     paper it starts from — its name where that is not the title already,
+     then its shelf */
+  const what = best ? (caDraftTitleOf(best) || best.name) : _caT('ca_dr_what_none');
+  const shelf = best ? ((typeof draftBucketLabel === 'function' && draftBucketLabel(best.kind)) || '') : '';
+  const from = best ? [best.name !== what ? best.name : '', shelf].filter(Boolean).join(' · ') : _caT('ca_dr_from_none');
+  const rows = [
+    [_caT('ca_dr_what'), _caE(what)],
+    [_caT('ca_dr_from'), _caE(from)],
+    [_caT('ca_dr_with'), who ? _caE(who) : `<span class="ca-dr-owed">${_caE(_caT('ca_dr_with_none'))}</span>`],
+    [_caT('ca_dr_stream'), `<span class="ca-dr-quiet">${_caE(_caT('ca_dr_stream_form'))}</span>`],
+  ];
+  const dl = `<dl class="ca-dl">${rows.map(([k, v]) => `<dt>${_caE(k)}</dt><dd>${v}</dd>`).join('')}</dl>`;
+  /* A DEAD BUTTON SAYS WHY: a viewer may not create, and the card says so where HaTi knows it */
+  const no = _caT('wz_viewers_no_create');
+  const open = may ? B('form', _caT('ca_dr_open'), true)
+    : `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary" disabled aria-disabled="true" title="${_caE(no)}">${_caE(_caT('ca_dr_open'))}</button>`;
+  /* NO SILENT FAILURE: with no model, or a model that failed, the card says how it matched */
+  const note = a.aiError ? `<p class="ca-foot">${_caE(a.aiError)}</p>` : !a.ai ? `<p class="ca-foot">${_caE(_caT('ca_dr_no_ai'))}</p>` : '';
+  return `<div class="ca-card ca-dr" data-ca-card="${i}"><div class="ca-ct">${_caE(_caT('ca_dr_new'))}<span class="ca-dr-sp"></span><span class="pd-pill is-quiet"><i></i>${_caE(_caT('ca_dr_not_yet'))}</span></div>
+    ${dl}${may ? '' : `<p class="ca-why">${_caE(no)}</p>`}<div class="ca-acts">${open}${B('ask', _caT('ca_dr_change'), false)}</div>${note}</div>`;
 }
 function caDraftPress(i, act, btn){
   const m = caTurn(i); const a = m && m.act; if (!a) return;
   if (act === 'request'){ if (typeof openIntakeForm === 'function') openIntakeForm({ need: a.sentence, title: (typeof intakeTitleFrom === 'function') ? intakeTitleFrom(a.sentence) : '' }); return; }
-  if (act !== 'use') return;
-  const id = btn && btn.getAttribute('data-ca-opt');
-  const pick = (a.options || []).find(o => o.id === id); if (!pick) return;
-  /* the values only reach boxes the chosen paper declares (draftApplyPrefill's wall) */
-  const prefill = pick.id === a.bestId && typeof draftPrefillFor === 'function' ? draftPrefillFor(pick.fields, a.prefill) : {};
-  if (typeof draftHandOff === 'function') draftHandOff(pick, prefill);
+  if (act === 'form'){ caDraftForm(a); return; }
+  /* CHANGE THE ASK: the sentence goes back into the box, to be said again */
+  if (act === 'ask'){
+    const inp = (typeof document !== 'undefined') ? document.getElementById('igd-input') : null; if (!inp) return;
+    inp.value = a.sentence || '';
+    try { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); } catch (_){}
+    if (typeof chatFieldGrow === 'function') chatFieldGrow(inp);
+  }
 }
 
 /* ============================================================
@@ -639,6 +733,10 @@ async function caDoorPress(i, act){
    word, so a chip and a typed word are one path (caReadPlace). */
 const CA_CHIPS = ['redline', 'deal', 'sign', 'history'];
 const CA_CHIPS_WALL = ['upload', 'draft', 'board', 'calendar'];
+/* ON THE WALL THE TWO WAYS IN ARE SAID IN FULL (the overnight work order,
+   steps 3 and 4): "upload a document" first, "draft a new agreement" — words
+   Jambo reads (CA_PLACES), so the chip and the typed word are one path */
+const CA_CHIP_WALL_WORD = { upload: 'ca_wall_upload', draft: 'ca_wall_draft' };
 function caChipLead(c){
   let need = [];
   try { need = ((typeof needsYouOf === 'function') ? needsYouOf(c) : []).map(x => x && x.kind); } catch (_){ need = []; }
@@ -658,10 +756,13 @@ function caChipShut(c, k){
   if (k === 'redline') return typeof negoMayStart === 'function' && !negoMayStart(c).ok;
   return false;
 }
+/* who may bring a contract in: an editor (a viewer's upload is refused at the creator too) */
+function caMayAdd(){ return (typeof canEdit !== 'function') || !!canEdit(); }
 function caPaperChips(){
   if (typeof igHomePaperFace !== 'function' || igHomePaperFace() !== true) return null;
   const c = caOpenContract();
-  if (!c) return CA_CHIPS_WALL.map(k => ({ ask: _caT('ca_w_' + k), k }));
+  /* a viewer adds nothing: the upload chip steps aside, as a shut door's chip does on a paper (caChipShut) */
+  if (!c) return CA_CHIPS_WALL.filter(k => k !== 'upload' || caMayAdd()).map(k => ({ ask: _caT(CA_CHIP_WALL_WORD[k] || ('ca_w_' + k)), k }));
   const lead = caChipLead(c);
   const list = (lead ? [lead].concat(CA_CHIPS.filter(k => k !== lead)) : CA_CHIPS.slice()).concat(CA_CHIPS_MORE)
     .filter((k, i, all) => all.indexOf(k) === i && !caChipShut(c, k)).slice(0, CA_CHIPS.length);
@@ -828,8 +929,8 @@ Object.assign(window, { caDraftReply });
 Object.assign(window, { CA_DOORS, caReadDoor, caRoomSign, CA_DOOR_GO, CA_DOOR_NEEDS, caDoorCardHtml, caDoorPress });
 Object.assign(window, { CA_PICK_MAX, CA_NOTE_MAX, CA_SEND_RE, caPeople, caContracts, caOpenContract, caTokenAt, caMatches, caPopHtml, caPopClose, caPopRead, caChoose,
   caFindContract, caFindPerson, caNoteOf, caReadSend, caActOf, caSendBlock, caCardHtml, caCardPress,
-  CA_DRAFT_RE, CA_DRAFT_NOUN, CA_DRAFT_OPTS, caReadDraft, caDraftScore, caDraftRank, caDraftRun, caDraftCardHtml, caDraftPress,
-  CA_JOBS, CA_JOB_RE, caReadJob, caNamedOrUp, caRowsWithQuotes, caRiskList, caObligList, caListCardHtml, caReadyDoor, caJobCardHtml, caJobPress, caPaperChips, caChipsHtml,
+  CA_DRAFT_RE, CA_DRAFT_NOUN, CA_DRAFT_OPTS, caReadDraft, caDraftScore, caDraftRank, caDraftRun, caDraftCardHtml, caDraftPress, CA_DRAFT_WITH, CA_DRAFT_WITH_MAX, caDraftWith, CA_DRAFT_NOT_PARTY, CA_DRAFT_TERM_WORD, caDraftBest, caDraftTitleOf, caDraftWho, caDraftForm,
+  CA_JOBS, CA_JOB_RE, caReadJob, caNamedOrUp, caRowsWithQuotes, caRiskList, caObligList, caListCardHtml, caReadyDoor, caJobCardHtml, caJobPress, caMayAdd, caPaperChips, caChipsHtml,
   CA_SEL_ACTIONS, caSelKill, caSelClauseId, caSelOpen, caSelPick, CA_RISK_MAX, caRiskMark });
 
 /* ============================================================
@@ -860,9 +961,14 @@ const CA_PLACES = [
   { k: 'document', w: ['document', 'paper', 'dokument', 'dokumentet', 'papperet', 'pappret'] },
   { k: 'calendar', w: ['calendar', 'kalender', 'kalendern'] },
   { k: 'explorer', w: ['explorer', 'utforskaren'] },
-  { k: 'wall', w: ['another contract', 'all contracts', 'every contract', 'contracts', 'ett annat avtal', 'alla avtal', 'avtal'] },
-  { k: 'upload', w: ['upload', 'ladda upp'] },
-  { k: 'draft', w: ['draft', 'new agreement', 'nytt avtal', 'utkast'] },
+  /* THE CONTRACTS PLACE (the overnight work order, step 7): "contracts" opens
+     the place as it was last looked at; "wall" and "list" switch its view */
+  { k: 'contracts', w: ['contracts', 'all contracts', 'every contract', 'another contract', 'my contracts', 'avtal', 'alla avtal', 'avtalen', 'ett annat avtal', 'mina avtal'] },
+  { k: 'wall', w: ['wall', 'the wall', 'wall of paper', 'wall of papers', 'vägg', 'väggen', 'som vägg'] },
+  { k: 'list', w: ['list', 'the list', 'as a list', 'lista', 'listan', 'som lista', 'som en lista'] },
+  /* the wall's chips say them in full (ca_wall_upload, ca_wall_draft; step 3 and 4 of the overnight work order) */
+  { k: 'upload', w: ['upload', 'upload a document', 'upload a file', 'ladda upp', 'ladda upp ett dokument', 'ladda upp en fil'] },
+  { k: 'draft', w: ['draft', 'new agreement', 'draft a new agreement', 'a new agreement', 'nytt avtal', 'utkast', 'skriv ett nytt avtal', 'ett nytt avtal'] },
   { k: 'back', w: ['back', 'go back', 'tillbaka'] },
   { k: 'help', w: ['help', 'what can you do', 'hjälp'] },
 ];
@@ -1005,7 +1111,20 @@ const CA_GO = {
   document: c => (c && typeof pdOpenOnHome === 'function') ? pdOpenOnHome(c.id, 'copilot') : caHomeFace('paper'),
   calendar: () => typeof hbOpenCalendar === 'function' && hbOpenCalendar(),
   explorer: () => typeof hbOpenExplorer === 'function' && hbOpenExplorer(),
-  wall: () => caHomeWall(),
+  /* "contracts", "all contracts": the Contracts place, EVERY contract, as he
+     says ("Every contract is here") — a set another screen sent it (Parties'
+     Open party, a number on the Board) is let go (step 2, 14 Oct 2026), and
+     so are the tab, the filters and the search, as any door lands on fresh
+     filters (regGoFiltered's rule; the checkers of step 7 caught him saying
+     "every" over a remembered Executed tab); Wall or List stays */
+  contracts: () => {
+    if (typeof regPlaceSet === 'function'){ const R = regPlaceSet({ only: null });
+      if (typeof regFiltersAtRest === 'function') regFiltersAtRest(R);
+      if (typeof regSearchBoxClear === 'function') regSearchBoxClear(); }
+    return caHomeWall(); },
+  /* "wall", "list": the same place, drawn the other way (step 7) */
+  wall: () => { if (typeof regPlaceSet === 'function') regPlaceSet({ show: 'wall' }); return caHomeWall(); },
+  list: () => { if (typeof regPlaceSet === 'function') regPlaceSet({ show: 'list' }); return caHomeWall(); },
   /* beside the paper: Jambo's own Redlines face (stage 3), through the page's walls */
   redline: c => (typeof pdRedOpen === 'function') ? pdRedOpen(c.id) : openRedlineWorkbench(c.id),
   /* on the Board, for that contract (stage 4): the view, the Negotiate page's
@@ -1016,8 +1135,12 @@ const CA_GO = {
   fill: c => (typeof pdFillOpen === 'function') ? pdFillOpen(c.id) : caRoomTab(c, 'details'),
   oblig: c => c ? pdOpenOnHome(c.id, 'oblig') : (typeof setView === 'function' && setView('obligations')),
   history: c => c ? ((typeof hbOpenView === 'function') ? hbOpenView(c.id, 'hist') : caRoomTab(c, 'history')) : (typeof openPanel === 'function' && openPanel('activity')),
-  upload: () => typeof openUploadModal === 'function' && openUploadModal(),
-  draft: () => typeof openNewDoors === 'function' && openNewDoors(),
+  /* THE FILE PICKER, NOT THE POP-UP (step 4): the file lands on the paper
+     through the existing upload path (pdDropPick → uploadFromDrop) */
+  upload: () => !caMayAdd() ? false : (typeof pdDropPick === 'function') ? pdDropPick() : (typeof openUploadModal === 'function' && openUploadModal()),
+  /* THE ONE FORM, never the two-door menu (step 3) — a word answers with the
+     Draft card (caGoCardHtml); this is for a caller that moves straight on */
+  draft: () => caDraftForm(null),
 };
 /* what Jambo says as he goes — one line, no card (share and help are cards) */
 function caGoSay(a){
@@ -1025,6 +1148,8 @@ function caGoSay(a){
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   if (a.missing) return _caT('ca_go_need', { word: _caT('ca_w_' + a.place) });
   if (a.place === 'back'){ const p = caTrailTop(); return p ? _caT('ca_go_back', { where: caTrailLabel(p) }) : _caT('ca_go_back_none'); }
+  /* a viewer's "upload" is answered with the refusal, once, where they look — not a toast beside it */
+  if (a.place === 'upload' && !caMayAdd()) return _caT('ct_viewers_no_add');
   const p = CA_PLACES.find(x => x.k === a.place) || {};
   return _caT('ca_go_' + a.place + (p.need === 'any' && !c ? '_all' : ''), { ref: c ? caRef(c) : '' });
 }
@@ -1035,7 +1160,8 @@ function caGo(a){
   if (a.place === 'back'){ const ok = caTrailBack(); caGoRepaint(); return ok; }
   if (a.place === 'help') return true;
   caUseBump(a.place);
-  if (a.place === 'share') return true;
+  /* share and draft answer with a card in the panel (caGoCardHtml) and move nothing */
+  if (a.place === 'share' || a.place === 'draft') return true;
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   caTrailPush();
   if (a.missing){ caHomeWall(); caGoRepaint(); return true; }
@@ -1059,7 +1185,7 @@ function caPlaceRun(k){
   const word = _caT('ca_w_' + k);
   if (typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof intelAsk === 'function') return intelAsk(word);
   const a = caReadPlace(word); if (!a) return false;
-  if (a.place === 'share' || a.place === 'help'){ caUseBump(a.place); if (typeof setView === 'function') setView('dashboard'); setTimeout(() => { if (typeof intelAsk === 'function') intelAsk(word); }, 0); return true; }
+  if (a.place === 'share' || a.place === 'help' || a.place === 'draft'){ caUseBump(a.place); if (typeof setView === 'function') setView('dashboard'); setTimeout(() => { if (typeof intelAsk === 'function') intelAsk(word); }, 0); return true; }
   return caGo(a);
 }
 
@@ -1075,6 +1201,15 @@ function caGoCardHtml(a, i){
       <p class="ca-foot" style="margin-top:0">${_caE(_caT('ca_share_says'))}</p>
       <div class="ca-acts">${B('shareout', them ? _caT('ca_share_out', { who: them }) : _caT('ca_share_out_none'), true)}${B('sharein', _caT('ca_share_in'))}</div></div>`;
   }
+  /* DRAFT A NEW AGREEMENT (step 3, as the demo draws it): one sentence, and the one form */
+  if (a.place === 'draft'){
+    const may = (typeof canEdit !== 'function') || canEdit(), no = _caT('wz_viewers_no_create');
+    const open = may ? `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-ca-act="draftform" data-ca-turn="${i}">${_caE(_caT('ca_dr_open'))}</button>`
+      : `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary" disabled aria-disabled="true" title="${_caE(no)}">${_caE(_caT('ca_dr_open'))}</button>`;
+    return `<div class="ca-card ca-dr" data-ca-card="${i}"><div class="ca-ct">${_caE(_caT('ca_dr_title'))}</div>
+      <p class="ca-foot" style="margin-top:0">${_caE(_caT('ca_dr_says'))}</p>${may ? '' : `<p class="ca-why">${_caE(no)}</p>`}
+      <div class="ca-acts">${open}</div></div>`;
+  }
   if (a.place === 'help'){
     return `<div class="ca-card" data-ca-card="${i}"><div class="ca-ct">${_caE(_caT('ca_help_title'))}</div>
       <p class="ca-foot" style="margin-top:0">${_caE(_caT('ca_help_places'))}</p>
@@ -1084,6 +1219,7 @@ function caGoCardHtml(a, i){
   return '';
 }
 function caGoPress(a, act){
+  if (a.place === 'draft'){ if (act === 'draftform') caDraftForm(null); return; }
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null; if (!c) return;
   if (act === 'shareout'){ if (typeof openShareModal === 'function') openShareModal(c); return; }
   if (act === 'sharein'){
@@ -1103,4 +1239,4 @@ if (typeof document !== 'undefined' && !document._caBackWired){
 }
 Object.assign(window, { CA_PLACES, CA_PLACE_LEAD, CA_PLACE_MAX, CA_PLACE_MIN_TYPED, caPlaceOf, caOnBoard, caReadPlace, CA_USES_KEY, caUses, caUseBump, CA_SLASH, CA_SLASH_MAX, caSlashWord, caSlashRows,
   CA_TRAIL_MAX, caPlaceNow, caTrailPush, caTrailTop, caTrailLabel, caTrailBack, caBackRowHtml, caHomeFace, caHomeWall, caRoomTab, CA_GO, caGoSay, caGo, caGoRepaint,
-  caPlaceRows, caPlaceRun, caGoCardHtml, caGoPress, CA_CHIPS, CA_CHIPS_WALL, caChipLead });
+  caPlaceRows, caPlaceRun, caGoCardHtml, caGoPress, CA_CHIPS, CA_CHIPS_WALL, CA_CHIP_WALL_WORD, caChipLead });

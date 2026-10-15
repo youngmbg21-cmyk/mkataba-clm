@@ -63,7 +63,7 @@ const signIn = async (page, base, email, pass) => {
 /* Open the contract and land on Key terms, which is the tab the room opens on
    for a draft and is reachable by name for anything else. */
 const openKeyTerms = async (page, id) => {
-  await page.evaluate(x => { state.activeId = x; state.selId = x; setView('workspace'); }, id);
+  await page.evaluate(x => { state.activeId = x; state.selId = x; openWorkspace(state.activeId, { room: true }); }, id);
   await page.waitForTimeout(1500);
   /* PRESSED, not called — a tab that is drawn but unwired passes a function
      call, and the panel's visibility is what this file is here to measure. */

@@ -57,7 +57,7 @@ const check = (name, pass, detail) => {
       c.obligations = [{ id: 'ob_x', desc: 'Give 90 days notice of non-renewal', due: '', status: 'open', party: 'ours' }];
       c.triage = Object.assign({}, c.triage || {}, { at: new Date().toISOString(), steps: Object.assign({}, (c.triage || {}).steps || {}, { oblig: { ok: true, found: F } }) });
       await persist(c);
-      openWorkspace(c.id);
+      openWorkspace(c.id, { room: true });
       return c.id;
     }, FOUND);
     await until(id => state.activeId === id, cid);
@@ -102,7 +102,7 @@ const check = (name, pass, detail) => {
     await page.reload({ waitUntil: 'networkidle' });
     await page.waitForFunction(id => window.state && state.contracts && state.contracts.some(c => c.id === id) && typeof currentUser === 'function' && currentUser(), cid, { timeout: 20000 });
     await page.waitForTimeout(1500);
-    await page.evaluate(async id => { const c = getContract(id); if (typeof ensureFull === 'function') await ensureFull(c); openWorkspace(id); }, cid);
+    await page.evaluate(async id => { const c = getContract(id); if (typeof ensureFull === 'function') await ensureFull(c); openWorkspace(id, { room: true }); }, cid);
     await until(id => state.activeId === id, cid);
     await page.evaluate(id => roomGoTab(getContract(id), 'oblig'), cid);
     const door2 = await until(() => { const b = document.getElementById('obt-find'); return b ? b.textContent.trim() : null; });

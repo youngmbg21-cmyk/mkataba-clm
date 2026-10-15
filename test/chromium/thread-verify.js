@@ -130,7 +130,7 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
     check('0 the Word file is on the record', !!id, id || 'absent');
     if (!id) throw new Error('no upload');
 
-    await page.evaluate(i => openWorkspace(i), id);
+    await page.evaluate(i => openWorkspace(i, { room: true }), id);
     await page.waitForTimeout(1000);
     /* the facts the Thread reads: a high and a medium finding, a watchout, an
        unusual term, two obligations on the tab — staged in the browser's copy
@@ -341,7 +341,7 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
        rule; Home's Document panel keeps its own. */
     /* the risk door is pressed in the room (its Overview); opening the room
        reads the record again, so the browser-only facts are staged again */
-    await page.evaluate(() => { openWorkspace(window.__thId); roomGoTab(getContract(window.__thId), 'terms'); });
+    await page.evaluate(() => { openWorkspace(window.__thId, { room: true }); roomGoTab(getContract(window.__thId), 'terms'); });
     await page.waitForFunction(() => state.view === 'workspace', null, { timeout: 8000 }).catch(() => {});
     await page.waitForTimeout(600);
     await stage(false);

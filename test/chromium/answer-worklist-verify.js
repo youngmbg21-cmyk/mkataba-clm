@@ -56,6 +56,9 @@ const answerNaming = ids => [{ type: 'tool_use', id: 'tu_wl', name: 'deliver_ans
   input: { answer: 'These agreements lapse inside ninety days.',
     citations: ids.map(id => ({ id })) } }];
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   const ai = await startScriptedAi();
   const h = await startHati({ ANTHROPIC_BASE_URL: ai.base });
@@ -76,7 +79,7 @@ const answerNaming = ids => [{ type: 'tool_use', id: 'tu_wl', name: 'deliver_ans
      saves a view — so the reader went hunting for a delete button that could
      not be there. Read off the LIVE page, because a dictionary check cannot
      see whether the renderer is still asking for the retired key. */
-  await page.evaluate(() => window.setView('register'));
+  await page.evaluate(() => (window.regPlaceSet({ show: 'list' }), window.setView('register')));
   await page.waitForTimeout(1200);
   const bar = await page.evaluate(() => {
     /* RE-POINTED 20 Sep 2026 (the redesign order): the quick filters are a TAB
@@ -118,7 +121,10 @@ const answerNaming = ids => [{ type: 'tool_use', id: 'tu_wl', name: 'deliver_ans
 
   /* Driven through the panel's own composer, so the answer arrives the way a
      customer's does — question typed, route called, cards resolved. */
-  await page.evaluate(() => { window.ai.history = []; window.openAI(); });
+  /* the Jambo window opens on a page that is not Home (on Home his own panel
+     takes the ask): the Contracts page is Home's Contracts place since step 7
+     of the overnight work order, so the question is asked from Approvals */
+  await page.evaluate(() => { window.setView('approvals'); window.ai.history = []; window.openAI(); });
   await page.waitForTimeout(700);
   await page.fill('#ai-input', 'which agreements expire soonest');
   await page.evaluate(() => window.aiSubmit && window.aiSubmit());
@@ -164,6 +170,8 @@ const answerNaming = ids => [{ type: 'tool_use', id: 'tu_wl', name: 'deliver_ans
     const panel = document.getElementById('ai-panel');
     return {
       view: window.state && window.state.view,
+      /* the Contracts page is Home's Contracts place since step 7 */
+      place: !!document.querySelector('[data-reg-home]'),
       rows,
       chip: chip ? chip.textContent.replace(/\s+/g, ' ').trim() : null,
       back: !!document.getElementById('reg-only-clear'),
@@ -174,7 +182,7 @@ const answerNaming = ids => [{ type: 'tool_use', id: 'tu_wl', name: 'deliver_ans
         && panel.getBoundingClientRect().left < window.innerWidth),
     };
   });
-  check(landed.view === 'register', '3a the press lands on Contracts', String(landed.view));
+  check(landed.view === 'dashboard' && landed.place, '3a the press lands on Contracts (Home\'s Contracts place)', String(landed.view) + ' · place ' + landed.place);
   /* EXACTLY THOSE — this is the whole promise. A door that lands on a list
      that is not the answer is worse than no door. */
   const same = landed.rows.length === before.ids.length
@@ -227,7 +235,7 @@ const answerNaming = ids => [{ type: 'tool_use', id: 'tu_wl', name: 'deliver_ans
      (owner's go, 12 Sep 2026 — WORKORDER-copilot-one-figure.md, phase 2) */
   ai.script([{ type: 'tool_use', id: 'tu_wb', name: 'deliver_answer',
     input: { answer: 'You have every contract on the Contracts page.', citations: [], wholeBook: true } }]);
-  await page.evaluate(() => { window.ai.history = []; window.openAI(); });
+  await page.evaluate(() => { window.setView('approvals'); window.ai.history = []; window.openAI(); });
   await page.waitForTimeout(500);
   await page.fill('#ai-input', 'list all the contracts inside hati');
   await page.evaluate(() => window.aiSubmit && window.aiSubmit());
@@ -241,8 +249,8 @@ const answerNaming = ids => [{ type: 'tool_use', id: 'tu_wl', name: 'deliver_ans
   if (wb.door){
     await page.click('#ai-feed [data-ai-worklist-all]');
     await page.waitForTimeout(900);
-    const landed = await page.evaluate(() => ({ view: window.state.view, narrowed: !!(window.regNarrowed && window.regNarrowed(window.regState())), rows: document.querySelectorAll('#reg-table tbody tr, .reg-table tbody tr').length, book: (window.state.contracts || []).filter(c => c && !c.archived).length }));
-    check(landed.view === 'register' && landed.narrowed === false, '6c pressing it lands on the Contracts page with nothing narrowing it', JSON.stringify(landed));
+    const landed = await page.evaluate(() => ({ view: window.state.view, place: !!document.querySelector('[data-reg-home]'), narrowed: !!(window.regNarrowed && window.regNarrowed(window.regState())), rows: document.querySelectorAll('#reg-table tbody tr, .reg-table tbody tr').length, book: (window.state.contracts || []).filter(c => c && !c.archived).length }));
+    check(landed.view === 'dashboard' && landed.place && landed.narrowed === false, '6c pressing it lands on the Contracts place with nothing narrowing it', JSON.stringify(landed));
   }
 
   /* ============ 7. THE STAND-IN SAYS WHY, AND A WHOLE-BOOK ASK GETS THE COUNT ============

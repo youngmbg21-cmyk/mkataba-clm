@@ -65,6 +65,9 @@ const MANIFEST = [
   'never_sent.pdf,Ghost Supplies Ltd,Procurement,Executed,500000,01/01/2024,31/12/2026',
 ].join('\n');
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   const h = await startHati();
   await seedWorkspace(h);
@@ -187,7 +190,7 @@ const MANIFEST = [
     const kept = await page.evaluate(() => document.querySelectorAll('.mig-table tbody tr[data-row]').length);
     await page.screenshot({ path: path.join(OUT, '7-after-refresh.png'), fullPage: true });
     check('7a after a refresh the three imported contracts are still listed', kept === 3, String(kept));
-    await page.evaluate(() => setView('register'));
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(1200);
     const onList = await page.evaluate(id => { const c = getContract(id);
       const ref = c ? (window.contractRef ? contractRef(c) : c.id) : id;

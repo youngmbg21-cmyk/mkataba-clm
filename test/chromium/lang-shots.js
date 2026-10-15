@@ -83,7 +83,7 @@ const SCREENS = [
     }
 
     // and a contract open, which is where most of the words live
-    await page.evaluate(() => window.openWorkspace(window.state.contracts[1].id));
+    await page.evaluate(() => window.openWorkspace(window.state.contracts[1].id, { room: true }));
     await page.waitForTimeout(900);
     const f = path.join(OUT, `contract--${lang}.png`);
     await page.screenshot({ path: f });

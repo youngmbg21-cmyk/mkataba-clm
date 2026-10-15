@@ -32,6 +32,9 @@ const EXEC = process.env.CHROMIUM_BIN
 let pass = 0, fail = 0;
 const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  FAIL ') + n + (d ? '  → ' + d : '')); };
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   const h = await startHati();
   await seedWorkspace(h);
@@ -47,7 +50,7 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   await page.fill('#li-pass', 'adminpassword1');
   await page.click('#li-go');
   await page.waitForTimeout(1600);
-  await page.evaluate(() => setView('register'));
+  await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
   await page.waitForTimeout(900);
   /* RE-POINTED IN PLACE 26 Sep 2026 (the list Inspector): on a window this
      wide the Contracts list SELECTS on a press and OPENS on the second one —
@@ -60,7 +63,7 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
      the room is the row menu's Open workspace, which is openWorkspace. */
   await page.evaluate(() => {
     const row = document.querySelector('#reg-tbody [data-row]');
-    openWorkspace(row.getAttribute('data-row'));
+    openWorkspace(row.getAttribute('data-row'), { room: true });
   });
   await page.waitForTimeout(1400);
 

@@ -70,7 +70,7 @@ const BODY = '<h1>Supply Agreement</h1><p>Between Highland Corporate Ltd and Nor
       await page.setViewportSize({ width: w, height: 800 });
       /* 1a-1d RETIRED 11 Oct 2026: the Document tab is gone (owner), and the
          Focus door on its control row with it. */
-      await page.evaluate(id => openWorkspace(id), ID);
+      await page.evaluate(id => openWorkspace(id, { room: true }), ID);
       await until(page, () => !!document.getElementById('ws-tabs'));
       /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
          'redline' door now lands on Jambo's Redlines face beside Home's paper,
@@ -91,7 +91,7 @@ const BODY = '<h1>Supply Agreement</h1><p>Between Highland Corporate Ltd and Nor
     }
 
     /* 3. the ⋯ menu row */
-    await page.evaluate(id => openWorkspace(id), ID);
+    await page.evaluate(id => openWorkspace(id, { room: true }), ID);
     await until(page, () => !!document.getElementById('ws-focus'));
     const m = await page.evaluate(() => { const b = document.getElementById('ws-focus'); if (!b) return null;
       const t = [...b.childNodes].filter(k => k.nodeType === 3 || (k.nodeType === 1 && !k.classList.contains('mnote') && k.tagName !== 'svg')).map(k => k.textContent).join('').trim(); return t; });
@@ -107,7 +107,7 @@ const BODY = '<h1>Supply Agreement</h1><p>Between Highland Corporate Ltd and Nor
     /* 4. Swedish */
     await page.evaluate(() => langSet('sv'));
     await page.waitForTimeout(400);
-    await page.evaluate(id => openWorkspace(id), ID);
+    await page.evaluate(id => openWorkspace(id, { room: true }), ID);
     await until(page, () => !!document.getElementById('ws-focus'));
     const sv = await page.evaluate(() => { const b = document.getElementById('ws-focus'); if (!b) return null;
       return { text: [...b.childNodes].filter(k => k.nodeType === 3 || (k.nodeType === 1 && !k.classList.contains('mnote') && k.tagName !== 'svg')).map(k => k.textContent).join('').trim() }; });

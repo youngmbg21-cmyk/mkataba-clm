@@ -218,12 +218,17 @@ describe('f255 (3) — the door, and where a row lands', () => {
 
   test('a row opens its contract ON THE OBLIGATIONS TAB', () => {
     const list = OB_CODE.match(/function renderObligationsList\(\)\{[\s\S]*?\n\}/)[0];
-    /* RE-POINTED 11 Oct 2026 (owner): the row goes through obOpenContract, which
-       lands on Home's Document, on the panel's Obligations tab */
-    assert.match(list, /const go = cid => obOpenContract\(cid\);/,
+    /* RE-POINTED 14 Oct 2026 (the overnight work order, step 2): the row goes
+       through obOpenContract carrying its own key, which lands on the Board's
+       Obligations view for that contract with the row chosen (was Home's
+       Document, the panel's Obligations tab, 11 Oct) */
+    assert.match(list, /const go = \(cid, key\) => obOpenContract\(cid, key\);/,
       'a row that opened the Document tab would make the reader hunt for what '
       + 'they pressed');
-    assert.match(OB_CODE.match(/function obOpenContract\([\s\S]*?\n\}/)[0], /pdOpenOnHome\(cid, 'oblig'\)/);
+    assert.match(list, /go\(tr\.getAttribute\('data-obw-cid'\), tr\.getAttribute\('data-obw-key'\)\)/, 'the row hands over its key');
+    const open = OB_CODE.match(/function obOpenContract\([\s\S]*?\n\}/)[0].replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.match(open, /roomOpenAt\(cid, 'oblig'\)/, 'the Board\'s Obligations view');
+    assert.doesNotMatch(open, /pdOpenOnHome/, 'never the paper\'s panel tab any more');
   });
 
   /* REVERSED IN PLACE 30 Aug 2026. This pinned `go:{nav:'obligations'}`, which

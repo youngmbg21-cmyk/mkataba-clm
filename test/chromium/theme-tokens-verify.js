@@ -67,12 +67,12 @@ const SCREENS = [
      paper is Home's Document, so 'contract' photographs that, and 'keyterms'
      opens the room again before its tabs are pressed. */
   ['contract',  async p => { await p.evaluate(() => pdOpenOnHome('MK-82', 'doc')); await p.waitForSelector('#ig-canvas', { timeout: 10000 }).catch(() => {}); await pause(800); }],
-  ['keyterms',  async p => { await p.evaluate(() => { openWorkspace('MK-82'); roomGoTab(getContract('MK-82'), 'terms'); }); await p.waitForSelector('.room-tabrow', { timeout: 10000 }).catch(() => {}); await pause(600); }],
+  ['keyterms',  async p => { await p.evaluate(() => { openWorkspace('MK-82', { room: true }); roomGoTab(getContract('MK-82'), 'terms'); }); await p.waitForSelector('.room-tabrow', { timeout: 10000 }).catch(() => {}); await pause(600); }],
   ['signing',   async p => { await p.evaluate(() => roomGoTab(getContract('MK-82'), 'signing')); await pause(600); }],
   ['history',   async p => { await p.evaluate(() => roomGoTab(getContract('MK-82'), 'history')); await pause(600); }],
   ['negotiate', async p => { await p.evaluate(() => openRedlineWorkbench('MK-82'));
                              await p.waitForSelector('#view-redline [id="rl-doc"]', { timeout: 10000 }); await pause(800); }],
-  ['menu',      async p => { await p.evaluate(() => { openWorkspace('MK-82'); });
+  ['menu',      async p => { await p.evaluate(() => { openWorkspace('MK-82', { room: true }); });
                              await p.waitForSelector('#ws-more'); await p.click('#ws-more'); await pause(300); }],
 ];
 

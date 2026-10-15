@@ -166,7 +166,12 @@ describe('f442 (1) the essentials card holds every term, once', () => {
     win.ovSetEditing(`kt.${c.id}.record`, false);
     assert.ok(/id="ov-record"/.test(html) && /id="kt-rows-record"/.test(html), 'opened, its rows are there');
     const open = strip(fnBody(CONTRACT, 'ovOpenFiling'));
-    assert.ok(/ovSetEditing\(OV_KEY\(c,'record'\), true\)/.test(open) && /roomGoTab\(c,'terms'\)/.test(open),
+    /* RE-POINTED 15 Oct 2026 (the overnight work order, step 8): the room
+       retired; the Overview's sheet is the contract strip's Details page on
+       the Board, reached through its one door (roomOverviewOpen) */
+    const door = strip(fnBody(CONTRACT, 'roomOverviewOpen'));
+    assert.ok(/ovSetEditing\(OV_KEY\(c,'record'\), true\)/.test(open) && /roomOverviewOpen\(c\)/.test(open)
+      && /roomRetiredLand\(c\.id,'details'\)/.test(door) && /roomGoTab\(c,'terms'\)/.test(door),
       'the ⋯ row turns the same posture on and goes to the Overview');
     assert.ok(/id="ws-filing"/.test(CONTRACT) && /ws-filing'\)\?\.addEventListener\('click',\(\)=>ovOpenFiling\(c\)\)/.test(CONTRACT),
       'the row is on the room\'s ⋯ menu');
@@ -175,7 +180,11 @@ describe('f442 (1) the essentials card holds every term, once', () => {
        Home's paper line — so the negotiate page's own copy went */
     assert.ok(/ws-filing'\)\?\.addEventListener\('click',\(\)=>ovOpenFiling\(c\)\)/.test(fnBody(CONTRACT, 'roomMenuWire')), 'answered by the menu\'s one wiring');
     assert.ok(!/headAct\('ws-filing'/.test(read('js/views/negotiation.js')), 'and nowhere a second time');
-    assert.match(fnBody(CONTRACT, 'ovOpenFiling'), /openWorkspace\(c\.id\)/, 'from Home it opens the room first');
+    /* RE-POINTED 15 Oct 2026 (step 8): from Home it opens the contract strip's
+       Details (the Overview's sheet on the Board), never the room; the room
+       only where it is open by name or on the phone */
+    assert.match(fnBody(CONTRACT, 'roomOverviewOpen'), /openWorkspace\(c\.id\)/, 'the room is the fallback where the strip is not (the phone)');
+    assert.match(fnBody(CONTRACT, 'ovOpenFiling'), /roomOverviewOpen\(c\)/, 'from Home it opens the Overview\'s sheet through its one door');
   });
 });
 

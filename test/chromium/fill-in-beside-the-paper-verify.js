@@ -104,7 +104,7 @@ const FACE = () => {
     await page.evaluate(() => { window._roomSeen = 0; const was = window.renderWorkspace;
       window.renderWorkspace = function(){ window._roomSeen++; return was.apply(this, arguments); }; });
     await page.evaluate(WATCH);
-    await page.evaluate(() => { roomOpenOnTerms('MK-F1'); openWorkspace('MK-F1'); });
+    await page.evaluate(() => { roomOpenOnTerms('MK-F1'); openWorkspace('MK-F1', { room: true }); });
     const up1 = await waitFor(page, () => !!document.getElementById('pd-fillface') && !!document.querySelector('#pd-fillface [data-blankf]'), 10000);
     await waitFor(page, () => !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#pd-fillface')), 3000);
     let f = await page.evaluate(FACE);
@@ -230,7 +230,7 @@ const FACE = () => {
        yes to decision 2): the room's Details tab went home — the door that
        named it, from inside the room, opens this face, the room never left
        drawn behind it, and the room's tab row no longer offers it. */
-    await page.evaluate(() => { openWorkspace('MK-F2'); });
+    await page.evaluate(() => { openWorkspace('MK-F2', { room: true }); });
     await waitFor(page, () => state.view === 'workspace' && !!document.querySelector('.room-tabrow'), 6000);
     const roomTabs = await page.evaluate(() => [...document.querySelectorAll('.room-tabrow [data-ws-tab]')].map(b => b.getAttribute('data-ws-tab')));
     await page.evaluate(() => { roomGoTab(getContract('MK-F2'), 'details'); });

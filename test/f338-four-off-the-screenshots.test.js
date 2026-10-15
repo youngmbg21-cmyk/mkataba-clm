@@ -182,9 +182,14 @@ describe('f338 (3) — markup order, and nothing else', () => {
      they follow the block wherever it is written. */
   test('3d every door still carries its own data-view — no handler moved', () => {
     /* 'calendar' left the rail 11 Oct 2026 (Home's tab) */
-    for (const v of ['dashboard', 'register', 'redline', 'mynotes', 'templates',
+    /* RE-POINTED 15 Oct 2026 (the overnight work order, step 7): the fold's
+       Contracts ITEM went and its opener is the Contracts door, so 'register'
+       is asked of the opener's own attribute (setView('register') still
+       answers it) */
+    for (const v of ['dashboard', 'redline', 'mynotes', 'templates',
       'obligations', 'intel', 'intake'])
       assert.ok(at(v) >= 0, v + ' lost its door');
+    assert.ok(nav.indexOf('data-nav-fold-open="register"') >= 0, 'register lost its door (the fold\'s opener)');
   });
   test('3e the svg rules name the attribute, never a position', () => {
     assert.match(HTML, /\.nav-item\[data-view="intel"\] svg\{/);

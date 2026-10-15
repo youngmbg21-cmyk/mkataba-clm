@@ -131,7 +131,7 @@ let _hbCv = { v: 'book', id: null };
 function hbFresh(){
   return { face: 'board', lens: 'all', panels: [], path: [], prep: 'open', screen: null, scrPick: 0,
     watches: [], chartWatches: [], seen: null, saved: [], seq: 0, found: null, recipe: {}, digBig: false,
-    ins: null, insKept: {}, insOff: {}, keptSent: '', why: {}, undo: [], undoSeq: 0, an: {}, sy: {}, refs: {}, myq: [] };
+    ins: null, insKept: {}, insOff: {}, keptSent: '', why: {}, undo: [], undoSeq: 0, an: {}, sy: {}, refs: {}, myq: [], strips: [] };
 }
 /* The board as this person left it. Read once per sitting and per person; a
    value that does not parse, or a word this version does not know, falls
@@ -173,6 +173,18 @@ function hbS(){
     if (typeof v.keptSent === 'string') s.keptSent = v.keptSent.slice(0, 4000);
     if (typeof v.insFold === 'boolean') s.insFold = v.insFold;
     if (Array.isArray(v.path)) s.path = v.path.filter(k => typeof k === 'string').slice(-HB_PATH_MAX);
+    /* THE CONTRACTS BROUGHT UP, AS STRIPS (the overnight work order, step 8;
+       js/views/boardstrip.js): one not kept belongs to the day it was brought
+       up, a kept one stays until it is closed. A trail that ended on a
+       contract's old card (a 'c:' key) comes back as that contract's strip. */
+    if (Array.isArray(v.strips)) s.strips = v.strips.filter(x => x && typeof x.id === 'string' && x.id).slice(0, 12)
+      .map(x => ({ id: x.id.slice(0, 80), page: ['ov', 'where', 'hist', 'details'].includes(x.page) ? x.page : 'ov', kept: !!x.kept,
+        day: /^\d{4}-\d{2}-\d{2}$/.test(String(x.day || '')) ? x.day : '', at: String(x.at || '').slice(0, 8) }))
+      .filter(x => x.kept || x.day === hbToday());
+    { const ck = s.path.filter(k => /^c:/.test(k));
+      if (ck.length){ const id = ck[ck.length - 1].slice(2);
+        if (id && !s.strips.some(x => x.id === id)) s.strips.unshift({ id, page: 'ov', kept: false, day: hbToday(), at: '' });
+        s.path = s.path.filter(k => !/^c:/.test(k)); } }
     if (Array.isArray(v.figs)) s.figs = v.figs.filter(k => HB_FIG_KEYS.includes(k)).filter((k, i, a) => a.indexOf(k) === i).slice(0, HB_FIGS_MAX);
     if (Array.isArray(v.watches)) s.watches = v.watches.filter(w => w && HB_FIG_KEYS.includes(w.k)
       && (w.dir === 'above' || w.dir === 'below') && isFinite(Number(w.n))).slice(0, HB_WATCH_MAX)
@@ -1196,7 +1208,10 @@ function hbBigBtnHtml(big, attr){
    The greeting and the day, the Board | Explorer switch, the Group by that
    only the map uses (drawn always, hidden on the board, because the map's
    wiring asks for it by id), the lens chip, Present, and the screen's own
-   Dark | Light. The New agreement button stays the one filled act. */
+   Dark | Light. NO "+ DRAFT NEW AGREEMENT" HERE (the overnight work order,
+   step 3; owner, 14 Oct 2026): drafting is Jambo's — the chip "draft a new
+   agreement", a sentence, and the one form behind his card. Other pages keep
+   their own draft door. */
 /* The greeting: who, what day, how much is ready. Its own builder because
    the head repaints it in place (hbPaintHead) — the person and the count
    arrive after the first paint, and the head is not rebuilt for them. */
@@ -1234,7 +1249,6 @@ function hbHeadHtml(groupSel){
     <span class="hb-counting">${hbCountChipHtml()}</span>
     <button type="button" class="ui-btn ui-btn-sm" id="hb-present" title="${_hbE(i18t('hb_present_tip'))}">${_hbE(i18t('hb_present'))}</button>
     <div class="hb-seg hb-scr" role="group"${s.face !== 'board' ? ' hidden' : ''} aria-label="${_hbE(i18t('hb_screen_label'))}" title="${_hbE(i18t('hb_screen_tip'))}">${scr('light')}${scr('dark')}</div>
-    <button id="hero-draft" class="hm-primary">${(typeof icon === 'function') ? icon('plus', 'w-3.5 h-3.5', 2) : '+'} ${_hbE(i18t('home_draft_new'))}</button>
   </header>`;
 }
 /* A face's word in the reader's language, with every other language's word
@@ -5484,6 +5498,7 @@ function hbBoardHtml(){
     ${bs.box}
     ${hbBookHtml(d, moved, base && base.at)}
     ${hbPrepHtml(A, base && base.at)}
+    ${typeof window.bsStripsHtml === 'function' ? window.bsStripsHtml() : ''}
     ${hbFocusHtml()}
     <div class="hb-grid">${(received || panels) ? hbGridBalanced(received + panels) : `<div class="hb-empty">${_hbE(i18t('hb_empty'))}${hbSetupDoorHtml()}</div>`}</div>${hbSheetHtml()}`;
 }
@@ -6518,6 +6533,8 @@ function hbPaintBoard(opts){
   /* a contract's view (stage 4): its host is filled by its own painter */
   host.classList.toggle('is-cview', !!host.querySelector(':scope > #hb-cv-body'));
   hbCvPaint();
+  /* the contracts' strips (step 8): Where we are, History and Details are filled by their own painters */
+  if (typeof window.bsPaintHosts === 'function') try { window.bsPaintHosts(); } catch (_){}
   hbGiftsSeenSay();
   hbPaintHead();
   /* an expanded chart takes the room: the dock FOLDS to its door (it is not
@@ -6656,6 +6673,9 @@ function hbRender(){
   const lang = (typeof langId === 'function') ? langId() : '';
   if (pg && hbHost() && pg.getAttribute('data-hb-side') === s.face && pg.getAttribute('data-hb-lang') === lang){
     if (s.face === 'board') hbPaintBoard(); else { _hbBoardMissed = true; hbPaintHead();
+      /* the Contracts place follows the book it lists (step 7): drawn again
+         only when that book moved, so a quiet beat keeps the reader's scroll */
+      if (s.face === 'paper' && typeof window.regHomeStale === 'function' && regHomeStale() && typeof window.igPlacePaint === 'function') try { igPlacePaint(); } catch (_){}
       /* the book moved under the Calendar tab: the calendar reads it again */
       if (s.face === 'calendar' && typeof window.renderCalendar === 'function') try { renderCalendar(); } catch (_){} }
     return;
@@ -6702,13 +6722,45 @@ function hbOpenCalendar(){
   const s = hbS(); s.face = 'calendar'; hbSave();
   if (typeof setView === 'function') setView('dashboard'); else hbMount();
 }
+/* EVERY DOOR THAT STILL NAMES THE CONTRACTS PAGE (the rail's Contracts, a
+   number pressed elsewhere through regShowOnly / regGoFiltered, Jambo's
+   "contracts", a Delete, a refresh) lands on Home's Document face with no
+   paper chosen — the Contracts place (the overnight work order, step 7;
+   owner's "Go", 14 Oct 2026). Whatever paper was up is put down first
+   (igPickAgain, the strip's own "‹ Contracts"), so the place is what shows. */
+function hbOpenContracts(){
+  const s = hbS();
+  if (window.state && state.view === 'dashboard' && hbPage()){
+    if (s.face !== 'paper') hbSetFace('paper');
+    if (typeof igPickAgain === 'function') igPickAgain();
+    return;
+  }
+  if (window.intel){ intel.paper = null; intel.walk = null; }
+  s.face = 'paper'; hbSave();
+  if (typeof setView === 'function') setView('dashboard'); else hbMount();
+}
+/* THE RAIL'S HOME DOOR (step 7, the drawing: rail Home → the Board). Home
+   opens as it was left, except on the Contracts place — Home's Document face
+   with no paper chosen is the Contracts door's now, so from there (or with
+   it remembered) Home is the Board, and the rail lights Home again. */
+function hbOpenHome(){
+  const s = hbS();
+  if (s.face === 'paper' && !(window.intel && intel.paper)){
+    /* the rail's Home press has always painted the Board afresh: marked
+       missed, the face turns in place and paints it */
+    if (window.state && state.view === 'dashboard' && hbPage()){ _hbBoardMissed = true; hbSetFace('board'); return; }
+    s.face = 'board'; hbSave();
+  }
+  if (typeof setView === 'function') setView('dashboard'); else hbMount();
+}
 function hbAfterMount(){
   const pg = hbPage(); if (pg) pg.setAttribute('data-hb-lang', (typeof langId === 'function') ? langId() : '');
   hbApplyScreen(); hbApplyFace();
   hbPaintBoard();
   hbToolsPaint();
   hbGiftsLoad();
-  if (typeof setActiveNav === 'function') setActiveNav('dashboard');
+  /* on the Contracts place the rail lights Contracts, as the drawing does */
+  if (typeof setActiveNav === 'function') setActiveNav((typeof window.regPlaceUp === 'function' && regPlaceUp()) ? 'register' : 'dashboard');
 }
 function hbSetFace(f){
   if (!HB_FACES.includes(f)) return;
@@ -6790,6 +6842,12 @@ function hbShowOnMap(ids, label){
    of starting a fresh trail that drops Juno. A typed question still starts
    afresh (`keep` is the press's, never the asker's). */
 function hbDig(key, deeper, keep){
+  /* ---- A CONTRACT LANDS AS ITS STRIP (the overnight work order, step 8;
+     owner's "Go", 14 Oct 2026) ---- "Bring up MK-…", its chip, ⌘K and a
+     contract row pressed on the Board all ask for 'c:<id>'; the old card
+     (hbCardHtml) is redrawn as the Lifeline strip below Today's insights
+     (js/views/boardstrip.js). The side list's sheet keeps its own card. */
+  if (/^c:/.test(String(key || '')) && typeof window.hbStripBring === 'function' && window.hbStripBring(String(key).slice(2))) return;
   const s = hbS();
   const path = s.path || [];
   const ck = (keep && !deeper && !/^(q:|ls$)/.test(hbRootKey(key)) && hbCountLabel(s.lens)) ? hbCountKey() : null;
@@ -8551,11 +8609,26 @@ function hbOpenOne(raw){
   const f = hbFindContract(t);
   return f && f.c ? f.c : null;
 }
+/* "BRING UP MK-…" ON THE PAPER TOO (step 8): the strip is the Board's, but
+   the words are read where Jambo's box stands beside the paper as well,
+   before any model, and land through the one door (hbDig 'c:' →
+   hbStripBring), free. Only the explicit bringing words: on the paper "open
+   MK-…" stays that contract's paper (caPlaceOf) and a question that merely
+   names a contract stays a question about it. EXPLORER STAYS AS DESIGNED
+   (the owner's words; f447 (3)): the map answers there, as it always did. */
+const HB_BRING_RE = /^\s*(?:(?:can|could|would) you |please )*(?:bring up|pull up|ta fram)\s+\S/i;
+function hbBringOf(qRaw){
+  const raw = String(qRaw == null ? '' : qRaw);
+  if (!HB_BRING_RE.test(raw)) return null;
+  const c = hbOpenOne(raw);
+  return c ? { id: c.id } : null;
+}
 function hbAskReadingOf(qRaw){
   const raw = String(qRaw == null ? '' : qRaw);
   if (!raw.trim()) return null;
   const s = hbS();
   if (HB_WHY_ASK_RE.test(raw)) return { road: 'copilot', why: true, q: raw };
+  if (s.face === 'paper'){ const br = hbBringOf(raw); if (br) return { road: 'free', kind: 'card', r: { act: 'card', id: br.id }, q: raw }; }
   /* A VERIFIED VIEW ANSWERS FIRST (Part 9): the company's own answer to the
      questions an admin named, exact after normalising, before any reading */
   if (s.face === 'board'){ const v = hbVerifiedHit(raw); if (v) return { road: 'free', kind: 'verified', v, q: raw }; }
@@ -9217,7 +9290,8 @@ function hbPlace(){
     const face = typeof window.pdFaceNow === 'function' ? pdFaceNow() : ''; if (face) p.paper.face = face; } } catch (_){} }
   /* the Board keeps a contract's view and its contract (stage 4, 14 Oct 2026) */
   if (s.face === 'board'){ const now = hbCvNow(); if (now.c && now.v !== 'book') p.cv = { v: now.v, id: String(now.c.id) }; }
-  /* with nothing chosen, the wall of paper keeps its search, sort and stage (13 Oct 2026) */
+  /* with nothing chosen, the Contracts place keeps its view, tab, filters and
+     set (13 Oct 2026; the register's own state since step 7) */
   if (s.face === 'paper' && !p.paper && typeof window.igWallPlace === 'function'){ try { p.wall = igWallPlace(); } catch (_){} }
   return p;
 }
@@ -9405,7 +9479,10 @@ function hbOnClick(e){
   if ((el = on('[data-hb-open]'))){ const ids = String(el.getAttribute('data-hb-open') || '').split(',').filter(Boolean);
     if (ids.length && typeof regShowOnly === 'function') regShowOnly(ids, el.getAttribute('data-hb-what') || ''); return; }
   if (on('[data-hb-obl]')){ if (typeof obwGoFiltered === 'function') obwGoFiltered({ state: 'overdue' }); else setView('obligations'); return; }
-  if ((el = on('[data-hb-room]'))){ if (typeof openWorkspace === 'function') openWorkspace(el.getAttribute('data-hb-room')); return; }
+  /* "Workspace" opens Home, never the room (the overnight work order, step 2;
+     roomHomeLand, the one landing every Workspace door shares) */
+  if ((el = on('[data-hb-room]'))){ const id = el.getAttribute('data-hb-room');
+    if (!(window.roomHomeLand && roomHomeLand(id)) && typeof openWorkspace === 'function') openWorkspace(id); return; }
   if ((el = on('[data-hb-why]'))){ hbWhyAsk(el.getAttribute('data-hb-why')); return; }
   /* ⋯ → What could explain this?: the card's reading opens where it stands and
      the same three-point answer is asked for (hbWhyAsk, the one door) */
@@ -9440,7 +9517,6 @@ function hbOnClick(e){
   if ((el = on('.hb-sheet [data-hb-dig^="c:"]')) && _hbSheet){ _hbSheet.cid = el.getAttribute('data-hb-dig').slice(2); hbPaintBoard(); return; }
   if ((el = on('[data-hb-dig]')) && !el.disabled){ const sk = hbSheetKeyOf(el); if (sk){ hbSheetOpen(sk, !!el.closest('.hb-dig'), el.getAttribute('data-hb-dig')); return; } }
   if ((el = on('[data-hb-dig]'))){ if (el.disabled) return; hbDig(el.getAttribute('data-hb-dig'), !!el.closest('.hb-dig'), true); return; }
-  if (on('#hero-draft')){ e.stopPropagation(); if (typeof openNewMenu === 'function') openNewMenu(on('#hero-draft')); else { const nb = document.getElementById('cmd-new'); if (nb) nb.click(); } }
 }
 function hbOnSubmit(e){
   if (!window.state || state.view !== 'dashboard') return;
@@ -9993,7 +10069,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { hbOpenCalendar, HB_CVIEWS, HB_CV_WORD, HB_CV_ROOM_TAB, hbCvNow, hbCvSet, hbCvCounts, hbCvReady, hbCvSwitchHtml, hbCvBodyHtml, hbCvPaint, hbOpenView, hbCvPick, hbCvReportOf, hbCvPrint, hbCvDownload, hbCvShareFormHtml, hbCvGive, hbCvGiftValid, hbCvGiftHtml, hbGiftSeen, hbCvGiftOpen, hbGiftsSeenSay, hbGiftAlerts, hbAngleOf, hbAngleText, HB_ANGLE, HB_SLASH_PLACES, HB_ASKPOP_LONG, hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgentWorkPress, hbOpenAgent, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_FACE_ICON, hbFaceWordsHtml, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
+Object.assign(window, { hbOpenCalendar, hbOpenContracts, hbOpenHome, HB_CVIEWS, HB_CV_WORD, HB_CV_ROOM_TAB, hbCvNow, hbCvSet, hbCvCounts, hbCvReady, hbCvSwitchHtml, hbCvBodyHtml, hbCvPaint, hbOpenView, hbCvPick, hbCvReportOf, hbCvPrint, hbCvDownload, hbCvShareFormHtml, hbCvGive, hbCvGiftValid, hbCvGiftHtml, hbGiftSeen, hbCvGiftOpen, hbGiftsSeenSay, hbGiftAlerts, hbAngleOf, hbAngleText, HB_ANGLE, HB_SLASH_PLACES, HB_ASKPOP_LONG, hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgentWorkPress, hbOpenAgent, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_FACE_ICON, hbFaceWordsHtml, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,
@@ -10019,6 +10095,6 @@ Object.assign(window, { hbOpenCalendar, HB_CVIEWS, HB_CV_WORD, HB_CV_ROOM_TAB, h
   hbCardEdit, hbHowWord, hbRecipeWords, hbSplitModelWord, hbOrderWord, hbReadCompareOf, hbReadTwoOf, hbReadingCore, hbRcCur, hbRcCurHas,
   hbBucketPrev, hbBucketMove, hbBucketStart, hbBucketEnd, hbWinSpanOk,
   HB_BOARD_ACTIONS, HB_ACTIONS_MAX, hbWhichOf, hbAddCard, hbPanelAct, hbCrumb, hbArrange, hbPanelName, hbActionClean, hbCardRef, hbBoardApply, hbRcMoreToggle, HB_GUIDE_TOP, HB_GUIDE_MAX, hbDataGuide,
-  HB_CHK_GROUPS_MAX, HB_CHK_EMPTY_SHARE, hbCardCheck, hbActionCheck, hbActionsCheck, hbRepairNote, hbActionTitle, hbBoardTakesChecked, hbBoardNoMap, hbMapAsked, hbRecipeOfRead, hbOpenOne, HB_MAP_FIELDS, HB_NAMES_CHART_RE,
+  HB_CHK_GROUPS_MAX, HB_CHK_EMPTY_SHARE, hbCardCheck, hbActionCheck, hbActionsCheck, hbRepairNote, hbActionTitle, hbBoardTakesChecked, hbBoardNoMap, hbMapAsked, hbRecipeOfRead, hbOpenOne, HB_BRING_RE, hbBringOf, HB_MAP_FIELDS, HB_NAMES_CHART_RE,
   HB_UNDO_MAX, hbShapeOf, hbUndoMark, hbUndoTop, hbUndo, hbNoteUndo, hbUndoHtml, hbTakeMeta, hbPreviewHtml, hbIsBig, hbActionWords, hbBoardAnswer, hbPreviewPress, hbPreviewSettle,
-  HB_CHOICES_MAX, hbAmbiguity, hbChoicePress });
+  HB_CHOICES_MAX, hbAmbiguity, hbChoicePress, hbHost, hbPage });

@@ -15,9 +15,11 @@
        the customer's contracts, an expired term and a declined contract are
        Expired, the side panel names the selected customer; with Owner on, the
        row, its sub-line and the side panel all say the same number
-     3 Open customer lands on Contracts narrowed by its "only" chip naming the
-       customer, the rows are the customer's number (an amendment drawn under
-       its agreement), a refresh keeps it narrowed, × widens it
+     3 Open party lands on Home's wall of paper (nothing chosen) narrowed by
+       one lit chip naming the party, the papers are the ids the row counted
+       (its filters held, the amendment with its agreement), a refresh keeps
+       it narrowed, pressing the chip widens it (step 2, 14 Oct 2026; was the
+       Contracts page and its "only" chip)
      4 Open on Explorer lands on Explorer with a lens of exactly those ids in
        two groups, Active and Expired, adding up to the customer's number; an
        all-active customer shows one group
@@ -74,12 +76,16 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     await page.evaluate(() => { if (typeof updateSidebarCounts === 'function') updateSidebarCounts(); });
     const rail = await page.evaluate(() => {
       const doors = [...document.querySelectorAll('.nav-item[data-view]')].map(b => b.getAttribute('data-view'));
-      return { doors, folded: !!document.querySelector('.nav-fold[data-nav-fold="register"] .nav-sub [data-view="redline"] + [data-view="customers"]'),
+      return { doors, opener: !!document.querySelector('.nav-fold[data-nav-fold="register"] > [data-nav-fold-open="register"]'),
+        fold: [...document.querySelectorAll('.nav-fold[data-nav-fold="register"] .nav-sub .nav-item[data-view]')].map(b => b.getAttribute('data-view')).join(' '),
+        folded: !!document.querySelector('.nav-fold[data-nav-fold="register"] .nav-sub [data-view="redline"] + [data-view="customers"]'),
         n: (document.querySelector('[data-count="customers"]') || {}).textContent || '', want: (typeof cuDoorCount === 'function') ? cuDoorCount() : null, total: state.contracts.length };
     });
     /* RE-POINTED 10 Oct 2026 (owner: Negotiations and Customers fold under
        Contracts, shown on hover, and Customers is named Parties) */
-    ok('1a the rail reads Home · Contracts, with Negotiations · Parties folded under it', rail.doors.slice(0, 4).join(' ') === 'dashboard register redline customers' && rail.folded, rail.doors.join(' › '));
+    /* RE-POINTED AT STEP 7 OF THE OVERNIGHT WORK ORDER: the fold keeps only
+       Negotiations and Parties; the Contracts row is its opener, the door */
+    ok('1a the rail reads Home · Contracts, with Negotiations · Parties folded under it', rail.doors.slice(0, 3).join(' ') === 'dashboard redline customers' && rail.opener && rail.fold === 'redline customers' && rail.folded, rail.doors.join(' › ') + ' · fold ' + rail.fold);
     ok('1b its number is the customers the page lists (3: one name in two cases is one customer)', rail.n.trim() === '3', JSON.stringify(rail));
 
     console.log('\n2 · the Customers page');
@@ -107,27 +113,40 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     ok('2e with Owner on, the row says 2 active, 0 expired, and its sub-line 2 contracts', !!own && own.cells[1] === '2' && own.cells[2] === '—' && /^2 contracts · 2 streams$/.test(own.sub), own && (own.cells.join(' | ') + ' / ' + own.sub));
     ok('2f …and the side panel says the same: 2 contracts, Active 2, Expired 0', /2 contracts · 2 streams/.test(ownPanel) && /Active\s*2/.test(ownPanel) && /Expired\s*0/.test(ownPanel), ownPanel.slice(0, 200));
 
-    console.log('\n3 · Open customer lands on Contracts, narrowed');
+    console.log('\n3 · Open party lands on Home\'s wall, narrowed');
+    /* RE-POINTED 14 Oct 2026 (the overnight work order, step 2; owner's "Go";
+       was the Contracts page narrowed by its "only" chip, 10 Oct): Open party
+       lands on Home's Document with no paper chosen — the wall of paper —
+       narrowed to the ids the row counted (its Owner filter held, the
+       amendment with its agreement), one lit chip naming the party as the way
+       out. The same claims, asked of the wall: lands narrowed, exactly those
+       ids, a refresh keeps it, the chip widens it. */
     const pressOpen = async label => page.evaluate(label => {
       const b = [...document.querySelectorAll('#ins-panel button')].find(x => x.textContent.trim().startsWith(label));
       if (b) b.click(); return !!b; }, label);
     ok('3a the panel carries Open party', await pressOpen('Open party'));
-    await page.waitForFunction(() => state.view === 'register' && !!document.querySelector('#reg-only-chip'), null, { timeout: 8000 }).catch(() => {});
-    const rowsNow = () => page.evaluate(() => ({ view: state.view,
-      chip: ((document.querySelector('#reg-only-chip') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
-      ids: [...new Set([...document.querySelectorAll('#content tbody tr')].map(t => (t.textContent.match(/MK-CU\d+/) || [''])[0]).filter(Boolean))].sort() }));
+    /* since step 7 the set is the Contracts place's own, its one chip in the head over the Wall and the List */
+    await page.waitForFunction(() => state.view === 'dashboard' && !!document.querySelector('#ig-wall') && !!document.querySelector('[data-reg-home] #reg-only-chip'), null, { timeout: 8000 }).catch(() => {});
+    const rowsNow = () => page.evaluate(() => ({ view: state.view, face: window.hbFace ? hbFace() : null, paper: !!(window.intel && intel.paper),
+      chip: ((document.querySelector('[data-reg-home] #reg-only-chip') || {}).textContent || '').replace(/[\s×]+/g, ' ').trim(),
+      count: ((document.querySelector('#ig-wall .igw-count') || {}).textContent || '').trim(),
+      ids: [...document.querySelectorAll('#ig-wall [data-ig-pick]')].map(b => b.getAttribute('data-ig-pick')).sort() }));
     const land = await rowsNow();
-    ok('3b it lands on Contracts with the chip naming the customer and the number', land.view === 'register' && /^Naivas Supermarkets · 2$/.test(land.chip), JSON.stringify(land));
-    ok('3c the list is exactly that customer\'s two (filters held), the amendment under its agreement', land.ids.join() === 'MK-CU0,MK-CU2,MK-CU7', land.ids.join());
-    await page.waitForTimeout(400);
+    ok('3b it lands on Home\'s wall, nothing chosen, the chip naming the party', land.view === 'dashboard' && land.face === 'paper' && !land.paper
+      && /^Naivas Supermarkets$/.test(land.chip), JSON.stringify(land));
+    /* THE NUMBER PRESSED IS THE NUMBER READ (kept from the old chip's "· 2"):
+       the row said 2 with Owner on (2e); the wall counts the same two
+       agreements, the amendment said beside them */
+    ok('3b2 the wall\'s count reads the row\'s number: 2 of 2 contracts, the amendment beside them', land.count === '2 of 2 contracts · 1 amendment', land.count);
+    ok('3c the wall is exactly that party\'s two (filters held), and the amendment under the first', land.ids.join() === 'MK-CU0,MK-CU2,MK-CU7', land.ids.join());
     await page.reload({ waitUntil: 'networkidle' });
-    await page.waitForFunction(() => typeof state !== 'undefined' && state.view === 'register' && document.querySelectorAll('#content tbody tr').length > 0, null, { timeout: 15000 }).catch(() => {});
+    await page.waitForFunction(() => typeof state !== 'undefined' && state.view === 'dashboard' && document.querySelectorAll('#ig-wall [data-ig-pick]').length > 0, null, { timeout: 15000 }).catch(() => {});
     const again = await rowsNow();
-    ok('3d a refresh keeps it narrowed', again.view === 'register' && again.ids.join() === land.ids.join() && /Naivas/.test(again.chip), JSON.stringify(again));
-    await page.click('#reg-only-clear').catch(() => {});
-    await page.waitForFunction(() => !document.querySelector('#reg-only-chip'), null, { timeout: 4000 }).catch(() => {});
+    ok('3d a refresh keeps it narrowed', again.view === 'dashboard' && again.ids.join() === land.ids.join() && /Naivas/.test(again.chip), JSON.stringify(again));
+    await page.click('[data-reg-home] #reg-only-clear').catch(() => {});
+    await page.waitForFunction(() => !document.querySelector('[data-reg-home] #reg-only-chip'), null, { timeout: 4000 }).catch(() => {});
     const wide = await rowsNow();
-    ok('3e × on the chip widens it to every contract', !wide.chip && wide.ids.length > land.ids.length, wide.ids.join());
+    ok('3e pressing the chip widens it to every contract on the wall', !wide.chip && wide.ids.length > land.ids.length, wide.ids.join());
 
     console.log('\n4 · Open on Explorer: that customer, Active | Expired');
     const toExplorer = async key => {
@@ -172,7 +191,14 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     for (const v of ['register', 'redline']){
       await page.evaluate(v => setView(v), v);
       await page.waitForTimeout(1200);
+      /* Contracts is Home's Contracts place since step 7: its filters sit on
+         the head's first row (the drawing, version 4), the tabs under them */
       const r = await page.evaluate(() => {
+        const place = document.querySelector('[data-reg-home]');
+        if (place){ const top = place.querySelector('.ct-top'), bar = top && top.querySelector('.reg-fb'), tabs = place.querySelector('.ct-tabs .reg-views');
+          const chip = bar && bar.querySelector('.reg-chip:not(.reg-chip-btn)');
+          const br = bar && bar.getBoundingClientRect(), tr = tabs && tabs.getBoundingClientRect();
+          return { one: !!(br && tr) && br.bottom <= tr.top + 1, face: chip ? chip.textContent.replace(/\s+/g, ' ').trim().slice(0, 40) : '' }; }
         const row = document.querySelector('.reg-tabbar');
         const tabs = row && row.querySelector('.reg-views'), bar = row && row.querySelector('.reg-fb');
         const tr = tabs && tabs.getBoundingClientRect(), br = bar && bar.getBoundingClientRect();
@@ -180,7 +206,7 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
         return { one: !!(tr && br) && Math.abs((tr.top + tr.bottom) / 2 - (br.top + br.bottom) / 2) < 14 && br.left > tr.right,
           face: chip ? chip.textContent.replace(/\s+/g, ' ').trim().slice(0, 40) : '' };
       });
-      ok(`6 ${v === 'register' ? 'Contracts' : 'Negotiations'}: the filters sit beside the tabs, label and value inside`, r.one && /:?\s*\S/.test(r.face), r.face);
+      ok(`6 ${v === 'register' ? 'Contracts (the place): the filters sit on the head\'s first row, above the tabs' : 'Negotiations: the filters sit beside the tabs'}, label and value inside`, r.one && /:?\s*\S/.test(r.face), r.face);
     }
     ok('no page errors', !errs.length, errs.join(' | '));
   } catch (e) {

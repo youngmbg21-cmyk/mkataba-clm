@@ -489,7 +489,9 @@ describe('f148 — switching actually repaints the page', () => {
     win.langSet('sv', { repaint: false });
     assert.equal(navHome(), 'Hem');
     assert.equal(win.document.documentElement.lang, 'sv');
-    assert.match(win.document.querySelector('[data-i18n-title="nav_contracts_title"]').getAttribute('title'), /Avtal/);
+    /* the rail's Contracts item went (the overnight work order, step 7): the
+       tooltip read is the fold's opener's, the Contracts door now */
+    assert.match(win.document.querySelector('[data-i18n-title="nav_contracts_group_title"]').getAttribute('title'), /^Avtal —/);
   });
 
   test('and back again — nothing is one-way', () => {

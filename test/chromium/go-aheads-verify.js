@@ -22,8 +22,9 @@
      MK-B2 Naivas       — a negotiation with nothing on the table
      MK-R9 Sendy        — signed, owned by the reader (by name, which is how
                           contractOwnedBy reads an owner with no id), ending in
-                          64 days with 30 days' notice, so the renewal decision
-                          falls in 34. SEEDED so: a signed record's dates are
+                          50 days with 30 days' notice, so the renewal decision
+                          falls in 20 (34 until 15 Oct 2026, when the bell
+                          became its door on a computer). SEEDED so: a signed record's dates are
                           frozen by the server, rightly, and cannot be staged
                           after the fact.
 
@@ -58,6 +59,9 @@ const ok = (name, good, detail) => {
 const pause = ms => new Promise(r => setTimeout(r, ms));
 const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
@@ -66,8 +70,13 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
      its blanks are read off the template, the fill step answered them from
      the record, and the save of a signed contract's `fields` was refused,
      taking every reading of the run down with it (3g). */
+  /* RE-STAGED 15 Oct 2026 (step 7): the decision falls due in 20 days, not
+     34, so it is on the bell (which rings a renewal decision 30 days out) —
+     the Contracts side panel's checklist that offered Decide earlier went with
+     the panel (Home's Contracts place draws none). The door pressed is the
+     same one (needsYouGo 'renewal'). */
   const renewal = { ...fixtureContract('MK-R9', 'Primary Distribution — Nairobi to Coast', 'Sendy Ltd', FOLDER_A, 12000000, 'Signed'),
-    expiry: day(64), metadata: { value: 12000000, currency: 'KES', expiryDate: day(64), noticePeriodDays: 30 },
+    expiry: day(50), metadata: { value: 12000000, currency: 'KES', expiryDate: day(50), noticePeriodDays: 30 },
     owner: { name: 'Amina Otieno' } };
   /* RE-POINTED 27 Sep 2026: every fixture is over 5,000,000 and this stage signs
      one, so it states no approval rules — the rulebook's own line for a stage
@@ -200,13 +209,20 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
     /* ================= 3 · A RENEWAL'S DECIDE READS THE CONTRACT AGAIN ================= */
     const before = await own.evaluate(() => { const c = getContract('MK-R9');
       return { light: !!(c && c._light && !c._loaded), triageAt: c && c.triage ? c.triage.at : null }; });
-    await own.evaluate(() => { regSetScope(null); setView('register'); }); await pause(1200);
+    /* RE-POINTED AT STEP 7 OF THE OVERNIGHT WORK ORDER (15 Oct 2026): the
+       Contracts page's side panel carried the checklist's Decide; Contracts is
+       Home's Contracts place now, its List with no panel (the owner's
+       drawing), and MK-R9 stands on no other list — so Decide is pressed where
+       it still is on a computer: the bell's renewal row, which presses the
+       same one door (needsYouGo 'renewal') and says the same on its hover. */
+    await own.evaluate(() => { regSetScope(null); (regPlaceSet({ show: 'list' }), setView('register')); }); await pause(1200);
     const r1 = await own.$('#reg-tbody tr[data-row="MK-R9"]');
-    if (r1) { await r1.click({ timeout: 5000 }).catch(() => {}); await pause(700); }
-    const decide = await own.$('#ins-panel [data-ins-need="renewal"]');
+    await own.click('#hdr-notify').catch(() => {}); await pause(700);
+    const decide = await (async () => { for (const r of await own.$$('#context-panel [data-alert-i]')){
+      if ((await r.getAttribute('data-alert-kind')) === 'renewal' && /MK-R9/.test(await r.innerText())) return r; } return null; })();
     const hover = decide ? await decide.getAttribute('title') : null;
-    ok('3a the stage: the renewal is on the side panel\'s checklist, with Decide, and the contract is still a register row',
-      !!decide && before.light, JSON.stringify({ decide: !!decide, before }));
+    ok('3a the stage: the renewal is on the bell, with its door, and the contract is still a light list row',
+      !!decide && before.light && !!r1, JSON.stringify({ decide: !!decide, row: !!r1, before }));
     ok('3b Decide says on its hover that Copilot will read the contract again', !!hover && /read the contract again/i.test(hover), hover);
     const pressAt = Date.now();
     if (decide) await decide.click({ timeout: 5000 }).catch(() => {});
@@ -214,12 +230,17 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
     for (let i = 0; i < 40 && decide; i++) {
       await pause(500);
       after = await own.evaluate(() => { const c = getContract('MK-R9');
+        const st = document.querySelector('#bs-strips > .bs-strip');
         return { view: state.view, id: state.activeId, tab: (typeof roomCurrentTab === 'function') ? roomCurrentTab() : null,
+          strip: st ? st.getAttribute('data-bs-id') + ':' + st.getAttribute('data-bs-on') : null,
           busy: !!(c && c._triaging), triageAt: c && c.triage ? c.triage.at : null,
           steps: c && c.triage ? Object.keys(c.triage.steps || {}) : [], briefAt: c && c._brief ? c._brief.at : null }; });
       if (after.triageAt && Date.parse(after.triageAt) >= pressAt - 1000 && !after.busy) break;
     }
-    ok('3c [control] it lands on the contract\'s Overview — the door built earlier the same day', !!after && after.view === 'workspace' && after.id === 'MK-R9' && after.tab === 'terms', JSON.stringify(after));
+    /* RE-POINTED 15 Oct 2026 (step 8 of the overnight work order: the room
+       retired): the Overview's sheet, renewal card and all, is the contract
+       strip's Details page on Home's Board — Decide lands there */
+    ok('3c [control] it lands on the contract\'s Overview — the door built earlier the same day', !!after && after.view === 'dashboard' && after.id === 'MK-R9' && after.strip === 'MK-R9:details', JSON.stringify(after));
     ok('3d and the whole arrival read runs again — all five readings, stamped after the press',
       !!after && !!after.triageAt && Date.parse(after.triageAt) >= pressAt - 1000 && !after.busy
         && ['risk', 'brief', 'playbook', 'oblig', 'fill'].every(k => after.steps.includes(k)),
@@ -239,23 +260,31 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
     /* What the reader is looking at once the readings have landed: the strip's
        open-fields tile on a SIGNED contract, and the head's Copilot fact —
        each was wrong the first time a signed contract was read again. */
+    /* the open-fields tile stands on the strip's Details page (read first);
+       the strip's own band is drawn on its Overview page: turn the strip back to it */
+    const triTile = await own.evaluate(() => (document.getElementById('kt-triage-slot') || { innerText: '' }).innerText.replace(/\s+/g, ' '));
+    await own.evaluate(() => { if (window.hbStripBring) hbStripBring('MK-R9'); });
+    await own.waitForFunction(() => !!document.querySelector('#bs-strips .bs-strip[data-bs-id="MK-R9"] .bs-jb .bs-note'), null, { timeout: 8000 }).catch(() => {});
     const face = await own.evaluate(() => {
-      const strip = (document.getElementById('kt-triage-slot') || { innerText: '' }).innerText.replace(/\s+/g, ' ');
-      const facts = (document.getElementById('ws-facts') || { innerText: '' }).innerText.replace(/\s+/g, ' ');
-      return { strip, facts };
+
+      /* RE-POINTED 15 Oct 2026 (step 8): the room's head is gone; what Jambo
+         read is said on the contract strip's own band ("Read <day>") */
+      const facts = (document.querySelector('#bs-strips .bs-strip[data-bs-id="MK-R9"] .bs-jb .bs-note') || { innerText: '' }).innerText.replace(/\s+/g, ' ');
+      return { facts };
     });
+    face.strip = triTile;
     ok('3g2 a signed contract\'s open-fields tile says it is signed, not "in negotiation"',
       /signed — its wording is final/i.test(face.strip) && !/in negotiation/i.test(face.strip), face.strip.slice(0, 400));
     ok('3g3 and the head\'s Copilot fact follows the reading below it — it no longer says "Not read yet"',
-      /jambo/i.test(face.facts) && !/not read yet/i.test(face.facts), face.facts);
+      /^read /i.test(face.facts) && !/not read/i.test(face.facts), face.facts);
     await own.screenshot({ path: path.join(OUT, '3-overview-after-decide.png') });
 
     /* [control] THE ORDINARY DOOR READS NOTHING. The same Overview, opened from
        the contract rather than from a renewal decision. */
     const stamp = after && after.triageAt;
     const quietFrom = Date.now();
-    await own.evaluate(() => { regSetScope(null); setView('register'); }); await pause(1000);
-    await own.evaluate(() => { openWorkspace('MK-R9'); }); await pause(900);
+    await own.evaluate(() => { regSetScope(null); (regPlaceSet({ show: 'list' }), setView('register')); }); await pause(1000);
+    await own.evaluate(() => { openWorkspace('MK-R9', { room: true }); }); await pause(900);
     await own.evaluate(() => { const c = getContract('MK-R9'); roomGoTab(c, 'terms'); }); await pause(2500);
     const quiet = await own.evaluate(() => { const c = getContract('MK-R9');
       return { tab: roomCurrentTab(), triageAt: c.triage ? c.triage.at : null, busy: !!c._triaging }; });

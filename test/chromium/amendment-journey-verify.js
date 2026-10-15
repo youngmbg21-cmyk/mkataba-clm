@@ -83,7 +83,7 @@ const VISIBLE = `(el) => {
       state.activeId = c.id; state.selId = c.id;
       return c.id;
     });
-    await page.evaluate(id => openWorkspace(id), cid);
+    await page.evaluate(id => openWorkspace(id, { room: true }), cid);
     await page.waitForTimeout(1200);
     await page.evaluate(id => roomGoTab(getContract(id), 'terms'), cid);
     await page.waitForTimeout(800);
@@ -285,7 +285,7 @@ const VISIBLE = `(el) => {
 
     /* THE PAYOFF, back on the master. */
     const childIdEarly = landed.id;
-    await page.evaluate(id => { openWorkspace(id); }, cid);
+    await page.evaluate(id => { openWorkspace(id, { room: true }); }, cid);
     await page.waitForTimeout(1000);
     await page.evaluate(id => roomGoTab(getContract(id), 'terms'), cid);
     await page.waitForTimeout(700);
@@ -328,9 +328,9 @@ const VISIBLE = `(el) => {
       c.execution = { at: nowISO(), html: c.redlineText };
       persist(c); if (window.flushSaves) await flushSaves();
     }, childIdEarly);
-    await page.evaluate(() => openWorkspace('MK-B2'));
+    await page.evaluate(() => openWorkspace('MK-B2', { room: true }));
     await page.waitForTimeout(900);
-    await page.evaluate(id => { openWorkspace(id); }, cid);
+    await page.evaluate(id => { openWorkspace(id, { room: true }); }, cid);
     await page.waitForTimeout(1100);
     await page.evaluate(id => roomGoTab(getContract(id), 'terms'), cid);
     await page.waitForTimeout(800);
@@ -354,7 +354,7 @@ const VISIBLE = `(el) => {
 
     /* ================= 5 · AN AMENDMENT CANNOT BE AMENDED ================= */
     const childId = childIdEarly;
-    await page.evaluate(id => openWorkspace(id), childId);
+    await page.evaluate(id => openWorkspace(id, { room: true }), childId);
     await page.waitForTimeout(900);
     await page.evaluate(id => roomGoTab(getContract(id), 'terms'), childId);
     await page.waitForTimeout(700);
@@ -512,7 +512,7 @@ const VISIBLE = `(el) => {
        every section open, because they are what a reader would actually see go
        wrong, and they must hold in the new layout too. */
     await page.setViewportSize({ width: 1500, height: 720 });
-    await page.evaluate(id => { openWorkspace(id); roomGoTab(getContract(id), 'terms'); }, cid);
+    await page.evaluate(id => { openWorkspace(id, { room: true }); roomGoTab(getContract(id), 'terms'); }, cid);
     await page.waitForTimeout(900);
     for (const k of ['record', 'related', 'copilot']) await openSec(k);
     await page.evaluate(() => {

@@ -66,7 +66,9 @@ const IDS = () => window.regFiltered().map(c => c.id).sort();
     await page.waitForTimeout(2400);
 
     const seeded = await page.evaluate(CATEGORISE);
-    await page.evaluate(() => window.setView('register'));
+    /* STEP 7 (15 Oct 2026): Contracts is Home's Contracts place; its List is
+       the register's table, so this reads the List. */
+    await page.evaluate(() => (window.regPlaceSet({ show: 'list' }), window.setView('register')));
     await page.waitForTimeout(900);
 
     /* ---- the control exists, beside the one it resembles ---- */
@@ -136,7 +138,7 @@ const IDS = () => window.regFiltered().map(c => c.id).sort();
       clearedByButton || `category=${afterClear.cat}, ${afterClear.n} rows`);
 
     /* ---- the empty state's own clear button resets it too ---- */
-    await page.evaluate(() => { const R = window.regState(); R.category = 'funding'; window.renderRegister(); });
+    await page.evaluate(() => { const R = window.regState(); R.category = 'funding'; window.regRepaint(); });
     await page.waitForTimeout(500);
     const emptyState = await page.evaluate(() => {
       const b = document.getElementById('reg-empty-clear');

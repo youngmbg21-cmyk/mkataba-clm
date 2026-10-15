@@ -81,6 +81,9 @@ const HELPERS = `(() => {
   window.__b = { vis, lines, label, who, labelled, wraps, tok, bg, edge };
 })()`;
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
@@ -115,7 +118,7 @@ const HELPERS = `(() => {
        stays is measured where it lives now: Open Negotiate on the Overview
        tab's row, the zoom stepper on Home's Document paper, and the Thread's
        step squares on Home's Document, Clauses tab. */
-    await page.evaluate(i => { openWorkspace(i); setTimeout(() => { try { roomGoTab(getContract(i), 'terms'); } catch (e) {} }, 50); }, id);
+    await page.evaluate(i => { openWorkspace(i, { room: true }); setTimeout(() => { try { roomGoTab(getContract(i), 'terms'); } catch (e) {} }, 50); }, id);
     await page.waitForFunction(() => !!document.querySelector('#ws-to-nego'), null, { timeout: 10000 }).catch(() => {});
     await load(); await rest();
     await page.screenshot({ path: path.join(OUT, '01-overview-tab.png') });
@@ -202,14 +205,14 @@ const HELPERS = `(() => {
     const sweepAt = async (where, go) => { await page.evaluate(go); await page.waitForTimeout(1300); await load(); await rest();
       const r = await page.evaluate(SWEEP); r.odd.forEach(x => swept.push(where + ' · ' + x)); };
     await sweepAt('home', () => setView('dashboard'));
-    await sweepAt('contracts', () => { try { regSetScope(null); } catch (e) {} setView('register'); });
+    await sweepAt('contracts', () => { try { regSetScope(null); } catch (e) {} (regPlaceSet({ show: 'list' }), setView('register')); });
     await sweepAt('negotiations', () => openNegotiations({ list: true }));
     await sweepAt('approvals', () => setView('approvals'));
     await sweepAt('calendar', () => setView('calendar'));
     /* RE-POINTED 14 Oct 2026 (stage 5): the room's Signing tab went home —
        the same door (roomGoTab 'sign') opens its twin, Jambo's Before you sign
        face beside Home's paper, which is what is swept as 'signing' now */
-    await sweepAt('signing', () => { const i = (state.contracts.find(c => c.status === 'Under Review') || {}).id; openWorkspace(i); setTimeout(() => { try { roomGoTab(getContract(i), 'sign'); } catch (e) {} }, 50); });
+    await sweepAt('signing', () => { const i = (state.contracts.find(c => c.status === 'Under Review') || {}).id; openWorkspace(i, { room: true }); setTimeout(() => { try { roomGoTab(getContract(i), 'sign'); } catch (e) {} }, 50); });
     ok('3f a sweep of seven working pages finds no outlined control resting on another edge',
       swept.length === 0, swept.length ? swept.slice(0, 8).join(' | ') : 'every one reads --btn-edge');
 
@@ -281,7 +284,7 @@ const HELPERS = `(() => {
     const wrapped = [];
     const wrapAt = async (where, go, arg) => { await page.evaluate(go, arg); await page.waitForTimeout(1300); await load();
       (await page.evaluate(() => window.__b.wraps())).forEach(x => wrapped.push(where + ' · ' + x)); };
-    await wrapAt('contracts', () => { try { regSetScope(null); } catch (e) {} setView('register'); });
+    await wrapAt('contracts', () => { try { regSetScope(null); } catch (e) {} (regPlaceSet({ show: 'list' }), setView('register')); });
     await wrapAt('negotiations', () => openNegotiations({ list: true }));
     await wrapAt('approvals', () => setView('approvals'));
     /* the room's tabs since 11 Oct 2026 (no Document tab), and Home's Document where its paper went */
@@ -289,13 +292,13 @@ const HELPERS = `(() => {
        are; 'sign' opens Signing's twin on Home (Jambo's Before you sign face)
        and 'negotiate' the Redlines face — each door's own landing */
     for (const tab of ['terms', 'stands', 'sign'])
-      await wrapAt((tab === 'sign' ? 'home-signing' : 'room-' + tab), i => { openWorkspace(i[0]); setTimeout(() => { try { roomGoTab(getContract(i[0]), i[1]); } catch (e) {} }, 50); }, [id, tab]);
+      await wrapAt((tab === 'sign' ? 'home-signing' : 'room-' + tab), i => { openWorkspace(i[0], { room: true }); setTimeout(() => { try { roomGoTab(getContract(i[0]), i[1]); } catch (e) {} }, 50); }, [id, tab]);
     await wrapAt('home-document', i => pdOpenOnHome(i, 'doc'), id);
     await wrapAt('negotiate', i => openRedlineWorkbench(i, { blanksAsked: true }), id);
     ok('1b at a 1024 window no labelled button on the working pages takes two lines', wrapped.length === 0,
       wrapped.length ? wrapped.slice(0, 6).join(' | ') : 'none');
 
-    await page.evaluate(() => { try { regSetScope(null); } catch (e) {} setView('register'); });
+    await page.evaluate(() => { try { regSetScope(null); } catch (e) {} (regPlaceSet({ show: 'list' }), setView('register')); });
     await page.waitForTimeout(1300); await load();
     const menu = await page.evaluate(() => { const cells = [...document.querySelectorAll('td.reg-cell-menu')].filter(window.__b.vis);
       return { n: cells.length, cut: cells.filter(td => td.scrollWidth > td.clientWidth + 0.5).length, w: cells[0] ? Math.round(cells[0].clientWidth) : 0 }; });

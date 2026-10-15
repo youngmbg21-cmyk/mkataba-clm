@@ -1,0 +1,1963 @@
+<title>Home, One Page</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Caveat:wght@500&display=swap">
+<style>
+/* Layout: an intro and a step strip above one scaled app frame (1360 x 840) drawn in HaTi's own Blue look. */
+:root{
+  --page:#E4E9F2; --bar:#264c9e; --accent:#264c9e; --accent-hover:#1F4088; --accent-700:#1c3872;
+  --a50:#f0f4fb; --a100:#e1e9f7; --a200:#b6c8eb; --a300:#8aa8e2;
+  --bg:#F3F6FB; --surface:#ffffff; --surface-2:#EEF2F9; --ink:#091938; --ink-2:#374A6D; --ink-3:#50648A;
+  --line:#DAE2F1; --line-2:#BAC8E4;
+  --amber-bg:#FBEEDB; --amber:#A24E07; --amber-dot:#E8A317; --amber-line:#EBCB8E;
+  --green-bg:#E3F3EF; --green:#0E5F58; --green-dot:#12796D;
+  --ruby:#B42318; --ruby-bg:#FDECEA; --violet:#5B3FC4; --violet-bg:#EFEBFB;
+  --paper:#ffffff; --paper-ink:#141F1D; --card-warm:#FBF7F0;
+  --font-ui:'Geist','IBM Plex Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif;
+  --font-ref:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --font-paper:'Source Serif 4','IBM Plex Serif',Georgia,'Times New Roman',serif;
+  --font-hand:'Caveat','Segoe Script','Bradley Hand',cursive;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--page);color:var(--ink);font-family:var(--font-ui);font-size:15px;line-height:1.5;margin:0;padding-block:22px 36px;padding-inline:16px}
+button{font-family:inherit;color:inherit}
+button:focus-visible,input:focus-visible,[contenteditable]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.pg{max-width:1500px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+
+/* ---------- intro + tour ---------- */
+.intro{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.intro .eb{margin:0;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.intro h1{margin:2px 0 0;font-size:clamp(22px,3vw,30px);font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+.intro p.l{margin:4px 0 0;color:var(--ink-2);max-width:70ch}
+.intro .reset{border:1px solid var(--line-2);background:var(--surface);border-radius:8px;padding:7px 14px;font-weight:600;cursor:pointer}
+.tour{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.tour-steps{display:flex;gap:6px;flex-wrap:wrap}
+.tour-steps button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 11px 4px 5px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.tour-steps button b{display:inline-flex;width:20px;height:20px;border-radius:50%;background:var(--surface-2);color:var(--ink-2);align-items:center;justify-content:center;font-size:11.5px}
+.tour-steps button.done b{background:var(--a100);color:var(--accent)}
+.tour-steps button.on{border-color:var(--accent);background:var(--a50);font-weight:600}
+.tour-steps button.on b{background:var(--accent);color:#fff}
+.tour-cap{display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap}
+.tour-cap .tx{min-width:0;max-width:86ch}
+.tour-cap .tx b{display:block;font-size:15px}
+.tour-cap .tx span{color:var(--ink-2);font-size:14px}
+.tour-btns{display:flex;gap:8px}
+.tour-btns button{border:1px solid var(--line-2);background:var(--surface);border-radius:8px;padding:7px 14px;font-weight:600;cursor:pointer;white-space:nowrap}
+.tour-btns button.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.tour-btns button:disabled{opacity:.45;cursor:default}
+.foot{color:var(--ink-2);font-size:13.5px;margin:0;text-align:center}
+.foot code{font-family:var(--font-ref);font-size:12.5px;background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:0 5px}
+
+/* ---------- the scaled frame ---------- */
+.stagebox{position:relative;width:100%;overflow:hidden}
+#app{position:absolute;top:0;left:0;width:1360px;height:840px;transform-origin:0 0;background:var(--bg);border:1px solid var(--line-2);border-radius:10px;overflow:hidden;box-shadow:0 10px 30px rgba(9,25,56,.12);font-size:14px;display:flex;flex-direction:column}
+
+/* bar */
+.bar{height:48px;flex:none;background:var(--bar);color:#fff;display:flex;align-items:center;gap:14px;padding:0 14px}
+.bar .ham{width:32px;height:32px;border:0;background:transparent;color:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.bar .ham:hover{background:rgba(255,255,255,.12)}
+.bar .nm{font-weight:500;font-size:15px;white-space:nowrap;padding-left:12px;border-left:1px solid rgba(255,255,255,.25)}
+.bar .srch{margin-left:auto;margin-right:auto;width:440px;height:32px;border-radius:6px;background:rgba(255,255,255,.13);display:flex;align-items:center;gap:8px;padding:0 10px}
+.bar .srch input{flex:1;min-width:0;background:transparent;border:0;color:#fff;font:inherit;font-size:14px;outline:none}
+.bar .srch input::placeholder{color:rgba(255,255,255,.8)}
+.bar .srch kbd{font-family:var(--font-ui);font-size:12px;border:1px solid rgba(255,255,255,.4);border-radius:4px;padding:0 5px}
+.bar .lang{display:flex;background:rgba(255,255,255,.14);border-radius:6px;padding:2px}
+.bar .lang button{border:0;background:transparent;color:#fff;font-weight:600;font-size:13.5px;padding:4px 10px;border-radius:4px;cursor:pointer}
+.bar .lang button.on{background:#fff;color:var(--ink)}
+.bar .ico{display:flex;align-items:center;gap:14px;color:#fff}
+.bar .ico .bell{position:relative}
+.bar .ico .bell i{position:absolute;top:-7px;right:-9px;background:var(--amber-dot);color:var(--ink);font-style:normal;font-size:9.5px;font-weight:700;border-radius:8px;padding:0 3px}
+.bar .av{width:32px;height:32px;border-radius:50%;background:#fff;color:var(--accent);font-weight:700;font-size:12.5px;display:flex;align-items:center;justify-content:center}
+.bar .jf{width:26px;height:26px}
+
+/* home head */
+.hd{height:58px;flex:none;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:20px;padding:0 20px}
+.hd h2{margin:0;font-size:22px;font-weight:700;letter-spacing:-.01em;white-space:nowrap}
+.faces{display:flex;background:var(--surface-2);border-radius:8px;padding:3px;gap:2px}
+.faces button{border:0;background:transparent;border-radius:6px;padding:6px 14px;font-size:14.5px;font-weight:500;color:var(--ink-2);display:flex;align-items:center;gap:7px;cursor:pointer;white-space:nowrap}
+.faces button.on{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(9,25,56,.12)}
+.faces button .ct{color:var(--amber);font-weight:700;font-size:13px}
+.hd .sp{flex:1}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--accent-700);border-radius:8px;height:34px;padding:0 14px;font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:7px;cursor:pointer;white-space:nowrap;box-shadow:0 1px 1px rgba(9,25,56,.04)}
+.btn:hover{border-color:var(--accent)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.pri:hover{background:var(--accent-hover)}
+.btn.sm{height:28px;padding:0 10px;font-size:13px;border-radius:6px}
+.btn.ruby{color:var(--ruby)}
+.btn:disabled{opacity:.5;cursor:default;box-shadow:none}
+.btn:disabled:hover{border-color:var(--line)}
+.btn.pri:disabled{background:var(--a300);border-color:var(--a300)}
+.lnk{border:0;background:transparent;color:var(--accent);font-weight:600;cursor:pointer;padding:0;font-size:inherit}
+.lnk:hover{text-decoration:underline}
+
+/* main */
+.mn{flex:1;min-height:0;display:flex}
+.cv{flex:1;min-width:0;display:flex;flex-direction:column;border-right:1px solid var(--line);position:relative}
+.pn{width:470px;flex:none;background:var(--surface);display:flex;flex-direction:column;min-height:0}
+
+/* ---------- document face ---------- */
+.strip{height:46px;flex:none;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:0 16px;white-space:nowrap;overflow:hidden}
+.strip .dot{width:8px;height:8px;border-radius:50%;background:var(--ink-3);flex:none}
+.strip .ref{font-family:var(--font-ref);font-weight:500;font-size:14px}
+.strip .ttl{font-size:15px;overflow:hidden;text-overflow:ellipsis}
+.strip .cpn{color:var(--ink-2)}
+.strip .cpn.need{color:var(--amber)}
+.strip .stg{color:var(--ink-3)}
+.strip .sp{flex:1}
+.dot.s-Drafting{background:var(--ink-3)} .dot.s-Negotiating{background:var(--accent)} .dot.s-Signing{background:var(--violet)} .dot.s-Active{background:var(--green-dot)}
+.scroller{flex:1;min-height:0;overflow:auto;position:relative;background:var(--bg)}
+.zrow{position:sticky;top:6px;width:calc(660px * var(--z));margin:6px auto 0;display:flex;justify-content:flex-end;z-index:2;pointer-events:none}
+.zc{pointer-events:auto;width:max-content;display:flex;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:6px;height:32px}
+.zc button{border:0;background:transparent;width:30px;height:30px;cursor:pointer;font-size:16px;color:var(--ink-2)}
+.zc span{min-width:48px;text-align:center;font-size:13.5px;font-variant-numeric:tabular-nums}
+.scroller{--z:1}
+.sheet{width:calc(660px * var(--z));margin:8px auto 40px;background:var(--paper);border:1px solid var(--line);box-shadow:0 1px 3px rgba(9,25,56,.06);padding:46px 54px 56px;font-family:var(--font-paper);color:var(--paper-ink);font-size:calc(15.5px * var(--z));line-height:1.75}
+.sheet .org{text-align:center;font-weight:700;letter-spacing:.14em;font-size:1.2em}
+.sheet .orgsub{text-align:center;color:#5b6461;font-size:.92em}
+.sheet .dbl{border-top:3px double #2a3533;margin:12px 0 22px}
+.sheet .kind{text-align:center;font-size:.78em;letter-spacing:.16em;font-weight:600}
+.sheet h1{text-align:center;font-size:1.75em;margin:.3em 0 .5em;font-weight:700;letter-spacing:.01em;line-height:1.25}
+.sheet .rule{width:64px;border-top:1px solid #c9ccd1;margin:0 auto 26px}
+.sheet p{margin:0 0 1em}
+.cl{padding:12px 16px;margin:0 0 14px;border-radius:6px;transition:box-shadow .3s,background .3s}
+.cl.m{background:var(--card-warm);border:1px solid var(--amber-line)}
+.cl.lit{box-shadow:0 0 0 3px var(--a200)}
+.cl h3{margin:0 0 .3em;font-size:1.12em;font-weight:700;display:flex;align-items:center;gap:10px}
+.cl h3 .tg{font-family:var(--font-paper);font-size:.72em;font-weight:600;background:var(--amber-bg);color:var(--amber);border-radius:4px;padding:1px 8px}
+.cl p{margin:0}
+.bl{display:inline-block;min-width:28px;text-align:center;border-radius:4px;padding:0 5px;line-height:1.35;cursor:pointer}
+.bl.is-need{background:var(--amber-bg);border-bottom:2px solid var(--amber-dot);color:var(--amber)}
+.bl.is-set{border-bottom:2px solid var(--a300);background:var(--a50)}
+.bl.flash{animation:flash 1s ease}
+@keyframes flash{0%{background:var(--amber-dot)}100%{background:var(--a50)}}
+ins{text-decoration:underline;text-decoration-color:var(--accent);text-underline-offset:3px;color:#173f95;background:var(--a50)}
+del{color:var(--ruby);text-decoration-color:var(--ruby)}
+.sig{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:34px;font-size:.92em}
+.sig .for{font-weight:600}
+.sig .ln{height:62px;border-bottom:1px solid #6b7471;display:flex;align-items:flex-end}
+.sig .ln img{height:58px}
+.sig .ln .hand{font-family:var(--font-hand);font-size:2.1em;line-height:1;color:#1a2a6c;padding-bottom:4px}
+.sig .nm{color:#5b6461;font-size:.92em;margin-top:4px}
+
+/* wall */
+.wall{flex:1;min-height:0;overflow:auto;padding:16px 20px 30px}
+.wall-h{display:flex;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap}
+.wall-h b{font-size:16px}
+.seg{display:flex;background:var(--surface-2);border-radius:7px;padding:2px;gap:2px}
+.seg button{border:0;background:transparent;border-radius:5px;padding:4px 11px;font-size:13px;color:var(--ink-2);cursor:pointer;font-weight:500}
+.seg button.on{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(9,25,56,.1)}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+.mini{background:var(--paper);border:1px solid var(--line);border-radius:4px;aspect-ratio:3/4;padding:12px 12px 10px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:5px;box-shadow:0 1px 2px rgba(9,25,56,.05);transition:transform .15s,box-shadow .15s}
+.mini:hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(9,25,56,.12)}
+.mini .r{font-family:var(--font-ref);font-size:11px;color:var(--ink-3)}
+.mini .t{font-family:var(--font-paper);font-weight:700;font-size:14px;line-height:1.25;color:var(--paper-ink)}
+.mini .ls{display:flex;flex-direction:column;gap:5px;margin-top:6px}
+.mini .ls i{display:block;height:4px;border-radius:2px;background:#e7ebf2}
+.mini .ls i:nth-child(3n){width:70%}
+.mini .bt{margin-top:auto;display:flex;flex-direction:column;gap:4px}
+.mini .c{font-size:12px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip-s{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;border-radius:999px;padding:1px 8px;width:max-content;background:var(--surface-2);color:var(--ink-2)}
+.chip-s .dot{width:6px;height:6px;border-radius:50%}
+.mini.new{border-color:var(--accent);box-shadow:0 0 0 2px var(--a100)}
+
+/* ---------- board face ---------- */
+.bd{flex:1;min-height:0;overflow:auto;padding:18px 22px 30px;display:flex;flex-direction:column;gap:16px}
+.bd-h{display:flex;align-items:center;gap:10px}
+.bd-h>*{flex:none}
+.bd-h .sub{flex:0 1 auto}
+.bd-h .tt{font-size:18px;font-weight:700}
+.bd-h .sub{color:var(--ink-2);font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bd-h .sp{flex:1}
+.figs{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.fig{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.fig:hover{border-color:var(--accent)}
+.fig .k{font-size:12.5px;color:var(--ink-2);font-weight:500}
+.fig .v{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.fig .d{font-size:12px;color:var(--ink-3)}
+.fig.warn .v{color:var(--amber)}
+.cards2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px;min-width:0}
+.card h4{margin:0 0 10px;font-size:14.5px}
+.bars{display:flex;flex-direction:column;gap:9px}
+.bars .row{display:grid;grid-template-columns:96px 1fr 28px;align-items:center;gap:10px;font-size:13px}
+.bars .tr{height:10px;background:var(--surface-2);border-radius:5px;overflow:hidden}
+.bars .tr i{display:block;height:100%;border-radius:5px;background:var(--accent)}
+.bars .n{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.lst{display:flex;flex-direction:column}
+.lst .it{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line);text-align:left;background:transparent;border-left:0;border-right:0;border-bottom:0;cursor:pointer;width:100%;font-size:13.5px}
+.lst .it:first-child{border-top:0}
+.lst .it .r{font-family:var(--font-ref);font-size:12px;color:var(--ink-3);flex:none;width:58px;padding-top:1px}
+.lst .it .x{flex:1;min-width:0}
+.lst .it .go{color:var(--accent);font-weight:600;flex:none}
+.cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:start}
+.col{background:var(--surface-2);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.col h5{margin:2px 4px 2px;font-size:13.5px;display:flex;justify-content:space-between}
+.col h5 span{color:var(--ink-3);font-weight:500}
+.dc{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px 12px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:4px;font-size:13px}
+.dc:hover{border-color:var(--accent)}
+.dc b{font-size:13.5px}
+.dc .w{font-family:var(--font-paper);font-size:13.5px;line-height:1.5;color:var(--paper-ink)}
+.col .none{color:var(--ink-3);font-size:13px;padding:6px 4px}
+.tbl{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:13.5px}
+.tbl th{text-align:left;font-weight:600;color:var(--ink-2);font-size:12.5px;padding:9px 12px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl tr:last-child td{border-bottom:0}
+.tbl .num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.hist{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 18px 12px}
+.hist .day{font-weight:700;font-size:13.5px;padding:12px 0 6px}
+.ev{display:grid;grid-template-columns:48px 18px 1fr;gap:8px;position:relative;padding:4px 0 10px}
+.ev .tm{color:var(--ink-3);font-size:12.5px;font-variant-numeric:tabular-nums;padding-top:1px}
+.ev .rg{width:11px;height:11px;border-radius:50%;border:2px solid var(--accent);background:var(--surface);margin-top:5px;position:relative;z-index:1}
+.ev::before{content:"";position:absolute;left:61px;top:18px;bottom:-6px;border-left:2px solid var(--line)}
+.ev:last-child::before{display:none}
+.ev .tx b{font-weight:600}
+.ev .tx .who{color:var(--ink-3);font-size:12.5px}
+.srchbox{height:30px;border:1px solid var(--line-2);border-radius:6px;padding:0 10px;font:inherit;font-size:13.5px;width:170px;background:var(--surface)}
+
+/* calendar + explorer */
+.calg{display:grid;grid-template-columns:52px repeat(5,1fr);background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:12.5px}
+.calg .hh{padding:8px 10px;border-bottom:1px solid var(--line);border-left:1px solid var(--line);font-weight:600;background:var(--surface-2)}
+.calg .hh.today{color:var(--accent)}
+.calg .tc{border-bottom:1px solid var(--line);color:var(--ink-3);padding:2px 6px;height:46px;font-variant-numeric:tabular-nums}
+.calg .cc{border-bottom:1px solid var(--line);border-left:1px solid var(--line);height:46px;position:relative}
+.calg .cc.today{background:#f8faff}
+.calg .evb{position:absolute;left:4px;right:4px;top:3px;border-radius:5px;padding:3px 7px;background:var(--a100);color:var(--accent-700);font-weight:600;line-height:1.3;z-index:1;border-left:3px solid var(--accent);cursor:pointer;text-align:left;border-top:0;border-right:0;border-bottom:0;font-size:12px}
+.calg .evb.amb{background:var(--amber-bg);color:var(--amber);border-left-color:var(--amber-dot)}
+.calg .evb span{display:block;font-weight:400}
+.exsvg{background:var(--surface);border:1px solid var(--line);border-radius:8px;width:100%;height:auto;display:block}
+.exsvg .nd{cursor:pointer}
+.exsvg .nd:hover circle{stroke:var(--ink);stroke-width:2}
+
+/* ---------- panel ---------- */
+.ptabs{height:62px;flex:none;display:flex;align-items:stretch;border-bottom:1px solid var(--line);padding:0 10px}
+.ptabs button{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:0 18px;font-size:12.5px;font-weight:500;color:var(--ink-2);cursor:pointer;border-bottom:2px solid transparent}
+.ptabs button.on{color:var(--accent-700);font-weight:600;border-bottom-color:var(--accent)}
+.ptabs img{width:22px;height:22px}
+.pbody{flex:1;min-height:0;overflow:auto;padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px}
+.backrow{align-self:flex-start;border:0;background:transparent;color:var(--accent-700);font-weight:700;font-size:13.5px;cursor:pointer;padding:2px 0;display:flex;align-items:center;gap:4px}
+.you{align-self:flex-end;background:var(--accent);color:#fff;border-radius:12px 12px 2px 12px;padding:6px 12px;max-width:80%;font-size:14px}
+.jb{display:flex;gap:10px;align-items:flex-start}
+.jb img{width:30px;height:30px;flex:none}
+.jb .bub{background:var(--surface-2);border-radius:2px 12px 12px 12px;padding:8px 12px;font-size:14px;min-width:0}
+.ring{display:inline-block;width:13px;height:13px;border:2px solid var(--a200);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px;margin-right:7px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.box{border:1px solid var(--line);border-radius:8px;background:var(--surface);overflow:hidden}
+.box-h{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.box-h b{font-size:15px}
+.box-h .sp{flex:1}
+.box-h .mut{color:var(--ink-2);font-size:13px}
+.box-b{padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.pill{display:inline-flex;align-items:center;font-size:12px;font-weight:700;border-radius:999px;padding:1px 9px;white-space:nowrap}
+.pill.amb{background:var(--amber-bg);color:var(--amber)}
+.pill.grn{background:var(--green-bg);color:var(--green)}
+.pill.blu{background:var(--a100);color:var(--accent-700)}
+.mut{color:var(--ink-2)}
+.small{font-size:13px}
+/* drop zone */
+.drop{border:2px dashed var(--line-2);border-radius:10px;padding:22px 16px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--ink-2);background:var(--bg);transition:background .2s,border-color .2s}
+.drop.over{border-color:var(--accent);background:var(--a50)}
+.drop b{color:var(--ink);font-size:15px}
+/* fields */
+.fld{display:flex;flex-direction:column;gap:4px}
+.fld label{font-size:13px;font-weight:600}
+.fld label span{font-weight:400;color:var(--ink-3)}
+.fld .in{display:flex;align-items:center;border:1px solid var(--line-2);border-radius:6px;background:var(--surface);height:36px;padding:0 10px;gap:6px;transition:background .2s}
+.fld .in.need{background:var(--amber-bg);border-color:var(--amber-line)}
+.fld .in input{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:14px;outline:none;color:var(--ink)}
+.fld .in .u{color:var(--ink-3);font-size:13px}
+.fld .in:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--a100)}
+.alldone{display:flex;gap:8px;align-items:center;color:var(--green);font-weight:600;font-size:13.5px}
+/* redlines */
+.rl-acts{display:flex;gap:8px;flex-wrap:wrap}
+.sec-h{display:flex;align-items:baseline;gap:8px;padding-top:12px;border-top:1px solid var(--line);font-size:13.5px}
+.sec-h b{font-weight:600}
+.sec-h .sp{flex:1}
+.risk{border:1px solid var(--line);border-left:3px solid var(--amber-dot);border-radius:6px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.risk.low{border-left-color:var(--line-2)}
+.risk .top{display:flex;gap:8px;align-items:baseline}
+.risk .top b{flex:1;font-size:14px}
+.risk .lv{color:var(--amber);font-weight:600;font-size:13px}
+.risk.low .lv{color:var(--ink-3)}
+.risk .src{color:var(--ink-3);font-size:12.5px}
+.risk .acts{display:flex;gap:16px;align-items:center;margin-top:4px}
+.risk .acts button{border:0;background:transparent;display:flex;align-items:center;gap:5px;font-size:13.5px;cursor:pointer;padding:0;color:var(--ink-2)}
+.risk .acts .rd{color:var(--ruby)} .risk .acts .vi{color:var(--violet)} .risk .acts .sp{flex:1}
+.risk .why{font-size:13.5px;background:var(--surface-2);border-radius:5px;padding:7px 10px}
+.risk .note{display:flex;flex-direction:column;gap:6px}
+.risk textarea, .ta{width:100%;min-height:58px;border:1px solid var(--line-2);border-radius:6px;padding:7px 9px;font:inherit;font-size:13.5px;resize:vertical}
+.chg{border:1px solid var(--line);border-radius:6px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.chg .top{display:flex;gap:8px;align-items:center}
+.chg .top b{flex:1;font-size:14px}
+.chg .w{font-family:var(--font-paper);font-size:14.5px;line-height:1.6;color:var(--paper-ink)}
+.chg .acts{display:flex;gap:8px}
+/* sign checklist */
+.grp{display:flex;flex-direction:column}
+.grp-h{display:flex;align-items:center;justify-content:space-between;color:var(--ink-2);font-size:12.5px;padding:10px 0 4px}
+.chk{display:flex;flex-direction:column;gap:2px;padding:9px 0;border-bottom:1px solid var(--line)}
+.chk .t{display:flex;gap:8px;align-items:center;font-weight:600;font-size:14px}
+.chk .d{font-size:13.5px;color:var(--ink-2);padding-left:26px}
+.chk .a{padding-left:26px;padding-top:4px}
+.bang{width:18px;height:18px;border-radius:50%;background:var(--amber-bg);color:var(--amber);font-weight:800;font-size:12px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.okk{width:18px;height:18px;border-radius:50%;background:var(--green-bg);color:var(--green);display:inline-flex;align-items:center;justify-content:center;flex:none}
+.signers{display:flex;flex-direction:column;gap:8px;background:var(--surface-2);border-radius:6px;padding:10px 12px;margin-top:6px}
+.signers .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.signfoot{display:flex;flex-direction:column;gap:6px;padding-top:10px}
+.signfoot>.btn{align-self:flex-start}
+.pad{display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-radius:8px;padding:12px}
+.pad canvas{width:100%;height:120px;background:var(--surface);border:1px solid var(--line-2);border-radius:6px;touch-action:none;cursor:crosshair}
+.pad .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pad label{display:flex;gap:8px;align-items:center;font-size:13.5px}
+/* share */
+.choice{display:flex;gap:12px;align-items:flex-start;text-align:left;border:1px solid var(--line);border-radius:8px;padding:14px;background:var(--surface);cursor:pointer;width:100%}
+.choice:hover{border-color:var(--accent);background:var(--a50)}
+.choice .ic{width:36px;height:36px;border-radius:8px;background:var(--a100);color:var(--accent);display:flex;align-items:center;justify-content:center;flex:none}
+.choice b{display:block;font-size:15px}
+.choice span{color:var(--ink-2);font-size:13.5px}
+/* draft */
+.kv{display:grid;grid-template-columns:110px 1fr;gap:6px 10px;font-size:13.5px}
+.kv dt{color:var(--ink-2)} .kv dd{margin:0;font-weight:500}
+/* clauses + obligations tabs */
+.crow{border:1px solid var(--line);border-radius:6px;padding:9px 12px;text-align:left;background:var(--surface);cursor:pointer;display:flex;flex-direction:column;gap:4px;width:100%}
+.crow:hover{border-color:var(--accent)}
+.crow .top{display:flex;gap:8px;align-items:center;font-weight:600}
+.crow .pl{font-size:13.5px;color:var(--ink-2)}
+.tg2{font-size:11.5px;font-weight:600;background:var(--amber-bg);color:var(--amber);border-radius:4px;padding:0 7px}
+/* chips + ask */
+.pchips{flex:none;display:flex;gap:8px;flex-wrap:wrap;padding:10px 16px 0;border-top:1px solid var(--line)}
+.pchips button{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:4px 11px;font-size:13.5px;cursor:pointer;color:var(--ink)}
+.pchips button:hover{border-color:var(--accent)}
+.pchips button.amb{background:var(--amber-bg);border-color:var(--amber-line);color:var(--amber);font-weight:600}
+.pchips button.acc{background:var(--a50);border-color:var(--a200);color:var(--accent-700);font-weight:600}
+.pask{flex:none;padding:10px 16px 14px}
+.askb{display:flex;align-items:center;border:1px solid var(--line-2);border-radius:8px;padding:5px 5px 5px 12px;gap:8px;background:var(--surface)}
+.askb:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--a100)}
+.askb input{flex:1;min-width:0;border:0;font:inherit;font-size:14.5px;outline:none;background:transparent;height:30px}
+
+/* ---------- clause editor (full window) ---------- */
+.ed{position:absolute;inset:0;background:var(--surface);z-index:30;display:flex;flex-direction:column}
+.ed-tool{height:58px;flex:none;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:4px;padding:0 12px}
+.ed-tool .tb{width:34px;height:34px;border:0;background:transparent;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);font-weight:700;font-size:15px}
+.ed-tool .tb:hover{background:var(--surface-2)}
+.ed-tool .sz{border:1px solid var(--line);border-radius:6px;height:34px;padding:0 10px;display:flex;align-items:center;gap:6px;font-size:14px;margin:0 6px}
+.ed-tool .vs{width:1px;height:24px;background:var(--line);margin:0 6px}
+.ed-tool .sp{flex:1}
+.ed-main{flex:1;min-height:0;display:flex}
+.ed-left{flex:1;min-width:0;display:flex;flex-direction:column;border-right:1px solid var(--line)}
+.ed-sub{height:46px;flex:none;display:flex;align-items:center;gap:12px;padding:0 20px}
+.ed-sub .tab{font-weight:700;color:var(--accent-700);border-bottom:2px solid var(--accent);padding:4px 16px}
+.ed-sub .sp{flex:1}
+.ed-sub .st{color:var(--ink-2);font-size:13.5px}
+.ed-scroll{flex:1;min-height:0;overflow:auto;background:var(--bg);padding:0 30px}
+.ed-paper{background:var(--paper);border:1px solid var(--line);border-top:0;max-width:900px;margin:0 auto;padding:16px 64px 60px;font-family:var(--font-paper);font-size:17px;line-height:1.85;color:var(--paper-ink)}
+.ed-paper h3{font-size:1.1em;margin:1.2em 0 .1em}
+.ed-paper .dim{opacity:.55}
+.ed-paper .cur{outline:none;border-radius:4px;padding:2px 6px;margin:0 -6px;box-shadow:0 0 0 2px var(--a100)}
+.ed-paper .cur:focus{box-shadow:0 0 0 2px var(--a200)}
+.ed-foot{height:54px;flex:none;border-top:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:0 20px;font-size:14px}
+.ed-rail{width:600px;flex:none;display:flex;flex-direction:column;min-height:0}
+.ed-rh{height:46px;flex:none;display:flex;align-items:center;gap:6px;padding:0 16px;border-bottom:1px solid var(--line)}
+.ed-rh b{display:flex;align-items:center;gap:5px}
+.ed-rh .sp{flex:1}
+.ed-rh .rt{border:0;background:transparent;padding:12px 12px;font-size:14px;cursor:pointer;color:var(--ink);border-bottom:2px solid transparent;display:flex;gap:6px;align-items:center}
+.ed-rh .rt.on{border-bottom-color:var(--accent);font-weight:600}
+.ed-rb{flex:1;min-height:0;overflow:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px}
+.pick{position:relative}
+.pick>button{width:100%;display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:6px;padding:8px 10px;background:var(--surface);font-weight:600;cursor:pointer;text-align:left}
+.pick>button .sp{flex:1}
+.pick .dt{width:9px;height:9px;border-radius:50%;background:var(--amber-dot)}
+.pick ul{position:absolute;left:0;right:0;top:100%;margin:4px 0 0;padding:4px;list-style:none;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 22px rgba(9,25,56,.14);z-index:5}
+.pick li button{width:100%;text-align:left;border:0;background:transparent;padding:7px 10px;border-radius:5px;cursor:pointer;display:flex;gap:8px;align-items:center}
+.pick li button:hover{background:var(--surface-2)}
+.sugg{border:1px solid var(--a200);background:var(--a50);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.sugg .w{font-family:var(--font-paper);font-size:15px;line-height:1.6}
+.ed-chips{display:flex;gap:8px;flex-wrap:wrap;padding:10px 16px 0;border-top:1px solid var(--line)}
+.ed-chips button{border:1px solid var(--line);background:var(--a50);border-radius:4px;padding:4px 11px;font-size:13.5px;cursor:pointer;color:var(--accent-700)}
+.ed-ask{padding:10px 16px;display:flex;gap:8px;align-items:flex-end}
+.ed-ask .bx{flex:1;border:1px solid var(--line);border-radius:6px;padding:8px 12px;display:flex;flex-direction:column;gap:4px}
+.ed-ask .ab{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--ink-2)}
+.ed-ask .ab i{font-style:normal;background:var(--accent);color:#fff;border-radius:4px;padding:1px 8px;font-weight:600}
+.ed-ask input{border:0;font:inherit;font-size:14px;outline:none}
+.ed-ask .snd{width:36px;height:36px;border:0;border-radius:6px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.ed-rf{height:50px;flex:none;border-top:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:0 16px}
+.ed-rf .sp{flex:1}
+.leave{position:absolute;left:50%;top:70px;transform:translateX(-50%);background:var(--surface);border:1px solid var(--line-2);border-radius:10px;box-shadow:0 12px 30px rgba(9,25,56,.2);padding:14px 16px;display:flex;flex-direction:column;gap:10px;z-index:40;width:440px}
+.leave .row{display:flex;gap:8px;justify-content:flex-end}
+
+/* ---------- dialogs ---------- */
+.scrim{position:absolute;inset:0;background:rgba(9,25,56,.32);z-index:50;display:flex;align-items:center;justify-content:center}
+.dlg{background:var(--surface);border-radius:10px;box-shadow:0 18px 50px rgba(9,25,56,.3);width:560px;max-height:760px;display:flex;flex-direction:column;overflow:hidden}
+.dlg.wide{width:900px}
+.dlg-h{padding:16px 20px;border-bottom:1px solid var(--line);font-size:17px;font-weight:700}
+.dlg-h span{display:block;font-size:13px;font-weight:400;color:var(--ink-2)}
+.dlg-b{padding:14px 20px;overflow:auto;display:flex;flex-direction:column;gap:12px}
+.dlg-f{padding:12px 20px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center}
+.dlg-f .sp{flex:1}
+.lbl{font-size:12.5px;font-weight:600;color:var(--ink-2);margin-bottom:4px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rd{display:flex;flex-direction:column;gap:4px;background:var(--surface-2);border-radius:6px;padding:10px 12px;font-size:13.5px}
+.rd div{display:flex;gap:8px;align-items:center}
+.ppl{display:flex;flex-direction:column;gap:4px}
+.ppl label{display:flex;gap:10px;align-items:center;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:14px}
+.ppl label:hover{background:var(--surface-2)}
+.ppl label span{color:var(--ink-3);font-size:13px}
+.na{display:grid;grid-template-columns:320px 1fr;gap:18px;min-height:380px}
+.na-l{display:flex;flex-direction:column;gap:8px;min-width:0}
+.na-l .tpl{border:1px solid var(--line);border-radius:6px;padding:8px 10px;text-align:left;background:var(--surface);cursor:pointer;display:flex;flex-direction:column;gap:1px}
+.na-l .tpl span{font-size:12.5px;color:var(--ink-3)}
+.na-l .tpl.on{border-color:var(--accent);background:var(--a50);box-shadow:0 0 0 1px var(--accent)}
+.na-r{display:flex;flex-direction:column;gap:10px;min-width:0}
+
+/* ---------- rail + toasts + tour highlight ---------- */
+.railf{position:absolute;top:48px;left:0;bottom:0;width:250px;background:var(--surface);border-right:1px solid var(--line);box-shadow:8px 0 24px rgba(9,25,56,.12);z-index:45;padding:12px 10px;display:flex;flex-direction:column;gap:2px}
+.railf .g{font-size:11.5px;font-weight:600;color:var(--ink-3);padding:10px 10px 4px}
+.railf button{border:0;background:transparent;text-align:left;padding:8px 10px;border-radius:6px;font-size:14px;cursor:pointer;display:flex;justify-content:space-between}
+.railf button:hover{background:var(--surface-2)}
+.railf button span{color:var(--ink-3);font-size:12.5px}
+.toasts{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:60;align-items:center;pointer-events:none}
+.toast{pointer-events:auto;background:var(--ink);color:#fff;border-radius:8px;padding:10px 14px;display:flex;gap:10px;align-items:center;font-size:14px;box-shadow:0 8px 24px rgba(9,25,56,.3);max-width:640px}
+.toast .k{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none}
+.toast.ok .k{background:#2f9e7f}
+.toast.warn .k{background:var(--amber-dot);color:var(--ink);font-weight:800;font-size:12px}
+.toast.info .k{background:var(--a300)}
+.toast button{border:0;background:transparent;color:#9fc0ff;font-weight:700;cursor:pointer;font-size:14px}
+.thl{position:relative;z-index:3;box-shadow:0 0 0 3px var(--amber-dot),0 0 0 8px rgba(232,163,23,.3)!important;transition:box-shadow .2s}
+
+@media (prefers-reduced-motion: reduce){
+  .ring{animation:none}
+  .mini{transition:none}
+  .bl.flash{animation:none}
+}
+
+/* ---------- v2: the SaaS paper ---------- */
+.sheet .ctr{text-align:center;margin:0 0 .6em}
+.sheet .ctr.sm{font-size:.86em;color:#4a5351}
+.sheet .sched{margin:18px 0 26px;padding:12px 16px;border:1px solid #e3e6ea;border-radius:4px;font-size:.88em;line-height:1.6}
+.sheet .sched b{display:block;margin-bottom:4px}
+.sheet .sched ol{margin:0;padding-left:22px}
+.cl{padding:0;margin:0 0 18px}
+.cl h3{margin:.4em 0 .5em;font-size:1.06em}
+.pa{display:grid;grid-template-columns:3.4em 1fr;gap:4px;margin:0 0 .55em;padding:2px 0;border-radius:6px;transition:box-shadow .3s,background .3s}
+.pa .no{font-variant-numeric:tabular-nums;color:#2a3533}
+.pa .tx{min-width:0}
+.pa.k-li{grid-template-columns:2.2em 1fr;margin-left:3.4em}
+.pa.k-li2{grid-template-columns:2.4em 1fr;margin-left:5.6em}
+.pa.k-cont{display:block;margin-left:3.4em}
+.pa.m{background:var(--card-warm);box-shadow:0 0 0 1px var(--amber-line);padding:6px 10px;margin-left:-10px;margin-right:-10px}
+.pa.k-li.m,.pa.k-li2.m,.pa.k-cont.m{margin-left:calc(3.4em - 10px)}
+.pa.lit{box-shadow:0 0 0 3px var(--a200);background:var(--a50)}
+.pa .tg{font-family:var(--font-paper);font-size:.74em;font-weight:600;background:var(--amber-bg);color:var(--amber);border-radius:4px;padding:1px 7px;margin-left:6px;white-space:nowrap}
+.pa.newp .tx{color:#173f95}
+ins.th{color:#0b6b5f;text-decoration-color:#0b6b5f;background:#e6f4f1}
+.sig{grid-template-columns:1fr 1fr}
+.sig .ln2{border-bottom:1px solid #9aa2a0;height:26px;margin-top:6px;font-size:.88em;color:#5b6461;display:flex;align-items:flex-end}
+
+/* ---------- v2: the redlines column, as HaTi draws it ---------- */
+.rl-col{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:8px;background:var(--surface);overflow:hidden}
+.rl-idx{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:2px solid var(--accent)}
+.rl-idx b{font-size:15px;font-weight:700}
+.rl-idx i{font-style:normal;font-family:var(--font-ref);font-size:12.5px;color:var(--ink-3);font-weight:500}
+.rl-idx .sp{flex:1}
+.rl-idx .rnd{font-size:12.5px;color:var(--ink-2);white-space:nowrap;font-variant-numeric:tabular-nums}
+.rl-unsent-go{height:26px;padding:0 9px;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:4px;font-size:12.5px;font-weight:600;display:inline-flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap}
+.rl-unsent-go:hover{background:var(--accent-hover)}
+.rl-band{padding:12px 14px 4px;font-size:11.5px;letter-spacing:.08em;color:var(--ink-3)}
+.rl-band b{font-family:var(--font-ref);letter-spacing:0;font-weight:500;margin-left:4px}
+.rl-band.aw,.rl-band.aw b{color:var(--amber)}
+.rlrow{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
+.rlrow:hover{background:#f6f8fc}
+.rlrow .mr{display:flex;align-items:baseline;gap:8px;cursor:pointer}
+.rlrow .mt{flex:1;min-width:0;font-weight:600;font-size:14px;line-height:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rlrow .rid{font-family:var(--font-ref);font-size:12px;color:var(--ink-3);font-weight:500;flex:none}
+.rlrow .sum{font-size:12.5px;line-height:17px;color:var(--ink-2)}
+.rlrow .sum .yo{color:var(--accent-700);font-weight:600}
+.rlrow .sum .th{color:#0b6b5f;font-weight:600}
+.rlrow.quiet .mt,.rlrow.quiet .sum{color:var(--ink-3)}
+.face{display:flex;flex-wrap:wrap;gap:2px;margin-left:-8px}
+.face button{display:inline-flex;align-items:center;gap:4px;height:26px;padding:0 8px;border:0;border-radius:4px;background:none;font-size:12.5px;font-weight:600;line-height:1;cursor:pointer;color:var(--accent-700)}
+.face button:hover{background:var(--a100)}
+.face button svg{width:15px;height:15px;flex:none}
+.face .v-rej,.face .v-bin{color:var(--ruby)}
+.face .v-rej:hover,.face .v-bin:hover{background:var(--ruby-bg)}
+.face .v-q{color:var(--ink-2)}
+.face .v-q:hover{background:var(--surface-2);color:var(--ink)}
+.face .v-ai{color:#6d28d9}
+.face .v-ai:hover{background:#f1ebfd}
+.rl-empty{padding:14px;display:flex;flex-direction:column;gap:10px}
+.rl-foot{padding:12px 14px;display:flex;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+/* risks to look at */
+.rk-pile{padding:0 0 6px}
+.rk-h{display:flex;align-items:baseline;gap:8px;padding:12px 14px 6px;font-size:13.5px}
+.rk-h b{font-weight:600}
+.rk-h .sp{flex:1}
+.rk-h .when{font-size:12.5px;color:var(--ink-2)}
+.rk-row{margin:6px 14px;border:1px solid var(--line);border-left:3px solid var(--amber-dot);border-radius:6px;padding:9px 12px 6px;display:flex;flex-direction:column;gap:3px}
+.rk-row.hi{border-left-color:var(--ruby)}
+.rk-row.lo{border-left-color:var(--line-2)}
+.rk-row .top{display:flex;gap:8px;align-items:baseline}
+.rk-row .top b{flex:1;font-size:14px}
+.rk-row .lv{font-weight:600;font-size:13px;color:var(--amber)}
+.rk-row.hi .lv{color:var(--ruby)}
+.rk-row.lo .lv{color:var(--ink-3)}
+.rk-row .m{font-size:12.5px;color:var(--ink-3)}
+.rk-row .why{font-size:13.5px;background:var(--surface-2);border-radius:5px;padding:7px 10px;margin:4px 0}
+.rk-row .face{margin-top:2px}
+.rk-row .face .sp{flex:1}
+.rk-cov{margin:4px 14px 8px;font-size:13px}
+.rk-cov .ln{display:flex;gap:8px;align-items:baseline;padding:4px 0;color:var(--ink-2)}
+/* the slash menu, as the Board draws it */
+.pn{position:relative}
+.ca-pop{position:absolute;left:12px;right:12px;z-index:30;background:var(--surface);border:1px solid var(--line-2);border-radius:8px;box-shadow:0 10px 28px rgba(0,0,0,.16);padding:6px;max-height:540px;overflow:auto}
+.ca-pop h5{margin:4px 8px 6px;font-size:11px;color:var(--ink-3);font-weight:400}
+.ca-opt{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:7px 8px;border-radius:4px;font-size:13px;cursor:pointer;color:var(--ink)}
+.ca-opt.on,.ca-opt:hover{background:var(--a50)}
+.ca-opt .who{min-width:0}
+.ca-opt .who b{font-weight:700}
+.ca-opt small{display:block;color:var(--ink-2);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ca-opt em{font-style:normal;font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.ca-hint{margin:6px 8px 4px;font-size:11.5px;color:var(--ink-2)}
+.lad{display:flex;flex-direction:column;gap:6px}
+.lad .rg{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:baseline;font-size:13.5px}
+.lad .rg b{font-family:var(--font-ref);font-size:12px;color:var(--ink-3)}
+.lad .rg span.w{font-family:var(--font-paper);font-size:14.5px}
+.ed-paper .cur:empty::before{content:attr(data-ph);color:var(--ink-3)}
+.ed-paper .newp{margin-top:6px}
+.ed-paper ins.th{color:#0b6b5f}
+
+.sig .for{min-height:2.8em}
+
+</style>
+
+<div class="pg">
+  <header class="intro">
+    <div>
+      <p class="eb">HaTi · Clickable demo</p>
+      <h1>Home: one page you never leave</h1>
+      <p class="l">Built on the SaaS agreement you attached: 41 clauses, real wording. Walk the story with the steps below, or type into Jambo's box yourself; type <b>/</b> for your most used places. Nothing here is saved or sent.</p>
+    </div>
+    <button class="reset" id="reset" type="button">Start again</button>
+  </header>
+
+  <section class="tour" aria-label="Walk through the story">
+    <div class="tour-steps" id="tour-steps"></div>
+    <div class="tour-cap">
+      <div class="tx"><b id="tour-title"></b><span id="tour-text"></span></div>
+      <div class="tour-btns">
+        <button id="tour-prev" type="button">‹ Back</button>
+        <button id="tour-play" type="button">Play again</button>
+        <button id="tour-next" class="pri" type="button">Next step ›</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="stagebox" id="stagebox">
+    <div id="app">
+      <div class="bar">
+        <button class="ham" data-act="rail" type="button" aria-label="Menu">%%IC_MENU%%</button>
+        <span class="nm">Contract Lifecycle Management</span>
+        <label class="srch">%%IC_SEARCH%%<input id="q" type="text" placeholder="Search contracts, clauses, counterparties…" autocomplete="off"><kbd>⌘K</kbd></label>
+        <div class="lang"><button class="on" type="button">English</button><button type="button" data-act="svenska">Svenska</button></div>
+        <div class="ico"><img class="jf" src="%%FACE_HELLO%%" alt=""><span class="bell">%%IC_BELL%%<i>9+</i></span>%%IC_CLOCK%%<span class="av">YM</span></div>
+      </div>
+      <div class="hd">
+        <h2>Good evening, Young</h2>
+        <div class="faces" id="faces">
+          <button type="button" data-act="face" data-f="board">%%IC_BOARD%% Board</button>
+          <button type="button" data-act="face" data-f="document">%%IC_DOC%% Document</button>
+          <button type="button" data-act="face" data-f="calendar">%%IC_CAL%% Calendar <span class="ct">2</span></button>
+          <button type="button" data-act="face" data-f="explorer">%%IC_EXP%% Explorer</button>
+        </div>
+        <span class="sp"></span>
+        <button class="btn" type="button" data-act="present">Present</button>
+        <button class="btn pri" type="button" data-act="draft-new">%%IC_PLUS%% Draft new agreement</button>
+      </div>
+      <div class="mn">
+        <div class="cv" id="cv"></div>
+        <aside class="pn">
+          <div class="ptabs" id="ptabs"></div>
+          <div class="pbody" id="pbody"></div>
+          <div class="pchips" id="pchips"></div>
+          <div class="pask"><div class="askb"><input id="ask" type="text" autocomplete="off" placeholder="Ask Jambo, or type / for places…"><button class="btn pri sm" type="button" data-act="ask">Ask</button></div></div>
+        </aside>
+      </div>
+      <div id="overlay"></div>
+      <div id="dlg"></div>
+      <div id="railf"></div>
+      <div class="toasts" id="toasts"></div>
+    </div>
+  </div>
+
+  <p class="foot">Type <code>/</code> in Jambo's box for the places you use most. Words Jambo knows: <code>upload</code> <code>fill in</code> <code>redline</code> <code>edit 26.2</code> <code>sign</code> <code>share</code> <code>board</code> <code>deal board</code> <code>obligations</code> <code>history</code> <code>calendar</code> <code>explorer</code> <code>document</code> <code>another contract</code> <code>draft an NDA with Volvo</code> <code>back</code> — and in Svenska: <code>signera</code> <code>dela</code> <code>tavla</code> <code>historik</code>. The parties are anonymised: HaTi AB is the customer, and the supplier is yours to fill in.</p>
+</div>
+
+<script>
+(function(){
+'use strict';
+const FACE = { hello:'%%FACE_HELLO%%', think:'%%FACE_THINK%%' };
+const P = {
+  board:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+  doc:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>',
+  search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>', pencil:'<path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/>',
+  down:'<path d="M6 9l6 6 6-6"/>', left:'<path d="M15 18l-6-6 6-6"/>',
+  flag:'<path d="M4 22V4M4 4h13l-2 4 2 4H4"/>', square:'<rect x="4" y="4" width="16" height="16" rx="2"/>',
+  send:'<path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/>',
+  users:'<circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M16 4a4 4 0 0 1 0 8M22 21a7 7 0 0 0-5-6.7"/>',
+  upload:'<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>', check:'<path d="M5 12l5 5L20 7"/>',
+  print:'<path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>',
+  download:'<path d="M12 4v12M7 11l5 5 5-5M4 20h16"/>',
+  sparkle:'<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>',
+  exit:'<path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/>',
+  undo:'<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>', redo:'<path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/>',
+  list:'<path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/>', ol:'<path d="M10 6h11M10 12h11M10 18h11M4 4v4M3 18h3l-3 3h3"/>',
+  indent:'<path d="M3 6h18M9 12h12M9 18h12M3 10l3 2-3 2"/>', outdent:'<path d="M3 6h18M9 12h12M9 18h12M6 10l-3 2 3 2"/>',
+  align:'<path d="M4 6h16M4 10h10M4 14h16M4 18h10"/>', clear:'<path d="M6 4h12M12 4l-4 16M4 20l16-16" />'
+};
+const ic = (n, s=16) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n]||''}</svg>`;
+/* HaTi's own hairline marks (the sprite in index.html), drawn the way rlFaceMark draws them */
+const HM = {
+  edit:'<path d="M8.6 3.2H2.8v10h10V7.4"/><path d="M6.4 9.6 12.8 3.2l1.4 1.4-6.4 6.4H6.4V9.6Z"/>',
+  out:'<path d="M9.6 3H3.4v10h6.2M11 5.6 13.4 8 11 10.4M7 8h6.2"/>',
+  bin:'<path d="M2.6 4.4h10.8M6.4 4.4V2.8h3.2v1.6"/><path d="M4 4.4l.8 8.8h6.4l.8-8.8" stroke-linejoin="round"/><path d="M6.8 6.9v4.3M9.2 6.9v4.3"/>',
+  ladder:'<path d="M4.8 2.4v11.2M11.2 2.4v11.2M4.8 5.4h6.4M4.8 8h6.4M4.8 10.6h6.4"/>',
+  check:'<path d="M3.2 8.4l3.1 3.1 6.5-6.9" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>',
+  x:'<path d="M4.2 4.2l7.6 7.6M11.8 4.2l-7.6 7.6" stroke-width="1.3" stroke-linecap="round"/>',
+  undo:'<path d="M2.8 6.4h6.6a3.5 3.5 0 0 1 0 7H5.8" stroke-linejoin="round"/><path d="M5.6 3.6 2.8 6.4l2.8 2.8" stroke-linejoin="round"/>',
+  chat:'<path d="M2.6 3h10.8v7.6H7.2L4 13.4V10.6H2.6V3Z"/>',
+  down:'<path d="m3.6 6 4.4 4.4L12.4 6"/>'
+};
+const hm = n => `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">${HM[n] || ''}</svg>`;
+const verb = (cls, act, mark, word, extra) => `<button type="button" class="${cls}" data-act="${act}"${extra || ''}>${hm(mark)}${word}</button>`;
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const plural = (n, w, ws) => `${n} ${n === 1 ? w : (ws || w + 's')}`;
+const fmtNum = v => { const d = String(v || '').replace(/[^\d]/g, ''); return d ? d.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : String(v || ''); };
+const titleCase = s => s.replace(/\b\w/g, ch => ch.toUpperCase());
+const cssId = s => String(s).replace(/[^A-Za-z0-9]/g, '_');
+
+/* ---------------- the agreement you attached ---------------- */
+const SAAS = %%SAAS_JSON%%;
+const PLAIN = {1:'A framework any company in our group can order from.',2:'This main text beats the schedules; the Supplier\'s own terms never apply.',3:'Runs until ended. We can leave on 3 months\' notice (orders on 30 days); they cannot leave for convenience.',4:'We order by Service Order; they cannot refuse, or suspend over a dispute.',5:'Fixed prices, paid 60 days from a correct invoice, in USD. We commit to Minimum Charges.',6:'Everyone in our group may use it, worldwide, with no user limit.',7:'Manuals stay complete and free; an update can never take rights away.',8:'Updates are included, with 30 days\' notice of planned maintenance. No removing features, except when a carrier changes.',9:'Performance is measured against Schedule 6.',10:'Onboarding follows Schedule 10.',11:'On exit they hand back all data in CSV and keep running until we sign off the hand-over.',12:'Free reports so we can check the service levels.',13:'Our duties are only what Schedules 2 and 10 list.',14:'We can ask for changes; they answer within 10 Work Days.',15:'Both sides help each other, including with our other suppliers.',16:'We can audit them. If they overcharged by 5% or more, they pay for the audit.',17:'They process personal data for us under the DPA in Schedule 8.',18:'Our data is ours. Extract on 5 Work Days\' request; breach notice within 24 hours.',19:'Each side keeps what it owned before.',20:'They promise skill, the specs, the law and no IP infringement.',21:'Both keep secrets, and they cannot use our name as a reference.',22:'They follow anti-corruption, sanctions, labour and data laws, and Schedule 4.',23:'ISO 27001-level security and a yearly ISAE 3402 type II report; a lapse is a material breach.',24:'Danish-law remedies. They fix defects at their cost and keep working during a dispute.',25:'Credits for missed service levels, capped at one month\'s Charges, on top of other remedies.',26:'Each side capped at 300% of 24 months\' Charges (at least USD 750,000). Data, secrets and compliance are uncapped.',27:'They defend us against IP, injury and personal-data claims.',28:'Neither side is liable for events beyond control; we can leave after 30 days.',29:'No partnership or agency.',30:'We can move it within our group; they need our consent.',31:'A business we sell keeps the service for up to a year.',32:'They answer for sub-contractors; we can remove one on 60 days\' notice.',33:'Danish law; three arbitrators in Copenhagen, in English.',34:'They keep liability and professional cover, with no minimum amounts stated.',35:'Not acting on a breach does not waive it.',36:'A bad clause is cut out; the rest stands.',37:'They cooperate on our decarbonisation goals.',38:'Liability, IP, indemnities and secrets survive the end.',39:'Notices go in writing to the named contacts.',40:'Changes only in writing, approved by both sides.',41:'Signed electronically or by hand.'};
+const simple = (rows) => rows.map(([n, h, t, pl]) => ({n, h, pl, paras:[{id:n + '.1', kind:'p', t}]}));
+const CLAUSES = {
+  saas: SAAS.map(c => ({...c, pl: PLAIN[c.n] || ''})),
+  nda: simple([
+    [1,'Purpose','Each Party may disclose Confidential Information to the other solely to evaluate and pursue {purpose} (the “Purpose”).','Secrets are shared only for this purpose.'],
+    [2,'Confidential Information','Confidential Information means all information disclosed by a Party, in any form, that is marked as confidential or would reasonably be understood to be confidential, including formulations, pricing, volumes and trade terms.','Anything a reasonable person would see as secret, including recipes and prices.'],
+    [3,'Obligations','The Receiving Party shall use Confidential Information only for the Purpose, protect it with at least the care it applies to its own confidential information and never less than reasonable care, and disclose it only to employees and advisers who need to know it and are bound by equivalent duties.','Treat their secrets like ours, need-to-know only.'],
+    [4,'Term','These obligations continue for {term} years from the date of this Agreement; trade secrets remain protected for as long as they remain trade secrets.','How long the promise lasts.'],
+    [5,'Governing Law','This Agreement is governed by the laws of Sweden. Disputes are finally settled by arbitration under the SCC Rules, seated in Stockholm.','Swedish law, SCC arbitration.']]),
+  generic: simple([
+    [1,'Scope','The Supplier shall supply the Products described in Schedule 1 in the volumes ordered under Purchase Orders, to the specifications and quality standards in Schedule 2.','What they deliver, and to what standard.'],
+    [2,'Prices and Payment','Prices are fixed for twelve (12) months from the Effective Date. Invoices are payable ninety (90) days from receipt of a correct invoice.','Fixed prices for a year; we pay in 90 days.'],
+    [3,'Term','This Agreement runs for thirty-six (36) months and renews for twelve (12) months at a time unless either Party gives six (6) months\' written notice.','Three years, then it renews yearly.'],
+    [4,'Liability','Each Party\'s aggregate liability is limited to 150% of the Charges paid in the twelve (12) months preceding the claim, save for fraud, wilful misconduct and breach of confidentiality.','Capped at 1.5 years of fees.'],
+    [5,'Governing Law','This Agreement is governed by the laws of Sweden. Disputes are finally settled by arbitration under the SCC Rules, seated in Stockholm.','Swedish law, SCC arbitration.']])
+};
+const PIDX = {};
+for (const k of Object.keys(CLAUSES)){ PIDX[k] = {}; for (const cl of CLAUSES[k]) cl.paras.forEach((p, i) => { PIDX[k][p.id] = {cl, p, i}; }); }
+const OTHER_BOOK = [
+  {id:'MK-451', title:'Packaging Film Supply Agreement', cp:'Nordfilm Packaging AB', stage:'Negotiating'},
+  {id:'MK-447', title:'Data Processing Agreement', cp:'Aurora Data Oy', stage:'Signing'},
+  {id:'MK-439', title:'Vegetable Fats Supply Agreement', cp:'Fjäll Ingredients AB', stage:'Active'},
+  {id:'MK-432', title:'Warehouse Lease – Torsvik DC', cp:'Västra Hamnen Fastigheter AB', stage:'Active'},
+  {id:'MK-428', title:'Co-packing Agreement', cp:'Brightwater Co-Pack AB', stage:'Drafting'},
+  {id:'MK-415', title:'Road Freight Framework Agreement', cp:'Kallax Freight AB', stage:'Active'},
+  {id:'MK-402', title:'Mutual Non-disclosure Agreement', cp:'Nordlys Retail AS', stage:'Active'}
+];
+const FIELDS = {
+  saas:[
+    {k:'cp', label:'Supplier', hint:'the other party', ph:'Company name'},
+    {k:'addr', label:'Supplier address', ph:'Street, postcode, city'},
+    {k:'reg', label:'Supplier company reg. no.', ph:'e.g. CVR number'},
+    {k:'rep', label:'Supplier notice contact', hint:'clause 39.3', ph:'Name, title and email'},
+    {k:'charge', label:'Minimum Charges per year', hint:'Schedule 3', ph:'Amount', unit:'USD'}
+  ],
+  nda:[
+    {k:'cp', label:'Counterparty', ph:'Company name'},
+    {k:'date', label:'Date of agreement', ph:'e.g. 20 Oct 2026'},
+    {k:'purpose', label:'Purpose of sharing', ph:'e.g. a co-branded promotion'},
+    {k:'term', label:'Secrets stay secret for', ph:'Number', unit:'years'}
+  ]
+};
+/* where the reading on arrival marked the paper: a departure from Our standards, or a risk to check */
+const MARKS = {'5.3':'Deviation','5.6':'Deviation','34.1':'Deviation','8.5':'Check','26.3(d)':'Check','28.1':'Check','5.1':'Check','26.4':'Check'};
+const RISKS = [
+  {title:'Carrier changes · no remedy', lvl:'High', src:'Risk scan', para:'8.5',
+   why:'If a carrier changes or drops its connection, the Supplier may remove that functionality, and the termination and price remedies in 8.5 do not apply. In peak season that means parcels you cannot label or book.',
+   w:{base:{del:'(except only in the case directly caused by a third party carrier outside of the control of the Supplier changes its offered functionality, thereby indirectly forcing a change to the Services)', ins:'(except where a third party carrier outside the control of Supplier changes or withdraws its offered functionality, in which case Supplier shall notify Customer in writing within five (5) Work Days, use best efforts to restore equivalent functionality, including through an alternative carrier integration, at no additional charge, and the remedy in (b) below shall apply to any functionality not restored within thirty (30) days)'},
+      firm:{del:'(except only in the case directly caused by a third party carrier outside of the control of the Supplier changes its offered functionality, thereby indirectly forcing a change to the Services)', ins:'(except where a third party carrier outside the control of Supplier changes or withdraws its offered functionality, in which case Supplier shall notify Customer in writing within two (2) Work Days and restore equivalent functionality within ten (10) Work Days at no additional charge, failing which the remedies in (a) and (b) below shall apply)'},
+      soft:{del:'(except only in the case directly caused by a third party carrier outside of the control of the Supplier changes its offered functionality, thereby indirectly forcing a change to the Services)', ins:'(except where a third party carrier outside the control of Supplier changes its offered functionality, in which case Supplier shall promptly notify Customer and the Parties shall agree in good faith on equivalent functionality or an adjustment of the Charges)'},
+      short:{del:'(except only in the case directly caused by a third party carrier outside of the control of the Supplier changes its offered functionality, thereby indirectly forcing a change to the Services)', ins:'(except where a carrier outside Supplier’s control changes its functionality, in which case Supplier shall notify Customer within five (5) Work Days, restore equivalent functionality at no charge, and remedy (b) applies after thirty (30) days)'}},
+   sum:'Carrier changes: notice, restore, price remedy'},
+  {title:'Cyber breach · inside the cap', lvl:'High', src:'Risk scan', para:'26.3(d)',
+   why:'Clause 23 (Cyber Security) is not on the list of exceptions. A security failure that stops your shipping is limited by the cap in 26.2, while data and confidentiality breaches are not.',
+   w:{base:{del:'22 (Compliance)', ins:'22 (Compliance), 23 (Cyber Security) including Schedule 9 (Cyber Security)'},
+      firm:{del:'22 (Compliance)', ins:'22 (Compliance), 23 (Cyber Security) including Schedule 9 (Cyber Security), 17 (Personal Data) including Schedule 8 (Data Processing Agreement)'},
+      soft:{ins:'Supplier’s aggregate liability for breach of clause 23 (Cyber Security) shall not exceed two (2) times the amount set out in clause 26.2.'},
+      short:{del:'22 (Compliance)', ins:'22 (Compliance), 23 (Cyber Security)'}},
+   sum:'Cyber Security carved out of the cap'},
+  {title:'Ransomware · could be force majeure', lvl:'Medium', src:'Brief · worth a look', para:'28.1',
+   why:'A cyber-attack on the Supplier could be argued as "beyond its control". That would suspend the service levels and your credits exactly when you need them.',
+   w:{base:{ins:'A cyber-attack, ransomware or malware event, or a failure of Supplier’s own systems or Sub-contractors, shall not constitute a Force Majeure Event unless Supplier demonstrates that it was in full compliance with clause 23 (Cyber Security) and its business continuity and disaster recovery plans at the time of the event.'},
+      firm:{ins:'A cyber-attack, ransomware or malware event, a labour dispute affecting Supplier or its Sub-contractors, or a failure of Supplier’s own systems shall in no circumstances constitute a Force Majeure Event.'},
+      soft:{ins:'A cyber-attack on Supplier shall constitute a Force Majeure Event only where Supplier was in compliance with clause 23 (Cyber Security) at the time of the event.'},
+      short:{ins:'Cyber-attacks and failures of Supplier’s own systems are not Force Majeure Events unless Supplier fully complied with clause 23.'}},
+   sum:'Cyber-attacks are not force majeure'},
+  {title:'Minimum Charges · survive an exit', lvl:'Medium', src:'Brief · worth a look', para:'5.1',
+   why:'You can end a Service Order on 30 days\' notice (3.4.2), but nothing says the Minimum Charges end with it. The Supplier could invoice the shortfall under 5.5 for the rest of the year.',
+   w:{base:{ins:'Where Customer terminates a Service Order or this Agreement, whether for convenience or for cause, the Minimum Charges shall be reduced pro rata from the effective date of termination, and no shortfall shall be invoiced for any period after that date.'},
+      firm:{ins:'Where Customer terminates for cause, the Minimum Charges shall cease to apply from the date of Customer’s termination notice; where Customer terminates for convenience, they shall be reduced pro rata from the effective date of termination.'},
+      soft:{ins:'Where Customer terminates for convenience, the Minimum Charges shall be reduced pro rata from the effective date of termination.'},
+      short:{ins:'Minimum Charges end pro rata on any termination by Customer.'}},
+   sum:'Minimum Charges end pro rata on exit'},
+  {title:'Peak outage · re-routing costs', lvl:'Low', src:'Risk scan', para:'26.4',
+   why:'Lost profit is excluded as indirect loss (26.1), and the list of costs you can recover does not include shipping orders another way while the platform is down.',
+   w:{base:{after:'(e) costs of processing, labelling and shipping orders through alternative carriers or channels, including premium freight, while the Services are unavailable.'},
+      firm:{after:'(e) costs of processing, labelling and shipping orders through alternative carriers or channels, including premium freight and contractual penalties paid to Customer’s own customers for late delivery, while the Services are unavailable.'},
+      soft:{after:'(e) reasonable costs of shipping orders through alternative channels where the Services are unavailable for more than four (4) consecutive hours.'},
+      short:{after:'(e) costs of shipping through other channels during an outage.'}},
+   sum:'Re-routing costs are direct damages'}
+];
+const STD_CHANGES = [
+  {para:'5.6', del:'sixty (60) days', ins:'ninety (90) days', sum:'60 → 90 days', why:'Our standards: we pay ninety days from a correct invoice.'},
+  {para:'5.3', ins:'Any adjustment provided for in Schedule 3 (Price) shall not exceed the lower of the annual change in the EU Harmonised Index of Consumer Prices and three per cent (3%), and shall apply no more than once in any twelve (12) month period.', sum:'Increases capped at HICP or 3%, once a year', why:'Our standards: price rises capped at inflation or 3%, once a year.'},
+  {para:'34.1', del:'including Professional liability,', ins:'including Professional liability, Cyber and Technology Errors & Omissions insurance of not less than USD 10,000,000 per claim,', sum:'Cyber cover of USD 10m per claim', why:'Our standards: a supplier holding our data carries cyber cover of at least USD 10 million.'}
+];
+const COUNTER_SUG = {base:'eighty (80) days', firm:'ninety (90) days', soft:'seventy-five (75) days, provided that invoices are submitted through Customer’s e-invoicing portal', short:'eighty (80) days'};
+const COLLEAGUES = [['Maria Ek','Group Treasury'],['Johan Berg','Legal'],['Sara Nilsson','Logistics'],['Erik Holm','IT Procurement']];
+const TEMPLATES = [
+  {id:'nda-m', name:'Our mutual NDA', sub:'Both sides share secrets', kind:'nda', title:'Mutual Non-disclosure Agreement'},
+  {id:'nda-o', name:'Our one-way NDA', sub:'Only they receive secrets', kind:'nda', title:'One-way Non-disclosure Agreement'},
+  {id:'supply', name:'Raw materials supply', sub:'They supply ingredients or materials', kind:'generic', title:'Raw Materials Supply Agreement'},
+  {id:'saas', name:'SaaS agreement', sub:'We subscribe to a software service', kind:'generic', title:'Software as a Service Agreement'},
+  {id:'copack', name:'Co-packing agreement', sub:'They pack our products', kind:'generic', title:'Co-packing Agreement'},
+  {id:'dpa', name:'Data processing agreement', sub:'They handle personal data for us', kind:'generic', title:'Data Processing Agreement'}
+];
+const SLASH = [
+  {w:'redline', cmd:'redline', sub:'Redlines and risks, in the panel'},
+  {w:'sign', cmd:'sign', sub:'Before you sign: the list the Sign button reads'},
+  {w:'board', cmd:'board', sub:'The portfolio: every number is a door'},
+  {w:'deal-board', cmd:'deal board', sub:'Needs you · with them · closed'},
+  {w:'document', cmd:'document', sub:'Back to the paper'},
+  {w:'share', cmd:'share', sub:'Inside the company, or to the other side'},
+  {w:'obligations', cmd:'obligations', sub:'Every duty, ready to print or share'},
+  {w:'history', cmd:'history', sub:'Everything that happened, newest first'},
+  {w:'fill', cmd:'fill in the details', sub:'What the paper still needs'},
+  {w:'calendar', cmd:'calendar', sub:'Your week'},
+  {w:'explorer', cmd:'explorer', sub:'Every contract by counterparty'},
+  {w:'draft', cmd:'draft ', sub:'Say what to draft, in a sentence', fill:true}
+];
+const USES0 = {redline:14, sign:9, board:8, 'deal-board':7, document:6, share:5, obligations:4, history:4, fill:3, calendar:2, explorer:1, draft:1};
+
+/* ---------------- state ---------------- */
+let CMD_YOU = null, EPOCH = 0, FAST = false, CLOCK = 16 * 60 + 2, CHG = 0;
+const TIMERS = new Set();
+const clock = () => { CLOCK += 1; return String(Math.floor(CLOCK / 60)).padStart(2, '0') + ':' + String(CLOCK % 60).padStart(2, '0'); };
+const d = ms => FAST ? Promise.resolve() : new Promise(r => setTimeout(r, ms));
+function later(fn, ms){ const ep = EPOCH; const id = setTimeout(() => { TIMERS.delete(id); if (ep === EPOCH) fn(); }, ms); TIMERS.add(id); }
+const sim = (fn, ms) => FAST ? fn() : later(fn, ms);
+const fresh = () => ({
+  face:'document', board:'portfolio', pface:'home', ptab:'jambo', cur:null,
+  trail:[], ex:null, wallStage:'All', zoom:100, busy:null,
+  book: OTHER_BOOK.map(b => ({...b, kind:'generic', fields:{}, changes:[], risks:[], history:[]})),
+  editor:null, dlg:null, rail:false, signersOpen:false, padOpen:false, openClause:null, lit:null,
+  histQ:'', draftAsk:null, focusField:null, newId:null, nextNo:459, uses:{...USES0}, pop:null, showCovered:false
+});
+let S = fresh();
+const cur = () => S.book.find(b => b.id === S.cur) || null;
+const cpOf = c => c ? ((c.fields && c.fields.cp) || c.cp || '') : '';
+const owedOf = c => (c && FIELDS[c.kind]) ? FIELDS[c.kind].filter(f => !String(c.fields[f.k] || '').trim()) : [];
+const worked = c => !!c && c.kind !== 'generic';
+const live = x => !['countered','rejected','withdrawn'].includes(x.status);
+function stageOf(c){
+  if (!c) return '';
+  if (c.kind === 'generic') return c.stage;
+  if (c.signedThem && c.signedUs) return 'Active';
+  if (c.signedUs || c.signedThem) return 'Signing';
+  if (c.changes.some(x => x.status !== 'unsent')) return 'Negotiating';
+  return 'Drafting';
+}
+function log(c, text, who){ if (!c) return; c.history.unshift({at:clock(), text, who: who || 'Young Mbg'}); }
+const pinfo = (c, pid) => (PIDX[c.kind] || {})[pid];
+function paraTitle(t){ const m = /^([A-Z][^.]{2,90}?)\.\s/.exec(t); return m && m[1].split(' ').length <= 12 ? m[1] : ''; }
+function paraName(c, pid){ const f = pinfo(c, pid); if (!f) return pid; const t = paraTitle(f.p.t); return `${pid} ${t || f.cl.h}`; }
+const theirContact = c => /northlane/i.test(cpOf(c)) ? {name:'Mikkel Sørensen', mail:'mikkel.sorensen@northlane-parcel.example', title:'Chief Commercial Officer'} : /volvo/i.test(cpOf(c)) ? {name:'Lars Ström', mail:'lars.strom@volvo.example', title:'Head of Brand Partnerships'} : {name:'', mail:'', title:''};
+const theirShort = c => (cpOf(c) || 'the other side').replace(/\s+(A\/S|AB|AS|Oy|Ltd)$/,'');
+
+/* ---------------- the paper ---------------- */
+function blankHtml(c, k){
+  const v = String(c.fields[k] || '').trim();
+  const shown = k === 'charge' ? fmtNum(v) : v;
+  return `<span class="bl ${v ? 'is-set' : 'is-need'}" data-act="blank" data-k="${k}" data-bl="${k}">${v ? esc(shown) : '—'}</span>`;
+}
+function fillTokens(text, c){ return esc(text).replace(/\{(\w+)\}/g, (_, k) => blankHtml(c, k)); }
+function plainTokens(text, c){ return text.replace(/\{(\w+)\}/g, (_, k) => { const v = String(c.fields[k] || '').trim(); return v ? (k === 'charge' ? fmtNum(v) : v) : '____'; }); }
+function withChanges(html, c, pid, opt){
+  const o = opt || {};
+  for (const x of c.changes.filter(y => y.para === pid && !y.after)){
+    if (!live(x) && !(o.asAccepted && x.id === o.asAccepted)) continue;
+    const a = x.status === 'accepted' || (o.asAccepted && x.id === o.asAccepted);
+    const cls = x.side === 'theirs' ? ' class="th"' : '';
+    if (x.whole) html = a ? esc(x.ins) : `<del>${html}</del> <ins${cls}>${esc(x.ins)}</ins>`;
+    else if (x.del){ const dd = esc(x.del); if (html.includes(dd)) html = html.replace(dd, a ? esc(x.ins) : `<del>${dd}</del><ins${cls}>${esc(x.ins)}</ins>`); }
+    else html += ' ' + (a ? esc(x.ins) : `<ins${cls}>${esc(x.ins)}</ins>`);
+  }
+  return html;
+}
+function paraHtml(c, cl, p){
+  const head = p.kind === 'p' || p.kind === 'p3';
+  const title = head ? paraTitle(p.t) : '';
+  const body = title ? p.t.slice(title.length + 1).trimStart() : p.t;
+  const html = withChanges(fillTokens(body, c), c, p.id);
+  const mark = c.kind === 'saas' && MARKS[p.id];
+  const no = head ? p.id : (p.label || '');
+  let out = `<div class="pa k-${p.kind}${mark ? ' m' : ''}${S.lit === p.id ? ' lit' : ''}" id="pa-${cssId(p.id)}" data-pid="${esc(p.id)}">${p.kind === 'cont' ? '' : `<span class="no">${esc(no)}</span>`}<div class="tx">${title ? `<b>${esc(title)}.</b> ` : ''}${html}${mark ? `<span class="tg">${mark}</span>` : ''}</div></div>`;
+  for (const x of c.changes.filter(y => y.para === p.id && y.after && live(y))){
+    const a = x.status === 'accepted';
+    out += `<div class="pa k-li newp"><span class="no"></span><div class="tx">${a ? esc(x.after) : `<ins>${esc(x.after)}</ins>`}</div></div>`;
+  }
+  return out;
+}
+function sigHtml(c){
+  const cp = cpOf(c); const tc = theirContact(c);
+  const usSig = c.signedUs ? (c.signedUs.img ? `<img src="${c.signedUs.img}" alt="Signature of Young Mbg">` : `<span class="hand">Young Mbg</span>`) : '';
+  const themSig = c.signedThem ? `<span class="hand">${esc(c.signedThem.name)}</span>` : '';
+  const col = (who, sig, name, title, date) => `<div><div class="for">${who}</div><div class="ln">${sig}</div><div class="nm">Authorized signature</div>
+    <div class="ln2">Name: ${name}</div><div class="ln2">Title: ${title}</div><div class="ln2">Date: ${date}</div></div>`;
+  return `<div class="sig" id="sigblock">${col('Customer: HaTi AB', usSig, c.signers ? 'Young Mbg' : '', c.signers ? 'General Counsel' : '', c.signedUs ? esc(c.signedUs.at) + ', 14 Oct 2026' : '')}${col('Supplier: ' + (cp ? esc(cp) : '—'), themSig, c.signers ? esc(c.signerThem || '') : '', c.signers ? esc(tc.title || '') : '', c.signedThem ? esc(c.signedThem.at) + ', 14 Oct 2026' : '')}</div>`;
+}
+function paperHtml(c){
+  const cls = CLAUSES[c.kind];
+  const body = cls.map(cl => `<div class="cl" id="cl-${cl.n}"><h3>${cl.n}. ${esc(cl.h)}</h3>${cl.paras.map(p => paraHtml(c, cl, p)).join('')}</div>`).join('');
+  const top = `<div class="org">HATI</div><div class="orgsub">556123-4567 · Gothenburg, Sweden</div><div class="dbl"></div>`;
+  if (c.kind === 'saas'){
+    return top + `<div class="kind">SOFTWARE AS A SERVICE AGREEMENT</div><h1>Software as a Service Agreement for a multi-carrier Parcel Management Solution</h1><div class="rule"></div>
+      <p class="ctr">between</p>
+      <p class="ctr"><b>HaTi AB</b><br>Box 1234, 411 01 Gothenburg, Sweden<br>Company reg. no.: 556123-4567<br>(hereinafter “Customer”)</p>
+      <p class="ctr">and</p>
+      <p class="ctr">${blankHtml(c,'cp')}<br>${blankHtml(c,'addr')}<br>Company reg. no.: ${blankHtml(c,'reg')}<br>(hereinafter “Supplier”)</p>
+      <p class="ctr sm">(Customer or Supplier are herein individually referred to as “Party” and collectively referred to as the “Parties”)</p>
+      <div class="sched"><b>Schedules</b><ol><li>Definitions</li><li>Service Specifications</li><li>Price — Minimum Charges of USD ${blankHtml(c,'charge')} per year</li><li>Compliance</li><li>Service Order Template</li><li>Service Levels</li><li>Termination Services</li><li>Data Processing Agreement</li><li>Cyber Security</li><li>Transition Services and Project Terms</li></ol></div>
+      ${body}${sigHtml(c)}`;
+  }
+  if (c.kind === 'nda') return top + `<div class="kind">SWEDEN · NON-DISCLOSURE</div><h1>${esc(c.title)}</h1><div class="rule"></div><p>This Agreement is made on ${blankHtml(c,'date')} between <b>HaTi AB</b> and ${blankHtml(c,'cp')}, each of whom may disclose confidential information to the other.</p>${body}${sigHtml(c)}`;
+  return top + `<div class="kind">SWEDEN · ${esc(c.title.toUpperCase())}</div><h1>${esc(c.title)}</h1><div class="rule"></div><p>This Agreement is made between <b>HaTi AB</b> and <b>${esc(cpOf(c))}</b>.</p>${body}`;
+}
+
+/* ---------------- canvas faces ---------------- */
+const canvasKey = () => [S.face, S.board, S.cur].join('|');
+function renderCanvas(){
+  const cv = $('#cv');
+  const keep = cv.querySelector('.scroller, .wall, .bd');
+  const keepTop = keep && cv.dataset.key === canvasKey() ? keep.scrollTop : 0;
+  let html = '';
+  if (S.face === 'document') html = S.cur ? docHtml() : wallHtml();
+  else if (S.face === 'board') html = boardHtml();
+  else if (S.face === 'calendar') html = calendarHtml();
+  else html = explorerHtml();
+  cv.innerHTML = html; cv.dataset.key = canvasKey();
+  const sc = cv.querySelector('.scroller, .wall, .bd'); if (sc) sc.scrollTop = keepTop;
+  $$('#faces button').forEach(b => b.classList.toggle('on', b.dataset.f === S.face));
+}
+function stripHtml(c){
+  const cp = cpOf(c); const st = stageOf(c);
+  return `<div class="strip"><span class="dot s-${st}"></span><span class="ref">${esc(c.id)}</span><span>·</span><span class="ttl">${esc(c.title)}</span><span>·</span>
+      <span class="cpn${cp ? '' : ' need'}">${cp ? esc(cp) : 'No supplier yet'}</span><span>·</span><span class="stg">${st}</span><span class="sp"></span>
+      <button class="btn sm" type="button" data-act="cmd" data-c="another contract">Another contract</button></div>`;
+}
+function docHtml(){
+  const c = cur();
+  return stripHtml(c) + `<div class="scroller" id="scroller" style="--z:${S.zoom / 100}">
+      <div class="zrow"><div class="zc"><button type="button" data-act="zoom" data-z="-10" aria-label="Smaller">−</button><span>${S.zoom}%</span><button type="button" data-act="zoom" data-z="10" aria-label="Larger">+</button></div></div>
+      <div class="sheet" id="sheet">${paperHtml(c)}</div></div>`;
+}
+function wallHtml(){
+  const stages = ['All','Drafting','Negotiating','Signing','Active'];
+  const list = S.book.filter(b => S.wallStage === 'All' || stageOf(b) === S.wallStage);
+  return `<div class="strip"><span class="ttl"><b>Every contract</b></span><span class="stg">· ${S.book.length} papers · press one, or type its name</span></div>
+    <div class="wall"><div class="wall-h"><div class="seg">${stages.map(s => `<button type="button" class="${S.wallStage === s ? 'on' : ''}" data-act="wallstage" data-s="${s}">${s}</button>`).join('')}</div></div>
+    <div class="grid">${list.map(b => `<button type="button" class="mini${b.id === S.newId ? ' new' : ''}" data-act="open" data-id="${b.id}">
+        <span class="r">${esc(b.id)}</span><span class="t">${esc(b.title)}</span><span class="ls"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        <span class="bt"><span class="c">${esc(cpOf(b) || 'No counterparty yet')}</span><span class="chip-s"><span class="dot s-${stageOf(b)}"></span>${stageOf(b)}</span></span></button>`).join('') || '<p class="mut">Nothing at this stage.</p>'}</div></div>`;
+}
+function boardHead(title, sub, extra, back = true){
+  return `<div class="bd-h">${back ? `<button class="lnk" type="button" data-act="board" data-b="portfolio">‹ Portfolio</button>` : ''}<span class="tt">${title}</span><span class="sub">${sub || ''}</span><span class="sp"></span>${extra || ''}</div>`;
+}
+const outActs = `<button class="btn sm" type="button" data-act="print">${ic('print',14)} Print</button><button class="btn sm" type="button" data-act="cmd" data-c="share">${ic('send',14)} Share</button><button class="btn sm" type="button" data-act="download">${ic('download',14)} Download</button>`;
+function boardHtml(){
+  const c = cur();
+  if (S.board === 'deal' && worked(c)) return `<div class="bd">${boardHead('Deal board', esc(c.id + ' · ' + c.title), outActs)}${dealHtml(c)}</div>`;
+  if (S.board === 'obligations') return `<div class="bd">${boardHead('Obligations', c ? esc(c.id + ' · ' + c.title) : 'Every contract', outActs)}${obligationsTable(c)}</div>`;
+  if (S.board === 'history') return `<div class="bd">${boardHead('History', c ? esc(c.id + ' · ' + c.title) : 'Every contract', `<input class="srchbox" id="hist-q" type="text" placeholder="Search the history" value="${esc(S.histQ)}">` + outActs)}${historyHtml(c)}</div>`;
+  return `<div class="bd">${boardHead('Portfolio', plural(S.book.length, 'contract'), '', false)}${portfolioHtml()}</div>`;
+}
+function portfolioHtml(){
+  const by = s => S.book.filter(b => stageOf(b) === s).length;
+  const stages = ['Drafting','Negotiating','Signing','Active'];
+  const max = Math.max(1, ...stages.map(by));
+  const needs = needsList();
+  const figs = [
+    {k:'Contracts', v:S.book.length, d:'In the book', s:'All'},
+    {k:'Drafting', v:by('Drafting'), d:'Not sent yet', s:'Drafting', w:true},
+    {k:'Negotiating', v:by('Negotiating'), d:'Changes on the table', s:'Negotiating'},
+    {k:'Signing', v:by('Signing'), d:'Waiting on a signature', s:'Signing'},
+    {k:'Active', v:by('Active'), d:'Signed and running', s:'Active'}
+  ];
+  return `<div class="figs">${figs.map(f => `<button type="button" class="fig${f.w && f.v ? ' warn' : ''}" data-act="wallgo" data-s="${f.s}"><span class="k">${f.k}</span><span class="v">${f.v}</span><span class="d">${f.d}</span></button>`).join('')}</div>
+    <div class="cards2">
+      <div class="card"><h4>Contracts by stage</h4><div class="bars">${stages.map(s => `<div class="row"><span>${s}</span><span class="tr"><i style="width:${by(s) / max * 100}%"></i></span><span class="n">${by(s)}</span></div>`).join('')}</div></div>
+      <div class="card"><h4>Needs you · ${needs.length}</h4><div class="lst">${needs.map(n => `<button type="button" class="it" data-act="needgo" data-id="${n.id}" data-c="${n.cmd}"><span class="r">${n.id}</span><span class="x">${esc(n.text)}</span><span class="go">${n.go} ›</span></button>`).join('')}</div></div>
+    </div>
+    <div class="card"><h4>Lately</h4><div class="lst">${lately().map(e => `<div class="it" style="cursor:default"><span class="r">${esc(e.id)}</span><span class="x">${esc(e.text)}</span><span class="mut small">${esc(e.at)}</span></div>`).join('')}</div></div>`;
+}
+function needsList(){
+  const out = [];
+  for (const c of S.book.filter(worked)){
+    const ow = owedOf(c).length, un = c.changes.filter(x => x.status === 'unsent').length, aw = c.changes.filter(x => x.status === 'awaiting').length;
+    if (ow) out.push({id:c.id, text:`${plural(ow, 'detail')} still empty`, go:'Fill in', cmd:'fill in the details'});
+    if (aw) out.push({id:c.id, text:`${theirShort(c)} countered ${plural(aw, 'change')}`, go:'Redlines', cmd:'redline'});
+    if (un) out.push({id:c.id, text:`${plural(un, 'change')} not sent to ${theirShort(c)}`, go:'Redlines', cmd:'redline'});
+  }
+  out.push({id:'MK-447', text:'Ready for your signature', go:'Open', cmd:''});
+  out.push({id:'MK-451', text:'Nordfilm countered the price-adjustment clause', go:'Open', cmd:''});
+  return out;
+}
+function lately(){
+  const mine = S.book.flatMap(c => c.history.slice(0, 4).map(h => ({id:c.id, text:h.text, at:'Today ' + h.at})));
+  return mine.slice(0, 4).concat([
+    {id:'MK-451', text:'Nordfilm Packaging AB answered 4 changes', at:'Yesterday'},
+    {id:'MK-447', text:'Aurora Data Oy signed', at:'Yesterday'},
+    {id:'MK-415', text:'Renewal notice window opens in 60 days', at:'Mon'}
+  ]).slice(0, 6);
+}
+function dealHtml(c){
+  const needs = [], withThem = [], closed = [];
+  const cp = theirShort(c);
+  for (const x of c.changes){
+    if (['countered','withdrawn'].includes(x.status)) continue;
+    const words = x.after || x.ins;
+    const card = `<button type="button" class="dc" data-act="goclause" data-pid="${esc(x.para)}"><b>${esc(paraName(c, x.para))}</b><span class="w">${x.del ? `<del>${esc(x.del.length > 60 ? x.del.slice(0, 58) + '…' : x.del)}</del> ` : ''}<ins${x.side === 'theirs' ? ' class="th"' : ''}>${esc(words.length > 110 ? words.slice(0, 108) + '…' : words)}</ins></span><span class="mut">${x.status === 'unsent' ? 'Ours · not sent yet' : x.status === 'sent' ? 'Sent · waiting on ' + esc(cp) : x.status === 'awaiting' ? 'Their counter · your decision' : x.status === 'rejected' ? 'Refused' : 'Agreed'}</span></button>`;
+    (x.status === 'unsent' || x.status === 'awaiting' ? needs : x.status === 'sent' ? withThem : closed).push(card);
+  }
+  c.risks.forEach((r, i) => {
+    if (r.gone){ closed.push(`<div class="dc" style="cursor:default"><b>${esc(r.title)}</b><span class="mut">Set aside by Young</span></div>`); return; }
+    if (c.changes.some(x => x.risk === i && live(x))) return;
+    needs.push(`<button type="button" class="dc" data-act="goclause" data-pid="${esc(r.para)}"><b>${esc(r.title)}</b><span class="mut">Risk on ${esc(r.para)} · no change drafted yet</span></button>`);
+  });
+  const col = (t, a) => `<div class="col"><h5>${t}<span>${a.length}</span></h5>${a.join('') || '<div class="none">Nothing here.</div>'}</div>`;
+  return `<div class="cols3">${col('Needs you', needs)}${col('With them', withThem)}${col('Closed', closed)}</div>`;
+}
+function payDays(c){ const x = c.changes.find(y => y.para === '5.6' && y.status === 'accepted' && y.del); return x ? x.ins : 'sixty (60) days'; }
+function obligationsTable(c){
+  let rows;
+  if (c && c.kind === 'saas'){
+    const them = cpOf(c) || 'Supplier';
+    rows = [
+      ['Pay undisputed invoices', 'HaTi AB', `${payDays(c).replace(/^./, ch => ch.toUpperCase())} from a correct invoice (5.6)`, 'Per Schedule 3', 'Ongoing'],
+      ['Minimum Charges', 'HaTi AB', 'Each year (5.1, Schedule 3)', c.fields.charge ? 'USD ' + fmtNum(c.fields.charge) : 'Not set yet', 'Committed'],
+      ['Renew a Service Order', 'HaTi AB', '30 days before it expires (3.3)', '—', 'Date-driven'],
+      ['Notify a Customer Data incident', them, 'Within 24 hours of becoming aware (18.6)', '—', 'When needed'],
+      ['Plan to prevent a repeat incident', them, 'Within 10 days of the incident (18.6)', '—', 'When needed'],
+      ['Notice of planned maintenance', them, '30 days before (8.2)', '—', 'Ongoing'],
+      ['Make Customer Data available', them, 'Within 5 Work Days of a request (18.4)', '—', 'On request'],
+      ['Submit ISAE 3402 type II report', them, 'Every year (23.2)', '—', 'Annual'],
+      ['Answer a change request', them, 'Within 10 Work Days (14.1)', '—', 'On request'],
+      ['Notify a Change of Control', them, 'One month before it happens (3.6.1)', '—', 'When needed']
+    ];
+  } else if (c && c.kind === 'nda'){
+    rows = [['Keep their information secret', 'Both parties', `For ${c.fields.term || '—'} years`, '—', 'Ongoing'], ['Return or destroy information on request', 'Both parties', 'Within 10 days of asking', '—', 'Only if asked']];
+  } else {
+    rows = [
+      ['Certificate of analysis per batch', 'Fjäll Ingredients AB', 'With every delivery', '—', 'Ongoing'],
+      ['Quarterly service review', 'Kallax Freight AB', '31 Oct 2026', '—', 'Upcoming'],
+      ['Rent for November', 'HaTi AB', '1 Nov 2026', 'SEK 1,820,000', 'Upcoming'],
+      ['Renewal decision', 'HaTi AB', '15 Dec 2026', '—', 'Notice window'],
+      ['Volume true-up', 'HaTi AB', '31 Dec 2026', 'EUR 64,500', 'Upcoming']
+    ];
+  }
+  return `<table class="tbl"><thead><tr><th>Duty</th><th>Who</th><th>When</th><th>Amount</th><th>Status</th></tr></thead><tbody>${rows.map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td class="num">${esc(r[3])}</td><td>${esc(r[4])}</td></tr>`).join('')}</tbody></table>`;
+}
+function historyHtml(c){
+  let evs = c ? c.history.map(h => ({...h})) : S.book.flatMap(b => b.history.map(h => ({...h, text: b.id + ' · ' + h.text})));
+  const q = S.histQ.trim().toLowerCase();
+  if (q) evs = evs.filter(e => e.text.toLowerCase().includes(q) || e.who.toLowerCase().includes(q));
+  const older = c ? [] : [{at:'15:12', text:'MK-451 · Nordfilm Packaging AB answered 4 changes', who:'Nordfilm Packaging AB'}, {at:'09:40', text:'MK-447 · Aurora Data Oy signed', who:'Aurora Data Oy'}];
+  const ev = e => `<div class="ev"><span class="tm">${esc(e.at)}</span><span class="rg"></span><span class="tx"><b>${esc(e.text)}</b><br><span class="who">${esc(e.who)}</span></span></div>`;
+  return `<div class="hist"><div class="day">Today · 14 Oct 2026</div>${evs.map(ev).join('') || '<p class="mut">Nothing yet today.</p>'}${older.length ? '<div class="day">Yesterday · 13 Oct 2026</div>' + older.map(ev).join('') : ''}</div>`;
+}
+function calendarHtml(){
+  const days = ['Mon 12','Tue 13','Wed 14','Thu 15','Fri 16'];
+  const hours = [9,10,11,12,13,14,15,16];
+  const evs = {
+    '0-10':['Call with Nordfilm','MK-451 · price adjustment'], '1-14':['DPA review with Johan (Legal)','MK-447'],
+    '2-9':['Co-packer QA audit','MK-428 · Brightwater', 'amb'], '3-13':['Freight renewal notice','MK-415 · Kallax', 'amb'], '4-11':['DPA signature deadline','MK-447 · Aurora Data']
+  };
+  let g = `<div class="calg"><div class="hh" style="border-left:0"></div>${days.map((x, i) => `<div class="hh${i === 2 ? ' today' : ''}">${x}${i === 2 ? ' · today' : ''}</div>`).join('')}`;
+  for (const h of hours){
+    g += `<div class="tc">${String(h).padStart(2, '0')}:00</div>`;
+    for (let i = 0; i < 5; i++){ const e = evs[i + '-' + h];
+      g += `<div class="cc${i === 2 ? ' today' : ''}">${e ? `<button type="button" class="evb${e[2] ? ' ' + e[2] : ''}" data-act="calopen" data-id="${e[1].slice(0, 6)}">${esc(e[0])}<span>${esc(e[1])}</span></button>` : ''}</div>`; }
+  }
+  return `<div class="bd"><div class="bd-h"><span class="tt">Week of 12 Oct 2026</span><span class="sub">2 things need you this week</span></div>${g}</div></div>`;
+}
+function explorerHtml(){
+  const W = 860, H = 600; const groups = {};
+  S.book.forEach(b => { const k = cpOf(b) || 'No counterparty yet'; (groups[k] = groups[k] || []).push(b); });
+  const keys = Object.keys(groups); const cx = W / 2, cy = H / 2 + 10;
+  const col = s => ({Drafting:'#50648A', Negotiating:'#264c9e', Signing:'#5B3FC4', Active:'#12796D'}[s] || '#50648A');
+  let edges = '', nodes = '';
+  keys.forEach((k, i) => {
+    const a = (i / keys.length) * Math.PI * 2 - Math.PI / 2; const R = 210;
+    const hx = cx + Math.cos(a) * R, hy = cy + Math.sin(a) * R * .78;
+    nodes += `<g><circle cx="${hx}" cy="${hy}" r="9" fill="#EEF2F9" stroke="#BAC8E4"/><text x="${hx}" y="${hy - 16}" text-anchor="middle" font-size="12.5" font-weight="600" fill="#091938">${esc(k)}</text></g>`;
+    groups[k].forEach((b, j) => {
+      const n = groups[k].length; const aa = a + (j - (n - 1) / 2) * .5;
+      const bx = hx + Math.cos(aa) * 62, by = hy + Math.sin(aa) * 62;
+      edges += `<line x1="${hx}" y1="${hy}" x2="${bx}" y2="${by}" stroke="#DAE2F1" stroke-width="1.5"/>`;
+      nodes += `<g class="nd" data-act="open" data-id="${b.id}"><circle cx="${bx}" cy="${by}" r="17" fill="${col(stageOf(b))}" fill-opacity=".9"/><text x="${bx}" y="${by + 4}" text-anchor="middle" font-size="10" font-weight="600" fill="#ffffff">${b.id.slice(3)}</text></g>`;
+    });
+    edges += `<line x1="${cx}" y1="${cy}" x2="${hx}" y2="${hy}" stroke="#DAE2F1" stroke-width="1"/>`;
+  });
+  nodes += `<g><circle cx="${cx}" cy="${cy}" r="26" fill="#264c9e"/><text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">HaTi</text></g>`;
+  return `<div class="bd"><div class="bd-h"><span class="tt">Explorer</span><span class="sub">Every contract by counterparty · press a circle to open its paper</span></div><svg class="exsvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Contracts grouped by counterparty">${edges}${nodes}</svg></div>`;
+}
+
+/* ---------------- panel ---------------- */
+let lastPanelKey = '';
+function renderPanel(){
+  const c = cur();
+  $('#ptabs').innerHTML = [['jambo','Jambo',`<img src="${FACE.hello}" alt="">`],['clauses','Clauses',ic('square',18)],['obligations','Obligations',ic('flag',18)]]
+    .map(([k, l, i]) => `<button type="button" class="${S.ptab === k ? 'on' : ''}" data-act="ptab" data-t="${k}">${i}${l}</button>`).join('');
+  const body = $('#pbody');
+  const key = [S.ptab, S.pface, S.cur].join('|');
+  const top = key === lastPanelKey ? body.scrollTop : 0;
+  body.innerHTML = S.ptab === 'clauses' ? clausesTab(c) : S.ptab === 'obligations' ? obTab(c) : jamboTab(c);
+  body.scrollTop = top; lastPanelKey = key;
+  wirePad();
+  paintChips();
+  $('#ask').placeholder = c ? `Ask about ${c.id}, or type / for places…` : 'Ask Jambo, or type / for places…';
+  if (S.focusField && !FAST){ const inp = $(`[data-field="${S.focusField}"]`); if (inp){ inp.focus(); inp.scrollIntoView({block:'center'}); } }
+  S.focusField = null;
+}
+function paintChips(){ $('#pchips').innerHTML = chipsFor(cur()).map(ch => `<button type="button" class="${ch.cls || ''}" data-act="cmd" data-c="${esc(ch.c)}">${esc(ch.c)}</button>`).join(''); }
+function chipsFor(c){
+  const L = a => a.map(x => typeof x === 'string' ? {c:x} : x);
+  if (!c) return L([{c:'upload a document', cls:'acc'}, 'MK-451', 'draft an NDA with Volvo', 'board']);
+  if (!worked(c)) return L(['board', 'history', 'another contract', 'calendar']);
+  const ow = owedOf(c).length, un = c.changes.filter(x => x.status === 'unsent').length, aw = c.changes.filter(x => x.status === 'awaiting').length;
+  if (c.signedUs && c.signedThem) return L(['history', 'obligations', 'board', 'another contract']);
+  if (c.signedUs) return L([{c:'share', cls:'acc'}, 'history', 'obligations', 'board']);
+  if (ow) return L([{c:'fill in the details', cls:'amb'}, 'redline', 'sign', 'history']);
+  if (aw) return L([{c:'redline', cls:'amb'}, 'deal board', 'sign', 'history']);
+  if (!c.changes.length) return L(['redline', 'deal board', 'sign', 'share']);
+  if (un) return L([{c:'share', cls:'acc'}, 'deal board', 'sign', 'history']);
+  return L([{c:'sign', cls:'acc'}, 'deal board', 'history', 'obligations']);
+}
+function exHtml(){
+  let h = '';
+  if (S.trail.length && S.ptab === 'jambo') h += `<button class="backrow" type="button" data-act="back">${ic('left',15)} Back to ${esc(placeLabel(S.trail[S.trail.length - 1]))}</button>`;
+  if (S.ex && S.ex.you) h += `<div class="you">${esc(S.ex.you)}</div>`;
+  if (S.ex && (S.ex.jambo || S.ex.thinking)) h += `<div class="jb"><img src="${S.ex.thinking ? FACE.think : FACE.hello}" alt=""><div class="bub">${S.ex.thinking ? '<span class="ring"></span>Thinking…' : S.ex.jambo}</div></div>`;
+  return h;
+}
+function jamboTab(c){
+  if (S.ex && S.ex.thinking) return exHtml();
+  if (S.busy) return exHtml() + `<div class="jb"><img src="${FACE.think}" alt=""><div class="bub"><span class="ring"></span>${esc(S.busy)}</div></div>`;
+  const f = S.pface; let face = '';
+  if (f === 'fill' && worked(c)) face = fillFace(c);
+  else if (f === 'redlines' && worked(c)) face = redlinesFace(c);
+  else if (f === 'sign' && worked(c)) face = signFace(c);
+  else if (f === 'share' && c) face = shareFace(c);
+  else if (f === 'draft') face = draftFace();
+  else if (f === 'help') face = helpFace();
+  else face = homeFace(c);
+  return exHtml() + face;
+}
+function homeFace(c){
+  if (!c){
+    const greet = S.ex ? '' : `<div class="jb"><img src="${FACE.hello}" alt=""><div class="bub">Good afternoon, Young. Press a paper on the left, type a contract's name, or drop a file here.</div></div>`;
+    return greet + `<div class="drop" id="drop">${ic('upload',26)}<b>Drop a Word or PDF file here</b><span class="small">It opens as the paper, and I read it straight away.</span><button class="btn pri" type="button" data-act="upload">Use your file · SaaS_agreement_standard.docx</button></div>`;
+  }
+  if (!worked(c)) return (S.ex ? '' : `<div class="jb"><img src="${FACE.hello}" alt=""><div class="bub">${esc(c.id)} is open to read. In this demo the full journey is wired on your SaaS agreement and on new drafts; the Board, history, calendar and Explorer work here too.</div></div>`);
+  const ow = owedOf(c).length, risks = c.risks.filter((r, i) => !r.gone && !c.changes.some(x => x.risk === i && live(x))).length, un = c.changes.filter(x => x.status === 'unsent').length;
+  const rows = [];
+  if (ow) rows.push([`${plural(ow, 'detail')} still empty.`, 'Fill in', 'fill in the details']);
+  if (risks) rows.push([`${plural(risks, 'risk')} to look at.`, 'Redlines', 'redline']);
+  if (un) rows.push([`${plural(un, 'change')} not sent.`, 'Share', 'share']);
+  if (!c.signers) rows.push(['Nobody has been named to sign yet.', 'Signing', 'sign']);
+  return (S.ex ? '' : `<div class="jb"><img src="${FACE.hello}" alt=""><div class="bub">Here is what I found. Each step is yours to press.</div></div>`) +
+    `<div class="box"><div class="box-h"><b>${esc(c.id)} at a glance</b><span class="sp"></span><span class="pill blu">${stageOf(c)}</span></div><div class="box-b">${rows.map(r => `<div style="display:flex;gap:10px;align-items:center"><span style="flex:1">${r[0]}</span><button class="btn sm" type="button" data-act="cmd" data-c="${r[2]}">${r[1]}</button></div>`).join('') || '<span class="alldone">' + ic('check',15) + ' Nothing is waiting on you.</span>'}</div></div>`;
+}
+function fillFace(c){
+  const ow = owedOf(c).length;
+  return `<div class="box"><div class="box-h"><b>Fill in the details</b><span class="sp"></span><span class="pill ${ow ? 'amb' : 'grn'}" id="owed-pill">${ow ? ow + ' left' : 'All in'}</span></div>
+    <div class="box-b"><span class="mut small">What the paper still needs. As you type, the blank on the paper fills in.</span>
+    ${FIELDS[c.kind].map(f => { const v = c.fields[f.k] || ''; return `<div class="fld"><label for="f-${f.k}">${f.label}${f.hint ? ` <span>· ${f.hint}</span>` : ''}</label><div class="in${v.trim() ? '' : ' need'}"><input id="f-${f.k}" data-field="${f.k}" type="text" value="${esc(v)}" placeholder="${esc(f.ph)}" autocomplete="off">${f.unit ? `<span class="u">${f.unit}</span>` : ''}</div></div>`; }).join('')}
+    <div class="fld"><label>Stream <span>· asked, never owed</span></label><div class="seg" style="width:max-content">${['Logistics','IT','Procurement'].map(s => `<button type="button" class="${c.stream === s ? 'on' : ''}" data-act="stream" data-s="${s}">${s}</button>`).join('')}</div></div>
+    <div id="fill-done">${ow ? '' : fillDoneHtml()}</div></div></div>`;
+}
+const fillDoneHtml = () => `<span class="alldone">${ic('check',15)} All details are in. Next: type <b>redline</b>, or <b>sign</b>.</span>`;
+
+/* ---- the redlines column: HaTi's piles, rows and verbs ---- */
+const BANDS = [['awaiting','Awaiting you'],['drafts','Your drafts, not yet sent'],['with','With {who}'],['accepted','Settled this round']];
+const bandOf = x => x.status === 'awaiting' ? 'awaiting' : x.status === 'unsent' ? 'drafts' : x.status === 'sent' ? 'with' : x.status === 'accepted' ? 'accepted' : null;
+function rowHtml(c, x){
+  const theirs = x.side === 'theirs';
+  const who = theirs ? `<span class="th">theirs</span>${x.onTopN ? ` on your R${x.onTopN}` : ''}` : '<span class="yo">yours</span>';
+  const src = x.src ? ` · ${esc(x.src)}` : '';
+  let face = '';
+  if (x.status === 'awaiting') face = verb('', 'chg-accept', 'check', 'Accept', ` data-id="${x.id}"`) + verb('v-rej', 'chg-reject', 'x', 'Reject', ` data-id="${x.id}"`) + verb('', 'chg-counter', 'edit', 'Counter', ` data-id="${x.id}"`) + verb('v-q', 'chg-ladder', 'ladder', 'Ladder', ` data-id="${x.id}"`);
+  else if (x.status === 'unsent') face = verb('', 'chg-edit', 'edit', 'Edit', ` data-id="${x.id}"`) + verb('', 'chg-send', 'out', 'Send', ` data-id="${x.id}"`) + verb('v-q', 'chg-ladder', 'ladder', 'Ladder', ` data-id="${x.id}"`) + verb('v-bin', 'chg-discard', 'bin', 'Discard', ` data-id="${x.id}"`);
+  else if (x.status === 'sent') face = verb('v-q', 'chg-ladder', 'ladder', 'Ladder', ` data-id="${x.id}"`) + verb('v-q', 'chg-withdraw', 'undo', 'Withdraw', ` data-id="${x.id}"`);
+  else face = verb('v-q', 'chg-ladder', 'ladder', 'Ladder', ` data-id="${x.id}"`);
+  return `<div class="rlrow${x.status === 'accepted' ? ' quiet' : ''}"><div class="mr" data-act="goclause" data-pid="${esc(x.para)}"><span class="mt">${esc(paraName(c, x.para))}</span><span class="rid">${esc(x.id)}</span></div>
+    <div class="sum">R${x.rung} · ${who} · ${esc(x.sum)}${src}</div><div class="face">${face}</div></div>`;
+}
+function redlinesFace(c){
+  const shown = c.changes.filter(x => bandOf(x));
+  const un = c.changes.filter(x => x.status === 'unsent').length;
+  let piles = '';
+  for (const [b, label] of BANDS){
+    const xs = shown.filter(x => bandOf(x) === b); if (!xs.length) continue;
+    piles += `<div class="rl-band${b === 'awaiting' ? ' aw' : ''}">${esc(label.replace('{who}', theirShort(c)))}<b>${xs.length}</b></div>` + xs.map(x => rowHtml(c, x)).join('');
+  }
+  const acts = `<button class="btn${shown.length ? '' : ' pri'}" type="button" data-act="draft-std" ${c.stdDone ? 'disabled' : ''}>Draft from our standards</button><button class="btn" type="button" data-act="edit-clause">${ic('pencil',14)} Edit a clause</button><button class="btn" type="button" data-act="add-clause">${ic('plus',14)} Add a clause</button>`;
+  const head = `<div class="rl-idx"><b>Redlines</b><i>${shown.length}</i><span class="sp"></span>${un ? `<button class="rl-unsent-go" type="button" data-act="send-all">${hm('out')}Send all · ${un} not sent</button>` : ''}<span class="rnd">Round 1 · since 14 Oct</span></div>`;
+  const body = shown.length ? piles + `<div class="rl-foot">${acts}</div>`
+    : `<div class="rl-empty"><b>No changes on the table.</b><div class="rl-acts">${acts}</div><span class="mut small">Draft from our standards reads the paper against Our standards and drafts one for every gap — nothing is sent until you press Send. Or highlight any wording on the paper.</span></div>`;
+  return `<div class="rl-col">${head}${body}${c.kind === 'saas' ? risksHtml(c) : ''}</div>`;
+}
+function risksHtml(c){
+  const open = [], covered = [];
+  c.risks.forEach((r, i) => { if (r.gone) return; const by = c.changes.find(x => x.risk === i && live(x)); (by ? covered : open).push({r, i, by}); });
+  const row = ({r, i}) => `<div class="rk-row${r.lvl === 'High' ? ' hi' : r.lvl === 'Low' ? ' lo' : ''}"><div class="top"><b>${esc(r.title)}</b><span class="lv">${r.lvl}</span></div><span class="m">${esc(r.src)} · ${esc(r.para)}</span>
+      ${r.why_open ? `<div class="why">${esc(r.why)}</div>` : ''}
+      ${r.noting ? `<div class="note" style="display:flex;flex-direction:column;gap:6px;margin:4px 0"><textarea class="ta" data-note="${i}" placeholder="A note for your colleagues">${esc(r.note || '')}</textarea><div><button class="btn sm pri" type="button" data-act="note-save" data-i="${i}">Save note</button></div></div>` : r.note ? `<div class="why"><b>Your note:</b> ${esc(r.note)}</div>` : ''}
+      <div class="face">${verb('', 'note', 'chat', 'Add a note', ` data-i="${i}"`)}${verb('v-bin', 'risk-discard', 'bin', 'Discard', ` data-i="${i}"`)}${verb('v-ai', 'risk-edit', 'edit', 'Edit', ` data-i="${i}"`)}<span class="sp"></span>${verb('v-q', 'why', 'down', 'Why', ` data-i="${i}"`)}</div></div>`;
+  return `<div class="rk-pile"><div class="rk-h"><b>Risks to look at · ${open.length}</b><span class="sp"></span><span class="when">Scanned 14 Oct 2026, 16:04 · <button class="lnk" type="button" data-act="rescan">Re-scan</button></span></div>
+    ${open.map(row).join('') || '<div class="rk-cov mut">Every risk has a change on the table.</div>'}
+    ${covered.length ? `<div class="rk-cov"><button class="lnk" type="button" data-act="covered">Covered by your redlines (${covered.length}) ${S.showCovered ? '▴' : '▾'}</button>${S.showCovered ? covered.map(o => `<div class="ln"><span style="flex:1">${esc(o.r.title)}</span><button class="lnk" type="button" data-act="goclause" data-pid="${esc(o.by.para)}">Go to ${esc(o.by.id)}</button></div>`).join('') : ''}</div>` : ''}</div>`;
+}
+function signItems(c){
+  const it = []; const f = c.fields; const cp = theirShort(c);
+  if (!f.cp) it.push({g:'final', t:(c.kind === 'saas' ? 'Supplier' : 'Counterparty') + ' is blank', d:'Nobody is named as the other party.', a:'Fill it in', act:'fillgo', k:'cp'});
+  if (c.kind === 'saas' && !f.charge) it.push({g:'final', t:'Value is blank', d:'The Minimum Charges per year are not stated (Schedule 3), and clause 5.1 commits you to them.', a:'Fill it in', act:'fillgo', k:'charge'});
+  const rest = FIELDS[c.kind].filter(x => !['cp','charge'].includes(x.k) && !String(f[x.k] || '').trim());
+  if (rest.length) it.push({g:'final', t:'Fields left empty', d:`${plural(rest.length, 'field')} in the wording ${rest.length > 1 ? 'are' : 'is'} still empty: ${rest.map(x => x.label).join(', ')}.`, a:'Fill them in', act:'fillgo', k:rest[0].k});
+  const un = c.changes.filter(x => x.status === 'unsent').length, wt = c.changes.filter(x => x.status === 'sent').length, aw = c.changes.filter(x => x.status === 'awaiting').length;
+  if (aw) it.push({g:'final', t:`${plural(aw, 'counter')} from ${cp} waiting on you`, d:'Accept, reject or counter it before anyone signs.', a:'Open Redlines', act:'cmd', c:'redline'});
+  if (un) it.push({g:'final', t:`${plural(un, 'change')} not sent`, d:'Every change on the table must be agreed before anyone signs.', a:'Open Redlines', act:'cmd', c:'redline'});
+  if (wt) it.push({g:'final', t:`${plural(wt, 'change')} waiting on ${cp}`, d:'They have not answered yet. Their answer lands in your bell.', a:'Open the deal board', act:'cmd', c:'deal board'});
+  if (!c.readings){
+    it.push({g:'read', t:'Nothing has read this version against your playbook.', d:'The wording moved after the check on arrival. Read it again against Our standards.', a:'Run the check', act:'readings'});
+    it.push({g:'read', t:'Promises in the final wording', d:'The wording moved after the obligations were read, so it may carry promises nobody recorded.', a:'Read again', act:'readings'});
+  }
+  if (!c.signers) it.push({g:'who', t:'Nobody has been named to sign', d:'Naming the signers is what starts the signing.', a:'Name the signers', act:'signers-open'});
+  return it;
+}
+function signFace(c){
+  const items = signItems(c); const cp = cpOf(c) || 'the other side'; const tc = theirContact(c);
+  const grp = (g, title, extra, doneText) => {
+    const xs = items.filter(i => i.g === g);
+    const body = xs.length ? xs.map(i => `<div class="chk"><span class="t"><span class="bang">!</span>${esc(i.t)}</span><span class="d">${esc(i.d)}</span><span class="a"><button class="lnk" type="button" data-act="${i.act}" data-k="${i.k || ''}" data-c="${esc(i.c || '')}">${i.a}</button></span></div>`).join('')
+      : `<div class="chk"><span class="t"><span class="okk">${ic('check',11)}</span>${doneText}</span></div>`;
+    return `<div class="grp"><div class="grp-h"><span>${title}</span>${xs.length ? extra || '' : ''}</div>${body}</div>`;
+  };
+  const signersForm = S.signersOpen && !c.signers ? `<div class="signers"><b class="small">Who signs</b>
+      <div class="row"><div class="fld"><label>For HaTi AB</label><div class="in"><input type="text" value="Young Mbg, General Counsel" readonly></div></div><div class="fld"><label>Email</label><div class="in"><input type="text" value="young@hati.se" readonly></div></div></div>
+      <div class="row"><div class="fld"><label>For ${esc(cp)}</label><div class="in"><input id="sg-name" type="text" value="${esc(tc.name)}"></div></div><div class="fld"><label>Email</label><div class="in"><input id="sg-mail" type="text" value="${esc(tc.mail)}"></div></div></div>
+      <div style="display:flex;gap:8px"><button class="btn pri sm" type="button" data-act="signers-save">Save signers</button><button class="btn sm" type="button" data-act="signers-cancel">Cancel</button></div></div>` : '';
+  const left = items.length;
+  let foot;
+  if (c.signedUs && c.signedThem) foot = `<span class="alldone">${ic('check',15)} Signed by both sides. The agreement is active.</span>`;
+  else if (c.signedUs) foot = `<span class="alldone">${ic('check',15)} You signed at ${esc(c.signedUs.at)}.</span><span class="mut small">Waiting on ${esc(cp)}. Type <b>share</b> to send it for their signature.</span>`;
+  else if (S.padOpen && !left) foot = padHtml();
+  else foot = `<button class="btn pri" type="button" data-act="sign-open" ${left ? 'disabled' : ''}>Sign as Young Mbg</button><span class="mut small">${left ? `${plural(left, 'thing')} to settle first. ` : ''}This is the same list the Sign button reads. Nothing is signed or sent from here until you press.</span>`;
+  return `<div class="box"><div class="box-h"><b>Before you sign</b><span class="mut">${left ? left + ' to settle · 1 noted' : 'Nothing to settle · 1 noted'}</span></div><div class="box-b" style="gap:0">
+    ${grp('final', 'Is the paper final?', '', 'The paper is final.')}
+    ${grp('read', 'Has anyone read this version?', `<button class="btn sm" type="button" data-act="readings">${ic('search',13)} Run 3 readings</button>`, 'Read against Our standards, the brief and the duties.')}
+    ${grp('who', 'Who signs?', '', c.signers ? `Young Mbg for HaTi AB · ${esc(c.signerThem)} for ${esc(cp)}` : '')}${signersForm}
+    <div class="grp"><div class="grp-h"><span>Noted</span></div><div class="chk"><span class="d" style="padding-left:0">Group Treasury's approval is not needed: the Minimum Charges are under your USD 1,000,000 signing limit.</span></div></div>
+    <div class="signfoot">${foot}</div></div></div>`;
+}
+function padHtml(){
+  return `<div class="pad"><b class="small">Sign here</b><canvas id="sig-pad" width="800" height="240" aria-label="Signature pad"></canvas>
+    <div class="row"><button class="btn sm" type="button" data-act="sig-saved">Use my saved signature</button><button class="lnk small" type="button" data-act="sig-clear">Clear</button></div>
+    <label><input id="sig-intent" type="checkbox"> I intend to sign this agreement for HaTi AB.</label>
+    <div class="row"><button class="btn pri" id="sig-go" type="button" data-act="sig-go" disabled>Sign</button><button class="btn" type="button" data-act="sig-cancel">Cancel</button></div></div>`;
+}
+function shareFace(c){
+  const cp = cpOf(c);
+  return `<div class="box"><div class="box-h"><b>Share ${esc(c.id)}</b></div><div class="box-b">
+    <button type="button" class="choice" data-act="share-int"><span class="ic">${ic('users',18)}</span><span><b>Share inside the company</b><span>Treasury, Logistics or IT read, comment or review. Nothing goes outside HaTi.</span></span></button>
+    <button type="button" class="choice" data-act="share-ext"><span class="ic">${ic('send',18)}</span><span><b>Send to ${esc(cp || 'the other side')}</b><span>${c.signedUs ? 'For their signature.' : 'For negotiating or signing.'} Opens the send screen, already filled in.</span></span></button>
+    </div></div>`;
+}
+function draftFace(){
+  const a = S.draftAsk;
+  if (!a || !a.raw) return `<div class="box"><div class="box-h"><b>Draft a new agreement</b></div><div class="box-b"><span class="mut">Say it in a sentence in the box below, for example <b>an NDA with Volvo</b>, or open the form and pick from Our paper.</span><button class="btn pri" type="button" data-act="draft-open" style="align-self:flex-start">Open the form</button></div></div>`;
+  return `<div class="box"><div class="box-h"><b>New agreement</b><span class="sp"></span><span class="pill blu">Not created yet</span></div><div class="box-b">
+    <dl class="kv"><dt>What</dt><dd>${esc(a.tpl ? a.tpl.title : 'An agreement')}</dd><dt>From</dt><dd>${esc(a.tpl ? a.tpl.name : 'You choose in the form')}</dd><dt>With</dt><dd>${a.cp ? esc(a.cp) : '<span style="color:var(--amber)">Not said yet · asked in the form</span>'}</dd><dt>Stream</dt><dd class="mut">Asked in the form</dd></dl>
+    <div style="display:flex;gap:8px"><button class="btn pri" type="button" data-act="draft-open">Open the form</button><button class="btn" type="button" data-act="focus-ask">Change the ask</button></div></div></div>`;
+}
+function helpFace(){
+  return `<div class="box"><div class="box-h"><b>Words I know</b></div><div class="box-b">
+    <span class="small"><b>Type /</b> for your most used places.</span>
+    <span class="small"><b>Places</b> take you there: board · deal board · obligations · history · calendar · explorer · document · another contract · a contract's name.</span>
+    <span class="small"><b>Work</b> is prepared, and you press: upload · fill in · redline · edit · sign · share · draft an NDA with Volvo.</span>
+    <span class="small mut">Anything else is a question. In the real app I answer it from the contract.</span></div></div>`;
+}
+function clausesTab(c){
+  if (!c) return '<p class="mut">Pick a contract first. Its clauses show here.</p>';
+  return CLAUSES[c.kind].map(cl => {
+    const tags = c.kind === 'saas' ? [...new Set(cl.paras.map(p => MARKS[p.id]).filter(Boolean))] : [];
+    return `<button type="button" class="crow" data-act="clause-row" data-n="${cl.n}"><span class="top">${cl.n}. ${esc(cl.h)}${tags.map(t => `<span class="tg2">${t}</span>`).join('')}</span>${S.openClause === cl.n ? `<span class="pl"><b>Plain English:</b> ${esc(cl.pl)}</span>` : ''}</button>`;
+  }).join('');
+}
+function obTab(c){
+  if (!c) return '<p class="mut">Pick a contract first. Its duties show here.</p>';
+  return obligationsTable(c).replace('class="tbl"', 'class="tbl" style="font-size:12.5px"') + `<button class="btn" type="button" data-act="cmd" data-c="obligations" style="align-self:flex-start">See them on the Board</button>`;
+}
+function placeLabel(p){
+  if (p.face === 'board') return {portfolio:'the portfolio', deal:'the deal board', obligations:'obligations', history:'history'}[p.board];
+  if (p.face === 'calendar') return 'the calendar';
+  if (p.face === 'explorer') return 'Explorer';
+  if (!p.cur) return 'every contract';
+  return {fill:'the details', redlines:'Redlines', sign:'Before you sign', share:'Share', draft:'the draft'}[p.pface] || p.cur;
+}
+
+/* ---------------- render all ---------------- */
+function render(){ renderCanvas(); renderPanel(); renderOverlay(); renderDlg(); renderRail(); }
+function repaintPaper(){
+  const c = cur(); const sh = $('#sheet');
+  if (c && sh && S.face === 'document') sh.innerHTML = paperHtml(c);
+  const strip = $('#cv .strip');
+  if (c && strip && S.face === 'document'){ const tmp = document.createElement('div'); tmp.innerHTML = stripHtml(c); strip.replaceWith(tmp.firstElementChild); }
+}
+
+/* ---------------- moving around ---------------- */
+const snap = () => ({face:S.face, board:S.board, pface:S.pface, cur:S.cur, ptab:S.ptab});
+function pushTrail(){
+  const s = snap(); const last = S.trail[S.trail.length - 1];
+  if (last && JSON.stringify(last) === JSON.stringify(s)) return;
+  S.trail.push(s); if (S.trail.length > 12) S.trail.shift();
+}
+function go(patch, say){
+  const before = JSON.stringify(snap());
+  const next = Object.assign(snap(), patch); delete next.focusField;
+  if (JSON.stringify(next) !== before) pushTrail();
+  Object.assign(S, patch);
+  S.ptab = patch.ptab || 'jambo';
+  if (say !== undefined) S.ex = {you: CMD_YOU, jambo: say};
+  render();
+}
+function goBack(){ const p = S.trail.pop(); if (!p) return; Object.assign(S, p); S.ex = null; render(); }
+function openContract(id, say){
+  const c = S.book.find(b => b.id === id); if (!c) return;
+  go({cur:id, face:'document', pface: worked(c) && owedOf(c).length ? 'fill' : 'home'}, say !== undefined ? say : `${esc(c.id)} · ${esc(c.title)} is on the paper.`);
+}
+
+/* ---------------- Jambo's words ---------------- */
+function needContract(){
+  if (!S.cur){ go({face:'document', cur:null, pface:'home'}, 'Which contract? Press a paper on the left, or type its name.'); return false; }
+  if (!worked(cur())){ go({face:'document', pface:'home'}, `In this demo the full journey is wired on your SaaS agreement and on new drafts. ${esc(S.cur)} still works with the Board, history, calendar and Explorer.`); return false; }
+  return true;
+}
+async function command(raw, shown){
+  const q = String(raw || '').trim(); if (!q) return;
+  const ep = EPOCH;
+  closePop();
+  S.ptab = 'jambo';
+  S.ex = {you: shown || q, thinking:true};
+  renderPanel();
+  await d(380);
+  if (ep !== EPOCH) return;
+  S.ex.thinking = false;
+  CMD_YOU = shown || q;
+  try { route(q); } finally { CMD_YOU = null; }
+  if (!S.editor) renderPanel();
+}
+const use = k => { S.uses[k] = (S.uses[k] || 0) + 1; };
+function route(q){
+  const l = q.toLowerCase();
+  const c = cur();
+  const has = re => re.test(l);
+  if (has(/^(help|\?|what can you do|hjälp)/)) return go({pface:'help'}, "Here's what I can do in this demo.");
+  if (has(/^(back|go back|tillbaka)$/)) { S.ex = null; return goBack(); }
+  if (has(/\b(draft|new agreement|utkast)\b/)) { use('draft'); return draftAsk(q); }
+  if (has(/\b(upload|ladda upp)\b/)) return go({face:'document', cur:null, pface:'home'}, 'Drop the file below, or use the one you attached.');
+  if (has(/deal ?board|affärstavla/)) { if (!needContract()) return; use('deal-board'); return go({face:'board', board:'deal'}, `The deal board for ${esc(c.id)} is on the Board. Press a card to go to its clause.`); }
+  if (has(/\b(history|historik|trail)\b/)) { use('history'); return go({face:'board', board:'history'}, c ? `Everything that happened on ${esc(c.id)}, newest first. Print or share it from the Board.` : 'Everything that happened today, newest first.'); }
+  if (has(/\b(obligations?|duties|åtaganden)\b/)) { use('obligations'); return go({face:'board', board:'obligations'}, c ? `${esc(c.id)}'s duties are on the Board, read from the wording as it stands now.` : 'Every duty across the book.'); }
+  if (has(/\b(calendar|kalender)\b/)) { use('calendar'); return go({face:'calendar'}, 'Your week. Press an entry to open its contract.'); }
+  if (has(/\b(explorer|graph|map)\b/)) { use('explorer'); return go({face:'explorer'}, 'Every contract by counterparty. Press a circle to open its paper.'); }
+  if (has(/\b(board|portfolio|dashboard|tavla|tavlan)\b/)) { use('board'); return go({face:'board', board:'portfolio'}, 'The portfolio. Every number is a door.'); }
+  if (has(/\b(sign|signing|signera|underteckna)\b/)) { if (!needContract()) return; use('sign'); return go({face:'document', pface:'sign'}, 'Here is everything to settle before signing. It is the same list the Sign button reads.'); }
+  if (has(/\b(share|send|dela|skicka)\b/)) { if (!S.cur) return needContract(); use('share'); return go({face:'document', pface:'share'}, 'Who should see it?'); }
+  if (has(/\b(redlines?|redline|negotiat\w*|changes|ändringar|förhandla)\b/)) { if (!needContract()) return; use('redline'); return go({face:'document', pface:'redlines'}, c.changes.some(x => x.status === 'awaiting') ? `${esc(theirShort(c))} answered. Their counter is at the top, under <b>Awaiting you</b>.` : `Here are the redlines for ${esc(c.id)}. Nothing is sent until you press Send.`); }
+  if (has(/\b(edit|redigera)\b/)) { if (!needContract()) return; const m = l.match(/\d+(\.\d+)*/); const pid = m && pinfo(c, m[0]) ? m[0] : (m && pinfo(c, m[0] + '.1') ? m[0] + '.1' : null); return openEditor({para: pid || firstRiskPara(c), risk:null}); }
+  if (has(/\b(fill|details|uppgifter|fyll)\b/)) { if (!needContract()) return; use('fill'); return go({face:'document', pface:'fill'}, owedOf(c).length ? 'These details are still owed. As you type, the paper fills in.' : 'Every detail is in. You can still change them here.'); }
+  if (has(/(another contract|all contracts|every contract|the wall|^contracts$|^avtal$)/)) return go({face:'document', cur:null, pface:'home'}, 'Every contract, as a paper. Press one, or type its name.');
+  if (has(/\b(document|paper|dokument)\b/)) { use('document'); return go({face:'document'}, c ? 'Back on the paper.' : 'Every contract, as a paper.'); }
+  const hit = S.book.find(b => l.includes(b.id.toLowerCase()) || l === b.id.slice(3) || (l.length >= 4 && (b.title.toLowerCase().includes(l) || cpOf(b).toLowerCase().includes(l))));
+  if (hit) return openContract(hit.id);
+  return go({pface:'help'}, `In the real app I'd answer that from the contract's wording. In this demo I know the words below, and <b>/</b> lists your most used places.`);
+}
+const firstRiskPara = c => (c.risks && c.risks[0] && c.risks[0].para) || CLAUSES[c.kind][0].paras[0].id;
+
+/* ---------------- the / menu (drawn as the Board draws its own) ---------------- */
+function popRows(v){
+  const m = /^\s*\/([\w-]*)$/.exec(v || ''); if (!m) return null;
+  const w = m[1].toLowerCase();
+  return SLASH.filter(r => !w || r.w.startsWith(w) || r.w.split('-').some(p => p.startsWith(w)))
+    .sort((a, b) => (S.uses[b.w] || 0) - (S.uses[a.w] || 0)).slice(0, 8);
+}
+function readPop(){
+  const inp = $('#ask'); const rows = popRows(inp.value);
+  if (!rows || !rows.length){ closePop(); return; }
+  S.pop = {rows, on: S.pop && S.pop.rows.length === rows.length ? Math.min(S.pop.on, rows.length - 1) : 0};
+  paintPop();
+}
+function paintPop(){
+  let el = $('#jpop'); const P = S.pop;
+  if (!P){ if (el) el.remove(); return; }
+  if (!el){ el = document.createElement('div'); el.id = 'jpop'; el.className = 'ca-pop'; $('.pn').appendChild(el); }
+  el.style.bottom = ($('.pask').offsetHeight + 4) + 'px';
+  el.innerHTML = `<h5>Most used</h5><div role="listbox">${P.rows.map((r, i) => `<div class="ca-opt${i === P.on ? ' on' : ''}" role="option" aria-selected="${i === P.on}" data-act="pop" data-i="${i}" data-pop-w="${r.w}"><span class="who"><b>/${esc(r.w)}</b><small>${esc(r.sub)}</small></span><em>${S.uses[r.w] || 0}×</em></div>`).join('')}</div><p class="ca-hint">↑↓ to choose · Enter to take · Esc to close</p>`;
+}
+function closePop(){ S.pop = null; const el = $('#jpop'); if (el) el.remove(); }
+function takePop(i){
+  const P = S.pop; const r = P && P.rows[i]; if (!r) return;
+  const inp = $('#ask'); closePop();
+  if (r.fill){ inp.value = r.cmd; inp.focus(); return; }
+  inp.value = ''; return command(r.cmd, '/' + r.w);
+}
+
+/* ---------------- acts: upload + fill ---------------- */
+async function actUpload(name){
+  if (S.book.some(b => b.id === 'MK-458')) return openContract('MK-458', 'MK-458 is already uploaded. Here it is.');
+  const ep = EPOCH; const file = name || 'SaaS_agreement_standard.docx';
+  pushTrail();
+  S.busy = `Reading ${file}: 41 clauses and 10 schedules…`; S.ex = null; renderPanel();
+  await d(1600); if (ep !== EPOCH) return;
+  const c = {id:'MK-458', title:'SaaS Agreement – Parcel Management', kind:'saas', stream:'Logistics',
+    fields:{cp:'', addr:'', reg:'', rep:'', charge:''}, changes:[], risks: RISKS.map(r => ({...r})), history:[], readings:false, signers:false};
+  S.book.unshift(c); S.newId = c.id; S.busy = null; S.cur = c.id; S.face = 'document'; S.pface = 'fill'; S.ptab = 'jambo';
+  log(c, `Uploaded ${file}`);
+  log(c, 'Read the contract: 41 clauses, 5 risks, 3 clauses below Our standards, 5 details empty', 'Jambo');
+  S.ex = {jambo:"I read it: a customer-side SaaS agreement for parcel management, on Danish law. <b>5 details</b> are still empty, amber here and on the paper. I also found 5 risks and 3 clauses below Our standards: type <b>redline</b> when you're ready."};
+  render();
+}
+function onFieldInput(inp){
+  const c = cur(); if (!c) return;
+  const k = inp.dataset.field; c.fields[k] = inp.value;
+  inp.parentElement.classList.toggle('need', !inp.value.trim());
+  const v = inp.value.trim();
+  $$(`#sheet [data-bl="${k}"]`).forEach(el => { el.className = 'bl ' + (v ? 'is-set' : 'is-need') + (FAST ? '' : ' flash'); el.textContent = v ? (k === 'charge' ? fmtNum(v) : v) : '—'; });
+  if (k === 'cp'){ const sb = $('#sigblock'); if (sb){ const t = document.createElement('div'); t.innerHTML = sigHtml(c); sb.replaceWith(t.firstElementChild); }
+    const strip = $('#cv .strip'); if (strip && S.face === 'document'){ const t = document.createElement('div'); t.innerHTML = stripHtml(c); strip.replaceWith(t.firstElementChild); } }
+  const ow = owedOf(c).length;
+  const pill = $('#owed-pill'); if (pill){ pill.textContent = ow ? ow + ' left' : 'All in'; pill.className = 'pill ' + (ow ? 'amb' : 'grn'); }
+  const dn = $('#fill-done'); if (dn) dn.innerHTML = ow ? '' : fillDoneHtml();
+  paintChips();
+  const bl = $(`#sheet [data-bl="${k}"]`);
+  if (bl && !FAST){ const sc = $('#scroller'); if (sc){ const r = bl.getBoundingClientRect(), s = sc.getBoundingClientRect(); if (r.top < s.top + 40 || r.bottom > s.bottom - 20) bl.scrollIntoView({block:'center'}); } }
+}
+function onFieldDone(inp){
+  const c = cur(); if (!c) return; const k = inp.dataset.field; const v = inp.value.trim(); if (!v) return;
+  if (c._logged && c._logged[k] === v) return;
+  (c._logged = c._logged || {})[k] = v;
+  const f = FIELDS[c.kind].find(x => x.k === k);
+  log(c, `Filled in ${f.label}: ${k === 'charge' ? 'USD ' + fmtNum(v) : v}`);
+}
+
+/* ---------------- acts: redlines ---------------- */
+const nextRung = (c, pid) => c.changes.filter(x => x.para === pid).length + 1;
+function addChange(c, o){ const x = Object.assign({id:'C' + (++CHG), side:'ours', status:'unsent', rung: nextRung(c, o.para)}, o); c.changes.push(x); return x; }
+async function actDraftStandards(){
+  const c = cur(); if (!worked(c) || c.kind !== 'saas') return toast('This paper is already our own wording, so there is nothing to draft from Our standards.', 'info');
+  if (c.stdDone) return toast('Nothing new to draft: every gap already has a change.', 'info');
+  const ep = EPOCH;
+  S.busy = 'Reading the paper against Our standards…'; renderPanel();
+  await d(1400); if (ep !== EPOCH) return;
+  STD_CHANGES.forEach(x => addChange(c, {...x, src:'Our standards'}));
+  c.stdDone = true; S.busy = null;
+  log(c, 'Drafted 3 changes from Our standards: 5.3, 5.6 and 34.1 (not sent)', 'Jambo');
+  S.ex = {jambo:'Three clauses were below Our standards: <b>5.3</b> price adjustment, <b>5.6</b> payment days and <b>34.1</b> insurance. I drafted one change for each; they are on the paper in blue. Nothing is sent until you press Send.'};
+  render();
+}
+function sendChanges(ids){
+  const c = cur(); const cp = cpOf(c);
+  if (!cp){ toast('Name the Supplier first, so HaTi knows where to send it.', 'warn', 'Fill it in', () => go({face:'document', pface:'fill', focusField:'cp'}, 'Who is the Supplier?')); return false; }
+  const xs = c.changes.filter(x => x.status === 'unsent' && (!ids || ids.includes(x.id)));
+  xs.forEach(x => x.status = 'sent');
+  log(c, `Sent ${plural(xs.length, 'change')} to ${theirContact(c).name || cp} (${cp})`);
+  toast(`Sent to ${theirContact(c).name || cp}. Demo: nothing left this page.`, 'ok');
+  simReply(c);
+  return true;
+}
+function simReply(c){
+  sim(() => {
+    const xs = c.changes.filter(x => x.status === 'sent'); if (!xs.length) return;
+    let countered = null, acc = 0;
+    xs.forEach(x => {
+      if (x.para === '5.6' && x.del === 'sixty (60) days' && !c._counteredOnce){
+        x.status = 'countered'; c._counteredOnce = true;
+        countered = addChange(c, {para:'5.6', del:'sixty (60) days', ins:'seventy-five (75) days', side:'theirs', status:'awaiting', onTopN:x.rung, onTop:x.id, sum:'90 → 75 days', why:'Their counter: 75 days.'});
+      } else { x.status = 'accepted'; acc++; }
+    });
+    log(c, `Accepted ${plural(acc, 'change')}${countered ? ' and countered 5.6 Due payment with 75 days' : ''}`, cpOf(c));
+    toast(`${theirShort(c)} answered: ${acc} accepted${countered ? ', 1 counter' : ''}. (Their reply is simulated in this demo.)`, 'ok');
+    render();
+  }, 3200);
+}
+
+/* ---------------- clause editor ---------------- */
+function sugOf(e, c){
+  if (e.mode === 'counter') return {del:'seventy-five (75) days', ins: COUNTER_SUG[e.variant] || COUNTER_SUG.base};
+  if (e.risk != null) return c.risks[e.risk].w[e.variant] || c.risks[e.risk].w.base;
+  return {ins:'Supplier shall give Customer not less than ninety (90) days’ written notice of any change to the carriers supported by the Services.'};
+}
+function openEditor(opt){
+  const c = cur(); if (!worked(c)) return;
+  pushTrail();
+  const risk = opt.risk;
+  const para = risk != null ? c.risks[risk].para : (opt.para || firstRiskPara(c));
+  S.editor = {para, risk, mode: opt.mode || 'edit', target: opt.target || null, newAfter: !!opt.newAfter, rtab: opt.rtab || 'risks', phase: (risk != null || opt.mode === 'counter') ? 'writing' : 'idle',
+    variant:'base', sug:null, applied:null, typed:false, filed:false, leaving:false, pick:false, orig:null, panelTop: $('#pbody').scrollTop};
+  const f = pinfo(c, para);
+  log(c, `Opened ${paraName(c, para)} in the clause editor`);
+  renderOverlay();
+  if (S.editor.phase === 'writing') return writeSuggestion();
+  return Promise.resolve();
+}
+async function writeSuggestion(variant){
+  const e = S.editor; const c = cur(); if (!e) return;
+  const ep = EPOCH;
+  e.phase = 'writing'; e.variant = variant || 'base'; renderOverlay(true);
+  await d(variant ? 900 : 1500); if (ep !== EPOCH || S.editor !== e) return;
+  e.sug = sugOf(e, c); e.phase = 'ready'; renderOverlay(true);
+}
+function edApply(){
+  const e = S.editor; if (!e || e.phase !== 'ready' || !e.sug) return;
+  const box = $('#ed-cur'); const s = e.sug;
+  if (box){
+    if (s.after){ const dv = document.createElement('div'); dv.className = 'newp'; dv.innerHTML = `<ins>${esc(s.after)}</ins>`; box.appendChild(dv); }
+    else if (s.del && box.innerHTML.includes(esc(s.del))) box.innerHTML = box.innerHTML.replace(esc(s.del), `<del>${esc(s.del)}</del><ins>${esc(s.ins)}</ins>`);
+    else { const ins = document.createElement('ins'); ins.textContent = ' ' + s.ins; box.appendChild(ins); }
+  }
+  e.applied = s; e.phase = 'applied'; renderOverlay(true);
+}
+function edFile(){
+  const e = S.editor; const c = cur(); if (!e) return;
+  const box = $('#ed-cur');
+  let o;
+  if (e.mode === 'counter' && e.applied){
+    const th = c.changes.find(x => x.id === e.target);
+    o = {para:e.para, del:'sixty (60) days', ins:e.applied.ins, sum:`75 → ${e.applied.ins.replace(/^.*?\((\d+)\).*$/, '$1')} days`, why:'Our counter to their 75 days.', onTopN: th ? th.rung : null};
+    if (th) th.status = 'countered';
+  } else if (e.typed && box){
+    const now = box.innerText.replace(/\s+/g, ' ').trim(); const orig = (e.orig || '').replace(/\s+/g, ' ').trim();
+    if (now === orig) return toast('Nothing has changed yet.', 'info');
+    o = now.startsWith(orig) ? {para:e.para, ins: now.slice(orig.length).trim()} : {para:e.para, whole:true, from:orig, ins:now};
+    o.sum = 'Your own wording';
+  } else if (e.applied){
+    const s = e.applied;
+    o = s.after ? {para:e.para, after:s.after, ins:s.after} : s.del ? {para:e.para, del:s.del, ins:s.ins} : {para:e.para, ins:s.ins};
+    o.sum = e.risk != null ? c.risks[e.risk].sum : 'New wording';
+  } else return toast('Nothing has changed yet.', 'info');
+  if (e.newAfter && o.ins && !o.after && !o.whole){ o = {para:e.para, after:o.ins, ins:o.ins, sum:'A new clause'}; }
+  o.risk = e.risk; o.src = e.risk != null ? 'From the risk scan' : e.mode === 'counter' ? 'With Jambo' : '';
+  o.why = o.why || (e.risk != null ? 'Written with Jambo for: ' + c.risks[e.risk].title : 'Your own edit.');
+  const x = addChange(c, o);
+  log(c, `Filed ${x.id}: a change to ${paraName(c, e.para)}${e.risk != null || e.mode === 'counter' ? ' (with Jambo)' : ''}`);
+  Object.assign(e, {filed:true, applied:null, typed:false, phase:'filed', orig:null});
+  toast('Filed. It waits in Redlines until you send it.', 'ok');
+  renderOverlay();
+}
+function edExit(force){
+  const e = S.editor; if (!e) return;
+  if (!force && (e.applied || e.typed)){ e.leaving = true; renderOverlay(true); return; }
+  const top = e.panelTop;
+  S.editor = null;
+  const p = S.trail.pop();
+  Object.assign(S, p || {face:'document', pface:'redlines'}); S.ptab = 'jambo';
+  S.ex = {jambo:'Back where you left off.'};
+  render();
+  $('#pbody').scrollTop = top;
+}
+function edParaHtml(c, p, opt){
+  const title = (p.kind === 'p' || p.kind === 'p3') ? paraTitle(p.t) : '';
+  const body = title ? p.t.slice(title.length + 1).trimStart() : p.t;
+  const lab = (p.kind === 'p' || p.kind === 'p3') ? p.id : (p.label || '');
+  return `${lab ? `<b>${esc(lab)}</b> ` : ''}${title ? `<b>${esc(title)}.</b> ` : ''}${withChanges(esc(plainTokens(body, c)), c, p.id, opt)}`;
+}
+function rungsHtml(c, pid){
+  const xs = c.changes.filter(x => x.para === pid);
+  if (!xs.length) return `<span class="mut">No rungs yet. Nobody has proposed a change to ${esc(pid)}, so there is nothing to climb.</span>`;
+  const first = xs[0];
+  const r0 = first.del ? first.del : '(the paper as uploaded)';
+  const st = x => ({unsent:'not sent', sent:'with them', accepted:'agreed', awaiting:'awaiting you', countered:'countered', rejected:'refused', withdrawn:'withdrawn'}[x.status]);
+  return `<div class="lad"><div class="rg"><b>R0</b><span><span class="w">${esc(r0)}</span><br><span class="mut small">the paper</span></span></div>${xs.map(x => `<div class="rg"><b>R${x.rung}</b><span><span class="w">${esc((x.after || x.ins).length > 120 ? (x.after || x.ins).slice(0, 118) + '…' : (x.after || x.ins))}</span><br><span class="mut small">${x.side === 'theirs' ? 'theirs' : 'yours'} · ${st(x)}</span></span></div>`).join('')}</div>`;
+}
+function renderOverlay(keepBox){
+  const ov = $('#overlay'); const e = S.editor; const c = cur();
+  if (!e || !c){ ov.innerHTML = ''; return; }
+  const f = pinfo(c, e.para); const cl = f.cl; const idx = f.i;
+  const prev = cl.paras[idx - 1], nexts = cl.paras.slice(idx + 1, idx + 3);
+  const asAcc = e.mode === 'counter' ? {asAccepted: e.target} : null;
+  const curHtml = edParaHtml(c, f.p, asAcc);
+  const boxHtml = keepBox && $('#ed-cur') ? $('#ed-cur').innerHTML : (e.newAfter ? '' : curHtml);
+  const r = e.risk != null ? c.risks[e.risk] : null;
+  const risksLive = c.risks.map((x, i) => ({x, i})).filter(o => !o.x.gone);
+  const pos = r ? risksLive.findIndex(o => o.i === e.risk) : -1;
+  const tb = (n, t, icn) => `<button class="tb" type="button" data-act="fmt" data-cmd="${n}" title="${t}">${ic(icn, 18)}</button>`;
+  const letter = (n, l, st) => `<button class="tb" type="button" data-act="fmt" data-cmd="${n}" style="${st}">${l}</button>`;
+  const sugBody = s => s.after ? `<ins>${esc(s.after)}</ins>` : s.del ? `<del>${esc(s.del.length > 140 ? s.del.slice(0, 138) + '…' : s.del)}</del> <ins>${esc(s.ins)}</ins>` : `<ins>${esc(s.ins)}</ins>`;
+  let rail;
+  if (e.rtab === 'playbook') rail = playbookRail(c, e.para);
+  else if (e.rtab === 'ladder') rail = `<b>Ladder · ${esc(paraName(c, e.para))}</b>${rungsHtml(c, e.para)}`;
+  else {
+    if (e.mode === 'counter') rail = `<b style="font-size:15px">Their counter on ${esc(paraName(c, e.para))}</b><span class="mut small">Why it matters</span><span>They asked for 75 days against your 90. Our standard is 90; at 80 you keep most of the working-capital gain and close the point this round.</span>`;
+    else if (r) rail = `<div class="pick"><button type="button" data-act="ed-pick"><span class="dt" style="background:${r.lvl === 'High' ? 'var(--ruby)' : r.lvl === 'Low' ? 'var(--line-2)' : 'var(--amber-dot)'}"></span>${esc(r.title)}<span class="sp"></span>${ic('down',16)}</button>${e.pick ? `<ul>${risksLive.map(o => `<li><button type="button" data-act="ed-risk" data-i="${o.i}"><span class="dt" style="width:8px;height:8px;border-radius:50%;background:${o.x.lvl === 'High' ? '#B42318' : o.x.lvl === 'Low' ? '#BAC8E4' : '#E8A317'}"></span>${esc(o.x.title)}</button></li>`).join('')}</ul>` : ''}</div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px">${esc(r.title)}</b><span style="color:${r.lvl === 'High' ? 'var(--ruby)' : 'var(--amber)'};font-weight:600;font-size:13.5px">${r.lvl}</span></div>
+      <span class="mut small">Why it matters</span><span>${esc(r.why)}</span>`;
+    else rail = `<b>${esc(e.newAfter ? 'A new clause after ' + paraName(c, e.para) : paraName(c, e.para))}</b><span class="mut">Type in the paper, or ask me for wording below.</span>`;
+    if (e.phase === 'writing') rail += `<div class="jb"><span class="ring"></span><span class="mut">Jambo is writing the wording…</span></div>`;
+    if (e.phase === 'ready' && e.sug) rail += `<div class="sugg"><span class="mut small">Suggested wording${e.variant !== 'base' ? ' · ' + {firm:'firmer', soft:'softer', short:'shorter'}[e.variant] : ''}</span><div class="w">${sugBody(e.sug)}</div><div style="display:flex;gap:8px"><button class="btn pri sm" type="button" data-act="ed-apply">Apply</button><button class="btn sm" type="button" data-act="ed-discard">Discard</button></div></div>`;
+    if (e.phase === 'applied') rail += `<div class="sugg"><span class="alldone">${ic('check',14)} Applied on the paper</span><span class="mut small">Press File to put it on the table. Undo takes it back.</span></div>`;
+    if (e.phase === 'filed') rail += `<div class="sugg"><span class="alldone">${ic('check',14)} Filed as a change</span><span class="mut small">It waits in Redlines until you send it. Press Exit to go back, or move to the next risk.</span></div>`;
+  }
+  const dirty = e.applied || e.typed;
+  const state = dirty ? '1 change' : e.filed ? 'filed' : 'no change yet';
+  ov.innerHTML = `<div class="ed">
+    <div class="ed-tool">${tb('undo','Undo','undo')}${tb('redo','Redo','redo')}<span class="sz">14 ${ic('down',14)}</span>${letter('bold','B','')}${letter('italic','I','font-style:italic;font-weight:500')}${letter('underline','U','text-decoration:underline')}${letter('strikeThrough','S','text-decoration:line-through')}<span class="vs"></span>${tb('insertUnorderedList','Bullets','list')}${tb('insertOrderedList','Numbers','ol')}${tb('indent','Indent','indent')}${tb('outdent','Outdent','outdent')}<span class="vs"></span>${tb('justifyLeft','Align','align')}${tb('removeFormat','Clear formatting','clear')}<span class="sp"></span>
+      <button class="btn pri" type="button" data-act="ed-exit">${ic('exit',16)} Exit</button></div>
+    <div class="ed-main">
+      <div class="ed-left">
+        <div class="ed-sub"><span class="tab">Redline</span><span class="sp"></span><span class="st">${state}</span><div class="zc" style="position:static;margin:0"><button type="button">−</button><span>110%</span><button type="button">+</button></div></div>
+        <div class="ed-scroll"><div class="ed-paper">
+          <h3>${cl.n}. ${esc(cl.h)}</h3>
+          ${prev ? `<p class="dim">${edParaHtml(c, prev)}</p>` : ''}
+          ${e.newAfter ? `<p>${curHtml}</p>` : ''}
+          <div class="cur" id="ed-cur" contenteditable="true" spellcheck="false"${e.newAfter ? ' data-ph="Type the new clause here"' : ''}>${boxHtml}</div>
+          ${nexts.map(n => `<p>${edParaHtml(c, n)}</p>`).join('')}
+        </div></div>
+        <div class="ed-foot"><span>${dirty ? '1 change not filed' : 'No changes yet'}</span><button class="lnk" type="button" data-act="ed-undo" ${dirty ? '' : 'disabled style="color:var(--ink-3);opacity:.55;cursor:default"'}>Undo the last change</button></div>
+      </div>
+      <div class="ed-rail">
+        <div class="ed-rh"><b>${ic('sparkle',14)} Jambo</b><span class="sp"></span>
+          <button type="button" class="rt${e.rtab === 'playbook' ? ' on' : ''}" data-act="ed-rtab" data-t="playbook">Playbook</button>
+          <button type="button" class="rt${e.rtab === 'risks' ? ' on' : ''}" data-act="ed-rtab" data-t="risks">Risks <span class="pill amb">${risksLive.length}</span></button>
+          <button type="button" class="rt${e.rtab === 'ladder' ? ' on' : ''}" data-act="ed-rtab" data-t="ladder">Ladder</button></div>
+        <div class="ed-rb">${rail}</div>
+        <div class="ed-chips"><button type="button" data-act="ed-var" data-v="firm">Make it firmer</button><button type="button" data-act="ed-var" data-v="soft">Give me a softer version</button><button type="button" data-act="ed-var" data-v="short">Shorter</button><button type="button" data-act="ed-rtab" data-t="playbook">What does our playbook say?</button></div>
+        <div class="ed-ask"><div class="bx"><span class="ab">Asking about <i>This clause ×</i></span><input id="ed-q" type="text" placeholder="e.g. keep the cap but carve out cyber security" autocomplete="off"></div><button class="snd" type="button" data-act="ed-ask" aria-label="Ask">${ic('send',16)}</button></div>
+        <div class="ed-rf"><button class="btn sm" type="button" data-act="ed-walk" data-d="-1" ${pos > 0 ? '' : 'disabled'}>‹</button><span class="small">${pos >= 0 ? (pos + 1) + ' of ' + risksLive.length : ''}</span><button class="btn sm" type="button" data-act="ed-walk" data-d="1" ${pos >= 0 && pos < risksLive.length - 1 ? '' : 'disabled'}>›</button><span class="sp"></span><button class="btn pri" type="button" data-act="ed-file" ${dirty ? '' : 'disabled'}>File</button></div>
+      </div>
+    </div>
+    ${e.leaving ? `<div class="leave"><b>This change isn't filed yet.</b><span class="mut small">File it to keep it on the table, or leave without it.</span><div class="row"><button class="btn pri" type="button" data-act="ed-file-exit">File it</button><button class="btn" type="button" data-act="ed-leave">Leave without it</button><button class="btn" type="button" data-act="ed-stay">Stay</button></div></div>` : ''}
+  </div>`;
+  if (!e.orig){ const b = $('#ed-cur'); if (b) e.orig = b.innerText; }
+}
+function playbookRail(c, pid){
+  const PB = {
+    '8.5':['Carrier changes','A supplier that depends on third-party carriers must notify changes within 5 Work Days and restore equivalent functionality at no charge.','Missing here'],
+    '26.3(d)':['Liability exceptions','Breach of data protection and cyber security obligations is uncapped, or capped at no less than twice the general cap.','Missing here'],
+    '28.1':['Force majeure','Cyber-attacks and failures of the supplier\'s own systems are never force majeure.','Missing here'],
+    '5.1':['Volume commitments','Any minimum commitment falls away pro rata when we terminate.','Missing here'],
+    '26.4':['Recoverable costs','Costs of alternative carriage during an outage are direct damages.','Missing here'],
+    '5.6':['Payment terms','90 days from receipt of a correct invoice. Accept 75 days or more without escalation; under 75 needs Group Treasury.','60 days here'],
+    '5.3':['Price adjustments','Increases capped at HICP or 3%, at most once a year.','Missing here'],
+    '34.1':['Insurance','A supplier holding our data carries cyber cover of at least USD 10 million per claim.','Missing here']};
+  const s = PB[pid];
+  if (!s) return `<b>Our standards</b><span class="mut">No standard is set for ${esc(pid)}.</span>`;
+  return `<b>Our standard · ${esc(s[0])}</b><span>${esc(s[1])}</span><span class="pill amb" style="width:max-content">${esc(s[2])}</span>`;
+}
+
+/* ---------------- sign ---------------- */
+async function actReadings(){
+  const c = cur(); if (!worked(c) || c.readings) return;
+  const ep = EPOCH;
+  S.busy = 'Running 3 readings: Our standards, the duties, the brief…'; renderPanel();
+  await d(1500); if (ep !== EPOCH) return;
+  c.readings = true; S.busy = null;
+  log(c, 'Read this version: Our standards, duties and brief', 'Jambo');
+  S.ex = {jambo:'Done. All three readings match this version. Payment terms now read 75 days, which is inside your playbook\'s fallback, so no escalation is needed.'};
+  render();
+}
+function actSignersSave(){
+  const c = cur(); if (!c) return;
+  const n = ($('#sg-name') || {}).value || theirContact(c).name;
+  if (!String(n).trim()) return toast('Add who signs for the other side.', 'warn');
+  c.signers = true; c.signerThem = String(n).trim(); S.signersOpen = false;
+  log(c, `Named the signers: Young Mbg and ${c.signerThem}`);
+  render();
+}
+let padInk = false;
+function wirePad(){
+  const cv = $('#sig-pad'); if (!cv || cv.dataset.wired) return; cv.dataset.wired = '1'; padInk = false;
+  const ctx = cv.getContext('2d'); ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.strokeStyle = '#1a2a6c';
+  let drawing = false;
+  const pt = ev => { const r = cv.getBoundingClientRect(); return [(ev.clientX - r.left) * cv.width / r.width, (ev.clientY - r.top) * cv.height / r.height]; };
+  cv.addEventListener('pointerdown', ev => { drawing = true; cv.setPointerCapture(ev.pointerId); const [x, y] = pt(ev); ctx.beginPath(); ctx.moveTo(x, y); });
+  cv.addEventListener('pointermove', ev => { if (!drawing) return; const [x, y] = pt(ev); ctx.lineTo(x, y); ctx.stroke(); padInk = true; sigSync(); });
+  cv.addEventListener('pointerup', () => { drawing = false; });
+}
+function sigSaved(){
+  const cv = $('#sig-pad'); if (!cv) return; const ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, cv.width, cv.height); ctx.fillStyle = '#1a2a6c'; ctx.font = '500 96px Caveat, "Segoe Script", cursive'; ctx.fillText('Young Mbg', 40, 160);
+  padInk = true; sigSync();
+}
+function sigSync(){ const b = $('#sig-go'); const t = $('#sig-intent'); if (b) b.disabled = !(padInk && t && t.checked); }
+function actSignGo(){
+  const c = cur(); const cv = $('#sig-pad'); if (!c || !cv || !padInk) return;
+  c.signedUs = {at: clock(), img: cv.toDataURL('image/png')};
+  S.padOpen = false;
+  log(c, 'Signed for HaTi AB');
+  S.ex = {jambo:`Signed. Next: type <b>share</b> to send it to ${esc(cpOf(c))} for their signature.`};
+  toast('Signed. Your signature is on the paper.', 'ok');
+  render();
+  const sb = $('#sigblock'); if (sb) sb.scrollIntoView({block:'center', behavior: FAST ? 'auto' : 'smooth'});
+}
+
+/* ---------------- share + draft dialogs ---------------- */
+function renderDlg(){
+  const box = $('#dlg'); const c = cur(); const D = S.dlg;
+  if (!D){ box.innerHTML = ''; return; }
+  if (D.kind === 'ext'){
+    const tc = theirContact(c); const un = c.changes.filter(x => x.status === 'unsent').length;
+    const ow = owedOf(c);
+    D.name = D.name != null ? D.name : (c.signerThem || tc.name); D.mail = D.mail != null ? D.mail : tc.mail;
+    D.purpose = D.purpose || (c.signedUs ? 'Sign' : 'Negotiate'); D.channel = D.channel || 'Email';
+    box.innerHTML = `<div class="scrim"><div class="dlg" role="dialog" aria-label="Send">
+      <div class="dlg-h">Send ${esc(c.id)} to ${esc(cpOf(c) || 'the other side')}<span>${esc(c.title)}</span></div>
+      <div class="dlg-b">
+        <div><div class="lbl">What travels</div><div class="rd"><div>${ic('doc',14)} The paper, with all 41 clauses</div>${un ? `<div>${ic('pencil',14)} ${plural(un, 'change')} not sent yet</div>` : ''}${c.signedUs ? `<div>${ic('check',14)} Your signature</div>` : ''}<div class="mut">Not travelling: the risk scan, Our standards and your internal notes.</div></div></div>
+        <div><div class="lbl">What they can do</div><div class="seg" style="width:max-content">${['Sign','Negotiate','View','Adviser'].map(p => `<button type="button" class="${D.purpose === p ? 'on' : ''}" data-act="dlg-purpose" data-v="${p}">${p}</button>`).join('')}</div></div>
+        <div><div class="lbl">How</div><div class="seg" style="width:max-content">${['Email','Link','Word'].map(p => `<button type="button" class="${D.channel === p ? 'on' : ''}" data-act="dlg-channel" data-v="${p}">${p}</button>`).join('')}</div></div>
+        <div class="two"><div class="fld"><label for="dl-name">Their name</label><div class="in${D.name ? '' : ' need'}"><input id="dl-name" data-dl="name" type="text" value="${esc(D.name)}"></div></div><div class="fld"><label for="dl-mail">Their email</label><div class="in${D.mail ? '' : ' need'}"><input id="dl-mail" data-dl="mail" type="text" value="${esc(D.mail)}"></div></div></div>
+        <div><div class="lbl">A line for them</div><textarea class="ta" placeholder="Optional"></textarea></div>
+        <div><div class="lbl">Ready?</div><div class="rd">${ow.length ? `<div><span class="bang">!</span>${plural(ow.length, 'field')} still empty: ${ow.map(f => f.label).join(', ')}</div>` : `<div><span class="okk">${ic('check',11)}</span>No empty fields</div>`}<div><span class="okk">${ic('check',11)}</span>Nothing is held for internal review</div></div></div>
+      </div>
+      <div class="dlg-f"><button class="btn pri" type="button" data-act="dlg-send">${ic('send',14)} Send</button><span class="sp"></span><button class="btn" type="button" data-act="dlg-close">Cancel</button></div>
+    </div></div>`;
+  } else if (D.kind === 'int'){
+    D.who = D.who || []; D.purpose = D.purpose || 'Comment';
+    box.innerHTML = `<div class="scrim"><div class="dlg" role="dialog" aria-label="Share inside">
+      <div class="dlg-h">Share ${esc(c.id)} inside HaTi<span>Nothing goes outside the company.</span></div>
+      <div class="dlg-b"><div><div class="lbl">Who</div><div class="ppl">${COLLEAGUES.map(([n, t]) => `<label><input type="checkbox" data-act="dlg-who" data-v="${n}" ${D.who.includes(n) ? 'checked' : ''}> ${n} <span>· ${t}</span></label>`).join('')}</div></div>
+        <div><div class="lbl">What they can do</div><div class="seg" style="width:max-content">${['Read','Comment','Review'].map(p => `<button type="button" class="${D.purpose === p ? 'on' : ''}" data-act="dlg-purpose" data-v="${p}">${p}</button>`).join('')}</div></div>
+        <div><div class="lbl">A line for them</div><textarea class="ta" placeholder="e.g. Maria, are you comfortable with 75 days?"></textarea></div></div>
+      <div class="dlg-f"><button class="btn pri" type="button" data-act="dlg-share" ${D.who.length ? '' : 'disabled'}>Share</button><span class="mut small">${D.who.length ? '' : 'Choose at least one colleague.'}</span><span class="sp"></span><button class="btn" type="button" data-act="dlg-close">Cancel</button></div>
+    </div></div>`;
+  } else if (D.kind === 'draft'){
+    const tpl = TEMPLATES.find(t => t.id === D.tpl);
+    D.f = D.f || {};
+    const qs = tpl && tpl.kind === 'nda' ? FIELDS.nda : [{k:'cp', label:'Counterparty', ph:'Company name'}, {k:'date', label:'Date of agreement', ph:'e.g. 20 Oct 2026'}];
+    const ok = tpl && D.stream;
+    const list = TEMPLATES.filter(t => !D.q || (t.name + ' ' + t.sub).toLowerCase().includes(D.q.toLowerCase()));
+    box.innerHTML = `<div class="scrim"><div class="dlg wide" role="dialog" aria-label="Draft new agreement">
+      <div class="dlg-h">Draft new agreement<span>${S.draftAsk && S.draftAsk.raw ? 'Filled in from what you asked: “' + esc(S.draftAsk.raw) + '”' : 'Pick from Our paper and answer its questions.'}</span></div>
+      <div class="dlg-b"><div class="na">
+        <div class="na-l"><input class="srchbox" id="na-q" type="text" placeholder="Search Our paper" value="${esc(D.q || '')}" style="width:100%">${list.map(t => `<button type="button" class="tpl${D.tpl === t.id ? ' on' : ''}" data-act="na-tpl" data-v="${t.id}"><b>${esc(t.name)}</b><span>${esc(t.sub)}</span></button>`).join('')}</div>
+        <div class="na-r">${tpl ? `<b>${esc(tpl.title)}</b>${qs.map(f => { const v = D.f[f.k] || ''; return `<div class="fld"><label for="na-${f.k}">${f.label}</label><div class="in${v ? '' : ' need'}"><input id="na-${f.k}" data-na="${f.k}" type="text" value="${esc(v)}" placeholder="${esc(f.ph)}">${f.unit ? `<span class="u">${f.unit}</span>` : ''}</div></div>`; }).join('')}
+          <div class="fld"><label>Stream</label><div class="seg" style="width:max-content">${['Marketing','Sales','Procurement'].map(s => `<button type="button" class="${D.stream === s ? 'on' : ''}" data-act="na-stream" data-v="${s}">${s}</button>`).join('')}</div></div>
+          <span class="mut small">Empty answers can be filled later on the paper. Nothing is created until you press Create.</span>` : '<span class="mut">Pick a template on the left. Its questions appear here.</span>'}</div>
+      </div></div>
+      <div class="dlg-f"><button class="btn pri" type="button" data-act="draft-create" ${ok ? '' : 'disabled'}>Create</button><span class="mut small">${!tpl ? 'Pick a template first.' : !D.stream ? 'Choose a stream first.' : ''}</span><span class="sp"></span><button class="btn" type="button" data-act="dlg-close">Cancel</button></div>
+    </div></div>`;
+  }
+}
+async function dlgSend(){
+  const c = cur(); const D = S.dlg; if (!c || !D) return;
+  const nm = ($('#dl-name') || {}).value, ml = ($('#dl-mail') || {}).value;
+  if (nm != null) D.name = nm; if (ml != null) D.mail = ml;
+  if (!String(D.name || '').trim() || !String(D.mail || '').trim()){ renderDlg(); return toast('Add their name and email first.', 'warn'); }
+  const purpose = D.purpose; const who = D.name;
+  S.dlg = null;
+  if (purpose === 'Negotiate'){
+    const xs = c.changes.filter(x => x.status === 'unsent');
+    xs.forEach(x => x.status = 'sent');
+    log(c, `Sent the paper${xs.length ? ' and ' + plural(xs.length, 'change') : ''} to ${who} for negotiating`);
+    if (xs.length) simReply(c);
+  } else if (purpose === 'Sign'){
+    log(c, `Sent to ${who} for signature`);
+    if (!c.signers){ c.signers = true; c.signerThem = who; }
+    sim(() => { c.signedThem = {name: who, at: clock()}; log(c, 'Signed for ' + cpOf(c), who); toast(`${who} signed. (Simulated in this demo.)`, 'ok'); render(); }, 3500);
+  } else log(c, `Sent to ${who} to ${purpose === 'View' ? 'read' : 'advise'}`);
+  S.ex = {jambo:`Sent to ${esc(who)}. Their answer lands in your bell, and on the deal board.`};
+  toast(`Sent to ${who}. Demo: nothing left this page.`, 'ok');
+  render();
+}
+function draftAsk(q){
+  const l = q.toLowerCase();
+  const tpl = /nda|non-?disclosure|secret|sekretess/.test(l) ? TEMPLATES[0] : /supply|materials|ingredient/.test(l) ? TEMPLATES[2] : /saas|software/.test(l) ? TEMPLATES[3] : /co-?pack/.test(l) ? TEMPLATES[4] : /data/.test(l) ? TEMPLATES[5] : null;
+  const m = q.match(/\bwith\s+(.+?)(?:\s+(?:for|about|on)\b.*)?$/i);
+  S.draftAsk = {raw:q, tpl, cp: m ? titleCase(m[1].trim()) : ''};
+  go({pface:'draft'}, "I'll carry this into the new-agreement form. Nothing is created until you press Create.");
+}
+function actDraftOpen(){ const a = S.draftAsk || {}; S.dlg = {kind:'draft', tpl: a.tpl ? a.tpl.id : null, f:{cp: a.cp || ''}, stream:null, q:''}; renderDlg(); }
+function actDraftCreate(){
+  const D = S.dlg; const tpl = TEMPLATES.find(t => t.id === D.tpl); if (!tpl || !D.stream) return;
+  $$('[data-na]').forEach(i => D.f[i.dataset.na] = i.value);
+  const id = 'MK-' + (S.nextNo++);
+  const c = tpl.kind === 'nda'
+    ? {id, title:tpl.title, kind:'nda', stream:D.stream, fields:{cp:D.f.cp || '', date:D.f.date || '', purpose:D.f.purpose || '', term:D.f.term || ''}, changes:[], risks:[], history:[], readings:false, signers:false}
+    : {id, title:tpl.title, kind:'generic', stage:'Drafting', cp:D.f.cp || '', stream:D.stream, fields:{}, changes:[], risks:[], history:[]};
+  S.book.unshift(c); S.newId = id; S.dlg = null; S.draftAsk = null;
+  log(c, `Drafted from ${tpl.name}`);
+  const ow = owedOf(c).length;
+  pushTrail();
+  Object.assign(S, {cur:id, face:'document', pface: ow ? 'fill' : 'home', ptab:'jambo'});
+  S.ex = {jambo:`${esc(id)} is drafted from ${esc(tpl.name)}.${ow ? ` ${plural(ow, 'detail')} ${ow > 1 ? 'are' : 'is'} still owed: they're amber here and on the paper.` : ''}`};
+  toast(`${id} created.`, 'ok');
+  render();
+}
+
+/* ---------------- rail + toasts ---------------- */
+function renderRail(){
+  const r = $('#railf');
+  if (!S.rail){ r.innerHTML = ''; return; }
+  const item = (l, c, s) => `<button type="button" data-act="railgo" data-c="${c}">${l}${s ? `<span>${s}</span>` : ''}</button>`;
+  r.innerHTML = `<div class="railf"><div class="g">Work</div>${item('Home','document')}${item('Contracts','another contract')}${item('Negotiations','redline')}${item('Approvals & signing','sign')}${item('Obligations','obligations')}<div class="g">Library</div>${item('Our paper','', 'its own page')}${item('Requests','', 'its own page')}<div class="g">Company</div>${item('People','', 'its own page')}${item('Settings','', 'its own page')}</div>`;
+}
+function toast(msg, kind, actLabel, actFn){
+  if (FAST) return;
+  const t = document.createElement('div'); t.className = 'toast ' + (kind || 'ok');
+  t.innerHTML = `<span class="k">${kind === 'warn' ? '!' : kind === 'info' ? '' : ic('check',12)}</span><span>${esc(msg)}</span>${actLabel ? `<button type="button">${esc(actLabel)}</button>` : ''}`;
+  if (actLabel) t.querySelector('button').addEventListener('click', () => { t.remove(); actFn(); });
+  $('#toasts').appendChild(t);
+  setTimeout(() => t.remove(), actLabel ? 6000 : 3600);
+}
+
+/* ---------------- one press handler ---------------- */
+const app = $('#app');
+const chgOf = b => cur().changes.find(y => y.id === b.dataset.id);
+const ACT = {
+  face: b => go({face:b.dataset.f}, undefined),
+  cmd: b => command(b.dataset.c),
+  ask: () => { const i = $('#ask'); const v = i.value; i.value = ''; command(v); },
+  back: () => goBack(),
+  pop: b => takePop(+b.dataset.i),
+  ptab: b => { S.ptab = b.dataset.t; renderPanel(); },
+  open: b => openContract(b.dataset.id),
+  wallstage: b => { S.wallStage = b.dataset.s; renderCanvas(); },
+  wallgo: b => { S.wallStage = b.dataset.s; go({face:'document', cur:null, pface:'home'}, b.dataset.s === 'All' ? 'Every contract, as a paper.' : `Every contract at ${b.dataset.s}.`); },
+  needgo: b => { const id = b.dataset.id; if (b.dataset.c){ S.cur = id; command(b.dataset.c); } else openContract(id); },
+  calopen: b => openContract(b.dataset.id),
+  board: b => go({face:'board', board:b.dataset.b}),
+  zoom: b => { S.zoom = Math.max(60, Math.min(200, S.zoom + (+b.dataset.z))); const sc = $('#scroller'); if (sc) sc.style.setProperty('--z', S.zoom / 100); const s = $('#cv .zc span'); if (s) s.textContent = S.zoom + '%'; },
+  upload: () => actUpload(),
+  blank: b => go({face:'document', pface:'fill', focusField:b.dataset.k}, 'Fill it in here. The paper follows as you type.'),
+  stream: b => { cur().stream = b.dataset.s; renderPanel(); },
+  fillgo: b => go({face:'document', pface:'fill', focusField:b.dataset.k}, 'Fill it in here. The paper follows as you type.'),
+  'draft-std': () => actDraftStandards(),
+  'edit-clause': () => openEditor({para: firstRiskPara(cur()), risk:null}),
+  'add-clause': () => openEditor({para:'8.5', risk:null, newAfter:true}),
+  'risk-edit': b => openEditor({risk:+b.dataset.i}),
+  'risk-discard': b => { const c = cur(); const r = c.risks[+b.dataset.i]; r.gone = true; log(c, `Set aside the risk: ${r.title}`); renderPanel(); toast('Risk set aside.', 'ok', 'Undo', () => { r.gone = false; renderPanel(); }); },
+  why: b => { const r = cur().risks[+b.dataset.i]; r.why_open = !r.why_open; renderPanel(); },
+  note: b => { const r = cur().risks[+b.dataset.i]; r.noting = !r.noting; renderPanel(); },
+  'note-save': b => { const c = cur(); const i = +b.dataset.i; const r = c.risks[i]; const ta = $(`[data-note="${i}"]`); r.note = ta ? ta.value.trim() : ''; r.noting = false; if (r.note) log(c, `Noted on ${r.title}: ${r.note}`); renderPanel(); },
+  covered: () => { S.showCovered = !S.showCovered; renderPanel(); },
+  rescan: () => toast('Scanned again: nothing new since 16:04.', 'info'),
+  'send-all': () => { if (sendChanges(null)) render(); },
+  'chg-send': b => { if (sendChanges([b.dataset.id])) render(); },
+  'chg-edit': b => { const x = chgOf(b); openEditor({para:x.para, risk: x.risk != null ? x.risk : null}); },
+  'chg-ladder': b => { const x = chgOf(b); openEditor({para:x.para, risk:null, rtab:'ladder'}); },
+  'chg-withdraw': b => { const c = cur(); const x = chgOf(b); x.status = 'unsent'; log(c, `Withdrew ${x.id} from ${theirShort(c)}`); render(); toast('Withdrawn. It is back in your drafts.', 'ok'); },
+  'chg-discard': b => { const c = cur(); const i = c.changes.findIndex(y => y.id === b.dataset.id); const [x] = c.changes.splice(i, 1); if (x.src === 'Our standards') c.stdDone = c.changes.some(y => y.src === 'Our standards'); render(); toast('Change discarded.', 'ok', 'Undo', () => { c.changes.splice(i, 0, x); render(); }); },
+  'chg-accept': b => { const c = cur(); const x = chgOf(b); x.status = 'accepted'; log(c, `Accepted ${theirShort(c)}'s counter on ${paraName(c, x.para)}: ${x.ins}`); S.ex = {jambo:`Agreed: <b>${esc(x.ins)}</b>. Nothing is left open on the table.`}; render(); toast('Accepted. The paper now reads ' + x.ins + '.', 'ok'); },
+  'chg-reject': b => { const c = cur(); const x = chgOf(b); x.status = 'rejected'; const ours = c.changes.find(y => y.id === x.onTop); if (ours) ours.status = 'sent'; log(c, `Rejected ${theirShort(c)}'s counter on ${paraName(c, x.para)}`); render(); toast('Rejected. Your 90 days goes back to them.', 'ok'); sim(() => { if (ours && ours.status === 'sent'){ ours.status = 'accepted'; log(c, 'Accepted 5.6 Due payment at 90 days', cpOf(c)); toast(`${theirShort(c)} accepted 90 days. (Simulated.)`, 'ok'); render(); } }, 3200); },
+  'chg-counter': b => { const x = chgOf(b); openEditor({para:x.para, risk:null, mode:'counter', target:x.id}); },
+  readings: () => actReadings(),
+  'signers-open': () => { S.signersOpen = true; renderPanel(); },
+  'signers-cancel': () => { S.signersOpen = false; renderPanel(); },
+  'signers-save': () => actSignersSave(),
+  'sign-open': () => { S.padOpen = true; renderPanel(); const p = $('.pad'); if (p) p.scrollIntoView({block:'nearest'}); },
+  'sig-saved': () => sigSaved(),
+  'sig-clear': () => { const cv = $('#sig-pad'); if (cv) cv.getContext('2d').clearRect(0, 0, cv.width, cv.height); padInk = false; sigSync(); },
+  'sig-go': () => actSignGo(),
+  'sig-cancel': () => { S.padOpen = false; renderPanel(); },
+  'share-int': () => { S.dlg = {kind:'int'}; renderDlg(); },
+  'share-ext': () => { S.dlg = {kind:'ext'}; renderDlg(); },
+  'dlg-close': () => { S.dlg = null; renderDlg(); },
+  'dlg-purpose': b => { S.dlg.purpose = b.dataset.v; keepDlgInputs(); renderDlg(); },
+  'dlg-channel': b => { S.dlg.channel = b.dataset.v; keepDlgInputs(); renderDlg(); },
+  'dlg-send': () => dlgSend(),
+  'dlg-who': b => { const D = S.dlg; const v = b.dataset.v; D.who = b.checked ? D.who.concat(v) : D.who.filter(x => x !== v); renderDlg(); },
+  'dlg-share': () => { const c = cur(); const D = S.dlg; S.dlg = null; log(c, `Shared with ${D.who.join(', ')} to ${D.purpose.toLowerCase()}`); S.ex = {jambo:`Shared with ${esc(D.who.join(', '))}. It's in their list and their bell.`}; toast(`Shared with ${D.who.join(', ')}.`, 'ok'); render(); },
+  'draft-new': () => { S.draftAsk = null; go({pface:'draft'}, 'What should we draft? Say it in a sentence, or open the form.'); },
+  'draft-open': () => actDraftOpen(),
+  'focus-ask': () => { const i = $('#ask'); i.value = 'draft '; i.focus(); },
+  'na-tpl': b => { keepNa(); S.dlg.tpl = b.dataset.v; renderDlg(); },
+  'na-stream': b => { keepNa(); S.dlg.stream = b.dataset.v; renderDlg(); },
+  'draft-create': () => actDraftCreate(),
+  'clause-row': b => { const n = +b.dataset.n; S.openClause = S.openClause === n ? null : n; renderPanel(); litTarget('cl-' + n, null); },
+  goclause: b => { const pid = b.dataset.pid; if (S.face !== 'document') go({face:'document'}, `Here is ${esc(pid)} on the paper.`); litTarget('pa-' + cssId(pid), pid); },
+  rail: () => { S.rail = !S.rail; renderRail(); },
+  railgo: b => { S.rail = false; renderRail(); if (b.dataset.c) command(b.dataset.c); else toast('This page keeps its own door for now. A later stage decides.', 'info'); },
+  print: () => toast('In the real app this opens the print copy.', 'info'),
+  download: () => toast('In the real app this downloads the file.', 'info'),
+  present: () => toast('Present is not part of this demo.', 'info'),
+  svenska: () => toast('Jambo understands Svenska too: try signera, dela, tavla or historik.', 'info'),
+  fmt: b => { try { document.execCommand(b.dataset.cmd, false, null); } catch(_){} },
+  'ed-exit': () => edExit(),
+  'ed-apply': () => edApply(),
+  'ed-discard': () => { S.editor.phase = 'idle'; S.editor.sug = null; renderOverlay(true); },
+  'ed-file': () => edFile(),
+  'ed-file-exit': () => { S.editor.leaving = false; edFile(); edExit(true); },
+  'ed-leave': () => edExit(true),
+  'ed-stay': () => { S.editor.leaving = false; renderOverlay(true); },
+  'ed-undo': () => { const e = S.editor; e.applied = null; e.typed = false; e.phase = e.sug ? 'ready' : 'idle'; renderOverlay(false); },
+  'ed-rtab': b => { S.editor.rtab = b.dataset.t; renderOverlay(true); },
+  'ed-pick': () => { S.editor.pick = !S.editor.pick; renderOverlay(true); },
+  'ed-risk': b => edSetRisk(+b.dataset.i),
+  'ed-walk': b => { const c = cur(); const lv = c.risks.map((x, i) => ({x, i})).filter(o => !o.x.gone); const pos = lv.findIndex(o => o.i === S.editor.risk); const nx = lv[pos + (+b.dataset.d)]; if (nx) edSetRisk(nx.i); },
+  'ed-var': b => { const e = S.editor; e.rtab = 'risks'; if (e.risk == null && e.mode !== 'counter'){ const c = cur(); const ri = c.risks.findIndex(r => r.para === e.para && !r.gone); if (ri >= 0) e.risk = ri; } writeSuggestion(b.dataset.v); },
+  'ed-ask': () => { const i = $('#ed-q'); const v = (i.value || '').toLowerCase(); i.value = ''; S.editor.rtab = 'risks'; writeSuggestion(/firm|strong|hard/.test(v) ? 'firm' : /soft|gentle|easier/.test(v) ? 'soft' : /short|brief/.test(v) ? 'short' : 'base'); }
+};
+function edSetRisk(i){
+  const e = S.editor; const c = cur(); if (!e) return;
+  const r = c.risks[i];
+  Object.assign(e, {risk:i, para:r.para, mode:'edit', target:null, newAfter:false, pick:false, rtab:'risks', applied:null, typed:false, filed:false, orig:null, sug:null});
+  renderOverlay(); writeSuggestion();
+}
+function keepDlgInputs(){ const D = S.dlg; const n = $('#dl-name'), m = $('#dl-mail'); if (n) D.name = n.value; if (m) D.mail = m.value; }
+function keepNa(){ const D = S.dlg; $$('[data-na]').forEach(i => D.f[i.dataset.na] = i.value); const q = $('#na-q'); if (q) D.q = q.value; }
+function litTarget(elId, pid){
+  S.lit = pid; const el = document.getElementById(elId); if (!el) return;
+  $$('#sheet .lit').forEach(x => x.classList.remove('lit')); if (pid) el.classList.add('lit');
+  el.scrollIntoView({block:'center', behavior: FAST ? 'auto' : 'smooth'});
+  later(() => { S.lit = null; el.classList.remove('lit'); }, 2600);
+}
+
+app.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if (S.rail && !e.target.closest('.railf') && !(b && b.dataset.act === 'rail')){ S.rail = false; renderRail(); }
+  if (S.editor && S.editor.pick && !e.target.closest('.pick')){ S.editor.pick = false; renderOverlay(true); }
+  if (S.pop && !e.target.closest('#jpop') && e.target.id !== 'ask') closePop();
+  if (!b || !app.contains(b) || b.disabled) return;
+  const f = ACT[b.dataset.act]; if (f) f(b, e);
+});
+app.addEventListener('mousedown', e => { if (e.target.closest('.tb')) e.preventDefault(); });
+app.addEventListener('input', e => {
+  const t = e.target;
+  if (t.id === 'ask') readPop();
+  else if (t.matches('[data-field]')) onFieldInput(t);
+  else if (t.id === 'ed-cur'){ const ed = S.editor; if (ed && !ed.typed){ ed.typed = true; renderOverlay(true); placeCaretEnd(); } }
+  else if (t.id === 'hist-q'){ S.histQ = t.value; const h = $('.hist'); if (h){ const tmp = document.createElement('div'); tmp.innerHTML = historyHtml(cur()); h.replaceWith(tmp.firstElementChild); } }
+  else if (t.matches('[data-na]') || t.id === 'na-q'){ if (t.id === 'na-q'){ keepNa(); renderDlg(); const q = $('#na-q'); q.focus(); q.setSelectionRange(q.value.length, q.value.length); } else { S.dlg.f[t.dataset.na] = t.value; t.parentElement.classList.toggle('need', !t.value.trim()); } }
+  else if (t.matches('[data-dl]')){ S.dlg[t.dataset.dl] = t.value; t.parentElement.classList.toggle('need', !t.value.trim()); }
+});
+app.addEventListener('change', e => {
+  const t = e.target;
+  if (t.matches('[data-field]')) onFieldDone(t);
+  if (t.id === 'sig-intent') sigSync();
+});
+function placeCaretEnd(){ const box = $('#ed-cur'); if (!box) return; box.focus(); const r = document.createRange(); r.selectNodeContents(box); r.collapse(false); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+$('#ask').addEventListener('keydown', e => {
+  if (S.pop){
+    const n = S.pop.rows.length;
+    if (e.key === 'ArrowDown'){ e.preventDefault(); S.pop.on = (S.pop.on + 1) % n; paintPop(); return; }
+    if (e.key === 'ArrowUp'){ e.preventDefault(); S.pop.on = (S.pop.on - 1 + n) % n; paintPop(); return; }
+    if (e.key === 'Enter' || e.key === 'Tab'){ e.preventDefault(); takePop(S.pop.on); return; }
+    if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); closePop(); return; }
+  }
+  if (e.key === 'Enter'){ e.preventDefault(); const v = e.target.value; e.target.value = ''; command(v); }
+});
+$('#q').addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); const v = e.target.value; e.target.value = ''; command(v); } });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape'){ if (S.pop) closePop(); else if (S.dlg){ S.dlg = null; renderDlg(); } else if (S.editor){ edExit(); } else if (S.rail){ S.rail = false; renderRail(); } }
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k'){ e.preventDefault(); $('#q').focus(); }
+  if (e.key === 'Enter' && e.target && e.target.id === 'ed-q'){ e.preventDefault(); ACT['ed-ask'](); }
+});
+app.addEventListener('dragover', e => { const dz = e.target.closest && e.target.closest('#drop'); if (dz){ e.preventDefault(); dz.classList.add('over'); } });
+app.addEventListener('dragleave', e => { const dz = e.target.closest && e.target.closest('#drop'); if (dz) dz.classList.remove('over'); });
+app.addEventListener('drop', e => { const dz = e.target.closest && e.target.closest('#drop'); if (!dz) return; e.preventDefault(); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; actUpload(f ? f.name : null); });
+
+/* ---------------- the tour ---------------- */
+const CANCEL = {};
+let RUN = 0, TOUR_AT = 0;
+const tp = ms => { const my = RUN; if (FAST) return my === RUN ? Promise.resolve() : Promise.reject(CANCEL); return new Promise((res, rej) => setTimeout(() => my === RUN ? res() : rej(CANCEL), ms)); };
+async function hl(sel){
+  if (FAST) return;
+  const el = $(sel); if (!el) return;
+  el.scrollIntoView({block:'nearest', behavior:'smooth'});
+  await tp(250);
+  el.classList.add('thl'); await tp(650); el.classList.remove('thl');
+}
+async function sayInBox(text){
+  const i = $('#ask');
+  if (!FAST){ i.focus(); i.value = ''; for (const ch of text){ i.value += ch; i.dispatchEvent(new Event('input', {bubbles:true})); await tp(45); } await tp(250); }
+  closePop(); i.value = '';
+  await command(text);
+}
+async function typeField(k, v){
+  const inp = $(`[data-field="${k}"]`); if (!inp) return;
+  if (FAST){ inp.value = v; onFieldInput(inp); onFieldDone(inp); return; }
+  inp.focus(); inp.scrollIntoView({block:'nearest'}); inp.value = '';
+  for (const ch of v){ inp.value += ch; onFieldInput(inp); await tp(30); }
+  onFieldDone(inp); await tp(200);
+}
+async function waitFor(fn, ms){ const end = Date.now() + ms; while (!fn() && (FAST || Date.now() < end)){ if (FAST) return; await tp(150); } }
+async function press(sel){ await hl(sel); const el = $(sel); if (el && !el.disabled){ const f = ACT[el.dataset.act]; if (f) await f(el); } }
+const TOUR = [
+  {t:'Every contract on one wall', d:'Home opens on the Document face. With nothing chosen, every contract is a small paper. Jambo waits on the right.', run: async () => {}},
+  {t:'Upload your SaaS agreement', d:'Drop the file into Jambo\'s panel. It becomes the paper, Jambo reads all 41 clauses, and the panel turns into the fill-in form.', run: async () => { await hl('[data-act="upload"]'); await actUpload(); }},
+  {t:'Fill in the details', d:'The supplier\'s name, address, registration number, notice contact and the Minimum Charges. As you type, the blanks on the paper fill in.', run: async () => { for (const [k, v] of [['cp','Northlane Parcel Systems A/S'],['addr','Havnegade 12, 1058 Copenhagen K'],['reg','41 27 66 09'],['rep','Mikkel Sørensen, Head of Contracts, contracts@northlane-parcel.example'],['charge','420000']]) await typeField(k, v); }},
+  {t:'Type “redline”', d:'The panel becomes HaTi\'s redlines column: the piles, Draft from our standards, and the five risks Jambo found in the wording.', run: () => sayInBox('redline')},
+  {t:'Draft from our standards', d:'Payment days (5.6), price adjustments (5.3) and cyber insurance (34.1) are below Our standards. Jambo drafts one change for each. Nothing is sent.', run: async () => { await hl('[data-act="draft-std"]'); await actDraftStandards(); }},
+  {t:'Edit with Jambo', d:'Edit on “Carrier changes · no remedy” opens the clause editor on 8.5. Jambo rewrites the carrier exception; you Apply, then File.', run: async () => { await hl('[data-act="risk-edit"][data-i="0"]'); await openEditor({risk:0}); await tp(700); await hl('[data-act="ed-apply"]'); edApply(); await tp(900); await hl('[data-act="ed-file"]'); edFile(); await tp(500); }},
+  {t:'Exit, back where you were', d:'Exit lands you back on the paper with the redlines still in the panel, at the same spot. The new change sits in “Your drafts”.', run: async () => { await hl('[data-act="ed-exit"]'); edExit(); }},
+  {t:'Type “deal board”', d:'The Board face shows the deal board: needs you, with them, closed. Jambo\'s panel stays with you.', run: () => sayInBox('deal board')},
+  {t:'Type “/”', d:'A slash opens your most used places, drawn the way the Board draws its own menu. Pick /document to go back to the paper.', run: async () => { const i = $('#ask'); if (!FAST){ i.focus(); i.value = '/'; i.dispatchEvent(new Event('input', {bubbles:true})); await tp(1400); await hl('[data-pop-w="document"]'); const k = S.pop ? S.pop.rows.findIndex(r => r.w === 'document') : -1; if (k >= 0) await takePop(k); } else { i.value = ''; await command('document', '/document'); } }},
+  {t:'Type “share”', d:'Two choices. Sending opens the real send screen, already filled in with the supplier\'s contact.', run: async () => { await sayInBox('share'); await tp(500); await hl('[data-act="share-ext"]'); S.dlg = {kind:'ext'}; renderDlg(); await tp(1200); await hl('[data-act="dlg-send"]'); await dlgSend(); }},
+  {t:'Their answer: Accept', d:'They accept three changes and counter payment days at 75. The counter lands under “Awaiting you” with HaTi\'s own Accept · Reject · Counter.', run: async () => { await waitFor(() => cur() && cur().changes.some(x => x.status === 'awaiting'), 6000); await sayInBox('redline'); await tp(700); await hl('[data-act="chg-accept"]'); const b = $('[data-act="chg-accept"]'); if (b) ACT['chg-accept'](b); }},
+  {t:'Type “sign”', d:'The before-you-sign checklist: the same list the Sign button reads. Run the readings and name the signers, right here.', run: async () => { await sayInBox('sign'); await tp(500); await hl('[data-act="readings"]'); await actReadings(); await tp(400); await press('[data-act="signers-open"]'); await tp(700); await press('[data-act="signers-save"]'); }},
+  {t:'Sign', d:'When nothing is left to settle, the Sign button wakes up. Typing never signs: the press is always yours.', run: async () => { await press('[data-act="sign-open"]'); await tp(500); await hl('[data-act="sig-saved"]'); sigSaved(); await tp(400); const t = $('#sig-intent'); if (t){ t.checked = true; sigSync(); } await tp(400); await hl('#sig-go'); actSignGo(); }},
+  {t:'Type “history”', d:'Everything that happened, newest first, on the Board, ready to print or share.', run: () => sayInBox('history')},
+  {t:'Draft by asking', d:'Type “draft an NDA with Volvo” for a co-branded promotion. Your sentence is carried into the new-agreement form, and you press Create.', run: async () => { await sayInBox('draft an NDA with Volvo'); await tp(700); await hl('[data-act="draft-open"]'); actDraftOpen(); await tp(900); await hl('[data-act="na-stream"][data-v="Marketing"]'); keepNa(); S.dlg.stream = 'Marketing'; renderDlg(); await tp(600); await hl('[data-act="draft-create"]'); actDraftCreate(); }}
+];
+function resetAll(){
+  EPOCH++; TIMERS.forEach(clearTimeout); TIMERS.clear(); CHG = 0; CLOCK = 16 * 60 + 2; padInk = false;
+  S = fresh(); lastPanelKey = ''; $('#ask').value = ''; $('#q').value = ''; $('#toasts').innerHTML = ''; closePop();
+  render();
+}
+async function runTo(i){
+  i = Math.max(0, Math.min(TOUR.length - 1, i));
+  RUN++; const my = RUN;
+  resetAll();
+  TOUR_AT = i; renderTour();
+  FAST = true;
+  try { for (let j = 0; j < i; j++) await TOUR[j].run(); } catch (e) { if (e !== CANCEL) console.error(e); }
+  FAST = false;
+  if (my !== RUN) return;
+  render();
+  try { await TOUR[i].run(); } catch (e) { if (e !== CANCEL) console.error(e); }
+}
+function renderTour(){
+  $('#tour-steps').innerHTML = TOUR.map((s, i) => `<button type="button" class="${i === TOUR_AT ? 'on' : i < TOUR_AT ? 'done' : ''}" data-step="${i}"><b>${i + 1}</b>${esc(s.t)}</button>`).join('');
+  $('#tour-title').textContent = `Step ${TOUR_AT + 1} of ${TOUR.length} · ${TOUR[TOUR_AT].t}`;
+  $('#tour-text').textContent = TOUR[TOUR_AT].d;
+  $('#tour-prev').disabled = TOUR_AT === 0;
+  $('#tour-next').disabled = TOUR_AT === TOUR.length - 1;
+}
+$('#tour-steps').addEventListener('click', e => { const b = e.target.closest('[data-step]'); if (b) runTo(+b.dataset.step); });
+$('#tour-prev').addEventListener('click', () => runTo(TOUR_AT - 1));
+$('#tour-next').addEventListener('click', () => runTo(TOUR_AT + 1));
+$('#tour-play').addEventListener('click', () => runTo(TOUR_AT));
+$('#reset').addEventListener('click', () => { RUN++; resetAll(); TOUR_AT = 0; renderTour(); });
+
+/* ---------------- fit the frame ---------------- */
+const box = $('#stagebox');
+function fit(){ const w = box.clientWidth; const s = Math.min(1.2, w / 1362); app.style.transform = `scale(${s})`; box.style.height = Math.ceil(842 * s) + 'px'; }
+new ResizeObserver(fit).observe(box);
+fit();
+resetAll(); renderTour();
+})();
+
+</script>

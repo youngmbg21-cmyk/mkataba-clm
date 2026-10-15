@@ -163,13 +163,18 @@ function cuPlacePut(p){
 }
 
 /* ---- THE DOORS ---- */
-/* OPEN CUSTOMER = the Contracts page narrowed to this customer, through its
-   own "only" chip (regShowOnly). × on the chip widens it; the rail's
-   Customers door is the way back. */
+/* OPEN PARTY = HOME'S CONTRACTS PLACE, NARROWED TO THIS PARTY (the overnight
+   work order, steps 2 and 7; owner's "Go", 14 Oct 2026): the ids this row
+   counted (cuIdsOf: its filters held, amendments with their agreement, a
+   closed one kept), through the register's one door (regShowOnly), which
+   lands on Home's Document face with no paper chosen — the place's own set
+   chip names the party and is the way out, on the Wall and the List alike.
+   The phone keeps its Contracts screen, its chip saying the count. */
 function cuOpenCustomer(key){
   const v = cuView(cuCustomerOf(key));
   if (!v || !v.items.length) return;
-  if (typeof regShowOnly === 'function') regShowOnly(cuIdsOf(v), `${v.name} · ${v.items.length}`);
+  const phone = typeof window !== 'undefined' && ((window.mPhone && mPhone()) || (window.innerWidth && window.innerWidth < 768));
+  if (typeof regShowOnly === 'function') regShowOnly(cuIdsOf(v), phone ? `${v.name} · ${v.items.length}` : v.name, { party: true });
 }
 function cuDraftFor(name){
   if (typeof openNewAgreement === 'function') openNewAgreement({ prefill: { counterparty: name } });

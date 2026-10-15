@@ -11,7 +11,7 @@
           Green), on both screens; status colours do not move.
      N-5  "Summarise my board" is a button.
      N-8  the Clauses door dressed in its tone paints that tone's wash.
-     N-9  "Your move" starts at one left edge down the list.
+     N-9  "Your move" starts at one left edge down the list (retired at step 7 of the overnight work order: the List draws no move mark).
    (N-6 and N-7, the card's Ask for a change and the votes, are pinned by
    one-copilot-editor-verify 1c/2a.)
 
@@ -35,6 +35,9 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
   try { await page.waitForFunction(fn, arg, { timeout: ms }); return true; } catch (_){ return false; }
 };
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
@@ -118,7 +121,7 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
     } else check('N-1 Present button is drawn', false, 'no #hb-present');
 
     /* ============ N-2 and N-9 on the Contracts list ============ */
-    await page.evaluate(() => setView('register'));
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await waitFor(page, () => document.querySelectorAll('#reg-tbody tr').length > 2, null, 10000);
     await page.waitForTimeout(800);
     /* The seed has no live negotiation, so every row is given one whose move
@@ -136,8 +139,12 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
       return { mk: mk ? parseFloat(getComputedStyle(mk).fontSize) : 0, row: row ? parseFloat(getComputedStyle(row).fontSize) : 0, lefts };
     });
     check('N-2 the reference reads smaller than the row', list.mk > 0 && list.mk < list.row, `ref ${list.mk}px · row ${list.row}px`);
-    check('N-9 every "your move" / "their move" starts at one left edge',
-      list.lefts.length >= 2 && new Set(list.lefts).size === 1, `${list.lefts.length} marks at ${[...new Set(list.lefts)].join(', ')}`);
+    /* N-9 RETIRED AT STEP 7 OF THE OVERNIGHT WORK ORDER (15 Oct 2026): the
+       move marks stood beside the stage only in the Contracts page's
+       inspector shape; the Contracts place's List is the drawing's six
+       columns with no panel and draws the stage alone, so there is no mark to
+       line up (the stage slot the marks hung on, regStageSlotFit, still
+       measures the pills). */
     await page.screenshot({ path: path.join(OUT, '03-contracts.png') });
 
     /* ============ N-8 the Clauses door wears its tone ============ */

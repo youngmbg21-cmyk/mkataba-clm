@@ -20,6 +20,12 @@
      6. the keyboard opens it (Enter), moves in it, and Esc shuts it
      7. a screen with no hover opens it with a tap on the row
      8. no page errors
+   RE-POINTED AT STEP 7 OF THE OVERNIGHT WORK ORDER (15 Oct 2026): the fold
+   keeps only Negotiations and Parties; its Contracts item went, and the
+   opener — which keeps its name — is the Contracts door: a press opens Home's
+   Contracts place and the fly-out (pressed again, the fly-out shuts). So 1,
+   2a and 7 read two items and no Contracts item; 3c presses the opener; 5b is
+   read on the place; the keyboard lands on Negotiations, ↓ on Parties.
    Waits ask for the state, bounded. Red at unmodified main (2, 3b, 5, 6, 7).
    Run: node test/chromium/nav-fold-verify.js */
 const fs = require('node:fs');
@@ -54,7 +60,7 @@ const VIS = `el => !!el && el.getClientRects().length > 0 && getComputedStyle(el
     await page.fill('#li-email', 'admin@example.co.ke');
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
-    await page.waitForFunction(() => window.state && state.contracts && state.contracts.length > 1 && !!document.querySelector('.nav-item[data-view="register"]'), null, { timeout: 20000 });
+    await page.waitForFunction(() => window.state && state.contracts && state.contracts.length > 1 && !!document.querySelector('[data-nav-fold-open="register"]'), null, { timeout: 20000 });
     await page.waitForTimeout(400);
   };
   const read = page => page.evaluate(VIS => { const vis = eval(VIS);
@@ -63,10 +69,11 @@ const VIS = `el => !!el && el.getClientRects().length > 0 && getComputedStyle(el
     const dot = document.querySelector('#side-nav [data-fold-dot]');
     const n = document.querySelector('#side-nav [data-count="negotiations"]');
     const side = document.getElementById('side-nav'), ap = q('approvals');
-    const tops = ['register', 'redline', 'customers'].map(v => vis(q(v)) ? q(v).getBoundingClientRect().top : null);
-    return { head: vis(head), contracts: vis(q('register')), nego: vis(q('redline')), parties: vis(q('customers')),
-      order: tops.every(t => t != null) ? tops[0] < tops[1] && tops[1] < tops[2] : null,
-      right: vis(q('register')) && side ? q('register').getBoundingClientRect().left >= side.getBoundingClientRect().right - 1 : null,
+    const tops = ['redline', 'customers'].map(v => vis(q(v)) ? q(v).getBoundingClientRect().top : null);
+    return { head: vis(head), contracts: vis(q('register')), item: !!q('register'), nego: vis(q('redline')), parties: vis(q('customers')),
+      items: [...document.querySelectorAll('#side-nav .nav-fold .nav-sub .nav-item')].filter(b => b.closest('.nav-fold').getAttribute('data-nav-fold') === 'register').map(b => b.getAttribute('data-view')),
+      order: tops.every(t => t != null) ? tops[0] < tops[1] : null,
+      right: vis(q('redline')) && side ? q('redline').getBoundingClientRect().left >= side.getBoundingClientRect().right - 1 : null,
       apTop: ap ? Math.round(ap.getBoundingClientRect().top) : null,
       current: !!(head && head.classList.contains('is-current')),
       word: ((q('customers') || {}).textContent || '').trim(), dot: vis(dot), owed: !!n && n.getAttribute('data-tone') === 'amber', n: n ? n.textContent : '' };
@@ -80,12 +87,12 @@ const VIS = `el => !!el && el.getClientRects().length > 0 && getComputedStyle(el
     const away = async () => { await page.mouse.move(900, 500); await page.evaluate(() => { if (document.activeElement) document.activeElement.blur(); }); await page.waitForTimeout(450); };
     await away();
     const rest = await read(page);
-    check('1. at rest the Contracts row is shown; Contracts, Negotiations and Parties are not', rest.head && !rest.contracts && !rest.nego && !rest.parties, JSON.stringify(rest));
+    check('1. at rest the Contracts row is shown; Negotiations and Parties are not; the fold holds no Contracts item', rest.head && !rest.item && !rest.nego && !rest.parties && rest.items.join() === 'redline,customers', JSON.stringify(rest));
     check('4a. shut, the amber dot says a negotiation waits on you, as the count does', rest.owed && rest.dot, JSON.stringify({ dot: rest.dot, owed: rest.owed, n: rest.n }));
     await page.screenshot({ path: path.join(OUT, '1-rest.png'), clip: { x: 0, y: 0, width: 420, height: 600 } });
     await page.hover('[data-nav-fold-open="register"]');
     const hov = await until(() => document.querySelector('.nav-fold.is-hover') ? true : null).then(() => read(page));
-    check('2a. the pointer on Contracts opens Contracts, Negotiations, Parties in that order', hov.contracts && hov.nego && hov.parties && hov.order === true, JSON.stringify(hov));
+    check('2a. the pointer on Contracts opens Negotiations, Parties in that order, and nothing else', !hov.item && hov.nego && hov.parties && hov.order === true, JSON.stringify(hov));
     check('2b. …to the RIGHT of the menu, not below it', hov.right === true, JSON.stringify(hov));
     check('2c. nothing below the row moves', hov.apTop === rest.apTop, `${rest.apTop} → ${hov.apTop}`);
     check('3a. the door reads Parties', /^Parties/.test(hov.word), hov.word);
@@ -100,20 +107,44 @@ const VIS = `el => !!el && el.getClientRects().length > 0 && getComputedStyle(el
     check('5a. on the Parties page the row wears "you are here", and the fly-out is shut', onPage.current && !onPage.parties && !onPage.nego, JSON.stringify(onPage));
     await page.hover('[data-nav-fold-open="register"]');
     await until(() => document.querySelector('.nav-fold.is-hover') ? true : null);
-    await page.click('#side-nav .nav-item[data-view="register"]');
-    const reg = await until(() => state.view === 'register' ? true : null);
-    check('3c. the fly-out\'s Contracts opens the Contracts page', !!reg);
+    await page.click('#side-nav [data-nav-fold-open="register"]');
+    /* RE-POINTED 15 Oct 2026 (the checkers of step 7): a mouse press is the
+       Contracts DOOR and nothing else — the fly-out it used to leave open
+       covered the place's own head (its name, facts and stage tabs) */
+    const reg = await until(() => state.view === 'dashboard' && document.querySelector('[data-reg-home]') ? true : null);
+    await page.waitForTimeout(150);
+    const pressed = await read(page);
+    check('3c. a mouse press on the Contracts row opens Home\'s Contracts place, and the fly-out steps aside while the pointer rests there', !!reg && !pressed.nego && !pressed.parties,
+      JSON.stringify({ reg: !!reg, nego: pressed.nego, parties: pressed.parties }));
+    await away();
+    await page.hover('[data-nav-fold-open="register"]');
+    const back = await until(() => document.querySelector('.nav-fold.is-hover') ? true : null).then(() => read(page));
+    check('3d. the pointer leaves and comes back: the fly-out opens on the hover again, and the place stays', back.nego && back.parties && await page.evaluate(() => !!document.querySelector('[data-reg-home]')), JSON.stringify(back));
     await away();
     const onReg = await read(page);
-    check('5b. on Contracts too: "you are here" on the row, fly-out shut', onReg.current && !onReg.contracts, JSON.stringify(onReg));
+    check('5b. on the Contracts place too: "you are here" on the row, fly-out shut', onReg.current && !onReg.nego, JSON.stringify(onReg));
+    /* THE CHECKERS' OWN WALK, on the 1536 laptop (the rail docked, the
+       fly-out level with the place's tabs): from the Board, Contracts pressed
+       with the mouse, then Drafting — the press lands on the tab, never on the
+       fly-out's Parties */
+    await page.setViewportSize({ width: 1536, height: 730 }); await page.waitForTimeout(400);
+    await page.evaluate(() => document.querySelector('#side-nav .nav-item[data-view="dashboard"]').click());
+    await until(() => state.view === 'dashboard' && window.hbFace && hbFace() === 'board' ? true : null);
+    await page.click('#side-nav [data-nav-fold-open="register"]');
+    await until(() => document.querySelector('[data-reg-home] [data-reg-stage="Draft"]') ? true : null);
+    await page.click('[data-reg-home] [data-reg-stage="Draft"]', { timeout: 5000 }).catch(() => {});
+    const drafted = await until(() => state.view === 'dashboard' && document.querySelector('[data-reg-home]') && (state.reg || {}).stage === 'Draft' ? { view: state.view, stage: state.reg.stage } : null, null, 4000)
+      || await page.evaluate(() => ({ view: state.view, stage: (state.reg || {}).stage, place: !!document.querySelector('[data-reg-home]') }));
+    check('3e. at 1536×730, Contracts then Drafting lands on the Drafting tab of the place, not on Parties', drafted.view === 'dashboard' && drafted.stage === 'Draft', JSON.stringify(drafted));
+    await page.evaluate(() => regGoFiltered()); await page.setViewportSize({ width: 1440, height: 900 }); await page.waitForTimeout(400);
     /* the keyboard */
     await page.focus('#side-nav [data-nav-fold-open="register"]');
     await page.keyboard.press('Enter');
     const kb = await until(() => document.querySelector('.nav-fold.is-open') && (document.activeElement || {}).getAttribute && document.activeElement.getAttribute('data-view') ? document.activeElement.getAttribute('data-view') : null);
-    check('6a. Enter opens it and puts the keyboard on Contracts', kb === 'register', String(kb));
+    check('6a. Enter opens it and puts the keyboard on its first door, Negotiations', kb === 'redline', String(kb));
     await page.keyboard.press('ArrowDown');
     const kb2 = await page.evaluate(() => (document.activeElement || {}).getAttribute ? document.activeElement.getAttribute('data-view') : null);
-    check('6b. ↓ moves to Negotiations', kb2 === 'redline', String(kb2));
+    check('6b. ↓ moves to Parties', kb2 === 'customers', String(kb2));
     await page.keyboard.press('Escape');
     const kb3 = await until(() => !document.querySelector('.nav-fold.is-open') ? true : null);
     check('6c. Esc shuts it', !!kb3);
@@ -124,7 +155,7 @@ const VIS = `el => !!el && el.getClientRects().length > 0 && getComputedStyle(el
     await touch.tap('#side-nav [data-nav-fold-open="register"]').catch(() => touch.click('#side-nav [data-nav-fold-open="register"]'));
     await touch.waitForTimeout(400);
     const t1 = await read(touch);
-    check('7. a screen with no hover: a tap on the row opens the fly-out', !t0.nego && t1.contracts && t1.nego && t1.parties, JSON.stringify({ before: t0.nego, after: t1 }));
+    check('7. a screen with no hover: a tap on the row opens the fly-out', !t0.nego && t1.nego && t1.parties && !t1.item, JSON.stringify({ before: t0.nego, after: t1 }));
   } catch (e) {
     console.log('ERROR', e && e.stack || e); failures++;
   } finally {

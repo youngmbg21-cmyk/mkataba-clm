@@ -229,7 +229,10 @@ describe('f397 (4) — every door from another page goes through the one door', 
   test('4c the shell search typed on another page lands fresh; typed on Contracts it narrows inside', () => {
     const h = handlerOf(APP, "search.addEventListener('input'");
     assert.ok(h, 'the shell bar\'s box is wired');
-    const reset = h.search(/state\.view!=='register'\s*&&\s*window\.regFiltersAtRest\)\s*regFiltersAtRest\(R\)/);
+    /* "on Contracts" is the list on screen: the phone's page, or Home's
+       Contracts place since the overnight work order's step 7 (regPlaceUp) */
+    assert.match(h, /const here=state\.view==='register'\|\|!!\(window\.regPlaceUp&&regPlaceUp\(\)\);/, 'the list on screen is the page or the place');
+    const reset = h.search(/!here\s*&&\s*window\.regFiltersAtRest\)\s*regFiltersAtRest\(R\)/);
     const write = h.indexOf('R.query=q');
     assert.ok(reset > 0, 'arriving from another page, it puts the filters to rest');
     assert.ok(write > reset, 'and only then writes the search');
@@ -244,8 +247,8 @@ describe('f397 (4) — every door from another page goes through the one door', 
   test('4e My Queue\'s "+N more" lands fresh from its own page, and keeps its old press on the Board', () => {
     const h = handlerOf(QUEUE, "document.querySelectorAll('[data-pipe-more]')");
     assert.ok(h, '"+N more" is wired');
-    assert.match(h, /state\.view!=='register'\s*&&\s*window\.regGoFiltered\)\{\s*regGoFiltered\(\{\s*stage:k\s*\}\)/,
-      'from My Queue it is a door, through the one door');
+    assert.match(h, /state\.view!=='register'\s*&&\s*!\(window\.regPlaceUp&&regPlaceUp\(\)\)\s*&&\s*window\.regGoFiltered\)\{\s*regGoFiltered\(\{\s*stage:k\s*\}\)/,
+      'from My Queue it is a door, through the one door (and inside Home\'s Contracts place, step 7, a press inside it)');
     assert.match(h, /regState\(\)\.stage=k/, 'on the Contracts page\'s own Board it is a press inside the page');
   });
   test('4f every caller of regShowOnly lands fresh by construction — the door itself presses the one door', () => {

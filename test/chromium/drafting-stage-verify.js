@@ -54,6 +54,9 @@ const check = (name, pass, detail) => {
 };
 const pause = ms => new Promise(r => setTimeout(r, ms));
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   /* EMAIL ON (re-pointed 9 Oct 2026, owner's decision D1: with no email set
@@ -200,7 +203,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       Array.isArray(after.triage) && after.triage.length > 0, { triage: after.triage });
 
     /* IT REACHES THE LIST TOO — the register is where this was most wrong. */
-    await page.evaluate(() => setView('register'));
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await pause(1800);
     /* RE-POINTED 24 Aug 2026 — the register's row states its stage as a dot and
        a word (.reg-stg) rather than a filled chip, so .badge finds nothing

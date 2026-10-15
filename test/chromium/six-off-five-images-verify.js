@@ -64,7 +64,8 @@ const ok = (name, good, detail) => {
       band: (() => { const td = document.querySelector('tr.ngl-band td');
         return td ? td.colSpan : null; })(),
     }));
-    await page.evaluate(() => { regSetMode('table'); setView('register'); });
+    /* the List of Home's Contracts place (step 7 of the overnight work order) */
+    await page.evaluate(() => { regSetMode('table'); regPlaceSet({ show: 'list' }); setView('register'); });
     await page.waitForTimeout(1200);
     const c1 = await heads();
     ok('1a the Contracts table draws no value stream column',
@@ -178,7 +179,7 @@ const ok = (name, good, detail) => {
        then back. RE-POINTED 11 Oct 2026: the Document tab (and its control-row
        door) is gone (owner); the room's ⋯ menu row (#ws-focus) is the door
        that stays on every tab, so it is pressed on the Signing tab. */
-    await page.evaluate(() => { openWorkspace(state.contracts[0].id); });
+    await page.evaluate(() => { openWorkspace(state.contracts[0].id, { room: true }); });
     await page.waitForFunction(() => !!document.querySelector('.room-tabrow'), null, { timeout: 10000 }).catch(() => {});
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
        Signing tab went home (Jambo's Before you sign face, where Home has no
@@ -196,8 +197,9 @@ const ok = (name, good, detail) => {
       chip: !!document.getElementById('ws-focus-out'),
       headHidden: (() => { const h = document.getElementById('ws-head'); return !!h && getComputedStyle(h).display === 'none'; })() }));
     ok('6a CONTROL focus mode is on, with its chip', on.chip && on.headHidden, JSON.stringify(on));
-    /* Contracts lives in the menu's fly-out (owner, 10 Oct 2026): rest on the opener, then press */
-    await page.hover('[data-nav-fold-open="register"]'); await page.click('.nav-item[data-view="register"]');
+    /* Contracts is the fly-out's opener since step 7 of the overnight work
+       order (its item went): a press opens Home's Contracts place */
+    await page.click('#side-nav [data-nav-fold-open="register"]');
     await page.waitForTimeout(1200);
     const away = await page.evaluate(() => ({
       view: state.view,
@@ -205,12 +207,12 @@ const ok = (name, good, detail) => {
       words: [...document.querySelectorAll('button')].filter(b => /Exit focus/i.test(b.textContent)
         && b.getBoundingClientRect().width > 0).length }));
     await page.screenshot({ path: path.join(OUT, '05-contracts-after-focus.png') });
-    ok('6b on another page there is no "Exit focus" chip', away.view === 'register' && !away.chip && away.words === 0,
+    ok('6b on another page there is no "Exit focus" chip', away.view === 'dashboard' && !away.chip && away.words === 0,
       JSON.stringify(away));
     /* ESCAPE ON ANOTHER PAGE IS THAT PAGE'S KEY, not the room's. */
     await page.keyboard.press('Escape');
     await page.waitForTimeout(300);
-    await page.evaluate(() => openWorkspace(state.contracts[0].id));
+    await page.evaluate(() => openWorkspace(state.contracts[0].id, { room: true }));
     await page.waitForTimeout(1200);
     const back = await page.evaluate(() => ({
       chip: !!document.getElementById('ws-focus-out'),

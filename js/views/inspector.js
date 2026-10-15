@@ -292,9 +292,11 @@ function insLatestHtml(c, st){
 /* ---- THREE DOORS, ONE ROW, EVERY LIST (owner, 12 Oct 2026) ----
    "these panels on the right ... should always have door to the overview
    page"; the words drop "Open" and keep the name and its mark: Document
-   (Home's Document, on Jambo), Negotiation (the Negotiate page), Workspace
-   (the contract's own page, on its Overview). Contracts, Negotiations,
-   Approvals & signing, Obligations and Requests all draw them from here.
+   (Home's Document, on Jambo), Negotiation (Jambo's Redlines face beside
+   Home's paper), Workspace (Home again: Fill in while details are owed, else
+   the paper on Jambo — roomHomeLand; never the room, step 2, 14 Oct 2026).
+   Contracts, Negotiations, Approvals & signing, Obligations and Requests all
+   draw them from here.
    `lead` names the page's own door (filled) — omitted where the page already
    has a filled verb of its own (Approve, Mark done), one filled button per
    area. Negotiation is never a dead button in live clothes: no negotiation
@@ -324,9 +326,13 @@ function insDoorActs(c, opt){
   const nego = { k: 'door-nego', door: true, icon: 'msg', label: i18t('ins_door_nego'),
     disabled: !ns.ok, title: ns.ok ? '' : ns.why, run: () => { if (insNegoDoorState(c).ok) openRedlineWorkbench(c.id, { face: true }); } };   /* Jambo's Redlines face beside Home's paper (stage 3) */
   const ws = { k: 'door-ws', door: true, icon: 'folderOpen', label: i18t('ins_door_ws'),
-    /* the Workspace lands on Details while anything is left to fill in
-       (owner, 12 Oct 2026), on the Overview otherwise */
-    run: () => { openWorkspace(c.id); try { const live = getContract(c.id) || c;
+    /* THE WORKSPACE OPENS HOME (the overnight work order, step 2, 14 Oct
+       2026; was the room, on Details while owed, 12 Oct): Fill in beside the
+       paper while anything is owed, else the paper on Jambo's tab — the one
+       landing every Workspace door shares (roomHomeLand). The phone, where
+       Home has no paper, keeps the room. */
+    run: () => { if (typeof roomHomeLand === 'function' && roomHomeLand(c.id)) return;
+      openWorkspace(c.id); try { const live = getContract(c.id) || c;
       let left = 0; try { left = (typeof detailsOf === 'function') ? detailsOf(live).left : 0; } catch (_){ left = 0; }
       if (typeof roomGoTab === 'function') roomGoTab(live, left ? 'details' : 'terms'); } catch (_){} } };
   const all = { doc, nego, ws };

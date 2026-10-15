@@ -183,11 +183,14 @@ async function tabAround(page, sel, n = 25) {
   {
     const cur = await page.evaluate(() => {
       const on = [...document.querySelectorAll('.nav-item[aria-current="page"]')];
-      return { n: on.length, view: on[0] ? on[0].getAttribute('data-view') : null };
+      /* the Contracts door is the fold's opener since its item went (step 7) */
+      return { n: on.length, view: on[0] ? (on[0].getAttribute('data-view') || on[0].getAttribute('data-nav-fold-open')) : null };
     });
     check('exactly one nav door says aria-current="page"', cur.n === 1, JSON.stringify(cur));
     check('and it is the door the reader is standing in', cur.view === 'register', String(cur.view));
-    await page.evaluate(() => setView('dashboard')); await pause(500);
+    /* RE-POINTED 15 Oct 2026 (step 7): the place is Home's Document face, so
+       the reader moves to Home by its rail door, which lands on the Board */
+    await page.evaluate(() => document.querySelector('#side-nav .nav-item[data-view="dashboard"]').click()); await pause(500);
     const moved = await page.evaluate(() => {
       const on = document.querySelector('.nav-item[aria-current="page"]');
       return on ? on.getAttribute('data-view') : null;
@@ -196,7 +199,8 @@ async function tabAround(page, sel, n = 25) {
   }
 
   /* ---------- 8 · THE REGISTER'S COLUMN HEADS AND ITS COUNT ---------- */
-  await page.evaluate(() => setView('register')); await pause(700);
+  /* the List of Home's Contracts place (step 7) */
+  await page.evaluate(() => { regPlaceSet({ show: 'list' }); setView('register'); }); await pause(700);
   {
     const th = await page.evaluate(() => {
       const t = document.querySelector('[data-reg-sort]');
@@ -225,7 +229,7 @@ async function tabAround(page, sel, n = 25) {
   }
 
   /* ---------- 9 · THE CONTRACT ROOM'S TAB ROW ---------- */
-  await page.evaluate(() => { openWorkspace('MK-82'); }); await pause(900);
+  await page.evaluate(() => { openWorkspace('MK-82', { room: true }); }); await pause(900);
   {
     const t0 = await page.evaluate(() => [...document.querySelectorAll('#ws-tabs [data-ws-tab]')]
       .map(b => ({ k: b.getAttribute('data-ws-tab'), sel: b.getAttribute('aria-selected'), tab: b.tabIndex })));
@@ -340,7 +344,9 @@ async function tabAround(page, sel, n = 25) {
      click handler is exactly what an audit finds — and Enter on one must
      land where the click lands: the dig-in, with the keyboard on it, and
      Enter on its "Open these" lands on the register narrowed to that list. */
-  await page.evaluate(() => setView('dashboard')); await pause(700);
+  /* the Board, by the rail's Home door: a visit to the Contracts place leaves
+     Home on its Document face (step 7, 15 Oct 2026) */
+  await page.evaluate(() => document.querySelector('#side-nav .nav-item[data-view="dashboard"]').click()); await pause(700);
   {
     const doors = await page.evaluate(() => [...document.querySelectorAll('#hb-book [data-hb-dig]')].map(el => ({
       tag: el.tagName.toLowerCase(), tab: el.tabIndex, off: !!el.disabled,
@@ -360,10 +366,10 @@ async function tabAround(page, sel, n = 25) {
       check('and Enter on a figure opens its list on the right, with the keyboard on it', dig.open && dig.kept, JSON.stringify(dig));
       const open = await page.$('.hb-sheet [data-hb-open]');
       if (open) { await open.focus(); await page.keyboard.press('Enter'); await pause(900); }
-      const landed = await page.evaluate(() => ({ view: state.view,
+      const landed = await page.evaluate(() => ({ view: state.view, place: !!document.querySelector('[data-reg-home]'),
         only: (regState().only && regState().only.ids) ? regState().only.ids.length : 0 }));
-      check('and Enter on "Open these" lands on the register, narrowed to that list',
-        landed.view === 'register' && landed.only > 0, JSON.stringify(landed));
+      check('and Enter on "Open these" lands on the register (Home\'s Contracts place), narrowed to that list',
+        landed.view === 'dashboard' && landed.place && landed.only > 0, JSON.stringify(landed));
       await page.evaluate(() => { regState().only = null; });
     } else check('a figure with something behind it is on Your book', false, 'no live figure');
   }
