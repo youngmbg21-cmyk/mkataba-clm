@@ -756,6 +756,9 @@ function pdRedFacePaint(c, top){
   try { if (typeof chatFieldWire === 'function') chatFieldWire(host); } catch (_){}
   pdRedWire(host);
   pdRedPaperWire();
+  /* the chips read the face as drawn: an empty column's own Edit a clause
+     button means no chip repeats it (caEditChipBtn) */
+  pdChipsRepaint();
   /* what the Negotiate page loads after it paints — the thread from their
      page and the share list (Send all in one press needs their address) */
   try { if (typeof rlBenchCatchUp === 'function') rlBenchCatchUp(c, () => { if (pdRedShows() && String(pdRedFor()) === String(c.id)) pdRedRepaint(); }); } catch (_){}
@@ -1030,7 +1033,7 @@ function pdAmendShows(){
   if (!_pdAmend || _pdTab !== 'copilot' || !pdOnPaper()) return false;
   const c = pdContract(); return !!(c && String(c.id) === _pdAmend);
 }
-function pdAmendMay(c){ return !!(c && !c.parentId && typeof amendmentExecuted === 'function' && amendmentExecuted(c)); }
+function pdAmendMay(c){ return !!(c && typeof amendmentShutWhy === 'function' && !amendmentShutWhy(c)); }
 /* the one door: false where Home has no paper (the phone) or the agreement is
    not signed — the caller keeps the dialog */
 function pdAmendOpen(id){

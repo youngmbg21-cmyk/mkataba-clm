@@ -96,4 +96,16 @@ describe('f563 (4) — the doors onto Home', () => {
     ctx.state.view = 'register';
     assert.doesNotMatch(ctx.igDoorsHtml({ role: 'assistant', listIds: ['A', 'B'] }, 3), /data-ig-paper-go/);
   });
+  /* NO DOOR TO WHERE YOU ARE (owner, 15 Oct 2026): the one contract already
+     on Home's paper is said, not offered as a button */
+  test('4c an answer about the contract already open says so, with no button', () => {
+    const fn = IG.slice(IG.indexOf('function igAnswerIds'), IG.indexOf('/* WALK A SET ON THE PAPER'));
+    const ctx = { state: { view: 'dashboard' }, window: null, getContract: id => ({ id }), contractRef: c => c.id,
+      igEsc: s => String(s), i18t: (k, v) => k + (v && v.ref ? ':' + v.ref : ''), i18tn: k => k,
+      igHomePaperFace: () => true, intel: { paper: { id: 'A' } } };
+    ctx.window = ctx; vm.createContext(ctx); vm.runInContext(fn + '\nthis.igDoorsHtml = igDoorsHtml;', ctx);
+    const here = ctx.igDoorsHtml({ role: 'assistant', cardIds: ['A'] }, 1);
+    assert.doesNotMatch(here, /data-ig-paper-go/); assert.match(here, /int_already_on_paper:A/);
+    assert.match(ctx.igDoorsHtml({ role: 'assistant', cardIds: ['B'] }, 1), /data-ig-paper-go="1"/, 'another contract keeps its door');
+  });
 });

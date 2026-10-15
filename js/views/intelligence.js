@@ -6536,6 +6536,11 @@ function igDoorsHtml(m,i){
   const small=list?`<div class="igd-small"><button type="button" class="ui-link" data-ig-list="${i}">${i18t('int_open_list',{ n:m.listIds.length })}</button><button type="button" class="ui-link" data-ig-export="${i}">${i18t('int_export_list')}</button></div>`:'';
   if(!(window.state&&state.view==='dashboard')) return list?small.replace('igd-small','igd-list'):'';
   const one=ids.length===1, c=one?getContract(ids[0]):null;
+  /* NO DOOR TO WHERE YOU ARE (owner, 15 Oct 2026: "a button that will not
+     take you anywhere is a waste — simply give a reason"): the one contract
+     already on Home's paper is said, not offered */
+  if(one&&c&&typeof igHomePaperFace==='function'&&igHomePaperFace()===true&&typeof intel!=='undefined'&&intel.paper&&String(intel.paper.id)===String(c.id))
+    return `<p class="igd-here">${igEsc(i18t('int_already_on_paper',{ ref:(window.contractRef?contractRef(c):c.id) }))}</p>${small}`;
   const lead=one?i18t('int_open_on_paper',{ ref:(window.contractRef?contractRef(c):c.id) }):i18tn('int_read_on_paper',ids.length,{ n:ids.length });
   /* ONLY THE DOORS THAT FIT WHAT WAS FOUND (Young, 8 Oct 2026): one contract
      is one press, Open on Paper; a board of one shows nothing the paper does
