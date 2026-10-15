@@ -705,7 +705,7 @@ async function intakeLaneArrivals(){
   } finally { _ikArriving = false; }
   if(took){
     try{ if(window.updateSidebarCounts) updateSidebarCounts(); }catch(_){}
-    try{ if(state.view==='register' && typeof window.regRepaint==='function') window.regRepaint(); }catch(_){}
+    try{ if((state.view==='register' || (typeof window.regPlaceUp==='function' && window.regPlaceUp())) && typeof window.regRepaint==='function') window.regRepaint(); }catch(_){}
   }
   return read;
 }

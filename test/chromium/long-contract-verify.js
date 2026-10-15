@@ -141,10 +141,14 @@ const longBody = n => '<h1>SOFTWARE AS A SERVICE AGREEMENT</h1>' + Array.from({ 
     await page.screenshot({ path: path.join(OUT, '03-thread.png') });
 
     /* ===== N. TWO DOORS ===== */
-    await page.evaluate(() => setView('register'));
+    /* RE-POINTED AT STEP 7 OF THE OVERNIGHT WORK ORDER: the Contracts page's
+       head went with the page (Contracts is Home's Contracts place), so the
+       page head's Draft new agreement is pressed where it still stands — My
+       Queue's head, the same button (PAGE_ACTIONS 'new', data-page-new) */
+    await page.evaluate(() => setView('pipeline'));
     await page.waitForTimeout(1200);
     const upBtn = await page.evaluate(() => !!document.querySelector('[data-page-upload]'));
-    check('Na the Contracts page carries no separate Upload button', !upBtn, upBtn ? 'still drawn' : 'gone');
+    check('Na the page head carries no separate Upload button', !upBtn, upBtn ? 'still drawn' : 'gone');
     await page.click('[data-page-new]').catch(() => {});
     await page.waitForTimeout(700);
     const doors = await page.evaluate(() => [...document.querySelectorAll('[data-nd-door]')].map(b => b.getAttribute('data-nd-door')));

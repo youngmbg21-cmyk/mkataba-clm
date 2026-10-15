@@ -129,7 +129,17 @@ const ok = (name, good, detail) => {
     ok('the stage: their three asks on a negotiation we lead, a review asked of us, our signature, a renewal due',
       !!staged && staged.asks === 3 && staged.desk && staged.review && staged.signN === 3 && staged.renewal === 34, JSON.stringify(staged));
 
-    const toContracts = async () => { await page.evaluate(() => { regSetScope(null); setView('register'); }); await page.waitForTimeout(1000); };
+    /* RE-POINTED AT STEP 7 OF THE OVERNIGHT WORK ORDER (15 Oct 2026): the
+       Contracts page is Home's Contracts place, its List drawn with no side
+       panel (the owner's drawing), so the checklist is read where the panel
+       still stands for these contracts — the Negotiations page (MK-149), the
+       one builder (insNeedsHtml). What only the Contracts panel drew — the
+       signature row on MK-158, the renewal row on MK-143, the nothing-owed
+       control on MK-131 (2a–2c, 6a–6b) — retired with it; it is named to the
+       owner as a decision (where a contract that stands only on Contracts
+       shows what it needs from you). The doors those rows' buttons pressed are
+       the checklist's one door, needsYouGo, and 3c–3d press it. */
+    const toContracts = async () => { await page.evaluate(() => openNegotiations({ list: true })); await page.waitForTimeout(1000); };
     const pick = async id => {
       const row = await page.$(`#reg-tbody tr[data-row="${id}"]`);
       if (!row) return false;
@@ -160,7 +170,7 @@ const ok = (name, good, detail) => {
       };
     });
 
-    /* ================= 1 · THE CONTRACTS PAGE: WHERE IT SITS AND WHAT IT SAYS ================= */
+    /* ================= 1 · THE LIST'S PANEL (NEGOTIATIONS): WHERE IT SITS AND WHAT IT SAYS ================= */
     await toContracts();
     const on149 = await pick('MK-149');
     const a = on149 ? await read() : { head: [], rows: [] };
@@ -198,28 +208,12 @@ const ok = (name, good, detail) => {
       !!edge && edge.edge === edge.btnEdge && edge.ink === edge.accent && Math.abs(edge.h - edge.sm) <= 1, JSON.stringify(edge));
     await page.screenshot({ path: path.join(OUT, '1-contracts-carrefour.png') });
 
-    /* ================= 2 · THE SIGNATURE AND THE RENEWAL ================= */
-    const on158 = await pick('MK-158');
-    const s = on158 ? await read() : { rows: [] };
-    const sign = (s.rows || []).find(r => r.kind === 'sign');
-    const signTruth = await page.evaluate(() => { const c = getContract('MK-158'); const rd = signReadiness(c); const r0 = (rd.holds || [])[0];
-      return { n: rd.n, first: r0 ? signRowTitle(c, r0) : '' }; });
-    ok('2a your signature counts what stands before it — the Signing tab\'s own number — and names the first thing in its own words',
-      !!sign && sign.title === `Your signature — ${signTruth.n} things first` && sign.sub.indexOf(signTruth.first) === 0 && /and 2 more$/.test(sign.sub) && sign.tone === 'amber',
-      sign ? `${sign.title} / ${sign.sub} · truth ${JSON.stringify(signTruth)}` : 'no row');
-    const on143 = await pick('MK-143');
-    const r = on143 ? await read() : { rows: [] };
-    const ren = (r.rows || []).find(x => x.kind === 'renewal');
-    ok('2b a renewal on a contract you own: decide by the notice deadline, and how far away', !!ren && ren.title === 'Renew or exit'
-      && /^Decide by .+ · in 34 days$/.test(ren.sub) && ren.tone === 'amber' && ren.verb === 'Decide', ren ? `${ren.title} / ${ren.sub} / ${ren.tone}` : 'no row');
-    await page.evaluate(() => { getContract('MK-143').owner = { id: 'someone-else', name: 'Grace Ndungu' }; });
-    const again143 = (await pick('MK-131')) && (await pick('MK-143'));
-    const r2 = again143 ? await read() : { drawn: true };
-    /* GATED on 2b's row having been drawn for the owner: without it this passes on
-       a build that draws nothing at all. */
-    ok('2c a renewal on a contract somebody else owns is theirs to decide — no row, and nothing else owed means no checklist', !!ren && again143 && !r2.drawn,
-      JSON.stringify({ drawn: r2.drawn, rows: (r2.rows || []).map(x => x.kind) }));
-    await page.evaluate(() => { const me = currentUser(); getContract('MK-143').owner = { id: me.id, name: me.name }; });
+    /* ================= 2 · THE SIGNATURE AND THE RENEWAL =================
+       RETIRED AT STEP 7: their rows were drawn only by the Contracts page's
+       panel, which the Contracts place does not draw (see the note above).
+       What the rows read (needsYouOf: the signature's holds, the owner's
+       renewal by the notice deadline) stays pinned by f395. */
+    const sign = await page.evaluate(() => (window.needsYouOf ? needsYouOf(getContract('MK-158')) : []).find(x => x.kind === 'sign') || null);
 
     /* ================= 3 · EVERY BUTTON OPENS WHERE ITS ITEM IS ANSWERED ================= */
     const press = async (id, kind) => {
@@ -251,13 +245,22 @@ const ok = (name, good, detail) => {
        Jambo's Redlines face (.pd-rf-notices) — so a review's door opens the
        face too, where the review is handed back now */
     ok('3b Review opens the negotiation too — where the review is handed back', g2.view === 'dashboard' && g2.face === 'MK-149' && !!g2.notices, JSON.stringify(g2));
-    const g3 = await press('MK-158', 'sign');
+    /* the checklist's one door, as the retired Contracts row's button pressed it */
+    const door = async (id, kind) => { await page.evaluate(() => { try { closeModal(); } catch (_) {} openWorkspace('MK-150'); }); await page.waitForTimeout(700);
+      await page.evaluate(a => needsYouGo(a.kind, a.id), { id, kind }); await page.waitForTimeout(1200);
+      return page.evaluate(() => ({ view: state.view, id: state.activeId,
+        held: (typeof redlineHeldId === 'function') ? redlineHeldId() : null,
+        signFace: (document.querySelector('#pd-signface .pd-sf[data-pd-sf]') || { getAttribute: () => null }).getAttribute('data-pd-sf'),
+        signSheet: !!document.querySelector('#ig-paper .pg-sheet.pg-sign #ig-canvas'),
+        tab: (typeof roomCurrentTab === 'function') ? roomCurrentTab() : null,
+        sheet: !!document.getElementById('dk-close') })); };
+    const g3 = await door('MK-158', 'sign');
     /* RE-POINTED 14 Oct 2026 (stage 5): the Signing tab went home — Sign
        opens Jambo's Before you sign face on that contract, beside Home's
        paper drawn as the signing copy */
-    ok('3c Sign opens that contract on its Signing tab', g3.view === 'dashboard' && g3.signFace === 'MK-158' && g3.signSheet, JSON.stringify(g3));
-    const g4 = await press('MK-143', 'renewal');
-    ok('3d Decide opens that contract on its Overview, where the renewal card records the decision', g4.view === 'workspace' && g4.id === 'MK-143' && g4.tab === 'terms', JSON.stringify(g4));
+    ok('3c Sign (the checklist\'s one door) opens that contract on its Signing tab', !!sign && g3.view === 'dashboard' && g3.signFace === 'MK-158' && g3.signSheet, JSON.stringify(g3));
+    const g4 = await door('MK-143', 'renewal');
+    ok('3d Decide (the checklist\'s one door) opens that contract on its Overview, where the renewal card records the decision', g4.view === 'workspace' && g4.id === 'MK-143' && g4.tab === 'terms', JSON.stringify(g4));
 
     /* ================= 4 · A COLLEAGUE ASKING TO JOIN — A THIRD ROW, AND ITS DOOR ================= */
     await page.evaluate(() => { const d = deskOf(getContract('MK-149')); d.joinRequests = (d.joinRequests || []).concat([{ id: 'u-peter', name: 'Peter Kamau', email: 'peter@example.co.ke',
@@ -279,8 +282,11 @@ const ok = (name, good, detail) => {
     const nrow = await page.$('#reg-tbody tr[data-row="MK-149"]');
     if (nrow) { await nrow.click(); await page.waitForTimeout(450); }
     const n = nrow ? await read() : { rows: [] };
-    ok('5a the Negotiations page draws the same checklist for the same contract', n.drawn && n.rows.map(x => x.kind).join(',') === 'quiet,review'
-      && n.rows[0] && quiet && n.rows[0].title === quiet.title, n.rows.map(x => x.kind + ': ' + x.title).join(' · '));
+    /* RE-POINTED AT STEP 7: section 1 reads this same page now, so 5a asks the
+       one reading (needsYouOf) rather than the retired Contracts panel */
+    const kinds149 = await page.evaluate(() => needsYouOf(getContract('MK-149')).map(x => x.kind).join(','));
+    ok('5a the Negotiations page draws the checklist the one reading gives for the same contract', n.drawn && n.rows.map(x => x.kind).join(',') === 'quiet,review'
+      && kinds149 === 'quiet,review' && n.rows[0] && quiet && n.rows[0].title === quiet.title, n.rows.map(x => x.kind + ': ' + x.title).join(' · ') + ' · reading ' + kinds149);
     await page.evaluate(() => { apSetTab('signatures'); setView('approvals'); }); await page.waitForTimeout(1000);
     const arow = await page.$('.ap-table tbody tr[data-ap-row="MK-158"]');
     if (arow) { await arow.click(); await page.waitForTimeout(450); }
@@ -288,15 +294,14 @@ const ok = (name, good, detail) => {
       return { id: p && p.getAttribute('data-ins-id'), need: !!(p && p.querySelector('.ins-need')), sign: !!(p && p.querySelector('[data-ins-need-row="sign"]')),
         lead: !!(p && p.querySelector('.ins-lead')) }; }) : null;
     ok('5b the Approvals & signing page\'s signing panel leaves the signature out — its own lead already says what stands before signing',
-      /* GATED on the Contracts page having drawn the signature row for this very
-         contract (2a) — or "left out" is only "never drawn". */
+      /* GATED on the one reading owing the signature for this very contract
+         (the Contracts panel that drew it went at step 7) — or "left out" is
+         only "never owed". */
       !!sign && !!ap && ap.id === 'MK-158' && ap.lead && !ap.sign, JSON.stringify(ap));
 
-    /* ================= 6 · NOTHING OWED DRAWS NOTHING ================= */
-    await toContracts();
-    const k = (await pick('MK-131')) ? await read() : { head: [] };
-    ok('6a [control] nothing owed on this contract — no checklist', !k.drawn, JSON.stringify({ drawn: k.drawn }));
-    ok('6b [control] and the head is its rows, the stage beside the name', k.head.join(' > ') === 'ins-eb > ins-cp > ins-sub > ins-acts', k.head.join(' > '));
+    /* ================= 6 · NOTHING OWED DRAWS NOTHING =================
+       RETIRED AT STEP 7 with the Contracts page's panel (MK-131 stands on no
+       other list); the rule stays pinned by f395 and every other list's panel. */
 
     /* ================= 7 · THE NIGHT THEME READS THE SAME TOKENS ================= */
     await page.evaluate(() => { if (typeof setDark === 'function') setDark(true); });

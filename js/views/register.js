@@ -664,12 +664,55 @@ const REG_COL_KEYS_NEGO_INS = ['mk','counterparty','round','changes','waiting'];
 /* round + changes + waiting = stage + value (340), so the reference and the
    counterparty stay cut identically on both seats (inspector-verify 2e). */
 const REG_INS_COL_PX = { mk:84, stage:216, move:216, value:124, round:72, changes:172, waiting:96 };
-function regInspecting(){ return regMode()!=='board' && typeof insFits==='function' && insFits(); }
+/* THE CONTRACTS PLACE ON HOME HAS NO INSPECTOR (the overnight work order,
+   step 7): a row press opens the contract on the paper, and its six columns
+   are the drawing's — the reference, the counterparty over the agreement,
+   the stage, the owner, when it ends and what it is worth — and the row's
+   own ⋯ stays at the end, as on today's full table: with the panel gone it is
+   the one place a row's acts live (Decline · close has no other door).
+   Its cell is 6 parts, not the full table's 3: Home's paper is narrower than
+   the page was, and at 1024 three parts cut the ⋯ square (button-consistency 1c). */
+const REG_COL_KEYS_HOME = ['mk','counterparty','stage','owner','expiry','value','acts'];
+/* Value is 14, not 10 (the checkers of step 7): at 10 parts of a 900px column
+   "KES 2.20M" was cut to "KES 2.20…", hiding whether it was thousands or
+   millions; the four parts come out of the counterparty, whose names end in an
+   ellipsis with the whole on the hover. */
+const REG_COL_W_HOME    = [9,25,17,14,15,14,6];
+/* THE PLACE'S LIST FITS ITS COLUMN: Home's paper column can be narrow (an
+   820 tablet, a 1024 window, the split dragged toward the paper), so below
+   REG_HOME_NARROW_W of PLACE — measured, the host's own width — the List
+   draws its four loudest columns (the reference, the counterparty, the
+   stage, the ⋯); owner, ends and value stay in the filters, the sort and on
+   the paper. It carries no floor (.is-home) and a width crossing the line
+   repaints it (regHomeWatch). */
+const REG_COL_KEYS_HOME_NARROW = ['mk','counterparty','stage','acts'];
+const REG_COL_W_HOME_NARROW    = [20,42,28,10];
+const REG_HOME_NARROW_W = 600;
+function regHomeNarrow(){
+  if(!regHome() || regScope()==='negotiations' || typeof document==='undefined') return false;
+  const el=document.getElementById((_regOpts&&_regOpts.hostId)||'');
+  const w=el?el.clientWidth:0;
+  return w>0 && w<REG_HOME_NARROW_W;
+}
+/* bound once per host: a width that crosses the line repaints the List */
+function regHomeWatch(host){
+  if(!host || host.dataset.regWatch || typeof ResizeObserver!=='function') return;
+  host.dataset.regWatch='1';
+  let queued=false;
+  new ResizeObserver(()=>{ if(queued) return; queued=true;
+    (typeof requestAnimationFrame==='function'?requestAnimationFrame:(f=>setTimeout(f,16)))(()=>{ queued=false;
+      const t=host.querySelector('.reg-table');
+      if(!t || !regHome() || !regPlaceUp()) return;
+      if(regHomeNarrow()!==t.classList.contains('is-hnarrow')) regRepaint(); });
+  }).observe(host);
+}
+function regInspecting(){ return !regHome() && regMode()!=='board' && typeof insFits==='function' && insFits(); }
 /* THE ONE READING OF WHICH COLUMNS THIS PAINT DRAWS — the head, the rows, an
    empty row's span and a band's span all ask it, so a column can never sit
    under the wrong heading whichever shape the page is in. */
 function regColKeys(){
   const neg=regScope()==='negotiations', ins=regInspecting();
+  if(!neg && regHome()) return regHomeNarrow() ? REG_COL_KEYS_HOME_NARROW : REG_COL_KEYS_HOME;
   if(!ins && regNarrowTable()) return neg ? REG_COL_KEYS_NEGO_NARROW : REG_COL_KEYS_NARROW;
   return neg ? (ins?REG_COL_KEYS_NEGO_INS:REG_COL_KEYS_NEGO) : (ins?REG_COL_KEYS_INS:REG_COL_KEYS);
 }
@@ -687,7 +730,7 @@ const REG_COL_W_NARROW         = [7,43,13,8,11,14,4];
 const REG_COL_W_NEGO_NARROW    = [7,45,11,14,13,10];
 const REG_NARROW_W = 800;
 function regNarrowTable(){
-  if(regMode()==='board') return false;
+  if(regMode()==='board' || (regHome() && regScope()!=='negotiations')) return false;
   const el=document.getElementById('content-scroll');
   const w=el ? el.clientWidth : 0;
   return w>0 && w<REG_NARROW_W;
@@ -700,8 +743,9 @@ const REG_COL_MIN_PX = 54;
 const REG_COL_KEY = 'hati.v1.regCols';
 const regColDefaults = () => (regScope()==='negotiations'
   ? (regNarrowTable() && !regInspecting() ? REG_COL_W_NEGO_NARROW : REG_COL_W_NEGO)
+  : regHome() ? (regHomeNarrow() ? REG_COL_W_HOME_NARROW : REG_COL_W_HOME)
   : (regNarrowTable() && !regInspecting() ? REG_COL_W_NARROW : REG_COL_W)).slice();
-const regColStoreKey = () => REG_COL_KEY + (regScope()==='negotiations' ? '.nego' : '') + (regNarrowTable() && !regInspecting() ? '.narrow' : '');
+const regColStoreKey = () => REG_COL_KEY + (regScope()==='negotiations' ? '.nego' : regHome() ? '.home' : '') + ((regNarrowTable() && !regInspecting()) || regHomeNarrow() ? '.narrow' : '');
 /* THE STORED ARRAY IS READ, NEVER TRUSTED. A length that does not match the
    seat's own column count is IGNORED rather than applied — which is the whole
    migration story for the Signed column: a browser that stored eight widths
@@ -954,16 +998,97 @@ function regNarrowed(R){
 }
 
 function regSetScope(k){ REG_SCOPE = (k === 'negotiations') ? 'negotiations' : null; }
-const REG_STATE_DEF = () => ({query:'',stage:'all',type:'all',category:'all',signed:'all',payterms:'all',docs:'all',sort:'updated',dir:-1,page:1,sel:{},view:null,only:null});
+/* `show` is HOW the Contracts place draws the one list (the overnight work
+   order, step 7): 'wall' (the wall of papers) or 'list' (this table). It is a
+   way of LOOKING, like sort and density, so a door's fresh filters keep it. */
+const REG_SHOWS = ['wall','list'];
+const REG_STATE_DEF = () => ({query:'',stage:'all',type:'all',category:'all',signed:'all',payterms:'all',docs:'all',sort:'updated',dir:-1,page:1,sel:{},view:null,only:null,show:'wall'});
 /* A REFRESH LANDS WHERE YOU WERE (Young, 28 Sep 2026): what this page keeps
    across a reload, read by placeSave and put back by placeResume (js/app.js)
-   BEFORE the first paint. */
+   BEFORE the first paint. Home's Contracts place keeps the same pair, inside
+   Home's own (hbPlace → igWallPlace). A set kept by an earlier sitting comes
+   back as it was, or not at all; an unknown way of looking is the wall. */
 function regPlace(){ return { scope:regScope(), st:{ ...regState() } }; }
 function regPlacePut(p){
   if(!p) return;
   regSetScope(p.scope);
   const s={ ...REG_STATE_DEF(), ...(p.st||{}) };
+  const o=s.only;
+  s.only=(o&&Array.isArray(o.ids)&&o.ids.length&&o.ids.every(x=>typeof x==='string'))
+    ? { ids:o.ids.slice(), label:String(o.label||'').slice(0,200), ...(o.party===true?{ party:true }:{}) } : null;
+  if(!REG_SHOWS.includes(s.show)) s.show='wall';
   if(regScope()==='negotiations') state.regNego=s; else state.reg=s;
+}
+/* ---- THE CONTRACTS PLACE ON HOME (the overnight work order, step 7; owner's
+   "Go", 14 Oct 2026) ----
+   Every door that opened the Contracts page lands on Home's Document face with
+   no paper chosen, and this builder draws the place there: ONE head (the name,
+   the facts line, the filters, the stage tabs, Wall | List) over the wall of
+   papers or this table — the same rows, tabs and filters either way (state.reg,
+   the one home of every narrowing). regPlaceSet writes the Contracts seat from
+   outside the page (Jambo's "list", "wall", "contracts"); regPlaceUp says
+   whether the place is on screen, so a box that narrows it repaints it rather
+   than opening it again. */
+function regPlaceSet(patch){
+  regSetScope(null);
+  const R=regState();
+  if(patch) Object.assign(R, patch);
+  if(!REG_SHOWS.includes(R.show)) R.show='wall';
+  return R;
+}
+function regPlaceUp(){ return typeof document!=='undefined' && !!document.querySelector('[data-reg-home]'); }
+function regHome(){ return !!(_regOpts&&_regOpts.home); }
+/* THE PLACE FOLLOWS THE BOOK: Home repaints only its head when the book
+   changes under a face that is not the Board (a repaint is not a navigation),
+   so the place keeps the book it was drawn from and is drawn again only when
+   that book moved (the first load after signing in, a contract added, saved or
+   gone) — never on a beat that changed nothing, which would throw away the
+   reader's scroll. */
+let _regHomeSig='';
+function regBookSig(){
+  const cs=(state&&state.contracts)||[];
+  let t=0; for(const c of cs){ const v=Date.parse(c&&(c.updatedAt||c.updated_at||c.lastAction)||'')||0; if(v>t) t=v; }
+  return cs.length+':'+t;
+}
+function regHomeStale(){ return regPlaceUp() && regBookSig()!==_regHomeSig; }
+/* THE PLACE'S ONE HEAD (the drawing, version 4): the name and the facts line,
+   the filter boxes and Wall | List on the first row (the boxes wrap within
+   their own block, so the switch holds its corner); the stage tabs, Do this
+   to these and Adapt filters under them. The same boxes, ids and wiring as
+   the page's band, so a filter means one thing wherever it is pressed. */
+function regHomeHeadHtml(R, boxes, adapt, clear){
+  const show=R.show==='list'?'list':'wall';
+  const ic=k=>typeof icon==='function'?icon(k==='wall'?'grid':'list','w-4 h-4'):'';
+  return `<div class="reg-band sap-band ct-head">
+      <div class="reg-tabbar ct-top">
+        <div class="ct-name"><h2 class="ct-h">${esc(i18t('nav_contracts'))}</h2><div id="reg-head-facts" class="ct-facts"></div></div>
+        <div class="reg-filterbar reg-fb">${boxes}${clear}</div>
+        <div class="reg-seg ct-seg" role="group" aria-label="${esc(i18t('ct_show_as'))}">${REG_SHOWS.map(k=>
+          `<button type="button" data-ct-show="${k}" aria-pressed="${show===k?'true':'false'}">${ic(k)}<span>${esc(i18t('ct_'+k))}</span></button>`).join('')}</div>
+      </div>
+      <div class="reg-tabbar ct-tabs">${regStageTabsHtml(R)}<span id="reg-cohort-slot" class="ct-cohort"></span><div class="reg-fb ct-adapt">${adapt}</div></div>
+    </div>`;
+}
+/* THE WALL UNDER THE SAME HEAD: the papers igWallBodyHtml draws, of the very
+   rows the list holds (regFiltered), its count line carrying the list's own
+   Sort; a press is igAnalyze (igPickWire, bound on Home's paper). */
+function regHomeWallHtml(cs, tools){
+  const R=regState();
+  let base=[]; try{ base=regRestBase(); }catch(_){ base=cs; }
+  const body=(typeof igWallBodyHtml==='function') ? igWallBodyHtml(cs,{ tools, only:R.only, base }) : '';
+  return `<div class="ig-wall ct-wall" id="ig-wall">${body}</div>`;
+}
+/* What the place counts its wall against: every filter at rest but the set a
+   door sent, flat — the book the count line's "of n" names. */
+function regRestBase(){
+  const keep=state.reg||REG_STATE_DEF(), was=REG_SCOPE;
+  REG_SCOPE=null;
+  state.reg={ ...keep }; regFiltersAtRest(state.reg); state.reg.only=keep.only; state.reg.flat=true;
+  /* THE ARCHIVE SHELF IS ITS OWN BOOK (the checkers of step 7): at rest the
+     filters hide the archived, so "1 of 8" counted the shelf against a book
+     that held none of it; on the shelf, "of n" is the shelf. */
+  if(keep.view==='archived') state.reg.view='archived';
+  try{ return regFiltered(); } finally { state.reg=keep; REG_SCOPE=was; }
 }
 function regState(){
   if(regScope()==='negotiations'){ if(!state.regNego) state.regNego=REG_STATE_DEF(); return state.regNego; }
@@ -1082,9 +1207,15 @@ function regGoFiltered(patch, opts){
   if(typeof setView==='function') setView('register'); else renderRegister();
   return R;
 }
-function regShowOnly(ids, label){
+/* `opts.party`: the set is a party's shelf (Parties' Open party), counted the
+   way that row counts it — agreements, the amendments said beside them — so
+   the Wall's count line reads the row's number; every other set is counted
+   whole, the number on the door that sent it (the checkers of step 7). */
+function regShowOnly(ids, label, opts){
   const list=Array.from(new Set((ids||[]).filter(Boolean)));
-  regGoFiltered({ only: list.length ? { ids:list, label:String(label||'') } : null });
+  const only=list.length ? { ids:list, label:String(label||'') } : null;
+  if(only && opts && opts.party) only.party=true;
+  regGoFiltered({ only });
 }
 /* The category list has ONE source: the metadata field that records it. Add
    a category there and it reaches this filter and the phone's chips without
@@ -1321,7 +1452,11 @@ function regStageTabsHtml(R){
   const count=k=>!whole?0:k==='all'?base.length
     : k==='awaiting'?base.filter(c=>{ const s=shares[c.id]; return !!s&&(s.state==='sent'||s.state==='opened'); }).length
     : base.filter(c=>c.status===k).length;
-  const label=k=>{ const st=REG_STAGES.find(x=>x.k===k); return k==='all'?i18t('reg_tab_all'):(st?st.label:k); };
+  /* a stage's tab says the stage's own word in the reader's language
+     (statusLabel, both books); "Awaiting counterparty" is the list's own */
+  const label=k=>{ const st=REG_STAGES.find(x=>x.k===k); if(k==='all') return i18t('reg_tab_all');
+    if(k!=='awaiting'&&typeof statusLabel==='function'&&typeof STATUS_META!=='undefined'&&STATUS_META[k]) return statusLabel(k);
+    return st?st.label:k; };
   return `<div class="reg-views reg-stage-tabs" role="tablist" aria-label="${esc(i18t('reg_chip_stage'))}">${REG_STAGE_TABS.map(k=>{
     const on=(R.stage||'all')===k, n=count(k);
     return `<button type="button" role="tab" class="reg-vtab${on?' on':''}${whole&&!n&&!on?' is-zero':''}" data-reg-stage="${esc(k)}" aria-selected="${on?'true':'false'}">${esc(label(k))}${n?`<span class="n">${n}</span>`:''}</button>`;
@@ -1444,9 +1579,12 @@ function regMoveWord(c){
   if(!started) return null;
   try{ return negoMoveSay(c); }catch(_){ return null; }
 }
-function regOwnerCell(c){
+function regOwnerCell(c, o){
   const name=(window.contractOwnerName&&contractOwnerName(c))||'';
   if(!name) return '<span class="reg-dash">—</span>';
+  /* the Contracts place on Home writes the name out (its drawing's Owner
+     column); the full table keeps the initials, the name on the hover */
+  if(o&&o.name) return `<span class="reg-own-name" title="${esc(name)}">${esc(name)}</span>`;
   const ini=name.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
   return `<span class="reg-own" title="${esc(name)}">${esc(ini)}</span>`;
 }
@@ -2113,7 +2251,7 @@ function regRowsHtml(cs){
         ? `<td style="white-space:nowrap">${insMoveCellHtml(c)}</td>`
         : `<td style="text-align:right;white-space:nowrap">${negoMovePillHtml(c)}</td>`)
       : `<td style="white-space:nowrap">${mv?negoMovePillHtml(c):'<span class="reg-dash">—</span>'}</td>`;
-    CELL.owner=`<td style="white-space:nowrap">${regOwnerCell(c)}</td>`;
+    CELL.owner=`<td style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${regOwnerCell(c,{ name:regHome()&&!neg })}</td>`;
     /* ---- THE ROW'S IDENTITY IS TWO LINES, AND THE COUNTERPARTY LEADS ----
           ONE CELL, BOTH SEATS, so the two pages cannot disagree about what a
           row calls itself. The family indent, the ↳ arrow and the +N toggle
@@ -2151,7 +2289,13 @@ function regRowsHtml(cs){
           its own Folder column. */
     CELL.value=`<td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:var(--w-body);white-space:nowrap;${isMonetary(c)?'':'font-family:inherit;color:var(--color-neutral-600)'}"${isMonetary(c)?'':` title="${esc(i18t('reg_non_monetary'))}"`}>${val}</td>`;
     CELL.signed=`<td style="white-space:nowrap">${regSignedCell(c)}</td>`;
-    CELL.expiry=`<td style="white-space:nowrap"><span class="reg-day" style="color:${renDateColor}">${renDate}</span>${renIn?` <span class="reg-day" style="color:${renColor}">· ${renIn}</span>`:''}</td>`;
+    /* ON THE CONTRACTS PLACE the words go UNDER the day (the checkers of step
+       7: in Home's narrower column "· in 25 days" was cut on every screen) —
+       the row is two lines already, so it costs no height; the hover says
+       both. The full tables keep them beside it. */
+    CELL.expiry=(regHome()&&!neg)
+      ? `<td style="white-space:nowrap"${renIn?` title="${esc(renDate+' · '+renIn)}"`:''}><span class="reg-day" style="color:${renDateColor}">${renDate}</span>${renIn?`<span class="reg-sub" style="color:${renColor}">${renIn}</span>`:''}</td>`
+      : `<td style="white-space:nowrap"><span class="reg-day" style="color:${renDateColor}">${renDate}</span>${renIn?` <span class="reg-day" style="color:${renColor}">· ${renIn}</span>`:''}</td>`;
     /* Built only on the seat that draws it: the Negotiations seat has no ⋯
        column, and actBtns asks readings (contractOnHold) that a stage drawing
        only that seat need not carry — f184 caught the unconditional build. */
@@ -2208,6 +2352,9 @@ const regAvatarTone = name => {
 const regAvatarHtml = name => `<span class="reg-av av-${regAvatarTone(name)}" aria-hidden="true">${esc(regInitials(name))}</span>`;
 
 function renderRegisterBody(){
+  /* the wall on Home's Contracts place is drawn whole: its count line and
+     every paper follow the narrowing together */
+  if(regHome()&&regScope()!=='negotiations'&&regState().show!=='list'){ if(regPlaceUp()) regRepaint(); return; }
   const cs=regFiltered();
   /* The stagger intro belongs to arriving at the page; this body re-renders on
      every search keystroke, sort and pager press, and rows that replay their
@@ -2375,6 +2522,28 @@ function regCloseDisplay(){
   const b=document.getElementById('reg-display'); if(b) b.setAttribute('aria-expanded','false');
 }
 function regCloseMenus(){ document.querySelectorAll('#reg-tbody [data-menu-pop]').forEach(m=>m.style.display='none'); }
+/* ---- A ROW'S ⋯ OPENS WHERE IT CAN BE READ (the checkers of step 7, 15 Oct
+   2026) ---- The menu hangs under its row inside the list's own scroller, so
+   on the last rows it ran past the scroller's foot and the window, every item
+   hidden. Measured after it is shown: where the room below (the scroller and
+   the window, whichever ends first) cannot hold it and the room above holds
+   more, it opens UPWARD from the button; otherwise it keeps its place. One
+   builder, so every table that draws the ⋯ (the Contracts place's List, the
+   full table) is served. */
+function regMenuFit(pop, btn){
+  if(!pop||!btn||typeof pop.getBoundingClientRect!=='function') return;
+  pop.style.top='34px'; pop.style.bottom='auto';
+  const sc=pop.closest('#reg-scroll'), vh=window.innerHeight||0;
+  const box=sc?sc.getBoundingClientRect():{ top:0, bottom:vh };
+  const lo=Math.min(box.bottom, vh||box.bottom), hi=Math.max(box.top, 0);
+  const b=btn.getBoundingClientRect(), h=pop.offsetHeight||pop.getBoundingClientRect().height||0;
+  const below=lo-b.bottom, above=b.top-hi;
+  if(h>below-4 && above>below){
+    /* bottom is measured from the cell (the menu's positioned parent) */
+    const cell=pop.offsetParent, foot=cell?cell.getBoundingClientRect().bottom:b.bottom;
+    pop.style.top='auto'; pop.style.bottom=Math.round(foot-b.top+4)+'px';
+  }
+}
 function wireRegRows(){
   /* Whole-row click opens the contract's workspace — EXCEPT on the Negotiations
      page, where a row opens the NEGOTIATION. Same table, same builder, one
@@ -2446,7 +2615,7 @@ function wireRegRows(){
     renderRegisterBody();
   }));
   // ⋯ popover: toggle one open at a time
-  document.querySelectorAll('#reg-tbody [data-menu]').forEach(btn=>btn.addEventListener('click',e=>{ e.stopPropagation(); const id=btn.getAttribute('data-menu'); const pop=document.querySelector('#reg-tbody [data-menu-pop="'+id+'"]'); const open=pop&&pop.style.display==='flex'; regCloseMenus(); if(pop&&!open) pop.style.display='flex'; }));
+  document.querySelectorAll('#reg-tbody [data-menu]').forEach(btn=>btn.addEventListener('click',e=>{ e.stopPropagation(); const id=btn.getAttribute('data-menu'); const pop=document.querySelector('#reg-tbody [data-menu-pop="'+id+'"]'); const open=pop&&pop.style.display==='flex'; regCloseMenus(); if(pop&&!open){ pop.style.display='flex'; regMenuFit(pop, btn); } }));
   document.querySelectorAll('#reg-tbody [data-act]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); regCloseMenus();
     regRunRowAct(b.getAttribute('data-act'), b.getAttribute('data-id'));
   }));
@@ -2487,8 +2656,9 @@ let _regOpts={};
 function regRepaint(){ renderRegister(_regOpts); }
 function renderRegister(opts){
   const o=opts||{};
-  _regOpts={ scope:o.scope||null, head:o.head||null, nav:o.nav||'register', hostId:o.hostId||'content' };
+  _regOpts={ scope:o.scope||null, head:o.head||null, nav:o.nav||'register', hostId:o.hostId||'content', home:!!o.home&&!o.scope };
   regSetScope(o.scope);
+  const HOME=regHome();
   const neg=regScope()==='negotiations';
   const R=regState(); R.page=1;
   const cs=regFiltered();
@@ -2785,7 +2955,42 @@ function renderRegister(opts){
      other is how a screen ends up half-English. */
   const ftsBlock='';
 
-  const hostEl=document.getElementById(_regOpts.hostId)||document.getElementById('content');
+  /* THE FILTER BOXES, ONE MARKUP FOR BOTH HEADS: the page's band, and the
+     Contracts place's head on Home (the overnight work order, step 7). */
+  const fbBoxes=`
+        ${onlyChip}
+        ${ftsBlock}
+        ${''/* ---- ONLY THE CHOSEN FILTERS DRAW, PLUS ANY THAT ARE NARROWING ----
+               regBarShown() is the union: what this reader put on their bar,
+               and anything currently cutting the list whether they chose it or
+               not. The second half is the safety property — a hidden control
+               quietly shortening the book is the exact fault WO-15's removal
+               note was guarding against. */}
+        ${(neg&&BAR.includes('stage'))?selFilter('reg-stage-sel',stageOpts,R.stage!=='all',i18t('reg_lifecycle_stage'),i18t('reg_chip_stage')):''}
+        ${BAR.includes('type')?selFilter('reg-type-sel',typeOpts,R.type!=='all',i18t('reg_value_stream'),i18t('reg_chip_stream')):''}
+        ${''/* The long sentence is the TOOLTIP, not the label — used as a label it
+                    ran to 460px and pushed the whole bar off the row. */}
+        ${(!neg&&BAR.includes('view'))?selFilter('reg-view-sel',regViewOptsHtml(R),!!R.view||regSavedViews().some(v=>regSavedMatches(v,R)),i18t('reg_quick_filters_title'),i18t('reg_quick_filters')):''}
+        ${BAR.includes('category')?categorySel:''}
+        ${BAR.includes('renewal')?selFilter('reg-renewal',renewalOpts,renewalActive,i18t('reg_renewal')):''}
+        ${''/* NEVER ON THE NEGOTIATIONS SEAT: that page holds live negotiations,
+               and narrowing them by the year they were signed would be a
+               control whose only outcome is an empty page. */}
+        ${(!neg&&BAR.includes('signed'))?selFilter('reg-signed',signedOpts,signedActive,i18t('reg_signed_title'),i18t('reg_signed')):''}
+        ${BAR.includes('payterms')?selFilter('reg-payterms',ptOpts,ptActive,i18t('reg_payterms_title'),i18t('reg_payterms')):''}
+        ${BAR.includes('docs')?selFilter('reg-docs',docsOpts,docsActive,i18t('reg_docs_title'),i18t('reg_docs')):''}
+        ${BAR.includes('hold')?selFilter('reg-hold',holdOpts,holdActive,i18t('reg_f_hold_title'),i18t('reg_f_hold')):''}
+`;
+  const adaptBtn=`
+        ${''/* THE DOOR TO THE REST. A link rather than a button, because it
+               opens a chooser rather than acting on the list — the same
+               weight Fiori gives it. */}
+        <button id="reg-adapt" type="button" class="reg-chip reg-chip-btn reg-chip-add" title="${esc(i18t('reg_adapt_title'))}">${icon('plus','w-3.5 h-3.5')}${esc(i18t('reg_adapt'))}</button>
+`;
+  const clearSlot=`<span id="reg-clear-slot">${regClearHtml()}</span>`;
+  /* THE PLACE ON HOME NEVER FALLS BACK TO THE PAGE AREA: a repaint asked
+     after the reader left Home draws nothing rather than a list over it */
+  const hostEl=document.getElementById(_regOpts.hostId)||(HOME?null:document.getElementById('content'));
   if(!hostEl) return;
   hostEl.innerHTML=`
   ${''/* ---- THE WRAPPER READS THE SAME TOKENS THE BAND CANCELS (25 Aug 2026)
@@ -2803,7 +3008,8 @@ function renderRegister(opts){
          a 4px grey band the full width of the page.
          The bottom stays a typed 14 — it is the gap above the table, not a
          join with anything. */}
-  <div class="view-enter sap-page${neg?' ngl-page':''}" data-ins-page="register" data-ins="${INS?'1':'0'}" style="height:var(--view-h);box-sizing:border-box;padding:var(--page-pad-t) var(--page-pad-x) 14px;display:flex;flex-direction:column">
+  ${HOME?`<div class="sap-page ct-page" data-reg-home="1" data-ct-show="${esc(R.show==='list'?'list':'wall')}">`
+  :`<div class="view-enter sap-page${neg?' ngl-page':''}" data-ins-page="register" data-ins="${INS?'1':'0'}" style="height:var(--view-h);box-sizing:border-box;padding:var(--page-pad-t) var(--page-pad-x) 14px;display:flex;flex-direction:column">`}
     <style>
       /* ---- THE PROTOTYPE'S TABLE ----
          The reference is a rounded card with an uppercase 10px header band, p-4
@@ -3194,7 +3400,7 @@ function renderRegister(opts){
              for the two things still in it. THE VIEWS ARE NEVER DRAWN ON THE
              NEGOTIATIONS SEAT: "Ending in 90 days" and "Archived" are
              questions about the book, not about a live negotiation. */}
-      <div class="reg-band sap-band">
+      ${HOME?regHomeHeadHtml(R,fbBoxes,adaptBtn,clearSlot):`<div class="reg-band sap-band">
       ${headHtml}
       <!-- THE FILTERS SIT BESIDE THE TABS (owner, 10 Oct 2026: "move the
            highlighted filters to the empty side on the right ... to optimize
@@ -3208,37 +3414,13 @@ function renderRegister(opts){
       ${neg?negoBandTabsHtml(R,csBook):''}
       <div class="reg-filterbar reg-fb">
         ${lockChip}
-        ${onlyChip}
-        ${ftsBlock}
-        ${''/* ---- ONLY THE CHOSEN FILTERS DRAW, PLUS ANY THAT ARE NARROWING ----
-               regBarShown() is the union: what this reader put on their bar,
-               and anything currently cutting the list whether they chose it or
-               not. The second half is the safety property — a hidden control
-               quietly shortening the book is the exact fault WO-15's removal
-               note was guarding against. */}
-        ${(neg&&BAR.includes('stage'))?selFilter('reg-stage-sel',stageOpts,R.stage!=='all',i18t('reg_lifecycle_stage'),i18t('reg_chip_stage')):''}
-        ${BAR.includes('type')?selFilter('reg-type-sel',typeOpts,R.type!=='all',i18t('reg_value_stream'),i18t('reg_chip_stream')):''}
-        ${''/* The long sentence is the TOOLTIP, not the label — used as a label it
-                    ran to 460px and pushed the whole bar off the row. */}
-        ${(!neg&&BAR.includes('view'))?selFilter('reg-view-sel',regViewOptsHtml(R),!!R.view||regSavedViews().some(v=>regSavedMatches(v,R)),i18t('reg_quick_filters_title'),i18t('reg_quick_filters')):''}
-        ${BAR.includes('category')?categorySel:''}
-        ${BAR.includes('renewal')?selFilter('reg-renewal',renewalOpts,renewalActive,i18t('reg_renewal')):''}
-        ${''/* NEVER ON THE NEGOTIATIONS SEAT: that page holds live negotiations,
-               and narrowing them by the year they were signed would be a
-               control whose only outcome is an empty page. */}
-        ${(!neg&&BAR.includes('signed'))?selFilter('reg-signed',signedOpts,signedActive,i18t('reg_signed_title'),i18t('reg_signed')):''}
-        ${BAR.includes('payterms')?selFilter('reg-payterms',ptOpts,ptActive,i18t('reg_payterms_title'),i18t('reg_payterms')):''}
-        ${BAR.includes('docs')?selFilter('reg-docs',docsOpts,docsActive,i18t('reg_docs_title'),i18t('reg_docs')):''}
-        ${BAR.includes('hold')?selFilter('reg-hold',holdOpts,holdActive,i18t('reg_f_hold_title'),i18t('reg_f_hold')):''}
-        ${''/* THE DOOR TO THE REST. A link rather than a button, because it
-               opens a chooser rather than acting on the list — the same
-               weight Fiori gives it. */}
-        <button id="reg-adapt" type="button" class="reg-chip reg-chip-btn reg-chip-add" title="${esc(i18t('reg_adapt_title'))}">${icon('plus','w-3.5 h-3.5')}${esc(i18t('reg_adapt'))}</button>
-        <span id="reg-clear-slot">${regClearHtml()}</span>
+        ${fbBoxes}
+        ${adaptBtn}
+        ${clearSlot}
       </div>
       </div>
-      </div>
-      <div class="reg-body${INS?' is-ins':''}">
+      </div>`}
+      ${HOME&&R.show!=='list'?regHomeWallHtml(cs,regSortIconHtml(sortOpts)):`<div class="reg-body${INS?' is-ins':''}">
       <section class="blueprint bp-round reg-card${regMode()==='board'?' reg-board-wrap':''}">
       <!-- THE LIST'S OWN HEAD (SAP benchmark, owner-approved 9 Oct 2026): its
            name and count, then Sort and Display as two small icons. The
@@ -3268,7 +3450,7 @@ function renderRegister(opts){
         <div id="reg-scroll" style="flex:1;min-height:0;overflow:auto">
           <!-- The whole density mode rides on ONE element as three custom
                properties, so nothing below has to know which mode is on. -->
-          <table class="reg-table${INS?' is-ins':''}${!INS&&regNarrowTable()?' is-narrow':''}" data-reg-density="${regDensity()}" style="${regDensityVars(regDensity())}">
+          <table class="reg-table${INS?' is-ins':''}${!INS&&regNarrowTable()?' is-narrow':''}${HOME?' is-home':''}${HOME&&regHomeNarrow()?' is-hnarrow':''}" data-reg-density="${regDensity()}" style="${regDensityVars(regDensity())}">
             <thead>
               <!-- THE PROTOTYPE'S SEVEN, with the tracking number added in front.
                    Sorting is kept on the four columns that carried it before —
@@ -3376,7 +3558,7 @@ function renderRegister(opts){
       ${''/* THE PANEL — js/views/inspector.js paints it (regInsPaint), and it is
              drawn only in the inspector's shape. */}
       ${INS?`<aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside>`:''}
-      </div>
+      </div>`}
     </div>
   </div>`;
 
@@ -3520,10 +3702,18 @@ function renderRegister(opts){
      already covered — and a second root over the same control would answer one
      press twice and open the menu twice. ONE ROOT, ONE LISTENER. */
 
+  /* WALL | LIST (the Contracts place on Home): a way of looking, like the
+     density — a repaint; the tabs, filters and set stay, and so does the
+     place a refresh comes back to */
+  document.querySelectorAll('[data-reg-home] [data-ct-show]').forEach(b=>b.addEventListener('click',()=>{
+    const k=b.getAttribute('data-ct-show'); if(!REG_SHOWS.includes(k)||R.show===k) return;
+    R.show=k; regRepaint(); }));
+
   regWireColResize();
   regFitBandOffset();
   regPaintCohort();
   setActiveNav(_regOpts.nav);
+  if(HOME){ _regHomeSig=regBookSig(); regHomeWatch(hostEl); if(typeof placeSave==='function'){ try{ placeSave(); }catch(_){ /* the place is a convenience */ } } }
 }
 
 /* ---- "DO THIS TO THESE N" LIVES IN A SLOT THE PAGE HEADER LEAVES (S13/S14) ----
@@ -3601,5 +3791,7 @@ Object.assign(window,{regOpenContract,regPlace,regPlacePut,regSignedOn,regSigned
   regRowActsHtml,regRunRowAct,regOpenRow,regDisplayHtml,regCloseDisplay,REG_SOON_DAYS,regEndsSay,
   regColWidths,regColSetWidths,regColReset,regColDefaults,regColTrade,regColApply,regWireColResize,
   REG_CMP,REG_SORT_DEFDIR,regBlanksLast,regStreamName,regRefParts,regNarrowed,regClearHtml,regPaintClear,
-  REG_BAR_FILTERS,REG_BAR_DEFAULT,regListTitle,regSortIconHtml,regMovePillHtml,regNegoCols,regNegoBase,negoBandTabsHtml,regAvatarHtml,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,regViewCount,REG_SAVED_KEY,REG_SAVED_FIELDS,regSavedViews,regSaveView,regForgetView,regApplySaved,regSavedMatches,regHeadFactsHtml,regPaintHeadFacts,regPaintViewCounts,regMoveWord,regOwnerCell,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regMode,regSetMode,regViewTabsHtml,regStageTabsHtml,regStageBase,regStageTabsWire,REG_STAGE_TABS,regViewOptsHtml,regSaveViewAsk,regForgetViewAsk,regSegHtml,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,regEndAct,regDeclineAsk,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,REG_FILTER_REST,regFiltersAtRest,regSearchBoxClear,regGoFiltered,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,
-  regScope,regSetScope,regRepaint,regPageSize,regFitBandOffset,NEGO_BANDS,NEGO_BAND_DOT,negoGroupByMove,negoBandCounts,negoMovePillHtml,negoBandRowHtml});
+  REG_BAR_FILTERS,REG_BAR_DEFAULT,regListTitle,regSortIconHtml,regMovePillHtml,regNegoCols,regNegoBase,negoBandTabsHtml,regAvatarHtml,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,regViewCount,REG_SAVED_KEY,REG_SAVED_FIELDS,regSavedViews,regSaveView,regForgetView,regApplySaved,regSavedMatches,regHeadFactsHtml,regPaintHeadFacts,regPaintViewCounts,regMoveWord,regOwnerCell,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regMode,regSetMode,regViewTabsHtml,regStageTabsHtml,regStageBase,regStageTabsWire,REG_STAGE_TABS,regViewOptsHtml,regSaveViewAsk,regForgetViewAsk,regSegHtml,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,regEndAct,regDeclineAsk,ftsSearch,regAggregate,regCloseMenus,regMenuFit,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,REG_FILTER_REST,regFiltersAtRest,regSearchBoxClear,regGoFiltered,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,
+  regScope,regSetScope,regRepaint,regPageSize,regFitBandOffset,NEGO_BANDS,NEGO_BAND_DOT,negoGroupByMove,negoBandCounts,negoMovePillHtml,negoBandRowHtml,
+  /* the Contracts place on Home (the overnight work order, step 7) */
+  REG_SHOWS,REG_COL_KEYS_HOME,REG_COL_W_HOME,REG_COL_KEYS_HOME_NARROW,REG_COL_W_HOME_NARROW,REG_HOME_NARROW_W,regHomeNarrow,regHomeWatch,regPlaceSet,regPlaceUp,regHome,regRestBase,regHomeHeadHtml,regHomeWallHtml,regBookSig,regHomeStale});

@@ -54,7 +54,7 @@ const BASE = ['RAW MATERIAL SUPPLY AGREEMENT',
    unproven on exactly the page that changed most. */
 const SCREENS = [
   ['dashboard', async p => { await p.evaluate(() => setView('dashboard')); await pause(700); }],
-  ['register',  async p => { await p.evaluate(() => setView('register'));  await pause(600); }],
+  ['register',  async p => { await p.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));  await pause(600); }],
   ['reports',   async p => { await p.evaluate(() => setView('reports'));   await pause(900); }],
   ['calendar',  async p => { await p.evaluate(() => setView('calendar'));  await pause(600); }],
   ['templates', async p => { await p.evaluate(() => setView('templates')); await pause(600); }],
@@ -153,6 +153,9 @@ const SWEEP = KNOWN => {
   return out;
 };
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   const h = await startHati();
   const admin = h.client('admin');
@@ -266,7 +269,7 @@ const SWEEP = KNOWN => {
   /* ---------- 3 · THE THREE NAMED accent-600 FILLS ---------- */
   {
     const { ctx, page } = await open('light');
-    await page.evaluate(() => setView('register')); await pause(700);
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register'))); await pause(700);
     const pager = await page.evaluate(() => {
       const b = document.querySelector('[data-reg-page]:not([disabled])');
       if (!b) return null;

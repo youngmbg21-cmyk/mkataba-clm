@@ -116,7 +116,8 @@ function wirePipeline(){
      what it has always done. */
   document.querySelectorAll('[data-pipe-more]').forEach(el=>el.addEventListener('click',()=>{
     const k=el.getAttribute('data-pipe-more');
-    if(state.view!=='register' && window.regGoFiltered){ regGoFiltered({ stage:k }); return; }
+    /* the Contracts place on Home is the page now (step 7): a press inside it stays a press inside it */
+    if(state.view!=='register' && !(window.regPlaceUp&&regPlaceUp()) && window.regGoFiltered){ regGoFiltered({ stage:k }); return; }
     regState().stage=k; regState().type='all'; regState().sel={}; setView('register'); }));
 }
 

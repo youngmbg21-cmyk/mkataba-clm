@@ -56,6 +56,9 @@ const EXTRA = [
   { id:'PT-NOSIDE',  terms:'30 days',           category:'lease',    value:250000 },
 ];
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
@@ -647,7 +650,7 @@ const EXTRA = [
        before it draws — and it must draw on its own the moment it is
        narrowing, which is this catalogue's own safety property. */
     await seedBook();
-    await page.evaluate(() => { window.langSet('en'); setView('register'); });
+    await page.evaluate(() => { window.langSet('en'); (regPlaceSet({ show: 'list' }), setView('register')); });
     await page.waitForTimeout(1200);
     const offBar = await page.evaluate(() => !document.getElementById('reg-payterms'));
     check('13a it is NOT on the bar by default — the row still fits one line', offBar,

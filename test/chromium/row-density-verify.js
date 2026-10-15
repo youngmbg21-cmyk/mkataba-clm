@@ -24,6 +24,9 @@ const EXEC = process.env.CHROMIUM_BIN
 let pass = 0, fail = 0;
 const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  FAIL ') + n + (d ? '  → ' + d : '')); };
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   const h = await startHati();
   await seedWorkspace(h);
@@ -37,7 +40,7 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   await page.fill('#li-pass', 'adminpassword1');
   await page.click('#li-go');
   await page.waitForTimeout(1600);
-  await page.evaluate(() => setView('register'));
+  await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
   await page.waitForTimeout(900);
 
   const rowH  = () => page.evaluate(() => { const td = document.querySelector('.reg-table tbody td');
@@ -116,7 +119,7 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   console.log('\n4 · it is remembered, and it is the reader\'s own');
   await page.reload({ waitUntil: 'networkidle' });
   await page.waitForTimeout(1600);
-  await page.evaluate(() => setView('register'));
+  await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
   await page.waitForTimeout(900);
   ok('survives a reload', (await live()) === 'compact');
   ok('and the rows really are compact', (await rowH()) >= 36 && (await rowH()) < 44, (await rowH()) + 'px');
@@ -125,7 +128,7 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   await page.evaluate(() => { try { localStorage.setItem('hati.v1.regDensity', 'condensed'); } catch (e) {} });
   await page.reload({ waitUntil: 'networkidle' });
   await page.waitForTimeout(1600);
-  await page.evaluate(() => setView('register'));
+  await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
   await page.waitForTimeout(900);
   ok('a browser that remembers condensed simply reads compact', (await live()) === 'compact', await live());
   await set('compact');
@@ -154,7 +157,7 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
                              'the structural claim above is what covers it');
 
   console.log('\n6 · nothing else moved');
-  await page.evaluate(() => setView('register'));
+  await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
   await page.waitForTimeout(700);
   ok('no sideways scroll at any density',
      await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth));

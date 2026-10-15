@@ -85,6 +85,9 @@ const KEYS = `(() => {
     .filter(s => s.textContent.trim() === word && s.getBoundingClientRect().width > 0).length;
 })()`;
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
@@ -101,7 +104,7 @@ const KEYS = `(() => {
     await page.waitForTimeout(3200);
 
     /* ════════ 1. THE CONTRACTS TABLE ════════ */
-    await page.evaluate(() => { regSetMode('table'); setView('register'); });
+    await page.evaluate(() => { regSetMode('table'); (regPlaceSet({ show: 'list' }), setView('register')); });
     await page.waitForTimeout(1500);
     await page.screenshot({ path: path.join(OUT, '01-contracts-table.png') });
     const words = await page.evaluate(() => ({

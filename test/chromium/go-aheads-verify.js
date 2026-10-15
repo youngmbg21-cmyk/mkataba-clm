@@ -22,8 +22,9 @@
      MK-B2 Naivas       — a negotiation with nothing on the table
      MK-R9 Sendy        — signed, owned by the reader (by name, which is how
                           contractOwnedBy reads an owner with no id), ending in
-                          64 days with 30 days' notice, so the renewal decision
-                          falls in 34. SEEDED so: a signed record's dates are
+                          50 days with 30 days' notice, so the renewal decision
+                          falls in 20 (34 until 15 Oct 2026, when the bell
+                          became its door on a computer). SEEDED so: a signed record's dates are
                           frozen by the server, rightly, and cannot be staged
                           after the fact.
 
@@ -58,6 +59,9 @@ const ok = (name, good, detail) => {
 const pause = ms => new Promise(r => setTimeout(r, ms));
 const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
@@ -66,8 +70,13 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
      its blanks are read off the template, the fill step answered them from
      the record, and the save of a signed contract's `fields` was refused,
      taking every reading of the run down with it (3g). */
+  /* RE-STAGED 15 Oct 2026 (step 7): the decision falls due in 20 days, not
+     34, so it is on the bell (which rings a renewal decision 30 days out) —
+     the Contracts side panel's checklist that offered Decide earlier went with
+     the panel (Home's Contracts place draws none). The door pressed is the
+     same one (needsYouGo 'renewal'). */
   const renewal = { ...fixtureContract('MK-R9', 'Primary Distribution — Nairobi to Coast', 'Sendy Ltd', FOLDER_A, 12000000, 'Signed'),
-    expiry: day(64), metadata: { value: 12000000, currency: 'KES', expiryDate: day(64), noticePeriodDays: 30 },
+    expiry: day(50), metadata: { value: 12000000, currency: 'KES', expiryDate: day(50), noticePeriodDays: 30 },
     owner: { name: 'Amina Otieno' } };
   /* RE-POINTED 27 Sep 2026: every fixture is over 5,000,000 and this stage signs
      one, so it states no approval rules — the rulebook's own line for a stage
@@ -200,13 +209,20 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
     /* ================= 3 · A RENEWAL'S DECIDE READS THE CONTRACT AGAIN ================= */
     const before = await own.evaluate(() => { const c = getContract('MK-R9');
       return { light: !!(c && c._light && !c._loaded), triageAt: c && c.triage ? c.triage.at : null }; });
-    await own.evaluate(() => { regSetScope(null); setView('register'); }); await pause(1200);
+    /* RE-POINTED AT STEP 7 OF THE OVERNIGHT WORK ORDER (15 Oct 2026): the
+       Contracts page's side panel carried the checklist's Decide; Contracts is
+       Home's Contracts place now, its List with no panel (the owner's
+       drawing), and MK-R9 stands on no other list — so Decide is pressed where
+       it still is on a computer: the bell's renewal row, which presses the
+       same one door (needsYouGo 'renewal') and says the same on its hover. */
+    await own.evaluate(() => { regSetScope(null); (regPlaceSet({ show: 'list' }), setView('register')); }); await pause(1200);
     const r1 = await own.$('#reg-tbody tr[data-row="MK-R9"]');
-    if (r1) { await r1.click({ timeout: 5000 }).catch(() => {}); await pause(700); }
-    const decide = await own.$('#ins-panel [data-ins-need="renewal"]');
+    await own.click('#hdr-notify').catch(() => {}); await pause(700);
+    const decide = await (async () => { for (const r of await own.$$('#context-panel [data-alert-i]')){
+      if ((await r.getAttribute('data-alert-kind')) === 'renewal' && /MK-R9/.test(await r.innerText())) return r; } return null; })();
     const hover = decide ? await decide.getAttribute('title') : null;
-    ok('3a the stage: the renewal is on the side panel\'s checklist, with Decide, and the contract is still a register row',
-      !!decide && before.light, JSON.stringify({ decide: !!decide, before }));
+    ok('3a the stage: the renewal is on the bell, with its door, and the contract is still a light list row',
+      !!decide && before.light && !!r1, JSON.stringify({ decide: !!decide, row: !!r1, before }));
     ok('3b Decide says on its hover that Copilot will read the contract again', !!hover && /read the contract again/i.test(hover), hover);
     const pressAt = Date.now();
     if (decide) await decide.click({ timeout: 5000 }).catch(() => {});
@@ -254,7 +270,7 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
        the contract rather than from a renewal decision. */
     const stamp = after && after.triageAt;
     const quietFrom = Date.now();
-    await own.evaluate(() => { regSetScope(null); setView('register'); }); await pause(1000);
+    await own.evaluate(() => { regSetScope(null); (regPlaceSet({ show: 'list' }), setView('register')); }); await pause(1000);
     await own.evaluate(() => { openWorkspace('MK-R9'); }); await pause(900);
     await own.evaluate(() => { const c = getContract('MK-R9'); roomGoTab(c, 'terms'); }); await pause(2500);
     const quiet = await own.evaluate(() => { const c = getContract('MK-R9');

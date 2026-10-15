@@ -161,11 +161,16 @@ for (let i = 1; i <= 12; i++)
       await page.reload({ waitUntil: 'networkidle' });
       await pause(2000);
       const after = await page.evaluate(() => state.view);
+      /* RE-POINTED 15 Oct 2026 (step 7): Contracts is Home's Contracts place,
+         so a refresh on it is back on Home (view 'dashboard') WITH the place
+         drawn — the page the reader was on, asked as what is on screen */
+      const placeBack = await page.evaluate(() => !!document.querySelector('[data-reg-home]'));
+      if (v === 'register' && !placeBack) lost.push('register→no Contracts place');
       /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the
          Negotiate page folded into Home — openRedlineWorkbench lands on
          Jambo's Redlines face beside Home's paper, so the page the reader was
          on is Home (view 'dashboard'); where on it is refresh-keeps-your-spot's */
-      const was = v === 'redline' ? 'dashboard' : v;
+      const was = (v === 'redline' || v === 'register') ? 'dashboard' : v;
       if (after !== was) lost.push(`${v}→${after}`);
     }
     check('4a a refresh returns you to the page you were on, on every page',
@@ -479,19 +484,21 @@ for (let i = 1; i <= 12; i++)
       && await page.evaluate(() => !!document.getElementById('clause-editor')));
 
     /* CLEAN — nothing typed — so the press must go straight through. */
-    await page.evaluate(() => { const b = document.querySelector('#side-nav [data-view="register"]'); if (b) b.click(); });
+    /* the rail's Contracts is the fold's opener since step 7 of the overnight
+       work order (its item went): Home's Contracts place, a page change */
+    await page.evaluate(() => { const b = document.querySelector('#side-nav [data-nav-fold-open="register"]'); if (b) b.click(); });
     await pause(1400);
     const afterNav = await page.evaluate(() => ({
-      view: state.view,
+      view: state.view, place: !!document.querySelector('[data-reg-home]'),
       editorStillUp: !!document.getElementById('clause-editor'),
       /* WHAT THE READER CAN SEE, not what the app believes: the whole bug was
          that these two disagreed. */
-      registerOnScreen: !!(document.querySelector('.reg-table')
-        && document.querySelector('.reg-table').getBoundingClientRect().height > 0),
+      registerOnScreen: !!(document.querySelector('[data-reg-home]')
+        && document.querySelector('[data-reg-home]').getBoundingClientRect().height > 0),
     }));
     await page.screenshot({ path: path.join(OUT, '04-after-nav.png') });
     check('5b the nav press really changes the page, and the layer comes down',
-      afterNav.view === 'register' && !afterNav.editorStillUp && afterNav.registerOnScreen,
+      afterNav.view === 'dashboard' && afterNav.place && !afterNav.editorStillUp && afterNav.registerOnScreen,
       JSON.stringify(afterNav));
 
     /* AND WITH WORDING IN THE BOX IT ASKS FIRST. */
@@ -510,7 +517,7 @@ for (let i = 1; i <= 12; i++)
     await pause(400);
     const dirty = await page.evaluate(() => clauseEditorDirty());
     check('5c staged: the editor is holding unfiled wording', dirty === true, dirty);
-    await page.evaluate(() => { const b = document.querySelector('#side-nav [data-view="register"]'); if (b) b.click(); });
+    await page.evaluate(() => { const b = document.querySelector('#side-nav [data-nav-fold-open="register"]'); if (b) b.click(); });
     await pause(900);
     const guard = await page.evaluate(() => ({
       asked: !!document.getElementById('confirm-overlay'),
@@ -531,10 +538,10 @@ for (let i = 1; i <= 12; i++)
       if (go) go.click();
     });
     await pause(1400);
-    const done = await page.evaluate(() => ({ view: state.view,
+    const done = await page.evaluate(() => ({ view: state.view, place: !!document.querySelector('[data-reg-home]'),
       editorStillUp: !!document.getElementById('clause-editor') }));
     check('5e and answering it completes the press that was interrupted',
-      done.view === 'register' && !done.editorStillUp, JSON.stringify(done));
+      done.view === 'dashboard' && done.place && !done.editorStillUp, JSON.stringify(done));
 
     check('no page errors during the run', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
   } finally {

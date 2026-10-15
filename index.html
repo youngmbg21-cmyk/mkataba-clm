@@ -8462,6 +8462,10 @@
   /* NOR DOES A TABLET'S (9 Oct 2026): below REG_NARROW_W of page the table
      draws its narrow column set (regNarrowTable), sized to fit, not floored. */
   #reg-scroll>table.reg-table.is-narrow{min-width:0;}
+  /* NOR DOES THE CONTRACTS PLACE'S (step 7, 15 Oct 2026): its List is sized
+     to Home's paper column and draws four columns where that is narrow
+     (regHomeNarrow), so a window's floor would only push it sideways. */
+  #reg-scroll>table.reg-table.is-home{min-width:0;}
 
   /* ---- ANCHORED POPOVERS STAY ON SCREEN ----
      Row menus and the export menu are position:absolute with a fixed width, so
@@ -8631,6 +8635,41 @@
   .igw-ref{font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .igw-nm{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   @media (prefers-reduced-motion:reduce){.igw-sheet{transition:none}}
+  /* THE CONTRACTS PLACE ON HOME (the overnight work order, step 7; the
+     drawing, version 4): Home's paper with nothing chosen holds ONE head —
+     the name and the facts line, the filter boxes and Wall | List on the
+     first row, the stage tabs and Adapt filters under them — over the wall
+     of papers or the list. The register draws it (renderRegister, home);
+     the head is the Contracts page's own white band, edge to edge. */
+  .ig-pick.ct-place{padding:0;overflow:hidden;container:ctplace / inline-size}
+  .ct-page{height:100%;box-sizing:border-box;display:flex;flex-direction:column;--page-pad-x:20px;padding:0 var(--page-pad-x) 14px}
+  .ct-page .sap-band.ct-head{display:flex;flex-direction:column;gap:0;padding-top:12px}
+  .sap-page .reg-tabbar.ct-top{flex-wrap:nowrap;align-items:flex-start;gap:var(--s-3);padding-bottom:6px}
+  .ct-name{flex:none;max-width:40%;min-width:0;display:flex;flex-direction:column}
+  .ct-h{margin:0;font-size:var(--t-page);font-weight:var(--w-title);line-height:1.25;color:var(--color-text)}
+  .ct-facts{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sap-page .reg-tabbar.ct-top > .reg-fb{flex:1 1 auto;min-width:0;margin-left:0;flex-wrap:wrap;justify-content:flex-end;row-gap:6px;padding:0}
+  .ct-cohort:empty{display:none}
+  /* Wall | List wears the page's own switch (.reg-seg — the clothes follow
+     the builder); only its place in the row and the icon's gap are its own. */
+  .reg-seg.ct-seg{align-self:flex-start}
+  .reg-seg.ct-seg button{display:inline-flex;align-items:center;gap:6px}
+  .sap-page .reg-tabbar.ct-tabs{flex-wrap:nowrap;align-items:center}
+  .sap-page .reg-tabbar.ct-tabs > .reg-views{flex:0 1 auto;min-width:0}
+  .ct-tabs .ct-cohort{margin-left:auto;flex:none}
+  .sap-page .reg-tabbar.ct-tabs > .reg-fb.ct-adapt{padding:0;flex:none}
+  .ct-place .ig-wall.ct-wall{flex:1;min-height:0;overflow:auto;padding:2px 2px 32px}
+  /* A NARROW PLACE (an 820 tablet, a 1024 window): the name and Wall | List
+     keep the first line, the filter boxes take a line of their own under
+     them rather than squeezing to empty boxes. */
+  @container ctplace (max-width:720px){
+    .sap-page .reg-tabbar.ct-top{flex-wrap:wrap;row-gap:8px}
+    .ct-name{flex:1 1 auto;max-width:none}
+    .sap-page .reg-tabbar.ct-top > .reg-fb{order:3;flex:1 1 100%;justify-content:flex-start}
+  }
+  .ct-wall .igw-line{margin-bottom:12px;flex-wrap:nowrap}
+  .ct-wall .igw-line .igw-count{margin-left:0;margin-right:auto}
+  .reg-own-name{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   /* COPILOT PREPARES, YOU PRESS (7 Oct 2026): the @ / # list over the ask box,
      and the card an act answers with. */
   #ig-dock{position:relative;background:var(--color-bg);border-left:1px solid var(--color-neutral-300);box-shadow:-10px 0 28px -20px rgba(43,43,45,.35)}
@@ -12616,11 +12655,11 @@
   /* the list's own head: its name and count, then two small icons */
   .sap-page .reg-cardhead{display:flex;align-items:center;gap:var(--s-1);padding:var(--s-3) var(--s-4) var(--s-3) var(--s-4);}
   .sap-page .reg-cardhead .reg-tt{font-size:var(--t-card);font-weight:var(--w-strong);}
-  .sap-page .reg-cardhead .reg-chip.reg-ico{width:var(--ctl-h);min-width:var(--ctl-h);height:var(--ctl-h);padding:0;justify-content:center;
+  .sap-page :is(.reg-cardhead,.igw-line) .reg-chip.reg-ico{width:var(--ctl-h);min-width:var(--ctl-h);height:var(--ctl-h);padding:0;justify-content:center;
     border:0;background:none;color:var(--accent-ink);}
-  .sap-page .reg-cardhead .reg-chip.reg-ico::after{display:none;}
-  .sap-page .reg-cardhead .reg-chip.reg-ico:hover{background:var(--surface-2);}
-  .sap-page .reg-cardhead .reg-chip.reg-ico .reg-f-l{display:inline-flex;}
+  .sap-page :is(.reg-cardhead,.igw-line) .reg-chip.reg-ico::after{display:none;}
+  .sap-page :is(.reg-cardhead,.igw-line) .reg-chip.reg-ico:hover{background:var(--surface-2);}
+  .sap-page :is(.reg-cardhead,.igw-line) .reg-chip.reg-ico .reg-f-l{display:inline-flex;}
   /* sentence-case column heads and fact labels */
   :root .sap-page :is(.ins-lt th,.reg-table th,.ap-table th){text-transform:none;letter-spacing:0;font-size:var(--t-label);
     font-weight:var(--w-label);color:var(--color-neutral-600);}
@@ -13450,13 +13489,17 @@
                supposed to protrude outward on the right not below", like the Windows
                menu, and "add one folder ... that says Contracts also which is where
                the contracts page will be"). The row in the menu is the OPENER: it
-               opens the fly-out on hover, on a press or tap, and on the keyboard
-               (navFoldOpen); it goes to no page itself. The fly-out floats beside the
-               menu (position:fixed, placed by navFoldPlace, because the menu scrolls
-               and would clip it) and holds Contracts · Negotiations · Parties, each
-               with its own data-view, count and handler. Shut, an amber dot on the
-               opener says a negotiation waits on the reader; on any of the three
-               pages the opener wears the "you are here" well. -->
+               opens the fly-out on hover, on a tap, and on the keyboard
+               (navFoldOpen); since step 7 of the overnight work order a press also
+               opens Home's Contracts place, the opener being the Contracts door — a
+               mouse press opens the place alone, the fly-out stepping aside until the
+               pointer leaves the row (navFoldRest; it had covered the place's head). The
+               fly-out floats beside the menu (position:fixed, placed by navFoldPlace,
+               because the menu scrolls and would clip it) and holds Negotiations ·
+               Parties, each with its own data-view, count and handler. Shut, an
+               amber dot on the opener says a negotiation waits on the reader; on the
+               Contracts place and the two pages the opener wears the "you are here"
+               well. -->
           <div class="nav-fold" data-nav-fold="register">
             <button type="button" class="nav-item nav-fold-head" data-nav-fold-open="register" aria-haspopup="menu" aria-expanded="false" title="Contracts — every contract, negotiation and party" data-i18n-title="nav_contracts_group_title">
             <span class="nav-rail"></span>
@@ -13464,11 +13507,12 @@
             <span style="flex:1;" data-i18n="nav_contracts">Contracts</span><i class="nav-fold-dot" data-fold-dot aria-hidden="true" hidden></i><i class="nav-fold-chev" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 2.5 3.5 3.5-3.5 3.5"/></svg></i>
           </button>
             <div class="nav-sub" role="menu" aria-label="Contracts" data-i18n-aria="nav_contracts">
-            <button data-view="register" class="nav-item" role="menuitem" title="Contracts — every contract lives here; open one for its document, negotiation and signing" data-i18n-title="nav_contracts_title">
-              <span class="nav-rail"></span>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-folder"/></svg>
-              <span style="flex:1;" data-i18n="nav_contracts">Contracts</span><span class="nav-count" data-count="register"></span>
-            </button>
+            <!-- THE CONTRACTS ITEM WENT (the overnight work order, step 7; owner's
+                 "Go", 14 Oct 2026): the opener above is the Contracts door now —
+                 a press opens Home's Contracts place (setView('register') →
+                 hbOpenContracts); a tap or the keyboard opens this fly-out with
+                 the two left in it as well. `nav_contracts_title` is inert in
+                 both books. -->
             <!-- Negotiations — a PLACE, second in the list, on the owner's call
                  (12 Aug 2026). It used to be a tab inside one agreement, which
                  made the work discoverable only by opening the contract it

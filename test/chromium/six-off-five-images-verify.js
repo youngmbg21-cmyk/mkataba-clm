@@ -64,7 +64,8 @@ const ok = (name, good, detail) => {
       band: (() => { const td = document.querySelector('tr.ngl-band td');
         return td ? td.colSpan : null; })(),
     }));
-    await page.evaluate(() => { regSetMode('table'); setView('register'); });
+    /* the List of Home's Contracts place (step 7 of the overnight work order) */
+    await page.evaluate(() => { regSetMode('table'); regPlaceSet({ show: 'list' }); setView('register'); });
     await page.waitForTimeout(1200);
     const c1 = await heads();
     ok('1a the Contracts table draws no value stream column',
@@ -196,8 +197,9 @@ const ok = (name, good, detail) => {
       chip: !!document.getElementById('ws-focus-out'),
       headHidden: (() => { const h = document.getElementById('ws-head'); return !!h && getComputedStyle(h).display === 'none'; })() }));
     ok('6a CONTROL focus mode is on, with its chip', on.chip && on.headHidden, JSON.stringify(on));
-    /* Contracts lives in the menu's fly-out (owner, 10 Oct 2026): rest on the opener, then press */
-    await page.hover('[data-nav-fold-open="register"]'); await page.click('.nav-item[data-view="register"]');
+    /* Contracts is the fly-out's opener since step 7 of the overnight work
+       order (its item went): a press opens Home's Contracts place */
+    await page.click('#side-nav [data-nav-fold-open="register"]');
     await page.waitForTimeout(1200);
     const away = await page.evaluate(() => ({
       view: state.view,
@@ -205,7 +207,7 @@ const ok = (name, good, detail) => {
       words: [...document.querySelectorAll('button')].filter(b => /Exit focus/i.test(b.textContent)
         && b.getBoundingClientRect().width > 0).length }));
     await page.screenshot({ path: path.join(OUT, '05-contracts-after-focus.png') });
-    ok('6b on another page there is no "Exit focus" chip', away.view === 'register' && !away.chip && away.words === 0,
+    ok('6b on another page there is no "Exit focus" chip', away.view === 'dashboard' && !away.chip && away.words === 0,
       JSON.stringify(away));
     /* ESCAPE ON ANOTHER PAGE IS THAT PAGE'S KEY, not the room's. */
     await page.keyboard.press('Escape');

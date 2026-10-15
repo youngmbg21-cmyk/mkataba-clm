@@ -860,7 +860,11 @@ const CA_PLACES = [
   { k: 'document', w: ['document', 'paper', 'dokument', 'dokumentet', 'papperet', 'pappret'] },
   { k: 'calendar', w: ['calendar', 'kalender', 'kalendern'] },
   { k: 'explorer', w: ['explorer', 'utforskaren'] },
-  { k: 'wall', w: ['another contract', 'all contracts', 'every contract', 'contracts', 'ett annat avtal', 'alla avtal', 'avtal'] },
+  /* THE CONTRACTS PLACE (the overnight work order, step 7): "contracts" opens
+     the place as it was last looked at; "wall" and "list" switch its view */
+  { k: 'contracts', w: ['contracts', 'all contracts', 'every contract', 'another contract', 'my contracts', 'avtal', 'alla avtal', 'avtalen', 'ett annat avtal', 'mina avtal'] },
+  { k: 'wall', w: ['wall', 'the wall', 'wall of paper', 'wall of papers', 'vägg', 'väggen', 'som vägg'] },
+  { k: 'list', w: ['list', 'the list', 'as a list', 'lista', 'listan', 'som lista', 'som en lista'] },
   { k: 'upload', w: ['upload', 'ladda upp'] },
   { k: 'draft', w: ['draft', 'new agreement', 'nytt avtal', 'utkast'] },
   { k: 'back', w: ['back', 'go back', 'tillbaka'] },
@@ -1005,10 +1009,20 @@ const CA_GO = {
   document: c => (c && typeof pdOpenOnHome === 'function') ? pdOpenOnHome(c.id, 'copilot') : caHomeFace('paper'),
   calendar: () => typeof hbOpenCalendar === 'function' && hbOpenCalendar(),
   explorer: () => typeof hbOpenExplorer === 'function' && hbOpenExplorer(),
-  /* "contracts", "all contracts": every contract — a set another screen
-     sent the wall (Parties' Open party, igWallShowOnly) is let go, as a door
-     to the Contracts page landed on fresh filters (step 2, 14 Oct 2026) */
-  wall: () => { if (typeof igWall === 'object' && igWall) igWall.only = null; return caHomeWall(); },
+  /* "contracts", "all contracts": the Contracts place, EVERY contract, as he
+     says ("Every contract is here") — a set another screen sent it (Parties'
+     Open party, a number on the Board) is let go (step 2, 14 Oct 2026), and
+     so are the tab, the filters and the search, as any door lands on fresh
+     filters (regGoFiltered's rule; the checkers of step 7 caught him saying
+     "every" over a remembered Executed tab); Wall or List stays */
+  contracts: () => {
+    if (typeof regPlaceSet === 'function'){ const R = regPlaceSet({ only: null });
+      if (typeof regFiltersAtRest === 'function') regFiltersAtRest(R);
+      if (typeof regSearchBoxClear === 'function') regSearchBoxClear(); }
+    return caHomeWall(); },
+  /* "wall", "list": the same place, drawn the other way (step 7) */
+  wall: () => { if (typeof regPlaceSet === 'function') regPlaceSet({ show: 'wall' }); return caHomeWall(); },
+  list: () => { if (typeof regPlaceSet === 'function') regPlaceSet({ show: 'list' }); return caHomeWall(); },
   /* beside the paper: Jambo's own Redlines face (stage 3), through the page's walls */
   redline: c => (typeof pdRedOpen === 'function') ? pdRedOpen(c.id) : openRedlineWorkbench(c.id),
   /* on the Board, for that contract (stage 4): the view, the Negotiate page's

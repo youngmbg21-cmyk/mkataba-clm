@@ -20,12 +20,14 @@
        roomOpenAt(cid,'oblig') with the row's key, the view's tab moved to one
        that shows that row (so the row pressed is the row chosen); the panel's
        Document door keeps the paper (Jambo's Obligations tab).
-   (3) OPEN PARTY OPENS HOME'S WALL, NARROWED: igWallShowOnly(cuIdsOf(v)) then
-       caHomeWall; the set keeps a party's closed contract, the find box
-       narrows within it, its place survives a refresh, junk does not; Jambo's
-       "contracts" lets it go; the count line counts the set the way Parties
-       counted it (agreements, an amendment said beside them); the chip's ×
-       is drawn.
+   (3) OPEN PARTY OPENS HOME'S CONTRACTS PLACE, NARROWED (re-pointed at step
+       7, when the wall's own set retired into the register's one state):
+       regShowOnly(cuIdsOf(v)) on every shell; the set keeps a party's closed
+       contract, the search narrows within it, a door lands on fresh filters
+       and keeps Wall | List, its place survives a refresh, junk does not;
+       Jambo's "contracts" lets it go and "wall" / "list" turn the place; the
+       count line counts the set the way Parties counted it (agreements, an
+       amendment said beside them); the place's one set chip has a drawn ×.
    (4) THE BELL'S APPROVAL ROW OPENS BEFORE YOU SIGN through the walls
        (roomOpenAt 'sign'); the side panel's checklist keeps its door to the
        Approvals page (the owner moved the bell only).
@@ -160,92 +162,106 @@ describe('f678 (2) an Obligations row opens the Board\'s Obligations view', () =
   });
 });
 
-describe('f678 (3) Open party opens Home\'s wall, narrowed to the party', () => {
-  test('3a the door: the set the row counted, then the wall; the Contracts page only where Home has no paper', () => {
+describe('f678 (3) Open party opens Home\'s Contracts place, narrowed to the party (steps 2 and 7)', () => {
+  /* STEP 7 MADE THE SET THE PLACE'S OWN: the wall's own find box, stage chips
+     and set (igWall, igWallShowOnly) retired into the register's one state
+     (state.reg), which the Wall and the List both read. The claims of step 2
+     stand, measured on that one home. */
+  test('3a the door: the set the row counted, through the register\'s one door, on every shell', () => {
     const open = fnBody(CU, 'cuOpenCustomer');
-    const a = open.indexOf('igWallShowOnly(cuIdsOf(v), v.name);'), b = open.indexOf('caHomeWall();'), c = open.indexOf('regShowOnly(');
-    assert.ok(a > 0 && b > a && c > b, 'show only, then the wall, regShowOnly the fallback');
-    assert.match(open, /if \(!phone && typeof igWallShowOnly === 'function' && typeof caHomeWall === 'function'\)\{/);
+    /* `party: true` (the checkers of step 7): the set is a party's shelf, so
+       the Wall counts it as the row did; every other set is counted whole */
+    assert.match(open, /if \(typeof regShowOnly === 'function'\) regShowOnly\(cuIdsOf\(v\), phone \? `\$\{v\.name\} · \$\{v\.items\.length\}` : v\.name, \{ party: true \}\);/);
+    assert.doesNotMatch(open, /igWallShowOnly|caHomeWall/, 'no second door onto the set');
+    assert.doesNotMatch(IG, /function igWallShowOnly\(|const igWall=/, 'the wall keeps no set of its own');
   });
-  /* the wall's reading, run on its own */
-  const wall = () => {
-    const a = IG.indexOf('function igPickRows('), b = IG.indexOf('function igPickListHtml(', a);
-    const c = IG.indexOf('const IG_WALL_SORTS='), d = IG.indexOf('function igWallStage(', c);
-    const e = IG.indexOf('function igWallPlace()'), f = IG.indexOf('function igPickWire(', e);
-    assert.ok(a > 0 && b > a && c > 0 && d > c && e > 0 && f > e, 'the wall\'s regions');
-    const ctx = { String, Set, Array, Object, window: {},
-      state: { contracts: [
-        { id: 'MK-1', name: 'Supply', counterparty: 'Naivas', status: 'Signed', updatedAt: '2026-10-02' },
-        { id: 'MK-2', name: 'Listing', counterparty: 'Naivas', status: 'Declined', updatedAt: '2026-10-03' },
-        { id: 'MK-3', name: 'Amendment 1', counterparty: 'Naivas', status: 'Draft', parentId: 'MK-1', updatedAt: '2026-10-04' },
-        { id: 'MK-4', name: 'Naivas pricing note', counterparty: 'Carrefour', status: 'Draft', updatedAt: '2026-10-05' },
-        { id: 'MK-5', name: 'Old', counterparty: 'Naivas', status: 'Signed', archived: true, updatedAt: '2026-10-06' },
-      ] } };
-    vm.createContext(ctx);
-    vm.runInContext(IG.slice(a, b) + IG.slice(c, d) + IG.slice(e, f)
-      + '\nthis.igWall=igWall; this.igWallShowOnly=igWallShowOnly; this.igWallBase=igWallBase; this.igPickRows=igPickRows; this.igWallPlace=igWallPlace; this.igWallPlacePut=igWallPlacePut;', ctx);
-    return ctx;
+  /* the register's reading, run in the world (js/views/register.js, real) */
+  const { buildWorld } = require('./world');
+  const world = () => {
+    const win = buildWorld({ registerView: true }).win;
+    win.state = Object.assign({}, win.state || {}, { view: 'dashboard', contracts: [
+      { id: 'MK-1', name: 'Supply', counterparty: 'Naivas', status: 'Signed', folder: 'sales', lastAction: '2026-10-02', metadata: {} },
+      { id: 'MK-2', name: 'Listing', counterparty: 'Naivas', status: 'Declined', folder: 'sales', lastAction: '2026-10-03', metadata: {} },
+      { id: 'MK-3', name: 'Amendment 1', counterparty: 'Naivas', status: 'Draft', folder: 'sales', parentId: 'MK-1', relation: 'amendment', lastAction: '2026-10-04', metadata: {} },
+      { id: 'MK-4', name: 'Naivas pricing note', counterparty: 'Carrefour', status: 'Draft', folder: 'sales', lastAction: '2026-10-05', metadata: {} },
+      { id: 'MK-5', name: 'Old', counterparty: 'Naivas', status: 'Signed', folder: 'sales', archived: true, lastAction: '2026-10-06', metadata: {} },
+    ] });
+    win.__went = []; win.setView = v => { win.__went.push(v); };
+    win.regSetScope(null);
+    return win;
   };
   const ids = rows => rows.map(c => c.id).sort().join();
-  test('3b the set: exactly its ids, a closed one kept, an archived one not; the open wall still leaves a closed one off', () => {
-    const w = wall();
-    assert.equal(ids(w.igWallBase()), 'MK-1,MK-3,MK-4', 'no set: the wall as ever (closed and archived off)');
-    w.igWallShowOnly(['MK-1', 'MK-2', 'MK-3', 'MK-5'], 'Naivas');
-    assert.equal(ids(w.igWallBase()), 'MK-1,MK-2,MK-3', 'the party\'s closed contract is counted, so it is drawn');
-    assert.equal(w.igWall.only.label, 'Naivas');
-    w.igWall.q = 'amend';
-    assert.equal(ids(w.igWallBase()), 'MK-3', 'the find box narrows within the set');
-    assert.equal(ids(w.igPickRows('')), 'MK-1,MK-3,MK-4', 'the open wall is untouched');
+  test('3b the set: exactly its ids, a closed one kept, an archived one not; the open book is every contract the List holds', () => {
+    const w = world();
+    assert.equal(ids(w.regFiltered()), 'MK-1,MK-2,MK-3,MK-4', 'no set: the book on the All tab, the closed one on it as on the List (the Wall reads the same rows since step 7)');
+    w.regShowOnly(['MK-1', 'MK-2', 'MK-3', 'MK-5'], 'Naivas');
+    assert.deepEqual(J(w.__went), ['register'], 'the door opens the Contracts place (setView redirects it to Home)');
+    assert.equal(ids(w.regFiltered()), 'MK-1,MK-2,MK-3', 'the party\'s closed contract is counted, so it is drawn; the archived one is not');
+    assert.equal(w.state.reg.only.label, 'Naivas');
+    w.state.reg.query = 'amend';
+    assert.equal(ids(w.regFiltered()), 'MK-3', 'the search narrows within the set');
   });
-  test('3c it opens on fresh find and stage; an empty set is no set', () => {
-    const w = wall(); w.igWall.q = 'x'; w.igWall.stage = 'Signed';
-    w.igWallShowOnly(['MK-1'], 'Naivas');
-    assert.equal(w.igWall.q, ''); assert.equal(w.igWall.stage, 'all');
-    w.igWallShowOnly([], 'Nobody'); assert.equal(w.igWall.only, null);
+  test('3c it opens on fresh filters, keeping how the reader looks (Wall or List); an empty set is no set', () => {
+    const w = world(); const R = w.regState();
+    Object.assign(R, { query: 'x', stage: 'Signed', show: 'list' });
+    w.regShowOnly(['MK-1'], 'Naivas');
+    assert.equal(R.query, ''); assert.equal(R.stage, 'all'); assert.equal(R.show, 'list', 'Wall | List is a way of looking, kept');
+    w.regShowOnly([], 'Nobody'); assert.equal(w.state.reg.only, null);
   });
-  test('3d a refresh brings the set back; anything else is no set', () => {
-    const w = wall(); w.igWallShowOnly(['MK-1', 'MK-3'], 'Naivas');
-    const kept = J(w.igWallPlace());
-    const v = wall(); v.igWallPlacePut(kept);
-    assert.deepEqual(J(v.igWall.only), { ids: ['MK-1', 'MK-3'], label: 'Naivas' });
-    for (const junk of [{ ids: 'MK-1' }, { ids: [1, 2] }, { ids: [] }, null]){ v.igWallPlacePut({ only: junk }); assert.equal(v.igWall.only, null, JSON.stringify(junk)); }
+  test('3d a refresh brings the set and the view back (Home\'s pair carries the register\'s); anything else is no set', () => {
+    const w = world(); w.regShowOnly(['MK-1', 'MK-3'], 'Naivas'); w.state.reg.show = 'list';
+    const kept = J(w.regPlace());
+    const v = world(); v.regPlacePut(kept);
+    assert.deepEqual(J(v.state.reg.only), { ids: ['MK-1', 'MK-3'], label: 'Naivas' });
+    assert.equal(v.state.reg.show, 'list');
+    for (const junk of [{ ids: 'MK-1' }, { ids: [1, 2] }, { ids: [] }, null]){ v.regPlacePut({ scope: null, st: { only: junk } }); assert.equal(v.state.reg.only, null, JSON.stringify(junk)); }
+    v.regPlacePut({ scope: null, st: { show: 'gallery' } }); assert.equal(v.state.reg.show, 'wall', 'an unknown way of looking is the Wall');
+    assert.match(IG, /function igWallPlace\(\)\{ return \{ scope:null, st:\{ \.\.\.\(state\.reg\|\|\{\}\) \} \}; \}/, 'Home\'s pair carries the place\'s own state');
+    assert.match(IG, /function igWallPlacePut\(p\)\{[^\n]*regPlacePut\(\{ scope:null, st:p\.st \}\)/);
   });
   /* THE NUMBER PRESSED IS THE NUMBER READ (the Six Questions' sixth) */
   test('3g narrowed, the count line counts agreements as Parties does, an amendment said beside them, out of the set', () => {
-    const a = IG.indexOf('function igPickRows('), b = IG.indexOf('function igPickListHtml(', a);
-    const c = IG.indexOf('const IG_WALL_SORTS='), d = IG.indexOf('function igWallStage(', c);
-    const e = IG.indexOf('function igWallCountWords('), f = IG.indexOf('function igWallBodyHtml(', e);
-    const ctx = { String, Set, Array, Object, window: {},
-      i18t: (k, v) => `${k}[${v.k} of ${v.n}]`, i18tn: (k, n) => `${k}#${n}`,
-      state: { contracts: [
-        { id: 'MK-1', counterparty: 'Naivas', status: 'Signed' }, { id: 'MK-1A', counterparty: 'Naivas', status: 'Draft', parentId: 'MK-1' },
-        { id: 'MK-2', counterparty: 'Naivas', status: 'Declined' }, { id: 'MK-3', counterparty: 'Naivas', status: 'Under Review' },
-        { id: 'MK-9', counterparty: 'Carrefour', status: 'Draft' }] } };
-    vm.createContext(ctx);
-    vm.runInContext(IG.slice(a, b) + IG.slice(c, d) + IG.slice(e, f) + '\nthis.igWall=igWall; this.igWallShowOnly=igWallShowOnly; this.igWallBase=igWallBase; this.words=igWallCountWords;', ctx);
-    const S = ctx.state.contracts;
-    assert.equal(ctx.words(S.filter(x => x.status !== 'Declined')), 'igw_count[4 of 4]', 'open: every paper on the wall, as ever');
-    ctx.igWallShowOnly(['MK-1', 'MK-1A', 'MK-2', 'MK-3'], 'Naivas');
-    assert.equal(ctx.words(ctx.igWallBase()), 'igw_count[3 of 3] \u00b7 int_dep_amend#1', 'the three agreements Parties counted, the amendment beside them');
-    assert.equal(ctx.words(ctx.igWallBase().filter(x => x.status === 'Signed')), 'igw_count[1 of 3]', 'a stage narrows k, never n');
+    const a = IG.indexOf('function igWallCountWords('), b = IG.indexOf('function igWallBodyHtml(', a);
+    assert.ok(a > 0 && b > a, 'the count line\'s region');
+    const ctx = { Array, i18t: (k, v) => `${k}[${v.k} of ${v.n}]`, i18tn: (k, n) => `${k}#${n}` };
+    vm.createContext(ctx); vm.runInContext(IG.slice(a, b) + '\nthis.words=igWallCountWords;', ctx);
+    const w = world();
+    assert.equal(ctx.words(w.regFiltered(), { base: w.regRestBase() }), 'igw_count[4 of 4]', 'open: every paper drawn, out of the book at rest');
+    w.regShowOnly(['MK-1', 'MK-3', 'MK-2'], 'Naivas', { party: true });
+    const R = w.state.reg;
+    assert.equal(ctx.words(w.regFiltered(), { only: R.only, base: w.regRestBase() }), 'igw_count[2 of 2] · int_dep_amend#1', 'the agreements Parties counted, the amendment beside them');
+    R.stage = 'Signed';
+    assert.equal(ctx.words(w.regFiltered(), { only: R.only, base: w.regRestBase() }), 'igw_count[1 of 2]', 'a tab narrows k, never n');
+    /* ANY OTHER SET IS COUNTED WHOLE (the checkers of step 7: the Board's
+       "Open these 7 contracts" read "6 of 6 contracts · 1 amendment") */
+    w.regShowOnly(['MK-1', 'MK-3', 'MK-2'], 'Open these');
+    assert.equal(w.state.reg.only.party, undefined, 'not a party\'s shelf');
+    assert.equal(ctx.words(w.regFiltered(), { only: w.state.reg.only, base: w.regRestBase() }), 'igw_count[3 of 3]', 'the number on the door that sent it');
+    /* THE ARCHIVE SHELF IS ITS OWN BOOK: "of n" is the shelf, never the book
+       at rest that holds none of it */
+    w.regGoFiltered({ view: 'archived' });
+    assert.equal(ctx.words(w.regFiltered(), { base: w.regRestBase() }), 'igw_count[1 of 1]', 'the shelf counted against the shelf');
   });
-  test('3e the chip names the set and is its way out, in both books', () => {
-    const body = fnBody(strip(IG), 'igWallBodyHtml');
-    assert.match(body, /data-igw-only-clear aria-pressed="true" title="\$\{igEsc\(i18t\('igw_only_clear'\)\)\}"/);
-    const chip = (body.match(/const only=igWall\.only\?[^\n]*/) || [''])[0];
-    assert.match(chip, /\$\{icon\('x','w-3\.5 h-3\.5'\)\}<\/button>/, 'a drawn ×, never a typed one (f385)');
-    assert.doesNotMatch(chip, /\u00d7|&times;/);
-    assert.match(strip(IG), /if\(e\.target\.closest&&e\.target\.closest\('\[data-igw-only-clear\]'\)\)\{ igWall\.only=null; igWallRepaint\(host\); return; \}/);
+  test('3e the place\'s one set chip names the set and is its way out, on the Wall and the List, in both books', () => {
+    const REGS = R('js/views/register.js');
+    assert.match(REGS, /const onlyChip=R\.only\?`<span id="reg-only-chip"/);
+    assert.match(REGS, /<button id="reg-only-clear" title="\$\{esc\(i18t\('reg_only_clear'\)\)\}"[\s\S]{0,260}\$\{icon\('x','w-3\.5 h-3\.5'\)\}<\/button>/, 'a drawn ×, never a typed one (f385)');
+    assert.match(REGS, /const fbBoxes=`\s*\$\{onlyChip\}/, 'it leads the filter boxes');
+    assert.match(REGS, /\$\{HOME\?regHomeHeadHtml\(R,fbBoxes,adaptBtn,clearSlot\):/, 'and the place\'s one head draws them, over the Wall or the List');
+    assert.match(REG, /getElementById\('reg-only-clear'\)\?\.addEventListener\('click',\(\)=>\{ R\.only=null; R\.page=1; regRepaint\(\); \}\)/);
     const i18n = R('js/i18n.js');
-    assert.ok(i18n.includes("igw_only_clear: 'Show every contract again'") && i18n.includes("igw_only_clear: 'Visa alla avtal igen'"));
-    assert.match(IG, /igWall,igWallShowOnly,igWallBase,igWallCountWords,igWallStage/, 'published');
+    assert.equal((i18n.match(/^\s+reg_only_clear: /gm) || []).length, 2, 'in both books');
   });
 });
 
-describe('f678 (3f) Jambo\'s "contracts" is every contract: the set is let go', () => {
-  test('3f CA_GO.wall clears the set before the wall', () => {
+describe('f678 (3f) Jambo\'s "contracts" is every contract: the set is let go; "wall" and "list" turn the place', () => {
+  test('3f CA_GO lets the set go before the place, and turns its view', () => {
     const CA = strip(R('js/copilotacts.js'));
-    assert.match(CA, /wall: \(\) => \{ if \(typeof igWall === 'object' && igWall\) igWall\.only = null; return caHomeWall\(\); \},/);
+    /* RE-POINTED 15 Oct 2026 (the checkers of step 7): "Every contract is
+       here" is true only with the tab, the filters and the search at rest too */
+    assert.match(CA, /contracts: \(\) => \{\s*if \(typeof regPlaceSet === 'function'\)\{ const R = regPlaceSet\(\{ only: null \}\);\s*if \(typeof regFiltersAtRest === 'function'\) regFiltersAtRest\(R\);\s*if \(typeof regSearchBoxClear === 'function'\) regSearchBoxClear\(\); \}\s*return caHomeWall\(\); \},/);
+    assert.match(CA, /wall: \(\) => \{ if \(typeof regPlaceSet === 'function'\) regPlaceSet\(\{ show: 'wall' \}\); return caHomeWall\(\); \},/);
+    assert.match(CA, /list: \(\) => \{ if \(typeof regPlaceSet === 'function'\) regPlaceSet\(\{ show: 'list' \}\); return caHomeWall\(\); \},/);
   });
 });
 

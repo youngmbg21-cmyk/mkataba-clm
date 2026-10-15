@@ -39,6 +39,9 @@ const check = (name, pass, detail) => {
   console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail != null ? ' — ' + detail : ''}`);
 };
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
@@ -65,7 +68,7 @@ const check = (name, pass, detail) => {
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-R7'), null, { timeout: 15000 });
 
     /* ================= 1. THE CONTRACTS LIST, AND THE NEGOTIATIONS LIST ====== */
-    await page.evaluate(() => setView('register'));
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await until(() => document.getElementById('reg-scroll'));
     const r0 = await scrollTo('reg-scroll', 700);
     await reload();
@@ -171,7 +174,7 @@ const check = (name, pass, detail) => {
     check('5a the Negotiate page comes back on the same contract, scrolled to the same clause', w0 >= 400 && w1 === w0 && wOn.face === 'MK-R1' && wOn.paper === 'MK-R1', JSON.stringify({ w0, w1, wOn }));
 
     /* ================= 6. THE READER'S HAND WINS ============================= */
-    await page.evaluate(() => setView('register'));
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await until(() => document.getElementById('reg-scroll'));
     const h0 = await scrollTo('reg-scroll', 900);
     await reload();
@@ -185,7 +188,7 @@ const check = (name, pass, detail) => {
     /* ================= 7. GOING SOMEWHERE ELSE IS NOT A REFRESH ============== */
     await page.evaluate(() => setView('obligations'));
     await page.waitForTimeout(400);
-    await page.evaluate(() => setView('register'));
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(600);
     const g1 = await top('reg-scroll');
     check('7a a press that goes to another page and back still lands at the top, as before', g1 === 0 || g1 === null, g1);

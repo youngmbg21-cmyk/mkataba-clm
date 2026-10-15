@@ -30,6 +30,8 @@ const check = (name, pass, detail) => {
   console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail != null ? ' — ' + detail : ''}`);
 };
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place, so "leave the page" goes to Approvals, a page that is not Home. */
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
@@ -104,7 +106,7 @@ const check = (name, pass, detail) => {
        press had already closed. */
     const openIt = () => page.evaluate(() => { const b = document.querySelector('#ig-legend [data-ig-legend-fold]'); if (b && b.getAttribute('aria-expanded') === 'false') b.click(); });
     await openIt(); await page.waitForTimeout(250);
-    await page.evaluate(() => setView('register'));
+    await page.evaluate(() => setView('approvals'));
     await page.waitForTimeout(900);
     await page.evaluate(() => { intel.tab = 'map'; setView('intel'); });
     await page.waitForTimeout(1600);
@@ -170,7 +172,7 @@ const check = (name, pass, detail) => {
     check('4e the width is remembered in this browser', Number(g1.stored) === g1.dockW, `stored ${g1.stored}`);
     await page.screenshot({ path: path.join(OUT, '02-dragged.png') });
     /* It survives a repaint and a return to the page. */
-    await page.evaluate(() => setView('register')); await page.waitForTimeout(700);
+    await page.evaluate(() => setView('approvals')); await page.waitForTimeout(700);
     await page.evaluate(() => { intel.tab = 'map'; setView('intel'); }); await page.waitForTimeout(1500);
     const g2 = await geo();
     check('4f back on the page the panel keeps the width the reader chose', g2.dockW === g1.dockW, `${g2.dockW}px`);

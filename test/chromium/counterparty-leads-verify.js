@@ -21,6 +21,9 @@ const check = (name, ok, detail) => {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail != null ? ' — ' + detail : ''}`);
 };
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
@@ -45,7 +48,7 @@ const check = (name, ok, detail) => {
     await page.evaluate(() => { if (window.insForce) insForce(false); });
 
     /* ============ 1 · CONTRACTS: THE COUNTERPARTY LEADS ============ */
-    await page.evaluate(() => setView('register'));
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(1200);
     await page.screenshot({ path: path.join(OUT, '01-contracts.png') });
     const READ = () => {
@@ -140,14 +143,14 @@ const check = (name, ok, detail) => {
        a pairing by heading text found nothing to pair. The sort key each head
        carries is the column's identity, the way 11d of contracts-page-verify
        has always paired them. */
-    const shared = ['ref', 'party', 'value', 'expiry', 'stage'];
-    const wOf = (l, n) => { const x = l.find(y => y.sort === n); return x ? x.w : null; };
-    const pairs = shared.map(n => [n, wOf(C.ths || [], n), wOf(N.ths || [], n)]);
-    /* A NAMED CONTROL for the same reason: this invariant held before this
-       change and has to go on holding through it. */
-    check('2f the five columns both tables share are cut identically, in pixels',
-      pairs.every(([, a, b]) => a != null && a === b),
-      pairs.map(([n, a, b]) => `${n} ${a}/${b}`).join(' · '));
+    /* 2f RETIRED 15 Oct 2026 (the overnight work order, step 7): "the five
+       columns both tables share are cut identically, in pixels" paired the
+       Contracts page's table with the Negotiations page's, both drawn edge to
+       edge in the same shell. Contracts is now Home's Contracts place — its
+       List sits in Home's paper column beside Jambo's panel, with the
+       drawing's six columns — so the two tables no longer share a width to
+       be cut alike; contracts-page-verify 11d is retired with it. 2a–2e still
+       ask the Negotiations table; section 1 the List. */
 
     /* ============ 3 · THE NEW AGREEMENT POP-UP ============ */
     /* A COMPANY STANDARD IS PUBLISHED FIRST, because the cramped row the owner

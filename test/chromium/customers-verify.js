@@ -76,12 +76,16 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     await page.evaluate(() => { if (typeof updateSidebarCounts === 'function') updateSidebarCounts(); });
     const rail = await page.evaluate(() => {
       const doors = [...document.querySelectorAll('.nav-item[data-view]')].map(b => b.getAttribute('data-view'));
-      return { doors, folded: !!document.querySelector('.nav-fold[data-nav-fold="register"] .nav-sub [data-view="redline"] + [data-view="customers"]'),
+      return { doors, opener: !!document.querySelector('.nav-fold[data-nav-fold="register"] > [data-nav-fold-open="register"]'),
+        fold: [...document.querySelectorAll('.nav-fold[data-nav-fold="register"] .nav-sub .nav-item[data-view]')].map(b => b.getAttribute('data-view')).join(' '),
+        folded: !!document.querySelector('.nav-fold[data-nav-fold="register"] .nav-sub [data-view="redline"] + [data-view="customers"]'),
         n: (document.querySelector('[data-count="customers"]') || {}).textContent || '', want: (typeof cuDoorCount === 'function') ? cuDoorCount() : null, total: state.contracts.length };
     });
     /* RE-POINTED 10 Oct 2026 (owner: Negotiations and Customers fold under
        Contracts, shown on hover, and Customers is named Parties) */
-    ok('1a the rail reads Home · Contracts, with Negotiations · Parties folded under it', rail.doors.slice(0, 4).join(' ') === 'dashboard register redline customers' && rail.folded, rail.doors.join(' › '));
+    /* RE-POINTED AT STEP 7 OF THE OVERNIGHT WORK ORDER: the fold keeps only
+       Negotiations and Parties; the Contracts row is its opener, the door */
+    ok('1a the rail reads Home · Contracts, with Negotiations · Parties folded under it', rail.doors.slice(0, 3).join(' ') === 'dashboard redline customers' && rail.opener && rail.fold === 'redline customers' && rail.folded, rail.doors.join(' › ') + ' · fold ' + rail.fold);
     ok('1b its number is the customers the page lists (3: one name in two cases is one customer)', rail.n.trim() === '3', JSON.stringify(rail));
 
     console.log('\n2 · the Customers page');
@@ -121,9 +125,10 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
       const b = [...document.querySelectorAll('#ins-panel button')].find(x => x.textContent.trim().startsWith(label));
       if (b) b.click(); return !!b; }, label);
     ok('3a the panel carries Open party', await pressOpen('Open party'));
-    await page.waitForFunction(() => state.view === 'dashboard' && !!document.querySelector('#ig-wall [data-igw-only-clear]'), null, { timeout: 8000 }).catch(() => {});
+    /* since step 7 the set is the Contracts place's own, its one chip in the head over the Wall and the List */
+    await page.waitForFunction(() => state.view === 'dashboard' && !!document.querySelector('#ig-wall') && !!document.querySelector('[data-reg-home] #reg-only-chip'), null, { timeout: 8000 }).catch(() => {});
     const rowsNow = () => page.evaluate(() => ({ view: state.view, face: window.hbFace ? hbFace() : null, paper: !!(window.intel && intel.paper),
-      chip: ((document.querySelector('#ig-wall [data-igw-only-clear]') || {}).textContent || '').replace(/[\s×]+/g, ' ').trim(),
+      chip: ((document.querySelector('[data-reg-home] #reg-only-chip') || {}).textContent || '').replace(/[\s×]+/g, ' ').trim(),
       count: ((document.querySelector('#ig-wall .igw-count') || {}).textContent || '').trim(),
       ids: [...document.querySelectorAll('#ig-wall [data-ig-pick]')].map(b => b.getAttribute('data-ig-pick')).sort() }));
     const land = await rowsNow();
@@ -138,8 +143,8 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     await page.waitForFunction(() => typeof state !== 'undefined' && state.view === 'dashboard' && document.querySelectorAll('#ig-wall [data-ig-pick]').length > 0, null, { timeout: 15000 }).catch(() => {});
     const again = await rowsNow();
     ok('3d a refresh keeps it narrowed', again.view === 'dashboard' && again.ids.join() === land.ids.join() && /Naivas/.test(again.chip), JSON.stringify(again));
-    await page.click('#ig-wall [data-igw-only-clear]').catch(() => {});
-    await page.waitForFunction(() => !document.querySelector('#ig-wall [data-igw-only-clear]'), null, { timeout: 4000 }).catch(() => {});
+    await page.click('[data-reg-home] #reg-only-clear').catch(() => {});
+    await page.waitForFunction(() => !document.querySelector('[data-reg-home] #reg-only-chip'), null, { timeout: 4000 }).catch(() => {});
     const wide = await rowsNow();
     ok('3e pressing the chip widens it to every contract on the wall', !wide.chip && wide.ids.length > land.ids.length, wide.ids.join());
 
@@ -186,7 +191,14 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     for (const v of ['register', 'redline']){
       await page.evaluate(v => setView(v), v);
       await page.waitForTimeout(1200);
+      /* Contracts is Home's Contracts place since step 7: its filters sit on
+         the head's first row (the drawing, version 4), the tabs under them */
       const r = await page.evaluate(() => {
+        const place = document.querySelector('[data-reg-home]');
+        if (place){ const top = place.querySelector('.ct-top'), bar = top && top.querySelector('.reg-fb'), tabs = place.querySelector('.ct-tabs .reg-views');
+          const chip = bar && bar.querySelector('.reg-chip:not(.reg-chip-btn)');
+          const br = bar && bar.getBoundingClientRect(), tr = tabs && tabs.getBoundingClientRect();
+          return { one: !!(br && tr) && br.bottom <= tr.top + 1, face: chip ? chip.textContent.replace(/\s+/g, ' ').trim().slice(0, 40) : '' }; }
         const row = document.querySelector('.reg-tabbar');
         const tabs = row && row.querySelector('.reg-views'), bar = row && row.querySelector('.reg-fb');
         const tr = tabs && tabs.getBoundingClientRect(), br = bar && bar.getBoundingClientRect();
@@ -194,7 +206,7 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
         return { one: !!(tr && br) && Math.abs((tr.top + tr.bottom) / 2 - (br.top + br.bottom) / 2) < 14 && br.left > tr.right,
           face: chip ? chip.textContent.replace(/\s+/g, ' ').trim().slice(0, 40) : '' };
       });
-      ok(`6 ${v === 'register' ? 'Contracts' : 'Negotiations'}: the filters sit beside the tabs, label and value inside`, r.one && /:?\s*\S/.test(r.face), r.face);
+      ok(`6 ${v === 'register' ? 'Contracts (the place): the filters sit on the head\'s first row, above the tabs' : 'Negotiations: the filters sit beside the tabs'}, label and value inside`, r.one && /:?\s*\S/.test(r.face), r.face);
     }
     ok('no page errors', !errs.length, errs.join(' | '));
   } catch (e) {

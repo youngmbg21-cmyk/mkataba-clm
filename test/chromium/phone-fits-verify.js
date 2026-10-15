@@ -35,6 +35,9 @@ const check = (name, pass, detail) => {
 };
 const iso = n => { const t = new Date(); t.setDate(t.getDate() + n); return t.toISOString().slice(0, 10); };
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   const h = await startHati();
   const W = await seedWorkspace(h);
@@ -131,7 +134,7 @@ const iso = n => { const t = new Date(); t.setDate(t.getDate() + n); return t.to
     const pan = await tp.evaluate(async () => { const out = {}; const cs = document.getElementById('content-scroll');
       openWorkspace('MK-A2'); await new Promise(r => setTimeout(r, 1200)); roomGoTab(getContract('MK-A2'), 'sign'); await new Promise(r => setTimeout(r, 1200));
       out.room = cs.scrollWidth - cs.clientWidth;
-      setView('register'); await new Promise(r => setTimeout(r, 1200));
+      (regPlaceSet({ show: 'list' }), setView('register')); await new Promise(r => setTimeout(r, 1200));
       const rs = document.getElementById('reg-scroll'); out.reg = rs ? rs.scrollWidth - rs.clientWidth : -1; return out; });
     check('15 at 820px the room does not pan sideways', pan.room <= 1, pan.room + 'px over');
     check('15 at 820px the Contracts table fits its page', pan.reg >= 0 && pan.reg <= 1, pan.reg + 'px over');

@@ -32,6 +32,9 @@ const check = (name, ok, detail) => {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail != null ? ' — ' + detail : ''}`);
 };
 
+/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
+   place; this check reads its List (regPlaceSet({ show: 'list' }) before
+   setView('register'), which lands there). */
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
@@ -66,7 +69,7 @@ const check = (name, ok, detail) => {
       if (cs[1]) { cs[1].status = 'Signed'; cs[1].signedAt = '12 Aug 2026, 10:00 EAT'; }
       if (cs[2]) { cs[2].status = 'Draft'; delete cs[2].execution; delete cs[2].signedAt; }
     });
-    await page.evaluate(() => setView('register'));
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(1200);
     await page.screenshot({ path: path.join(OUT, '01-contracts.png') });
 
@@ -79,44 +82,28 @@ const check = (name, ok, detail) => {
     });
     /* RE-POINTED (21 Sep 2026): eleven since Move and Own joined — asked as
        the relation to the seat's own key list, never a count. */
-    const nKeys = await page.evaluate(() => REG_COL_KEYS.length);
-    check('the Contracts head draws one column per key', head.n === nKeys, JSON.stringify(head.text));
-    /* RE-POINTED IN PLACE 26 Sep 2026: the expiry column says "Ends" — plain
-       column names, the list options' floor — so it is found by its own
-       sort key (the column's identity), never by its words. */
-    const iSig = head.text.findIndex(t => /^Signed$/i.test(t));
-    const iExp = await page.evaluate(() => [...document.querySelectorAll('.reg-table thead th')]
-      .findIndex(t => t.getAttribute('data-reg-sort') === 'expiry'));
-    check('Signed is drawn, and immediately before Expiry',
-      iSig >= 0 && iExp === iSig + 1, `signed@${iSig} expiry@${iExp}`);
-    check('and it is a painted box, not merely present',
-      head.widths[iSig] > 40, head.widths[iSig] + 'px');
+    /* RE-POINTED 15 Oct 2026 (the overnight work order, step 7): the List of
+       Home's Contracts place draws its own seat's keys — the drawing's six
+       (Ref · Counterparty and agreement · Stage · Owner · Ends · Value) and
+       the row's ⋯ — asked of REG_COL_KEYS_HOME, never a count.
+       THE SIGNED COLUMN IS NOT ONE OF THEM (the drawing, version 4, owner's
+       "Go", 14 Oct 2026). It was the full table's, which the page drew only
+       below the inspector's width since 26 Sep; the place draws no inspector
+       and no full table, so its subject is gone on the computer. RETIRED with
+       it: "Signed is drawn, and immediately before Expiry", "and it is a
+       painted box", and section 2's three cell checks (a real day, an
+       em-dash, the legacy string). What stays is asked below: the Signed
+       SORT and the Signed FILTER, read off each row's own signed day
+       (regSignedOn — the reading the column printed). */
+    const nKeys = await page.evaluate(() => REG_COL_KEYS_HOME.length);
+    check('the Contracts List head draws one column per key of its own seat', head.n === nKeys, JSON.stringify(head.text));
+    check('and no Signed column, as the drawing has it', !head.text.some(t => /^Signed$/i.test(t)), JSON.stringify(head.text));
+    /* each row's own signed day, by the reading the column printed */
+    const SIGNED_OF = `[...document.querySelectorAll('tr[data-row]')].map(tr => {
+      const c = state.contracts.find(x => String(x.id) === tr.getAttribute('data-row'));
+      return (c && regSignedOn(c)) || '—'; })`;
 
-    /* ============ 2. THE CELLS: A DATE, AND AN EM-DASH ============ */
-    const cells = await page.evaluate(i => {
-      const out = [];
-      for (const tr of [...document.querySelectorAll('tr[data-row]')].slice(0, 12)) {
-        const td = tr.children[i];
-        if (td) out.push(td.textContent.trim());
-      }
-      return out;
-    }, iSig);
-    /* RE-POINTED IN PLACE 21 Sep 2026. These four read the day as
-       `30.06.2027` — the shape `regDotDate` printed until the owner asked for
-       the artifact's own (`30 Jun 2027`, the month following the LANGUAGE).
-       The CLAIM is unchanged and is what matters: a signed contract prints a
-       real day, an unsigned one an em-dash, the head sorts by it and the
-       filter agrees with the column. `DAY` is the shape the product prints
-       now, asked as a pattern rather than as one spelling, so a retune moves
-       these with it. Owed with the change and missed; done here. */
-    const DAY = /\d{1,2}\s+\p{L}+\.?\s+\d{4}/u;
-    check('a signed contract prints a real day',
-      cells.some(t => DAY.test(t)), JSON.stringify(cells.slice(0, 4)));
-    check('and one that is not signed prints an em-dash, never an empty cell',
-      cells.some(t => t === '—'), JSON.stringify(cells.slice(0, 4)));
-    check('the legacy display string reads as a real date too',
-      cells.some(t => DAY.test(t) && /2026/.test(t)), JSON.stringify(cells.slice(0, 4)));
-
+    /* ============ 2. THE CELLS — RETIRED with the column (above) ============ */
     /* ============ 3. NO SIDEWAYS SCROLL, AT EVERY LAPTOP WIDTH ============ */
     for (const wpx of [1280, 1366, 1440, 1500]) {
       await page.setViewportSize({ width: wpx, height: 900 });
@@ -133,18 +120,17 @@ const check = (name, ok, detail) => {
     await page.waitForTimeout(400);
 
     /* ============ 4. SORTING BY IT ============ */
-    const sorted = await page.evaluate(() => {
-      document.querySelector('[data-reg-sort="signed"]').click();
-      return true;
-    });
+    /* RE-POINTED 15 Oct 2026 (step 7): with no Signed column the order is
+       chosen where the List offers it — its Sort — and read off each row's
+       own signed day. */
+    const sorted = await page.$('#reg-sort') ? (await page.selectOption('#reg-sort', 'signed'), true) : false;
     await page.waitForTimeout(700);
-    const order = await page.evaluate(i => [...document.querySelectorAll('tr[data-row]')]
-      .slice(0, 30).map(tr => (tr.children[i] || {}).textContent || ''), iSig);
-    const DAY2 = /\d{1,2}\s+\p{L}+\.?\s+\d{4}/u;
+    const order = (await page.evaluate(SIGNED_OF)).slice(0, 30);
+    const DAY2 = /^\d{4}-\d{2}-\d{2}/;
     const dated = order.filter(t => DAY2.test(t.trim()));
     const dashAfter = order.findIndex(t => t.trim() === '—');
     const lastDated = order.map(t => DAY2.test(t.trim())).lastIndexOf(true);
-    check('a column head press orders the book by signature',
+    check('the List\'s Sort orders the book by signature',
       sorted && dated.length >= 2, `${dated.length} dated rows`);
     check('AND A CONTRACT WITH NO SIGNATURE SORTS LAST',
       dashAfter === -1 || dashAfter > lastDated, `first dash@${dashAfter} last date@${lastDated}`);
@@ -157,7 +143,7 @@ const check = (name, ok, detail) => {
          Adapt door writes to — then set to a year, and the page repainted. */
       regBarSetChosen(regBarChosen().concat('signed'));
       const R = regState(); R.signed = '2021'; R.page = 1;
-      renderRegister({ nav: 'register' });
+      regRepaint();
       return {
         drawn: !!document.getElementById('reg-signed'),
         value: (document.getElementById('reg-signed') || {}).value,
@@ -171,11 +157,9 @@ const check = (name, ok, detail) => {
     check('the year list offers only years this book was signed in',
       narrowed.years.every(y => ['all', 'this', 'last'].includes(y) || /^\d{4}$/.test(y))
       && narrowed.years.includes('2021'), JSON.stringify(narrowed.years));
-    const agree = await page.evaluate(i => {
-      const cells = [...document.querySelectorAll('tr[data-row]')].map(tr => (tr.children[i] || {}).textContent.trim());
-      return { n: cells.length, all2021: cells.every(t => /\b2021\b/.test(t)), cells };
-    }, iSig);
-    check('THE COLUMN AND THE FILTER AGREE — every row shown says that year',
+    const agree = await page.evaluate(`(() => { const cells = ${SIGNED_OF};
+      return { n: cells.length, all2021: cells.every(t => t.slice(0, 4) === '2021'), cells }; })()`);
+    check('THE ROWS AND THE FILTER AGREE — every row shown was signed that year',
       agree.n >= 1 && agree.all2021, JSON.stringify(agree.cells.slice(0, 5)));
     await page.screenshot({ path: path.join(OUT, '02-filtered.png') });
 
@@ -187,7 +171,7 @@ const check = (name, ok, detail) => {
        markup would look perfectly correct either way. */
     const stranded = await page.evaluate(() => {
       const R = regState(); R.signed = '2019'; R.page = 1;   // nothing in this book
-      renderRegister({ nav: 'register' });
+      regRepaint();
       const el = document.getElementById('reg-signed');
       return { value: el && el.value,
                offered: [...document.querySelectorAll('#reg-signed option')].map(o => o.value),
@@ -200,7 +184,7 @@ const check = (name, ok, detail) => {
     check('and the table is honestly empty rather than quietly whole',
       stranded.rows === 0, stranded.rows + ' rows');
 
-    await page.evaluate(() => { const R = regState(); R.signed = 'all'; renderRegister({ nav: 'register' }); });
+    await page.evaluate(() => { const R = regState(); R.signed = 'all'; regRepaint(); });
     await page.waitForTimeout(500);
 
     /* ============ 6. THE GRIP, DRAGGED WITH A REAL MOUSE ============ */
@@ -229,8 +213,11 @@ const check = (name, ok, detail) => {
     check('and the column to its right gives up exactly what it gained',
       Math.abs((after[1] - before[1]) + (after[2] - before[2])) <= 2,
       `${before[2]} → ${after[2]}`);
+    /* RE-POINTED 15 Oct 2026 (step 7): every column but the two the grip
+       sits between, however many the seat draws */
     check('every other column is untouched',
-      [0, 3, 4, 5, 6, 7, 8].every(i => Math.abs(after[i] - before[i]) <= 2),
+      before.length > 3 && after.length === before.length
+        && before.every((w, i) => i === 1 || i === 2 || Math.abs(after[i] - w) <= 2),
       JSON.stringify(after));
     const totals = await page.evaluate(() => {
       const t = document.querySelector('.reg-table');
@@ -262,8 +249,9 @@ const check = (name, ok, detail) => {
 
     /* ============ 8. IT IS REMEMBERED, AND DOUBLE-CLICK PUTS IT BACK ==== */
     const remembered = await page.evaluate(() => {
-      const stored = JSON.parse(localStorage.getItem('hati.v1.regCols') || 'null');
-      renderRegister({ nav: 'register' });
+      /* the place keeps its own widths (regColStoreKey: '.home') */
+      const stored = JSON.parse(localStorage.getItem('hati.v1.regCols.home') || 'null');
+      regRepaint();
       const w = [...document.querySelectorAll('.reg-table thead th')].map(t => Math.round(t.getBoundingClientRect().width));
       return { stored: !!stored, sum: stored ? Math.round(stored.reduce((a, b) => a + b, 0)) : null, w };
     });
@@ -278,7 +266,7 @@ const check = (name, ok, detail) => {
     await page.mouse.dblclick(gb3.x, gb3.y);
     await page.waitForTimeout(300);
     const reset = await page.evaluate(() => ({
-      stored: localStorage.getItem('hati.v1.regCols'),
+      stored: localStorage.getItem('hati.v1.regCols.home'),
       w: [...document.querySelectorAll('.reg-table thead th')].map(t => Math.round(t.getBoundingClientRect().width)),
     }));
     check('DOUBLE-CLICK PUTS IT BACK, and "reset" means nobody has chosen',

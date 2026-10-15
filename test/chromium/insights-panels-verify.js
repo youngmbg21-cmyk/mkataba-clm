@@ -614,15 +614,16 @@ const QUESTION = 'why do I have a big workload runway today?';
     /* "SEE THE LIST" IS THE REGISTER'S ONE DOOR: it lands on Contracts,
        narrowed to exactly the dependents, with the chip saying so. */
     /* Guarded, so a build without the door REPORTS 11g rather than aborting. */
-    await page.evaluate(() => { const b = document.querySelector('#ig-dock [data-ig-deps="MK-P1"]'); if (b) b.click(); });
+    /* the door lands on Home's Contracts place (step 7); its List is where the rows are read */
+    await page.evaluate(() => { if (window.regPlaceSet) regPlaceSet({ show: 'list' }); const b = document.querySelector('#ig-dock [data-ig-deps="MK-P1"]'); if (b) b.click(); });
     await page.waitForTimeout(1200);
     const list = await page.evaluate(() => ({
-      view: state.view,
+      view: state.view, place: !!document.querySelector('[data-reg-home]'),
       chip: (document.getElementById('reg-only-chip') || {}).textContent || '',
       rows: [...document.querySelectorAll('#content tr[data-row], #content tr[data-id]')].map(r => r.getAttribute('data-row') || r.getAttribute('data-id')).sort(),
     }));
     check('11g See the list lands on the Contracts page narrowed to exactly the dependents, and the chip says why',
-      list.view === 'register' && /MK-P1/.test(list.chip) && list.rows.join(',') === (card.ids || []).join(',') && list.rows.includes('MK-P2') && list.rows.includes('MK-P6'),
+      list.view === 'dashboard' && list.place && /MK-P1/.test(list.chip) && list.rows.join(',') === (card.ids || []).join(',') && list.rows.includes('MK-P2') && list.rows.includes('MK-P6'),
       JSON.stringify(list) + ' vs ' + (card.ids || []).join(','));
     await page.evaluate(() => { const b = document.getElementById('reg-only-clear'); if (b) b.click(); intel.tab = 'frame'; setView('intel'); });
     await page.waitForTimeout(600);
