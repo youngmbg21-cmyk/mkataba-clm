@@ -79,7 +79,9 @@ describe('f673 (1) a contract just made lands on Home, the panel on Fill in', ()
   });
   test('1d the page router asks it first, for the room only, before the layers question', () => {
     const sv = strip(fnBody(APP, 'setView'));
-    const ask = sv.indexOf("view==='workspace'"), arr = sv.indexOf('roomArrivesOnHome(state.activeId)'), layers = sv.indexOf('viewLayersClosed(view)');
+    /* the general layers question (the LAST one): step 7 of the overnight
+       work order asks it earlier too, inside the Contracts place's own branch */
+    const ask = sv.indexOf("view==='workspace'"), arr = sv.indexOf('roomArrivesOnHome(state.activeId)'), layers = sv.lastIndexOf('viewLayersClosed(view)');
     assert.ok(ask > 0 && arr > ask && layers > arr, 'asked before anything is drawn');
   });
 });

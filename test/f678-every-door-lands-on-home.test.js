@@ -298,8 +298,9 @@ describe('f678 (5) the census is the measure, and CI runs it', () => {
     assert.match(src, /const RETIRED = \['calendar', 'agents', 'doc'\];/);
   });
   test('5d the doors step 2 moved are not PENDING', () => {
+    /* RE-POINTED 15 Oct 2026: steps 7 and 8 took their rows off — nothing waits now */
     const pend = (src.match(/pending: \d/g) || []).length;
-    assert.ok(pend > 0, 'some doors wait on steps 7 and 8');
+    assert.equal(pend, 0, 'no door waits on a later step');
     for (const name of ['Workspace door', 'Obligations row, double-click', 'Parties panel, Open party', 'approval row present'])
       assert.ok(src.includes(name), name);
     const block = src.slice(src.indexOf("await door(A, 'Parties panel, Open party"), src.indexOf("await door(A, 'Parties panel, Open on Explorer"));
