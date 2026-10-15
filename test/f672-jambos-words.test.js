@@ -225,9 +225,11 @@ describe('f672 (4) the chips lead with the checklist', () => {
     assert.equal(chips({ need: ['sign'] })[0].k, 'sign');
     assert.equal(chips({ need: ['sign'] })[0].owed, true);
   });
-  test('4c nothing owed → the four words, none amber; the wall → the ways in', () => {
+  /* RE-POINTED 15 Oct 2026 (owner: the chips go to the next natural step):
+     nothing owed, the journey's order — redlines, share, sign (caNextSteps) */
+  test('4c nothing owed → the next steps, none amber; the wall → the ways in', () => {
     const L = chips();
-    assert.deepEqual(J(L.map(x => x.k)), ['redline', 'sign', 'history']);
+    assert.deepEqual(J(L.map(x => x.k)), ['redline', 'share', 'sign']);
     assert.ok(L.every(x => !x.owed));
     assert.deepEqual(J(chips({ paper: null }).map(x => x.k)), ['upload', 'draft', 'board', 'calendar']);
     assert.equal(chips({ face: 'board' }), null, 'the Board keeps its own suggestions');
@@ -238,12 +240,67 @@ describe('f672 (4) the chips lead with the checklist', () => {
     const s = stage(); const asked = [];
     s.ctx.negoMayStart = c => { asked.push(c && c.id); return { ok: false, why: 'sealed' }; };
     const L = s.ctx.caPaperChips();
-    assert.deepEqual(J(L.map(x => x.k)), ['sign', 'history', 'oblig']);
-    assert.deepEqual(asked, ['MK-9'], 'asked of the contract on the paper');
+    assert.deepEqual(J(L.map(x => x.k)), ['share', 'sign', 'history']);
+    assert.ok(asked.every(id => id === 'MK-9') && asked.length >= 1, 'asked of the contract on the paper');
     const t = stage({ need: ['quiet'] }); t.ctx.negoMayStart = () => ({ ok: false, why: 'held' });
     assert.ok(!t.ctx.caPaperChips().some(x => x.k === 'redline'), 'not even as the lead');
     const o = stage(); o.ctx.negoMayStart = () => ({ ok: true, why: '' });
-    assert.deepEqual(J(o.ctx.caPaperChips().map(x => x.k)), ['redline', 'sign', 'history'], 'an open door keeps its chip');
+    assert.deepEqual(J(o.ctx.caPaperChips().map(x => x.k)), ['redline', 'share', 'sign'], 'an open door keeps its chip');
+  });
+  /* WHAT COMES NEXT (owner, 15 Oct 2026): never the face that is open, never
+     a button that takes you nowhere, one reading for the chips and the card */
+  test('4f the face that is open is never a chip; on Redlines the next step is editing a clause', () => {
+    const s = stage(); s.ctx.pdFaceNow = () => 'red'; s.ctx.pdRedShows = () => true;
+    s.ctx.rlEditClausePress = () => true;
+    s.ctx.rlEditClauseBtnHtml = () => '<button data-rl-edit-clause="editor">Edit a clause</button>';
+    s.ctx.document = { createElement: () => { const el = { _h: '', set innerHTML(h){ el._h = h; }, querySelector: () => (/data-rl-edit-clause="editor"/.test(el._h) && !/disabled/.test(el._h) ? { disabled: false } : null) }; return el; } };
+    const L = J(s.ctx.caPaperChips());
+    assert.ok(!L.some(x => x.k === 'redline'), 'no redline chip while Redlines is open');
+    assert.equal(L[0].k, 'edit'); assert.equal(L[0].go, 'edit');
+    assert.match(s.ctx.caChipsHtml(), /data-ca-next="edit"/);
+    s.ctx.rlEditClauseBtnHtml = () => '<button data-rl-edit-clause="editor" disabled>Edit a clause</button>';
+    assert.ok(!J(s.ctx.caPaperChips()).some(x => x.k === 'edit'), 'a grey Edit a clause row is no chip');
+    const f = stage({ need: ['details'] }); f.ctx.pdFaceNow = () => 'fill';
+    assert.ok(!J(f.ctx.caPaperChips()).some(x => x.k === 'fill'), 'no fill-in chip while Fill in is open');
+    const g = stage(); g.ctx.pdFaceNow = () => 'signing';
+    assert.ok(!J(g.ctx.caPaperChips()).some(x => x.k === 'sign'), 'no sign chip while Before you sign is open');
+  });
+  test('4g a signed or expired agreement offers no sign chip; signed, the steps are obligations, amend, history', () => {
+    const s = stage(); s.ctx.negoExecuted = () => true; s.ctx.negoMayStart = () => ({ ok: false });
+    s.ctx.pdAmendMay = () => true;
+    assert.deepEqual(J(s.ctx.caPaperChips().map(x => x.k)), ['oblig', 'amend', 'history']);
+    s.ctx.pdAmendMay = () => false; s.ctx.contractExpired = () => true;
+    const L = J(s.ctx.caPaperChips().map(x => x.k));
+    assert.ok(!L.includes('sign') && !L.includes('amend'), JSON.stringify(L));
+    const t = stage(); t.ctx.contractExpired = () => true;
+    assert.ok(!J(t.ctx.caPaperChips()).some(x => x.k === 'sign'), 'expired: nothing left to sign');
+  });
+  test('4h "what\'s next?" answers with the chips\' own steps, each one press', () => {
+    const { ctx } = stage();
+    const a = ctx.caActOf("what's next");
+    assert.equal(a.place, 'next'); assert.equal(a.cid, 'MK-9');
+    const html = ctx.caGoCardHtml(a, 2);
+    const steps = [...html.matchAll(/data-ca-act="next:(\w+)"/g)].map(m => m[1]);
+    assert.deepEqual(steps, J(ctx.caNextSteps(ctx.getContract('MK-9'))));
+    const sv = stage({ lang: 'sv' }).ctx.caActOf('vad är nästa steg'); assert.equal(sv.place, 'next');
+  });
+  test('4i asking for an amendment of an expired agreement says why, with no button', () => {
+    const { ctx } = stage();
+    ctx.amendmentShutWhy = () => 'This agreement has expired, so there is nothing left to amend.';
+    ctx.openCreateAmendmentModal = () => true;
+    const a = ctx.caActOf('amendment');
+    assert.equal(a.kind, 'door'); assert.equal(a.door, 'amend');
+    const html = ctx.caDoorCardHtml(a, 0);
+    assert.match(html, /ca-why">This agreement has expired/);
+    assert.doesNotMatch(html, /data-ca-act="door"/);
+  });
+  test('4j "draft" asks our paper or theirs: the form, or the file picker', () => {
+    const { ctx, calls } = stage();
+    const a = ctx.caActOf('draft');
+    const html = ctx.caGoCardHtml(a, 0);
+    assert.match(html, /data-ca-act="draftform"/); assert.match(html, /data-ca-act="draftupload"/);
+    ctx.caGoPress(a, 'draftupload');
+    assert.deepEqual(calls.at(-1), ['upload']);
   });
   test('4d a chip is the word in the reader\'s language, and asks it', () => {
     const { ctx } = stage({ lang: 'sv', need: ['details'] });

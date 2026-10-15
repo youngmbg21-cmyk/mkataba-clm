@@ -240,9 +240,9 @@ function ov2EssHtml(c, M){
 function ov2FamHtml(c){
   const chk = (typeof familyCheck === 'function') ? familyCheck(c) : { order: [] };
   const order = chk.order || [];
-  const signedHere = (typeof amendmentExecuted === 'function') ? amendmentExecuted(c) : c.status === 'Signed';
+  const shut = (typeof amendmentShutWhy === 'function') ? amendmentShutWhy(c) : (c.status === 'Signed' ? '' : i18t('fa_draft_no_amend'));
   const edit = typeof canEdit !== 'function' || canEdit();
-  const acts = edit && !c.parentId ? `<div class="fam-acts"><button type="button" class="btn sm fill" data-ov2-fam="create"${signedHere ? '' : ` disabled title="${_ov2E(i18t('fa_draft_no_amend'))}"`}>${_ov2E(i18t('fa_create_amendment'))}</button><button type="button" class="btn sm" data-ov2-fam="add">${_ov2E(i18t('fa_link_existing'))}</button></div>` : '';
+  const acts = edit && !c.parentId ? `<div class="fam-acts"><button type="button" class="btn sm fill" data-ov2-fam="create"${!shut ? '' : ` disabled title="${_ov2E(shut)}"`}>${_ov2E(i18t('fa_create_amendment'))}</button><button type="button" class="btn sm" data-ov2-fam="add">${_ov2E(i18t('fa_link_existing'))}</button></div>` : '';
   const ref = x => (typeof contractRef === 'function') ? contractRef(x) : x.id;
   const tone = x => x.status === 'Signed' ? 'g' : x.status === 'Declined' ? 'r' : x.status === 'Under Review' ? 'a' : 's';
   const stWord = x => { try { return (typeof contractStatusMeta === 'function') ? contractStatusMeta(x).label : (x.status || ''); } catch (_){ return x.status || ''; } };
@@ -375,7 +375,7 @@ function paintOverview2(c){
     if (b){ setPlay(false); rng.value = _ov2Dd(M.t0, new Date(+b.dataset.ov2J)); upd(true); return; }
     const f = e.target.closest('[data-ov2-fam]');
     if (f){ const k = f.getAttribute('data-ov2-fam'), again = () => paintOverview2(getContract(c.id) || c);
-      if (k === 'create' && typeof openCreateAmendmentModal === 'function' && (typeof amendmentExecuted !== 'function' || amendmentExecuted(c))) openCreateAmendmentModal(c);
+      if (k === 'create' && typeof openCreateAmendmentModal === 'function' && (typeof amendmentShutWhy !== 'function' || !amendmentShutWhy(c))) openCreateAmendmentModal(c);
       else if (k === 'add' && typeof openLinkModal === 'function') openLinkModal(c, again, { mode: 'parent' });
       else if (k === 'parent' && typeof openLinkModal === 'function') openLinkModal(c, again, { mode: 'child' });
       return; }
