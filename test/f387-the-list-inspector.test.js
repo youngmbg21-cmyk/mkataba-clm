@@ -224,16 +224,19 @@ describe('f387 (2) the Contracts list in the inspector’s shape', () => {
   test('2h the panel’s ⋯ is the row menu, and a verb in it runs the row’s own act', () => {
     const b = world(list(), { ins: true });
     const done = [];
-    b.win.contractSetArchived = async (c, on) => { done.push([c.id, on]); return false; };
+    /* End or pause is the one door since 15 Oct 2026 (owner picked "One question") */
+    b.win.endOrPauseOpen = async (c) => { done.push([c.id, 'end']); return false; };
+    b.win.endOrPauseOffered = () => true;   // this stage loads no js/core.js
     b.win.contractOnHold = () => false;
     b.win.renderRegister();
     const acts = b.$$('#ins-panel [data-ins-menu] [data-act]').map(x => x.getAttribute('data-act'));
-    for (const k of ['share', 'archive', 'decline']) assert.ok(acts.includes(k), k + ' is in the panel’s menu');
+    for (const k of ['share', 'end']) assert.ok(acts.includes(k), k + ' is in the panel’s menu');
+    for (const k of ['archive', 'decline', 'hold']) assert.ok(!acts.includes(k), k + ' is an answer in End or pause, not its own row');
     /* 12 Oct 2026 (owner): Workspace is a door in the panel's own row now, so
        its ⋯ does not carry it twice (the row's menu still does) */
     assert.ok(!acts.includes('open'), 'Workspace is not repeated under ⋯');
-    b.$('#ins-panel [data-ins-menu] [data-act="archive"]').dispatchEvent(evt(b.win, 'click'));
-    assert.deepEqual(done, [['MK-1', true]], 'the row menu’s own act, on the chosen contract');
+    b.$('#ins-panel [data-ins-menu] [data-act="end"]').dispatchEvent(evt(b.win, 'click'));
+    assert.deepEqual(done, [['MK-1', 'end']], 'the row menu’s own act, on the chosen contract');
   });
 
   test('2i looking at a contract never starts a negotiation on it', () => {

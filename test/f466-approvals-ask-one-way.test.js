@@ -132,10 +132,14 @@ describe('f466 (5) SIGN_STAGE_OF knows the keys signBlockers produces', () => {
 describe('f466 (6) "Decline & close" declines', () => {
   const CORE = strip(R('js/core.js'));
   const REG = strip(R('js/views/register.js'));
-  test('the row presses the one act through a required reason, and is not drawn where it cannot work', () => {
-    assert.match(REG, /else if\(act==='decline'\) regDeclineAsk\(c\);/);
-    assert.match(REG, /function regDeclineAsk\(c\)\{[\s\S]*?multiline:true[\s\S]*?contractDecline\(c, why\)/);
-    assert.match(REG, /\{k:'decline'[\s\S]*?when:c=>c\.status!=='Signed'&&c\.status!=='Declined'/);
+  /* RE-POINTED 15 Oct 2026: decline is an answer in the one End or pause door
+     (owner picked "One question"), the reason still required, the answer grey
+     with its own reason on signed or closed paper */
+  test('the row presses the one act through a required reason, and is grey where it cannot work', () => {
+    assert.match(REG, /else if\(act==='end'\)\{ if\(window\.endOrPauseOpen\) endOrPauseOpen\(c\)/);
+    assert.match(CORE, /k === 'decline' \? await contractDecline\(c, why\)/);
+    assert.match(CORE, /decline: !edit \? 'end_decline_editors' : c\.status === 'Declined' \? 'end_decline_already'\s*: signed \? 'end_decline_signed'/);
+    assert.match(CORE, /needs: k !== 'archive'/, 'decline and hold need their reason');
   });
   test('contractDecline: a reason, never on signed paper, Declined plus an audit line', async () => {
     const fn = /async function contractDecline\(c,why\)\{[\s\S]*?\n\}/.exec(CORE)[0];

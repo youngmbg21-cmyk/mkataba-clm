@@ -20840,3 +20840,29 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - jambo-agents-verify step 11b2 went red on one GitHub run of 937bd72a (run 38774712143: "bottom":739 in a 600 window, the 760 window's measure) and passed on the other run of the same commit (38774684638) and locally 78/78: it reads the house before the resize to 600 has refitted it.
 
 - Noticed, not fixed (15 Oct 2026, PR 289's checks): board-lists-and-search-verify failed dark steps 1 and 2 ("the open list's ground is solid", "no dark ring") on one GitHub run of 663e136 (38787380971, shard 1) with no measurement printed — the list was not found — and passed on the other run of the same commit (38787347198), on 4ab4796, and locally on every run; it likely reads the open list before it has been drawn after the theme change.
+
+### Done on the owner's rulings (15 Oct 2026: "1, Jambo's note. 2, One question. 3, … 4, Okay. 5, for later")
+- Needs you is back on the Board as its own card, first above Jambo's work (Jambo's note, picked by name): `hbNeedsHtml` reads `needsYouOf` over the book and presses `needsYouGo`; a colleague's look has its own Done (`lookDone`); Jambo's greeting names the count and the oldest (`hbNeedsHelloHtml`), his tab carries the number (`pdTabCount('copilot')`), "What needs me?" leads his chips, and "needs me" brings the whole list up (CA_GO.needs → `hbNeedsOpen`). Reverses the 4 Oct ruling; f450 rewritten; needs-you-card-verify 20/20 (3/20 at main).
+- End or pause, one question (picked by name): one door on the paper's ⋯ / Menu tab and the Contracts row's ⋯ (`endOrPauseOpen`, `endOrPauseAnswers`, `endOrPauseOffered`); each answer is the existing act; Restore, Release and Reopen keep their own rows; Jambo's hold word opens it with hold chosen. END_STATES, `regEndAct`, `regDeclineAsk` deleted; their words inert in both books. f216, f335, f358 (6), f387, f466 re-pointed; end-or-pause-verify 19/19.
+- The read-only wording hint is gone; the redline co-pilot band, the two template dialogs nobody opened, the overseer setters and Overview 2's page are deleted (the engines and live readings stay). js/pdfrich.js is NOT unused (a PDF template upload reads it through `extractDocRich`) — the review's line about it was wrong and the map is corrected.
+- The notes drawer is shut by its × (owner's ruling); notes-two-rooms-verify presses it.
+- The colour census is re-recorded twice on the owner's yes: first for the palette work since late September (27 colours new to the census, 24 gone, every new one defined in HaTi's own styles), then for Jambo's face on Home's Board (no colour new to the app). theme-tokens-verify 40/40, off KNOWN_RED.
+- six-round-audit opens Negotiate by name, its endgame takes the signer's own link, ticks the pad's intent line and countersigns on Before you sign: 55/55, off KNOWN_RED.
+
+### Noticed, not fixed (15 Oct 2026, the owner's rulings)
+- notes-two-rooms-verify: 88/92, the same four red at unmodified main — all about the retired room's acts row; they need re-pointing to Home's paper line.
+- The old Home triage card (home.js, `[data-tri-act]` decline) still writes Declined itself rather than through `contractDecline` or the End or pause door; it may no longer be drawn anywhere.
+- Issuing a signing link from the room head said "nothing was emailed — check the outbox" in the six-round audit's server (no mail provider there, so the outbox is right); worth a look on a configured server.
+
+### Fixed (15 Oct 2026, GitHub's first run of the owner's rulings)
+- The Needs you reading returned nothing in a stage whose timer runs at once (f500 Ctrl+Z): it now returns the list from its own name.
+- The count on Jambo's tab (and every amber tab count beside the paper) read white on amber at 2.17:1; it wears the bell's own dark ink on amber now (contrast-verify 33/33).
+- The ink-wash census re-recorded on the owner's "approve a record": headcounts only, no colour or text size new; the card's buttons use the house 13px.
+- board-upgrade, home-page, contracts-page, copilot-jobs verify and f582 re-pointed to the Needs you card and the End or pause door.
+
+### Fixed (15 Oct 2026, the owner: "in the chat panel in the calendar page, jambos emoji is not there just his name")
+- Jambo's panels named him with a ✦ where his chats wear his face (the owner's 12 Oct rule). His face now heads the Calendar's Jambo panel, the clause editor's Jambo rail and the template builder's Jambo rail (`jamboFaceHtml`). The ink-wash census re-recorded for the extra picture (headcounts; the face's dark ground was already in the census).
+
+### Noticed, not fixed (15 Oct 2026)
+- Buttons and small marks still wear the ✦ beside Jambo's name ("✦ Ask Jambo" on the Negotiate page, the clause panel's Jambo button, "✦ read from the document", the calendar's suggested blocks): components.js says buttons and pages keep the sparkle, so they were left; the owner may want them changed too.
+- (15 Oct 2026) Jambo's tab count is drawn on the Board only: on every other Home face each redraw of his tab walked the whole book, and explorer-magnitude-verify 4a2 went red twice on GitHub while it did.

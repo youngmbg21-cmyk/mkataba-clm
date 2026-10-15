@@ -315,21 +315,23 @@ describe('f335 (8) — a hold is a per-person grant, and it is on the row menu',
     assert.match(m[1], /mayHoldContract\(\)/, 'freezing is no longer an everyday editor act');
     assert.ok(!/canEdit\(\)/.test(m[1]), 'and canEdit no longer answers for it');
   });
-  test('IT IS ON THE CONTRACTS ROW MENU, which is what the drawing shows', () => {
+  /* RE-POINTED 15 Oct 2026: the owner picked "One question" by name — Hold is
+     an answer in the one End or pause door on this very row (one press to the
+     door, one to the answer), still grant-gated; Release keeps its own row. */
+  test('IT IS ON THE CONTRACTS ROW MENU, as an answer in End or pause', () => {
     const at = REG.indexOf('const REG_ROW_ACTIONS=[');
     const block = REG.slice(at, REG.indexOf('];', at));
-    assert.match(block, /\{k:'hold',/, 'Put on hold is a row');
-    assert.match(block, /\{k:'release',/, 'and so is releasing it');
-    assert.match(block, /mayHoldContract/, 'drawn only where it would work');
+    assert.match(block, /\{k:'end',/, 'End or pause is a row');
+    assert.match(block, /\{k:'release',/, 'and so is releasing a hold');
+    assert.match(block, /mayHoldContract/, 'Release drawn only where it would work');
     assert.match(block, /contractOnHold\(c\)/, 'and only the one that applies');
+    assert.match(CORE, /hold: \(typeof mayHoldContract === 'function' && !mayHoldContract\(\)\) \? 'hd_not_yours'/, 'the hold answer asks the grant, grey with why');
   });
-  test('NOT A SECOND ACT — the row presses contractSetHold, as Archive presses its own', () => {
-    const at = REG.indexOf("else if(act==='hold'||act==='release')");
-    assert.ok(at > 0, 'the dispatch answers both');
-    const block = REG.slice(at, at + 800);
-    assert.match(block, /contractSetHold\(c,false,''\)/, 'release writes nothing of its own');
-    assert.match(block, /contractSetHold\(c,true,why\)/, 'and the hold hands the reason to the one act');
-    assert.match(block, /hd_ask_title/, 'asking with the dialog the contract room already asks with');
+  test('NOT A SECOND ACT — the door presses contractSetHold, as Archive presses its own', () => {
+    const at = REG.indexOf("else if(act==='release')");
+    assert.ok(at > 0, 'the dispatch answers release');
+    assert.match(REG.slice(at, at + 300), /contractSetHold\(c,false,''\)/, 'release writes nothing of its own');
+    assert.match(CORE, /: await contractSetHold\(c, true, why\)/, 'and the hold answer hands the reason to the one act');
   });
   test('THE REASON IS ON THE ROW, cut with the whole of it on the hover', () => {
     assert.match(CORE, /const HOLD_WHY_ROW = \d+/, 'the cut is one number');

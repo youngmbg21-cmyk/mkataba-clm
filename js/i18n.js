@@ -548,7 +548,7 @@ const STRINGS = {
     reg_share_with_cp: 'Share with counterparty',
     reg_run_scan: 'Run Jambo scan',
     reg_export_pdf: 'Export PDF',
-    reg_decline_close: 'Decline & close',
+    reg_decline_close: 'Decline & close', /* inert since 15 Oct 2026: End or pause is one door */
     reg_delete_permanently: 'Delete permanently',
 
     // ---- register footer ----
@@ -2637,12 +2637,12 @@ const STRINGS = {
 
     status_on_hold: 'On hold',
     hd_chip_title: 'On hold while a dispute is dealt with. The wording and the negotiation are frozen; it stays on every list.',
-    hd_hold: 'Put on hold',
+    hd_hold: 'Put on hold', /* inert since 15 Oct 2026: End or pause is one door */
     hd_release: 'Release the hold',
-    hd_hold_title: 'Freeze the wording while a dispute is dealt with. It stays on every list and count.',
+    hd_hold_title: 'Freeze the wording while a dispute is dealt with. It stays on every list and count.', /* inert since 15 Oct 2026: End or pause is one door */
     hd_release_title: 'Let this contract be worked on again.',
-    hd_ask_title: 'Put this contract on hold?',
-    hd_ask_msg: 'The wording, the negotiation and signing are frozen until it is released. It stays on every list, count and report — this is not the archive. Say why, for the trail.',
+    hd_ask_title: 'Put this contract on hold?', /* inert since 15 Oct 2026: End or pause is one door */
+    hd_ask_msg: 'The wording, the negotiation and signing are frozen until it is released. It stays on every list, count and report — this is not the archive. Say why, for the trail.', /* inert since 15 Oct 2026: End or pause is one door */
     hd_ask_ph: 'e.g. dispute over the rebate calculation, referred to our advocate',
     hd_needs_reason: 'Say why it is going on hold — it goes on the trail.',
     hd_held_toast: 'On hold. The wording is frozen.',
@@ -4788,14 +4788,14 @@ const STRINGS = {
     co_never_expires: 'never expires and cannot be revoked',
     co_filled_from_last: 'Filled in from the last time you shared this contract. Change it if this round goes to someone else.',
     co_filled_from_people: 'Filled in from the people on this contract.',
-    ct_wording_elsewhere: 'The wording is read-only here. Change it on the Negotiate page — the button is above the document.',
+    ct_wording_elsewhere: 'The wording is read-only here. Change it on the Negotiate page — the button is above the document.',   /* inert since 15 Oct 2026: the hint is gone (owner) */
     ct_answer_in_panel: 'Filled from the form beside the paper',
-    end_decline: 'Decline and close it',
-    end_decline_says: 'The deal is off. The contract stays on your lists, marked Closed, and the wording stops moving. You are asked for the reason, and it goes on the contract’s history.',
-    end_archive: 'Archive it',
-    end_archive_says: 'Takes it off every list and every count, but it is still searchable and can be brought back. Nothing about the contract itself changes.',
-    end_hold: 'Freeze it',
-    end_hold_says: 'A dispute, or a reason to stop. It stays on every list and nobody can change the wording, negotiate it or sign it until it is released. You will be asked why.',
+    end_decline: 'Decline and close it', /* inert since 15 Oct 2026: End or pause is one door */
+    end_decline_says: 'The deal is off. The contract stays on your lists, marked Closed, and the wording stops moving. You are asked for the reason, and it goes on the contract’s history.', /* inert since 15 Oct 2026: End or pause is one door */
+    end_archive: 'Archive it', /* inert since 15 Oct 2026: End or pause is one door */
+    end_archive_says: 'Takes it off every list and every count, but it is still searchable and can be brought back. Nothing about the contract itself changes.', /* inert since 15 Oct 2026: End or pause is one door */
+    end_hold: 'Freeze it', /* inert since 15 Oct 2026: End or pause is one door */
+    end_hold_says: 'A dispute, or a reason to stop. It stays on every list and nobody can change the wording, negotiate it or sign it until it is released. You will be asked why.', /* inert since 15 Oct 2026: End or pause is one door */
     st_sum_head: 'What this person can do',
     st_sum_streams_all: 'Sees every value stream.',
     st_sum_streams_some: 'Sees {n} of {all} value streams.',
@@ -5597,16 +5597,16 @@ const STRINGS = {
     pc_fallback_text: "{category} at {figure} {unit}.",
     pc_history: "What happened before",
     /* ---- the redline co-pilot (W3-1) ---- */
-    rp_title: "Jambo's first pass on their {n} asks",
-    rp_note: "Measured against your playbook and what you have settled before. Nothing here is decided — each button is the same one on the card.",
+    rp_title: "Jambo's first pass on their {n} asks",   /* inert since 15 Oct 2026: the co-pilot band is deleted */
+    rp_note: "Measured against your playbook and what you have settled before. Nothing here is decided — each button is the same one on the card.",   /* inert since 15 Oct 2026: the co-pilot band is deleted */
     rp_v_accept: "Take it",
     rp_v_push: "Push back",
     rp_v_escalate: "Escalate",
     rp_v_review: "Read it",
-    rp_take_it: "Accept",
-    rp_open_clause: "Open the clause",
-    rp_escalate_it: "Send for review",
-    rp_this_clause: "this clause",
+    rp_take_it: "Accept",   /* inert since 15 Oct 2026: the co-pilot band is deleted */
+    rp_open_clause: "Open the clause",   /* inert since 15 Oct 2026: the co-pilot band is deleted */
+    rp_escalate_it: "Send for review",   /* inert since 15 Oct 2026: the co-pilot band is deleted */
+    rp_this_clause: "this clause",   /* inert since 15 Oct 2026: the co-pilot band is deleted */
     rp_why_within: "They ask {asked} {unit}; your standard is {stated}. It sits inside it.",
     rp_why_outside: "They ask {asked} {unit}; your standard is {stated}. It sits outside it.",
     rp_why_forbidden: "Your playbook does not allow {category} to be changed without sign-off.",
@@ -5734,10 +5734,10 @@ const STRINGS = {
     ap_tag_wording: "wording",
     /* ---- the archive shelf (WO-5) ---- */
     reg_view_archived: "Archived",
-    reg_archive: "Archive",
+    reg_archive: "Archive", /* inert since 15 Oct 2026: End or pause is one door */
     reg_restore: "Restore",
     ct_archived_tag: "Archived",
-    ar_archive_title: "File it away — off the live lists and counts, still searchable",
+    ar_archive_title: "File it away — off the live lists and counts, still searchable", /* inert since 15 Oct 2026: End or pause is one door */
     ar_restore_title: "Bring it back to the live lists",
     ar_archived_toast: "Archived — off the live lists, still searchable",
     ar_restored_toast: "Restored to the live lists",
@@ -6692,6 +6692,10 @@ const STRINGS = {
     brn_floor_s_3: 'model, email, their page',
     brn_p_home: 'Home',
     brn_pd_home: 'Your first two decisions, with anyone waiting on you first.',
+    brn_p_endpause: 'End or pause',
+    brn_pd_endpause: 'One question, three answers: decline it, archive it, or put it on hold; each answer is the act itself.',
+    brn_p_needsme: 'Needs you',
+    brn_pd_needsme: 'Everything owed by you by name, on the Board above Jambo\u2019s work; his greeting names the oldest.',
     brn_p_bell: 'Alerts bell',
     brn_pd_bell: 'Every alert is a door. Nothing is marked seen until the work is done.',
     brn_p_contracts: 'Contracts list',
@@ -10667,6 +10671,26 @@ const STRINGS = {
     ca_go_history: 'Opening the history of {ref}.',
     ca_go_history_all: 'Everything that happened lately, newest first.',
     ca_go_board: 'Here is the Board.',
+    /* Needs you — Jambo's note (owner picked it by name, 15 Oct 2026) */
+    ca_w_needs: 'needs me',
+    ca_sl_needs: 'Needs you: what is waiting on you, oldest first',
+    ca_go_needs: 'Here is what needs you.',
+    hb_ny_title: 'Needs you',
+    hb_ny_all: 'All {n} ›',
+    hb_ny_fewer: 'Show fewer',
+    hb_ny_lead_one: 'One thing needs you.',
+    hb_ny_lead_other: '{n} things need you.',
+    hb_ny_urgent_one: 'One of them cannot wait.',
+    hb_ny_urgent_other: '{n} of them cannot wait.',
+    hb_ny_oldest: 'Waiting longest: {what} on {ref}, {days}.',
+    hb_ny_first: 'First: {what} on {ref}.',
+    hb_ny_none: 'Nothing is waiting on you. I will put anything new here, oldest first.',
+    hb_ny_done: 'Done',
+    hb_ny_hello_one: '{greet}, {name}. One thing needs you; it is at the top of your Board.',
+    hb_ny_hello_other: '{greet}, {name}. {n} things need you; they are at the top of your Board.',
+    hb_ny_hello_tip: 'Say “{word}” any time to see them again.',
+    hb_ny_hello_none: '{greet}, {name}. Nothing is waiting on you.',
+    hb_ny_chip: 'What needs me?',
     ca_go_document: 'Here is the paper.',
     ca_go_calendar: 'Here is your week.',
     ca_go_explorer: 'Every contract, by counterparty.',
@@ -13349,13 +13373,40 @@ const STRINGS = {
     ap_pg_refuse_title: 'Refuse it here, with your reason — it goes back to whoever asked',
     al_ap_cleared: 'Every approval step is given — it can go for signature',
     end_decline_editors: 'Only editors can decline a contract.',
+    /* End or pause — one question (owner picked it by name, 15 Oct 2026) */
+    end_door: 'End or pause',
+    end_door_title: 'End or pause this contract',
+    end_door_says: 'Decline it, archive it or put it on hold, and see what each one means first.',
+    end_q: 'What is happening with this deal?',
+    end_a_decline: 'We are not going ahead with this deal',
+    end_a_decline_says: 'It leaves the live lists and shows under Closed. The owner or an admin can reopen it.',
+    end_a_archive: 'We are finished with it: file it away',
+    end_a_archive_says: 'Off the live lists and counts; search still finds it. Any editor can restore it.',
+    end_a_hold: 'There is a dispute: freeze it as it stands',
+    end_a_hold_says: 'The wording is frozen and nobody signs. It stays on every list until it is released.',
+    end_tag_decline: 'Decline and close',
+    end_tag_archive: 'Archive',
+    end_tag_hold: 'Put on hold',
+    end_go_decline: 'Decline and close',
+    end_go_archive: 'Archive it',
+    end_go_hold: 'Put on hold',
+    end_go_none: 'Choose an answer',
+    end_go_none_why: 'Choose what is happening with the deal first.',
+    end_note_decline: 'Why are you declining it? (kept on the history)',
+    end_note_archive: 'A note for the history (optional)',
+    end_note_hold: 'What is the dispute? (kept on the history)',
+    end_note_ph: 'Add a note…',
+    end_note_needed: 'Write the reason first; it is kept on the history.',
+    end_archive_already: 'It is already archived; Restore is on the same menu.',
+    end_hold_already: 'It is already on hold; Release is on the same menu.',
+    end_hold_closed: 'A closed deal has nothing to freeze; Reopen is its door.',
     end_decline_already: 'This contract is already closed.',
     end_decline_signed: 'Somebody has signed this contract, so it cannot be declined.',
     end_decline_out: 'The agreed words are out with them for signature — close the deal from the contract’s Before you sign.',
     end_decline_needs_why: 'Say why the deal is off — it goes on the contract’s history.',
     end_declined_toast: 'Declined and closed',
-    end_decline_q: 'Decline and close this contract?',
-    end_decline_why: 'Why is the deal off?',
+    end_decline_q: 'Decline and close this contract?', /* inert since 15 Oct 2026: End or pause is one door */
+    end_decline_why: 'Why is the deal off?', /* inert since 15 Oct 2026: End or pause is one door */
     end_decline_ph: 'e.g. they chose another supplier',
     end_reopen: 'Reopen',
     end_reopen_says: 'The deal is back on. It returns to where it was when it was closed, and the reason goes on the contract’s history. The contract’s owner or an admin can do this.',
@@ -16634,7 +16685,7 @@ const STRINGS = {
     reg_share_with_cp: 'Dela med motparten',
     reg_run_scan: 'Kör Jambo-granskning',
     reg_export_pdf: 'Exportera PDF',
-    reg_decline_close: 'Avböj och avsluta',
+    reg_decline_close: 'Avböj och avsluta', /* inert since 15 Oct 2026: End or pause is one door */
     reg_delete_permanently: 'Radera permanent',
 
     // ---- registerfot ----
@@ -18643,12 +18694,12 @@ const STRINGS = {
 
     status_on_hold: 'Pausat',
     hd_chip_title: 'Pausat medan en tvist hanteras. Texten och förhandlingen är frysta; det ligger kvar på alla listor.',
-    hd_hold: 'Pausa avtalet',
+    hd_hold: 'Pausa avtalet', /* inert since 15 Oct 2026: End or pause is one door */
     hd_release: 'Häv pausen',
-    hd_hold_title: 'Frys texten medan en tvist hanteras. Det ligger kvar på alla listor och räkningar.',
+    hd_hold_title: 'Frys texten medan en tvist hanteras. Det ligger kvar på alla listor och räkningar.', /* inert since 15 Oct 2026: End or pause is one door */
     hd_release_title: 'Låt avtalet bearbetas igen.',
-    hd_ask_title: 'Pausa det här avtalet?',
-    hd_ask_msg: 'Texten, förhandlingen och signeringen fryses tills pausen hävs. Det ligger kvar på alla listor, räkningar och rapporter — det här är inte arkivet. Ange varför, för spåret.',
+    hd_ask_title: 'Pausa det här avtalet?', /* inert since 15 Oct 2026: End or pause is one door */
+    hd_ask_msg: 'Texten, förhandlingen och signeringen fryses tills pausen hävs. Det ligger kvar på alla listor, räkningar och rapporter — det här är inte arkivet. Ange varför, för spåret.', /* inert since 15 Oct 2026: End or pause is one door */
     hd_ask_ph: 't.ex. tvist om rabattberäkningen, hänskjuten till vårt ombud',
     hd_needs_reason: 'Ange varför det pausas — det hamnar i spåret.',
     hd_held_toast: 'Pausat. Texten är fryst.',
@@ -20511,14 +20562,14 @@ const STRINGS = {
     co_never_expires: 'går aldrig ut och kan inte återkallas',
     co_filled_from_last: 'Ifyllt från förra gången du delade avtalet. Ändra om rundan går till någon annan.',
     co_filled_from_people: 'Ifyllt fran personerna pa detta avtal.',
-    ct_wording_elsewhere: 'Ordalydelsen ar skrivskyddad har. Andra den pa Forhandla-sidan - knappen finns ovanfor dokumentet.',
+    ct_wording_elsewhere: 'Ordalydelsen ar skrivskyddad har. Andra den pa Forhandla-sidan - knappen finns ovanfor dokumentet.',   /* inert since 15 Oct 2026: the hint is gone (owner) */
     ct_answer_in_panel: 'Fylls i från formuläret bredvid papperet',
-    end_decline: 'Tacka nej och stang',
-    end_decline_says: 'Affären blir inte av. Avtalet ligger kvar på dina listor, märkt Stängt, och ordalydelsen slutar röra sig. Du får ange skälet, och det skrivs i avtalets historik.',
-    end_archive: 'Arkivera',
-    end_archive_says: 'Tas bort fran alla listor och alla rakningar, men gar fortfarande att soka fram och att ta tillbaka. Sjalva avtalet andras inte.',
-    end_hold: 'Frys',
-    end_hold_says: 'En tvist, eller ett skal att stanna. Det ligger kvar pa alla listor och ingen kan andra ordalydelsen, forhandla eller signera forran det slapps. Du blir tillfragad om varfor.',
+    end_decline: 'Tacka nej och stang', /* inert since 15 Oct 2026: End or pause is one door */
+    end_decline_says: 'Affären blir inte av. Avtalet ligger kvar på dina listor, märkt Stängt, och ordalydelsen slutar röra sig. Du får ange skälet, och det skrivs i avtalets historik.', /* inert since 15 Oct 2026: End or pause is one door */
+    end_archive: 'Arkivera', /* inert since 15 Oct 2026: End or pause is one door */
+    end_archive_says: 'Tas bort fran alla listor och alla rakningar, men gar fortfarande att soka fram och att ta tillbaka. Sjalva avtalet andras inte.', /* inert since 15 Oct 2026: End or pause is one door */
+    end_hold: 'Frys', /* inert since 15 Oct 2026: End or pause is one door */
+    end_hold_says: 'En tvist, eller ett skal att stanna. Det ligger kvar pa alla listor och ingen kan andra ordalydelsen, forhandla eller signera forran det slapps. Du blir tillfragad om varfor.', /* inert since 15 Oct 2026: End or pause is one door */
     st_sum_head: 'Vad den har personen kan gora',
     st_sum_streams_all: 'Ser alla vardeflöden.',
     st_sum_streams_some: 'Ser {n} av {all} vardeflöden.',
@@ -21219,16 +21270,16 @@ const STRINGS = {
     pc_no_clause: "Den standarden finns inte längre i ert klausulbibliotek.",
     pc_fallback_text: "{category} på {figure} {unit}.",
     pc_history: "Vad som hänt tidigare",
-    rp_title: "Jambos första genomgång av deras {n} önskemål",
-    rp_note: "Mätt mot er förhandlingsguide och vad ni tidigare landat på. Inget här är beslutat — varje knapp är samma knapp som på kortet.",
+    rp_title: "Jambos första genomgång av deras {n} önskemål",   /* inert since 15 Oct 2026: the co-pilot band is deleted */
+    rp_note: "Mätt mot er förhandlingsguide och vad ni tidigare landat på. Inget här är beslutat — varje knapp är samma knapp som på kortet.",   /* inert since 15 Oct 2026: the co-pilot band is deleted */
     rp_v_accept: "Godta",
     rp_v_push: "Håll emot",
     rp_v_escalate: "Eskalera",
     rp_v_review: "Läs själv",
-    rp_take_it: "Godkänn",
-    rp_open_clause: "Öppna klausulen",
-    rp_escalate_it: "Skicka för granskning",
-    rp_this_clause: "den här klausulen",
+    rp_take_it: "Godkänn",   /* inert since 15 Oct 2026: the co-pilot band is deleted */
+    rp_open_clause: "Öppna klausulen",   /* inert since 15 Oct 2026: the co-pilot band is deleted */
+    rp_escalate_it: "Skicka för granskning",   /* inert since 15 Oct 2026: the co-pilot band is deleted */
+    rp_this_clause: "den här klausulen",   /* inert since 15 Oct 2026: the co-pilot band is deleted */
     rp_why_within: "De begär {asked} {unit}; er nivå är {stated}. Det ligger innanför.",
     rp_why_outside: "De begär {asked} {unit}; er nivå är {stated}. Det ligger utanför.",
     rp_why_forbidden: "Er förhandlingsguide tillåter inte att {category} ändras utan godkännande.",
@@ -21349,10 +21400,10 @@ const STRINGS = {
     ap_ask_copilot_sub: "Öppnar Jambo-panelen med frågan redo att skickas",
     ap_tag_wording: "lydelse",
     reg_view_archived: "Arkiverade",
-    reg_archive: "Arkivera",
+    reg_archive: "Arkivera", /* inert since 15 Oct 2026: End or pause is one door */
     reg_restore: "Återställ",
     ct_archived_tag: "Arkiverat",
-    ar_archive_title: "Lägg undan det — borta från aktiva listor och siffror, fortfarande sökbart",
+    ar_archive_title: "Lägg undan det — borta från aktiva listor och siffror, fortfarande sökbart", /* inert since 15 Oct 2026: End or pause is one door */
     ar_restore_title: "Ta tillbaka det till de aktiva listorna",
     ar_archived_toast: "Arkiverat — borta från de aktiva listorna, fortfarande sökbart",
     ar_restored_toast: "Återställt till de aktiva listorna",
@@ -22284,6 +22335,10 @@ const STRINGS = {
     brn_floor_s_3: 'modell, e-post, deras sida',
     brn_p_home: 'Hem',
     brn_pd_home: 'Dina två första beslut, med den som väntar på dig först.',
+    brn_p_endpause: 'Avsluta eller pausa',
+    brn_pd_endpause: 'En fråga, tre svar: avböj, arkivera eller pausa; varje svar är själva handlingen.',
+    brn_p_needsme: 'Behöver dig',
+    brn_pd_needsme: 'Allt du är skyldig vid namn, på tavlan ovanför Jambos arbete; hans hälsning nämner det äldsta.',
     brn_p_bell: 'Aviseringsklockan',
     brn_pd_bell: 'Varje avisering är en dörr. Inget markeras som sett förrän arbetet är gjort.',
     brn_p_contracts: 'Avtalslistan',
@@ -26035,6 +26090,26 @@ const STRINGS = {
     ca_go_history: 'Öppnar historiken för {ref}.',
     ca_go_history_all: 'Allt som hänt nyligen, senaste först.',
     ca_go_board: 'Här är tavlan.',
+    /* Behöver dig — Jambos lapp (ägaren valde den vid namn, 15 okt 2026) */
+    ca_w_needs: 'väntar på mig',
+    ca_sl_needs: 'Behöver dig: det som väntar på dig, äldst först',
+    ca_go_needs: 'Här är det som behöver dig.',
+    hb_ny_title: 'Behöver dig',
+    hb_ny_all: 'Alla {n} ›',
+    hb_ny_fewer: 'Visa färre',
+    hb_ny_lead_one: 'En sak behöver dig.',
+    hb_ny_lead_other: '{n} saker behöver dig.',
+    hb_ny_urgent_one: 'En av dem kan inte vänta.',
+    hb_ny_urgent_other: '{n} av dem kan inte vänta.',
+    hb_ny_oldest: 'Har väntat längst: {what} på {ref}, {days}.',
+    hb_ny_first: 'Först: {what} på {ref}.',
+    hb_ny_none: 'Inget väntar på dig. Allt nytt lägger jag här, äldst först.',
+    hb_ny_done: 'Klart',
+    hb_ny_hello_one: '{greet}, {name}. En sak behöver dig; den ligger överst på din tavla.',
+    hb_ny_hello_other: '{greet}, {name}. {n} saker behöver dig; de ligger överst på din tavla.',
+    hb_ny_hello_tip: 'Säg ”{word}” när som helst för att se dem igen.',
+    hb_ny_hello_none: '{greet}, {name}. Inget väntar på dig.',
+    hb_ny_chip: 'Vad väntar på mig?',
     ca_go_document: 'Här är papperet.',
     ca_go_calendar: 'Här är din vecka.',
     ca_go_explorer: 'Alla avtal, per motpart.',
@@ -28605,13 +28680,40 @@ const STRINGS = {
     ap_pg_refuse_title: 'Avslå här, med ditt skäl — det går tillbaka till den som frågade',
     al_ap_cleared: 'Alla godkännandesteg är givna — det kan skickas för underskrift',
     end_decline_editors: 'Bara redigerare kan avböja ett avtal.',
+    /* Avsluta eller pausa — en fråga (ägaren valde den vid namn, 15 okt 2026) */
+    end_door: 'Avsluta eller pausa',
+    end_door_title: 'Avsluta eller pausa det här avtalet',
+    end_door_says: 'Avböj, arkivera eller pausa, och se först vad var och en betyder.',
+    end_q: 'Vad händer med den här affären?',
+    end_a_decline: 'Vi går inte vidare med den här affären',
+    end_a_decline_says: 'Den lämnar de aktiva listorna och visas under Stängda. Ägaren eller en administratör kan öppna den igen.',
+    end_a_archive: 'Vi är klara med den: arkivera den',
+    end_a_archive_says: 'Borta från de aktiva listorna och räkningarna; sökningen hittar den fortfarande. Alla redigerare kan återställa den.',
+    end_a_hold: 'Det finns en tvist: frys den som den är',
+    end_a_hold_says: 'Texten fryses och ingen skriver under. Den ligger kvar på alla listor tills den släpps.',
+    end_tag_decline: 'Avböj och stäng',
+    end_tag_archive: 'Arkivera',
+    end_tag_hold: 'Pausa',
+    end_go_decline: 'Avböj och stäng',
+    end_go_archive: 'Arkivera den',
+    end_go_hold: 'Pausa den',
+    end_go_none: 'Välj ett svar',
+    end_go_none_why: 'Välj först vad som händer med affären.',
+    end_note_decline: 'Varför avböjer du? (sparas i historiken)',
+    end_note_archive: 'En anteckning för historiken (valfri)',
+    end_note_hold: 'Vad gäller tvisten? (sparas i historiken)',
+    end_note_ph: 'Lägg till en anteckning…',
+    end_note_needed: 'Skriv skälet först; det sparas i historiken.',
+    end_archive_already: 'Den är redan arkiverad; Återställ finns i samma meny.',
+    end_hold_already: 'Den är redan pausad; Släpp finns i samma meny.',
+    end_hold_closed: 'En stängd affär har inget att frysa; Öppna igen är dess dörr.',
     end_decline_already: 'Det här avtalet är redan stängt.',
     end_decline_signed: 'Någon har skrivit under det här avtalet, så det kan inte avböjas.',
     end_decline_out: 'Den överenskomna texten är ute hos dem för underskrift — stäng affären från avtalets Innan du signerar.',
     end_decline_needs_why: 'Säg varför affären inte blir av — det skrivs i avtalets historik.',
     end_declined_toast: 'Avböjt och stängt',
-    end_decline_q: 'Avböja och stänga det här avtalet?',
-    end_decline_why: 'Varför blir affären inte av?',
+    end_decline_q: 'Avböja och stänga det här avtalet?', /* inert since 15 Oct 2026: End or pause is one door */
+    end_decline_why: 'Varför blir affären inte av?', /* inert since 15 Oct 2026: End or pause is one door */
     end_decline_ph: 't.ex. de valde en annan leverantör',
     end_reopen: 'Öppna igen',
     end_reopen_says: 'Affären är tillbaka. Avtalet går tillbaka dit det var när det stängdes, och skälet skrivs i avtalets historik. Avtalets ägare eller en administratör kan göra det.',

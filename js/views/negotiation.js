@@ -5180,19 +5180,6 @@ function wireNegotiationTab(c, opts = {}){
   host.querySelectorAll('.nego-clause[data-change]').forEach(n => n.addEventListener('click', () =>
     negoFocus(c, String(n.getAttribute('data-change') || '').split(/\s+/)[0], 'clause')));
 
-  /* The co-pilot band's fold (W3-1). Its ROWS are not wired here and must
-     not be: their buttons carry the cards' own attributes and are picked up
-     by the very handlers below, which is the whole design. */
-  host.querySelectorAll('[data-rl-plan-toggle]').forEach(b => b.addEventListener('click', e => {
-    e.stopPropagation(); e.preventDefault();
-    rlPlanSetOpen(!rlPlanIsOpen());
-    /* BARE, like every other caller in this file. Written `window.rlRepaintFrom`
-       it read as ordinary defensiveness and was a guard that is ALWAYS false —
-       rlRepaintFrom is not among this module's window exports — so the fold
-       flipped its state and the page never redrew, and the band could not be
-       opened at all. Same family as the rlPaperFootHtml lesson: nothing catches
-       a call that is never made. Found 19 Aug 2026, photographing the band. */
-    rlRepaintFrom(b); }));
   host.querySelectorAll('[data-nego-accept]').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation(); decide(b.getAttribute('data-nego-accept'), 'accepted'); }));
   host.querySelectorAll('[data-nego-undo]').forEach(b => b.addEventListener('click', e => {
@@ -6042,36 +6029,6 @@ function rlUnsentList(c){
   try{ if (window.deskSuggestedIds) for (const id of deskSuggestedIds(c)) back.add(id); }catch(_){}
   return (unsent || []).filter(x => x && !back.has(x.id));
 }
-/* ---- THE CO-PILOT'S FIRST PASS, DRAWN (W3-1) ----
-   A folded band over the change column: how many of their asks sit inside
-   our standard, how many need pushing back, how many are somebody else's
-   call. Open it and every ask has its recommendation, the position it was
-   measured against, and what our own history says about that standard.
-
-   THE BUTTONS ARE THE CARDS' OWN. data-nego-accept, data-rl-ask-review and
-   data-rl-cp-open are wired by the existing handlers a few lines below this
-   markup, so a press here is the same press as on the card: same funnel,
-   same guards, same catch-up to the counterparty. Nothing in this file
-   decides anything, and that is what makes it safe.
-
-   NEVER ON THEIR SEAT. This is our playbook, our fallbacks and our
-   negotiating history, read out loud. */
-function rlPlanBandHtml(){
-  /* ---- A STUB, NOT A DELETION (WO-3, 24 Aug 2026) ----
-     The owner asked for the strip off the page and the machinery left where it
-     is. Everything this used to build — js/redlineplan.js, the rp_* wording in
-     both languages, the .rl-plan rules — is untouched and dormant; only the
-     drawing stops. Restoring it is putting the body of this function back.
-     IT DECIDED NOTHING AND FILED NOTHING, which is why removing it takes no
-     capability away: every button it drew carried the ordinary cards' own
-     attributes and pressed the ordinary funnel. */
-  return '';
-}
-/* Per sitting, in memory — a working posture, not a setting, and shut on
-   arrival so the column opens on the cards themselves. */
-let _rlPlanOpen = false;
-const rlPlanIsOpen = () => _rlPlanOpen;
-const rlPlanSetOpen = v => { _rlPlanOpen = !!v; };
 /* ---- THE STRIP IS RETIRED AND THE ACT SURVIVES IT (owner-asked 26 Aug 2026:
    "delete the entire long strip complete and leave that space for the change
    cards. Move the send all button to ... the opposite side of tracked changes.
@@ -21829,20 +21786,9 @@ function rlColumnHtml(c, opts = {}){
                  The strip stood between the index and the first pile and the
                  owner has taken it back for the cards. Its act is in the
                  column's head now — see rlUnsentSendHtml at .rl-idx-top. */}
-          ${''/* ---- THE CO-PILOT'S FIRST PASS (W3-1) ----
-                 Under the unsent band and above the cards, because it is a
-                 reading OF those cards. Drawn only on our seat, only where
-                 they have actually asked for something, and never for a
-                 narrowed reviewer. See rlPlanBandHtml. */}
-          ${''/* THE COPILOT'S FIRST PASS IS NOT DRAWN (owner-ruled 24 Aug
-                 2026: "delete the copilot first pass feature completely", then
-                 "just delete the strip for now"). The band is gone from the
-                 page; the engine behind it, its wording in both languages and
-                 its styling all stay in place, switched off, so it comes back
-                 in one line if it is ever wanted. rlPlanBandHtml is a stub
-                 rather than a deletion — it is published on window and a third
-                 caller must not be able to bring the strip back through a door
-                 nobody remembered. */}
+          ${''/* THE COPILOT'S FIRST PASS IS GONE (owner, 24 Aug 2026, and deleted
+                 15 Oct 2026). Its engine, js/redlineplan.js, stays: the
+                 cards and Jambo's agents read its verdicts. */}
           ${''/* ---- AND NOW THE BULK VERBS ARE GONE FROM BOTH SEATS ----
                  They left OUR column first: deciding the other side's wording
                  in one press is the act that should cost a press per clause,
@@ -22034,7 +21980,7 @@ if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoT
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter, rlCardFilterPass,
   RL_CARD_BANDS,
   RL_SEL_ACTIONS, RL_PLACEMENT_NOTE, rlSelActions, rlSelMenu, negoSelBarHtml, rlAiPropose, rlStandardAction,
-  rlPlanBandHtml, rlPlanIsOpen, rlPlanSetOpen, rlCardReadHtml,
+  rlCardReadHtml,
   redlineCardIds, rlCardRank, rlCardSort, rlOneNoticeHtml, rlNoticeStackHtml, rlAlertsBellHtml, rlFloatingNoticesHtml, rlNoticesFolded, rlSetNoticesFolded,
   rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
   /* The per-card open/shut model went with the fold (12 Aug 2026), and the

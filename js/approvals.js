@@ -150,29 +150,11 @@ function overseerCfg(){
   const s=(state.settings&&state.settings.overseer)||{};
   return { on: !!s.on };
 }
-function saveOverseerCfg(cfg){
-  state.settings=state.settings||{};
-  state.settings.overseer={ on: !!(cfg&&cfg.on) };
-  if(typeof saveSettings==='function') saveSettings();
-  return overseerCfg();
-}
-const overseerEnforced = () => overseerCfg().on;
-/* Who oversees this contract's owner, resolved to a live member. Returns null
-   wherever any link in that chain is missing — no owner, no overseer named,
-   or an overseer whose account has gone. */
-function overseerFor(c){
-  if(!overseerEnforced()) return null;
-  const owner=(typeof contractOwnerName==='function')?contractOwnerName(c):null;
-  if(!owner) return null;
-  const users=((typeof getUsers==='function'?getUsers():[])||[]);
-  const raiser=(c&&c.owner&&c.owner.id)
-    ? users.find(u=>u&&String(u.id)===String(c.owner.id))
-    : users.find(u=>u&&u.name===owner);
-  if(!raiser||!raiser.overseerId) return null;
-  const over=users.find(u=>u&&String(u.id)===String(raiser.overseerId));
-  if(!over||over.id===raiser.id) return null;      // nobody oversees themselves
-  return { raiser, over };
-}
+/* The old helpers that saved the workspace switch and resolved an overseer
+   are deleted (owner, 15 Oct 2026: "Delete the retired features"): nothing
+   called them since the per-person approval before signing (js/signapproval.js)
+   took the step over. overseerCfg stays — it is the old workspace switch a
+   person with no rule of their own still reads (signApprovalLegacyOn). */
 function buildApprovalChain(c){
   const matched=approvalRules().filter(r=>ruleMatches(r,c)).sort((a,b)=>(a.order||99)-(b.order||99));
   // preserve prior decisions for rules that still match
@@ -2465,7 +2447,7 @@ function wireApprovalPanel(c){
    "have they seen it" — it reads shares.first_opened_at, which is stamped once
    on the first real open and never re-counted. */
 
-Object.assign(window,{AP_UNDO_MS,approvalUndoable,approvalUndo,approvalRulesCleared,approvalDecidableNow,approvalRefuseWhy,approvalDecideAsk,signStepOf,signSteps,signStepIndex,signStepDone,signStepOpen,signRowOpen,signStepNow,signOpenRows,overseerCfg,saveOverseerCfg,overseerEnforced,overseerFor,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,saveSignerPlan,signerRouteWindow,signerPlanWhy,signerPlanRefusal,signerIsCompany,signerHasEmail,approvalPanelHtml,approvalChainHtml,APPROVAL_CLEAR_SAYS,approvalClearRows,approvalClearHtml,signerRouteHtml,wireApprovalPanel,
+Object.assign(window,{AP_UNDO_MS,approvalUndoable,approvalUndo,approvalRulesCleared,approvalDecidableNow,approvalRefuseWhy,approvalDecideAsk,signStepOf,signSteps,signStepIndex,signStepDone,signStepOpen,signRowOpen,signStepNow,signOpenRows,overseerCfg,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,saveSignerPlan,signerRouteWindow,signerPlanWhy,signerPlanRefusal,signerIsCompany,signerHasEmail,approvalPanelHtml,approvalChainHtml,APPROVAL_CLEAR_SAYS,approvalClearRows,approvalClearHtml,signerRouteHtml,wireApprovalPanel,
   signApprovalLegacyOn,signApprovalNeeds,signApprovalStateOf,saStepName,saMoney,saDriftWords,SA_CHAIN_STATUS,saChainStep,
   signApprovalDecidable,signApprovalWaitsOn,SA_PAPER_KEYS,signApprovalPaperHolds,signApprovalRequestable,signApprovalRound,
   saFmtDay,saWhen,saShowsLine,signApprovalNotify,saNoticeOf,saDeliveryWords,signApprovalRequest,signApprovalDecide,

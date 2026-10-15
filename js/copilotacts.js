@@ -762,12 +762,8 @@ const CA_DOOR_GO = {
   approval: c => caRoomSign(c),
   chase: c => pdOpenOnHome(c.id, 'oblig'),
   done: c => pdOpenOnHome(c.id, 'oblig'),
-  hold: async c => {
-    if (typeof contractSetHold !== 'function' || typeof promptDialog !== 'function') return false;
-    const why = await promptDialog({ title: _caT('hd_ask_title'), message: _caT('hd_ask_msg'), placeholder: _caT('hd_ask_ph'), confirmLabel: _caT('hd_hold'), multiline: true });
-    if (why == null) return false;
-    return contractSetHold(getContract(c.id) || c, true, why);
-  },
+  /* the one end-or-pause door, its hold answer chosen (owner picked "One question", 15 Oct 2026) */
+  hold: c => (typeof endOrPauseOpen === 'function') ? endOrPauseOpen(getContract(c.id) || c, { pick: 'hold' }) : false,
   refile: c => { if (typeof openWorkspace === 'function') openWorkspace(c.id); if (typeof ovOpenFiling === 'function') ovOpenFiling(getContract(c.id) || c); },
   /* the Amend face beside the signed paper (owner, 15 Oct 2026); the dialog where Home has no paper */
   amend: c => ((typeof pdAmendOpen === 'function' && pdAmendOpen(c.id)) ? true : openCreateAmendmentModal(getContract(c.id) || c)),
@@ -833,8 +829,10 @@ const CA_MENU = [
   ['signers', /\bsigners?\b|\bsignerare\b/i, ['#ws-m-signers']],
   ['filing', /\bfiling\b|\barkivering\b|\bstream\b/i, ['#ws-filing']],
   ['mynote', /\bmy notes?\b|\bprivate note\b|\bmina anteckningar\b/i, ['#ws-mynote']],
-  ['archive', /\b(?:un)?archive\b|\brestore\b|\barkivera\b|\båterställ\b/i, ['#ws-archive']],
-  ['hold', /\bhold\b|\brelease\b|\bpausa\b/i, ['#ws-hold']],
+  /* the way back keeps its own rows; ending or pausing is the one door (End or pause, 15 Oct 2026) */
+  ['restore', /\bunarchive\b|\brestore\b|\båterställ\b/i, ['#ws-archive']],
+  ['release', /\brelease\b|\bsläpp\b|\bunfreeze\b/i, ['#ws-hold']],
+  ['end', /\barchive\b|\barkivera\b|\bhold\b|\bpausa\b|\bfreeze\b|\bfrys\b|\bdecline\b|\bavböj\b|\bend or pause\b|\bclose (?:this|it|the deal|the contract)\b|\bstäng (?:det|avtalet|affären)\b/i, ['#ws-end']],
   ['reopen', /\bre-?open\b|\böppna igen\b/i, ['#ws-reopen']],
   ['delete', /\bdelete\b|\bradera\b|\bta bort utkastet\b/i, ['#ws-delete']],
   ['review', /\b(?:ask for|internal|request a?)\s*review\b|\bgranskning\b/i, ['[data-ig-review]']],
@@ -1194,6 +1192,8 @@ const CA_PLACES = [
   { k: 'oblig', need: 'any', w: ['obligations', 'duties', 'åtaganden', 'skyldigheter'] },
   { k: 'history', need: 'any', w: ['history', 'trail', 'historik', 'historiken'] },
   { k: 'board', w: ['board', 'tavla', 'tavlan'] },
+  /* "needs me" (Jambo's note, 15 Oct 2026): the Board's Needs you card, every item */
+  { k: 'needs', w: ['needs me', 'what needs me', 'needs you', 'what needs you', 'waiting on me', 'what is waiting on me', "what's waiting on me", 'väntar på mig', 'vad väntar på mig', 'behöver mig', 'vad behöver mig'] },
   /* the tab is called Workspace since 15 Oct 2026 (owner): its name opens it, and the old words still do */
   { k: 'document', w: ['workspace', 'the workspace', 'arbetsyta', 'arbetsytan', 'document', 'paper', 'dokument', 'dokumentet', 'papperet', 'pappret'] },
   { k: 'calendar', w: ['calendar', 'kalender', 'kalendern'] },
@@ -1264,7 +1264,7 @@ function caUseBump(k){
    Drawn by the Board's own list (hbAskPopRows), so there is one "/" list:
    these rows first, and on the Board its chart moves after them. Ties keep
    this order, which is the plan's order of a working day. */
-const CA_SLASH = ['redline', 'sign', 'board', 'document', 'share', 'oblig', 'history', 'fill', 'calendar', 'explorer', 'draft', 'upload'];
+const CA_SLASH = ['redline', 'needs', 'sign', 'board', 'document', 'share', 'oblig', 'history', 'fill', 'calendar', 'explorer', 'draft', 'upload'];
 const CA_SLASH_MAX = 8;
 function caSlashWord(k){ return String(_caT('ca_w_' + k)).trim().replace(/\s+/g, '-'); }
 function caSlashRows(w, opts = {}){
@@ -1347,6 +1347,7 @@ function caHomeWall(){ caHomeFace('paper'); if (typeof igPickAgain === 'function
 function caRoomTab(c, k){ if (typeof openWorkspace === 'function') openWorkspace(c.id); if (typeof roomGoTab === 'function') try { roomGoTab(getContract(c.id) || c, k); } catch (_){} return true; }
 const CA_GO = {
   board: () => caHomeFace('board'),
+  needs: () => (typeof hbNeedsOpen === 'function') ? hbNeedsOpen() : caHomeFace('board'),
   document: c => (c && typeof pdOpenOnHome === 'function') ? pdOpenOnHome(c.id, 'copilot') : caHomeFace('paper'),
   calendar: () => typeof hbOpenCalendar === 'function' && hbOpenCalendar(),
   explorer: () => typeof hbOpenExplorer === 'function' && hbOpenExplorer(),

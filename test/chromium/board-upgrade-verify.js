@@ -82,7 +82,11 @@ const check = (name, pass, detail) => {
     const colSel = sel + ' svg.hb-svg [data-hb-part]';
     check('0. the card is on the board with its columns', !!(await until(s => document.querySelectorAll(s).length >= 3, colSel)));
 
-    /* 1 + 2: hover */
+    /* 1 + 2: hover — the chart brought into view first: the Needs you card
+       (15 Oct 2026) stands above the board's cards, so a card a short window
+       drew in view may now sit below it */
+    await page.evaluate(s => { const c = document.querySelector(s); if (c) c.scrollIntoView({ block: 'center' }); }, sel);
+    await page.waitForTimeout(150);
     const pick = await page.evaluate(s => { const all = [...document.querySelectorAll(s)]; const g = all.find(x => x.hasAttribute('data-hb-py')) || all[all.length - 1];
       const p = g.querySelector('path'), r = p.getBoundingClientRect(); return { dig: g.getAttribute('data-hb-dig'), x: r.left + r.width / 2, y: r.top + r.height / 2 + 2 }; }, colSel);
     await page.mouse.move(pick.x, pick.y);

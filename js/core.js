@@ -1313,12 +1313,14 @@ async function contractReopen(c,why){
   if(window.updateSidebarCounts) updateSidebarCounts();
   return true;
 }
-async function contractSetArchived(c,on){
+async function contractSetArchived(c,on,note){
   if(typeof canEdit==='function'&&!canEdit()){ toast(i18t('ar_editors_only'),'err'); return false; }
   if(on) c.archived={ at:new Date().toISOString(), by:currentUser().name };
   else delete c.archived;
+  /* a note for the history, if the end-or-pause door was given one (15 Oct 2026) */
+  const said=String(note==null?'':note).trim().slice(0,HOLD_WHY_MAX);
   logAudit(c,on?'Archived':'Restored',
-    on?'Moved to the archive shelf — off the live lists and counts, still searchable'
+    on?'Moved to the archive shelf — off the live lists and counts, still searchable'+(said?` — “${said}”`:'')
       :'Restored from the archive shelf to the live lists');
   persist(c);
   toast(on?i18t('ar_archived_toast'):i18t('ar_restored_toast'),'ok');
@@ -9558,34 +9560,117 @@ function schedulePolling(){
 }
 
 /* ============================================================
-   FOUR WAYS A CONTRACT ENDS, AND THE WORDS THAT TELL THEM APART
-   (21 Sep 2026, the process review's sixth item)
-
-   A contract can be SIGNED, DECLINED (shown as "Closed"), ARCHIVED (off
-   every list but still searchable) or ON HOLD (frozen, still on every
-   list). Each has different rules about what may still be edited, and
-   NOTHING ANYWHERE SAID SO — a reader deciding what to do with a dead
-   negotiation had to already know that archive hides it, decline closes
-   it and hold freezes it.
-
-   THIS IS THE ONE PLACE THOSE THREE SENTENCES LIVE, so the Contracts row
-   menu, the contract's own menu and anything added later cannot word them
-   differently. It decides nothing and writes nothing.
-
-   WHAT THE REVIEW ASKED FOR AND IS NOT BUILT, deliberately: it proposed
-   ONE DOOR instead of three, a window where the three are compared. The
-   owner ruled Hold onto the Contracts row BY NAME on 19 Sep, over a
-   drawing, because reaching it meant opening the contract first — and a
-   chooser would put it one press further away again. The words were the
-   half that was missing; the rows were not. */
-const END_STATES = [
-  { k:'decline', get label(){ return i18t('end_decline'); }, get says(){ return i18t('end_decline_says'); } },
-  /* …and the way back from it (B14): Hold has Release, Archive has Restore. */
-  { k:'reopen',  get label(){ return i18t('end_reopen'); },  get says(){ return i18t('end_reopen_says'); } },
-  { k:'archive', get label(){ return i18t('end_archive'); }, get says(){ return i18t('end_archive_says'); } },
-  { k:'hold',    get label(){ return i18t('end_hold'); },    get says(){ return i18t('end_hold_says'); } },
-];
-const endStateSays = k => { const x = END_STATES.find(e => e.k === k); return x ? x.says : ''; };
-Object.assign(window,{END_STATES,endStateSays});
+   END OR PAUSE — ONE QUESTION (owner picked "One question" by name, 15 Oct
+   2026, off the end-or-pause options page). REVERSES END_STATES (21 Sep:
+   three rows, a sentence on each hover, "a chooser puts Hold one press
+   further away") — deleted with this; its words are inert in both books.
+   One door, "End or pause", on the paper's ⋯ (and so the Menu tab), on the
+   Contracts row's ⋯ (and so the list inspector's), and Jambo's words "close
+   this" / "put it on hold" open it too. It asks "What is happening with this
+   deal?" with three plain answers; the answer names the button; each answer
+   is the existing act — contractDecline (reason needed), contractSetArchived
+   (a note if you like), contractSetHold (reason needed, the hold grant). An
+   answer that cannot be used is grey with the act's own reason. The way back
+   (Reopen, Restore, Release) keeps its own row: nothing to choose there.
+   It writes nothing itself; the acts write, audit and toast as before.
+   ============================================================ */
+const END_ANSWERS = ['decline', 'archive', 'hold'];
+function endOrPauseAnswers(c){
+  const edit = (typeof canEdit !== 'function') || canEdit();
+  const signed = !!c && (c.status === 'Signed' || (Array.isArray(c.signatures) && c.signatures.length > 0)
+    || (Array.isArray(c.signerPlan) && c.signerPlan.some(s => s && s.signed)));
+  const out = () => (typeof window.handoverActive === 'function' && window.handoverActive(c));
+  const why = {
+    decline: !edit ? 'end_decline_editors' : c.status === 'Declined' ? 'end_decline_already'
+      : signed ? 'end_decline_signed' : out() ? 'end_decline_out' : '',
+    archive: !edit ? 'ar_editors_only' : c.archived ? 'end_archive_already' : '',
+    hold: (typeof mayHoldContract === 'function' && !mayHoldContract()) ? 'hd_not_yours'
+      : c.status === 'Declined' ? 'end_hold_closed' : contractOnHold(c) ? 'end_hold_already' : '',
+  };
+  return END_ANSWERS.map(k => ({ k, ok: !why[k], why: why[k] ? i18t(why[k]) : '', needs: k !== 'archive' }));
+}
+/* the door is drawn where at least one answer can be given */
+function endOrPauseOffered(c){ try { return !!c && endOrPauseAnswers(c).some(a => a.ok); } catch (_){ return false; } }
+function endOrPauseOpen(c, opts = {}){
+  const e = s => String(s == null ? '' : s).replace(/[&<>"]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ch]));
+  return new Promise(resolve => {
+    if (!c){ resolve(false); return; }
+    const A = endOrPauseAnswers(c);
+    const prev = document.getElementById('end-overlay');
+    if (prev && typeof prev._settle === 'function') prev._settle(false); else if (prev) prev.remove();
+    const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
+    const sub = [ref, c.name, c.counterparty].filter(Boolean).join(' · ');
+    const ov = document.createElement('div');
+    ov.id = 'end-overlay';
+    ov.setAttribute('data-top-overlay', '1');
+    ov.style.cssText = 'position:fixed;inset:0;z-index:92;display:grid;place-items:center;padding:var(--s-4)';
+    ov.innerHTML = `
+      <div style="position:absolute;inset:0;background:color-mix(in srgb,var(--color-text) 35%,transparent)"></div>
+      <div class="modal-in" role="dialog" aria-modal="true" aria-labelledby="end-h" data-dlg-sap data-dlg-own-frame data-end-dlg style="position:relative;width:100%;max-width:520px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);overflow:hidden">
+        <div class="dlg-h"><h3 id="end-h">${e(i18t('end_door_title'))}</h3><p>${e(sub)}</p></div>
+        <div class="dlg-b"><div class="sap-body">
+          <p class="sap-lbl" id="end-q" style="font-size:var(--t-body);color:var(--color-text)">${e(i18t('end_q'))}</p>
+          <div class="sap-list" role="radiogroup" aria-labelledby="end-q">${A.map(a => `
+            <label class="sap-li end-li${a.ok ? '' : ' is-off'}" data-end="${a.k}"${a.ok ? '' : ` aria-disabled="true" title="${e(a.why)}"`}>
+              <input type="radio" name="end-a" value="${a.k}"${a.ok ? '' : ' disabled'}${opts.pick === a.k && a.ok ? ' checked' : ''}>
+              <span class="end-w"><b>${e(i18t('end_a_' + a.k))}</b><span class="sap-m">${e(a.ok ? i18t('end_a_' + a.k + '_says') : a.why)}</span></span>
+              <span class="end-tag">${e(i18t('end_tag_' + a.k))}</span></label>`).join('')}
+          </div>
+          <div class="sap-f"><label for="end-note" id="end-note-l"></label>
+            <textarea id="end-note" rows="3" maxlength="${HOLD_WHY_MAX}" wrap="soft" style="box-sizing:border-box;width:100%;max-width:100%;min-height:64px;resize:vertical;border:1px solid var(--field-line);background:var(--color-surface);border-radius:var(--radius);padding:8px 10px;font:inherit;font-size:var(--t-body);line-height:1.5;outline:none;white-space:pre-wrap;overflow-wrap:anywhere"></textarea></div>
+        </div></div>
+        <div class="dlg-f" style="display:flex;justify-content:flex-end;gap:var(--s-2)">
+          <button id="end-go" class="ui-btn ui-btn-primary"></button>
+          <button id="end-cancel" class="ui-btn" data-dlg-cancel>${e(i18t('act_cancel'))}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    const box = ov.querySelector('[role="dialog"]'), note = ov.querySelector('#end-note'), go = ov.querySelector('#end-go'), lab = ov.querySelector('#end-note-l');
+    const picked = () => { const r = ov.querySelector('input[name="end-a"]:checked'); return r ? r.value : ''; };
+    /* THE ANSWER NAMES THE BUTTON, and the box asks what that answer needs:
+       a reason for decline and hold (kept on the history), a note if you
+       like for archive. Grey, with why, until it can be pressed. */
+    const paint = () => {
+      const k = picked(), a = A.find(x => x.k === k);
+      lab.innerHTML = k ? e(i18t('end_note_' + k)) + (a && a.needs ? ' <span class="sap-req">*</span>' : '') : e(i18t('end_note_archive'));
+      note.placeholder = k === 'decline' ? i18t('end_decline_ph') : k === 'hold' ? i18t('hd_ask_ph') : i18t('end_note_ph');
+      const short = !k ? i18t('end_go_none_why') : (a && a.needs && !note.value.trim()) ? i18t('end_note_needed') : '';
+      go.textContent = k ? i18t('end_go_' + k) : i18t('end_go_none');
+      go.disabled = !!short; if (short) go.title = short; else go.removeAttribute('title');
+      go.classList.toggle('ui-btn-primary', k !== 'decline');
+      go.style.cssText = (k === 'decline' && !short) ? 'background:var(--danger);border-color:var(--danger);color:#fff' : '';
+    };
+    const release = (typeof trapFocus === 'function') ? trapFocus(box, { focus: false }) : null;
+    const undrag = (typeof dragDialog === 'function') ? dragDialog(box) : null;
+    const done = val => {
+      if (release){ try { release(); } catch (_){} }
+      if (undrag){ try { undrag(); } catch (_){} }
+      ov.remove(); document.removeEventListener('keydown', onKey, true); resolve(val); };
+    ov._settle = done;
+    function onKey(ev){ if (ev.key === 'Escape'){ ev.preventDefault(); ev.stopPropagation(); done(false); } }
+    document.addEventListener('keydown', onKey, true);
+    ov.querySelectorAll('input[name="end-a"]').forEach(r => r.addEventListener('change', () => { paint(); try { note.focus(); } catch (_){} }));
+    note.addEventListener('input', paint);
+    ov.querySelector('#end-cancel').addEventListener('click', () => done(false));
+    ov.addEventListener('click', ev => { if (ev.target === ov || ev.target === ov.firstElementChild) done(false); });
+    go.addEventListener('click', async () => {
+      const k = picked(); if (!k || go.disabled) return;
+      const why = note.value;
+      go.disabled = true;
+      let ok = false;
+      try {
+        ok = k === 'decline' ? await contractDecline(c, why)
+          : k === 'archive' ? await contractSetArchived(c, true, why)
+          : await contractSetHold(c, true, why);
+      } catch (err){ ok = false; if (typeof toast === 'function') toast((err && err.message) || String(err), 'err'); }
+      if (ok){ done(true); if (typeof opts.after === 'function') try { opts.after(k); } catch (_){} }
+      else paint();
+    });
+    paint();
+    const first = ov.querySelector('input[name="end-a"]:checked') || ov.querySelector('input[name="end-a"]:not([disabled])');
+    try { (first || go).focus(); } catch (_){}
+  });
+}
+Object.assign(window,{END_ANSWERS,endOrPauseAnswers,endOrPauseOffered,endOrPauseOpen});
 
 Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,fieldFocus,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,selectFaceDress,datePickDress,datePickOpen,dlgPageAdopt,datePickClose,datePickWords,popupControlsDress,DATE_PICK_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,dateFmtOf,sigImageSrc,contractOnScreen,contractOverviewShown,contractOnHome,userById,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});
