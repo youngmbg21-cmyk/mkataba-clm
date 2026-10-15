@@ -29659,3 +29659,12 @@ new agreement" off Home's head, where step 8 added History's Side switch
 Two text SIZES are new to the record, both on the Contracts place's head and
 list: 12.5px (7 pieces) and 15px (2 pieces). Re-recorded with --save on the
 owner's yes; 170 of 170 pass; the KNOWN_RED line came off.
+
+## TWO BOARDS, ONE NAME (owner, 15 Oct 2026: "Fix this then merge")
+
+The Contracts list's settings offered "Show as: Table / Board" beside Home's
+own Board face — two different things under one word on one screen. The
+list's layout (cards in a column per stage) is renamed, not removed: "By
+stage" (sv "Per steg"), its hover and the settings' own hover saying the same.
+Only the words moved (reg_mode_board, reg_mode_title, reg_display_title in
+both books); the setting, its store and its tests are unchanged.
