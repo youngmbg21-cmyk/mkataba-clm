@@ -20812,5 +20812,31 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - (correction, same day) board-views-verify was NOT red at the parent on GitHub (it failed only locally); it is now rewritten to pin the views' removal and passes.
 
 - Noticed, not fixed (15 Oct 2026): doors-look-like-doors-verify A2 failed once on GitHub after PR #285 merged (the typed counterparty "Changed AB" never reached the record; the value did). It passes 6 of 6 locally on main and at the parent, and the file was not changed. Likely a timing race: the check waits with fixed pauses (pause(300)) instead of asking for the state, against the "a wait asks for the state, bounded" rule.
+
+### Fixed (15 Oct 2026, the review's easy fixes, round one — the owner's "Go")
+- The Board's contract card read the brief as `summary`/`text`, a shape no stored brief has, so it always said there was none; it now asks `triageBriefLine` (f688 (1)).
+- History's "Ours" dropped every trail entry; with Ours alone it now keeps entries written in the name of one of our own people (an upload, a re-file). Entries in HaTi's own name stay out (the other side's signature is written so), and a trail line about one of their changes is matched against the whole timeline and folded away (f688 (3)).
+- The paper put away for the wall, or turned to another contract, now ends the presence beat for the contract that was on it (`pdPresenceLeft`, asked by `igPaperHold` and `igPaintPaper`; Home only) (f688 (4)).
+- A file's underscores read as spaces where it becomes a contract's name (`fileTitleOf`, `srvFileTitleOf`; hyphens kept) (f457 (5)).
+- The signing route's two refusals ("signed out of order", "signing step is already recorded") are in both books (`co_sign_out_of_order`, `co_sign_step_done`) (f688 (9)).
+- Found already fixed, nothing done: Jambo's agents "Not signed in" (49fe226, 13 Oct, after its note); `bd_placed` singular (12 Oct); f385 (6) typed arrow (green).
+- Left on purpose: the re-file and upload confirmations stay silent (the screen already says both: the lit stream choice, the paper opening with its stream); the read-only wording hint (`docReadOnlyHint`) listens on `#doc-canvas`, which no computer draws — where and whether it speaks on Home's paper is the owner's call.
+
+### Noticed, not fixed (15 Oct 2026, the easy fixes, round one)
+- core.js's share-response check still has two English-only refusals ("This response is for … not …", "… is already executed — a share response cannot change it"); kept for round two's Swedish sweep.
+
+### Fixed (15 Oct 2026, the review's easy fixes, round two)
+- HaTi's own dropdown list shut on ANY scroll (core.js's capture listener), so a box elsewhere scrolling itself (Jambo's conversation) closed a list the moment it opened; it now shuts only when the page, or a box the control sits in, scrolls (f689 (13)).
+- The Swedish sweep of signing and sending: the upload reader's lines (and the Library upload's twins), the signature pad's two errors, the send screen's six English readiness rows (two now reuse the signing checklist's own sgx_ap_* sentences), and core.js's three share-response refusals are read from both books. The server's signing refusals with a name inside (the approval-rule refusals, the handover's "Internal approval is outstanding", "cannot go back to Draft", the check-before-signing refusal) are translated by a new pattern table in srvMsg (SRV_MSG_PATTERN; the captured name or list is kept verbatim), and "HaTi runs the signing…" joins SRV_MSG. Svenska speaks one voice: "papperet" (30 "pappret" in the book changed; Jambo still understands "pappret" typed) and "på tavlan" (f689 (14)).
+- one-page-home-walk-verify presses the Edit and Share doors by selector, not by a handle held across a repaint; friction-fits-the-screen-verify waits, bounded, for the list and panel it measures (it went red on round one's own GitHub run, 4a, exactly as noted on main).
+- Found already fixed, nothing done: "Who else" on an uploaded contract's Overview (uploaded-contract-fixed-verify 18/18); the signing checklist's turn rows and the signing copy's partial stamp (sgx_*). The ready-to-sign hand-off already issues a signing link at every door (issueSigningAct, purpose sign); six-round-audit's KNOWN_RED reason is corrected — it now stops in round 1 on the Negotiate page that folded into Home.
+- Left on purpose: the default approval rule's stored name ("Value ≥ KES 5M") stays English — a label that is also a record keeps English.
+
+### Noticed, not fixed (15 Oct 2026, the easy fixes, round two)
+- six-round-audit needs re-pointing from the retired Negotiate page (#view-redline #rl-doc) to the Redlines face before any of its six rounds can run.
+- Many other server refusals still reach a Swedish screen in English (srvMsg passes them through); round two translated only the signing path's.
+- The signing check's own list items inside the server's refusal ("a departure from our standards (…)") are English words; srvMsg keeps them verbatim inside the Swedish sentence.
 ### Noticed, not fixed (15 Oct 2026, PR 287's checks)
 - jambo-agents-verify step 11b2 went red on one GitHub run of 937bd72a (run 38774712143: "bottom":739 in a 600 window, the 760 window's measure) and passed on the other run of the same commit (38774684638) and locally 78/78: it reads the house before the resize to 600 has refitted it.
+
+- Noticed, not fixed (15 Oct 2026, PR 289's checks): board-lists-and-search-verify failed dark steps 1 and 2 ("the open list's ground is solid", "no dark ring") on one GitHub run of 663e136 (38787380971, shard 1) with no measurement printed — the list was not found — and passed on the other run of the same commit (38787347198), on 4ab4796, and locally on every run; it likely reads the open list before it has been drawn after the theme change.

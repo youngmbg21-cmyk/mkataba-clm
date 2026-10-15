@@ -558,9 +558,9 @@ function openCreateTemplateModal(mode){
       let text = rich.text;
       // a scanned standard-form contract is still a usable template once read
       if(ocrNeeded(file.type||'', text)){
-        st('This looks like a scan — reading it with OCR…');
+        st(i18t('ct_up_scan'));
         const ocr=await ocrDocument(dataUrl, file.type||'', {
-          onProgress:(done,total,tier)=>{ st(`Reading page ${Math.min(done+1,total)} of ${total}${tier==='local'?' (offline recogniser)':''}…`); } });
+          onProgress:(done,total,tier)=>{ st(i18t(tier==='local'?'ct_up_page_local':'ct_up_page',{n:Math.min(done+1,total),total})); } });
         // OCR returns words with no type information, so a scan is plain text
         if(ocr.text){ text=ocr.text; rich={ html:'', text, format:TEXT_FORMAT, summary:null }; }
         try{ await ocrRelease(); }catch(e){}   // one file, one document — see the upload path

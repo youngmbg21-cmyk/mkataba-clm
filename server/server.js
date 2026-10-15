@@ -10375,7 +10375,7 @@ function mailroomKeyOk(given) {
 function srvFileTitleOf(name) {
   let s = String(name || '').replace(/\.[^.\/\\]+$/, '');
   if (/%[0-9a-f]{2}/i.test(s)) { try { s = decodeURIComponent(s); } catch (_) { /* not an encoded name: keep it */ } }
-  return s.replace(/\s+/g, ' ').trim();
+  return s.replace(/_+/g, ' ').replace(/\s+/g, ' ').trim();
 }
 function mailroomName(filename, subject) {
   const f = srvFileTitleOf(filename).replace(/[_-]+/g, ' ').trim();

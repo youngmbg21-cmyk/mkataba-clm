@@ -137,8 +137,11 @@ const WATCH = () => { window._walk = {}; const tick = () => {
     await shot('3-redlines');
 
     /* ===== 4. EDIT ===== */
-    const editDoor = await page.$('#pd-redface [data-rl-edit-first="editor"], #pd-redface [data-rl-edit-clause="editor"]');
-    if (editDoor) await editDoor.click();
+    /* PRESSED BY SELECTOR, NOT BY A HANDLE (15 Oct 2026): the face repaints
+       as it settles, and a handle taken before the repaint points at nothing
+       ("Element is not attached to the DOM" on one GitHub run). page.click
+       finds the door afresh and waits for it, bounded; a missing door reports. */
+    await page.click('#pd-redface [data-rl-edit-first="editor"], #pd-redface [data-rl-edit-clause="editor"]', { timeout: 8000 }).catch(() => {});
     const editor = await waitFor(page, () => { const b = document.getElementById('ce-clausebody'); return !!document.getElementById('clause-editor') && !!b && b.getAttribute('contenteditable') === 'true'; }, 8000);
     check('4a "Edit a clause" opens the clause editor over Home', editor && await page.evaluate(() => state.view === 'dashboard'));
     if (editor) {
@@ -219,8 +222,7 @@ const WATCH = () => { window._walk = {}; const tick = () => {
     await shot('5c-chips-after-signing');
 
     /* ===== 6. SHARE ===== */
-    const shareBtn = await page.$('#ig-strip #ws-share');
-    if (shareBtn) await shareBtn.click();
+    const shareBtn = await page.click('#ig-strip #ws-share', { timeout: 8000 }).then(() => true, () => false);
     const send = await waitFor(page, () => !!document.querySelector('#modal-root .share-modal, #modal-root [data-share-purpose], #modal-root #sh-send, #modal-root #share-send'), 6000);
     const sendAt = await page.evaluate(() => ({ view: state.view, face: hbFace(), title: ((document.querySelector('#modal-root h2, #modal-root h3, #modal-root .dlg-h') || {}).textContent || '').replace(/\s+/g, ' ').trim().slice(0, 80) }));
     check('6 Share on the paper\'s line opens the one send screen over Home; nothing is sent', !!shareBtn && send && sendAt.view === 'dashboard' && sendAt.face === 'paper', JSON.stringify(sendAt));
