@@ -335,8 +335,17 @@ describe('f277 (4) transport, never the record', () => {
    5. THE PROMPT IS THE FEATURE
    ============================================================ */
 describe('f277 (5) plain enough for a regular person', () => {
-  const at = SERVER_JS.indexOf('const READ_PLAIN_RULE');
-  const rule = SERVER_JS.slice(at, SERVER_JS.indexOf('].join', at));
+  /* RE-POINTED 15 Oct 2026: the lines on WHO it is for and its TONE moved to
+     one home just above the rule (PLAIN_FOR_WHOM, PLAIN_TONE) so the Clauses
+     tab's deep read says the same; the region now starts there */
+  const at = SERVER_JS.indexOf('const PLAIN_FOR_WHOM');
+  const rule = SERVER_JS.slice(at, SERVER_JS.indexOf('].join', SERVER_JS.indexOf('const READ_PLAIN_RULE', at)));
+
+  test('the rule still carries the shared lines', () => {
+    const own = rule.slice(rule.indexOf('const READ_PLAIN_RULE'));
+    assert.ok(at > 0 && own.length > 0, 'the shared lines stand just above the rule');
+    assert.ok(/^\s*PLAIN_FOR_WHOM,$/m.test(own) && /^\s*PLAIN_TONE,$/m.test(own), 'and the edition still says both');
+  });
 
   test('it names the reader Young described', () => {
     assert.ok(/no lawyer/i.test(rule), 'written for somebody with no lawyer');

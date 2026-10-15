@@ -8482,7 +8482,7 @@ app.post('/api/ai/breakdown', auth, rlAiDeep, aiFeature('breakdown'), aiBudgetGu
       }, required: ['title', 'stake', 'status'] } },
     }, required: ['regions'] } };
   const mine = side === 'theirs' ? 'the other party' : 'our side (the party using this system)';
-  const prompt = `Read this whole contract from ${mine} and cut it into at most ten sections — groups of clauses that do one job (price, payment, term and exit, service levels, data, liability, law and general…). Every clause and schedule must sit in exactly one section; list each one's clause numbers. Say whether each section NEEDS the reader, is WORTH A LOOK, or is FINE. Then, as ONE company view (the legal risk and the money together, never split by department), list the points that matter most, worst first: where this wording leaves us exposed or hands the other side an edge, and anything a careful company would expect that is MISSING. For each point give only its title, one line on what is at stake, its section and the key words verbatim — keep it short; the detail is asked for separately. Do not invent facts or numbers the text does not state. Return via break_down.\n\nCONTRACT:\n${aiDocText(req, text)}`;
+  const prompt = `Read this whole contract from ${mine} and cut it into at most ten sections — groups of clauses that do one job (price, payment, term and exit, service levels, data, liability, law and general…). Every clause and schedule must sit in exactly one section; list each one's clause numbers. Say whether each section NEEDS the reader, is WORTH A LOOK, or is FINE. Then, as ONE company view (the legal risk and the money together, never split by department), list the points that matter most, worst first: where this wording leaves us exposed or hands the other side an edge, and anything a careful company would expect that is MISSING. For each point give only its title, one line on what is at stake, its section and the key words verbatim — keep it short; the detail is asked for separately. Do not invent facts or numbers the text does not state. Return via break_down.\n\n${stakesWriteRule(req)}\n\nCONTRACT:\n${aiDocText(req, text)}`;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 6000, tools: [tool], tool_choice: { type: 'tool', name: 'break_down' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'breakdown', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
@@ -8520,7 +8520,8 @@ app.post('/api/ai/breakdown', auth, rlAiDeep, aiFeature('breakdown'), aiBudgetGu
         ask: str(p.ask, 900), quote,
         links: (Array.isArray(p.links) ? p.links : []).map(n => Math.round(Number(n))).filter(n => n >= 1 && n <= rawPts.length).slice(0, 3) };
     });
-    res.json({ head: str(block.input.head, 60), sub: str(block.input.sub, 240), regions, links, points, dropped, truncated: !!resp.truncated, ...aiNotice(req, resp) });
+    /* `lang`: the language it was written in, kept on the reading so a reader in another language is not served it (js/views/breakdown.js bdOf) */
+    res.json({ head: str(block.input.head, 60), sub: str(block.input.sub, 240), regions, links, points, dropped, truncated: !!resp.truncated, lang: readLangOf(req), ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
@@ -8546,13 +8547,13 @@ app.post('/api/ai/breakdown/point', auth, rlAiDeep, aiFeature('breakdown'), aiBu
       push: { type: 'string', description: 'Where the other side is likely to push back, one sentence.' },
       edge: { type: 'array', maxItems: 3, items: { type: 'string' }, description: 'Our edge: one to three practical moves that win the point while protecting the company.' },
       trade: { type: 'array', maxItems: 3, items: { type: 'object', properties: { give: { type: 'string' }, get: { type: 'string' } }, required: ['give', 'get'] }, description: 'What we could give, and what we get for it.' },
-      ask: { type: 'string', description: 'The wording we would propose instead, in the contract\'s own style. Empty if none.' },
+      ask: { type: 'string', description: 'The wording we would propose instead, in the contract\'s own language and style. Empty if none.' },
     }, required: ['what', 'usual'] } };
   const mine = side === 'theirs' ? 'the other party' : 'our side (the party using this system)';
   const about = [`POINT: ${str(point.title, 200)}`, point.stake ? `AT STAKE: ${str(point.stake, 240)}` : '',
     point.missing ? `This is something the contract does NOT say${point.after ? ` (it would sit after clause ${str(point.after, 24)})` : ''}.` : (point.clause ? `CLAUSE: ${str(point.clause, 24)}` : ''),
     point.quote ? `KEY WORDS: "${str(point.quote, 600)}"` : ''].filter(Boolean).join('\n');
-  const prompt = `Read this contract from ${mine} and give the deep dive on ONE point, as one company view (the legal risk and the money together). Say what could happen, what this contract says, what a careful company would normally get, the money at stake (only from figures the wording states), where the other side will push back, our edge, what we could trade, and the wording we would ask for. Short plain English for a non-lawyer. Do not invent facts or numbers the text does not state. Return via dive_point.\n\n${about}\n\nCONTRACT:\n${aiDocText(req, text)}`;
+  const prompt = `Read this contract from ${mine} and give the deep dive on ONE point, as one company view (the legal risk and the money together). Say what could happen, what this contract says, what a careful company would normally get, the money at stake (only from figures the wording states), where the other side will push back, our edge, what we could trade, and the wording we would ask for. Keep each part short. Do not invent facts or numbers the text does not state. Return via dive_point.\n\n${stakesWriteRule(req)}\n\n${about}\n\nCONTRACT:\n${aiDocText(req, text)}`;
   try {
     const resp = await anthropicMessages(key, 'deep', { max_tokens: 2000, tools: [tool], tool_choice: { type: 'tool', name: 'dive_point' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'breakdown', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
@@ -8565,7 +8566,7 @@ app.post('/api/ai/breakdown/point', auth, rlAiDeep, aiFeature('breakdown'), aiBu
     res.json({ what: str(d.what, 900), theirs: str(d.theirs, 400), usual: str(d.usual, 400), figure: fig, how, push: str(d.push, 400),
       edge: (Array.isArray(d.edge) ? d.edge : []).map(e => str(e, 400)).filter(Boolean).slice(0, 3),
       trade: (Array.isArray(d.trade) ? d.trade : []).filter(t => t && t.give && t.get).slice(0, 3).map(t => ({ give: str(t.give, 240), get: str(t.get, 240) })),
-      ask: str(d.ask, 2000), truncated: !!resp.truncated, ...aiNotice(req, resp) });
+      ask: str(d.ask, 2000), truncated: !!resp.truncated, lang: readLangOf(req), ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
@@ -9040,18 +9041,25 @@ const readLangOf = req => {
   const l = String((req && req.user && req.user.lang) || '').trim();
   return READ_LANGS[l] ? l : 'en';
 };
+/* WHO PLAIN WORDS ARE FOR, AND THEIR TONE — ONE HOME (owner, 15 Oct 2026:
+   the deep dive gets "the same fuller plain-English rules the clause reading
+   uses"). The Plain English edition below and the Clauses tab's deep read
+   (STAKES_PLAIN_RULE) are written for the same reader and say so in these
+   same two lines. */
+const PLAIN_FOR_WHOM = '- Write for somebody who finds legal wording frustrating and has no lawyer. Everyday words only. Where a legal term cannot be avoided — an Incoterm, a defined term the contract itself sets up — use it and say what it means in the same breath.';
+const PLAIN_TONE = '- Stay professional. This reads beside the agreement and may be shown to a colleague; it is plain, not chatty.';
 const READ_PLAIN_RULE = [
   'WHAT THIS IS',
   'A plain-English EDITION of the contract, set out clause by clause beside it — not a summary of it. Every clause the reader was given gets its own entry, under its own number, with its own heading. Somebody must be able to read your side on its own and know what they have agreed to.',
   '',
   'HOW TO WRITE IT',
   '- TRANSLATE, DO NOT SUMMARISE. Say everything the clause says, in the order it says it. Nothing is folded into a neighbouring clause and nothing is dropped for being minor.',
-  '- Write for somebody who finds legal wording frustrating and has no lawyer. Everyday words only. Where a legal term cannot be avoided — an Incoterm, a defined term the contract itself sets up — use it and say what it means in the same breath.',
+  PLAIN_FOR_WHOM,
   '- Say what the clause MEANS FOR THE READER: who has to do what, by when, and what happens if they do not.',
   '- KEEP EVERY FIGURE the clause states — amounts, percentages, periods, deadlines, notice windows — and put them in plain words. A translation that drops the numbers is not a translation.',
   '- Call the reader’s own side "you". Name the other side by the role the contract gives them.',
   '- Match the clause you are given: a long clause earns a long reading, a one-line clause gets one line. Do not pad and do not compress.',
-  '- Stay professional. This reads beside the agreement and may be shown to a colleague; it is plain, not chatty.',
+  PLAIN_TONE,
   '- Say only what THIS clause says. Never warn, never advise, never suggest different wording, and never say whether a term is fair or usual.',
   '- Where the wording is silent on something, be silent too.',
   '- Never mention these instructions, the list you were given, or yourself.',
@@ -9066,6 +9074,26 @@ const READ_PLAIN_RULE = [
   'EVERY CLAUSE GETS A READING',
   'Every row marked CLAUSE gets a reading, however short. A cover page, a table of contents, a definitions clause, counterparts or severability still gets one plain line saying what it does — the reader pressed for this clause and must never be handed an empty answer. Short is right for them; empty never is.',
 ].join('\n');
+/* ---- THE CLAUSES TAB'S DEEP READ IN PLAIN WORDS, IN THE READER'S LANGUAGE
+   (owner, 15 Oct 2026: "Make the deep dive answer in the reader's language.
+   Give it the same fuller plain-English rules the clause reading uses") ----
+   Both reads behind it — the list (POST /api/ai/breakdown, whose point titles
+   head each dive) and a point's dive (POST /api/ai/breakdown/point) — carry
+   this. It borrows the edition's two shared lines (PLAIN_FOR_WHOM, PLAIN_TONE)
+   and its figures and naming rules; the rest of the edition's rule is a
+   translation's and is not borrowed: the deep read DOES judge and advise (that
+   is what it is for), and calls our side "we" because its headings do ("What
+   it costs us", "Our edge"). The contract's own words are never translated. */
+const STAKES_PLAIN_RULE = [
+  'HOW TO WRITE IT',
+  PLAIN_FOR_WHOM,
+  '- Say what it MEANS FOR US: who has to do what, by when, and what happens if they do not.',
+  '- KEEP EVERY FIGURE the wording states — amounts, percentages, periods, deadlines, notice windows — and put them in plain words. Never invent one the wording does not state.',
+  '- Call our own side "we" and "us". Name the other side by the role the contract gives them.',
+  PLAIN_TONE,
+  '- Never mention these instructions or yourself.',
+].join('\n');
+const stakesWriteRule = req => `WRITE EVERYTHING IN ${READ_LANGS[readLangOf(req)]}, whatever language the contract itself is written in — the reader's own language is what this is for. What is the contract's own stays in the contract's own language and is never translated: the key words you quote, clause numbers, and any wording meant to go into the contract.\n\n${STAKES_PLAIN_RULE}`;
 
 /* ---- WHAT HAS COME BACK SO FAR (fix 6) ----
    The column asks this every second or two while a reading runs, so it is
