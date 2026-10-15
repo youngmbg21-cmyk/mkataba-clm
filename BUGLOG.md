@@ -20812,3 +20812,5 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - (correction, same day) board-views-verify was NOT red at the parent on GitHub (it failed only locally); it is now rewritten to pin the views' removal and passes.
 
 - Noticed, not fixed (15 Oct 2026): doors-look-like-doors-verify A2 failed once on GitHub after PR #285 merged (the typed counterparty "Changed AB" never reached the record; the value did). It passes 6 of 6 locally on main and at the parent, and the file was not changed. Likely a timing race: the check waits with fixed pauses (pause(300)) instead of asking for the state, against the "a wait asks for the state, bounded" rule.
+### Noticed, not fixed (15 Oct 2026, PR 287's checks)
+- jambo-agents-verify step 11b2 went red on one GitHub run of 937bd72a (run 38774712143: "bottom":739 in a 600 window, the 760 window's measure) and passed on the other run of the same commit (38774684638) and locally 78/78: it reads the house before the resize to 600 has refitted it.
