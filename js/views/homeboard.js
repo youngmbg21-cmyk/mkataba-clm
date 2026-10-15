@@ -1196,7 +1196,10 @@ function hbBigBtnHtml(big, attr){
    The greeting and the day, the Board | Explorer switch, the Group by that
    only the map uses (drawn always, hidden on the board, because the map's
    wiring asks for it by id), the lens chip, Present, and the screen's own
-   Dark | Light. The New agreement button stays the one filled act. */
+   Dark | Light. NO "+ DRAFT NEW AGREEMENT" HERE (the overnight work order,
+   step 3; owner, 14 Oct 2026): drafting is Jambo's — the chip "draft a new
+   agreement", a sentence, and the one form behind his card. Other pages keep
+   their own draft door. */
 /* The greeting: who, what day, how much is ready. Its own builder because
    the head repaints it in place (hbPaintHead) — the person and the count
    arrive after the first paint, and the head is not rebuilt for them. */
@@ -1234,7 +1237,6 @@ function hbHeadHtml(groupSel){
     <span class="hb-counting">${hbCountChipHtml()}</span>
     <button type="button" class="ui-btn ui-btn-sm" id="hb-present" title="${_hbE(i18t('hb_present_tip'))}">${_hbE(i18t('hb_present'))}</button>
     <div class="hb-seg hb-scr" role="group"${s.face !== 'board' ? ' hidden' : ''} aria-label="${_hbE(i18t('hb_screen_label'))}" title="${_hbE(i18t('hb_screen_tip'))}">${scr('light')}${scr('dark')}</div>
-    <button id="hero-draft" class="hm-primary">${(typeof icon === 'function') ? icon('plus', 'w-3.5 h-3.5', 2) : '+'} ${_hbE(i18t('home_draft_new'))}</button>
   </header>`;
 }
 /* A face's word in the reader's language, with every other language's word
@@ -9443,7 +9445,6 @@ function hbOnClick(e){
   if ((el = on('.hb-sheet [data-hb-dig^="c:"]')) && _hbSheet){ _hbSheet.cid = el.getAttribute('data-hb-dig').slice(2); hbPaintBoard(); return; }
   if ((el = on('[data-hb-dig]')) && !el.disabled){ const sk = hbSheetKeyOf(el); if (sk){ hbSheetOpen(sk, !!el.closest('.hb-dig'), el.getAttribute('data-hb-dig')); return; } }
   if ((el = on('[data-hb-dig]'))){ if (el.disabled) return; hbDig(el.getAttribute('data-hb-dig'), !!el.closest('.hb-dig'), true); return; }
-  if (on('#hero-draft')){ e.stopPropagation(); if (typeof openNewMenu === 'function') openNewMenu(on('#hero-draft')); else { const nb = document.getElementById('cmd-new'); if (nb) nb.click(); } }
 }
 function hbOnSubmit(e){
   if (!window.state || state.view !== 'dashboard') return;

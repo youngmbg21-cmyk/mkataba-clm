@@ -20773,3 +20773,15 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - On Home's wall narrowed to a party, a closed (Declined) contract of that party is drawn and counted but has no stage chip of its own; it shows only under All.
 - Obligations' "Show it in the contract" calls openWorkspace before turning to Home's paper, so the room is drawn on the way (the door census prints it as PENDING step 8).
 - The side panel's checklist rows for a renewal, a given note and a request to join still open the room (needsYouGo falls through to openWorkspace); the door census prints them as PENDING step 8.
+
+### Noticed, not fixed (15 Oct 2026, the overnight work order, steps 3 to 6 — draft in Jambo's panel, the drop area, at a glance, the stream in Fill in)
+- The re-file confirmation ("Moved to …", ct_refile_done) is a bare toast with no kind, so it prints nothing; the room's row and Fill in's stream both rely on the lit choice alone.
+- An upload filed inside HaTi says "Contract uploaded and filed in …" through a bare toast (submitUpload passes no kind unless the route is outside), so that line prints nothing either.
+- The upload reader's own sentences ("Could not read that file", "This looks like a scan — reading it with OCR…", "Reading page N of M…", "Reading details out of the machine-read text…", "Could not read this Word file: …") are English literals, now shown in the drop area on a Swedish screen too.
+- js/views/home.js's renderDashboard still draws its own "+ Draft new agreement" (#hero-draft) for the case hbRender does not run; Home's head (hbHeadHtml) no longer does.
+- An upload's name keeps the file's underscores ("Courier_Services_Agreement") — fileTitleOf trims the extension and spaces only.
+- Jambo's conversation is kept when the paper turns to another contract, so the new "MK-… at a glance" card sits above answers about the last one (only the bin clears intel.history).
+
+### Noticed, not fixed (15 Oct 2026, the overnight work order, steps 3 to 6: the fix round)
+- Going from a face (Before you sign, Redlines) to Home's wall (caHomeWall, the word "contracts") leaves presence beating for the contract that was on the paper: presenceWatching() still names it on the wall.
+- HaTi's own dropdown list shuts on a scroll of any element (core.js's capture listener), including Jambo's conversation scrolling itself behind an open pop-up, so a press on a dropdown in that moment opens and shuts the list at once (the door census caught it on the new-agreement form's stream box in 3 runs of 6).

@@ -386,7 +386,12 @@ describe('f332 (7) re-filing can be delegated, and is off by default', () => {
     assert.match(read('js/core.js'), /const mayReFile = \(u\) =>[\s\S]{0,200}p\.role==='admin' \|\| p\.reFile===true/);
     assert.match(read('js/core.js'), /mayMakeNewPaper,mayReFile,/, 'published');
     const CT = read('js/views/contract.js');
-    assert.equal((CT.match(/mayReFile\(\)/g) || []).length, 2, 'the stream row and the Overview\'s act');
+    /* RE-POINTED (the overnight work order, step 6, 15 Oct 2026): the move
+       itself is one writer now (ktFolderMove), which asks the wall too, and
+       Fill in's stream beside the paper is a fourth door, in its own file */
+    assert.equal((CT.match(/mayReFile\(\)/g) || []).length, 3, 'the stream row, the Overview\'s act and the one stream writer');
+    assert.match(CT.slice(CT.indexOf('async function ktFolderMove('), CT.indexOf('async function ktFolderMove(') + 400), /mayReFile\(\)/, 'the writer asks it');
+    assert.match(read('js/paperdesk.js'), /function pdFillStreamMay\(\)\{\s*return \(typeof mayReFile === 'function'\) && !!mayReFile\(\)/, 'and Fill in\'s stream asks it');
   });
 
   test('7e the person drawer carries the row, beside the other grant', () => {

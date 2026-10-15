@@ -8657,6 +8657,10 @@
   .ca-foot{margin:10px 0 0;font-size:11.5px;color:var(--color-neutral-600)}
   .ca-why{margin:0 0 10px;padding:8px 10px;border-radius:var(--radius);background:var(--st-amber-bg);color:var(--color-text)}
   .ca-said{margin:6px 0 0;font-weight:var(--w-strong)}
+  /* JAMBO'S NEW AGREEMENT CARD (the overnight work order, step 3): the stage pill on the head's right; a fact the form will ask in amber, the form's own question quiet */
+  .ca-dr .ca-dr-sp{flex:1}
+  .ca-dr .ca-dr-owed{color:var(--st-amber-fg)}
+  .ca-dr .ca-dr-quiet{color:var(--color-neutral-600)}
   /* JAMBO'S WORDS (the one-page Home plan, stage 1): the chip for work owed wears amber; the way back is a bold link above the conversation */
   .ca-chip-owed{background:var(--st-amber-bg);border:1px solid var(--st-amber-line);color:var(--st-amber-fg);font-weight:var(--w-label)}
   .ca-chip-owed:hover{border-color:var(--st-amber-dot)}
@@ -8793,6 +8797,40 @@
   #pd-fillface [data-pd-ff-done]:not(:empty){margin-top:4px}
   #pd-fillface .pd-ff-next .ui-btn{justify-content:center}
   #pd-fillface [data-pd-ff-done]:empty{display:none}
+  /* THE STREAM IN FILL IN (the overnight work order, step 6): the product's segmented control (.doc-read-seg's clothes), each stream its own button so six long names wrap at the panel's width instead of running off it */
+  #pd-fillface .pd-ff-stream{display:flex;flex-direction:column;gap:6px;padding-top:12px;border-top:1px solid var(--color-divider)}
+  #pd-fillface .pd-ff-sl{font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600)}
+  #pd-fillface .pd-ff-sl span{font-weight:400}
+  #pd-fillface .pd-ff-seg{display:flex;flex-wrap:wrap;gap:6px}
+  #pd-fillface .pd-ff-seg button{height:var(--ctl-h-sm);padding:0 10px;border:1px solid var(--btn-edge);border-radius:var(--radius);background:var(--color-surface);font:inherit;font-size:12.5px;font-weight:var(--w-label);color:var(--accent-ink);white-space:nowrap;cursor:pointer}
+  #pd-fillface .pd-ff-seg button[aria-pressed="true"]{background:var(--accent-fill);border-color:var(--accent-fill);color:#fff;font-weight:var(--w-title)}
+  #pd-fillface .pd-ff-seg button:disabled{opacity:.55;cursor:default}
+  #pd-fillface .pd-ff-ro{font-size:11.5px;color:var(--color-neutral-600);line-height:1.45}
+  /* THE WALL'S GREETING AND DROP AREA, AND A CONTRACT AT A GLANCE (steps 4 and 5): at the top of Jambo's tab on Home's Document face */
+  #ig-dock .pd-wall{display:flex;flex-direction:column;gap:12px}
+  #ig-dock .pd-drop{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:22px 16px;border:1px dashed var(--accent-fill);border-radius:var(--radius-lg);background:color-mix(in srgb, var(--accent-fill) 6%, var(--color-surface));color:var(--color-text);font-size:12.5px;transition:background var(--dur-1)}
+  #ig-dock .pd-drop.is-over{background:var(--color-accent-100)}
+  #ig-dock .pd-drop.is-busy{border-style:solid}
+  #ig-dock .pd-drop-ic{display:flex;color:var(--accent-ink)}
+  #ig-dock .pd-drop b{font-size:13px;font-weight:var(--w-strong)}
+  #ig-dock .pd-drop-sub{color:var(--color-neutral-600)}
+  #ig-dock .pd-drop-cost{max-width:34em;font-size:11.5px;line-height:1.45;color:var(--color-neutral-600)}
+  #ig-dock .pd-drop-why{padding:6px 10px;border-radius:var(--radius);background:var(--st-ruby-bg);color:var(--st-ruby-fg);font-size:12px;line-height:1.45}
+  #ig-dock .pd-drop .hm-primary{margin-top:4px}
+  /* the stream the file goes into, asked at the drop as the pop-up asked it (the fix round, 15 Oct 2026): a labelled box in the field's own clothes */
+  #ig-dock .pd-drop-stream{display:flex;align-items:center;gap:8px;margin-top:4px;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600)}
+  #ig-dock .pd-drop-stream select{height:var(--ctl-h-sm);max-width:14rem;border:1px solid var(--btn-edge);border-radius:var(--radius);background:var(--color-surface);color:var(--color-text);font:inherit;font-size:12.5px;font-weight:400;padding:0 8px}
+  #ig-dock .pd-glance{background:var(--color-surface);border:1px solid var(--color-neutral-300);border-radius:var(--radius-lg);font-size:12.5px;color:var(--color-text)}
+  #ig-dock .pd-gl-h{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--color-divider)}
+  #ig-dock .pd-gl-h b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px;font-weight:var(--w-title)}
+  #ig-dock .pd-gl-sp{flex:1}
+  #ig-dock .pd-gl-h .room-stat{flex:none}
+  #ig-dock .pd-gl-b{display:flex;flex-direction:column;gap:8px;padding:10px 14px 12px}
+  #ig-dock .pd-gl-row{display:flex;align-items:center;gap:10px}
+  #ig-dock .pd-gl-row>span{flex:1;min-width:0}
+  #ig-dock .pd-gl-row .ui-btn{flex:none}
+  #ig-dock .pd-gl-none{display:flex;align-items:center;gap:8px;color:var(--st-green-fg)}
+  #ig-dock .pd-gl-none i{font-style:normal;font-weight:var(--w-strong)}
   /* REDLINES, BESIDE THE PAPER (the one-page Home plan, stage 3; owner picked "Column", 14 Oct 2026): the Negotiate page's own column as a face of Jambo's tab — the panel is its frame, the rows scroll under its head, and the head takes a second line at the panel's width: Redlines · Send all · ×, then the round · Open Negotiate */
   #pd-redface{display:flex;flex-direction:column;overflow:hidden}
   #pd-redface .rl-face{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--color-surface)}
@@ -10042,7 +10080,7 @@
     height:var(--ctl-h);padding:0 var(--pad-ctl-x);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);
     color:#fff;background:var(--st-ruby-dot);border:0;border-radius:999px;box-shadow:0 6px 18px -8px rgba(0,0,0,.5)}
   .hb-veil-exit:focus-visible{outline:2px solid #fff;outline-offset:2px}
-  .hb-presenting #ig-dock,.hb-presenting #ig-resizer,.hb-presenting .hb-counting,.hb-presenting .hb-scr,.hb-presenting #hero-draft,.hb-presenting #hb-present{display:none}
+  .hb-presenting #ig-dock,.hb-presenting #ig-resizer,.hb-presenting .hb-counting,.hb-presenting .hb-scr,.hb-presenting #hb-present{display:none}
   .hb-presenting{height:100vh}
   /* the page's host is what goes full screen (it survives Board ⇄ Explorer) */
   #content:fullscreen{background:var(--color-bg);overflow:hidden}

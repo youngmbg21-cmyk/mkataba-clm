@@ -244,3 +244,30 @@ time on this branch; the owner merges in the morning.
   panels' checklist rows, Show it in the contract and the other Workspace
   doors, and prints the bell's room rows this book does not draw. Story:
   MAP-HISTORY "FINISHING THE ONE PAGE — Steps 1 and 2".
+
+- **Steps 3 to 6 — Draft in Jambo's panel, the drop area, at a glance, the
+  stream in Fill in. Built 15 Oct 2026.** Home's head lost "+ Draft new
+  agreement" (the other pages keep their own door). On the wall Jambo's chips
+  lead with "upload a document" and "draft a new agreement". "draft" answers
+  with the Draft card; a "draft … with …" sentence with one New agreement card
+  (What · From · With · Stream, "Not created yet", Open the form · Change the
+  ask); Open the form is the one form (`openNewAgreement`), the template lit
+  and the counterparty in its box, Create grey with its reason until a
+  template and a stream are chosen — never the two-door menu. With no paper
+  chosen, Jambo's tab greets and offers the drop area: a Word or PDF file
+  dropped or chosen (or "upload") goes through the upload's own reader and
+  creator (`uploadReadFile`, `submitUpload`, `fileTitleOf`, `contractArrived`)
+  and lands on its paper with Fill in open; who we are is asked there, our
+  entities offered. With a contract on the paper, the tab opens on "MK-… at a
+  glance": details still empty → Fill in, risks → Redlines, changes not sent →
+  Share, nobody named to sign → Signing, else "Nothing is waiting on you" —
+  each count its own face's reading, nothing spent or written. Fill in asks the
+  stream ("asked, never owed"), moved through the one stream writer
+  (`ktFolderMove`), grey with the reason for a person who may not re-file.
+  Seven small decisions taken without the owner are listed in the story:
+  MAP-HISTORY "FINISHING THE ONE PAGE — Steps 3 to 6". The same night's fix
+  round: the drop area asks the stream (as the pop-up did); the form Jambo
+  opens starts on no stream, Create grey until one is chosen (as the demo);
+  the glance asks for signers only while signing is ahead and counts risks
+  only where the Redlines face lists them; the card's example drafts in both
+  books; "with" names a party or nobody.

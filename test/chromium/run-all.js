@@ -62,6 +62,9 @@ const KNOWN_RED = {
     'RE-POINTED 11 Oct 2026 and now RED ON THE PRODUCT, not the file: Chat left the shell bar for the contract\'s acts row (20 Sep 2026), and the open Notes drawer covers that row, so the SECOND press that should shut it (owner-asked 10 Sep: "when i click on it again it should collapse") cannot be made — Playwright reports the drawer\'s header intercepting the press. Where the drawer starts or where the door sits is the owner\'s call (BUGLOG, 11 Oct 2026). Every other check in the file passes.',
   'theme-tokens-verify.js':
     'Red on main before 28 Sep 2026 (a837d09), the same way: dashboard--light · register--light · calendar--light · templates--light · contract--light · keyterms--light · and 14 more.',
+  /* --- waiting on the owner's yes to re-record (CLAUDE.md: the census is re-recorded only on the owner's word) --- */
+  'ink-wash-verify.js':
+    'RED SINCE THE OVERNIGHT BUILD OF 15 Oct 2026, ON PURPOSE AND AUDITED: the owner ordered "+ Draft new agreement" off Home\'s head (step 3 of docs/WORKORDER-one-page-finish.md). As a set difference against ink-wash-baseline.json NO colour is new; light mode loses three 13px pieces on each of the six screens Home hosts, dark mode only counts drop (the button\'s own fill and edge are gone). Re-record with --save once the owner says yes, then take this line off.',
   /* --- retired feature, net kept for the restore --- */
   'copilot-band-verify.js':
     'THE BAND IT MEASURES NO LONGER DRAWS. WO-3, 24 Aug 2026, owner-asked: ' +

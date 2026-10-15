@@ -75,7 +75,11 @@ const BRAIN_PARTS = [
   ['askpreview', 'hbAskReadingOf', 'see', 1],
   ['boardmoved', 'movedSec', 'out', 2],
   ['upload', 'submitUpload', 'in', 0],
+  /* the drop area on Jambo's panel (the overnight work order, step 4): a file dropped or chosen, through the upload's own path */
+  ['dropin', 'pdDropTake', 'in', 0],
   ['newagr', 'openNewAgreement', 'in', 0],
+  /* Jambo's New agreement card opens the one form with the sentence's facts in it (step 3) */
+  ['draftform', 'caDraftForm', 'ai', 1],
   ['mailroom', 'POST /api/mailroom', 'in', 2],
   ['intake', 'intake_requests', 'in', 2, { def: 'CREATE TABLE IF NOT EXISTS intake_requests', men: '\\bintake_requests\\b' }],
   ['docx', 'docxExtractRich', 'read', 1],
@@ -147,6 +151,10 @@ const BRAIN_PARTS = [
   /* Fill in, beside the paper (the one-page Home plan, stage 2, 14 Oct 2026):
      Jambo's panel turns to the Details tab's own form; a new contract lands here */
   ['fillface', 'pdFillOpen', 'in', 1],
+  /* the one stream writer: the room's row and Fill in's stream (step 6) */
+  ['refile', 'ktFolderMove', 'in', 1],
+  /* a contract at a glance, at the top of Jambo's tab (step 5) */
+  ['glance', 'pdGlanceHtml', 'see', 1],
   /* Redlines, beside the paper (the one-page Home plan, stage 3, 14 Oct 2026):
      Jambo's panel draws the Negotiate page's own column; doors from outside land here */
   ['redface', 'pdRedOpen', 'see', 0],
@@ -279,7 +287,7 @@ const BRAIN_PARTS = [
    brn_step_<flow>_<n> in the dictionary. A flow is a STORY a person wrote;
    the reading only checks that every part it names is still in the code. */
 const BRAIN_FLOWS = [
-  { id: 'upload', steps: [['upload', 'book', 'draftcard'], ['docx', 'pdf'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed'], ['brief', 'playbook', 'oblscan', 'obdesk', 'risk', 'datedwin', 'papermark'], ['model'], ['details', 'fillface', 'blanks'], ['overview', 'constellation', 'bell']] },
+  { id: 'upload', steps: [['upload', 'dropin', 'book', 'draftcard'], ['docx', 'pdf'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed'], ['brief', 'playbook', 'oblscan', 'obdesk', 'risk', 'datedwin', 'papermark'], ['model'], ['details', 'fillface', 'refile', 'blanks'], ['overview', 'constellation', 'glance', 'bell']] },
   /* The new parts join STEPS THAT ALREADY EXIST rather than adding steps of
      their own: a step inserted in the middle renumbers every sentence after
      it in both books, and these are not new stages of the story — they are
@@ -292,7 +300,7 @@ const BRAIN_FLOWS = [
   /* THE OVERNIGHT REVIEW'S FLOWS (9 Oct 2026): the commonest start, a request,
      the other side's signature, an amendment, the end of a contract, and the
      ways a step can go wrong — none of which the six flows above walked. */
-  { id: 'draft', steps: [['newagr', 'essentials'], ['putguard', 'db'], ['details', 'fillface', 'tplform', 'blanks'], ['triage'], ['shares', 'linkcheck'], ['email', 'outbyhand', 'wordfile'], ['whosemove', 'bell']] },
+  { id: 'draft', steps: [['newagr', 'draftform', 'essentials'], ['putguard', 'db'], ['details', 'fillface', 'tplform', 'blanks'], ['triage'], ['shares', 'linkcheck'], ['email', 'outbyhand', 'wordfile'], ['whosemove', 'bell']] },
   { id: 'request', steps: [['request', 'kinds', 'intake', 'mailroom', 'reqfiles'], ['bell'], ['lanes', 'laneowner'], ['arrivalowed', 'triage'], ['newagr']] },
   { id: 'theysign', steps: [['theirsign', 'issuelinks'], ['cplink', 'guestcode'], ['respond', 'filesig'], ['srvseal', 'sealtext', 'frozen'], ['copies', 'email'], ['obligations', 'renewal', 'calendar']] },
   { id: 'amend', steps: [['amend'], ['blanks'], ['readiness', 'approvals'], ['srvseal'], ['renewal', 'overview']] },
@@ -314,7 +322,7 @@ const BRAIN_LANE_OF = {
   /* a colleague: the requester, the reviewer, the contributor, the approver */
   req: ['request', 'kinds', 'reqfiles', 'review', 'suggest', 'rules', 'namedyes', 'decide', 'undoyes', 'approvalpaper', 'lookask'],
   /* the person working the contract: what they see and press */
-  own: ['upload', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'negpage', 'redface', 'boardviews', 'startnego', 'here', 'follow',
+  own: ['upload', 'dropin', 'draftform', 'refile', 'glance', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'negpage', 'redface', 'boardviews', 'startnego', 'here', 'follow',
     'editor', 'baton', 'askkeep', 'risklist', 'riskwalk', 'stands', 'dealpaper', 'onepaper', 'decidedsend', 'signtab', 'signface', 'pad', 'calendar', 'desknight', 'insights', 'readings',
     'chasemany', 'copilotask', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs',
     'phrasebook', 'boardtools', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'citedoor', 'walkset', 'paperdesk', 'contracts', 'customers', 'directory', 'cellfold',

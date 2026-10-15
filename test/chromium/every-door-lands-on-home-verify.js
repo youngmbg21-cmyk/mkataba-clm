@@ -27,7 +27,15 @@
      B  the rail's doors
      C  every row the bell draws on this book; a room-bound kind it does not
         draw is a printed PENDING row, the rest named on one line
-     D  Jambo's box (one word), his chips, ⌘K, the top bar's search
+     D  Jambo's box (one word), his chips, ⌘K, the top bar's search; and on
+        the wall the two ways in (steps 3 and 4): "upload a document" and the
+        word "upload" with a file chosen, a file dropped on the drop area,
+        "draft a new agreement" and a "draft … with …" sentence through Open
+        the form to Create — each must land on the NEW contract's paper; the
+        form Jambo opens asks the stream (a press on HaTi's own list) before
+        Create wakes. And the "<ref> at a glance" card's four buttons (step 5)
+        on the dropped contract, a change of ours staged unsent: Fill in,
+        Redlines, Share and Signing each open their face beside its paper
      E  the paper's ⋯ menu
      F  an email link (#contract=<id>[&tab=…][&go=…], openFromHash — the
         work order writes it #/c/<id>/…; this is the shape the server mails)
@@ -53,6 +61,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
 const { startHati, seedWorkspace, fixtureContract, FOLDER_A, FOLDER_B } = require('../helpers');
+const { mkDocx, para } = require('../docxfix');
 
 const OUT = path.join(process.env.HATI_SHOT_DIR || path.join(__dirname, 'shots'), 'every-door-lands-on-home');
 const EXEC = process.env.CHROMIUM_BIN
@@ -101,6 +110,7 @@ const LAND = () => {
     negPage: !!document.getElementById('rl-doc'),
     face: window.hbFace ? hbFace() : null,
     paper: (window.intel && intel.paper) ? String(intel.paper.id) : null,
+    cp: (window.intel && intel.paper && window.getContract && getContract(intel.paper.id)) ? String(getContract(intel.paper.id).counterparty || '') : '',
     pd, tab: window.pdTab ? pdTab() : '',
     cv: (v && v.c) ? v.v + ':' + v.c.id : null,
     wall: !!document.getElementById('ig-wall'),
@@ -110,6 +120,8 @@ const LAND = () => {
     /* the obligation the Board's view has chosen, and the wall's count line */
     obSel: (() => { const r = document.querySelector('#hb-cv-body tr.is-sel[data-ob-key]'); return r ? r.getAttribute('data-ob-key') : null; })(),
     count: (() => { const n = document.querySelector('#ig-wall .igw-count'); return n ? n.textContent.trim() : null; })(),
+    /* Jambo's Share card in the panel (the glance's Share asks his word "share", which answers with it) */
+    shareCard: !!document.querySelector('#ig-dock [data-ca-act="shareout"]'),
   };
 };
 const KEY = L => [L.view, L.room, L.negPage, L.face, L.paper, L.pd, L.tab, L.cv, L.wall, L.only].join('|');
@@ -507,6 +519,95 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
     for (const k of [...new Set(chips)])
       await door(D, `the chip "${k}" (on MK-R1)`, { start: onPaper('MK-R1'), press: () => domClick(`[data-ca-chip="${k}"]`), expect: CHIP[k] || (L => !L.room && !L.negPage), says: CHIP[k] ? 'its place on Home' : 'anywhere but the room' });
     if (!chips.length) record(D, 'the chips are drawn', false, 'no chip above the box', 'missing');
+    /* THE WALL'S TWO WAYS IN (the overnight work order, steps 3 and 4): each
+       makes a contract, and lands on ITS paper — Fill in beside it while
+       anything is owed — never the room and never the pop-up's way round */
+    const known = () => page.evaluate(() => state.contracts.map(c => c.id));
+    const isNew = ids => L => L.view === 'dashboard' && L.face === 'paper' && !!L.paper && !ids.includes(L.paper) && (L.pd === 'fill' || L.pd === '');
+    const NEWSAYS = 'the new contract on Home\'s paper (Fill in beside it while owed)';
+    const onWall = async () => { await page.evaluate(() => { if (typeof caHomeWall === 'function') caHomeWall(); });
+      await waitFor(page, () => window.intel && !intel.paper && !!document.getElementById('pd-drop'), 8000); };
+    const docx = name => { const f = path.join(OUT, name); fs.writeFileSync(f, Buffer.from(mkDocx([para('COURIER SERVICES AGREEMENT'),
+      para('This Agreement is made between Parcelway ApS and the Client.'), para('1. Services. The Supplier shall collect and deliver the parcels.'),
+      para('2. Fees. The Client shall pay each invoice within thirty (30) days of receipt.')].join('')))); return f; };
+    const pickFile = (trigger, file) => async () => { const ch = page.waitForEvent('filechooser', { timeout: 6000 }).catch(() => null);
+      if ((await trigger()) === false) return false; const fc = await ch; if (!fc) return false; await fc.setFiles(file); return true; };
+    let ids = await known();
+    await door(D, 'the wall\'s chip "upload a document", a file chosen', { start: onWall,
+      press: pickFile(() => domClick('[data-ig-chips] [data-ca-chip="upload"]'), docx('Census_Chip.docx')), expect: isNew(ids), says: NEWSAYS });
+    ids = await known();
+    await door(D, 'the word "upload" on the wall, a file chosen', { start: onWall, press: pickFile(say('upload'), docx('Census_Word.docx')), expect: isNew(ids), says: NEWSAYS });
+    ids = await known();
+    await door(D, 'the drop area\'s Choose a file', { start: onWall, press: pickFile(() => domClick('#pd-drop [data-pd-drop-pick]'), docx('Census_Pick.docx')), expect: isNew(ids), says: NEWSAYS });
+    ids = await known();
+    const dropped = fs.readFileSync(docx('Census_Drop.docx')).toString('base64');
+    await door(D, 'a file dropped on the drop area', { start: onWall,
+      press: () => page.evaluate(b64 => { const z = document.getElementById('pd-drop'); if (!z) return false;
+        const f = new File([Uint8Array.from(atob(b64), ch => ch.charCodeAt(0))], 'Census_Drop.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+        const dt = new window.DataTransfer(); dt.items.add(f);
+        z.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: dt }));
+        z.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt })); return true; }, dropped),
+      expect: isNew(ids), says: NEWSAYS });
+    /* THE GLANCE'S FOUR BUTTONS (step 5), on the contract that drop made: its
+       details owed, its scan read, nobody named to sign — and one change of
+       ours staged unsent, so "N changes not sent" is drawn too. A row the
+       card does not draw is reported, never skipped. */
+    const gid = (await known()).find(i => !ids.includes(i)) || null;
+    if (gid){
+      await waitFor(page, i => { const c = getContract(i); return !!(c && c.scan); }, 15000, gid);
+      await page.evaluate(async i => { const c = getContract(i); const cl = negoClauseList(c)[0]; if (!cl) return;
+        const now = negoClauseNowById(c, cl.clauseId); const body = (now && now.bodyHtml) || '<p>' + ((now && now.text) || cl.text || '') + '</p>';
+        await negoEditClause(c, cl.clauseId, body.replace(/<\/p>(?![\s\S]*<\/p>)/, ' Both parties shall keep a copy.</p>'), { side: 'owner' }); }, gid);
+      const GL = { fill: [E.fill(gid), SAYS.fill], redline: [E.red(gid), SAYS.red],
+        share: [L => E.paper(gid)(L) && L.shareCard, 'the paper, Jambo\'s Share card'], sign: [E.signing(gid), SAYS.signing] };
+      /* the card stands where no face is open: the face the last press opened is put away first */
+      const glanceStart = async () => { await page.evaluate(i => { for (const f of ['pdFillAway', 'pdRedAway', 'pdSignAway']) try { if (typeof window[f] === 'function') window[f](); } catch (_) { /* none open */ }
+        pdOpenOnHome(i, 'copilot'); if (typeof renderIntelDock === 'function') renderIntelDock(); }, gid);
+        await waitFor(page, i => !!document.querySelector(`#pd-glance[data-pd-glance-for="${i}"]`), 8000, gid); };
+      for (const k of ['fill', 'redline', 'share', 'sign'])
+        await door(D, `the glance's "${k}" button (on the dropped contract)`, { start: glanceStart, same: k === 'share',
+          press: async () => { if (!(await waitFor(page, i => !!document.querySelector(`#pd-glance[data-pd-glance-for="${i}"]`), 6000, gid))) return false;
+            return domClick(`#pd-glance [data-pd-glance="${k}"]`); },
+          expect: GL[k][0], says: GL[k][1] });
+    } else record(D, 'the glance\'s buttons', false, 'no dropped contract to read', 'missing');
+    /* the draft card's Open the form is the ONE form, never the two-door menu; Create lands on the new paper */
+    /* THE STREAM IS ASKED (the fix round, 15 Oct 2026): the form Jambo opens
+       starts on none; a press on HaTi's own list chooses the first real one */
+    const chooseStream = async () => { const id = await page.evaluate(() => { const s = window.naStreamBox && naStreamBox(document.getElementById('na-form')); return s && !s.value ? s.id : ''; });
+      if (!id) return true;
+      /* HaTi's list shuts on any scroll (core.js), and Jambo's conversation
+         behind the pop-up may still be scrolling to the card that opened it:
+         the press waits for the page to hold still (bounded), as a reader's eye does */
+      await page.evaluate(() => { window._scN = 0; if (!window._scArmed) { window._scArmed = true; window.addEventListener('scroll', () => { window._scN++; }, true); } });
+      { const end = Date.now() + 3000; let last = -1; while (Date.now() < end) { const n = await page.evaluate(() => window._scN); if (n === last) break; last = n; await pause(400); } }
+      await page.click('#' + id); if (!(await waitFor(page, () => !!document.querySelector('.hati-selmenu'), 3000))) { console.log('  (chooseStream: no list opened)'); return false; }
+      await page.click('.hati-selmenu [data-sm]:not([disabled])');
+      const r = await page.evaluate(i => { const v = document.getElementById(i).value; return { v, opts: [...document.getElementById(i).options].map(o => o.value).slice(0, 4) }; }, id);
+      if (!r.v || r.v === '__new__') console.log('  (chooseStream:', JSON.stringify(r), ')');
+      return !!r.v && r.v !== '__new__'; };
+    const createIn = async () => { if (!(await waitFor(page, () => !!document.getElementById('na-root') && !document.getElementById('nd-menu'), 8000))) { console.log('  (createIn: the form did not open)'); return false; }
+      if (!(await page.evaluate(() => !!document.querySelector('.na-pick.on')))) { await domClick('#na-root [data-wz-tid]'); }
+      if (!(await waitFor(page, () => !!(window.naStreamBox && naStreamBox(document.getElementById('na-form'))), 6000))) return false;
+      if (!(await chooseStream())) { console.log('  (createIn: no stream could be chosen)'); return false; }
+      if (!(await waitFor(page, () => { const b = document.getElementById('na-create'); return !!b && !b.disabled; }, 6000))) return false;
+      /* a template's own required box (the other party) is answered, as a person would; the sentence's is already in it */
+      const cp = await page.$('#na-form input[id$="-counterparty"]');
+      if (cp && !(await cp.inputValue())) await cp.fill('Census Draft Ltd');
+      await page.click('#na-create'); return true; };
+    ids = await known();
+    await door(D, 'the wall\'s chip "draft a new agreement", Open the form, Create', { start: onWall,
+      press: async () => { if (!(await waitFor(page, () => !!document.querySelector('[data-ig-chips] [data-ca-chip="draft"]'), 8000))) return false;
+        if (!(await domClick('[data-ig-chips] [data-ca-chip="draft"]'))) return false;
+        if (!(await waitFor(page, () => !!document.querySelector('[data-ca-act="draftform"]'), 5000))) return false;
+        await page.evaluate(() => { const b = [...document.querySelectorAll('[data-ca-act="draftform"]')].pop(); b.click(); }); return createIn(); },
+      expect: isNew(ids), says: NEWSAYS });
+    ids = await known();
+    await door(D, 'a "draft an NDA with Volvo" sentence, Open the form, Create', { start: onWall,
+      press: async () => { if (!(await waitFor(page, () => !!document.getElementById('igd-input'), 8000))) return false;
+        if ((await say('draft an NDA with Volvo')()) === false) return false;
+        if (!(await waitFor(page, () => !!document.querySelector('.ca-dr [data-ca-act="form"]'), 8000))) return false;
+        await page.evaluate(() => { const b = [...document.querySelectorAll('.ca-dr [data-ca-act="form"]')].pop(); b.click(); }); return createIn(); },
+      expect: L => isNew(ids)(L) && L.cp === 'Volvo', says: NEWSAYS + ', with Volvo' });
     await door(D, '⌘K, a contract row (Kabras)', { start: atStart,
       press: async () => { await page.evaluate(() => openCommandPalette()); if (!(await waitFor(page, () => !!document.getElementById('cp-input'), 4000))) return false;
         await page.type('#cp-input', 'Kabras', { delay: 10 });

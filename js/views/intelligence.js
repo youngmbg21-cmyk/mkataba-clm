@@ -6687,7 +6687,13 @@ function renderIntelDock(){
     :(window.pdSignShows&&pdSignShows())?`<div id="pd-signface" class="pd-signface flex-1 min-h-0">${pdSignFaceHtml(pdContract())}</div><div id="igd-feed" hidden></div>`:`
     ${(state.view==='dashboard'&&typeof window.caBackRowHtml==='function')?caBackRowHtml():''}
     <div id="igd-feed" class="flex-1 min-h-0 overflow-y-auto scroll-thin px-3.5 py-3 space-y-3" style="background:transparent">
-      ${msgs||`<div class="ig-welcome text-[12.5px] text-ink/50 leading-relaxed pt-2">${i18t('int_notebook_welcome')}</div>`}
+      ${(()=>{
+        /* ON HOME'S DOCUMENT FACE THE TAB OPENS ON WHAT IS IN FRONT OF THE
+           READER, not the notebook's greeting (the overnight work order, steps
+           4 and 5): the wall's greeting and drop area, or the paper's contract
+           at a glance — drawn above the conversation, which goes on under it */
+        const top=(state.view==='dashboard'&&typeof window.pdJamboTopHtml==='function')?pdJamboTopHtml():'';
+        return top+(msgs||(top?'':`<div class="ig-welcome text-[12.5px] text-ink/50 leading-relaxed pt-2">${i18t('int_notebook_welcome')}</div>`)); })()}
       ${typing}
     </div>`}
     ${''/* SAVED VIEWS — the reader's own recipes, one press each (the view

@@ -382,10 +382,18 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     /* ================= 8. THE DARK THEME'S ACCENT INK ==================== */
     /* This page has been caught here before: the accent ramp has no dark
        answer, so anything reading it directly goes dim at night. */
+    /* RE-POINTED (the overnight work order, step 3, 15 Oct 2026): Home's head
+       carries no "+ Draft new agreement" now — drafting is Jambo's — so the
+       one filled act on Home is the drop area's "Choose a file" on the
+       Document face's wall (step 4), wearing the same .hm-primary dress; its
+       night ink and fill are measured there, and the Board is put back for
+       section 9 */
+    await page.evaluate(() => { hbSetFace('paper'); if (typeof igPickAgain === 'function') igPickAgain(); });
+    await page.waitForFunction(() => !!document.querySelector('#pd-drop [data-pd-drop-pick]'), null, { timeout: 6000 }).catch(() => {});
     await page.click('#theme-btn');
     await page.waitForTimeout(1400);
     const dark = await page.evaluate(() => {
-      const b = document.querySelector('.hm-primary'), c = getComputedStyle(b);
+      const b = document.querySelector('#pd-drop [data-pd-drop-pick]'), c = getComputedStyle(b);
       return { bg: c.backgroundColor, ink: c.color, edge: c.borderTopColor,
         page: getComputedStyle(document.body).backgroundColor,
         /* RE-POINTED 3 Oct 2026: the head row is the platform's surface on
@@ -403,6 +411,8 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     await page.screenshot({ path: path.join(OUT, '04-dark.png') });
     await page.click('#theme-btn');
     await page.waitForTimeout(1000);
+    await page.evaluate(() => hbSetFace('board'));
+    await page.waitForTimeout(600);
 
     /* ================= 9. THE BOARD NEVER SCROLLS SIDEWAYS ==============
        RE-POINTED IN PLACE 3 Oct 2026 from the Map's body to the board: what
