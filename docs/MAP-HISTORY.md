@@ -29668,3 +29668,76 @@ list's layout (cards in a column per stage) is renamed, not removed: "By
 stage" (sv "Per steg"), its hover and the settings' own hover saying the same.
 Only the words moved (reg_mode_board, reg_mode_title, reg_display_title in
 both books); the setting, its store and its tests are unchanged.
+
+## THE OWNER'S EIGHT ANSWERS, 15 OCT 2026 ("Add the brief button on what Jambo read on upload. And as far as the 7 questions, go with your suggestions")
+
+After the merge of the overnight build the owner asked where the brief's
+coloured button had gone. It had moved with the room's Overview onto the
+strip's Details page, two presses deep. The answers, as built:
+
+1. READ THE BRIEF ON THE STRIP. "What Jambo read on upload" carries the
+   filled "Read the brief" beside its title, only over a brief on file; it
+   opens the same side panel as the Overview's button, asks no model and
+   writes nothing; writing a missing brief stays on Details. Two measured
+   reasons for its shape: (a) it is the strip's own door (`data-bs-go="brief"`
+   → `bsGo`), never `data-kt-brief`, because `wireKtBriefCard(c)` hands every
+   `[data-kt-brief]` on the page ONE contract — two strips would cross; (b) it
+   sits on the LEFT, by the title: drawn at the end of the brief line, the
+   500px side panel it opens covered it and the second press that should shut
+   it could not be made (board-strip-verify 10l measured exactly that). The
+   side panel stamps `state.activeId` as its contract, which on the Board is
+   whichever strip came up last, so `bsGo('brief')` names the panel for its
+   own contract or a second press on an older strip reopened instead of
+   shutting. Tests: board-strip-verify 10l, 10m.
+2. SIGNED IS BACK on the Contracts place's List, before Ends
+   (REG_COL_KEYS_HOME; widths [9,18,16,14,12,12,13,6], the parts from the
+   counterparty, Ends and Value). signed-and-columns-verify's column and cell
+   checks, retired at step 7, are restored, plus "nothing cut" at the owner's
+   three screens — STRICT, because an ellipsis is drawn at one pixel over: a
+   first split ([9,20,16,12,…]) left "Amina Otieno" at 80px in a 79px box,
+   "Amina Otie…" at 1536×730, and a check that allowed one pixel passed it.
+   Proved red at that split, green at this one. f687 2c, inspector 1b
+   re-pointed.
+3. THE CHECKLIST'S APPROVAL ROW opens Before you sign on Home, as the bell's
+   row does (needsYouGo 'approval' → roomOpenAt 'sign'); it had still opened
+   the Approvals page. f678 4b and the door census re-pointed.
+4. A TAP ON CONTRACTS OPENS THE PLACE ALONE (iPad): a touch from anywhere
+   else opens Contracts with no fly-out over it; a touch ON the place brings
+   Negotiations · Parties; again, it shuts. The mouse and the keyboard are
+   unchanged. nav-fold-verify 7a–7c, f687 3b.
+5. DETAILS IN THE STRIP'S ⋯ (BS_MENU_PAGES), beside Key terms' "Edit these
+   details ›", with a sub-line in both books. board-strip-verify 3a, 3e.
+6. KEPT AS THEY ARE, on the owner's word: a renewal decision more than 30
+   days away has no button on a computer (the bell shows it inside 30 days);
+   the drop area asks the stream (every creation door asks it).
+7. THE TWO "NEW" TEXT SIZES WERE NOT NEW. Measured on the place: 12.5px is
+   Jambo's drop area (7 pieces: the box, its icon, the sub-line, the stream
+   box) and 15px is Jambo's face on the panel's tab (2 pieces). Both are
+   already on the census's Home, Document, Signing and Negotiate screens
+   (12.5px is Jambo's panel's own size: 62 pieces on Document); they were new
+   only to the Contracts screen's record, because Contracts now sits beside
+   Jambo's panel. Changing them would have made the panel disagree with
+   itself, so nothing changed, and the owner was told the earlier summary had
+   it wrong.
+CLAUDE.md: 79,883 → 79,989 bytes (four MAP lines amended, none added).
+REVERSED THE SAME DAY (owner: "I have changed my mind on adding signed date
+so please remove then merge to main"): answer 2 is undone. The Contracts
+List is the drawing's six columns again (REG_COL_KEYS_HOME, widths
+[9,25,17,14,15,14,6]); signed-and-columns-verify, inspector-verify 1b and
+f687 2c are back as step 7 left them; the Signed sort and filter stay. The
+ink-wash census needs no re-record (the Signed cells were all it moved), so
+its KNOWN_RED line came off with it.
+
+## THE DOCUMENT DOOR GOES (owner, 15 Oct 2026: "that also means we have 2 buttons to the same page so document will simply need to be deleted")
+
+The list panels' Document · Negotiation · Workspace (THREE DOORS, 12 Oct
+2026) are two now: Negotiation · Workspace. Document and Workspace both
+landed on Home's paper (Document on Jambo's tab; Workspace on Fill in while
+details are owed, else the same paper on Jambo's tab). What went with it:
+the Obligations panel's Document door opened Jambo's Obligations tab; the
+row itself still opens the Board's Obligations view for that row, and the
+Workspace door opens Home. The Requests panel and the Contracts seat lead
+with Workspace (filled) where they led with Document. `ins_door_doc` stays
+as a word: the People directory's contract chips use it as their hover.
+Tests re-pointed: f664, f387 (2c, 2k, 3c), f678 2c, inspector-verify 3d/3e,
+sap-lists-verify 2c, every-door-lands-on-home-verify (the doors row).

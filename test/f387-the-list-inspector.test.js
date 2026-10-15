@@ -172,8 +172,9 @@ describe('f387 (2) the Contracts list in the inspector’s shape', () => {
     assert.deepEqual(b.calls.pop(), ['open', 'MK-2'], 'a double-click opens the contract');
     row('MK-2').dispatchEvent(key(b.win, 'Enter'));
     assert.deepEqual(b.calls.pop(), ['open', 'MK-2'], 'Enter opens it');
-    /* RE-POINTED 12 Oct 2026 (owner): the panel's own button is the Document door */
-    b.$('#ins-panel [data-ins-act="door-doc"]').dispatchEvent(evt(b.win, 'click'));
+    /* RE-POINTED 12 Oct 2026 (owner): the panel's own button is the Document door;
+       15 Oct 2026 (owner): the Document door went, the Workspace door is it */
+    b.$('#ins-panel [data-ins-act="door-ws"]').dispatchEvent(evt(b.win, 'click'));
     assert.deepEqual(b.calls.pop(), ['open', 'MK-2'], 'and so does the panel’s own button');
   });
 
@@ -260,9 +261,10 @@ describe('f387 (2) the Contracts list in the inspector’s shape', () => {
        Negotiation door is always there, greyed with its reason where no
        change is on it — never a dead button in live clothes */
     const nego = () => b.$('#ins-panel [data-ins-act="door-nego"]');
-    assert.deepEqual(acts('MK-4'), ['door-doc', 'door-nego', 'door-ws'], 'the three doors, always');
+    /* 15 Oct 2026 (owner): the Document door went — two doors, always */
+    assert.deepEqual(acts('MK-4'), ['door-ws', 'door-nego'], 'the doors, always (the Contracts seat leads with Workspace)');
     assert.ok(nego().disabled && /No negotiation/.test(nego().getAttribute('title') || ''), 'an empty negotiation is not an open one: greyed, with the reason');
-    assert.deepEqual(acts('MK-5'), ['door-doc', 'door-nego', 'door-ws']);
+    assert.deepEqual(acts('MK-5'), ['door-ws', 'door-nego']);
     assert.ok(!nego().disabled, 'one with a change on it is, second to the contract');
     assert.match(code(CT), /const started=!!\(c\.negotiation&&Array\.isArray\(c\.changes\)&&c\.changes\.length\);/,
       '[control] the Document tab still reads it this way — the relation this claim holds the panel to');
@@ -329,7 +331,8 @@ describe('f387 (3) the Negotiations list in the inspector’s shape', () => {
     const acts = b.$$('#ins-panel [data-ins-act]').map(x => x.getAttribute('data-ins-act'));
     /* RE-POINTED 12 Oct 2026 (owner): Negotiation · Document · Workspace, the
        negotiation filled and first; Document a door beside it, not a link */
-    assert.deepEqual(acts, ['door-nego', 'door-doc', 'door-ws']);
+    /* 15 Oct 2026 (owner): the Document door went — Negotiation · Workspace */
+    assert.deepEqual(acts, ['door-nego', 'door-ws']);
     assert.ok(b.$('#ins-panel [data-ins-act="door-nego"]').classList.contains('ui-btn-primary'), 'the lead act is the filled one');
     assert.equal(b.$$('#ins-panel .ui-btn-primary').length, 1, 'one filled button');
     b.$('#reg-tbody tr[data-row="MK-7"]').dispatchEvent(evt(b.win, 'dblclick'));

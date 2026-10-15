@@ -19,7 +19,7 @@
    (2) OBLIGATIONS ROWS OPEN THE BOARD'S OBLIGATIONS VIEW: obOpenContract is
        roomOpenAt(cid,'oblig') with the row's key, the view's tab moved to one
        that shows that row (so the row pressed is the row chosen); the panel's
-       Document door keeps the paper (Jambo's Obligations tab).
+       Document door went on 15 Oct 2026 (the owner), Workspace stays.
    (3) OPEN PARTY OPENS HOME'S CONTRACTS PLACE, NARROWED (re-pointed at step
        7, when the wall's own set retired into the register's one state):
        regShowOnly(cuIdsOf(v)) on every shell; the set keeps a party's closed
@@ -29,8 +29,8 @@
        count line counts the set the way Parties counted it (agreements, an
        amendment said beside them); the place's one set chip has a drawn ×.
    (4) THE BELL'S APPROVAL ROW OPENS BEFORE YOU SIGN through the walls
-       (roomOpenAt 'sign'); the side panel's checklist keeps its door to the
-       Approvals page (the owner moved the bell only).
+       (roomOpenAt 'sign'); so does the side panel's checklist row since 15
+       Oct 2026 (the owner: "go with your suggestions").
    (5) THE CENSUS RUNS IN CI and a PENDING row never fails it.
    AT THE PARENT (9cf3a18) (1)–(4) fail: roomHomeLand and igWallShowOnly do
    not exist, obOpenContract opens the paper's panel tab, the bell opens the
@@ -157,8 +157,12 @@ describe('f678 (2) an Obligations row opens the Board\'s Obligations view', () =
     assert.equal(press('all', 'MK-1::o2'), 'all', 'All shows every row');
     assert.equal(press('done', 'MK-1::gone'), 'open', 'a key no longer on the record: Outstanding, as before');
   });
-  test('2c the panel\'s Document door keeps the paper, Jambo\'s Obligations tab', () => {
-    assert.match(OB, /insDoorActs\(c, \{ doc: \(\) => \{\s*if\(!\(typeof window\.pdOpenOnHome === 'function' && pdOpenOnHome\(c\.id, 'oblig'\)\)\) obOpenContract\(c\.id\); \} \}\)/);
+  /* RE-POINTED 15 Oct 2026 (owner: "we have 2 buttons to the same page so
+     document will simply need to be deleted"): the panel's Document door went;
+     the panel draws the shared doors, Negotiation · Workspace, no landing of its own */
+  test('2c the panel draws the shared doors, with no Document door of its own', () => {
+    assert.match(OB, /acts\.push\(\.\.\.insDoorActs\(c\)\);/);
+    assert.doesNotMatch(OB, /insDoorActs\(c, \{ doc:/);
   });
 });
 
@@ -272,8 +276,11 @@ describe('f678 (4) the bell\'s approval row opens Before you sign', () => {
     assert.match(row[1], /^ if\(window\.roomOpenAt\) roomOpenAt\(x\.c\.id,'sign'\);/);
     assert.doesNotMatch(row[1], /pdOpenOnHome/);
   });
-  test('4b the side panel\'s checklist keeps its door (the owner moved the bell only)', () => {
-    assert.match(HOME, /if\(kind==='approval'\)\{ if\(window\.pdOpenOnHome&&pdOpenOnHome\(c\.id,'sign'\)\) return true;/);
+  test('4b the side panel\'s checklist row lands there too (owner, 15 Oct 2026): through the walls, never the Approvals page', () => {
+    const row = HOME.match(/if\(kind==='approval'\)\{([^\n]*)\n/);
+    assert.ok(row, 'the row');
+    assert.match(row[1], /^ if\(window\.roomOpenAt\) roomOpenAt\(c\.id,'sign'\);/);
+    assert.doesNotMatch(row[1], /pdOpenOnHome/);
   });
 });
 

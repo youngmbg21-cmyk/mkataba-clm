@@ -1,6 +1,8 @@
 /* f664 — THREE DOORS ON EVERY LIST (owner, 12 Oct 2026). The right-hand panel
    on Contracts, Negotiations, Approvals & signing, Obligations and Requests
    draws Document · Negotiation · Workspace from one builder (insDoorActs);
+   SINCE 15 OCT 2026 TWO (owner: "we have 2 buttons to the same page so
+   document will simply need to be deleted"): Negotiation · Workspace;
    the words drop "Open"; the page's own door is filled, or none where the
    page has a filled verb of its own; Negotiation greys with its reason where
    nothing is being negotiated; every door acts on ITS contract. */
@@ -12,12 +14,11 @@ const R = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
 const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 test('every list panel draws its doors from the one builder', () => {
-  assert.match(strip(R('js/views/register.js')), /return insDoorActs\(c, \{ lead: neg \? 'nego' : 'doc'/);
+  assert.match(strip(R('js/views/register.js')), /return insDoorActs\(c, \{ lead: neg \? 'nego' : 'ws' \}\);/);
   assert.match(strip(R('js/views/approvalsview.js')), /const open=insDoorActs\(r\.c\);/);
-  /* RE-POINTED 14 Oct 2026 (step 2): Obligations' Document door keeps the
-     paper (Jambo's Obligations tab) now that obOpenContract opens the Board */
-  assert.match(strip(R('js/obligations.js')), /insDoorActs\(c, \{ doc: \(\) => \{\s*if\(!\(typeof window\.pdOpenOnHome === 'function' && pdOpenOnHome\(c\.id, 'oblig'\)\)\) obOpenContract\(c\.id\); \} \}\)/);
-  assert.match(strip(R('js/views/intake.js')), /insDoorActs\(doorC,\{ lead:'doc' \}\)/);
+  /* RE-POINTED 15 Oct 2026: no Document door, so no page hands one a landing */
+  assert.match(strip(R('js/obligations.js')), /acts\.push\(\.\.\.insDoorActs\(c\)\);/);
+  assert.match(strip(R('js/views/intake.js')), /insDoorActs\(doorC,\{ lead:'ws' \}\)/);
 });
 
 test('the panel\'s ⋯ no longer repeats Workspace; the row menu keeps it', () => {
@@ -28,7 +29,7 @@ test('the panel\'s ⋯ no longer repeats Workspace; the row menu keeps it', () =
 
 test('the words: Document, Negotiation, Workspace — in both books', () => {
   const i18n = R('js/i18n.js');
-  for (const [k, en, sv] of [['ins_door_doc', 'Document', 'Dokument'], ['ins_door_nego', 'Negotiation', 'Förhandling'], ['ins_door_ws', 'Workspace', 'Arbetsyta']]){
+  for (const [k, en, sv] of [['ins_door_nego', 'Negotiation', 'Förhandling'], ['ins_door_ws', 'Workspace', 'Arbetsyta']]){
     assert.ok(i18n.includes(`${k}: '${en}'`), k + ' in English');
     assert.ok(i18n.includes(`${k}: '${sv}'`), k + ' in Swedish');
   }
@@ -38,7 +39,8 @@ test('the words: Document, Negotiation, Workspace — in both books', () => {
 test('the builder: three doors, the lead filled, Negotiation greyed with its reason, each on its own contract', () => {
   const ins = strip(R('js/views/inspector.js'));
   const body = ins.slice(ins.indexOf('function insDoorActs'), ins.indexOf('function insActsHtml'));
-  assert.match(body, /icon: 'file', label: i18t\('ins_door_doc'\)/);
+  assert.doesNotMatch(body, /ins_door_doc|door-doc/, 'no Document door (owner, 15 Oct 2026)');
+  assert.match(body, /const order = o\.lead === 'ws' \? \['ws', 'nego'\] : \['nego', 'ws'\];/, 'the lead first, two doors');
   assert.match(body, /icon: 'msg', label: i18t\('ins_door_nego'\)/);
   assert.match(body, /icon: 'folderOpen', label: i18t\('ins_door_ws'\)/);
   assert.match(body, /disabled: !ns\.ok, title: ns\.ok \? '' : ns\.why/);

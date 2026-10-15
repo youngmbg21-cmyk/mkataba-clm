@@ -21,7 +21,7 @@
         (sticky head, about seven rows, the next one marked), what Jambo read
         (the brief's sentence, risks, standards, details, obligations, each
         with its door) and the foot (Open · Keep · Ask why · Let it go)
-     3  ⋯: Where we are and History; again closes it, Esc and a press outside
+     3  ⋯: Where we are, History and Details; again closes it, Esc and a press outside
         too; Where we are is the one builder (standsHtml) with the strip's
         own way back; History is the room's trail on the Board: search, Side
         in the open (All sides · Ours · Theirs), Filter for the other four,
@@ -45,7 +45,9 @@
         brings the strip up, free; the room by name is forgotten once left;
         a signed contract names who signed, reads its value as amended and
         draws no repeat past a fixed end; a start date owed is amber; an
-        undated obligation is said and a far one is drawn
+        undated obligation is said and a far one is drawn; "Read the brief"
+        beside the brief line opens that contract's brief, free, and shuts
+        on a second press; no brief, no button (owner, 15 Oct 2026)
    AT THE PARENT every claim FAILS: there is no strip there (a contract
    brought up drew the old card in #hb-focus, and openWorkspace the room).
      node test/chromium/board-strip-verify.js
@@ -277,7 +279,7 @@ const OBS = [
     const M = sel => `${strip('MK-L1')} ${sel}`;
     await page.click(M('[data-bs-dots]'));
     let menu = await page.evaluate(() => [...document.querySelectorAll('#bs-strip-MK-L1 .bs-menu [data-bs-page] b')].map(x => x.textContent.trim()));
-    check('3a ⋯ opens a menu: Where we are, History', JSON.stringify(menu) === JSON.stringify(['Where we are', 'History']), JSON.stringify(menu));
+    check('3a ⋯ opens a menu: Where we are, History, Details', JSON.stringify(menu) === JSON.stringify(['Where we are', 'History', 'Details']), JSON.stringify(menu));
     await page.click(M('[data-bs-dots]'));
     check('3b pressing ⋯ again closes it', !(await S(M('.bs-menu'))));
     await page.click(M('[data-bs-dots]')); await page.keyboard.press('Escape');
@@ -293,7 +295,7 @@ const OBS = [
     await shot('3-where-we-are');
     await page.click(M('[data-bs-dots]'));
     menu = await page.evaluate(() => [...document.querySelectorAll('#bs-strip-MK-L1 .bs-menu [data-bs-page] b')].map(x => x.textContent.trim()));
-    check('3e away from it, ⋯ lists Overview too', JSON.stringify(menu) === JSON.stringify(['Overview', 'Where we are', 'History']), JSON.stringify(menu));
+    check('3e away from it, ⋯ lists Overview too', JSON.stringify(menu) === JSON.stringify(['Overview', 'Where we are', 'History', 'Details']), JSON.stringify(menu));
     await page.click(M('.bs-menu [data-bs-page="hist"]'));
     const hs = await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L1 [data-bs-host="hist"] .hist-trail'), 8000);
     const H1 = await page.evaluate(() => { const host = document.querySelector('#bs-strip-MK-L1 [data-bs-host="hist"]');
@@ -388,6 +390,26 @@ const OBS = [
     await page.evaluate(() => { try { closeModal(); } catch (_) {} bsStripPage('MK-L2', 'ov'); });
     const band = await waitFor(page, () => /Mombasa Pallets hires pallets/.test((document.querySelector('#bs-strip-MK-L2 .bs-brief') || {}).textContent || ''), 5000);
     check('10c the strip\'s own band then reads the brief written there', band);
+    /* 10l READ THE BRIEF beside what Jambo read (owner, 15 Oct 2026): over a brief on file, it opens THAT
+       contract's brief — two strips standing, each its own — spends nothing, and pressed again shuts it */
+    await page.evaluate(() => bsStripPage('MK-L1', 'ov'));
+    const rbBoth = await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L1 .bs-jb .bs-sec-h [data-bs-go="brief"]') && !!document.querySelector('#bs-strip-MK-L2 .bs-jb .bs-sec-h [data-bs-go="brief"]'), 6000);
+    const aiR = h.ai.calls.length;
+    const briefShows = src => waitFor(page, src => { const b = document.querySelector('#side-panel #brief-section'); if (!b) return false;
+      const t = b.cloneNode(true); t.querySelectorAll('style').forEach(x => x.remove()); return new RegExp(src).test(t.textContent); }, 6000, src);
+    let rb1 = false, rb2 = false, shut = false;
+    if (rbBoth){
+      await page.click('#bs-strip-MK-L2 .bs-jb .bs-sec-h [data-bs-go="brief"]');
+      rb2 = await briefShows('Mombasa Pallets hires pallets');
+      /* the other strip's button moves the panel to ITS brief; pressed again, it shuts */
+      await page.click('#bs-strip-MK-L1 .bs-jb .bs-sec-h [data-bs-go="brief"]', { timeout: 4000 }).catch(() => {});
+      rb1 = await briefShows('Nordfilm supplies packaging film');
+      await page.click('#bs-strip-MK-L1 .bs-jb .bs-sec-h [data-bs-go="brief"]', { timeout: 4000 }).catch(() => {});
+      shut = await waitFor(page, () => !document.querySelector('#side-panel #brief-section'), 4000);
+    }
+    await page.evaluate(() => { try { closeModal(); } catch (_) {} });
+    check('10l "Read the brief" sits beside the title of What Jambo read, clear of the panel it opens; it opens that contract\'s own brief (two strips, each its own), asks no model, and pressed again shuts it',
+      rbBoth && rb1 && rb2 && shut && h.ai.calls.length === aiR, JSON.stringify({ rbBoth, rb1, rb2, shut, ai: h.ai.calls.length - aiR }));
     await page.evaluate(() => { window.runContractBrief = window.__rcb; });
     /* 10d See the standards: the stored reading, read only — no check run, nothing written */
     let pbCalls = 0;
@@ -438,6 +460,8 @@ const OBS = [
     check('10j a start date owed before signing is amber on the Term figure, and says so', L4.owed.includes('effDate') && L4.warn && /start date needed before signing/.test(L4.term), JSON.stringify(L4));
     check('10k an obligation with no due date is said under the line; one due far past the term is drawn, the line runs to it',
       /1 obligation has no due date, so it is not on the line/.test(L4.cap) && L4.far.some(t => /Hand over the archive/.test(t)), JSON.stringify({ cap: L4.cap, far: L4.far }));
+    const noBrief = await page.evaluate(() => !getContract('MK-L4')._brief && !!document.querySelector('#bs-strip-MK-L4 .bs-brief') && !document.querySelector('#bs-strip-MK-L4 [data-bs-go="brief"]'));
+    check('10m with no brief on file the strip draws no "Read the brief" (writing one stays on Details)', noBrief);
     await page.evaluate(() => { bsStripClose('MK-L3'); bsStripClose('MK-L4'); });
 
     /* ===== 7. THE ROOM RETIRES ===== */

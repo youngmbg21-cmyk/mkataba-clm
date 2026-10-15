@@ -1640,7 +1640,11 @@ function needsYouGo(kind, id){
   const c=(typeof getContract==='function')?getContract(id):null;
   if(!c) return false;
   if(kind==='look') return lookDone(c);
-  if(kind==='approval'){ if(window.pdOpenOnHome&&pdOpenOnHome(c.id,'sign')) return true; if(window.roomOpenAt) roomOpenAt(c.id,'sign'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} } return true; }
+  /* AN APPROVAL ASKED OF YOU OPENS BEFORE YOU SIGN ON HOME, AS THE BELL'S ROW
+     DOES (owner, 15 Oct 2026: "go with your suggestions" — the checklist's row
+     still opened the Approvals page, so one ask had two landings): Jambo's face
+     beside that contract's paper, through the walls; the phone its own tab. */
+  if(kind==='approval'){ if(window.roomOpenAt) roomOpenAt(c.id,'sign'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} } return true; }
   if(kind==='refused'){ if(window.roomOpenAt) roomOpenAt(c.id,'sign'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} } return true; }
   /* DETAILS ARE FILLED IN BESIDE THE PAPER (the one-page Home plan, stage 2;
      owner, 14 Oct 2026): Home's Document, Jambo's panel on Fill in. The phone

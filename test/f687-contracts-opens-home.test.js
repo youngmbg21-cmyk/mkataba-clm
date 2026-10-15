@@ -220,8 +220,11 @@ describe('f687 (3) the rail: the fold keeps Negotiations and Parties; the opener
      mouse press covered the place's own head, so a pointer that can hover
      gets the place alone (navFoldRest, until it leaves the row); the keyboard
      and a touch screen still get the fly-out from the press */
-  test('3b a press on the opener opens the place; the fly-out too only for the keyboard or a screen with no hover; pressed again on the place, the fly-out shuts', () => {
-    assert.match(APP, /const k=opener\.getAttribute\('data-nav-fold-open'\);\s*if\(f\.classList\.contains\('is-open'\) && \(k!=='register' \|\| \(window\.regPlaceUp&&regPlaceUp\(\)\)\)\) navFoldCloseAll\(\);\s*else if\(k!=='register'\) navFoldOpen\(f, e\.detail===0\);\s*else \{ setView\('register'\); if\(navFoldPressFlies\(e\)\) navFoldOpen\(f, e\.detail===0\); else navFoldRest\(f\); \}/);
+  test('3b a press on the opener opens the place; the fly-out too for the keyboard, or a tap ON the place on a screen with no hover; pressed again on the place, the fly-out shuts', () => {
+    /* RE-POINTED 15 Oct 2026 (owner: "go with your suggestions"): a TOUCH from
+       anywhere else opens the place alone; a touch ON the place brings the
+       fly-out (nav-fold-verify 7a–7c press it); the keyboard keeps both */
+    assert.match(APP, /const k=opener\.getAttribute\('data-nav-fold-open'\);\s*const here=k==='register' && !!\(window\.regPlaceUp&&regPlaceUp\(\)\);\s*if\(f\.classList\.contains\('is-open'\) && \(k!=='register' \|\| here\)\) navFoldCloseAll\(\);\s*else if\(k!=='register'\) navFoldOpen\(f, e\.detail===0\);\s*else \{ setView\('register'\);\s*if\(!navFoldPressFlies\(e\)\) navFoldRest\(f\);\s*else if\(e\.detail===0 \|\| here\) navFoldOpen\(f, e\.detail===0\);\s*else navFoldCloseAll\(\); \}/);
     const src = APP.slice(APP.indexOf('function navFoldPressFlies('), APP.indexOf('function wireNavFolds('));
     const flies = hover => { const ctx = { matchMedia: () => ({ matches: hover }) }; vm.createContext(ctx);
       vm.runInContext(src.replace(/function navFoldRest[\s\S]*$/, '') + '\nthis.f=navFoldPressFlies;', ctx); return ctx.f; };

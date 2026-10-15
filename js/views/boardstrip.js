@@ -37,8 +37,9 @@
    ============================================================ */
 
 const BS_PAGES = ['ov', 'where', 'hist', 'details'];
-/* the pages ⋯ lists; Details is reached from Key terms' own Edit */
-const BS_MENU_PAGES = ['ov', 'where', 'hist'];
+/* the pages ⋯ lists — Details too since 15 Oct 2026 (owner: "go with your
+   suggestions"), beside Key terms' own "Edit these details ›" */
+const BS_MENU_PAGES = ['ov', 'where', 'hist', 'details'];
 /* strips standing at once: the oldest one not kept goes first */
 const BS_MAX = 6;
 /* the obligations box shows about seven rows, then scrolls inside itself
@@ -334,7 +335,7 @@ function bsStripHtml(st){
   const word = p => bsT(p === 'ov' ? 'tab_overview' : p === 'where' ? 'tab_where_we_are' : p === 'hist' ? 'tab_history' : 'bs_pg_details');
   const crumbs = page === 'ov' ? '' : `<span class="bs-crumbs"><button type="button" class="hb-link" data-bs-page="ov" data-bs-id="${id}">${_bsChev}${bsE(word('ov'))}</button><span aria-hidden="true">·</span><span>${bsE(word(page))}</span></span>`;
   const open = _bsMenu === String(c.id);
-  const sub = { ov: 'bs_pg_ov_sub', where: 'bs_pg_where_sub', hist: 'bs_pg_hist_sub' };
+  const sub = { ov: 'bs_pg_ov_sub', where: 'bs_pg_where_sub', hist: 'bs_pg_hist_sub', details: 'bs_pg_details_sub' };
   const rows = BS_MENU_PAGES.filter(p => p !== 'ov' || page !== 'ov').map(p => `<button type="button" role="menuitem" class="bs-mi${p === page ? ' is-here' : ''}" data-bs-page="${p}" data-bs-id="${id}"${p === page ? ' aria-current="page"' : ''}><b>${bsE(word(p))}</b><small>${bsE(bsT(sub[p]))}</small></button>`).join('');
   /* THE OLD CARD'S TWO READINGS STAY ONE PRESS AWAY: Analyze contract and
      Show on the map, the Board's own doors (data-hb-analyze, data-hb-map) */
@@ -529,7 +530,16 @@ function bsJamboHtml(D){
   const det = cell('det', 'bs_jb_det', String(left), left ? 'warn' : '', left ? labels : [bsT('bs_jb_det_none')], left ? 'fill' : '', 'bs_jb_det_go');
   const O = D.O, first = O.rows.filter(r => r.due && r.st !== 'done').map(r => r.due).sort()[0];
   const ob = cell('ob', 'bs_jb_ob', String(O.rows.length), '', O.rows.length ? [bsT('bs_jb_ob_sides', { a: O.ours, b: O.theirs }), first ? bsT('bs_jb_ob_first', { d: bsDay(first) }) : ''].filter(Boolean) : [bsT('bs_jb_ob_none')], 'oblig', 'bs_jb_ob_go');
-  return `<div class="bs-sec bs-jb"><div class="bs-sec-h"><h5>${bsE(bsT('bs_jb'))}</h5><span class="hb-grow"></span><span class="bs-note">${bsE(note)}</span></div>
+  /* READ THE BRIEF, BESIDE THE SECTION'S TITLE (owner, 15 Oct 2026: "Add the
+     brief button on what Jambo read on upload"). On the LEFT, because the brief
+     opens in the 500px side panel on the right, which would cover a button at
+     the row's end and leave no second press to shut it. Drawn only over a brief on file: it
+     opens the same panel the Overview's coloured button opens, spends nothing
+     and writes nothing; writing a missing brief stays on the Details page. Its
+     own door (`data-bs-go="brief"`), never `data-kt-brief`, whose wiring hands
+     every such button on the page ONE contract — two strips would cross. */
+  const read = D.brief ? `<button type="button" class="hb-btn is-sm is-primary" data-bs-go="brief" data-bs-id="${id}">${bsE(bsT('br_open'))}</button>` : '';
+  return `<div class="bs-sec bs-jb"><div class="bs-sec-h"><h5>${bsE(bsT('bs_jb'))}</h5>${read}<span class="hb-grow"></span><span class="bs-note">${bsE(note)}</span></div>
     <p class="bs-brief">${brief}</p><div class="bs-jgrid">${risks}${std}${det}${ob}</div></div>`;
 }
 function bsFootHtml(D, st){
@@ -629,6 +639,14 @@ function bsMenuSet(id){ _bsMenu = id == null ? null : String(id); bsRepaint();
 function bsGo(kind, id){
   const c = bsContract(id); if (!c) return;
   if (kind === 'risks'){ if (typeof riskViewOpen === 'function') riskViewOpen(c); return; }
+  /* the brief on file, in its own panel; pressed again, the panel shuts. The
+     side panel names the contract it was opened ON (state.activeId) — on the
+     Board that is whichever strip came up last — so it is named for THIS one,
+     or a second press on an older strip's button reopened instead of shutting */
+  if (kind === 'brief'){
+    if (typeof briefPanelToggle !== 'function'){ if (typeof openCheckPanel === 'function') openCheckPanel(c, 'brief'); return; }
+    if (briefPanelToggle(c)){ const sp = document.getElementById('side-panel'); if (sp) sp.dataset.cid = String(c.id); }
+    return; }
   /* the STORED standards reading, read only: a "See" door never runs a check,
      never spends and never writes (the cell is drawn only over a check that ran) */
   if (kind === 'std'){ if (typeof openCheckPanel === 'function') openCheckPanel(bsContract(c.id) || c, 'playbook'); return; }
