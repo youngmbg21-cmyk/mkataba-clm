@@ -2708,12 +2708,14 @@ const igbStatusWord=st=>(typeof statusLabel==='function')?statusLabel(st):st;
 function igbTrim(s,n){ s=String(s==null?'':s); return s.length>n?s.slice(0,n-1)+'…':s; }
 function igbEl(tag,attrs,parent){ const e=document.createElementNS(SVG_NS,tag); if(attrs) for(const k in attrs) e.setAttribute(k,attrs[k]); if(parent) parent.appendChild(e); return e; }
 function igbFloorOf(status){ const i=IGB_FLOOR_STATUS.indexOf(status); if(i>=0) return i; return /expir|terminat|cancel|closed|declin/i.test(String(status||''))?3:1; }
-/* A TOUCH-ONLY SCREEN RESTS THE MAP WHEN NOTHING IS TOUCHED (the Board
-   walk-through, 15 Oct 2026: on an iPad Explorer's idle jiggle kept the
-   page busy a third of the time and every tap waited behind it). The map
-   still moves while it settles and for IG_AWAKE_MS after any touch; only the
-   idle shimmer stops, as it does for a reader who asked for less motion. An
-   iPad with a trackpad or mouse keeps it. */
+/* A TOUCH-ONLY SCREEN JIGGLES THE MAP MORE SLOWLY WHEN NOTHING IS TOUCHED
+   (the Board walk-through, 15 Oct 2026: on an iPad Explorer's idle jiggle
+   kept the page busy a third of the time and every tap waited behind it).
+   The jiggle stays — Still's dots "only jiggle a little" on an iPad is the
+   owner's (explorer-magnitude-verify 4a2) — at IG_JIG_FPS_TOUCH frames a
+   second instead of IG_JIG_FPS. An iPad with a trackpad or mouse keeps the
+   full rate. */
+const IG_JIG_FPS_TOUCH=2;
 function igTouchOnly(){ try{ return !!(window.matchMedia&&matchMedia('(pointer: coarse)').matches&&!matchMedia('(any-pointer: fine)').matches); }catch(_){ return false; } }
 function igbReduced(){ try{ return !!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(_){ return false; } }
 /* THE CAMERA IS THE SITTING'S, in memory: a regroup or a new answer keeps the
@@ -3798,7 +3800,7 @@ function igLoopStart(myRAF){
     const awake=IG._settle>0||Date.now()-_igWokeAt<IG_AWAKE_MS||!!intel.walk||igbSpinning();
     if(awake){ requestAnimationFrame(step); return; }
     _igKick=step;
-    if(!(igbReduced()||igTouchOnly())||wiring) _igTimer=setTimeout(()=>{ _igTimer=0; if(_igKick===step){ _igKick=null; requestAnimationFrame(step); } }, 1000/(wiring?IG_SPIN_FPS:IG_JIG_FPS));
+    if(!igbReduced()||wiring) _igTimer=setTimeout(()=>{ _igTimer=0; if(_igKick===step){ _igKick=null; requestAnimationFrame(step); } }, 1000/(wiring?IG_SPIN_FPS:igTouchOnly()?IG_JIG_FPS_TOUCH:IG_JIG_FPS));
   };
   if(_igTimer){ clearTimeout(_igTimer); _igTimer=0; }
   igSetSpin(false);

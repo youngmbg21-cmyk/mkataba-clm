@@ -10,7 +10,7 @@
      4  the side list is drawn outside the board's scroller (iPad Safari cut
         it off behind Jambo's panel) and its own door puts it away
      5  the divider lets go when Safari cancels a drag
-     6  a touch-only screen rests Explorer when nothing is touched
+     6  a touch-only screen jiggles Explorer more slowly when nothing is touched
      7  no "nobody owns this" on an obligation the other side owes, on the Board
      8  Your book's tiles wrap evenly (3 + 2, never 4 + 1)
    Run: node --test test/f690-board-walkthrough-fixes.test.js */
@@ -106,8 +106,10 @@ describe('F690 (5, 6) — the iPad: the divider and Explorer at rest', () => {
     assert.match(w, /addEventListener\('pointercancel',onUp\)/);
     assert.match(w, /removeEventListener\('pointercancel',onUp\)/);
   });
-  test('a touch-only screen rests the idle map', () => {
-    assert.match(strip(bodyOf(IG, 'igLoopStart')), /igbReduced\(\)\|\|igTouchOnly\(\)/);
+  test('a touch-only screen jiggles the idle map more slowly, never stops it', () => {
+    assert.match(strip(bodyOf(IG, 'igLoopStart')), /igTouchOnly\(\)\?IG_JIG_FPS_TOUCH:IG_JIG_FPS/);
+    assert.match(IG, /const IG_JIG_FPS_TOUCH=(\d+);/);
+    assert.ok(Number(IG.match(/const IG_JIG_FPS_TOUCH=(\d+);/)[1]) < Number(IG.match(/IG_JIG_FPS=(\d+)/)[1]));
     assert.match(bodyOf(IG, 'igTouchOnly'), /pointer: coarse[\s\S]*any-pointer: fine/);
   });
 });
