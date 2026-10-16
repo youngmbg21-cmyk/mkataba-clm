@@ -1938,7 +1938,8 @@ function regOpenContract(id){
     const c=(typeof getContract==='function')?getContract(id):null;
     if(c){ openWorkspace(id); if(typeof roomGoTab==='function') try{ roomGoTab(getContract(id)||c,'details'); }catch(_){} return; }
   }
-  if(typeof pdOpenOnHome==='function'&&pdOpenOnHome(id,'copilot')) return;
+  /* the reader's own "A contract opens on" (pdOpenTabOf) */
+  if(typeof pdOpenOnHome==='function'&&pdOpenOnHome(id,'open')) return;
   selectContract(id);
 }
 /* THE ROW'S PRIMARY VERB.

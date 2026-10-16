@@ -1457,7 +1457,10 @@ async function negoFileChange(c, draft, opts = {}){
     let why = null;
     try{ why = deskBlockMessage(c); }catch(_){ why = null; }
     if (why){
-      if (window.toast) toast(why, 'err');
+      /* an admin is offered the desk rule's own drawer (piece 20) */
+      const rule = (window.isAdmin && isAdmin() && window.openSettingsAt)
+        ? { action: { label: i18t('sc_rule_desk'), onClick: () => openSettingsAt('company', 'desk') } } : undefined;
+      if (window.toast) toast(why, 'err', rule);
       return null;
     }
   }

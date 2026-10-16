@@ -288,7 +288,7 @@ function dirPartyLoaded(p){
    Document door does. */
 function dirOpenContract(id){
   if (!id) return;
-  if (!(typeof pdOpenOnHome === 'function' && pdOpenOnHome(id, 'copilot'))) _dCall('openWorkspace', id);
+  if (!(typeof pdOpenOnHome === 'function' && pdOpenOnHome(id, 'open'))) _dCall('openWorkspace', id);
 }
 /* The second press (Enter, a double-click, the narrow window's one press). */
 function dirOpenLead(p){

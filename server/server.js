@@ -2955,6 +2955,7 @@ const AI_FEATURE_LABEL = {
   windows: 'Dated windows',     // work order O-40, the Time Machine's periods
   breakdown: 'Contract breakdown', // Home's Breakdown tab (owner, 11 Oct 2026), read once per wording
   plan: 'Calendar planning',    // Copilot plans a person's own time (10 Oct 2026)
+  settings: 'Settings questions', // Jambo answers a "why" on Settings (16 Oct 2026), named on arrival
   /* The template builder's outline (Prompt & Build). Named on arrival for
      the reason conversion's absence taught: an unnamed feature spends into
      the Other bucket, where the one figure an admin wants is unreadable.
@@ -3645,6 +3646,26 @@ app.post('/api/me/totp/disable', auth, (req, res) => {
   res.json({ ok: true });
 });
 
+/* ---- HOW MANY RECOVERY CODES ARE LEFT, AND A FRESH SET (16 Oct 2026, the
+   Control Room built in full: "8 recovery codes left · Make new codes") ----
+   The count is the person's OWN and only theirs (never on a colleague's row).
+   A fresh set costs a current code or an unused recovery code — the rule
+   DISABLE keeps: an open session alone must not mint a second key. The old
+   codes stop working the moment the new ones are written; the new ones are
+   shown once and only their hashes are kept. */
+const totpRecoveryLeft = u => { try { return (JSON.parse(u.totp_recovery || '[]') || []).length; } catch (_) { return 0; } };
+app.get('/api/me/totp', auth, (req, res) => {
+  res.json({ on: !!req.user.totp_secret, recoveryLeft: req.user.totp_secret ? totpRecoveryLeft(req.user) : null });
+});
+app.post('/api/me/totp/recovery', auth, (req, res) => {
+  if (!req.user.totp_secret) return res.status(400).json({ error: 'Two-step sign-in is not on' });
+  const code = (req.body || {}).code;
+  const ok = totpOk(req.user.totp_secret, code) || totpSpendRecovery(req.user, code);
+  if (!ok) return res.status(403).json({ error: 'A current code — or an unused recovery code — is needed to make new ones' });
+  const recovery = Array.from({ length: 10 }, () => b32encode(crypto.randomBytes(5)));
+  db.prepare('UPDATE users SET totp_recovery=? WHERE id=?').run(JSON.stringify(recovery.map(cd => sha(cd))), req.user.id);
+  res.json({ ok: true, recovery });
+});
 // E8-T3: active sessions list + revoke (the signed-in user's own sessions).
 app.get('/api/sessions', auth, (req, res) => {
   const rows = db.prepare('SELECT token,created_at,last_seen,expires_at,ip,ua FROM sessions WHERE user_id=? ORDER BY last_seen DESC').all(req.user.id);
@@ -14358,7 +14379,10 @@ async function runSignApprovalReminders() {
   try { ruleSteps = await runRuleStepReminders(); } catch (e) { ruleSteps = { error: (e && e.message) || String(e) }; }
   let looks = null;
   try { looks = await runLookReminders(); } catch (e) { looks = { error: (e && e.message) || String(e) }; }
-  return { ...named, sent: (named.sent || 0) + ((ruleSteps && ruleSteps.sent) || 0) + ((looks && looks.sent) || 0), ruleSteps, looks };
+  /* ASK AN ADMIN rides here too (16 Oct 2026): an ask nobody has answered */
+  let asks = null;
+  try { asks = await runSettingsAskReminders(); } catch (e) { asks = { error: (e && e.message) || String(e) }; }
+  return { ...named, sent: (named.sent || 0) + ((ruleSteps && ruleSteps.sent) || 0) + ((looks && looks.sent) || 0) + ((asks && asks.sent) || 0), ruleSteps, looks, asks };
 }
 async function runNamedYesReminders() {
   const rows = db.prepare("SELECT id, folder, json FROM contracts WHERE status!='Declined' AND status!='Signed' AND json LIKE '%signApprovals%'").all();
@@ -14913,7 +14937,6 @@ app.post('/api/users', auth, admin, async (req, res) => {
     prefs: JSON.stringify({ mustChangePassword: true }) };
   db.prepare('INSERT INTO users (id,name,email,role,title,salt,hash,created_at,prefs) VALUES (?,?,?,?,?,?,?,?,?)')
     .run(u.id, u.name, u.email, u.role, u.title, u.salt, u.hash, u.created_at, u.prefs);
-  const org = getSetting('org');
   /* "SENT" USED TO MEAN "WE HAVE A KEY". This answered emailSent: EMAIL_ON()
      without waiting to see what the provider did with it, so an admin whose
      sending domain is not verified — the commonest real mail failure there is —
@@ -14921,11 +14944,133 @@ app.post('/api/users', auth, admin, async (req, res) => {
      temporary password, and nobody finds out until they say so. It is awaited
      now and reported for what actually happened; the admin can then hand the
      password over another way, which is the whole point of being told. */
-  const mailed = await sendEmail(u.email, `You've been added to ${org?.name || 'a HaTi workspace'}`,
-    `${req.user.name} added you to ${org?.name || 'the workspace'} on HaTi as ${role}.\nSign in at ${req.protocol}://${req.get('host')} with your email and the temporary password you were given, then change it.`,
-    `invite: ${u.email} (${role})`);
+  const mailed = await welcomeMail(u, req, 'invite');
   res.json({ ok: true, user: publicUser(u), ...mailReport(mailed) });
 });
+/* THE WELCOME, ONE TEXT for the first send and any later one, so the two can
+   never say different things. It never carries the password: the admin hands
+   that over, which is why the account starts with mustChangePassword. */
+function welcomeMail(u, req, tag){
+  const org = getSetting('org');
+  return sendEmail(u.email, `You've been added to ${org?.name || 'a HaTi workspace'}`,
+    `${req.user.name} added you to ${org?.name || 'the workspace'} on HaTi as ${u.role}.\nSign in at ${req.protocol}://${req.get('host')} with your email and the temporary password you were given, then change it.`,
+    `${tag}: ${u.email} (${u.role})`);
+}
+/* ---- SEND THE WELCOME AGAIN (16 Oct 2026, the Control Room built in full:
+   "1 invitation not accepted — Resend") ----
+   Only while the member has NOT signed in: mustChangePassword is the server's
+   own mark, cleared by /api/password/change and nothing else, so a resend to
+   somebody who is already in is refused rather than sent. To the member's own
+   STORED address — a route never reads an address from the body. The resend
+   is RECORDED on the member (invitedAgainAt) and in the outbox, and the answer
+   is the same three-way mailReport every send gives. */
+app.post('/api/users/:id/invite', auth, admin, async (req, res) => {
+  const u = db.prepare('SELECT * FROM users WHERE id=?').get(String(req.params.id || ''));
+  if (!u) return res.status(404).json({ error: 'No such member' });
+  const prefs = userPrefs(u);
+  if (!prefs.mustChangePassword)
+    return res.status(409).json({ error: `${u.name || u.email} has already signed in — there is no invitation to send again` });
+  if (!validEmail(u.email)) return res.status(409).json({ error: `${u.name || 'This member'} has no email address on file` });
+  const mailed = await welcomeMail(u, req, 'invite again');
+  prefs.invitedAgainAt = now();
+  db.prepare('UPDATE users SET prefs=? WHERE id=?').run(JSON.stringify(prefs), u.id);
+  res.json({ ok: true, user: publicUser(db.prepare('SELECT * FROM users WHERE id=?').get(u.id)), ...mailReport(mailed) });
+});
+
+/* ============================================================
+   ASK AN ADMIN (16 Oct 2026, the Control Room built in full, piece 19; the
+   owner took the tracked version: "go with your advice")
+   ============================================================
+   A colleague asks Jambo for a company rule; Jambo offers to ask an admin;
+   the ask is its OWN RECORD here — never an email alone (flow rule 3). It
+   lands in every admin's Settings "Needs you" and their bell, each admin is
+   mailed once, an ask nobody has answered in SETTINGS_ASK_REMIND_DAYS is
+   mailed again (the reminder sweep), and it closes on the answer — done or
+   no, with a reason — which reaches the person who asked in their bell and
+   their inbox. One open ask per person per rule: asking again is the same ask.
+   A ROUTE NEVER READS AN ADDRESS FROM THE BODY: admins and the asker are
+   looked up here. */
+db.exec(`CREATE TABLE IF NOT EXISTS settings_asks (
+  id TEXT PRIMARY KEY, by_id TEXT NOT NULL, by_name TEXT, what TEXT NOT NULL, why TEXT NOT NULL DEFAULT '',
+  panel TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'open', answered_by TEXT, answered_at TEXT,
+  note TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, reminded_at TEXT, seen_at TEXT)`);
+const SETTINGS_ASK_REMIND_DAYS = 3;
+const SETTINGS_ASK_DAYS = 30;          // how long an answered ask stays on the asker's list
+const settingsAskRow = r => ({ id: r.id, by: { id: r.by_id, name: r.by_name || '' }, what: r.what, why: r.why || '',
+  panel: r.panel || '', status: r.status, answeredBy: r.answered_by || null, answeredAt: r.answered_at || null,
+  note: r.note || '', createdAt: r.created_at, remindedAt: r.reminded_at || null, seenAt: r.seen_at || null });
+function settingsAskMailAdmins(row, req, again){
+  const admins = db.prepare("SELECT * FROM users WHERE role='admin'").all().filter(u => validEmail(u.email));
+  const url = (APP_URL() || (req ? `${req.protocol}://${req.get('host')}` : '')) + '/#settings';
+  for (const a of admins) {
+    const L = (a.lang && I18N_STRINGS[a.lang]) ? a.lang : I18N_DEFAULT;
+    sendEmail(a.email, tFor(L, again ? 'mail_ska_ask_subject_again' : 'mail_ska_ask_subject', { who: row.by_name || '' }),
+      `${tFor(L, 'mail_hello')}${a.name ? ' ' + a.name : ''},\n\n`
+      + tFor(L, again ? 'mail_ska_ask_lead_again' : 'mail_ska_ask_lead', { who: row.by_name || '', what: row.what }) + '\n'
+      + (row.why ? `\n"${row.why}"\n` : '') + (url ? `\n${url}\n` : '') + `\n${tFor(L, 'mail_automated_notice')}`,
+      again ? 'settings ask reminder' : 'settings ask');
+  }
+  return admins.length;
+}
+app.post('/api/settings-asks', auth, rlIntake, (req, res) => {
+  if (req.user.role === 'admin') return res.status(400).json({ error: 'An admin can change this setting directly' });
+  const b = req.body || {};
+  const what = myText(b.what, 200), why = myText(b.why, 600), panel = myText(b.panel, 40).replace(/[^a-z0-9:_-]/gi, '');
+  if (!what) return res.status(400).json({ error: 'Say what you would like changed' });
+  const open = panel ? db.prepare("SELECT * FROM settings_asks WHERE by_id=? AND panel=? AND status='open'").get(req.user.id, panel) : null;
+  if (open) return res.json({ ok: true, ask: settingsAskRow(open), again: true });
+  const id = 'ASK-' + rid(6).toUpperCase();
+  db.prepare('INSERT INTO settings_asks (id,by_id,by_name,what,why,panel,status,created_at) VALUES (?,?,?,?,?,?,?,?)')
+    .run(id, req.user.id, req.user.name || '', what, why, panel, 'open', now());
+  const row = db.prepare('SELECT * FROM settings_asks WHERE id=?').get(id);
+  const told = settingsAskMailAdmins(row, req, false);
+  res.json({ ok: true, ask: settingsAskRow(row), told });
+});
+app.get('/api/settings-asks', auth, (req, res) => {
+  const since = new Date(Date.now() - SETTINGS_ASK_DAYS * 864e5).toISOString();
+  const rows = req.user.role === 'admin'
+    ? db.prepare("SELECT * FROM settings_asks WHERE status='open' OR created_at>=? ORDER BY created_at DESC LIMIT 200").all(since)
+    : db.prepare('SELECT * FROM settings_asks WHERE by_id=? AND (status=\'open\' OR created_at>=?) ORDER BY created_at DESC LIMIT 50').all(req.user.id, since);
+  res.json({ asks: rows.map(settingsAskRow) });
+});
+/* The answer is an admin's; "seen" is the asker's own. Nothing else moves. */
+app.patch('/api/settings-asks/:id', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM settings_asks WHERE id=?').get(String(req.params.id || ''));
+  if (!r || (req.user.role !== 'admin' && r.by_id !== req.user.id)) return res.status(404).json({ error: 'Ask not found' });
+  const b = req.body || {};
+  if (b.seen === true && r.by_id === req.user.id) {
+    db.prepare('UPDATE settings_asks SET seen_at=? WHERE id=?').run(now(), r.id);
+    return res.json({ ok: true, ask: settingsAskRow(db.prepare('SELECT * FROM settings_asks WHERE id=?').get(r.id)) });
+  }
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Only an admin answers an ask' });
+  const status = String(b.status || '');
+  if (!['done', 'declined'].includes(status)) return res.status(400).json({ error: 'An answer is done or declined' });
+  if (r.status !== 'open') return res.status(409).json({ error: 'This ask has already been answered' });
+  const note = myText(b.note, 600);
+  if (status === 'declined' && !note) return res.status(400).json({ error: 'Say why, so they know' });
+  db.prepare('UPDATE settings_asks SET status=?, note=?, answered_by=?, answered_at=?, seen_at=NULL WHERE id=?')
+    .run(status, note, req.user.name || '', now(), r.id);
+  const after = db.prepare('SELECT * FROM settings_asks WHERE id=?').get(r.id);
+  const u = db.prepare('SELECT * FROM users WHERE id=?').get(r.by_id);
+  if (u && validEmail(u.email)) {
+    const L = (u.lang && I18N_STRINGS[u.lang]) ? u.lang : I18N_DEFAULT;
+    sendEmail(u.email, tFor(L, 'mail_ska_answer_subject_' + status, { what: r.what }),
+      `${tFor(L, 'mail_hello')}${u.name ? ' ' + u.name : ''},\n\n`
+      + tFor(L, 'mail_ska_answer_lead_' + status, { what: r.what, who: req.user.name || '' }) + '\n'
+      + (note ? `\n"${note}"\n` : '') + `\n${tFor(L, 'mail_automated_notice')}`, 'settings ask answered');
+  }
+  res.json({ ok: true, ask: settingsAskRow(after) });
+});
+/* THE REMINDER: an ask still open SETTINGS_ASK_REMIND_DAYS after it was made
+   (or after its last reminder) is mailed to the admins again. Rides the
+   approval reminders' sweep — the same timer, the same admin "run it now". */
+async function runSettingsAskReminders() {
+  const cut = new Date(Date.now() - SETTINGS_ASK_REMIND_DAYS * 864e5).toISOString();
+  const rows = db.prepare("SELECT * FROM settings_asks WHERE status='open' AND created_at<=? AND (reminded_at IS NULL OR reminded_at<=?)").all(cut, cut);
+  let sent = 0;
+  for (const r of rows) { sent += settingsAskMailAdmins(r, null, true) ? 1 : 0; db.prepare('UPDATE settings_asks SET reminded_at=? WHERE id=?').run(now(), r.id); }
+  return { checked: rows.length, sent };
+}
 
 /* Role and value-visibility are both edited here; either may be sent on its own
    so the Team screen can toggle one without restating the other. */
@@ -18640,6 +18785,20 @@ app.put('/api/me/prefs', auth, (req, res) => {
   }
   /* HOW THIS PERSON SEES JAMBO'S HOUSE (owner, 13 Oct 2026: "Which ever they
      choose becomes the default"): one of the two looks, or null for the plan. */
+  /* HOW THIS PERSON LIKES TO WORK (16 Oct 2026, the Control Room built in
+     full): Jambo's next-step chips (absent = on), and where a contract opens
+     for them (absent = Jambo's at-a-glance). A value outside the list is
+     REFUSED rather than stored. */
+  if ('jamboChips' in (req.body || {})) {
+    if (typeof req.body.jamboChips !== 'boolean') return res.status(400).json({ error: 'jamboChips must be true or false' });
+    if (req.body.jamboChips) delete prefs.jamboChips; else prefs.jamboChips = false;
+  }
+  if ('opensOn' in (req.body || {})) {
+    const v = req.body.opensOn;
+    if (v === null || v === 'jambo') delete prefs.opensOn;
+    else if (OPENS_ON_SRV.includes(v)) prefs.opensOn = v;
+    else return res.status(400).json({ error: 'opensOn must be one of: ' + ['jambo'].concat(OPENS_ON_SRV).join(', ') });
+  }
   if ('agentsLook' in (req.body || {})) {
     const v = req.body.agentsLook;
     if (v === null) delete prefs.agentsLook;
@@ -18650,6 +18809,8 @@ app.put('/api/me/prefs', auth, (req, res) => {
   res.json({ ok: true, prefs });
 });
 const AGENTS_LOOKS = ['plan', 'drawing'];
+/* the places a contract may open on, besides Jambo (js/core.js OPENS_ON) */
+const OPENS_ON_SRV = ['fill', 'red', 'clauses', 'signing'];
 
 /* ---------- A HOME PANEL GIVEN TO A COLLEAGUE (Young asked 3 Oct 2026) ----------
    "Give to Brian with a note": the panel appears on the colleague's Home with
@@ -21948,6 +22109,97 @@ app.delete('/api/me/items/:id', auth, (req, res) => {
    the page with its Undo). Every block is checked: inside the window, inside
    working hours, clear of the events it was shown and of each other, and a
    contract only where the person can see it. */
+/* ---- WHY, ASKED OF THE RULES (16 Oct 2026, the Control Room built in full,
+   piece 17; owner: "yes") ----
+   "Why can't Amina sign the Mombasa lease?" answered by reading what THIS
+   SERVER holds — never what a browser says: the workspace's rules, the
+   members' own settings, and one contract named in the question that the
+   asker may open. THE WALL HOLDS: an admin's answer reads the rules and every
+   member; anybody else's reads their OWN settings and the contract only
+   (the rules page is admin-only — SET_CLOSURES 'rules'). A value the asker
+   may not see is never sent. It explains and writes nothing; its doors are
+   checked against the board's own names and members. */
+const SETTINGS_WHY_PANELS = ['signcap', 'signcheck', 'signfolder', 'signroute', 'review', 'desk', 'linkcode', 'approvals', 'rules', 'folders', 'company', 'copilot', 'agents', 'mail', 'golive', 'design', 'mailroom', 'lanes', 'renewals'];
+const SETTINGS_WHY_RULES_MAX = 6000;
+function settingsWhyPerson(u, users){
+  const nameOf = id => ((users.find(x => x.id === id) || {}).name) || '';
+  const pu = publicUser(u);
+  const sc = pu.signCap == null ? 'not set (any amount)' : pu.signCap === 'none' ? 'no limit' : String(pu.signCap);
+  const fa = pu.folderAccess;
+  return `- [${u.id}] ${u.name || u.email} (${u.role})${u.role === 'admin' ? ': admin, never capped' : `: signing limit ${sc}`}`
+    + `; approval before signing ${pu.overseerOn === 'off' ? 'off' : pu.overseerId ? `from ${nameOf(pu.overseerId) || 'a member'}${pu.overseerBackupId ? `, backup ${nameOf(pu.overseerBackupId)}` : ', no backup'}` : 'none'}`
+    + `; changes checked before sending: ${pu.reviewChecked === false ? 'no' : 'yes when the rule is on'}`
+    + `; streams: ${Array.isArray(fa) ? fa.length + ' named' : 'all'}`;
+}
+function settingsWhyContract(user, q){
+  const words = [...new Set(String(q || '').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(w => w.length >= 4))];
+  if (!words.length) return null;
+  const scope = folderScopeFor(user);
+  let best = null, bestN = 0;
+  for (const r of db.prepare('SELECT id, name, counterparty, folder FROM contracts').all()) {
+    if (!inScope(scope, r.folder)) continue;
+    const hay = `${r.name || ''} ${r.counterparty || ''}`.toLowerCase();
+    const n = words.filter(w => hay.includes(w)).length;
+    if (n > bestN) { best = r; bestN = n; }
+  }
+  if (!best) return null;
+  const row = db.prepare('SELECT * FROM contracts WHERE id=?').get(best.id);
+  let c = {}; try { c = JSON.parse(row.json || '{}') || {}; } catch (_) { c = {}; }
+  const money = canViewValues(user) && row.value != null ? `${c.currency || ''} ${Number(row.value).toLocaleString('en')}`.trim() : 'not shown to this person';
+  const signers = (Array.isArray(c.signerPlan) ? c.signerPlan : []).map(x => x && (x.name || x.email)).filter(Boolean).slice(0, 6);
+  return { name: row.name, text: `"${row.name}" with ${row.counterparty || 'the other party'}: status ${row.status || 'unknown'}; value ${money}; stream ${row.folder || 'none'}; signers named: ${signers.length ? signers.join(', ') : 'none yet'}.` };
+}
+app.post('/api/ai/settings-why', auth, rlAiDeep, aiFeature('settings'), aiBudgetGuard, capAiInput, async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
+  const q = myText((req.body || {}).q, 400);
+  if (!q) return res.status(400).json({ error: 'Ask a question first' });
+  const admin = req.user.role === 'admin';
+  const users = db.prepare('SELECT * FROM users ORDER BY created_at').all();
+  const read = [];
+  let rules = '';
+  if (admin) {
+    const s = getSetting('appSettings') || {};
+    const picked = Object.keys(s).filter(k => /sign|review|desk|link|approv|rule|hold|paper/i.test(k)).map(k => `${k}: ${JSON.stringify(s[k])}`).join('\n');
+    rules = picked.length > SETTINGS_WHY_RULES_MAX ? picked.slice(0, SETTINGS_WHY_RULES_MAX) + '\n(… cut short here: the rules are longer than this answer may read)' : picked;
+    read.push('the rules');
+  }
+  const people = (admin ? users : users.filter(u => u.id === req.user.id)).map(u => settingsWhyPerson(u, users)).join('\n');
+  read.push(admin ? 'everyone’s settings' : 'your settings');
+  const ct = settingsWhyContract(req.user, q);
+  if (ct) read.push(ct.name);
+  const L = (req.user.lang && I18N_STRINGS[req.user.lang]) ? req.user.lang : I18N_DEFAULT;
+  const lang = { en: 'English', sv: 'Swedish' }[L] || 'English';
+  const tool = { name: 'answer', description: 'Answer the person\'s question about why something in the workspace happens.',
+    input_schema: { type: 'object', properties: {
+      title: { type: 'string', description: 'At most 6 plain words naming the answer, e.g. "Two things stop her".' },
+      say: { type: 'string', description: 'One to three plain sentences that answer the question from the facts given.' },
+      points: { type: 'array', maxItems: 4, items: { type: 'string', description: 'One short plain reason.' } },
+      doors: { type: 'array', maxItems: 3, items: { type: 'object', properties: {
+        panel: { type: 'string', description: 'A setting to open, one of: ' + SETTINGS_WHY_PANELS.join(', ') },
+        person: { type: 'string', description: 'A member id to open, from the list.' } } } } },
+      required: ['say'] } };
+  const prompt = `You explain a contract-management workspace's settings to ${req.user.name || 'a member'} (${req.user.role}). Answer ONLY from the facts below. If they do not answer the question, say plainly what is missing — never invent a rule, a limit or a person. Write in ${lang}, plain words, short.
+${admin ? `The workspace's rules (stored settings):\n${rules || '- none set'}\n` : 'This person is not an admin: the company\'s rules are not shown to them, so do not describe any rule beyond their own settings below.\n'}
+People (member id in brackets):
+${people || '- none'}
+${ct ? `The contract the question names:\n- ${ct.text}\n` : 'No contract in the question matched one this person can open.\n'}
+The person asks: ${q}`;
+  try {
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 900, tools: [tool], tool_choice: { type: 'tool', name: 'answer' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'settings', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const block = (resp.data.content || []).find(x => x.type === 'tool_use');
+    if (!block) return res.status(502).json({ error: 'Jambo returned no answer' });
+    const a = block.input || {};
+    const say = myText(a.say, 600);
+    if (!say) return res.status(502).json({ error: resp.truncated ? 'Jambo ran out of room before it could answer. Try again.' : 'Jambo returned an empty answer' });
+    const ids = new Set(users.map(u => u.id));
+    const doors = admin ? (Array.isArray(a.doors) ? a.doors : []).map(d => d && SETTINGS_WHY_PANELS.includes(d.panel) ? { panel: d.panel }
+      : d && ids.has(String(d.person || '')) ? { person: String(d.person) } : null).filter(Boolean).slice(0, 3) : [];
+    res.json({ title: myText(a.title, 60), say, points: (Array.isArray(a.points) ? a.points : []).map(x => myText(x, 200)).filter(Boolean).slice(0, 4),
+      doors, read, ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
+});
 app.post('/api/ai/plan', auth, rlAiDeep, aiFeature('plan'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });

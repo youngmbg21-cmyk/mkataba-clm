@@ -677,6 +677,15 @@ function shellCrumbHome(){
   el.classList.add('is-crumb');
   if(_shellLayerLabel) shellCrumbLayer(_shellLayerLabel);
 }
+/* ONE SEARCH, THREE PLACES TO TYPE (owner, 16 Oct 2026, decision 3): on
+   Settings the bar's box finds a setting, a person or a word — it IS the ⌘K
+   box, opened there with what was typed; everywhere else it filters
+   contracts, as it always has. The placeholder says which. */
+function paintSearchFace(view){
+  const b=document.getElementById('cmd-search'); if(!b) return;
+  const k=view==='team'?'st_find_ph':'sh_search_ph';
+  b.setAttribute('data-i18n-ph',k); b.placeholder=i18t(k);
+}
 function renderPageHeader(view){
   paintShellTitle(view);
   /* THE RAIL SAYS WHOSE WORKSPACE THIS IS (the redesign, 20 Sep 2026): the
@@ -693,6 +702,7 @@ function renderPageHeader(view){
      runs on every view change, which is the first thing that happens after a
      successful sign-in. */
   paintAppearance();
+  paintSearchFace(view);
   const host=document.getElementById('page-head'); if(!host) return;
   if(PAGE_OWNS_HEADER.includes(view)){ host.innerHTML=''; host.style.padding='0'; syncViewHeight(); return; }
   /* ---- NO SENTENCE UNDER ANY HEADER (owner-asked 25 Aug 2026, off a
@@ -1782,6 +1792,14 @@ function commandPaletteResults(q){
   if(q&&typeof window.caPlaceRows==='function'){
     caPlaceRows(q).forEach(p=>out.push({kind:'place',id:p.k,title:p.word,sub:p.sub,tag:i18t('ca_place_tag'),ic:'chevR'}));
   }
+  /* SETTINGS, IN PLAIN WORDS (the one finder, stFind — the Menu's box and
+     Jambo ask it too): first and more of them on Settings, a few elsewhere */
+  if(q&&typeof window.stFindRows==='function'){
+    let rows=[]; try{ rows=stFindRows(q)||[]; }catch(_){ rows=[]; }
+    const onSettings=state.view==='team';
+    const mapped=rows.slice(0,onSettings?8:3).map(r=>({kind:'setting',id:r.id,title:r.title,sub:r.why?`${r.sub} · ${r.why}`:r.sub,tag:i18t('ap_tag_setting'),ic:'cog'}));
+    if(onSettings) out.unshift(...mapped); else out.push(...mapped);
+  }
   if(q){
     folders.filter(f=>f.name.toLowerCase().includes(q)).slice(0,4)
       .forEach(f=>out.push({kind:'folder',id:f.id,title:f.name,get sub(){ return i18t('ap_value_stream'); },ic:f.ic||'folder'}));
@@ -1795,8 +1813,8 @@ function commandPaletteResults(q){
     title:c.name, ref:(window.contractRef?contractRef(c):c.id), sub:`${c.counterparty?' · '+c.counterparty:''}${c.archived?' · '+i18t('ct_archived_tag'):''}`, ic:(window.cIcon?cIcon(c):'file'), status:c.status}));
   return out.slice(0,14);
 }
-function openCommandPalette(){
-  const prev=document.getElementById('cmd-palette'); if(prev){ prev.querySelector('#cp-input')?.focus(); return; }
+function openCommandPalette(prefill){
+  const prev=document.getElementById('cmd-palette'); if(prev){ const pi=prev.querySelector('#cp-input'); if(pi){ if(typeof prefill==='string'&&prefill) pi.value=prefill; pi.focus(); pi.dispatchEvent(new Event('input')); } return; }
   /* WHO OPENED IT, so focus can go back there. Without this, Escape drops a
      keyboard reader at the top of the document and they have to Tab in again
      from the beginning — openModal has done this correctly since 23 Aug and
@@ -1850,6 +1868,7 @@ function openCommandPalette(){
       return;
     }
     if(it.kind==='place'){ close(); if(window.caPlaceRun) caPlaceRun(it.id); return; }
+    if(it.kind==='setting'){ close(); if(window.stFindGo) stFindGo(it.id); return; }
     close(); if(it.kind==='folder') openFolder(it.id); else openWorkspace(it.id);
   };
   const ftsPlan=()=>{
@@ -1930,6 +1949,7 @@ function openCommandPalette(){
   document.addEventListener('keydown',onKey,true);
   input.addEventListener('input',()=>{ active=0; paint(); ftsPlan(); });
   ov.addEventListener('click',e=>{ if(e.target===ov||e.target===ov.firstElementChild) close(); });
+  if(typeof prefill==='string' && prefill){ input.value=prefill; ftsPlan(); }
   paint(); input.focus();
 }
 
@@ -2190,6 +2210,12 @@ const ALERT_KINDS = [
      so only ever this reader's own. Amber: work this reader set themselves.
      It clears when the note is marked reviewed or snoozed. */
   { k:'note-due',    tone:'amber', ic:'&#128221;' },
+  /* ---- ASK AN ADMIN (16 Oct 2026, the Control Room built in full) ----
+     A colleague asked for a company setting (an admin's: amber, somebody is
+     waiting on them), and the answer to the reader's own ask (green: news,
+     cleared once read). Both open Settings, where the ask lives. */
+  { k:'settings-ask',    tone:'amber', ic:'&#9881;' },
+  { k:'settings-answer', tone:'green', ic:'&#9881;' },
   /* Waiting on somebody else, and last of all a date that moved by itself —
      neither is a thing this reader can clear this minute. */
   { k:'review-out',  tone:'gray',  ic:'&#8987;'  },
@@ -2709,6 +2735,14 @@ function buildAlerts(){
   }catch(e){}
   try{
     if(typeof window.hbGiftAlerts==='function') hbGiftAlerts().forEach(g=>push('gift',g.c,g.text,g.go));
+  }catch(e){}
+  try{
+    if(typeof window.stAsksOpen==='function') stAsksOpen().forEach(a=>
+      push('settings-ask',null,i18t('al_settings_ask',{who:a.byName||'',what:a.what}),
+        ()=>{ if(window.openSettingsAt) openSettingsAt('company','ask:'+a.id); }, { sub:a.why||'' }));
+    if(typeof window.stAsksAnswered==='function') stAsksAnswered().forEach(a=>
+      push('settings-answer',null,i18t(a.status==='done'?'al_settings_done':'al_settings_no',{what:a.what}),
+        ()=>{ if(window.stAskSeen) stAskSeen(a.id); setView('team'); }, { sub:a.note||'' }));
   }catch(e){}
   try{
     if(typeof window.mineNotesDue==='function') mineNotesDue().forEach(n=>{
@@ -3949,6 +3983,9 @@ function wireShell(){
   const search=document.getElementById('cmd-search');
   if(search){
     search.addEventListener('input',()=>{
+      /* ON SETTINGS IT IS THE ⌘K BOX (paintSearchFace): what was typed goes
+         into the palette, which leads with settings here */
+      if(state.view==='team'){ const typed=search.value; search.value=''; openCommandPalette(typed); return; }
       const q=search.value;
       /* ---- IT WRITES TO THE SEAT IT LANDS ON, NOT THE ONE IT WAS PRESSED
          FROM (owner-reported 10 Sep 2026) ----
