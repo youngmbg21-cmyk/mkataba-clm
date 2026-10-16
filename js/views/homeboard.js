@@ -613,7 +613,10 @@ function hbAgentsData(sinceIso){
   const ready = rows.reduce((s, r) => s + r.pill, 0);   /* the same count the pills show */
   return { ready, rows, done };
 }
-const HB_OFF_BOARD = ['approve'];
+/* "Our promises" left the Board too (owner, 16 Oct 2026): the bell and the
+   Obligations overdue figure already tell you what your side owes; the agent
+   still runs and still sends its reminders, on the agents page */
+const HB_OFF_BOARD = ['approve', 'ours'];
 
 /* ---------------- ONE LIST, ONE PLACE — REVERSED (owner-asked 4 Oct 2026)
    ----------------
@@ -1172,7 +1175,7 @@ function hbParse(qRaw){
         const c0 = cq[0];
         if (c0.field === 'expired') return { act: 'dig', key: 'f:past' };
         if (c0.field === 'move' && c0.label === 'waiting on us') return { act: 'dig', key: 'f:us' };
-        if (c0.field === 'overdue') return { act: 'panel', kind: 'obl', lens: null };
+        if (c0.field === 'overdue') return { act: 'dig', key: 'f:overdue' };
         if (c0.field === 'expiryWindow' && /\b90 (?:days|dagar)\b/.test(c0.hit || '')) return { act: 'dig', key: 'f:ending' };
         if (c0.field === 'side') return { act: 'lens', lens: c0.fn({ metadata: { category: 'supplier' } }) ? 'suppliers' : 'customers' };
       }
@@ -1193,6 +1196,9 @@ function hbParse(qRaw){
   /* a panel word answers a short ask; a long sentence that merely holds one
      ("a grid of streams against stages…") is a chart Copilot draws */
   if (kind && s.length >= 48 && !HB_RX.remove.test(s)) return null;
+  /* ONE LIST OF LATE DUTIES (owner, 16 Oct 2026): asking for them opens the
+     Obligations overdue figure's own list, never a second panel of the same */
+  if (kind === 'obl' && !HB_RX.remove.test(s) && !sup && !cus) return { act: 'dig', key: 'f:overdue' };
   if (kind) return { act: HB_RX.remove.test(s) ? 'remove' : 'panel', kind, lens: sup ? 'suppliers' : cus ? 'customers' : null };
   if (sup && s.length < 40) return { act: 'lens', lens: 'suppliers' };
   if (cus && s.length < 40) return { act: 'lens', lens: 'customers' };
@@ -1313,6 +1319,13 @@ function hbDeltaHtml(k, M, since){
 /* WHAT THE VALUE LEAVES OUT IS SAID ON THE TILE (the Board walk-through,
    15 Oct 2026): it lived only in a hover tip, which an iPad never shows. The
    currencies are named, read off the very contracts left out. */
+/* OURS AND THEIRS ON THE OVERDUE FIGURE (owner, 16 Oct 2026): the figure counts
+   both sides; the bell says ours and "Late promises" theirs, so the figure says
+   how its number splits and the three add up */
+function hbOverdueSplitSay(rows){
+  const theirs = (rows || []).filter(o => typeof obligationIsTheirs === 'function' && obligationIsTheirs(o)).length;
+  return i18t('hb_f_overdue_split', { ours: _hbN((rows || []).length - theirs), theirs: _hbN(theirs) });
+}
 function hbLeftCodes(ids){
   const codes = new Set();
   (ids || []).forEach(id => { const c = hbContract(id); if (!c) return;
@@ -1327,14 +1340,15 @@ function hbBookHtml(d, moved, since){
     const num = f.k === 'value' ? _hbM(F.v) : f.days ? (F.none ? '—' : i18tn('hb_f_days', F.n, { n: _hbN(F.n) })) : _hbN(F.n);
     const zero = f.days ? F.none : !F.n;
     const tone = f.days ? (F.tone ? ' is-' + F.tone : '') : !zero && f.tone ? ' is-' + f.tone : '';
-    const leftSay = (f.k === 'value' && F.left) ? i18tn('fx_left_out', F.left, { n: F.left, codes: hbLeftCodes(F.ids) }) : '';
+    const leftSay = (f.k === 'value' && F.left) ? i18tn('fx_left_out', F.left, { n: F.left, codes: hbLeftCodes(F.ids) })
+      : (f.k === 'overdue' && F.n) ? hbOverdueSplitSay(F.rows) : '';
     const left = leftSay ? ' · ' + leftSay : '';
     /* THE NEW BOARD'S TILE (11 Oct 2026): what it counts, then the number,
        then what moved since your last visit, then the figure's own line */
     return `<div class="hb-fig${tone}">
       <button type="button" class="hb-fig-main" ${zero ? 'disabled' : `data-hb-dig="f:${f.k}"`} title="${_hbE(i18t(f.k === 'paygap' && F.gap != null ? (F.gap < 0 ? 'hb_f_paygap_good' : F.gap > 0 ? 'hb_f_paygap_bad' : 'hb_f_paygap_tip') : f.tip) + left)}">
         <span class="hb-fig-l">${_hbE(i18t(f.word))}</span><span class="hb-fig-n">${_hbE(num)}</span></button>
-      ${leftSay ? `<span class="hb-fig-left">${_hbE(leftSay)}</span>` : ''}${hbDeltaHtml(f.k, moved && moved[f.k], since)}${hbVsHtml(f.k, d, f.k === 'paygap' ? (F.tone === 'good' ? '' : 'warn') : f.tone)}${hbSparkHtml(f.k, f.k === 'value' ? _hbM : f.days ? (n => i18tn('hb_f_days', n, { n: _hbN(n) })) : _hbN, d)}</div>`;
+      ${leftSay ? `<span class="hb-fig-left${f.k === 'overdue' ? ' is-split' : ''}">${_hbE(leftSay)}</span>` : ''}${hbDeltaHtml(f.k, moved && moved[f.k], since)}${hbVsHtml(f.k, d, f.k === 'paygap' ? (F.tone === 'good' ? '' : 'warn') : f.tone)}${hbSparkHtml(f.k, f.k === 'value' ? _hbM : f.days ? (n => i18tn('hb_f_days', n, { n: _hbN(n) })) : _hbN, d)}</div>`;
   }).join('');
   const tot = d.stages.reduce((a, s) => a + s.n, 0);
   const bar = tot ? `<div class="hb-stagebar">${d.stages.map(s => s.n ? `<button type="button" style="flex-grow:${s.n};background:${_hbE(s.tone)}" data-hb-dig="st:${_hbE(s.k)}" title="${_hbE((s.word ? i18t(s.word) : s.k) + ': ' + i18tn('home_map_n_contracts', s.n, { n: _hbN(s.n) }))}" aria-label="${_hbE((s.word ? i18t(s.word) : s.k) + ': ' + i18tn('home_map_n_contracts', s.n, { n: _hbN(s.n) }))}"></button>` : '').join('')}</div>

@@ -46,7 +46,7 @@
 
     { "src": "f448-keep", "road": "free", "q": "Show me all Juno contracts", "want": { "parse": { "act": "dig", "key": "q:Show me all Juno contracts" } } },
     { "src": "f448-keep", "road": "free", "q": "show expired contracts", "want": { "parse": { "act": "dig", "key": "f:past" } } },
-    { "src": "f448-keep", "road": "free", "q": "which contracts are overdue", "want": { "parse": { "act": "panel", "kind": "obl", "lens": null } } },
+    { "src": "f448-keep", "road": "free", "q": "which contracts are overdue", "want": { "parse": { "act": "dig", "key": "f:overdue" } } },
     { "src": "f448-keep", "road": "free", "q": "renewals", "want": { "parse": { "act": "panel", "kind": "ren", "lens": null } } },
     { "src": "f448-keep", "road": "free", "q": "payment terms", "want": { "parse": { "act": "panel", "kind": "pay", "lens": null } } },
     { "src": "f448-keep", "road": "free", "q": "payment terms suppliers vs customers", "want": { "parse": { "act": "split", "kind": "pay" } } },

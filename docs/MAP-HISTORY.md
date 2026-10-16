@@ -30086,3 +30086,20 @@ The owner: *"when a contract is open on the board and it has an accompanying ame
 - Built: one line under the card's head, "Agreement family", drawn only where `familyOf(c)` holds two or more. The original comes first ("Original"), then each child in the order it was made, named by its relation word and its own count ("Amendment No. 1", a renewal counted apart). Each pill shows its reference, its word and its status in the strip's own tones (`bsTone`). The one in front is lit and is not a button; any other is a button, and a press brings that contract up through the one door `hbStripBring`. Names: `bsFamRows` (the reading), `bsFamHtml` (the drawing), `.bs-fam*`, `bs_fam_*` in both books. Brain part `stripfamily`, on the amend flow's last step, own lane.
 - The six questions: the header carries facts, so the line sits in the card's head area rather than as a band; it costs the paper nothing because it is on the Board's card, not the paper. One door: pressing a pill uses the same bring-up as every other way in. The SAP way was offered and not picked.
 - agreement-family-verify: 10 checks, red at unmodified main (2/10: only "no line without a family" and "no page errors" hold there), green with the change, at 1440×780, 1536×730 and 1366×950. board-strip-verify 66/66, theme-tokens and ink-wash unchanged.
+
+## LATE DUTIES, ONE JOB EACH (owner, 16 Oct 2026: "Go ahead then merge to main")
+
+The walk-through found late duties in six places with five numbers. The
+owner took the proposal whole:
+- KEEP the Obligations overdue figure, now with "N ours · N theirs" under it
+  (`hbOverdueSplitSay`, `.hb-fig-left.is-split`, `hb_f_overdue_split`), so it
+  adds up with the bell (ours) and Late promises (theirs).
+- KEEP the sidebar count, the bell, and Late promises (the only chase).
+- OUR PROMISES LEAVES THE BOARD: `HB_OFF_BOARD` = ['approve', 'ours']; the
+  agent still runs and reminds, on the agents page.
+- JAMBO'S "which obligations are overdue?" opens the figure's own list
+  (`hbParse` → `{ act: 'dig', key: 'f:overdue' }`), never a second panel; a
+  suppliers/customers ask and "remove the obligations panel" keep the panel.
+Tests re-pointed: f447 (3) and its 215, f448, chase-many-verify 3a,
+home-prepared-by-copilot-verify 2a–3 (Late promises's row now), home-board-verify
+11c; board-walkthrough-fixes verify 8a–8c (and 2 on Late promises).

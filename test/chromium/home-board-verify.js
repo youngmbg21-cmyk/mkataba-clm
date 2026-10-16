@@ -278,8 +278,9 @@ const CONTRACTS = [
       /^q:/.test((hbS().path || []).slice(-1)[0] || '') && hbDigData((hbS().path || []).slice(-1)[0], 'all').ids.join() === 'MK-J1'));
     ok('11b "Show me all expired contracts" is past the end date, not ending soon', await landsOn('Show me all expired contracts', () =>
       (hbS().path || []).slice(-1)[0] === 'f:past' && hbDigData('f:past', 'all').ids.includes('MK-S2')));
-    ok('11c "Show me agreements that are past due" puts the overdue obligations on the board', await landsOn('Show me agreements that are past due', () =>
-      hbS().panels.some(p => p.kind === 'obl') && !!document.querySelector('#hb-board [data-hb-pid] .hb-ct')));
+    /* ONE LIST OF LATE DUTIES (owner, 16 Oct 2026): the Obligations overdue figure's own list, not a second panel */
+    ok('11c "Show me agreements that are past due" opens the Obligations overdue list', await landsOn('Show me agreements that are past due', () =>
+      (hbS().path || []).slice(-1)[0] === 'f:overdue' && !hbS().panels.some(p => p.kind === 'obl')));
     /* a lens left on the map narrows a "top N" to what is showing (the map's
        own follow-up rule), so the map is cleared first */
     await page.evaluate(() => { intel.lenses = intel.lenses.filter(l => l.hb); });

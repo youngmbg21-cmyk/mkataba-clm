@@ -132,7 +132,7 @@ describe('F448 (1) — the phrase book: the picture each question must draw', ()
   const KEEP = [
     ['Show me all Juno contracts', { act: 'dig', key: 'q:Show me all Juno contracts' }],
     ['show expired contracts', { act: 'dig', key: 'f:past' }],
-    ['which contracts are overdue', { act: 'panel', kind: 'obl', lens: null }],
+    ['which contracts are overdue', { act: 'dig', key: 'f:overdue' }],
     ['renewals', { act: 'panel', kind: 'ren', lens: null }],
     ['payment terms', { act: 'panel', kind: 'pay', lens: null }],
     ['payment terms suppliers vs customers', { act: 'split', kind: 'pay' }],
