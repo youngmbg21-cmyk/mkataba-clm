@@ -1721,7 +1721,7 @@ function regFiltered(){
   // until 9 Sep 2026 — the name promised a feature nothing here ever built)
   // family-aware: expiry views work on AGREEMENTS and on the term the latest
   // amendment actually set, not on whatever was typed on the master
-  const expWithin=n=>c=>{ if(c.parentId||c.status==='Declined') return false; const e=effectiveExpiry(c); return !!e&&daysUntil(e)>=0&&daysUntil(e)<=n; };
+  const expWithin=n=>c=>{ if(c.parentId||c.status!=='Signed') return false;   /* signed only (owner, 16 Oct 2026) */ const e=effectiveExpiry(c); return !!e&&daysUntil(e)>=0&&daysUntil(e)<=n; };
   if(R.view==='expiring90') cs=cs.filter(expWithin(90));
   else if(R.view==='expiring60') cs=cs.filter(expWithin(60));
   else if(R.view==='expiring30') cs=cs.filter(expWithin(30));

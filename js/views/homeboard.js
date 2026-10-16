@@ -367,7 +367,7 @@ function hbBookData(lens, opts){
   const live = cs.filter(c => c.status !== 'Declined');
   const money = hbMoneyOk();
   const agreements = (typeof agreementsIn === 'function') ? agreementsIn(cs) : cs;
-  const ending = agreements.filter(c => c.status !== 'Declined')
+  const ending = agreements.filter(c => c.status === 'Signed')   /* signed only (owner, 16 Oct 2026), as hmDashSlices */
     .map(c => ({ c, d: hbDays((typeof effectiveExpiry === 'function') ? effectiveExpiry(c) : c.expiry) }))
     .filter(x => x.d != null && x.d >= 0 && x.d <= 90).sort((a, b) => a.d - b.d).map(x => x.c);
   const past = agreements.filter(c => { try { return typeof contractExpired === 'function' && !!contractExpired(c); } catch (_){ return false; } });
