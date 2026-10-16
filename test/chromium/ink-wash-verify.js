@@ -20,6 +20,13 @@
 
      node test/chromium/ink-wash-verify.js --save   (record, on the code BEFORE)
 
+   RE-RECORDED 16 Oct 2026 (second), OWNER-ASKED ("Yes, update the record"):
+   the Contracts place's stage tabs became the Stage box and its filters moved
+   to the row above the card, and Jambo sits on the chips row of Home's panel;
+   headcounts moved on the contracts, home and history screens and the three
+   pop-ups drawn over Contracts. Audited as a set difference: no value new
+   anywhere; the lit tab's tint (the accent at 12%, dark themes) gone from
+   the contracts screen and its pop-ups.
    RE-RECORDED 16 Oct 2026, OWNER-ASKED ("Yes, update the record"): the
    Control Room built in full redrew Settings (cards, doors, Needs you rows,
    the side panel's tabs), which moved headcounts on the settings screen only.
