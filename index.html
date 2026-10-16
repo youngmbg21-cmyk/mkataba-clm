@@ -8840,11 +8840,11 @@
   /* A PAPER BEING OPENED wears the turning ring until it is up (igOpeningPaint, owner 16 Oct 2026) */
   .igw-opening{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:inline-flex;align-items:center;white-space:nowrap;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:999px;padding:3px 10px;font-size:11px;line-height:1.4;color:var(--color-text);box-shadow:var(--shadow-sm)}
   .igw-opening .ob-spin{width:9px;height:9px;margin-right:5px;border-width:1.5px}
-  /* THE CONTRACTS PLACE ON HOME (the overnight work order, step 7; the
-     drawing, version 4): Home's paper with nothing chosen holds ONE head —
-     the name and the facts line, the filter boxes and Wall | List on the
-     first row, the stage tabs and Adapt filters under them — over the wall
-     of papers or the list. The register draws it (renderRegister, home);
+  /* THE CONTRACTS PLACE ON HOME (the overnight work order, step 7): Home's
+     paper with nothing chosen holds ONE head — the name and the facts line
+     with Wall | List on the first row, the filter boxes (Stage · Stream ·
+     Category · Quick filters) and Adapt filters on the row under it, just
+     above the card (owner, 16 Oct 2026) — over the wall of papers or the list. The register draws it (renderRegister, home);
      the head is the Contracts page's own white band, edge to edge. */
   .ig-pick.ct-place{padding:0;overflow:hidden;container:ctplace / inline-size}
   .ct-page{height:100%;box-sizing:border-box;display:flex;flex-direction:column;--page-pad-x:20px;padding:0 var(--page-pad-x) 14px}
@@ -8853,24 +8853,22 @@
   .ct-name{flex:none;max-width:40%;min-width:0;display:flex;flex-direction:column}
   .ct-h{margin:0;font-size:var(--t-page);font-weight:var(--w-title);line-height:1.25;color:var(--color-text)}
   .ct-facts{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .sap-page .reg-tabbar.ct-top > .reg-fb{flex:1 1 auto;min-width:0;margin-left:0;flex-wrap:wrap;justify-content:flex-end;row-gap:6px;padding:0}
   .ct-cohort:empty{display:none}
   /* Wall | List wears the page's own switch (.reg-seg — the clothes follow
      the builder); only its place in the row and the icon's gap are its own. */
-  .reg-seg.ct-seg{align-self:flex-start}
+  .reg-seg.ct-seg{align-self:flex-start;margin-left:auto}
   .reg-seg.ct-seg button{display:inline-flex;align-items:center;gap:6px}
-  .sap-page .reg-tabbar.ct-tabs{flex-wrap:nowrap;align-items:center}
-  .sap-page .reg-tabbar.ct-tabs > .reg-views{flex:0 1 auto;min-width:0}
-  .ct-tabs .ct-cohort{margin-left:auto;flex:none}
-  .sap-page .reg-tabbar.ct-tabs > .reg-fb.ct-adapt{padding:0;flex:none}
+  /* the filter row: the boxes from the left edge (wrapping within their own
+     block on a narrow place), Do this to these and Adapt filters at its end */
+  .sap-page .reg-tabbar.ct-filters{flex-wrap:nowrap;align-items:flex-start;gap:var(--s-3);padding:2px 0 9px}
+  .sap-page .reg-tabbar.ct-filters > .reg-fb:not(.ct-adapt){flex:1 1 auto;min-width:0;margin-left:0;flex-wrap:wrap;justify-content:flex-start;row-gap:6px;padding:0}
+  .ct-filters .ct-cohort{flex:none;align-self:center}
+  .sap-page .reg-tabbar.ct-filters > .reg-fb.ct-adapt{padding:0;flex:none;margin-left:0;align-self:center}
   .ct-place .ig-wall.ct-wall{flex:1;min-height:0;overflow:auto;padding:2px 2px 32px}
-  /* A NARROW PLACE (an 820 tablet, a 1024 window): the name and Wall | List
-     keep the first line, the filter boxes take a line of their own under
-     them rather than squeezing to empty boxes. */
+  /* A NARROW PLACE (an 820 tablet, a 1024 window): the name gives Wall |
+     List room; the boxes wrap within their own row, never squeezed empty. */
   @container ctplace (max-width:720px){
-    .sap-page .reg-tabbar.ct-top{flex-wrap:wrap;row-gap:8px}
     .ct-name{flex:1 1 auto;max-width:none}
-    .sap-page .reg-tabbar.ct-top > .reg-fb{order:3;flex:1 1 100%;justify-content:flex-start}
   }
   .ct-wall .igw-line{margin-bottom:12px;flex-wrap:nowrap}
   .ct-wall .igw-line .igw-count{margin-left:0;margin-right:auto}

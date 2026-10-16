@@ -128,17 +128,24 @@ describe('f687 (2) one head, one set of tabs and filters, Wall | List', () => {
     win.renderRegister({ home: true, hostId: 'ct-place', nav: 'register' });
     return { win, doc: win.document, host };
   };
-  test('2a the head: the name, the facts line, the filter boxes, Wall | List; the stage tabs and Adapt filters under them', () => {
+  /* RE-POINTED 16 Oct 2026 (owner: "bring the highlighted filters above to the
+     level below just above the bigger card. Then, take the status choices and
+     put them in a dropdown as well", quick filters last): the name and Wall |
+     List on the first row; Stage · Stream · Category · Quick filters and Adapt
+     filters on the row under it; no stage tabs. */
+  test('2a the head: the name, the facts line and Wall | List; the four filter boxes and Adapt filters under them', () => {
     const { doc } = world();
     const head = doc.querySelector('[data-reg-home] .ct-head');
     assert.ok(head, 'the one head');
     assert.equal(head.querySelector('.ct-h').textContent, 'Contracts');
     assert.ok(head.querySelector('#reg-head-facts'), 'the facts line\'s slot');
-    const top = head.querySelector('.ct-top'), row = head.querySelector('.ct-tabs');
-    for (const id of ['reg-type-sel', 'reg-view-sel', 'reg-category']) assert.ok(top.querySelector('.reg-fb #' + id), id + ' in the first row');
+    const top = head.querySelector('.ct-top'), row = head.querySelector('.ct-filters');
+    assert.equal(top.querySelectorAll('select').length, 0, 'no filter box on the first row');
     assert.deepEqual([...top.querySelectorAll('[data-ct-show]')].map(b => b.getAttribute('data-ct-show')), ['wall', 'list']);
-    assert.deepEqual([...row.querySelectorAll('[data-reg-stage]')].map(b => b.getAttribute('data-reg-stage')), ['all', 'Draft', 'Under Review', 'awaiting', 'Signed', 'Declined']);
-    assert.ok(row.querySelector('.ct-adapt #reg-adapt'), 'Adapt filters at the tab row\'s end');
+    assert.deepEqual([...row.querySelectorAll('.reg-fb select')].map(x => x.id), ['reg-stage-sel', 'reg-type-sel', 'reg-category', 'reg-view-sel'],
+      'Stage · Stream · Category · Quick filters, in that order');
+    assert.equal(doc.querySelectorAll('[data-reg-home] [data-reg-stage]').length, 0, 'no stage tabs');
+    assert.ok(row.querySelector('.ct-adapt #reg-adapt'), 'Adapt filters at the filter row\'s end');
     assert.equal(doc.querySelectorAll('#reg-type-sel').length, 1, 'one set of filters');
   });
   test('2b the Wall: the very rows the List holds, under the same head; no table', () => {
@@ -263,9 +270,11 @@ describe('f687 (4) the words, in both books', () => {
     for (const k of ['ct_show_as', 'ct_wall', 'ct_list', 'ca_go_list', 'ca_go_contracts', 'brn_p_contractsplace', 'brn_pd_contractsplace']) assert.ok(both(k), k);
     assert.ok(I18N.includes("ct_wall: 'Vägg'") && I18N.includes("ct_list: 'Lista'"));
   });
-  test('4b a stage\'s tab says the stage\'s own word in the reader\'s language', () => {
-    const tabs = fnBody(strip(R('js/views/register.js')), 'regStageTabsHtml');
-    assert.match(tabs, /if\(k!=='awaiting'&&typeof statusLabel==='function'&&typeof STATUS_META!=='undefined'&&STATUS_META\[k\]\) return statusLabel\(k\);/);
+  test('4b a stage says the stage\'s own word in the reader\'s language, in the tabs and the Stage box alike', () => {
+    const REG = strip(R('js/views/register.js'));
+    assert.match(fnBody(REG, 'regStageWord'), /if\(k!=='awaiting'&&typeof statusLabel==='function'&&typeof STATUS_META!=='undefined'&&STATUS_META\[k\]\) return statusLabel\(k\);/);
+    assert.match(fnBody(REG, 'regStageTabsHtml'), /esc\(regStageWord\(k\)\)/);
+    assert.match(fnBody(REG, 'regStageOptsHtml'), /esc\(regStageWord\(k\)\+\(n\?` \(\$\{n\}\)`:''\)\)/);
   });
   test('4c the paper\'s way back names the place: ‹ Contracts', () => {
     assert.match(IG, /data-ig-pick-again>\$\{icon\('chevL','w-3\.5 h-3\.5'\)\}\$\{igEsc\(i18t\('nav_contracts'\)\)\}<\/button>/);
