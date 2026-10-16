@@ -11,6 +11,8 @@
      5  the bell says each heading once
      6  the five tiles wrap 3 + 2 on a narrowed board, never 4 + 1
      7  an obligation the other side owes carries no "nobody owns this"
+     8  late duties, one job each (owner, 16 Oct 2026): Our promises off the
+        Board, the overdue figure says ours · theirs, Jambo opens its list
    AT THE PARENT 1, 2, 3, 4, 5, 6 and 7 FAIL. Waits ask for the state, bounded.
    Run: node test/chromium/board-walkthrough-fixes-verify.js */
 'use strict';
@@ -79,15 +81,29 @@ const BOOK = FIXTURES.concat(Array.from({ length: 20 }, (_, i) => {
     check('3 the Week ahead pill counts its dates', fig.week != null && Number(fig.week) > 1, JSON.stringify(fig));
     check('4 the value tile names the currency it leaves out', /USD/.test(fig.left || ''), JSON.stringify(fig));
 
-    /* 2 Our promises: eight, then the rest */
-    await page.locator('#hb-board [data-hb-dig="ag:ours"]').first().tap();
+    /* 8 the late duties, one job each (owner, 16 Oct 2026) */
+    const late = await page.evaluate(() => ({ ours: !!document.querySelector('[data-hm-agent-row="ours"]'),
+      split: (document.querySelector('#hb-board .hb-fig-left.is-split') || {}).textContent || null }));
+    check('8a Our promises is no longer a row on the Board', !late.ours, JSON.stringify(late));
+    check('8b the Obligations overdue figure says how it splits, ours and theirs', /^\s*20 ours · 20 theirs\s*$/.test(late.split || ''), JSON.stringify(late));
+
+    /* 2 a long agent list: eight, then the rest (Late promises, since Our promises left the Board) */
+    await page.locator('#hb-board [data-hm-agent-row="late"] .hb-ag-w').first().tap();
     await waitFor(page, () => document.querySelectorAll('#hb-focus .hb-ag-work').length > 0, 8000);
     const before = await page.evaluate(() => document.querySelectorAll('#hb-focus .hb-ag-work').length);
     const more = page.locator('#hb-focus [data-hb-ag-more]');
     let after = before;
     if (await more.count()){ await more.first().tap(); await waitFor(page, n => document.querySelectorAll('#hb-focus .hb-ag-work').length > n, 6000, before);
       after = await page.evaluate(() => document.querySelectorAll('#hb-focus .hb-ag-work').length); }
-    check('2 Our promises opens eight and Show more brings the rest', before === 8 && after > 8, `${before} → ${after}`);
+    check('2 Late promises opens eight and Show more brings the rest', before === 8 && after > 8, `${before} → ${after}`);
+
+    /* 8c asking Jambo for late duties opens the figure's own list, no second panel */
+    const panelsBefore = await page.evaluate(() => (hbS().panels || []).length);
+    const box = page.locator('[placeholder*="Ask for a number"]').first();
+    await box.tap(); await box.fill('Which obligations are overdue?'); await page.keyboard.press('Enter');
+    await waitFor(page, () => (hbS().path || []).slice(-1)[0] === 'f:overdue', 8000);
+    const ask = await page.evaluate(() => ({ path: (hbS().path || []).slice(-1)[0], panels: (hbS().panels || []).length }));
+    check('8c "Which obligations are overdue?" opens the Obligations overdue list, not a second panel', ask.path === 'f:overdue' && ask.panels === panelsBefore, JSON.stringify({ ask, panelsBefore }));
 
     /* 7 theirs carries no "nobody owns this" */
     await page.evaluate(() => { document.querySelector('#hb-board').scrollTop = 0; });

@@ -82,7 +82,7 @@ const DOC = 'SUPPLY AGREEMENT\n\nArticle 1 Term\n\nThis Agreement runs for twelv
     /* ===== 3. APPROVALS ARE NOT A BOARD ROW ===== */
     const src = fs.readFileSync(path.join(__dirname, '..', '..', 'js', 'views', 'homeboard.js'), 'utf8');
     const rows = await page.evaluate(() => { const s = hbS(); s.path = []; hbSave(); setView('dashboard'); return hbAgentsData(null).rows.map(r => r.k); });
-    ok('3a approvals are kept off the Board\'s card', /const HB_OFF_BOARD = \['approve'\];/.test(src) && !rows.includes('approve'), JSON.stringify(rows));
+    ok('3a approvals are kept off the Board\'s card', /const HB_OFF_BOARD = \['approve', 'ours'\];/.test(src) && !rows.includes('approve'), JSON.stringify(rows));
     const app = fs.readFileSync(path.join(__dirname, '..', '..', 'js', 'app.js'), 'utf8');
     /* RE-POINTED 14 Oct 2026 (the overnight work order, step 2): the bell's
        approval row opens Before you sign on Home through the walls

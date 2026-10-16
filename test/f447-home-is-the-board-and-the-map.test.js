@@ -121,8 +121,9 @@ describe('F447 (3) — the reader, without a model', () => {
     ['what about mk-4?', { act: 'card', id: 'MK-4' }],
     ['bring up MK-999', { act: 'noref', ref: 'MK-999' }],
     ['bring up Packaging', { act: 'card', id: 'MK-3' }],
-    ['show overdue obligations', { act: 'panel', kind: 'obl', lens: null }],
-    ['visa förfallna åtaganden', { act: 'panel', kind: 'obl', lens: null }],
+    /* ONE LIST OF LATE DUTIES (owner, 16 Oct 2026): the figure's own door, not a second panel */
+    ['show overdue obligations', { act: 'dig', key: 'f:overdue' }],
+    ['visa förfallna åtaganden', { act: 'dig', key: 'f:overdue' }],
     ['payment terms suppliers vs customers', { act: 'split', kind: 'pay' }],
     ['suppliers only', { act: 'lens', lens: 'suppliers' }],
     ['bara kunder', { act: 'lens', lens: 'customers' }],
@@ -137,7 +138,7 @@ describe('F447 (3) — the reader, without a model', () => {
     /* 3 Oct 2026, the owner's own words off a screenshot */
     ['Show me all expired contracts', { act: 'dig', key: 'f:past' }],
     ['Show me contracts that have expired', { act: 'dig', key: 'f:past' }],
-    ['Show me agreements that are past due', { act: 'panel', kind: 'obl', lens: null }],
+    ['Show me agreements that are past due', { act: 'dig', key: 'f:overdue' }],
     ['which contracts expire soon', { act: 'panel', kind: 'ren', lens: null }],
   ];
   for (const [q, want] of cases) test(JSON.stringify(q), () => {
@@ -212,7 +213,7 @@ describe('F447 (3) — the reader, without a model', () => {
     const w = both();
     assert.deepEqual({ ...w.hbParse('show expired contracts') }, { act: 'dig', key: 'f:past' });
     assert.deepEqual({ ...w.hbParse('what ends in the next 90 days') }, { act: 'dig', key: 'f:ending' });
-    assert.deepEqual({ ...w.hbParse('which contracts are overdue') }, { act: 'panel', kind: 'obl', lens: null });
+    assert.deepEqual({ ...w.hbParse('which contracts are overdue') }, { act: 'dig', key: 'f:overdue' });
     assert.deepEqual({ ...w.hbParse('suppliers only') }, { act: 'lens', lens: 'suppliers' });
   });
   /* CHART FIRST (Young, 3 Oct 2026 evening: "the output should be in chart

@@ -108,29 +108,30 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     /* ===== 2. ONE ROW PER AGENT WITH WORK, EVERY NUMBER BORROWED ===== */
     const rows = await page.evaluate(() => {
       const D = agentsData();
-      const want = AG_KEYS.filter(k => D.agents[k].ready.length).map(k => k + ':' + D.agents[k].ready.length);
+      /* Our promises left the Board (owner, 16 Oct 2026): HB_OFF_BOARD */
+      const want = AG_KEYS.filter(k => !HB_OFF_BOARD.includes(k) && D.agents[k].ready.length).map(k => k + ':' + D.agents[k].ready.length);
       const got = [...document.querySelectorAll('[data-hm-agent-row]')].map(r => r.getAttribute('data-hm-agent-row') + ':'
         + ((r.querySelector('.hb-pill') || {}).textContent || '').trim());
       const sub = (document.querySelector('#hm-agents .hb-cs') || {}).textContent || '';
       const rail = ((document.querySelector('[data-count="agents"]') || {}).textContent || '').trim();
-      return { want, got, sub, ready: D.ready, rail };
+      return { want, got, sub, ready: hbAgentsData(null).ready, rail };
     });
     ok('2a one row per agent with work ready, in Copilot\'s work\'s order, each with that agent\'s count',
-      rows.want.length >= 3 && rows.got.join(',') === rows.want.join(','), JSON.stringify(rows));
-    ok('2b the rows are the three staged agents', ['round', 'late', 'ours'].every(k => rows.got.some(g => g.startsWith(k + ':'))), rows.got.join(','));
+      rows.want.length >= 2 && rows.got.join(',') === rows.want.join(','), JSON.stringify(rows));
+    ok('2b the rows are the staged agents, and Our promises is not on the Board (owner, 16 Oct 2026)', ['round', 'late'].every(k => rows.got.some(g => g.startsWith(k + ':'))) && !rows.got.some(g => g.startsWith('ours:')), rows.got.join(','));
     /* COPILOT'S WORK LIVES ON THE BOARD (Young, 7 Oct 2026): no rail door, so
        the head's count is the one number. */
     ok('2c the head counts what Copilot\'s work counts, and there is no second door in the side menu',
       new RegExp('^' + rows.ready + ' ready').test(rows.sub.trim()) && rows.rail === ''
         && !(await page.$('#sidebar [data-view="agents"], nav [data-view="agents"]')), JSON.stringify({ sub: rows.sub, rail: rows.rail, ready: rows.ready }));
-    const oursRow = await page.evaluate(() => { const r = document.querySelector('[data-hm-agent-row="ours"]'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : ''; });
-    ok('2d a row says the agent and its first item', /Our promises/.test(oursRow) && /Pay the storage deposit/.test(oursRow) && /due in 3 days/.test(oursRow), oursRow);
+    const lateRow = await page.evaluate(() => { const r = document.querySelector('[data-hm-agent-row="late"]'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : ''; });
+    ok('2d a row says the agent and its first item', /Late promises/.test(lateRow) && lateRow.length > 20, lateRow);
     await page.locator('#hm-agents').screenshot({ path: path.join(OUT, '2-card.png') });
 
     /* ===== 3. REVIEW OPENS THAT AGENT'S WORK BELOW THE CARD (Young, 7 Oct 2026) ===== */
-    await page.click('[data-hm-agent-row="ours"] .hb-btn');
+    await page.click('[data-hm-agent-row="late"] .hb-ag-w');
     const shown = () => page.evaluate(() => ({ view: state.view,
-      want: agentsData().agents.ours.ready.map(x => x.key).slice(0, 8),
+      want: agentsData().agents.late.ready.map(x => x.key).slice(0, 8),
       got: [...document.querySelectorAll('#hb-focus [data-hb-ag-item]')].map(x => x.getAttribute('data-hb-ag-item')),
       acts: document.querySelectorAll('#hb-focus [data-hb-ag-item] [data-ag-act]').length }));
     await page.waitForFunction(() => !!document.querySelector('#hb-board [data-hb-ag-item]'), null, { timeout: 8000 }).catch(() => {});
