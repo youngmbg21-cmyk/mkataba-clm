@@ -123,3 +123,13 @@ describe('F690 (7, 8) — the Board\'s wording and tiles', () => {
     assert.match(bodyOf(HB, 'hbLeftCodes'), /fxHome/);
   });
 });
+
+describe('F690 (9) — ending means signed (owner, 16 Oct 2026: "Signed contracts only")', () => {
+  const HOME = read('js/views/home.js'), REG = read('js/views/register.js');
+  test('the Board\'s tile, Home\'s reading, the Contracts filter and the monthly email ask Signed', () => {
+    assert.match(strip(bodyOf(HB, 'hbBookData')), /const ending = agreements\.filter\(c => c\.status === 'Signed'\)/);
+    assert.match(strip(HOME), /const expiring=agreementsIn\(cs\)[^\n]*x\.c\.status==='Signed'\)/);
+    assert.match(strip(REG), /const expWithin=n=>c=>\{ if\(c\.parentId\|\|c\.status!=='Signed'\) return false;/);
+    assert.match(SERVER, /if \(r\.status !== 'Signed'\) continue;   \/\* ending means signed/);
+  });
+});
