@@ -211,25 +211,28 @@ describe('f193 — half (a): nothing the old page carried was left behind', () =
      launch, and an admin standing on Platform settings had no way to learn
      that from this screen. So the old claim is asked of the tab's own GROUPS,
      where it still bites, and the block answers for itself underneath. */
+  /* RE-POINTED IN PLACE 16 Oct 2026 (the Control Room, owner's pick): the
+     platform and build tabs became ONE board, each group a card, and the
+     Menu beside it lists them again in its own shape. The claim is the same
+     claim asked of both: every panel drawn, exactly once, under a name. */
   test('the tab a row sits on is the tab whose groups draw it', () => {
     const { sb, win } = stage();
-    for (const tab of ['platform', 'build']) {
-      sb.settingsGoTab(tab);
-      const drawn = [...win.document.querySelectorAll('#st-list .st-grp [data-st-panel]')]
-        .map(b => b.getAttribute('data-st-panel'));
-      const expected = Object.keys(sb.SET_PANELS)
-        .filter(k => sb.SET_PANELS[k].tab === tab && (!sb.SET_PANELS[k].show || sb.SET_PANELS[k].show()));
+    sb.settingsGoTab('company');
+    const expected = Object.keys(sb.SET_PANELS)
+      .filter(k => ['platform', 'build'].includes(sb.SET_PANELS[k].tab) && (!sb.SET_PANELS[k].show || sb.SET_PANELS[k].show()));
+    for (const [where, sel] of [['the board\'s cards', '.st-cards .st-grp [data-st-panel]'], ['the Menu', '#st-list .st-mrow[data-st-panel]']]) {
+      const drawn = [...win.document.querySelectorAll(sel)].map(b => b.getAttribute('data-st-panel'));
       assert.deepEqual(drawn.slice().sort(), expected.slice().sort(),
-        `${tab}'s groups draw its own panels and nobody else's`);
+        `${where} draw every company panel and nobody else's`);
       /* THE COUNT MATTERS AS MUCH AS THE SET: a panel that landed in two
          groups would pass a set compare and be drawn twice on screen. */
-      assert.equal(drawn.length, expected.length, `${tab} draws each of its panels exactly once`);
-      /* AND EVERY GROUP THAT DRAWS AT ALL IS NAMED — a headless box of rows is
-         the flat list again, wearing a gap. */
-      for (const sec of win.document.querySelectorAll('#st-list .st-grp'))
-        assert.ok((sec.querySelector('.st-grp-h')?.textContent || '').trim().length,
-          `every group on ${tab} carries a heading`);
+      assert.equal(drawn.length, expected.length, `${where} draw each panel exactly once`);
     }
+    /* AND EVERY GROUP THAT DRAWS AT ALL IS NAMED — a headless box of rows is
+       the flat list again, wearing a gap. */
+    for (const sec of win.document.querySelectorAll('.st-cards .st-grp, #st-list .st-mgrp'))
+      assert.ok((sec.querySelector('.st-grp-h, .st-mgrp-h')?.textContent || '').trim().length,
+        'every card and every Menu group carries a heading');
   });
 
   test('the attention block is the one place the list crosses tabs', () => {
@@ -291,7 +294,12 @@ describe('f193 — half (b): nobody was locked out quietly', () => {
     assert.ok(!html.includes('Asha Kimani'), 'no colleague is named');
     assert.ok(!html.includes('approval-rules'), 'no approval rules');
     assert.ok(!html.includes('rv-gate-panel') && !html.includes('dk-rule-panel'), 'neither gate');
-    assert.ok(words.includes(S.st_admin_only_page), 'and it says why, rather than going blank');
+    /* RE-POINTED IN PLACE 16 Oct 2026 (owner: "If you are not admin, this tab
+       is invisible"): no note saying the page is for admins — no tab row, no
+       Company side, and their own settings drawn instead of a blank. */
+    assert.ok(!win.document.querySelector('.st-faces, [data-st-tab="company"]'), 'no Company tab, not even greyed');
+    assert.ok(!words.includes(S.st_admin_only_page), 'and no note about a page they cannot see');
+    assert.ok(win.document.getElementById('acct-title'), 'their own settings are what is drawn');
     assert.equal(typeof sb.SET_PANELS.company.title(), 'string', 'the panels still exist — they are simply not drawn here');
   });
 
@@ -374,13 +382,18 @@ describe('f193 — the People tab', () => {
      unfinished went. The People tab counts them, and the short person's own
      row says WHAT is missing — named where it can be acted on, never a count
      at you with nobody's name on it. */
+  /* RE-POINTED IN PLACE 16 Oct 2026 (the Control Room): the People tab went
+     into the Company board, and its count went with it onto the People &
+     access card — a door down to the same table. */
   test('the unfinished are counted on the tab, and each one\'s row says what is missing', () => {
-    const { pageHtml } = stage();
+    const { sb, pageHtml } = stage();
+    sb.settingsGoTab('company');
     const html = pageHtml();
     assert.ok(!html.includes('st-people-banner'), 'no banner');
     const d = new (require('jsdom').JSDOM)(html).window.document;
-    const n = d.querySelector('[data-st-tab="people"] .st-tab-n');
-    assert.ok(n && n.textContent.trim() === '1', 'the tab counts the one unfinished person');
+    const card = d.querySelector('.st-grp-people');
+    assert.ok(card && card.textContent.includes(S.st_cr_unfinished_n_one.replace('{n}', '1')), 'the People & access card counts the one unfinished person');
+    assert.ok(card.querySelector('[data-st-jump="people"]'), 'and the count is a door down to the table');
     const row = [...d.querySelectorAll('tr.st-person')].find(r => r.textContent.includes('Asha Kimani'));
     assert.ok(row, 'the person who is short is on the list');
     assert.ok(row.querySelector('.st-setup.is-warn') && row.textContent.includes(S.st_f_title), 'and their row says what is missing');
@@ -388,6 +401,7 @@ describe('f193 — the People tab', () => {
 
   test('"Add member" and editing open the SAME drawer', () => {
     const { sb, win, $ } = stage();
+    sb.settingsGoTab('company');
     const addBtn = win.document.getElementById('st-add-person');
     assert.equal(addBtn.getAttribute('data-st-panel'), 'person:new', 'add is the person drawer');
     const row = win.document.querySelector('.st-person');
@@ -662,7 +676,7 @@ describe('f193 — the tab row does not scroll away', () => {
     assert.ok(RULE, 'the pin is its own rule, keyed on the row');
     const LIB = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'library.js'), 'utf8');
     const SET = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'settings.js'), 'utf8');
-    assert.match(SET, /class="st-tabs st-tabs-pin( sap-band)?"/, 'Settings opts in (on the white band since 9 Oct 2026)');
+    assert.match(SET, /class="st-tabs st-tabs-pin( sap-band)?( st-facebar)?"/, 'Settings opts in (on the white band since 9 Oct 2026, holding the You · Company pill since 16 Oct)');
     /* Our standards is now a tab of "Our paper" (4 Oct 2026): the page's tab
        row and the standards row are pinned together as ONE opted-in block. */
     assert.match(LIB, /class="st-tabs-pin"[^>]*>\$\{paperTabsHtml\('standards'(?:, true)?\)\}/, 'and so does Our standards');

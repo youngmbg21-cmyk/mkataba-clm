@@ -261,12 +261,13 @@ async function watch(page, press) {
     const flipped = await page.evaluate(() => ({
       lang: langId(),
       /* "Elsewhere on the page" is the tab row now — the page's own furniture,
-         outside the drawer that was being answered. */
-      elsewhere: document.querySelector('#set-page .st-tab') ? document.querySelector('#set-page .st-tab').textContent : '',
+         outside the drawer that was being answered (the You · Company pill
+         since 16 Oct 2026, the Control Room; "You" is "Du" in Swedish). */
+      elsewhere: document.querySelector('#set-page .st-face') ? document.querySelector('#set-page .st-face').textContent : '',
       facts: document.getElementById('set-market-facts').textContent,
     }));
     check('a market that would have changed the language keeps the reader\'s own (owner, 9 Oct 2026)',
-      flipped.lang === 'en' && /People/.test(flipped.elsewhere) && /Currency/.test(flipped.facts),
+      flipped.lang === 'en' && /\bYou\b/.test(flipped.elsewhere) && /Currency/.test(flipped.facts),
       `lang ${flipped.lang} · elsewhere "${flipped.elsewhere.trim()}"`);
     check('and their language is now theirs, kept on their record',
       await page.evaluate(() => currentUser().lang === 'en'));

@@ -140,13 +140,14 @@ const check = (name, pass, detail) => {
     await page.screenshot({ path: path.join(OUT, '3b-explorer-kept.png') });
 
     /* ================= 4. SETTINGS, TEMPLATES, CALENDAR ====================== */
-    await page.evaluate(() => { setView('team'); settingsGoTab(ST_TABS[1]); });
+    /* the second of the page's tabs (Company since 16 Oct 2026, the Control Room) */
+    await page.evaluate(() => { setView('team'); settingsGoTab(ST_FACES[1]); });
     await page.waitForTimeout(600);
     const s0 = await scrollTo('content-scroll', 500);
     await reload();
     const st = await until(() => document.querySelector('[data-st-tab].on, [data-st-tab][aria-selected="true"]') ? document.querySelector('[data-st-tab].on, [data-st-tab][aria-selected="true"]').getAttribute('data-st-tab') : null);
     const s1 = await cameBack('content-scroll', s0);
-    check('4a Settings comes back on the tab the reader was on, at the same place down it', st === (await page.evaluate(() => ST_TABS[1])) && s0 >= 400 && s1 === s0, JSON.stringify({ st, s0, s1 }));
+    check('4a Settings comes back on the tab the reader was on, at the same place down it', st === (await page.evaluate(() => ST_FACES[1])) && s0 >= 400 && s1 === s0, JSON.stringify({ st, s0, s1 }));
     await page.evaluate(() => setView('templates'));
     await page.waitForTimeout(600);
     await page.evaluate(() => { const want = TPL_PAGE_TABS[1]; const b = document.querySelector(`[data-tpl-page-tab="${want}"],[data-tpl-tab="${want}"]`); if (b) b.click(); });

@@ -109,8 +109,13 @@ const PAGE = () => {
     check('the Directory door is on screen for a restricted member', door.ok, door.why);
     const doorWord = await page.evaluate(() => (document.querySelector('.nav-item[data-view="directory"]') || {}).textContent || '');
     check('and it says Directory', /Directory/.test(doorWord), doorWord.trim().slice(0, 30));
-    const noSettings = await page.evaluate(VISIBLE, '.nav-item[data-view="team"]');
-    check('while Settings & Rules is not — which is why the roster lives here', !noSettings.ok, noSettings.why);
+    /* RE-POINTED IN PLACE 16 Oct 2026 (the Control Room): Settings is
+       everyone's now, and for a member it is their OWN settings — no roster,
+       no Company tab — which is still why the roster lives here. */
+    const settingsDoor = await page.evaluate(VISIBLE, '.nav-item[data-view="team"]');
+    const theirFace = await page.evaluate(() => (typeof settingsTab === 'function') ? settingsTab() : '');
+    check('Settings is theirs too, and it opens on their own settings — which is why the roster lives here',
+      settingsDoor.ok && theirFace === 'you', settingsDoor.why + ' · ' + theirFace);
 
     /* PRESSED, not called. */
     await page.click('.nav-item[data-view="directory"]');
@@ -244,9 +249,13 @@ const PAGE = () => {
     const landedA = await pa.evaluate(() => ({
       view: state.view, tab: typeof settingsTab === 'function' ? settingsTab() : null,
       roster: document.querySelectorAll('.st-person').length,
+      /* the People table is on the Company board since 16 Oct 2026 (the
+         Control Room), and a door that names People jumps down to it */
+      inView: (() => { const el = document.getElementById('st-people-sec'); if (!el) return false;
+        const r = el.getBoundingClientRect(); return r.top < innerHeight && r.bottom > 0; })(),
     }));
     check('and the line is a real door — it lands on the editable roster',
-      landedA.view === 'team' && landedA.tab === 'people' && landedA.roster > 0, JSON.stringify(landedA));
+      landedA.view === 'team' && landedA.tab === 'company' && landedA.roster > 0 && landedA.inView, JSON.stringify(landedA));
     check('which is unchanged: its rows still open the person drawer',
       await pa.evaluate(() => !!document.querySelector('.st-person[data-st-panel^="person:"]')));
 

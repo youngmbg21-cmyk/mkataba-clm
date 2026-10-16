@@ -20868,3 +20868,13 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - (15 Oct 2026) Jambo's tab count is drawn on the Board only: on every other Home face each redraw of his tab walked the whole book, and explorer-magnitude-verify 4a2 went red twice on GitHub while it did.
 
 - Noticed, not fixed (15 Oct 2026, PR 291): f149 "unanswered is refused" fails at unmodified main — settings.js now calls fieldFocus(accSel), and f149's sandbox stands in for core.js without a fieldFocus. Proposed patch: add `fieldFocus: el => { if (el && el.focus) el.focus(); },` to the sandbox in test/f149-nobody-joins-without-an-answer.test.js.
+
+### Built (16 Oct 2026, the owner: "build it control room")
+- Settings is the Control Room: two tabs like Home's, You first and Company second; Company is an admin's and is not drawn for anybody else (no tab row at all). Company is a board — Needs you, a card per group of settings, People & access, the governance ladder (read off the gates' own on/off), the People table. You is the person's own settings as cards. Beside both, one panel: Jambo (finds a setting or a person, explains, readies a signing limit in the drawer — no model, spends nothing, saves nothing) and the Menu (the one search box).
+- The Settings door in the rail shows for everyone now (it opens on their own settings); the top bar's Jambo goes to the panel while it is on screen.
+- Removed on the owner's ruling: the non-admin's "Settings is for admins" note (st_admin_only_page / st_admin_only_body inert in both books).
+- Re-pointed to the ruling: f193 (five claims), f195, f202, f603; settings-tabs, settings-groups, settings-holds-still, white-band-and-tabs, refresh-keeps-your-spot, people-directory verify. New: f691 (19 claims, all red at the parent).
+
+### Noticed, not fixed (16 Oct 2026, the Control Room)
+- The white band under Settings' title stops about 10px short of the window's right edge at 1440 (the scroller's gutter beside the pinned row); it did before this change too.
+- The Menu's search matches inside words, as the old box did: "sign" also finds "Company design".

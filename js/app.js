@@ -998,17 +998,15 @@ function updateSidebarCounts(){
       nnew.hidden=!(Number(total||0)>=NAV_EARN_AT.intel && !navSeen('intel'));
     }
   }
-  /* ---- SETTINGS & RULES IS ADMIN-ONLY, AND THE DOOR SAYS SO ----
-     Hidden rather than greyed, for the reason the earned-nav rule above gives:
-     a control that exists but refuses teaches nothing. Everything a non-admin
-     used to reach through here now lives in "Your account" under the avatar.
-     The gate itself is renderTeam's — this is the door, not the wall, and a
-     hidden nav item was never going to be one. Same escape as above: the
-     CURRENT view keeps its door, so a restored session cannot leave somebody
-     standing on a page whose nav item has vanished. */
+  /* ---- SETTINGS IS EVERYONE'S (the Control Room, owner 16 Oct 2026: "a
+     settings for the admin and a settings for the individual ... If you are
+     not admin, this tab is invisible") ----
+     Until then the door was hidden from anybody but an admin, because the page
+     behind it was the admin's. It now opens on the reader's own settings (You)
+     and draws the Company tab for an admin only, so the door is everyone's. The
+     gate is still renderTeam's, and the wall the server's. */
   const teamNav=document.querySelector('.nav-item[data-view="team"]');
-  if(teamNav) teamNav.classList.toggle('hidden',
-    !((typeof isAdmin==='function' && isAdmin()) || state.view==='team'));
+  if(teamNav) teamNav.classList.remove('hidden');
 }
 
 /* ============================================================ SHELL VIEW SWITCH */

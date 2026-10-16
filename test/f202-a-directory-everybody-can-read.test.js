@@ -323,13 +323,14 @@ describe('f202 — it has a door on both shells', () => {
     assert.notEqual(people, team, 'two doors, two pictures');
   });
 
-  test('and it is NOT hidden for anybody — unlike Settings & Rules', () => {
-    /* setActiveNav hides the team door for a non-admin. Nothing does that to
-       this one, and the test names the mechanism so a future gate has to be a
-       deliberate act rather than a copy-paste. */
+  /* RE-POINTED IN PLACE 16 Oct 2026 (the Control Room): Settings stopped
+     being admin-only — it opens on the reader's own settings and draws the
+     Company tab for an admin only — so its door is everyone's now too. The
+     claim about THIS door is unchanged: nothing hides it. */
+  test('and it is NOT hidden for anybody — and neither is Settings any more', () => {
     const app = read('js/app.js');
-    assert.match(app, /nav-item\[data-view="team"\]/, 'the team door is gated');
-    assert.ok(!/nav-item\[data-view="directory"\]/.test(app), 'this one is not');
+    assert.match(app, /teamNav\.classList\.remove\('hidden'\)/, 'the Settings door shows for everyone');
+    assert.ok(!/nav-item\[data-view="directory"\]/.test(app), 'and nothing touches this one');
   });
 
   test('the view routes, and survives a session restore', () => {

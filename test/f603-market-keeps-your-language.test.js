@@ -84,7 +84,8 @@ describe('f603 (D14) — no server write before anybody is signed in', () => {
 
 describe('f603 (D7) — the engine row is read when the page opens', () => {
   test('renderTeam asks once; the engine drawer\'s read repaints both rows', () => {
-    assert.match(SETTINGS, /stWireList\(\);\n  stLoadAiCfgOnce\(\);/);
+    /* the one shell asks for an admin only (16 Oct 2026: a non-admin is drawn the same page) */
+    assert.match(SETTINGS, /stWireList\(\);\n  if\(admin\) stLoadAiCfgOnce\(\);/);
     assert.match(SETTINGS, /async function stLoadAiCfgOnce\(\)\{[\s\S]{0,400}api\('ai\/config'\)[\s\S]{0,200}stRepaintRow\('engine'\); stRepaintRow\('golive'\);/);
     assert.match(SETTINGS, /state\.aiCfg=c;[^\n]*\n[\s\S]{0,200}stRepaintRow\('engine'\); stRepaintRow\('golive'\);/);
   });

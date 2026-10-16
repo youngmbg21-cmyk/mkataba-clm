@@ -76,21 +76,24 @@ const signIn = async (page, base, email, pass) => {
     await page.evaluate(() => setView('team'));
     await page.waitForTimeout(1200);
 
+    /* RE-POINTED IN PLACE 16 Oct 2026 (the Control Room, the owner's pick):
+       four tabs became Home's two — You first, where the page opens, and
+       Company, the admin's board. */
     const tabs = await page.evaluate(() =>
-      [...document.querySelectorAll('#set-page .st-tab')].map(b => b.textContent.trim()));
-    check('the page opens as four tabs', tabs.length === 4, tabs.join(' · '));
-    check('and it opens on People',
-      (await page.evaluate(() => settingsTab())) === 'people'
-      && (await page.evaluate(() => !!document.querySelector('.st-person'))),
-      'People, with the roster on it');
+      [...document.querySelectorAll('#set-page .st-face')].map(b => b.textContent.trim()));
+    check('the page opens as two tabs, You and Company', tabs.length === 2, tabs.join(' · '));
+    check('and it opens on You',
+      (await page.evaluate(() => settingsTab())) === 'you'
+      && (await page.evaluate(() => !!document.getElementById('acct-title'))),
+      'You, with their own settings on it');
 
     /* Switching by pressing the tab, not by calling the function. */
-    for (const t of ['platform', 'build', 'you', 'people']) {
-      await page.click(`.st-tab[data-st-tab="${t}"]`);
+    for (const t of ['company', 'you', 'company']) {
+      await page.click(`.st-face[data-st-tab="${t}"]`);
       await page.waitForTimeout(400);
       const on = await page.evaluate(() => ({
         tab: settingsTab(),
-        marked: document.querySelector('.st-tab.on')?.getAttribute('data-st-tab'),
+        marked: document.querySelector('.st-face[aria-selected="true"]')?.getAttribute('data-st-tab'),
         body: document.getElementById('st-tabbody').children.length,
       }));
       check(`pressing "${t}" goes there and says so`,
@@ -223,7 +226,7 @@ const signIn = async (page, base, email, pass) => {
     const spills = [];
     for (const w of [1920, 1500, 1280, 1024]) {
       await page.setViewportSize({ width: w, height: 900 });
-      for (const t of ['people', 'platform', 'build', 'you']) {
+      for (const t of ['company', 'you']) {
         await page.evaluate(k => settingsGoTab(k), t);
         await page.waitForTimeout(250);
         const over = await page.evaluate(() => {
@@ -246,12 +249,13 @@ const signIn = async (page, base, email, pass) => {
       rows: document.querySelectorAll('.st-person').length,
       chips: [...document.querySelectorAll('.st-person .st-setup')].map(c => c.textContent.trim()),
       banner: !!document.getElementById('st-people-banner'),
-      tabN: ((document.querySelector('[data-st-tab="people"] .st-tab-n') || {}).textContent || '').trim(),
+      tabN: (((document.querySelector('.st-grp-people .st-row-name') ? [...document.querySelectorAll('.st-grp-people .st-row-name')][1].textContent : '').match(/\d+/) || [''])[0]),
       warnRows: [...document.querySelectorAll('.st-person')].filter(r => r.querySelector('.st-setup.is-warn')).map(r => r.textContent.replace(/\s+/g, ' ').trim().slice(0, 40)),
     }));
     check('every member is a row with a Setup cell',
       people.rows >= 4 && people.chips.length === people.rows, `${people.rows} rows · ${people.chips.join(', ')}`);
-    check('and the unfinished are counted on the tab and named on their own rows, with no banner',
+    /* since 16 Oct 2026 the count is on the People & access card */
+    check('and the unfinished are counted on the People card and named on their own rows, with no banner',
       !people.banner && people.tabN === String(people.warnRows.length) && people.warnRows.some(t => /Restricted Legal|No Values Legal|Unrestricted Legal/.test(t)),
       { tab: people.tabN, rows: people.warnRows });
 
@@ -713,11 +717,14 @@ const signIn = async (page, base, email, pass) => {
     const p2 = await ctx2.newPage();
     p2.on('pageerror', e => errors.push('member: ' + e.message));
     await signIn(p2, h.base, 'everything@example.co.ke', 'their-own-pass-9');
-    const navHidden = await p2.evaluate(() => {
+    /* RE-POINTED IN PLACE 16 Oct 2026 (the Control Room): Settings is
+       everyone's — an Editor's door opens on their own settings, and the
+       Company tab is not drawn for them at all. */
+    const navShown = await p2.evaluate(() => {
       const b = document.querySelector('.nav-item[data-view="team"]');
-      return !b || b.classList.contains('hidden') || getComputedStyle(b).display === 'none';
+      return !!b && !b.classList.contains('hidden') && getComputedStyle(b).display !== 'none';
     });
-    check('an Editor has no Settings & Rules door in the sidebar', navHidden);
+    check('an Editor has a Settings door in the sidebar now', navShown);
 
     /* The door they cannot see is not the wall. Arriving anyway — a bookmark, a
        restored session, a console — must land somewhere real. */
@@ -735,8 +742,9 @@ const signIn = async (page, base, email, pass) => {
     }));
     check('reaching the page anyway lands on their own account, not a blank',
       theirs.mine && theirs.sessions && theirs.backup, JSON.stringify({ mine: theirs.mine, sessions: theirs.sessions, backup: theirs.backup }));
-    check('and it says why rather than going quiet',
-      /admins/i.test(theirs.words), theirs.words.replace(/\s+/g, ' ').trim().slice(0, 90));
+    const noTabs = await p2.evaluate(() => !document.querySelector('#set-page .st-faces, [data-st-tab="company"]')
+      && !!document.getElementById('st-jb-q') && !!document.querySelector('[data-st-side="menu"]'));
+    check('with no tab row at all, and Jambo and the Menu beside their settings', noTabs);
     check('the roster, the rules and the gates are not on it',
       theirs.roster === 0 && !theirs.rules && !theirs.gates,
       `${theirs.roster} people · rules ${theirs.rules} · gates ${theirs.gates}`);

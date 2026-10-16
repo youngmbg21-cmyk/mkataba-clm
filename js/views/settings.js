@@ -286,16 +286,31 @@ const SET_CLOSURES=[
   { key:'legal-identity', what:'An Editor can no longer change the company\'s registered name, registration number or address. Those moved to Settings → Platform settings → Company & market, which is admin-only, and the server refuses them for anybody else. The company design — logo, accent colour, layout — is unchanged and still theirs.' },
 ];
 
-/* WHICH TAB IS UP is a working posture, not a setting: per sitting, in memory,
-   and it starts on People. A stored tab would mean an admin who came here to
-   change one thing last week lands somewhere unrelated today. */
+/* WHERE EACH PANEL LIVES. Since the Control Room these are no longer tabs on
+   screen but the HOMES the panels are filed under — the search, the drawer's
+   crumb and the tests read them; the page draws two faces (ST_FACES). */
 const ST_TABS=['people','platform','build','you'];
-let _stTab='people';
+/* ---- THE CONTROL ROOM: TWO TABS, LIKE HOME'S (owner picked it by name, 16
+   Oct 2026: "first one is for the individual and second for the admin. If you
+   are not admin, this tab is invisible.") ----
+   You is first and is where the page opens, as Home opens on its first tab;
+   Company is the admin board. A non-admin is drawn You with no tab row at all.
+   The server's wall is unchanged: hiding the tab is the screen agreeing with
+   it. WHICH FACE IS UP is a working posture, per sitting, never stored. */
+const ST_FACES=['you','company'];
+let _stTab='you';
+/* the old four names still arrive from doors and a refresh's stored place */
+const stFaceOf=t=>(t==='you'||t==='company')?t:(ST_TABS.includes(t)?'company':'');
+/* a door that names People lands on the board's People table */
+let _stJump=null;
 /* A door may ask for a specific panel — the go-live checklist's rows do, and so
    does the email banner's "Set it up". Consumed by the very next paint, exactly
    like the negotiation door's _rlDoorAsked. */
 let _stWantPanel=null;
-function settingsTab(){ return ST_TABS.includes(_stTab)?_stTab:'people'; }
+function settingsTab(){
+  if(typeof isAdmin==='function' && !isAdmin()) return 'you';
+  return ST_FACES.includes(_stTab)?_stTab:'you';
+}
 /* CHANGING TAB CLEARS THE SEARCH. The box searches every tab, so a query left
    standing would draw the same cross-tab result list under a tab the reader
    just chose — the tab press would look broken. */
@@ -309,15 +324,30 @@ function settingsTab(){ return ST_TABS.includes(_stTab)?_stTab:'people'; }
 /* A REFRESH LANDS WHERE YOU WERE (Young, 28 Sep 2026): what this page keeps
    across a reload, read by placeSave and put back by placeResume (js/app.js)
    BEFORE the first paint. */
-function settingsPlace(){ return { tab:_stTab }; }
-function settingsPlacePut(p){ if(p&&ST_TABS.includes(p.tab)) _stTab=p.tab; }
-function settingsGoTab(k){ if(!ST_TABS.includes(k)) return; _stTab=k; _stQuery=''; renderTeam(); stLandTop(); }
+function settingsPlace(){ return { tab:_stTab, side:_stSide }; }
+function settingsPlacePut(p){ const f=p&&stFaceOf(p.tab); if(f) _stTab=f;
+  if(p && (p.side==='jambo'||p.side==='menu')) _stSide=p.side; }
+function settingsGoTab(k){
+  const f=stFaceOf(k); if(!f) return;
+  if(k==='people') _stJump='people';
+  _stTab=f; _stQuery=''; renderTeam(); stLandTop(); stJumpRun();
+}
+/* THE JUMP RUNS AFTER THE LANDING. stLandTop puts the reader at the top twice
+   (now and on the next frame), so a jump has to wait out its second frame or
+   it is undone. */
+function stJumpRun(){
+  const k=_stJump; _stJump=null;
+  if(!k || typeof document==='undefined') return;
+  const go=()=>{ const el=document.getElementById('st-'+k+'-sec'); if(el&&el.scrollIntoView) el.scrollIntoView({block:'start'}); };
+  if(typeof requestAnimationFrame==='function') requestAnimationFrame(()=>requestAnimationFrame(go)); else go();
+}
 /* THE ONE NAMED DOOR IN. Everything that wants to land somewhere specific on
    this page goes through it, so there is one place that knows the page is
    admin-only and one place that knows how a tab and a panel are asked for. */
 function openSettingsAt(tab, panel){
   if(typeof isAdmin==='function' && !isAdmin()){ openMyAccount(); return; }
-  if(ST_TABS.includes(tab)) _stTab=tab;
+  const f=stFaceOf(tab); if(f) _stTab=f;
+  if(tab==='people' && !panel) _stJump='people';
   _stWantPanel=panel||null;
   if(typeof setView==='function') setView('team'); else renderTeam();
   /* ---- A NAMED DOOR LANDS AT THE TOP OF WHAT IT OPENS ----
@@ -337,6 +367,7 @@ function openSettingsAt(tab, panel){
      navigation from a repaint and this function can: everything that arrives
      through it is a navigation. */
   stLandTop();
+  stJumpRun();
 }
 /* ONE READING OF "put the reader at the top of this page", with two callers:
    the named door above and a tab press. The frame is asked twice for the reason
@@ -383,10 +414,39 @@ function stWireDrawerOnce(){
     if(!t||!t.closest) return;
     if(t.closest('#st-scrim')){ stDrawerClose(); return; }
     if(t.closest('[data-st-dclose]')){ stDrawerClose(); return; }
+    /* THE CONTROL ROOM'S DOORS (16 Oct 2026) — each one opens, shows or
+       readies; none of them writes */
+    const stage=t.closest('[data-st-stage]');
+    if(stage){ const [id,amt]=String(stage.getAttribute('data-st-stage')||'').split('|'); stJbStage(id, Number(amt)); return; }
+    const ask=t.closest('[data-st-jb-ask]');
+    if(ask){ stSideSet('jambo'); stJbAsk(ask.getAttribute('data-st-jb-ask')); return; }
+    const drop=t.closest('[data-st-jb-drop]');
+    if(drop){ stJbDrop(drop.getAttribute('data-st-jb-drop')); return; }
+    const side=t.closest('[data-st-side]');
+    if(side){ stSideSet(side.getAttribute('data-st-side')); return; }
+    const you=t.closest('[data-st-you]');
+    if(you){ stYouGo(you.getAttribute('data-st-you'), you.getAttribute('data-st-you-focus')||''); return; }
+    const jump=t.closest('[data-st-jump]');
+    if(jump){
+      const k=jump.getAttribute('data-st-jump');
+      if(settingsTab()!=='company'){ _stTab='company'; renderTeam(); }
+      _stJump=k; stJumpRun(); return;
+    }
     const row=t.closest('[data-st-panel]');
     if(row){ stDrawerOpen(row.getAttribute('data-st-panel')); return; }
     const tab=t.closest('[data-st-tab]');
     if(tab){ settingsGoTab(tab.getAttribute('data-st-tab')); return; }
+  });
+  /* Jambo's box: Enter or Ask. A form so the keyboard's own Go works on an
+     iPad; nothing leaves the page. */
+  document.addEventListener('submit',e=>{
+    const f=e.target;
+    if(!f || f.id!=='st-jb-form') return;
+    e.preventDefault();
+    const box=document.getElementById('st-jb-q');
+    const q=(box&&box.value||'').trim(); if(!q) return;
+    box.value='';
+    stJbAsk(q);
   });
   /* A dialog opened from inside the drawer owns Escape while it is up: one
      key closes the top layer only, never the drawer underneath as well. */
@@ -655,8 +715,11 @@ function stRowHtml(key, opts){
      already-escaped parts joined with ' · '. */
   const stateLine=st.text||'';
   const need=!!p.mandatory && st.dot!=='ok';
+  /* WHERE IT LIVES is the CARD it sits on in the Control Room — its group —
+     since the tabs it used to name became one board (16 Oct 2026). */
+  const gk=(opts&&opts.where)?stGroupKeyOf(key):'';
   const where=(opts&&opts.where)
-    ? `<span class="st-row-where">${esc(i18t('st_tab_'+p.tab))}</span>` : '';
+    ? `<span class="st-row-where">${esc(gk?i18t('st_grp_'+gk):i18t('st_tab_'+p.tab))}</span>` : '';
   return `<button class="st-row" data-st-panel="${key}">
     <span class="st-dot" style="background:${ST_DOT[st.dot]||ST_DOT.off}"></span>
     <span class="st-row-main">
@@ -699,26 +762,41 @@ function stLegendHtml(){
     <span><i class="st-dot" style="background:${ST_DOT.warn}"></i>${esc(i18t('st_legend_warn'))}</span>
   </div>`;
 }
-/* THE LIST, WHICHEVER WAY THE READER IS LOOKING AT IT — a search result across
-   every tab, or this tab's own groups under the attention block. */
-function stListHtml(tab){
+/* THE MENU'S LIST (the Control Room's side panel, 16 Oct 2026): every setting
+   the reader may reach, in the board's own order — You first, then People and
+   each group — or, while the box holds words, what they find across all of
+   it. A row is a door: a panel opens its drawer, a You row shows its card, a
+   person opens their drawer. A non-admin is offered their own settings only. */
+function stListHtml(){
   const q=_stQuery.trim();
   if(q){
-    const hits=stSearchHits(q);
+    const hits=stMenuHits(q);
     if(!hits.length) return `<p class="st-none">${esc(i18t('st_search_none',{q:q}))}</p>`;
     return `<p class="st-found">${esc(i18tn('st_search_found',hits.length,{n:hits.length}))}</p>
-      <div class="st-rows">${hits.map(k=>stRowHtml(k,{where:true})).join('')}</div>`;
+      <div class="st-mrows">${hits.map(h=>stMenuItemHtml(h,true)).join('')}</div>`;
   }
-  return stAttentionHtml()+stGroupsFor(tab).map(g=>stGroupHtml(tab,g)).join('')+stLegendHtml();
+  const grp=(name,items)=>items.length?`<section class="st-mgrp"><h3 class="st-mgrp-h">${esc(name)}</h3>
+    <div class="st-mrows">${items.map(h=>stMenuItemHtml(h,false)).join('')}</div></section>`:'';
+  const out=[grp(i18t('st_face_you'), stYouItems().map(it=>({you:it.key})))];
+  if(stIsAdmin()){
+    out.push(grp(i18t('st_cr_people'), [{jump:'people'}]));
+    stCompanyGroups().forEach(g=>out.push(grp(i18t('st_grp_'+g.key),
+      stPanelsInGroup(g.tab,g.key).map(k=>({panel:k})))));
+  }
+  return out.join('');
 }
-function stRowsHtml(tab){
-  const n=stPanelKeys(null).length;
-  return `<div class="st-search">
+/* How many settings the box searches — the reader's own, plus every panel
+   and the People table for an admin. */
+function stMenuCount(){
+  return stYouItems().length + (stIsAdmin()?stPanelKeys(null).length+1:0);
+}
+function stRowsHtml(){
+  return `<div class="st-search st-menu-search">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
       <label class="sr-only" for="st-q">${esc(i18t('st_search_label'))}</label>
-      <input id="st-q" type="search" autocomplete="off" spellcheck="false" placeholder="${esc(i18t('st_search_ph',{n:n}))}" value="${esc(_stQuery)}">
+      <input id="st-q" type="search" autocomplete="off" spellcheck="false" placeholder="${esc(i18t('st_search_ph',{n:stMenuCount()}))}" value="${esc(_stQuery)}">
     </div>
-    <div id="st-list">${stListHtml(tab)}</div>`;
+    <div id="st-list" class="st-menu">${stListHtml()}</div>`;
 }
 /* THE PAGE HOLDS STILL. Only the list is rebuilt — never renderTeam(), which
    empties seven server-filled panels and would take the caret out of the box
@@ -726,7 +804,7 @@ function stRowsHtml(tab){
    repaint and a rebound listener would fire twice per key. */
 function stPaintList(){
   const host=document.getElementById('st-list');
-  if(host) host.innerHTML=stListHtml(settingsTab());
+  if(host) host.innerHTML=stListHtml();
 }
 function stWireList(){
   const box=document.getElementById('st-q');
@@ -759,10 +837,14 @@ function stRepaintPanel(key){
 function stRepaintRow(key){
   if(!SET_PANELS[key]) return;
   const rows=[...document.querySelectorAll(`.st-row[data-st-panel="${key}"]`)];
-  if(!rows.length) return;
   rows.forEach(el=>{
-    const where=!!el.closest('.st-att') || !!el.closest('#st-list > .st-rows');
+    const where=!!el.closest('.st-att');
     const d=document.createElement('div'); d.innerHTML=stRowHtml(key,{where});
+    const next=d.firstElementChild; if(next) el.replaceWith(next);
+  });
+  /* the Menu's copy of the row, in its own shape */
+  document.querySelectorAll(`.st-mrow[data-st-panel="${key}"]`).forEach(el=>{
+    const d=document.createElement('div'); d.innerHTML=stMenuItemHtml({panel:key}, !!el.querySelector('.st-mrow-g'));
     const next=d.firstElementChild; if(next) el.replaceWith(next);
   });
   stSyncAttention();
@@ -774,12 +856,509 @@ function stRepaintRow(key){
    so nothing appears under the reader's hand; the full membership is worked
    out again on the next paint of the page. */
 function stSyncAttention(){
+  stCrSync();
   const host=document.getElementById('st-att'); if(!host) return;
   const keep=new Set(stAttentionKeys());
   [...host.querySelectorAll('.st-row[data-st-panel]')].forEach(el=>{
     if(!keep.has(el.getAttribute('data-st-panel'))) el.remove();
   });
   if(!host.querySelector('.st-row')) host.remove();
+}
+
+/* ============================================================
+   THE CONTROL ROOM (owner picked it by name off "Settings, Three Ways",
+   16 Oct 2026, then asked for You and Company as two tabs like Home's)
+   ============================================================
+   Settings is a board, as Home is. Company: what needs you first, then every
+   group of settings as a card whose rows ARE the rows (stRowHtml — one
+   builder, dressed by where it sits), the People & access card, the
+   governance ladder read off the gates' own dots, and the People table. You:
+   the reader's own settings as cards, the controls on them. Beside both, one
+   panel with two faces — Jambo, who finds a setting or a person and opens it,
+   and the Menu, the whole list behind one search box.
+   NOTHING HERE WRITES. Every change is still made in the one drawer (or the
+   one control on a You card) by the person who presses it; Jambo reads the
+   same readings the rows read, spends nothing and saves nothing. */
+const stIsAdmin=()=>!(typeof isAdmin==='function' && !isAdmin());
+/* the Company board's groups, in ST_GROUPS' order: platform, then build */
+const stCompanyGroups=()=>ST_GROUPS.filter(g=>g.tab==='platform'||g.tab==='build');
+
+/* ---- THE TWO TABS, HOME'S SLIDING PILL ----
+   One track, one width per tab (each button reserves every language's word,
+   as Home's do, so switching language moves nothing), the white pill under
+   the chosen one. Company carries the Needs-you count in amber — the number on
+   the door is the length of the list behind it. */
+function stFaceWordsHtml(f){
+  const key='st_face_'+f, now=i18t(key);
+  const all=(typeof LANGUAGES!=='undefined' && typeof STRINGS!=='undefined')
+    ? LANGUAGES.map(l=>(STRINGS[l.id]||{})[key]).filter(Boolean) : [];
+  const others=[...new Set(all)].filter(w=>w!==now);
+  return `<span class="st-face-w"${others[0]?` data-w1="${esc(others[0])}"`:''}${others[1]?` data-w2="${esc(others[1])}"`:''}><span>${esc(now)}</span></span>`;
+}
+function stFacesHtml(face){
+  const n=stAttentionKeys().length;
+  const btn=f=>`<button type="button" role="tab" class="st-face" data-st-tab="${f}" aria-selected="${f===face}">${stFaceWordsHtml(f)}${
+    f==='company'?`<span class="st-face-n"${n?' data-tone="amber"':''}${n?` title="${esc(i18tn('st_face_company_n',n,{n}))}"`:''}>${n||''}</span>`:''}</button>`;
+  return `<div class="st-tabs st-tabs-pin sap-band st-facebar">
+    <div class="st-faces" role="tablist" aria-label="${esc(i18t('st_faces_label'))}" style="--st-fi:${Math.max(0,ST_FACES.indexOf(face))};--st-fn:${ST_FACES.length}"><span class="st-thumb" aria-hidden="true"></span>${ST_FACES.map(btn).join('')}</div>
+  </div>`;
+}
+
+/* ---- PEOPLE & ACCESS — the card that leads the groups ----
+   Three facts the People table below already shows, counted; every row is a
+   door down to that table, so a number never points somewhere else. */
+function stPeopleCardHtml(){
+  let users=[]; try{ users=getUsers()||[]; }catch(_){ users=[]; }
+  const admins=users.filter(u=>u.role==='admin').length;
+  const unf=users.filter(u=>stPersonMissing(u).length).length;
+  const signers=users.filter(u=>u.role!=='viewer'&&u.role!=='admin');
+  const answered=(typeof signCapOf==='function')
+    ? signers.filter(u=>{ try{ return !!signCapOf(u).answered; }catch(_){ return false; } }).length : 0;
+  const row=(dot,name,state)=>`<button type="button" class="st-row st-row-jump" data-st-jump="people">
+    <span class="st-dot" style="background:${ST_DOT[dot]||ST_DOT.off}"></span>
+    <span class="st-row-main"><span class="st-row-name">${esc(name)}</span><span class="st-row-state">${esc(state)}</span></span>
+    <span class="st-row-go" aria-hidden="true">›</span></button>`;
+  return `<section class="st-grp st-grp-people">
+    <h3 class="st-grp-h">${esc(i18t('st_cr_people'))}</h3>
+    <div class="st-rows">
+      ${row('ok', i18tn('st_cr_people_n',users.length,{n:users.length}), i18tn('st_cr_admins_n',admins,{n:admins}))}
+      ${row(unf?'warn':'ok', unf?i18tn('st_cr_unfinished_n',unf,{n:unf}):i18t('st_cr_all_set'), i18t('st_cr_unfinished_sub'))}
+      ${(typeof signCapOf==='function' && signers.length)
+        ? row(answered===signers.length?'ok':'off', i18t('st_cr_caps',{n:answered,of:signers.length}), i18t('st_cr_caps_sub')) : ''}
+    </div>
+  </section>`;
+}
+
+/* ---- THE GOVERNANCE LADDER ----
+   Three rungs, each a set of gates this page already has, read off each
+   gate's OWN dot ('ok' is on). Nothing is computed that a row does not
+   already say; the ladder only puts the gates in the order a company needs
+   them — walls from day one, gates when real money flows, the formal rules
+   when deals get crowded — and offers the next one as a door. */
+const ST_GOV_LADDER=[
+  { key:'walls',  gates:['company','approvals','signcap'] },
+  { key:'gates',  gates:['signcheck','signfolder','review'] },
+  { key:'formal', gates:['desk','linkcode'] },
+];
+function stGovRungs(){
+  const shown=new Set(stPanelKeys(null));
+  return ST_GOV_LADDER.map(r=>{
+    const gates=r.gates.filter(k=>shown.has(k)).map(k=>({ key:k, on:(stStateOf(k)||{}).dot==='ok' }));
+    return { key:r.key, gates, on:gates.filter(g=>g.on).length };
+  });
+}
+function stGovNext(){
+  for(const r of stGovRungs()) for(const g of r.gates) if(!g.on) return g.key;
+  return null;
+}
+function stGovLadderHtml(){
+  const rungs=stGovRungs(), next=stGovNext();
+  return `<section class="st-gov" id="st-gov" aria-labelledby="st-gov-h">
+    <div class="st-gov-head">
+      <h3 class="st-gov-h" id="st-gov-h">${esc(i18t('st_gov_h'))}</h3>
+      ${next
+        ? `<button type="button" class="st-gov-next" data-st-panel="${next}">${esc(i18t('st_gov_next',{name:SET_PANELS[next].title()}))}<span aria-hidden="true">›</span></button>`
+        : `<span class="st-gov-done">${esc(i18t('st_gov_all_on'))}</span>`}
+    </div>
+    <ol class="st-gov-rungs">${rungs.map((r,i)=>{
+      const pct=r.gates.length?Math.round(100*r.on/r.gates.length):0;
+      return `<li class="st-gov-rung">
+        <span class="st-gov-bar" aria-hidden="true"><i style="width:${pct}%"></i></span>
+        <span class="st-gov-name">${esc(i18t('st_gov_'+r.key,{n:i+1}))} <span class="st-gov-n">${esc(i18t('st_gov_n',{n:r.on,of:r.gates.length}))}</span></span>
+        <span class="st-gov-when">${esc(i18t('st_gov_'+r.key+'_when'))}</span>
+        <span class="st-gov-gates">${r.gates.map(g=>`<button type="button" class="st-gov-g" data-st-panel="${g.key}"><span class="st-dot" style="background:${g.on?ST_DOT.ok:ST_DOT.off}"></span><span>${esc(SET_PANELS[g.key].title())}</span><span class="sr-only"> — ${esc(g.on?stOn():stOff())}</span></button>`).join('')}</span>
+      </li>`; }).join('')}</ol>
+  </section>`;
+}
+/* AFTER A DRAWER WRITES: the ladder and the Company tab's count are readings
+   of the same dots, so they are redrawn where they stand with the rows. */
+function stCrSync(){
+  if(typeof document==='undefined') return;
+  const gov=document.getElementById('st-gov');
+  if(gov){ const d=document.createElement('div'); d.innerHTML=stGovLadderHtml(); if(d.firstElementChild) gov.replaceWith(d.firstElementChild); }
+  const n=document.querySelector('#set-page .st-face[data-st-tab="company"] .st-face-n');
+  if(n){ const k=stAttentionKeys().length; n.textContent=k?String(k):'';
+    if(k){ n.setAttribute('data-tone','amber'); n.setAttribute('title',i18tn('st_face_company_n',k,{n:k})); }
+    else { n.removeAttribute('data-tone'); n.removeAttribute('title'); } }
+}
+
+/* ---- THE TWO BOARDS ---- */
+function stCompanyHtml(){
+  return `<div class="st-board" id="st-board">
+    ${stAttentionHtml()}
+    <div class="st-cards">${stPeopleCardHtml()}${stCompanyGroups().map(g=>stGroupHtml(g.tab,g)).join('')}</div>
+    ${stGovLadderHtml()}
+    <div id="st-people-sec" class="st-people-sec">${stPeopleHtml()}</div>
+    ${stLegendHtml()}
+  </div>`;
+}
+function stYouHtml(){
+  return `<div class="st-board st-youb" id="st-board">
+    <div class="st-you st-you-cards">${stAccountBodyHtml({page:true})}</div>
+  </div>`;
+}
+
+/* ---- WHAT "YOU" HOLDS, BY NAME — the Menu's You group and what Jambo can
+   find for anyone. Each is a section of the ONE account builder
+   (stAccountBodyHtml), drawn on the You tab as a card and in the account
+   drawer as a section; `focus` is the control a door puts the reader on. */
+function stYouItems(){
+  const u=(typeof currentUser==='function'&&currentUser())||{};
+  const api=(typeof API_MODE==='function')&&API_MODE();
+  const mayDesign=u.role==='admin'||u.role==='legal';
+  return [
+    { key:'who',      t:'st_you_who',       w:['st_f_name','st_f_email'] },
+    { key:'job',      t:'st_acct_job',      w:['st_acct_job_sub','st_f_title'], focus:'#acct-title' },
+    { key:'sidebar',  t:'st_acct_sidebar',  w:['set_show_everything','set_full_cockpit'], focus:'#pref-nav-all' },
+    api && { key:'sessions', t:'st_acct_sessions', w:['set_sessions_sub'] },
+    api && { key:'email',    t:'st_acct_email',    w:['set_brief_how_often','set_brief_daily','set_brief_weekly','set_brief_off'] },
+    api && { key:'twostep',  t:'ts_title',         w:['ts_sub'], focus:'#ts-toggle' },
+    { key:'backup',   t:'st_acct_backup',   w:['set_export_backup'], focus:'#bk-export' },
+    mayDesign && { key:'design', t:'st_acct_design', w:['set_edit_design','st_acct_design_note'], focus:'#brand-edit' },
+    (api && typeof agPointsTableHtml==='function') && { key:'points', t:'jh_pt_h_mine', w:[] },
+    { key:'lang',     t:'st_you_lang',      w:['st_acct_lang_note'], focus:'#lang-switch' },
+  ].filter(Boolean);
+}
+const stYouItem=k=>stYouItems().find(it=>it.key===k)||null;
+/* every word a You row can be found by, tags out */
+const stYouHay=it=>[it.t].concat(it.w).map(k=>i18t(k)).join(' ').replace(/<[^>]*>/g,' ').toLowerCase();
+/* SHOW ME: the You tab, that card, lit, and the reader's hand on its control.
+   A press that opens nothing else; the control is still the person's to use. */
+function stYouGo(key, focusSel){
+  const it=stYouItem(key); if(!it) return;
+  if(stIsAdmin() && settingsTab()!=='you'){ _stTab='you'; renderTeam(); }
+  const card=document.getElementById('st-you-'+key)||document.querySelector(`#st-board [data-st-you="${key}"]`);
+  if(card){
+    try{ card.scrollIntoView({block:'nearest'}); }catch(_){}
+    card.classList.remove('st-lit'); void card.offsetWidth; card.classList.add('st-lit');
+  }
+  const sel=focusSel||it.focus;
+  const f=sel?((card&&card.querySelector(sel))||document.querySelector(sel)):null;
+  if(f){
+    if(key==='lang'){ f.classList.remove('st-lit'); void f.offsetWidth; f.classList.add('st-lit'); }
+    const b=(f.matches&&f.matches('button,input,a'))?f:f.querySelector&&f.querySelector('button:not([aria-pressed="true"]),button,input');
+    if(b && b.tagName!=='SELECT') try{ b.focus({preventScroll:true}); }catch(_){}
+  }
+}
+
+/* ---- THE MENU'S ROWS ---- */
+function stMenuItemHtml(h, withGroup){
+  if(h.panel){
+    const p=SET_PANELS[h.panel]; if(!p) return '';
+    const st=stStateOf(h.panel)||{dot:'off'};
+    const gk=withGroup?stGroupKeyOf(h.panel):'';
+    return `<button type="button" class="st-mrow" data-st-panel="${h.panel}"><span class="st-dot" style="background:${ST_DOT[st.dot]||ST_DOT.off}"></span>
+      <span class="st-mrow-n">${esc(p.title())}${gk?`<span class="st-mrow-g">${esc(i18t('st_grp_'+gk))}</span>`:''}</span><span class="st-mrow-go" aria-hidden="true">›</span></button>`;
+  }
+  if(h.you){
+    const it=stYouItem(h.you); if(!it) return '';
+    return `<button type="button" class="st-mrow" data-st-you="${h.you}"><span class="st-dot st-dot-you" aria-hidden="true"></span>
+      <span class="st-mrow-n">${esc(i18t(it.t))}${withGroup?`<span class="st-mrow-g">${esc(i18t('st_face_you'))}</span>`:''}</span><span class="st-mrow-go" aria-hidden="true">›</span></button>`;
+  }
+  if(h.jump){
+    return `<button type="button" class="st-mrow" data-st-jump="${h.jump}"><span class="st-dot st-dot-you" aria-hidden="true"></span>
+      <span class="st-mrow-n">${esc(i18t('st_cr_people_table'))}</span><span class="st-mrow-go" aria-hidden="true">›</span></button>`;
+  }
+  if(h.person){
+    const u=(typeof userById==='function')?userById(h.person):null; if(!u) return '';
+    return `<button type="button" class="st-mrow" data-st-panel="person:${PB_ATTR(u.id)}"><span class="st-dot st-dot-you" aria-hidden="true"></span>
+      <span class="st-mrow-n">${esc(u.name||u.email)}<span class="st-mrow-g">${esc(roleName(u.role))}</span></span><span class="st-mrow-go" aria-hidden="true">›</span></button>`;
+  }
+  return '';
+}
+/* THE BOX FINDS ACROSS EVERYTHING THE READER MAY REACH — every word typed must
+   appear (stSearchHits' rule): their own settings, and for an admin every
+   panel and every colleague by name, email or role. */
+function stMenuHits(q){
+  const words=String(q||'').toLowerCase().split(/\s+/).filter(Boolean);
+  if(!words.length) return [];
+  const all=hay=>words.every(w=>hay.indexOf(w)>=0);
+  const out=stYouItems().filter(it=>all(stYouHay(it))).map(it=>({you:it.key}));
+  if(stIsAdmin()){
+    stSearchHits(q).forEach(k=>out.push({panel:k}));
+    let users=[]; try{ users=getUsers()||[]; }catch(_){ users=[]; }
+    users.filter(u=>all([u.name,u.email,u.title,roleName(u.role)].filter(Boolean).join(' ').toLowerCase()))
+      .forEach(u=>out.push({person:u.id}));
+  }
+  return out;
+}
+function stMenuHtml(){ return stRowsHtml(); }
+
+/* ============================================================
+   JAMBO ON SETTINGS — HE FINDS, EXPLAINS AND READIES; YOU DECIDE
+   ============================================================
+   No model and no route: every answer is built from the readings the page
+   already draws (a panel's own state, stPersonSays, signCapText, the streams'
+   access, the ladder), so it costs nothing and cannot say what the screen
+   does not. He never saves. The furthest he goes is to READY a change — open
+   the drawer with the box filled in — and the person's Save is the act.
+   He reaches only what the reader may reach: a non-admin's Jambo knows their
+   own settings and nothing about colleagues or the company's rules.
+   The conversation is this sitting's, in memory, and holds the QUESTIONS:
+   each answer is read again whenever it is drawn, so it is never stale. */
+let _stJbLog=[], _stJbSeq=0;
+const ST_JB_MAX=12;
+/* Words that carry no meaning for finding, in both books' languages. */
+const ST_JB_STOP=new Set(('a an the and or of to for in on at by is are am be do does did can could may might must should would will i me my mine we our you your it its this that these those there here what which when where why how who whom whose about with from into please set make change show tell give get turn let see find open want need '+
+  'och eller att för i på av till med om är vara jag mig min mitt mina vi vår vårt du din ditt dina den det de en ett som vad vilken vilka när var varför hur vem kan ska vill måste får göra gör ändra visa ge sätt slå öppna hitta').split(/\s+/));
+const ST_JB_WHO=['who','whom','vem','vilka','people','person','personer'];
+const ST_JB_SIGN=['sign','signs','signing','signer','signers','signera','signerar','undertecknar','underteckna','skriva','skriver'];
+const ST_JB_CAP=['limit','limits','cap','caps','amount','much','gräns','gränsen','belopp','tak','mycket'];
+const ST_JB_NEXT=['next','ladder','governance','rung','nästa','härnäst','stegen','stege','styrning','styrningsstegen'];
+const ST_JB_CADENCE={ weekly:['weekly','week','vecka','veckan','veckovis'], daily:['daily','day','morning','dag','dagligen','morgon','varje'], off:['off','never','stop','none','aldrig','stäng','inga'] };
+/* every word of the ask (the INTENT words — who, sign, next — are read here,
+   since several are also filler), and the ones left to FIND things by */
+const stJbWords=q=>String(q||'').toLowerCase().replace(/['’]s\b/g,'').split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+const stJbTokens=q=>stJbWords(q).filter(t=>!ST_JB_STOP.has(t));
+/* a token finds a word when it IS the word or begins it (4 letters or more) */
+const stJbHit=(tok,hay)=>{ const ws=hay.split(/[^\p{L}\p{N}]+/u);
+  return ws.some(w=>w===tok || (tok.length>=4 && w.startsWith(tok))); };
+/* AN AMOUNT, AS PEOPLE SAY THEM: 5M, 5 million, 5,000,000, 500k, KES 5.5M */
+function stJbAmount(q){
+  const m=String(q||'').match(/(\d[\d.,\s]*\d|\d)\s*(m|mn|million|millions|miljon|miljoner|k|thousand|tusen|b|bn|billion|miljard|miljarder)?\b/i);
+  if(!m) return null;
+  const unit=(m[2]||'').toLowerCase();
+  let raw=m[1].replace(/\s/g,'');
+  const mult=/^(m|mn|million|millions|miljon|miljoner)$/.test(unit)?1e6:/^(k|thousand|tusen)$/.test(unit)?1e3:/^(b|bn|billion|miljard|miljarder)$/.test(unit)?1e9:1;
+  /* one separator followed by one or two digits is a decimal point (5.5M, 5,5 M) */
+  if(mult>1 && /^\d+[.,]\d{1,2}$/.test(raw)) raw=raw.replace(',','.');
+  else raw=raw.replace(/[.,]/g,'');
+  const n=Number(raw)*mult;
+  return (Number.isFinite(n) && n>0) ? Math.round(n) : null;
+}
+function stJbPeopleHit(toks){
+  if(!stIsAdmin()) return [];
+  let users=[]; try{ users=getUsers()||[]; }catch(_){ users=[]; }
+  return users.filter(u=>{
+    const parts=String(u.name||'').toLowerCase().split(/\s+/).filter(p=>p.length>=3)
+      .concat(String(u.email||'').toLowerCase().split('@')[0].split(/[._-]+/).filter(p=>p.length>=3));
+    return toks.some(t=>t.length>=3 && parts.some(p=>p===t || (t.length>=4 && p.startsWith(t))));
+  });
+}
+function stJbStreamsHit(toks){
+  if(!stIsAdmin() || typeof FOLDERS!=='object' || !FOLDERS) return [];
+  return Object.values(FOLDERS).filter(f=>{
+    const ws=String(f.name||'').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(w=>w.length>=4).concat([String(f.id||'').toLowerCase()]);
+    return toks.some(t=>t.length>=3 && ws.some(w=>w===t || (t.length>=4 && w.startsWith(t))));
+  });
+}
+/* THE ANSWER, AS A LIST OF CARDS — each a reading and a door. */
+function stJbAnswer(q){
+  const admin=stIsAdmin();
+  const toks=stJbTokens(q), words=stJbWords(q);
+  const has=list=>words.some(t=>list.includes(t));
+  const cards=[];
+  /* a named colleague, and — with an amount and a limit word — their limit readied */
+  const people=stJbPeopleHit(toks).slice(0,2);
+  const amount=stJbAmount(q);
+  if(people.length===1 && amount!=null && (has(ST_JB_CAP)||has(ST_JB_SIGN))) cards.push({ k:'stage', id:people[0].id, amount });
+  people.forEach(u=>cards.push({ k:'person', id:u.id }));
+  /* who may see a stream */
+  stJbStreamsHit(toks).slice(0,2).forEach(f=>cards.push({ k:'stream', fid:f.id }));
+  /* who may sign, and for how much */
+  if(admin && !people.length && has(ST_JB_WHO) && has(ST_JB_SIGN)) cards.push({ k:'whosign' });
+  /* the next rung */
+  if(admin && has(ST_JB_NEXT)){ const nx=stGovNext(); cards.push(nx?{ k:'panel', key:nx, next:true }:{ k:'alldone' }); }
+  /* A QUESTION ANSWERED IS ANSWERED: a reading above (a person, a stream, who
+     signs, the next rung) is the answer, and loose matches under it are noise */
+  if(cards.length) return { say:i18t('st_jb_found'), cards };
+  /* settings, best match first — the reader's own, and for an admin every panel */
+  const seen=new Set();
+  const scored=[];
+  const score=(title,hay)=>toks.reduce((s,t)=>s+(stJbHit(t,title)?2:stJbHit(t,hay)?1:0),0);
+  stYouItems().forEach(it=>{ const s=score(i18t(it.t).toLowerCase(), stYouHay(it)); if(s) scored.push({ s, c:{ k:'you', key:it.key } }); });
+  if(admin) stPanelKeys(null).forEach(k=>{ if(seen.has(k)) return; const p=SET_PANELS[k];
+    const title=p.title().toLowerCase();
+    const st=stStateOf(k);
+    const hay=[title, p.sub?p.sub():'', i18t('st_grp_'+stGroupKeyOf(k)), p.find?[].concat(p.find()).join(' '):'', st&&st.text?String(st.text).replace(/<[^>]*>/g,' '):''].join(' ').toLowerCase();
+    const s=score(title,hay); if(s) scored.push({ s, c:{ k:'panel', key:k } }); });
+  scored.sort((a,b)=>b.s-a.s);
+  const best=scored.length?scored[0].s:0;
+  const room=Math.max(0, 4-cards.length);
+  scored.filter(x=>x.s>=Math.max(1,Math.ceil(best/2))).slice(0, cards.length?Math.min(2,room):room).forEach(x=>cards.push(x.c));
+  /* for a You card, the control the ask names (a brief cadence) */
+  cards.forEach(c=>{ if(c.k==='you' && c.key==='email'){
+    const v=Object.keys(ST_JB_CADENCE).find(v=>has(ST_JB_CADENCE[v])); if(v) c.focus=`[data-pref-brief='${v}']`; } });
+  if(cards.length) return { say:i18t('st_jb_found'), cards };
+  /* NOTHING OF THEIRS MATCHED. A non-admin whose words name a company rule is
+     told it is an admin's — read off the panels' NAMES only, never their state. */
+  if(!admin && toks.length && stPanelKeys(null).some(k=>{ const p=SET_PANELS[k];
+      const hay=(p.title()+' '+(p.sub?p.sub():'')).toLowerCase(); return toks.some(t=>stJbHit(t,hay)); }))
+    return { say:i18t('st_jb_admin_only'), cards:[] };
+  return { say:i18t('st_jb_none',{q:String(q||'').slice(0,80)}), cards:[], none:true };
+}
+function stJbSayHtml(words){
+  const face=(typeof jamboFaceHtml==='function')?jamboFaceHtml('hello',28,'st-jb-av'):'';
+  return `<div class="st-jb-msg">${face}<div class="st-jb-bub">${esc(words)}</div></div>`;
+}
+function stJbCardHtml(c, turnId){
+  const btn=(attrs,label,primary)=>`<button type="button" class="ui-btn ui-btn-sm${primary?' ui-btn-primary':''}" ${attrs}>${esc(label)}</button>`;
+  const card=(head,body,acts)=>`<div class="st-jb-card"><div class="st-jb-ch">${head}</div>${body?`<div class="st-jb-cb">${body}</div>`:''}${acts?`<div class="st-jb-ca">${acts}</div>`:''}</div>`;
+  if(c.k==='panel'){
+    const p=SET_PANELS[c.key]; if(!p) return '';
+    const st=stStateOf(c.key)||{dot:'off',text:''};
+    return card(`<span class="st-dot" style="background:${ST_DOT[st.dot]||ST_DOT.off}"></span>${c.next?`<span class="st-jb-pre">${esc(i18t('st_jb_next_pre'))}</span> `:''}${esc(p.title())}`,
+      `${p.sub?`<p>${esc(p.sub())}</p>`:''}${st.text?`<p class="st-jb-state">${st.text}</p>`:''}`,
+      btn(`data-st-panel="${c.key}"`, i18t('st_jb_open'), true));
+  }
+  if(c.k==='you'){
+    const it=stYouItem(c.key); if(!it) return '';
+    return card(esc(i18t(it.t)), '', btn(`data-st-you="${c.key}"${c.focus?` data-st-you-focus="${esc(c.focus)}"`:''}`, i18t('st_jb_show'), true));
+  }
+  if(c.k==='person'){
+    const u=(typeof userById==='function')?userById(c.id):null; if(!u) return '';
+    const says=stPersonSays(u);
+    return card(`<span class="st-jb-ini">${esc((u.name||u.email||'?').split(' ').filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase())}</span>${esc(u.name||u.email)} <span class="st-jb-role">${esc(roleName(u.role))}</span>`,
+      says.length?`<ul>${says.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>`:'',
+      btn(`data-st-panel="person:${PB_ATTR(u.id)}"`, i18t('st_jb_open_person',{name:String(u.name||u.email||'').split(' ')[0]}), true));
+  }
+  if(c.k==='stage'){
+    const u=(typeof userById==='function')?userById(c.id):null; if(!u) return '';
+    const first=String(u.name||u.email||'').split(' ')[0];
+    const amt=(typeof fmtMoney==='function')?fmtMoney(c.amount):String(c.amount);
+    if(u.role==='admin'||u.role==='viewer')
+      return card(esc(i18t('st_jb_stage_h',{name:u.name||u.email})), `<p>${esc(i18t(u.role==='admin'?'st_jb_stage_admin':'st_jb_stage_viewer'))}</p>`, '');
+    const now=(typeof signCapText==='function')?signCapText(u):'';
+    return card(esc(i18t('st_jb_stage_h',{name:u.name||u.email})),
+      `<p>${esc(i18t('st_jb_stage_b',{amount:amt}))}</p>${now?`<p class="st-jb-state">${esc(i18t('st_jb_stage_now',{now}))}</p>`:''}`,
+      btn(`data-st-stage="${PB_ATTR(u.id)}|${c.amount}"`, i18t('st_jb_stage_go',{name:first}), true)+btn(`data-st-jb-drop="${turnId}"`, i18t('st_jb_discard'), false));
+  }
+  if(c.k==='stream'){
+    const f=(typeof FOLDERS==='object'&&FOLDERS)?FOLDERS[c.fid]:null; if(!f) return '';
+    let users=[]; try{ users=getUsers()||[]; }catch(_){ users=[]; }
+    const can=users.filter(u=>(typeof canAccessFolder==='function')?canAccessFolder(c.fid,u):(stAccessOf(u).all));
+    return card(esc(i18t('st_jb_stream_h',{name:f.name})),
+      `<p>${esc(i18tn('st_jb_stream_n',can.length,{n:can.length}))}</p><div class="st-jb-names">${can.map(u=>`<button type="button" class="st-jb-name" data-st-panel="person:${PB_ATTR(u.id)}">${esc(u.name||u.email)}</button>`).join('')}</div>`, '');
+  }
+  if(c.k==='whosign'){
+    let users=[]; try{ users=getUsers()||[]; }catch(_){ users=[]; }
+    const signers=users.filter(u=>u.role!=='viewer');
+    return card(esc(i18t('st_jb_whosign_h')),
+      `<ul class="st-jb-list">${signers.map(u=>`<li><button type="button" class="st-jb-name" data-st-panel="person:${PB_ATTR(u.id)}">${esc(u.name||u.email)}</button><span>${esc((typeof signCapText==='function')?signCapText(u):'')}</span></li>`).join('')}</ul>`,
+      btn('data-st-panel="signcap"', i18t('st_jb_open_rule'), false));
+  }
+  if(c.k==='alldone') return card(esc(i18t('st_gov_all_on')), '', '');
+  return '';
+}
+function stJbTurnHtml(t){
+  const a=stJbAnswer(t.q);
+  return `<div class="st-jb-turn" data-st-jb-turn="${t.id}">
+    <div class="st-jb-me">${esc(t.q)}</div>
+    ${stJbSayHtml(a.say)}
+    ${a.cards.map(c=>stJbCardHtml(c,t.id)).join('')}
+    ${a.none?`<div class="st-jb-ca"><button type="button" class="ui-btn ui-btn-sm" data-st-side="menu">${esc(i18t('st_jb_to_menu'))}</button></div>`:''}
+  </div>`;
+}
+/* The asks offered before anybody types — each is a sentence the finder
+   answers, in the reader's language, and they are the reader's own: a
+   non-admin is never offered a colleague or a company rule. */
+function stJbChips(){
+  if(!stIsAdmin()){
+    const api=(typeof API_MODE==='function')&&API_MODE();
+    return [api&&i18t('st_jb_c_twostep_me'), api&&i18t('st_jb_c_brief'), api&&i18t('st_jb_c_sessions'), i18t('st_jb_c_lang')].filter(Boolean);
+  }
+  const f=(typeof FOLDERS==='object'&&FOLDERS)?Object.values(FOLDERS)[0]:null;
+  return [i18t('st_jb_c_next'), i18t('st_jb_c_whosign'), f?i18t('st_jb_c_stream',{name:f.name}):'', i18t('st_jb_c_twostep')].filter(Boolean);
+}
+function stJamboHtml(){
+  return `<div class="st-jb">
+    <div class="st-jb-feed" id="st-jb-feed" aria-live="polite">
+      ${stJbSayHtml(i18t(stIsAdmin()?'st_jb_hello':'st_jb_hello_you'))}
+      <div class="st-jb-chips">${stJbChips().map(c=>`<button type="button" class="st-jb-chip" data-st-jb-ask="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+      ${_stJbLog.map(stJbTurnHtml).join('')}
+    </div>
+    <form class="st-jb-ask" id="st-jb-form" autocomplete="off">
+      <label class="sr-only" for="st-jb-q">${esc(i18t('st_jb_ph'))}</label>
+      <input id="st-jb-q" type="text" maxlength="200" placeholder="${esc(i18t('st_jb_ph'))}">
+      <button type="submit" class="ui-btn ui-btn-primary">${esc(i18t('st_jb_ask'))}</button>
+    </form>
+    <p class="st-jb-foot">${esc(i18t('st_jb_free'))}</p>
+  </div>`;
+}
+/* AN ASK IS ADDED WHERE IT IS READ — appended to the feed, the box keeps the
+   reader's hand; the page underneath does not move. */
+function stJbAsk(q){
+  q=String(q||'').trim(); if(!q) return;
+  const t={ id:++_stJbSeq, q };
+  _stJbLog.push(t); if(_stJbLog.length>ST_JB_MAX) _stJbLog=_stJbLog.slice(-ST_JB_MAX);
+  const feed=document.getElementById('st-jb-feed'); if(!feed) return;
+  [...feed.querySelectorAll('[data-st-jb-turn]')].forEach(el=>{
+    if(!_stJbLog.some(x=>String(x.id)===el.getAttribute('data-st-jb-turn'))) el.remove(); });
+  feed.insertAdjacentHTML('beforeend', stJbTurnHtml(t));
+  feed.scrollTop=feed.scrollHeight;
+}
+function stJbDrop(id){
+  _stJbLog=_stJbLog.filter(t=>String(t.id)!==String(id));
+  document.querySelector(`[data-st-jb-turn="${id}"]`)?.remove();
+}
+/* READY, NOT SAVED: the person's drawer, the limit typed into its box (and
+   "No limit" taken off, which is what asking for a limit means). The live
+   sentence under the box reads it back; Save is the person's, as ever. */
+function stJbStage(id, amount){
+  stDrawerOpen('person:'+id);
+  const none=document.getElementById('tm-cap-none');
+  if(none && none.checked){ none.checked=false; none.dispatchEvent(new Event('change',{bubbles:true})); }
+  const box=document.getElementById('tm-cap'); if(!box) return;
+  box.disabled=false; box.value=String(amount);
+  box.dispatchEvent(new Event('input',{bubbles:true}));
+  box.classList.add('st-staged');
+  try{ box.scrollIntoView({block:'center'}); box.focus({preventScroll:true}); }catch(_){}
+}
+/* THE TOP BAR'S JAMBO COMES HERE while this panel is on screen (aiEmbeddedHere
+   in js/ai.js): one Jambo on the screen, the one beside the settings. */
+function stJamboFocus(prefill){
+  stSideSet('jambo');
+  const box=document.getElementById('st-jb-q'); if(!box) return false;
+  if(prefill) box.value=String(prefill);
+  try{ box.focus({preventScroll:true}); }catch(_){}
+  return true;
+}
+
+/* ---- THE SIDE PANEL: JAMBO · MENU ---- */
+let _stSide='jambo';
+function stSideHtml(){
+  const tab=(k,ic,label)=>`<button type="button" role="tab" class="st-side-tab" data-st-side="${k}" id="st-side-tab-${k}" aria-controls="st-side-${k}" aria-selected="${_stSide===k}">${ic}<span>${esc(label)}</span></button>`;
+  const face=(typeof jamboFaceHtml==='function')?jamboFaceHtml('hello',18,'st-side-ic'):'';
+  return `<aside class="st-side" id="st-side" aria-label="${esc(i18t('st_side_label'))}">
+    <div class="st-side-tabs" role="tablist">${tab('jambo',face,i18t('st_side_jambo'))}${tab('menu',icon('list','st-side-ic'),i18t('st_side_menu'))}</div>
+    <div class="st-side-body" id="st-side-jambo" role="tabpanel" aria-labelledby="st-side-tab-jambo"${_stSide==='jambo'?'':' hidden'}>${stJamboHtml()}</div>
+    <div class="st-side-body st-side-menu" id="st-side-menu" role="tabpanel" aria-labelledby="st-side-tab-menu"${_stSide==='menu'?'':' hidden'}>${stMenuHtml()}</div>
+  </aside>`;
+}
+function stSideSet(k){
+  if(k!=='jambo' && k!=='menu') return;
+  _stSide=k;
+  document.querySelectorAll('#st-side [data-st-side]').forEach(b=>b.setAttribute('aria-selected', String(b.getAttribute('data-st-side')===k)));
+  ['jambo','menu'].forEach(x=>{ const el=document.getElementById('st-side-'+x); if(el) el.hidden=(x!==k); });
+}
+/* THE PANEL FITS THE WINDOW. It is sticky inside the page's own scroller
+   (THE TWO SCROLLS — no second scroller for the page), so its height is
+   measured: from where it stands, or from under the pinned tab row once the
+   page has scrolled, to the scroller's foot. Its own feed scrolls inside. */
+let _stSideFitWired=false, _stSideFitAsk=0;
+function stSideFit(){
+  if(typeof document==='undefined') return;
+  const side=document.getElementById('st-side'), sc=document.getElementById('content-scroll'), page=document.getElementById('set-page');
+  if(!side||!sc||!page||typeof side.getBoundingClientRect!=='function') return;
+  const band=page.querySelector('.st-tabs-pin');
+  const bandH=band?Math.round(band.getBoundingClientRect().height):0;
+  const top=bandH+12;
+  const sb=sc.getBoundingClientRect(), r=side.getBoundingClientRect();
+  if(!sb.height) return;
+  const from=Math.max(r.top, sb.top+top);
+  page.style.setProperty('--st-side-top', top+'px');
+  page.style.setProperty('--st-band-h', bandH+'px');
+  page.style.setProperty('--st-side-h', Math.max(360, Math.floor(sb.bottom-from-16))+'px');
+}
+function stSideFitWire(){
+  /* a cut-down stage has a window without events */
+  if(_stSideFitWired || typeof window==='undefined' || typeof window.addEventListener!=='function') return;
+  _stSideFitWired=true;
+  const ask=()=>{ if(_stSideFitAsk) return;
+    const run=()=>{ _stSideFitAsk=0; if(document.getElementById('st-side')) stSideFit(); };
+    _stSideFitAsk=1; if(typeof requestAnimationFrame==='function') requestAnimationFrame(run); else run(); };
+  window.addEventListener('resize', ask);
+  document.getElementById('content-scroll')?.addEventListener('scroll', ask, { passive:true });
 }
 
 /* ============================================================
@@ -1699,11 +2278,25 @@ async function settingsRemoveMember(u){
    It is the SAME drawer, opened from the avatar, and it is what tab 4 draws in
    the page for an admin. One builder, so the two cannot drift: an admin reading
    "You" and a viewer reading "Your account" are looking at the same rows. */
-function stAccountBodyHtml(){
+function stAccountBodyHtml(opts){
   const u=currentUser()||{};
   const mayDesign=u.role==='admin'||u.role==='legal';
+  /* THE YOU TAB DRAWS THIS AS CARDS (the Control Room, 16 Oct 2026): `page`
+     gives every section the name the Menu and Jambo point at (st-you-<key>,
+     on the page only — the account drawer can open over it, and an id is
+     one per document), leads with who you are, and leaves out the door to
+     Settings, which is where the reader already is. The drawer's sections
+     are otherwise the same rows from the same builder. */
+  const page=!!(opts&&opts.page);
+  const sec=k=>` data-st-you="${k}"${page?` id="st-you-${k}"`:''}`;
+  const ini=String(u.name||u.email||'?').split(' ').filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase();
   return `
-    <section class="st-sec">
+    ${page?`<section class="st-sec st-you-who"${sec('who')}>
+      <span class="st-you-av" aria-hidden="true">${esc(ini)}</span>
+      <span class="st-you-id"><span class="st-you-name">${esc(u.name||u.email||'')}</span><span class="st-you-mail">${esc(u.email||'')}</span></span>
+      <span class="reg-stg ins-pill"><i aria-hidden="true"></i>${esc((typeof roleName==='function')?roleName(u.role):String(u.role||''))}</span>
+    </section>`:''}
+    <section class="st-sec"${sec('job')}>
       <h3 class="st-sec-h">${esc(i18t('st_acct_job'))}</h3>
       <p class="st-note" style="margin-bottom:6px">${esc(i18t('st_acct_job_sub'))}</p>
       <div style="display:flex;gap:var(--s-2);align-items:flex-end">
@@ -1714,7 +2307,7 @@ function stAccountBodyHtml(){
       <p class="st-note">${esc(i18t('st_f_title_note'))}</p>
     </section>
 
-    <section class="st-sec">
+    <section class="st-sec"${sec('sidebar')}>
       <h3 class="st-sec-h">${esc(i18t('st_acct_sidebar'))}</h3>
       <p class="st-note" style="margin-bottom:6px">${i18t('set_sidebar_sub')}</p>
       <label class="st-toggle">
@@ -1725,7 +2318,7 @@ function stAccountBodyHtml(){
     </section>
 
     ${API_MODE()?`
-    <section class="st-sec">
+    <section class="st-sec"${sec('sessions')}>
       <h3 class="st-sec-h">${esc(i18t('st_acct_sessions'))}</h3>
       <p class="st-note" style="margin-bottom:6px">${i18t('set_sessions_sub')}</p>
       <div id="sessions-list" style="font-size:var(--t-meta);color:var(--color-neutral-700)">${window.busyHtml?busyHtml(i18t('set_loading')):i18t('set_loading')}</div>
@@ -1736,7 +2329,7 @@ function stAccountBodyHtml(){
            replaces them is the answer to the question somebody arrives with —
            "will HaTi email me about this contract?" — stated once, plainly.
            A dead switch is forbidden; this is what honest looks like. */}
-    <section class="st-sec">
+    <section class="st-sec"${sec('email')}>
       <h3 class="st-sec-h">${esc(i18t('st_acct_email'))}</h3>
       <div class="st-quiet">
         <span style="font-weight:var(--w-strong);display:block;color:var(--color-text)">${i18t('set_still_emailed')}</span>
@@ -1775,7 +2368,7 @@ function stAccountBodyHtml(){
            able to quietly remove the lock it could not pick. The lost-phone
            RESCUE is the server's admin grant (PATCH clearTwoStep) — its
            People-page button is Phase 2 work, named in the gap-map order. */}
-    <section class="st-sec">
+    <section class="st-sec"${sec('twostep')}>
       <h3 class="st-sec-h">${esc(i18t('ts_title'))}</h3>
       <p class="st-note" style="margin-bottom:6px">${esc(i18t('ts_sub'))}</p>
       <div style="display:flex;align-items:center;gap:10px">
@@ -1784,7 +2377,7 @@ function stAccountBodyHtml(){
       </div>
     </section>`:''}
 
-    <section class="st-sec">
+    <section class="st-sec"${sec('backup')}>
       <h3 class="st-sec-h">${esc(i18t('st_acct_backup'))}</h3>
       <p class="st-note" style="margin-bottom:6px">${API_MODE()?i18t('set_backup_server'):i18t('set_backup_local')}</p>
       <button id="bk-export" style="${ST_BTN2}">${icon('download','w-3.5 h-3.5')} ${i18t('set_export_backup')}</button>
@@ -1796,13 +2389,13 @@ function stAccountBodyHtml(){
            admin-only now, so an Editor would have lost it silently. It is a
            WORKSPACE setting sitting on a personal surface, which is unusual —
            so it says so on the row rather than pretending to be one of theirs. */}
-    <section class="st-sec">
+    <section class="st-sec"${sec('design')}>
       <h3 class="st-sec-h">${esc(i18t('st_acct_design'))}</h3>
       <p class="st-note" style="margin-bottom:6px">${esc(i18t('st_acct_design_note'))}</p>
       <button id="brand-edit" style="${ST_BTN2}">${i18t('set_edit_design')}</button>
     </section>`:''}
 
-    ${(u.role==='admin')?`
+    ${(u.role==='admin' && !page)?`
     <section class="st-sec">
       <h3 class="st-sec-h">${esc(i18t('st_acct_settings_door'))}</h3>
       <p class="st-note" style="margin-bottom:6px">${esc(i18t('st_acct_settings_sub'))}</p>
@@ -1815,8 +2408,11 @@ function stAccountBodyHtml(){
     ${''/* JAMBO'S POINTS, JUST FOR YOU (12 Oct 2026): a person's own values per
            agent, which change only what they see (PUT /api/me/prefs agentPoints);
            the same table the admin's Settings draws, in its own seat. */}
-    ${(typeof agPointsTableHtml==='function'&&API_MODE())?`<section class="st-sec" id="ag-pts-mine"><h3 class="st-sec-h">${esc(i18t('jh_pt_h_mine'))}</h3>${agPointsTableHtml('mine')}</section>`:''}
-    <p class="st-note">${esc(i18t('st_acct_lang_note'))}</p>`;
+    ${(typeof agPointsTableHtml==='function'&&API_MODE())?`<section class="st-sec st-sec-wide" id="ag-pts-mine" data-st-you="points"><h3 class="st-sec-h">${esc(i18t('jh_pt_h_mine'))}</h3>${agPointsTableHtml('mine')}</section>`:''}
+    ${page?`<section class="st-sec"${sec('lang')}>
+      <h3 class="st-sec-h">${esc(i18t('st_you_lang'))}</h3>
+      <p class="st-note">${esc(i18t('st_acct_lang_note'))}</p>
+    </section>`:`<p class="st-note">${esc(i18t('st_acct_lang_note'))}</p>`}`;
 }
 function stAccountWire(){
   if(typeof agPointsWire==='function') agPointsWire(document.getElementById('ag-pts-mine'));
@@ -4545,40 +5141,39 @@ function renderTeam(){
      'team' arrives at this function; a non-admin is drawn their own account
      page rather than a refusal or a blank. */
   if(typeof isAdmin==='function' && !isAdmin()){ renderMyAccountPage(); return; }
+  stPagePaint(true);
+}
+/* THE ONE SHELL, TWO READERS. An admin is drawn the two tabs (You · Company)
+   and the face that is up; anybody else the same page showing You, with no
+   tab row — the Company side is not there to be seen (owner, 16 Oct 2026).
+   `st-tabs-pin` is still the opt-in that keeps the row at the top of the
+   scroller while the body passes behind it. */
+function stPagePaint(admin){
   const _heldHeights=settingsHeightsBefore();
-  const tab=settingsTab();
-  /* `st-tabs-pin` is the opt-in: this row stays at the top of the scroller
-     while the body passes behind it (index.html). The class is on the ROW
-     rather than on the page because .st-tabs is one control on three pages and
-     only the page that draws it knows whether it wants it pinned. */
-  /* THE PEOPLE TAB COUNTS THE UNFINISHED (SAP benchmark, batch 2): it
-     replaced the yellow strip that named them; amber, because it is work. */
-  const unf=stUnfinishedCount();
-  const tabRow=`<div class="st-tabs st-tabs-pin sap-band" role="tablist">${ST_TABS.map(k=>
-    `<button class="st-tab${k===tab?' on':''}" data-st-tab="${k}" role="tab" aria-selected="${k===tab?'true':'false'}">${esc(i18t('st_tab_'+k))}${
-      k==='people'&&unf?`<span class="st-tab-n is-warn" title="${esc(i18tn('st_unfinished_n',unf,{n:unf}))}">${unf}</span>`:''}</button>`).join('')}</div>`;
-  const body =
-      tab==='people'   ? stPeopleHtml()
-    : tab==='you'      ? `<div class="st-you">${stAccountBodyHtml()}<p class="st-note">${esc(i18t('st_you_elsewhere'))}</p></div>`
-    : stRowsHtml(tab);
+  const face=admin?settingsTab():'you';
+  const body=face==='company'?stCompanyHtml():stYouHtml();
   document.getElementById('content').innerHTML=`
-  <div id="set-page" class="view-enter st-page sap-page">
-    ${tabRow}
-    ${tab==='people'?'':`<p class="st-tabsub">${esc(i18t('st_tab_'+tab+'_sub'))}</p>`}
-    <div id="st-tabbody">${body}</div>
+  <div id="set-page" class="view-enter st-page sap-page st-cr" data-st-face="${face}">
+    ${admin?stFacesHtml(face):''}
+    <div class="st-cr-cols">
+      <div id="st-tabbody" class="st-cr-main">${body}</div>
+      ${stSideHtml()}
+    </div>
   </div>`;
   settingsHoldHeights(_heldHeights);
   stWireDrawerOnce();
-  /* The search box is drawn by stRowsHtml, so it exists only on the two tabs
-     that list panels; stWireList is a no-op on the other two and binds once
-     per element, never once per render. */
+  /* the Menu's box binds once per element, never once per render */
   stWireList();
-  stLoadAiCfgOnce();
-  if(tab==='people') stPeopleWire();
-  if(tab==='you') stAccountWire();
+  if(admin) stLoadAiCfgOnce();
+  if(face==='company') stPeopleWire();
+  if(face==='you') stAccountWire();
+  /* measured now, and again once the page's entrance has settled — the
+     view-enter rise moves the panel while it runs */
+  stSideFitWire(); stSideFit();
+  if(typeof setTimeout==='function') setTimeout(stSideFit, 420);
   /* A door may have asked for one panel. Consumed on arrival, exactly once, so
      a later repaint does not re-open something the reader closed. */
-  if(_stWantPanel){ const want=_stWantPanel; _stWantPanel=null; stDrawerOpen(want); }
+  if(admin && _stWantPanel){ const want=_stWantPanel; _stWantPanel=null; stDrawerOpen(want); }
   setActiveNav('team');
 }
 /* THE ENGINE ROW AND THE GO-LIVE CEILING READ state.aiCfg, which only the
@@ -4595,22 +5190,12 @@ async function stLoadAiCfgOnce(){
   catch(_){ /* the drawer's own read says why when it is opened */ }
   finally{ _stAiCfgAsking=false; }
 }
-/* A non-admin's whole settings page: their own account, drawn in the page
-   rather than in the drawer, because arriving at a view and being handed a
-   floating panel over an empty page reads as an error. */
-function renderMyAccountPage(){
-  document.getElementById('content').innerHTML=`
-  <div id="set-page" class="view-enter st-page">
-    <div class="st-quiet" style="margin-bottom:14px">
-      <b>${esc(i18t('st_admin_only_page'))}</b><br>${esc(i18t('st_admin_only_body'))}
-    </div>
-    <h2 class="st-tabsub" style="font-size:var(--t-card);font-weight:var(--w-strong);color:var(--color-text)">${esc(i18t('st_you_title'))}</h2>
-    <div class="st-you">${stAccountBodyHtml()}</div>
-  </div>`;
-  stWireDrawerOnce();
-  stAccountWire();
-  setActiveNav('team');
-}
+/* A non-admin's whole settings page: their own settings as the You board,
+   with Jambo and the Menu beside it — the admin's page without the Company
+   tab. The note that used to say "Settings is for admins" went with the tab
+   (owner, 16 Oct 2026: "If you are not admin, this tab is invisible");
+   st_admin_only_page / st_admin_only_body stay INERT in both books. */
+function renderMyAccountPage(){ stPagePaint(false); }
 /* ---- E4 clause library editor + playbook viewer (Admin/Legal) ---- */
 function saveClauseLibrary(lib){ state.settings=state.settings||{}; state.settings.clauseLibrary=lib; saveSettings(); }
 /* ---- WHAT YOUR OWN HISTORY SAYS — A PLAYBOOK THAT LEARNS (idea 20) ----
@@ -5632,6 +6217,7 @@ Object.assign(window,{renderTeam,settingsPlace,settingsPlacePut,stAgentsPaint,ST
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
   stRulesRows,stPaintRules,stPaintSignFolders,
   openMyAccount,openSettingsAt,settingsGoTab,stUnfinishedCount,stPeopleWire,settingsTab,stLandTop,SET_PANELS,ST_TABS,SET_CLOSURES,ST_GROUPS,ST_ATTENTION_MAX,
+  ST_FACES,ST_GOV_LADDER,stGovRungs,stGovNext,stYouItems,stMenuHits,stJbAnswer,stJbAmount,stJbAsk,stJamboFocus,stSideSet,stSideFit,
   stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
   settingsWriteFolderAccess,settingsExportBackup,stGoLive,stLoadAiCfgOnce,stSampleContracts,stClearSamples,stRunIntegrity,
   stPersonMissing,stPersonSays,stPersonSumHtml,stAccountBodyHtml,parseDirectoryCsv,openFolderAccessEditor,settingsMirrorDirectory,

@@ -17,6 +17,11 @@
    and the page-errors sweep. They prove this change kept what was working
    rather than rebuilding it, which is the half of a redesign nobody tests.
 
+   RE-POINTED IN PLACE 16 Oct 2026 (the Control Room, the owner's pick): the
+   platform and build tabs became ONE Company board, every group a CARD of
+   the same rows, and the one search box moved into the side panel's Menu.
+   Every claim below is the claim it was, asked where it now stands.
+
    Run: node test/chromium/settings-groups-verify.js */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -75,13 +80,13 @@ const PAINTED = (sel) => {
     await signIn(page, h.base, 'admin@example.co.ke', 'adminpassword1');
     await page.evaluate(() => setView('team'));
     await page.waitForTimeout(1000);
-    await page.click('.st-tab[data-st-tab="platform"]');
+    await page.click('.st-face[data-st-tab="company"]');
     await page.waitForTimeout(500);
-    await shot(page, 'settings-platform');
+    await shot(page, 'settings-company');
 
     /* ============ 1. THE GROUPS ARE PAINTED AND NAMED ============ */
     const groups = await page.evaluate(() =>
-      [...document.querySelectorAll('#st-list .st-grp')].map(s => ({
+      [...document.querySelectorAll('.st-cards .st-grp:not(.st-grp-people)')].map(s => ({
         name: (s.querySelector('.st-grp-h')?.childNodes[0]?.textContent || '').trim(),
         sub: (s.querySelector('.st-grp-sub')?.textContent || '').trim(),
         rows: s.querySelectorAll('.st-row').length,
@@ -93,8 +98,8 @@ const PAINTED = (sel) => {
        read as broken. What matters is that every group the page DECLARES for
        this tab is drawn, and that none is left as an empty box. */
     const declared = await page.evaluate(() =>
-      (window.ST_GROUPS || []).filter(g => g.tab === 'platform').length);
-    check('1a. the platform tab draws every group it declares, not one list',
+      (window.ST_GROUPS || []).filter(g => g.tab === 'platform' || g.tab === 'build').length);
+    check('1a. the Company board draws every group it declares, each as a card',
       declared > 1 && groups.length === declared, declared + ' declared · '
         + groups.map(g => `${g.name}(${g.rows})`).join(' · '));
     /* The length test is not decoration: `[].every()` is true, so without it
@@ -111,12 +116,12 @@ const PAINTED = (sel) => {
        tab draws at all (SET_PANELS asked as stPanelKeys asks it) is drawn once, under a
        group, and no key twice. */
     const all = await page.evaluate(() => {
-      const keys = [...document.querySelectorAll('#st-list .st-grp .st-row')].map(r => r.getAttribute('data-st-panel'));
+      const keys = [...document.querySelectorAll('.st-cards .st-grp:not(.st-grp-people) .st-row')].map(r => r.getAttribute('data-st-panel'));
       const P = window.SET_PANELS;
-      const want = P ? Object.keys(P).filter(k => P[k].tab === 'platform' && (!P[k].show || P[k].show())) : null;
+      const want = P ? Object.keys(P).filter(k => (P[k].tab === 'platform' || P[k].tab === 'build') && (!P[k].show || P[k].show())) : null;
       return { keys, want };
     });
-    check('1d. every platform panel is still there, once each',
+    check('1d. every company panel is still there, once each',
       !!all.want && all.want.length > 0 && all.keys.length === all.want.length
         && new Set(all.keys).size === all.keys.length && all.want.every(k => all.keys.includes(k)),
       `${all.keys.length} rows for ${all.want ? all.want.length : '?'} panels`);
@@ -124,7 +129,7 @@ const PAINTED = (sel) => {
        "Links you send" declared itself a third. PIN THE RELATION — a caption is
        drawn exactly where ST_GROUPS says one is wanted, and nowhere else. */
     const wantSub = await page.evaluate(() => (window.ST_GROUPS || [])
-      .filter(g => g.tab === 'platform' && g.sub).length);
+      .filter(g => (g.tab === 'platform' || g.tab === 'build') && g.sub).length);
     check('1e. a caption is drawn on exactly the groups that declare one',
       wantSub > 0 && groups.filter(g => g.sub.length).length === wantSub,
       wantSub + ' declared · ' + (groups.filter(g => g.sub.length).map(g => g.name).join(' · ') || 'none'));
@@ -165,20 +170,22 @@ const PAINTED = (sel) => {
         top: Math.round(el.getBoundingClientRect().top),
         rows: [...el.querySelectorAll('.st-row')].map(r => r.getAttribute('data-st-panel')),
         wheres: [...el.querySelectorAll('.st-row-where')].map(w => w.textContent.trim()),
-        firstGroupTop: Math.round(document.querySelector('#st-list .st-grp').getBoundingClientRect().top)
+        firstGroupTop: Math.round(document.querySelector('.st-cards .st-grp').getBoundingClientRect().top)
       };
     });
     check('3a. the block is drawn and painted', att.drawn && att.h > 0, (att.h || 0) + 'px');
     check('3b. it leads the list, above the first group',
       att.drawn && att.top < att.firstGroupTop, `block ${att.top} · first group ${att.firstGroupTop}`);
-    check('3c. every row in it names which tab it lives on',
+    check('3c. every row in it names which card it lives on',
       att.drawn && att.wheres.length === att.rows.length, (att.wheres || []).join(' · ') || 'no block');
     const crossed = await page.evaluate(rows =>
       rows.some(k => window.SET_PANELS[k] && window.SET_PANELS[k].tab !== 'platform'), att.rows || []);
     check('3d. AND IT REACHES THE OTHER TAB — the whole point of the block',
       crossed, (att.rows || []).join(' · '));
 
-    /* ============ 4. ONE BOX OVER ALL OF THEM ============ */
+    /* ============ 4. ONE BOX OVER ALL OF THEM — the Menu's ============ */
+    await page.click('[data-st-side="menu"]');
+    await page.waitForTimeout(300);
     const box = await page.evaluate(PAINTED, '#st-q');
     check('4a. the search box is painted', box.ok, box.why);
     /* GUARDED so a build without the box REPORTS the rest as failures rather
@@ -201,9 +208,9 @@ const PAINTED = (sel) => {
     await page.waitForTimeout(350);
     await shot(page, 'settings-search');
     const found = await page.evaluate(() => ({
-      hits: [...document.querySelectorAll('#st-list .st-row')].map(r => r.getAttribute('data-st-panel')),
+      hits: [...document.querySelectorAll('#st-list .st-mrow')].map(r => r.getAttribute('data-st-panel') || r.getAttribute('data-st-you')),
       says: (document.querySelector('.st-found') || {}).textContent || '',
-      groups: document.querySelectorAll('#st-list .st-grp').length,
+      groups: document.querySelectorAll('#st-list .st-mgrp').length,
       focused: document.activeElement && document.activeElement.id,
       y: document.getElementById('st-q').getBoundingClientRect().top
     }));
@@ -223,13 +230,14 @@ const PAINTED = (sel) => {
     check('4g. a query that matches nothing says so', none.ok, none.why);
     await page.fill('#st-q', '');
     await page.waitForTimeout(300);
+    /* You, People, then every company group */
     check('4h. clearing it brings the groups back',
-      (await page.evaluate(() => document.querySelectorAll('#st-list .st-grp').length))
-        === (await page.evaluate(() => (window.ST_GROUPS || []).filter(g => g.tab === 'platform').length)));
+      (await page.evaluate(() => document.querySelectorAll('#st-list .st-mgrp').length))
+        === (await page.evaluate(() => 2 + (window.ST_GROUPS || []).filter(g => g.tab === 'platform' || g.tab === 'build').length)));
     }
 
     /* ============ 5. THE DRAWER SAYS WHERE YOU ARE ============ */
-    await page.click('.st-row[data-st-panel="approvals"]');
+    await page.click('.st-cards .st-row[data-st-panel="approvals"]');
     await page.waitForTimeout(600);
     await shot(page, 'settings-drawer');
     const crumb = await page.evaluate(PAINTED, '.st-dcrumb');
@@ -276,10 +284,15 @@ const PAINTED = (sel) => {
     /* ============ 6. THE BUILD TAB GOT THE SAME TREATMENT ============ */
     await page.keyboard.press('Escape');
     await page.waitForTimeout(400);
-    await page.click('.st-tab[data-st-tab="build"]');
+    /* the search left standing, then a tab press: the box comes back empty */
+    await page.fill('#st-q', 'email'); await page.waitForTimeout(200);
+    await page.click('.st-face[data-st-tab="you"]'); await page.waitForTimeout(400);
+    await page.click('.st-face[data-st-tab="company"]');
     await page.waitForTimeout(500);
     const build = await page.evaluate(() => ({
-      groups: [...document.querySelectorAll('#st-list .st-grp')].map(s =>
+      groups: [...document.querySelectorAll('.st-cards .st-grp')].filter(s => {
+        const keys = [...s.querySelectorAll('.st-row[data-st-panel]')].map(r => r.getAttribute('data-st-panel'));
+        return keys.length && keys.every(k => window.SET_PANELS[k] && window.SET_PANELS[k].tab === 'build'); }).map(s =>
         ({ n: (s.querySelector('.st-grp-h')?.childNodes[0]?.textContent || '').trim(), r: s.querySelectorAll('.st-row').length })),
       q: (document.getElementById('st-q') || {}).value
     }));

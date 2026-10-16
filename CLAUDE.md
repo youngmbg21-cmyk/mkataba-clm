@@ -268,9 +268,11 @@ Tests: f80, f83, f261, f458, f641, calendar-on-home, calendar-day, calendar-rede
 ## MY NOTES AND MY OWN EVENTS (js/mine.js, js/views/mynotes.js)
 PRIVATE: one store `mineLoad`/`mineSave`/`mineDelete` over /api/me/items (table `my_items`, every query `user_id`=req.user, `myItemClean` the one cleaner, a contract only where `folderScopeFor` lets the writer see it); static mode keeps them in this browser. Notes due = `mineNotesDue` (rail count `mynotes`, bell kind `note-due`). The ledger: table + panel (`renderMyNotes`, `myNotesNew(seed)` from + New note, the room's ⋯ `ws-mynote` and the Paper's highlight `mine`; `myNotesOpen`). Never on a contract, share or history. Tests: f641, my-notes-verify.
 
-## SETTINGS & RULES
+## SETTINGS & RULES — THE CONTROL ROOM (owner picked it 16 Oct 2026)
 
-Four tabs (People · Platform settings · Build & launch · You); every row opens one right-side drawer (`ST_TABS`, `openSettingsAt(tab,panel)` the one named door, `SET_PANELS`); `renderTeam()` is the gate; the page holds still (`stPaintList`, `stRepaintRow`), never `renderTeam()`; sticky tabs (`.st-tabs-pin`, `stLandTop`). `ST_GROUPS`; search `stSearchHits`; attention block `ST_ATTENTION_MAX` 4. Copilot engine: key, money and results on screen, the rest in one `<details>`; `aiWho(req)`; `js/aitrace.js` (five outcomes); `stKeyRemovable`. Tests: f193, f201, f203, f276, f350, settings-tabs, settings-groups verify.
+- Home's two tabs, You first (`ST_FACES`; old names map, `stFaceOf`); Company is admin-only and a non-admin gets NO tab row (`stPagePaint`); `renderTeam()` the gate. Company: Needs you (`ST_ATTENTION_MAX` 4; the tab's count) · a card per group of the same rows (`stRowHtml`) · People & access · the ladder off the gates' own dots (`ST_GOV_LADDER`) · the People table. You: `stAccountBodyHtml({page})` as cards (`stYouItems`). Every edit is one drawer (`SET_PANELS`, `openSettingsAt(tab,panel)`); the page holds still (`stRepaintRow`); sticky (`.st-tabs-pin`, `stLandTop`).
+- Side panel Jambo · Menu (`stSideHtml`, `stSideFit`): Jambo finds and READIES, no model, writes nothing (`stJbAnswer`, `stJbStage`), a non-admin's knows only their own; the top bar's Jambo goes there (`aiEmbeddedHere` 'settings'). Menu: the one box (`stMenuHits`). STALE: Settings' `.st-tab`, `st-tabsub`. Engine: key, money, results on screen (`aiWho`, `js/aitrace.js`, `stKeyRemovable`).
+Tests: f193, f201, f203, f276, f350, f691, settings-tabs, settings-groups verify.
 
 ## PARTY vs WORKSPACE, AND WHO THE AGREEMENT IS BETWEEN (js/parties.js)
 
