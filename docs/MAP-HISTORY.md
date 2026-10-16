@@ -30076,3 +30076,13 @@ expiring filters (`expWithin` in register.js, so the door matches its list) and
 the monthly email's "Expiring in the next 90 days" now count `status ===
 'Signed'` only. "Past end date" (`contractExpired`) always did. f66's "Home
 counts it" fixture now carries Signed; f690 (9) pins all four readers.
+
+
+## THE LIFELINE STRIP — THE AGREEMENT FAMILY LINE (15 Oct 2026)
+
+The owner: *"when a contract is open on the board and it has an accompanying amendment, it should be clear in the board that it is tied to another amendment."* Asked which place, the owner said the overview card on the Board, "not the paper itself", and asked for options first. Three were drawn on one page (Header tag, Family line, The SAP way); the owner picked "Family line" by name.
+
+- Before: the Board's card said nothing about a family. The only hint was the Value tile's sub-line when an amendment had moved the value.
+- Built: one line under the card's head, "Agreement family", drawn only where `familyOf(c)` holds two or more. The original comes first ("Original"), then each child in the order it was made, named by its relation word and its own count ("Amendment No. 1", a renewal counted apart). Each pill shows its reference, its word and its status in the strip's own tones (`bsTone`). The one in front is lit and is not a button; any other is a button, and a press brings that contract up through the one door `hbStripBring`. Names: `bsFamRows` (the reading), `bsFamHtml` (the drawing), `.bs-fam*`, `bs_fam_*` in both books. Brain part `stripfamily`, on the amend flow's last step, own lane.
+- The six questions: the header carries facts, so the line sits in the card's head area rather than as a band; it costs the paper nothing because it is on the Board's card, not the paper. One door: pressing a pill uses the same bring-up as every other way in. The SAP way was offered and not picked.
+- agreement-family-verify: 10 checks, red at unmodified main (2/10: only "no line without a family" and "no page errors" hold there), green with the change, at 1440×780, 1536×730 and 1366×950. board-strip-verify 66/66, theme-tokens and ink-wash unchanged.

@@ -169,6 +169,9 @@ const BRAIN_PARTS = [
      contract brought up on the Board, Where we are and History behind its ⋯;
      every door that opened the contract room lands here */
   ['strip', 'hbStripBring', 'see', 0],
+  /* the agreement family on the strip (15 Oct 2026, the owner picked "Family line"):
+     the original and every amendment, the one in front lit; a press brings the other up */
+  ['stripfamily', 'bsFamHtml', 'see', 0],
   /* Before you sign, beside the paper (the one-page Home plan, stage 5, 14 Oct
      2026): Jambo's panel draws the Signing column's own four slots; the paper
      turns to the signing copy; every door into signing lands here */
@@ -325,7 +328,7 @@ const BRAIN_FLOWS = [
   { id: 'draft', steps: [['newagr', 'draftform', 'essentials'], ['putguard', 'db'], ['details', 'fillface', 'tplform', 'blanks'], ['triage'], ['shares', 'linkcheck'], ['email', 'outbyhand', 'wordfile'], ['whosemove', 'bell']] },
   { id: 'request', steps: [['request', 'kinds', 'intake', 'mailroom', 'reqfiles'], ['bell'], ['lanes', 'laneowner'], ['arrivalowed', 'triage'], ['newagr']] },
   { id: 'theysign', steps: [['theirsign', 'issuelinks'], ['cplink', 'guestcode'], ['respond', 'filesig'], ['srvseal', 'sealtext', 'frozen'], ['copies', 'email'], ['obligations', 'renewal', 'calendar']] },
-  { id: 'amend', steps: [['amendface', 'amend'], ['blanks'], ['readiness', 'approvals'], ['srvseal'], ['renewal', 'overview']] },
+  { id: 'amend', steps: [['amendface', 'amend'], ['blanks'], ['readiness', 'approvals'], ['srvseal'], ['renewal', 'overview', 'stripfamily']] },
   { id: 'end', steps: [['served', 'renewact'], ['autorenew'], ['obdone'], ['endpause', 'decline', 'reopen'], ['archive', 'hold']] },
   { id: 'mistake', steps: [['leaveguard', 'inline'], ['discard'], ['freshen'], ['outbyhand', 'mailkey'], ['linkkeep', 'whosemove']] }
 ];
@@ -344,7 +347,7 @@ const BRAIN_LANE_OF = {
   /* a colleague: the requester, the reviewer, the contributor, the approver */
   req: ['request', 'kinds', 'reqfiles', 'review', 'suggest', 'rules', 'namedyes', 'decide', 'undoyes', 'approvalpaper', 'lookask'],
   /* the person working the contract: what they see and press */
-  own: ['upload', 'dropin', 'draftform', 'refile', 'glance', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'needsme', 'negpage', 'redface', 'boardviews', 'strip', 'startnego', 'here', 'follow',
+  own: ['upload', 'dropin', 'draftform', 'refile', 'glance', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'needsme', 'negpage', 'redface', 'boardviews', 'strip', 'stripfamily', 'startnego', 'here', 'follow',
     'editor', 'baton', 'askkeep', 'risklist', 'riskwalk', 'stands', 'dealpaper', 'onepaper', 'decidedsend', 'signtab', 'signface', 'pad', 'calendar', 'desknight', 'insights', 'readings',
     'chasemany', 'copilotask', 'menuask', 'nextsteps', 'reflink', 'menutab', 'amendface', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs',
     'phrasebook', 'boardtools', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'citedoor', 'walkset', 'paperdesk', 'contracts', 'contractsplace', 'customers', 'directory', 'cellfold',
