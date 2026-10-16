@@ -21696,7 +21696,7 @@ function buildMonthlyReport(month) {
   const daysTo = iso => Math.ceil((new Date(iso + 'T00:00:00') - today) / 86400000);
   const expiring = [];
   for (const { r, c } of parsed) {
-    if (r.status === 'Declined') continue;
+    if (r.status !== 'Signed') continue;   /* ending means signed (owner, 16 Oct 2026) */
     const exp = dateOnly((c.metadata && c.metadata.expiryDate) || r.expiry || null);
     if (!exp) continue;
     const d = daysTo(exp);

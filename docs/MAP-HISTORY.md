@@ -30065,6 +30065,18 @@ first try named the custom property `--hb-fig-n`, which its slice read as the
 number's class.
 CLAUDE.md: 80,104 → 80,267 bytes (one line for the side list; one line tightened).
 
+## ENDING MEANS SIGNED (owner, 16 Oct 2026)
+
+Asked after the Board walk-through whether "Ending in 90 days" should count
+drafts and papers still being agreed, the owner answered: "Signed contracts
+only." It REVERSES the reading every screen shared since August (not Declined):
+`hmDashSlices().expiring` (the Board's tile through f447, the KPIs' 30/60/90,
+the phone, the bell's renewals), `hbBookData`'s `ending`, the Contracts place's
+expiring filters (`expWithin` in register.js, so the door matches its list) and
+the monthly email's "Expiring in the next 90 days" now count `status ===
+'Signed'` only. "Past end date" (`contractExpired`) always did. f66's "Home
+counts it" fixture now carries Signed; f690 (9) pins all four readers.
+
 
 ## THE LIFELINE STRIP — THE AGREEMENT FAMILY LINE (15 Oct 2026)
 

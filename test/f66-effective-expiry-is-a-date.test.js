@@ -73,8 +73,10 @@ describe('F66 — a hand-typed expiry is a date on every screen that reads it', 
   });
 
   test('Home counts it among the contracts that are about to expire', () => {
+    /* SIGNED (owner, 16 Oct 2026: "Signed contracts only"): an ending is
+       counted only for an agreement in force, so the two carry Signed */
     const sb = world(['js/views/home.js'],
-      [mk('MK-HUMAN', humanDay(20)), mk('MK-CLEAN', isoDay(20))]);
+      [mk('MK-HUMAN', humanDay(20), { status: 'Signed' }), mk('MK-CLEAN', isoDay(20), { status: 'Signed' })]);
     sb.renderDashboard();
     const html = sb.document.getElementById('content').innerHTML;
     // the "Expiring in 30 days" hero card carries the count, and it is the

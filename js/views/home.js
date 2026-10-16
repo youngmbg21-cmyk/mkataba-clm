@@ -368,7 +368,11 @@ function hmDashSlices(){
 
   // family-aware: a master agreement's real end date is whatever the latest
   // amendment says, and an amendment is not itself an expiring agreement
-  const expiring=agreementsIn(cs).map(c=>({c,e:effectiveExpiry(c)})).filter(x=>x.e&&x.c.status!=='Declined')
+  /* ENDING MEANS SIGNED (owner, 16 Oct 2026: "Signed contracts only"): a
+     draft or a paper still being agreed has a planned end date, not an
+     ending. One reading for the Board's tile, the KPIs, the phone and the
+     bell's renewals; the Contracts filter and the monthly email ask the same. */
+  const expiring=agreementsIn(cs).map(c=>({c,e:effectiveExpiry(c)})).filter(x=>x.e&&x.c.status==='Signed')
     .map(x=>({c:x.c,d:dU(x.e),e:x.e})).filter(x=>x.d>=0&&x.d<=90).sort((a,b)=>a.d-b.d);
   /* Renewal decisions due, one contract at a time in hmRenewalDue — the side
      panel's checklist asks the very same question of the one contract it
