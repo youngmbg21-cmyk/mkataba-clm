@@ -20899,3 +20899,4 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - The colour census (ink-wash-verify) moved with the tab row's removal — a few existing values counted fewer, nothing new; re-taking the record waits on the owner's yes.
 - CLAUDE.md now stands at about 82 KB (81.2 KB before this change); bringing it under 80 KB is a trim for the owner to approve.
 - (later the same day) The colour census was re-taken on the owner's "Yes, update the record" — ink-wash and theme-tokens both green.
+- GitHub's node suite (jsdom) fails 1 test on main itself (feb17f1: 12841 of 12842; the three main runs before it failed too); which test is not visible in the log tool's last 5,000 lines. Finding it needs a full-suite run, which waits on the owner.
