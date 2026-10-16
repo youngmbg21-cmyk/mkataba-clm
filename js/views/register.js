@@ -414,6 +414,10 @@ const REG_VIEWS=[
   {k:'expiring90', get label(){ return i18t('reg_exp_90'); }},
   {k:'expired',    get label(){ return i18t('reg_term_ended'); }},
   {k:'autosoon',   get label(){ return i18t('reg_auto_renew'); }},
+  /* IN NEGOTIATION (owner, 16 Oct 2026): the contracts being argued over
+     right now — negoIsLive, the very reading the Negotiations list is made
+     of, so the count here is the count there. */
+  {k:'nego',       get label(){ return i18t('reg_view_nego'); }},
   {k:'overdueob',  get label(){ return i18t('reg_overdue_obligations'); }},
   {k:'archived',   get label(){ return i18t('reg_view_archived'); }},
   /* DETAILS TO FILL (owner, 12 Oct 2026): contracts with boxes still empty
@@ -1736,6 +1740,7 @@ function regFiltered(){
     if(typeof renewalDecided==='function'&&renewalDecided(c)) return false;
     const dd=renewalDecisionDate(c); return (c.metadata&&c.metadata.renewalType==='auto-renew')&&dd&&daysUntil(dd)>=0&&daysUntil(dd)<=60; });
   else if(R.view==='overdueob') cs=cs.filter(c=>(c.obligations||[]).some(o=>obState(o)==='overdue'));
+  else if(R.view==='nego') cs=cs.filter(c=>typeof window.negoIsLive==='function'&&negoIsLive(c));
   else if(R.view==='details') cs=cs.filter(c=>{ try{ return !!(window.detailsOf&&detailsOf(c).left); }catch(_){ return false; } });
   /* ---- THE TEXT FILTER, ON THE SEAT THAT HAS A BOX FOR IT ----
      (owner-reported 10 Sep 2026: *"the search feature is not working."*

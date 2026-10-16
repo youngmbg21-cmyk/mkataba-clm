@@ -5744,6 +5744,7 @@ const STRINGS = {
     ap_tag_wording: "wording",
     /* ---- the archive shelf (WO-5) ---- */
     reg_view_archived: "Archived",
+    reg_view_nego: "In negotiation",
     reg_archive: "Archive", /* inert since 15 Oct 2026: End or pause is one door */
     reg_restore: "Restore",
     ct_archived_tag: "Archived",
@@ -21774,6 +21775,7 @@ const STRINGS = {
     ap_ask_copilot_sub: "Öppnar Jambo-panelen med frågan redo att skickas",
     ap_tag_wording: "lydelse",
     reg_view_archived: "Arkiverade",
+    reg_view_nego: "Under förhandling",
     reg_archive: "Arkivera", /* inert since 15 Oct 2026: End or pause is one door */
     reg_restore: "Återställ",
     ct_archived_tag: "Arkiverat",
