@@ -1823,7 +1823,10 @@ function jamboPerchMount(dock){
   if (!host){ jamboRest(); if (_jbEl && _jbEl.parentNode) _jbEl.remove(); return false; }
   host.appendChild(jamboPerchEl());
   if (!_jbBeat) _jbBeat = setInterval(jamboBeat, JB_BEAT_MS);
-  jamboBeat();
+  /* his first look round waits for the panel's paint to finish: read inside
+     it, the busy marker's layout check would make the browser lay the
+     freshly drawn panel out twice (home-speed's Board ⇄ Paper switch) */
+  setTimeout(jamboBeat, 0);
   return true;
 }
 function jamboRest(){ if (_jbBeat){ clearInterval(_jbBeat); _jbBeat = 0; } _jbWorking = ''; }
