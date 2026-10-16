@@ -20888,3 +20888,13 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ### Noticed, not fixed (16 Oct 2026, the Control Room built in full)
 - Other members' personal prefs (language, Jambo's suggestions, where a contract opens) travel to non-admins in /api/bootstrap's user list; nothing draws them, but the server could send only a person's own.
 - CLAUDE.md stood at about 81 KB before this change (the rule says about 80 KB); this change kept its own entry the same size and trimmed nothing else.
+
+### Built (16 Oct 2026, the owner: "Go and merge to main")
+- A late read never moves the reader onto a contract: every choice of a paper takes a number, the pressed paper wears "Opening…" with the ring, and a refresh's put-back gives way to the reader's hand. Test: late-open-stays-put verify.
+- The Contracts place: In negotiation in Quick filters; Stage · Stream · Category · Quick filters on the row just above the card; the stage tabs became the Stage box (counted, no empty stage offered). Tests: f693; eight browser checks and f687 re-pointed from the tab row to the box.
+- Jambo, Alive: perched on the chips row, breathing, turning to chosen words, thinking under the ring, hopping when work is done; a glance row no longer owed is ticked off before it leaves. Test: jambo-alive verify.
+
+### Noticed, not fixed (16 Oct 2026, the same change)
+- The Negotiations page's Stage box writes its stages in English only (REG_STAGES' Drafting / In Review / Executed / Closed are typed, not read from the books), so a Swedish reader sees English there; the Contracts place's Stage box reads statusLabel and is not affected.
+- The colour census (ink-wash-verify) moved with the tab row's removal — a few existing values counted fewer, nothing new; re-taking the record waits on the owner's yes.
+- CLAUDE.md now stands at about 82 KB (81.2 KB before this change); bringing it under 80 KB is a trim for the owner to approve.
