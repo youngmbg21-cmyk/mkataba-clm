@@ -145,7 +145,10 @@ const openSettings = async (page, tab) => {
       && !/Not/.test(document.getElementById('mail-cfg-status').textContent));
     const d8 = await page.evaluate(() => ({ status: document.getElementById('mail-cfg-status').textContent.trim(),
       key: document.getElementById('mail-key').value, emailOff: emailOff(),
-      row: (document.querySelector('.st-row[data-st-panel="mail"]') || {}).textContent || '' }));
+      /* since the full build (16 Oct 2026) the panel is a fact on its card or a
+         row in the Menu, each saying its state */
+      row: ((document.querySelector('.st-fact[data-st-panel="mail"]') || {}).getAttribute ? document.querySelector('.st-fact[data-st-panel="mail"]').getAttribute('title') : '')
+        || (document.querySelector('.st-mrow[data-st-panel="mail"]') || {}).textContent || '' }));
     check('D8 saving a mail key turns email on, and the box empties', on && !d8.key && d8.emailOff === false, d8.status);
     check('D8 the key itself is never shown back (last four only)', /abcd/.test(d8.status) && !/re_screenKey/.test(d8.status));
     check('D8 the row behind the drawer says configured at once', /configured/i.test(d8.row) && !/not configured/i.test(d8.row), d8.row.replace(/\s+/g, ' ').trim().slice(0, 90));

@@ -221,9 +221,12 @@ describe('f281 (4) — the shell bar writes to the seat it lands on', () => {
        page would write its answer into that page's filters and then open a
        register that had never heard of it." MEASURED on this door before the
        fix: {contractsQuery:"", negoQuery:"lease"}. */
-    const at = APP.indexOf("getElementById('cmd-search')");
+    /* the listener's own binding (paintSearchFace, 16 Oct 2026, also names the box) */
+    const at = APP.indexOf("const search=document.getElementById('cmd-search')");
     assert.ok(at > 0, 'the shell bar box is wired');
-    const body = APP.slice(at, at + 700);
+    /* the box's own listener, read whole (PIN THE REGION, NOT A BYTE COUNT:
+       the Settings door at its top, 16 Oct 2026, pushed this past 700) */
+    const body = APP.slice(at, APP.indexOf("document.addEventListener('keydown'", at));
     const scope = body.indexOf('regSetScope');
     const write = body.indexOf('.query=');
     assert.ok(scope > 0, 'it names the scope');

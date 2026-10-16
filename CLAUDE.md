@@ -270,9 +270,9 @@ PRIVATE: one store `mineLoad`/`mineSave`/`mineDelete` over /api/me/items (table 
 
 ## SETTINGS & RULES — THE CONTROL ROOM (owner picked it 16 Oct 2026)
 
-- Home's two tabs, You first (`ST_FACES`; old names map, `stFaceOf`); Company is admin-only and a non-admin gets NO tab row (`stPagePaint`); `renderTeam()` the gate. Company: Needs you (`ST_ATTENTION_MAX` 4; the tab's count) · a card per group of the same rows (`stRowHtml`) · People & access · the ladder off the gates' own dots (`ST_GOV_LADDER`) · the People table. You: `stAccountBodyHtml({page})` as cards (`stYouItems`). Every edit is one drawer (`SET_PANELS`, `openSettingsAt(tab,panel)`); the page holds still (`stRepaintRow`); sticky (`.st-tabs-pin`, `stLandTop`).
-- Side panel Jambo · Menu (`stSideHtml`, `stSideFit`): Jambo finds and READIES, no model, writes nothing (`stJbAnswer`, `stJbStage`), a non-admin's knows only their own; the top bar's Jambo goes there (`aiEmbeddedHere` 'settings'). Menu: the one box (`stMenuHits`). STALE: Settings' `.st-tab`, `st-tabsub`. Engine: key, money, results on screen (`aiWho`, `js/aitrace.js`, `stKeyRemovable`).
-Tests: f193, f201, f203, f276, f350, f691, settings-tabs, settings-groups verify.
+- BUILT IN FULL (owner, 16 Oct): You first; Company admin-only, NO tab row for others (`stPagePaint`, `renderTeam()` the gate). Company: Needs you `stNeedsAll` (≤4, each row its button) · cards `ST_CARDS` (two facts `stCardFacts` + doors) · ladder · access sheet; pages `settingsGoPage`. You: cards `stYouItems`, each door a drawer `me:*` (`stMeDrawer`, `data-st-sec`). One drawer (`SET_PANELS`, `openSettingsAt`); the page holds still (`stCrSync`).
+- ONE FINDER `stFind`: Menu box and ⌘K (`stFindRows`/`stFindGo`; on Settings the bar's box opens ⌘K). Jambo (`stJbAnswer`) finds free; a "why" is AI on a press, cost first (`POST /api/ai/settings-why`, a non-admin's own only). ASK AN ADMIN is a record (`settings_asks`, `stAskSend`; Needs you, bell, reminded). Own flags `jamboChipsOn`/`contractOpensOn`. Engine `aiWho`, `stKeyRemovable`. INERT: `st_jb_admin_only`, `st_legend_*`, `st_jb_free`. Story: MAP-HISTORY "THE CONTROL ROOM, BUILT IN FULL".
+Tests: f193, f195, f201, f203, f276, f350, f691, f692, settings-tabs, settings-groups, control-room-in-full verify.
 
 ## PARTY vs WORKSPACE, AND WHO THE AGREEMENT IS BETWEEN (js/parties.js)
 

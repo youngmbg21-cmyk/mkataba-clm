@@ -20878,3 +20878,13 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ### Noticed, not fixed (16 Oct 2026, the Control Room)
 - The white band under Settings' title stops about 10px short of the window's right edge at 1440 (the scroller's gutter beside the pinned row); it did before this change too.
 - The Menu's search matches inside words, as the old box did: "sign" also finds "Company design".
+
+### Built (16 Oct 2026, the owner: "build and for the 4 decisions, go with your advice")
+- The Control Room as drawn: Company's Needs you reaches across areas (signers with no limit, no backup approver, members not signed in, open asks), short group cards with two facts and doors, the ladder and the access sheet, the Team and sheet pages, signing limits and gates drawers, send the welcome again. You: short cards, each door a drawer; password change, recovery codes, Jambo's suggestions on/off, where a contract opens.
+- One finder for the Menu box, ⌘K and the bar's box on Settings; Jambo's "why" is a model call on a press with the cost said first, the server choosing what it reads; Ask an admin is a record — admins' Needs you and bell, reminded, closed by the answer, the asker told; refusals about a rule carry a door to it.
+- Not built on the advice taken: per-kind email ("How you're told") and a saved signature (needs a lawyer). The other differences from the drawing are listed in MAP-HISTORY "THE CONTROL ROOM, BUILT IN FULL".
+- Re-pointed: f193, f195, f148, f281; settings-groups, settings-tabs, settings-overnight-fixes verify. New: f692 (the server's walls), control-room-in-full verify; f691 rewritten.
+
+### Noticed, not fixed (16 Oct 2026, the Control Room built in full)
+- Other members' personal prefs (language, Jambo's suggestions, where a contract opens) travel to non-admins in /api/bootstrap's user list; nothing draws them, but the server could send only a person's own.
+- CLAUDE.md stood at about 81 KB before this change (the rule says about 80 KB); this change kept its own entry the same size and trimmed nothing else.

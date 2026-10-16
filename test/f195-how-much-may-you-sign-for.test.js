@@ -201,7 +201,7 @@ describe('f195 — the screens', () => {
 
   test('the roster row says how much each person may sign for', () => {
     const { sb, win } = stage({ cap: 4000000 });
-    sb.settingsGoTab('company');   // the People table is on the Company board since 16 Oct 2026
+    sb.settingsGoTab('company'); sb.settingsGoPage('team');   // the People table is the Team page since the full build (16 Oct 2026)
     const cells = [...win.document.querySelectorAll('[data-st-cap]')].map(e => e.textContent.trim());
     assert.ok(cells.some(t => t.includes(sb.fmtMoneyShort(4000000))), 'the figure is on the row');
     assert.ok(cells.some(t => t === S.sc_not_set), 'and so is the absence of one');

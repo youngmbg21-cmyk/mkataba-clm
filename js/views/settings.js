@@ -948,7 +948,7 @@ function stNeedsAll(){
     btn:'data-st-panel="limits"', verb:i18t('st_need_limits_go') });
   const nob=stNoBackup();
   if(nob.length===1) out.push({ key:'backup', dot:'warn',
-    text:i18t('st_need_backup_one',{name:stNameOf(nob[0]).split(' ')[0]}),
+    text:i18t('st_need_backup_single',{name:stNameOf(nob[0]).split(' ')[0]}),
     sub:i18t('st_need_backup_sub',{approver:stNameOf((typeof userById==='function'&&userById(stRuleOf(nob[0]).approverId))||{}).split(' ')[0]}),
     btn:`data-st-panel="person:${PB_ATTR(nob[0].id)}" data-st-focus="#tm-sa-backup"`, verb:i18t('st_need_backup_go') });
   else if(nob.length) out.push({ key:'backup', dot:'warn',
@@ -959,7 +959,7 @@ function stNeedsAll(){
       btn:`data-st-panel="${k}"`, verb:(p.fixVerb&&p.fixVerb())||i18t('st_need_open') }); });
   const inv=stInvited();
   if(inv.length===1) out.push({ key:'invite', dot:'quiet',
-    text:i18t('st_need_invite_one',{name:stNameOf(inv[0])}),
+    text:i18t('st_need_invite_single',{name:stNameOf(inv[0])}),
     sub:(inv[0].prefs&&inv[0].prefs.invitedAgainAt)?i18t('st_need_invite_again',{day:stDay(inv[0].prefs.invitedAgainAt)}):i18t('st_need_invite_sent',{day:stDay(inv[0].createdAt)}),
     btn:`data-st-resend="${PB_ATTR(inv[0].id)}"`, verb:i18t('st_resend') });
   else if(inv.length) out.push({ key:'invite', dot:'quiet',
@@ -1543,7 +1543,9 @@ function stFind(q){
     let s=0, m=0, via='';
     for(const t of toks){
       if(stJbHit(t,name)){ s+=3; m++; }
-      else if(syn&&stJbHit(t,syn)){ s+=2; m++; via=via||t; }
+      /* a plain word that is the setting's FIRST word is what it most means
+         ("salary" is a signing limit before it is a stream) */
+      else if(syn&&stJbHit(t,syn)){ s+=(stJbHit(t,syn.split(' ')[0])?2.5:2); m++; via=via||t; }
       else if(rest&&stJbHit(t,rest)){ s+=1; m++; }
     }
     return { s, m, via };
@@ -1755,7 +1757,9 @@ function stJbAnswer(q){
   if(!admin && toks.length){
     const rule=stPanelKeys(null).find(k=>{ const p=SET_PANELS[k];
       const hay=(p.title()+' '+(p.sub?p.sub():'')+' '+stSynOf(k)).toLowerCase(); return toks.some(t=>stJbHit(t,hay)); });
-    if(rule) return { say:i18t('st_jb_admin_only'), cards:[{ k:'askadmin', panel:rule }] };
+    /* the card says it all ("That is a company rule…"), as drawn — no
+       second sentence above it saying the same */
+    if(rule) return { say:'', cards:[{ k:'askadmin', panel:rule }] };
   }
   /* and anything else may still be asked of the AI, its cost said first */
   return { say:i18t('st_jb_none',{q:String(q||'').slice(0,80)}), cards:[{ k:'why', loose:true }], none:true };
@@ -1834,7 +1838,7 @@ function stJbTurnHtml(t){
   const a=t.force||stJbAnswer(t.q);
   return `<div class="st-jb-turn" data-st-jb-turn="${t.id}">
     <div class="st-jb-me">${esc(t.q)}</div>
-    ${stJbSayHtml(a.say)}
+    ${a.say?stJbSayHtml(a.say):''}
     ${a.cards.map(c=>stJbCardHtml(c,t)).join('')}
     ${a.none?`<div class="st-jb-ca"><button type="button" class="ui-btn ui-btn-sm" data-st-side="menu">${esc(i18t('st_jb_to_menu'))}</button></div>`:''}
   </div>`;
@@ -1866,7 +1870,7 @@ const stAdminsSaid=()=>stNamesSaid(stUsers().filter(u=>u.role==='admin'));
    ask card ready — the same card, the same tracked ask — its words naming
    what stopped them. Nothing is sent until they press Ask an admin. */
 function stAskFrom(panel, words){
-  const t={ id:++_stJbSeq, q:String(words||'').slice(0,200), force:{ say:i18t('st_jb_admin_only'), cards:[{ k:'askadmin', panel }] } };
+  const t={ id:++_stJbSeq, q:String(words||'').slice(0,200), force:{ say:'', cards:[{ k:'askadmin', panel }] } };
   _stJbLog.push(t); if(_stJbLog.length>ST_JB_MAX) _stJbLog=_stJbLog.slice(-ST_JB_MAX);
   _stSide='jambo';
   const feed=document.getElementById('st-jb-feed');
@@ -2006,13 +2010,14 @@ function stJbChips(){
   const f=(typeof FOLDERS==='object'&&FOLDERS)?Object.values(FOLDERS)[0]:null;
   return [unset?i18tn('st_jb_c_limits',unset,{n:unset}):'', i18t('st_jb_c_next'), f?i18t('st_jb_c_stream',{name:f.name}):'', i18t('st_jb_c_logo')].filter(Boolean);
 }
+function stJbChipsHtml(){ return stJbChips().map(c=>`<button type="button" class="st-jb-chip" data-st-jb-ask="${esc(c)}">${esc(c)}</button>`).join(''); }
 function stJamboHtml(){
   return `<div class="st-jb">
     <div class="st-jb-feed" id="st-jb-feed" aria-live="polite">
       ${stJbSayHtml((()=>{ if(!stIsAdmin()||settingsTab()==='you') return i18t('st_jb_hello_you');
         const n=stNeedsAll().length; return n?i18tn('st_jb_hello_n',n,{n}):i18t('st_jb_hello'); })())}
       ${stAsksMineHtml()}
-      <div class="st-jb-chips">${stJbChips().map(c=>`<button type="button" class="st-jb-chip" data-st-jb-ask="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+      <div class="st-jb-chips">${stJbChipsHtml()}</div>
       ${_stJbLog.map(stJbTurnHtml).join('')}
     </div>
     <form class="st-jb-ask" id="st-jb-form" autocomplete="off">
@@ -2283,7 +2288,9 @@ function stPeopleHtml(opts){
   }).join('');
   return `<section class="st-people-card">
     <div class="ins-cardhead st-people-head">
-      <h2 class="ins-cardhead-t">${esc(i18t((opts&&opts.title)||'st_tab_people'))} <span class="ins-cardhead-n">(${users.length})</span></h2>
+      <h2 class="ins-cardhead-t">${esc(i18t((opts&&opts.title)||'st_tab_people'))} <span class="ins-cardhead-n">(${users.length})</span>${(()=>{ const n=users.filter(u=>stPersonMissing(u).length).length;
+        /* the unfinished, counted where they are listed — each row says what */
+        return n?` <span class="st-amber st-people-unf">${esc(i18tn('st_cr_unfinished_n',n,{n}))}</span>`:''; })()}</h2>
       <span style="flex:1"></span>
       <label class="ik-search">${ic('search')}<input type="search" id="st-people-q" placeholder="${esc(i18t('st_people_search'))}" aria-label="${esc(i18t('st_people_search'))}"></label>
       <button id="st-add-person" class="ui-btn ui-btn-primary" data-st-panel="person:new">${ic('plus')}${esc(i18t('st_add_person'))}</button>
@@ -3036,7 +3043,9 @@ function stAccountBodyHtml(opts){
      a You card's door draws only the ones it names (`only`), in the same
      drawer. The same rows from the same builder, so the two cannot drift. */
   const only=(opts&&opts.only)?[].concat(opts.only):null;
-  const sec=k=>` data-st-you="${k}"`;
+  /* a section's NAME, not a door: data-st-you is the press that opens a You
+     drawer, and a press inside the drawer must never re-open it */
+  const sec=k=>` data-st-sec="${k}"`;
   const api=API_MODE();
   const S={};
   S.job=`<section class="st-sec"${sec('job')}>
@@ -3136,7 +3145,7 @@ function stAccountBodyHtml(opts){
     </section>`;
   /* JAMBO'S POINTS, JUST FOR YOU (12 Oct 2026): a person's own values per
      agent, which change only what they see */
-  if(typeof agPointsTableHtml==='function'&&api) S.points=`<section class="st-sec st-sec-wide" id="ag-pts-mine" data-st-you="points"><h3 class="st-sec-h">${esc(i18t('jh_pt_h_mine'))}</h3>${agPointsTableHtml('mine')}</section>`;
+  if(typeof agPointsTableHtml==='function'&&api) S.points=`<section class="st-sec st-sec-wide" id="ag-pts-mine" data-st-sec="points"><h3 class="st-sec-h">${esc(i18t('jh_pt_h_mine'))}</h3>${agPointsTableHtml('mine')}</section>`;
   /* LANGUAGE KEEPS ITS ONE CONTROL AND ITS ONE WRITER — the switch at the
      top of the window; the row says where it is */
   S.lang=`<p class="st-note">${esc(i18t('st_acct_lang_note'))}</p>`;
@@ -3180,7 +3189,9 @@ function stAccountWire(){
   /* the two flags the full build added, each written as it changes */
   document.getElementById('pref-jb-chips')?.addEventListener('change',async e=>{
     const on=!!e.target.checked;
-    if(await stPrefSet('jamboChips', on)){ toast(i18t(on?'st_you_chips_saved_on':'st_you_chips_saved_off'),'ok'); stYouCardRepaint('work'); }
+    if(await stPrefSet('jamboChips', on)){ toast(i18t(on?'st_you_chips_saved_on':'st_you_chips_saved_off'),'ok'); stYouCardRepaint('work');
+      /* the chips beside this page follow at once */
+      const chips=document.querySelector('#st-jb-feed .st-jb-chips'); if(chips) chips.innerHTML=stJbChipsHtml(); }
     else e.target.checked=!on;
   });
   document.getElementById('pref-opens-on')?.addEventListener('change',async e=>{

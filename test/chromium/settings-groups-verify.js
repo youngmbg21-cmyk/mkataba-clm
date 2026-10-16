@@ -84,103 +84,81 @@ const PAINTED = (sel) => {
     await page.waitForTimeout(500);
     await shot(page, 'settings-company');
 
-    /* ============ 1. THE GROUPS ARE PAINTED AND NAMED ============ */
-    const groups = await page.evaluate(() =>
-      [...document.querySelectorAll('.st-cards .st-grp:not(.st-grp-people)')].map(s => ({
-        name: (s.querySelector('.st-grp-h')?.childNodes[0]?.textContent || '').trim(),
-        sub: (s.querySelector('.st-grp-sub')?.textContent || '').trim(),
-        rows: s.querySelectorAll('.st-row').length,
-        h: Math.round(s.querySelector('.st-grp-h').getBoundingClientRect().height)
+    /* ============ 1. THE CARDS ARE PAINTED AND NAMED ============
+       RE-POINTED 16 Oct 2026 (the Control Room built in full, the owner's
+       "build"): a group is a SHORT card — two facts that are doors, and the
+       rest of the area's settings as doors under them. Every claim below is
+       the old claim asked of the cards: every panel drawn, once, under a
+       painted name, and no card a wall. */
+    const cards = await page.evaluate(() =>
+      [...document.querySelectorAll('.st-cards > .st-card[data-st-card]')].filter(s => !['people', 'ladder'].includes(s.getAttribute('data-st-card'))).map(s => ({
+        key: s.getAttribute('data-st-card'),
+        name: (s.querySelector('.st-card-h')?.childNodes[0]?.textContent || '').trim(),
+        facts: s.querySelectorAll('.st-fact').length,
+        panels: [...s.querySelectorAll('[data-st-panel]')].map(b => b.getAttribute('data-st-panel')).filter(k => window.SET_PANELS[k]),
+        h: s.querySelector('.st-card-h') ? Math.round(s.querySelector('.st-card-h').getBoundingClientRect().height) : 0
       })));
-    /* RE-POINTED 4 Oct 2026, the same lesson 1d learned on 30 September: PIN
-       THE RELATION, NOT THE NUMBER. This said five, and "Links you send" was
-       added for the named guest's code — so a page that had grown correctly
-       read as broken. What matters is that every group the page DECLARES for
-       this tab is drawn, and that none is left as an empty box. */
-    const declared = await page.evaluate(() =>
-      (window.ST_GROUPS || []).filter(g => g.tab === 'platform' || g.tab === 'build').length);
-    check('1a. the Company board draws every group it declares, each as a card',
-      declared > 1 && groups.length === declared, declared + ' declared · '
-        + groups.map(g => `${g.name}(${g.rows})`).join(' · '));
-    /* The length test is not decoration: `[].every()` is true, so without it
-       this passed against a page that draws no groups at all. */
-    check('1b. every heading is painted ink, not an empty box',
-      groups.length === declared && groups.every(g => g.name.length && g.h > 0),
-      groups.map(g => g.h + 'px').join(' ') || 'no groups');
-    check('1c. no group is a wall — the largest holds four rows',
-      groups.length && Math.max(...groups.map(g => g.rows)) <= 4,
-      'largest ' + Math.max(...groups.map(g => g.rows)));
-    /* RE-POINTED 30 Sep 2026: this counted 17, and the Copilot agents panel
-       joined the Copilot group on 27 Sep (6300dfd, owner-asked), so it read 18.
-       Pinned to the RELATION instead of the number: every panel the platform
-       tab draws at all (SET_PANELS asked as stPanelKeys asks it) is drawn once, under a
-       group, and no key twice. */
+    const declared = await page.evaluate(() => {
+      const P = window.SET_PANELS, G = (window.ST_GROUPS || []).filter(g => g.tab === 'platform' || g.tab === 'build');
+      return G.map(g => Object.keys(P).filter(k => P[k].group === g.key && P[k].tab === g.tab && (!P[k].show || P[k].show())));
+    });
+    check('1a. the Company board draws every group it declares, each on one card',
+      declared.length > 1 && declared.filter(ks => ks.length).every(ks => cards.some(c => ks.every(k => c.panels.includes(k)))),
+      cards.map(c => `${c.name}(${c.panels.length})`).join(' · '));
+    check('1b. every card\'s name is painted ink, not an empty box',
+      cards.length > 3 && cards.every(c => c.name.length && c.h > 0), cards.map(c => c.h + 'px').join(' ') || 'no cards');
+    check('1c. no card is a wall — two facts at most, the rest are doors',
+      cards.length && cards.every(c => c.facts >= 1 && c.facts <= 2), cards.map(c => c.facts).join(' '));
     const all = await page.evaluate(() => {
-      const keys = [...document.querySelectorAll('.st-cards .st-grp:not(.st-grp-people) .st-row')].map(r => r.getAttribute('data-st-panel'));
       const P = window.SET_PANELS;
-      const want = P ? Object.keys(P).filter(k => (P[k].tab === 'platform' || P[k].tab === 'build') && (!P[k].show || P[k].show())) : null;
-      return { keys, want };
+      return { want: Object.keys(P).filter(k => (P[k].tab === 'platform' || P[k].tab === 'build') && (!P[k].show || P[k].show())) };
     });
+    const keys = cards.flatMap(c => c.panels);
     check('1d. every company panel is still there, once each',
-      !!all.want && all.want.length > 0 && all.keys.length === all.want.length
-        && new Set(all.keys).size === all.keys.length && all.want.every(k => all.keys.includes(k)),
-      `${all.keys.length} rows for ${all.want ? all.want.length : '?'} panels`);
-    /* RE-POINTED 4 Oct 2026 for the same reason as 1a: this counted two, and
-       "Links you send" declared itself a third. PIN THE RELATION — a caption is
-       drawn exactly where ST_GROUPS says one is wanted, and nowhere else. */
-    const wantSub = await page.evaluate(() => (window.ST_GROUPS || [])
-      .filter(g => (g.tab === 'platform' || g.tab === 'build') && g.sub).length);
-    check('1e. a caption is drawn on exactly the groups that declare one',
-      wantSub > 0 && groups.filter(g => g.sub.length).length === wantSub,
-      wantSub + ' declared · ' + (groups.filter(g => g.sub.length).map(g => g.name).join(' · ') || 'none'));
-
-    /* ============ 2. THE TAG IS GONE, THE DOT IS THE STATE ============ */
-    /* ASKED OF EVERY ROW ON THE PAGE, not of the rows inside a group. Scoped to
-       .st-grp these two passed against the parent — where there are no groups,
-       so the selector found nothing and "no row says Optional" was true of an
-       empty set. A check that passes because it matched nothing is a
-       description. The row count is asserted FIRST for the same reason. */
-    const tags = await page.evaluate(() => {
-      const rows = [...document.querySelectorAll('.st-row[data-st-panel]')];
-      const txt = rows.map(r => (r.querySelector('.st-row-tag') || {}).textContent || '')
-        .map(s => s.trim()).filter(Boolean);
-      const dots = rows.map(r => r.querySelector('.st-dot'))
-        .filter(Boolean).map(d => getComputedStyle(d).backgroundColor);
-      return { rows: rows.length, txt, painted: dots.filter(c => c && c !== 'rgba(0, 0, 0, 0)').length };
+      all.want.length > 0 && keys.length === all.want.length && new Set(keys).size === keys.length && all.want.every(k => keys.includes(k)),
+      `${keys.length} doors for ${all.want.length} panels`);
+    const spans = await page.evaluate(() => {
+      const w = k => { const el = document.querySelector(`.st-cards > [data-st-card="${k}"]`); return el ? el.getBoundingClientRect().width : 0; };
+      return { people: w('people'), ladder: w('ladder'), one: w('signing') };
     });
-    check('2a. "Optional" is printed on no row at all',
-      tags.rows >= 17 && !tags.txt.some(t => /optional|valfri/i.test(t)),
-      `${tags.rows} rows · tags: ${tags.txt.join(' · ') || 'none'}`);
-    check('2b. any tag left is the narrowed "Required"',
-      tags.rows >= 17 && tags.txt.every(t => /required|krävs/i.test(t)),
-      tags.txt.join(' · ') || 'none');
-    check('2c. every row carries a painted status dot instead',
-      tags.rows >= 17 && tags.painted === tags.rows,
-      `${tags.painted} of ${tags.rows} dots painted`);
-    const legend = await page.evaluate(PAINTED, '.st-legend');
-    check('2d. and the three dots are explained once, under the list', legend.ok, legend.why);
+    check('1e. People & access and the ladder each take two columns, as drawn',
+      spans.one > 0 && spans.people > spans.one * 1.8 && spans.ladder > spans.one * 1.8, JSON.stringify(spans));
 
-    /* ============ 3. THE ATTENTION BLOCK CROSSES TABS ============ */
+    /* ============ 2. NO TAG; THE DOT IS THE STATE ============
+       2b ("Required") and 2d (the dot legend) were retired with the rows they
+       sat on: a card's fact carries the panel's dot beside its name. */
+    const tags = await page.evaluate(() => {
+      /* the area cards' facts (People & access states its counts in words, no dots) */
+      const facts = [...document.querySelectorAll('.st-cards > .st-card:not([data-st-card="people"]) .st-fact[data-st-panel]')].filter(f => window.SET_PANELS[f.getAttribute('data-st-panel')]);
+      const dots = facts.map(f => f.querySelector('.st-dot')).filter(Boolean).map(d => getComputedStyle(d).backgroundColor);
+      return { facts: facts.length, painted: dots.filter(c => c && c !== 'rgba(0, 0, 0, 0)').length,
+        optional: /\b(optional|valfri)\b/i.test(document.querySelector('.st-cards').textContent) };
+    });
+    check('2a. "Optional" is printed nowhere on the board', tags.facts >= 10 && !tags.optional, `${tags.facts} facts`);
+    check('2c. every fact carries a painted status dot', tags.facts >= 10 && tags.painted === tags.facts, `${tags.painted} of ${tags.facts} dots painted`);
+
+    /* ============ 3. NEEDS YOU LEADS, AND CROSSES AREAS ============ */
     const att = await page.evaluate(() => {
       const el = document.getElementById('st-att');
       if (!el) return { drawn: false };
+      const rows = [...el.querySelectorAll('.st-need[data-st-need]')];
       return {
         drawn: true,
         h: Math.round(el.getBoundingClientRect().height),
         top: Math.round(el.getBoundingClientRect().top),
-        rows: [...el.querySelectorAll('.st-row')].map(r => r.getAttribute('data-st-panel')),
-        wheres: [...el.querySelectorAll('.st-row-where')].map(w => w.textContent.trim()),
-        firstGroupTop: Math.round(document.querySelector('.st-cards .st-grp').getBoundingClientRect().top)
+        rows: rows.map(r => r.getAttribute('data-st-need')),
+        buttons: rows.filter(r => { const b = r.querySelector('.st-need-go'); return b && b.getBoundingClientRect().width > 0; }).length,
+        firstCardTop: Math.round(document.querySelector('.st-cards > .st-card').getBoundingClientRect().top)
       };
     });
-    check('3a. the block is drawn and painted', att.drawn && att.h > 0, (att.h || 0) + 'px');
-    check('3b. it leads the list, above the first group',
-      att.drawn && att.top < att.firstGroupTop, `block ${att.top} · first group ${att.firstGroupTop}`);
-    check('3c. every row in it names which card it lives on',
-      att.drawn && att.wheres.length === att.rows.length, (att.wheres || []).join(' · ') || 'no block');
+    check('3a. Needs you is drawn and painted', att.drawn && att.h > 0, (att.h || 0) + 'px');
+    check('3b. it leads the board, above the first card',
+      att.drawn && att.top < att.firstCardTop, `needs ${att.top} · first card ${att.firstCardTop}`);
+    check('3c. every row carries the painted button that settles it',
+      att.drawn && att.rows.length > 0 && att.buttons === att.rows.length, `${att.buttons} of ${(att.rows || []).length}`);
     const crossed = await page.evaluate(rows =>
-      rows.some(k => window.SET_PANELS[k] && window.SET_PANELS[k].tab !== 'platform'), att.rows || []);
-    check('3d. AND IT REACHES THE OTHER TAB — the whole point of the block',
+      rows.some(k => /^panel:/.test(k) && window.SET_PANELS[k.slice(6)] && window.SET_PANELS[k.slice(6)].tab !== 'platform'), att.rows || []);
+    check('3d. AND IT REACHES ACROSS AREAS — the plumbing as well as the agreement',
       crossed, (att.rows || []).join(' · '));
 
     /* ============ 4. ONE BOX OVER ALL OF THEM — the Menu's ============ */
@@ -237,7 +215,7 @@ const PAINTED = (sel) => {
     }
 
     /* ============ 5. THE DRAWER SAYS WHERE YOU ARE ============ */
-    await page.click('.st-cards .st-row[data-st-panel="approvals"]');
+    await page.click('.st-cards [data-st-panel="approvals"]');
     await page.waitForTimeout(600);
     await shot(page, 'settings-drawer');
     const crumb = await page.evaluate(PAINTED, '.st-dcrumb');
@@ -290,16 +268,13 @@ const PAINTED = (sel) => {
     await page.click('.st-face[data-st-tab="company"]');
     await page.waitForTimeout(500);
     const build = await page.evaluate(() => ({
-      groups: [...document.querySelectorAll('.st-cards .st-grp')].filter(s => {
-        const keys = [...s.querySelectorAll('.st-row[data-st-panel]')].map(r => r.getAttribute('data-st-panel'));
-        return keys.length && keys.every(k => window.SET_PANELS[k] && window.SET_PANELS[k].tab === 'build'); }).map(s =>
-        ({ n: (s.querySelector('.st-grp-h')?.childNodes[0]?.textContent || '').trim(), r: s.querySelectorAll('.st-row').length })),
+      panels: [...document.querySelectorAll('.st-cards > [data-st-card="live"] [data-st-panel]')].map(b => b.getAttribute('data-st-panel'))
+        .filter(k => window.SET_PANELS[k] && window.SET_PANELS[k].tab === 'build'),
       q: (document.getElementById('st-q') || {}).value
     }));
-    check('6a. Build & launch is grouped too, not left as the old flat list',
-      build.groups.length >= 2, build.groups.map(g => `${g.n}(${g.r})`).join(' · '));
-    check('6b. and all seven of its panels are still drawn',
-      build.groups.reduce((n, g) => n + g.r, 0) === 7, build.groups.reduce((n, g) => n + g.r, 0) + ' rows');
+    /* RE-POINTED 16 Oct 2026: Going live and the plumbing are one card, as drawn */
+    check('6a. Build & launch is on the board too, on its own card', build.panels.length > 0, build.panels.join(' · '));
+    check('6b. and all seven of its panels are still drawn', new Set(build.panels).size === 7, build.panels.length + ' doors');
     /* `=== ''` rather than falsy: on a build with no box at all the value reads
        undefined, and "not truthy" would call that a pass. */
     check('6c. changing tab clears the search, so the tab press cannot look broken',

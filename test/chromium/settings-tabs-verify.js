@@ -84,7 +84,7 @@ const signIn = async (page, base, email, pass) => {
     check('the page opens as two tabs, You and Company', tabs.length === 2, tabs.join(' · '));
     check('and it opens on You',
       (await page.evaluate(() => settingsTab())) === 'you'
-      && (await page.evaluate(() => !!document.getElementById('acct-title'))),
+      && (await page.evaluate(() => !!document.querySelector('[data-st-you-card="who"]'))),
       'You, with their own settings on it');
 
     /* Switching by pressing the tab, not by calling the function. */
@@ -178,8 +178,11 @@ const signIn = async (page, base, email, pass) => {
       `${savedLegal.companyName} · ${savedLegal.registrationNumber}`);
     /* The row behind the drawer states the legal name without being opened, so
        it has to have caught up — and the page must not have rebuilt to do it. */
-    const legalRowSays = await page.evaluate(() =>
-      (document.querySelector('.st-row[data-st-panel="company"] .st-row-state') || {}).textContent || '');
+    /* since the full build (16 Oct 2026) the panel is a FACT on its card: its
+       short state on the line, the whole of it in the title */
+    const legalRowSays = await page.evaluate(() => {
+      const f = document.querySelector('.st-fact[data-st-panel="company"], .st-door[data-st-panel="company"]');
+      return f ? (f.getAttribute('title') || f.textContent || '') : ''; });
     check("and the row behind it says the new name", /Highland Corporate Limited/.test(legalRowSays), legalRowSays);
     const stillOpen = await page.evaluate(() => document.getElementById('st-drawer').classList.contains('open'));
     check('the drawer is still open — the page held still', stillOpen);
@@ -249,13 +252,14 @@ const signIn = async (page, base, email, pass) => {
       rows: document.querySelectorAll('.st-person').length,
       chips: [...document.querySelectorAll('.st-person .st-setup')].map(c => c.textContent.trim()),
       banner: !!document.getElementById('st-people-banner'),
-      tabN: (((document.querySelector('.st-grp-people .st-row-name') ? [...document.querySelectorAll('.st-grp-people .st-row-name')][1].textContent : '').match(/\d+/) || [''])[0]),
+      /* since the full build (16 Oct 2026) the Team table's head counts them */
+      tabN: ((((document.querySelector('.st-people-unf') || {}).textContent || '').match(/\d+/) || ['0'])[0]),
       warnRows: [...document.querySelectorAll('.st-person')].filter(r => r.querySelector('.st-setup.is-warn')).map(r => r.textContent.replace(/\s+/g, ' ').trim().slice(0, 40)),
     }));
     check('every member is a row with a Setup cell',
       people.rows >= 4 && people.chips.length === people.rows, `${people.rows} rows · ${people.chips.join(', ')}`);
-    /* since 16 Oct 2026 the count is on the People & access card */
-    check('and the unfinished are counted on the People card and named on their own rows, with no banner',
+    /* since 16 Oct 2026 the count is at the head of the Team table */
+    check('and the unfinished are counted at the head of the table and named on their own rows, with no banner',
       !people.banner && people.tabN === String(people.warnRows.length) && people.warnRows.some(t => /Restricted Legal|No Values Legal|Unrestricted Legal/.test(t)),
       { tab: people.tabN, rows: people.warnRows });
 
@@ -735,11 +739,17 @@ const signIn = async (page, base, email, pass) => {
       roster: document.querySelectorAll('.st-person').length,
       rules: !!document.getElementById('approval-rules'),
       gates: !!document.getElementById('rv-gate-panel') || !!document.getElementById('dk-rule-panel'),
-      mine: !!document.getElementById('acct-title') && !!document.getElementById('pref-nav-all'),
-      sessions: !!document.getElementById('sessions-list'),
-      backup: !!document.getElementById('bk-export'),
-      design: !!document.getElementById('brand-edit'),
+      /* since the full build (16 Oct 2026): a short card each, whose door
+         opens the drawer with the control in it */
+      mine: !!document.querySelector('[data-st-you-card="who"] [data-st-panel="me:who"]') && !!document.querySelector('[data-st-you-card="work"] [data-st-panel="me:work"]'),
+      sessions: !!document.querySelector('[data-st-you-card="safety"] [data-st-panel="me:safety"]'),
+      backup: !!document.querySelector('[data-st-you-card="data"] [data-st-backup]'),
+      design: !!document.querySelector('[data-st-you-card="design"] [data-st-panel="me:design"]'),
     }));
+    await p2.click('[data-st-you-card="who"] [data-st-panel="me:who"]'); await p2.waitForTimeout(500);
+    const whoV = await p2.evaluate(VISIBLE, '#acct-title');
+    check('a card\'s door opens their drawer with the control in it, as pixels', whoV.ok, whoV.why);
+    await p2.keyboard.press('Escape'); await p2.waitForTimeout(300);
     check('reaching the page anyway lands on their own account, not a blank',
       theirs.mine && theirs.sessions && theirs.backup, JSON.stringify({ mine: theirs.mine, sessions: theirs.sessions, backup: theirs.backup }));
     const noTabs = await p2.evaluate(() => !document.querySelector('#set-page .st-faces, [data-st-tab="company"]')
