@@ -71,6 +71,12 @@ function caRefFix(q){
     const hits = cs.filter(x => String(caRef(x)).replace(/^\D+/, '') === n);
     return hits.length === 1 ? caRef(hits[0]) : m0;
   });
+  /* the number on its own ("352", the owner's iPad, 15 Oct 2026, drew a chart
+     titled "352"): it is the one contract it numbers, when there is one */
+  s = s.replace(/^\s*#?(\d+)\s*$/, (m0, n) => {
+    const hits = cs.filter(x => String(caRef(x)).replace(/^\D+/, '') === n);
+    return hits.length === 1 ? caRef(hits[0]) : m0;
+  });
   return s;
 }
 /* EVERY NUMBER IN AN ANSWER IS A LINK (owner, 15 Oct 2026): after a feed is

@@ -563,6 +563,10 @@ function graphStreamLines(S){
   const money=(typeof canViewValues!=='function')||canViewValues();
   if(!money) return [];
   const L=[];
+  /* NOTHING RECORDED IS SAID, NEVER DRAWN AS ZERO (the Board walk-through,
+     15 Oct 2026: a stream of 18 contracts read "In KES 0 · Out KES 0" because
+     none says which side pays) */
+  if(!S.sided&&S.unsided>0){ L.push({ text:i18t('int_flow_unsided'), fill:'var(--color-accent-200)' }); return L; }
   L.push({ text:`${i18t('int_flow_in')} ${fmtMoneyShort(S.in)} · ${i18t('int_flow_out')} ${fmtMoneyShort(S.out)}`, fill:'var(--color-accent-100)' });
   const sign=S.net>0?'+':S.net<0?'−':'';
   L.push({ text:`${i18t('int_flow_net')} ${sign}${fmtMoneyShort(Math.abs(S.net))} · ${i18t('int_flow_on_paper')}`, fill:S.net>0?'var(--st-green-dot)':S.net<0?'var(--st-ruby-dot)':'var(--color-accent-200)' });
@@ -752,7 +756,7 @@ function igWireSplit(){
   const onMove=e=>{ const x=(e.touches&&e.touches[0])?e.touches[0].clientX:e.clientX; _igDockSave(widthAt(x)); igFitSplit(); };
   const onUp=()=>{ delete rez.dataset.drag; dock.style.transition='';
     document.body.style.cursor=''; document.body.style.userSelect='';
-    window.removeEventListener('pointermove',onMove); window.removeEventListener('pointerup',onUp);
+    window.removeEventListener('pointermove',onMove); window.removeEventListener('pointerup',onUp); window.removeEventListener('pointercancel',onUp);
     igSplitSettle(); };
   rez.addEventListener('pointerdown',e=>{ e.preventDefault(); rez.dataset.drag='1';
     /* the strip's LEFT edge is the seam (it lies on the panel's side) */
@@ -760,7 +764,9 @@ function igWireSplit(){
     /* The panel's width transition would make the handle trail the pointer. */
     dock.style.transition='none';
     document.body.style.cursor='col-resize'; document.body.style.userSelect='none';
-    window.addEventListener('pointermove',onMove); window.addEventListener('pointerup',onUp); });
+    /* SAFARI MAY CANCEL A DRAG (a system swipe, a second finger): a cancel
+       lets go like a lift, or the divider would keep following the finger */
+    window.addEventListener('pointermove',onMove); window.addEventListener('pointerup',onUp); window.addEventListener('pointercancel',onUp); });
   rez.addEventListener('keydown',e=>{
     if(e.key==='Home'||e.key==='Enter'){ e.preventDefault(); _igDockSave(null); igFitSplit(); igSplitSettle(); return; }
     const step=Math.max(8,Math.round(row.clientWidth*0.02));

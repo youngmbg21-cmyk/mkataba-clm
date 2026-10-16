@@ -10394,6 +10394,30 @@
   /* THE SIDE LIST, AS DRAWN (part B): over the right of the page, under the bar */
   .hb-sheet{position:fixed;top:48px;right:0;bottom:0;width:min(560px,100vw);z-index:60;background:var(--hb-menu);border-left:1px solid rgba(var(--hb-ln),.18);box-shadow:-12px 0 32px rgba(4,25,26,.12);display:flex;flex-direction:column}
   .hb-sheet:focus{outline:none}
+  /* YOUR BOOK'S TILES WRAP EVENLY (the Board walk-through, 15 Oct 2026: on a
+     narrowed board or an iPad the fifth tile fell alone onto a second row,
+     4 + 1). The book measures its own width: five fit in a row, else 3 + 2,
+     else two to a row; four go 4 or 2 + 2. */
+  .hb-book>.hb-cb{container-type:inline-size}
+  .hb-book .hb-figs{grid-template-columns:repeat(var(--hb-figs-n,5),minmax(0,1fr))}
+  .hb-book .hb-figs>.hb-fig{border-top:0;border-left:1px solid rgba(var(--hb-ln),.16)}
+  .hb-book .hb-figs>.hb-fig:first-child{border-left:0}
+  @container (max-width:749.98px){
+    .hb-book .hb-figs.is-n5,.hb-book .hb-figs.is-n6{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .hb-book .hb-figs.is-n5>.hb-fig:nth-child(3n+1),.hb-book .hb-figs.is-n6>.hb-fig:nth-child(3n+1){border-left:0}
+    .hb-book .hb-figs.is-n5>.hb-fig:nth-child(n+4),.hb-book .hb-figs.is-n6>.hb-fig:nth-child(n+4){border-top:1px solid rgba(var(--hb-ln),.16)} }
+  @container (max-width:599.98px){
+    .hb-book .hb-figs.is-n4{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .hb-book .hb-figs.is-n4>.hb-fig:nth-child(2n+1){border-left:0}
+    .hb-book .hb-figs.is-n4>.hb-fig:nth-child(n+3){border-top:1px solid rgba(var(--hb-ln),.16)} }
+  @container (max-width:449.98px){
+    .hb-book .hb-figs{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .hb-book .hb-figs>.hb-fig{border-top:0;border-left:1px solid rgba(var(--hb-ln),.16)}
+    .hb-book .hb-figs>.hb-fig:nth-child(2n+1){border-left:0}
+    .hb-book .hb-figs>.hb-fig:nth-child(n+3){border-top:1px solid rgba(var(--hb-ln),.16)} }
+  .hb-sheet-def{margin:0 0 6px;font-size:var(--t-label);line-height:1.45;color:var(--hb-ink-2)}
+  .hb-fig-left{display:block;font-size:var(--t-micro);line-height:1.35;color:var(--hb-amber);margin:-2px 0 4px}
+  #ig-page:has(#hb-board[hidden]) #hb-sheet-host,#hb-page:has(#hb-board[hidden]) #hb-sheet-host{display:none}
   /* the Copilot panel's resize handle lives in another layer and showed through the side list (the stray amber bar) */
   #ig-page:has(.hb-sheet) .ig-resizer{visibility:hidden}
   .hb-sheet-h{display:flex;align-items:flex-start;gap:12px;padding:16px 18px 12px;border-bottom:1px solid rgba(var(--hb-ln),.14)}
