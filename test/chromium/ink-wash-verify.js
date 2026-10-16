@@ -20,6 +20,11 @@
 
      node test/chromium/ink-wash-verify.js --save   (record, on the code BEFORE)
 
+   RE-RECORDED 16 Oct 2026, OWNER-ASKED ("Yes, update the record"): the
+   Control Room built in full redrew Settings (cards, doors, Needs you rows,
+   the side panel's tabs), which moved headcounts on the settings screen only.
+   Audited as a set difference: no text size new; two dark tints new to that
+   screen were already in the census on other screens; no colour new to it.
    RE-RECORDED 15 Oct 2026, on the owner's "approve a record": the Needs you
    card on Home's Board (and the count on Jambo's tab, now in the bell's own
    dark ink on amber) moved headcounts on Home and History and the screens

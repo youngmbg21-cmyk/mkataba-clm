@@ -165,7 +165,9 @@ describe('f687 (2) one head, one set of tabs and filters, Wall | List', () => {
     const row = doc.querySelector('#reg-tbody [data-row="MK-1"]');
     assert.ok(row.textContent.includes('Amina Otieno'), 'the owner written out');
     row.click();
-    assert.deepEqual(J(win.__open), [['MK-1', 'copilot']], 'one press: the contract on Home\'s paper, Jambo beside it');
+    /* 'open' is the reader's own "A contract opens on" (pdOpenTabOf, the
+       Control Room built in full, 16 Oct 2026): Jambo unless they chose otherwise */
+    assert.deepEqual(J(win.__open), [['MK-1', 'open']], 'one press: the contract on Home\'s paper, on the face the reader chose');
   });
   test('2d Wall | List switches the view and keeps the tab and filters', () => {
     const { win, doc } = world('wall');
