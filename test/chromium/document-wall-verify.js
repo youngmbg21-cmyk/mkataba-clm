@@ -138,26 +138,30 @@ const check = (name, pass, detail) => {
     });
     check('4b sorting by counterparty runs A to Z', byCp);
 
-    /* ================= 5. STAGE TABS (the place's, over the Wall and the List) ================= */
-    const chips = await page.evaluate(() => [...document.querySelectorAll('#ig-paper [data-reg-home] [data-reg-stage]')].map(b => ({ k: b.getAttribute('data-reg-stage'),
-      n: Number((b.querySelector('.n') || {}).textContent || 0), quiet: b.classList.contains('is-zero') })));
-    check('5a a stage with nothing in it is quiet — no count — and every other carries its number', chips.length === 6 && chips.every(c => c.k === 'all' || (c.n > 0) !== c.quiet), JSON.stringify(chips));
+    /* ================= 5. THE STAGE BOX (the place's, over the Wall and the List) ================= */
+    /* RE-POINTED 16 Oct 2026 (owner: "take the status choices and put them in
+       a dropdown as well"): the stages are the Stage box's choices; a stage
+       with nothing in it is not offered at all (a filter's choice that cannot
+       give results is not listed), every other carries its number. */
+    const chips = await page.evaluate(() => { const s = document.querySelector('#ig-paper [data-reg-home] #reg-stage-sel');
+      return s ? [...s.options].map(o => ({ k: o.value, n: Number((/\((\d+)\)\s*$/.exec(o.textContent) || [0, 0])[1]) })) : []; });
+    check('5a the Stage box offers each stage that holds a paper, with its number, and no empty one', chips.length >= 2 && chips[0].k === 'all' && chips.every(c => c.k === 'all' || c.n > 0), JSON.stringify(chips));
     const stage = chips.find(c => c.k !== 'all' && c.k !== 'awaiting' && c.n > 0);
     if (stage){
-      await page.click(`#ig-paper [data-reg-home] [data-reg-stage="${stage.k}"]`);
+      await page.selectOption('#ig-paper [data-reg-home] #reg-stage-sel', stage.k);
       await page.waitForTimeout(400);
       const on = await page.evaluate(k => {
         const ids = [...document.querySelectorAll('#ig-paper .igw-card')].map(b => b.getAttribute('data-ig-pick'));
         return { n: ids.length, all: ids.every(id => getContract(id).status === k),
-          pressed: document.querySelector(`#ig-paper [data-reg-stage="${k}"]`).getAttribute('aria-selected') };
+          pressed: (document.querySelector('#ig-paper #reg-stage-sel') || {}).value };
       }, stage.k);
-      check('5b a stage tab shows only that stage, and its number matches the papers behind it',
-        on.all && on.n === stage.n && on.pressed === 'true', JSON.stringify({ stage, on }));
-      await page.click('#ig-paper [data-reg-home] [data-reg-stage="all"]');
+      check('5b a stage chosen shows only that stage, and its number matches the papers behind it',
+        on.all && on.n === stage.n && on.pressed === stage.k, JSON.stringify({ stage, on }));
+      await page.selectOption('#ig-paper [data-reg-home] #reg-stage-sel', 'all');
       await page.waitForTimeout(400);
       const back = await page.evaluate(() => ({ n: document.querySelectorAll('#ig-paper .igw-card').length, stage: state.reg.stage }));
       check('5c All lets it go — every paper again', back.stage === 'all' && back.n === all.want, JSON.stringify(back));
-    } else check('5b a stage tab to press', false, JSON.stringify(chips));
+    } else check('5b a stage to choose', false, JSON.stringify(chips));
 
     /* ================= 6. A REFRESH KEEPS THE SORT ======================== */
     await page.evaluate(() => { if (window.placeSave) placeSave(); });

@@ -28,6 +28,13 @@
    It also asserts the thing the tidy-up is FOR: that changing the accent
    variables actually repaints the platform. A token nothing reads is not a
    token, and no census of the DEFAULT theme would ever notice.
+
+   RE-RECORDED 16 Oct 2026, OWNER-ASKED ("Yes, update the record"): the
+   Contracts place's stage tabs became the Stage box, so the lit tab's tint
+   (the accent at 12%) left the register screen, light and dark. Audited as a
+   set difference: that one value gone, nothing new on any screen (Jambo's
+   perch on Home had brought one new shadow layer; it was taken off, not
+   recorded).
 */
 const fs = require('node:fs');
 const path = require('node:path');

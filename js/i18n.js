@@ -1376,6 +1376,7 @@ const STRINGS = {
     int_pick_change: 'Another contract',
     igw_all: 'All',
     igw_need: 'Needs you',
+    igw_opening: 'Opening…',
     igw_count: '{k} of {n} contracts',
     igw_only_clear: 'Show every contract again',
     igw_stage_label: 'Stage',
@@ -5743,6 +5744,7 @@ const STRINGS = {
     ap_tag_wording: "wording",
     /* ---- the archive shelf (WO-5) ---- */
     reg_view_archived: "Archived",
+    reg_view_nego: "In negotiation",
     reg_archive: "Archive", /* inert since 15 Oct 2026: End or pause is one door */
     reg_restore: "Restore",
     ct_archived_tag: "Archived",
@@ -10936,6 +10938,7 @@ const STRINGS = {
     pd_gl_share: 'Share',
     pd_gl_signing: 'Signing',
     pd_gl_none: 'Nothing is waiting on you.',
+    jb_thinking: 'Thinking…',
     pd_ff_done_press: 'All details are in. Press Fill the document below to write them into the wording.',
     pd_ff_redlines: 'Open the redlines',
     /* BEFORE YOU SIGN, BESIDE THE PAPER (the one-page Home plan, stage 5, 14 Oct 2026) */
@@ -17844,6 +17847,7 @@ const STRINGS = {
     int_pick_change: 'Ett annat avtal',
     igw_all: 'Alla',
     igw_need: 'Behöver dig',
+    igw_opening: 'Öppnar…',
     igw_count: '{k} av {n} avtal',
     igw_only_clear: 'Visa alla avtal igen',
     igw_stage_label: 'Skede',
@@ -21772,6 +21776,7 @@ const STRINGS = {
     ap_ask_copilot_sub: "Öppnar Jambo-panelen med frågan redo att skickas",
     ap_tag_wording: "lydelse",
     reg_view_archived: "Arkiverade",
+    reg_view_nego: "Under förhandling",
     reg_archive: "Arkivera", /* inert since 15 Oct 2026: End or pause is one door */
     reg_restore: "Återställ",
     ct_archived_tag: "Arkiverat",
@@ -26717,6 +26722,7 @@ const STRINGS = {
     pd_gl_share: 'Dela',
     pd_gl_signing: 'Signering',
     pd_gl_none: 'Inget väntar på dig.',
+    jb_thinking: 'Tänker…',
     pd_ff_done_press: 'Alla uppgifter är ifyllda. Tryck på Fyll i dokumentet nedan för att skriva in dem i texten.',
     pd_ff_redlines: 'Öppna ändringarna',
     /* INNAN DU SIGNERAR, BREDVID PAPPRET (planen för en sida, steg 5, 14 okt 2026) */

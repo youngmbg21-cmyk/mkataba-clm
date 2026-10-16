@@ -192,13 +192,13 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
       await page.evaluate(v => setView(v), v);
       await page.waitForTimeout(1200);
       /* Contracts is Home's Contracts place since step 7: its filters sit on
-         the head's first row (the drawing, version 4), the tabs under them */
+         the row under the name, just above the card (owner, 16 Oct 2026) */
       const r = await page.evaluate(() => {
         const place = document.querySelector('[data-reg-home]');
-        if (place){ const top = place.querySelector('.ct-top'), bar = top && top.querySelector('.reg-fb'), tabs = place.querySelector('.ct-tabs .reg-views');
+        if (place){ const top = place.querySelector('.ct-top'), bar = place.querySelector('.ct-filters .reg-fb');
           const chip = bar && bar.querySelector('.reg-chip:not(.reg-chip-btn)');
-          const br = bar && bar.getBoundingClientRect(), tr = tabs && tabs.getBoundingClientRect();
-          return { one: !!(br && tr) && br.bottom <= tr.top + 1, face: chip ? chip.textContent.replace(/\s+/g, ' ').trim().slice(0, 40) : '' }; }
+          const br = bar && bar.getBoundingClientRect(), tr = top && top.getBoundingClientRect();
+          return { one: !!(br && tr) && br.top >= tr.bottom - 1, face: chip ? chip.textContent.replace(/\s+/g, ' ').trim().slice(0, 40) : '' }; }
         const row = document.querySelector('.reg-tabbar');
         const tabs = row && row.querySelector('.reg-views'), bar = row && row.querySelector('.reg-fb');
         const tr = tabs && tabs.getBoundingClientRect(), br = bar && bar.getBoundingClientRect();
@@ -206,7 +206,7 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
         return { one: !!(tr && br) && Math.abs((tr.top + tr.bottom) / 2 - (br.top + br.bottom) / 2) < 14 && br.left > tr.right,
           face: chip ? chip.textContent.replace(/\s+/g, ' ').trim().slice(0, 40) : '' };
       });
-      ok(`6 ${v === 'register' ? 'Contracts (the place): the filters sit on the head\'s first row, above the tabs' : 'Negotiations: the filters sit beside the tabs'}, label and value inside`, r.one && /:?\s*\S/.test(r.face), r.face);
+      ok(`6 ${v === 'register' ? 'Contracts (the place): the filters sit on the row under the name, above the card' : 'Negotiations: the filters sit beside the tabs'}, label and value inside`, r.one && /:?\s*\S/.test(r.face), r.face);
     }
     ok('no page errors', !errs.length, errs.join(' | '));
   } catch (e) {

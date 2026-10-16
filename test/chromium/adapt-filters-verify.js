@@ -41,9 +41,10 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   await page.waitForTimeout(900);
 
   const onBar = () => page.evaluate(() => ({
-    /* RE-POINTED 9 Oct 2026 (owner: stage tabs like Negotiations): on Contracts
-       the stage is the tab row, the quick filters a box in the band. */
-    stage:    !!document.querySelector('.reg-stage-tabs [data-reg-stage]'),
+    /* RE-POINTED 9 Oct 2026 (owner: stage tabs like Negotiations), and again
+       16 Oct 2026 (owner: "take the status choices and put them in a dropdown
+       as well"): on the Contracts place the stage is the Stage box again. */
+    stage:    !!document.getElementById('reg-stage-sel'),
     type:     !!document.getElementById('reg-type-sel'),
     view:     !!document.getElementById('reg-view-sel'),
     category: !!document.getElementById('reg-category'),
@@ -103,13 +104,14 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
      RELATION rather than a number — the chooser offers exactly what the
      catalogue holds — so the next filter costs no test edit, which is this
      rulebook's own rule. */
-  /* On Contracts the stage is the tab row, so the chooser leaves it out (9 Oct 2026). */
-  const catalogue = await page.evaluate(() => REG_BAR_FILTERS.map(f => f.k).filter(k => k !== 'stage'));
+  /* On the Contracts place the stage is a box again (16 Oct 2026), so the
+     chooser offers it, ticked and locked like stream. */
+  const catalogue = await page.evaluate(() => REG_BAR_FILTERS.map(f => f.k));
   ok('it offers every filter the catalogue holds, and no more',
     dlg.boxes === catalogue.length, `${dlg.boxes} boxes for ${catalogue.length}: ${catalogue.join(', ')}`);
   ok('and Signed is one of them, off by default',
     catalogue.includes('signed') && !(await page.evaluate(() => REG_BAR_DEFAULT.includes('signed'))));
-  ok('the one box the register is always asked (stream) is locked on', dlg.locked === 1, dlg.locked + ' locked');
+  ok('the two boxes the register is always asked (stage and stream) are locked on', dlg.locked === 2, dlg.locked + ' locked');
 
   await page.check('[data-adapt="renewal"]');
   await page.click('#reg-adapt-done');

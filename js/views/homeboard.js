@@ -6986,6 +6986,8 @@ function hbOpenContracts(){
     if (typeof igPickAgain === 'function') igPickAgain();
     return;
   }
+  /* putting the paper down is a choice too: a read still out puts nothing up (igOpenNewer) */
+  if (typeof window.igOpenNewer === 'function') igOpenNewer();
   if (window.intel){ intel.paper = null; intel.walk = null; }
   s.face = 'paper'; hbSave();
   if (typeof setView === 'function') setView('dashboard'); else hbMount();
@@ -9562,6 +9564,7 @@ function hbPlace(){
   if (s.face === 'paper' && !p.paper && typeof window.igWallPlace === 'function'){ try { p.wall = igWallPlace(); } catch (_){} }
   return p;
 }
+const HB_RESUME_HAND = ['pointerdown', 'keydown', 'wheel', 'touchstart'], HB_RESUME_HAND_MS = 20000;
 function hbPlacePut(p){
   if (!p) return;
   const s = hbS();
@@ -9579,7 +9582,17 @@ function hbPlacePut(p){
     const want = p.paper; let n = 0;
     if (want.tab && typeof window.pdSetTab === 'function') pdSetTab(want.tab);
     if (Array.isArray(want.tones) && typeof window.docThreadKeepTones === 'function') docThreadKeepTones(want.id, want.tones);
+    /* THE READER'S HAND WINS (owner, 16 Oct 2026): until the paper is back, a
+       press, a key or a scroll is the reader choosing again — the put-back
+       gives up, and a read still out puts nothing up (igOpenNewer), the way
+       placeScrollBack lets go of the scroll. */
+    let gaveUp = false;
+    const unhand = () => HB_RESUME_HAND.forEach(k => window.removeEventListener(k, hand, true));
+    const hand = () => { unhand(); if (window.intel && intel.paper) return; gaveUp = true; if (typeof window.igOpenNewer === 'function') igOpenNewer(); };
+    HB_RESUME_HAND.forEach(k => window.addEventListener(k, hand, { capture: true, passive: true }));
+    setTimeout(unhand, HB_RESUME_HAND_MS);
     const go = () => {
+      if (gaveUp) return;
       if (!(window.state && state.view === 'dashboard' && hbS().face === 'paper') || (window.intel && intel.paper)) return;
       if (typeof getContract === 'function' && getContract(want.id) && typeof window.igWalk === 'function'){
         /* the face through its own door (pdOpenOnHome), which puts the

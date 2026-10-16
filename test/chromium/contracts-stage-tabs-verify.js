@@ -5,10 +5,19 @@
    The owner then picked where the old quick-filter tabs go: "Into a box" — one
    labelled box on the band holding the shortcuts and the saved views.
 
+   RE-POINTED 16 Oct 2026 (owner: "take the status choices and put them in a
+   dropdown as well. You will then have 4 dropdown filters above the card",
+   quick filters last): on the Contracts place the stages are the Stage box,
+   the first of four on the row under the name — Stage · Stream · Category ·
+   Quick filters — and the tab row is gone. Each option prints the count the
+   tab printed, and a stage holding nothing is not offered.
+
    WHAT THIS PINS, driven in a real browser
-     1 the tab row is the stages, in the band, and the Stage box is gone
-     2 each tab's number is the list behind it, and a press narrows to it
-     3 the quick filters are a box; a pick narrows and lights the box
+     1 the stages are the Stage box, first of the four on the filter row,
+       which sits under the name row; no stage tabs on the place
+     2 each option's number is the list behind it, and a pick narrows to it
+     3 the quick filters are a box (In negotiation among them); a pick
+       narrows and lights the box
      4 a saved view is kept and applied from the box
      5 Negotiations keeps its own tabs and draws no stage tabs
 
@@ -43,38 +52,52 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
     await page.waitForSelector('#reg-tbody [data-row]', { timeout: 10000 }).catch(() => {});
 
     const read = () => page.evaluate(() => {
-      const tabs = [...document.querySelectorAll('.reg-band .reg-stage-tabs [data-reg-stage]')].map(t => ({
-        k: t.getAttribute('data-reg-stage'), on: t.classList.contains('on'),
-        n: Number(((t.querySelector('.n') || {}).textContent) || 0) }));
+      const sel = document.getElementById('reg-stage-sel');
+      /* the Stage box's options: each stage, the count it prints */
+      const tabs = sel ? [...sel.options].map(o => ({ k: o.value, on: o.selected,
+        n: Number((/\((\d+)\)\s*$/.exec(o.textContent) || [0, 0])[1]) })) : [];
       const book = state.contracts.length;
-      return { tabs, stageBox: !!document.getElementById('reg-stage-sel'),
+      const place = document.querySelector('[data-reg-home] .ct-head');
+      const boxes = place ? [...place.querySelectorAll('.ct-filters .reg-fb select')].map(x => x.id) : [];
+      const nameRow = place && place.querySelector('.ct-top'), fRow = place && place.querySelector('.ct-filters');
+      return { tabs, stageBox: !!sel, boxes, stageTabs: document.querySelectorAll('[data-reg-home] [data-reg-stage]').length,
+        under: !!(nameRow && fRow && fRow.getBoundingClientRect().top >= nameRow.getBoundingClientRect().bottom - 1),
         viewBox: !!document.getElementById('reg-view-sel'),
         oldViewTabs: document.querySelectorAll('.reg-views [data-reg-view]').length,
         rows: regFiltered().length, stage: regState().stage, view: regState().view, book };
     });
 
-    console.log('\n1 · the tab row is the stages');
+    console.log('\n1 · the stages are the Stage box, first of the four above the card');
     const r0 = await read();
-    ok('1a the band carries the stage tabs, All lit first', r0.tabs.length >= 5 && r0.tabs[0].k === 'all' && r0.tabs[0].on,
+    ok('1a the place draws the Stage box, All chosen first', r0.stageBox && r0.tabs.length >= 3 && r0.tabs[0].k === 'all' && r0.tabs[0].on,
       r0.tabs.map(t => t.k + (t.on ? '*' : '')).join(' · '));
-    ok('1b Drafting, In Review and Executed are among them',
-      ['Draft', 'Under Review', 'Signed', 'Declined'].every(k => r0.tabs.some(t => t.k === k)));
-    ok('1c the Stage box is not drawn on Contracts — one door per fact', !r0.stageBox);
+    /* the stages the list at rest actually holds — each must be offered, with its number */
+    const held = await page.evaluate(() => { const n = {}; regFiltered().forEach(c => { n[c.status] = (n[c.status] || 0) + 1; }); return n; });
+    ok('1b every stage the list holds is a choice, printing its number',
+      ['Draft', 'Under Review', 'Signed', 'Declined'].every(k => !held[k] || (r0.tabs.find(t => t.k === k) || {}).n === held[k]),
+      JSON.stringify(held) + ' · ' + r0.tabs.map(t => t.k + ':' + t.n).join(','));
+    ok('1c no stage tabs on the place — one door per fact', r0.stageTabs === 0, String(r0.stageTabs));
     ok('1d the old quick-filter tab row is gone', r0.oldViewTabs === 0, String(r0.oldViewTabs));
+    ok('1e the four boxes in the owner\'s order: Stage · Stream · Category · Quick filters',
+      JSON.stringify(r0.boxes) === JSON.stringify(['reg-stage-sel', 'reg-type-sel', 'reg-category', 'reg-view-sel']), r0.boxes.join(' · '));
+    ok('1f the filter row sits under the name row, just above the card', r0.under);
+    ok('1g a stage that holds nothing is not offered', r0.tabs.every(t => t.k === 'all' || t.on || t.n > 0), JSON.stringify(r0.tabs));
 
-    console.log('\n2 · a tab narrows to the number it prints');
+    console.log('\n2 · a stage narrows to the number it prints');
     const withRows = r0.tabs.filter(t => t.k !== 'all' && t.n > 0);
-    ok('2a the seeded book has at least two stages to press', withRows.length >= 2, withRows.map(t => t.k).join(','));
+    ok('2a the seeded book has at least two stages to pick', withRows.length >= 2, withRows.map(t => t.k).join(','));
     for (const t of withRows.slice(0, 3)) {
-      await page.click(`.reg-stage-tabs [data-reg-stage="${t.k}"]`);
+      await page.selectOption('#reg-stage-sel', t.k);
       await page.waitForFunction(k => regState().stage === k, t.k, { timeout: 5000 }).catch(() => {});
       const r = await read();
       const lit = r.tabs.find(x => x.on);
-      ok(`2b "${t.k}" narrows to its own ${t.n}, and is the one lit tab`, r.stage === t.k && r.rows === t.n && lit && lit.k === t.k,
-        `stage ${r.stage} · rows ${r.rows} · lit ${lit && lit.k}`);
+      const chip = await page.evaluate(() => { const s = document.getElementById('reg-stage-sel'); const c = s && s.closest('.reg-chip'); return !!(c && c.classList.contains('on')); });
+      ok(`2b "${t.k}" narrows to its own ${t.n}, is the one chosen, and lights the box`, r.stage === t.k && r.rows === t.n && lit && lit.k === t.k && chip,
+        `stage ${r.stage} · rows ${r.rows} · chosen ${lit && lit.k}`);
     }
-    ok('2c All counts the whole list behind it', r0.tabs[0].n === r0.rows, `${r0.tabs[0].n} vs ${r0.rows}`);
-    await page.click('.reg-stage-tabs [data-reg-stage="all"]');
+    ok('2c All prints no number (the list\'s own count line names the whole), as the Quick filters box\'s All does', r0.tabs[0].n === 0 && r0.rows > 0,
+      `${r0.rows} rows`);
+    await page.selectOption('#reg-stage-sel', 'all');
     await page.waitForFunction(() => regState().stage === 'all', null, { timeout: 5000 }).catch(() => {});
 
     console.log('\n3 · the quick filters are a box');
@@ -82,8 +105,8 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
     ok('3a the box is on the band', r3.viewBox);
     if (r3.viewBox) {
       const opts = await page.$$eval('#reg-view-sel option', o => o.map(x => x.value));
-      ok('3b it holds All, the five shortcuts and the save act',
-        opts[0] === '' && ['expiring90', 'expired', 'autosoon', 'overdueob', 'archived'].every(k => opts.includes(k)) && opts.includes('act:save'),
+      ok('3b it holds All, the shortcuts (In negotiation among them) and the save act',
+        opts[0] === '' && ['expiring90', 'expired', 'autosoon', 'nego', 'overdueob', 'archived'].every(k => opts.includes(k)) && opts.includes('act:save'),
         opts.join(','));
       await page.selectOption('#reg-view-sel', 'archived');
       await page.waitForFunction(() => regState().view === 'archived', null, { timeout: 5000 }).catch(() => {});
@@ -94,7 +117,7 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
       ok('3d All takes it off again', !(await read()).view);
 
       console.log('\n4 · a saved view lives in the box');
-      await page.click('.reg-stage-tabs [data-reg-stage="Signed"]');
+      await page.selectOption('#reg-stage-sel', 'Signed');
       await page.waitForFunction(() => regState().stage === 'Signed', null, { timeout: 5000 }).catch(() => {});
       const saved = await page.evaluate(() => regSaveView('Signed book'));
       await page.evaluate(() => { regState().stage = 'all'; regRepaint(); });
@@ -105,7 +128,7 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
         await page.selectOption('#reg-view-sel', 'saved:Signed book');
         await page.waitForFunction(() => regState().stage === 'Signed', null, { timeout: 5000 }).catch(() => {});
         const r4 = await read();
-        ok('4b choosing it puts its stage back, and the tab says so', r4.stage === 'Signed' && (r4.tabs.find(t => t.on) || {}).k === 'Signed',
+        ok('4b choosing it puts its stage back, and the Stage box says so', r4.stage === 'Signed' && (r4.tabs.find(t => t.on) || {}).k === 'Signed',
           `stage ${r4.stage}`);
         const forget = await page.$$eval('#reg-view-sel option', o => o.map(x => x.value));
         ok('4c and while it is in force the box offers to forget it', forget.includes('act:forget:Signed book'), forget.join(','));

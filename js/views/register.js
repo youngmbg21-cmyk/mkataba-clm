@@ -414,6 +414,10 @@ const REG_VIEWS=[
   {k:'expiring90', get label(){ return i18t('reg_exp_90'); }},
   {k:'expired',    get label(){ return i18t('reg_term_ended'); }},
   {k:'autosoon',   get label(){ return i18t('reg_auto_renew'); }},
+  /* IN NEGOTIATION (owner, 16 Oct 2026): the contracts being argued over
+     right now — negoIsLive, the very reading the Negotiations list is made
+     of, so the count here is the count there. */
+  {k:'nego',       get label(){ return i18t('reg_view_nego'); }},
   {k:'overdueob',  get label(){ return i18t('reg_overdue_obligations'); }},
   {k:'archived',   get label(){ return i18t('reg_view_archived'); }},
   /* DETAILS TO FILL (owner, 12 Oct 2026): contracts with boxes still empty
@@ -1051,22 +1055,24 @@ function regBookSig(){
   return cs.length+':'+t;
 }
 function regHomeStale(){ return regPlaceUp() && regBookSig()!==_regHomeSig; }
-/* THE PLACE'S ONE HEAD (the drawing, version 4): the name and the facts line,
-   the filter boxes and Wall | List on the first row (the boxes wrap within
-   their own block, so the switch holds its corner); the stage tabs, Do this
-   to these and Adapt filters under them. The same boxes, ids and wiring as
-   the page's band, so a filter means one thing wherever it is pressed. */
+/* THE PLACE'S ONE HEAD. The name and the facts line with Wall | List on the
+   first row; the filter boxes on the row under it, just above the list's card
+   (owner, 16 Oct 2026: "bring the highlighted filters above to the level below
+   just above the bigger card"; reverses the drawing's version 4, which had
+   them beside the name over a row of stage tabs) — Stage · Stream · Category
+   · Quick filters, then Clear while narrowed, Do this to these and Adapt
+   filters at the row's end. The same boxes, ids and wiring as the page's band,
+   so a filter means one thing wherever it is pressed. */
 function regHomeHeadHtml(R, boxes, adapt, clear){
   const show=R.show==='list'?'list':'wall';
   const ic=k=>typeof icon==='function'?icon(k==='wall'?'grid':'list','w-4 h-4'):'';
   return `<div class="reg-band sap-band ct-head">
       <div class="reg-tabbar ct-top">
         <div class="ct-name"><h2 class="ct-h">${esc(i18t('nav_contracts'))}</h2><div id="reg-head-facts" class="ct-facts"></div></div>
-        <div class="reg-filterbar reg-fb">${boxes}${clear}</div>
         <div class="reg-seg ct-seg" role="group" aria-label="${esc(i18t('ct_show_as'))}">${REG_SHOWS.map(k=>
           `<button type="button" data-ct-show="${k}" aria-pressed="${show===k?'true':'false'}">${ic(k)}<span>${esc(i18t('ct_'+k))}</span></button>`).join('')}</div>
       </div>
-      <div class="reg-tabbar ct-tabs">${regStageTabsHtml(R)}<span id="reg-cohort-slot" class="ct-cohort"></span><div class="reg-fb ct-adapt">${adapt}</div></div>
+      <div class="reg-tabbar ct-filters"><div class="reg-filterbar reg-fb">${boxes}${clear}</div><span id="reg-cohort-slot" class="ct-cohort"></span><div class="reg-fb ct-adapt">${adapt}</div></div>
     </div>`;
 }
 /* THE WALL UNDER THE SAME HEAD: the papers igWallBodyHtml draws, of the very
@@ -1443,24 +1449,46 @@ function regStageBase(){
   try{ return regFiltered(); } finally { R.stage=keep; }
 }
 const REG_STAGE_TABS=['all','Draft','Under Review','awaiting','Signed','Declined'];
-function regStageTabsHtml(R){
+/* ONE READING FOR THE TABS AND THE BOX: each stage's count is the list with
+   every OTHER filter applied (a part of the book is never counted as the
+   whole: regViewCount's own rule), and each stage says its own word in the
+   reader's language (statusLabel, both books; "Awaiting counterparty" is the
+   list's own). */
+function regStageCounter(){
   let base=[]; try{ base=regStageBase(); }catch(_){ base=[]; }
   const shares=state.shareByContract||{};
-  /* a part of the book is never counted as the whole: regViewCount's own rule */
   const whole=!(typeof API_MODE==='function'&&API_MODE()) || !(state.serverStats&&state.serverStats.total!=null)
     || Number(state.serverStats.total)<=state.contracts.length;
   const count=k=>!whole?0:k==='all'?base.length
     : k==='awaiting'?base.filter(c=>{ const s=shares[c.id]; return !!s&&(s.state==='sent'||s.state==='opened'); }).length
     : base.filter(c=>c.status===k).length;
-  /* a stage's tab says the stage's own word in the reader's language
-     (statusLabel, both books); "Awaiting counterparty" is the list's own */
-  const label=k=>{ const st=REG_STAGES.find(x=>x.k===k); if(k==='all') return i18t('reg_tab_all');
-    if(k!=='awaiting'&&typeof statusLabel==='function'&&typeof STATUS_META!=='undefined'&&STATUS_META[k]) return statusLabel(k);
-    return st?st.label:k; };
+  return { whole, count };
+}
+function regStageWord(k){
+  const st=REG_STAGES.find(x=>x.k===k); if(k==='all') return i18t('reg_tab_all');
+  if(k!=='awaiting'&&typeof statusLabel==='function'&&typeof STATUS_META!=='undefined'&&STATUS_META[k]) return statusLabel(k);
+  return st?st.label:k;
+}
+function regStageTabsHtml(R){
+  const { whole, count }=regStageCounter();
   return `<div class="reg-views reg-stage-tabs" role="tablist" aria-label="${esc(i18t('reg_chip_stage'))}">${REG_STAGE_TABS.map(k=>{
     const on=(R.stage||'all')===k, n=count(k);
-    return `<button type="button" role="tab" class="reg-vtab${on?' on':''}${whole&&!n&&!on?' is-zero':''}" data-reg-stage="${esc(k)}" aria-selected="${on?'true':'false'}">${esc(label(k))}${n?`<span class="n">${n}</span>`:''}</button>`;
+    return `<button type="button" role="tab" class="reg-vtab${on?' on':''}${whole&&!n&&!on?' is-zero':''}" data-reg-stage="${esc(k)}" aria-selected="${on?'true':'false'}">${esc(regStageWord(k))}${n?`<span class="n">${n}</span>`:''}</button>`;
   }).join('')}</div>`;
+}
+/* ---- ON THE CONTRACTS PLACE THE STAGES ARE A BOX (owner, 16 Oct 2026:
+   "take the status choices and put them in a dropdown as well. You will then
+   have 4 dropdown filters above the card"; reverses 9 Oct's tab row there).
+   The tabs' six, in their order and words, each with its count printed the
+   way the Quick filters box prints one ("Drafting (91)"). A stage that holds
+   nothing is not offered unless it is the one chosen — a filter's choice that
+   cannot give results is not listed (owner, 10 Oct 2026). */
+function regStageOptsHtml(R){
+  const { whole, count }=regStageCounter(), cur=R.stage||'all';
+  return REG_STAGE_TABS.filter(k=>k==='all'||k===cur||!whole||count(k)>0).map(k=>{
+    const n=k==='all'?0:count(k);
+    return `<option value="${esc(k)}"${cur===k?' selected':''}>${esc(regStageWord(k)+(n?` (${n})`:''))}</option>`;
+  }).join('');
 }
 /* ---- THE QUICK FILTERS ARE A BOX NOW (owner's pick, 9 Oct 2026) ----
    The stage tabs took the tab row, so the shortcuts and the reader's saved
@@ -1558,6 +1586,11 @@ async function regForgetViewAsk(name){
 }
 function regPaintViewCounts(){
   const R=regState();
+  /* the place's Stage box: its options' counts, and the face reads the chosen one */
+  const ss=regHome()&&regScope()!=='negotiations'?document.getElementById('reg-stage-sel'):null;
+  if(ss){ const html=regStageOptsHtml(R); if(ss.innerHTML!==html){ ss.innerHTML=html; ss.value=R.stage||'all';
+    const lab=ss.closest('.reg-f'), txt=ss.selectedOptions&&ss.selectedOptions[0]?ss.selectedOptions[0].textContent:'';
+    if(lab&&txt){ const v=lab.querySelector('.reg-f-v'); if(v) v.textContent=txt; const b=lab.querySelector('.reg-f-l b'); if(b) b.textContent=txt; } } }
   const st=document.querySelector('.reg-stage-tabs');
   if(st){ const w=document.createElement('div'); w.innerHTML=regStageTabsHtml(R); const nu=w.firstElementChild;
     if(nu&&nu.innerHTML!==st.innerHTML){ st.replaceWith(nu); regStageTabsWire(); } }
@@ -1736,6 +1769,7 @@ function regFiltered(){
     if(typeof renewalDecided==='function'&&renewalDecided(c)) return false;
     const dd=renewalDecisionDate(c); return (c.metadata&&c.metadata.renewalType==='auto-renew')&&dd&&daysUntil(dd)>=0&&daysUntil(dd)<=60; });
   else if(R.view==='overdueob') cs=cs.filter(c=>(c.obligations||[]).some(o=>obState(o)==='overdue'));
+  else if(R.view==='nego') cs=cs.filter(c=>typeof window.negoIsLive==='function'&&negoIsLive(c));
   else if(R.view==='details') cs=cs.filter(c=>{ try{ return !!(window.detailsOf&&detailsOf(c).left); }catch(_){ return false; } });
   /* ---- THE TEXT FILTER, ON THE SEAT THAT HAS A BOX FOR IT ----
      (owner-reported 10 Sep 2026: *"the search feature is not working."*
@@ -2899,11 +2933,12 @@ function renderRegister(opts){
                not. The second half is the safety property — a hidden control
                quietly shortening the book is the exact fault WO-15's removal
                note was guarding against. */}
+        ${''/* STAGE: a box on the Negotiations seat and on the Contracts place
+               (its tabs' six, counted, regStageOptsHtml); the full Contracts
+               table keeps its tab row instead. */}
         ${(neg&&BAR.includes('stage'))?selFilter('reg-stage-sel',stageOpts,R.stage!=='all',i18t('reg_lifecycle_stage'),i18t('reg_chip_stage')):''}
+        ${(!neg&&HOME&&BAR.includes('stage'))?selFilter('reg-stage-sel',regStageOptsHtml(R),R.stage!=='all',i18t('reg_lifecycle_stage'),i18t('reg_chip_stage')):''}
         ${BAR.includes('type')?selFilter('reg-type-sel',typeOpts,R.type!=='all',i18t('reg_value_stream'),i18t('reg_chip_stream')):''}
-        ${''/* The long sentence is the TOOLTIP, not the label — used as a label it
-                    ran to 460px and pushed the whole bar off the row. */}
-        ${(!neg&&BAR.includes('view'))?selFilter('reg-view-sel',regViewOptsHtml(R),!!R.view||regSavedViews().some(v=>regSavedMatches(v,R)),i18t('reg_quick_filters_title'),i18t('reg_quick_filters')):''}
         ${BAR.includes('category')?categorySel:''}
         ${BAR.includes('renewal')?selFilter('reg-renewal',renewalOpts,renewalActive,i18t('reg_renewal')):''}
         ${''/* NEVER ON THE NEGOTIATIONS SEAT: that page holds live negotiations,
@@ -2913,6 +2948,10 @@ function renderRegister(opts){
         ${BAR.includes('payterms')?selFilter('reg-payterms',ptOpts,ptActive,i18t('reg_payterms_title'),i18t('reg_payterms')):''}
         ${BAR.includes('docs')?selFilter('reg-docs',docsOpts,docsActive,i18t('reg_docs_title'),i18t('reg_docs')):''}
         ${BAR.includes('hold')?selFilter('reg-hold',holdOpts,holdActive,i18t('reg_f_hold_title'),i18t('reg_f_hold')):''}
+        ${''/* QUICK FILTERS LAST (owner, 16 Oct 2026). The long sentence is the
+               TOOLTIP, not the label — used as a label it ran to 460px and
+               pushed the whole bar off the row. */}
+        ${(!neg&&BAR.includes('view'))?selFilter('reg-view-sel',regViewOptsHtml(R),!!R.view||regSavedViews().some(v=>regSavedMatches(v,R)),i18t('reg_quick_filters_title'),i18t('reg_quick_filters')):''}
 `;
   const adaptBtn=`
         ${''/* THE DOOR TO THE REST. A link rather than a button, because it
@@ -3539,8 +3578,9 @@ function renderRegister(opts){
      that, and this file's own rule is one builder per job. */
   document.getElementById('reg-adapt')?.addEventListener('click',()=>{
     const chosen=regBarChosen();
-    /* On Contracts the stage is the tab row, not a box, so it is not offered here. */
-    const rows=REG_BAR_FILTERS.filter(f=>!(f.k==='stage'&&regScope()!=='negotiations')).map(f=>{
+    /* On the full Contracts table the stage is the tab row, not a box, so it
+       is not offered there; on the place (and on Negotiations) it is a box. */
+    const rows=REG_BAR_FILTERS.filter(f=>!(f.k==='stage'&&regScope()!=='negotiations'&&!regHome())).map(f=>{
       const on=chosen.includes(f.k);
       /* A FIXED FILTER IS SHOWN TICKED AND DISABLED rather than hidden: a
          chooser that silently omits two of the six leaves the reader counting

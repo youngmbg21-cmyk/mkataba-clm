@@ -602,8 +602,10 @@ const check = (name, ok, detail) => {
       /* RE-POINTED 9 Oct 2026 (SAP benchmark): the three in the band share one
          shape; Sort became an icon on the list's head and is asked below. */
       /* RE-POINTED 9 Oct 2026 (owner's pick): the stages are the tab row and
-         the quick filters a box in the band. */
-      const ids = ['reg-view-sel', 'reg-type-sel', 'reg-category'];
+         the quick filters a box in the band. RE-POINTED 16 Oct 2026 (owner:
+         "take the status choices and put them in a dropdown as well"): on the
+         place the stages are the Stage box, the first of the four. */
+      const ids = ['reg-stage-sel', 'reg-type-sel', 'reg-category', 'reg-view-sel'];
       return ids.map(id => {
         const e = document.getElementById(id);
         if (!e) return { id, absent: true };
@@ -616,9 +618,9 @@ const check = (name, ok, detail) => {
           size: g ? g.fontSize : null, color: g ? g.color : null };
       });
     });
-    check('13a all three filters are present, and the stages are a tab row',
-      six.every(f => !f.absent) && (await page.evaluate(() => document.querySelectorAll('.reg-stage-tabs [data-reg-stage]').length >= 2)),
-      six.filter(f => f.absent).map(f => f.id).join(',') || 'all three + tabs');
+    check('13a all four filters are present, the stages a box and no tab row',
+      six.every(f => !f.absent) && (await page.evaluate(() => !document.querySelector('[data-reg-home] [data-reg-stage]'))),
+      six.filter(f => f.absent).map(f => f.id).join(',') || 'all four, no tabs');
     check('13a2 and the search box is not among them any more',
       !six.some(f => f.id === 'reg-search')
         && !(await page.evaluate(() => !!document.getElementById('reg-search'))),

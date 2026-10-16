@@ -132,11 +132,17 @@ const VIS = `el => !!el && el.getClientRects().length > 0 && getComputedStyle(el
     await page.evaluate(() => document.querySelector('#side-nav .nav-item[data-view="dashboard"]').click());
     await until(() => state.view === 'dashboard' && window.hbFace && hbFace() === 'board' ? true : null);
     await page.click('#side-nav [data-nav-fold-open="register"]');
-    await until(() => document.querySelector('[data-reg-home] [data-reg-stage="Draft"]') ? true : null);
-    await page.click('[data-reg-home] [data-reg-stage="Draft"]', { timeout: 5000 }).catch(() => {});
-    const drafted = await until(() => state.view === 'dashboard' && document.querySelector('[data-reg-home]') && (state.reg || {}).stage === 'Draft' ? { view: state.view, stage: state.reg.stage } : null, null, 4000)
+    /* RE-POINTED 16 Oct 2026: the place's stages are the Stage box now (owner:
+       "take the status choices and put them in a dropdown"), so the walk
+       presses the box with the mouse and picks the first stage it offers */
+    await until(() => document.querySelector('[data-reg-home] #reg-stage-sel') ? true : null);
+    const want = await page.evaluate(() => { const s = document.querySelector('[data-reg-home] #reg-stage-sel'); return s && s.options[1] ? { v: s.options[1].value, t: s.options[1].textContent } : null; });
+    await page.click('[data-reg-home] label:has(#reg-stage-sel)', { timeout: 5000 }).catch(() => {});
+    await until(() => document.querySelector('.hati-selmenu') ? true : null, null, 3000);
+    if (want) await page.click(`.hati-selmenu .hati-selmenu-row[data-sm="1"]`, { timeout: 5000 }).catch(() => {});
+    const drafted = await until(k => state.view === 'dashboard' && document.querySelector('[data-reg-home]') && want && (state.reg || {}).stage === k ? { view: state.view, stage: state.reg.stage } : null, want && want.v, 4000)
       || await page.evaluate(() => ({ view: state.view, stage: (state.reg || {}).stage, place: !!document.querySelector('[data-reg-home]') }));
-    check('3e. at 1536×730, Contracts then Drafting lands on the Drafting tab of the place, not on Parties', drafted.view === 'dashboard' && drafted.stage === 'Draft', JSON.stringify(drafted));
+    check('3e. at 1536×730, Contracts then a stage from the Stage box lands on that stage of the place, not on Parties', !!want && drafted.view === 'dashboard' && drafted.stage === want.v, JSON.stringify({ want, drafted }));
     await page.evaluate(() => regGoFiltered()); await page.setViewportSize({ width: 1440, height: 900 }); await page.waitForTimeout(400);
     /* the keyboard */
     await page.focus('#side-nav [data-nav-fold-open="register"]');
