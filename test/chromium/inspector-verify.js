@@ -154,8 +154,12 @@ const ok = (name, good, detail) => {
       return {
         amp: /&amp;/.test(rowsText), nm: /\bn\/m\b/.test(rowsText),
         facts: (document.getElementById('reg-head-facts') || {}).textContent || '',
-        zeroCounts: [...document.querySelectorAll('.reg-vtab.is-zero .n')].length,
-        zeroTabs: document.querySelectorAll('.reg-vtab.is-zero').length,
+        /* RE-POINTED 16 Oct 2026: the place's stages are the Stage box (owner:
+           "take the status choices and put them in a dropdown"); a stage with
+           nothing in it is not offered, and no choice prints "(0)" */
+        zeroCounts: [...document.querySelectorAll('#reg-stage-sel option, #reg-view-sel option')].filter(o => /\(0\)\s*$/.test(o.textContent)).length,
+        zeroTabs: [...document.querySelectorAll('#reg-stage-sel option')].filter(o => o.value !== 'all' && !o.selected && !/\(\d+\)\s*$/.test(o.textContent)).length,
+        stageOpts: [...document.querySelectorAll('#reg-stage-sel option')].length,
         idle: heads.some(t => /↕/.test(t)),
         mkInk: mk ? getComputedStyle(mk).color : null,
         /* a button the reader can see (the Display cog's closed pop-up holds
@@ -174,7 +178,7 @@ const ok = (name, good, detail) => {
     ok('1i a name prints "&", never "&amp;"', !floor.amp);
     ok('1j "Non-monetary", never "n/m"', !floor.nm);
     ok('1k the head counts the live book, and says so', /\blive\b/.test(floor.facts), floor.facts);
-    ok('1l a view with nothing in it prints no count', floor.zeroTabs > 0 && floor.zeroCounts === 0, `${floor.zeroTabs} quiet tabs, ${floor.zeroCounts} counts on them`);
+    ok('1l a stage with nothing in it is not offered, and no choice prints a zero', floor.stageOpts >= 2 && floor.zeroTabs === 0 && floor.zeroCounts === 0, `${floor.stageOpts} stage choices, ${floor.zeroTabs} empty offered, ${floor.zeroCounts} zeros printed`);
     ok('1m no idle sort arrows', !floor.idle);
     /* (its "the selected one is" half retired with the selection, step 7) */
     ok('1n the resting reference is not an accent', floor.mkInk && floor.mkInk !== floor.accent,

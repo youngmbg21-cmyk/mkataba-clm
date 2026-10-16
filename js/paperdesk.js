@@ -1709,10 +1709,40 @@ function pdGlanceHtml(c){
     return why ? `<button type="button" class="ui-btn ui-btn-sm" disabled aria-disabled="true" title="${_pdE(why)}">${label}</button>`
       : `<button type="button" class="ui-btn ui-btn-sm" data-pd-glance="${r.k}">${label}</button>`; };
   const rows = pdGlanceRows(c);
+  const said = r => r.k === 'sign' ? _pdT(PD_GLANCE.sign[0]) : _pdTn(PD_GLANCE[r.k][0], r.n, { n: r.n });
+  const done = pdGlanceDone(c, rows, said);
+  const doneHtml = done.map(d => `<div class="pd-gl-row is-done" data-pd-gl-done="${_pdE(d.k)}"><i aria-hidden="true">✓</i><span><s>${_pdE(d.text)}</s></span></div>`).join('');
   const body = rows.length
-    ? rows.map(r => `<div class="pd-gl-row" data-pd-gl="${r.k}"><span>${_pdE(r.k === 'sign' ? _pdT(PD_GLANCE.sign[0]) : _pdTn(PD_GLANCE[r.k][0], r.n, { n: r.n }))}</span>${btn(r)}</div>`).join('')
-    : `<div class="pd-gl-none"><i aria-hidden="true">✓</i><span>${_pdE(_pdT('pd_gl_none'))}</span></div>`;
+    ? rows.map(r => `<div class="pd-gl-row" data-pd-gl="${r.k}"><span>${_pdE(said(r))}</span>${btn(r)}</div>`).join('') + doneHtml
+    : doneHtml + `<div class="pd-gl-none"><i aria-hidden="true">✓</i><span>${_pdE(_pdT('pd_gl_none'))}</span></div>`;
   return `<div id="pd-glance" class="pd-glance" data-pd-glance-for="${_pdE(c.id)}"><div class="pd-gl-h"><b>${_pdE(_pdT('pd_gl_title', { ref }))}</b><span class="pd-gl-sp"></span>${pill}</div><div class="pd-gl-b">${body}</div></div>`;
+}
+/* ---- A ROW THAT GOES IS TICKED OFF FIRST (owner picked "Alive" by name, 16
+   Oct 2026: "when something is done he hops, and the row in the at a glance
+   card ticks off") ----
+   The card remembers the rows it last drew for the contract in front; one that
+   is no longer owed is drawn once more, struck through under a tick, for
+   PD_GL_DONE_MS, and Jambo hops. Only between two readings of the WHOLE record
+   (a light row's counts can differ from the full one's, which is a load, not
+   a deed), and only for the same contract. Its own words, never new ones. */
+const PD_GL_DONE_MS = 1800;
+let _pdGlWas = null; const _pdGlDone = new Map();
+function pdGlanceDone(c, rows, said){
+  const whole = !!c && (c._loaded || !c._light), id = c ? String(c.id) : '';
+  const now = Date.now(), keys = new Set(rows.map(r => r.k));
+  if (!_pdGlWas || _pdGlWas.id !== id || !whole || !_pdGlWas.whole) _pdGlDone.clear();
+  else {
+    let went = false;
+    _pdGlWas.rows.forEach((text, k) => { if (!keys.has(k) && !_pdGlDone.has(k)){ _pdGlDone.set(k, { k, text, until: now + PD_GL_DONE_MS }); went = true; } });
+    if (went){
+      if (typeof window !== 'undefined' && typeof window.jamboHop === 'function') try { jamboHop(); } catch (_){}
+      setTimeout(pdGlanceRepaint, PD_GL_DONE_MS + 40);
+    }
+  }
+  _pdGlWas = { id, whole, rows: new Map(rows.map(r => [r.k, said(r)])) };
+  const out = [];
+  _pdGlDone.forEach((d, k) => { if (d.until <= now || keys.has(k)) _pdGlDone.delete(k); else out.push(d); });
+  return out;
 }
 /* in place, as the chips are, when a face or a save changes what is waiting */
 function pdGlanceRepaint(){
@@ -1749,6 +1779,101 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
     if (g && !g.disabled){ e.preventDefault(); const row = PD_GLANCE[g.getAttribute('data-pd-glance')]; if (row && typeof intelAsk === 'function') intelAsk(_pdT(row[2])); }
   });
 }
+/* ============================================================
+   JAMBO, ALIVE (owner picked "Alive" by name, 16 Oct 2026: "how we can make
+   jambo more engaging ... it is mostly stagnant and not moving")
+   ============================================================
+   He sits at the end of the chips row on his own tab of Home's panel (or on
+   the ask box where no chips are drawn) and:
+   - BREATHES while he waits (.jb-bird, CSS; still for a reader who asked for
+     less motion);
+   - TURNS to the paper when the reader chooses words on it (selectionchange);
+   - WORKS where work is going on: his thinking face, and over him the turning
+     ring with the words the screen already says ("Opening…", "Sending…"), or
+     "Thinking…" while he answers — read off the house's one busy marker
+     (.ob-spin) and intel.busy, nothing of his own to keep in step;
+   - HOPS when something is done: an answer landing, a wait ending, an 'ok'
+     confirmation, a row of the at-a-glance card ticked off (jamboHop).
+   Nothing here writes, spends or sends; he draws nothing on the paper and
+   takes no line of the panel's own (the chips row keeps room for him). He is
+   decorative — the words he mirrors are on the screen already — so he is
+   hidden from screen readers. */
+const JB_BEAT_MS = 400, JB_HOP_MS = 650, JB_BUSY_SEL = '#ig-dock .ob-spin, #ig-paper .ob-spin, #ig-strip .ob-spin, #toast-root .ob-spin';
+let _jbEl = null, _jbBeat = 0, _jbWorking = '', _jbHopT = 0;
+function jamboPerchEl(){
+  if (_jbEl) return _jbEl;
+  const d = document.createElement('div');
+  d.className = 'jb-perch'; d.setAttribute('aria-hidden', 'true');
+  d.innerHTML = '<span class="jb-say" hidden></span><img class="jb-bird" alt="" draggable="false" width="36" height="36">';
+  const img = d.querySelector('img'); if (img && typeof JAMBO_FACE === 'object') img.src = JAMBO_FACE.hello;
+  _jbEl = d; return d;
+}
+/* where he sits: the chips row; else on the ask box over the conversation;
+   on a face with no chips row (a reader who turned the chips off) he stays
+   away rather than cover its controls */
+function jamboPerchMount(dock){
+  if (!dock || typeof document === 'undefined') return false;
+  dock.classList.remove('jb-perched', 'jb-perched-ask');
+  const on = !!(window.state && state.view === 'dashboard') && !pdShowsDesk() && typeof JAMBO_FACE === 'object';
+  const ask = document.getElementById('igd-input');
+  const chips = dock.querySelector('[data-ig-chips]'), feed = dock.querySelector('#igd-feed:not([hidden])');
+  let host = null;
+  if (on && ask){ if (chips){ host = chips; dock.classList.add('jb-perched'); }
+    else if (feed && ask.parentElement){ host = ask.parentElement; dock.classList.add('jb-perched', 'jb-perched-ask'); } }
+  if (!host){ jamboRest(); if (_jbEl && _jbEl.parentNode) _jbEl.remove(); return false; }
+  host.appendChild(jamboPerchEl());
+  if (!_jbBeat) _jbBeat = setInterval(jamboBeat, JB_BEAT_MS);
+  jamboBeat();
+  return true;
+}
+function jamboRest(){ if (_jbBeat){ clearInterval(_jbBeat); _jbBeat = 0; } _jbWorking = ''; }
+/* what is being worked on now, in the screen's own words ('' when nothing) */
+function jamboWorkWords(){
+  if (window.intel && intel.busy) return _pdT('jb_thinking');
+  const spin = [...document.querySelectorAll(JB_BUSY_SEL)].find(x => !x.closest('.jb-perch') && x.offsetParent !== null);
+  if (!spin) return '';
+  const t = String((spin.parentElement && spin.parentElement.textContent) || '').replace(/\s+/g, ' ').trim();
+  return t || _pdT('jb_thinking');
+}
+function jamboBeat(){
+  const el = _jbEl;
+  if (!el || !el.isConnected){ jamboRest(); return; }
+  if (document.hidden) return;
+  const w = jamboWorkWords(), was = _jbWorking;
+  if (w === was) return;
+  _jbWorking = w;
+  const img = el.querySelector('.jb-bird'), say = el.querySelector('.jb-say');
+  if (img && typeof JAMBO_FACE === 'object') img.src = w ? JAMBO_FACE.think : JAMBO_FACE.hello;
+  el.classList.toggle('is-working', !!w);
+  if (say){ say.hidden = !w; say.innerHTML = w && typeof busyHtml === 'function' ? busyHtml(w) : _pdE(w); }
+  /* a wait that ends is a thing done */
+  if (was && !w) jamboHop();
+}
+function jamboHop(){
+  const el = _jbEl; if (!el || !el.isConnected) return false;
+  el.classList.remove('is-hop'); void el.offsetWidth; el.classList.add('is-hop');
+  clearTimeout(_jbHopT); _jbHopT = setTimeout(() => { if (_jbEl) _jbEl.classList.remove('is-hop'); }, JB_HOP_MS);
+  return true;
+}
+/* he turns to the paper while words on it are chosen */
+function jamboLookPaint(){
+  const el = _jbEl; if (!el || !el.isConnected) return;
+  let on = false;
+  try { const s = window.getSelection && getSelection();
+    const n = s && !s.isCollapsed && s.anchorNode; const e = n && (n.nodeType === 1 ? n : n.parentElement);
+    on = !!(e && e.closest && e.closest('#ig-paper')); } catch (_){ on = false; }
+  el.classList.toggle('is-look', on);
+}
+if (typeof document !== 'undefined' && !document._jbWired){
+  document._jbWired = true;
+  document.addEventListener('selectionchange', jamboLookPaint);
+  /* an 'ok' confirmation — an act that left the building — is a thing done */
+  const watch = () => { const root = document.getElementById('toast-root'); if (!root || root._jbWatched || typeof MutationObserver !== 'function') return !!(root && root._jbWatched);
+    root._jbWatched = true;
+    new MutationObserver(ms => { ms.forEach(m => m.addedNodes.forEach(n => { if (n && n.dataset && n.dataset.toastKind === 'ok') jamboHop(); })); }).observe(root, { childList: true });
+    return true; };
+  if (!watch()) document.addEventListener('DOMContentLoaded', watch, { once: true });
+}
 Object.assign(window, { pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedHeadEndHtml, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
@@ -1756,4 +1881,5 @@ Object.assign(window, { pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAme
   PD_FILL_TRIES, PD_FILL_BEAT_MS, pdFillFor, pdFillShows, pdFillOpen, pdFillSeen, pdFillAway, pdFillClose, pdFillHeadHtml, pdFillDoneHtml, pdFillFaceHtml, pdFillFacePaint, pdFillCounts, pdFillKeyOf, pdFillEcho, pdFillWire, pdFillLand, pdFillRefresh,
   pdFillStreamMay, pdFillStreamHtml, pdFillStreamRepaint, pdFillStreamPick,
   PD_DROP_ACCEPT, pdDropMay, pdWallHelloHtml, pdDropInner, pdDropStreams, pdDropStreamNow, pdDropStreamHtml, pdDropHtml, pdDropPaint, pdWallHtml, pdDropInput, pdDropBusyNow, pdDropPick, PD_DROP_TOAST_MS, pdDropToastOff, pdDropTake,
-  PD_GLANCE, pdGlanceRows, pdSignAhead, pdGlanceHtml, pdGlanceRepaint, pdJamboTopHtml });
+  PD_GLANCE, pdGlanceRows, pdSignAhead, pdGlanceHtml, pdGlanceRepaint, pdJamboTopHtml, PD_GL_DONE_MS, pdGlanceDone,
+  JB_BEAT_MS, JB_HOP_MS, jamboPerchMount, jamboRest, jamboWorkWords, jamboBeat, jamboHop, jamboLookPaint });

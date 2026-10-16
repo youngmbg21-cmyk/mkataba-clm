@@ -8838,7 +8838,7 @@
   .igw-nm{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   @media (prefers-reduced-motion:reduce){.igw-sheet{transition:none}}
   /* A PAPER BEING OPENED wears the turning ring until it is up (igOpeningPaint, owner 16 Oct 2026) */
-  .igw-opening{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:inline-flex;align-items:center;white-space:nowrap;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:999px;padding:3px 10px;font-size:11px;line-height:1.4;color:var(--color-text);box-shadow:var(--shadow-sm)}
+  .igw-opening{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:inline-flex;align-items:center;white-space:nowrap;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:999px;padding:3px 10px;font-size:11px;line-height:1.4;color:var(--color-text)}
   .igw-opening .ob-spin{width:9px;height:9px;margin-right:5px;border-width:1.5px}
   /* THE CONTRACTS PLACE ON HOME (the overnight work order, step 7): Home's
      paper with nothing chosen holds ONE head — the name and the facts line
@@ -9077,6 +9077,34 @@
   #ig-dock .pd-gl-row .ui-btn{flex:none}
   #ig-dock .pd-gl-none{display:flex;align-items:center;gap:8px;color:var(--st-green-fg)}
   #ig-dock .pd-gl-none i{font-style:normal;font-weight:var(--w-strong)}
+  /* a row no longer owed, ticked off before it leaves (pdGlanceDone) */
+  #ig-dock .pd-gl-row.is-done{color:var(--st-green-fg);animation:jbDone 1.8s ease forwards}
+  #ig-dock .pd-gl-row.is-done i{font-style:normal;font-weight:var(--w-strong);flex:none}
+  #ig-dock .pd-gl-row.is-done s{text-decoration-thickness:1px}
+  @keyframes jbDone{0%,70%{opacity:1}100%{opacity:.35}}
+  /* JAMBO, ALIVE (owner picked "Alive" by name, 16 Oct 2026; jamboPerchMount):
+     he sits at the end of the chips row — which keeps room for him — or on
+     the ask box's edge where no chips are drawn; breathes; turns to the paper
+     while words on it are chosen; thinks under the turning ring while work
+     goes on; hops when it is done. Still for a reader who asked for less
+     motion: the faces and the words still change. */
+  #ig-dock.jb-perched [data-ig-chips]{position:relative;padding-right:60px;min-height:46px;align-content:flex-end}
+  #ig-dock.jb-perched-ask #igd-feed{padding-bottom:48px}
+  #ig-dock .jb-perch{position:absolute;right:14px;bottom:6px;z-index:2;display:flex;flex-direction:column;align-items:flex-end;pointer-events:none}
+  #ig-dock.jb-perched-ask .jb-perch{bottom:100%;margin-bottom:-2px}
+  #ig-dock .jb-say{position:absolute;right:0;bottom:calc(100% + 4px);display:inline-flex;align-items:center;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);padding:2px 8px;font-size:12px;line-height:1.5;color:var(--color-neutral-600)}
+  #ig-dock .jb-say[hidden]{display:none}
+  #ig-dock .jb-say .ob-spin{width:9px;height:9px;margin-right:5px;border-width:1.5px;flex:none}
+  #ig-dock .jb-bird{display:block;width:36px;height:36px;border-radius:50%;transform-origin:50% 90%;animation:jbBreathe 3.4s ease-in-out infinite;transition:transform .35s ease}
+  #ig-dock .jb-perch.is-look .jb-bird{animation:none;transform:rotate(-10deg) translateX(-3px)}
+  #ig-dock .jb-perch.is-working .jb-bird{animation-duration:1.6s}
+  #ig-dock .jb-perch.is-hop .jb-bird{animation:jbHop .65s cubic-bezier(.3,.7,.4,1) 1}
+  @keyframes jbBreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.035,1.05)}}
+  @keyframes jbHop{0%{transform:translateY(0)}35%{transform:translateY(-12px) scale(1.04)}70%{transform:translateY(0) scale(1.06,.94)}100%{transform:none}}
+  @media (prefers-reduced-motion:reduce){
+    #ig-dock .jb-bird,#ig-dock .jb-perch.is-hop .jb-bird,#ig-dock .jb-perch.is-working .jb-bird{animation:none;transition:none}
+    #ig-dock .pd-gl-row.is-done{animation:none}
+  }
   /* REDLINES, BESIDE THE PAPER (the one-page Home plan, stage 3; owner picked "Column", 14 Oct 2026): the Negotiate page's own column as a face of Jambo's tab — the panel is its frame, the rows scroll under its head, and the head takes a second line at the panel's width: Redlines · Send all · ×, then the round · Open Negotiate */
   #pd-redface{display:flex;flex-direction:column;overflow:hidden}
   #pd-redface .rl-face{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--color-surface)}

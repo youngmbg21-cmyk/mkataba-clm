@@ -10938,6 +10938,7 @@ const STRINGS = {
     pd_gl_share: 'Share',
     pd_gl_signing: 'Signing',
     pd_gl_none: 'Nothing is waiting on you.',
+    jb_thinking: 'Thinking…',
     pd_ff_done_press: 'All details are in. Press Fill the document below to write them into the wording.',
     pd_ff_redlines: 'Open the redlines',
     /* BEFORE YOU SIGN, BESIDE THE PAPER (the one-page Home plan, stage 5, 14 Oct 2026) */
@@ -26721,6 +26722,7 @@ const STRINGS = {
     pd_gl_share: 'Dela',
     pd_gl_signing: 'Signering',
     pd_gl_none: 'Inget väntar på dig.',
+    jb_thinking: 'Tänker…',
     pd_ff_done_press: 'Alla uppgifter är ifyllda. Tryck på Fyll i dokumentet nedan för att skriva in dem i texten.',
     pd_ff_redlines: 'Öppna ändringarna',
     /* INNAN DU SIGNERAR, BREDVID PAPPRET (planen för en sida, steg 5, 14 okt 2026) */

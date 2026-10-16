@@ -6760,6 +6760,8 @@ function renderIntelDock(){
       <button id="igd-go" class="ui-btn ui-btn-sm ui-btn-primary absolute" style="right:18px;bottom:20px">${i18t('int_ask')}</button>
     </div>`}`;
   const feed=document.getElementById('igd-feed'); feed.scrollTop=feed.scrollHeight;
+  /* JAMBO, ALIVE (owner, 16 Oct 2026): he takes his seat on the chips row again */
+  if(typeof window.jamboPerchMount==='function') try{ jamboPerchMount(dock); }catch(_){ }
   /* a contract number in an answer is a link to it (caRefLinkPaint) */
   if(typeof window.caRefLinkPaint==='function') caRefLinkPaint(feed);
   /* THE DOCUMENT TAB IS THE CLAUSE LIST (10 Oct 2026): its host is drawn
