@@ -547,10 +547,12 @@ const EXTRA = [
     await page.waitForTimeout(1200);
     await page.evaluate(() => { if (window.settingsGoTab) settingsGoTab('platform'); });
     await page.waitForTimeout(700);
-    const rowThere = await page.evaluate(() => !!document.querySelector('.st-row[data-st-panel="paydays"]'));
+    /* Since the Control Room was built in full (owner, 16 Oct 2026) a setting
+       is a door on its group's card, not a row. */
+    const rowThere = await page.evaluate(() => !!document.querySelector('[data-st-panel="paydays"]'));
     check('11a the targets have a row on Settings', rowThere, rowThere ? 'drawn' : 'missing');
     if (rowThere) {
-      await page.click('.st-row[data-st-panel="paydays"]');
+      await page.click('[data-st-panel="paydays"]');
       await page.waitForTimeout(700);
       const boxes = await page.evaluate(() => {
         const a = document.getElementById('st-pay-in'), b = document.getElementById('st-pay-out');
@@ -575,14 +577,24 @@ const EXTRA = [
       await page.fill('#st-pay-out', '75');
       await page.click('#st-pay-save');
       await page.waitForTimeout(1400);
+      /* The board's door carries no state since the Control Room was built in
+         full (owner, 16 Oct 2026): the Menu's row beside it says the setting's
+         state, cut short, from the one reading every surface draws. */
+      await page.evaluate(() => {
+        const side = document.querySelector('[data-st-side="menu"]'); if (side) side.click();
+        const q = document.getElementById('st-q');
+        if (q) { q.value = 'payment'; q.dispatchEvent(new Event('input', { bubbles: true })); }
+      });
+      await page.waitForTimeout(500);
       const saved = await page.evaluate(() => ({
         t: Object.assign({}, payTargets()),
-        row: (document.querySelector('.st-row[data-st-panel="paydays"] .st-row-state') || {}).textContent || '',
+        row: (document.querySelector('#st-list .st-mrow[data-st-panel="paydays"] .st-mrow-s') || {}).textContent || '',
+        reading: ((window.SET_PANELS && SET_PANELS.paydays) ? (SET_PANELS.paydays.state() || {}).text : '') || '',
       }));
       check('11d the pair is stored and each side reads its own',
         saved.t.customer === 30 && saved.t.supplier === 75, JSON.stringify(saved.t));
-      check('11e the row behind the drawer states it without being opened',
-        /30/.test(saved.row) && /75/.test(saved.row), saved.row.trim());
+      check('11e the Menu row states it without the drawer, read off the one reading',
+        /30/.test(saved.row) && /30/.test(saved.reading) && /75/.test(saved.reading), `${saved.row.trim()} | ${saved.reading}`);
 
       await page.evaluate(() => { intel.tab = 'payterms'; setView('intel'); });
       await page.waitForTimeout(1100);
