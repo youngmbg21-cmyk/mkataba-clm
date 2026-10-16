@@ -90,6 +90,7 @@ describe('f652 (5) the browser holds the same caps, and the Brain knows the rout
   });
   test('5b the route is a Brain part in the request flow', () => {
     assert.match(BRAIN, /\['reqfiles', 'GET \/api\/intake\/:id\/files\/:fid', 'in', 2\]/);
-    assert.match(BRAIN, /\['request', 'kinds', 'intake', 'mailroom', 'reqfiles'\]/);
+    /* the step may carry more parts after it (Ask an admin joined it, 16 Oct 2026) */
+    assert.match(BRAIN, /\['request', 'kinds', 'intake', 'mailroom', 'reqfiles'[,\]]/);
   });
 });

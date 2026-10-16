@@ -20868,3 +20868,23 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - (15 Oct 2026) Jambo's tab count is drawn on the Board only: on every other Home face each redraw of his tab walked the whole book, and explorer-magnitude-verify 4a2 went red twice on GitHub while it did.
 
 - Noticed, not fixed (15 Oct 2026, PR 291): f149 "unanswered is refused" fails at unmodified main — settings.js now calls fieldFocus(accSel), and f149's sandbox stands in for core.js without a fieldFocus. Proposed patch: add `fieldFocus: el => { if (el && el.focus) el.focus(); },` to the sandbox in test/f149-nobody-joins-without-an-answer.test.js.
+
+### Built (16 Oct 2026, the owner: "build it control room")
+- Settings is the Control Room: two tabs like Home's, You first and Company second; Company is an admin's and is not drawn for anybody else (no tab row at all). Company is a board — Needs you, a card per group of settings, People & access, the governance ladder (read off the gates' own on/off), the People table. You is the person's own settings as cards. Beside both, one panel: Jambo (finds a setting or a person, explains, readies a signing limit in the drawer — no model, spends nothing, saves nothing) and the Menu (the one search box).
+- The Settings door in the rail shows for everyone now (it opens on their own settings); the top bar's Jambo goes to the panel while it is on screen.
+- Removed on the owner's ruling: the non-admin's "Settings is for admins" note (st_admin_only_page / st_admin_only_body inert in both books).
+- Re-pointed to the ruling: f193 (five claims), f195, f202, f603; settings-tabs, settings-groups, settings-holds-still, white-band-and-tabs, refresh-keeps-your-spot, people-directory verify. New: f691 (19 claims, all red at the parent).
+
+### Noticed, not fixed (16 Oct 2026, the Control Room)
+- The white band under Settings' title stops about 10px short of the window's right edge at 1440 (the scroller's gutter beside the pinned row); it did before this change too.
+- The Menu's search matches inside words, as the old box did: "sign" also finds "Company design".
+
+### Built (16 Oct 2026, the owner: "build and for the 4 decisions, go with your advice")
+- The Control Room as drawn: Company's Needs you reaches across areas (signers with no limit, no backup approver, members not signed in, open asks), short group cards with two facts and doors, the ladder and the access sheet, the Team and sheet pages, signing limits and gates drawers, send the welcome again. You: short cards, each door a drawer; password change, recovery codes, Jambo's suggestions on/off, where a contract opens.
+- One finder for the Menu box, ⌘K and the bar's box on Settings; Jambo's "why" is a model call on a press with the cost said first, the server choosing what it reads; Ask an admin is a record — admins' Needs you and bell, reminded, closed by the answer, the asker told; refusals about a rule carry a door to it.
+- Not built on the advice taken: per-kind email ("How you're told") and a saved signature (needs a lawyer). The other differences from the drawing are listed in MAP-HISTORY "THE CONTROL ROOM, BUILT IN FULL".
+- Re-pointed: f193, f195, f148, f281; settings-groups, settings-tabs, settings-overnight-fixes verify. New: f692 (the server's walls), control-room-in-full verify; f691 rewritten.
+
+### Noticed, not fixed (16 Oct 2026, the Control Room built in full)
+- Other members' personal prefs (language, Jambo's suggestions, where a contract opens) travel to non-admins in /api/bootstrap's user list; nothing draws them, but the server could send only a person's own.
+- CLAUDE.md stood at about 81 KB before this change (the rule says about 80 KB); this change kept its own entry the same size and trimmed nothing else.

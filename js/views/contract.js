@@ -4852,7 +4852,10 @@ function roomHomeLand(id){
   /* 'plain', not 'copilot': a face an earlier press left open on this
      contract (Redlines, Before you sign) is put away, so the door lands on
      the conversation it promises */
-  return (owed&&may)?!!pdFillOpen(c.id):!!pdOpenOnHome(c.id,'plain');
+  /* the reader's own "A contract opens on" where they chose a face; Jambo's
+     conversation otherwise */
+  const mine=(typeof contractOpensOn==='function')?contractOpensOn():'jambo';
+  return (owed&&may)?!!pdFillOpen(c.id):!!pdOpenOnHome(c.id,mine==='jambo'?'plain':'open');
 }
 /* ---- A RENEWAL IS DECIDED ON TODAY'S READING (Young, 27 Sep 2026) ----
    *"when you click on decide and it takes you to the overview page, the 5
@@ -16489,6 +16492,15 @@ function signCheckCardHtml(c){
         else acts.push(verb('data-sc-blanks','nego','sc_open_nego'));
         break; }
       case 'spots': why=r.label; if(window.signWalkGo) acts.push(verb('data-sc-spots','1','sc_place_btn')); break;
+      /* ---- A RULE STOPS THE SIGNATURE: ITS DOOR (16 Oct 2026, the Control
+         Room built in full, piece 20) ----
+         The signing limit and the stream rule are about the person signing.
+         An admin goes to the person's own drawer in Settings; anyone else is
+         offered Ask an admin — the tracked ask, through Jambo's one card. */
+      case 'signcap': case 'signfolder':
+        why=r.label;
+        acts.push((window.isAdmin&&isAdmin())?verb('data-sc-rule',r.kind,'sc_rule_door'):verb('data-sc-askadmin',r.kind,'sc_ask_admin'));
+        break;
       default: why=r.label||'';
     }
     /* A READING THAT CANNOT RUN YET IS DRAWN AND SAYS WHY, rather than being
@@ -16896,6 +16908,15 @@ function renderSignSide(c){
     if(window.openSignerPlanEditor) openSignerPlanEditor(c);
   });
   host.querySelector('[data-sc-nego]')?.addEventListener('click',()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); });
+  /* a rule's door (piece 20): the admin to the signer's drawer, anyone else
+     to Ask an admin with the contract named */
+  host.querySelectorAll('[data-sc-rule]').forEach(b=>b.addEventListener('click',()=>{
+    /* the signer may be a colleague (the outside route), so the door is the
+       rule's own drawer — everyone's limits, or the stream rule */
+    if(window.openSettingsAt) openSettingsAt('company', b.getAttribute('data-sc-rule')==='signfolder'?'signfolder':'limits'); }));
+  host.querySelectorAll('[data-sc-askadmin]').forEach(b=>b.addEventListener('click',()=>{
+    const k=b.getAttribute('data-sc-askadmin');
+    if(window.stAskFrom) stAskFrom(k==='signfolder'?'signfolder':'signcap', i18t(k==='signfolder'?'sc_ask_words_folder':'sc_ask_words_cap',{name:c.name||(window.contractRef?contractRef(c):c.id)})); }));
   /* The empty-box row's door. Its own attribute rather than a second
      data-sc-nego: that one is bound with querySelector, and with the
      negotiation row drawn above this one the second button would be dead

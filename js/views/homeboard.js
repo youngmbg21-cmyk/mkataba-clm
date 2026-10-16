@@ -1501,7 +1501,7 @@ function hbNeedsOpen(){
 function hbNeedsPress(kind, id){
   const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c) return false;
   if (kind === 'look'){
-    if (typeof pdOpenOnHome === 'function' && pdOpenOnHome(c.id, 'copilot')) return true;
+    if (typeof pdOpenOnHome === 'function' && pdOpenOnHome(c.id, 'open')) return true;
     if (typeof openWorkspace === 'function') openWorkspace(c.id);
     return true;
   }

@@ -992,6 +992,8 @@ function caPaperChips(){
   return caNextSteps(c).map(k => CA_NEXT_GO.includes(k) ? { go: k, label: caNextLabel(k), k } : { ask: _caT('ca_w_' + k), k, owed: k === lead });
 }
 function caChipsHtml(){
+  /* the person turned Jambo's suggestions off (You · How you like to work) */
+  if (typeof jamboChipsOn === 'function' && !jamboChipsOn()) return '';
   const L = caPaperChips(); if (!L) return '';
   return L.map(x => x.go
     ? `<button type="button" data-ca-next="${_caE(x.go)}" data-ca-chip="${_caE(x.k)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${_caE(x.label)}</button>`

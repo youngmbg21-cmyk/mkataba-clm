@@ -101,7 +101,9 @@ describe('F521 (C) — the link opens the card', () => {
     const src = read('js/core.js');
     assert.match(src, /const HASH_GO = \{ approval: \{ tab:'sign', sel:'#sa-card' \}, moved: \{ home:true \} \};/);
     const i = src.indexOf('function openFromHash(){');
-    const body = src.slice(i, i + 1400);
+    /* the function's own region, not a byte count (a #settings door was added
+       at its top on 16 Oct 2026) */
+    const body = src.slice(i, src.indexOf('\n}\n', i));
     assert.ok(body.includes("/^#home&go=([a-z]+)&card=([a-z]+(?:\\.mine)?)$/i"), 'the narrow shape: a word, and a finding id');
     assert.match(body, /if\(!g\|\|!g\.home\) return false;/);
     assert.ok(body.indexOf('hbOpenFromLink') < body.indexOf('#contract='));

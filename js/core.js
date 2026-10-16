@@ -1943,6 +1943,14 @@ const userById = id => getUsers().find(u=>u.id===id);
 const currentUser = () => REMOTE ? REMOTE.me : (getSession() ? userById(getSession().userId) : null);
 const canEdit = () => { const u=currentUser(); return !!u && u.role!=='viewer'; };
 const isAdmin = () => currentUser()?.role==='admin';
+/* ---- HOW THIS PERSON LIKES TO WORK (owner, 16 Oct 2026: the Control Room
+   built in full — "Jambo's suggestions" and "A contract opens on") ----
+   Two of the person's OWN preferences (PUT /api/me/prefs), read here once so
+   every door asks the same question. Absent means the product's default:
+   suggestions on, and a contract opening on Jambo's at-a-glance. */
+const OPENS_ON = ['jambo','fill','red','clauses','signing'];
+const jamboChipsOn = () => !((currentUser()||{}).prefs && currentUser().prefs.jamboChips === false);
+const contractOpensOn = () => { const v = String(((currentUser()||{}).prefs||{}).opensOn || ''); return OPENS_ON.includes(v) ? v : 'jambo'; };
 /* ---- WHO MAY MAKE NEW PAPER (Young ruled 18 Sep 2026) ----
    THE ONE READING, and it takes a person so a drawer can ask it about somebody
    else. "New paper" means paper with no approved wording behind it: writing a
@@ -2441,6 +2449,8 @@ function startApp(){
      and the bell know what is due before either page is opened. */
   if(window.mineLoad) mineLoad(true).then(()=>{ if(window.paintMyNotesCount) paintMyNotesCount(); });
   if(API_MODE()){ refreshStats(); refreshShareOverview(); refreshWaitingQuestions(); pollPendingResponses(); refreshAiUsage();
+    /* asks to an admin, and their answers, reach the bell from the start */
+    if(window.stAsksLoad){ _asksAt=Date.now(); try{ stAsksLoad(); }catch(_){} }
     schedulePolling();
     /* Coming back to the tab is when a person expects to be up to date. */
     if(!window._pollFocusBound){
@@ -2505,6 +2515,13 @@ function startApp(){
 const HASH_GO = { approval: { tab:'sign', sel:'#sa-card' }, moved: { home:true } };
 const HASH_GO_WAIT = 120, HASH_GO_TRIES = 25, HASH_GO_LIT = 2400;
 function openFromHash(){
+  /* ASK AN ADMIN's email links here (16 Oct 2026): #settings opens Settings,
+     on Company for an admin — nothing secret rides the link */
+  if(String(location.hash||'')==='#settings'){
+    try{ history.replaceState(null,'',location.pathname+location.search); }catch(_){ location.hash=''; }
+    if(typeof window.openSettingsAt==='function' && typeof isAdmin==='function' && isAdmin()) openSettingsAt('company'); else setView('team');
+    return true;
+  }
   /* "WHAT MOVED" IN THE BRIEF (Part 11, 5 Oct 2026): #home&go=moved&card=<id>
      opens Home's board at that finding's chart. The same narrow list: a word
      it does not know is not acted on. The id is a shelf finding's, never a
@@ -4697,6 +4714,13 @@ function contractReadiness(c){
   return p;
 }
 const readinessBlocks = c => contractReadiness(c).filter(x=>x.severity==='block');
+/* the rule doors above: the send screen closes, Settings opens on the rule */
+if(typeof document!=='undefined' && document.addEventListener) document.addEventListener('click',e=>{
+  const b=e.target&&e.target.closest?e.target.closest('[data-rd-rule]'):null; if(!b) return;
+  e.preventDefault();
+  try{ if(typeof closeModal==='function') closeModal(); }catch(_){}
+  if(window.openSettingsAt) openSettingsAt('company', b.getAttribute('data-rd-rule'));
+});
 /* ---------- counterparty share links ---------- */
 const b64e = obj => btoa(unescape(encodeURIComponent(JSON.stringify(obj)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const b64d = str => { try{ return JSON.parse(decodeURIComponent(escape(atob(String(str).trim().replace(/-/g,'+').replace(/_/g,'/'))))); }catch(e){ return null; } };
@@ -5365,8 +5389,15 @@ function readinessPanelHtml(c, o={}){
         head:i18tn('co_not_ready',blocks.length,{n:blocks.length}) }
     : { bg:'var(--st-amber-bg)', line:'var(--st-amber-line)', fg:'var(--st-amber-fg)',
         head:i18t('co_worth_checking') };
+  /* A RULE THAT HOLDS THE SEND CARRIES ITS DOOR FOR AN ADMIN (16 Oct 2026,
+     the Control Room built in full, piece 20): the review rule and the desk
+     rule, each to its own drawer in Settings. Nobody else is offered a door
+     here — the send's own way forward (ask for review, ask the lead) is on
+     the screen already. */
+  const ruleDoor=x=>(x.severity==='block' && (x.key==='review'||x.key==='desk') && typeof isAdmin==='function' && isAdmin())
+    ? ` <button type="button" class="ui-link" data-rd-rule="${x.key}">${esc(i18t(x.key==='review'?'sc_rule_review':'sc_rule_desk'))}</button>` : '';
   const list=(items,color)=>`<ul style="margin:0;padding-left:var(--s-4);font-size:var(--t-meta);line-height:1.65;color:${color};">
-      ${items.map(x=>`<li>${esc(x.label)}</li>`).join('')}
+      ${items.map(x=>`<li>${esc(x.label)}${ruleDoor(x)}</li>`).join('')}
     </ul>`;
   return `<div id="share-readiness" style="margin:0 0 var(--s-3);border:1px solid ${tone.line};background:${tone.bg};border-radius:var(--radius);padding:10px var(--s-3);">
     <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-meta);font-weight:var(--w-strong);color:${tone.fg};margin-bottom:6px;">${icon('alert','w-3.5 h-3.5')} ${tone.head}</div>
@@ -8402,6 +8433,9 @@ async function renderSharesSection(c){
             <span style="font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono);flex:none">${chLabel[s.channel]||'Link'}</span>
           </div>
           ${s.responseBy?`<div style="font-size:var(--t-label);color:var(--color-neutral-700);margin-top:3px">by ${esc(s.responseBy)}</div>`:''}
+          ${''/* A NAMED GUEST'S LINK ASKS FOR A CODE while the rule is on — said on
+                 the row for an admin, with the rule's own door (piece 20) */}
+          ${(live(s)&&s.recipientEmail&&linkCodeCfg().on&&typeof isAdmin==='function'&&isAdmin())?`<div style="font-size:var(--t-label);color:var(--color-neutral-700);margin-top:3px">${esc(i18t('co_share_asks_code'))} <button type="button" class="ui-link" data-rd-rule="linkcode">${esc(i18t('sc_rule_linkcode'))}</button></div>`:''}
           <div style="font-size:var(--t-label);color:var(--color-neutral-600);font-family:var(--font-mono);margin-top:3px">${meta}</div>
           ${(live(s)&&canEdit())?`<div style="display:flex;gap:10px;margin-top:5px">
             <button data-sh-copy="${s.token}" type="button" class="ui-link">${i18t('co_copy_link')}</button>
@@ -9550,7 +9584,12 @@ async function pollNow(reason){
   _pollLastAt=t;
   await pollPendingResponses();
   await pollThreadMessages();
+  /* ASK AN ADMIN (16 Oct 2026): a colleague's ask reaches an admin's bell, and
+     the answer the asker's, during the sitting — read at most every two minutes */
+  if(window.stAsksLoad && t-_asksAt>=ASKS_EVERY_MS){ _asksAt=t; try{ stAsksLoad(); }catch(_){} }
 }
+const ASKS_EVERY_MS=120000;
+let _asksAt=0;
 function schedulePolling(){
   const want=pollWaitingOnThem()?POLL_FAST:POLL_SLOW;
   if(_pollEvery===want && _pollTimer) return;
@@ -9673,4 +9712,4 @@ function endOrPauseOpen(c, opts = {}){
 }
 Object.assign(window,{END_ANSWERS,endOrPauseAnswers,endOrPauseOffered,endOrPauseOpen});
 
-Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,fieldFocus,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,selectFaceDress,datePickDress,datePickOpen,dlgPageAdopt,datePickClose,datePickWords,popupControlsDress,DATE_PICK_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,dateFmtOf,sigImageSrc,contractOnScreen,contractOverviewShown,contractOnHome,userById,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});
+Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,fieldFocus,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,selectFaceDress,datePickDress,datePickOpen,dlgPageAdopt,datePickClose,datePickWords,popupControlsDress,DATE_PICK_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,dateFmtOf,sigImageSrc,contractOnScreen,contractOverviewShown,contractOnHome,userById,OPENS_ON,jamboChipsOn,contractOpensOn,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});

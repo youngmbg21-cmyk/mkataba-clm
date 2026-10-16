@@ -826,6 +826,9 @@ function aiEmbeddedHere(){
     if(cl && typeof cl.contains==='function' && cl.contains('ce-open') && document.getElementById('ce-ask')) return 'editor';
     const dock = document.getElementById('ig-dock');
     if(dock && dock.isConnected && typeof dock.getClientRects==='function' && dock.getClientRects().length) return 'home';
+    /* Settings' side panel (the Control Room, 16 Oct 2026): Jambo is its first face */
+    const side = document.getElementById('st-side');
+    if(side && side.isConnected && typeof side.getClientRects==='function' && side.getClientRects().length && typeof window.stJamboFocus==='function') return 'settings';
   }catch(_){}
   return null;
 }
@@ -849,6 +852,7 @@ function aiGoEmbedded(here, prefill){
     if(inp) try{ inp.focus({ preventScroll: true }); }catch(_){}
     return true;
   }
+  if(here === 'settings' && typeof window.stJamboFocus === 'function') return !!window.stJamboFocus(prefill);
   return false;
 }
 /* hidden where Copilot is already on screen, back on the way out */

@@ -391,14 +391,23 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
       ffRest.length > 0 && ffRest.every(t => t.color === ref.color),
       ffRest.map(t => `${t._txt}: ${t.color}`));
 
+    /* RE-POINTED IN PLACE 16 Oct 2026 (the Control Room): the owner asked for
+       Settings' tabs "just like in the home page", so its reference is Home's
+       own resting tab now, read live — the same type, the same quiet ink. */
+    await page.evaluate(() => setView('dashboard'));
+    await pause(1800);
+    const HOME_FACE = await page.evaluate(sel => { const b = document.querySelector(sel); if (!b) return null;
+      const cs = getComputedStyle(b); return { fontFamily: cs.fontFamily, fontSize: cs.fontSize, fontWeight: cs.fontWeight, color: cs.color, height: cs.height }; },
+      '#hb-head .hb-faces button[aria-selected="false"]');
     await page.evaluate(() => setView('team'));
     await pause(2600);
     await page.screenshot({ path: path.join(OUT, '05-settings.png') });
-    const stTabs = await page.evaluate(READ_TYPE, { sel: '.st-tab', props: TYPE });
-    const stRest = stTabs.filter(t => !t._on);
-    check('5c and the Settings & Rules tabs',
-      stRest.length > 0 && stRest.every(t => sameAsRef(t).ok),
-      stRest.map(t => `${t._txt}: ${sameAsRef(t).why || 'match'}`));
+    const stFace = await page.evaluate(sel => { const b = document.querySelector(sel); if (!b) return null;
+      const cs = getComputedStyle(b); return { fontFamily: cs.fontFamily, fontSize: cs.fontSize, fontWeight: cs.fontWeight, color: cs.color, height: cs.height }; },
+      '#set-page .st-face[aria-selected="false"]');
+    check('5c and the Settings tabs rest exactly as Home\'s do',
+      !!HOME_FACE && !!stFace && Object.keys(HOME_FACE).every(k => HOME_FACE[k] === stFace[k]),
+      { home: HOME_FACE, settings: stFace });
 
     /* 5d — THE CLAIM THAT NOTHING MOVED, REVERSED ON ONE PROPERTY 24 Aug 2026
        (WO-16, owner-asked: "reduce the font by a size in the contracts and
@@ -512,15 +521,26 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
       const out = { padding: s.padding, gap: rs.gap };
       row.remove(); return out;
     });
+    /* RE-POINTED IN PLACE 16 Oct 2026 (the Control Room): Settings' row is
+       Home's sliding pill now (the owner's words), and the room's underline
+       row is still the TEMPLATES page's and Our standards'. 6a keeps its point
+       — the rule reached the screen — asked of the pill; 6b and 6c ask the
+       pill's own shape: two faces of one width, the white pill under the live
+       one. The room's row is read above and stays the reference for the rows
+       that still wear it. */
+    void roomBox;
     const stBox = await page.evaluate(() => {
-      const t = document.querySelector('.st-tab'); if (!t) return null;
-      const row = document.querySelector('.st-tabs');
+      const t = document.querySelector('#set-page .st-face'); if (!t) return null;
+      const faces = [...document.querySelectorAll('#set-page .st-face')];
+      const thumb = document.querySelector('#set-page .st-thumb');
+      const live = document.querySelector('#set-page .st-face[aria-selected="true"]');
       const s = getComputedStyle(t);
-      return { padding: s.padding, gap: getComputedStyle(row).gap,
+      return { padding: s.padding, widths: faces.map(f => Math.round(f.getBoundingClientRect().width)),
+        thumbUnder: !!(thumb && live) && Math.abs(thumb.getBoundingClientRect().left - live.getBoundingClientRect().left) <= 1,
         inParsedSheet: (() => {
           for (const sheet of document.styleSheets){
             let rules; try { rules = sheet.cssRules; } catch (_) { continue; }
-            for (const r of rules) if (r.selectorText === '.st-tab') return true;
+            for (const r of rules) if (r.selectorText === '.st-cr .st-face') return true;
           }
           return false;
         })() };
@@ -529,12 +549,11 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     check('6a THE RULE IS IN THE PARSED STYLESHEET — no comment swallowed it',
       stBox && stBox.inParsedSheet && stBox.padding !== '0px',
       stBox && { inSheet: stBox.inParsedSheet, padding: stBox.padding });
-    check('6b the admin tab hugs its text exactly as the room\'s does',
-      stBox && stBox.padding === roomBox.padding,
-      { admin: stBox && stBox.padding, room: roomBox.padding });
-    check('6c and the row spaces them the same way',
-      stBox && stBox.gap === roomBox.gap,
-      { admin: stBox && stBox.gap, room: roomBox.gap });
+    check('6b the two tabs are one width, as Home\'s are',
+      stBox && stBox.widths.length === 2 && stBox.widths[0] === stBox.widths[1],
+      stBox && stBox.widths);
+    check('6c and the white pill sits under the live one',
+      stBox && stBox.thumbUnder, stBox && stBox.thumbUnder);
 
     /* ---- 6d-6g THE ROW STAYS WHILE THE PAGE SCROLLS (Young ruled it 18 Sep
        2026: "for the team & settings page, make that when you scroll, you do
@@ -551,21 +570,22 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     const SHORT = { width: 1440, height: 620 };
     await page.setViewportSize(SHORT);
     await pause(500);
-    await page.evaluate(() => window.settingsGoTab('platform'));
+    await page.evaluate(() => window.settingsGoTab('company'));
     await pause(900);
 
     const readRow = () => page.evaluate(() => {
       const row = document.querySelector('.st-tabs'), sc = document.getElementById('content-scroll');
       if (!row || !sc) return null;
       const r = row.getBoundingClientRect(), s = sc.getBoundingClientRect();
-      const first = document.querySelector('.st-tab');
-      const live = document.querySelector('.st-tab.on') || first;
+      /* the first painted thing on the row is the pill's track (16 Oct 2026) */
+      const first = document.querySelector('#set-page .st-faces') || document.querySelector('.st-tab');
+      const live = document.querySelector('#set-page .st-face[aria-selected="true"]') || first;
       const lr = live.getBoundingClientRect();
       const hit = document.elementFromPoint(Math.round(lr.left + lr.width / 2), Math.round(lr.top + lr.height / 2));
       return { glyph: Math.round(first.getBoundingClientRect().top - s.top),
         rowTop: Math.round(r.top - s.top), leftGap: Math.round(r.left - s.left),
         bg: getComputedStyle(row).backgroundColor,
-        painted: !!(hit && hit.closest && hit.closest('.st-tab')),
+        painted: !!(hit && hit.closest && hit.closest('.st-face, .st-tab')),
         scrollTop: sc.scrollTop, canScroll: sc.scrollHeight - sc.clientHeight };
     });
 
@@ -610,7 +630,7 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
       const sc = document.getElementById('content-scroll');
       sc.scrollTop = 900;
       const was = sc.scrollTop;
-      const tab = document.querySelector('[data-st-tab="people"]');
+      const tab = document.querySelector('[data-st-tab="you"]');
       const onScreen = tab.getBoundingClientRect().top >= sc.getBoundingClientRect().top - 1;
       tab.click();
       return { was, onScreen };

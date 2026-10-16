@@ -71,7 +71,9 @@ let H;
     /* ================= 1 · THE ADMIN SETS IT ON THE PERSON ================= */
     const A = await login(browser, 'admin@example.co.ke', 'adminpassword1');
     pageErrors.push(...A.errors);
-    await A.page.evaluate(() => { if (window.setView) setView('team'); });
+    /* The People table lives on Company's Team page since the Control Room
+       was built in full (owner, 16 Oct 2026). */
+    await A.page.evaluate(() => { if (window.setView) setView('team'); if (window.settingsGoPage) settingsGoPage('team'); });
     await A.page.waitForTimeout(900);
     const hasRow = await A.page.$(`[data-st-panel="person:${U.id}"]`);
     check('1a  the People list draws the person', !!hasRow);
@@ -103,7 +105,7 @@ let H;
     const u1 = saved.users.find(x => x.id === U.id) || {};
     check('1d  Save writes the four fields on the person', u1.overseerOn === 'always' && u1.overseerId === R.id
       && u1.overseerBackupId === N.id, JSON.stringify({ on: u1.overseerOn, a: u1.overseerId, b: u1.overseerBackupId, w: u1.overseerWhen }));
-    await A.page.evaluate(() => { if (window.setView) setView('team'); });
+    await A.page.evaluate(() => { if (window.setView) setView('team'); if (window.settingsGoPage) settingsGoPage('team'); });
     await A.page.waitForTimeout(700);
     const rowText = await A.page.evaluate(id => ((document.querySelector(`[data-st-sa="${id}"]`) || {}).textContent || ''), U.id);
     check('1e  the People row says who approves', /Needs approval to sign · approver: Restricted Legal/.test(rowText), rowText);
