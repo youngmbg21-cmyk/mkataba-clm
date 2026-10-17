@@ -20,6 +20,12 @@
 
      node test/chromium/ink-wash-verify.js --save   (record, on the code BEFORE)
 
+   RE-RECORDED 17 Oct 2026 (sixth), OWNER-ASKED (the overnight build: "Build
+   and update record even on new ones"): Round 7, "Read down" — a contract
+   brought up is a page of its own on the desk, so the History screen (a
+   strip on its History page) no longer draws the Board's own furniture
+   around it: colours and counts only went away. Audited as a set
+   difference: nothing new.
    RE-RECORDED 17 Oct 2026 (fifth), OWNER-ASKED (the overnight build: "Build
    and update record even on new ones"): Round 6, "One line" — the paper's
    line draws the stage as the house's pill, so on dark screens that show an
