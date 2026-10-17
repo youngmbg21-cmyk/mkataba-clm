@@ -30449,3 +30449,18 @@ What was built, against today's panel:
 Measured: the paper's first line of wording 365 px from the top before and after at 1440 × 780 (the panel draws beside it). The panel slides to its width with a CSS transition; a first draft of the check measured mid-slide (110 px) and is now made to wait for it to land.
 
 The colour census (ink-wash-verify) moves: on light screens only two text sizes' counts (10 px: the tab's count badge; 12 px: ‹ Jambo), on dark screens counts of colours already in the palette (the amber badge, its ink, the dark surface as the badge's border). No colour or size is new to the product. Not re-recorded: that needs the owner's yes.
+
+
+## DRAFT FROM A SENTENCE — ROUND 4 OF THE REDESIGN, "ONE SHEET" (17 Oct 2026)
+
+The owner picked "One sheet" by name on the all-rounds page and answered both questions "Yes and yes": the New agreement card (their "Go" of 14 Oct) is retired, its facts moving into the form; and a sentence with no verb ("NDA with Volvo Cars for a pilot") starts a draft.
+
+What was built:
+- **Which sentences start a draft** (`caIsDraftAsk`, `CA_DRAFT_BARE`, `CA_DRAFT_ASKING`): the verbs as before, or a sentence that opens on one agreement's name (an article, "new", or up to two words such as "mutual" before it) and names who it is with (`caDraftWith`). A question (a "?" or a question word first), "the …" / "our …" (a reference to one already here), a plural ("contracts with Volvo") or no party is never a draft. The Counter's box asks the same reading.
+- **Read without AI**: `caDraftRun` no longer calls POST /api/ai/draft on every sentence; it ranks our paper by the sentence's words and opens the one form at once (`caDraftForm`: `pick: null`, `closest`, `best`, `words {what, who, known}`). Jambo spends only on the form's own Find, drawn as "Let Jambo fill the form · 1 Jambo call". The panel says what was read in a line (`ca-dr-said`) with Open the form · Change the ask.
+- **The sheet** (`openNewAgreement`, `one`/`na-one`): From your words (`naWordsHtml`: the sentence, What = the closest paper's title, With amber where Parties has no such name yet), 1 Start from (`closestHtml`: the closest, "the closest" on the best, nothing picked; "Search all our paper (N)" unfolds the search list; "None fits? Ask Legal with a request" → `openIntakeForm`), 2 "<paper> asks" (the card's own note not repeated), 3 File it in (`naFilePaint`: the form's own stream box drawn as buttons — the box stays the one writer and its field is not drawn twice; a choice made before the pick waits in `streamPicked`; a private stream wears its lock; "+ New stream" keeps its way in) and what reading on creation costs. Every other door keeps the form as it was.
+- Two first-draft faults caught on the way: `shown.map(pickRow)` passed the row's index as "best" (every row but the first would have worn "the closest" — `best===true` now); the stream field's inline `display:block` beat its hidden attribute (hidden by style now).
+
+Not built from the design: "Skip the questions" stays in the head (the design drew only Create and Cancel; removing an act needs the owner's word). "the three closest" reads "the closest": the ranking offers only papers that share a word with the sentence, so often one.
+
+Re-pointed: f679 3d (the form opens with nothing picked), draft-upload-glance 3a–3g and every-door-lands-on-home D (no card to press; the stream is step 3's buttons). The colour census did not move.

@@ -257,7 +257,8 @@ const BRAIN_PARTS = [
      # contracts with no model and answers with a card; one press runs the
      product's own act. Agents live on the Board, each with a level. */
   ['copilotask', 'caActOf', 'ai', 1],
-  ['draftcard', 'caDraftRun', 'ai', 1],
+  /* read without AI since round 4 ("One sheet", 17 Oct 2026): the form's own Find is the spend */
+  ['draftcard', 'caDraftRun', 'see', 1],
   ['paperjobs', 'caReadJob', 'ai', 1],
   ['papermark', 'caRiskMark', 'see', 1],
   ['homepaper', 'igHomePaperFace', 'see', 0],

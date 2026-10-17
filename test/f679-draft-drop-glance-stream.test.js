@@ -215,14 +215,21 @@ describe('f679 (3) a sentence answers with the New agreement card', () => {
     assert.match(html, /<dd>An agreement<\/dd>/, 'never a guess dressed as a match');
     assert.match(html, /<dd>You choose in the form<\/dd>/);
   });
-  test('3d Open the form opens the one form with the paper and the counterparty in it', () => {
+  /* RE-POINTED 17 Oct 2026 (round 4, the owner picked "One sheet"): the form
+     comes straight to the desk with NOTHING picked — the closest of our paper
+     offered at its top, the best marked, and what was read from the words its
+     first section. f706 pins the sheet itself. */
+  test('3d the one form opens with the closest paper offered, nothing picked, and the counterparty in it', () => {
     const { ctx, calls } = caStage();
     const a = { kind: 'draft', sentence: 'draft an NDA with Volvo', state: 'ready', options: ctx.caDraftRank('draft an NDA with Volvo', cands, null), prefill: { purpose: 'A promotion', ignored: 'x' }, ai: false };
     ctx.caDraftForm(a);
-    assert.deepEqual(J(calls), [['form', { pick: { kind: 'tid', id: 'NDA' }, prefill: { purpose: 'A promotion', counterparty: 'Volvo' }, asked: 'draft an NDA with Volvo', streamAsk: true }]]);
+    const best = { kind: 'tid', id: 'NDA' };
+    assert.deepEqual(J(calls), [['form', { pick: null, prefill: { purpose: 'A promotion', counterparty: 'Volvo' }, asked: 'draft an NDA with Volvo', streamAsk: true,
+      closest: J(a.options).map(o => ({ kind: o.kind === 'builtin' ? 'tid' : o.kind, id: o.id })), best, words: { what: J(calls)[0][1].words.what, who: 'Volvo', known: false } }]]);
+    assert.ok(J(calls)[0][1].words.what, 'What is the closest paper\'s title');
     calls.length = 0;
     ctx.caDraftForm({ sentence: 'draft a lease with Mumias', options: [], prefill: {} });
-    assert.deepEqual(J(calls), [['form', { pick: null, prefill: { counterparty: 'Mumias' }, asked: 'draft a lease with Mumias', streamAsk: true }]], 'no paper named: the counterparty waits for the pick');
+    assert.deepEqual(J(calls), [['form', { pick: null, prefill: { counterparty: 'Mumias' }, asked: 'draft a lease with Mumias', streamAsk: true, closest: [], best: null, words: { what: '', who: 'Mumias', known: false } }]], 'no paper named: the counterparty waits for the pick');
   });
   test('3e the one form greys Create until a stream is in its box, and says where the answers came from', () => {
     const light = WZ.slice(WZ.indexOf('const light=()=>'), WZ.indexOf('const dress=host=>'));

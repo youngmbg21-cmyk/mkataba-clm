@@ -286,7 +286,7 @@ function counterAsk(text){
   if (a && a.kind === 'go' && !CN_ASKS_JAMBO.includes(a.place) && typeof caGo === 'function' && caGo(a)) return true;
   if (typeof hbS !== 'function' || typeof setView !== 'function') return false;
   /* drafting is the wall's (where his New agreement card stands); the rest is asked on the Board */
-  const toWall = !!(a && a.place === 'draft') || (typeof CA_DRAFT_RE !== 'undefined' && CA_DRAFT_RE.test(t));
+  const toWall = !!(a && a.place === 'draft') || (typeof caIsDraftAsk === 'function' && caIsDraftAsk(t));
   if (toWall && typeof hbOpenContracts === 'function') hbOpenContracts();
   else { const s = hbS(); s.face = 'board'; if (typeof hbSave === 'function') hbSave(); setView('dashboard'); }
   let tries = 0;
