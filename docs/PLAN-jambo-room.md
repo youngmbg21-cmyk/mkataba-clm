@@ -3,65 +3,87 @@
 > *"I now want to have the Jambo chat room that is not on side panel to essentially be an extension of the board page. It's a chat room that once you click on Jambo at the top of the page, it appears in any page but it's an extension of the board where you chat with it and it brings up the same cards that would appear on the board. If you switch pages, it follows you unless you click on a minimize button which then makes it disappear to the top Jambo emoji. … You should also be able to research a contract there or review the brief etc. … prioritise value add, speed and efficiency. Propose only and no coding"*
 > — the owner, 17 Oct 2026.
 
-- The options, drawn live on photographs of HaTi, with a switcher and this plan beneath: https://claude.ai/artifact/7TT6diMLvVgVTAW1NgV4G4
-- The owner picks one sitting by name: **The SAP way**, **Window** or **Desk**. The room itself (sections 2 and 3) is the same under all three.
+> *"rebuild and combine the sap way with the desk meaning the chat is not on the side panel. Also you can expand the chat bot card and move it around just like the jambo chat bot does today"*
+> — the owner, 17 Oct 2026, after the first round (The SAP way · Window · Desk).
+
+- The design, live on photographs of HaTi (drag it, resize it, expand it, fold it, change pages), with this plan beneath: https://claude.ai/artifact/7TT6diMLvVgVTAW1NgV4G4
+- One design now, as the owner asked: **a card you move, resize and expand into a desk, drawn the SAP way.** It is never docked on the side.
 
 ## 1. What is there today
 
 Two Jambos who do not know each other:
 
-- **Home's panel** (the one beside the Board and the paper). It reads Jambo's words first (a place or a job: "sign", "share", "bring up MK-B2"), then the Board's own free reader (a number, a list, a contract, a chart, "needs me"), and only then the paid model. Its answers draw the Board's cards. Its conversation is `intel.history`.
-- **The window** (the one that appears on the list pages, Requests, People, Our paper, Customers, Settings' neighbours and the room by name). It has its own conversation (`ai.history`), its own set of cards, and sends nearly everything to the model. It can be dragged and resized (the owner's 11 Oct ask), it steps aside where Jambo is already on the page, and Minimize closes it with a dot on the bar's face.
+- **Home's panel.** It reads Jambo's words first (a place or a job: "sign", "share", "bring up MK-B2"), then the Board's own free reader (a number, a list, a contract, a chart, "needs me"), and only then the paid model. Its answers draw the Board's cards. Its conversation is `intel.history`.
+- **The window** (`#ai-panel`, js/ai.js `aiFloat*`), on every page without Jambo built in. Its own conversation (`ai.history`), its own cards, nearly everything sent to the model. It can be dragged and resized up to the expanded drawer (the owner's 11 Oct ask), steps aside where Jambo is already on the page, and Minimize closes it with a dot on the bar's face. It opens over the bar's right end.
 
-So a question asked on the Negotiations page and a question asked on Home get different Jambos with different memories, and the window's answers cannot land on the Board.
+## 2. How the card behaves
 
-## 2. The room — the same in all three options
+- **Opens from Jambo's face in the bar.** First time: compact on the right, under the bar. After that: where it was left, at the size it was left (per person, as today).
+- **Moves by its head; resizes from any edge or corner**, as the window does today. It stays under the bar and off the rail, so the face, the bell and the rail are always free.
+- **« expands it into the desk** in one press; » takes it back to the size it had. A double-click on the head does the same.
+- **Wide enough, it becomes the desk** (from 820 px): the chat on the left (400 px), the Board's cards on their own side on the right, under a white band the SAP way ("Cards from this conversation (n)", a labelled Show box, the cards stacked newest first). Each answer in the chat carries a pointer that lights its card. Narrower, the cards sit inside the conversation, under the answer that brought them, in their narrow dress.
+- **▭ puts it back** to where it first opened.
+- **It follows you** across pages, same spot and size.
+- **– folds it into Jambo's face**; so do Esc and a second press on the face. A dot says an answer arrived while folded. The face brings it back as it was.
+- **On Home it is Jambo's panel** (same conversation); it comes back when you leave Home.
+- **Nothing behind it is dimmed or moved**, even at its largest.
 
-1. **One Jambo, one memory.** The room and Home's panel become one conversation, shown by whichever is on screen. Leave Home and the room picks up where the panel left off.
-2. **It thinks the way the Board thinks.** The room asks in the panel's order: Jambo's words → the Board's free reader → the model, with what is on the page sent along. The room is therefore cheaper and faster than the window it replaces, and the line under each answer says "Free" or what it cost.
-3. **The cards are the Board's own.** The Needs you card, a contract's strip, a chart, a list, an answer pack: the Board's own builders draw them in the room (a second host, the pattern the Thread already uses). Every number is a door; late, owed and hot keep their colours. "Keep" puts a card on the Board; "Open" opens the paper on Home. Nothing is drawn twice.
-4. **It follows you until you fold it.** Open it from Jambo's face in the bar. It stays open across pages. "–", Esc or pressing the face again folds it into the face; a dot says an answer arrived while folded; press the face and it comes back where it was. On Home it folds into Home's panel (same conversation) and comes back when you leave. A refresh brings it back as it was.
-5. **What you can do there.** "needs me". "bring up MK-B2": the strip (value, term, next obligation, notice, whose move, the contract's life, key terms, obligations; its ⋯ with Where we are, History, Details). "Read the brief" (one paid call, said before the press, kept). "Analyze" (Explorer's paper). Numbers and charts. A narrowed list that opens the Contracts place. "sign", "share", "redline", "fill in" open their faces on Home. The "/" list of places. Both languages.
-6. **Typing never acts.** A card waits for the press.
-7. **The phone keeps its own chat** below 768 px.
+Its sizes at 1440 × 780:
 
-## 3. What does not change
+| Size | Width × height | What it shows |
+|---|---|---|
+| Smallest | 360 × 420 | the chat, cards inside it, narrow dress |
+| Compact, first open | 460 × 708 | the same, full height under the bar |
+| Desk from | 820 wide | chat left, cards on their own side |
+| Largest | 1344 × 708 | the whole page under the bar; strip and charts as on the Board |
 
-The Board, Home's panel and its faces; the counterparty's page; the clause editor's own Jambo and the drawer a rewrite summons for one passage (the room steps aside there, as the window does today); the server's checks; print, Word and PDF copies.
+**Two dresses for the strip**, chosen by the width it is drawn at (one builder): narrow — head, the five figures two to a row (the fifth across), the contract's life, and Key terms · Obligations · What Jambo read folded to one row each; wide (640 px and up) — exactly as on the Board.
 
-## 4. The three sittings
+## 3. Needs the owner's yes
 
-| Idea | What it is | When it wins | What it costs |
-|---|---|---|---|
-| **The SAP way** (recommended) | A column docked on the right, under the bar, the width of Home's panel (380 px). The page makes room for it. It is Home's panel, travelling. | Nothing ever covered; one panel pattern in the whole app; no dragging. On the 1536 laptop and the iPad every list keeps its side panel. | On the 1440 laptop the Approvals and Obligations lists fold their side panel while the room is open and the row carries the buttons (photographed, usable). A page with a paper on it cannot make room, so the room steps aside there. The biggest of the three builds: the shell learns to make room. |
-| **Window** | Today's moving window, grown up: where you left it, the size you chose, over the page. Nothing underneath moves. | You like to put it where you want. The smallest build: the window, its drag and its memory of the spot exist. | It covers part of the page until moved. The strip and the contract card need a one-column dress at the window's width. Dragging is awkward on the iPad. |
-| **Desk** | A large sheet over the page: the chat on the left, the Board's cards on the right at full Board width, the page dimmed beneath. | Research: the strip, the brief and the charts read exactly as on the Board, beside the chat. No narrow dress needed. | You cannot read the page while it is up; it does not follow you page to page in the usual sense. The largest surface to keep tidy at 1536 × 730. |
+On 11 Oct the owner ruled the window can never be bigger than the expanded drawer (clamp(430px, 72vw, 940px), so about 940 wide on all three screens). The desk's largest size here is the whole page under the bar (1344 wide at 1440). If the old limit stays, the desk still works at 940 wide and the strip keeps its narrow dress.
 
-**Recommendation: The SAP way.** It is what business software generally does with an assistant: one column that follows you and folds to an icon in the bar. It is also the panel Home already has, so the app ends up with one panel, not a panel and a window. Nothing is ever covered. The one cost worth naming is the 1440 laptop folding a list's side panel while the room is open, and the photograph shows the list still works. If the drag the owner asked for on 11 Oct matters more, Window is the same room with the smallest build.
+## 4. What the card does (the room itself)
 
-**The one-column dress** (The SAP way and Window): at the room's width the strip draws its head, its five figures two to a row and the contract's life; Key terms, Obligations and What Jambo read fold to one row each and open in place. On the Board and in the Desk the strip is drawn whole.
+1. **One Jambo, one memory.** The card and Home's panel become one conversation.
+2. **It thinks the way the Board thinks.** Jambo's words → the Board's free reader → the model, with the page sent along. Cheaper and faster than today's window; each answer says "Free" or what it cost.
+3. **The cards are the Board's own** (Needs you, the contract's strip, charts, lists, answer packs), drawn by the Board's builders with a second host. Keep puts one on the Board; Open opens the paper on Home.
+4. **What you can do there:** "needs me"; "bring up MK-B2" (the strip and its ⋯: Where we are, History, Details); "Read the brief" (one paid call, said before the press, kept); "Analyze"; numbers and charts; a narrowed list that opens the Contracts place; "sign", "share", "redline", "fill in" open their faces on Home; "/"; both languages.
+5. **Typing never acts.** A card waits for the press.
+6. **The phone keeps its own chat** below 768 px.
 
-## 5. The build, step by step (each ships whole)
+## 5. What does not change
 
-1. **One memory, one way of asking.** The window asks the way Home's panel asks, in the same order; the two conversations become one. *Done when a question typed in the window gets the answer the panel would give, and the panel shows what the window said.*
-2. **The Board's cards in the room.** The Board's builders get a second host; the room's width gets the one-column dress; the Board's presses work in the room. *Done when "needs me" and "bring up MK-B2" draw the Board's cards in the room, every door works, and Keep lands the card on the Board.*
-3. **Follow and fold.** The bar's face is the one door off Home: open, fold, the dot; the room folds into Home's panel and comes back; a refresh keeps it. *Done when the room survives every page change, folds to the face, comes back where it was, and is the panel on Home.*
-4. **The sitting the owner picked.** *Done when photographed on all three screens (1440 × 780, 1536 × 730, iPad 1366 × 950) with nothing overlapping.*
-5. **Polish.** The Swedish words; the brain brought up to date; the tests (the window's own checks become the room's; a new room check covers one memory, the cards, fold and follow; the door census presses the room's doors).
+The Board, Home's panel and its faces; the counterparty's page; the clause editor's own Jambo and the drawer a rewrite opens for one passage (the card steps aside there, as today); the server's checks; print, Word and PDF copies.
 
-## 6. The checks that changed something
+## 6. The build, step by step (each ships whole)
 
-- **The standard answer**: one assistant column that follows you and folds to an icon in the bar. The SAP way follows it; Window and Desk depart for the reasons in the table.
-- **The cheapest channel**: no new band anywhere; answers are cards that wait, their cost said under them.
-- **The contract's pixels**: zero on Home (the room folds into the panel); the docked column never narrows a page with a paper on it. Lists narrow, as photographed.
+1. **One memory, one way of asking.** *Done when a question typed in the card gets the answer the panel would give, and the panel shows what the card said.*
+2. **The Board's cards in the card**, two dresses, the Board's presses working there. *Done when "needs me" and "bring up MK-B2" draw the Board's cards, every door works, and Keep lands the card on the Board.*
+3. **The desk.** Today's move, resize, expand and put-back stay; under the bar; the desk from 820 wide; the largest size with the owner's yes. *Done when photographed on all three screens (1440 × 780, 1536 × 730, iPad 1366 × 950) at smallest, compact and largest, nothing overlapping.*
+4. **Follow and fold.** *Done when the card survives every page change, folds to the face, comes back where it was, and is the panel on Home.*
+5. **Polish.** Swedish words; the brain (`BRAIN_PARTS`, lanes, stages); tests (jambo-pill-and-window's window checks become the card's; a new check for one memory, the cards, the desk, fold and follow; the door census presses the card's doors).
+
+## 7. The checks that changed something
+
+- **The standard answer**: one assistant that follows you and folds to an icon in the bar — followed. It floats instead of docking, by the owner's ask, so the page never shrinks and the cards get room on demand.
+- **The cheapest channel**: no new band; answers are cards that wait, their cost said.
+- **The contract's pixels**: zero on Home; elsewhere nothing moves under it.
 - **Copilot's place**: free readers first; cost before a press; a cut-short answer says so.
-- **The one door**: the face in the bar is the one door off Home, Home's panel the one on Home, and they open one conversation. Today's window is a second door onto a second Jambo; this closes it.
+- **The one door**: the face in the bar off Home, Home's panel on Home, one conversation. Today's window is a second door onto a second Jambo; this closes it.
 - **Where you end up**: fold lands on the face; a card's door lands on Home; "‹ Back" stays.
-- **Flow rules**: one fact one home (one conversation); one way to do each thing (one way of asking); Copilot prepares, a person decides; every act leaves a record the server writes (the room sends through the same card and route as the panel); every change updates the brain.
+- **Flow rules**: one conversation stored once; one way of asking; Copilot prepares, a person decides; the card sends through the panel's card and route; the brain updated in the same change.
 
-## 7. Decided without asking — say if wrong
+## 8. Decided without asking — say if wrong
 
-- Today's window's "Plain | Legal" switch and its four stock questions step aside for the Board's chips; the switch moves under ⋯.
-- In The SAP way the column is the width of Home's panel and takes the same drag handle to widen it; there is no free drag.
-- The window's drag and resize code stays for Window and is not drawn in the other two.
-- Delete conversation moves under ⋯, as on Home's panel.
+- The card stays under the bar and off the rail (today's window can cover the bar's right end).
+- Nothing behind it is dimmed, even at its largest.
+- It becomes the desk at 820 px wide.
+- One fold button; today's separate × goes.
+- ⋯ holds Delete conversation and the Plain or Legal switch; the Board's chips replace today's four stock questions.
+- Size and spot remembered per person, as today.
+- On the iPad its corner handle is larger.
+
+## 9. The first round (kept for the record)
+
+The first proposal offered three sittings: The SAP way (a docked column the page made room for; recommended), Window (today's window grown up) and Desk (a large sheet, chat left, cards right, page dimmed). The owner combined them: the Desk's two halves and the SAP way's look and follow-and-fold, in a card that moves and expands like today's window, never docked.
