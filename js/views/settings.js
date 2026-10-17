@@ -499,7 +499,14 @@ function stDrawerPaint(d){
      the position in it are both readings this page already has. Additive: the
      person drawer and the account drawer pass no place and are byte-identical. */
   const place=d.place;
-  const crumb=place
+  /* A PAGE INSIDE A PANEL SAYS WHICH PANEL IT CAME FROM, and the name is the
+     way back (a stream's page → ‹ Contract folders, 17 Oct 2026) */
+  const crumb=d.back
+    ? `<div class="st-dcrumb">
+         <button type="button" class="st-dback" data-st-panel="${PB_ATTR(d.back.key)}">‹ ${esc(d.back.label)}</button>
+         ${d.back.group?`<span class="st-dcrumb-sep" aria-hidden="true">·</span><span class="st-dcrumb-g">${esc(d.back.group)}</span>`:''}
+       </div>`
+    : place
     ? `<div class="st-dcrumb">
          <span class="st-dcrumb-g">${esc(i18t('st_grp_'+place.group))}</span>
          <span class="st-dcrumb-sep" aria-hidden="true">›</span>
@@ -508,6 +515,7 @@ function stDrawerPaint(d){
   document.getElementById('st-dhead').innerHTML=
     `${crumb}${head}<button class="st-dx" data-st-dclose title="${esc(i18t('st_close_drawer'))}" aria-label="${esc(i18t('st_close_drawer'))}">${icon('x')}</button>`;
   const ttl=el.querySelector('.rvd-title'); if(ttl && !ttl.id) ttl.id='st-drawer-title';
+  if(ttl && d.badge) ttl.insertAdjacentHTML('beforeend', d.badge);
   document.getElementById('st-dbody').innerHTML=d.body||'';
   /* THE REFUSAL SITS IN THE FOOT, NOT AT THE TOP OF THE BODY, and that is a
      measured decision rather than a layout preference. Put above the fields it
@@ -583,6 +591,8 @@ function stDrawerOpen(key){
   if(key==='gates'){ _stOpen=key; stDrawerPaint(stGatesDrawer()); return; }
   if(String(key||'').indexOf('ask:')===0 && typeof stAskDrawer==='function'){ const d=stAskDrawer(String(key).slice(4)); if(d){ _stOpen=key; stDrawerPaint(d); } return; }
   if(String(key||'').indexOf('me:')===0 && typeof stMeDrawer==='function'){ const d=stMeDrawer(String(key).slice(3)); if(d){ _stOpen=key; stDrawerPaint(d); } return; }
+  /* A STREAM'S OWN PAGE (17 Oct 2026): who may open it */
+  if(String(key||'').indexOf('stream:')===0){ const d=stStreamDrawer(String(key).slice(7)); if(d){ _stOpen=key; stDrawerPaint(d); } return; }
   const p=SET_PANELS[key]; if(!p) return;
   _stOpen=key;
   stDrawerPaint({ title:p.title(), sub:p.sub?p.sub():'', foot:p.foot||'done', glyph:p.glyph,
@@ -1140,7 +1150,7 @@ function stSheetCells(u){
   const gate=!!((typeof reviewGateCfg==='function')?reviewGateCfg():{}).on;
   const checked=viewer?'—':(gate&&(typeof reviewChecked==='function')&&reviewChecked(u))?esc(i18t('st_sh_yes')):'—';
   const acc=stAccessOf(u);
-  return { cap, yes, checked, streams:esc(acc.all?i18t('st_sh_all'):String(acc.n||0)),
+  return { cap, yes, checked, streams:esc((acc.all&&!acc.but)?i18t('st_sh_all'):String(acc.n||0)),
     refile:stReFileOn(u)?esc(i18t('st_sh_yes')):'—', paper:stNewPaperOn(u)?esc(i18t('st_sh_yes')):'—', hold:stHoldOn(u)?esc(i18t('st_sh_yes')):'—',
     gap:(!admin&&!viewer&&stCapOn()&&!(()=>{ try{ return signCapOf(u).answered; }catch(_){ return true; } })())||(r.on&&!r.backupId) };
 }
@@ -2127,11 +2137,20 @@ function stSideFitWire(){
    banner names the people who are short — an amber count with nobody's name on
    it is a number you cannot act on. */
 function stAccessOf(u){
-  if(u.role==='admin') return { all:true, get text(){ return i18t('set_all_streams_short'); } };
+  /* PRIVATE FOLDERS COUNT AS THEY ARE (17 Oct 2026): "All" stays the answer
+     only while no private folder shuts this person out; otherwise the line
+     says how many of the folders they can open, read through canAccessFolder
+     — an admin included. `all` keeps meaning "nobody narrowed their list". */
+  const total=Object.keys(FOLDERS).length;
+  const open=()=>(typeof canAccessFolder==='function')?Object.keys(FOLDERS).filter(fid=>canAccessFolder(fid,u)).length:total;
+  const allOf=()=>{ const n=open();
+    return n<total ? { all:true, but:true, n, get text(){ return i18t('set_streams_of',{n,total}); } }
+      : { all:true, get text(){ return i18t('set_all_streams_short'); } }; };
+  if(u.role==='admin') return allOf();
   const v=(((state.settings||{}).folderAccess)||{})[u.id];
-  if(v==null||v==='*'||(Array.isArray(v)&&!v.length))
-    return { all:true, get text(){ return i18t('set_all_streams_short'); } };
-  return { all:false, n:v.length, get text(){ return i18t('set_streams_of',{n:v.length,total:Object.keys(FOLDERS).length}); } };
+  if(v==null||v==='*'||(Array.isArray(v)&&!v.length)) return allOf();
+  const n=open();
+  return { all:false, n, get text(){ return i18t('set_streams_of',{n,total}); } };
 }
 /* Value visibility is a server-side right (users.can_view_values); admins
    always have it, and a member created before the permission existed defaults
@@ -2180,7 +2199,7 @@ function stPersonSays(u){
   /* 1 — which streams */
   let acc = null; try{ acc = stAccessOf(u); }catch(_){ acc = null; }
   const all = Object.keys((typeof FOLDERS!=='undefined' && FOLDERS) || {}).length;
-  if(acc && acc.all) out.push(say('st_sum_streams_all'));
+  if(acc && acc.all && !acc.but) out.push(say('st_sum_streams_all'));
   else {
     const n = (acc && acc.n) || 0;
     out.push(n ? say('st_sum_streams_some', { n, all }) : say('st_sum_streams_none'));
@@ -2595,6 +2614,9 @@ function settingsPersonDrawer(idOrNew){
   const acc = isNew ? null : stAccessOf(u);
   const set = new Set(!isNew && !acc.all ? (((state.settings||{}).folderAccess)||{})[u.id] : []);
   const folders=Object.values(FOLDERS);
+  /* A PRIVATE FOLDER IS NOT TICKED HERE (17 Oct 2026): who may open it is set
+     on its own page, and this drawer says whether it names them (stPsPersonHtml) */
+  const tickFolders=folders.filter(f=>!(typeof streamIsPrivate==='function'&&streamIsPrivate(f.id)));
   /* SAFEST FIRST, AND THAT IS A SAFETY PROPERTY RATHER THAN A PREFERENCE. The
      old form opened on "Editor — edit & sign", so an admin who filled in a name
      and an email and never looked at the dropdown had handed over the right to
@@ -2709,19 +2731,20 @@ function settingsPersonDrawer(idOrNew){
 
     ${sec(3,i18t('st_sec_folders'),
       (u.role==='admin'&&!isNew)
-      ? `<p class="st-note" id="tm-access-note">${esc(i18t('st_folders_all_locked'))}</p>`
+      ? `<p class="st-note" id="tm-access-note">${esc(i18t(tickFolders.length<folders.length?'st_folders_all_locked_but':'st_folders_all_locked'))}</p>${stPsPersonHtml(u)}`
       : `<select id="tm-access" style="${window.RV_FLD||ST_INPUT}">
           ${isNew?`<option value="">${esc(i18t('set_choose_access'))}</option>`:''}
           <option value="*"${(!isNew&&acc.all)?' selected':''}>${esc(i18t('st_folders_all'))}</option>
           <option value="pick"${(!isNew&&!acc.all)?' selected':''}>${esc(i18t('st_folders_pick'))}</option>
         </select>
         <div id="tm-access-list" style="display:${(!isNew&&!acc.all)?'grid':'none'};grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin-top:var(--s-2)">
-          ${folders.map(f=>`<label style="display:flex;align-items:center;gap:7px;padding:6px var(--s-2);border:1px solid var(--color-divider);border-radius:var(--radius);cursor:pointer;font-size:var(--t-meta)">
+          ${tickFolders.map(f=>`<label style="display:flex;align-items:center;gap:7px;padding:6px var(--s-2);border:1px solid var(--color-divider);border-radius:var(--radius);cursor:pointer;font-size:var(--t-meta)">
             <input type="checkbox" data-tm-folder="${PB_ATTR(f.id)}"${set.has(f.id)?' checked':''} style="width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
             <span style="width:8px;height:8px;border-radius:var(--radius);background:${f.color};flex:none"></span>
             <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}</span></label>`).join('')}
         </div>
         <div id="tm-access-note" style="display:none" class="st-note">${esc(i18t('set_access_admin_note'))}</div>
+        ${isNew?'':stPsPersonHtml(u)}
         ${stSignFolderHtml(u, isNew, folders)}`)}
 
     ${stSigningSectionHtml(u, isNew)}
@@ -2828,6 +2851,10 @@ async function settingsSavePerson(existing){
     if(choice==='pick'){
       folderIds=[...document.querySelectorAll('[data-tm-folder]')].filter(cb=>cb.checked).map(cb=>cb.getAttribute('data-tm-folder'));
       if(!folderIds.length){ stDrawerRefuse(i18t('set_pick_one_stream')); return; }
+      /* A PRIVATE FOLDER IS NOT ON THE TICKS, so a save here must not drop it
+         from their list: if it is ever opened again, they keep what they had */
+      const had=(!isNew&&existing)?((((state.settings||{}).folderAccess)||{})[existing.id]):null;
+      if(Array.isArray(had)) had.forEach(fid=>{ if(typeof streamIsPrivate==='function'&&streamIsPrivate(fid)&&!folderIds.includes(fid)) folderIds.push(fid); });
     }
   } else folderAnswered=(role==='admin');
 
@@ -3895,7 +3922,7 @@ const SET_PANELS={
         </div>
         <p class="st-note" style="margin-top:10px">${esc(i18t('st_p_cats_body'))}</p>
       </div>`; },
-    wire(){ stPaintFolders(); stPaintCategories(); },
+    wire(){ stPaintFolders(); stPaintCategories(); stPsLoad(); },
   },
 
   /* ════ WHO MUST SAY YES BEFORE SIGNING — ONE RULES PAGE (4 Oct 2026, the
@@ -4794,16 +4821,28 @@ function stPaintFolders(){
      question. folderSeerCount (js/core.js) is built on canAccessFolder, the
      map's own named predicate. */
   const seers=fid=>folderSeerCount(fid).n;
+  /* ---- A LOCK AND "N NAMED" ON A PRIVATE STREAM'S ROW, AND ITS PAGE ONE
+     PRESS AWAY (owner picked "Stream page — the SAP way", 17 Oct 2026) ----
+     The name and its facts sit on two lines, so a long built-in name no longer
+     folds into a stack beside the counts; the row's last word is the door to
+     the stream's own page. The count is the SERVER's for a stream that does
+     not name this admin: their own book holds none of its contracts. */
   host.innerHTML=Object.values(FOLDERS).map(f=>{
-    const n=(state.contracts||[]).filter(c=>c.folder===f.id).length;
-    return `<div class="st-frow" data-st-folder="${PB_ATTR(f.id)}">
+    const n=stPsCount(f.id);
+    const p=stPsSaved(f.id), priv=!!(p&&p.on);
+    const who=priv?`${STPS_LOCK}${esc(i18tn('st_ps_named',stPsIds(p).length,{n:stPsIds(p).length}))}`
+      :(f.local?esc(i18t('st_p_folders_thisbrowser')):i18t('st_p_folders_seen',{n:seers(f.id),total:users.length}));
+    return `<div class="st-frow st-frow2" data-st-folder="${PB_ATTR(f.id)}">
       <span class="st-fdot" style="background:${f.color}"></span>
-      ${f.custom?`<input class="st-fname" data-st-frename="${PB_ATTR(f.id)}" value="${PB_ATTR(f.name)}"/>`
-                :`<span class="st-fname" data-st-fixed="1">${esc(f.name)}</span>`}
-      <span class="st-fmeta">${i18tn('st_p_folders_count',n,{n})} · ${f.local?esc(i18t('st_p_folders_thisbrowser')):i18t('st_p_folders_seen',{n:seers(f.id),total:users.length})}</span>
+      <span class="st-fstack">
+        ${f.custom?`<input class="st-fname" data-st-frename="${PB_ATTR(f.id)}" value="${PB_ATTR(f.name)}"/>`
+                  :`<span class="st-fname" data-st-fixed="1">${esc(f.name)}</span>`}
+        <span class="st-fmeta${priv?' is-private':''}">${i18tn('st_p_folders_count',n,{n})} · ${who}${f.custom?'':` · <span class="st-fbuilt" title="${esc(i18t('st_p_folders_builtin'))}">${esc(i18t('st_ps_builtin'))}</span>`}</span>
+      </span>
       ${f.custom&&f.local?`<button class="st-fshare" data-st-fshare="${PB_ATTR(f.id)}" title="${esc(i18t('st_p_folders_share_t'))}">${esc(i18t('st_p_folders_share'))}</button>`:''}
-      ${f.custom?`<button class="st-fdel" data-st-fdel="${PB_ATTR(f.id)}" title="${esc(i18t('act_remove'))}" aria-label="${esc(i18t('act_remove'))}">${icon('x','w-3.5 h-3.5')}</button>`
-                :`<span class="st-fmeta" style="opacity:.7">${esc(i18t('st_p_folders_builtin'))}</span>`}
+      ${f.custom&&!f.local?`<button class="st-fopen" data-st-panel="stream:${PB_ATTR(f.id)}" title="${esc(i18t('st_ps_door_t',{name:f.name}))}">${esc(i18t('st_ps_door'))} ›</button>`:''}
+      ${!f.custom?`<button class="st-fopen" data-st-panel="stream:${PB_ATTR(f.id)}" title="${esc(i18t('st_ps_door_t',{name:f.name}))}">${esc(i18t('st_ps_door'))} ›</button>`:''}
+      ${f.custom?`<button class="st-fdel" data-st-fdel="${PB_ATTR(f.id)}" title="${esc(i18t('act_remove'))}" aria-label="${esc(i18t('act_remove'))}">${icon('x','w-3.5 h-3.5')}</button>`:''}
     </div>`;
   }).join('');
   host.querySelectorAll('[data-st-frename]').forEach(inp=>inp.addEventListener('change',()=>{
@@ -4814,7 +4853,7 @@ function stPaintFolders(){
   }));
   host.querySelectorAll('[data-st-fdel]').forEach(b=>b.addEventListener('click',async()=>{
     const id=b.getAttribute('data-st-fdel'), f=FOLDERS[id]; if(!f) return;
-    const n=(state.contracts||[]).filter(c=>c.folder===id).length;
+    const n=stPsCount(id);   // the server's count where this admin cannot see them all
     if(n){ stDrawerRefuse(i18t('st_p_folders_holds',{n:i18tn('st_p_folders_count',n,{n})})); return; }
     if(!await confirmDialog({ title:`${i18t('act_remove')} — ${f.name}`, message:i18t('st_p_folders_body'), confirmLabel:i18t('act_remove'), danger:true })) return;
     if(typeof removeCustomFolder==='function') removeCustomFolder(id);
@@ -4839,6 +4878,210 @@ function stPaintFolders(){
     stDrawerClearRefusal(); toast(i18t('st_p_folders_added',{name:(f&&f.name)||name})); stPaintFolders();
   };
   document.getElementById('st-folder-add')?.addEventListener('click',add);
+}
+
+/* ============================================================
+   A STREAM'S OWN PAGE — WHO MAY OPEN IT
+   ============================================================
+   (Owner picked "Stream page — the SAP way", 17 Oct 2026: piece 2 of the
+   sensitive-contracts plan.) SAP's object page inside the drawer: the stream's
+   three facts first — how many contracts, who may open them, whether its money
+   is counted — then its tabs. ACCESS decides who may open it: everyone given
+   the folder, as every folder works today, or ONLY THE PEOPLE NAMED HERE, with
+   the named list under the choice. PEOPLE answers the auditor's "who can see
+   it today", read through canAccessFolder (the one reading), each row a door to
+   that person's drawer. Opens — who looked — is the next design round; the
+   server keeps that record from the day a stream turns private.
+
+   NOTHING IS WRITTEN UNTIL SAVE: the choice and the list are a draft
+   (_stPs.draft), and Save sends both to PUT /api/private-streams/:fid, the one
+   writer. A private stream with nobody named is refused here and by the
+   server. An admin is NOT named by default (decision 1): "Add yourself" is
+   offered, and the server records it as its own act and tells the people
+   already named. */
+const STPS_LOCK='<svg class="st-ps-lock" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+let _stPs={ counts:null, draft:null };
+const stPsSaved=fid=>{ const m=(typeof privateStreamsMap==='function')?privateStreamsMap():(((state.settings||{}).privateStreams)||{}); return m[String(fid||'')]||null; };
+const stPsIds=p=>(typeof privateStreamIds==='function')?privateStreamIds(p):((p&&p.people)||[]).map(x=>String(x.id));
+/* the server's count where it has been read, else this book's: an admin a
+   stream does not name holds none of its contracts */
+function stPsCount(fid){
+  const own=(state.contracts||[]).filter(c=>c.folder===fid).length;
+  const srv=_stPs.counts?Number(_stPs.counts[fid]):NaN;
+  return Number.isFinite(srv)?Math.max(srv,own):own;
+}
+/* Read when the folder list opens; repaints whatever is showing when it lands. */
+async function stPsLoad(){
+  if(!(typeof API_MODE==='function'&&API_MODE()) || !stIsAdmin()) return;
+  try{
+    const r=await api('private-streams');
+    _stPs.counts=(r&&r.counts)||{};
+    if(r&&r.streams){ state.settings=state.settings||{}; state.settings.privateStreams=r.streams; }
+  }catch(_){ return; }
+  if(document.getElementById('st-folder-list')) stPaintFolders();
+  if(document.getElementById('st-ps')) stPsPaint();
+}
+function stStreamDrawer(fid){
+  const f=FOLDERS[fid]; if(!f) return null;
+  const p=stPsSaved(fid);
+  const was=_stPs.draft;
+  _stPs.draft={ fid, on:!!(p&&p.on), ids:stPsIds(p), tab:(was&&was.fid===fid&&was.tab)||'access', adding:false };
+  return { title:f.name, sub:f.desc||'', foot:'save',
+    glyph:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${f.color||'currentColor'}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>`,
+    badge:(p&&p.on)?`<span class="st-ps-badge">${STPS_LOCK}${esc(i18t('st_ps_private'))}</span>`:'',
+    back:{ key:'folders', label:i18t('st_p_folders'), group:i18t('st_grp_standards') },
+    body:`<div id="st-ps" data-st-ps="${PB_ATTR(fid)}">${stPsBodyHtml()}</div>`,
+    wire(){ stPsWire(); if(!_stPs.counts) stPsLoad(); },
+    save(){ stPsSave(); } };
+}
+function stPsPaint(){ const host=document.getElementById('st-ps'); if(host) host.innerHTML=stPsBodyHtml(); }
+function stPsBodyHtml(){
+  const d=_stPs.draft; if(!d) return '';
+  const users=getUsers()||[];
+  const p=stPsSaved(d.fid), priv=!!(p&&p.on), named=stPsIds(p).length;
+  const can=users.filter(u=>canAccessFolder(d.fid,u));
+  /* THE FACTS ARE THE STREAM AS IT STANDS, not the draft: the head says what
+     is true until Save. */
+  const facts=`<div class="st-ps-facts">
+    <div><span>${esc(i18t('st_ps_f_contracts'))}</span><b>${stPsCount(d.fid)}</b></div>
+    <div><span>${esc(i18t('st_ps_f_who'))}</span><b>${esc(priv?i18tn('st_ps_who_named',named,{n:named}):i18t('st_ps_who_open',{n:can.length,total:users.length}))}</b></div>
+    <div><span>${esc(i18t('st_ps_f_money'))}</span><b>${esc(i18t(priv?'st_ps_money_out':'st_ps_money_in'))}</b></div>
+  </div>`;
+  const tab=(k,label,count)=>`<button type="button" role="tab" class="st-ps-tab${d.tab===k?' is-on':''}" data-st-ps-tab="${k}" aria-selected="${d.tab===k}">${esc(label)}${count!=null?` <span class="st-ps-q">${count}</span>`:''}</button>`;
+  return `${facts}<div class="st-ps-tabs" role="tablist">${tab('access',i18t('st_ps_tab_access'))}${tab('people',i18t('st_ps_tab_people'),can.length)}</div>
+    <div class="st-ps-pane">${d.tab==='people'?stPsPeopleHtml(users):stPsAccessHtml(users)}</div>`;
+}
+function stPsAccessHtml(users){
+  const d=_stPs.draft, me=(typeof currentUser==='function'&&currentUser())||{};
+  const byId=new Map(users.map(u=>[String(u.id),u]));
+  const p=stPsSaved(d.fid), was=new Map(((p&&Array.isArray(p.people))?p.people:[]).map(x=>[String(x.id),x]));
+  const radio=(on,label,sub)=>`<label class="st-ps-radio${d.on===on?' is-on':''}"><input type="radio" name="st-ps-on" value="${on?'1':'0'}"${d.on===on?' checked':''}/>
+    <span><span class="st-role-name">${esc(label)}</span><span class="st-note">${esc(sub)}</span></span></label>`;
+  let html=`<p class="st-ps-l">${esc(i18t('st_ps_q'))}</p>
+    ${radio(false,i18t('st_ps_everyone'),i18t('st_ps_everyone_sub'))}
+    ${radio(true,i18t('st_ps_named_only'),i18t('st_ps_named_only_sub'))}`;
+  if(!d.on) return html;
+  const isMe=id=>String(id)===String(me.id);
+  const you=`<span class="st-ps-you">${esc(i18t('st_ps_you'))}</span>`;
+  const whenOf=x=>{
+    if(!x) return i18t('st_ps_unsaved');
+    const day=stDay(x.at);
+    if(x.self) return i18t('st_ps_self',{date:day});
+    return isMe(x.by&&x.by.id)?i18t('st_ps_by_you',{date:day}):i18t('st_ps_by',{who:(x.by&&x.by.name)||'',date:day});
+  };
+  const roleOf=u=>`${esc(roleName(u.role)||'')}${u.title?` · ${esc(u.title)}`:''}`;
+  const row=id=>{ const u=byId.get(id)||{ id, name:(was.get(id)||{}).name||id, role:'' };
+    return `<tr><td class="st-ps-who">${esc(stNameOf(u))}${isMe(id)?` ${you}`:''}</td><td>${roleOf(u)}</td>
+      <td class="st-ps-when">${esc(whenOf(was.get(id)))}</td>
+      <td class="st-ps-act"><button type="button" class="st-ps-link" data-st-ps-rm="${PB_ATTR(id)}">${esc(i18t('act_remove'))}</button></td></tr>`; };
+  const meNamed=d.ids.includes(String(me.id));
+  const meRow=(!meNamed&&me.id)?`<tr class="st-ps-ghost"><td class="st-ps-who">${esc(stNameOf(me))} ${you}</td><td>${roleOf(me)}</td>
+      <td class="st-ps-when">${esc(i18t('st_ps_not_named'))}</td>
+      <td class="st-ps-act"><button type="button" class="st-ps-link" data-st-ps-add="${PB_ATTR(me.id)}">${esc(i18t('st_ps_add_me'))}</button></td></tr>`:'';
+  const rest=users.filter(u=>!d.ids.includes(String(u.id))&&!isMe(u.id));
+  html+=`<p class="st-ps-l">${esc(i18t('st_ps_list'))}</p>
+    <table class="st-ps-tb"><thead><tr><th>${esc(i18t('st_sh_person'))}</th><th>${esc(i18t('st_ps_th_role'))}</th><th>${esc(i18t('st_ps_th_named'))}</th><th><span class="sr-only">${esc(i18t('st_ps_th_act'))}</span></th></tr></thead>
+    <tbody>${d.ids.map(row).join('')}${meRow}</tbody></table>
+    ${d.ids.length?'':`<p class="st-ps-none">${esc(i18t('st_ps_none_yet'))}</p>`}
+    <div class="st-ps-addbar"><button type="button" class="ui-btn ui-btn-sm" data-st-ps-adding aria-expanded="${!!d.adding}"${rest.length?'':` disabled title="${esc(i18t('st_ps_none_left'))}"`}>${esc(i18t('st_ps_add'))}</button></div>
+    ${d.adding&&rest.length?`<div class="st-ps-pick">${rest.map(u=>`<div class="st-ps-pickrow"><span class="st-ps-who">${esc(stNameOf(u))} <span class="st-ps-role">· ${roleOf(u)}</span></span>
+      <button type="button" class="st-ps-link" data-st-ps-add="${PB_ATTR(u.id)}">${esc(i18t('st_ps_add_btn'))}</button></div>`).join('')}</div>`:''}
+    ${(!meNamed&&me.id)?`<p class="st-note st-ps-menote">${esc(i18t('st_ps_me_note'))}</p>`:''}`;
+  return html;
+}
+/* WHO CAN OPEN ITS CONTRACTS TODAY — the saved rule, not the draft, read for
+   every person through the one predicate the server mirrors. */
+function stPsPeopleHtml(users){
+  const d=_stPs.draft, p=stPsSaved(d.fid), priv=!!(p&&p.on);
+  const rows=users.map(u=>({ u, ok:canAccessFolder(d.fid,u) })).sort((a,b)=>(b.ok-a.ok)||stNameOf(a.u).localeCompare(stNameOf(b.u)));
+  const why=ok=>i18t(priv?(ok?'st_ps_yes_named':'st_ps_no_named'):(ok?'st_ps_yes_given':'st_ps_no_given'));
+  return `<p class="st-ps-l">${esc(i18t('st_ps_people_q'))}</p>
+    <table class="st-ps-tb"><thead><tr><th>${esc(i18t('st_sh_person'))}</th><th>${esc(i18t('st_ps_th_role'))}</th><th>${esc(i18t('st_ps_th_can'))}</th><th><span class="sr-only">${esc(i18t('st_ps_th_act'))}</span></th></tr></thead>
+    <tbody>${rows.map(({u,ok})=>`<tr${ok?'':' class="st-ps-ghost"'}><td class="st-ps-who">${esc(stNameOf(u))}</td><td>${esc(roleName(u.role)||'')}</td>
+      <td>${esc(why(ok))}</td><td class="st-ps-act"><button type="button" class="st-ps-link" data-st-panel="person:${PB_ATTR(u.id)}">${esc(i18t('st_ps_person'))} ›</button></td></tr>`).join('')}</tbody></table>`;
+}
+/* ONE LISTENER PER OPEN, on the page's own host (rebuilt with the drawer, so
+   it cannot stack); a person's door rides the drawer's own data-st-panel. */
+function stPsWire(){
+  const host=document.getElementById('st-ps'); if(!host || host.dataset.wired) return;
+  host.dataset.wired='1';
+  host.addEventListener('change',e=>{
+    const r=e.target&&e.target.closest&&e.target.closest('input[name="st-ps-on"]'); if(!r||!_stPs.draft) return;
+    _stPs.draft.on=(r.value==='1'); stDrawerClearRefusal(); stPsPaint();
+  });
+  host.addEventListener('click',e=>{
+    const t=e.target, d=_stPs.draft; if(!t||!t.closest||!d) return;
+    const tab=t.closest('[data-st-ps-tab]');
+    if(tab){ d.tab=tab.getAttribute('data-st-ps-tab'); stPsPaint(); return; }
+    const rm=t.closest('[data-st-ps-rm]');
+    if(rm){ d.ids=d.ids.filter(x=>x!==rm.getAttribute('data-st-ps-rm')); stPsPaint(); return; }
+    const add=t.closest('[data-st-ps-add]');
+    if(add){ const id=add.getAttribute('data-st-ps-add'); if(!d.ids.includes(id)) d.ids.push(id);
+      stDrawerClearRefusal(); stPsPaint(); return; }
+    /* PRESS IT AGAIN AND IT CLOSES */
+    if(t.closest('[data-st-ps-adding]')){ d.adding=!d.adding; stPsPaint(); return; }
+  });
+}
+async function stPsSave(){
+  const d=_stPs.draft; if(!d) return;
+  const f=FOLDERS[d.fid]||{ name:d.fid };
+  if(d.on && !d.ids.length){ stDrawerRefuse(i18t('st_ps_need_someone')); return; }
+  const btn=document.getElementById('st-dsave'); if(btn) btn.disabled=true;
+  let stream=null;
+  try{
+    if(typeof API_MODE==='function'&&API_MODE())
+      stream=(await api('private-streams/'+encodeURIComponent(d.fid),'PUT',{ on:d.on, ids:d.ids })).stream;
+    else stream=stPsLocalStream(d);
+  }catch(e){ if(btn) btn.disabled=false; stDrawerRefuse(i18t('st_ps_save_failed',{err:e.message})); return; }
+  state.settings=state.settings||{};
+  state.settings.privateStreams={ ...(state.settings.privateStreams||{}), [d.fid]:stream };
+  if(!(typeof API_MODE==='function'&&API_MODE()) && typeof saveSettings==='function') await saveSettings();
+  toast(d.on?i18t('st_ps_saved_private',{name:f.name,named:i18tn('st_ps_who_named',d.ids.length,{n:d.ids.length})})
+    :i18t('st_ps_saved_open',{name:f.name}),'ok');
+  /* who may open what just moved — this admin's own book may have gained or
+     lost the stream's contracts */
+  await stPsReloadBook();
+  stDrawerOpen('folders');
+}
+/* No server: the same record, kept in this browser like every other setting. */
+function stPsLocalStream(d){
+  const me=(typeof currentUser==='function'&&currentUser())||{};
+  const prev=stPsSaved(d.fid)||{ people:[] };
+  const had=new Map((prev.people||[]).map(x=>[String(x.id),x]));
+  const by={ id:String(me.id||''), name:me.name||'' }, at=new Date().toISOString();
+  const users=new Map((getUsers()||[]).map(u=>[String(u.id),u]));
+  return { on:d.on, people:d.ids.map(id=>had.get(id)||{ id, name:(users.get(id)||{}).name||'', by, at, self:id===by.id }),
+    log:prev.log||[], seen:prev.seen||{} };
+}
+/* The list again, keeping every record already in hand: a contract the admin
+   still sees is not reloaded, one they gained arrives light, one they lost
+   leaves. */
+async function stPsReloadBook(){
+  if(!(typeof API_MODE==='function'&&API_MODE())) return;
+  try{
+    const have=new Map((state.contracts||[]).map(c=>[c.id,c]));
+    const next=[]; let offset=0, total=Infinity; const limit=200;
+    while(offset<total && next.length<5000){
+      const pg=await api('contracts?limit='+limit+'&offset='+offset);
+      total=pg.total;
+      (pg.rows||[]).forEach(r=>{ const old=have.get(r.id); if(old){ next.push(old); return; }
+        const c=(typeof migrateContract==='function')?migrateContract(r):r; c._light=true; c._loaded=false; c._v=r._v; next.push(c); });
+      if(!(pg.rows||[]).length) break;
+      offset+=pg.rows.length;
+    }
+    state.contracts=next;
+    if(typeof familyIndexDirty==='function') familyIndexDirty();
+  }catch(_){}
+}
+/* The person's drawer says which private streams name them, each a door back
+   to its page — their access to a private stream is set THERE, nowhere else. */
+function stPsPersonHtml(u){
+  if(!u||!u.id) return '';
+  const rows=Object.values(FOLDERS).filter(f=>{ const p=stPsSaved(f.id); return p&&p.on; });
+  if(!rows.length) return '';
+  return `<div class="st-ps-mine">${rows.map(f=>{ const on=stPsIds(stPsSaved(f.id)).includes(String(u.id));
+    return `<div class="st-ps-mrow">${STPS_LOCK}<span>${esc(i18t(on?'st_ps_named_on':'st_ps_not_on',{name:f.name}))}</span>
+      <button type="button" class="st-ps-link" data-st-panel="stream:${PB_ATTR(f.id)}">${esc(i18t('st_ps_door'))} ›</button></div>`; }).join('')}</div>`;
 }
 
 /* ---- THE CATEGORY LIST, BUILT LIKE THE STREAM LIST ABOVE IT ----

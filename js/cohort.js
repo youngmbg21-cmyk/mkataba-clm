@@ -369,7 +369,7 @@ function cohortPackData(list){
          — a real number, not a failure — so the test is `!missing`. Counting
          only the converted ones read every home-currency agreement as zero,
          which is how this line first printed "0 KES" over sixty-two million. */
-      list.forEach(c=>{ const h = fxHome(c); if(h && !h.missing) sum += (h.v||0); });
+      list.forEach(c=>{ const h = (typeof fxCounted==='function') ? fxCounted(c) : fxHome(c); if(h && !h.missing) sum += (h.v||0); });
       total = sum;
       code = (typeof fxHomeCode==='function' ? fxHomeCode() : '') || '';
       /* fxMissing answers a MAP of currency code -> how many, not a count. */

@@ -419,7 +419,8 @@ test('f299 (11c) one loader behind both readings, and the rule is written beside
   assert.ok(bodyOf(SERVER, 'copilotList').includes('copilotRows(ctx)'), 'list_portfolio reads the rows through copilotRows');
   assert.ok(bodyOf(SERVER, 'portfolioFigures').includes('copilotRows(ctx)'), 'and so do the graph\'s figures');
   assert.ok(bodyOf(SERVER, 'portfolioFigures').includes("!== 'Declined'") && bodyOf(SERVER, 'portfolioFigures').includes('!c.archived'), 'live = not declined, not archived — the Home tile\'s rule');
-  assert.ok(bodyOf(SERVER, 'portfolioFigures').includes('fxHome(') && bodyOf(SERVER, 'portfolioFigures').includes('fxMissing('), 'the one conversion, and what is left out is counted');
+  /* fxCounted is the one conversion for a figure that ADDS (fxHome, less a private folder — 17 Oct 2026) */
+  assert.ok(/fx(Home|Counted)\(/.test(bodyOf(SERVER, 'portfolioFigures')) && bodyOf(SERVER, 'portfolioFigures').includes('fxMissing('), 'the one conversion, and what is left out is counted');
   assert.ok(/quote HaTi's own figures above; never add up the cards/.test(SERVER), 'the rule sits in the prompt\'s rules');
   /* PHASE 5 of the one-figure order: the map command and the chat brain read ONE function. */
   assert.ok(bodyOf(SERVER, 'buildCopilotSystem').includes('portfolioSays(portfolioFigures(scopeCtx))'), 'the chat brain');

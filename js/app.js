@@ -2216,6 +2216,9 @@ const ALERT_KINDS = [
      cleared once read). Both open Settings, where the ask lives. */
   { k:'settings-ask',    tone:'amber', ic:'&#9881;' },
   { k:'settings-answer', tone:'green', ic:'&#9881;' },
+  /* SOMEBODY NAMED THEMSELF ON A PRIVATE FOLDER THAT NAMES YOU (17 Oct 2026,
+     decision 1 of the sensitive-contracts plan): told once, until pressed. */
+  { k:'stream-self',     tone:'amber', ic:'&#128274;' },
   /* Waiting on somebody else, and last of all a date that moved by itself —
      neither is a thing this reader can clear this minute. */
   { k:'review-out',  tone:'gray',  ic:'&#8987;'  },
@@ -2237,6 +2240,15 @@ const alertRank = k => { const i=ALERT_KINDS.findIndex(x=>x.k===k);
   return i<0 ? ALERT_KINDS.length : i; };
 const ALERT_TONE = { amber:'var(--st-amber-dot)', green:'var(--st-green-dot)',
   ruby:'var(--st-ruby-dot)', gray:'var(--st-gray-dot)' };
+/* The private folder's line, pressed: the server marks it read for this
+   person, the bell drops it, and the reader lands on that folder's contracts —
+   the ones the person who named themself can now open too. */
+function streamNewsSeen(fid){
+  const me=(typeof currentUser==='function')?currentUser():null;
+  if(me&&Array.isArray(me.streamNews)) me.streamNews=me.streamNews.filter(n=>n.fid!==fid);
+  if(typeof API_MODE==='function'&&API_MODE()) api('private-streams/'+encodeURIComponent(fid)+'/seen','POST',{}).catch(()=>{});
+  if(typeof regGoFiltered==='function') regGoFiltered({ type:fid });
+}
 /* Every alert is a DOOR — it goes to the thing that needs doing, not to a list.
    `go` is what the row's press runs. */
 function buildAlerts(){
@@ -2743,6 +2755,13 @@ function buildAlerts(){
     if(typeof window.stAsksAnswered==='function') stAsksAnswered().forEach(a=>
       push('settings-answer',null,i18t(a.status==='done'?'al_settings_done':'al_settings_no',{what:a.what}),
         ()=>{ if(window.stAskSeen) stAskSeen(a.id); setView('team'); }, { sub:a.note||'' }));
+  }catch(e){}
+  try{
+    const meS=(typeof currentUser==='function')?currentUser():null;
+    (meS&&Array.isArray(meS.streamNews)?meS.streamNews:[]).forEach(n=>{
+      const f=(typeof FOLDERS==='object'&&FOLDERS&&FOLDERS[n.fid])||{ name:n.fid };
+      push('stream-self',null,i18t('al_stream_self',{who:(n.who&&n.who.name)||'',name:f.name}),()=>streamNewsSeen(n.fid));
+    });
   }catch(e){}
   try{
     if(typeof window.mineNotesDue==='function') mineNotesDue().forEach(n=>{

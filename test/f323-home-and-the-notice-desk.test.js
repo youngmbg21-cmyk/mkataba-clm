@@ -243,7 +243,7 @@ describe('f323 (5) money owed is borrowed, converted, and permission-aware', () 
     assert.match(t, /obligationIsTheirs/);
     assert.match(t, /obState/);
     assert.match(t, /obligationAmount/);
-    assert.match(t, /fxHome/);
+    assert.match(t, /fx(Home|Counted)/);   // fxCounted: fxHome, less a private folder (17 Oct 2026)
   });
   test('5b an unconvertible amount is LEFT OUT and counted, never summed at par', () => {
     const t = OWED;

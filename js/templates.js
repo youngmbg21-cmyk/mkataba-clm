@@ -159,7 +159,8 @@ function folderColor(idOrContract){
 function visibleFolders(){
   const acc=(typeof userFolderAccess==='function')?userFolderAccess():'*';
   const all=Object.values(FOLDERS);
-  return acc==='*' ? all : all.filter(f=>acc.includes(f.id));
+  /* three shapes since private streams: '*', a list, or every stream but */
+  return acc==='*' ? all : all.filter(f=>(typeof folderAccessAllows==='function')?folderAccessAllows(acc,f.id):(Array.isArray(acc)&&acc.includes(f.id)));
 }
 function folderLegendHtml(opts={}){
   const short = f => (typeof STREAM_SHORT!=='undefined' && STREAM_SHORT[f.id]) || f.name;

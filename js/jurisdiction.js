@@ -418,7 +418,27 @@ function fxPickerCodes(opts = {}){
     if (!seen.has(code)){ seen.add(code); out.push(code); }
   return out;
 }
-const fxHomeValue = c => fxHome(c).v;
+/* ---- A PRIVATE STREAM'S MONEY IS LEFT OUT OF EVERY TOTAL, FOR EVERYONE ----
+   (owner picked "Stream page — the SAP way", 17 Oct 2026.) Outside its named
+   people its contracts never arrive at all — the server's wall. For the named
+   people this is the rule that keeps a salary out of the company's figures:
+   a contract in a private stream still states its own amount on its own page
+   (fxHome, fmtMoneyOf, every gate that measures it), but nothing that ADDS
+   reads it. Both hosts run this, like the rates: the browser reads the
+   stream list off its settings, the server injects the stored one. */
+let FX_PRIVATE_READ = () => { try { return (state && state.settings && state.settings.privateStreams) || {}; } catch (_) { return {}; } };
+const fxSetPrivateReader = fn => { if (typeof fn === 'function') FX_PRIVATE_READ = fn; };
+const fxPrivate = c => {
+  const f = String((c && c.folder) || ''); if (!f) return false;
+  let p = null; try { p = (FX_PRIVATE_READ() || {})[f]; } catch (_) { p = null; }
+  return !!(p && p.on);
+};
+/* THE ONE READING FOR A FIGURE THAT ADDS: fxHome, unless the contract is in a
+   private stream — then nothing, and not "missing" either (no rate is owed). */
+const fxCounted = c => fxPrivate(c)
+  ? { v: 0, code: contractCurrency(c), converted: false, missing: false, private: true }
+  : fxHome(c);
+const fxHomeValue = c => fxCounted(c).v;
 /* What the converted figures LEFT OUT — {code: count} over valued, live,
    unarchived contracts. */
 function fxMissing(list) {
@@ -427,6 +447,7 @@ function fxMissing(list) {
   const out = {};
   for (const c of cs) {
     if (!c || c.status === 'Declined' || c.archived || !(Number(c.value || 0) > 0)) continue;
+    if (fxPrivate(c)) continue;
     const h = fxHome(c);
     if (h.missing) out[h.code] = (out[h.code] || 0) + 1;
   }
@@ -455,6 +476,7 @@ const JX_API = { JURISDICTIONS, JX_DEFAULT, JX_LS, JX_OTHER_SEATS,
   fmtMoney, fmtMoneyShort, fmtMoneyShortIn,
   fxSetRatesReader, fxSetHomeReader, fxHomeCode, contractCurrency, fxIsForeign,
   fxRateFor, fxHome, fxHomeValue, fxMissing, fxMissingLine, fmtMoneyOf, fmtMoneyShortOf,
+  fxSetPrivateReader, fxPrivate, fxCounted,
   FX_CURRENCIES, fxCurrencyName, fxPickerCodes };
 /* Two hosts, one table. The browser gets globals like every other module here;
    server/server.js is a plain Node process with no window, and requires it. */

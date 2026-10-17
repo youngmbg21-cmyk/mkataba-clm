@@ -733,7 +733,7 @@ function hmOwed(cs, money){
       /* THE OBLIGATION'S MONEY IS THE CONTRACT'S OWN CURRENCY (J-5.2), so it
          converts through the contract exactly as the contract's value does —
          and an unconvertible one is LEFT OUT and counted, never summed at par. */
-      const h=(typeof fxHome==='function')?fxHome({ value:amt, metadata:c.metadata }):{v:amt,missing:false};
+      const h=(typeof fxCounted==='function')?fxCounted({ value:amt, metadata:c.metadata, folder:c.folder }):{v:amt,missing:false};
       if(h&&h.missing) left++; else sum+=(h&&h.v)||0;
     }
   }
@@ -871,7 +871,7 @@ function hmMapData(sl){
     if(i<0 || i>=HM_MAP_MONTHS) continue;
     const pile=w.decided?'made':(w.inWindow?'due':'later');
     let v=0;
-    if(money){ const h=(typeof fxHome==='function')?fxHome(c):{ v:Number(c.value||0), missing:false };
+    if(money){ const h=(typeof fxCounted==='function')?fxCounted(c):{ v:Number(c.value||0), missing:false };
       v=(h&&!h.missing)?(h.v||0):0; }
     const M=months[i];
     M[pile].n++; M[pile].v+=v; M[pile].ids.push(c.id);
