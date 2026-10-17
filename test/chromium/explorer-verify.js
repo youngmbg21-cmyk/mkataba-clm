@@ -76,13 +76,14 @@ const check = (name, pass, detail) => {
     check('1a Insights draws no Explorer tab any more', !tabs.some(t => t.k === 'map'), JSON.stringify(tabs.map(t => t.t)));
     await page.evaluate(() => intelGoTab('map'));
     await page.waitForTimeout(1600);
-    const face = await page.evaluate(() => ({ view: state.view, t: ((document.querySelector('[data-hb-face="explorer"]') || {}).textContent || '').trim(),
-      on: (document.querySelector('[data-hb-face="explorer"]') || { getAttribute: () => '' }).getAttribute('aria-selected') }));
-    check('1b CONTROL — the old key still lands on Explorer, on Home, and the switch reads "Explorer"',
+    /* the switch is the desk's tab since 17 Oct 2026 (Round 2): Explorer's tab, in front */
+    const face = await page.evaluate(() => { const on = document.querySelector('#dk-home .dk-tab.is-on [data-dk-go]');
+      return { view: state.view, t: on ? on.textContent.trim() : '', on: String(!!on && on.getAttribute('data-dk-go') === 'home:explorer') }; });
+    check('1b CONTROL — the old key still lands on Explorer, on Home, and its tab reads "Explorer"',
       face.view === 'dashboard' && face.t === 'Explorer' && face.on === 'true', JSON.stringify(face));
     check('1c and "Contract Graph" is nowhere on the page', !(await page.evaluate(() => /Contract Graph/i.test(document.getElementById('content').textContent))));
-    const toBoard = () => page.click('[data-hb-face="board"]');
-    const toMap = () => page.click('[data-hb-face="explorer"]');
+    const toBoard = () => page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'board');
+    const toMap = () => page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'explorer');
 
     /* ================= 2. THE LEGEND IS CLOSED WHEN YOU ARRIVE ============= */
     await toBoard(); await page.waitForTimeout(700);

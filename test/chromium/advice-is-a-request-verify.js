@@ -113,7 +113,7 @@ const READ = () => {
       { door: s.doorN, intake: s.intakeN, advice: s.adviceN });
 
     /* ---- 2 · REQUESTS OPENS ON CONTRACTS ---- */
-    await page.click('#side-nav .nav-item[data-view="intake"]');
+    /* the left menu's place is the desk tabs' since 17 Oct 2026 (Round 2): the page is asked of Jambo's box */ await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'requests');
     await until(page, () => state.view === 'intake' && !!document.querySelector('#content .rq-kinds'));
     s = await page.evaluate(READ);
     /* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2 — the drawing is

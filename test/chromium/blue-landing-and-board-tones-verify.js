@@ -60,7 +60,10 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
     await page.fill('#li-email', 'admin@example.co.ke');
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
-    await waitFor(page, () => !!document.getElementById('hb-page'), null, 15000);
+    /* signing in lands on the Counter since 17 Oct 2026 (Round 1): Home is opened */
+    await waitFor(page, () => typeof hbOpenHome === 'function' && !document.body.classList.contains('pre-auth'), null, 15000);
+    await page.evaluate(() => hbOpenHome());
+    await waitFor(page, () => !!document.getElementById('hb-head'), null, 15000);
     await page.waitForTimeout(1500);
     const shell = await page.evaluate(() => {
       const n = document.getElementById('brand-navy'), g = document.getElementById('brand-green');
@@ -97,20 +100,20 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
 
     /* ============ N-1 Present survives a change of side ============ */
     const pres = () => page.evaluate(() => ({ fs: !!document.fullscreenElement,
-      cls: !!document.querySelector('.hb-presenting'), face: (document.querySelector('[data-hb-face][aria-selected="true"]') || {}).dataset?.hbFace || '' }));
+      cls: !!document.querySelector('.hb-presenting'), face: (typeof hbFace === 'function') ? hbFace() : '' }));   /* Home's face in front (a desk tab since 17 Oct 2026) */
     if (await page.$('#hb-present')){
       await page.click('#hb-present');
       await page.waitForTimeout(800);
       const on = await pres();
       check('N-1a Present fills the screen', on.fs && on.cls, JSON.stringify(on));
       const other = on.face === 'explorer' ? 'board' : 'explorer';
-      await page.click(`[data-hb-face="${other}"]`);
-      await waitFor(page, f => { const b = document.querySelector('[data-hb-face][aria-selected="true"]'); return b && b.dataset.hbFace === f; }, other);
+      await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, other);
+      await waitFor(page, f => hbFace() === f, other);
       await page.waitForTimeout(800);
       const moved = await pres();
       check('N-1b after moving to the other side it is STILL presenting', moved.fs && moved.cls && moved.face === other, JSON.stringify(moved));
       await page.screenshot({ path: path.join(OUT, '02-present-other-side.png') });
-      await page.click(`[data-hb-face="${on.face}"]`);
+      await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, on.face);
       await page.waitForTimeout(800);
       const back = await pres();
       check('N-1c and coming back keeps presenting too', back.fs && back.cls, JSON.stringify(back));

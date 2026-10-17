@@ -16,8 +16,10 @@
          toast on Home.
      D14 picking a market on the setup form sends nothing before sign-in.
      D9  picking Sweden there leaves the screen in English.
-     D12 a brand-new Home offers one door, "Finish setting up — N left", in the
-         board's empty slot, and it lands on the go-live checklist.
+     D12 a brand-new workspace offers one door, "Finish setting up — N left",
+         where signing in lands — the Counter's admin row since 17 Oct 2026
+         (the owner's "Front desk") — and still in the Board's empty slot; it
+         lands on the go-live checklist.
 
    Run: node test/chromium/settings-overnight-fixes-verify.js */
 const fs = require('node:fs');
@@ -177,7 +179,7 @@ const openSettings = async (page, tab) => {
     check('a short password is refused with a red toast (the setup for D13)', await p2.evaluate(() => !!document.querySelector('#toast-root [data-toast-kind="err"]')));
     await p2.fill('#su-pass', 'a-good-password-1');
     await p2.click('#su-go');
-    await until(p2, () => !document.getElementById('su-org') && typeof window.state === 'object' && state.view === 'dashboard', null, 15000);
+    await until(p2, () => !document.getElementById('su-org') && typeof window.state === 'object' && state.view === 'counter', null, 15000);
     await p2.waitForTimeout(800);
     check('D13 Home after a good try carries no red toast from the failed one',
       await p2.evaluate(() => !document.querySelector('#toast-root [data-toast-kind="err"]')));
@@ -185,17 +187,23 @@ const openSettings = async (page, tab) => {
       await p2.evaluate(() => langId() === 'en' && jxId() === 'sweden'), await p2.evaluate(() => langId() + ' · ' + jxId()));
     check('D14 still no 401 on the market anywhere in the setup', early401.length === 0);
 
-    const door = await until(p2, () => !!document.querySelector('[data-hb-setup]'), null, 10000);
-    const doorText = door ? await p2.textContent('[data-hb-setup]') : '';
-    check('D12 a brand-new Home offers "Finish setting up — N left"', door && /Finish setting up — \d+ left/.test(doorText), doorText);
-    const inSlot = await p2.evaluate(() => !!document.querySelector('.hb-empty [data-hb-setup]'));
-    check('D12 and it sits inside the board\'s own empty slot (no band)', inSlot);
+    const door = await until(p2, () => { const b = document.querySelector('[data-cn-setup]'); const r = b && b.closest('.cn-r');
+      return !!(r && /Finish setting up — \d+ left/.test(r.textContent)); }, null, 10000);
+    const doorText = door ? await p2.evaluate(() => document.querySelector('[data-cn-setup]').closest('.cn-r').querySelector('.cn-w').textContent.trim()) : '';
+    check('D12 a brand-new workspace lands on the Counter, whose admin row is "Finish setting up — N left"', !!door, doorText);
+    const inSlot = await p2.evaluate(() => !!document.querySelector('#cn-needs [data-cn-setup]') && document.querySelectorAll('#cn-needs .cn-co').length === 1);
+    check('D12 and it is the one admin row inside Needs you (no band)', inSlot);
     const n = Number((/(\d+)/.exec(doorText) || [])[1] || -1);
-    await p2.click('[data-hb-setup]');
+    await p2.click('[data-cn-setup]');
     const landed = await until(p2, () => document.getElementById('st-drawer')?.classList.contains('open') && !!document.getElementById('st-golive'), null, 8000);
     const left = await p2.evaluate(() => stGoLive().filter(r => !r.ok).length);
     check('D12 the door lands on the go-live checklist', landed);
     check('D12 the number on the door matches the list behind it', left === n, `door ${n} · list ${left}`);
+    await p2.keyboard.press('Escape').catch(() => {});
+    await p2.evaluate(() => { const s = hbS(); s.face = 'board'; hbSave(); hbOpenHome(); });
+    const homeText = await until(p2, () => !!document.querySelector('.hb-empty [data-hb-setup]'), null, 8000)
+      ? await p2.evaluate(() => document.querySelector('.hb-empty [data-hb-setup]').textContent.trim()) : '';
+    check('D12 Home\'s empty board still offers the same door, the same number', !!homeText && Number((/(\d+)/.exec(homeText) || [])[1]) === left, String(homeText));
     await ctx2.close();
 
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');

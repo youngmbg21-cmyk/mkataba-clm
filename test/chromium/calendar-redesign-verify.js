@@ -157,7 +157,8 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
        Calendar tab is lit in it, and the calendar's ⋯ stands at the end of
        its first bar. */
     const homeHead = await page.evaluate(() => ({ calHead: !!document.querySelector('#hb-cal .cal-head'),
-      tab: (document.querySelector('[data-hb-face][aria-selected="true"]') || {}).getAttribute?.('data-hb-face') || null,
+      /* the lit tab is the desk's since 17 Oct 2026 (Round 2): Home's face in front */
+      tab: (typeof deskKeyNow === 'function' && deskKeyNow() === 'home:calendar') ? 'calendar' : null,
       more: !!document.querySelector('#hb-cal .cal-bar1 #cal-more') }));
     check('1 on Home the calendar draws no second head; Home\'s Calendar tab is the lit one',
       !homeHead.calHead && homeHead.tab === 'calendar', JSON.stringify(homeHead));

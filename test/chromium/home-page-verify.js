@@ -71,6 +71,8 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     page.on('pageerror', e => errors.push(String(e)));
     page.on('console', m => { if (m.type() === 'error' && !/favicon|404/i.test(m.text())) errors.push(m.text().slice(0, 140)); });
     await signIn(page);
+    /* signing in lands on the Counter since 17 Oct 2026 (Round 1): Home is opened */
+    await page.evaluate(() => hbOpenHome()); await page.waitForTimeout(1500);
     await page.screenshot({ path: path.join(OUT, '01-home.png') });
 
     /* ================= 1. THE SHELL SWAPPED ITS GROUNDS ================== */
@@ -114,8 +116,9 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
        and the width is asserted as the RULE rather than as one number. */
     check('1 the column is WHITE, whichever width it rests at',
       shell.nav.bg === 'rgb(255, 255, 255)', shell.nav.bg);
-    check('1 and below the float line it rests as the rail, not an open column',
-      shell.nav.w === 64, `${shell.nav.w}px at 1440`);
+    /* RE-POINTED 17 Oct 2026 (the owner picked "Desk tabs", Round 2): on a computer the column is not drawn */
+    check('1 and on a computer the column is not drawn at all (the desk tabs take its place)',
+      shell.nav.w === 0, `${shell.nav.w}px at 1440`);
     /* THE NUMBER ITSELF IS NOT PINNED HERE — it has moved three times in two
        days on real reports from real laptops, and a literal would cost a test
        edit every time. WHAT IS PINNED IS THE DRIFT: the line lives in TWO

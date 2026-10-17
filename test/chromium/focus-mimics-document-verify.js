@@ -137,7 +137,8 @@ const SHOT = (rowSel) => {
     const rest = await drive(page, SHOT, '#view-redline .rl-tabrow', {});
     check('1a CONTROL — the dark bar is drawn', !!rest.bar && rest.bar.h > 0,
       rest.bar ? `${rest.bar.h}px` : 'absent');
-    check('1b CONTROL — the side rail is drawn', !!rest.rail && rest.rail.w > 0,
+    /* RE-POINTED 17 Oct 2026 (the owner picked "Desk tabs", Round 2): on a computer the left menu is not drawn */
+    check('1b CONTROL — the left menu is not drawn on a computer', !!rest.rail && rest.rail.w === 0,
       rest.rail ? `${rest.rail.w}px wide` : 'absent');
     check('1c CONTROL — the head card is drawn', !!rest.head && rest.head.h > 0,
       rest.head ? `${rest.head.h}px` : 'absent');
@@ -167,7 +168,7 @@ const SHOT = (rowSel) => {
       !foc.err && foc.painted === true, foc.err || String(foc.painted));
     check('2d the dark bar stays', !foc.err && !!foc.bar && foc.bar.h > 0,
       foc.err || (foc.bar ? `${foc.bar.h}px` : 'absent'));
-    check('2e the side rail stays', !foc.err && !!foc.rail && foc.rail.w > 0,
+    check('2e and focus brings no menu back', !foc.err && !!foc.rail && foc.rail.w === 0,
       foc.err || (foc.rail ? `${foc.rail.w}px wide` : 'absent'));
     check('2f the way out is drawn', !foc.err && foc.exit === true,
       foc.err || String(foc.exit));
@@ -205,7 +206,7 @@ const SHOT = (rowSel) => {
       !foc.err && !!foc.row && !!rest.row && (foc.row.h - rest.row.h) === parseFloat(foc.padT || '0'),
       foc.err || (foc.row && rest.row ? `${rest.row.h} -> ${foc.row.h}, gap ${foc.padT}` : 'absent'));
     check('3e the row starts at the rail\'s edge, so the shell is intact',
-      standing && !!foc.rail && foc.rail.w > 0 && foc.row.left >= foc.rail.w,
+      standing && !!foc.rail && foc.row.left >= foc.rail.w,
       foc.err || (standing && foc.rail ? `row left ${foc.row.left} / rail ${foc.rail.w}`
         : 'the row or the rail is not standing'));
 

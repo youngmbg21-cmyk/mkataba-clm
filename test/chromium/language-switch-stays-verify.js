@@ -5,7 +5,9 @@
    moves into the side menu; coming back it was put after the logo, top left,
    for the rest of the sitting.
      1. on load at 1440 it stands where the bar's markup puts it
-     2. at 800 it is in the side menu
+     2. at 800 it stays in the bar, whole and on screen (re-pointed 17 Oct
+        2026: the owner picked "Desk tabs", so a computer draws no side menu
+        to move it into)
      3. back at 1440 it has the same neighbours as on load, not the logo
      4. pressing Svenska still switches the language
      5. no page errors
@@ -40,14 +42,18 @@ const tag = el => el ? (el.id ? '#' + el.id : (el.className && String(el.classNa
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.length > 2 && !!document.querySelector('#lang-switch button'), null, { timeout: 20000 });
+    /* signing in lands on the Counter since 17 Oct 2026: measure once it has landed, not while the sign-in screen still covers the bar */
+    await page.waitForFunction(() => !document.body.classList.contains('pre-auth') && state.view === 'counter', null, { timeout: 20000 }).catch(() => {});
     const where = () => page.evaluate(src => { const tag = eval(src); const s = document.getElementById('lang-switch');
       return { prev: tag(s.previousElementSibling), next: tag(s.nextElementSibling), inNav: !!s.closest('#side-nav'), x: Math.round(s.getBoundingClientRect().left) }; }, tag.toString());
     const w0 = await where();
     check('1. on load it stands in the bar, not after the logo', !w0.inNav && w0.prev !== '#brand-block', JSON.stringify(w0));
     await page.setViewportSize({ width: 800, height: 900 });
     await page.evaluate(() => setView('contracts'));
-    const w1 = await until(() => document.getElementById('lang-switch').closest('#side-nav') ? true : null);
-    check('2. at 800 it is in the side menu', !!w1);
+    const w1 = await until(() => { const s = document.getElementById('lang-switch'); const r = s.getBoundingClientRect();
+      const o = { inNav: !!s.closest('#side-nav'), shown: getComputedStyle(s).display !== 'none' && r.width > 0, inside: r.left >= 0 && r.right <= innerWidth };
+      return o.shown ? o : null; }) || { shown: false };
+    check('2. at 800 it stays in the bar, whole and on screen', !!w1 && !w1.inNav && w1.shown && w1.inside, JSON.stringify(w1));
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.evaluate(() => setView('dashboard'));
     await until(() => !document.getElementById('lang-switch').closest('#side-nav'));

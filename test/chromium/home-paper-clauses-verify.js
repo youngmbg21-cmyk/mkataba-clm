@@ -66,7 +66,7 @@ const until = async (page, fn, arg, ms = 8000) => page.waitForFunction(fn, arg, 
     await page.keyboard.press('Escape').catch(() => {});
     const en = await page.$('.lang-btn[data-lang="en"]'); if (en) await en.click();
     await page.evaluate(() => setView('dashboard'));
-    await until(page, () => typeof pdOpenOnHome === 'function' && !!document.querySelector('[data-hb-face="board"]'));
+    await until(page, () => typeof pdOpenOnHome === 'function' && !!document.getElementById('hb-head'));
 
     /* ===== 1. THE DOCUMENT TAB IS THE CLAUSE LIST ===== */
     await page.evaluate(() => pdOpenOnHome('MK-HP1', 'doc'));
@@ -148,7 +148,7 @@ const until = async (page, fn, arg, ms = 8000) => page.waitForFunction(fn, arg, 
        then add a door to the document tab on the far right", drawn as
        "→ Go to document"). Measured as painted boxes against the head. */
     await page.evaluate(() => setView('dashboard'));
-    await until(page, () => typeof pdOpenOnHome === 'function' && !!document.querySelector('[data-hb-face="board"]'));
+    await until(page, () => typeof pdOpenOnHome === 'function' && !!document.getElementById('hb-head'));
     await page.evaluate(() => pdOpenOnHome('MK-HP1', 'doc'));
     /* 8a/8b RE-POINTED 13 Oct 2026 (owner, Stakes as drawn: "This is how the
        panel should look like"): Home's head is Stakes' own — "The company

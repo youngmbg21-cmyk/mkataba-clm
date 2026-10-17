@@ -86,7 +86,7 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       setView('dashboard');
       pdOpenOnHome('MK-S1', 'doc');
     });
-    const faces = await page.evaluate(() => [...document.querySelectorAll('[data-hb-face]')].map(b => b.dataset.hbFace));
+    const faces = await page.evaluate(() => HB_FACES.slice());   /* Home's faces (desk tabs on a computer since 17 Oct 2026) */
     ok('0 Home has no Breakdown face', faces.length > 0 && !faces.includes('breakdown'), faces.join(','));
     const listed = await page.waitForSelector('#pd-thread .doc-th-row', { timeout: 10000 }).then(() => true, () => false);
     const read = await page.waitForSelector('#pd-thread .stk-line', { state: 'attached', timeout: 10000 }).then(() => true, () => false);

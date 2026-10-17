@@ -46,18 +46,19 @@ const ok = (name, good, detail) => {
     /* ---- 1. the door, above Home ---- */
     /* RE-POINTED 29 Sep 2026 (Young: "move the Brain tab in the nav panel to
        be the last tab below team and settings"). */
-    const doors = await page.evaluate(() => [...document.querySelectorAll('#side-nav .nav-item[data-view]')].map(b => b.getAttribute('data-view')));
-    ok('1a the Brain is the last door in the menu, directly under Settings & Rules',
-      doors[doors.length - 1] === 'brain' && doors[doors.length - 2] === 'team' && doors[0] === 'dashboard', doors.join(' · '));
-    const iconBox = await page.evaluate(() => { const u = document.querySelector('[data-view="brain"] use'); try { const b = u.getBBox(); return b.width * b.height; } catch (_) { return 0; } });
-    ok('1b its symbol paints (the sprite has it)', iconBox > 20, 'box ' + Math.round(iconBox));
-    ok('1c HaTi still opens on Home', await page.evaluate(() => state.view === 'dashboard'));
-    const door = await page.$('[data-view="brain"]');
-    if (door) await door.click();
+    /* RE-POINTED 17 Oct 2026 (the owner picked "Desk tabs", Round 2): the left
+       menu is not drawn on a computer; the Brain is a place Jambo opens, the
+       last in his "/" list's pages, and signing in lands on the Counter */
+    const way = await page.evaluate(() => ({ menu: getComputedStyle(document.getElementById('side-nav')).display, place: (caReadPlace('brain') || {}).place,
+      slash: caSlashRows('', { max: 99 }).map(r => r.k) }));
+    ok('1a the left menu is gone; the Brain is a place in Jambo\'s "/" list', way.menu === 'none' && way.place === 'brain' && way.slash.includes('brain'), JSON.stringify(way));
+    ok('1c HaTi opens on the Counter', await page.evaluate(() => state.view === 'counter'));
+    await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'brain');
     await page.waitForTimeout(2200);
     const onPage = await page.evaluate(() => state.view === 'brain' && !!document.getElementById('br-cv'));
     ok('1d pressing it opens the Brain page', onPage);
     ok('1e the shell names the page', onPage && await page.evaluate(() => (document.getElementById('shell-title') || {}).textContent || '').then(t => /Brain/.test(t)));
+    ok('1b it is the desk\'s tab in front, named for the page', onPage && await page.evaluate(() => /Brain/.test((document.querySelector('#dk-row .dk-tab.is-on') || {}).textContent || '')));
 
     if (onPage){
       /* ---- 2. the brain is painted ---- */
@@ -172,7 +173,7 @@ const ok = (name, good, detail) => {
       if (en) { await page.click('.lang-btn[data-lang="en"]'); await page.waitForTimeout(600); }
 
       /* ---- 10. leaving stops the loop ---- */
-      await page.click('[data-view="dashboard"]'); await page.waitForTimeout(500);
+      await page.evaluate(() => hbOpenHome()); await page.waitForTimeout(500);
       const stopped = await page.evaluate(() => state.view === 'dashboard' && !document.getElementById('br-cv'));
       ok('10a leaving the page takes the brain down', stopped);
     }

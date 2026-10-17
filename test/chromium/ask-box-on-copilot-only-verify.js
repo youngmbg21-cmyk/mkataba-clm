@@ -36,7 +36,7 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
        holds the contract and its tabs are up */
     /* Home has painted its first face and its panel before anything is opened */
     await page.waitForFunction(() => window.state && state.view === 'dashboard' && !!document.querySelector('#ig-dock [data-pd-tab="copilot"]')
-      && !!document.querySelector('.hb-figs, #hb-board, [data-hb-face]'), null, { timeout: 20000 }).catch(() => {});
+      && !!document.querySelector('.hb-figs, #hb-board, #hb-head'), null, { timeout: 20000 }).catch(() => {});
     for (let i = 0; i < 3; i++) {
       await page.evaluate(cid => pdOpenOnHome(cid, 'copilot'), id);
       const up = await page.waitForFunction(cid => !!(window.intel && intel.paper && intel.paper.id === cid

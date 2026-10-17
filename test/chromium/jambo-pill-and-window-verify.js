@@ -35,26 +35,23 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     const errs = []; page.on('pageerror', e => errs.push(e.message));
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
-    await until(page, () => document.querySelectorAll('[data-hb-face]').length > 0, null, 15000);
+    /* signing in lands on the Counter since 17 Oct 2026 (Round 1); Home is opened */
+    await until(page, () => typeof hbOpenHome === 'function' && !document.body.classList.contains('pre-auth'), null, 15000);
+    await page.evaluate(() => hbOpenHome());
+    await until(page, () => !!document.getElementById('hb-head'), null, 15000);
 
-    /* ---- 1 the sliding pill ---- */
-    const faces = () => page.evaluate(() => [...document.querySelectorAll('[data-hb-face]')].map(b => ({ f: b.dataset.hbFace, w: Math.round(b.getBoundingClientRect().width) })));
-    const en = await faces();
-    ok('1a the order is Board · Document · Calendar · Explorer (no Breakdown)', en.map(x => x.f).join(',') === 'board,paper,calendar,explorer', en.map(x => x.f).join(','));
-    ok('1b all four are one width', new Set(en.map(x => x.w)).size === 1, en.map(x => x.w).join(','));
-    const filled = await page.evaluate(() => getComputedStyle(document.querySelector('[data-hb-face][aria-selected="true"]')).backgroundColor);
-    ok('1c the chosen face is not a filled button (the pill marks it)', /rgba\(0, 0, 0, 0\)|transparent/.test(filled), filled);
-    await page.click('[data-hb-face="calendar"]');
-    const slid = await until(page, () => { const t = document.querySelector('#hb-head .hb-thumb'), b = document.querySelector('[data-hb-face="calendar"]');
-      return t && b && Math.abs(t.getBoundingClientRect().left - b.getBoundingClientRect().left) < 2; }, null, 3000);
-    ok('1d the pill slides under the pressed face', slid);
-    await page.screenshot({ path: path.join(OUT, '1-pill.png'), clip: { x: 0, y: 0, width: 1500, height: 130 } });
-    await page.evaluate(() => { if (typeof langSet === 'function') langSet('sv'); if (typeof applyLanguage === 'function') applyLanguage(); if (typeof setView === 'function') setView('dashboard'); });
-    await until(page, () => document.querySelectorAll('[data-hb-face]').length === 4, null, 5000);
-    const sv = await faces();
-    ok('1e Swedish: still one width, the same as English', new Set(sv.map(x => x.w)).size === 1 && Math.abs(sv[0].w - en[0].w) <= 1, sv.map(x => x.w).join(','));
+    /* ---- 1 the faces are desk tabs (RE-POINTED 17 Oct 2026: the owner picked "Desk
+       tabs", Round 2; the sliding pill is not drawn on a computer) ---- */
+    const head = await page.evaluate(() => ({ pill: !!document.querySelector('#hb-head .hb-faces'), tabs: !!document.querySelector('#hb-head #dk-home .dk-tabs'),
+      faces: HB_FACES.slice(), en: ['board', 'calendar', 'explorer'].map(f => deskTabLabel('home:' + f)) }));
+    ok('1a Home\'s head carries the desk tabs, no pill', !head.pill && head.tabs, JSON.stringify(head));
+    ok('1b the faces are Board · Document · Calendar · Explorer (no Breakdown)', head.faces.join(',') === 'board,paper,calendar,explorer', head.faces.join(','));
+    ok('1c each face\'s tab is named in English', head.en.join(',') === 'Board,Calendar,Explorer', head.en.join(','));
+    await page.evaluate(() => { if (typeof langSet === 'function') langSet('sv'); if (typeof applyLanguage === 'function') applyLanguage(); });
+    const sv = await page.evaluate(() => ['board', 'calendar', 'explorer'].map(f => deskTabLabel('home:' + f)));
+    ok('1e and in Swedish', sv.join(',') === 'Tavla,Kalender,Utforskaren', sv.join(','));
     await page.evaluate(() => { if (typeof langSet === 'function') langSet('en'); if (typeof applyLanguage === 'function') applyLanguage(); if (typeof setView === 'function') setView('dashboard'); });
-    await until(page, () => document.querySelectorAll('[data-hb-face]').length === 4, null, 5000);
+    await until(page, () => !!document.getElementById('hb-head'), null, 5000);
 
     /* ---- 2 the name ---- */
     const door = await page.evaluate(() => (document.getElementById('cmd-ai') || {}).title || '');
@@ -72,7 +69,7 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await page.unroute('**/api/ai/breakdown');
 
     /* ---- 4 on Home, the door goes to Home's own Jambo ---- */
-    await page.click('[data-hb-face="board"]');
+    await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'board');
     await page.click('#cmd-ai');
     const home = await page.evaluate(() => ({ open: document.getElementById('ai-panel').classList.contains('open'), focus: document.activeElement && document.activeElement.id }));
     ok('4a on Home the window does not appear; the cursor goes to Home\'s Jambo', !home.open && home.focus === 'igd-input', JSON.stringify(home));

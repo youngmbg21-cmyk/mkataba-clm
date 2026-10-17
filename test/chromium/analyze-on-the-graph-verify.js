@@ -309,7 +309,7 @@ const deliver = (id, answer, citations) => ({ content: [{ type: 'tool_use', id, 
       dropped.notice && !dropped.nothing && dropped.chips === 0 && dropped.pins === 1, JSON.stringify(dropped));
 
     /* ================= 4. EXPLORER | PAPER (Home's own sides) ============= */
-    await page.click('[data-hb-face="explorer"]');
+    await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'explorer');
     await page.waitForTimeout(800);
     const g = await page.evaluate(() => {
       const paper = document.getElementById('ig-paper'), svg = document.getElementById('ig-svg'), strip = document.getElementById('ig-strip');
@@ -322,7 +322,7 @@ const deliver = (id, answer, citations) => ({ content: [{ type: 'tool_use', id, 
     check('4b nothing is thrown away: the paper and its pins are kept for when you come back', g.kept, JSON.stringify(g));
     check('4c the box asks about the portfolio again', !/MK-A2/.test(g.placeholder), g.placeholder);
     await page.screenshot({ path: path.join(OUT, '04-graph.png') });
-    await page.click('[data-hb-face="paper"]');
+    await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'paper');
     await page.waitForTimeout(900);
     const back = await page.evaluate(() => ({ hidden: document.getElementById('ig-paper').hidden,
       marks: document.querySelectorAll('#ig-canvas span.ig-mark').length, pins: document.querySelectorAll('#ig-canvas button.ig-pin').length,

@@ -368,7 +368,7 @@ const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
               + 'cent per annum of the applicable Original Issue Price per share' }];
         persist(c); } });
     await page.waitForTimeout(1400);
-    await page.click('#side-nav [data-view="obligations"]');
+    await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'obligations');
     await page.waitForTimeout(900);
     await page.screenshot({ path: path.join(OUT, '05-worklist.png') });
     const wl = await page.evaluate(`(() => {
@@ -549,7 +549,7 @@ const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
       back.view === 'obligations' && back.id === want, JSON.stringify(back));
 
     /* ---- THE CHASE RECORDS THE FACT WHATEVER THE MAIL DOES ---- */
-    await page.click('#side-nav [data-view="obligations"]');
+    await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'obligations');
     await page.waitForTimeout(800);
     const chased = await page.evaluate(async () => {
       const b = document.querySelector('[data-obw-chase]');

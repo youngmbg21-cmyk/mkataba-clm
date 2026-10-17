@@ -43,7 +43,7 @@ const spotsOf = page => page.evaluate(() => {
     return r.width > 4 && r.height > 4 ? [Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2)] : null; };
   const fig = document.querySelector('#hb-board .hb-fig-main[data-hb-dig]') || document.querySelector('#hb-board [data-hb-dig]');
   const vis = sel => [...document.querySelectorAll(sel)].find(e => e.getClientRects().length && e.getBoundingClientRect().width > 4);
-  const head = vis('[data-hb-face]');
+  const head = vis('#dk-home .dk-tab');   /* the head's tab (the desk tabs since 17 Oct 2026) */
   const dock = vis('#igd-input') || vis('#hb-board .hb-ins button, #hb-board [data-hb-ins]') || vis('#hb-board button[data-hb-act]');
   const cv = document.getElementById('ig-cv');
   return { fig: mid(fig), head: mid(head), dock: mid(dock), map: mid(cv) };
@@ -82,7 +82,7 @@ const at = (page, xy) => page.evaluate(([x, y]) => {
       await page.click('#hb-present').catch(() => {});
       await until(page, () => document.getElementById('ig-page') && document.getElementById('ig-page').classList.contains('hb-presenting'));
       /* the page settles into the presentation before anything is aimed at */
-      await until(page, () => { const f = document.querySelector('[data-hb-face]'); return f && f.getBoundingClientRect().width > 0 ? true : null; });
+      await until(page, () => { const f = document.querySelector('#dk-home .dk-tab'); return f && f.getBoundingClientRect().width > 0 ? true : null; });
       await page.waitForTimeout(500);
       const S = await spotsOf(page);
       await page.click('[data-hb-tool="pointer"]').catch(() => {});

@@ -89,6 +89,8 @@ function book(){
        place; every door lands there in the view last chosen, so the List is
        chosen once and the rows are read off it */
     await page.evaluate(() => regPlaceSet({ show: 'list' }));
+    /* signing in lands on the Counter since 17 Oct 2026 (Round 1): the journey starts on the Board */
+    await page.evaluate(() => hbOpenHome()); await page.waitForTimeout(1200);
 
     /* What the page says is on screen, read the way the reader reads it. */
     const onContracts = () => page.evaluate(() => {
@@ -104,7 +106,7 @@ function book(){
         box: (document.getElementById('cmd-search') || {}).value };
     });
     const goHome = async () => {
-      await page.click('#side-nav [data-view="dashboard"]');
+      await page.evaluate(() => hbOpenHome());
       await page.waitForTimeout(1000);
     };
 
@@ -145,7 +147,7 @@ function book(){
     const noSeeAll = await page.evaluate(() => !document.querySelector('[data-hm-go="needsyou"]'));
     check('A2 Home has no See all onto a named set any more', noSeeAll);
     /* the rail's Contracts is the fold's opener since its item went (step 7) */
-    await page.click('#side-nav [data-nav-fold-open="register"]').catch(() => {});
+    /* the left menu's place is the desk tabs' since 17 Oct 2026 (Round 2): the page is asked of Jambo's box */ await page.evaluate(() => { setView('counter'); counterAsk('contracts'); }).catch(() => {});
     await page.waitForTimeout(900);
 
     /* ================ B. STALE PAGE FILTERS UNDER THE STAGE BAR ============ */

@@ -88,31 +88,20 @@ Object.assign(CONTRACTS[2], { signApprovals: [{ id: 'sa1', askedAt: ago(8), stat
     await page.click('#li-go');
     await page.waitForFunction(() => typeof setView === 'function' && state.contracts && state.contracts.length === 5, null, { timeout: 15000 });
 
-    console.log('\n1 · the menu');
-    await page.hover('[data-nav-fold-open="insights"]');
-    await page.waitForFunction(() => document.querySelector('.nav-fold[data-nav-fold="insights"]').classList.contains('is-hover'), null, { timeout: 3000 }).catch(() => {});
-    const fly = await page.evaluate(() => {
-      const f = document.querySelector('.nav-fold[data-nav-fold="insights"]'), sub = f && f.querySelector('.nav-sub');
-      const vis = el => !!el && el.getClientRects().length > 0 && getComputedStyle(el).display !== 'none' && !el.classList.contains('hidden');
-      return { open: vis(sub), items: sub ? [...sub.querySelectorAll('.nav-item')].filter(vis).map(x => x.getAttribute('data-view')) : [],
-        face: !!(sub && sub.querySelector('[data-view="jambo"] img.jambo-face[src^="data:image"]')), beside: sub ? Math.round(sub.getBoundingClientRect().left) > Math.round(f.getBoundingClientRect().right) - 2 : false };
-    });
-    ok('1a hovering Insights opens a fly-out beside the menu', fly.open && fly.beside, JSON.stringify(fly));
-    ok('1b …with two folders: Insights and Jambo\'s agents (his face on it)', fly.items.join(' ') === 'intel jambo' && fly.face, fly.items.join(' '));
-    await page.mouse.move(900, 500);
-    await page.click('[data-nav-fold-open="insights"]');
-    const opened = await page.evaluate(() => document.querySelector('.nav-fold[data-nav-fold="insights"]').classList.contains('is-open'));
-    await page.click('[data-nav-fold-open="insights"]');
-    const shut = await page.evaluate(() => !document.querySelector('.nav-fold[data-nav-fold="insights"]').classList.contains('is-open'));
-    ok('1c a press opens it and a second press closes it', opened && shut, `${opened} ${shut}`);
+    console.log('\n1 · the way in');
+    /* RE-POINTED 17 Oct 2026 (the owner picked "Desk tabs", Round 2): the left
+       menu and its Insights fly-out are not drawn on a computer; Jambo's agents
+       is a place Jambo opens, and his "/" lists it */
+    const fly = await page.evaluate(() => ({ menu: getComputedStyle(document.getElementById('side-nav')).display,
+      slash: caSlashRows('jambo', { max: 5 }).map(r => r.k) }));
+    ok('1a the left menu is gone; Jambo\'s agents is a place in his "/" list', fly.menu === 'none' && fly.slash.includes('house'), JSON.stringify(fly));
 
     console.log('\n2 · the page');
-    await page.click('[data-nav-fold-open="insights"]');
-    await page.click('.nav-item[data-view="jambo"]');
+    await page.evaluate(w => { setView('counter'); counterAsk(w); }, "jambo's agents");
     await page.waitForFunction(() => !!document.querySelector('#jh-cv') && document.querySelectorAll('[data-jh-agent]').length > 0, null, { timeout: 8000 }).catch(() => {});
     const pg = await page.evaluate(() => ({ view: state.view, cards: [...document.querySelectorAll('[data-jh-agent]')].map(x => x.getAttribute('data-jh-agent')),
       keys: AG_KEYS.slice(), h: document.getElementById('jh-cv').height, tabs: [...document.querySelectorAll('[data-jh-tab]')].map(x => x.getAttribute('data-jh-tab')),
-      current: document.querySelector('[data-nav-fold-open="insights"]').classList.contains('is-current') }));
+      current: deskKeyNow() === 'v:jambo' }));
     /* the agents' cards live on the panel's Points tab; the Work log is the first */
     const logFirst = await page.evaluate(() => { const lg = document.getElementById('jh-log'); const first = !!lg && !lg.hidden; document.querySelector('[data-jh-ptab="points"]').click(); return first; });
     ok('2a0 the panel opens on the Work log, the agents\' cards one tab away', logFirst);
@@ -137,7 +126,7 @@ Object.assign(CONTRACTS[2], { signApprovals: [{ id: 'sa1', askedAt: ago(8), stat
       const r = { id, outline: c.outlineStyle === 'none' || parseFloat(c.outlineWidth) === 0 ? '' : c.outlineStyle + ' ' + c.outlineWidth + ' ' + c.outlineColor, shadow: c.boxShadow }; e.blur(); return r; }));
     ok('2i an opened dropdown wears no dark outline (owner, 13 Oct 2026)', rings.every(r => !r.outline && r.shadow === 'none'), JSON.stringify(rings));
     ok('2h the house never scrolls inside itself', await page.evaluate(() => { const st = document.getElementById('jh-stage'); return !/(auto|scroll)/.test(getComputedStyle(st).overflowY) && st.scrollHeight <= st.clientHeight + 1; }));
-    ok('2d the opener wears "you are here" on the page', pg.current);
+    ok('2d it is the desk\'s tab in front', pg.current);
     const painted = await page.evaluate(() => { const cv = document.getElementById('jh-cv'), x = cv.getContext('2d'), d = x.getImageData(0, 0, cv.width, cv.height).data;
       let ink = 0; for (let i = 0; i < d.length; i += 4 * 97) if (d[i] < 200 || d[i + 1] < 200 || d[i + 2] < 200) ink++; return ink; });
     ok('2e the house is painted (not a blank canvas)', painted > 50, String(painted));

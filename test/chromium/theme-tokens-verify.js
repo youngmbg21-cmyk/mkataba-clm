@@ -29,6 +29,13 @@
    variables actually repaints the platform. A token nothing reads is not a
    token, and no census of the DEFAULT theme would ever notice.
 
+   RE-RECORDED 17 Oct 2026, OWNER-ASKED ("Yes, update the record"; then
+   "update the colour lists and merge when green"): Rounds 1 and 2 — the left
+   menu is not drawn on a computer, so its own three values (the rail's
+   ground and its two navy washes) left the screens that drew it; the lit
+   desk tab brings the accent's 100 rung at night (rgba(53, 96, 180, 0.16),
+   an existing token) to five dark screens. Audited as a set difference:
+   nothing new to the palette.
    RE-RECORDED 16 Oct 2026, OWNER-ASKED ("Yes, update the record"): the
    Contracts place's stage tabs became the Stage box, so the lit tab's tint
    (the accent at 12%) left the register screen, light and dark. Audited as a

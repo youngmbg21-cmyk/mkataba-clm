@@ -13981,6 +13981,77 @@
   #side-nav .nav-count[data-tone="teal"]{background:var(--color-accent-100);color:var(--accent-ink);}
   #side-nav .nav-count[data-tone="amber"]{background:var(--st-amber-bg);color:var(--st-amber-fg);padding:0 7px;}
   #app-shell.rail #side-nav .nav-item.active::before{left:-8px;}
+  /* ---- THE COUNTER AND THE DESK TABS (the owner picked "Front desk" and
+     "Desk tabs", 17 Oct 2026; js/views/counter.js) ----
+     The Counter: one column of white cards on the page ground, the box first.
+     The desk tabs: one row of small pills, "‹ The counter" first — drawn in
+     Home's head row (in the place of its greeting and faces, so the paper does
+     not move down) and in the shell's row above every other page. The Ha mark
+     in the bar is the way back to the Counter now the left menu is gone. */
+  .dk-mark{width:28px;height:28px;border-radius:7px;border:0;background:#fff;color:var(--nav-bg);display:grid;place-items:center;font-weight:700;font-size:12px;letter-spacing:-.02em;flex:none;cursor:pointer;padding:0;margin-right:4px}
+  html.dark .dk-mark{background:var(--accent-solid);color:#fff}  /* at night the rail mark's own colours: a white square is a patch on the dark bar */
+  .dk-mark[hidden]{display:none}
+  .dk-mark:focus-visible{outline:2px solid #fff;outline-offset:2px}
+  .dk-row{flex:none;background:var(--color-surface);padding:8px var(--s-4,16px) 0}
+  .dk-row[hidden]{display:none}
+  .dk-tabs{display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-width:0}
+  .dk-back{height:var(--ctl-h-sm);padding:0 8px 0 2px;border:0;background:none;color:var(--accent-ink);font-size:var(--t-label);font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
+  .dk-back:hover{text-decoration:underline}
+  .dk-tab{display:inline-flex;align-items:center;height:var(--ctl-h-sm);border:1px solid var(--color-divider);border-radius:11px;background:var(--color-surface);max-width:240px;min-width:0}
+  .dk-tab.is-on{background:var(--color-accent-100);border-color:var(--color-accent-100)}
+  .dk-go{border:0;background:none;height:20px;padding:0 4px 0 10px;font-size:var(--t-label);color:var(--color-text);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .dk-tab.is-on .dk-go{color:var(--accent-ink);font-weight:var(--w-label)}
+  .dk-x{border:0;background:none;width:18px;height:18px;margin-right:1px;border-radius:9px;color:var(--color-neutral-500);font-size:13px;line-height:1;cursor:pointer;flex:none;padding:0}
+  .dk-x:hover{background:var(--color-neutral-100);color:var(--color-text)}
+  .dk-more-w{position:relative}
+  .dk-more{height:var(--ctl-h-sm);padding:0 10px;border:1px solid var(--color-divider);border-radius:11px;background:var(--color-surface);font-size:var(--t-label);color:var(--accent-ink);cursor:pointer;white-space:nowrap}
+  .dk-menu{position:absolute;top:calc(100% + 4px);left:0;z-index:70;min-width:220px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);padding:4px;display:flex;flex-direction:column}
+  .dk-menu button{border:0;background:none;text-align:left;padding:7px 10px;border-radius:var(--radius);font-size:var(--t-body);color:var(--color-text);cursor:pointer;white-space:nowrap}
+  .dk-menu button:hover{background:var(--color-accent-50)}
+  #hb-head .hb-dk{flex:1 1 auto;min-width:0}
+  /* the tabs stand at one height on every page: Home's head holding them takes the tab row's top (about 9px), not a tall window's 16 */
+  .hb-head:has(> .hb-dk){padding-top:min(var(--page-pad-t), 10px)}
+  .hb-head>.hb-dk{align-self:flex-start}  /* the Board's taller buttons must not centre the tabs lower: a pressed tab never moves */
+  /* JAMBO'S HOUSE STAYS AS IT IS TODAY (the owner, Round 23's brief): the house scales to its
+     page's width and fits its floors to the window's height. Without the left menu its page grew
+     by up to 244px and the desk tabs took 30px of height, so on the 1536×730 laptop its floors
+     squeezed until words met (measured: 74 high against today's 107). At 1200px wide its floors
+     are as tall as today's (108) on that laptop. */
+  #app-shell.dk-shell .jh-page{max-width:1200px;margin-inline:auto}
+  .cn-page{min-height:var(--view-h,calc(100vh - 48px));display:flex;justify-content:center;align-items:safe center;padding:12px var(--s-4,16px) 24px;background:var(--color-bg)}
+  .cn-in{width:680px;max-width:100%;display:flex;flex-direction:column;gap:12px}
+  .cn-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);min-width:0}
+  .cn-ask{padding:16px 20px 14px;text-align:center;display:flex;flex-direction:column;gap:12px}
+  .cn-ask .cn-face{margin:0 auto -4px;display:block}
+  .cn-ask h1{font-size:20px;font-weight:var(--w-title);margin:0;color:var(--color-text);letter-spacing:-.01em}
+  .cn-wrap{position:relative}
+  .cn-box{display:flex;align-items:center;gap:8px;height:44px;border:1px solid var(--color-accent);border-radius:10px;background:var(--color-surface);padding:0 6px 0 14px;box-shadow:0 0 0 3px var(--color-accent-100);text-align:left}
+  .cn-box input{flex:1;min-width:0;border:0;outline:0;background:transparent;font-size:15px;color:var(--color-text);height:40px}
+  .cn-box input::placeholder{color:var(--color-neutral-500)}
+  .cn-box input:focus-visible{outline:none;box-shadow:none}   /* the box wears its own ring */
+  .cn-wrap .cn-pop{left:0;right:0;top:calc(100% + 4px);max-height:340px;text-align:left}
+  .cn-wrap .cn-pop[hidden]{display:none}
+  .cn-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+  .cn-chip{height:26px;padding:0 10px;border:1px solid var(--color-divider);border-radius:13px;background:var(--color-surface);color:var(--accent-ink);font-size:var(--t-label);cursor:pointer;white-space:nowrap}
+  .cn-chip:hover{border-color:var(--color-accent)}
+  .cn-chip.is-lead{border-color:var(--color-accent);font-weight:var(--w-label)}
+  .cn-h{display:flex;align-items:center;gap:8px;padding:10px 12px 10px 16px;border-bottom:1px solid var(--color-divider);min-height:40px}
+  .cn-t{font-weight:var(--w-strong);font-size:var(--t-body);color:var(--color-text);white-space:nowrap}
+  .cn-cnt{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:18px;padding:0 6px;border-radius:9px;background:var(--color-accent-100);color:var(--accent-ink);font-size:var(--t-micro);font-weight:var(--w-strong)}
+  .cn-hint{flex:1;min-width:0;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cn-r{display:flex;align-items:center;gap:12px;padding:7px 16px;border-bottom:1px solid var(--color-divider)}
+  .cn-r:last-child{border-bottom:0}
+  .cn-w{flex:1;min-width:0}
+  .cn-w b{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:var(--w-strong);font-size:14px;color:var(--color-text)}
+  .cn-w > span{display:block;color:var(--color-neutral-600);font-size:var(--t-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cn-n{font-weight:400;color:var(--color-neutral-500)}
+  .cn-late{color:var(--st-ruby-fg)}
+  .cn-jw{background:var(--color-accent-50)}
+  .cn-pill{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:10px;font-size:var(--t-micro);font-weight:400;background:var(--surface-2);color:var(--color-neutral-600);border:1px solid var(--color-divider)}
+  .cn-pill-ic{width:11px;height:11px}
+  .cn-co-ic{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--color-accent-100);color:var(--accent-ink);flex:none}
+  .cn-co-ic .cn-pill-ic{width:14px;height:14px}
+  .cn-foot{padding:8px 16px;border-top:1px solid var(--color-divider)}
 </style>
 
 
@@ -14020,6 +14091,8 @@
   <header id="top-header" style="grid-column:2;grid-row:1;display:flex;align-items:center;gap:var(--s-2);padding:0 var(--s-3) 0 20px;background:var(--nav-bg);color:var(--bar-ink);border-bottom:1px solid var(--nav-line);min-width:0;">
 
 
+    <!-- THE WAY BACK TO THE COUNTER (Round 2, 17 Oct 2026): on a computer the left menu is gone, and this mark is the door home -->
+    <button id="dk-mark" class="dk-mark" type="button" hidden data-dk-counter title="The counter" data-i18n-title="dk_counter" aria-label="The counter" data-i18n-aria="dk_counter">Ha</button>
     <div id="brand-block" style="align-items:center;gap:var(--s-2);flex:none;">
       <span id="brand-wordmark" style="font-family:var(--font-heading);font-weight:var(--w-title);font-size:var(--t-body);letter-spacing:-.01em;">HaTi</span>
     </div>
@@ -14533,6 +14606,8 @@
          renderPageHeader fills per view — empty on the dashboard — and the
          panel toggle has moved up beside the bell, where the global chrome
          lives. -->
+    <!-- THE DESK TABS (Round 2, 17 Oct 2026; js/views/counter.js): every page open on the desk, "‹ The counter" first. Home draws its own in its head row. -->
+    <div id="dk-row" class="dk-row" hidden></div>
     <div id="page-head" style="flex:none;"></div>
     <!-- Anchored at body level and positioned under whichever button opened it,
          because the trigger is now re-rendered per view rather than living in a

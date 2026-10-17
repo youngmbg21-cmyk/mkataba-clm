@@ -106,6 +106,11 @@ build that does it — never before.
   server; the panel only shows the answer.
 - **The rail** stays, as a shortcut. Pages with no Home face yet (Our paper,
   Requests, People, Settings) keep their own doors.
+  **Reversed 17 Oct 2026** (the owner picked "Desk tabs", Round 2 of the
+  Counter redesign): on a computer the rail is not drawn; every page is a word
+  Jambo reads and "/" lists, and stays as a tab after "‹ The counter".
+  Signing in lands on the Counter (Round 1, "Front desk"). Story: MAP-HISTORY
+  "THE COUNTER AND THE DESK TABS".
 
 ## 7. The build, in six stages
 
