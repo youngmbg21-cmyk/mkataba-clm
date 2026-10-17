@@ -147,9 +147,10 @@ Tests: f170, f176, f193, f544, amendment-journey, amendment-blanks-and-clauses, 
 ## THE UPLOAD
 
 - A file becomes a name through `fileTitleOf` / `srvFileTitleOf`; stored names never rewritten. ONE READER, TWO DOORS (step 4): `uploadReadFile` for the pop-up (`runUploadPipeline`) and Jambo's drop area (`uploadFromDrop`, one at a time `pd_drop_single`; it asks the stream `pdDropStreamHtml`, reads at once, cost said); one creator `submitUpload`. WHO WE ARE: `up-party`, Fill in's `det-party-list` (`uploadPartyOptions`). `ct_external_received` STALE.
+- JAMBO'S TRAY (round 5, 17 Oct 2026): on a computer every Upload door asks `pdDropDoor` first (the Contracts place, Jambo on his drop area, lit); `openUploadModal` stays for a drop's hand-off and the phone; several files → Import under the drop area (`pdDropImportHtml`). The glance names what it counts (`pdGlanceSub`), adds departures and obligations while signing is ahead, the brief's first lines (`pdGlanceBriefHtml`), read on arrival (`pdGlanceFootHtml`). Story: MAP-HISTORY "JAMBO'S TRAY".
 - Structure: `extractWordText` is the ONE door (`docxExtractRich`, `DOCX_PARTS`); numbering is a WALK, never invented (`numStyleLink`, `basedOn`, `docxStyleChain`); a styled heading that is really wording is a paragraph (`docxStyledIsWording`); a structureless file stores no body. PDFs `extractPdfRich` (text identical to `extractPdfText`); `js/pdfrich.js`'s `extractDocRich` reads a PDF template upload. Re-read refuses a sealed or edited record, carries ids (`clauseCarryIds`). Word form fields marked (`hati-wfield`).
 - Sidebar counts: plain white, amber only above zero (NAV_COUNT_TONE).
-Tests: f257, f286, f233, f366, f370, f679, upload-party, upload-structure, pdf-structure, draft-upload-glance verify.
+Tests: f257, f286, f233, f366, f370, f679, f707, upload-party, upload-structure, pdf-structure, draft-upload-glance verify.
 
 ## THE LEGAL AND LAUNCH AUDITS' FIXES
 

@@ -30464,3 +30464,14 @@ What was built:
 Not built from the design: "Skip the questions" stays in the head (the design drew only Create and Cancel; removing an act needs the owner's word). "the three closest" reads "the closest": the ranking offers only papers that share a word with the sentence, so often one.
 
 Re-pointed: f679 3d (the form opens with nothing picked), draft-upload-glance 3a–3g and every-door-lands-on-home D (no card to press; the stream is step 3's buttons). The colour census did not move.
+
+## JAMBO'S TRAY — ROUND 5 OF THE REDESIGN (17 Oct 2026)
+
+The owner picked "Jambo's tray" by name on the all-rounds picker and answered its two questions: one way in = yes; a file dropped on the Board is read at once = keep today's behaviour ("Read it at once").
+
+- **ONE WAY IN.** Before this round a computer had two upload doors: the pop-up (`openUploadModal`, from the new-agreement menu's Upload, the + menu, a page's Upload, the arrivals agent's own door) and Jambo's drop area on Home's wall. Every one of those doors now asks `pdDropDoor()` first: it opens the Contracts place (`hbOpenContracts`), opens Jambo's panel on his own tab and lights the drop area for 1.6 s (`is-called`). A viewer is refused with the same words the pop-up used (`ct_viewers_no_add`). Under 768px, or without the desk shell, it answers false and the old pop-up opens. The pop-up itself was NOT redirected: a handed signed copy and many browser checks open it by name, and redirecting it broke them; the doors were changed instead.
+- **SEVERAL FILES.** The pop-up carried the only link to Import contracts; that link moved under the drop area (`pdDropImportHtml`), with the count of files already waiting there (`navCounts().migration`).
+- **WHAT JAMBO FOUND.** The glance gained two rows while signing is ahead (`pdSignAhead`): departures from our standards (`deviationSummary` dev + missing → Clauses) and obligations found (open ones → Obligations). Each row names what it counts on a second line (`pdGlanceSub`, at most three names, a cap said with "…"; obligations split theirs · ours). Above the rows, the brief's own first lines (`c._brief.data.overview`, clamped; a press opens the brief); below, "Read on arrival · time" only when the arrival reading read anything (`triageReadAnything`). Reading writes nothing.
+- **KEPT.** A drop into a private stream is still read at once: the drop is the press (`submitUpload({drop:true, … read:true})`), as the owner asked.
+- Re-pointed: five-images-verify 5 opens the pop-up by name; long-contract-verify Nc goes through the tray. The colour census moved only in counts (the one new link) and was re-recorded on the owner's standing yes.
+- Tests: f707 (red at the parent except two controls), jambos-panel, draft-upload-glance, every-door-lands-on-home verify.

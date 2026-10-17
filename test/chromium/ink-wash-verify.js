@@ -20,6 +20,11 @@
 
      node test/chromium/ink-wash-verify.js --save   (record, on the code BEFORE)
 
+   RE-RECORDED 17 Oct 2026 (fourth), OWNER-ASKED (the overnight build, same
+   standing yes): Round 5, "Jambo's tray" — the drop area gained its one
+   "Several files? Import contracts" link, so on light screens the 12px and
+   13px counts rose by one, on dark screens counts of colours already in the
+   palette. Audited as a set difference: no colour and no text size new.
    RE-RECORDED 17 Oct 2026 (third), OWNER-ASKED (the overnight build: "Build
    and update record even on new ones. Complete the job"): Round 3, Jambo's
    panel "Tabs and faces" — on light screens two text sizes' counts rose

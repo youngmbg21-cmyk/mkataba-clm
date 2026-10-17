@@ -1607,7 +1607,44 @@ function pdDropInner(){
     ${''/* HOME'S ONE FILLED ACT WEARS HOME'S DRESS (.hm-primary, the act
            "+ Draft new agreement" wore in the head until step 3): one class,
            so its night rung — the fill that stands off the dark page — is
-           the same act's */}<button type="button" class="hm-primary" data-pd-drop-pick>${_pdE(_pdT(d && d.state === 'refused' ? 'pd_drop_again' : 'pd_drop_pick'))}</button>`;
+           the same act's */}<button type="button" class="hm-primary" data-pd-drop-pick>${_pdE(_pdT(d && d.state === 'refused' ? 'pd_drop_again' : 'pd_drop_pick'))}</button>
+    ${pdDropImportHtml()}`;
+}
+/* SEVERAL FILES GO TO THE IMPORTER (round 5, "Jambo's tray"): the upload
+   pop-up's one door into it moved here with the pop-up's job — the same words
+   and the same count of imports still waiting for a person */
+function pdDropImportHtml(){
+  if (typeof setView !== 'function') return '';
+  let n = 0; try { n = (typeof navCounts === 'function') ? Number((navCounts() || {}).migration) || 0 : 0; } catch (_){ n = 0; }
+  return `<span class="pd-drop-more">${_pdE(_pdT('ct_several_q'))} <button type="button" class="ui-link" data-pd-drop-import>${_pdE(_pdT('ct_import_contracts_link'))}</button>${
+    n > 0 ? ` <span class="pd-drop-wait">· ${_pdE(_pdTn('ct_import_waiting', n, { n }))}</span>` : ''}</span>`;
+}
+/* ---- ONE WAY IN: THE TRAY (owner picked "Jambo's tray" by name and said
+   "Yes" to one way in, round 5, 17 Oct 2026) ----
+   On a computer every "upload a contract" door lands here — the Contracts
+   place with no paper up, Jambo's panel open on its drop area, the stream
+   asked in it and the cost said before the drop. The doors that opened the
+   upload pop-up (the new-agreement menu's Upload, the + menu, a page's Upload,
+   the arrivals agent's own door) ask here first; the pop-up stays for what the
+   drop hands it (a signed copy coming back) and on the phone. Answers whether
+   it took the door. */
+const PD_DROP_CALL_MS = 1600;
+function pdDropDoor(){
+  if (typeof window === 'undefined' || (window.innerWidth && window.innerWidth < 768)) return false;
+  if (typeof hbOpenContracts !== 'function' || !(typeof deskShellOn !== 'function' || deskShellOn())) return false;
+  if (!pdDropMay()){ if (typeof toast === 'function') toast(_pdT('ct_viewers_no_add'), 'err'); return true; }
+  if (typeof closeModal === 'function' && document.getElementById('modal-root') && document.getElementById('modal-root').children.length) try { closeModal(); } catch (_){}
+  hbOpenContracts();
+  if (typeof intel === 'object' && intel && !intel.dockOpen){ intel.dockOpen = true; if (typeof renderIntelDock === 'function') renderIntelDock(); if (typeof igSyncDockWidth === 'function') try { igSyncDockWidth(); } catch (_){} }
+  pdSetTab('copilot');
+  let n = 0;
+  const land = () => { const el = document.getElementById('pd-drop');
+    if (el && el.getBoundingClientRect().height > 0){
+      try { el.scrollIntoView({ block: 'nearest' }); } catch (_){}
+      el.classList.add('is-called'); setTimeout(() => el.classList.remove('is-called'), PD_DROP_CALL_MS); return; }
+    if (++n < 30) setTimeout(land, 100); };
+  setTimeout(land, 0);
+  return true;
 }
 /* ---- THE STREAM IS ASKED AT THE DROP (the fix round, 15 Oct 2026; the
    owner's ruling of 18 Sep: the stream is asked at every creation door) ----
@@ -1696,7 +1733,9 @@ async function pdDropTake(file){
 }
 /* ---- A CONTRACT AT A GLANCE ---- */
 const PD_GLANCE = { fill: ['pd_gl_details', 'pd_gl_fill', 'ca_w_fill'], redline: ['pd_gl_risks', 'pd_gl_redlines', 'ca_w_redline'],
-  share: ['pd_gl_unsent', 'pd_gl_share', 'ca_w_share'], sign: ['pd_gl_signers', 'pd_gl_signing', 'ca_w_sign'] };
+  share: ['pd_gl_unsent', 'pd_gl_share', 'ca_w_share'], sign: ['pd_gl_signers', 'pd_gl_signing', 'ca_w_sign'],
+  /* WHAT JAMBO FOUND (round 5, "Jambo's tray"): their doors are this panel's own tabs, so the fourth is the tab */
+  std: ['pd_gl_std', 'pd_tab_clauses', '', 'doc'], oblig: ['pd_gl_obls', 'tab_obligations', '', 'oblig'] };
 function pdGlanceRows(c){
   const rows = []; if (!c) return rows;
   let d = null; try { d = pdFillDetails(c); } catch (_){ d = null; }
@@ -1706,6 +1745,17 @@ function pdGlanceRows(c){
      before a scan the face offers the scan, not a count, so neither does this */
   let rk = 0; try { rk = (c.scan && typeof riskOpenOf === 'function' && (typeof riskMayAct !== 'function' || riskMayAct(c, {}))) ? riskOpenOf(c).length : 0; } catch (_){ rk = 0; }
   if (rk) rows.push({ k: 'redline', n: rk });
+  /* WHAT JAMBO FOUND, WHILE SIGNING IS STILL AHEAD (owner picked "Jambo's
+     tray" by name, round 5, 17 Oct 2026): the standards check's own count of
+     departures (deviationSummary — a check not run says nothing) and the
+     obligations recorded, read RAW, each opening this panel's own tab */
+  if (pdSignAhead(c)){
+    let sd = null; try { sd = (typeof deviationSummary === 'function') ? deviationSummary(c) : null; } catch (_){ sd = null; }
+    const nd = sd ? (Number(sd.dev) || 0) + (Number(sd.miss) || 0) : 0;
+    if (nd) rows.push({ k: 'std', n: nd });
+    const obs = Array.isArray(c.obligations) ? c.obligations.filter(o => o && o.status !== 'done') : [];
+    if (obs.length) rows.push({ k: 'oblig', n: obs.length });
+  }
   let un = 0; try { un = (c.negotiation && typeof rlUnsentCount === 'function') ? rlUnsentCount(c, {}) : 0; } catch (_){ un = 0; }
   if (un) rows.push({ k: 'share', n: un });
   /* NOBODY NAMED TO SIGN only while signing is still ahead: signed, sealed or
@@ -1728,13 +1778,55 @@ function pdGlanceHtml(c){
     return why ? `<button type="button" class="ui-btn ui-btn-sm" disabled aria-disabled="true" title="${_pdE(why)}">${label}</button>`
       : `<button type="button" class="ui-btn ui-btn-sm" data-pd-glance="${r.k}">${label}</button>`; };
   const rows = pdGlanceRows(c);
+  /* each row's door: the face's word Jambo reads, or this panel's own tab */
+  const btn2 = r => (PD_GLANCE[r.k][3] ? `<button type="button" class="ui-btn ui-btn-sm" data-pd-glance-tab="${PD_GLANCE[r.k][3]}">${_pdE(_pdT(PD_GLANCE[r.k][1]))}</button>` : btn(r));
   const said = r => r.k === 'sign' ? _pdT(PD_GLANCE.sign[0]) : _pdTn(PD_GLANCE[r.k][0], r.n, { n: r.n });
   const done = pdGlanceDone(c, rows, said);
   const doneHtml = done.map(d => `<div class="pd-gl-row is-done" data-pd-gl-done="${_pdE(d.k)}"><i aria-hidden="true">✓</i><span><s>${_pdE(d.text)}</s></span></div>`).join('');
   const body = rows.length
-    ? rows.map(r => `<div class="pd-gl-row" data-pd-gl="${r.k}"><span>${_pdE(said(r))}</span>${btn(r)}</div>`).join('') + doneHtml
+    ? rows.map(r => { const sub = pdGlanceSub(c, r);
+        return `<div class="pd-gl-row" data-pd-gl="${r.k}"><span>${_pdE(said(r))}${sub ? `<small title="${_pdE(sub)}">${_pdE(sub)}</small>` : ''}</span>${btn2(r)}</div>`; }).join('') + doneHtml
     : doneHtml + `<div class="pd-gl-none"><i aria-hidden="true">✓</i><span>${_pdE(_pdT('pd_gl_none'))}</span></div>`;
-  return `<div id="pd-glance" class="pd-glance" data-pd-glance-for="${_pdE(c.id)}"><div class="pd-gl-h"><b>${_pdE(_pdT('pd_gl_title', { ref }))}</b><span class="pd-gl-sp"></span>${pill}</div><div class="pd-gl-b">${body}</div></div>`;
+  return `<div id="pd-glance" class="pd-glance" data-pd-glance-for="${_pdE(c.id)}"><div class="pd-gl-h"><b>${_pdE(_pdT('pd_gl_title', { ref }))}</b><span class="pd-gl-sp"></span>${pill}</div><div class="pd-gl-b">${pdGlanceBriefHtml(c)}${body}</div>${pdGlanceFootHtml(c)}</div>`;
+}
+/* ---- WHAT JAMBO FOUND, SAID WHERE IT IS (owner picked "Jambo's tray" by
+   name, round 5, 17 Oct 2026) ----
+   The brief's own first lines above the rows (its press opens the brief), a
+   line under each row naming what it counts — the empty boxes, the risks'
+   titles, the standards departed from, whose obligations — and, under the
+   card, when Jambo read it on arrival. Every word is a reading the record
+   already holds; nothing is asked, spent or written. */
+const PD_GL_SUB_MAX = 3;
+function pdGlanceSub(c, r){
+  const few = L => { const a = L.filter(Boolean); return a.slice(0, PD_GL_SUB_MAX).join(', ') + (a.length > PD_GL_SUB_MAX ? ' …' : ''); };
+  try {
+    if (r.k === 'fill' && typeof detailsOf === 'function') return few(detailsOf(c).items.filter(x => x.open).map(x => x.label));
+    if (r.k === 'redline' && typeof riskOpenOf === 'function') return few(riskOpenOf(c).map(it => (typeof riskTitleOf === 'function') ? riskTitleOf(it) : ''));
+    if (r.k === 'std'){
+      const v = (c.playbook && Array.isArray(c.playbook.verdicts)) ? c.playbook.verdicts : [];
+      return few(v.filter(x => x && (x.status === 'deviation' || x.status === 'missing')).map(x => { const t = String(x.category || ''); return t.charAt(0).toUpperCase() + t.slice(1); }));
+    }
+    if (r.k === 'oblig'){
+      const obs = (Array.isArray(c.obligations) ? c.obligations : []).filter(o => o && o.status !== 'done');
+      const theirs = obs.filter(o => (typeof obligationIsTheirs === 'function') ? obligationIsTheirs(o) : o.party === 'theirs').length;
+      return _pdT('pd_gl_obls_split', { theirs, ours: obs.length - theirs });
+    }
+  } catch (_){ return ''; }
+  return '';
+}
+function pdGlanceBriefHtml(c){
+  const d = (c && ((c._brief && c._brief.data) || (c._briefLite && c._briefLite.data))) || null;
+  const t = String((d && d.overview) || '').trim(); if (!t) return '';
+  return `<button type="button" class="pd-gl-brief" data-pd-gl-brief title="${_pdE(t)}"><em>${_pdE(_pdT('pd_gl_brief'))}</em><span>${_pdE(t)}</span></button>`;
+}
+function pdGlanceFootHtml(c){
+  const t = c && c.triage; if (!t || !t.at) return '';
+  const read = (typeof triageReadAnything === 'function') ? triageReadAnything(c) : true; if (!read) return '';
+  const at = new Date(t.at); if (isNaN(at)) return '';
+  const loc = (typeof langLocale === 'function') ? langLocale() : undefined;
+  const today = at.toDateString() === new Date().toDateString();
+  let when = ''; try { when = today ? at.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' }) : at.toLocaleDateString(loc, { day: 'numeric', month: 'short' }); } catch (_){ when = String(t.at).slice(0, 10); }
+  return `<div class="pd-gl-foot">${_pdE(_pdT('pd_gl_read', { when }))}</div>`;
 }
 /* ---- NEEDS YOU HERE (owner picked "Tabs and faces" by name, round 3 of the
    redesign, 17 Oct 2026) ----
@@ -1844,6 +1936,7 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
     if (t.closest('[data-pd-drop-pick]')){ e.preventDefault(); pdDropPick(); return; }
+    if (t.closest('[data-pd-drop-import]')){ e.preventDefault(); if (typeof setView === 'function') setView('migration'); return; }
     const back = t.closest('[data-pd-back]');
     if (back){ e.preventDefault(); const go = PD_BACK_CLOSE[back.getAttribute('data-pd-back')]; if (go) go(); return; }
     if (t.closest('[data-pd-nd-all]')){ e.preventDefault(); if (typeof deskGoCounter === 'function') deskGoCounter(); return; }
@@ -1851,6 +1944,10 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
     if (jw){ e.preventDefault(); if (typeof hbOpenAgent === 'function') hbOpenAgent(jw.getAttribute('data-pd-nd-jw'), jw.getAttribute('data-pd-nd-key') || null); return; }
     const nd = t.closest('[data-pd-nd]');
     if (nd){ e.preventDefault(); if (typeof needsYouGo === 'function') needsYouGo(nd.getAttribute('data-pd-nd'), nd.getAttribute('data-pd-nd-id')); return; }
+    const gt = t.closest('[data-pd-glance-tab]');
+    if (gt){ e.preventDefault(); pdSetTab(gt.getAttribute('data-pd-glance-tab')); if (typeof renderIntelDock === 'function') renderIntelDock(); return; }
+    if (t.closest('[data-pd-gl-brief]')){ e.preventDefault(); const cc = pdContract();
+      if (cc && typeof openCheckPanel === 'function') openCheckPanel(getContract(cc.id) || cc, 'brief'); return; }
     const g = t.closest('[data-pd-glance]');
     if (g && !g.disabled){ e.preventDefault(); const row = PD_GLANCE[g.getAttribute('data-pd-glance')]; if (row && typeof intelAsk === 'function') intelAsk(_pdT(row[2])); }
   });
@@ -1960,5 +2057,5 @@ Object.assign(window, { pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAme
   PD_FILL_TRIES, PD_FILL_BEAT_MS, pdFillFor, pdFillShows, pdFillOpen, pdFillSeen, pdFillAway, pdFillClose, pdFillHeadHtml, pdFillDoneHtml, pdFillFaceHtml, pdFillFacePaint, pdFillCounts, pdFillKeyOf, pdFillEcho, pdFillWire, pdFillLand, pdFillRefresh,
   pdFillStreamMay, pdFillStreamHtml, pdFillStreamRepaint, pdFillStreamPick,
   PD_DROP_ACCEPT, pdDropMay, pdWallHelloHtml, pdDropInner, pdDropStreams, pdDropStreamNow, pdDropStreamHtml, pdDropHtml, pdDropPaint, pdWallHtml, pdDropInput, pdDropBusyNow, pdDropPick, PD_DROP_TOAST_MS, pdDropToastOff, pdDropTake,
-  PD_GLANCE, pdGlanceRows, pdSignAhead, pdGlanceHtml, pdGlanceRepaint, pdJamboTopHtml, pdNeedsRows, pdNeedRowHtml, pdNeedsHtml, pdNeedsRepaint, pdBackHtml, PD_BACK_CLOSE, PD_GL_DONE_MS, pdGlanceDone,
+  PD_GLANCE, PD_GL_SUB_MAX, pdGlanceSub, pdGlanceBriefHtml, pdGlanceFootHtml, pdDropImportHtml, pdDropDoor, PD_DROP_CALL_MS, pdGlanceRows, pdSignAhead, pdGlanceHtml, pdGlanceRepaint, pdJamboTopHtml, pdNeedsRows, pdNeedRowHtml, pdNeedsHtml, pdNeedsRepaint, pdBackHtml, PD_BACK_CLOSE, PD_GL_DONE_MS, pdGlanceDone,
   JB_BEAT_MS, JB_HOP_MS, jamboPerchMount, jamboRest, jamboWorkWords, jamboBeat, jamboHop, jamboLookPaint });

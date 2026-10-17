@@ -1743,7 +1743,7 @@ function renderNewMenu(){
      menu is the commonest way anybody reaches that picker. Dropping the refresh
      with the rows would leave the picker showing yesterday's standards. */
   if(API_MODE()&&window.tplLibRefresh) tplLibRefresh();
-  menu.querySelector('#menu-upload')?.addEventListener('click',()=>{ menu.classList.add('hidden'); openUploadModal(); });
+  menu.querySelector('#menu-upload')?.addEventListener('click',()=>{ menu.classList.add('hidden'); if(typeof pdDropDoor==='function' && pdDropDoor()) return; openUploadModal(); });
   menu.querySelector('#menu-migrate')?.addEventListener('click',()=>{ menu.classList.add('hidden'); setView('migration'); });
   menu.querySelector('#menu-wizard')?.addEventListener('click',()=>{ menu.classList.add('hidden'); openWizard(); });
   /* Read through `window`, the ES-module rule: a stage without js/draft.js gets
@@ -4108,7 +4108,7 @@ function wireShell(){
     const exp=e.target.closest?.('[data-page-export]');
     if(exp){ exportWorkingSetCsv(); return; }
     const up=e.target.closest?.('[data-page-upload]');
-    if(up){ if(window.openUploadModal) openUploadModal(); return; }
+    if(up){ if(typeof pdDropDoor==='function' && pdDropDoor()) return; if(window.openUploadModal) openUploadModal(); return; }
     const nb=e.target.closest?.('[data-page-new]');
     if(nb){
       e.stopPropagation();

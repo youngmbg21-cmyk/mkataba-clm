@@ -1299,7 +1299,7 @@ function agDoor(which){
   if (which === 'agentsettings'){ if (typeof openSettingsAt === 'function') openSettingsAt('platform', 'agents'); return; }
   if (which === 'obligations'){ if (typeof setView === 'function') setView('obligations'); return; }
   if (which === 'import'){ if (typeof setView === 'function') setView('migration'); return; }
-  if (which === 'upload'){ if (typeof openUploadModal === 'function') openUploadModal(); return; }
+  if (which === 'upload'){ if (typeof pdDropDoor === 'function' && pdDropDoor()) return; if (typeof openUploadModal === 'function') openUploadModal(); return; }
 }
 /* WHERE THE READER ENDS UP: the contract, on the tab the item is about — the
    desk's own rule (a late promise lands on Obligations, a renewal and what

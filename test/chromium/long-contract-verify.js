@@ -156,10 +156,12 @@ const longBody = n => '<h1>SOFTWARE AS A SERVICE AGREEMENT</h1>' + Array.from({ 
     await page.screenshot({ path: path.join(OUT, '04-doors.png') });
     await page.click('[data-nd-door="upload"]').catch(() => {});
     await page.waitForTimeout(800);
-    const up = await page.evaluate(() => !!document.getElementById('up-file'));
-    check('Nc the Upload door opens the upload dialog', up, up ? 'upload dialog' : 'absent');
-    await page.evaluate(() => { if (typeof closeModal === 'function') closeModal(); });
-    await page.waitForTimeout(400);
+    /* RE-POINTED 17 Oct 2026 (round 5, the owner picked "Jambo's tray" and
+       one way in): the Upload door lands on the drop area in Jambo's panel */
+    const up = await page.evaluate(() => { const d = document.getElementById('pd-drop'); return !!d && d.getBoundingClientRect().height > 0 && !document.getElementById('up-file'); });
+    check('Nc the Upload door lands on the drop area in Jambo\'s panel', up, up ? 'the tray' : 'absent');
+    await page.evaluate(() => setView('pipeline'));
+    await page.waitForTimeout(1200);
     await page.click('[data-page-new]').catch(() => {});
     await page.waitForTimeout(700);
     await page.click('[data-nd-door="draft"]').catch(() => {});

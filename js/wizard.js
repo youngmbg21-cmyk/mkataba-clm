@@ -739,7 +739,7 @@ function openNewDoors(){
   const ic=(n)=>(typeof icon==='function')?icon(n,'w-4 h-4'):'';
   const go=k=>{
     if(k==='draft') openNewAgreement({ door:true });
-    else if(k==='upload'){ if(typeof openUploadModal==='function') openUploadModal(); }
+    else if(k==='upload'){ if(typeof pdDropDoor==='function' && pdDropDoor()) return; if(typeof openUploadModal==='function') openUploadModal(); }
   };
   /* ---- TWO DOORS ARE A MENU, NOT A POP-UP (SAP pop-ups, owner's go 10 Oct
      2026) ----
@@ -799,7 +799,7 @@ function openNewDoors(){
     const k=b.getAttribute('data-nd-door');
     closeModal();
     if(k==='draft') openNewAgreement({ door:true });
-    else if(k==='upload'){ if(typeof openUploadModal==='function') openUploadModal(); }
+    else if(k==='upload'){ if(typeof pdDropDoor==='function' && pdDropDoor()) return; if(typeof openUploadModal==='function') openUploadModal(); }
   }));
 }
 function openNewAgreement(o){
