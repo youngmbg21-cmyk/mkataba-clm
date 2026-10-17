@@ -115,15 +115,27 @@ describe('f603 (D12) — a brand-new Home has one door to finish setting up', ()
   test('it lives inside the board\'s own empty slot, not a band', () => {
     assert.match(HB, /<div class="hb-empty">\$\{_hbE\(i18t\('hb_empty'\)\)\}\$\{hbSetupDoorHtml\(\)\}<\/div>/);
   });
+  /* RE-POINTED 17 Oct 2026: signing in lands on the Counter (the owner's
+     "Front desk"), so the reading moved into ONE function both places draw
+     from (hbSetupLeft), and the press into ONE act (hbSetupGo) */
   test('admin only, no contracts, rows left — the count is stGoLive\'s', () => {
-    const at = HB.indexOf('function hbSetupDoorHtml(){');
+    const at = HB.indexOf('function hbSetupLeft(){');
     const body = HB.slice(at, HB.indexOf('\n}\n', at));
     assert.match(body, /isAdmin\(\)/);
-    assert.match(body, /\(state\.contracts \|\| \[\]\)\.length\) return ''/);
+    assert.match(body, /\(state\.contracts \|\| \[\]\)\.length\) return null/);
     assert.match(body, /window\.stGoLive\(\)\.filter\(r => !r\.ok\)\.length/);
+    const door = HB.slice(HB.indexOf('function hbSetupDoorHtml(){'), HB.indexOf('\n}\n', HB.indexOf('function hbSetupDoorHtml(){')));
+    assert.match(door, /const left = hbSetupLeft\(\);/);
   });
   test('the door opens the go-live checklist through the one named door', () => {
-    assert.match(HB, /on\('\[data-hb-setup\]'\)\)\{ e\.preventDefault\(\); if \(typeof window\.openSettingsAt === 'function'\) window\.openSettingsAt\('build', 'golive'\)/);
+    assert.match(HB, /function hbSetupGo\(\)\{ if \(typeof window\.openSettingsAt === 'function'\) window\.openSettingsAt\('build', 'golive'\); \}/);
+    assert.match(HB, /on\('\[data-hb-setup\]'\)\)\{ e\.preventDefault\(\); hbSetupGo\(\); return; \}/);
+  });
+  test('where signing in lands, the Counter offers the same door: the same reading, the same act', () => {
+    const CN = fs.readFileSync(path.join(ROOT, 'js/views/counter.js'), 'utf8');
+    assert.match(CN, /function cnSetup\(\)\{[^\n]*hbSetupLeft\(\)/);
+    assert.match(CN, /_cnTn\('hb_setup_left', n, \{ n \}\)/);
+    assert.match(CN, /closest\('\[data-cn-setup\]'\)\)\{ if \(typeof hbSetupGo === 'function'\) hbSetupGo\(\); return; \}/);
   });
   test('both books carry the words', () => {
     for (const lang of ['en', 'sv']) assert.ok(BOOKS[lang].hb_setup_left_other, lang);
