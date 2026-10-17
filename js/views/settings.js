@@ -417,6 +417,8 @@ function stWireDrawerOnce(){
     if(askA){ stAskSend(askA.getAttribute('data-st-ask-admin'), askA.getAttribute('data-st-ask-panel')||''); return; }
     const ansA=t.closest('[data-st-ask-answer]');
     if(ansA){ stAskAnswer(ansA.getAttribute('data-st-ask-answer'), ansA.getAttribute('data-st-ask-to')); return; }
+    const askf=t.closest('[data-st-jb-askfor]');
+    if(askf){ const qt=_stJbLog.find(x=>String(x.id)===askf.getAttribute('data-st-jb-q-id')); stAskFrom(askf.getAttribute('data-st-jb-askfor'), qt?qt.q:''); return; }
     const why=t.closest('[data-st-jb-why]');
     if(why){ stJbWhyRun(why.getAttribute('data-st-jb-why')); return; }
     const drop=t.closest('[data-st-jb-drop]');
@@ -1973,7 +1975,10 @@ function stJbWhyCardHtml(c, t){
   if(w.state==='busy') return card(esc(i18t('st_jb_why_h')), `<p>${(typeof busyHtml==='function')?busyHtml(i18t('st_jb_why_busy')):esc(i18t('st_jb_why_busy'))}</p>`, '', '');
   if(w.state==='err') return card(esc(i18t('st_jb_why_h')), `<p>${esc(w.error||i18t('st_jb_why_failed'))}</p>`, btn(`data-st-jb-why="${id}"`, i18t('st_jb_why_again'), false), '');
   const a=w.answer||{};
-  const doors=(a.doors||[]).map(d=>d.panel&&SET_PANELS[d.panel]?btn(`data-st-panel="${d.panel}"`, SET_PANELS[d.panel].title(), false)
+  /* a member's way through the rule is the tracked ask, with their own question
+     in it (the governance rule, 17 Oct 2026) */
+  const doors=(a.doors||[]).map(d=>d.ask&&SET_PANELS[d.ask]?btn(`data-st-jb-askfor="${d.ask}" data-st-jb-q-id="${id}"`, i18t('sc_ask_admin'), true)
+    : d.panel&&SET_PANELS[d.panel]?btn(`data-st-panel="${d.panel}"`, SET_PANELS[d.panel].title(), false)
     : d.person&&(typeof userById==='function')&&userById(d.person)?btn(`data-st-panel="person:${PB_ATTR(d.person)}"`, i18t('st_jb_open_person',{name:stNameOf(userById(d.person)).split(' ')[0]}), false):'').join('');
   return card(esc(a.title||i18t('st_jb_why_done_h')),
     `<p>${esc(a.say||'')}</p>${(a.points||[]).length?`<ul>${a.points.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}${a.notice?`<p class="st-jb-state">${esc(a.notice)}</p>`:''}`,

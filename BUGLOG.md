@@ -20900,3 +20900,8 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - CLAUDE.md now stands at about 82 KB (81.2 KB before this change); bringing it under 80 KB is a trim for the owner to approve.
 - (later the same day) The colour census was re-taken on the owner's "Yes, update the record" — ink-wash and theme-tokens both green.
 - GitHub's node suite (jsdom) fails 1 test on main itself (feb17f1: 12841 of 12842; the three main runs before it failed too); which test is not visible in the log tool's last 5,000 lines. Finding it needs a full-suite run, which waits on the owner.
+
+### Built (17 Oct 2026, the owner: "yes to both, start with piece 0")
+- Jambo guides through the rules, never around them: one rule on every instruction that answers a person (the chat on both hosts, the Board, drafting, amendments, the round-answers agent, the Settings "why" answers); a rule in the way gets that rule's own button under the answer (Ask an admin, Ask for review, Send for approval — it opens the door and presses nothing); a member's "why" answer in Settings now offers Ask an admin instead of a dead end. Written into the house rules as flow rule 7b.
+- Tests: f694 (new, 15 of 16 red at the parent), jambo-guides-through verify (new, 19).
+- Noticed, not fixed (17 Oct 2026, private-streams design round): in Settings → Contract folders, a stream's name wraps onto three or four lines at 1440 wide because the name column is narrow beside the counts and the switch; long built-in names ("Procurement & Raw Materials") read as a stack. Left for the stream page build.
