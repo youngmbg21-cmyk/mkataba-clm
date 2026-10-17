@@ -3843,6 +3843,8 @@ app.get('/api/bootstrap', auth, (req, res) => {
     // M-6: reminder-sweep health, admins only — so "reminders stopped" is
     // visible in the app, not just in the server log and the outbox.
     reminderHealth: req.user.role === 'admin' ? (getSetting('reminderHealth') || null) : undefined,
+    /* the business roles and who holds which: an admin's to see (piece 6) */
+    bizRoles: req.user.role === 'admin' ? bzBook() : undefined,
     /* Whether this workspace can send email at all. The server has always known
        it and reported it on individual screens — creating a share, opening a
        link, requesting a signing code — which meant the answer only ever
@@ -12733,6 +12735,266 @@ app.get('/api/export/workspace.zip', auth, admin, (req, res) => {
   res.setHeader('Content-Disposition', `attachment; filename="hati-workspace-${new Date().toISOString().slice(0, 10)}.zip"`);
   res.send(zip);
 });
+
+/* ============================================================
+   BUSINESS ROLES (owner picked "A role at the top of the drawer — the SAP
+   way", 17 Oct 2026; piece 6 of the sensitive contracts and governance plan)
+   ============================================================
+   A role is only a NAME FOR RIGHTS HATI ALREADY HAS: Editor or Viewer, sees
+   contract values, a signing limit, the streams, checked before sending, may
+   make new paper, may re-file, may put on hold. Nothing new is allowed by it:
+   choosing a role fills the person's drawer and the drawer's Save writes each
+   right through PATCH /api/users/:id and the stream map exactly as before, so
+   the server keeps checking the RIGHT, never the role's name. Admins hold
+   every right by rank and never hold a business role.
+
+   Stored apart from appSettings (which travels to every member): the roles
+   and who holds which are admin-only, read on the bootstrap by an admin and
+   here. Every change of a person's role is recorded (role_changes) and is an
+   act in the trail export. */
+db.exec(`CREATE TABLE IF NOT EXISTS role_changes (id INTEGER PRIMARY KEY AUTOINCREMENT,
+  at TEXT NOT NULL, by_id TEXT, by_name TEXT, user_id TEXT, user_name TEXT, from_role TEXT, to_role TEXT)`);
+const BZ_MAX = 30;
+const BZ_SYS = ['viewer', 'legal'];
+/* ONE SHAPE: a role, cleaned; null where it names nothing */
+function bzClean(r) {
+  if (!r || typeof r !== 'object') return null;
+  const id = String(r.id || '').replace(/[^\w-]/g, '').slice(0, 40);
+  const name = String(r.name || '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60);
+  if (!id || !name) return null;
+  const sys = BZ_SYS.includes(r.sys) ? r.sys : 'viewer';
+  const edits = sys !== 'viewer';
+  let cap = null;
+  if (edits && r.cap === 'none') cap = 'none';
+  else if (edits && r.cap != null && r.cap !== '' && Number.isFinite(Number(r.cap)) && Number(r.cap) >= 0) cap = Math.round(Number(r.cap));
+  const streams = Array.isArray(r.streams) ? [...new Set(r.streams.map(s => String(s || '').slice(0, 64)).filter(Boolean))].slice(0, 60).sort() : 'all';
+  return { id, name, sys, values: r.values !== false, cap, streams: (Array.isArray(streams) && !streams.length) ? 'all' : streams,
+    checked: edits && r.checked === true, paper: edits && r.paper === true, refile: edits && r.refile === true, hold: edits && r.hold === true };
+}
+function bzBook() {
+  const s = getSetting('businessRoles') || {};
+  const roles = (Array.isArray(s.roles) ? s.roles : []).map(bzClean).filter(Boolean).slice(0, BZ_MAX);
+  const ids = new Set(roles.map(r => r.id));
+  const of = {};
+  for (const [u, rid] of Object.entries((s.of && typeof s.of === 'object') ? s.of : {})) if (ids.has(String(rid))) of[String(u)] = String(rid);
+  return { roles, of };
+}
+const bzName = (book, id) => ((book.roles.find(r => r.id === String(id || '')) || {}).name) || '';
+function bzRecord(req, user, from, to) {
+  db.prepare('INSERT INTO role_changes (at, by_id, by_name, user_id, user_name, from_role, to_role) VALUES (?,?,?,?,?,?,?)')
+    .run(now(), String(req.user.id || ''), String(req.user.name || ''), String(user.id || ''), String(user.name || user.email || ''), from || '', to || '');
+}
+app.get('/api/business-roles', auth, admin, (req, res) => res.json(bzBook()));
+/* THE ROLES THEMSELVES: the whole list, cleaned; a name used twice is refused;
+   a role taken away leaves its holders their rights and only loses its name
+   on them (each such change recorded) */
+app.put('/api/business-roles', auth, admin, (req, res) => {
+  const list = req.body && req.body.roles;
+  if (!Array.isArray(list)) return res.status(400).json({ error: 'roles must be a list' });
+  if (list.length > BZ_MAX) return res.status(400).json({ error: `At most ${BZ_MAX} business roles.` });
+  const roles = list.map(bzClean);
+  if (roles.some(r => !r)) return res.status(400).json({ error: 'Every role needs a name.' });
+  const names = roles.map(r => r.name.toLowerCase());
+  if (new Set(names).size !== names.length) return res.status(400).json({ error: 'Two roles cannot have the same name.' });
+  if (new Set(roles.map(r => r.id)).size !== roles.length) return res.status(400).json({ error: 'Two roles cannot share an id.' });
+  const was = bzBook();
+  const keep = new Set(roles.map(r => r.id));
+  const of = {};
+  for (const [uid, rid] of Object.entries(was.of)) {
+    if (keep.has(rid)) { of[uid] = rid; continue; }
+    const u = db.prepare('SELECT id, name, email FROM users WHERE id=?').get(uid);
+    if (u) bzRecord(req, u, bzName(was, rid), '');
+  }
+  setSetting('businessRoles', { roles, of });
+  res.json(bzBook());
+});
+/* ONE PERSON'S ROLE: its name on them, recorded. The rights it brings were
+   written by the drawer's Save, right by right. */
+app.put('/api/business-roles/holder', auth, admin, (req, res) => {
+  const b = req.body || {};
+  const target = db.prepare('SELECT id, name, email, role FROM users WHERE id=?').get(String(b.userId || ''));
+  if (!target) return res.status(404).json({ error: 'User not found' });
+  const book = bzBook();
+  const rid = b.roleId == null || b.roleId === '' ? '' : String(b.roleId);
+  if (rid && !book.roles.some(r => r.id === rid)) return res.status(400).json({ error: 'That business role does not exist.' });
+  if (rid && target.role === 'admin') return res.status(400).json({ error: 'An admin holds every right by rank, so holds no business role.' });
+  const from = book.of[target.id] || '';
+  if (from !== rid) {
+    const of = { ...book.of };
+    if (rid) of[target.id] = rid; else delete of[target.id];
+    setSetting('businessRoles', { roles: book.roles, of });
+    bzRecord(req, target, bzName(book, from), bzName(book, rid));
+  }
+  res.json(bzBook());
+});
+
+/* ============================================================
+   THE TRAIL, AS A FILE (owner picked "Export drawer — the SAP way",
+   17 Oct 2026; piece 5 of the sensitive contracts and governance plan)
+   ============================================================
+   An auditor, a regulator or a dispute asks for everything that happened in
+   a period. An admin hands it over from Company › Housekeeping › Data &
+   backup › The trail: a period, the streams, a spreadsheet (CSV) or a PDF
+   report carrying HaTi's seal (the SHA-256 fingerprint of its rows), the
+   count before the press, and every download so far.
+
+   WHAT THE TRAIL IS: every act on every contract (its audit lines), every
+   open of a private stream's contract (private_opens), and every download of
+   the trail itself — handing over the record is on the record.
+   THE WALL STANDS: the contracts are folderScopeFor's, an admin's included,
+   so a private stream that does not name this admin is neither exported nor
+   counted; the summary says how many such streams are left out — a count,
+   never a name. Admin-only, every route. A day is a UTC day. */
+db.exec(`CREATE TABLE IF NOT EXISTS trail_exports (id INTEGER PRIMARY KEY AUTOINCREMENT,
+  at TEXT NOT NULL, user_id TEXT, user_name TEXT, d_from TEXT, d_to TEXT, streams TEXT, fmt TEXT, acts INTEGER, seal TEXT)`);
+const TRAIL_EXPORTS_SHOWN = 20;
+const TRAIL_STREAMS_MAX = 60;
+const trailDayOk = s => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ''))
+  && (() => { const d = new Date(s + 'T00:00:00Z'); return !isNaN(d) && d.toISOString().slice(0, 10) === s; })();
+/* the period and streams asked for, cleaned — or why not */
+function trailAsk(req) {
+  const q = req.query || {};
+  const from = String(q.from || ''), to = String(q.to || '');
+  if (!trailDayOk(from) || !trailDayOk(to)) return { error: 'from and to must be days, YYYY-MM-DD' };
+  if (to < from) return { error: 'to is before from' };
+  const streams = [...new Set(String(q.streams || '').split(',').map(s => s.trim().slice(0, 64)).filter(Boolean))].slice(0, TRAIL_STREAMS_MAX);
+  /* the names the reader's own screen gives its streams (the built-in six live
+     in the browser's FOLDERS, not here): labels for the file, nothing more */
+  let names = {};
+  try { const n = JSON.parse(String(q.names || '{}')); if (n && typeof n === 'object' && !Array.isArray(n)) names = n; } catch (_) { names = {}; }
+  const clean = {};
+  for (const [k, v] of Object.entries(names).slice(0, TRAIL_STREAMS_MAX)) {
+    const name = String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 80);
+    if (name) clean[String(k).slice(0, 64)] = name;
+  }
+  return { from, to, streams, names: clean, scope: folderScopeFor(req.user) };
+}
+const trailIso = v => { const t = Date.parse(String(v || '')); return isNaN(t) ? '' : new Date(t).toISOString(); };
+/* ONE READING: the acts in the period, oldest first */
+function trailRows(ask) {
+  const lo = ask.from + 'T00:00:00.000Z', hi = ask.to + 'T23:59:59.999Z';
+  const f = scopeFrag(ask.scope);
+  const byId = new Map();
+  for (const r of db.prepare(`SELECT json FROM contracts ${whereOf(f.sql)} ORDER BY seq`).all(...f.args)) {
+    let c; try { c = JSON.parse(r.json); } catch (_) { continue; }
+    if (!c || (ask.streams.length && !ask.streams.includes(String(c.folder || '')))) continue;
+    byId.set(String(c.id), c);
+  }
+  const out = [];
+  for (const c of byId.values()) {
+    for (const a of (Array.isArray(c.audit) ? c.audit : [])) {
+      const at = trailIso(a && a.at);
+      if (!at || at < lo || at > hi) continue;
+      out.push({ at, who: String(a.user || ''), what: String(a.action || ''), detail: String(a.detail || ''), c });
+    }
+  }
+  if (byId.size) for (const r of db.prepare('SELECT contract_id, user_name, at FROM private_opens WHERE at >= ? AND at <= ?').all(lo, hi)) {
+    const c = byId.get(String(r.contract_id));
+    if (c) out.push({ at: trailIso(r.at) || String(r.at), who: String(r.user_name || ''), what: 'Opened', detail: 'A private stream\'s contract', c });
+  }
+  /* a person's business role changing is the company's act too (piece 6) */
+  for (const r of db.prepare('SELECT * FROM role_changes WHERE at >= ? AND at <= ? ORDER BY id').all(lo, hi))
+    out.push({ at: r.at, who: String(r.by_name || ''), what: 'Business role changed', detail: `${r.user_name}: ${r.from_role || 'none'} to ${r.to_role || 'none'}`, c: null });
+  /* a hand-over of the record is the company's act, whatever streams were asked */
+  for (const r of db.prepare('SELECT * FROM trail_exports WHERE at >= ? AND at <= ? ORDER BY id').all(lo, hi))
+    out.push({ at: r.at, who: String(r.user_name || ''), what: 'Exported the trail', detail: `${r.d_from} to ${r.d_to} · ${String(r.fmt || '').toUpperCase()} · ${r.acts} acts`, c: null });
+  out.sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
+  return out;
+}
+/* a cell a spreadsheet will not run as a formula */
+const trailCell = v => { let s = String(v == null ? '' : v); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return `"${s.replace(/"/g, '""')}"`; };
+const TRAIL_HEAD = ['When (UTC)', 'Who', 'What', 'Detail', 'Contract', 'Name', 'Counterparty', 'Stream'];
+function trailLines(rows, ask) {
+  const stream = id => (id ? (ask.names[String(id)] || String(id)) : '');
+  return rows.map(r => [r.at, r.who, r.what, r.detail, r.c ? contractRef(r.c) : '', r.c ? String(r.c.name || '') : '',
+    r.c ? String(r.c.counterparty || '') : '', r.c ? stream(r.c.folder) : '']);
+}
+const trailCsv = lines => [TRAIL_HEAD, ...lines].map(l => l.map(trailCell).join(',')).join('\r\n') + '\r\n';
+const trailSeal = csv => crypto.createHash('sha256').update(csv, 'utf8').digest('hex');
+const trailPeriodWords = ask => `${ask.from} to ${ask.to}`;
+
+app.get('/api/trail/summary', auth, admin, (req, res) => {
+  const ask = trailAsk(req);
+  if (ask.error) return res.status(400).json({ error: ask.error });
+  const rows = trailRows(ask);
+  const withC = rows.filter(r => r.c);
+  res.json({ acts: rows.length, contracts: new Set(withC.map(r => String(r.c.id))).size,
+    streams: new Set(withC.map(r => String(r.c.folder || ''))).size, people: new Set(rows.map(r => r.who).filter(Boolean)).size,
+    leftOut: psStreamsFor(req.user).shut.length });
+});
+app.get('/api/trail/exports', auth, admin, (req, res) => {
+  const rows = db.prepare('SELECT at, user_name, d_from, d_to, streams, fmt, acts FROM trail_exports ORDER BY id DESC LIMIT ?').all(TRAIL_EXPORTS_SHOWN);
+  res.json({ exports: rows.map(r => ({ at: r.at, who: r.user_name || '', from: r.d_from, to: r.d_to, streams: r.streams ? String(r.streams).split(',').filter(Boolean).length : 0, as: r.fmt, acts: r.acts })),
+    total: db.prepare('SELECT COUNT(*) AS n FROM trail_exports').get().n });
+});
+app.get('/api/trail/export', auth, admin, (req, res) => {
+  const ask = trailAsk(req);
+  if (ask.error) return res.status(400).json({ error: ask.error });
+  const as = String(req.query.as || 'csv') === 'pdf' ? 'pdf' : 'csv';
+  const rows = trailRows(ask);
+  const lines = trailLines(rows, ask);
+  const csv = trailCsv(lines);
+  const seal = trailSeal(csv);
+  const at = now();
+  /* recorded before the file leaves: the next trail that covers today names
+     this hand-over (and this file does not carry itself) */
+  db.prepare('INSERT INTO trail_exports (at, user_id, user_name, d_from, d_to, streams, fmt, acts, seal) VALUES (?,?,?,?,?,?,?,?,?)')
+    .run(at, String(req.user.id || ''), String(req.user.name || ''), ask.from, ask.to, ask.streams.join(','), as, rows.length, seal);
+  const base = `hati-trail-${ask.from}-to-${ask.to}`;
+  if (as === 'csv') {
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${base}.csv"`);
+    return res.send('﻿' + csv);
+  }
+  const pdf = trailPdf(lines, ask, { seal, at, by: String(req.user.name || ''), streams: ask.streams.map(id => ask.names[id] || id) });
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="${base}.pdf"`);
+  res.send(pdf);
+});
+
+/* THE PDF REPORT: the same rows as the spreadsheet, one act to a block, and
+   the seal — the spreadsheet's SHA-256 — so an auditor holding both can see
+   the one is the other. Base-14 fonts, no library (pdfAssemble). */
+function trailPdf(lines, ask, o) {
+  const CW = PDF_PAGE_W - PDF_ML - PDF_MR;
+  const pages = [];
+  let ops, y;
+  const newPage = () => { pages.push(ops = []); y = PDF_PAGE_H - PDF_MT; };
+  const ensure = h => { if (y - h < PDF_MB) newPage(); };
+  const line = (s, { x = PDF_ML, size = 9, font = 'F4', color = '1f2a30' } = {}) =>
+    ops.push(`BT /${font} ${size} Tf ${pdfRgb(color)} rg 1 0 0 1 ${x.toFixed(1)} ${y.toFixed(1)} Tm (${pdfEsc(s)}) Tj ET`);
+  const hr = (color = 'c9d1d6', wpt = 0.6) => ops.push(`q ${pdfRgb(color)} RG ${wpt} w ${PDF_ML} ${y.toFixed(1)} m ${PDF_PAGE_W - PDF_MR} ${y.toFixed(1)} l S Q`);
+  newPage();
+  const org = (getSetting('org') || {}).name || '';
+  line(org ? `${org} · the trail` : 'The trail', { size: 16, font: 'F5', color: '11202a' }); y -= 18;
+  line(`${trailPeriodWords(ask)} · ${lines.length} acts · ${o.streams.length ? o.streams.join(', ') : 'all streams this admin may open'}`, { size: 9, color: '4c5a63' }); y -= 12;
+  line(`Exported by ${o.by || 'an admin'} on ${o.at.slice(0, 16).replace('T', ' ')} UTC`, { size: 9, color: '4c5a63' }); y -= 14;
+  hr('37474f', 0.8); y -= 16;
+  const TW = 92, XW = PDF_ML + TW;   // the time column, then the act
+  for (const l of lines) {
+    const [at, who, what, detail, ref, name, cp, stream] = l;
+    const head = [who || 'System', what].filter(Boolean).join(' · ');
+    const about = [ref, name, cp, stream].filter(Boolean).join(' · ');
+    const body = [about, detail].filter(Boolean);
+    const wrapped = body.flatMap((s, i) => pdfWrap(s, i === 0 ? 8 : 8, 'F4', CW - TW).slice(0, 3));
+    ensure(13 + wrapped.length * 10 + 6);
+    line(String(at).slice(0, 16).replace('T', ' '), { size: 8, font: 'F6', color: '5c6a72' });
+    line(head, { x: XW, size: 9, font: 'F5', color: '11202a' });
+    y -= 11;
+    for (const w of wrapped) { line(w, { x: XW, size: 8, color: '4c5a63' }); y -= 10; }
+    y -= 6;
+  }
+  if (!lines.length) { line('Nothing happened in this period that this admin may see.', { size: 9, color: '4c5a63' }); y -= 14; }
+  ensure(70); y -= 8; hr('37474f', 0.8); y -= 18;
+  line("HaTi's seal (SHA-256 of the same rows as the spreadsheet)", { size: 8, font: 'F5', color: '11332d' }); y -= 12;
+  line(o.seal, { size: 8, font: 'F6', color: '134639' }); y -= 14;
+  line('Export the same period as a spreadsheet and fingerprint it: the two match while nothing in the period has changed.', { size: 7.5, color: '6b7780' });
+  pages.forEach((p, i) => {
+    const pn = `Page ${i + 1} of ${pages.length}`;
+    p.push(`BT /F4 7.5 Tf ${pdfRgb('8a949b')} rg 1 0 0 1 ${(PDF_PAGE_W - PDF_MR - pdfTextW(pn, 7.5, 'F4')).toFixed(1)} ${(PDF_MB - 26).toFixed(1)} Tm (${pdfEsc(pn)}) Tj ET`);
+  });
+  return pdfAssemble(pages, []);
+}
 
 /* The register export, produced on the server so the file the customer walks
    away with is bounded by the same rules as the screen. The browser still
