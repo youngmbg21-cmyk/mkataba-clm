@@ -85,8 +85,10 @@ const book = page => page.evaluate(() => state.contracts.map(c => c.id).sort().j
       back: (document.querySelector('#st-dhead .st-dback') || {}).textContent || '',
       facts: document.querySelectorAll('.st-ps-facts > div').length,
       tabs: [...document.querySelectorAll('.st-ps-tab')].map(t => t.textContent.trim()) }));
-    check(head.title.includes(name) && /‹/.test(head.back) && head.facts === 3 && head.tabs.length === 2,
-      '1d its name, the way back, three facts and two tabs', JSON.stringify(head));
+    /* Keeping joined between them for an admin (17 Oct 2026, "Keeping on each stream — the SAP way") */
+    check(head.title.includes(name) && /‹/.test(head.back) && head.facts === 3 && head.tabs.length === 3
+      && head.tabs[0] === 'Access' && head.tabs[1] === 'Keeping' && /^People/.test(head.tabs[2]),
+      '1d its name, the way back, three facts and three tabs: Access · Keeping · People', JSON.stringify(head));
 
     /* ============ 2. THE CHOICE, THE LIST, THE REFUSAL ============ */
     await A.page.click('input[name="st-ps-on"][value="1"]');

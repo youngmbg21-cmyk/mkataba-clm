@@ -4722,9 +4722,10 @@ function ovSheetPaint(c,host){
   if(!c||!host) return;
   /* the arrival reading's strip leads, as in the room: its Read again and
      Try again are the only doors onto a stale or failed reading */
-  host.innerHTML='<div id="kt-triage-slot"></div><div class="ov-stack" id="kt-overview"><div id="kt-ov-terms"></div><div id="kt-side"></div></div>';
+  host.innerHTML='<div id="kt-triage-slot"></div><div class="ov-stack" id="kt-overview"><div id="kt-ov-terms"></div><div id="kt-codename"></div><div id="kt-side"></div></div>';
   try{ paintKtTriage(c); }catch(_){}
   renderKeyTermsSide(c); renderKeyTerms(c);
+  cnRowPaint(c);
   if(window.wireKtParties) wireKtParties(c);
   /* a renewal's Decide asked for every reading again (roomReadOnArrival).
      The strip draws this sheet while the list row is still light, and
@@ -4734,6 +4735,76 @@ function ovSheetPaint(c,host){
   if(roomReadAgainDue(c)) triageAndPaint(c,{ again:true, fresh:true });
   else if(_wsReadAgain.has(String(c.id)) && c._light && !c._loaded && window.ensureFull)
     ensureFull(c).then(()=>{ if(roomReadAgainDue(c)) triageAndPaint(c,{ again:true, fresh:true }); }).catch(()=>{});
+}
+/* ---- CODE NAMES FOR CONFIDENTIAL DEALS (owner picked "A code name field —
+   the SAP way", 17 Oct 2026; piece 11) ----
+   One line on the deal's Details: its code name and who knows the real name.
+   Drawn for the people on the deal (the server sends `_codeName` only to
+   them); its door — Give it a code name, or Change — for the deal's owner
+   and admins, opening one dialog (cnEditOpen). The server is the wall
+   (PUT /api/contracts/:id/code-name, cnFrontDoor); everyone outside the
+   list sees the code name and cannot open the deal. Not on an amendment:
+   what is filed under a deal follows its code name. */
+const cnMaySet=c=>{ const me=(typeof currentUser==='function')?currentUser():null;
+  return !!(c&&me&&!c.parentId&&typeof API_MODE==='function'&&API_MODE()&&(me.role==='admin'||String((c.owner&&c.owner.id)||'')===String(me.id))); };
+function cnRowHtml(c){
+  const cn=c&&c._codeName, may=cnMaySet(c);
+  if(!cn&&!may) return '';
+  const who=cn?(cn.people||[]).map(p=>p.name).filter(Boolean):[];
+  const line=cn?i18t(cn.inherited?'cn_row_inherited':'cn_row_set',{code:cn.code,n:who.length,names:who.join(', ')}):i18t('cn_row_none');
+  return `<div class="ov-cn" data-cn-row>
+    <span class="ov-cn-k">${esc(i18t('cn_row_k'))}</span>
+    <span class="ov-cn-v">${cn?`<b>${esc(cn.code)}</b> · `:''}${esc(line)}</span>
+    ${may&&!(cn&&cn.inherited)?`<button type="button" class="ov-cn-go" data-cn-edit="${esc(String(c.id))}">${esc(i18t(cn?'cn_row_change':'cn_row_give'))} ›</button>`:''}
+  </div>`;
+}
+function cnRowPaint(c){
+  const host=document.getElementById('kt-codename'); if(!host) return;
+  host.innerHTML=cnRowHtml(c);
+  if(!host.dataset.wired){ host.dataset.wired='1';
+    host.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('[data-cn-edit]'); if(b) cnEditOpen(getContract(b.getAttribute('data-cn-edit'))); }); }
+}
+function cnEditOpen(c){
+  if(!c||!cnMaySet(c)) return false;
+  const cn=c._codeName||null, me=currentUser()||{};
+  const fixed=new Set([String(me.id),String((c.owner&&c.owner.id)||'')].filter(Boolean));
+  const on=new Set(((cn&&cn.people)||[]).map(p=>String(p.id)).concat([...fixed]));
+  const people=(getUsers()||[]).slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||'')));
+  openModal(`<div style="padding:16px 18px">
+    <h3>${esc(i18t('cn_dlg_title'))}</h3>
+    <p>${esc(i18t('cn_dlg_sub'))}</p>
+    <label class="sap-f" style="display:block;margin:0 0 12px"><span class="sap-lbl">${esc(i18t('cn_dlg_code'))}</span>
+      <input id="cn-code" type="text" maxlength="60" value="${esc((cn&&cn.code)||'')}" placeholder="${esc(i18t('cn_dlg_code_ph'))}" style="${window.HATI_FLD||''}"/></label>
+    <p class="sap-lbl">${esc(i18t('cn_dlg_who'))}</p>
+    <div class="sap-list cn-people" id="cn-people">${people.map(u=>{ const id=String(u.id), lock=fixed.has(id);
+      return `<label class="sap-li"><input type="checkbox" value="${esc(id)}"${on.has(id)?' checked':''}${lock?' disabled':''}/>
+        <span><b>${esc(u.name||u.email||id)}</b>${lock?` <span class="sap-m">${esc(i18t(id===String(me.id)?'cn_dlg_you':'cn_dlg_owner'))}</span>`:''}</span></label>`; }).join('')}</div>
+    <p class="st-note cn-real">${esc(i18t('cn_dlg_real',{name:c.name||''}))}</p>
+    <p class="cn-refusal" id="cn-refusal" role="alert" hidden></p>
+    <div data-dlg-foot style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px">
+      ${cn?`<button type="button" class="ui-btn" id="cn-off">${esc(i18t('cn_dlg_off'))}</button>`:''}
+      <button type="button" class="ui-btn ui-btn-primary" id="cn-save">${esc(i18t('act_save'))}</button>
+      <button type="button" class="ui-btn" data-dlg-cancel id="cn-cancel">${esc(i18t('act_cancel'))}</button>
+    </div></div>`,{ maxWidth:DLG_W.m, label:i18t('cn_dlg_title') });
+  const say=t=>{ const r=document.getElementById('cn-refusal'); if(r){ r.textContent=t; r.hidden=!t; } };
+  const send=async(code)=>{
+    const ids=[...document.querySelectorAll('#cn-people input:checked')].map(i=>i.value);
+    let r=null;
+    try{ r=await api('contracts/'+encodeURIComponent(c.id)+'/code-name','PUT',{ code, ids }); }
+    catch(e){ say((e&&e.message)||i18t('cn_failed')); return; }
+    if(r&&r.codeName) c._codeName=r.codeName; else delete c._codeName;
+    closeModal();
+    toast(r&&r.codeName?i18tn('cn_saved',r.codeName.people.length,{code:r.codeName.code,n:r.codeName.people.length}):i18t('cn_removed'),'ok');
+    cnRowPaint(c);
+  };
+  document.getElementById('cn-save')?.addEventListener('click',()=>{
+    const code=String((document.getElementById('cn-code')||{}).value||'').trim();
+    if(!code){ say(i18t('cn_need_code')); return; }
+    send(code);
+  });
+  document.getElementById('cn-off')?.addEventListener('click',()=>send(''));
+  document.getElementById('cn-cancel')?.addEventListener('click',()=>closeModal());
+  return true;
 }
 function ovRecordOpen(c){ if(c) ovSetEditing(OV_KEY(c,'record'), true); }
 function roomOverviewOpen(c){
@@ -4751,7 +4822,7 @@ function roomOverviewOpen(c){
   return true;
 }
 /* published beside their definitions (the file's export list stays the one at its end) */
-Object.assign(window, { ovSheetPaint, ovRecordOpen, roomOverviewOpen, ovEssRestCells });
+Object.assign(window, { ovSheetPaint, ovRecordOpen, roomOverviewOpen, ovEssRestCells, cnEditOpen, cnRowPaint });
 /* ---- Document workspace right-panel: two tabs (Screening | Signing) --------
    Screening (default while a contract is in progress) stacks Playbook review →
    Insert clause → Copilot Contract Scan, with a "Next: Signing" button. Signing
@@ -16380,14 +16451,16 @@ function signWhyShort(t){
    Its title is where the request stands, named after the approver; its
    sentence is what is owed or what happened. `sa` is the row signApprovalRows
    built — the one reading — so the title and the button cannot disagree. */
+/* who decided, and whom for where a stand-in did (piece 9) */
+const saDecidedName=sa=>{ const r=sa&&sa.req; return r&&r.decidedBy&&r.decidedBy.name ? (typeof awayByLabel==='function'?awayByLabel(r.decidedBy.name, r.for):r.decidedBy.name) : ''; };
 function signApprovalRowTitle(sa){
   if(!sa) return i18t('sa_row_unasked');
   const who=(sa.need&&sa.need.approverName)||i18t('sa_admins');
   switch(sa.status){
     case 'pending': return i18t('sa_row_pending',{who});
-    case 'refused': return i18t('sa_row_refused',{who:(sa.req&&sa.req.decidedBy&&sa.req.decidedBy.name)||who});
-    case 'lapsed': return i18t(sa.expired?'sa_row_expired':'sa_row_lapsed',{who:(sa.req&&sa.req.decidedBy&&sa.req.decidedBy.name)||who});
-    case 'approved': return i18t('sa_row_approved',{who:(sa.req&&sa.req.decidedBy&&sa.req.decidedBy.name)||who});
+    case 'refused': return i18t('sa_row_refused',{who:saDecidedName(sa)||who});
+    case 'lapsed': return i18t(sa.expired?'sa_row_expired':'sa_row_lapsed',{who:saDecidedName(sa)||who});
+    case 'approved': return i18t('sa_row_approved',{who:saDecidedName(sa)||who});
     default: return i18t('sa_row_unasked');
   }
 }

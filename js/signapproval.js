@@ -335,14 +335,21 @@ function saState(c, needs, opts){
    who must say why in writing because they are deciding in somebody else's
    place. NEVER the person who asked and NEVER a person the rule is about —
    an approval you grant yourself is not an approval. Returns the capacity
-   the decision is taken in, or null. */
-function saMayDecide(req, u){
+   the decision is taken in, or null.
+   'deputy' (piece 9, When you're away): the approver's or the backup's
+   stand-in today. `covers(personId)` answers that — the server passes its
+   own reading (awayCovers); the browser's is window.awayCovers for the
+   person signed in. */
+function saMayDecide(req, u, covers){
   if (!req || !u || u.id == null) return null;
   const me = String(u.id);
   if (req.askedBy && String(req.askedBy.id) === me) return null;
   if ((Array.isArray(req.people) ? req.people : []).some(p => p && String(p.id) === me)) return null;
   if (req.approverId && String(req.approverId) === me) return 'approver';
   if (req.backupId && String(req.backupId) === me) return 'backup';
+  const cv = typeof covers === 'function' ? covers
+    : (typeof window !== 'undefined' && typeof window.awayCovers === 'function') ? (id => window.awayCovers(u, id)) : null;
+  if (cv && ((req.approverId && cv(req.approverId)) || (req.backupId && cv(req.backupId)))) return 'deputy';
   if (String(u.role || '') === 'admin') return 'admin';
   return null;
 }

@@ -1315,6 +1315,8 @@ async function contractReopen(c,why){
 }
 async function contractSetArchived(c,on,note){
   if(typeof canEdit==='function'&&!canEdit()){ toast(i18t('ar_editors_only'),'err'); return false; }
+  /* NOTHING ON LEGAL HOLD IS ARCHIVED (piece 10); the server refuses it too */
+  if(on&&contractOnHold(c)){ toast(i18t('end_archive_held'),'warn'); return false; }
   if(on) c.archived={ at:new Date().toISOString(), by:currentUser().name };
   else delete c.archived;
   /* a note for the history, if the end-or-pause door was given one (15 Oct 2026) */
@@ -1719,6 +1721,8 @@ Object.assign(window,{refreshOrgBranding,saveOrgBranding});
        (fillHeavyFrom — restoreHeavyFields' own rule).
    With nothing pending, it is exactly what it was. */
 async function ensureFull(c){
+  /* a confidential deal's stand-in has no record to read (piece 11): every door stops at codeNameStop */
+  if(c && c._codeNamed) throw Object.assign(new Error(i18t('cn_stop',{code:c.name})),{ codeName:true });
   if(!API_MODE() || !c || c._loaded) return;
   if(contractSavePending(c)){ try{ await flushSaves(); }catch(_){} if(c._loaded) return; }
   const full=await api('contracts/'+c.id);
@@ -2191,7 +2195,38 @@ function canViewValues(u){
    the server masks the same way. */
 /* a salary is not deal value: an employment contract's export cell is empty, as its list cell is a dash (fxIsPay) */
 const csvValueCell = c => (!isMonetary(c) || !canViewValues() || (typeof fxIsPay === 'function' && fxIsPay(c))) ? '' : (c.value||0);
-Object.assign(window,{orgDirectory,directoryLookup,userFolderAccess,canAccessFolder,folderSeerCount,folderAccessAllows,privateStreamsMap,privateStreamIds,streamIsPrivate,jamboOnPress,streamNames,canViewValues,csvValueCell,signerTitle,signatureCapacity});
+/* WHEN YOU'RE AWAY (piece 9) — the browser's reading of the server's
+   awayCovers, from what the bootstrap carried for the person signed in
+   (state.away: their own rule and whom they answer for). A stand-in answers
+   the person's approvals and internal reviews, never their signing; the
+   server is the wall and says so where this reading is stale. */
+function awayCovers(u, personId){
+  const me=currentUser();
+  if(!u||!me||personId==null||personId===''||String(u.id)!==String(me.id)||String(u.id)===String(personId)) return false;
+  const a=state.away, t=todayISO();
+  return !!(a&&Array.isArray(a.covering)&&a.covering.some(r=>r&&String(r.userId)===String(personId)&&r.from<=t&&t<=r.to));
+}
+/* whom u answers for: {id,name}, or null where they answer as themself */
+function awayForOf(u, personId){
+  if(!awayCovers(u, personId)) return null;
+  const r=(state.away.covering||[]).find(x=>x&&String(x.userId)===String(personId));
+  return { id:String(personId), name:(r&&r.userName)||((userById(personId)||{}).name)||'' };
+}
+/* CODE NAMES (piece 11): a confidential deal reaches somebody outside its
+   list as a stand-in (`_codeNamed`): its code name, stream and stage. Every
+   door that would open it asks here first and says why it stays shut. */
+function codeNameStop(c){
+  if(!c||!c._codeNamed) return false;
+  toast(i18t('cn_stop',{code:c.name}),'warn');
+  return true;
+}
+/* "Grace Wanjiru for Amina Otieno" — the one way an answer given for someone
+   away names both people */
+function awayByLabel(by, forWho){
+  const n=String(by||'');
+  return forWho&&forWho.name ? i18t('aw_by_for',{by:n,who:forWho.name}) : n;
+}
+Object.assign(window,{orgDirectory,directoryLookup,userFolderAccess,canAccessFolder,folderSeerCount,folderAccessAllows,privateStreamsMap,privateStreamIds,streamIsPrivate,jamboOnPress,streamNames,canViewValues,csvValueCell,signerTitle,signatureCapacity,awayCovers,awayForOf,awayByLabel,codeNameStop});
 
 const newSalt = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 const hashPassword = (pw,salt) => sha256(`${salt}::${pw}`);
@@ -9661,7 +9696,7 @@ function endOrPauseAnswers(c){
   const why = {
     decline: !edit ? 'end_decline_editors' : c.status === 'Declined' ? 'end_decline_already'
       : signed ? 'end_decline_signed' : out() ? 'end_decline_out' : '',
-    archive: !edit ? 'ar_editors_only' : c.archived ? 'end_archive_already' : '',
+    archive: !edit ? 'ar_editors_only' : c.archived ? 'end_archive_already' : contractOnHold(c) ? 'end_archive_held' : '',
     hold: (typeof mayHoldContract === 'function' && !mayHoldContract()) ? 'hd_not_yours'
       : c.status === 'Declined' ? 'end_hold_closed' : contractOnHold(c) ? 'end_hold_already' : '',
   };

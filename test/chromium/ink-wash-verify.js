@@ -20,6 +20,11 @@
 
      node test/chromium/ink-wash-verify.js --save   (record, on the code BEFORE)
 
+   RE-RECORDED 17 Oct 2026, OWNER-ASKED ("Yes"): the Away card on Settings'
+   You tab (a stand-in while you're away) moved headcounts on the settings
+   screen only (44 counts, all three themes). Audited as a set difference:
+   no key new and none gone — no colour and no text size new to the census;
+   every other screen byte-identical. All 170 claims passed after.
    RE-RECORDED 16 Oct 2026 (second), OWNER-ASKED ("Yes, update the record"):
    the Contracts place's stage tabs became the Stage box and its filters moved
    to the row above the card, and Jambo sits on the chips row of Home's panel;

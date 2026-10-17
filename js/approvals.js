@@ -56,9 +56,18 @@ function approverMemberOf(a){
 }
 function approverLabelOf(a){ return a.kind==='member' ? ((approverMemberOf(a)||{}).name||a.name)
   : (a.role==='legal'?i18t('ap_a_legal_approver'):a.role==='admin'?i18t('ap_an_admin'):i18t('ap_a_role',{role:a.role})); }
+/* "Grace Wanjiru for Amina Otieno" where a stand-in answered (core.js's
+   awayByLabel; the name alone where this file is read without it) */
+const _apByFor=s=>(typeof awayByLabel==='function')?awayByLabel(s&&s.by,s&&s.for):String((s&&s.by)||'');
+/* whom u's answer on a rule step is for: the named member, where u is their
+   stand-in today (piece 9); null where u answers as themself */
+function approverForOf(a, u){
+  return (a&&a.kind==='member'&&a.id!=null&&a.id!==''&&u&&String(a.id)!==String(u.id)&&typeof awayForOf==='function') ? awayForOf(u,a.id) : null;
+}
 function userCanApprove(a, u){
   if(!u) return false;
-  if(a.kind==='member') return (a.id!=null&&a.id!=='') ? String(a.id)===String(u.id) : a.name===u.name;
+  /* …or the member's stand-in while they are away (piece 9, awayCovers) */
+  if(a.kind==='member') return (a.id!=null&&a.id!=='') ? String(a.id)===String(u.id) || (typeof awayCovers==='function'&&awayCovers(u,a.id)) : a.name===u.name;
   if(a.role==='admin') return u.role==='admin';
   if(a.role==='legal') return u.role==='legal'||u.role==='admin';   // admin can act for legal
   return u.role===a.role;
@@ -174,6 +183,7 @@ function buildApprovalChain(c){
     const step={ ruleId:r.id, name:r.name, approver:r.approver, order:r.order||99,
       status:kept, by:was?.by||null, at:was?.at||null, comment:was?.comment||null,
       stamp:was?.stamp||null };
+    if(kept!=='pending'&&was&&was.for) step.for=was.for;   /* whom a stand-in answered for (piece 9) */
     /* THE ONE LAPSE RULE (js/asks.js askLapsed, 4 Oct 2026): a rule's yes
        is measured by this kind's own stamp — the amount and the words. */
     if(kept==='approved'){
@@ -283,9 +293,10 @@ async function approveContract(c, comment){
       const s=approvalState(x), step=s.next;
       const stamp=approvalStamp(x), was=step.status;
       x.approvalChain=s.chain.filter(q=>!q.sa).map(q=>({ ...q }));
+      const fw=approverForOf(step.approver, u);
       const ask=askRuleFor(x, step.ruleId, { approver:step.approver, keepStep:true });
-      askAnswer(x, ask.id, { state:'yes', by:u, why:comment||null, stamp });
-      logAudit(x,'Approved',`Step "${step.name}" approved by ${u.name} (${ROLE_LABEL[u.role]})`
+      askAnswer(x, ask.id, { state:'yes', by:u, why:comment||null, stamp, for:fw });
+      logAudit(x,'Approved',`Step "${step.name}" approved by ${u.name}${fw?` for ${fw.name}`:''} (${ROLE_LABEL[u.role]})`
         +` — for ${fmtMoneyShort(stamp.value)} and the wording as it stands`
         +(was==='stale'?' · re-approved after the contract changed':was==='rejected'?' · previously refused':''));
     };
@@ -354,10 +365,11 @@ async function rejectApprovalStep(c, comment){
     const write=x=>{
       const s=approvalState(x), step=s.next;
       x.approvalChain=s.chain.filter(q=>!q.sa).map(q=>({ ...q }));
+      const fw=approverForOf(step.approver, u);
       const ask=askRuleFor(x, step.ruleId, { approver:step.approver, keepStep:true });
-      askAnswer(x, ask.id, { state:'no', by:u, why:comment||null });
+      askAnswer(x, ask.id, { state:'no', by:u, why:comment||null, for:fw });
       if(x.status!=='Signed') x.status='Under Review';
-      logAudit(x,'Approval rejected',`Step "${step.name}" rejected by ${u.name}`
+      logAudit(x,'Approval rejected',`Step "${step.name}" rejected by ${u.name}${fw?` for ${fw.name}`:''}`
         +(comment?` — “${String(comment).slice(0,500)}”`:'')
         +' — the contract goes back to its owner to revise and resubmit');
     };
@@ -553,7 +565,7 @@ function saChainStep(r,i){
   return { ruleId:OVERSEER_STEP_ID, sa:true, key:n.key, need:n, req, name:saStepName(n),
     approver: n.approverId ? { kind:'member', name:n.approverName, id:n.approverId } : { kind:'role', role:'admin' },
     order:9999+i, status:SA_CHAIN_STATUS[r.status]||'unasked', saStatus:r.status,
-    by:req&&req.decidedBy?req.decidedBy.name:null, at:req?req.decidedAt:null,
+    by:req&&req.decidedBy?req.decidedBy.name:null, ...((req&&req.for)?{ for:req.for }:{}), at:req?req.decidedAt:null,
     comment:req?req.decision:null, drift:undefined, driftKeys:(r.drift||[]).slice(), expired:!!r.expired,
     waited:r.waited||0, escalated:!!r.escalated };
 }
@@ -571,7 +583,7 @@ function signApprovalDecidable(c, u){
    approver has left and there is nobody else. They MAY decide earlier from
    the contract itself; this is only about whose list it is on. */
 function signApprovalWaitsOn(c, u){
-  return signApprovalDecidable(c, u).filter(r=>r.as==='approver' || r.escalated || !r.need.approverId);
+  return signApprovalDecidable(c, u).filter(r=>r.as==='approver' || r.as==='deputy' || r.escalated || !r.need.approverId);
 }
 /* ---- MAY IT BE SENT FOR APPROVAL NOW ----
    Only once the paper is final: an approval covers the wording that will be
@@ -724,12 +736,15 @@ async function signApprovalDecide(c, reqId, verdict, note){
   if(as==='admin' && !text){ toast(i18t('sa_admin_needs_why',{who:row.req.approverName||i18t('sa_admins')}),'warn'); return false; }
   const live=(c.signApprovals||[]).find(x=>x&&x.id===reqId);
   if(!live){ toast(i18t('sa_gone'),'warn'); return false; }
-  const cap=as==='backup'?` as the backup for ${row.req.approverName}`:as==='admin'?` as an admin, in ${row.req.approverName||'the approver'}’s place`:'';
+  /* a stand-in answers for the person they stand in for (piece 9) */
+  const fw=as==='deputy'&&typeof awayForOf==='function'?(awayForOf(me,row.req.approverId)||awayForOf(me,row.req.backupId)):null;
+  const cap=as==='backup'?` as the backup for ${row.req.approverName}`:as==='admin'?` as an admin, in ${row.req.approverName||'the approver'}’s place`
+    :fw?` for ${fw.name}`:'';
   /* The answer, through the one ask writer: the list and the request — and,
      like a rule step's, said only once the server took it (B3). */
   const write=x=>{
     const lv=(x.signApprovals||[]).find(q=>q&&q.id===reqId)||live;
-    askAnswer(x, reqId, { state:verdict==='approved'?'yes':'no', by:me, role:me.role||'', as, why:text||null });
+    askAnswer(x, reqId, { state:verdict==='approved'?'yes':'no', by:me, role:me.role||'', as, why:text||null, for:fw });
     if(verdict==='approved') logAudit(x,'Approved',
       `Signing approved by ${me.name}${cap} — for ${saShowsLine(x,lv.shows)}, the wording as it stands`+(text?` — “${text}”`:''));
     else logAudit(x,'Approval rejected',
@@ -2132,8 +2147,8 @@ function approvalChainHtml(c, opts){
       ? i18t('sa_gate_needs_you') : i18t('sa_gate_pending',{when:saWhen(s.req&&s.req.askedAt)}))
     :esc1(i18t('sa_gate_unasked'));
   const stepRight=s=>s.sa?saRight(s)
-    :s.status==='approved'?`✓ ${esc1(s.by)}`
-    :s.status==='rejected'?`✕ refused by ${esc1(s.by)}`
+    :s.status==='approved'?`✓ ${esc1(_apByFor(s))}`
+    :s.status==='rejected'?`✕ refused by ${esc1(_apByFor(s))}`
     :s.status==='stale'?`↻ re-approval needed`
     :'needs '+approverLabelOf(s.approver);
   const stepName=s=>s.sa?`${esc1(s.name)} <span class="text-ink/50">· ${esc1(i18t('sa_gate_approves',{who:approverLabelOf(s.approver)}))}</span>`:esc1(s.name);
@@ -2153,7 +2168,7 @@ function approvalChainHtml(c, opts){
         <span class="ml-auto text-[10px] text-ink/50">${stepRight(s)}</span>
       </div>`).join('')}
       ${(st.rejected||[]).filter(s=>!s.sa).map(s=>`<div class="mt-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-2 text-[11px] text-rose-700 leading-relaxed">
-        <b>${esc1(s.by)||'An approver'} refused “${esc1(s.name)}”.</b>${s.comment?` “${esc1(s.comment)}”`:''}
+        <b>${esc1(_apByFor(s))||'An approver'} refused “${esc1(s.name)}”.</b>${s.comment?` “${esc1(s.comment)}”`:''}
         <span class="block text-rose-700/80 mt-0.5">${i18t('ap_nothing_until_settled')}</span>
       </div>`).join('')}
       ${(st.stale||[]).filter(s=>!s.sa).map(s=>`<div class="mt-1.5 rounded-lg border border-gold-500/30 bg-gold-500/10 px-2.5 py-2 text-[11px] text-gold-700 leading-relaxed">

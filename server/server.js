@@ -1433,11 +1433,17 @@ const rvOpenList = c => rvReviews(c).filter(r => r && r.status === 'open');
 const rvSame = (a, b) => a != null && b != null && String(a) === String(b);
 /* Id first, name second — the same match js/review.js makes, and for the same
    reason: two people share a name, and an old record may carry no id. */
-const rvIsReviewer = (rv, u) => {
+const rvIsReviewerSelf = (rv, u) => {
   if (!rv || !u) return false;
   const r = rv.reviewer || {};
   return r.id ? rvSame(r.id, u.id) : rvSame(r.name, u.name);
 };
+/* THE REVIEWER, OR WHO ANSWERS FOR THEM WHILE THEY ARE AWAY (piece 9): every
+   wall that asks for the reviewer asks this, so the stand-in rules, hands back
+   and is narrowed exactly as the reviewer would be */
+const rvIsReviewer = (rv, u) => rvIsReviewerSelf(rv, u) || !!(rv && u && rv.reviewer && rv.reviewer.id && awayCovers(u, rv.reviewer.id));
+/* whom a reviewer's answer is for: null where they answer as themself */
+const rvForOf = (rv, u) => (rv && !rvIsReviewerSelf(rv, u) && rv.reviewer && rv.reviewer.id) ? awayForOf(u, rv.reviewer.id) : null;
 const rvIsRequester = (rv, u) => {
   if (!rv || !u) return false;
   return rv.byId ? rvSame(rv.byId, u.id) : rvSame(rv.by, u.name);
@@ -1827,7 +1833,7 @@ function srvSignApprovalMerge(prev, c, user) {
     }
     if (e.status !== 'approved' && e.status !== 'refused')
       return { status: 400, error: 'An approval is approved, refused or withdrawn.' };
-    const as = saMayDecide(before, user);
+    const as = saMayDecide(before, user, id => awayCovers(user, id));
     if (!as) return { status: 403, error: `This approval is ${before.approverName || 'an admin'}'s to give.` };
     const note = clean(e.decision).slice(0, SA_NOTE_MAX);
     if (e.status === 'refused' && !note) return { status: 400, error: 'A refusal has to say why — the reason is what goes back.' };
@@ -1840,6 +1846,7 @@ function srvSignApprovalMerge(prev, c, user) {
     before.status = e.status;
     before.decidedBy = { id: user.id, name: user.name || '', role: user.role || '' };
     before.decidedAt = now(); before.as = as; before.decision = note || null;
+    if (as === 'deputy') before.for = awayForOf(user, before.approverId) || awayForOf(user, before.backupId); else delete before.for;
   }
   /* Bounded like the browser bounds it, and a request still waiting is never
      the one dropped. */
@@ -1954,7 +1961,8 @@ function srvAsksMerge(prev, c, user) {
         if (!(b.of || []).some(x => String(x) === String(p.of)))
           return { status: 403, error: `#${p.of} is not part of internal review ${id}.` };
         had.set(String(p.of), { of: String(p.of), answer: String(p.answer || ''), by: me, at: now(),
-          why: clean(p.why).slice(0, ASK_WHY_MAX) || null, stamp: p.stamp != null ? p.stamp : null });
+          why: clean(p.why).slice(0, ASK_WHY_MAX) || null, stamp: p.stamp != null ? p.stamp : null,
+          ...(rvForOf(rv, user) ? { for: rvForOf(rv, user) } : {}) });
       }
       b.parts = [...had.values()];
     }
@@ -1979,18 +1987,24 @@ function srvAsksMerge(prev, c, user) {
       return { status: 403, error: 'An answer is recorded in the name of the person who gives it.' };
     if (b.by && askSamePerson(b.by, me)) return { status: 403, error: 'Nobody answers their own ask.' };
     const why = clean(e.why).slice(0, ASK_WHY_MAX);
+    /* whom the answer is for, where it is given by a stand-in (piece 9) —
+       written here, never taken from the client */
+    let answeredFor = null;
     if (b.kind === 'rule') {
       const rule = ruleOf(b);
       if (!rule || !srvUserCanApprove(rule.approver || {}, user))
         return { status: 403, error: `Only the approver the rule names can answer “${rule ? rule.name : 'this step'}”.` };
+      answeredFor = srvApproveForOf(rule.approver, user);
     } else if (b.kind === 'named') {
       const req = prevReq(id);
-      const as = req ? saMayDecide(req, user) : null;
+      const as = req ? saMayDecide(req, user, pid => awayCovers(user, pid)) : null;
       if (!as) return { status: 403, error: `This approval is ${(req && req.approverName) || 'an admin'}'s to give.` };
       if (as === 'admin' && !why) return { status: 400, error: 'An admin deciding in the approver\'s place has to say why.' };
+      if (as === 'deputy') answeredFor = awayForOf(user, req.approverId) || awayForOf(user, req.backupId);
     } else if (b.kind === 'review') {
       const rv = prevRv(id);
       if (!rv || !rvIsReviewer(rv, user)) return { status: 403, error: `Only ${(rv && rv.reviewer && rv.reviewer.name) || 'the reviewer'} can hand internal review ${id} back.` };
+      answeredFor = rvForOf(rv, user);
     } else if (b.kind === 'suggest') {
       const ch = _askChanges(prev).find(x => 'sg:' + String(x.id) === id) || null;
       if (deskRuleOn() && deskIsClaimed(prev) && !dkMayRuleSuggestion(prev, ch, user))
@@ -2005,6 +2019,7 @@ function srvAsksMerge(prev, c, user) {
     if (to === 'no' && !why) return { status: 400, error: 'A refusal says why — the reason is what goes back.' };
     Object.assign(b, { state: to, answeredAt: now(), answeredBy: me, why: why || null },
       b.kind === 'rule' && to === 'yes' && e.stamp ? { stamp: e.stamp } : {});
+    if (answeredFor) b.answeredFor = answeredFor; else delete b.answeredFor;   // only where a stand-in answered
   }
   return { list: asksBound(out) };
 }
@@ -2164,11 +2179,15 @@ function srvApprovalChainRefusal(c, prev) {
    role. */
 function srvUserCanApprove(a, u) {
   if (!u || !a) return false;
-  if (a.kind === 'member') return a.id ? String(a.id) === String(u.id || '') : String(a.name || '') === String(u.name || '');
+  /* …or the member's stand-in while they are away (piece 9: awayCovers) */
+  if (a.kind === 'member') return a.id ? String(a.id) === String(u.id || '') || awayCovers(u, a.id) : String(a.name || '') === String(u.name || '');
   if (a.role === 'admin') return u.role === 'admin';
   if (a.role === 'legal') return u.role === 'legal' || u.role === 'admin';
   return u.role === a.role;
 }
+/* whom a rule step's answer is for: the named member, where the person
+   answering is their stand-in today (piece 9); null otherwise */
+const srvApproveForOf = (a, u) => (a && a.kind === 'member' && a.id && u && String(a.id) !== String(u.id || '')) ? awayForOf(u, a.id) : null;
 /* A DECISION ON A STEP IS THE DECIDER'S, asked as a DIFFERENCE against the
    stored chain. A step that MOVES to approved or refused must be the caller's
    to decide — the approver the RULE names, read from the workspace's rules
@@ -2197,6 +2216,9 @@ function srvApprovalDecisionRefusal(prev, c, u) {
       return `A refusal of “${rule.name}” says why — the owner needs to know what to change.`;
     if (String(s.by || '') !== String((u && u.name) || ''))
       return `An approval step is recorded in the name of the person who decides it.`;
+    /* AN ANSWER FOR SOMEONE AWAY SAYS SO, and only then (piece 9) */
+    if (String((s.for && s.for.id) || '') !== String((srvApproveForOf(rule.approver, u) || {}).id || ''))
+      return `An approval given for someone away says whom it is for.`;
     const i = matched.findIndex(r => r.id === rule.id);
     const first = i > 0 ? matched.slice(0, i).find(r => {
       const st = after.find(x => x.ruleId === r.id); return !st || st.status !== 'approved'; }) : null;
@@ -2887,8 +2909,12 @@ const AI_VALUE_FIELDS = ['value', 'valueType', 'proposedValue', 'totalValue', 'f
 function scopeAiPortfolio(req, res, next) {
   const scope = folderScopeFor(req.user);
   const money = canViewValues(req.user);
-  if (scopeIsAll(scope) && money) return next();
   const b = req.body || {};
+  /* a confidential deal the reader is outside of reaches the model as its
+     stand-in, whatever the page sent (piece 11; cnFrontDoor set req.cnOut) */
+  if (req.cnOut && req.cnOut.size) for (const f of ['contracts', 'candidates'])
+    if (Array.isArray(b[f])) b[f] = b[f].map(x => (x && x.id && req.cnOut.has(String(x.id))) ? cnStub(String(x.id), req.cnOut.get(String(x.id))) : x);
+  if (scopeIsAll(scope) && money) return next();
   let dropped = 0;
   for (const f of ['contracts', 'candidates']) {
     if (!Array.isArray(b[f])) continue;
@@ -3382,6 +3408,8 @@ function mailSafeHtml(html){
    that is what an admin reads there and what every existing reader of that
    table expects. */
 async function sendEmail(to, subject, body, devHint, opts = {}) {
+  /* a confidential deal reaches a colleague outside its list by its code name (piece 11) */
+  { const m = cnMailMask(to, { subject, body, html: opts.html || null }); subject = m.subject; body = m.body; if (opts.html) opts = { ...opts, html: m.html }; }
   const id = 'e_' + rid(8), at = now();
   let sent = 0, provider = 'outbox', detail = null;
   const attachments = Array.isArray(opts.attachments)
@@ -3527,6 +3555,166 @@ const admin = (req, res, next) => {
 };
 
 /* ---------- status & auth ---------- */
+/* ============================================================
+   CODE NAMES FOR CONFIDENTIAL DEALS (owner picked "A code name field — the
+   SAP way", 17 Oct 2026; piece 11 of the sensitive contracts and governance
+   plan)
+   ============================================================
+   A deal's Details carry a code name and who knows the real name. Everyone
+   else sees the code name — in lists, search, the bell and Jambo — and may
+   not open the deal. THE REAL NAME NEVER LEAVES THE SERVER for anyone
+   outside the list, so the wall stands at the front door, ahead of every
+   /api route (cnFrontDoor):
+     · a request ABOUT a deal the reader is outside of (its id in the path,
+       the body or the query) is refused, in words that name only the code;
+     · every JSON answer to such a reader passes through cnMask: the deal,
+       wherever it appears as an object, becomes a stand-in — its id, number,
+       stream, stage and code name, nothing else — and its real name, in any
+       string, becomes the code name;
+     · what is not JSON is masked where it is made: the register file, the
+       trail file, the workspace download, every email (sendEmail, per
+       recipient), and Jambo's rows and tools (copilotRows, runCopilotTool).
+   A deal's family (amendments, annexes filed under it) is covered with it.
+   ONE writer (PUT /api/contracts/:id/code-name), by the deal's owner or an
+   admin who knows the real name; the setter and the owner are always on the
+   list. Setting, changing, removing it and changing the list are acts in the
+   trail (code_name_log). An admin is NOT on the list by default — the
+   private streams' rule. */
+db.exec(`CREATE TABLE IF NOT EXISTS code_names (contract_id TEXT PRIMARY KEY, code TEXT NOT NULL,
+  people TEXT NOT NULL DEFAULT '[]', set_by TEXT, set_at TEXT)`);
+db.exec(`CREATE TABLE IF NOT EXISTS code_name_log (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL,
+  by_id TEXT, by_name TEXT, contract_id TEXT, contract_ref TEXT, what TEXT)`);
+const CN_MAX = 60;
+const cnPeople = s => { try { const a = JSON.parse(s || '[]'); return Array.isArray(a) ? a.map(String) : []; } catch (_) { return []; } };
+/* ONE READING: every confidential deal and its family — id → { code, people
+   (a Set), real (the names to hide), ref, folder, status, root } */
+function cnMap() {
+  const rows = db.prepare(`SELECT k.contract_id, k.code, k.people, c.name, c.contract_no, c.folder, c.status
+    FROM code_names k LEFT JOIN contracts c ON c.id = k.contract_id`).all();
+  const out = new Map();
+  if (!rows.length) return out;
+  const kids = new Map();
+  for (const r of db.prepare('SELECT id, parent_id, name, contract_no, folder, status FROM contracts WHERE parent_id IS NOT NULL').all()) {
+    if (!kids.has(r.parent_id)) kids.set(r.parent_id, []); kids.get(r.parent_id).push(r);
+  }
+  for (const r of rows) {
+    const people = new Set(cnPeople(r.people)), real = r.name ? [String(r.name)] : [];
+    out.set(r.contract_id, { code: r.code, people, real, ref: r.contract_no || r.contract_id, folder: r.folder || '', status: r.status || '', root: r.contract_id });
+    const walk = id => { for (const k of (kids.get(id) || [])) if (!out.has(k.id)) {
+      out.set(k.id, { code: r.code, people, real: real.concat(k.name ? [String(k.name)] : []), ref: k.contract_no || k.id, folder: k.folder || '', status: k.status || '', root: r.contract_id });
+      walk(k.id); } };
+    walk(r.contract_id);
+  }
+  return out;
+}
+/* the deals this reader is outside of: id → entry; empty for nearly everyone */
+function cnOutsideFor(user, map) {
+  const m = map || cnMap(), out = new Map();
+  if (!user || !m.size) return out;
+  for (const [id, e] of m) if (!e.people.has(String(user.id))) out.set(id, e);
+  return out;
+}
+const cnRefusal = e => ({ codeName: true, code: e.code,
+  error: `${e.code} is a confidential deal: only the people named on it may open it.` });
+/* the stand-in an outsider is given in place of the deal */
+const cnStub = (id, e) => ({ id, contractNo: e.ref !== id ? e.ref : undefined, name: e.code, counterparty: '', folder: e.folder,
+  status: e.status, _codeNamed: true, _light: true });
+/* every JSON answer to an outsider: the deal becomes its stand-in, its real
+   name the code name, wherever either appears */
+function cnMask(body, out) {
+  const names = [];
+  for (const e of out.values()) for (const n of e.real) if (n && n.length >= 3) names.push([n, e.code]);
+  names.sort((a, b) => b[0].length - a[0].length);
+  const str = s => { let t = s; for (const [n, c] of names) if (t.includes(n)) t = t.split(n).join(c); return t; };
+  const walk = (v, depth) => {
+    if (depth > 40 || v == null) return v;
+    if (typeof v === 'string') return str(v);
+    if (Array.isArray(v)) return v.map(x => walk(x, depth + 1));
+    if (typeof v !== 'object') return v;
+    if (typeof v.id === 'string' && out.has(v.id) && ('name' in v || 'counterparty' in v || 'json' in v)) return cnStub(v.id, out.get(v.id));
+    const o = {};
+    for (const [k, x] of Object.entries(v)) o[k] = walk(x, depth + 1);
+    return o;
+  };
+  return walk(body, 0);
+}
+/* the ids a request is about */
+function cnRequestIds(req) {
+  const ids = new Set(), add = v => { if (typeof v === 'string' && v) ids.add(v); };
+  const m = /^\/contracts\/([^/?#]+)/.exec(req.path || '');
+  if (m) { try { add(decodeURIComponent(m[1])); } catch (_) { add(m[1]); } }
+  const b = req.body && typeof req.body === 'object' ? req.body : {}, q = req.query || {};
+  [b.id, b.contractId, b.contract && b.contract.id, b.payload && b.payload.contract && b.payload.contract.id, q.id, q.contractId].forEach(add);
+  if (Array.isArray(b.ids)) b.ids.forEach(add);
+  return ids;
+}
+/* THE FRONT DOOR, ahead of every /api route */
+function cnFrontDoor(req, res, next) {
+  const map = cnMap(); if (!map.size) return next();
+  const s = readSession(req); if (!s || !s.user) return next();
+  const out = cnOutsideFor(s.user, map); if (!out.size) return next();
+  for (const id of cnRequestIds(req)) if (out.has(id)) return res.status(403).json(cnRefusal(out.get(id)));
+  const json = res.json.bind(res);
+  res.json = body => json(cnMask(body, out));
+  req.cnOut = out;
+  next();
+}
+app.use('/api', cnFrontDoor);
+/* what an insider's reading of the deal carries: its code name and who knows */
+function cnOf(id) {
+  const m = cnMap(), e = m.get(String(id || '')); if (!e) return null;
+  const k = db.prepare('SELECT * FROM code_names WHERE contract_id=?').get(e.root) || {};
+  const names = new Map(db.prepare('SELECT id, name, email FROM users').all().map(u => [String(u.id), u.name || u.email || '']));
+  return { code: e.code, inherited: e.root !== String(id), people: [...e.people].map(pid => ({ id: pid, name: names.get(pid) || '' })), by: k.set_by || '', at: k.set_at || '' };
+}
+/* the text of an email, for the person it goes to */
+function cnMailMask(to, parts) {
+  const map = cnMap(); if (!map.size) return parts;
+  const u = db.prepare('SELECT id FROM users WHERE lower(email)=?').get(String(to || '').trim().toLowerCase());
+  if (!u) return parts;
+  const out = cnOutsideFor(u, map); if (!out.size) return parts;
+  const masked = cnMask(parts, out);
+  /* in an email, the party a confidential deal is with is hidden too */
+  const cps = new Set();
+  for (const id of out.keys()) { const r = db.prepare('SELECT counterparty FROM contracts WHERE id=?').get(id); if (r && r.counterparty && r.counterparty.length >= 3) cps.add(r.counterparty); }
+  const hide = s => { let t = s; for (const cp of cps) if (typeof t === 'string' && t.includes(cp)) t = t.split(cp).join('—'); return t; };
+  return Object.fromEntries(Object.entries(masked).map(([k, v]) => [k, typeof v === 'string' ? hide(v) : v]));
+}
+/* ONE WRITER: the deal's owner, or an admin who knows its real name */
+app.put('/api/contracts/:id/code-name', auth, editor, (req, res) => {
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  let c = {}; try { c = JSON.parse(row.json) || {}; } catch (_) {}
+  if (c.parentId) return res.status(400).json({ error: 'A code name is set on the agreement itself; what is filed under it follows.' });
+  const ownerId = String((c.owner && c.owner.id) || '');
+  if (!(req.user.role === 'admin' || (ownerId && ownerId === String(req.user.id))))
+    return res.status(403).json({ error: 'Only the deal\'s owner, or an admin, can give it a code name.' });
+  const b = req.body || {};
+  const was = db.prepare('SELECT * FROM code_names WHERE contract_id=?').get(req.params.id);
+  const log = what => db.prepare('INSERT INTO code_name_log (at, by_id, by_name, contract_id, contract_ref, what) VALUES (?,?,?,?,?,?)')
+    .run(now(), String(req.user.id || ''), String(req.user.name || ''), req.params.id, contractRef(c) || req.params.id, what);
+  const code = String(b.code == null ? '' : b.code).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, CN_MAX);
+  if (!code) {
+    if (was) { db.prepare('DELETE FROM code_names WHERE contract_id=?').run(req.params.id); log(`Code name ${was.code} removed — everyone who may open it sees its real name`); }
+    return res.json({ codeName: null });
+  }
+  if (code.length < 2) return res.status(400).json({ error: 'A code name needs at least two letters.' });
+  if (code.toLowerCase() === String(c.name || '').trim().toLowerCase()) return res.status(400).json({ error: 'A code name is not the real name.' });
+  const users = new Map(db.prepare('SELECT id, name, email FROM users').all().map(u => [String(u.id), u]));
+  const ids = [...new Set((Array.isArray(b.ids) ? b.ids : []).map(String).concat([String(req.user.id)], ownerId ? [ownerId] : []))].filter(id => users.has(id)).slice(0, 200);
+  const nm = id => (users.get(id) || {}).name || (users.get(id) || {}).email || id;
+  db.prepare(`INSERT INTO code_names (contract_id, code, people, set_by, set_at) VALUES (?,?,?,?,?)
+    ON CONFLICT(contract_id) DO UPDATE SET code=excluded.code, people=excluded.people, set_by=excluded.set_by, set_at=excluded.set_at`)
+    .run(req.params.id, code, JSON.stringify(ids), String(req.user.name || ''), now());
+  if (!was) log(`Code name ${code} given · ${ids.length} ${ids.length === 1 ? 'person knows' : 'people know'} the real name: ${ids.map(nm).join(', ')}`);
+  else {
+    if (was.code !== code) log(`Code name changed from ${was.code} to ${code}`);
+    const before = new Set(cnPeople(was.people)), added = ids.filter(id => !before.has(id)), gone = [...before].filter(id => !ids.includes(id));
+    if (added.length || gone.length) log(`Who knows the real name of ${code}: ${[added.length ? 'added ' + added.map(nm).join(', ') : '', gone.length ? 'removed ' + gone.map(nm).join(', ') : ''].filter(Boolean).join('; ')}`);
+  }
+  res.json({ codeName: cnOf(req.params.id) });
+});
+
 app.get('/api/status', (req, res) => {
   const org = getSetting('org');
   // Expose the deployed build so "did my change go live?" is a one-second check:
@@ -3847,6 +4035,8 @@ app.get('/api/bootstrap', auth, (req, res) => {
     bizRoles: req.user.role === 'admin' ? bzBook() : undefined,
     /* the quarter's access review, as far as it has got: an admin's (piece 8) */
     accessReview: req.user.role === 'admin' ? arSummary(req.user) : undefined,
+    away: awayBoot(req.user),
+    keeping: req.user.role === 'admin' ? kpSummary(req.user) : undefined,
     /* Whether this workspace can send email at all. The server has always known
        it and reported it on individual screens — creating a share, opening a
        link, requesting a signing code — which meant the answer only ever
@@ -4044,6 +4234,9 @@ function srvListDecorate(dbRows, user) {
      find the handful on screen. The list is already bounded by `limit`, so
      the placeholder list is bounded with it. */
   const pageIds = rows.map(c => String(c.id));
+  /* a confidential deal's code name and who knows, for those on its list
+     (piece 11); everybody else's rows are stand-ins by cnFrontDoor */
+  { const cm = cnMap(); if (cm.size) rows.forEach(c => { const e = cm.get(String(c.id)); if (e && e.people.has(String(user.id))) c._codeName = cnOf(c.id); }); }
   const inList = n => '(' + new Array(n).fill('?').join(',') + ')';
   if (pageIds.length) {
     /* AND ITS CONCERNS, LITE (5 Oct 2026, the board's "by open risks" split).
@@ -4306,6 +4499,8 @@ app.get('/api/contracts/:id', auth, (req, res) => {
      read here with the figures they cannot see. Transport, never record. */
   const signNeeds = srvSignNeeds(c);
   out._signNeeds = signNeeds;
+  /* a confidential deal's code name and who knows, for those who do (piece 11) */
+  { const cn = cnOf(req.params.id); if (cn) out._codeName = cn; }
   if (out._valuesHidden && signNeeds.length) out._signState = srvSignStateTransport(c, signNeeds);
   /* The Contract Brief rides along as TRANSPORT (_brief, from its own table —
      WO-2): never part of the record, stripped again on PUT. A reader without
@@ -4879,6 +5074,7 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   delete c._readings;        // idea 7: the plain-English layer, off its own table
   delete c._signNeeds; delete c._signState;   // approval before signing: read here, never stored
   delete c._opens; delete c._access; delete c._opensCut;   // a private folder's trail: read here, never stored
+  delete c._codeName; delete c._codeNamed;   // a confidential deal's code name: its own table, never the record
   delete c._reach;           // can they still answer: read off the links, never stored (srvReach)
   delete c._roundPrep;       // Copilot's prepared answers to their round: its own table (runRoundPrep)
   delete c._book;            // what the wording says, read overnight: its own table (runBookReading)
@@ -5735,6 +5931,11 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     if (bad) return res.status(403).json({ error: bad, approvalRule: true });
   }
 
+  /* NOTHING ON LEGAL HOLD IS ARCHIVED (piece 10): asked as a difference — a
+     save that puts a held contract on the shelf */
+  if (prev && c.archived && !prev.archived && ((c.hold && c.hold.at) || (prev.hold && prev.hold.at)))
+    return res.status(409).json({ legalHold: true, error: `${contractRef(prev)} is on legal hold, so it cannot be archived until the hold is released.` });
+
   /* ---------- THE INTERNAL REVIEW, GUARDED ON THE WAY IN ----------
      Asked as a DIFFERENCE, exactly like the signing-step guard above it, and
      for the same reason: this route receives the whole contract on every save,
@@ -5792,6 +5993,9 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
         return res.status(403).json({ error: `#${ch.id} is not part of any open internal review, so no verdict can be recorded on it.` });
       if (!rvIsReviewer(rv, req.user))
         return res.status(403).json({ error: `Only ${(rv.reviewer || {}).name || 'the reviewer'} can rule on #${ch.id}.` });
+      /* a verdict given for someone away says so, and only then (piece 9) */
+      if (ch.review && String((ch.review.for && ch.review.for.id) || '') !== String((rvForOf(rv, req.user) || {}).id || ''))
+        return res.status(403).json({ error: `A verdict given for someone away says whom it is for.` });
     }
 
     /* 3b. A CHANGE AN OPEN REVIEW COVERS STAYS ON THE RECORD (26 Sep 2026, the
@@ -6045,6 +6249,8 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   /* …and a save that DECIDED an ask Jambo had answered says what became of
      his answer (agentRoundSettle): the house's points read it. */
   try { agentRecordSettle(prev, c, { id: req.user.id, name: req.user.name || req.user.email }); } catch (_) {}
+  /* …and every answer this save gave for someone away is the server's own record (piece 9) */
+  try { awayAnswersRecord(prev, c); } catch (_) {}
   /* A REQUEST DRAFTED AS THIS CONTRACT IS DONE once the contract leaves Drafting. */
   try { srvIntakeCloseOn(prev, c, req); } catch (_) {}
   if (sealedNow) srvSendExecutedCopies(c.id, srvAppUrl(req));
@@ -6136,6 +6342,9 @@ app.delete('/api/contracts/:id', auth, editor, (req, res) => {
   const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
   if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
   let c = null; try { c = JSON.parse(row.json); } catch (_) {}
+  /* NOTHING ON LEGAL HOLD IS DELETED (piece 10) */
+  if (c && c.hold && c.hold.at)
+    return res.status(409).json({ legalHold: true, error: `${contractRef(c)} is on legal hold, so it cannot be deleted until the hold is released.` });
   if (c && (isExecutedRow(c) || c.status === 'Signed')) {
     return res.status(409).json({
       error: `${req.params.id} is executed and cannot be deleted. An executed agreement is a record; archive it or record a termination instead.`,
@@ -11181,6 +11390,8 @@ const copilotCtx = (req) => ({
   org: (req.user && req.user.org_id) || WORKSPACE_ID,
   scope: folderScopeFor(req.user),
   money: canViewValues(req.user),
+  /* the confidential deals this reader is outside of: Jambo reads their stand-ins (piece 11) */
+  cnOut: cnOutsideFor(req.user),
 });
 
 // Open (non-dismissed) scan findings stored on a contract's json, if it was
@@ -11431,8 +11642,10 @@ function copilotSearch(ctx, query, limit = 8) {
    cannot count a different book. */
 function copilotRows(ctx) {
   const fs = scopeFrag(ctx.scope);
+  const out = (ctx && ctx.cnOut) || new Map();
   return db.prepare(`SELECT json FROM contracts ${whereOf('org_id=?', fs.sql)} ORDER BY seq`)
-    .all(ctx.org, ...fs.args).map(r => { try { return JSON.parse(r.json); } catch (_) { return null; } }).filter(Boolean);
+    .all(ctx.org, ...fs.args).map(r => { try { return JSON.parse(r.json); } catch (_) { return null; } }).filter(Boolean)
+    .map(c => out.has(String(c.id)) ? cnStub(String(c.id), out.get(String(c.id))) : c);
 }
 function copilotList(ctx, filter = {}) {
   const rows = copilotRows(ctx);
@@ -11956,6 +12169,9 @@ const COPILOT_TOOLS = [
    the provider key the playbook tool reviews with. */
 async function runCopilotTool(ctx, name, input, aux) {
   const a = input || {};
+  /* a confidential deal the reader is outside of: its stand-in, never its record (piece 11) */
+  const cnHit = [a.id].concat(Array.isArray(a.ids) ? a.ids : []).map(String).find(id => ctx && ctx.cnOut && ctx.cnOut.has(id));
+  if (cnHit) { const e = ctx.cnOut.get(cnHit); return { ...cnStub(cnHit, e), confidential: true, note: `${e.code} is a confidential deal: only the people named on it see it. Say so; say nothing else about it.` }; }
   try {
     if (name === 'search_contracts') return copilotSearch(ctx, a.query, a.limit);
     if (name === 'get_obligations') return copilotObligations(ctx, a);
@@ -12717,8 +12933,16 @@ app.get('/api/export/workspace.zip', auth, admin, (req, res) => {
   // authority changes, the export does not quietly become the way out.
   const scope = folderScopeFor(req.user);
   const f = scopeFrag(scope);
+  /* a confidential deal this admin is outside of stays out, with its files (piece 11) */
+  const cnOut = cnOutsideFor(req.user), cnFiles = new Set();
   const contracts = db.prepare(`SELECT json FROM contracts ${whereOf(f.sql)} ORDER BY seq`).all(...f.args)
-    .map(r => visibleContract(dropSittingKeys(JSON.parse(r.json)), req.user));
+    .map(r => JSON.parse(r.json)).filter(c => {
+      if (!cnOut.has(String(c.id))) return true;
+      if (c.upload && c.upload.fileId) cnFiles.add(c.upload.fileId);
+      for (const d of (Array.isArray(c.documents) ? c.documents : [])) if (d && d.fileId) cnFiles.add(d.fileId);
+      outsideFileIds(c).forEach(x => cnFiles.add(x));
+      return false; })
+    .map(c => visibleContract(dropSittingKeys(c), req.user));
   const users = db.prepare('SELECT id,name,email,role,created_at FROM users').all();  // no salt/hash
   const settings = getSetting('appSettings') || {};
   const files = [
@@ -12729,6 +12953,7 @@ app.get('/api/export/workspace.zip', auth, admin, (req, res) => {
   // uploaded file bytes (the files table stores a data: URL in `data`)
   const fileRows = db.prepare('SELECT id, name, data FROM files').all();
   for (const fr of fileRows) {
+    if (cnFiles.has(fr.id)) continue;
     const m = String(fr.data || '').match(/^data:([^;]*);base64,(.*)$/);
     if (m) files.push({ name: 'files/' + fr.id + '__' + String(fr.name || 'file').replace(/[^\w.\-]/g, '_'), data: Buffer.from(m[2], 'base64') });
   }
@@ -12924,6 +13149,274 @@ app.post('/api/access-review/done', auth, admin, (req, res) => {
 });
 
 /* ============================================================
+   WHEN YOU'RE AWAY (owner picked "An Away card on You — the SAP way",
+   17 Oct 2026; piece 9 of the sensitive contracts and governance plan)
+   ============================================================
+   SAP's substitution rule: a person names who answers for them, from a day
+   to a day. The stand-in answers their APPROVALS (a rule step that names
+   them, a named person's yes before signing) and their INTERNAL REVIEWS —
+   NEVER their signing, which no rule here touches. It ends on its own on the
+   last day; "End it now" ends it sooner.
+     · ONE READING, awayCovers(u, personId): is u the person's stand-in today.
+       Every wall that asks "is this the approver / the reviewer" asks it
+       too (srvUserCanApprove, saMayDecide, rvIsReviewer), so the stand-in
+       gets no right of their own and only the person's ANSWERS.
+     · A STAND-IN NEVER WIDENS ANYONE'S REACH: they answer only on contracts
+       they could already open (folderScopeFor stands on every route).
+     · Every answer says whom it was for: the server writes `answeredFor`
+       on the ask and `for` on a named yes; it refuses a rule step or a
+       verdict whose `for` is not the truth; and it keeps its own record of
+       each answer (away_answers). Setting, changing and ending, and every
+       answer for someone else, are acts in the trail.
+   A day is the server's local day (isoDay), the same day the reminders keep. */
+db.exec(`CREATE TABLE IF NOT EXISTS away_rules (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, user_name TEXT,
+  deputy_id TEXT NOT NULL, deputy_name TEXT, d_from TEXT NOT NULL, d_to TEXT NOT NULL, set_at TEXT NOT NULL,
+  ended_at TEXT, ended_how TEXT)`);
+db.exec(`CREATE TABLE IF NOT EXISTS away_answers (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL,
+  deputy_id TEXT, deputy_name TEXT, for_id TEXT, for_name TEXT, contract_id TEXT, what TEXT)`);
+const AWAY_MAX_DAYS = 92;
+const awayToday = () => isoDay(new Date());
+const awayDayOk = s => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ''))
+  && (() => { const d = new Date(s + 'T00:00:00Z'); return !isNaN(d) && d.toISOString().slice(0, 10) === s; })();
+const awayShape = r => r ? { id: r.id, userId: r.user_id, userName: r.user_name || '', deputyId: r.deputy_id,
+  deputyName: r.deputy_name || '', from: r.d_from, to: r.d_to, setAt: r.set_at } : null;
+/* the person's rule still to come or running: not ended, not past its last day */
+const awayRuleOf = userId => db.prepare(`SELECT * FROM away_rules WHERE user_id=? AND ended_at IS NULL AND d_to>=?
+  ORDER BY d_from LIMIT 1`).get(String(userId || ''), awayToday()) || null;
+/* THE ONE READING: is u the person's stand-in today */
+function awayCovers(u, personId) {
+  if (!u || u.id == null || personId == null || personId === '' || String(u.id) === String(personId)) return false;
+  const t = awayToday();
+  return !!db.prepare(`SELECT 1 FROM away_rules WHERE user_id=? AND deputy_id=? AND ended_at IS NULL AND d_from<=? AND d_to>=?`)
+    .get(String(personId), String(u.id), t, t);
+}
+/* whom u answers for, as a name to write — null where u answers as themself */
+const awayForOf = (u, personId) => {
+  if (!awayCovers(u, personId)) return null;
+  const p = db.prepare('SELECT id, name, email FROM users WHERE id=?').get(String(personId));
+  return p ? { id: p.id, name: p.name || p.email || '' } : null;
+};
+/* what u answers for others, today and to come */
+const awayCovering = u => db.prepare(`SELECT * FROM away_rules WHERE deputy_id=? AND ended_at IS NULL AND d_to>=? ORDER BY d_from`)
+  .all(String((u && u.id) || ''), awayToday()).map(awayShape);
+const awayBoot = u => ({ today: awayToday(), mine: awayShape(awayRuleOf(u && u.id)), covering: awayCovering(u) });
+/* ONE RECORD OF EACH ANSWER GIVEN FOR SOMEONE AWAY — asked as a difference
+   on the one ask list (c.asks), whose `answeredFor` and part `for` the
+   server itself wrote (srvAsksMerge) */
+function awayAnswersRecord(prev, c) {
+  const was = new Map((Array.isArray(prev && prev.asks) ? prev.asks : []).filter(a => a && a.id).map(a => [String(a.id), a]));
+  const add = (at, by, fw, what) => db.prepare(`INSERT INTO away_answers (at, deputy_id, deputy_name, for_id, for_name, contract_id, what)
+    VALUES (?,?,?,?,?,?,?)`).run(at || now(), String((by && by.id) || ''), String((by && by.name) || ''), String(fw.id || ''), String(fw.name || ''), String(c.id || ''), what);
+  const rule = id => srvApprovalRules().find(r => r && String(r.id) === String(id));
+  for (const a of (Array.isArray(c && c.asks) ? c.asks : [])) {
+    if (!a || !a.id) continue;
+    const b = was.get(String(a.id)) || {};
+    if (a.answeredFor && a.answeredFor.id && (a.state !== b.state || a.answeredAt !== b.answeredAt)) {
+      const verb = a.state === 'no' ? 'refused' : a.kind === 'review' ? 'handed back' : 'approved';
+      const what = a.kind === 'rule' ? `Approval step “${(rule(a.of && a.of[0]) || {}).name || ''}” ${verb}`
+        : a.kind === 'named' ? `Approval before signing ${verb}` : `Internal review ${a.id} ${verb}`;
+      add(a.answeredAt, a.answeredBy, a.answeredFor, what);
+    }
+    if (a.kind === 'review' && Array.isArray(a.parts)) {
+      const had = new Map((Array.isArray(b.parts) ? b.parts : []).map(p => [String(p && p.of), p]));
+      for (const p of a.parts) {
+        if (!p || !p.for || !p.for.id) continue;
+        const h = had.get(String(p.of));
+        if (h && h.at === p.at) continue;
+        add(p.at, p.by, p.for, `Verdict on #${p.of} in internal review ${a.id}: ${p.answer}`);
+      }
+    }
+  }
+}
+app.get('/api/me/away', auth, (req, res) => res.json(awayBoot(req.user)));
+/* A STAND-IN NEVER WIDENS ANYONE'S REACH, said before the press: of the
+   streams the caller names and may open, the ones the colleague may not —
+   what waits there stays with the caller */
+app.get('/api/me/away/reach', auth, (req, res) => {
+  const dep = db.prepare('SELECT id, role FROM users WHERE id=?').get(String((req.query || {}).deputyId || ''));
+  if (!dep) return res.status(404).json({ error: 'User not found' });
+  const mine = folderScopeFor(req.user), theirs = folderScopeFor(dep);
+  const asked = [...new Set(String((req.query || {}).streams || '').split(',').map(s => s.trim().slice(0, 64)).filter(Boolean))].slice(0, 60);
+  res.json({ cannot: asked.filter(f => inScope(mine, f) && !inScope(theirs, f)) });
+});
+/* SET OR CHANGE: one rule per person — a new one replaces the one standing */
+app.put('/api/me/away', auth, (req, res) => {
+  const b = req.body || {};
+  const from = String(b.from || ''), to = String(b.to || '');
+  if (!awayDayOk(from) || !awayDayOk(to)) return res.status(400).json({ error: 'From and until must be days.' });
+  if (to < from) return res.status(400).json({ error: 'Until is before from.' });
+  if (to < awayToday()) return res.status(400).json({ error: 'Those days are already over.' });
+  if ((Date.parse(to) - Date.parse(from)) / 864e5 + 1 > AWAY_MAX_DAYS) return res.status(400).json({ error: `At most ${AWAY_MAX_DAYS} days at a time.` });
+  const dep = db.prepare('SELECT id, name, email, role FROM users WHERE id=?').get(String(b.deputyId || ''));
+  if (!dep) return res.status(404).json({ error: 'Choose a colleague to answer for you.' });
+  if (dep.id === req.user.id) return res.status(400).json({ error: 'Choose somebody other than yourself.' });
+  if (dep.role === 'viewer') return res.status(400).json({ error: `${dep.name} is a Viewer and cannot answer approvals or reviews.` });
+  /* NO CHAINS: a stand-in who is away themself in those days answers for nobody */
+  const off = db.prepare(`SELECT d_from, d_to FROM away_rules WHERE user_id=? AND ended_at IS NULL AND d_to>=? AND d_from<=?`).get(dep.id, from, to);
+  if (off) return res.status(409).json({ error: `${dep.name} is away themself from ${off.d_from} to ${off.d_to}.` });
+  const at = now();
+  const was = awayRuleOf(req.user.id);
+  if (was) db.prepare('UPDATE away_rules SET ended_at=?, ended_how=? WHERE id=?').run(at, 'changed', was.id);
+  const id = 'aw_' + crypto.randomBytes(6).toString('hex');
+  db.prepare(`INSERT INTO away_rules (id, user_id, user_name, deputy_id, deputy_name, d_from, d_to, set_at) VALUES (?,?,?,?,?,?,?,?)`)
+    .run(id, req.user.id, String(req.user.name || req.user.email || ''), dep.id, String(dep.name || dep.email || ''), from, to, at);
+  res.json(awayBoot(req.user));
+});
+/* END IT NOW: the person's own act, recorded */
+app.delete('/api/me/away', auth, (req, res) => {
+  const was = awayRuleOf(req.user.id);
+  if (!was) return res.status(404).json({ error: 'Nobody is answering for you.' });
+  db.prepare('UPDATE away_rules SET ended_at=?, ended_how=? WHERE id=?').run(now(), 'ended', was.id);
+  res.json(awayBoot(req.user));
+});
+
+/* ============================================================
+   HOW LONG CONTRACTS ARE KEPT, AND LEGAL HOLD (owner picked "Keeping on each
+   stream — the SAP way", 17 Oct 2026; piece 10 of the sensitive contracts
+   and governance plan)
+   ============================================================
+   SAP's retention rules and destruction runs: each stream says how many
+   years its contracts are kept after they end, and what then — listed for an
+   admin to delete, or kept archived. Contracts past their time wait for an
+   admin's YES (Needs your attention); NOTHING IS DELETED OR ARCHIVED WITHOUT
+   IT, and nothing on LEGAL HOLD (the hold an admin can already put on a
+   contract for a dispute) is ever deleted or archived while held.
+     · ONE READING, kpBook: per stream in the reader's scope, its contracts,
+       those on legal hold, and those past their keeping period. The period
+       counts from the day a contract ends AS AMENDED (effExpiryReader). An
+       agreement goes with its family (its amendments, annexes); one member
+       on hold holds the whole family. A contract with no end date is never
+       due.
+     · The rule is the company's (own setting key `keeping`), admin-only; the
+       run re-reads the stored book and acts only on what is due now.
+     · Every rule set or removed, every deletion and every archive is an act
+       in the trail (keeping_acts) — a deleted contract's name, party, stream
+       and end stay there, its record does not. */
+db.exec(`CREATE TABLE IF NOT EXISTS keeping_acts (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL,
+  by_id TEXT, by_name TEXT, kind TEXT NOT NULL, folder TEXT, contract_id TEXT, contract_ref TEXT, name TEXT,
+  counterparty TEXT, ended TEXT, detail TEXT)`);
+const KP_YEARS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 25, 30];
+const KP_THEN = ['delete', 'archive'];
+const kpClean = r => (r && typeof r === 'object' && KP_YEARS.includes(Number(r.years)))
+  ? { years: Number(r.years), then: KP_THEN.includes(r.then) ? r.then : 'delete' } : null;
+function kpRules() {
+  const s = getSetting('keeping') || {}, out = {};
+  for (const [k, v] of Object.entries(s && typeof s === 'object' ? s : {})) { const c = kpClean(v); if (c) out[String(k).slice(0, 64)] = c; }
+  return out;
+}
+/* the last day an agreement may have ended on and be due today */
+const kpCutoff = years => { const d = new Date(); d.setFullYear(d.getFullYear() - years); d.setDate(d.getDate() - 1); return isoDay(d); };
+const kpHeld = c => !!(c && c.hold && c.hold.at);
+const kpThenWords = r => `${r.years} year${r.years === 1 ? '' : 's'}, then ${r.then === 'archive' ? 'kept archived' : 'listed for an admin to delete'}`;
+function kpBook(user, onlyFid) {
+  const rules = kpRules();
+  const f = scopeFrag(folderScopeFor(user));
+  const rows = db.prepare(`SELECT id, folder, status, expiry, parent_id, seq, version, json FROM contracts ${whereOf(f.sql)}`).all(...f.args)
+    .filter(r => !onlyFid || String(r.folder || '') === onlyFid || r.parent_id);
+  const parsed = new Map();
+  for (const r of rows) { let c = {}; try { c = JSON.parse(r.json) || {}; } catch (_) { c = {}; } parsed.set(r.id, c); }
+  const { eff, kidsOf } = effExpiryReader(rows, parsed);
+  const familyOf = id => { const out = [], seen = new Set(), walk = x => { for (const k of (kidsOf.get(x) || [])) if (!seen.has(k.id)) { seen.add(k.id); out.push(k); walk(k.id); } }; walk(id); return out; };
+  const streams = {};
+  const S = fid => streams[fid] || (streams[fid] = { contracts: 0, held: [], due: [] });
+  for (const r of rows) {
+    const fid = String(r.folder || '');
+    if (!fid || (onlyFid && fid !== onlyFid)) continue;
+    const c = parsed.get(r.id) || {};
+    const s = S(fid);
+    s.contracts++;
+    if (kpHeld(c)) s.held.push({ id: r.id, ref: contractRef(c) || r.id, name: c.name || '', since: c.hold.at, by: c.hold.by || '' });
+    const rule = rules[fid];
+    if (!rule || r.parent_id) continue;
+    const end = eff(r);
+    if (!end || end > kpCutoff(rule.years)) continue;
+    if (rule.then === 'archive' && c.archived) continue;
+    const fam = familyOf(r.id);
+    if (kpHeld(c) || fam.some(k => kpHeld(parsed.get(k.id)))) { s.heldDue = (s.heldDue || 0) + 1; continue; }
+    s.due.push({ id: r.id, ref: contractRef(c) || r.id, name: c.name || '', counterparty: c.counterparty || '', ended: end, family: fam.map(k => k.id) });
+  }
+  for (const [fid, rule] of Object.entries(rules)) { const s = S(fid); s.rule = rule; s.cutoff = kpCutoff(rule.years); }
+  return { rules, streams, years: KP_YEARS, rows: new Map(rows.map(r => [r.id, r])), parsed };
+}
+const kpSummary = user => {
+  const rules = kpRules(); if (!Object.keys(rules).length) return { rules, due: {} };
+  const b = kpBook(user), due = {};
+  for (const [fid, s] of Object.entries(b.streams)) if (s.rule && s.due.length) due[fid] = { n: s.due.length, then: s.rule.then };
+  return { rules, due };
+};
+const kpRecord = (req, kind, o) => db.prepare(`INSERT INTO keeping_acts (at, by_id, by_name, kind, folder, contract_id, contract_ref, name, counterparty, ended, detail)
+  VALUES (?,?,?,?,?,?,?,?,?,?,?)`).run(now(), String(req.user.id || ''), String(req.user.name || ''), kind, o.folder || '', o.id || '', o.ref || '', o.name || '', o.counterparty || '', o.ended || '', o.detail || '');
+app.get('/api/keeping', auth, admin, (req, res) => {
+  const b = kpBook(req.user);
+  res.json({ rules: b.rules, years: b.years, streams: b.streams });
+});
+/* THE RULE: a period from the list and what then; null takes it away */
+app.put('/api/keeping/:fid', auth, admin, (req, res) => {
+  const fid = String(req.params.fid || '').slice(0, 64);
+  if (!fid || !inScope(folderScopeFor(req.user), fid)) return res.status(404).json({ error: 'Stream not found' });
+  const b = req.body || {};
+  const all = { ...(getSetting('keeping') || {}) };
+  const was = kpClean(all[fid]);
+  if (b.years == null || b.years === '') delete all[fid];
+  else {
+    const r = kpClean(b);
+    if (!r) return res.status(400).json({ error: `A keeping period is one of ${KP_YEARS.join(', ')} years.` });
+    all[fid] = r;
+  }
+  setSetting('keeping', all);
+  const now_ = kpClean(all[fid]);
+  if (stable(was) !== stable(now_)) kpRecord(req, 'rule', { folder: fid, detail: now_ ? kpThenWords(now_) : 'no keeping period' });
+  res.json({ rules: kpRules() });
+});
+/* THE ADMIN'S YES: delete or archive what is due now in one stream — each
+   contract asked again of the stored book, never of the request */
+app.post('/api/keeping/:fid/run', auth, admin, (req, res) => {
+  const fid = String(req.params.fid || '').slice(0, 64);
+  const rule = kpRules()[fid];
+  if (!rule || !inScope(folderScopeFor(req.user), fid)) return res.status(404).json({ error: 'This stream has no keeping period.' });
+  const act = String((req.body || {}).act || '');
+  if (act !== rule.then) return res.status(400).json({ error: `This stream's contracts are ${rule.then === 'archive' ? 'archived' : 'deleted'} when their time is up.` });
+  const ids = [...new Set((Array.isArray((req.body || {}).ids) ? req.body.ids : []).map(String))].slice(0, 500);
+  const b = kpBook(req.user, fid);
+  const due = new Map((b.streams[fid] || { due: [] }).due.map(d => [d.id, d]));
+  const done = [], refused = [];
+  for (const id of ids) {
+    const d = due.get(id);
+    if (!d) { refused.push({ id, why: 'not due, or on legal hold' }); continue; }
+    const base = { folder: fid, id: d.id, ref: d.ref, name: d.name, counterparty: d.counterparty, ended: d.ended };
+    if (act === 'archive') {
+      const r = b.rows.get(id), c = b.parsed.get(id);
+      c.archived = { at: now(), by: req.user.name || '', why: 'keeping' };
+      c.audit = (Array.isArray(c.audit) ? c.audit : []).concat([{ at: now(), user: req.user.name || '', action: 'Archived',
+        detail: `Past its keeping period (${rule.years} year${rule.years === 1 ? '' : 's'} after it ended on ${d.ended}) — off the live lists and counts, still searchable` }]);
+      c._seq = r.seq;
+      withWriteRetry(() => upsertContract(c, (r.version || 0) + 1));
+      kpRecord(req, 'archive', { ...base, detail: `kept ${rule.years} year${rule.years === 1 ? '' : 's'} after it ended` });
+    } else {
+      const members = [id].concat(d.family);
+      txn(() => {
+        for (const mid of members) {
+          const c = b.parsed.get(mid) || {};
+          const fileIds = [];
+          if (c.upload && c.upload.fileId) fileIds.push(c.upload.fileId);
+          for (const x of (Array.isArray(c.documents) ? c.documents : [])) if (x && x.fileId) fileIds.push(x.fileId);
+          outsideFileIds(c).forEach(x => { if (!fileIds.includes(x)) fileIds.push(x); });
+          forgetContractRecords(mid);
+          for (const x of fileIds) db.prepare('DELETE FROM files WHERE id=?').run(x);
+          db.prepare('DELETE FROM contracts WHERE id=?').run(mid);
+          try { if (ftsOk) db.prepare('DELETE FROM contracts_fts WHERE id=?').run(mid); } catch (_) {}
+        }
+      });
+      _storedBytes = null;
+      kpRecord(req, 'delete', { ...base, detail: `kept ${rule.years} year${rule.years === 1 ? '' : 's'} after it ended${d.family.length ? `; with ${d.family.length} filed under it` : ''}` });
+    }
+    done.push(id);
+  }
+  const after = kpBook(req.user);
+  res.json({ done, refused, rules: after.rules, streams: after.streams });
+});
+
+/* ============================================================
    THE TRAIL, AS A FILE (owner picked "Export drawer — the SAP way",
    17 Oct 2026; piece 5 of the sensitive contracts and governance plan)
    ============================================================
@@ -12962,7 +13455,7 @@ function trailAsk(req) {
     const name = String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 80);
     if (name) clean[String(k).slice(0, 64)] = name;
   }
-  return { from, to, streams, names: clean, scope: folderScopeFor(req.user) };
+  return { from, to, streams, names: clean, scope: folderScopeFor(req.user), cnOut: cnOutsideFor(req.user) };
 }
 const trailIso = v => { const t = Date.parse(String(v || '')); return isNaN(t) ? '' : new Date(t).toISOString(); };
 /* ONE READING: the acts in the period, oldest first */
@@ -12993,6 +13486,36 @@ function trailRows(ask) {
   /* the quarter's access review, stamped done (piece 8) */
   for (const r of db.prepare('SELECT * FROM access_reviews WHERE done_at >= ? AND done_at <= ?').all(lo, hi))
     out.push({ at: r.done_at, who: String(r.done_by_name || ''), what: 'Access review done', detail: `${r.quarter} · ${r.people} people: ${r.kept} kept, ${r.changed} changed`, c: null });
+  /* a stand-in named, changed, ended — or ended on its own on the last day —
+     and every answer given for someone away, on its contract (piece 9) */
+  const awayFor = r => `${r.deputy_name} answers approvals and internal reviews for ${r.user_name}`;
+  for (const r of db.prepare('SELECT * FROM away_rules WHERE set_at >= ? AND set_at <= ?').all(lo, hi)) {
+    const swap = db.prepare(`SELECT 1 FROM away_rules WHERE user_id=? AND ended_how='changed' AND ended_at=?`).get(r.user_id, r.set_at);
+    out.push({ at: r.set_at, who: String(r.user_name || ''), what: swap ? 'Away changed' : 'Away set', detail: `${awayFor(r)}, ${r.d_from} to ${r.d_to}`, c: null });
+  }
+  for (const r of db.prepare(`SELECT * FROM away_rules WHERE ended_how='ended' AND ended_at >= ? AND ended_at <= ?`).all(lo, hi))
+    out.push({ at: r.ended_at, who: String(r.user_name || ''), what: 'Away ended', detail: `${r.deputy_name} no longer answers for ${r.user_name}`, c: null });
+  for (const r of db.prepare(`SELECT * FROM away_rules WHERE ended_at IS NULL AND d_to < ? AND d_to >= ? AND d_to <= ?`).all(awayToday(), ask.from, ask.to))
+    out.push({ at: r.d_to + 'T23:59:59.000Z', who: 'HaTi', what: 'Away ended on its own', detail: `${awayFor(r)} until ${r.d_to}`, c: null });
+  /* a keeping period set, and every deletion and archive after it (piece 10):
+     a deleted contract's own lines went with it, so this row carries its name */
+  const kpOk = fid => inScope(ask.scope, fid) && (!ask.streams.length || ask.streams.includes(String(fid || '')));
+  for (const r of db.prepare('SELECT * FROM keeping_acts WHERE at >= ? AND at <= ? ORDER BY id').all(lo, hi)) {
+    /* an archive is on the contract's own trail already (its audit line) */
+    if (!kpOk(r.folder) || r.kind === 'archive') continue;
+    const what = r.kind === 'rule' ? 'Keeping period set' : r.kind === 'archive' ? 'Archived after its keeping period' : 'Deleted after its keeping period';
+    const c = r.kind === 'rule' ? null : (byId.get(String(r.contract_id)) || { id: r.contract_id, contractNo: r.contract_ref, name: r.name, counterparty: r.counterparty, folder: r.folder });
+    out.push({ at: r.at, who: String(r.by_name || ''), what, detail: r.kind === 'rule' ? `${ask.names[r.folder] || r.folder}: ${r.detail}` : `ended ${r.ended} · ${r.detail}`, c });
+  }
+  /* a code name given, changed, removed, and who knows the real name (piece 11) */
+  if (byId.size) for (const r of db.prepare('SELECT * FROM code_name_log WHERE at >= ? AND at <= ? ORDER BY id').all(lo, hi)) {
+    const c = byId.get(String(r.contract_id));
+    if (c) out.push({ at: r.at, who: String(r.by_name || ''), what: 'Code name', detail: String(r.what || ''), c });
+  }
+  if (byId.size) for (const r of db.prepare('SELECT * FROM away_answers WHERE at >= ? AND at <= ? ORDER BY id').all(lo, hi)) {
+    const c = byId.get(String(r.contract_id));
+    if (c) out.push({ at: r.at, who: String(r.deputy_name || ''), what: 'Answered for someone away', detail: `for ${r.for_name} · ${r.what}`, c });
+  }
   /* a hand-over of the record is the company's act, whatever streams were asked */
   for (const r of db.prepare('SELECT * FROM trail_exports WHERE at >= ? AND at <= ? ORDER BY id').all(lo, hi))
     out.push({ at: r.at, who: String(r.user_name || ''), what: 'Exported the trail', detail: `${r.d_from} to ${r.d_to} · ${String(r.fmt || '').toUpperCase()} · ${r.acts} acts`, c: null });
@@ -13004,8 +13527,13 @@ const trailCell = v => { let s = String(v == null ? '' : v); if (/^[=+\-@\t\r]/.
 const TRAIL_HEAD = ['When (UTC)', 'Who', 'What', 'Detail', 'Contract', 'Name', 'Counterparty', 'Stream'];
 function trailLines(rows, ask) {
   const stream = id => (id ? (ask.names[String(id)] || String(id)) : '');
-  return rows.map(r => [r.at, r.who, r.what, r.detail, r.c ? contractRef(r.c) : '', r.c ? String(r.c.name || '') : '',
-    r.c ? String(r.c.counterparty || '') : '', r.c ? stream(r.c.folder) : '']);
+  /* a confidential deal is its code name to an admin outside its list (piece 11) */
+  const out = ask.cnOut || new Map(), cn = c => c && out.get(String(c.id));
+  /* …and on its own lines, the party it is with */
+  const cpHide = (r, t) => { const cp = cn(r.c) && String(r.c.counterparty || ''); return cp && cp.length >= 3 ? String(t || '').split(cp).join('—') : t; };
+  const lines = rows.map(r => [r.at, r.who, r.what, cpHide(r, r.detail), r.c ? contractRef(r.c) : '', r.c ? (cn(r.c) ? cn(r.c).code : String(r.c.name || '')) : '',
+    r.c && !cn(r.c) ? String(r.c.counterparty || '') : '', r.c ? stream(r.c.folder) : '']);
+  return out.size ? cnMask(lines, out) : lines;
 }
 const trailCsv = lines => [TRAIL_HEAD, ...lines].map(l => l.map(trailCell).join(',')).join('\r\n') + '\r\n';
 const trailSeal = csv => crypto.createHash('sha256').update(csv, 'utf8').digest('hex');
@@ -13120,7 +13648,12 @@ app.get('/api/export/contracts.csv', auth, (req, res) => {
   const head = ['ID', 'Name', 'Counterparty', 'Folder', `Value (${orgJx().currency})`, 'Status', 'Last action', 'Expiry'];
   const monetary = c => c.valueType !== 'none';
   const lines = [head.map(CSV_CELL).join(',')];
-  for (const c of rows) {
+  /* a confidential deal is its code name and stage alone to a reader outside its list (piece 11) */
+  const cnOut = cnOutsideFor(req.user);
+  for (const c0 of rows) {
+    const e = cnOut.get(String(c0.id));
+    if (e) { lines.push([c0.id, e.code, '', c0.folder || '', '', c0.status || '', '', ''].map(CSV_CELL).join(',')); continue; }
+    const c = c0;
     lines.push([c.id, c.name || '', c.counterparty || '', c.folder || '',
       (money && monetary(c)) ? (Number(c.value) || 0) : '',
       c.status || '', c.lastAction || '', c.expiry || ''].map(CSV_CELL).join(','));

@@ -95,6 +95,7 @@ function bsOnePage(st){
    loaded whole behind it: the brief and the trail ride the heavy record. */
 function hbStripBring(id, page, opts){
   const c = bsContract(id); if (!c) return false;
+  if (typeof window.codeNameStop === 'function' && codeNameStop(c)) return false;
   if (bsPhone() || typeof hbS !== 'function' || typeof hbSave !== 'function') return false;
   const o = opts || {};
   /* THE CONTRACT IN HAND: the one brought up is the one every door names

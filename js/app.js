@@ -1615,7 +1615,7 @@ function openFolder(fid){
    checks that test its insides. Remembered for the contract it named
    (_roomByName, declared above setView), so the room's own repaints
    (setView('workspace') again) stay in the room. */
-function openWorkspace(id, opts){ _roomByName=(opts&&opts.room)?String(id):null; state.activeId=id; state.selId=id; setView('workspace'); }
+function openWorkspace(id, opts){ if(typeof codeNameStop==='function'&&codeNameStop(getContract(id))) return; _roomByName=(opts&&opts.room)?String(id):null; state.activeId=id; state.selId=id; setView('workspace'); }
 /* Create a draft from a built-in template WITHOUT the guided fill — every field
    left blank for the user to complete in the document. No interface path calls
    this any more: both routes into a built-in template (the Templates page and

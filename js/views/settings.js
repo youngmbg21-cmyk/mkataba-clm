@@ -440,6 +440,7 @@ function stWireDrawerOnce(){
       return; }
     if(t.closest('[data-st-sheet-csv]')){ stSheetCsv(); return; }
     if(t.closest('[data-st-backup]')){ settingsExportBackup(); return; }
+    if(t.closest('[data-st-away-end]')){ stAwayEnd(); return; }
     const row=t.closest('[data-st-panel]');
     if(row){ stDrawerOpen(row.getAttribute('data-st-panel')); stDrawerFocus(row.getAttribute('data-st-focus')); return; }
     const tab=t.closest('[data-st-tab]');
@@ -595,7 +596,8 @@ function stDrawerOpen(key){
   if(String(key||'').indexOf('ask:')===0 && typeof stAskDrawer==='function'){ const d=stAskDrawer(String(key).slice(4)); if(d){ _stOpen=key; stDrawerPaint(d); } return; }
   if(String(key||'').indexOf('me:')===0 && typeof stMeDrawer==='function'){ const d=stMeDrawer(String(key).slice(3)); if(d){ _stOpen=key; stDrawerPaint(d); } return; }
   /* A STREAM'S OWN PAGE (17 Oct 2026): who may open it */
-  if(String(key||'').indexOf('stream:')===0){ const d=stStreamDrawer(String(key).slice(7)); if(d){ _stOpen=key; stDrawerPaint(d); } return; }
+  /* stream:<fid>, or stream:<fid>@<tab> to open it on a tab (Keeping, from Needs you) */
+  if(String(key||'').indexOf('stream:')===0){ const [fid,tab]=String(key).slice(7).split('@'); const d=stStreamDrawer(fid,tab); if(d){ _stOpen=key; stDrawerPaint(d); } return; }
   const p=SET_PANELS[key]; if(!p) return;
   _stOpen=key;
   stDrawerPaint({ title:p.title(), sub:p.sub?p.sub():'', foot:p.foot||'done', glyph:p.glyph,
@@ -1026,6 +1028,8 @@ function stNeedsAll(){
   stClashes().forEach(r=>out.push(r));
   /* the quarter's access review, until it is done (piece 8) */
   const arRow=stArNeedRow(); if(arRow) out.push(arRow);
+  /* contracts past their keeping period, waiting for an admin's yes (piece 10) */
+  stKpNeedRows().forEach(r=>out.push(r));
   const unset=stCapUnset();
   if(unset.length) out.push({ key:'limits', dot:'warn',
     text:i18tn('st_need_limits',unset.length,{n:unset.length,names:stNamesSaid(unset)}), sub:i18t('st_need_limits_sub'),
@@ -1553,6 +1557,7 @@ function stYouItems(){
     { key:'data', t:'st_you_data', w:['st_acct_backup','set_export_backup','st_you_data_words'] },
     (u.role==='legal') && { key:'design', t:'st_acct_design', w:['set_edit_design','st_acct_design_note','st_you_design_words'], door:'me:design' },
     (api && typeof agPointsTableHtml==='function') && { key:'points', t:'jh_pt_h_mine', w:['st_you_points_words'], door:'me:points' },
+    api && { key:'away', t:'st_you_away', w:['st_aw_who','st_aw_never_sign','st_you_away_words'], door:'me:away', state:stAwayState },
   ].filter(Boolean);
 }
 /* names the You cards had before the full build, still asked by older doors */
@@ -1567,7 +1572,7 @@ function stYouCardHtml(it){
   const line=html=>`<span class="st-you-line">${html}</span>`;
   const door=(attrs,label)=>stDoorHtml(attrs,label);
   const d=k=>`data-st-panel="${k}"`;
-  let facts='', doors='';
+  let facts='', doors='', chip='';
   if(it.key==='who'){
     facts=fact(d('me:who'), `${esc(u.name||u.email||'')} · ${esc((typeof roleName==='function')?roleName(u.role):'')}`)
       +line(esc([u.email,u.title].filter(Boolean).join(' · ')));
@@ -1603,9 +1608,22 @@ function stYouCardHtml(it){
     const own=keys.filter(k=>{ try{ return !!agPointsMine(k); }catch(_){ return false; } }).length;
     facts=line(esc(i18tn('st_you_points_own',own,{n:own,of:keys.length})))+line(`<span class="st-you-sub">${esc(i18t('st_you_points_sub'))}</span>`);
     doors=door(d('me:points'),i18t('st_you_points_door'));
+  } else if(it.key==='away'){
+    const a=state.away||{}, m=a.mine, me=u.name||u.email||'';
+    if(m){
+      chip=` <span class="chip st-chip-on st-aw-chip">${esc(stAwayState())}</span>`;
+      facts=line(i18t('st_aw_line',{who:`<b>${esc(m.deputyName)}</b>`,from:`<b>${esc(stDay(m.from))}</b>`,to:`<b>${esc(stAwayDay(m.to))}</b>`}))
+        +line(`<span class="st-you-sub">${esc(i18t('st_aw_sub',{who:m.deputyName,me}))}</span>`);
+      doors=door(d('me:away'),i18t('st_aw_change'))+door('data-st-away-end',i18t('st_aw_end'));
+    } else {
+      facts=line(esc(i18t('st_aw_none')))+line(`<span class="st-you-sub">${esc(i18t('st_aw_none_sub'))}</span>`);
+      doors=door(d('me:away'),i18t('st_aw_set'));
+    }
+    /* whom this person answers for, said where they keep their own */
+    facts+=(Array.isArray(a.covering)?a.covering:[]).map(r=>line(`<span class="st-aw-for">${esc(i18t(r.from<=(a.today||todayISO())?'st_aw_covering':'st_aw_covering_later',{who:r.userName,from:stDay(r.from),to:stAwayDay(r.to)}))}</span>`)).join('');
   } else if(it.key==='password') return '';
   return `<section class="st-grp st-card st-you-card" data-st-you-card="${it.key}" id="st-you-${it.key}">
-    <h3 class="st-card-h">${esc(i18t(it.t))}</h3>
+    <h3 class="st-card-h">${esc(i18t(it.t))}${chip}</h3>
     <div class="st-card-facts">${facts}</div>
     <div class="st-card-doors">${doors}</div>
   </section>`;
@@ -1646,6 +1664,7 @@ function stMeDrawer(key){
   const u=(typeof currentUser==='function'&&currentUser())||{};
   const sections={ who:['job'], safety:['twostep','sessions'], told:['email'], work:['work'], design:['design'], points:['points'] };
   if(key==='password') return stPasswordDrawer();
+  if(key==='away') return stAwayDrawer();
   if(!sections[key]) return null;
   const it=stYouItem(key);
   const head=key==='who'?`<div class="st-me-who"><span class="st-me-n">${esc(u.name||u.email||'')}</span><span class="st-note">${esc([u.email,(typeof roleName==='function')?roleName(u.role):''].filter(Boolean).join(' · '))}</span></div>`:'';
@@ -1675,6 +1694,97 @@ async function stPasswordSave(){
   catch(e){ return stDrawerRefuse((e&&e.message)||i18t('st_pw_failed')); }
   toast(i18t('st_pw_done'),'ok'); stDrawerClose();
   _stYouFacts.devices=null; stYouLoad();
+}
+/* ---- WHEN YOU'RE AWAY (owner picked "An Away card on You — the SAP way",
+   17 Oct 2026; piece 9 of the sensitive contracts and governance plan) ----
+   SAP's substitution rule, on your own settings: who answers for you, from a
+   day to a day, and what — your approvals and internal reviews, never your
+   signing. It ends on its own. The server keeps the rule (/api/me/away) and
+   is the wall: its awayCovers lets the stand-in answer only what the person
+   would, only on contracts the stand-in could already open, and every answer
+   says whom it was for. state.away is the bootstrap's copy for this person. */
+let _stAw=null;
+const stAwayDay=iso=>{ const t=Date.parse(iso||''); if(!t) return '';
+  try{ return new Date(t).toLocaleDateString((typeof langLocale==='function')?langLocale():undefined,{ day:'numeric', month:'short', year:'numeric' }); }catch(_){ return String(iso).slice(0,10); } };
+/* the card's short state: running, coming, or not set */
+function stAwayState(){
+  const a=state.away||{}, m=a.mine;
+  if(!m) return i18t('st_aw_state_off');
+  return (m.from<=(a.today||todayISO())) ? i18t('st_aw_state_on',{to:stDay(m.to)}) : i18t('st_aw_state_set',{from:stDay(m.from),to:stDay(m.to)});
+}
+/* who may answer for you: a colleague who is not a Viewer, never yourself */
+function stAwayPeople(){
+  const me=(typeof currentUser==='function'&&currentUser())||{};
+  return stUsers().filter(x=>x&&x.id&&String(x.id)!==String(me.id)&&x.role!=='viewer')
+    .sort((x,y)=>String(x.name||x.email||'').localeCompare(String(y.name||y.email||'')));
+}
+const stAwayAddDays=(iso,n)=>{ const d=new Date(iso+'T12:00:00'); d.setDate(d.getDate()+n);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+function stAwayDrawer(){
+  const m=(state.away||{}).mine, t=todayISO();
+  _stAw={ from:m?m.from:t, to:m?m.to:stAwayAddDays(t,6), deputyId:m?String(m.deputyId):'', cannot:null };
+  const lbl=x=>`<span class="st-ps-l">${esc(x)}</span>`;
+  const ppl=stAwayPeople();
+  return { title:i18t('st_you_away'), sub:i18t('st_aw_drawer_sub'), foot:'save',
+    body:`<div class="st-tr-grid">
+      <label class="st-tr-f">${lbl(i18t('st_aw_from'))}<input type="date" id="st-aw-from" value="${esc(_stAw.from)}" min="${esc(t)}" style="${ST_INPUT}"/></label>
+      <label class="st-tr-f">${lbl(i18t('st_aw_until'))}<input type="date" id="st-aw-to" value="${esc(_stAw.to)}" min="${esc(t)}" style="${ST_INPUT}"/></label>
+    </div>
+    <label class="st-tr-f">${lbl(i18t('st_aw_who'))}<select id="st-aw-who" style="${ST_INPUT}">
+      <option value=""${_stAw.deputyId?'':' selected'}>${esc(i18t('st_aw_pick'))}</option>
+      ${ppl.map(x=>`<option value="${esc(x.id)}"${String(x.id)===_stAw.deputyId?' selected':''}>${esc(x.name||x.email)}</option>`).join('')}</select></label>
+    <div class="st-aw-what">${lbl(i18t('st_aw_what'))}
+      <p class="st-aw-yes">${esc(i18t('st_aw_what_yes'))}</p>
+      <p class="st-note">${esc(i18t('st_aw_never_sign'))}</p></div>
+    <p class="st-note st-aw-reach" id="st-aw-reach" aria-live="polite"></p>`,
+    wire:()=>{
+      const on=(id,fn)=>{ const el=document.getElementById(id); if(el) el.addEventListener('change',fn); };
+      on('st-aw-from',e=>{ _stAw.from=e.target.value; });
+      on('st-aw-to',e=>{ _stAw.to=e.target.value; });
+      on('st-aw-who',e=>{ _stAw.deputyId=e.target.value||''; stAwayReach(); });
+      if(typeof datePickDress==='function') try{ datePickDress(document.getElementById('st-drawer')); }catch(_){}
+      stAwayReach();
+    },
+    save:()=>stAwaySave() };
+}
+/* A STAND-IN NEVER WIDENS ANYONE'S REACH, said before Save: the streams you
+   may open that they may not stay with you (the server reads both scopes) */
+async function stAwayReach(){
+  const host=document.getElementById('st-aw-reach'); if(!host||!_stAw) return;
+  const id=_stAw.deputyId;
+  if(!id){ host.textContent=''; return; }
+  const who=((stUsers().find(x=>String(x.id)===String(id))||{}).name)||'';
+  const all=(typeof stTrailStreams==='function')?stTrailStreams():[];
+  host.innerHTML=(typeof busyHtml==='function')?busyHtml(i18t('st_aw_reach_busy')):esc(i18t('st_aw_reach_busy'));
+  let r=null;
+  try{ r=await api('me/away/reach?'+new URLSearchParams({ deputyId:id, streams:all.map(f=>f.id).join(',') }).toString()); }catch(_){ r=null; }
+  if(!_stAw||_stAw.deputyId!==id||!document.getElementById('st-aw-reach')) return;
+  if(!r||!Array.isArray(r.cannot)){ host.textContent=i18t('st_aw_reach_unknown',{who}); return; }
+  const names=r.cannot.map(f=>(all.find(x=>x.id===f)||{}).name||f);
+  host.textContent=names.length ? i18t('st_aw_reach_not',{who,streams:names.join(', ')}) : i18t('st_aw_reach_all',{who});
+}
+async function stAwaySave(){
+  stDrawerClearRefusal();
+  const d=_stAw||{};
+  if(!d.deputyId) return stDrawerRefuse(i18t('st_aw_need_who'));
+  if(!d.from||!d.to) return stDrawerRefuse(i18t('st_aw_need_days'));
+  if(d.to<d.from) return stDrawerRefuse(i18t('st_aw_backwards'));
+  let r=null;
+  try{ r=await api('me/away','PUT',{ deputyId:d.deputyId, from:d.from, to:d.to }); }
+  catch(e){ return stDrawerRefuse((e&&e.message)||i18t('st_aw_failed')); }
+  state.away=r||state.away;
+  const m=(state.away||{}).mine;
+  toast(i18t('st_aw_saved',{who:(m&&m.deputyName)||'',from:stDay(d.from),to:stAwayDay(d.to)}),'ok');
+  stDrawerClose(); stYouCardRepaint('away');
+}
+/* END IT NOW: your approvals and reviews are yours again at once */
+async function stAwayEnd(){
+  let r=null;
+  try{ r=await api('me/away','DELETE'); }
+  catch(e){ toast((e&&e.message)||i18t('st_aw_failed'),'err'); return; }
+  state.away=r||state.away;
+  toast(i18t('st_aw_ended'),'ok');
+  stYouCardRepaint('away');
 }
 /* ---- A FRESH SET OF RECOVERY CODES (piece 11) ----
    Costs a current code (or an unused recovery code), exactly as turning
@@ -2209,7 +2319,8 @@ function stJbChipsHtml(){ return stJbChips().map(c=>`<button type="button" class
 function stJamboHtml(){
   return `<div class="st-jb">
     <div class="st-jb-feed" id="st-jb-feed" aria-live="polite">
-      ${stJbSayHtml((()=>{ if(!stIsAdmin()||settingsTab()==='you') return i18t('st_jb_hello_you');
+      ${stJbSayHtml((()=>{ if(!stIsAdmin()||settingsTab()==='you'){ const m=(state.away||{}).mine;
+          return i18t('st_jb_hello_you')+(m?' '+i18t('st_jb_away',{who:m.deputyName}):''); }
         const n=stNeedsAll().length, k=stClashes().length;
         return (n?i18tn('st_jb_hello_n',n,{n}):i18t('st_jb_hello'))+(k?' '+i18tn('st_jb_clashes',k,{n:k}):''); })())}
       ${stAsksMineHtml()}
@@ -5406,11 +5517,12 @@ async function stPsLoad(){
   if(document.getElementById('st-folder-list')) stPaintFolders();
   if(document.getElementById('st-ps')) stPsPaint();
 }
-function stStreamDrawer(fid){
+function stStreamDrawer(fid, tab){
   const f=FOLDERS[fid]; if(!f) return null;
   const p=stPsSaved(fid);
   const was=_stPs.draft;
-  _stPs.draft={ fid, on:!!(p&&p.on), ids:stPsIds(p), tab:(was&&was.fid===fid&&was.tab)||'access', adding:false };
+  _stPs.draft={ fid, on:!!(p&&p.on), ids:stPsIds(p), tab:(tab==='keeping'&&stKpOn())?'keeping':(was&&was.fid===fid&&was.tab)||'access', adding:false };
+  stKpDraftFor(fid);
   return { title:f.name, sub:f.desc||'', foot:'save',
     glyph:`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${f.color||'currentColor'}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>`,
     badge:(p&&p.on)?`<span class="st-ps-badge">${STPS_LOCK}${esc(i18t('st_ps_private'))}</span>`:'',
@@ -5433,8 +5545,8 @@ function stPsBodyHtml(){
     <div><span>${esc(i18t('st_ps_f_money'))}</span><b>${esc(i18t(priv?'st_ps_money_out':'st_ps_money_in'))}</b></div>
   </div>`;
   const tab=(k,label,count)=>`<button type="button" role="tab" class="st-ps-tab${d.tab===k?' is-on':''}" data-st-ps-tab="${k}" aria-selected="${d.tab===k}">${esc(label)}${count!=null?` <span class="st-ps-q">${count}</span>`:''}</button>`;
-  return `${facts}<div class="st-ps-tabs" role="tablist">${tab('access',i18t('st_ps_tab_access'))}${tab('people',i18t('st_ps_tab_people'),can.length)}</div>
-    <div class="st-ps-pane">${d.tab==='people'?stPsPeopleHtml(users):stPsAccessHtml(users)}</div>`;
+  return `${facts}<div class="st-ps-tabs" role="tablist">${tab('access',i18t('st_ps_tab_access'))}${stKpOn()?tab('keeping',i18t('st_kp_tab')):''}${tab('people',i18t('st_ps_tab_people'),can.length)}</div>
+    <div class="st-ps-pane">${d.tab==='people'?stPsPeopleHtml(users):d.tab==='keeping'&&stKpOn()?stKpHtml(d.fid):stPsAccessHtml(users)}</div>`;
 }
 function stPsAccessHtml(users){
   const d=_stPs.draft, me=(typeof currentUser==='function'&&currentUser())||{};
@@ -5491,6 +5603,7 @@ function stPsWire(){
   const host=document.getElementById('st-ps'); if(!host || host.dataset.wired) return;
   host.dataset.wired='1';
   host.addEventListener('change',e=>{
+    if(stKpChange(e)) return;
     const r=e.target&&e.target.closest&&e.target.closest('input[name="st-ps-on"]'); if(!r||!_stPs.draft) return;
     _stPs.draft.on=(r.value==='1'); stDrawerClearRefusal(); stPsPaint();
   });
@@ -5498,6 +5611,7 @@ function stPsWire(){
     const t=e.target, d=_stPs.draft; if(!t||!t.closest||!d) return;
     const tab=t.closest('[data-st-ps-tab]');
     if(tab){ d.tab=tab.getAttribute('data-st-ps-tab'); stPsPaint(); return; }
+    if(stKpClick(t)) return;
     const rm=t.closest('[data-st-ps-rm]');
     if(rm){ d.ids=d.ids.filter(x=>x!==rm.getAttribute('data-st-ps-rm')); stPsPaint(); return; }
     const add=t.closest('[data-st-ps-add]');
@@ -5511,6 +5625,17 @@ async function stPsSave(){
   const d=_stPs.draft; if(!d) return;
   const f=FOLDERS[d.fid]||{ name:d.fid };
   if(d.on && !d.ids.length){ stDrawerRefuse(i18t('st_ps_need_someone')); return; }
+  /* the Keeping tab's period rides the same Save (piece 10); where nothing
+     about who may open it moved, the drawer stays on Keeping and shows what
+     the period makes due */
+  const kpMoved=stKpDirty(d.fid);
+  if(!(await stKpSave(d.fid))) return;
+  const ps=stPsSaved(d.fid), psSame=d.on===!!(ps&&ps.on) && stPsIds(ps).slice().sort().join('|')===d.ids.slice().sort().join('|');
+  if(kpMoved && psSame){
+    const r=stKpSaved(d.fid);
+    toast(r?i18t('st_kp_saved',{name:f.name,period:stKpYearsWord(r.years)}):i18t('st_kp_saved_none',{name:f.name}),'ok');
+    d.tab='keeping'; stPsPaint(); return;
+  }
   const btn=document.getElementById('st-dsave'); if(btn) btn.disabled=true;
   let stream=null;
   try{
@@ -5557,6 +5682,138 @@ async function stPsReloadBook(){
     state.contracts=next;
     if(typeof familyIndexDirty==='function') familyIndexDirty();
   }catch(_){}
+}
+/* ---- HOW LONG CONTRACTS ARE KEPT, AND LEGAL HOLD (owner picked "Keeping on
+   each stream — the SAP way", 17 Oct 2026; piece 10 of the sensitive
+   contracts and governance plan) ----
+   The stream's Keeping tab: how many years its contracts are kept after they
+   end (as amended), and what then — listed for an admin to delete, or kept
+   archived. What is due now waits for the admin's yes ("Delete these 3",
+   asked once more, or "Archive these 3"); what is on legal hold — the hold
+   an admin can already put on a contract for a dispute — is listed and never
+   touched. The server reads it all (GET /api/keeping, kpBook) and acts only
+   on what is due when the yes arrives (POST /api/keeping/:fid/run). The
+   period is a draft until Save, which the Access tab's Save carries. */
+let _stKp={ data:null, busy:false, fid:null, years:null, then:'delete', list:false };
+const stKpOn=()=>(typeof API_MODE==='function'&&API_MODE())&&stIsAdmin();
+const stKpSaved=fid=>(((_stKp.data&&_stKp.data.rules)||(state.keeping&&state.keeping.rules)||{})[fid])||null;
+function stKpDraftFor(fid){
+  if(_stKp.fid===fid) return;
+  const r=stKpSaved(fid);
+  Object.assign(_stKp,{ fid, years:r?r.years:null, then:r?r.then:'delete', list:false });
+}
+const stKpDirty=fid=>{ const r=stKpSaved(fid); return _stKp.fid===fid && ((r?r.years:null)!==_stKp.years || (_stKp.years!=null && (r?r.then:'delete')!==_stKp.then)); };
+async function stKpLoad(){
+  if(!stKpOn()||_stKp.busy) return;
+  _stKp.busy=true;
+  try{ _stKp.data=await api('keeping'); }catch(_){ _stKp.data={ failed:true }; }
+  _stKp.busy=false;
+  if(_stKp.data&&_stKp.data.rules){ const fid=_stKp.fid; _stKp.fid=null; if(fid) stKpDraftFor(fid); }
+  stKpSync();
+  if(document.getElementById('st-ps')&&_stPs.draft&&_stPs.draft.tab==='keeping') stPsPaint();
+}
+/* what Needs you reads, brought up to the server's latest reading */
+function stKpSync(){
+  const d=_stKp.data; if(!d||!d.streams) return;
+  const due={}; Object.entries(d.streams).forEach(([fid,s])=>{ if(s.rule&&s.due&&s.due.length) due[fid]={ n:s.due.length, then:s.rule.then }; });
+  state.keeping={ rules:d.rules||{}, due };
+}
+const stKpYearsWord=n=>i18tn('st_kp_years',n,{n});
+function stKpHtml(fid){
+  const d=_stKp.data;
+  if(!d){ setTimeout(()=>stKpLoad(),0);
+    return `<p class="st-note">${(typeof busyHtml==='function')?busyHtml(i18t('st_kp_reading')):esc(i18t('st_kp_reading'))}</p>`; }
+  if(d.failed) return `<p class="st-note">${esc(i18t('st_kp_failed'))}</p>`;
+  const s=(d.streams||{})[fid]||{ contracts:0, held:[], due:[] }, saved=stKpSaved(fid);
+  const years=(d.years||[]);
+  const radio=(k,label,sub)=>`<label class="st-ps-radio${_stKp.then===k?' is-on':''}"><input type="radio" name="st-kp-then" value="${k}"${_stKp.then===k?' checked':''}/>
+    <span><span class="st-role-name">${esc(label)}</span><span class="st-note">${esc(sub)}</span></span></label>`;
+  const facts=`<div class="st-kp-facts"><span>${esc(i18t('st_kp_f_kept'))} <b>${esc(saved?stKpYearsWord(saved.years):i18t('st_kp_none'))}</b></span>
+    <span>${esc(i18t('st_kp_f_held'))} <b>${s.held.length}</b></span></div>`;
+  let html=`${facts}
+    <label class="st-tr-f"><span class="st-ps-l">${esc(i18t('st_kp_q'))}</span><select id="st-kp-years" style="${ST_INPUT}">
+      <option value=""${_stKp.years==null?' selected':''}>${esc(i18t('st_kp_none'))}</option>
+      ${years.map(n=>`<option value="${n}"${_stKp.years===n?' selected':''}>${esc(stKpYearsWord(n))}</option>`).join('')}</select></label>`;
+  if(_stKp.years!=null) html+=`<p class="st-ps-l">${esc(i18t('st_kp_then'))}</p>
+    ${radio('delete',i18t('st_kp_then_delete'),i18t('st_kp_then_delete_sub'))}
+    ${radio('archive',i18t('st_kp_then_archive'),i18t('st_kp_then_archive_sub'))}`;
+  /* what the SAVED period makes due now */
+  if(saved){
+    const n=s.due.length, held=s.heldDue||0, cut=stAwayDay(s.cutoff);
+    const sub=[i18t('st_kp_ended_before',{day:cut}), held?i18tn('st_kp_held_back',held,{n:held}):i18t('st_kp_none_held')].join(' · ');
+    const go=saved.then==='archive'?'st_kp_archive_n':'st_kp_delete_n';
+    html+=`<div class="st-kp-due" id="st-kp-due">
+      <div class="st-kp-due-h"><span class="st-kp-due-t"><b>${esc(n?i18tn('st_kp_due',n,{n}):i18t('st_kp_due_none'))}</b><span class="st-note">${esc(sub)}</span></span>
+        ${n?`<button type="button" class="ui-btn ui-btn-sm" data-st-kp-list aria-expanded="${!!_stKp.list}">${esc(i18t('st_kp_review'))}</button>`:''}</div>
+      ${n&&_stKp.list?`<table class="st-ps-tb st-kp-tb"><thead><tr><th>${esc(i18t('st_kp_th_contract'))}</th><th>${esc(i18t('st_kp_th_party'))}</th><th>${esc(i18t('st_kp_th_ended'))}</th></tr></thead>
+        <tbody>${s.due.map(x=>`<tr data-st-kp-row="${PB_ATTR(x.id)}"><td><span class="st-ps-who">${esc(x.name||x.ref)}</span> <span class="st-note">${esc(x.ref)}${x.family&&x.family.length?' · '+esc(i18tn('st_kp_family',x.family.length,{n:x.family.length})):''}</span></td>
+          <td>${esc(x.counterparty||'')}</td><td>${esc(stAwayDay(x.ended))}</td></tr>`).join('')}</tbody></table>
+        <div class="st-kp-acts"><button type="button" class="ui-btn ${saved.then==='archive'?'ui-btn-primary':'ui-btn-danger'}" id="st-kp-go"${stKpDirty(fid)?` disabled aria-disabled="true" title="${esc(i18t('st_kp_save_first'))}"`:''}>${esc(i18tn(go,n,{n}))}</button>
+          <span class="st-note">${esc(i18t(saved.then==='archive'?'st_kp_archive_note':'st_kp_delete_note'))}</span></div>`:''}
+    </div>`;
+  } else if(_stKp.years!=null) html+=`<p class="st-note st-kp-unsaved">${esc(i18t('st_kp_save_to_see'))}</p>`;
+  html+=`<div class="st-kp-held"><p class="st-ps-l">${esc(i18t('st_kp_held_h'))} <span class="st-note">— ${esc(i18t('st_kp_held_sub'))}</span></p>
+    ${s.held.length?s.held.map(x=>`<div class="st-kp-hrow"><span class="chip st-kp-chip">${esc(i18t('st_kp_legal_hold'))}</span>
+      <span class="st-kp-hname">${esc(x.name||x.ref)}</span><span class="st-note">${esc(i18t('st_kp_since',{day:stDay(x.since),who:x.by||''}))}</span></div>`).join('')
+      :`<p class="st-note">${esc(i18t('st_kp_held_none'))}</p>`}</div>`;
+  return html;
+}
+function stKpChange(e){
+  const t=e.target; if(!t||!t.closest) return false;
+  if(t.id==='st-kp-years'){ _stKp.years=t.value?Number(t.value):null; stDrawerClearRefusal(); stPsPaint(); return true; }
+  const r=t.closest('input[name="st-kp-then"]');
+  if(r){ _stKp.then=r.value==='archive'?'archive':'delete'; stPsPaint(); return true; }
+  return false;
+}
+function stKpClick(t){
+  /* PRESS IT AGAIN AND IT CLOSES */
+  if(t.closest('[data-st-kp-list]')){ _stKp.list=!_stKp.list; stPsPaint(); return true; }
+  if(t.closest('#st-kp-go')){ stKpRun(); return true; }
+  return false;
+}
+/* the period, saved with the drawer: true when there was nothing to save or it saved */
+async function stKpSave(fid){
+  if(!stKpOn()||!stKpDirty(fid)) return true;
+  try{ const r=await api('keeping/'+encodeURIComponent(fid),'PUT',{ years:_stKp.years, then:_stKp.then });
+    if(_stKp.data) _stKp.data.rules=(r&&r.rules)||{}; else _stKp.data=null;
+    state.keeping=Object.assign({ due:{} },state.keeping||{},{ rules:(r&&r.rules)||{} });
+  }catch(e){ stDrawerRefuse((e&&e.message)||i18t('st_kp_failed')); return false; }
+  /* read again: the draft starts over from what is now saved (stKpLoad) */
+  _stKp.data=null;
+  stKpLoad();
+  return true;
+}
+/* THE ADMIN'S YES: deleting is asked once more and cannot be undone; an
+   archive is a shelf and can be restored */
+async function stKpRun(){
+  const fid=_stPs.draft&&_stPs.draft.fid, saved=stKpSaved(fid);
+  const s=fid&&_stKp.data&&_stKp.data.streams&&_stKp.data.streams[fid];
+  if(!saved||!s||!s.due.length||stKpDirty(fid)) return;
+  const n=s.due.length, del=saved.then!=='archive';
+  if(del && !(await confirmDialog({ title:i18tn('st_kp_confirm_t',n,{n}), message:i18t('st_kp_confirm_m',{name:(FOLDERS[fid]||{}).name||fid}),
+    confirmLabel:i18tn('st_kp_delete_n',n,{n}), danger:true }))) return;
+  const btn=document.getElementById('st-kp-go'); if(btn) btn.disabled=true;
+  let r=null;
+  try{ r=await api('keeping/'+encodeURIComponent(fid)+'/run','POST',{ act:saved.then, ids:s.due.map(x=>x.id) }); }
+  catch(e){ if(btn) btn.disabled=false; toast((e&&e.message)||i18t('st_kp_failed'),'err'); return; }
+  const done=(r&&r.done)||[];
+  _stKp.data={ rules:r.rules, years:(_stKp.data&&_stKp.data.years)||[], streams:r.streams }; _stKp.list=false;
+  stKpSync();
+  /* this book follows: a deleted contract leaves it, an archived one is reread */
+  if(del){ const gone=new Set(done.concat(...s.due.filter(x=>done.includes(x.id)).map(x=>x.family||[])));
+    state.contracts=(state.contracts||[]).filter(c=>!gone.has(c.id)); if(typeof familyIndexDirty==='function') familyIndexDirty(); }
+  else (state.contracts||[]).forEach(c=>{ if(done.includes(c.id)) c.archived={ at:new Date().toISOString(), by:((currentUser()||{}).name)||'' }; });
+  if(typeof updateSidebarCounts==='function') try{ updateSidebarCounts(); }catch(_){}
+  toast(i18tn(del?'st_kp_deleted':'st_kp_archived',done.length,{n:done.length}),done.length?'ok':'warn');
+  stPsPaint();
+}
+/* NEEDS YOUR ATTENTION: a stream with contracts past their keeping period */
+function stKpNeedRows(){
+  const k=state.keeping; if(!stKpOn()||!k||!k.due) return [];
+  return Object.entries(k.due).filter(([fid,x])=>x&&x.n>0&&FOLDERS[fid]).map(([fid,x])=>({ key:'keep:'+fid, dot:'warn',
+    text:i18t(x.then==='archive'?'st_kp_need_archive':'st_kp_need_delete',{name:FOLDERS[fid].name}),
+    sub:i18tn(x.then==='archive'?'st_kp_need_archive_sub':'st_kp_need_delete_sub',x.n,{n:x.n}),
+    btn:`data-st-panel="stream:${PB_ATTR(fid)}@keeping"`, verb:i18t('st_kp_need_go') }));
 }
 /* The person's drawer says which private streams name them, each a door back
    to its page — their access to a private stream is set THERE, nowhere else. */

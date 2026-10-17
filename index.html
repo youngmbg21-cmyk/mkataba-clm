@@ -3528,6 +3528,36 @@
   .st-ps-role{ font-weight:var(--w-body); color:var(--color-neutral-600); }
   .st-ps-menote{ margin-top:10px; }
   .st-ps-mine{ margin-top:8px; display:flex; flex-direction:column; gap:4px; }
+  /* KEEPING (owner picked "Keeping on each stream — the SAP way", 17 Oct 2026):
+     the stream's period, what it makes due (the admin's yes), and what is on
+     legal hold — the hold wears the On hold chip's own ruby */
+  .st-kp-facts{ display:flex; flex-wrap:wrap; gap:4px 18px; font-size:var(--t-meta); color:var(--color-neutral-600); margin:0 0 4px; }
+  .st-kp-facts b{ color:var(--color-text); font-weight:var(--w-strong); }
+  .st-kp-due{ margin-top:14px; padding:12px 14px; border:1px solid var(--color-divider); border-radius:var(--radius-lg); background:var(--surface-2); }
+  .st-kp-due-h{ display:flex; align-items:center; gap:12px; }
+  .st-kp-due-t{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; font-size:var(--t-body); color:var(--color-text); }
+  .st-kp-due-h .ui-btn{ white-space:nowrap; flex:none; }
+  .st-kp-tb{ margin-top:10px; }
+  .st-kp-acts{ display:flex; align-items:center; flex-wrap:wrap; gap:6px 12px; margin-top:10px; }
+  .st-kp-acts .ui-btn{ white-space:nowrap; }
+  .st-kp-held{ margin-top:14px; }
+  .st-kp-held .st-ps-l .st-note{ display:inline; }
+  .st-kp-hrow{ display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 10px; padding:6px 0; font-size:var(--t-meta); }
+  .st-kp-hrow + .st-kp-hrow{ border-top:1px solid var(--color-divider); }
+  .st-kp-hname{ flex:1; min-width:0; color:var(--color-text); font-weight:var(--w-label); }
+  .chip.st-kp-chip{ background:var(--st-ruby-bg); color:var(--st-ruby-fg); border-radius:999px; padding:0 8px; font-size:var(--t-label); font-weight:var(--w-label); white-space:nowrap; }
+  .st-kp-unsaved{ margin-top:10px; }
+  /* CODE NAMES (owner picked "A code name field — the SAP way", 17 Oct 2026):
+     one line on the deal's Details, and its dialog's list of who knows */
+  .ov-cn{ display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 12px; padding:10px 14px; margin:0 0 var(--s-3);
+    border:1px solid var(--color-divider); border-radius:var(--radius-lg); background:var(--color-surface); font-size:var(--t-meta); }
+  .ov-cn-k{ color:var(--color-neutral-600); font-weight:var(--w-label); }
+  .ov-cn-v{ flex:1; min-width:0; color:var(--color-text); }
+  .ov-cn-go{ background:none; border:0; padding:0; color:var(--accent-ink); font:inherit; font-weight:var(--w-label); cursor:pointer; white-space:nowrap; }
+  .ov-cn-go:hover{ text-decoration:underline; }
+  .cn-people{ max-height:220px; overflow-y:auto; }
+  .cn-real{ margin:10px 0 0; }
+  .cn-refusal{ margin:8px 0 0; color:var(--st-ruby-fg); font-size:var(--t-meta); }
   /* THE TRAIL, AS A FILE (owner picked "Export drawer — the SAP way", 17 Oct 2026):
      Data & backup's second tab — the period, the streams, the format, the count
      beside the one act, then every download so far */
@@ -3841,6 +3871,16 @@
   .st-ask-acts{ display:flex; gap:8px; flex-wrap:wrap; margin-top:var(--s-3); }
   /* THE YOU BOARD: the same short cards; Jambo's points across two */
   .st-cr .st-you-board > [data-st-you-card="points"]{ grid-column:span 2; }
+  /* WHEN YOU'RE AWAY (owner picked "An Away card on You — the SAP way", 17 Oct
+     2026): the last card, across the board — its one sentence reads on one line
+     and it never leaves a hole beside it, whichever cards come before */
+  .st-cr .st-you-board > [data-st-you-card="away"]{ grid-column:1 / -1; }
+  .st-cr .st-you-card .st-aw-chip{ margin-left:6px; vertical-align:2px; white-space:nowrap; }
+  .st-cr .st-you-line .st-aw-for{ color:var(--accent-ink); font-weight:var(--w-label); }
+  .st-aw-what{ margin-top:2px; }
+  .st-aw-what .st-ps-l{ display:block; margin:10px 0 4px; }
+  .st-aw-yes{ margin:0 0 4px; font-size:var(--t-body); color:var(--color-text); }
+  .st-aw-reach{ margin:12px 0 0; min-height:1.4em; }
   .st-cr .st-you-line{ display:block; font-size:var(--t-meta); color:var(--color-text); line-height:1.45; padding:3px 0; min-width:0; overflow:hidden; text-overflow:ellipsis; }
   .st-cr .st-you-sub{ color:var(--color-neutral-600); font-size:var(--t-label); }
   .st-cr .chip.st-chip-on{ background:color-mix(in srgb,var(--color-accent) 10%,var(--color-surface)); color:var(--accent-ink); font-weight:var(--w-label); border-radius:999px; padding:0 8px; font-size:var(--t-label); }
