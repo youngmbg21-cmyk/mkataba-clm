@@ -13989,6 +13989,7 @@
      not move down) and in the shell's row above every other page. The Ha mark
      in the bar is the way back to the Counter now the left menu is gone. */
   .dk-mark{width:28px;height:28px;border-radius:7px;border:0;background:#fff;color:var(--nav-bg);display:grid;place-items:center;font-weight:700;font-size:12px;letter-spacing:-.02em;flex:none;cursor:pointer;padding:0;margin-right:4px}
+  html.dark .dk-mark{background:var(--accent-solid);color:#fff}  /* at night the rail mark's own colours: a white square is a patch on the dark bar */
   .dk-mark[hidden]{display:none}
   .dk-mark:focus-visible{outline:2px solid #fff;outline-offset:2px}
   .dk-row{flex:none;background:var(--color-surface);padding:8px var(--s-4,16px) 0}
@@ -14008,6 +14009,9 @@
   .dk-menu button{border:0;background:none;text-align:left;padding:7px 10px;border-radius:var(--radius);font-size:var(--t-body);color:var(--color-text);cursor:pointer;white-space:nowrap}
   .dk-menu button:hover{background:var(--color-accent-50)}
   #hb-head .hb-dk{flex:1 1 auto;min-width:0}
+  /* the tabs stand at one height on every page: Home's head holding them takes the tab row's top (about 9px), not a tall window's 16 */
+  .hb-head:has(> .hb-dk){padding-top:min(var(--page-pad-t), 10px)}
+  .hb-head>.hb-dk{align-self:flex-start}  /* the Board's taller buttons must not centre the tabs lower: a pressed tab never moves */
   /* JAMBO'S HOUSE STAYS AS IT IS TODAY (the owner, Round 23's brief): the house scales to its
      page's width and fits its floors to the window's height. Without the left menu its page grew
      by up to 244px and the desk tabs took 30px of height, so on the 1536×730 laptop its floors

@@ -206,9 +206,13 @@ let _cnPop = null;          // { rows, on }
 function cnNeeds(){ try { return (typeof hbNeedsList === 'function') ? (hbNeedsList() || []) : []; } catch (_){ return []; } }
 function cnWork(){ try { return (typeof hbAgentsData === 'function') ? (hbAgentsData(null) || { ready: 0, rows: [] }) : { ready: 0, rows: [] }; } catch (_){ return { ready: 0, rows: [] }; } }
 function cnCompany(){ try { return (typeof stNeedsAll === 'function') ? (stNeedsAll() || []) : []; } catch (_){ return []; } }
+/* A BRAND-NEW WORKSPACE (no contract yet, the go-live list not done): the
+   admin's one row is Home's own "Finish setting up — N left" door, the same
+   reading (hbSetupLeft) and the same act (hbSetupGo); the company row after */
+function cnSetup(){ try { const n = (typeof hbSetupLeft === 'function') ? hbSetupLeft() : null; return n > 0 ? n : 0; } catch (_){ return 0; } }
 /* the number on "Needs you" is the rows under it: Jambo's work while he has
-   prepared any, each contract's item, and the company's row */
-function counterNeedsCount(){ return (cnWork().ready ? 1 : 0) + cnNeeds().length + (cnCompany().length ? 1 : 0); }
+   prepared any, each contract's item, and the admin's one row */
+function counterNeedsCount(){ return (cnWork().ready ? 1 : 0) + cnNeeds().length + ((cnSetup() || cnCompany().length) ? 1 : 0); }
 
 function cnFace(size, cls){ return (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', size, cls) : ''; }
 function cnJwRowHtml(A){
@@ -231,6 +235,9 @@ function cnCompanyRowHtml(R){
   const sub = R.slice(0, 3).map(r => String(r.text || '').trim()).filter(Boolean).join(' · ');
   return `<div class="cn-r cn-co"><span class="cn-co-ic" aria-hidden="true">${(typeof icon === 'function') ? icon('building', 'cn-pill-ic') : ''}</span><div class="cn-w"><b>${_cnE(_cnT('cn_company'))} <span class="cn-n">· ${R.length}</span></b><span title="${_cnE(sub)}">${_cnE(sub)}</span></div><button type="button" class="ui-btn ui-btn-sm" data-cn-co>${_cnE(_cnT('cn_company_go'))}</button></div>`;
 }
+function cnSetupRowHtml(n){
+  return `<div class="cn-r cn-co"><span class="cn-co-ic" aria-hidden="true">${(typeof icon === 'function') ? icon('building', 'cn-pill-ic') : ''}</span><div class="cn-w"><b>${_cnE(_cnTn('hb_setup_left', n, { n }))}</b></div><button type="button" class="ui-btn ui-btn-sm" data-cn-setup>${_cnE(_cnT('cn_open'))}</button></div>`;
+}
 function cnChipsHtml(A){
   const w = k => _cnT(k);
   const L = (A.ready ? [[w('ca_w_work'), 1]] : []).concat([[w('nav_contracts').toLowerCase()], [w('ca_w_calendar')], [w('ca_wall_draft')], [w('ca_wall_upload')]]);
@@ -239,11 +246,11 @@ function cnChipsHtml(A){
 function counterHtml(){
   const me = (typeof currentUser === 'function') ? currentUser() : null;
   const name = String((me && me.name) || '').trim().split(/\s+/)[0] || _cnT('home_greet_there');
-  const A = cnWork(), N = cnNeeds(), R = cnCompany();
-  const n = (A.ready ? 1 : 0) + N.length + (R.length ? 1 : 0);
+  const A = cnWork(), N = cnNeeds(), R = cnCompany(), S = cnSetup();
+  const n = (A.ready ? 1 : 0) + N.length + ((S || R.length) ? 1 : 0);
   const shown = _cnAll ? N : N.slice(0, CN_ROWS);
-  const quiet = !N.length && !R.length;
-  const rows = cnJwRowHtml(A) + shown.map(cnNeedRowHtml).join('') + (R.length ? cnCompanyRowHtml(R) : '')
+  const quiet = !N.length && !R.length && !S;
+  const rows = cnJwRowHtml(A) + shown.map(cnNeedRowHtml).join('') + (S ? cnSetupRowHtml(S) : R.length ? cnCompanyRowHtml(R) : '')
     + (quiet ? `<div class="cn-r"><div class="cn-w"><b>${_cnE(_cnT('cn_nothing'))}</b></div></div>` : '');
   const more = N.length > CN_ROWS ? `<div class="cn-foot"><button type="button" class="ui-link" data-cn-all aria-expanded="${_cnAll}">${_cnE(_cnAll ? _cnT('cn_show_fewer') : _cnT('cn_show_all', { n: N.length }))}</button></div>` : '';
   const open = quiet ? dkTabs().slice().sort((a, b) => (b.at || 0) - (a.at || 0)).filter(t => deskTabLabel(t.k)).slice(0, CN_PICK_UP) : [];
@@ -333,6 +340,7 @@ if (typeof document !== 'undefined' && !window._cnWired){
     if ((el = t.closest('[data-cn-ask]'))){ counterAsk(el.getAttribute('data-cn-ask')); return; }
     if ((el = t.closest('[data-cn-jw]'))){ if (typeof hbOpenAgent === 'function') hbOpenAgent(); return; }
     if ((el = t.closest('[data-cn-need]'))){ if (typeof hbNeedsPress === 'function') hbNeedsPress(el.getAttribute('data-cn-need'), el.getAttribute('data-cn-id')); return; }
+    if (t.closest('[data-cn-setup]')){ if (typeof hbSetupGo === 'function') hbSetupGo(); return; }
     if ((el = t.closest('[data-cn-co]'))){ if (typeof openSettingsAt === 'function') openSettingsAt('company'); return; }
     if ((el = t.closest('[data-cn-all]'))){ _cnAll = !_cnAll; counterRepaint(); }
   });

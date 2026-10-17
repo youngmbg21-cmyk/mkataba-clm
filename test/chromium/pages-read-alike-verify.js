@@ -669,69 +669,95 @@ const SEED = async () => {
        every machine anybody uses. So the claim is checked TALL and SHORT, and
        760 is inside the max-height:820 band every laptop lands in. */
     const HEIGHTS8 = [1000, 760];
-    const runs8 = {};
+    const runs8 = {}, tabs8 = {};
+    /* THE DESK TABS' FIRST GLYPH (17 Oct 2026, the owner's "Desk tabs"): Home
+       draws them in its head (#dk-home), every other page above its head
+       (#dk-row); the paper pages draw none. Measured on the ink, as HEAD8. */
+    const TAB8 = () => {
+      const host = [...document.querySelectorAll('#dk-home, #dk-row')].find(e => e.offsetParent !== null && e.getBoundingClientRect().height > 0);
+      if (!host) return null;
+      const bar = document.getElementById('top-header'); const top = bar ? bar.getBoundingClientRect().bottom : 0;
+      const w = document.createTreeWalker(host, NodeFilter.SHOW_TEXT); let ink = null, n;
+      while ((n = w.nextNode())){ if (!n.textContent.trim()) continue;
+        const rg = document.createRange(); rg.selectNodeContents(n); const b = rg.getClientRects()[0];
+        if (b && b.height >= 2 && (ink == null || b.top < ink)) ink = b.top; }
+      return ink == null ? null : Math.round(ink - top);
+    };
     for (const H of HEIGHTS8){
       await page.setViewportSize({ width: 1500, height: H });
       await pause(500);
-      const heads = {};
+      const heads = {}, tabs = {};
       for (const [name, go] of PAGES8){
         try { await page.evaluate(go, cid); } catch (e) { continue; }
         await pause(1700);
         const h = await page.evaluate(HEAD8);
         if (h) heads[name] = h;
+        const t = await page.evaluate(TAB8);
+        if (t != null) tabs[name] = t;
       }
-      runs8[H] = heads;
+      runs8[H] = heads; tabs8[H] = tabs;
     }
     await page.setViewportSize({ width: 1500, height: 1000 });
     await pause(600);
     const heads8 = runs8[1000];
-    const home8 = heads8.Home;
-    const others8 = Object.entries(heads8).filter(([k]) => k !== 'Home');
-    /* The size/weight comparison is the PAGE HEADS only: the room and the
-       negotiation page carry a 15/600 title by the owner's own ruling of
-       22 Aug ("the two heads say the name at one size"), so demanding Home's
-       20/700 there would be this file arguing with that decision. The TOP is
-       every page, which is what the 25 Aug ask is about. */
+    /* RE-POINTED 17 Oct 2026 (the owner's "Front desk" and "Desk tabs"): Home
+       no longer carries a title — the desk tabs stand in its greeting's place —
+       so the pages are measured against EACH OTHER, not against Home's
+       greeting: the page heads at one size and weight (Home set it, and they
+       keep it), the desk tabs at one height on every page that draws them, the
+       shared heads' titles at one height under them, and the two paper heads
+       (which draw no tabs) at one height between themselves. */
     const ROOMS = ['Contract room', 'Negotiation page'];
+    /* the Contracts place's head hangs under Home's own head, not the shared one */
+    const ON_HOME = ['Home', 'Contracts', 'Calendar'];
+    const others8 = Object.entries(heads8);
     const pageHeads8 = others8.filter(([k]) => !ROOMS.includes(k));
-    check('8 the sweep actually reached the pages', !!home8 && others8.length >= 8,
-      `${Object.keys(heads8).length} heads8 read`);
-    const offSize = pageHeads8.filter(([, h]) => h.size !== home8.size);
-    check('8 every page head is the size Home sets',
-      offSize.length === 0,
-      offSize.map(([k, h]) => `${k} ${h.size} vs Home ${home8 && home8.size}`).join(' · ') || (home8 && home8.size));
-    const offWeight = pageHeads8.filter(([, h]) => h.weight !== home8.weight);
-    check('8 and the weight Home sets',
+    const mode = xs => { const c = {}; xs.forEach(x => { c[x] = (c[x] || 0) + 1; }); return Object.entries(c).sort((a, b) => b[1] - a[1])[0]?.[0]; };
+    const size8 = mode(pageHeads8.map(([, h]) => h.size)), weight8 = mode(pageHeads8.map(([, h]) => h.weight));
+    check('8 the sweep actually reached the pages', pageHeads8.length >= 8 && Object.keys(tabs8[1000] || {}).length >= 8,
+      `${Object.keys(heads8).length} heads8 read · ${Object.keys(tabs8[1000] || {}).length} tab rows`);
+    const offSize = pageHeads8.filter(([, h]) => h.size !== size8);
+    check('8 every page head is one size (the 20px Home set)',
+      offSize.length === 0 && size8 === '20px',
+      offSize.map(([k, h]) => `${k} ${h.size} vs ${size8}`).join(' · ') || size8);
+    const offWeight = pageHeads8.filter(([, h]) => h.weight !== weight8);
+    check('8 and one weight',
       offWeight.length === 0,
-      offWeight.map(([k, h]) => `${k} ${h.weight}`).join(' · ') || (home8 && home8.weight));
-    /* THE ONE THE 25 Aug ASK IS ABOUT, and it is every page including the two
-       room heads. Measured on the INK, which is what a reader sees; ±1px is
-       sub-pixel rounding on a Range rect, not a difference anybody can read. */
+      offWeight.map(([k, h]) => `${k} ${h.weight}`).join(' · ') || weight8);
     check('8 every header block really painted something to measure',
-      others8.every(([, h]) => h.ink != null) && home8 && home8.ink != null,
+      others8.every(([, h]) => h.ink != null),
       others8.filter(([, h]) => h.ink == null).map(([k]) => k).join(' · ') || 'all read');
     for (const H of HEIGHTS8){
-      const hh = runs8[H] || {};
-      const ref = hh.Home;
-      const rest = Object.entries(hh).filter(([k]) => k !== 'Home');
-      const off = ref ? rest.filter(([, h]) => Math.abs(h.ink - ref.ink) > 1) : [];
-      check(`8 at ${H}px tall, the first glyph of every header sits where Home's does`,
-        !!ref && rest.length >= 10 && off.length === 0,
-        off.map(([k, h]) => `${k} ${h.ink}px «${h.inkText}» vs Home ${ref && ref.ink}px`).join(' · ')
-          || `all at ${ref && ref.ink}px, ${Object.keys(hh).length} pages`);
+      const tt = Object.entries(tabs8[H] || {});
+      const tref = tt.find(([k]) => k === 'Home');
+      const toff = tref ? tt.filter(([, v]) => Math.abs(v - tref[1]) > 1) : [];
+      check(`8 at ${H}px tall, the desk tabs sit where Home's do on every page that draws them`,
+        !!tref && tt.length >= 10 && toff.length === 0 && !tt.some(([k]) => ROOMS.includes(k)),
+        toff.map(([k, v]) => `${k} ${v}px vs Home ${tref && tref[1]}px`).join(' · ') || `all at ${tref && tref[1]}px, ${tt.length} pages`);
+      const hh = Object.entries(runs8[H] || {});
+      const shared = hh.filter(([k]) => !ROOMS.includes(k) && !ON_HOME.includes(k));
+      const sref = Number(mode(shared.map(([, h]) => h.ink)));
+      const soff = shared.filter(([, h]) => Math.abs(h.ink - sref) > 1);
+      check(`8 at ${H}px tall, the first glyph of every shared page head sits at one height under the tabs`,
+        shared.length >= 8 && soff.length === 0,
+        soff.map(([k, h]) => `${k} ${h.ink}px «${h.inkText}» vs ${sref}px`).join(' · ') || `all at ${sref}px, ${shared.length} pages`);
+      const rooms = hh.filter(([k]) => ROOMS.includes(k));
+      check(`8 at ${H}px tall, the two paper heads (no tabs) sit at one height`,
+        rooms.length === 2 && Math.abs(rooms[0][1].ink - rooms[1][1].ink) <= 1,
+        rooms.map(([k, h]) => `${k} ${h.ink}px`).join(' · '));
     }
     /* ---- NO PAGE HEADER EXPLAINS ITSELF (owner-asked 25 Aug 2026) ----
        Swept across every page rather than checked on the one that was
        screenshotted: the line came from ONE builder, so one page still drawing
        it would mean the builder had grown a branch. */
-    const withSub = others8.concat([['Home', home8]]).filter(([, h]) => h.sub);
+    const withSub = others8.filter(([, h]) => h.sub);
     check('8 and no page header carries a sentence under its title',
       withSub.length === 0,
       withSub.map(([k, h]) => `${k}: ${h.sub}`).join(' · ') || `${Object.keys(heads8).length} pages, none`);
     /* AND THE TIGHTENING IS REAL, not the token quietly ignored: a short
        window has to pull every header up TOGETHER, or the rule above is
        satisfied by nothing moving at all. */
-    const tall8 = (runs8[1000] || {}).Home, short8 = (runs8[760] || {}).Home;
+    const tall8 = (runs8[1000] || {}).Settings, short8 = (runs8[760] || {}).Settings;
     check('8 and a short window pulls them all up rather than none of them',
       !!tall8 && !!short8 && short8.ink < tall8.ink,
       `${tall8 && tall8.ink}px at 1000 · ${short8 && short8.ink}px at 760`);

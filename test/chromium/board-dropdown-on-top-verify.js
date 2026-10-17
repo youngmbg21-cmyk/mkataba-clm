@@ -50,6 +50,8 @@ const PANELS = [['pa', 'q:contracts by status'], ['pb', 'q:contracts by counterp
       await page.fill('#li-pass', 'adminpassword1');
       await page.click('#li-go');
       await page.waitForFunction(() => window.state && state.contracts && state.contracts.length > 3 && typeof hbS === 'function', null, { timeout: 20000 });
+      /* signing in lands on the Counter since 17 Oct 2026 (the owner's "Front desk"): let it land, then place the Board */
+      await page.waitForFunction(() => !document.body.classList.contains('pre-auth') && state.view === 'counter', null, { timeout: 20000 }).catch(() => {});
       const place = ({ P, R, screen }) => { const s = hbS(); s.face = 'board'; s.prep = 'closed'; s.path = []; s.digBig = false; s.screen = screen; s.scrPick = 1;
         s.panels = P.map(([id, key]) => ({ id, kind: 'view', key, title: id, recipe: JSON.parse(JSON.stringify(R)), split: false, big: false }));
         hbSave(); if (state.view !== 'dashboard') setView('dashboard'); else hbPaintBoard(); return true; };

@@ -48,8 +48,9 @@ const ok = (name, good, detail) => {
     await page.waitForFunction(() => window.state && typeof setView === 'function' && document.querySelector('[data-view="brain"]'), null, { timeout: 15000 }).catch(() => {});
     await page.keyboard.press('Escape').catch(() => {});
     const en = await page.$('.lang-btn[data-lang="en"]'); if (en) await en.click();
-    const door = await page.$('[data-view="brain"]');
-    if (door) await door.click();
+    /* re-pointed 17 Oct 2026: a computer draws no left menu (the owner's
+       "Desk tabs"); the Brain is a place Jambo opens from the Counter */
+    await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'brain');
     await page.waitForFunction(() => window.state && state.view === 'brain' && !!document.getElementById('br-cv'), null, { timeout: 15000 }).catch(() => {});
 
     /* ---- 1. the fifth view, by its button and by the key 5 ---- */
