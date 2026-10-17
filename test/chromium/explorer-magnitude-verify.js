@@ -188,8 +188,13 @@ const check = (name, pass, detail) => {
     check('4a the view bar carries the Brain page\'s button, and on arrival it says Still', !!sp && sp.text === 'Still' && sp.pressed === 'false', JSON.stringify(sp));
     await (await page.$('.ig-viewbar')).screenshot({ path: path.join(OUT, '4a-turning-button.png') });
     /* a jiggle is measured as the furthest a dot strays over 1.6 s, sampled */
-    const stray = async (v, key) => { await view(v); const a = await page.evaluate(k => intel.cam[k] || 0, key), d0 = await dotAt(); let far = 0;
-      for (let i = 0; i < 8; i++){ await page.waitForTimeout(200); const d = await dotAt(); far = Math.max(far, Math.hypot(d[0] - d0[0], d[1] - d0[1])); }
+    /* ONE dot followed through every sample: "the first drawn dot" can be a
+       different dot from one sample to the next, and two dots apart read as a
+       stray (15.8 on one GitHub run, 17 Oct 2026; 5–8 locally) */
+    const dotOf = i => page.evaluate(j => { const r = IG.nodes[j].g.querySelector('circle').getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top)]; }, i);
+    const stray = async (v, key) => { await view(v); const a = await page.evaluate(k => intel.cam[k] || 0, key);
+      const at = await page.evaluate(() => IG.nodes.findIndex(x => x.kind === 'contract' && x.g.getBoundingClientRect().width)), d0 = await dotOf(at); let far = 0;
+      for (let i = 0; i < 8; i++){ await page.waitForTimeout(200); const d = await dotOf(at); far = Math.max(far, Math.hypot(d[0] - d0[0], d[1] - d0[1])); }
       const b = await page.evaluate(k => intel.cam[k] || 0, key); return { moved: Math.abs(b - a) > 0.02, far: Math.round(far * 10) / 10, a: +a.toFixed(3), b: +b.toFixed(3) }; };
     const jig = m => !m.moved && m.far >= 1 && m.far < 14;
     const sw0 = await page.evaluate(() => intel.cam.sway || 0);

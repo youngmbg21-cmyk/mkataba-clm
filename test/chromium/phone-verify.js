@@ -369,7 +369,9 @@ const PROBE = () => {
     check('obligations: the amount is in the contract\'s own currency',
       /KES/.test(ob.money) && !/840000/.test(ob.money), ob.money.replace(/\s+/g, ' ').trim().slice(0, 90));
     check('obligations: a required document says what it is good until',
-      ob.doc.length === 1 && new RegExp('\\b' + Number(ob.until.slice(8)) + '\\b').test(ob.doc[0]), ob.doc.join(' | ') + ' · until ' + ob.until);
+      /* the day may be written "01": a bare \b1\b never matches it, so this was
+         red whenever day(15) fell on the 1st–9th (17 Oct 2026) */
+      ob.doc.length === 1 && new RegExp('\\b0?' + Number(ob.until.slice(8)) + '\\b').test(ob.doc[0]), ob.doc.join(' | ') + ' · until ' + ob.until);
     check('obligations: nothing off the side', ob.wide <= 1, ob.wide + 'px');
     await ctx.close();
   }

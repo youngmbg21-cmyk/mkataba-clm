@@ -51,7 +51,20 @@ jobs:
       # npm install, not npm ci: the lockfile is deliberately untracked
       # (see .gitignore), so there is nothing for ci to hold the build to.
       - run: npm install
-      - run: npm test
+      # The suite's output is kept in a file so that a failure can be NAMED at
+      # the end of the log. Twelve thousand tests print thousands of lines, and
+      # "fail 1" at the bottom tells nobody which one: for a week in October
+      # 2026 main stayed red with one unnamed failing test because the line
+      # that named it sat far above what anyone reads. The exit code is the
+      # suite's own, not tee's.
+      - run: |
+          set -o pipefail
+          npm test 2>&1 | tee node-suite.log
+      - name: name the failing tests
+        if: failure()
+        run: |
+          echo "=== FAILING TESTS (every 'not ok' line, with its reason) ==="
+          grep -n -A 12 -E '^\s*not ok ' node-suite.log | grep -v -E '^\S*-\s*(ok |# Subtest|\.\.\.$|---$|type:|duration_ms)' || echo "(no 'not ok' line found — the run died before a result)"
 
   browser:
     name: browser checks ${{ matrix.shard }}/4

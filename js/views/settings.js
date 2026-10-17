@@ -2819,7 +2819,7 @@ async function settingsSavePerson(existing){
   const accSel=document.getElementById('tm-access');
   if(role!=='admin' && accSel && !accSel.disabled){
     const choice=accSel.value||'';
-    if(!choice){ stDrawerRefuse(i18t('set_choose_access_err')); fieldFocus(accSel); return; }
+    if(!choice){ stDrawerRefuse(i18t('set_choose_access_err')); if(typeof fieldFocus==='function') fieldFocus(accSel); return; }
     if(choice==='pick'){
       folderIds=[...document.querySelectorAll('[data-tm-folder]')].filter(cb=>cb.checked).map(cb=>cb.getAttribute('data-tm-folder'));
       if(!folderIds.length){ stDrawerRefuse(i18t('set_pick_one_stream')); return; }
