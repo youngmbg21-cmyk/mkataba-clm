@@ -75,7 +75,10 @@ test('F349 (1) — the New agreement card reserves every line it draws', async t
     /* ONE BUILDER, AND NOW FOR ALL THREE SHELVES: the chip used to carry a
        different hover from the card's, which is exactly the drift two
        builders for one act produce. */
-    assert.match(strip(WIZ), /const pickRow=r=>\{ const meta=\[r\.go\|\|'', r\.stream\|\|''\]\.filter\(Boolean\)\.join\(' · '\), hint=naCardTitle\(r\);/);
+    /* RE-POINTED IN PLACE 17 Oct 2026 (round 4, "One sheet"): the builder
+       takes the "best match" mark as a second argument; the hover is asked
+       the same way, once. */
+    assert.match(strip(WIZ), /const pickRow=\(r,best\)=>\{ const meta=\[r\.go\|\|'', r\.stream\|\|''\]\.filter\(Boolean\)\.join\(' · '\), hint=naCardTitle\(r\);/);
     /* ASKED ONCE, BY THE ONE BUILDER — counted inside openNewAgreement, since
        naCardTitle's own definition names the same argument. */
     const na = strip(WIZ).slice(strip(WIZ).indexOf('function openNewAgreement'));

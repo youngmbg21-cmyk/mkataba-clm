@@ -119,7 +119,10 @@ test('F347 — the second five images', async t => {
   await t.test('(2c) the cards are gone, and what reserved their lines is not needed', () => {
     assert.ok(!/class="na-about"/.test(WIZ) && !/class="na-door/.test(WIZ), 'no card is drawn');
     assert.ok(!/\.na-door \.na-about\{/.test(CSS), 'and no rule reserves one');
-    assert.match(WIZ, /const pickRow=r=>\{/, 'a row builder took its place');
+    /* RE-POINTED IN PLACE 17 Oct 2026 (round 4 of the redesign, "One sheet"):
+       the one row builder also takes the "best match" mark, so it names a
+       second argument; still ONE builder. */
+    assert.match(WIZ, /const pickRow=\(r,best\)=>\{/, 'a row builder took its place');
     assert.match(CSS, /\.na-pick-n\{[^}]*white-space:nowrap[^}]*\}/, 'the name is still cut, not wrapped');
     assert.match(WIZ, /hint=naCardTitle\(r\)/, 'and the whole of it still rides the hover');
   });
