@@ -6,6 +6,9 @@
 > *"rebuild and combine the sap way with the desk meaning the chat is not on the side panel. Also you can expand the chat bot card and move it around just like the jambo chat bot does today"*
 > — the owner, 17 Oct 2026, after the first round (The SAP way · Window · Desk).
 
+> *"side panels should always be on the right."*
+> — the owner, 17 Oct 2026, on the desk drawn with the chat on the left.
+
 - The design, live on photographs of HaTi (drag it, resize it, expand it, fold it, change pages), with this plan beneath: https://claude.ai/artifact/7TT6diMLvVgVTAW1NgV4G4
 - One design now, as the owner asked: **a card you move, resize and expand into a desk, drawn the SAP way.** It is never docked on the side.
 
@@ -21,7 +24,7 @@ Two Jambos who do not know each other:
 - **Opens from Jambo's face in the bar.** First time: compact on the right, under the bar. After that: where it was left, at the size it was left (per person, as today).
 - **Moves by its head; resizes from any edge or corner**, as the window does today. It stays under the bar and off the rail, so the face, the bell and the rail are always free.
 - **« expands it into the desk** in one press; » takes it back to the size it had. A double-click on the head does the same.
-- **Wide enough, it becomes the desk** (from 820 px): the chat on the left (400 px), the Board's cards on their own side on the right, under a white band the SAP way ("Cards from this conversation (n)", a labelled Show box, the cards stacked newest first). Each answer in the chat carries a pointer that lights its card. Narrower, the cards sit inside the conversation, under the answer that brought them, in their narrow dress.
+- **Wide enough, it becomes the desk** (from 820 px): the Board's cards fill the left, under a white band the SAP way ("Cards from this conversation (n)", a labelled Show box, the cards stacked newest first), and the chat stays on the right (400 px), because side panels always sit on the right (the owner's rule). The chat never jumps: « grows the card to the left and the cards fill the new room. Each answer in the chat carries a pointer (‹ Needs you) that lights its card. Narrower, the cards sit inside the conversation, under the answer that brought them, in their narrow dress.
 - **▭ puts it back** to where it first opened.
 - **It follows you** across pages, same spot and size.
 - **– folds it into Jambo's face**; so do Esc and a second press on the face. A dot says an answer arrived while folded. The face brings it back as it was.
@@ -34,7 +37,7 @@ Its sizes at 1440 × 780:
 |---|---|---|
 | Smallest | 360 × 420 | the chat, cards inside it, narrow dress |
 | Compact, first open | 460 × 708 | the same, full height under the bar |
-| Desk from | 820 wide | chat left, cards on their own side |
+| Desk from | 820 wide | cards left, chat right |
 | Largest | 1344 × 708 | the whole page under the bar; strip and charts as on the Board |
 
 **Two dresses for the strip**, chosen by the width it is drawn at (one builder): narrow — head, the five figures two to a row (the fifth across), the contract's life, and Key terms · Obligations · What Jambo read folded to one row each; wide (640 px and up) — exactly as on the Board.
