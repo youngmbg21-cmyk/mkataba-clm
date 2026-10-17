@@ -20,6 +20,13 @@
 
      node test/chromium/ink-wash-verify.js --save   (record, on the code BEFORE)
 
+   RE-RECORDED 17 Oct 2026 (third), OWNER-ASKED (the overnight build: "Build
+   and update record even on new ones. Complete the job"): Round 3, Jambo's
+   panel "Tabs and faces" — on light screens two text sizes' counts rose
+   (10px: the count on Jambo's tab; 12px: "‹ Jambo"), on dark screens counts
+   of colours already in the palette (the amber count, its ink, the dark
+   surface as its edge). Audited as a set difference: no colour and no text
+   size new to the census.
    RE-RECORDED 17 Oct 2026 (second), OWNER-ASKED ("Yes, update the record";
    then "update the colour lists and merge when green"): Rounds 1 and 2, the
    Counter and the desk tabs — the left menu is not drawn on a computer, so
