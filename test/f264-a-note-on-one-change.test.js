@@ -682,7 +682,10 @@ describe('f264 (9) — the door, and where it is dead', () => {
     const b = fnBody(CONTRACT, 'roomChatDoorHtml');
     assert.match(b, /id="hdr-chat"/, 'the same id, so paintChatDoor still answers for it');
     assert.match(b, /id="hdr-chat-dot"/, 'and the same dot');
-    assert.match(b, /class="room-check room-chat"/,
+    /* RE-POINTED 17 Oct 2026 (round 6, "One line"): in the room it still wears
+       the checks group's clothes; on Home's paper line it says its word and
+       wears the line's small button, as Share beside it does */
+    assert.match(b, /'room-check room-chat'\}"/,
       'it wears the checks group\'s own clothes — THE CLOTHES FOLLOW THE BUILDER');
     assert.match(fnBody(CONTRACT, 'roomChecksHtml'), /roomChatDoorHtml\(\)/,
       'and roomChecksHtml writes it FIRST, which is what puts it next to More');

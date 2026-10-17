@@ -276,7 +276,12 @@ describe('f687 (4) the words, in both books', () => {
     assert.match(fnBody(REG, 'regStageTabsHtml'), /esc\(regStageWord\(k\)\)/);
     assert.match(fnBody(REG, 'regStageOptsHtml'), /esc\(regStageWord\(k\)\+\(n\?` \(\$\{n\}\)`:''\)\)/);
   });
-  test('4c the paper\'s way back names the place: ‹ Contracts', () => {
-    assert.match(IG, /data-ig-pick-again>\$\{icon\('chevL','w-3\.5 h-3\.5'\)\}\$\{igEsc\(i18t\('nav_contracts'\)\)\}<\/button>/);
+  /* RE-POINTED 17 Oct 2026 (round 6, "One line"): the way back is the frame's —
+     the Contracts place is its own desk tab — so the paper's line draws no
+     "‹ Contracts"; the press it carried (igPickAgain) stays for the tab's door */
+  test('4c the paper\'s way back is the Contracts place\'s own desk tab', () => {
+    assert.ok(!/data-ig-pick-again>/.test(IG), 'no ‹ Contracts on the line');
+    assert.match(R('js/views/counter.js'), /if \(f === 'contracts' && typeof hbOpenContracts === 'function'\)\{ hbOpenContracts\(\); return true; \}/);
+    assert.match(R('js/views/counter.js'), /return c \? 'c:' \+ c\.id : 'home:contracts';/, 'the place is a tab of its own');
   });
 });
