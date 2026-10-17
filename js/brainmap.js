@@ -366,6 +366,14 @@ const BRAIN_PARTS = [
   ['bzsave', 'PUT /api/business-roles', 'wall', 2],
   ['bzholder', 'PUT /api/business-roles/holder', 'wall', 2],
   ['bzrec', 'role_changes', 'wall', 2, { def: 'CREATE TABLE IF NOT EXISTS role_changes', men: '\\brole_changes\\b' }],
+  /* THE QUARTERLY ACCESS REVIEW (owner picked "Review the sheet — the SAP
+     way", 17 Oct 2026): the sheet in review mode, the trail read for it, the
+     stamp */
+  ['arsheet', 'stArReviewHtml', 'see', 0],
+  ['arread', 'GET /api/access-review', 'wall', 2],
+  ['armark', 'POST /api/access-review/mark', 'wall', 2],
+  ['ardone', 'POST /api/access-review/done', 'wall', 2],
+  ['arrec', 'access_reviews', 'wall', 2, { def: 'CREATE TABLE IF NOT EXISTS access_reviews', men: '\\baccess_reviews\\b' }],
 ].map((a, i) => ({ id: a[0], code: a[1], reg: a[2], floor: a[3], def: (a[4] || {}).def || '', men: (a[4] || {}).men || '', i }));
 
 /* The six flows: which parts each step lands on. The sentences are
@@ -386,7 +394,7 @@ const BRAIN_FLOWS = [
      the other side's signature, an amendment, the end of a contract, and the
      ways a step can go wrong — none of which the six flows above walked. */
   { id: 'draft', steps: [['newagr', 'draftform', 'essentials'], ['putguard', 'db'], ['details', 'fillface', 'tplform', 'blanks'], ['triage'], ['shares', 'linkcheck'], ['email', 'outbyhand', 'wordfile'], ['whosemove', 'bell']] },
-  { id: 'request', steps: [['request', 'kinds', 'intake', 'mailroom', 'reqfiles', 'askadmin', 'settingsask', 'settingsanswer', 'privpage', 'privlist', 'privsave', 'rolespage', 'bzsection', 'bzget', 'bzsave', 'bzholder', 'bzrec'], ['bell', 'settingsasks', 'privnews', 'privseen'], ['lanes', 'laneowner'], ['arrivalowed', 'triage'], ['newagr']] },
+  { id: 'request', steps: [['request', 'kinds', 'intake', 'mailroom', 'reqfiles', 'askadmin', 'settingsask', 'settingsanswer', 'privpage', 'privlist', 'privsave', 'rolespage', 'bzsection', 'bzget', 'bzsave', 'bzholder', 'bzrec', 'arsheet', 'arread', 'armark', 'ardone', 'arrec'], ['bell', 'settingsasks', 'privnews', 'privseen'], ['lanes', 'laneowner'], ['arrivalowed', 'triage'], ['newagr']] },
   { id: 'theysign', steps: [['theirsign', 'issuelinks'], ['cplink', 'guestcode', 'totpcount', 'totpnew'], ['respond', 'filesig'], ['srvseal', 'sealtext', 'frozen'], ['copies', 'email'], ['obligations', 'renewal', 'calendar']] },
   { id: 'amend', steps: [['amendface', 'amend'], ['blanks'], ['readiness', 'approvals'], ['srvseal'], ['renewal', 'overview', 'stripfamily']] },
   { id: 'end', steps: [['served', 'renewact'], ['autorenew'], ['obdone'], ['endpause', 'decline', 'reopen'], ['archive', 'hold', 'trailpage', 'trailsum', 'traillist', 'trailexport', 'trailrec']] },
@@ -405,7 +413,7 @@ const BRAIN_LANES = ['req', 'own', 'hati', 'them'];
 const BRAIN_STAGES = ['ask', 'create', 'prepare', 'nego', 'approve', 'sign', 'keep'];
 const BRAIN_LANE_OF = {
   /* a colleague: the requester, the reviewer, the contributor, the approver */
-  req: ['request', 'kinds', 'reqfiles', 'askadmin', 'ruledoor', 'privpage', 'trailpage', 'rolespage', 'bzsection', 'settingsask', 'settingsanswer', 'review', 'suggest', 'rules', 'namedyes', 'decide', 'undoyes', 'approvalpaper', 'lookask'],
+  req: ['request', 'kinds', 'reqfiles', 'askadmin', 'ruledoor', 'privpage', 'trailpage', 'rolespage', 'bzsection', 'arsheet', 'settingsask', 'settingsanswer', 'review', 'suggest', 'rules', 'namedyes', 'decide', 'undoyes', 'approvalpaper', 'lookask'],
   /* the person working the contract: what they see and press */
   own: ['upload', 'dropin', 'draftform', 'refile', 'privnews', 'privtrail', 'paysec', 'ndatail', 'glance', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'needsme', 'negpage', 'redface', 'boardviews', 'strip', 'stripfamily', 'startnego', 'here', 'follow',
     'editor', 'baton', 'askkeep', 'risklist', 'riskwalk', 'stands', 'dealpaper', 'onepaper', 'decidedsend', 'signtab', 'signface', 'pad', 'calendar', 'desknight', 'insights', 'readings',
@@ -413,7 +421,7 @@ const BRAIN_LANE_OF = {
     'phrasebook', 'boardtools', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'citedoor', 'walkset', 'paperdesk', 'contracts', 'contractsplace', 'customers', 'directory', 'cellfold',
     'readchips', 'nextq', 'newagr', 'essentials', 'tplform', 'details', 'fillface', 'outbyhand', 'amend', 'endpause', 'decline', 'reopen', 'archive', 'hold', 'served', 'obdone', 'inline', 'stackview', 'mynotes', 'breakdown', 'jambohouse', 'onesearch', 'totpcount', 'totpnew'],
   /* HaTi itself: the readings, Copilot, the agents, the server's checks, the mail it sends */
-  hati: ['docx', 'clauses', 'putguard', 'db', 'privwall', 'privsave', 'privlist', 'privseen', 'privopens', 'privmoney', 'trailsum', 'traillist', 'trailexport', 'trailrec', 'bzget', 'bzsave', 'bzholder', 'bzrec', 'payread', 'jbpress', 'ndaread', 'triage', 'arrivalowed', 'datedwin', 'brief', 'playbook', 'oblscan', 'risk', 'model', 'blanks', 'laneowner',
+  hati: ['docx', 'clauses', 'putguard', 'db', 'privwall', 'privsave', 'privlist', 'privseen', 'privopens', 'privmoney', 'trailsum', 'traillist', 'trailexport', 'trailrec', 'bzget', 'bzsave', 'bzholder', 'bzrec', 'arread', 'armark', 'ardone', 'arrec', 'payread', 'jbpress', 'ndaread', 'triage', 'arrivalowed', 'datedwin', 'brief', 'playbook', 'oblscan', 'risk', 'model', 'blanks', 'laneowner',
     'funnel', 'desk', 'ladder', 'kept', 'asks', 'payload', 'shares', 'linkcheck', 'email', 'turnmail', 'wordmark', 'whosemove', 'roundauto',
     'mailkey', 'respond', 'audit', 'apply', 'wordback', 'paperdrop', 'stale', 'webhook', 'answeronpaper', 'readiness', 'signgate', 'approvals', 'paperjobs', 'rulestep', 'seal',
     'frozen', 'obligations', 'renewal', 'reminders', 'lanes', 'agentlevel', 'linkkeep', 'renewact', 'renewprep', 'boardjudge', 'bookread',

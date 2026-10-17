@@ -3845,6 +3845,8 @@ app.get('/api/bootstrap', auth, (req, res) => {
     reminderHealth: req.user.role === 'admin' ? (getSetting('reminderHealth') || null) : undefined,
     /* the business roles and who holds which: an admin's to see (piece 6) */
     bizRoles: req.user.role === 'admin' ? bzBook() : undefined,
+    /* the quarter's access review, as far as it has got: an admin's (piece 8) */
+    accessReview: req.user.role === 'admin' ? arSummary(req.user) : undefined,
     /* Whether this workspace can send email at all. The server has always known
        it and reported it on individual screens — creating a share, opening a
        link, requesting a signing code — which meant the answer only ever
@@ -12829,6 +12831,99 @@ app.put('/api/business-roles/holder', auth, admin, (req, res) => {
 });
 
 /* ============================================================
+   THE QUARTERLY ACCESS REVIEW (owner picked "Review the sheet — the SAP way",
+   17 Oct 2026; piece 8 of the sensitive contracts and governance plan)
+   ============================================================
+   Rights pile up. Every quarter an admin reads Who holds what, keeps or
+   changes each person, and marks the review done — and HaTi stamps it. The
+   ask lives in Needs your attention and the bell until the quarter's review
+   is done. "Used in the last 90 days" is READ FROM THE TRAIL, never guessed:
+   the last sign-in (sessions), the last act (each contract's audit lines,
+   by name), the last signature (the signatures, by address or name) and the
+   last act in each stream; where nothing is on record it says so. Admin-only;
+   the stamp is the server's and is an act in the trail export. */
+db.exec(`CREATE TABLE IF NOT EXISTS access_reviews (quarter TEXT PRIMARY KEY,
+  done_at TEXT, done_by_id TEXT, done_by_name TEXT, people INTEGER, kept INTEGER, changed INTEGER)`);
+db.exec(`CREATE TABLE IF NOT EXISTS access_review_marks (quarter TEXT NOT NULL, user_id TEXT NOT NULL,
+  verdict TEXT NOT NULL, by_id TEXT, by_name TEXT, at TEXT NOT NULL, PRIMARY KEY (quarter, user_id))`);
+const AR_IDLE_DAYS = 90;
+const AR_VERDICTS = ['keep', 'change'];
+const arQuarter = (d = new Date()) => `${d.getUTCFullYear()}-Q${Math.floor(d.getUTCMonth() / 3) + 1}`;
+/* who is reviewed: everyone but the admin doing it (nobody changes their own role) */
+const arPeople = user => db.prepare('SELECT id, name, email, role, created_at FROM users ORDER BY created_at').all().filter(u => u.id !== user.id);
+function arSummary(user) {
+  const q = arQuarter();
+  const done = db.prepare('SELECT * FROM access_reviews WHERE quarter=?').get(q);
+  const marks = {};
+  for (const m of db.prepare('SELECT user_id, verdict, by_name, at FROM access_review_marks WHERE quarter=?').all(q)) marks[m.user_id] = { v: m.verdict, by: m.by_name || '', at: m.at };
+  const last = db.prepare('SELECT quarter, done_at, done_by_name FROM access_reviews WHERE quarter<>? AND done_at IS NOT NULL ORDER BY quarter DESC LIMIT 1').get(q);
+  return { quarter: q, people: arPeople(user).map(u => u.id), marks,
+    done: done && done.done_at ? { at: done.done_at, by: done.done_by_name || '', people: done.people, kept: done.kept, changed: done.changed } : null,
+    last: last ? { quarter: last.quarter, at: last.done_at, by: last.done_by_name || '' } : null };
+}
+/* the trail, read for each person: when they last signed in, acted, signed,
+   and acted in each stream — '' where nothing is on record */
+function arUse(people) {
+  const byName = new Map(people.map(u => [String(u.name || '').trim().toLowerCase(), u.id]));
+  const byEmail = new Map(people.map(u => [String(u.email || '').trim().toLowerCase(), u.id]));
+  const out = {};
+  people.forEach(u => { out[u.id] = { since: u.created_at || '', seen: '', act: '', sign: '', streams: {} }; });
+  for (const r of db.prepare('SELECT user_id, MAX(COALESCE(last_seen, created_at)) AS t FROM sessions GROUP BY user_id').all())
+    if (out[r.user_id]) out[r.user_id].seen = trailIso(r.t) || '';
+  for (const r of db.prepare('SELECT json FROM contracts').all()) {
+    let c; try { c = JSON.parse(r.json); } catch (_) { continue; }
+    if (!c) continue;
+    const f = String(c.folder || '');
+    for (const a of (Array.isArray(c.audit) ? c.audit : [])) {
+      const id = byName.get(String((a && a.user) || '').trim().toLowerCase()); if (!id) continue;
+      const t = trailIso(a.at); if (!t) continue;
+      const o = out[id];
+      if (t > o.act) o.act = t;
+      if (f && (!o.streams[f] || t > o.streams[f])) o.streams[f] = t;
+    }
+    for (const s of (Array.isArray(c.signatures) ? c.signatures : [])) {
+      const id = byEmail.get(String((s && s.email) || '').trim().toLowerCase()) || byName.get(String((s && s.name) || '').trim().toLowerCase());
+      if (!id) continue;
+      const t = trailIso(s.at); if (t && t > out[id].sign) out[id].sign = t;
+    }
+  }
+  return out;
+}
+app.get('/api/access-review', auth, admin, (req, res) => {
+  const people = arPeople(req.user);
+  res.json({ ...arSummary(req.user), use: arUse(people), idleDays: AR_IDLE_DAYS, now: now() });
+});
+/* one person kept or changed, this quarter; a verdict may be changed until the review is done */
+app.post('/api/access-review/mark', auth, admin, (req, res) => {
+  const b = req.body || {};
+  const verdict = String(b.verdict || '');
+  if (!AR_VERDICTS.includes(verdict)) return res.status(400).json({ error: 'A review keeps or changes a person.' });
+  const q = arQuarter();
+  const done = db.prepare('SELECT done_at FROM access_reviews WHERE quarter=?').get(q);
+  if (done && done.done_at) return res.status(409).json({ error: 'This quarter\'s review is already done.' });
+  const target = db.prepare('SELECT id FROM users WHERE id=?').get(String(b.userId || ''));
+  if (!target) return res.status(404).json({ error: 'User not found' });
+  if (target.id === req.user.id) return res.status(400).json({ error: 'Nobody reviews their own rights.' });
+  db.prepare(`INSERT INTO access_review_marks (quarter, user_id, verdict, by_id, by_name, at) VALUES (?,?,?,?,?,?)
+    ON CONFLICT(quarter, user_id) DO UPDATE SET verdict=excluded.verdict, by_id=excluded.by_id, by_name=excluded.by_name, at=excluded.at`)
+    .run(q, target.id, verdict, String(req.user.id || ''), String(req.user.name || ''), now());
+  res.json(arSummary(req.user));
+});
+/* THE STAMP: only once every person is kept or changed */
+app.post('/api/access-review/done', auth, admin, (req, res) => {
+  const s = arSummary(req.user);
+  if (s.done) return res.status(409).json({ error: 'This quarter\'s review is already done.' });
+  const left = s.people.filter(id => !s.marks[id]).length;
+  if (left) return res.status(409).json({ error: `${left} ${left === 1 ? 'person is' : 'people are'} not reviewed yet.`, left });
+  const kept = s.people.filter(id => s.marks[id].v === 'keep').length;
+  db.prepare(`INSERT INTO access_reviews (quarter, done_at, done_by_id, done_by_name, people, kept, changed) VALUES (?,?,?,?,?,?,?)
+    ON CONFLICT(quarter) DO UPDATE SET done_at=excluded.done_at, done_by_id=excluded.done_by_id, done_by_name=excluded.done_by_name,
+      people=excluded.people, kept=excluded.kept, changed=excluded.changed`)
+    .run(s.quarter, now(), String(req.user.id || ''), String(req.user.name || ''), s.people.length, kept, s.people.length - kept);
+  res.json(arSummary(req.user));
+});
+
+/* ============================================================
    THE TRAIL, AS A FILE (owner picked "Export drawer — the SAP way",
    17 Oct 2026; piece 5 of the sensitive contracts and governance plan)
    ============================================================
@@ -12895,6 +12990,9 @@ function trailRows(ask) {
   /* a person's business role changing is the company's act too (piece 6) */
   for (const r of db.prepare('SELECT * FROM role_changes WHERE at >= ? AND at <= ? ORDER BY id').all(lo, hi))
     out.push({ at: r.at, who: String(r.by_name || ''), what: 'Business role changed', detail: `${r.user_name}: ${r.from_role || 'none'} to ${r.to_role || 'none'}`, c: null });
+  /* the quarter's access review, stamped done (piece 8) */
+  for (const r of db.prepare('SELECT * FROM access_reviews WHERE done_at >= ? AND done_at <= ?').all(lo, hi))
+    out.push({ at: r.done_at, who: String(r.done_by_name || ''), what: 'Access review done', detail: `${r.quarter} · ${r.people} people: ${r.kept} kept, ${r.changed} changed`, c: null });
   /* a hand-over of the record is the company's act, whatever streams were asked */
   for (const r of db.prepare('SELECT * FROM trail_exports WHERE at >= ? AND at <= ? ORDER BY id').all(lo, hi))
     out.push({ at: r.at, who: String(r.user_name || ''), what: 'Exported the trail', detail: `${r.d_from} to ${r.d_to} · ${String(r.fmt || '').toUpperCase()} · ${r.acts} acts`, c: null });

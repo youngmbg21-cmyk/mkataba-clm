@@ -2217,6 +2217,9 @@ const ALERT_KINDS = [
      cleared once read). Both open Settings, where the ask lives. */
   { k:'settings-ask',    tone:'amber', ic:'&#9881;' },
   { k:'settings-answer', tone:'green', ic:'&#9881;' },
+  /* THE QUARTER'S ACCESS REVIEW (17 Oct 2026, piece 8 of the sensitive-
+     contracts plan): an admin's work owed until the quarter is stamped done */
+  { k:'access-review',   tone:'amber', ic:'&#9881;' },
   /* SOMEBODY NAMED THEMSELF ON A PRIVATE FOLDER THAT NAMES YOU (17 Oct 2026,
      decision 1 of the sensitive-contracts plan): told once, until pressed. */
   { k:'stream-self',     tone:'amber', ic:'&#128274;' },
@@ -2753,6 +2756,9 @@ function buildAlerts(){
     if(typeof window.stAsksOpen==='function') stAsksOpen().forEach(a=>
       push('settings-ask',null,i18t('al_settings_ask',{who:a.byName||'',what:a.what}),
         ()=>{ if(window.openSettingsAt) openSettingsAt('company','ask:'+a.id); }, { sub:a.why||'' }));
+    if(typeof window.stArDue==='function'&&stArDue()){ const n=stArCount();
+      push('access-review',null,i18t('al_access_review',{q:stArLabel(state.accessReview.quarter)}),
+        ()=>{ if(window.openSettingsAt) openSettingsAt('company'); if(window.settingsGoPage) settingsGoPage('sheet'); }, { sub:i18t('st_ar_need_sub',{n:n.done,total:n.total}) }); }
     if(typeof window.stAsksAnswered==='function') stAsksAnswered().forEach(a=>
       push('settings-answer',null,i18t(a.status==='done'?'al_settings_done':'al_settings_no',{what:a.what}),
         ()=>{ if(window.stAskSeen) stAskSeen(a.id); setView('team'); }, { sub:a.note||'' }));
