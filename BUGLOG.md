@@ -20900,3 +20900,7 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - CLAUDE.md now stands at about 82 KB (81.2 KB before this change); bringing it under 80 KB is a trim for the owner to approve.
 - (later the same day) The colour census was re-taken on the owner's "Yes, update the record" — ink-wash and theme-tokens both green.
 - GitHub's node suite (jsdom) fails 1 test on main itself (feb17f1: 12841 of 12842; the three main runs before it failed too); which test is not visible in the log tool's last 5,000 lines. Finding it needs a full-suite run, which waits on the owner.
+
+### Noticed, not fixed (17 Oct 2026, the Jambo's room proposal; nothing built)
+- The Jambo window (#ai-panel, z-50 from the top edge) opens over the bar's right end on every page where it appears: at 1440 wide it covers Jambo's own face, the bell and the account menu until it is moved or closed (photographed on Negotiations at 1440×780). The proposal's room sits under the bar; today's window could start at the bar's foot.
+- Two Jambos keep two conversations (ai.history in the window, intel.history in Home's panel) and the window never reads Jambo's words or the Board's free reader before the model. This is what the proposal (docs/PLAN-jambo-room.md) is about; logged so the finding is on record.
