@@ -1846,7 +1846,7 @@ function srvSignApprovalMerge(prev, c, user) {
     before.status = e.status;
     before.decidedBy = { id: user.id, name: user.name || '', role: user.role || '' };
     before.decidedAt = now(); before.as = as; before.decision = note || null;
-    before.for = as === 'deputy' ? (awayForOf(user, before.approverId) || awayForOf(user, before.backupId)) : null;
+    if (as === 'deputy') before.for = awayForOf(user, before.approverId) || awayForOf(user, before.backupId); else delete before.for;
   }
   /* Bounded like the browser bounds it, and a request still waiting is never
      the one dropped. */
@@ -1961,7 +1961,8 @@ function srvAsksMerge(prev, c, user) {
         if (!(b.of || []).some(x => String(x) === String(p.of)))
           return { status: 403, error: `#${p.of} is not part of internal review ${id}.` };
         had.set(String(p.of), { of: String(p.of), answer: String(p.answer || ''), by: me, at: now(),
-          why: clean(p.why).slice(0, ASK_WHY_MAX) || null, stamp: p.stamp != null ? p.stamp : null, for: rvForOf(rv, user) });
+          why: clean(p.why).slice(0, ASK_WHY_MAX) || null, stamp: p.stamp != null ? p.stamp : null,
+          ...(rvForOf(rv, user) ? { for: rvForOf(rv, user) } : {}) });
       }
       b.parts = [...had.values()];
     }
@@ -2016,8 +2017,9 @@ function srvAsksMerge(prev, c, user) {
         return { status: 403, error: `Only ${(b.to && b.to.name) || 'the colleague who was asked'} can mark this done.` };
     }
     if (to === 'no' && !why) return { status: 400, error: 'A refusal says why — the reason is what goes back.' };
-    Object.assign(b, { state: to, answeredAt: now(), answeredBy: me, why: why || null, answeredFor },
+    Object.assign(b, { state: to, answeredAt: now(), answeredBy: me, why: why || null },
       b.kind === 'rule' && to === 'yes' && e.stamp ? { stamp: e.stamp } : {});
+    if (answeredFor) b.answeredFor = answeredFor; else delete b.answeredFor;   // only where a stand-in answered
   }
   return { list: asksBound(out) };
 }
@@ -2178,7 +2180,7 @@ function srvApprovalChainRefusal(c, prev) {
 function srvUserCanApprove(a, u) {
   if (!u || !a) return false;
   /* …or the member's stand-in while they are away (piece 9: awayCovers) */
-  if (a.kind === 'member') return a.id ? (String(a.id) === String(u.id || '') || awayCovers(u, a.id)) : String(a.name || '') === String(u.name || '');
+  if (a.kind === 'member') return a.id ? String(a.id) === String(u.id || '') || awayCovers(u, a.id) : String(a.name || '') === String(u.name || '');
   if (a.role === 'admin') return u.role === 'admin';
   if (a.role === 'legal') return u.role === 'legal' || u.role === 'admin';
   return u.role === a.role;

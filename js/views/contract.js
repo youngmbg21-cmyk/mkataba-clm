@@ -16381,7 +16381,7 @@ function signWhyShort(t){
    sentence is what is owed or what happened. `sa` is the row signApprovalRows
    built — the one reading — so the title and the button cannot disagree. */
 /* who decided, and whom for where a stand-in did (piece 9) */
-const saDecidedName=sa=>{ const r=sa&&sa.req; return r&&r.decidedBy&&r.decidedBy.name ? awayByLabel(r.decidedBy.name, r.for) : ''; };
+const saDecidedName=sa=>{ const r=sa&&sa.req; return r&&r.decidedBy&&r.decidedBy.name ? (typeof awayByLabel==='function'?awayByLabel(r.decidedBy.name, r.for):r.decidedBy.name) : ''; };
 function signApprovalRowTitle(sa){
   if(!sa) return i18t('sa_row_unasked');
   const who=(sa.need&&sa.need.approverName)||i18t('sa_admins');
