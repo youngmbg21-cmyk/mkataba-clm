@@ -162,6 +162,8 @@ const BRAIN_PARTS = [
   ['refile', 'ktFolderMove', 'in', 1],
   /* a contract at a glance, at the top of Jambo's tab (step 5) */
   ['glance', 'pdGlanceHtml', 'see', 1],
+  /* Needs you here (round 3, "Tabs and faces", 17 Oct 2026): this contract's owed rows above the glance, Jambo's work first */
+  ['needshere', 'pdNeedsHtml', 'see', 1],
   /* Redlines, beside the paper (the one-page Home plan, stage 3, 14 Oct 2026):
      Jambo's panel draws the Negotiate page's own column; doors from outside land here */
   ['redface', 'pdRedOpen', 'see', 0],
@@ -413,7 +415,7 @@ const BRAIN_PARTS = [
    brn_step_<flow>_<n> in the dictionary. A flow is a STORY a person wrote;
    the reading only checks that every part it names is still in the code. */
 const BRAIN_FLOWS = [
-  { id: 'upload', steps: [['upload', 'dropin', 'book', 'draftcard'], ['docx', 'pdf'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed', 'jbpress'], ['brief', 'playbook', 'oblscan', 'obdesk', 'risk', 'datedwin', 'papermark', 'ndaread'], ['model'], ['details', 'fillface', 'refile', 'blanks', 'paysec', 'ndatail'], ['overview', 'constellation', 'glance', 'bell', 'strip']] },
+  { id: 'upload', steps: [['upload', 'dropin', 'book', 'draftcard'], ['docx', 'pdf'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed', 'jbpress'], ['brief', 'playbook', 'oblscan', 'obdesk', 'risk', 'datedwin', 'papermark', 'ndaread'], ['model'], ['details', 'fillface', 'refile', 'blanks', 'paysec', 'ndatail'], ['overview', 'constellation', 'glance', 'needshere', 'bell', 'strip']] },
   /* The new parts join STEPS THAT ALREADY EXIST rather than adding steps of
      their own: a step inserted in the middle renumbers every sentence after
      it in both books, and these are not new stages of the story — they are
@@ -448,7 +450,7 @@ const BRAIN_LANE_OF = {
   /* a colleague: the requester, the reviewer, the contributor, the approver */
   req: ['request', 'kinds', 'reqfiles', 'askadmin', 'ruledoor', 'privpage', 'trailpage', 'rolespage', 'bzsection', 'arsheet', 'settingsask', 'settingsanswer', 'review', 'suggest', 'rules', 'namedyes', 'decide', 'undoyes', 'approvalpaper', 'lookask'],
   /* the person working the contract: what they see and press */
-  own: ['awaycard', 'keeptab', 'cnrow', 'upload', 'dropin', 'draftform', 'refile', 'privnews', 'privtrail', 'paysec', 'ndatail', 'glance', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'needsme', 'counter', 'desktabs', 'negpage', 'redface', 'boardviews', 'strip', 'stripfamily', 'startnego', 'here', 'follow',
+  own: ['awaycard', 'keeptab', 'cnrow', 'upload', 'dropin', 'draftform', 'refile', 'privnews', 'privtrail', 'paysec', 'ndatail', 'glance', 'needshere', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'needsme', 'counter', 'desktabs', 'negpage', 'redface', 'boardviews', 'strip', 'stripfamily', 'startnego', 'here', 'follow',
     'editor', 'baton', 'askkeep', 'risklist', 'riskwalk', 'stands', 'dealpaper', 'onepaper', 'decidedsend', 'signtab', 'signface', 'pad', 'calendar', 'desknight', 'insights', 'readings',
     'chasemany', 'copilotask', 'menuask', 'nextsteps', 'reflink', 'menutab', 'amendface', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs',
     'phrasebook', 'boardtools', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'citedoor', 'walkset', 'paperdesk', 'contracts', 'contractsplace', 'customers', 'directory', 'cellfold',
