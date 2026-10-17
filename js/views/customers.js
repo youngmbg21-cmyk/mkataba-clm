@@ -40,7 +40,7 @@
 
 /* Per sitting: the list's own find and filters. A refresh puts them back
    through PLACE_PARTS (cuPlace / cuPlacePut). */
-const _cu = { stream: 'all', owner: 'all', q: '' };
+const _cu = { stream: 'all', owner: 'all', nda: 'all', q: '' };
 
 function cuNameOf(c){ return String((c && c.counterparty) || '').trim(); }
 /* One shelf per name, whatever its case or spacing: "Naivas Ltd" and "naivas
@@ -152,13 +152,119 @@ function cuIdsOf(v){
   return [...ids];
 }
 
+/* ---- DO WE HAVE AN NDA WITH THEM? (owner picked "NDA column — the SAP
+   way", 17 Oct 2026; piece 4b of the sensitive contracts plan) ----
+   ONE READING PER PARTY, off the two facts a person confirmed on each NDA
+   (c.nda, piece 4 — ndaClean) and whether it is signed. The wording's own
+   reading (ndaOf's read) is never used here: an NDA nobody confirmed says
+   "Not confirmed", never a guess. Every NDA of the party counts whatever the
+   Stream and Owner filters hold (it is the company's cover, not this view's)
+   and an archived one too (a shelved NDA still binds); only NDAs the reader
+   may open are in the list at all (the server's stream wall — a private
+   stream's NDA is not even hinted at). The best cover wins: in force (for
+   good, else the latest day), then signed but not confirmed, then not
+   signed yet, then ended (the latest), then none. Nothing here writes. */
+const CU_NDA_RANK = { inforce: 5, unconfirmed: 4, draft: 3, ended: 2, none: 1 };
+const CU_NDA_TONE = { inforce: 'green', unconfirmed: 'amber', draft: '', ended: '' };
+function cuNdaOne(c, today){
+  const n = (typeof ndaClean === 'function') ? ndaClean(c && c.nda) : null;
+  const base = { c, dir: (n && n.dir) || '', ends: (n && n.ends) || '', forGood: !!(n && n.forGood) };
+  if (!c || c.status !== 'Signed') return Object.assign(base, { state: 'draft' });
+  if (!n || (!n.forGood && !n.ends)) return Object.assign(base, { state: 'unconfirmed' });
+  if (n.forGood || n.ends >= today) return Object.assign(base, { state: 'inforce' });
+  return Object.assign(base, { state: 'ended' });
+}
+function cuNdaBetter(a, b){
+  if (!b) return true;
+  if (CU_NDA_RANK[a.state] !== CU_NDA_RANK[b.state]) return CU_NDA_RANK[a.state] > CU_NDA_RANK[b.state];
+  if (a.forGood !== b.forGood) return a.forGood;
+  return String(a.ends) > String(b.ends);
+}
+/* key → { state, c, dir, ends, forGood, n } — the book walked once per paint */
+function cuNdaMap(){
+  const all = (typeof state !== 'undefined' && Array.isArray(state.contracts)) ? state.contracts : [];
+  const today = (typeof todayISO === 'function') ? todayISO() : new Date().toISOString().slice(0, 10);
+  const map = new Map();
+  if (typeof ndaIs !== 'function') return map;
+  for (const c of all){
+    if (!c || c.parentId || !cuNameOf(c) || !ndaIs(c)) continue;
+    const key = cuKeyOf(cuNameOf(c)), one = cuNdaOne(c, today), was = map.get(key);
+    const n = (was ? was.n : 0) + 1;
+    map.set(key, Object.assign(cuNdaBetter(one, was) ? one : was, { n }));
+  }
+  return map;
+}
+function cuNdaOf(key, map){ return (map || cuNdaMap()).get(key) || { state: 'none', n: 0 }; }
+/* what the filter keeps: "None in force" is every party with no cover today */
+function cuNdaWants(st, want){
+  if (want === 'all') return true;
+  if (want === 'none') return st === 'none' || st === 'ended' || st === 'draft';
+  return st === want;
+}
+function cuNdaMonth(iso){
+  try { return new Date(iso + 'T00:00:00Z').toLocaleDateString((typeof langLocale === 'function') ? langLocale() : undefined, { month: 'short', year: 'numeric', timeZone: 'UTC' }); } catch (_){ return iso; }
+}
+/* the column's words: "Mutual · to Jul 2030", "Not confirmed", "Ended Mar 2026" */
+function cuNdaShort(x){
+  if (!x || x.state === 'none') return i18t('cu_nda_none');
+  if (x.state === 'inforce'){
+    const way = x.dir === 'mutual' ? i18t('cu_nda_mutual') : (x.dir ? i18t('cu_nda_oneway') : i18t('cu_nda_word'));
+    return way + ' · ' + (x.forGood ? i18t('nda_for_good_lc') : i18t('cu_nda_to', { d: cuNdaMonth(x.ends) }));
+  }
+  if (x.state === 'ended') return i18t('cu_nda_ended', { d: cuNdaMonth(x.ends) });
+  return i18t(x.state === 'unconfirmed' ? 'cu_nda_unconfirmed' : 'cu_nda_draft');
+}
+/* drawn in two lines like the party beside it (the pill, then until when), so
+   the column costs the row no height and the party's name keeps its room */
+function cuNdaCellHtml(x){
+  if (!x || x.state === 'none') return `<span class="cu-nda-none">${_cuE(cuNdaShort(x))}</span>`;
+  const tone = CU_NDA_TONE[x.state];
+  const word = x.state === 'inforce' ? (x.dir === 'mutual' ? i18t('cu_nda_mutual') : (x.dir ? i18t('cu_nda_oneway') : i18t('cu_nda_word')))
+    : i18t(x.state === 'ended' ? 'cu_nda_ended_w' : x.state === 'unconfirmed' ? 'cu_nda_unconfirmed' : 'cu_nda_draft');
+  const sub = x.state === 'inforce' ? (x.forGood ? i18t('nda_for_good_lc') : i18t('cu_nda_to', { d: cuNdaMonth(x.ends) }))
+    : x.state === 'ended' ? cuNdaMonth(x.ends) : '';
+  return `<span class="reg-stg ins-pill cu-nda${tone ? ' is-' + tone : ''}" data-cu-nda-st="${_cuE(x.state)}" title="${_cuE(cuNdaShort(x))}"><i aria-hidden="true"></i>${_cuE(word)}</span>${
+    sub ? `<span class="cu-nda-sub">${_cuE(sub)}</span>` : ''}`;
+}
+/* the panel's line: the whole sentence, and the door to the NDA itself */
+function cuNdaLong(x){
+  if (!x || x.state === 'none') return i18t('cu_nda_none');
+  const day = iso => (typeof regDotDate === 'function') ? regDotDate(iso) : iso;
+  if (x.state === 'inforce'){
+    const until = x.forGood ? i18t('nda_for_good_lc') : i18t('nda_until', { d: day(x.ends) });
+    const way = x.dir && typeof ndaDirWords === 'function' ? ndaDirWords(x.dir) : '';
+    return way ? i18t('cu_nda_long', { way, until }) : i18t('cu_nda_long_nodir', { until });
+  }
+  if (x.state === 'ended') return i18t('cu_nda_ended', { d: day(x.ends) });
+  return i18t(x.state === 'unconfirmed' ? 'cu_nda_unconfirmed_long' : 'cu_nda_draft_long');
+}
+function cuNdaFactHtml(x){
+  if (!x || x.state === 'none') return _cuE(i18t('cu_nda_none'));
+  const more = x.n > 1 ? ` <span class="sub">· ${_cuE(i18t('cu_nda_n', { n: x.n }))}</span>` : '';
+  const go = x.c ? ` <button type="button" class="cu-nda-go" data-cu-nda="${_cuE(x.c.id)}">${_cuE(i18t('cu_nda_open'))} ›</button>` : '';
+  return `<span${x.state === 'unconfirmed' ? ' class="sub is-amber"' : ''}>${_cuE(cuNdaLong(x))}</span>${more}${go}`;
+}
+/* the door: the NDA's own life line on the Board, where its Secret until
+   tile is confirmed (hbStripBring, the strip's one door); where the strip
+   cannot come up, the contract opens as every list opens one */
+function cuOpenNda(id){
+  if (!id) return;
+  if (typeof hbStripBring === 'function' && hbStripBring(id)) return;
+  if (typeof regOpenContract === 'function') regOpenContract(id);
+}
+if (typeof document !== 'undefined') document.addEventListener('click', e => {
+  const b = e.target && e.target.closest && e.target.closest('[data-cu-nda]');
+  if (b) cuOpenNda(b.getAttribute('data-cu-nda'));
+});
+
 /* ---- THE PLACE A REFRESH PUTS BACK ---- the list's own find and filters; a
    customer kept by an older refresh ("cust") is ignored and lands on the list. */
-function cuPlace(){ return { stream: _cu.stream, owner: _cu.owner, q: _cu.q }; }
+function cuPlace(){ return { stream: _cu.stream, owner: _cu.owner, nda: _cu.nda, q: _cu.q }; }
 function cuPlacePut(p){
   if (!p || typeof p !== 'object') return;
   _cu.stream = p.stream ? String(p.stream) : 'all';
   _cu.owner = p.owner ? String(p.owner) : 'all';
+  _cu.nda = ['inforce', 'unconfirmed', 'none'].includes(p.nda) ? p.nda : 'all';
   _cu.q = p.q ? String(p.q) : '';
 }
 
@@ -219,7 +325,7 @@ function cuChip(o){
   return `<label class="reg-f reg-chip${on ? ' on' : ''}" title="${_cuE(o.title || o.label)}"><span class="reg-f-l">${_cuE(o.label)}</span><span class="reg-f-v">${_cuE(pick)}</span><select class="reg-chip-sel" ${o.attr}="${_cuE(o.key)}" title="${_cuE(o.title || o.label)}">${
     (o.opts || []).map(([v, l]) => `<option value="${_cuE(v)}"${String(v) === String(o.cur) ? ' selected' : ''}>${_cuE(l)}</option>`).join('')}</select></label>`;
 }
-function cuFilterBarHtml(items){
+function cuFilterBarHtml(items, ndaCounts){
   const streams = [...new Set((items || []).map(c => c.folder).filter(f => f && cuStreamName(f)))]
     .sort((a, b) => cuStreamName(a).localeCompare(cuStreamName(b)));
   const owners = [...new Set((items || []).map(c => (typeof contractOwnerName === 'function' && contractOwnerName(c)) || '').filter(Boolean))].sort();
@@ -229,6 +335,8 @@ function cuFilterBarHtml(items){
       opts: [['all', i18t('cu_all_streams')], ...streams.map(f => [f, cuStreamName(f)])] })}
     ${cuChip({ label: i18t('cu_owner'), attr: 'data-cu-f', key: 'owner', cur: _cu.owner, def: 'all',
       opts: [['all', i18t('cu_anyone')], ...owners.map(o => [o, o])] })}
+    ${ndaCounts ? cuChip({ label: i18t('cu_col_nda'), title: i18t('cu_nda_filter_title'), attr: 'data-cu-f', key: 'nda', cur: _cu.nda, def: 'all',
+      opts: [['all', i18t('cu_nda_any')], ...['inforce', 'unconfirmed', 'none'].filter(k => ndaCounts[k] || _cu.nda === k).map(k => [k, i18t('cu_nda_f_' + k)])] }) : ''}
   </div>`;
 }
 function cuCardHtml(title, n, table, foot){
@@ -269,6 +377,17 @@ const CU_CSS = `
   .cu-stripe{display:inline-block;width:4px;height:12px;border-radius:2px;vertical-align:-1px;margin-right:7px;}
   .cu-panel-streams{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;font-size:var(--t-body);}
   .cu-panel-streams .n{font-variant-numeric:tabular-nums;color:var(--color-neutral-600);}
+  /* the inspector table's own rule (.ap-table.ap-ins :is(td,th)) keeps every
+     cell on one line; on this list the heads may wrap, and the cells sit 2px
+     closer — the same scope, later in the source, so no !important */
+  .ap-table.cu-table th{white-space:normal;text-overflow:clip;vertical-align:bottom;line-height:1.3;}
+  .ap-table.cu-table :is(td,th){padding-left:12px;padding-right:12px;}
+  .cu-table td.cu-nda-td{white-space:nowrap;overflow:hidden;}
+  .cu-nda-sub{display:block;margin-top:2px;font-size:var(--t-meta);color:var(--color-neutral-500);overflow:hidden;text-overflow:ellipsis;}
+  .cu-table .cu-nda{font-weight:var(--w-label);}
+  .cu-nda-none{color:var(--color-neutral-500);}
+  .cu-nda-go{border:0;background:none;padding:0 0 0 4px;font:inherit;font-weight:var(--w-label);color:var(--color-accent);cursor:pointer;white-space:nowrap;}
+  .cu-nda-go:hover{text-decoration:underline;}
 `;
 
 /* ---- THE CUSTOMERS PAGE ---- */
@@ -276,14 +395,21 @@ function cuListHtml(INS){
   const book = cuBook();
   const all = cuCustomers(book);
   const q = cuKeyOf(_cu.q);
+  const ndas = cuNdaMap();
+  const ndaCounts = { inforce: 0, unconfirmed: 0, none: 0 };
+  all.forEach(r => { const st = cuNdaOf(r.key, ndas).state; ['inforce', 'unconfirmed', 'none'].forEach(k => { if (cuNdaWants(st, k)) ndaCounts[k]++; }); });
   const rows = all.filter(r => !q || r.key.includes(q))
-    .filter(r => !cuFiltersOn() || cuFilterItems(r.items).length);
+    .filter(r => !cuFiltersOn() || cuFilterItems(r.items).length)
+    .filter(r => cuNdaWants(cuNdaOf(r.key, ndas).state, _cu.nda));
   const money = cuMoney();
   const activeAll = book.filter(c => cuBucket(c) === 'active');
   const facts = [i18tn('cu_n_customers', all.length, { n: all.length })];
   if (money){ const v = cuMoneyWords(activeAll); if (v) facts.push(i18t('cu_active_on_paper', { v })); }
-  const head = [{ t: i18t('cu_col_customer') }, { t: i18t('cu_col_active'), r: 1, w: 80 }, { t: i18t('cu_col_expired'), r: 1, w: 84 },
-    ...(money ? [{ t: i18t('cu_col_on_paper'), r: 1, w: 130 }] : []), { t: i18t('cu_col_next_end'), w: 120 }, { t: i18t('cu_col_waiting'), r: 1, w: 120 }];
+  /* THE NDA COLUMN TAKES ITS ROOM FROM THE HEADS, NOT THE NAMES: the long
+     heads wrap onto two lines (as a worklist's do) and the columns fit their
+     values, so the party's name keeps the width it had before the column came */
+  const head = [{ t: i18t('cu_col_customer') }, { t: i18t('cu_col_active'), r: 1, w: 62 }, { t: i18t('cu_col_expired'), r: 1, w: 78 },
+    ...(money ? [{ t: i18t('cu_col_on_paper'), r: 1, w: 92 }] : []), { t: i18t('cu_col_next_end'), w: 104 }, { t: i18t('cu_col_waiting'), r: 1, w: 76 }, { t: i18t('cu_col_nda'), w: 124 }];
   const body = rows.map(r => {
     const v = cuView(r), act = v.active, exp = v.expired, w = v.waiting, next = v.next;
     const ov = money ? cuMoneyWords(act) : '';
@@ -295,6 +421,7 @@ function cuListHtml(INS){
       ${money ? `<td class="n${ov ? '' : ' quiet'}">${_cuE(ov || '—')}</td>` : ''}
       <td class="${next ? '' : 'quiet'}">${_cuE(next ? cuDay(next) : '—')}</td>
       <td class="n${w ? ' amber' : ' quiet'}">${w || '—'}</td>
+      <td class="cu-nda-td">${cuNdaCellHtml(cuNdaOf(r.key, ndas))}</td>
     </tr>`;
   }).join('');
   const table = rows.length
@@ -307,7 +434,7 @@ function cuListHtml(INS){
         <div style="min-width:0"><h1 class="cu-t">${_cuE(i18t('nav_customers'))}</h1><div class="page-facts">${facts.map(_cuE).join(' · ')}</div></div>
         <div class="cu-acts"><button type="button" class="hm-primary" data-cu-draft="">${(typeof icon === 'function') ? icon('plus', 'w-3.5 h-3.5', 2) : ''} ${_cuE(i18t('home_draft_new'))}</button></div>
       </div>
-      <div class="reg-tabbar cu-notabs">${cuFilterBarHtml(book)}</div>
+      <div class="reg-tabbar cu-notabs">${cuFilterBarHtml(book, ndaCounts)}</div>
     </div>
     ${INS ? `<div class="ap-body is-ins cu-body">${cuCardHtml(i18t('nav_customers'), rows.length, table, foot)}<aside id="ins-panel" class="ins-panel" aria-label="${_cuE(i18t('ins_panel_label'))}"></aside></div>`
       : `<div class="cu-body">${cuCardHtml(i18t('nav_customers'), rows.length, table, foot)}</div>`}`;
@@ -329,6 +456,7 @@ function cuPaintCustomerPanel(tb){
       { k: 'expired', label: i18t('cu_tab_expired'), v: _cuE(count(r.expired)) },
       { k: 'next', label: i18t('cu_col_next_end'), v: r.next ? _cuE(cuDay(r.next)) : '' },
       { k: 'waiting', label: i18t('cu_col_waiting'), v: _cuE(String(r.waiting)) },
+      { k: 'nda', label: i18t('cu_col_nda'), v: cuNdaFactHtml(cuNdaOf(key)), wide: true },
     ];
     const streams = r.streams.map(f => `<span>${cuStripeHtml(f)}${_cuE(cuStreamName(f))}</span><span class="n">${r.items.filter(c => c.folder === f).length}</span>`).join('');
     insPaintPanel({ seat, item: { id: r.key }, head: {
@@ -370,7 +498,7 @@ function cuRepaint(){ if (typeof state !== 'undefined' && state.view === 'custom
 function cuWire(host, INS){
   host.querySelector('[data-cu-draft]')?.addEventListener('click', e => cuDraftFor(e.currentTarget.getAttribute('data-cu-draft') || ''));
   host.querySelectorAll('select[data-cu-f]').forEach(s => s.addEventListener('change', () => {
-    const k = s.getAttribute('data-cu-f'); if (!['stream', 'owner'].includes(k)) return;
+    const k = s.getAttribute('data-cu-f'); if (!['stream', 'owner', 'nda'].includes(k)) return;
     _cu[k] = s.value || 'all'; renderCustomers(); if (typeof placeSave === 'function') placeSave(); }));
   const q = host.querySelector('#cu-q');
   if (q) q.addEventListener('input', () => { _cu.q = q.value; renderCustomers(); });
@@ -385,6 +513,7 @@ function cuWire(host, INS){
 }
 
 Object.assign(window, { cuNameOf, cuKeyOf, cuBook, cuBucket, cuCustomers, cuCustomerOf, cuDoorCount, cuNextEnd, cuFilterItems, cuView, cuIdsOf,
+  cuNdaMap, cuNdaOf, cuNdaWants, cuNdaShort, cuOpenNda,
   cuPlace, cuPlacePut, cuOpenCustomer, cuOpenExplorer, cuDraftFor, renderCustomers, cuRepaint,
   /* the one filter-box builder the band's clothes dress; the Directory draws its boxes with it too (13 Oct 2026) */
   cuChip });
