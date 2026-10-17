@@ -53,6 +53,11 @@ const check = (name, pass, detail) => {
       say: say && !say.hidden ? say.textContent.trim() : '', ring: !!(say && !say.hidden && say.querySelector('.ob-spin')),
       hidden: el.getAttribute('aria-hidden') };
   });
+  /* at rest = breathing, not working, not mid-hop. A paper opening wears the
+     ring; he mirrors it and HOPS when it ends (0.65s) — a fixed pause landed
+     on the hop one run in four (17 Oct 2026). Ask for the state, bounded. */
+  const atRest = (ms = 3000) => until(() => { const el = document.querySelector('#ig-dock .jb-perch'), img = el && el.querySelector('.jb-bird');
+    return img && !el.classList.contains('is-working') && !el.classList.contains('is-hop') && getComputedStyle(img).animationName === 'jbBreathe' ? true : null; }, null, ms);
   try {
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke');
@@ -63,12 +68,13 @@ const check = (name, pass, detail) => {
     /* ============ 1. WHERE HE SITS ============ */
     await page.evaluate(() => hbOpenContracts());
     await until(() => !!document.querySelector('#ct-place [data-ig-pick]'));
+    await atRest();
     const w = await perch();
     check('1a on the wall he sits at the end of the chips row, over no chip, breathing',
       w.on && w.inChips && !w.overChip && w.anim === 'jbBreathe' && w.hidden === 'true', JSON.stringify(w));
     await page.click('[data-ig-pick="MK-B2"]');
     await until(() => intel.paper && intel.paper.id === 'MK-B2' && document.getElementById('pd-glance'));
-    await page.waitForTimeout(300);
+    await atRest();
     const p1 = await perch();
     await page.screenshot({ path: path.join(OUT, '1b-on-the-paper.png') });
     check('1b beside a paper too: the chips row\'s end, 36px, breathing', p1.on && p1.inChips && !p1.overChip && p1.w === 36 && p1.anim === 'jbBreathe', JSON.stringify(p1));
