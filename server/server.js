@@ -1349,6 +1349,12 @@ function privateStreamsAll() {
   return _psMemo;
 }
 const psOn = p => !!(p && p.on);
+/* JAMBO BEHIND THE WALL (owner picked "One press — the SAP way", 17 Oct 2026;
+   decision 2): no helper reads a private folder's contract by itself — the
+   night readings, the reply drafts and the book reading pass it by; one of
+   its people presses Read it now in the browser. */
+const psFolderPrivate = fid => psOn(privateStreamsAll()[String(fid || '')]);
+const psPrivateFolders = () => Object.entries(privateStreamsAll()).filter(([, p]) => psOn(p)).map(([f]) => f);
 const psIds = p => (p && Array.isArray(p.people) ? p.people : []).map(x => String((x && x.id) || '')).filter(Boolean);
 const psNamed = (p, user) => !!user && psIds(p).includes(String(user.id));
 /* { shut:[ids], named:[ids] } — the private streams closed to this person, and
@@ -20118,6 +20124,8 @@ async function runRenewalPrep() {
   for (const c of rows) {
     if (out.prepared >= cap) { out.cap = true; break; }
     const full = parsed.get(c.id) || {};
+    /* a private folder's contract waits for one of its people to ask */
+    if (psFolderPrivate(full.folder)) { bump('private'); continue; }
     /* The same three refusals the desk's own reading makes, asked of the same
        facts: the shelf stops nagging, an amendment never renews itself, and a
        contract still being negotiated is not one anybody is renewing. */
@@ -20219,6 +20227,7 @@ async function runPlaybookPrep() {
   for (const r of rows) {
     if (out.prepared >= cap) { out.cap = true; break; }
     let c = {}; try { c = JSON.parse(r.json) || {}; } catch (_) { continue; }
+    if (psFolderPrivate(c.folder)) { bump('private'); continue; }   // waits for a press
     if (c.source !== 'upload' || !String(c.counterparty || '').trim()) continue;
     if (c.archived) continue;
     if (isExecutedRow(c)) { bump('executed'); continue; }
@@ -20649,6 +20658,7 @@ async function runRoundPrep(cid, { force = false } = {}) {
   const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(String(cid));
   let c = null; try { c = row ? JSON.parse(row.json) : null; } catch (_) { c = null; }
   if (!c || c.archived || reachExecuted(c)) { bump('notLive'); return out; }
+  if (psFolderPrivate(c.folder)) { bump('private'); return out; }   // waits for a press
   const have = new Set(db.prepare('SELECT pkey FROM round_prep WHERE contract_id=?').all(String(c.id)).map(r => r.pkey));
   const day = aiToday();
   const asks = roundAsksOf(c).filter(a => force || !have.has(a.pkey));
@@ -20704,6 +20714,7 @@ async function runRoundPrepAll() {
   for (const r of db.prepare("SELECT id,json FROM contracts WHERE status!='Declined'").all()) {
     let c = null; try { c = JSON.parse(r.json); } catch (_) { continue; }
     if (!c || c.archived || reachExecuted(c) || !roundAsksOf(c).length) continue;
+    if (psFolderPrivate(c.folder)) { out.skipped.private = (out.skipped.private || 0) + 1; continue; }
     const one = await runRoundPrep(c.id);
     out.looked += one.looked || 0; out.prepared += one.prepared || 0;
     if (one.looked) out.contracts++;
@@ -20727,6 +20738,8 @@ function roundPrepNeeded(cid) {
 function roundPrepKick(cid) {
   if (!cid || !agentsAuto()) return;
   try { if (!agentCfg('round').on || !aiKey() || !roundPrepNeeded(cid)) return; } catch (_) { return; }
+  /* a private folder's answer waits for a press, and leaves no run naming it */
+  try { const r = db.prepare('SELECT folder FROM contracts WHERE id=?').get(String(cid)); if (r && psFolderPrivate(r.folder)) return; } catch (_) { return; }
   setImmediate(() => { runAgent('round', 'event', null, () => runRoundPrep(String(cid)), { subject: String(cid) }).catch(() => {}); });
 }
 /* ============================================================================
@@ -21563,6 +21576,7 @@ async function runBookReading() {
     if (done >= cap) { out.cap = true; break; }
     let c = {}; try { c = JSON.parse(r.json) || {}; } catch (_) { continue; }
     if (c.archived) continue;
+    if (psFolderPrivate(c.folder)) { bump('private'); continue; }   // waits for a press
     const wording = copilotRecordWording(c);
     const hash = sha(wording);
     const have = db.prepare('SELECT * FROM book_readings WHERE contract_id=?').get(String(r.id)) || null;
@@ -21630,10 +21644,15 @@ function bookReadingTick() {
    reading's own daily money limit, how much of the book is read, the last run */
 app.get('/api/board/reading', auth, admin, (req, res) => {
   const cfg = agentCfg('book');
-  const total = db.prepare("SELECT COUNT(*) AS n FROM contracts WHERE status!='Declined'").get().n;
-  const read = db.prepare('SELECT COUNT(*) AS n FROM book_readings WHERE terms IS NOT NULL').get().n;
-  const checked = db.prepare('SELECT COUNT(*) AS n FROM book_readings WHERE pb IS NOT NULL').get().n
-    + db.prepare("SELECT COUNT(*) AS n FROM contracts WHERE status!='Declined' AND json_extract(json,'$.playbook.verdicts[0]') IS NOT NULL").get().n;
+  /* a private folder is never read by the night (psFolderPrivate), so it is
+     not counted as the book either way — an admin it does not name learns
+     nothing of it here */
+  const pf = psPrivateFolders();
+  const notPf = col => pf.length ? ` AND COALESCE(${col},'') NOT IN (${pf.map(() => '?').join(',')})` : '';
+  const total = db.prepare(`SELECT COUNT(*) AS n FROM contracts WHERE status!='Declined'${notPf('folder')}`).get(...pf).n;
+  const read = db.prepare(`SELECT COUNT(*) AS n FROM book_readings b LEFT JOIN contracts c ON c.id=b.contract_id WHERE b.terms IS NOT NULL${notPf('c.folder')}`).get(...pf).n;
+  const checked = db.prepare(`SELECT COUNT(*) AS n FROM book_readings b LEFT JOIN contracts c ON c.id=b.contract_id WHERE b.pb IS NOT NULL${notPf('c.folder')}`).get(...pf).n
+    + db.prepare(`SELECT COUNT(*) AS n FROM contracts WHERE status!='Declined' AND json_extract(json,'$.playbook.verdicts[0]') IS NOT NULL${notPf('folder')}`).get(...pf).n;
   const last = db.prepare("SELECT * FROM agent_runs WHERE agent='book' AND finished_at IS NOT NULL ORDER BY started_at DESC LIMIT 1").get();
   let run = null; if (last) { try { run = { at: last.started_at, result: last.result ? JSON.parse(last.result) : null, error: last.error || null, cost: last.cost }; } catch (_) { run = null; } }
   res.json({ on: !!cfg.on, at: Number(cfg.at) || 0, max: Number(cfg.max) || 50, limit: Number(cfg.limit) || 0, total, read, checked: Math.min(checked, total), noKey: !aiKey(), run });

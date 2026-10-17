@@ -2081,6 +2081,11 @@ function userFolderAccess(u){
 const privateStreamsMap=()=>{ const p=(state.settings||{}).privateStreams; return (p&&typeof p==='object'&&!Array.isArray(p))?p:{}; };
 const privateStreamIds=p=>(p&&Array.isArray(p.ids)?p.ids:(p&&Array.isArray(p.people)?p.people.map(x=>x&&x.id):[])).map(x=>String(x||'')).filter(Boolean);
 const streamIsPrivate=fid=>{ const p=privateStreamsMap()[String(fid||'')]; return !!(p&&p.on); };
+/* JAMBO BEHIND THE WALL (owner picked "One press — the SAP way", 17 Oct 2026;
+   decision 2): a private folder's contract is read by Jambo only when one of
+   its people asks — never on arrival, on leaving drafting, on reopening or on
+   opening its Clauses tab. The one question every automatic reader asks. */
+const jamboOnPress=c=>!!(c&&streamIsPrivate(c.folder));
 const streamNames=(fid,u)=>{ const p=privateStreamsMap()[String(fid||'')]; return !!(p&&p.on&&u&&privateStreamIds(p).includes(String(u.id))); };
 function streamAccessAdjust(base,u){
   const shut=[], named=[];
@@ -2186,7 +2191,7 @@ function canViewValues(u){
    the server masks the same way. */
 /* a salary is not deal value: an employment contract's export cell is empty, as its list cell is a dash (fxIsPay) */
 const csvValueCell = c => (!isMonetary(c) || !canViewValues() || (typeof fxIsPay === 'function' && fxIsPay(c))) ? '' : (c.value||0);
-Object.assign(window,{orgDirectory,directoryLookup,userFolderAccess,canAccessFolder,folderSeerCount,folderAccessAllows,privateStreamsMap,privateStreamIds,streamIsPrivate,streamNames,canViewValues,csvValueCell,signerTitle,signatureCapacity});
+Object.assign(window,{orgDirectory,directoryLookup,userFolderAccess,canAccessFolder,folderSeerCount,folderAccessAllows,privateStreamsMap,privateStreamIds,streamIsPrivate,jamboOnPress,streamNames,canViewValues,csvValueCell,signerTitle,signatureCapacity});
 
 const newSalt = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 const hashPassword = (pw,salt) => sha256(`${salt}::${pw}`);
