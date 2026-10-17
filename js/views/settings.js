@@ -623,7 +623,7 @@ function stDrawerOpen(key){
    answered and nowhere else, which is the only time that fact is worth a
    reader's attention. st_optional is left INERT in both books rather than
    removed, the way this codebase retires a sentence. */
-const ST_DOT={ ok:'var(--st-green-dot)', warn:'var(--st-amber-dot)', off:'var(--color-neutral-400)' };
+const ST_DOT={ ok:'var(--st-green-dot)', warn:'var(--st-amber-dot)', off:'var(--color-neutral-400)', red:'var(--st-ruby-dot)' };
 /* THE ORDER HERE IS THE ORDER ON SCREEN and the keys are STABLE ENGLISH, so a
    rename in either dictionary cannot move a panel. Panels inside a group keep
    SET_PANELS' own order. `sub` marks the two groups whose name does not say
@@ -950,6 +950,71 @@ function stShortState(text){
    drawer, a person, a page, or a send. The number on the Company tab and on
    this card is the length of this list. */
 let _stNeedsAll=false;
+/* ---- CLASHES IN WHO MAY DO WHAT (owner picked "Rows in Needs your
+   attention — the SAP way", 17 Oct 2026; piece 7 of the sensitive contracts
+   and governance plan) ----
+   Some combinations of rights quietly undo a control. Each is a row in Needs
+   your attention, one plain sentence naming who, with the door to the person
+   or the rule; the red dot marks the one that undoes a control outright.
+   READ FROM THE SAME RULES THE GATES USE (signCapOf, the person's approval
+   rule saRuleOf, approvalRules, canAccessFolder) and worked out afresh on
+   every paint, so a clash goes away by itself when the rights change. They
+   warn; nothing is blocked. Admins only, like the list they sit in. */
+function stClashes(){
+  const out=[], users=stUsers();
+  const byId=id=>users.find(u=>String(u.id)===String(id))||null;
+  const first=u=>stNameOf(u).split(' ')[0];
+  const money=v=>(typeof fmtMoneyShortIn==='function')?fmtMoneyShortIn(Number(v),(typeof jxCurrency==='function')?jxCurrency():undefined):String(v);
+  const capOf=u=>{ try{ return signCapOf(u); }catch(_){ return { answered:false, limit:null }; } };
+  /* 1 · a signer who may sign more than the person who says yes first — only
+     while signing limits bind (an unanswered limit is the limits row's) */
+  if(stCapOn()) users.forEach(p=>{
+    if(p.role==='admin'||p.role==='viewer') return;
+    const r=stRuleOf(p); if(!r.on||!r.approverId) return;
+    const a=byId(r.approverId); if(!a||a.role==='admin') return;
+    const pc=capOf(p), ac=capOf(a);
+    if(!pc.answered||!ac.answered||ac.limit==null) return;
+    if(pc.limit!=null&&!(Number(pc.limit)>Number(ac.limit))) return;
+    out.push({ key:'clash:cap:'+p.id, dot:'red',
+      text:pc.limit==null?i18t('st_clash_cap_any',{who:stNameOf(p),appr:stNameOf(a),acap:money(ac.limit)})
+        :i18t('st_clash_cap',{who:stNameOf(p),cap:money(pc.limit),appr:stNameOf(a),acap:money(ac.limit)}),
+      btn:`data-st-panel="person:${PB_ATTR(p.id)}"`, verb:i18t('st_clash_open',{name:first(p)}) });
+  });
+  /* 2 · two people who give each other the yes before signing */
+  const pairs=new Set();
+  users.forEach(p=>{
+    const r=stRuleOf(p); if(!r.on||!r.approverId) return;
+    const a=byId(r.approverId); if(!a) return;
+    const ra=stRuleOf(a); if(!ra.on||String(ra.approverId)!==String(p.id)) return;
+    const k=[String(p.id),String(a.id)].sort().join('|'); if(pairs.has(k)) return; pairs.add(k);
+    out.push({ key:'clash:each:'+k, dot:'warn', text:i18t('st_clash_each',{a:stNameOf(p),b:stNameOf(a)}),
+      btn:`data-st-panel="person:${PB_ATTR(p.id)}"`, verb:i18t('st_clash_open',{name:first(p)}) });
+  });
+  /* 3 · a rule's named approver who can raise the very contracts it catches,
+     and so both asks for and gives the yes (an admin holds every right by
+     rank and is not singled out) */
+  const rules=(typeof approvalRules==='function')?approvalRules():[];
+  rules.forEach(rule=>{
+    const a=rule&&rule.approver; if(!a||a.kind!=='member') return;
+    const m=((typeof approverMemberOf==='function')&&approverMemberOf(a))||users.find(u=>u.name===a.name); if(!m||m.role==='viewer'||m.role==='admin') return;
+    const stream=rule.cond&&rule.cond.type==='folder'?rule.cond.value:null;
+    if(stream&&typeof canAccessFolder==='function'&&!canAccessFolder(stream,m)) return;
+    out.push({ key:'clash:self:'+(rule.id||'')+':'+m.id, dot:'warn',
+      text:stream?i18t('st_clash_self_stream',{who:stNameOf(m),stream:(FOLDERS[stream]||{}).name||stream})
+        :i18t('st_clash_self_rule',{who:stNameOf(m),rule:condLabel(rule.cond||{})}),
+      btn:'data-st-panel="approvals"', verb:i18t('st_clash_rule') });
+  });
+  /* 4 · where the rules are kept stream by stream, a stream with contracts
+     still to sign that no rule names */
+  if(rules.length&&rules.every(r=>r&&r.cond&&r.cond.type==='folder')){
+    const named=new Set(rules.map(r=>String(r.cond.value)));
+    const open=new Set(((typeof state!=='undefined'&&state.contracts)||[]).filter(c=>c&&!c.archived&&!c.parentId&&c.folder&&c.status!=='Signed'&&c.status!=='Declined').map(c=>String(c.folder)));
+    [...open].filter(f=>!named.has(f)&&FOLDERS[f]).sort().forEach(f=>out.push({ key:'clash:nobody:'+f, dot:'warn',
+      text:i18t('st_clash_nobody',{stream:FOLDERS[f].name}), btn:'data-st-panel="approvals"', verb:i18t('st_clash_rule') }));
+  }
+  /* the one that undoes a control outright leads */
+  return out.sort((x,y)=>(x.dot==='red'?0:1)-(y.dot==='red'?0:1));
+}
 function stNeedsAll(){
   const out=[];
   if(!stIsAdmin()) return out;
@@ -957,6 +1022,8 @@ function stNeedsAll(){
   if(typeof stAsksOpen==='function') stAsksOpen().forEach(a=>out.push({ key:'ask:'+a.id, dot:'warn',
     text:i18t('st_need_ask',{who:a.byName||'',what:a.what}), sub:stDay(a.createdAt),
     btn:`data-st-panel="ask:${PB_ATTR(a.id)}"`, verb:i18t('st_need_answer') }));
+  /* the clashes in who may do what (piece 7), the red one first */
+  stClashes().forEach(r=>out.push(r));
   const unset=stCapUnset();
   if(unset.length) out.push({ key:'limits', dot:'warn',
     text:i18tn('st_need_limits',unset.length,{n:unset.length,names:stNamesSaid(unset)}), sub:i18t('st_need_limits_sub'),
@@ -983,7 +1050,7 @@ function stNeedsAll(){
   return out;
 }
 function stNeedRowHtml(r){
-  const dot=r.dot==='quiet'?'var(--st-gray-dot,var(--color-neutral-400))':ST_DOT.warn;
+  const dot=r.dot==='quiet'?'var(--st-gray-dot,var(--color-neutral-400))':r.dot==='red'?ST_DOT.red:ST_DOT.warn;
   const sub=r.subHtml?` <span class="st-need-s">· ${r.subHtml}</span>`:(r.sub?` <span class="st-need-s">· ${esc(r.sub)}</span>`:'');
   return `<div class="st-need" data-st-need="${PB_ATTR(r.key)}">
     <span class="st-dot" style="background:${dot}"></span>
@@ -2034,7 +2101,8 @@ function stJamboHtml(){
   return `<div class="st-jb">
     <div class="st-jb-feed" id="st-jb-feed" aria-live="polite">
       ${stJbSayHtml((()=>{ if(!stIsAdmin()||settingsTab()==='you') return i18t('st_jb_hello_you');
-        const n=stNeedsAll().length; return n?i18tn('st_jb_hello_n',n,{n}):i18t('st_jb_hello'); })())}
+        const n=stNeedsAll().length, k=stClashes().length;
+        return (n?i18tn('st_jb_hello_n',n,{n}):i18t('st_jb_hello'))+(k?' '+i18tn('st_jb_clashes',k,{n:k}):''); })())}
       ${stAsksMineHtml()}
       <div class="st-jb-chips">${stJbChipsHtml()}</div>
       ${_stJbLog.map(stJbTurnHtml).join('')}
@@ -7684,7 +7752,7 @@ async function loadSessions(){
    the else branch and nobody catches it — the lesson rlPaperFootHtml taught
    this codebase for a year. openMyAccount and openSettingsAt are the two doors
    the shell calls; SET_PANELS and the readers beside it are what the tests read. */
-Object.assign(window,{renderTeam,settingsPlace,settingsPlacePut,stAgentsPaint,ST_AGENT_KEYS,AG_MONEY_NOTE_KEYS,stRepaintPanel,renderMyAccountPage,briefCadenceOf,BRIEF_EVERY_VALUES,renderPrecedentPanel,precedentAdopt,stdOpenPreferred,renderStandardsDraft,stdOpenClauseId,stdSetOpenClause,stdStanceChipHtml,stdFallbackChipHtml,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
+Object.assign(window,{stClashes,renderTeam,settingsPlace,settingsPlacePut,stAgentsPaint,ST_AGENT_KEYS,AG_MONEY_NOTE_KEYS,stRepaintPanel,renderMyAccountPage,briefCadenceOf,BRIEF_EVERY_VALUES,renderPrecedentPanel,precedentAdopt,stdOpenPreferred,renderStandardsDraft,stdOpenClauseId,stdSetOpenClause,stdStanceChipHtml,stdFallbackChipHtml,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
   renderPlaybookView,openPlaybookEditor,pbRemoveType,pbResetPlaybook,stdRemoveClause,stdDraftSetOpen,
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
   stRulesRows,stPaintRules,stPaintSignFolders,
