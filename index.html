@@ -3470,6 +3470,66 @@
   .st-fdel{ flex:none; border:0; background:none; cursor:pointer; color:var(--color-neutral-500); display:inline-grid; place-items:center;
     font-size:var(--t-card); line-height:1; padding:0 3px; }
   .st-fdel:hover{ color:var(--st-ruby-dot); }
+  /* ---- A FOLDER'S OWN PAGE: WHO MAY OPEN IT (owner picked "Stream page —
+     the SAP way", 17 Oct 2026) ----
+     The row: name over its facts, so a long name never folds into a stack
+     beside the counts; the last word is the door to the folder's page. */
+  .st-frow2{ align-items:flex-start; }
+  .st-frow2 .st-fdot{ margin-top:7px; }
+  .st-fstack{ flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
+  .st-fstack .st-fname{ flex:none; padding-top:2px; padding-bottom:2px; }
+  .st-fstack .st-fmeta{ padding-left:6px; white-space:normal; display:inline-flex; flex-wrap:wrap; align-items:center; gap:0 4px; }
+  .st-fmeta.is-private{ color:var(--color-text); }
+  .st-fbuilt{ color:var(--color-neutral-500); }
+  .st-fopen, .st-ps-link, .st-dback{ flex:none; border:0; background:none; cursor:pointer; font:inherit;
+    font-size:var(--t-meta); color:var(--accent-ink); padding:3px 2px; white-space:nowrap; }
+  .st-fopen{ margin-top:2px; }
+  .st-fopen:hover, .st-ps-link:hover, .st-dback:hover{ color:var(--color-text); text-decoration:underline; }
+  .st-dback{ font-size:var(--t-micro); font-weight:var(--w-title); padding:0; }
+  .st-ps-lock{ flex:none; vertical-align:-1px; }
+  .st-ps-badge{ display:inline-flex; align-items:center; gap:4px; margin-left:8px; padding:1px 7px;
+    border:1px solid var(--color-divider); border-radius:999px; background:var(--surface-2);
+    font-family:var(--font-body, inherit); font-size:var(--t-label); font-weight:var(--w-label);
+    color:var(--color-text); vertical-align:2px; }
+  .st-ps-facts{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); border:1px solid var(--color-divider);
+    border-radius:var(--radius-lg); margin:2px 0 14px; }
+  .st-ps-facts > div{ display:flex; flex-direction:column; gap:5px; padding:10px 14px; min-width:0; }
+  .st-ps-facts > div + div{ border-left:1px solid var(--color-divider); }
+  .st-ps-facts span{ font-size:var(--t-label); color:var(--color-neutral-600); }
+  .st-ps-facts b{ font-size:var(--t-meta); font-weight:var(--w-strong); color:var(--color-text); }
+  .st-ps-tabs{ display:flex; gap:18px; border-bottom:1px solid var(--color-divider); margin-bottom:12px; }
+  .st-ps-tab{ border:0; background:none; cursor:pointer; font:inherit; font-size:var(--t-meta);
+    color:var(--color-neutral-600); padding:6px 0; margin-bottom:-1px; border-bottom:2px solid transparent; }
+  .st-ps-tab:hover{ color:var(--color-text); }
+  .st-ps-tab.is-on{ color:var(--color-text); font-weight:var(--w-strong); border-bottom-color:var(--accent-ink); }
+  .st-ps-q{ color:var(--color-neutral-500); font-weight:var(--w-body); }
+  .st-ps-l{ margin:12px 0 6px; font-size:var(--t-label); font-weight:var(--w-label); color:var(--color-neutral-600); }
+  .st-ps-pane > .st-ps-l:first-child{ margin-top:0; }
+  .st-ps-radio{ display:flex; align-items:flex-start; gap:10px; padding:9px 12px; margin-bottom:6px; cursor:pointer;
+    border:1px solid var(--color-divider); border-radius:var(--radius-lg); }
+  .st-ps-radio input{ margin-top:3px; flex:none; accent-color:var(--color-accent); }
+  .st-ps-radio .st-note{ display:block; margin:1px 0 0; }
+  .st-ps-radio.is-on{ border-color:var(--accent-ink); background:color-mix(in srgb,var(--accent-fill) 6%,var(--color-surface)); }
+  .st-ps-tb{ width:100%; border-collapse:collapse; font-size:var(--t-meta); }
+  .st-ps-tb th{ text-align:left; font-size:var(--t-label); font-weight:var(--w-label); color:var(--color-neutral-600);
+    padding:6px 8px; border-bottom:1px solid var(--color-divider); }
+  .st-ps-tb td{ padding:7px 8px; border-bottom:1px solid var(--color-divider); color:var(--color-text); vertical-align:top; }
+  .st-ps-who{ font-weight:var(--w-strong); }
+  .st-ps-when{ color:var(--color-neutral-600); white-space:nowrap; }
+  .st-ps-act{ text-align:right; white-space:nowrap; }
+  .st-ps-ghost td, .st-ps-ghost .st-ps-who{ color:var(--color-neutral-600); font-weight:var(--w-body); }
+  .st-ps-you{ font-weight:var(--w-body); color:var(--color-neutral-600); }
+  .st-ps-none{ margin:8px 0 0; font-size:var(--t-meta); color:var(--color-neutral-600); }
+  .st-ps-addbar{ margin-top:10px; }
+  .st-ps-pick{ margin-top:8px; border:1px solid var(--color-divider); border-radius:var(--radius-lg); max-height:220px; overflow:auto; }
+  .st-ps-pickrow{ display:flex; align-items:center; gap:8px; padding:6px 10px; font-size:var(--t-meta); }
+  .st-ps-pickrow + .st-ps-pickrow{ border-top:1px solid var(--color-divider); }
+  .st-ps-pickrow > span{ flex:1; min-width:0; }
+  .st-ps-role{ font-weight:var(--w-body); color:var(--color-neutral-600); }
+  .st-ps-menote{ margin-top:10px; }
+  .st-ps-mine{ margin-top:8px; display:flex; flex-direction:column; gap:4px; }
+  .st-ps-mrow{ display:flex; align-items:center; gap:7px; font-size:var(--t-meta); color:var(--color-text); }
+  .st-ps-mrow > span{ flex:1; min-width:0; }
   /* THE RULES PAGE (4 Oct 2026): one row per rule — its dot, its name and
      state, one sentence, the door to where it is set. The st-frow rhythm. */
   .st-rule-row{ display:flex; align-items:flex-start; gap:9px; padding:9px 2px;

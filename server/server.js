@@ -10,7 +10,7 @@ const express = require('express');
    here: a second copy would drift from the browser's the first time either
    moved, and the two would then describe different markets to the same model. */
 const { jxPack, JX_DEFAULT, JURISDICTIONS,
-  fxSetRatesReader, fxSetHomeReader, fxHome, fxMissing, contractCurrency } = require('../js/jurisdiction.js');
+  fxSetRatesReader, fxSetHomeReader, fxSetPrivateReader, fxHome, fxCounted, fxPrivate, fxMissing, contractCurrency } = require('../js/jurisdiction.js');
 /* One dictionary, two hosts. The server writes email and needs the recipient's
    own language from the SAME table the screens use — a second copy here would
    drift from js/i18n.js without anything noticing, which is the fault the
@@ -78,6 +78,9 @@ const orgJx = () => jxPack(((typeof getSetting === 'function' && getSetting('org
    and the screens' can never drift apart on the formula. */
 fxSetRatesReader(() => ((typeof getSetting === 'function' && getSetting('appSettings')) || {}).fxRates || {});
 fxSetHomeReader(() => orgJx().currency);
+/* A PRIVATE STREAM'S MONEY IS ADDED NOWHERE (17 Oct 2026): the stored list,
+   read through the same one arithmetic the screens run. */
+fxSetPrivateReader(() => privateStreamsAll());
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
@@ -293,7 +296,13 @@ const hashPw = (pw, salt) => crypto.scryptSync(String(pw), salt, 64).toString('h
 const safeEq = (a, b) => a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
 
 const getSetting = k => { const r = db.prepare('SELECT json FROM settings WHERE key=?').get(k); return r ? JSON.parse(r.json) : null; };
-const setSetting = (k, v) => db.prepare('INSERT INTO settings (key,json) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET json=excluded.json').run(k, JSON.stringify(v));
+/* The private-stream list, parsed once per write (privateStreamsAll): every
+   access check and every money figure asks it, and the settings blob it lives
+   in carries the company's templates — re-reading that per contract would put
+   a whole-blob parse inside every total. Cleared on any write of the blob. */
+let _psMemo = null;
+const setSetting = (k, v) => { if (k === 'appSettings') _psMemo = null;
+  return db.prepare('INSERT INTO settings (key,json) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET json=excluded.json').run(k, JSON.stringify(v)); };
 const getStore = k => { const r = db.prepare('SELECT json FROM store WHERE key=?').get(k); return r ? JSON.parse(r.json) : null; };
 const setStore = (k, v) => db.prepare('INSERT INTO store (key,json) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET json=excluded.json').run(k, JSON.stringify(v));
 const userPrefs = u => { try { return JSON.parse(u.prefs || '{}') || {}; } catch (_) { return {}; } };
@@ -1317,8 +1326,54 @@ function srvClauseLockClash(prev, next, user) {
   return null;
 }
 
+/* ============================================================
+   PRIVATE STREAMS — ONLY THE PEOPLE NAMED MAY OPEN THEM
+   ============================================================
+   (Owner picked "Stream page — the SAP way", 17 Oct 2026; decision 1 of the
+   sensitive-contracts plan: admins see a private stream only if named.) One
+   store, `appSettings.privateStreams`, written ONLY by its own admin route
+   (PUT /api/private-streams/:fid) and kept through every whole-blob save:
+     { [streamId]: { on, people:[{id,name,by:{id,name},at,self}],
+                     log:[{act,who,by,at}], seen:{[userId]:iso} } }
+   The wall is folderScopeFor, below: a stream that is on and does not name
+   this person is SHUT to them — an admin included — and a stream that names
+   them is OPEN to them whatever their own stream list says, because naming is
+   the grant. Everything that already asks folderScopeFor (the list, the
+   record, search, Copilot's reading, the emails' recipients, a save into a
+   stream) inherits it; nothing gains a second wall to keep in step. */
+function privateStreamsAll() {
+  if (_psMemo) return _psMemo;   // read-only to every caller: a writer reads the blob fresh
+  const p = ((typeof getSetting === 'function' && getSetting('appSettings')) || {}).privateStreams;
+  _psMemo = (p && typeof p === 'object' && !Array.isArray(p)) ? p : {};
+  return _psMemo;
+}
+const psOn = p => !!(p && p.on);
+const psIds = p => (p && Array.isArray(p.people) ? p.people : []).map(x => String((x && x.id) || '')).filter(Boolean);
+const psNamed = (p, user) => !!user && psIds(p).includes(String(user.id));
+/* { shut:[ids], named:[ids] } — the private streams closed to this person, and
+   the ones that name them. Both empty on a workspace with no private stream,
+   which is the fast path: every scope then reads exactly as it always did. */
+function psStreamsFor(user) {
+  const shut = [], named = [];
+  for (const [fid, p] of Object.entries(privateStreamsAll())) {
+    if (!psOn(p)) continue;
+    (psNamed(p, user) ? named : shut).push(fid);
+  }
+  return { shut, named };
+}
 function folderScopeFor(user) {
   if (!user) return [];
+  const base = folderScopeBase(user);
+  const { shut, named } = psStreamsFor(user);
+  if (!shut.length && !named.length) return base;
+  /* "Everything but": an unrestricted reader (an admin, or a member nobody
+     narrowed) loses only the private streams that do not name them — so a
+     contract with no stream, or one a later stream list does not know, stays
+     theirs exactly as before. */
+  if (scopeIsAll(base)) return shut.length ? { but: shut } : ADMIN_SCOPE;
+  return [...new Set(base.filter(f => !shut.includes(f)).concat(named))];
+}
+function folderScopeBase(user) {
   if (user.role === 'admin') return ADMIN_SCOPE;
   const map = (getSetting('appSettings') || {}).folderAccess || {};
   const v = map[user.id];
@@ -1333,7 +1388,12 @@ function folderScopeFor(user) {
   return v.map(String);   // [] included, and it means "no folders"
 }
 const scopeIsAll = s => s === ADMIN_SCOPE;
-const inScope = (scope, folder) => scopeIsAll(scope) || scope.includes(String(folder || ''));
+/* The third shape a scope can take since private streams: { but:[ids] },
+   every stream except those. Never ADMIN_SCOPE, so every "is this caller
+   unrestricted" shortcut stays false for it and walks the real check. */
+const scopeBut = s => !!(s && typeof s === 'object' && !Array.isArray(s) && Array.isArray(s.but));
+const inScope = (scope, folder) => scopeIsAll(scope)
+  || (scopeBut(scope) ? !scope.but.includes(String(folder || '')) : scope.includes(String(folder || '')));
 
 /* ============================================================
    THE INTERNAL REVIEW, AS THE SERVER READS IT
@@ -2307,11 +2367,19 @@ function rvUnreviewedIds(c, u){
    caller is unrestricted so the surrounding SQL is byte-identical to before. */
 function scopeFrag(scope, col = 'folder') {
   if (scopeIsAll(scope)) return { sql: '', args: [] };
+  /* COALESCE, because NOT IN against a NULL folder is NULL — it would quietly
+     drop every contract with no stream from an unrestricted reader's book. */
+  if (scopeBut(scope)) return { sql: `COALESCE(${col},'') NOT IN (${scope.but.map(() => '?').join(',')})`, args: scope.but.slice() };
   if (!scope.length) return { sql: '1=0', args: [] };
   return { sql: `${col} IN (${scope.map(() => '?').join(',')})`, args: scope.slice() };
 }
 function scopeFragNamed(scope, col = 'folder', prefix = 'fscope') {
   if (scopeIsAll(scope)) return { sql: '', args: {} };
+  if (scopeBut(scope)) {
+    const args = {};
+    const keys = scope.but.map((v, i) => { args[prefix + i] = v; return '@' + prefix + i; });
+    return { sql: `COALESCE(${col},'') NOT IN (${keys.join(',')})`, args };
+  }
   if (!scope.length) return { sql: '1=0', args: {} };
   const args = {};
   const keys = scope.map((v, i) => { args[prefix + i] = v; return '@' + prefix + i; });
@@ -3720,6 +3788,9 @@ app.get('/api/bootstrap', auth, (req, res) => {
   const settings = req.user.role === 'admin' ? rawSettings : (() => {
     const s = { ...rawSettings };
     delete s.folderAccess;
+    /* a private stream that does not name this member is not described to
+       them at all; one that does says only who else it names */
+    s.privateStreams = psSettingsFor(req.user);
     if (s.signFolders && typeof s.signFolders === 'object') {
       s.signFolders = { ...s.signFolders }; delete s.signFolders.by;
     }
@@ -3727,7 +3798,9 @@ app.get('/api/bootstrap', auth, (req, res) => {
   })();
   res.json({
     org: getSetting('org'),
-    me: publicUser(req.user),
+    /* streamNews: who named themself on a private stream that names this
+       person, since they last looked (psNewsFor) — the bell's to say */
+    me: { ...publicUser(req.user), streamNews: psNewsFor(req.user) },
     /* M-3, second half. Stripping folderAccess from the settings blob above
        achieved nothing while this list handed the same map back one record at a
        time — every member's scope, to every signed-in member. A non-admin gets
@@ -3832,7 +3905,7 @@ app.get('/api/stats', auth, (req, res) => {
   let totalHome = 0; const folderHome = {};
   for (const { r, c } of valued) {
     if (r.status === 'Declined') continue;
-    const h = fxHome({ value: r.value, metadata: c.metadata });
+    const h = fxCounted({ value: r.value, metadata: c.metadata, folder: r.folder });   // a private stream adds nothing
     totalHome += h.v;
     folderHome[r.folder || ''] = (folderHome[r.folder || ''] || 0) + h.v;
   }
@@ -3852,7 +3925,7 @@ app.get('/api/stats', auth, (req, res) => {
   for (const { r, c } of valued) {
     if (r.status !== 'Signed') continue;
     const day = effExpiry(r);
-    if (day && day < today) { expired++; expiredValue += fxHome({ value: r.value, metadata: c.metadata }).v; }
+    if (day && day < today) { expired++; expiredValue += fxCounted({ value: r.value, metadata: c.metadata, folder: r.folder }).v; }
   }
   g.expired = expired;
   g.expiredValue = expiredValue;
@@ -3878,7 +3951,7 @@ app.get('/api/analytics', auth, (req, res) => {
      the monthly letter use. A currency with no rate is left out and named in
      `fxMissing`, never silently dropped. */
   const recs = db.prepare(`SELECT id, folder, status, counterparty, expiry, value, json FROM contracts ${w}`).all(...f.args)
-    .map(r => { let c = {}; try { c = JSON.parse(r.json) || {}; } catch (_) {} return { r, c, home: fxHome({ value: r.value, metadata: c.metadata }).v }; });
+    .map(r => { let c = {}; try { c = JSON.parse(r.json) || {}; } catch (_) {} return { r, c, home: fxCounted({ value: r.value, metadata: c.metadata, folder: r.folder }).v }; });
   const roll = (keyOf, liveOnly) => {
     const m = new Map();
     for (const x of recs) {
@@ -4201,6 +4274,7 @@ app.get('/api/contracts/:id', auth, (req, res) => {
   // 403 here would confirm the contract, its id and its existence to someone
   // who is not allowed to know any of that.
   if (!r || !inScope(folderScopeFor(req.user), r.folder)) return res.status(404).json({ error: 'Contract not found' });
+  psRecordOpen(r.folder, req.params.id, req.user);   // a private stream's contract: who opened it, kept
   const c = dropSittingKeys(JSON.parse(r.json)); c._v = r.version;
   const out = visibleContract(c, req.user);
   /* APPROVAL BEFORE SIGNING (23 Sep 2026): who on this contract needs a named
@@ -6113,6 +6187,10 @@ app.put('/api/settings', auth, admin, (req, res) => {
   // sends folderAccess explicitly (the dedicated endpoint, the setup seed, or a
   // direct API call) still writes it.
   if (!('folderAccess' in incoming) && 'folderAccess' in stored) incoming.folderAccess = stored.folderAccess;
+  /* PRIVATE STREAMS ARE WRITTEN BY THEIR OWN ROUTE ONLY (17 Oct 2026): whatever
+     this blob carries, the stored list stands — a stale copy saved from another
+     tab must not open a private stream or drop a named person. */
+  if ('privateStreams' in stored) incoming.privateStreams = stored.privateStreams; else delete incoming.privateStreams;
   /* signFolders.by is the same kind of map — who may sign in which folder — and
      it keeps the same protection: the SWITCH rides this blob, the MAP does not,
      and a save that does not carry the map keeps the stored one. */
@@ -6379,6 +6457,111 @@ app.put('/api/settings/folder-access', auth, admin, (req, res) => {
   setSetting('appSettings', s);
   res.json({ ok: true, folderAccess: id in s.folderAccess ? s.folderAccess[id] : null });
 });
+/* ---- A PRIVATE STREAM'S OWN ROUTES (owner picked "Stream page — the SAP
+   way", 17 Oct 2026) ----
+   The stream page in Settings reads and writes here and nowhere else; the
+   whole-blob save keeps the stored list (see PUT /api/settings). EVERY CHANGE
+   IS RECORDED ON THE STREAM by the server — who was named or removed, who
+   turned it private or open, by whom and when — and an admin naming THEMSELF
+   is its own act ('self'), told to the people already named (psNewsFor). */
+const PS_LOG_MAX = 200;
+const PS_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+const psWho = u => ({ id: String(u.id), name: u.name || u.email || '' });
+app.get('/api/private-streams', auth, admin, (req, res) => {
+  /* HOW MANY CONTRACTS EACH STREAM HOLDS, counted here: an admin the stream
+     does not name cannot see them, and the page must not judge "this stream is
+     empty, it may be removed" on the zero their own book shows. */
+  const counts = {};
+  for (const r of db.prepare('SELECT folder, COUNT(*) AS n FROM contracts GROUP BY folder').all())
+    counts[String(r.folder || '')] = r.n;
+  res.json({ streams: privateStreamsAll(), counts });
+});
+app.put('/api/private-streams/:fid', auth, admin, (req, res) => {
+  const fid = String(req.params.fid || '');
+  if (!PS_ID_RE.test(fid)) return res.status(400).json({ error: 'Which stream?' });
+  const b = req.body || {};
+  const on = !!b.on;
+  const want = [...new Set((Array.isArray(b.ids) ? b.ids : []).map(x => String(x || '')).filter(Boolean))];
+  const users = new Map(db.prepare('SELECT id, name, email FROM users').all().map(u => [String(u.id), u]));
+  if (want.some(id => !users.has(id)))
+    return res.status(400).json({ error: 'Somebody on that list is not a member of this workspace.' });
+  /* NOBODY NAMED IS NOBODY AT ALL — admins included — so its contracts would
+     vanish for everyone. Refused, with the reason. */
+  if (on && !want.length)
+    return res.status(400).json({ error: 'Name at least one person who may open it — with nobody named, nobody (admins included) could open its contracts.' });
+  const s = getSetting('appSettings') || {};
+  const all = (s.privateStreams && typeof s.privateStreams === 'object' && !Array.isArray(s.privateStreams)) ? s.privateStreams : {};
+  const prev = all[fid] || { on: false, people: [], log: [], seen: {} };
+  const by = psWho(req.user), at = now();
+  const had = new Map((Array.isArray(prev.people) ? prev.people : []).map(x => [String(x.id), x]));
+  const log = Array.isArray(prev.log) ? prev.log.slice() : [];
+  const people = want.map(id => {
+    if (had.has(id)) return had.get(id);
+    const u = users.get(id), who = { id, name: u.name || u.email || '' };
+    const self = id === String(req.user.id);
+    log.push({ act: self ? 'self' : 'add', who, by, at });
+    return { ...who, by, at, self };
+  });
+  for (const [id, x] of had) if (!want.includes(id)) log.push({ act: 'remove', who: { id, name: x.name || '' }, by, at });
+  if (on !== psOn(prev)) log.push({ act: on ? 'on' : 'off', who: null, by, at });
+  all[fid] = { on, people, log: log.slice(-PS_LOG_MAX), seen: (prev.seen && typeof prev.seen === 'object') ? prev.seen : {} };
+  s.privateStreams = all;
+  setSetting('appSettings', s);
+  res.json({ ok: true, stream: all[fid] });
+});
+/* The bell's "she added herself" line, read: only somebody the stream names
+   may mark it, and only for themselves. */
+app.post('/api/private-streams/:fid/seen', auth, (req, res) => {
+  const fid = String(req.params.fid || '');
+  const s = getSetting('appSettings') || {};
+  const p = s.privateStreams && s.privateStreams[fid];
+  if (!psOn(p) || !psNamed(p, req.user)) return res.status(404).json({ error: 'Not found' });
+  p.seen = { ...((p.seen && typeof p.seen === 'object') ? p.seen : {}), [String(req.user.id)]: now() };
+  setSetting('appSettings', s);
+  res.json({ ok: true });
+});
+/* WHAT A NAMED PERSON IS OWED: every time somebody named THEMSELF on a
+   stream that names this person, since they last pressed it away. */
+function psNewsFor(user) {
+  const out = [];
+  if (!user) return out;
+  for (const [fid, p] of Object.entries(privateStreamsAll())) {
+    if (!psOn(p) || !psNamed(p, user)) continue;
+    const seen = Date.parse(((p.seen || {})[String(user.id)]) || '') || 0;
+    for (const e of (Array.isArray(p.log) ? p.log : []))
+      if (e && e.act === 'self' && e.who && String(e.who.id) !== String(user.id) && (Date.parse(e.at) || 0) > seen)
+        out.push({ fid, who: { id: String(e.who.id), name: e.who.name || '' }, at: e.at });
+  }
+  return out;
+}
+/* What a member who is not an admin is told about private streams: only the
+   ones that name them, and only who else is named — enough for their own
+   figures to leave the money out and for "does my colleague reach this" to be
+   answered. A stream that shuts them out is not described at all. */
+function psSettingsFor(user) {
+  const out = {};
+  for (const [fid, p] of Object.entries(privateStreamsAll()))
+    if (psOn(p) && psNamed(p, user)) out[fid] = { on: true, ids: psIds(p) };
+  return out;
+}
+/* ---- EVERY OPEN OF A PRIVATE CONTRACT IS RECORDED BY THE SERVER ----
+   One row per person per contract per sitting: the page fetches the whole
+   record more than once while somebody works on it, and thirty fetches in a
+   minute are one opening, not thirty. How the record is shown is the next
+   design round; it is kept from the day a stream turns private. */
+db.exec(`CREATE TABLE IF NOT EXISTS private_opens (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, contract_id TEXT NOT NULL, folder TEXT,
+  user_id TEXT NOT NULL, user_name TEXT, at TEXT NOT NULL)`);
+db.exec('CREATE INDEX IF NOT EXISTS private_opens_c ON private_opens(contract_id, user_id, id)');
+const PS_OPEN_SITTING_MS = 30 * 60 * 1000;
+function psRecordOpen(folder, contractId, user) {
+  if (!user || !psOn(privateStreamsAll()[String(folder || '')])) return;
+  const last = db.prepare('SELECT at FROM private_opens WHERE contract_id=? AND user_id=? ORDER BY id DESC LIMIT 1')
+    .get(String(contractId), String(user.id));
+  if (last && Date.now() - (Date.parse(last.at) || 0) < PS_OPEN_SITTING_MS) return;
+  db.prepare('INSERT INTO private_opens (contract_id, folder, user_id, user_name, at) VALUES (?,?,?,?,?)')
+    .run(String(contractId), String(folder || ''), String(user.id), user.name || user.email || '', now());
+}
 // Templates are managed by Admin AND Editor (tplCanManage() === canEdit() on
 // the client), but the settings blob they live in is admin-only — so an Editor
 // editing a template got a 403 and a "Settings save failed" toast, with the
@@ -7092,7 +7275,7 @@ function portfolioFigures(ctx) {
   const out = { total: rows.length, live: live.length, byStatus };
   if (ctx.money) {
     out.homeCurrency = orgJx().currency;
-    out.valueTotalInHomeCurrency = live.reduce((s, c) => s + fxHome({ value: Number(c.value) || 0, metadata: c.metadata || {} }).v, 0);
+    out.valueTotalInHomeCurrency = live.reduce((s, c) => s + fxCounted({ value: Number(c.value) || 0, metadata: c.metadata || {}, folder: c.folder }).v, 0);
     out.valueLeftOut = fxMissing(live.map(c => ({ ...c, status: c.status })));
   }
   return out;
@@ -11228,7 +11411,7 @@ function copilotList(ctx, filter = {}) {
      reader without can_view_values. */
   if (ctx.money) {
     out.homeCurrency = orgJx().currency;
-    out.valueTotalInHomeCurrency = cs.reduce((s, c) => s + fxHome({ value: Number(c.value) || 0, metadata: c.metadata || {} }).v, 0);
+    out.valueTotalInHomeCurrency = cs.reduce((s, c) => s + fxCounted({ value: Number(c.value) || 0, metadata: c.metadata || {}, folder: c.folder }).v, 0);
     out.valueLeftOut = fxMissing(cs.map(c => ({ ...c, status: c.status })));
   }
   return out;
@@ -19010,7 +19193,7 @@ function bookSnapshotTake(now) {
   for (const r of rows) {
     let c = {}; try { c = JSON.parse(r.json) || {}; } catch (_) {}
     if (c.archived || r.status === 'Declined') continue;
-    const f = String(r.folder || ''); const h = fxHome({ value: r.value, metadata: c.metadata });
+    const f = String(r.folder || ''); const h = fxCounted({ value: r.value, metadata: c.metadata, folder: f });
     const row = byFolder[f] || (byFolder[f] = { live: 0, value: 0 });
     row.live++; row.value += h.missing ? 0 : (Number(h.v) || 0);
   }
@@ -21852,7 +22035,12 @@ function mrRecipients() {
 function buildMonthlyReport(month) {
   const cur = (orgJx() || {}).currency || 'KES';
   const money = n => `${cur} ${Math.round(Number(n) || 0).toLocaleString('en-US')}`;
-  const parsedAll = db.prepare('SELECT id,name,counterparty,status,expiry,value,json FROM contracts').all()
+  /* A PRIVATE STREAM'S CONTRACTS ARE NOT IN THE LETTER AT ALL (17 Oct 2026):
+     it goes to several people at once, so no name, count or figure of a
+     stream that names only some of them may ride it. */
+  const priv = privateStreamsAll();
+  const parsedAll = db.prepare('SELECT id,name,counterparty,status,expiry,value,folder,json FROM contracts').all()
+    .filter(r => !psOn(priv[String(r.folder || '')]))
     .map(r => { let c = {}; try { c = JSON.parse(r.json) || {}; } catch (_) {} return { r, c }; });
   // the archive shelf stays out of the monthly letter (WO-5) — filed away
   // means off every figure an admin acts on

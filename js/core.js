@@ -2065,7 +2065,39 @@ function directoryLookup(nameOrEmail){
    server at all has neither an entry nor a record, so it answers '*' exactly as
    it always did. */
 function userFolderAccess(u){
-  u=u||currentUser(); if(!u) return '*'; if(u.role==='admin') return '*';
+  u=u||currentUser(); if(!u) return '*';
+  return streamAccessAdjust(userFolderAccessBase(u),u);
+}
+/* ---- PRIVATE STREAMS: ONLY THE PEOPLE NAMED (owner picked "Stream page — the
+   SAP way", 17 Oct 2026) ----
+   The SAME arithmetic as the server's folderScopeFor, and the server is the
+   wall: this only draws. A stream that is on and does not name this person is
+   SHUT to them — an admin too — and one that names them is open to them
+   whatever their own list says. The answer may now be a third shape,
+   {but:[ids]}: every stream except those; folderAccessAllows reads all three.
+   An admin's settings carry every private stream; a member's carry only the
+   ones that name them (psSettingsFor), and their OWN answer already arrives
+   adjusted on `folderAccess`. */
+const privateStreamsMap=()=>{ const p=(state.settings||{}).privateStreams; return (p&&typeof p==='object'&&!Array.isArray(p))?p:{}; };
+const privateStreamIds=p=>(p&&Array.isArray(p.ids)?p.ids:(p&&Array.isArray(p.people)?p.people.map(x=>x&&x.id):[])).map(x=>String(x||'')).filter(Boolean);
+const streamIsPrivate=fid=>{ const p=privateStreamsMap()[String(fid||'')]; return !!(p&&p.on); };
+const streamNames=(fid,u)=>{ const p=privateStreamsMap()[String(fid||'')]; return !!(p&&p.on&&u&&privateStreamIds(p).includes(String(u.id))); };
+function streamAccessAdjust(base,u){
+  const shut=[], named=[];
+  for(const [fid,p] of Object.entries(privateStreamsMap())){ if(!(p&&p.on)) continue; (streamNames(fid,u)?named:shut).push(fid); }
+  if(base&&Array.isArray(base.but)){
+    const but=[...new Set(base.but.concat(shut))].filter(f=>!named.includes(f));
+    return but.length?{ but }:'*';
+  }
+  if(!shut.length&&!named.length) return base;
+  if(base==='*') return shut.length?{ but:shut }:'*';
+  return [...new Set(base.filter(f=>!shut.includes(f)).concat(named))];
+}
+/* THE ONE QUESTION every reader of an access answer asks: does it let this
+   stream in? '*', a list, or "every stream but". */
+const folderAccessAllows=(a,fid)=>a==='*'||(Array.isArray(a)?a.includes(fid):!!(a&&Array.isArray(a.but)&&!a.but.includes(fid)));
+function userFolderAccessBase(u){
+  if(u.role==='admin') return '*';
   const map=((state.settings||{}).folderAccess)||{};
   if(u.id in map){
     /* The map's own quirk, kept: an admin who ticks nothing has not locked
@@ -2078,9 +2110,10 @@ function userFolderAccess(u){
      filtering on exactly that. A screen that disagreed would offer streams the
      data never arrives for. */
   const own=u.folderAccess;
+  if(own&&Array.isArray(own.but)) return own;   // the server's "every stream but", already adjusted
   return (own==null||own==='*'||!Array.isArray(own))?'*':own;
 }
-function canAccessFolder(fid,u){ const a=userFolderAccess(u); return a==='*'||(Array.isArray(a)&&a.includes(fid)); }
+function canAccessFolder(fid,u){ return folderAccessAllows(userFolderAccess(u),fid); }
 /* ---- HOW MANY PEOPLE CAN SEE WHAT IS IN THIS DRAWER ----
    The settings panel has printed "N of M people can see it" beside every folder
    since the August 2026 rebuild, and re-filing a contract is the act that
@@ -2152,7 +2185,7 @@ function canViewValues(u){
    authoritative, whole-register export is GET /api/export/contracts.csv, which
    the server masks the same way. */
 const csvValueCell = c => (!isMonetary(c) || !canViewValues()) ? '' : (c.value||0);
-Object.assign(window,{orgDirectory,directoryLookup,userFolderAccess,canAccessFolder,folderSeerCount,canViewValues,csvValueCell,signerTitle,signatureCapacity});
+Object.assign(window,{orgDirectory,directoryLookup,userFolderAccess,canAccessFolder,folderSeerCount,folderAccessAllows,privateStreamsMap,privateStreamIds,streamIsPrivate,streamNames,canViewValues,csvValueCell,signerTitle,signatureCapacity});
 
 const newSalt = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 const hashPassword = (pw,salt) => sha256(`${salt}::${pw}`);

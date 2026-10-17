@@ -1305,6 +1305,9 @@ function aiWantsHealthReport(q){
   return /portfolio|portfölj|health|hälsa|hälso|overview|översikt/.test(s);
 }
 
+/* A contract's amount as the local engine's sums add it: as written, unless it
+   sits in a private stream — then nothing (fxPrivate, 17 Oct 2026). */
+const aiAddable=c=>(typeof fxPrivate==='function'&&fxPrivate(c))?0:Number(c.value||0);
 /* --- the intent engine --- */
 function aiAnswer(qRaw){
   const q=qRaw.toLowerCase();
@@ -1366,7 +1369,7 @@ function aiAnswer(qRaw){
   // 2) pending / under review
   if(has('pending','under review','waiting','counterparty action','awaiting')){
     const list=cs.filter(c=>c.status==='Under Review');
-    const val=list.reduce((s,c)=>s+Number(c.value||0),0);
+    const val=list.reduce((s,c)=>s+aiAddable(c),0);
     return { text:i18tn('ai_pending_cp',list.length,{n:list.length,value:fmtMoney(val)}), cards:aiCards(list) };
   }
   // 3) drafts
@@ -1377,7 +1380,7 @@ function aiAnswer(qRaw){
   // 4) signed / executed
   if(has('signed','executed','sealed','completed')){
     const list=cs.filter(c=>c.status==='Signed');
-    const val=list.reduce((s,c)=>s+Number(c.value||0),0);
+    const val=list.reduce((s,c)=>s+aiAddable(c),0);
     return { text:i18tn('ai_signed_month',list.length,{n:list.length,value:fmtMoney(val)})+' '+i18t('ai_seals_note'), cards:aiCards(list) };
   }
   // 5) declined
@@ -1389,7 +1392,7 @@ function aiAnswer(qRaw){
   if(has('total','value','worth','how much','portfolio')){
     const m=metrics();
     const byFolder=Object.values(FOLDERS).map(f=>{
-      const v=folderContracts(f.id).filter(c=>c.status!=='Declined'&&!c.archived).reduce((s,c)=>s+Number(c.value||0),0);
+      const v=folderContracts(f.id).filter(c=>c.status!=='Declined'&&!c.archived).reduce((s,c)=>s+aiAddable(c),0);
       return `<div class="flex items-center justify-between text-xs py-1.5 border-b border-brand-100/60 last:border-0"><span class="text-brand-800/70">${f.name}</span><span class="font-mono font-medium text-brand-900">${fmtMoneyShort(v)}</span></div>`;
     }).join('');
     return { text:`Your active portfolio is worth <strong>${fmtMoney(m.totalValue)}</strong> across ${cs.filter(c=>c.status!=='Declined'&&!c.archived).length} live agreements. Breakdown by folder:`,

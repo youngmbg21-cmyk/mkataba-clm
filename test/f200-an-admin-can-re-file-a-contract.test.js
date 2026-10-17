@@ -349,13 +349,22 @@ describe('f200 — the count on the confirm is the settings panel\'s own', () =>
       getUsers: () => [{ id: 'u1', role: 'admin' }, { id: 'u2', role: 'legal' }, { id: 'u3', role: 'legal' }],
     };
     vm.createContext(sandbox);
+    /* one line each: the private-stream readers (17 Oct 2026) are arrows */
+    const line = s => core.slice(core.indexOf(s), core.indexOf('\n', core.indexOf(s)));
     vm.runInContext(cut('function userFolderAccess(u){')
+      + '\n' + ['const privateStreamsMap=', 'const privateStreamIds=', 'const streamNames=', 'const folderAccessAllows='].map(line).join('\n')
+      + '\n' + cut('function streamAccessAdjust(base,u){')
+      + '\n' + cut('function userFolderAccessBase(u){')
       + '\n' + core.slice(core.indexOf('function canAccessFolder'), core.indexOf('\n', core.indexOf('function canAccessFolder')))
       + '\n' + cut('function folderSeerCount(fid){'), sandbox);
     assert.deepEqual(Array.from([sandbox.folderSeerCount('proc').n, sandbox.folderSeerCount('proc').total]), [3, 3],
       'admin + the restricted member (who holds proc) + the member nobody restricted');
     assert.deepEqual(Array.from([sandbox.folderSeerCount('sales').n, sandbox.folderSeerCount('sales').total]), [2, 3],
       'and one fewer in the drawer the restricted member does not hold');
+    /* A PRIVATE FOLDER (17 Oct 2026): only the people it names, an admin too */
+    sandbox.state.settings.privateStreams = { sales: { on: true, people: [{ id: 'u2' }] } };
+    assert.deepEqual(Array.from([sandbox.folderSeerCount('sales').n, sandbox.folderSeerCount('proc').n]), [1, 3],
+      'sales names only the restricted member — the admin and the unrestricted member are out; proc is untouched');
   });
 });
 

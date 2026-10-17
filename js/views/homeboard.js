@@ -332,7 +332,7 @@ function hbValueOf(cs){
   /* fxHome's rule: what cannot be converted is LEFT OUT AND COUNTED. */
   let v = 0, left = 0;
   for (const c of cs){
-    const h = (typeof fxHome === 'function') ? fxHome(c) : { v: Number(c.value || 0), missing: false };
+    const h = (typeof fxCounted === 'function') ? fxCounted(c) : { v: Number(c.value || 0), missing: false };   // a private stream adds nothing
     if (h && h.missing) left++; else v += (h && h.v) || 0;
   }
   return { v, left };
@@ -1329,7 +1329,7 @@ function hbOverdueSplitSay(rows){
 function hbLeftCodes(ids){
   const codes = new Set();
   (ids || []).forEach(id => { const c = hbContract(id); if (!c) return;
-    let miss = false; try { miss = typeof fxHome === 'function' && !!(fxHome(c) || {}).missing; } catch (_){ miss = false; }
+    let miss = false; try { miss = typeof fxCounted === 'function' && !!(fxCounted(c) || {}).missing; } catch (_){ miss = false; }
     if (miss) codes.add((typeof contractCurrency === 'function' ? contractCurrency(c) : ((c.metadata || {}).currency)) || '?'); });
   return [...codes].sort().join(', ');
 }
@@ -1739,7 +1739,9 @@ function hbValueBands(lo, hi, want){
   if (out.length && out[out.length - 1].hi < hi) out[out.length - 1].hi = hi;
   return out;
 }
-function hbValueOfOne(c){ const h = (typeof fxHome === 'function') ? fxHome(c) : { v: Number(c.value || 0), missing: false }; return (h && !h.missing) ? (h.v || 0) : 0; }
+/* EVERY BOARD FIGURE ADDS THROUGH HERE — so a private stream's money is left
+   out of all of them in one place (fxCounted, 17 Oct 2026) */
+function hbValueOfOne(c){ const h = (typeof fxCounted === 'function') ? fxCounted(c) : { v: Number(c.value || 0), missing: false }; return (h && !h.missing) ? (h.v || 0) : 0; }
 function hbChartBarsHtml(rows, money, yk){
   /* the "N more groups" row is a door, not a bar: it never sets the scale and
      draws no fill, so the groups that were drawn keep their size (11 Oct 2026) */

@@ -363,7 +363,7 @@ const REG_STAGES=[
 // Derived from FOLDERS so custom (user-created) streams appear automatically.
 function regTypes(){
   const acc=(typeof userFolderAccess==='function')?userFolderAccess():'*';
-  const folders=Object.values(FOLDERS).filter(f=>acc==='*'||acc.includes(f.id));
+  const folders=Object.values(FOLDERS).filter(f=>acc==='*'||folderAccessAllows(acc,f.id));
   return [{k:'all',get label(){ return i18t('reg_all_streams'); }}].concat(
     folders.map(f=>({ k:f.id, label:(typeof STREAM_SHORT!=='undefined'&&STREAM_SHORT[f.id])||f.name }))
   );
@@ -1809,7 +1809,7 @@ function regFiltered(){
   // Per-member folder/stream access: a restricted member only ever sees the
   // streams an admin granted them (admins are always unrestricted).
   const acc=(typeof userFolderAccess==='function')?userFolderAccess():'*';
-  if(acc!=='*') cs=cs.filter(c=>acc.includes(c.folder));
+  if(acc!=='*') cs=cs.filter(c=>folderAccessAllows(acc,c.folder));
   const sortKey=(R.sort==='value' && typeof canViewValues==='function' && !canViewValues()) ? 'updated' : R.sort;
   const cmp=REG_CMP[sortKey]||REG_CMP.updated;
   const dir=(R.dir===1||R.dir===-1)?R.dir:(REG_SORT_DEFDIR[sortKey]||-1);

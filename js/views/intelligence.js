@@ -271,7 +271,7 @@ function graphDependents(id){
   const money=(typeof canViewValues!=='function')||canViewValues();
   if(money){
     let v=0; cs.forEach(x=>{ if(!(typeof isMonetary==='function'?isMonetary(x):true)) return; if(!(Number(x.value||0)>0)) return;
-      const h=(typeof fxHome==='function')?fxHome(x):{v:Number(x.value||0),missing:false}; if(!h.missing) v+=h.v; });
+      const h=(typeof fxCounted==='function')?fxCounted(x):{v:Number(x.value||0),missing:false}; if(!h.missing) v+=h.v; });
     out.value=v; out.missing=(typeof fxMissing==='function')?fxMissing(cs):{};
   }
   out.held=cs.reduce((n,x)=>n+((x.obligations||[]).filter(o=>(typeof obligationBlocked==='function')?obligationBlocked(o,x):false).length),0);
@@ -393,7 +393,7 @@ function graphPartyStats(name){
   out.found=true; out.name=mine[0].counterparty; out.contracts=mine.length; out.ids=mine.map(c=>c.id);
   const money=(typeof canViewValues!=='function')||canViewValues();
   const sum=cs=>{ let v=0; cs.forEach(x=>{ if(!(typeof isMonetary==='function'?isMonetary(x):true)) return; if(!(Number(x.value||0)>0)) return;
-    const h=(typeof fxHome==='function')?fxHome(x):{v:Number(x.value||0),missing:false}; if(!h.missing) v+=h.v; }); return v; };
+    const h=(typeof fxCounted==='function')?fxCounted(x):{v:Number(x.value||0),missing:false}; if(!h.missing) v+=h.v; }); return v; };
   if(money){
     out.value=sum(mine); out.missing=(typeof fxMissing==='function')?fxMissing(mine):{};
     const all=sum(book); out.share=all>0?out.value/all:null;
@@ -547,7 +547,7 @@ function graphStreamFlow(cs){
     if(!(Number(c.value||0)>0)) return;
     const side=(typeof paySide==='function')?paySide(c):null;
     if(!side){ S.unsided++; return; }
-    const h=(typeof fxHome==='function')?fxHome(c):{v:Number(c.value||0),missing:false,code:''};
+    const h=(typeof fxCounted==='function')?fxCounted(c):{v:Number(c.value||0),missing:false,code:''};
     if(h.missing){ S.missing[h.code]=(S.missing[h.code]||0)+1; return; }
     S.sided++;
     if(side==='customer') S.in+=h.v; else S.out+=h.v;
@@ -5116,7 +5116,7 @@ function _expMoney(list){
   let sum=0, left=0;
   for(const c of list){
     if(typeof fxHome!=='function'){ sum += Number((c&&c.value)||0); continue; }
-    const h=fxHome(c);
+    const h=(typeof fxCounted==='function')?fxCounted(c):fxHome(c);
     if(h && h.missing) left++; else sum += (h && h.v) || 0;
   }
   return { sum, left };
@@ -5176,7 +5176,7 @@ function exposureData(){
   if(money && typeof fxHome==='function'){
     const seen=new Set();
     for(const r of rows) for(const id of r.ids) seen.add(id);
-    for(const c of live) if(seen.has(c.id)){ const h=fxHome(c); if(h&&h.missing) fxLeft++; }
+    for(const c of live) if(seen.has(c.id)){ const h=(typeof fxCounted==='function')?fxCounted(c):fxHome(c); if(h&&h.missing) fxLeft++; }
   }
   return { rows, live:live.length, money, lead, fxLeft,
     unread:{ n:unread.length, ids:unread.map(c=>c.id), value:um.sum, left:um.left } };
@@ -5225,7 +5225,7 @@ const _expPg = { by:'cat', m:'n', k:null, g:null };
    disagree about whether a contract is in the figure. */
 function _expOne(c){
   if(typeof fxHome!=='function') return { v:Number((c&&c.value)||0), missing:false };
-  const h=fxHome(c);
+  const h=(typeof fxCounted==='function')?fxCounted(c):fxHome(c);   // a private stream adds nothing
   return (h && h.missing) ? { v:null, missing:true } : { v:(h && h.v) || 0, missing:false };
 }
 /* WHICH GROUP A CONTRACT SITS IN. Each dimension is the product's own reading:
