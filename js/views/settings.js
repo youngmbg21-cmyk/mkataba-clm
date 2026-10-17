@@ -1024,6 +1024,8 @@ function stNeedsAll(){
     btn:`data-st-panel="ask:${PB_ATTR(a.id)}"`, verb:i18t('st_need_answer') }));
   /* the clashes in who may do what (piece 7), the red one first */
   stClashes().forEach(r=>out.push(r));
+  /* the quarter's access review, until it is done (piece 8) */
+  const arRow=stArNeedRow(); if(arRow) out.push(arRow);
   const unset=stCapUnset();
   if(unset.length) out.push({ key:'limits', dot:'warn',
     text:i18tn('st_need_limits',unset.length,{n:unset.length,names:stNamesSaid(unset)}), sub:i18t('st_need_limits_sub'),
@@ -1226,16 +1228,18 @@ function stSheetCells(u){
 }
 function stSheetRow(u, full){
   const c=stSheetCells(u), me=(typeof currentUser==='function'&&currentUser())||{};
+  const ar=full&&stArOn(), rev=ar&&stArDue();
   return `<tr class="st-sh-row" data-st-panel="person:${PB_ATTR(u.id)}">
     <td class="st-sh-who">${esc(u.id===me.id?i18t('st_sh_you',{name:stNameOf(u)}):stNameOf(u))}</td>
     <td>${esc(roleName(u.role))}${(u.prefs&&u.prefs.mustChangePassword)?` · <span class="st-sh-inv">${esc(i18t('st_sh_invited'))}</span>`:''}</td>
     <td>${c.cap}</td><td>${c.yes}</td><td>${c.checked}</td>
     ${full?`<td>${c.refile}</td><td>${c.paper}</td><td>${c.hold}</td>`:''}
-    <td>${c.streams}</td></tr>`;
+    <td>${c.streams}</td>${ar?`<td class="st-ar-cell" data-st-ar-used="${PB_ATTR(u.id)}">${stArUsedHtml(u)}</td>`:''}${rev?`<td class="st-ar-rev" data-st-ar-row="${PB_ATTR(u.id)}">${stArReviewHtml(u)}</td>`:''}</tr>`;
 }
 function stSheetHead(full){
   const th=k=>`<th>${esc(i18t(k))}</th>`;
-  return `<tr>${th('st_sh_person')}${th('st_sh_role')}${th('st_sh_cap')}${th('st_sh_yes_from')}${th('st_sh_checked')}${full?th('st_sh_refile')+th('st_sh_paper')+th('st_sh_hold'):''}${th('st_sh_streams')}</tr>`;
+  const ar=full&&stArOn();
+  return `<tr>${th('st_sh_person')}${th('st_sh_role')}${th('st_sh_cap')}${th('st_sh_yes_from')}${th('st_sh_checked')}${full?th('st_sh_refile')+th('st_sh_paper')+th('st_sh_hold'):''}${th('st_sh_streams')}${ar?th('st_ar_used'):''}${ar&&stArDue()?th('st_ar_review'):''}</tr>`;
 }
 const ST_SHEET_CARD_ROWS=3;
 function stSheetCardHtml(){
@@ -1268,12 +1272,117 @@ function stTeamPageHtml(){
   </div>`;
 }
 function stSheetPageHtml(){
-  return `<div class="st-pg" data-st-pg="sheet">
-    ${stPageHeadHtml(i18t('st_pg_sheet'), i18t('st_sh_page_sub'), `<button type="button" class="ui-btn" data-st-sheet-csv>${icon('download','w-3.5 h-3.5')} ${esc(i18t('st_sh_download'))}</button>`)}
+  /* the trail is read when the sheet opens (piece 8) */
+  if(stArOn()&&!_stAr.use&&!_stAr.busy) setTimeout(()=>stArLoadUse(),0);
+  return `<div class="st-pg${stArDue()?' is-reviewing':''}" data-st-pg="sheet">
+    ${stPageHeadHtml(i18t('st_pg_sheet'), stArHeadSub(), `<button type="button" class="ui-btn" data-st-sheet-csv>${icon('download','w-3.5 h-3.5')} ${esc(i18t('st_sh_download'))}</button>`)}
     <section class="st-card st-sheet-full"><table class="st-sh-table">${stSheetHead(true)}${stUsers().map(u=>stSheetRow(u,true)).join('')}</table></section>
-    <p class="st-note st-pg-foot">${esc(i18t('st_sh_foot'))}</p>
+    ${stArFootHtml()}
+    <p class="st-note st-pg-foot">${esc(i18t(stArOn()?'st_ar_foot':'st_sh_foot'))}</p>
   </div>`;
 }
+/* ---- THE QUARTERLY ACCESS REVIEW (owner picked "Review the sheet — the SAP
+   way", 17 Oct 2026; piece 8 of the sensitive contracts and governance plan) ----
+   Needs your attention (and the bell) asks for the quarter's review until it
+   is done; Who holds what is the review: a column, Used in the last 90 days,
+   read from the trail by the server (unused rights in amber), Keep · Change on
+   every row while the quarter is open, and Mark the review done once every
+   person is kept or changed — stamped by the server, an act in the trail.
+   On the server only. */
+const _stAr={ use:null, busy:false, at:0, changing:null };
+const stArOn=()=>stApiOnly()&&stIsAdmin();
+const stAr=()=>(typeof state!=='undefined'&&state.accessReview)||null;
+const stArLabel=q=>{ const m=/^(\d{4})-Q(\d)$/.exec(String(q||'')); return m?i18t('st_tr_quarter',{q:m[2],y:m[1]}):String(q||''); };
+const stArDue=()=>{ const a=stAr(); return !!(stArOn()&&a&&!a.done&&Array.isArray(a.people)&&a.people.length); };
+const stArCount=()=>{ const a=stAr(); if(!a) return { done:0, total:0 }; const ids=a.people||[]; return { done:ids.filter(id=>a.marks&&a.marks[id]).length, total:ids.length }; };
+function stArNeedRow(){
+  if(!stArDue()) return null;
+  const a=stAr(), n=stArCount();
+  return { key:'review', dot:'warn', text:i18t('st_ar_need',{q:stArLabel(a.quarter)}), sub:i18t('st_ar_need_sub',{n:n.done,total:n.total}),
+    btn:'data-st-page="sheet"', verb:i18t(n.done?'st_ar_continue':'st_ar_start') };
+}
+/* the trail, read once per sitting (and again after the review moves) */
+async function stArLoadUse(force){
+  if(!stArOn()||_stAr.busy||(_stAr.use&&!force)) return;
+  _stAr.busy=true;
+  try{ const r=await api('access-review'); _stAr.use=r.use||{}; _stAr.idle=r.idleDays||90; _stAr.now=r.now||'';
+    state.accessReview={ quarter:r.quarter, people:r.people, marks:r.marks, done:r.done, last:r.last }; }
+  catch(_){ _stAr.use=_stAr.use||{}; }
+  _stAr.busy=false;
+  stArRepaint();
+}
+function stArRepaint(){ if(_stPage==='sheet'&&document.querySelector('[data-st-pg="sheet"]')) renderTeam(); }
+const stArDays=t=>{ const ms=Date.parse(t||''); return Number.isFinite(ms)?Math.floor((Date.now()-ms)/864e5):null; };
+/* one line per person: what of theirs went unused for 90 days, or when they
+   last used HaTi — never a guess: where nothing is on record it says so */
+function stArUsedHtml(u){
+  const me=(typeof currentUser==='function'&&currentUser())||{};
+  if(u.id===me.id) return '<span class="st-ar-used">—</span>';
+  if(!_stAr.use) return `<span class="st-ar-used">${(typeof busyHtml==='function')?busyHtml(''):'…'}</span>`;
+  const x=_stAr.use[u.id]; if(!x) return '<span class="st-ar-used">—</span>';
+  const idle=_stAr.idle||90, member=stArDays(x.since), old=member==null||member>=idle;
+  const amber=t=>`<span class="st-ar-used st-amber" data-st-ar-idle="1">${esc(t)}</span>`;
+  const seen=stArDays(x.seen);
+  if(old&&(seen==null||seen>=idle)) return amber(seen==null?i18t('st_ar_no_signin'):i18t('st_ar_signin_old',{n:seen}));
+  const cap=(()=>{ try{ return signCapOf(u); }catch(_){ return { answered:false, limit:null }; } })();
+  if(old&&u.role==='legal'&&cap.answered){ const s=stArDays(x.sign); if(s==null||s>=idle) return amber(s==null?i18t('st_ar_sign_never'):i18t('st_ar_sign_old',{n:s})); }
+  const fa=(((state.settings||{}).folderAccess)||{})[u.id];
+  if(old&&u.role!=='admin'&&Array.isArray(fa)&&fa.length){
+    const stale=fa.filter(f=>{ const d=stArDays((x.streams||{})[f]); return d==null||d>=idle; });
+    if(stale.length){ const f=stale[0], d=stArDays((x.streams||{})[f]), nm=(FOLDERS[f]||{}).name||f;
+      return amber((d==null?i18t('st_ar_stream_never',{stream:nm}):i18t('st_ar_stream_old',{stream:nm,n:d}))+(stale.length>1?' '+i18t('st_ar_more',{n:stale.length-1}):'')); }
+  }
+  const last=[x.seen,x.act].filter(Boolean).sort().pop(), d=stArDays(last);
+  return `<span class="st-ar-used">${esc(d==null?i18t('st_ar_none'):d<7?i18t('st_ar_week'):d<31?i18t('st_ar_month'):i18t('st_ar_90'))}</span>`;
+}
+function stArReviewHtml(u){
+  const me=(typeof currentUser==='function'&&currentUser())||{};
+  if(u.id===me.id) return `<span class="st-ar-you">${esc(i18t('st_ar_not_you'))}</span>`;
+  const a=stAr(), m=a&&a.marks&&a.marks[u.id];
+  const b=(k,label,on)=>`<button type="button" class="st-ar-btn${on?' is-on':''}" data-st-ar="${k}" data-st-ar-who="${PB_ATTR(u.id)}" aria-pressed="${on?'true':'false'}">${esc(label)}</button>`;
+  return `<span class="st-ar-acts">${b('keep',m&&m.v==='keep'?i18t('st_ar_kept'):i18t('st_ar_keep'),m&&m.v==='keep')}${b('change',m&&m.v==='change'?i18t('st_ar_changed'):i18t('st_ar_change'),m&&m.v==='change')}</span>`;
+}
+async function stArMark(uid,verdict){
+  try{ const r=await api('access-review/mark','POST',{ userId:uid, verdict }); state.accessReview=r; }
+  catch(e){ toast(e.message,'err'); return false; }
+  stArRepaint(); return true;
+}
+async function stArDone(){
+  const btn=document.getElementById('st-ar-done'); if(btn){ btn.disabled=true; if(window.busySet) busySet(btn,i18t('st_ar_stamping')); }
+  try{ const r=await api('access-review/done','POST',{}); state.accessReview=r;
+    toast(i18t('st_ar_done_ok',{q:stArLabel(r.quarter)}),'ok'); }
+  catch(e){ toast(e.message,'err'); }
+  stArRepaint();
+}
+/* the press on a row's Keep or Change: Keep is the record; Change opens the
+   person, and only their saved drawer marks them changed */
+function stArPress(el){
+  const uid=el.getAttribute('data-st-ar-who'), k=el.getAttribute('data-st-ar');
+  if(k==='keep'){ stArMark(uid,'keep'); return; }
+  _stAr.changing=uid; stDrawerOpen('person:'+uid);
+}
+async function stArAfterSave(uid){
+  if(!stArDue()||String(_stAr.changing||'')!==String(uid||'')) return;
+  _stAr.changing=null; await stArMark(uid,'change');
+}
+function stArHeadSub(){
+  const a=stAr(); if(!stArOn()||!a) return i18t('st_sh_page_sub');
+  if(a.done) return i18t('st_ar_head_done',{q:stArLabel(a.quarter),day:stDay(a.done.at),who:a.done.by});
+  const n=stArCount(); return i18t('st_ar_head',{q:stArLabel(a.quarter),n:n.done,total:n.total});
+}
+function stArFootHtml(){
+  if(!stArDue()) return '';
+  const n=stArCount(), left=n.total-n.done;
+  return `<div class="st-ar-foot"><span class="st-note">${esc(left?i18tn('st_ar_left',left,{n:left}):i18t('st_ar_all_in'))}</span>
+    <button type="button" class="ui-btn ui-btn-primary" id="st-ar-done"${left?` disabled aria-disabled="true" title="${esc(i18tn('st_ar_left',left,{n:left}))}"`:''}>${esc(i18t('st_ar_mark_done'))}</button></div>`;
+}
+if(typeof document!=='undefined') document.addEventListener('click',e=>{
+  const t=e.target; if(!t||!t.closest) return;
+  const b=t.closest('[data-st-ar]');
+  if(b){ e.stopPropagation(); e.preventDefault(); stArPress(b); return; }
+  if(t.closest('#st-ar-done')){ e.stopPropagation(); stArDone(); }
+},true);
+
 /* THE SHEET, AS A FILE: the same cells, words only, for the quarterly look */
 function stSheetCsv(){
   const users=stUsers(), q=v=>`"${String(v==null?'':v).replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim().replace(/"/g,'""')}"`;
@@ -3388,6 +3497,7 @@ async function settingsSavePerson(existing){
     catch(e){ stDrawerRefuse(e.message); return; }
   }
   if(!await stBzSaveHolder(target.id)) return;
+  await stArAfterSave(target.id);
   settingsMirrorDirectory(target.name,email||target.email,title);
   toast(i18t('st_person_saved',{who:target.name}),'ok');
   stDrawerClose(); renderTeam();
@@ -7752,7 +7862,7 @@ async function loadSessions(){
    the else branch and nobody catches it — the lesson rlPaperFootHtml taught
    this codebase for a year. openMyAccount and openSettingsAt are the two doors
    the shell calls; SET_PANELS and the readers beside it are what the tests read. */
-Object.assign(window,{stClashes,renderTeam,settingsPlace,settingsPlacePut,stAgentsPaint,ST_AGENT_KEYS,AG_MONEY_NOTE_KEYS,stRepaintPanel,renderMyAccountPage,briefCadenceOf,BRIEF_EVERY_VALUES,renderPrecedentPanel,precedentAdopt,stdOpenPreferred,renderStandardsDraft,stdOpenClauseId,stdSetOpenClause,stdStanceChipHtml,stdFallbackChipHtml,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
+Object.assign(window,{stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsPlace,settingsPlacePut,stAgentsPaint,ST_AGENT_KEYS,AG_MONEY_NOTE_KEYS,stRepaintPanel,renderMyAccountPage,briefCadenceOf,BRIEF_EVERY_VALUES,renderPrecedentPanel,precedentAdopt,stdOpenPreferred,renderStandardsDraft,stdOpenClauseId,stdSetOpenClause,stdStanceChipHtml,stdFallbackChipHtml,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
   renderPlaybookView,openPlaybookEditor,pbRemoveType,pbResetPlaybook,stdRemoveClause,stdDraftSetOpen,
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
   stRulesRows,stPaintRules,stPaintSignFolders,

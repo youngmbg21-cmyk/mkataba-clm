@@ -30337,3 +30337,15 @@ READ, NEVER STORED: every clash is worked out afresh on each paint from the read
 DEPARTURE FROM THE DRAWING: a fourth kind, two people who approve each other, joins the three drawn — the textbook clash the drawing's examples did not show.
 
 TESTS: clashes-verify (12 checks; 10 red at the parent, each reporting; the fit checks and no-errors hold on main). control-room-in-full, settings-tabs, settings-groups, approval-before-signing verify green. Photographed at 1440 × 780, 1536 × 730 and 1366 × 950.
+
+## THE QUARTERLY ACCESS REVIEW — REVIEW THE SHEET (17 Oct 2026)
+
+The owner picked "Review the sheet — the SAP way" for round 5 of the remaining-choices page (piece 8 of the sensitive contracts and governance plan): "Rights pile up: a signing limit for one big deal, a stream for one project. Every quarter an admin should read the access sheet, keep or change each person, and HaTi stamps that it was done."
+
+WHAT IT IS: Needs your attention asks — "Quarterly access review · Q4 2026 · 0 of 3 reviewed", Review (Continue once started) — and so does the bell (kind `access-review`, amber), until the quarter is stamped done. Who holds what is the review: its head says "Reviewing · Q4 2026 · 1 of 3 reviewed" (once done: "Reviewed · Q4 2026 · 17 Oct by Amina Otieno"); a column, Used in the last 90 days, says per person in amber what went unused ("Not signed in for 130 days", "Signing not used in 112 days" for an Editor with a limit set, "Procurement & Raw Materials: no work in 200 days" for a picked stream) or when they last used HaTi ("Used this week"); every row but your own carries Keep · Change — Keep is the record, Change opens the person and only their saved drawer marks them Changed; the foot says how many are left and Mark the review done stays greyed (the count on it) until everyone is decided.
+
+READ FROM THE TRAIL, NEVER GUESSED (`arUse`): the last sign-in (sessions' last_seen), the last act and the last act in each stream (every contract's audit lines, matched by name — names are unique), the last signature (signatures, by address, then name). Nothing on record is said ("No sign-in on record in 90 days"); a person who joined less than 90 days ago is not flagged. The stamp (`access_reviews`: who, when, how many kept and changed) is the server's, refused while anyone is undecided and once only, and is an act in the trail export.
+
+DEPARTURE FROM THE DRAWING: the sheet in review carries two columns more beside Jambo's panel; its long heads wrap and the reason wraps inside its cell, so Keep · Change sit inside the card at all three screens (measured).
+
+TESTS: f701 (8 claims, all red at the parent), access-review-verify (25 checks; 23 red at the parent, each reporting; "the ask and bell are gone" and no-errors hold on main). control-room-in-full, settings-tabs, settings-groups, clashes and business-roles verify green. Photographed at 1440 × 780, 1536 × 730 and 1366 × 950.

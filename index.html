@@ -3564,6 +3564,26 @@
   .st-bz-sum{ color:var(--color-neutral-600); font-size:var(--t-meta); }
   .st-bz-n{ white-space:nowrap; }
   .st-bz-empty{ padding:16px 20px; margin:0; }
+  /* THE QUARTERLY ACCESS REVIEW (owner picked "Review the sheet — the SAP way",
+     17 Oct 2026): Who holds what, read and decided person by person */
+  .st-ar-used{ white-space:normal; }
+  /* in review the sheet carries two columns more: its long heads wrap and the
+     card scrolls sideways before anything is cut (the same scope as the sheet's
+     own rules, later in the source) */
+  .st-cr .st-pg.is-reviewing .st-sh-table th, .st-cr .st-pg[data-st-pg="sheet"] .st-sh-table th{ white-space:normal; vertical-align:bottom; }
+  .st-cr .st-sheet-full{ overflow-x:auto; }
+  .st-cr .st-sh-table td.st-ar-cell{ width:160px; min-width:130px; }
+  .st-cr .st-sh-table td.st-ar-rev{ white-space:nowrap; }
+  /* the amber chip's own one line (.st-cr .st-amber) gives way here: a reason
+     wraps inside its cell rather than running under Keep · Change */
+  .st-cr .st-ar-used.st-amber{ font-weight:var(--w-label); white-space:normal; display:inline-block; line-height:1.35; padding:1px 6px; }
+  .st-ar-acts{ display:inline-flex; gap:6px; white-space:nowrap; }
+  .st-ar-btn{ font:inherit; font-size:var(--t-meta); font-weight:var(--w-label); color:var(--accent-ink); background:var(--color-surface);
+    border:1px solid var(--btn-edge); border-radius:var(--radius); padding:2px 9px; cursor:pointer; white-space:nowrap; }
+  .st-ar-btn:hover{ border-color:var(--color-accent); }
+  .st-ar-btn.is-on{ color:var(--st-green-fg); background:var(--st-green-bg); border-color:transparent; }
+  .st-ar-you{ color:var(--color-neutral-500); }
+  .st-ar-foot{ display:flex; align-items:center; justify-content:flex-end; gap:12px; margin-top:12px; }
   .st-ps-mrow{ display:flex; align-items:center; gap:7px; font-size:var(--t-meta); color:var(--color-text); }
   .st-ps-mrow > span{ flex:1; min-width:0; }
   /* THE RULES PAGE (4 Oct 2026): one row per rule — its dot, its name and

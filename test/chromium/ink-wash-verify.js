@@ -279,7 +279,15 @@ const diff = (a, b) => {
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
-  await seedWorkspace(h);
+  const W = await seedWorkspace(h);
+  /* THIS QUARTER'S ACCESS REVIEW IS DONE HERE (17 Oct 2026, the quarterly
+     access review): an admin whose review is due carries one more count on
+     the bell on every page — a headcount, not a colour. The census measures
+     the pages it was recorded on, so the workspace has done its review; the
+     record itself is not touched. */
+  for (const u of Object.values(W.users))
+    await W.admin.json('/api/access-review/mark', { method: 'POST', body: { userId: u.id, verdict: 'keep' } });
+  await W.admin.json('/api/access-review/done', { method: 'POST', body: {} });
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
   const page = await ctx.newPage();
