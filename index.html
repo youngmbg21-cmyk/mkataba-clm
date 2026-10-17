@@ -5427,6 +5427,12 @@
     width:var(--hist-dot); height:var(--hist-dot); margin-top:var(--hist-dot-top);
     border-radius:50%; border:2.5px solid var(--color-neutral-400); background:var(--color-surface); }
   .hist-ev:hover .hist-dot{ background:var(--nav-well); }
+  /* AN OPEN WEARS AN EYE WHERE THE RING SITS (owner picked "In the trail", 17
+     Oct 2026): no edge, the page's own middle still hiding the line, and the
+     line's sentence in the quieter ink — an open is a record, not an event. */
+  .hist-dot.is-eye{ border:0; display:inline-grid; place-items:center; color:var(--color-neutral-500); }
+  .hist-dot.is-eye svg{ width:var(--hist-dot); height:var(--hist-dot); }
+  .hist-ev.is-open .hist-text{ color:var(--color-neutral-600); }
   .hist-body{ min-width:0; }
   .hist-round{ font-size:var(--t-label); font-weight:var(--w-strong); color:var(--color-neutral-500);
     font-variant-numeric:tabular-nums; line-height:20px; text-align:right; }

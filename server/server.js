@@ -4277,6 +4277,12 @@ app.get('/api/contracts/:id', auth, (req, res) => {
   psRecordOpen(r.folder, req.params.id, req.user);   // a private stream's contract: who opened it, kept
   const c = dropSittingKeys(JSON.parse(r.json)); c._v = r.version;
   const out = visibleContract(c, req.user);
+  /* WHO OPENED IT, IN ITS OWN TRAIL (owner picked "In the trail", 17 Oct 2026):
+     a private folder's contract arrives with who opened it and who was given
+     or lost the folder — transport, never the record, stripped on PUT. Only a
+     reader the folder names gets this far (the scope check above). */
+  const psTrail = psTrailFor(r.folder, req.params.id);
+  if (psTrail) { out._opens = psTrail.opens; out._access = psTrail.access; if (psTrail.cut) out._opensCut = psTrail.cut; }
   /* APPROVAL BEFORE SIGNING (23 Sep 2026): who on this contract needs a named
      approval, read with the whole roster — a colleague's rule is an admin-only
      fact about THEM, but that this contract cannot be signed until somebody
@@ -4853,6 +4859,7 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   delete c._renewalAdvice;   // W2-4: transport too, off its own table
   delete c._readings;        // idea 7: the plain-English layer, off its own table
   delete c._signNeeds; delete c._signState;   // approval before signing: read here, never stored
+  delete c._opens; delete c._access; delete c._opensCut;   // a private folder's trail: read here, never stored
   delete c._reach;           // can they still answer: read off the links, never stored (srvReach)
   delete c._roundPrep;       // Copilot's prepared answers to their round: its own table (runRoundPrep)
   delete c._book;            // what the wording says, read overnight: its own table (runBookReading)
@@ -6554,6 +6561,25 @@ db.exec(`CREATE TABLE IF NOT EXISTS private_opens (
   user_id TEXT NOT NULL, user_name TEXT, at TEXT NOT NULL)`);
 db.exec('CREATE INDEX IF NOT EXISTS private_opens_c ON private_opens(contract_id, user_id, id)');
 const PS_OPEN_SITTING_MS = 30 * 60 * 1000;
+/* What a private contract's History draws: the opens, oldest first, up to a
+   cap that is SAID (`cut` = how many older ones were left out), and the
+   folder's own record of who was named, removed, or made it private. */
+const PS_TRAIL_OPENS_MAX = 1000;
+const PS_TRAIL_ACTS = ['self', 'add', 'remove', 'on', 'off'];
+function psTrailFor(folder, contractId) {
+  const p = privateStreamsAll()[String(folder || '')];
+  if (!psOn(p)) return null;
+  const id = String(contractId);
+  const n = db.prepare('SELECT COUNT(*) AS n FROM private_opens WHERE contract_id=?').get(id).n;
+  const rows = db.prepare('SELECT user_id, user_name, at FROM private_opens WHERE contract_id=? ORDER BY id DESC LIMIT ?').all(id, PS_TRAIL_OPENS_MAX);
+  const who = x => (x ? { id: String(x.id || ''), name: x.name || '' } : null);
+  return {
+    opens: rows.reverse().map(x => ({ at: x.at, by: { id: String(x.user_id), name: x.user_name || '' } })),
+    access: (Array.isArray(p.log) ? p.log : []).filter(e => e && PS_TRAIL_ACTS.includes(e.act))
+      .map(e => ({ act: e.act, who: who(e.who), by: who(e.by), at: e.at })),
+    cut: Math.max(0, n - rows.length),
+  };
+}
 function psRecordOpen(folder, contractId, user) {
   if (!user || !psOn(privateStreamsAll()[String(folder || '')])) return;
   const last = db.prepare('SELECT at FROM private_opens WHERE contract_id=? AND user_id=? ORDER BY id DESC LIMIT 1')

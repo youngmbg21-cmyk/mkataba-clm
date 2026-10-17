@@ -8283,7 +8283,10 @@ function renderKeyTermsSide(c){
 /* The proposal ring wears the accent's INK, which lightens after dark; the plain accent sank into the night surface (the owner's list, 27 Sep 2026). */
 const HIST_KIND={ proposed:{mark:'✎',tone:'var(--accent-ink)'}, decided:{mark:'✓',tone:'var(--st-green-dot)'},
   withdrawn:{mark:'↩',tone:'var(--color-neutral-400)'}, 'round-closed':{mark:'⊘',tone:'var(--st-steel-dot)'},
-  system:{mark:'·',tone:'var(--color-neutral-400)'} };
+  system:{mark:'·',tone:'var(--color-neutral-400)'},
+  /* A PRIVATE FOLDER'S OWN LINES (owner picked "In the trail", 17 Oct 2026):
+     somebody opened it, and who was given or lost the folder */
+  opened:{mark:'◎',tone:'var(--color-neutral-400)'}, access:{mark:'·',tone:'var(--color-neutral-400)'} };
 /* ---- A REFUSAL IS NOT GREEN (24 Aug 2026) ----
    'decided' is ONE kind covering both answers, and it was tolerable while the
    mark was a small ✓ glyph inside a ring — the WORD beside it said which way it
@@ -8352,6 +8355,8 @@ function histOutcome(e){
   if(e._k==='round-closed'||e._k==='link'||e._k==='copies') return { w:i18t('ct_hist_sent'), t:'n' };
   if(e._k==='signature') return { w:i18t('ct_hist_signed'), t:'g' };
   if(e._k==='sealed') return { w:i18t('ct_hist_sealed'), t:'g' };
+  if(e._k==='opened') return { w:i18t('ct_hist_opened'), t:'n' };
+  if(e._k==='access') return { w:i18t(e._act==='remove'?'ct_hist_ps_removed':e._act==='on'?'ct_hist_ps_private':e._act==='off'?'ct_hist_ps_open':'ct_hist_ps_named'), t:'n' };
   const a=String((e._audit&&e._audit.action)||'').trim();
   if(!a) return null;
   const t=/^(signed|sealed|approved|accepted|executed)/i.test(a)?'g':/^(reject|declin|refus)/i.test(a)?'r':/^counter/i.test(a)?'a':'n';
@@ -8361,7 +8366,36 @@ function _histKey(at,txt){
   return String(at||'').slice(0,10)+'|'+String(txt||'').toLowerCase()
     .replace(/[^a-z0-9]+/g,' ').trim().slice(0,48);
 }
+/* ---- WHO OPENED IT, IN ITS OWN TRAIL (owner picked "In the trail", 17 Oct
+   2026) ----
+   A contract in a private folder arrives with who opened it (`_opens`, one
+   line per person per sitting, kept by the server) and the folder's own record
+   of who was named or removed (`_access`). Each is a line of this trail like
+   any other: no clause, no side, no round, so the filters that need one drop
+   them the way they drop the trail's own entries. The folder's lines start
+   from the day this contract did — what happened to the folder before it
+   existed is not its history. Transport, never the record: a contract outside
+   a private folder carries neither, and its trail is byte-identical. */
+function histPrivateEvents(c){
+  if(!c) return [];
+  const folder=((typeof FOLDERS==='object'&&FOLDERS&&FOLDERS[c.folder])||{}).name||String(c.folder||'');
+  const opens=(Array.isArray(c._opens)?c._opens:[]).map(o=>({ _k:'opened', at:o.at||'',
+    actor:(o.by&&o.by.name)||'', text:i18t('ct_hist_opened_line'), clauseLabel:'', round:null }));
+  const born=String((Array.isArray(c.audit)&&c.audit[0]&&c.audit[0].at)||'');
+  const say={ self:'ct_hist_ps_self_line', add:'ct_hist_ps_add_line', remove:'ct_hist_ps_remove_line', on:'ct_hist_ps_on_line', off:'ct_hist_ps_off_line' };
+  const access=(Array.isArray(c._access)?c._access:[]).filter(a=>a&&say[a.act]&&(!born||String(a.at||'')>=born))
+    .map(a=>({ _k:'access', _act:a.act, at:a.at||'', actor:(a.by&&a.by.name)||'',
+      text:i18t(say[a.act],{ who:(a.who&&a.who.name)||'', folder }), clauseLabel:'', round:null }));
+  return opens.concat(access);
+}
 function roomHistoryEvents(c,f={}){
+  /* the Opens choice shows, hides or isolates the folder's opens; it is not a
+     filter on the trail itself, so it is set aside before the others are read */
+  const opensWay=(f&&f.opens)||'';
+  if(opensWay){ f={ ...f }; delete f.opens; }
+  const priv=histPrivateEvents(c);
+  if(opensWay==='only') return priv.filter(e=>e._k==='opened').sort((a,b)=>String(a.at||'').localeCompare(String(b.at||'')));
+  const privShown=opensWay==='hide'?priv.filter(e=>e._k!=='opened'):priv;
   const filtered=Object.values(f||{}).some(v=>v);
   /* "Ours" ALONE keeps what our own people did (an upload, a fill-in, a
      re-file): a system entry written in the name of one of our people. An
@@ -8415,7 +8449,7 @@ function roomHistoryEvents(c,f={}){
   });
   const ours=oursOnly?_histOurPeople():null;
   const keep=ours?sys.filter(e=>ours.has(String(e.actor||'').trim().toLowerCase())):sys;
-  return nego.concat(keep).sort((a,b)=>String(a.at||'').localeCompare(String(b.at||'')));
+  return nego.concat(keep, privShown).sort((a,b)=>String(a.at||'').localeCompare(String(b.at||'')));
 }
 /* The names our own people write the trail under: the workspace's members and
    whoever is signed in (logAudit writes currentUser's name). */
@@ -8493,6 +8527,9 @@ function roomHistoryHtml(c,f={},opts={}){
      one event in both, so "7 of 11" can never appear over a page that is
      hiding nothing. */
   const all=roomHistoryEvents(c,{}).length;
+  /* how many of them are opens, and how many older ones the server left out
+     (a cap is a fact, said where the count is) */
+  const opensN=Array.isArray(c._opens)?c._opens.length:0, cutN=Number(c._opensCut)||0;
   /* THE SIDE IS IN THE OPEN (the overnight work order, step 8; owner's "Go",
      14 Oct 2026: "History ... gets filtering on sides"): All sides · Ours ·
      Theirs as one switch beside the search, the other four behind Filter. It
@@ -8557,9 +8594,13 @@ function roomHistoryHtml(c,f={},opts={}){
     const av=(e.actor&&typeof window.regAvatarHtml==='function')?regAvatarHtml(e.actor):'';
     const rchip=(e.round!=null&&e.round!=='')?`<span class="hist-rchip" title="${esc(i18t('ct_round_n',{n:e.round}))}">${esc(i18t('ct_round_short',{n:e.round}))}</span>`:'';
     const cl=e.clauseLabel?`<span class="hist-cl">${esc(e.clauseLabel)}</span>`:'';
-    return `<div class="hist-ev" data-hist-at="${esc(e.at||'')}">
+    /* an open wears an eye where the ring sits: the quiet line of the trail */
+    const dot=e._k==='opened'
+      ? `<span class="hist-dot is-eye" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span>`
+      : `<span class="hist-dot" style="border-color:${histTone(e)}" title="${esc(m.mark)}" aria-hidden="true"></span>`;
+    return `<div class="hist-ev${e._k==='opened'?' is-open':''}" data-hist-at="${esc(e.at||'')}">
       <span class="hist-when">${w.time?`<span class="hist-time">${esc(w.time)}</span>`:`<span class="hist-day">${esc(w.day)}</span>`}</span>
-      <span class="hist-dot" style="border-color:${histTone(e)}" title="${esc(m.mark)}" aria-hidden="true"></span>
+      ${dot}
       <div class="hist-body"><div class="hist-text">${esc(e.text||'')}${rchip}${cl}</div>
       ${also?`<div class="hist-meta">${also}</div>`:''}${body}${why}${reply}</div>
       <span class="hist-who">${e.actor?`${av}<span>${esc(e.actor)}</span>`:''}</span>
@@ -8607,7 +8648,7 @@ function roomHistoryHtml(c,f={},opts={}){
   return `<div class="hist-head">
       <h6 style="margin:0;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading)">${esc(i18t('tab_history'))}</h6>
       <span class="hist-cap">${esc(i18t('ct_hist_reading'))} · ${on?esc(i18t('ct_hist_n_of',{n:evs.length,all}))
-        :esc(i18tn('ct_hist_events',all,{n:all}))}</span>
+        :esc(i18tn('ct_hist_events',all,{n:all}))}${opensN?` · ${esc(i18tn('ct_hist_opens_n',opensN,{n:opensN}))}`:''}${cutN?` · ${esc(i18tn('ct_hist_opens_cut',cutN,{n:cutN}))}`:''}</span>
       <span style="flex:1;min-width:4px"></span>
       <label class="hist-q"><span class="sr-only">${esc(i18t('ct_hist_search'))}</span>${icon('search','w-3.5 h-3.5')}<input id="hist-q" type="search" value="${esc(_histQ)}" placeholder="${esc(i18t('ct_hist_search'))}" autocomplete="off"></label>
       <div class="hist-side" role="group" aria-label="${esc(i18t('ct_hf_side'))}">${HIST_SIDES.map(([v,k])=>
@@ -8646,7 +8687,7 @@ function roomHistoryHtml(c,f={},opts={}){
 }
 /* the four filters behind Filter, and the side switch's three positions
    (the values are the record's own keys; only the words are translated) */
-const HIST_FOLD_FILTERS=['clauseId','actor','round','outcome'];
+const HIST_FOLD_FILTERS=['clauseId','actor','round','outcome','opens'];
 const HIST_SIDES=[['','ct_hist_side_all'],['owner','ct_hf_ours'],['counterparty','ct_hf_theirs']];
 function roomHistoryFiltersHtml(c,f){
   const all=window.negoTimeline?negoTimeline(c):[];
@@ -8667,6 +8708,9 @@ function roomHistoryFiltersHtml(c,f){
            counterparty's copy and the pop-out record keep their own row. */}
     ${sel('round',i18t('ct_hf_round'),uniq(all.filter(e=>e.round!=null&&e.round!=='').map(e=>[e.round,i18t('ct_round_n',{n:e.round})])))}
     ${sel('outcome',i18t('ct_hf_outcome'),[['accepted',i18t('ct_hf_accepted')],['rejected',i18t('ct_hf_rejected')],['pending',i18t('ct_hf_pending')],['withdrawn',i18t('ct_hf_withdrawn')]])}
+    ${''/* OPENS, only where there are any (a choice that cannot give results is
+           not listed): All shows them, or hide them, or show only them */}
+    ${(Array.isArray(c._opens)&&c._opens.length)?sel('opens',i18t('ct_hf_opens'),[['hide',i18t('ct_hf_opens_hide')],['only',i18t('ct_hf_opens_only')]]):''}
     <button id="ht-clear" class="ui-btn" style="align-self:flex-end">${i18t('ct_clear2')}</button>
   </div>`;
 }
@@ -8696,7 +8740,7 @@ function roomPaintHistory(c,f={},at){
      column back through a door nobody remembered. */
   const read=()=>{ const g=k=>{ const el=host.querySelector(`[data-ht-filter="${k}"]`); return el&&el.value?el.value:''; };
     const sd=host.querySelector('[data-ht-side][aria-pressed="true"]');
-    return {clauseId:g('clauseId'),actor:g('actor'),side:sd?sd.getAttribute('data-ht-side'):'',round:g('round'),outcome:g('outcome')}; };
+    return {clauseId:g('clauseId'),actor:g('actor'),side:sd?sd.getAttribute('data-ht-side'):'',round:g('round'),outcome:g('outcome'),opens:g('opens')}; };
   host.querySelectorAll('[data-ht-filter]').forEach(s=>
     s.addEventListener('change',()=>roomPaintHistory(c,read(),at)));
   /* the side switch, in the open: one press, the list follows */

@@ -162,6 +162,34 @@ const book = page => page.evaluate(() => state.contracts.map(c => c.id).sort().j
       return { board: hbBookData('all', { whole: true }).figs.value.v, report: fxHomeValue(c), own: fxHome(c).v, print: fmtMoneyOf(c) }; });
     check(money.board === 84000000 && money.report === 0, '6a the Board and every report add nothing of it', JSON.stringify(money));
     check(money.own === 85000000 && /85/.test(money.print.replace(/[^0-9]/g, '')), '6b its own page still states its amount', money.print);
+    /* ============ 7. WHO OPENED IT, IN ITS OWN TRAIL (owner picked "In the trail") ============ */
+    await R.page.evaluate(() => hbStripBring('MK-B1', 'hist'));
+    const trail = await until(R.page, () => !!document.querySelector('.hist-trail .hist-ev.is-open'), null, 15000);
+    check(trail, '7a the contract\'s History draws its opens');
+    const t7 = await R.page.evaluate(() => ({ cap: (document.querySelector('.hist-cap') || {}).textContent || '',
+      eye: !!document.querySelector('.hist-ev.is-open .hist-dot.is-eye svg'),
+      named: [...document.querySelectorAll('.hist-ev')].some(e => /Added themself to/.test(e.textContent)),
+      who: [...document.querySelectorAll('.hist-ev.is-open .hist-who')].map(x => x.textContent.trim()) }));
+    check(t7.eye && /open/i.test(t7.cap), '7b each open wears the eye, and the head counts the opens', t7.cap.trim());
+    check(t7.named && t7.who.some(w => /Restricted Legal/.test(w)), '7c the folder\'s own record is in the trail: the admin adding themself, and who opened it', JSON.stringify(t7.who));
+    await R.page.evaluate(() => document.querySelector('.hist-head').scrollIntoView({ block: 'start' }));
+    for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
+      await R.page.setViewportSize({ width: w, height: ht });
+      await R.page.screenshot({ path: path.join(OUT, `4-trail-${w}x${ht}.png`) });
+    }
+    await R.page.setViewportSize({ width: 1440, height: 780 });
+    await R.page.click('#hist-filter-btn');
+    const listed = await until(R.page, () => !!document.querySelector('[data-ht-filter="opens"]'));
+    check(listed, '7d the Filter offers Opens on a contract that has them');
+    await R.page.selectOption('[data-ht-filter="opens"]', 'only');
+    const only = await until(R.page, () => { const all = document.querySelectorAll('.hist-ev'), op = document.querySelectorAll('.hist-ev.is-open'); return all.length && all.length === op.length; });
+    check(only, '7e "Only opens" leaves only the opens');
+    await R.page.selectOption('[data-ht-filter="opens"]', 'hide');
+    check(await until(R.page, () => document.querySelectorAll('.hist-ev').length && !document.querySelector('.hist-ev.is-open')), '7f "Hide them" takes them away');
+    await R.page.evaluate(() => hbStripBring('MK-A1', 'hist'));
+    await until(R.page, () => { const h = document.querySelector('.hist-head'); return h && /Refined Sugar|MK-A1/.test((h.closest('[data-bs-id]') || document.body).textContent); });
+    const notListed = await R.page.evaluate(() => { const b = [...document.querySelectorAll('#hist-filters')].pop(); return !(b && b.querySelector('[data-ht-filter="opens"]')); });
+    check(notListed, '7g a contract in an ordinary folder lists no Opens choice — a choice with nothing behind it is not offered');
     check(R.errors.length === 0, '6c no page errors for the named person', R.errors.join(' | ') || 'clean');
     await R.ctx.close();
   } catch (e) {

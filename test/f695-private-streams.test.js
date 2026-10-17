@@ -179,3 +179,42 @@ describe('f695 (7) its money is left out of every total', () => {
     assert.equal(s.totalValue, 48000000 + 36000000 + 85000000 + 78000000);
   });
 });
+
+/* ---- WHO OPENED IT, IN ITS OWN TRAIL (owner picked "In the trail", 17 Oct
+   2026): the record of opens reaches the contract's History as transport ---- */
+describe('f695 (8) a private contract arrives with who opened it, as transport only', () => {
+  before(async () => { await setPrivate(true, [ids.restricted]); });
+  test('the named reader gets the opens and the folder\'s access record', async () => {
+    const c = await W.restricted.json('/api/contracts/MK-B2');
+    assert.ok(Array.isArray(c._opens) && c._opens.length >= 1, 'this very open is in it');
+    assert.equal(c._opens[c._opens.length - 1].by.id, ids.restricted);
+    assert.ok(Array.isArray(c._access) && c._access.some(a => a.act === 'add' && a.who.id === ids.restricted));
+    assert.ok(c._access.every(a => ['self', 'add', 'remove', 'on', 'off'].includes(a.act)));
+  });
+  test('a contract outside a private folder carries none', async () => {
+    const c = await W.restricted.json('/api/contracts/MK-A1');
+    assert.equal(c._opens, undefined);
+    assert.equal(c._access, undefined);
+  });
+  test('a save never stores it', async () => {
+    const full = await W.restricted.json('/api/contracts/MK-B2');
+    const baseVersion = full._v; delete full._v;
+    await W.restricted.json('/api/contracts/MK-B2', { method: 'PUT', body: { contract: full, baseVersion } });
+    const db = new DatabaseSync(path.join(h.dataDir, 'hati.db'));
+    try {
+      const j = JSON.parse(db.prepare('SELECT json FROM contracts WHERE id=?').get('MK-B2').json);
+      assert.equal(j._opens, undefined); assert.equal(j._access, undefined);
+    } finally { db.close(); }
+  });
+  test('past the cap, the oldest are left out and the number left out is said', async () => {
+    const db = new DatabaseSync(path.join(h.dataDir, 'hati.db'));
+    try {
+      const ins = db.prepare('INSERT INTO private_opens (contract_id, folder, user_id, user_name, at) VALUES (?,?,?,?,?)');
+      for (let i = 0; i < 1005; i++) ins.run('MK-B1', 'sales', ids.restricted, 'Restricted Legal', new Date(Date.UTC(2026, 0, 1, 0, i)).toISOString());
+    } finally { db.close(); }
+    const c = await W.restricted.json('/api/contracts/MK-B1');
+    assert.equal(c._opens.length, 1000);
+    assert.ok(c._opensCut >= 5, 'said, not silently trimmed: ' + c._opensCut);
+    assert.ok(String(c._opens[0].at) <= String(c._opens[c._opens.length - 1].at), 'oldest first, as the trail reads');
+  });
+});
