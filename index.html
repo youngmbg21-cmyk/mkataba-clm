@@ -3528,6 +3528,22 @@
   .st-ps-role{ font-weight:var(--w-body); color:var(--color-neutral-600); }
   .st-ps-menote{ margin-top:10px; }
   .st-ps-mine{ margin-top:8px; display:flex; flex-direction:column; gap:4px; }
+  /* THE TRAIL, AS A FILE (owner picked "Export drawer — the SAP way", 17 Oct 2026):
+     Data & backup's second tab — the period, the streams, the format, the count
+     beside the one act, then every download so far */
+  .st-tr-lead{ margin:0 0 12px; }
+  .st-tr-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+  .st-tr-f{ display:block; min-width:0; }
+  .st-tr-grid + .st-tr-f{ margin-top:2px; }
+  .st-tr-f .st-ps-l, .st-tr-as .st-ps-l{ display:block; margin:10px 0 4px; }
+  .st-tr-as{ margin-bottom:12px; }
+  .st-tr-go{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:12px 14px;
+    border:1px solid var(--color-divider); border-radius:var(--radius-lg); background:var(--surface-2); }
+  .st-tr-fig{ flex:1; min-width:0; display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 6px; font-size:var(--t-meta); color:var(--color-text); }
+  .st-tr-n{ font-size:var(--t-body); font-weight:var(--w-strong); }
+  .st-tr-out{ flex-basis:100%; }
+  .st-tr-err{ flex-basis:100%; margin:0; }
+  .st-tr-past{ margin-top:16px; }
   .st-ps-mrow{ display:flex; align-items:center; gap:7px; font-size:var(--t-meta); color:var(--color-text); }
   .st-ps-mrow > span{ flex:1; min-width:0; }
   /* THE RULES PAGE (4 Oct 2026): one row per rule — its dot, its name and

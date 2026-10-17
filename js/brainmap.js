@@ -350,6 +350,14 @@ const BRAIN_PARTS = [
      2026): read off the wording, confirmed by a person on the panel */
   ['ndatail', 'ndaEditOpen', 'see', 0],
   ['ndaread', 'ndaRead', 'read', 1],
+  /* THE TRAIL, AS A FILE (owner picked "Export drawer — the SAP way", 17 Oct
+     2026): Data & backup's The trail tab, the count, the file, and the record
+     of every download */
+  ['trailpage', 'stTrailHtml', 'see', 0],
+  ['trailsum', 'GET /api/trail/summary', 'wall', 2],
+  ['traillist', 'GET /api/trail/exports', 'wall', 2],
+  ['trailexport', 'GET /api/trail/export', 'wall', 2],
+  ['trailrec', 'trail_exports', 'wall', 2, { def: 'CREATE TABLE IF NOT EXISTS trail_exports', men: '\\btrail_exports\\b' }],
 ].map((a, i) => ({ id: a[0], code: a[1], reg: a[2], floor: a[3], def: (a[4] || {}).def || '', men: (a[4] || {}).men || '', i }));
 
 /* The six flows: which parts each step lands on. The sentences are
@@ -373,7 +381,7 @@ const BRAIN_FLOWS = [
   { id: 'request', steps: [['request', 'kinds', 'intake', 'mailroom', 'reqfiles', 'askadmin', 'settingsask', 'settingsanswer', 'privpage', 'privlist', 'privsave'], ['bell', 'settingsasks', 'privnews', 'privseen'], ['lanes', 'laneowner'], ['arrivalowed', 'triage'], ['newagr']] },
   { id: 'theysign', steps: [['theirsign', 'issuelinks'], ['cplink', 'guestcode', 'totpcount', 'totpnew'], ['respond', 'filesig'], ['srvseal', 'sealtext', 'frozen'], ['copies', 'email'], ['obligations', 'renewal', 'calendar']] },
   { id: 'amend', steps: [['amendface', 'amend'], ['blanks'], ['readiness', 'approvals'], ['srvseal'], ['renewal', 'overview', 'stripfamily']] },
-  { id: 'end', steps: [['served', 'renewact'], ['autorenew'], ['obdone'], ['endpause', 'decline', 'reopen'], ['archive', 'hold']] },
+  { id: 'end', steps: [['served', 'renewact'], ['autorenew'], ['obdone'], ['endpause', 'decline', 'reopen'], ['archive', 'hold', 'trailpage', 'trailsum', 'traillist', 'trailexport', 'trailrec']] },
   { id: 'mistake', steps: [['leaveguard', 'inline'], ['discard'], ['freshen'], ['outbyhand', 'mailkey'], ['linkkeep', 'whosemove']] }
 ];
 
@@ -389,7 +397,7 @@ const BRAIN_LANES = ['req', 'own', 'hati', 'them'];
 const BRAIN_STAGES = ['ask', 'create', 'prepare', 'nego', 'approve', 'sign', 'keep'];
 const BRAIN_LANE_OF = {
   /* a colleague: the requester, the reviewer, the contributor, the approver */
-  req: ['request', 'kinds', 'reqfiles', 'askadmin', 'ruledoor', 'privpage', 'settingsask', 'settingsanswer', 'review', 'suggest', 'rules', 'namedyes', 'decide', 'undoyes', 'approvalpaper', 'lookask'],
+  req: ['request', 'kinds', 'reqfiles', 'askadmin', 'ruledoor', 'privpage', 'trailpage', 'settingsask', 'settingsanswer', 'review', 'suggest', 'rules', 'namedyes', 'decide', 'undoyes', 'approvalpaper', 'lookask'],
   /* the person working the contract: what they see and press */
   own: ['upload', 'dropin', 'draftform', 'refile', 'privnews', 'privtrail', 'paysec', 'ndatail', 'glance', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'needsme', 'negpage', 'redface', 'boardviews', 'strip', 'stripfamily', 'startnego', 'here', 'follow',
     'editor', 'baton', 'askkeep', 'risklist', 'riskwalk', 'stands', 'dealpaper', 'onepaper', 'decidedsend', 'signtab', 'signface', 'pad', 'calendar', 'desknight', 'insights', 'readings',
@@ -397,7 +405,7 @@ const BRAIN_LANE_OF = {
     'phrasebook', 'boardtools', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'citedoor', 'walkset', 'paperdesk', 'contracts', 'contractsplace', 'customers', 'directory', 'cellfold',
     'readchips', 'nextq', 'newagr', 'essentials', 'tplform', 'details', 'fillface', 'outbyhand', 'amend', 'endpause', 'decline', 'reopen', 'archive', 'hold', 'served', 'obdone', 'inline', 'stackview', 'mynotes', 'breakdown', 'jambohouse', 'onesearch', 'totpcount', 'totpnew'],
   /* HaTi itself: the readings, Copilot, the agents, the server's checks, the mail it sends */
-  hati: ['docx', 'clauses', 'putguard', 'db', 'privwall', 'privsave', 'privlist', 'privseen', 'privopens', 'privmoney', 'payread', 'jbpress', 'ndaread', 'triage', 'arrivalowed', 'datedwin', 'brief', 'playbook', 'oblscan', 'risk', 'model', 'blanks', 'laneowner',
+  hati: ['docx', 'clauses', 'putguard', 'db', 'privwall', 'privsave', 'privlist', 'privseen', 'privopens', 'privmoney', 'trailsum', 'traillist', 'trailexport', 'trailrec', 'payread', 'jbpress', 'ndaread', 'triage', 'arrivalowed', 'datedwin', 'brief', 'playbook', 'oblscan', 'risk', 'model', 'blanks', 'laneowner',
     'funnel', 'desk', 'ladder', 'kept', 'asks', 'payload', 'shares', 'linkcheck', 'email', 'turnmail', 'wordmark', 'whosemove', 'roundauto',
     'mailkey', 'respond', 'audit', 'apply', 'wordback', 'paperdrop', 'stale', 'webhook', 'answeronpaper', 'readiness', 'signgate', 'approvals', 'paperjobs', 'rulestep', 'seal',
     'frozen', 'obligations', 'renewal', 'reminders', 'lanes', 'agentlevel', 'linkkeep', 'renewact', 'renewprep', 'boardjudge', 'bookread',

@@ -587,6 +587,7 @@ function stDrawerOpen(key){
   /* THE BOARD'S OWN DRAWERS (16 Oct 2026, the full build): everyone's
      signing limits at once, the rules still off, a colleague's ask, and each
      of the reader's own settings (the You cards' doors) */
+  if(key==='trail'){ _stBkTab='trail'; key='backup'; }
   if(key==='limits'){ _stOpen=key; stDrawerPaint(stLimitsDrawer()); return; }
   if(key==='gates'){ _stOpen=key; stDrawerPaint(stGatesDrawer()); return; }
   if(String(key||'').indexOf('ask:')===0 && typeof stAskDrawer==='function'){ const d=stAskDrawer(String(key).slice(4)); if(d){ _stOpen=key; stDrawerPaint(d); } return; }
@@ -1015,7 +1016,7 @@ const ST_CARDS=[
   { key:'standards', groups:['standards'] },
   { key:'intake', groups:['intake'] },
   { key:'copilot', groups:['copilot'] },
-  { key:'house', groups:['house'] },
+  { key:'house', groups:['house'], extra:()=>stTrailOn()?[{ panel:'trail', label:i18t('st_card_trail') }]:[] },
   { key:'live', groups:['launch','plumbing'] },
   { key:'ladder', span:2 },
 ];
@@ -4656,13 +4657,10 @@ const SET_PANELS={
     title:()=>i18t('st_p_backup'),
     sub:()=>API_MODE()?i18t('set_backup_server'):i18t('set_backup_local'),
     state(){ const at=stLastBackup(); return { dot:at?'ok':'off', text:at?`${i18t('set_export_backup')} · ${fmtDT(at)}`:i18t('st_not_set') }; },
-    body(){ return `<div style="display:flex;flex-wrap:wrap;gap:var(--s-2)">
-        <button id="bk-export" style="${ST_BTN2}">${icon('download','w-3.5 h-3.5')} ${i18t('set_export_backup')}</button>
-        ${API_MODE()?`<a id="bk-zip" href="api/export/workspace.zip" style="${ST_BTN2};text-decoration:none">${icon('download','w-3.5 h-3.5')} ${i18t('set_full_workspace_zip')}</a>`:`
-        <label style="${ST_BTN2};cursor:pointer">${icon('upload','w-3.5 h-3.5')} ${i18t('set_restore_backup')}<input id="bk-import" type="file" accept=".json,application/json" style="display:none"/></label>`}
-      </div>
-      ${!API_MODE()?`<div class="st-danger"><button id="bk-reset" style="${ST_BTN_DANGER}">${icon('ban','w-3.5 h-3.5')} ${i18t('set_reset_workspace')}</button></div>`:''}`; },
-    wire(){ stWireBackup(); },
+    find(){ return stTrailOn()?[i18t('st_bk_tab_trail'),i18t('st_tr_find')]:[]; },
+    /* TWO TABS ON THE SERVER: Backup as it was, and The trail (piece 5) */
+    body(){ return stTrailOn()?stBkTabsHtml():stBackupBodyHtml(); },
+    wire(){ if(stTrailOn()) stBkWire(); else stWireBackup(); },
   },
 
   /* ============================================================
@@ -5279,6 +5277,163 @@ function stPaintDirectory(){
   });
 }
 
+/* ---- THE TRAIL, AS A FILE (owner picked "Export drawer — the SAP way",
+   17 Oct 2026; piece 5 of the sensitive contracts and governance plan) ----
+   Data & backup gets a second tab, The trail: a period, the streams, a
+   spreadsheet or a PDF with HaTi's seal, the count before the press, and every
+   download so far — each of them in the trail too. The server assembles the
+   file inside the reader's stream wall and records the hand-over before the
+   file leaves (GET /api/trail/summary, /exports, /export); this drawer only
+   asks. On the server only: a browser-only workspace has no shared trail. */
+let _stBkTab='backup';
+const _stTr={ from:'', to:'', stream:'all', as:'csv', sum:null, sumKey:'', sumErr:'', list:null, busy:false, err:'' };
+const stTrailOn=()=>stApiOnly() && stIsAdmin();
+/* the last whole quarter: what an auditor asks for first */
+function stTrailDefault(){
+  const t=new Date(((typeof todayISO==='function')?todayISO():new Date().toISOString().slice(0,10))+'T00:00:00Z');
+  const q=Math.floor(t.getUTCMonth()/3), y=q?t.getUTCFullYear():t.getUTCFullYear()-1, qq=q?q-1:3;
+  return { from:new Date(Date.UTC(y,qq*3,1)).toISOString().slice(0,10), to:new Date(Date.UTC(y,qq*3+3,0)).toISOString().slice(0,10) };
+}
+/* "Q3 2026" where the period is a calendar quarter, else the two days */
+function stTrailPeriodWords(from,to){
+  const f=new Date(from+'T00:00:00Z'), t=new Date(to+'T00:00:00Z');
+  if(!isNaN(f)&&!isNaN(t)&&f.getUTCDate()===1&&f.getUTCMonth()%3===0&&f.getUTCFullYear()===t.getUTCFullYear()
+    &&t.getUTCMonth()===f.getUTCMonth()+2&&new Date(Date.UTC(t.getUTCFullYear(),t.getUTCMonth()+1,0)).getUTCDate()===t.getUTCDate())
+    return i18t('st_tr_quarter',{q:f.getUTCMonth()/3+1,y:f.getUTCFullYear()});
+  return i18t('st_tr_span',{a:stDay(from),b:stDay(to)});
+}
+function stTrailStreams(){
+  const ids=(typeof visibleFolders==='function')?visibleFolders():Object.keys(window.FOLDERS||{});
+  return ids.map(f=>typeof f==='object'?f.id:f).filter(Boolean).map(id=>({ id:String(id), name:(window.FOLDERS&&FOLDERS[id]&&FOLDERS[id].name)||String(id) }));
+}
+function stTrailQuery(extra){
+  const d=_stTr, all=stTrailStreams();
+  const names={}; all.forEach(f=>{ names[f.id]=f.name; });
+  const q=new URLSearchParams({ from:d.from, to:d.to, streams:d.stream==='all'?'':d.stream, names:JSON.stringify(names), ...(extra||{}) });
+  return q.toString();
+}
+const stTrailBad=()=>!_stTr.from||!_stTr.to||_stTr.to<_stTr.from;
+function stBkTabsHtml(){
+  if(!_stTr.from){ Object.assign(_stTr,stTrailDefault()); }
+  const tab=(k,label)=>`<button type="button" role="tab" class="st-ps-tab${_stBkTab===k?' is-on':''}" data-st-bk-tab="${k}" aria-selected="${_stBkTab===k}">${esc(label)}</button>`;
+  return `<div class="st-ps-tabs" role="tablist">${tab('backup',i18t('st_bk_tab_backup'))}${tab('trail',i18t('st_bk_tab_trail'))}</div>
+    <div id="st-bk-pane">${_stBkTab==='trail'?stTrailHtml():stBackupBodyHtml()}</div>`;
+}
+function stTrailHtml(){
+  const d=_stTr, streams=stTrailStreams();
+  const lbl=t=>`<span class="st-ps-l">${esc(t)}</span>`;
+  const radio=(k,t,sub)=>`<label class="st-ps-radio${d.as===k?' is-on':''}"><input type="radio" name="st-tr-as" value="${k}"${d.as===k?' checked':''}/>
+    <span><span class="st-role-name">${esc(t)}</span><span class="st-note">${esc(sub)}</span></span></label>`;
+  return `<p class="st-note st-tr-lead">${esc(i18t('st_tr_lead'))}</p>
+    <div class="st-tr-grid">
+      <label class="st-tr-f">${lbl(i18t('st_tr_from'))}<input type="date" id="st-tr-from" value="${esc(d.from)}" style="${ST_INPUT}"/></label>
+      <label class="st-tr-f">${lbl(i18t('st_tr_to'))}<input type="date" id="st-tr-to" value="${esc(d.to)}" style="${ST_INPUT}"/></label>
+    </div>
+    <label class="st-tr-f">${lbl(i18t('st_tr_streams'))}<select id="st-tr-stream" style="${ST_INPUT}">
+      <option value="all"${d.stream==='all'?' selected':''}>${esc(i18t('st_tr_all'))}</option>
+      ${streams.map(f=>`<option value="${esc(f.id)}"${d.stream===f.id?' selected':''}>${esc(f.name)}</option>`).join('')}</select></label>
+    <div class="st-tr-as">${lbl(i18t('st_tr_as'))}${radio('csv',i18t('st_tr_csv'),i18t('st_tr_csv_sub'))}${radio('pdf',i18t('st_tr_pdf'),i18t('st_tr_pdf_sub'))}</div>
+    <div class="st-tr-go" id="st-tr-go">${stTrailGoHtml()}</div>
+    <div class="st-tr-past" id="st-tr-past">${stTrailPastHtml()}</div>`;
+}
+/* the count, then the one act: Download the trail — grey with its reason */
+function stTrailGoHtml(){
+  const d=_stTr, bad=stTrailBad();
+  const busyOf=w=>(typeof busyHtml==='function')?busyHtml(w):esc(w);
+  let fig;
+  if(bad) fig=`<span class="st-amber">${esc(i18t('st_tr_bad_period'))}</span>`;
+  else if(d.sumErr) fig=`<span class="st-amber">${esc(d.sumErr)}</span>`;
+  else if(!d.sum||d.sumKey!==stTrailQuery()) fig=busyOf(i18t('st_tr_counting'));
+  else {
+    const s=d.sum;
+    fig=`<b class="st-tr-n">${esc(i18tn('st_tr_acts',s.acts,{n:Number(s.acts).toLocaleString(typeof jxLocale==='function'?jxLocale():undefined)}))}</b>`
+      +` <span class="st-note">· ${esc([i18tn('st_tr_streams_n',s.streams,{n:s.streams}),i18tn('st_tr_people',s.people,{n:s.people}),stTrailPeriodWords(d.from,d.to)].join(' · '))}</span>`
+      +(s.leftOut?`<span class="st-note st-tr-out">${esc(i18tn('st_tr_left_out',s.leftOut,{n:s.leftOut}))}</span>`:'');
+  }
+  const grey=bad||d.busy;
+  return `<div class="st-tr-fig">${fig}</div>
+    <button type="button" class="ui-btn ui-btn-primary" id="st-tr-download"${grey?' disabled aria-disabled="true"':''}${bad?` title="${esc(i18t('st_tr_bad_period'))}"`:''}>${
+      d.busy?busyOf(i18t('st_tr_preparing')):`${icon('download','w-3.5 h-3.5')} ${esc(i18t('st_tr_download'))}`}</button>
+    ${d.err?`<p class="st-note st-amber st-tr-err">${esc(d.err)}</p>`:''}`;
+}
+function stTrailPastHtml(){
+  const L=_stTr.list;
+  const head=`<p class="st-ps-l">${esc(i18t('st_tr_past'))} <span class="st-ps-q">${esc(i18t('st_tr_past_sub'))}</span></p>`;
+  if(!L) return head+`<p class="st-ps-none">${(typeof busyHtml==='function')?busyHtml(i18t('st_tr_loading')):''}</p>`;
+  if(!L.length) return head+`<p class="st-ps-none">${esc(i18t('st_tr_past_none'))}</p>`;
+  return head+`<table class="st-ps-tb st-tr-tb"><thead><tr><th>${esc(i18t('st_tr_col_when'))}</th><th>${esc(i18t('st_tr_col_who'))}</th><th>${esc(i18t('st_tr_col_period'))}</th><th>${esc(i18t('st_tr_col_as'))}</th></tr></thead><tbody>${
+    L.map(r=>`<tr><td class="st-ps-when">${esc(stDay(r.at))}</td><td class="st-ps-who">${esc(r.who||'—')}</td><td>${esc(stTrailPeriodWords(r.from,r.to))}</td><td>${esc(String(r.as||'').toUpperCase())}</td></tr>`).join('')}</tbody></table>`;
+}
+function stTrailPaint(part){
+  const go=document.getElementById('st-tr-go'), past=document.getElementById('st-tr-past');
+  if((!part||part==='go')&&go) go.innerHTML=stTrailGoHtml();
+  if((!part||part==='past')&&past) past.innerHTML=stTrailPastHtml();
+}
+let _stTrSumT=0;
+function stTrailCount(){
+  const d=_stTr; clearTimeout(_stTrSumT);
+  if(stTrailBad()){ stTrailPaint('go'); return; }
+  const key=stTrailQuery(); d.sumErr=''; stTrailPaint('go');
+  _stTrSumT=setTimeout(async()=>{
+    try{ const s=await api('trail/summary?'+key); if(key!==stTrailQuery()) return; d.sum=s; d.sumKey=key; }
+    catch(e){ if(key!==stTrailQuery()) return; d.sumErr=i18t('st_tr_count_failed'); }
+    stTrailPaint('go');
+  },250);
+}
+async function stTrailList(){
+  try{ const r=await api('trail/exports'); _stTr.list=(r&&Array.isArray(r.exports))?r.exports:[]; }
+  catch(_){ _stTr.list=[]; }
+  stTrailPaint('past');
+}
+async function stTrailDownload(){
+  const d=_stTr; if(stTrailBad()||d.busy) return;
+  d.busy=true; d.err=''; stTrailPaint('go');
+  try{
+    const res=await fetch('api/trail/export?'+stTrailQuery({ as:d.as }),{ credentials:'same-origin' });
+    if(!res.ok){ let why=res.statusText; try{ why=(await res.json()).error||why; }catch(_){ } throw new Error(why); }
+    const blob=await res.blob();
+    const name=`hati-trail-${d.from}-to-${d.to}.${d.as}`;
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    toast(i18t('st_tr_done'),'ok');
+    stTrailList(); stTrailCount();
+  }catch(e){ d.err=i18t('st_tr_failed',{why:(e&&e.message)||''}); }
+  d.busy=false; stTrailPaint('go');
+}
+function stBkWire(){
+  const host=document.getElementById('st-bk-pane'); if(!host) return;
+  document.querySelectorAll('[data-st-bk-tab]').forEach(b=>b.addEventListener('click',()=>{
+    _stBkTab=b.getAttribute('data-st-bk-tab')==='trail'?'trail':'backup';
+    document.querySelectorAll('[data-st-bk-tab]').forEach(x=>{ const on=x===b; x.classList.toggle('is-on',on); x.setAttribute('aria-selected',String(on)); });
+    host.innerHTML=_stBkTab==='trail'?stTrailHtml():stBackupBodyHtml();
+    stBkWirePane();
+  }));
+  stBkWirePane();
+}
+function stBkWirePane(){
+  if(_stBkTab!=='trail'){ stWireBackup(); return; }
+  const d=_stTr;
+  const on=(id,ev,fn)=>{ const el=document.getElementById(id); if(el) el.addEventListener(ev,fn); };
+  on('st-tr-from','change',e=>{ d.from=e.target.value; stTrailCount(); });
+  on('st-tr-to','change',e=>{ d.to=e.target.value; stTrailCount(); });
+  on('st-tr-stream','change',e=>{ d.stream=e.target.value||'all'; stTrailCount(); });
+  document.querySelectorAll('input[name="st-tr-as"]').forEach(r=>r.addEventListener('change',()=>{
+    d.as=r.value==='pdf'?'pdf':'csv';
+    document.querySelectorAll('.st-tr-as .st-ps-radio').forEach(l=>l.classList.toggle('is-on',!!l.querySelector('input:checked')));
+  }));
+  /* the button is drawn again with every count, so its press is asked of the live one */
+  const go=document.getElementById('st-tr-go');
+  if(go&&!go.dataset.wired){ go.dataset.wired='1'; go.addEventListener('click',e=>{ if(e.target.closest('#st-tr-download')) stTrailDownload(); }); }
+  if(typeof datePickDress==='function') try{ datePickDress(document.getElementById('st-bk-pane')); }catch(_){}
+  stTrailCount(); stTrailList();
+}
+/* the Backup tab: the drawer as it was before The trail came */
+function stBackupBodyHtml(){ return `<div style="display:flex;flex-wrap:wrap;gap:var(--s-2)">
+        <button id="bk-export" style="${ST_BTN2}">${icon('download','w-3.5 h-3.5')} ${i18t('set_export_backup')}</button>
+        ${API_MODE()?`<a id="bk-zip" href="api/export/workspace.zip" style="${ST_BTN2};text-decoration:none">${icon('download','w-3.5 h-3.5')} ${i18t('set_full_workspace_zip')}</a>`:`
+        <label style="${ST_BTN2};cursor:pointer">${icon('upload','w-3.5 h-3.5')} ${i18t('set_restore_backup')}<input id="bk-import" type="file" accept=".json,application/json" style="display:none"/></label>`}
+      </div>
+      ${!API_MODE()?`<div class="st-danger"><button id="bk-reset" style="${ST_BTN_DANGER}">${icon('ban','w-3.5 h-3.5')} ${i18t('set_reset_workspace')}</button></div>`:''}`; }
 function stWireBackup(){
   document.getElementById('bk-export')?.addEventListener('click',()=>settingsExportBackup());
   document.getElementById('bk-import')?.addEventListener('change',e=>{
