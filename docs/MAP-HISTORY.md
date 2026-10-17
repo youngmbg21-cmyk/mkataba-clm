@@ -30311,3 +30311,17 @@ THE SERVER (`trailAsk`, `trailRows`, `trailLines`, `trailCsv`, `trailSeal`, `tra
 DEPARTURES FROM THE DRAWING: Streams is one box (All streams, or one stream), not a multi-pick; Downloads so far shows the last twenty.
 
 TESTS: f699 (10 claims, all red at the parent), trail-export-verify (17 checks; 16 red at the parent, each reporting rather than timing out; no-page-errors holds on main too). control-room-in-full, settings-tabs and settings-groups verify green. Photographed at 1440 × 780, 1536 × 730 and 1366 × 950.
+
+## BUSINESS ROLES — A ROLE AT THE TOP OF THE DRAWER (17 Oct 2026)
+
+The owner picked "A role at the top of the drawer — the SAP way" for round 3 of the remaining-choices page (piece 6 of the sensitive contracts and governance plan): "Today every right is ticked person by person. A new Finance hire takes ten ticks and is easy to get wrong. A role is a named set of the rights HaTi already has."
+
+WHAT IT IS: Company › People gets a door, Roles, onto a page listing the business roles (what each brings, how many hold it), New role, and a role's drawer: its name; Viewer or Editor; sees contract values; for an Editor, checked before sending, may make new paper, may re-file, may put on hold, a signing limit; the streams. A person's drawer opens with Business role at the top: choosing one REDRAWS THE DRAWER ON THE ROLE'S RIGHTS (`_stBzDraft` → `stBzDressed`; what was typed is kept), says "What Finance brings", and lists — live, off the drawer's own controls — this person's extras ("May re-file contracts · Extra", or "Less than Finance"). The Team list gets a Business role column. An admin's drawer says an admin holds every right by rank.
+
+ONLY A NAME: the drawer's Save writes every right through the routes it always used (PATCH /api/users/:id, the stream map), then the role's name (PUT /api/business-roles/holder). The server checks the right, never the role's name; f700 (5) pins that holding a role moves no right. A change to a role says before Save who it reaches ("Saving changes the rights of 1 person", each holder with how many rights move) and moves ONLY the rights a holder had from the role (`stBzMoves`: a holder's value equal to the role's old value moves to the new; anything else is an extra and stays). Deleting a role leaves its holders their rights; only the name comes off.
+
+THE WALL: the roles and who holds which live in their own setting key (`businessRoles`), not appSettings (which every member receives); only an admin's bootstrap carries them, and the three routes are admin-only. Every change of a person's role is recorded (`role_changes`) and is an act in the trail export (round 2).
+
+DEPARTURES FROM THE DRAWING: the role's rights are applied by redrawing the drawer (the drawer's sections draw differently for a Viewer and an Editor, so filling controls in place would miss the ones a Viewer's drawer does not draw). "Checked before sending" is written only where it differs from the reading, as the drawer always did — an unanswered person reads as the company's default for new people.
+
+TESTS: f700 (8 claims, all red at the parent), business-roles-verify (17 checks; 13 red at the parent, each reporting rather than timing out; the four green there are the fit checks and no-errors). approval-before-signing, people-directory, private-streams, settings-overnight-fixes, settings-tabs, settings-groups, control-room-in-full and trail-export verify green; f137, f149, f193, f195, f202, f398, f624, f691, f692 green. Photographed at 1440 × 780, 1536 × 730 and 1366 × 950.

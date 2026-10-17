@@ -209,7 +209,7 @@ const SAME_IN_BOTH = new Set([ 'na_tab_hati', 'cal_k_plan', 'pd_tab_copilot', 's
      column head and its pill when an NDA names no direction */
   'cu_col_nda', 'cu_nda_word',
   /* the trail drawer: two days and a dash, and words Swedish shares */
-  'st_tr_span', 'st_tr_col_period', 'st_tr_people_one',
+  'st_tr_span', 'st_tr_col_period', 'st_tr_people_one', 'bz_people_one',
 ]);
 
 describe('f148 — the two dictionaries stay level', () => {

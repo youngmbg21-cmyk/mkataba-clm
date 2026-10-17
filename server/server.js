@@ -3843,6 +3843,8 @@ app.get('/api/bootstrap', auth, (req, res) => {
     // M-6: reminder-sweep health, admins only — so "reminders stopped" is
     // visible in the app, not just in the server log and the outbox.
     reminderHealth: req.user.role === 'admin' ? (getSetting('reminderHealth') || null) : undefined,
+    /* the business roles and who holds which: an admin's to see (piece 6) */
+    bizRoles: req.user.role === 'admin' ? bzBook() : undefined,
     /* Whether this workspace can send email at all. The server has always known
        it and reported it on individual screens — creating a share, opening a
        link, requesting a signing code — which meant the answer only ever
@@ -12735,6 +12737,98 @@ app.get('/api/export/workspace.zip', auth, admin, (req, res) => {
 });
 
 /* ============================================================
+   BUSINESS ROLES (owner picked "A role at the top of the drawer — the SAP
+   way", 17 Oct 2026; piece 6 of the sensitive contracts and governance plan)
+   ============================================================
+   A role is only a NAME FOR RIGHTS HATI ALREADY HAS: Editor or Viewer, sees
+   contract values, a signing limit, the streams, checked before sending, may
+   make new paper, may re-file, may put on hold. Nothing new is allowed by it:
+   choosing a role fills the person's drawer and the drawer's Save writes each
+   right through PATCH /api/users/:id and the stream map exactly as before, so
+   the server keeps checking the RIGHT, never the role's name. Admins hold
+   every right by rank and never hold a business role.
+
+   Stored apart from appSettings (which travels to every member): the roles
+   and who holds which are admin-only, read on the bootstrap by an admin and
+   here. Every change of a person's role is recorded (role_changes) and is an
+   act in the trail export. */
+db.exec(`CREATE TABLE IF NOT EXISTS role_changes (id INTEGER PRIMARY KEY AUTOINCREMENT,
+  at TEXT NOT NULL, by_id TEXT, by_name TEXT, user_id TEXT, user_name TEXT, from_role TEXT, to_role TEXT)`);
+const BZ_MAX = 30;
+const BZ_SYS = ['viewer', 'legal'];
+/* ONE SHAPE: a role, cleaned; null where it names nothing */
+function bzClean(r) {
+  if (!r || typeof r !== 'object') return null;
+  const id = String(r.id || '').replace(/[^\w-]/g, '').slice(0, 40);
+  const name = String(r.name || '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60);
+  if (!id || !name) return null;
+  const sys = BZ_SYS.includes(r.sys) ? r.sys : 'viewer';
+  const edits = sys !== 'viewer';
+  let cap = null;
+  if (edits && r.cap === 'none') cap = 'none';
+  else if (edits && r.cap != null && r.cap !== '' && Number.isFinite(Number(r.cap)) && Number(r.cap) >= 0) cap = Math.round(Number(r.cap));
+  const streams = Array.isArray(r.streams) ? [...new Set(r.streams.map(s => String(s || '').slice(0, 64)).filter(Boolean))].slice(0, 60).sort() : 'all';
+  return { id, name, sys, values: r.values !== false, cap, streams: (Array.isArray(streams) && !streams.length) ? 'all' : streams,
+    checked: edits && r.checked === true, paper: edits && r.paper === true, refile: edits && r.refile === true, hold: edits && r.hold === true };
+}
+function bzBook() {
+  const s = getSetting('businessRoles') || {};
+  const roles = (Array.isArray(s.roles) ? s.roles : []).map(bzClean).filter(Boolean).slice(0, BZ_MAX);
+  const ids = new Set(roles.map(r => r.id));
+  const of = {};
+  for (const [u, rid] of Object.entries((s.of && typeof s.of === 'object') ? s.of : {})) if (ids.has(String(rid))) of[String(u)] = String(rid);
+  return { roles, of };
+}
+const bzName = (book, id) => ((book.roles.find(r => r.id === String(id || '')) || {}).name) || '';
+function bzRecord(req, user, from, to) {
+  db.prepare('INSERT INTO role_changes (at, by_id, by_name, user_id, user_name, from_role, to_role) VALUES (?,?,?,?,?,?,?)')
+    .run(now(), String(req.user.id || ''), String(req.user.name || ''), String(user.id || ''), String(user.name || user.email || ''), from || '', to || '');
+}
+app.get('/api/business-roles', auth, admin, (req, res) => res.json(bzBook()));
+/* THE ROLES THEMSELVES: the whole list, cleaned; a name used twice is refused;
+   a role taken away leaves its holders their rights and only loses its name
+   on them (each such change recorded) */
+app.put('/api/business-roles', auth, admin, (req, res) => {
+  const list = req.body && req.body.roles;
+  if (!Array.isArray(list)) return res.status(400).json({ error: 'roles must be a list' });
+  if (list.length > BZ_MAX) return res.status(400).json({ error: `At most ${BZ_MAX} business roles.` });
+  const roles = list.map(bzClean);
+  if (roles.some(r => !r)) return res.status(400).json({ error: 'Every role needs a name.' });
+  const names = roles.map(r => r.name.toLowerCase());
+  if (new Set(names).size !== names.length) return res.status(400).json({ error: 'Two roles cannot have the same name.' });
+  if (new Set(roles.map(r => r.id)).size !== roles.length) return res.status(400).json({ error: 'Two roles cannot share an id.' });
+  const was = bzBook();
+  const keep = new Set(roles.map(r => r.id));
+  const of = {};
+  for (const [uid, rid] of Object.entries(was.of)) {
+    if (keep.has(rid)) { of[uid] = rid; continue; }
+    const u = db.prepare('SELECT id, name, email FROM users WHERE id=?').get(uid);
+    if (u) bzRecord(req, u, bzName(was, rid), '');
+  }
+  setSetting('businessRoles', { roles, of });
+  res.json(bzBook());
+});
+/* ONE PERSON'S ROLE: its name on them, recorded. The rights it brings were
+   written by the drawer's Save, right by right. */
+app.put('/api/business-roles/holder', auth, admin, (req, res) => {
+  const b = req.body || {};
+  const target = db.prepare('SELECT id, name, email, role FROM users WHERE id=?').get(String(b.userId || ''));
+  if (!target) return res.status(404).json({ error: 'User not found' });
+  const book = bzBook();
+  const rid = b.roleId == null || b.roleId === '' ? '' : String(b.roleId);
+  if (rid && !book.roles.some(r => r.id === rid)) return res.status(400).json({ error: 'That business role does not exist.' });
+  if (rid && target.role === 'admin') return res.status(400).json({ error: 'An admin holds every right by rank, so holds no business role.' });
+  const from = book.of[target.id] || '';
+  if (from !== rid) {
+    const of = { ...book.of };
+    if (rid) of[target.id] = rid; else delete of[target.id];
+    setSetting('businessRoles', { roles: book.roles, of });
+    bzRecord(req, target, bzName(book, from), bzName(book, rid));
+  }
+  res.json(bzBook());
+});
+
+/* ============================================================
    THE TRAIL, AS A FILE (owner picked "Export drawer — the SAP way",
    17 Oct 2026; piece 5 of the sensitive contracts and governance plan)
    ============================================================
@@ -12798,6 +12892,9 @@ function trailRows(ask) {
     const c = byId.get(String(r.contract_id));
     if (c) out.push({ at: trailIso(r.at) || String(r.at), who: String(r.user_name || ''), what: 'Opened', detail: 'A private stream\'s contract', c });
   }
+  /* a person's business role changing is the company's act too (piece 6) */
+  for (const r of db.prepare('SELECT * FROM role_changes WHERE at >= ? AND at <= ? ORDER BY id').all(lo, hi))
+    out.push({ at: r.at, who: String(r.by_name || ''), what: 'Business role changed', detail: `${r.user_name}: ${r.from_role || 'none'} to ${r.to_role || 'none'}`, c: null });
   /* a hand-over of the record is the company's act, whatever streams were asked */
   for (const r of db.prepare('SELECT * FROM trail_exports WHERE at >= ? AND at <= ? ORDER BY id').all(lo, hi))
     out.push({ at: r.at, who: String(r.user_name || ''), what: 'Exported the trail', detail: `${r.d_from} to ${r.d_to} · ${String(r.fmt || '').toUpperCase()} · ${r.acts} acts`, c: null });

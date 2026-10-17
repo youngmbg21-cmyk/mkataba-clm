@@ -584,6 +584,8 @@ function stDrawerClearRefusal(){ document.getElementById('st-drawer-refusal')?.s
 function stDrawerOpen(key){
   if(key==='account'){ openMyAccount(); return; }
   if(String(key||'').indexOf('person:')===0){ settingsPersonDrawer(String(key).slice(7)); return; }
+  /* A BUSINESS ROLE'S OWN DRAWER (piece 6) */
+  if(String(key||'').indexOf('role:')===0){ const d=stBzRoleDrawer(String(key).slice(5)); if(d){ _stOpen=key; stDrawerPaint(d); } return; }
   /* THE BOARD'S OWN DRAWERS (16 Oct 2026, the full build): everyone's
      signing limits at once, the rules still off, a colleague's ask, and each
      of the reader's own settings (the You cards' doors) */
@@ -1070,7 +1072,7 @@ function stPeopleCardHtml(){
       ${fact('data-st-page="team"', inv?i18tn('st_pc_invited',inv,{n:n(inv)}):esc(i18t('st_pc_all_in')))}
       ${fact('data-st-page="sheet"', ruled?i18tn('st_pc_ruled',ruled,{n:n(ruled)}):esc(i18t('st_pc_ruled_none')))}
     </div>
-    <div class="st-card-doors">${stDoorHtml('data-st-page="team"',i18t('st_pg_team'))}${stDoorHtml('data-st-page="sheet"',i18t('st_pg_sheet'))}${stDoorHtml('data-st-panel="person:new"',i18t('st_add_person'))}</div>
+    <div class="st-card-doors">${stDoorHtml('data-st-page="team"',i18t('st_pg_team'))}${stDoorHtml('data-st-page="sheet"',i18t('st_pg_sheet'))}${stBzOn()?stDoorHtml('data-st-page="roles"',i18t('st_pg_roles')):''}${stDoorHtml('data-st-panel="person:new"',i18t('st_add_person'))}</div>
   </section>`;
 }
 
@@ -1184,7 +1186,7 @@ function stSheetCardHtml(){
    Who holds what (every grant, read-only, with Download). Each says where it
    is and carries ‹ Settings back; a refresh comes back to it (settingsPlace). */
 let _stPage=null;
-const ST_PAGES=['team','sheet'];
+const ST_PAGES=['team','sheet','roles'];
 function stPageHeadHtml(title, sub, acts){
   return `<div class="st-pg-head">
     <button type="button" class="st-pg-back" data-st-page="">‹ ${esc(i18t('pg_team'))}</button>
@@ -1318,6 +1320,7 @@ async function stResendInvite(id, btn){
 function stCompanyHtml(){
   if(_stPage==='team') return stTeamPageHtml();
   if(_stPage==='sheet') return stSheetPageHtml();
+  if(_stPage==='roles') return stRolesPageHtml();
   return `<div class="st-board" id="st-board">
     ${stNeedsHtml()}
     <div class="st-cards">${ST_CARDS.map(c=>c.key==='people'?stPeopleCardHtml():c.key==='ladder'?stGovLadderHtml():stGroupCardHtml(c)).join('')}</div>
@@ -1574,7 +1577,7 @@ function stFind(q){
       const name=p.title().toLowerCase();
       const rest=[p.sub?p.sub():'', i18t('st_grp_'+stGroupKeyOf(k)), p.find?[].concat(p.find()).join(' '):'', st&&st.text?String(st.text).replace(/<[^>]*>/g,' '):''].join(' ').toLowerCase();
       push({ panel:k }, score(name, stSynOf(k), rest)); });
-    [['team','st_pg_team','st_syn_team'],['sheet','st_pg_sheet','st_syn_sheet']].forEach(([k,t,w])=>
+    [['team','st_pg_team','st_syn_team'],['sheet','st_pg_sheet','st_syn_sheet'],...(stBzOn()?[['roles','st_pg_roles','st_syn_roles']]:[])].forEach(([k,t,w])=>
       push({ page:k }, score(i18t(t).toLowerCase(), String(i18t(w)).toLowerCase(), '')));
     stUsers().forEach(u=>{
       const name=[u.name,String(u.email||'').split('@')[0].replace(/[._-]+/g,' ')].filter(Boolean).join(' ').toLowerCase();
@@ -1588,7 +1591,7 @@ function stFindRows(q){
   return stFind(q).map(h=>{
     if(h.panel){ const p=SET_PANELS[h.panel]; return { id:'panel:'+h.panel, title:p.title(), sub:i18t('st_grp_'+stGroupKeyOf(h.panel)), why:h.why }; }
     if(h.you){ const it=stYouItem(h.you); return it?{ id:'you:'+h.you, title:i18t(it.t), sub:i18t('st_face_you'), why:h.why }:null; }
-    if(h.page) return { id:'page:'+h.page, title:i18t(h.page==='team'?'st_pg_team':'st_pg_sheet'), sub:i18t('st_cr_people'), why:h.why };
+    if(h.page) return { id:'page:'+h.page, title:i18t('st_pg_'+h.page), sub:i18t('st_cr_people'), why:h.why };
     if(h.person){ const u=(typeof userById==='function')?userById(h.person):null; return u?{ id:'person:'+u.id, title:stNameOf(u), sub:roleName(u.role), why:'' }:null; }
     return null;
   }).filter(Boolean);
@@ -2288,6 +2291,8 @@ function stPeopleHtml(opts){
   const me=currentUser()||{};
   const users=getUsers()||[];
   const ic=n=>(typeof icon==='function')?icon(n,'w-3.5 h-3.5'):'';
+  /* the business role, its own column where roles are kept (piece 6) */
+  const bz=stBzOn();
   const rows=users.map(u=>{
     const ini=(u.name||u.email||'?').split(' ').filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase();
     const miss=stPersonMissing(u);
@@ -2300,6 +2305,7 @@ function stPeopleHtml(opts){
     return `<tr class="st-person" data-st-panel="person:${PB_ATTR(u.id)}" data-st-hay="${esc(hay)}">
       <td><button type="button" class="st-person-open" data-st-panel="person:${PB_ATTR(u.id)}"><span class="st-person-av">${esc(ini)}</span><span class="st-person-id"><span class="st-person-name">${esc(u.name||u.email)}${u.id===me.id?` <span class="st-person-you">${i18t('set_you')}</span>`:''}</span>${u.name&&u.email?`<span class="st-person-mail">${esc(u.email)}</span>`:''}</span></button></td>
       <td><span class="reg-stg ins-pill"><i aria-hidden="true"></i>${esc(role)}</span></td>
+      ${bz?`<td class="st-bz-cell" data-st-bz="${PB_ATTR(u.id)}">${esc((stBzOf(u)||{}).name||'—')}</td>`:''}
       <td>${esc(acc.text)}</td>
       ${''/* HOW MUCH THEY MAY SIGN FOR, on the row: the fact an admin comes to
              this list to check. signCapText is the ONE reading; who approves
@@ -2320,8 +2326,9 @@ function stPeopleHtml(opts){
       <label class="ik-search">${ic('search')}<input type="search" id="st-people-q" placeholder="${esc(i18t('st_people_search'))}" aria-label="${esc(i18t('st_people_search'))}"></label>
       <button id="st-add-person" class="ui-btn ui-btn-primary" data-st-panel="person:new">${ic('plus')}${esc(i18t('st_add_person'))}</button>
     </div>
-    <table class="st-people-table"><colgroup><col><col style="width:12%"><col style="width:14%"><col style="width:15%"><col style="width:9%"><col style="width:21%"><col style="width:44px"></colgroup>
-      <thead><tr><th>${esc(i18t('dir_col_name'))}</th><th>${esc(i18t('dir_col_role'))}</th><th>${esc(i18t('st_col_streams'))}</th><th>${esc(i18t('st_col_cap'))}</th><th>${esc(i18t('st_sh_twostep'))}</th><th>${esc(i18t('st_col_setup'))}</th><th><span class="sr-only">${esc(i18t('reg_more_actions'))}</span></th></tr></thead>
+    <table class="st-people-table"><colgroup>${bz?'<col><col style="width:10%"><col style="width:11%"><col style="width:13%"><col style="width:14%"><col style="width:8%"><col style="width:19%"><col style="width:44px">'
+      :'<col><col style="width:12%"><col style="width:14%"><col style="width:15%"><col style="width:9%"><col style="width:21%"><col style="width:44px">'}</colgroup>
+      <thead><tr><th>${esc(i18t('dir_col_name'))}</th><th>${esc(i18t('dir_col_role'))}</th>${bz?`<th>${esc(i18t('bz_col_role'))}</th>`:''}<th>${esc(i18t('st_col_streams'))}</th><th>${esc(i18t('st_col_cap'))}</th><th>${esc(i18t('st_sh_twostep'))}</th><th>${esc(i18t('st_col_setup'))}</th><th><span class="sr-only">${esc(i18t('reg_more_actions'))}</span></th></tr></thead>
       <tbody class="st-people">${rows}</tbody></table>
   </section>`;
 }
@@ -2441,7 +2448,8 @@ function stReviewSectionHtml(u, isNew){
   if(typeof reviewChecked!=='function') return '';
   if(u.role==='viewer') return '';
   const on=(typeof reviewGateCfg==='function')?reviewGateCfg().on:false;
-  const checked=isNew ? ((typeof reviewGateCfg==='function')?reviewGateCfg().newChecked:true) : reviewChecked(u);
+  const checked=(u._bz&&u.reviewChecked!==undefined)?!!u.reviewChecked
+    : isNew ? ((typeof reviewGateCfg==='function')?reviewGateCfg().newChecked:true) : reviewChecked(u);
   const cand=((typeof getUsers==='function'?getUsers():[])||[])
     .filter(x=>x&&x.id!==u.id&&x.role!=='viewer');
   return `<section class="st-sec">
@@ -2604,16 +2612,311 @@ function stOverseerPatch(target, read){
    mustChangePassword on the server, an explicit folder answer whose first
    option carries no value, Viewer by default, POST /api/users. There is no
    invite-token flow in this product and this drawer does not invent one. */
+/* ============================================================
+   BUSINESS ROLES (owner picked "A role at the top of the drawer — the SAP
+   way", 17 Oct 2026; piece 6 of the sensitive contracts and governance plan)
+   ============================================================
+   A role is a NAME FOR RIGHTS HATI ALREADY HAS (Editor or Viewer, sees values,
+   a signing limit, the streams, checked before sending, new paper, re-file,
+   hold). The person's drawer opens with it: choosing a role fills the drawer's
+   own controls, the drawer says what the role brings and lists this person's
+   extras on top, and the drawer's Save writes every right through the routes
+   it always used — the server checks the right, never the role's name. The
+   roles are kept on Company › People › Roles; a change there says who it
+   reaches before it saves, then moves only the rights a holder had FROM the
+   role (an extra stays an extra). Admins hold every right by rank and no role.
+   On the server only. */
+const BZ_ALL=['sys','values','cap','streams','checked','paper','refile','hold'];
+const stBzKeysFor=sys=>sys==='legal'?BZ_ALL:['sys','values','streams'];
+const stBzOn=()=>stApiOnly()&&stIsAdmin();
+const stBzBook=()=>{ const b=state.bizRoles; return (b&&Array.isArray(b.roles))?{ roles:b.roles, of:b.of||{} }:{ roles:[], of:{} }; };
+const stBzRole=id=>stBzBook().roles.find(r=>r.id===String(id||''))||null;
+const stBzOf=u=>u?stBzRole(stBzBook().of[String(u.id)]):null;
+const stBzHolders=id=>stUsers().filter(u=>u.role!=='admin'&&stBzBook().of[String(u.id)]===String(id));
+/* a person's rights as the record holds them, in a role's shape */
+function stBzRightsOf(u){
+  const cap=(typeof signCapOf==='function')?signCapOf(u):{ answered:false, limit:null };
+  const fa=(((state.settings||{}).folderAccess)||{})[u.id];
+  return { sys:u.role==='legal'?'legal':'viewer', values:!!stValuesOn(u), cap:cap.answered?(cap.limit==null?'none':Number(cap.limit)):null,
+    streams:Array.isArray(fa)&&fa.length?[...fa].map(String).sort():'all', checked:!!((typeof reviewChecked==='function')&&reviewChecked(u)),
+    paper:!!stNewPaperOn(u), refile:!!stReFileOn(u), hold:!!stHoldOn(u) };
+}
+const stBzSame=(k,a,b)=>k==='streams'?JSON.stringify(a)===JSON.stringify(b):a===b;
+/* more than the role gives (an extra) or less (held back) */
+function stBzMore(k,mine,role){
+  if(k==='sys') return mine==='legal';
+  if(k==='streams') return mine==='all'||(role!=='all'&&mine.length>role.length);
+  if(k==='cap') return mine==='none'||(role!=='none'&&role!=null&&mine!=null&&Number(mine)>Number(role));
+  return mine===true;
+}
+const stBzStreamName=id=>(window.FOLDERS&&FOLDERS[id]&&FOLDERS[id].name)||id;
+const stBzMoney=v=>(typeof fmtMoneyShortIn==='function')?fmtMoneyShortIn(Number(v),(typeof jxCurrency==='function')?jxCurrency():undefined):String(v);
+function stBzFact(k,v){
+  switch(k){
+    case 'sys': return i18t(v==='legal'?'bz_f_editor':'bz_f_viewer');
+    case 'values': return i18t(v?'bz_f_values':'bz_f_novalues');
+    case 'cap': return v==null?i18t('bz_f_cap_unset'):v==='none'?i18t('bz_f_cap_none'):i18t('bz_f_cap',{v:stBzMoney(v)});
+    case 'streams': return v==='all'?i18t('bz_f_streams_all'):i18t('bz_f_streams',{list:v.map(stBzStreamName).join(' · ')});
+    case 'checked': return i18t(v?'bz_f_checked':'bz_f_unchecked');
+    case 'paper': return i18t(v?'bz_f_paper':'bz_f_nopaper');
+    case 'refile': return i18t(v?'bz_f_refile':'bz_f_norefile');
+    case 'hold': return i18t(v?'bz_f_hold':'bz_f_nohold');
+  }
+  return '';
+}
+/* what a role brings, as a list: the four facts every role has, then the
+   grants it gives (a grant it does not give is not listed) */
+function stBzBrings(r){
+  return stBzKeysFor(r.sys).filter(k=>!['checked','paper','refile','hold'].includes(k)||r[k]===true).map(k=>stBzFact(k,r[k]));
+}
+const stBzSummary=r=>stBzBrings(r).join(' · ');
+
+/* ---- THE PERSON'S DRAWER: THE ROLE AT THE TOP ---- */
+let _stBzDraft=null;
+/* the person as the drawer should draw them once a role is chosen: the role's
+   rights in place of theirs, what was typed kept; the record is untouched
+   until Save */
+function stBzDressed(u,d){
+  const x={ ...u, _bz:true };
+  ['name','title','email'].forEach(k=>{ if(d[k]!==undefined) x[k]=d[k]; });
+  const r=d.rights; if(!r||u.role==='admin') return x;
+  x.role=r.sys; x.canViewValues=r.values;
+  if(r.sys==='legal'){ x.signCap=r.cap; x.reviewChecked=r.checked; x.newPaper=r.paper; x.reFile=r.refile; x.holdContracts=r.hold; }
+  x._streams=r.streams;
+  return x;
+}
+function stBzSectionHtml(u,isNew){
+  if(!stBzOn()) return '';
+  const book=stBzBook();
+  const h=`<h3 class="st-sec-h">${esc(i18t('bz_h'))}</h3>`;
+  const door=`<button type="button" class="st-ps-link" data-st-page="roles">${esc(i18t('bz_go_roles'))} ›</button>`;
+  if(!isNew&&u.role==='admin') return `<section class="st-sec st-bz">${h}<p class="st-note">${esc(i18t('bz_admin'))}</p></section>`;
+  if(!book.roles.length) return `<section class="st-sec st-bz">${h}<p class="st-note">${esc(i18t('bz_none_yet'))} ${door}</p></section>`;
+  const cur=(u._bzRole!==undefined)?u._bzRole:(isNew?'':(book.of[String(u.id)]||''));
+  const r=stBzRole(cur);
+  return `<section class="st-sec st-bz">${h}
+    <select id="tm-bz" style="${window.RV_FLD||ST_INPUT}" aria-label="${esc(i18t('bz_h'))}">
+      <option value=""${cur?'':' selected'}>${esc(i18t('bz_none'))}</option>
+      ${book.roles.map(x=>`<option value="${PB_ATTR(x.id)}"${x.id===cur?' selected':''}>${esc(x.name)}</option>`).join('')}
+    </select>
+    <span class="st-note st-bz-where">${esc(i18t('bz_where'))} ${door}</span>
+    ${r?`<p class="st-ps-l">${esc(i18t('bz_brings',{role:r.name}))}</p><ul class="st-bz-brings">${stBzBrings(r).map(f=>`<li>${esc(f)}</li>`).join('')}</ul>`:''}
+    <div id="tm-bz-extras" class="st-bz-extras"></div>
+  </section>`;
+}
+/* the rights the drawer's controls hold right now, in a role's shape */
+function stBzDrawerRights(u){
+  const was=stBzRightsOf(u);
+  const box=id=>document.getElementById(id);
+  const sysV=(box('tm-role')||{}).value;
+  const out={ ...was, sys:sysV==='legal'?'legal':sysV==='viewer'?'viewer':was.sys };
+  if(box('tm-values')) out.values=!!box('tm-values').checked;
+  if(box('tm-paper')) out.paper=!!box('tm-paper').checked;
+  if(box('tm-refile')) out.refile=!!box('tm-refile').checked;
+  if(box('tm-hold')) out.hold=!!box('tm-hold').checked;
+  if(box('tm-rv-checked')) out.checked=!!box('tm-rv-checked').checked;
+  const cap=(typeof stSigningRead==='function')?stSigningRead():undefined;
+  if(cap!==undefined&&!(typeof cap==='number'&&Number.isNaN(cap))) out.cap=cap;
+  const acc=box('tm-access');
+  if(acc&&!acc.disabled&&acc.value){
+    out.streams=acc.value==='*'?'all':[...document.querySelectorAll('[data-tm-folder]')].filter(c=>c.checked).map(c=>c.getAttribute('data-tm-folder')).sort();
+    if(Array.isArray(out.streams)&&!out.streams.length) out.streams='all';
+  }
+  return out;
+}
+/* the extras, live: every right the drawer holds that the role does not bring
+   (or brings and this person is held back from) */
+function stBzExtrasPaint(u){
+  const host=document.getElementById('tm-bz-extras'); if(!host) return;
+  const sel=document.getElementById('tm-bz'), r=sel?stBzRole(sel.value):null;
+  if(!r){ host.innerHTML=''; return; }
+  const mine=stBzDrawerRights(u), first=String(u.name||u.email||'').split(' ')[0]||i18t('sc_this_person');
+  const keys=stBzKeysFor(mine.sys==='legal'||r.sys==='legal'?'legal':'viewer');
+  const diff=keys.filter(k=>!stBzSame(k,mine[k],r[k]));
+  host.innerHTML=diff.length
+    ? `<p class="st-ps-l">${esc(i18t('bz_extras',{who:first,role:r.name}))}</p><ul class="st-bz-list">${diff.map(k=>{
+        const more=stBzMore(k,mine[k],r[k]);
+        return `<li data-bz-extra="${k}"><span>${esc(stBzFact(k,mine[k]))}</span><span class="st-bz-tag${more?' is-more':''}">${esc(more?i18t('bz_extra'):i18t('bz_less',{role:r.name}))}</span></li>`; }).join('')}</ul>`
+    : `<p class="st-note">${esc(i18t('bz_exact',{who:first,role:r.name}))}</p>`;
+}
+function stBzWire(u,isNew){
+  const sel=document.getElementById('tm-bz'); if(!sel) return;
+  const paint=()=>stBzExtrasPaint(u);
+  sel.addEventListener('change',()=>{
+    const r=stBzRole(sel.value);
+    const typed=k=>{ const el=document.getElementById(k); return el?el.value:undefined; };
+    if(!r){ paint(); return; }
+    /* a role chosen: the drawer is drawn again on the role's rights */
+    _stBzDraft={ id:isNew?'new':u.id, roleId:r.id, rights:{ ...r },
+      name:typed('tm-name'), title:typed('tm-title'), email:typed('tm-email'), pass:typed('tm-pass') };
+    settingsPersonDrawer(isNew?'new':u.id);
+  });
+  document.querySelectorAll('#st-dbody input, #st-dbody select').forEach(el=>{ if(el!==sel){ el.addEventListener('change',paint); el.addEventListener('input',paint); } });
+  paint();
+}
+/* the role's name on the person, after the rights were saved */
+async function stBzSaveHolder(uid){
+  const sel=document.getElementById('tm-bz'); if(!sel||!uid||!stBzOn()) return true;
+  const want=sel.value||'', was=stBzBook().of[String(uid)]||'';
+  if(want===was) return true;
+  try{ state.bizRoles=await api('business-roles/holder','PUT',{ userId:uid, roleId:want||null }); return true; }
+  catch(e){ stDrawerRefuse(e.message); return false; }
+}
+/* the grants a new person's form has no box for, from the role chosen */
+function stBzNewGrants(){
+  const sel=document.getElementById('tm-bz'), r=sel?stBzRole(sel.value):null;
+  if(!r) return {};
+  return r.sys==='legal' ? { canViewValues:r.values, newPaper:r.paper, reFile:r.refile, holdContracts:r.hold } : { canViewValues:r.values };
+}
+
+/* ---- COMPANY › PEOPLE › ROLES ---- */
+function stRolesPageHtml(){
+  const book=stBzBook(), ic=n=>(typeof icon==='function')?icon(n,'w-3.5 h-3.5'):'';
+  const rows=book.roles.map(r=>{ const n=stBzHolders(r.id).length;
+    return `<tr class="st-person" data-st-panel="role:${PB_ATTR(r.id)}">
+      <td><button type="button" class="st-person-open" data-st-panel="role:${PB_ATTR(r.id)}"><span class="st-person-id"><span class="st-person-name">${esc(r.name)}</span></span></button></td>
+      <td class="st-bz-sum">${esc(stBzSummary(r))}</td>
+      <td class="st-bz-n">${esc(i18tn('bz_people',n,{n}))}</td>
+      <td class="st-person-go" aria-hidden="true">${ic('chevR')}</td></tr>`; }).join('');
+  return `<div class="st-pg" data-st-pg="roles">
+    ${stPageHeadHtml(i18t('st_pg_roles'), i18t('bz_page_sub'), `<button type="button" class="ui-btn ui-btn-primary" data-st-panel="role:new">${ic('plus')} ${esc(i18t('bz_new'))}</button>`)}
+    <section class="st-people-card">${book.roles.length
+      ? `<table class="st-people-table st-bz-table"><colgroup><col style="width:22%"><col><col style="width:14%"><col style="width:44px"></colgroup>
+          <thead><tr><th>${esc(i18t('bz_col_role'))}</th><th>${esc(i18t('bz_col_brings'))}</th><th>${esc(i18t('bz_col_people'))}</th><th></th></tr></thead>
+          <tbody class="st-people">${rows}</tbody></table>`
+      : `<p class="st-note st-bz-empty">${esc(i18t('bz_page_empty'))}</p>`}</section>
+    <p class="st-note st-pg-foot">${esc(i18t('bz_page_foot'))}</p>
+  </div>`;
+}
+const BZ_BLANK={ id:'', name:'', sys:'legal', values:true, cap:null, streams:'all', checked:false, paper:false, refile:false, hold:false };
+function stBzRoleDrawer(id){
+  const isNew=id==='new';
+  const r=isNew?{ ...BZ_BLANK }:stBzRole(id); if(!r) return null;
+  const tick=(k,label,sub)=>`<label class="st-toggle st-bz-tick" data-bz-edit="${k!=='values'?'1':'0'}"><input type="checkbox" id="bz-${k}"${r[k]?' checked':''}/>
+    <span><span class="st-role-name">${esc(label)}</span>${sub?`<span class="st-note">${esc(sub)}</span>`:''}</span></label>`;
+  const radio=(k,label,sub)=>`<label class="st-ps-radio${r.sys===k?' is-on':''}"><input type="radio" name="bz-sys" value="${k}"${r.sys===k?' checked':''}/>
+    <span><span class="st-role-name">${esc(label)}</span><span class="st-note">${esc(sub)}</span></span></label>`;
+  const folders=Object.values(window.FOLDERS||{}).filter(f=>!(typeof streamIsPrivate==='function'&&streamIsPrivate(f.id)));
+  const set=new Set(Array.isArray(r.streams)?r.streams:[]);
+  const body=`<label class="st-tr-f"><span class="st-ps-l">${esc(i18t('bz_f_name'))}</span><input id="bz-name" type="text" value="${PB_ATTR(r.name)}" maxlength="60" style="${window.RV_FLD||ST_INPUT}" placeholder="${esc(i18t('bz_name_ph'))}"/></label>
+    <p class="st-ps-l">${esc(i18t('bz_f_may'))}</p>
+    ${radio('viewer',i18t('set_role_viewer'),i18t('st_role_viewer_desc'))}${radio('legal',i18t('set_role_legal'),i18t('st_role_legal_desc'))}
+    ${tick('values',i18t('bz_f_values'),i18t('st_values_note'))}
+    <div class="st-bz-edits">
+      ${tick('checked',i18t('bz_f_checked'),'')}${tick('paper',i18t('bz_f_paper'),'')}${tick('refile',i18t('bz_f_refile'),'')}${tick('hold',i18t('bz_f_hold'),'')}
+      <p class="st-ps-l">${esc(i18t('sc_section'))}</p>
+      <label class="st-toggle"><input id="bz-cap-none" type="checkbox"${r.cap==='none'?' checked':''}/><span><span class="st-role-name">${esc(i18t('sc_no_limit'))}</span></span></label>
+      <input id="bz-cap" type="number" min="0" step="1000" value="${r.cap!=null&&r.cap!=='none'?String(r.cap):''}" style="${window.RV_FLD||ST_INPUT}" aria-label="${esc(i18t('sc_section'))}"${r.cap==='none'?' disabled':''}/>
+    </div>
+    <p class="st-ps-l">${esc(i18t('st_sec_folders'))}</p>
+    <select id="bz-streams" style="${window.RV_FLD||ST_INPUT}"><option value="*"${r.streams==='all'?' selected':''}>${esc(i18t('st_folders_all'))}</option><option value="pick"${r.streams==='all'?'':' selected'}>${esc(i18t('st_folders_pick'))}</option></select>
+    <div id="bz-stream-list" class="st-bz-streams" style="display:${r.streams==='all'?'none':'grid'}">${folders.map(f=>`<label><input type="checkbox" data-bz-stream="${PB_ATTR(f.id)}"${set.has(f.id)?' checked':''}/> <span>${esc(f.name)}</span></label>`).join('')}</div>
+    <div id="bz-who" class="st-bz-who"></div>
+    ${isNew?'':`<div class="st-danger"><button type="button" id="bz-delete" style="${ST_BTN_DANGER}">${esc(i18t('bz_delete'))}</button></div>`}`;
+  return { title:isNew?i18t('bz_new'):r.name, sub:i18t('bz_drawer_sub'), foot:'save', body,
+    wire(){ stBzRoleWire(isNew?null:r); }, save:()=>stBzRoleSave(isNew?null:r) };
+}
+/* the role as the drawer's controls hold it now */
+function stBzRoleRead(was){
+  const box=id=>document.getElementById(id);
+  const sys=((document.querySelector('input[name="bz-sys"]:checked')||{}).value)==='viewer'?'viewer':'legal';
+  const capNone=box('bz-cap-none')&&box('bz-cap-none').checked, capRaw=String((box('bz-cap')||{}).value||'').trim();
+  const pick=(box('bz-streams')||{}).value==='pick';
+  const streams=pick?[...document.querySelectorAll('[data-bz-stream]')].filter(c=>c.checked).map(c=>c.getAttribute('data-bz-stream')).sort():'all';
+  return { id:(was&&was.id)||'', name:String((box('bz-name')||{}).value||'').trim(), sys, values:!!(box('bz-values')&&box('bz-values').checked),
+    cap:sys==='viewer'?null:capNone?'none':capRaw===''?null:Number(capRaw), streams:Array.isArray(streams)&&!streams.length?'all':streams,
+    checked:sys==='legal'&&!!(box('bz-checked')&&box('bz-checked').checked), paper:sys==='legal'&&!!(box('bz-paper')&&box('bz-paper').checked),
+    refile:sys==='legal'&&!!(box('bz-refile')&&box('bz-refile').checked), hold:sys==='legal'&&!!(box('bz-hold')&&box('bz-hold').checked) };
+}
+/* WHO A CHANGE REACHES, said before Save: each holder, and the rights of
+   theirs that would move (only the ones they hold FROM the role) */
+function stBzMoves(was,now,u){
+  const mine=stBzRightsOf(u);
+  return stBzKeysFor(now.sys).filter(k=>stBzSame(k,mine[k],(was||{})[k])&&!stBzSame(k,(was||{})[k],now[k]));
+}
+function stBzWhoPaint(was){
+  const host=document.getElementById('bz-who'); if(!host) return;
+  if(!was){ host.innerHTML=`<p class="st-note">${esc(i18t('bz_who_new'))}</p>`; return; }
+  const now=stBzRoleRead(was), hs=stBzHolders(was.id);
+  if(!hs.length){ host.innerHTML=`<p class="st-ps-l">${esc(i18t('bz_who_h'))}</p><p class="st-note">${esc(i18t('bz_who_none'))}</p>`; return; }
+  const rows=hs.map(u=>{ const m=stBzMoves(was,now,u);
+    return `<li data-bz-holder="${PB_ATTR(u.id)}"><span class="st-ps-who">${esc(stNameOf(u))}</span><span class="st-note">${esc(m.length?i18tn('bz_who_moves',m.length,{n:m.length}):i18t('bz_who_same'))}</span></li>`; }).join('');
+  const reach=hs.filter(u=>stBzMoves(was,now,u).length).length;
+  host.innerHTML=`<p class="st-ps-l">${esc(i18t('bz_who_h'))} <span class="st-ps-q">${esc(i18tn('bz_people',hs.length,{n:hs.length}))}</span></p>
+    <ul class="st-bz-list">${rows}</ul>
+    <p class="st-note${reach?' st-amber':''}" id="bz-who-says">${esc(reach?i18tn('bz_who_reach',reach,{n:reach}):i18t('bz_who_nochange'))}</p>`;
+}
+function stBzRoleWire(was){
+  const sync=()=>{
+    const sys=((document.querySelector('input[name="bz-sys"]:checked')||{}).value);
+    document.querySelectorAll('input[name="bz-sys"]').forEach(x=>x.closest('.st-ps-radio')?.classList.toggle('is-on',x.checked));
+    const edits=document.querySelector('.st-bz-edits'); if(edits) edits.hidden=sys==='viewer';
+    const none=document.getElementById('bz-cap-none'), cap=document.getElementById('bz-cap'); if(none&&cap) cap.disabled=none.checked;
+    const list=document.getElementById('bz-stream-list'); if(list) list.style.display=(document.getElementById('bz-streams')||{}).value==='pick'?'grid':'none';
+    stBzWhoPaint(was);
+  };
+  document.querySelectorAll('#st-dbody input, #st-dbody select').forEach(el=>{ el.addEventListener('change',sync); el.addEventListener('input',sync); });
+  document.getElementById('bz-delete')?.addEventListener('click',()=>stBzRoleDelete(was));
+  sync();
+}
+async function stBzPut(roles){ state.bizRoles=await api('business-roles','PUT',{ roles }); }
+async function stBzRoleSave(was){
+  stDrawerClearRefusal();
+  const now=stBzRoleRead(was);
+  if(!now.name){ stDrawerRefuse(i18t('bz_name_needed')); return; }
+  if(now.cap!=null&&now.cap!=='none'&&!(Number.isFinite(now.cap)&&now.cap>=0)){ stDrawerRefuse(i18t('sc_bad_number')); return; }
+  if(Array.isArray(now.streams)&&!now.streams.length){ stDrawerRefuse(i18t('set_pick_one_stream')); return; }
+  if(!now.id) now.id='bz'+Date.now().toString(36);
+  const book=stBzBook();
+  const roles=was?book.roles.map(r=>r.id===was.id?now:r):book.roles.concat([now]);
+  /* the moves are counted on the role as it stood, before anything is saved */
+  const plan=was?stBzHolders(was.id).map(u=>({ u, keys:stBzMoves(was,now,u) })).filter(p=>p.keys.length):[];
+  try{ await stBzPut(roles); }catch(e){ stDrawerRefuse(e.message); return; }
+  const failed=[];
+  for(const p of plan){
+    try{
+      if(p.keys.includes('sys')){ const r=await api('users/'+p.u.id,'PATCH',{ role:now.sys }); if(r&&r.user) Object.assign(p.u,r.user); else p.u.role=now.sys; }
+      const body={};
+      for(const k of p.keys){
+        if(k==='values') body.canViewValues=now.values;
+        else if(k==='cap') body.signCap=now.cap;
+        else if(k==='checked') body.reviewChecked=now.checked;
+        else if(k==='paper') body.newPaper=now.paper;
+        else if(k==='refile') body.reFile=now.refile;
+        else if(k==='hold') body.holdContracts=now.hold;
+      }
+      if(Object.keys(body).length){ const r=await api('users/'+p.u.id,'PATCH',body); if(r&&r.user) Object.assign(p.u,r.user); }
+      if(p.keys.includes('streams')) await settingsWriteFolderAccess(p.u.id, now.streams==='all'?null:now.streams);
+    }catch(e){ failed.push(stNameOf(p.u)+': '+e.message); }
+  }
+  if(failed.length){ stDrawerRefuse(i18t('bz_apply_failed',{list:failed.join(' · ')})); renderTeam(); return; }
+  toast(plan.length?i18tn('bz_saved_moved',plan.length,{role:now.name,n:plan.length}):i18t('bz_saved',{role:now.name}),'ok');
+  stDrawerClose(); renderTeam();
+}
+async function stBzRoleDelete(was){
+  if(!was) return;
+  const n=stBzHolders(was.id).length;
+  if(!await confirmDialog({ title:i18t('bz_delete_q',{role:was.name}), message:n?i18tn('bz_delete_msg',n,{n}):i18t('bz_delete_msg_none'),
+    confirmLabel:i18t('bz_delete'), danger:true })) return;
+  try{ await stBzPut(stBzBook().roles.filter(r=>r.id!==was.id)); }catch(e){ stDrawerRefuse(e.message); return; }
+  toast(i18t('bz_deleted',{role:was.name}),'ok');
+  stDrawerClose(); renderTeam();
+}
+
 function settingsPersonDrawer(idOrNew){
   const isNew = idOrNew==='new';
   const me=currentUser()||{};
-  const u = isNew ? { id:null, name:'', email:'', title:'', role:'viewer' }
+  let u = isNew ? { id:null, name:'', email:'', title:'', role:'viewer' }
                   : (getUsers()||[]).find(x=>x.id===idOrNew);
   if(!u) return;
+  /* A BUSINESS ROLE JUST CHOSEN (piece 6): the drawer drawn again on the
+     role's rights, what was typed kept; the record moves only on Save */
+  const bzDraft=(_stBzDraft&&_stBzDraft.id===(isNew?'new':u.id))?_stBzDraft:null; _stBzDraft=null;
+  if(bzDraft){ u=stBzDressed(u,bzDraft); u._bzRole=bzDraft.roleId; }
   _stOpen='person:'+(isNew?'new':u.id);
   const isMe = !isNew && u.id===me.id;
-  const acc = isNew ? null : stAccessOf(u);
-  const set = new Set(!isNew && !acc.all ? (((state.settings||{}).folderAccess)||{})[u.id] : []);
+  const acc = u._streams!==undefined ? { all:u._streams==='all' } : (isNew ? null : stAccessOf(u));
+  const set = new Set(u._streams!==undefined ? (Array.isArray(u._streams)?u._streams:[]) : (!isNew && !acc.all ? (((state.settings||{}).folderAccess)||{})[u.id] : []));
   const folders=Object.values(FOLDERS);
   /* A PRIVATE FOLDER IS NOT TICKED HERE (17 Oct 2026): who may open it is set
      on its own page, and this drawer says whether it names them (stPsPersonHtml) */
@@ -2635,6 +2938,7 @@ function settingsPersonDrawer(idOrNew){
       ${note?`<span class="st-note">${esc(note)}</span>`:''}</label>`;
   const body=`
     ${isNew?'':stPersonSumHtml(u)}
+    ${stBzSectionHtml(u,isNew)}
     ${sec(1,i18t('st_sec_who'),
       `<div class="st-row2">${fld('tm-name',i18t('st_f_name'),'','text',u.name)}${fld('tm-title',i18t('st_f_title'),'','text',u.title).replace('<input ','<input title="'+PB_ATTR(i18t('st_f_title_note'))+'" ')}</div>`
       +fld('tm-email',i18t('st_f_email'),'','email',u.email)
@@ -2735,10 +3039,10 @@ function settingsPersonDrawer(idOrNew){
       ? `<p class="st-note" id="tm-access-note">${esc(i18t(tickFolders.length<folders.length?'st_folders_all_locked_but':'st_folders_all_locked'))}</p>${stPsPersonHtml(u)}`
       : `<select id="tm-access" style="${window.RV_FLD||ST_INPUT}">
           ${isNew?`<option value="">${esc(i18t('set_choose_access'))}</option>`:''}
-          <option value="*"${(!isNew&&acc.all)?' selected':''}>${esc(i18t('st_folders_all'))}</option>
-          <option value="pick"${(!isNew&&!acc.all)?' selected':''}>${esc(i18t('st_folders_pick'))}</option>
+          <option value="*"${(acc&&acc.all)?' selected':''}>${esc(i18t('st_folders_all'))}</option>
+          <option value="pick"${(acc&&!acc.all)?' selected':''}>${esc(i18t('st_folders_pick'))}</option>
         </select>
-        <div id="tm-access-list" style="display:${(!isNew&&!acc.all)?'grid':'none'};grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin-top:var(--s-2)">
+        <div id="tm-access-list" style="display:${(acc&&!acc.all)?'grid':'none'};grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin-top:var(--s-2)">
           ${tickFolders.map(f=>`<label style="display:flex;align-items:center;gap:7px;padding:6px var(--s-2);border:1px solid var(--color-divider);border-radius:var(--radius);cursor:pointer;font-size:var(--t-meta)">
             <input type="checkbox" data-tm-folder="${PB_ATTR(f.id)}"${set.has(f.id)?' checked':''} style="width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
             <span style="width:8px;height:8px;border-radius:var(--radius);background:${f.color};flex:none"></span>
@@ -2792,6 +3096,8 @@ function settingsPersonDrawer(idOrNew){
       stSigningWire(u);
       stReviewWire(u);
       stOverseerWire(u);
+      stBzWire(u,isNew);
+      if(bzDraft&&bzDraft.pass){ const pw=document.getElementById('tm-pass'); if(pw) pw.value=bzDraft.pass; }
       document.getElementById('tm-remove')?.addEventListener('click',()=>settingsRemoveMember(u));
       /* W2-5a: the rescue. It COSTS this person their second step, so it asks
          first and says what it costs — they sign in on their password alone
@@ -2883,6 +3189,7 @@ async function settingsSavePerson(existing){
     if(rv&&rv.reviewChecked!==undefined) after.reviewChecked=rv.reviewChecked;
     if(rv&&rv.reviewerId!==undefined) after.reviewerId=rv.reviewerId;
     Object.assign(after, ovPatch.patch||{});
+    if(API_MODE()) Object.assign(after, stBzNewGrants());
     if(newId && signFolders!==undefined && typeof saveSignFolders==='function'){
       try{ await saveSignFolders(newId, signFolders); }catch(e){ toast(e.message,'err'); }
     }
@@ -2893,6 +3200,7 @@ async function settingsSavePerson(existing){
         catch(e){ toast(e.message,'err'); }
       } else if(u2){ Object.assign(u2,after); saveUsers(getUsers()); }
     }
+    if(newId) await stBzSaveHolder(newId);
     settingsMirrorDirectory(name,email,title);
     /* "SENT" MUST MEAN SENT (9 Oct 2026): this said "an invite email was
        queued" whatever the server did. It reads the server's mailReport now —
@@ -3011,6 +3319,7 @@ async function settingsSavePerson(existing){
     try{ await saveSignFolders(target.id, signFolders); }
     catch(e){ stDrawerRefuse(e.message); return; }
   }
+  if(!await stBzSaveHolder(target.id)) return;
   settingsMirrorDirectory(target.name,email||target.email,title);
   toast(i18t('st_person_saved',{who:target.name}),'ok');
   stDrawerClose(); renderTeam();
