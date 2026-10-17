@@ -240,6 +240,131 @@ function bsNegoSpan(c, M){
   const b = (!M.signed && b0 <= a) ? new Date(+a + _bsDD) : b0;
   return b > a ? { a, b, open: !M.signed } : null;
 }
+/* ---- PAY IS NOT DEAL VALUE (owner picked "Pay section — the SAP way",
+   17 Oct 2026) ----
+   An employment contract (fxIsPay, the record's own category) reads as a
+   job: its tiles say the role, the start, when probation ends and the notice
+   period, and its pay is a table of parts — base pay (the record's value,
+   where every gate already reads it) and whatever else c.pay holds
+   (allowances, a bonus), each with how often and from when. Nothing here
+   adds it to anything (fxCounted answers nothing for pay). */
+function bsIsPay(c){ return typeof fxIsPay === 'function' && !!fxIsPay(c); }
+function _bsAddMonths(d, n){
+  const y = d.getUTCFullYear(), m = d.getUTCMonth() + n, day = d.getUTCDate();
+  const last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(y, m, Math.min(day, last)));
+}
+/* a notice period as people say it: whole months where it is months (a month
+   is thirty days, metadata.js's own reading), else days */
+function bsNoticeWords(days){
+  const d = Number(days) || 0; if (!(d > 0)) return '';
+  return d % 30 === 0 ? bsTn('bs_k_term_m', d / 30, { n: d / 30 }) : bsTn('bs_k_term_d', d, { n: d });
+}
+function bsJobTiles(c, M, owed){
+  const meta = (c && c.metadata) || {};
+  const K = {};
+  const role = String(meta.jobTitle || '').trim();
+  K.role = role ? { n: role, sub: '', tip: role } : { n: '—', sub: bsT('bs_k_unknown') };
+  if (M && M.start) K.starts = { n: bsDay(M.start), sub: M.end ? bsT('bs_k_until', { d: bsDay(M.end) }) : bsT('bs_k_no_end') };
+  else K.starts = owed.has('effDate') ? { n: bsT('bs_k_owed'), sub: bsT('bs_k_owed_sub'), tone: 'warn' } : { n: '—', sub: bsT('bs_k_unknown') };
+  const pm = Number(meta.probationMonths) || 0;
+  const pmWords = pm > 0 ? bsTn('bs_k_term_m', pm, { n: pm }) : '';
+  K.probation = !(pm > 0) ? { n: '—', sub: bsT('bs_k_unknown') }
+    /* the last day of it: three months from 1 Oct end on 31 Dec */
+    : (M && M.start) ? { n: bsDay(new Date(+_bsAddMonths(M.start, pm) - _bsDD)), sub: pmWords }
+    : { n: '—', sub: bsT('bs_k_prob_nostart', { n: pmWords }) };
+  const nd = Number(meta.noticePeriodDays) || 0;
+  K.noticeLen = nd > 0 ? { n: bsNoticeWords(nd), sub: '' } : { n: '—', sub: bsT('bs_k_unknown') };
+  return K;
+}
+/* How often, in the reader's words; '' where it is not recorded */
+function bsPayEvery(k){ return (typeof PAY_EVERY !== 'undefined' && PAY_EVERY.includes(k)) ? bsT('pay_ev_' + k) : ''; }
+/* an amount in the contract's own currency, written out (the long print) */
+function bsPayMoney(c, n){
+  const cur = (typeof contractCurrency === 'function') ? contractCurrency(c) : '';
+  let s = String(n); try { s = Number(n).toLocaleString((typeof jxLocale === 'function') ? jxLocale() : undefined); } catch (_){ s = String(n); }
+  return `${cur} ${s}`.trim();
+}
+/* THE BASE PAY IN ONE LINE — "KES 420,000 · Monthly" — the reading the
+   Overview's Pay cell and the phone borrow; '' where none is recorded */
+function payBaseLine(c, base){
+  if (!bsIsPay(c) || typeof payPartsOf !== 'function') return '';
+  const b = (payPartsOf(c, base) || []).find(r => r.kind === 'base');
+  if (!b || !(b.amount > 0)) return '';
+  return [bsPayMoney(c, b.amount), bsPayEvery(b.every)].filter(Boolean).join(' · ');
+}
+/* who may change pay, and why not: a person who may edit and see money, on a
+   contract nobody has signed yet (a pay rise after signing is an amendment) */
+function bsPayLock(c){
+  const signed = (typeof negoExecuted === 'function' && negoExecuted(c)) || c.status === 'Signed'
+    || (typeof negoAnySignature === 'function' && negoAnySignature(c));
+  return signed ? bsT('bs_pay_locked') : '';
+}
+function bsPayMay(c){ return bsMoneyOk() && (typeof canEdit !== 'function' || !!canEdit()) && !bsPayLock(c); }
+/* THE ONE WRITER OF PAY. The base amount is the record's value; how often
+   and from when, and every other part, are c.pay (payClean's shape, the
+   shape the server keeps). Refuses, with the way forward, a base that is not
+   a number and a part with an amount but no name. Writes nothing when
+   nothing moved; the trail line names no figure. */
+function payAmountRead(s){
+  const t = String(s == null ? '' : s).trim();
+  if (!t) return { empty: true };
+  const n = t.replace(/[\s,  ]/g, '');
+  return /^\d+(?:\.\d+)?$/.test(n) ? { n: Number(n) } : { words: t.slice(0, 60) };
+}
+function paySet(c, rows){
+  if (!c || !Array.isArray(rows)) return { changed: false };
+  if (!bsPayMay(c)) return { err: bsPayLock(c) || bsT('bs_pay_no_right') };
+  const base = rows.find(r => r && r.kind === 'base') || {};
+  const ba = payAmountRead(base.amount);
+  if (ba.words) return { err: bsT('bs_pay_base_num') };
+  const parts = [];
+  for (const r of rows.filter(x => x && x.kind === 'part')){
+    const label = String(r.label || '').trim(), am = payAmountRead(r.amount);
+    if (!label && am.empty && !r.from) continue;            // a blank row added and left: nothing to keep
+    if (!label) return { err: bsT('bs_pay_part_name') };
+    parts.push({ id: r.id, label, every: r.every || '', amount: am.n != null ? am.n : null, words: am.words || '', from: r.from || '' });
+  }
+  if (parts.length > PAY_PARTS_MAX) return { err: bsT('bs_pay_cap', { n: PAY_PARTS_MAX }) };
+  const pay = payClean({ every: base.every || '', from: base.from || '', parts });
+  const v = ba.n != null && ba.n > 0 ? ba.n : 0;
+  const was = JSON.stringify([Number(c.value) || 0, payClean(c.pay)]);
+  if (was === JSON.stringify([v, pay])) return { changed: false };
+  c.value = v;
+  if (v > 0 && c.valueType === 'none') c.valueType = 'estimated';
+  if (pay) c.pay = pay; else delete c.pay;
+  if (typeof todayStr === 'function') c.lastAction = todayStr();
+  if (typeof logAudit === 'function') logAudit(c, 'Edited', `Updated the pay (${parts.length + (v > 0 ? 1 : 0)} part${parts.length + (v > 0 ? 1 : 0) === 1 ? '' : 's'})`);
+  if (typeof persist === 'function') persist(c);
+  return { changed: true };
+}
+/* THE EDIT IN HAND — one at a time, this sitting only; a draft of rows */
+let _bsPay = null;
+function bsPayDraft(c){
+  const rows = (typeof payPartsOf === 'function' ? payPartsOf(c) : []).map(r => ({ kind: r.kind, id: r.id, label: r.label || '', every: r.every || '',
+    amount: r.amount != null ? String(r.amount) : (r.words || ''), from: r.from || '' }));
+  if (!rows.some(r => r.kind === 'base')) rows.unshift({ kind: 'base', id: 'base', label: '', every: '', amount: '', from: '' });
+  return { id: String(c.id), rows, n: rows.length };
+}
+/* THE ONE DOOR ONTO PAY: the contract's panel on Home, its editor open (the
+   Overview's Pay cell and the strip's own button both come here) */
+function payEditOpen(id){
+  const c = bsContract(id); if (!c || !bsPayMay(c)) return false;
+  _bsPay = bsPayDraft(c);
+  const st = bsStrip(id);
+  if (st && st.page === 'ov' && document.querySelector(`#hb-board [data-bs-host="pay"][data-bs-cid="${(typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(String(id)) : id}"]`)){ bsPayPaint(id, true); bsPayFocus(id); return true; }
+  if (!hbStripBring(id, 'ov')){ _bsPay = null; return false; }
+  bsPayPaint(id, true); bsPayFocus(id);
+  return true;
+}
+function bsPayFocus(id){
+  const host = bsPayHost(id); if (!host) return;
+  const f = host.querySelector('[data-bs-pay-f="amount"]');
+  if (f && typeof fieldFocus === 'function') fieldFocus(f, { preventScroll: true });
+}
+function bsPayHost(id){ return document.querySelector(`#hb-board [data-bs-host="pay"][data-bs-cid="${(typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(String(id)) : id}"]`); }
+function bsPayPaint(id, force){ const host = bsPayHost(id), c = bsContract(id); if (host && c) bsPaintPay(host, c, force); }
+
 /* THE ONE READING THE STRIP DRAWS — plain data, no markup */
 function bsLifeData(c){
   let M = null; try { M = (typeof ov2Model === 'function') ? ov2Model(c) : null; } catch (_){ M = null; }
@@ -309,7 +434,12 @@ function bsLifeData(c){
   let det = null; try { det = (typeof detailsOf === 'function') ? detailsOf(c) : null; } catch (_){ det = null; }
   const tri = (typeof triageOf === 'function') ? triageOf(c) : null;
   const brief = c._brief || null;
-  return { c, M, K, life, O, cells, signers, signedBy, risks, riskN, dev, det, tri, brief, owed,
+  /* PAY, NOT VALUE (owner picked "Pay section — the SAP way", 17 Oct 2026):
+     an employment contract's tiles carry the facts of a job, and its pay is
+     a section of its own under them (bsPayHtml), never the Value tile */
+  const pay = bsIsPay(c);
+  if (pay) Object.assign(K, bsJobTiles(c, M, owed));
+  return { c, M, K, life, O, cells, signers, signedBy, risks, riskN, dev, det, tri, brief, owed, pay, ev,
     loading: !!(c._light && !c._loaded && !_bsDone.has(String(c.id)) && typeof API_MODE === 'function' && API_MODE()) };
 }
 
@@ -393,7 +523,11 @@ function bsFamHtml(c){
    obligations, what Jambo read, and the foot ---- */
 function bsLifeHtml(c, st){
   const D = bsLifeData(c);
-  return `${bsIdKpiHtml(D)}${bsLifeSecHtml(D)}${bsTermsObsHtml(D)}${bsJamboHtml(D)}${bsFootHtml(D, st)}`;
+  /* an employment contract's pay sits where a deal's life line does (the
+     drawing the owner picked); its own painter fills it (bsPaintPay) so a
+     repaint never takes a box from under the reader's hands */
+  const mid = D.pay ? `<div class="bs-sec bs-pay" data-hb-own data-bs-host="pay" data-bs-cid="${bsE(c.id)}"></div>` : bsLifeSecHtml(D);
+  return `${bsIdKpiHtml(D)}${mid}${bsTermsObsHtml(D)}${bsJamboHtml(D)}${bsFootHtml(D, st)}`;
 }
 function bsIdKpiHtml(D){
   const c = D.c, bits = [];
@@ -409,9 +543,11 @@ function bsIdKpiHtml(D){
   const up = (typeof isUpload === 'function') ? isUpload(c) : c.source === 'upload';
   if (made) bits.push(bsE(bsT(up ? 'bs_id_uploaded' : 'bs_id_created', { d: bsDay(String(made).slice(0, 10)) })));
   const fig = (k, label) => { const x = D.K[k];
-    return `<div class="bs-kpi${x.tone ? ' is-' + x.tone : ''}" data-bs-kpi="${k}"><small>${bsE(bsT(label))}</small><b>${bsE(x.n)}</b><span title="${bsE(x.tip || x.sub || '')}">${bsE(x.sub || '')}</span></div>`; };
+    return `<div class="bs-kpi${x.tone ? ' is-' + x.tone : ''}" data-bs-kpi="${k}"><small>${bsE(bsT(label))}</small><b${k === 'role' ? ` title="${bsE(x.n)}"` : ''}>${bsE(x.n)}</b><span title="${bsE(x.tip || x.sub || '')}">${bsE(x.sub || '')}</span></div>`; };
   return `<div class="bs-sec"><p class="bs-idline">${bits.join(' · ')}</p>
-    <div class="bs-kpis">${fig('value', 'bs_k_value')}${fig('term', 'bs_k_term')}${fig('next', 'bs_k_next')}${fig('notice', 'bs_k_notice')}${fig('move', 'bs_k_move')}</div></div>`;
+    <div class="bs-kpis">${D.pay
+      ? `${fig('role', 'bs_k_role')}${fig('starts', 'bs_k_starts')}${fig('probation', 'bs_k_probation')}${fig('noticeLen', 'bs_k_notice_len')}`
+      : `${fig('value', 'bs_k_value')}${fig('term', 'bs_k_term')}${fig('next', 'bs_k_next')}${fig('notice', 'bs_k_notice')}`}${fig('move', 'bs_k_move')}</div></div>`;
 }
 function bsLifeSecHtml(D){
   const L = D.life;
@@ -606,6 +742,7 @@ function bsPaintHosts(){
       if (k === 'where') bsPaintWhere(host, c);
       else if (k === 'hist') bsPaintHist(host, c);
       else if (k === 'details') bsPaintDetails(host, c);
+      else if (k === 'pay') bsPaintPay(host, c);
     } catch (e){ try { console.error('[hati] the strip\'s ' + k + ' did not paint', e); } catch (_){} }
   });
   bsFitWatch();
@@ -647,6 +784,96 @@ function bsPaintDetails(host, c){
   host._bsSig = sig;
   ovSheetPaint(c, host);
 }
+/* ---- THE PAY SECTION: a table at rest, the same table as boxes in Edit ----
+   Drawn again when what it shows moved, never while the reader is typing in
+   one of its boxes (the Details host's rule); a press of its own (add a part,
+   take one away, save, cancel) paints it at once. */
+function bsPaySig(c, ed){
+  try { return JSON.stringify([String(c.id), c.value, c.pay || null, (c.metadata || {}).category, c.status, c.valueType,
+    bsMoneyOk(), (typeof canEdit !== 'function') || !!canEdit(), bsPayLock(c), ed ? ed.rows : null, (typeof langId === 'function') ? langId() : '']); }
+  catch (_){ return String(Math.random()); }
+}
+function bsPaintPay(host, c, force){
+  const ed = (_bsPay && _bsPay.id === String(c.id)) ? _bsPay : null;
+  const a = document.activeElement;
+  if (!force && host.firstChild && a && host.contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return;
+  const sig = bsPaySig(c, ed);
+  if (!force && host._bsSig === sig && host.firstChild) return;
+  host._bsSig = sig;
+  host.innerHTML = bsPayHtml(c, ed);
+  if (ed && typeof popupControlsDress === 'function') try { popupControlsDress(host); } catch (_){}
+}
+function bsPayHtml(c, ed){
+  const id = bsE(c.id);
+  const head = right => `<div class="bs-sec-h"><h5>${bsE(bsT('bs_pay'))}</h5><span class="bs-note">${bsE(bsT('bs_pay_note'))}</span><span class="hb-grow"></span>${right}</div>`;
+  if (!bsMoneyOk()) return head('') + `<p class="bs-pay-say">${bsE(bsT('bs_pay_hidden'))}</p>`;
+  if (ed && bsPayMay(c)) return head('') + bsPayEdHtml(c, ed);
+  const lock = bsPayLock(c);
+  const may = (typeof canEdit !== 'function') || !!canEdit();
+  /* a signed contract says why it does not open, where the button would be */
+  const right = !may ? '' : lock ? `<span class="bs-note">${bsE(lock)}</span>`
+    : `<button type="button" class="hb-link" data-bs-pay-edit="${id}">${bsE(bsT('bs_pay_edit'))}</button>`;
+  /* the base as amended, where a signed amendment set it (the Value tile's own reading) */
+  let ev = { v: Number(c.value) || 0, from: null };
+  try { if (typeof effectiveTerm === 'function'){ const e = effectiveTerm(c, 'value'); if (e && e.from && Number(e.v) > 0) ev = { v: Number(e.v), from: e.from }; } } catch (_){ ev = { v: Number(c.value) || 0, from: null }; }
+  const rows = (typeof payPartsOf === 'function') ? payPartsOf(c, ev.v) : [];
+  if (!rows.length){
+    const owed = bsOwedKeys(c).has('value');
+    return head(right) + `<p class="bs-pay-say${owed ? ' is-owed' : ''}">${bsE(bsT(owed ? 'bs_pay_owed' : 'bs_pay_none'))}</p>`;
+  }
+  let start = ''; try { const M = (typeof ov2Model === 'function') ? ov2Model(c) : null; start = M && M.start ? bsDay(M.start) : ''; } catch (_){ start = ''; }
+  const tr = r => {
+    const base = r.kind === 'base';
+    const amt = r.amount > 0 ? bsE(bsPayMoney(c, r.amount)) + (base && ev.from ? ` <span class="bs-pay-am">${bsE(bsT('bs_k_value_amended', { ref: bsRef(ev.from) }))}</span>` : '')
+      : (r.words ? bsE(r.words) : '—');
+    const from = r.from ? bsDay(r.from) : (start || '—');
+    return `<tr${base ? ' class="is-base"' : ''}><td>${base ? `<b>${bsE(bsT('bs_pay_base'))}</b>` : bsE(r.label)}</td><td>${bsE(bsPayEvery(r.every) || '—')}</td><td class="bs-pay-n">${amt}</td><td>${bsE(from)}</td></tr>`;
+  };
+  return head(right) + `<div class="bs-pay-wrap"><table class="bs-pay-t"><thead><tr><th>${bsE(bsT('bs_pay_col_part'))}</th><th>${bsE(bsT('bs_pay_col_every'))}</th><th class="bs-pay-n">${bsE(bsT('bs_pay_col_amount'))}</th><th>${bsE(bsT('bs_pay_col_from'))}</th></tr></thead><tbody>${rows.map(tr).join('')}</tbody></table></div>`;
+}
+function bsPayEdHtml(c, ed){
+  const id = bsE(c.id);
+  const every = (i, v) => `<select class="bs-pay-in" data-bs-pay-f="every" data-bs-pay-i="${i}" aria-label="${bsE(bsT('bs_pay_col_every'))}"><option value=""${v ? '' : ' selected'}>—</option>${(typeof PAY_EVERY !== 'undefined' ? PAY_EVERY : []).map(k => `<option value="${k}"${v === k ? ' selected' : ''}>${bsE(bsPayEvery(k))}</option>`).join('')}</select>`;
+  const box = (i, f, v, extra) => `<input class="bs-pay-in" data-bs-pay-f="${f}" data-bs-pay-i="${i}" value="${bsE(v)}" ${extra || ''}/>`;
+  const rows = ed.rows.map((r, i) => {
+    const base = r.kind === 'base';
+    return `<tr${base ? ' class="is-base"' : ''}>
+      <td>${base ? `<b>${bsE(bsT('bs_pay_base'))}</b>` : box(i, 'label', r.label, `type="text" maxlength="60" placeholder="${bsE(bsT('bs_pay_part_ph'))}" aria-label="${bsE(bsT('bs_pay_col_part'))}"`)}</td>
+      <td>${every(i, r.every)}</td>
+      <td class="bs-pay-n">${box(i, 'amount', r.amount, `type="text" ${base ? 'inputmode="decimal" placeholder="0"' : `placeholder="${bsE(bsT('bs_pay_amount_ph'))}"`} maxlength="60" aria-label="${bsE(bsT('bs_pay_col_amount'))}"`)}</td>
+      <td>${box(i, 'from', r.from, `type="date" aria-label="${bsE(bsT('bs_pay_col_from'))}"`)}</td>
+      <td class="bs-pay-x">${base ? '' : `<button type="button" class="hb-ib" data-bs-pay-rm="${i}" data-bs-id="${id}" aria-label="${bsE(bsT('bs_pay_rm', { what: r.label || bsT('bs_pay_part') }))}" title="${bsE(bsT('bs_pay_rm', { what: r.label || bsT('bs_pay_part') }))}">${_bsX}</button>`}</td></tr>`;
+  }).join('');
+  const parts = ed.rows.filter(r => r.kind === 'part').length;
+  const full = parts >= PAY_PARTS_MAX;
+  const add = full ? `<span class="bs-note">${bsE(bsT('bs_pay_cap', { n: PAY_PARTS_MAX }))}</span>`
+    : `<button type="button" class="hb-link" data-bs-pay-add="${id}">${bsE(bsT('bs_pay_add'))}</button>`;
+  return `<div class="bs-pay-ed"><div class="bs-pay-wrap"><table class="bs-pay-t"><thead><tr><th>${bsE(bsT('bs_pay_col_part'))}</th><th>${bsE(bsT('bs_pay_col_every'))}</th><th class="bs-pay-n">${bsE(bsT('bs_pay_col_amount'))}</th><th>${bsE(bsT('bs_pay_col_from'))}</th><th><span class="sr-only">${bsE(bsT('bs_pay_rm_col'))}</span></th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="bs-pay-acts">${add}<span class="hb-grow"></span><button type="button" class="hb-btn is-sm is-primary" data-bs-pay-save="${id}">${bsE(bsT('act_save'))}</button><button type="button" class="hb-btn is-sm" data-bs-pay-cancel="${id}">${bsE(bsT('act_cancel'))}</button></div></div>`;
+}
+function bsPayAct(kind, id, i){
+  const c = bsContract(id); if (!c) return;
+  if (kind === 'edit'){ payEditOpen(id); return; }
+  if (!_bsPay || _bsPay.id !== String(id)) return;
+  if (kind === 'cancel'){ _bsPay = null; bsPayPaint(id, true); return; }
+  if (kind === 'add'){
+    if (_bsPay.rows.filter(r => r.kind === 'part').length >= PAY_PARTS_MAX) return;
+    _bsPay.rows.push({ kind: 'part', id: 'p' + (++_bsPay.n), label: '', every: '', amount: '', from: '' });
+    bsPayPaint(id, true);
+    const host = bsPayHost(id), boxes = host ? host.querySelectorAll('[data-bs-pay-f="label"]') : [];
+    if (boxes.length && typeof fieldFocus === 'function') fieldFocus(boxes[boxes.length - 1], { preventScroll: true });
+    return;
+  }
+  if (kind === 'rm'){ const n = Number(i); if (_bsPay.rows[n] && _bsPay.rows[n].kind === 'part') _bsPay.rows.splice(n, 1); bsPayPaint(id, true); return; }
+  if (kind === 'save'){
+    const r = paySet(c, _bsPay.rows);
+    if (r.err){ if (typeof toast === 'function') toast(r.err, 'warn'); return; }
+    _bsPay = null;
+    if (r.changed && typeof toast === 'function') toast(bsT('bs_pay_saved'), 'ok');
+    bsRepaint(); bsPayPaint(id, true);
+  }
+}
+
 /* THE LINE IS DRAWN FOR THE CARD'S WIDTH: measured after the paint, and once
    more when the Board's width moves (the panel folds, the window turns) */
 let _bsFitObs = null, _bsFitT = null;
@@ -709,9 +936,25 @@ if (typeof document !== 'undefined' && !document._bsWired){
     if ((el = t.closest('[data-bs-open]'))){ take(); const id = el.getAttribute('data-bs-open');
       if (!(typeof roomHomeLand === 'function' && roomHomeLand(id)) && typeof pdOpenOnHome === 'function') pdOpenOnHome(id, 'plain'); return; }
     if ((el = t.closest('[data-bs-go]'))){ take(); bsGo(el.getAttribute('data-bs-go'), el.getAttribute('data-bs-id')); return; }
+    /* pay: Edit pay, add a part, take one away, Save, Cancel */
+    if ((el = t.closest('[data-bs-pay-edit]'))){ take(); bsPayAct('edit', el.getAttribute('data-bs-pay-edit')); return; }
+    if ((el = t.closest('[data-bs-pay-add]'))){ take(); bsPayAct('add', el.getAttribute('data-bs-pay-add')); return; }
+    if ((el = t.closest('[data-bs-pay-rm]'))){ take(); bsPayAct('rm', el.getAttribute('data-bs-id'), el.getAttribute('data-bs-pay-rm')); return; }
+    if ((el = t.closest('[data-bs-pay-save]'))){ take(); bsPayAct('save', el.getAttribute('data-bs-pay-save')); return; }
+    if ((el = t.closest('[data-bs-pay-cancel]'))){ take(); bsPayAct('cancel', el.getAttribute('data-bs-pay-cancel')); return; }
     /* a menu row that is one of the Board's own doors closes the menu behind it */
     if (_bsMenu && t.closest('.bs-menu [data-hb-analyze], .bs-menu [data-hb-map]')) _bsMenu = null;
   }, true);
+  /* a box in the pay editor writes its draft, never the record, and never repaints */
+  const payType = e => {
+    const f = e.target && e.target.closest ? e.target.closest('[data-bs-pay-f]') : null;
+    if (!f || !_bsPay) return;
+    const row = _bsPay.rows[Number(f.getAttribute('data-bs-pay-i'))];
+    const k = f.getAttribute('data-bs-pay-f');
+    if (row && ['label', 'every', 'amount', 'from'].includes(k)) row[k] = String(f.value == null ? '' : f.value);
+  };
+  document.addEventListener('input', payType, true);
+  document.addEventListener('change', payType, true);
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape' || !_bsMenu) return;
     const id = _bsMenu; _bsMenu = null; bsRepaint();
@@ -721,6 +964,7 @@ if (typeof document !== 'undefined' && !document._bsWired){
 }
 
 if (typeof window !== 'undefined') Object.assign(window, { bsFamRows, bsFamHtml,
+  bsIsPay, bsJobTiles, bsNoticeWords, bsPayEvery, payBaseLine, bsPayLock, bsPayMay, payAmountRead, paySet, payEditOpen, bsPayHtml, bsPaintPay,
   BS_PAGES, BS_MENU_PAGES, BS_MAX,
   hbStripBring, bsStrips, bsStrip, bsStripPage, bsStripClose, bsStripKeep, bsStripLetGo, bsRefresh, bsRepaint,
   roomRetiredLand, bsLifeData, bsObRows, bsCaption, bsStripsHtml, bsStripHtml, bsLifeHtml, bsChartSvg, bsPaintHosts, bsDay,

@@ -1089,7 +1089,7 @@ function graphOutliers(cs){
   const by={}; list.forEach(c=>{ (by[c.folder||'_']||(by[c.folder||'_']=[])).push(c); });
   const out={};
   Object.values(by).forEach(group=>{
-    if(moneyOk){ const vals=[]; group.forEach(c=>{ if(typeof isMonetary==='function'&&!isMonetary(c)) return; if(!(Number(c.value||0)>0)) return;
+    if(moneyOk){ const vals=[]; group.forEach(c=>{ if(typeof isMonetary==='function'&&!isMonetary(c)) return; if(!(Number(c.value||0)>0)) return; if(typeof fxIsPay==='function'&&fxIsPay(c)) return;
         const h=(typeof fxHome==='function')?fxHome(c):{ v:Number(c.value||0), missing:false }; if(!h.missing) vals.push([c,h.v]); });
       if(vals.length>=GRAPH_OUTLIER_MIN){ const med=_igMedian(vals.map(x=>x[1]));
         if(med>0) vals.forEach(([c,v])=>{ if(v>=med*GRAPH_OUTLIER_X) (out[c.id]||(out[c.id]=[])).push(i18t('int_outlier_value',{ x:Math.round(v/med*10)/10 })); }); } }
@@ -1290,7 +1290,7 @@ const IG_STATUS_WORDS=[
 const IG_UNIT_DAYS={ day:1, days:1, dag:1, dagar:1, week:7, weeks:7, vecka:7, veckor:7, month:30.44, months:30.44, månad:30.44, månader:30.44, quarter:91.3, quarters:91.3, kvartal:91.3, year:365.25, years:365.25, år:365.25 };
 function igMoneyOf(n, unit){ let v=Number(String(n).replace(/[, ]/g,'')); if(!isFinite(v)) return null;
   const u=String(unit||'').toLowerCase(); if(/^(m|mn|million|millions|miljon|miljoner|mkr)$/.test(u)) v*=1e6; else if(/^(k|thousand|tusen)$/.test(u)) v*=1e3; else if(/^(bn|b|billion|miljard|miljarder)$/.test(u)) v*=1e9; return v; }
-function igHomeValue(c){ if(!c||(typeof isMonetary==='function'&&!isMonetary(c))||!(Number(c.value||0)>0)) return null;
+function igHomeValue(c){ if(!c||(typeof isMonetary==='function'&&!isMonetary(c))||!(Number(c.value||0)>0)||(typeof fxIsPay==='function'&&fxIsPay(c))) return null;
   const h=(typeof fxHome==='function')?fxHome(c):{ v:Number(c.value||0), missing:false }; return h.missing?null:h.v; }
 /* THE READER'S WORDS, FOR BOTH SCREENS (the owner's review, 3 Oct 2026
    evening: "Show me all Juno contracts" showed everything). Every condition
@@ -2056,7 +2056,8 @@ function graphCopilotCard(c){
     move, live, overdue:f.overdue, nextDue:graphNextDue(c)||'',
     offStandard:f.offStandard, risk:c.scan?riskScore(c):null, read:(f.unread==null)?null:!f.unread,
     archived:!!c.archived, source:c.source||'' };
-  if(money) card.value=Number(c.value||0);
+  /* a salary carries no deal value, so it never matches a money cut (fxIsPay) */
+  if(money&&!(typeof fxIsPay==='function'&&fxIsPay(c))) card.value=Number(c.value||0);
   return card;
 }
 /* FILTERS ARE FIELDS, NOT ID LISTS (ruling 4): the tool hands back a
@@ -2563,7 +2564,7 @@ function buildGraphModel(){
   /* A-5: the value each hub→contract link carries, for its width. Only where
      money may be seen; a viewer's links are all one width. */
   let vmax=0; const linkV={};
-  if(moneyOk) cs.forEach(c=>{ if(typeof isMonetary==='function'&&!isMonetary(c)) return; if(!(Number(c.value||0)>0)) return; const h=(typeof fxHome==='function')?fxHome(c):{v:Number(c.value||0),missing:false}; if(h.missing) return; linkV[c.id]=h.v; vmax=Math.max(vmax,h.v); });
+  if(moneyOk) cs.forEach(c=>{ if(typeof isMonetary==='function'&&!isMonetary(c)) return; if(!(Number(c.value||0)>0)) return; if(typeof fxIsPay==='function'&&fxIsPay(c)) return; const h=(typeof fxHome==='function')?fxHome(c):{v:Number(c.value||0),missing:false}; if(h.missing) return; linkV[c.id]=h.v; vmax=Math.max(vmax,h.v); });
   const nodes=[], edges=[];
   hubs.forEach((h,i)=>{
     const node={id:'hub:'+h.label, kind:'hub', label:h.label, sub:h.ids.length+' contract'+(h.ids.length===1?'':'s')};
@@ -2922,7 +2923,7 @@ function igbSizes(G){
   if(key==='value'&&!moneyOk) key='same';
   G.sizeKey=key;
   if(key==='value'){ let vmax=0; const v={};
-    G.contracts.forEach(n=>{ const c=n.c; if(!c||(typeof isMonetary==='function'&&!isMonetary(c))||!(Number(c.value||0)>0)) return;
+    G.contracts.forEach(n=>{ const c=n.c; if(!c||(typeof isMonetary==='function'&&!isMonetary(c))||!(Number(c.value||0)>0)||(typeof fxIsPay==='function'&&fxIsPay(c))) return;
       const h=(typeof fxHome==='function')?fxHome(c):{ v:Number(c.value||0), missing:false }; if(h.missing) return; v[n.id]=h.v; vmax=Math.max(vmax,h.v); });
     G.contracts.forEach(n=>{ n.rT=v[n.id]&&vmax?2.4+4.4*Math.sqrt(v[n.id]/vmax):2.4; }); }
   else if(key==='obligations') G.contracts.forEach(n=>{ const k=((n.c&&n.c.obligations)||[]).filter(o=>o&&!o.completedAt&&!o.done).length; n.rT=2.4+Math.min(6,k*1.1); });
@@ -5135,7 +5136,7 @@ function exposureData(){
     let worst = null;
     if(money && hits.length){
       let best=null, bv=-1;
-      hits.forEach(c=>{ const h=(typeof fxHome==='function')?fxHome(c):{v:Number(c.value||0),missing:false};
+      hits.forEach(c=>{ if(typeof fxIsPay==='function'&&fxIsPay(c)) return; const h=(typeof fxHome==='function')?fxHome(c):{v:Number(c.value||0),missing:false};
         const v=(h&&!h.missing)?(h.v||0):0; if(v>bv){ bv=v; best=c; } });
       if(best) worst = { id:best.id, ref:(window.contractRef?contractRef(best):best.id), name:best.name||'', who:best.counterparty||'' };
     }

@@ -433,10 +433,52 @@ const fxPrivate = c => {
   let p = null; try { p = (FX_PRIVATE_READ() || {})[f]; } catch (_) { p = null; }
   return !!(p && p.on);
 };
+/* ---- PAY IS NOT DEAL VALUE (owner picked "Pay section — the SAP way",
+   17 Oct 2026) ----
+   An employment contract's money is a person's pay. Its base pay stays on the
+   record where every gate already reads it (c.value: the signing limit, the
+   approval rules, the freeze at signature, the no-money wall) and its own
+   page says it as Pay — but it is never a deal's value: nothing that adds
+   reads it (fxCounted), no converted figure is "missing" a rate for it
+   (fxMissing), and the compact cell a table holds says a dash
+   (fmtMoneyShortOf). How often it is paid, and the other parts (allowances,
+   a bonus), live in c.pay — cleaned by payClean on both hosts, read by
+   payPartsOf. "Employment" is the record's own category, the one closed list
+   every figure groups by (metadata.category). */
+const fxIsPay = c => String(((c && c.metadata) || {}).category || '') === 'employment';
+const PAY_EVERY = ['month', 'year', 'week', 'day', 'hour', 'once'];
+const PAY_PARTS_MAX = 12;
+function payClean(p){
+  if (!p || typeof p !== 'object') return null;
+  const ev = v => PAY_EVERY.includes(String(v || '')) ? String(v) : '';
+  const day = v => /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) : '';
+  const words = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
+  const parts = (Array.isArray(p.parts) ? p.parts : []).slice(0, PAY_PARTS_MAX).map((x, i) => {
+    if (!x || typeof x !== 'object') return null;
+    const label = words(x.label, 60); if (!label) return null;
+    const a = Number(x.amount);
+    const amount = Number.isFinite(a) && a > 0 ? Math.round(a * 100) / 100 : null;
+    return { id: words(x.id, 24) || ('p' + (i + 1)), label, every: ev(x.every), amount,
+      words: amount == null ? words(x.words, 60) : '', from: day(x.from) };
+  }).filter(Boolean);
+  const out = { every: ev(p.every), from: day(p.from), parts };
+  return (out.every || out.from || parts.length) ? out : null;
+}
+/* THE ROWS OF PAY, base first: the base is the record's own amount (or the
+   figure as amended, where the caller passes it) with c.pay's period and
+   start; then each other part as filed. */
+function payPartsOf(c, base){
+  const p = payClean(c && c.pay) || { every: '', from: '', parts: [] };
+  const v = base != null ? Number(base) : Number((c && c.value) || 0);
+  const rows = [];
+  if (v > 0 || p.every || p.from) rows.push({ kind: 'base', id: 'base', label: '', every: p.every, amount: v > 0 ? v : null, words: '', from: p.from });
+  return rows.concat(p.parts.map(x => Object.assign({ kind: 'part' }, x)));
+}
 /* THE ONE READING FOR A FIGURE THAT ADDS: fxHome, unless the contract is in a
-   private stream — then nothing, and not "missing" either (no rate is owed). */
-const fxCounted = c => fxPrivate(c)
-  ? { v: 0, code: contractCurrency(c), converted: false, missing: false, private: true }
+   private stream or is somebody's pay — then nothing, and not "missing"
+   either (no rate is owed). */
+const fxCounted = c => (fxPrivate(c) || fxIsPay(c))
+  ? { v: 0, code: contractCurrency(c), converted: false, missing: false, private: fxPrivate(c), pay: fxIsPay(c) }
   : fxHome(c);
 const fxHomeValue = c => fxCounted(c).v;
 /* What the converted figures LEFT OUT — {code: count} over valued, live,
@@ -447,7 +489,7 @@ function fxMissing(list) {
   const out = {};
   for (const c of cs) {
     if (!c || c.status === 'Declined' || c.archived || !(Number(c.value || 0) > 0)) continue;
-    if (fxPrivate(c)) continue;
+    if (fxPrivate(c) || fxIsPay(c)) continue;
     const h = fxHome(c);
     if (h.missing) out[h.code] = (out[h.code] || 0) + 1;
   }
@@ -464,8 +506,9 @@ const fmtMoneyOf = c => `${contractCurrency(c)} ` + Number((c && c.value) || 0).
    workspace currency over a foreign amount — so a register row read
    "KES 420K" over a contract written in euros, which is the exact untruth
    W2-1 exists to stop. The row states what the paper says; the aggregate
-   under it still converts. */
-const fmtMoneyShortOf = c => fmtMoneyShortIn(Number((c && c.value) || 0), contractCurrency(c));
+   under it still converts. A PAY CELL IS A DASH: a list's value column holds
+   deal value, and a salary is not one (fxIsPay; its own page says it). */
+const fmtMoneyShortOf = c => fxIsPay(c) ? '—' : fmtMoneyShortIn(Number((c && c.value) || 0), contractCurrency(c));
 
 const JX_API = { JURISDICTIONS, JX_DEFAULT, JX_LS, JX_OTHER_SEATS,
   jx, jxId, jxIs, jxSet, jxList, jxPack, jxLaw, jxAdjective, jxName, jxCurrency, jxLocale,
@@ -477,6 +520,7 @@ const JX_API = { JURISDICTIONS, JX_DEFAULT, JX_LS, JX_OTHER_SEATS,
   fxSetRatesReader, fxSetHomeReader, fxHomeCode, contractCurrency, fxIsForeign,
   fxRateFor, fxHome, fxHomeValue, fxMissing, fxMissingLine, fmtMoneyOf, fmtMoneyShortOf,
   fxSetPrivateReader, fxPrivate, fxCounted,
+  fxIsPay, PAY_EVERY, PAY_PARTS_MAX, payClean, payPartsOf,
   FX_CURRENCIES, fxCurrencyName, fxPickerCodes };
 /* Two hosts, one table. The browser gets globals like every other module here;
    server/server.js is a plain Node process with no window, and requires it. */
