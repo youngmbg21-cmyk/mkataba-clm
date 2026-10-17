@@ -1315,6 +1315,8 @@ async function contractReopen(c,why){
 }
 async function contractSetArchived(c,on,note){
   if(typeof canEdit==='function'&&!canEdit()){ toast(i18t('ar_editors_only'),'err'); return false; }
+  /* NOTHING ON LEGAL HOLD IS ARCHIVED (piece 10); the server refuses it too */
+  if(on&&contractOnHold(c)){ toast(i18t('end_archive_held'),'warn'); return false; }
   if(on) c.archived={ at:new Date().toISOString(), by:currentUser().name };
   else delete c.archived;
   /* a note for the history, if the end-or-pause door was given one (15 Oct 2026) */
@@ -9684,7 +9686,7 @@ function endOrPauseAnswers(c){
   const why = {
     decline: !edit ? 'end_decline_editors' : c.status === 'Declined' ? 'end_decline_already'
       : signed ? 'end_decline_signed' : out() ? 'end_decline_out' : '',
-    archive: !edit ? 'ar_editors_only' : c.archived ? 'end_archive_already' : '',
+    archive: !edit ? 'ar_editors_only' : c.archived ? 'end_archive_already' : contractOnHold(c) ? 'end_archive_held' : '',
     hold: (typeof mayHoldContract === 'function' && !mayHoldContract()) ? 'hd_not_yours'
       : c.status === 'Declined' ? 'end_hold_closed' : contractOnHold(c) ? 'end_hold_already' : '',
   };

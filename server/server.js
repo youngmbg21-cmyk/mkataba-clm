@@ -3868,6 +3868,7 @@ app.get('/api/bootstrap', auth, (req, res) => {
     /* the quarter's access review, as far as it has got: an admin's (piece 8) */
     accessReview: req.user.role === 'admin' ? arSummary(req.user) : undefined,
     away: awayBoot(req.user),
+    keeping: req.user.role === 'admin' ? kpSummary(req.user) : undefined,
     /* Whether this workspace can send email at all. The server has always known
        it and reported it on individual screens — creating a share, opening a
        link, requesting a signing code — which meant the answer only ever
@@ -5756,6 +5757,11 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     if (bad) return res.status(403).json({ error: bad, approvalRule: true });
   }
 
+  /* NOTHING ON LEGAL HOLD IS ARCHIVED (piece 10): asked as a difference — a
+     save that puts a held contract on the shelf */
+  if (prev && c.archived && !prev.archived && ((c.hold && c.hold.at) || (prev.hold && prev.hold.at)))
+    return res.status(409).json({ legalHold: true, error: `${contractRef(prev)} is on legal hold, so it cannot be archived until the hold is released.` });
+
   /* ---------- THE INTERNAL REVIEW, GUARDED ON THE WAY IN ----------
      Asked as a DIFFERENCE, exactly like the signing-step guard above it, and
      for the same reason: this route receives the whole contract on every save,
@@ -6162,6 +6168,9 @@ app.delete('/api/contracts/:id', auth, editor, (req, res) => {
   const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
   if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
   let c = null; try { c = JSON.parse(row.json); } catch (_) {}
+  /* NOTHING ON LEGAL HOLD IS DELETED (piece 10) */
+  if (c && c.hold && c.hold.at)
+    return res.status(409).json({ legalHold: true, error: `${contractRef(c)} is on legal hold, so it cannot be deleted until the hold is released.` });
   if (c && (isExecutedRow(c) || c.status === 'Signed')) {
     return res.status(409).json({
       error: `${req.params.id} is executed and cannot be deleted. An executed agreement is a record; archive it or record a termination instead.`,
@@ -13072,6 +13081,152 @@ app.delete('/api/me/away', auth, (req, res) => {
 });
 
 /* ============================================================
+   HOW LONG CONTRACTS ARE KEPT, AND LEGAL HOLD (owner picked "Keeping on each
+   stream — the SAP way", 17 Oct 2026; piece 10 of the sensitive contracts
+   and governance plan)
+   ============================================================
+   SAP's retention rules and destruction runs: each stream says how many
+   years its contracts are kept after they end, and what then — listed for an
+   admin to delete, or kept archived. Contracts past their time wait for an
+   admin's YES (Needs your attention); NOTHING IS DELETED OR ARCHIVED WITHOUT
+   IT, and nothing on LEGAL HOLD (the hold an admin can already put on a
+   contract for a dispute) is ever deleted or archived while held.
+     · ONE READING, kpBook: per stream in the reader's scope, its contracts,
+       those on legal hold, and those past their keeping period. The period
+       counts from the day a contract ends AS AMENDED (effExpiryReader). An
+       agreement goes with its family (its amendments, annexes); one member
+       on hold holds the whole family. A contract with no end date is never
+       due.
+     · The rule is the company's (own setting key `keeping`), admin-only; the
+       run re-reads the stored book and acts only on what is due now.
+     · Every rule set or removed, every deletion and every archive is an act
+       in the trail (keeping_acts) — a deleted contract's name, party, stream
+       and end stay there, its record does not. */
+db.exec(`CREATE TABLE IF NOT EXISTS keeping_acts (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL,
+  by_id TEXT, by_name TEXT, kind TEXT NOT NULL, folder TEXT, contract_id TEXT, contract_ref TEXT, name TEXT,
+  counterparty TEXT, ended TEXT, detail TEXT)`);
+const KP_YEARS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 25, 30];
+const KP_THEN = ['delete', 'archive'];
+const kpClean = r => (r && typeof r === 'object' && KP_YEARS.includes(Number(r.years)))
+  ? { years: Number(r.years), then: KP_THEN.includes(r.then) ? r.then : 'delete' } : null;
+function kpRules() {
+  const s = getSetting('keeping') || {}, out = {};
+  for (const [k, v] of Object.entries(s && typeof s === 'object' ? s : {})) { const c = kpClean(v); if (c) out[String(k).slice(0, 64)] = c; }
+  return out;
+}
+/* the last day an agreement may have ended on and be due today */
+const kpCutoff = years => { const d = new Date(); d.setFullYear(d.getFullYear() - years); d.setDate(d.getDate() - 1); return isoDay(d); };
+const kpHeld = c => !!(c && c.hold && c.hold.at);
+const kpThenWords = r => `${r.years} year${r.years === 1 ? '' : 's'}, then ${r.then === 'archive' ? 'kept archived' : 'listed for an admin to delete'}`;
+function kpBook(user, onlyFid) {
+  const rules = kpRules();
+  const f = scopeFrag(folderScopeFor(user));
+  const rows = db.prepare(`SELECT id, folder, status, expiry, parent_id, seq, version, json FROM contracts ${whereOf(f.sql)}`).all(...f.args)
+    .filter(r => !onlyFid || String(r.folder || '') === onlyFid || r.parent_id);
+  const parsed = new Map();
+  for (const r of rows) { let c = {}; try { c = JSON.parse(r.json) || {}; } catch (_) { c = {}; } parsed.set(r.id, c); }
+  const { eff, kidsOf } = effExpiryReader(rows, parsed);
+  const familyOf = id => { const out = [], seen = new Set(), walk = x => { for (const k of (kidsOf.get(x) || [])) if (!seen.has(k.id)) { seen.add(k.id); out.push(k); walk(k.id); } }; walk(id); return out; };
+  const streams = {};
+  const S = fid => streams[fid] || (streams[fid] = { contracts: 0, held: [], due: [] });
+  for (const r of rows) {
+    const fid = String(r.folder || '');
+    if (!fid || (onlyFid && fid !== onlyFid)) continue;
+    const c = parsed.get(r.id) || {};
+    const s = S(fid);
+    s.contracts++;
+    if (kpHeld(c)) s.held.push({ id: r.id, ref: contractRef(c) || r.id, name: c.name || '', since: c.hold.at, by: c.hold.by || '' });
+    const rule = rules[fid];
+    if (!rule || r.parent_id) continue;
+    const end = eff(r);
+    if (!end || end > kpCutoff(rule.years)) continue;
+    if (rule.then === 'archive' && c.archived) continue;
+    const fam = familyOf(r.id);
+    if (kpHeld(c) || fam.some(k => kpHeld(parsed.get(k.id)))) { s.heldDue = (s.heldDue || 0) + 1; continue; }
+    s.due.push({ id: r.id, ref: contractRef(c) || r.id, name: c.name || '', counterparty: c.counterparty || '', ended: end, family: fam.map(k => k.id) });
+  }
+  for (const [fid, rule] of Object.entries(rules)) { const s = S(fid); s.rule = rule; s.cutoff = kpCutoff(rule.years); }
+  return { rules, streams, years: KP_YEARS, rows: new Map(rows.map(r => [r.id, r])), parsed };
+}
+const kpSummary = user => {
+  const rules = kpRules(); if (!Object.keys(rules).length) return { rules, due: {} };
+  const b = kpBook(user), due = {};
+  for (const [fid, s] of Object.entries(b.streams)) if (s.rule && s.due.length) due[fid] = { n: s.due.length, then: s.rule.then };
+  return { rules, due };
+};
+const kpRecord = (req, kind, o) => db.prepare(`INSERT INTO keeping_acts (at, by_id, by_name, kind, folder, contract_id, contract_ref, name, counterparty, ended, detail)
+  VALUES (?,?,?,?,?,?,?,?,?,?,?)`).run(now(), String(req.user.id || ''), String(req.user.name || ''), kind, o.folder || '', o.id || '', o.ref || '', o.name || '', o.counterparty || '', o.ended || '', o.detail || '');
+app.get('/api/keeping', auth, admin, (req, res) => {
+  const b = kpBook(req.user);
+  res.json({ rules: b.rules, years: b.years, streams: b.streams });
+});
+/* THE RULE: a period from the list and what then; null takes it away */
+app.put('/api/keeping/:fid', auth, admin, (req, res) => {
+  const fid = String(req.params.fid || '').slice(0, 64);
+  if (!fid || !inScope(folderScopeFor(req.user), fid)) return res.status(404).json({ error: 'Stream not found' });
+  const b = req.body || {};
+  const all = { ...(getSetting('keeping') || {}) };
+  const was = kpClean(all[fid]);
+  if (b.years == null || b.years === '') delete all[fid];
+  else {
+    const r = kpClean(b);
+    if (!r) return res.status(400).json({ error: `A keeping period is one of ${KP_YEARS.join(', ')} years.` });
+    all[fid] = r;
+  }
+  setSetting('keeping', all);
+  const now_ = kpClean(all[fid]);
+  if (stable(was) !== stable(now_)) kpRecord(req, 'rule', { folder: fid, detail: now_ ? kpThenWords(now_) : 'no keeping period' });
+  res.json({ rules: kpRules() });
+});
+/* THE ADMIN'S YES: delete or archive what is due now in one stream — each
+   contract asked again of the stored book, never of the request */
+app.post('/api/keeping/:fid/run', auth, admin, (req, res) => {
+  const fid = String(req.params.fid || '').slice(0, 64);
+  const rule = kpRules()[fid];
+  if (!rule || !inScope(folderScopeFor(req.user), fid)) return res.status(404).json({ error: 'This stream has no keeping period.' });
+  const act = String((req.body || {}).act || '');
+  if (act !== rule.then) return res.status(400).json({ error: `This stream's contracts are ${rule.then === 'archive' ? 'archived' : 'deleted'} when their time is up.` });
+  const ids = [...new Set((Array.isArray((req.body || {}).ids) ? req.body.ids : []).map(String))].slice(0, 500);
+  const b = kpBook(req.user, fid);
+  const due = new Map((b.streams[fid] || { due: [] }).due.map(d => [d.id, d]));
+  const done = [], refused = [];
+  for (const id of ids) {
+    const d = due.get(id);
+    if (!d) { refused.push({ id, why: 'not due, or on legal hold' }); continue; }
+    const base = { folder: fid, id: d.id, ref: d.ref, name: d.name, counterparty: d.counterparty, ended: d.ended };
+    if (act === 'archive') {
+      const r = b.rows.get(id), c = b.parsed.get(id);
+      c.archived = { at: now(), by: req.user.name || '', why: 'keeping' };
+      c.audit = (Array.isArray(c.audit) ? c.audit : []).concat([{ at: now(), user: req.user.name || '', action: 'Archived',
+        detail: `Past its keeping period (${rule.years} year${rule.years === 1 ? '' : 's'} after it ended on ${d.ended}) — off the live lists and counts, still searchable` }]);
+      c._seq = r.seq;
+      withWriteRetry(() => upsertContract(c, (r.version || 0) + 1));
+      kpRecord(req, 'archive', { ...base, detail: `kept ${rule.years} year${rule.years === 1 ? '' : 's'} after it ended` });
+    } else {
+      const members = [id].concat(d.family);
+      txn(() => {
+        for (const mid of members) {
+          const c = b.parsed.get(mid) || {};
+          const fileIds = [];
+          if (c.upload && c.upload.fileId) fileIds.push(c.upload.fileId);
+          for (const x of (Array.isArray(c.documents) ? c.documents : [])) if (x && x.fileId) fileIds.push(x.fileId);
+          outsideFileIds(c).forEach(x => { if (!fileIds.includes(x)) fileIds.push(x); });
+          forgetContractRecords(mid);
+          for (const x of fileIds) db.prepare('DELETE FROM files WHERE id=?').run(x);
+          db.prepare('DELETE FROM contracts WHERE id=?').run(mid);
+          try { if (ftsOk) db.prepare('DELETE FROM contracts_fts WHERE id=?').run(mid); } catch (_) {}
+        }
+      });
+      _storedBytes = null;
+      kpRecord(req, 'delete', { ...base, detail: `kept ${rule.years} year${rule.years === 1 ? '' : 's'} after it ended${d.family.length ? `; with ${d.family.length} filed under it` : ''}` });
+    }
+    done.push(id);
+  }
+  const after = kpBook(req.user);
+  res.json({ done, refused, rules: after.rules, streams: after.streams });
+});
+
+/* ============================================================
    THE TRAIL, AS A FILE (owner picked "Export drawer — the SAP way",
    17 Oct 2026; piece 5 of the sensitive contracts and governance plan)
    ============================================================
@@ -13152,6 +13307,16 @@ function trailRows(ask) {
     out.push({ at: r.ended_at, who: String(r.user_name || ''), what: 'Away ended', detail: `${r.deputy_name} no longer answers for ${r.user_name}`, c: null });
   for (const r of db.prepare(`SELECT * FROM away_rules WHERE ended_at IS NULL AND d_to < ? AND d_to >= ? AND d_to <= ?`).all(awayToday(), ask.from, ask.to))
     out.push({ at: r.d_to + 'T23:59:59.000Z', who: 'HaTi', what: 'Away ended on its own', detail: `${awayFor(r)} until ${r.d_to}`, c: null });
+  /* a keeping period set, and every deletion and archive after it (piece 10):
+     a deleted contract's own lines went with it, so this row carries its name */
+  const kpOk = fid => inScope(ask.scope, fid) && (!ask.streams.length || ask.streams.includes(String(fid || '')));
+  for (const r of db.prepare('SELECT * FROM keeping_acts WHERE at >= ? AND at <= ? ORDER BY id').all(lo, hi)) {
+    /* an archive is on the contract's own trail already (its audit line) */
+    if (!kpOk(r.folder) || r.kind === 'archive') continue;
+    const what = r.kind === 'rule' ? 'Keeping period set' : r.kind === 'archive' ? 'Archived after its keeping period' : 'Deleted after its keeping period';
+    const c = r.kind === 'rule' ? null : (byId.get(String(r.contract_id)) || { id: r.contract_id, contractNo: r.contract_ref, name: r.name, counterparty: r.counterparty, folder: r.folder });
+    out.push({ at: r.at, who: String(r.by_name || ''), what, detail: r.kind === 'rule' ? `${ask.names[r.folder] || r.folder}: ${r.detail}` : `ended ${r.ended} · ${r.detail}`, c });
+  }
   if (byId.size) for (const r of db.prepare('SELECT * FROM away_answers WHERE at >= ? AND at <= ? ORDER BY id').all(lo, hi)) {
     const c = byId.get(String(r.contract_id));
     if (c) out.push({ at: r.at, who: String(r.deputy_name || ''), what: 'Answered for someone away', detail: `for ${r.for_name} · ${r.what}`, c });

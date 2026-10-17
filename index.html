@@ -3528,6 +3528,25 @@
   .st-ps-role{ font-weight:var(--w-body); color:var(--color-neutral-600); }
   .st-ps-menote{ margin-top:10px; }
   .st-ps-mine{ margin-top:8px; display:flex; flex-direction:column; gap:4px; }
+  /* KEEPING (owner picked "Keeping on each stream — the SAP way", 17 Oct 2026):
+     the stream's period, what it makes due (the admin's yes), and what is on
+     legal hold — the hold wears the On hold chip's own ruby */
+  .st-kp-facts{ display:flex; flex-wrap:wrap; gap:4px 18px; font-size:var(--t-meta); color:var(--color-neutral-600); margin:0 0 4px; }
+  .st-kp-facts b{ color:var(--color-text); font-weight:var(--w-strong); }
+  .st-kp-due{ margin-top:14px; padding:12px 14px; border:1px solid var(--color-divider); border-radius:var(--radius-lg); background:var(--surface-2); }
+  .st-kp-due-h{ display:flex; align-items:center; gap:12px; }
+  .st-kp-due-t{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; font-size:var(--t-body); color:var(--color-text); }
+  .st-kp-due-h .ui-btn{ white-space:nowrap; flex:none; }
+  .st-kp-tb{ margin-top:10px; }
+  .st-kp-acts{ display:flex; align-items:center; flex-wrap:wrap; gap:6px 12px; margin-top:10px; }
+  .st-kp-acts .ui-btn{ white-space:nowrap; }
+  .st-kp-held{ margin-top:14px; }
+  .st-kp-held .st-ps-l .st-note{ display:inline; }
+  .st-kp-hrow{ display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 10px; padding:6px 0; font-size:var(--t-meta); }
+  .st-kp-hrow + .st-kp-hrow{ border-top:1px solid var(--color-divider); }
+  .st-kp-hname{ flex:1; min-width:0; color:var(--color-text); font-weight:var(--w-label); }
+  .chip.st-kp-chip{ background:var(--st-ruby-bg); color:var(--st-ruby-fg); border-radius:999px; padding:0 8px; font-size:var(--t-label); font-weight:var(--w-label); white-space:nowrap; }
+  .st-kp-unsaved{ margin-top:10px; }
   /* THE TRAIL, AS A FILE (owner picked "Export drawer — the SAP way", 17 Oct 2026):
      Data & backup's second tab — the period, the streams, the format, the count
      beside the one act, then every download so far */
