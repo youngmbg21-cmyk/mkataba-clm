@@ -1963,6 +1963,7 @@ function regOpenRow(id, negoRow){
    pdOpenOnHome is the product's own way onto a contract on Home; below 768px
    it opens the contract's own page, which the phone draws instead. */
 function regOpenContract(id){
+  if(typeof codeNameStop==='function'&&codeNameStop(getContract(id))) return;
   /* FROM "DETAILS TO FILL" A ROW OPENS WHERE DETAILS ARE FILLED IN: beside
      the paper, Jambo's panel on Fill in (the one-page Home plan, stage 2;
      owner, 14 Oct 2026; was the room's Details tab, 12 Oct). */

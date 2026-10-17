@@ -7142,6 +7142,7 @@ function igAskCost(){
    paper's own and go with it (said in the summary, not hidden). */
 async function igAnalyze(id){
   const c=getContract(id); if(!c) return;
+  if(typeof codeNameStop==='function'&&codeNameStop(c)) return;
   const seq=igOpenNewer();
   /* the Fill in face belongs to one contract: asking for another puts it away */
   if(typeof window.pdFillSeen==='function') pdFillSeen(id);

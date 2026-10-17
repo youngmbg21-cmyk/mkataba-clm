@@ -2909,8 +2909,12 @@ const AI_VALUE_FIELDS = ['value', 'valueType', 'proposedValue', 'totalValue', 'f
 function scopeAiPortfolio(req, res, next) {
   const scope = folderScopeFor(req.user);
   const money = canViewValues(req.user);
-  if (scopeIsAll(scope) && money) return next();
   const b = req.body || {};
+  /* a confidential deal the reader is outside of reaches the model as its
+     stand-in, whatever the page sent (piece 11; cnFrontDoor set req.cnOut) */
+  if (req.cnOut && req.cnOut.size) for (const f of ['contracts', 'candidates'])
+    if (Array.isArray(b[f])) b[f] = b[f].map(x => (x && x.id && req.cnOut.has(String(x.id))) ? cnStub(String(x.id), req.cnOut.get(String(x.id))) : x);
+  if (scopeIsAll(scope) && money) return next();
   let dropped = 0;
   for (const f of ['contracts', 'candidates']) {
     if (!Array.isArray(b[f])) continue;
@@ -3404,6 +3408,8 @@ function mailSafeHtml(html){
    that is what an admin reads there and what every existing reader of that
    table expects. */
 async function sendEmail(to, subject, body, devHint, opts = {}) {
+  /* a confidential deal reaches a colleague outside its list by its code name (piece 11) */
+  { const m = cnMailMask(to, { subject, body, html: opts.html || null }); subject = m.subject; body = m.body; if (opts.html) opts = { ...opts, html: m.html }; }
   const id = 'e_' + rid(8), at = now();
   let sent = 0, provider = 'outbox', detail = null;
   const attachments = Array.isArray(opts.attachments)
@@ -3549,6 +3555,166 @@ const admin = (req, res, next) => {
 };
 
 /* ---------- status & auth ---------- */
+/* ============================================================
+   CODE NAMES FOR CONFIDENTIAL DEALS (owner picked "A code name field — the
+   SAP way", 17 Oct 2026; piece 11 of the sensitive contracts and governance
+   plan)
+   ============================================================
+   A deal's Details carry a code name and who knows the real name. Everyone
+   else sees the code name — in lists, search, the bell and Jambo — and may
+   not open the deal. THE REAL NAME NEVER LEAVES THE SERVER for anyone
+   outside the list, so the wall stands at the front door, ahead of every
+   /api route (cnFrontDoor):
+     · a request ABOUT a deal the reader is outside of (its id in the path,
+       the body or the query) is refused, in words that name only the code;
+     · every JSON answer to such a reader passes through cnMask: the deal,
+       wherever it appears as an object, becomes a stand-in — its id, number,
+       stream, stage and code name, nothing else — and its real name, in any
+       string, becomes the code name;
+     · what is not JSON is masked where it is made: the register file, the
+       trail file, the workspace download, every email (sendEmail, per
+       recipient), and Jambo's rows and tools (copilotRows, runCopilotTool).
+   A deal's family (amendments, annexes filed under it) is covered with it.
+   ONE writer (PUT /api/contracts/:id/code-name), by the deal's owner or an
+   admin who knows the real name; the setter and the owner are always on the
+   list. Setting, changing, removing it and changing the list are acts in the
+   trail (code_name_log). An admin is NOT on the list by default — the
+   private streams' rule. */
+db.exec(`CREATE TABLE IF NOT EXISTS code_names (contract_id TEXT PRIMARY KEY, code TEXT NOT NULL,
+  people TEXT NOT NULL DEFAULT '[]', set_by TEXT, set_at TEXT)`);
+db.exec(`CREATE TABLE IF NOT EXISTS code_name_log (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL,
+  by_id TEXT, by_name TEXT, contract_id TEXT, contract_ref TEXT, what TEXT)`);
+const CN_MAX = 60;
+const cnPeople = s => { try { const a = JSON.parse(s || '[]'); return Array.isArray(a) ? a.map(String) : []; } catch (_) { return []; } };
+/* ONE READING: every confidential deal and its family — id → { code, people
+   (a Set), real (the names to hide), ref, folder, status, root } */
+function cnMap() {
+  const rows = db.prepare(`SELECT k.contract_id, k.code, k.people, c.name, c.contract_no, c.folder, c.status
+    FROM code_names k LEFT JOIN contracts c ON c.id = k.contract_id`).all();
+  const out = new Map();
+  if (!rows.length) return out;
+  const kids = new Map();
+  for (const r of db.prepare('SELECT id, parent_id, name, contract_no, folder, status FROM contracts WHERE parent_id IS NOT NULL').all()) {
+    if (!kids.has(r.parent_id)) kids.set(r.parent_id, []); kids.get(r.parent_id).push(r);
+  }
+  for (const r of rows) {
+    const people = new Set(cnPeople(r.people)), real = r.name ? [String(r.name)] : [];
+    out.set(r.contract_id, { code: r.code, people, real, ref: r.contract_no || r.contract_id, folder: r.folder || '', status: r.status || '', root: r.contract_id });
+    const walk = id => { for (const k of (kids.get(id) || [])) if (!out.has(k.id)) {
+      out.set(k.id, { code: r.code, people, real: real.concat(k.name ? [String(k.name)] : []), ref: k.contract_no || k.id, folder: k.folder || '', status: k.status || '', root: r.contract_id });
+      walk(k.id); } };
+    walk(r.contract_id);
+  }
+  return out;
+}
+/* the deals this reader is outside of: id → entry; empty for nearly everyone */
+function cnOutsideFor(user, map) {
+  const m = map || cnMap(), out = new Map();
+  if (!user || !m.size) return out;
+  for (const [id, e] of m) if (!e.people.has(String(user.id))) out.set(id, e);
+  return out;
+}
+const cnRefusal = e => ({ codeName: true, code: e.code,
+  error: `${e.code} is a confidential deal: only the people named on it may open it.` });
+/* the stand-in an outsider is given in place of the deal */
+const cnStub = (id, e) => ({ id, contractNo: e.ref !== id ? e.ref : undefined, name: e.code, counterparty: '', folder: e.folder,
+  status: e.status, _codeNamed: true, _light: true });
+/* every JSON answer to an outsider: the deal becomes its stand-in, its real
+   name the code name, wherever either appears */
+function cnMask(body, out) {
+  const names = [];
+  for (const e of out.values()) for (const n of e.real) if (n && n.length >= 3) names.push([n, e.code]);
+  names.sort((a, b) => b[0].length - a[0].length);
+  const str = s => { let t = s; for (const [n, c] of names) if (t.includes(n)) t = t.split(n).join(c); return t; };
+  const walk = (v, depth) => {
+    if (depth > 40 || v == null) return v;
+    if (typeof v === 'string') return str(v);
+    if (Array.isArray(v)) return v.map(x => walk(x, depth + 1));
+    if (typeof v !== 'object') return v;
+    if (typeof v.id === 'string' && out.has(v.id) && ('name' in v || 'counterparty' in v || 'json' in v)) return cnStub(v.id, out.get(v.id));
+    const o = {};
+    for (const [k, x] of Object.entries(v)) o[k] = walk(x, depth + 1);
+    return o;
+  };
+  return walk(body, 0);
+}
+/* the ids a request is about */
+function cnRequestIds(req) {
+  const ids = new Set(), add = v => { if (typeof v === 'string' && v) ids.add(v); };
+  const m = /^\/contracts\/([^/?#]+)/.exec(req.path || '');
+  if (m) { try { add(decodeURIComponent(m[1])); } catch (_) { add(m[1]); } }
+  const b = req.body && typeof req.body === 'object' ? req.body : {}, q = req.query || {};
+  [b.id, b.contractId, b.contract && b.contract.id, b.payload && b.payload.contract && b.payload.contract.id, q.id, q.contractId].forEach(add);
+  if (Array.isArray(b.ids)) b.ids.forEach(add);
+  return ids;
+}
+/* THE FRONT DOOR, ahead of every /api route */
+function cnFrontDoor(req, res, next) {
+  const map = cnMap(); if (!map.size) return next();
+  const s = readSession(req); if (!s || !s.user) return next();
+  const out = cnOutsideFor(s.user, map); if (!out.size) return next();
+  for (const id of cnRequestIds(req)) if (out.has(id)) return res.status(403).json(cnRefusal(out.get(id)));
+  const json = res.json.bind(res);
+  res.json = body => json(cnMask(body, out));
+  req.cnOut = out;
+  next();
+}
+app.use('/api', cnFrontDoor);
+/* what an insider's reading of the deal carries: its code name and who knows */
+function cnOf(id) {
+  const m = cnMap(), e = m.get(String(id || '')); if (!e) return null;
+  const k = db.prepare('SELECT * FROM code_names WHERE contract_id=?').get(e.root) || {};
+  const names = new Map(db.prepare('SELECT id, name, email FROM users').all().map(u => [String(u.id), u.name || u.email || '']));
+  return { code: e.code, inherited: e.root !== String(id), people: [...e.people].map(pid => ({ id: pid, name: names.get(pid) || '' })), by: k.set_by || '', at: k.set_at || '' };
+}
+/* the text of an email, for the person it goes to */
+function cnMailMask(to, parts) {
+  const map = cnMap(); if (!map.size) return parts;
+  const u = db.prepare('SELECT id FROM users WHERE lower(email)=?').get(String(to || '').trim().toLowerCase());
+  if (!u) return parts;
+  const out = cnOutsideFor(u, map); if (!out.size) return parts;
+  const masked = cnMask(parts, out);
+  /* in an email, the party a confidential deal is with is hidden too */
+  const cps = new Set();
+  for (const id of out.keys()) { const r = db.prepare('SELECT counterparty FROM contracts WHERE id=?').get(id); if (r && r.counterparty && r.counterparty.length >= 3) cps.add(r.counterparty); }
+  const hide = s => { let t = s; for (const cp of cps) if (typeof t === 'string' && t.includes(cp)) t = t.split(cp).join('—'); return t; };
+  return Object.fromEntries(Object.entries(masked).map(([k, v]) => [k, typeof v === 'string' ? hide(v) : v]));
+}
+/* ONE WRITER: the deal's owner, or an admin who knows its real name */
+app.put('/api/contracts/:id/code-name', auth, editor, (req, res) => {
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  let c = {}; try { c = JSON.parse(row.json) || {}; } catch (_) {}
+  if (c.parentId) return res.status(400).json({ error: 'A code name is set on the agreement itself; what is filed under it follows.' });
+  const ownerId = String((c.owner && c.owner.id) || '');
+  if (!(req.user.role === 'admin' || (ownerId && ownerId === String(req.user.id))))
+    return res.status(403).json({ error: 'Only the deal\'s owner, or an admin, can give it a code name.' });
+  const b = req.body || {};
+  const was = db.prepare('SELECT * FROM code_names WHERE contract_id=?').get(req.params.id);
+  const log = what => db.prepare('INSERT INTO code_name_log (at, by_id, by_name, contract_id, contract_ref, what) VALUES (?,?,?,?,?,?)')
+    .run(now(), String(req.user.id || ''), String(req.user.name || ''), req.params.id, contractRef(c) || req.params.id, what);
+  const code = String(b.code == null ? '' : b.code).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, CN_MAX);
+  if (!code) {
+    if (was) { db.prepare('DELETE FROM code_names WHERE contract_id=?').run(req.params.id); log(`Code name ${was.code} removed — everyone who may open it sees its real name`); }
+    return res.json({ codeName: null });
+  }
+  if (code.length < 2) return res.status(400).json({ error: 'A code name needs at least two letters.' });
+  if (code.toLowerCase() === String(c.name || '').trim().toLowerCase()) return res.status(400).json({ error: 'A code name is not the real name.' });
+  const users = new Map(db.prepare('SELECT id, name, email FROM users').all().map(u => [String(u.id), u]));
+  const ids = [...new Set((Array.isArray(b.ids) ? b.ids : []).map(String).concat([String(req.user.id)], ownerId ? [ownerId] : []))].filter(id => users.has(id)).slice(0, 200);
+  const nm = id => (users.get(id) || {}).name || (users.get(id) || {}).email || id;
+  db.prepare(`INSERT INTO code_names (contract_id, code, people, set_by, set_at) VALUES (?,?,?,?,?)
+    ON CONFLICT(contract_id) DO UPDATE SET code=excluded.code, people=excluded.people, set_by=excluded.set_by, set_at=excluded.set_at`)
+    .run(req.params.id, code, JSON.stringify(ids), String(req.user.name || ''), now());
+  if (!was) log(`Code name ${code} given · ${ids.length} ${ids.length === 1 ? 'person knows' : 'people know'} the real name: ${ids.map(nm).join(', ')}`);
+  else {
+    if (was.code !== code) log(`Code name changed from ${was.code} to ${code}`);
+    const before = new Set(cnPeople(was.people)), added = ids.filter(id => !before.has(id)), gone = [...before].filter(id => !ids.includes(id));
+    if (added.length || gone.length) log(`Who knows the real name of ${code}: ${[added.length ? 'added ' + added.map(nm).join(', ') : '', gone.length ? 'removed ' + gone.map(nm).join(', ') : ''].filter(Boolean).join('; ')}`);
+  }
+  res.json({ codeName: cnOf(req.params.id) });
+});
+
 app.get('/api/status', (req, res) => {
   const org = getSetting('org');
   // Expose the deployed build so "did my change go live?" is a one-second check:
@@ -4068,6 +4234,9 @@ function srvListDecorate(dbRows, user) {
      find the handful on screen. The list is already bounded by `limit`, so
      the placeholder list is bounded with it. */
   const pageIds = rows.map(c => String(c.id));
+  /* a confidential deal's code name and who knows, for those on its list
+     (piece 11); everybody else's rows are stand-ins by cnFrontDoor */
+  { const cm = cnMap(); if (cm.size) rows.forEach(c => { const e = cm.get(String(c.id)); if (e && e.people.has(String(user.id))) c._codeName = cnOf(c.id); }); }
   const inList = n => '(' + new Array(n).fill('?').join(',') + ')';
   if (pageIds.length) {
     /* AND ITS CONCERNS, LITE (5 Oct 2026, the board's "by open risks" split).
@@ -4330,6 +4499,8 @@ app.get('/api/contracts/:id', auth, (req, res) => {
      read here with the figures they cannot see. Transport, never record. */
   const signNeeds = srvSignNeeds(c);
   out._signNeeds = signNeeds;
+  /* a confidential deal's code name and who knows, for those who do (piece 11) */
+  { const cn = cnOf(req.params.id); if (cn) out._codeName = cn; }
   if (out._valuesHidden && signNeeds.length) out._signState = srvSignStateTransport(c, signNeeds);
   /* The Contract Brief rides along as TRANSPORT (_brief, from its own table —
      WO-2): never part of the record, stripped again on PUT. A reader without
@@ -4903,6 +5074,7 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   delete c._readings;        // idea 7: the plain-English layer, off its own table
   delete c._signNeeds; delete c._signState;   // approval before signing: read here, never stored
   delete c._opens; delete c._access; delete c._opensCut;   // a private folder's trail: read here, never stored
+  delete c._codeName; delete c._codeNamed;   // a confidential deal's code name: its own table, never the record
   delete c._reach;           // can they still answer: read off the links, never stored (srvReach)
   delete c._roundPrep;       // Copilot's prepared answers to their round: its own table (runRoundPrep)
   delete c._book;            // what the wording says, read overnight: its own table (runBookReading)
@@ -11218,6 +11390,8 @@ const copilotCtx = (req) => ({
   org: (req.user && req.user.org_id) || WORKSPACE_ID,
   scope: folderScopeFor(req.user),
   money: canViewValues(req.user),
+  /* the confidential deals this reader is outside of: Jambo reads their stand-ins (piece 11) */
+  cnOut: cnOutsideFor(req.user),
 });
 
 // Open (non-dismissed) scan findings stored on a contract's json, if it was
@@ -11468,8 +11642,10 @@ function copilotSearch(ctx, query, limit = 8) {
    cannot count a different book. */
 function copilotRows(ctx) {
   const fs = scopeFrag(ctx.scope);
+  const out = (ctx && ctx.cnOut) || new Map();
   return db.prepare(`SELECT json FROM contracts ${whereOf('org_id=?', fs.sql)} ORDER BY seq`)
-    .all(ctx.org, ...fs.args).map(r => { try { return JSON.parse(r.json); } catch (_) { return null; } }).filter(Boolean);
+    .all(ctx.org, ...fs.args).map(r => { try { return JSON.parse(r.json); } catch (_) { return null; } }).filter(Boolean)
+    .map(c => out.has(String(c.id)) ? cnStub(String(c.id), out.get(String(c.id))) : c);
 }
 function copilotList(ctx, filter = {}) {
   const rows = copilotRows(ctx);
@@ -11993,6 +12169,9 @@ const COPILOT_TOOLS = [
    the provider key the playbook tool reviews with. */
 async function runCopilotTool(ctx, name, input, aux) {
   const a = input || {};
+  /* a confidential deal the reader is outside of: its stand-in, never its record (piece 11) */
+  const cnHit = [a.id].concat(Array.isArray(a.ids) ? a.ids : []).map(String).find(id => ctx && ctx.cnOut && ctx.cnOut.has(id));
+  if (cnHit) { const e = ctx.cnOut.get(cnHit); return { ...cnStub(cnHit, e), confidential: true, note: `${e.code} is a confidential deal: only the people named on it see it. Say so; say nothing else about it.` }; }
   try {
     if (name === 'search_contracts') return copilotSearch(ctx, a.query, a.limit);
     if (name === 'get_obligations') return copilotObligations(ctx, a);
@@ -12754,8 +12933,16 @@ app.get('/api/export/workspace.zip', auth, admin, (req, res) => {
   // authority changes, the export does not quietly become the way out.
   const scope = folderScopeFor(req.user);
   const f = scopeFrag(scope);
+  /* a confidential deal this admin is outside of stays out, with its files (piece 11) */
+  const cnOut = cnOutsideFor(req.user), cnFiles = new Set();
   const contracts = db.prepare(`SELECT json FROM contracts ${whereOf(f.sql)} ORDER BY seq`).all(...f.args)
-    .map(r => visibleContract(dropSittingKeys(JSON.parse(r.json)), req.user));
+    .map(r => JSON.parse(r.json)).filter(c => {
+      if (!cnOut.has(String(c.id))) return true;
+      if (c.upload && c.upload.fileId) cnFiles.add(c.upload.fileId);
+      for (const d of (Array.isArray(c.documents) ? c.documents : [])) if (d && d.fileId) cnFiles.add(d.fileId);
+      outsideFileIds(c).forEach(x => cnFiles.add(x));
+      return false; })
+    .map(c => visibleContract(dropSittingKeys(c), req.user));
   const users = db.prepare('SELECT id,name,email,role,created_at FROM users').all();  // no salt/hash
   const settings = getSetting('appSettings') || {};
   const files = [
@@ -12766,6 +12953,7 @@ app.get('/api/export/workspace.zip', auth, admin, (req, res) => {
   // uploaded file bytes (the files table stores a data: URL in `data`)
   const fileRows = db.prepare('SELECT id, name, data FROM files').all();
   for (const fr of fileRows) {
+    if (cnFiles.has(fr.id)) continue;
     const m = String(fr.data || '').match(/^data:([^;]*);base64,(.*)$/);
     if (m) files.push({ name: 'files/' + fr.id + '__' + String(fr.name || 'file').replace(/[^\w.\-]/g, '_'), data: Buffer.from(m[2], 'base64') });
   }
@@ -13267,7 +13455,7 @@ function trailAsk(req) {
     const name = String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 80);
     if (name) clean[String(k).slice(0, 64)] = name;
   }
-  return { from, to, streams, names: clean, scope: folderScopeFor(req.user) };
+  return { from, to, streams, names: clean, scope: folderScopeFor(req.user), cnOut: cnOutsideFor(req.user) };
 }
 const trailIso = v => { const t = Date.parse(String(v || '')); return isNaN(t) ? '' : new Date(t).toISOString(); };
 /* ONE READING: the acts in the period, oldest first */
@@ -13319,6 +13507,11 @@ function trailRows(ask) {
     const c = r.kind === 'rule' ? null : (byId.get(String(r.contract_id)) || { id: r.contract_id, contractNo: r.contract_ref, name: r.name, counterparty: r.counterparty, folder: r.folder });
     out.push({ at: r.at, who: String(r.by_name || ''), what, detail: r.kind === 'rule' ? `${ask.names[r.folder] || r.folder}: ${r.detail}` : `ended ${r.ended} · ${r.detail}`, c });
   }
+  /* a code name given, changed, removed, and who knows the real name (piece 11) */
+  if (byId.size) for (const r of db.prepare('SELECT * FROM code_name_log WHERE at >= ? AND at <= ? ORDER BY id').all(lo, hi)) {
+    const c = byId.get(String(r.contract_id));
+    if (c) out.push({ at: r.at, who: String(r.by_name || ''), what: 'Code name', detail: String(r.what || ''), c });
+  }
   if (byId.size) for (const r of db.prepare('SELECT * FROM away_answers WHERE at >= ? AND at <= ? ORDER BY id').all(lo, hi)) {
     const c = byId.get(String(r.contract_id));
     if (c) out.push({ at: r.at, who: String(r.deputy_name || ''), what: 'Answered for someone away', detail: `for ${r.for_name} · ${r.what}`, c });
@@ -13334,8 +13527,13 @@ const trailCell = v => { let s = String(v == null ? '' : v); if (/^[=+\-@\t\r]/.
 const TRAIL_HEAD = ['When (UTC)', 'Who', 'What', 'Detail', 'Contract', 'Name', 'Counterparty', 'Stream'];
 function trailLines(rows, ask) {
   const stream = id => (id ? (ask.names[String(id)] || String(id)) : '');
-  return rows.map(r => [r.at, r.who, r.what, r.detail, r.c ? contractRef(r.c) : '', r.c ? String(r.c.name || '') : '',
-    r.c ? String(r.c.counterparty || '') : '', r.c ? stream(r.c.folder) : '']);
+  /* a confidential deal is its code name to an admin outside its list (piece 11) */
+  const out = ask.cnOut || new Map(), cn = c => c && out.get(String(c.id));
+  /* …and on its own lines, the party it is with */
+  const cpHide = (r, t) => { const cp = cn(r.c) && String(r.c.counterparty || ''); return cp && cp.length >= 3 ? String(t || '').split(cp).join('—') : t; };
+  const lines = rows.map(r => [r.at, r.who, r.what, cpHide(r, r.detail), r.c ? contractRef(r.c) : '', r.c ? (cn(r.c) ? cn(r.c).code : String(r.c.name || '')) : '',
+    r.c && !cn(r.c) ? String(r.c.counterparty || '') : '', r.c ? stream(r.c.folder) : '']);
+  return out.size ? cnMask(lines, out) : lines;
 }
 const trailCsv = lines => [TRAIL_HEAD, ...lines].map(l => l.map(trailCell).join(',')).join('\r\n') + '\r\n';
 const trailSeal = csv => crypto.createHash('sha256').update(csv, 'utf8').digest('hex');
@@ -13450,7 +13648,12 @@ app.get('/api/export/contracts.csv', auth, (req, res) => {
   const head = ['ID', 'Name', 'Counterparty', 'Folder', `Value (${orgJx().currency})`, 'Status', 'Last action', 'Expiry'];
   const monetary = c => c.valueType !== 'none';
   const lines = [head.map(CSV_CELL).join(',')];
-  for (const c of rows) {
+  /* a confidential deal is its code name and stage alone to a reader outside its list (piece 11) */
+  const cnOut = cnOutsideFor(req.user);
+  for (const c0 of rows) {
+    const e = cnOut.get(String(c0.id));
+    if (e) { lines.push([c0.id, e.code, '', c0.folder || '', '', c0.status || '', '', ''].map(CSV_CELL).join(',')); continue; }
+    const c = c0;
     lines.push([c.id, c.name || '', c.counterparty || '', c.folder || '',
       (money && monetary(c)) ? (Number(c.value) || 0) : '',
       c.status || '', c.lastAction || '', c.expiry || ''].map(CSV_CELL).join(','));

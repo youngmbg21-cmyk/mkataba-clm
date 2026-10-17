@@ -3547,6 +3547,17 @@
   .st-kp-hname{ flex:1; min-width:0; color:var(--color-text); font-weight:var(--w-label); }
   .chip.st-kp-chip{ background:var(--st-ruby-bg); color:var(--st-ruby-fg); border-radius:999px; padding:0 8px; font-size:var(--t-label); font-weight:var(--w-label); white-space:nowrap; }
   .st-kp-unsaved{ margin-top:10px; }
+  /* CODE NAMES (owner picked "A code name field — the SAP way", 17 Oct 2026):
+     one line on the deal's Details, and its dialog's list of who knows */
+  .ov-cn{ display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 12px; padding:10px 14px; margin:0 0 var(--s-3);
+    border:1px solid var(--color-divider); border-radius:var(--radius-lg); background:var(--color-surface); font-size:var(--t-meta); }
+  .ov-cn-k{ color:var(--color-neutral-600); font-weight:var(--w-label); }
+  .ov-cn-v{ flex:1; min-width:0; color:var(--color-text); }
+  .ov-cn-go{ background:none; border:0; padding:0; color:var(--accent-ink); font:inherit; font-weight:var(--w-label); cursor:pointer; white-space:nowrap; }
+  .ov-cn-go:hover{ text-decoration:underline; }
+  .cn-people{ max-height:220px; overflow-y:auto; }
+  .cn-real{ margin:10px 0 0; }
+  .cn-refusal{ margin:8px 0 0; color:var(--st-ruby-fg); font-size:var(--t-meta); }
   /* THE TRAIL, AS A FILE (owner picked "Export drawer — the SAP way", 17 Oct 2026):
      Data & backup's second tab — the period, the streams, the format, the count
      beside the one act, then every download so far */

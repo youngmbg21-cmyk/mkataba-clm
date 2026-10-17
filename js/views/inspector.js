@@ -637,6 +637,10 @@ function insKvHtml(facts){
    'reads', 'latest'. */
 function insPanelHtml(c, o){
   const opt = o || {};
+  /* A CONFIDENTIAL DEAL, TO SOMEBODY OUTSIDE ITS LIST (piece 11): its code
+     name, stream and stage — nothing more reached this browser */
+  if (c && c._codeNamed) return insHeadHtml(c, opt) + `<div class="ins-sec"><p class="ins-note">${esc(i18t('cn_panel_note'))}</p></div>`
+    + insKvHtml([{ k: 'party', label: i18t('cn_panel_party'), v: esc(i18t('cn_panel_party_v')), wide: true }, { k: 'stage', label: i18t('cn_panel_stage'), v: esc(String(c.status || '')) }]);
   const order = opt.order || ['facts', 'table', 'reads', 'latest'];
   const part = {
     lead: () => opt.lead || '',

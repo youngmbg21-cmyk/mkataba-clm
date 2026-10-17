@@ -1721,6 +1721,8 @@ Object.assign(window,{refreshOrgBranding,saveOrgBranding});
        (fillHeavyFrom — restoreHeavyFields' own rule).
    With nothing pending, it is exactly what it was. */
 async function ensureFull(c){
+  /* a confidential deal's stand-in has no record to read (piece 11): every door stops at codeNameStop */
+  if(c && c._codeNamed) throw Object.assign(new Error(i18t('cn_stop',{code:c.name})),{ codeName:true });
   if(!API_MODE() || !c || c._loaded) return;
   if(contractSavePending(c)){ try{ await flushSaves(); }catch(_){} if(c._loaded) return; }
   const full=await api('contracts/'+c.id);
@@ -2210,13 +2212,21 @@ function awayForOf(u, personId){
   const r=(state.away.covering||[]).find(x=>x&&String(x.userId)===String(personId));
   return { id:String(personId), name:(r&&r.userName)||((userById(personId)||{}).name)||'' };
 }
+/* CODE NAMES (piece 11): a confidential deal reaches somebody outside its
+   list as a stand-in (`_codeNamed`): its code name, stream and stage. Every
+   door that would open it asks here first and says why it stays shut. */
+function codeNameStop(c){
+  if(!c||!c._codeNamed) return false;
+  toast(i18t('cn_stop',{code:c.name}),'warn');
+  return true;
+}
 /* "Grace Wanjiru for Amina Otieno" — the one way an answer given for someone
    away names both people */
 function awayByLabel(by, forWho){
   const n=String(by||'');
   return forWho&&forWho.name ? i18t('aw_by_for',{by:n,who:forWho.name}) : n;
 }
-Object.assign(window,{orgDirectory,directoryLookup,userFolderAccess,canAccessFolder,folderSeerCount,folderAccessAllows,privateStreamsMap,privateStreamIds,streamIsPrivate,jamboOnPress,streamNames,canViewValues,csvValueCell,signerTitle,signatureCapacity,awayCovers,awayForOf,awayByLabel});
+Object.assign(window,{orgDirectory,directoryLookup,userFolderAccess,canAccessFolder,folderSeerCount,folderAccessAllows,privateStreamsMap,privateStreamIds,streamIsPrivate,jamboOnPress,streamNames,canViewValues,csvValueCell,signerTitle,signatureCapacity,awayCovers,awayForOf,awayByLabel,codeNameStop});
 
 const newSalt = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 const hashPassword = (pw,salt) => sha256(`${salt}::${pw}`);
