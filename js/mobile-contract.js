@@ -474,7 +474,9 @@ function mTermsHtml(c){
     { get label(){ return i18t('tf_our_party'); },
       value:(typeof contractParty==='function'?contractParty(c):(c.party||'')) },
     { get label(){ return i18t('m_counterparty'); }, value:(typeof cParty==='function'?cParty(c):c.counterparty)||'', miss:true },
-    money ? { get label(){ return i18t('mc_contract_value'); }, value:(typeof isMonetary==='function'&&!isMonetary(c))?i18t('ct_non_monetary'):(c.value?mMoney(c):''), miss:true } : null,
+    /* an employment contract's money is its pay, the desktop's own line (payBaseLine) */
+    money && typeof fxIsPay==='function' && fxIsPay(c) ? { get label(){ return i18t('ov_f_pay'); }, value:(typeof payBaseLine==='function'?payBaseLine(c):''), miss:true }
+    : money ? { get label(){ return i18t('mc_contract_value'); }, value:(typeof isMonetary==='function'&&!isMonetary(c))?i18t('ct_non_monetary'):(c.value?mMoney(c):''), miss:true } : null,
     { get label(){ return i18t('mc_start_date'); }, value:dateOf(md.effectiveDate||(c.fields&&c.fields.effDate)) },
     { get label(){ return i18t('mc_expiry'); }, value:dateOf((typeof effectiveExpiry==='function'?effectiveExpiry(c):null)||c.expiry) },
     { get label(){ return i18t('mc_payment_terms'); }, value:md.paymentTerms },

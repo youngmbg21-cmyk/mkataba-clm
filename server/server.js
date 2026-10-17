@@ -10,7 +10,8 @@ const express = require('express');
    here: a second copy would drift from the browser's the first time either
    moved, and the two would then describe different markets to the same model. */
 const { jxPack, JX_DEFAULT, JURISDICTIONS,
-  fxSetRatesReader, fxSetHomeReader, fxSetPrivateReader, fxHome, fxCounted, fxPrivate, fxMissing, contractCurrency } = require('../js/jurisdiction.js');
+  fxSetRatesReader, fxSetHomeReader, fxSetPrivateReader, fxHome, fxCounted, fxPrivate, fxMissing, contractCurrency,
+  fxIsPay, payClean } = require('../js/jurisdiction.js');
 /* One dictionary, two hosts. The server writes email and needs the recipient's
    own language from the SAME table the screens use — a second copy here would
    drift from js/i18n.js without anything noticing, which is the fault the
@@ -2430,6 +2431,7 @@ function maskContractValues(c, moneyKeys) {
   if (!c || typeof c !== 'object') return c;
   const x = { ...c };
   delete x.value; delete x.valueType;
+  delete x.pay;   // an employment contract's pay parts are money like any other
   const keys = moneyKeys || moneyFieldKeys();
   if (x.fields && typeof x.fields === 'object') {
     const f = { ...x.fields };
@@ -2872,7 +2874,7 @@ function capAiInput(req, res, next) {
    still a leak, so nothing about the dropped rows travels. */
 const AI_VALUE_FIELDS = ['value', 'valueType', 'proposedValue', 'totalValue', 'feeMin', 'feeMax',
   /* audit phase 1: the converted figures Copilot's tools carry are money too */
-  'currency', 'valueInHomeCurrency', 'homeCurrency', 'valueRateMissing', 'valueTotalInHomeCurrency', 'valueLeftOut', 'monetary'];
+  'currency', 'valueInHomeCurrency', 'homeCurrency', 'valueRateMissing', 'valueTotalInHomeCurrency', 'valueLeftOut', 'monetary', 'isPay'];
 function scopeAiPortfolio(req, res, next) {
   const scope = folderScopeFor(req.user);
   const money = canViewValues(req.user);
@@ -4717,6 +4719,10 @@ const EXECUTED_IMMUTABLE = [
      that files the contract and never after: swapping the file of record is
      not an edit to a signed contract, it is a different contract. */
   'signedCopy', 'contractNo', 'signRoute',
+  /* PAY IS WHAT WAS SIGNED TOO (17 Oct 2026): an employment contract's base
+     pay is `value`, frozen above; how often it is paid and the other parts
+     (c.pay) freeze with it. A pay rise is an amendment. */
+  'pay',
   /* ---- AND `renewalDecision` IS DELIBERATELY NOT ON THIS LIST (16 Sep 2026) ----
      THE ABSENCE IS LOAD-BEARING. A renewal decision is a FILING fact beside the
      status, exactly like `archived`, and every contract it is ever asked about
@@ -4957,6 +4963,7 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      exact same reasoning (and failure mode) as the audit-trail guard below. */
   if (prev && !canViewValues(req.user)) {
     c.value = prev.value; c.valueType = prev.valueType;
+    if (prev.pay !== undefined) c.pay = prev.pay; else delete c.pay;
     const keys = moneyFieldKeys();
     if (prev.fields) { c.fields = { ...(c.fields || {}) }; for (const k of keys) if (k in prev.fields) c.fields[k] = prev.fields[k]; }
     if (prev.metadata) {
@@ -4967,6 +4974,8 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     if (Array.isArray(c.rounds) && Array.isArray(prev.rounds))
       c.rounds = c.rounds.map((r, i) => (r && prev.rounds[i] && r.proposedValue == null) ? { ...r, proposedValue: prev.rounds[i].proposedValue } : r);
   }
+  /* PAY ARRIVES IN ONE SHAPE (payClean, the browser's own cleaner, js/jurisdiction.js) */
+  if (c.pay !== undefined) { const p = payClean(c.pay); if (p) c.pay = p; else delete c.pay; }
 
   /* ---- APPROVAL BEFORE SIGNING: THE REQUESTS ARE MERGED (23 Sep 2026) ----
      After the money is put back, because a request is stamped with exactly
@@ -11229,11 +11238,14 @@ function copilotDetail(ctx, id) {
    `valueRateMissing` where no rate is on file (left out and SAID, never
    guessed; fxHome answers 0 there, so the converted figure is null rather than
    a zero that would be read as a value). */
-const COPILOT_MONEY_KEYS = ['value', 'valueType', 'monetary', 'currency', 'valueInHomeCurrency', 'homeCurrency', 'valueRateMissing', 'valueTotalInHomeCurrency', 'valueLeftOut'];
+const COPILOT_MONEY_KEYS = ['value', 'valueType', 'monetary', 'currency', 'valueInHomeCurrency', 'homeCurrency', 'valueRateMissing', 'valueTotalInHomeCurrency', 'valueLeftOut', 'isPay'];
 function copilotMoneyOf(c) {
   const h = fxHome({ value: Number(c.value) || 0, metadata: c.metadata || {} });
+  /* PAY IS NOT DEAL VALUE (17 Oct 2026): an employment contract's figure is a
+     person's pay — stated, never converted for a total (fxIsPay, fxCounted) */
+  const pay = fxIsPay(c);
   return { currency: contractCurrency({ metadata: c.metadata || {} }), homeCurrency: orgJx().currency,
-    valueInHomeCurrency: h.missing ? null : h.v, valueRateMissing: !!h.missing };
+    valueInHomeCurrency: (h.missing || pay) ? null : h.v, valueRateMissing: !pay && !!h.missing, ...(pay ? { isPay: true } : {}) };
 }
 /* THE WALL: a reader without can_view_values receives money through no key,
    old or new. One list, asked here and by scopeAiPortfolio. */
@@ -11479,7 +11491,8 @@ function copilotCardOf(c, briefIds, effOf) {
   let move = null;
   try { const n = copilotNegotiation(c); if (n && n.active) move = n.turn === 'counterparty' ? 'them' : 'you'; } catch (_) {}
   return { id: c.id, contractNo: c.contractNo || undefined, name: c.name || c.id, counterparty: c.counterparty || '', folder: c.folder || '', kind: copilotContractKind(c),
-    status: c.status || '', value: Number(c.value) || 0, expiry: (effOf && effOf(c)) || c.expiry || '', signedAt: contractSignedOn(c) || '',
+    /* a salary carries no deal value, so it never matches a money cut (fxIsPay) */
+    status: c.status || '', value: fxIsPay(c) ? null : (Number(c.value) || 0), expiry: (effOf && effOf(c)) || c.expiry || '', signedAt: contractSignedOn(c) || '',
     overdue, offStandard, read, move, archived: !!c.archived };
 }
 /* ---- OBLIGATIONS AND THE TRAIL (phase 8) ----
@@ -11838,7 +11851,7 @@ function copilotInsightsPanel(clientCtx, name) {
 }
 
 /* Said on every tool that carries money, both hosts (js/ai.js mirrors it). */
-const COPILOT_MONEY_NOTE = 'MONEY: each row\'s "value" is in that contract\'s OWN currency ("currency"); never add values in different currencies. Use "valueInHomeCurrency" (converted with the workspace\'s rate into "homeCurrency") for any total, and the list\'s "valueTotalInHomeCurrency" for the total of a filtered set — it is already added up. A contract with "valueRateMissing" has no rate on file: it is left out of every converted figure and must be SAID ("valueLeftOut" counts them per currency), never estimated.';
+const COPILOT_MONEY_NOTE = 'MONEY: each row\'s "value" is in that contract\'s OWN currency ("currency"); never add values in different currencies. Use "valueInHomeCurrency" (converted with the workspace\'s rate into "homeCurrency") for any total, and the list\'s "valueTotalInHomeCurrency" for the total of a filtered set — it is already added up. A contract with "valueRateMissing" has no rate on file: it is left out of every converted figure and must be SAID ("valueLeftOut" counts them per currency), never estimated. A row with "isPay" is an employment contract: its "value" is that person\'s pay, never deal value — never add it to a total, compare it with deals or rank it among them.';
 /* Phase 8: the two things a contracts team works on daily, and the two things
    Copilot could not see. Both are READS of the stored record; both hosts. */
 const COPILOT_OBLIGATIONS_DESC = 'The obligations (promises, deliverables, payments) on one contract or across the whole book, read off the record: description, due date, state (open / overdue / done), band (overdue / waiting = held behind another step in a payment chain / thisMonth / later / done), whose (ours / theirs), the owner to chase, when it was completed or chased, and the amount where the reader may see values. Use for "what is overdue", "what do we owe", "what does X still have to deliver", "which payments are waiting", "what is due this month". Counts by band come back as "byBand"; the list is capped at 60 with "total" stated.';
@@ -22079,7 +22092,8 @@ function buildMonthlyReport(month) {
      reporting. byId carries the record, because the currency lives on the
      contract's metadata and the row only has the number. */
   const byId = new Map(parsed.map(x => [x.r.id, x.c]));
-  const homeOf = r => fxHome({ value: r.value, metadata: (byId.get(r.id) || {}).metadata });
+  /* a salary is pay, never deal value: it adds nothing here (fxCounted, fxIsPay) */
+  const homeOf = r => fxCounted({ value: r.value, metadata: (byId.get(r.id) || {}).metadata });
   const totalValue = active.reduce((s, r) => s + homeOf(r).v, 0);
   const fxLeftOut = fxMissing(active.map(r => ({ ...byId.get(r.id), value: r.value, status: r.status })));
   const byStatus = {};
@@ -23602,6 +23616,10 @@ app.post('/api/templates/:id/contracts', auth, editor, (req, res) => {
          answers, the upload path and applyTemplateValues write ("Neither"
          writes nothing, so the extractor may still fill it later). */
       if (b.side === 'customer' || b.side === 'supplier') put('category', b.side);
+      /* AN EMPLOYMENT STANDARD MAKES AN EMPLOYMENT CONTRACT (17 Oct 2026):
+         the template's own category is the fact, so the salary typed into it
+         is read as pay from the first save — never deal value (fxIsPay). */
+      else if (String(t.category || '') === 'employment') put('category', 'employment');
       if (Number(b.value) > 0) put('value', Number(b.value));
       if (/^\d{4}-\d{2}-\d{2}$/.test(String(b.effDate || ''))) put('effectiveDate', String(b.effDate));
       if (/^\d{4}-\d{2}-\d{2}$/.test(String(b.expiry || ''))) put('expiryDate', String(b.expiry));

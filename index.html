@@ -10015,6 +10015,8 @@
   .bs-kpi b{display:block;font-size:var(--t-page);font-weight:var(--w-strong);font-variant-numeric:tabular-nums;line-height:1.25;color:var(--hb-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .bs-kpi span{display:block;margin-top:2px;font-size:var(--t-meta);color:var(--hb-mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .bs-kpi.is-warn b{color:var(--hb-amber)}
+  /* a job title is words, not a figure: a size down, so a role reads whole */
+  .bs-kpi[data-bs-kpi="role"] b{font-size:var(--t-card);line-height:1.8}
   .bs-lg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:var(--t-meta);color:var(--hb-ink-2)}
   .bs-lg span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
   .bs-sw{display:inline-block;width:10px;height:10px;border-radius:2px;flex:none}
@@ -10053,6 +10055,26 @@
   .bs-dl dd.is-owed{color:var(--hb-amber);font-weight:var(--w-strong)}
   .bs-dl dd.is-owed::before{content:"";display:inline-block;width:7px;height:7px;margin-right:7px;border-radius:50%;background:var(--hb-amber);vertical-align:1px}
   .bs-dl dd.is-amber{color:var(--hb-amber)}
+  /* PAY (owner picked "Pay section — the SAP way", 17 Oct 2026): a quiet
+     table under an employment contract's tiles; in Edit the same table as boxes */
+  .bs-pay-wrap{overflow-x:auto;border:1px solid rgba(var(--hb-ln),.16);border-radius:var(--radius-lg)}
+  .bs-pay-t{width:100%;border-collapse:collapse;font-size:var(--t-body)}
+  .bs-pay-t th{padding:8px 14px 6px;text-align:left;font-size:var(--t-meta);font-weight:var(--w-label);color:var(--hb-ink-2);border-bottom:1px solid rgba(var(--hb-ln),.18);white-space:nowrap}
+  .bs-pay-t td{padding:8px 14px;vertical-align:middle;color:var(--hb-ink);border-bottom:1px solid rgba(var(--hb-ln),.1)}
+  .bs-pay-t tr:last-child td{border-bottom:0}
+  .bs-pay-t .bs-pay-n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .bs-pay-t b{font-weight:var(--w-strong)}
+  .bs-pay-am{display:block;font-size:var(--t-meta);color:var(--hb-mute)}
+  .bs-pay-say{margin:0;font-size:var(--t-body);color:var(--hb-ink-2)}
+  .bs-pay-say.is-owed{color:var(--hb-amber);font-weight:var(--w-strong)}
+  .bs-pay-ed .bs-pay-t td{padding:6px 8px}
+  .bs-pay-ed .bs-pay-t th{padding:8px 8px 6px}
+  .bs-pay-ed .bs-pay-t td:first-child{width:34%}
+  .bs-pay-ed .bs-pay-t td.bs-pay-x{width:1%;padding-left:0}
+  .bs-pay-in{box-sizing:border-box;width:100%;min-width:0;height:var(--ctl-h-sm);padding:0 8px;border:1px solid var(--btn-edge);border-radius:var(--radius);background:var(--hb-menu);color:var(--hb-ink);font:inherit;font-size:var(--t-body)}
+  .bs-pay-in[data-bs-pay-f="amount"]{text-align:right;font-variant-numeric:tabular-nums}
+  .bs-pay-in:focus-visible{outline:2px solid var(--hb-glow);outline-offset:0}
+  .bs-pay-acts{display:flex;align-items:center;gap:8px;margin-top:10px}
   .bs-obs{--bs-ob-rows:7;max-height:calc(var(--bs-ob-rows) * 37px + 34px);overflow:auto;padding:0 12px;border:1px solid rgba(var(--hb-ln),.16);border-radius:var(--radius-lg)}
   .bs-obs:focus-visible{outline:2px solid var(--hb-glow);outline-offset:2px}
   .bs-ob{width:100%;border-collapse:collapse;font-size:var(--t-body)}

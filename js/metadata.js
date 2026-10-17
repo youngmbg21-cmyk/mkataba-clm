@@ -102,6 +102,14 @@ const META_FIELDS = [
   { k:'noticePeriodDays', get label(){ return i18t('me_notice_days'); },  type:'num'  },
   { k:'governingLaw',     get label(){ return i18t('me_governing_law'); },  type:'text' },
   { k:'paymentTerms',     get label(){ return i18t('me_payment_terms'); },  type:'text' },
+  /* ---- A JOB'S OWN TWO FACTS (owner picked "Pay section — the SAP way",
+     17 Oct 2026) ----
+     Asked only of an employment contract (`when`, read off the record's own
+     category): the Overview's eight carry them in place of payment terms and
+     the liability cap (ovEssKeys), and the contract's panel reads them in its
+     tiles (bsJobTiles). Probation is whole months, as contracts state it. */
+  { k:'jobTitle',          get label(){ return i18t('me_job_title'); },        type:'text', when:m=>String((m||{}).category||'')==='employment' },
+  { k:'probationMonths',   get label(){ return i18t('me_probation_months'); }, type:'num',  when:m=>String((m||{}).category||'')==='employment' },
   /* ---- what an agreement leaves behind, and what it exposes ----
      These four are the ones a business carries after the work is done or
      while the price is out of its hands. They are read off the document like
@@ -770,7 +778,7 @@ function openMetaReview(meta, onConfirm, opts={}){
       ${opts.ocrNotice?`<div style="display:flex;align-items:flex-start;gap:var(--s-2);border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:var(--radius);padding:var(--s-2) 11px;font-size:var(--t-meta);line-height:1.55;margin:-8px 0 14px">
         <span style="flex:none;margin-top:1px">${icon('readpaper','w-3.5 h-3.5')}</span>
         <span>${String(opts.ocrNotice).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))} Every field below is capped at <b>medium</b> confidence until you confirm it.</span></div>`:''}
-      <div class="grid grid-cols-2 gap-3" style="max-height:min(52vh,460px);overflow-y:auto;padding-right:var(--s-1)">${META_FIELDS.map(field).join('')}</div>
+      <div class="grid grid-cols-2 gap-3" style="max-height:min(52vh,460px);overflow-y:auto;padding-right:var(--s-1)">${META_FIELDS.filter(f=>!f.when||f.when(meta)).map(field).join('')}</div>
       <div class="flex justify-end gap-2 mt-5">
         ${queued?`<button id="mr-stop" class="ui-btn" style="margin-right:auto">${i18t('me_stop')}</button>`:''}
         <button data-dlg-cancel id="mr-cancel" class="ui-btn">${queued?i18t('me_skip_this'):i18t('act_cancel')}</button>

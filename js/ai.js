@@ -2089,10 +2089,12 @@ const COPILOT_TEXT_CAP=50000;
    (fxHome), the home code, and "no rate" said rather than guessed. */
 function _localMoneyOf(c){
   const h=(typeof fxHome==='function')?fxHome(c):{ v:Number(c.value||0), code:jxCurrency(), missing:false };
+  /* pay is not deal value: stated, never converted for a total (fxIsPay) */
+  const pay=(typeof fxIsPay==='function')&&fxIsPay(c);
   return { currency:(typeof contractCurrency==='function')?contractCurrency(c):jxCurrency(), homeCurrency:jxCurrency(),
-    valueInHomeCurrency:h.missing?null:h.v, valueRateMissing:!!h.missing };
+    valueInHomeCurrency:(h.missing||pay)?null:h.v, valueRateMissing:!pay&&!!h.missing, ...(pay?{ isPay:true }:{}) };
 }
-const AI_MONEY_NOTE='MONEY: each row\'s "value" is in that contract\'s OWN currency ("currency"); never add values in different currencies. Use "valueInHomeCurrency" (converted with the workspace\'s rate into "homeCurrency") for any total, and the list\'s "valueTotalInHomeCurrency" for the total of a filtered set — it is already added up. A contract with "valueRateMissing" has no rate on file: it is left out of every converted figure and must be SAID ("valueLeftOut" counts them per currency), never estimated.';
+const AI_MONEY_NOTE='MONEY: each row\'s "value" is in that contract\'s OWN currency ("currency"); never add values in different currencies. Use "valueInHomeCurrency" (converted with the workspace\'s rate into "homeCurrency") for any total, and the list\'s "valueTotalInHomeCurrency" for the total of a filtered set — it is already added up. A contract with "valueRateMissing" has no rate on file: it is left out of every converted figure and must be SAID ("valueLeftOut" counts them per currency), never estimated. A row with "isPay" is an employment contract: its "value" is that person\'s pay, never deal value — never add it to a total, compare it with deals or rank it among them.';
 function _localDetail(c){
   if(!c) return { found:false };
   const open=(typeof openFindings==='function'&&c.scan)?openFindings(c):[];

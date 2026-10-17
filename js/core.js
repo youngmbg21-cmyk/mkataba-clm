@@ -2184,7 +2184,8 @@ function canViewValues(u){
    confident "0" into the sheet — a wrong number, not a hidden one. The
    authoritative, whole-register export is GET /api/export/contracts.csv, which
    the server masks the same way. */
-const csvValueCell = c => (!isMonetary(c) || !canViewValues()) ? '' : (c.value||0);
+/* a salary is not deal value: an employment contract's export cell is empty, as its list cell is a dash (fxIsPay) */
+const csvValueCell = c => (!isMonetary(c) || !canViewValues() || (typeof fxIsPay === 'function' && fxIsPay(c))) ? '' : (c.value||0);
 Object.assign(window,{orgDirectory,directoryLookup,userFolderAccess,canAccessFolder,folderSeerCount,folderAccessAllows,privateStreamsMap,privateStreamIds,streamIsPrivate,streamNames,canViewValues,csvValueCell,signerTitle,signatureCapacity});
 
 const newSalt = () => Math.random().toString(36).slice(2) + Date.now().toString(36);

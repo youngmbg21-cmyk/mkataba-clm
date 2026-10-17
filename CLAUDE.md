@@ -164,6 +164,7 @@ NUDGE `obligationRecipient` at 7/0/-1 days in their language. DAILY BRIEF `runDa
 ## MONEY IN ITS OWN CURRENCY
 
 `fmtMoneyShortIn` is the ONE shortener (B · M · K). A contract states its own currency (`contractCurrency`, `fmtMoneyOf`); anything that ADDS converts through `fxHome`; NO RATE IS EVER GUESSED (`fxMissing`); rates are an admin's dated claim (`PUT /api/settings/fx-rates`). Stored values never rewritten. Tests: f218, settings-tabs-verify.
+- PAY IS NOT DEAL VALUE (owner picked "Pay section — the SAP way", 17 Oct 2026): `fxIsPay(c)` (category employment; both hosts) — `fxCounted` adds nothing, `fxMissing` skips, `fmtMoneyShortOf` a dash, Jambo's rows `isPay`. Base pay stays `c.value` (gates, freeze, wall unchanged); period and parts in `c.pay` (`payClean`, `payPartsOf`; server freezes, masks, restores `pay`). Panel: job tiles `bsJobTiles`, Pay table `bsPayHtml` in the life line's place; ONE writer `paySet`, ONE door `payEditOpen` (the Overview's Pay cell too); eight swap `ovEssKeys`. Tests: f696, pay-section-verify.
 
 ## "SENT" MUST MEAN SENT, AND NO CHANNEL BACK IS NOT READ-ONLY
 

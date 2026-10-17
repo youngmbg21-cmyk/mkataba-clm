@@ -124,8 +124,13 @@ const NEW = ['category', 'retentionPct', 'retentionReleaseDays', 'warrantyMonths
        NUMBER. The card offers every recorded term, and there are more of them
        than the sixteen this was written against (S2, S10, the three every
        agreement has). It is the list's own length that is asked. */
-    const want = await page.evaluate(() => (window.META_FIELDS || []).length);
-    check('the review card offers every recorded field', want > 0 && card.fields.length === want, `${card.fields.length} of ${want} fields`);
+    /* EVERY FIELD THAT APPLIES (17 Oct 2026, "Pay section — the SAP way"):
+       a job's role and probation (`when`) are asked only of an employment
+       contract, so a roofing contract's card leaves exactly those two out */
+    const want = await page.evaluate(m => (window.META_FIELDS || []).filter(f => !f.when || f.when(m)).length, meta);
+    const jobOnly = await page.evaluate(() => (window.META_FIELDS || []).filter(f => f.when).map(f => f.k).sort().join(','));
+    check('the review card offers every recorded field that applies', want > 0 && card.fields.length === want && jobOnly === 'jobTitle,probationMonths',
+      `${card.fields.length} of ${want} fields; asked only of a job: ${jobOnly}`);
     check('the six new fields are on it', NEW.every(k => card.fields.includes(k)),
       NEW.filter(k => !card.fields.includes(k)).join(', ') || 'all present');
     check('sixteen fields scroll rather than run off the dialog', card.scrolls);

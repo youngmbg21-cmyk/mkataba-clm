@@ -42,7 +42,7 @@ function folderFiltered(){
   if(sort==='value' && typeof canViewValues==='function' && !canViewValues()) sort='updated';
   const upd=c=>{ const t=Date.parse(c.lastAction); return isNaN(t)?0:t; };
   if(sort==='updated') cs.sort((a,b)=>upd(b)-upd(a));
-  else if(sort==='value') cs.sort((a,b)=>Number(b.value||0)-Number(a.value||0));
+  else if(sort==='value') cs.sort((a,b)=>regSortValue(b)-regSortValue(a));
   else if(sort==='name') cs.sort((a,b)=>a.name.localeCompare(b.name));
   else if(sort==='expiry') cs.sort((a,b)=>{ const ea=effectiveExpiry(a), eb=effectiveExpiry(b); const da=ea?daysUntil(ea):1e9, db=eb?daysUntil(eb):1e9; return da-db; });
   return cs;
@@ -1280,9 +1280,11 @@ function regRefParts(id){
   const m=REG_REF_RE.exec(s);
   return m ? [m[1].toLowerCase(), Number(m[2])] : [s.toLowerCase(), -1];
 }
+/* the value a sort ranks by: a salary is not deal value, so it ranks with the dashes (fxIsPay) */
+const regSortValue=c=>(typeof fxIsPay==='function'&&fxIsPay(c))?0:Number(c.value||0);
 const REG_CMP={
   updated:(a,b)=>((Date.parse(a.lastAction)||0)-(Date.parse(b.lastAction)||0)),
-  value:(a,b)=>Number(a.value||0)-Number(b.value||0),
+  value:(a,b)=>regSortValue(a)-regSortValue(b),
   risk:(a,b)=>contractRisk(a)-contractRisk(b),
   name:(a,b)=>(a.name||'').localeCompare(b.name||''),
   expiry:(a,b)=>{ const ea=effectiveExpiry(a), eb=effectiveExpiry(b); const da=ea?daysUntil(ea):1e9, db=eb?daysUntil(eb):1e9; return da-db; },

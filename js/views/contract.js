@@ -7033,6 +7033,18 @@ function ktFieldCell(c,k,edit,marks){
      — so no branch below can forget it and no branch has to know about it. */
   const cell=(()=>{ switch(k){
     case 'value': {
+      /* PAY, NOT VALUE (owner picked "Pay section — the SAP way", 17 Oct
+         2026): an employment contract's cell says its base pay and how often,
+         and in Edit it is not a box — its one door is Edit pay, the
+         contract's panel on Home (payEditOpen) */
+      if(window.fxIsPay&&fxIsPay(c)){
+        let base=null; try{ const e=window.effectiveTerm?effectiveTerm(c,'value'):null; if(e&&e.from&&Number(e.v)>0) base=Number(e.v); }catch(_){ base=null; }
+        const line=window.payBaseLine?payBaseLine(c,base):'';
+        const read=line?mono(esc(line)):'';
+        if(!edit) return [i18t('ov_f_pay'), read];
+        const door=(!PORTAL_MODE&&window.bsPayMay&&bsPayMay(c))?` <button type="button" class="ui-link" data-ov-pay-edit="${esc(c.id)}">${esc(i18t('bs_pay_edit'))}</button>`:'';
+        return [i18t('ov_f_pay'), `<span class="ov-pay-read">${read||'—'}${door}</span>`];
+      }
       const read=R.monetary?(R.money?mono(R.money):''):esc(i18t('ct_non_monetary'));
       if(!edit) return [i18t('ov_f_value'), read];
       return [i18t('ov_f_value'),
@@ -7123,6 +7135,11 @@ function ktDealFactsHtml(c,opts={}){
    owed, and its door (focusKeyTerms) must have a cell to land on. */
 const OV_ESS_REST=['contractType','governingLaw','disputes','value','term','renewalType','paymentTerms','liabilityCapped'];
 const OV_ESS_REST_PEERS={ term:['effDate','expiry'], renewalType:['renewalTermMonths','notice'] };
+/* AN EMPLOYMENT CONTRACT'S EIGHT (owner picked "Pay section — the SAP way",
+   17 Oct 2026): the role and the probation take the places of payment terms
+   and the liability cap, and the value cell is its Pay — the card stays eight */
+const OV_ESS_PAY_SWAP={ paymentTerms:'jobTitle', liabilityCapped:'probationMonths' };
+function ovEssKeys(c){ return (window.fxIsPay&&fxIsPay(c)) ? OV_ESS_REST.map(k=>OV_ESS_PAY_SWAP[k]||k) : OV_ESS_REST; }
 function ovEssRenewalRead(c){
   const R=ovMapRenewal(c), m=(c&&c.metadata)||{};
   const type=R.type?((typeof metaOptLabel==='function'?metaOptLabel(R.type):R.type)||R.type):'';
@@ -7160,6 +7177,11 @@ async function ovRenewTermAsk(id){
   toast(i18t('ov_rn_term_saved',{ n }),'ok');
   try{ if(window.contractOverviewShown&&contractOverviewShown(now)) renderKeyTerms(now); }catch(_){}
 }
+/* EDIT PAY, from the Overview's Pay cell: the one door, the contract's panel on Home */
+if(typeof document!=='undefined') document.addEventListener('click',e=>{
+  const b=e.target&&e.target.closest&&e.target.closest('[data-ov-pay-edit]'); if(!b) return;
+  e.preventDefault(); if(window.payEditOpen) payEditOpen(b.getAttribute('data-ov-pay-edit'));
+});
 if(typeof document!=='undefined') document.addEventListener('click',e=>{
   const b=e.target&&e.target.closest&&e.target.closest('[data-ov-renew-term]'); if(!b) return;
   e.preventDefault(); ovRenewTermAsk(b.getAttribute('data-ov-renew-term'));
@@ -7170,14 +7192,15 @@ if(typeof document!=='undefined') document.addEventListener('click',e=>{
    does not. Each cell carries its key (`_key`). */
 function ovEssRestHtml(c,marks){ return sectionFieldsHtml(ovEssRestCells(c,marks)); }
 function ovEssRestCells(c,marks){
-  const cells=OV_ESS_REST.map(k=>{
+  const keys=ovEssKeys(c), pay=keys!==OV_ESS_REST;
+  const cells=keys.map(k=>{
     const cell=ktFieldCell(c,k,false,marks); if(!cell) return null;
     cell._key=k;
     if(k==='renewalType'){ cell[0]=i18t('ov_f_renewal'); cell[1]=ovEssRenewalRead(c);
       /* the renewal term's door rides the cell's own line under it (a hold, below, wins it) */
       const door=ovRenewTermDoorHtml(c,ovMapRenewal(c)); if(door&&!cell[4]) cell[4]=`<span class="sec-f-n">${door}</span>`; }
     /* the redesign's own short labels; the edit posture keeps the long ones */
-    if(k==='value') cell[0]=i18t('ov_f_value_short');
+    if(k==='value'&&!pay) cell[0]=i18t('ov_f_value_short');
     if(k==='liabilityCapped') cell[0]=i18t('ov_f_liab_capped');
     const own=marks?ovFieldMarkOf(marks,k):null;
     if(!(own&&own.holds)&&marks) for(const q of (OV_ESS_REST_PEERS[k]||[])){
@@ -7185,7 +7208,7 @@ function ovEssRestCells(c,marks){
       if(mk&&mk.holds){ cell[3]='amber'; cell[4]=ovFieldNoteHtml(mk,q); break; } }
     return cell;
   });
-  const shown=new Set(OV_ESS_REST.concat(...Object.values(OV_ESS_REST_PEERS)));
+  const shown=new Set(keys.concat(...Object.values(OV_ESS_REST_PEERS)));
   const held=marks?OV_ESS_FIELDS.filter(k=>!shown.has(k)&&(ovFieldMarkOf(marks,k)||{}).holds):[];
   return cells.concat(held.map(k=>{ const x=ktFieldCell(c,k,false,marks); if(x) x._key=k; return x; })).filter(Boolean);
 }
@@ -7201,18 +7224,19 @@ const OV_ESS_EDIT_LABEL={ value:'ov_f_value_short', renewalType:'ov_f_renewal', 
 const _ovDirSel={ id:null, k:'' };
 function ovEssEditHtml(c){
   const lab=(html,key)=>String(html||'').replace(/^(\s*<input )/,`$1aria-label="${esc(i18t(key))}" `);
-  const cells=OV_ESS_REST.map(k=>{
+  const keys=ovEssKeys(c), pay=keys!==OV_ESS_REST;
+  const cells=keys.map(k=>{
     if(k==='term'){
       const eff=ktFieldCell(c,'effDate',true,null), exp=ktFieldCell(c,'expiry',true,null);
       if(!eff||!exp) return ktFieldCell(c,'term',false,null);
       return [i18t('ct_term_label'), `<span class="ov-term-edit">${lab(eff[1],'ov_f_effective')}<span class="ov-term-to" aria-hidden="true">→</span>${lab(exp[1],'ov_f_expiry')}</span>`];
     }
     const cell=ktFieldCell(c,k,!OV_DERIVED_FIELDS.has(k),null); if(!cell) return null;
-    if(OV_ESS_EDIT_LABEL[k]) cell[0]=i18t(OV_ESS_EDIT_LABEL[k]);
+    if(OV_ESS_EDIT_LABEL[k]&&!(pay&&k==='value')) cell[0]=i18t(OV_ESS_EDIT_LABEL[k]);
     return cell;
   });
   const marks=ovSignMarks(c);
-  const shown=new Set(OV_ESS_REST.concat('effDate','expiry'));
+  const shown=new Set(keys.concat('effDate','expiry'));
   const held=marks?OV_ESS_FIELDS.filter(k=>!shown.has(k)&&(ovFieldMarkOf(marks,k)||{}).holds):[];
   return sectionFieldsHtml(cells.concat(held.map(k=>ktFieldCell(c,k,true,null))).filter(Boolean));
 }
@@ -10933,7 +10957,8 @@ function roomFactsHtml(c,opts={}){
         ? `<span title="${esc(all)}">${esc(c.counterparty)}<i class="room-py-n">+${more}</i></span>`
         : `<span>${esc(c.counterparty)}</span>`}</span>`;
     })()],
-    [i18t('reg_col_value'), money],
+    /* an employment contract's money is its pay, never a deal's value (fxIsPay) */
+    (window.fxIsPay&&fxIsPay(c))?[i18t('ov_f_pay'), (window.payBaseLine&&payBaseLine(c))?esc(payBaseLine(c)):dash]:[i18t('reg_col_value'), money],
     [i18t('ct_term_label'), termCell],
     ...(round?[[i18t('ct_fact_round'), round]]:[]),
     ...(move?[[i18t('ngl_col_move'), move]]:[]),
