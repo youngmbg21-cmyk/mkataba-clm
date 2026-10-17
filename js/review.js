@@ -297,8 +297,10 @@ function reviewVerdictByFor(ch, u, c){
   /* An older record carries no reviewId. Fall back to the name on the verdict
      and show it only to an admin — a stored verdict must not become the way
      round the rule. */
-  if (!rv) return _rvIsAdmin(u) ? (v.by || null) : null;
-  return reviewMaySee(rv, u) ? (v.by || null) : null;
+  /* a stand-in's verdict names whom it was for (piece 9): "Grace Wanjiru for Amina Otieno" */
+  const by = v.by ? (typeof window.awayByLabel === 'function' ? window.awayByLabel(v.by, v.for) : v.by) : null;
+  if (!rv) return _rvIsAdmin(u) ? by : null;
+  return reviewMaySee(rv, u) ? by : null;
 }
 /* Our own unsent asks currently sitting with somebody. What the send warning
    counts, and what the card's amber edge is drawn from. */
@@ -384,12 +386,28 @@ function reviewSendable(c){
    Matched on ID FIRST and name second. Two people called the same thing is a
    real workspace, and an id that has not been recorded is a real old record —
    so both are tried, in the order that cannot be spoofed. */
-function reviewIsReviewer(rv, u){
+function reviewIsReviewerSelf(rv, u){
   const me = u || _rvMe();
   if (!rv || !me) return false;
   const r = rv.reviewer || {};
   if (r.id && me.id) return String(r.id) === String(me.id);
   return !!r.name && String(r.name) === String(me.name);
+}
+/* THE REVIEWER, OR WHO ANSWERS FOR THEM WHILE THEY ARE AWAY (piece 9) — the
+   server's rvIsReviewer asks the same, so every place that asks for the
+   reviewer lets the stand-in rule, hand back and see the review, and narrows
+   them exactly as it would the reviewer. */
+function reviewIsReviewer(rv, u){
+  const me = u || _rvMe();
+  if (reviewIsReviewerSelf(rv, me)) return true;
+  const r = (rv && rv.reviewer) || {};
+  return !!(me && r.id && typeof window.awayCovers === 'function' && window.awayCovers(me, r.id));
+}
+/* whom a reviewer's answer is for: null where they answer as themself */
+function reviewForOf(rv, u){
+  const me = u || _rvMe();
+  if (!rv || !me || reviewIsReviewerSelf(rv, me) || !(rv.reviewer && rv.reviewer.id) || typeof window.awayForOf !== 'function') return null;
+  return window.awayForOf(me, rv.reviewer.id);
 }
 function reviewIsRequester(rv, u){
   const me = u || _rvMe();
@@ -824,11 +842,12 @@ function reviewMark(c, changeId, verdict, o = {}){
   /* ONE PART OF THE REVIEW'S ANSWER, through the one ask writer: the
      verdict on c.asks and on the change, its mirror. `hash` is the wording
      this verdict was given for — see reviewStale. */
+  const fw = reviewForOf(rv, actor);
   window.askAnswer(c, rv.id, { part: live.id, answer: String(verdict), at: _rvNow(),
-    by: actor, why: String(o.note || '').trim() || null, stamp: live.hash || null, target: live,
+    by: actor, why: String(o.note || '').trim() || null, stamp: live.hash || null, target: live, for: fw,
     mirror: { by: String((actor && actor.name) || 'System'), byId: (actor && actor.id) || null } });
   _rvAudit(c, 'Internal review',
-    `#${live.id} ${REVIEW_VERDICT_RECORD[verdict]} by ${live.review.by} in internal review ${rv.id}`
+    `#${live.id} ${REVIEW_VERDICT_RECORD[verdict]} by ${live.review.by}${fw ? ` for ${fw.name}` : ''} in internal review ${rv.id}`
     + ` — “${live.summary || live.clauseLabel || live.clauseId}”`
     + `${live.review.note ? `; “${live.review.note}”` : ''}`);
   return live;
@@ -880,11 +899,12 @@ function reviewReturn(c, o = {}){
   const advised = inRv.filter(x => reviewSideOf(x) === 'theirs' && reviewOn(x)).length;
   /* HANDED BACK, through the one ask writer: returned on c.asks and on the
      request, its mirror, with the tally the hand-back counted. */
+  const fw = reviewForOf(rv, actor);
   window.askAnswer(c, rv.id, { state: 'returned', at: _rvNow(),
     by: actor ? { id: actor.id || null, name: String(actor.name || 'System') } : { name: 'System' },
-    why: String(o.note || '').trim() || null, mirror: { tally: { cleared, held, advised } } });
+    why: String(o.note || '').trim() || null, for: fw, mirror: { tally: { cleared, held, advised } } });
   _rvAudit(c, 'Internal review',
-    `Internal review ${rv.id} returned by ${rv.returnedBy} to ${rv.by}`
+    `Internal review ${rv.id} returned by ${rv.returnedBy}${fw ? ` for ${fw.name}` : ''} to ${rv.by}`
     + ` — ${cleared} cleared to send, ${held} held back, ${advised} of the counterparty's asks advised on`
     + `${rv.returnedNote ? `; “${rv.returnedNote}”` : ''}`);
   return rv;

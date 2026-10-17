@@ -131,7 +131,7 @@ const AK_MIRROR = {
       if (spec && spec.keepStep) return;
       const s = _akRuleStep(c, a.of[0]);
       if (s && s.status !== 'pending')
-        Object.assign(s, { status: 'pending', by: null, at: null, comment: null, stamp: null, drift: undefined });
+        Object.assign(s, { status: 'pending', by: null, at: null, comment: null, stamp: null, drift: undefined, for: null });
     },
     answer(c, a, ans, at){
       let s = _akRuleStep(c, a.of[0]);
@@ -142,11 +142,11 @@ const AK_MIRROR = {
       }
       const name = a.answeredBy ? a.answeredBy.name : null;
       if (a.state === 'yes'){
-        Object.assign(s, { status: 'approved', by: name, at, comment: a.why || null, stamp: a.stamp || null, drift: undefined });
+        Object.assign(s, { status: 'approved', by: name, at, comment: a.why || null, stamp: a.stamp || null, drift: undefined, for: a.answeredFor || null });
       } else if (a.state === 'no'){
-        Object.assign(s, { status: 'rejected', by: name, at, comment: a.why || s.comment || null });
+        Object.assign(s, { status: 'rejected', by: name, at, comment: a.why || s.comment || null, for: a.answeredFor || null });
       } else if (a.state === 'withdrawn'){
-        Object.assign(s, { status: 'pending', by: null, at: null, comment: null, stamp: null },
+        Object.assign(s, { status: 'pending', by: null, at: null, comment: null, stamp: null, for: null },
           (ans && ans.mirror) || {});
       }
     },
@@ -172,6 +172,7 @@ const AK_MIRROR = {
         row.decidedBy = { id: a.answeredBy ? a.answeredBy.id : '', name: a.answeredBy ? a.answeredBy.name : '',
           role: _akStr(ans && ans.role) };
         row.decidedAt = at; row.as = (ans && ans.as) || null; row.decision = a.why || null;
+        row.for = a.answeredFor || null;
       } else if (a.state === 'withdrawn'){
         row.status = 'withdrawn';
         if (ans && ans.mirror) Object.assign(row, ans.mirror);
@@ -198,6 +199,7 @@ const AK_MIRROR = {
       if (a.state === 'returned'){
         rv.status = 'returned'; rv.returnedAt = at;
         rv.returnedBy = a.answeredBy ? a.answeredBy.name : 'System';
+        rv.returnedFor = a.answeredFor || null;
         rv.returnedNote = a.why || null;
       } else if (a.state === 'withdrawn'){
         rv.status = 'cancelled'; rv.returnedAt = at;
@@ -213,7 +215,7 @@ const AK_MIRROR = {
       live.review = { verdict: p.answer, note: p.why || null,
         by: m.by != null ? m.by : (p.by ? p.by.name : 'System') || 'System',
         byId: m.byId !== undefined ? m.byId : (p.by && p.by.id ? p.by.id : null),
-        at: p.at, hash: p.stamp || null, reviewId: a.id };
+        at: p.at, hash: p.stamp || null, reviewId: a.id, for: p.for || null };
     },
   },
   suggest: {
@@ -348,7 +350,9 @@ function _akReviewParts(c, rvId){
   return _akChanges(c).filter(x => x.review && x.review.verdict && _akStr(x.review.reviewId) === _akStr(rvId))
     .map(x => ({ of: _akStr(x.id), answer: _akStr(x.review.verdict),
       by: { id: x.review.byId != null ? _akStr(x.review.byId) : '', name: _akStr(x.review.by) },
-      at: x.review.at || null, why: x.review.note || null, stamp: x.review.hash || null }));
+      at: x.review.at || null, why: x.review.note || null, stamp: x.review.hash || null,
+      /* whom a stand-in's verdict was for — the server checked it on the change (piece 9) */
+      for: x.review.for ? _akWho(x.review.for) : null }));
 }
 function _akReconcileReview(list, c){
   const byId = new Map(list.map(a => [a.id, a]));
@@ -515,13 +519,17 @@ function askAnswer(c, id, ans){
   const at = ans.at || _akNow();
   if (ans.part != null){
     const p = { of: _akStr(ans.part), answer: _akStr(ans.answer), by: _akWho(ans.by), at,
-      why: ans.why != null && ans.why !== '' ? _akStr(ans.why) : null, stamp: ans.stamp != null ? ans.stamp : null };
+      why: ans.why != null && ans.why !== '' ? _akStr(ans.why) : null, stamp: ans.stamp != null ? ans.stamp : null,
+      for: ans.for ? _akWho(ans.for) : null };
     AK_MIRROR[a.kind].part(c, a, p, ans);
     a.parts = (Array.isArray(a.parts) ? a.parts : []).filter(x => x && x.of !== p.of).concat([p]);
     return a;
   }
   if (!ASK_STATES.includes(ans.state)) return null;
+  /* `for`: the person a stand-in answered for while they were away (piece 9);
+     the server writes its own answeredFor and takes nothing from here */
   const next = Object.assign({}, a, { state: ans.state, answeredAt: at, answeredBy: _akWho(ans.by),
+    answeredFor: ans.for ? _akWho(ans.for) : null,
     why: ans.why != null && ans.why !== '' ? _akStr(ans.why) : null },
     ans.stamp !== undefined ? { stamp: ans.stamp } : {});
   AK_MIRROR[a.kind].answer(c, next, ans, at);

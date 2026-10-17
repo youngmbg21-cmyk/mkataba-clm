@@ -2191,7 +2191,30 @@ function canViewValues(u){
    the server masks the same way. */
 /* a salary is not deal value: an employment contract's export cell is empty, as its list cell is a dash (fxIsPay) */
 const csvValueCell = c => (!isMonetary(c) || !canViewValues() || (typeof fxIsPay === 'function' && fxIsPay(c))) ? '' : (c.value||0);
-Object.assign(window,{orgDirectory,directoryLookup,userFolderAccess,canAccessFolder,folderSeerCount,folderAccessAllows,privateStreamsMap,privateStreamIds,streamIsPrivate,jamboOnPress,streamNames,canViewValues,csvValueCell,signerTitle,signatureCapacity});
+/* WHEN YOU'RE AWAY (piece 9) — the browser's reading of the server's
+   awayCovers, from what the bootstrap carried for the person signed in
+   (state.away: their own rule and whom they answer for). A stand-in answers
+   the person's approvals and internal reviews, never their signing; the
+   server is the wall and says so where this reading is stale. */
+function awayCovers(u, personId){
+  const me=currentUser();
+  if(!u||!me||personId==null||personId===''||String(u.id)!==String(me.id)||String(u.id)===String(personId)) return false;
+  const a=state.away, t=todayISO();
+  return !!(a&&Array.isArray(a.covering)&&a.covering.some(r=>r&&String(r.userId)===String(personId)&&r.from<=t&&t<=r.to));
+}
+/* whom u answers for: {id,name}, or null where they answer as themself */
+function awayForOf(u, personId){
+  if(!awayCovers(u, personId)) return null;
+  const r=(state.away.covering||[]).find(x=>x&&String(x.userId)===String(personId));
+  return { id:String(personId), name:(r&&r.userName)||((userById(personId)||{}).name)||'' };
+}
+/* "Grace Wanjiru for Amina Otieno" — the one way an answer given for someone
+   away names both people */
+function awayByLabel(by, forWho){
+  const n=String(by||'');
+  return forWho&&forWho.name ? i18t('aw_by_for',{by:n,who:forWho.name}) : n;
+}
+Object.assign(window,{orgDirectory,directoryLookup,userFolderAccess,canAccessFolder,folderSeerCount,folderAccessAllows,privateStreamsMap,privateStreamIds,streamIsPrivate,jamboOnPress,streamNames,canViewValues,csvValueCell,signerTitle,signatureCapacity,awayCovers,awayForOf,awayByLabel});
 
 const newSalt = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 const hashPassword = (pw,salt) => sha256(`${salt}::${pw}`);

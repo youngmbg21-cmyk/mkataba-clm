@@ -440,6 +440,7 @@ function stWireDrawerOnce(){
       return; }
     if(t.closest('[data-st-sheet-csv]')){ stSheetCsv(); return; }
     if(t.closest('[data-st-backup]')){ settingsExportBackup(); return; }
+    if(t.closest('[data-st-away-end]')){ stAwayEnd(); return; }
     const row=t.closest('[data-st-panel]');
     if(row){ stDrawerOpen(row.getAttribute('data-st-panel')); stDrawerFocus(row.getAttribute('data-st-focus')); return; }
     const tab=t.closest('[data-st-tab]');
@@ -1553,6 +1554,7 @@ function stYouItems(){
     { key:'data', t:'st_you_data', w:['st_acct_backup','set_export_backup','st_you_data_words'] },
     (u.role==='legal') && { key:'design', t:'st_acct_design', w:['set_edit_design','st_acct_design_note','st_you_design_words'], door:'me:design' },
     (api && typeof agPointsTableHtml==='function') && { key:'points', t:'jh_pt_h_mine', w:['st_you_points_words'], door:'me:points' },
+    api && { key:'away', t:'st_you_away', w:['st_aw_who','st_aw_never_sign','st_you_away_words'], door:'me:away', state:stAwayState },
   ].filter(Boolean);
 }
 /* names the You cards had before the full build, still asked by older doors */
@@ -1567,7 +1569,7 @@ function stYouCardHtml(it){
   const line=html=>`<span class="st-you-line">${html}</span>`;
   const door=(attrs,label)=>stDoorHtml(attrs,label);
   const d=k=>`data-st-panel="${k}"`;
-  let facts='', doors='';
+  let facts='', doors='', chip='';
   if(it.key==='who'){
     facts=fact(d('me:who'), `${esc(u.name||u.email||'')} · ${esc((typeof roleName==='function')?roleName(u.role):'')}`)
       +line(esc([u.email,u.title].filter(Boolean).join(' · ')));
@@ -1603,9 +1605,22 @@ function stYouCardHtml(it){
     const own=keys.filter(k=>{ try{ return !!agPointsMine(k); }catch(_){ return false; } }).length;
     facts=line(esc(i18tn('st_you_points_own',own,{n:own,of:keys.length})))+line(`<span class="st-you-sub">${esc(i18t('st_you_points_sub'))}</span>`);
     doors=door(d('me:points'),i18t('st_you_points_door'));
+  } else if(it.key==='away'){
+    const a=state.away||{}, m=a.mine, me=u.name||u.email||'';
+    if(m){
+      chip=` <span class="chip st-chip-on st-aw-chip">${esc(stAwayState())}</span>`;
+      facts=line(i18t('st_aw_line',{who:`<b>${esc(m.deputyName)}</b>`,from:`<b>${esc(stDay(m.from))}</b>`,to:`<b>${esc(stAwayDay(m.to))}</b>`}))
+        +line(`<span class="st-you-sub">${esc(i18t('st_aw_sub',{who:m.deputyName,me}))}</span>`);
+      doors=door(d('me:away'),i18t('st_aw_change'))+door('data-st-away-end',i18t('st_aw_end'));
+    } else {
+      facts=line(esc(i18t('st_aw_none')))+line(`<span class="st-you-sub">${esc(i18t('st_aw_none_sub'))}</span>`);
+      doors=door(d('me:away'),i18t('st_aw_set'));
+    }
+    /* whom this person answers for, said where they keep their own */
+    facts+=(Array.isArray(a.covering)?a.covering:[]).map(r=>line(`<span class="st-aw-for">${esc(i18t(r.from<=(a.today||todayISO())?'st_aw_covering':'st_aw_covering_later',{who:r.userName,from:stDay(r.from),to:stAwayDay(r.to)}))}</span>`)).join('');
   } else if(it.key==='password') return '';
   return `<section class="st-grp st-card st-you-card" data-st-you-card="${it.key}" id="st-you-${it.key}">
-    <h3 class="st-card-h">${esc(i18t(it.t))}</h3>
+    <h3 class="st-card-h">${esc(i18t(it.t))}${chip}</h3>
     <div class="st-card-facts">${facts}</div>
     <div class="st-card-doors">${doors}</div>
   </section>`;
@@ -1646,6 +1661,7 @@ function stMeDrawer(key){
   const u=(typeof currentUser==='function'&&currentUser())||{};
   const sections={ who:['job'], safety:['twostep','sessions'], told:['email'], work:['work'], design:['design'], points:['points'] };
   if(key==='password') return stPasswordDrawer();
+  if(key==='away') return stAwayDrawer();
   if(!sections[key]) return null;
   const it=stYouItem(key);
   const head=key==='who'?`<div class="st-me-who"><span class="st-me-n">${esc(u.name||u.email||'')}</span><span class="st-note">${esc([u.email,(typeof roleName==='function')?roleName(u.role):''].filter(Boolean).join(' · '))}</span></div>`:'';
@@ -1675,6 +1691,97 @@ async function stPasswordSave(){
   catch(e){ return stDrawerRefuse((e&&e.message)||i18t('st_pw_failed')); }
   toast(i18t('st_pw_done'),'ok'); stDrawerClose();
   _stYouFacts.devices=null; stYouLoad();
+}
+/* ---- WHEN YOU'RE AWAY (owner picked "An Away card on You — the SAP way",
+   17 Oct 2026; piece 9 of the sensitive contracts and governance plan) ----
+   SAP's substitution rule, on your own settings: who answers for you, from a
+   day to a day, and what — your approvals and internal reviews, never your
+   signing. It ends on its own. The server keeps the rule (/api/me/away) and
+   is the wall: its awayCovers lets the stand-in answer only what the person
+   would, only on contracts the stand-in could already open, and every answer
+   says whom it was for. state.away is the bootstrap's copy for this person. */
+let _stAw=null;
+const stAwayDay=iso=>{ const t=Date.parse(iso||''); if(!t) return '';
+  try{ return new Date(t).toLocaleDateString((typeof langLocale==='function')?langLocale():undefined,{ day:'numeric', month:'short', year:'numeric' }); }catch(_){ return String(iso).slice(0,10); } };
+/* the card's short state: running, coming, or not set */
+function stAwayState(){
+  const a=state.away||{}, m=a.mine;
+  if(!m) return i18t('st_aw_state_off');
+  return (m.from<=(a.today||todayISO())) ? i18t('st_aw_state_on',{to:stDay(m.to)}) : i18t('st_aw_state_set',{from:stDay(m.from),to:stDay(m.to)});
+}
+/* who may answer for you: a colleague who is not a Viewer, never yourself */
+function stAwayPeople(){
+  const me=(typeof currentUser==='function'&&currentUser())||{};
+  return stUsers().filter(x=>x&&x.id&&String(x.id)!==String(me.id)&&x.role!=='viewer')
+    .sort((x,y)=>String(x.name||x.email||'').localeCompare(String(y.name||y.email||'')));
+}
+const stAwayAddDays=(iso,n)=>{ const d=new Date(iso+'T12:00:00'); d.setDate(d.getDate()+n);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+function stAwayDrawer(){
+  const m=(state.away||{}).mine, t=todayISO();
+  _stAw={ from:m?m.from:t, to:m?m.to:stAwayAddDays(t,6), deputyId:m?String(m.deputyId):'', cannot:null };
+  const lbl=x=>`<span class="st-ps-l">${esc(x)}</span>`;
+  const ppl=stAwayPeople();
+  return { title:i18t('st_you_away'), sub:i18t('st_aw_drawer_sub'), foot:'save',
+    body:`<div class="st-tr-grid">
+      <label class="st-tr-f">${lbl(i18t('st_aw_from'))}<input type="date" id="st-aw-from" value="${esc(_stAw.from)}" min="${esc(t)}" style="${ST_INPUT}"/></label>
+      <label class="st-tr-f">${lbl(i18t('st_aw_until'))}<input type="date" id="st-aw-to" value="${esc(_stAw.to)}" min="${esc(t)}" style="${ST_INPUT}"/></label>
+    </div>
+    <label class="st-tr-f">${lbl(i18t('st_aw_who'))}<select id="st-aw-who" style="${ST_INPUT}">
+      <option value=""${_stAw.deputyId?'':' selected'}>${esc(i18t('st_aw_pick'))}</option>
+      ${ppl.map(x=>`<option value="${esc(x.id)}"${String(x.id)===_stAw.deputyId?' selected':''}>${esc(x.name||x.email)}</option>`).join('')}</select></label>
+    <div class="st-aw-what">${lbl(i18t('st_aw_what'))}
+      <p class="st-aw-yes">${esc(i18t('st_aw_what_yes'))}</p>
+      <p class="st-note">${esc(i18t('st_aw_never_sign'))}</p></div>
+    <p class="st-note st-aw-reach" id="st-aw-reach" aria-live="polite"></p>`,
+    wire:()=>{
+      const on=(id,fn)=>{ const el=document.getElementById(id); if(el) el.addEventListener('change',fn); };
+      on('st-aw-from',e=>{ _stAw.from=e.target.value; });
+      on('st-aw-to',e=>{ _stAw.to=e.target.value; });
+      on('st-aw-who',e=>{ _stAw.deputyId=e.target.value||''; stAwayReach(); });
+      if(typeof datePickDress==='function') try{ datePickDress(document.getElementById('st-drawer')); }catch(_){}
+      stAwayReach();
+    },
+    save:()=>stAwaySave() };
+}
+/* A STAND-IN NEVER WIDENS ANYONE'S REACH, said before Save: the streams you
+   may open that they may not stay with you (the server reads both scopes) */
+async function stAwayReach(){
+  const host=document.getElementById('st-aw-reach'); if(!host||!_stAw) return;
+  const id=_stAw.deputyId;
+  if(!id){ host.textContent=''; return; }
+  const who=((stUsers().find(x=>String(x.id)===String(id))||{}).name)||'';
+  const all=(typeof stTrailStreams==='function')?stTrailStreams():[];
+  host.innerHTML=(typeof busyHtml==='function')?busyHtml(i18t('st_aw_reach_busy')):esc(i18t('st_aw_reach_busy'));
+  let r=null;
+  try{ r=await api('me/away/reach?'+new URLSearchParams({ deputyId:id, streams:all.map(f=>f.id).join(',') }).toString()); }catch(_){ r=null; }
+  if(!_stAw||_stAw.deputyId!==id||!document.getElementById('st-aw-reach')) return;
+  if(!r||!Array.isArray(r.cannot)){ host.textContent=i18t('st_aw_reach_unknown',{who}); return; }
+  const names=r.cannot.map(f=>(all.find(x=>x.id===f)||{}).name||f);
+  host.textContent=names.length ? i18t('st_aw_reach_not',{who,streams:names.join(', ')}) : i18t('st_aw_reach_all',{who});
+}
+async function stAwaySave(){
+  stDrawerClearRefusal();
+  const d=_stAw||{};
+  if(!d.deputyId) return stDrawerRefuse(i18t('st_aw_need_who'));
+  if(!d.from||!d.to) return stDrawerRefuse(i18t('st_aw_need_days'));
+  if(d.to<d.from) return stDrawerRefuse(i18t('st_aw_backwards'));
+  let r=null;
+  try{ r=await api('me/away','PUT',{ deputyId:d.deputyId, from:d.from, to:d.to }); }
+  catch(e){ return stDrawerRefuse((e&&e.message)||i18t('st_aw_failed')); }
+  state.away=r||state.away;
+  const m=(state.away||{}).mine;
+  toast(i18t('st_aw_saved',{who:(m&&m.deputyName)||'',from:stDay(d.from),to:stAwayDay(d.to)}),'ok');
+  stDrawerClose(); stYouCardRepaint('away');
+}
+/* END IT NOW: your approvals and reviews are yours again at once */
+async function stAwayEnd(){
+  let r=null;
+  try{ r=await api('me/away','DELETE'); }
+  catch(e){ toast((e&&e.message)||i18t('st_aw_failed'),'err'); return; }
+  state.away=r||state.away;
+  toast(i18t('st_aw_ended'),'ok');
+  stYouCardRepaint('away');
 }
 /* ---- A FRESH SET OF RECOVERY CODES (piece 11) ----
    Costs a current code (or an unused recovery code), exactly as turning
@@ -2209,7 +2316,8 @@ function stJbChipsHtml(){ return stJbChips().map(c=>`<button type="button" class
 function stJamboHtml(){
   return `<div class="st-jb">
     <div class="st-jb-feed" id="st-jb-feed" aria-live="polite">
-      ${stJbSayHtml((()=>{ if(!stIsAdmin()||settingsTab()==='you') return i18t('st_jb_hello_you');
+      ${stJbSayHtml((()=>{ if(!stIsAdmin()||settingsTab()==='you'){ const m=(state.away||{}).mine;
+          return i18t('st_jb_hello_you')+(m?' '+i18t('st_jb_away',{who:m.deputyName}):''); }
         const n=stNeedsAll().length, k=stClashes().length;
         return (n?i18tn('st_jb_hello_n',n,{n}):i18t('st_jb_hello'))+(k?' '+i18tn('st_jb_clashes',k,{n:k}):''); })())}
       ${stAsksMineHtml()}

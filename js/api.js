@@ -102,6 +102,7 @@ async function loadBootstrap(){
   state.bizRoles=b.bizRoles||null;
   /* the quarter's access review, as far as it has got: an admin's only (piece 8) */
   state.accessReview=b.accessReview||null;
+  state.away=b.away||null;
   /* ---- THE COMPANY'S OWN VALUE STREAMS JOIN FOLDERS HERE ----
      js/templates.js builds FOLDERS at module load, long before anybody has
      signed in, so the shared list cannot be read there — this is the first

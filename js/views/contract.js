@@ -16380,14 +16380,16 @@ function signWhyShort(t){
    Its title is where the request stands, named after the approver; its
    sentence is what is owed or what happened. `sa` is the row signApprovalRows
    built — the one reading — so the title and the button cannot disagree. */
+/* who decided, and whom for where a stand-in did (piece 9) */
+const saDecidedName=sa=>{ const r=sa&&sa.req; return r&&r.decidedBy&&r.decidedBy.name ? awayByLabel(r.decidedBy.name, r.for) : ''; };
 function signApprovalRowTitle(sa){
   if(!sa) return i18t('sa_row_unasked');
   const who=(sa.need&&sa.need.approverName)||i18t('sa_admins');
   switch(sa.status){
     case 'pending': return i18t('sa_row_pending',{who});
-    case 'refused': return i18t('sa_row_refused',{who:(sa.req&&sa.req.decidedBy&&sa.req.decidedBy.name)||who});
-    case 'lapsed': return i18t(sa.expired?'sa_row_expired':'sa_row_lapsed',{who:(sa.req&&sa.req.decidedBy&&sa.req.decidedBy.name)||who});
-    case 'approved': return i18t('sa_row_approved',{who:(sa.req&&sa.req.decidedBy&&sa.req.decidedBy.name)||who});
+    case 'refused': return i18t('sa_row_refused',{who:saDecidedName(sa)||who});
+    case 'lapsed': return i18t(sa.expired?'sa_row_expired':'sa_row_lapsed',{who:saDecidedName(sa)||who});
+    case 'approved': return i18t('sa_row_approved',{who:saDecidedName(sa)||who});
     default: return i18t('sa_row_unasked');
   }
 }

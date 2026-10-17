@@ -1433,11 +1433,17 @@ const rvOpenList = c => rvReviews(c).filter(r => r && r.status === 'open');
 const rvSame = (a, b) => a != null && b != null && String(a) === String(b);
 /* Id first, name second — the same match js/review.js makes, and for the same
    reason: two people share a name, and an old record may carry no id. */
-const rvIsReviewer = (rv, u) => {
+const rvIsReviewerSelf = (rv, u) => {
   if (!rv || !u) return false;
   const r = rv.reviewer || {};
   return r.id ? rvSame(r.id, u.id) : rvSame(r.name, u.name);
 };
+/* THE REVIEWER, OR WHO ANSWERS FOR THEM WHILE THEY ARE AWAY (piece 9): every
+   wall that asks for the reviewer asks this, so the stand-in rules, hands back
+   and is narrowed exactly as the reviewer would be */
+const rvIsReviewer = (rv, u) => rvIsReviewerSelf(rv, u) || !!(rv && u && rv.reviewer && rv.reviewer.id && awayCovers(u, rv.reviewer.id));
+/* whom a reviewer's answer is for: null where they answer as themself */
+const rvForOf = (rv, u) => (rv && !rvIsReviewerSelf(rv, u) && rv.reviewer && rv.reviewer.id) ? awayForOf(u, rv.reviewer.id) : null;
 const rvIsRequester = (rv, u) => {
   if (!rv || !u) return false;
   return rv.byId ? rvSame(rv.byId, u.id) : rvSame(rv.by, u.name);
@@ -1827,7 +1833,7 @@ function srvSignApprovalMerge(prev, c, user) {
     }
     if (e.status !== 'approved' && e.status !== 'refused')
       return { status: 400, error: 'An approval is approved, refused or withdrawn.' };
-    const as = saMayDecide(before, user);
+    const as = saMayDecide(before, user, id => awayCovers(user, id));
     if (!as) return { status: 403, error: `This approval is ${before.approverName || 'an admin'}'s to give.` };
     const note = clean(e.decision).slice(0, SA_NOTE_MAX);
     if (e.status === 'refused' && !note) return { status: 400, error: 'A refusal has to say why — the reason is what goes back.' };
@@ -1840,6 +1846,7 @@ function srvSignApprovalMerge(prev, c, user) {
     before.status = e.status;
     before.decidedBy = { id: user.id, name: user.name || '', role: user.role || '' };
     before.decidedAt = now(); before.as = as; before.decision = note || null;
+    before.for = as === 'deputy' ? (awayForOf(user, before.approverId) || awayForOf(user, before.backupId)) : null;
   }
   /* Bounded like the browser bounds it, and a request still waiting is never
      the one dropped. */
@@ -1954,7 +1961,7 @@ function srvAsksMerge(prev, c, user) {
         if (!(b.of || []).some(x => String(x) === String(p.of)))
           return { status: 403, error: `#${p.of} is not part of internal review ${id}.` };
         had.set(String(p.of), { of: String(p.of), answer: String(p.answer || ''), by: me, at: now(),
-          why: clean(p.why).slice(0, ASK_WHY_MAX) || null, stamp: p.stamp != null ? p.stamp : null });
+          why: clean(p.why).slice(0, ASK_WHY_MAX) || null, stamp: p.stamp != null ? p.stamp : null, for: rvForOf(rv, user) });
       }
       b.parts = [...had.values()];
     }
@@ -1979,18 +1986,24 @@ function srvAsksMerge(prev, c, user) {
       return { status: 403, error: 'An answer is recorded in the name of the person who gives it.' };
     if (b.by && askSamePerson(b.by, me)) return { status: 403, error: 'Nobody answers their own ask.' };
     const why = clean(e.why).slice(0, ASK_WHY_MAX);
+    /* whom the answer is for, where it is given by a stand-in (piece 9) —
+       written here, never taken from the client */
+    let answeredFor = null;
     if (b.kind === 'rule') {
       const rule = ruleOf(b);
       if (!rule || !srvUserCanApprove(rule.approver || {}, user))
         return { status: 403, error: `Only the approver the rule names can answer “${rule ? rule.name : 'this step'}”.` };
+      answeredFor = srvApproveForOf(rule.approver, user);
     } else if (b.kind === 'named') {
       const req = prevReq(id);
-      const as = req ? saMayDecide(req, user) : null;
+      const as = req ? saMayDecide(req, user, pid => awayCovers(user, pid)) : null;
       if (!as) return { status: 403, error: `This approval is ${(req && req.approverName) || 'an admin'}'s to give.` };
       if (as === 'admin' && !why) return { status: 400, error: 'An admin deciding in the approver\'s place has to say why.' };
+      if (as === 'deputy') answeredFor = awayForOf(user, req.approverId) || awayForOf(user, req.backupId);
     } else if (b.kind === 'review') {
       const rv = prevRv(id);
       if (!rv || !rvIsReviewer(rv, user)) return { status: 403, error: `Only ${(rv && rv.reviewer && rv.reviewer.name) || 'the reviewer'} can hand internal review ${id} back.` };
+      answeredFor = rvForOf(rv, user);
     } else if (b.kind === 'suggest') {
       const ch = _askChanges(prev).find(x => 'sg:' + String(x.id) === id) || null;
       if (deskRuleOn() && deskIsClaimed(prev) && !dkMayRuleSuggestion(prev, ch, user))
@@ -2003,7 +2016,7 @@ function srvAsksMerge(prev, c, user) {
         return { status: 403, error: `Only ${(b.to && b.to.name) || 'the colleague who was asked'} can mark this done.` };
     }
     if (to === 'no' && !why) return { status: 400, error: 'A refusal says why — the reason is what goes back.' };
-    Object.assign(b, { state: to, answeredAt: now(), answeredBy: me, why: why || null },
+    Object.assign(b, { state: to, answeredAt: now(), answeredBy: me, why: why || null, answeredFor },
       b.kind === 'rule' && to === 'yes' && e.stamp ? { stamp: e.stamp } : {});
   }
   return { list: asksBound(out) };
@@ -2164,11 +2177,15 @@ function srvApprovalChainRefusal(c, prev) {
    role. */
 function srvUserCanApprove(a, u) {
   if (!u || !a) return false;
-  if (a.kind === 'member') return a.id ? String(a.id) === String(u.id || '') : String(a.name || '') === String(u.name || '');
+  /* …or the member's stand-in while they are away (piece 9: awayCovers) */
+  if (a.kind === 'member') return a.id ? (String(a.id) === String(u.id || '') || awayCovers(u, a.id)) : String(a.name || '') === String(u.name || '');
   if (a.role === 'admin') return u.role === 'admin';
   if (a.role === 'legal') return u.role === 'legal' || u.role === 'admin';
   return u.role === a.role;
 }
+/* whom a rule step's answer is for: the named member, where the person
+   answering is their stand-in today (piece 9); null otherwise */
+const srvApproveForOf = (a, u) => (a && a.kind === 'member' && a.id && u && String(a.id) !== String(u.id || '')) ? awayForOf(u, a.id) : null;
 /* A DECISION ON A STEP IS THE DECIDER'S, asked as a DIFFERENCE against the
    stored chain. A step that MOVES to approved or refused must be the caller's
    to decide — the approver the RULE names, read from the workspace's rules
@@ -2197,6 +2214,9 @@ function srvApprovalDecisionRefusal(prev, c, u) {
       return `A refusal of “${rule.name}” says why — the owner needs to know what to change.`;
     if (String(s.by || '') !== String((u && u.name) || ''))
       return `An approval step is recorded in the name of the person who decides it.`;
+    /* AN ANSWER FOR SOMEONE AWAY SAYS SO, and only then (piece 9) */
+    if (String((s.for && s.for.id) || '') !== String((srvApproveForOf(rule.approver, u) || {}).id || ''))
+      return `An approval given for someone away says whom it is for.`;
     const i = matched.findIndex(r => r.id === rule.id);
     const first = i > 0 ? matched.slice(0, i).find(r => {
       const st = after.find(x => x.ruleId === r.id); return !st || st.status !== 'approved'; }) : null;
@@ -3847,6 +3867,7 @@ app.get('/api/bootstrap', auth, (req, res) => {
     bizRoles: req.user.role === 'admin' ? bzBook() : undefined,
     /* the quarter's access review, as far as it has got: an admin's (piece 8) */
     accessReview: req.user.role === 'admin' ? arSummary(req.user) : undefined,
+    away: awayBoot(req.user),
     /* Whether this workspace can send email at all. The server has always known
        it and reported it on individual screens — creating a share, opening a
        link, requesting a signing code — which meant the answer only ever
@@ -5792,6 +5813,9 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
         return res.status(403).json({ error: `#${ch.id} is not part of any open internal review, so no verdict can be recorded on it.` });
       if (!rvIsReviewer(rv, req.user))
         return res.status(403).json({ error: `Only ${(rv.reviewer || {}).name || 'the reviewer'} can rule on #${ch.id}.` });
+      /* a verdict given for someone away says so, and only then (piece 9) */
+      if (ch.review && String((ch.review.for && ch.review.for.id) || '') !== String((rvForOf(rv, req.user) || {}).id || ''))
+        return res.status(403).json({ error: `A verdict given for someone away says whom it is for.` });
     }
 
     /* 3b. A CHANGE AN OPEN REVIEW COVERS STAYS ON THE RECORD (26 Sep 2026, the
@@ -6045,6 +6069,8 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   /* …and a save that DECIDED an ask Jambo had answered says what became of
      his answer (agentRoundSettle): the house's points read it. */
   try { agentRecordSettle(prev, c, { id: req.user.id, name: req.user.name || req.user.email }); } catch (_) {}
+  /* …and every answer this save gave for someone away is the server's own record (piece 9) */
+  try { awayAnswersRecord(prev, c); } catch (_) {}
   /* A REQUEST DRAFTED AS THIS CONTRACT IS DONE once the contract leaves Drafting. */
   try { srvIntakeCloseOn(prev, c, req); } catch (_) {}
   if (sealedNow) srvSendExecutedCopies(c.id, srvAppUrl(req));
@@ -12924,6 +12950,128 @@ app.post('/api/access-review/done', auth, admin, (req, res) => {
 });
 
 /* ============================================================
+   WHEN YOU'RE AWAY (owner picked "An Away card on You — the SAP way",
+   17 Oct 2026; piece 9 of the sensitive contracts and governance plan)
+   ============================================================
+   SAP's substitution rule: a person names who answers for them, from a day
+   to a day. The stand-in answers their APPROVALS (a rule step that names
+   them, a named person's yes before signing) and their INTERNAL REVIEWS —
+   NEVER their signing, which no rule here touches. It ends on its own on the
+   last day; "End it now" ends it sooner.
+     · ONE READING, awayCovers(u, personId): is u the person's stand-in today.
+       Every wall that asks "is this the approver / the reviewer" asks it
+       too (srvUserCanApprove, saMayDecide, rvIsReviewer), so the stand-in
+       gets no right of their own and only the person's ANSWERS.
+     · A STAND-IN NEVER WIDENS ANYONE'S REACH: they answer only on contracts
+       they could already open (folderScopeFor stands on every route).
+     · Every answer says whom it was for: the server writes `answeredFor`
+       on the ask and `for` on a named yes; it refuses a rule step or a
+       verdict whose `for` is not the truth; and it keeps its own record of
+       each answer (away_answers). Setting, changing and ending, and every
+       answer for someone else, are acts in the trail.
+   A day is the server's local day (isoDay), the same day the reminders keep. */
+db.exec(`CREATE TABLE IF NOT EXISTS away_rules (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, user_name TEXT,
+  deputy_id TEXT NOT NULL, deputy_name TEXT, d_from TEXT NOT NULL, d_to TEXT NOT NULL, set_at TEXT NOT NULL,
+  ended_at TEXT, ended_how TEXT)`);
+db.exec(`CREATE TABLE IF NOT EXISTS away_answers (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL,
+  deputy_id TEXT, deputy_name TEXT, for_id TEXT, for_name TEXT, contract_id TEXT, what TEXT)`);
+const AWAY_MAX_DAYS = 92;
+const awayToday = () => isoDay(new Date());
+const awayDayOk = s => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ''))
+  && (() => { const d = new Date(s + 'T00:00:00Z'); return !isNaN(d) && d.toISOString().slice(0, 10) === s; })();
+const awayShape = r => r ? { id: r.id, userId: r.user_id, userName: r.user_name || '', deputyId: r.deputy_id,
+  deputyName: r.deputy_name || '', from: r.d_from, to: r.d_to, setAt: r.set_at } : null;
+/* the person's rule still to come or running: not ended, not past its last day */
+const awayRuleOf = userId => db.prepare(`SELECT * FROM away_rules WHERE user_id=? AND ended_at IS NULL AND d_to>=?
+  ORDER BY d_from LIMIT 1`).get(String(userId || ''), awayToday()) || null;
+/* THE ONE READING: is u the person's stand-in today */
+function awayCovers(u, personId) {
+  if (!u || u.id == null || personId == null || personId === '' || String(u.id) === String(personId)) return false;
+  const t = awayToday();
+  return !!db.prepare(`SELECT 1 FROM away_rules WHERE user_id=? AND deputy_id=? AND ended_at IS NULL AND d_from<=? AND d_to>=?`)
+    .get(String(personId), String(u.id), t, t);
+}
+/* whom u answers for, as a name to write — null where u answers as themself */
+const awayForOf = (u, personId) => {
+  if (!awayCovers(u, personId)) return null;
+  const p = db.prepare('SELECT id, name, email FROM users WHERE id=?').get(String(personId));
+  return p ? { id: p.id, name: p.name || p.email || '' } : null;
+};
+/* what u answers for others, today and to come */
+const awayCovering = u => db.prepare(`SELECT * FROM away_rules WHERE deputy_id=? AND ended_at IS NULL AND d_to>=? ORDER BY d_from`)
+  .all(String((u && u.id) || ''), awayToday()).map(awayShape);
+const awayBoot = u => ({ today: awayToday(), mine: awayShape(awayRuleOf(u && u.id)), covering: awayCovering(u) });
+/* ONE RECORD OF EACH ANSWER GIVEN FOR SOMEONE AWAY — asked as a difference
+   on the one ask list (c.asks), whose `answeredFor` and part `for` the
+   server itself wrote (srvAsksMerge) */
+function awayAnswersRecord(prev, c) {
+  const was = new Map((Array.isArray(prev && prev.asks) ? prev.asks : []).filter(a => a && a.id).map(a => [String(a.id), a]));
+  const add = (at, by, fw, what) => db.prepare(`INSERT INTO away_answers (at, deputy_id, deputy_name, for_id, for_name, contract_id, what)
+    VALUES (?,?,?,?,?,?,?)`).run(at || now(), String((by && by.id) || ''), String((by && by.name) || ''), String(fw.id || ''), String(fw.name || ''), String(c.id || ''), what);
+  const rule = id => srvApprovalRules().find(r => r && String(r.id) === String(id));
+  for (const a of (Array.isArray(c && c.asks) ? c.asks : [])) {
+    if (!a || !a.id) continue;
+    const b = was.get(String(a.id)) || {};
+    if (a.answeredFor && a.answeredFor.id && (a.state !== b.state || a.answeredAt !== b.answeredAt)) {
+      const verb = a.state === 'no' ? 'refused' : a.kind === 'review' ? 'handed back' : 'approved';
+      const what = a.kind === 'rule' ? `Approval step “${(rule(a.of && a.of[0]) || {}).name || ''}” ${verb}`
+        : a.kind === 'named' ? `Approval before signing ${verb}` : `Internal review ${a.id} ${verb}`;
+      add(a.answeredAt, a.answeredBy, a.answeredFor, what);
+    }
+    if (a.kind === 'review' && Array.isArray(a.parts)) {
+      const had = new Map((Array.isArray(b.parts) ? b.parts : []).map(p => [String(p && p.of), p]));
+      for (const p of a.parts) {
+        if (!p || !p.for || !p.for.id) continue;
+        const h = had.get(String(p.of));
+        if (h && h.at === p.at) continue;
+        add(p.at, p.by, p.for, `Verdict on #${p.of} in internal review ${a.id}: ${p.answer}`);
+      }
+    }
+  }
+}
+app.get('/api/me/away', auth, (req, res) => res.json(awayBoot(req.user)));
+/* A STAND-IN NEVER WIDENS ANYONE'S REACH, said before the press: of the
+   streams the caller names and may open, the ones the colleague may not —
+   what waits there stays with the caller */
+app.get('/api/me/away/reach', auth, (req, res) => {
+  const dep = db.prepare('SELECT id, role FROM users WHERE id=?').get(String((req.query || {}).deputyId || ''));
+  if (!dep) return res.status(404).json({ error: 'User not found' });
+  const mine = folderScopeFor(req.user), theirs = folderScopeFor(dep);
+  const asked = [...new Set(String((req.query || {}).streams || '').split(',').map(s => s.trim().slice(0, 64)).filter(Boolean))].slice(0, 60);
+  res.json({ cannot: asked.filter(f => inScope(mine, f) && !inScope(theirs, f)) });
+});
+/* SET OR CHANGE: one rule per person — a new one replaces the one standing */
+app.put('/api/me/away', auth, (req, res) => {
+  const b = req.body || {};
+  const from = String(b.from || ''), to = String(b.to || '');
+  if (!awayDayOk(from) || !awayDayOk(to)) return res.status(400).json({ error: 'From and until must be days.' });
+  if (to < from) return res.status(400).json({ error: 'Until is before from.' });
+  if (to < awayToday()) return res.status(400).json({ error: 'Those days are already over.' });
+  if ((Date.parse(to) - Date.parse(from)) / 864e5 + 1 > AWAY_MAX_DAYS) return res.status(400).json({ error: `At most ${AWAY_MAX_DAYS} days at a time.` });
+  const dep = db.prepare('SELECT id, name, email, role FROM users WHERE id=?').get(String(b.deputyId || ''));
+  if (!dep) return res.status(404).json({ error: 'Choose a colleague to answer for you.' });
+  if (dep.id === req.user.id) return res.status(400).json({ error: 'Choose somebody other than yourself.' });
+  if (dep.role === 'viewer') return res.status(400).json({ error: `${dep.name} is a Viewer and cannot answer approvals or reviews.` });
+  /* NO CHAINS: a stand-in who is away themself in those days answers for nobody */
+  const off = db.prepare(`SELECT d_from, d_to FROM away_rules WHERE user_id=? AND ended_at IS NULL AND d_to>=? AND d_from<=?`).get(dep.id, from, to);
+  if (off) return res.status(409).json({ error: `${dep.name} is away themself from ${off.d_from} to ${off.d_to}.` });
+  const at = now();
+  const was = awayRuleOf(req.user.id);
+  if (was) db.prepare('UPDATE away_rules SET ended_at=?, ended_how=? WHERE id=?').run(at, 'changed', was.id);
+  const id = 'aw_' + crypto.randomBytes(6).toString('hex');
+  db.prepare(`INSERT INTO away_rules (id, user_id, user_name, deputy_id, deputy_name, d_from, d_to, set_at) VALUES (?,?,?,?,?,?,?,?)`)
+    .run(id, req.user.id, String(req.user.name || req.user.email || ''), dep.id, String(dep.name || dep.email || ''), from, to, at);
+  res.json(awayBoot(req.user));
+});
+/* END IT NOW: the person's own act, recorded */
+app.delete('/api/me/away', auth, (req, res) => {
+  const was = awayRuleOf(req.user.id);
+  if (!was) return res.status(404).json({ error: 'Nobody is answering for you.' });
+  db.prepare('UPDATE away_rules SET ended_at=?, ended_how=? WHERE id=?').run(now(), 'ended', was.id);
+  res.json(awayBoot(req.user));
+});
+
+/* ============================================================
    THE TRAIL, AS A FILE (owner picked "Export drawer — the SAP way",
    17 Oct 2026; piece 5 of the sensitive contracts and governance plan)
    ============================================================
@@ -12993,6 +13141,21 @@ function trailRows(ask) {
   /* the quarter's access review, stamped done (piece 8) */
   for (const r of db.prepare('SELECT * FROM access_reviews WHERE done_at >= ? AND done_at <= ?').all(lo, hi))
     out.push({ at: r.done_at, who: String(r.done_by_name || ''), what: 'Access review done', detail: `${r.quarter} · ${r.people} people: ${r.kept} kept, ${r.changed} changed`, c: null });
+  /* a stand-in named, changed, ended — or ended on its own on the last day —
+     and every answer given for someone away, on its contract (piece 9) */
+  const awayFor = r => `${r.deputy_name} answers approvals and internal reviews for ${r.user_name}`;
+  for (const r of db.prepare('SELECT * FROM away_rules WHERE set_at >= ? AND set_at <= ?').all(lo, hi)) {
+    const swap = db.prepare(`SELECT 1 FROM away_rules WHERE user_id=? AND ended_how='changed' AND ended_at=?`).get(r.user_id, r.set_at);
+    out.push({ at: r.set_at, who: String(r.user_name || ''), what: swap ? 'Away changed' : 'Away set', detail: `${awayFor(r)}, ${r.d_from} to ${r.d_to}`, c: null });
+  }
+  for (const r of db.prepare(`SELECT * FROM away_rules WHERE ended_how='ended' AND ended_at >= ? AND ended_at <= ?`).all(lo, hi))
+    out.push({ at: r.ended_at, who: String(r.user_name || ''), what: 'Away ended', detail: `${r.deputy_name} no longer answers for ${r.user_name}`, c: null });
+  for (const r of db.prepare(`SELECT * FROM away_rules WHERE ended_at IS NULL AND d_to < ? AND d_to >= ? AND d_to <= ?`).all(awayToday(), ask.from, ask.to))
+    out.push({ at: r.d_to + 'T23:59:59.000Z', who: 'HaTi', what: 'Away ended on its own', detail: `${awayFor(r)} until ${r.d_to}`, c: null });
+  if (byId.size) for (const r of db.prepare('SELECT * FROM away_answers WHERE at >= ? AND at <= ? ORDER BY id').all(lo, hi)) {
+    const c = byId.get(String(r.contract_id));
+    if (c) out.push({ at: r.at, who: String(r.deputy_name || ''), what: 'Answered for someone away', detail: `for ${r.for_name} · ${r.what}`, c });
+  }
   /* a hand-over of the record is the company's act, whatever streams were asked */
   for (const r of db.prepare('SELECT * FROM trail_exports WHERE at >= ? AND at <= ? ORDER BY id').all(lo, hi))
     out.push({ at: r.at, who: String(r.user_name || ''), what: 'Exported the trail', detail: `${r.d_from} to ${r.d_to} · ${String(r.fmt || '').toUpperCase()} · ${r.acts} acts`, c: null });

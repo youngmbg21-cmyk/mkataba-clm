@@ -3841,6 +3841,16 @@
   .st-ask-acts{ display:flex; gap:8px; flex-wrap:wrap; margin-top:var(--s-3); }
   /* THE YOU BOARD: the same short cards; Jambo's points across two */
   .st-cr .st-you-board > [data-st-you-card="points"]{ grid-column:span 2; }
+  /* WHEN YOU'RE AWAY (owner picked "An Away card on You — the SAP way", 17 Oct
+     2026): the last card, across the board — its one sentence reads on one line
+     and it never leaves a hole beside it, whichever cards come before */
+  .st-cr .st-you-board > [data-st-you-card="away"]{ grid-column:1 / -1; }
+  .st-cr .st-you-card .st-aw-chip{ margin-left:6px; vertical-align:2px; white-space:nowrap; }
+  .st-cr .st-you-line .st-aw-for{ color:var(--accent-ink); font-weight:var(--w-label); }
+  .st-aw-what{ margin-top:2px; }
+  .st-aw-what .st-ps-l{ display:block; margin:10px 0 4px; }
+  .st-aw-yes{ margin:0 0 4px; font-size:var(--t-body); color:var(--color-text); }
+  .st-aw-reach{ margin:12px 0 0; min-height:1.4em; }
   .st-cr .st-you-line{ display:block; font-size:var(--t-meta); color:var(--color-text); line-height:1.45; padding:3px 0; min-width:0; overflow:hidden; text-overflow:ellipsis; }
   .st-cr .st-you-sub{ color:var(--color-neutral-600); font-size:var(--t-label); }
   .st-cr .chip.st-chip-on{ background:color-mix(in srgb,var(--color-accent) 10%,var(--color-surface)); color:var(--accent-ink); font-weight:var(--w-label); border-radius:999px; padding:0 8px; font-size:var(--t-label); }
