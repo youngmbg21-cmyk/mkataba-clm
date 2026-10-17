@@ -205,6 +205,9 @@ const SAME_IN_BOTH = new Set([ 'na_tab_hati', 'cal_k_plan', 'pd_tab_copilot', 's
   /* A PLACEHOLDER THAT IS AN EXAMPLE OF WHAT SOMEBODY TYPES, not a sentence:
      "Policy 2026 · PDF" is what a Swedish reader would write there too. */
   'ob_doc_file_ph',
+  /* "NDA" is what a Swedish contracts team says too: the Parties list's
+     column head and its pill when an NDA names no direction */
+  'cu_col_nda', 'cu_nda_word',
 ]);
 
 describe('f148 — the two dictionaries stay level', () => {
