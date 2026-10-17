@@ -287,7 +287,11 @@ Object.assign(CONTRACTS[2], { signApprovals: [{ id: 'sa1', askedAt: ago(8), stat
     ok('11a on a 2× screen the house is drawn with twice the pixels (crisp, not grainy)', f11.dpr === 2 && f11.bw === Math.round(f11.cw * 2), JSON.stringify(f11));
     ok('11b in a short window the floors shrink so the house still ends on screen, with no scroll inside it', f11.bottom <= f11.win && f11.fh < 132 && !f11.scrolls, JSON.stringify(f11));
     await p2.setViewportSize({ width: 1440, height: 600 });
-    await p2.waitForFunction(() => jhGeom().cols === 4, null, { timeout: 4000 }).catch(() => {});
+    /* ask for the whole refit, not its first half: four rooms a floor can be
+       chosen a frame before the stage is laid out at the new height (one
+       GitHub run read bottom 739 in a 600 window, 17 Oct 2026) */
+    await p2.waitForFunction(() => { const st = document.getElementById('jh-stage');
+      return jhGeom().cols === 4 && st && st.getBoundingClientRect().bottom <= innerHeight; }, null, { timeout: 4000 }).catch(() => {});
     const f11s = await p2.evaluate(() => { const st = document.getElementById('jh-stage'); return { g: jhGeom(), scrolls: st.scrollHeight > st.clientHeight + 1, bottom: Math.round(st.getBoundingClientRect().bottom), win: innerHeight }; });
     ok('11b2 in a very short window the house takes four rooms a floor rather than scroll', f11s.g.cols === 4 && !f11s.scrolls && f11s.bottom <= f11s.win, JSON.stringify(f11s));
     await p2.setViewportSize({ width: 1440, height: 1000 });
