@@ -118,6 +118,14 @@ function pdTabCount(t, c){
     const n = (onBoard && typeof hbNeedsCount === 'function') ? hbNeedsCount() : 0;
     return n ? { n, tone: 'warn' } : null; }
   if (!c) return null;
+  /* WITH A PAPER UP HIS FACE CARRIES THE COUNTER'S OWN NUMBER (owner picked
+     "Tabs and faces" by name, round 3, 17 Oct 2026): the "All N" that Needs
+     you here opens, read once per paint (the list is kept for the task) */
+  if (t === 'copilot'){
+    const onPaper = typeof igHomePaperFace === 'function' && igHomePaperFace() === true;
+    let n = 0; try { n = (onPaper && typeof counterNeedsCount === 'function') ? counterNeedsCount() : 0; } catch (_){ n = 0; }
+    return n ? { n, tone: 'warn' } : null;
+  }
   try {
     if (t === 'doc'){
       const n = (typeof docThreadHomeMarks === 'function') ? docThreadHomeMarks(c) : 0;
@@ -447,7 +455,7 @@ function pdFillHeadHtml(c){
   const done = d.all - d.left;
   const pct = d.all ? Math.round(done * 100 / d.all) : 100;
   const close = _pdT('act_close');
-  return `<div class="pd-ff-r"><h3>${_pdE(_pdT('pd_ff_title'))}</h3><span data-pd-ff-pill>${
+  return `<div class="pd-ff-r">${pdBackHtml('fill')}<h3>${_pdE(_pdT('pd_ff_title'))}</h3><span data-pd-ff-pill>${
       d.left ? pdPill('warn', _pdTn('det_left_n', d.left, { n: d.left })) : pdPill('ok', _pdT('pd_ff_all_in'))}</span>
       <button type="button" class="pd-ff-x" data-pd-ff-close title="${_pdE(close)}" aria-label="${_pdE(close)}">×</button></div>
     <div class="det-bar" aria-hidden="true"><i data-pd-ff-bar style="width:${pct}%"></i></div>
@@ -547,6 +555,7 @@ function pdFillCounts(c){
    renderIntelDock binds them. */
 function pdChipsRepaint(){
   if (typeof window === 'undefined' || !window.caChipsHtml) return;
+  pdNeedsRepaint();
   pdGlanceRepaint();
   const chips = document.querySelector('#ig-dock [data-ig-chips]'); if (!chips) return;
   const h = caChipsHtml(); if (!h || h === chips.innerHTML) return;
@@ -716,7 +725,7 @@ function pdRedOpts(c){
   const base = (typeof rlBenchOpts === 'function')
     ? rlBenchOpts(c, { side: 'owner', hostId: 'pd-redface', again: pdRedRepaint, scope: '#pd-redface' })
     : { side: 'owner', hostId: 'pd-redface', rerender: pdRedRepaint };
-  return Object.assign({}, base, { cpPanel: false, headEnd: pdRedHeadEndHtml(c) });
+  return Object.assign({}, base, { cpPanel: false, headStart: pdBackHtml('red'), headEnd: pdRedHeadEndHtml(c) });
 }
 function pdRedFaceHtml(c){
   if (!c || typeof rlColumnHtml !== 'function') return '';
@@ -877,6 +886,16 @@ function pdSignShows(){
 /* the one door: false where Home has no paper (the phone), and the caller
    carries on to the phone's own screens */
 function pdSignOpen(id){ return pdOpenOnHome(id, 'signing'); }
+/* ---- THE WAY BACK TO JAMBO (owner picked "Tabs and faces" by name, round 3
+   of the redesign, 17 Oct 2026) ----
+   Every face's head opens with "‹ Jambo", as a desk tab's crumb opens with
+   "‹ The counter"; its × stays at the end. Both do the face's one close (the
+   map below, pressed by the one delegated listener) — nothing new is done. */
+const PD_BACK_CLOSE = { fill: () => pdFillClose(), red: () => pdRedClose(), signing: () => pdSignClose(), amend: () => pdAmendClose() };
+function pdBackHtml(face){
+  const t = _pdT('pd_back_jambo');
+  return `<button type="button" class="pd-back" data-pd-back="${_pdE(face)}" title="${_pdE(t)}" aria-label="${_pdE(t)}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${_pdE(_pdT('pd_tab_copilot'))}</button>`;
+}
 /* WHICH FACE IS UP, FOR A REFRESH (the owner's rule: a refresh lands at the
    same spot; stage 5 — the Negotiate page a refresh used to land back on
    folded into the Redlines face): the face's door word, or '' */
@@ -924,7 +943,7 @@ function pdSignHeadHtml(c){
   const close = _pdT('act_close');
   const s = pdSignState(c);
   /* signed, the title says so and the pill would say it twice */
-  return `<div class="pd-sf-r"><h3>${_pdE(_pdT(s.closed ? 'pd_st_signed' : 'pd_sf_title'))}</h3><span data-pd-sf-pill>${s.closed ? '' : pdSignPillHtml(c)}</span>
+  return `<div class="pd-sf-r">${pdBackHtml('signing')}<h3>${_pdE(_pdT(s.closed ? 'pd_st_signed' : 'pd_sf_title'))}</h3><span data-pd-sf-pill>${s.closed ? '' : pdSignPillHtml(c)}</span>
       <button type="button" class="pd-sf-x" data-pd-sf-close title="${_pdE(close)}" aria-label="${_pdE(close)}">×</button></div>`;
 }
 /* ONCE BOTH HAVE SIGNED THE FACE IS THE RECEIPT (the owner's yes, decision
@@ -1109,7 +1128,7 @@ function pdAmendAdd(el){
 }
 function pdAmendHeadHtml(c){
   const close = _pdT('act_close');
-  return `<div class="pd-sf-r"><h3>${_pdE(_pdT('pd_am_title', { ref: (typeof contractRef === 'function') ? contractRef(c) : c.id }))}</h3>
+  return `<div class="pd-sf-r">${pdBackHtml('amend')}<h3>${_pdE(_pdT('pd_am_title', { ref: (typeof contractRef === 'function') ? contractRef(c) : c.id }))}</h3>
       <button type="button" class="pd-sf-x" data-pd-am-close title="${_pdE(close)}" aria-label="${_pdE(close)}">×</button></div>
     <p class="pd-am-sub">${_pdE(_pdT('pd_am_sub'))}</p>`;
 }
@@ -1717,6 +1736,56 @@ function pdGlanceHtml(c){
     : doneHtml + `<div class="pd-gl-none"><i aria-hidden="true">✓</i><span>${_pdE(_pdT('pd_gl_none'))}</span></div>`;
   return `<div id="pd-glance" class="pd-glance" data-pd-glance-for="${_pdE(c.id)}"><div class="pd-gl-h"><b>${_pdE(_pdT('pd_gl_title', { ref }))}</b><span class="pd-gl-sp"></span>${pill}</div><div class="pd-gl-b">${body}</div></div>`;
 }
+/* ---- NEEDS YOU HERE (owner picked "Tabs and faces" by name, round 3 of the
+   redesign, 17 Oct 2026) ----
+   Above the contract at a glance on Jambo's tab: what THIS contract owes the
+   reader, Jambo's prepared work on it first — the Counter's own two readings
+   (hbAgentsData, needsYouOf), never a list of its own. Each row's button is its
+   one door: a prepared piece opens on the Board's Jambo's work card
+   (hbOpenAgent, the Counter's own), an owed item through needsYouGo (the
+   checklist's, with its words insNeedWords and verb INS_NEED_VERB). "All N" is
+   the Counter's own number (counterNeedsCount) and opens the Counter. Nothing
+   owed here, no card: the glance below says the rest. NOT SAID TWICE: the
+   details still owed are the glance's own row (with its tick when they are in,
+   the owner's "Alive"), so the checklist's 'details' item is left to it.
+   Reading writes nothing. */
+function pdNeedsRows(c){
+  const rows = []; if (!c) return rows;
+  let A = null; try { A = (typeof hbAgentsData === 'function') ? hbAgentsData(null) : null; } catch (_){ A = null; }
+  ((A && A.rows) || []).forEach(r => (r.items || []).forEach(it => {
+    if (it && String(it.cid) === String(c.id)) rows.push({ jw: true, k: r.k, key: it.key, sum: it.sum || '', urg: it.urg || '' }); }));
+  let L = []; try { L = (typeof needsYouOf === 'function') ? (needsYouOf(c) || []) : []; } catch (_){ L = []; }
+  L.filter(it => it && it.kind !== 'details').forEach(it => rows.push({ it }));
+  return rows;
+}
+function pdNeedRowHtml(c, r){
+  if (r.jw){
+    const face = (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 22, 'pd-nd-face').replace('<img', '<img data-ink-exempt') : '';
+    const sub = [r.sum, r.urg].filter(Boolean).join(' · ');
+    return `<div class="pd-gl-row pd-nd-row is-jw">${face}<span><b>${_pdE(_pdT('cn_jw'))} · ${_pdE(_pdT('ag_' + r.k))}</b>${sub ? `<small title="${_pdE(sub)}">${_pdE(sub)}</small>` : ''}</span><button type="button" class="ui-btn ui-btn-sm" data-pd-nd-jw="${_pdE(r.k)}" data-pd-nd-key="${_pdE(r.key || '')}">${_pdE(_pdT('pd_nd_see'))}</button></div>`;
+  }
+  let w = null; try { w = (typeof insNeedWords === 'function') ? insNeedWords(c, r.it) : null; } catch (_){ w = null; }
+  const verb = (typeof INS_NEED_VERB !== 'undefined' && INS_NEED_VERB[r.it.kind]) ? _pdT(INS_NEED_VERB[r.it.kind]) : _pdT('cn_open');
+  /* insNeedWords' line is HTML already (its late days marked); its words plain on the hover */
+  return `<div class="pd-gl-row pd-nd-row${r.it.urgent ? ' is-hot' : ''}" data-pd-nd-kind="${_pdE(r.it.kind)}"><span><b>${_pdE((w && w.title) || '')}</b>${w && w.sub ? `<small title="${_pdE(w.plain || '')}">${w.sub}</small>` : ''}</span><button type="button" class="ui-btn ui-btn-sm" data-pd-nd="${_pdE(r.it.kind)}" data-pd-nd-id="${_pdE(c.id)}">${_pdE(verb)}</button></div>`;
+}
+function pdNeedsHtml(c){
+  const rows = pdNeedsRows(c); if (!rows.length) return '';
+  let all = 0; try { all = (typeof counterNeedsCount === 'function') ? counterNeedsCount() : 0; } catch (_){ all = 0; }
+  const more = (all && typeof deskGoCounter === 'function')
+    ? `<button type="button" class="pd-go pd-nd-all" data-pd-nd-all title="${_pdE(_pdT('pd_nd_all_tip'))}">${_pdE(_pdT('pd_nd_all', { n: all }))}${PD_GO_ARROW}</button>` : '';
+  return `<div id="pd-needs" class="pd-glance pd-needs" data-pd-needs-for="${_pdE(c.id)}"><div class="pd-gl-h"><b>${_pdE(_pdT('pd_nd_title'))}</b>${pdPill('quiet', String(rows.length))}<span class="pd-gl-sp"></span>${more}</div><div class="pd-gl-b">${rows.map(r => pdNeedRowHtml(c, r)).join('')}</div></div>`;
+}
+/* in place, with the glance, as a face or a save changes what is owed */
+function pdNeedsRepaint(){
+  const glance = (typeof document !== 'undefined') ? document.getElementById('pd-glance') : null; if (!glance) return;
+  const c = pdContract(); if (!c || String(c.id) !== glance.getAttribute('data-pd-glance-for')) return;
+  const el = document.getElementById('pd-needs'), html = pdNeedsHtml(c);
+  if (!html){ if (el) el.remove(); return; }
+  const t = document.createElement('div'); t.innerHTML = html;
+  const nu = t.firstElementChild; if (!nu) return;
+  if (!el) glance.before(nu); else if (nu.outerHTML !== el.outerHTML) el.replaceWith(nu);
+}
 /* ---- A ROW THAT GOES IS TICKED OFF FIRST (owner picked "Alive" by name, 16
    Oct 2026: "when something is done he hops, and the row in the at a glance
    card ticks off") ----
@@ -1758,7 +1827,7 @@ function pdJamboTopHtml(){
      "Needs you" card's own reading; owner picked Jambo's note, 15 Oct 2026) */
   if (typeof igHomePaperFace !== 'function' || igHomePaperFace() !== true) return (typeof hbNeedsHelloHtml === 'function') ? hbNeedsHelloHtml() : '';
   const c = pdContract();
-  return c ? pdGlanceHtml(c) : pdWallHtml();
+  return c ? pdNeedsHtml(c) + pdGlanceHtml(c) : pdWallHtml();
 }
 /* the presses, delegated once: the panel is redrawn under them */
 if (typeof document !== 'undefined' && !document._pdJamboTopWired){
@@ -1775,6 +1844,13 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
     if (t.closest('[data-pd-drop-pick]')){ e.preventDefault(); pdDropPick(); return; }
+    const back = t.closest('[data-pd-back]');
+    if (back){ e.preventDefault(); const go = PD_BACK_CLOSE[back.getAttribute('data-pd-back')]; if (go) go(); return; }
+    if (t.closest('[data-pd-nd-all]')){ e.preventDefault(); if (typeof deskGoCounter === 'function') deskGoCounter(); return; }
+    const jw = t.closest('[data-pd-nd-jw]');
+    if (jw){ e.preventDefault(); if (typeof hbOpenAgent === 'function') hbOpenAgent(jw.getAttribute('data-pd-nd-jw'), jw.getAttribute('data-pd-nd-key') || null); return; }
+    const nd = t.closest('[data-pd-nd]');
+    if (nd){ e.preventDefault(); if (typeof needsYouGo === 'function') needsYouGo(nd.getAttribute('data-pd-nd'), nd.getAttribute('data-pd-nd-id')); return; }
     const g = t.closest('[data-pd-glance]');
     if (g && !g.disabled){ e.preventDefault(); const row = PD_GLANCE[g.getAttribute('data-pd-glance')]; if (row && typeof intelAsk === 'function') intelAsk(_pdT(row[2])); }
   });
@@ -1884,5 +1960,5 @@ Object.assign(window, { pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAme
   PD_FILL_TRIES, PD_FILL_BEAT_MS, pdFillFor, pdFillShows, pdFillOpen, pdFillSeen, pdFillAway, pdFillClose, pdFillHeadHtml, pdFillDoneHtml, pdFillFaceHtml, pdFillFacePaint, pdFillCounts, pdFillKeyOf, pdFillEcho, pdFillWire, pdFillLand, pdFillRefresh,
   pdFillStreamMay, pdFillStreamHtml, pdFillStreamRepaint, pdFillStreamPick,
   PD_DROP_ACCEPT, pdDropMay, pdWallHelloHtml, pdDropInner, pdDropStreams, pdDropStreamNow, pdDropStreamHtml, pdDropHtml, pdDropPaint, pdWallHtml, pdDropInput, pdDropBusyNow, pdDropPick, PD_DROP_TOAST_MS, pdDropToastOff, pdDropTake,
-  PD_GLANCE, pdGlanceRows, pdSignAhead, pdGlanceHtml, pdGlanceRepaint, pdJamboTopHtml, PD_GL_DONE_MS, pdGlanceDone,
+  PD_GLANCE, pdGlanceRows, pdSignAhead, pdGlanceHtml, pdGlanceRepaint, pdJamboTopHtml, pdNeedsRows, pdNeedRowHtml, pdNeedsHtml, pdNeedsRepaint, pdBackHtml, PD_BACK_CLOSE, PD_GL_DONE_MS, pdGlanceDone,
   JB_BEAT_MS, JB_HOP_MS, jamboPerchMount, jamboRest, jamboWorkWords, jamboBeat, jamboHop, jamboLookPaint });

@@ -21676,7 +21676,9 @@ function rlColumnHtml(c, opts = {}){
                      count and is named for exactly the state it holds.
                      `ng_tracked_head_n`, `ng_n_open` and `.rl-idx-open` are
                      STALE — the keys are left inert in both dictionaries. */}
-              <span class="rl-idx-title">${
+              ${''/* A HOST'S OWN WAY BACK (round 3, "Tabs and faces"): Jambo's
+                     Redlines face opens its head with "‹ Jambo"; the
+                     Negotiate page passes nothing. */}${opts.headStart || ''}<span class="rl-idx-title">${
                 _ne(i18t('ng_redlines_head_n', { n: changeTotal }))
                   .replace(/\s*\(?(\d+)\)?\s*$/, ' <i>$1</i>')}</span>
               <span class="rl-idx-sp"></span>

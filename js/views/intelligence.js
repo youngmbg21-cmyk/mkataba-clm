@@ -6636,9 +6636,16 @@ function renderIntelDock(){
     const ffMine=()=>{ const r=ff.querySelector('.pd-ff[data-pd-ff]'); return !!(r&&window.pdFillFor&&r.getAttribute('data-pd-ff')===pdFillFor()); };
     if(intel.dockOpen&&ae&&ae.closest&&(ff?(window.pdFillShows&&pdFillShows()&&ffMine()):ae.closest('#ig-dock #pd-fill'))) return; }
   if(!intel.dockOpen){
+    /* HIS FACE ON THE FOLDED STRIP (owner picked "Tabs and faces" by name,
+       round 3, 17 Oct 2026): Jambo himself with the count his tab carries
+       (pdTabCount — the Board's card, or the Counter's number beside a paper),
+       the door's words, and the way it opens. The strip names no face (the
+       owner's "No", round 3). */
+    const _dn=(typeof window.pdTabCount==='function')?pdTabCount('copilot',(window.pdOnPaper&&pdOnPaper()&&window.pdContract)?pdContract():null):null;
+    const _df=(typeof window.jamboFaceHtml==='function')?jamboFaceHtml('hello',28,'igd-door-face').replace('<img','<img data-ink-exempt'):icon('sparkle','w-5 h-5');
     dock.innerHTML=`
-      <button id="igd-expand" class="igd-door" title="${i18t('int_open_panel')}" aria-label="${i18t('int_open_panel')}">
-        ${icon('sparkle','w-5 h-5')}<span class="igd-door-w">${i18t('int_copilot_panel')}</span>
+      <button id="igd-expand" class="igd-door" title="${i18t('int_open_panel')}" aria-label="${igEsc(_dn?i18t('pd_tab_n',{ name:i18t('int_copilot_panel'), n:_dn.n }):i18t('int_open_panel'))}">
+        <span class="igd-door-i">${_df}${_dn?`<span class="pd-tab-n is-${_dn.tone}">${_dn.n>99?'99+':_dn.n}</span>`:''}</span><span class="igd-door-w">${i18t('int_copilot_panel')}</span><svg class="igd-door-o" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>
       </button>`;
     document.getElementById('igd-expand').addEventListener('click',()=>{
       /* AN ENLARGED CHART HANDS THE ROOM BACK (8 Oct 2026): the card's own
