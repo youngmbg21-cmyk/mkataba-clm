@@ -858,7 +858,9 @@ function contractArrived(c, opts){
   if (o.read === false) return false;
   if (typeof triageAndPaint !== 'function') return false;
   if (!triageApplies(c)) return false;
-  try{ triageAndPaint(c); }catch(_){ return false; }
+  /* a ticked box (or the drop area, which reads by design and says its cost)
+     is a person asking — the press a private folder's contract waits for */
+  try{ triageAndPaint(c, o.read === true ? { asked: true } : undefined); }catch(_){ return false; }
   return true;
 }
 

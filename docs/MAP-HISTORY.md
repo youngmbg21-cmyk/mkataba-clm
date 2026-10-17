@@ -30247,3 +30247,20 @@ WHAT WAS BUILT:
 LEFT ALONE, AND SAID: the amendment screens still word a change of salary as a change of "value"; a few sentences that state one contract's own amount (an agent's line, the Jambo panel's facts) still print it — none of them adds it. Pay bands and approval above a band stay out, as the plan says.
 
 TESTS: f696 (18 claims, red at the parent), pay-section-verify (38 checks; fails at the parent within seconds). Photographed at 1440 × 780, 1536 × 730 and 1366 × 950.
+
+## JAMBO BEHIND THE WALL — ONE PRESS, THE SAP WAY (17 Oct 2026)
+
+Piece 3 of the sensitive-contracts and governance plan; decision 2 ("Reads on a press only. No automatic reading when a contract arrives, and nothing from it ever appears in anyone else's answer"). The design round "Jambo Behind the Wall" drew three ideas on the contract's real panel on Home — "One press — the SAP way", "Jambo asks" and "Piece by piece"; the owner picked "One press — the SAP way" by name.
+
+THE FAULT: Jambo read every contract on his own at four moments — when it arrived (contractArrived), when it left drafting (contractLeavesDrafting and the room's own send-for-review press), when it was opened again after a change (roomReadAgainDue) and when its Clauses tab opened (stkAutoRun) — and four server helpers read the whole book at night or on an answer: renewal preparation, standards preparation, the book reading and the reply drafts. A private folder's contracts went through all of them.
+
+WHAT WAS BUILT:
+- ONE QUESTION (`jamboOnPress(c)`, js/core.js, beside `streamIsPrivate`): is this contract in a private folder?
+- ONE LAUNCHER REFUSES (`triageAndPaint`): a private contract returns unread unless the call carries `asked` (a person's press) or `again` (Read again / Try again, a renewal's Decide). Every automatic door already passes through it, so arrival, leaving drafting, the send-for-review moment, the request lanes' arrivals and reopening all stop at once. The upload's ticked box and the drop area count as asking (`contractArrived` passes `asked` for `read: true`): both already say their cost, and uploading into a private folder is a person's own act.
+- THE CLAUSES TAB WAITS (`stkAutoRun`): it does not read itself; its head says "Not read · private folder", the sentence, and the same press, Read it now, with its cost. A press now marks itself tried, so a refusal says Try again.
+- THE ONE PRESS (js/views/boardstrip.js, `bsReadWait`, `bsGo('read')`): the panel's "What Jambo read" section heads itself with its state (not read, or not read since the last change), the cost and Read it now — the SAP section toolbar. Risks and standards say "Not read yet" instead of a count never taken. A press loads the whole record, then reads through the same launcher (`asked`); the ring turns until it lands. One who may not edit sees the state and no button.
+- THE SERVER (`psFolderPrivate`, `psPrivateFolders`): renewal preparation, standards preparation, the book reading and the reply drafts pass a private folder's contracts by and count them (`skipped.private`); the event that starts a reply draft asks the folder first, so no run names a private contract; the book reading's drawer counts only what it may read.
+
+STILL OPEN, AND SAID: GET /api/agents/status's change stamp counts every contract (it is a "has anything moved" key, never shown), and runs logged before today may still name a private contract as their subject.
+
+TESTS: f697 (10 claims, red at the parent), jambo-behind-the-wall-verify (18 checks, red at the parent). Photographed at 1440 × 780, 1536 × 730 and 1366 × 950.

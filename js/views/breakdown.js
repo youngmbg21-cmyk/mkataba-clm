@@ -189,6 +189,8 @@ function stkFiltersHtml(b, all){
    is said and waits for Try again (the latch is raised before the read) */
 function stkAutoRun(c){
   if (!c || _bd.busy || !stkOwed(c)) return;
+  /* a private folder's contract waits for a person's press (jamboOnPress) */
+  if (typeof jamboOnPress === 'function' && jamboOnPress(c)) return;
   if (!(typeof API_MODE === 'function' && API_MODE() && state.aiConfigured)) return;
   const k = stkKey(c); if (_bd.tried[k]) return;
   _bd.tried[k] = true;
@@ -200,9 +202,12 @@ function stkHeadHtml(c, b){
   if (!b){
     const noKey = !(typeof API_MODE === 'function' && API_MODE() && state.aiConfigured);
     const view = `<div class="stk-view"><b>${_bdE(i18t('stk_view'))}</b></div>`;
-    if (busy || (!err && !noKey && !_bd.tried[stkKey(c)])) return `<div class="stk-head is-empty">${view}<div class="stk-acts"><span class="stk-busy" role="status" aria-live="polite">${bdBusyHtml()}</span><span class="stk-cost">${_bdE(i18t('bd_cost'))}</span></div></div>`;
-    const why = err || (noKey ? i18t('bd_no_key') : i18t('stk_read_sub'));
-    return `<div class="stk-head is-empty">${view}<p class="${err ? 'stk-err' : 'stk-sub'}" role="${err ? 'alert' : 'status'}">${_bdE(why)}</p>${noKey ? '' : `<div class="stk-acts"><button type="button" class="ui-btn ui-btn-sm" data-stk-run>${_bdE(i18t('stk_again'))}</button><span class="stk-cost">${_bdE(i18t('bd_cost'))}</span></div>`}</div>`;
+    /* a private folder's contract is not read until somebody presses: said,
+       with the same press and its cost (jamboOnPress) */
+    const waits = !_bd.tried[stkKey(c)] && typeof jamboOnPress === 'function' && jamboOnPress(c);
+    if (busy || (!err && !noKey && !waits && !_bd.tried[stkKey(c)])) return `<div class="stk-head is-empty">${view}<div class="stk-acts"><span class="stk-busy" role="status" aria-live="polite">${bdBusyHtml()}</span><span class="stk-cost">${_bdE(i18t('bd_cost'))}</span></div></div>`;
+    const why = err || (noKey ? i18t('bd_no_key') : waits ? i18t('jb_wait_line') : i18t('stk_read_sub'));
+    return `<div class="stk-head is-empty">${view}${waits && !err ? `<span class="jb-state">${_bdE(i18t('jb_state_private'))}</span>` : ''}<p class="${err ? 'stk-err' : 'stk-sub'}" role="${err ? 'alert' : 'status'}">${_bdE(why)}</p>${noKey ? '' : `<div class="stk-acts"><button type="button" class="ui-btn ui-btn-sm" data-stk-run>${_bdE(i18t(waits ? 'jb_read_now' : 'stk_again'))}</button><span class="stk-cost">${_bdE(i18t('bd_cost'))}</span></div>`}</div>`;
   }
   /* AS DRAWN (owner, 13 Oct 2026): the title line and the three filters — the
      summary, the colour ribbon and its key are gone */
@@ -411,6 +416,7 @@ function stkRepaint(c){
 }
 async function stkRun(c){
   if (!c || _bd.busy) return;
+  _bd.tried[stkKey(c)] = true;   // a press is a try: a refusal then says Try again
   _bd.runFor = c.id;
   const p = bdRun(c);
   stkRepaint(c);

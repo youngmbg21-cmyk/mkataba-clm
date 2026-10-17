@@ -365,6 +365,22 @@ function bsPayFocus(id){
 function bsPayHost(id){ return document.querySelector(`#hb-board [data-bs-host="pay"][data-bs-cid="${(typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(String(id)) : id}"]`); }
 function bsPayPaint(id, force){ const host = bsPayHost(id), c = bsContract(id); if (host && c) bsPaintPay(host, c, force); }
 
+/* ---- JAMBO BEHIND THE WALL: THE ONE PRESS (owner picked "One press — the
+   SAP way", 17 Oct 2026; decision 2) ----
+   A private folder's contract is read only when one of its people asks. Its
+   "What Jambo read" section says so in its head — not read, or not read since
+   the last change — and carries the one press, Read it now, with its cost
+   beside it: the same reading the upload's own box starts (triageAndPaint,
+   `asked`). Null for every other contract, and once it is read. */
+const _bsReading = new Set();
+function bsReadWait(c){
+  if (!(c && typeof jamboOnPress === 'function' && jamboOnPress(c))) return null;
+  if (_bsReading.has(String(c.id)) || (typeof triageBusy === 'function' && triageBusy(c))) return { busy: true };
+  const need = (typeof triageNeedsRead === 'function') ? triageNeedsRead(c) : !(c && c.triage);
+  if (!need) return null;
+  return { stale: !!(typeof triageOf === 'function' && triageOf(c)) };
+}
+
 /* THE ONE READING THE STRIP DRAWS — plain data, no markup */
 function bsLifeData(c){
   let M = null; try { M = (typeof ov2Model === 'function') ? ov2Model(c) : null; } catch (_){ M = null; }
@@ -439,7 +455,7 @@ function bsLifeData(c){
      a section of its own under them (bsPayHtml), never the Value tile */
   const pay = bsIsPay(c);
   if (pay) Object.assign(K, bsJobTiles(c, M, owed));
-  return { c, M, K, life, O, cells, signers, signedBy, risks, riskN, dev, det, tri, brief, owed, pay, ev,
+  return { c, M, K, life, O, cells, signers, signedBy, risks, riskN, dev, det, tri, brief, owed, pay, ev, wait: bsReadWait(c),
     loading: !!(c._light && !c._loaded && !_bsDone.has(String(c.id)) && typeof API_MODE === 'function' && API_MODE()) };
 }
 
@@ -684,17 +700,27 @@ function bsJamboHtml(D){
     brief = line ? bsE(line) + (D.brief.truncated ? ` <span class="hb-quiet">(${bsE(bsT('tri_cut'))})</span>` : '') : bsE(bsT('bs_jb_brief_none')); }
   else if (D.loading) brief = (typeof busyHtml === 'function') ? busyHtml(bsT('bs_jb_loading')) : bsE(bsT('bs_jb_loading'));
   else brief = bsE(bsT('bs_jb_brief_none'));
+  /* a private contract not yet read: the state and the one press head the
+     section, and the readings it would fill say "not read yet" rather than a
+     count that was never taken */
+  const W = D.wait, unread = !!(W && !W.busy && !W.stale);
+  if (W){
+    if (W.busy) brief = (typeof busyHtml === 'function') ? busyHtml(bsT('jb_reading')) : bsE(bsT('jb_reading'));
+    else if (!W.stale) brief = bsE(bsT('jb_wait_line'));
+  }
   const cell = (k, label, n, tone, items, go, goWord) => `<div class="bs-jcell" data-bs-jcell="${k}"><small>${bsE(bsT(label))}</small><b${tone ? ` class="is-${tone}"` : ''}>${bsE(n)}</b>${items.length ? `<ul>${items.map(x => `<li>${bsE(x)}</li>`).join('')}</ul>` : ''}${go ? `<button type="button" class="hb-link bs-go" data-bs-go="${go}" data-bs-id="${id}">${bsE(bsT(goWord))}</button>` : ''}</div>`;
   /* risks: the one count and the first titles, worst first */
   const titles = D.risks.slice(0, 3).map(it => { try { return (typeof riskTitleOf === 'function') ? riskTitleOf(it) : String(it.title || it.label || ''); } catch (_){ return ''; } }).filter(Boolean);
-  const risks = cell('risks', 'bs_jb_risks', String(D.riskN), D.riskN ? 'warn' : '', D.riskN ? titles : [bsT('bs_jb_risks_none')], D.riskN ? 'risks' : '', 'bs_jb_risks_go');
+  const risks = unread ? cell('risks', 'bs_jb_risks', '—', '', [bsT('jb_not_read')], '', '')
+    : cell('risks', 'bs_jb_risks', String(D.riskN), D.riskN ? 'warn' : '', D.riskN ? titles : [bsT('bs_jb_risks_none')], D.riskN ? 'risks' : '', 'bs_jb_risks_go');
   /* our standards: met · missing · differs, and "all met" only over a finished check */
   const dv = D.dev;
   const met = dv ? Math.max(0, dv.total - dv.dev - dv.miss) : 0;
   const stdN = !dv || !dv.total ? '—' : (dv.ok && dv.complete) ? bsT('bs_jb_std_all') : bsT('bs_jb_std_n', { k: met, n: dv.total });
   const stdItems = !dv || !dv.total ? [bsT('bs_jb_std_none')]
     : [dv.miss ? bsTn('bs_jb_std_miss', dv.miss, { n: dv.miss }) : '', dv.dev ? bsTn('bs_jb_std_dev', dv.dev, { n: dv.dev }) : '', (dv.ok && !dv.complete) ? bsT('bs_jb_std_part') : ''].filter(Boolean);
-  const std = cell('std', 'bs_jb_std', stdN, dv && (dv.dev || dv.miss) ? 'warn' : '', stdItems, dv && dv.total ? 'std' : '', 'bs_jb_std_go');
+  const std = unread ? cell('std', 'bs_jb_std', '—', '', [bsT('jb_not_read')], '', '')
+    : cell('std', 'bs_jb_std', stdN, dv && (dv.dev || dv.miss) ? 'warn' : '', stdItems, dv && dv.total ? 'std' : '', 'bs_jb_std_go');
   /* details to fill: the Details tab's own count (detailsOf) */
   const dt = D.det, left = dt && dt.live ? dt.left : 0;
   const labels = dt && dt.live ? dt.items.filter(x => x.open).slice(0, 3).map(x => x.label) : [];
@@ -710,7 +736,14 @@ function bsJamboHtml(D){
      own door (`data-bs-go="brief"`), never `data-kt-brief`, whose wiring hands
      every such button on the page ONE contract — two strips would cross. */
   const read = D.brief ? `<button type="button" class="hb-btn is-sm is-primary" data-bs-go="brief" data-bs-id="${id}">${bsE(bsT('br_open'))}</button>` : '';
-  return `<div class="bs-sec bs-jb"><div class="bs-sec-h"><h5>${bsE(bsT('bs_jb'))}</h5>${read}<span class="hb-grow"></span><span class="bs-note">${bsE(note)}</span></div>
+  /* THE ONE PRESS, in the section's own head (the SAP section toolbar): the
+     state after the title, the cost beside the button; one who may not edit
+     sees the state and no button */
+  const may = (typeof canEdit !== 'function') || !!canEdit();
+  const head = W ? `<span class="bs-jb-state">${bsE(bsT(W.stale ? 'jb_state_stale' : 'jb_state_private'))}</span>${read}<span class="hb-grow"></span>${
+      W.busy ? '' : may ? `<span class="bs-note">${bsE(bsT('jb_read_cost'))}</span><button type="button" class="hb-btn is-sm" data-bs-go="read" data-bs-id="${id}">${bsE(bsT('jb_read_now'))}</button>` : ''}`
+    : `${read}<span class="hb-grow"></span><span class="bs-note">${bsE(note)}</span>`;
+  return `<div class="bs-sec bs-jb"><div class="bs-sec-h"><h5>${bsE(bsT('bs_jb'))}</h5>${head}</div>
     <p class="bs-brief">${brief}</p><div class="bs-jgrid">${risks}${std}${det}${ob}</div></div>`;
 }
 function bsFootHtml(D, st){
@@ -913,6 +946,19 @@ function bsGo(kind, id){
      never spends and never writes (the cell is drawn only over a check that ran) */
   if (kind === 'std'){ if (typeof openCheckPanel === 'function') openCheckPanel(bsContract(c.id) || c, 'playbook'); return; }
   if (kind === 'fill'){ if (typeof pdFillOpen === 'function') pdFillOpen(c.id); return; }
+  /* READ IT NOW: the person's press a private contract waits for — the whole
+     record first, then the one arrival reading, asked; the ring turns until
+     it lands */
+  if (kind === 'read'){
+    const id0 = String(c.id);
+    if (_bsReading.has(id0) || !((typeof canEdit !== 'function') || canEdit())) return;
+    _bsReading.add(id0); bsRepaint();
+    Promise.resolve((c._light && !c._loaded && typeof ensureFull === 'function') ? ensureFull(c) : null).catch(() => {})
+      .then(() => { const live = bsContract(id0) || c; return (typeof triageAndPaint === 'function') ? triageAndPaint(live, { asked: true }) : null; })
+      .catch(() => {})
+      .then(() => { _bsReading.delete(id0); bsRepaint(); });
+    return;
+  }
   if (kind === 'oblig'){ if (typeof hbOpenView === 'function') hbOpenView(c.id, 'oblig'); }
 }
 if (typeof document !== 'undefined' && !document._bsWired){

@@ -2180,6 +2180,11 @@ function triageAndPaint(c, opts){
      below. Absent on every older caller, so every door that already existed
      behaves exactly as it did. */
   const again = !!(opts && opts.again);
+  /* JAMBO BEHIND THE WALL (owner picked "One press — the SAP way", 17 Oct
+     2026): a private folder's contract is read only when a person asked —
+     Read it now (`asked`), the upload's own box (contractArrived passes it),
+     Read again or Try again (`again`). Every other door returns here unread. */
+  if(window.jamboOnPress && jamboOnPress(c) && !(opts && opts.asked) && !again) return;
   /* ---- ONCE PER WORDING, WHICH REPLACES ONCE EVER (17 Sep 2026) ----
      The note above still holds — triageRun has no memory and the question must
      be asked HERE, in the one place every door passes through — but the
