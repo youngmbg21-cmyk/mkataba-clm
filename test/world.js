@@ -42,6 +42,7 @@ const MODULES = [
      readings. A pure module, published by name and read by every view that
      prints a contract's reference — so it is on every stage, before them. */
   'js/outside.js',
+  'js/nda.js',
   'js/graphwhere.js',   // the graph's `where` predicate, one for both hosts (Copilot audit phase 4)
   'js/section.js',      // the section grammar: a pure builder, read by five views
   'js/richdoc.js',

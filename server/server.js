@@ -12,6 +12,9 @@ const express = require('express');
 const { jxPack, JX_DEFAULT, JURISDICTIONS,
   fxSetRatesReader, fxSetHomeReader, fxSetPrivateReader, fxHome, fxCounted, fxPrivate, fxMissing, contractCurrency,
   fxIsPay, payClean } = require('../js/jurisdiction.js');
+/* An NDA's two facts — who keeps it secret, and until when — one shape on
+   both hosts (owner picked "The tail on the life line", 17 Oct 2026) */
+const { ndaClean, ndaFacts } = require('../js/nda.js');
 /* One dictionary, two hosts. The server writes email and needs the recipient's
    own language from the SAME table the screens use — a second copy here would
    drift from js/i18n.js without anything noticing, which is the fault the
@@ -4982,6 +4985,26 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   }
   /* PAY ARRIVES IN ONE SHAPE (payClean, the browser's own cleaner, js/jurisdiction.js) */
   if (c.pay !== undefined) { const p = payClean(c.pay); if (p) c.pay = p; else delete c.pay; }
+  /* AN NDA'S TWO FACTS ARRIVE IN ONE SHAPE (ndaClean, js/nda.js). They are our
+     reading of the signed paper, like the obligations, so they may be
+     confirmed after signature; WHO confirmed them is the person saving, never
+     what the body claims — a save that moves no fact keeps the stored name. */
+  if (c.nda !== undefined) {
+    const n = ndaClean(c.nda);
+    if (!n) delete c.nda;
+    else {
+      const was = prev ? ndaClean(prev.nda) : null;
+      if (was && JSON.stringify(ndaFacts(was)) === JSON.stringify(ndaFacts(n))) {
+        if (was.who) n.who = was.who; else delete n.who;
+        if (was.at) n.at = was.at; else delete n.at;
+      } else {
+        const who = String((req.user && req.user.name) || '').slice(0, 80);
+        if (who) n.who = who; else delete n.who;
+        n.at = new Date().toISOString();
+      }
+      c.nda = n;
+    }
+  }
 
   /* ---- APPROVAL BEFORE SIGNING: THE REQUESTS ARE MERGED (23 Sep 2026) ----
      After the money is put back, because a request is stamped with exactly

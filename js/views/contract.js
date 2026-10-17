@@ -7086,6 +7086,19 @@ function ktFieldCell(c,k,edit,marks){
       return [i18t('ct_term_label'), t, (!edit&&t&&R.expiryFrom)?i18t('ct_as_amended_by',{ref:R.expiryFrom}):undefined];
     }
     case 'contractType': return [i18t('ov_f_type'), edit?box():(R.contractType||txt(m.contractType))];
+    /* AN NDA'S TWO FACTS: one reading (ndaOf), never a box — in Edit the
+       read-out carries its door (ovNdaDoorHtml), the panel's editor */
+    case 'ndaEnds': case 'ndaDir': {
+      const N=window.ndaOf?ndaOf(c):null; if(!N||!N.is) return null;
+      const day=d=>window.bsDay?bsDay(d):d;
+      const read=k==='ndaEnds'
+        ?(N.wait?'':N.forGood?esc(i18t('nda_for_good')):(N.ends?esc(N.latest?i18t('nda_until_latest',{ d:day(N.ends) }):day(N.ends)):''))
+        :(N.dir&&window.ndaDirWords?esc(ndaDirWords(N.dir)):'');
+      const label=i18t(k==='ndaEnds'?'nda_f_ends':'nda_f_dir');
+      if(!edit||k!=='ndaEnds') return [label, read];
+      const door=ovNdaDoorHtml(c);
+      return [label, `<span class="ov-pay-read">${read||'—'}${door?' '+door:''}</span>`];
+    }
     case 'liabilityCapped': return [ovMetaLabel(k), edit?box():opt(m.liabilityCapped), '',
       (!edit&&m.liabilityCapped==='uncapped')?'amber':''];
     case 'indemnityCapped': return [ovMetaLabel(k), edit?box():opt(m.indemnityCapped), '',
@@ -7144,7 +7157,29 @@ const OV_ESS_REST_PEERS={ term:['effDate','expiry'], renewalType:['renewalTermMo
    17 Oct 2026): the role and the probation take the places of payment terms
    and the liability cap, and the value cell is its Pay — the card stays eight */
 const OV_ESS_PAY_SWAP={ paymentTerms:'jobTitle', liabilityCapped:'probationMonths' };
-function ovEssKeys(c){ return (window.fxIsPay&&fxIsPay(c)) ? OV_ESS_REST.map(k=>OV_ESS_PAY_SWAP[k]||k) : OV_ESS_REST; }
+/* AN NDA'S EIGHT (owner picked "The tail on the life line", 17 Oct 2026):
+   when secrecy ends and who keeps it secret take the places of the value and
+   the payment terms, which an NDA does not have — the card stays eight */
+const OV_ESS_NDA_SWAP={ value:'ndaEnds', paymentTerms:'ndaDir' };
+function ovEssKeys(c){
+  if(window.fxIsPay&&fxIsPay(c)) return OV_ESS_REST.map(k=>OV_ESS_PAY_SWAP[k]||k);
+  if(window.ndaIs&&ndaIs(c)) return OV_ESS_REST.map(k=>OV_ESS_NDA_SWAP[k]||k);
+  return OV_ESS_REST;
+}
+/* THE ONE DOOR ONTO AN NDA'S FACTS, from its cell: the wording's reading
+   wears "Clause 5 · confirm", nothing read says "set it", a confirmed one
+   offers Edit confidentiality — every one opens the panel's editor
+   (ndaEditOpen). A signed NDA keeps it: the facts are our reading of the
+   paper, like its obligations (the renewal term's own precedent, a link in
+   the cell, never a band). */
+function ovNdaDoorHtml(c){
+  if(PORTAL_MODE||!(window.ndaMay&&ndaMay(c))||!window.ndaOf) return '';
+  const N=ndaOf(c); if(!N.is||N.wait) return '';
+  const words=N.confirmed?i18t('bs_nda_edit')
+    :(N.ends||N.forGood)?(N.clause?i18t('nda_confirm',{ n:N.clause }):i18t('nda_confirm_noclause'))
+    :i18t(N.period?'nda_noend_set':'nda_set');
+  return `<button type="button" class="ui-link${N.confirmed?'':' is-need'}" data-ov-nda-edit="${esc(c.id)}">${esc(words)}</button>`;
+}
 function ovEssRenewalRead(c){
   const R=ovMapRenewal(c), m=(c&&c.metadata)||{};
   const type=R.type?((typeof metaOptLabel==='function'?metaOptLabel(R.type):R.type)||R.type):'';
@@ -7187,6 +7222,11 @@ if(typeof document!=='undefined') document.addEventListener('click',e=>{
   const b=e.target&&e.target.closest&&e.target.closest('[data-ov-pay-edit]'); if(!b) return;
   e.preventDefault(); if(window.payEditOpen) payEditOpen(b.getAttribute('data-ov-pay-edit'));
 });
+/* AN NDA'S FACTS, from the Overview's cell: the one door, the contract's panel on Home */
+if(typeof document!=='undefined') document.addEventListener('click',e=>{
+  const b=e.target&&e.target.closest&&e.target.closest('[data-ov-nda-edit]'); if(!b) return;
+  e.preventDefault(); if(window.ndaEditOpen) ndaEditOpen(b.getAttribute('data-ov-nda-edit'));
+});
 if(typeof document!=='undefined') document.addEventListener('click',e=>{
   const b=e.target&&e.target.closest&&e.target.closest('[data-ov-renew-term]'); if(!b) return;
   e.preventDefault(); ovRenewTermAsk(b.getAttribute('data-ov-renew-term'));
@@ -7197,13 +7237,14 @@ if(typeof document!=='undefined') document.addEventListener('click',e=>{
    does not. Each cell carries its key (`_key`). */
 function ovEssRestHtml(c,marks){ return sectionFieldsHtml(ovEssRestCells(c,marks)); }
 function ovEssRestCells(c,marks){
-  const keys=ovEssKeys(c), pay=keys!==OV_ESS_REST;
+  const keys=ovEssKeys(c), pay=!!(window.fxIsPay&&fxIsPay(c));
   const cells=keys.map(k=>{
     const cell=ktFieldCell(c,k,false,marks); if(!cell) return null;
     cell._key=k;
     if(k==='renewalType'){ cell[0]=i18t('ov_f_renewal'); cell[1]=ovEssRenewalRead(c);
       /* the renewal term's door rides the cell's own line under it (a hold, below, wins it) */
       const door=ovRenewTermDoorHtml(c,ovMapRenewal(c)); if(door&&!cell[4]) cell[4]=`<span class="sec-f-n">${door}</span>`; }
+    if(k==='ndaEnds'){ const door=ovNdaDoorHtml(c); if(door&&!cell[4]) cell[4]=`<span class="sec-f-n">${door}</span>`; }
     /* the redesign's own short labels; the edit posture keeps the long ones */
     if(k==='value'&&!pay) cell[0]=i18t('ov_f_value_short');
     if(k==='liabilityCapped') cell[0]=i18t('ov_f_liab_capped');
@@ -7229,7 +7270,7 @@ const OV_ESS_EDIT_LABEL={ value:'ov_f_value_short', renewalType:'ov_f_renewal', 
 const _ovDirSel={ id:null, k:'' };
 function ovEssEditHtml(c){
   const lab=(html,key)=>String(html||'').replace(/^(\s*<input )/,`$1aria-label="${esc(i18t(key))}" `);
-  const keys=ovEssKeys(c), pay=keys!==OV_ESS_REST;
+  const keys=ovEssKeys(c), pay=!!(window.fxIsPay&&fxIsPay(c));
   const cells=keys.map(k=>{
     if(k==='term'){
       const eff=ktFieldCell(c,'effDate',true,null), exp=ktFieldCell(c,'expiry',true,null);

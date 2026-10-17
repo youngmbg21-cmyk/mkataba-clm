@@ -10075,6 +10075,29 @@
   .bs-pay-in[data-bs-pay-f="amount"]{text-align:right;font-variant-numeric:tabular-nums}
   .bs-pay-in:focus-visible{outline:2px solid var(--hb-glow);outline-offset:0}
   .bs-pay-acts{display:flex;align-items:center;gap:8px;margin-top:10px}
+  /* AN NDA (owner picked "The tail on the life line", 17 Oct 2026): what stays
+     secret after the sharing ends is the term's own colour, striped; the
+     wording's reading wears the amber "confirm" mark until a person confirms */
+  .bs-sw-secret{background:repeating-linear-gradient(135deg,rgba(var(--hb-gw),.45) 0 2px,transparent 2px 5px);box-shadow:inset 0 0 0 1px rgba(var(--hb-gw),.45)}
+  .bs-chart .bs-seg-secret{stroke:rgba(var(--hb-gw),.45);stroke-width:1}
+  .bs-chart .bs-seg-secret.is-open{stroke-dasharray:4 3}
+  .bs-chart .bs-hatch-ln{fill:rgba(var(--hb-gw),.45)}
+  .bs-nda-dir{display:inline-flex;align-items:center;gap:6px;color:var(--hb-ink)}
+  .bs-nda-ic{flex:none;color:var(--hb-glow)}
+  .bs-kpi span .bs-nda-mark{display:inline-flex;max-width:100%}
+  .bs-nda-mark{align-items:center;border:1px solid var(--st-amber-line);border-radius:var(--radius);background:var(--st-amber-bg);color:var(--st-amber-fg);font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);padding:0 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+  .bs-nda-mark.is-still{cursor:default}
+  .bs-nda-mark:focus-visible{outline:2px solid var(--hb-glow);outline-offset:1px}
+  .bs-nda-ed{display:flex;flex-direction:column;gap:10px}
+  .bs-nda-q{margin:0;max-width:96ch;font-size:var(--t-body);line-height:1.5;color:var(--hb-ink-2)}
+  .bs-nda-q q{color:var(--hb-ink)}
+  .bs-nda-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,1.4fr);gap:10px 14px;align-items:end}
+  .bs-nda-f{display:flex;flex-direction:column;gap:4px;min-width:0}
+  .bs-nda-f > span{font-size:var(--t-meta);color:var(--hb-ink-2);font-weight:var(--w-label)}
+  .bs-nda-cks{display:flex;flex-direction:column;gap:4px;font-size:var(--t-body);color:var(--hb-ink)}
+  .bs-nda-cks label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+  .bs-nda-ed .bs-note{margin:0}
+  .bs-nda-ed .bs-pay-acts{margin-top:0}
   .bs-obs{--bs-ob-rows:7;max-height:calc(var(--bs-ob-rows) * 37px + 34px);overflow:auto;padding:0 12px;border:1px solid rgba(var(--hb-ln),.16);border-radius:var(--radius-lg)}
   .bs-obs:focus-visible{outline:2px solid var(--hb-glow);outline-offset:2px}
   .bs-ob{width:100%;border-collapse:collapse;font-size:var(--t-body)}

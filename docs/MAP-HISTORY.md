@@ -30264,3 +30264,26 @@ WHAT WAS BUILT:
 STILL OPEN, AND SAID: GET /api/agents/status's change stamp counts every contract (it is a "has anything moved" key, never shown), and runs logged before today may still name a private contract as their subject.
 
 TESTS: f697 (10 claims, red at the parent), jambo-behind-the-wall-verify (18 checks, red at the parent). Photographed at 1440 × 780, 1536 × 730 and 1366 × 950.
+
+## THE TAIL ON THE LIFE LINE — AN NDA'S TWO FACTS (17 Oct 2026)
+
+The owner picked "The tail on the life line" (option 2 of the "NDA dates and direction" round; piece 4 of the sensitive contracts and governance plan; the recommendation was option 1, "NDA tiles — the SAP way"). An NDA's panel looked like any other contract's: its first tile said "Value — No money passes", and whether one side or both must keep the secret, and until when, was nowhere on it (only as loose words in the metadata's free-text "Confidentiality" box).
+
+WHAT WAS BUILT, as drawn:
+- The Value tile reads "Secret until" (`bsNdaTile`): the day, or "For good"; under it, while it is only the wording's reading, an amber press "Clause 5 · confirm"; once confirmed, "Confirmed by <name>"; nothing in the wording, "Not in the wording · set it" — never a guessed day.
+- The facts line says who keeps it secret where the contract type was, with a drawn two-way sign: "Mutual NDA: both sides keep it secret", "One-way NDA: they keep what we share secret", "One-way NDA: we keep what they share secret".
+- The life line draws the term as "Sharing" and then a striped "Kept secret" tail (`.bs-seg-secret`, an SVG pattern named per contract) to the day secrecy ends — open to the line's edge when kept for good — with "Sharing ends", "Secret until" and "Reminder" marks. Its sentence says who may share until when and how long what was shared stays secret, from which clause, and that trade secrets stay secret as long as they are.
+- The line's place is its own host (`data-bs-host="nda"`, the Pay section's pattern) so the editor opens there without a repaint taking a box from under the reader: who keeps it secret, secret until (or kept for good), trade secrets, the quoted sentence it was read from, who the reminder goes to; Confirm, then Cancel.
+- The Details sheet's eight carry "Secret until" and "Who keeps it secret" in place of the value and the payment terms (`OV_ESS_NDA_SWAP`); the door rides the cell's own line (`ovNdaDoorHtml`), the renewal term's precedent. The phone's key facts read the same two rows.
+
+TWO PROMISES OF THE DESIGN ROUND COULD NOT BE KEPT AS WRITTEN, and why (said to the owner):
+- "Confirming and editing happen in Fill in" — Fill in (and `detailsOf`, the count of what is owed) close once a contract is signed, and most NDAs are signed. The door is the panel itself and the Details sheet's cell instead: no new form, the same act from three places (one door, `ndaEditOpen`). An unconfirmed date is not yet counted in "details owed" on an unsigned NDA; that is left for the owner to decide.
+- Storing the facts in `c.metadata` — the server freezes the whole metadata at signature (EXECUTED_IMMUTABLE). The facts are OUR reading of the signed paper, like its obligations, so they are their own key, `c.nda`, which stays changeable after signature; the paper does not move. The server cleans it to one shape (`ndaClean`) and names who confirmed from the session, never from the body; a save that moves no fact keeps the stored name.
+
+THE READING (`ndaRead`, js/nda.js, both hosts; no model, nothing spent): a named discloser or recipient decides one-way (and whose side, by party name), then the mutual words; the first confidentiality sentence with a period ("survive for a period of three (3) years following termination") gives the period and where it counts from (after the end; from the start; from each disclosure, said "at the latest" after the end); "in perpetuity" and its kin say for good, unless the sentence only keeps trade secrets; the clause is the numbered heading it sits under — by line, or split mid-text where the plain reading of a drawn paper runs every line together ("… agreement. 5. Duration …"), with the heading's own words taken off the quote. HaTi's own NDA standard states no secrecy period at all, so it reads "Not in the wording · set it".
+
+THE REMINDER rides the obligations, as the plan said: an ordinary obligation (`origin:'nda'`, ours, the owner's, an English record line "Secrecy ends 31 Jul 2030") due a month before secrecy ends (`ndaRemindDay`: never before today, none once ended or for good), linked by `c.nda.ob`; a changed day moves it, a done one reopens.
+
+A PRIVATE FOLDER'S NDA nobody has had read says "Not read yet" (decision 2).
+
+TESTS: f698 (14 claims; red at the parent — js/nda.js is new), nda-tail-verify (36 checks; 31 red at the parent, each reporting rather than timing out). Photographed at 1440 × 780, 1536 × 730 and 1366 × 950.

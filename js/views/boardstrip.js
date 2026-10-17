@@ -365,6 +365,98 @@ function bsPayFocus(id){
 function bsPayHost(id){ return document.querySelector(`#hb-board [data-bs-host="pay"][data-bs-cid="${(typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(String(id)) : id}"]`); }
 function bsPayPaint(id, force){ const host = bsPayHost(id), c = bsContract(id); if (host && c) bsPaintPay(host, c, force); }
 
+/* ---- AN NDA'S TWO FACTS ON ITS PANEL (owner picked "The tail on the life
+   line", 17 Oct 2026; piece 4 of the sensitive contracts plan) ----
+   The Value tile reads "Secret until", the facts line says who keeps it
+   secret, and the life line draws the sharing period and then a striped
+   "kept secret" tail with the reminder on it. ONE reading (ndaOf, js/nda.js),
+   ONE writer (ndaSet), ONE door (ndaEditOpen): the tile's "confirm" mark, the
+   section's own link and the Overview's two cells all come here. A signed NDA
+   is confirmed too: the facts are our reading of the paper, like its
+   obligations, and the server lets them move after signature. */
+function bsIsNda(c){ return typeof ndaIs === 'function' && !!ndaIs(c); }
+function bsNda(c){ return (bsIsNda(c) && typeof ndaOf === 'function') ? ndaOf(c) : null; }
+function ndaMay(c){ return !!c && !(typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE) && ((typeof canEdit !== 'function') || !!canEdit()); }
+/* "Both sides (mutual)", "One-way: they keep ours secret" — '' when not said */
+function ndaDirWords(dir){ return dir ? bsT('nda_dir_' + dir) : ''; }
+/* until when, as the end of a sentence: "until 31 Jul 2030", "for good" */
+function ndaUntilWords(N){
+  if (!N) return '';
+  if (N.forGood) return bsT('nda_for_good_lc');
+  return N.ends ? bsT(N.latest ? 'nda_until_latest' : 'nda_until', { d: bsDay(N.ends) }) : '';
+}
+/* the reminder this NDA carries (minted by ndaSet) */
+function ndaReminderOf(c){
+  const id = c && c.nda && c.nda.ob;
+  return id ? ((Array.isArray(c.obligations) ? c.obligations : []).find(o => o && String(o.id) === String(id)) || null) : null;
+}
+/* the reminder's line is a RECORD (an obligation's description is stored,
+   like a template's own), so it keeps English: "Secrecy ends 31 Jul 2030" */
+function ndaReminderDesc(ends){
+  const d = _bsDay0(ends); if (!d) return '';
+  const M = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `Secrecy ends ${d.getUTCDate()} ${M[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}
+/* THE ONE WRITER of an NDA's facts: what a person confirmed or set (c.nda),
+   and the reminder that rides it — an ordinary obligation, ours, the owner's,
+   a month before secrecy ends (ndaRemindDay: none once it has ended, none for
+   good). Saving what the reading found IS confirming it. Refuses an empty
+   answer with the way forward; writes nothing when nothing moved. */
+function ndaSet(c, v){
+  if (!c || !v || typeof ndaClean !== 'function') return { changed: false };
+  if (!ndaMay(c)) return { err: bsT('nda_no_right') };
+  const was = ndaClean(c.nda);
+  const me = (typeof currentUser === 'function' && currentUser()) ? String(currentUser().name || '') : '';
+  const n = ndaClean({ dir: v.dir, ends: v.forGood ? '' : v.ends, forGood: !!v.forGood, trade: !!v.trade, clause: v.clause,
+    who: me || (was && was.who), at: (typeof nowISO === 'function') ? nowISO() : '', ob: was && was.ob });
+  if (v.ends && !v.forGood && !(n && n.ends)) return { err: bsT('nda_bad_day') };
+  if (!n) return { err: bsT('nda_need') };
+  if (was && JSON.stringify(ndaFacts(was)) === JSON.stringify(ndaFacts(n))) return { changed: false };
+  c.nda = n;
+  c.obligations = Array.isArray(c.obligations) ? c.obligations : [];
+  const due = (typeof ndaRemindDay === 'function') ? ndaRemindDay(n.ends, bsToday()) : '';
+  const i = n.ob ? c.obligations.findIndex(o => o && String(o.id) === String(n.ob)) : -1;
+  if (!due){
+    if (i >= 0 && c.obligations[i].status !== 'done') c.obligations.splice(i, 1);
+    delete n.ob;
+  } else if (i >= 0){
+    const o = c.obligations[i];
+    o.due = due; o.desc = ndaReminderDesc(n.ends);
+    if (o.status === 'done') o.status = 'open';
+  } else {
+    const o = { id: 'ob_nda' + Math.random().toString(36).slice(2, 8), desc: ndaReminderDesc(n.ends), due, recurring: 'none', party: 'ours',
+      assignee: (typeof contractOwnerName === 'function' ? contractOwnerName(c) : '') || '', status: 'open', quote: '', origin: 'nda' };
+    c.obligations.push(o); n.ob = o.id;
+  }
+  if (typeof todayStr === 'function') c.lastAction = todayStr();
+  const dirRec = { mutual: 'mutual', ours: 'one-way, we share', theirs: 'one-way, they share' }[n.dir] || 'who keeps it secret not said';
+  if (typeof logAudit === 'function') logAudit(c, 'Edited', `Confirmed the confidentiality: ${dirRec}; secret ${n.forGood ? 'for good' : (n.ends ? 'until ' + n.ends : 'until a day not said')}${due ? '; reminder on ' + due : ''}`);
+  if (typeof persist === 'function') persist(c);
+  return { changed: true };
+}
+/* THE EDIT IN HAND — one at a time, this sitting only; it opens on the reading */
+let _bsNda = null;
+function bsNdaDraft(c){
+  const N = bsNda(c) || {};
+  return { id: String(c.id), dir: N.dir || '', ends: N.forGood ? '' : (N.ends || ''), forGood: !!N.forGood, trade: !!N.trade,
+    clause: N.clause || '', quote: N.quote || '' };
+}
+/* THE ONE DOOR ONTO AN NDA'S FACTS: its panel on Home, the editor open where
+   the life line was (the Overview's two cells and the tile's mark come here) */
+function ndaEditOpen(id){
+  const c = bsContract(id); if (!c || !bsIsNda(c) || !ndaMay(c)) return false;
+  _bsNda = bsNdaDraft(c);
+  const st = bsStrip(id);
+  if (!(st && st.page === 'ov' && bsNdaHost(id)) && !hbStripBring(id, 'ov')){ _bsNda = null; return false; }
+  bsNdaPaint(id, true);
+  const host = bsNdaHost(id), f = host && host.querySelector('[data-bs-nda-f="ends"]');
+  if (f && !f.disabled && typeof fieldFocus === 'function') fieldFocus(f, { preventScroll: true });
+  if (host && typeof host.scrollIntoView === 'function') try { host.scrollIntoView({ block: 'nearest' }); } catch (_){}
+  return true;
+}
+function bsNdaHost(id){ return document.querySelector(`#hb-board [data-bs-host="nda"][data-bs-cid="${(typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(String(id)) : id}"]`); }
+function bsNdaPaint(id, force){ const host = bsNdaHost(id), c = bsContract(id); if (host && c) bsPaintNda(host, c, force); }
+
 /* ---- JAMBO BEHIND THE WALL: THE ONE PRESS (owner picked "One press — the
    SAP way", 17 Oct 2026; decision 2) ----
    A private folder's contract is read only when one of its people asks. Its
@@ -382,6 +474,19 @@ function bsReadWait(c){
 }
 
 /* THE ONE READING THE STRIP DRAWS — plain data, no markup */
+/* THE "SECRET UNTIL" TILE: the day (or for good), and under it who confirmed
+   it — or, while it is only the wording's reading, the mark that confirms it */
+function bsNdaTile(c, N){
+  const n = N.forGood ? bsT('nda_for_good') : (N.ends ? bsDay(N.ends) : '—');
+  if (N.wait) return { n: '—', sub: bsT('jb_not_read') };
+  if (N.confirmed) return { n, sub: N.who ? bsT('nda_confirmed_by', { who: N.who }) : bsT('nda_confirmed') };
+  const may = ndaMay(c);
+  const words = (N.ends || N.forGood) ? (N.clause ? bsT('nda_confirm', { n: N.clause }) : bsT('nda_confirm_noclause'))
+    : bsT(N.period ? (may ? 'nda_noend_set' : 'nda_noend') : (may ? 'nda_set' : 'nda_unsaid'));
+  const mark = may ? `<button type="button" class="bs-nda-mark" data-bs-nda-edit="${bsE(c.id)}">${bsE(words)}</button>`
+    : `<span class="bs-nda-mark is-still">${bsE(words)}</span>`;
+  return { n, sub: words, subHtml: mark };
+}
 function bsLifeData(c){
   let M = null; try { M = (typeof ov2Model === 'function') ? ov2Model(c) : null; } catch (_){ M = null; }
   const owed = bsOwedKeys(c);
@@ -455,7 +560,17 @@ function bsLifeData(c){
      a section of its own under them (bsPayHtml), never the Value tile */
   const pay = bsIsPay(c);
   if (pay) Object.assign(K, bsJobTiles(c, M, owed));
-  return { c, M, K, life, O, cells, signers, signedBy, risks, riskN, dev, det, tri, brief, owed, pay, ev, wait: bsReadWait(c),
+  /* AN NDA: SECRET UNTIL, NOT VALUE (owner picked "The tail on the life
+     line", 17 Oct 2026) — and the tail it draws on the line */
+  const nda = pay ? null : bsNda(c);
+  if (nda){
+    K.value = bsNdaTile(c, nda);
+    const b = nda.forGood ? null : _bsDay0(nda.ends);
+    const rem = ndaReminderOf(c);
+    if (life && M.end && (b || nda.forGood) && (!b || b > M.end))
+      life.nda = { N: nda, a: M.end, b, good: !!nda.forGood, rem: rem && rem.status !== 'done' ? _bsDay0(rem.due) : null };
+  }
+  return { c, M, K, life, O, cells, signers, signedBy, risks, riskN, dev, det, tri, brief, owed, pay, nda, ev, wait: bsReadWait(c),
     loading: !!(c._light && !c._loaded && !_bsDone.has(String(c.id)) && typeof API_MODE === 'function' && API_MODE()) };
 }
 
@@ -463,6 +578,8 @@ function bsLifeData(c){
    THE DRAWING
    ============================================================ */
 const _bsChev = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg>';
+/* two arrows, each way: who keeps it secret, said beside the words */
+const _bsBoth = '<svg class="bs-nda-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h15l-4-4M20 15H5l4 4"/></svg>';
 const _bsX = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg>';
 function bsTone(st){ return st === 'Signed' ? 'is-good' : st === 'Under Review' ? 'is-warn' : st === 'Declined' ? 'is-bad' : ''; }
 function bsStripsHtml(){
@@ -542,7 +659,11 @@ function bsLifeHtml(c, st){
   /* an employment contract's pay sits where a deal's life line does (the
      drawing the owner picked); its own painter fills it (bsPaintPay) so a
      repaint never takes a box from under the reader's hands */
-  const mid = D.pay ? `<div class="bs-sec bs-pay" data-hb-own data-bs-host="pay" data-bs-cid="${bsE(c.id)}"></div>` : bsLifeSecHtml(D);
+  const mid = D.pay ? `<div class="bs-sec bs-pay" data-hb-own data-bs-host="pay" data-bs-cid="${bsE(c.id)}"></div>`
+    /* an NDA's line is its own host: its editor opens in the line's place
+       and a repaint never takes a box from under the reader's hands */
+    : D.nda ? `<div class="bs-sec bs-life bs-nda" data-hb-own data-bs-host="nda" data-bs-cid="${bsE(c.id)}"></div>`
+    : bsLifeSecHtml(D);
   return `${bsIdKpiHtml(D)}${mid}${bsTermsObsHtml(D)}${bsJamboHtml(D)}${bsFootHtml(D, st)}`;
 }
 function bsIdKpiHtml(D){
@@ -550,7 +671,9 @@ function bsIdKpiHtml(D){
   const side = (typeof hbSideOf === 'function') ? hbSideOf(c) : null;
   if (c.counterparty) bits.push(side ? bsT('bs_id_role', { cp: `<b>${bsE(c.counterparty)}</b>`, role: bsE(bsT('bs_role_' + side)) }) : `<b>${bsE(c.counterparty)}</b>`);
   let type = ''; try { const cell = (typeof ktFieldCell === 'function') ? ktFieldCell(c, 'contractType', false, null) : null; type = cell ? String(cell[1] || '') : ''; } catch (_){ type = ''; }
-  if (type) bits.push(type);
+  /* an NDA says who keeps it secret where its type would be */
+  if (D.nda && D.nda.dir) bits.push(`<span class="bs-nda-dir">${_bsBoth}${bsE(bsT('nda_line_' + D.nda.dir))}</span>`);
+  else if (type) bits.push(type);
   const stream = (typeof regStreamName === 'function') ? regStreamName(c) : '';
   if (stream) bits.push(bsE(stream));
   const owner = (typeof contractOwnerName === 'function') ? contractOwnerName(c) : null;
@@ -559,32 +682,44 @@ function bsIdKpiHtml(D){
   const up = (typeof isUpload === 'function') ? isUpload(c) : c.source === 'upload';
   if (made) bits.push(bsE(bsT(up ? 'bs_id_uploaded' : 'bs_id_created', { d: bsDay(String(made).slice(0, 10)) })));
   const fig = (k, label) => { const x = D.K[k];
-    return `<div class="bs-kpi${x.tone ? ' is-' + x.tone : ''}" data-bs-kpi="${k}"><small>${bsE(bsT(label))}</small><b${k === 'role' ? ` title="${bsE(x.n)}"` : ''}>${bsE(x.n)}</b><span title="${bsE(x.tip || x.sub || '')}">${bsE(x.sub || '')}</span></div>`; };
+    return `<div class="bs-kpi${x.tone ? ' is-' + x.tone : ''}" data-bs-kpi="${k}"><small>${bsE(bsT(label))}</small><b${k === 'role' ? ` title="${bsE(x.n)}"` : ''}>${bsE(x.n)}</b><span title="${bsE(x.tip || x.sub || '')}">${x.subHtml != null ? x.subHtml : bsE(x.sub || '')}</span></div>`; };
   return `<div class="bs-sec"><p class="bs-idline">${bits.join(' · ')}</p>
     <div class="bs-kpis">${D.pay
       ? `${fig('role', 'bs_k_role')}${fig('starts', 'bs_k_starts')}${fig('probation', 'bs_k_probation')}${fig('noticeLen', 'bs_k_notice_len')}`
-      : `${fig('value', 'bs_k_value')}${fig('term', 'bs_k_term')}${fig('next', 'bs_k_next')}${fig('notice', 'bs_k_notice')}`}${fig('move', 'bs_k_move')}</div></div>`;
+      : `${fig('value', D.nda ? 'nda_f_ends' : 'bs_k_value')}${fig('term', 'bs_k_term')}${fig('next', 'bs_k_next')}${fig('notice', 'bs_k_notice')}`}${fig('move', 'bs_k_move')}</div></div>`;
 }
 function bsLifeSecHtml(D){
+  const inner = bsLifeSecInner(D);
+  return inner ? `<div class="bs-sec bs-life">${inner}</div>` : '';
+}
+function bsLifeSecInner(D){
   const L = D.life;
-  if (!L) return '';
+  /* an NDA with no dates on file still owns its line's place: its door is there */
+  if (!L) return (D.nda && ndaMay(D.c)) ? `<div class="bs-sec-h"><h5>${bsE(bsT('bs_life'))}</h5><span class="hb-grow"></span>${bsNdaEditLink(D)}</div><p class="bs-cap">${bsE(bsT('bs_cap_nodates_none'))}</p>` : '';
   const M = L.M, ours = D.O.ours, theirs = D.O.theirs;
   const termOn = !!(M.start && (M.end || true));
   const noticeOn = !!(M.noticeBy && M.end && M.noticeBy < M.end);
+  /* AN NDA'S TERM IS ITS SHARING PERIOD, and the tail after it is what stays secret */
   const lg = [L.nego ? `<span><i class="bs-sw bs-sw-nego"></i>${bsE(bsT('bs_lg_nego'))}</span>` : '',
-    termOn ? `<span><i class="bs-sw bs-sw-term"></i>${bsE(bsT('bs_lg_term'))}</span>` : '',
+    termOn ? `<span><i class="bs-sw bs-sw-term"></i>${bsE(bsT(D.nda ? 'bs_lg_sharing' : 'bs_lg_term'))}</span>` : '',
+    L.nda ? `<span><i class="bs-sw bs-sw-secret"></i>${bsE(bsT('bs_lg_secret'))}</span>` : '',
     noticeOn ? `<span><i class="bs-sw bs-sw-notice"></i>${bsE(bsT('bs_lg_notice'))}</span>` : '',
     `<span><i class="bs-sw bs-dot is-ours"></i>${bsE(bsT('bs_lg_ours', { n: ours }))}</span>`,
     `<span><i class="bs-sw bs-dot is-theirs"></i>${bsE(bsT('bs_lg_theirs', { n: theirs }))}</span>`].filter(Boolean).join('');
-  return `<div class="bs-sec bs-life"><div class="bs-sec-h"><h5>${bsE(bsT('bs_life'))}</h5><span class="hb-grow"></span><div class="bs-lg">${lg}</div></div>
+  return `<div class="bs-sec-h"><h5>${bsE(bsT('bs_life'))}</h5>${D.nda ? bsNdaEditLink(D) : ''}<span class="hb-grow"></span><div class="bs-lg">${lg}</div></div>
     ${bsChartSvg(D, _bsChartW || 820)}
-    <p class="bs-cap">${bsE(bsCaption(D))}</p></div>`;
+    <p class="bs-cap">${bsE(bsCaption(D))}</p>`;
+}
+/* the section's own door onto the NDA's facts, for a person who may change them */
+function bsNdaEditLink(D){
+  return ndaMay(D.c) ? `<button type="button" class="hb-link" data-bs-nda-edit="${bsE(D.c.id)}">${bsE(bsT('bs_nda_edit'))}</button>` : '';
 }
 /* the one sentence under the line: the term, the renewal or the end, and
    the next obligation; a missing date is said, never guessed */
 function bsCaption(D){
   const M = D.life.M, out = [];
-  if (M.start && M.end) out.push(bsT('bs_cap_runs', { a: bsDay(M.start), b: bsDay(M.end) }));
+  if (D.nda && !D.nda.wait) out.push(bsNdaCaption(D));
+  else if (M.start && M.end) out.push(bsT('bs_cap_runs', { a: bsDay(M.start), b: bsDay(M.end) }));
   else if (M.start) out.push(bsT('bs_cap_from', { a: bsDay(M.start) }));
   else if (M.end) out.push(bsT('bs_cap_ends', { b: bsDay(M.end) }));
   else out.push(bsT(D.life.occ.length ? 'bs_cap_nodates' : 'bs_cap_nodates_none'));
@@ -598,16 +733,38 @@ function bsCaption(D){
   if (D.life.undated) out.push(bsTn('bs_cap_undated', D.life.undated, { n: D.life.undated }));
   return out.join(' ');
 }
+/* AN NDA'S SENTENCE: who may share until when, and how long what was shared
+   stays secret — said as the wording says it, never guessed */
+function bsNdaCaption(D){
+  const N = D.nda, M = D.life.M, out = [];
+  const cp = String(D.c.counterparty || '').trim() || bsT('home_no_counterparty');
+  const until = ndaUntilWords(N);
+  const a = M.end ? bsDay(M.end) : '';
+  if (a && until) out.push(bsT('nda_cap_' + (N.dir || 'plain'), { a, b: until, cp }));
+  else if (a) out.push(bsT('nda_cap_share', { a }));
+  else if (M.start) out.push(bsT('bs_cap_from', { a: bsDay(M.start) }));
+  if (!until) out.push(bsT(N.period && !M.end ? 'nda_cap_noend' : 'nda_cap_unsaid'));
+  else if (N.clause) out.push(bsT('nda_cap_clause', { n: N.clause }));
+  if (N.trade) out.push(bsT('nda_cap_trade'));
+  return out.join(' ');
+}
 /* THE LIFE LINE, to scale, drawn at the card's own width so its words stay
    the Board's size (owner, 11 Oct 2026: a chart's words grew huge) */
 function bsChartSvg(D, W0){
   const L = D.life, M = L.M, W = Math.max(420, Math.round(W0));
   const pad = 16, BAR = 92, DOT = 124, AX = 146;
+  /* the striped tail's own pattern, named for this contract (one card's ids never meet another's) */
+  const hatch = 'bs-hatch-' + String(D.c.id).replace(/[^\w-]/g, '_');
   /* the line starts early enough, and runs late enough, for every dated
      obligation on the record: a dot the legend counts is a dot the line draws
      (a cap is a fact; an undated one is said in the caption) */
   const lo = [M.t0, L.nego && L.nego.a].concat((L.occ || []).map(x => x.due)).filter(Boolean).reduce((a, b) => (b < a ? b : a));
-  const hi = (L.occ || []).filter(x => !x.projected && x.due).map(x => x.due).reduce((a, b) => (b > a ? b : a), M.t1);
+  const hi0 = (L.occ || []).filter(x => !x.projected && x.due).map(x => x.due).reduce((a, b) => (b > a ? b : a), M.t1);
+  /* AN NDA'S TAIL: the line runs on to the day secrecy ends; kept for good,
+     a quarter as long again as the agreement, open at its right edge */
+  const T = L.nda || null;
+  const tailTo = T ? (T.b || new Date(+T.a + Math.max(365 * _bsDD, (T.a - (M.start || M.t0)) * 0.6))) : null;
+  const hi = tailTo && tailTo > hi0 ? tailTo : hi0;
   const t0 = new Date(+lo - 7 * _bsDD);
   const t1a = hi > M.t1 ? new Date(+hi + 21 * _bsDD) : M.t1;
   const t1 = t1a > t0 ? t1a : new Date(+t0 + 365 * _bsDD);
@@ -622,6 +779,8 @@ function bsChartSvg(D, W0){
   else if (M.start) parts.push(seg(M.start, t1, 'bs-seg-term is-open', bsT('bs_t_term_open', { a: bsDay(M.start) })));
   if (noticeOn) parts.push(seg(M.noticeBy, M.end, 'bs-seg-notice', bsT(M.auto ? 'bs_t_notice_renews' : 'bs_t_notice', { d: bsDay(M.noticeBy) })));
   if (M.end && M.auto) parts.push(seg(new Date(+M.end + _bsDD), M.t1 < t1 ? M.t1 : t1, 'bs-seg-renew', bsT('ov2_b_renewal_year')));
+  if (T) parts.push(seg(T.a, T.good ? t1 : T.b, 'bs-seg-secret' + (T.good ? ' is-open' : ''),
+    T.good ? bsT('bs_t_secret_good', { a: bsDay(T.a) }) : bsT('bs_t_secret', { a: bsDay(T.a), b: bsDay(T.b) })).replace('<rect ', `<rect fill="url(#${hatch})" `));
   /* the marks, labelled in three lanes where a label fits; one that cannot
      fit keeps its tick and its hover */
   const marks = [];
@@ -629,7 +788,10 @@ function bsChartSvg(D, W0){
   if (M.start && !(M.signed && Math.abs(M.start - M.signed) < _bsDD)) marks.push({ d: M.start, l: bsT('bs_m_starts', { d: bsDay(M.start) }) });
   (M.bands || []).filter(b => b.win).forEach(b => marks.push({ d: b.a, l: `${b.l} · ${bsDay(b.a)}`, win: 1 }));
   if (noticeOn) marks.push({ d: M.noticeBy, l: bsT('bs_m_notice', { d: bsDay(M.noticeBy) }) });
-  if (M.end) marks.push({ d: M.end, l: bsT('bs_m_ends', { d: bsDay(M.end) }), end: 1 });
+  if (M.end) marks.push({ d: M.end, l: bsT(T ? 'bs_m_share_ends' : 'bs_m_ends', { d: bsDay(M.end) }), end: 1 });
+  if (T && T.b) marks.push({ d: T.b, l: bsT('bs_m_secret_until', { d: bsDay(T.b) }), end: 1 });
+  if (T && T.good) marks.push({ d: new Date(+t1 - _bsDD), l: bsT('bs_m_secret_good') });
+  if (T && T.rem) marks.push({ d: T.rem, l: bsT('bs_m_remind', { d: bsDay(T.rem) }) });
   const today = { d: M.today, l: bsT('bs_m_today'), today: 1 };
   const all = [today].concat(marks).filter(m => m.d >= t0 && m.d <= t1).sort((a, b) => a.d - b.d);
   const laneEnd = new Array(BS_LANES).fill(-Infinity), cw = 6.4;
@@ -661,7 +823,8 @@ function bsChartSvg(D, W0){
   const axis = `<line class="bs-axis" x1="${pad}" y1="${AX}" x2="${W - pad}" y2="${AX}"/>` + ticks.map(t => { const x = X(t.d); if (x < pad + 20 || x > W - pad - 20) return '';
     return `<line class="bs-axis" x1="${x.toFixed(1)}" y1="${AX}" x2="${x.toFixed(1)}" y2="${AX + 5}"/><text class="bs-axl" x="${x.toFixed(1)}" y="${AX + 18}" text-anchor="middle">${bsE(t.l)}</text>`; }).join('');
   const aria = bsT('bs_life_aria', { a: bsDay(t0), b: bsDay(t1) });
-  return `<svg class="bs-chart" data-bs-w="${W}" width="${W}" height="${BS_CHART_H}" viewBox="0 0 ${W} ${BS_CHART_H}" role="img" aria-label="${bsE(aria)}">${parts.join('')}${labelSvg}${dots}${axis}</svg>`;
+  const defs = T ? `<defs><pattern id="${hatch}" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect class="bs-hatch-ln" width="2.4" height="6"/></pattern></defs>` : '';
+  return `<svg class="bs-chart" data-bs-w="${W}" width="${W}" height="${BS_CHART_H}" viewBox="0 0 ${W} ${BS_CHART_H}" role="img" aria-label="${bsE(aria)}">${defs}${parts.join('')}${labelSvg}${dots}${axis}</svg>`;
 }
 function bsTermsObsHtml(D){
   const c = D.c;
@@ -776,6 +939,7 @@ function bsPaintHosts(){
       else if (k === 'hist') bsPaintHist(host, c);
       else if (k === 'details') bsPaintDetails(host, c);
       else if (k === 'pay') bsPaintPay(host, c);
+      else if (k === 'nda') bsPaintNda(host, c);
     } catch (e){ try { console.error('[hati] the strip\'s ' + k + ' did not paint', e); } catch (_){} }
   });
   bsFitWatch();
@@ -804,7 +968,7 @@ function bsPaintHist(host, c){
    language), never while the reader is typing in one of its boxes */
 function bsDetailsSig(c){
   try { return JSON.stringify([String(c.id), c._v, c.version, c.updatedAt, c.lastAction, c.status, c.name, c.counterparty, c.expiry, c.value,
-    c.fields || null, c.metadata || null, c.parties || null, c.signerPlan || null, c.participants || null, (c.obligations || []).length,
+    c.fields || null, c.metadata || null, c.nda || null, c.parties || null, c.signerPlan || null, c.participants || null, (c.obligations || []).length,
     !!c._brief, c.triage && c.triage.at, c.renewal || null, (typeof langId === 'function') ? langId() : '']); }
   catch (_){ return String(Math.random()); }
 }
@@ -907,6 +1071,51 @@ function bsPayAct(kind, id, i){
   }
 }
 
+/* ---- AN NDA'S LINE: the life line at rest, the editor in its place ----
+   Drawn again when what it shows moved, never while the reader is typing in
+   one of its boxes (the Pay section's rule); its own presses paint it at once. */
+function bsPaintNda(host, c, force){
+  const ed = (_bsNda && _bsNda.id === String(c.id)) ? _bsNda : null;
+  const a = document.activeElement;
+  if (!force && host.firstChild && a && host.contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return;
+  const html = (ed && ndaMay(c)) ? bsNdaEdHtml(c, ed) : bsLifeSecInner(bsLifeData(c));
+  if (!force && host._bsHtml === html && host.firstChild) return;
+  host._bsHtml = html;
+  host.innerHTML = html;
+  if (ed && typeof popupControlsDress === 'function') try { popupControlsDress(host); } catch (_){}
+}
+function bsNdaEdHtml(c, ed){
+  const id = bsE(c.id);
+  const opt = (v, l) => `<option value="${v}"${ed.dir === v ? ' selected' : ''}>${bsE(l)}</option>`;
+  const dirs = (typeof NDA_DIRS !== 'undefined') ? NDA_DIRS : ['mutual', 'ours', 'theirs'];
+  const read = ed.quote
+    ? `<p class="bs-nda-q">${bsE(ed.clause ? bsT('nda_ed_read', { n: ed.clause }) : bsT('nda_ed_read_noclause'))} <q>${bsE(ed.quote)}</q></p>`
+    : `<p class="bs-nda-q">${bsE(bsT('nda_ed_unsaid'))}</p>`;
+  const owner = (typeof contractOwnerName === 'function' && contractOwnerName(c)) || '';
+  return `<div class="bs-sec-h"><h5>${bsE(bsT('nda_ed_title'))}</h5></div>
+    <div class="bs-nda-ed">${read}
+      <div class="bs-nda-grid">
+        <div class="bs-nda-f"><span>${bsE(bsT('nda_f_dir'))}</span><select class="bs-pay-in" data-bs-nda-f="dir" aria-label="${bsE(bsT('nda_f_dir'))}">${opt('', '—')}${dirs.map(k => opt(k, ndaDirWords(k))).join('')}</select></div>
+        <div class="bs-nda-f"><span>${bsE(bsT('nda_f_ends'))}</span><input class="bs-pay-in" type="date" data-bs-nda-f="ends" value="${bsE(ed.ends)}"${ed.forGood ? ' disabled' : ''} aria-label="${bsE(bsT('nda_f_ends'))}"/></div>
+        <div class="bs-nda-cks"><label><input type="checkbox" data-bs-nda-f="forGood"${ed.forGood ? ' checked' : ''}/> ${bsE(bsT('nda_for_good_ck'))}</label><label><input type="checkbox" data-bs-nda-f="trade"${ed.trade ? ' checked' : ''}/> ${bsE(bsT('nda_trade_ck'))}</label></div>
+      </div>
+      <p class="bs-note">${bsE(owner ? bsT('nda_ed_remind', { who: owner }) : bsT('nda_ed_remind_noone'))}</p>
+      <div class="bs-pay-acts"><span class="hb-grow"></span><button type="button" class="hb-btn is-sm is-primary" data-bs-nda-save="${id}">${bsE(bsT('nda_confirm_btn'))}</button><button type="button" class="hb-btn is-sm" data-bs-nda-cancel="${id}">${bsE(bsT('act_cancel'))}</button></div></div>`;
+}
+function bsNdaAct(kind, id){
+  const c = bsContract(id); if (!c) return;
+  if (kind === 'edit'){ ndaEditOpen(id); return; }
+  if (!_bsNda || _bsNda.id !== String(id)) return;
+  if (kind === 'cancel'){ _bsNda = null; bsNdaPaint(id, true); return; }
+  if (kind === 'save'){
+    const r = ndaSet(c, _bsNda);
+    if (r.err){ if (typeof toast === 'function') toast(r.err, 'warn'); return; }
+    _bsNda = null;
+    if (r.changed && typeof toast === 'function') toast(bsT('nda_saved'), 'ok');
+    bsRepaint(); bsNdaPaint(id, true);
+  }
+}
+
 /* THE LINE IS DRAWN FOR THE CARD'S WIDTH: measured after the paint, and once
    more when the Board's width moves (the panel folds, the window turns) */
 let _bsFitObs = null, _bsFitT = null;
@@ -988,6 +1197,10 @@ if (typeof document !== 'undefined' && !document._bsWired){
     if ((el = t.closest('[data-bs-pay-rm]'))){ take(); bsPayAct('rm', el.getAttribute('data-bs-id'), el.getAttribute('data-bs-pay-rm')); return; }
     if ((el = t.closest('[data-bs-pay-save]'))){ take(); bsPayAct('save', el.getAttribute('data-bs-pay-save')); return; }
     if ((el = t.closest('[data-bs-pay-cancel]'))){ take(); bsPayAct('cancel', el.getAttribute('data-bs-pay-cancel')); return; }
+    /* an NDA's facts: the tile's mark or the line's link opens them, Confirm, Cancel */
+    if ((el = t.closest('[data-bs-nda-edit]'))){ take(); bsNdaAct('edit', el.getAttribute('data-bs-nda-edit')); return; }
+    if ((el = t.closest('[data-bs-nda-save]'))){ take(); bsNdaAct('save', el.getAttribute('data-bs-nda-save')); return; }
+    if ((el = t.closest('[data-bs-nda-cancel]'))){ take(); bsNdaAct('cancel', el.getAttribute('data-bs-nda-cancel')); return; }
     /* a menu row that is one of the Board's own doors closes the menu behind it */
     if (_bsMenu && t.closest('.bs-menu [data-hb-analyze], .bs-menu [data-hb-map]')) _bsMenu = null;
   }, true);
@@ -1000,6 +1213,17 @@ if (typeof document !== 'undefined' && !document._bsWired){
     if (row && ['label', 'every', 'amount', 'from'].includes(k)) row[k] = String(f.value == null ? '' : f.value);
   };
   document.addEventListener('input', payType, true);
+  /* a box in the NDA editor writes its draft, never the record; "for good" greys the day */
+  const ndaType = e => {
+    const f = e.target && e.target.closest ? e.target.closest('[data-bs-nda-f]') : null;
+    if (!f || !_bsNda) return;
+    const k = f.getAttribute('data-bs-nda-f');
+    if (k === 'forGood' || k === 'trade') _bsNda[k] = !!f.checked;
+    else if (k === 'dir' || k === 'ends') _bsNda[k] = String(f.value == null ? '' : f.value);
+    if (k === 'forGood'){ const box = f.closest('.bs-nda-ed') && f.closest('.bs-nda-ed').querySelector('[data-bs-nda-f="ends"]'); if (box) box.disabled = !!f.checked; }
+  };
+  document.addEventListener('input', ndaType, true);
+  document.addEventListener('change', ndaType, true);
   document.addEventListener('change', payType, true);
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape' || !_bsMenu) return;
@@ -1011,6 +1235,7 @@ if (typeof document !== 'undefined' && !document._bsWired){
 
 if (typeof window !== 'undefined') Object.assign(window, { bsFamRows, bsFamHtml,
   bsIsPay, bsJobTiles, bsNoticeWords, bsPayEvery, payBaseLine, bsPayLock, bsPayMay, payAmountRead, paySet, payEditOpen, bsPayHtml, bsPaintPay,
+  bsIsNda, bsNda, ndaMay, ndaDirWords, ndaUntilWords, ndaReminderOf, ndaSet, ndaEditOpen, bsNdaTile, bsNdaCaption, bsPaintNda,
   BS_PAGES, BS_MENU_PAGES, BS_MAX,
   hbStripBring, bsStrips, bsStrip, bsStripPage, bsStripClose, bsStripKeep, bsStripLetGo, bsRefresh, bsRepaint,
   roomRetiredLand, bsLifeData, bsObRows, bsCaption, bsStripsHtml, bsStripHtml, bsLifeHtml, bsChartSvg, bsPaintHosts, bsDay,

@@ -479,6 +479,12 @@ function mTermsHtml(c){
     : money ? { get label(){ return i18t('mc_contract_value'); }, value:(typeof isMonetary==='function'&&!isMonetary(c))?i18t('ct_non_monetary'):(c.value?mMoney(c):''), miss:true } : null,
     { get label(){ return i18t('mc_start_date'); }, value:dateOf(md.effectiveDate||(c.fields&&c.fields.effDate)) },
     { get label(){ return i18t('mc_expiry'); }, value:dateOf((typeof effectiveExpiry==='function'?effectiveExpiry(c):null)||c.expiry) },
+    /* AN NDA: who keeps it secret and until when — the desktop's one reading
+       (ndaOf), read-only here like every row; a reading nobody has confirmed says so */
+    ...(()=>{ const N=(typeof ndaOf==='function')?ndaOf(c):null; if(!N||!N.is) return [];
+      const until=N.forGood?i18t('nda_for_good'):(N.ends?dateOf(N.ends):'');
+      return [{ get label(){ return i18t('nda_f_dir'); }, value:(N.dir&&typeof ndaDirWords==='function')?ndaDirWords(N.dir):'' },
+        { get label(){ return i18t('nda_f_ends'); }, value:until&&!N.confirmed?`${until} · ${i18t('nda_unconfirmed')}`:until }]; })(),
     { get label(){ return i18t('mc_payment_terms'); }, value:md.paymentTerms },
     { get label(){ return i18t('mc_notice_period'); }, value:md.noticePeriodDays?i18tn('ct_notice_n_days',Number(md.noticePeriodDays)||0,{n:md.noticePeriodDays}):'' },
     { get label(){ return i18t('mc_renewal'); }, value:[(typeof metaOptLabel==='function'&&md.renewalType)?metaOptLabel(md.renewalType):md.renewalType,
