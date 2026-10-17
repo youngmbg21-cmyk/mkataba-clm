@@ -8608,6 +8608,41 @@
   .na-foot{ display:flex; align-items:center; gap:8px; padding:12px 20px; border-top:1px solid var(--color-divider); }
   .na-grow{ flex:1; }
   @media (max-width:760px){ .na-body{ grid-template-columns:1fr; } .na-picks{ max-height:none; } }
+  /* ---- ONE SHEET (owner picked "One sheet" by name, round 4, 17 Oct 2026): opened from a sentence, the form reads top to bottom — From your words, 1 Start from, 2 the paper's questions, 3 File it in. The cards keep the form's own dress (surface on ground, the strong rule, the large corner). ---- */
+  .na-one .na-body{ grid-template-columns:minmax(0,1fr); gap:14px; }
+  .na-one .na-rail{ background:var(--color-surface); border:1px solid var(--rule-strong); border-radius:var(--radius-lg); padding:12px 14px; gap:10px; }
+  .na-step{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .na-step b{ font-size:var(--t-body); font-weight:var(--w-title); color:var(--color-text); }
+  .na-n{ flex:none; display:inline-grid; place-items:center; width:20px; height:20px; border-radius:50%; background:var(--color-accent-50); color:var(--accent-ink); font-size:11.5px; font-weight:var(--w-strong); }
+  .na-one .na-card-h .na-n{ margin-right:-2px; }
+  .na-w-h{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .na-w-h b{ font-size:var(--t-body); font-weight:var(--w-title); color:var(--color-text); }
+  .na-w-h q{ color:var(--color-text); font-style:italic; min-width:0; overflow-wrap:anywhere; }
+  .na-w-read{ display:flex; align-items:flex-end; gap:24px; flex-wrap:wrap; }
+  .na-w-c{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .na-w-c span{ font-size:var(--t-label); color:var(--color-neutral-600); }
+  .na-w-c b{ font-weight:var(--w-strong); color:var(--color-text); }
+  .na-w-c b i{ font-style:normal; font-weight:400; color:var(--color-neutral-600); }
+  .na-w-c.is-owed b{ color:var(--st-amber-fg); }
+  .na-w-ai{ margin-left:auto; }
+  .na-w-ai em{ font-style:normal; color:var(--color-neutral-600); font-weight:400; }
+  .na-closest{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+  .na-closest .na-pick{ display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; column-gap:8px; border:1px solid var(--rule-strong); border-left-width:3px; padding:8px 10px; background:var(--color-surface); }
+  .na-closest .na-pick .na-best{ justify-self:start; }
+  .na-closest .na-pick .na-pick-m{ grid-column:1 / -1; }
+  .na-closest .na-pick.on{ border-color:var(--accent-solid); }
+  .na-best{ display:inline-flex; align-items:center; height:18px; padding:0 7px; border-radius:999px; background:var(--st-green-bg); color:var(--st-green-fg); font-size:11px; font-weight:var(--w-label); vertical-align:1px; }
+  .na-one-more{ border-top:0; padding-top:0; margin-top:0; }
+  .na-file-b{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .na-seg{ display:inline-flex; flex-wrap:wrap; border:1px solid var(--rule-strong); border-radius:var(--radius); overflow:hidden; }
+  .na-seg-b{ display:inline-flex; align-items:center; gap:5px; height:var(--ctl-h-sm); padding:0 12px; border:0; border-right:1px solid var(--rule-strong); background:var(--color-surface); color:var(--color-text); font:inherit; font-size:var(--t-label); font-weight:var(--w-label); cursor:pointer; white-space:nowrap; }
+  .na-seg-b:last-child{ border-right:0; }
+  .na-seg-b:hover{ background:var(--color-neutral-100); }
+  .na-seg-b[aria-pressed="true"]{ background:var(--color-accent-50); color:var(--accent-ink); }
+  .na-seg-b.is-new{ color:var(--accent-ink); }
+  .na-lock{ width:12px; height:12px; }
+  .na-need{ font-size:var(--t-label); color:var(--st-amber-fg); font-weight:var(--w-label); }
+  @media (max-width:900px){ .na-closest{ grid-template-columns:minmax(0,1fr); } }
   .tpl-bar{ display:block; width:100%; border:0; background:none; text-align:left; font:inherit;
     color:inherit; cursor:pointer; padding:0; margin-bottom:6px; font-size:var(--t-label); }
   .tpl-bar-r{ display:flex; align-items:center; gap:8px; margin-bottom:3px; min-width:0; }
