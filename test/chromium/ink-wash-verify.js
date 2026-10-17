@@ -20,6 +20,12 @@
 
      node test/chromium/ink-wash-verify.js --save   (record, on the code BEFORE)
 
+   RE-RECORDED 17 Oct 2026 (second), OWNER-ASKED ("Yes, update the record";
+   then "update the colour lists and merge when green"): Rounds 1 and 2, the
+   Counter and the desk tabs — the left menu is not drawn on a computer, so
+   headcounts fell on every screen (266 counts) and two rose (12px text and
+   one dark divider: the desk tabs and their row). Audited as a set
+   difference: no colour and no text size new to the census anywhere.
    RE-RECORDED 17 Oct 2026, OWNER-ASKED ("Yes"): the Away card on Settings'
    You tab (a stand-in while you're away) moved headcounts on the settings
    screen only (44 counts, all three themes). Audited as a set difference:
