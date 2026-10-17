@@ -60,7 +60,7 @@ describe('F688 (3) — History\'s "Ours" keeps our own people\'s entries', () =>
     };
     ctx.window.negoTimeline = ctx.negoTimeline;
     vm.createContext(ctx);
-    vm.runInContext([grab(ROOM, '_histKey'), grab(ROOM, 'roomHistoryEvents'), grab(ROOM, '_histOurPeople')].join('\n'), ctx);
+    vm.runInContext([grab(ROOM, '_histKey'), grab(ROOM, 'histPrivateEvents'), grab(ROOM, 'roomHistoryEvents'), grab(ROOM, '_histOurPeople')].join('\n'), ctx);   // histPrivateEvents: a private folder's opens join the trail (17 Oct 2026)
     return ctx.roomHistoryEvents({ audit }, f);
   }
   const audit = [
