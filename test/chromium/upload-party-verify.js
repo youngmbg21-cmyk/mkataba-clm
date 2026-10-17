@@ -250,50 +250,12 @@ const check = (name, pass, detail) => {
       !/could not be drawn/i.test(body) && body.includes('Momo Beach Distillers Ltd'));
     await page.screenshot({ path: path.join(OUT, '3-filed-and-drawn.png') });
 
-    /* ============ 3. THE COUNTS SIT ON ONE STRAIGHT LINE ============
-       Measured, not inferred: every visible count badge's RIGHT edge, in the
-       floating drawer (below 1500) and in the open column (above). Labels are
-       all different lengths, so equal right edges can only mean full-width
-       rows with the badge pushed to the column. */
-    const readBadges = () => page.evaluate(() => {
-      const nav = document.getElementById('side-nav').getBoundingClientRect();
-      const rights = [...document.querySelectorAll('#side-nav .nav-count')]
-        .filter(el => el.textContent.trim() !== '' && el.getBoundingClientRect().width > 0)
-        .map(el => Math.round(el.getBoundingClientRect().right));
-      return { rights, navRight: Math.round(nav.right) };
-    });
-
-    /* THE DRAWER IS FOUND BY ASKING WHERE THE LINE IS, not by naming a width.
-       This measured at 1440, which was below the line when it was written and
-       is above it since the line moved to 1280 (24 Aug 2026) — so the press
-       COLLAPSED the open column to the 64px rail, where counts are hidden, and
-       the check reported zero badges. The claim is about the FLOATING drawer,
-       so the width has to be one where the sidebar floats. */
-    const LINE = await page.evaluate(() => window.NAV_DRAWER_W);
-    await page.setViewportSize({ width: LINE - 160, height: 900 });
-    await page.waitForTimeout(600);
-    await page.click('#cmd-rail');            // the drawer's own door
-    await page.waitForTimeout(600);
-    let b = await readBadges();
-    let spread = b.rights.length ? Math.max(...b.rights) - Math.min(...b.rights) : -1;
-    check('drawer: at least four counts are on screen to measure', b.rights.length >= 4, b.rights.length);
-    check('drawer: every count shares ONE right edge', spread >= 0 && spread <= 1, `spread ${spread}px`);
-    check('drawer: and that edge is the drawer\'s own right padding, not mid-air',
-      b.rights.length && (b.navRight - Math.max(...b.rights)) <= 40,
-      `${b.navRight - Math.max(...b.rights)}px in from the drawer's edge`);
-    await page.screenshot({ path: path.join(OUT, '4-drawer-counts-aligned.png') });
-
+    /* ============ 3. THE COUNTS SIT ON ONE STRAIGHT LINE — RETIRED 17 Oct 2026 ============
+       It measured the left menu's count badges in its drawer and its column. The owner
+       picked "Desk tabs" (Round 2 of the Counter redesign): on a computer the menu is not
+       drawn, so there are no badges to line up. */
     await page.setViewportSize({ width: 1920, height: 1080 });
-    await page.waitForTimeout(800);
-    /* Above the line the column is open by default; the press above collapsed
-       it, so put it back before measuring the column's own straight line. */
-    if (await page.evaluate(() => document.getElementById('app-shell').classList.contains('rail'))) {
-      await page.click('#cmd-rail');
-      await page.waitForTimeout(600);
-    }
-    b = await readBadges();
-    spread = b.rights.length ? Math.max(...b.rights) - Math.min(...b.rights) : -1;
-    check('1920 column: the same straight line, as it always was', spread >= 0 && spread <= 1, `spread ${spread}px`);
+    await page.waitForTimeout(600);
 
     /* ---- THE TWO COLUMNS OF FIELDS STAY LEVEL (owner-reported 22 Aug 2026:
        "the right and left entry fields should never be misaligned") ----

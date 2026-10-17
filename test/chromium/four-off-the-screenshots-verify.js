@@ -236,9 +236,11 @@ const SEED = () => {
     });
     const iOb = nav.order.indexOf('obligations'), iIn = nav.order.indexOf('intel');
     const iTp = nav.order.indexOf('templates'), iRq = nav.order.indexOf('intake');
-    check('3 · the Insights door is drawn at all — the stage earned it',
-      nav.tops[iIn] > 0 && nav.disp[iIn] !== 'none',
-      { top: nav.tops[iIn], display: nav.disp[iIn] });
+    /* RE-POINTED 17 Oct 2026 (the owner picked "Desk tabs", Round 2): on a computer the
+       left menu is not drawn, so its doors are not painted; Insights is a place Jambo opens.
+       The menu's order (3a, 3b) is still its source's. */
+    check('3 · Insights is a place Jambo opens, in his "/" list',
+      await page.evaluate(() => (caReadPlace('insights') || {}).place === 'insights' && caSlashRows('insights', { max: 5 }).some(r => r.k === 'insights')));
     /* RE-POINTED 20 Sep 2026 (DECIDE 4 of the redesign order): the rail is
        three groups — Work, Library, Company — so Insights (Company) is painted
        after Obligations (Work) as the 19 Sep ask wanted, but Requests
@@ -258,10 +260,8 @@ const SEED = () => {
       iOb >= 0 && iIn > iOb && iIn === iCa + 1 && iTp > iIn && iRq > iIn && nav.order.indexOf('calendar') < 0, nav.order.join(' · '));
     check('3b · and Work leads Library — Obligations is painted before Templates',
       iTp >= 0 && iOb < iTp, nav.order.join(' · '));
-    check('3c · painted top-to-bottom in that order, never merely in the source',
-      nav.tops[iOb] < nav.tops[iCa] && nav.tops[iCa] < nav.tops[iIn]
-      && nav.tops[iIn] < nav.tops[iTp] && nav.tops[iTp] < nav.tops[iRq],
-      [iOb, iCa, iIn, iTp, iRq].map(i => nav.order[i] + '@' + nav.tops[i]));
+    check('3c · the menu is not painted on a computer (its doors are Jambo\'s words)',
+      await page.evaluate(() => getComputedStyle(document.getElementById('side-nav')).display === 'none'));
     check('3d · the keyboard walks it in the same order it is painted',
       await page.evaluate(async () => {
         const items = [...document.querySelectorAll('#side-nav .nav-item[data-view]')];

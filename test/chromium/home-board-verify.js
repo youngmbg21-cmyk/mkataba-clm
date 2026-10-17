@@ -137,7 +137,7 @@ const CONTRACTS = [
     ok('4b "show on the map" flips to Explorer and builds the map', await until(page, () =>
       hbS().face === 'explorer' && igMapUp() && document.getElementById('hb-board').hidden, null, 10000));
     ok('4c the contract is lit on the map', await until(page, () => (intel.lenses || []).some(l => (l.ids || []).includes('MK-S1'))));
-    await page.click('[data-hb-face="board"]').catch(() => {});
+    await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'board').catch(() => {});
     await until(page, () => hbS().face === 'board' && !document.getElementById('hb-board').hidden);
     await page.click('[data-bs-x="MK-S1"]').catch(() => {});
 
@@ -200,6 +200,9 @@ const CONTRACTS = [
     await p3.goto(h.base + '/', { waitUntil: 'networkidle' });
     await p3.evaluate(() => { try { setView('dashboard'); } catch (_) {} });
     await p3.fill('#li-email', 'everything@example.co.ke'); await p3.fill('#li-pass', 'their-own-pass-9'); await p3.click('#li-go');
+    /* signing in lands on the Counter since 17 Oct 2026 (Round 1): Home is opened again once signed in */
+    await until(p3, () => !document.body.classList.contains('pre-auth') && window.state && state.view, null, 15000);
+    await p3.evaluate(() => hbOpenHome());
     ok('7e Home drawn before sign-in finished still carries the gift once signed in', await until(p3, () => !!document.querySelector('[data-hb-pid^="gift:"]'), null, 12000));
     await ctx3.close();
 
@@ -272,7 +275,7 @@ const CONTRACTS = [
     await ask(page, 'Show me all Kenya Cartons contracts');
     ok('11a3 asked on the map, the same words narrow the map to the same contracts, free', await until(page, () => {
       const a = intelActive(); return !!a.ids && [...a.ids].join() === 'MK-S1' && !intel.busy; }, null, 10000));
-    await page.click('[data-hb-face="board"]'); await until(page, () => hbS().face === 'board' && !document.getElementById('hb-board').hidden);
+    await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'board'); await until(page, () => hbS().face === 'board' && !document.getElementById('hb-board').hidden);
     await ask(page, 'show me the signed Juno contracts in procurement');
     ok('11a4 conditions combine: a name, a stage and a stream are one list', await until(page, () =>
       /^q:/.test((hbS().path || []).slice(-1)[0] || '') && hbDigData((hbS().path || []).slice(-1)[0], 'all').ids.join() === 'MK-J1'));
@@ -361,9 +364,9 @@ const CONTRACTS = [
     const counted = await page.evaluate(() => { const d = hbBookData('all'); return { live: d.figs.live.n, set: hbDigData(hbCountKey(), 'all').ids.length, tile: (document.querySelector('#hb-book .hb-fig .hb-fig-n') || {}).textContent, sub: (document.querySelector('#hb-book .hb-cs') || {}).textContent, chip: (document.querySelector('.hb-counting .is-count') || {}).textContent }; });
     ok('14a the six figures recount for the question\'s set, the tile says so, and the chip names it', counted.live < whole && counted.live <= counted.set && String(counted.tile).replace(/\D/g, '') === String(counted.live) && /Juno/.test(counted.sub) && /Juno/.test(counted.chip), JSON.stringify({ whole, ...counted }));
     ok('14a2 the live line above the book names the set too', await page.evaluate(() => /Juno/i.test((document.querySelector('#hb-board .hb-note') || {}).textContent || '')));
-    await page.click('[data-hb-face="explorer"]');
+    await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'explorer');
     ok('14b flipped to Explorer, the map is narrowed to the same set', await until(page, () => { const L = intel.lenses.find(l => l.id === 'hbcount'); return !!L && L.on && L.action === 'filter' && L.ids.length === hbDigData(hbCountKey(), 'all').ids.length; }));
-    await page.click('[data-hb-face="board"]');
+    await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'board');
     await until(page, () => hbS().face === 'board' && !!document.querySelector('.hb-counting .is-count [data-hb-crumb="-1"]'));
     /* 14d (Young, 4 Oct 2026: "when I press any one of the cards, the numbers
        return to the whole list") — a card pressed while counting opens within it */

@@ -83,7 +83,7 @@ const check = (name, pass, detail) => {
     check('1a a pressed paper still being read wears the turning ring and says so', !!(ring && ring.spin && ring.busy === 'true' && /Opening/.test(ring.word)), JSON.stringify(ring));
 
     /* 1b: the reader goes to the Board meanwhile — the read comes back and nothing moves */
-    await page.click('[data-hb-face="board"]');
+    await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'board');
     await page.waitForTimeout(SLOW + 800);
     const b1 = await now();
     check('1b a read that comes back after the reader went to the Board leaves them on the Board', b1.face === 'board' && !b1.paper, JSON.stringify(b1));

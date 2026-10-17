@@ -99,25 +99,14 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
     /* ---- 1. THE DOOR IS IN THE SIDEBAR, SECOND ----
        RE-POINTED 10 Oct 2026: it is folded under Contracts and shown on
        hover (owner), so the pointer rests on Contracts first */
-    await page.hover('[data-nav-fold-open="register"]');
-    const door = await page.evaluate(seen => {
-      const b = document.querySelector('.nav-item[data-view="redline"]');
-      const items = [...document.querySelectorAll('#nav .nav-item[data-view]')]
-        .filter(el => !el.classList.contains('hidden'))
-        .map(el => el.getAttribute('data-view'));
-      return { box: eval(seen)('.nav-item[data-view="redline"]'), order: items,
-        label: b ? (b.querySelector('[data-i18n="nav_negotiations"]') || {}).textContent : null };
-    }, SEEN);
-    check('the sidebar carries a Negotiations door', !!door.box && door.box.on,
-      door.box ? `${door.box.w}x${door.box.h}` : 'missing');
-    check('it reads Negotiations — a noun among nouns', door.label === 'Negotiations', door.label);
-    /* RE-POINTED AT STEP 7 OF THE OVERNIGHT WORK ORDER: the fold's Contracts
-       item went (its opener is the Contracts door), so Negotiations is the
-       fold's FIRST door, under the Contracts row */
-    const fold = await page.evaluate(() => [...document.querySelectorAll('.nav-fold[data-nav-fold="register"] .nav-sub .nav-item[data-view]')].map(el => el.getAttribute('data-view')));
-    check('and it sits directly under Contracts',
-      fold[0] === 'redline' && !door.order.includes('register'),
-      fold.join(' › ') + ' · rail ' + door.order.join(' › '));
+    /* RE-POINTED 17 Oct 2026 (the owner picked "Desk tabs", Round 2): the left
+       menu is not drawn on a computer; Negotiations is a place Jambo opens, in
+       his "/" list, read in both books */
+    const door = await page.evaluate(() => ({ menu: getComputedStyle(document.getElementById('side-nav')).display,
+      slash: caSlashRows('negotiations', { max: 5 }).map(r => r.word), place: (caReadPlace('negotiations') || {}).place,
+      sv: (caReadPlace('förhandlingar') || {}).place }));
+    check('the left menu is gone; Negotiations is a place in Jambo\'s "/" list', door.menu === 'none' && door.slash.includes('/negotiations'), JSON.stringify(door));
+    check('"negotiations" and "förhandlingar" both open it', door.place === 'negotiations' && door.sv === 'negotiations', `${door.place} · ${door.sv}`);
 
     await page.screenshot({ path: path.join(OUT, '01-sidebar.png') });
 
@@ -285,7 +274,7 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
        negoLastOpened still answers, so this is one argument to put back. */
     await page.evaluate(() => setView('calendar'));
     await page.waitForTimeout(900);
-    await page.hover('[data-nav-fold-open="register"]'); await page.click('.nav-item[data-view="redline"]');
+    await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'negotiations');
     await page.waitForTimeout(1600);
     const back = await page.evaluate(() => ({ view: state.view, held: redlineHeldId(),
       /* The list is the CONTRACTS TABLE under its own head — `.ngl-wrap` is
@@ -308,7 +297,7 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
       'hati.v1.lastNegotiation.' + (currentUser().id || currentUser().email)); }catch(e){} });
     await page.evaluate(() => setView('dashboard'));
     await page.waitForTimeout(800);
-    await page.hover('[data-nav-fold-open="register"]'); await page.click('.nav-item[data-view="redline"]');
+    await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'negotiations');
     await page.waitForTimeout(1400);
     const list = await page.evaluate(seen => ({
       head: eval(seen)('.ngl-head-table'),
@@ -467,9 +456,8 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
       const row = document.querySelector('.redline-page .rl-tabrow');
       /* RE-POINTED 10 Oct 2026: the list's door lives in the Contracts
          fly-out; on this page its opener is shown and says "you are here" */
-      return { box: eval(seen)('.redline-page [data-rl-open-doc]'), side: (() => { const o = eval(seen)('#side-nav [data-nav-fold-open="register"]');
-          const cur = !!document.querySelector('#side-nav [data-nav-fold-open="register"].is-current');
-          return o && cur && document.querySelector('#side-nav .nav-sub [data-view="redline"]') ? o : null; })(),
+      /* RE-POINTED 17 Oct 2026 (Round 2): the way to the list is Jambo's word, the left menu not being drawn */
+      return { box: eval(seen)('.redline-page [data-rl-open-doc]'), side: (caReadPlace('negotiations') || {}).place === 'negotiations' ? { on: true } : null,
         first: !!b && !!row && row.children[0] === b,
         last: (() => { const acts = document.querySelector('.rl-actions');
           /* RE-POINTED 13 Oct 2026 (owner): Internal | Counterparty now ends the row, right after the way out */
@@ -479,7 +467,7 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
           - row.getBoundingClientRect().left),
         n: ((document.querySelector('.rl-livelist-n') || {}).textContent || '').trim() };
     }, SEEN);
-    check('the negotiation page carries a way back to its document, and the sidebar a way to the list',
+    check('the negotiation page carries a way back to its document, and Jambo\'s word a way to the list',
       !!backDoor.box && backDoor.box.on && !!backDoor.side && backDoor.side.on,
       backDoor.box ? `${backDoor.box.text} · sidebar ${!!(backDoor.side && backDoor.side.on)}` : 'MISSING');
     /* "All negotiations" since 22 Aug 2026 (owner-approved render). It named
@@ -502,7 +490,7 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
       backDoor.last, `last=${backDoor.last}, ${backDoor.flush}px from the row's left`)
 
     /* Press it: the LIST, not the negotiation it was pressed from. */
-    await page.hover('[data-nav-fold-open="register"]'); await page.click('#side-nav [data-view="redline"]');
+    await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'negotiations');
     await page.waitForTimeout(1500);
     const landed = await page.evaluate(seen => ({
       table: eval(seen)('.reg-table'),
@@ -536,7 +524,7 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
     await page.evaluate(id => openRedlineWorkbench(id), cid);
     await pause(400); await passBlanks(page);
     await page.waitForTimeout(1600);
-    await page.hover('[data-nav-fold-open="register"]'); await page.click('#side-nav [data-view="redline"]');
+    await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'negotiations');
     await page.waitForTimeout(1500);
     const both = await page.evaluate(() => ({
       live: ((document.querySelector('.ngl-live') || {}).textContent || '').trim(),
@@ -556,7 +544,7 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
     await page.waitForFunction(ON_FACE, cid2, { timeout: 8000 }).catch(() => {});
     check('a row opens the other negotiation',
       await page.evaluate(`(${ON_FACE})(${JSON.stringify(cid2)})`) === true);
-    await page.hover('[data-nav-fold-open="register"]'); await page.click('#side-nav [data-view="redline"]');
+    await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'negotiations');
     await page.waitForTimeout(1500);
     check('and the door works from that one as well',
       await page.evaluate(() => !!document.querySelector('.reg-table')));
@@ -690,6 +678,8 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
     check('10 the column holds NARROW content — what showed the void',
       narrow.sent >= 1 && narrow.widest > 0 && narrow.widest <= narrow.col,
       `${narrow.sent} sent of ${narrow.cards} · widest line ${narrow.widest}px in ${narrow.col}px`);
+    /* the shell's columns at rest, before focus (the left menu's track is 0px on a computer since 17 Oct 2026) */
+    const restCols = await page.evaluate(() => getComputedStyle(document.getElementById('app-shell')).gridTemplateColumns);
     await page.evaluate(() => rlSetFocus(true));
     await page.waitForTimeout(700);
     const focusGeo = await page.evaluate(() => {
@@ -722,8 +712,8 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
 
        The geometry that replaced them is the mimic itself, measured against
        the Document tab on both pages: test/chromium/focus-mimics-document-verify.js. */
-    check('10 IN FOCUS THE SHELL KEEPS ITS OWN COLUMNS — the sidebar is not collapsed',
-      !/^0px /.test(focusGeo.cols) && focusGeo.left > 60,
+    check('10 IN FOCUS THE SHELL KEEPS ITS OWN COLUMNS — focus collapses nothing',
+      focusGeo.cols === restCols,
       `grid left ${focusGeo.left}px · right ${focusGeo.right}px · shell ${focusGeo.cols}`);
     check('10 and the contract still reaches the other wall — no width handed to an empty track',
       focusGeo.right <= 160, `gap right ${focusGeo.right}px`);
@@ -735,7 +725,7 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
       return { left: Math.round(g.left) };
     });
     check('10 leaving focus leaves that geometry exactly where it was',
-      backGeo.left > 60 && backGeo.left === focusGeo.left,
+      backGeo.left === focusGeo.left,
       `grid left ${backGeo.left}px in focus ${focusGeo.left}px`);
 
     /* ---- 11 · ONE SEARCH BOX, AND IT IS THE SHELL'S ----

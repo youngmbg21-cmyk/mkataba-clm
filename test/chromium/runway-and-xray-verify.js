@@ -62,6 +62,8 @@ const check = (name, pass, detail) => {
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
     await page.waitForTimeout(3000);
+    /* signing in lands on the Counter since 17 Oct 2026 (Round 1): Home is opened */
+    await page.evaluate(() => hbOpenHome()); await page.waitForTimeout(1500);
 
     /* ================= 1. THE MODULE IS ON THE FLOOR ==================== */
     const loaded = await page.evaluate(() => ({

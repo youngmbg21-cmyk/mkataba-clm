@@ -48,7 +48,7 @@ const check = (name, pass, detail) => {
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.length > 2 && typeof mineLoaded === 'function' && mineLoaded(), null, { timeout: 20000 });
     const door = await until(() => { const b = document.querySelector('#side-nav [data-view="mynotes"]'); return b ? { text: b.textContent.trim(), count: (b.querySelector('[data-count="mynotes"]') || {}).textContent || '' } : null; });
     check('1. "My notes" is a door in the menu, its count blank with nothing due', !!door && /My notes/.test(door.text) && door.count === '', JSON.stringify(door));
-    await page.click('#side-nav [data-view="mynotes"]');
+    /* the left menu's place is the desk tabs' since 17 Oct 2026 (Round 2): the page is asked of Jambo's box */ await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'my notes');
     await until(() => !!document.getElementById('mn-new'));
     await page.click('#mn-new');
     const form = await until(() => { const s = document.getElementById('mn-save'); return s && document.getElementById('mn-body') ? { off: s.disabled, focus: document.activeElement && document.activeElement.id } : null; });

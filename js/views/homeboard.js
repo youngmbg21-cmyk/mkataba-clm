@@ -1267,10 +1267,16 @@ function hbHeadHtml(groupSel){
   const face = f => `<button type="button" role="tab" data-hb-face="${f}" aria-selected="${s.face === f}">${(typeof icon === 'function') ? icon(HB_FACE_ICON[f], 'hb-face-ic', 2) : ''}${hbFaceWordsHtml(f)}${f === 'calendar' ? (() => { const n = (typeof window.calendarDoorCount === 'function') ? calendarDoorCount() : 0;
     return `<span class="hb-face-n" data-count="calendar" data-count-quiet-zero${n ? ' data-tone="amber"' : ''}>${n ? n : ''}</span>`; })() : ''}</button>`;
   const scr = m => `<button type="button" data-hb-screen="${m}" aria-pressed="${hbScreenNow() === m}">${_hbE(i18t('hb_screen_' + m))}</button>`;
+  /* ---- THE DESK TABS TAKE THE GREETING'S AND THE FACES' PLACE (the owner
+     picked "Desk tabs", 17 Oct 2026) ---- on a computer the Counter greets,
+     and Board, Workspace, Calendar and Explorer are pages on the desk, each a
+     tab after "‹ The counter" (js/views/counter.js); the same row, so the
+     paper does not move down. The phone keeps its own Home. */
+  const desk = typeof window.deskShellOn === 'function' && window.deskShellOn() && typeof window.deskTabsHtml === 'function';
   return `<style>#page-head{background:var(--color-surface)}</style>
   <header id="hb-head" class="hb-head">
-    <div class="hb-hello">${hbHelloInner()}</div>
-    <div class="hb-seg hb-faces" role="tablist" aria-label="${_hbE(i18t('hb_show'))}" style="--hb-fi:${Math.max(0, HB_FACES.indexOf(s.face))};--hb-fn:${HB_FACES.length}"><span class="hb-thumb" aria-hidden="true"></span>${HB_FACES.map(face).join('')}</div>
+    ${desk ? `<div class="hb-dk" id="dk-home">${window.deskTabsHtml()}</div>` : `<div class="hb-hello">${hbHelloInner()}</div>
+    <div class="hb-seg hb-faces" role="tablist" aria-label="${_hbE(i18t('hb_show'))}" style="--hb-fi:${Math.max(0, HB_FACES.indexOf(s.face))};--hb-fn:${HB_FACES.length}"><span class="hb-thumb" aria-hidden="true"></span>${HB_FACES.map(face).join('')}</div>`}
     <span class="hb-grow"></span>
     <label class="hb-groupby" id="hb-groupby"${s.face === 'explorer' ? '' : ' hidden'}>${_hbE(i18t('hb_group_by'))} ${groupSel || ''}</label>
     <span class="hb-counting">${hbCountChipHtml()}</span>
@@ -6869,6 +6875,8 @@ function hbPaintHead(){
   const scr = document.querySelector('#hb-head .hb-scr'); if (scr) scr.hidden = s.face !== 'board';
   const chip = document.querySelector('.hb-counting');
   if (chip){ const h = hbCountChipHtml(); if (chip.innerHTML !== h) chip.innerHTML = h; }
+  /* the face turned: it is the tab in front now (Round 2) */
+  if (typeof window.deskTabsSync === 'function') window.deskTabsSync();
 }
 /* EXPLORER IS ALWAYS DARK (Young, 6 Oct 2026: "no option to make it
    light"): the Light/Dark choice is the Board's alone, and its buttons are

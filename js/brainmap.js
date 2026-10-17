@@ -26,6 +26,9 @@ const BRAIN_PARTS = [
   ['home', 'hmDecisionItems', 'see', 0],
   /* Needs you, Jambo's note (15 Oct 2026): what is owed by name, on the Board, above Jambo's work */
   ['needsme', 'hbNeedsHtml', 'see', 0],
+  /* The counter (17 Oct 2026): the first screen after signing in on a computer; the desk tabs take the left menu's place */
+  ['counter', 'renderCounter', 'see', 0],
+  ['desktabs', 'deskTabsHtml', 'see', 0],
   /* End or pause (15 Oct 2026): one question, three answers — decline, archive, hold */
   ['endpause', 'endOrPauseOpen', 'time', 1],
   ['bell', 'buildAlerts', 'see', 0],
@@ -416,9 +419,9 @@ const BRAIN_FLOWS = [
      it in both books, and these are not new stages of the story — they are
      who else is on the page while you do it, and who may rule on it. */
   { id: 'redline', steps: [['redface', 'negpage', 'startnego', 'here', 'follow'], ['editor', 'baton', 'askkeep', 'risklist', 'riskwalk'], ['funnel'], ['desk', 'suggest'], ['ladder'], ['review', 'kept', 'asks'], ['payload'], ['shares', 'linkcheck'], ['email', 'mailkey', 'cplink', 'turnmail', 'wordmark'], ['whosemove', 'bell', 'roundauto']] },
-  { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop', 'roundsettle'], ['ladder'], ['whosemove', 'decidedsend'], ['bell', 'home', 'needsme', 'negpage', 'boardviews', 'stands', 'stale', 'dealpaper', 'onepaper', 'answeronpaper'], ['webhook']] },
+  { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop', 'roundsettle'], ['ladder'], ['whosemove', 'decidedsend'], ['bell', 'home', 'needsme', 'counter', 'desktabs', 'negpage', 'boardviews', 'stands', 'stale', 'dealpaper', 'onepaper', 'answeronpaper'], ['webhook']] },
   { id: 'sign', steps: [['signface', 'signtab', 'linkcheck'], ['readiness', 'signgate', 'rules', 'paperjobs'], ['approvals', 'namedyes', 'decide', 'undoyes', 'rulestep', 'asks', 'approvalpaper', 'freshen', 'awaycard', 'awayget', 'awayset', 'awayend', 'awayreach', 'awaycovers', 'awayrec', 'awayans'], ['brief', 'playbook', 'blanks'], ['pad'], ['putguard', 'srvseal', 'sealtext'], ['seal', 'frozen', 'issuelinks'], ['obligations', 'renewal', 'calendar', 'mynotes', 'mine', 'myitems', 'myitemsget', 'myitemsput', 'myitemsdel', 'plan', 'keeptab', 'keepread', 'keepset', 'keeprun', 'keepbook', 'keeprec', 'cnrow', 'cnset', 'cndoor', 'cnmask', 'cnrec', 'cnlog'], ['email', 'copies']] },
-  { id: 'night', steps: [['reminders', 'lanes', 'agentlevel', 'linkkeep', 'agentpieces', 'agentpoints'], ['renewal', 'renewact'], ['renewprep'], ['model', 'boardjudge', 'bookread'], ['db'], ['obligations'], ['email', 'boardmoved', 'looktell', 'invite'], ['desknight', 'home', 'needsme', 'insights', 'readings', 'chasemany', 'draftreply', 'agentoutcome', 'agentprepared', 'agentrebuild', 'piecesget', 'jambohouse']] },
+  { id: 'night', steps: [['reminders', 'lanes', 'agentlevel', 'linkkeep', 'agentpieces', 'agentpoints'], ['renewal', 'renewact'], ['renewprep'], ['model', 'boardjudge', 'bookread'], ['db'], ['obligations'], ['email', 'boardmoved', 'looktell', 'invite'], ['desknight', 'home', 'needsme', 'counter', 'insights', 'readings', 'chasemany', 'draftreply', 'agentoutcome', 'agentprepared', 'agentrebuild', 'piecesget', 'jambohouse']] },
   { id: 'ask', steps: [['copilotask', 'onesearch', 'menuask', 'nextsteps', 'reflink', 'menutab', 'strip', 'homepaper', 'breakdown', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook', 'stackview'], ['db', 'dealfacts', 'brainread', 'privwall', 'privopens', 'privmoney', 'privtrail', 'payread'], ['model', 'settingswhy', 'govrule', 'breakread', 'breakdive', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote', 'citedoor', 'walkset', 'paperdesk'], ['contracts', 'contractsplace', 'customers', 'directory', 'passroute', 'lookask', 'copilotdoors', 'ruledoor'], ['explorer', 'cellfold', 'readchips', 'nextq', 'boardmarks']] },
   /* THE OVERNIGHT REVIEW'S FLOWS (9 Oct 2026): the commonest start, a request,
      the other side's signature, an amendment, the end of a contract, and the
@@ -445,7 +448,7 @@ const BRAIN_LANE_OF = {
   /* a colleague: the requester, the reviewer, the contributor, the approver */
   req: ['request', 'kinds', 'reqfiles', 'askadmin', 'ruledoor', 'privpage', 'trailpage', 'rolespage', 'bzsection', 'arsheet', 'settingsask', 'settingsanswer', 'review', 'suggest', 'rules', 'namedyes', 'decide', 'undoyes', 'approvalpaper', 'lookask'],
   /* the person working the contract: what they see and press */
-  own: ['awaycard', 'keeptab', 'cnrow', 'upload', 'dropin', 'draftform', 'refile', 'privnews', 'privtrail', 'paysec', 'ndatail', 'glance', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'needsme', 'negpage', 'redface', 'boardviews', 'strip', 'stripfamily', 'startnego', 'here', 'follow',
+  own: ['awaycard', 'keeptab', 'cnrow', 'upload', 'dropin', 'draftform', 'refile', 'privnews', 'privtrail', 'paysec', 'ndatail', 'glance', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'needsme', 'counter', 'desktabs', 'negpage', 'redface', 'boardviews', 'strip', 'stripfamily', 'startnego', 'here', 'follow',
     'editor', 'baton', 'askkeep', 'risklist', 'riskwalk', 'stands', 'dealpaper', 'onepaper', 'decidedsend', 'signtab', 'signface', 'pad', 'calendar', 'desknight', 'insights', 'readings',
     'chasemany', 'copilotask', 'menuask', 'nextsteps', 'reflink', 'menutab', 'amendface', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs',
     'phrasebook', 'boardtools', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'citedoor', 'walkset', 'paperdesk', 'contracts', 'contractsplace', 'customers', 'directory', 'cellfold',

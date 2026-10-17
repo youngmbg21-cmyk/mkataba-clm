@@ -31,15 +31,15 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await until(page, () => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-B2'), null, 15000);
-    await until(page, () => document.querySelectorAll('[data-hb-face]').length > 0, null, 10000);
-
-    const tabs = await page.evaluate(() => [...document.querySelectorAll('[data-hb-face]')].map(b => b.getAttribute('data-hb-face')));
-    /* RE-POINTED 11 Oct 2026 (owner, the sliding pill): Board · Document · Breakdown · Calendar · Explorer */
-    /* re-pointed 13 Oct 2026: the owner deleted the Breakdown face */
-    ok('1 Home\'s tabs read Board · Document · Calendar · Explorer', tabs.join(',') === 'board,paper,calendar,explorer', tabs.join(','));
+    /* RE-POINTED 17 Oct 2026 (the owner picked "Desk tabs", Round 2): Home's faces are
+       no longer a pill in its head on a computer — each is a page Jambo opens and a
+       tab on the desk — so the faces are read off Home's own list (HB_FACES) */
+    await until(page, () => typeof HB_FACES !== 'undefined' && !document.body.classList.contains('pre-auth'), null, 10000);
+    const tabs = await page.evaluate(() => HB_FACES.slice());
+    ok('1 Home\'s faces are Board · Document · Calendar · Explorer', tabs.join(',') === 'board,paper,calendar,explorer', tabs.join(','));
     ok('2 the menu has no Calendar row', await page.evaluate(() => !document.querySelector('#side-nav [data-view="calendar"]')));
 
-    await page.click('[data-hb-face="calendar"]');
+    await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'calendar');
     const up = await until(page, () => !!document.querySelector('#hb-cal .cal-stage'));
     const at = await page.evaluate(() => {
       const vis = el => { if (!el) return false; const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
@@ -75,12 +75,12 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     ok('9 setView(\'calendar\') lands on Home\'s Calendar tab', await until(page, () => state.view === 'dashboard' && hbFace() === 'calendar' && !!document.querySelector('#hb-cal .cal-stage')));
 
     /* the other tabs are untouched, and leave the calendar's panel behind */
-    await page.click('[data-hb-face="board"]');
+    await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'board');
     ok('10 Board comes back, and the calendar and its panel step aside', await until(page, () =>
       !document.getElementById('hb-board').hidden && document.getElementById('hb-cal').hidden && !document.querySelector('#ig-dock #cal-plan')));
 
     /* a refresh lands where it was */
-    await page.click('[data-hb-face="calendar"]');
+    await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'calendar');
     await until(page, () => !!document.querySelector('#hb-cal .cal-stage'));
     await page.click('[data-cal-view="week"]');
     await until(page, () => !!document.querySelector('#hb-cal .cal-wk-card'));

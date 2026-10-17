@@ -2379,6 +2379,7 @@ async function doSetup(){
       if(sample) state.contracts=sampleContracts();
       await api('setup','POST',{ org:name, name:uname, title:utitle, email, password:pass,
         data:{ uid, contracts:sample?state.contracts.map(migrateContract):[], view:'dashboard', activeId:null, folderId:null } });
+      window._cnSignedIn=true;   /* the Counter's landing, noted before the book loads (a page opened meanwhile wins) */
       await loadBootstrap();
       toastsClear(); startApp();
       toast(`Workspace "${name}" created — karibu!`);
@@ -2393,7 +2394,7 @@ async function doSetup(){
   if(!document.getElementById('su-sample').checked) state.contracts=[];
   else state.contracts=sampleContracts().map(c=>(c.owner?c:Object.assign(c,{ owner:{ id:admin.id, name:admin.name } })));   // same reason as the server branch above; the founder owns the sample book (the owner's list, 27 Sep 2026)
   persist();
-  toastsClear(); startApp();
+  window._cnSignedIn=true; toastsClear(); startApp();
   toast(`Workspace "${name}" created — karibu!`);
 }
 /* ONE SIGN-IN AT A TIME (26 Sep 2026, the overnight clean-up): a double
@@ -2407,6 +2408,8 @@ async function doLogin(){
   const err=document.getElementById('li-err');
   if(REMOTE){
     _loginBusy=true;
+    /* the Counter's landing is noted the moment Sign in is pressed: a page opened before the app is up wins (setView) */
+    window._cnSignedIn=true;
     const go=document.getElementById('li-go'); if(go) go.disabled=true;
     try{
       const r=await api('login','POST',{ email, password:pass });
@@ -2423,7 +2426,7 @@ async function doLogin(){
   const u=getUsers().find(x=>x.email===email);
   if(!u || (await hashPassword(pass,u.salt))!==u.hash){ err.textContent='Email or password is incorrect.'; err.classList.remove('hidden'); return; }
   lsSet(LS.session,{ userId:u.id, at:nowISO() });
-  toastsClear(); startApp();
+  window._cnSignedIn=true; toastsClear(); startApp();
   toast(`Karibu tena, ${u.name.split(' ')[0]}`);
 }
 /* The second step (WO-6). Cancel falls back to the sign-in form; a wrong code
@@ -2436,6 +2439,7 @@ async function doLoginTotp(ticket, err){
   if(code==null) return;
   try{
     await api('login/totp','POST',{ ticket, code:String(code).trim() });
+    window._cnSignedIn=true;   /* the Counter's landing, noted before the book loads (a page opened meanwhile wins) */
     await loadBootstrap();
     toastsClear(); startApp();
     toast(`Karibu tena, ${REMOTE.me.name.split(' ')[0]}`);
@@ -2481,7 +2485,7 @@ function renderMustChangePassword(){
       await api('password/change','POST',{ current:cur, password:nw });
       if(REMOTE&&REMOTE.me&&REMOTE.me.prefs) delete REMOTE.me.prefs.mustChangePassword;
       toast(i18t('co_password_changed'));
-      startApp();
+      window._cnSignedIn=true; startApp();
     }catch(e){ fail(e.message); }
   });
 }
@@ -2516,8 +2520,13 @@ function startApp(){
      honest empty state when their contract or template is not loaded yet, so
      resuming there is safe — and losing a refresh mid-negotiation to the
      dashboard was the exact complaint this list caused. */
+  /* ---- THE COUNTER AFTER SIGNING IN (the owner picked "Front desk", 17 Oct
+     2026) ---- a person who has just signed in on a computer lands on the
+     Counter (js/views/counter.js); a refresh keeps the page it was on. */
+  if(window._cnSignedIn && window.deskShellOn && deskShellOn()) state.view='counter';
+  window._cnSignedIn=false;
   const _place=window.placeResume?placeResume():null;
-  setView(['brain','dashboard','register','pipeline','advice','intake','obligations','approvals','folder','intel','calendar','mynotes','reports','templates','playbook','workspace','team','directory','migration','customers','jambo','redline','agents'].includes(state.view)?state.view:'dashboard');
+  setView(['brain','dashboard','counter','register','pipeline','advice','intake','obligations','approvals','folder','intel','calendar','mynotes','reports','templates','playbook','workspace','team','directory','migration','customers','jambo','redline','agents'].includes(state.view)?state.view:'dashboard');
   if(_place&&window.placeScrollBack) placeScrollBack(_place);
   /* MY OWN EVENTS AND NOTES (10 Oct 2026): loaded once, so the rail's count
      and the bell know what is due before either page is opened. */

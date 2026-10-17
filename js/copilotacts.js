@@ -1211,6 +1211,24 @@ const CA_PLACES = [
   { k: 'back', w: ['back', 'go back', 'tillbaka'] },
   { k: 'help', w: ['help', 'what can you do', 'hjälp'] },
   /* "what's next?" answers with the chips' own steps on a card (caNextSteps) */
+  /* THE LEFT MENU'S PAGES (the owner picked "Desk tabs", 17 Oct 2026): on a
+     computer the menu is gone, so every page it held is a place Jambo opens,
+     and "/" lists them; the page lands on the desk as a tab (js/views/counter.js) */
+  /* not "counter": that word is a counter-offer to him (CA_DOORS) */
+  { k: 'counter', w: ['home', 'start', 'start page', 'hem', 'startsidan'] },
+  { k: 'work', w: ["jambo's work", 'his work', 'prepared', 'prepared work', 'jambos arbete', 'förberett'] },
+  { k: 'negotiations', w: ['negotiations', 'all negotiations', 'förhandlingar', 'alla förhandlingar'] },
+  { k: 'approvals', w: ['approvals', 'approvals and signing', 'approvals & signing', 'godkännanden', 'godkännanden och signering', 'godkännanden & signering'] },
+  { k: 'requests', w: ['requests', 'request', 'my requests', 'förfrågningar', 'förfrågan', 'mina förfrågningar'] },
+  { k: 'parties', w: ['parties', 'party', 'counterparties', 'customers', 'suppliers', 'parter', 'motparter', 'kunder', 'leverantörer'] },
+  { k: 'people', w: ['people', 'directory', 'colleagues', 'contacts', 'personer', 'katalog', 'katalogen', 'kollegor', 'kontakter'] },
+  { k: 'ourpaper', w: ['our paper', 'templates', 'template', 'standards', 'our standards', 'playbook', 'vårt papper', 'mallar', 'mall', 'standarder', 'våra standarder'] },
+  { k: 'import', w: ['import', 'imports', 'import contracts', 'importera', 'importera avtal'] },
+  { k: 'mynotes', w: ['my notes', 'notes', 'mina anteckningar', 'anteckningar'] },
+  { k: 'insights', w: ['insights', 'insikter'] },
+  { k: 'house', w: ["jambo's agents", 'agents', "jambo's house", 'house', 'jambos agenter', 'agenter', 'jambos hus'] },
+  { k: 'settings', w: ['settings', 'settings and rules', 'setup', 'inställningar'] },
+  { k: 'brain', w: ['brain', 'hjärnan', 'hjärna'] },
   { k: 'next', need: 'one', w: ['next', 'next step', 'next steps', "what's next", 'whats next', 'what is next', 'what next', 'what now', 'nästa', 'nästa steg', 'vad är nästa steg', 'vad händer nu', 'vad nu'] },
 ];
 /* "go to", "open", "show me", "take me back to", "gå till", "öppna", "visa" */
@@ -1228,7 +1246,9 @@ function caPlaceOf(q){
     if (!c) return m0;
     cid = cid || c.id; return ' ';
   });
-  t = t.toLowerCase().replace(/[?.!]+\s*$/, '').replace(/\s+/g, ' ').trim();
+  t = t.toLowerCase().replace(/[’‘]/g, "'").replace(/[?.!]+\s*$/, '').replace(/\s+/g, ' ').trim();
+  /* a place whose own name starts "our" or "the" ("our paper") is read before those are let go */
+  const whole = (t + ' ').replace(CA_PLACE_LEAD, '').replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
   t = (t + ' ').replace(CA_PLACE_LEAD, '').replace(/^(?:the|my|our)\s+/, '').replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
   /* ON THE BOARD ITS OWN READER KEEPS ITS WORDS: "obligations" is its
      obligations panel, "MK-458" the contract's card, a saved view its name.
@@ -1236,7 +1256,7 @@ function caPlaceOf(q){
   if (caOnBoard() && typeof hbParse === 'function'){ let r = null; try { r = hbParse(q); } catch (_){ r = null; } if (r && r.act !== 'face') return null; }
   /* a reference on its own ("MK-458", "open #MK-458") is that contract's paper */
   if (!t && cid) return { kind: 'go', place: 'document', cid, slash, state: 'ready' };
-  const p = CA_PLACES.find(x => x.w.includes(t)); if (!p) return null;
+  const p = CA_PLACES.find(x => x.w.includes(whole)) || CA_PLACES.find(x => x.w.includes(t)); if (!p) return null;
   return { kind: 'go', place: p.k, cid, slash, state: 'ready' };
 }
 function caOnBoard(){ try { return typeof state !== 'undefined' && !!state && state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'board'; } catch (_){ return false; } }
@@ -1266,7 +1286,8 @@ function caUseBump(k){
    Drawn by the Board's own list (hbAskPopRows), so there is one "/" list:
    these rows first, and on the Board its chart moves after them. Ties keep
    this order, which is the plan's order of a working day. */
-const CA_SLASH = ['redline', 'needs', 'sign', 'board', 'document', 'share', 'oblig', 'history', 'fill', 'calendar', 'explorer', 'draft', 'upload'];
+const CA_SLASH = ['redline', 'needs', 'sign', 'board', 'document', 'share', 'oblig', 'history', 'fill', 'calendar', 'explorer', 'draft', 'upload',
+  'work', 'negotiations', 'approvals', 'requests', 'parties', 'people', 'ourpaper', 'mynotes', 'insights', 'import', 'house', 'settings', 'brain', 'counter'];
 const CA_SLASH_MAX = 8;
 function caSlashWord(k){ return String(_caT('ca_w_' + k)).trim().replace(/\s+/g, '-'); }
 function caSlashRows(w, opts = {}){
@@ -1380,6 +1401,21 @@ const CA_GO = {
   /* THE ONE FORM, never the two-door menu (step 3) — a word answers with the
      Draft card (caGoCardHtml); this is for a caller that moves straight on */
   draft: () => caDraftForm(null),
+  /* the left menu's pages, each through the door the menu pressed (Round 2) */
+  counter: () => typeof setView === 'function' && setView('counter'),
+  work: () => typeof hbOpenAgent === 'function' && hbOpenAgent(),
+  negotiations: () => (typeof openNegotiations === 'function') ? openNegotiations({ list: true }) : setView('redline'),
+  approvals: () => setView('approvals'),
+  requests: () => setView('intake'),
+  parties: () => setView('customers'),
+  people: () => setView('directory'),
+  ourpaper: () => setView('templates'),
+  import: () => !caMayAdd() ? false : setView('migration'),
+  mynotes: () => setView('mynotes'),
+  insights: () => setView('intel'),
+  house: () => setView('jambo'),
+  settings: () => setView('team'),
+  brain: () => setView('brain'),
 };
 /* what Jambo says as he goes — one line, no card (share and help are cards) */
 function caGoSay(a){
@@ -1388,7 +1424,7 @@ function caGoSay(a){
   if (a.missing) return _caT('ca_go_need', { word: _caT('ca_w_' + a.place) });
   if (a.place === 'back'){ const p = caTrailTop(); return p ? _caT('ca_go_back', { where: caTrailLabel(p) }) : _caT('ca_go_back_none'); }
   /* a viewer's "upload" is answered with the refusal, once, where they look — not a toast beside it */
-  if (a.place === 'upload' && !caMayAdd()) return _caT('ct_viewers_no_add');
+  if ((a.place === 'upload' || a.place === 'import') && !caMayAdd()) return _caT('ct_viewers_no_add');
   const p = CA_PLACES.find(x => x.k === a.place) || {};
   return _caT('ca_go_' + a.place + (p.need === 'any' && !c ? '_all' : ''), { ref: c ? caRef(c) : '' });
 }

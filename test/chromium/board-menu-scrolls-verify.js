@@ -10,7 +10,10 @@ const { startHati, seedWorkspace, FIXTURES } = require('../helpers');
   const b = await chromium.launch({ executablePath: process.env.CHROMIUM_BIN || (require('node:fs').existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined), args: ['--no-sandbox'] });
   const page = await (await b.newContext({ viewport: { width: 1280, height: 560 } })).newPage();
   await page.goto(h.base + '/'); await page.fill('#li-email','admin@example.co.ke'); await page.fill('#li-pass','adminpassword1'); await page.click('#li-go');
-  await page.waitForFunction(() => typeof hbS === 'function' && document.querySelector('[data-hb-face]'), null, { timeout: 15000 });
+  /* signing in lands on the Counter since 17 Oct 2026 (Round 1): the Board is opened */
+  await page.waitForFunction(() => typeof hbS === 'function' && !document.body.classList.contains('pre-auth'), null, { timeout: 15000 });
+  await page.evaluate(() => hbOpenHome());
+  await page.waitForFunction(() => !!document.getElementById('hb-head'), null, { timeout: 15000 });
   const R0 = { which: 'all', pic: 'cols', split: { by: 'stage' }, measure: 'count' };
   await page.evaluate((R0) => { const s = hbS(); s.face='board'; s.prep='closed'; s.path=[];
     s.panels=[{ id:'p1', kind:'view', key:'q:by stage', title:'By stage', recipe:R0, split:false, big:true }]; hbSave(); hbCardSet('q:by stage', R0, { seed:true }); hbPaintBoard(); }, R0);

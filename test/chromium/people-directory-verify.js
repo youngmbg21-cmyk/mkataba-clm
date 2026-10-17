@@ -105,20 +105,22 @@ const PAGE = () => {
     page.on('pageerror', e => errors.push(e.message));
     await signIn(page, h.base, 'restricted@example.co.ke', 'their-own-pass-9');
 
-    const door = await page.evaluate(VISIBLE, '.nav-item[data-view="directory"]');
-    check('the Directory door is on screen for a restricted member', door.ok, door.why);
-    const doorWord = await page.evaluate(() => (document.querySelector('.nav-item[data-view="directory"]') || {}).textContent || '');
-    check('and it says Directory', /Directory/.test(doorWord), doorWord.trim().slice(0, 30));
+    /* RE-POINTED 17 Oct 2026 (the owner picked "Desk tabs", Round 2): the left
+       menu is not drawn on a computer; the Directory is a place Jambo opens */
+    const door = await page.evaluate(() => ({ place: (caReadPlace('people') || {}).place, also: (caReadPlace('directory') || {}).place, slash: caSlashRows('people', { max: 5 }).map(r => r.k) }));
+    check('the Directory is a place in Jambo\'s "/" list for a restricted member', door.place === 'people' && door.slash.includes('people'), JSON.stringify(door));
+    check('and "directory" opens it too', door.also === 'people', String(door.also));
     /* RE-POINTED IN PLACE 16 Oct 2026 (the Control Room): Settings is
        everyone's now, and for a member it is their OWN settings — no roster,
        no Company tab — which is still why the roster lives here. */
-    const settingsDoor = await page.evaluate(VISIBLE, '.nav-item[data-view="team"]');
+    const settingsDoor = await page.evaluate(() => { const ok = (caReadPlace('settings') || {}).place === 'settings'; if (ok){ setView('counter'); counterAsk('settings'); } return { ok, why: ok ? 'opened by "settings"' : 'not a place' }; });
+    await page.waitForTimeout(800);
     const theirFace = await page.evaluate(() => (typeof settingsTab === 'function') ? settingsTab() : '');
     check('Settings is theirs too, and it opens on their own settings — which is why the roster lives here',
       settingsDoor.ok && theirFace === 'you', settingsDoor.why + ' · ' + theirFace);
 
     /* PRESSED, not called. */
-    await page.click('.nav-item[data-view="directory"]');
+    await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'people');
     await page.waitForTimeout(1200);
     const card = await page.evaluate(VISIBLE, '#dir-page .dir-card');
     check('pressing it lands on a page with the wall on it', card.ok, card.why);
@@ -184,7 +186,7 @@ const PAGE = () => {
       && landed.only && landed.chip && landed.cards >= 1, JSON.stringify(landed));
 
     /* ---- THE EDGE, AND THE REFRESH ---- */
-    await page.click('.nav-item[data-view="directory"]');
+    await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'people');
     await page.waitForTimeout(1000);
     const back = await page.evaluate(PAGE);
     check('the rail brings you back to the tab you were on', back.tab === 'theirs', back.tab);
@@ -223,9 +225,9 @@ const PAGE = () => {
     const pv = await ctxV.newPage();
     pv.on('pageerror', e => errors.push('viewer: ' + e.message));
     await signIn(pv, h.base, 'vera@example.co.ke', 'their-own-pass-9');
-    const vDoor = await pv.evaluate(VISIBLE, '.nav-item[data-view="directory"]');
-    check('a Viewer has the door too', vDoor.ok, vDoor.why);
-    await pv.click('.nav-item[data-view="directory"]');
+    const vDoor = await pv.evaluate(() => (caReadPlace('people') || {}).place);
+    check('a Viewer has the place too', vDoor === 'people', String(vDoor));
+    await pv.evaluate(w => { setView('counter'); counterAsk(w); }, 'people');
     await pv.waitForTimeout(1200);
     await pv.click('#dir-page [data-dir-tab="ours"]');
     await pv.waitForTimeout(600);
@@ -240,7 +242,7 @@ const PAGE = () => {
     const pa = await ctxA.newPage();
     pa.on('pageerror', e => errors.push('admin: ' + e.message));
     await signIn(pa, h.base, 'admin@example.co.ke', 'adminpassword1');
-    await pa.click('.nav-item[data-view="directory"]');
+    await pa.evaluate(w => { setView('counter'); counterAsk(w); }, 'people');
     await pa.waitForTimeout(1200);
     const manage = await pa.evaluate(VISIBLE, '#dir-manage');
     check('an admin is pointed at Settings → People', manage.ok, manage.why);

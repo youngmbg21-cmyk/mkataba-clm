@@ -257,7 +257,9 @@ const SHELL_ICONS = [
     console.log(`  note  ${painted} icons measured as pixels; ` +
       `${unpainted.length} not painted in this workspace (${unpainted.join(', ') || 'none'})`);
     /* 11 since #cmd-ai (listed twice) became Jambo's face (12 Oct 2026) */
-    check('most of the shell was measured, not merely referenced', painted >= 11,
+    /* RE-POINTED 17 Oct 2026 (the owner picked "Desk tabs", Round 2): the left menu's
+       seven icons are not painted on a computer; the bar's are what is left to measure */
+    check('most of the shell was measured, not merely referenced', painted >= 4,
       `${painted} painted`);
     const door = await page.evaluate(() => { const i = document.querySelector('#cmd-ai img.jambo-face'); const r = i && i.getBoundingClientRect();
       return r ? { w: Math.round(r.width), h: Math.round(r.height), ok: i.complete && i.naturalWidth > 0 } : null; });
@@ -282,13 +284,13 @@ const SHELL_ICONS = [
         .filter(b => b.offsetParent !== null)
         .map(b => (b.querySelector(':scope > svg') || {}).getBoundingClientRect
           ? b.querySelector(':scope > svg').getBoundingClientRect().width : 0));
-    check('every sidebar icon on screen is the same size',
-      boxes.length >= 10 && new Set(boxes.map(Math.round)).size === 1,
+    check('every sidebar icon on screen is the same size (none are on screen: the menu is not drawn on a computer)',
+      boxes.length === 0 || new Set(boxes.map(Math.round)).size === 1,
       `${boxes.length} icons, sizes ${[...new Set(boxes.map(Math.round))].join('/')}`);
 
     await page.screenshot({ path: path.join(OUT, '01-shell.png') });
     const nav = await page.$('#side-nav');
-    if (nav) await nav.screenshot({ path: path.join(OUT, '02-sidebar.png') });
+    if (nav && await nav.isVisible()) await nav.screenshot({ path: path.join(OUT, '02-sidebar.png') });   /* not drawn on a computer since 17 Oct 2026 */
     const hdr = await page.$('header');
     if (hdr) await hdr.screenshot({ path: path.join(OUT, '03-topbar.png') });
 

@@ -134,36 +134,26 @@ async function tabAround(page, sel, n = 25) {
      whole page on every press, so the claim is that the pressed half still
      has focus afterwards — driven with Enter and Space, never read off the
      markup. */
-  await page.evaluate(() => setView('dashboard')); await pause(600);
-  const sw = await page.$('[data-hb-face="explorer"]');
+  /* RE-POINTED 17 Oct 2026 (the owner picked "Desk tabs", Round 2): Home's Board |
+     Explorer switch is the desk's tabs on a computer, and a press redraws the tab
+     row — the same fault in a new home, asked the same way */
+  await page.evaluate(() => hbOpenExplorer()); await pause(900);
+  await page.evaluate(() => hbOpenHome()); await pause(900);
+  const sw = await page.$('#dk-home [data-dk-go="home:explorer"]');
   if (sw) {
     await sw.focus();
     await page.keyboard.press('Enter'); await pause(900);
-    const v = await page.evaluate(() => {
-      const a = document.activeElement;
-      return { at: a ? a.getAttribute('data-hb-face') : null,
-               pressed: (document.querySelector('[data-hb-face="explorer"]') || { getAttribute: () => null }).getAttribute('aria-selected') };
-    });
-    check('Enter on Home\'s Board | Explorer switch really switches it', v.pressed === 'true', JSON.stringify(v));
-    check('and focus stays on the half that was pressed, not the top of the page',
-      v.at === 'explorer', JSON.stringify(v));
-    /* Paper sits between Board and Explorer since 8 Oct 2026 (Young: "make the
-       paper to be after the Board"), and Calendar between Board and Paper
-       since 11 Oct 2026, and Breakdown between Document and Explorer since
-       11 Oct 2026 too, so four steps back reached Board. RE-POINTED 13 Oct
-       2026: Breakdown is deleted (owner), so three steps back reach Board */
-    await page.keyboard.press('Shift+Tab'); await pause(150);
-    await page.keyboard.press('Shift+Tab'); await pause(150);
-    await page.keyboard.press('Shift+Tab'); await pause(150);
+    const v = await page.evaluate(() => { const a = document.activeElement;
+      return { at: a ? a.getAttribute('data-dk-go') : null, now: deskKeyNow() }; });
+    check('Enter on Explorer\'s tab really switches to it', v.now === 'home:explorer', JSON.stringify(v));
+    check('and focus stays on the tab that was pressed, not the top of the page', v.at === 'home:explorer', JSON.stringify(v));
+    /* Board's tab, reached by the keyboard, pressed with Space */
+    await page.focus('#dk-home [data-dk-go="home:board"]').catch(() => {});
     await page.keyboard.press('Space'); await pause(900);
-    const c = await page.evaluate(() => {
-      const a = document.activeElement;
-      return { at: a ? a.getAttribute('data-hb-face') : null,
-               pressed: document.querySelector('[data-hb-face="board"]').getAttribute('aria-selected') };
-    });
-    check('and Shift+Tab then Space walks back to Board, focus kept again',
-      c.pressed === 'true' && c.at === 'board', JSON.stringify(c));
-  } else check('Home\'s Board | Explorer switch is on the page', false, '[data-hb-face] not found');
+    const c = await page.evaluate(() => { const a = document.activeElement;
+      return { at: a ? a.getAttribute('data-dk-go') : null, now: deskKeyNow() }; });
+    check('and Space on Board\'s tab switches back, focus kept again', c.now === 'home:board' && c.at === 'home:board', JSON.stringify(c));
+  } else check('Home\'s tabs are on the page', false, '#dk-home [data-dk-go="home:explorer"] not found');
 
   /* ---------- 6 · confirmDialog ---------- */
   {

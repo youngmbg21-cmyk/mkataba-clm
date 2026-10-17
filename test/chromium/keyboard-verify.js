@@ -37,19 +37,17 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   await page.click('#li-go');
   await page.waitForTimeout(1600);
 
-  console.log('\n1 · ⌘B collapses the sidebar');
+  /* RE-POINTED 17 Oct 2026 (the owner picked "Desk tabs", Round 2): on a computer the
+     left menu is not drawn, so ⌘B has no column to fold; it must not bring one back */
+  console.log('\n1 · ⌘B and the menu that is not drawn');
   const railW = () => page.evaluate(() => Math.round(document.getElementById('side-nav').getBoundingClientRect().width));
   const before = await railW();
   await page.keyboard.press(MOD + '+b');
   await page.waitForTimeout(450);
   const after = await railW();
-  ok('the column width actually changes', before !== after, before + 'px → ' + after + 'px');
+  ok('there is no menu column, and ⌘B does not bring one back', before === 0 && after === 0, before + 'px → ' + after + 'px');
   await page.keyboard.press(MOD + '+b');
   await page.waitForTimeout(450);
-  ok('and it toggles back', (await railW()) === before, (await railW()) + 'px');
-  ok('the choice is remembered', await page.evaluate(() => {
-    try { return localStorage.getItem('hati.v1.railCollapsed') !== null; } catch (_) { return false; }
-  }));
 
   console.log('\n2 · ⌘B does not steal bold from an editor');
   /* richpaste.js binds ⌘B/I/U on the editor element and calls preventDefault

@@ -72,25 +72,18 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     await page.click('#li-go');
     await page.waitForFunction(() => typeof setView === 'function' && state.contracts && state.contracts.length === 8 && state.contracts.some(c => c.id === 'MK-CU0'), null, { timeout: 15000 });
 
-    console.log('\n1 · the rail');
-    await page.evaluate(() => { if (typeof updateSidebarCounts === 'function') updateSidebarCounts(); });
-    const rail = await page.evaluate(() => {
-      const doors = [...document.querySelectorAll('.nav-item[data-view]')].map(b => b.getAttribute('data-view'));
-      return { doors, opener: !!document.querySelector('.nav-fold[data-nav-fold="register"] > [data-nav-fold-open="register"]'),
-        fold: [...document.querySelectorAll('.nav-fold[data-nav-fold="register"] .nav-sub .nav-item[data-view]')].map(b => b.getAttribute('data-view')).join(' '),
-        folded: !!document.querySelector('.nav-fold[data-nav-fold="register"] .nav-sub [data-view="redline"] + [data-view="customers"]'),
-        n: (document.querySelector('[data-count="customers"]') || {}).textContent || '', want: (typeof cuDoorCount === 'function') ? cuDoorCount() : null, total: state.contracts.length };
-    });
-    /* RE-POINTED 10 Oct 2026 (owner: Negotiations and Customers fold under
-       Contracts, shown on hover, and Customers is named Parties) */
-    /* RE-POINTED AT STEP 7 OF THE OVERNIGHT WORK ORDER: the fold keeps only
-       Negotiations and Parties; the Contracts row is its opener, the door */
-    ok('1a the rail reads Home · Contracts, with Negotiations · Parties folded under it', rail.doors.slice(0, 3).join(' ') === 'dashboard redline customers' && rail.opener && rail.fold === 'redline customers' && rail.folded, rail.doors.join(' › ') + ' · fold ' + rail.fold);
-    ok('1b its number is the customers the page lists (3: one name in two cases is one customer)', rail.n.trim() === '3', JSON.stringify(rail));
+    console.log('\n1 · the way in');
+    /* RE-POINTED 17 Oct 2026 (the owner picked "Desk tabs", Round 2): the left
+       menu is not drawn on a computer; Parties is a place Jambo opens and his
+       "/" lists it. The count the menu's door carried is the page's own reading. */
+    const rail = await page.evaluate(() => ({ menu: getComputedStyle(document.getElementById('side-nav')).display,
+      slash: caSlashRows('parties', { max: 5 }).map(r => r.k), want: (typeof cuDoorCount === 'function') ? cuDoorCount() : null }));
+    ok('1a the left menu is gone; Parties is a place Jambo opens, in his "/" list', rail.menu === 'none' && rail.slash.includes('parties'), JSON.stringify(rail));
+    ok('1b the customers counted are the customers the page lists (3: one name in two cases is one customer)', rail.want === 3, JSON.stringify(rail));
 
     console.log('\n2 · the Customers page');
-    await page.hover('[data-nav-fold-open="register"]');
-    const opened = await page.click('.nav-item[data-view="customers"]').then(() => true, () => false);
+    /* the left menu's place is the desk tabs' since 17 Oct 2026 (Round 2): the page is asked of Jambo's box */ 
+    const opened = await page.evaluate(() => { setView('counter'); return counterAsk('parties'); }).then(() => true, () => false);
     await page.waitForFunction(() => !!document.querySelector('[data-cu-screen="list"]'), null, { timeout: 8000 }).catch(() => {});
     const readList = () => page.evaluate(() => [...document.querySelectorAll('tr[data-cu-cust]')].map(tr => ({
       key: tr.getAttribute('data-cu-cust'), sub: ((tr.querySelector('.ap-sub') || {}).textContent || '').trim(),
@@ -150,7 +143,7 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
 
     console.log('\n4 · Open on Explorer: that customer, Active | Expired');
     const toExplorer = async key => {
-      await page.hover('[data-nav-fold-open="register"]'); await page.click('.nav-item[data-view="customers"]');
+      await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'parties');
       await page.waitForFunction(() => !!document.querySelector('[data-cu-screen="list"]'), null, { timeout: 8000 });
       await page.evaluate(() => { const s = document.querySelector('select[data-cu-f="owner"]'); if (s && s.value !== 'all'){ s.value = 'all'; s.dispatchEvent(new Event('change', { bubbles: true })); } });
       await page.waitForFunction(k => !!document.querySelector(`tr[data-cu-cust="${k}"]`), key, { timeout: 4000 });
@@ -176,7 +169,7 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     ok('4e an all-active customer shows one group', ck.groupBy === 'custom' && Object.keys(ck.counts).join() === 'Active' && ck.counts.Active === 2, JSON.stringify(ck.counts));
 
     console.log('\n5 · a refresh keeps the Customers page\'s filters');
-    await page.hover('[data-nav-fold-open="register"]'); await page.click('.nav-item[data-view="customers"]');
+    await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'parties');
     await page.waitForFunction(() => !!document.querySelector('[data-cu-screen="list"]'), null, { timeout: 8000 });
     await page.evaluate(id => { const s = document.querySelector('select[data-cu-f="stream"]'); s.value = id; s.dispatchEvent(new Event('change', { bubbles: true })); }, H.FOLDER_A);
     await page.waitForTimeout(400);

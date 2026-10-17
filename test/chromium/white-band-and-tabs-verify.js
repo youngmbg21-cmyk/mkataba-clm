@@ -405,9 +405,10 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     const stFace = await page.evaluate(sel => { const b = document.querySelector(sel); if (!b) return null;
       const cs = getComputedStyle(b); return { fontFamily: cs.fontFamily, fontSize: cs.fontSize, fontWeight: cs.fontWeight, color: cs.color, height: cs.height }; },
       '#set-page .st-face[aria-selected="false"]');
-    check('5c and the Settings tabs rest exactly as Home\'s do',
-      !!HOME_FACE && !!stFace && Object.keys(HOME_FACE).every(k => HOME_FACE[k] === stFace[k]),
-      { home: HOME_FACE, settings: stFace });
+    /* RETIRED 17 Oct 2026 (the owner picked "Desk tabs", Round 2): its reference was
+       Home's resting face in the sliding pill, which is not drawn on a computer; the
+       Settings tabs' look is Round 24's to decide. What still stands: they are drawn. */
+    check('5c the Settings tabs are drawn (their reference, Home\'s pill, retired with Round 2)', !!stFace, { home: HOME_FACE, settings: stFace });
 
     /* 5d — THE CLAIM THAT NOTHING MOVED, REVERSED ON ONE PROPERTY 24 Aug 2026
        (WO-16, owner-asked: "reduce the font by a size in the contracts and
@@ -431,7 +432,8 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     /* The page's own primary ink, measured off the heading that names the page
        — a RELATION, so a later palette pass moves both together or neither. */
     const PAGE_INK = () => {
-      const h = document.querySelector('#page-head h1, #page-head .pg-title, #content h1');
+      /* the Contracts place's own title is its heading since Home's greeting left the head (17 Oct 2026, Round 2) */
+      const h = document.querySelector('#page-head h1, #page-head .pg-title, #content h1, #content .ct-h');
       return h ? getComputedStyle(h).color : null;
     };
     const oneRungDown = (got) => ref && got
@@ -645,62 +647,11 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     await page.setViewportSize({ width: 1500, height: 1000 });
     await pause(500);
 
-    /* ================= 7 · THE SIDEBAR'S DOORS ============================= */
-    const nav = await page.evaluate(() => {
-      const lum = c => {
-        const m = String(c).match(/[\d.]+/g); if (!m) return null;
-        const f = [0, 1, 2].map(i => { const v = +m[i] / 255;
-          return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
-        return 0.2126 * f[0] + 0.7152 * f[1] + 0.0722 * f[2];
-      };
-      const panel = getComputedStyle(document.querySelector('#side-nav')).backgroundColor;
-      const items = [...document.querySelectorAll('#side-nav .nav-item')]
-        .filter(n => n.offsetParent).map(n => {
-          const s = getComputedStyle(n);
-          return { txt: n.textContent.trim().slice(0, 14),
-            active: n.classList.contains('active'), bg: s.backgroundColor,
-            ink: s.color, edge: s.borderLeftColor, edgeW: s.borderLeftWidth,
-            bgLum: s.backgroundColor === 'rgba(0, 0, 0, 0)' ? null : lum(s.backgroundColor) };
-        });
-      const rs = getComputedStyle(document.documentElement);
-      const d = document.createElement('span');
-      d.style.color = rs.getPropertyValue('--color-text').trim();
-      document.body.appendChild(d); const textInk = getComputedStyle(d).color; d.remove();
-      return { panel, panelLum: lum(panel), items, textInk };
-    });
-    const live = nav.items.filter(i => i.active);
-
-    /* ---- REVERSED IN PLACE 24 Aug 2026, and the RULE is the part that
-       carries over. The owner's ask on 23 Aug was pure white doors on a dark
-       column and a live door DEEPER than the panel rather than veiled over it.
-       The column is white now, so "as strongly as possible against the ground"
-       is the primary ink rather than white — and "deeper" cannot be a darker
-       green when the ground is white, so it is a filled well plus a 3px rule
-       in the accent. Both halves are still asserted; only the ground moved. */
-    /* RE-POINTED 20 Sep 2026 (DECIDE 4 of the redesign order): the reference
-       draws a resting door in the SECONDARY ink at label weight (`.nav a{color:
-       var(--ink-2);font-weight:500}`) and the live one in the accent's ink on
-       a tint of the accent. "As strongly as possible" was the white column's
-       answer to a dark one; the claim now is that every resting door wears
-       exactly the reference's ink, resolved from the token. */
-    const doorInk = await page.evaluate(() => { const d = document.createElement('i'); d.style.color = 'var(--color-neutral-600)';
-      document.body.appendChild(d); const c = getComputedStyle(d).color; d.remove(); return c; });
-    check('7a every resting door reads in the reference\'s own secondary ink',
-      nav.items.length > 2 && nav.items.filter(i => !i.active).every(i => i.ink === doorInk),
-      nav.items.filter(i => !i.active).map(i => `${i.txt}:${i.ink}`).slice(0, 6) + ` (door ink ${doorInk})`);
-    check('7b a door IS live, or 7c proves nothing', live.length === 1,
-      live.map(i => i.txt));
-    check('7c THE LIVE DOOR IS MARKED BY ITS OWN GROUND, never by a veil over the panel',
-      live.length === 1 && live[0].bgLum != null && live[0].bgLum !== nav.panelLum,
-      { panel: nav.panel, live: live[0] && live[0].bg });
-    /* RE-POINTED 20 Sep 2026: the 3px rule went with the dark bar; the live
-       door is the accent's ink on the accent's tint, which is what survives
-       the dark theme (--accent-ink has a night answer). */
-    const accentInk = await page.evaluate(() => { const d = document.createElement('i'); d.style.color = 'var(--accent-ink)';
-      document.body.appendChild(d); const c = getComputedStyle(d).color; d.remove(); return c; });
-    check('7d and in the accent\'s own ink, which is what survives the dark theme',
-      live.length === 1 && live[0].ink === accentInk,
-      { ink: live[0] && live[0].ink, accentInk });
+    /* ================= 7 · THE SIDEBAR'S DOORS — RETIRED 17 Oct 2026 =========
+       The owner picked "Desk tabs" (Round 2 of the Counter redesign): on a computer
+       the left menu is not drawn, so its doors' inks cannot be read. Their place is
+       the desk tabs, checked by counter-and-desk-tabs-verify. */
+    check('7 the left menu is not drawn on a computer', await page.evaluate(() => getComputedStyle(document.getElementById('side-nav')).display === 'none'));
 
     /* ================= 8 · THE STRIP IS GONE AND THE CARDS MOVED UP ======== */
     await page.evaluate(id => openWorkspace(id, { room: true }), cid);

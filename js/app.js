@@ -113,7 +113,8 @@ import './workshape.js';       // which shapes this business has, and what it ca
 import './views/portfolio.js';    // the universal frame: six panels every business gets
 import './views/intelligence.js';
 import './views/homeboard.js';   // Home is the board and the map: the headline numbers, Copilot's prepared work, the answers to what is asked (3 Oct 2026)
-import './views/boardstrip.js';  // the Lifeline strip: a contract brought up on the Board, with Where we are and History behind its ⋯ (step 8, 15 Oct 2026)
+import './views/boardstrip.js';
+import './views/counter.js';  // the Counter and the desk tabs: the first screen after signing in, and every open page as a tab in the menu's place (Rounds 1 and 2, 17 Oct 2026)  // the Lifeline strip: a contract brought up on the Board, with Where we are and History behind its ⋯ (step 8, 15 Oct 2026)
 import './ai.js';
 import './views/settings.js';
 import './views/directory.js';    // People: the roster, read-only, for every role
@@ -432,7 +433,7 @@ function pageActionHtml(kind){
    view, so the page title was the one row between the brain and the screen. */
 /* 'customers' draws its own head in its white band (its name, figures and Draft new agreement, 10 Oct 2026);
    'directory' the same since it became the wall of faces (13 Oct 2026). */
-const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates', 'calendar', 'mynotes', 'brain', 'customers', 'jambo', 'directory'];
+const PAGE_OWNS_HEADER = ['counter', 'dashboard', 'redline', 'workspace', 'templates', 'calendar', 'mynotes', 'brain', 'customers', 'jambo', 'directory'];
 /* ---- WHOSE PAGE OWNS ITS OWN HEIGHT, AND THEREFORE NEEDS NO SCROLLBAR
    RESERVED (owner-reported 25 Aug 2026, off three screenshots of the top-right
    corner: "the top card on the right corner … is leaving space in the corner.
@@ -517,6 +518,8 @@ function paintScrollGutter(view){
    languages. Every other view falls through to its own title. */
 function shellTitleFor(view){
   if(view==='dashboard') return i18t('home_clm_title');
+  /* the Counter names whose workspace this is (Round 1, 17 Oct 2026) */
+  if(view==='counter') return String(window.FIRST_PARTY||'');
   /* A CONTRACT'S PAGE IS UNDER CONTRACTS on every tab (SAP benchmark, batch 3,
      9 Oct 2026): the bar read "Contract Workspace" on some tabs and the adopted
      crumb's "Contracts" on others. */
@@ -1025,7 +1028,7 @@ const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Insigh
   calendar:'Calendar', reports:'Reports', register:'Contracts', migration:'Import contracts',
   pipeline:'Pipeline', advice:'Advice desk', intake:'Requests', obligations:'Obligations', approvals:'Approvals & signing', customers:'Parties', agents:"Jambo's work", jambo:"Jambo's agents", brain:'the Brain', templates:'Templates', playbook:'Our standards',
   team:'Team & settings', directory:'Directory', workspace:'the contract workspace',
-  redline:'Negotiations' };
+  redline:'Negotiations', counter:'the counter' };
 
 /* WHAT THE SCREEN SAYS WHEN A RENDER THROWS.
 
@@ -1175,6 +1178,10 @@ function viewPaint(what, fn){
 }
 let _roomByName=null;   /* the contract whose room was opened BY NAME (openWorkspace's opts.room, step 8) */
 function setView(view){
+  /* a page asked for while signing in is still loading wins over the Counter's landing (Round 1) */
+  if(typeof window!=='undefined' && window._cnSignedIn && view!=='counter') window._cnSignedIn=false;
+  /* THE COUNTER IS THE COMPUTER'S (Round 1, 17 Oct 2026): the phone draws its own Home */
+  if(view==='counter' && typeof window!=='undefined' && window.deskShellOn && !window.deskShellOn()) view='dashboard';
   /* ONE CONTRACT'S OBLIGATIONS LAST THE VISIT (15 Oct 2026): only a contract's
      own door (obOpenOnPage) narrows the Obligations page; arriving any other
      way, or leaving, ends that narrowing (a repaint of the page, a language
@@ -1285,6 +1292,8 @@ function setView(view){
     if(sp && typeof closeModal==='function' && (!_sameView
       || ((view==='workspace'||view==='doc') && sp.dataset.cid && String(sp.dataset.cid)!==String(state.activeId)))){ try{ closeModal(); }catch(_){} } }
   state.view=view;
+  /* the desk tabs' row is drawn before the page, so a page that measures its height measures it with the row in place (Round 2) */
+  if(window.deskTabsPaint) try{ deskTabsPaint(); }catch(_){}
   try{
     if(view==='dashboard') renderDashboard();
     else if(view==='folder') renderFolder();
@@ -1311,6 +1320,7 @@ function setView(view){
        nobody could see them. Widening the window repaints this view (mSync →
        setView), so the page is built the moment it can be seen. */
     else if(view==='team'){ if(!(window.mPhone && window.mAppActive && mPhone() && mAppActive())) renderTeam(); }
+    else if(view==='counter') renderCounter();
     else if(view==='directory') renderDirectory();
     else if(view==='redline') renderRedline();
     else if(view==='workspace'||view==='doc') renderWorkspace();
@@ -1378,6 +1388,8 @@ function setView(view){
   viewPaint('applyPanelLayout', ()=>applyPanelLayout());
   viewPaint('placeLanguageSwitch', ()=>placeLanguageSwitch());
   viewPaint('renderContextPanel', ()=>renderContextPanel());
+  /* the page just drawn is a tab on the desk (Round 2, 17 Oct 2026) */
+  viewPaint('deskTabsSync', ()=>{ if(window.deskTabsSync) deskTabsSync(); });
   /* Opening a contract that is out with the other side is the moment to start
      watching closely, and leaving it is the moment to stop. */
   if(window.schedulePolling) schedulePolling();
@@ -3020,6 +3032,18 @@ function applyRail(){
      down there the sidebar is a 64px strip by construction. The stored choice
      is read, not written — see railCollapsed — so it is waiting unchanged when
      they are back on a wide screen. */
+  /* ---- THE MENU'S PLACE IS THE DESK TABS' (the owner picked "Desk tabs",
+     17 Oct 2026) ---- on a computer the left menu is not drawn: every page is
+     reached through Jambo's box (its "/" lists the places) and stays as a tab
+     after "‹ The counter" (js/views/counter.js). The Ha mark in the bar is the
+     way back to the Counter. The phone keeps its own screens. */
+  const desk=!!(window.deskShellOn&&window.deskShellOn());
+  shell.classList.toggle('dk-shell',desk);
+  { const nav=document.getElementById('side-nav'); if(nav&&nav.style) nav.style.display=desk?'none':'flex';
+    const mark=document.getElementById('dk-mark'); if(mark) mark.hidden=!desk; }
+  if(desk){ shell.classList.remove('rail'); if(shell.style) shell.style.gridTemplateColumns='0px minmax(0,1fr)';
+    if(typeof window!=='undefined' && window.rlLayoutResizer) window.rlLayoutResizer(document);
+    syncViewHeight(); return; }
   const on=railCollapsed()||navDrawerActive();
   shell.classList.toggle('rail',on);
   /* The columns are set inline in index.html, so they are answered inline
@@ -3347,7 +3371,8 @@ function placeLanguageSwitch(){
   const drawerHome=document.querySelector('#side-nav .nav-foot');
   const headerHome=document.getElementById('brand-block');
   if(!sw||!drawerHome||!headerHome||!headerHome.parentElement) return;
-  const wantDrawer=navHeaderTight();
+  /* the menu is not drawn on a computer since 17 Oct 2026 (Round 2): the switch stays in the bar */
+  const wantDrawer=navHeaderTight()&&!(window.deskShellOn&&window.deskShellOn());
   const inDrawer=sw.parentElement===drawerHome.parentElement;
   if(!inDrawer&&!_langHome) _langHome={ parent:sw.parentElement, next:sw.nextSibling };
   if(wantDrawer&&!inDrawer) drawerHome.parentElement.insertBefore(sw,drawerHome);

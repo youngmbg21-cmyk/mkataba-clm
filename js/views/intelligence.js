@@ -7633,6 +7633,8 @@ function igPaperRefresh(){
 }
 function igPaintPaper(){
   const strip=document.getElementById('ig-strip'), host=document.getElementById('ig-paper'), page=document.getElementById('ig-page');
+  /* the paper put up (or put down) is the desk's tab in front (Round 2, 17 Oct 2026; js/views/counter.js) */
+  if(typeof window.deskTabsSync==='function') setTimeout(window.deskTabsSync,0);
   if(!strip||!host) return;
   const p=intel.paper; const c=p?getContract(p.id):null;
   const homePaper=igHomePaperFace();
