@@ -768,8 +768,16 @@ const CA_DOORS = [
   ['counter', /^\s*(?:please\s+)?counter\b/i],
   ['lock', /\b(?:hand|give|pass)\b[^.?!]*\block\b/i],
 ];
+/* THE WORD DOOR SENDS A WORD COPY OUT (owner, 18 Oct 2026: "Fix the Word
+   file door misread next"): "add a word file", "upload a word file", "we got
+   a word copy", "import the word file" bring one in, and "download a word
+   copy" keeps one here — none of them is a copy for the other side, unless
+   the words also send it ("send them the word file"). */
+const CA_DOOR_NOT = {
+  word: t => !CA_FILE_OUT.test(t) && (CA_MENU_INBOUND.test(t) || CA_FILE_KEEP.test(t)),
+};
 function caReadDoor(q){
-  const hit = CA_DOORS.find(([, re]) => re.test(q)); if (!hit) return null;
+  const hit = CA_DOORS.find(([k, re]) => re.test(q) && !(CA_DOOR_NOT[k] && CA_DOOR_NOT[k](q))); if (!hit) return null;
   const c = caFindContract(q); if (!c) return null;
   return { kind: 'door', door: hit[0], cid: c.id, state: 'ready' };
 }
@@ -846,7 +854,7 @@ async function caDoorPress(i, act){
 const CA_MENU = [
   ['export', /^\s*(?:please\s+)?(?:export|download|print|exportera|ladda ner|skriv ut)\b(?![^.?!]*\b(?:pdf|word)\b)/i, ['#ws-pdf', '#ws-word', '#ws-pdf-record']],
   ['pdf', /\bpdf\b|\bclean copy\b|\bren kopia\b/i, ['#ws-pdf']],
-  ['wordx', /\b(?:export|download|exportera)\b[^.?!]*\bword\b|\b(?:as|in|to|till|som) word\b/i, ['#ws-word']],
+  ['wordx', /\b(?:export|download|save|exportera|ladda ner|spara)\b[^.?!]*\bword\b|\b(?:as|in|to|till|som) (?:an? |en )?word\b/i, ['#ws-word']],
   ['record', /\b(?:sealed|audit)\s+(?:record|copy|trail)\b/i, ['#ws-pdf-record']],
   ['signed', /\b(?:add|attach|link|upload|lägg till|bifoga)\b[^.?!]*\b(?:signed|undertecknat)\b|\bsigned (?:document|copy|agreement)\b/i, ['#ws-m-link']],
   ['adviser', /\b(?:ask|consult|get|fråga)\b[^.?!]*\b(?:adviser|advisor|lawyer|counsel|rådgivare|jurist)\b|^\s*(?:an? )?(?:adviser|advisor|rådgivare)\s*$/i, ['#ws-advice']],
@@ -879,9 +887,14 @@ const CA_MENU_ASKS = /^\s*(?:what|who|whom|why|how|when|which|where|vad|vem|varf
    "import from excel" and "import our old contracts" are the Import page's. */
 const CA_MENU_INBOUND = /(?<!\p{L})(?:upload\p{L}*|attach\p{L}*|scan\p{L}*|drop\p{L}*|add(?:s|ed|ing)?|receiv\p{L}*|got|bring(?:ing)? in|import\p{L}*|ladda(?:r|de)? upp|bifoga\p{L}*|lägg(?:a|er)? (?:in|till)|skanna\p{L}*|fått|fick)(?!\p{L})/iu;
 const CA_MENU_THEIR_FILE = /(?<!\p{L})(?:their|them|the other side|counterparty|response|reply|markup|mark-up|redlines?|changes|word|deras|motparten|svar(?:et)?|ändringar(?:na)?)(?!\p{L})/iu;
+/* words that send a copy OUT to someone, and words that keep one HERE (the Word door, above) */
+const CA_FILE_OUT = /(?<!\p{L})(?:send|sending|share|sharing|e-?mail|mail|forward|skicka|dela|mejla|maila)(?!\p{L})/iu;
+const CA_FILE_KEEP = /(?<!\p{L})(?:download\p{L}*|export\p{L}*|save|print|exportera|ladda ner|spara|skriv ut)(?!\p{L})/iu;
 const CA_MENU_NOT = {
   pdf: t => CA_MENU_INBOUND.test(t),
   import: t => !CA_MENU_THEIR_FILE.test(t),
+  /* the Word download is a copy going out too: "upload it as word" is not it (18 Oct 2026) */
+  wordx: t => CA_MENU_INBOUND.test(t) && !CA_FILE_OUT.test(t),
 };
 function caReadMenu(q){
   const t = String(q || ''); if (t.length > CA_MENU_MAX || CA_MENU_ASKS.test(t)) return null;
@@ -1202,7 +1215,7 @@ async function caDraftReply(prompt, cid){
   }
 }
 Object.assign(window, { caDraftReply });
-Object.assign(window, { caRefFix, CA_REF_RE, caRefLinkPaint, caRefOpen, CA_MENU, CA_MENU_INBOUND, CA_MENU_THEIR_FILE, CA_MENU_NOT, caReadMenu, caMenuRows, caMenuCardHtml, caMenuPress, CA_DOORS, caReadDoor, caRoomSign, CA_DOOR_GO, CA_DOOR_SHUT, CA_DOOR_NEEDS, caDoorCardHtml, caDoorPress });
+Object.assign(window, { caRefFix, CA_REF_RE, caRefLinkPaint, caRefOpen, CA_MENU, CA_MENU_INBOUND, CA_MENU_THEIR_FILE, CA_FILE_OUT, CA_FILE_KEEP, CA_MENU_NOT, caReadMenu, caMenuRows, caMenuCardHtml, caMenuPress, CA_DOORS, CA_DOOR_NOT, caReadDoor, caRoomSign, CA_DOOR_GO, CA_DOOR_SHUT, CA_DOOR_NEEDS, caDoorCardHtml, caDoorPress });
 Object.assign(window, { CA_PICK_MAX, CA_NOTE_MAX, CA_SEND_RE, caPeople, caContracts, caOpenContract, caTokenAt, caMatches, caPopHtml, caPopClose, caPopRead, caChoose,
   caFindContract, caFindPerson, caNoteOf, caReadSend, caActOf, caSendBlock, caCardHtml, caCardPress,
   CA_DRAFT_RE, CA_DRAFT_NOUN, CA_DRAFT_OPTS, CA_DRAFT_BARE, CA_DRAFT_ASKING, caIsDraftAsk, caReadDraft, caDraftScore, caDraftRank, caDraftRun, caDraftCardHtml, caDraftPress, CA_DRAFT_WITH, CA_DRAFT_WITH_MAX, caDraftWith, CA_DRAFT_NOT_PARTY, CA_DRAFT_TERM_WORD, caDraftBest, caDraftTitleOf, caDraftWho, caDraftForm,

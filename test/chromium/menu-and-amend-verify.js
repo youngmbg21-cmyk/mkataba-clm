@@ -103,6 +103,25 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     ok('2j "import from excel" beside the paper opens the Import page, not the other side\'s file', await until(page, () => state.view === 'migration', null, 6000),
       await page.evaluate(() => state.view));
     await toJambo();
+    /* A WORD FILE COMING IN, OR KEPT HERE, IS NOT THE COPY SENT TO THE OTHER SIDE (18 Oct 2026) */
+    const wd = await page.evaluate(() => {
+      const door = q => (caReadDoor(q) || {}).door || null;
+      const act = q => { const a = caActOf(q) || {}; return a.kind === 'door' ? 'door:' + a.door : a.kind === 'menu' ? 'menu:' + a.menu : a.kind === 'go' ? 'go:' + a.place : String(a.kind || null); };
+      return {
+        inbound: ['add a word file', 'I want to upload a word file', 'we got a word copy from them', 'import the word file', 'attach the word document'].map(q => [q, door(q)]),
+        kept: ['download a word copy', 'save it as a word file', 'export a word version'].map(q => [q, door(q)]),
+        sent: ['send them a word version', 'email the word file to them', 'share a word copy', 'with tracked changes'].map(q => [q, door(q)]),
+        routed: [['add a word file', 'go:upload'], ['import the word file', 'menu:import'], ['download a word copy', 'menu:wordx'], ['send them a word version', 'door:word']].map(([q, want]) => [q, act(q), want]) };
+    });
+    ok('2k a Word file coming in, or kept here, is not the Word copy for the other side; sending one still is',
+      wd.inbound.every(([, d]) => d === null) && wd.kept.every(([, d]) => d === null) && wd.sent.every(([, d]) => d === 'word'), JSON.stringify(wd));
+    ok('2l each goes to its own door: upload · their file · the Word download · the Word copy to send', wd.routed.every(([, got, want]) => got === want), JSON.stringify(wd.routed));
+    const doors0 = await page.evaluate(() => document.querySelectorAll('#igd-feed .ca-card').length);
+    await ask('add a word file');
+    const wup = await page.evaluate(n => { const m = intel.history[intel.history.length - 1] || {};
+      return { cards: document.querySelectorAll('#igd-feed .ca-card').length - n, door: !!(m.act && m.act.kind === 'door'), act: m.act ? { kind: m.act.kind, place: m.act.place } : null }; }, doors0);
+    ok('2m typed beside the paper, "add a word file" goes to the upload, no Word copy card', !wup.door && !!wup.act && wup.act.kind === 'go' && wup.act.place === 'upload', JSON.stringify(wup));
+    await toJambo();
 
     /* 3 a contract number in any form */
     const forms = await page.evaluate(() => ['mk B1', 'mkB1', 'MK-B1', '#mk-b1'].map(q => { const r = hbParse(q); return r && r.act === 'openc' ? r.id : String(r && r.act); })

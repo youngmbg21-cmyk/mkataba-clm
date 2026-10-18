@@ -30,6 +30,8 @@
        waits for a press is Jambo's card beside the Board.
   (12) THE TOP BAR'S BOX: Enter on words no contract matches goes where
        Jambo's box would; words that match a contract stay a search.
+  (13) THE WORD DOOR (18 Oct 2026): a Word file coming in, or kept here, is
+       not the Word copy sent to the other side; sending one still is.
    AT THE PARENT every claim FAILS: js/jambomap.js and the vendored
    MiniSearch do not exist there.
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -503,3 +505,37 @@ describe('f705 (12) the wiring of ⌘K and the top bar\'s box', () => {
   });
 });
 
+
+/* (13) THE WORD DOOR (owner, 18 Oct 2026: "Fix the Word file door misread
+   next"): the door that sends the other side a Word copy took any sentence
+   with "word file" or "word copy" in it, so "add a word file" offered to send
+   one. A Word file coming in goes to the upload (or their file's import row);
+   one kept here goes to the Menu's Word download; sending one is still the door. */
+describe('f705 (13) the Word door: a file coming in or kept here is not the copy sent', () => {
+  const { ctx } = stage();
+  const door = q => (ctx.caReadDoor(q) || {}).door || null;
+  test('13a a Word file coming in is not the door, and lands on the upload or their file', () => {
+    for (const [q, want] of [['add a word file', 'upload'], ['I want to upload a word file', 'upload'], ['attach the word document', 'upload'], ['import the word file', 'menu:import']]){
+      assert.equal(door(q), null, q);
+      const a = ctx.caActOf(q);
+      assert.equal(a && a.kind === 'menu' ? 'menu:' + a.menu : lands(ctx, a), want, q);
+    }
+    assert.equal(door('we got a word copy from them'), null);
+  });
+  test('13b a Word copy kept here is the Menu\'s Word download', () => {
+    for (const q of ['download a word copy', 'save it as a word file', 'export a word version']){
+      assert.equal(door(q), null, q);
+      const a = ctx.caActOf(q); assert.equal(a && a.kind, 'menu', q); assert.equal(a.menu, 'wordx', q);
+    }
+  });
+  test('13c sending one is still the door, whatever else the sentence says', () => {
+    for (const q of ['send them a word version', 'email the word file to them', 'share a word copy', 'with tracked changes', 'forward the word document to Nordkust', 'upload and send them the word file'])
+      assert.equal(door(q), 'word', q);
+    const a = ctx.caActOf('send them a word version'); assert.equal(a.kind, 'door'); assert.equal(a.door, 'word'); assert.equal(a.cid, 'MK-9');
+  });
+  test('13d the Word download is not read for a file coming in, unless the words also send it', () => {
+    assert.equal(ctx.CA_MENU_NOT.wordx('upload it as a word file'), true);
+    assert.equal(ctx.CA_MENU_NOT.wordx('download it as a word file'), false);
+    assert.equal(ctx.CA_MENU_NOT.wordx('add it and send it as word'), false);
+  });
+});
