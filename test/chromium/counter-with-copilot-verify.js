@@ -176,7 +176,10 @@ const paperRead = page => page.evaluate(() => {
     const e5 = ed ? await page.evaluate(() => {
       const lane = document.querySelector('#ce-lane');
       const paper = document.querySelector('#clause-editor #ce-doc') || document.querySelector('#clause-editor');
-      return { cards: lane.querySelectorAll('.ce-card').length, name: (lane.querySelector('.ce-card .n span') || {}).textContent || '',
+      /* RE-POINTED 18 Oct 2026 (round 9's gaps, second pass — "where Edit
+         lands" from a row): the rail also draws "What they asked" and "Ask
+         Jambo" under it, as drawn; ONE suggestion card (.ce-sug), and it leads */
+      return { cards: lane.querySelectorAll('.ce-sug').length, name: (lane.querySelector('.ce-card .n span') || {}).textContent || '',
         inBox: !!lane.querySelector('.ce-inbox'), applies: lane.querySelectorAll('[data-ce-apply]').length,
         restsTwice: /Rests on:\s*Rests on:/.test(lane.textContent), rests: (lane.querySelector('.ce-card .r') || {}).textContent || '',
         boxHas60: [...paper.querySelectorAll('ins')].some(x => /60/.test(x.textContent)),

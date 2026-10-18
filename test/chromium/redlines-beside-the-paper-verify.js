@@ -143,7 +143,11 @@ const bands = () => [...document.querySelectorAll('#pd-redface .rl-band')].map(b
     check('2c no × and no Open Negotiate in the head; ‹ Jambo is the panel row\'s', !col.x && col.nego === '' && back2, JSON.stringify({ x: col.x, nego: col.nego, back2 }));
     /* RE-POINTED 15 Oct 2026 (owner: "these need to go to the menu as well"):
        with changes in the column the foot's three acts live on the Menu tab */
-    check('2d Risks to look at, and no foot: the three acts went to the Menu tab', col.risks && col.foot.length === 0, JSON.stringify(col.foot));
+    /* RE-POINTED 18 Oct 2026 (round 9's gaps, second pass: "The column ends
+       with the fold. Nothing is drawn under it"): beside the paper the risk
+       list is not drawn under the piles — it is read in the Clauses tab and
+       acted on in the editor's Risks tab (the Negotiate page by name keeps it) */
+    check('2d nothing under the piles, and no foot: the three acts went to the Menu tab', !col.risks && col.foot.length === 0, JSON.stringify(col.foot));
     check('2e the same column the Negotiate page draws (one builder)', await page.evaluate(() => !!document.querySelector('#pd-redface .redline-page.rl-face #rl-side.rl-col #rl-changes-col #nego-cards')));
 
     /* ===== 3. A ROW AND ITS CLAUSE ARE ONE THING SHOWN TWICE ===== */

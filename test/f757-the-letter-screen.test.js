@@ -148,3 +148,93 @@ describe('f757 (4) what stays here, and what they never see', () => {
     assert.equal(m.txt('#sh-summary-label'), 'Your note · type here', 'and the one part she reads that you write');
   });
 });
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE SECOND PASS (18 Oct 2026: the adversarial checker's differences against
+   the picked drawing, round 11 "The letter")
+   (5) "The negotiation history" turns the letter into the history's letter in
+       place — never the old "What are you sharing?" step.
+   (6) Nothing under the letter: the checks stand in "Before you send".
+   (7) After Send: the letter goes, the paper comes back, and a confirmation
+       says how it went — what went, and what stayed and with whom.
+   (8) The note box: a small grey label, the box hugging its words, no grip.
+   (9) A code-named deal: the letter names its code and number only.
+   AT b1ea174 (this lane's previous pass) and AT THE BASE every test here FAILS.
+   The browser half: test/chromium/letter-second-pass-verify.js.
+   ═══════════════════════════════════════════════════════════════════════════ */
+const CORE757 = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js/core.js'), 'utf8');
+const IDX757 = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'index.html'), 'utf8');
+
+describe('f757 (5) something else to send turns the letter in place', () => {
+  test('5a the history press is setKind on the letter — the kind step is bound only where there is no letter', () => {
+    assert.match(CORE757, /if\(!document\.getElementById\('sh-lt-else'\)\) document\.getElementById\('share-other'\)\?\.addEventListener\('click',\(\)=>step\('kind'\)\);/);
+    assert.match(CORE757, /document\.getElementById\('share-other'\)\?\.addEventListener\('click',\(\)=>setKind\('history'\)\);/);
+    assert.match(CORE757, /if \(_pending\.other && !_pending\.next\)\{ if\(document\.getElementById\('sh-lt-else'\)\) setKind\('history'\); else step\('kind'\); \}/, 'a press during the opening too');
+    assert.match(CORE757, /if \(t\.closest\('#share-other'\)\)\{ pending\.other = true; pending\.next = false; if \(!root\.querySelector\('#sh-lt-else'\)\) fold\(true\); return; \}/);
+  });
+});
+
+describe('f757 (6) nothing under the letter', () => {
+  test('6a the checks and the email-off line stand in "Before you send"', async () => {
+    const m = await openShare(contract());
+    assert.ok(m.$('#sh-lt-checks'), 'the column has their slot');
+    assert.ok(m.$('#share-step-1').contains(m.$('#sh-lt-checks')), 'in Before you send');
+    const rw = m.$('#share-readiness-wrap');
+    assert.ok(rw, 'the checks are drawn');
+    assert.ok(m.$('#sh-lt-checks').contains(rw), 'beside the letter, not under it');
+    assert.ok(!m.$('#share-step-2').contains(rw), 'not in the letter\'s column');
+  });
+});
+
+describe('f757 (7) after Send: how it went, and the paper back', () => {
+  const stays = (win, see) => {
+    win.reviewWithheldIds = () => new Set(['CH-9']);
+    win.negoUnsentAsks = () => [{ id: 'CH-9', clauseId: 'k7', clauseLabel: '7. Liability cap', newText: 'capped at 75% of the fees' }];
+    win.reviewHeld = () => false;
+    win.reviewOpenFor = () => ({ id: 'rv1', reviewer: { name: 'Sara Nyström' } });
+    win.reviewMaySee = () => see;
+  };
+  test('7a "Sent to Anna Holm by email: clause 11 and your note. Clause 7 stays here until Sara clears it."', async () => {
+    const m = await openShare(contract());
+    stays(m.win, true);
+    m.win.shareAnswersOf = () => ({ asked: 2, lines: [{ id: 'CH-11', clause: 'Clause 11 · Payment terms', say: 'they propose 45 days (you asked for 60).' }], own: [] });
+    const w = m.win.shareSentWords(contract(), { name: 'Anna Holm', email: 'anna.holm@nordvik.example', msg: 'We can meet you at 45 days.', purpose: 'negotiate', payload: { contract: {} } });
+    assert.equal(w, 'Sent to Anna Holm by email: clause 11 and your note. Clause 7 stays here until Sara clears it.');
+  });
+  test('7b no reviewer named where the review keeps its people; the history says itself', async () => {
+    const m = await openShare(contract());
+    stays(m.win, false);
+    m.win.shareAnswersOf = () => ({ asked: 0, lines: [], own: [{ id: 'CH-2', clause: 'Clause 9 · Data protection' }] });
+    assert.equal(m.win.shareSentWords(contract(), { name: 'Anna Holm', purpose: 'negotiate', payload: { contract: {} } }),
+      'Sent to Anna Holm by email: clause 9. Clause 7 stays here until it is cleared.');
+    assert.equal(m.win.shareSentWords(contract(), { name: 'Anna Holm', msg: 'For your file.', purpose: 'history', payload: { contract: {} } }),
+      'Sent to Anna Holm by email: the negotiation history and your note.');
+  });
+  test('7c on the desk, a mailed letter is put away and the confirmation said; every other outcome keeps its box', () => {
+    assert.match(CORE757, /if\(_onDesk && went && went\.ch==='email' && went\.mailed\)\{\s*const words=shareSentWords\(c, went\);\s*closeModal\(\);\s*if\(typeof toast==='function'\) toast\(words,'ok'\);\s*return;\s*\}/);
+    assert.match(CORE757, /_shSent=\{ ch, name, email, msg, purpose:payloadObj\.purpose, payload:payloadObj, mailed:!!\(r\.emailSent\|\|r\.alreadySentAt\) \};/, 'only a send that reached them');
+    assert.match(CORE757, /function shareStaysRows\(c\)\{/, 'one reading of what stays, for the card and the confirmation');
+  });
+});
+
+describe('f757 (8) the note box as drawn', () => {
+  test('8a a small grey label, the box one line that grows with its words, no grip', async () => {
+    const m = await openShare(contract());
+    const lbl = m.$('#sh-summary-label'), ta = m.$('#sh-summary');
+    assert.equal(lbl.getAttribute('style') || '', '', 'its own bold dress stands down; the letter\'s grey rule dresses it');
+    assert.equal(ta.rows, 1, 'no empty rows under the words');
+    assert.equal(ta.style.resize, 'none', 'no grip');
+    assert.equal(ta.closest('label').style.display, '', 'the frame hugs it');
+    assert.match(IDX757, /#sh-letter\.is-letter \.sh-lt-note label\{ display:inline-block; max-width:100%;/);
+    assert.match(IDX757, /#sh-letter\.is-letter \.sh-lt-note textarea\{[^}]*resize:none;/);
+    assert.match(CORE757, /const cap=Math\.max\(160, Math\.floor\(body\.clientWidth\*0\.66\) - 22\);/, 'never past two thirds of the letter');
+  });
+});
+
+describe('f757 (9) a code-named deal: its code and number only', () => {
+  test('9a the subject on the screen is "Round N of Project Falcon (MK-0412)", and the real name is nowhere in the letter', async () => {
+    const m = await openShare(contract({ contractNo: 'MK-0412', _codeName: { code: 'Project Falcon' } }));
+    assert.match(m.txt('#sh-lt-subject'), /^Round \d+ of Project Falcon \(MK-0412\)$/);
+    assert.ok(!m.$('#sh-letter').textContent.includes('Master services agreement'), 'the real name never in the letter');
+  });
+});

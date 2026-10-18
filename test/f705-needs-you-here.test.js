@@ -144,7 +144,11 @@ describe('f705 (3) the way back to Jambo on every face', () => {
     const map = PD.slice(PD.indexOf('const PD_BACK_CLOSE'), PD.indexOf('function pdBackHtml'));
     for (const [k, fn] of [['fill', 'pdFillClose'], ['red', 'pdRedClose'], ['signing', 'pdSignClose'], ['amend', 'pdAmendClose']])
       assert.match(map, new RegExp(k + ': \\(\\) => ' + fn + '\\(\\)'), k + ' closes through ' + fn);
-    assert.match(map, /send: \(\) => \{[^}]*closeModalGuarded\(\)/, 'send closes through the screen\'s own guarded close');
+    /* RE-POINTED 18 Oct 2026 (round 11's gaps, second pass: "‹ Jambo turns
+       the panel back to Jambo's own words"): on the send face ‹ Jambo turns
+       the panel and leaves the letter up; Cancel on the letter is the
+       screen's own guarded close */
+    assert.match(map, /send: \(\) => pdSendAway\(\)/, 'send turns the panel to Jambo, the letter stays');
     const wiring = PD.slice(PD.indexOf('document._pdJamboTopWired = true'), PD.indexOf('JAMBO, ALIVE'));
     assert.match(wiring, /closest\('\[data-pd-back\]'\)[\s\S]*PD_BACK_CLOSE\[back\.getAttribute\('data-pd-back'\)\]/);
   });

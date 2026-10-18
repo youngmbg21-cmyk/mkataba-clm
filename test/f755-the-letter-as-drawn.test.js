@@ -159,7 +159,8 @@ describe('f755 (3) the email, as drawn', () => {
 
 describe('f755 (4) both routes mail the letter', () => {
   test('4a a new link: the round, the answers, the title, the code, and the HTML part', () => {
-    assert.match(SRV, /const \{ shareMailOf, signerTurnMailOf, shareRoundOf, shareAnswersOf \} = require\('\.\.\/js\/sharemail\.js'\);/);
+    /* RE-POINTED 18 Oct 2026 (second pass): with the code-name reading too */
+    assert.match(SRV, /const \{ shareMailOf, (?:shareMailNameOf, )?signerTurnMailOf, shareRoundOf, shareAnswersOf \} = require\('\.\.\/js\/sharemail\.js'\);/);
     const at = SRV.indexOf("const mail = shareMailOf({ channel: 'email', purpose: purp,");
     assert.ok(at > 0, 'the share route builds the letter');
     const call = SRV.slice(at, SRV.indexOf('});', at) + 3);
@@ -176,5 +177,47 @@ describe('f755 (4) both routes mail the letter', () => {
     assert.match(route, /answers: shareAnswersOf\(pc, s\.contract_id \? srvStoredContract\(s\.contract_id\) : null\), codeOn: shareNeedsCode\(s\)/);
     assert.match(route, /\{ html: mail\.html \}/);
     assert.match(route, /emailSent = !!r\.sent; emailError = r\.detail \|\| null;/, '"sent" means sent');
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE SECOND PASS (18 Oct 2026, round 11's rule in every option: "the email
+   names only the code name and number, for example Subject: Round 2 of
+   Project Falcon (MK-0412)")
+   (5) A code-named deal's letter names its code and number only — subject and
+       body, every kind, both hosts — and the server hands the module the code
+       from its own reading (srvMailCodeOf over cnOf) on every route that mails
+       the other side a round.
+   AT b1ea174 (this lane's previous pass) and AT THE BASE every test here FAILS.
+   ═══════════════════════════════════════════════════════════════════════════ */
+describe('f755 (5) a code-named deal: its code and number only', () => {
+  test('5a "Round 2 of Project Falcon (MK-0412)", and the real name nowhere in the letter', () => {
+    has('shareMailNameOf');
+    assert.equal(M.shareMailNameOf({ code: 'Project Falcon', ref: 'MK-0412' }), 'Project Falcon (MK-0412)');
+    assert.equal(M.shareMailNameOf({ code: '' }), null, 'no code, no change');
+    const o = { channel: 'email', purpose: 'negotiate', sender: 'Maria Lindgren', org: 'Lindqvist & Co AB', cName: 'Master services agreement',
+      recName: 'Anna Holm', message: 'We can meet you at 45 days.', link: 'https://x/l', round: 2, answers: M.shareAnswersOf(table(), table()),
+      code: 'Project Falcon', ref: 'MK-0412' };
+    const mail = M.shareMailOf(o);
+    assert.equal(mail.subject, 'Round 2 of Project Falcon (MK-0412)');
+    assert.ok(!(mail.subject + mail.body + mail.html).includes('Master services agreement'), 'never the real name');
+    const plain = M.shareMailOf({ ...o, code: '' });
+    assert.equal(plain.subject, 'Round 2 of the Master services agreement, from Lindqvist & Co AB', 'unchanged without a code');
+    for (const purpose of ['sign', 'view', 'advise', 'status', 'history']){
+      const m = M.shareMailOf({ ...o, purpose });
+      assert.ok(m.subject.includes('Project Falcon (MK-0412)') && !m.subject.includes('the Project Falcon'), purpose + ': the code, a name with no "the"');
+    }
+    const w = M.shareMailOf({ ...o, channel: 'word' });
+    assert.ok(!(w.subject + w.body).includes('Master services agreement'), 'the Word email too');
+  });
+  test('5b the server hands the code over on every route that mails the other side a round', () => {
+    assert.match(SRV, /function srvMailCodeOf\(id\) \{\s*const cn = id \? cnOf\(id\) : null;/, 'its own reading of the code name');
+    assert.equal((SRV.match(/\.\.\.srvMailCodeOf\((shareId|s\.contract_id)\)/g) || []).length, 3, 'the new link (email and Word) and the link they already hold');
+    assert.match(SRV, /const cName = shareMailNameOf\(srvMailCodeOf\(s\.contract_id\)\) \|\| \(payload\.contract && payload\.contract\.name\)/, 'and the turn email on a link they hold');
+  });
+  test('5c the screen asks the same reading, so the screen and the inbox agree', () => {
+    const CORE = R('js/core.js');
+    assert.match(CORE, /const cn=c&&c\._codeName&&c\._codeName\.code\?\{ code:c\._codeName\.code, ref:\(typeof contractRef==='function'\)\?contractRef\(c\):c\.id \}:\{\};/);
+    assert.match(CORE, /message:String\(fval\('sh-summary'\)\|\|''\)\.trim\(\), link:null, \.\.\.cn \};/);
   });
 });

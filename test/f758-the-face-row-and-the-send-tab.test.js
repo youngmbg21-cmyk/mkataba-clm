@@ -99,9 +99,12 @@ describe('f758 (2) "Before you send" owns no builder and no writer', () => {
     ctx.pdSendClose();
     assert.equal(ctx.pdSendFor(), null);
   });
-  test('2b its way back is the screen\'s own guarded Cancel; the screen gives the face back on close', () => {
+  test('2b ‹ Jambo turns the panel to Jambo and the letter stays; the screen gives the face back on close', () => {
     const map = PD.slice(PD.indexOf('const PD_BACK_CLOSE'), PD.indexOf('function pdBackHtml'));
-    assert.match(map, /send: \(\) => \{ if \(typeof window\.closeModalGuarded === 'function'\) window\.closeModalGuarded\(\); else pdSendClose\(\); \}/);
+    /* RE-POINTED 18 Oct 2026 (round 11's gaps, second pass): ‹ Jambo no longer
+       puts the letter away — it turns the panel to Jambo's own words
+       (pdSendAway) and "Before you send" waits as a tab (pdSendBack) */
+    assert.match(map, /send: \(\) => pdSendAway\(\)/);
     const core = R('js/core.js');
     assert.match(core, /onClose:_onDesk\?\(\)=>shareLetterPageOff\(c\):null/, 'the screen\'s close gives the column back');
     assert.match(core, /function closeModalGuarded\(/);
@@ -141,5 +144,39 @@ describe('f758 (3) the desk\'s tab for the send screen', () => {
     const same = cnStage(); same.ctx.dkLeaveSend('send:MK-1');
     assert.deepEqual(same.did, [], 'its own tab leaves it up');
     assert.match(fnBody(CN, 'deskGoCounter'), /dkLeaveSend\(null\)/, 'the Counter puts it away too');
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE SECOND PASS (18 Oct 2026: "‹ Jambo turns the panel back to Jambo's own
+   words — it opens Jambo's panel as designed in round 3")
+   (4) ‹ Jambo on "Before you send" turns the panel to Jambo and leaves the
+       letter up, its column kept in the page unseen; "Before you send" waits
+       as a tab after Jambo's and one press brings it back; Cancel on the
+       letter is still the way to put the screen away.
+   AT b1ea174 (this lane's previous pass) and AT THE BASE every test here FAILS.
+   ═══════════════════════════════════════════════════════════════════════════ */
+describe('f758 (4) ‹ Jambo while the letter is up', () => {
+  test('4a away: the panel is Jambo\'s, the screen still up, its column kept unseen; back: the face again', () => {
+    const { ctx } = pdStage();
+    ctx.pdSendOpen('MK-1', { parentNode: null });
+    assert.equal(ctx.pdSendShows(), true);
+    ctx.PD_BACK_CLOSE.send();
+    assert.equal(ctx.pdSendShows(), false, 'the panel is Jambo\'s own words');
+    assert.equal(ctx.pdSendHeld(), true, 'the letter is still up');
+    assert.equal(ctx.pdSendFor(), 'MK-1', 'nothing was put away');
+    assert.match(ctx.pdSendKeepHtml(), /^<div hidden data-pd-send-kept><div id="pd-send-slot"/, 'the column waits in the page, unseen');
+    assert.match(ctx.pdHeadHtml(''), /data-pd-send-back[^>]*>[\s\S]*pd_face_w_send/, '"Before you send" waits as a tab');
+    ctx.pdSendBack();
+    assert.equal(ctx.pdSendShows(), true, 'one press brings it back');
+    assert.equal(ctx.pdSendKeepHtml(), '', 'nothing kept twice');
+    ctx.pdSendClose();
+    assert.equal(ctx.pdSendHeld(), false);
+  });
+  test('4b the dock keeps the column in the page while away, and fills the slot wherever it is', () => {
+    assert.match(IG, /\$\{\(window\.pdSendKeepHtml&&pdSendKeepHtml\(\)\)\|\|''\}`;/);
+    assert.match(IG, /if\(document\.getElementById\('pd-send-slot'\)&&typeof window\.pdSendFacePaint==='function'\)/);
+    assert.match(PD, /if \(t\.closest\('\[data-pd-send-back\]'\)\)\{ e\.preventDefault\(\); pdSendBack\(\); return; \}/);
+    assert.match(fnBody(PD, 'pdSendAway'), /if \(_pdRed\) pdRedClose\(\);/, 'a face under the letter goes too: Jambo\'s own words');
   });
 });

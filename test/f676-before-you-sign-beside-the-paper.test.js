@@ -221,7 +221,9 @@ describe('f676 (6) the paper\'s line takes the contract\'s acts', () => {
     const s = strip(fnBody(IG, 'igStripHtml'));
     assert.match(s, /data-ig-red="theirs"/);
     assert.match(strip(fnBody(IG, 'igTheirsOn')), /intel\.paper\.red==='theirs'/);
-    assert.match(strip(fnBody(IG, 'igPaperHtml')), /igTheirsOn\(c\)\?\{ side:'counterparty', readonly:true, preview:true \}/);
+    /* RE-POINTED 18 Oct 2026 (round 9's gaps, second pass): Home's paper draws
+       each clause as its heading and wording — no step chips (noRungs) */
+    assert.match(strip(fnBody(IG, 'igPaperHtml')), /igTheirsOn\(c\)\?\{ side:'counterparty', readonly:true, preview:true(?:, noRungs:true)? \}/);
   });
 });
 

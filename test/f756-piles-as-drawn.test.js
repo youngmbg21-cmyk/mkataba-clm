@@ -164,7 +164,10 @@ describe('f756 (4) the column\'s head, and the face that hosts it', () => {
     assert.match(fnBody(NV, 'rlHeadHereHtml'), /data-pz-slot="redlines"/, 'presence\'s own slot');
     assert.match(fnBody(NV, 'rlHeadReviewHtml'), /data-rl-review-go=/);
     assert.match(NV, /if \(c\) rlReviewDoor\(c, rlHeadRepaint\);/, 'the review\'s own door');
-    assert.match(NV, /window\.openNotesPanel\(nb\.getAttribute\('data-rl-notes-all'\)\)/, 'the notes drawer');
+    /* RE-POINTED 18 Oct 2026 (round 9's gaps, second pass: "The notes open in
+       the same panel"): Notes turns the column's body to the notes, and the
+       same press turns it back */
+    assert.match(NV, /rlFaceNotesSet\(_rlFnFor === String\(id\) \? null : id\);\s*rlHeadRepaint\(\);/, 'the notes open in the column');
   });
   test('4b "their asks came 4 days ago": the newest ask still on the table, read raw', () => {
     const lab = fnBody(NV, 'rlRoundLabelHtml');
@@ -176,5 +179,164 @@ describe('f756 (4) the column\'s head, and the face that hosts it', () => {
     assert.match(o, /cpPanel: false, noProgress: true/);
     assert.doesNotMatch(o, /headStart|headEnd/);
     assert.match(fnBody(NV, 'rlColumnHtml'), /opts\.noProgress/, 'the column honours it');
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE SECOND PASS (18 Oct 2026: the adversarial checker's differences against
+   the picked drawing, round 9 "Piles" and its "E · Where Edit lands")
+   (5) Notes opens the notes IN the column (rooms, ‹ Redlines, the line and
+       the bubble, Write to Internal… with Post), the same press shuts them.
+   (6) Inside a pile the paper's order; the clause named as the paper prints
+       it; nothing under the settled fold beside Home's paper; no step chips on
+       Home's paper; the count in a pill; the box asks for a number, a list or
+       a contract beside Redlines (Ask about MK-… beside the letter).
+   (7) Edit and Counter from a row land on the editor as drawn: ‹ Redlines,
+       the act's title and their ask, the short shelf, the clause alone in its
+       box with its step, the rail's three cards with the cost before the
+       press, the foot walking their asks.
+   AT b1ea174 (this lane's previous pass) and AT THE BASE every test here FAILS.
+   The browser half: test/chromium/piles-second-pass-verify.js.
+   ═══════════════════════════════════════════════════════════════════════════ */
+const CE = R('js/views/clauseeditor.js');
+const NCSS = R('js/views/negotiation-css.js');
+const IGV = R('js/views/intelligence.js');
+const RD = R('js/richdoc.js');
+const CM = R('js/clausemodel.js');
+
+describe('f756 (5) the notes open in the same panel', () => {
+  test('5a the head\'s Notes turns the column\'s body to the notes, and the same press turns it back', () => {
+    assert.match(fnBody(NV, 'rlFaceNotesOn'), /_rlFnFor && String\(c\.id\) === _rlFnFor && rlHeadOurs\(opts\)/, 'our seat, one contract, per sitting');
+    assert.match(NV, /rlFaceNotesSet\(_rlFnFor === String\(id\) \? null : id\);\s*rlHeadRepaint\(\);/, 'press again and it closes');
+    assert.match(NV, /closest\('\[data-rl-fn-back\]'\)\)\{ e\.preventDefault\(\); rlFaceNotesSet\(null\); rlHeadRepaint\(\); return; \}/, '‹ Redlines goes back');
+    const head = fnBody(NV, 'rlHeadNotesHtml');
+    assert.match(head, /aria-pressed="\$\{on \? 'true' : 'false'\}"/, 'pressed while open');
+    assert.doesNotMatch(NV, /window\.openNotesPanel\(nb\.getAttribute\('data-rl-notes-all'\)\)/, 'not the drawer over the panel');
+    const col = fnBody(NV, 'rlColumnHtml');
+    assert.match(col, /const notesOn = rlFaceNotesOn\(c, opts\);/);
+    assert.match(col, /\$\{notesOn \? rlFaceNotesHtml\(c, opts\) : ''\}/, 'drawn in the column\'s own scroller');
+    assert.match(col, /<div id="rl-changes"\$\{notesOn \? ' hidden' : ''\}>/, 'the piles stay mounted, unseen');
+    assert.match(PD, /function pdRedLand\(id\)\{[\s\S]{0,400}?rlFaceNotesSet\(null\)/, 'the face opens on its piles');
+  });
+  test('5b rooms as tabs (a lock on Internal, a count each), ‹ Redlines, the box and Post — the drawer\'s own readings and writers', () => {
+    const fn = fnBody(NV, 'rlFaceNotesHtml');
+    assert.match(fn, /negoNoteRoomList\(c, opts, side\)/, 'the one list of rooms');
+    assert.match(fn, /rlNpRoomNow\(c, opts, side\)/, 'the room showing, the drawer\'s own state');
+    assert.match(fn, /r\.external \? '' : RL_NP_LOCK/, 'a lock on Internal');
+    assert.match(fn, /<b>\$\{byRoom\[r\.key\] \|\| 0\}<\/b>/, 'the count on each');
+    assert.match(fn, /i18t\('ng_fn_internal'\)/, '"Internal"');
+    assert.match(fn, /data-rl-fn-back[^>]*>‹ \$\{_ne\(i18t\('ng_fn_back'\)\)\}/, '‹ Redlines at the row\'s end');
+    assert.match(fn, /rlChatThreads\(c, opts, room\)/, 'the threads, oldest first');
+    assert.match(fn, /i18t\('ng_fn_ph', \{ room: roomName\(cur\) \}\)/, '"Write to Internal… type @ to name someone"');
+    assert.match(fn, /rlNpTagMenuHtml\(c, room, opts\)/, 'the @ list');
+    assert.match(fn, /data-rl-fn-post=[\s\S]*i18t\('ng_fn_post'\)/, 'Post');
+    assert.match(NV, /rlNotesSend\(root, c, null, \{ side: 'owner',[\s\S]{0,140}?\}, post\.getAttribute\('data-rl-fn-post'\)\)/, 'Post is the drawer\'s one send');
+  });
+  test('5c each note: the face, "Name · clause N · when", the bubble; the drawer\'s own presses under it', () => {
+    const fn = fnBody(NV, 'rlFaceNoteHtml');
+    assert.match(fn, /class="rl-fn-face"/);
+    assert.match(fn, /data-rl-fn-clause="\$\{_nea\(cl\.id\)\}"/, 'the clause is a link');
+    assert.match(fn, /rlAgoWords\(m\.at\)/, 'when, in words');
+    assert.match(fn, /class="rl-fn-say"/, 'the words in a bubble');
+    assert.match(fn, /rlNpNoteHtml\(m, room, side, '', \{ \.\.\.\(ctx \|\| \{\}\), actsOnly: true \}\)/, 'the verbs are the drawer\'s own');
+    assert.match(NV, /if \(ctx && ctx\.actsOnly\) return acts;/);
+    assert.match(fnBody(NV, 'rlFaceNoteClause'), /i18t\('ng_fn_clause', \{ n: num \}\)/, '"clause 11"');
+    assert.match(NV, /closest\('\[data-rl-fn-clause\]'\);\s*if \(go\)\{ e\.preventDefault\(\); if \(typeof rlJumpToClause === 'function'\) rlJumpToClause\(/, 'the link goes to the clause on the paper');
+    assert.match(fnBody(NV, 'negoAfterPaint'), /rlPaintNoteMarks[\s\S]*rlFaceNotesWire\(host, c, opts \|\| \{\}\)/, 'wired after every paint, the marks first');
+  });
+});
+
+describe('f756 (6) the column and the paper as drawn', () => {
+  test('6a inside a pile, the paper\'s order: rlClauseOrderOf reads the stored baseline (RAW), a new clause after the one it follows', () => {
+    const ctx = { window: {}, Map, String };
+    ctx.window.clauseSegment = () => [{ clauseId: 'a' }, { clauseId: 'b' }, { clauseId: 'c' }];
+    ctx.clauseSegment = ctx.window.clauseSegment;
+    vm.createContext(ctx);
+    vm.runInContext(fnBody(NV, 'rlClauseOrderOf') + '\n' + fnBody(NV, 'rlCardClausePos'), ctx);
+    const pos = ctx.rlClauseOrderOf({ negotiation: { baselineBody: '<p>x</p>' } });
+    assert.equal(pos.get('c'), 2);
+    assert.equal(ctx.rlClauseOrderOf({}).size, 0, 'no negotiation, nothing initialised');
+    assert.equal(ctx.rlCardClausePos({ clauseId: 'b' }, pos), 1);
+    assert.equal(ctx.rlCardClausePos({ clauseId: 'new', afterClauseId: 'a' }, pos), 0.5);
+    assert.equal(ctx.rlCardClausePos({ clauseId: 'zz' }, pos), 1e9);
+    assert.match(fnBody(NV, 'rlCardSort'), /ranked\.sort\(\(a, b\) => \(at\(a\) - at\(b\)\) \|\| \(where\(a\) - where\(b\)\)\)/, 'the pile first, then the paper\'s order');
+    assert.doesNotMatch(fnBody(NV, 'rlClauseOrderOf'), /negoClauseList|negoInit/, 'reading never writes');
+  });
+  test('6b the clause named as the paper prints it: "7. Liability cap", a shouting title in sentence case', () => {
+    const g = { }; g.window = g; vm.createContext(g); vm.runInContext(CM.replace(/^export .*$/gm, ''), g);
+    assert.equal(g.clauseNameAsDrafted('Clause 7 · Liability cap'), '7. Liability cap');
+    assert.equal(g.clauseNameAsDrafted('Clause 11 · Payment terms'), '11. Payment terms');
+    assert.equal(g.clauseNameAsDrafted('Clause 3 · SUPPLY & SPECIFICATION'), '3. Supply & specification');
+    assert.equal(g.clauseNameAsDrafted('Clause 3 · quality & rejection'), '3. Quality & rejection', 'never opens in small letters');
+    assert.equal(g.clauseNameAsDrafted('Clause 9 · Data Protection Act'), '9. Data Protection Act', 'never re-cased otherwise');
+    assert.equal(g.clauseNameShown('Clause 7 · Liability cap'), '7. Liability Cap', 'every other screen keeps its voice');
+    assert.match(fnBody(NV, 'rlRowClauseName'), /clauseNameAsDrafted\(raw\)/);
+    assert.match(NV, /const who = _ne\(rlRowClauseName\(ch\)\);/, 'the row reads it');
+  });
+  test('6c nothing under the settled fold beside Home\'s paper; no step chips on Home\'s paper', () => {
+    assert.match(fnBody(PD, 'pdRedOpts'), /noProgress: true, noRisks: true/);
+    assert.match(fnBody(NV, 'rlColumnHtml'), /\(!opts\.noRisks && !notesOn && typeof window\.rlRisksPileHtml === 'function'\)/);
+    assert.match(fnBody(NV, 'redlineDocHtml'), /const pillFor = cl => \(opts\.noRungs \? '' : rlLadderChipHtml\(c, cl, side, \{ pill: opts\.pill \}\)\)/);
+    assert.match(IGV, /\{ side:'owner', readonly:true, noRungs:true, \.\.\.\(hide\?\{ hiddenIds:hide \}:\{\}\) \}/, 'Home\'s Redline paper');
+    assert.match(IGV, /\{ side:'counterparty', readonly:true, preview:true, noRungs:true \}/, 'and Their view');
+  });
+  test('6d "Redlines 4" in a grey pill; the box asks as drawn beside Redlines, and keeps "Ask about MK-…" beside the letter', () => {
+    assert.match(NCSS, /\.redline-page \.rl-idx-title i\{display:inline-grid;[^}]*border-radius:9px;background:var\(--color-neutral-100\)/);
+    assert.match(fnBody(IGV, 'igAskPlaceholder'), /if\(window\.pdRedShows&&pdRedShows\(\)&&!\(window\.pdSendShows&&pdSendShows\(\)\)\) return i18t\('hb_ask_ph'\);/);
+  });
+});
+
+describe('f756 (7) where Edit lands from a row, as drawn', () => {
+  test('7a a row\'s Counter or Edit says it came from a row; the editor dresses itself for it, our seat with Jambo only', () => {
+    assert.match(NV, /\{ changeId: btn\.getAttribute\('data-rl-cp-editor-change'\) \|\| '', fromRow: !!btn\.closest\('\[data-nego-card\]'\) \}/);
+    assert.match(CE, /const ceRowMode = \(\) => !!\(_ceOpts && _ceOpts\.fromRow\) && ceSide\(\) === 'owner' && !ceNoAi\(\);/);
+    assert.match(CE, /page\.classList\.toggle\('ce-rowmode', ceRowMode\(\)\);/);
+  });
+  test('7b the head: ‹ Redlines (the page\'s own guarded way out, landing on the row), "Counter · 7. Liability cap", "Nordvik asks 100% · back lands on the same row", the short shelf, Exit', () => {
+    const head = fnBody(CE, 'ceRowHeadPaint');
+    assert.match(head, /data-ce-act="row-back"[^>]*>‹ \$\{_cee\(_cet\('ce_row_back'\)\)\}/);
+    assert.match(fnBody(CE, 'ceRowTitle'), /_cet\(theirs \? 'ce_row_counter' : 'ce_row_edit', \{ clause \}\)/);
+    assert.match(fnBody(CE, 'ceRowTitle'), /clauseNameAsDrafted\(raw\)/, 'as the paper prints it');
+    assert.match(fnBody(CE, 'ceRowSub'), /shareFigureOf\(/, 'their figure, the letter\'s own reading');
+    assert.match(fnBody(CE, 'ceRowSub'), /_cet\('ce_row_lands'\)/);
+    assert.match(fnBody(CE, 'ceRowBack'), /ceLeaveGuard\(\(\) => \{[\s\S]*rlCloseClauseEditor\(\{ repaint: true \}\);[\s\S]*rlLinkFocus\(c, id, 'card'\)/);
+    assert.match(CE, /host\.innerHTML = richBarHtml\(\{ shelf: ceRowMode\(\) \? 'redline' : 'full', size: ceSizeNow\(\) \}\);/);
+    const ctx = { window: {} }; vm.createContext(ctx);
+    const tools = /const RICH_BAR_TOOLS = \[[\s\S]*?\];/.exec(RD)[0];
+    vm.runInContext(tools + '\n' + /const RICH_BAR_REDLINE = [^\n]*/.exec(RD)[0] + '\nconst RICH_BAR_ICON = new Proxy({}, { get: () => "<svg/>" });\nconst _rbT = k => k; const _rbA = s => String(s);\n'
+      + fnBody(RD, 'richBarHtml').replace(/^function richBarHtml/, 'function richBarHtml'), ctx);
+    const keys = [...ctx.richBarHtml({ shelf: 'redline' }).matchAll(/data-rb="([^"]+)"/g)].map(m => m[1]);
+    assert.deepEqual(keys, ['bold', 'italic', 'underline', 'insertUnorderedList', 'insertOrderedList', 'outdent', 'indent'], 'B I U • 1. ⇤ ⇥');
+  });
+  test('7c the paper: the context line, this clause alone in its box with its step, the next one dimmed', () => {
+    const dress = fnBody(CE, 'ceRowPaperDress');
+    assert.match(dress, /classList\.toggle\('ce-row-off', at >= 0 && i !== at && i !== at \+ 1\)/);
+    assert.match(dress, /ctx\.textContent = ceRowContextLine\(\);/);
+    assert.match(dress, /_cet\(st\.counter \? 'ce_row_step_counter' : 'ce_row_step_draft', \{ n: st\.n \}\)/);
+    assert.match(fnBody(CE, 'ceRowStep'), /ladderRungs\(_ceC, String\(_ceClauseId\)\)/, 'the step is the ladder\'s next (RAW)');
+    assert.match(CE, /#clause-editor\.ce-rowmode #ce-doc \.ce-row-off\{display:none\}/);
+    assert.match(CE, /#clause-editor\.ce-rowmode #ce-doc \.ce-row-next\{opacity:\.45\}/);
+    assert.match(CE, /#clause-editor\.ce-rowmode #ce-doc \.ce-row-on #ce-clausebody\{border:1px solid var\(--accent-solid\)/);
+    assert.match(CE, /#clause-editor\.ce-rowmode \.ce-foot \.draft,#clause-editor\.ce-rowmode \.ce-foot \.undo\{display:none\}/, '"saved as you type" says what the foot said');
+  });
+  test('7d the rail: Playbook · Risks · Ladder with counts; our standard, what they asked (and who), Ask Jambo with its cost before the press', () => {
+    assert.match(fnBody(CE, 'ceRisksOn'), /if \(ceRowMode\(\)\) return true;/, 'the Risks tab always drawn from a row');
+    const cards = fnBody(CE, 'ceRowCardsHtml');
+    assert.match(cards, /_cet\('ce_row_asked_h'\)/);
+    assert.match(cards, /— \$\{_cee\(who\)\}/, 'the person\'s name, not the change id');
+    assert.match(cards, /data-ce-chip="\$\{_ceea\(q\)\}"/, 'the chips\' own ask, through ceAsk');
+    assert.match(cards, /<span class="cost">\$\{_cee\(_cet\('ce_row_jambo_cost'\)\)\}<\/span>/, 'the cost before the press');
+    assert.match(fnBody(CE, 'ceRowStdCard'), /\['fallback', 'preferred', 'draft'\]\.find\(k => !!ceStdWording\(it, k\)\)/, 'the Playbook card, the lead\'s fallback first');
+    assert.match(fnBody(CE, 'ceRenderLane'), /if \(ceRowMode\(\)\)\{[\s\S]*ceRowCardsHtml\(\)/);
+    assert.match(fnBody(CE, 'ceRenderLane'), /ceRowMode\(\) && !_cePrep \? ceLadderCardHtml\(\) : ''/, 'the ladder\'s card goes to the Ladder tab');
+    assert.match(CE, /#clause-editor\.ce-rowmode \.ce-ah \.sp\{display:none\}/);
+    assert.match(CE, /#clause-editor\.ce-rowmode #ce-pick\{display:none\}/);
+  });
+  test('7e the foot walks their asks: "‹ 1 of 2 of their asks ›" and Save; a held clause is said, the page stays', () => {
+    const walk = fnBody(CE, 'ceWalkNow');
+    assert.match(walk, /if \(ceRowMode\(\)\)\{\s*const asks = ceRowAsks\(\);/);
+    assert.match(fnBody(CE, 'ceRenderFoot'), /w\.asks \? \(w\.k \? _cet\('ce_walk_asks_of', \{ k: w\.k, n: w\.n \}\)/);
+    assert.match(fnBody(CE, 'ceRowAsks'), /x\.authorSide === 'counterparty' && !x\.withdrawn && x\.status === 'pending'/);
+    assert.match(fnBody(CE, 'ceRowGo'), /clauseLockHeldByOther\(_ceC, a\.clauseId\)[\s\S]*ceSay\(why\)/);
   });
 });

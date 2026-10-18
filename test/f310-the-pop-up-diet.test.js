@@ -81,11 +81,17 @@ describe('f310 (1) — the send pop-up is laid out as the owner drew it', () => 
   test('who, then how it goes, then the note, then the checks, then what travels, then Send', async () => {
     const { win } = buildWorld();
     const m = await openShare(await negotiated(win));
-    const order = ['#sh-email', '#share-purpose-wrap', '#share-tabs', '#sh-link-opts', '#sh-summary', '#share-readiness', '#share-manifest-line', '#share-send']
+    /* RE-POINTED 18 Oct 2026 (round 11's gaps, second pass: "Nothing under
+       the letter. Everything about before you send is in Jambo's panel beside
+       it"): the checks stand in the "Before you send" column, not between the
+       note and what travels. */
+    const order = ['#sh-email', '#share-purpose-wrap', '#share-tabs', '#sh-link-opts', '#sh-summary', '#share-manifest-line', '#share-send']
       .map(s => [s, m.$(s)]);
     for (const [s, el] of order) assert.ok(el, s + ' is drawn');
     for (let i = 1; i < order.length; i++)
       assert.ok(before(order[i - 1][1], order[i][1]), `${order[i - 1][0]} comes before ${order[i][0]}`);
+    assert.ok(m.$('#share-readiness'), '#share-readiness is drawn');
+    assert.ok(m.$('#sh-lt-checks').contains(m.$('#share-readiness')), 'the checks stand beside the letter');
   });
 
   test('ONE note box, under the recipient, and it is the one the send reads', async () => {

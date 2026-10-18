@@ -159,7 +159,10 @@ describe('F178 — the share dialog arrives once, at its final size', () => {
        survive the fill. */
     assert.match(CORE, /pending\.purpose = seg\.getAttribute\('data-share-purpose'\)/, 'a purpose press is held');
     assert.match(CORE, /pending\.other = true/, 'so is the quiet door');
-    assert.match(CORE, /if \(_pending\.other && !_pending\.next\) step\('kind'\);/, 'and replayed');
+    /* RE-POINTED (round 11's gaps, second pass): on the letter the history
+       press turns the letter into the history's in place (setKind), elsewhere
+       it opens the kind step as before — replayed either way */
+    assert.match(CORE, /if \(_pending\.other && !_pending\.next\)\{ if\(document\.getElementById\('sh-lt-else'\)\) setKind\('history'\); else step\('kind'\); \}/, 'and replayed');
     assert.match(CORE, /const _held=\{ 'sh-name':fval\('sh-name'\)/, 'what was typed into the first frame is read before the fill');
   });
 

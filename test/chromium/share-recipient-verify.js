@@ -300,13 +300,21 @@ const ROUTE = [
 
     /* The history journey, pressed for real, on a contract whose address
        already holds a standing negotiate link (built in the set-up above). */
+    const kindStepThrough = async () => {
+      const shown = await page.evaluate(() => { const b = document.querySelector('[data-share-kind="history"]');
+        if (!b) return false; const r = b.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
+      if (shown){ await page.click('[data-share-kind="history"]'); await page.click('#share-kind-next'); }
+      await page.waitForTimeout(300);
+    };
     await page.click('#share-other');
     await page.waitForTimeout(200);
     const cardLive = await page.evaluate(() => { const b = document.querySelector('[data-share-kind="history"]'); return !!b && !b.disabled; });
     check('4b. the history card is a live choice on a contract with a record', cardLive);
-    if (cardLive) await page.click('[data-share-kind="history"]');
-    await page.click('#share-kind-next');
-    await page.waitForTimeout(300);
+    /* RE-POINTED (round 11's gaps, second pass): on the letter the history
+       press turns the letter into the history's own in place, as drawn — no
+       kind step to pass through. Where that step is still drawn (the phone's
+       older frame) it is pressed through as before. */
+    await kindStepThrough();
     const hist = await page.evaluate(() => {
       const root = document.getElementById('modal-root');
       const vis = sel => { const el = root.querySelector(sel); if (!el) return null;
@@ -388,9 +396,7 @@ const ROUTE = [
     await page.waitForTimeout(1500);
     await page.click('#share-other');
     await page.waitForTimeout(200);
-    await page.click('[data-share-kind="history"]');
-    await page.click('#share-kind-next');
-    await page.waitForTimeout(300);
+    await kindStepThrough();
     await pickCh('word');
     await page.waitForTimeout(200);
     const wordNote = await page.evaluate(() => (document.getElementById('sh-ch-note') || {}).textContent || '');

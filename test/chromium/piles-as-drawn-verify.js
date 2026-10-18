@@ -246,10 +246,14 @@ async function login(b, base, email, pass, errs){
     check('8c a press again shuts it', f2.ex === 'false' && f2.rowsShown === 0, JSON.stringify(f2));
 
     /* 9 the head's doors */
+    /* RE-POINTED 18 Oct 2026 (round 9's gaps, second pass: "The notes open in
+       the same panel"): Notes turns the column's body to the notes — no
+       drawer — and the same press turns it back to the piles */
     await page.click('#pd-redface [data-rl-notes-all]');
-    const notesUp = await waitFor(page, () => state.panelOpen && panelFace() === 'notes' && String((state.notesFor || {}).contractId) === 'MK-0382', 5000);
-    check('9a Notes opens the notes drawer on this contract', !!notesUp);
-    await page.evaluate(() => { state.panelOpen = false; applyPanelLayout(); });
+    const notesUp = await waitFor(page, () => !!document.querySelector('#pd-redface .rl-fn[data-rl-fn="MK-0382"]') && !(state.panelOpen && panelFace() === 'notes'), 5000);
+    check('9a Notes opens the notes in the column, not the drawer', !!notesUp);
+    await page.click('#pd-redface [data-rl-notes-all]');
+    await waitFor(page, () => !document.querySelector('#pd-redface .rl-fn') && !!document.querySelector('#pd-redface [data-rl-pile]'), 5000);
     await page.click('#pd-redface [data-rl-review-go]');
     const rvUp = await waitFor(page, () => { const m = document.querySelector('#modal-root'); return m && (m.querySelector('[data-rv-entry]') || m.querySelector('[data-rv-pick], .rv-pick, #rv-ask-send')) ? m.innerText.replace(/\s+/g, ' ').slice(0, 80) : null; }, 5000);
     check('9b Ask for review opens the review\'s own chooser', !!rvUp, rvUp);

@@ -173,13 +173,19 @@ async function run(mode) {
       check(tag('Send all: opens the letter, naming what travels'), !!asked && /proposes a change of its own/i.test(asked), (asked || '').slice(0, 220));
       if (asked) await page.evaluate(() => { const ack = document.getElementById('sh-ack'); if (ack) ack.checked = true;
         document.getElementById('share-send').click(); });
+      /* RE-POINTED (round 11's gaps, second pass): delivered by email, the
+         letter closes, the paper comes back and the toast says what went
+         ("Sent to … by email: …"); not delivered, the letter stays and its
+         button says so, as before. */
       const lbl = await waitFor(page, () => {
         const t = (document.getElementById('sh-send-lbl') || {}).textContent || '';
-        return /Sent|Queued|Not sent/.test(t) ? t : null;
+        if (/Sent|Queued|Not sent/.test(t)) return t;
+        const said = [...document.querySelectorAll('#toast-root > *')].map(x => x.textContent).join(' | ');
+        return !document.getElementById('sh-letter') && /Sent to /.test(said) ? said : null;
       }, null, 10000);
       const f = await facts('MK-D3');
       if (on) {
-        check(tag('Send all: the button says Sent'), /Sent/.test(lbl || '') && !/Queued|Not sent/.test(lbl || ''), lbl);
+        check(tag('Send all: the letter closes and says Sent to them'), /Sent to /.test(lbl || '') && !/Queued|Not sent/.test(lbl || ''), lbl);
         check(tag('Send all: the round reached them and the move is theirs'), f.turn === 'counterparty', f.turn);
         check(tag('Send all: it left Drafting'), f.status === 'Under Review', f.status);
       } else {

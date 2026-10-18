@@ -338,7 +338,11 @@ const dismissNote = async pg => {
          as three lines. */
       offCentre: kids.filter(el => { const k = el.getBoundingClientRect();
         return Math.abs((k.top + k.height / 2) - mid) > 3; }).length,
-      barFirst: !!kids.length && kids[0].id === 'ce-bar',
+      /* RE-POINTED (round 9's gaps, second pass): opened from a Redlines
+         row the head leads with "‹ Redlines" and the act's title, as drawn,
+         and the tools follow it; from anywhere else the tools lead. */
+      barFirst: !!kids.length && (kids[0].id === 'ce-bar'
+        || (kids[0].id === 'ce-rowhead' && !!kids[1] && kids[1].id === 'ce-bar')),
       exitLast: !!kids.length && kids[kids.length - 1].classList.contains('ce-exit'),
       /* IT STOPS AT THE DIVIDER — the owner's own instruction, and what keeps
          the Copilot rail running floor to ceiling. */

@@ -216,12 +216,30 @@ async function mkUser(h, admin, name, email){
     check('6a closed, the page and the face go together; the Redlines face is back; the tab goes', !!gone);
 
     /* 6 the other ways back */
-    for (const [how, sel] of [['‹ Jambo', '#ig-dock [data-pd-back="send"]'], ['the tab\'s ×', '#dk-home [data-dk-x^="send:"]'], ['Cancel', '#share-close'], ['the paper\'s tab', '#dk-home [data-dk-go="c:MK-0382"]']]) {
+    /* RE-POINTED 18 Oct 2026 (round 11's gaps, second pass: "‹ Jambo turns
+       the panel back to Jambo's own words"): ‹ Jambo leaves the letter up —
+       what is typed in it kept — and "Before you send" waits as a tab that
+       brings the face back; the other three ways still put both away */
+    await openLetter();
+    await page.fill('#sh-summary', 'Kept while Jambo talks.');
+    await press('#ig-dock [data-pd-back="send"]');
+    const away = await waitFor(page, () => !!document.querySelector('#modal-root .modal-in[data-sh-page] #sh-letter') && !document.getElementById('pd-sendface')
+      && !!document.querySelector('#ig-dock [data-pd-send-back]') && document.getElementById('sh-summary').value === 'Kept while Jambo talks.', 6000);
+    check('6b ‹ Jambo turns the panel to Jambo; the letter stays with its note', !!away);
+    await press('#ig-dock [data-pd-send-back]');
+    check('6b "Before you send" is one press back', !!(await waitFor(page, () => !!document.querySelector('#pd-sendface #share-step-1'), 6000)));
+    await press('#share-close');
+    await waitFor(page, () => !document.querySelector('#modal-root .modal-in'), 6000);
+    await page.evaluate(() => { try { closeModal(); } catch (_) {} });
+    for (const [how, sel] of [['the tab\'s ×', '#dk-home [data-dk-x^="send:"]'], ['Cancel', '#share-close'], ['the paper\'s tab', '#dk-home [data-dk-go="c:MK-0382"]']]) {
       await openLetter();
       await press(sel);
       const back = await waitFor(page, () => !document.querySelector('#modal-root .modal-in') && !document.getElementById('pd-sendface'), 6000);
       check(`6b ${how} puts the page and the face away together`, !!back);
     }
+    /* ‹ Jambo put the Redlines face away with the letter's: open it again */
+    await page.evaluate(() => { if (!document.getElementById('pd-redface')) pdRedOpen('MK-0382'); });
+    await waitFor(page, () => !!document.querySelector('#pd-redface [data-nego-card]'), 8000);
 
     /* 6c Send all on Redlines opens the same screen (the one door): a draft of ours to send first */
     await page.evaluate(async () => { const c = getContract('MK-0382'); const k = negoClauseList(c).find(x => /reasonable skill and care/.test(String(x.text || '')));

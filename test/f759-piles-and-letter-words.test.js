@@ -105,3 +105,54 @@ describe('f759 (3) read by the screen only', () => {
     }
   });
 });
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE SECOND PASS (18 Oct 2026): the words of the notes in the column, the
+   editor from a row, and the confirmation after Send — both books, beside
+   their area, saying what the drawings say.
+   AT b1ea174 (this lane's previous pass) and AT THE BASE every test here FAILS.
+   ═══════════════════════════════════════════════════════════════════════════ */
+const NEW2 = ['ng_fn_internal', 'ng_fn_back', 'ng_fn_back_title', 'ng_fn_clause', 'ng_fn_clause_title', 'ng_fn_ph', 'ng_fn_post', 'ng_fn_someone', 'ng_fn_notes_on',
+  'sh_sent_by_email', 'sh_sent_by_email_bare', 'sh_sent_clause', 'sh_sent_note', 'sh_sent_and', 'sh_sent_history', 'sh_sent_status', 'sh_sent_stays_by', 'sh_sent_stays',
+  'ce_walk_asks_of', 'ce_walk_asks_none', 'ce_row_back', 'ce_row_back_title', 'ce_row_counter', 'ce_row_edit', 'ce_row_asks_fig', 'ce_row_asks', 'ce_row_yours',
+  'ce_row_lands', 'ce_row_ctx', 'ce_row_step_counter', 'ce_row_step_draft', 'ce_row_asked_h', 'ce_row_asked_none', 'ce_row_std_h', 'ce_row_std_fb',
+  'ce_row_jambo_h', 'ce_row_jambo_p', 'ce_row_jambo_go', 'ce_row_jambo_plain', 'ce_row_jambo_cost'];
+describe('f759 (4) the second pass\'s words, both books, beside their area', () => {
+  test('4a in English and Swedish, the Swedish its own', () => {
+    for (const k of NEW2){ assert.ok(STRINGS.en[k], k + ' en'); assert.ok(STRINGS.sv[k], k + ' sv'); }
+    const same = NEW2.filter(k => STRINGS.en[k] === STRINGS.sv[k]);
+    assert.deepEqual(same, [], 'a Swedish word is a translation, not the English again');
+  });
+  test('4b each sits among its own area\'s keys in both books, never appended at the end', () => {
+    const keyAt = [];
+    I18N.split('\n').forEach((l, i) => { const m = /^\s+([a-z][a-z0-9_]*):/.exec(l); if (m) keyAt.push({ k: m[1], i }); });
+    for (const k of NEW2){
+      const at = keyAt.map((x, j) => ({ ...x, j })).filter(x => x.k === k);
+      assert.equal(at.length, 2, k + ' once per book');
+      const pre = k.split('_')[0] + '_';
+      for (const a of at){
+        let up = a.j - 1; while (up >= 0 && NEW2.includes(keyAt[up].k)) up--;
+        let dn = a.j + 1; while (dn < keyAt.length && NEW2.includes(keyAt[dn].k)) dn++;
+        assert.ok([keyAt[up], keyAt[dn]].filter(Boolean).some(x => x.k.startsWith(pre)), k + ' among its own area\'s keys');
+        assert.ok(dn < keyAt.length && keyAt[dn].i - a.i < 400, k + ' not at the end of its book');
+      }
+    }
+  });
+  test('4c the words say what the drawings say', () => {
+    const en = STRINGS.en;
+    assert.equal(fill(en.ng_fn_ph, { room: 'Internal' }), 'Write to Internal… type @ to name someone');
+    assert.equal(en.ng_fn_post, 'Post');
+    assert.equal(fill(en.ng_fn_clause, { n: 11 }), 'clause 11');
+    assert.equal(fill(en.ce_walk_asks_of, { k: 1, n: 2 }), '1 of 2 of their asks');
+    assert.equal(fill(en.ce_row_counter, { clause: '7. Liability cap' }), 'Counter · 7. Liability cap');
+    assert.equal(fill(en.ce_row_asks_fig, { who: 'Nordvik', fig: '100%' }) + ' · ' + en.ce_row_lands, 'Nordvik asks 100% · back lands on the same row');
+    assert.equal(fill(en.ce_row_ctx, { name: 'Master services agreement', ref: 'MK-0382', party: 'Nordvik Logistik AB', n: 2 }), 'Master services agreement · MK-0382 · Nordvik Logistik AB · round 2');
+    assert.equal(fill(en.ce_row_step_counter, { n: 2 }), 'Step 2 · your counter · saved as you type, not sent');
+    assert.equal(en.ce_row_asked_h, 'What they asked');
+    assert.equal(en.ce_row_jambo_p, 'For a softer version, or this clause in plain English.');
+    assert.equal(en.ce_row_jambo_go, 'Ask for a softer version');
+    assert.equal(en.ce_row_jambo_cost, 'about 1 Jambo call', 'in calls, never money (the owner\'s answer 4)');
+    assert.equal(fill(en.sh_sent_by_email, { who: 'Anna Holm', what: fill(en.sh_sent_and, { a: fill(en.sh_sent_clause, { n: 11 }), b: en.sh_sent_note }) })
+      + ' ' + fill(en.sh_sent_stays_by, { n: 7, who: 'Sara' }), 'Sent to Anna Holm by email: clause 11 and your note. Clause 7 stays here until Sara clears it.');
+  });
+});

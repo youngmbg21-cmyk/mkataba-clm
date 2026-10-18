@@ -262,13 +262,19 @@ describe('Share is two steps, and the summary travels', () => {
     const c = await negotiated(win);
     const m = await openShare(c);
 
+    /* RE-POINTED 18 Oct 2026 (round 11's gaps, second pass): on the letter
+       "The negotiation history" turns the letter into the history's letter in
+       place, as "A Where we are page" does — the old "What are you sharing?"
+       step is not shown — and "The contract" brings the round's letter back. */
     m.$('#share-other').click();
-    assert.ok(!m.$('#share-step-kind').className.includes('hidden'), 'it opens the question');
-    assert.ok(m.$('#share-step-1').className.includes('hidden'), 'and the send stands aside');
+    assert.ok(m.$('#share-step-kind').className.includes('hidden'), 'the old question is not opened');
+    assert.ok(!m.$('#share-step-1').className.includes('hidden'), 'the send stays');
+    assert.match(m.$('#sh-lt-subject').textContent, /^The negotiation history of /, 'the letter is the history\'s');
 
-    m.$('#share-kind-next').click();
-    assert.ok(!m.$('#share-step-1').className.includes('hidden'), 'and Next brings the send back');
+    m.$('[data-sh-lt-else="contract"]').click();
+    assert.ok(!m.$('#share-step-1').className.includes('hidden'), 'and the contract comes back');
     assert.ok(!m.$('#share-step-2').className.includes('hidden'), 'whole');
+    assert.doesNotMatch(m.$('#sh-lt-subject').textContent, /negotiation history/, 'the round\'s letter again');
   });
 
   test('the readiness warnings stay on the send step, where they were', async () => {
@@ -276,8 +282,11 @@ describe('Share is two steps, and the summary travels', () => {
     const c = await negotiated(win);
     const m = await openShare(c);
     const panel = m.$('#share-readiness');
-    if (panel) assert.ok(m.$('#share-step-2').contains(panel),
-      'a blocker belongs next to the button it blocks, not on the summary');
+    /* RE-POINTED 18 Oct 2026 (round 11's gaps, second pass): on the letter the
+       checks stand in "Before you send", beside the letter whose Send they
+       guard — nothing stands under the letter */
+    if (panel) assert.ok(m.$('#sh-lt-checks') ? m.$('#sh-lt-checks').contains(panel) : m.$('#share-step-2').contains(panel),
+      'a blocker belongs beside the letter it blocks, in Before you send');
   });
 
   /* THE BOX STOPPED BEING PRE-WRITTEN (Young, 03 Aug 2026). It used to open
