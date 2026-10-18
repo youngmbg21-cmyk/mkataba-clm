@@ -251,10 +251,14 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         const show = p.querySelector('[data-ins-act="contracts"]');
         return { named: named ? ((named.querySelector('dd') || {}).textContent || '').trim() : null,
           list: [...p.querySelectorAll('.jl-ct .dir-ct-sub')].map(x => x.textContent.trim()),
-          show: show ? !show.disabled : null, more: !!p.querySelector('[data-ins-more]') }; });
+          asked: [...p.querySelectorAll('.jl-ct')].filter(b => b.querySelector('.jl-asked')).map(b => ((b.querySelector('.dir-ct-sub') || {}).textContent || '').trim() + ' = ' + b.querySelector('.jl-asked').textContent.trim()),
+          show: show ? !show.disabled : null, more: !!p.querySelector('[data-ins-more]'),
+          /* the list shows three, what is asked first; the signer's contract is read in too */
+          sg1: (() => { const j = dirBook().find(x => /Jonas Berg/.test(x.name || '')); return j ? j.roleOn('MK-SG1').join('+') : null; })() }; });
       check('6d Jonas is named on what he approves and signs: the row, the list, a live Show their contracts, no ⋯',
         !!P2 && /^\d+ contracts · \d+ live$/.test(P2.named || '') && Number((P2.named || '').split(' ')[0]) >= 2
-        && P2.list.some(x => /MK-AP1 · .* · approver/.test(x)) && P2.list.some(x => /MK-SG1 · .* · signer/.test(x)) && P2.show === true && !P2.more, JSON.stringify(P2));
+        && P2.list.some(x => /MK-AP1 · .* · approver/.test(x)) && /sign/.test(P2.sg1 || '') && P2.show === true && !P2.more
+        && P2.asked.some(x => /^MK-AP1 · .* = Approval asked$/.test(x)), JSON.stringify(P2));
     });
 
     /* ---- 9 Parties: a row of what waits on you reads whole (pass 3) ---- */

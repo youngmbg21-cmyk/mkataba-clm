@@ -130,10 +130,10 @@ function dirNamedRoles(c){
   if (live){
     let st = null; try { st = (typeof approvalState === 'function') ? approvalState(c) : null; } catch (_){ st = null; }
     ((st && st.chain) || []).forEach(x => { const a = x && x.approver;
-      if (x && x.status !== 'approved' && a && a.kind === 'member' && a.id != null) out.push({ memberId: _dStr(a.id), name: _dStr(a.name), role: 'approve' }); });
+      if (x && x.status !== 'approved' && a && a.kind === 'member' && a.id != null) out.push({ memberId: _dStr(a.id), name: _dStr(a.name), role: 'approve', asked: x.status === 'pending' }); });
     let asks = []; try { asks = (typeof asksOf === 'function') ? (asksOf(c) || []) : []; } catch (_){ asks = []; }
     asks.forEach(a => { if (a && a.state === 'open' && a.to && !a.to.role && (a.to.id || a.to.name))
-      out.push({ memberId: _dStr(a.to.id), name: _dStr(a.to.name), role: a.kind === 'review' || a.kind === 'look' ? 'review' : 'approve' }); });
+      out.push({ memberId: _dStr(a.to.id), name: _dStr(a.to.name), role: a.kind === 'review' || a.kind === 'look' ? 'review' : 'approve', asked: true }); });
   }
   let plan = []; try { plan = (typeof signerPlan === 'function') ? (signerPlan(c) || []) : (Array.isArray(c.signerPlan) ? c.signerPlan : []); } catch (_){ plan = []; }
   plan.forEach(r => { if (r && r.party !== 'counterparty' && (r.memberId != null || r.email || r.name))
@@ -153,7 +153,7 @@ function dirBook(){
     let p = book.get(key);
     if (!p){
       p = Object.assign({ key, side: 'none', id: '', name: '', email: '', title: '', role: '', hati: '', you: false,
-        partyName: '', partyKey: '', roles: new Set(), on: new Map() }, seed || {});
+        partyName: '', partyKey: '', roles: new Set(), on: new Map(), asked: new Map() }, seed || {});
       book.set(key, p);
     }
     return p;
@@ -225,7 +225,9 @@ function dirBook(){
        the route — the same readings "Waiting on" reads (dirWaitingOn), so a
        person waited on is never "named on" nothing. Live work only for the
        chain; a yes already given is participantsAuto's 'approve'. */
-    dirNamedRoles(c).forEach(x => named(colleague(x.email, x.memberId, x.name), c, x.role));
+    dirNamedRoles(c).forEach(x => { const p = colleague(x.email, x.memberId, x.name); named(p, c, x.role);
+      /* what is ASKED of them on it now (round 19: "Approval asked" on the row) */
+      if (p && x.asked && !p.asked.has(c.id)) p.asked.set(c.id, x.role === 'review' ? 'review' : 'approval'); });
   });
   /* 3. THE IMPORTED LIST: a title for somebody already here, or a person
      nobody has named on a contract yet. */
@@ -255,6 +257,7 @@ function dirBook(){
       streams: [...new Set(cts.map(c => c.folder).filter(Boolean))],
       partyNames: [...new Set(cts.map(c => _dStr(c.counterparty)).filter(Boolean))],
       roleOn: id => [...(on.get(id) || [])],
+      askedOn: id => (p.asked && p.asked.get(id)) || null,
     });
   });
 }
@@ -521,11 +524,17 @@ function dirPaintPanel(p, book){
       return `<div class="jl-need-r is-amber"><i class="jl-need-dot" aria-hidden="true"></i><div class="jl-need-b"><div class="jl-need-t" title="${_dE(w.c.name || '')}">${_dE(w.c.name || w.c.id)}</div><div class="jl-need-s" title="${_dE(sub)}">${_dE(sub)}</div></div><button type="button" class="ui-btn ui-btn-sm jl-need-go" data-dir-wait="${_dE(w.kind)}" data-dir-wait-id="${_dE(w.c.id)}">${_dE(i18t(DIR_WAIT_OPEN[w.kind] || 'jl_open_approval'))}</button></div>`;
     }).join('')}</div>${waits.length > DIR_WAIT_MAX ? `<p class="ins-note">${_dE(i18tn('ins_more_asks', waits.length - DIR_WAIT_MAX, { n: waits.length - DIR_WAIT_MAX }))}</p>` : ''}`) : '';
   const namedJl = max => {
-    const ids = p.contracts.slice(0, max);
+    /* what is asked of them now comes first (round 19 draws it at the top) */
+    const askOf = id => (typeof p.askedOn === 'function' && p.askedOn(id)) ? 1 : 0;
+    const ids = p.contracts.slice().sort((a, b) => askOf(b) - askOf(a)).slice(0, max);
     return `<div class="jl-ct-list">${ids.map(id => {
       const c = byId.get(id); if (!c) return '';
       const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
-      const st = (typeof contractStatusDotHtml === 'function') ? contractStatusDotHtml(c) : _dE(c.status || '');
+      /* what is asked of them on it now wears its own amber pill ("Approval
+         asked", round 19); otherwise the stage, as everywhere */
+      const ask = p.side === 'ours' && typeof p.askedOn === 'function' ? p.askedOn(id) : null;
+      const st = ask ? `<span class="reg-stg jl-asked" style="color:var(--st-amber-fg);background:var(--st-amber-bg)"><i style="background:var(--st-amber-dot)"></i>${_dE(i18t(ask === 'review' ? 'jl_review_asked' : 'jl_approval_asked'))}</span>`
+        : (typeof contractStatusDotHtml === 'function') ? contractStatusDotHtml(c) : _dE(c.status || '');
       const roles = p.roleOn(id).map(p.side === 'ours' ? dirRoleNoun : dirRoleWord).join(' · ');
       const sub = [ref, p.side === 'ours' ? _dStr(c.counterparty) : '', roles].filter(Boolean).join(' · ');
       return `<button type="button" class="dir-ct jl-ct" data-dir-ct="${_dE(c.id)}" title="${_dE(i18t('ins_door_doc'))}"><span class="dir-ct-n">${_dE(c.name || c.counterparty || '')}</span><span class="dir-ct-st">${st}</span>${sub ? `<span class="dir-ct-sub">${_dE(sub)}</span>` : ''}</button>`;

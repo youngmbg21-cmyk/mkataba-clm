@@ -236,11 +236,13 @@ describe('f735 (5) named on it in any role — the approver and the signer too',
     assert.match(body, /<i data-k="contracts">3 contracts · 3 live<\/i>/);
     assert.match(body, /MK-0391 · Helio Energy AB · approver/);
     assert.match(body, /MK-0350 · Stratos Software · signer/);
+    assert.match(body, /<span class="dir-ct-n">Power purchase agreement<\/span><span class="dir-ct-st"><span class="reg-stg jl-asked"[^>]*><i[^>]*><\/i>Approval asked<\/span><\/span>/, 'what is asked of him wears "Approval asked"');
+    assert.ok(body.indexOf('Power purchase agreement') < body.indexOf('Software licence'), 'and comes first');
     const show = painted.head.acts.find(a => a.k === 'contracts');
     assert.equal(!!show.disabled, false, 'Show their contracts is a live door');
   });
   test('5d the short role words in both books', () => {
-    for (const k of ['jl_role_owner', 'jl_role_sign', 'jl_role_approve', 'jl_role_review', 'jl_role_contribute', 'jl_role_read'])
+    for (const k of ['jl_role_owner', 'jl_role_sign', 'jl_role_approve', 'jl_role_review', 'jl_role_contribute', 'jl_role_read', 'jl_approval_asked', 'jl_review_asked'])
       for (const lang of ['en', 'sv']) assert.ok(BOOKS[lang][k], `${k} ${lang}`);
     assert.equal(BOOKS.en.jl_role_approve, 'approver');
   });
