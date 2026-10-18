@@ -534,16 +534,17 @@ function jhWaitStack(ctx, r, n, mono){
   ctx.fillText(w, x1 - sw - (k - 1) * 3 - 6, y1 - 2);
   ctx.restore();
 }
-/* "5 WAITING FOR YOU" IS THE COUNTER'S OWN COUNT, AND A DOOR TO IT (round 23's
-   gaps, second pass, 18 Oct 2026 — the drawing: Your desk "5 waiting for you"
-   equals the Counter's "5 prepared"; a room's "1 waiting for you" is its
-   piece; each opens the work on the Counter). At rest (the whole book, not
-   one typed contract) the desk, its trays and every room read counterWorkByAgent — the pieces the Counter lists, so
-   the approvals desk (never on the Counter) waits for nobody here either;
+/* "5 WAITING FOR YOU" IS JAMBO'S WORK'S OWN COUNT, AND A DOOR TO IT (round
+   23's gaps, 18 Oct 2026 — the drawing: Your desk "5 waiting for you" equals
+   Home's "5 prepared"; a room's "1 waiting for you" is its piece). At rest
+   (the whole book, not one typed contract) the desk, its trays and every room
+   read counterWorkByAgent — the pieces the Board's Jambo's work card lists,
+   so the approvals desk (never on that card) waits for nobody here either;
    while a replay plays, the trays fill as the period's own record did. The
    words are drawn as links: their boxes are kept (_jhLinks) for the press
-   and the pointer, and a press lands on the Counter with the work open
-   (counterOpenWork). */
+   and the pointer, and a press LANDS ON the Board's card (LAND ON IT, owner
+   18 Oct 2026: "it should take you to the jambos work card in the board") —
+   that agent's work below it where a room was pressed (hbOpenAgent). */
 function jhWaitNow(){ try { return (typeof counterWorkByAgent === 'function') ? counterWorkByAgent() : null; } catch (_) { return null; } }
 let _jhLinks = [];
 function jhLinkText(ctx, txt, x, y, col, k){
@@ -666,11 +667,12 @@ function jhDrawOffice(ctx, pieces, upto, mono){
     let px = nx + 6 + ctx.measureText(nm).width;
     if (agPointsIsNew(r.k)) px += jhPill(ctx, _jhT('jh_new_tag'), px, ny - 1, C.amber) + 4;
     if (agPointsMine(r.k)) jhPill(ctx, _jhT('jh_mine_tag'), px, ny - 1, C.accent);
-    /* the work line only where it clears the seat below it: where the agent's
-       face would stand over it (a short room), it starts beside him, as the
-       status line does (round 23's gaps, second pass) */
-    if (!cp){ ctx.fillStyle = C.muted; ctx.font = font(400, mono ? 11.5 : 13);
-      const wx = r.seat.y - 26 >= ly2(c) + 4 ? lx(c) : r.seat.x + 18, room = c.x + c.w - 10 - wx, wn = W ? (W.by[r.k] || 0) : 0;
+    /* the work line only where it clears the seat below it, measured: a card a
+       little over the compact height (60–70) has the room for its name and the
+       seat, not for the line between them as well. Where an agent has work
+       waiting, the line says so and is the door to it (round 23's gaps) */
+    if (!cp && ly2(c) + 4 <= r.seat.y - 25){ ctx.fillStyle = C.muted; ctx.font = font(400, mono ? 11.5 : 13);
+      const wx = lx(c), room = c.x + c.w - 10 - wx, wn = W ? (W.by[r.k] || 0) : 0;
       if (wn > 0){ const link = up(_jhT('jh_desk_waiting', { n: _jhFmt(wn) })), head = jhClip(ctx, up(_jhT('ag_' + r.k) + ' · '), Math.max(0, room - ctx.measureText(link).width));
         ctx.fillText(head, wx, ly2(c)); jhLinkText(ctx, link, wx + ctx.measureText(head).width, ly2(c), C.amber, r.k); }
       else ctx.fillText(jhClip(ctx, up(jhRoomSub(r, s, pieces, mono)), room), wx, ly2(c)); }
@@ -1244,7 +1246,7 @@ function jhWire(host){
     if (!t.closest('#jh-days') && !t.closest('#jh-range')) jhDaysClose();
     if (t.closest('[data-jh-end-x]')){ jhEndClose(); return; }
     if (t.closest('[data-jh-points]')){ jhOpenPoints(); return; }
-    if (t.closest('[data-jh-work]')){ if (typeof counterOpenWork === 'function') counterOpenWork(null); return; }
+    if (t.closest('[data-jh-work]')){ if (typeof hbOpenAgent === 'function') hbOpenAgent(); return; }
     if (t.closest('[data-jh-jambo]')){ if (typeof openAI === 'function') openAI(); return; }
     if (t.closest('.jh-end') && !t.closest('.jh-end-card')){ jhEndClose(); return; }
     if (t.closest('[data-jh-days-go]')){ jhDaysGo(); return; }
@@ -1296,9 +1298,9 @@ function jhWire(host){
   });
   host.addEventListener('mouseleave', () => { if (_jh.hover){ _jh.hover = null; const tip = document.getElementById('jh-tip'); if (tip) tip.hidden = true; jhKickOnce(); } }, true);
   host.addEventListener('click', e => {
-    /* "N waiting for you": the work, open on the Counter */
+    /* "N waiting for you": lands on the Board's Jambo's work card, that agent's work open below it */
     if (e.target && e.target.id === 'jh-cv' && String(_jh.hover || '').startsWith('wait:')){ const k = _jh.hover.slice(5);
-      if (typeof counterOpenWork === 'function') counterOpenWork(k === 'desk' ? null : k); return; }
+      if (typeof hbOpenAgent === 'function') hbOpenAgent(k === 'desk' ? null : k); return; }
     if (e.target && e.target.id === 'jh-cv' && _jh.hover && _jhRooms.some(r => r.k === _jh.hover)){
     const b = document.querySelector(`[data-jh-agent="${_jh.hover}"]`); if (b){ b.click(); try { b.scrollIntoView({ block: 'nearest' }); } catch (_) {} } } });
 }

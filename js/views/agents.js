@@ -1030,8 +1030,13 @@ function agForName(it){
     else if (['answer', 'reply', 'party', 'soon'].includes(it.kind) && typeof deskLead === 'function'){ const l = deskLead(c); n = (l && l.name) || ''; }
     else if (it.kind === 'ours'){
       /* THE PERSON THE EMAIL REACHES: the assignee where that is a member,
-         else the contract's owner (below). */
-      const to = (typeof obligationReminderTo === 'function') ? obligationReminderTo(it.ob) : null;
+         else the contract's owner. */
+      const to0 = (typeof obligationReminderTo === 'function') ? obligationReminderTo(it.ob) : null;
+      /* …and only one who can open the stream: the server's sweep skips the rest */
+      const to = (to0 && (!c || typeof canAccessFolder !== 'function' || canAccessFolder(c.folder || '', to0))) ? to0 : null;
+      /* the owner the same way (obligationOwnerTo: a member with an address who
+         can open the stream), so nobody reached is nobody named */
+      if (typeof obligationOwnerTo === 'function'){ const ow = to ? null : obligationOwnerTo(c); return String((to && to.name) || (ow && ow.name) || '').trim(); }
       n = (to && to.name) || '';
     }
     else if (it.kind === 'read' || it.kind === 'reading'){
@@ -1332,7 +1337,14 @@ function agGo(where, cid){
   if (where === 'import'){ if (typeof setView === 'function') setView('migration'); return; }
   /* Fill in, beside the paper: the one door every "fill in" press passes (roomOpenAt) */
   if (where === 'details'){ if (typeof roomOpenAt === 'function') roomOpenAt(cid, 'details'); return; }
-  if (!c || typeof openWorkspace !== 'function') return;
+  if (!c) return;
+  /* The contract itself opens as every list's Open contract does
+     (regOpenContract): a code-named stand-in stopped first, then Home's
+     Document on the reader's own "A contract opens on" — the room has no
+     Document tab since 11 Oct 2026. */
+  if (where === 'contract' && typeof codeNameStop === 'function' && codeNameStop(c)) return;
+  if (where === 'contract' && typeof pdOpenOnHome === 'function' && pdOpenOnHome(cid, 'open')) return;
+  if (typeof openWorkspace !== 'function') return;
   const tab = where === 'oblig' ? 'oblig' : where === 'sign' ? 'sign' : where === 'contract' ? null : 'terms';
   /* the room's Signing and Obligations tabs went home (the one-page Home plan, stage 5) */
   if (tab && typeof roomTabHome === 'function' && roomTabHome(c, tab)) return;
@@ -2078,8 +2090,8 @@ function agActsOf(it){
   else if (it.kind === 'ours') B('oblig', _agT('ag_a_oblig'), 'lead');
   else if (it.kind === 'approve'){
     let may = null; try { may = (typeof approvalDecidableNow === 'function') ? approvalDecidableNow(it.c) : null; } catch (_){ may = null; }
-    if (may){ B('approve', _agT('ap_pg_approve'), 'lead'); B('refuse', _agT('ag_a_refuse')); B('overview', _agT('ins_open_contract'), 'link'); }
-    else { B('signing', _agT('ap_pg_open_gate'), 'lead'); B('overview', _agT('ins_open_contract')); }
+    if (may){ B('approve', _agT('ap_pg_approve'), 'lead'); B('refuse', _agT('ag_a_refuse')); B('contract', _agT('ins_open_contract'), 'link'); }
+    else { B('signing', _agT('ap_pg_open_gate'), 'lead'); B('contract', _agT('ins_open_contract')); }
   }
   else if (it.kind === 'request'){ if (ed) B('ikdraft', _agT('ik_act_draft'), 'lead'); B('ikopen', _agT('ag_a_request'), ed ? '' : 'lead'); }
   else if (it.kind === 'lane'){ B('overview', _agT('ag_a_draft_open'), 'lead'); B('ikopen', _agT('ag_a_request')); }
@@ -2457,6 +2469,7 @@ async function agRunAct(key, act){
   }
   if (act === 'nego') return agGo('nego', it.cid);
   if (act === 'overview') return agGo('terms', it.cid);
+  if (act === 'contract') return agGo('contract', it.cid);
   if (act === 'oblig') return agGo('oblig', it.cid);
   if (act === 'import') return agGo('import');
   if (act === 'signing') return agGo('sign', it.cid);

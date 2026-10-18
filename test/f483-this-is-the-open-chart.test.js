@@ -166,7 +166,7 @@ describe('F483 (2) — Copilot presses the board\'s buttons', () => {
   test('on the board, the map\'s arranging reader stands aside; its list-making reader still answers', () => {
     const src = read('js/views/intelligence.js');
     assert.match(src, /mapListy=!!\(pz&&pz\.acts\.some\(x=>x\.top\|\|x\.narrow/);
-    assert.match(src, /const mapRest=\(igPaperUp\(\)\|\|boardUp\)\?null:await intelMapLocal\(q\);/);
+    assert.match(src, /const mapRest=\(igPaperUp\(\)\|\|boardUp\|\|tplAsk\)\?null:await intelMapLocal\(q\);/);
   });
   test('one word list: the server\'s chart words are the board\'s dropdowns', () => {
     const w = world();
