@@ -385,8 +385,13 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
       expect: await wsExpect('MK-A2'), says: (await owedFor('MK-A2')) ? SAYS.fill : SAYS.copilot });
     await door(A, 'Contracts place, a paper on the Wall (MK-A2)', { start: async () => { await toPlace('wall')(); await waitFor(page, s => !!document.querySelector(s), 6000, WCARD); },
       press: () => click(WCARD), expect: E.paper('MK-A2'), says: SAYS.paper });
-    await door(A, 'the paper\'s ‹ Contracts (MK-A2 up)', { start: async () => { await onPaperFn('MK-A2'); },
-      press: () => domClick('#ig-strip [data-ig-pick-again]'), expect: E.wall(null), says: SAYS.wall });
+    /* RE-POINTED 17 Oct 2026 (round 6, "One line"): "‹ Contracts" left the
+       paper's line — the way back is the frame's, the Contracts place's own
+       desk tab, kept once the place has settled */
+    await door(A, 'the Contracts desk tab (MK-A2 up)', { start: async () => { await toPlace('wall')();
+        await waitFor(page, () => String(localStorage.getItem(DK_KEY) || '').includes('"home:contracts"'), 4000);
+        await onPaperFn('MK-A2'); },
+      press: () => domClick('#dk-home [data-dk-go="home:contracts"]'), expect: E.wall(null), says: SAYS.wall });
     await door(A, 'Contracts place, Wall | List: List', { start: toPlace('wall'), press: () => domClick('[data-reg-home] [data-ct-show="list"]'), expect: E.list(null), says: SAYS.list });
     await door(A, 'Contracts place, Wall | List: Wall', { start: toPlace('list'), press: () => domClick('[data-reg-home] [data-ct-show="wall"]'), expect: E.wall(null), says: SAYS.wall });
     /* RE-POINTED 16 Oct 2026: the place's stages are the Stage box (owner: "take

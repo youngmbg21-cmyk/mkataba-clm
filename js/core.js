@@ -623,14 +623,16 @@ const contractStatusMeta = c => contractOnHold(c) ? HOLD_META
   : contractExpired(c) ? EXPIRED_META
   : cpReadyToSign(c) ? READY_META
   : (STATUS_META[c && c.status] || STATUS_META.Draft);
-const contractStatusTextHtml = c => {
+const contractStatusTextHtml = (c, more) => {
   const m = contractStatusMeta(c);
   /* out with them, the head says for how long — "With them for signature ·
      6 days" — because the wait is the fact a reader opens it to learn */
   const wait = (m === HANDOVER_META || m === HANDOVER_SIGNED_META) ? handoverWaitWords(c) : '';
   /* a PILL in its own tone since 7 Oct 2026 (the HaTi Platform mockup): the
      stage's wash behind, its dot before the word */
-  return `<span class="room-stat" style="color:${m.tx};background:${m.bg || 'transparent'}"><i style="background:${m.dot}"></i>${m.label}${wait ? ` \u00b7 ${_holdEsc(wait)}` : ''}</span>`;
+  /* `more` is a word the caller adds after the stage (the paper's line: the
+     round, round 6) — said in the pill, never a second pill */
+  return `<span class="room-stat" style="color:${m.tx};background:${m.bg || 'transparent'}"><i style="background:${m.dot}"></i>${m.label}${wait ? ` \u00b7 ${_holdEsc(wait)}` : ''}${more ? ` \u00b7 ${_holdEsc(more)}` : ''}</span>`;
 };
 /* THE TABLE'S DRESS. The dot is what a scanned column needs — the shape the
    chip used to give it — and the word beside it is what stops the colour being

@@ -20,6 +20,13 @@
 
      node test/chromium/ink-wash-verify.js --save   (record, on the code BEFORE)
 
+   RE-RECORDED 17 Oct 2026 (fifth), OWNER-ASKED (the overnight build: "Build
+   and update record even on new ones"): Round 6, "One line" — the paper's
+   line draws the stage as the house's pill, so on dark screens that show an
+   In Review paper the amber stage wash and its ink (rgb(58,42,15) behind,
+   rgb(235,173,70) ink and underline colour, the palette's own --st-amber-*)
+   are new to those screens' census; elsewhere only counts moved (the bold
+   name, Notes' word, the code-name mark). Audited as a set difference.
    RE-RECORDED 17 Oct 2026 (fourth), OWNER-ASKED (the overnight build, same
    standing yes): Round 5, "Jambo's tray" — the drop area gained its one
    "Several files? Import contracts" link, so on light screens the 12px and

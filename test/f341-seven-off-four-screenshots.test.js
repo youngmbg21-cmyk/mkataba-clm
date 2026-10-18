@@ -199,7 +199,8 @@ describe('f341 (3) — chat sits beside More, and there is still only one', () =
     assert.match(b, /id="hdr-chat"/, 'same id, so paintChatDoor still answers');
     assert.match(b, /id="hdr-chat-dot"/, 'same dot');
     assert.match(b, /i18t\('ng_chat_title'\)/, 'same words');
-    assert.match(b, /class="room-check room-chat"/, 'the checks group’s own clothes');
+    /* RE-POINTED 17 Oct 2026 (round 6): the room's door keeps them; Home's paper line draws it with its word */
+    assert.match(b, /'room-check room-chat'\}"/, 'the checks group’s own clothes');
     assert.match(b, /PORTAL_MODE/, 'and never on the counterparty’s seat');
   });
 

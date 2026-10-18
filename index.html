@@ -9178,6 +9178,24 @@
   /* the paper's line takes the contract's own acts (stage 5): Notes · Share · More, the line's height kept */
   .ig-acts{display:inline-flex;align-items:center;gap:6px;flex:none}
   .ig-acts #hdr-chat.room-check{width:var(--ctl-h-sm);height:var(--ctl-h-sm);font-size:var(--t-meta);font-weight:var(--w-strong)}
+  /* ONE LINE (round 6 of the redesign, 17 Oct 2026): the paper's line says who
+     and what — the number, the name in the strong weight, the party quiet, the
+     code-name mark (dashed, an insider's only), the stage as the house's pill
+     with its round — then who is on it now, the paper's three views, Notes with
+     its word and count, Share. The line keeps its height (--ig-bar-h). */
+  .ig-line-id{gap:8px;align-items:baseline;flex:0 1 auto}
+  .ig-line-id .hati-ref{flex:none}
+  .ig-line-t{font-weight:var(--w-strong);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto}
+  /* the party gives way first: the name is the thing read */
+  .ig-line-p{color:var(--color-neutral-600);min-width:3em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 6 auto}
+  .ig-line-st{flex:none;display:inline-flex}
+  #ig-strip .ig-line-st .room-stat{font-size:var(--t-meta);font-weight:var(--w-label);padding:1px 9px 1px 7px}
+  .ig-line-cn{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:10px;border:1px dashed var(--rule-strong);color:var(--color-neutral-600);font-size:var(--t-meta);white-space:nowrap;flex:none}
+  .ig-line-faces{display:inline-flex;align-items:center;flex:none}
+  #ig-strip .ig-line-faces .pz-row{margin-left:0}
+  #ig-strip .ig-line-faces .pz-face{width:24px;height:24px;font-size:10px;border-width:2px;margin-left:-5px}
+  #ig-strip .ig-line-faces .pz-face:first-child{margin-left:0}
+  .ig-acts #hdr-chat.ig-notes .room-badge{position:static;border:0;min-width:0;height:auto;padding:0 0 0 2px;background:transparent;color:var(--color-neutral-600);font-size:var(--t-meta);font-weight:var(--w-label)}
   .ig-more{position:relative;display:inline-flex}
   .ig-more .ig-more-btn{width:var(--ctl-h-sm);padding:0;justify-content:center}
   .ig-redpaper{background:transparent}

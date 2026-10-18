@@ -10905,11 +10905,15 @@ function roomCheckBadge(n, tone){
    THE BUILDER. Its state is painted, never built: the count and the dead state
    move under a head that is built once per render, so paintChatDoor answers
    for both and wireRoomHead calls it after the paint. */
-function roomChatDoorHtml(){
+function roomChatDoorHtml(o){
   if(PORTAL_MODE) return '';
-  return `<button type="button" id="hdr-chat" class="room-check room-chat"
+  /* ON HOME'S PAPER LINE IT SAYS ITS WORD (round 6, "One line"): "Notes" and
+     the count beside it — the same door, id and dot, so paintChatDoor still
+     answers for it; the room keeps the bare icon */
+  const word=!!(o&&o.word);
+  return `<button type="button" id="hdr-chat" class="${word?'ui-btn ui-btn-sm room-chat ig-notes':'room-check room-chat'}"
       title="${esc(i18t('ng_chat_title'))}"
-    >${icon('chat','w-4 h-4')}<span id="hdr-chat-dot" class="room-badge" hidden></span></button>`;
+    >${icon('chat','w-4 h-4')}${word?`<span class="ig-notes-w">${esc(i18t('ig_line_notes'))}</span>`:''}<span id="hdr-chat-dot" class="room-badge" hidden></span></button>`;
 }
 function roomChecksHtml(c){
   if(typeof checkVerdict!=='function') return '';

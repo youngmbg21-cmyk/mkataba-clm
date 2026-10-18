@@ -155,8 +155,9 @@ const deliver = (id, answer, citations) => ({ content: [{ type: 'tool_use', id, 
        contract and offers another, with no second Graph | Paper switch. */
     const face = await page.evaluate(() => (typeof hbFace === 'function') ? hbFace() : null);
     check('1d the strip is drawn on Home\'s Paper side with the contract named, and no second switch', up.strip && !up.sw && face === 'paper'
-      /* the way back names the place since the overnight work order's step 7: "‹ Contracts" (was "Another contract") */
-      && /MK-A2/.test(up.stripText) && up.back === 'Contracts', face + ' · ' + up.stripText + ' · back: ' + up.back);
+      /* the way back named the place from step 7 ("‹ Contracts"); since round 6
+         ("One line", 17 Oct 2026) it is the frame's — the desk tabs — so the line carries none */
+      && /MK-A2/.test(up.stripText) && up.back === null, face + ' · ' + up.stripText + ' · back: ' + up.back);
     check('1e the ask box says which contract it asks about, and its hover says what a question costs',
       /MK-A2/.test(up.placeholder) && /MK-A2/.test(up.title) && /\d/.test(up.title), `${up.placeholder} · ${up.title}`);
     check('1f the paper is the working copy — the same sheet the Document tab draws', up.sheet, `first ink ${up.ink}px from the top of the window`);
