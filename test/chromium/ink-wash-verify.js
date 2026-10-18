@@ -369,6 +369,10 @@ const diff = (a, b) => {
     await pause(500);
     await page.fill('#li-email', 'admin@example.co.ke');
     await page.fill('#li-pass', 'adminpassword1');
+    /* where Sign in is pressed is where the pointer stays: kept, so History
+       can be measured with the pointer parked and then put back (below) */
+    const goBox = await page.locator('#li-go').boundingBox();
+    const SIGNED_AT = goBox ? { x: goBox.x + goBox.width / 2, y: goBox.y + goBox.height / 2 } : null;
     await page.click('#li-go');
     await page.waitForFunction(() => window.state && Array.isArray(state.contracts) && state.contracts.length > 0);
     await pause(1500);
@@ -458,6 +462,13 @@ const diff = (a, b) => {
         if (name === 'document') await page.waitForSelector('#ig-canvas', { timeout: 10000 }).catch(() => {});
         if (name === 'signing') await page.waitForFunction(id => !!document.querySelector(`#pd-signface .pd-sf[data-pd-sf="${id}"]`) && !!document.querySelector('#ig-paper .pg-sheet.pg-sign'), cid, { timeout: 10000 }).catch(() => {});
         if (name === 'history') await page.waitForFunction(id => { const b = document.querySelector(`#hb-cv-body[data-hb-cv="hist"][data-hb-cv-cid="${id}"]`); return !!b && !b.querySelector('.hb-cv-wait'); }, cid, { timeout: 10000 }).catch(() => {});
+        /* HISTORY IS MEASURED WITH THE POINTER PARKED (18 Oct 2026): the pointer
+           stays where Sign in was pressed, and on GitHub's fonts an event of
+           History's two lanes sat under it and was measured in its hover
+           colour (one background, surface → surface-2, red there and green
+           here). Parked in the bar's empty corner for this screen only and put
+           back after, so every other screen's recorded counts still hold. */
+        if (name === 'history') await page.mouse.move(2, 2);
         await pause(name === 'home' ? 1400 : 800);
         const r = {};
         if (dark) r.all = await page.evaluate(CENSUS, ['body', COLOUR_PROPS]);
@@ -469,6 +480,7 @@ const diff = (a, b) => {
         if (!dark) { r.greys = await page.evaluate(GREYS); r.caps = await page.evaluate(CAPS); }
         if (!SAVE && !dark) await page.screenshot({ path: path.join(OUT, `${tag}-${name}.png`) });
         (isPop ? rec[tag].popups : rec[tag].screens)[name] = r;
+        if (name === 'history' && SIGNED_AT) await page.mouse.move(SIGNED_AT.x, SIGNED_AT.y);
         if (isPop) await closeLayers();
       }
     }
