@@ -269,7 +269,8 @@ describe('f740 (6) pass 4: as you scroll, one number, the doors whole', () => {
     assert.equal(w.igWallScrollNear(sc), false, 'one foot asks once');
     w.igWallBodyHtml(w.book, { base: w.book });
     assert.equal(w.igWallScrollNear(sc), true, 'the next paint\'s foot may ask again');
-    assert.match(IG, /document\.addEventListener\('scroll',e=>\{[^\n]*\n\s+if\(sc&&sc\.querySelector&&sc\.querySelector\('#ig-wall'\)\) igWallScrollNear\(sc\); \},true\);/, 'a reader\'s scroll, heard on its way down');
+    /* the wall's own box is the scroller on the desk (the browser check found the box around it never scrolls): heard there too */
+    assert.match(IG, /document\.addEventListener\('scroll',e=>\{[^\n]*\n\s+if\(sc&&\(sc\.id==='ig-wall'\|\|\(sc\.querySelector&&sc\.querySelector\('#ig-wall'\)\)\)\) igWallScrollNear\(sc\); \},true\);/, 'a reader\'s scroll, heard on the wall\'s own box and on its way down');
   });
   test('6b his tab: the Counter\'s own number beside a chosen paper, a page, its History and the wall at rest; the Board at rest keeps its card\'s', () => {
     const ctx = { Array, Number, String, Object, state: { view: 'dashboard' }, face: 'board', holds: '', contract: null, paper: false,

@@ -452,7 +452,9 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
        agreements (three, the closed one too); the wall says the same three,
        its amendment beside them */
     const naivasN = await page.evaluate(() => (typeof cuView === 'function') ? cuView(cuCustomerOf('naivas supermarkets')).items.length : 0);
-    const naivasSaid = `${naivasN} of ${naivasN} contracts · 1 amendment`;
+    /* RE-POINTED (B1 pass 4, round 13 as drawn: the count line says the agreements, "N of M contracts", never "· 1 amendment"
+       or "· K closed" after it — the amendment rides on its agreement's paper) */
+    const naivasSaid = `${naivasN} of ${naivasN} contracts`;
     const PARTY = E.party(naivas, naivasSaid), PSAYS = SAYS.wall + ', narrowed to the party, reading "' + naivasSaid + '"';
     await door(A, 'Parties row, double-click (Naivas)', { start: () => goPage('customers', s => !!document.querySelector(s), CU), press: () => dbl(CU), expect: PARTY, says: PSAYS });
     await door(A, 'Parties row, Enter (Naivas)', { start: () => goPage('customers', s => !!document.querySelector(s), CU), press: () => enter(CU), expect: PARTY, says: PSAYS });

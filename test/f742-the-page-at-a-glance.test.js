@@ -199,7 +199,7 @@ const CT = R('js/views/contract.js');
 const FAM = R('js/family.js');
 const INDEX = R('index.html');
 describe('f742 (5) pass 4: the page owes what it owes, and says it as drawn', () => {
-  const FNS5 = ['pdDaysSince', 'pdShortDay', 'pdListSay', 'pdCardGlanceRows', 'pdCardGlanceRowHtml', 'pdCardGlanceHtml'];
+  const FNS5 = ['pdDaysSince', 'pdShortDay', 'pdListSay', 'pdDetWord', 'pdCardGlanceRows', 'pdCardGlanceRowHtml', 'pdCardGlanceHtml'];
   const glance5 = over => {
     const ctx = Object.assign({ Array, JSON, Math, Number, String, Object, Date, isFinite, Intl, i18t: say, i18tn: sayN, todayISO: () => TODAY, langLocale: () => 'en-GB',
       histWhen: () => ({ day: '12 Oct' }), contractRef: c => c.id, contractStatusTextHtml: c => `<pill ${c.status}>`, negoClauseName: s => s, negoMayStart: () => ({ ok: true }),
@@ -209,7 +209,7 @@ describe('f742 (5) pass 4: the page owes what it owes, and says it as drawn', ()
       detailsOf: c => ({ left: (c.owed || []).length, items: (c.owed || []).map(label => ({ label, open: true })) }),
     }, over || {});
     ctx.window = ctx; vm.createContext(ctx);
-    vm.runInContext([lineOf(PD, 'const _pdE = '), lineOf(PD, 'const _pdT = '), lineOf(PD, 'const _pdTn = '), lineOf(PD, 'const PD_CG_NAMES_MAX = ')].concat(FNS5.map(f => fnBody(PD, f))).join('\n'), ctx);
+    vm.runInContext([lineOf(PD, 'const _pdE = '), lineOf(PD, 'const _pdT = '), lineOf(PD, 'const _pdTn = '), lineOf(PD, 'const PD_CG_NAMES_MAX = '), lineOf(PD, 'const PD_CG_DET_WORD = ')].concat(FNS5.map(f => fnBody(PD, f))).join('\n'), ctx);
     return ctx;
   };
   const CFO = { id: 'MK-0399', status: 'Draft', priv: true, owed: ['Collective agreement', 'Pension provider'] };
@@ -222,6 +222,9 @@ describe('f742 (5) pass 4: the page owes what it owes, and says it as drawn', ()
     assert.match(h, /<span>2 details to fill: collective agreement and pension provider\.<\/span><button type="button" class="ui-btn ui-btn-sm" data-pd-cg-go="fill">Fill in<\/button>/);
     assert.match(h, /<span>Nobody is named to sign yet\.<\/span><button type="button" class="ui-btn ui-btn-sm" data-pd-cg-go="sign">Signing<\/button>/);
     assert.doesNotMatch(h, /Nothing is late/);
+    /* the record's own boxes said in a sentence (the browser check met "1 detail to fill: effective.") */
+    const kt = glance5({ detailsOf: () => ({ left: 2, items: [{ kind: 'kt', key: 'effDate', label: 'Effective', open: true }, { kind: 'kt', key: 'value', label: 'Pay', open: true }] }), fxIsPay: () => true });
+    assert.match(kt.pdCardGlanceHtml({ id: 'MK-0399', status: 'Draft' }), /<span>2 details to fill: the start date and base pay\.<\/span>/);
     const named = g.pdCardGlanceRows({ id: 'MK-W19', status: 'Draft', owed: ['Effective date'] });
     assert.deepEqual(JSON.parse(JSON.stringify(named.map(r => r.k))), ['details', 'signer'], 'a plain draft owes its detail and a signer too');
     const signed = glance5({ bsLifeData: () => ({ O: { rows: [] }, M: null, signers: [] }) }).pdCardGlanceRows({ id: 'MK-1', status: 'Signed' });
@@ -329,6 +332,6 @@ describe('f742 (5) pass 4: the page owes what it owes, and says it as drawn', ()
       'pd_cg_amend_note', 'pd_cg_amend_note_value', 'pd_chip_pay', 'pd_chip_access', 'bs_cap_amend_note', 'bs_private_pill', 'bs_private_pill_short', 'bs_jb_risk_go',
       'cn_row_none_w', 'cn_row_none_sub', 'ov_fil_h', 'ov_fil_stream', 'ov_fil_category', 'ov_fil_refile', 'ov_fil_refile_no', 'ov_fil_access', 'ov_fil_private_sub', 'ov_fil_private_sub_plain',
       'ov_people_h', 'ov_people_note', 'ov_people_owner', 'ov_people_none', 'ov_value_amended_w', 'ov_value_signed', 'ov_rn_by', 'ov_rn_months_one', 'ov_rn_months_other',
-      'fa_related_none', 'fa_signed_on', 'bs_fam_acts']){ assert.ok(BOOKS.en[k], 'en ' + k); assert.ok(BOOKS.sv[k], 'sv ' + k); }
+      'fa_related_none', 'fa_signed_on', 'bs_fam_acts', 'pd_cg_det_effdate', 'pd_cg_det_value', 'pd_cg_det_pay', 'pd_cg_det_counterparty']){ assert.ok(BOOKS.en[k], 'en ' + k); assert.ok(BOOKS.sv[k], 'sv ' + k); }
   });
 });

@@ -36,6 +36,28 @@
        caption says how late, the table Late before Next; History: no second
        ⋯ on the head, the trail inside the card, "who decided clause N" once a
        round has closed, "Newest" says what happened.
+     6 PASS 4 (the checker's differences after main moved on, 18 Oct 2026):
+       the count line says the agreements only; a scroll near the wall's foot
+       brings the next papers; Jambo's tab carries Home's Needs-you number on
+       a page and its History too; a private contract (the CFO's, in a private
+       stream) wears the lock pill on its head and its glance, says who may
+       open it, the details still to fill and that nobody is named to sign,
+       and its chips follow what it owes (fill in · pay · who can open it),
+       where the signed supply agreement's read obligations · history ·
+       amend; a chip lands on what it opens, lit; What Jambo read says the
+       sides without a first due day; Details reads the value as amended with
+       the signed figure beside it, whole, the renewal whole, a Filing
+       section (Re-file, who may open a private one), and Related agreements
+       as rows with Bring it up and no other doors; History: a private one
+       leads with its wall and its opens, a draft never sent says so, the
+       Filter lists only choices the trail has (Opens only where opened),
+       Clear greys at rest, the day says "Today, …", the middle line's pills
+       carry no initials or outcome, a round sent back is told once, no round
+       chip, the ⋯ menu as drawn ("This contract" · its three acts with their
+       lines · "Every contract · admins only"), Show the wording cut short
+       with no fingerprint; the amendment says what it did in its maker's
+       words; at 1366×950 no mark's line runs through a label, at 1536×730
+       the chosen paper's doors are whole.
    Waits ask for the state, bounded; a missing part reports.
    Run: node test/chromium/home-held-contract-verify.js */
 const fs = require('node:fs');
@@ -54,6 +76,9 @@ const check = (name, pass, detail) => {
 const day = n => { const t = new Date(); t.setDate(t.getDate() + n); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; };
 const DOC = ['MASTER SERVICES AGREEMENT', '', '1. Services', '', 'The supplier provides the services in Schedule 1.', '', '2. Fees', '', 'Fees are invoiced monthly.', '',
   '3. Liability', '', 'Liability is capped at 50% of the fees paid in that year.', '', '4. Payment', '', 'Each correct invoice is paid within 30 days of receipt.'].join('\n');
+/* pass 4: a long liability clause, so Show the wording has an unchanged run to cut around the edit */
+const LONG_LIAB = 'Liability is capped at {p} of the fees paid in that year and the supplier shall not be liable for any indirect loss whatsoever arising under this agreement.';
+const DOC2 = DOC.replace('Liability is capped at 50% of the fees paid in that year.', LONG_LIAB.replace('{p}', '50%'));
 const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now() - n * 864e5).toISOString() }, { party: 'counterparty', name: 'Hanna Brightwater', at: new Date(Date.now() - n * 864e5).toISOString() }];
 
 (async () => {
@@ -63,12 +88,16 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     metadata: { value: 6400000, currency: 'KES', renewalType: 'auto-renew', noticePeriodDays: 90, renewalTermMonths: 12 },
     obligations: [{ id: 'o1', desc: 'Check the September invoice', party: 'ours', due: day(-7), status: 'open' }, { id: 'o2', desc: 'Food safety certificate', party: 'theirs', due: day(75), status: 'open' }] });
   const A1 = H.fixtureContract('MK-0377-A1', 'Amendment 1 to the Supply agreement', 'Brightwater Foods', H.FOLDER_A, 7100000, 'Signed', 'AMENDMENT 1\n\n1. Volumes\n\nThe yearly volume is raised by ten per cent.');
-  Object.assign(A1, { parentId: 'MK-0377', relation: 'amendment', valueSetHere: true, expiry: null, metadata: { value: 7100000, currency: 'KES', effectiveDate: day(-20) }, signedAt: new Date(Date.now() - 20 * 864e5).toISOString(), signatures: SIG(20) });
+  /* pass 4: the maker's note says what it did (relationNote, applyParentLink's own) */
+  Object.assign(A1, { parentId: 'MK-0377', relation: 'amendment', relationNote: 'raised the yearly volume by 10%', valueSetHere: true, expiry: null, metadata: { value: 7100000, currency: 'KES', effectiveDate: day(-20) }, signedAt: new Date(Date.now() - 20 * 864e5).toISOString(), signatures: SIG(20) });
   const N = H.fixtureContract('MK-0382', 'Master services agreement', 'Nordvik Logistik', H.FOLDER_A, 4200000, 'Under Review', DOC);
   N.expiry = day(800);
-  const L2 = H.fixtureContract('MK-0390', 'Logistics agreement', 'Nordvik Logistik', H.FOLDER_A, 900000, 'Under Review', DOC);
+  const L2 = H.fixtureContract('MK-0390', 'Logistics agreement', 'Nordvik Logistik', H.FOLDER_A, 900000, 'Under Review', DOC2);
+  /* pass 4: the CFO's employment agreement, pay not deal value, kept in a stream made private below */
+  const E = H.fixtureContract('MK-0399', 'Employment agreement', 'Annika Holm', 'corp', 1740000, 'Draft', 'EMPLOYMENT AGREEMENT\n\n1. Role\n\nChief financial officer.\n\n2. Pay\n\nBase pay is paid monthly.');
+  Object.assign(E, { category: 'employment', template: null, expiry: null, fields: { value: '1740000' }, metadata: { value: 1740000, currency: 'KES', category: 'employment' } });
   const more = Array.from({ length: 13 }, (_, i) => H.fixtureContract('MK-W' + (i + 1), 'Services agreement ' + (i + 1), 'Party ' + (i + 1), H.FOLDER_A, 100000 * (i + 1), i % 2 ? 'Signed' : 'Draft', i % 2 ? undefined : DOC));
-  await H.seedWorkspace(h, { contracts: [A, A1, N, L2, ...more, ...H.FIXTURES], approvalRules: [] });
+  await H.seedWorkspace(h, { contracts: [A, A1, N, L2, E, ...more, ...H.FIXTURES], approvalRules: [] });
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const errors = [];
   try {
@@ -121,8 +150,9 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
       foot: ((document.querySelector('#ig-wall .igw-shown') || {}).textContent || '').trim(), more: !!document.querySelector('#ig-wall [data-ig-wall-more]'),
       card: (() => { const w = document.getElementById('ig-wall'); if (!w) return null; const cs = getComputedStyle(w); return { bg: cs.backgroundColor, bw: cs.borderTopWidth, bs: cs.borderTopStyle }; })(),
       facts: (() => { const n = document.querySelector('.ct-name'), h = n && n.querySelector('.ct-h'), f = n && n.querySelector('.ct-facts'); return h && f ? Math.abs(h.getBoundingClientRect().bottom - f.getBoundingClientRect().bottom) < 8 && f.getBoundingClientRect().left > h.getBoundingClientRect().right : false; })() }));
+    /* RE-POINTED (pass 4, round 13 as drawn: "48 contracts · newest first"): the count line says the agreements only, never "· N amendment" */
     check('1a the wall stands in one card: "N contracts · newest first", twelve papers, "Showing 12 of N · Show more"; the facts beside the name',
-      W0.leadsDrawn === 12 && W0.n > 12 && W0.count === `${W0.n} contracts · ${W0.amends} amendment` && W0.order === 'newest first' && W0.foot === `Showing 12 of ${W0.n}` && W0.more
+      W0.leadsDrawn === 12 && W0.n > 12 && W0.count === `${W0.n} contracts` && !/amendment|closed/.test(W0.count) && W0.order === 'newest first' && W0.foot === `Showing 12 of ${W0.n}` && W0.more
       && W0.head.startsWith(`${W0.n} live`)
       && !!W0.card && W0.card.bs === 'solid' && W0.facts, JSON.stringify(W0));
     await press('#ig-wall [data-ig-wall-more]');
@@ -143,7 +173,8 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     check('1d its facts read the record: the stage with its round, Owner "You", "Nordvik Logistik sent 2 redlines", how long ago',
       /^In Review · round 1$/.test(fact('Stage')) && fact('Owner') === 'You' && /^Nordvik Logistik sent 2 redlines today$/.test(fact('Last move')) && /KES/.test(fact('Value')), JSON.stringify(C1 && C1.chosen && C1.chosen.facts));
     check('1e what it asks of you (Needs you), the box asks about anything, no chips (as drawn)', !!C1 && C1.chosen.needs >= 1 && C1.ph === 'Ask for a contract, a number or a list…' && C1.chips.length === 0, JSON.stringify({ needs: C1 && C1.chosen.needs, ph: C1 && C1.ph, chips: C1 && C1.chips }));
-    check('1e2 his tab carries the Counter\'s own number, as beside a paper', !!C1 && !!C1.count && C1.count === C1.counter, JSON.stringify({ count: C1 && C1.count, counter: C1 && C1.counter }));
+    /* RE-POINTED (main moved on: the Counter is named Home, the desk tabs went): the number is Home's own Needs you (counterNeedsCount) */
+    check('1e2 his tab carries Home\'s own Needs-you number, as beside a paper', !!C1 && !!C1.count && C1.count === C1.counter, JSON.stringify({ count: C1 && C1.count, counter: C1 && C1.counter }));
     /* pass 3: their two redlines are a row of their own, the clauses under it, wrapped */
     const ASK = await page.evaluate(() => { const r = document.querySelector('#ig-dock #pd-chosen [data-pd-nd-kind="answer"]'); if (!r) return null;
       const sm = r.querySelector('small'); return { b: (r.querySelector('b') || {}).textContent, sub: sm && sm.textContent, ws: sm && getComputedStyle(sm).whiteSpace, cut: sm ? sm.scrollWidth > sm.clientWidth + 1 : null,
@@ -234,7 +265,8 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     const rk = P7 ? P7.rows.map(r => r.k) : [];
     check('2b the rows: the obligation late (→ Obligations), the signed amendment (→ Bring it up), the notice day',
       JSON.stringify(rk) === JSON.stringify(['late', 'amend', 'notice']) && /^1 obligation is late: Check the September invoice, 7 days\. ?ours · due /.test(P7.rows[0].t) && P7.rows[0].b === 'Obligations'
-      && /^Amendment No\. 1, signed .*: the value is KES 7\.10M as amended\.$/.test(P7.rows[1].t) && P7.rows[1].b === 'Bring it up' && /^Notice by .*, or it renews for 12 months\.$/.test(P7.rows[2].t), JSON.stringify(P7 && P7.rows));
+      /* RE-POINTED (pass 4, round 7 as drawn: "Amendment 1, signed 28 Sep, raised the volume 10%"): what it did, in its maker's words, then the value */
+      && /^Amendment No\. 1, signed .*: “raised the yearly volume by 10%” — the value is KES 7\.10M as amended\.$/.test(P7.rows[1].t) && P7.rows[1].b === 'Bring it up' && /^Notice by .*, or it renews for 12 months\.$/.test(P7.rows[2].t), JSON.stringify(P7 && P7.rows));
     check('2c chips obligations · history · amend, and the box asks about MK-0377', !!P7 && JSON.stringify(P7.chips) === JSON.stringify(['obligations', 'history', 'amend']) && P7.ph === 'Ask about MK-0377…', JSON.stringify(P7 && { chips: P7.chips, ph: P7.ph }));
     check('2d the page as drawn: the stage pill, "signed <day>", "As amended by" first, a late next obligation in the late colour saying how late, "Open the paper"',
       !!P7 && P7.stage === 'Executed' && /· signed \d/.test(P7.idline) && /^As amended by MK-0377-A1/.test(P7.value) && P7.next && P7.next.bad && /· 7 days late$/.test(P7.next.sub) && P7.sfoot === 'Open the paper',
@@ -267,8 +299,9 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     check('3b chips: the question worth asking, and redline; the box asks about its history', !!P12 && JSON.stringify(P12.chips) === JSON.stringify(['what changed in round 1', 'redline']) && P12.ph === 'Ask about MK-0382\'s history…', JSON.stringify(P12 && { chips: P12.chips, ph: P12.ph }));
     check('3c the head: "Newest first · our side left, theirs right · N events · 2 open changes" over one toolbar — search, Filter, Show the wording, ⋯ named "More"',
       !!P12 && /^Newest first · our side left, theirs right · \d+ events · 2 open changes$/.test(P12.cap.trim()) && JSON.stringify(P12.order) === JSON.stringify(['hist-q', 'hist-filter-btn', 'hist-detail', 'hist-more']) && P12.moreAria === 'More' && P12.moreText === '', JSON.stringify(P12 && { cap: P12.cap, order: P12.order, aria: P12.moreAria }));
-    check('3d the day\'s pill as drawn ("Sun 18 Oct"), a change\'s entry in words, the time and the person joined by a dot',
-      !!P12 && /^[A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2,3}$/.test(P12.pill) && P12.text.some(t => /^Proposed a change to clause \d+, .+: 30 days to 60 days$/.test(t)) && P12.sep, JSON.stringify(P12 && { pill: P12.pill, text: P12.text, sep: P12.sep }));
+    /* RE-POINTED (pass 4, round 12 as drawn: "Today, Mon 19 Oct"): today's pill says so */
+    check('3d the day\'s pill as drawn ("Today, Sun 18 Oct"), a change\'s entry in words, the time and the person joined by a dot',
+      !!P12 && /^Today, [A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2,3}$/.test(P12.pill) && P12.text.some(t => /^Proposed a change to clause \d+, .+: 30 days to 60 days$/.test(t)) && P12.sep, JSON.stringify(P12 && { pill: P12.pill, text: P12.text, sep: P12.sep }));
     check('5f History: one ⋯ (the toolbar\'s), none on the head; the trail runs inside the card, no box or scroll of its own',
       !!P12 && P12.headDots === 0 && !!P12.trail && P12.trail.mh === 'none' && P12.trail.ov === 'visible' && P12.trail.bw === '0px' && P12.trail.inside, JSON.stringify(P12 && { dots: P12.headDots, trail: P12.trail }));
     if (OUT) await page.screenshot({ path: path.join(OUT, '12-history-panel-1440x780.png') });
@@ -284,25 +317,169 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     await press('#ig-dock [data-pd-cg-go="red"]');
     const red = await until(() => window.intel && intel.paper && intel.paper.id === 'MK-0382' && window.pdRedShows && pdRedShows(), null, 15000);
     check('3g its Redlines door opens Jambo\'s Redlines face on that contract', !!red);
-    /* pass 3: round 1 decided and closed, round 2 open — the decided chip, and Newest says what happened */
-    await page.evaluate(async () => {
+    /* pass 3: round 1 decided and closed, round 2 open — the decided chip, and Newest says what happened.
+       pass 4: the turn handed each way as the product hands it (negoHandOver), and the liability clause long */
+    await page.evaluate(async L => {
       const c = getContract('MK-0390'); if (c._light && window.ensureFull) await ensureFull(c);
       negoInit(c); const cl = negoClauseList(c);
-      for (const [i, html, sum] of [[1, '<p>Fees are invoiced quarterly.</p>', 'monthly to quarterly'], [2, '<p>Liability is capped at 80% of the fees paid in that year.</p>', '50% to 80%'], [3, '<p>Each correct invoice is paid within 45 days of receipt.</p>', '30 to 45 days']])
+      for (const [i, html, sum] of [[1, '<p>Fees are invoiced quarterly.</p>', 'monthly to quarterly'], [2, `<p>${L.replace('{p}', '80%')}</p>`, '50% to 80%'], [3, '<p>Each correct invoice is paid within 45 days of receipt.</p>', '30 to 45 days']])
         await negoEditClause(c, cl[i].clauseId, html, { side: 'counterparty', author: 'Per Nordvik', summary: sum });
+      try { negoHandOver(c, { to: 'owner', by: 'Per Nordvik' }); } catch (_) {}
       const pend = negoChanges(c).filter(x => x.status === 'pending');
       await negoResolve(c, pend[0].id, 'accepted'); await negoResolve(c, pend[1].id, 'rejected', { reply: 'no' }); await negoResolve(c, pend[2].id, 'rejected', { reply: 'no' });
       negoAdvanceRound(c);
+      try { negoHandOver(c, { to: 'counterparty' }); } catch (_) {}
       const cl2 = negoClauseList(c);
-      await negoEditClause(c, cl2[2].clauseId, '<p>Liability is capped at 100% of the fees paid in that year.</p>', { side: 'counterparty', author: 'Per Nordvik', summary: '50% to 100%' });
+      await negoEditClause(c, cl2[2].clauseId, `<p>${L.replace('{p}', '100%')}</p>`, { side: 'counterparty', author: 'Per Nordvik', summary: '50% to 100%' });
       await negoEditClause(c, cl2[3].clauseId, '<p>Each correct invoice is paid within 60 days of receipt.</p>', { side: 'counterparty', author: 'Per Nordvik', summary: '30 days to 60 days' });
+      try { negoHandOver(c, { to: 'owner', by: 'Per Nordvik' }); } catch (_) {}
       persist(c);
-    });
+    }, LONG_LIAB);
     await page.evaluate(() => { intel.paper = null; hbStripBring('MK-0390', 'hist'); });
     const R2 = await until(() => { const g = document.querySelector('#ig-dock #pd-histglance[data-pd-held-for="MK-0390"]'); if (!g) return null;
       return { chips: [...document.querySelectorAll('#ig-dock [data-pd-held-chips] button')].map(b => b.textContent.trim()), newest: ((g.querySelector('[data-pd-hg="recent"] small') || {}).textContent || '').trim() }; }, null, 10000);
     check('5g round 1 closed, round 2 open: "what changed in round 2 · who decided clause N · redline"; Newest says what happened, never "Negotiation"',
       !!R2 && R2.chips[0] === 'what changed in round 2' && /^who decided clause \d+$/.test(R2.chips[1] || '') && R2.chips[2] === 'redline' && /^Newest: /.test(R2.newest) && !/^Newest: Negotiation/.test(R2.newest), JSON.stringify(R2));
+
+
+    /* ===================== 6 PASS 4: THE CHECKER'S DIFFERENCES ===================== */
+    const tabN = () => page.evaluate(() => ({ tab: ((document.querySelector('#ig-dock .pd-tab[data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || '').trim(),
+      home: (typeof counterNeedsCount === 'function') ? String(counterNeedsCount() || '') : '' }));
+    /* 6a the History of a negotiation in its second round */
+    const H2 = await until(() => { const host = document.querySelector('#bs-strips [data-bs-host="hist"]'); if (!host || !host.querySelector('.hist-ev')) return null;
+      const texts = [...host.querySelectorAll('.hist-ev .hist-text')].map(x => x.textContent.replace(/\s+/g, ' ').trim());
+      const mid = [...host.querySelectorAll('.hist-ev.is-mid')];
+      return { texts, mid: mid.length, midWho: mid.filter(m => m.querySelector('.hist-who, .hist-pill, [class*="avatar"], [class*="-av"]')).length,
+        rchip: host.querySelectorAll('.hist-rchip').length, fp: host.querySelectorAll('.hist-fp').length,
+        pill: ((host.querySelector('.hist-day-h') || {}).textContent || '').trim() }; }, null, 10000);
+    const backN = H2 ? H2.texts.filter(t => /^Sent round 1 back to .+: 3 answers$/.test(t)).length : -1;
+    const r1N = H2 ? H2.texts.filter(t => /round 1/i.test(t) && /(back|closed|ended|sent)/i.test(t)).length : -1;
+    const cameN = H2 ? H2.texts.filter(t => /^Their round 2 came back: 2 changes$/.test(t)).length : -1;
+    check('6a History says a round sent back once ("Sent round 1 back to …: 3 answers") and "Their round 2 came back: 2 changes"; no round chip; today\'s pill "Today, …"',
+      backN === 1 && r1N === 1 && cameN === 1 && H2.rchip === 0 && /^Today, /.test(H2.pill), JSON.stringify(H2 && { backN, r1N, cameN, rchip: H2.rchip, pill: H2.pill, texts: H2.texts.slice(0, 12) }));
+    check('6b the middle line\'s pills carry no initials and no outcome', !!H2 && H2.mid >= 1 && H2.midWho === 0, JSON.stringify(H2 && { mid: H2.mid, midWho: H2.midWho }));
+    const n6 = await tabN();
+    check('6c his tab beside a History carries Home\'s own Needs-you number', !!n6.tab && n6.tab === n6.home, JSON.stringify(n6));
+    /* the filters: only what the trail has; Clear greys at rest on the band's grey */
+    await press('#hist-filter-btn');
+    const F6 = await until(() => { const b = document.getElementById('hist-filters'); if (!b || b.hidden) return null; const band = b.querySelector('.hist-filters'), cl = document.getElementById('ht-clear');
+      const opt = k => { const s = b.querySelector(`select[data-ht-filter="${k}"]`); return s ? [...s.options].map(o => o.value).filter(Boolean) : null; };
+      return { outcome: opt('outcome'), opens: opt('opens'), person: opt('actor'), round: opt('round'), clear: cl ? { dis: cl.disabled, title: cl.title } : null,
+        bandBg: band ? getComputedStyle(band).backgroundColor : '', clearBg: cl ? getComputedStyle(cl).backgroundColor : '' }; }, null, 5000);
+    check('6d Filter lists only what the trail has (Outcome: no Withdrawn or Counter here, Opens not offered where nothing was opened); Clear greyed at rest on a grey band',
+      !!F6 && Array.isArray(F6.outcome) && F6.outcome.includes('accepted') && F6.outcome.includes('rejected') && !F6.outcome.includes('withdrawn') && !F6.outcome.includes('counter')
+      && F6.opens === null && Array.isArray(F6.round) && F6.round.length === 2 && !!F6.clear && F6.clear.dis && !!F6.clear.title && F6.bandBg !== 'rgb(255, 255, 255)' && F6.bandBg !== 'rgba(0, 0, 0, 0)', JSON.stringify(F6));
+    await page.selectOption('#hist-filters select[data-ht-filter="outcome"]', 'accepted').catch(() => {});
+    const clr = await until(() => { const cl = document.getElementById('ht-clear'); return cl && !cl.disabled ? true : null; }, null, 4000);
+    await press('#ht-clear');
+    const clrd = await until(() => { const cl = document.getElementById('ht-clear'), s = document.querySelector('#hist-filters select[data-ht-filter="outcome"]'); return cl && cl.disabled && (!s || !s.value) ? true : null; }, null, 4000);
+    check('6e a choice makes Clear pressable, and Clear puts it back', !!clr && !!clrd, JSON.stringify({ clr, clrd }));
+    /* the ⋯ menu as drawn */
+    await press('#hist-more');
+    const M6 = await until(() => { const m = document.getElementById('hist-more-menu'); if (!m || m.classList.contains('hidden')) return null;
+      return { groups: [...m.querySelectorAll('.hist-mg')].map(g => g.textContent.trim()), rows: [...m.querySelectorAll('button')].map(b => ({ id: b.id, b: ((b.querySelector('b') || {}).textContent || '').trim(), l: ((b.querySelector('small') || {}).textContent || '').trim(), svg: !!b.querySelector('svg') })),
+        w: Math.round(m.getBoundingClientRect().width) }; }, null, 4000);
+    check('6f ⋯ as drawn: "This contract" over Verify · Export · Print, each with its line and no symbol; then the whole trail, for an admin',
+      !!M6 && M6.groups[0] === 'This contract' && JSON.stringify(M6.rows.map(r => r.id)) === JSON.stringify(['ht-verify', 'ht-export', 'ht-print', 'ht-trail']) && M6.rows.every(r => r.b && r.l && !r.svg) && M6.groups.length === 2 && M6.w >= 280 && M6.w <= 320, JSON.stringify(M6));
+    await page.keyboard.press('Escape'); await press('#hist-more').catch(() => {});
+    await page.evaluate(() => { const m = document.getElementById('hist-more-menu'); if (m && !m.classList.contains('hidden')) m.classList.add('hidden'); });
+    /* Show the wording: the change's marks, cut around the edit, no fingerprint */
+    await press('#hist-detail');
+    const W6 = await until(() => { const r = [...document.querySelectorAll('#bs-strips .hist-redline')]; if (!r.length) return null;
+      return { n: r.length, cut: r.some(x => /…/.test(x.textContent) && !!x.querySelector('ins, del, .rl-ins, .rl-del, [class*="ins"], [class*="del"]')), fp: document.querySelectorAll('#bs-strips .hist-fp').length, hex: r.some(x => /0x[0-9a-f]{8,}/i.test(x.textContent)),
+        long: r.some(x => /indirect loss whatsoever arising under this agreement/.test(x.textContent)) }; }, null, 5000);
+    check('6g Show the wording: the marks with the long clause cut around the edit ("…"), no fingerprint printed', !!W6 && W6.cut && !W6.long && W6.fp === 0 && !W6.hex, JSON.stringify(W6));
+    if (OUT) await page.screenshot({ path: path.join(OUT, 'pass4-12-history-wording-1440x780.png') });
+    await press('#hist-detail');
+
+    /* 6h a scroll near the wall's foot brings the next papers, as Show more does */
+    await page.setViewportSize({ width: 1440, height: 600 }); await page.waitForTimeout(300);
+    await page.evaluate(() => { intel.paper = null; if (window.igWallMoreReset) igWallMoreReset(); hbOpenContracts(); if (window.igWallLetGo) igWallLetGo(); });
+    await until(() => document.querySelectorAll('#ig-wall .igw-card').length >= 12, null, 8000);
+    const leads = () => page.evaluate(() => [...document.querySelectorAll('#ig-wall .igw-card')].filter(b => { const c = getContract(b.getAttribute('data-ig-pick')); return c && !c.parentId; }).length);
+    const before = await leads();
+    const scrolled = await page.evaluate(() => { let e = document.getElementById('ig-wall');
+      while (e && e !== document.body){ const cs = getComputedStyle(e); if (/(auto|scroll)/.test(cs.overflowY) && e.scrollHeight > e.clientHeight + 4) break; e = e.parentElement; }
+      const sc = (e && e !== document.body) ? e : document.scrollingElement; const was = sc.scrollTop; sc.scrollTop = sc.scrollHeight; return { was, now: sc.scrollTop, id: sc.id || sc.className || sc.tagName }; });
+    const after = await until(n => { const k = [...document.querySelectorAll('#ig-wall .igw-card')].filter(b => { const c = getContract(b.getAttribute('data-ig-pick')); return c && !c.parentId; }).length; return k > n ? k : null; }, before, 5000);
+    check('6h a scroll that reaches the wall\'s foot brings the next papers (no press)', before === 12 && scrolled.now > scrolled.was && !!after && after > 12, JSON.stringify({ before, scrolled, after }));
+    await page.setViewportSize({ width: 1440, height: 780 }); await page.waitForTimeout(300);
+
+    /* 6i the signed supply agreement's page: its tile, its chips, a chip that lands */
+    await page.evaluate(() => { intel.paper = null; hbStripBring('MK-0377'); });
+    const T6 = await until(() => { const st = document.getElementById('bs-strip-MK-0377'), g = document.querySelector('#ig-dock #pd-cardglance[data-pd-held-for="MK-0377"]'); if (!st || !g || !st.querySelector('.bs-kpi')) return null;
+      return { ob: [...st.querySelectorAll('[data-bs-jcell="ob"] li')].map(x => x.textContent.trim()), chips: [...document.querySelectorAll('#ig-dock [data-pd-held-chips] button')].map(b => b.textContent.trim()) }; }, null, 10000);
+    check('6i What Jambo read says the obligations\' sides, without a first due day', !!T6 && JSON.stringify(T6.ob) === JSON.stringify(['1 ours · 1 theirs']), JSON.stringify(T6));
+    const n6b = await tabN();
+    check('6j his tab beside a page carries Home\'s own Needs-you number', !!n6b.tab && n6b.tab === n6b.home, JSON.stringify(n6b));
+    await press('#ig-dock [data-pd-held-chip="oblig"]');
+    const landedOb = await until(() => { const e = document.querySelector('#obw-one-host'); return e && (e.classList.contains('is-landed') || e.classList.contains('is-landed-held')) ? true : null; }, null, 10000);
+    check('6k a chip lands on what it opens, lit (obligations → this contract\'s own table)', !!landedOb);
+
+    /* 6l Details: the value as amended with the signed figure, whole; the renewal whole; Filing; People; Related agreements */
+    await page.evaluate(() => { intel.paper = null; hbStripBring('MK-0377', 'details'); });
+    const D6 = await until(() => { const st = document.querySelector('#bs-strips .bs-details'); if (!st || !st.querySelector('#ov-ess') || !st.querySelector('#ov-filing-rest')) return null;
+      const cutUp = el => { for (let e = el, i = 0; e && i < 3; e = e.parentElement, i++) if (e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).overflowX !== 'visible') return true; return false; };
+      const sg = st.querySelector('.ov-amd-signed'), rn = st.querySelector('.ov-rn-by');
+      const fam = st.querySelector('.fam-drawn-wrap');
+      return { value: sg ? sg.parentElement.textContent.replace(/\s+/g, ' ').trim() : null, valueCut: sg ? cutUp(sg) : null, renew: rn ? rn.parentElement.textContent.replace(/\s+/g, ' ').trim() : null, renewCut: rn ? cutUp(rn) : null,
+        filing: [...st.querySelectorAll('#ov-filing-rest .ov-fk')].map(x => x.textContent.trim()), refile: ((st.querySelector('#ov-filing-rest [data-ov-fil-refile]') || {}).textContent || '').trim(),
+        people: !!st.querySelector('#ov-people-rest'),
+        fam: fam ? { rows: [...fam.querySelectorAll('.fam-drow')].map(r => r.textContent.replace(/\s+/g, ' ').trim()), btns: fam.querySelectorAll('button').length, bring: fam.querySelectorAll('[data-fam-bring]').length } : null }; }, null, 12000);
+    check('6l Details reads the value as amended with the signed figure beside it, whole; the renewal whole',
+      !!D6 && /^KES 7\.10M as amended ?KES 6\.40M signed$/.test(D6.value || '') && D6.valueCut === false && !!D6.renew && D6.renewCut === false, JSON.stringify(D6 && { value: D6.value, valueCut: D6.valueCut, renew: D6.renew, renewCut: D6.renewCut }));
+    check('6m Details has a Filing section (Stream with Re-file, Category) and a People section',
+      !!D6 && D6.filing[0] === 'Stream' && D6.filing.includes('Category') && D6.refile === 'Re-file' && D6.people, JSON.stringify(D6 && { filing: D6.filing, refile: D6.refile, people: D6.people }));
+    check('6n Related agreements are rows — ref, what it is, when signed — each with Bring it up and no other door',
+      !!D6 && !!D6.fam && D6.fam.rows.length === 1 && /^MK-0377-A1Amendment No\. 1 · signed .+Bring it up$/.test(D6.fam.rows[0]) && D6.fam.btns === D6.fam.bring && D6.fam.bring === 1, JSON.stringify(D6 && D6.fam));
+    if (OUT){ await page.evaluate(() => { const e = document.querySelector('#ov-filing-rest'); if (e) e.scrollIntoView({ block: 'center' }); }); await page.waitForTimeout(250); await page.screenshot({ path: path.join(OUT, 'pass4-7-details-1440x780.png') }); }
+    await press('#bs-strips .fam-drawn-wrap [data-fam-bring="MK-0377-A1"]');
+    const famLand = await until(() => { const e = document.getElementById('bs-strip-MK-0377-A1'); return window.bsCardId && bsCardId() === 'MK-0377-A1' && e && (e.classList.contains('is-landed') || e.classList.contains('is-landed-held')) ? true : null; }, null, 10000);
+    check('6o Bring it up brings the amendment\'s page and lands on it, lit', !!famLand);
+
+    /* 6p a private contract: the CFO's employment agreement, its stream made private (admin and one colleague named) */
+    await page.evaluate(async () => { const me = currentUser(); const other = (getUsers() || []).find(u => String(u.id) !== String(me.id));
+      await api('private-streams/corp', 'PUT', { on: true, ids: [me.id].concat(other ? [other.id] : []) }); });
+    await page.reload({ waitUntil: 'networkidle' });
+    await until(() => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-0399') && typeof streamIsPrivate === 'function' && streamIsPrivate('corp'), null, 20000);
+    await page.evaluate(() => { if (window.intel) intel.paper = null; hbStripBring('MK-0399'); });
+    const P6 = await until(() => { const st = document.getElementById('bs-strip-MK-0399'), g = document.querySelector('#ig-dock #pd-cardglance[data-pd-held-for="MK-0399"]'); if (!st || !g) return null;
+      return { head: ((st.querySelector('.bs-head .bs-lockp') || {}).textContent || '').trim(), glHead: ((g.querySelector('.pd-gl-h .bs-lockp') || {}).textContent || '').trim(),
+        rows: [...g.querySelectorAll('.pd-gl-row')].map(r => ({ k: r.getAttribute('data-pd-cg'), t: ((r.querySelector('span') || {}).textContent || '').replace(/\s+/g, ' ').trim(), b: ((r.querySelector('button') || {}).textContent || '').trim() })),
+        chips: [...document.querySelectorAll('#ig-dock [data-pd-held-chips] button')].map(b => ({ w: b.textContent.trim(), k: b.getAttribute('data-pd-held-chip') })) }; }, null, 12000);
+    check('6p a private contract wears "Private · <stream>" on its head and its glance', !!P6 && /^Private · .+/.test(P6.head) && P6.head === P6.glHead, JSON.stringify(P6 && { head: P6.head, glHead: P6.glHead }));
+    const pk = P6 ? P6.rows.map(r => r.k) : [];
+    check('6q its glance says who may open it, the details still to fill (Fill in) and that nobody is named to sign (Signing)',
+      !!P6 && pk[0] === 'private' && /^Private · .+\. Only .+ open it; every open is recorded\.$/.test(P6.rows[0].t)
+      && pk.includes('details') && P6.rows[pk.indexOf('details')].t === '1 detail to fill: the start date.' && P6.rows[pk.indexOf('details')].b === 'Fill in'
+      && pk.includes('signer') && P6.rows[pk.indexOf('signer')].t === 'Nobody is named to sign yet.' && P6.rows[pk.indexOf('signer')].b === 'Signing', JSON.stringify(P6 && P6.rows));
+    check('6r its chips follow what it owes — fill in · pay · who can open it — not the signed agreement\'s',
+      !!P6 && JSON.stringify(P6.chips.map(c => c.k)) === JSON.stringify(['fill', 'pay', 'access']) && P6.chips[1].w === 'pay' && P6.chips[2].w === 'who can open it'
+      && !!T6 && JSON.stringify(T6.chips) !== JSON.stringify(P6.chips.map(c => c.w)), JSON.stringify(P6 && { chips: P6.chips, signed: T6 && T6.chips }));
+    if (OUT) await page.screenshot({ path: path.join(OUT, 'pass4-7-page-private-1440x780.png') });
+    /* its History leads with its wall; nothing has been shared yet */
+    await page.evaluate(() => hbStripBring('MK-0399', 'hist'));
+    const PH = await until(() => { const g = document.querySelector('#ig-dock #pd-histglance[data-pd-held-for="MK-0399"]'); const host = document.querySelector('#bs-strips [data-bs-host="hist"]'); if (!g || !host || !host.querySelector('.hist-ev')) return null;
+      const c = getContract('MK-0399');
+      return { rows: [...g.querySelectorAll('.pd-gl-row')].map(r => ({ k: r.getAttribute('data-pd-hg'), t: ((r.querySelector('span') || {}).textContent || '').replace(/\s+/g, ' ').trim() })),
+        opened: Array.isArray(c._opens) ? c._opens.length : 0 }; }, null, 12000);
+    await press('#hist-filter-btn');
+    const PHf = await until(() => { const b = document.getElementById('hist-filters'); return b && !b.hidden ? { opens: !!b.querySelector('select[data-ht-filter="opens"]') } : null; }, null, 4000);
+    check('6s a private contract\'s History leads with its wall ("…every open is in this History."), says nothing was shared yet, and offers Opens only where it was opened',
+      !!PH && PH.rows[0] && PH.rows[0].k === 'private' && /every open is in this History\./.test(PH.rows[0].t) && PH.rows.some(r => r.k === 'unshared' && r.t === 'Nothing has been shared with Annika Holm yet.')
+      && !!PHf && PHf.opens === (PH.opened > 0), JSON.stringify({ PH, PHf }));
+    if (OUT) await page.screenshot({ path: path.join(OUT, 'pass4-12-history-private-1440x780.png') });
+    /* its Details' Filing: the stream, private, and for an admin the door to who may open it */
+    await page.evaluate(() => hbStripBring('MK-0399', 'details'));
+    const PF = await until(() => { const f = document.querySelector('#bs-strips #ov-filing-rest'); if (!f) return null;
+      return { lock: ((f.querySelector('.bs-lockp') || {}).textContent || '').trim(), door: ((f.querySelector('[data-ov-fil-access]') || {}).textContent || '').trim(), refile: !!f.querySelector('[data-ov-fil-refile]'),
+        sub: ((f.querySelector('.ov-fs') || {}).textContent || '').trim() }; }, null, 10000);
+    check('6t a private contract\'s Filing says "Private", who is named, and gives an admin "Who may open it" in Re-file\'s place',
+      !!PF && PF.lock === 'Private' && PF.door === 'Who may open it' && !PF.refile && !!PF.sub, JSON.stringify(PF));
+    await press('#bs-strips #ov-filing-rest [data-ov-fil-access]');
+    const stLand = await until(() => { const e = document.querySelector('#st-ps'); return e && (e.classList.contains('is-landed') || e.classList.contains('is-landed-held')) ? true : null; }, null, 12000);
+    check('6u Who may open it lands on the stream\'s own access list, lit', !!stLand);
+    await page.keyboard.press('Escape').catch(() => {});
 
     /* ===================== 4 THE OWNER'S THREE SCREENS ===================== */
     const shotsDir = OUT || '';
@@ -312,6 +489,12 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
         await until(() => !!document.querySelector('#ig-dock #pd-chosen'), null, 4000); return '#ig-dock #pd-chosen'; }],
       ['7-page-glance', async () => { await page.evaluate(() => hbStripBring('MK-0377')); await until(() => !!document.querySelector('#ig-dock #pd-cardglance') && !!document.querySelector('#bs-strip-MK-0377 .bs-kpi'), null, 8000); return '#ig-dock #pd-cardglance'; }],
       ['12-history-panel', async () => { await page.evaluate(() => hbStripBring('MK-0382', 'hist')); await until(() => !!document.querySelector('#ig-dock #pd-histglance') && !!document.querySelector('#bs-strips .hist-ev'), null, 8000); return '#ig-dock #pd-histglance'; }],
+      /* pass 4: the private contract's page and History, the signed one's Details, a second round's History */
+      ['pass4-7-page-private', async () => { await page.evaluate(() => hbStripBring('MK-0399')); await until(() => !!document.querySelector('#ig-dock #pd-cardglance[data-pd-held-for="MK-0399"]') && !!document.querySelector('#bs-strip-MK-0399'), null, 8000); return '#ig-dock #pd-cardglance'; }],
+      ['pass4-7-details', async () => { await page.evaluate(() => hbStripBring('MK-0377', 'details')); await until(() => !!document.querySelector('#bs-strips #ov-filing-rest'), null, 10000);
+        await page.evaluate(() => { const e = document.querySelector('#ov-filing-rest'); if (e) e.scrollIntoView({ block: 'center' }); }); return '#ig-dock #pd-cardglance'; }],
+      ['pass4-12-history-two-rounds', async () => { await page.evaluate(() => hbStripBring('MK-0390', 'hist')); await until(() => !!document.querySelector('#ig-dock #pd-histglance[data-pd-held-for="MK-0390"]') && !!document.querySelector('#bs-strips .hist-ev'), null, 8000); return '#ig-dock #pd-histglance'; }],
+      ['pass4-12-history-private', async () => { await page.evaluate(() => hbStripBring('MK-0399', 'hist')); await until(() => !!document.querySelector('#ig-dock #pd-histglance[data-pd-held-for="MK-0399"]') && !!document.querySelector('#bs-strips .hist-ev'), null, 8000); return '#ig-dock #pd-histglance'; }],
     ];
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(400);
@@ -320,10 +503,21 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
         const F = await page.evaluate(sel => { const el = document.querySelector(sel); const r = el && el.getBoundingClientRect();
           /* its first line under the tab row, never behind it: the feed starts at the card's top (pass 3) */
           const fd = document.getElementById('igd-feed'), ft = fd ? fd.getBoundingClientRect().top : 0;
+          /* pass 4: the chosen paper's doors whole and inside the panel (1536×730 cut them) */
+          const dock = document.getElementById('ig-dock'), dr = dock ? dock.getBoundingClientRect() : null;
+          const doors = [...document.querySelectorAll('#ig-dock #pd-chosen button, #ig-dock #pd-cardglance button, #ig-dock #pd-histglance button')];
+          /* pass 4: no mark's line runs through a label on the life line (at 1366 wide Today's ran through "A|mendment No. 1") */
+          const through = [];
+          document.querySelectorAll('#bs-strips svg').forEach(svg => { const labs = [...svg.querySelectorAll('text.bs-lab')];
+            svg.querySelectorAll('line.bs-tick').forEach(t => { const tr = t.getBoundingClientRect(), own = ((t.querySelector('title') || {}).textContent || '').trim();
+              labs.forEach(L => { if (L.textContent.trim() === own) return; const lr = L.getBoundingClientRect();
+                if (tr.left > lr.left + 1 && tr.left < lr.right - 1 && tr.bottom > lr.top + 1 && tr.top < lr.bottom - 1) through.push(own + ' through ' + L.textContent.trim()); }); }); });
           return { panel: !!r && r.top >= 0 && r.top >= ft - 1 && r.bottom <= innerHeight + 1 && r.right <= innerWidth + 1, side: document.documentElement.scrollWidth <= innerWidth + 1,
             head: !!document.querySelector('#ig-dock .igd-head-w'),
-            cut: [...document.querySelectorAll('#ig-dock .pd-ch-needs small, #ig-dock [data-pd-held-chips] button')].some(x => x.scrollWidth > x.clientWidth + 1) }; }, sel);
-        check(`4 ${w}×${ht} ${name}: the panel's card in view, its head named, nothing sideways, nothing cut`, F.panel && F.side && F.head && !F.cut, JSON.stringify(F));
+            cut: [...document.querySelectorAll('#ig-dock .pd-ch-needs small, #ig-dock [data-pd-held-chips] button')]/* against the border box: a button's own edge is not a cut */ .concat(doors).some(x => x.offsetParent && x.scrollWidth > x.offsetWidth + 1),
+            outside: dr ? doors.filter(b => b.offsetParent && b.getBoundingClientRect().right > dr.right + 1).map(b => b.textContent.trim()) : [], through }; }, sel);
+        check(`4 ${w}×${ht} ${name}: the panel's card in view, its head named, nothing sideways, nothing cut, every door inside the panel`, F.panel && F.side && F.head && !F.cut && !F.outside.length, JSON.stringify(F));
+        if (/7-page/.test(name)) check(`4 ${w}×${ht} ${name}: no mark's line runs through a label on the life line`, !F.through.length, JSON.stringify(F.through));
         if (shotsDir) await page.screenshot({ path: path.join(shotsDir, `${name}-${w}x${ht}.png`) });
       }
     }

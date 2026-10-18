@@ -170,8 +170,10 @@ const book = page => page.evaluate(() => state.contracts.map(c => c.id).sort().j
     check(trail, '7a the contract\'s History draws its opens');
     const t7 = await R.page.evaluate(() => ({ cap: (document.querySelector('.hist-cap') || {}).textContent || '',
       eye: !!document.querySelector('.hist-ev.is-open .hist-dot.is-eye svg'),
-      named: [...document.querySelectorAll('.hist-ev')].some(e => /Added themself to/.test(e.textContent)),
-      who: [...document.querySelectorAll('.hist-ev.is-open .hist-who')].map(x => x.textContent.trim()) }));
+      /* RE-POINTED (B1 pass 4, round 12's middle line as drawn: one quiet pill "08:52 · Maria Lindgren: opened the contract",
+         no initials, so no .hist-who): the person is read off the pill's own words */
+      named: [...document.querySelectorAll('.hist-ev')].some(e => /added themself to/i.test(e.textContent)),
+      who: [...document.querySelectorAll('.hist-ev.is-open .hist-text')].map(x => x.textContent.replace(/\s+/g, ' ').trim()) }));
     check(t7.eye && /open/i.test(t7.cap), '7b each open wears the eye, and the head counts the opens', t7.cap.trim());
     check(t7.named && t7.who.some(w => /Restricted Legal/.test(w)), '7c the folder\'s own record is in the trail: the admin adding themself, and who opened it', JSON.stringify(t7.who));
     await R.page.evaluate(() => document.querySelector('.hist-head').scrollIntoView({ block: 'start' }));

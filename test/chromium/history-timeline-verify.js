@@ -244,8 +244,9 @@ const PROBE = `(() => {
         const o = d.getFullYear() === now.getFullYear() ? { weekday: 'short', day: 'numeric', month: 'short' } : { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
         return new Intl.DateTimeFormat(loc, o).formatToParts(d).filter(x => x.type !== 'literal').map(x => x.value).join(' '); };
       return { today: f('today'), earlier: f('three days ago'), year: f('a year ago') }; }, id);
-    ok('2a today\'s entry sits under a pill naming its day', !!rT.head && rT.head === full.today,
-      `${JSON.stringify(rT.head)} · expected ${JSON.stringify(full.today)}`);
+    /* RE-POINTED (B1 pass 4, round 12 as drawn: "Today, Mon 19 Oct"): today's pill says so before the day */
+    ok('2a today\'s entry sits under a pill naming its day, "Today, <day>"', !!rT.head && rT.head === `Today, ${full.today}`,
+      `${JSON.stringify(rT.head)} · expected ${JSON.stringify('Today, ' + full.today)}`);
     ok('2b and the row carries its time, in the product\'s one clock', rT.time === expect.today.time
       && /\d{1,2}[:.]\d{2}/.test(rT.time || ''), `${JSON.stringify(rT.time)} · expected ${JSON.stringify(expect.today.time)}`);
     ok('2c an earlier day has its own heading', !!rE.head && rE.head === full.earlier && rE.time === expect.earlier.time,

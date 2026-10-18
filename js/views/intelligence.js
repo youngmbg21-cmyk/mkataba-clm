@@ -8182,8 +8182,9 @@ function igWallScrollNear(sc){
 }
 if(typeof document!=='undefined'&&!document._igWallScrollWired){
   document._igWallScrollWired=true;
+  /* the wall's own box scrolls on the desk, or a box around it does */
   document.addEventListener('scroll',e=>{ const sc=e.target&&e.target.nodeType===1?e.target:document.scrollingElement;
-    if(sc&&sc.querySelector&&sc.querySelector('#ig-wall')) igWallScrollNear(sc); },true);
+    if(sc&&(sc.id==='ig-wall'||(sc.querySelector&&sc.querySelector('#ig-wall')))) igWallScrollNear(sc); },true);
 }
 /* the sort the list is in, said after the count ("newest first" for the
    book's own order, else the Sort box's own words) */

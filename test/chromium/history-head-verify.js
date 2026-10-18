@@ -227,8 +227,12 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
        layout; the trail's rows are direct children of the pane. What this
        press means is unchanged: somewhere outside the menu. (15 Oct 2026:
        the menu holds three rows again and covers the first row, so the
-       press is on the trail's last row.) */
-    await page.click('#bs-strips [data-bs-host="hist"] .hist-ev >> nth=-1');
+       press is on the trail's last row.)
+       RE-POINTED (B1 pass 4, round 12's menu as drawn: each act with its line
+       under it, about 290px tall, so it may cover the last rows of a short or
+       narrowed trail): the press is on the "Ours" lane head, at the left,
+       never under a menu that opens at the toolbar's right end. */
+    await page.click('#bs-strips [data-bs-host="hist"] .hist-lh.is-l');
     await page.waitForTimeout(300);
     const closed = await page.evaluate(`(() => {
       const seen = ${SEEN};
@@ -276,8 +280,9 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
     /* RE-POINTED 24 Aug 2026 — .hist-rail went with the two-column
        layout; the trail's rows are direct children of the pane. What this
        press means is unchanged: somewhere outside the menu (the last row: the
-       three-row menu covers the first, 15 Oct 2026). */
-    await page.click('#bs-strips [data-bs-host="hist"] .hist-ev >> nth=-1');
+       three-row menu covers the first, 15 Oct 2026). RE-POINTED (B1 pass 4):
+       the "Ours" lane head, as above — the drawn menu covers a narrowed trail. */
+    await page.click('#bs-strips [data-bs-host="hist"] .hist-lh.is-l');
     await page.waitForTimeout(300);
     const stillCloses = await page.evaluate(`!!(${SEEN}(document.getElementById('hist-more-menu')) || {}).on`);
     check('after three repaints the menu still opens and shuts on one press each',

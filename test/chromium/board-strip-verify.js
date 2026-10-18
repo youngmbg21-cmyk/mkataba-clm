@@ -272,8 +272,9 @@ const OBS = [
     check('2o the table scrolls in its own box (about seven rows, sticky head), the card does not grow with it; the next one marked first',
       R.obs.rows === R.want.n && R.obs.sh > R.obs.h + 10 && R.obs.h <= 7 * Math.max(R.obs.rowH, 30) + 60 && R.obs.sticky === 'sticky' && R.obs.next === 0 && R.obs.nextTxt.includes(R.want.nextWhat), JSON.stringify(R.obs));
     check('2p what Jambo read: the brief\'s first sentence, read on arrival from the file', R.jb.brief === R.want.brief && /Packaging Film Supply Agreement\.docx/.test(R.jb.note), JSON.stringify({ brief: R.jb.brief, note: R.jb.note }));
+    /* RE-POINTED (B1 pass 4, round 7 as drawn: "Our standards 7 of 8 · 1 differs"): the figure says "k of n", the word "met" left to the tile's name */
     check('2q risks found: the one count (riskOpenOf) and their titles; standards met / missing / differs; details; obligations found',
-      R.jb.risks === String(R.want.risks) && R.want.risks === 2 && R.jb.riskItems.includes('Liability is not capped') && R.jb.std === '2 of 4 met' && /1 missing/.test(R.jb.stdItems) && /1 differs/.test(R.jb.stdItems)
+      R.jb.risks === String(R.want.risks) && R.want.risks === 2 && R.jb.riskItems.includes('Liability is not capped') && R.jb.std === '2 of 4' && /1 missing/.test(R.jb.stdItems) && /1 differs/.test(R.jb.stdItems)
       && R.jb.det === String(R.want.det) && R.jb.ob === String(R.want.n), JSON.stringify(R.jb));
     check('2r every cell carries its door into Home', ['risks', 'std', 'oblig'].every(k => R.jb.doors.includes(k)) && (R.want.det ? R.jb.doors.includes('fill') : true), JSON.stringify(R.jb.doors));
     /* RE-POINTED 18 Oct 2026 (round 7 as drawn): "Open the paper" */
