@@ -130,3 +130,41 @@ describe('f787 (5) the tabs inside the head card', () => {
     assert.ok(g.$('st-tr-past'), 'The trail is back');
   });
 });
+
+/* ---- THE SECOND PASS (18 Oct 2026): the checker's differences against the
+   picked drawing, built. AT THE PARENT (8dc306a) every test below fails. ---- */
+describe('f787 (6) Data & backup opens on The trail; Jambo counts it on either tab', () => {
+  test('6a Housekeeping\'s "Data & backup ›" lands on The trail; a door naming Backup still lands there', async () => {
+    const g = settingsStage({ reply: (r) => { if (r === 'trail/exports') return { exports: EXPORTS, total: 7 }; if (/^trail\/summary\?/.test(r)) return SUM; return null; } });
+    g.sb.settingsGoTab('company');
+    g.click(g.q('[data-st-card="house"] .st-door[data-st-page="data"]')); await settle(g);
+    assert.equal(g.q('[data-st-bk-tab].is-on').getAttribute('data-st-bk-tab'), 'trail', 'The trail lit');
+    assert.equal(g.q('#set-page').getAttribute('data-st-sub'), 'data', 'the page starts at its own name');
+    g.sb.settingsGoPage(''); g.sb.stDrawerOpen('backup'); await settle(g);
+    assert.equal(g.q('[data-st-bk-tab].is-on').getAttribute('data-st-bk-tab'), 'backup');
+  });
+  test('6b on Backup, Jambo still says the trail\'s count — it is read whichever tab is in front', async () => {
+    const g = data({ door: 'backup' }); await settle(g);
+    assert.ok(g.$('bk-export'), 'Backup in front');
+    assert.ok(g.log.api.some(a => /^trail\/summary\?/.test(a.route)), 'the count was asked');
+    assert.match(g.text(g.q('#st-jb-feed [data-st-jb-hello] .st-jb-bub')), /^The trail for Q3 2026 has 1,234 acts/);
+  });
+  test('6c while he counts, the ring turns; a count that cannot be read is said, never "counting" for ever', async () => {
+    const wait = data({ before: sb => { sb.busyHtml = t => '<span class="ob-spin" aria-hidden="true"></span>' + t; },
+      reply: r => /^trail\/summary\?/.test(r) ? new Promise(() => {}) : null });
+    /* the stage's own reply answers the summary first; ask again with one that never comes */
+    wait.sb.stJbDataRepaint();
+    const bub = () => wait.q('#st-jb-feed [data-st-jb-hello] .st-jb-bub');
+    require('node:vm').runInContext('_stTr.sum=null;_stTr.sumKey="";_stTr.sumErr="";', wait.sb); wait.sb.stJbDataRepaint();
+    assert.ok(bub().querySelector('.ob-spin'), 'the turning ring');
+    assert.match(wait.text(bub()), /^I am counting the trail for Q3 2026\./);
+    require('node:vm').runInContext('_stTr.sumErr="x";', wait.sb); wait.sb.stJbDataRepaint();
+    assert.equal(bub().querySelector('.ob-spin'), null);
+    assert.match(wait.text(bub()), new RegExp('^' + S.en.st_jb_tr_failed.replace('{period}', 'Q3 2026').replace(/[.]/g, '\\.')));
+  });
+  test('6d the Streams box says "All you can see", in both books', async () => {
+    const g = data(); await settle(g);
+    assert.equal(g.text(g.q('#st-tr-stream option[value="all"]')), 'All you can see');
+    assert.equal(S.sv.st_tr_all, 'Allt du kan se');
+  });
+});

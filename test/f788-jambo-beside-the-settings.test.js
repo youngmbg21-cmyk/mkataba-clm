@@ -94,7 +94,9 @@ describe('f788 (3) on Your settings', () => {
   test('3b a member: a company rule is an admin\'s, said with the door to ask', () => {
     const g = settingsStage({ role: 'legal', more: [{ id: 'u_a1', name: 'Sara Lind', role: 'admin', email: 's@h.t' }] });
     const bubs = g.qa('#st-jb-feed .st-jb-bub').map(b => g.text(b));
-    assert.equal(bubs[1], 'Company rules, such as signing limits, are Sara’s to change. I can send your question.', 'the one admin by first name');
+    /* as drawn ("I can send her your question"), by name: HaTi keeps no
+       one's pronoun, so it never guesses one */
+    assert.equal(bubs[1], 'Company rules, such as signing limits, are Sara’s to change. I can send Sara your question.', 'the one admin by first name');
     const ask = g.q('#st-jb-feed .st-jb-chip[data-st-ask-head]');
     assert.ok(ask, 'the door to ask');
     assert.equal(ask.textContent, 'ask an admin');
@@ -102,7 +104,7 @@ describe('f788 (3) on Your settings', () => {
   test('3c two admins: "an admin\'s"', () => {
     const g = settingsStage({ role: 'legal', more: [{ id: 'u_a1', name: 'Sara Lind', role: 'admin', email: 's@h.t' }, { id: 'u_a2', name: 'Per Holm', role: 'admin', email: 'p@h.t' }] });
     const bubs = g.qa('#st-jb-feed .st-jb-bub').map(b => g.text(b));
-    assert.equal(bubs[1], S.en.st_jb_rules_admin.replace('{who}', S.en.st_jb_an_admin));
+    assert.equal(bubs[1], S.en.st_jb_rules_admin.replace('{who}', S.en.st_jb_an_admin).replace('{to}', S.en.st_jb_an_admin_to));
   });
   test('3d suggestions off: no chips at all', () => {
     const g = settingsStage({ role: 'legal', me: { prefs: { jamboChips: false } } });

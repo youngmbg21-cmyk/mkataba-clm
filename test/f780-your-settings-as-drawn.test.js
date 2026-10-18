@@ -66,7 +66,8 @@ describe('f780 (3) Who you are', () => {
   test('3b a member\'s Role: their business role · their access — set by who set it, with Ask an admin', () => {
     const { q, text } = settingsStage({ role: 'legal', me: { bizRole: 'Legal counsel', roleBy: 'Amina Otieno', title: 'Counsel' } });
     const role = rowOf(sec(q, 'who'), S.en.st_you_role);
-    assert.match(text(role.querySelector('.st-sv')), /^Legal counsel · Editor — set by Amina Otieno$/);
+    /* "— set by Sara" (as drawn): the admin's first name */
+    assert.match(text(role.querySelector('.st-sv')), /^Legal counsel · Editor — set by Amina$/);
     assert.ok(role.querySelector('[data-st-ask-head="role"]'), 'Ask an admin about the role');
   });
   test('3c no record of who set it: "— set by an admin"; an admin\'s own row asks nobody', () => {
@@ -135,5 +136,31 @@ describe('f780 (6) whom you answer for', () => {
     assert.match(text(cover), /Their approvals and internal reviews — never their signing\. 1 waits now: Helio Energy’s approval\./);
     click(cover.querySelector('[data-st-away-open]'));
     assert.deepEqual(log.views, ['approvals'], 'Open it lands on Approvals & signing');
+  });
+});
+
+/* ---- THE SECOND PASS (18 Oct 2026): the checker's differences against the
+   picked drawing, built. AT THE PARENT (8dc306a) every test below fails. ---- */
+describe('f780 (7) the sheet as drawn: eight headings, and the list follows the reading', () => {
+  test('7a an Editor\'s sheet has the eight drawn headings; Company design is found by its name, not a ninth', () => {
+    const g = settingsStage({ role: 'legal' });
+    assert.deepEqual(g.qa('#set-page [data-st-toc]').map(b => g.text(b)),
+      ['st_you_away', 'st_you_who', 'st_you_signin', 'st_you_lang', 'st_you_told', 'st_you_work', 'st_you_toc_points', 'st_you_data'].map(k => S.en[k]));
+    assert.equal(g.q('#set-page [data-st-you-card="design"]'), null, 'no Company design on the sheet');
+    assert.ok(g.q('#st-list [data-st-you="design"]'), 'the Menu names it');
+  });
+  test('7b the contents list marks the heading being read as the sheet scrolls, and the last at the foot', () => {
+    const g = settingsStage({ role: 'legal' });
+    const sc = g.win.document.createElement('div'); sc.id = 'content-scroll'; g.win.document.body.appendChild(sc);
+    Object.defineProperties(sc, { clientHeight: { value: 600 }, scrollHeight: { value: 3000 }, scrollTop: { value: 300, writable: true } });
+    sc.getBoundingClientRect = () => ({ top: 0, height: 600, bottom: 600, left: 0, right: 900, width: 900 });
+    const secs = g.qa('#set-page .st-you-board [data-st-you-card]');
+    secs.forEach((s, i) => { s.getBoundingClientRect = () => ({ top: i * 400 - 300, height: 380, bottom: i * 400 + 80, left: 0, right: 600, width: 600 }); });
+    sc.dispatchEvent(new g.win.Event('scroll'));
+    const lit = () => g.text(g.q('#set-page [data-st-toc][aria-current="true"]'));
+    assert.equal(lit(), g.text(g.q(`#set-page [data-st-toc="${secs[1].getAttribute('data-st-you-card')}"]`)), 'the second heading, read a third of the way down');
+    sc.scrollTop = 2400;
+    sc.dispatchEvent(new g.win.Event('scroll'));
+    assert.equal(lit(), g.text(g.q(`#set-page [data-st-toc="${secs[secs.length - 1].getAttribute('data-st-you-card')}"]`)), 'at the foot of the page, the last');
   });
 });

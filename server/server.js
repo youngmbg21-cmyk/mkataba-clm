@@ -4055,6 +4055,8 @@ app.get('/api/bootstrap', auth, (req, res) => {
     accessReview: req.user.role === 'admin' ? arSummary(req.user) : undefined,
     away: awayBoot(req.user),
     keeping: req.user.role === 'admin' ? kpSummary(req.user) : undefined,
+    /* the day each clash in who may do what was first seen: an admin's */
+    clashSeen: req.user.role === 'admin' ? clashSeenBook() : undefined,
     /* Whether this workspace can send email at all. The server has always known
        it and reported it on individual screens — creating a share, opening a
        link, requesting a signing code — which meant the answer only ever
@@ -13132,6 +13134,27 @@ function arUse(people) {
   }
   return out;
 }
+/* ---- THE DAY A CLASH WAS FIRST SEEN (owner's answer 12, 18 Oct 2026) ----
+   A clash in who may do what is worked out live from the gates' own readings
+   (stClashes, js/views/settings.js) and warns; nothing is blocked. HaTi keeps
+   ONE fact about each, so its row in Needs your attention can say "since
+   14 Oct": the day it was first seen. An admin's page sends the clash keys it
+   sees; a key new here is stamped with the server's day, a key still there
+   keeps its day, a key gone is forgotten (the clash went away — come back, it
+   is new again). Ids and days only, no names; an admin's, like the list. */
+const CLASH_KEY_RE = /^clash:[a-z]{2,12}:[^\s<>"'`]{1,200}$/;
+const CLASH_SEEN_MAX = 200;
+const clashSeenBook = () => { const m = getSetting('clashSeen'); return (m && typeof m === 'object' && !Array.isArray(m)) ? m : {}; };
+app.post('/api/clashes/seen', auth, admin, (req, res) => {
+  const keys = req.body && req.body.keys;
+  if (!Array.isArray(keys)) return res.status(400).json({ error: 'Send the clash keys as a list.' });
+  if (keys.length > CLASH_SEEN_MAX) return res.status(400).json({ error: `At most ${CLASH_SEEN_MAX} clashes at a time.` });
+  const prev = clashSeenBook(), today = isoDay(new Date()), next = {};
+  [...new Set(keys.map(k => String(k == null ? '' : k)))].filter(k => CLASH_KEY_RE.test(k))
+    .forEach(k => { next[k] = /^\d{4}-\d{2}-\d{2}$/.test(String(prev[k] || '')) ? prev[k] : today; });
+  setSetting('clashSeen', next);
+  res.json({ seen: next });
+});
 app.get('/api/access-review', auth, admin, (req, res) => {
   const people = arPeople(req.user);
   res.json({ ...arSummary(req.user), use: arUse(people), idleDays: AR_IDLE_DAYS, now: now() });

@@ -61,7 +61,8 @@ describe('f785 (3) its cells as drawn', () => {
       before: sb => { sb.state.bizRoles = { roles: [{ id: 'sales', name: 'Sales', sys: 'legal', cap: 5000000 }], of: { u_two: 'sales' } }; } });
     const row = g.q('#st-sheet-card .st-sh-row[data-st-panel="person:u_two"]');
     assert.ok(row.querySelector('.st-sh-over'), 'red');
-    assert.match(g.text(row.querySelector('td:nth-child(3)')), /^KES 10,000,000 · role gives KES 5,000,000$/);
+    /* short money, the one shortener (as drawn: "SEK 10 M · role gives 5 M") */
+    assert.match(g.text(row.querySelector('td:nth-child(3)')), /^KES 10M · role gives KES 5M$/);
     assert.equal(g.text(row.querySelector('td:nth-child(2)')), 'Sales', 'the role column is the business role');
   });
   test('3c away, and who answers, under the name', () => {

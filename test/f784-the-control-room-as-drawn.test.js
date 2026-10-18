@@ -102,3 +102,108 @@ describe('f784 (4) the cards as drawn', () => {
   });
 });
 const vm = (sb, code) => require('node:vm').runInContext(code, sb);
+
+/* ---- THE SECOND PASS (18 Oct 2026): the checker's differences against the
+   picked drawing, built. AT THE PARENT (8dc306a) every test below fails. ---- */
+const LINA = () => [{ id: 'u_x', name: 'Ann Holm', role: 'legal', email: 'a@h.t', prefs: { mustChangePassword: true } },
+  { id: 'u_y', name: 'Lina Ek', role: 'legal', email: 'l@h.t', signCap: 10000000, overseerId: 'u_z' },
+  { id: 'u_z', name: 'Jonas Berg', role: 'legal', email: 'j@h.t', signCap: 5000000 }];
+const roleBook = sb => { sb.state.bizRoles = { roles: [{ id: 'sales', name: 'Sales', sys: 'legal', cap: 5000000, values: true, streams: 'all', checked: false, paper: false, refile: false, hold: false }], of: { u_y: 'sales' } }; };
+
+describe('f784 (5) the list, its "N more" and Jambo say the same number', () => {
+  test('5a a row that leaves after the paint: the tag, "N more" and Jambo\'s first words follow it', () => {
+    const g = company({ capOn: true, more: LINA() });
+    const was = g.sb.stNeedsAll().length;
+    assert.ok(was > 4, 'more rows than the list draws');
+    /* Ann takes up her invitation: a row the list does not draw goes */
+    g.sb.REMOTE.users.find(u => u.id === 'u_x').prefs = {};
+    g.sb.stSyncAttention();
+    const rows = g.sb.stNeedsAll().length, drawn = g.qa('#st-att .st-need[data-st-need]').length;
+    assert.equal(rows, was - 1);
+    assert.equal(g.text(g.q('#st-att .st-needs-n')), String(rows), 'the tag');
+    assert.equal(g.text(g.q('#st-att .st-need-more')), S.en.st_needs_more_other.replace('{n}', rows - drawn), '"N more" is the rows the list holds and does not draw');
+    assert.ok(g.text(g.q('#st-jb-feed [data-st-jb-hello] .st-jb-bub')).startsWith(S.en['st_num_' + rows] + ' things need you here'), 'Jambo says the same count');
+  });
+  test('5b his first chip is the first row\'s button, in plain words, never "verb: what"', () => {
+    const g = company({ capOn: true, more: LINA() });
+    const chip = g.q('#st-jb-feed .st-jb-chip');
+    assert.equal(g.text(chip), 'open Lina Ek', 'as drawn');
+    const solo = company({ capOn: true });
+    const first = solo.sb.stNeedsAll()[0];
+    assert.ok(first, 'a row to say');
+    assert.doesNotMatch(solo.text(solo.q('#st-jb-feed .st-jb-chip')), /:/, 'no colon');
+  });
+  test('5c the quarterly access review\'s second line: "… reviewed · asked until the quarter is stamped"', () => {
+    const g = company({ state: { accessReview: { quarter: '2026-Q4', people: ['u_me', 'u_two', 'u_x'], marks: { u_two: 'keep' }, done: null } } });
+    const row = g.q('#st-att .st-need[data-st-need="review"]');
+    assert.equal(g.text(row.querySelector('.st-need-s')), '1 of 3 reviewed · asked until the quarter is stamped');
+    assert.equal(g.text(row.querySelector('.st-need-go')), S.en.st_ar_continue);
+  });
+});
+
+describe('f784 (6) a clash: since when, whose drawer, the limit lit, back to the role', () => {
+  test('6a "a clash in who may do what · since 14 Oct" from the day the server keeps; Open with the whole name', () => {
+    const g = company({ capOn: true, more: LINA(), state: { clashSeen: { 'clash:cap:u_y': '2026-10-14' } } });
+    const row = g.q('#st-att .st-need[data-st-need="clash:cap:u_y"]');
+    assert.equal(g.text(row.querySelector('.st-need-s')), 'a clash in who may do what · since 14 Oct');
+    const go = row.querySelector('.st-need-go');
+    assert.equal(g.text(go), 'Open Lina Ek');
+    assert.equal(go.getAttribute('data-st-focus'), '#tm-cap', 'the limit that clashes is lit');
+  });
+  test('6b the page tells the server the clashes it sees, only when that set moved', () => {
+    const g = company({ capOn: true, more: LINA(), state: { clashSeen: {} },
+      reply: (route, method, body) => route === 'clashes/seen' ? { seen: Object.fromEntries(body.keys.map(k => [k, '2026-10-16'])) } : null });
+    const told = g.log.api.filter(a => a.route === 'clashes/seen');
+    assert.equal(told.length, 1); assert.deepEqual([...told[0].body.keys], ['clash:cap:u_y']);
+    const quiet = company({ capOn: true, more: LINA(), state: { clashSeen: { 'clash:cap:u_y': '2026-10-14' } } });
+    assert.equal(quiet.log.api.filter(a => a.route === 'clashes/seen').length, 0, 'nothing moved, nothing is sent');
+  });
+  test('6c her drawer says the clash and its two ways forward; "Back to Lina\'s role" beside Save puts the role\'s limit back', () => {
+    const g = company({ capOn: true, more: LINA(), before: roleBook });
+    g.sb.settingsPersonDrawer('u_y');
+    assert.equal(g.text(g.q('#st-dbody .st-clash-say')), 'A clash: Lina may sign more than the person who approves first, Jonas Berg. Lower the limit to the role’s KES 5M, or name an approver who signs up to KES 10M.');
+    const acts = g.qa('#st-dfoot .st-dfoot-acts > button').map(b => b.id || b.getAttribute('data-st-dclose') != null && 'cancel');
+    assert.deepEqual(acts, ['st-dsave', 'tm-bz-back', 'cancel'], 'Save, then Back to her role, Cancel last');
+    const back = g.$('tm-bz-back');
+    assert.equal(g.text(back), 'Back to Lina’s role'); assert.equal(back.hidden, false, 'shown: the drawer holds more than the role gives');
+    g.click(back);
+    assert.equal(g.$('tm-cap').value, '5000000', 'the role\'s limit, in the drawer — saved only on Save');
+    assert.equal(g.$('tm-bz-back').hidden, true, 'nothing more than the role now');
+    assert.equal(g.log.api.filter(a => /^users\//.test(a.route)).length, 0, 'nothing written');
+  });
+});
+
+describe('f784 (7) the cards: the drawing\'s facts and doors', () => {
+  const doorsOf = (g, k) => g.qa(`[data-st-card="${k}"] .st-card-doors .st-door`).map(d => g.text(d).replace(/ ›$/, ''));
+  const factsOf = (g, k) => g.qa(`[data-st-card="${k}"] .st-card-facts .st-fact`).map(f => g.text(f.querySelector('.st-fact-n')));
+  test('7a Before anyone signs, The agreement, Links you send', () => {
+    /* reviewChecked is js/review.js's one reading, published there */
+    const g = company({ reviewOn: true, more: [{ id: 'u_v', name: 'Vic Viewer', role: 'viewer', email: 'v@h.t' }],
+      before: sb => { sb.reviewChecked = u => !u || u.reviewChecked !== false; } });
+    assert.deepEqual(doorsOf(g, 'signing'), ['Everyone’s signing limits', 'Who may sign in which stream']);
+    assert.deepEqual(factsOf(g, 'agreement'), [S.en.st_p_approvals, S.en.st_p_review]);
+    assert.match(g.text(g.q('[data-st-card="agreement"] .st-fact[data-st-panel="review"]')), /2 people checked$/, 'everyone but a viewer, as the sheet counts');
+    assert.deepEqual(doorsOf(g, 'agreement').slice(-1), [S.en.st_p_desk]);
+    assert.ok(!doorsOf(g, 'agreement').includes(S.en.st_p_review), 'Internal review is a fact, not a door');
+    assert.deepEqual(factsOf(g, 'links'), [S.en.set_link_code]);
+    assert.deepEqual(doorsOf(g, 'links'), ['Link settings']);
+  });
+  test('7b Jambo, Housekeeping, Going live & plumbing', () => {
+    const g = company();
+    assert.deepEqual(doorsOf(g, 'copilot'), ['Jambo’s agents', S.en.st_p_boardwords || doorsOf(g, 'copilot')[1]]);
+    assert.equal(g.q('[data-st-card="copilot"] .st-door').getAttribute('data-st-view'), 'jambo', 'his agents\' page, the house');
+    const house = g.qa('[data-st-card="house"] .st-door');
+    assert.deepEqual(house.map(d => g.text(d).replace(/ ›$/, '')), ['The trail', 'Data & backup', 'Monthly report']);
+    assert.equal(house[1].getAttribute('data-st-page'), 'data');
+    const live = factsOf(g, 'live');
+    assert.equal(live[1], 'Email delivery');
+    assert.equal(g.text(g.q('[data-st-card="live"] .st-fact[data-st-panel="mail"] .st-fact-s')), 'working');
+    assert.deepEqual(doorsOf(g, 'live'), ['Email & outbox', S.en.set_integrity_title]);
+  });
+  test('7c Who holds what: short money, and the admin\'s own row is the name', () => {
+    const g = company({ capOn: true, more: LINA(), before: roleBook });
+    const lina = g.q('#st-sheet-card .st-sh-row[data-st-panel="person:u_y"] td:nth-child(3)');
+    assert.equal(g.text(lina), 'KES 10M · role gives KES 5M');
+    assert.equal(g.text(g.q('#st-sheet-card .st-sh-row[data-st-panel="person:u_me"] .st-sh-who')), 'Young Mbagaya');
+  });
+});

@@ -92,3 +92,39 @@ describe('f789 (3) the brain, and what the page publishes', () => {
     assert.match(app, /PAGE_HEAD_PAINT\.team\s*=\s*'stPaintHead'/);
   });
 });
+
+/* ---- THE SECOND PASS (18 Oct 2026): the words, the looks and the brain of
+   the checker's differences, built. AT THE PARENT (8dc306a) every test below
+   fails. ---- */
+const NEW2 = 'bz_back_to_role st_card_links st_card_report st_card_mail st_clash_dr st_clash_dr_any st_clash_to_role st_need_kind_clash_since st_jb_an_admin_to st_jb_tr_failed st_cf_review_n_one st_cf_review_n_other st_cf_mail st_cf_mail_ok st_cf_mail_off st_cf_mail_failing st_sw_new_sub st_sw_new_name st_sw_new_say st_sw_new_had brn_p_clashseen brn_pd_clashseen'.split(' ');
+describe('f789 (4) the second pass: words, looks, brain', () => {
+  test('4a every new word in both books, with the same blanks, never at the end of a book', () => {
+    for (const k of NEW2) {
+      assert.equal(typeof S.en[k], 'string', 'English: ' + k);
+      assert.equal(typeof S.sv[k], 'string', 'Swedish: ' + k);
+      if (k !== 'bz_back_to_role') assert.equal(blanks(S.en[k]), blanks(S.sv[k]), 'the same blanks: ' + k);
+    }
+    for (const book of ['en', 'sv']) { const tail = new Set(Object.keys(S[book]).slice(-50)); for (const k of NEW2) assert.ok(!tail.has(k), book + ' ' + k); }
+    /* the words the drawing says */
+    assert.equal(S.en.st_jb_c_need, '{verb} {what}', 'his first chip has no colon');
+    assert.match(S.en.st_ar_need_sub, / · asked until the quarter is stamped$/);
+    assert.equal(S.en.sf_rule_title, 'Who may sign in which stream');
+    assert.equal(S.en.st_jb_rules_admin, 'Company rules, such as signing limits, are {who}’s to change. I can send {to} your question.');
+  });
+  test('4b the looks: the clash said in the drawer and the stream panel\'s acts kept in reach, scoped, never !important', () => {
+    assert.match(HTML, /\.st-clash-say\{[^}]*var\(--st-ruby-bg\)/);
+    assert.match(HTML, /\.st-cr \.st-jb-feed\.is-stream \.st-swp-acts\{ position:sticky;/);
+    const ours = HTML.slice(HTML.indexOf('A PAGE OPENED FROM SETTINGS STARTS AT ITS OWN NAME'), HTML.indexOf('.st-clash-say .st-dot'));
+    assert.doesNotMatch(ours, /!important/);
+  });
+  test('4c the brain names the day a clash was first seen: its route, one lane, a flow step', () => {
+    const vm = require('node:vm');
+    const sb = { window: {} }; sb.globalThis = sb; vm.createContext(sb);
+    vm.runInContext(BRAIN + ';this.__b={ BRAIN_PARTS, BRAIN_FLOWS, BRAIN_LANE_OF };', sb);
+    const { BRAIN_PARTS, BRAIN_FLOWS, BRAIN_LANE_OF } = sb.__b;
+    const p = BRAIN_PARTS.find(x => x.id === 'clashseen');
+    assert.ok(p && p.code === 'POST /api/clashes/seen');
+    assert.equal(Object.values(BRAIN_LANE_OF).filter(l => l.includes('clashseen')).length, 1);
+    assert.ok(new Set(BRAIN_FLOWS.flatMap(f => f.steps.flat())).has('clashseen'));
+  });
+});

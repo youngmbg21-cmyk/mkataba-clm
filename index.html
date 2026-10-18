@@ -3851,6 +3851,15 @@
   .st-cr .st-pill-n.is-amber{ background:var(--st-amber-bg); color:var(--st-amber-fg); }
   .st-cr .st-card-ht{ display:inline-flex; align-items:baseline; gap:8px; flex-wrap:wrap; min-width:0; }
   .st-cr .st-card-sub-l{ margin-left:2px; }
+  /* A PAGE OPENED FROM SETTINGS STARTS AT ITS OWN NAME (round 26 as drawn,
+     the gaps of 18 Oct 2026): the window's Settings head steps aside while a
+     sub-page is up — "‹ Settings" on the page is the way back */
+  body:has(#set-page[data-st-sub]) #page-head{ display:none; }
+  /* A CLASH SAID UNDER THE LIMIT THAT MAKES IT, with the two ways to settle
+     it (round 25's person drawer, as drawn) — the refusal's own dress */
+  .st-clash-say{ display:flex; align-items:flex-start; gap:8px; margin:10px 0 0; padding:8px 10px; border:1px solid var(--st-ruby-line);
+    background:var(--st-ruby-bg); border-radius:var(--radius); font-size:var(--t-meta); line-height:1.45; color:var(--color-text); }
+  .st-clash-say .st-dot{ flex:none; margin-top:6px; }
   /* THE SIDE PANEL'S HEAD: Jambo, the word for what it holds, the fold */
   .st-cr .st-side-head{ flex:none; display:flex; align-items:flex-end; gap:10px; padding:4px 8px 0 10px; border-bottom:1px solid var(--color-divider); min-height:50px; }
   .st-cr .st-side-head .st-side-tab{ flex-direction:column; gap:1px; height:auto; padding:2px 10px 5px; border-radius:0; border-bottom:2px solid var(--color-accent);
@@ -3953,6 +3962,10 @@
   .st-cr .st-swp-held > .ui-btn{ flex:none; }
   .st-cr .st-swp-shut{ margin:10px 0 0; }
   .st-cr .st-swp-acts{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:14px; padding-top:12px; border-top:1px solid var(--color-divider); }
+  /* the acts stay in reach while the panel scrolls a little (round 26 as
+     drawn: at 1440×780 and 1536×730 "its side panel scrolls a little"):
+     Delete these N, Change keeping and Close sit at the panel's foot */
+  .st-cr .st-jb-feed.is-stream .st-swp-acts{ position:sticky; bottom:-12px; margin-bottom:-12px; padding-bottom:12px; background:var(--color-surface); z-index:1; }
   .st-cr .st-swp-sp{ flex:1; }
   /* deleting for good is the heaviest act here, and it is drawn filled red —
      the side panel's and the Keeping tab's one button, dressed alike */

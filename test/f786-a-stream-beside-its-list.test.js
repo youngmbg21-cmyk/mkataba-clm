@@ -127,3 +127,75 @@ describe('f786 (4) the wall, and a refresh', () => {
     assert.ok(h.q('#st-jb-feed .st-swp[data-st-swp="sales"]'));
   });
 });
+
+/* ---- THE SECOND PASS (18 Oct 2026): the checker's differences against the
+   picked drawing, built. AT THE PARENT (8dc306a) every test below fails. ---- */
+const HTML = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'index.html'), 'utf8');
+describe('f786 (5) the page as drawn: its own name first, the list\'s head, plain names', () => {
+  test('5a no Settings head over it: no You · Company tabs, the window\'s head stepped aside by scope; "‹ Settings" on the page', () => {
+    const g = streams();
+    assert.equal(g.q('#set-page').getAttribute('data-st-sub'), 'streams');
+    assert.equal(g.q('#set-page .st-facebar'), null, 'no tabs above the page');
+    assert.match(HTML, /body:has\(#set-page\[data-st-sub\]\) #page-head\{ display:none; \}/, 'the head is hidden by scope, never !important');
+    assert.ok(g.q('#set-page .st-pg-back[data-st-page=""]'), 'the way back');
+    g.sb.settingsGoPage('');
+    assert.equal(g.q('#set-page').getAttribute('data-st-sub'), null, 'back on Settings, the tabs come back');
+    assert.ok(g.q('#set-page .st-facebar'));
+  });
+  test('5b "Streams N press a row …": the note right after the count; no coloured dot before a name', () => {
+    const g = streams();
+    const ht = g.q('.st-sw-card .st-card-ht');
+    assert.ok(ht.querySelector('#st-sw-n') && ht.querySelector('.st-card-sub-l'), 'the count and the note on one line, in that order');
+    assert.equal(g.text(ht.querySelector('.st-card-sub-l')), S.en.st_sw_list_press);
+    assert.equal(g.qa('.st-sw-row .st-fdot').length, 0);
+  });
+  test('5c the closed filter boxes wear HaTi\'s clothes, as the drawers do', () => {
+    const seen = [];
+    streams({ before: sb => { sb.popupControlsDress = el => seen.push(el && el.id); } });
+    assert.ok(seen.includes('set-page'), 'the page is dressed when it is painted');
+  });
+});
+
+describe('f786 (6) + New stream opens its form; the way back says where you came from', () => {
+  test('6a its own form, in the stream\'s words; a name already there is said; a new one is the company\'s, then its page opens', () => {
+    const g = streams();
+    g.click(g.q('.st-pg-head [data-st-panel="stream:new"]'));
+    assert.ok(g.$('st-stream-name'), 'a name box');
+    assert.match(g.text(g.$('st-dbody')), /A stream you add here is the company’s/);
+    assert.equal(g.text(g.q('#st-drawer .st-dback')), '‹ ' + S.en.st_sw_title, 'back to Contract streams');
+    g.click(g.$('st-dsave'));
+    assert.equal(g.text(g.$('st-drawer-refusal')), S.en.st_sw_new_say, 'an empty name is said');
+    const had = Object.values(g.sb.FOLDERS)[0].name;
+    g.$('st-stream-name').value = had.toUpperCase(); g.click(g.$('st-dsave'));
+    assert.equal(g.text(g.$('st-drawer-refusal')), S.en.st_sw_new_had.replace('{name}', had));
+    g.$('st-stream-name').value = 'Legal Ops'; g.click(g.$('st-dsave'));
+    const f = Object.values(g.sb.FOLDERS).find(x => x.name === 'Legal Ops');
+    assert.ok(f, 'the one writer made it');
+    assert.ok(g.log.toasts.some(t => t.kind === 'ok' && /Legal Ops/.test(t.m)), 'said');
+    assert.ok(g.q(`#st-ps[data-st-ps="${f.id}"]`), 'and its own page opens');
+  });
+  test('6b Change keeping\'s way back is "‹ Contract streams" and closes the drawer onto the page', () => {
+    const g = streams();
+    pick(g, 'sales');
+    g.click(g.q('.st-swp-acts [data-st-panel="stream:sales@keeping"]'));
+    const back = g.q('#st-drawer .st-dback');
+    assert.equal(g.text(back), '‹ ' + S.en.st_sw_title);
+    assert.ok(back.hasAttribute('data-st-dclose'), 'it closes onto the page under it');
+  });
+  test('6c the stream list\'s drawer says stream too, in both books', () => {
+    assert.equal(S.en.st_p_folders_add, 'Add a stream');
+    assert.match(S.en.st_p_folders_shared_note, /^A stream you add here/);
+    assert.equal(S.sv.st_p_folders_add, 'Lägg till ett flöde');
+  });
+});
+
+describe('f786 (7) a held contract\'s Open goes where its hold is placed and released', () => {
+  test('7a its Details, on the contract\'s page', () => {
+    const brought = [];
+    const g = streams({ before: sb => { sb.hbStripBring = (id, page) => { brought.push([id, page]); return true; }; } });
+    pick(g, 'sales');
+    g.click(g.q('#st-jb-feed [data-st-swp-open="MK-S3"]'));
+    assert.deepEqual(brought.map(x => [...x]), [['MK-S3', 'details']]);
+    assert.equal(g.log.opened.length, 0, 'not the paper');
+  });
+});

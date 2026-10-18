@@ -104,6 +104,8 @@ async function loadBootstrap(){
   state.accessReview=b.accessReview||null;
   state.away=b.away||null;
   state.keeping=b.keeping||null;
+  /* the day each clash in who may do what was first seen: an admin's only */
+  state.clashSeen=b.clashSeen||null;
   /* ---- THE COMPANY'S OWN VALUE STREAMS JOIN FOLDERS HERE ----
      js/templates.js builds FOLDERS at module load, long before anybody has
      signed in, so the shared list cannot be read there — this is the first
