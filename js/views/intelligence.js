@@ -1219,7 +1219,7 @@ function igRecipeNow(){
     groupBy:intel.groupBy, groups:intel.groups?{ ...intel.groups }:null,
     floorsBy:intel.floorsBy||null, columnsBy:intel.columnsBy||null, colourBy:intel.colourBy||null, sizeBy:intel.sizeBy||null,
     labelBy:intel.labelBy||null, timeBy:intel.timeBy||null, sortBy:intel.sortBy||null, view:igbCam().view,
-    names:intel.names?{ ...intel.names }:null, dotScale:intel.dotScale||1, bubbleBy:intel.bubbleBy||null, shadeBy:intel.shadeBy||null, lobeShade:intel.lobeShade||null, lobeSize:intel.lobeSize||null, tlUntil:intel.tlUntil||null, folds:{ ...(intel.folds||{}) }, cellOpen:{ ...(intel.cellOpen||{}) },
+    names:intel.names?{ ...intel.names }:null, dotScale:intel.dotScale||1, bubbleBy:intel.bubbleBy||null, shadeBy:intel.shadeBy||null, lobeShade:intel.lobeShade||null, lobeSize:intel.lobeSize||null, tlUntil:intel.tlUntil||null, asOf:intel.asOf||null, folds:{ ...(intel.folds||{}) }, cellOpen:{ ...(intel.cellOpen||{}) },
     bundles:Array.isArray(intel.bundles)?intel.bundles.map(x=>({ ...x })):null, edgeNames:intel.edgeNames===true||null, rv:IG_RECIPE_V };
 }
 /* THE RECIPE'S EDITION. A place kept by an older edition is not put back:
@@ -1248,7 +1248,7 @@ function igRecipeSet(r){
   intel.groupBy=r.groupBy||'folder'; intel.groups=r.groups||null;
   ['floorsBy','columnsBy','colourBy','sizeBy','labelBy','timeBy','sortBy'].forEach(k=>{ intel[k]=r[k]||null; });
   intel.names=r.names?{ ...r.names }:null; intel.dotScale=igDotScaleClamp(r.dotScale||1); intel.bubbleBy=r.bubbleBy||null; intel.shadeBy=r.shadeBy==='value'?'value':null;
-  intel.lobeShade=(r.lobeShade&&IG_ATTN[r.lobeShade])?r.lobeShade:null; intel.lobeSize=r.lobeSize==='value'?'value':null; intel.tlUntil=/^\d{4}-\d{2}-\d{2}$/.test(String(r.tlUntil||''))?r.tlUntil:null;
+  intel.lobeShade=(r.lobeShade&&IG_ATTN[r.lobeShade])?r.lobeShade:null; intel.lobeSize=r.lobeSize==='value'?'value':null; intel.tlUntil=/^\d{4}-\d{2}-\d{2}$/.test(String(r.tlUntil||''))?r.tlUntil:null; intel.asOf=/^\d{4}-\d{2}-\d{2}$/.test(String(r.asOf||''))?r.asOf:null;
   if(r.folds&&typeof r.folds==='object') intel.folds={ ...r.folds };
   intel.cellOpen=(r.cellOpen&&typeof r.cellOpen==='object')?{ ...r.cellOpen }:{};
   intel.bundles=Array.isArray(r.bundles)&&r.bundles.length?r.bundles.filter(x=>x&&x.q).slice(0,IG_BUNDLES_MAX).map(x=>({ q:String(x.q), label:String(x.label||x.q) })):null;
@@ -1660,7 +1660,7 @@ const IG_MONTH_IX=(()=>{ const M={ sept:8 };
    ['januari','februari','mars','april','maj','juni','juli','augusti','september','oktober','november','december']]
     .forEach(L=>L.forEach((m,i)=>{ M[m]=i; M[m.slice(0,3)]=i; })); return M; })();
 function igDayISO(y,m,d){ const x=new Date(y,m,d); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); }
-function igDateRead(s0, before){
+function igDateRead(s0, before, past){
   const s=String(s0||'').toLowerCase().replace(/[,.]/g,' ').replace(/\s+/g,' ').trim().replace(/^the\s+/,'');
   const T=new Date(); T.setHours(0,0,0,0); const Y=T.getFullYear(), M=T.getMonth();
   const real=(y,m,d)=>{ const x=new Date(y,m,d); return x.getFullYear()===y&&x.getMonth()===m&&x.getDate()===d; };
@@ -1671,12 +1671,18 @@ function igDateRead(s0, before){
   if(m) return endOf(unit(m[1]||m[2]||m[3]||m[4]),0);
   m=s.match(/^end of next (month|quarter|year)$|^slutet av nästa (månad|kvartal|år)$/); if(m) return endOf(unit(m[1]||m[2]),1);
   m=s.match(/^(?:end of|slutet av) (\d{4})$/); if(m) return igDayISO(+m[1],12,0);
+  /* "as of" asks for a day that has come: the start of this month, quarter or year (stage 5) */
+  m=s.match(/^(?:the )?(?:start|beginning) of (?:the |this )?(month|quarter|year)$|^(?:början av|starten av) (månaden|kvartalet|året)$/);
+  if(m){ const u=unit(m[1]||m[2]); return u==='month'?igDayISO(Y,M,1):u==='quarter'?igDayISO(Y,Math.floor(M/3)*3,1):igDayISO(Y,0,1); }
   const dm=(d,mo,y)=>{ if(!(mo>=0)) return null; let yy=y?+y:Y; if(!real(yy,mo,d)&&!y&&real(yy+1,mo,d)) yy++; if(!real(yy,mo,d)) return null;
-    if(!y&&new Date(yy,mo,d)<T) yy++; return real(yy,mo,d)?igDayISO(yy,mo,d):null; };
+    if(!y&&!past&&new Date(yy,mo,d)<T) yy++; if(!y&&past&&new Date(yy,mo,d)>T) yy--; return real(yy,mo,d)?igDayISO(yy,mo,d):null; };
   m=s.match(/^(\d{1,2})(?:st|nd|rd|th)?(?:\s+[ae])?(?:\s+of)?\s+([a-zåäö]+)(?:\s+(\d{4}))?$/); if(m&&m[2] in IG_MONTH_IX) return dm(+m[1],IG_MONTH_IX[m[2]],m[3]);
   m=s.match(/^([a-zåäö]+)\s+(\d{1,2})(?:st|nd|rd|th)?(?:\s+(\d{4}))?$/); if(m&&m[1] in IG_MONTH_IX) return dm(+m[2],IG_MONTH_IX[m[1]],m[3]);
   m=s.match(/^([a-zåäö]+)(?:\s+(\d{4}))?$/);
-  if(m&&m[1] in IG_MONTH_IX&&m[1].length>=3){ const mo=IG_MONTH_IX[m[1]]; let yy=m[2]?+m[2]:Y; if(!m[2]&&new Date(yy,mo+1,0)<T) yy++;
+  if(m&&m[1] in IG_MONTH_IX&&m[1].length>=3){ const mo=IG_MONTH_IX[m[1]]; let yy=m[2]?+m[2]:Y;
+    /* "as of July": its first day, the last July that has begun */
+    if(past){ if(!m[2]&&new Date(yy,mo,1)>T) yy--; return igDayISO(yy,mo,1); }
+    if(!m[2]&&new Date(yy,mo+1,0)<T) yy++;
     return before?igDayISO(yy,mo,0):igDayISO(yy,mo+1,0); }
   return null;
 }
@@ -1737,6 +1743,39 @@ function igSoleData(conds){
     list.forEach(c=>{ ids.push(c.id); badges[c.id]=i18t('int_sole_badge',{ x:String(metaOptLabel(roleOf(c))).toLowerCase(), s:groupLabelOf(c,'folder') }); }); });
   return { ids, badges, parties, noRole, judged:book.length-noRole };
 }
+/* ---- THEN AND NOW (Explorer stage 5, 18 Oct 2026) ----
+   "as of 1 July", "what changed since 1 July", "som den var 1 juli": the
+   book as it stood that day against today, read from the two days the record
+   keeps for every contract — the day it was added (repRaisedAt) and the day it
+   was signed (contractSignedAt). What was added or signed since is lit, each
+   with its day as its badge, and the answer says the book then and now and
+   the part that grew most. A stage before signing is not replayed (the
+   record does not keep every step in a form that can be), contracts since
+   declined or archived are not on the map and are said, and a contract with
+   no day it was added is counted as there, and said. */
+function igAsOfRead(q0){
+  const q=String(q0||'').toLowerCase().replace(/[?!;,.]/g,' ').replace(/\s+/g,' ').trim();
+  if(/^(?:please\s+)?(?:back to (?:now|today)|(?:clear|remove|stop) (?:the )?(?:as of|then and now|comparison)|tillbaka till (?:nu|i dag))$/.test(q)) return [{ asOf:'none' }];
+  const m=q.match(/^(?:(?:show|draw|visa)\s+)?(?:(?:me|mig)\s+)?(?:the\s+)?(?:(?:map|book|view|kartan|boken)\s+)?(?:as of|as it (?:stood|was)(?: on| at)?|then and now(?: since| from)?|what(?:'s| has)? changed since|changed since|since|compared (?:with|to)|som (?:den|det) (?:var|stod)(?: den| per)?|vad har ändrats sedan|sedan|per)\s+(.+)$/);
+  if(!m) return null;
+  const iso=igDateRead(m[1],false,true); if(!iso) return null;
+  /* a day still to come is no "as of" */
+  return [iso>todayISO()?{ asOfNo:iso }:{ asOf:iso }];
+}
+/* a contract's day on the book: the day it was added, and the day it was signed */
+function igAsOfDays(c){ return { added:_gCreatedDay(c), signed:_gSignedDay(c) }; }
+function igAsOfData(iso, kids){
+  const D=iso, added=[], signed=[], unknown=[], badges={};
+  kids.forEach(n=>{ const d=igAsOfDays(n.c);
+    if(!d.added) unknown.push(n.id);
+    if(d.added&&d.added>D){ added.push(n.id); badges[n.id]=i18t('int_asof_added',{ d:igDayWord(d.added) }); }
+    else if(d.signed&&String(d.signed).slice(0,10)>D){ signed.push(n.id); badges[n.id]=i18t('int_asof_signed',{ d:igDayWord(String(d.signed).slice(0,10)) }); } });
+  const gone=(state.contracts||[]).filter(c=>(c.archived||c.status==='Declined')&&(()=>{ const a=_gCreatedDay(c); return !a||a<=D; })()).length;
+  const addedSet=new Set(added);
+  const parts=igPartsNow().map(p=>({ label:p.label, now:p.ids.length, then:p.ids.filter(id=>!addedSet.has(id)).length }));
+  const grew=parts.filter(p=>p.now>p.then).sort((a,b)=>(b.now-b.then)-(a.now-a.then))[0]||null;
+  return { added, signed, unknown, badges, gone, grew, now:kids.length, then:kids.length-added.length };
+}
 function igRecipeParse(qRaw){
   const q0=String(qRaw||'').trim(); if(!q0) return null;
   const q=_igNorm(q0.replace(/[,;]/g,' and '));
@@ -1758,6 +1797,8 @@ function igRecipeParse(qRaw){
      before the roles — "size" and "show" mean something else below. */
   { const t=igLookRead(q); if(t) return { acts:t, rest:'' }; }
   /* a date line, and only-one-of-its-kind (stage 2): read whole, before the roles take "by" */
+  /* "as of …" and "since …" (stage 5) before the date line, whose "by" it does not use */
+  { const t=igAsOfRead(q0); if(t) return { acts:t, rest:'' }; }
   { const t=igUntilRead(q0); if(t) return { acts:t, rest:'' }; }
   { const t=igSoleRead(q0); if(t) return { acts:t, rest:'' }; }
   /* follow-ups: narrow what is showing rather than start again */
@@ -1902,18 +1943,18 @@ function igViewFind(name){ const n=_igNorm(name), L=igViewsRead().slice().revers
    grouped by value stream, small dots, names on, nothing folded by a person,
    no bundle, no names on the edges. The lenses are "everything"'s. */
 function igLandingSet(){
-  ['floorsBy','columnsBy','colourBy','sizeBy','labelBy','timeBy','sortBy','lastRole','names','bubbleBy','shadeBy','lobeShade','lobeSize','tlUntil','bundles','edgeNames','foldWant'].forEach(k=>{ intel[k]=null; });
+  ['floorsBy','columnsBy','colourBy','sizeBy','labelBy','timeBy','sortBy','lastRole','names','bubbleBy','shadeBy','lobeShade','lobeSize','tlUntil','asOf','bundles','edgeNames','foldWant'].forEach(k=>{ intel[k]=null; });
   intel.dotScale=1; intel.groupBy='folder'; intel.groups=null; intel.folds={}; intel.cellOpen={};
   if(typeof igPaintGroupSelect==='function') try{ igPaintGroupSelect(); }catch(_){}
 }
 function igRecipeRun(parsed, opts){
   const said=[]; let choices=null, list=null, listTitle=null, changed=false, lensNote=null;
   const acts=parsed.acts||[];
-  const quiet=acts.every(a=>a.undo||a.ask||a.unknownFact||a.save!=null||a.namesUnknown);
+  const quiet=acts.every(a=>a.undo||a.ask||a.unknownFact||a.save!=null||a.namesUnknown||a.asOfNo);
   if(!quiet&&!(opts&&opts.noPush)) igRecipePush();
   for(const a of acts){
     if(a.undo){ said.push(igRecipeUndo()?i18t('int_did_undo'):i18t('int_undo_none')); changed=true; continue; }
-    if(a.everything){ intel.lenses=[]; intel.groups=null; intel.walk=null; intel.tlUntil=null; const t=igBookTotal(); said.push(i18t('int_did_showing',{ n:t, t })+'.'); changed=true; continue; }
+    if(a.everything){ intel.lenses=[]; intel.groups=null; intel.walk=null; intel.tlUntil=null; intel.asOf=null; const t=igBookTotal(); said.push(i18t('int_did_showing',{ n:t, t })+'.'); changed=true; continue; }
     if(a.landing){ igLandingSet(); said.push(i18t('int_did_landing')); changed=true; continue; }
     if(a.save!=null){ const n=igViewSave(a.save); said.push(n?i18t('int_did_saved',{ name:n }):i18t('int_save_failed')); continue; }
     if(a.open){ const v=igViewFind(a.open); if(v){ igRecipeSet(v.recipe); said.push(i18t('int_did_opened',{ name:v.name })); changed=true; }
@@ -1947,6 +1988,22 @@ function igRecipeRun(parsed, opts){
     /* lobes sized by value only for a reader who may see money; anyone else's follow their count, as they always did, and are told so */
     if(a.lobeSize){ intel.lobeSize=a.lobeSize==='value'&&((typeof canViewValues!=='function')||canViewValues())?'value':null;
       said.push(i18t(intel.lobeSize==='value'?'int_did_lobe_size_value':'int_did_lobe_size_count')); if(igbCam().view!==0) igSetView(0); changed=true; continue; }
+    /* THEN AND NOW (stage 5): what was added or signed since the day, lit with
+       its day; the answer counted off the map as drawn after the rebuild */
+    if(a.asOfNo){ said.push(i18t('int_asof_future',{ d:igDayWord(a.asOfNo) })); continue; }
+    if(a.asOf){ intel.lenses=intel.lenses.filter(l=>l.kind!=='asof');
+      if(a.asOf==='none'){ const had=!!intel.asOf; intel.asOf=null; said.push(i18t(had?'int_did_asof_off':'int_asof_none')); changed=true; continue; }
+      intel.asOf=a.asOf; const D=a.asOf;
+      const kids0=(buildGraphModel().nodes||[]).filter(n=>n.kind==='contract').map(n=>({ id:n.id, c:getContract(n.id) })).filter(n=>n.c);
+      const d0=igAsOfData(D,kids0);
+      const label=i18t('int_asof_lens',{ d:igDayWord(D) });
+      if(d0.added.length+d0.signed.length) addLens({ label, ids:d0.added.concat(d0.signed), action:'highlight', badges:d0.badges, kind:'asof' });
+      said.push(()=>{ const kids=IG&&IG.nodes?IG.nodes.filter(n=>n.kind==='contract'):kids0, d=igAsOfData(D,kids);
+        return [i18t('int_did_asof',{ d:igDayWord(D), then:d.then, now:d.now, a:d.added.length, s:d.signed.length }),
+          d.grew?i18t('int_asof_grew',{ x:d.grew.label, t:d.grew.then, n:d.grew.now }):'',
+          d.unknown.length?i18tn('int_asof_unknown',d.unknown.length,{ n:d.unknown.length }):'',
+          d.gone?i18tn('int_asof_gone',d.gone,{ n:d.gone }):'', i18t('int_asof_not')].filter(Boolean).join(' '); });
+      list=d0.added.concat(d0.signed); listTitle=label; changed=true; continue; }
     /* THE TYPED DATE LINE (stage 2): the Timeline, on the date the words name
        (the one at rest when none), a dashed line at the day, the contracts up
        to it lit; the count is read off the map as drawn (G.tl.until) */
@@ -2086,6 +2143,8 @@ const IG_CLAIM_RE=/\b(?:hid(?:den|e)?|removed?|now (?:shows?|showing|displays?)|
 async function intelMapLocal(q){
   /* "explain this view" (stage 3) is the view's own walk, before "walk me through" walks contracts */
   if(IG_TOUR_RE.test(String(q||'').trim())){ igTourStart(); return ''; }
+  /* "copy the picture" (stage 5): the view on screen, as a picture */
+  if(IG_PIC_RE.test(String(q||'').trim())){ igPicturePress(); return ''; }
   const say=text=>intel.history.push({ role:'assistant', text:igEsc(text) });
   const walk=IG_WALK_RE.test(q), outl=IG_OUTLIER_RE.test(q);
   const all=re=>new RegExp(re.source,'gi');
@@ -2182,7 +2241,7 @@ async function intelAsk(qRaw){
      the whole of their words, so on Explorer the map answers them where the
      reader stands (Jambo's one rule) before any task card */
   const hereMap=!!(here&&here.screen==='explorer');
-  const mapOwn=!hereMap&&typeof window.caHereScreen==='function'&&caHereScreen()==='explorer'&&!!(IG_TOUR_RE.test(q)||igUntilRead(q)||igSoleRead(q));
+  const mapOwn=!hereMap&&typeof window.caHereScreen==='function'&&caHereScreen()==='explorer'&&!!(IG_TOUR_RE.test(q)||IG_PIC_RE.test(q)||igAsOfRead(q)||igUntilRead(q)||igSoleRead(q));
   /* ---- COPILOT PREPARES, YOU PRESS (Young, 7 Oct 2026) ----
      Sending a contract to a colleague (@ a person, # a contract) and drafting
      one from a sentence are read here, from the words alone, and answered
@@ -4354,7 +4413,71 @@ function igNoteMeasure(){
 }
 /* SHOW EVERYTHING: every cut Copilot made comes off, its grouping with it, and
    a walk-through stops. The colour and the size stay — they narrow nothing. */
-function igShowEverything(){ igRecipePush(); intel.lenses=[]; intel.groups=null; intel.walk=null; intel.tlUntil=null; rebuildIntelGraph(); renderIntelDock(); }
+function igShowEverything(){ igRecipePush(); intel.lenses=[]; intel.groups=null; intel.walk=null; intel.tlUntil=null; intel.asOf=null; rebuildIntelGraph(); renderIntelDock(); }
+/* ---- COPY PICTURE (Explorer stage 5, 18 Oct 2026) ----
+   The view on screen as a PNG: the map as drawn (its canvas and its words),
+   under a heading that says what it shows — the view, the grouping, the cut,
+   how many — and a foot with the day and that it holds only what this reader
+   may see. It is made from the screen, nothing is fetched or sent: a
+   confidential deal is in it as its code name, a private stream the reader
+   cannot see is not in it at all. Copied to the clipboard where the browser
+   allows, else saved as a file — and the toast says which. A standalone
+   picture carries no page styles, so the words' clothes are written onto them. */
+const IG_PIC_HEAD=58, IG_PIC_FOOT=28, IG_PIC_SCALE=2;
+const IG_PIC_STYLE=['fill','fill-opacity','stroke','stroke-width','stroke-opacity','stroke-dasharray','opacity','font-family','font-size','font-weight','letter-spacing','text-transform','text-anchor','dominant-baseline','paint-order','visibility','display'];
+function igPictureSvg(svg){
+  const clone=svg.cloneNode(true), src=svg.querySelectorAll('*'), dst=clone.querySelectorAll('*');
+  for(let i=0;i<src.length;i++){ let cs=null; try{ cs=getComputedStyle(src[i]); }catch(_){ cs=null; } if(!cs) continue;
+    dst[i].setAttribute('style',IG_PIC_STYLE.map(k=>k+':'+cs.getPropertyValue(k)).join(';')); }
+  const r=svg.getBoundingClientRect();
+  clone.setAttribute('xmlns','http://www.w3.org/2000/svg'); clone.setAttribute('width',String(Math.round(r.width))); clone.setAttribute('height',String(Math.round(r.height)));
+  return new XMLSerializer().serializeToString(clone);
+}
+function igPictureHead(){
+  const act=intelActive(), shown=IG&&IG.nodes?IG.nodes.filter(n=>n.kind==='contract').length:0;
+  const title=i18t(IGB_VIEW_WORD[IGB_VIEWS[igbCam().view]]||'int_view_brain')+' · '+i18t('int_grouped_by')+' '+graphGroupingWord(intel.groups?'custom':intel.groupBy);
+  const bits=[i18tn('int_n_contracts',shown,{ n:shown })].concat(intel.lenses.filter(l=>l.on).map(l=>l.label)).concat(igRecipeSays());
+  if(act.ids&&act.action==='highlight') bits.push(i18t('int_did_highlighted',{ n:act.ids.size, t:igBookTotal() }));
+  return { title, sub:bits.join(' · ') };
+}
+async function igPictureBlob(){
+  const cv=document.getElementById('ig-cv'), svg=document.getElementById('ig-svg'), wrap=document.getElementById('ig-gwrap');
+  if(!cv||!svg||!wrap||!IG) throw new Error(i18t('int_pic_none'));
+  const r=wrap.getBoundingClientRect(), W=Math.round(r.width), H=Math.round(r.height), S=IG_PIC_SCALE;
+  const out=document.createElement('canvas'); out.width=W*S; out.height=(H+IG_PIC_HEAD+IG_PIC_FOOT)*S;
+  const ctx=out.getContext('2d'); ctx.scale(S,S);
+  let bg='#04191a'; try{ const b=getComputedStyle(wrap).backgroundColor; if(b&&!/rgba\(0, 0, 0, 0\)|transparent/.test(b)) bg=b; }catch(_){ }
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H+IG_PIC_HEAD+IG_PIC_FOOT);
+  const ink=igbTone().ink, mute=igbTone().mute, h=igPictureHead();
+  ctx.fillStyle=ink; ctx.font='600 16px Geist, system-ui, sans-serif'; ctx.fillText(h.title,16,24);
+  ctx.fillStyle=mute; ctx.font='500 12px Geist, system-ui, sans-serif'; ctx.fillText(h.sub.length>150?h.sub.slice(0,149)+'…':h.sub,16,44);
+  ctx.drawImage(cv,0,IG_PIC_HEAD,W,H);
+  const img=new Image(); img.decoding='sync';
+  await new Promise((ok,no)=>{ img.onload=ok; img.onerror=no; img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(igPictureSvg(svg)); });
+  ctx.drawImage(img,0,IG_PIC_HEAD,W,H);
+  const me=(typeof currentUser==='function'&&currentUser())||{};
+  ctx.fillStyle=mute; ctx.font='500 11px Geist, system-ui, sans-serif';
+  ctx.fillText(i18t('int_pic_foot',{ d:igDayWord(todayISO()), who:me.name||'' }),16,H+IG_PIC_HEAD+18);
+  return await new Promise(ok=>out.toBlob(ok,'image/png'));
+}
+async function igPictureCopy(){
+  const blob=await igPictureBlob(); if(!blob) throw new Error(i18t('int_pic_none'));
+  try{ if(navigator.clipboard&&typeof ClipboardItem==='function'){ await navigator.clipboard.write([new ClipboardItem({ 'image/png':blob })]); return { copied:true, blob }; } }catch(_){ }
+  const name='hati-explorer-'+IGB_VIEWS[igbCam().view]+'-'+todayISO()+'.png', a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  return { copied:false, name, blob };
+}
+const IG_PIC_RE=/^(?:please\s+)?(?:copy|take|make|save|export)\s+(?:a\s+|the\s+)?(?:picture|image|screenshot|png)(?:\s+of\s+(?:this|the)\s+(?:view|map))?$|^(?:kopiera|ta|spara)\s+(?:en\s+)?(?:bild(?:en)?|skärmbild(?:en)?)$/i;
+/* the press: the picture made, then said — copied, or saved as a file */
+async function igPicturePress(){
+  if(intel._picBusy) return; intel._picBusy=true;
+  if(typeof toast==='function') toast(i18t('int_pic_making'),'ok',{ busy:true });
+  try{ const r=await igPictureCopy(); if(typeof toast==='function') toast(r.copied?i18t('int_pic_copied'):i18t('int_pic_saved',{ x:r.name }),'ok');
+    intel.history.push({ role:'assistant', text:igEsc(r.copied?i18t('int_pic_copied'):i18t('int_pic_saved',{ x:r.name })) }); renderIntelDock(); }
+  catch(err){ if(typeof toast==='function') toast((err&&err.message)||String(err),'err'); }
+  finally{ intel._picBusy=false; }
+}
+document.addEventListener('click',e=>{ const b=e.target&&e.target.closest&&e.target.closest('#ig-dock [data-ig-pic]'); if(!b) return; igPicturePress(); });
 /* ---- FINDINGS ON THE MAP (Explorer stage 4, 18 Oct 2026) ----
    "Pin this finding" keeps the view on screen — its recipe, the parts it is
    counted in (each with its contracts), Jambo's sentence and a note — on
@@ -7378,7 +7501,7 @@ function igMsgHTML(m,i){
       ${''/* THE BOARD'S PRESSES (work order Part 5): a big build offered as a list
              with ticks, and Undo for an answer that changed the board */}
       ${(Number.isInteger(i)&&m.tour)?igTourHtml(i):''}
-      ${(Number.isInteger(i)&&intel.fdPinning===i&&igPinOffered())?igPinFormHtml(i):(Number.isInteger(i)&&!m.err&&i===intel.history.length-1&&(igTourOffered()||igPinOffered()))?(`<div class="igd-small">${!m.tour&&igTourOffered()?`<button type="button" class="ui-link" data-ig-tour-open="${i}">${igEsc(i18t('int_tour_open'))}</button>`:''}${igPinOffered()?`<button type="button" class="ui-link" data-ig-pin-open="${i}">${igEsc(i18t('int_fd_pin'))}</button>`:''}</div>`):''}
+      ${(Number.isInteger(i)&&intel.fdPinning===i&&igPinOffered())?igPinFormHtml(i):(Number.isInteger(i)&&!m.err&&i===intel.history.length-1&&(igTourOffered()||igPinOffered()))?(`<div class="igd-small">${!m.tour&&igTourOffered()?`<button type="button" class="ui-link" data-ig-tour-open="${i}">${igEsc(i18t('int_tour_open'))}</button>`:''}${igPinOffered()?`<button type="button" class="ui-link" data-ig-pin-open="${i}">${igEsc(i18t('int_fd_pin'))}</button>`:''}${igTourOffered()||igPinOffered()?`<button type="button" class="ui-link" data-ig-pic="${i}">${igEsc(i18t('int_pic_copy'))}</button>`:''}</div>`):''}
       ${(Number.isInteger(i)&&m.act&&typeof window.caCardHtml==='function')?caCardHtml(m.act,i):''}
       ${(Number.isInteger(i)&&m.preview&&typeof window.hbPreviewHtml==='function')?hbPreviewHtml(m.preview):''}
       ${''/* a choice sits right under the sentence that offers it; then how the
@@ -9039,7 +9162,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
 }
 
 Object.assign(window,{igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
-Object.assign(window,{IG,IG_SUGGESTIONS,IG_ATTN,igAttn,IGB_ATTN_RGB,igLinkHoverShow,igFindingsLoad,igFindingsOwed,igFindingsTabOn,igFindingsShows,igFindingsCount,igFindingGo,igFindingOpen,igPartsNow,igFinding,igDateRead,igDayWord,igUntilRead,igUntilIds,igSoleRead,igSoleData,igObOpenOf,IG_TEMPLATE_RE,IG_BOOK_RE,IG_BOOK_NOT_RE,IG_MYCAL_RE,igBookAsk,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,igCountsDrawn,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{IG,IG_SUGGESTIONS,IG_ATTN,igAttn,IGB_ATTN_RGB,igLinkHoverShow,igAsOfRead,igAsOfData,igPictureBlob,igPictureSvg,igPictureCopy,igFindingsLoad,igFindingsOwed,igFindingsTabOn,igFindingsShows,igFindingsCount,igFindingGo,igFindingOpen,igPartsNow,igFinding,igDateRead,igDayWord,igUntilRead,igUntilIds,igSoleRead,igSoleData,igObOpenOf,IG_TEMPLATE_RE,IG_BOOK_RE,IG_BOOK_NOT_RE,IG_MYCAL_RE,igBookAsk,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,igCountsDrawn,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp,IG_PRE_MS,igPreOn,igPrePaint});
