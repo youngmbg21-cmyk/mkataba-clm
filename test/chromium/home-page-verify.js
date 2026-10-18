@@ -259,9 +259,11 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     /* ================= 4. THE FIGURES SIT ON ONE LINE ====================
        RE-POINTED IN PLACE 3 Oct 2026: the six figures of Your book. The
        picker's half stands: the phone's sheet still offers the readings. */
+    /* RE-POINTED 18 Oct 2026 (round 17, "Then and now"): Your book is a
+       table, so the five numbers stand in ONE COLUMN, their right edges one */
     const tops = await page.evaluate(() =>
-      [...document.querySelectorAll('#hb-book .hb-fig .hb-fig-n')].map(e => Math.round(e.getBoundingClientRect().top)));
-    check('4 the five figures share one baseline',
+      [...document.querySelectorAll('#hb-book .hb-fig .hb-fig-n')].map(e => Math.round(e.getBoundingClientRect().right)));
+    check('4 the five figures stand in one column, one right edge',
       tops.length === 5 && Math.max(...tops) - Math.min(...tops) <= 1, tops.join(' / '));
     const offered = await page.evaluate(() => (window.kpiCatalogOrder ? kpiCatalogOrder() : []));
     const want = ['lifecycle', 'compliance', 'importq', 'coverage'];

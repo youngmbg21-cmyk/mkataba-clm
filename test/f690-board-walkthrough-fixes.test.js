@@ -113,7 +113,8 @@ describe('F690 (7, 8) — the Board\'s wording and tiles', () => {
     assert.match(strip(bodyOf(HB, 'hbCardHtml')), /o\.who \|\| o\.theirs \? ''/);
   });
   test('the tiles say their count and wrap by the book\'s own width', () => {
-    assert.match(HB, /class="hb-figs is-n\$\{chosen\.length\}"/);
+    /* the then-and-now table (round 17) keeps the count class on the same box */
+    assert.match(HB, /class="hb-figs hb-tn is-n\$\{chosen\.length\}"/);
     assert.ok(!/minmax\(min\(150px,100%\),1fr\)/.test(HB), 'the auto-fit that left one tile alone is gone');
     assert.match(CSS, /\.hb-book>\.hb-cb\{container-type:inline-size\}/);
     assert.match(CSS, /@container \(max-width:749\.98px\)\{\s*\.hb-book \.hb-figs\.is-n5/);
