@@ -91,7 +91,8 @@ describe('f705 (1) needs you here, on Jambo\'s tab beside a paper', () => {
     assert.match(html, /pd_nd_title[\s\S]*class="pd-pill is-quiet"><i><\/i>2</, 'two rows, said once in the head');
     assert.match(html, /data-pd-nd-all[^>]*>pd_nd_all\[7\]/, 'All 7 — the Counter\'s own number');
     assert.match(html, /is-jw[\s\S]*cn_jw · ag_round[\s\S]*data-pd-nd-jw="round" data-pd-nd-key="round:MK-1">pd_nd_see</);
-    assert.match(html, /is-hot" data-pd-nd-kind="quiet"[\s\S]*title:quiet[\s\S]*<span class="late">sub:quiet<\/span>[\s\S]*data-pd-nd="quiet" data-pd-nd-id="MK-1">home_verb_answer</);
+    /* round 3 as drawn (18 Oct 2026): their waiting redlines open with "Open redlines" */
+    assert.match(html, /is-hot" data-pd-nd-kind="quiet"[\s\S]*title:quiet[\s\S]*<span class="late">sub:quiet<\/span>[\s\S]*data-pd-nd="quiet" data-pd-nd-id="MK-1">pd_nd_open_red</);
     assert.ok(html.indexOf('data-pd-nd-jw') < html.indexOf('data-pd-nd="quiet"'), 'Jambo\'s work leads');
   });
   test('1c nothing owed here: no card at all', () => {

@@ -15,6 +15,13 @@
    reads the checklist's own reading (needsYouOf), presses its own door
    (needsYouGo). Browser check: test/chromium/needs-you-card-verify.js.
 
+   MOVED 18 Oct 2026, by the owner's yes to round 17 as drawn ("Then and
+   now"): Needs you and Jambo's work LEAVE THE BOARD — they live on the
+   Counter (cnNeeds over hbNeedsList; Jambo's work opened in place) — and
+   Jambo's Board greeting says where (hbBoardHelloHtml). Section (1) is
+   re-pointed to that: the Board draws neither card, the one reading and the
+   one door stand where the Counter draws them.
+
    THE RETIRED WORDS of the 4 Oct merged card stay inert in both books.
    The full story is in docs/MAP-HISTORY.md under this heading.
    ============================================================ */
@@ -31,8 +38,6 @@ const HOME = read('js/views/home.js');
 const INSPECTOR = read('js/views/inspector.js');
 const I18N = read('js/i18n.js');
 
-const CARD = BOARD.slice(BOARD.indexOf('function hbPrepHtml'),
-  BOARD.indexOf('/* ---- ONE CONTRACT ROW'));
 const ITEMS = HOME.slice(HOME.indexOf('function hmDecisionItems'),
   HOME.indexOf('/* ---- WHERE EACH ONE IS ANSWERED ----'));
 
@@ -43,16 +48,12 @@ const ITEMS = HOME.slice(HOME.indexOf('function hmDecisionItems'),
 const code = s => s.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
 const BOARD_CODE = code(BOARD);
 
-describe('f450 (1) — Jambo\'s work draws none of it; the Needs you card is its own', () => {
-  test('Jambo\'s work is Copilot\'s, and it is the only name over it', () => {
-    assert.match(CARD, /i18t\('hm_ag_title'\)/, 'the heading stays Copilot\'s own');
-    assert.doesNotMatch(code(CARD), /hb_work_title/,
-      'Your work was the name of the merged list and goes with it');
-  });
-
-  test('no waiting rows, no cap line, no divider inside Jambo\'s work', () => {
-    for (const gone of ['needRows', 'needMore', 'hb_work_waiting', 'hb_work_more', 'hbNeedsHtml', 'data-hb-ny'])
-      assert.ok(!code(CARD).includes(gone), gone + ' is in Jambo\'s work card');
+describe('f450 (1) — the Board draws neither card; the Counter draws Needs you (round 17, 18 Oct 2026)', () => {
+  const BOARD_FN = BOARD_CODE.slice(BOARD_CODE.indexOf('function hbBoardHtml('), BOARD_CODE.indexOf('function hbSetupLeft('));
+  test('the Board is only the book: no Needs you card, no Jambo\'s work card', () => {
+    for (const gone of ['hbNeedsHtml', 'hbPrepHtml', 'data-hb-ny', 'data-hb-prep', 'hm-agents'])
+      assert.ok(!BOARD_FN.includes(gone), gone + ' is still drawn on the Board');
+    assert.ok(!/function hbNeedsHtml\(|function hbPrepHtml\(/.test(BOARD_CODE), 'the two card builders are gone, not left unused');
   });
 
   test('the 4 Oct merged card\'s reading and signs stay gone', () => {
@@ -60,30 +61,22 @@ describe('f450 (1) — Jambo\'s work draws none of it; the Needs you card is its
       assert.ok(!BOARD_CODE.includes(gone), gone + ' is back in js/views/homeboard.js');
   });
 
-  test('the Needs you card stands first, above Jambo\'s work', () => {
-    const body = BOARD_CODE.slice(BOARD_CODE.indexOf('function hbBoardHtml('));
-    const i = body.indexOf('hbNeedsHtml()'), j = body.indexOf('hbPrepHtml(A');
-    assert.ok(i > 0 && j > i, 'hbNeedsHtml() is drawn before hbPrepHtml(A, …)');
-  });
-
-  test('it reads the checklist\'s own reading and presses the checklist\'s own door', () => {
-    const NY = code(BOARD.slice(BOARD.indexOf('function hbNeedsList('), BOARD.indexOf('function hbPrepHtml(')));
+  test('one reading, one door: the Counter lists hbNeedsList and presses hbNeedsPress', () => {
+    const NY = code(BOARD.slice(BOARD.indexOf('function hbNeedsList('), BOARD.indexOf('function hbNyWhat(')));
     assert.match(NY, /needsYouOf\(c\)/, 'one reading: needsYouOf over the book');
-    assert.match(NY, /needsYouGo\(kind, c\.id\)/, 'one door: needsYouGo');
-    assert.match(BOARD_CODE, /\[data-hb-ny-done\][\s\S]{0,300}lookDone\(c\)/, 'a colleague\'s look is answered by its own Done (lookDone)');
+    assert.match(code(BOARD.slice(BOARD.indexOf('function hbNeedsPress('), BOARD.indexOf('function hbNeedsPress(') + 600)), /needsYouGo\(kind, c\.id\)/, 'one door: needsYouGo');
+    const CN = read('js/views/counter.js');
+    assert.match(CN, /hbNeedsList\(\)/, 'the Counter draws the one reading');
+    assert.match(CN, /hbNeedsPress\(/, 'and presses the one door');
     assert.ok(!/negoChanges\(|negoRound\(|negoProgress\(|api\(|fetch\(/.test(NY), 'reading writes nothing and spends nothing');
   });
 
-  test('the card is still drawn for Copilot\'s own work, and still closes', () => {
-    assert.match(CARD, /!A\.rows\.length && !A\.done\.length/,
-      'it stands down only when Copilot has nothing ready and did nothing while you were away');
-    assert.match(CARD, /data-hb-prep="closed"/, 'and the x that closes it stays');
-  });
-
-  test('the count on the way back counts Copilot\'s work alone', () => {
-    const back = BOARD.slice(BOARD.indexOf('data-hb-prep="open"'), BOARD.indexOf('data-hb-prep="open"') + 300);
-    assert.match(back, /hbAgentsData\(null\)\.ready/, 'the pill is the agents\' count');
-    assert.ok(!/hbNeedsData|hbNeedsCount/.test(back), 'and nothing is added to it');
+  test('"needs me" goes to the Counter, and Jambo on the Board says so', () => {
+    const open = code(BOARD.slice(BOARD.indexOf('function hbNeedsOpen('), BOARD.indexOf('function hbNeedsPress(')));
+    assert.match(open, /deskGoCounter\(\)/);
+    assert.match(open, /getElementById\('cn-needs'\)/);
+    assert.match(code(BOARD.slice(BOARD.indexOf('function hbBoardHelloHtml('), BOARD.indexOf('function hbBoardHelloHtml(') + 2400)), /counterNeedsCount\(\)/,
+      'his number is the Counter\'s own');
   });
 });
 

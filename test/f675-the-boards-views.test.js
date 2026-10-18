@@ -93,7 +93,9 @@ describe('f675 (1) one switch, for the contract on the paper', () => {
   test('1c the Board draws no switch and no view: the book is the Board (owner, 15 Oct 2026)', () => {
     const b = strip(fnBody(HB, 'hbBoardHtml'));
     assert.doesNotMatch(b, /hbCvSwitchHtml|hbCvBodyHtml/);
-    assert.match(b, /return `<div class="hb-note">/);
+    /* round 17 as drawn (18 Oct 2026): the Board opens on its head card, whose first row keeps .hb-note */
+    assert.match(b, /return `\$\{hbBoardHeadHtml\(time, cut, bs,/);
+    assert.match(strip(fnBody(HB, 'hbBoardHeadHtml')), /<div class="hb-note hb-bh-r">/);
   });
 });
 

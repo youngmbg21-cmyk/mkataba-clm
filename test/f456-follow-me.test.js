@@ -205,11 +205,18 @@ describe('f456 (5) — the face is the control, and there is NO BAND', () => {
     assert.match(HTML, /button\.pz-face\.is-following\{ background:var\(--accent-solid\)/);
   });
 
+  /* RE-POINTED 18 Oct 2026 (round 6 as drawn, the owner's "build all the
+     gaps"): the walk works on Home's paper too, so where it can work is one
+     reading, presenceCanWalk — the negotiate page's paper, or Home's
+     (presenceHomePaper, walked through igPaperGoClause) */
   test('and it is a button ONLY where the walk can work', () => {
     const fn = MOD.slice(MOD.indexOf('const canWalk ='), MOD.indexOf('return `<span class="pz-row"'));
-    assert.match(fn, /getElementById\('view-redline'\) \|\| document\.querySelector\('\.redline-page'\)/,
+    assert.match(fn, /const canWalk = presenceCanWalk\(\);/);
+    const can = MOD.slice(MOD.indexOf('function presenceCanWalk('), MOD.indexOf('/* ---- THE ROW ----'));
+    assert.match(can, /getElementById\('view-redline'\) \|\| document\.querySelector\('\.redline-page'\)/,
       'the walk needs the negotiate page\'s paper');
-    assert.match(fn, /typeof window\.rlJumpToClause === 'function'/);
+    assert.match(can, /typeof window\.rlJumpToClause === 'function'/);
+    assert.match(can, /presenceHomePaper\(\) && typeof window\.igPaperGoClause === 'function'/, '…or Home\'s paper and its own door');
     assert.match(fn, /if \(!canWalk\) return `<span class="pz-face"/,
       'on the Document tab a button would quietly do nothing — the dead-button '
       + 'fault this codebase names in four other places. Presence is drawn '

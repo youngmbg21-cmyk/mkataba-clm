@@ -170,6 +170,14 @@ const BRAIN_PARTS = [
   ['needshere', 'pdNeedsHtml', 'see', 1],
   /* the paper's line (round 6, "One line", 17 Oct 2026): who and what, the stage with its round, who is on it now, the paper's own acts */
   ['paperline', 'igLineIdHtml', 'see', 1],
+  /* the glance as drawn (rounds 3 and 6, 18 Oct 2026): their round and each of their asks, said from its own ops, with Go to it */
+  ['glanceasks', 'pdAskSay', 'see', 1],
+  /* a note of yours due on the paper in front (round 3 as drawn, 18 Oct 2026): My notes' own reading, in Needs you here, only you */
+  ['notehere', 'pdNoteRows', 'see', 1],
+  /* Follow me and Go to it on Home's paper (round 6 as drawn, 18 Oct 2026): the clause brought up and lit, nothing written */
+  ['followhome', 'igPaperGoClause', 'see', 1],
+  /* the Board's head (round 17 as drawn, 18 Oct 2026): Board, when counted, Summarise with its cost, saved views as chips with their counts */
+  ['boardhead', 'hbBoardHeadHtml', 'see', 1],
   /* Redlines, beside the paper (the one-page Home plan, stage 3, 14 Oct 2026):
      Jambo's panel draws the Negotiate page's own column; doors from outside land here */
   ['redface', 'pdRedOpen', 'see', 0],
@@ -428,16 +436,16 @@ const BRAIN_PARTS = [
    brn_step_<flow>_<n> in the dictionary. A flow is a STORY a person wrote;
    the reading only checks that every part it names is still in the code. */
 const BRAIN_FLOWS = [
-  { id: 'upload', steps: [['upload', 'dropin', 'book', 'draftcard'], ['docx', 'pdf'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed', 'jbpress'], ['brief', 'playbook', 'oblscan', 'obdesk', 'risk', 'datedwin', 'papermark', 'ndaread'], ['model'], ['details', 'fillface', 'refile', 'blanks', 'paysec', 'ndatail'], ['overview', 'constellation', 'glance', 'needshere', 'paperline', 'bell', 'strip', 'cardpage']] },
+  { id: 'upload', steps: [['upload', 'dropin', 'book', 'draftcard'], ['docx', 'pdf'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed', 'jbpress'], ['brief', 'playbook', 'oblscan', 'obdesk', 'risk', 'datedwin', 'papermark', 'ndaread'], ['model'], ['details', 'fillface', 'refile', 'blanks', 'paysec', 'ndatail'], ['overview', 'constellation', 'glance', 'glanceasks', 'needshere', 'notehere', 'paperline', 'bell', 'strip', 'cardpage']] },
   /* The new parts join STEPS THAT ALREADY EXIST rather than adding steps of
      their own: a step inserted in the middle renumbers every sentence after
      it in both books, and these are not new stages of the story — they are
      who else is on the page while you do it, and who may rule on it. */
-  { id: 'redline', steps: [['redface', 'negpage', 'startnego', 'here', 'follow'], ['editor', 'baton', 'askkeep', 'risklist', 'riskwalk'], ['funnel'], ['desk', 'suggest'], ['ladder'], ['review', 'kept', 'asks'], ['payload', 'letter'], ['shares', 'linkcheck'], ['email', 'sharemail', 'mailkey', 'cplink', 'turnmail', 'wordmark'], ['whosemove', 'bell', 'roundauto']] },
+  { id: 'redline', steps: [['redface', 'negpage', 'startnego', 'here', 'follow', 'followhome'], ['editor', 'baton', 'askkeep', 'risklist', 'riskwalk'], ['funnel'], ['desk', 'suggest'], ['ladder'], ['review', 'kept', 'asks'], ['payload', 'letter'], ['shares', 'linkcheck'], ['email', 'sharemail', 'mailkey', 'cplink', 'turnmail', 'wordmark'], ['whosemove', 'bell', 'roundauto']] },
   { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop', 'roundsettle'], ['ladder'], ['whosemove', 'decidedsend'], ['bell', 'home', 'needsme', 'counter', 'desktabs', 'negpage', 'boardviews', 'stands', 'stale', 'dealpaper', 'onepaper', 'answeronpaper'], ['webhook']] },
   { id: 'sign', steps: [['signface', 'signtab', 'linkcheck'], ['readiness', 'signgate', 'rules', 'paperjobs'], ['approvals', 'namedyes', 'decide', 'undoyes', 'rulestep', 'asks', 'approvalpaper', 'freshen', 'awaycard', 'awayget', 'awayset', 'awayend', 'awayreach', 'awaycovers', 'awayrec', 'awayans'], ['brief', 'playbook', 'blanks'], ['pad'], ['putguard', 'srvseal', 'sealtext'], ['seal', 'frozen', 'issuelinks'], ['obligations', 'renewal', 'calendar', 'mynotes', 'mine', 'myitems', 'myitemsget', 'myitemsput', 'myitemsdel', 'plan', 'keeptab', 'keepread', 'keepset', 'keeprun', 'keepbook', 'keeprec', 'cnrow', 'cnset', 'cndoor', 'cnmask', 'cnrec', 'cnlog'], ['email', 'copies']] },
   { id: 'night', steps: [['reminders', 'lanes', 'agentlevel', 'linkkeep', 'agentpieces', 'agentpoints'], ['renewal', 'renewact'], ['renewprep'], ['model', 'boardjudge', 'bookread'], ['db'], ['obligations'], ['email', 'boardmoved', 'looktell', 'invite'], ['desknight', 'home', 'needsme', 'counter', 'insights', 'readings', 'chasemany', 'draftreply', 'agentoutcome', 'agentprepared', 'agentrebuild', 'piecesget', 'jambohouse']] },
-  { id: 'ask', steps: [['copilotask', 'jambomap', 'onesearch', 'menuask', 'nextsteps', 'reflink', 'menutab', 'strip', 'homepaper', 'breakdown', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook', 'stackview'], ['db', 'dealfacts', 'brainread', 'privwall', 'privopens', 'privmoney', 'privtrail', 'histlanes', 'payread'], ['model', 'settingswhy', 'govrule', 'breakread', 'breakdive', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote', 'citedoor', 'walkset', 'paperdesk'], ['contracts', 'contractsplace', 'customers', 'directory', 'passroute', 'lookask', 'copilotdoors', 'ruledoor'], ['explorer', 'cellfold', 'readchips', 'nextq', 'boardmarks']] },
+  { id: 'ask', steps: [['copilotask', 'boardhead', 'jambomap', 'onesearch', 'menuask', 'nextsteps', 'reflink', 'menutab', 'strip', 'homepaper', 'breakdown', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook', 'stackview'], ['db', 'dealfacts', 'brainread', 'privwall', 'privopens', 'privmoney', 'privtrail', 'histlanes', 'payread'], ['model', 'settingswhy', 'govrule', 'breakread', 'breakdive', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote', 'citedoor', 'walkset', 'paperdesk'], ['contracts', 'contractsplace', 'customers', 'directory', 'passroute', 'lookask', 'copilotdoors', 'ruledoor'], ['explorer', 'cellfold', 'readchips', 'nextq', 'boardmarks']] },
   /* THE OVERNIGHT REVIEW'S FLOWS (9 Oct 2026): the commonest start, a request,
      the other side's signature, an amendment, the end of a contract, and the
      ways a step can go wrong — none of which the six flows above walked. */
@@ -463,7 +471,7 @@ const BRAIN_LANE_OF = {
   /* a colleague: the requester, the reviewer, the contributor, the approver */
   req: ['request', 'kinds', 'reqfiles', 'askadmin', 'ruledoor', 'privpage', 'trailpage', 'rolespage', 'bzsection', 'arsheet', 'settingsask', 'settingsanswer', 'review', 'suggest', 'rules', 'namedyes', 'decide', 'undoyes', 'approvalpaper', 'lookask'],
   /* the person working the contract: what they see and press */
-  own: ['awaycard', 'keeptab', 'cnrow', 'upload', 'dropin', 'draftform', 'refile', 'privnews', 'privtrail', 'histlanes', 'paysec', 'ndatail', 'glance', 'needshere', 'paperline', 'letter', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'needsme', 'counter', 'desktabs', 'negpage', 'redface', 'boardviews', 'strip', 'stripfamily', 'cardpage', 'startnego', 'here', 'follow',
+  own: ['awaycard', 'keeptab', 'cnrow', 'upload', 'dropin', 'draftform', 'refile', 'privnews', 'privtrail', 'histlanes', 'paysec', 'ndatail', 'glance', 'glanceasks', 'needshere', 'notehere', 'paperline', 'letter', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'needsme', 'counter', 'desktabs', 'negpage', 'redface', 'boardviews', 'strip', 'stripfamily', 'cardpage', 'startnego', 'here', 'follow', 'followhome', 'boardhead',
     'editor', 'baton', 'askkeep', 'risklist', 'riskwalk', 'stands', 'dealpaper', 'onepaper', 'decidedsend', 'signtab', 'signface', 'pad', 'calendar', 'desknight', 'insights', 'readings',
     'chasemany', 'copilotask', 'jambomap', 'menuask', 'nextsteps', 'reflink', 'menutab', 'amendface', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs',
     'phrasebook', 'boardtools', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'citedoor', 'walkset', 'paperdesk', 'contracts', 'contractsplace', 'customers', 'directory', 'cellfold',
