@@ -19937,6 +19937,25 @@ app.put('/api/me/prefs', auth, (req, res) => {
     else if (OPENS_ON_SRV.includes(v)) prefs.opensOn = v;
     else return res.status(400).json({ error: 'opensOn must be one of: ' + ['jambo'].concat(OPENS_ON_SRV).join(', ') });
   }
+  /* EACH PERSON CHOOSES HOW JAMBO WORKS FOR THEM (round 23, owner, 17 Oct
+     2026): per agent, 'ask' (Ask me first) or 'mine' (Leave it to me); null
+     takes that agent back to the company's level. A person may only step
+     DOWN from the company's: "Just do it" stays the admin's to give, so it is
+     refused here. agentLevelFor reads it. */
+  if ('agentLevels' in (req.body || {})) {
+    const v = req.body.agentLevels;
+    if (v === null) delete prefs.agentLevels;
+    else if (typeof v === 'object' && !Array.isArray(v)) {
+      const mine = { ...(prefs.agentLevels && typeof prefs.agentLevels === 'object' ? prefs.agentLevels : {}) };
+      for (const [k, x] of Object.entries(v)) {
+        if (!AGENT_KEYS.includes(k)) return res.status(400).json({ error: 'No such agent: ' + k });
+        if (x === null) { delete mine[k]; continue; }
+        if (!AGENT_PERSON_LEVELS.includes(x)) return res.status(400).json({ error: 'A level must be one of: ' + AGENT_PERSON_LEVELS.join(', ') });
+        mine[k] = x;
+      }
+      if (Object.keys(mine).length) prefs.agentLevels = mine; else delete prefs.agentLevels;
+    } else return res.status(400).json({ error: 'agentLevels must be an object or null' });
+  }
   if ('agentsLook' in (req.body || {})) {
     const v = req.body.agentsLook;
     if (v === null) delete prefs.agentsLook;
@@ -21215,12 +21234,13 @@ async function runLinkWatch() {
        by the agent itself — nothing is sent, the other side's link simply
        keeps working, the trail says so and the owner is told. Asked through
        the SAME refusals as the owner's own press. */
-    if (agentLevel('link') === 'auto') for (const it of items) {
+    /* the owner's own level wins where they stepped down (round 23) */
+    const uOwn = agentLevel('link') === 'auto' ? db.prepare('SELECT * FROM users WHERE id=?').get(String(owner.id)) : null;
+    if (uOwn && agentLevelFor('link', uOwn) === 'auto') for (const it of items) {
       if (!it.kind.startsWith('soon') || !it.token) continue;
       const sh = db.prepare('SELECT * FROM shares WHERE token=?').get(it.token);
       if (!sh || sh.revoked_at || shareExpired(sh) || (sh.response && !sh.durable)) continue;
-      const u0 = db.prepare('SELECT * FROM users WHERE id=?').get(String(owner.id));
-      if (!u0) continue;
+      const u0 = uOwn;
       const no = srvLinkRefusal({ user: u0 }, srvStoredContract(sh.contract_id), sharePurposeOf(sh), { keep: true, contractId: sh.contract_id });
       if (no) { bump('autoRefused'); continue; }
       it.kept = srvShareExtend(sh, SHARE_EXPIRY_DEFAULT_DAYS, 'Jambo (keep links working)');
@@ -22023,6 +22043,16 @@ function agentLevel(k) {
   const v = String(agentCfg(k).level || '');
   if (v === 'auto' && !AGENT_AUTO_OK.includes(k)) return 'ask';
   return AGENT_LEVELS.includes(v) ? v : 'ask';
+}
+/* THE LEVEL FOR ONE PERSON (round 23): their own choice where they made one
+   ('ask' or 'mine' — a person only steps down), else the company's. */
+const AGENT_PERSON_LEVELS = ['ask', 'mine'];
+function agentLevelFor(k, u) {
+  const co = agentLevel(k);
+  let mine = null;
+  try { const p = u ? userPrefs(u) : null; mine = p && p.agentLevels ? p.agentLevels[k] : null; } catch (_) { mine = null; }
+  if (!AGENT_PERSON_LEVELS.includes(mine)) return co;
+  return co === 'mine' ? 'mine' : mine;
 }
 function agentSetCfg(k, patch) {
   if (k === 'renew') {
