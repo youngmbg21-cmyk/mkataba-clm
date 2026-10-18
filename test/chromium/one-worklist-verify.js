@@ -76,7 +76,14 @@ const RULES = [
     check('3a Kind and Whose turn say it: Approval · You, Signature · You sign, Approval · its approver',
       row('MK-WL-1').kind === 'Approval' && row('MK-WL-1').turn === 'You' && row('MK-WL-3').kind === 'Signature' && row('MK-WL-3').turn === 'You sign'
       && row('MK-WL-2').kind === 'Approval' && row('MK-WL-2').turn && !/^You/.test(row('MK-WL-2').turn), JSON.stringify(A.rows));
-    check('3b the band counts both groups in the same words; Approval rules is an admin\'s door only', A.groups.length === 2 && A.facts === `${A.groups[0].rows.length} yours to answer · ${A.groups[1].rows.length} waiting on others` && !A.rules, JSON.stringify({ facts: A.facts, rules: A.rules }));
+    /* RE-POINTED (lane A1 pass 4, 18 Oct 2026): round 15 draws Approval rules
+       for an Editor too — an admin goes to the rules, anyone else hears them
+       from Jambo with Ask an admin (f807 (9), jambos-list-panel-verify) */
+    check('3b the band counts both groups in the same words; Approval rules is everyone\'s door', A.groups.length === 2 && A.facts === `${A.groups[0].rows.length} yours to answer · ${A.groups[1].rows.length} waiting on others` && A.rules, JSON.stringify({ facts: A.facts, rules: A.rules }));
+    await page.click('[data-ap-rules]');
+    const RS = await until(() => { const f = document.getElementById('jl-feed') || document.getElementById('ai-feed'); const t = f ? f.textContent.replace(/\s+/g, ' ') : '';
+      return /ask for a yes before anyone signs/.test(t) ? { said: true, door: !!(f.querySelector('[data-ai-rule-door="ask_admin"][data-ai-rule="approvals"]')), view: state.view } : null; }, null, 6000);
+    check('3c for a non-admin, Jambo says the rules in his panel with the rule\'s own door, Ask an admin; the page stays', !!RS && RS.door && RS.view === 'approvals', JSON.stringify(RS));
 
     await page.click('[data-ap-row="MK-WL-3"]');
     const P3 = await until(() => { const p = document.getElementById('ins-panel'); return p && /MK-WL-3|Stratos/.test(p.textContent) ? { text: p.textContent.replace(/\s+/g, ' '), approve: !!p.querySelector('[data-ins-act="approve"]') } : null; });

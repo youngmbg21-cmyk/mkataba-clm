@@ -1373,6 +1373,7 @@ function tbStyleHtml() {
   .tb-ask button{flex:none;display:inline-grid;place-items:center;width:var(--ctl-h);height:var(--ctl-h);padding:0;background:var(--color-accent-700);border:1px solid var(--color-accent-700);color:#fff;cursor:pointer}
   .tb-ask button svg{width:var(--btn-ic);height:var(--btn-ic)}
   .tb-ask button:hover{background:var(--accent-ink);border-color:var(--accent-ink)} .tb-ask button[disabled]{opacity:.45;cursor:default}
+  .tb-ask + .jb-hint{flex:none;margin:-4px 14px 8px}
   .tb-pick{position:absolute;left:14px;bottom:92px;width:min(280px,calc(100% - 28px));background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);padding:4px 0;z-index:5;max-height:220px;overflow:auto}
   .tb-pick button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:5px 10px;border:0;background:none;font:inherit;font-size:var(--t-label);cursor:pointer;color:var(--color-text)}
   .tb-pick button:hover{background:var(--color-neutral-100)} .tb-pick small{margin-left:auto;color:var(--color-neutral-500)}
@@ -1808,7 +1809,10 @@ function tbAskHtml() {
   const draft = sec ? (_tb.ask[sec.k] || '') : (_tb.ask._ || '');
   return `<div class="tb-ask" id="tb-askrow"><textarea id="tb-ask" rows="1" maxlength="${TB_ASK_MAX}" placeholder="${esc(ph)}" aria-label="${i18t('tb_ask_label')}" ${on ? '' : 'disabled'}>${esc(draft)}</textarea>
     <button type="button" data-tb-send title="${on ? i18t('tb_pb_one_read') : esc(i18t('tb_pb_nokey'))}" aria-label="${i18t('tb_send')}" ${on ? '' : 'disabled'}>${icon('send')}</button>
-    <div class="tb-pick" id="tb-pick" hidden></div></div>`;
+    <div class="tb-pick" id="tb-pick" hidden></div></div>${
+    /* THE HINT LINE (owner's "Every Jambo box", 18 Oct 2026; round 21 draws it
+       under the builder's box): the one builder; asking files nothing */
+    typeof jamboHintHtml === 'function' ? jamboHintHtml() : ''}`;
 }
 function tbFootHtml() {
   const secs = tbSections();

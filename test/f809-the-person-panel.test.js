@@ -176,7 +176,7 @@ describe('f809 (4) nothing chosen: the page in Jambo\'s words', () => {
   });
   test('4c every word in both books', () => {
     for (const k of ['jl_w_person', 'jl_dir_say_one', 'jl_dir_say_other', 'jl_dir_split', 'jl_dir_cover', 'jl_dir_chip_ours', 'jl_dir_chip_theirs',
-      'jl_side_ours', 'jl_email', 'jl_f_email', 'jl_f_away', 'jl_away_until', 'jl_away_line', 'jl_named_n', 'jl_waiting_on', 'jl_may_answer',
+      'jl_side_ours', 'jl_email', 'jl_f_email', 'jl_f_away', 'jl_away_until', 'jl_away_line', 'jl_named_n_one', 'jl_named_n_other', 'jl_waiting_on', 'jl_may_answer',
       'jl_kind_review', 'jl_kind_look', 'jl_kind_move', 'jl_open_approval', 'jl_open_review', 'jl_open_signing', 'jl_open_negotiation', 'jl_all_on_contracts'])
       for (const lang of ['en', 'sv']) assert.ok(BOOKS[lang][k] != null, `${k} ${lang}`);
   });
@@ -245,5 +245,53 @@ describe('f809 (5) named on it in any role — the approver and the signer too',
     for (const k of ['jl_role_owner', 'jl_role_sign', 'jl_role_approve', 'jl_role_review', 'jl_role_contribute', 'jl_role_read', 'jl_approval_asked', 'jl_review_asked'])
       for (const lang of ['en', 'sv']) assert.ok(BOOKS[lang][k], `${k} ${lang}`);
     assert.equal(BOOKS.en.jl_role_approve, 'approver');
+  });
+});
+
+/* ═══ PASS 4 (18 Oct 2026, evening), the checker's second pass ═════════════
+   (7) "NAMED ON" COUNTS IN THE PERSON'S OWN NUMBER: "1 contract · 1 live",
+       "12 contracts · 7 live" — plural-aware in both books.
+   (8) AS DRAWN: "Waiting on Jonas" rows without dots, their line on one line
+       (the whole of it on the hover); "Named on" rows inside a bordered white
+       card, the stage on the right across both lines.
+   (9) ITS DOORS LAND ON THEIR ONE TARGET (main's LAND ON IT): a waiting row's
+       approval on its row, a review on Redlines, a signature on the road's
+       stop; a Named on row on the paper; Show their contracts on the list.
+   AT THE PARENT (8dc306a) every claim FAILS. */
+describe('f809 (7) "Named on" counts in the person\'s own number', () => {
+  test('7a one contract, many contracts — both books', () => {
+    assert.equal(tn('jl_named_n', 1, { live: 1 }), '1 contract · 1 live');
+    assert.equal(tn('jl_named_n', 12, { live: 7 }), '12 contracts · 7 live');
+    const svt = (k, n, v) => fill(BOOKS.sv[k + (n === 1 ? '_one' : '_other')], Object.assign({ n }, v));
+    assert.equal(svt('jl_named_n', 1, { live: 1 }), '1 avtal · 1 pågående');
+    assert.equal(BOOKS.en.jl_named_n, undefined, 'the plain key is retired, so nothing can say "1 contracts"');
+  });
+  test('7b both of the panel\'s readers ask the plural', () => {
+    const f = fnOf(DIR, 'dirPaintPanel');
+    assert.equal((f.match(/i18tn\('jl_named_n', n, \{ n, live: p\.active \}\)/g) || []).length, 2);
+    assert.doesNotMatch(f, /i18t\('jl_named_n'/);
+  });
+});
+describe('f809 (8) the two lists as drawn', () => {
+  test('8a Waiting on: no dots, one line', () => {
+    const f = fnOf(DIR, 'dirPaintPanel');
+    assert.match(f, /`<div class="jl-need is-wait">\$\{waits\.slice\(0, DIR_WAIT_MAX\)/);
+    assert.match(f, /return `<div class="jl-need-r is-amber"><div class="jl-need-b">/);
+    assert.doesNotMatch(f.slice(f.indexOf('const waitSec'), f.indexOf('const namedJl')), /jl-need-dot/);
+    assert.match(DIR, /\.ins-panel \.jl-need\.is-wait \.jl-need-s\{display:block;white-space:nowrap;text-overflow:ellipsis;\}/);
+  });
+  test('8b Named on: a bordered white card, the stage across both lines', () => {
+    assert.match(DIR, /\.ins-panel \.jl-ct-list\{border:1px solid var\(--color-divider\);border-radius:var\(--radius-lg\);background:var\(--color-surface\);overflow:hidden;\}/);
+    assert.match(DIR, /\.ins-panel \.jl-ct-list \.dir-ct-st\{grid-column:2;grid-row:1 \/ span 2;align-self:center;\}/);
+  });
+});
+describe('f809 (9) its doors land on their one target', () => {
+  test('9a the waiting rows, Named on and Show their contracts', () => {
+    const go = fnOf(DIR, 'dirWaitGo');
+    assert.match(go, /if \(kind === 'approval'\)\{[^\n]*land\('row', c\.id\); return; \}/);
+    assert.match(go, /apOpenSigning\(c\.id, 'road'\)/);
+    assert.match(go, /openRedlineWorkbench\(c\.id, \{ face: true \}\); land\('redlines'\);/);
+    assert.match(fnOf(DIR, 'dirOpenContract'), /jlLand\('paper'\)/);
+    assert.match(fnOf(DIR, 'dirShowContracts'), /jlLand\('list'\)/);
   });
 });

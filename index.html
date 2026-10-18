@@ -13259,6 +13259,18 @@
   #app-shell:has(#content .ins-panel.is-jambo.is-folded):not(:has(#content [hidden] .ins-panel.is-jambo)) #page-head,
   #app-shell:has(#content .ins-panel.is-jambo.is-folded):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll{margin-right:46px;}
   #content :has(> #ins-panel.is-jambo){grid-template-columns:minmax(0,1fr);column-gap:0;}
+  /* THE LIST'S CARD ENDS AFTER ITS LAST ROW (rounds 14 and 15 as drawn): its
+     foot ("Showing 1–7 of 7") right under the rows, the grey ground below; a
+     list longer than the window still scrolls inside its card */
+  #content .reg-body.is-ins:has(> #ins-panel.is-jambo),
+  #content .ap-body.is-ins:has(> #ins-panel.is-jambo){align-items:start;}
+  #content .reg-body.is-ins:has(> #ins-panel.is-jambo) > .reg-card{flex:none;max-height:100%;}
+  #content .ap-body.is-ins:has(> #ins-panel.is-jambo) > .ap-card{max-height:100%;}
+  #content .ap-body.is-ins:has(> #ins-panel.is-jambo) .ap-foot{margin-top:0;}
+  /* round 15: the white head (title, counts, Approval rules), the grey ground,
+     then the list's card — Negotiations' band and ground, the same */
+  body:has(#content .ap-page) #page-head > :last-child{padding-bottom:var(--s-3);}
+  #content .sap-page.ap-page{padding-top:var(--s-3);}
   #content .ins-panel.is-jambo{position:fixed;right:0;top:var(--jl-top,88px);bottom:0;width:380px;z-index:20;display:flex;flex-direction:column;overflow:hidden;
     border:0;border-left:1px solid var(--color-neutral-300);border-radius:0;box-shadow:-10px 0 28px -20px rgba(43,43,45,.35);background:var(--color-surface);}
   #content .ins-panel.is-jambo.is-folded{width:46px;}
@@ -13289,6 +13301,10 @@
   #content .ins-panel.is-jambo .ins-cp{font-size:var(--t-card);}
   .jl-h .ins-cp{gap:8px;}
   .jl-st-side{flex:none;display:inline-flex;font-size:var(--t-meta);font-weight:var(--w-label);letter-spacing:0;line-height:var(--lh-tight);}
+  /* rounds 14 and 15: the pill sits right after the party's name ("Nordvik
+     Logistik AB ● Our move · 4 days", "Helio Energy AB [for Jonas]"), not at
+     the panel's far edge — the list head's .ins-st-side pushes it out */
+  .jl-h .ins-cp .jl-st-side{margin-left:0;}
   .jl-face-row{display:flex;align-items:center;gap:12px;min-width:0;}
   .jl-face-row .jl-face-w{min-width:0;}
   .jl-face-row .dir-av,.jl-face-row .jl-av{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:var(--w-strong);background:var(--color-accent-50);color:var(--accent-ink);}
@@ -13369,6 +13385,9 @@
   .jl-answer .ins-acts:first-of-type{margin-top:0;}
   .jl-answer .ins-acts .ins-lead{flex:0 1 auto;}
   .jl-rec{margin-top:10px;line-height:1.45;}
+  .jl-rules{margin:6px 0 0;padding-left:18px;list-style:disc;}
+  .jl-rules li{margin:3px 0;}
+  .jl-sign-rule .ins-acts{margin-top:8px;}
   /* THE APPROVALS PAGE IN THE INSPECTOR'S SHAPE: the page owns its height
      like the register, the list's card and the panel scroll inside
      themselves, and the selected row wears the register's own mark. */
@@ -13395,7 +13414,11 @@
   .ap-table.ap-ins th{position:sticky;top:0;z-index:1;background:var(--color-surface);text-transform:none;letter-spacing:0;
     font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600);}
   .ap-table.ap-ins :is(td,th){white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .ap-table.ap-ins .ap-name,.ap-table.ap-ins .ap-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ap-table.ap-ins .ap-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* the party's name reads whole (round 15; at 1366 beside Jambo's panel a
+     long one takes a second line), the agreement under it keeps its cut */
+  .ap-table.ap-ins .ap-id .ap-name{white-space:normal;overflow-wrap:anywhere;}
+  .ap-table.ap-ins td:not(:has(.ap-id)) .ap-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .ap-table .ap-sub.late{color:var(--st-ruby-fg);}
   .ap-table tbody tr[data-ap-row]:focus{outline:none;}
   .ap-table tbody tr[data-ap-row]:focus-visible td{box-shadow:inset 0 2px 0 var(--focus-color),inset 0 -2px 0 var(--focus-color);}

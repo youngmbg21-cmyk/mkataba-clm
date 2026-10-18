@@ -34,6 +34,20 @@
         list ("approver", "signer") and a live Show their contracts; no ⋯
      9  PARTIES: a row of what waits on you reads whole in the 380px panel —
         its title, its short door, the Waiting on you fact — at three screens
+   PASS 4 (18 Oct 2026, evening, the checker's second pass):
+     5i "Since last look" when the value moved after the question was put
+     10a the whose-move pill right after the party's name
+     10b–d at three screens: the list's card ends after its rows, its foot
+        right under them; Approvals' white head, grey ground, then the card,
+        Approval rules inside the head; every party's name reads whole
+     10e a colleague's signature says how long it has waited
+     10f an away signer: Jambo says the rule and the proper step, with its door
+     10g the list panel's ask reads as the Counter's: a party's name, "contracts
+        ending in 90 days", "draft an NDA with …" — no Jambo call
+     10h Our paper: the bar's Jambo door opens the window (a hidden panel is
+        not on screen)
+     10i–j the person panel: "1 contract · 1 live"; Waiting on without dots,
+        one line; Named on in a bordered card
    Waits ask for the state, bounded; a missing part reports.
    Run: node test/chromium/jambos-list-panel-verify.js
    Photographs: HATI_SHOT_DIR=<dir> node test/chromium/jambos-list-panel-verify.js */
@@ -232,6 +246,19 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       check('5h a colleague\'s approval: "Sara approves", Whose turn "Sara"', !!A3 && A3.why === 'Sara approves' && A3.turn === 'Sara', JSON.stringify(A3));
     });
 
+    /* ---- 5i PASS 4: "Since last look" when something moved (the stage kept
+       only "Nothing changed"): the value changes after the question was put,
+       and the panel says so from the question's own stamp ---- */
+    await part('5i since last look, moved', async () => {
+      await page.evaluate(async () => { const c = getContract('MK-AP1'); if (c._light) await ensureFull(c); c.value = 21000000; persist(c); });
+      await page.evaluate(() => setView('approvals'));
+      await until(() => document.querySelector('[data-ap-row="MK-AP1"]'), null, 8000);
+      await page.click('[data-ap-row="MK-AP1"]');
+      const S = await until(() => { const r = [...document.querySelectorAll('#ins-panel .jl-rows > div')].find(x => /Since last look/.test(x.textContent));
+        const v = r ? r.querySelector('dd').textContent.trim() : null; return v && v !== 'Nothing changed in the wording' ? v : null; }, null, 8000);
+      check('5i "Since last look": the value moved after the question was put — said, read from the question\'s own stamp', S === 'The value changed since it was asked', JSON.stringify(S));
+    });
+
     /* ---- 6 People ---- */
     await part('6 People', async () => {
       await page.evaluate(() => setView('directory'));
@@ -259,6 +286,99 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         !!P2 && /^\d+ contracts · \d+ live$/.test(P2.named || '') && Number((P2.named || '').split(' ')[0]) >= 2
         && P2.list.some(x => /MK-AP1 · .* · approver/.test(x)) && /sign/.test(P2.sg1 || '') && P2.show === true && !P2.more
         && P2.asked.some(x => /^MK-AP1 · .* = Approval asked$/.test(x)), JSON.stringify(P2));
+    });
+
+    /* ---- 10 PASS 4: the checker's second pass ---- */
+    const aiCalls = [];
+    page.on('request', r => { if (/\/api\/ai\//.test(r.url())) aiCalls.push(r.url().replace(/^.*\/api/, '/api')); });
+    await part('10a the pill beside the name', async () => {
+      await page.evaluate(() => openNegotiations({ list: true }));
+      await until(() => document.querySelector('#reg-tbody tr[data-row="MK-A2"]'), null, 8000);
+      await page.click('#reg-tbody tr[data-row="MK-A2"]');
+      const G = await until(() => { const n = document.querySelector('#ins-panel .jl-h .ins-cp-n'), pl = document.querySelector('#ins-panel .jl-h .jl-st-side');
+        if (!n || !pl) return null; const a = n.getBoundingClientRect(), b = pl.getBoundingClientRect(), p = document.getElementById('ins-panel').getBoundingClientRect();
+        return { gap: Math.round(b.left - a.right), toEdge: Math.round(p.right - b.right) }; });
+      check('10a round 14: the whose-move pill right after the party\'s name, not at the far edge', !!G && G.gap >= 0 && G.gap <= 16 && G.toEdge > 40, JSON.stringify(G));
+    });
+    const CARD = (sel) => { const card = document.querySelector(sel.card), rows = [...document.querySelectorAll(sel.rows)].filter(r => r.getClientRects().length);
+      const last = rows[rows.length - 1], foot = document.querySelector(sel.foot), head = document.getElementById('page-head');
+      if (!card || !last || !foot) return null;
+      const c = card.getBoundingClientRect(), l = last.getBoundingClientRect(), f = foot.getBoundingClientRect();
+      const rules = document.querySelector('[data-ap-rules]'), hr = head ? head.getBoundingClientRect() : null;
+      return { footUnder: Math.round(f.top - l.bottom), cardEnd: Math.round(c.bottom - f.bottom), ground: Math.round(innerHeight - c.bottom),
+        headGround: hr ? Math.round(c.top - hr.bottom) : null, rulesIn: rules && hr ? Math.round(hr.bottom - rules.getBoundingClientRect().bottom) : null }; };
+    for (const [w, ht] of SCREENS) {
+      await page.setViewportSize({ width: w, height: ht });
+      await part('10b the card ends after its rows ' + w, async () => {
+        await page.evaluate(() => openNegotiations({ list: true }));
+        await until(() => document.querySelector('#reg-tbody tr[data-row="MK-A2"]'), null, 8000); await page.waitForTimeout(300);
+        const N = await page.evaluate(CARD, { card: '#content .reg-card', rows: '#reg-tbody tr', foot: '#reg-showing' });
+        check(`10b Negotiations ${w}×${ht}: the card ends after its last row, "Showing …" right under the rows, grey ground below`,
+          !!N && N.footUnder >= 0 && N.footUnder <= 12 && N.cardEnd <= 12 && N.ground >= 40, JSON.stringify(N));
+        await page.evaluate(() => setView('approvals'));
+        await until(() => document.querySelector('[data-ap-row="MK-AP1"]'), null, 8000); await page.waitForTimeout(300);
+        const A = await page.evaluate(CARD, { card: '#content .ap-card', rows: '.ap-table tbody tr', foot: '[data-ap-foot]' });
+        check(`10c Approvals ${w}×${ht}: the card ends after its rows; the white head, then grey ground, then the card; Approval rules inside the head`,
+          !!A && A.footUnder >= 0 && A.footUnder <= 2 && A.cardEnd <= 2 && A.ground >= 40 && A.headGround >= 8 && A.rulesIn >= 6, JSON.stringify(A));
+        const C = await page.evaluate(() => [...document.querySelectorAll('.ap-table .ap-id .ap-name')].filter(e => e.scrollWidth > e.clientWidth + 1 || /…$/.test(e.textContent)).map(e => e.textContent));
+        check(`10d Approvals ${w}×${ht}: every party's name reads whole`, !C.length, JSON.stringify(C));
+        await shot(`r15-approvals-frame-${w}x${ht}.png`);
+      });
+    }
+    await page.setViewportSize({ width: 1440, height: 780 });
+    await part('10e a signature row says how long it has waited', async () => {
+      const S = await page.evaluate(() => ['MK-SG1'].map(id => { const r = document.querySelector(`[data-ap-row="${id}"]`); return r ? r.children[5].textContent.trim() : null; }));
+      check('10e round 15: "Jonas signs" waits "today" / "N days", never "—" while the trail holds a day', S.every(x => x && x !== '—'), JSON.stringify(S));
+    });
+    await part('10f an away signer: the rule, the proper step, its door', async () => {
+      await page.click('[data-ap-row="MK-SG1"]');
+      const R = await until(() => { const sec = document.querySelector('#ins-panel [data-jl-sign-rule]'); return sec ? { t: sec.innerText.replace(/\s+/g, ' ').trim(),
+        door: !!sec.querySelector('[data-ins-act="sign"]'), headDoor: !!document.querySelector('#ins-panel .ins-h [data-ins-act="sign"]') } : null; });
+      check('10f Jambo says only Jonas signs, a stand-in never does, and the proper step — with Open Before you sign in his sentence',
+        !!R && /^If it cannot wait Only Jonas can sign it: a stand-in answers approvals and reviews, never a signature\. If it cannot wait until \S+, name another signer on Before you sign, before anyone has signed\. Open Before you sign$/.test(R.t) && R.door && !R.headDoor, JSON.stringify(R));
+      await shot('r15-signature-away-1440x780.png');
+    });
+    await part('10g the ask reads the way the Counter\'s does: no Jambo call', async () => {
+      for (const [q, want] of [['Nandi Dairy', 'board'], ['contracts ending in 90 days', 'board'], ['draft an NDA with Kabras Sugar', 'form']]) {
+        await page.evaluate(() => setView('approvals'));
+        await until(() => document.getElementById('jl-q') && document.querySelector('[data-ap-row]'), null, 8000);
+        aiCalls.length = 0;
+        await page.fill('#jl-q', q); await page.press('#jl-q', 'Enter');
+        const G = await until(w => { if (state.view !== 'dashboard') return null;
+          const dock = [...document.querySelectorAll('#ig-dock .igd-msg, #ig-dock [class*="msg"]')].map(e => e.textContent).join(' ');
+          if (w === 'form') return document.querySelector('#na-q, .na-one, #dr-say') ? { face: hbFace(), form: true } : null;
+          return /Free|free/.test(dock) ? { face: hbFace(), free: true } : null; }, want, 10000);
+        await page.waitForTimeout(400);
+        check(`10g "${q}" in the list panel: answered as on the Counter (${want}), no Jambo call`, !!G && !aiCalls.length, JSON.stringify({ G, aiCalls }));
+      }
+      /* the draft form is a page over Home: put it away so the next parts can press */
+      await page.evaluate(() => { try { if (typeof closeModal === 'function') closeModal(); } catch (_) {} });
+      await page.keyboard.press('Escape').catch(() => {});
+      await until(() => !document.querySelector('#modal-root > *') ? true : null, null, 4000);
+    });
+    await part('10h Our paper: the bar\'s Jambo door opens Jambo', async () => {
+      await page.evaluate(() => setView('templates'));
+      await until(() => state.view === 'templates' ? true : null);
+      await page.waitForTimeout(400);
+      await page.click('#cmd-ai');
+      const O = await until(() => { const p = document.getElementById('ai-panel'); return p && p.classList.contains('open') ? { open: true, focus: document.activeElement && document.activeElement.id, onScreen: !!(window.jlOnScreen && jlOnScreen()) } : null; }, null, 6000);
+      check('10h a panel in a hidden tab is not on screen, so the bar\'s door opens the window and its box takes the words', !!O && O.focus === 'ai-input' && !O.onScreen, JSON.stringify(O));
+      await page.evaluate(() => { if (typeof closeAI === 'function') closeAI(); });
+    });
+    await part('10i the person panel as drawn', async () => {
+      await page.evaluate(() => setView('directory'));
+      await until(() => document.querySelector('[data-dir-row]'), null, 10000);
+      const one = await page.evaluate(() => { const p = dirBook().find(x => x.contracts && x.contracts.length === 1); if (!p) return null; dirSelect(p.key); return p.key; });
+      const N1 = one ? await until(() => { const r = [...document.querySelectorAll('#ins-panel .jl-rows > div')].find(x => /Named on/.test((x.querySelector('dt') || {}).textContent || ''));
+        return r ? r.querySelector('dd').textContent.trim() : null; }) : null;
+      check('10i someone named on one contract: "1 contract · 1 live"', /^1 contract · \d+ live$/.test(N1 || ''), JSON.stringify({ one, N1 }));
+      await page.evaluate(() => { const f = [...document.querySelectorAll('[data-dir-row]')].find(x => /Jonas Berg/.test(x.textContent)); if (f) f.click(); });
+      const D = await until(() => { const p = document.getElementById('ins-panel'); if (!/Jonas Berg/.test(p.textContent)) return null;
+        const list = p.querySelector('.jl-ct-list'), cs = list ? getComputedStyle(list) : null;
+        const waits = [...p.querySelectorAll('.jl-need.is-wait .jl-need-r')];
+        return { card: cs ? cs.borderTopStyle + ' ' + cs.borderTopWidth : null, dots: waits.filter(r => r.querySelector('.jl-need-dot')).length,
+          oneLine: waits.every(r => { const s = r.querySelector('.jl-need-s'); return !s || s.getClientRects().length <= 1 && s.getBoundingClientRect().height < 22; }), n: waits.length }; });
+      check('10j "Waiting on Jonas" rows without dots, one line each; "Named on" in a bordered card', !!D && D.n > 0 && D.dots === 0 && D.oneLine && D.card === 'solid 1px', JSON.stringify(D));
     });
 
     /* ---- 9 Parties: a row of what waits on you reads whole (pass 3) ---- */

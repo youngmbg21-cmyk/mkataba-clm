@@ -5,11 +5,12 @@
    the checker against rounds 3, 7 and 12)
 
    WHAT THIS PINS, in a real browser, at the owner's three screens:
-     1 the SEVEN boxes, each with the line right under it, in view, nothing
+     1 the NINE boxes, each with the line right under it, in view, nothing
        sideways: Home's panel, Settings' Jambo side, Import's panel, Jambo's
        panel beside a list (Negotiations), the Counter's box, the floating
        Jambo window (opened from the bar's door on a page with no Jambo of its
-       own — the Brain) and the clause editor's ask
+       own — the Brain), the clause editor's ask, and (pass 4) the Calendar's
+       Jambo box and the template builder's
      2 HOME'S KEYS, one reading: "/ places · Esc closes" with a contract up as a
        page and on its History (rounds 7, 12) and on a paper (round 6); "/
        lists the places." on Jambo's tab beside a paper while Needs you here
@@ -85,6 +86,11 @@ const LISTS = LINE + ' / lists the places.';
     };
     const ok = (L, want) => !!L && L.t === want && L.under && L.inView && L.painted && L.side;
 
+    /* PASS 4: a draft template of the workspace's own, through the product's own route, so the builder has one to open */
+    const tbIds = await page.evaluate(async () => {
+      try { const d = await api('templates', 'POST', { name: 'Reseller agreement', category: 'procurement', folder: 'dist', description: '' });
+        const t = await api('templates/' + d.template.id); return { tid: d.template.id, vid: t.versions[0].id }; } catch (e) { return { err: String(e && e.message || e) }; } });
+
     for (const [w, ht] of SCREENS) {
       await page.setViewportSize({ width: w, height: ht });
       const at = `${w}×${ht}`, tag = `${w}x${ht}`;
@@ -131,6 +137,29 @@ const LISTS = LINE + ' / lists the places.';
         await page.evaluate(() => setView('migration'));
         const L = await until(LINE_OF, { hint: '#mig-side .jl-foot .jb-hint', box: '#mig-side .jl-box' }, 10000);
         check(`1f ${at} Import's panel: the line under its box`, ok(L, LINE), JSON.stringify(L));
+      });
+      /* PASS 4 (the checker's second pass): the Calendar's Jambo box and the template builder's */
+      await part('1g the Calendar', async () => {
+        await page.evaluate(() => { if (typeof hbOpenCalendar === 'function') hbOpenCalendar(); else setView('calendar'); });
+        const L = await until(sel => { const e = document.querySelector(sel.hint), b = document.querySelector(sel.box); if (!e || !b || !e.getClientRects().length) return null;
+          const er = e.getBoundingClientRect(), br = b.getBoundingClientRect();
+          return { t: e.textContent.replace(/\s+/g, ' ').trim(), under: er.top >= br.bottom, inView: er.bottom <= innerHeight + 1, last: e === e.parentElement.lastElementChild,
+            side: document.documentElement.scrollWidth <= innerWidth + 1 }; }, { hint: '#cal-plan .jb-hint', box: '#cal-plan-in' }, 10000);
+        check(`1g ${at} the Calendar's Jambo box (round 16): the line under it, the card's last line`, !!L && L.t === LINE && L.under && L.inView && L.last && L.side, JSON.stringify(L));
+        await shot(`r16-hint-calendar-${tag}.png`);
+      });
+      await part('1h the template builder', async () => {
+        if (!tbIds || !tbIds.tid){ check(`1h ${at} a template for the builder`, false, JSON.stringify(tbIds)); return; }
+        /* from the builder's own page, settled, so nothing the Calendar still draws can land over it */
+        await page.evaluate(() => setView('templates'));
+        await until(() => state.view === 'templates' ? true : null, null, 6000); await page.waitForTimeout(500);
+        await page.evaluate(ids => openTemplateBuilder(ids.tid, ids.vid), tbIds);
+        await until(() => document.getElementById('tb-askrow') ? true : null, null, 10000); await page.waitForTimeout(500);
+        const L = await until(LINE_OF, { hint: '#tb-askrow + .jb-hint', box: '#tb-ask' }, 10000);
+        check(`1h ${at} the template builder's Jambo box (round 21): the line under it`, ok(L, LINE), JSON.stringify(L));
+        await shot(`r21-hint-builder-${tag}.png`);
+        await page.evaluate(() => { try { tbLeave(() => setView('dashboard')); } catch (_) { setView('dashboard'); } });
+        await until(() => !document.getElementById('tb-askrow') ? true : null, null, 4000);
       });
 
       /* ---- 2 Home's keys, one reading ---- */

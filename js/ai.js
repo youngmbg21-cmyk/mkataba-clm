@@ -828,8 +828,7 @@ function aiEmbeddedHere(){
     if(dock && dock.isConnected && typeof dock.getClientRects==='function' && dock.getClientRects().length) return 'home';
     /* Jambo's panel beside a list (18 Oct 2026, js/views/inspector.js) or
        beside Import's batch: its box is his — folded or open */
-    const jl = document.getElementById('jl-q');
-    if(jl && jl.isConnected && (jl.closest('.ins-panel.is-jambo') || jl.closest('#mig-side'))) return 'list';
+    if(typeof window.jlOnScreen === 'function' && window.jlOnScreen()) return 'list';
     /* Settings' side panel (the Control Room, 16 Oct 2026): Jambo is its first face */
     const side = document.getElementById('st-side');
     if(side && side.isConnected && typeof side.getClientRects==='function' && side.getClientRects().length && typeof window.stJamboFocus==='function') return 'settings';

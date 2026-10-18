@@ -141,11 +141,15 @@ describe('f804 (2) nothing chosen: the page in Jambo\'s words', () => {
 });
 
 describe('f804 (3) the ask: the Counter\'s one reading, said in the panel', () => {
-  test('3a a place word opens its page; a word for one contract takes the held row; the map\'s card and a question are said here', () => {
+  test('3a a word for one contract takes the held row; then the one reader every box asks first; the map; the Board\'s free reading; then a question', () => {
+    /* re-pointed (pass 4, check A1 #2): the ask now reads through main's
+       caAskAnywhere and hands what the Board reads free to the Board, as the
+       Counter's box does — the order is pinned, each step is driven in (8) */
     const f = code(fnOf(INS, 'jlAsk'));
     const at = s => f.indexOf(s);
-    assert.ok(at('caReadPlace(t)') > 0 && at('jmRead(t)') > at('caReadPlace(t)') && at('aiAskWords(t)') > at('jmRead(t)'), 'place, then the map, then the question');
-    assert.match(f, /if \(a\.missing && held\)\{ a\.cid = held\.id; a\.missing = false; \}/, 'the held row is the open contract');
+    assert.ok(at('caReadPlace(t)') > 0 && at('caAskAnywhere(t)') > at('caReadPlace(t)') && at('jmRead(t)') > at('caAskAnywhere(t)')
+      && at('jlBoardReads(t)') > at('jmRead(t)') && at('aiAskWords(t)') > at('jlBoardReads(t)'), 'held row, the one reader, the map, the Board, then the question');
+    assert.match(f, /if \(a && a\.kind === 'go' && a\.missing\)\{\s*const held = jlHeldContract\(\);\s*if \(held\)\{\s*a\.cid = held\.id; a\.missing = false;/, 'the held row is the open contract');
     assert.match(f, /if \(m && m\.kind === 'map'\)\{ jlMapCard\(t, m\); return 'card'; \}/, '"which did you mean?" is said in the panel');
     assert.match(f, /jlToWords\(\);\s*if \(typeof aiAskWords === 'function'\)\{ aiAskWords\(t\); return 'model'; \}/, 'a question turns the panel to his words, then asks');
   });
@@ -156,7 +160,9 @@ describe('f804 (3) the ask: the Counter\'s one reading, said in the panel', () =
   });
   test('3c the bar\'s Jambo door beside a list goes to the panel\'s box, not a window over it', () => {
     const AI = read('js/ai.js');
-    assert.match(AI, /if\(jl && jl\.isConnected && \(jl\.closest\('\.ins-panel\.is-jambo'\) \|\| jl\.closest\('#mig-side'\)\)\) return 'list';/);
+    /* re-pointed (pass 4, check A1 #2): only a box the reader can SEE is the
+       panel's (jlOnScreen) — driven in (9) */
+    assert.match(AI, /if\(typeof window\.jlOnScreen === 'function' && window\.jlOnScreen\(\)\) return 'list';/);
     assert.match(AI, /if\(here === 'list' && typeof window\.jlFocus === 'function'\) return !!window\.jlFocus\(prefill\);/);
   });
   test('3d "/" lists the places in the box, the Counter\'s list', () => {
@@ -267,5 +273,165 @@ describe('f804 (7) a party\'s rows read whole in Jambo\'s panel', () => {
   test('7c the Waiting on you fact runs across the panel and may wrap', () => {
     assert.match(fnOf(CU, 'cuPaintCustomerPanel'), /\{ k: 'waiting', label: i18t\('cu_col_waiting'\), v: _cuE\(cuNeedsSay\(r\.needs\)\), wide: true \}/);
     assert.match(HTML, /\.ins-facts \.wide dd\{white-space:normal;\}/);
+  });
+});
+
+/* ═══ PASS 4 (18 Oct 2026, evening), the checker's second pass ═════════════
+   (8) THE ASK READS THE WAY THE COUNTER'S DOES: main's one reader first
+       (caAskAnywhere — a page word, a draft from a sentence, a send, a job, a
+       booking), then the map's card, then what the Board's own reader answers
+       free (a party's name, "contracts ending in 90 days") handed to the
+       Board as the Counter hands it (caHandHome) — never a Jambo call; only
+       the rest is a question said in the panel.
+   (9) THE BAR'S JAMBO DOOR NEVER LANDS IN A BOX NOBODY CAN SEE: a panel in a
+       hidden tab (Our paper's Templates) is not on screen (jlOnScreen), so the
+       window opens; a folded panel still is (its strip is his door).
+   (10) THE HEAD SAYS WHAT IT HOLDS on every page: Obligations "Your week" /
+       "Obligation", Requests "Request"; nothing chosen, the bar's own page name
+       (deskPageName), never "Jambo · Jambo"; "Counted from the list" only
+       under a count.
+   (11) EVERY DOOR THE PANEL ADDED LANDS ON ITS ONE TARGET (main's LAND ON IT):
+       one table, JL_LAND, through the one lander.
+   AT THE PARENT (8dc306a) every claim FAILS: no caAskAnywhere call in jlAsk,
+   no jlOnScreen, no jl_w_week / jl_w_request, no JL_LAND.
+   ═══════════════════════════════════════════════════════════════════════════ */
+describe('f804 (8) the ask reads the way the Counter\'s does', () => {
+  const drive = (q, over = {}) => {
+    const b = world([fixture('MK-1')]);
+    b.win.renderRegister();
+    const got = [];
+    b.win.caReadPlace = over.caReadPlace || (() => null);
+    b.win.caAskAnywhere = over.caAskAnywhere || (() => false);
+    b.win.jmRead = over.jmRead || (() => null);
+    b.win.hbAskReadingOf = over.hbAskReadingOf || ((t, face) => ({ road: 'copilot', face }));
+    b.win.caHandHome = (t, a) => { got.push(['home', t, a]); return true; };
+    b.win.aiAskWords = t => { got.push(['model', t]); };
+    b.win.caGo = a => { got.push(['go', a.place, a.cid]); return true; };
+    const r = b.win.jlAsk(q);
+    return { r, got };
+  };
+  test('8a a draft from a sentence goes to the one reader (the One sheet form), never a call', () => {
+    const { r, got } = drive('draft an NDA with Kabras Sugar', { caAskAnywhere: t => /^draft /.test(t) });
+    assert.equal(r, 'go');
+    assert.ok(!got.some(g => g[0] === 'model'), JSON.stringify(got));
+  });
+  test('8b what the Board reads free goes to the Board, as the Counter\'s box hands it', () => {
+    const seen = [];
+    for (const q of ['Nandi Dairy', 'contracts ending in 90 days']){
+      const { r, got } = drive(q, { hbAskReadingOf: (t, face) => { seen.push(face); return { road: 'free', kind: 'card' }; } });
+      assert.equal(r, 'board', q);
+      assert.deepEqual(got, [['home', q, null]], q);
+    }
+    assert.ok(seen.every(f => f === 'board'), 'read as on the Board\'s face, whatever Home last showed');
+  });
+  test('8c a question nothing reads free is said in the panel: one call, the cost on the hover', () => {
+    const { r, got } = drive('which clause worries you most?');
+    assert.equal(r, 'model');
+    assert.deepEqual(got, [['model', 'which clause worries you most?']]);
+  });
+  test('8d a booking the one reader sends to the Calendar says so', () => {
+    const { r } = drive('book an hour with Sara on Friday', { caAskAnywhere: () => 'cal' });
+    assert.equal(r, 'cal');
+  });
+  test('8e the Board\'s reader takes the face it reads on (hbAskReadingOf(q, onFace))', () => {
+    const HB = read('js/views/homeboard.js');
+    const f = code(fnOf(HB, 'hbAskReadingOf'));
+    assert.match(f, /^function hbAskReadingOf\(qRaw, onFace\)\{/);
+    assert.match(f, /const face = onFace \|\| s\.face;/);
+    assert.doesNotMatch(f.replace('const face = onFace || s.face;', ''), /s\.face/, 'every face test reads the one face');
+  });
+});
+describe('f804 (9) the bar\'s Jambo door never lands in a box nobody can see', () => {
+  test('9a a panel in a hidden tab is not on screen; a shown one is; a folded one is', () => {
+    const b = world([fixture('MK-1')]);
+    b.win.renderRegister();
+    const p = b.$('#ins-panel');
+    /* jsdom draws no boxes: the test gives the panel its rects */
+    p.getClientRects = () => [{}];
+    assert.equal(b.win.jlOnScreen(), p, 'shown');
+    p.classList.add('is-folded');
+    assert.equal(b.win.jlOnScreen(), p, 'folded: his strip is still the door');
+    p.classList.remove('is-folded');
+    const hide = b.win.document.createElement('div'); hide.hidden = true;
+    p.parentNode.insertBefore(hide, p); hide.appendChild(p);
+    assert.equal(b.win.jlOnScreen(), null, 'inside a hidden tab: not on screen');
+    hide.hidden = false; p.getClientRects = () => [];
+    assert.equal(b.win.jlOnScreen(), null, 'no box drawn: not on screen');
+  });
+  test('9b the bar\'s door and every openAI(prefill) ask jlOnScreen; jlFocus focuses the shown box only', () => {
+    const AI = code(read('js/ai.js'));
+    assert.match(AI, /if\(typeof window\.jlOnScreen === 'function' && window\.jlOnScreen\(\)\) return 'list';/);
+    const f = code(fnOf(INS, 'jlFocus'));
+    assert.match(f, /const host = jlOnScreen\(\);/);
+    assert.match(f, /const inp = host\.querySelector\('#jl-q'\)/);
+  });
+});
+describe('f804 (10) the head says what it holds on every page', () => {
+  const OB = read('js/obligations.js'), IK = read('js/views/intake.js');
+  test('10a Obligations: "Your week" with nothing chosen, "Obligation" with a row chosen', () => {
+    const f = code(fnOf(OB, 'obPaintPanel'));
+    assert.match(f, /const jl = ctx === 'page' \? \{ jlHome: i18t\('jl_w_week'\), jlWord: i18t\('jl_w_obligation'\) \} : \{\};/);
+    assert.match(f, /insPaintPanel\(Object\.assign\(\{ host: hostId, empty: emptyMsg \}, jl\)\)/);
+    assert.match(f, /insPaintPanel\(Object\.assign\(\{ host: hostId \}, jl, opts\)\)/);
+  });
+  test('10b Requests: "Request"', () => {
+    assert.match(code(IK), /insPaintPanel\(Object\.assign\(\{ jlWord:i18t\('jl_w_request'\) \}, r\._adv\?ikAdvicePanelOpts\(r\):ikPanelOpts\(r, asker\)\)\)/);
+  });
+  test('10c the words, both books', () => {
+    const books = I18N.split(/\n  sv: \{/);
+    for (const [k, en, sv] of [['jl_w_week', 'Your week', 'Din vecka'], ['jl_w_obligation', 'Obligation', 'Åtagande'], ['jl_w_request', 'Request', 'Förfrågan']]){
+      assert.ok(books[0].includes(`${k}: '${en}',`), k + ' en');
+      assert.ok(books[1].includes(`${k}: '${sv}',`), k + ' sv');
+    }
+  });
+  test('10d nothing chosen and no word of its own: the bar\'s page name, never his own twice', () => {
+    const b = world([fixture('MK-1')]);
+    b.win.deskPageName = () => 'Requests';
+    assert.equal(b.win.jlPageWord(), 'Requests');
+    assert.match(code(fnOf(INS, 'jlPageWord')), /deskPageName\(\)/);
+  });
+  test('10e "Counted from the list" only under a count', () => {
+    const b = world([]);
+    b.win.renderRegister();
+    const host = b.win.document.createElement('div');
+    host.innerHTML = b.win.jlWordsHtml({ empty: 'Choose an obligation to read it here.' });
+    assert.equal(host.querySelector('.jl-bub').textContent, 'Choose an obligation to read it here.');
+    assert.equal(host.querySelector('.jl-src'), null, 'nothing was counted, so nothing says it was');
+  });
+});
+describe('f804 (11) every door the panel added lands on its one target', () => {
+  test('11a one table, the one lander', () => {
+    const f = code(fnOf(INS, 'jlLand'));
+    assert.match(f, /landOn\(/);
+    for (const k of ['row', 'first', 'redlines', 'sign', 'road', 'paper', 'list']) assert.match(code(INS), new RegExp(`\\b${k}: `), 'JL_LAND.' + k);
+  });
+  test('11b the doors call it: Negotiations\' Answer and chip, Approvals\' chip and Open Before you sign, People\'s rows and Show their contracts', () => {
+    const REG = code(read('js/views/register.js')), AP = code(read('js/views/approvalsview.js')), DIR = code(read('js/views/directory.js'));
+    assert.match(REG, /openRedlineWorkbench\(c\.id,\{ face:true \}\); if\(typeof jlLand==='function'\) jlLand\('redlines'\);/);
+    assert.match(REG, /regRepaint\(\); if\(typeof jlLand==='function'\) jlLand\('first'\);/);
+    assert.match(AP, /jlLand\('row', first\.c\.id\)/);
+    assert.match(fnOf(AP, 'apOpenSigning'), /jlLand\(land==='road'\?'road':'sign'\)/);
+    assert.match(fnOf(DIR, 'dirWaitGo'), /land\('redlines'\)/);
+    assert.match(fnOf(DIR, 'dirShowContracts'), /jlLand\('list'\)/);
+    assert.match(fnOf(DIR, 'dirOpenContract'), /jlLand\('paper'\)/);
+  });
+});
+/* (12) THE FRAME AS DRAWN (rounds 14 and 15): the pill right after the party's
+   name; the list's card ends after its last row, its foot right under the
+   rows; on Approvals the white head, then the grey ground, then the card.
+   Measured in a browser by jambos-list-panel-verify 10. */
+describe('f804 (12) the frame as drawn', () => {
+  test('12a the pill beside the name, not at the panel\'s far edge', () => {
+    assert.match(HTML, /\.jl-h \.ins-cp \.jl-st-side\{margin-left:0;\}/);
+  });
+  test('12b beside Jambo\'s panel the list\'s card ends after its rows; a long list still scrolls inside it', () => {
+    assert.match(HTML, /#content \.reg-body\.is-ins:has\(> #ins-panel\.is-jambo\),\s*#content \.ap-body\.is-ins:has\(> #ins-panel\.is-jambo\)\{align-items:start;\}/);
+    assert.match(HTML, /#content \.reg-body\.is-ins:has\(> #ins-panel\.is-jambo\) > \.reg-card\{flex:none;max-height:100%;\}/);
+    assert.match(HTML, /#content \.ap-body\.is-ins:has\(> #ins-panel\.is-jambo\) > \.ap-card\{max-height:100%;\}/);
+    assert.match(HTML, /#content \.ap-body\.is-ins:has\(> #ins-panel\.is-jambo\) \.ap-foot\{margin-top:0;\}/);
+  });
+  test('12c Approvals: the white head, the ground, the card', () => {
+    assert.match(HTML, /body:has\(#content \.ap-page\) #page-head > :last-child\{padding-bottom:var\(--s-3\);\}/);
+    assert.match(HTML, /#content \.sap-page\.ap-page\{padding-top:var\(--s-3\);\}/);
   });
 });

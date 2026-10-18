@@ -109,8 +109,8 @@ function apSignatureRows(){
   const mine=(typeof hmMySignings==='function')?hmMySignings(cs):[];
   const ready=(typeof readyToSignItems==='function')?readyToSignItems(cs):[];
   return [
-    ...mine.map(x=>({ c:x.c, kind:'sign', n:x.n })),
-    ...ready.filter(r=>!mine.some(m=>m.c.id===r.c.id)).map(r=>({ c:r.c, kind:'ready', by:r.sig&&r.sig.by })),
+    ...mine.map(x=>({ c:x.c, kind:'sign', n:x.n, idle:apSignIdle(x.c) })),
+    ...ready.filter(r=>!mine.some(m=>m.c.id===r.c.id)).map(r=>({ c:r.c, kind:'ready', by:r.sig&&r.sig.by, idle:apSignIdle(r.c) })),
   ];
 }
 /* THE DOOR COUNT IS THE ROWS ON THE PAGE, so the number on the sidebar
@@ -125,11 +125,13 @@ function apValueCell(c){
   if(typeof isMonetary==='function'&&!isMonetary(c)) return '—';
   return c.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'—';
 }
-function apOpenSigning(id){
+function apOpenSigning(id, land){
   const c=(state.contracts||[]).find(x=>x.id===id); if(!c) return;
   /* SIGNING IS BESIDE THE PAPER (the one-page Home plan, stage 5): Jambo's
-     Before you sign face on Home; the phone keeps its own screens */
-  if(window.roomTabHome&&roomTabHome(c,'sign')) return;
+     Before you sign face on Home; the phone keeps its own screens — and the
+     door lands on what it opened for (LAND ON IT): the approval's card or
+     the Sign button, or the road's stop where a colleague signs ('road') */
+  if(window.roomTabHome&&roomTabHome(c,'sign')){ if(typeof jlLand==='function') jlLand(land==='road'?'road':'sign'); return; }
   openWorkspace(id);
   /* the head is built by the render; the tab is pressed after it lands */
   setTimeout(()=>{ try{ roomGoTab(c,'sign'); }catch(_){} },80);
@@ -183,8 +185,9 @@ function apWhySentence(r){
     const sa=(typeof apSaWaiting==='function')?apSaWaiting(r.c):null;
     const whose=String((typeof contractOwnerName==='function'?contractOwnerName(r.c):'')||'').split(/\s+/)[0];
     const who=String((sa&&sa.req&&sa.req.approverName)||r.waitsOn||'').split(/\s+/)[0];
-    if(whose&&who) return i18t('jl_ap_why_sa',{whose,who});
+    if(whose&&who) return apApproverMe(r)?i18t('jl_ap_why_sa_you',{whose}):i18t('jl_ap_why_sa',{whose,who});
   }
+  if(r.waitsOn&&apApproverMe(r)) return i18t('jl_ap_why_rule_you',{rule:r.rule});
   return r.waitsOn?i18t('jl_ap_why_rule',{rule:r.rule,who:apWaitsShort(r)}):r.rule;
 }
 /* JAMBO'S PANEL ON THIS PAGE (round 15, "One worklist" as drawn): the facts
@@ -229,7 +232,7 @@ function apLeadJlHtml(tab, r, acts){
   let holds=[];
   try{ if(r.kind!=='ready'){ if(typeof window.signReadinessFor==='function') holds=(window.signReadinessFor(r.c).holds||[]); else if(typeof signReadiness==='function') holds=(signReadiness(r.c,{light:!!r.c._light}).holds||[]); } }catch(_){ holds=[]; }
   const list=holds.map(h=>String(h.short||h.label||h.title||'').trim()).filter(Boolean);
-  return (typeof insRowsHtml==='function'?insRowsHtml(rows):'')+(list.length?insSecHtml(i18t('ins_sg_sec'),'',`<ul class="ins-log ins-holds">${list.slice(0,3).map(t=>`<li><span class="t" title="${esc(t)}">${esc(t)}</span></li>`).join('')}</ul>${
+  return (typeof insRowsHtml==='function'?insRowsHtml(rows):'')+apSignRuleHtml(r, acts)+(list.length?insSecHtml(i18t('ins_sg_sec'),'',`<ul class="ins-log ins-holds">${list.slice(0,3).map(t=>`<li><span class="t" title="${esc(t)}">${esc(t)}</span></li>`).join('')}</ul>${
     list.length>3?`<p class="ins-note">${esc(i18tn('ins_more_asks',list.length-3,{n:list.length-3}))}</p>`:''}`,'ins-lead'):'');
 }
 function apLeadHtml(tab, r){
@@ -322,8 +325,30 @@ function apInsActs(tab, r){
   }
   const lead=tab==='approvals'
     ? { k:'gate', kind:'accent', label:r.mine?i18t('ap_pg_open_gate'):i18t('ap_pg_open'), title:i18t('ap_pg_gate_title'), run:c=>apOpenSigning(c.id) }
-    : { k:'sign', kind:'accent', label:i18t('ap_pg_open_signing'), title:i18t('ap_pg_sign_title'), run:c=>apOpenSigning(c.id) };
+    : { k:'sign', kind:'accent', label:i18t('ap_pg_open_signing'), title:i18t('ap_pg_sign_title'), run:c=>apOpenSigning(c.id, r.kind==='other'?'road':'sign') };
+  /* a colleague's signature while they are away: the door rides Jambo's
+     sentence about the rule (apSignRuleHtml), not the head */
+  if(tab!=='approvals'&&apSignAway(r)) lead.inBody=true;
   return [lead, ...open];
+}
+/* A SIGNER WHO IS AWAY (round 15's notes; rule 7b, JAMBO GUIDES THROUGH THE
+   RULES): only they can sign — a stand-in answers approvals and reviews,
+   never a signature (awayCovers) — so Jambo says the rule and the proper
+   step if it cannot wait: another signer named on Before you sign, before
+   anyone has signed (signingLocked); his sentence carries that door. */
+function apSignAway(r){
+  if(!r||r.kind!=='other'||!r.signer||typeof jlAwayOf!=='function') return null;
+  const aw=jlAwayOf(r.signer.memberId);
+  return aw&&aw.to?aw:null;
+}
+function apSignRuleHtml(r, acts){
+  const aw=apSignAway(r); if(!aw) return '';
+  const who=String((r.signer&&r.signer.name)||'').split(/\s+/)[0]||String((r.signer&&r.signer.name)||'');
+  let shut=false; try{ shut=(typeof signingLocked==='function')&&!!signingLocked(r.c); }catch(_){ shut=false; }
+  const door=(acts||[]).filter(a=>a&&a.inBody&&a.k==='sign');
+  return `<section class="ins-sec jl-answer jl-sign-rule" data-jl-sign-rule><h3>${esc(i18t('jl_ap_sign_rule_h'))}</h3><p class="ins-note jl-rec">${
+    esc(i18t(shut?'jl_ap_sign_rule_shut':'jl_ap_sign_rule',{who,day:jlDayWord(apDayAfter(aw.to))}))}</p>${
+    door.length?`<div class="ins-acts">${door.map(insActBtnHtml).join('')}</div>`:''}</section>`;
 }
 function apApprovedPillHtml(){
   return `<span class="reg-stg" style="color:var(--st-green-fg);background:var(--st-green-bg)"><i style="background:var(--st-green-dot)"></i>${esc(i18t('ap_pg_approved'))}</span>`;
@@ -364,13 +389,29 @@ function apOtherSignRows(){
     let st=null; try{ st=(typeof approvalState==='function')?approvalState(c):null; }catch(_){ st=null; }
     if(st&&st.required&&st.next) return;                       /* an approval still waits: its own row says so */
     let n=0; try{ n=(window.signReadinessFor?signReadinessFor(c):signReadiness(c,{ light:!!(c._light&&!c._loaded) })).n||0; }catch(_){ n=0; }
-    /* waiting since the last yes or the last signature, where one is on the record */
-    const ats=[...((st&&st.chain)||[]).filter(x=>x&&x.status==='approved'&&x.at).map(x=>x.at),
-      ...((c.signatures||[]).filter(x=>x&&x.at).map(x=>x.at))].map(x=>Date.parse(x)).filter(Number.isFinite);
-    const since=ats.length?Math.max(...ats):null;
-    out.push({ c, kind:'other', n, signer:ns, idle:since==null?null:Math.max(0,Math.floor((Date.now()-since)/86400000)) });
+    out.push({ c, kind:'other', n, signer:ns, idle:apSignIdle(c, st) });
   });
   return out;
+}
+/* HOW LONG A SIGNATURE HAS WAITED (round 15 draws "Sara signs · 1 day",
+   "4 days"): since the last yes or the last signature on the record, else
+   since the last thing the trail holds (the light list carries it as
+   _lastAuditAt) — the one reading for every signature row, the reader's own
+   too. Nothing on the record at all is said as none (null → "—"), never
+   guessed. */
+function apSignIdle(c, st0){
+  if(!c) return null;
+  let st=st0; if(st===undefined){ try{ st=(typeof approvalState==='function')?approvalState(c):null; }catch(_){ st=null; } }
+  const at=x=>{ const t=Date.parse(x); return Number.isFinite(t)?t:null; };
+  const yes=[...((st&&st.chain)||[]).filter(x=>x&&x.status==='approved'&&x.at).map(x=>x.at),
+    ...((c.signatures||[]).filter(x=>x&&x.at).map(x=>x.at))].map(at).filter(t=>t!=null);
+  let since=yes.length?Math.max(...yes):null;
+  if(since==null){
+    const trail=Array.isArray(c.audit)?c.audit:[];
+    const last=trail.length?trail[trail.length-1]:null;
+    since=at(c._lastAuditAt)??at(last&&last.at);
+  }
+  return since==null?null:Math.max(0,Math.floor((Date.now()-since)/86400000));
 }
 function apWorkRows(){
   const live=apApprovalRows(), ap=apRowsShown(live), sg=apSignatureRows();
@@ -415,11 +456,20 @@ function apWhyLines(r){
     const whose=(typeof contractOwnerName==='function')?(contractOwnerName(r.c)||''):'';
     return [r.rule, whose?i18t('jl_ap_whose',{who:String(whose).split(/\s+/)[0]}):r.ruleSub];
   }
-  return [r.rule, r.waitsOn?i18t('jl_ap_approves',{who:apWaitsShort(r)}):''];
+  return [r.rule, !r.waitsOn?'':apApproverMe(r)?i18t('jl_ap_you_approve'):i18t('jl_ap_approves',{who:apWaitsShort(r)})];
 }
 /* WHO IT WAITS ON, AS THE LIST SAYS IT (round 15: "Sara approves", Whose turn
    "Sara" — the first name, as "Sara signs"): a named colleague by their first
    name, a role ("an admin", "the legal approver") whole */
+/* THE READER IS "YOU" WHEREVER THE PAGE NAMES THEM (round 15: Whose turn
+   "You", Lead "You"): the next step's named approver, or a named approval's,
+   is the person reading — never said in the third person */
+function apApproverMe(r){
+  const me=(typeof currentUser==='function')?currentUser():null; if(!me||!r) return false;
+  try{ const a=r.st&&r.st.next&&r.st.next.approver; if(a&&a.kind==='member'&&a.id!=null&&String(a.id)===String(me.id)) return true; }catch(_){}
+  try{ if(r.ruleSub){ const sa=apSaWaiting(r.c); const id=sa&&sa.req&&sa.req.approverId; if(id&&String(id)===String(me.id)) return true; } }catch(_){}
+  return false;
+}
 function apWaitsShort(r){
   const w=String((r&&r.waitsOn)||'');
   let member=false; try{ const nx=r&&r.st&&r.st.next; member=!!(nx&&nx.approver&&nx.approver.kind==='member'); }catch(_){ member=false; }
@@ -534,7 +584,8 @@ function apSay(rows){
   const first=W.yours[0]||null;
   if(first) chips.push({ label:i18t('jl_ap_chip_first'), run:()=>{ const tb=document.querySelector('.ap-table tbody'); const L=tb&&tb._insList;
     const row=tb&&[...tb.querySelectorAll('[data-ap-row]')].find(x=>x.getAttribute('data-ap-row')===String(first.c.id));
-    if(L&&row) L.onSelect(String(first.c.id), row); } });
+    if(L&&row) L.onSelect(String(first.c.id), row);
+    if(typeof jlLand==='function') jlLand('row', first.c.id); } });
   if(typeof isAdmin==='function'&&isAdmin()&&typeof openSettingsAt==='function') chips.push({ label:i18t('jl_ap_chip_rules'), run:()=>openSettingsAt('platform','approvals') });
   return { lines, chips };
 }
@@ -546,10 +597,36 @@ function apPaintHead(){
   const f=document.getElementById('page-head-facts'); if(f){ f.setAttribute('data-ap-facts',''); f.textContent=facts||i18t('ap_wl_none'); }
   const a=document.getElementById('page-head-acts');
   if(a){
+    /* EVERYONE SEES IT (round 15 draws it for an Editor): an admin goes to
+       the rules themselves; anyone else hears them from Jambo (apRulesSay) */
     const admin=(typeof isAdmin==='function'&&isAdmin()&&typeof openSettingsAt==='function');
-    a.innerHTML=admin?`<button type="button" class="ui-btn ap-rules" data-ap-rules>${esc(i18t('ap_pg_rules'))}</button>`:'';
-    const b=a.querySelector('[data-ap-rules]'); if(b) b.addEventListener('click',()=>openSettingsAt('platform','approvals'));
+    a.innerHTML=`<button type="button" class="ui-btn ap-rules" data-ap-rules>${esc(i18t('ap_pg_rules'))}</button>`;
+    const b=a.querySelector('[data-ap-rules]'); if(b) b.addEventListener('click',()=>{ if(admin) openSettingsAt('platform','approvals'); else apRulesSay(); });
   }
+}
+/* "APPROVAL RULES" FOR SOMEBODY WHO IS NOT AN ADMIN: the rules are the
+   company's and an admin sets them, so Jambo says them where the reader
+   looks — each rule and who gives its yes, "you" where it is the reader —
+   and his answer carries the rule's own door, Ask an admin (aiRuleDoorHtml,
+   rule 7b). Read from the rules the browser already holds (approvalRules);
+   nothing is spent, nothing changes. */
+function apRulesSay(){
+  let rules=[]; try{ rules=((typeof approvalRules==='function')?approvalRules():[])||[]; }catch(_){ rules=[]; }
+  rules=rules.slice().sort((x,y)=>(x.order||99)-(y.order||99));
+  const me=(typeof currentUser==='function')?currentUser():null;
+  const line=r=>{ const ap=r.approver||{};
+    if(ap.kind==='member'&&me&&ap.id!=null&&String(ap.id)===String(me.id)) return i18t('jl_ap_why_rule_you',{rule:r.name||''});
+    let who=''; try{ who=(typeof approverLabelOf==='function')?approverLabelOf(ap):(ap.name||''); }catch(_){ who=ap.name||''; }
+    return i18t('jl_ap_why_rule',{rule:r.name||'',who}); };
+  const head=rules.length?i18tn('jl_ap_rules_say',rules.length,{n:rules.length}):i18t('jl_ap_rules_none');
+  const door=(typeof aiRuleDoorHtml==='function')?aiRuleDoorHtml({ kind:'ask_admin', rule:'approvals' }, i18t('ap_pg_rules')):'';
+  const html=`<div>${esc(head)}</div>${rules.length?`<ul class="jl-rules">${rules.map(r=>`<li>${esc(line(r))}</li>`).join('')}</ul>`:''}${door}`;
+  if(typeof aiPush!=='function'||typeof renderAIFeed!=='function') return false;
+  const here=(typeof jlOnScreen==='function')&&jlOnScreen();
+  if(here&&typeof jlToWords==='function') jlToWords();
+  aiPush('assistant',{ text:html });
+  if(!here&&typeof openAI==='function') openAI(); else renderAIFeed();
+  return true;
 }
 function renderApprovalsPage(){
   const W=apWorkRows();
@@ -563,7 +640,9 @@ function renderApprovalsPage(){
   /* widths measured on the words they hold (18 Oct 2026): "Signature" in its
      pill, "Jonas signs · back Wednesday", "100 days · late" — the party keeps
      the rest, 190px or more at 1366 beside Jambo's panel */
-  const head=[{t:i18t('reg_col_ref'),w:76},{t:i18t('reg_col_party')},{t:i18t('ap_wl_kind'),w:100},{t:i18t('ap_wl_why'),w:190},{t:i18t('ap_wl_turn'),w:188},{t:i18t('ap_pg_waiting'),w:120},
+  /* 1366 beside Jambo's panel (check A1 #2): Ref gives the party 4px, and a
+     party's name takes a second line rather than be cut */
+  const head=[{t:i18t('reg_col_ref'),w:72},{t:i18t('reg_col_party')},{t:i18t('ap_wl_kind'),w:100},{t:i18t('ap_wl_why'),w:190},{t:i18t('ap_wl_turn'),w:188},{t:i18t('ap_pg_waiting'),w:120},
     ...(money?[{t:i18t('reg_col_value'),right:true,w:88}]:[]),...(INS?[]:[{t:'',w:220}])];
   const acts=r=>{
     if(r.type==='signature') return `<button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_sign_title'))}">${esc(i18t('ap_pg_open_signing'))}</button>`;
@@ -576,7 +655,7 @@ function renderApprovalsPage(){
       <td>${apKindHtml(r)}</td>
       <td>${apWhyHtml(r)}</td>
       <td class="ap-turn" title="${esc(apTurnText(r))}">${apTurnHtml(r)}</td>
-      <td class="${r.done?'done':apLate(r)?'late':''}">${esc(r.done?i18t('ap_pg_approved'):(r.type==='signature'&&r.kind!=='other')||r.idle==null?'—':apWaitingText(r.idle)+(apLate(r)?' \u00b7 '+i18t('jl_late'):''))}</td>
+      <td class="${r.done?'done':apLate(r)?'late':''}">${esc(r.done?i18t('ap_pg_approved'):r.idle==null?'—':apWaitingText(r.idle)+(apLate(r)?' \u00b7 '+i18t('jl_late'):''))}</td>
       ${money?`<td class="r mono">${apValueCell(r.c)}</td>`:''}
       ${INS?'':`<td class="r">${acts(r)}</td>`}
     </tr>`;
@@ -617,6 +696,6 @@ function renderApprovalsPage(){
   setActiveNav('approvals');
 }
 Object.assign(window,{AP_TABS,apTab,apSetTab,apWorkRows,apRowTab,apWhyHtml,apWaitsShort,apTurnText,apKindHtml,
-  apOtherSignRows,AP_SORTS,AP_SORT_WORDS,AP_SINCE_WORDS,apSortRows,apWhyLines,apForWho,apDayAfter,apTurnHtml,apSinceLook,apAskedByText,apWhySentence,apLeadJlHtml,apForPillHtml,apSay,apPaintHead,apSaWaiting,apApprovalRows,apSignatureRows,approvalsDoorCount,renderApprovalsPage,apOpenSigning,
+  apOtherSignRows,apSignIdle,apRulesSay,apApproverMe,apSignAway,apSignRuleHtml,AP_SORTS,AP_SORT_WORDS,AP_SINCE_WORDS,apSortRows,apWhyLines,apForWho,apDayAfter,apTurnHtml,apSinceLook,apAskedByText,apWhySentence,apLeadJlHtml,apForPillHtml,apSay,apPaintHead,apSaWaiting,apApprovalRows,apSignatureRows,approvalsDoorCount,renderApprovalsPage,apOpenSigning,
   apInsSeat,apLeadHtml,apInsActs,apInsPaint,apMayDecide,apDecide,
   AP_LATE_DAYS,apLate,apRowsShown,apUndo,apMayUndo,apApprovedPillHtml,apDoneLineHtml});

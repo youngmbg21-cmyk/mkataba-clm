@@ -1052,6 +1052,23 @@ function jlHost(){
   const h = document.getElementById('ins-panel');
   return (h && h.isConnected && h.classList.contains('is-jambo')) ? h : null;
 }
+/* JAMBO'S BOX ON SCREEN: the panel (or Import's) that holds #jl-q, only
+   while the reader can see it — folded counts (its strip is his door), a
+   panel in a hidden tab does not (Our paper's Templates tab sits hidden
+   under the book): the bar's Jambo door and every openAI(prefill) ask this,
+   so a press never lands in a box nobody can see */
+function jlOnScreen(){
+  if (typeof document === 'undefined') return null;
+  const shown = host => {
+    if (!host || (typeof host.closest === 'function' && host.closest('[hidden]'))) return false;
+    try { return typeof host.getClientRects !== 'function' || !!host.getClientRects().length; } catch (_){ return false; }
+  };
+  for (const q of Array.from(document.querySelectorAll('#jl-q'))){
+    const host = q.isConnected ? (q.closest('.ins-panel.is-jambo') || q.closest('#mig-side')) : null;
+    if (shown(host)) return host;
+  }
+  return null;
+}
 /* the column the panel takes from the page — 0 where it is not drawn */
 function jlReserved(){
   const h = jlHost(); if (!h) return 0;
@@ -1165,6 +1182,9 @@ function jlAwayOf(personId){
 }
 /* the page's own name, for the head while Jambo speaks */
 function jlPageWord(){
+  /* the name the bar gives the page (deskPageName, main's "‹ · HA · the
+     page's name"), then the page's own title — never his own name twice */
+  try { const d = (typeof deskPageName === 'function') ? String(deskPageName() || '').trim() : ''; if (d) return d; } catch (_){}
   try { const v = (typeof state !== 'undefined' && state) ? state.view : '';
     const m = (typeof commandMeta === 'function') ? commandMeta(v) : null; if (m && m[0]) return String(m[0]); } catch (_){}
   return i18t('pd_tab_copilot');
@@ -1185,7 +1205,9 @@ function jlWordsHtml(opt){
   let say = null; try { say = (typeof opt.jlSay === 'function') ? opt.jlSay() : null; } catch (_){ say = null; }
   if (!say || !Array.isArray(say.lines) || !say.lines.length){
     const n = jlRowCount();
-    say = Object.assign({}, say || {}, { lines: [esc(n ? i18tn('jl_say_rows', n, { n }) : (opt.empty || i18t('ins_none')))] });
+    /* "Counted from the list" only under a count: the page's own "choose
+       one" words were counted from nothing (check A1 #2) */
+    say = Object.assign({}, say || {}, { lines: [esc(n ? i18tn('jl_say_rows', n, { n }) : (opt.empty || i18t('ins_none')))] }, n ? {} : { src: false });
   }
   _jlChips = Array.isArray(say.chips) ? say.chips.filter(c => c && c.label && typeof c.run === 'function') : [];
   const face = (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 24, 'jl-say-face').replace('<img', '<img data-ink-exempt') : '';
@@ -1227,6 +1249,34 @@ function jlNeedsHtml(c, opt){
   })).join('');
   return insSecHtml(i18t('jl_need_head'), '', `<div class="jl-need">${html}</div>`, 'jl-needs');
 }
+/* ---- LAND ON IT (main, 18 Oct 2026): every door Jambo's panel beside a
+   list adds names ONE target and arrives on it through the one lander
+   (landOn) — opened, in view, lit, its main button ready, nothing pressed.
+   The target is read at press time, after the door has opened its page. */
+const JL_LAND = {
+  /* a row of the page in front, by its id */
+  row: id => () => { const q = String(id || ''); if (!q) return null;
+    return [...document.querySelectorAll('[data-ap-row],[data-row],[data-ins-row],[data-ik-row],[data-ob-key]')]
+      .find(r => [r.getAttribute('data-ap-row'), r.getAttribute('data-row'), r.getAttribute('data-ins-row'), r.getAttribute('data-ik-row'), r.getAttribute('data-ob-key')].includes(q)) || null; },
+  /* the list's first row, after a chip narrowed it */
+  first: () => document.querySelector('#reg-tbody tr[data-row], .ap-table tr[data-ap-row], #content tbody tr[data-ins-row]:not([hidden])'),
+  /* Redlines beside the paper: the first card (what waits on you leads) */
+  redlines: '#pd-redface [data-nego-card]',
+  /* Before you sign: an approval's card, else the Sign button, else the stop
+     on the road where it stands */
+  sign: () => document.querySelector('#pd-signface #sa-card') || document.querySelector('#pd-signface #sign-btn')
+    || document.querySelector('#pd-signface .pd-road-stop.is-now') || document.querySelector('#sa-card'),
+  /* the road's stop where it stands (who signs next) */
+  road: () => document.querySelector('#pd-signface .pd-road-stop.is-now') || document.querySelector('#pd-signface [data-pd-road]'),
+  /* Home's paper: its line names the contract */
+  paper: '.ig-line-id',
+  /* the Contracts place narrowed: its first paper or row */
+  list: () => document.querySelector('#ct-place .igw-card, #ct-place tr[data-row], #reg-tbody tr[data-row]'),
+};
+function jlLand(k, arg){
+  const t = JL_LAND[k]; if (!t || typeof landOn !== 'function') return null;
+  return landOn(typeof t === 'function' && t.length ? t(arg) : t, { block: 'nearest' });
+}
 /* ---- LET THE ROW GO: Jambo's own words ---- */
 function jlToWords(){
   const host = jlHost(); if (!host || !host._ins) return false;
@@ -1246,28 +1296,45 @@ function jlHeldContract(){
   return null;
 }
 /* ---- THE ASK: ONE READING, THE COUNTER'S ----
-   1 a place word (caReadPlace) opens its page at once — a word that needs one
-     contract ("redline", "sign", "share"…) takes the row the panel holds;
+   0 a word that needs one contract ("redline", "sign", "share"…) takes the
+     row the panel holds;
+   1 THE ONE READER every Jambo box asks first (caAskAnywhere, MAIN 18 Oct
+     2026): a place word opens its page; a draft from a sentence opens the
+     one form; a send, a job, a booking go where they are done — all free;
    2 Jambo's map (jmRead): a page at once; "which did you mean?" is his card,
-     said here; an act that waits for a press goes where his cards live
-     (jmRunAct, the top bar's own way);
-   3 anything else is a question for Jambo, said here (aiAskWords, one call). */
+     said here; an act that waits for a press goes where his cards live;
+   3 THE COUNTER'S FREE READINGS (check A1 #2): what the Board's own reader
+     answers free — a figure, a party or contract by name, "ending in 90
+     days" — is handed to the Board, as the Counter's box hands it
+     (jlBoardReads → caHandHome), never a call;
+   4 anything else is a question for Jambo, said here (aiAskWords, one call,
+     its cost on the box's hover before the press). */
+function jlBoardReads(t){
+  if (typeof hbAskReadingOf !== 'function') return false;
+  let A = null; try { A = hbAskReadingOf(t, 'board'); } catch (_){ A = null; }
+  return !!(A && A.road === 'free');
+}
 function jlAsk(text){
   const t = String(text || '').trim(); if (!t) return false;
+  const cards = (typeof JM_CARD_PLACES !== 'undefined') ? JM_CARD_PLACES : ['share', 'draft', 'help', 'next'];
   let a = null; try { a = (typeof caReadPlace === 'function') ? caReadPlace(t) : null; } catch (_){ a = null; }
-  if (a && a.kind === 'go'){
+  if (a && a.kind === 'go' && a.missing){
     const held = jlHeldContract();
-    if (a.missing && held){ a.cid = held.id; a.missing = false; }
-    const card = (typeof JM_CARD_PLACES !== 'undefined' ? JM_CARD_PLACES : ['share', 'draft', 'help', 'next']).includes(a.place);
-    if (!card && !a.missing && typeof caGo === 'function' && caGo(a)) return 'go';
-    if (typeof jmRunAct === 'function' && jmRunAct(a, t)) return 'card';
+    if (held){
+      a.cid = held.id; a.missing = false;
+      if (!cards.includes(a.place) && typeof caGo === 'function' && caGo(a)) return 'go';
+      if (typeof jmRunAct === 'function' && jmRunAct(a, t)) return 'card';
+    }
   }
+  let took = false; try { took = (typeof caAskAnywhere === 'function') ? caAskAnywhere(t) : false; } catch (_){ took = false; }
+  if (took) return took === 'cal' ? 'cal' : 'go';
   if (!a){
     let m = null; try { m = (typeof jmRead === 'function') ? jmRead(t) : null; } catch (_){ m = null; }
     if (m && m.kind === 'map'){ jlMapCard(t, m); return 'card'; }
-    if (m && m.kind === 'go' && !m.missing && !(typeof JM_CARD_PLACES !== 'undefined' && JM_CARD_PLACES.includes(m.place)) && typeof caGo === 'function' && caGo(m)) return 'go';
+    if (m && m.kind === 'go' && !m.missing && !cards.includes(m.place) && typeof caGo === 'function' && caGo(m)) return 'go';
     if (m && typeof jmRunAct === 'function' && jmRunAct(m, t)) return 'card';
   }
+  if (jlBoardReads(t) && typeof caHandHome === 'function' && caHandHome(t, null)) return 'board';
   jlToWords();
   if (typeof aiAskWords === 'function'){ aiAskWords(t); return 'model'; }
   if (typeof openAI === 'function'){ openAI(t); return 'model'; }
@@ -1285,10 +1352,10 @@ function jlMapCard(q, m){
 }
 /* the bar's Jambo door beside a list: the panel opens, the words are put ready */
 function jlFocus(prefill){
-  const host = jlHost() || (document.getElementById('mig-side'));
+  const host = jlOnScreen();
   if (!host) return false;
   if (host.classList.contains('is-folded')) jlFoldSet(false);
-  const inp = document.getElementById('jl-q'); if (!inp) return false;
+  const inp = host.querySelector('#jl-q'); if (!inp) return false;
   if (prefill){ inp.value = String(prefill); }
   try { inp.focus({ preventScroll: true }); const n = inp.value.length; inp.setSelectionRange(n, n); } catch (_){}
   return true;
@@ -1339,7 +1406,7 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined' && !window.
     if ((el = t.closest('[data-jl-door]'))){ jlFoldSet(false); return; }
     if ((el = t.closest('[data-jl-back]')) || (el = t.closest('[data-jl-home]'))){
       const cur = host._ins || {};
-      if (cur.c || cur.item) jlToWords(); else { const q = document.getElementById('jl-q'); if (q) try { q.focus({ preventScroll: true }); } catch (_){} }
+      if (cur.c || cur.item) jlToWords(); else { const q = host.querySelector('#jl-q'); if (q) try { q.focus({ preventScroll: true }); } catch (_){} }
       return;
     }
     if ((el = t.closest('[data-jl-chip]'))){ const ch = _jlChips[Number(el.getAttribute('data-jl-chip'))]; if (ch) ch.run(); return; }
@@ -1369,5 +1436,5 @@ Object.assign(window, { INS_MIN_W, INS_ASKS_MAX, INS_LATEST, INS_READ_TONE,
   insHeadHtml, insParties, insPartiesHtml, insNeedsHtml, insNeedsLineHtml, insNeedWords, INS_NEED_VERB, INS_NEED_GO, insPanelHtml, insPanelEmptyHtml, insPaintPanel, insCloseMenu, insMarkRow, insListWire,
   insListOff, insWatchWidth, insActsHtml, insDoorActs, insNegoDoorState, insMenuItemHtml, insItemHeadHtml, INS_TONE, insKvHtml, insChipHtml, insViewTabsHtml,
   INS_PAGE_REPAINT, insLetGo, insLetGone, insActBtnHtml, insRowsHtml, JL_READ_ORDER, jlReadsHtml, jlReadSaid,
-  JL_W, JL_FOLDED, jlFolded, jlFoldSet, jlHost, jlReserved, jlLayout, jlCount, jlAskHtml, jlFrame, jlWordsHtml, jlNeedsHtml,
-  jlToWords, jlHeldContract, jlAsk, jlMapCard, jlFocus, jlPopRead, jlPopClose, jlPopTake, jlDayWord, jlDayRange, jlAwayOf });
+  JL_W, JL_FOLDED, jlFolded, jlFoldSet, jlHost, jlOnScreen, jlReserved, jlLayout, jlCount, jlAskHtml, jlFrame, jlWordsHtml, jlNeedsHtml,
+  JL_LAND, jlLand, jlPageWord, jlToWords, jlHeldContract, jlBoardReads, jlAsk, jlMapCard, jlFocus, jlPopRead, jlPopClose, jlPopTake, jlDayWord, jlDayRange, jlAwayOf });

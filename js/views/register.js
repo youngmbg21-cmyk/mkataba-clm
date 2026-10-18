@@ -2463,7 +2463,7 @@ function regNegoSay(){
   if(ours.length){ const c=ours[0].c; let w=''; try{ w=regNegoCols(c).waiting; }catch(_){ w=''; }
     if(w&&w!=='\u2014') lines.push(esc(i18t('jl_ng_oldest',{ref:(window.contractRef?contractRef(c):c.id),party:c.counterparty||'\u2014',wait:w}))); }
   const R=regState(), chips=[];
-  if(n.you&&(R.band||'')!=='you') chips.push({ label:i18t('jl_ng_chip_ours'), run:()=>{ R.band='you'; R.page=1; regRepaint(); } });
+  if(n.you&&(R.band||'')!=='you') chips.push({ label:i18t('jl_ng_chip_ours'), run:()=>{ R.band='you'; R.page=1; regRepaint(); if(typeof jlLand==='function') jlLand('first'); } });
   if(typeof ngStartPickerOpen==='function') chips.push({ label:i18t('jl_ng_chip_start'), run:()=>ngStartPickerOpen() });
   return { lines, chips };
 }
@@ -2498,7 +2498,7 @@ function regNegoNeedRows(c){
   const ok=typeof insNegoDoorState==='function'?insNegoDoorState(c).ok:true;
   return [{ k:'answer', title:i18tn('jl_need_answer',pend.length,{n:pend.length}), sub, plain:names.join(' \u00b7 '),
     verb:i18t('home_verb_answer'), go:i18t('ins_need_go_nego'),
-    run:()=>{ if(ok&&typeof openRedlineWorkbench==='function') openRedlineWorkbench(c.id,{ face:true }); } }];
+    run:()=>{ if(ok&&typeof openRedlineWorkbench==='function'){ openRedlineWorkbench(c.id,{ face:true }); if(typeof jlLand==='function') jlLand('redlines'); } } }];
 }
 function regInsSeat(){ return regScope()==='negotiations' ? 'negotiations' : 'contracts'; }
 function regInsActs(c){

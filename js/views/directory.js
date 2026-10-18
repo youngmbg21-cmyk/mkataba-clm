@@ -317,6 +317,7 @@ function dirShowContracts(p){
   if (!p || !p.contracts.length || typeof regShowOnly !== 'function') return;
   const ids = (typeof cuIdsOf === 'function') ? cuIdsOf({ items: p.contracts.map(id => ({ id })) }) : p.contracts.slice();
   regShowOnly(ids, `${p.name || p.email} · ${p.contracts.length}`);
+  if (typeof jlLand === 'function') jlLand('list');
 }
 function dirPartyLoaded(p){
   const v = (p && p.partyKey && typeof cuCustomerOf === 'function') ? cuCustomerOf(p.partyKey) : null;
@@ -326,7 +327,8 @@ function dirPartyLoaded(p){
    Document door does. */
 function dirOpenContract(id){
   if (!id) return;
-  if (!(typeof pdOpenOnHome === 'function' && pdOpenOnHome(id, 'open'))) _dCall('openWorkspace', id);
+  if (!(typeof pdOpenOnHome === 'function' && pdOpenOnHome(id, 'open'))) { _dCall('openWorkspace', id); return; }
+  if (typeof jlLand === 'function') jlLand('paper');
 }
 /* The second press (Enter, a double-click, the narrow window's one press). */
 function dirOpenLead(p){
@@ -471,9 +473,11 @@ const DIR_WAIT_KIND = { approval: 'ap_wl_kind_appr', review: 'jl_kind_review', l
 const DIR_WAIT_OPEN = { approval: 'jl_open_approval', review: 'jl_open_review', look: 'jl_open_review', sign: 'jl_open_signing', move: 'jl_open_negotiation' };
 function dirWaitGo(kind, id){
   const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c) return;
-  if (kind === 'approval'){ if (typeof insSelect === 'function') insSelect('approvals', c.id); if (typeof setView === 'function') setView('approvals'); return; }
-  if (kind === 'sign'){ if (typeof apOpenSigning === 'function') apOpenSigning(c.id); return; }
-  if (typeof openRedlineWorkbench === 'function') openRedlineWorkbench(c.id, { face: true }); else dirOpenContract(c.id);
+  /* LAND ON IT: each door arrives on its one thing, lit (jlLand) */
+  const land = (k, a) => { if (typeof jlLand === 'function') jlLand(k, a); };
+  if (kind === 'approval'){ if (typeof insSelect === 'function') insSelect('approvals', c.id); if (typeof setView === 'function') setView('approvals'); land('row', c.id); return; }
+  if (kind === 'sign'){ if (typeof apOpenSigning === 'function') apOpenSigning(c.id, 'road'); return; }
+  if (typeof openRedlineWorkbench === 'function'){ openRedlineWorkbench(c.id, { face: true }); land('redlines'); } else dirOpenContract(c.id);
 }
 /* THE PAGE IN JAMBO'S WORDS (nothing chosen): the directory's own counts,
    who the reader stands in for; chips are its own tabs */
@@ -517,11 +521,11 @@ function dirPaintPanel(p, book){
   const me = _dCall('currentUser') || {};
   const covers = p.side === 'ours' && p.id && typeof awayCovers === 'function' && awayCovers(me, p.id);
   const waitSec = (p.side === 'ours' || p.side === 'theirs') && waits.length ? sec(i18t('jl_waiting_on', { who: first }), waits.length,
-    `<div class="jl-need">${waits.slice(0, DIR_WAIT_MAX).map(w => {
+    `<div class="jl-need is-wait">${waits.slice(0, DIR_WAIT_MAX).map(w => {
       const money = !(typeof canViewValues === 'function' && !canViewValues()) && w.c.value && !(typeof isMonetary === 'function' && !isMonetary(w.c));
       const sub = [i18t(DIR_WAIT_KIND[w.kind] || 'ap_wl_kind_appr'), _dStr(w.c.counterparty), money && typeof fmtMoneyShortOf === 'function' ? fmtMoneyShortOf(w.c) : '',
         covers && (w.kind === 'approval' || w.kind === 'review') ? i18t('jl_may_answer') : ''].filter(Boolean).join(' \u00b7 ');
-      return `<div class="jl-need-r is-amber"><i class="jl-need-dot" aria-hidden="true"></i><div class="jl-need-b"><div class="jl-need-t" title="${_dE(w.c.name || '')}">${_dE(w.c.name || w.c.id)}</div><div class="jl-need-s" title="${_dE(sub)}">${_dE(sub)}</div></div><button type="button" class="ui-btn ui-btn-sm jl-need-go" data-dir-wait="${_dE(w.kind)}" data-dir-wait-id="${_dE(w.c.id)}">${_dE(i18t(DIR_WAIT_OPEN[w.kind] || 'jl_open_approval'))}</button></div>`;
+      return `<div class="jl-need-r is-amber"><div class="jl-need-b"><div class="jl-need-t" title="${_dE(w.c.name || '')}">${_dE(w.c.name || w.c.id)}</div><div class="jl-need-s" title="${_dE(sub)}">${_dE(sub)}</div></div><button type="button" class="ui-btn ui-btn-sm jl-need-go" data-dir-wait="${_dE(w.kind)}" data-dir-wait-id="${_dE(w.c.id)}">${_dE(i18t(DIR_WAIT_OPEN[w.kind] || 'jl_open_approval'))}</button></div>`;
     }).join('')}</div>${waits.length > DIR_WAIT_MAX ? `<p class="ins-note">${_dE(i18tn('ins_more_asks', waits.length - DIR_WAIT_MAX, { n: waits.length - DIR_WAIT_MAX }))}</p>` : ''}`) : '';
   const namedJl = max => {
     /* what is asked of them now comes first (round 19 draws it at the top) */
@@ -552,7 +556,7 @@ function dirPaintPanel(p, book){
        the gaps", 18 Oct 2026): Show his contracts · Email, no ⋯ — a person's
        rights are changed on Settings → People, the one place they live */
     body = rowsOf([{ k: 'email', label: i18t('jl_f_email'), v: mail }, { k: 'hati', label: i18t('dir_f_in_hati'), v: _dE(p.hati) },
-      { k: 'streams', label: i18t('cu_panel_streams'), v: streams }, { k: 'contracts', label: i18t('dir_named_on'), v: n ? _dE(i18t('jl_named_n', { n, live: p.active })) : '' },
+      { k: 'streams', label: i18t('cu_panel_streams'), v: streams }, { k: 'contracts', label: i18t('dir_named_on'), v: n ? _dE(i18tn('jl_named_n', n, { n, live: p.active })) : '' },
       ...(away ? [{ k: 'away', label: i18t('jl_f_away'), v: away }] : [])])
       + waitSec
       + sec(i18t('dir_named_on'), n, n ? namedJl(3) : `<p class="ins-note">${_dE(i18t('dir_no_contracts'))}</p>`);
@@ -571,7 +575,7 @@ function dirPaintPanel(p, book){
           title: loaded ? '' : i18t('dir_party_none'), run: () => { if (typeof cuOpenExplorer === 'function') cuOpenExplorer(p.partyKey); } }] };
     head = Object.assign(head, { av, eyebrow: '', sub: _dE([p.title, p.partyName].filter(Boolean).join(' · ')), acts: head.acts.concat(mailBtn) });
     body = rowsOf([{ k: 'email', label: i18t('jl_f_email'), v: mail }, { k: 'party', label: i18t('cu_col_customer'), v: _dE(p.partyName) },
-      { k: 'streams', label: i18t('cu_panel_streams'), v: streams }, { k: 'contracts', label: i18t('dir_named_on'), v: n ? _dE(i18t('jl_named_n', { n, live: p.active })) : '' }])
+      { k: 'streams', label: i18t('cu_panel_streams'), v: streams }, { k: 'contracts', label: i18t('dir_named_on'), v: n ? _dE(i18tn('jl_named_n', n, { n, live: p.active })) : '' }])
       + waitSec
       + sec(i18t('dir_named_on'), n, n ? namedJl(3) : `<p class="ins-note">${_dE(i18t('dir_no_contracts'))}</p>`)
       + sec(i18t('dir_also_at', { party: p.partyName }), others.length,
@@ -727,6 +731,20 @@ const DIR_CSS = `
   .dir-ct-ref{font-size:var(--t-meta);color:var(--color-neutral-600);margin-right:6px;}
   .dir-ct-st{white-space:nowrap;}
   .dir-ct-sub{grid-column:1 / -1;font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* NAMED ON, AS DRAWN (round 19's People scene): the rows sit in a bordered
+     white card, the name bold over its line, the stage on the right across
+     both lines */
+  .ins-panel .jl-ct-list{border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:var(--color-surface);overflow:hidden;}
+  .ins-panel .jl-ct-list .dir-ct{padding:9px 12px;border-top:1px solid var(--color-divider);}
+  .ins-panel .jl-ct-list .dir-ct:first-child{border-top:0;padding-top:9px;}
+  .ins-panel .jl-ct-list .dir-ct-n{font-weight:var(--w-strong);}
+  .ins-panel .jl-ct-list .dir-ct-st{grid-column:2;grid-row:1 / span 2;align-self:center;}
+  .ins-panel .jl-ct-list .dir-ct-sub{grid-column:1;}
+  .ins-panel .jl-ct-list + .jl-all{margin-top:8px;}
+  /* WAITING ON <NAME>, AS DRAWN: the work in a card without dots, its line on
+     one line (the whole of it on the hover) */
+  .ins-panel .jl-need.is-wait .jl-need-r{grid-template-columns:minmax(0,1fr) auto;}
+  .ins-panel .jl-need.is-wait .jl-need-s{display:block;white-space:nowrap;text-overflow:ellipsis;}
   .ins-panel .dir-pp{display:flex;align-items:center;gap:var(--s-2);width:100%;padding:6px 0;border:0;border-top:1px solid var(--surface-2);
     background:none;font:inherit;font-size:var(--t-body);color:var(--color-text);text-align:left;cursor:pointer;}
   .ins-panel .dir-pp:first-child{border-top:0;padding-top:0;}

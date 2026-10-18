@@ -8953,25 +8953,28 @@ function hbBringOf(qRaw){
   const c = hbOpenOne(raw);
   return c ? { id: c.id } : null;
 }
-function hbAskReadingOf(qRaw){
+function hbAskReadingOf(qRaw, onFace){
   const raw = String(qRaw == null ? '' : qRaw);
   if (!raw.trim()) return null;
   const s = hbS();
+  /* onFace: the face the words would be read on — Jambo's panel beside a
+     list asks as the Counter's box hands them, on the Board (jlBoardReads) */
+  const face = onFace || s.face;
   if (HB_WHY_ASK_RE.test(raw)) return { road: 'copilot', why: true, q: raw };
-  if (s.face === 'paper'){ const br = hbBringOf(raw); if (br) return { road: 'free', kind: 'card', r: { act: 'card', id: br.id }, q: raw }; }
+  if (face === 'paper'){ const br = hbBringOf(raw); if (br) return { road: 'free', kind: 'card', r: { act: 'card', id: br.id }, q: raw }; }
   /* A VERIFIED VIEW ANSWERS FIRST (Part 9): the company's own answer to the
      questions an admin named, exact after normalising, before any reading */
-  if (s.face === 'board'){ const v = hbVerifiedHit(raw); if (v) return { road: 'free', kind: 'verified', v, q: raw }; }
+  if (face === 'board'){ const v = hbVerifiedHit(raw); if (v) return { road: 'free', kind: 'verified', v, q: raw }; }
   /* AN ANSWER PACK (Charts That Explain, rec 3): the four questions that
      matter most get their ready answer, free, the same way every time */
-  if (s.face === 'board'){ const pk = hbPackOfQ(raw); if (pk) return { road: 'free', kind: 'pack', pack: pk, q: raw }; }
+  if (face === 'board'){ const pk = hbPackOfQ(raw); if (pk) return { road: 'free', kind: 'pack', pack: pk, q: raw }; }
   /* A STORY: its chapters free, its words one Copilot call (the ask is the press) */
-  if (s.face === 'board'){ const sy = hbStoryOfQ(raw); if (sy) return { road: 'free', kind: 'story', story: sy, q: raw }; }
+  if (face === 'board'){ const sy = hbStoryOfQ(raw); if (sy) return { road: 'free', kind: 'story', story: sy, q: raw }; }
   /* ONE CONTRACT ASKED FOR BY NAME ("show me Amani Foods", "bring up
      MK-104"): read off the words as typed, before the opening words are read
      away — and only when they carry no chart words (A2) */
   { const oc = hbOpenRef(raw); if (oc) return { road: 'free', kind: 'openc', r: { act: 'openc', id: oc.id }, q: raw }; }
-  if (s.face === 'board'){ const one = hbOpenOne(raw); if (one) return { road: 'free', kind: 'card', r: { act: 'card', id: one.id }, q: raw }; }
+  if (face === 'board'){ const one = hbOpenOne(raw); if (one) return { road: 'free', kind: 'card', r: { act: 'card', id: one.id }, q: raw }; }
   /* the company's own words first, then the analyst's phrasebook */
   const q = hbAnalystWords(hbWordsApply(raw));
   const fu = hbFollowUpRead(q);
@@ -8982,7 +8985,7 @@ function hbAskReadingOf(qRaw){
      board's reader steps aside for every question but the two that are about
      the screen itself — back to the board, and Present. A question about
      renewals asked of the map is the map's to answer. */
-  if (s.face !== 'board' && !((r.act === 'face' && r.face === 'board') || r.act === 'present' || r.act === 'analyze')) return { road: 'map', q, r };
+  if (face !== 'board' && !((r.act === 'face' && r.face === 'board') || r.act === 'present' || r.act === 'analyze')) return { road: 'map', q, r };
   return { road: 'free', kind: r.act, r, q };
 }
 /* the line's words for a reading: what it will draw, and free — or Copilot,

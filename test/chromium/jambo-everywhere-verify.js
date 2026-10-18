@@ -119,21 +119,36 @@ const CONTRACTS = [
       check('3c and nothing was spent', !ai.length, ai.join(', '));
     }
 
-    /* ===== 4 · THE POP-UP WINDOW ON ANOTHER PAGE ===== */
-    await page.evaluate(() => setView('approvals'));
-    await until(() => state.view === 'approvals', null, 4000);
+    /* ===== 4 · THE POP-UP WINDOW ON ANOTHER PAGE =====
+       RE-POINTED (lane A1, 18 Oct 2026): Approvals now carries Jambo's own
+       panel beside its list (the redesign's rounds 14–15), so the bar's door
+       there goes to that panel's box, not a window over it; the window is
+       tried on a page with no Jambo of its own — the Brain — and the list
+       panel's box is asked the same (4d–4e). */
+    await page.evaluate(() => setView('brain'));
+    await until(() => state.view === 'brain', null, 4000);
     await page.evaluate(() => openAI());
     const up = await until(() => { const p = document.getElementById('ai-panel'); return p && p.classList.contains('open') && !!document.getElementById('ai-input') ? true : null; }, null, 4000);
-    check('4 (setup) the window is open over Approvals', !!up);
+    check('4 (setup) the window is open over a page with no Jambo of its own', !!up);
     if (up) {
       ai.length = 0;
       await page.click('#ai-input'); await page.fill('#ai-input', ''); await page.type('#ai-input', 'obligations', { delay: 6 }); await page.keyboard.press('Enter');
-      const v4 = await until(() => state.view !== 'approvals' ? state.view : null, null, 6000);
+      const v4 = await until(() => state.view !== 'brain' ? state.view : null, null, 6000);
       const said = await page.evaluate(() => [...document.querySelectorAll('#ai-feed .ai-msg, #ai-feed > *')].map(x => x.textContent.trim()).filter(Boolean).slice(-2));
-      check('4a a page\'s name in the window moves there', !!v4 && v4 !== 'approvals', String(v4));
+      check('4a a page\'s name in the window moves there', !!v4 && v4 !== 'brain', String(v4));
       check('4b and he says so in one line', said.length >= 1 && /obligations/i.test(said.join(' ')), JSON.stringify(said));
       check('4c nothing spent', !ai.length, ai.join(', '));
+      await page.evaluate(() => { if (typeof closeAI === 'function') closeAI(); });
     }
+    await page.evaluate(() => setView('approvals'));
+    const jl = await until(() => state.view === 'approvals' && document.getElementById('jl-q') ? true : null, null, 6000);
+    if (jl) {
+      ai.length = 0;
+      await page.click('#jl-q'); await page.fill('#jl-q', ''); await page.type('#jl-q', 'obligations', { delay: 6 }); await page.keyboard.press('Enter');
+      const v5 = await until(() => state.view !== 'approvals' ? state.view : null, null, 6000);
+      check('4d a page\'s name in Jambo\'s panel beside Approvals moves there', !!v5 && v5 !== 'approvals', String(v5));
+      check('4e nothing spent', !ai.length, ai.join(', '));
+    } else check('4d (setup) Jambo\'s panel beside Approvals has its box', false);
 
     /* ===== 6 · THE CLAUSE EDITOR: a page's name leaves through its own way out ===== */
     await page.setViewportSize({ width: 1440, height: 780 });
