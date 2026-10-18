@@ -58,8 +58,11 @@ const body = (title, party) => `${title}\n\nThis Agreement is made between Highl
     const R0 = await page.evaluate(rows);
 
     /* ---- 1 a figure is a door ---- */
-    const door = await page.$('[data-mig-show="review"]');
-    if (door) await door.click();
+    /* the run's own last paint lands after migState().running goes false (it
+       waits on the server first), so the figure is pressed BY NAME: a handle
+       taken now can be a button that paint has already replaced */
+    const door = await page.$('.mig-kpi[data-mig-show="review"]');
+    if (door) await page.click('.mig-kpi[data-mig-show="review"]');
     const R1 = await until(() => { const b = document.querySelector('.mig-kpi[data-mig-show="review"]'); if (!b || b.getAttribute('aria-pressed') !== 'true') return null;
       return { ids: [...document.querySelectorAll('.mig-table tbody [data-row]')].map(r => r.getAttribute('data-row')), note: (document.querySelector('.mig-shown') || {}).textContent || '' }; });
     const want = await page.evaluate(() => migContracts().filter(c => c.migration.needsReview).map(c => c.id).sort());

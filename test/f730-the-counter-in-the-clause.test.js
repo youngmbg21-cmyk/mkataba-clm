@@ -1,6 +1,6 @@
 'use strict';
 /* ═══════════════════════════════════════════════════════════════════════════
-   f728 — JAMBO'S COUNTER IS MARKED IN THE CLAUSE ITSELF (owner, 18 Oct 2026:
+   f730 — JAMBO'S COUNTER IS MARKED IN THE CLAUSE ITSELF (owner, 18 Oct 2026:
    "the counter highlighted in blue is a full clause which makes it a terrible
    choice especially if it is a long clause. Just make the counter changes in
    the clause itself by editing the words or numbers but do not add a new
@@ -27,7 +27,7 @@ const NEGO = fs.readFileSync(path.join(__dirname, '..', 'js/views/negotiation.js
 const body = (w, html) => { const d = w.win.document.createElement('div'); d.className = 'nego-body'; d.innerHTML = html; w.win.document.body.appendChild(d); return d; };
 const shown = el => { const c = el.cloneNode(true); c.querySelectorAll('del, .nego-del, .rl-sug-del').forEach(x => x.remove()); return c.textContent.replace(/\s+/g, ' ').trim(); };
 
-describe('f728 (1) a figure is countered where it stands', () => {
+describe('f730 (1) a figure is countered where it stands', () => {
   test('their 90 struck in his ink, his 60 beside it, after their insertion', () => {
     const w = buildWorld({ user: ME, negotiationView: true });
     assert.equal(typeof w.win.rlSugInline, 'function', 'the painter exists');
@@ -44,7 +44,7 @@ describe('f728 (1) a figure is countered where it stands', () => {
   });
 });
 
-describe('f728 (2) a long clause is marked, never copied', () => {
+describe('f730 (2) a long clause is marked, never copied', () => {
   test('only the differing words carry marks', () => {
     const w = buildWorld({ user: ME, negotiationView: true });
     const long = 'The Supplier shall deliver the Goods to the Delivery Point on the Delivery Date in accordance with the Specification and shall bear all risk in the Goods until delivery is complete, and the Buyer may reject any Goods that do not conform within ten business days of delivery.';
@@ -57,7 +57,7 @@ describe('f728 (2) a long clause is marked, never copied', () => {
   });
 });
 
-describe('f728 (3) a rewrite keeps its box', () => {
+describe('f730 (3) a rewrite keeps its box', () => {
   test('less than half the words kept: no inline marks, the painter says no', () => {
     const w = buildWorld({ user: ME, negotiationView: true });
     const b = body(w, 'Invoices fall due within 45 days of receipt.');
@@ -68,7 +68,7 @@ describe('f728 (3) a rewrite keeps its box', () => {
   });
 });
 
-describe('f728 (4) the marks come off cleanly', () => {
+describe('f730 (4) the marks come off cleanly', () => {
   test('clearing puts the clause back as it was', () => {
     const w = buildWorld({ user: ME, negotiationView: true });
     const html = 'Invoices fall due within <del class="nego-del">45</del> <ins class="nego-ins">90</ins> days of receipt.';
@@ -79,7 +79,7 @@ describe('f728 (4) the marks come off cleanly', () => {
   });
 });
 
-describe('f728 (5) and (6) the reader\'s typing and their page', () => {
+describe('f730 (5) and (6) the reader\'s typing and their page', () => {
   test('click-to-type counts past his inserted words', () => {
     assert.match(NEGO, /p\.closest\('del, \.nego-del, \.hati-del, \.rl-sug-ins'\)\) continue;/);
   });

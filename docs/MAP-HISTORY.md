@@ -30701,6 +30701,92 @@ The owner picked "The SAP way" by name in the round 26 artifact (the drawing rec
 - **KEPT, AND WHY.** The drawing's Downloads table had an Acts column; the server does not keep a download's count, so the column is left out rather than guessed.
 - Tests: f727, streams-and-data-verify (red at the parent). Re-pointed: f193 (the drawer reuse test opens Approvals), settings-tabs (the drawer walk leaves out a panel whose door is a page, and checks that one lands on its page), trail-export (the page's tabs and band).
 
+
+## IMPORT: JAMBO'S PANEL BESIDE THE LIST (18 Oct 2026)
+
+The owner picked "The SAP way" for Import in round 22 of the redesign. The
+overnight build made the figures doors and the drop area a strip, but left out
+the panel the drawing showed beside the list, and said so in the morning
+summary ("there's no Jambo panel"). The owner's answer, 18 Oct 2026: "you need
+a jambo side panel so the uploads needs fixing".
+
+What was built (js/views/migration.js):
+- `#mig-side`, beside the list on a computer (the list and the panel in two
+  columns; under 1180 px wide the panel follows the list). Sticky in the page's
+  own scroller; nothing filed, per sitting like the figures.
+- With no file chosen, Jambo says the batch in words from the figures' own
+  counts (`migKpis`): how many came in, what needs you (to check, no readable
+  text, link decisions), the onboarding allowance used, and a chip that is the
+  figure's own door (narrows the list to the files to check, `migShowSet`).
+- A row press now CHOOSES the file (`migPickSet`, the list inspector's rule: a
+  press selects; pressed again it is let go). The row's Open, a double-click
+  and Enter on a chosen row still open the contract.
+- The chosen file: its facts are the review window's (MIG_CRITICAL, labelled
+  by META_FIELDS), amber where missing or read with low confidence — the same
+  reading migReadNeedsReview makes; a contract that passes no money is not
+  missing its value; evergreen is an answer. The marks (`migGates`), which the
+  dots only named on a hover, are said in words. Its doors are the row's own:
+  Review (openMigReview), Link (openLinkModal), Open.
+- Not built: the ask box at the panel's foot in the drawing — Jambo's one door
+  stays in the top bar, so the page has no second ask box. The import queue and
+  the migrated list stay two cards.
+
+Tests: f728-import-jambo-panel (red at main), import-jambo-panel-verify (red at
+main: every check fails, the run stops at a row press that opened the contract).
+
+
+## APPROVALS & SIGNING: THE AMBER LINE GOES (18 Oct 2026)
+
+Round 15 ("One worklist") left a question open: may the amber "Your approval is
+asked for." line go from the approval's panel, since the list's first group
+("Yours to answer") and the panel's Approve button already say it? The owner's
+yes came on 18 Oct 2026. The panel's line now skips the `approval` item
+(js/views/approvalsview.js, `insNeedsLineHtml(c, skip)`, `needsSkip` alike);
+anything else the contract owes still makes a line ("1 detail to fill."). Only
+the Approvals page's panel changes: the checklist beside the other lists keeps
+the item. sap-lists-verify 2d re-pointed (red at main: the line still said
+"Your approval is asked for. 1 detail to fill is also waiting.").
+
+
+## SETTINGS → YOU: THE SIDEBAR SWITCH GOES (18 Oct 2026)
+
+Round 24 ("One sheet") left a question open: "How you like to work" had a
+switch for the left sidebar ("only what you use" / show everything), but a
+computer draws no left sidebar since the Counter and the desk tabs, so the
+switch had nothing to act on. The owner's yes to removing it came on 18 Oct
+2026. Gone from the computer: the row on You (`stYouCardHtml` 'work'), the
+toggle in the How you like to work drawer (`#pref-nav-all`), its writer
+`stNavAllSet` and its finder words. It is on SET_CLOSURES (`sidebar`), so f193
+names it rather than missing it. The phone keeps its own switch in its menu
+(js/mobile.js), where the menu still earns its items (navShowEverything,
+navEarned) — those and their words stay. Tests re-pointed: f193, f691, f725.
+
+
+## KEEPING: A PRIVATE STREAM NO ADMIN CAN SEE (18 Oct 2026)
+
+Round 26 left a question open. A private stream's contracts are read only by
+the people it names, admins too, so where no admin is named, contracts past
+their keeping period were never listed for anybody: nobody was asked, and they
+stayed for ever. Three answers were offered; the owner picked "Prompt admins to
+get named" on 18 Oct 2026.
+
+- Server: `kpUnseen(rules)` reads, for each private stream that has a keeping
+  rule and names no admin, whether anything in it is due (`kpBook(null, fid,
+  [fid])` — kpBook took an optional scope for this; the one place the server
+  looks past the wall, and only to say yes or no). The answer, a list of stream
+  ids and nothing else (no count, no contract's id, name or party), rides the
+  admin's bootstrap (`keeping.unseen`) and GET /api/keeping. A workspace with no
+  rules keeps its old answer, `{ rules, due }`.
+- Browser: `stKpNeedRows` adds a Needs your attention row per stream, "No admin
+  can see it · <stream>", its button the stream's own page (Access), where an
+  admin names an admin, themselves included ("Add me"). Saving the stream reads
+  keeping again (`stKpLoad`) and takes the row out at once (`stSyncAttention`,
+  which removes rows and never adds one under the reader's hand); the page's
+  next paint brings the stream's contracts into that admin's own Ready to delete.
+- Not changed: who may delete. Only an admin named on the stream decides.
+
+Tests: f729 (1–3 red at main), keeping-no-admin-verify (1–3 red at main).
+
 ## LAND ON IT (owner, 18 Oct 2026)
 
 THE OWNER'S WORDS, with four screenshots (the Counter's Needs you with Jambo's work → Open; the Board's Jambo's work card; the Contracts place with two "Draft a new agreement" cards in Jambo's panel; the Counter's box with its chips): *"when you click on jambos work, it should take you to the jambos work card in the board … when you click on upload document, it should take you to contracts page but [the Draft card] should be up as a pop up or should be flashing so a user knows where to go to directly. This should be a a well crafted rule where you are directed towards what you are looking for exactly so you are not searching across the page for what you are looking for. Define this part first with me then we will summarize the rest of the work before we begin to build / code."*
@@ -30753,7 +30839,7 @@ THE OWNER'S WORDS, over MK-369 on Home's paper: *"In the paper, the counter high
 
 WHAT CHANGED: `rlPaintCopilotAnswers` (still painted after the render, never into the paper's HTML, our seat only) now asks `rlSugInline(body, wording, id)` first: the words the paper shows standing in the clause body (text outside `del`/`.nego-del`/`.hati-del`/`.rl-line-del`, so their own inserted words count) are set against Jambo's wording by a word LCS; each word he would take out is wrapped `.rl-sug-del` where it stands (inside their `ins` when it is their word), each run he would put in is a `.rl-sug-ins` span placed after the word before it — beside their insertion, never inside it — with the space between kept plain. Both carry `data-rl-sug` and his title (`ng_prep_box_title`). Style (negotiation-css): his dashed accent ink, the same as his reject mark. A counter that keeps under half the shown words, or one `redlineWholesale` reads as a rewrite, is not marked inline and keeps the box. `rlSugInlineClear` takes the marks off (and the plain space) before every paint; the reader's click-to-type counts past `.rl-sug-ins` (`rlInlineCountTo`) and builds its box from the stored wording, so the marks never reach a save. Photographed on MK-369's staged case ("within 45 90 55 days") at 1440×780, 1536×730 and 1366×950.
 
-TESTS: f728 (new: a figure struck and countered beside their insertion, a long clause marked not copied, a rewrite keeps its box, the marks come off cleanly, click-to-type, their page); re-pointed f570 (2), copilot-answer-on-paper 1a/1d, counter-with-copilot 4a/4b/3 (the marks in the clause, no box).
+TESTS: f730 (new: a figure struck and countered beside their insertion, a long clause marked not copied, a rewrite keeps its box, the marks come off cleanly, click-to-type, their page); re-pointed f570 (2), copilot-answer-on-paper 1a/1d, counter-with-copilot 4a/4b/3 (the marks in the clause, no box).
 
 ## A COUNTER THAT UNDOES PART OF THEIRS SAYS WHAT IT KEEPS (owner, 18 Oct 2026)
 
@@ -30761,4 +30847,4 @@ THE OWNER'S WORDS, over MK-369's Governing Law: *"you have changed back to Swede
 
 WHAT CHANGED: two readings in js/views/negotiation.js, no model, nothing filed. `negoKeepsTheirs(c, ch)`: for our pending draft with a `counterOf` their ask, a word LCS (`rlWordKept`) finds the words they put in (their old → new) and which of those our draft keeps (their new → ours); when ours undoes some and keeps others, the kept runs are named and counted ("Nairobi", 2). `negoLawSeatQ(text)`: "laws of X", "seated in Y" and the city before "Chamber of Commerce" are read off our proposed wording; a law and a seat in two different lands (`RL_LAW_LAND`, `RL_SEAT_LAND` — only places the table knows), or a seat and a chamber in two cities, answer a question. `rlRowKeepsHtml` draws both as amber lines inside the row's summary block (`.rl-card-sumw`, grid row 2: under "Step 2 · yours on their step 1", above the buttons) — our seat, pending rows only. Words: `ng_keeps_theirs`, `ng_keeps_n_*`, `ng_lawseat_q`, `ng_seatbody_q` (Swedish says "Lag: X, säte: Y" so the contract's English names are not bent). MEASURED: the first draft put the lines after the row's buttons (the row is a grid; the summary block owns row 2), and the chamber reader took "Institute of the Stockholm" for a city; both fixed.
 
-TESTS: f729 (new: the owner's case, none-or-all says nothing, their row and an un-countered draft say nothing, law vs seat and seat vs chamber, agreeing or unknown places silent, our seat and pending only, files nothing, both books); f711 1c re-pointed (the block carries the lines). Photographed on MK-369's staged case at the owner's three screens.
+TESTS: f731 (new: the owner's case, none-or-all says nothing, their row and an un-countered draft say nothing, law vs seat and seat vs chamber, agreeing or unknown places silent, our seat and pending only, files nothing, both books); f711 1c re-pointed (the block carries the lines). Photographed on MK-369's staged case at the owner's three screens.

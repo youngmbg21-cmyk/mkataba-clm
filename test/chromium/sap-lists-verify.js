@@ -111,14 +111,17 @@ const wait = async (page, fn, arg, ms = 5000) => {
     const head = sel ? await page.evaluate(() => {
       const p = document.getElementById('ins-panel');
       return { beside: !!p.querySelector('.ins-cp .ins-st-side'), av: !!p.querySelector('.ins-cp .reg-av'),
-        line: !!p.querySelector('[data-ins-need-line]'), decide: p.querySelectorAll('[data-ins-need]').length,
+        line: ((p.querySelector('[data-ins-need-line]') || {}).textContent || ''), decide: p.querySelectorAll('[data-ins-need]').length,
         sub: !!p.querySelector('.ins-doors [data-ins-act="door-ws"]') && !p.querySelector('.ins-sub [data-ins-act]'), approve: !!p.querySelector('[data-ins-act="approve"]') };
     }) : null;
     /* RE-POINTED 12 Oct 2026 (owner): the sub line's Open contract became the Document door in the doors row */
     /* RE-POINTED 15 Oct 2026 (owner): the Document door went; the doors row is Negotiation · Workspace */
     check('2c the panel head: initials, the stage beside the name, the doors under the verbs',
       !!head && head.beside && head.av && head.sub, JSON.stringify(head));
-    check('2d one line says what is asked — no second Decide door', !!head && head.line && head.decide === 0, JSON.stringify(head));
+    /* RE-POINTED 18 Oct 2026 (owner's yes to round 15's question): the amber
+       "Your approval is asked for." line went — "Yours to answer" and the
+       Approve button say it; a line stays only for something else owed */
+    check('2d no line repeats "Your approval is asked for", and no second Decide door', !!head && !/approval is asked for/i.test(head.line) && head.decide === 0 && head.approve, JSON.stringify(head));
     if (head && head.approve) {
       await page.click('#ins-panel [data-ins-act="approve"]');
       const done = await wait(page, id => {

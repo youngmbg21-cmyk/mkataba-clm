@@ -20,11 +20,16 @@
 
      node test/chromium/ink-wash-verify.js --save   (record, on the code BEFORE)
 
-   RE-RECORDED 18 Oct 2026 (sixteenth), OWNER-ASKED ("this should not be on
+   RE-RECORDED 18 Oct 2026 (seventeenth), OWNER-ASKED ("this should not be on
    paper at all"): the ladder's step chip and its tally chip left the paper
    (THE PAPER CARRIES NO LADDER), so the negotiate screen's paper counts two
    fewer elements. Audited by key: every theme, counts only, each down by 2;
    no key new, none gone, no colour or size moved.
+   RE-RECORDED 18 Oct 2026 (sixteenth), OWNER-ASKED (the owner's yes to round
+   24's question: the left-sidebar switch goes from Settings → You): the
+   settings screen lost one row, so its counts fell. Audited by key: settings
+   only, no key new; one key gone in the two dark themes, the off switch's
+   fill (rgb 138,151,149), which was that switch. No colour new.
    RE-RECORDED 18 Oct 2026 (fifteenth), OWNER-ASKED (the overnight build,
    same standing yes): Round 24, "One sheet" — Settings → You is one sheet of
    rows under its headings with a contents list, so the settings screen's
