@@ -13219,6 +13219,15 @@
   .ins-g{display:flex;align-items:center;gap:8px;min-width:0;}
   .ins-g .n{color:var(--color-neutral-600);font-weight:var(--w-label);font-variant-numeric:tabular-nums;}
   .ins-g-r{margin-left:auto;min-width:0;font-weight:var(--w-body);color:var(--color-neutral-600);font-size:var(--t-label);overflow:hidden;text-overflow:ellipsis;}
+  /* WEEK BY WEEK (round 16, owner picked it, 17 Oct 2026): the Obligations
+     page groups by week; a later week folds to one line saying what it holds,
+     its name the press that opens it. */
+  .ob-wk-rng{margin-left:8px;font-weight:var(--w-body);color:var(--color-neutral-600);font-size:var(--t-label);}
+  .ob-wk-fold{display:inline-flex;align-items:center;gap:6px;border:0;background:none;padding:0;font:inherit;color:inherit;cursor:pointer;}
+  .ob-wk-fold:focus-visible{outline:2px solid var(--focus-color);outline-offset:2px;border-radius:2px;}
+  .ob-wk-car{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--color-neutral-600);transition:transform .12s;}
+  .ins-grp.is-shut .ob-wk-car{transform:rotate(-90deg);}
+  .ob-wk-said{min-width:0;font-weight:var(--w-body);color:var(--color-neutral-600);font-size:var(--t-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   /* THE EMPTY MESSAGE IS NOT A ROW, SO IT DRAWS NO ROW'S RULE (Young, 7 Oct 2026:
      "the empty obligations page has a line in it for no reason"). */
   .ins-lt tr.ins-empty td{height:120px;text-align:center;color:var(--color-neutral-600);white-space:normal;border-bottom:0;}

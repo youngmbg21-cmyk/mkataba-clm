@@ -29,6 +29,11 @@
    variables actually repaints the platform. A token nothing reads is not a
    token, and no census of the DEFAULT theme would ever notice.
 
+   RE-RECORDED 18 Oct 2026 (fifth), OWNER-ASKED (the overnight build, same
+   standing yes): Round 16, "Week by week" — the calendar opens on this week
+   by the hour with five more weeks under it, and the month draws Monday to
+   Friday, so the calendar's counts moved in both themes. Audited by key: no
+   colour new, none gone.
    RE-RECORDED 18 Oct 2026 (fourth), OWNER-ASKED (the overnight build, same
    standing yes): Round 13, "Wall of papers" — the register screen's counts
    moved, light and dark; audited by key: nothing new, nothing gone.

@@ -20,6 +20,13 @@
 
      node test/chromium/ink-wash-verify.js --save   (record, on the code BEFORE)
 
+   RE-RECORDED 18 Oct 2026 (twelfth), OWNER-ASKED (the overnight build, same
+   standing yes): Round 16, "Week by week" — the calendar (and Home showing
+   it) opens on this week by the hour and five more weeks instead of the
+   month, so its counts moved and the week's 16px day numbers are new to that
+   screen. Audited by key: no colour new; in dark the month's greyed day
+   numbers (#8B9895) and its filled "today" square left the opening screen
+   with the month (both still drawn on Month).
    RE-RECORDED 18 Oct 2026 (eleventh), OWNER-ASKED (the overnight build, same
    standing yes): recorded on Round 15, "One worklist"; the counts that moved
    (the signing screen's 12 and 13px and dividers, by a few) were Round 10's
