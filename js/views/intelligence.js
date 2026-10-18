@@ -368,6 +368,21 @@ function igHoverShow(n){
   el.style.left=x+'px'; el.style.top=y+'px'; el.hidden=false;
 }
 function igHoverHide(){ const el=document.getElementById('ig-hover'); if(el) el.hidden=true; }
+/* A LINK'S OWN HOVER CARD (stage 1): the same card, saying what joins the two
+   contracts in the legend's own words — an amendment of, or a payment step
+   that waits on — read off the record's link (buildGraphEdges), nothing more */
+function igLinkHoverShow(e,ev){
+  if(!IG||IG.turning||!e||!e.s||!e.t||!e.s.c||!e.t.c) return;
+  const host=document.getElementById('ig-svg'); if(!host) return;
+  let el=document.getElementById('ig-hover');
+  if(!el){ el=document.createElement('div'); el.id='ig-hover'; el.className='ig-hover'; host.parentElement.appendChild(el); }
+  const ref=c=>igEsc(((typeof window.contractRef==='function')?contractRef(c):c.id)+' '+(c.name||''));
+  const line=e.kind==='family'?i18t('int_link_hover_family',{ rel:igEsc(_gRelWord(e.s.c.relation)), b:ref(e.t.c) }):i18t('int_link_hover_chain',{ b:ref(e.t.c) });
+  el.innerHTML=`<div class="text-[12px] font-600 text-brand-900 truncate mb-0.5">${ref(e.s.c)}</div><div data-ig-link-says class="text-[12px]">${line}</div>`;
+  const pr=host.parentElement.getBoundingClientRect(), w=240;
+  const x=Math.max(8,Math.min(pr.width-w-8,(ev?ev.clientX:pr.left)-pr.left+12)), y=Math.max(8,Math.min(pr.height-8-el.offsetHeight,(ev?ev.clientY:pr.top)-pr.top+12));
+  el.style.left=x+'px'; el.style.top=y+'px'; el.hidden=false;
+}
 /* ============================================================
    A-3 · THE COUNTERPARTY NODE — one party, read across the book
    ============================================================
@@ -852,6 +867,14 @@ const GRAPH_GROUPINGS=[
   { k:'read',          label:'Read by Jambo',  none:null },
 ];
 const GRAPH_GROUP_KEYS=GRAPH_GROUPINGS.map(g=>g.k);
+/* NEEDS ATTENTION (owner-picked 18 Oct 2026, Explorer stage 1): the buckets
+   the map shades amber — HaTi's own "needs attention" colour — wherever it
+   shades by a fact: the Grid's cells now, the Brain's lobes next. Each is a
+   bucket groupLabelOf already cuts, never a second reading; a fact with no
+   bucket here is shaded in the map's own teal and judged nothing. Payment
+   terms wait for a supplier payment standard (stage 2). */
+const IG_ATTN={ liability:['Liability uncapped'], read:['Not read yet'], risk:['High risk'], expiry:['Within 30 days','31–90 days'], obligations:['3 or more open'] };
+const igAttn=(key,label)=>!!(key&&IG_ATTN[key]&&IG_ATTN[key].includes(label));
 const graphGroupingOf=k=>GRAPH_GROUPINGS.find(g=>g.k===k)||null;
 /* The caption's word for a grouping — the dropdown's own label, lower-cased,
    so the control and the note line cannot name one cut two ways. */
@@ -1192,7 +1215,7 @@ function igRecipeNow(){
     groupBy:intel.groupBy, groups:intel.groups?{ ...intel.groups }:null,
     floorsBy:intel.floorsBy||null, columnsBy:intel.columnsBy||null, colourBy:intel.colourBy||null, sizeBy:intel.sizeBy||null,
     labelBy:intel.labelBy||null, timeBy:intel.timeBy||null, sortBy:intel.sortBy||null, view:igbCam().view,
-    names:intel.names?{ ...intel.names }:null, dotScale:intel.dotScale||1, bubbleBy:intel.bubbleBy||null, folds:{ ...(intel.folds||{}) }, cellOpen:{ ...(intel.cellOpen||{}) },
+    names:intel.names?{ ...intel.names }:null, dotScale:intel.dotScale||1, bubbleBy:intel.bubbleBy||null, shadeBy:intel.shadeBy||null, folds:{ ...(intel.folds||{}) }, cellOpen:{ ...(intel.cellOpen||{}) },
     bundles:Array.isArray(intel.bundles)?intel.bundles.map(x=>({ ...x })):null, edgeNames:intel.edgeNames===true||null, rv:IG_RECIPE_V };
 }
 /* THE RECIPE'S EDITION. A place kept by an older edition is not put back:
@@ -1220,7 +1243,7 @@ function igRecipeSet(r){
   intel.lenses=(r.lenses||[]).map(l=>({ ...l, ids:l.ids.slice() }));
   intel.groupBy=r.groupBy||'folder'; intel.groups=r.groups||null;
   ['floorsBy','columnsBy','colourBy','sizeBy','labelBy','timeBy','sortBy'].forEach(k=>{ intel[k]=r[k]||null; });
-  intel.names=r.names?{ ...r.names }:null; intel.dotScale=igDotScaleClamp(r.dotScale||1); intel.bubbleBy=r.bubbleBy||null;
+  intel.names=r.names?{ ...r.names }:null; intel.dotScale=igDotScaleClamp(r.dotScale||1); intel.bubbleBy=r.bubbleBy||null; intel.shadeBy=r.shadeBy==='value'?'value':null;
   if(r.folds&&typeof r.folds==='object') intel.folds={ ...r.folds };
   intel.cellOpen=(r.cellOpen&&typeof r.cellOpen==='object')?{ ...r.cellOpen }:{};
   intel.bundles=Array.isArray(r.bundles)&&r.bundles.length?r.bundles.filter(x=>x&&x.q).slice(0,IG_BUNDLES_MAX).map(x=>({ q:String(x.q), label:String(x.label||x.q) })):null;
@@ -1252,6 +1275,7 @@ function igRecipeSays(){
   else if(intel.names&&intel.names.mode==='hide') out.push(i18t('int_says_names_hide',{ x:intel.names.label||intel.names.q }));
   if((intel.dotScale||1)!==1) out.push(i18t('int_says_dots',{ n:Math.round((intel.dotScale||1)*100) }));
   if(intel.bubbleBy==='value') out.push(i18t('int_says_bubbles_value'));
+  if(intel.shadeBy==='value') out.push(i18t('int_says_shade_value'));
   if(Array.isArray(intel.bundles)&&intel.bundles.length) out.push(i18t('int_says_bundles',{ x:intel.bundles.map(x=>x.label).join(', ') }));
   if(intel.edgeNames===true) out.push(i18t('int_says_edge_names'));
   return out;
@@ -1584,6 +1608,10 @@ function igLookRead(q){
   /* the big bubbles' measure: "size the bubbles by value", "bubbles by count" */
   m=q.match(new RegExp('\\b(?:size\\s+)?(?:the\\s+)?(?:group\\s+|big\\s+)?'+IG_DOTS_RE+'\\s+(?:sized\\s+)?(?:by|on|per|efter)\\s+(value|worth|money|amount|count|number|how many|contracts|värde|antal|avtal)\\b'));
   if(m&&/\b(?:big|group|bubbles?|bubblor)\b/.test(q)) return [{ bubbleBy:/value|worth|money|amount|värde/.test(m[1])?'value':'count' }];
+  /* THE GRID'S SHADING (Explorer stage 1, 18 Oct 2026): "shade the cells by money", "shade by count" */
+  /* "colour …" stays the dots' colour, as it always was: only shade, heat and skugga shade the cells */
+  m=q.match(/^(?:please\s+)?(?:shade|heat|skugga)\s+(?:the\s+)?(?:grid(?:'s)?\s+)?(?:cells?\s+|squares?\s+|rutorna\s+|rutnätet\s+)?(?:by|on|per|efter)\s+(value|worth|money|amount|count|number|how many|contracts|värde|antal|avtal)$/);
+  if(m) return [{ shadeBy:/value|worth|money|amount|värde/.test(m[1])?'value':'count' }];
   /* "fold only <group>": that group folds, every other opens (6 Oct 2026) */
   m=q.match(/^(?:please\s+)?(?:fold|collapse|close|gather)\s+(?:up\s+)?only\s+(?:the\s+)?(.+?)(?:\s+(?:bubbles?|group))*$/)||q.match(/^(?:please\s+)?(?:fold|collapse|close|gather)\s+(?:up\s+)?(?:the\s+)?(.+?)\s+only$/)
     ||q.match(/^(?:fäll ihop|samla)\s+(?:bara|endast)\s+(.+?)(?:\s+(?:bubblan|gruppen))*$/)||q.match(/^(?:fäll|samla)\s+(?:bara|endast)\s+ihop\s+(.+?)(?:\s+(?:bubblan|gruppen))*$/);
@@ -1763,7 +1791,7 @@ function igViewFind(name){ const n=_igNorm(name), L=igViewsRead().slice().revers
    grouped by value stream, small dots, names on, nothing folded by a person,
    no bundle, no names on the edges. The lenses are "everything"'s. */
 function igLandingSet(){
-  ['floorsBy','columnsBy','colourBy','sizeBy','labelBy','timeBy','sortBy','lastRole','names','bubbleBy','bundles','edgeNames','foldWant'].forEach(k=>{ intel[k]=null; });
+  ['floorsBy','columnsBy','colourBy','sizeBy','labelBy','timeBy','sortBy','lastRole','names','bubbleBy','shadeBy','bundles','edgeNames','foldWant'].forEach(k=>{ intel[k]=null; });
   intel.dotScale=1; intel.groupBy='folder'; intel.groups=null; intel.folds={}; intel.cellOpen={};
   if(typeof igPaintGroupSelect==='function') try{ igPaintGroupSelect(); }catch(_){}
 }
@@ -1796,6 +1824,9 @@ function igRecipeRun(parsed, opts){
       said.push(now===was?i18t(now>=IG_DOT_SCALE_MAX?'int_did_dots_max':now<=IG_DOT_SCALE_MIN?'int_did_dots_min':'int_did_dots',{ n:Math.round(now*100) }):i18t('int_did_dots',{ n:Math.round(now*100) })); continue; }
     if(a.bubbleBy){ intel.bubbleBy=a.bubbleBy==='value'&&((typeof canViewValues!=='function')||canViewValues())?'value':'count';
       said.push(i18t(intel.bubbleBy==='value'?'int_did_bubbles_value':'int_did_bubbles_count')); continue; }
+    /* money is shaded only for a reader who may see money; anyone else's grid shades by count and says so */
+    if(a.shadeBy){ intel.shadeBy=a.shadeBy==='value'&&((typeof canViewValues!=='function')||canViewValues())?'value':null;
+      said.push(i18t(intel.shadeBy==='value'?'int_did_shade_value':'int_did_shade_count')); if(igbCam().view!==3) igSetView(3); continue; }
     /* EVERY FOLD GOES THROUGH igFoldHub, the button's own writer, and the
        reply is COUNTED off the map as drawn after the rebuild (igFoldSaid) —
        a sentence never says more bubbles than the map draws (6 Oct 2026) */
@@ -2793,6 +2824,8 @@ function igbTone(){
   _igbTone={ gw:v('--hb-gw','56,205,184'), ln:v('--hb-ln','160,220,210'), mute:v('--hb-mute','#8FB5AD'), ink:v('--hb-ink','#E6F2EF') };
   _igbToneAt=now; return _igbTone;
 }
+/* the needs-attention amber as an rgb triple for the canvas: IGB_FACT_TONE.amber's own colour */
+const IGB_ATTN_RGB='242,178,76';
 const IGB_FACT_TONE={amber:'#F2B24C',ruby:'#F0726A',get ink(){ return igbTone().ink; },get mute(){ return igbTone().mute; }};
 /* A group this small starts folded, where the map has more groups than
    IGB_FOLD_MANY — the design's own rule, so a long tail of one-contract groups
@@ -2988,6 +3021,11 @@ function igbAxes(G, hubs, order){
   G.cols=cols; G.colKey=N>1?(cKey||intel.groupBy):null; G.floorKey=fKey;
   const cellsL={};
   kids.forEach(n=>{ const f=floorOf(n); n._floor=f; (cellsL[n._col+'|'+f]||(cellsL[n._col+'|'+f]=[])).push(n); });
+  /* FLOOR TOTALS (stage 1): how many each floor holds and their home value,
+     the same count and the same igHomeValue the grid's cells sum — a contract
+     whose value is not the reader's, or has no rate home, adds nothing */
+  G.floors.forEach(f=>{ f.n=0; f.v=0; });
+  kids.forEach(n=>{ const f=G.floors[n._floor]; if(!f) return; f.n++; const h=igHomeValue(n.c); if(h!=null) f.v+=h; });
   const rw=gap*.86, rd=.86;
   Object.values(cellsL).forEach(list=>{ const n0=list[0], x=cols[n0._col]?cols[n0._col].x:0, y=G.floors[n0._floor].y, k=list.length;
     const per=Math.max(1,Math.min(k,Math.ceil(Math.sqrt(k*rw/rd)))), rows=Math.ceil(k/per), pitch=Math.min(rw/per, rd/rows, IGB_PITCH_MAX);
@@ -3009,6 +3047,16 @@ function igbAxes(G, hubs, order){
   const dated=kids.map(n=>{ const d=igbTimeOf(n.c,tKey); const t=d?Date.parse(d):NaN; return [n,isNaN(t)?null:t]; });
   const ts=dated.map(x=>x[1]).filter(x=>x!=null), t0=ts.length?Math.min(...ts):Date.now(), t1=ts.length?Math.max(...ts):Date.now()+864e5;
   const tx=t=>-1.1+2.45*((t-t0)/Math.max(864e5,t1-t0));
+  /* NOTICE TAILS (stage 1): on the renewal-decision and expiry timelines a
+     contract with a notice period carries a tail between its last day to give
+     notice and the day it ends — renewalDecisionDate's own two dates (expiry
+     less the notice period), so the tail IS the notice period, read, never
+     guessed; a decided renewal has no decision date and no tail */
+  kids.forEach(n=>{ n._tail=null;
+    if(tKey!=='decision'&&tKey!=='expiry') return;
+    const nd=Number(n.c&&n.c.metadata&&n.c.metadata.noticePeriodDays); if(!(nd>0)) return;
+    const a=graphDecisionOf(n.c).date, b=_gExpiryDay(n.c); if(!a||!b) return;
+    const other=Date.parse(String(tKey==='decision'?b:a).slice(0,10)+'T00:00:00'); if(!isNaN(other)) n._tail=tx(other); });
   /* A crowd on one date is a crowd, not one dot: a contract that would land on
      another's spot in its lane takes the nearest free spot around its date — a
      small packed cluster, never wider than the lane — so a quarter-end with
@@ -3035,7 +3083,20 @@ function igbAxes(G, hubs, order){
     const d=new Date(d0.getFullYear(), d0.getMonth()-(d0.getMonth()%step), 1);
     for(let i=0;i<60&&d.getTime()<=t1;i++){ if(d.getTime()>=t0) ticks.push({ x:tx(d.getTime()), label:step===12?String(d.getFullYear()):d.toLocaleDateString((typeof langLocale==='function')?langLocale():undefined,{ month:'short', year:'numeric' }) }); d.setMonth(d.getMonth()+step); } }
   let nowX=null; const now=Date.now(); if(ts.length&&now>=t0&&now<=t1) nowX=tx(now);
-  G.tl={ key:tKey, ticks, lanes:lanes.map((h,i)=>({ label:h.label, y:ly(i), col:h.col })), undated, nowX, empty:!ts.length, step:tStep };
+  /* HOW MANY IN EACH STRETCH (stage 1): the dated contracts counted per the
+     timeline's OWN tick stretch (stretchOf — month, quarter or year, never a
+     second bucketing), drawn as a strip under the dates. On the renewal
+     decision timeline a stretch inside a crowded quarter (graphCliffCrowded's
+     rule, over the contracts on the map) is marked amber. */
+  const strip=[];
+  if(ts.length){ const per={}; dated.forEach(([n,t])=>{ if(t!=null){ const k=stretchOf(t); per[k]=(per[k]||0)+1; } });
+    const crowd=new Set(tKey==='decision'&&tStep<=3?graphCrowdedQuarters(kids.map(n=>n.c)):[]);
+    const d0=new Date(t0), d=new Date(d0.getFullYear(), d0.getMonth()-(d0.getMonth()%tStep), 1);
+    for(let i=0;i<120&&d.getTime()<=t1;i++){ const a=d.getTime(), k=stretchOf(a), qk='Q'+(Math.floor(d.getMonth()/3)+1)+' '+d.getFullYear();
+      d.setMonth(d.getMonth()+tStep); const b=d.getTime();
+      if(per[k]) strip.push({ x0:tx(Math.max(a,t0)), x1:tx(Math.min(b,t1)), n:per[k], crowded:tStep<=3&&crowd.has(qk) }); } }
+  G.tl={ key:tKey, ticks, lanes:lanes.map((h,i)=>({ label:h.label, y:ly(i), col:h.col })), undated, nowX, empty:!ts.length, step:tStep,
+    strip, stripMax:strip.reduce((a,x)=>Math.max(a,x.n),0) };
   /* the cells each group's bubbles stand for, per axis view: where the bubble
      sits (the grid's cell middle; the floors' and timeline's middle of its
      own dots) and the dots it opens into */
@@ -3339,18 +3400,27 @@ function igbDraw(G,t){
     ctx.font=(weight||600)+' '+sz+'px Geist, system-ui, sans-serif'; const tw=ctx.measureText(t).width, x0=align==='right'?x-tw:align==='center'?x-tw/2:x;
     const A={ x:x0-3, y:y-sz, w:tw+6, h:sz+4 }; if(edge.some(B=>A.x<B.x+B.w&&B.x<A.x+A.w&&A.y<B.y+B.h&&B.y<A.y+A.h)) return;
     A.t=t; edge.push(A); txt(t,x,y,col,a,size,weight,align); };
+  /* money is printed only for a reader who may see it (the grid's own rule) */
+  const moneyOk=(typeof canViewValues!=='function')||canViewValues(), fmtM=v=>(typeof fmtMoneyShort==='function')?fmtMoneyShort(v):String(Math.round(v));
   if(w[2]>.05){
     (G.floors||[]).forEach(f=>{ const y=f.y, a=pj([-1.7,y,-.5]), b=pj([1.7,y,-.5]), c=pj([1.7,y,.5]), d=pj([-1.7,y,.5]);
       ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.lineTo(c[0],c[1]); ctx.lineTo(d[0],d[1]); ctx.closePath();
       ctx.fillStyle='rgba('+igbTone().gw+','+(.035*w[2])+')'; ctx.fill(); ctx.strokeStyle='rgba('+igbTone().gw+','+(.16*w[2])+')'; ctx.lineWidth=1; ctx.stroke();
       const lab=igbTrim(String(f.label).toUpperCase(),22); ctx.font='600 10px Geist, system-ui, sans-serif';
-      edgeTxt(G.floorKey, lab, Math.max(6,d[0]-8-ctx.measureText(lab).width), d[1]+4, f.col, .9*w[2]); });
+      edgeTxt(G.floorKey, lab, Math.max(6,d[0]-8-ctx.measureText(lab).width), d[1]+4, f.col, .9*w[2]);
+      /* FLOOR TOTALS (stage 1): what the floor holds, under its name */
+      if(f.n){ const tot=i18tn('int_n_contracts',f.n,{ n:f.n })+(moneyOk&&f.v>0?' · '+fmtM(f.v):'');
+        ctx.font='500 10px Geist, system-ui, sans-serif'; txt(tot, Math.max(6,d[0]-8-ctx.measureText(tot).width), d[1]+17, igbTone().mute, .9*w[2], 10, 500); } });
     (G.cols||[]).forEach((c,k)=>{ if(!c.label) return; const q=pj([c.x,(G.floors&&G.floors.length?G.floors[G.floors.length-1].y:-.78),.62]);
       edgeTxt(G.colKey, igbTrim(String(c.label).toUpperCase(),14), q[0], q[1]+14+(k%2)*11, c.col, .85*w[2], 9, 600, 'center'); });
   }
   /* THE GRID: one cell per column × floor, each saying how many and how much. */
-  if(w[3]>.05&&G.grid){ const g=G.grid, a3=w[3], money=(typeof canViewValues!=='function')||canViewValues();
-    const fmt=v=>(typeof fmtMoneyShort==='function')?fmtMoneyShort(v):String(Math.round(v));
+  if(w[3]>.05&&G.grid){ const g=G.grid, a3=w[3], money=moneyOk, fmt=fmtM;
+    /* HEAT (stage 1): a cell is darker the more it holds — contracts, or money
+       when asked ("shade the cells by money", a reader who may see money) —
+       amber where its row or column is a needs-attention bucket (IG_ATTN) */
+    const byMoney=intel.shadeBy==='value'&&money, cmax=Object.values(g.cells).reduce((a,x)=>Math.max(a,byMoney?(x.v||0):x.n),0)||1;
+    const heat=x=>Math.min(1,(byMoney?(x.v||0):x.n)/cmax);
     (G.cols||[]).forEach((c,ci)=>{ if(!c.label) return; const q=pj([g.x0+(ci+.5)*g.cw, 0, g.z0-.09]), qa=pj([g.x0+ci*g.cw, 0, g.z0-.09]), qb=pj([g.x0+(ci+1)*g.cw, 0, g.z0-.09]);
       /* the label fits the cell as it is DRAWN, so a turned grid never piles its headings on each other */
       edgeTxt(G.colKey, igbTrim(String(c.label).toUpperCase(),Math.max(4,Math.floor(Math.hypot(qb[0]-qa[0],qb[1]-qa[1])/7.2))), q[0], q[1], c.col, .9*a3, 10, 600, 'center'); });
@@ -3358,14 +3428,49 @@ function igbDraw(G,t){
     (G.cols||[]).forEach((c,ci)=>(G.floors||[]).forEach((f,fi)=>{ const x0=g.x0+ci*g.cw, z0=g.z0+fi*g.ch, P=[pj([x0+.01,0,z0+.01]),pj([x0+g.cw-.01,0,z0+.01]),pj([x0+g.cw-.01,0,z0+g.ch-.01]),pj([x0+.01,0,z0+g.ch-.01])];
       const cell=g.cells[ci+'|'+fi];
       ctx.beginPath(); P.forEach((p,k)=>k?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.closePath();
-      ctx.fillStyle='rgba('+igbTone().gw+','+((cell?.06:.015)*a3)+')'; ctx.fill(); ctx.strokeStyle='rgba('+igbTone().ln+','+(.18*a3)+')'; ctx.lineWidth=1; ctx.stroke();
+      ctx.fillStyle=cell?'rgba('+(igAttn(G.floorKey,f.label)||igAttn(G.colKey,c.label)?IGB_ATTN_RGB:igbTone().gw)+','+((.05+.3*heat(cell))*a3).toFixed(3)+')':'rgba('+igbTone().gw+','+(.015*a3)+')';
+      ctx.fill(); ctx.strokeStyle='rgba('+igbTone().ln+','+(.18*a3)+')'; ctx.lineWidth=1; ctx.stroke();
       if(cell){ ctx.font='700 12px Geist, system-ui, sans-serif'; const nw=ctx.measureText(String(cell.n)).width; txt(String(cell.n), P[0][0]+6, P[0][1]+13, '#FFFFFF', .95*a3, 12, 700); if(money&&cell.v>0) txt(fmt(cell.v), P[0][0]+6+nw+6, P[0][1]+13, igbTone().mute, .9*a3, 10, 500); } }));
+    /* TOTALS (stage 1): each row's count and its share of the grid under the
+       row's name (the grid widens toward the reader, so its right edge leaves
+       the stage on a laptop), each column's count and value under its heading
+       (along the bottom they sat under the legend and the view bar at 1536×730) —
+       summed off the cells as drawn, so a total can never disagree with its cells */
+    const nC=(G.cols||[]).length, nF=(G.floors||[]).length, cellsAll=Object.values(g.cells), all=cellsAll.reduce((a,x)=>a+x.n,0);
+    const pair=(a,b,x,y,align)=>{ ctx.font='700 11px Geist, system-ui, sans-serif'; const aw=ctx.measureText(a).width; ctx.font='500 10px Geist, system-ui, sans-serif'; const bw=b?ctx.measureText(b).width:0;
+      const x0=align==='right'?x-aw-bw:align==='center'?x-(aw+bw)/2:x; txt(a, x0, y, '#FFFFFF', .95*a3, 11, 700); if(b) txt(b, x0+aw, y, igbTone().mute, .9*a3, 10, 500); };
+    if(all&&(nC>1||nF>1)){
+      const word=i18t('int_grid_all').toUpperCase();
+      (G.floors||[]).forEach((f,fi)=>{ let rn=0; for(let ci=0;ci<nC;ci++){ const x=g.cells[ci+'|'+fi]; if(x) rn+=x.n; } if(!rn) return;
+        const pc=Math.round(rn/all*100), q=pj([g.x0-.04, 0, g.z0+(fi+.5)*g.ch]); pair(String(rn), ' · '+(pc<1?'<1':pc)+'%', q[0], q[1]+17, 'right'); });
+      if(nC>1){ const ql=pj([g.x0-.04, 0, g.z0-.09]); txt(word, ql[0], ql[1]+13, igbTone().mute, .9*a3, 10, 600, 'right');
+        (G.cols||[]).forEach((c,ci)=>{ if(!c.label) return; let cn=0, cv=0; for(let fi=0;fi<nF;fi++){ const x=g.cells[ci+'|'+fi]; if(x){ cn+=x.n; cv+=x.v||0; } } if(!cn) return;
+          const q=pj([g.x0+(ci+.5)*g.cw, 0, g.z0-.09]); pair(String(cn), money&&cv>0?' · '+fmt(cv):'', q[0], q[1]+13, 'center'); }); } }
   }
   /* THE TIMELINE: dates along, one lane per group, today marked, the undated counted. */
   if(w[4]>.05&&G.tl){ const tl=G.tl, a4=w[4];
     tl.lanes.forEach(l=>{ line2(pj([-1.15,0,l.y]),pj([1.4,0,l.y]),'rgba('+igbTone().ln+','+(.14*a4)+')'); const q=pj([-1.17,0,l.y]); edgeTxt(intel.groups?'custom':intel.groupBy, igbTrim(String(l.label),20), q[0], q[1]+3, l.col, .9*a4, 10, 600, 'right'); });
     const za=(tl.lanes.length?tl.lanes[tl.lanes.length-1].y:.8)+.16;
     line2(pj([-1.1,0,za]),pj([1.35,0,za]),'rgba('+igbTone().ln+','+(.4*a4)+')');
+    /* NOTICE TAILS (stage 1): the notice period, from the dot to the day it
+       ends (or back to the last notice day on the expiry timeline), under the
+       dots; a folded or dimmed contract's tail goes with it */
+    ctx.lineCap='round';
+    G.nodes.forEach(n=>{ if(n.kind!=='contract'||n._tail==null||!n.T) return; if(n.cf&&n.cf[4]>.5) return;
+      const x1=Math.max(-1.15,Math.min(1.4,n._tail)), p0=pj([n.T[0],0,n.T[2]]), p1=pj([x1,0,n.T[2]]);
+      ctx.strokeStyle='rgba('+igbTone().ln+','+((n.mut?.12:.45)*a4).toFixed(3)+')'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(p0[0],p0[1]); ctx.lineTo(p1[0],p1[1]); ctx.stroke(); });
+    ctx.lineCap='butt';
+    /* THE STRIP (stage 1): how many in each stretch, standing on a line above
+       the first lane — under the dates it fell below the view bar on a short
+       laptop (1536×730) */
+    if(tl.strip&&tl.strip.length&&tl.stripMax){ const zb=(tl.lanes.length?tl.lanes[0].y:-.78)-.32, hMax=.1;
+      tl.strip.forEach(s=>{ const h=hMax*s.n/tl.stripMax, gx=Math.min(.004,(s.x1-s.x0)*.15);
+        const P=[pj([s.x0+gx,0,zb]),pj([s.x1-gx,0,zb]),pj([s.x1-gx,0,zb-h]),pj([s.x0+gx,0,zb-h])];
+        ctx.beginPath(); P.forEach((p,k)=>k?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.closePath();
+        ctx.fillStyle=s.crowded?'rgba('+IGB_ATTN_RGB+','+(.8*a4).toFixed(3)+')':'rgba('+igbTone().gw+','+(.5*a4).toFixed(3)+')'; ctx.fill();
+        if(Math.abs(P[1][0]-P[0][0])>=16){ const q=pj([(s.x0+s.x1)/2,0,zb-h]); txt(String(s.n), q[0], q[1]-3, s.crowded?IGB_FACT_TONE.amber:igbTone().mute, .9*a4, 9, 600, 'center'); } });
+      line2(pj([-1.1,0,zb]),pj([1.35,0,zb]),'rgba('+igbTone().ln+','+(.25*a4)+')');
+      const ql=pj([-1.17,0,zb-.03]); txt(i18t('int_tl_strip_'+tl.key), ql[0], ql[1]-2, igbTone().mute, .9*a4, 10, 600, 'right'); txt(i18t('int_tl_per_'+tl.step), ql[0], ql[1]+10, igbTone().mute, .9*a4, 10, 500, 'right'); }
     tl.ticks.forEach(k=>{ const q=pj([k.x,0,za]), q2=pj([k.x,0,za+.04]); line2(q,q2,'rgba('+igbTone().ln+','+(.5*a4)+')'); txt(k.label, q[0], q[1]+15, igbTone().mute, .9*a4, 10, 500, 'center'); });
     if(tl.nowX!=null){ const q0=pj([tl.nowX,0,-.92]), q1=pj([tl.nowX,0,za]); line2(q0,q1,'rgba(242,178,76,'+(.55*a4)+')'); txt(i18t('int_tl_today'), q0[0], q0[1]-4, IGB_WALK, .95*a4, 10, 600, 'center'); }
     const qu=pj([1.55,0,-.94]); txt(i18t('int_tl_undated',{ n:tl.undated }), qu[0], qu[1], igbTone().mute, .9*a4, 10, 600, 'center');
@@ -3524,15 +3629,16 @@ function igbPlace(G){
   igBubDoors(G);
   G.edges.forEach(e=>{ const s=e.s, t=e.t;
     const gone=x=>x.kind==='contract'?!(x._fold<.95):(x.g._disp==='none');
-    if(gone(s)||gone(t)){ igbShow(e.el,false); return; }
+    if(gone(s)||gone(t)){ igbShow(e.el,false); if(e.hit) igbShow(e.hit,false); return; }
     const hubEdge=s.kind==='hub'||t.kind==='hub';
     const a=hubEdge?bw*Math.min(s.kind==='hub'?s.vis:1,1)*(1-(t.hub?t.hub.fold:0)):1;
-    if(a<.04){ igbShow(e.el,false); return; }
+    if(a<.04){ igbShow(e.el,false); if(e.hit) igbShow(e.hit,false); return; }
     igbShow(e.el,true); igbSet(e.el,'stroke-opacity',a.toFixed(2));
     const cen=x=>(x.kind==='hub'&&x.box)?[x.box.x+x.box.w/2,x.box.y+x.box.h/2]:x.q;
     const A=cen(s), B=cen(t);
-    igbSet(e.el,'d',hubEdge?`M${A[0].toFixed(1)},${A[1].toFixed(1)} L${B[0].toFixed(1)},${B[1].toFixed(1)}`
-      :`M${A[0].toFixed(1)},${A[1].toFixed(1)} Q${((A[0]+B[0])/2).toFixed(1)},${((A[1]+B[1])/2-24).toFixed(1)} ${B[0].toFixed(1)},${B[1].toFixed(1)}`); });
+    const dd=hubEdge?`M${A[0].toFixed(1)},${A[1].toFixed(1)} L${B[0].toFixed(1)},${B[1].toFixed(1)}`
+      :`M${A[0].toFixed(1)},${A[1].toFixed(1)} Q${((A[0]+B[0])/2).toFixed(1)},${((A[1]+B[1])/2-24).toFixed(1)} ${B[0].toFixed(1)},${B[1].toFixed(1)}`;
+    igbSet(e.el,'d',dd); if(e.hit){ igbShow(e.hit,true); igbSet(e.hit,'d',dd); } });
 }
 /* A walk-through numbers each contract it has reached, in its first line. */
 function igbPaintWalkNo(n){ const k=n._lit, v=k>=0?(k+1)+'  ':''; if(n.walkNo&&n.walkNo._t!==v){ n.walkNo._t=v; n.walkNo.textContent=v; } }
@@ -3593,9 +3699,11 @@ function igPaintFoldAll(){
   const t=i18t(igAllFolded()?'int_open_all':'int_fold_all'); if(b.textContent!==t) b.textContent=t;
 }
 function igSetView(v){ igWake();
-  const cam=igbCam(); cam.view=Math.max(0,Math.min(IGB_NV-1,Number(v)||0));
+  const cam=igbCam(), was=cam.view; cam.view=Math.max(0,Math.min(IGB_NV-1,Number(v)||0));
   document.querySelectorAll('[data-ig-view]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.getAttribute('data-ig-view'))===cam.view)));
   igPaintFoldAll();
+  /* the legend's grid and timeline rows belong to their view (stage 1) */
+  if(was!==cam.view&&IG&&IG._model) renderIntelLegend(IG._model);
 }
 function igSetZoom(z){
   const cam=igbCam(); cam.zoom=Math.max(IGB_ZOOM_MIN,Math.min(IGB_ZOOM_MAX,Number(z)||1));
@@ -3660,7 +3768,12 @@ function makeIntelGraph(model){
      the solid accent, a chain edge dashed, a group edge the quiet line from a
      card to its contract. The class is the only carrier of the kind, so the
      legend and the line read the same rule; the width is the value's. */
-  edges.forEach(e=>{ e.el=document.createElementNS(SVG_NS,'path'); e.el.setAttribute('class','ig-link'+(e.kind&&e.kind!=='group'?' ig-link-'+e.kind:'')); if(e.kind&&e.kind!=='group') e.el.setAttribute('data-ig-link',e.kind); if(e.w){ e.el.style.strokeWidth=e.w+'px'; e.el.setAttribute('data-ig-w',e.w); } gLinks.appendChild(e.el); });
+  edges.forEach(e=>{ e.el=document.createElementNS(SVG_NS,'path'); e.el.setAttribute('class','ig-link'+(e.kind&&e.kind!=='group'?' ig-link-'+e.kind:'')); if(e.kind&&e.kind!=='group') e.el.setAttribute('data-ig-link',e.kind); if(e.w){ e.el.style.strokeWidth=e.w+'px'; e.el.setAttribute('data-ig-w',e.w); } gLinks.appendChild(e.el);
+    /* A LINK SAYS WHY ON HOVER (stage 1): an amendment or a payment chain
+       carries a wide, unpainted twin that answers the pointer with the hover
+       card ("Amendment of MK-3"); the drawn line stays as thin as it was */
+    if(e.kind==='family'||e.kind==='chain'){ e.hit=document.createElementNS(SVG_NS,'path'); e.hit.setAttribute('class','ig-link-hit'); e.hit.setAttribute('data-ig-link-hit',e.kind);
+      e.hit.addEventListener('pointerenter',ev=>igLinkHoverShow(e,ev)); e.hit.addEventListener('pointerleave',()=>igHoverHide()); gLinks.appendChild(e.hit); } });
   const kids=nodes.filter(n=>n.kind==='contract'), hubsFirst=nodes.filter(n=>n.kind==='hub');
   /* Contracts first, cards over them: a card is never hidden under a dot's words. */
   kids.concat(hubsFirst).forEach(n=>{
@@ -4043,6 +4156,19 @@ function renderIntelLegend(model){
   /* THE LINK KINDS ON THIS PAGE, and only those: a row for a line that is not
      drawn is furniture. Each swatch is the line's own class, so the legend
      cannot describe a dress the graph does not wear. */
+  /* STAGE 1's ROWS, each only on its view: the grid's heat and its amber,
+     the timeline's notice tails */
+  const vw=igbCam().view;
+  if(vw===3&&IG&&IG.grid&&Object.keys(IG.grid.cells||{}).length){
+    const byMoney=intel.shadeBy==='value'&&((typeof canViewValues!=='function')||canViewValues());
+    const attn=(IG.floors||[]).some(f=>igAttn(IG.floorKey,f.label))||(IG.cols||[]).some(c=>igAttn(IG.colKey,c.label));
+    html+=`<div class="igl-k igl-gap">${i18t('int_legend_cells')}</div>
+      <div data-ig-legend-heat class="igl-row"><span class="igl-sw" style="background:rgba(${igbTone().gw},.45)"></span>${i18t(byMoney?'int_legend_heat_value':'int_legend_heat_count')}</div>`+
+      (attn?`<div data-ig-legend-attn class="igl-row"><span class="igl-sw" style="background:${IGB_FACT_TONE.amber}"></span>${i18t('int_legend_attn')}</div>`:'');
+  }
+  if(vw===4&&IG&&(IG.nodes||[]).some(n=>n._tail!=null)){
+    html+=`<div data-ig-legend-tail class="igl-row igl-gap"><svg width="22" height="8" aria-hidden="true"><path d="M3,4 L19,4" stroke="rgb(${igbTone().ln})" stroke-width="2" stroke-linecap="round" opacity=".7"></path></svg>${i18t(IG.tl&&IG.tl.key==='expiry'?'int_legend_tail_expiry':'int_legend_tail')}</div>`;
+  }
   const kinds=(model&&model.edgeKinds)||[];
   if(kinds.length){
     const word={family:'int_link_family',chain:'int_link_chain',party:'int_link_party'};
@@ -8325,7 +8451,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
 }
 
 Object.assign(window,{igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
-Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,IG_BOOK_RE,IG_BOOK_NOT_RE,IG_MYCAL_RE,igBookAsk,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,igCountsDrawn,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{IG,IG_SUGGESTIONS,IG_ATTN,igAttn,IGB_ATTN_RGB,igLinkHoverShow,IG_TEMPLATE_RE,IG_BOOK_RE,IG_BOOK_NOT_RE,IG_MYCAL_RE,igBookAsk,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,igCountsDrawn,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp,IG_PRE_MS,igPreOn,igPrePaint});

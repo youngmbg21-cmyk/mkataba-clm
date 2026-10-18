@@ -9107,6 +9107,8 @@
   .ig-link-family{stroke:var(--accent-ink);opacity:.75;stroke-width:1.8}
   .ig-link-chain{stroke:var(--accent-ink);opacity:.75;stroke-width:1.8;stroke-dasharray:5 4}
   .ig-link-party{stroke:var(--color-neutral-400)}
+  /* a link's wide unpainted twin answers the pointer (Explorer stage 1) */
+  .ig-link-hit{fill:none;stroke:transparent;stroke-width:14;pointer-events:stroke;cursor:help}
   /* The legend folded to its head (11 Sep 2026): everything under the head row
      goes, the head stays as the way back. */
   #ig-legend.is-folded > :not([data-ig-legend-head]){display:none}
