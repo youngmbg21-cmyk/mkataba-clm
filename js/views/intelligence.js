@@ -6699,6 +6699,7 @@ function renderIntelDock(){
         const brain=b.live?[b.label,b.hint].filter(Boolean).join(' — '):i18t('int_basic_mode');
         return (typeof window.pdHeadHtml==='function')?pdHeadHtml(brain):`<span class="text-gold-500">${icon('sparkle','w-4 h-4')}</span>`; })()}
       <span class="flex-1"></span>
+      ${''/* ‹ JAMBO AT THE ROW'S END WHILE A FACE IS UP (rounds 8–11 as drawn): the face tab's way back, beside the fold */}${(typeof window.pdFaceBackHtml==='function')?pdFaceBackHtml():''}
       ${(()=>{ const b=(typeof copilotBrainInfo==='function')?copilotBrainInfo():{live:true};
         return b.live?'':`<span title="${igEsc(b.hint||'')}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">○ ${igEsc(i18t('int_basic_mode'))}</span>`; })()}
       ${intel.history.length&&!(window.pdShowsDesk&&pdShowsDesk())?`<button id="igd-history-clear" title="${i18t('int_clear_conversation')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon" aria-label="${i18t('int_clear_conversation')}">${icon('trash','w-3.5 h-3.5')}</button>`:''}
@@ -6713,7 +6714,11 @@ function renderIntelDock(){
         </span>`).join('')}
       <button id="igd-clear" class="text-[10.5px] font-600 text-brand-600 hover:text-brand-800 ml-auto">${i18t('int_clear_all')}</button>
     </div>`:''}
-    ${(window.pdShowsDesk&&pdShowsDesk())?`<div id="pd-body" class="pd-body flex-1 min-h-0 overflow-y-auto scroll-thin" role="tabpanel">${pdBodyHtml(pdContract())}</div><div id="igd-feed" hidden></div>`
+    ${''/* BEFORE YOU SEND (round 11's gaps): the send screen's own column, held
+           by the face while the letter is a page on the desk; Jambo's answers
+           under it */}
+    ${(window.pdSendShows&&pdSendShows())?`<div id="pd-sendface" class="pd-sendface flex-1 min-h-0 overflow-y-auto scroll-thin">${pdSendFaceHtml()}<div id="igd-feed" class="px-3.5 pb-3 space-y-3">${msgs}${typing}</div></div>`
+    :(window.pdShowsDesk&&pdShowsDesk())?`<div id="pd-body" class="pd-body flex-1 min-h-0 overflow-y-auto scroll-thin" role="tabpanel">${pdBodyHtml(pdContract())}</div><div id="igd-feed" hidden></div>`
     /* THE FILL IN FACE (the one-page Home plan, stage 2): where the
        conversation stands, the box and the chips kept at the foot */
     :(window.pdFillShows&&pdFillShows())?`<div id="pd-fillface" class="pd-fillface flex-1 min-h-0 overflow-y-auto scroll-thin">${pdFillFaceHtml(pdContract())}</div><div id="igd-feed" hidden></div>`
@@ -6768,6 +6773,10 @@ function renderIntelDock(){
       <button id="igd-go" class="ui-btn ui-btn-sm ui-btn-primary absolute" style="right:18px;bottom:20px">${i18t('int_ask')}</button>
     </div>`}`;
   const feed=document.getElementById('igd-feed'); feed.scrollTop=feed.scrollHeight;
+  /* NO CHIPS UNDER A FACE (rounds 8–11 as drawn, the gaps of 18 Oct 2026): the
+     face carries its own acts, so the panel says a face is up and the chips row
+     stands down by that scope (#ig-dock.pd-face-up) — Jambo perches on the box */
+  dock.classList.toggle('pd-face-up',!!(window.pdFaceUp&&pdFaceUp()));
   /* JAMBO, ALIVE (owner, 16 Oct 2026): he takes his seat on the chips row again */
   if(typeof window.jamboPerchMount==='function') try{ jamboPerchMount(dock); }catch(_){ }
   /* a contract number in an answer is a link to it (caRefLinkPaint) */
@@ -6775,6 +6784,7 @@ function renderIntelDock(){
   /* THE DOCUMENT TAB IS THE CLAUSE LIST (10 Oct 2026): its host is drawn
      empty and filled by the Document tab's own painter. */
   if(window.pdShowsDesk&&pdShowsDesk()&&window.pdTab&&pdTab()==='doc'&&typeof window.docThreadPaint==='function'){ const pc=pdContract(); if(pc) try{ docThreadPaint(pc); }catch(_){ } }
+  if(document.getElementById('pd-sendface')&&typeof window.pdSendFacePaint==='function') try{ pdSendFacePaint(); }catch(_){ }
   /* the Fill in face's parts, from their own painters (stage 2) */
   if(document.getElementById('pd-fillface')&&typeof window.pdFillFacePaint==='function'){ const pc=pdContract(); if(pc) try{ pdFillFacePaint(pc); }catch(_){ } }
   /* the Redlines face, wired by the Negotiate page's own wiring (stage 3) */

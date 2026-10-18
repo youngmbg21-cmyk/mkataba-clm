@@ -1724,6 +1724,74 @@
   [data-share-sap] .sh-lt-card.is-stays{ border-color:var(--st-amber-line); background:var(--st-amber-bg); }
   [data-share-sap] .sh-lt-card.is-stays :is(h4, p){ color:var(--st-amber-fg); }
   [data-share-sap] .sh-lt-acts{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  /* THE LETTER AS DRAWN (round 11's gaps, 18 Oct 2026): "Send round 2" with "to Nordvik … · MK-0382"
+     quieter beside it; To said as a line with Change; "Sent as" a sentence of small choices, each opening
+     its own list (the same controls); the email's own parts — Hello, the note in its dashed box with
+     "Your note · type here", what the round answers quoted, the button, the link's promise, the sign-off */
+  [data-share-sap] .sh-hd h2{ display:flex; align-items:baseline; flex-wrap:wrap; column-gap:8px; row-gap:2px; }
+  [data-share-sap] .sh-hd .sh-hd-to{ font-size:var(--t-body); font-weight:var(--w-body); color:var(--color-neutral-600); }
+  [data-share-sap] .sh-hd-acts:empty{ display:none; }
+  [data-share-sap] .sh-lt-tosay{ display:flex; align-items:center; gap:10px; min-height:30px; }
+  [data-share-sap] .sh-lt-tosay #sh-lt-towho{ flex:1; min-width:0; font-weight:var(--w-label); font-size:var(--t-body); overflow-wrap:anywhere; }
+  [data-share-sap] .sh-lt-change{ flex:none; border:0; background:none; padding:0; font:inherit; font-size:var(--t-meta); font-weight:var(--w-label); color:var(--accent-ink); cursor:pointer; }
+  [data-share-sap] .sh-lt-change:hover{ text-decoration:underline; }
+  [data-share-sap] .sh-as-chips{ display:flex; flex-wrap:wrap; gap:6px; padding:2px 0; }
+  [data-share-sap] .sh-as{ position:relative; }
+  [data-share-sap] .sh-as-go{ display:inline-flex; align-items:center; gap:4px; height:26px; padding:0 8px; border:1px solid var(--btn-edge); border-radius:var(--radius);
+    background:var(--color-surface); font:inherit; font-size:var(--t-meta); font-weight:var(--w-label); color:var(--accent-ink); cursor:pointer; white-space:nowrap; }
+  [data-share-sap] .sh-as-go:hover, [data-share-sap] .sh-as.is-open .sh-as-go{ border-color:var(--accent-ink); }
+  [data-share-sap] .sh-as-pop{ display:none; position:absolute; top:calc(100% + 4px); left:0; z-index:20; width:max-content; min-width:280px; max-width:min(440px,80vw);
+    padding:10px 12px; background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); }
+  [data-share-sap] .sh-as.is-open .sh-as-pop{ display:block; }
+  [data-share-sap] .sh-as-pop .sh-segs{ flex-wrap:wrap; }
+  [data-share-sap] .sh-as-pop #sh-link-opts{ display:grid; grid-template-columns:minmax(0,1fr); gap:8px; margin:0; }
+  [data-share-sap] .sh-as-menu{ padding:4px; min-width:220px; }
+  [data-share-sap] .sh-as-menu button{ display:block; width:100%; text-align:left; border:0; background:none; padding:7px 10px; border-radius:var(--radius);
+    font:inherit; font-size:var(--t-body); color:var(--color-text); cursor:pointer; }
+  [data-share-sap] .sh-as-menu button:hover:not(:disabled){ background:var(--color-neutral-100); }
+  [data-share-sap] .sh-as-menu button[aria-current="true"]{ font-weight:var(--w-strong); color:var(--accent-ink); }
+  [data-share-sap] .sh-as-menu button:disabled{ opacity:.5; cursor:not-allowed; }
+  [data-share-sap] .sh-lt-p.is-lead{ margin-bottom:6px; }
+  [data-share-sap] .sh-lt-ans{ margin:0 0 12px; padding:2px 0 2px 12px; border-left:3px solid var(--color-divider); }
+  [data-share-sap] .sh-lt-ans .sh-lt-p{ margin:0 0 4px; }
+  [data-share-sap] .sh-lt-ans b{ font-weight:var(--w-strong); }
+  [data-share-sap] .sh-lt-btnp{ margin:4px 0 14px; }
+  [data-share-sap] .sh-lt-btn{ display:inline-flex; align-items:center; height:36px; padding:0 16px; border-radius:var(--radius); background:var(--accent-fill); color:#fff;
+    font-size:var(--t-body); font-weight:var(--w-strong); }
+  [data-share-sap] .sh-lt-foot{ color:var(--color-neutral-600); font-size:var(--t-meta); }
+  [data-share-sap] #sh-letter.is-letter .sh-lt-note label{ display:block; padding:6px 10px 6px; border:1px dashed color-mix(in srgb, var(--accent-fill) 45%, var(--color-divider));
+    border-radius:var(--radius); background:color-mix(in srgb, var(--accent-fill) 5%, var(--color-surface)); }
+  [data-share-sap] #sh-letter.is-letter .sh-lt-note #sh-summary-label{ position:static; width:auto; height:auto; overflow:visible; clip:auto; margin:0 0 2px;
+    font-family:inherit; font-size:var(--t-label); font-weight:var(--w-body); letter-spacing:0; color:var(--color-neutral-600); }
+  [data-share-sap] #sh-letter.is-letter .sh-lt-note textarea{ border:0; background:transparent; padding:0; min-height:46px; box-shadow:none; }
+  /* what goes is the letter itself now: the side no longer lists it (the manifest stays in the markup for the record kind's swap) */
+  .sh-lt-side > #share-manifest-line, .sh-lt-side > #share-manifest{ display:none; }
+  [data-share-sap] .sh-lt-card h4 .sh-lt-pause{ display:inline-block; width:8px; height:10px; margin-right:7px; border-left:3px solid currentColor; border-right:3px solid currentColor; box-sizing:border-box; vertical-align:-1px; }
+  /* THE LETTER AS A PAGE ON THE DESK, beside Jambo (shareLetterPage): its head is the paper line's band, Send and Cancel at its end;
+     the letter stands centred on the desk's ground under it */
+  #modal-root .modal-in[data-sh-page] > [data-share-sap]{ min-height:100%; }
+  #modal-root .modal-in[data-sh-page] .sh-hd{ position:sticky; top:0; z-index:4; margin:0; padding:12px 20px; display:flex; align-items:center; gap:12px;
+    background:var(--color-surface); border-bottom:1px solid var(--color-divider); }
+  #modal-root .modal-in[data-sh-page] .sh-hd h2{ flex:1; min-width:0; margin:0; font-size:20px; font-weight:var(--w-strong); color:var(--color-text); }
+  #modal-root .modal-in[data-sh-page] .sh-hd-acts{ display:flex; gap:8px; flex:none; }
+  #modal-root .modal-in[data-sh-page] .sh-lt-grid{ display:block; padding:16px 20px 28px; }
+  #modal-root .modal-in[data-sh-page] .sh-lt-grid > *{ max-width:780px; margin-left:auto; margin-right:auto; }
+  #modal-root .modal-in[data-sh-page] > [data-share-sap] > .dlg-foot{ display:none; }
+  /* BEFORE YOU SEND, AS A FACE OF JAMBO'S PANEL (pdSendOpen): Jambo's line as his bubble, the cards under it */
+  #pd-sendface{ display:flex; flex-direction:column; }
+  #pd-sendface .sh-lt-side{ display:grid; grid-template-columns:28px minmax(0,1fr); gap:10px; align-items:start; padding:12px 14px 4px; }
+  #pd-sendface .sh-lt-side > *{ grid-column:1 / -1; margin:0; }
+  #pd-sendface .sh-lt-side > .sh-lt-jb{ grid-column:1; }
+  #pd-sendface .sh-lt-side > .sh-lt-jb b{ display:none; }
+  #pd-sendface .sh-lt-side > #sh-lt-jsay{ grid-column:2; padding:8px 12px; border-radius:var(--radius-lg); background:var(--color-neutral-100);
+    font-size:var(--t-meta); line-height:1.5; color:var(--color-text); }
+  #pd-sendface .sh-lt-card{ border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:12px 14px; background:var(--color-surface); }
+  #pd-sendface .sh-lt-card h4{ display:flex; align-items:center; margin:0 0 4px; font-size:var(--t-body); font-weight:var(--w-strong); color:var(--color-text); }
+  #pd-sendface .sh-lt-card p{ margin:0; font-size:var(--t-meta); line-height:1.5; color:var(--color-neutral-700); }
+  #pd-sendface .sh-lt-card.is-stays{ border-color:var(--st-amber-line); }
+  #pd-sendface .sh-lt-card.is-stays h4 .sh-lt-pause{ display:inline-block; width:8px; height:10px; margin-right:7px; border-left:3px solid var(--st-amber-fg); border-right:3px solid var(--st-amber-fg); box-sizing:border-box; }
+  #pd-sendface .sh-lt-acts{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  #pd-sendface #igd-feed:empty{ display:none; }
   /* ALERTS, AS DRAWN (SAP pop-ups, 10 Oct 2026): a contract under its group. */
   .al-grow{ display:flex; gap:10px; align-items:center; width:100%; padding:8px 2px; border:0; border-bottom:1px solid var(--color-divider);
     background:transparent; text-align:left; cursor:pointer; color:var(--color-text); font:inherit; }
@@ -9569,11 +9637,12 @@
   #pd-redface .rl-face{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--color-surface)}
   #pd-redface .rl-face #nego-root{flex:1;min-height:0;display:flex;flex-direction:column}
   #pd-redface .rl-face #rl-side.rl-col{flex:1;min-height:0;border:0;border-radius:0;box-shadow:none;margin:0;width:auto;max-width:none}
-  #pd-redface .rl-face .rl-idx-top{flex-wrap:wrap;row-gap:4px}
-  #pd-redface .rl-face .rl-idx-top>.pd-rf-x{order:2;width:26px;height:26px;border:0;border-radius:var(--radius);background:none;color:var(--color-neutral-600);font-size:18px;line-height:1;cursor:pointer;flex:none}
-  #pd-redface .rl-face .rl-idx-top>.pd-rf-x:hover{background:var(--color-bg);color:var(--color-text)}
-  #pd-redface .rl-face .rl-idx-top>.pd-rf-br{order:3;flex-basis:100%;height:0}
-  #pd-redface .rl-face .rl-idx-top>.rl-round-at{order:4}
+  #pd-redface .rl-face .rl-idx-top{flex-wrap:wrap;row-gap:6px}
+  /* THE FACE TAB (rounds 8–11 as drawn, the gaps of 18 Oct 2026): while a face is up the panel's row is
+     Jambo's tab and the face's word, with ‹ Jambo at its end beside the fold; no chips under a face */
+  #ig-dock .igd-head .pd-face-w{flex:none;align-self:center;margin-left:10px;font-size:var(--t-meta);font-weight:var(--w-label);color:var(--color-text);white-space:nowrap}
+  #ig-dock .igd-head > .pd-back{align-self:center;margin-right:2px}
+  #ig-dock.pd-face-up [data-ig-chips]{display:none}
   /* the Negotiate page's notices, above the column since the page folded into Home (stage 5) */
   #pd-redface .rl-face .pd-rf-notices{flex:none;padding:10px 12px 0}
   #pd-redface .rl-face .pd-rf-notices .rl-notices{margin:0}

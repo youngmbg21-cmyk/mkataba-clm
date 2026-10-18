@@ -6409,6 +6409,73 @@ function redlineLayoutCss(){
   .redline-page button.rl-band-fold:hover{color:var(--color-text)}
   .redline-page button.rl-band-fold i{font-style:normal;flex:none}
   .redline-page #rl-changes-col:not(.rl-settled-open) .rl-card-quiet{display:none}
+  ${''/* ---- PILES, AS DRAWN (round 9's gaps, 18 Oct 2026) ----
+         THE HEAD: Redlines N with Notes and who is here on its line, the round
+         under it, Send all and Ask for review under that — one flex row that
+         breaks at .rl-idx-br. No accent rule under it: the piles start. */}
+  .redline-page .rl-idx{border-bottom:0;padding-bottom:6px}
+  .redline-page .rl-idx-top{flex-wrap:wrap;row-gap:6px}
+  .redline-page .rl-idx-top > .rl-idx-br{flex-basis:100%;height:0;margin:0;padding:0}
+  .redline-page .rl-idx-top > .rl-idx-br + .rl-idx-br{display:none}
+  .redline-page .rl-idx-top > .rl-idx-br:last-child{display:none}
+  .redline-page .rl-idx-top .rl-round-at{height:auto;line-height:1.4;white-space:normal}
+  .redline-page .rl-head-notes,.redline-page .rl-head-review{flex:none;display:inline-flex;align-items:center;gap:5px;
+    height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);border:1px solid var(--btn-edge);border-radius:var(--radius);
+    background:var(--color-surface);color:var(--color-text);font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);
+    white-space:nowrap;cursor:pointer}
+  .redline-page .rl-head-notes:hover,.redline-page .rl-head-review:hover:not(:disabled){border-color:var(--accent-ink);color:var(--accent-ink)}
+  .redline-page .rl-head-review:disabled{opacity:.5;cursor:not-allowed}
+  .redline-page .rl-head-notes svg,.redline-page .rl-head-review svg{width:13px;height:13px;flex:none}
+  .redline-page .rl-head-notes b{min-width:18px;height:18px;padding:0 5px;border-radius:9px;display:inline-grid;place-items:center;
+    background:var(--color-neutral-100);font-weight:var(--w-title);font-size:var(--t-label);font-variant-numeric:tabular-nums}
+  .redline-page .rl-head-here{flex:none;display:inline-flex;align-items:center;gap:6px;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap}
+  .redline-page .rl-head-here:not(:has(.pz-row)){display:none}
+  .redline-page .rl-head-here .pz-row{height:auto}
+  ${''/* EACH PILE ITS OWN BOX: a grey band naming it with its count in a pill,
+         the rows under it on hairlines, the settled fold a box of its own. */}
+  .redline-page #rl-changes{padding:4px 12px 12px}
+  .redline-page .rl-pile{border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:var(--color-surface);
+    margin:0 0 10px;overflow:hidden}
+  .redline-page .rl-pile > .rl-band,.redline-page .rl-pile > .rl-band:first-child{display:flex;align-items:center;gap:8px;margin:0;
+    padding:8px 12px;background:var(--color-neutral-100);border:0;border-bottom:1px solid var(--color-divider);
+    font-size:var(--t-label);font-weight:var(--w-strong);letter-spacing:0;text-transform:none;color:var(--color-text)}
+  .redline-page .rl-pile > .rl-band b{margin-left:auto;min-width:20px;height:18px;padding:0 6px;border-radius:9px;display:inline-grid;place-items:center;
+    font-family:inherit;font-size:var(--t-label);font-weight:var(--w-title);background:var(--color-surface);border:1px solid var(--color-divider);color:var(--color-neutral-600)}
+  .redline-page .rl-pile > .rl-band[data-rl-band="awaiting"]{color:var(--st-amber-fg)}
+  .redline-page .rl-pile > .rl-band[data-rl-band="awaiting"] b{background:var(--st-amber-bg);border-color:var(--st-amber-line);color:var(--st-amber-fg)}
+  .redline-page .rl-pile.rl-pile-quiet > .rl-band{border-bottom:0;background:var(--color-surface)}
+  .redline-page #rl-changes-col.rl-settled-open .rl-pile.rl-pile-quiet > .rl-band{border-bottom:1px solid var(--color-divider)}
+  .redline-page .rl-pile > .rl-card-d:last-child{border-bottom:0}
+  .redline-page .rl-pile .rl-card-d,.redline-page .rl-pile .rl-band + .rl-card-d{padding:11px 12px}
+  ${''/* THE ROW: the clause, "2 notes" beside it, who and when at the wall; the
+         changed words with their marks; their reason; the lock line; the verbs
+         from the left, as drawn. */}
+  .redline-page .rl-pile .rl-card-metarow{gap:8px}
+  .redline-page .rl-pile .rl-card-metarow > .rl-card-meta{flex:0 1 auto}
+  .redline-page .rl-pile .rl-card-metarow > .rl-card-notes{order:1}
+  .redline-page .rl-pile .rl-card-metarow > .rl-card-by{order:2;max-width:55%;overflow:hidden;text-overflow:ellipsis}
+  .redline-page .rl-card-notes .rl-card-notes-w{font-weight:var(--w-label);margin-left:-1px}
+  .redline-page .rl-card-d .rl-card-sum.rl-card-ex{white-space:normal;overflow:visible;text-overflow:clip;
+    color:var(--color-text);font-size:var(--t-meta);line-height:1.5}
+  .redline-page .rl-card-ex del{color:var(--st-ruby-fg);text-decoration:line-through}
+  .redline-page .rl-card-ex ins{color:var(--accent-ink);text-decoration:underline;text-underline-offset:2px}
+  .redline-page .rl-card-ex del + ins{margin-left:.3em}
+  .redline-page .rl-card-ex .rl-card-ex-tag{color:var(--color-neutral-600);font-size:var(--t-label)}
+  .redline-page .rl-card-d.rl-card-quiet .rl-card-sum.rl-card-ex{color:var(--color-neutral-500)}
+  .redline-page .rl-card-lock{display:flex;align-items:center;gap:6px;margin-top:6px;padding:5px 8px;border-radius:var(--radius);
+    background:var(--color-neutral-100);font-size:var(--t-label);color:var(--color-neutral-600)}
+  .redline-page .rl-card-lock .rl-card-lock-i{flex:none}
+  .redline-page .rl-card-lock .rl-lock-mono{flex:none;width:18px;height:18px;border-radius:50%;display:inline-grid;place-items:center;
+    background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:9px;font-weight:var(--w-title)}
+  .redline-page .rl-card-lock .rl-card-lock-say{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .redline-page .rl-card-lock .rl-card-lock-ask{flex:none;border:0;background:none;padding:0;font:inherit;font-weight:var(--w-strong);
+    color:var(--accent-ink);cursor:pointer}
+  .redline-page .rl-card-lock .rl-card-lock-ask:hover{text-decoration:underline}
+  .redline-page .rl-card-lock .rl-card-lock-asked{flex:none;font-weight:var(--w-label)}
+  .redline-page .rl-pile .rl-card-d > .rl-card-side{justify-content:flex-start}
+  .redline-page .rl-card-face .rl-sg-back{color:var(--color-text)}
+  ${''/* the settled fold is drawn as its pile's head alone, with its count — no chevron */}
+  .redline-page .rl-pile-quiet .rl-band-fold i{display:none}
   `;
   document.head.appendChild(s);
 }

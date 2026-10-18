@@ -17,7 +17,7 @@ const { jxPack, JX_DEFAULT, JURISDICTIONS,
 const { ndaClean, ndaFacts } = require('../js/nda.js');
 /* THE LETTER (round 11, 17 Oct 2026): the share email's words, written once for
    the send screen that draws it and this route that mails it (js/sharemail.js). */
-const { shareMailOf, signerTurnMailOf } = require('../js/sharemail.js');
+const { shareMailOf, signerTurnMailOf, shareRoundOf, shareAnswersOf } = require('../js/sharemail.js');
 /* One dictionary, two hosts. The server writes email and needs the recipient's
    own language from the SAME table the screens use — a second copy here would
    drift from js/i18n.js without anything noticing, which is the fault the
@@ -17763,11 +17763,19 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     /* The words are js/sharemail.js's: the send screen draws this letter,
        word for word, before the press. The invitation matches the link — a
        negotiation link opens the room, where nothing is signed. */
-    const mail = shareMailOf({ channel: 'email', purpose: purp, sender: req.user.name, org: payload.org,
-      cName, recName: rec.name, message, link, expires });
+    /* THE LETTER AS DRAWN (round 11's gaps, 18 Oct 2026): the round this send
+       opens and what it answers are READ off the copy that travels (the
+       payload the other side receives — the screen reads the same), the
+       sign-off is the sender's own name and job title, and the one-time code
+       is said where this company asks for it (shareCodeOn, the link's own
+       gate). The inbox that draws HTML gets the same words with a button. */
+    const pc = (payload && payload.contract) || {};
+    const mail = shareMailOf({ channel: 'email', purpose: purp, sender: req.user.name, title: req.user.title || '', org: payload.org,
+      cName, recName: rec.name, message, link, expires,
+      round: shareRoundOf(pc.negotiation), answers: shareAnswersOf(pc), codeOn: shareCodeOn() && purp !== 'status' });
     const r = await sendEmail(email,
       mail.subject,
-      mail.body, `share link: ${link}`);
+      mail.body, `share link: ${link}`, { html: mail.html });
     emailSent = !!r.sent; emailError = r.detail || null;
     /* ---- THE RECORD SAYS WHAT ACTUALLY HAPPENED ----
        This stamped sent_at whatever the provider did, and never wrote

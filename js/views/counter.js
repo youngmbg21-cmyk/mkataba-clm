@@ -55,9 +55,20 @@ function dkSave(L){
 /* Which page the reader is on, as a tab: a face of Home, a contract on
    Home's paper, or any other page. The Counter itself is never a tab. */
 const DK_HOME_FACE = { board: 'home:board', calendar: 'home:calendar', explorer: 'home:explorer' };
+/* THE SEND SCREEN AS A PAGE IS IN FRONT (round 11's gaps, 18 Oct 2026: the
+   desk tab "Send · MK-0382"): drawn while it is open, never kept — it goes
+   when the screen goes; the paper waits in its own tab */
+const DK_SEND = 'send:';
+function dkSendNow(){ try { const id = (typeof window.pdSendFor === 'function') ? window.pdSendFor() : null; return id ? DK_SEND + id : null; } catch (_){ return null; } }
+/* a press on another tab, or the Counter, puts the send screen away first */
+function dkLeaveSend(k){
+  const now = dkSendNow(); if (!now || k === now) return;
+  if (typeof closeModal === 'function') try { closeModal(); } catch (_){}
+}
 function deskKeyNow(){
   if (typeof state === 'undefined' || !state || !state.view || state.view === 'counter') return null;
   const v = state.view;
+  if (v === 'dashboard'){ const sk = dkSendNow(); if (sk) return sk; }
   if (v === 'dashboard'){
     const f = (typeof hbFace === 'function') ? hbFace() : 'board';
     if (f === 'paper'){ const c = (typeof pdContract === 'function') ? pdContract() : null; return c ? 'c:' + c.id : 'home:contracts'; }
@@ -74,6 +85,10 @@ const DK_VIEW_WORD = { redline: 'nav_negotiations', customers: 'nav_customers', 
   intake: 'nav_intake', directory: 'nav_directory', team: 'nav_settings_rules', brain: 'nav_brain', register: 'nav_contracts' };
 function deskTabLabel(k){
   k = String(k || '');
+  if (k.startsWith(DK_SEND)){
+    const c = (typeof getContract === 'function') ? getContract(k.slice(DK_SEND.length)) : null; if (!c) return '';
+    return _cnT('dk_send_tab', { ref: (typeof contractRef === 'function') ? contractRef(c) : c.id });
+  }
   if (k.startsWith('home:')){ const f = k.slice(5); return f === 'contracts' ? _cnT('nav_contracts') : _cnT('hb_face_' + f); }
   if (k.startsWith('c:')){
     const c = (typeof getContract === 'function') ? getContract(k.slice(2)) : null; if (!c) return '';
@@ -99,7 +114,7 @@ function deskTabsSync(){
   clearTimeout(_dkNoteT);
   _dkNoteT = setTimeout(() => {
     const k = deskKeyNow();
-    if (k){
+    if (k && !k.startsWith(DK_SEND)){
       const L = dkTabs(); let t = L.find(x => x.k === k);
       if (t) t.at = Date.now(); else { t = { k, at: Date.now() }; L.push(t); }
       /* ONE TAB PER CONTRACT, two ways to read it (round 7): it remembers
@@ -161,6 +176,8 @@ let _dkFocus = null;   // { k, at }: the tab the keyboard was on
 /* a tab's press: the door that already opens that page */
 function deskTabOpen(k){
   k = String(k || ''); _dkMoreOpen = false;
+  if (k.startsWith(DK_SEND)) return !!dkSendNow();
+  dkLeaveSend(k);
   if (k.startsWith('home:')){
     const f = k.slice(5);
     if (f === 'contracts' && typeof hbOpenContracts === 'function'){ hbOpenContracts(); return true; }
@@ -194,6 +211,8 @@ function deskTabOpen(k){
 }
 /* × puts a tab away; the page in front goes to the tab used last, else the Counter */
 function deskTabClose(k){
+  /* the send screen's tab: × is its Cancel, its guard asked */
+  if (String(k || '').startsWith(DK_SEND)){ if (typeof window.closeModalGuarded === 'function') window.closeModalGuarded(); else if (typeof closeModal === 'function') closeModal(); return; }
   const L = dkTabs(); const i = L.findIndex(t => t.k === k); if (i < 0) return;
   const wasNow = deskKeyNow() === k;
   /* a contract's page put away is let go, as its own × did (round 7) */
@@ -205,7 +224,7 @@ function deskTabClose(k){
   }
   deskTabsPaint();
 }
-function deskGoCounter(){ _dkMoreOpen = false; if (typeof setView === 'function') setView('counter'); }
+function deskGoCounter(){ _dkMoreOpen = false; dkLeaveSend(null); if (typeof setView === 'function') setView('counter'); }
 
 /* ---------------- THE COUNTER ---------------- */
 const CN_ROWS = 7;          // contract rows in sight; "Show all N" brings the rest
