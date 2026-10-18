@@ -134,10 +134,7 @@ function apOpenSigning(id){
   /* the head is built by the render; the tab is pressed after it lands */
   setTimeout(()=>{ try{ roomGoTab(c,'sign'); }catch(_){} },80);
 }
-function apTableHtml(head, rows, empty){
-  if(!rows.length) return `<div class="ap-empty">${esc(empty)}</div>`;
-  return `<table class="ap-table"><thead><tr>${head.map(h=>`<th${h.right?' class="r"':''}>${esc(h.t)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`;
-}
+/* (apTableHtml went with the two tabs: the one list draws its own table, round 15) */
 /* ═══ THE LIST INSPECTOR ON THIS PAGE (Young asked for it 26 Sep 2026, with
    the Contracts and Negotiations lists) ═════════════════════════════════════
    The same shape as those two pages: a narrower list, one contract's facts in
@@ -241,20 +238,58 @@ function apDoneLineHtml(){
 }
 /* The counterparty's initials beside its name, as on every list (regAvatarHtml). */
 function apAvHtml(name){ return (typeof window.regAvatarHtml==='function')?window.regAvatarHtml(name||'—'):''; }
-function apInsPaint(tab, rows){
+/* ═══ ONE WORKLIST (round 15 of the redesign: the owner picked "One worklist",
+   17 Oct 2026) ═══════════════════════════════════════════════════════════════
+   Approvals and signatures are one list, grouped by who owes the next step —
+   "Yours to answer" (an approval asked of you, one you have still to send, a
+   signature that is yours, a ready-to-sign signal for somebody here to act
+   on), then "Waiting on others" (approvals you raised that wait on their
+   approver). The two tabs went with it; a Kind column says which each row is.
+   EVERY ROW IS STILL BORROWED (apApprovalRows, apSignatureRows) and the page
+   still decides nothing: the verbs are the panel's, as they were per tab.
+   The selection keeps the one seat the doors use ('approvals'), so a door
+   that opens this page on a row still lands on it. */
+function apWorkRows(){
+  const live=apApprovalRows(), ap=apRowsShown(live), sg=apSignatureRows();
+  const rows=[...ap.map(r=>Object.assign({},r,{ type:'approval' })), ...sg.map(r=>Object.assign({},r,{ type:'signature' }))];
+  const yours=rows.filter(r=>r.type==='signature'||r.mine||r.done||(r.own&&r.notAsked));
+  const others=rows.filter(r=>!yours.includes(r));
+  return { yours, others, rows:[...yours, ...others], live, sg };
+}
+/* the seat a row's panel is drawn for: an approval's or a signature's */
+function apRowTab(r){ return r&&r.type==='signature'?'signatures':'approvals'; }
+/* WHY IT WAITS — the rule, or what stands before the signature */
+function apWhyHtml(r){
+  if(r.type==='signature'){
+    const t=r.kind==='sign'?(r.n?i18tn('ap_pg_to_settle',r.n,{n:r.n}):i18t('ap_pg_ready_to_sign')):i18t('ap_pg_ready_sign',{who:r.by||r.c.counterparty||''});
+    return `<span class="ap-name" title="${esc(t)}">${esc(t)}</span>`;
+  }
+  const sub=r.mine?(r.ruleSub||''):'';
+  return `<span class="ap-name" title="${esc(r.rule)}">${esc(r.rule)}</span>${sub?`<span class="ap-sub">${esc(sub)}</span>`:''}`;
+}
+/* WHOSE TURN — you, or who the approval waits on */
+function apTurnText(r){
+  if(r.type==='signature') return i18t(r.kind==='sign'?'ap_wl_you_sign':'ap_wl_you');
+  if(r.done) return i18t('ap_pg_approved');
+  if(r.mine) return i18t('ap_wl_you');
+  if(r.notAsked) return i18t('ap_wl_you_send');
+  return r.waitsOn||'—';
+}
+function apKindHtml(r){
+  return `<span class="ap-kind${r.type==='signature'?' is-sig':''}">${esc(i18t(r.type==='signature'?'ap_wl_kind_sig':'ap_wl_kind_appr'))}</span>`;
+}
+function apInsPaint(rows){
   const tb=document.querySelector('.ap-table tbody');
-  const seat=apInsSeat(tab);
+  const seat='approvals';
   const idOf=tr=>tr.getAttribute('data-ap-row');
   const id=insPick(seat, tb?[...tb.querySelectorAll('[data-ap-row]')].map(idOf):[]);
   if(tb) insMarkRow(tb,'[data-ap-row]',idOf,id);
   const paint=pid=>{
     const r=rows.find(x=>x.c.id===pid)||null;
+    const tab=apRowTab(r);
     /* THE CHECKLIST LEAVES OUT WHAT THIS PANEL ALREADY SAYS (27 Sep 2026):
-       on the signatures tab the lead section is "what stands before signing",
+       on a signature's panel the lead section is "what stands before signing",
        so a "Your signature" row above it would print it twice. */
-    /* THE STAGE BESIDE THE NAME, ONE LINE FOR WHAT IS ASKED (SAP benchmark,
-       owner-approved 9 Oct 2026): the checklist's buttons were a second
-       door onto the Approve right under them. */
     const done=!!(r&&r.done);
     insPaintPanel({ seat, c:r?r.c:null, acts:apInsActs(tab,r), lead:apLeadHtml(tab,r), moveSuffix:false,
       statusBeside:true,
@@ -263,7 +298,7 @@ function apInsPaint(tab, rows){
       needsSkip:tab==='signatures'?['sign']:[],
       order:['lead','facts','reads'],
       factKeys:['value','owner','stream','ends'],
-      empty:tab==='approvals'?i18t('ap_pg_none_approvals'):i18t('ap_pg_none_sign') });
+      empty:i18t('ap_wl_none') });
   };
   paint(id);
   if(tb) insListWire(tb,{ rowSel:'[data-ap-row]', idOf,
@@ -271,87 +306,51 @@ function apInsPaint(tab, rows){
     onOpen:pid=>apOpenSigning(pid) });
 }
 function renderApprovalsPage(){
-  const tab=apTab();
-  const live=apApprovalRows(), ap=apRowsShown(live), sg=apSignatureRows();
+  const W=apWorkRows();
   const money=!(typeof canViewValues==='function'&&!canViewValues());
   /* WHICH SHAPE — asked once, recorded on the page (data-ins) so a width
      that crosses the line repaints it. */
   const INS=(typeof insFits==='function')&&insFits()&&typeof insPaintPanel==='function';
-  const apHead=[{t:'MK'},{t:i18t('reg_col_title')},{t:i18t('ap_pg_rule')},{t:i18t('ap_pg_asked_by')},{t:i18t('ap_pg_waiting')},...(money?[{t:i18t('reg_col_value'),right:true}]:[]),{t:''}];
-  const apRowsHtml=ap.map(r=>`<tr data-ap-row="${esc(r.c.id)}">
-      <td class="mono">${window.refHtml?refHtml(r.c):esc(r.c.id)}</td>
-      <td><div class="ap-id">${apAvHtml(r.c.counterparty)}<div><span class="ap-name">${esc(r.c.name||'')}</span><span class="ap-sub">${esc(r.c.counterparty||'')}</span></div></div></td>
-      <td>${esc(r.rule)}${r.mine?(r.ruleSub?`<span class="ap-sub">${esc(r.ruleSub)}</span>`:''):`<span class="ap-sub">${esc(r.notAsked?i18t('sa_pg_not_asked'):i18t('ap_pg_waiting_on',{who:r.waitsOn||'—'}))}</span>`}</td>
-      <td>${esc(r.who||'—')}</td>
-      <td class="${r.done?'done':apLate(r)?'late':''}">${esc(r.done?i18t('ap_pg_approved'):apWaitingText(r.idle))}</td>
-      ${money?`<td class="r mono">${apValueCell(r.c)}</td>`:''}
-      <td class="r">${r.done?`<span class="ap-acts">${apMayUndo(r)?`<button type="button" class="ui-btn ui-btn-sm" data-ap-undo="${esc(r.c.id)}" title="${esc(i18t('ap_pg_undo_title'))}">${esc(i18t('ap_pg_undo'))}</button>`:''}<button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_gate_title'))}">${esc(i18t('ap_pg_open'))}</button></span>`
-        :apMayDecide(r)?`<span class="ap-acts"><button type="button" class="ui-btn ui-btn-sm ui-btn-accent" data-ap-approve="${esc(r.c.id)}" title="${esc(i18t('ap_pg_approve_title'))}">${esc(i18t('ap_pg_approve'))}</button><button type="button" class="ui-btn ui-btn-sm" data-ap-refuse="${esc(r.c.id)}" title="${esc(i18t('ap_pg_refuse_title'))}">${esc(i18t('ap_pg_refuse'))}</button><button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_gate_title'))}">${esc(i18t('ap_pg_open'))}</button></span>`
-        :`<button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_gate_title'))}">${esc(r.mine?i18t('ap_pg_open_gate'):i18t('ap_pg_open'))}</button>`}</td>
-    </tr>`);
-  const sgHead=[{t:'MK'},{t:i18t('reg_col_title')},{t:i18t('ap_pg_what_waits')},...(money?[{t:i18t('reg_col_value'),right:true}]:[]),{t:''}];
-  const sgRowsHtml=sg.map(r=>`<tr data-ap-row="${esc(r.c.id)}">
-      <td class="mono">${window.refHtml?refHtml(r.c):esc(r.c.id)}</td>
-      <td><div class="ap-id">${apAvHtml(r.c.counterparty)}<div><span class="ap-name">${esc(r.c.name||'')}</span><span class="ap-sub">${esc(r.c.counterparty||'')}</span></div></div></td>
-      <td>${r.kind==='sign'?esc(r.n?i18tn('ap_pg_to_settle',r.n,{n:r.n}):i18t('ap_pg_ready_to_sign')):esc(i18t('ap_pg_ready_sign',{who:r.by||r.c.counterparty||''}))}</td>
-      ${money?`<td class="r mono">${apValueCell(r.c)}</td>`:''}
-      <td class="r"><button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_sign_title'))}">${esc(i18t('ap_pg_open_signing'))}</button></td>
-    </tr>`);
-  /* ---- THE INSPECTOR'S LIST: four columns, the verbs in the panel ----
-     The reference, the counterparty over the agreement (the register's own
-     identity cell, so the three lists read alike), what waits, and the value.
-     The row's Open button moves to the panel — it is the panel's lead act —
-     and nothing a person could press is lost. */
   const ident=c=>`<td><div class="ap-id">${apAvHtml(c.counterparty)}<div><span class="ap-name">${esc(c.counterparty||'—')}</span><span class="ap-sub">${esc(c.name||'')}</span></div></div></td>`;
-  /* THE DRAWING'S COLUMNS (SAP benchmark, 9 Oct 2026): the rule and the wait
-     each have their own column on the approvals tab. */
-  const insHead=tab==='approvals'
-    ? [{t:i18t('reg_col_ref'),w:84},{t:i18t('reg_col_party')},{t:i18t('ap_pg_rule'),w:200},{t:i18t('ap_pg_waiting'),w:110},...(money?[{t:i18t('reg_col_value'),right:true,w:124}]:[])]
-    : [{t:i18t('reg_col_ref'),w:84},{t:i18t('reg_col_party')},{t:i18t('ap_pg_what_waits'),w:250},...(money?[{t:i18t('reg_col_value'),right:true,w:124}]:[])];
-  const insAp=ap.map(r=>{
-    const waits=r.mine?(r.ruleSub||''):(r.notAsked?i18t('sa_pg_not_asked'):i18t('ap_pg_waiting_on',{who:r.waitsOn||'—'}));
-    return `<tr data-ap-row="${esc(r.c.id)}" tabindex="-1">
+  const head=[{t:i18t('reg_col_ref'),w:84},{t:i18t('reg_col_party')},{t:i18t('ap_wl_kind'),w:96},{t:i18t('ap_wl_why'),w:170},{t:i18t('ap_wl_turn'),w:112},{t:i18t('ap_pg_waiting'),w:88},
+    ...(money?[{t:i18t('reg_col_value'),right:true,w:100}]:[]),...(INS?[]:[{t:'',w:220}])];
+  const acts=r=>{
+    if(r.type==='signature') return `<button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_sign_title'))}">${esc(i18t('ap_pg_open_signing'))}</button>`;
+    if(r.done) return `<span class="ap-acts">${apMayUndo(r)?`<button type="button" class="ui-btn ui-btn-sm" data-ap-undo="${esc(r.c.id)}" title="${esc(i18t('ap_pg_undo_title'))}">${esc(i18t('ap_pg_undo'))}</button>`:''}<button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_gate_title'))}">${esc(i18t('ap_pg_open'))}</button></span>`;
+    if(apMayDecide(r)) return `<span class="ap-acts"><button type="button" class="ui-btn ui-btn-sm ui-btn-accent" data-ap-approve="${esc(r.c.id)}" title="${esc(i18t('ap_pg_approve_title'))}">${esc(i18t('ap_pg_approve'))}</button><button type="button" class="ui-btn ui-btn-sm" data-ap-refuse="${esc(r.c.id)}" title="${esc(i18t('ap_pg_refuse_title'))}">${esc(i18t('ap_pg_refuse'))}</button><button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_gate_title'))}">${esc(i18t('ap_pg_open'))}</button></span>`;
+    return `<button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_gate_title'))}">${esc(r.mine?i18t('ap_pg_open_gate'):i18t('ap_pg_open'))}</button>`;
+  };
+  const row=r=>`<tr data-ap-row="${esc(r.c.id)}" data-ap-kind="${r.type}"${INS?' tabindex="-1"':''}>
       <td class="mono">${window.refHtml?refHtml(r.c):esc(r.c.id)}</td>${ident(r.c)}
-      <td><span class="ap-name">${esc(r.rule)}</span>${waits?`<span class="ap-sub">${esc(waits)}</span>`:''}</td>
-      <td class="${r.done?'done':apLate(r)?'late':''}">${esc(r.done?i18t('ap_pg_approved'):apWaitingText(r.idle))}</td>
+      <td>${apKindHtml(r)}</td>
+      <td>${apWhyHtml(r)}</td>
+      <td class="ap-turn" title="${esc(apTurnText(r))}">${esc(apTurnText(r))}</td>
+      <td class="${r.done?'done':apLate(r)?'late':''}">${esc(r.done?i18t('ap_pg_approved'):r.type==='signature'?'—':apWaitingText(r.idle))}</td>
       ${money?`<td class="r mono">${apValueCell(r.c)}</td>`:''}
-    </tr>`; });
-  const insSg=sg.map(r=>`<tr data-ap-row="${esc(r.c.id)}" tabindex="-1">
-      <td class="mono">${window.refHtml?refHtml(r.c):esc(r.c.id)}</td>${ident(r.c)}
-      <td>${r.kind==='sign'?esc(r.n?i18tn('ap_pg_to_settle',r.n,{n:r.n}):i18t('ap_pg_ready_to_sign')):esc(i18t('ap_pg_ready_sign',{who:r.by||r.c.counterparty||''}))}</td>
-      ${money?`<td class="r mono">${apValueCell(r.c)}</td>`:''}
-    </tr>`);
-  const insTable=(rows,empty)=>rows.length
-    ? `<table class="ap-table ap-ins"><colgroup>${insHead.map(h=>`<col${h.w?` style="width:${h.w}px"`:''}>`).join('')}</colgroup><thead><tr>${insHead.map(h=>`<th${h.right?' class="r"':''}>${esc(h.t)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`
-    : `<div class="ap-empty">${esc(empty)}</div>`;
-  const n=tab==='approvals'?live.length:sg.length;
-  /* THE TABLE SAYS WHAT IT IS AND HOW MANY (SAP benchmark, owner-approved
-     9 Oct 2026). "Your" only where every row waits on this reader — a row
-     the reader raised waits on somebody else. */
-  const allMine=live.every(r=>r.mine);
-  const cardTitle=tab==='approvals'?i18t(allMine?'ap_pg_title_mine':'ap_pg_title_all'):i18t('ap_pg_title_sign');
-  const tabBtn=(k,label,count)=>`<button type="button" class="st-tab${tab===k?' on':''}" data-ap-tab="${k}" role="tab" aria-selected="${tab===k?'true':'false'}">${esc(label)}${count?` <span class="ap-n">${count}</span>`:''}</button>`;
-  const body=INS
-    ? (tab==='approvals'?insTable(insAp,i18t('ap_pg_none_approvals')):insTable(insSg,i18t('ap_pg_none_sign')))
-    : (tab==='approvals'?apTableHtml(apHead,apRowsHtml,i18t('ap_pg_none_approvals')):apTableHtml(sgHead,sgRowsHtml,i18t('ap_pg_none_sign')));
+      ${INS?'':`<td class="r">${acts(r)}</td>`}
+    </tr>`;
+  const cols=head.length;
+  const band=(k,label,list)=>list.length?`<tr class="ap-grp is-${k}"><td colspan="${cols}"><i aria-hidden="true"></i><b>${esc(label)}</b><span class="n">${list.length}</span></td></tr>${list.map(row).join('')}`:'';
+  const n=W.rows.length;
+  const table=n
+    ? `<table class="ap-table${INS?' ap-ins':''}"><colgroup>${head.map(h=>`<col${h.w?` style="width:${h.w}px"`:''}>`).join('')}</colgroup><thead><tr>${head.map(h=>`<th${h.right?' class="r"':''}>${esc(h.t)}</th>`).join('')}</tr></thead><tbody>${
+        band('yours',i18t('ap_wl_yours'),W.yours)}${band('others',i18t('ap_wl_others'),W.others)}</tbody></table>`
+    : `<div class="ap-empty">${esc(i18t('ap_wl_none'))}</div>`;
+  const facts=[W.yours.length?i18tn('ap_wl_n_yours',W.yours.length,{n:W.yours.length}):'', W.others.length?i18tn('ap_wl_n_others',W.others.length,{n:W.others.length}):''].filter(Boolean).join(' · ');
+  const rules=(typeof isAdmin==='function'&&isAdmin()&&typeof openSettingsAt==='function')
+    ? `<button type="button" class="ui-btn ui-btn-sm ap-rules" data-ap-rules>${esc(i18t('ap_pg_rules'))}</button>` : '';
   const card=`<section class="ap-card">
-      <div class="ap-card-h"><h2 class="ap-card-t">${esc(cardTitle)} <span class="ap-card-n">(${n.toLocaleString(typeof jxLocale==='function'?jxLocale():undefined)})</span></h2>${
-        tab==='approvals'?`<span class="ap-card-m">${esc(i18tn('ap_pg_late_after',AP_LATE_DAYS,{n:AP_LATE_DAYS}))}</span>`:''}</div>
-      ${body}
-      ${(typeof isAdmin==='function'&&isAdmin()&&typeof openSettingsAt==='function')?`<div class="ap-foot"><button type="button" class="ui-btn ui-btn-plain" data-ap-rules>${esc(i18t('ap_pg_rules'))}${(typeof icon==='function')?icon('chevR','w-3.5 h-3.5'):''}</button></div>`:''}
+      <div class="ap-card-h"><h2 class="ap-card-t">${esc(i18t('ap_wl_title'))} <span class="ap-card-n">(${n.toLocaleString(typeof jxLocale==='function'?jxLocale():undefined)})</span></h2><span class="ap-card-m">${esc(i18tn('ap_pg_late_after',AP_LATE_DAYS,{n:AP_LATE_DAYS}))}</span></div>
+      ${table}
     </section>`;
   document.getElementById('content').innerHTML=`
   <div class="view-enter sap-page ap-page${INS?' is-ins':''}" data-ins-page="approvals" data-ins="${INS?'1':'0'}">
-    <div class="st-tabs sap-band" role="tablist">
-      ${tabBtn('approvals',i18t('ap_pg_tab_approvals'),live.length)}
-      ${tabBtn('signatures',i18t('ap_pg_tab_signatures'),sg.length)}
-    </div>
+    <div class="sap-band ap-band"><span class="ap-facts" data-ap-facts>${esc(facts||i18t('ap_wl_none'))}</span><span class="ap-band-sp"></span>${rules}</div>
     ${INS?`<div class="ap-body is-ins">${card}<aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div>`:card}
   </div>`;
-  document.querySelectorAll('[data-ap-tab]').forEach(b=>b.addEventListener('click',()=>{ apSetTab(b.getAttribute('data-ap-tab')); renderApprovalsPage(); }));
   document.querySelector('[data-ap-rules]')?.addEventListener('click',()=>openSettingsAt('platform','approvals'));
   if(INS){
-    apInsPaint(tab, tab==='approvals'?ap:sg);
+    apInsPaint(W.rows);
     if(typeof insWatchWidth==='function') insWatchWidth();
   } else {
     document.querySelectorAll('[data-ap-open]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); apOpenSigning(b.getAttribute('data-ap-open')); }));
@@ -362,6 +361,6 @@ function renderApprovalsPage(){
   }
   setActiveNav('approvals');
 }
-Object.assign(window,{AP_TABS,apTab,apSetTab,apSaWaiting,apApprovalRows,apSignatureRows,approvalsDoorCount,renderApprovalsPage,apOpenSigning,
+Object.assign(window,{AP_TABS,apTab,apSetTab,apWorkRows,apRowTab,apWhyHtml,apTurnText,apKindHtml,apSaWaiting,apApprovalRows,apSignatureRows,approvalsDoorCount,renderApprovalsPage,apOpenSigning,
   apInsSeat,apLeadHtml,apInsActs,apInsPaint,apMayDecide,apDecide,
   AP_LATE_DAYS,apLate,apRowsShown,apUndo,apMayUndo,apApprovedPillHtml,apDoneLineHtml});

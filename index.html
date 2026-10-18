@@ -13153,6 +13153,20 @@
   .ap-body.is-ins .ap-card{min-height:0;overflow:auto;display:flex;flex-direction:column;}
   .ap-body.is-ins .ap-card > .ap-table{flex:none;}
   .ap-body.is-ins .ap-foot{margin-top:auto;position:sticky;bottom:0;background:var(--color-surface);}
+  /* ONE WORKLIST (round 15 of the redesign, owner picked "One worklist", 17 Oct
+     2026): approvals and signatures in one list, grouped by who owes the next
+     step, a Kind column instead of the two tabs; the band says how many are
+     yours and how many wait on others, Approval rules at its end. */
+  .ap-band{display:flex;align-items:center;gap:12px;min-height:38px}
+  .ap-facts{font-size:var(--t-meta);color:var(--color-neutral-600)}
+  .ap-band-sp{flex:1}
+  .ap-table tr.ap-grp td{padding:6px 12px;background:var(--surface-2);font-size:var(--t-meta);color:var(--color-neutral-700);border-top:1px solid var(--color-divider);border-bottom:1px solid var(--color-divider)}
+  .ap-table tr.ap-grp i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;vertical-align:0;background:var(--color-neutral-400)}
+  .ap-table tr.ap-grp.is-yours i{background:var(--st-amber-dot)}
+  .ap-table tr.ap-grp b{font-weight:var(--w-strong);color:var(--color-text)}
+  .ap-table tr.ap-grp .n{margin-left:8px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
+  .ap-kind{display:inline-flex;align-items:center;height:20px;padding:0 8px;border:1px solid var(--color-divider);border-radius:999px;font-size:11.5px;color:var(--color-text);background:var(--color-surface)}
+  .ap-kind.is-sig{background:var(--surface-2)}
   .ap-table.ap-ins{table-layout:fixed;}
   .ap-table.ap-ins th{position:sticky;top:0;z-index:1;background:var(--color-surface);text-transform:none;letter-spacing:0;
     font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600);}

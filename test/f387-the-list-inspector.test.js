@@ -444,7 +444,8 @@ describe('f387 (5) the Approvals & signing page', () => {
     const c = code(AP);
     assert.match(c, /const INS=\(typeof insFits==='function'\)&&insFits\(\)/);
     assert.match(c, /<aside id="ins-panel" class="ins-panel"/);
-    assert.match(c, /apInsPaint\(tab, tab==='approvals'\?ap:sg\)/);
+    /* RE-POINTED 17 Oct 2026 (round 15, "One worklist"): one list, both kinds */
+    assert.match(c, /apInsPaint\(W\.rows\)/);
     assert.match(c, /data-ins-page="approvals" data-ins="\$\{INS\?'1':'0'\}"/);
   });
   test('5b the lead act is the page’s own verb, and the row opens it on a second press', () => {

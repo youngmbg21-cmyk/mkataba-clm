@@ -30577,3 +30577,16 @@ The owner picked "Whose move" by name, answered "Yes" to its first question (cha
 - **KEPT, AND WHY.** The drawing put the pressed row's facts, checklist and two doors in Jambo's panel. Negotiations is a page of its own, not a Home place, and has no Jambo panel; the list inspector beside the table already holds the same facts and the same two doors (Negotiation · Workspace), so it stays.
 - Re-pointed: f184 and f387 (the group's words, the six column heads), inspector-verify 2a/2b/2c (the heads; the wait is the second-to-last cell; "Our move" tab), no-link-to-sign-verify 1a and negotiations-door-verify (the group's words).
 - Tests: f716 (red at the parent), whose-move-verify (red at the parent).
+
+## APPROVALS & SIGNING, "ONE WORKLIST" — ROUND 15 OF THE REDESIGN (17 Oct 2026)
+
+The owner picked "One worklist" by name. Its two questions went unanswered: the second ("the Approvals / Signatures tabs go, a Kind column replaces them") is what the pick itself means, so it was built; the first ("may the amber 'Your approval is asked for.' strip go from the panel?") is a removal of a band, which needs the owner's yes, so the strip STAYS.
+
+- **ONE LIST, NO TABS.** Approvals and signatures are drawn in one table: Ref · Counterparty and agreement · Kind (an Approval or Signature pill) · Why it waits (the rule, or what stands before the signature) · Whose turn · Waiting · Value. The old `?tab` doors (`AP_TABS`, `apTab`, `apSetTab`) are kept so links that name a tab still land; the page no longer draws the tab row.
+- **GROUPED BY WHO OWES THE NEXT STEP.** ONE reading, `apWorkRows`: "Yours to answer" — an approval asked of you, your own signature, an approval you raised and never sent, one you already answered (it stays with its Undo until it leaves) — then "Waiting on others". The band under the page's name counts the same two groups in the same words ("3 yours to answer · 1 waiting on others"); an admin's "Approval rules" door moved from the list's foot to the band's end, a small button so the band keeps Obligations' height (overview-and-obligations-polish 3a pins them equal).
+- **WHOSE TURN.** `apTurnText`: "You", "You sign", "You, to ask", else who the approval waits on. Every cell that can be cut carries its whole text on the hover.
+- **ITS OWN PANEL PER ROW.** The list inspector reads each row's own kind (`apRowTab`): a signature's row opens what stands before signing (no Approve), an approval's carries Approve and Refuse.
+- **A NAME CLASH, CAUGHT IN THE PHOTOS.** The group rows first wore the band's class name (`.ap-band`), so they took its `display:flex` and shrank to one column ("Yours …"). They are `.ap-grp` now; f717 4b pins the table never wearing the band's name.
+- **KEPT, AND WHY.** The drawing put the answer in Jambo's panel. Approvals & signing is a page of its own, not a Home place, and has no Jambo panel; the list inspector beside it holds the same facts and the same Approve · Refuse · doors, so it stays (as round 14 kept it on Negotiations). The stand-in wording the drawing showed ("Approve for Jonas") is When you're away's own (`awayByLabel`), untouched here.
+- Re-pointed: f387 5a (one list in, no tab).
+- Tests: f717 (red at the parent), one-worklist-verify (red at the parent).
