@@ -30636,3 +30636,16 @@ The owner picked "The SAP way" by name for Requests and My notes; the round aske
 - **THE PANEL'S HOLDER** adds "· sent by the NDA lane" where a lane routed it.
 - **KEPT, AND WHY.** The drawing moved the search and two filters into the band beside the tabs; the list keeps its search box and its Filter fold on the card's head (SAP batch 2), since moving them is not what the pick decided. "Oldest waiting first" was drawn as the card's note while the drawn rows ran newest first; the list keeps its newest-first order. The asker's own list and My notes are unchanged (the drawing's My notes is today's).
 - Tests: f721 (red at the parent), requests-sap-way-verify (red at the parent).
+
+## OUR PAPER'S BOOK, "PAPER FIRST" — ROUND 21 OF THE REDESIGN (17 Oct 2026)
+
+The owner picked "Paper first" by name. The round's one question — marks on the paper (small tags under a clause: meets one of Our standards / came back changed), "not a band, but new words on the paper. Wanted?" — went unanswered, so no marks were added.
+
+- **AN INDEX AND A PAPER.** The book's tab is an index of every template under its shelf (our own paper first, then HaTi's, the samples, theirs; `TPL_PF_SHELVES`), each row its name, version, how often used and stream, with "N changed" in amber where contracts drafted from it came back changed and "Draft" on a draft; a find box narrows it (the caret kept). Beside it, the chosen template's own paper under its name, version and facts (shelf · stream · used N times · N came back changed).
+- **THE ONE RENDERER.** The paper is `fillPreviewHtml` (→ `docBody`), the renderer the fill forms already use — never a second drawing. A sample is read once it is imported; a template whose paper cannot be drawn here says it is read in the builder.
+- **THE TEMPLATE'S OWN DOORS.** Draft a contract, Make it ours, Continue editing… — `tplPanelActs`, the list's verbs through the same functions; the rarer ⋯ menu stays on the list.
+- **THE SHELVES' TABLE** the book drew before (SAP batch 2) is kept whole in `tplBookShelvesHtml`, unused by the page; the head's three figures (In the book · Drafted from them · Came back changed) are unchanged.
+- **NOT BUILT, AND WHY.** The builder's redesign in this option (the paper filling the desk, Jambo's proposals on it, the outline as a panel tab) was not built tonight; the builder is unchanged. Named in the morning summary.
+- **THE CENSUS LEARNS A PAPER.** ink-wash's PAPER reading now knows `.tpl-pf-sheet` as it knows `.pg-sheet` (a template's paper wears the paper's own greys and capitals, as every paper does); re-recorded (fourteenth) and theme-tokens (sixth) under the standing yes, audited by key: nothing new to the product.
+- Re-pointed: f244 (7), f336 (2)(4) (the book is an index and a paper; the shelves' rows pinned in `tplBookShelvesHtml`), templates-tabs 9a/9b/9h/9i, keeps-your-place (every template whatever the window, the index and the paper), templates-cleaned-up 4f/4g (the name door brings the paper up).
+- Tests: f722 (red at the parent), paper-first-verify (red at the parent).

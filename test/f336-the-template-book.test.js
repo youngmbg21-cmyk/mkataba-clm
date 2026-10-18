@@ -171,9 +171,14 @@ describe('f336 (2) — the clothes follow the builder', () => {
      rows of one table instead of a wall of cards, and its two small cards
      are its own. What these pinned survives: one population, one name per
      panel, one hook per door. */
-  test('the wall still calls the card, and the book draws the same buckets as rows', () => {
+  /* RE-POINTED 18 Oct 2026 (round 21, "Paper first"): the book draws an
+     index and a paper (tplPfHtml); the shelves' rows are kept, whole, in
+     tplBookShelvesHtml — the claim (one population, one hook per door) holds
+     there. */
+  test('the wall still calls the card, and the shelves\' rows draw the same buckets', () => {
     assert.match(fnBody('tplOverviewHtml'), /tplOvCardHtml/);
-    assert.match(fnBody('tplBookHtml'), /d\.buckets\.filter\(b => b\.sec === cut/);
+    assert.match(fnBody('tplBookHtml'), /return tplPfHtml\(d\)/);
+    assert.match(fnBody('tplBookShelvesHtml'), /d\.buckets\.filter\(b => b\.sec === cut/);
     /* the card's hook, and the book row's — two drawings of one door */
     assert.equal((SRC.match(/data-tpl-ov-bucket="\$\{/g) || []).length, 2);
   });
@@ -181,8 +186,8 @@ describe('f336 (2) — the clothes follow the builder', () => {
   test('the two panels keep ONE name each, whichever shape draws them', () => {
     assert.equal((SRC.match(/function tplOvPanelsHtml\(/g) || []).length, 1);
     assert.match(fnBody('tplOverviewHtml'), /tplOvPanelsHtml\(d\)/);
-    assert.match(fnBody('tplBookHtml'), /TPL_OV_IDS\.used/);
-    assert.match(fnBody('tplBookHtml'), /TPL_OV_IDS\.att/);
+    assert.match(fnBody('tplBookShelvesHtml'), /TPL_OV_IDS\.used/);
+    assert.match(fnBody('tplBookShelvesHtml'), /TPL_OV_IDS\.att/);
     assert.equal((SRC.match(/'tpl-ov-attention'/g) || []).length, 1);
     assert.equal((SRC.match(/'tpl-ov-mostused'/g) || []).length, 1);
     assert.equal((SRC.match(/id="tpl-ov-attention"/g) || []).length, 0);
@@ -245,29 +250,34 @@ describe('f336 (3) — the glance, and the caveat on what it qualifies', () => {
    it out — js/section.js is untouched and still the Overview's). The book is
    ONE table of shelves with a Shelves | Value streams switch, each row a door
    onto the list, and the switch repaints the book, never the page. */
-describe('f336 (4) — the shelves are a table, each row a door', () => {
-  test('the book is one table, cut two ways by a switch', () => {
+/* RE-POINTED 18 Oct 2026 (round 21, the owner picked "Paper first"): the
+   book is an INDEX of templates on their shelves and the chosen one's PAPER,
+   drawn by the product's one renderer; the shelves' table is kept whole in
+   tplBookShelvesHtml (its switch and rows still pinned below). */
+describe('f336 (4) — the book is an index and a paper', () => {
+  test('the book is an index beside the chosen template\'s paper', () => {
     const s = stage();
     const html = book(s);
-    assert.match(html, /class="tpl-bk-table"/);
-    assert.match(html, /data-tpl-book-cut="library"/);
-    assert.match(html, /data-tpl-book-cut="stream"/);
+    assert.match(html, /class="tpl-book tpl-pf"/);
+    assert.match(html, /class="tpl-pf-idx"/);
+    assert.match(html, /class="tpl-pf-paper"/);
+    assert.match(s.tplBookShelvesHtml(s.tplOverviewData()), /class="tpl-bk-table"/, 'the shelves\' table is kept whole');
     assert.deepEqual(s.TPL_BOOK_SECS, ['library', 'stream', 'wants']);
+    assert.match(fnBody('tplPfPaperHtml'), /fillPreviewHtml\('builtin', \{ tid: card\.id \}\)/, 'the paper is the one renderer\'s');
   });
 
-  test('every shelf is a row and a door; an empty one says "none yet"', () => {
+  test('every template is a row and a door, under its shelf; an empty shelf is not drawn', () => {
     const s = stage();
     const html = book(s);
-    for (const k of ['company', 'cp', 'builtin', 'sample'])
-      assert.ok(html.includes(`data-tpl-ov-bucket="${k}"`), k + ' is a row');
-    assert.ok(!html.includes('data-tpl-ov-bucket="all"'), 'the whole book is the band\'s figure, not a shelf');
-    const bare = stage({ tplLibAll: () => ({ canManage: true, loaded: true, list: [] }) });
-    assert.match(book(bare), /none yet/, 'a shelf with nothing on it says so');
+    const cards = s.tplOverviewData().cards;
+    assert.equal((html.match(/data-tpl-pf="/g) || []).length, cards.length, 'a row per template');
+    assert.match(fnBody('tplPfGroups'), /\.filter\(g => g\.cards\.length\)/, 'a shelf with nothing on it is not a heading');
   });
 
   test('the switch and the rows are wired by the book\'s own wiring', () => {
     assert.match(fnBody('renderTemplatesPage'), /tplBookWire\(document\.querySelector\('\[data-tpl-sec="book"\]'\)\)/);
     assert.match(fnBody('tplBookWire'), /tplGoBucket/);
+    assert.match(fnBody('tplBookWire'), /_tplPf\.pick=b\.getAttribute\('data-tpl-pf'\)/);
     assert.match(fnBody('tplBookWire'), /_tplBookCut=/);
   });
 

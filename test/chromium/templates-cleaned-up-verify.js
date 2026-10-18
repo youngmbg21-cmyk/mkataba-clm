@@ -296,24 +296,28 @@ const SEED = () => {
     await pause(700);
     /* the page owns its height since 9 Oct 2026 and the tab scrolls inside
        itself, so on this deliberately short stage its CONTENT is measured */
+    /* RE-POINTED 18 Oct 2026 (round 21, "Paper first"): the book's name door
+       is each template's row in its index, and it brings that template's
+       paper up beside it */
     const bk = await page.evaluate(() => ({
-      doors: document.querySelectorAll('[data-tpl-sec="book"] [data-tpl-ov-card]').length,
+      doors: document.querySelectorAll('[data-tpl-sec="book"] [data-tpl-pf]').length,
       h: Math.round(document.querySelector('[data-tpl-sec="book"]').scrollHeight),
     }));
-    check('4f · the book draws the name door, and it is drawn in real pixels',
+    check('4f · the book draws a name door per template, and it is drawn in real pixels',
       bk.doors >= 1 && bk.h > 200, bk);
     await page.screenshot({ path: path.join(OUT, '03-health.png'), fullPage: true });
 
     /* pressing one lands on the table, narrowed */
     const landed = await page.evaluate(async () => {
-      const b = document.querySelector('[data-tpl-sec="book"] [data-tpl-ov-card]');
-      const name = b.getAttribute('data-tpl-ov-name');
+      const b = [...document.querySelectorAll('[data-tpl-sec="book"] [data-tpl-pf]')][1];
+      if (!b) return null;
+      const name = (b.querySelector('b') || {}).textContent || '';
       b.click();
       await new Promise(r => setTimeout(r, 400));
-      return { name, tab: tplPageTab(), q: (document.getElementById('tpl-search') || {}).value };
+      return { name, tab: tplPageTab(), title: (document.querySelector('.tpl-pf-h h2') || {}).textContent || '' };
     });
-    check('4g · and pressing it lands on the table, narrowed to that template',
-      landed.tab === 'list' && landed.q === landed.name, landed);
+    check('4g · and pressing it brings that template\'s paper up beside the index',
+      !!landed && landed.tab === 'book' && landed.title.indexOf(landed.name) === 0, landed);
 
     /* ============ 5 · A FILTER KEEPS THE READER'S PLACE =================== */
     await page.evaluate(() => { tplGoBucket('all'); });

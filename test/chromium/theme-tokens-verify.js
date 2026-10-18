@@ -29,6 +29,10 @@
    variables actually repaints the platform. A token nothing reads is not a
    token, and no census of the DEFAULT theme would ever notice.
 
+   RE-RECORDED 18 Oct 2026 (sixth), OWNER-ASKED (the overnight build, same
+   standing yes): Round 21, "Paper first" — the templates screen's book is an
+   index and a template's own paper, so its counts moved in both themes.
+   Audited by key: no colour new, none gone.
    RE-RECORDED 18 Oct 2026 (fifth), OWNER-ASKED (the overnight build, same
    standing yes): Round 16, "Week by week" — the calendar opens on this week
    by the hour with five more weeks under it, and the month draws Monday to
