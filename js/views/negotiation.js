@@ -9244,6 +9244,10 @@ function negoRoundLine(c){
 const NEGO_DEAD_STATUS = new Set(['Signed', 'Declined']);
 function negoIsLive(c){
   if (!c) return false;
+  /* A DEAL KEPT TO ITS LIST is not a live negotiation for anyone outside it
+     (round 14, the owner's "No" to listing it): its stand-in carries no
+     negotiation to read, and the list, its counts and the Board's say alike. */
+  if (c._codeNamed) return false;
   /* ---- A WORKING FILE LIVES HERE (26 Sep 2026, redline here, sign there) ----
      Opened to be negotiated and signed on their side, it is listed on
      Negotiations from the day it is opened — before a change is filed — until

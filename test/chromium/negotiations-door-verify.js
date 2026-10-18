@@ -351,11 +351,11 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
        fixed order and still a full-width row of its own. This stage has one
        live negotiation, waiting on this reader, so the one band is Waiting on
        you — asked of the ORDER the three always keep, never a count of three. */
-    const BAND_ORDER = [/Waiting on you/i, /other side/i, /Nothing outstanding/i];
+    const BAND_ORDER = [/Waiting on our side/i, /other side/i, /Nothing outstanding/i];
     const bandAt = b => BAND_ORDER.findIndex(re => re.test(b.k || ''));
     check('the bands with rows, in fixed order, each a full-width row of its own — and no empty one',
       list.bands.length >= 1
-        && /Waiting on you/i.test(list.bands[0].k || '')
+        && /Waiting on our side/i.test(list.bands[0].k || '')
         && list.bands.every((b, i) => bandAt(b) >= 0 && (i === 0 || bandAt(b) > bandAt(list.bands[i - 1])))
         && list.bands.every(b => b.w > 400 && Number(String(b.n || '').replace(/\D/g, '')) > 0),
       list.bands.map(b => `${b.k} ${b.n} ${b.w}px`).join(' · '));

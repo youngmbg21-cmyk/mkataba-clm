@@ -468,7 +468,10 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
     const bands = b.$$('#reg-tbody tr.ngl-band');
     assert.equal(bands.length, 3, 'one per group, always — an empty group is information');
     const k = bands.map(r => r.querySelector('.ngl-band-k').textContent.trim());
-    assert.deepEqual(k.join('|'), 'Waiting on you|With the other side|Nothing outstanding');
+    /* RE-POINTED 17 Oct 2026 (round 14, the owner picked "Whose move" and
+       said yes to "Our move"): the first group is our side's, whoever on it
+       leads (the Lead column says who). */
+    assert.deepEqual(k.join('|'), 'Waiting on our side|With the other side|Nothing outstanding');
     /* RE-POINTED IN PLACE 21 Sep 2026 (Young: the four pages must look exactly
        like the artifact) ---- the reference writes the count INTO the heading,
        "WAITING ON YOU · 3", so the element carries a separator beside the
