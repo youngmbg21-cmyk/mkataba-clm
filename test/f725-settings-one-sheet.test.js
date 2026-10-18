@@ -8,7 +8,8 @@
      (2) a switch or a choice changes IN ITS ROW — Jambo's suggestions, where
          a contract opens, the brief, the sidebar, the language — through the
          ONE writer its drawer uses too, with a passing 'ok'
-     (3) the forms that need several boxes keep their one door, the drawer
+     (3) the forms open in their row (re-pointed 18 Oct 2026: it was "keep
+         their one door, the drawer" — round 24 as drawn says "in place")
      (4) the contents list lights where it jumps; Jambo readies a setting in
          its row
      (5) the words, in both books
@@ -170,16 +171,20 @@ describe('f725 (2) a switch or a choice changes in its row', () => {
   });
 });
 
-describe('f725 (3) the forms that need several boxes keep their drawer', () => {
-  test('3a job title, password, two-step, devices, away, the points table, the download', () => {
+/* RE-POINTED 18 Oct 2026 (the gaps: round 24 as drawn, "Two-step sign-in and
+   When you're away open inside their row", every Change "Opens in place"): the
+   forms open IN THEIR ROW — the same descriptor the drawer paints — and Your
+   data's Download is your own copy, recorded. It was "keep their drawer". */
+describe('f725 (3) the forms open in their row', () => {
+  test('3a name, email, password, two-step, devices, away, the points table; the download', () => {
     const { win } = stage();
     const has = (k, sel) => !!win.document.querySelector(`[data-st-you-card="${k}"] ${sel}`);
-    assert.ok(has('who', '[data-st-panel="me:who"]'));
-    assert.ok(has('safety', '[data-st-panel="me:password"]') && has('safety', '[data-st-panel="me:safety"]'));
-    assert.ok(has('safety', '[data-st-panel="me:safety"][data-st-focus="#sessions-list"]'), 'devices open on the list');
-    assert.ok(has('away', '[data-st-panel="me:away"]'));
-    assert.ok(has('points', '[data-st-panel="me:points"]'));
-    assert.ok(has('data', '[data-st-backup]'));
+    assert.ok(has('who', '[data-st-rform="me:name"]') && has('who', '[data-st-rform="me:email"]'));
+    assert.ok(has('safety', '[data-st-rform="me:password"]') && has('safety', '[data-st-rform="me:twostep"]'));
+    assert.ok(has('safety', '[data-st-rform="me:sessions"]'), 'devices open on the list');
+    assert.ok(has('away', '[data-st-rform="me:away"]'));
+    assert.ok(has('points', '[data-st-rform="me:points"]'));
+    assert.ok(has('data', '[data-st-mycopy]'));
   });
 });
 

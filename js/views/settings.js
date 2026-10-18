@@ -2986,7 +2986,7 @@ function stJamboFocus(prefill){
   return true;
 }
 
-/* ---- THE SIDE PANEL, AS DRAWN (rounds 24, 25 and 26, the gaps of 18 Oct
+/* ---- THE SIDE PANEL: JAMBO, AS DRAWN (rounds 24, 25 and 26, the gaps of 18 Oct
    2026): Jambo's face and name, a word for what the panel holds ("Your
    settings", "Company settings", "Sales · stream", "Data & backup") and a
    fold to the right edge; his words and chips for the page in front; the ask

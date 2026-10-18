@@ -111,10 +111,13 @@ describe('f727 (1) Contract streams is a page', () => {
     assert.ok(pg, 'the page is drawn');
     assert.deepEqual([...pg.querySelectorAll('.st-sw-band .st-sw-f > span')].map(x => x.textContent), [S.en.st_sw_f_who, S.en.st_sw_f_keep, S.en.st_sw_f_find]);
     assert.deepEqual([...pg.querySelectorAll('.st-sw-tb thead th')].map(x => x.textContent),
-      ['st_sw_c_stream', 'st_sw_c_who', 'st_sw_c_contracts', 'st_sw_c_kept', 'st_sw_c_due', 'st_sw_c_held'].map(k => S.en[k]));
+      /* re-pointed 18 Oct 2026 (round 26 as drawn): the last column says "On hold" */
+      ['st_sw_c_stream', 'st_sw_c_who', 'st_sw_c_contracts', 'st_sw_c_kept', 'st_sw_c_due', 'st_sw_c_onhold'].map(k => S.en[k]));
     const rows = [...pg.querySelectorAll('.st-sw-row')];
     assert.equal(rows.length, fids(sb).length);
-    assert.ok(rows.every(r => /^stream:/.test(r.getAttribute('data-st-panel'))), 'a row opens the stream\'s own page');
+    /* re-pointed 18 Oct 2026 (round 26 as drawn): a press SHOWS the stream in
+       the side panel; Enter or a double press opens its page (f781) */
+    assert.ok(rows.every(r => fids(sb).includes(r.getAttribute('data-st-sw-pick'))), 'a row shows its stream beside the list');
     const add = pg.querySelector('.st-pg-head [data-st-panel="folders"]');
     assert.ok(add && add.getAttribute('data-st-focus') === '#st-folder-new', '+ New stream opens the add box');
   });

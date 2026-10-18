@@ -158,7 +158,9 @@ const OLD_PAGE = [
   { name: 'my active sessions', where: 'you', me: 'safety', has: ['sessions-list'] },
   /* 'my sidebar preference' LEFT 18 Oct 2026 (owner's yes): a computer draws
      no left sidebar; it is on SET_CLOSURES ('sidebar'), and the phone keeps its own */
-  { name: 'my own backup export', where: 'you', sel: '[data-st-you-card="data"] [data-st-backup]' },
+  /* re-pointed 18 Oct 2026 (round 24 as drawn): Your data's Download is your
+     own copy, taken by the server and recorded before it leaves */
+  { name: 'my own backup export', where: 'you', sel: '[data-st-you-card="data"] [data-st-mycopy]' },
   { name: 'what HaTi emails me (read-only, honest)', where: 'you', me: 'told', textKey: 'set_still_emailed' },
 ];
 
@@ -167,7 +169,7 @@ const OLD_PAGE = [
 const NON_ADMIN_COULD = [
   { name: 'edit their own job title', home: 'account', me: 'who', has: ['acct-title', 'acct-title-save'] },
   { name: 'set their sidebar preference', home: 'closed', closure: 'sidebar' },   /* 18 Oct 2026, owner's yes */
-  { name: 'export their own backup', home: 'account', sel: '[data-st-backup]' },
+  { name: 'export their own backup', home: 'account', sel: '[data-st-mycopy]' },   /* round 24 as drawn, 18 Oct 2026 */
   { name: 'see and revoke their own sessions', home: 'account', me: 'safety', has: ['sessions-list'] },
   { name: 'read what HaTi emails them', home: 'account', me: 'told', textKey: 'set_still_emailed' },
   { name: 'an Editor may change the company design', home: 'account-legal', me: 'design', has: ['brand-edit'] },
