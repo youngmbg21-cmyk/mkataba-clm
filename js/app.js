@@ -435,10 +435,7 @@ function pageActionHtml(kind){
    view, so the page title was the one row between the brain and the screen. */
 /* 'customers' draws its own head in its white band (its name, figures and Draft new agreement, 10 Oct 2026);
    'directory' the same since it became the wall of faces (13 Oct 2026). */
-/* 'team' and 'migration' joined 18 Oct 2026: Jambo's panel beside them runs to
-   the top (pageDockSet), so the name is drawn in the page's own white band,
-   left of the panel, at the same glyph top. */
-const PAGE_OWNS_HEADER = ['counter', 'dashboard', 'redline', 'workspace', 'templates', 'calendar', 'mynotes', 'brain', 'customers', 'jambo', 'directory', 'team', 'migration'];
+const PAGE_OWNS_HEADER = ['counter', 'dashboard', 'redline', 'workspace', 'templates', 'calendar', 'mynotes', 'brain', 'customers', 'jambo', 'directory'];
 /* ---- WHOSE PAGE OWNS ITS OWN HEIGHT, AND THEREFORE NEEDS NO SCROLLBAR
    RESERVED (owner-reported 25 Aug 2026, off three screenshots of the top-right
    corner: "the top card on the right corner … is leaving space in the corner.
@@ -478,89 +475,6 @@ function paintScrollGutter(view){
   const sc = typeof document !== 'undefined' && document.getElementById('content-scroll');
   if(!sc || !sc.classList) return;
   sc.classList.toggle('view-fixed', VIEW_OWNS_HEIGHT.includes(view));
-}
-/* ---- JAMBO'S PANEL BESIDE A PAGE (owner, 18 Oct 2026, off Settings and
-   Home's Contracts place side by side: "make sure that the jambo panel
-   resembles how the panel in image 2 is designed. The panel goes to the top
-   and you have a slider that you can pull left to right") ----
-   A page that keeps Jambo beside it (Settings, Import) hands its panel to
-   #page-dock, a column of #body-grid beside #content-scroll: it runs from
-   under the desk tabs to the window's foot, flush right, while the page goes
-   on scrolling in #content-scroll exactly as before (THE TWO SCROLLS: the
-   landing, keepScroll, settingsHoldHeights and the refresh's place all read
-   that scroller), its scrollbar on the near side of the panel as on Home.
-   THE DIVIDER IS HOME'S: its clothes (.ig-resizer), its floors (igDockClamp)
-   and its stored width (IG_SPLIT_KEY), so Jambo's panel is as wide on every
-   page as the reader last dragged it on any. setView takes the panel down
-   before every paint and the page that wants it puts it back; a page painted
-   while another view is up (a late answer) never docks. No shell (a test
-   stage) answers false, and the page draws its panel inline as it always did. */
-const PAGE_DOCK_KEY = () => window.IG_SPLIT_KEY || 'hati.v1.igDockW';
-function pageDockPref(){ try{ const v=Number(localStorage.getItem(PAGE_DOCK_KEY())); return v>0&&isFinite(v)?Math.round(v):null; }catch(_){ return null; } }
-function pageDockSave(w){ try{ if(w==null) localStorage.removeItem(PAGE_DOCK_KEY()); else localStorage.setItem(PAGE_DOCK_KEY(),String(Math.round(w))); }catch(_){} }
-function pageDockClamp(want, avail){
-  if(typeof window.igDockClamp==='function') return window.igDockClamp(want, avail);
-  const w=Math.max(Number(want)||380, 340);
-  return Math.round(avail>760?Math.min(w, avail-420):w);
-}
-function pageDockFit(){
-  const d=document.getElementById('page-dock'), bg=document.getElementById('body-grid'), rz=document.getElementById('page-dock-rz');
-  if(!d||d.hidden||!bg) return;
-  const avail=bg.clientWidth, w=pageDockClamp(pageDockPref()??(window.IG_DOCK_W0||380), avail);
-  d.style.width=w+'px';
-  if(!rz) return;
-  const min=window.IG_DOCK_MIN||340, left=window.IG_LEFT_MIN||420;
-  const atMin=w<=min, atMax=avail>=left+min&&w>=avail-left;
-  if(atMin||atMax) rz.setAttribute('data-at-limit',atMin?'min':'max'); else rz.removeAttribute('data-at-limit');
-  rz.setAttribute('aria-valuenow',String(w));
-}
-/* Home's drag, word for word (igWireSplit): the POINTER'S POSITION with the
-   grab kept, a cancel lets go like a lift, double-click / Home / Enter put it
-   back, the arrows step it. Bound once; the panel's insides repaint freely. */
-function pageDockWire(){
-  const rz=document.getElementById('page-dock-rz'), bg=document.getElementById('body-grid');
-  if(!rz||!bg||rz.dataset.pdkBound) return;
-  rz.dataset.pdkBound='1';
-  let grabDx=0;
-  const widthAt=x=>{ const r=bg.getBoundingClientRect(); return pageDockClamp(r.right-(x+grabDx), bg.clientWidth); };
-  const onMove=e=>{ const x=(e.touches&&e.touches[0])?e.touches[0].clientX:e.clientX; pageDockSave(widthAt(x)); pageDockFit(); };
-  const onUp=()=>{ delete rz.dataset.drag; document.body.style.cursor=''; document.body.style.userSelect='';
-    window.removeEventListener('pointermove',onMove); window.removeEventListener('pointerup',onUp); window.removeEventListener('pointercancel',onUp); };
-  rz.addEventListener('pointerdown',e=>{ e.preventDefault(); rz.dataset.drag='1';
-    grabDx=rz.getBoundingClientRect().left-e.clientX;
-    document.body.style.cursor='col-resize'; document.body.style.userSelect='none';
-    window.addEventListener('pointermove',onMove); window.addEventListener('pointerup',onUp); window.addEventListener('pointercancel',onUp); });
-  rz.addEventListener('keydown',e=>{
-    if(e.key==='Home'||e.key==='Enter'){ e.preventDefault(); pageDockSave(null); pageDockFit(); return; }
-    const step=Math.max(8,Math.round(bg.clientWidth*0.02));
-    const dx=e.key==='ArrowLeft'?step:e.key==='ArrowRight'?-step:0;   /* left widens the panel */
-    if(!dx) return;
-    const d=document.getElementById('page-dock');
-    e.preventDefault(); pageDockSave(pageDockClamp(((d&&d.offsetWidth)||0)+dx, bg.clientWidth)); pageDockFit();
-  });
-  rz.addEventListener('dblclick',()=>{ pageDockSave(null); pageDockFit(); });
-  window.addEventListener('resize',()=>pageDockFit());
-}
-/* Puts `html` in the panel beside the page `view` and shows it; false when
-   there is no shell or `view` is not the page up — the caller draws inline. */
-function pageDockSet(view, html){
-  if(typeof document==='undefined' || !state || state.view!==view) return false;
-  const d=document.getElementById('page-dock'), inner=document.getElementById('page-dock-in'), bg=document.getElementById('body-grid'), rz=document.getElementById('page-dock-rz');
-  if(!d||!inner||!bg) return false;
-  inner.innerHTML=html;
-  d.dataset.view=view; d.hidden=false;
-  bg.style.gridTemplateColumns='minmax(0,1fr) auto';
-  if(rz){ const say=i18t('int_drag_width'); rz.setAttribute('aria-label',say); rz.title=say;
-    rz.setAttribute('aria-valuemin',String(window.IG_DOCK_MIN||340)); }
-  pageDockWire(); pageDockFit();
-  return true;
-}
-function pageDockClear(){
-  const d=typeof document!=='undefined'&&document.getElementById('page-dock');
-  if(!d||d.hidden) return;
-  d.hidden=true; delete d.dataset.view; d.style.width='';
-  const inner=document.getElementById('page-dock-in'); if(inner) inner.innerHTML='';
-  const bg=document.getElementById('body-grid'); if(bg) bg.style.gridTemplateColumns='1fr';
 }
 /* 'calendar' joined on 22 Aug 2026 with the mock-up's own head: the page
    draws a one-line white band carrying its title, how many decisions fall
@@ -1382,8 +1296,6 @@ function setView(view){
   state.view=view;
   /* the desk tabs' row is drawn before the page, so a page that measures its height measures it with the row in place (Round 2) */
   if(window.deskTabsPaint) try{ deskTabsPaint(); }catch(_){}
-  /* Jambo's panel beside a page is that page's: down before every paint, put back by the page that keeps one (pageDockSet) */
-  pageDockClear();
   try{
     if(view==='dashboard') renderDashboard();
     else if(view==='folder') renderFolder();
@@ -4520,6 +4432,6 @@ if (typeof window !== 'undefined' && window.addEventListener){
   window.addEventListener('afterprint', clearPrintRoot);
 }
 
-Object.assign(window,{pageDockSet,pageDockClear,pageDockFit,shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,notesPanelShowing,notesPanelFollow,
+Object.assign(window,{shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,notesPanelShowing,notesPanelFollow,
   buildAlerts,alertCount,updateAlertBadge,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

@@ -1227,19 +1227,12 @@ function renderMigration(){
       <div style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500);margin-top:6px">${label}</div></${tag}>`; };
   const selStyle='font:inherit;font-size:var(--field-size);height:var(--field-h);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x);color:inherit;cursor:pointer';
 
-  /* JAMBO BESIDE THE PAGE, TO THE TOP (owner, 18 Oct 2026): the panel is the
-     shell's column (pageDockSet, js/app.js) on Home's divider; inline only
-     where there is no shell to dock in */
-  const sideHtml=`<aside class="mig-side" id="mig-side" aria-label="${migEsc(i18t('mig_side_label'))}"></aside>`;
-  const docked=typeof pageDockSet==='function'&&pageDockSet('migration', sideHtml);
   document.getElementById('content').innerHTML=`
   <div class="view-enter sap-page mig-page" style="padding:0 var(--page-pad-x) var(--s-4)">
     ${''/* THE WHITE BAR, FOR CONTINUITY (owner, 9 Oct 2026, SAP benchmark batch
            2): the page's name sits on the same white band as every other page,
-           closed by its rule; nothing below it changes. Since 18 Oct 2026 the
-           name is drawn IN the band ('migration' is on PAGE_OWNS_HEADER), so
-           the panel beside the page can run to the top. */}
-    <div class="sap-band sap-band-close mig-band"><h1 class="mig-t">${migEsc(i18t('nav_import'))}</h1></div>
+           closed by its rule; nothing below it changes. */}
+    <div class="sap-band sap-band-close" aria-hidden="true"></div>
     <style>
       .mig-table{width:100%;border-collapse:collapse;font-size:var(--t-body)}
       .mig-table th{text-align:left;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500);padding:var(--s-3) 14px;border-bottom:1px solid var(--color-divider);white-space:nowrap;background:var(--color-neutral-100)}
@@ -1267,11 +1260,6 @@ function renderMigration(){
       ${''/* JAMBO'S PANEL BESIDE THE LIST (round 22, "The SAP way") — the list
              and the panel side by side; on a narrow window the panel follows */}
       .mig-cols{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:var(--s-3);align-items:start}
-      .mig-cols.is-docked{grid-template-columns:minmax(0,1fr)}
-      ${''/* docked: the shell's column draws the edge; the card stands down */}
-      #page-dock .mig-side{position:static;flex:1;min-height:0;max-height:none;border:0;border-radius:0;box-shadow:none}
-      .sap-page > .sap-band.mig-band{height:auto;padding-top:var(--page-pad-t);padding-bottom:var(--s-3)}
-      .mig-t{margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;line-height:1.2;color:var(--color-text)}
       @media (max-width:1180px){ .mig-cols{grid-template-columns:minmax(0,1fr)} }
       .mig-side{position:sticky;top:var(--s-3);display:flex;flex-direction:column;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;max-height:calc(100vh - 140px)}
       @media (max-width:1180px){ .mig-side{position:static;max-height:none} }
@@ -1308,7 +1296,7 @@ function renderMigration(){
       .mig-table tbody tr:focus-visible{outline:2px solid var(--focus-color);outline-offset:-2px}
       #mig-drop.dragover{border-color:var(--color-accent);background:var(--st-steel-bg)}
     </style>
-    <div class="mig-cols${docked?' is-docked':''}">
+    <div class="mig-cols">
     <div class="mig-main" style="display:flex;flex-direction:column;gap:var(--s-3)">
 
       <!-- KPI strip -->
@@ -1424,7 +1412,7 @@ function renderMigration(){
         ${recon.extra?`<p style="font-size:var(--t-meta);color:var(--st-amber-fg);margin:${recon.missing.length?'8px':'0'} 0 0">${recon.extra} imported file${recon.extra===1?'':'s'} had no manifest row — worth confirming they belong in this migration.</p>`:''}
       </section>`:''}
     </div>
-    ${docked?'':sideHtml}
+    <aside class="mig-side" id="mig-side" aria-label="${migEsc(i18t('mig_side_label'))}"></aside>
     </div>
   </div>`;
 
