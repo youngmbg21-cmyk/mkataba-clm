@@ -181,6 +181,8 @@ function hbS(){
       .map(x => ({ id: x.id.slice(0, 80), page: ['ov', 'where', 'hist', 'details'].includes(x.page) ? x.page : 'ov', kept: !!x.kept,
         day: /^\d{4}-\d{2}-\d{2}$/.test(String(x.day || '')) ? x.day : '', at: String(x.at || '').slice(0, 8) }))
       .filter(x => x.kept || x.day === hbToday());
+    /* the contract's page on the desk comes back with its strip (round 7) */
+    if (typeof v.card === 'string' && s.strips.some(x => x.id === v.card)) s.card = v.card;
     { const ck = s.path.filter(k => /^c:/.test(k));
       if (ck.length){ const id = ck[ck.length - 1].slice(2);
         if (id && !s.strips.some(x => x.id === id)) s.strips.unshift({ id, page: 'ov', kept: false, day: hbToday(), at: '' });
@@ -5686,6 +5688,9 @@ function hbGridBalanced(html){
 }
 /* ---- THE BOARD ---- */
 function hbBoardHtml(){
+  /* A CONTRACT BROUGHT UP IS A PAGE ON THE DESK (round 7, "Read down"): the
+     card alone, none of the Board's own furniture */
+  if (typeof window.bsCardId === 'function' && window.bsCardId() && typeof window.bsStripsHtml === 'function') return window.bsStripsHtml();
   /* THE CONTRACT'S VIEWS ARE GONE (owner, 15 Oct 2026: "the whole page needs
      to go as they are redundant": History is on the contract's strip,
      Obligations has its own tab in Jambo's panel, Your book was useless).
@@ -6881,7 +6886,11 @@ function hbPaintHead(){
   const track = document.querySelector('#hb-head .hb-faces'); if (track) track.style.setProperty('--hb-fi', String(Math.max(0, HB_FACES.indexOf(s.face))));
   document.querySelectorAll('[data-hb-screen]').forEach(b => b.setAttribute('aria-pressed', String(b.getAttribute('data-hb-screen') === hbScreenNow())));
   const gb = document.getElementById('hb-groupby'); if (gb) gb.hidden = s.face !== 'explorer';
-  const scr = document.querySelector('#hb-head .hb-scr'); if (scr) scr.hidden = s.face !== 'board';
+  /* a contract's page on the desk (round 7) is not the Board: its screen and Present are the Board's */
+  const card = s.face === 'board' && typeof window.bsCardId === 'function' && !!window.bsCardId();
+  const scr = document.querySelector('#hb-head .hb-scr'); if (scr) scr.hidden = s.face !== 'board' || card;
+  const pres = document.getElementById('hb-present'); if (pres) pres.hidden = card;
+  const pg0 = hbPage(); if (pg0) pg0.classList.toggle('hb-on-card', card);
   const chip = document.querySelector('.hb-counting');
   if (chip){ const h = hbCountChipHtml(); if (chip.innerHTML !== h) chip.innerHTML = h; }
   /* the face turned: it is the tab in front now (Round 2) */
@@ -7038,7 +7047,11 @@ function hbSetFace(f){
   if (!HB_FACES.includes(f)) return;
   const s = hbS(); if (s.face === f) return;
   const kb = document.activeElement && document.activeElement.getAttribute && document.activeElement.getAttribute('data-hb-face') != null;
-  s.face = f; hbSave();
+  s.face = f;
+  /* TURNING TO THE BOARD IS THE BOARD (round 7): a contract's page shown on
+     the Board's side is let go; hbStripBring sets it again after the turn */
+  if (f === 'board') s.card = null;
+  hbSave();
   /* a presentation carries on across the turn; the pen's marks were drawn
      over the other side, so they go */
   if (_hbPresenting){ _hbStroke = null; hbInkClear(); }

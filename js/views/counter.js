@@ -61,6 +61,8 @@ function deskKeyNow(){
   if (v === 'dashboard'){
     const f = (typeof hbFace === 'function') ? hbFace() : 'board';
     if (f === 'paper'){ const c = (typeof pdContract === 'function') ? pdContract() : null; return c ? 'c:' + c.id : 'home:contracts'; }
+    /* a contract brought up is its own page, on its contract's tab (round 7) */
+    if (f === 'board' && typeof window.bsCardId === 'function'){ const id = window.bsCardId(); if (id) return 'c:' + id; }
     return DK_HOME_FACE[f] || 'home:board';
   }
   if (v === 'workspace' || v === 'doc') return state.activeId ? 'c:' + state.activeId : null;
@@ -98,8 +100,11 @@ function deskTabsSync(){
   _dkNoteT = setTimeout(() => {
     const k = deskKeyNow();
     if (k){
-      const L = dkTabs(); const t = L.find(x => x.k === k);
-      if (t) t.at = Date.now(); else L.push({ k, at: Date.now() });
+      const L = dkTabs(); let t = L.find(x => x.k === k);
+      if (t) t.at = Date.now(); else { t = { k, at: Date.now() }; L.push(t); }
+      /* ONE TAB PER CONTRACT, two ways to read it (round 7): it remembers
+         whether its page or its paper was in front */
+      if (k.startsWith('c:')) t.view = (typeof window.bsCardId === 'function' && window.bsCardId() && state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'board') ? 'card' : 'paper';
       dkSave(L);
     }
     deskTabsPaint();
@@ -162,7 +167,11 @@ function deskTabOpen(k){
     if (f === 'calendar' && typeof hbOpenCalendar === 'function'){ hbOpenCalendar(); return true; }
     if (f === 'explorer' && typeof hbOpenExplorer === 'function'){ hbOpenExplorer(); return true; }
     if (typeof hbS !== 'function') return false;
-    if (state.view === 'dashboard' && typeof hbSetFace === 'function' && document.getElementById('hb-head')){ hbSetFace('board'); deskTabsSync(); return true; }
+    /* the Board tab is the Board, not a contract's page on it (round 7) */
+    const left = (typeof window.bsCardLeave === 'function') && window.bsCardLeave();
+    if (state.view === 'dashboard' && typeof hbSetFace === 'function' && document.getElementById('hb-head')){
+      if (left && hbFace() === 'board' && typeof hbPaintBoard === 'function') hbPaintBoard(); else hbSetFace('board');
+      deskTabsSync(); return true; }
     const s = hbS(); s.face = 'board'; if (typeof hbSave === 'function') hbSave();
     if (typeof setView === 'function') setView('dashboard');
     return true;
@@ -170,6 +179,8 @@ function deskTabOpen(k){
   if (k.startsWith('c:')){
     const c = (typeof getContract === 'function') ? getContract(k.slice(2)) : null;
     if (!c){ deskTabClose(k); return false; }
+    const t = dkTabs().find(x => x.k === k);
+    if (t && t.view === 'card' && typeof hbStripBring === 'function' && hbStripBring(c.id)) return true;
     if (typeof pdOpenOnHome === 'function'){ pdOpenOnHome(c.id, 'copilot'); return true; }
     if (typeof openWorkspace === 'function'){ openWorkspace(c.id); return true; }
     return false;
@@ -185,6 +196,8 @@ function deskTabOpen(k){
 function deskTabClose(k){
   const L = dkTabs(); const i = L.findIndex(t => t.k === k); if (i < 0) return;
   const wasNow = deskKeyNow() === k;
+  /* a contract's page put away is let go, as its own × did (round 7) */
+  if (L[i].view === 'card' && typeof bsStripClose === 'function') bsStripClose(k.slice(2));
   L.splice(i, 1); dkSave(L);
   if (wasNow){
     const next = L.slice().sort((a, b) => (b.at || 0) - (a.at || 0))[0];

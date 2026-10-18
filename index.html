@@ -9269,6 +9269,35 @@
   #pd-fillface .pd-ff-seg button[aria-pressed="true"]{background:var(--accent-fill);border-color:var(--accent-fill);color:#fff;font-weight:var(--w-title)}
   #pd-fillface .pd-ff-seg button:disabled{opacity:.55;cursor:default}
   #pd-fillface .pd-ff-ro{font-size:11.5px;color:var(--color-neutral-600);line-height:1.45}
+  /* OWED FIRST (round 8 of the redesign, 17 Oct 2026): one worklist. The painters' hosts are laid flat
+     (display:contents) and each row is placed by its mark (data-pd-owed, pdFillMark): what is owed under
+     "Still to fill", the answered ones behind one fold, then the document, then the stream */
+  #pd-fillface .pd-ff-work > .pd-ff-h{order:0}
+  #pd-fillface .pd-ff-work :is(#det-basics, #det-basics .det-grid, #pd-fill, #pd-fill > div, #pd-fill details.pd-fill-done, #pd-fill details.pd-fill-done > div){display:contents}
+  #pd-fillface .pd-ff-work #pd-fill > div:first-child:not(:has(label)), #pd-fillface .pd-ff-work #pd-fill details.pd-fill-done > summary, #pd-fillface .pd-ff-work #det-basics .det-card-t{display:none}
+  #pd-fillface .pd-ff-work #pd-fill > div > *{order:3}
+  #pd-fillface .pd-ff-work #pd-fill > div > div:not(.tplf-foot){display:none}
+  #pd-fillface .pd-ff-work > .pd-ff-owh{order:1;display:flex;align-items:center;gap:8px;margin-top:2px}
+  #pd-fillface .pd-ff-work > .pd-ff-owh:empty, #pd-fillface .pd-ff-work > .pd-ff-fdh:empty, #pd-fillface .pd-ff-work > .pd-ff-doc:empty{display:none}
+  #pd-fillface .pd-ff-work #det-basics .det-card-h{order:1;display:flex;justify-content:flex-end;margin:-6px 0 0}
+  #pd-fillface .pd-ff-work :is(#det-basics .cd-fld, #pd-fill label){order:2}
+  #pd-fillface .pd-ff-work :is(#det-basics .cd-fld, #pd-fill label)[data-pd-owed="0"]{order:5}
+  #pd-fillface .pd-ff-work:not(.is-filled-open) [data-pd-owed="0"]{display:none}
+  #pd-fillface .pd-ff-work > .pd-ff-fdh{order:4;border-top:1px solid var(--color-divider);padding-top:10px}
+  #pd-fillface .pd-ff-work > .pd-ff-doc{order:6;display:flex;flex-direction:column;gap:4px;padding-top:12px;border-top:1px solid var(--color-divider);font-size:12.5px;color:var(--color-neutral-600);line-height:1.45}
+  #pd-fillface .pd-ff-work #pd-fill .tplf-foot{order:6}
+  #pd-fillface .pd-ff-work > .pd-ff-stream{order:8}
+  #pd-fillface :is(.pd-ff-owh, .pd-ff-doc) h4{margin:0;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text)}
+  #pd-fillface .pd-ff-cnt{display:inline-grid;place-items:center;min-width:20px;height:18px;padding:0 6px;border-radius:999px;background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:11px;font-weight:var(--w-strong)}
+  #pd-fillface .pd-ff-cnt.is-ok{background:var(--st-green-bg);color:var(--st-green-fg)}
+  #pd-fillface .pd-ff-fdh .pd-ff-cnt{background:var(--st-gray-bg);color:var(--st-gray-fg)}
+  #pd-fillface .pd-ff-fold{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;cursor:pointer;font-size:var(--t-body);color:var(--color-text)}
+  #pd-fillface .pd-ff-fold b{font-weight:var(--w-strong)}
+  #pd-fillface .pd-ff-fold small{flex:1;min-width:0;font-size:12px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #pd-fillface .pd-ff-fold i{font-style:normal;color:var(--color-neutral-600)}
+  #pd-fillface .pd-ff-fold:focus-visible{outline:2px solid var(--accent-fill);outline-offset:2px;border-radius:var(--radius)}
+  .det-nda-read{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;font-size:var(--t-body)}
+  .det-nda-sug{font-size:12px;color:var(--color-neutral-600)}
   /* THE WALL'S GREETING AND DROP AREA, AND A CONTRACT AT A GLANCE (steps 4 and 5): at the top of Jambo's tab on Home's Document face */
   #ig-dock .pd-wall{display:flex;flex-direction:column;gap:12px}
   #ig-dock .pd-drop{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:22px 16px;border:1px dashed var(--accent-fill);border-radius:var(--radius-lg);background:color-mix(in srgb, var(--accent-fill) 6%, var(--color-surface));color:var(--color-text);font-size:12.5px;transition:background var(--dur-1)}
@@ -9417,6 +9446,25 @@
   #pd-signface .pd-sf-wrap{padding:12px 15px;border-bottom:1px solid var(--color-divider)}
   #pd-signface .pd-sf-foot, #pd-amendface .pd-sf-foot{flex:none;padding:10px 14px 12px;border-top:1px solid var(--color-divider);background:var(--color-surface)}
   #pd-signface .pd-sf-foot:has(#sign-wrap:empty){display:none}
+  /* THE ROAD (round 10 of the redesign, 17 Oct 2026): the way to "signed" as stops down the face, the
+     column's body open under the stop it is at, the Sign button in the stop of the person whose turn it
+     is; the face scrolls as one, its head staying in sight */
+  #pd-signface .pd-sf.is-road{overflow-y:auto}
+  #pd-signface .pd-sf.is-road > .pd-sf-h{position:sticky;top:0;z-index:2;background:var(--color-surface);order:0}
+  #pd-signface .pd-sf.is-road > .pd-sf-body.sign-one{flex:none;overflow:visible;min-height:auto;margin:0 0 4px 30px;border-left:2px solid var(--st-amber-line)}
+  #pd-signface .pd-sf.is-road > .pd-sf-foot{position:static;margin:0 0 4px 30px;border-top:0}
+  #pd-signface .pd-road-w{display:contents}
+  #pd-signface .pd-road-stop{display:flex;gap:10px;align-items:flex-start;padding:10px 14px 8px;position:relative}
+  #pd-signface .pd-road-stop::before{content:"";position:absolute;left:24px;top:30px;bottom:-8px;width:2px;background:var(--color-divider)}
+  #pd-signface .pd-road-stop.is-last::before{display:none}
+  #pd-signface .pd-road-stop.is-done::before{background:var(--st-green-line)}
+  #pd-signface .pd-road-dot{flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:11px;font-weight:var(--w-strong);background:var(--color-surface);border:2px solid var(--color-divider);color:var(--color-neutral-600);position:relative;z-index:1}
+  #pd-signface .pd-road-stop.is-done .pd-road-dot{background:var(--st-green-bg);border-color:var(--st-green-line);color:var(--st-green-fg)}
+  #pd-signface .pd-road-stop.is-now .pd-road-dot{background:var(--st-amber-bg);border-color:var(--st-amber-line);color:var(--st-amber-fg)}
+  #pd-signface .pd-road-t{display:flex;flex-direction:column;gap:2px;min-width:0}
+  #pd-signface .pd-road-t b{font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text)}
+  #pd-signface .pd-road-stop.is-later .pd-road-t b{font-weight:var(--w-label);color:var(--color-neutral-700)}
+  #pd-signface .pd-road-t small{font-size:12px;color:var(--color-neutral-600);line-height:1.45}
   #pd-signface .pd-sf-foot #sign-wrap > p{margin-bottom:0}
   #pd-body .pd-ob.is-chosen{box-shadow:inset 3px 0 0 var(--accent-ink);background:var(--color-accent-50)}
   /* AMEND, BESIDE THE PAPER (owner, 15 Oct 2026): the face wears the Before you sign frame; the paper's marks are painted, never stored */
@@ -10219,6 +10267,17 @@
   .bs-seg-term.is-open{fill:rgba(var(--hb-gw),.25)}
   .bs-seg-notice{fill:var(--hb-amber)}
   .bs-seg-renew{fill:rgba(var(--hb-gw),.14)}
+  /* ROUND 7, "READ DOWN" (17 Oct 2026): a contract brought up is a page on the
+     desk — its head is the page's (the name the page's size, no × of its own:
+     the desk tab puts it away); the renewal the line already drew is named in
+     the legend; a signed amendment is a diamond on the bar */
+  .bs-sw-renew{background:rgba(var(--hb-gw),.14);border:1px dashed rgba(var(--hb-gw),.6)}
+  .bs-seg-renew{stroke:rgba(var(--hb-gw),.55);stroke-width:1;stroke-dasharray:3 2}
+  .bs-chart .bs-amd{fill:var(--hb-menu);stroke:var(--hb-glow);stroke-width:1.6}
+  .bs-on-desk .bs-head{padding-top:14px;padding-bottom:14px}
+  .bs-on-desk .bs-head .hb-ct{font-size:var(--t-page);font-weight:var(--w-title)}
+  .bs-on-desk .bs-head .bs-ref{font-size:var(--t-body)}
+  .ov-amd{display:block;color:var(--color-neutral-600);font-size:var(--t-meta)}
   .bs-occ{stroke:var(--hb-menu);stroke-width:2}
   .bs-occ.is-ours{fill:var(--bs-ours)}
   .bs-occ.is-theirs{fill:var(--bs-theirs)}

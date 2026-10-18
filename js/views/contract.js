@@ -7121,7 +7121,11 @@ function ktFieldCell(c,k,edit,marks){
         const door=(!PORTAL_MODE&&window.bsPayMay&&bsPayMay(c))?` <button type="button" class="ui-link" data-ov-pay-edit="${esc(c.id)}">${esc(i18t('bs_pay_edit'))}</button>`:'';
         return [i18t('ov_f_pay'), `<span class="ov-pay-read">${read||'—'}${door}</span>`];
       }
-      const read=R.monetary?(R.money?mono(R.money):''):esc(i18t('ct_non_monetary'));
+      /* AS AMENDED (round 7, owner's yes, 17 Oct 2026): a signed amendment that
+         set the value governs the figure shown, the signed one said beside it
+         — the same reading as the life line's Value (effectiveTerm) */
+      let am=null; try{ const e=(!edit&&window.effectiveTerm)?effectiveTerm(c,'value'):null; if(e&&e.from&&Number(e.v)>0&&Number(e.v)!==Number(c.value)) am=e; }catch(_){ am=null; }
+      const read=R.monetary?(R.money?(am&&window.effectiveValueView&&window.fmtMoneyOf?`${mono(fmtMoneyOf(effectiveValueView(c)))} <span class="ov-amd">${esc(i18t('ov_value_amended',{ v:R.money }))}</span>`:mono(R.money)):''):esc(i18t('ct_non_monetary'));
       if(!edit) return [i18t('ov_f_value'), read];
       return [i18t('ov_f_value'),
         `<span class="ov-val-edit" style="display:flex;align-items:center;gap:8px">
@@ -9389,8 +9393,21 @@ function detailsOf(c){
   add(recSec, 'party', i18t('det_f_party'), false, 'kt');
   add(recSec, 'counterparty', i18t('det_f_counterparty'), !String(c.counterparty || '').trim(), 'kt');
   let money = true; try{ money = (typeof isMonetary === 'function') ? isMonetary(c) : true; }catch(_){ money = true; }
-  if(money) add(recSec, 'value', i18t('ov_f_value'), !(Number(c.value) > 0), 'kt');
+  /* BASE PAY COUNTS (round 8, owner's yes, 17 Oct 2026): an employment
+     contract owes its base pay here as a deal owes its value — the same box,
+     read as pay (ktFieldCell), its one door Edit pay */
+  const pay = !!(typeof fxIsPay === 'function' && fxIsPay(c));
+  if(money || pay) add(recSec, 'value', i18t(pay ? 'ov_f_pay' : 'ov_f_value'), !(Number(c.value) > 0), 'kt');
   add(recSec, 'effDate', i18t('ov_f_effective'), !String((c.fields && c.fields.effDate) || '').trim(), 'kt');
+  /* AN NDA'S TWO FACTS COUNT UNTIL A PERSON CONFIRMS THEM (round 8, owner's
+     yes): who keeps it secret and until when — what the wording says is a
+     suggestion until it is confirmed (ndaClean of the stored c.nda, the one
+     writer ndaSet); their one door is ndaEditOpen */
+  if(typeof ndaIs === 'function' && ndaIs(c)){
+    const rec = (typeof ndaClean === 'function') ? ndaClean(c.nda) : null;
+    add(recSec, 'ndaDir', i18t('det_f_nda_dir'), !(rec && rec.dir), 'nda');
+    add(recSec, 'ndaEnds', i18t('det_f_nda_ends'), !(rec && (rec.ends || rec.forGood)), 'nda');
+  }
   const asked = new Set(DET_RECORD_KEYS);
   if(c.templateForm && Array.isArray(c.templateForm.fields)){
     let open = [];
@@ -9462,9 +9479,13 @@ function cdBoxHtml(c, x, bmap){
   if(x.kind==='kt'){
     if(x.key==='party') return `<input type="text" data-kt="party" value="${esc(c.party||'')}" placeholder="${esc((typeof contractParty==='function'?contractParty(c):'')||'')}" style="${IN}">`;
     if(x.key==='counterparty') return `<input type="text" data-kt="counterparty" value="${esc(c.counterparty||'')}" placeholder="${esc(i18t('det_ph_counterparty'))}" style="${IN}">`;
+    /* base pay is the Pay cell's, its one door Edit pay (round 8) */
+    if(x.key==='value'&&window.fxIsPay&&fxIsPay(c)){ const cell=ktFieldCell(c,'value',true,null); return cell?cell[1]:''; }
     if(x.key==='value') return `<input type="text" inputmode="numeric" data-kt="value" value="${(Number(c.value)>0)?Number(c.value).toLocaleString(jxLocale()):''}" placeholder="0" style="${IN};font-family:var(--font-mono)">`;
     if(x.key==='effDate') return `<input type="date" data-kt="effDate" value="${esc((c.fields&&c.fields.effDate)||'')}" style="${IN}">`;
   }
+  /* an NDA's two facts: their reading and their one door (round 8) */
+  if(x.kind==='nda'){ const d=detailsOf(c); const rows=detNdaRows(c,d,(k,l,html)=>k===x.key?html:'',canEdit()&&!PORTAL_MODE); return rows.join(''); }
   if(x.kind==='tplf'){
     const form=c.templateForm||{}; const idx=(form.fields||[]).findIndex(f=>f&&String(f.fieldKey)===x.key);
     if(idx<0||!window.tplFormInputHtml) return '';
@@ -9665,9 +9686,9 @@ function detBasicsHtml(c, opts){
        on Jambo's panel lands here without that pop-up */
     box('party', i18t('det_f_party'), (may && !frozen('party')) ? `<input type="text" data-kt="party" list="det-party-list" value="${esc(c.party||'')}" placeholder="${esc((typeof contractParty==='function'?contractParty(c):'')||'')}" style="${IN}"><datalist id="det-party-list">${uploadPartyOptions().map(v=>`<option value="${esc(v)}"></option>`).join('')}</datalist>` : readOut('party', contractParty(c))),
     box('counterparty', i18t('det_f_counterparty'), (may && !frozen('counterparty')) ? `<input type="text" data-kt="counterparty" value="${esc(c.counterparty||'')}" placeholder="${esc(i18t('det_ph_counterparty'))}" style="${IN}">` : readOut('counterparty', c.counterparty)),
-    owed.has('value') ? box('value', i18t('ov_f_value'), cellHtml('value')) : '',
+    owed.has('value') ? box('value', i18t((typeof fxIsPay === 'function' && fxIsPay(c)) ? 'ov_f_pay' : 'ov_f_value'), cellHtml('value')) : '',
     box('effDate', i18t('ov_f_effective'), cellHtml('effDate')),
-  ].filter(Boolean).join('');
+  ].concat(detNdaRows(c, d, box, may)).filter(Boolean).join('');
   const text = ((isUpload(c)?(c.upload&&c.upload.extractedText):(window.docPlainText?docPlainText(c):''))||'');
   const readable = (opts && opts.readable != null) ? !!opts.readable : text.length > 200;
   const fill = (may && readable)
@@ -9675,6 +9696,25 @@ function detBasicsHtml(c, opts){
   return `<div class="det-card-h"><span class="det-card-t">${esc(i18t('det_sec_contract'))}</span>${fill}</div>
     <div class="cd-grid det-grid">${rows}</div>`;
 }
+/* AN NDA'S TWO FACTS AS ROWS (round 8): what the wording says, marked a
+   suggestion, or what a person confirmed; the press is the facts' one door
+   (ndaEditOpen) — nothing is written here */
+function detNdaRows(c, d, box, may){
+  const items = (d && d.items || []).filter(x => x.kind === 'nda'); if(!items.length) return [];
+  let N = null; try{ N = (typeof ndaOf === 'function') ? ndaOf(c) : null; }catch(_){ N = null; }
+  const dirW = N && N.dir ? i18t('nda_dir_' + N.dir) : '';
+  let untilW = ''; try{ untilW = N && typeof ndaUntilWords === 'function' ? (ndaUntilWords(N) || '') : ''; }catch(_){ untilW = ''; }
+  const said = (k, w) => { const it = items.find(x => x.key === k); if(!it) return '';
+    const sug = N && !N.confirmed && w;
+    const read = w ? `${esc(w)}${sug ? ` <span class="det-nda-sug">${esc(i18t(N.clause ? 'det_nda_from_clause' : 'det_nda_from_wording', { n: N.clause || '' }))}</span>` : ''}` : `<span class="det-nda-sug">${esc(i18t('det_nda_unsaid'))}</span>`;
+    const door = may ? ` <button type="button" class="ui-link" data-det-nda="${esc(c.id)}">${esc(i18t(it.open ? 'det_nda_confirm' : 'det_nda_change'))}</button>` : '';
+    return box(k, it.label, `<span class="det-nda-read">${read}${door}</span>`); };
+  return [said('ndaDir', dirW), said('ndaEnds', untilW)];
+}
+if(typeof document!=='undefined') document.addEventListener('click',e=>{
+  const b=e.target&&e.target.closest&&e.target.closest('[data-det-nda]'); if(!b) return;
+  e.preventDefault(); if(window.ndaEditOpen) ndaEditOpen(b.getAttribute('data-det-nda'));
+});
 function detPaintBasics(c){
   const h = document.getElementById('det-basics'); if(!h || !c) return;
   h.innerHTML = detBasicsHtml(c);
@@ -18513,7 +18553,7 @@ Object.assign(window,{docReadLongSplit,DOC_READ_LONG_WORDS,DOC_READ_RUN_MIN,docT
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,roomChatDoorHtml,ROOM_TABS_HOME,roomTabHome,roomOpenAt,roomMoreMenuHtml,roomMenuWire,renderSignButton,renderSignSide,roomFactsHtml,signBlockHtml,signReadinessCardHtml,signRowTitle,signWhyShort,SIGN_WHY_WORDS,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,uploadReadFile,uploadReadMeta,uploadFromDrop,uploadDropBusy,uploadDropFolder,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,docWorkPreviewOf,formOnHome,formHostEl,formPaperEl,formHeldContract,formRepaint,docTermFill,docNoticeFill,docSyncWrite,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomArrivesOnHome,roomHomeLand,ROOM_ARRIVE_MS,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPlace,roomPlacePut,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,checkVerdict,tplFormOpenCount,tplFormOpenFields,detailsOf,detailsSections,blankFormLive,DET_RECORD_KEYS,detHeadHtml,detPaintHead,detailsChanged,detPaintPaperEmpties,detTintEmpties,detBasicsHtml,detPaintBasics,detMarkOpen,openCompleteDetails,cdRepaintCounts,openCheckPanel,roomHeadHtml,wireRoomHead,
+  ROOM_TABS,docWorkPreviewOf,formOnHome,formHostEl,formPaperEl,formHeldContract,formRepaint,docTermFill,docNoticeFill,docSyncWrite,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomArrivesOnHome,roomHomeLand,ROOM_ARRIVE_MS,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPlace,roomPlacePut,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,checkVerdict,tplFormOpenCount,tplFormOpenFields,detailsOf,detailsSections,blankFormLive,DET_RECORD_KEYS,detHeadHtml,detPaintHead,detailsChanged,detPaintPaperEmpties,detTintEmpties,detBasicsHtml,detNdaRows,detPaintBasics,detMarkOpen,openCompleteDetails,cdRepaintCounts,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill,
   /* idea 7 — the plain-English layer. Published because a name read through
      window from another module, or from a test stage, is silence when it is

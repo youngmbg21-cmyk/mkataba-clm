@@ -501,7 +501,7 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
     !!d18.discard && /rgb\(190, 18, 60\)|rgb\(1[6-9][0-9], [0-9]+, [0-9]+\)/.test(d18.discard)
     && d18.discard !== d18.send, d18.discard + ' vs send ' + d18.send);
   check('18d the argued figure is said on the row — the last two rungs as a sentence', !!col18.track4 && /Step 3/.test(col18.track4) && /6\s*→\s*18/.test(col18.track4) /* their R2 (6) → your R3 (18): the last two rungs */, col18.track4);
-  check('18e the piles carry the artifact\'s names', col18.bands.some(b => /not yet sent/i.test(b)) && col18.bands.some(b => /Awaiting you/i.test(b)), col18.bands.join(' · '));
+  check('18e the piles carry the artifact\'s names', col18.bands.some(b => /not yet sent/i.test(b)) && col18.bands.some(b => /Waiting on you/i.test(b)), col18.bands.join(' · '));
   /* RE-POINTED 21 Sep 2026: amber is --st-amber-fg, RESOLVED — the redesign moved
      the hex, and the claim is the tone, not a number. */
   check('18f the pile that needs the reader is amber', !!col18.awaitingInk && col18.awaitingInk !== 'rgb(0, 0, 0)' && col18.awaitingInk === col18.amberTok, col18.awaitingInk + ' (amber ' + col18.amberTok + ')');

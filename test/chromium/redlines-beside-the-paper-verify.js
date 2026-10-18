@@ -132,7 +132,7 @@ const bands = () => [...document.querySelectorAll('#pd-redface .rl-band')].map(b
         risks: /Risks to look at/.test(f.textContent),
         foot: [...f.querySelectorAll('.pd-rf-foot button')].map(b => b.textContent.replace(/\s+/g, ' ').trim()) };
     });
-    check('2a Redlines with its count, the round, and the piles', /Redlines\s*3/.test(col.title.replace(/\s+/g, ' ')) && /Round 1/.test(col.round) && /Awaiting you\s*3/.test(col.bands.join('|')), JSON.stringify([col.title, col.round, col.bands]));
+    check('2a Redlines with its count, the round, and the piles', /Redlines\s*3/.test(col.title.replace(/\s+/g, ' ')) && /Round 1/.test(col.round) && /Waiting on you\s*3/.test(col.bands.join('|')), JSON.stringify([col.title, col.round, col.bands]));
     check('2b each of their rows carries Accept · Reject · Counter · Ladder', col.rows.length === 3 && col.rows.every(r => ['Accept', 'Reject', 'Counter', 'Ladder'].every(v => r.some(t => t.endsWith(v)))), JSON.stringify(col.rows[0]));
     /* RE-POINTED 14 Oct 2026 (stage 5): the page folded into Home, so the
        head has no way back to it */
@@ -160,7 +160,7 @@ const bands = () => [...document.querySelectorAll('#pd-redface .rl-band')].map(b
     await pause(600);
     const b4 = await page.evaluate(bands);
     check('4 Accept settles it where it stands: Settled this round, the face and the page stay',
-      /Settled this round\s*1/.test(b4.join('|')) && /Awaiting you\s*2/.test(b4.join('|')) && (await page.evaluate(FACE)).up && (await page.evaluate(() => state.view)) === 'dashboard', JSON.stringify(b4));
+      /Settled this round\s*1/.test(b4.join('|')) && /Waiting on you\s*2/.test(b4.join('|')) && (await page.evaluate(FACE)).up && (await page.evaluate(() => state.view)) === 'dashboard', JSON.stringify(b4));
 
     /* ===== 5. COUNTER OPENS THE EDITOR; EXIT LANDS BACK ===== */
     const counter = () => page.evaluate(() => { const b = [...document.querySelectorAll('#pd-redface [data-nego-card="CHG-002"] button')].find(x => /Counter/.test(x.textContent)); b.click(); });
