@@ -35,6 +35,17 @@
     12 every figure lands on the list behind it: Live, Ending, Past and Value
        on the Contracts place narrowed to exactly what they count; Obligations
        overdue on the Obligations page's Overdue tab
+   PASS 3 (the second review and the owner's answers 7 and 14, 18 Oct 2026):
+     3  the Board KEEPS Jambo's work (under Your book) and draws no Needs you;
+        hbOpenAgent lands on it, lit (landOn)
+     5  Jambo says "What needs you is on Home: N things"; "what needs me"
+        lands on Home's Needs you, lit
+     8  the insights head counts the cards under it and keeps Hide (it folds
+        them); each card: a headline, its picture with the axis named and the
+        lit value printed on it, one sentence; no rank chip, no band
+     9  Value by counterparty: five rows, value only, the first in the accent
+    10  the figure picker stays on Your book
+    12  each figure's door lands, lit, on what it counts
    Waits ask for the state, bounded; a missing part reports.
    Run: node test/chromium/board-as-drawn-verify.js */
 const fs = require('node:fs');
@@ -64,6 +75,11 @@ for (let m = 12; m >= 1; m--) for (let j = 0; j < 4; j++){
   DRIFT.push(c);
 }
 DRIFT[DRIFT.length - 1].obligations = [{ id: 'ob-late', desc: 'Deliver the quarterly report', due: dayIn(-1, 3), side: 'ours', status: 'open' }];
+/* a promise of theirs gone late: Jambo's work has a chase ready (Late promises) */
+DRIFT[0].obligations = [{ id: 'ob-theirs', desc: 'Send the insurance certificate', due: dayIn(-1, 5), party: 'theirs', status: 'open' }];
+/* each raised on a day the trail records, so days to sign can be pictured (9–14 days, faster lately) */
+DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = new Date(c.signedAt + 'T10:00:00'); sd.setDate(sd.getDate() - (9 + Math.round((m - 1) * 5 / 11)));
+  c.audit = [{ at: sd.toISOString(), action: 'Created', by: 'Seed' }]; });
 
 (async () => {
   const h = await H.startHati({ HATI_AGENTS_AUTO: 'off' });
@@ -108,9 +124,19 @@ DRIFT[DRIFT.length - 1].obligations = [{ id: 'ob-late', desc: 'Deliver the quart
       await toBoard();
     }
 
-    console.log('\n3 · the owed work is not on the Board');
-    const gone = await page.evaluate(() => ({ needs: !!document.querySelector('#hb-board #hb-needs, #hb-board .hb-ny'), work: !!document.querySelector('#hb-board #hm-agents, #hb-board .hb-prep') }));
-    check('3 no Needs you card and no Jambo\'s work card on the Board', !gone.needs && !gone.work, JSON.stringify(gone));
+    console.log('\n3 · Needs you is not on the Board; Jambo\'s work is (the owner\'s answer 14)');
+    const gone = await page.evaluate(() => { const book = document.getElementById('hb-book'), work = document.getElementById('hm-agents'), ins = document.querySelector('#hb-board .hb-ins-head');
+      return { needs: !!document.querySelector('#hb-board #hb-needs, #hb-board .hb-ny'), work: !!work,
+        order: !!(book && work && ins && (book.compareDocumentPosition(work) & Node.DOCUMENT_POSITION_FOLLOWING) && (work.compareDocumentPosition(ins) & Node.DOCUMENT_POSITION_FOLLOWING)),
+        rows: work ? [...work.querySelectorAll('[data-hm-agent-row]')].map(r => r.getAttribute('data-hm-agent-row')) : [] }; });
+    check('3a no Needs you card on the Board', !gone.needs, JSON.stringify(gone));
+    check('3b Jambo\'s work stays on the Board, under Your book, above Today\'s insights, its rows the agents\'', gone.work && gone.order && gone.rows.includes('late'), JSON.stringify(gone));
+    await page.evaluate(() => { const b = document.getElementById('hb-board'); if (b) b.scrollTop = 0; hbOpenAgent(); });
+    const lit = await until(() => { const w = document.getElementById('hm-agents'); if (!w || !w.classList.contains('is-landed')) return null;
+      const r = w.getBoundingClientRect(); return { top: Math.round(r.top), inView: r.top >= 0 && r.top < innerHeight }; }, null, 8000);
+    check('3c Home\'s "Jambo\'s work" door (hbOpenAgent) lands ON the card: in view and lit, through landOn', !!lit && lit.inView, JSON.stringify(lit));
+    await shot(page, '17-board-jambos-work-landed-1440x780');
+    await page.evaluate(() => { if (typeof landOff === 'function') landOff(); const b = document.getElementById('hb-board'); if (b) b.scrollTop = 0; });
 
     console.log('\n4 · Your book is one card');
     const bk = await page.evaluate(() => { const card = document.getElementById('hb-book'); const cs = getComputedStyle(card);
@@ -133,8 +159,8 @@ DRIFT[DRIFT.length - 1].obligations = [{ id: 'ob-late', desc: 'Deliver the quart
       !!jb && jb.hello.startsWith('Here is your book, counted at ') && jb.at.includes(jb.hello.slice(30, 35)) && /Summarise my board is the one press here that uses a Jambo call, and it says so first\.$/.test(jb.hello), jb && (jb.hello + ' | ' + jb.at));
     check('5c three questions as chips under it — "which N end in 90 days?" only while any do',
       !!jb && JSON.stringify(jb.chips) === JSON.stringify([jb.ending ? `which ${jb.ending} end in 90 days?` : null, 'value by stream', 'my saved views'].filter(Boolean)), jb && JSON.stringify(jb.chips));
-    check('5d then where the owed work went: the Counter\'s own number, and "what needs me"',
-      !!jb && new RegExp(`^What needs you is on the Counter: ${jb.n} things?(, Jambo’s work first)?\\.$`).test(jb.where) && JSON.stringify(jb.chip2) === JSON.stringify(['what needs me']), jb && (jb.where + ' / ' + jb.n));
+    check('5d then where the owed work went: Home\'s own number, and "what needs me"',
+      !!jb && new RegExp(`^What needs you is on Home: ${jb.n} things?(, Jambo’s work first)?\\.$`).test(jb.where) && JSON.stringify(jb.chip2) === JSON.stringify(['what needs me']), jb && (jb.where + ' / ' + jb.n));
     check('5e no row of chips above his box; his tab carries the Counter\'s number', !!jb && !jb.bottom && Number(jb.badge || 0) === jb.n, jb && JSON.stringify({ bottom: jb.bottom, badge: jb.badge, n: jb.n }));
     await shot(page, '17-board-as-drawn-1440x780');
 
@@ -143,12 +169,12 @@ DRIFT[DRIFT.length - 1].obligations = [{ id: 'ob-late', desc: 'Deliver the quart
     const said = await until(() => { const t = [...document.querySelectorAll('#igd-feed .ai-bub')].map(b => b.textContent.trim()).find(x => /^You have 1 saved view:/.test(x)); return t || null; }, null, 8000);
     check('6 asked, he lists the saved views with their counts and says where they are, free', !!said && /“Whole book” \d+\./.test(said) && /press one to open it on Explorer/.test(said) && /Free/.test(said), said);
 
-    console.log('\n5f · "what needs me" opens the Counter');
+    console.log('\n5f · "what needs me" lands on Home\'s Needs you');
     await page.evaluate(() => { if (typeof intel !== 'undefined') intel.history = []; renderIntelDock(); });
     await until(() => !!document.querySelector('#ig-dock .hb-jb-hello'), null, 6000);
     await page.evaluate(() => { const b = [...document.querySelectorAll('#ig-dock .hb-jb-hello [data-igsug]')].find(x => x.textContent.trim() === 'what needs me'); if (b) b.click(); });
-    const cn = await until(() => state.view === 'counter' && !!document.getElementById('cn-needs'), null, 8000);
-    check('5f "what needs me" opens the Counter, where Needs you lives', !!cn);
+    const cn = await until(() => state.view === 'counter' && !!document.querySelector('#cn-needs.is-landed'), null, 8000);
+    check('5f "what needs me" opens Home and lands on Needs you, lit (landOn)', !!cn);
 
     console.log('\n7 · the owner\'s three screens');
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
@@ -179,17 +205,37 @@ DRIFT[DRIFT.length - 1].obligations = [{ id: 'ob-late', desc: 'Deliver the quart
         n: cards.length, perRow: cards.filter(c => Math.round(c.getBoundingClientRect().top) === tops[0]).length, edge: cs.borderTopStyle + ' ' + cs.borderTopWidth,
         acts: cards.every(c => c.querySelector('[data-hb-ins="open"]') && c.querySelector('[data-hb-ins="keep"]') && c.querySelector('[data-hb-read-more]') && c.querySelector('[data-hb-ins="go"]')),
         month: hbThenWord(true) }; });
-    check('8a the head is its own slim card: the count and "what moved most since <month> · worked out this morning from your book"; no Hide',
-      !!shelf && !!ins && new RegExp(`^Today’s insights\\s*\\d+\\s*what moved most since ${ins.month} · worked out this morning from your book$`).test(ins.head) && !ins.hide && !ins.headHasPics, JSON.stringify(ins));
+    check('8a the head is its own slim card: the count OF THE CARDS UNDER IT, "what moved most since <month> · worked out this morning from your book", and Hide',
+      !!shelf && !!ins && new RegExp(`^Today’s insights\\s*${ins.n}\\s*what moved most since ${ins.month} · worked out this morning from your book\\s*Hide$`).test(ins.head) && ins.hide && !ins.headHasPics, JSON.stringify(ins));
     check('8b each picture its own card, two to a row, each with Open · Keep · Ask why · Let it go', !!ins && ins.n >= 2 && ins.n <= 4 && ins.perRow === 2 && ins.edge === 'solid 1px' && ins.acts, JSON.stringify(ins));
+    await page.evaluate(() => { const b = document.querySelector('#hb-board [data-hb-ins-fold]'); if (b) b.click(); });
+    const fold = await until(() => { const hd = document.querySelector('#hb-board .hb-ins-head'); return hd && hd.classList.contains('is-folded') && !document.querySelector('#hb-board .hb-shelf-cards')
+      ? (hd.querySelector('[data-hb-ins-fold]') || {}).textContent : null; }, null, 6000);
+    await page.evaluate(() => { const b = document.querySelector('#hb-board [data-hb-ins-fold]'); if (b) b.click(); });
+    const unfold = await until(() => !!document.querySelector('#hb-board .hb-shelf-cards'), null, 6000);
+    check('8a2 Hide folds the pictures, its head and count kept, and Show brings them back (the owner\'s answer 7)', fold === 'Show' && !!unfold, String(fold));
+    const anat = await page.evaluate(() => [...document.querySelectorAll('#hb-board .hb-shelf-cards > .hb-ins')].map(c => {
+      const pic = c.querySelector('.hb-ins-pic');
+      return { id: c.getAttribute('data-hb-ins-card'), title: ((c.querySelector('.hb-ins-t') || {}).textContent || '').trim(),
+        svg: !!pic.querySelector('svg.hb-ip'), xs: [...pic.querySelectorAll('.hb-ip-x')].map(e => e.textContent), vals: [...pic.querySelectorAll('.hb-ip-val')].map(e => e.textContent),
+        lit: pic.querySelectorAll('.hb-ip-bar.is-lit, .hb-ip-dot').length, bars: pic.querySelectorAll('.hb-ip-br').length,
+        litBar: pic.querySelector('.hb-ip-bar.is-lit') ? getComputedStyle(pic.querySelector('.hb-ip-bar.is-lit')).fillOpacity : null,
+        rank: !!c.querySelector('.hb-chip'), band: !!pic.querySelector('.hb-sv-band, .hb-sv-today'), say: (c.querySelectorAll('.hb-ins-f').length === 1), why: !!c.querySelector('.hb-ins-why') }; }));
+    const timed = anat.filter(x => x.svg);
+    check('8d each card: a headline, its picture with the months or quarters named and the lit value printed on it, one sentence; no rank chip, no band',
+      timed.length >= 1 && timed.every(x => x.title && (x.xs.length === 5 || x.xs.length === 6) && x.vals.length >= 1 && x.lit >= 1 && !x.rank && !x.band && x.say && !x.why)
+      && anat.every(x => x.title && !x.rank && x.say), JSON.stringify(anat));
+    check('8e days to sign is a line, its two ends said; a bar picture lights one bar in full', timed.some(x => x.id.startsWith('sign') && x.vals.length === 2) && timed.filter(x => x.litBar != null).every(x => x.litBar === '1'), JSON.stringify(timed.map(x => [x.id, x.vals, x.litBar])));
 
     console.log('\n9 · Value by counterparty');
     await page.evaluate(() => { const c = document.querySelector('[data-hb-ins-card="cp"]'); if (c) c.scrollIntoView({ block: 'center' }); });
     const cp = await page.evaluate(() => { const c = document.querySelector('[data-hb-ins-card="cp"]'); if (!c) return null;
-      const bars = [...c.querySelectorAll('.hb-ins-pic .hb-cbar')];
-      return { bars: bars.map(b => ({ name: (b.querySelector('.hb-cbar-t') || {}).textContent || '', val: (b.querySelector('.hb-cbar-n') || {}).textContent || '' })), blocks: !!c.querySelector('.hb-sv-block'),
+      const bars = [...c.querySelectorAll('.hb-ins-pic .hb-ip-br')];
+      return { bars: bars.map(b => { const i = b.querySelector('.hb-ip-bt > i'); return { name: (b.querySelector('.hb-ip-bn') || {}).textContent || '', val: (b.querySelector('.hb-ip-bv') || {}).textContent || '',
+          lit: i.classList.contains('is-lit'), op: getComputedStyle(i).opacity }; }), blocks: !!c.querySelector('.hb-sv-block'), rest: /more groups/.test(c.textContent),
         say: (c.querySelector('.hb-ins-f') || {}).textContent || '', inCard: !!c.querySelector('.hb-ins-acts') && !document.querySelector('.hb-shelf-cards > .hb-ins-acts') }; });
-    check('9 bars, each party\'s name and value, and one sentence under them', !!cp && cp.bars.length >= 4 && cp.bars.slice(0, 4).every(b => b.name && /KES/.test(b.val)) && !cp.blocks
+    check('9 five rows, each party\'s name and its value only, the first lit and the rest pale, no row for the rest; one sentence under them',
+      !!cp && cp.bars.length === 5 && cp.bars.every(b => b.name && /^\d[\d.,]*[KMB]?$/.test(b.val)) && cp.bars[0].lit && cp.bars[0].op === '1' && cp.bars.slice(1).every(b => !b.lit && Number(b.op) < 0.5) && !cp.rest && !cp.blocks
       && /^No party holds more than \d+% of the value: .+ holds the most\.$/.test(cp.say) && cp.inCard, JSON.stringify(cp));
     await shot(page, '17-board-insights-1440x780');
 
@@ -198,7 +244,13 @@ DRIFT[DRIFT.length - 1].obligations = [{ id: 'ob-late', desc: 'Deliver the quart
       const ink = getComputedStyle(b.querySelector('.hb-fig-lw .hb-fig-l') || b).color;
       return { picker: !!b.querySelector('[data-hb-figpick]'), area: !!b.querySelector('.hb-spark-a'), dot: !!b.querySelector('.hb-spark-e'),
         today: [...b.querySelectorAll('.hb-tn .hb-fig .hb-fig-n')].map(e => getComputedStyle(e).color), ink }; });
-    check('10 no figure picker; today\'s figures in ink; a plain line with a dot', !book.picker && !book.area && book.dot && new Set(book.today).size === 1, JSON.stringify(book));
+    check('10 the figure picker stays (the owner\'s answer 7); today\'s figures in ink; a plain line with a dot', book.picker && !book.area && book.dot && new Set(book.today).size === 1, JSON.stringify(book));
+    if (await press('#hb-book [data-hb-figpick]', '10b the figure picker')) {
+      const pk = await until(() => !!document.querySelector('#hb-book .hb-figpick[role="dialog"]'), null, 4000);
+      await page.click('#hb-book [data-hb-figpick]');
+      const pk2 = await until(() => !document.querySelector('#hb-book .hb-figpick[role="dialog"]'), null, 4000);
+      check('10b pressed, the picker opens; pressed again, it closes', !!pk && !!pk2);
+    }
 
     console.log('\n11 · the Board ends with its insights');
     const tail = await page.evaluate(() => ({ box: !!document.querySelector('#hb-board .hb-empty:not(.is-setup)'), words: /Each answer lands here/.test(document.getElementById('hb-board').innerText) }));
@@ -212,7 +264,8 @@ DRIFT[DRIFT.length - 1].obligations = [{ id: 'ob-late', desc: 'Deliver the quart
       if (want.off) { check(`12 ${k}: nothing behind it, so no door (greyed)`, !want.ids.length, JSON.stringify(want)); continue; }
       await page.click(`#hb-book .hb-fig-main[data-hb-dig="f:${k}"]`);
       const got = await until(() => { const o = typeof regState === 'function' ? regState().only : null; return o && document.getElementById('ct-place') ? o.ids.slice().sort() : null; }, null, 8000);
-      check(`12 ${k}: the Contracts place, narrowed to exactly what it counts`, !!got && JSON.stringify(got) === JSON.stringify(want.ids), JSON.stringify({ got: got && got.length, want: want.ids.length }));
+      const landed = await until(() => !!document.querySelector('#reg-only-chip.is-landed'), null, 6000);
+      check(`12 ${k}: the Contracts place, narrowed to exactly what it counts, landed on its "N of M shown" (landOn)`, !!got && JSON.stringify(got) === JSON.stringify(want.ids) && !!landed, JSON.stringify({ got: got && got.length, want: want.ids.length, landed }));
       await shot(page, `17-board-figure-${k}-1440x780`);
       await page.evaluate(() => { regState().only = null; });
     }
@@ -221,7 +274,8 @@ DRIFT[DRIFT.length - 1].obligations = [{ id: 'ob-late', desc: 'Deliver the quart
     if (late) {
       await page.click('#hb-book .hb-fig-main[data-hb-dig="f:overdue"]');
       const ob = await until(() => state.view === 'obligations' && document.querySelector('[data-obw-view="overdue"][aria-selected="true"], [data-obw-view="overdue"].on, [data-obw-view="overdue"].is-on') ? true : null, null, 8000);
-      check('12 Obligations overdue: the Obligations page, on its Overdue tab', !!ob, String(ob));
+      const obl = await until(() => !!document.querySelector('[data-obw-view="overdue"].is-landed'), null, 6000);
+      check('12 Obligations overdue: the Obligations page, on its Overdue tab, landed on it (landOn)', !!ob && !!obl, JSON.stringify({ ob, obl }));
       await shot(page, '17-board-figure-overdue-1440x780');
     } else check('12 the stage carries a late obligation of ours, so the overdue door can be pressed', false, 'no overdue figure');
 

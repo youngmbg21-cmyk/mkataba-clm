@@ -642,40 +642,26 @@ function deskStaleSub(st){
    board or a deal parked behind an absent colleague is invisible until the
    counterparty chases. THE COUNTERPARTY NEVER SEES ANY OF THIS: it is drawn on
    our dashboard and is not in the share payload. */
-/* WHO ANSWERS THEIR WAITING ASKS — one reading, asked by the stale inbox and
-   by Needs you here beside a paper (deskWaitingFresh): the lead of an open
-   desk and every admin; with nobody leading, whoever the contract belongs to
-   (contractOwnedBy, the one reading) — and every admin, as for a desk. Not
-   every editor: a reminder addressed to everybody is read by nobody. */
-function deskAnswerableBy(c, me){
-  if (!c || !me) return false;
-  if (deskIsOpen(c)) return !!(deskIsLead(c, me) || _dkIsAdmin(me));
-  if (!_dkUnclaimedWaiting(c).length) return false;
-  return !!(window.contractOwnedBy && window.contractOwnedBy(c, me)) || !!_dkIsAdmin(me);
-}
 function deskStaleInboxFor(cs, u, nowISO){
   const me = u || _dkMe();
   if (!me) return [];
   const out = [];
   (cs || []).forEach(c => {
-    if (!deskAnswerableBy(c, me)) return;
+    if (deskIsOpen(c)){
+      if (!(deskIsLead(c, me) || _dkIsAdmin(me))) return;
+    } else {
+      /* NOBODY LEADS IT, so the person answerable is whoever the contract
+         belongs to (contractOwnedBy, the one reading) — and every admin, as
+         for a desk. Not every editor: a reminder addressed to everybody is
+         read by nobody. */
+      if (!_dkUnclaimedWaiting(c).length) return;
+      const owns = !!(window.contractOwnedBy && window.contractOwnedBy(c, me));
+      if (!(owns || _dkIsAdmin(me))) return;
+    }
     const s = deskStale(c, nowISO);
     if (s) out.push({ c, stale: s });
   });
   return out.sort((a, b) => b.stale.days - a.stale.days);
-}
-/* THEIR ASKS WAITING ON US BEFORE THE STANDARD (round 3 of the redesign as
-   drawn, "Tabs and faces": Needs you here beside a paper lists their redlines
-   from the day they arrive). Null once they are past the standard — that is
-   deskStale's, and needsYouOf's urgent row — and null for anybody the stale
-   inbox would not ask. Reads only. */
-function deskWaitingFresh(c, u, nowISO){
-  const me = u || _dkMe();
-  if (!c || !me || !deskAnswerableBy(c, me)) return null;
-  const since = deskWaitingSince(c);
-  if (!since || deskStale(c, nowISO)) return null;
-  const n = _dkTheirPending(c).length;
-  return n ? { since, n } : null;
 }
 
 /* ---------- SOMEBODY IS LEAVING ----------
@@ -1649,7 +1635,7 @@ Object.assign(window, {
   deskCardByHtml, deskCardInsteadHtml,
   deskWireChip, deskOpenFromChip,
   deskSheetHtml, openDeskSheet, openDeskHandover, openDeskJoinAsk,
-  DESK_STALE_DAYS, deskAnnouncement, deskWaitingSince, deskStale, deskStaleSub, deskWaitDays, deskStaleInboxFor, deskAnswerableBy, deskWaitingFresh, deskLedBy,
+  DESK_STALE_DAYS, deskAnnouncement, deskWaitingSince, deskStale, deskStaleSub, deskWaitDays, deskStaleInboxFor, deskLedBy,
   /* The working-day walk the quiet clock counts with, published under a name
      of its own (26 Sep 2026) so the list inspector's "past your standard" line
      asks THIS walk rather than keeping a second one — two walks disagree

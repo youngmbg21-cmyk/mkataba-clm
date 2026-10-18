@@ -13,14 +13,16 @@
        4 days · clauses 7 and 11") and open with "Open redlines".
    (3) "all N" — the Counter's own number, in the drawn lower case.
    (4) Reading writes nothing; the words are in both books.
-   PASS 2 (the checker's review of 18 Oct 2026):
-   (5) THEIR REDLINES FROM THE DAY THEY ARRIVE (as drawn: "waiting 4 days"):
-       beside the paper the row is there before the desk's stale standard —
-       deskWaitingFresh, asked of the same people the stale inbox asks
-       (deskAnswerableBy, the one reading both use) — quiet (not late, no
-       standard named as passed; "Arrived today" on the first day); past the
-       standard it is needsYouOf's own urgent row and never a second one. The
-       checklist, the bell and the Counter keep their standard.
+   PASS 3 (the owner's answer (8) of 18 Oct 2026, and the second review):
+   (5) THEIR REDLINES ARE OWED AFTER 5 QUIET DAYS, UNCHANGED: Needs you here
+       draws needsYouOf's own 'quiet' row and no row of its own before it
+       (pass 2's deskWaitingFresh is gone); the tab and the pill count only
+       what the checklist counts.
+   (6) Jambo's work here in the drawing's words: "Jambo's work · Nordvik's
+       answer", its line whole ("Prepared overnight: an answer to each
+       redline"), read off the agent's own piece.
+   (7) Needs you here is PINNED above the conversation (pdJamboPinHtml) and
+       painted again in place; "all N" and Open note land (landOn).
    AT THE PARENT (8dc306a) every test here FAILS but 4a, a guard (reading
    writes nothing) that holds there too: pdNoteRows and
    pdAskClausesSay do not exist, the quiet row's verb is "Answer" and the
@@ -31,7 +33,6 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const { buildWorld } = require('./world');
 const R = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
 const PD = R('js/paperdesk.js');
 const I18N = R('js/i18n.js');
@@ -46,7 +47,7 @@ const BOOKS = (() => {
 const fill = (s, v) => String(s).replace(/\{(\w+)\}/g, (m, k) => (v && k in v) ? v[k] : m);
 const TODAY = '2026-10-18';
 
-function stage({ notes = [], loaded = true, needs = [], asks = [], fresh = null } = {}){
+function stage({ notes = [], loaded = true, needs = [], asks = [], fresh = null, round = null } = {}){
   const c = { id: 'MK-1', contractNo: 'MK-1', counterparty: 'Nordvik Logistik AB', status: 'Under Review',
     changes: asks.map((a, i) => ({ id: 'ch' + i, status: 'pending', authorSide: 'counterparty', clauseLabel: a, ops: [] })) };
   const calls = [];
@@ -58,7 +59,10 @@ function stage({ notes = [], loaded = true, needs = [], asks = [], fresh = null 
     igHomePaperFace: () => true, hbFace: () => 'paper', canEdit: () => true, PORTAL_MODE: false,
     detailsOf: () => ({ left: 0, all: 4, live: true, items: [] }), signBlockers: () => [], negoMayStartLine: () => '',
     contractStatusTextHtml: () => '<span class="room-stat">In review</span>',
-    hbAgentsData: () => ({ ready: 0, rows: [] }),
+    hbAgentsData: () => (round ? { ready: 1, rows: [{ k: 'round', n: 1, items: [{ key: 'answer:MK-1', cid: 'MK-1', sum: '2 changes', urg: 'Waiting today' }] }] } : { ready: 0, rows: [] }),
+    agentsData: () => ({ agents: { round: { ready: round ? [Object.assign({ agent: 'round', kind: 'answer', key: 'answer:MK-1', cid: 'MK-1' }, round)] : [] } } }),
+    langLocale: () => 'en-GB', landOn: (t, o) => { calls.push(['land', typeof t === 'function' ? 'fn' : t]); return Promise.resolve(null); },
+    hbNeedsOpen: () => calls.push(['home-needs']), CSS: { escape: x => x },
     needsYouOf: () => needs.slice(), deskWaitingFresh: () => fresh,
     NEEDS_YOU_ORDER: ['quiet', 'review', 'look', 'approval', 'refused', 'note', 'suggest', 'join', 'details', 'sign', 'renewal'],
     insNeedWords: (cc, it) => ({ title: 'Answer Nordvik Logistik AB’s 2 redlines', sub: '<span class="late">waiting 4 days</span>', plain: 'waiting 4 days' }),
@@ -104,9 +108,11 @@ describe('f747 (1) a note of yours due here', () => {
     assert.deepEqual(calls.filter(x => x[0] === 'load').length, 1, 'once');
     assert.match(PD, /Promise\.resolve\(mineLoad\(\)\)\.then\(\(\) => \{ try \{ pdNeedsRepaint\(\); \} catch \(_\)\{\} \}/);
   });
-  test('1e Open note is My notes\' own door', () => {
+  /* RE-POINTED (pass 3, LAND ON IT): My notes' own door, then the note's row lit */
+  test('1e Open note is My notes\' own door, and lands on the note\'s row', () => {
     const wiring = PD.slice(PD.indexOf('document._pdJamboTopWired = true'), PD.indexOf('JAMBO, ALIVE'));
-    assert.match(wiring, /const nn = t\.closest\('\[data-pd-nd-note\]'\);\s*if \(nn\)\{ e\.preventDefault\(\); if \(typeof myNotesOpen === 'function'\) myNotesOpen\(nn\.getAttribute\('data-pd-nd-note'\)\); return; \}/);
+    assert.match(wiring, /const nn = t\.closest\('\[data-pd-nd-note\]'\);\s*\/\*[^*]*\*\/\s*if \(nn\)\{ e\.preventDefault\(\); const nid = nn\.getAttribute\('data-pd-nd-note'\);\s*if \(typeof myNotesOpen === 'function'\) myNotesOpen\(nid\);\s*if \(nid && typeof landOn === 'function'\) landOn\(\(\) => document\.querySelector\(`\[data-mn-row="\$\{CSS\.escape\(nid\)\}"\]`\), \{ block: 'nearest', focus: false \}\);/);
+    assert.match(R('js/views/mynotes.js'), /<tr data-mn-row="\$\{_mnE\(n\.id\)\}"/, 'the row it lands on');
   });
   test('1f only the note\'s owner: it reads My notes\' own store, scoped to the person signed in', () => {
     const fn = PD.slice(PD.indexOf('function pdNoteRows('), PD.indexOf('function pdAskClausesSay('));
@@ -131,10 +137,13 @@ describe('f747 (2) their redlines: which clauses, and Open redlines', () => {
 });
 
 describe('f747 (3) "all N", the Counter\'s own number', () => {
-  test('3 the door says "all 7" as drawn and opens the Counter', () => {
+  test('3 the door says "all 7" as drawn and lands on Home\'s Needs you', () => {
     const { ctx, c } = stage({ notes: [{ id: 'n1', contractId: 'MK-1', body: 'x', reviewBy: TODAY }] });
     assert.match(ctx.pdNeedsHtml(c), /data-pd-nd-all title="[^"]*">all 7/);
     assert.equal(BOOKS.en.pd_nd_all, 'all {n}'); assert.equal(BOOKS.sv.pd_nd_all, 'alla {n}');
+    assert.equal(BOOKS.en.pd_nd_all_tip, 'Everything that needs you, on Home');
+    const wiring = PD.slice(PD.indexOf('document._pdJamboTopWired = true'), PD.indexOf('JAMBO, ALIVE'));
+    assert.match(wiring, /if \(t\.closest\('\[data-pd-nd-all\]'\)\)\{ e\.preventDefault\(\); if \(typeof hbNeedsOpen === 'function'\) hbNeedsOpen\(\);/, 'hbNeedsOpen: Home, then landOn(\'#cn-needs\')');
   });
 });
 
@@ -147,39 +156,59 @@ describe('f747 (4) reading writes nothing; both books', () => {
     test(k, () => { assert.ok(BOOKS.en[k] && BOOKS.sv[k] && BOOKS.en[k] !== BOOKS.sv[k], k); });
 });
 
-describe('f747 (5) their redlines, from the day they arrive', () => {
+describe('f747 (5) their redlines are owed after the quiet standard, unchanged (the owner\'s answer 8)', () => {
   const ago = d => new Date(Date.now() - d * 864e5).toISOString();
-  test('5a before the standard: a quiet row, in the checklist\'s order', () => {
-    const since = ago(4);
-    const { ctx, c } = stage({ needs: [{ kind: 'sign', urgent: false }], fresh: { since, n: 2 } });
-    const rows = J(ctx.pdNeedsRows(c).map(r => r.it));
-    assert.deepEqual(rows, [{ kind: 'quiet', urgent: false, fresh: true, n: 2, since }, { kind: 'sign', urgent: false }]);
+  test('5a before the standard: no row of this panel\'s own, whatever has arrived', () => {
+    const { ctx, c } = stage({ needs: [{ kind: 'sign', urgent: false }], asks: ['7. A', '11. B'], fresh: { since: ago(4), n: 2 } });
+    assert.deepEqual(J(ctx.pdNeedsRows(c).map(r => r.it)), [{ kind: 'sign', urgent: false }]);
+    assert.ok(!/deskWaitingFresh/.test(PD), 'the panel asks no reading of its own');
   });
-  test('5b past the standard it is needsYouOf\'s own row, never a second one', () => {
-    const { ctx, c } = stage({ needs: [{ kind: 'quiet', urgent: true, n: 2, since: ago(9) }], fresh: { since: ago(9), n: 2 } });
+  test('5b past the standard it is needsYouOf\'s own row, once', () => {
+    const { ctx, c } = stage({ needs: [{ kind: 'quiet', urgent: true, n: 2, since: ago(9) }], asks: ['7. A', '11. B'] });
     assert.equal(ctx.pdNeedsRows(c).filter(r => r.it && r.it.kind === 'quiet').length, 1);
   });
-  test('5c deskWaitingFresh: the people the stale inbox asks, before the standard only', () => {
-    const w = buildWorld({ registerView: true }).win;
-    const mk = d => ({ id: 'MK-1', status: 'Under Review', changes: ['a', 'b'].map(id => ({ id, status: 'pending', authorSide: 'counterparty', createdAt: ago(d) })) });
-    const admin = { id: 'ad', name: 'Admin', role: 'admin' }, other = { id: 'u9', name: 'Someone', role: 'editor' };
-    const one = mk(1);
-    assert.deepEqual(J(w.deskWaitingFresh(one, admin)), { since: one.changes[0].createdAt, n: 2 });
-    assert.equal(w.deskWaitingFresh(mk(12), admin), null, 'past the standard: the stale row\'s');
-    assert.equal(w.deskStaleInboxFor([mk(12)], admin).length, 1);
-    assert.equal(w.deskWaitingFresh(mk(1), other), null, 'nobody it would not ask');
+  test('5c the desk\'s reading is main\'s: no fresh row, no second standard', () => {
     const D = R('js/desk.js');
-    assert.match(D.slice(D.indexOf('function deskStaleInboxFor('), D.indexOf('function deskWaitingFresh(')), /if \(!deskAnswerableBy\(c, me\)\) return;/, 'one reading of who answers');
+    assert.ok(!/deskWaitingFresh|deskAnswerableBy/.test(D));
+    assert.ok(!/ag_waiting_today/.test(R('js/views/inspector.js').slice(R('js/views/inspector.js').indexOf("if (it.kind === 'quiet'){"), R('js/views/inspector.js').indexOf("if (it.kind === 'review'){"))));
   });
-  test('5d the words: quiet, not late, no standard named; "Arrived today" on the first day', () => {
-    const w = buildWorld({ registerView: true }).win;
-    const c = { counterparty: 'Nordvik Logistik AB' };
-    assert.deepEqual(J(w.insNeedWords(c, { kind: 'quiet', urgent: false, n: 2, since: ago(4) })), { title: 'Answer Nordvik Logistik AB’s 2 redlines', sub: 'Waiting 4 days', plain: 'Waiting 4 days' });
-    assert.equal(w.insNeedWords(c, { kind: 'quiet', urgent: false, n: 2, since: ago(0) }).sub, 'Arrived today');
-    assert.match(w.insNeedWords(c, { kind: 'quiet', urgent: true, n: 2, since: ago(9) }).sub, /^<span class="late">Waiting 9 days<\/span>$/, 'past the standard, late as before');
-  });
-  test('5e the drawn row: "waiting N days · clauses 7 and 11 · Open redlines"', () => {
-    const { ctx, c } = stage({ asks: ['7. Limitation', '11. Payment terms'], fresh: { since: ago(4), n: 2 } });
+  test('5d the drawn row past the standard: "waiting N days · clauses 7 and 11 · Open redlines"', () => {
+    const { ctx, c } = stage({ needs: [{ kind: 'quiet', urgent: true, n: 2, since: ago(8) }], asks: ['7. Limitation', '11. Payment terms'] });
     assert.match(ctx.pdNeedsHtml(c), /data-pd-nd-kind="quiet"><span><b>Answer Nordvik Logistik AB’s 2 redlines<\/b><small title="waiting 4 days · clauses 7 and 11">[^<]*<span class="late">waiting 4 days<\/span> · clauses 7 and 11<\/small><\/span><button[^>]*data-pd-nd="quiet"[^>]*>Open redlines</);
+  });
+});
+
+describe('f747 (6) Jambo\'s work here, in the drawing\'s words', () => {
+  const ago = d => new Date(Date.now() - d * 864e5).toISOString();
+  test('6a "Jambo\'s work · Nordvik\'s answer", prepared: an answer to each redline', () => {
+    const night = new Date(); night.setDate(night.getDate() - 1); night.setHours(22, 0, 0, 0);
+    const { ctx, c } = stage({ round: { n: 2, prepared: 2, tally: { escalate: 1, review: 1 }, since: night.toISOString() } });
+    const html = ctx.pdNeedsHtml(c);
+    assert.match(html, /<b>Jambo’s work · Nordvik’s answer<\/b><small title="Prepared overnight: an answer to each redline">Prepared overnight: an answer to each redline<\/small>/);
+    assert.match(html, /data-pd-nd-jw="round" data-pd-nd-key="answer:MK-1">See it</);
+  });
+  test('6b where Jambo answered none, the quick reading\'s tally, said whole', () => {
+    const { ctx, c } = stage({ round: { n: 2, prepared: 0, tally: { escalate: 1, review: 1 }, since: ago(0) } });
+    assert.match(ctx.pdNeedsHtml(c), /<small title="Read today: 1 to escalate · 1 to read yourself">/);
+    const s1 = stage({ round: { n: 3, prepared: 1, tally: {}, since: ago(3) } });
+    assert.match(s1.ctx.pdNeedsHtml(s1.c), /Prepared on [^:]+: answers to 1 of the 3 redlines/);
+  });
+  test('6c its line is read whole, wrapped — never cut with an ellipsis', () => {
+    const CSS = R('index.html');
+    assert.match(CSS, /#ig-dock \.pd-needs \.pd-nd-row small\{[^}]*white-space:normal;overflow:visible;text-overflow:clip/);
+  });
+  for (const k of ['pd_nd_jw_answer', 'pd_nd_jw_prepared', 'pd_nd_jw_read', 'pd_nd_jw_overnight', 'pd_nd_jw_today', 'pd_nd_jw_yesterday', 'pd_nd_jw_on', 'pd_nd_jw_each_one', 'pd_nd_jw_each_other', 'pd_nd_jw_some'])
+    test(k, () => { assert.ok(BOOKS.en[k] && BOOKS.sv[k] && BOOKS.en[k] !== BOOKS.sv[k], k); });
+});
+
+describe('f747 (7) Needs you here stays at the top of the tab', () => {
+  test('7a pinned above the conversation, painted again in place', () => {
+    const { ctx, c } = stage({ notes: [{ id: 'n1', contractId: 'MK-1', body: 'x', reviewBy: TODAY }] });
+    ctx.pdContract = () => c;
+    const pin = ctx.pdJamboPinHtml();
+    assert.match(pin, /^<div id="pd-pin" class="pd-pin" data-pd-pin-for="MK-1"><div id="pd-needs"/);
+    assert.match(PD.slice(PD.indexOf('function pdNeedsRepaint('), PD.indexOf('function pdNeedsRepaint(') + 400), /document\.getElementById\('pd-pin'\)[\s\S]*pin\.innerHTML = html/);
+    const CSS = R('index.html');
+    assert.match(CSS, /#ig-dock \.pd-pin\{flex:none;max-height:45%;overflow-y:auto;/);
   });
 });

@@ -9532,15 +9532,20 @@
   #ig-dock .pd-needs .pd-gl-h .pd-pill{height:20px;padding:0 7px}
   #ig-dock .pd-needs .pd-gl-h .pd-pill i{display:none}
   #ig-dock .pd-nd-all{padding:2px 4px;font-size:12px}
+  /* pinned above the conversation, never scrolled away; a long list scrolls inside its own share of the column */
+  #ig-dock .pd-pin{flex:none;max-height:45%;overflow-y:auto;padding:12px 14px 4px}
+  #ig-dock .pd-pin:empty{display:none}
+  #ig-dock .pd-pin>.pd-needs{margin:0}
   #ig-dock .pd-nd-row>span{display:flex;flex-direction:column;gap:1px}
   #ig-dock .pd-nd-row b{font-weight:var(--w-label);overflow:hidden;text-overflow:ellipsis}
-  #ig-dock .pd-nd-row small{font-size:11.5px;line-height:1.4;color:var(--color-neutral-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* a row's line is read whole, wrapped (round 3 as drawn: "Prepared overnight: a counter on each redline" on two lines) */
+  #ig-dock .pd-needs .pd-nd-row small{font-size:11.5px;line-height:1.4;color:var(--color-neutral-600);white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
   #ig-dock .pd-nd-row small .late{color:var(--st-amber-fg);font-weight:var(--w-label)}
   #ig-dock .pd-nd-row.is-jw{margin:-4px -8px;padding:6px 8px;border-radius:var(--radius);background:var(--color-accent-50)}
   /* ROWS RULED APART, as rounds 3 and 6 draw both cards (18 Oct 2026): a hairline between one owed thing and the next */
   #ig-dock .pd-glance .pd-gl-b>.pd-gl-row+.pd-gl-row{border-top:1px solid var(--color-divider);padding-top:8px}
   /* a note's own words wrap to two lines, as round 3 draws them — never cut to one */
-  #ig-dock .pd-nd-row.is-note small{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  #ig-dock .pd-needs .pd-nd-row.is-note small{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   #ig-dock .pd-nd-face{flex:none;width:22px;height:22px;border-radius:50%}
   /* THE WAY BACK TO JAMBO at the start of every face's head (pdBackHtml): a crumb, as "‹ The counter" is on the desk */
   #ig-dock .pd-back{flex:none;display:inline-flex;align-items:center;gap:3px;height:var(--ctl-h-sm);padding:0 8px 0 5px;border:1px solid var(--btn-edge);border-radius:var(--radius);background:var(--color-surface);color:var(--accent-ink);font:inherit;font-size:12px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
@@ -11388,11 +11393,25 @@
   .hb-board .hb-shelf-cards .hb-ins-pic .hb-cbar-n{font-size:var(--t-meta)}
   .hb-board .hb-shelf-cards .hb-ins-f{font-size:var(--t-body);color:var(--hb-ink);-webkit-line-clamp:3;line-clamp:3}
   .hb-board .hb-shelf-cards .hb-ins-acts{margin:auto calc(-1 * var(--s-4)) 0;padding:8px var(--s-4);border-top:1px solid rgba(var(--hb-ln),.12)}
+  /* each card's own picture, as drawn (hbInsPicHtml): pale bars, the one it is
+     about lit with its value above it, the months under the axis; a line with
+     its two ends marked; the party bars with their value only, the first lit */
+  .hb-ins-pic .hb-ip{display:block;width:100%;height:auto;max-height:150px;margin:0;pointer-events:none;overflow:visible}
+  .hb-ins-pic .hb-ip-axis{stroke:rgba(var(--hb-ln),.28);stroke-width:1}
+  .hb-ins-pic .hb-ip-x{font-size:12px;fill:var(--hb-mute)}
+  .hb-ins-pic .hb-ip-val{font-size:12px;font-weight:var(--w-strong);fill:var(--hb-ink)}
+  .hb-ins-pic .hb-ip-bar{fill:var(--hb-glow);fill-opacity:.14}
+  .hb-ins-pic .hb-ip-bar.is-lit{fill-opacity:1}
+  .hb-ins-pic .hb-ip-line{fill:none;stroke:var(--hb-glow);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+  .hb-ins-pic .hb-ip-dot{fill:var(--hb-glow)}
+  .hb-ins-pic .hb-ip-bars{display:flex;flex-direction:column;gap:7px;padding:2px 0;pointer-events:none;text-align:left}
+  .hb-ins-pic .hb-ip-br{display:grid;grid-template-columns:minmax(0,150px) minmax(0,1fr) auto;align-items:center;gap:var(--s-3)}
+  .hb-ins-pic .hb-ip-bn{font-size:var(--t-meta);color:var(--hb-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hb-ins-pic .hb-ip-bt{display:block;height:10px;min-width:0}
+  .hb-ins-pic .hb-ip-bt>i{display:block;height:100%;border-radius:2px;background:var(--hb-glow);opacity:.18}
+  .hb-ins-pic .hb-ip-bt>i.is-lit{opacity:1}
+  .hb-ins-pic .hb-ip-bv{font-size:var(--t-meta);color:var(--hb-ink);font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right;min-width:48px}
   .hb-board .hb-empty.is-setup{border:0;padding:0;text-align:left}
-  /* a clause gone to on Home's paper (Follow me, "Go to it") is lit for a moment */
-  #ig-paper [data-clause].ig-arrived{animation:igArrive 1.6s ease 1;border-radius:var(--radius)}
-  @keyframes igArrive{0%{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent-solid) 55%,transparent)}70%{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent-solid) 30%,transparent)}100%{box-shadow:0 0 0 3px transparent}}
-  @media (prefers-reduced-motion:reduce){ #ig-paper [data-clause].ig-arrived{animation:none;box-shadow:0 0 0 2px color-mix(in srgb,var(--accent-solid) 45%,transparent)} }
   #ig-dock .igd-head-w{flex:0 1 auto;min-width:0;margin-left:10px;font-size:13px;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #ig-page:has(#hb-board[hidden]) #hb-sheet-host,#hb-page:has(#hb-board[hidden]) #hb-sheet-host{display:none}
   /* the Copilot panel's resize handle lives in another layer and showed through the side list (the stray amber bar) */

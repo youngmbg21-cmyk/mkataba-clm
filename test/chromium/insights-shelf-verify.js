@@ -93,7 +93,8 @@ const check = (name, pass, detail) => {
     /* ================= 1. YOURS, MEASURED ================= */
     const s1 = await page.evaluate(() => {
       const cards = [...document.querySelectorAll('#hb-board .hb-shelf-cards .hb-ins')];
-      const c = document.querySelector('[data-hb-ins-card="pay.mine"]'), band = c && c.querySelector('.hb-ins-pic .hb-sv-band'), lit = c && c.querySelector('.hb-ins-pic .hb-sv-collit');
+      const c = document.querySelector('[data-hb-ins-card="pay.mine"]'), band = c && c.querySelector('.hb-ins-pic .hb-sv-band'), lit = c && c.querySelector('.hb-ins-pic .hb-ip-bar.is-lit'),
+        val = c && c.querySelector('.hb-ins-pic .hb-ip-val');
       const bb = band && band.getBoundingClientRect();
       return { n: cards.length, ids: cards.map(x => x.getAttribute('data-hb-ins-card')), scope: hbS().ins.scope,
         acts: cards.every(x => x.querySelector('[data-hb-ins="keep"]') && x.querySelector('[data-hb-ins="open"]') && x.querySelector('[data-hb-read-more^="ins:"]') && x.querySelector('[data-hb-ins="go"]')),
@@ -101,7 +102,7 @@ const check = (name, pass, detail) => {
         chip: c && (c.querySelector('.hb-ins-scope') || {}).textContent, t: c && c.querySelector('.hb-ins-t').textContent, f: c && c.querySelector('.hb-ins-f').textContent,
         why: c && (c.querySelector('.hb-ins-why') || {}).textContent,
         band: bb ? { h: Math.round(bb.height), fill: getComputedStyle(band).fill, stroke: getComputedStyle(band).strokeStyle || getComputedStyle(band).stroke } : null,
-        lit: lit ? getComputedStyle(lit).fill + ' / ' + getComputedStyle(lit).fillOpacity : null,
+        lit: lit ? getComputedStyle(lit).fill + ' / ' + getComputedStyle(lit).fillOpacity : null, val: val ? val.textContent : null,
         row: ((document.querySelector('#hb-board .hb-ins-head > .hb-ch') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
         calm: ((document.querySelector('#hb-board .hb-shelf-cards .hb-ins-calm') || {}).textContent || '').replace(/\s+/g, ' ').trim() };
     });
@@ -109,9 +110,13 @@ const check = (name, pass, detail) => {
     check('1b marked yours, titled by what left its normal', /^Yours · \d+$/.test(s1.chip || '') && /Payment days are above normal/.test(s1.t || ''), `${s1.chip} | ${s1.t}`);
     check('1c it says the month, your normal range and the company\'s figure', /^60 days in .+ · your normal 30–32 days · company \d+ days$/.test(s1.f || ''), s1.f);
     check('1d and why it is here', /Outside the normal range of your own contracts over the past year\./.test(s1.why || ''), s1.why);
-    check('1e the picture draws the normal range and lights its month', !!s1.band && s1.band.h > 0 && s1.band.fill !== 'none' && !!s1.lit && !/none/.test(s1.lit), JSON.stringify({ band: s1.band, lit: s1.lit }));
+    /* RE-POINTED 18 Oct 2026 (round 17 as drawn, pass 3): the card draws no
+       band — the normal range is in its sentence (1c) — and lights its month
+       with the value printed over it */
+    check('1e the picture lights its month and prints its value; the range is said, not drawn', !s1.band && !!s1.lit && !/none/.test(s1.lit) && / 1$/.test(s1.lit) && /^60 days$/.test(s1.val || ''), JSON.stringify({ band: s1.band, lit: s1.lit, val: s1.val }));
     check('1f every picture carries Keep · Open · Read more · let go, and is one press', s1.acts && s1.doorsInside === 0, `${s1.doorsInside} doors inside`);
-    check('1g its head says what moved most since the month six months back (each card says whose)', /^Today.s insights\s*\d+\s*what moved most since \S+ · worked out this morning from your book$/.test(s1.row), s1.row);
+    /* pass 3: Hide stays at its end (the owner's answer 7) */
+    check('1g its head says what moved most since the month six months back (each card says whose), and Hide', /^Today.s insights\s*\d+\s*what moved most since \S+ · worked out this morning from your book\s*Hide$/.test(s1.row), s1.row);
     await page.waitForTimeout(1500);   /* the columns rise in; photograph them risen */
     await page.screenshot({ path: path.join(OUT, '1-yours-measured.png') });
     /* RE-POINTED 11 Oct 2026 (owner: "make it to always be 3 but if the only

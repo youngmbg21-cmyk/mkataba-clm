@@ -2,7 +2,7 @@
  *
  * The owner picked "Jambo's note" by name on 15 Oct 2026 (Needs you back as
  * its own card), and on 18 Oct 2026 said yes to round 17 as drawn: Needs you
- * and Jambo's work LEAVE THE BOARD — they live on the Counter — and Jambo's
+ * LEAVES THE BOARD — it lives on Home (once the Counter) — and Jambo's
  * Board greeting says where. RE-POINTED that day from the Board's card to the
  * Counter, its one reading unchanged (hbNeedsList over needsYouOf).
  *
@@ -10,7 +10,7 @@
  *   0. the Board draws no Needs you card;
  *   1. the Counter lists what is owed, its number the checklist's own reading
  *      over the book (needsYouOf) with Jambo's work and the company's row;
- *   2. Jambo on the Board says it: "What needs you is on the Counter: N
+ *   2. Jambo on the Board says it: "What needs you is on Home: N
  *      things", N the Counter's own number, his tab the same, and "what needs
  *      me" under it;
  *   4. a colleague's look waits on the Counter after the urgent renewal
@@ -18,7 +18,9 @@
  *      beside its paper, Needs you here answers it with its own Done
  *      (needsYouGo → lookDone), and every count goes one down;
  *   5. a row's button is the checklist's own door (details → Fill in);
- *   6. the word "needs me" opens the Counter with the list in view;
+ *   6. the word "needs me" opens Home and LANDS on Needs you (landOn), lit;
+ *   (PASS 3, 18 Oct 2026: the owner's answer 14 keeps Jambo's work ON the
+ *   Board — only Needs you left it; the Counter is named Home.)
  *   7. nothing is waiting → the Counter says so, Jambo says so, his tab is
  *      quiet;
  *   8. none of it costs a model.
@@ -103,7 +105,8 @@ const CONTRACTS = [
         where: b[1] ? b[1].querySelector('.ai-bub').textContent.replace(/\s+/g, ' ').trim() : '',
         chip: b[1] ? ((b[1].querySelector('[data-igsug]') || {}).textContent || '').trim() : '' }; });
     ok('2a his tab carries the Counter\'s number', said && Number(two.tab) === one.n, JSON.stringify(two));
-    ok('2b he says where the owed work went', new RegExp(`^What needs you is on the Counter: ${one.n} things`).test(two.where), two.where);
+    /* the Counter is named Home since 18 Oct 2026 (main's own rename; code keeps "counter") */
+    ok('2b he says where the owed work went', new RegExp(`^What needs you is on Home: ${one.n} things`).test(two.where), two.where);
     ok('2c "what needs me" stands under it', two.chip === 'what needs me', two.chip);
 
     /* ===== 4. A COLLEAGUE'S LOOK: AFTER WHAT CANNOT WAIT, ANSWERED BY ITS OWN DONE ===== */
@@ -146,8 +149,8 @@ const CONTRACTS = [
 
     /* ===== 6. "needs me" OPENS THE COUNTER ===== */
     await page.evaluate(() => { if (typeof intelAsk === 'function') intelAsk('needs me'); });
-    const back = await until(page, () => state.view === 'counter' && !!document.querySelector('#cn-needs [data-cn-need]'));
-    ok('6a the word opens the Counter, the list in view', back, await page.evaluate(() => state.view));
+    const back = await until(page, () => state.view === 'counter' && !!document.querySelector('#cn-needs.is-landed [data-cn-need]'));
+    ok('6a the word opens Home and LANDS on Needs you — in view, lit (landOn)', back, await page.evaluate(() => state.view + ' ' + ((document.getElementById('cn-needs') || {}).className || '')));
 
     /* ===== 7. NOTHING WAITING IS SAID, AND THE TAB IS QUIET ===== */
     await page.evaluate(() => { window.__ny = window.needsYouOf; window.needsYouOf = () => []; window.__ag = window.hbAgentsData; window.hbAgentsData = () => ({ ready: 0, rows: [], done: [] }); window.__cn = window.counterNeedsCount; window.counterNeedsCount = () => 0;
@@ -155,7 +158,7 @@ const CONTRACTS = [
     const quiet = await until(page, () => !document.querySelector('#ig-dock [data-pd-tab="copilot"] .pd-tab-n') && !!document.querySelector('#ig-dock .hb-jb-hello'));
     const seven = await page.evaluate(() => { const b = [...document.querySelectorAll('#ig-dock .hb-jb-hello')];
       return { where: b[1] ? b[1].querySelector('.ai-bub').textContent.trim() : '', chip: b[1] ? !!b[1].querySelector('[data-igsug]') : true, n: counterNeedsCount() }; });
-    ok('7a nothing waiting: Jambo says so, no chip, no count on his tab', quiet && seven.where === 'Nothing needs you on the Counter.' && !seven.chip, JSON.stringify(seven));
+    ok('7a nothing waiting: Jambo says so, no chip, no count on his tab', quiet && seven.where === 'Nothing needs you on Home.' && !seven.chip, JSON.stringify(seven));
     await page.screenshot({ path: path.join(OUT, '7-empty.png') });
     await page.evaluate(() => { window.needsYouOf = window.__ny; window.hbAgentsData = window.__ag; window.counterNeedsCount = window.__cn; });
 

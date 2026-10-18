@@ -138,10 +138,16 @@ describe('f749 (4) igPaperGoClause: the clause up on Home\'s paper, lit', () => 
     d.body.insertAdjacentHTML('beforeend', `<div id="ig-paper"${hidden ? ' hidden' : ''}><div id="ig-paper-scroll"><div id="ig-canvas"><section data-clause="cl_7"><h3>7. Limitation</h3><p>x</p></section></div></div></div>`);
     return w;
   }
-  test('4a found: scrolled to and lit, nothing written', () => {
+  /* RE-POINTED (pass 3, LAND ON IT, owner 18 Oct 2026): the clause is brought
+     into view and lit by the ONE lander (landOn), never a glow of its own */
+  test('4a found: landed on — in view and lit by the one lander, pressing nothing — nothing written', () => {
     const w = home(false);
+    const landed = []; w.landOn = (t, o) => { landed.push([t, o]); return Promise.resolve(null); };
     const el = w.igPaperGoClause('cl_7');
-    assert.ok(el && el.classList.contains('ig-arrived'));
+    assert.ok(el && el.getAttribute('data-clause') === 'cl_7');
+    assert.equal(landed.length, 1);
+    assert.equal(landed[0][0], el);
+    assert.deepEqual(JSON.parse(JSON.stringify(landed[0][1])), { block: 'center', focus: false });
     assert.equal(w.document.querySelectorAll('[data-clause="cl_7"]').length, 1);
   });
   test('4b not on the paper, or the paper not up: null', () => {
@@ -153,7 +159,8 @@ describe('f749 (4) igPaperGoClause: the clause up on Home\'s paper, lit', () => 
     const IG = R('js/views/intelligence.js');
     const fn = IG.slice(IG.indexOf('function igPaperGoClause('), IG.indexOf('/* ---- the strip ---- */'));
     assert.ok(!/persist\(|api\(|intel\.paper\.|renderIntelDock|pdOpen/.test(fn), 'no record, no face, no panel');
-    assert.match(R('index.html'), /#ig-paper \[data-clause\]\.ig-arrived\{animation:igArrive/, 'the light, its own keyframes, not the Negotiate page\'s');
+    assert.match(fn, /landOn\(el,\{ block:'center', focus:false \}\)/, 'the one lander');
+    assert.ok(!/ig-arrived|igArrive/.test(R('index.html') + fn), 'no glow of its own (STALE: .ig-arrived)');
   });
 });
 

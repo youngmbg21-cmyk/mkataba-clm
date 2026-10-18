@@ -79,11 +79,10 @@ const BOOK = FIXTURES.concat(Array.from({ length: 20 }, (_, i) => {
     check('1c the tile that opened it puts it away', await waitFor(page, () => !document.querySelector('.hb-sheet'), 4000));
 
     /* 3 the week's pill, 4 the value tile */
-    /* RE-POINTED 18 Oct 2026 (round 17 as drawn): Jambo's work card left the
-       Board, so the week's count is read off the reading its row printed
-       (hbAgentsData), and the value's line is the value row's own */
+    /* the value's line is the value row's own (round 17 as drawn, 18 Oct 2026);
+       Jambo's work card stays on the Board (the owner's answer of 18 Oct) */
     const fig = await page.evaluate(() => ({
-      week: String(((hbAgentsData(null).rows || []).find(r => r.k === 'week') || {}).pill || '') || null,
+      week: (document.querySelector('[data-hm-agent-row="week"] .hb-pill') || {}).textContent || null,
       left: (document.querySelector('#hb-board [data-hb-fig="value"] .hb-fig-left') || {}).textContent || null }));
     check('3 the Week ahead pill counts its dates', fig.week != null && Number(fig.week) > 1, JSON.stringify(fig));
     check('4 the value tile names the currency it leaves out', /USD/.test(fig.left || ''), JSON.stringify(fig));
@@ -95,8 +94,7 @@ const BOOK = FIXTURES.concat(Array.from({ length: 20 }, (_, i) => {
     check('8b the Obligations overdue figure says how it splits, ours and theirs', /^\s*20 ours · 20 theirs\s*$/.test(late.split || ''), JSON.stringify(late));
 
     /* 2 a long agent list: eight, then the rest (Late promises, since Our promises left the Board) */
-    /* the agent's work opens through its one door (hbOpenAgent — Needs you here's See it, the bell), the card having left the Board */
-    await page.evaluate(() => hbOpenAgent('late'));
+    await page.locator('#hb-board [data-hm-agent-row="late"] .hb-ag-w').first().tap();
     await waitFor(page, () => document.querySelectorAll('#hb-focus .hb-ag-work').length > 0, 8000);
     const before = await page.evaluate(() => document.querySelectorAll('#hb-focus .hb-ag-work').length);
     const more = page.locator('#hb-focus [data-hb-ag-more]');

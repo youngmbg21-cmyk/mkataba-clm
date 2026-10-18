@@ -90,19 +90,12 @@ async function login(browser, email, pass, errors) {
        Home. The owner is told on Home by Prepared by Copilot's "Their round
        came back" row, which names the deal; the sentence "nobody on our side
        has taken it yet" is carried by the bell (2c) and the checklist (2d). */
-    /* RE-POINTED 18 Oct 2026 (round 17 as drawn, "Then and now"): Jambo's
-       work LEFT THE BOARD for the Counter (the owner's yes); the round's row
-       stands there, opened in place, naming the deal */
-    await O.page.evaluate(() => { setView('counter'); });
-    await O.page.waitForTimeout(600);
-    if (await O.page.$('#cn-needs [data-cn-jw][aria-expanded="false"]')) await O.page.click('#cn-needs [data-cn-jw]');
-    await O.page.waitForTimeout(400);
     const home = await O.page.evaluate(() => {
-      const row = [...document.querySelectorAll('#cn-needs [data-cn-ag-item]')].find(b => ((typeof agFind === 'function' && agFind(b.getAttribute('data-cn-ag-item'))) || {}).agent === 'round');
+      const row = document.querySelector('[data-hm-agent-row="round"]');
       const ready = (typeof agentsData === 'function') ? agentsData().agents.round.ready.map(x => x.cid) : [];
       return { row: !!row, text: row ? row.textContent.replace(/\s+/g, ' ').trim() : '', ready };
     });
-    check('2a the Counter\'s Jambo\'s work carries it — a Their round came back row',
+    check('2a Home\'s Prepared by Copilot carries it — under Their round came back',
       home.row && home.ready.includes('MK-A2'), JSON.stringify(home).slice(0, 200));
     check('2b and the row never says "led by" with no name after it',
       home.row && !/led by\s*(·|$)/.test(home.text), home.text.slice(0, 200) || 'no row');

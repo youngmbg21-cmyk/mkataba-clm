@@ -7731,6 +7731,9 @@ function renderIntelDock(){
     /* FINDINGS (Explorer stage 4): the findings colleagues kept on the map, beside Jambo */
     :igFindingsShows()?`<div id="ig-fd" class="flex-1 min-h-0 overflow-y-auto scroll-thin px-3.5 py-3" role="tabpanel">${igFindingsHtml()}</div><div id="igd-feed" hidden></div>`:`
     ${(state.view==='dashboard'&&typeof window.caBackRowHtml==='function')?caBackRowHtml():''}
+    ${''/* NEEDS YOU HERE, PINNED above the conversation (round 3: it stays at
+           the top of the Jambo tab while the talk scrolls under it) */}
+    ${(state.view==='dashboard'&&typeof window.pdJamboPinHtml==='function')?pdJamboPinHtml():''}
     <div id="igd-feed" class="flex-1 min-h-0 overflow-y-auto scroll-thin px-3.5 py-3 space-y-3" style="background:transparent">
       ${(()=>{
         /* ON HOME'S DOCUMENT FACE THE TAB OPENS ON WHAT IS IN FRONT OF THE
@@ -8360,10 +8363,11 @@ function igPaperGoClause(clauseId){
   const q=(window.CSS&&CSS.escape)?CSS.escape(id):id;
   /* the redline's own sections, else the headings marked on a paper drawn without them (igPaperClauseMarks) */
   const el=host.querySelector(`[data-clause="${q}"]`)||host.querySelector(`[data-pz-clause="${q}"]`); if(!el) return null;
-  const r=el.getBoundingClientRect(), br=box.getBoundingClientRect();
-  const top=Math.max(0, box.scrollTop+(r.top-br.top)-Math.max(16,(box.clientHeight-Math.min(r.height,box.clientHeight))/2));
-  try{ box.scrollTo({ top, behavior:'smooth' }); }catch(_){ box.scrollTop=top; }
-  el.classList.remove('ig-arrived'); void el.offsetWidth; el.classList.add('ig-arrived');
+  /* LAND ON IT (owner, 18 Oct 2026): the clause is brought into view and lit
+     by the one lander, one way everywhere; it presses nothing and readies no
+     button on the paper (focus:false) */
+  if(typeof window.landOn==='function') landOn(el,{ block:'center', focus:false });
+  else try{ el.scrollIntoView({ block:'center' }); }catch(_){}
   return el;
 }
 /* ---- THE CLAUSES ON A PAPER THAT DRAWS NONE (Follow me on Home, round 6

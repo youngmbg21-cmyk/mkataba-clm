@@ -1403,12 +1403,18 @@ const HB_FIG_TO_CONTRACTS = ['live', 'value', 'ending', 'past'];
 function hbFigDoor(key){
   const m = /^f:(\w+)$/.exec(String(key || '')); if (!m) return false;
   const k = m[1];
-  if (k === 'overdue'){ if (typeof obwGoFiltered !== 'function') return false; obwGoFiltered({ state: 'overdue' }); return true; }
+  /* LAND ON IT (owner, 18 Oct 2026): each lands ON the thing that says what
+     it counts — the Overdue tab of the Obligations page, the "N of M shown"
+     narrowing of the Contracts list — lit, pressing nothing (focus:false: the
+     narrowing's × is never the readied button) */
+  if (k === 'overdue'){ if (typeof obwGoFiltered !== 'function') return false; obwGoFiltered({ state: 'overdue' });
+    if (typeof landOn === 'function') landOn('[data-obw-view="overdue"]', { block: 'nearest', focus: false }); return true; }
   if (!HB_FIG_TO_CONTRACTS.includes(k) || typeof regShowOnly !== 'function') return false;
   let F = null; try { F = hbBookData(hbS().lens || 'all').figs[k]; } catch (_){ F = null; }
   const ids = (F && Array.isArray(F.ids)) ? F.ids : []; if (!ids.length) return false;
   const f = HB_FIGS.find(x => x.k === k);
   regShowOnly(ids, f ? i18t(f.word) : '');
+  if (typeof landOn === 'function') landOn('#reg-only-chip', { block: 'nearest', focus: false });
   return true;
 }
 function hbThenWord(month){
@@ -1459,10 +1465,12 @@ function hbBookHtml(d, moved, since){
   /* the same rule as the head's chip: the default is never read back */
   const sub = [i18t('hb_tn_sub', { then: thenWord }), count, d.lens === 'all' ? '' : i18t('hb_lens_' + d.lens), since ? i18t('hb_book_since', { when: hbDayWords(since) }) : '', i18t('hb_tn_doors')].filter(Boolean).join(' · ');
   const unsided = d.unsided ? `<div class="hb-quiet">${_hbE(i18tn('hb_unsided', d.unsided, { n: _hbN(d.unsided) }))}</div>` : '';
-  /* THE HEAD AS DRAWN (round 17): the title and its line only — the figure
-     picker is not drawn (the five figures are the drawing's; a choice made
-     before, hbFigsChosen, still stands) */
-  return `<section class="hb-card hb-book" id="hb-book"><header class="hb-ch"><span class="hb-ct">${_hbE(i18t('hb_book'))}</span><span class="hb-cs">${_hbE(sub)}</span></header>
+  /* THE HEAD AS DRAWN (round 17), with the figure picker KEPT (the owner's
+     answer of 18 Oct 2026: "the Board keeps the figure picker on Your book")
+     and, while Jambo's work card is closed, the way back to it */
+  return `<section class="hb-card hb-book" id="hb-book"><header class="hb-ch"><span class="hb-ct">${_hbE(i18t('hb_book'))}</span><span class="hb-cs">${_hbE(sub)}</span>
+    ${hbS().prep === 'closed' ? `<span class="hb-grow"></span><button type="button" class="hb-link" data-hb-prep="open" title="${_hbE(i18t('hb_prep_back'))}">${_hbE(i18t('hm_ag_title'))} <span class="hb-pill">${_hbN(hbAgentsData(null).ready)}</span></button>` : ''}
+    <span class="hb-grow"></span><span class="hb-figpick-w"><button type="button" class="hb-ib hb-figs-set" data-hb-figpick aria-haspopup="dialog" aria-expanded="${_hbFigPick}" title="${_hbE(i18t('hb_figs_pick'))}" aria-label="${_hbE(i18t('hb_figs_pick'))}"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor"><use href="#i-sliders"/></svg></button>${_hbFigPick ? hbFigPickHtml(d.money) : ''}</span></header>
     <div class="hb-cb"><div class="hb-figs hb-tn is-n${chosen.length}" style="--hb-figs-n:${chosen.length}">${head}${tiles}</div>${bar}${unsided}</div></section>`;
 }
 
@@ -1574,15 +1582,13 @@ function hbNyDockFollow(){
     renderIntelDock();
   } catch (_){}
 }
-/* "needs me" (CA_GO.needs): the Counter, where Needs you lives since round
-   17 (the owner's yes, 18 Oct 2026), its list in view and lit */
+/* "needs me" (CA_GO.needs): Home (once the Counter), where Needs you lives
+   since round 17 (the owner's yes, 18 Oct 2026), its list in view and lit */
 function hbNeedsOpen(){
   if (typeof deskGoCounter === 'function') deskGoCounter(); else if (typeof setView === 'function') setView('counter');
-  let n = 0; const land = () => { const el = document.getElementById('cn-needs');
-    if (el && el.getBoundingClientRect().height > 0){ try { el.scrollIntoView({ block: 'nearest' }); } catch (_){}
-      el.classList.remove('anchor-flash'); void el.offsetWidth; el.classList.add('anchor-flash'); return; }
-    if (++n < 20) setTimeout(land, 100); };
-  setTimeout(land, 40);
+  /* LAND ON IT (owner, 18 Oct 2026): Home's Needs you card, in view and lit,
+     pressing nothing — through the one lander */
+  if (typeof landOn === 'function') landOn('#cn-needs', { block: 'nearest' });
   return true;
 }
 /* a press on the card: the checklist's own door; a look opens its contract */
@@ -1595,28 +1601,73 @@ function hbNeedsPress(kind, id){
   }
   return (typeof needsYouGo === 'function') ? needsYouGo(kind, c.id) : false;
 }
+/* ---- JAMBO'S WORK DRAWS NONE OF IT (4 Oct 2026, still true) ----
+   The card is Copilot's prepared work and nothing else; what is waiting on
+   you lives on Home since round 17 (hbNeedsList, Home's Needs you). THE BOARD
+   KEEPS THIS CARD (the owner's answer of 18 Oct 2026, after LAND ON IT): Home's
+   "Jambo's work" row's Open lands on it, lit (hbOpenAgent → landOn). */
+function hbPrepHtml(A, since){
+  const st = hbS().prep;
+  const I = hbInsightsToday();
+  /* drawn while work is ready, OR work was done while you were away, OR
+     today's insights are waiting (the shelf, 4 Oct 2026) */
+  if (st === 'closed' || (!A.rows.length && !A.done.length)) return hbInsCardHtml(I);
+  const folded = st === 'folded';
+  const next = A.rows[0];
+  const sub = (A.ready ? i18tn('hm_ag_sub', A.ready, { n: _hbN(A.ready) }) : '')
+    + (folded && next ? (A.ready ? ' · ' : '') + i18t('hb_prep_next', { who: next.who || next.sum }) : '')
+    + (folded && I.length ? ((A.ready || next) ? ' · ' : '') + i18tn('hb_ins_n', I.length, { n: I.length }) : '');
+  /* ONE ROW PER AGENT, A SUMMARY (owner, 11 Oct 2026: "copilots work is
+     supposed to be a summary by agent not a full list. then when you click
+     on that agent it gives you the details below the card") — reverses the
+     same day's one-row-per-item. The row: the agent with its dot and count ·
+     its first item, with how many more · Review. A press on the row opens
+     that agent's work below the card (ag:k); Review on Renewals, Late
+     promises and Their round came back walks the Paper, as before. */
+  const rows = folded ? '' : A.rows.map(r => {
+    const dot = r.tone === 'ruby' ? ' is-bad' : r.tone === 'amber' ? ' is-warn' : '';
+    const urg = r.urg ? `<span class="hb-ag-u${r.tone === 'ruby' ? ' is-bad' : ' is-warn'}">${_hbE(r.urg)}</span>` : '';
+    const more = r.n > 1 ? `<span class="hb-ag-n">${_hbE(i18tn('hb_ag_and_more', r.n - 1, { n: _hbN(r.n - 1) }))}</span>` : '';
+    const sub = [r.who && r.sum ? _hbE(r.sum) : '', urg].filter(Boolean).join(' · ');
+    return `<div class="hb-ag hb-ag-row" data-hb-dig="ag:${_hbE(r.k)}" data-hm-agent-row="${_hbE(r.k)}">
+      <span class="hb-ag-k"><i class="hb-ag-dot${dot}" aria-hidden="true"></i><span class="hb-ag-t">${_hbE(i18t('ag_' + r.k))}</span><span class="hb-pill">${_hbN(r.pill != null ? r.pill : r.n)}</span></span>
+      <span class="hb-ag-b"><span class="hb-ag-w">${_hbE(r.who || r.sum || '')}${more}</span>${sub ? `<span class="hb-ag-s">${sub}</span>` : ''}</span>
+      <span class="hb-ag-acts">${HB_REVIEW_ON_PAPER[r.k] ? `<button type="button" class="hb-btn" data-hb-review-paper="${_hbE(r.k)}">${_hbE(i18t('hm_ag_review'))}</button>` : `<button type="button" class="hb-btn" data-hb-dig="ag:${_hbE(r.k)}">${_hbE(i18t('hm_ag_review'))}</button>`}</span></div>`;
+  }).join('');
+  const done = (!folded && A.done.length) ? `<div class="hb-done">${_hbE(i18t('hb_done_since', { when: hbDayWords(since) }))} ${A.done.map(x => `<button type="button" data-hb-dig="dn:${_hbE(x.k)}">${_hbE(i18tn('hb_done_' + x.k, x.n, { n: _hbN(x.n) }))}</button>`).join('<span aria-hidden="true">·</span>')}<span class="hb-grow"></span><span class="hb-quiet">${_hbE(i18t('hb_done_trail'))}</span></div>` : '';
+  return `<section class="hb-card hb-prep${folded ? ' is-folded' : ''}" id="hm-agents"><header class="hb-ch">
+    <button type="button" class="hb-ib" data-hb-prep="${folded ? 'open' : 'folded'}" aria-expanded="${!folded}" title="${_hbE(i18t(folded ? 'hb_prep_open' : 'hb_prep_fold'))}" style="transform:rotate(${folded ? '-90' : '0'}deg)">${_hbChev}</button>
+    <span class="hb-ct">${_hbE(i18t('hm_ag_title'))}</span><span class="hb-cs">${_hbE(sub)}</span><span class="hb-grow"></span>
+    <button type="button" class="hb-edge-b" data-hb-agents-page>${_hbE(i18t('hb_the_agents'))}</button>
+    <button type="button" class="hb-ib hb-x" data-hb-prep="closed" title="${_hbE(i18t('hb_prep_close'))}" aria-label="${_hbE(i18t('hb_prep_close'))}">${_hbX}</button></header>
+    ${done}${rows ? `<div class="hb-ags">${rows}</div>` : ''}</section>${hbInsCardHtml(I)}`;
+}
 /* C3 (the board as drawn, 11 Oct 2026): TODAY'S INSIGHTS IS ITS OWN CARD under
    Copilot's work — HaTi's own arithmetic, no model; the pictures three across,
    each Open · Keep · Ask why · Let it go; Hide folds it for the sitting's
    person (s.insFold). Its content is the shelf it always was (hbShelfHtml). */
 function hbInsCardHtml(I){
-  const U = hbInsUsual(I);
+  const s = hbS(), U = hbInsUsual(I);
   if (!I.length && !U.length) return '';
-  const ins = hbS().ins || {};
+  const ins = s.ins || {}, fold = !!s.insFold;
   /* THE HEAD AS DRAWN (round 17, "Then and now"; the owner's "build all the
      gaps", 18 Oct 2026): its own slim card — the title, the count as a pill,
-     "what moved most since April · worked out this morning from your book" —
-     whoever's pictures they are (each card says whose on its own chip). A
-     shelf with no finding says why it shows the usual pictures instead. No
-     Hide: the drawing has none (the 11 Oct fold, s.insFold, is read no more). */
+     "what moved most since April · worked out this morning from your book".
+     THE PILL COUNTS THE CARDS UNDER IT (hbShelfCards: the findings and the
+     usual pictures that fill the row), so the number on the head is what is
+     behind it. A shelf with no finding says why it shows the usual pictures.
+     HIDE STAYS (the owner's answer of 18 Oct 2026): it folds the pictures for
+     this person (s.insFold); the head and its count stay. */
   const sub = I.length ? 'hb_ins_sub_moved' : ins.young ? 'hb_ins_sub_young' : 'hb_ins_sub_quiet';
+  const n = hbShelfCards(I).length;
   /* THE PICTURES, EACH ITS OWN CARD, TWO TO A ROW (as drawn; reverses the 11
      Oct "always three across"): the findings first, the usual pictures fill
      the rest up to HB_INS_MAX (hbShelfCards); an odd last card takes the
      row's width — never a hole (the owner's 11 Oct rule, kept). */
-  return `<section class="hb-card hb-inscard hb-ins-head"><header class="hb-ch"><span class="hb-ct">${_hbE(i18t('hb_ins_title'))}</span>`
-    + `${I.length ? `<span class="hb-pill hb-ins-n">${_hbE(_hbN(I.length))}</span>` : ''}<span class="hb-cs">${_hbE(i18t(sub, { m: hbThenWord(true) }))}</span></header></section>`
-    + hbShelfHtml(I);
+  return `<section class="hb-card hb-inscard hb-ins-head${fold ? ' is-folded' : ''}"><header class="hb-ch"><span class="hb-ct">${_hbE(i18t('hb_ins_title'))}</span>`
+    + `${n ? `<span class="hb-pill hb-ins-n">${_hbE(_hbN(n))}</span>` : ''}<span class="hb-cs">${_hbE(i18t(sub, { m: hbThenWord(true) }))}</span><span class="hb-grow"></span>`
+    + `<button type="button" class="hb-edge-b" data-hb-ins-fold aria-expanded="${!fold}">${_hbE(i18t(fold ? 'hb_ins_show' : 'hb_ins_hide'))}</button></header></section>`
+    + (fold ? '' : hbShelfHtml(I));
 }
 
 /* ---- ONE CONTRACT ROW, in every list on the board ---- */
@@ -5262,14 +5313,7 @@ function hbAgentWorkHtml(D){
       <div class="ag-p-foot"><div class="ag-p-acts">${agPanelActs(it)}</div>
         <p class="ag-p-line">${_hbE(i18t('ag_panel_line'))}</p></div></div>`).join('');
   const more = its.length - shown.length;
-  /* REVIEW, ONE CONTRACT AT A TIME ON THE PAPER (Young, 8 Oct 2026, "Home
-     first"): the walk the Board's work card's rows offered for renewals, late
-     promises and their rounds stays one press away here, where that agent's
-     work opens, now the card has left the Board (round 17 as drawn, 18 Oct
-     2026) — the same button, the same door (hbReviewOnPaper) */
-  const k = String(D.key || '').replace(/^ag:/, '');
-  const walk = (HB_REVIEW_ON_PAPER[k] && its.length) ? ` <button type="button" class="hb-btn is-sm" data-hb-review-paper="${_hbE(k)}" title="${_hbE(i18t('hb_ag_review_paper_tip'))}">${_hbE(i18t('hm_ag_review'))}</button>` : '';
-  return `<div class="hb-say">${_hbE(i18t('hb_agent_say'))}${walk}</div>${hbChaseManyHtml(its)}<div class="hb-ag-works">${cards}</div>
+  return `<div class="hb-say">${_hbE(i18t('hb_agent_say'))}</div>${hbChaseManyHtml(its)}<div class="hb-ag-works">${cards}</div>
     ${more > 0 ? `<div class="hb-foot"><span>${_hbE(i18t('hb_showing', { k: _hbN(shown.length), n: _hbN(its.length) }))}</span><button type="button" class="hb-link" data-hb-ag-more="${_hbE(D.key)}">${_hbE(i18tn('al_show_more', Math.min(more, HB_AG_WORK_MAX), { n: _hbN(Math.min(more, HB_AG_WORK_MAX)) }))}</button></div>` : ''}`;
 }
 /* ---- CHASE MANY AT ONCE (step 4, Young 8 Oct 2026: "one press for the
@@ -5338,6 +5382,7 @@ function hbAgentWorkPress(el){
 function hbOpenAgent(k, itemKey){
   const s = hbS();
   s.face = 'board';
+  if (s.prep === 'closed') s.prep = 'open';
   const keys = Array.isArray(window.AG_KEYS) ? AG_KEYS : [];
   s.path = (k && keys.includes(k) && hbAgentsData(null).rows.some(r => r.k === k)) ? ['ag:' + k] : [];
   hbSave();
@@ -5792,6 +5837,7 @@ function hbBoardHtml(){
   const d = hbBookData(s.lens);
   const base = hbSeenTick(hbBookData('all', { whole: true }));
   const moved = (s.lens === 'all' && base && !hbCountKey()) ? hbMoved(d, base) : null;
+  const A = hbAgentsData(base && base.at);
   const time = hbCountedAt(true);
   const gifts = hbGiftsFor();
   /* REMEMBERED UNTIL THE BOOK CHANGES (work order "Home speed", Part 3):
@@ -5829,7 +5875,7 @@ function hbBoardHtml(){
   return `${hbBoardHeadHtml(time, cut, bs, pack, deskBits, deskScr)}
     ${bs.box}
     ${hbBookHtml(d, moved, base && base.at)}
-    ${hbInsCardHtml(hbInsightsToday())}
+    ${hbPrepHtml(A, base && base.at)}
     ${typeof window.bsStripsHtml === 'function' ? window.bsStripsHtml() : ''}
     ${hbFocusHtml()}
     ${(received || panels) ? `<div class="hb-grid">${hbGridBalanced(received + panels)}</div>` : hbEmptyHtml()}`;
@@ -7304,7 +7350,7 @@ const HB_INS_REN_MIN = 4, HB_INS_REN_PTS = 6, HB_INS_REN_LIFT = 1.5;
 const HB_INS_MINE_MIN = 10, HB_INS_MINE_ALL = 0.9;
 const HB_INS = {
   pay:    { q: 'average payment days of signed contracts by month signed with a trend', qm: 'average payment days of my signed contracts by month signed with a trend', m: 'payDays' },
-  sign:   { q: 'average days to sign by month signed with a trend', qm: 'average days to sign my contracts by month signed with a trend', m: 'daysToSign' },
+  sign:   { q: 'average days to sign by month signed with a trend', qm: 'average days to sign my contracts by month signed with a trend', m: 'daysToSign', look: 'line' },
   rounds: { q: 'average rounds by month signed with a trend', qm: 'average rounds of my contracts by month signed with a trend', m: 'rounds' },
   ren:    { q: 'contracts ending by quarter', qm: 'my contracts ending by quarter' },
   /* bars, each party's name and value, the first five and the rest said in one row (round 17 as drawn; the blocks before it, `was`, are seeded again) */
@@ -7405,7 +7451,7 @@ function hbInsFinding(k, mine){
     const co = hbInsChart(hbInsKey(k, false)), col = co && co.R && Array.isArray(co.R.cols) ? co.R.cols.find(c => c.b === N.last.b && c.n >= HB_TREND_MIN_N && c.y != null) : null;
     if (col) say += i18t('hb_ins_s_and_co', { c: fmt(col.y) });
   }
-  return { shape: k, mine: !!mine, id: hbInsId(k, mine), C, N, score: Math.min(1, N.off * 2),
+  return { shape: k, mine: !!mine, id: hbInsId(k, mine), C, N, lit: N.last.b, score: Math.min(1, N.off * 2),
     tone: k === 'pay' ? '' : (ren || N.out === 'above') ? 'warn' : 'good',
     title: i18t('hb_ins_t_' + k + '_' + N.out, { q: when }), say,
     rank: N.rank ? i18t('hb_ins_rank_' + N.rank, { n: _hbN(N.n) }) : '' };
@@ -7416,23 +7462,35 @@ function hbInsFinding(k, mine){
 function hbInsCandidate(k){
   const book = hbBook('all').filter(c => c.status !== 'Declined');
   if (!book.length || !HB_INS[k]) return null;
-  const view = (C, say) => ({ shape: k, id: hbInsId(k, false), C, plain: true, tone: '', title: i18t('hb_ins_view_' + k), say });
+  const view = (C, say, title, lit) => ({ shape: k, id: hbInsId(k, false), C, plain: true, tone: '', title: title || i18t('hb_ins_view_' + k), say, lit: lit || null });
+  /* EACH CARD SAYS WHAT IT SHOWS AS A HEADLINE (round 17 as drawn: "Payment
+     days are getting longer", "4 contracts end this quarter", "Signing got
+     faster") and one sentence read off the same columns the picture draws
+     (hbInsPicCols) — the month it lights against the first month shown */
   if (k === 'pay' || k === 'sign' || k === 'rounds'){
     const C = hbInsChart(hbInsKey(k)); const T = C && C.R && C.R.trend; if (!T) return null;
-    return view(C, i18t('hb_ins_s_trend', { from: hbMeasureFmt(HB_INS[k].m, T.y0), to: hbMeasureFmt(HB_INS[k].m, T.y1), n: _hbN(T.span), units: i18tn('hb_tr_units_' + T.unit, T.span, { n: T.span }) }));
+    const S = hbInsPicCols(C.R, null), m = HB_INS[k].m;
+    const lit = S && S.shown[S.lit], first = S && S.shown.find((c, i) => i < S.lit && c.k && c.y != null);
+    if (!lit || !first) return view(C, i18t('hb_ins_s_trend', { from: hbMeasureFmt(m, T.y0), to: hbMeasureFmt(m, T.y1), n: _hbN(T.span), units: i18tn('hb_tr_units_' + T.unit, T.span, { n: T.span }) }));
+    const pct = (lit.y - first.y) / Math.max(Math.abs(first.y), 1e-9), dir = Math.abs(pct) < 0.05 ? 'flat' : pct > 0 ? 'up' : 'down';
+    const bare = v => m === 'rounds' ? hbMeasureFmt(m, v) : _hbN(Math.round(v));
+    let month = first.b; try { month = new Date(first.b + '-01T00:00:00').toLocaleDateString(langLocale(), { month: 'long' }); } catch (_){ month = first.b; }
+    return view(C, i18t('hb_ins_s_' + k + '_' + dir, { v: hbMeasureFmt(m, lit.y), w: bare(first.y), m: month }), i18t('hb_ins_h_' + k + '_' + dir), lit.b);
   }
   if (k === 'ren'){
-    const ags = (typeof agreementsIn === 'function') ? agreementsIn(book) : book;
-    const byQ = new Map(); let total = 0;
-    for (const c of ags){
-      const e = (typeof effectiveExpiry === 'function') ? effectiveExpiry(c) : c.expiry; const d = hbDays(e);
-      if (d == null || d < 0 || d > 365) continue;
-      const b = hbBucketOf(String(e).slice(0, 10), 'q'); byQ.set(b, (byQ.get(b) || 0) + 1); total++;
-    }
-    const top = [...byQ.entries()].sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])))[0];
-    if (!top) return null;
     const C = hbInsChart(hbInsKey(k)); if (!C) return null;
-    return view(C, i18tn('hb_ins_s_ren_plain', top[1], { n: _hbN(top[1]), t: _hbN(total), q: hbBucketLabel(top[0], 'q', false) }));
+    const S = hbInsPicCols(C.R, null), lit = S && S.shown[S.lit];
+    if (!lit || !lit.k) return null;
+    const ids = (C.cs || []).filter(c => hbBucketOf(hbDateOf(c, 'end'), 'q') === lit.b).map(c => c.id);
+    const n = lit.k, decided = hbEndingDecided(ids), now = lit.b === C.R.nowB;
+    const title = i18tn(now ? 'hb_ins_h_ren_now' : 'hb_ins_h_ren_q', n, { n: _hbN(n), q: hbBucketLabel(lit.b, 'q', false) });
+    const open = decided == null ? null : n - decided;
+    const say = open == null ? ''
+      : n === 1 ? i18t(open ? 'hb_ins_s_ren_one_open' : 'hb_ins_s_ren_one_done')
+      : open === n ? i18t('hb_ins_s_ren_none', { n: hbNumWord(n) })
+      : open ? i18tn('hb_ins_s_ren_open', open, { u: hbNumWord(open, true), n: hbNumWord(n) })
+      : i18t('hb_ins_s_ren_done', { n: hbNumWord(n) });
+    return view(C, say, title, lit.b);
   }
   if (k === 'cp'){
     if (!hbMoneyOk()) return null;
@@ -7528,6 +7586,79 @@ function hbInsThumb(R){
     .replace(/<title>[^<]*<\/title>/g, '')
     .replace(/<button\b[^>]*?class="([^"]*)"[^>]*>/g, '<span class="$1">').replace(/<button\b[^>]*>/g, '<span>').replace(/<\/button>/g, '</span>');
 }
+/* ---- EACH PICTURE AS DRAWN (round 17, "Then and now"; the owner's "build
+   all the gaps", 18 Oct 2026) ----
+   A card's picture is drawn for the card, from the chart's own columns
+   (R.cols, the numbers its open chart counts, so a card can never say what
+   its chart would not): the last six finished months (or this quarter and
+   the four after it), pale, with the one the card is about lit and its value
+   printed above it, the months or quarters named under the axis. Days to
+   sign is a line, its two ends marked and said. Value by counterparty is the
+   chart's first five bars, each with its party and value only, the first in
+   the accent. No normal band, no Today marker, no rank chip: the headline
+   and the one sentence say what the picture is about. */
+const HB_INS_PIC_M = 6, HB_INS_PIC_Q = 5, HB_INS_PIC_BARS = 5;
+function hbInsPicCols(R, litB){
+  const cols = (R && Array.isArray(R.cols) ? R.cols : []).filter(c => !c.edge);
+  if (!cols.length || !R.nowB) return null;
+  /* every bucket in the span is drawn, an empty one as nothing (the chart
+     draws only from its first dated bucket to its last) */
+  const by = new Map(cols.map(c => [c.b, c]));
+  const at = b => by.get(b) || { b, y: 0, n: 0, k: 0, empty: true };
+  if (R.unit === 'q'){
+    const shown = []; let b = R.nowB;
+    for (let i = 0; i < HB_INS_PIC_Q; i++){ shown.push(at(b)); b = hbBucketNext(b, 'q'); }
+    if (!shown.some(c => c.k)) return null;
+    let lit = litB ? shown.findIndex(c => c.b === litB) : -1;
+    if (lit < 0) lit = shown[0].k ? 0 : shown.slice(0, 4).reduce((a, c, i) => ((c.k || 0) > (shown[a].k || 0) ? i : a), 0);
+    return { shown, lit };
+  }
+  let end = litB && by.has(litB) ? litB : null;
+  if (!end){ const done = cols.filter(c => !c.sofar && c.k && c.y != null); end = done.length ? done[done.length - 1].b : null; }
+  if (!end) return null;
+  const shown = []; for (let i = HB_INS_PIC_M - 1; i >= 0; i--) shown.push(at(hbBucketMove(end, 'm', -i)));
+  return { shown, lit: shown.length - 1 };
+}
+/* a small number in words where a sentence reads it ("Two of the four") */
+function hbNumWord(n, cap){
+  const w = String(i18t('hb_num_words') || '').split(/\s+/)[n];
+  const out = (n >= 0 && n <= 10 && w) ? w : _hbN(n);
+  return cap ? out.charAt(0).toUpperCase() + out.slice(1) : out;
+}
+function hbInsPicHtml(x){
+  const R = x && x.C && x.C.R; if (!R) return '';
+  if (Array.isArray(R.rows) && !Array.isArray(R.cols)){
+    const rows = R.rows.filter(r => !r.rest).slice(0, HB_INS_PIC_BARS); if (!rows.length) return hbInsThumb(R);
+    const max = Math.max(...rows.map(r => r.v || 0), 0) || 1;
+    const val = v => _hbM(v).replace(/^[A-Z]{3}\s+/, '');
+    return `<span class="hb-ip-bars">${rows.map((r, i) => `<span class="hb-ip-br"><span class="hb-ip-bn">${_hbE(r.label)}</span><span class="hb-ip-bt"><i class="${i ? '' : 'is-lit'}" style="width:${Math.max(1, Math.round((r.v || 0) / max * 100))}%"></i></span><span class="hb-ip-bv">${_hbE(val(r.v))}</span></span>`).join('')}</span>`;
+  }
+  const S = hbInsPicCols(R, x.lit); if (!S || !S.shown.length) return hbInsThumb(R);
+  const m = R.m, q = R.unit === 'q', line = !!(HB_INS[x.shape] && HB_INS[x.shape].look === 'line');
+  const W = 460, H = 150, L = 10, Rt = 10, Tp = 26, B = 24, base = H - B, n = S.shown.length, step = (W - L - Rt) / n;
+  const fmt = y => (m === 'count' || m === 'live') ? _hbN(Math.round(y || 0)) : hbMeasureFmt(m, y);
+  const max = Math.max(...S.shown.map(c => c.y || 0), 0) || 1;
+  const X = i => L + step * (i + 0.5), Y = v => Tp + (base - Tp) * (1 - Math.max(0, v || 0) / max);
+  const xl = c => q ? c.b.slice(5) + ' ' + c.b.slice(2, 4) : hbBucketLabel(c.b, 'm', true);
+  let g = `<line x1="${L}" x2="${W - Rt}" y1="${base}" y2="${base}" class="hb-ip-axis"/>`;
+  S.shown.forEach((c, i) => { g += `<text x="${X(i).toFixed(1)}" y="${base + 17}" text-anchor="middle" class="hb-ip-x">${_hbE(xl(c))}</text>`; });
+  if (line){
+    const pts = S.shown.map((c, i) => ({ c, i })).filter(o => o.c.k && o.c.y != null);
+    if (pts.length){
+      g += `<polyline points="${pts.map(o => X(o.i).toFixed(1) + ',' + Y(o.c.y).toFixed(1)).join(' ')}" class="hb-ip-line"/>`;
+      [pts[0], pts[pts.length - 1]].filter((o, j, a) => j === 0 || o !== a[0]).forEach(o => {
+        g += `<circle cx="${X(o.i).toFixed(1)}" cy="${Y(o.c.y).toFixed(1)}" r="4.5" class="hb-ip-dot"/><text x="${X(o.i).toFixed(1)}" y="${(Y(o.c.y) - 10).toFixed(1)}" text-anchor="middle" class="hb-ip-val">${_hbE(fmt(o.c.y))}</text>`; });
+    }
+  } else {
+    const cw = Math.min(26, step * 0.5);
+    S.shown.forEach((c, i) => {
+      const y = Y(c.y), h = Math.max(0, base - y), lit = i === S.lit;
+      if (h > 0.5) g += `<rect x="${(X(i) - cw / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${cw.toFixed(1)}" height="${h.toFixed(1)}" rx="2" class="hb-ip-bar${lit ? ' is-lit' : ''}"/>`;
+      if (lit && c.k) g += `<text x="${X(i).toFixed(1)}" y="${(y - 7).toFixed(1)}" text-anchor="middle" class="hb-ip-val">${_hbE(fmt(c.y))}</text>`;
+    });
+  }
+  return `<svg class="hb-ip" viewBox="0 0 ${W} ${H}" aria-hidden="true">${g}</svg>`;
+}
 function hbInsRowHtml(I){
   const U = hbInsUsual(I);
   if (!I.length && !U.length) return '';
@@ -7553,13 +7684,14 @@ function hbShelfHtml(I){
   const kept = new Set(s.panels.filter(p => p.kind === 'view').map(p => p.key));
   const scope = (s.ins || {}).scope, mineN = scope === 'mine' ? hbInsScope().n : 0;
   return `<div class="hb-shelf hb-shelf-cards" data-hb-shelf-n="${cards.length}">${cards.map(x => { const id = x.id, isKept = kept.has(hbInsKey(x.shape, x.mine));
-    const chips = x.plain ? '' : (x.mine ? `<span class="hb-ins-scope">${_hbE(i18t('hb_ins_scope_mine', { n: _hbN(mineN) }))}</span>` : scope === 'mine' ? `<span class="hb-ins-scope">${_hbE(i18t('hb_ins_scope_co'))}</span>` : '')
-      + (x.rank ? `<span class="hb-chip${x.tone === 'good' ? ' is-good' : x.tone === 'warn' ? ' is-warn' : ''}">${_hbE(x.rank)}</span>` : '');
+    /* whose, where it is not the whole book's (round 17 as drawn: no rank chip
+       above the headline — the sentence says how far it moved) */
+    const chips = x.plain ? '' : (x.mine ? `<span class="hb-ins-scope">${_hbE(i18t('hb_ins_scope_mine', { n: _hbN(mineN) }))}</span>` : scope === 'mine' ? `<span class="hb-ins-scope">${_hbE(i18t('hb_ins_scope_co'))}</span>` : '');
     const tone = x.plain ? ' is-plain' : x.tone === 'warn' ? ' is-warn' : x.tone === 'good' ? ' is-good' : '';
     return `<article class="hb-ins${tone}" data-hb-ins-card="${_hbE(id)}">
       ${chips ? `<div class="hb-ins-top">${chips}</div>` : ''}<div class="hb-ins-t">${_hbE(x.title)}</div>
-      <button type="button" class="hb-ins-pic" data-hb-ins="open" data-hb-ins-k="${_hbE(id)}" title="${_hbE(i18t('hb_ins_open_tip'))}" aria-label="${_hbE(x.title + ' — ' + i18t('hb_ins_open'))}">${hbInsThumb(x.C.R)}</button>
-      <div class="hb-ins-f">${_hbE(x.say)}</div>${x.plain ? '' : `<div class="hb-ins-why">${_hbE(hbInsWhy(x))}</div>`}${_hbReadOpen.has('ins:' + id) ? hbReadSrcHtml('ins:' + id) : ''}
+      <button type="button" class="hb-ins-pic" data-hb-ins="open" data-hb-ins-k="${_hbE(id)}" title="${_hbE(i18t('hb_ins_open_tip'))}" aria-label="${_hbE(x.title + ' — ' + i18t('hb_ins_open'))}">${hbInsPicHtml(x)}</button>
+      <div class="hb-ins-f">${_hbE(x.say)}</div>${!x.plain && scope === 'mine' ? `<div class="hb-ins-why">${_hbE(hbInsWhy(x))}</div>` : ''}${_hbReadOpen.has('ins:' + id) ? hbReadSrcHtml('ins:' + id) : ''}
       <div class="hb-ins-acts">
         <button type="button" class="hb-btn is-sm" data-hb-ins="open" data-hb-ins-k="${_hbE(id)}">${_hbE(i18t('hb_ins_open'))}</button>
         <button type="button" class="hb-btn is-sm" data-hb-ins="keep" data-hb-ins-k="${_hbE(id)}"${isKept ? ` disabled title="${_hbE(i18t('hb_ins_kept_tip'))}"` : ` title="${_hbE(i18t('hb_ins_keep_tip'))}"`}>${_hbE(i18t(isKept ? 'hb_ins_kept' : 'hb_ins_keep'))}</button>
@@ -9878,6 +10010,7 @@ function hbOnClick(e){
   if ((el = on('[data-hb-copy-tab]'))){ hbCopyChartTable(el); hbPaintBoard(); return; }
   /* a story's chapter opens as its own enlarged card; the trail leads back */
   if (on('[data-hb-sy-big]')){ const s = hbS(); s.digBig = true; hbDig(t.closest('[data-hb-sy-big]').getAttribute('data-hb-sy-big'), true); return; }
+  if ((el = on('[data-hb-prep]'))){ const v = el.getAttribute('data-hb-prep'); if (HB_PREP.includes(v)){ hbS().prep = v; hbSave(); hbPaintBoard(); } return; }
   if ((el = on('[data-hb-watch-stop]'))){ const s = hbS(); s.watches.splice(Number(el.getAttribute('data-hb-watch-stop')), 1); hbSave(); hbAlertsChanged(); hbPaintBoard(); return; }
   if ((el = on('[data-hb-watch]'))){ const k = el.getAttribute('data-hb-watch'); _hbWatchForm = _hbWatchForm === k ? null : k; hbPaintBoard(); return; }
   if (on('[data-hb-watch-cancel]')){ _hbWatchForm = null; hbPaintBoard(); return; }
@@ -10499,7 +10632,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
 Object.assign(window, { HB_FIG_TO_CONTRACTS, hbFigDoor, hbThenDay, hbThenWord, HB_STAGE_FIG, hbStageThen, hbEmptyHtml, hbSetupLeft, hbSetupGo, hbNeedsList, hbNeedsCount, hbNyWhat, hbNyWhen, hbNyOldestSay, HB_VIEWS_ASK_RE, hbSavedViewsSay, hbHeadWord, hbValueSay, hbEndingDecided, hbBoardHelloOn, hbBoardHelloHtml, hbCountedAt, hbBoardHeadHtml, hbSavedViewChipsHtml, hbViewsChanged, hbNeedsOpen, hbNeedsPress, hbOpenSavedView, hbOpenCalendar, hbOpenContracts, hbOpenHome, HB_CVIEWS, HB_CV_WORD, HB_CV_ROOM_TAB, hbCvNow, hbCvSet, hbCvCounts, hbCvReady, hbCvSwitchHtml, hbCvBodyHtml, hbCvPaint, hbOpenView, hbCvPick, hbCvReportOf, hbCvPrint, hbCvDownload, hbCvShareFormHtml, hbCvGive, hbCvGiftValid, hbCvGiftHtml, hbGiftSeen, hbCvGiftOpen, hbGiftsSeenSay, hbGiftAlerts, hbAngleOf, hbAngleText, HB_ANGLE, HB_SLASH_PLACES, HB_ASKPOP_LONG, hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgentWorkPress, hbOpenAgent, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_FACE_ICON, hbFaceWordsHtml, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
-  HB_RX, hbFindContract, hbOpenRef, HB_OPEN_REF_LEAD, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbDeltaHtml, hbRowHtml, hbListHtml,
+  HB_RX, hbFindContract, hbOpenRef, HB_OPEN_REF_LEAD, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,
   hbOblRowsHtml, hbDigBodyHtml, hbFocusHtml, hbCrumbOf, hbCardHtml, hbBarsHtml, hbPanelBodyHtml, hbPanelHtml,
   hbBoardHtml, hbWatchFormHtml, hbWatchFired, hbGiveFormHtml, hbPaintBoard, hbPaintHead, hbApplyScreen,
   hbApplyFace, hbMount, hbAfterMount, hbRender, hbOpenExplorer, hbSetFace, hbSetLens, hbLensOnMap, hbShowOnMap, hbDig, hbAddPanel,
@@ -10513,7 +10646,7 @@ Object.assign(window, { HB_FIG_TO_CONTRACTS, hbFigDoor, hbThenDay, hbThenWord, H
   HB_INS, HB_INS_SHAPES, HB_INS_MEASURED, HB_INS_V, HB_INS_MAX, HB_INS_REST_DAYS, HB_INS_NORM_PTS, HB_INS_MINE_MIN, hbInsKey, hbInsId, hbInsOf, hbInsViewWord, hbInsChart, hbInsCandidate, hbInsCandidateMemo,
   hbMovedFromStart, hbBackToStart, hbStartBtnHtml, hbPayFigs, hbPayKpiHtml, hbFigSeries,
   hbInsScope, hbInsNormal, hbInsRenNormal, hbInsFinding, hbInsFindingMemo, hbInsightsToday, hbInsUsual, hbInsUsualOpen, hbInsWhy, hbInsResting, hbInsBookSig,
-  hbInsThumb, hbInsRowHtml, hbShelfHtml, hbPanelWord, hbAddView, hbViewPanelHtml, hbInsAct, hbKeptSync,
+  hbInsThumb, HB_INS_PIC_M, HB_INS_PIC_Q, HB_INS_PIC_BARS, hbInsPicCols, hbNumWord, hbInsPicHtml, hbInsRowHtml, hbShelfHtml, hbPanelWord, hbAddView, hbViewPanelHtml, hbInsAct, hbKeptSync,
   hbBigBtnHtml, hbReadingOf, hbReadHtml, hbWhySig, hbWhyKept, hbWhyPrompt, hbWhyCheck, hbWhyAsk, hbWhyFollow, HB_WHY_KEEP,
   hbBoardNow, HB_BOARD_NOW_MAX, hbUsefulGroup, hbTrendFmt, HB_WHY_ASK_RE, HB_FU, hbOpenListKey, hbBoardEdit, hbFollowUp, hbBoardTakes, hbAxisTop,
   HB_PICS2, HB_SORTS, HB_DIRS, HB_COMPARES, HB_TOP_MAX, HB_TITLE_MAX, HB_SERIES_MAX, HB_HEAT_MAX, HB_WIN_MAX, HB_RC_GW, HB_RC_NUMS, HB_WIN_PRESETS, HB_SPLIT_WORDS, HB_UNIT_WORDS,

@@ -456,12 +456,9 @@ function insNeedWords(c, it){
   if (it.kind === 'quiet'){
     const d = _insDaysSince(it.since);
     let std = 0; try { std = (typeof deskCfg === 'function') ? Number(deskCfg().staleDays || 0) : 0; } catch (_) { std = 0; }
-    /* before the standard (a fresh row, Needs you here beside a paper) the
-       wait is said plainly and no standard is named as passed */
-    const past = it.urgent !== false;
     return Object.assign({ title: i18tn('ins_need_quiet', it.n || 1, { n: it.n || 1, who: cp }) },
-      lineOf([d == null ? null : bit(!past && d === 0 ? i18t('ag_waiting_today') : i18t('ins_need_waiting', { days: _insDaysWord(d) }), past),
-        past && std > 0 ? bit(i18t('ins_over', { n: std }), false, true) : null]));
+      lineOf([d == null ? null : bit(i18t('ins_need_waiting', { days: _insDaysWord(d) }), true),
+        std > 0 ? bit(i18t('ins_over', { n: std }), false, true) : null]));
   }
   if (it.kind === 'review'){
     const day = _insDay(it.due);

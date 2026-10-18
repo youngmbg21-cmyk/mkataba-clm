@@ -153,13 +153,10 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     ok('4b pressing it opens that contract on Paper, outside the walk', r.id === 'MK-HF3' && !r.walk, JSON.stringify(r));
 
     /* ===== 5. REVIEW ON LATE PROMISES OPENS THE PAPER AT OBLIGATIONS ===== */
-    /* RE-POINTED 18 Oct 2026 (round 17 as drawn): Jambo's work card left the
-       Board; the Late promises' Review stands where that agent's work opens
-       (hbOpenAgent — Needs you here's See it, the bell), the same door */
-    await page.evaluate(() => hbOpenAgent('late'));
+    await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'board');
     await page.waitForSelector('[data-hb-review-paper="late"]', { timeout: 8000 }).catch(() => {});
     const late = await page.$('[data-hb-review-paper="late"]');
-    ok('5a the Late promises\' Review is a door onto the Paper', !!late);
+    ok('5a the Late promises row\'s Review is a door onto the Paper', !!late);
     if (late) await late.click();
     await page.waitForFunction(() => intel.paper && intel.paper.id === 'MK-HF4' && !!document.getElementById('pd-body'), null, { timeout: 8000 }).catch(() => {});
     const l = await page.evaluate(() => ({ face: hbFace(), id: intel.paper && intel.paper.id, tab: pdTab(),

@@ -14,11 +14,15 @@
        asks are read RAW (negoNeedsYouIds), never through a reading that
        starts a negotiation.
    (2) "Nobody has been named to sign yet." says "Needed before signing";
-       "Risks not read yet" · "Reading costs 1 Jambo call" · Read it (PASS 2,
-       as drawn: the Clauses tab's deep read, stkRun — the read that costs one
-       call — not the free rules scan); with no key the row says so and offers
-       no button; offered only while signing is ahead, the deep read of these
-       words has not been made (stkOf), and this person may act.
+       "Risks not read yet" · "Reading is free: HaTi's own rules, no Jambo
+       call" · Read it (PASS 3, the owner's answer (6) of 18 Oct 2026: the read
+       is FREE — the rules scan, runScanFor — reversing pass 2's deep read);
+       offered only while signing is ahead, the scan has not run (c.scan), and
+       this person may act on the wording (riskMayAct, canEdit).
+   PASS 3, (1) again: a number of days in a payment clause is "days to pay",
+       in a termination clause "days' notice" (PD_GL_DAYS_FOR, read off the
+       clause's own heading by clauseKind) — "Clause 11: they ask for 60 days
+       to pay, up from 30." as drawn.
    (3) The stage pill carries its round, as the paper's line does.
    (4) Go to it Redlines Home's paper and brings the clause up (pdGlGoTo →
        igPaperGoClause); Read it runs the deep read and opens the Clauses tab,
@@ -52,6 +56,9 @@ const BOOKS = (() => {
   return { en, sv };
 })();
 const fill = (s, v) => String(s).replace(/\{(\w+)\}/g, (m, k) => (v && k in v) ? v[k] : m);
+/* the one reading of what a clause is, from its heading (js/clausemodel.js), run as it stands */
+const CM = R('js/clausemodel.js');
+const CLAUSE_KIND = CM.slice(CM.indexOf('const CLAUSE_KINDS = ['), CM.indexOf('const clauseKindByKey')) + CM.slice(CM.indexOf('function clauseKind(cl){'), CM.indexOf('\n}\n', CM.indexOf('function clauseKind(cl){')) + 3);
 const words = { i18t: (k, v) => fill(k in BOOKS.en ? BOOKS.en[k] : k, v), i18tn: (k, n, v) => fill(BOOKS.en[k + (n === 1 ? '_one' : '_other')] || k, Object.assign({ n }, v || {})) };
 const daysAgo = n => new Date(Date.now() - n * 864e5).toISOString();
 const ask = (id, label, ops, extra) => Object.assign({ id, status: 'pending', authorSide: 'counterparty', clauseId: 'cl_' + id, clauseLabel: label, ops, createdAt: daysAgo(4) }, extra || {});
@@ -78,7 +85,7 @@ function glance({ asks = [ask('a', '7. Limitation of liability', SWAP), ask('b',
     renderIntelDock: () => {}, setTimeout: () => 0,
   }, words);
   ctx.window = ctx;
-  vm.createContext(ctx); vm.runInContext(PD, ctx);
+  vm.createContext(ctx); vm.runInContext(CLAUSE_KIND, ctx); vm.runInContext(PD, ctx);
   return { ctx, c, calls };
 }
 const J = x => JSON.parse(JSON.stringify(x));
@@ -99,13 +106,18 @@ describe('f748 (1) their round and each of their asks', () => {
     const { ctx, c } = glance();
     const html = ctx.pdGlanceHtml(c);
     assert.match(html, /data-pd-gl="ask" data-pd-gl-ch="a"><span>Clause 7: they ask for 100% of the fees, up from 50%\.<small title="their ask">their ask<\/small><\/span><button type="button" class="ui-btn ui-btn-sm" data-pd-gl-go="cl_a">Go to it<\/button>/);
-    assert.match(html, /Clause 11: they ask for 60 days, up from 30\./, 'the unit after the number stays with it');
+    assert.match(html, /Clause 11: they ask for 60 days to pay, up from 30\./, 'days in a payment clause are days to pay (as drawn)');
     const say = (ops, extra) => ctx.pdAskSay(c, ask('x', '4. Fees', ops, extra));
     /* what the number is OF: the words after it, to a stop, without a dangling "of the" */
-    assert.equal(say([{ op: 'keep', text: 'within ' }, { op: 'del', text: '30' }, { op: 'ins', text: '60' }, { op: 'keep', text: ' days of receipt. Late' }]), 'Clause 4: they ask for 60 days of receipt, up from 30.');
+    assert.equal(say([{ op: 'keep', text: 'within ' }, { op: 'del', text: '30' }, { op: 'ins', text: '60' }, { op: 'keep', text: ' days of receipt. Late' }]), 'Clause 4: they ask for 60 days to pay, up from 30.', '"Fees" is a payment clause');
+    const sayIn = (label, ops) => ctx.pdAskSay(c, ask('y', label, ops));
+    const DAYS = [{ op: 'keep', text: 'within ' }, { op: 'del', text: '30' }, { op: 'ins', text: '60' }, { op: 'keep', text: ' days of receipt. Late' }];
+    assert.equal(sayIn('11. Payment terms', DAYS), 'Clause 11: they ask for 60 days to pay, up from 30.');
+    assert.equal(sayIn('14. Termination', [{ op: 'keep', text: 'on ' }, { op: 'del', text: '90' }, { op: 'ins', text: '30' }, { op: 'keep', text: ' days written notice' }]), 'Clause 14: they ask for 30 days’ notice, down from 90.');
+    assert.equal(sayIn('8. Insurance', DAYS), 'Clause 8: they ask for 60 days of receipt, up from 30.', 'a clause of another kind keeps its own words');
     assert.equal(say([{ op: 'keep', text: 'at least ' }, { op: 'del', text: '10' }, { op: 'ins', text: '5' }, { op: 'keep', text: ' million of the' }]), 'Clause 4: they ask for 5 million, down from 10.');
     /* a change inside a number or a word is widened to the whole of it */
-    assert.equal(say([{ op: 'keep', text: 'pay within 4' }, { op: 'del', text: '5' }, { op: 'ins', text: '0' }, { op: 'keep', text: ' days' }]), 'Clause 4: they ask for 40 days, down from 45.');
+    assert.equal(say([{ op: 'keep', text: 'pay within 4' }, { op: 'del', text: '5' }, { op: 'ins', text: '0' }, { op: 'keep', text: ' days' }]), 'Clause 4: they ask for 40 days to pay, down from 45.');
     assert.equal(say([{ op: 'keep', text: 'governed by ' }, { op: 'del', text: 'Swed' }, { op: 'ins', text: 'Engl' }, { op: 'keep', text: 'ish law' }]), 'Clause 4: they ask for “English” in place of “Swedish”.');
     assert.equal(say([{ op: 'keep', text: 'pays ' }, { op: 'ins', text: 'promptly ' }]), 'Clause 4: they ask to add “promptly”.');
     assert.equal(say([{ op: 'keep', text: 'pays ' }, { op: 'del', text: 'monthly ' }]), 'Clause 4: they ask to take out “monthly”.');
@@ -139,19 +151,21 @@ describe('f748 (2) who signs, and the risks not read yet', () => {
     const { ctx, c } = glance();
     assert.match(ctx.pdGlanceHtml(c), /data-pd-gl="sign"><span>Nobody has been named to sign yet\.<small title="Needed before signing">Needed before signing<\/small><\/span><button type="button" class="ui-btn ui-btn-sm" data-pd-glance="sign">Signing</);
   });
-  test('2b "Risks not read yet" · "Reading costs 1 Jambo call" · Read it (as drawn)', () => {
+  /* RE-POINTED (pass 3, the owner's answer 6): the read is free, the rules scan */
+  test('2b "Risks not read yet" · "Reading is free: HaTi\'s own rules, no Jambo call" · Read it', () => {
     const { ctx, c } = glance();
-    assert.match(ctx.pdGlanceHtml(c), /data-pd-gl="scan"><span>Risks not read yet<small title="Reading costs 1 Jambo call">Reading costs 1 Jambo call<\/small><\/span><button type="button" class="ui-btn ui-btn-sm" data-pd-gl-scan>Read it</);
-    assert.match(R('js/views/breakdown.js'), /api\('ai\/breakdown', 'POST'/, 'the read it runs is the one Jambo call the Clauses tab says it uses');
+    assert.match(ctx.pdGlanceHtml(c), /data-pd-gl="scan"><span>Risks not read yet<small title="Reading is free: HaTi’s own rules, no Jambo call">Reading is free: HaTi’s own rules, no Jambo call<\/small><\/span><button type="button" class="ui-btn ui-btn-sm" data-pd-gl-scan>Read it</);
+    assert.ok(!/Jambo call<\/small>/.test(ctx.pdGlanceHtml(c).replace('no Jambo call</small>', '')), 'never a cost');
   });
-  test('2b2 with no key the row says so, and offers no press (never a silent failure)', () => {
+  test('2b2 no key needed: the free read is offered either way', () => {
     const { ctx, c } = glance({ keyed: false });
-    assert.match(ctx.pdGlanceHtml(c), /data-pd-gl="scan"><span>Risks not read yet<small title="[^"]+">[^<]+<\/small><\/span><\/div>/);
-    assert.ok(!/data-pd-gl-scan/.test(ctx.pdGlanceHtml(c)));
+    assert.match(ctx.pdGlanceHtml(c), /data-pd-gl-scan>Read it</);
   });
-  test('2c not offered once read, signed, or to someone who may not act on the wording', () => {
-    for (const o of [{ read: { ok: true } }, { status: 'Signed' }, { may: false }])
-      assert.ok(!glance(o).ctx.pdGlanceRows(glance(o).c).some(r => r.k === 'scan'), JSON.stringify(o));
+  test('2c not offered once scanned, signed, or to someone who may not act on the wording', () => {
+    for (const o of [{ scanned: true }, { status: 'Signed' }, { may: false }]){
+      const g = glance(o); if (o.scanned) g.c.scan = { at: 'x' };
+      assert.ok(!g.ctx.pdGlanceRows(g.c).some(r => r.k === 'scan'), JSON.stringify(o));
+    }
   });
 });
 
@@ -173,8 +187,8 @@ describe('f748 (4) the presses', () => {
   test('4b the wiring: Go to it and Read it', () => {
     const wiring = PD.slice(PD.indexOf('document._pdJamboTopWired = true'), PD.indexOf('JAMBO, ALIVE'));
     assert.match(wiring, /const gg = t\.closest\('\[data-pd-gl-go\]'\);\s*if \(gg\)\{ e\.preventDefault\(\); pdGlGoTo\(gg\.getAttribute\('data-pd-gl-go'\)\); return; \}/);
-    assert.match(wiring, /\[data-pd-gl-scan\][\s\S]{0,300}Promise\.resolve\(stkRun\(live\)\)[\s\S]{0,120}pdSetTab\('doc'\)/);
-    assert.ok(!/runScanFor/.test(wiring), 'the free rules scan is not this row\'s read');
+    assert.match(wiring, /\[data-pd-gl-scan\][\s\S]{0,200}Promise\.resolve\(runScanFor\(getContract\(cc\.id\) \|\| cc\)\)\.then\(\(\) => \{ try \{ pdGlanceRepaint\(\); pdNeedsRepaint\(\); \}/, 'the free scan, then the cards painted again');
+    assert.ok(!/stkRun/.test(wiring.slice(wiring.indexOf('[data-pd-gl-scan]'), wiring.indexOf('[data-pd-gl-scan]') + 400)), 'never the deep read that costs a call');
   });
 });
 

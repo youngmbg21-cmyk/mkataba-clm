@@ -32,6 +32,17 @@
        clause the reader's own paper arrives there; pressed again it stops
      7 the owner's three screens: both cards, the chips and the box in view,
        nothing past the panel's edge
+   PASS 3 (the second review and the owner's answers 6 and 8, 18 Oct 2026):
+     1e their redlines are owed after the quiet standard, unchanged: no row
+        before it, the urgent row after it; the tab and pill count the same
+     1g Jambo's work here: "Jambo's work · Nordvik's answer", its line whole
+     1h Needs you here is pinned above the conversation: asked something,
+        the talk scrolls and the card stays in view
+     2c "Clause 11: they ask for 60 days to pay, up from 30."
+     2e "Risks not read yet · Reading is free: HaTi's own rules, no Jambo
+        call · Read it"; 4 Read it runs the free scan, no Jambo call
+     3  Go to it lands on the clause through landOn (lit, .is-landed)
+     1d Open note lands on the note's row in My notes
    Waits ask for the state, bounded; a missing part reports.
    Run: node test/chromium/paper-panel-as-drawn-verify.js */
 const fs = require('node:fs');
@@ -112,17 +123,34 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
         all: (document.querySelector('#pd-needs [data-pd-nd-all]') || {}).textContent || '', counter: counterNeedsCount() }; }, null, 10000);
     check('1a "1 note due today", its own words and "only you", with Open note', !!nt && nt.title === '1 note due today' && nt.sub === '“Check Nordvik\'s insurance broker.” · only you' && nt.btn === 'Open note', JSON.stringify(nt));
     check('1b the card counts it with its rows; "all N" is the Counter\'s own number', !!nt && nt.n === nt.rows && nt.all.trim() === 'all ' + nt.counter, JSON.stringify(nt));
-    /* PASS 2: their redlines from the day they arrive, quiet, with which clauses */
-    const qrow = () => until(() => { const r = document.querySelector('#pd-needs [data-pd-nd-kind="quiet"]'); if (!r) return null;
-      const sm = r.querySelector('small'); return { title: r.querySelector('b').textContent.trim(), sub: sm ? sm.textContent.trim() : '', late: !!(sm && sm.querySelector('.late')), btn: (r.querySelector('[data-pd-nd]') || {}).textContent || '' }; }, null, 8000);
-    const q0 = await qrow();
-    check('1e (pass 2) their redlines, the day they came: "Answer Nordvik Logistik AB’s 2 redlines" · Arrived today · clauses 7 and 11 · Open redlines',
-      !!q0 && q0.title === 'Answer Nordvik Logistik AB’s 2 redlines' && q0.sub === 'Arrived today · clauses 7 and 11' && !q0.late && q0.btn.trim() === 'Open redlines', JSON.stringify(q0));
+    /* PASS 3 (the owner's answer 8): their redlines are owed after the desk's quiet standard, unchanged —
+       before it, Needs you here draws no row of its own; past it, needsYouOf's own urgent row */
+    const qrow = () => page.evaluate(() => { const r = document.querySelector('#pd-needs [data-pd-nd-kind="quiet"]'); if (!r) return null;
+      const sm = r.querySelector('small'); return { title: r.querySelector('b').textContent.trim(), sub: sm ? sm.textContent.trim() : '', late: !!(sm && sm.querySelector('.late')), btn: (r.querySelector('[data-pd-nd]') || {}).textContent || '' }; });
+    const counts = () => page.evaluate(() => ({ pill: Number((document.querySelector('#pd-needs .pd-gl-h .pd-pill') || {}).textContent || 0), rows: document.querySelectorAll('#pd-needs .pd-nd-row').length,
+      quietOwed: (needsYouOf(getContract('MK-0382')) || []).some(it => it.kind === 'quiet') }));
+    const q0 = await qrow(), c0 = await counts();
+    check('1e (pass 3) the day they came: no redlines row in Needs you here — not owed before the standard', !q0 && !c0.quietOwed && c0.pill === c0.rows, JSON.stringify({ q0, c0 }));
     await page.evaluate(() => { const at = new Date(Date.now() - 4 * 864e5).toISOString();
       (getContract('MK-0382').changes || []).forEach(x => { if (x.authorSide === 'counterparty') x.createdAt = at; }); pdNeedsRepaint(); });
-    const q4 = await until(() => { const r = document.querySelector('#pd-needs [data-pd-nd-kind="quiet"] small'); return r && /4 days/.test(r.textContent) ? { sub: r.textContent.trim(), late: !!r.querySelector('.late') } : null; }, null, 6000);
-    check('1f (pass 2) four days on: "Waiting 4 days", not late — the standard is not passed', !!q4 && q4.sub === 'Waiting 4 days · clauses 7 and 11' && !q4.late, JSON.stringify(q4));
-    await shot(page, '3-panel-asks-4-days-1440x780');
+    await page.waitForTimeout(300);
+    const q4 = await qrow();
+    check('1e2 (pass 3) four days on: still none — the standard is five quiet days', !q4, JSON.stringify(q4));
+    await page.evaluate(() => { const at = new Date(Date.now() - 9 * 864e5).toISOString();
+      (getContract('MK-0382').changes || []).forEach(x => { if (x.authorSide === 'counterparty') x.createdAt = at; }); pdNeedsRepaint(); });
+    const q9 = await until(() => { const r = document.querySelector('#pd-needs [data-pd-nd-kind="quiet"]'); if (!r) return null; const sm = r.querySelector('small');
+      return { title: r.querySelector('b').textContent.trim(), sub: sm.textContent.trim(), late: !!sm.querySelector('.late'), btn: (r.querySelector('[data-pd-nd]') || {}).textContent.trim() }; }, null, 6000);
+    const c9 = await counts();
+    check('1f (pass 3) past the standard: "Answer Nordvik Logistik AB’s 2 redlines" · Waiting N days · clauses 7 and 11 · Open redlines, counted with the rows',
+      !!q9 && q9.title === 'Answer Nordvik Logistik AB’s 2 redlines' && /^Waiting \d+ days · .*clauses 7 and 11$/.test(q9.sub) && q9.late && q9.btn === 'Open redlines' && c9.quietOwed && c9.pill === c9.rows, JSON.stringify({ q9, c9 }));
+    await shot(page, '3-panel-asks-past-the-standard-1440x780');
+    await page.evaluate(() => { const at = new Date().toISOString();
+      (getContract('MK-0382').changes || []).forEach(x => { if (x.authorSide === 'counterparty') x.createdAt = at; }); pdNeedsRepaint(); });
+
+    console.log('\n1g · Jambo\'s work here, in the drawing\'s words');
+    const jw = await until(() => { const r = document.querySelector('#pd-needs .pd-nd-row.is-jw'); if (!r) return null; const sm = r.querySelector('small');
+      return { title: r.querySelector('b').textContent.trim(), sub: sm ? sm.textContent.trim() : '', cut: sm ? sm.scrollWidth > sm.clientWidth + 1 : null, lines: sm ? Math.round(sm.getBoundingClientRect().height / parseFloat(getComputedStyle(sm).lineHeight)) : 0 }; }, null, 6000);
+    check('1g "Jambo’s work · Nordvik’s answer", its line said whole (never cut)', !!jw && jw.title === 'Jambo’s work · Nordvik’s answer' && /^(Prepared|Read) (overnight|today|yesterday|on .+): .+/.test(jw.sub) && jw.cut === false, JSON.stringify(jw));
 
     console.log('\n2 · the glance as drawn');
     const gl = await page.evaluate(() => { const g = document.getElementById('pd-glance'); const rows = [...g.querySelectorAll('.pd-gl-row')];
@@ -133,11 +161,11 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     check('2b their round: "Nordvik Logistik AB sent 2 redlines today." · Your move. · Redlines',
       gl.move.length === 1 && /^Nordvik Logistik AB sent 2 redlines (today|\d+ days? ago)\.$/.test(gl.move[0].say) && gl.move[0].sub === 'Your move.' && gl.move[0].btn === 'Redlines', JSON.stringify(gl.move));
     check('2c one row per ask, in its own words — what the number is of, which way it moved: their ask · Go to it',
-      gl.asks.length === 2 && gl.asks.some(a => a.say === 'Clause 7: they ask for 100% of the fees paid, up from 50%.') && gl.asks.some(a => a.say === 'Clause 11: they ask for 60 days of receipt, up from 30.')
+      gl.asks.length === 2 && gl.asks.some(a => a.say === 'Clause 7: they ask for 100% of the fees paid, up from 50%.') && gl.asks.some(a => a.say === 'Clause 11: they ask for 60 days to pay, up from 30.')
       && gl.asks.every(a => a.sub === 'their ask' && a.btn === 'Go to it'), JSON.stringify(gl.asks));
     check('2d nobody named to sign: Needed before signing · Signing', gl.sign.length === 1 && gl.sign[0].say === 'Nobody has been named to sign yet.' && gl.sign[0].sub === 'Needed before signing' && gl.sign[0].btn === 'Signing', JSON.stringify(gl.sign));
-    check('2e the risks not read yet: "Reading costs 1 Jambo call" said before the press, and Read it',
-      gl.scan.length === 1 && gl.scan[0].say === 'Risks not read yet' && gl.scan[0].sub === 'Reading costs 1 Jambo call' && gl.scan[0].btn === 'Read it', JSON.stringify(gl.scan));
+    check('2e the risks not read yet: "Reading is free: HaTi’s own rules, no Jambo call" said before the press, and Read it (the owner\'s answer 6)',
+      gl.scan.length === 1 && gl.scan[0].say === 'Risks not read yet' && gl.scan[0].sub === 'Reading is free: HaTi’s own rules, no Jambo call' && gl.scan[0].btn === 'Read it', JSON.stringify(gl.scan));
     check('2f their round leads, then their asks', gl.order[0] === 'move' && gl.order[1] === 'ask' && gl.order[2] === 'ask', gl.order.join(','));
     await shot(page, '3-panel-beside-a-paper-1440x780');
 
@@ -146,19 +174,27 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     const went = await until(id => { const el = document.querySelector(`#ig-paper [data-clause="${id}"]`), sc = document.getElementById('ig-paper-scroll'); if (!el || !sc) return null;
       const r = el.getBoundingClientRect(), s = sc.getBoundingClientRect();
       const inView = r.top >= s.top - 1 && r.bottom <= s.bottom + 1;
-      return inView && intel.paper.red === true ? { lit: el.classList.contains('ig-arrived'), top: Math.round(r.top - s.top) } : null; }, k11.id, 6000);
-    check('3 Go to it Redlines the paper and brings their ask\'s clause up, lit', !!went && went.lit, JSON.stringify(went));
+      return inView && intel.paper.red === true && el.classList.contains('is-landed') ? { lit: true, top: Math.round(r.top - s.top) } : null; }, k11.id, 6000);
+    check('3 Go to it Redlines the paper and lands on their ask\'s clause: in view and lit by the one lander', !!went && went.lit, JSON.stringify(went));
 
     console.log('\n4 · Read it');
-    /* PASS 2: the deep read the Clauses tab carries (one Jambo call): the tab opens and the read is asked of the server */
+    /* PASS 3 (the owner's answer 6): the free rules scan — no Jambo call — and its row goes */
     const asked = [];
-    page.on('request', r => { if (/\/api\/ai\/breakdown$/.test(r.url()) && r.method() === 'POST') asked.push(r.url()); });
+    page.on('request', r => { if (/\/api\/ai\//.test(r.url()) && r.method() === 'POST') asked.push(r.url()); });
     if (await page.evaluate(() => { const b = document.querySelector('#pd-glance [data-pd-gl-scan]'); if (b) b.click(); return !!b; })) {
-      const read = await until(n => (document.querySelector('[data-pd-tab="doc"].on, [data-pd-tab="doc"][aria-selected="true"]') && document.querySelector('#pd-thread .stk-head')) ? true : null, null, 10000);
-      await until(() => true, null, 300);
-      check('4 Read it runs the Clauses tab\'s deep read — one call to Jambo — and opens the tab where it is drawn', !!read && asked.length === 1, JSON.stringify({ read, asked: asked.length }));
-      await page.evaluate(() => { pdSetTab('copilot'); renderIntelDock(); });
+      const read = await until(() => { const c = getContract('MK-0382'); return c && c.scan && !document.querySelector('#pd-glance [data-pd-gl="scan"]') ? true : null; }, null, 10000);
+      check('4 Read it runs the free scan (HaTi\'s own rules), its row goes, and no Jambo call is made', !!read && asked.length === 0, JSON.stringify({ read, asked }));
     } else check('4 Read it (nothing to press)', false);
+
+    console.log('\n1h · Needs you here stays at the top while the talk goes on');
+    await page.evaluate(() => intelAsk('what does clause 7 say?'));
+    const pinned = await until(() => { const nd = document.getElementById('pd-needs'), feed = document.getElementById('igd-feed'), pin = document.getElementById('pd-pin'); if (!nd || !feed || !pin) return null;
+      if (feed.scrollHeight <= feed.clientHeight + 4 && !(intel.history || []).length) return null;
+      const n = nd.getBoundingClientRect(), f = feed.getBoundingClientRect();
+      return { inPin: pin.contains(nd), outOfFeed: !feed.contains(nd), above: n.bottom <= f.top + 1, inView: n.top >= 0 && n.bottom <= innerHeight, talk: (intel.history || []).length }; }, null, 10000);
+    check('1h asked something, the conversation scrolls under it and Needs you here stays in view, pinned above it', !!pinned && pinned.inPin && pinned.outOfFeed && pinned.above && pinned.inView && pinned.talk > 0, JSON.stringify(pinned));
+    await shot(page, '3-panel-asked-1440x780');
+    await page.evaluate(() => { intel.history = []; renderIntelDock(); });
 
     console.log('\n5 · the chips');
     const ch = await until(() => { const L = [...document.querySelectorAll('#ig-dock [data-ca-chip]')]; return L.length ? L.map(b => ({ k: b.getAttribute('data-ca-chip'), w: b.textContent.trim(), owed: b.classList.contains('ca-chip-owed') })) : null; }, null, 6000);
@@ -242,8 +278,8 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     const theirs = await until(() => !!document.getElementById('pd-glance'), null, 6000, peer) && await peer.evaluate(() => !!document.querySelector('#pd-needs [data-pd-nd-kind="mynote"]') || /insurance broker/.test((document.getElementById('ig-dock') || {}).innerText || ''));
     check('1c the colleague, on the same paper, sees no note of the reader\'s', theirs === false, String(theirs));
     if (await press('#pd-needs [data-pd-nd-note]', '1d Open note')) {
-      const mn = await until(() => state.view === 'mynotes' && /insurance broker/.test((document.getElementById('content') || document.body).innerText), null, 8000);
-      check('1d Open note opens it in My notes', !!mn);
+      const mn = await until(() => state.view === 'mynotes' && /insurance broker/.test((document.getElementById('content') || document.body).innerText) && !!document.querySelector('[data-mn-row].is-landed'), null, 8000);
+      check('1d Open note opens it in My notes, landed on its row (landOn)', !!mn);
     }
 
     console.log('\n7 · the owner\'s three screens');

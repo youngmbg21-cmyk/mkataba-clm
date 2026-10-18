@@ -124,7 +124,9 @@ describe('f746 (4) Today\'s insights, its head as drawn', () => {
   test('4a its count a pill, then what moved most since the month six months ago', () => {
     const fn = code(HB.slice(HB.indexOf('function hbInsCardHtml('), HB.indexOf('/* ---- ONE CONTRACT ROW')));
     assert.match(fn, /'hb_ins_sub_moved'/);
-    assert.match(fn, /<span class="hb-pill hb-ins-n">\$\{_hbE\(_hbN\(I\.length\)\)\}<\/span>/);
+    /* RE-POINTED (pass 3): the pill counts the cards drawn under it (hbShelfCards), not the findings alone */
+    assert.match(fn, /const n = hbShelfCards\(I\)\.length;/);
+    assert.match(fn, /<span class="hb-pill hb-ins-n">\$\{_hbE\(_hbN\(n\)\)\}<\/span>/);
     assert.match(fn, /i18t\(sub, \{ m: hbThenWord\(true\) \}\)/);
     const w = world([mk('A')]);
     assert.equal(w.i18t('hb_ins_sub_moved', { m: 'April' }), 'what moved most since April · worked out this morning from your book');

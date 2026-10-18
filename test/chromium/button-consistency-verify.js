@@ -337,25 +337,23 @@ const HELPERS = `(() => {
     await page.waitForTimeout(1500); await load(); await rest();
     await page.screenshot({ path: path.join(OUT, '04-home.png') });
     /* RE-POINTED 28 Sep 2026 (Young: "lets add just this part to the home
-       page and discard the current 2 cards"), and again 18 Oct 2026 (round 17
-       as drawn: Jambo's work LEFT THE BOARD for the Counter, where each
-       prepared piece opens in place): every act on a prepared piece is an
-       ordinary button and none is filled — one filled button per area, never
-       one per row. */
-    await page.evaluate(() => setView('counter'));
-    await page.waitForFunction(() => !!document.querySelector('#cn-needs [data-cn-jw]'), null, { timeout: 8000 }).catch(() => {});
-    if (await page.$('#cn-needs [data-cn-jw][aria-expanded="false"]')) await page.click('#cn-needs [data-cn-jw]');
-    await page.waitForTimeout(500);
+       page and discard the current 2 cards"): the desk and the decisions
+       card are gone, so there are no two cards to compare. Home's one work
+       card, Prepared by Copilot, carries one Review per row: asked here that
+       each is the ladder's ordinary button (--ctl-h) and none is filled —
+       one filled button per area, never one per row. */
     const home = await page.evaluate(() => { const b = window.__b;
       const m = el => { const r = el.getBoundingClientRect(), cs = getComputedStyle(el);
-        return { t: b.label(el), h: +r.height.toFixed(1), bg: cs.backgroundColor, sm: el.classList.contains('ui-btn-sm') }; };
-      const probe = t => { const p = document.createElement('div'); p.style.height = `var(${t})`; document.body.appendChild(p); const v = +p.getBoundingClientRect().height.toFixed(1); p.remove(); return v; };
-      const rev = [...document.querySelectorAll('#cn-needs .cn-jw-acts .ui-btn')].filter(b.vis).map(m);
-      return { rev, ctl: probe('--ctl-h'), sm: probe('--ctl-h-sm'), fill: b.bg('--accent-fill') }; });
-    ok('2-stage the Counter\'s Jambo\'s work draws its pieces with their acts', !!staged && home.rev.length > 0,
-      `${home.rev.length} act buttons`);
-    ok('2a every act is a ladder button height (ordinary, or its small step)',
-      home.rev.length > 0 && home.rev.every(x => Math.abs(x.h - (x.sm ? home.sm : home.ctl)) <= 0.6), JSON.stringify({ ctl: home.ctl, sm: home.sm, rev: home.rev.map(x => x.h) }));
+        return { t: b.label(el), h: +r.height.toFixed(1), bg: cs.backgroundColor }; };
+      const probe = document.createElement('div'); probe.style.height = 'var(--ctl-h)'; document.body.appendChild(probe);
+      const ctl = +probe.getBoundingClientRect().height.toFixed(1); probe.remove();
+      /* the board's rows since 3 Oct 2026: Review digs in (data-hb-dig) */
+      const rev = [...document.querySelectorAll('[data-hm-agent-row] [data-hm-agent], [data-hm-agent-row] .hb-btn')].filter(b.vis).map(m);
+      return { rev, ctl, fill: b.bg('--accent-fill') }; });
+    ok('2-stage Home\'s Prepared by Copilot card draws a row with its Review', !!staged && home.rev.length > 0,
+      `${home.rev.length} Review buttons`);
+    ok('2a every Review is the ladder\'s ordinary button height',
+      home.rev.length > 0 && home.rev.every(x => Math.abs(x.h - home.ctl) <= 0.6), JSON.stringify({ ctl: home.ctl, rev: home.rev.map(x => x.h) }));
     ok('2b none of them is filled — one filled button per area, never one per row',
       home.rev.length > 0 && home.rev.every(x => x.bg !== home.fill), JSON.stringify(home.rev.map(x => x.t + ':' + x.bg)));
 

@@ -57,24 +57,21 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
        page and discard the current 2 cards"): the desk row and its kind tag
        left Home. The row that took its place names its AGENT at the left —
        the agent's own icon on a tinted square, on the sentence's line. */
-    /* RE-POINTED 18 Oct 2026 (round 17 as drawn, the owner's yes): Jambo's
-       work LEFT THE BOARD for the Counter, each prepared piece a row there
-       that names its AGENT at the left — a filled tag on the sentence's line. */
-    await page.evaluate(() => setView('counter'));
-    await page.waitForFunction(() => !!document.querySelector('#cn-needs [data-cn-jw]'), null, { timeout: 8000 }).catch(() => {});
-    if (await page.$('#cn-needs [data-cn-jw][aria-expanded="false"]')) await page.click('#cn-needs [data-cn-jw]');
-    await page.waitForTimeout(400);
     const tag = await page.evaluate(() => {
-      const row = [...document.querySelectorAll('#cn-needs [data-cn-ag-item]')].find(r => (typeof agFind === 'function' && agFind(r.getAttribute('data-cn-ag-item')) || {}).agent === 'renew');
+      const row = document.querySelector('[data-hm-agent-row="renew"]');
       if (!row) return null;
-      const t = row.querySelector('.cn-jw-tag'), w = row.querySelector('.cn-w');
-      if (!t || !w) return { drawn: false };
-      const wr = w.getBoundingClientRect(), tr = t.getBoundingClientRect(), b = w.querySelector('b').getBoundingClientRect();
+      /* RE-POINTED IN PLACE 3 Oct 2026: the row is the board's own now */
+      /* RE-POINTED 11 Oct 2026 (the Board as drawn, owner's go): one row per
+         item, its agent's mark the drawn dot */
+      const t = row.querySelector('.hb-ag-dot, .hb-ag-ic, .hm-ag-ic');
+      if (!t) return { drawn: false };
+      const rr = row.getBoundingClientRect(), tr = t.getBoundingClientRect();
+      const head = row.querySelector('.hb-ag-b, .hm-rb').getBoundingClientRect();
       const cs = getComputedStyle(t);
-      return { drawn: true, name: t.textContent,
-        atLeft: Math.round(tr.left - wr.left) <= 16,
+      return { drawn: true, name: (row.querySelector('.hb-ag-t, .hm-rt') || {}).textContent,
+        atLeft: Math.round(tr.left - rr.left) <= 16 && tr.right <= head.left + 1,
         bg: cs.backgroundColor,
-        sameLine: Math.abs((tr.top + tr.height / 2) - (b.top + b.height / 2)) < 12 };
+        sameLine: Math.abs((tr.top + tr.height / 2) - (head.top + head.height / 2)) < 12 };
     });
     ok('1 the row names its agent', !!tag && tag.drawn && /Renewals/.test(tag.name || ''), JSON.stringify(tag));
     ok('1b its mark sits at the LEFT, on the sentence\'s own line',

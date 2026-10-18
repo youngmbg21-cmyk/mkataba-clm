@@ -100,41 +100,51 @@ const CONTRACTS = [
     const landed = await until(page, () => document.querySelectorAll('#hb-board .hb-fig').length === 5);
     ok('0 Home lands on the board', landed);
 
-    /* ===== 1. JAMBO'S WORK IS COPILOT'S, AND NOTHING IS WAITING ON IT =====
-       RE-POINTED 18 Oct 2026 (round 17 as drawn, the owner's yes): Jambo's
-       work LEFT THE BOARD for the Counter, where it is the first row of Needs
-       you and opens in place on its pieces. The ruling that stands is the
-       same: Jambo's work draws no waiting row, and the merged card stays gone. */
+    /* ===== 1. THE CARD IS COPILOT'S, AND NOTHING IS WAITING ON IT ===== */
+    const card = await until(page, () => !!document.getElementById('hm-agents'));
+    ok('1a the card is on the board', card);
     const aiAtCard = aiCalls.length;
+    /* THE BOOK REALLY DOES OWE THIS READER SOMETHING. Two renewals are due on
+       it (one urgent), so a card drawing nothing is the ruling and not an
+       empty desk — which is the only way this check means anything. */
     const owed = await page.evaluate(() => {
       try { return (hmDecisionItems(null, []) || []).map(x => ({ kind: x.kind, cid: x.cid })); }
       catch (_){ return null; }
     });
-    const offBoard = await page.evaluate(() => ({ card: !!document.getElementById('hm-agents'), needs: document.querySelectorAll('#hb-board [data-hb-need], #hb-board .hb-need, #hb-board .hb-ny').length }));
-    ok('1a Jambo\'s work is not on the Board, and nor is a waiting row', !offBoard.card && offBoard.needs === 0, JSON.stringify(offBoard));
     ok('1b the reading still finds work waiting on this reader',
       !!owed && owed.filter(x => x.kind === 'renewal').length >= 2, JSON.stringify(owed));
-    await page.evaluate(() => setView('counter'));
-    await until(page, () => !!document.querySelector('#cn-needs [data-cn-jw]'));
-    if (await page.$('#cn-needs [data-cn-jw][aria-expanded="false"]')) await page.click('#cn-needs [data-cn-jw]');
-    await page.waitForTimeout(400);
     const A = await page.evaluate(() => {
-      const row = document.querySelector('#cn-needs .cn-jw');
-      return { title: row ? ((row.querySelector('b') || {}).textContent || '').trim() : null,
-        pieces: document.querySelectorAll('#cn-needs [data-cn-ag-item]').length,
-        waitingInWork: document.querySelectorAll('#cn-jw-list [data-cn-need], #cn-jw-list [data-hb-need]').length,
-        n: Number((((row && row.querySelector('.cn-n')) || {}).textContent || '').replace(/[^\d]/g, '') || 0),
-        ready: hbAgentsData(null).ready, reading: typeof window.hbNeedsData };
+      const el = document.getElementById('hm-agents');
+      return { title: el ? (el.querySelector('.hb-ct') || {}).textContent : null,
+        sub: el ? (el.querySelector('.hb-cs') || {}).textContent : null,
+        needs: document.querySelectorAll('#hb-board [data-hb-need]').length,
+        needCls: document.querySelectorAll('#hb-board .hb-need').length,
+        agents: document.querySelectorAll('#hm-agents .hb-ag').length,
+        reading: typeof window.hbNeedsData };
     });
-    ok('1c it is called Jambo\'s work, on the Counter', !!A.title && /jambo/i.test(A.title), JSON.stringify(A.title));
-    ok('1d not one waiting row is drawn inside it', A.waitingInWork === 0, String(A.waitingInWork));
-    ok('1e and the merged card\'s reading is not published', A.reading === 'undefined', A.reading);
+    ok('1c it is called Prepared by Copilot again',
+      !!A.title && /jambo/i.test(A.title), JSON.stringify(A.title));
+    ok('1d not one waiting row is drawn anywhere on the board',
+      A.needs === 0 && A.needCls === 0, `${A.needs} doors, ${A.needCls} rows`);
+    ok('1e and the reading behind them is not published either',
+      A.reading === 'undefined', A.reading);
 
-    /* ===== 2. IT STILL DOES ITS OWN JOB ===== */
-    ok('2a Copilot\'s own pieces are drawn', A.pieces > 0, String(A.pieces));
-    ok('2c whose count is Copilot\'s work alone', A.n === A.ready && A.ready > 0, JSON.stringify(A));
-    await page.evaluate(() => { hbS().face = 'board'; hbSave(); setView('dashboard'); });
-    await until(page, () => document.querySelectorAll('#hb-board .hb-fig').length === 5);
+    /* ===== 2. THE CARD STILL DOES ITS OWN JOB ===== */
+    ok('2a Copilot\'s own rows are still drawn', A.agents > 0, String(A.agents));
+    await page.click('#hm-agents [data-hb-prep="closed"]').catch(() => {});
+    const gone = await until(page, () => !document.getElementById('hm-agents'));
+    const back = await page.evaluate(() => {
+      const b = document.querySelector('[data-hb-prep="open"]');
+      const n = b && b.querySelector('.hb-pill');
+      let ready = null; try { ready = hbAgentsData(null).ready; } catch (_){}
+      return { label: b ? b.textContent.replace(/\s+/g, ' ').trim() : null,
+        pill: n ? n.textContent.trim() : null, ready: ready == null ? null : String(ready) };
+    });
+    ok('2b the x closes it and leaves a way back', gone && !!back.label, JSON.stringify(back.label));
+    ok('2c whose count is Copilot\'s work alone',
+      back.pill != null && back.ready != null && back.pill === back.ready, JSON.stringify(back));
+    await page.click('[data-hb-prep="open"]').catch(() => {});
+    ok('2d and it comes back', await until(page, () => !!document.getElementById('hm-agents')));
 
     /* ===== 3. THE X IS IN THE CARD'S RIGHT CORNER =====
        EVERY CARD THAT CLOSES, not whichever one happened to be open: a dig-in
@@ -161,8 +171,7 @@ const CONTRACTS = [
       /* RE-POINTED 11 Oct 2026 (the Board as drawn): a kept chart is removed from
          its ⋯ ("Remove from the board"), so the cards with a corner × are
          Copilot's work and the opened card */
-      /* …and since 18 Oct 2026 (round 17) Jambo's work is the Counter's, so the opened card */
-      corners.length >= 1 && corners.every(c => c.last && c.gap <= 14), JSON.stringify(corners));
+      corners.length >= 2 && corners.every(c => c.last && c.gap <= 14), JSON.stringify(corners));
     await page.evaluate(() => { try { hbDig(null); } catch (_){} const s = hbS(); s.path = []; s.panels = []; hbSave(); hbPaintBoard(); });
     await until(page, () => !document.querySelector('.hb-dig'));
 

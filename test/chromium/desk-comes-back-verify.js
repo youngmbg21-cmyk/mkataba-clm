@@ -85,10 +85,8 @@ const R = 'MK-9701', Q = 'MK-9702', KID = 'MK-9703';
     /* What the reader can see, read off the page. */
     const look = () => page.evaluate(ids => {
       /* Home's card draws a Renewals row while that agent holds anything; its
-         items are Copilot's work's own list. RE-POINTED 18 Oct 2026 (round 17
-         as drawn: Jambo's work left the Board for the Counter): the reading
-         the Counter's Jambo's work draws (hbAgentsData's rows). */
-      const onHome = typeof hbAgentsData === 'function' && (hbAgentsData(null).rows || []).some(r => r.k === 'renew');
+         items are Copilot's work's own list. */
+      const onHome = !!document.querySelector('[data-hm-agent-row="renew"]');
       const rows = onHome && typeof agentsData === 'function'
         ? agentsData().agents.renew.ready.map(x => x.cid + ':' + x.kind) : [];
       const items = (typeof deskItems === 'function' ? deskItems() : []).map(x => x.cid + ':' + x.kind);
