@@ -219,7 +219,8 @@ let AMBER_BG = null;    /* --st-amber-dot */
        (#ig-strip .ig-strip-ref), so that is where the head's sentence is asked. */
     await page.waitForFunction(() => !!document.querySelector('#ig-strip .ig-strip-ref'), null, { timeout: 8000 }).catch(() => {});
     const headSays = await page.evaluate(() => {
-      const e = document.querySelector('#ig-strip .ig-strip-ref') || document.getElementById('ws-status');
+      /* RE-POINTED 17 Oct 2026 (round 6, "One line"): the stage is the line's own pill (.ig-line-st) beside the name, so the line is read whole */
+      const e = document.getElementById('ig-strip') || document.getElementById('ws-status');
       return e ? e.textContent.replace(/\s+/g, ' ').trim() : '';
     });
     check('the head says it instead — no card, no press, no floating box',
