@@ -70,6 +70,11 @@ Home is the whole app: the paper sits still, Jambo's panel changes face (fill in
 
 For a DESIGN QUESTION (how should it look, a new look, a redesign — an exact instruction is just built): ONE part of a page per round; THREE options by default, five at most, each a really different idea NAMED for that idea ("Quiet", "Dense"), never A/B/C; each finished work in HaTi's own tokens, faces, rules and realistic content; shown ONE AT A TIME, FULL SIZE, on its real page, in one Artifact with a switcher (buttons, number/arrow keys); with a table (idea, when it wins, cost) and one recommendation. The owner picks BY NAME; only that one is built. **ONE OPTION IS ALWAYS "THE SAP WAY"** (owner-asked 9 Oct 2026): every set of design options, and every new addition's design, includes one option drawn the SAP S/4HANA way (the SAP benchmark batches' look: white band, labelled filters, quiet list, side panel); it may be ignored or not recommended, but never left out. **THE PAGE CHECKLIST**, of every option and any page reviewed: most important thing easiest to see? related things grouped? each label says what's behind it? always know where you are and how to get back? A "no" is fixed or named as the cost.
 
+## THE PICKED DESIGN IS THE AGREEMENT (owner, 18 Oct 2026; story in MAP-HISTORY "THE PICKED DESIGN IS THE AGREEMENT")
+- EVERY VISIBLE PART of the picked option is built — its idea AND its frame (Jambo's panel, heads, hint lines, buttons, columns, order). Never "furniture", never "not what the pick decided"; the scope rule's narrow reading does not apply to a picked drawing, and the pick is the owner's yes to the band and one-door refusals it draws.
+- A PART THAT CANNOT BE BUILT AS DRAWN (no data or reading behind it, a wall in the way, it reverses an earlier ruling of the owner's) STOPS THE ROUND and is ASKED before anything merges — never a "not built" line in a build note or a morning summary.
+- BEFORE A ROUND MERGES the owner gets a side-by-side, drawn against built, every visible part ticked or named, with pictures at their three screens; the merge waits for their yes. Green checks are not a yes; "merge when green" never covers a part left out.
+
 ## Bug Fix Rules
 
 1. DUPLICATION WARNING: This app draws the same UI in several places. Never assume a fix in one place fixes them all.
