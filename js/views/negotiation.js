@@ -18343,9 +18343,94 @@ function rlSugWordsHtml(from, to){
   }
   return out;
 }
+/* ---- JAMBO'S COUNTER IS MARKED IN THE CLAUSE ITSELF (owner, 18 Oct 2026: "the
+   counter highlighted in blue is a full clause which makes it a terrible
+   choice especially if it is a long clause. Just make the counter changes in
+   the clause itself by editing the words or numbers but do not add a new
+   clause unless the counter clause is completely different") ----
+   The words the paper shows standing (their marks included, struck words
+   left out) are set against Jambo's wording, word by word: a word he would
+   take out gets a dashed strike where it stands, a word he would put in is
+   drawn beside it in his dashed ink — "within 45 90 55 days", nothing else
+   moves. Only a counter that keeps less than half the clause's words (or one
+   redlineWholesale reads as a rewrite) is drawn whole, in the box under it.
+   PAINTED AFTER THE RENDER as before, never into the paper's HTML; the
+   reader's own click-to-type counts past it (rlInlineCountTo). */
+const RL_SUG_SKIP = 'del, .nego-del, .hati-del, .rl-line-del, .rl-sug-ins, button, .rl-clause-top';
+const RL_SUG_MARK = 'ins, .nego-ins, mark';
+function rlSugInlineClear(root){
+  if (!root || !root.querySelectorAll) return;
+  root.querySelectorAll('.rl-sug-ins').forEach(e => { const p = e.parentNode;
+    /* the plain space it brought goes with it */
+    const sp = e.previousSibling && e.previousSibling.nodeType === 3 && e.previousSibling.data === ' ' ? e.previousSibling
+      : e.nextSibling && e.nextSibling.nodeType === 3 && e.nextSibling.data === ' ' ? e.nextSibling : null;
+    if (sp) sp.remove(); e.remove(); if (p && p.normalize) p.normalize(); });
+  root.querySelectorAll('.rl-sug-del').forEach(e => { const p = e.parentNode; e.replaceWith(document.createTextNode(e.textContent)); if (p && p.normalize) p.normalize(); });
+}
+function rlSugInline(body, to, id){
+  if (!body || typeof document === 'undefined') return false;
+  const W = [];
+  const walker = document.createTreeWalker(body, 4 /* SHOW_TEXT */, null);
+  let t;
+  while ((t = walker.nextNode())){
+    const p = t.parentElement; if (p && p.closest && p.closest(RL_SUG_SKIP)) continue;
+    const re = /\S+/g; let m;
+    while ((m = re.exec(t.data))) W.push({ node: t, s: m.index, e: m.index + m[0].length, w: m[0] });
+  }
+  const B = String(to || '').split(/\s+/).filter(Boolean);
+  const n = W.length, k = B.length;
+  if (!n || !k || n * k > 400000) return false;
+  const norm = x => x.replace(/[“”]/g, '"').replace(/[‘’]/g, "'");
+  const L = Array.from({ length: n + 1 }, () => new Int32Array(k + 1));
+  for (let i = n - 1; i >= 0; i--) for (let j = k - 1; j >= 0; j--)
+    L[i][j] = norm(W[i].w) === norm(B[j]) ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  /* a counter that keeps less than half the words is a different clause */
+  if (L[0][0] < Math.min(n, k) / 2) return false;
+  const dels = [], ins = [];
+  let i = 0, j = 0, last = -1, pend = null;
+  while (i < n || j < k){
+    if (i < n && j < k && norm(W[i].w) === norm(B[j])){ if (pend){ ins.push(pend); pend = null; } last = i; i++; j++; }
+    else if (i < n && (j >= k || L[i + 1][j] >= L[i][j + 1])){ if (pend){ ins.push(pend); pend = null; } dels.push(i); last = i; i++; }
+    else { if (!pend) pend = { after: last, words: [] }; pend.words.push(B[j]); j++; }
+  }
+  if (pend) ins.push(pend);
+  if (!dels.length && !ins.length) return false;
+  const title = i18t('ng_prep_box_title');
+  const edits = new Map();
+  const add = (node, e) => { if (!edits.has(node)) edits.set(node, []); edits.get(node).push(e); };
+  dels.forEach(x => add(W[x].node, { kind: 'del', s: W[x].s, e: W[x].e }));
+  ins.forEach(p => { const w = p.after >= 0 ? W[p.after] : W[0];
+    add(w.node, { kind: 'ins', s: p.after >= 0 ? w.e : w.s, e: 0, words: p.words, before: p.after < 0 }); });
+  const span = (cls, text) => { const el = document.createElement('span'); el.className = cls; el.setAttribute('data-rl-sug', id);
+    el.setAttribute('title', title); el.textContent = text; return el; };
+  for (const [node, list] of edits){
+    /* last first, so every earlier offset still points into the same node */
+    list.sort((x, y) => (y.s - x.s) || (x.kind === 'ins' ? -1 : 1));
+    for (const e of list){
+      if (e.kind === 'ins'){
+        /* the space between his words and theirs is plain, never marked */
+        const frag = document.createDocumentFragment();
+        if (!e.before) frag.appendChild(document.createTextNode(' '));
+        frag.appendChild(span('rl-sug-ins', e.words.join(' ')));
+        if (e.before) frag.appendChild(document.createTextNode(' '));
+        const mark = node.parentElement && node.parentElement.closest && node.parentElement.closest(RL_SUG_MARK);
+        /* after the last word of their own insertion, his words stand beside it, not inside it */
+        if (!e.before && mark && body.contains(mark) && e.s >= node.data.length && mark.lastChild === node) mark.after(frag);
+        else { const rest = node.splitText(Math.min(e.s, node.data.length)); rest.parentNode.insertBefore(frag, rest); }
+      } else {
+        node.splitText(e.e);
+        const mid = node.splitText(e.s);
+        const el = span('rl-sug-del', mid.data);
+        mid.replaceWith(el);
+      }
+    }
+  }
+  return true;
+}
 function rlPaintCopilotAnswers(root, c, opts = {}){
   if (!root || !c) return 0;
   root.querySelectorAll('.rl-sug-box').forEach(e => e.remove());
+  rlSugInlineClear(root);
   root.querySelectorAll('.rl-sug').forEach(e => e.classList.remove('rl-sug', 'rl-sug-counter', 'rl-sug-reject', 'rl-sug-accept', 'rl-sug-escalate'));
   const scope = opts.verbsIn || document;
   if (!opts.noGlow) scope.querySelectorAll('.rl-glow').forEach(e => e.classList.remove('rl-glow'));
@@ -18357,15 +18442,17 @@ function rlPaintCopilotAnswers(root, c, opts = {}){
       || root.querySelector(`section[data-clause="${css(ch.clauseId)}"]`);
     if (sec && a.verdict !== 'escalate'){
       sec.classList.add('rl-sug', 'rl-sug-' + a.verdict);
-      if (a.verdict === 'counter' && a.wording){
+      const body = sec.querySelector('.nego-body');
+      const whole = typeof window.redlineWholesale === 'function' && ch.newText && redlineWholesale(ch.newText, a.wording);
+      if (a.verdict === 'counter' && a.wording && (whole || !rlSugInline(body, a.wording, ch.id))){
         const box = document.createElement('div');
         box.className = 'rl-sug-box';
         box.setAttribute('data-rl-sug', ch.id);
         box.setAttribute('aria-label', i18t('ag_prep_counter'));
         box.setAttribute('title', i18t('ng_prep_box_title'));
         box.innerHTML = rlSugWordsHtml(ch.newText, a.wording);
-        const body = sec.querySelector('.nego-body') || sec.lastElementChild;
-        (body || sec).after ? (body || sec).after(box) : sec.appendChild(box);
+        const at = body || sec.lastElementChild;
+        (at || sec).after ? (at || sec).after(box) : sec.appendChild(box);
       }
       if (ch.changeType === 'deleteClause') sec.classList.add('rl-sug-whole');
       n++;
@@ -18430,7 +18517,7 @@ function rlInlineCountTo(nodes, range){
     let t;
     while ((t = walker.nextNode())){
       const p = t.parentElement;
-      if (p && p.closest && p.closest('del, .nego-del, .hati-del')) continue;
+      if (p && p.closest && p.closest('del, .nego-del, .hati-del, .rl-sug-ins')) continue;
       if (t === range.startContainer) return n + Math.min(range.startOffset, t.data.length);
       try{ if (range.comparePoint(t, 0) > 0) return n; }catch(_){ return n; }
       n += t.data.length;
@@ -21963,7 +22050,7 @@ if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoT
   rlCpOpenId, rlCpSetOpen, rlCpSetShown, rlCpPaint, rlCpNotesOn, rlCpSetNotes, rlCpLadderOnly, rlCpNarrowSeat,
   rlEditorTakesIt,
   rlCpTypePx, rlCpSetType, rlCpZoom, rlCpZoomPct, rlCpSetZoom,
-  rlUnsentBandHtml, rlUnsentSendHtml, rlDecisionsSendHtml, rlPaperSubText, RL_SUG_VERB, rlCopilotAnswers, rlSugWordsHtml, rlPaintCopilotAnswers, rlUnsentCount, rlCloseRoundHtml, rlRoundLabelHtml,
+  rlUnsentBandHtml, rlUnsentSendHtml, rlDecisionsSendHtml, rlPaperSubText, RL_SUG_VERB, rlCopilotAnswers, rlSugWordsHtml, RL_SUG_SKIP, RL_SUG_MARK, rlSugInline, rlSugInlineClear, rlPaintCopilotAnswers, rlUnsentCount, rlCloseRoundHtml, rlRoundLabelHtml,
   rlFitTabRow, rlWireFitTabRow, rlObserveTabRow,
   redlineHeldId, redlineEvict, openRedlineWorkbench,
   rlRungPeekHtml, rlPeekShow, rlPeekHide, rlPeekLater, rlPeekOpenId, RL_PEEK_MS,

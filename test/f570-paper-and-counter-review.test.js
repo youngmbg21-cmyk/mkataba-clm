@@ -106,15 +106,19 @@ describe('f570 (2) Copilot\'s counter, on the paper and in the editor', () => {
     };
     const counter = { verdict: 'counter', why: 'Half way.', standard: 'Payment terms',
       wording: ch.newText.replace('ninety (90) days', 'sixty (60) days'), at: 't', sentBack: { note: 'Counter at 60', by: 'Amina' } };
-    assert.equal(paint(null, 'owner').querySelector('.rl-sug-box'), null, 'no answer, no box');
+    /* RE-POINTED 18 Oct 2026 (owner: "make the counter changes in the clause
+       itself … do not add a new clause unless the counter clause is completely
+       different"): a counter is marked in the clause — his words in, theirs
+       struck, in his dashed ink; the box is only a rewrite's (f728) */
+    const marks = el => el.querySelectorAll('.rl-sug-box, .rl-sug-ins, .rl-sug-del').length;
+    assert.equal(marks(paint(null, 'owner')), 0, 'no answer, no marks');
     assert.ok(!win.redlineDocHtml(c, { side: 'owner' }).includes('rl-sug'), 'the render itself never carries it');
-    const pb = paint(counter, 'owner').querySelector('.rl-sug-box');
-    assert.ok(pb, 'the dashed box is on the paper');
-    assert.match(pb.textContent, /sixty \(60\) days/);
-    assert.ok([...pb.querySelectorAll('.rl-sug-new')].some(x => /sixty/.test(x.textContent)), 'the words it adds are marked');
-    assert.equal(pb.querySelectorAll('del').length, 0, 'nothing is struck in it');
-    assert.equal(paint(counter, 'counterparty').querySelector('.rl-sug-box'), null, 'never on their seat');
-    assert.equal(paint(Object.assign({}, counter, { sentBack: undefined }), 'owner').querySelector('.rl-sug-box'), null,
+    const pb = paint(counter, 'owner');
+    assert.equal(pb.querySelector('.rl-sug-box'), null, 'no second copy of the clause');
+    assert.ok([...pb.querySelectorAll('.rl-sug-ins')].some(x => /sixty/.test(x.textContent)), 'the words it adds are marked in the clause');
+    assert.ok([...pb.querySelectorAll('.rl-sug-del')].some(x => /ninety/.test(x.textContent)), 'the words it takes out are struck where they stand');
+    assert.equal(marks(paint(counter, 'counterparty')), 0, 'never on their seat');
+    assert.equal(marks(paint(Object.assign({}, counter, { sentBack: undefined }), 'owner')), 0,
       'an answer nobody asked Copilot to redo stays a line on the row');
     assert.equal(c.changes.length, before, 'nothing filed');
     const neg = R('js/views/negotiation.js');

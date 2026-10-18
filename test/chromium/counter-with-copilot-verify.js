@@ -71,11 +71,16 @@ const openNego = async page => {
   await page.evaluate(() => openRedlineWorkbench('MK-CP1'));
   return until(page, () => !!document.querySelector('#pd-redface [data-nego-card]') && !!document.querySelector('#ig-paper .rl-paper .rl-clause') && state.view === 'dashboard', null, 10000);
 };
+/* RE-POINTED 18 Oct 2026 (owner: "make the counter changes in the clause
+   itself … do not add a new clause unless the counter clause is completely
+   different"): his words are marked inside the clause; the box is only a rewrite's */
 const paperRead = page => page.evaluate(() => {
   const box = document.querySelector('#ig-paper .rl-sug-box');
   const glow = document.querySelector('#pd-redface .rl-glow');
-  return { box: box ? box.textContent.replace(/\s+/g, ' ').trim() : null, ins: box ? [...box.querySelectorAll('.rl-sug-new')].map(x => x.textContent.trim()) : [],
-    dashed: box ? getComputedStyle(box).borderTopStyle : null, glow: glow ? glow.textContent.trim() : null,
+  const insEl = document.querySelector('#ig-paper .rl-sug-ins');
+  return { box: box ? box.textContent.replace(/\s+/g, ' ').trim() : null, ins: [...document.querySelectorAll('#ig-paper .rl-sug-ins')].map(x => x.textContent.trim()),
+    dels: [...document.querySelectorAll('#ig-paper .rl-sug-del')].map(x => x.textContent.trim()),
+    dashed: insEl ? getComputedStyle(insEl).textDecorationStyle : null, glow: glow ? glow.textContent.trim() : null,
     /* the house's ONE light (LAND ON IT, 18 Oct 2026): a ring drawn as an outline */
     glowShadow: glow ? getComputedStyle(glow).outlineStyle + ' ' + getComputedStyle(glow).outlineWidth : null };
 });
@@ -152,10 +157,10 @@ const paperRead = page => page.evaluate(() => {
 
     /* ===== 4. NEGOTIATE HERE: THE DASHED BOX AND THE LIT COUNTER ===== */
     await openNego(page);
-    const p4 = await until(page, () => { const b = document.querySelector('#ig-paper .rl-sug-box'); return b ? true : null; }, null, 6000)
+    const p4 = await until(page, () => { const b = document.querySelector('#ig-paper .rl-sug-ins'); return b ? true : null; }, null, 6000)
       ? await paperRead(page) : await paperRead(page);
-    ok('4a Copilot\'s counter sits under their wording in a dashed box', !!p4.box && /60 days/.test(p4.box) && p4.dashed === 'dashed', JSON.stringify(p4));
-    ok('4b the words it adds are marked (60), nothing struck', p4.ins.some(t => /60/.test(t)), JSON.stringify(p4.ins));
+    ok('4a Jambo\'s counter is marked inside the clause, in his dashed ink — no second copy', !p4.box && p4.ins.length >= 1 && p4.dashed === 'dashed', JSON.stringify(p4));
+    ok('4b the word it adds (60) beside the one it takes out (their 90)', p4.ins.some(t => /60/.test(t)) && p4.dels.some(t => /90/.test(t)), JSON.stringify({ ins: p4.ins, dels: p4.dels }));
     ok('4c Counter glows', p4.glow === 'Counter' && /solid 2px/.test(String(p4.glowShadow)), p4.glow + ' ' + p4.glowShadow);
     ok('4d nothing was filed: one change on the record, theirs', await page.evaluate(() => getContract('MK-CP1').changes.length === 1));
     await page.screenshot({ path: path.join(OUT, '4-nego.png') });
@@ -163,7 +168,7 @@ const paperRead = page => page.evaluate(() => {
     /* ===== 3. THE COLLEAGUE'S TAB CATCHES UP ON ITS OWN BEAT ===== */
     /* RE-POINTED 14 Oct 2026 (stage 5): the colleague's tab stands on the face
        too; the box it catches up is on Home's paper */
-    const caught = await until(other, () => !!document.querySelector('#ig-paper .rl-sug-box'), null, 30000);
+    const caught = await until(other, () => !!document.querySelector('#ig-paper .rl-sug-ins'), null, 30000);
     ok('3 a tab already on Negotiate draws the redone answer without reopening', !!caught);
     await other.screenshot({ path: path.join(OUT, '3-other-tab.png') });
     await ctx2.close();

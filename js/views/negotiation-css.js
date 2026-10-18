@@ -2210,6 +2210,12 @@ function redlineLayoutCss(){
   .rl-sug-box{margin:6px 0 0;padding:2px 6px;border:1.5px dashed var(--color-accent-600);border-radius:3px;
     background:var(--color-accent-50);color:var(--accent-ink)}
   .rl-sug-box .rl-sug-new{text-decoration:underline dashed;text-underline-offset:3px;font-weight:var(--w-strong)}
+  ${''/* JAMBO'S COUNTER INSIDE THE CLAUSE (owner, 18 Oct 2026): the word he would
+         put in, in his dashed ink beside theirs; the word he would take out,
+         struck in the same dashed ink where it stands. Nothing is filed. */}
+  .rl-sug-ins{color:var(--accent-ink);background:var(--color-accent-50);border-radius:2px;
+    text-decoration:underline dashed var(--color-accent-600);text-decoration-thickness:1.5px;text-underline-offset:3px}
+  .rl-sug-del{text-decoration:line-through dashed var(--color-accent-600);text-decoration-thickness:2px}
   .rl-sug-reject :is(ins,.nego-ins){text-decoration:line-through dashed var(--color-accent-600);text-decoration-thickness:2px;
     outline:1.5px dashed var(--color-accent-600);outline-offset:2px}
   .rl-sug-reject.rl-sug-whole{outline:1.5px dashed var(--color-accent-600);outline-offset:6px}
