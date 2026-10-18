@@ -126,7 +126,8 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     await page.waitForFunction(id => window.pdRedFor && pdRedFor() === id
       && !!document.querySelector('#pd-redface .rl-idx-top'), staged.id, { timeout: 8000 }).catch(() => {});
     const before = await page.evaluate(() => {
-      const e = document.querySelector('#ig-strip .ig-strip-ref');
+      /* RE-POINTED 17 Oct 2026 (round 6, "One line"): the stage is the line's own pill (.ig-line-st) beside the name, so the line is read whole */
+      const e = document.getElementById('ig-strip');
       const c = getContract((window.pdRedFor && pdRedFor()) || redlineHeldId());
       return { word: e ? e.textContent.trim() : null, status: c ? c.status : null };
     });
@@ -164,11 +165,12 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     /* RE-POINTED 14 Oct 2026 (stage 5): the face's contract, and the stage
        word on Home's paper line — asked for, bounded: the line is drawn again
        once the send has moved the stage */
-    await page.waitForFunction(id => /review/i.test((document.querySelector('#ig-strip .ig-strip-ref') || {}).textContent || '')
+    await page.waitForFunction(id => /review/i.test((document.getElementById('ig-strip') || {}).textContent || '')
       && getContract(id).status === 'Under Review', staged.id, { timeout: 6000 }).catch(() => {});
     const after = await page.evaluate(id => {
       const c = getContract(id);
-      const e = document.querySelector('#ig-strip .ig-strip-ref');
+      /* RE-POINTED 17 Oct 2026 (round 6, "One line"): the stage is the line's own pill (.ig-line-st) beside the name, so the line is read whole */
+      const e = document.getElementById('ig-strip');
       return { status: c.status,
         word: e ? e.textContent.trim() : null,
         audit: (c.audit || []).map(a => `${a.action}: ${a.detail}`),
