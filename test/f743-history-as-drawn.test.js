@@ -74,6 +74,12 @@ describe('f743 (1) a change\'s entry in words', () => {
     assert.equal(e('withdrawn', CH()), 'Withdrew the change to clause 11, Payment terms');
     assert.equal(e('proposed', CH({ summary: '' })), 'Proposed a change to clause 11, Payment terms', 'no summary: the sentence stands alone');
   });
+  test('1a2 a counter that has had its answer wears "Counter"; one still open, "Pending"', () => {
+    const w = world();
+    assert.equal(w.histOutcome({ _k: 'proposed', outcome: '', ch: CH({ counterOf: 'CHG-0', status: 'accepted' }) }).w, 'Counter');
+    assert.equal(w.histOutcome({ _k: 'proposed', outcome: 'pending', ch: CH({ counterOf: 'CHG-0' }) }).w, 'Pending');
+    assert.equal(w.histOutcome({ _k: 'proposed', outcome: '', ch: CH({ status: 'accepted' }) }).w, 'Proposed');
+  });
   test('1b a clause with no number is named as it is; an inside id is never shown; any other entry keeps its own words', () => {
     const w = world();
     assert.equal(w.histClauseWords('Liability cap'), 'Liability cap');
@@ -175,7 +181,7 @@ describe('f743 (4) Jambo on History, and both books', () => {
   });
   test('4c every new word in English and Svenska', () => {
     for (const k of ['ct_hist_open_n_one', 'ct_hist_open_n_other', 'ct_hist_clause_nm', 'ct_hist_s_proposed', 'ct_hist_s_counter_theirs', 'ct_hist_s_counter_ours',
-      'ct_hist_s_acc_theirs', 'ct_hist_s_acc_ours', 'ct_hist_s_rej_theirs', 'ct_hist_s_rej_ours', 'ct_hist_s_withdrawn',
+      'ct_hist_s_acc_theirs', 'ct_hist_s_acc_ours', 'ct_hist_s_rej_theirs', 'ct_hist_s_rej_ours', 'ct_hist_s_withdrawn', 'ct_hist_counter',
       'ct_hist_sum_clauses_one', 'ct_hist_sum_clauses_other', 'ct_hist_sum_more_one', 'ct_hist_sum_more_other', 'ct_hist_sum_their_round', 'ct_hist_sum_our_round',
       'pd_hg_head', 'pd_ask_hist', 'pd_hg_recent_one', 'pd_hg_recent_other', 'pd_hg_quiet_one', 'pd_hg_quiet_other', 'pd_hg_none', 'pd_hg_newest',
       'pd_hg_theirs_open_one', 'pd_hg_theirs_open_other', 'pd_hg_ours_open_one', 'pd_hg_ours_open_other', 'pd_hg_open_none',

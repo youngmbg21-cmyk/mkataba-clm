@@ -8496,6 +8496,8 @@ function histOutcome(e){
   if(e._k==='decided'&&e.outcome==='accepted') return { w:i18t('ct_hf_accepted'), t:'g' };
   if(e._k==='decided'&&e.outcome==='rejected') return { w:i18t('ct_hf_rejected'), t:'r' };
   if(e._k==='withdrawn') return { w:i18t('ct_hf_withdrawn'), t:'n' };
+  /* a counter that has had its answer says so (round 12 as drawn: "Counter") */
+  if(e._k==='proposed'&&e.outcome!=='pending'&&e.ch&&e.ch.counterOf) return { w:i18t('ct_hist_counter'), t:'a' };
   if(e._k==='proposed') return { w:i18t(e.outcome==='pending'?'ct_hf_pending':'ct_hist_proposed'), t:e.outcome==='pending'?'a':'n' };
   if(e._k==='round-closed'||e._k==='link'||e._k==='copies') return { w:i18t('ct_hist_sent'), t:'n' };
   if(e._k==='signature') return { w:i18t('ct_hist_signed'), t:'g' };
