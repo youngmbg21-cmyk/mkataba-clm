@@ -20,6 +20,11 @@
 
      node test/chromium/ink-wash-verify.js --save   (record, on the code BEFORE)
 
+   RE-RECORDED 18 Oct 2026 (sixteenth), OWNER-ASKED ("this should not be on
+   paper at all"): the ladder's step chip and its tally chip left the paper
+   (THE PAPER CARRIES NO LADDER), so the negotiate screen's paper counts two
+   fewer elements. Audited by key: every theme, counts only, each down by 2;
+   no key new, none gone, no colour or size moved.
    RE-RECORDED 18 Oct 2026 (fifteenth), OWNER-ASKED (the overnight build,
    same standing yes): Round 24, "One sheet" — Settings → You is one sheet of
    rows under its headings with a contents list, so the settings screen's
