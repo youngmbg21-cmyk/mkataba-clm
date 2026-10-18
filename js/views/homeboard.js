@@ -9367,7 +9367,9 @@ function hbPresent(on){
      full screen by itself — which the listener below then read as the reader
      leaving. #content survives the redraw, so the presentation does too. */
   const fsHost = document.getElementById('content') || pg;
-  if (on){ _hbTool = ''; if (fsHost && fsHost.requestFullscreen) fsHost.requestFullscreen().catch(() => {}); }
+  /* full screen is granted later: a Present ended before it arrives leaves it again,
+     or #content would stay over the bar with nothing to take it down */
+  if (on){ _hbTool = ''; if (fsHost && fsHost.requestFullscreen) fsHost.requestFullscreen().then(() => { if (!_hbPresenting && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {}); }).catch(() => {}); }
   else { _hbTool = ''; hbInkClear(); if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {}); }
   hbToolsPaint();
   if (typeof igSyncDockWidth === 'function') setTimeout(() => { try { if (typeof igFitSplit === 'function') igFitSplit(); } catch (_){} }, 60);
