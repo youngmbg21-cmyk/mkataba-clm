@@ -98,6 +98,9 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      (rlCpLadderOnly), so its own Reopen is built but not drawn. The claim is
      unchanged — a REACHABLE Reopen, as visible pixels, that really reopens —
      and it is asked of the card, where the reader now finds it. */
+  /* RE-POINTED 17 Oct 2026 (round 9, "Piles"): what is settled this round folds
+     behind its heading; the reader opens it with one press, then Reopen is there */
+  await p.evaluate(()=>{ const f=document.querySelector('[data-rl-settled-fold][aria-expanded="false"]'); if(f) f.click(); });
   const card = await p.evaluate(a=>{
     const k=document.querySelector(`#rl-changes [data-nego-card="${a}"]`)||document.querySelector(`[data-nego-card="${a}"]`);
     const el=k&&k.querySelector('[data-rl-reopen], [data-nego-undo]');
