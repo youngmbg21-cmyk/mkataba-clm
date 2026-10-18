@@ -27744,7 +27744,7 @@ const STRINGS = {
     /* ---- automatisk genomgång vid uppladdning (9 sep 2026) ---- */
     ct_triage_optin: 'Läs avtalet nu',
     ct_triage_optin_sub: 'Skriver sammanfattningen, stämmer av mot Våra standarder, gör riskgenomgången och hittar åtagandena — de fyra sakerna ni annars trycker på en i taget. Cirka tre Jambo-anrop. Avmarkera för att arkivera utan att läsa; varje kontroll finns kvar att köra för hand.',
-    ct_triage_optin_sub_noai: 'Jambo är inte anslutet, så sammanfattningen och Jambos övriga läsningar körs inte — den lokala riskgenomgången körs ändå. Avmarkera för att arkivera utan att läsa.',
+    ct_triage_optin_sub_noai: 'Jambo är inte ansluten, så sammanfattningen och Jambos övriga läsningar körs inte — den lokala riskgenomgången körs ändå. Avmarkera för att arkivera utan att läsa.',
     tri_row: '{who} har skickat ett avtal — läst och klart för er',
     tri_row_unread: '{who} har skickat ett avtal — det gick inte att läsa',
     tri_tag_arrived: 'Inkommet',
@@ -29976,7 +29976,7 @@ const STRINGS = {
        VILANDE: skälet ersatte den enda meningen, och "Alla N klausuler" är
        borta — Klarspråk läser en klausul i taget, bara. */
     th_cannot_empty: 'Jambo svarade utan en läsning av den. Tryck på Klarspråk för att fråga igen.',
-    th_cannot_noai: 'Jambo är inte anslutet. En administratör ansluter det i Inställningar.',
+    th_cannot_noai: 'Jambo är inte ansluten. En administratör ansluter honom i Inställningar.',
     th_cannot_limit: 'Jambo har nått sin gräns för stunden. Tryck på Klarspråk igen om en liten stund.',
     th_cannot_failed: 'Jambo svarade inte: anslutningen eller leverantören misslyckades. Tryck på Klarspråk för att fråga igen.',
     th_cannot_long: 'Klausulen är för lång för att Jambo ska kunna läsa den på en gång.',

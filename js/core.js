@@ -2932,7 +2932,7 @@ function renderNegotiationSection(c){
            The contract page's own toast has said this correctly all along
            (see the quiet branch in js/views/contract.js); this is the two
            surfaces agreeing rather than a new sentence. */
-        toast(i18t('co_round_on_standing_link',{who:esc(who)}));
+        toast(i18t('co_round_on_standing_link',{who}),'ok');
       } else if(out.channel==='whatsapp' && out.recipient.phone){
         // the same route the first share uses — nothing sends WhatsApp for us
         try{ window.open(waShareLink(out.recipient.phone, shareMessageText(c, out.link, '', null)),'_blank'); }catch(_){}
@@ -8731,7 +8731,7 @@ async function renderSharesSection(c){
       if(out.stranded) toast(reshareStrandedLine(who),'err');
       else if(out.delivered) toast(`Sent again to ${who}`,'ok');
       /* Deliberately quiet, not refused — see the note on the other caller. */
-      else if(out.quiet) toast(i18t('co_round_on_standing_link',{who:esc(who)}));
+      else if(out.quiet) toast(i18t('co_round_on_standing_link',{who}),'ok');
       else reshareNotSentModal(c, out, who);
       renderAuditSection(c); renderSharesSection(c);
     }catch(err){ toast(err.message,'err'); }

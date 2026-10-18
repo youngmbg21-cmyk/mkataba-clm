@@ -1327,7 +1327,11 @@ function agGo(where, cid){
   const c = (typeof getContract === 'function') ? getContract(cid) : null;
   if (where === 'nego'){ if (typeof openRedlineWorkbench === 'function') openRedlineWorkbench(cid); else if (typeof selectContract === 'function') selectContract(cid); return; }
   if (where === 'import'){ if (typeof setView === 'function') setView('migration'); return; }
-  if (!c || typeof openWorkspace !== 'function') return;
+  if (!c) return;
+  /* The contract itself opens on Home's Document, like every list's Open
+     contract — the room has no Document tab since 11 Oct 2026. */
+  if (where === 'contract' && typeof pdOpenOnHome === 'function' && pdOpenOnHome(cid, 'copilot')) return;
+  if (typeof openWorkspace !== 'function') return;
   const tab = where === 'oblig' ? 'oblig' : where === 'sign' ? 'sign' : where === 'contract' ? null : 'terms';
   /* the room's Signing and Obligations tabs went home (the one-page Home plan, stage 5) */
   if (tab && typeof roomTabHome === 'function' && roomTabHome(c, tab)) return;

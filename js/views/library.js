@@ -3743,6 +3743,9 @@ function sdDevPanelOpts(c, d){
   };
 }
 function sdOpenContract(id){
+  /* Open contract lands where every list's does: Home's Document on Jambo
+     (`regOpenContract`), the room only where Home cannot take it. */
+  if(typeof pdOpenOnHome==='function'&&pdOpenOnHome(id,'copilot')) return;
   if(typeof selectContract==='function') selectContract(id);
   else if(typeof openWorkspace==='function') openWorkspace(id);
 }
