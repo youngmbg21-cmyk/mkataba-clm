@@ -196,10 +196,16 @@ const check = (name, pass, detail) => {
       const at = await page.evaluate(() => IG.nodes.findIndex(x => x.kind === 'contract' && x.g.getBoundingClientRect().width)), d0 = await dotOf(at); let far = 0;
       for (let i = 0; i < 8; i++){ await page.waitForTimeout(200); const d = await dotOf(at); far = Math.max(far, Math.hypot(d[0] - d0[0], d[1] - d0[1])); }
       const b = await page.evaluate(k => intel.cam[k] || 0, key); return { moved: Math.abs(b - a) > 0.02, far: Math.round(far * 10) / 10, a: +a.toFixed(3), b: +b.toFixed(3) }; };
-    const jig = m => !m.moved && m.far >= 1 && m.far < 14;
+    /* THE LIMIT FOLLOWS THE STAGE (18 Oct 2026): the dots wobble in the stage's own
+       scale, and 14px was set when the stage stood 763px tall under Home's head row;
+       the SAP way gave the map that row back (852px at 1366x900), so the limit is
+       the same share of the stage's height */
+    const stH = await page.evaluate(() => document.getElementById('ig-gwrap').getBoundingClientRect().height);
+    const JIG_MAX = 14 * stH / 763;
+    const jig = m => !m.moved && m.far >= 1 && m.far < JIG_MAX;
     const sw0 = await page.evaluate(() => intel.cam.sway || 0);
     const qB = await stray(0, 'rot'), qF = await stray(2, 'rotL'), qG = await stray(3, 'rotG'), qT = await stray(4, 'rotT');
-    check('4a2 Still: Brain, Floors, Grid and Timeline do not turn or swing — their dots only jiggle a little', jig(qB) && jig(qF) && jig(qG) && jig(qT) && (await page.evaluate(() => intel.cam.sway || 0)) === sw0, JSON.stringify({ qB, qF, qG, qT, sw0 }));
+    check('4a2 Still: Brain, Floors, Grid and Timeline do not turn or swing — their dots only jiggle a little', jig(qB) && jig(qF) && jig(qG) && jig(qT) && (await page.evaluate(() => intel.cam.sway || 0)) === sw0, JSON.stringify({ qB, qF, qG, qT, sw0, max: Math.round(JIG_MAX * 10) / 10 }));
     const fps = () => page.evaluate(() => new Promise(r => { const f0 = igFramesDrawn(); setTimeout(() => r(igFramesDrawn() - f0), 1000); }));
     await page.waitForTimeout(2600);
     const fStill = await fps();
