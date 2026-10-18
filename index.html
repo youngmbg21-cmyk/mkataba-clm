@@ -3785,6 +3785,17 @@
   .st-cr .st-side-ic{ width:18px; height:18px; flex:none; border-radius:50%; }
   .st-cr .st-side-body{ flex:1; min-height:0; display:flex; flex-direction:column; }
   .st-cr .st-side-body[hidden]{ display:none; }
+  /* DOCKED (18 Oct 2026): the panel is Jambo's column beside the page
+     (#page-dock, js/app.js pageDockSet) — the column draws the edge, the card's
+     own box, lift and measured height stand down; the page is one column. The
+     page's name rides its band, in the shell title's type, at its glyph top. */
+  #page-dock .st-docked{ flex:1; min-height:0; display:flex; flex-direction:column; }
+  #page-dock .st-side{ position:static; flex:1; height:auto; border:0; border-radius:0; box-shadow:none; }
+  .st-cr .st-cr-cols.is-docked{ grid-template-columns:minmax(0,1fr); }
+  .st-cr .st-title{ margin:0 0 var(--page-pad-t); font-family:var(--font-heading); font-size:20px; font-weight:var(--w-title);
+    letter-spacing:-.01em; line-height:1.2; color:var(--color-text); }
+  .st-cr .st-facebar{ flex-direction:column; align-items:flex-start; gap:0; }
+  .st-cr .st-facebar > .st-title:last-child{ margin-bottom:0; }
   /* Jambo's face */
   .st-cr .st-jb{ flex:1; min-height:0; display:flex; flex-direction:column; }
   .st-cr .st-jb-feed{ flex:1; min-height:0; overflow:auto; background:var(--color-chat-bg); padding:12px; display:flex; flex-direction:column; gap:10px; }
@@ -9255,7 +9266,14 @@
   .reg-own-name{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   /* COPILOT PREPARES, YOU PRESS (7 Oct 2026): the @ / # list over the ask box,
      and the card an act answers with. */
-  #ig-dock{position:relative;background:var(--color-bg);border-left:1px solid var(--color-neutral-300);box-shadow:-10px 0 28px -20px rgba(43,43,45,.35)}
+  #ig-dock,#page-dock{position:relative;background:var(--color-bg);border-left:1px solid var(--color-neutral-300);box-shadow:-10px 0 28px -20px rgba(43,43,45,.35)}
+  /* JAMBO'S PANEL BESIDE A PAGE (owner, 18 Oct 2026): Home's panel's edge and
+     ground (the two selector lists here), a column of #body-grid from the desk
+     tabs to the window's foot; the divider lies on its own side of the seam. */
+  #page-dock{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+  #page-dock[hidden]{display:none}
+  #page-dock > .ig-resizer{left:0}
+  #page-dock > .page-dock-in{flex:1;min-height:0;display:flex;flex-direction:column}
   /* THE FOLDED PANEL IS A DOOR THAT LOOKS LIKE ONE (8 Oct 2026): tinted, the mark in the accent, "Ask Copilot" readable top to bottom */
   #ig-dock .igd-door{height:100%;width:100%;display:flex;flex-direction:column;align-items:center;gap:10px;padding-top:14px;background:var(--color-accent-50);border:0;border-left:1px solid var(--color-accent-100);color:var(--accent-ink);cursor:pointer;transition:background var(--dur-2)}
   #ig-dock .igd-door:hover{background:var(--color-accent-100)}
@@ -9328,7 +9346,7 @@
      panel is ONE plain white column below the greeting row, with its own left line —
      no lifted card on a grey ground (reverses LIFTED, 8 Oct). The paper keeps its ground. */
   body:has(#ig-dock > .igd-head[data-pd-head="paper"]) .ig-paper{background:var(--desk-ground)}
-  #ig-dock{background:var(--color-surface)}
+  #ig-dock,#page-dock{background:var(--color-surface)}
   #ig-dock:has(> .igd-head[data-pd-head="paper"]){box-shadow:none}
   #ig-dock:has(> .igd-head[data-pd-head="paper"]) > .igd-head{gap:0}
   /* THE ARTIFACT'S SYMBOLS (owner, 10 Oct 2026): typed marks at the artifact's size */
@@ -15053,6 +15071,11 @@
       <main id="content-scroll" class="scroll-thin" style="overflow:auto;min-width:0;min-height:0;">
         <div id="content"></div>
       </main>
+      <!-- JAMBO'S PANEL BESIDE A PAGE (owner, 18 Oct 2026; pageDockSet in
+           js/app.js): Settings and Import hand their panel here, so it runs
+           from under the desk tabs to the window's foot like Home's, with
+           Home's divider on its left edge. Hidden on every other page. -->
+      <aside id="page-dock" hidden><div id="page-dock-rz" class="ig-resizer" role="separator" aria-orientation="vertical" tabindex="0"><span></span></div><div id="page-dock-in" class="page-dock-in"></div></aside>
 
     </div>
   </div>

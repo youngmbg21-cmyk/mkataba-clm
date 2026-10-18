@@ -887,11 +887,18 @@ function stFaceWordsHtml(f){
   const others=[...new Set(all)].filter(w=>w!==now);
   return `<span class="st-face-w"${others[0]?` data-w1="${esc(others[0])}"`:''}${others[1]?` data-w2="${esc(others[1])}"`:''}><span>${esc(now)}</span></span>`;
 }
+/* THE PAGE'S NAME RIDES ITS OWN BAND (18 Oct 2026): Jambo's panel runs to the
+   top beside the page (pageDockSet), so the shell's title row is not drawn
+   here ('team' is on PAGE_OWNS_HEADER) and the name sits on the pinned band
+   above the faces, its glyph where the shell's sat. Anybody but an admin gets
+   the band with the name alone — the Company side is not there to be seen. */
 function stFacesHtml(face){
+  const title=`<h1 class="st-title">${esc(i18t('pg_team'))}</h1>`;
+  if(!face) return `<div class="st-tabs st-tabs-pin sap-band st-facebar">${title}</div>`;
   const n=stNeedsAll().length;
   const btn=f=>`<button type="button" role="tab" class="st-face" data-st-tab="${f}" aria-selected="${f===face}">${stFaceWordsHtml(f)}${
     f==='company'?`<span class="st-face-n"${n?' data-tone="amber"':''}${n?` title="${esc(i18tn('st_face_company_n',n,{n}))}"`:''}>${n||''}</span>`:''}</button>`;
-  return `<div class="st-tabs st-tabs-pin sap-band st-facebar">
+  return `<div class="st-tabs st-tabs-pin sap-band st-facebar">${title}
     <div class="st-faces" role="tablist" aria-label="${esc(i18t('st_faces_label'))}" style="--st-fi:${Math.max(0,ST_FACES.indexOf(face))};--st-fn:${ST_FACES.length}"><span class="st-thumb" aria-hidden="true"></span>${ST_FACES.map(btn).join('')}</div>
   </div>`;
 }
@@ -7250,12 +7257,16 @@ function stPagePaint(admin){
   const _heldHeights=settingsHeightsBefore();
   const face=admin?settingsTab():'you';
   const body=face==='company'?stCompanyHtml():stYouHtml();
+  /* Jambo · Menu beside the page, from under the desk tabs to the foot, on
+     Home's divider (pageDockSet, js/app.js); inline only where there is no
+     shell to dock in */
+  const docked=typeof pageDockSet==='function'&&pageDockSet('team', `<div class="st-cr st-docked">${stSideHtml()}</div>`);
   document.getElementById('content').innerHTML=`
   <div id="set-page" class="view-enter st-page sap-page st-cr" data-st-face="${face}">
-    ${admin?stFacesHtml(face):''}
-    <div class="st-cr-cols">
+    ${stFacesHtml(admin?face:'')}
+    <div class="st-cr-cols${docked?' is-docked':''}">
       <div id="st-tabbody" class="st-cr-main">${body}</div>
-      ${stSideHtml()}
+      ${docked?'':stSideHtml()}
     </div>
   </div>`;
   settingsHoldHeights(_heldHeights);
