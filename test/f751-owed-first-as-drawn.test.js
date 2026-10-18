@@ -74,8 +74,11 @@ describe('f751 (1) Our standard, where one names the fact', () => {
     assert.equal(own.stdValueFor('Notice period').figure, 60);
   });
   test('1e drawn under an owed box, empty, with Use it putting it in the box the way typing does', () => {
-    assert.match(PD, /const std = r\.getAttribute\('data-pd-owed'\) === '1' \? pdFillStdOf\(r\) : null;/);
-    assert.match(PD, /_pdT\('pd_ff_std', \{ what: std\.category\.toLowerCase\(\), value: std\.said \}\)/);
+    /* RE-POINTED (pass 2, 18 Oct 2026): named for the kind of contract whose book applies
+       ("Our standard for freight: 6 months"), the topic's own name only where no book is named */
+    assert.match(PD, /const std = owedRow \? pdFillStdOf\(r\) : null;/);
+    assert.match(PD, /const what = kind \|\| std\.category\.toLowerCase\(\);/);
+    assert.match(PD, /_pdT\('pd_ff_std', \{ what, value: std\.said \}\)/);
     assert.match(PD, /box\.value = use\.getAttribute\('data-pd-ff-use'\);\n\s+box\.dispatchEvent\(new Event\('input', \{ bubbles: true \}\)\); box\.dispatchEvent\(new Event\('change', \{ bubbles: true \}\)\);/);
   });
 });

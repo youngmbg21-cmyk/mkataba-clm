@@ -225,11 +225,14 @@ describe('f679 (3) a sentence answers with the New agreement card', () => {
     ctx.caDraftForm(a);
     const best = { kind: 'tid', id: 'NDA' };
     assert.deepEqual(J(calls), [['form', { pick: null, prefill: { purpose: 'A promotion', counterparty: 'Volvo' }, asked: 'draft an NDA with Volvo', streamAsk: true,
-      closest: J(a.options).map(o => ({ kind: o.kind === 'builtin' ? 'tid' : o.kind, id: o.id })), best, words: { what: J(calls)[0][1].words.what, who: 'Volvo', known: false } }]]);
-    assert.ok(J(calls)[0][1].words.what, 'What is the closest paper\'s title');
+      closest: J(a.options).map(o => ({ kind: o.kind === 'builtin' ? 'tid' : o.kind, id: o.id })), best, words: { what: J(calls)[0][1].words.what, who: 'Volvo', known: false, purpose: '' } }]]);
+    /* RE-POINTED (the gaps, round 4, 18 Oct 2026): What is the KIND the words ask for
+       ("A non-disclosure agreement"), not the closest paper's title, and What it is for
+       is read from the words where they say it ("… for a pilot"; here they do not) */
+    assert.ok(J(calls)[0][1].words.what, 'What is the kind the words ask for');
     calls.length = 0;
     ctx.caDraftForm({ sentence: 'draft a lease with Mumias', options: [], prefill: {} });
-    assert.deepEqual(J(calls), [['form', { pick: null, prefill: { counterparty: 'Mumias' }, asked: 'draft a lease with Mumias', streamAsk: true, closest: [], best: null, words: { what: '', who: 'Mumias', known: false } }]], 'no paper named: the counterparty waits for the pick');
+    assert.deepEqual(J(calls), [['form', { pick: null, prefill: { counterparty: 'Mumias' }, asked: 'draft a lease with Mumias', streamAsk: true, closest: [], best: null, words: { what: 'A lease', who: 'Mumias', known: false, purpose: '' } }]], 'no paper named: the counterparty waits for the pick');
   });
   test('3e the one form greys Create until a stream is in its box, and says where the answers came from', () => {
     const light = WZ.slice(WZ.indexOf('const light=()=>'), WZ.indexOf('const dress=host=>'));

@@ -3631,7 +3631,8 @@ function datePickDress(root){
       lab.addEventListener('click',ev=>{ ev.preventDefault(); face.focus(); }); }
     const paint=()=>{
       const w=datePickWords(_dpValue.get.call(inp));
-      face.innerHTML=`<span class="dp-v${w?'':' dp-ph'}">${(w||i18t('dp_pick')).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</span>${typeof icon==='function'?icon('calendar','dp-ic'):''}`;
+      /* an empty face says "Pick a date", or the example its caller set (data-ph: Fill in's owed box, round 8) */
+      face.innerHTML=`<span class="dp-v${w?'':' dp-ph'}">${(w||inp.getAttribute('data-ph')||i18t('dp_pick')).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</span>${typeof icon==='function'?icon('calendar','dp-ic'):''}`;
       face.disabled=!!inp.disabled;
       /* an owed date is amber on the face the reader sees (needMark) */
       if(inp.hasAttribute('data-need') && typeof needMark==='function') needMark(inp);
@@ -3643,7 +3644,7 @@ function datePickDress(root){
        lands on the face the reader can see. */
     inp.focus=()=>face.focus();
     inp.addEventListener('input',paint); inp.addEventListener('change',paint);
-    try{ new MutationObserver(paint).observe(inp,{ attributes:true, attributeFilter:['disabled'] }); }catch(_){}
+    try{ new MutationObserver(paint).observe(inp,{ attributes:true, attributeFilter:['disabled','data-ph'] }); }catch(_){}
     /* Out of sight IN ITS OWN INLINE STYLE: the box was built with the
        field's inline clothes (width, height), which no sheet rule outranks. */
     inp.classList.add('dp-native'); inp.tabIndex=-1; inp.setAttribute('aria-hidden','true');

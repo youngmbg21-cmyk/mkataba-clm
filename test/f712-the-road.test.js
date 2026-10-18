@@ -92,9 +92,12 @@ describe('f712 (3) where the body and the Sign button stand', () => {
     /* RE-POINTED 18 Oct 2026 (the gaps, f752): while a named yes is framed the body folds behind Ready to sign's Show */
     assert.match(f, /body\.style\.order = String\(R\.fold \? 3 : 2 \* R\.cur \+ 3\);/);
     assert.match(f, /const show = R\.mineAt >= 0;/);
-    /* the route's own link keeps the foot when it is not the reader's turn,
-       the Sign button hidden in it (upload-blanks-verify's door, CI 18 Oct) */
-    assert.match(f, /foot\.style\.display = \(show \|\| route\) \? '' : 'none';/);
+    /* RE-POINTED (the gaps, round 10, pass 2, 18 Oct 2026): "the foot follows the last
+       stop" — the route's link ("Signing it their way …") is not drawn on the face; its
+       door is the Menu tab's row (#ws-m-their-way), and the foot stands only for the Sign
+       button in the reader's own stop */
+    assert.match(f, /const paperRoute = foot\.querySelector\('#sign-paper'\); if \(paperRoute\) paperRoute\.style\.display = 'none';/);
+    assert.match(f, /foot\.style\.display = show \? '' : 'none';/);
     assert.match(f, /const btn = foot\.querySelector\('#sign-btn'\); if \(btn\) btn\.style\.display = show \? '' : 'none';/);
     assert.match(PD, /const next = host\.querySelector\('\[data-pd-sf-next\]'\); if \(next\) next\.innerHTML = pdSignNextHtml\(c\);\n\s+pdRoadPaint\(c\);/, 'drawn after every paint of the column');
   });

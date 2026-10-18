@@ -1304,7 +1304,7 @@ if (typeof document !== 'undefined' && !document._bsWired){
 }
 
 if (typeof window !== 'undefined') Object.assign(window, { bsFamRows, bsFamHtml,
-  bsIsPay, bsJobTiles, bsNoticeWords, bsPayEvery, payBaseLine, bsPayLock, bsPayMay, payAmountRead, paySet, payEditOpen, bsPayHtml, bsPaintPay,
+  bsIsPay, bsJobTiles, bsNoticeWords, bsPayEvery, bsPayMoney, bsReadWait, bsGo, payBaseLine, bsPayLock, bsPayMay, payAmountRead, paySet, payEditOpen, bsPayHtml, bsPaintPay,
   bsIsNda, bsNda, ndaMay, ndaDirWords, ndaUntilWords, ndaReminderOf, ndaSet, ndaEditOpen, bsNdaTile, bsNdaCaption, bsPaintNda,
   BS_PAGES, BS_MENU_PAGES, BS_MAX,
   bsCardOn, bsCardId, bsCardLeave, bsAmendMarks,

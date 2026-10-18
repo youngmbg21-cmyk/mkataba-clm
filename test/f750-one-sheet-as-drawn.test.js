@@ -79,7 +79,8 @@ describe('f750 (2) Jambo\'s line, as drawn', () => {
   test('2b the line: what was read, with whom, "our" paper, nothing created until Create', () => {
     const ctx = caStage();
     const a = { kind: 'draft', sentence: 'NDA with Volvo Cars for a pilot', state: 'opened', options: ctx.caDraftRank('NDA with Volvo Cars for a pilot', cands, null), prefill: {} };
-    assert.match(ctx.caDraftCardHtml(a, 0), /<p class="ca-say">I’ve opened a new agreement on the desk with what I read: an NDA, with Volvo Cars\. The closest of our paper is our Mutual NDA; you pick\. Nothing is created until you press Create\.<\/p>/);
+    /* RE-POINTED (pass 2, 18 Oct 2026): the party and the paper in bold, as drawn */
+    assert.match(ctx.caDraftCardHtml(a, 0), /<p class="ca-say">I’ve opened a new agreement on the desk with what I read: an NDA, with <b>Volvo Cars<\/b>\. The closest of our paper is our <b>Mutual NDA<\/b>; you pick\. Nothing is created until you press Create\.<\/p>/);
   });
   test('2c no line in front of it; its doors back stand down while the sheet is up', () => {
     assert.match(IG, /act\.kind==='draft'\?'':i18t\(act\.kind==='send'\?'ca_intro_send':'ca_intro_job'\)/);
@@ -102,7 +103,8 @@ describe('f750 (3) the sheet', () => {
     assert.match(CORE, /frame\.style\.cssText=`position:fixed;top:\$\{Math\.round\(top\)\}px;left:\$\{Math\.round\(r\.left\)\}px;right:\$\{right\}px;bottom:0;z-index:70;display:flex;`;/);
   });
   test('3c From your words: "What it is for · Not read yet", mirrored from the paper\'s own question', () => {
-    assert.match(WZ, /cell\(esc\(i18t\('na_words_for'\)\), `<i id="na-w-for">\$\{esc\(i18t\('na_words_unread'\)\)\}<\/i>`, 'is-for'\)/);
+    /* RE-POINTED (pass 2): read from the words where they say it ("… for a pilot"), else "Not read yet" */
+    assert.match(WZ, /cell\(esc\(i18t\('na_words_for'\)\), `<i id="na-w-for"\$\{purpose\?' class="is-said"':''\}>\$\{esc\(purpose\?naCap\(purpose\):i18t\('na_words_unread'\)\)\}<\/i>`, 'is-for'\)/);
     assert.match(WZ, /find\(x=>naCarryKey\(x\.id\)==='purpose'\)/);
   });
   test('3d 1 Start from: the count said, the search and Legal on its line, each closest a card with its shelf\'s facts — one row builder', () => {
@@ -117,7 +119,7 @@ describe('f750 (3) the sheet', () => {
   });
   test('3f who else, and the cost of reading on the stream\'s own row', () => {
     assert.match(WZ, /\$\{one\?`<span class="na-hint na-people-sub"> · \$\{esc\(i18t\('ppl_sub_short'\)\)\}<\/span>`:''\}/);
-    assert.match(WZ, /<span class="na-need" id="na-file-need">[\s\S]{0,80}<span class="na-hint na-file-cost">/);
+    assert.match(WZ, /<span class="na-need" id="na-file-need">[\s\S]{0,80}<span class="na-hint na-file-cost" id="na-file-cost">/);
   });
   test('3g the words, in both books', () => {
     for (const k of ['na_not_yet_inline', 'na_start_sub_2', 'na_start_sub_3', 'na_shelf_lib', 'na_shelf_mine', 'na_shelf_tid', 'na_used_n_one', 'na_used_n_other', 'na_words_for',

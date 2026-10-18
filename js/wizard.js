@@ -895,18 +895,25 @@ function openNewAgreement(o){
      Parties has none of that name yet), Change the ask, and the form's own Find
      as Jambo's one spend on this screen, its cost on the button. #dr-say keeps
      the sentence, hidden, so that press reads it as Find always has. */
+  /* WHAT THE PRESSES COST, in our own money where it is measured (aiCostWords: the
+     ledger's average, through the admins' dated USD rate), else their count of calls */
+  const naFillCost=()=>(typeof aiCostWords==='function')?aiCostWords(['draft'], i18t('na_words_cost')):i18t('na_words_cost');
+  const naReadCost=()=>{ const m=(typeof aiCostWords==='function')?aiCostWords(['brief','playbook','obligations'], ''):'';
+    return m?i18t('na_file_read_money',{ cost:m }):i18t('na_file_read'); };
+  const naCap=t=>{ const x=String(t||'').trim(); return x?x.charAt(0).toUpperCase()+x.slice(1):''; };
   const naWordsHtml=()=>{ const w=o.words||{};
-    const who=String(w.who||'').trim(), what=String(w.what||'').trim();
+    const who=String(w.who||'').trim(), what=String(w.what||'').trim(), purpose=String(w.purpose||'').trim();
     const cell=(k,v,cls)=>`<div class="na-w-c${cls?' '+cls:''}"><span>${k}</span><b>${v}</b></div>`;
     return `<section class="na-field na-words" id="na-words">
       <div class="na-w-h"><b>${esc(i18t('na_words_title'))}</b><q>${esc(asked)}</q><span class="na-hint">· ${esc(i18t('na_words_noai'))}</span><span class="na-grow"></span>
         <button type="button" class="ui-btn ui-btn-sm" id="na-ask-again">${esc(i18t('ca_dr_change'))}</button></div>
       <div class="na-w-read">${cell(esc(i18t('na_words_what')), what?esc(what):`<i>${esc(i18t('na_words_none'))}</i>`)}${
         cell(esc(i18t('na_words_with'))+(who&&!w.known?` · ${esc(i18t('na_words_new_party'))}`:''), who?esc(who):`<i>${esc(i18t('na_words_none'))}</i>`, (!who||!w.known)?'is-owed':'')}${
-        /* WHAT IT IS FOR (the gaps, round 4): not read from the words without AI — the paper's own
-           question answers it, mirrored here as it is filled; until then, said so */
-        cell(esc(i18t('na_words_for')), `<i id="na-w-for">${esc(i18t('na_words_unread'))}</i>`, 'is-for')}
-        <div class="na-w-ai"><button type="button" id="dr-read" class="ui-btn ui-btn-sm"${ready?'':` disabled title="${esc(i18t('dr_no_ai'))}"`}>${icon('sparkle','w-3.5 h-3.5')} ${esc(i18t('na_words_fill'))} <em>· ${esc(i18t('na_words_cost'))}</em></button></div></div>
+        /* WHAT IT IS FOR (the gaps, round 4): read from the words without AI as "with" is
+           ("… for a pilot", caDraftForOf), else the paper's own question mirrored as it is
+           filled; where neither says, said so */
+        cell(esc(i18t('na_words_for')), `<i id="na-w-for"${purpose?' class="is-said"':''}>${esc(purpose?naCap(purpose):i18t('na_words_unread'))}</i>`, 'is-for')}
+        <div class="na-w-ai"><button type="button" id="dr-read" class="ui-btn ui-btn-sm"${ready?'':` disabled title="${esc(i18t('dr_no_ai'))}"`}>${icon('sparkle','w-3.5 h-3.5')} ${esc(i18t('na_words_fill'))} <em id="na-w-cost">· ${esc(naFillCost())}</em></button></div></div>
       <textarea id="dr-say" class="na-say" hidden>${esc(asked)}</textarea></section>`; };
   /* ---- THE SEARCH LIST (the owner picked it by name, 12 Oct 2026, from One
      field · Search list · Shelf first · The SAP way) ----
@@ -996,7 +1003,7 @@ function openNewAgreement(o){
       ${naCard}
       ${one?`<section class="na-field na-file" id="na-file"><div class="na-step"><span class="na-n">3</span><b>${esc(i18t('na_file'))}</b><span class="na-hint">${esc(i18t('na_file_sub'))}</span></div>
         <div class="na-file-b"><div class="na-seg" id="na-file-seg" role="group" aria-label="${esc(i18t('na_file'))}"></div><span class="na-need" id="na-file-need">${esc(i18t('na_file_need'))}</span>
-        <span class="na-hint na-file-cost">${esc(i18t(ready?'na_file_read':'na_file_read_noai'))}</span></div></section>`:''}
+        <span class="na-hint na-file-cost" id="na-file-cost">${esc(ready?naReadCost():i18t('na_file_read_noai'))}</span></div></section>`:''}
     </div>
     ${''/* ONE FOOTER ORDER (the Compact ladder, 26 Sep 2026 — rule 8 of the
            button review): the buttons sit together at the right, Cancel
@@ -1092,8 +1099,8 @@ function openNewAgreement(o){
   const naForPaint=()=>{ const el=document.getElementById('na-w-for'); if(!el) return;
     const host=document.getElementById('na-form');
     const box=host?[...host.querySelectorAll(NA_CARRY_SEL)].find(x=>naCarryKey(x.id)==='purpose'):null;
-    const v=box?String(box.value||'').trim():'';
-    el.textContent=v||i18t('na_words_unread'); el.classList.toggle('is-said', !!v); };
+    const v=(box?String(box.value||'').trim():'')||String((o.words&&o.words.purpose)||'').trim();
+    el.textContent=v?naCap(v):i18t('na_words_unread'); el.classList.toggle('is-said', !!v); };
   /* THE CARD IS THE CHOSEN DOOR'S OWN FORM. Every branch returns the acts the
      foot presses; the head prints the version where there is one and how
      many boxes were drawn. */
@@ -1150,8 +1157,9 @@ function openNewAgreement(o){
       :((typeof visibleFolders==='function'?visibleFolders():[])||[]).map(f=>({ id:f.id, name:f.name }));
     const now=sb?((sb.value&&sb.value!=='__new__')?sb.value:''):streamPicked;
     const lock=id=>(typeof streamIsPrivate==='function'&&streamIsPrivate(id))?icon('lock','na-lock'):'';
-    seg.innerHTML=opts.map(x=>`<button type="button" class="na-seg-b" data-na-stream="${esc(x.id)}" aria-pressed="${x.id===now}">${lock(x.id)}${esc(x.name)}</button>`).join('')
-      +(sb&&sb.querySelector('option[value="__new__"]')?`<button type="button" class="na-seg-b is-new" data-na-stream="__new__">+ ${esc(i18t('na_new_stream'))}</button>`:'');
+    /* AS DRAWN, THE STREAMS ALONE (the gaps, round 4: "Sales · Procurement · HR · Board"):
+       a new stream is made where streams are kept (Settings · Contract streams), not here */
+    seg.innerHTML=opts.map(x=>`<button type="button" class="na-seg-b" data-na-stream="${esc(x.id)}" aria-pressed="${x.id===now}">${lock(x.id)}${esc(x.name)}</button>`).join('');
     const need=document.getElementById('na-file-need'); if(need) need.hidden=!!now;
   };
   const pick=(kind,id,prefill)=>{
@@ -1185,12 +1193,27 @@ function openNewAgreement(o){
     /* AS DRAWN ON THE SHEET (the gaps, round 4): "6 questions · only Counterparty
        is needed now" — the boxes the form itself marks required, by their labels */
     const needed=one?naNeeded(host):[];
+    /* the sheet asks the stream at step 3, so step 2 neither draws nor counts it */
+    const n1=(one&&naStreamBox(host))?Math.max(0,n-1):n;
+    if(one) naQuestionsLay(host);
     if(sb) sb.textContent=`${ver&&!one?ver+' · ':''}${kind==='lib'
-      ? i18tn('na_details', n, {n})+(follow?' · '+i18tn('na_tpl_q_follow', follow, {n:follow}):'')
-      : i18tn('na_questions', n, {n})}${needed.length?' · '+i18tn('na_only_needed', needed.length, { names:needed.join(i18t('sa_and')) }):''}`;
+      ? i18tn('na_details', n1, {n:n1})+(follow?' · '+i18tn('na_tpl_q_follow', follow, {n:follow}):'')
+      : i18tn('na_questions', n1, {n:n1})}${needed.length?' · '+i18tn('na_only_needed', needed.length, { names:needed.join(i18t('sa_and')) }):''}`;
     if(one) naFromWordsMark(host);
     light();
   };
+  /* STEP 2 AS DRAWN (the gaps, round 4, 18 Oct 2026): three columns, who we are ·
+     the counterparty · their email first, the rest in the paper's own order, and
+     nothing standing alone on a row — the form's own boxes, moved, never redrawn
+     (each keeps its id, so the form's acts read them as before). The grid's
+     columns are the form's inline declaration, so they are written on it. */
+  const naQuestionsLay=host=>{
+    const grid=host.querySelector('.field-grid'); if(!grid) return;
+    grid.style.gridTemplateColumns='repeat(3,minmax(0,1fr))';
+    const lab=k=>{ const el=[...grid.querySelectorAll(NA_CARRY_SEL+',select[id]')].find(x=>naCarryKey(x.id)===k); return el?el.closest('label'):null; };
+    const party=lab('party'), cp=lab('counterparty'), mail=lab('cpemail');
+    [party, cp, mail].filter(Boolean).reverse().forEach(l=>{ if(l.parentElement===grid) grid.insertBefore(l, grid.firstChild); });
+    grid.classList.add('na-three'); };
   /* the boxes the paper's form marks required (the star its label carries, the one the dress keeps) */
   const naNeeded=host=>[...host.querySelectorAll('label > span:first-child')].filter(sp=>sp.querySelector('span[style*="ruby"]'))
     .map(sp=>{ const t=sp.cloneNode(true); t.querySelectorAll('span').forEach(x=>x.remove()); return t.textContent.replace(/\s*\*\s*$/,'').trim(); }).filter(Boolean);
@@ -1295,6 +1318,22 @@ function openNewAgreement(o){
   });
   if(one){
     /* THE DESK'S WAY BACK, in the sheet's head (asked first, as Cancel asks) */
+    /* THE PANEL BESIDE IT SAYS WHAT IT HOLDS (the gaps, round 4: "Jambo · New agreement"
+       in its head, its box asking "Ask for a number, a list or a contract…"): pdHeadHtml
+       and igAskPlaceholder read the sheet being up, so the panel is drawn again when it
+       comes and when it goes (the modal root losing #na-root, by any way out) */
+    if(typeof renderIntelDock==='function') setTimeout(()=>{ try{ renderIntelDock(); }catch(_){ } },0);
+    const mroot=document.getElementById('modal-root');
+    if(mroot&&typeof MutationObserver==='function'){
+      const mo=new MutationObserver(()=>{ if(document.getElementById('na-root')) return; mo.disconnect();
+        if(typeof renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ } });
+      mo.observe(mroot,{ childList:true, subtree:true }); }
+    /* the costs, once the ledger's average arrives (aiCostWords) */
+    const costEv=(typeof window.AI_COST_EVENT==='string')?window.AI_COST_EVENT:'';
+    if(costEv){ const onCost=()=>{ if(!root.isConnected){ document.removeEventListener(costEv,onCost); return; }
+        const a=document.getElementById('na-w-cost'); if(a) a.textContent='· '+naFillCost();
+        const b=document.getElementById('na-file-cost'); if(b&&ready) b.textContent=naReadCost(); };
+      document.addEventListener(costEv,onCost); }
     document.querySelector('[data-na-counter]')?.addEventListener('click',async()=>{ if(!(await naAskLeave())) return; dropHeld(); closeModal();
       if(typeof deskGoCounter==='function') deskGoCounter(); });
     document.querySelector('[data-na-close]')?.addEventListener('click', leave);
@@ -1349,6 +1388,9 @@ function openNewAgreement(o){
    Write: only into a box of the same key that is still at its drawn value —
    what the reader typed outranks a drawn default. Selects are left alone:
    their first option is a real answer, not an empty box. */
+/* THE ONE SHEET IS ON THE DESK (round 4): read by the panel beside it, which
+   says what it holds and asks as drawn while it is up */
+function naSheetUp(){ return typeof document!=='undefined' && !!document.querySelector('#na-root.na-one'); }
 const NA_CARRY_SEL='input[id]:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]),textarea[id]';
 const naCarryKey=id=>{ const m=/^(?:wz|ce|tf)-(.+)$/.exec(String(id||'')); return m?m[1]:null; };
 function naCarryRead(host, into){
@@ -1392,4 +1434,4 @@ function naPickFromDraft(pick, prefill){
   return true;
 }
 
-Object.assign(window,{openNewDoors,TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naStreamBox,naCarryRead,naCarryWrite,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_RAIL_W,NA_ROWS_MIN_H,NA_ROWS_FOOT,NA_FRAME_NARROW_W});
+Object.assign(window,{openNewDoors,TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naStreamBox,naSheetUp,naCarryRead,naCarryWrite,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_RAIL_W,NA_ROWS_MIN_H,NA_ROWS_FOOT,NA_FRAME_NARROW_W});

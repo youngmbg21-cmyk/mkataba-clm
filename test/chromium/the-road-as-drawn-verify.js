@@ -23,6 +23,20 @@
        moves on to Helio
      6 in Svenska; the owner's three screens: the yes and its buttons in
        view, nothing sideways
+   THE SECOND PASS (the checker's list, 18 Oct 2026; node half f754):
+     1b re-pointed — with the sign check off and nothing read, Ready to sign
+        names the checks that came back clear and the rest "not clear yet";
+        the brief is never called clear unread
+     7 before the yes: the pill "1 to settle" (Helio's turn is a wait, not a
+       thing to settle); "Signing copy", its page arrows and size on the
+       paper's line, nothing above the paper; no "Sign here" for a reader
+       whose turn it is not; no "Signing it their way" line on the face — the
+       Menu tab's row; no chips under the face; the road fits the owner's
+       screens (none at 1440×780 and 1366×950, at most 41px at 1536×730)
+     8 after the yes: the pill "Their turn"; Helio's stop is the open one with
+       its own button, the column folded behind Show
+     9 the receipt: every stop ticked, the yes off the record, each signer
+       with the day they signed
    Waits ask for the state, bounded; a missing part reports.
    Run: node test/chromium/the-road-as-drawn-verify.js */
 const fs = require('node:fs');
@@ -46,7 +60,16 @@ const dayAfter = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCD
 
 (async () => {
   const h = await H.startHati({ HATI_AGENTS_AUTO: 'off' });
-  const W = await H.seedWorkspace(h, { contracts: [], approvalRules: [] });
+  /* 9 (pass 2): a sealed copy of the same agreement, its yes and its two signatures on the record */
+  const ago = n => new Date(Date.now() - n * 864e5).toISOString();
+  const sealed = H.fixtureContract('MK-0392', 'Power purchase agreement', 'Helio Energy AB', H.FOLDER_A, 8100000, 'Signed', DOC);
+  sealed.template = null; sealed.signedAt = ago(9);
+  sealed.signerPlan = [{ id: 's-cp', party: 'counterparty', name: 'Henrik Dahl', email: 'henrik@helio.example', order: 1, signed: true, at: ago(10), by: 'Henrik Dahl' },
+    { id: 's-us', party: 'internal', name: 'Amina Otieno', email: 'admin@example.co.ke', order: 2, signed: true, at: ago(9), by: 'Amina Otieno' }];
+  sealed.signatures = [{ name: 'Henrik Dahl', party: 'counterparty', at: ago(10) }, { name: 'Amina Otieno', party: 'internal', at: ago(9) }];
+  sealed.signApprovals = [{ id: 'sa_r1', key: 'k-jonas', status: 'approved', approverName: 'Jonas Berg', askedBy: { id: 'x', name: 'Lina Ek' }, askedAt: ago(12),
+    decidedBy: { id: 'y', name: 'Amina Otieno' }, decidedAt: ago(11), for: { id: 'z', name: 'Jonas Berg' } }];
+  const W = await H.seedWorkspace(h, { contracts: [sealed], approvalRules: [] });
   /* the checks are the gate's to hold (signCheckGate): off here, so Ready to sign is clear, as drawn */
   await W.admin.json('/api/settings', { method: 'PUT', body: { signCheckGate: 'off', approvalRules: [] } });
   const me = (await W.admin.json('/api/bootstrap')).me;
@@ -113,7 +136,10 @@ const dayAfter = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCD
     const R1 = await page.evaluate(ROAD);
     const ks = R1.stops.map(s => s.k);
     check('1a the way to "signed": Ready to sign, Jonas Berg\'s yes, Helio signs, we sign, Sealed and sent', ks.join('|') === 'ready|yes|step1|step2|sealed', ks.join('|'));
-    check('1b Ready to sign is clear and names its checks, its body folded behind Show', /is-done/.test(R1.stops[0].cls) && R1.stops[0].sub === '5 checks clear: wording, standards, promises, details, the brief · Show' && !R1.body.vis,
+    /* RE-POINTED (pass 2, 18 Oct 2026): a check is clear only where it came back clear — with the gate
+       off and nothing read, the readings are "not clear yet", and the brief is never called clear unread */
+    check('1b Ready to sign is ticked, names what came back clear and what is not clear yet, its body folded behind Show',
+      /is-done/.test(R1.stops[0].cls) && /^\d checks? clear: [a-z, ]+ · not clear yet: [a-z, ]*standards[a-z, ]*the brief · Show$/.test(R1.stops[0].sub) && !/clear: [^·]*the brief/.test(R1.stops[0].sub) && !R1.body.vis,
       JSON.stringify({ s: R1.stops[0], body: R1.body }));
     check('1c the yes is its own stop, "Jonas Berg’s yes", the open one, framed', R1.stops[1].t === 'Jonas Berg’s yes' && /is-now/.test(R1.stops[1].cls) && /is-framed/.test(R1.stops[1].cls) && !!R1.card && R1.card.inStop, JSON.stringify(R1.stops[1]));
     check('1d where the approval stands: Asked today › Waiting (lit) › Approved · or Refused, Lapsed', !!R1.card && R1.card.states.join('|') === 'is-past:Asked today|is-cur:Waiting|:Approved|:Refused|:Lapsed', JSON.stringify(R1.card && R1.card.states));
@@ -127,6 +153,27 @@ const dayAfter = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCD
     check('1i Sealed and sent: copies to both sides', R1.stops[4].t === 'Sealed and sent' && /^Copies to both sides/.test(R1.stops[4].sub), R1.stops[4].sub);
     check('1j the foot: "Who signs can change until the first signature." · Change', !!R1.foot && R1.foot.vis && R1.foot.text === 'Who signs can change until the first signature. Change', JSON.stringify(R1.foot));
     await shot(page, '10-the-road-1440x780');
+    /* 7 (pass 2) before the yes */
+    const S7 = await page.evaluate(() => { const vis = el => !!(el && el.getClientRects().length && getComputedStyle(el).display !== 'none');
+      const strip = document.getElementById('ig-strip'), sc = strip && strip.querySelector('[data-ig-sc]');
+      const menu = (window.pdMenuGroups ? pdMenuGroups(getContract('MK-0391')) : []).map(g => g.rows.join('')).join('');
+      return { pill: ((document.querySelector('#pd-signface [data-pd-sf-pill]') || {}).textContent || '').trim(),
+        word: sc ? (sc.querySelector('.ig-sc-word') || {}).textContent : null, page: !!(sc && sc.querySelector('[data-sc-page]')), zoom: !!(sc && sc.querySelector('[data-sc-zoom]')),
+        above: !!document.querySelector('#ig-paper .paper-zc'), flags: document.querySelectorAll('#ig-canvas .rl-sigline.pg-mine').length,
+        theirWay: vis(document.querySelector('#pd-signface #sign-paper')), menuRow: /id="ws-m-their-way"/.test(menu),
+        chips: document.querySelectorAll('#ig-dock [data-ig-chips] button').length }; });
+    check('7a the pill counts only what is ours to settle: "1 to settle" (Helio\'s turn is a wait)', S7.pill === '1 to settle', S7.pill);
+    check('7b "Signing copy", its page arrows and size on the paper\'s line — nothing above the paper', S7.word === 'Signing copy' && S7.page && S7.zoom && !S7.above, JSON.stringify(S7));
+    check('7c no "Sign here" for a reader whose turn it is not', S7.flags === 0, String(S7.flags));
+    check('7d no "Signing it their way" line on the face — its door is the Menu tab\'s row', !S7.theirWay && S7.menuRow, JSON.stringify({ face: S7.theirWay, menu: S7.menuRow }));
+    check('7e no chips under the face', S7.chips === 0, String(S7.chips));
+    for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
+      await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(450);
+      const over = await page.evaluate(() => { const f = document.querySelector('#pd-signface .pd-sf'); return f ? f.scrollHeight - f.clientHeight : null; });
+      const most = w === 1536 ? 41 : 0;
+      check(`7f ${w}×${ht}: the road fits the panel (scrolls at most ${most}px)`, over != null && over <= most, String(over));
+    }
+    await page.setViewportSize({ width: 1440, height: 780 }); await page.waitForTimeout(300);
     await page.click('#pd-signface [data-pd-rd-route]');
     const ed = await untilOn(page, () => !!document.querySelector('#sr-say, .sr-win, [data-sr-step], #sp-save'), null, 6000);
     check('1k Change opens the signing route\'s own editor', !!ed);
@@ -180,6 +227,25 @@ const dayAfter = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCD
     const R5 = await page.evaluate(ROAD);
     check('5c the road moves on: Helio\'s turn now, nothing framed', /is-now/.test(R5.stops[2].cls) && R5.stops[2].sub === 'Henrik Dahl · their turn now' && !R5.card, JSON.stringify(R5.stops[2]));
     await shot(page, '10-the-road-given-1440x780');
+    /* 8 (pass 2) after the yes: whose turn it is, Helio's stop open with its own button */
+    await page.evaluate(() => { const c = getContract('MK-0391'); if (window.renderSignButton) renderSignButton(c); });
+    const R8 = await untilOn(page, () => { const f = document.getElementById('pd-signface'); if (!f) return null;
+      const st = f.querySelector('[data-pd-road-stop="step1"]'), body = f.querySelector('.pd-sf-body');
+      const acts = st ? [...st.querySelectorAll('[data-pd-rd-press]')].map(b => b.textContent.trim()) : [];
+      return acts.length ? { pill: ((f.querySelector('[data-pd-sf-pill]') || {}).textContent || '').trim(), acts, folded: !!body && getComputedStyle(body).display === 'none' } : null; }, null, 8000);
+    check('8a after the yes the pill says whose turn it is: "Their turn"', !!R8 && R8.pill === 'Their turn', JSON.stringify(R8));
+    check('8b Helio\'s stop is the open one with its own button; the column folds behind Show', !!R8 && R8.acts.length >= 1 && /link|Tell|Remind/.test(R8.acts.join(' ')) && R8.folded, JSON.stringify(R8));
+    /* 9 (pass 2) the receipt */
+    await page.evaluate(async () => { const c = getContract('MK-0392'); if (c._light && window.ensureFull) await ensureFull(c); setView('dashboard'); pdOpenOnHome('MK-0392', 'copilot'); });
+    await untilOn(page, () => !!document.getElementById('ig-canvas') && window.intel && intel.paper && intel.paper.id === 'MK-0392', null, 15000);
+    await page.evaluate(() => pdSignOpen('MK-0392'));
+    const R9 = await untilOn(page, () => { const f = document.getElementById('pd-signface'); const s = f ? [...f.querySelectorAll('[data-pd-road-stop]')] : [];
+      return s.length >= 4 ? { stops: s.map(x => ({ k: x.getAttribute('data-pd-road-stop'), done: /is-done/.test(x.className), sub: ((x.querySelector(':scope > .pd-road-t > small') || {}).textContent || '').trim() })),
+        want: [pdDayWord(getContract('MK-0392').signApprovals[0].decidedAt), pdDayWord(getContract('MK-0392').signerPlan[0].at), pdDayWord(getContract('MK-0392').signerPlan[1].at)] } : null; }, null, 10000);
+    check('9a the receipt: every stop ticked, the yes on the road', !!R9 && R9.stops.map(x => x.k).join('|') === 'ready|yes|step1|step2|sealed' && R9.stops.every(x => x.done), JSON.stringify(R9 && R9.stops));
+    check('9b who approved, and when: "Approved by Amina Otieno for Jonas Berg, <day>"', !!R9 && R9.stops[1].sub === `Approved by Amina Otieno for Jonas Berg, ${R9.want[0]}`, JSON.stringify(R9 && [R9.stops[1], R9.want]));
+    check('9c who signed, and when: "Henrik Dahl · signed <day>", "Amina Otieno · signed <day>"', !!R9 && R9.stops[2].sub === `Henrik Dahl · signed ${R9.want[1]}` && R9.stops[3].sub === `Amina Otieno · signed ${R9.want[2]}`, JSON.stringify(R9 && R9.stops.slice(2, 4)));
+    await shot(page, '10-the-road-receipt-1440x780');
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }
   finally {
     check('no page errors', !errors.length, errors.slice(0, 3).join(' | '));

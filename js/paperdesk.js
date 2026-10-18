@@ -459,7 +459,7 @@ function pdFillHeadHtml(c){
       d.left ? pdPill('warn', _pdTn('det_left_n', d.left, { n: d.left })) : pdPill('ok', _pdT('pd_ff_all_in'))}</span>
       <button type="button" class="pd-ff-x" data-pd-ff-close title="${_pdE(close)}" aria-label="${_pdE(close)}">×</button></div>
     <div class="det-bar" aria-hidden="true"><i data-pd-ff-bar style="width:${pct}%"></i></div>
-    <span class="pd-ff-n" data-pd-ff-count>${_pdE(_pdT('det_n_of_m', { done, all: d.all }))} · ${_pdE(_pdT('pd_ff_saved'))}</span>`;
+    <span class="pd-ff-n" data-pd-ff-count>${_pdE(_pdT('det_n_of_m', { done, all: d.all }))} · ${_pdE(_pdT('pd_ff_saved'))}</span>${pdFillPrivateHtml(c)}`;
 }
 /* EVERY STEP STARTS THE NEXT (rule 4): with nothing left, the face says so
    and offers the next act — the redlines, or the send screen. A company
@@ -495,12 +495,65 @@ function pdFillFaceHtml(c){
     <div class="pd-ff-owh" data-pd-ff-owh></div>
     <div class="pd-ff-fdh" data-pd-ff-fdh></div>
     <div class="pd-ff-doc" data-pd-ff-doc></div>
+    ${''/* AN NDA'S TWO FACTS AND PAY EACH HAVE A CARD OF THEIR OWN (the gaps, round 8
+           "Compare": "Confidentiality · 2 to confirm", "Pay · kept apart from deal value"):
+           the NDA's rows are detNdaRows', standing between this heading and its edge by
+           CSS order; the Pay card is drawn whole here, its one door payEditOpen */}<div class="pd-ff-ndh" data-pd-ff-ndh></div>
+    <div class="pd-ff-pay" data-pd-ff-pay></div>
     <div id="det-basics" class="pd-ff-basics"></div>
     <div id="pd-fill" class="pd-ff-paper"></div>
     ${''/* AS DRAWN, EACH PART IS A CARD (the gaps, 18 Oct 2026): the rows stand between
-           their heading and these edges, by CSS order, in the painters' own hosts */}<div class="pd-ff-owend" data-pd-ff-owend aria-hidden="true"></div><div class="pd-ff-fdend" data-pd-ff-fdend aria-hidden="true"></div>
+           their heading and these edges, by CSS order, in the painters' own hosts */}<div class="pd-ff-owend" data-pd-ff-owend aria-hidden="true"></div><div class="pd-ff-fdend" data-pd-ff-fdend aria-hidden="true"></div><div class="pd-ff-ndend" data-pd-ff-ndend aria-hidden="true" hidden></div>
     ${pdFillStreamHtml(c)}
+    <div class="pd-ff-wait" data-pd-ff-wait></div>
   </div>`;
+}
+/* ---- A PRIVATE STREAM SAYS SO, AND JAMBO WAITS FOR A PRESS (the gaps,
+   round 8 "Compare: employment agreement in a private stream", 18 Oct 2026) ----
+   "Private · Board · only the people named on Board see it" under the face's
+   count, and at its foot "Jambo reads a private stream's contract only when
+   someone presses. Read it now · about SEK 1": the stream's own reading
+   (streamIsPrivate), the one press the strip already has (bsGo 'read'), its
+   cost said first (aiCostWords, else its count of calls). */
+function pdFillPrivateHtml(c){
+  if (!c || typeof streamIsPrivate !== 'function' || !streamIsPrivate(c.folder)) return '';
+  const F = (typeof FOLDERS === 'object' && FOLDERS) || {};
+  const name = (F[c.folder] && F[c.folder].name) || String(c.folder || '');
+  return `<span class="pd-ff-priv"><span class="pd-ff-lock"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>${_pdE(_pdT('pd_ff_private', { stream: name }))}</span> ${_pdE(_pdT('pd_ff_private_who', { stream: name }))}</span>`;
+}
+/* PAY, AS DRAWN: "Pay · kept apart from deal value · never added to a total",
+   its parts (Part · How often · Amount) read off the record's one reading
+   (payPartsOf), base pay first — "not filled in yet · needed before signing"
+   while it is owed — and its one door, Edit pay › (payEditOpen) */
+function pdFillPayHtml(c, owed){
+  if (!c || !(typeof fxIsPay === 'function' && fxIsPay(c))) return '';
+  const head = `<div class="pd-ff-card-h"><h4>${_pdE(_pdT('bs_pay'))}</h4><span class="pd-ff-note">· ${_pdE(_pdT('bs_pay_note'))}</span></div>`;
+  if (typeof canViewValues === 'function' && !canViewValues()) return head + `<p class="pd-ff-note">${_pdE(_pdT('bs_pay_hidden'))}</p>`;
+  let rows = []; try { rows = (typeof payPartsOf === 'function') ? (payPartsOf(c) || []) : []; } catch (_){ rows = []; }
+  if (!rows.some(r => r && r.kind === 'base')) rows = [{ kind: 'base', every: (c.pay && c.pay.every) || '', amount: null, words: '' }].concat(rows);
+  const every = k => (typeof bsPayEvery === 'function' ? bsPayEvery(k) : '') || '—';
+  const money = n => (typeof bsPayMoney === 'function') ? bsPayMoney(c, n) : String(n);
+  const tr = r => {
+    const base = r.kind === 'base';
+    const amt = Number(r.amount) > 0 ? _pdE(money(r.amount)) : r.words ? _pdE(r.words)
+      : (base && owed) ? `<span class="pd-ff-owe">${_pdE(_pdT('pd_ff_pay_owed'))}</span>` : '—';
+    return `<tr${base ? ' class="is-base"' : ''}><td>${base ? `<b>${_pdE(_pdT('bs_pay_base'))}</b>` : _pdE(r.label || '')}</td><td>${_pdE(every(r.every))}</td><td>${amt}</td></tr>`;
+  };
+  const may = (typeof bsPayMay === 'function') ? !!bsPayMay(c) : false;
+  return head + `<table class="pd-ff-pay-t"><thead><tr><th>${_pdE(_pdT('bs_pay_col_part'))}</th><th>${_pdE(_pdT('bs_pay_col_every'))}</th><th>${_pdE(_pdT('bs_pay_col_amount'))}</th></tr></thead><tbody>${rows.map(tr).join('')}</tbody></table>${
+    may && typeof payEditOpen === 'function' ? `<button type="button" class="pd-ff-use pd-ff-pay-edit" data-pd-ff-pay-edit="${_pdE(c.id)}">${_pdE(_pdT('bs_pay_edit'))}</button>` : ''}`;
+}
+/* the cost a press says arrives after the face is drawn (aiCostWords): its foot is said again */
+const PD_COST_EVENT = 'hati:aicost';   // AI_COST_EVENT (js/views/intelligence.js)
+if (typeof document !== 'undefined') document.addEventListener(PD_COST_EVENT, () => {
+  if (!pdFillShows()) return; const c = pdContract(); if (c) pdFillGroupsPaint(c); });
+function pdFillWaitHtml(c){
+  let w = null; try { w = (typeof bsReadWait === 'function') ? bsReadWait(c) : null; } catch (_){ w = null; }
+  if (!w) return '';
+  if (w.busy) return `<p class="pd-ff-wait-t">${(typeof busyHtml === 'function') ? busyHtml(_pdT('jb_reading')) : _pdE(_pdT('jb_reading'))}</p>`;
+  const cost = (typeof aiCostWords === 'function') ? aiCostWords(['brief', 'playbook', 'obligations'], _pdT('jb_read_cost')) : _pdT('jb_read_cost');
+  const may = (typeof canEdit !== 'function') || canEdit();
+  return `<p class="pd-ff-wait-t">${_pdE(_pdT('pd_ff_wait'))} ${may ? `<button type="button" class="pd-ff-use" data-pd-ff-read="${_pdE(c.id)}">${_pdE(_pdT('jb_read_now'))}</button>` : ''}<span class="pd-ff-cost"> · ${_pdE(cost)}</span></p>`;
 }
 /* the fold of what is answered: shut by default, kept as the reader left it for the sitting */
 let _pdFillFolded = true;
@@ -514,6 +567,14 @@ function pdFillRowKey(row, c){
 function pdFillRows(host){
   return [...host.querySelectorAll('#det-basics .cd-fld[data-cd-key]')].concat([...host.querySelectorAll('#pd-fill label')].filter(l => l.querySelector('[data-blankf],[data-tplf]')));
 }
+/* the rows that stand in a card of their own: an NDA's two facts, and pay */
+const PD_FF_NDA_KEYS = ['ndaDir', 'ndaEnds'];
+function pdFillCardOf(row, c){
+  const k = row.getAttribute('data-cd-key') || '';
+  if (PD_FF_NDA_KEYS.includes(k)) return 'nda';
+  if (k === 'value' && typeof fxIsPay === 'function' && fxIsPay(c)) return 'pay';
+  return '';
+}
 function pdFillMark(c, all){
   const host = document.getElementById('pd-fillface'); if (!host || !c) return;
   /* THE PAINTERS' OWN WRAPPERS STATE display:flex INLINE, which no sheet rule
@@ -526,6 +587,8 @@ function pdFillMark(c, all){
   const d = pdFillDetails(c) || { items: [] };
   const open = new Map((d.items || []).map(x => [String(x.key), !!x.open]));
   pdFillRows(host).forEach(r => {
+    const card = pdFillCardOf(r, c);
+    if (card) r.setAttribute('data-pd-ff-card', card); else r.removeAttribute('data-pd-ff-card');
     if (!all && r.hasAttribute('data-pd-owed')) return;
     const k = pdFillRowKey(r, c);
     const box = r.querySelector('input:not([type="checkbox"]),select,textarea');
@@ -538,14 +601,32 @@ function pdFillMark(c, all){
 function pdFillGroupsPaint(c){
   const host = document.getElementById('pd-fillface'); if (!host || !c) return;
   const d = pdFillDetails(c) || { left: 0 };
-  const rows = pdFillRows(host);
+  const all = pdFillRows(host);
+  /* an NDA's two facts and pay stand in cards of their own: "Still to fill" counts the rest */
+  const rows = all.filter(r => !r.getAttribute('data-pd-ff-card'));
   const owedN = rows.filter(r => r.getAttribute('data-pd-owed') !== '0').length;
   const filled = rows.filter(r => r.getAttribute('data-pd-owed') === '0');
+  const items = (d.items || []);
+  const ndaOpen = items.filter(x => x && x.kind === 'nda' && x.open).length;
+  const payOwed = items.some(x => x && x.key === 'value' && x.open) && all.some(r => r.getAttribute('data-pd-ff-card') === 'pay') ? 1 : 0;
+  const leftHere = Math.max(0, (d.left || 0) - ndaOpen - payOwed);
   const owh = host.querySelector('[data-pd-ff-owh]');
   /* the questions' own heading is laid away; the one fact about the machinery it carried on its hover
      (an answer to somebody else's placeholder is a working note) rides this heading's hover */
   const note = ((host.querySelector('#pd-fill h6[title]') || {}).title || '').trim();
-  if (owh) owh.innerHTML = owedN ? `<h4${note ? ` title="${_pdE(note)}"` : ''}>${_pdE(_pdT('pd_ff_owed'))}</h4>${d.left ? `<span class="pd-ff-cnt">${d.left}</span>` : `<span class="pd-ff-cnt is-ok">✓</span>`}` : '';
+  if (owh) owh.innerHTML = owedN ? `<h4${note ? ` title="${_pdE(note)}"` : ''}>${_pdE(_pdT('pd_ff_owed'))}</h4>${leftHere ? `<span class="pd-ff-cnt">${leftHere}</span>` : `<span class="pd-ff-cnt is-ok">✓</span>`}` : '';
+  /* CONFIDENTIALITY, its own card: "N to confirm" until a person confirms both */
+  const nd = all.filter(r => r.getAttribute('data-pd-ff-card') === 'nda');
+  const ndh = host.querySelector('[data-pd-ff-ndh]');
+  if (ndh){ const h = nd.length ? `<h4>${_pdE(_pdT('pd_ff_nda'))}</h4>${ndaOpen ? `<span class="pd-ff-cnt">${_pdE(_pdTn('pd_ff_nda_n', ndaOpen, { n: ndaOpen }))}</span>` : `<span class="pd-ff-cnt is-ok">✓</span>`}` : '';
+    if (ndh.innerHTML !== h) ndh.innerHTML = h; }
+  const nde = host.querySelector('[data-pd-ff-ndend]'); if (nde) nde.hidden = !nd.length;
+  /* PAY, its own card in the row's place (the row itself is laid away) */
+  const pay = host.querySelector('[data-pd-ff-pay]');
+  if (pay){ const h = pdFillPayHtml(c, !!payOwed); if (pay.innerHTML !== h) pay.innerHTML = h; }
+  all.filter(r => r.getAttribute('data-pd-ff-card') === 'pay').forEach(r => { if (r.style.display !== 'none') r.style.display = 'none'; });
+  const wait = host.querySelector('[data-pd-ff-wait]');
+  if (wait){ const h = pdFillWaitHtml(c); if (wait.innerHTML !== h) wait.innerHTML = h; }
   const fdh = host.querySelector('[data-pd-ff-fdh]');
   if (fdh){
     const names = filled.map(r => pdFillLabelOf(r)).filter(Boolean);
@@ -643,6 +724,7 @@ function pdFillSpotOf(row, c){
 }
 function pdFillExtrasPaint(c){
   const host = (typeof document !== 'undefined') ? document.getElementById('pd-fillface') : null; if (!host || !c) return;
+  const kind = pdFillStdKind(c);
   pdFillRows(host).forEach(r => {
     /* where it lands, on every row the paper carries */
     const at = pdFillSpotOf(r, c);
@@ -654,15 +736,73 @@ function pdFillExtrasPaint(c){
       if (link.innerHTML !== h) link.innerHTML = h;
       r.classList.add('has-at');
     } else if (link){ link.remove(); r.classList.remove('has-at'); }
-    /* our standard, under an owed box still empty */
-    const std = r.getAttribute('data-pd-owed') === '1' ? pdFillStdOf(r) : null;
+    /* our standard, under an owed box still empty — named for the kind of
+       contract whose book applies (the gaps, round 8: "Our standard for
+       freight: 6 months"), the topic's own name only where no book is named */
+    const owedRow = r.getAttribute('data-pd-owed') === '1';
+    const std = owedRow ? pdFillStdOf(r) : null;
     let hint = r.querySelector(':scope > [data-pd-ff-std]');
     if (std){
-      const h = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M3.5 2.5h7.5v11H3.5z"/><path d="M6 5.5h3M6 8h3"/></svg><span>${_pdE(_pdT('pd_ff_std', { what: std.category.toLowerCase(), value: std.said }))}</span><button type="button" class="pd-ff-use" data-pd-ff-use="${_pdE(std.put)}">${_pdE(_pdT('pd_ff_use'))}</button>`;
+      const what = kind || std.category.toLowerCase();
+      const h = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M3.5 2.5h7.5v11H3.5z"/><path d="M6 5.5h3M6 8h3"/></svg><span>${_pdE(_pdT('pd_ff_std', { what, value: std.said }))}</span><button type="button" class="pd-ff-use" data-pd-ff-use="${_pdE(std.put)}">${_pdE(_pdT('pd_ff_use'))}</button>`;
       if (!hint){ hint = document.createElement('div'); hint.className = 'pd-ff-std'; hint.setAttribute('data-pd-ff-std', ''); r.appendChild(hint); }
       if (hint.innerHTML !== h) hint.innerHTML = h;
     } else if (hint) hint.remove();
+    /* AN EXAMPLE OF THE ANSWER IN AN OWED BOX (the gaps, round 8: "e.g. 1
+       November 2026", "e.g. 6 months", "A number") — display only, never a value */
+    if (owedRow) pdFillExample(r, std);
   });
+  pdFillPaperMarks(c);
+}
+/* the kind of contract whose book of our standards applies (playbookKeyFor), in its own words */
+function pdFillStdKind(c){
+  let label = '';
+  try { const key = (typeof playbookKeyFor === 'function') ? playbookKeyFor(c) : ''; label = (typeof resolvePlaybook === 'function') ? String((resolvePlaybook(key) || {}).label || '') : ''; } catch (_){ label = ''; }
+  return label.replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+const PD_FF_EG_DATE = /\b(?:date|start|starts|end|ends|until|from|expiry|datum|slut|från|till)\b/i;
+const PD_FF_EG_SPAN = /\b(?:notice|period|term|duration|length|months?|days?|years?|uppsägning|period|tid|månader|dagar)\b/i;
+const PD_FF_EG_NUM = /\b(?:value|amount|price|fee|fees|sum|cost|spend|number|belopp|värde|pris|avgift|summa)\b/i;
+const PD_FF_EG_MONTHS = 6;
+function pdFillExample(row, std){
+  const box = pdFillBoxOf(row); if (!box || box.tagName === 'SELECT') return;
+  const label = pdFillLabelOf(row);
+  const type = String(box.type || '').toLowerCase();
+  let eg = '';
+  if (type === 'date' || PD_FF_EG_DATE.test(label)){
+    const t = (typeof todayISO === 'function') ? todayISO() : new Date().toISOString().slice(0, 10);
+    const d = new Date(t + 'T12:00:00Z'); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() + 1);
+    let loc; try { loc = (typeof langLocale === 'function') ? langLocale() : undefined; } catch (_){ loc = undefined; }
+    let w = ''; try { w = d.toLocaleDateString(loc, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }); } catch (_){ w = d.toISOString().slice(0, 10); }
+    eg = _pdT('pd_ff_eg', { x: w });
+  } else if (type === 'number' || PD_FF_EG_NUM.test(label)) eg = _pdT('pd_ff_eg_num');
+  else if (PD_FF_EG_SPAN.test(label)) eg = _pdT('pd_ff_eg', { x: std ? std.said : _pdTn('pd_ff_u_months', PD_FF_EG_MONTHS, { n: PD_FF_EG_MONTHS }) });
+  if (!eg) return;
+  /* a dressed date shows its face's words (data-ph, datePickDress); a text box its placeholder */
+  if (type === 'date'){ if (box.getAttribute('data-ph') !== eg) box.setAttribute('data-ph', eg); }
+  else if (box.placeholder !== eg) box.placeholder = eg;
+}
+/* ---- THE PAPER BESIDE FILL IN SAYS WHAT IS OWED (the gaps, round 8: "owed
+   is amber everywhere"; the typed answers not yet in the wording carry a
+   dotted accent underline) ----
+   Marks painted after the paper is drawn, never stored: a blank of the paper's
+   form that detailsOf counts open is amber; an answer the wording does not
+   carry yet (tplFormPendingKeys, the one reading Fill the document closes)
+   is underlined. Taken off again when the face goes. */
+function pdFillPaperMarks(c){
+  const cv = (typeof document !== 'undefined') ? document.getElementById('ig-canvas') : null; if (!cv) return;
+  const on = pdFillShows() && c && String(c.id) === _pdFill;
+  const owe = new Set(), pend = new Set();
+  if (on){
+    const d = pdFillDetails(c) || { items: [] };
+    (d.items || []).forEach(x => { if (x && x.open) owe.add(String(x.key)); });
+    let keys = []; try { keys = (typeof tplFormPendingKeys === 'function') ? tplFormPendingKeys(c) : []; } catch (_){ keys = []; }
+    keys.forEach(k => pend.add(String(k)));
+  }
+  cv.querySelectorAll('.hati-field[data-field-key], .pd-ff-owe-mark').forEach(el => {
+    el.classList.toggle('pd-ff-owe-mark', on && el.classList.contains('hati-field') && owe.has(el.getAttribute('data-field-key'))); });
+  cv.querySelectorAll('.hati-field-done[data-field-key], .pd-ff-pend').forEach(el => {
+    el.classList.toggle('pd-ff-pend', on && el.classList.contains('hati-field-done') && pend.has(el.getAttribute('data-field-key'))); });
 }
 /* ---- THE STREAM, ASKED AND NEVER OWED (the overnight work order, step 6;
    the demo's fillFace) ----
@@ -750,11 +890,16 @@ function pdFillCounts(c){
    in, or a signature given (which freezes the wording), changes both without
    the panel being drawn again. Drawn again with their press, as
    renderIntelDock binds them. */
+/* FILL IN AND BEFORE YOU SIGN DRAW NO CHIPS (the gaps, rounds 8 and 10, 18
+   Oct 2026: "nothing between the stream card and the ask box except Jambo
+   perched"): each face carries its own acts; the row stays, empty, as his perch */
+function pdChipsQuiet(){ return !!(pdFillShows() || pdSignShows()); }
 function pdChipsRepaint(){
   if (typeof window === 'undefined' || !window.caChipsHtml) return;
   pdNeedsRepaint();
   pdGlanceRepaint();
   const chips = document.querySelector('#ig-dock [data-ig-chips]'); if (!chips) return;
+  if (pdChipsQuiet()){ chips.querySelectorAll('button').forEach(b => b.remove()); return; }
   const h = caChipsHtml(); if (!h || h === chips.innerHTML) return;
   chips.innerHTML = h;
   chips.querySelectorAll('[data-igsug]').forEach(b => b.addEventListener('click', () => { if (typeof intelAsk === 'function') intelAsk(b.getAttribute('data-igsug')); }));
@@ -824,7 +969,13 @@ function pdFillWire(host){
       const own = host.querySelector('#pd-fill [data-tplf-fill]'); if (own && !own.disabled) own.click();
       setTimeout(() => { const c = pdContract(); if (c) pdFillGroupsPaint(c); }, 0);
       return; }
-    if (t.closest('[data-pd-ff-ask]')){ e.preventDefault(); pdFillStreamAsk(); }
+    if (t.closest('[data-pd-ff-ask]')){ e.preventDefault(); pdFillStreamAsk(); return; }
+    /* pay's one door, and the read a private contract waits for (the strip's own press) */
+    const pe = t.closest('[data-pd-ff-pay-edit]');
+    if (pe){ e.preventDefault(); if (typeof payEditOpen === 'function') payEditOpen(pe.getAttribute('data-pd-ff-pay-edit')); return; }
+    const rd = t.closest('[data-pd-ff-read]');
+    if (rd){ e.preventDefault(); if (typeof bsGo === 'function'){ bsGo('read', rd.getAttribute('data-pd-ff-read'));
+        setTimeout(() => { const c = pdContract(); if (c) pdFillGroupsPaint(c); }, 0); } }
   });
 }
 /* after renderIntelDock drew the face's host: its parts, from their own painters */
@@ -1154,17 +1305,32 @@ function pdSignPaper(id){
 }
 /* SIGNED, OR STILL OPEN: the head's word and pill read the one list the Sign
    button reads (signReadiness), never a count of its own */
+/* "TO SETTLE" COUNTS ONLY WHAT SOMEBODY HERE CAN SETTLE (the gaps, round 10
+   "The road", 18 Oct 2026: "1 to settle" while Jonas's yes waits and Helio
+   signs first): another signer's turn is a wait, not a thing to settle — the
+   road says whose it is at their own stop, and the pill says it waits on them
+   only when nothing else of ours is left. Read off the same one list. */
 function pdSignState(c){
   const closed = !!(c && (c.status === 'Signed' || (typeof negoExecuted === 'function' && negoExecuted(c))));
   let rd = { holds: [], noted: [] };
   if (!closed) try { rd = (typeof signReadiness === 'function') ? signReadiness(c) : rd; } catch (_){}
-  const holds = (rd.holds || []).length, noted = (rd.noted || []).length;
-  return { closed, holds, noted };
+  const all = rd.holds || [];
+  const waits = all.filter(h => h && h.kind === 'turn').length;
+  const holds = all.length - waits, noted = (rd.noted || []).length;
+  return { closed, holds, waits, noted };
+}
+/* whose turn the road waits on, in the pill's few words: theirs, or a colleague's by first name */
+function pdSignWaitsWord(c){
+  const ns = (c && typeof nextSigner === 'function') ? nextSigner(c) : null;
+  if (!ns || ns.party === 'counterparty') return _pdT('pd_sf_waits_theirs');
+  const who = pdFirstName(ns.name);
+  return who ? _pdT('pd_sf_waits_on', { who }) : _pdT('pd_sf_waits_theirs');
 }
 function pdSignPillHtml(c){
   const s = pdSignState(c);
   if (s.closed) return pdPill('ok', _pdT('pd_st_signed'));
   if (s.holds) return pdPill('warn', _pdTn('sc_n_to_settle', s.holds, { n: s.holds }));
+  if (s.waits) return pdPill('quiet', pdSignWaitsWord(c));
   if (s.noted) return pdPill('quiet', _pdTn('sc_n_noted', s.noted, { n: s.noted }));
   return pdPill('ok', _pdT('pd_st_ready'));
 }
@@ -1377,18 +1543,32 @@ function pdRoadStops(c){
   const stops = [];
   const ready = s.closed || !checks.length;
   const open = PD_RD_CHECKS.map(x => x[0]).filter(k => checks.some(h => pdRoadCheckOf(h.kind) === k));
+  /* A CHECK IS CLEAR ONLY WHERE IT CAME BACK CLEAR (the gaps, round 10, 18 Oct
+     2026: "4 checks clear: wording, standards, promises, details" names checks
+     that passed): one the gate lets through without holding — not read yet, or
+     a finding shown — is named apart, never counted as clear */
+  const noted = (rd.noted || []).filter(h => !PD_RD_YES.includes(h.kind) && !PD_RD_SIGN.includes(h.kind));
+  const unclear = PD_RD_CHECKS.map(x => x[0]).filter(k => !open.includes(k) && noted.some(h => pdRoadCheckOf(h.kind) === k));
+  const clear = PD_RD_CHECKS.map(x => x[0]).filter(k => !open.includes(k) && !unclear.includes(k));
   stops.push({ k: 'ready', done: ready, t: _pdT('pd_rd_ready'),
-    sub: ready ? _pdT('pd_rd_checks_clear', { n: PD_RD_CHECKS.length, names: pdRoadCheckNames(PD_RD_CHECKS.map(x => x[0])) })
+    sub: ready ? [clear.length ? _pdTn('pd_rd_checks_clear', clear.length, { n: clear.length, names: pdRoadCheckNames(clear) }) : '',
+        unclear.length ? _pdT('pd_rd_checks_unclear', { names: pdRoadCheckNames(unclear) }) : ''].filter(Boolean).join(' · ')
       : `${_pdTn('sc_n_to_settle', checks.length, { n: checks.length })}: ${pdRoadCheckNames(open)}` });
   /* the named yes, where one is asked (a rule's approval keeps the stop's own words) */
   const named = !s.closed && (yes.some(h => h.kind === 'signapproval') || (!yes.length && yesSettled));
   const y = named ? pdRoadYesOf(c) : null;
-  if (yes.length || yesSettled){
-    const by = y && y.req && y.req.decidedBy ? String(y.req.decidedBy.name || '') : '';
-    const given = (y && y.status === 'approved' && y.req)
-      ? _pdT('pd_rd_y_given', { who: (typeof awayByLabel === 'function') ? awayByLabel(by, y.req.for) : by, day: pdDayWord(y.req.decidedAt) }) : '';
-    stops.push({ k: 'yes', done: s.closed || !yes.length, t: (y && yes.every(h => h.kind === 'signapproval')) ? pdRoadYesTitle(y) : _pdT('pd_rd_yes'),
-      sub: yes.length ? String(yes[0].short || yes[0].label || '') : (given || _pdT('pd_rd_yes_done')), yes: y });
+  /* ONCE SIGNING HAS BEGUN, AND ON THE RECEIPT, the yes is read off the
+     record itself (c.signApprovals, the last word per approver): every stop
+     ticked, "Approved by Maria for Jonas, 19 Oct", never a stop that vanished */
+  const given = pdRoadYesGiven(c);
+  const kept = !yes.length && !yesSettled && (s.closed || pdRoadStarted(c)) && given.length > 0;
+  if (yes.length || yesSettled || kept){
+    const req = (y && y.status === 'approved' && y.req) ? y.req : (!yes.length && given.length ? given[given.length - 1] : null);
+    const by = req && req.decidedBy ? String(req.decidedBy.name || '') : '';
+    const said = req ? _pdT('pd_rd_y_given', { who: (typeof awayByLabel === 'function') ? awayByLabel(by, req.for) : by, day: pdDayWord(req.decidedAt) }) : '';
+    stops.push({ k: 'yes', done: s.closed || !yes.length, t: (y && yes.every(h => h.kind === 'signapproval')) ? pdRoadYesTitle(y)
+        : (kept && req && req.approverName) ? _pdT('pd_rd_yes_of', { who: String(req.approverName) }) : _pdT('pd_rd_yes'),
+      sub: yes.length ? String(yes[0].short || yes[0].label || '') : (said || _pdT('pd_rd_yes_done')), yes: y });
   }
   /* while a yes still holds, no signing link opens and nobody signs */
   const yesHolds = yes.length > 0;
@@ -1406,10 +1586,14 @@ function pdRoadStops(c){
     const isMine = here && mine && st.rows.some(r => r && r.party === 'internal');
     /* a signer of ours who is away: when they are back, and that nobody signs for them */
     const away = done ? null : st.rows.map(r => (r && r.party !== 'counterparty' && !r.signed) ? pdAwayOf(r.memberId) : null).find(Boolean);
-    const state = done ? _pdT('pd_rd_signed') : yesHolds ? _pdT(theirs ? 'pd_rd_after_yes_theirs' : 'pd_rd_after_yes')
+    /* signed, the day each signed ("Henrik Dahl · signed 20 Oct"); else what the stop waits for */
+    const signedDay = done ? st.rows.map(r => r && r.at).filter(Boolean).sort().pop() : '';
+    const state = done ? (signedDay ? _pdT('pd_rd_signed_on', { day: pdDayWord(signedDay) }) : _pdT('pd_rd_signed'))
+      : yesHolds ? _pdT(theirs ? 'pd_rd_after_yes_theirs' : 'pd_rd_after_yes')
       : here ? _pdT(isMine ? 'pd_rd_turn_you' : 'pd_rd_turn') : _pdT('pd_rd_after');
     const sub = away ? [names, _pdT('pd_rd_back', { day: pdBackDay(away.to) }), _pdT('pd_rd_only_they')] : [names, state];
-    stops.push({ k: 'step' + st.n, done, mine: isMine, t: _pdT('pd_rd_signs', { party }), sub: sub.filter(Boolean).join(' · ') });
+    stops.push({ k: 'step' + st.n, done, mine: isMine, here: here && !isMine && !yesHolds, ids: st.rows.map(r => String((r && r.id) || '')).filter(Boolean),
+      t: _pdT('pd_rd_signs', { party }), sub: sub.filter(Boolean).join(' · ') });
   });
   const obs = (Array.isArray(c.obligations) ? c.obligations : []).filter(o => o && o.status !== 'done').length;
   stops.push({ k: 'sealed', done: s.closed, t: _pdT('pd_rd_sealed'),
@@ -1421,10 +1605,43 @@ function pdRoadStops(c){
   /* WHO SIGNS CAN STILL CHANGE until the first signature (signingLocked), for someone who may edit */
   let locked = true; try { locked = s.closed || (typeof signingLocked === 'function' ? !!signingLocked(c) : true); } catch (_){ locked = true; }
   const route = !locked && ((typeof canEdit !== 'function') || canEdit()) && typeof openSignerPlanEditor === 'function';
+  /* ANOTHER SIGNER'S TURN IS THEIR STOP'S OWN (the gaps, round 10: "the
+     current one is open with its buttons, later ones say what they wait
+     for"): the column does not stand open under it — its readings, the yes
+     and the signing order are other stops' — only that signer's own buttons */
+  const theirTurn = !s.closed && !!(stops[at] && stops[at].here);
   return { stops, cur: at, mineAt: stops.findIndex(x => x.mine), closed: s.closed, yesAt: framed ? yesAt : -1,
-    /* while the yes is framed — the open stop, or the reader's own work — the
-       column's checks fold behind Ready to sign's "Show" */
-    fold: framed, route };
+    /* while the yes is framed — the open stop, or the reader's own work — or
+       another signer's stop is the open one, the column folds behind Ready to
+       sign's "Show" */
+    fold: framed || theirTurn, theirAt: theirTurn ? at : -1, route };
+}
+/* the yes on the record: the last approved request per approver, never one withdrawn or replaced */
+function pdRoadYesGiven(c){
+  const list = (c && Array.isArray(c.signApprovals)) ? c.signApprovals : [];
+  const last = new Map();
+  list.forEach(r => { if (r && r.key != null) last.set(String(r.key), r); });
+  return [...last.values()].filter(r => r.status === 'approved' && r.decidedAt);
+}
+/* signing has begun: a signature on the record, or a handover in progress (saStarted's own reading) */
+function pdRoadStarted(c){
+  if (typeof saStarted === 'function') try { return !!saStarted(c); } catch (_){}
+  return !!(c && Array.isArray(c.signatures) && c.signatures.length);
+}
+/* THE OPEN STOP'S OWN BUTTONS, where it is another signer's turn: the
+   signing order's own buttons for those signers (Email their signing link,
+   Tell, Remind — drawn by renderSignSide), pressed through, never a second act */
+const PD_RD_ROW_ACTS = ['data-sp-send', 'data-sp-notify'];
+function pdRoadTheirActs(host, x){
+  if (!host || !x || !Array.isArray(x.ids)) return '';
+  const cssq = v => (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(v) : String(v).replace(/["\\]/g, '\\$&');
+  const out = [];
+  x.ids.forEach(id => PD_RD_ROW_ACTS.forEach(a => {
+    const b = host.querySelector(`#sign-side [${a}="${cssq(id)}"]`); if (!b) return;
+    const off = !!b.disabled;
+    out.push(`<button type="button" class="ui-btn ui-btn-sm" data-pd-rd-press="${_pdE(a)}" data-pd-rd-row="${_pdE(id)}"${off ? ` disabled aria-disabled="true" title="${_pdE(b.getAttribute('title') || '')}"` : ''}>${_pdE(b.textContent.replace(/\s+/g, ' ').trim())}</button>`);
+  }));
+  return out.length ? `<div class="pd-rd-acts">${out.join('')}</div>` : '';
 }
 /* drawn in place after every paint of the column (pdSignCounts): the stops,
    and where the column's body and the Sign button stand among them */
@@ -1435,9 +1652,10 @@ function pdRoadPaint(c){
   const h = R.stops.map((x, i) => {
     const framed = i === R.yesAt && !!x.yes;
     const show = (x.k === 'ready' && R.fold) ? ` · <button type="button" class="pd-rd-lk" data-pd-rd-show aria-expanded="${_pdRdShow}">${_pdE(_pdT(_pdRdShow ? 'pd_rd_hide' : 'pd_rd_show'))}</button>` : '';
+    const acts = i === R.theirAt ? pdRoadTheirActs(host, x) : '';
     return `<div class="pd-road-stop ${x.done ? 'is-done' : i === R.cur ? 'is-now' : 'is-later'}${framed ? ' is-framed' : ''}${i === R.stops.length - 1 ? ' is-last' : ''}" data-pd-road-stop="${_pdE(x.k)}" style="order:${2 * i + 2}">
       <i class="pd-road-dot" aria-hidden="true">${x.done ? '✓' : (i === R.cur || framed) ? '!' : ''}</i><div class="pd-road-t"><b>${_pdE(x.t)}</b>${
-        framed ? pdRoadYesHtml(c, x.yes) : (x.sub ? `<small>${_pdE(x.sub)}${show}</small>` : '')}</div></div>`; }).join('');
+        framed ? pdRoadYesHtml(c, x.yes) : (x.sub ? `<small>${_pdE(x.sub)}${show}</small>` : '')}${acts}</div></div>`; }).join('');
   if (w.innerHTML !== h) w.innerHTML = h;
   /* the foot line: who signs can change until the first signature, and the route's own editor */
   const rf = host.querySelector('[data-pd-rd-foot]');
@@ -1452,14 +1670,13 @@ function pdRoadPaint(c){
   }
   const foot = host.querySelector('.pd-sf-foot');
   if (foot){ const show = R.mineAt >= 0;
-    /* the Sign button only in the reader's own stop; "Signing it their way,
-       on paper…" (#sign-paper) is a choice of route, not a signature, so the
-       foot stays for it — under the open stop — with the button hidden */
-    const route = !!foot.querySelector('#sign-paper');
-    /* the reader's own stop; else under the open stop — or, while the checks
-       are folded behind the yes, at the end beside who signs can change */
-    foot.style.order = String(show ? 2 * R.mineAt + 3 : R.fold ? 2 * R.stops.length + 5 : 2 * R.cur + 4);
-    foot.style.display = (show || route) ? '' : 'none';
+    /* THE SIGN BUTTON ONLY IN THE READER'S OWN STOP, and nothing else at the
+       foot (the gaps, round 10: "the foot follows the last stop"): "Signing it
+       their way…" (#sign-paper) is a choice of route, and its door is the
+       Menu tab's row now (#ws-m-their-way, roomActsRowsHtml) */
+    const paperRoute = foot.querySelector('#sign-paper'); if (paperRoute) paperRoute.style.display = 'none';
+    foot.style.order = String(show ? 2 * R.mineAt + 3 : 2 * R.cur + 4);
+    foot.style.display = show ? '' : 'none';
     const btn = foot.querySelector('#sign-btn'); if (btn) btn.style.display = show ? '' : 'none';
     /* the button's own line under it ("Press to go to the first thing…") goes with it */
     const line = btn && btn.nextElementSibling; if (line && line.tagName === 'P') line.style.display = show ? '' : 'none';
@@ -1538,6 +1755,14 @@ async function pdRoadPress(e, t){
   if (hit('[data-pd-rd-show]')){ e.preventDefault(); _pdRdShow = !_pdRdShow; pdRoadPaint(c); return; }
   if (hit('[data-pd-rd-moved]')){ e.preventDefault(); _pdRdMoved = !_pdRdMoved; pdRoadPaint(c); return; }
   if (hit('[data-pd-rd-route]')){ e.preventDefault(); if (typeof openSignerPlanEditor === 'function') openSignerPlanEditor(c); return; }
+  /* another signer's stop: the signing order's own button for that signer, pressed */
+  if ((b = hit('[data-pd-rd-press]'))){ e.preventDefault();
+    const a = b.getAttribute('data-pd-rd-press'), id = b.getAttribute('data-pd-rd-row');
+    if (!PD_RD_ROW_ACTS.includes(a)) return;
+    const host = document.getElementById('pd-signface');
+    const row = host ? [...host.querySelectorAll(`#sign-side [${a}]`)].find(x => x.getAttribute(a) === id) : null;
+    if (row && !row.disabled) row.click(); else if (typeof toast === 'function') toast(_pdT('sa_gone'), 'warn');
+    return; }
   if (hit('[data-pd-rd-ask]')){ e.preventDefault(); if (typeof openSignApprovalDialog === 'function') openSignApprovalDialog(c); return; }
   if ((b = hit('[data-pd-rd-remind]'))){ e.preventDefault(); b.disabled = true;
     try { if (typeof signApprovalRemind === 'function') await signApprovalRemind(c, b.getAttribute('data-pd-rd-remind')); } finally { b.disabled = false; } return; }
@@ -1574,22 +1799,24 @@ function pdSignPaperPaint(c){
   const sealed = !!(typeof docSealedCopy === 'function' && docSealedCopy(c));
   if (cv && !theySign){
     if (typeof signSpotsPaint === 'function') try { signSpotsPaint(c, cv); } catch (_){}
-    if (!sealed && typeof pagesSignFlags === 'function') try { pagesSignFlags(cv, 0); } catch (_){}
+    /* "SIGN HERE" ONLY FOR WHOEVER'S TURN IT IS (the gaps, round 10: the
+       signature lines are named for each signer, with no flag): the road's
+       own rule — Sign shows only in the reader's own stop — on the paper too */
+    if (!sealed && pdSignMine(c) && typeof pagesSignFlags === 'function') try { pagesSignFlags(cv, 0); } catch (_){}
     if (typeof pagesSignMarks === 'function' && typeof pagesSignRows === 'function') try { pagesSignMarks(cv, pagesSignRows(c, c.signatures || [])); } catch (_){}
   }
   /* its pages, sized and stepped by the Signing tab's own controls (the
-     room's page arrows ‹ 1/n › and size, scControlsHtml, wired here once per
-     paint of the corner) */
+     room's page arrows ‹ 1/n › and size, scControlsHtml) — standing on the
+     paper's line since the gaps of round 10 (igSignCopyHtml), pressed through
+     its one listener; here the paper's scroller is watched for the page in
+     view, once per scroller (scWireControls on a host with no buttons of its own) */
   const fit = () => { if (typeof scApplyZoom === 'function') try { scApplyZoom(); } catch (_){}
     if (typeof scPaintPage === 'function') try { scPaintPage(); } catch (_){} };
   if (sheet && typeof signCopyWatch === 'function' && !sheet._pgRO){
     try { signCopyWatch(sheet, c, fit); } catch (_){}
   }
-  const zc = host.querySelector('.paper-zc');
-  if (zc && !zc.dataset.scWired && zc.querySelector('[data-sc-page]') && typeof scWireControls === 'function'){
-    zc.dataset.scWired = '1';
-    try { scWireControls(zc); } catch (_){}
-  } else if (sheet) fit();
+  if (sheet && typeof scWireControls === 'function' && !host.querySelector('[data-sc-page], [data-sc-zoom]')) try { scWireControls(host); } catch (_){}
+  else if (sheet) fit();
 }
 
 /* ============================================================
@@ -2003,12 +2230,16 @@ function pdHeadHtml(brain){
   const tabs = pdOnPaper() ? PD_TABS : ['copilot'];
   const lit = tabs.includes(_pdTab) ? _pdTab : 'copilot';
   const c = pdOnPaper() ? pdContract() : null;
+  /* A WORD FOR WHAT THE PANEL HOLDS (the gaps, round 4 "One sheet", 18 Oct
+     2026: "Jambo · New agreement · ›"): beside the one sheet, the agreement
+     being drafted */
+  const word = (!c && typeof naSheetUp === 'function' && naSheetUp()) ? `<span class="pd-head-word">${_pdE(_pdT('na_title'))}</span>` : '';
   return tabs.map(t => {
     const name = _pdT(PD_TAB_NAME[t]);
     const tip = t === 'copilot' && brain ? name + ' · ' + brain : name;
     const on = t === lit, cnt = pdTabCount(t, c);
     return `<button type="button" role="tab" class="pd-tab${on ? ' on' : ''}" data-pd-tab="${t}" aria-selected="${on}" aria-label="${_pdE(cnt ? _pdT('pd_tab_n', { name, n: cnt.n }) : name)}" title="${_pdE(tip)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${pdTabGlyphHtml(t)}</span>${cnt ? `<span class="pd-tab-n is-${cnt.tone}">${cnt.n > 99 ? '99+' : cnt.n}</span>` : ''}</span><span class="pd-tab-w">${_pdE(name)}</span></button>`;
-  }).join('');
+  }).join('') + word;
 }
 function pdBodyHtml(c){
   _pdActs.clear();
@@ -2023,6 +2254,8 @@ function pdHtml(c){ return `<div class="pd-tabs" role="tablist">${pdHeadHtml('')
    and the title row follows the paper coming and going. */
 function pdPaint(c){
   const dock = document.getElementById('ig-dock'); if (!dock) return;
+  /* the paper was drawn again: Fill in's marks on it follow (pdFillPaperMarks) */
+  try { pdFillPaperMarks(c || pdContract()); } catch (_){}
   const head = dock.querySelector('[data-pd-head]');
   const want = pdOnPaper() ? 'paper' : 'off';
   if (head && head.getAttribute('data-pd-head') !== want){ if (typeof renderIntelDock === 'function') renderIntelDock(); return; }
@@ -2580,7 +2813,7 @@ if (typeof document !== 'undefined' && !document._jbWired){
     return true; };
   if (!watch()) document.addEventListener('DOMContentLoaded', watch, { once: true });
 }
-Object.assign(window, { pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml,
+Object.assign(window, { pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, PD_COST_EVENT, pdFillPayHtml, pdFillStdKind, PD_FF_EG_DATE, PD_FF_EG_SPAN, PD_FF_EG_NUM, PD_FF_EG_MONTHS, pdFillExample, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedHeadEndHtml, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, PD_RD_CHECKS, pdRoadCheckOf, pdRoadCheckNames, pdDayWord, pdBackDay, pdAwayOf, pdRoadYesOf, pdRoadYesTitle, pdRoadYesFramed, pdRoadYesFacts, pdRoadYesHtml, pdRoadPress, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,

@@ -45,7 +45,7 @@ function stage({ holds = [], rows = [], plan = [], me = { id: 'u-maria', name: '
   const steps = () => { const by = new Map(); plan.slice().sort((a, b) => a.order - b.order).forEach(s => { const k = s.step || s.order; if (!by.has(k)) by.set(k, []); by.get(k).push(s); });
     return [...by.keys()].sort((a, b) => a - b).map((k, i) => ({ n: i + 1, rows: by.get(k) })); };
   const ctx = {
-    i18t: (k, v) => fill(k in BOOKS.en ? BOOKS.en[k] : k, v), i18tn: (k, n, v) => fill(BOOKS.en[k + (n === 1 ? '_one' : '_other')] || k, v),
+    i18t: (k, v) => fill(k in BOOKS.en ? BOOKS.en[k] : k, v), i18tn: (k, n, v) => fill(BOOKS.en[k + (n === 1 ? '_one' : '_other')] || BOOKS.en[k] || k, Object.assign({ n }, v)),   // as tn: the plain key where no plural is written
     signReadiness: () => ({ holds, rows }), signSteps: steps,
     signStepNow: () => { const st = steps().find(x => !x.rows.every(r => r.signed)); return st ? st.n : 0; },
     nextSigner: () => plan.slice().sort((a, b) => a.order - b.order).find(s => !s.signed) || null,

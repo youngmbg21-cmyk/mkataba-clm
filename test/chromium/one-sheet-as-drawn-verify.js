@@ -24,6 +24,20 @@
      7 ‹ The counter in the sheet's head goes back to the Counter
      8 the owner's three screens: the head and Create in view, nothing
        sideways
+   THE SECOND PASS (the checker's list, 18 Oct 2026; node half f753):
+     3  re-pointed — What is the kind the words ask for ("A non-disclosure
+        agreement"), What it is for read from the words ("A pilot")
+     9  the panel beside the sheet: "Jambo · New agreement", no bin, the box
+        asking "Ask for a number, a list or a contract…", the party and the
+        paper in bold
+     10 the costs in our own money, measured: "about KES 0.10", "… obligations,
+        about KES 0.90." (a seeded ledger and a dated USD rate)
+     11 step 2 in three columns, two rows, "Who else" straight under them
+     12 step 3 one row: the streams, "Needed before Create", the cost; no
+        "+ New stream"
+     13 the owner's three screens: the page scrolls at most 32px at 1440×780,
+        82px at 1536×730, none at 1366×950 (the drawing's own measure)
+     14 a second sentence in the sitting: one exchange in the panel
    Waits ask for the state, bounded; a missing part reports.
    Run: node test/chromium/one-sheet-as-drawn-verify.js */
 const fs = require('node:fs');
@@ -44,7 +58,14 @@ const SAY = 'NDA with Volvo Cars for a pilot';
 
 (async () => {
   const h = await H.startHati({ HATI_AGENTS_AUTO: 'off' });
-  await H.seedWorkspace(h, { contracts: [H.fixtureContract('MK-A1', 'Refined Sugar Supply', 'Kabras Sugar', H.FOLDER_A, 48000000, 'Under Review')], approvalRules: [] });
+  const W0 = await H.seedWorkspace(h, { contracts: [H.fixtureContract('MK-A1', 'Refined Sugar Supply', 'Kabras Sugar', H.FOLDER_A, 48000000, 'Under Review')], approvalRules: [] });
+  /* 10 — a ledger and a rate, as a workspace that has used Jambo has them: the
+     draft read averaged USD 0.00081 a request, the three arrival readings
+     USD 0.006925 together, and the admins' dated rate USD → KES 129.5 */
+  await W0.admin.json('/api/settings/fx-rates', { method: 'PUT', body: { code: 'USD', rate: 129.5 } });
+  { const { DatabaseSync } = require('node:sqlite'); const db = new DatabaseSync(path.join(h.dataDir, 'hati.db'));
+    const day = new Date().toISOString().slice(0, 10); const ins = db.prepare('INSERT OR REPLACE INTO ai_spend (day,feature,requests,calls,cost) VALUES (?,?,?,?,?)');
+    ins.run(day, 'draft', 10, 10, 0.0081); ins.run(day, 'brief', 4, 4, 0.012); ins.run(day, 'playbook', 4, 4, 0.0095); ins.run(day, 'obligations', 4, 4, 0.0062); db.close(); }
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const errors = [];
   try {
@@ -94,8 +115,22 @@ const SAY = 'NDA with Volvo Cars for a pilot';
     check('2c no line in front of it, no doors back to a sheet that is up, no wall furniture', !S1.lines.some(l => /carry this/.test(l)) && !S1.saidActs && !S1.wall, JSON.stringify({ lines: S1.lines, acts: S1.saidActs, wall: S1.wall }));
     /* 3 From your words */
     const W3 = S1.words.map(w => w.t);
-    check('3 From your words: What · With (amber, not in Parties yet) · What it is for (Not read yet) · Let Jambo fill the form',
-      W3.length === 3 && /^What /.test(W3[0]) && W3[1] === 'With · not in Parties yet Volvo Cars' && S1.words[1].owed && W3[2] === 'What it is for Not read yet' && /^Let Jambo fill the form/.test(S1.fill), JSON.stringify({ W3, fill: S1.fill }));
+    /* RE-POINTED (pass 2, 18 Oct 2026): What is the KIND the words ask for, What it is for read from the words */
+    check('3 From your words: What (the kind asked for) · With (amber, not in Parties yet) · What it is for (read from the words) · Let Jambo fill the form',
+      W3.length === 3 && W3[0] === 'What A non-disclosure agreement' && W3[1] === 'With · not in Parties yet Volvo Cars' && S1.words[1].owed && W3[2] === 'What it is for A pilot' && /^Let Jambo fill the form/.test(S1.fill), JSON.stringify({ W3, fill: S1.fill }));
+    /* 9 the panel beside the sheet */
+    const P9 = await page.evaluate(() => { const d = document.getElementById('ig-dock'), vis = el => !!(el && el.getClientRects().length && getComputedStyle(el).display !== 'none');
+      const said = d.querySelector('.ca-dr-said .ca-say');
+      return { word: (d.querySelector('.pd-head-word') || {}).textContent || '', bin: vis(document.getElementById('igd-history-clear')), fold: vis(document.getElementById('igd-collapse')),
+        ph: (document.getElementById('igd-input') || {}).placeholder, bold: said ? [...said.querySelectorAll('b')].map(b => b.textContent) : [] }; });
+    check('9a the panel\'s head: "Jambo · New agreement · ›", no bin', P9.word === 'New agreement' && !P9.bin && P9.fold, JSON.stringify(P9));
+    check('9b its box asks "Ask for a number, a list or a contract…"', P9.ph === 'Ask for a number, a list or a contract…', P9.ph);
+    check('9c the party and the paper in bold', P9.bold.join('|') === 'Volvo Cars|NDA', JSON.stringify(P9.bold));
+    /* 10 the costs, in our own money */
+    const C10 = await until(() => { const f = (document.getElementById('na-w-cost') || {}).textContent || '', r = (document.getElementById('na-file-cost') || {}).textContent || '';
+      return /KES/.test(f) && /KES/.test(r) ? { f, r } : null; }, null, 8000);
+    check('10a Let Jambo fill the form says its cost in our money: "about KES 0.10"', !!C10 && C10.f === '· about KES 0.10', JSON.stringify(C10));
+    check('10b creating says what Jambo\'s reading costs: "…, about KES 0.90."', !!C10 && C10.r === 'When it is created, Jambo reads it: the brief, our standards, risks and obligations, about KES 0.90.', JSON.stringify(C10));
     /* 4 Start from */
     check('4a 1 Start from: the three closest on our paper, nothing picked for you; the search and Legal on its line',
       /^1 Start from the three closest on our paper · nothing is picked for you Search all our paper \(\d+\) · None fits\? Ask Legal with a request$/.test(S1.step1), S1.step1);
@@ -113,12 +148,30 @@ const SAY = 'NDA with Volvo Cars for a pilot';
     check('5d who else: "Who else is on this agreement · nobody is emailed until you send"', /^Who else is on this agreement · nobody is emailed until you send/.test(S5.people), S5.people);
     check('5e the cost of reading on the stream\'s own row', !!S5.file && S5.file.inRow && /^When it is created, Jambo reads it/.test(S5.file.cost), JSON.stringify(S5.file));
     check('5f the reason is now the stream\'s', S5.acts.join('|') === 'Choose a stream first|Create draft|Cancel', JSON.stringify(S5.acts));
+    /* 11 step 2 in three columns, two rows; who else straight under */
+    const Q11 = await page.evaluate(() => { const ls = [...document.querySelectorAll('#na-form .field-grid > label')].filter(l => l.getClientRects().length && getComputedStyle(l).display !== 'none');
+      const r = ls.map(l => l.getBoundingClientRect()), tops = [...new Set(r.map(x => Math.round(x.top)))];
+      const names = ls.map(l => (l.querySelector('span') || l).textContent.replace(/\s+/g, ' ').trim());
+      const sum = document.querySelector('#na-people > summary'), last = Math.max(...r.map(x => x.bottom));
+      return { n: ls.length, tops: tops.length, widths: [...new Set(r.map(x => Math.round(x.width)))].length, first: names.slice(0, 3), gap: sum ? Math.round(sum.getBoundingClientRect().top - last) : null }; });
+    check('11 step 2: three columns, two rows — who we are, the counterparty, their email first — and "Who else" straight under',
+      Q11.n === 6 && Q11.tops === 2 && Q11.widths === 1 && /^Our party/.test(Q11.first[0]) && /^Counterparty/.test(Q11.first[1]) && /^Their email/.test(Q11.first[2]) && Q11.gap != null && Q11.gap <= 30, JSON.stringify(Q11));
+    /* 12 step 3 one row */
+    const R12 = await page.evaluate(() => { const row = document.querySelector('#na-file .na-file-b'), seg = row && row.querySelector('.na-seg'), need = row && row.querySelector('.na-need'), cost = row && row.querySelector('.na-file-cost');
+      const r = el => el.getBoundingClientRect();
+      return row && seg && need && cost ? { needBeside: r(need).left >= r(seg).right - 1 && r(need).top < r(seg).bottom, costRight: r(cost).left >= r(need).right - 1 && r(cost).top < r(seg).bottom,
+        newStream: !!row.querySelector('[data-na-stream="__new__"]') } : null; });
+    check('12 step 3, one row: the streams, "Needed before Create", the cost — no "+ New stream"', !!R12 && R12.needBeside && R12.costRight && !R12.newStream, JSON.stringify(R12));
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(450);
       const S = await page.evaluate(() => { const c = document.getElementById('na-create'), r = c && c.getBoundingClientRect();
         const why = document.getElementById('na-why'), wr = why && why.getBoundingClientRect();
         return { create: !!r && r.top >= 0 && r.bottom <= innerHeight && r.right <= innerWidth, why: !!wr && wr.width > 0, side: document.documentElement.scrollWidth <= innerWidth + 1 }; });
       check(`8 ${w}×${ht}: Create and its reason in view in the head, nothing sideways`, S.create && S.why && S.side, JSON.stringify(S));
+      /* 13 the drawing's own measure of the page's scroll, once a paper is picked */
+      const sc = await page.evaluate(() => { const b = document.querySelector('[data-dlg-page] .dlg-pg-body'); return b ? b.scrollHeight - b.clientHeight : null; });
+      const most = w === 1440 ? 32 : w === 1536 ? 82 : 0;
+      check(`13 ${w}×${ht}: the page scrolls at most ${most}px to reach step 3's foot`, sc != null && sc <= most, String(sc));
       await shot(page, `4-one-sheet-${w}x${ht}`);
     }
     await page.setViewportSize({ width: 1440, height: 780 }); await page.waitForTimeout(300);
@@ -132,6 +185,9 @@ const SAY = 'NDA with Volvo Cars for a pilot';
     check('6b Create makes the draft', !!made);
     /* 7 the way back */
     await ask();
+    /* 14 a second sentence in the sitting: the panel holds one exchange */
+    const L14 = await page.evaluate(() => [...document.querySelectorAll('#ig-dock .ca-dr-said')].length);
+    check('14 a second sheet in the sitting: one exchange in the panel', L14 === 1, String(L14));
     await page.click('[data-na-counter]');
     const back = await until(() => !document.getElementById('na-root') && state.view === 'counter', null, 6000);
     check('7 ‹ The counter in the sheet\'s head goes back to the Counter', !!back);

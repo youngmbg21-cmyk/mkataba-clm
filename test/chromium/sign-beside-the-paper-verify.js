@@ -63,8 +63,11 @@ const FACE = () => {
     chip: ((document.querySelector('#ig-strip .ig-copy-chip') || {}).textContent || '').trim(),
     toggle: !!document.querySelector('#ig-strip [data-ig-red]'),
     track: !!(document.getElementById('ig-spine') && !document.getElementById('ig-spine').hidden),
-    pages: ((document.querySelector('#ig-paper #sc-page-out') || {}).textContent || '').trim(),
-    pageBtns: document.querySelectorAll('#ig-paper [data-sc-page]').length };
+    /* RE-POINTED (the gaps, round 10 "The road", pass 2, 18 Oct 2026): the
+       signing copy's page arrows and size stand on the paper's line now
+       ("Signing copy" · ‹ 1 of N › · − 100% +, igSignCopyHtml), not above it */
+    pages: ((document.querySelector('#ig-strip [data-ig-sc] #sc-page-out') || {}).textContent || '').trim(),
+    pageBtns: document.querySelectorAll('#ig-strip [data-ig-sc] [data-sc-page]').length };
 };
 
 (async () => {

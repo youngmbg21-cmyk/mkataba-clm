@@ -6704,7 +6704,7 @@ function renderIntelDock(){
       <span class="flex-1"></span>
       ${(()=>{ const b=(typeof copilotBrainInfo==='function')?copilotBrainInfo():{live:true};
         return b.live?'':`<span title="${igEsc(b.hint||'')}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">○ ${igEsc(i18t('int_basic_mode'))}</span>`; })()}
-      ${intel.history.length&&!(window.pdShowsDesk&&pdShowsDesk())?`<button id="igd-history-clear" title="${i18t('int_clear_conversation')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon" aria-label="${i18t('int_clear_conversation')}">${icon('trash','w-3.5 h-3.5')}</button>`:''}
+      ${intel.history.length&&!(window.pdShowsDesk&&pdShowsDesk())&&!(window.naSheetUp&&naSheetUp())?`<button id="igd-history-clear" title="${i18t('int_clear_conversation')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon" aria-label="${i18t('int_clear_conversation')}">${icon('trash','w-3.5 h-3.5')}</button>`:''}
       <button id="igd-collapse" title="${i18t('int_collapse_panel')}" aria-label="${i18t('int_collapse_panel')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('chevR')}</button>
     </div>
     ${intel.lenses.length&&!(window.pdShowsDesk&&pdShowsDesk())?`
@@ -6743,7 +6743,9 @@ function renderIntelDock(){
            opens the view on Explorer, where the map is. */}
     ${(!intel.history.length||igHomePaperFace()===true)&&!(window.pdShowsDesk&&pdShowsDesk())&&!(window.jamboChipsOn&&!jamboChipsOn())?`
     <div class="px-3.5 pb-2 shrink-0 flex flex-wrap gap-1.5" data-ig-chips>
-      ${(typeof window.caChipsHtml==='function'&&caChipsHtml())||((state.view==='dashboard'&&typeof hbSuggestions==='function'&&hbSuggestions())||IG_SUGGESTIONS.slice(0,3)).map(s=>`<button data-igsug="${igEsc(s)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${igEsc(s)}</button>`).join('')}
+      ${/* FILL IN AND BEFORE YOU SIGN DRAW NO CHIPS (the gaps, rounds 8 and 10,
+           18 Oct 2026: nothing between the face and the ask box but Jambo
+           perched) — the row stays, empty, as his perch */''}${(window.pdChipsQuiet&&pdChipsQuiet())?'':(typeof window.caChipsHtml==='function'&&caChipsHtml())||((state.view==='dashboard'&&typeof hbSuggestions==='function'&&hbSuggestions())||IG_SUGGESTIONS.slice(0,3)).map(s=>`<button data-igsug="${igEsc(s)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${igEsc(s)}</button>`).join('')}
     </div>`:''}
     ${intel.compareSel.length?`
     <div class="px-3.5 py-2 border-t border-hair shrink-0 flex items-center gap-2 bg-brand-50/40">
@@ -6963,6 +6965,45 @@ function openPartyModal(name){
   modal.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>{ closePartyModal(); openWorkspace(el.getAttribute('data-open')); }));
 }
 
+/* ---- WHAT A PRESS COSTS, IN OUR OWN MONEY (the gaps, round 4 "One sheet",
+   18 Oct 2026: "Let Jambo fill the form · about 0.10 kr") ----
+   A READING, NEVER A GUESS: the average a request of each kind cost lately
+   (GET /api/ai/call-cost, off the spending ledger), summed over the kinds a
+   press starts, turned into the workspace's money through the admins' dated
+   USD rate (fxRateFor). Where either is missing — no request of that kind
+   yet, no rate on file, a stage with no server — the press says its count of
+   Jambo calls, as before. Read once a sitting; a surface already drawn hears
+   AI_COST_EVENT when the figure arrives. */
+const AI_COST_EVENT='hati:aicost';
+const AI_COST_RETRY_MS=30000;
+let _aiCost=null, _aiCostAsked=0;
+function aiCostLoad(){
+  /* once a sitting; a read that failed (signed out, offline) is asked again, not before AI_COST_RETRY_MS */
+  if(_aiCost||(_aiCostAsked&&Date.now()-_aiCostAsked<AI_COST_RETRY_MS)) return; _aiCostAsked=Date.now();
+  if(typeof API_MODE==='function'&&!API_MODE()) return;
+  if(typeof api!=='function') return;
+  Promise.resolve().then(()=>api('ai/call-cost','GET',undefined,{ quiet:true }))
+    .then(r=>{ _aiCost=(r&&r.per)?r:null; try{ document.dispatchEvent(new CustomEvent(AI_COST_EVENT)); }catch(_){ } })
+    .catch(()=>{ _aiCostAsked=Date.now()-AI_COST_RETRY_MS+3000; });
+}
+function aiCostOf(kinds){
+  aiCostLoad();
+  const per=_aiCost&&_aiCost.per; if(!per||!Array.isArray(kinds)||!kinds.length) return null;
+  let usd=0;
+  for(const k of kinds){ const x=per[k]; if(!x||!(Number(x.usd)>0)) return null; usd+=Number(x.usd); }
+  const home=(typeof fxHomeCode==='function')?fxHomeCode():'USD';
+  if(home==='USD') return { v:usd, code:home };
+  const r=(typeof fxRateFor==='function')?fxRateFor('USD'):null;
+  return r?{ v:usd*r.rate, code:home }:null;
+}
+/* "about KES 13", or the fallback words where nothing is measured */
+function aiCostWords(kinds, fallback){
+  const m=aiCostOf(kinds); if(!m) return fallback;
+  const dp=m.v<1?2:m.v<10?1:0;
+  let n; try{ n=m.v.toLocaleString((typeof jxLocale==='function')?jxLocale():undefined,{ minimumFractionDigits:dp, maximumFractionDigits:dp }); }catch(_){ n=m.v.toFixed(dp); }
+  return i18t('ai_cost_about',{ money:`${m.code} ${n}` });
+}
+
 /* ============================================================
    ANALYZE CONTRACT — THE PAPER IN THE GRAPH'S COLUMN
    (Young ruled 26 Sep 2026: "Build the all in one option")
@@ -7135,6 +7176,8 @@ function igPaperCost(c){
   return { words:igPaperWords(c)+(story.text?story.text.split(/\s+/).filter(Boolean).length:0), changes:story.count };
 }
 function igAskPlaceholder(){
+  /* beside the one sheet the box asks as drawn (the gaps, round 4) */
+  if(window.naSheetUp&&naSheetUp()) return i18t('na_ask_ph');
   const c=igPaperUp()?getContract(intel.paper.id):null;
   if(!c && state.view==='dashboard' && typeof window.hbPlaceholder==='function'){ const h=hbPlaceholder(); if(h) return h; }
   return c?i18t('int_ask_contract',{ref:(window.contractRef?contractRef(c):c.id)}):i18t('int_ask_portfolio');
@@ -7374,6 +7417,8 @@ function igNegoRowsHtml(c){
 /* their presses: Share and the walk; the menu's rows are wired in the Menu tab */
 function igStripActsWire(c){
   const strip=document.getElementById('ig-strip'); if(!strip||!c) return;
+  /* the line was drawn again: its page and size say where the signing copy stands */
+  if(strip.querySelector('[data-ig-sc]')){ try{ if(window.scApplyZoom) scApplyZoom(); if(window.scPaintPage) scPaintPage(); }catch(_){ } }
   strip.querySelector('#ws-walk')?.addEventListener('click',()=>{ if(window.signWalkGo) signWalkGo(getContract(c.id)||c); });
   strip.querySelector('#ws-share')?.addEventListener('click',()=>{ if(window.openShareModal) openShareModal(getContract(c.id)||c); });
   if(window.paintChatDoor) try{ paintChatDoor(); }catch(_){ }
@@ -7420,10 +7465,12 @@ function igStripHtml(c,p){
     ${onHome?igLineIdHtml(c,ref):`<span class="ig-strip-ref" title="${igEsc(c.name)}"><span class="ig-strip-dot" style="background:${dot}"></span><b class="hati-ref">${igEsc(ref)}</b><span class="q"> · </span>${igEsc(c.name)}<span class="q"> · ${igEsc(c.counterparty||'—')} · ${igEsc(st)}</span></span>`}
     <span class="ig-strip-sp"></span>${/* WHO IS ON IT NOW (round 6): the presence row's slot, painted by presencePaint */''}${onHome?'<span class="ig-line-faces" data-pz-slot="paper"></span>':''}
     ${up&&n?`<span class="ig-strip-pins">${igEsc(i18tn('int_pins',n,{n}))}</span><button type="button" class="ui-link" data-ig-pins-clear title="${igEsc(i18t('int_pins_clear_title'))}">${igEsc(i18t('int_pins_clear'))}</button>`:''}
-    ${/* NO WORD SAYS WHICH COPY IS UP while Jambo's Before you sign face shows
-       the signing copy (stage 5): the owner's 10 Oct 2026 ruling on the
-       Signing tab, "remove any banner words … the space should only be there
-       for the buttons" — the face beside it already says what is happening */''}${/* THE WALK TO THE PLACES TO SIGN stands on this line, the Signing tab
+    ${/* THE SIGNING COPY SAYS SO ON THE LINE, WITH ITS PAGES AND ITS SIZE (the
+       gaps, round 10 "The road", 18 Oct 2026; the picked drawing reverses the
+       10 Oct ruling that took the word off): "Signing copy", "‹ Page 1 of 3 ›"
+       and "− 100% +" in the head card, so nothing is added above the paper —
+       the signing copy's own controls (scControlsHtml), pressed through the
+       one listener below */''}${up&&onHome&&igSignOn(c)?igSignCopyHtml(c):''}${/* THE WALK TO THE PLACES TO SIGN stands on this line, the Signing tab
        row's twin, while the signing copy is up (signWalkHtml) */''}${up&&onHome&&igSignOn(c)&&window.signWalkHtml?signWalkHtml(c,{ home:true }).replace('class="ui-btn"','class="ui-btn ui-btn-sm"'):''}
     ${up&&onHome&&!igSignOn(c)&&window.pdRedOk&&pdRedOk(c)?(()=>{ const n=c.changes.filter(x=>x&&x.status==='pending').length, red=igRedOn(c);
       const theirs=igTheirsOn(c);
@@ -7653,11 +7700,28 @@ function igPaperHtml(c){
 /* THE PAPER'S ONE ZOOM, OR THE SIGNING COPY'S OWN PAGE ARROWS AND SIZE (stage
    5): the signing copy is laid out at A4 and scaled whole, as the room's
    Signing tab drew it (docZoomCornerHtml), so the reading zoom stays off it */
+const IG_ZC_HOLD='<div class="paper-zc-row" aria-hidden="true"></div>';
 function igZoomCornerHtml(c){
   if(!window.rlPaperZoomHtml) return '';
-  if(igSignOn(c)&&typeof window.scControlsHtml==='function') return rlPaperZoomHtml('', scControlsHtml(c));
+  /* the signing copy's pages and size stand on the paper's line (igSignCopyHtml);
+     the row stays, EMPTY, so the paper sits still when Before you sign opens
+     (the working copy's sheet starts under the same room) */
+  if(igSignOn(c)) return IG_ZC_HOLD;
   return rlPaperZoomHtml();
 }
+/* the signing copy's word and its own controls, for the paper's line */
+function igSignCopyHtml(c){
+  const sealed=!!(window.docSealedCopy&&docSealedCopy(c));
+  const ctl=(typeof window.scControlsHtml==='function')?scControlsHtml(c):'';
+  return `<span class="ig-sc" data-ig-sc><span class="ig-sc-word">${igEsc(i18t(sealed?'sc_signed_copy':'sc_signing_copy'))}</span>${ctl}</span>`;
+}
+/* ONE LISTENER for the line's page arrows and size, at module load: the line
+   is drawn again on every act, so nothing on it is wired one by one */
+if(typeof document!=='undefined') document.addEventListener('click',e=>{
+  const b=e.target&&e.target.closest?e.target.closest('#ig-strip [data-ig-sc] [data-sc-zoom], #ig-strip [data-ig-sc] [data-sc-page]'):null; if(!b||b.disabled) return;
+  if(b.hasAttribute('data-sc-zoom')){ if(typeof window.scZoomStep==='function') scZoomStep(Number(b.getAttribute('data-sc-zoom'))||0); }
+  else if(typeof window.scPageGo==='function') scPageGo(Number(b.getAttribute('data-sc-page'))||0);
+});
 function igApplyZoom(){
   const f=window.rlDocZoomFactor?rlDocZoomFactor():'1';
   document.querySelectorAll('#ig-paper .ig-zoom').forEach(z=>{ z.style.zoom=z.querySelector('.ig-signpaper')?1:f; });
@@ -8166,7 +8230,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
   });
 }
 
-Object.assign(window,{igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
+Object.assign(window,{igLineRound,igLineIdHtml,igZoomCornerHtml,igSignCopyHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,AI_COST_EVENT,AI_COST_RETRY_MS,aiCostLoad,aiCostOf,aiCostWords,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
 Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});

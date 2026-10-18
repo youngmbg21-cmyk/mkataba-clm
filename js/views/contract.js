@@ -9746,11 +9746,22 @@ function detNdaRows(c, d, box, may){
   let N = null; try{ N = (typeof ndaOf === 'function') ? ndaOf(c) : null; }catch(_){ N = null; }
   const dirW = N && N.dir ? i18t('nda_dir_' + N.dir) : '';
   let untilW = ''; try{ untilW = N && typeof ndaUntilWords === 'function' ? (ndaUntilWords(N) || '') : ''; }catch(_){ untilW = ''; }
+  /* no date to count from yet: the wording's own span, as it says it ("3 years after the agreement ends") */
+  if(!untilW && N && N.period && N.period.n > 0){
+    const span = i18tn(N.period.unit === 'month' ? 'pd_ff_u_months' : 'pd_ff_u_years', N.period.n, { n: N.period.n });
+    untilW = i18t(N.period.from === 'disclosure' ? 'det_nda_span_disclosure' : N.period.from === 'start' ? 'det_nda_span_start' : 'det_nda_span_end', { span });
+  }
+  /* AS DRAWN (the gaps, round 8 "Compare: the same face on an NDA", 18 Oct 2026):
+     where it was read ("read from clause 5"), the reading in a box, and under it
+     "Read from the wording, not yet confirmed by a person. · Confirm" — once
+     confirmed, "Confirmed by <who>" with Change */
   const said = (k, w) => { const it = items.find(x => x.key === k); if(!it) return '';
-    const sug = N && !N.confirmed && w;
-    const read = w ? `${esc(w)}${sug ? ` <span class="det-nda-sug">${esc(i18t(N.clause ? 'det_nda_from_clause' : 'det_nda_from_wording', { n: N.clause || '' }))}</span>` : ''}` : `<span class="det-nda-sug">${esc(i18t('det_nda_unsaid'))}</span>`;
-    const door = may ? ` <button type="button" class="ui-link" data-det-nda="${esc(c.id)}">${esc(i18t(it.open ? 'det_nda_confirm' : 'det_nda_change'))}</button>` : '';
-    return box(k, it.label, `<span class="det-nda-read">${read}${door}</span>`); };
+    const conf = !!(N && N.confirmed);
+    const at = (!conf && w) ? `<span class="det-nda-at">${esc(N && N.clause ? i18t('det_nda_read_clause', { n: N.clause }) : i18t('det_nda_from_wording'))}</span>` : '';
+    const read = w ? esc(w) : `<i>${esc(i18t('det_nda_unsaid'))}</i>`;
+    const line = conf ? (N.who ? i18t('nda_confirmed_by', { who: N.who }) : i18t('nda_confirmed')) : i18t(w ? 'det_nda_not_conf' : 'det_nda_set_line');
+    const door = may ? ` · <button type="button" class="ui-link" data-det-nda="${esc(c.id)}">${esc(i18t(it.open ? 'det_nda_confirm' : 'det_nda_change'))}</button>` : '';
+    return box(k, it.label, `${at}<span class="det-nda-read det-nda-box">${read}</span><span class="det-nda-line">${esc(line)}${door}</span>`); };
   return [said('ndaDir', dirW), said('ndaEnds', untilW)];
 }
 if(typeof document!=='undefined') document.addEventListener('click',e=>{
@@ -11294,6 +11305,12 @@ function roomActsRowsHtml(c,may){
     rows.push(`<button type="button" id="ws-m-nego"${ok.ok?` title="${esc(i18t('ct_open_negotiate_title'))}"`:dead(window.negoMayStartLine?negoMayStartLine(c):'')}>${icon('columns','w-3.5 h-3.5')}${esc(i18t('ct_start_negotiating'))}</button>`); }
   const executed=(typeof negoExecuted==='function')?negoExecuted(c):c.status==='Signed';
   if(!executed) rows.push(`<button type="button" id="ws-m-signers"${(window.signingLocked&&signingLocked(c))?dead(i18t('py_locked')):''}>${icon('users','w-3.5 h-3.5')}${esc(i18t('ct_add_signers'))}</button>`);
+  /* SIGNING IT THEIR WAY (the gaps, round 10 "The road", 18 Oct 2026): the
+     line under the Sign button left Before you sign ("the foot follows the
+     last stop"), so its one door is this row — offered while the route can
+     still change, on the route inside HaTi; the press is outsideSetRoute's */
+  if(!executed&&window.outsideMayChangeRoute&&outsideMayChangeRoute(c)&&!(window.signRouteOf&&signRouteOf(c)==='outside'))
+    rows.push(`<button type="button" id="ws-m-their-way" title="${esc(i18t('ho_they_sign_q'))}">${icon('send','w-3.5 h-3.5')}${esc(i18t('ho_menu_their_way'))}</button>`);
   if(!c.parentId){
     const shut=(typeof amendmentShutWhy==='function')?amendmentShutWhy(c):(executed?'':i18t('fa_draft_no_amend'));
     rows.push(`<button type="button" id="ws-m-amend"${shut?dead(shut):''}>${icon('filenew','w-3.5 h-3.5')}${esc(i18t('fa_create_amendment'))}</button>`);
@@ -11947,6 +11964,7 @@ function roomMenuWire(c){
   document.getElementById('ws-m-nego')?.addEventListener('click',()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); });
   document.getElementById('ws-m-signers')?.addEventListener('click',()=>{ const k=getContract(c.id)||c; roomGoTab(k,'sign');
     setTimeout(()=>{ if(window.openSignerPlanEditor) openSignerPlanEditor(getContract(c.id)||k); },180); });
+  document.getElementById('ws-m-their-way')?.addEventListener('click',()=>{ if(window.outsideSetRoute) outsideSetRoute(getContract(c.id)||c,'outside'); });
   /* AMEND, BESIDE THE PAPER (owner, 15 Oct 2026): Jambo's Amend face on Home's
      paper; the dialog where Home has no paper (the phone, a stage without it) */
   document.getElementById('ws-m-amend')?.addEventListener('click',()=>{ const k=getContract(c.id)||c; if(!window.amendmentShutWhy||amendmentShutWhy(k)) return;

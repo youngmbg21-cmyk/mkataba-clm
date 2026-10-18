@@ -161,20 +161,30 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
 
     /* 8 — the long sentence wraps inside the Signing tab's panel, measured
        where the reader sees it: on a narrow window, on a contract still open
-       for signing. */
+       for signing.
+       RE-POINTED (the gaps, round 10 "The road", pass 2, 18 Oct 2026): the
+       drawing's Before you sign ends on the last stop, so the hand-over line
+       under the Sign button left the face; its one door is now the Menu tab's
+       row "Hand it over to sign their way" (#ws-m-their-way, roomActsRowsHtml) — the same
+       press. The check measures that row where the reader sees it now: inside
+       Jambo's panel, its words whole, and the face no longer draws the line. */
     await page.setViewportSize({ width: 1100, height: 900 });
-    await page.evaluate(() => { const c = state.contracts.find(x => x.status !== 'Signed' && !x.parentId);
-      openWorkspace(c.id, { room: true }); roomGoTab(c, 'sign'); });
-    const p8 = await waitFor(page, () => {
-      const b = Array.from(document.querySelectorAll('#sign-paper')).find(x => x.getBoundingClientRect().width > 0);
-      if (!b) return null;
-      const r = b.getBoundingClientRect(), p = b.parentElement.getBoundingClientRect();
-      const line = parseFloat(getComputedStyle(b).lineHeight) || 16;
-      return { ws: getComputedStyle(b).whiteSpace, sw: b.scrollWidth, cw: b.clientWidth,
-        inside: r.left >= p.left - 1 && r.right <= p.right + 1, lines: Math.round(r.height / line) };
+    const id8 = await page.evaluate(() => { const c = state.contracts.find(x => x.status !== 'Signed' && !x.parentId);
+      openWorkspace(c.id, { room: true }); roomGoTab(c, 'sign'); return c.id; });
+    const face8 = await waitFor(page, () => {
+      const f = document.getElementById('pd-signface'); if (!f) return null;
+      const b = f.querySelector('#sign-paper');
+      return { line: !!(b && b.getBoundingClientRect().width > 0) };
     });
-    check('8  "Hand it over instead" wraps inside the Signing panel',
-      p8 && p8.ws === 'normal' && p8.sw <= p8.cw + 1 && p8.inside && p8.lines >= 2, JSON.stringify(p8));
+    await page.evaluate(id => pdOpenOnHome(id, 'menu'), id8);
+    const p8 = await waitFor(page, () => {
+      const b = Array.from(document.querySelectorAll('#pd-body #ws-m-their-way')).find(x => x.getBoundingClientRect().width > 0);
+      if (!b) return null;
+      const r = b.getBoundingClientRect(), p = document.getElementById('pd-body').getBoundingClientRect();
+      return { sw: b.scrollWidth, cw: b.clientWidth, inside: r.left >= p.left - 1 && r.right <= p.right + 1, t: b.textContent.trim() };
+    });
+    check('8  "Hand it over to sign their way" sits whole inside the Menu tab, and the face no longer draws the line',
+      face8 && !face8.line && p8 && p8.sw <= p8.cw + 1 && p8.inside, JSON.stringify({ face8, p8 }));
 
     await page.screenshot({ path: process.env.SHOT || '/tmp/amend-blanks.png' });
     check('9  no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
