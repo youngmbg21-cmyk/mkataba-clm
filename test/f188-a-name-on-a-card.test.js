@@ -126,10 +126,17 @@ describe('f188 (2) — both card renderers write the short form', () => {
        block exists for still holds where a name IS printed (the contract
        tab's card below), and NOTHING IS LOST here: the whole name is one
        hover away on the row's meta line. */
+    /* CLAIM RE-POINTED 17 Oct 2026 (round 9 of the redesign: the owner picked
+       "Piles", whose row says who and when at its right wall — "Anna H. · 4
+       days ago"): the row prints the SHORT form again, never the whole name,
+       which stays one hover away. Reverses 16 Aug's "prints none at all" for
+       the row; the rule this block exists for — a printed name is the short
+       form — holds here too. */
     const { w, c } = await staged();
     const html = w.win.redlineChangeCardsHtml(c, { side: 'owner' });
-    assert.ok(!/Young Mbagaya<|Young Mbagaya &middot;|Young M\./.test(html),
-      'no name — short or long — as visible text on the row');
+    const seen = html.replace(/\s(?:title|aria-label)="[^"]*"/g, '');
+    assert.ok(!/Young Mbagaya/.test(seen), 'never the whole name as visible text on the row');
+    assert.match(html, /class="rl-card-by"[^>]*>Young M\./, 'the short form, on the row\'s who-and-when line');
     assert.match(html, /title="[^"]*Young Mbagaya/,
       'NOTHING IS LOST: the whole name is one hover away');
   });
