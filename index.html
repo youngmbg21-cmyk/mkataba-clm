@@ -3687,27 +3687,25 @@
   .st-cr .st-cr-cols{ display:grid; grid-template-columns:minmax(0,1fr) 344px; gap:var(--s-4); align-items:start; }
   .st-cr .st-cr-main{ min-width:0; }
   @media (max-width:1180px){ .st-cr .st-cr-cols{ grid-template-columns:minmax(0,1fr) 300px; } }
-  /* the tab row: the white band holds the pill alone */
-  .st-cr .st-facebar{ border-bottom:1px solid var(--color-divider); padding-bottom:10px; }
-  .st-cr .st-faces{ --st-fi:0; --st-fn:2; display:inline-grid; grid-auto-flow:column; grid-auto-columns:1fr; position:relative;
-    border-radius:var(--radius-lg); padding:3px; background:color-mix(in srgb,var(--color-accent) 8%,var(--color-surface)); }
-  .st-cr .st-face{ appearance:none; border:0; background:none; cursor:pointer; font:inherit; font-size:var(--t-body);
-    height:calc(var(--ctl-h) - 6px); padding:0 var(--s-4); display:inline-flex; align-items:center; justify-content:center; gap:6px;
-    position:relative; z-index:1; color:var(--color-neutral-600); font-weight:var(--w-label); border-radius:calc(var(--radius-lg) - 2px); white-space:nowrap; }
-  .st-cr .st-face[aria-selected="true"]{ color:var(--color-text); }
+  /* THE TAB ROW, AS DRAWN (round 25, the gaps of 18 Oct 2026; reverses the
+     16 Oct pill): You · Company as underlined tabs under a rule, the chosen
+     one underlined in the accent, Company's count beside its name */
+  .st-cr .st-facebar{ border-bottom:1px solid var(--color-divider); padding-bottom:0; }
+  .st-cr .st-faces{ display:flex; align-items:stretch; gap:24px; position:relative; flex:1 1 auto; width:100%; margin-top:10px; padding:0;
+    border-top:1px solid var(--color-divider); background:none; border-radius:0; }
+  .st-cr .st-face{ appearance:none; border:0; border-bottom:2px solid transparent; margin-bottom:-1px; background:none; cursor:pointer; font:inherit; font-size:var(--t-body);
+    height:var(--ctl-h-lg,40px); padding:0 2px; display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    position:relative; color:var(--color-neutral-600); font-weight:var(--w-label); border-radius:0; white-space:nowrap; }
+  .st-cr .st-face[aria-selected="true"]{ color:var(--accent-ink); border-bottom-color:var(--color-accent); }
   .st-cr .st-face:focus-visible{ outline:2px solid var(--color-accent); outline-offset:-2px; }
-  .st-cr .st-thumb{ position:absolute; top:3px; bottom:3px; left:3px; width:calc((100% - 6px) / var(--st-fn,2));
-    border-radius:calc(var(--radius-lg) - 2px); background:var(--color-surface);
-    box-shadow:0 1px 2px rgba(9,25,56,.16),0 0 0 1px rgba(9,25,56,.06);
-    transform:translateX(calc(var(--st-fi,0) * 100%)); transition:transform var(--dur-3) cubic-bezier(.22,.61,.36,1); pointer-events:none; }
-  @media (prefers-reduced-motion:reduce){ .st-cr .st-thumb{ transition:none; } }
+  .st-cr .st-thumb{ display:none; }
   .st-cr .st-face-w{ display:inline-grid; }
   .st-cr .st-face-w > span,.st-cr .st-face-w::before,.st-cr .st-face-w::after{ grid-area:1/1; text-align:center; }
   .st-cr .st-face-w::before{ content:attr(data-w1); visibility:hidden; }
   .st-cr .st-face-w::after{ content:attr(data-w2); visibility:hidden; }
-  .st-cr .st-face-n{ font-size:11px; font-weight:var(--w-strong); font-variant-numeric:tabular-nums; }
+  .st-cr .st-face-n{ font-size:var(--t-label); font-weight:var(--w-label); font-variant-numeric:tabular-nums; color:var(--color-neutral-600); }
   .st-cr .st-face-n:empty{ display:none; }
-  .st-cr .st-face-n[data-tone="amber"]{ color:var(--st-amber-fg); }
+  .st-cr .st-face-n[data-tone="amber"]{ color:var(--color-neutral-600); }
   /* THE BOARD: cards in columns, each as tall as what it holds */
   .st-cr .st-board > .st-att{ margin-bottom:var(--s-4); border-radius:var(--radius-lg); }
   .st-cr .st-cards{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--s-3); margin-bottom:var(--s-4); }
@@ -3841,6 +3839,125 @@
   .st-cr .st-dot-you{ background:var(--color-divider); }
   .st-cr .st-mrow-s{ flex:none; max-width:46%; font-size:var(--t-label); color:var(--color-neutral-600); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .st-cr .st-mrow-s.is-warn{ color:var(--st-amber-fg); }
+  /* ============================================================
+     ROUNDS 24, 25 AND 26 AS DRAWN (the gaps, 18 Oct 2026)
+     ============================================================ */
+  /* the page head's fact: "Settings · <the company>" / "Your settings · yours alone" */
+  .st-head-sub{ font-size:var(--t-body); color:var(--color-neutral-600); }
+  /* a count in a small round tag, as every drawn card head carries */
+  .st-cr .st-pill-n{ display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; padding:0 6px;
+    border-radius:999px; background:var(--surface-2); color:var(--color-neutral-700); font-size:var(--t-label); font-weight:var(--w-label);
+    font-variant-numeric:tabular-nums; vertical-align:1px; }
+  .st-cr .st-pill-n.is-amber{ background:var(--st-amber-bg); color:var(--st-amber-fg); }
+  .st-cr .st-card-ht{ display:inline-flex; align-items:baseline; gap:8px; flex-wrap:wrap; min-width:0; }
+  .st-cr .st-card-sub-l{ margin-left:2px; }
+  /* THE SIDE PANEL'S HEAD: Jambo, the word for what it holds, the fold */
+  .st-cr .st-side-head{ flex:none; display:flex; align-items:flex-end; gap:10px; padding:4px 8px 0 10px; border-bottom:1px solid var(--color-divider); min-height:50px; }
+  .st-cr .st-side-head .st-side-tab{ flex-direction:column; gap:1px; height:auto; padding:2px 10px 5px; border-radius:0; border-bottom:2px solid var(--color-accent);
+    margin-bottom:-1px; color:var(--color-text); background:none; font-size:var(--t-label); font-weight:var(--w-strong); cursor:default; }
+  .st-cr .st-side-head .st-side-tab:hover{ background:none; }
+  .st-cr .st-side-word{ align-self:center; min-width:0; font-size:var(--t-meta); color:var(--color-text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .st-cr .st-side-sp{ flex:1; }
+  .st-cr .st-side-fold{ align-self:center; appearance:none; border:0; background:none; width:28px; height:28px; border-radius:var(--radius);
+    font:inherit; font-size:18px; line-height:1; color:var(--color-neutral-600); cursor:pointer; }
+  .st-cr .st-side-fold:hover{ background:var(--surface-2); color:var(--color-text); }
+  .st-cr .st-side-back{ align-self:center; appearance:none; border:0; background:none; padding:6px 2px; font:inherit; font-size:var(--t-meta); font-weight:var(--w-label); color:var(--accent-ink); cursor:pointer; }
+  .st-cr .st-side-unfold{ display:none; }
+  /* folded to the right edge: a thin strip, his face brings him back */
+  .st-cr.is-side-folded .st-cr-cols{ grid-template-columns:minmax(0,1fr) 46px; }
+  .st-cr .st-side.is-folded{ height:auto; min-height:120px; }
+  .st-cr .st-side.is-folded > :not(.st-side-unfold){ display:none; }
+  .st-cr .st-side.is-folded .st-side-unfold{ display:flex; align-items:flex-start; justify-content:center; width:100%; padding:10px 0; border:0; background:none; cursor:pointer; }
+  /* A FORM OPEN IN ITS ROW (round 24): under the row that asked for it */
+  .st-cr .st-sr.is-open{ background:color-mix(in srgb,var(--color-accent) 5%,var(--color-surface)); }
+  .st-cr .st-rform{ padding:12px 16px 14px; border-top:1px solid var(--surface-2); background:color-mix(in srgb,var(--color-accent) 3%,var(--color-surface)); }
+  .st-cr .st-rform-sub{ margin:0 0 10px; }
+  .st-cr .st-rform-body{ max-width:680px; }
+  .st-cr .st-rform-body .st-sec{ margin:0; }
+  .st-cr .st-rform-body .st-sec + .st-sec{ margin-top:var(--s-3); }
+  .st-cr .st-rform-foot{ display:flex; flex-direction:column; gap:8px; margin-top:12px; }
+  .st-cr .st-rform-foot .st-refusal[hidden]{ display:none; }
+  .st-cr .st-rform-acts{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .st-cr .st-rform-why{ font-size:var(--t-label); color:var(--st-amber-fg); }
+  .st-cr .st-rform-why:empty{ display:none; }
+  /* whom you answer for, as drawn: a quiet box with its door */
+  .st-cr .st-aw-cover{ display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border:1px solid var(--color-divider);
+    border-radius:var(--radius-lg); background:var(--surface-2); }
+  .st-cr .st-aw-ic{ flex:none; margin-top:2px; color:var(--color-neutral-600); }
+  .st-cr .st-aw-cw{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .st-cr .st-aw-cw .st-aw-for{ color:var(--color-text); font-weight:var(--w-strong); }
+  .st-cr .st-aw-cover > .ui-btn{ flex:none; }
+  /* THE ACCESS SHEET'S SECOND LINES, as drawn */
+  .st-cr .st-sh-sub{ display:block; font-size:var(--t-label); color:var(--color-neutral-600); }
+  .st-cr .st-sh-sub-i{ font-size:var(--t-label); color:var(--color-neutral-600); }
+  .st-cr .st-sh-over{ color:var(--st-ruby-fg); font-weight:var(--w-label); }
+  .st-cr .st-sh-away{ display:inline-block; margin-top:3px; padding:0 8px; border-radius:999px; background:var(--surface-2);
+    font-size:var(--t-label); font-weight:var(--w-body); color:var(--color-neutral-700); white-space:nowrap; }
+  .st-cr .st-sh-who .st-sh-away{ display:block; width:max-content; }
+  .st-cr .st-sheet-card .st-card-h{ align-items:center; }
+  /* THE LADDER, one rung a line (round 25) */
+  .st-cr .st-gov .st-card-h{ align-items:center; }
+  .st-cr .st-gov-rungs{ grid-template-columns:1fr; gap:12px; margin-top:6px; }
+  .st-cr .st-gov-rung .st-gov-bar{ width:88px; }
+  .st-cr .st-gov-line .st-gov-name{ font-weight:var(--w-strong); }
+  .st-cr .st-gov-line .st-gov-gates{ gap:0 6px; align-items:baseline; }
+  .st-cr .st-gov-line .st-gov-g{ color:var(--color-neutral-600); padding:0; }
+  .st-cr .st-gov-line .st-gov-g:hover{ background:none; color:var(--accent-ink); text-decoration:underline; }
+  .st-cr .st-gov-line .st-gov-g.is-next{ color:var(--color-text); font-weight:var(--w-strong); }
+  .st-cr .st-gov-nx{ font-weight:var(--w-body); }
+  .st-cr .st-gov-sep{ color:var(--color-neutral-400); }
+  /* A PAGE INSIDE THE BOARD, AS DRAWN (round 26): one white head card — the
+     page's name, its count and acts, a rule, its labelled boxes */
+  .st-cr .st-pg-card{ margin:0 0 var(--s-3); padding:12px 16px 14px; background:var(--color-surface); border:1px solid var(--color-divider);
+    border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); }
+  .st-cr .st-pg-card > .st-pg-head{ margin:0; padding-bottom:10px; border-bottom:1px solid var(--color-divider); min-height:var(--ctl-h); }
+  .st-cr .st-pg-card > .st-pg-head:last-child{ border-bottom:0; padding-bottom:0; }
+  .st-cr .st-pg-card .st-pg-t{ font-size:18px; }
+  .st-cr .st-pg-card .st-dp-tabs{ border-bottom:0; align-self:stretch; margin-bottom:-11px; }
+  .st-cr .st-pg-card .st-dp-tab{ display:inline-flex; align-items:center; }
+  .st-cr .st-pg-card > .st-sw-band{ margin:12px 0 0; padding:0; border:0; border-radius:0; background:none; box-shadow:none; }
+  .st-cr .st-pg-card .st-tr-band .st-tr-go-band{ display:contents; }
+  .st-cr .st-pg-card .st-tr-band #st-tr-download{ order:1; height:var(--ctl-h); }
+  .st-cr .st-pg-card .st-tr-band .st-tr-fig{ order:2; flex-basis:100%; font-size:var(--t-label); }
+  .st-cr .st-pg-card .st-tr-band .st-tr-err{ order:3; flex-basis:100%; margin:0; }
+  .st-cr .st-pg-card .st-tr-band .st-tr-out{ flex-basis:auto; display:inline; }
+  .st-cr .st-sw-tb .st-note{ display:inline; }
+  /* a form in its row: the row already names it */
+  .st-cr .st-rform-body .st-sec-h{ display:none; }
+  /* the contents list stays level with the sheet (under the tab band, or at
+     the top where a member's page has none), as drawn */
+  .st-cr .st-sheet .st-toc{ top:var(--st-side-top,60px); }
+  .st-cr .st-sw-card .st-card-h{ justify-content:flex-start; align-items:center; }
+  .st-cr .st-sw-row.is-picked td{ background:color-mix(in srgb,var(--color-accent) 8%,var(--color-surface)); }
+  .st-cr .st-sw-row.is-picked td:first-child{ box-shadow:inset 3px 0 0 var(--color-accent); }
+  .st-cr .st-tr-past-h{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-weight:var(--w-strong); color:var(--color-text); }
+  .st-cr .st-tr-tb .r{ text-align:right; font-variant-numeric:tabular-nums; }
+  /* THE STREAM IN THE SIDE PANEL (round 26 as drawn) */
+  .st-cr .st-jb-feed.is-stream{ background:var(--color-surface); padding:12px 14px; gap:0; }
+  .st-cr .st-swp-name{ margin:0 0 6px; font-size:var(--t-body); font-weight:var(--w-strong); color:var(--color-text); }
+  .st-cr .st-swp-facts{ margin:0; }
+  .st-cr .st-swp-f{ display:grid; grid-template-columns:118px minmax(0,1fr); gap:8px; padding:7px 0; border-bottom:1px solid var(--surface-2); font-size:var(--t-label); }
+  .st-cr .st-swp-f dt{ color:var(--color-neutral-600); }
+  .st-cr .st-swp-f dd{ margin:0; color:var(--color-text); min-width:0; overflow-wrap:anywhere; }
+  .st-cr .st-swp-h4{ margin:14px 0 4px; font-size:var(--t-label); font-weight:var(--w-strong); color:var(--color-text); }
+  .st-cr .st-swp-tb{ width:100%; border-collapse:collapse; font-size:var(--t-label); }
+  .st-cr .st-swp-tb th{ text-align:left; font-weight:var(--w-label); color:var(--color-neutral-600); padding:5px 4px; border-bottom:1px solid var(--color-divider); }
+  .st-cr .st-swp-tb td{ padding:6px 4px; border-bottom:1px solid var(--surface-2); vertical-align:top; color:var(--color-text); }
+  .st-cr .st-swp-tb th:first-child, .st-cr .st-swp-tb td:first-child{ padding-left:0; }
+  .st-cr .st-swp-ref{ color:var(--accent-ink); font-variant-numeric:tabular-nums; }
+  .st-cr .st-swp-day{ white-space:nowrap; }
+  .st-cr .st-swp-held{ display:flex; align-items:flex-start; gap:8px; padding:9px 10px; border:1px solid var(--color-divider); border-radius:var(--radius-lg); font-size:var(--t-label); }
+  .st-cr .st-swp-held + .st-swp-held{ margin-top:6px; }
+  .st-cr .st-swp-held .st-ps-lock{ flex:none; margin-top:3px; color:var(--color-neutral-600); }
+  .st-cr .st-swp-hw{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .st-cr .st-swp-held > .ui-btn{ flex:none; }
+  .st-cr .st-swp-shut{ margin:10px 0 0; }
+  .st-cr .st-swp-acts{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:14px; padding-top:12px; border-top:1px solid var(--color-divider); }
+  .st-cr .st-swp-sp{ flex:1; }
+  /* deleting for good is the heaviest act here, and it is drawn filled red —
+     the side panel's and the Keeping tab's one button, dressed alike */
+  .st-cr .ui-btn.ui-btn-danger.is-filled:not(:disabled), .st-drawer .ui-btn.ui-btn-danger.is-filled:not(:disabled){ background:var(--danger); border-color:var(--danger); color:#fff; }
+  .st-cr .ui-btn.ui-btn-danger.is-filled:not(:disabled):hover, .st-drawer .ui-btn.ui-btn-danger.is-filled:not(:disabled):hover{ background:color-mix(in srgb,var(--danger) 88%,#000); }
   /* ============================================================
      THE COMPANY BOARD, AS DRAWN (16 Oct 2026, the full build)
      ============================================================ */

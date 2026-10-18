@@ -422,6 +422,14 @@ const BRAIN_PARTS = [
   ['cnmask', 'cnMask', 'wall', 2],
   ['cnrec', 'code_names', 'wall', 2, { def: 'CREATE TABLE IF NOT EXISTS code_names', men: '\\bcode_names\\b' }],
   ['cnlog', 'code_name_log', 'wall', 2, { def: 'CREATE TABLE IF NOT EXISTS code_name_log', men: '\\bcode_name_log\\b' }],
+  /* ROUNDS 24 AND 26 AS DRAWN (the gaps, 18 Oct 2026): a form opened in its
+     row on Your settings, your own email and your own copy (each recorded),
+     and the stream shown beside Contract streams */
+  ['youform', 'stRowFormOpen', 'see', 0],
+  ['myemail', 'POST /api/me/email', 'wall', 2],
+  ['mycopy', 'GET /api/me/copy', 'wall', 2],
+  ['acctrec', 'account_acts', 'wall', 2, { def: 'CREATE TABLE IF NOT EXISTS account_acts', men: '\\baccount_acts\\b' }],
+  ['streamside', 'stSwPanelHtml', 'see', 0],
 ].map((a, i) => ({ id: a[0], code: a[1], reg: a[2], floor: a[3], def: (a[4] || {}).def || '', men: (a[4] || {}).men || '', i }));
 
 /* The six flows: which parts each step lands on. The sentences are
@@ -445,7 +453,7 @@ const BRAIN_FLOWS = [
   { id: 'request', steps: [['request', 'kinds', 'intake', 'mailroom', 'reqfiles', 'askadmin', 'settingsask', 'settingsanswer', 'privpage', 'privlist', 'privsave', 'rolespage', 'bzsection', 'bzget', 'bzsave', 'bzholder', 'bzrec', 'arsheet', 'arread', 'armark', 'ardone', 'arrec'], ['bell', 'settingsasks', 'privnews', 'privseen'], ['lanes', 'laneowner'], ['arrivalowed', 'triage'], ['newagr']] },
   { id: 'theysign', steps: [['theirsign', 'issuelinks'], ['cplink', 'guestcode', 'totpcount', 'totpnew'], ['respond', 'filesig'], ['srvseal', 'sealtext', 'frozen'], ['copies', 'email'], ['obligations', 'renewal', 'calendar']] },
   { id: 'amend', steps: [['amendface', 'amend'], ['blanks'], ['readiness', 'approvals'], ['srvseal'], ['renewal', 'overview', 'stripfamily']] },
-  { id: 'end', steps: [['served', 'renewact'], ['autorenew'], ['obdone'], ['endpause', 'decline', 'reopen'], ['archive', 'hold', 'trailpage', 'trailsum', 'traillist', 'trailexport', 'trailrec']] },
+  { id: 'end', steps: [['served', 'renewact'], ['autorenew'], ['obdone'], ['endpause', 'decline', 'reopen'], ['archive', 'hold', 'trailpage', 'trailsum', 'traillist', 'trailexport', 'trailrec', 'streamside', 'youform', 'myemail', 'mycopy', 'acctrec']] },
   { id: 'mistake', steps: [['leaveguard', 'inline'], ['discard'], ['freshen'], ['outbyhand', 'mailkey'], ['linkkeep', 'whosemove']] }
 ];
 
@@ -465,12 +473,12 @@ const BRAIN_LANE_OF = {
   /* the person working the contract: what they see and press */
   own: ['awaycard', 'keeptab', 'cnrow', 'upload', 'dropin', 'draftform', 'refile', 'privnews', 'privtrail', 'histlanes', 'paysec', 'ndatail', 'glance', 'needshere', 'paperline', 'letter', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'needsme', 'counter', 'desktabs', 'negpage', 'redface', 'boardviews', 'strip', 'stripfamily', 'cardpage', 'startnego', 'here', 'follow',
     'editor', 'baton', 'askkeep', 'risklist', 'riskwalk', 'stands', 'dealpaper', 'onepaper', 'decidedsend', 'signtab', 'signface', 'pad', 'calendar', 'desknight', 'insights', 'readings',
-    'chasemany', 'copilotask', 'jambomap', 'menuask', 'nextsteps', 'reflink', 'menutab', 'amendface', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs',
+    'chasemany', 'youform', 'streamside', 'copilotask', 'jambomap', 'menuask', 'nextsteps', 'reflink', 'menutab', 'amendface', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs',
     'phrasebook', 'boardtools', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'citedoor', 'walkset', 'paperdesk', 'contracts', 'contractsplace', 'customers', 'directory', 'cellfold',
     'readchips', 'nextq', 'newagr', 'essentials', 'tplform', 'details', 'fillface', 'outbyhand', 'amend', 'endpause', 'decline', 'reopen', 'archive', 'hold', 'served', 'obdone', 'inline', 'stackview', 'mynotes', 'breakdown', 'jambohouse', 'onesearch', 'totpcount', 'totpnew'],
   /* HaTi itself: the readings, Copilot, the agents, the server's checks, the mail it sends */
   hati: ['docx', 'clauses', 'putguard', 'db', 'privwall', 'privsave', 'privlist', 'privseen', 'privopens', 'privmoney', 'trailsum', 'traillist', 'trailexport', 'trailrec', 'bzget', 'bzsave', 'bzholder', 'bzrec', 'arread', 'armark', 'ardone', 'arrec', 'awayget', 'awayset', 'awayend', 'awayreach', 'awaycovers', 'awayrec', 'awayans', 'keepread', 'keepset', 'keeprun', 'keepbook', 'keeprec', 'cnset', 'cndoor', 'cnmask', 'cnrec', 'cnlog', 'payread', 'jbpress', 'ndaread', 'triage', 'arrivalowed', 'datedwin', 'brief', 'playbook', 'oblscan', 'risk', 'model', 'blanks', 'laneowner',
-    'funnel', 'desk', 'ladder', 'kept', 'asks', 'payload', 'shares', 'linkcheck', 'email', 'sharemail', 'turnmail', 'wordmark', 'whosemove', 'roundauto',
+    'funnel', 'myemail', 'mycopy', 'acctrec', 'desk', 'ladder', 'kept', 'asks', 'payload', 'shares', 'linkcheck', 'email', 'sharemail', 'turnmail', 'wordmark', 'whosemove', 'roundauto',
     'mailkey', 'respond', 'audit', 'apply', 'wordback', 'paperdrop', 'stale', 'webhook', 'answeronpaper', 'readiness', 'signgate', 'approvals', 'paperjobs', 'rulestep', 'seal',
     'frozen', 'obligations', 'renewal', 'reminders', 'lanes', 'agentlevel', 'linkkeep', 'renewact', 'renewprep', 'boardjudge', 'bookread',
     'boardmoved', 'looktell', 'draftreply', 'dataguide', 'analyst', 'story', 'quote', 'passroute', 'copilotdoors', 'govrule', 'factsheet', 'dealfacts',

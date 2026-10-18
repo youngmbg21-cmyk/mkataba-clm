@@ -346,12 +346,16 @@ const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role,
      rule is decided. */
   overseerOn: u.overseer_on || null,
   overseerBackupId: u.overseer_backup_id || null,
-  overseerWhen: u.overseer_when || null });
+  overseerWhen: u.overseer_when || null,
+  /* the person's own facts on You (round 24): their password's day and who
+     set their role — null where nothing was recorded */
+  pwAt: u.pw_at || null,
+  roleBy: u.role_by || null });
 /* The facts on that record that are ONE PERSON'S OWN and an admin's business,
    and nobody else's. Stripped from every colleague's copy at the bootstrap —
    see the note there. A new per-person setting belongs on this list the day it
    is added; f202 fails if one of these ever reaches a non-admin again. */
-const ADMIN_ONLY_USER_FIELDS = ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId', 'overseerOn', 'overseerBackupId', 'overseerWhen', 'twoStep', 'newPaper', 'reFile', 'holdContracts'];
+const ADMIN_ONLY_USER_FIELDS = ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId', 'overseerOn', 'overseerBackupId', 'overseerWhen', 'twoStep', 'newPaper', 'reFile', 'holdContracts', 'pwAt', 'roleBy'];
 
 /* ---------- per-contract storage (scales to large portfolios) ----------
    Each contract is its own row with its own version. Lists return a light
@@ -624,6 +628,12 @@ addColumnIfMissing('users', 'overseer_when', 'TEXT');
 addColumnIfMissing('users', 'totp_secret', 'TEXT');
 addColumnIfMissing('users', 'totp_pending', 'TEXT');
 addColumnIfMissing('users', 'totp_recovery', 'TEXT');
+/* YOUR SETTINGS, AS DRAWN (round 24, the gaps, 18 Oct 2026): when this
+   person's password last changed ("Changed 2 Aug 2026" — absent until a
+   change after this column came, said as absent, never guessed), and who set
+   their role ("— set by Sara"; absent for a role set before it came). */
+addColumnIfMissing('users', 'pw_at', 'TEXT');
+addColumnIfMissing('users', 'role_by', 'TEXT');
 addColumnIfMissing('sessions', 'expires_at', 'TEXT');
 addColumnIfMissing('sessions', 'last_seen', 'TEXT');
 addColumnIfMissing('sessions', 'ip', 'TEXT');
@@ -3790,8 +3800,10 @@ app.post('/api/setup', rlSetup, (req, res) => {
   // account that could never be given a job title — the setup form did not ask.
   const u = { id: 'u_' + rid(8), name, email, role: 'admin', title, salt, hash: hashPw(password, salt), created_at: now() };
   setSetting('org', { name: org, createdAt: now() });
-  db.prepare('INSERT INTO users (id,name,email,role,title,salt,hash,created_at) VALUES (?,?,?,?,?,?,?,?)')
-    .run(u.id, u.name, u.email, u.role, u.title, u.salt, u.hash, u.created_at);
+  /* the founder chose this password themself: its day is the day it was set */
+  u.pw_at = u.created_at;
+  db.prepare('INSERT INTO users (id,name,email,role,title,salt,hash,created_at,pw_at) VALUES (?,?,?,?,?,?,?,?,?)')
+    .run(u.id, u.name, u.email, u.role, u.title, u.salt, u.hash, u.created_at, u.pw_at);
   if (data && Array.isArray(data.contracts)) {   // seed per-contract
     let seq = 0;
     txn(() => {
@@ -4002,7 +4014,10 @@ app.get('/api/bootstrap', auth, (req, res) => {
     org: getSetting('org'),
     /* streamNews: who named themself on a private stream that names this
        person, since they last looked (psNewsFor) — the bell's to say */
-    me: { ...publicUser(req.user), streamNews: psNewsFor(req.user) },
+    /* their own business role's name and who last set their role (You, round
+       24 as drawn: "Legal counsel · Editor — set by Sara") — the person's own,
+       never a colleague's */
+    me: { ...publicUser(req.user), streamNews: psNewsFor(req.user), ...meRoleFacts(req.user) },
     /* M-3, second half. Stripping folderAccess from the settings blob above
        achieved nothing while this list handed the same map back one record at a
        time — every member's scope, to every signed-in member. A non-admin gets
@@ -13202,7 +13217,21 @@ const awayForOf = (u, personId) => {
 /* what u answers for others, today and to come */
 const awayCovering = u => db.prepare(`SELECT * FROM away_rules WHERE deputy_id=? AND ended_at IS NULL AND d_to>=? ORDER BY d_from`)
   .all(String((u && u.id) || ''), awayToday()).map(awayShape);
-const awayBoot = u => ({ today: awayToday(), mine: awayShape(awayRuleOf(u && u.id)), covering: awayCovering(u) });
+/* EVERYONE'S STAND-IN, FOR AN ADMIN (round 25 as drawn, the gaps of 18 Oct
+   2026: Who holds what says "away until Fri · Maria answers" under a name).
+   An admin's to see, as every other per-person fact on the access sheet. */
+const awayEveryone = () => db.prepare(`SELECT * FROM away_rules WHERE ended_at IS NULL AND d_to>=? ORDER BY d_from`).all(awayToday()).map(awayShape);
+/* the person's own role facts for You: their business role's name, and who
+   last set their role — the column, else the last business-role change */
+function meRoleFacts(u) {
+  if (!u || !u.id) return {};
+  let bizRole = null, by = u.role_by || null;
+  try { const book = bzBook(); bizRole = bzName(book, book.of[String(u.id)]) || null; } catch (_) { bizRole = null; }
+  if (!by) { const r = db.prepare('SELECT by_name FROM role_changes WHERE user_id=? ORDER BY id DESC LIMIT 1').get(String(u.id)); by = (r && r.by_name) || null; }
+  return { bizRole, roleBy: by };
+}
+const awayBoot = u => ({ today: awayToday(), mine: awayShape(awayRuleOf(u && u.id)), covering: awayCovering(u),
+  ...(u && u.role === 'admin' ? { everyone: awayEveryone() } : {}) });
 /* ONE RECORD OF EACH ANSWER GIVEN FOR SOMEONE AWAY — asked as a difference
    on the one ask list (c.asks), whose `answeredFor` and part `for` the
    server itself wrote (srvAsksMerge) */
@@ -13328,7 +13357,10 @@ function kpBook(user, onlyFid, scopeOver) {
     const c = parsed.get(r.id) || {};
     const s = S(fid);
     s.contracts++;
-    if (kpHeld(c)) s.held.push({ id: r.id, ref: contractRef(c) || r.id, name: c.name || '', since: c.hold.at, by: c.hold.by || '' });
+    /* the party and the day it ended (as amended) travel with a held row —
+       the stream's side panel says them (round 26 as drawn, the gaps) */
+    if (kpHeld(c)) s.held.push({ id: r.id, ref: contractRef(c) || r.id, name: c.name || '', since: c.hold.at, by: c.hold.by || '',
+      counterparty: c.counterparty || '', ended: eff(r) || null });
     const rule = rules[fid];
     if (!rule || r.parent_id) continue;
     const end = eff(r);
@@ -13440,6 +13472,65 @@ app.post('/api/keeping/:fid/run', auth, admin, (req, res) => {
 });
 
 /* ============================================================
+   YOUR OWN ACCOUNT, CHANGED BY YOU (the gaps, 18 Oct 2026: round 24 "One
+   sheet" draws Name · Change, Email · Change and "Your data · A copy of
+   everything you can see · The download is recorded")
+   ============================================================
+   Three acts a person does on their own account, each kept as a row the
+   trail reads (trailRows): a name changed (by them or an admin), an email
+   changed (by them, with their current password), and their own copy taken.
+   THE SERVER IS THE WALL: the email route looks the person up by their
+   session, never by the body; a wrong password counts as a wrong guess
+   (rlNoteAuthFailure, the sign-in bucket); an address another member uses is
+   refused. The copy is what this person may read and nothing more — their
+   stream wall (folderScopeFor), their money (visibleContract) and a code
+   name for a deal they are not on (cnFrontDoor masks the JSON) — and it is
+   recorded BEFORE the file leaves, as the trail's own download is. */
+db.exec(`CREATE TABLE IF NOT EXISTS account_acts (id INTEGER PRIMARY KEY AUTOINCREMENT,
+  at TEXT NOT NULL, by_id TEXT, by_name TEXT, user_id TEXT, user_name TEXT, kind TEXT NOT NULL, detail TEXT)`);
+const ACCT_KINDS = { name: 'Name changed', email: 'Email changed', copy: 'Took a copy of what they can see' };
+function acctRecord(by, user, kind, detail) {
+  if (!ACCT_KINDS[kind]) return;
+  db.prepare('INSERT INTO account_acts (at, by_id, by_name, user_id, user_name, kind, detail) VALUES (?,?,?,?,?,?,?)')
+    .run(now(), String((by && by.id) || ''), String((by && (by.name || by.email)) || ''), String((user && user.id) || ''),
+      String((user && (user.name || user.email)) || ''), kind, String(detail || '').slice(0, 300));
+}
+app.post('/api/me/email', rlAuth, auth, (req, res) => {
+  const b = req.body || {};
+  const u = db.prepare('SELECT * FROM users WHERE id=?').get(req.user.id);
+  if (!u) return res.status(404).json({ error: 'User not found' });
+  if (userPrefs(u).mustChangePassword)
+    return res.status(403).json({ error: 'Set your own password before making changes', mustChangePassword: true });
+  if (!safeEq(hashPw(String(b.current || ''), u.salt), u.hash)) {
+    rlNoteAuthFailure(req);
+    return res.status(400).json({ error: 'Your current password is incorrect' });
+  }
+  const email = cleanEmail(b.email);
+  if (!validEmail(email)) return res.status(400).json({ error: 'Enter a valid email address' });
+  if (email === String(u.email || '').toLowerCase()) return res.status(400).json({ error: 'That is already your email' });
+  if (db.prepare('SELECT id FROM users WHERE lower(email)=? AND id<>?').get(email, u.id))
+    return res.status(409).json({ error: 'Another member already uses that email' });
+  db.prepare('UPDATE users SET email=? WHERE id=?').run(email, u.id);
+  acctRecord(u, u, 'email', `${u.email} to ${email}`);
+  res.json({ ok: true, user: publicUser(db.prepare('SELECT * FROM users WHERE id=?').get(u.id)) });
+});
+app.get('/api/me/copy', auth, (req, res) => {
+  const f = scopeFrag(folderScopeFor(req.user));
+  const contracts = [];
+  for (const r of db.prepare(`SELECT id, folder, json FROM contracts ${whereOf(f.sql)} ORDER BY seq`).all(...f.args)) {
+    let c; try { c = dropSittingKeys(JSON.parse(r.json)); } catch (_) { continue; }
+    if (!c) continue;
+    psRecordOpen(r.folder, r.id, req.user);   // a private stream's contract taken is an open, kept
+    contracts.push(visibleContract(c, req.user));
+  }
+  const items = db.prepare('SELECT * FROM my_items WHERE user_id=? ORDER BY updated_at DESC').all(String(req.user.id)).map(myRow);
+  acctRecord(req.user, req.user, 'copy', `${contracts.length} contract${contracts.length === 1 ? '' : 's'} · ${items.length} of their own notes and events`);
+  const day = now().slice(0, 10);
+  res.setHeader('Content-Disposition', `attachment; filename="hati-my-copy-${day}.json"`);
+  res.json({ kind: 'hati-copy', v: 1, takenAt: now(), org: (getSetting('org') || {}).name || '', me: publicUser(req.user), contracts, items });
+});
+
+/* ============================================================
    THE TRAIL, AS A FILE (owner picked "Export drawer — the SAP way",
    17 Oct 2026; piece 5 of the sensitive contracts and governance plan)
    ============================================================
@@ -13506,6 +13597,10 @@ function trailRows(ask) {
   /* a person's business role changing is the company's act too (piece 6) */
   for (const r of db.prepare('SELECT * FROM role_changes WHERE at >= ? AND at <= ? ORDER BY id').all(lo, hi))
     out.push({ at: r.at, who: String(r.by_name || ''), what: 'Business role changed', detail: `${r.user_name}: ${r.from_role || 'none'} to ${r.to_role || 'none'}`, c: null });
+  /* a person's own account: name, email, their copy taken (round 24, the gaps) */
+  for (const r of db.prepare('SELECT * FROM account_acts WHERE at >= ? AND at <= ? ORDER BY id').all(lo, hi))
+    out.push({ at: r.at, who: String(r.by_name || ''), what: ACCT_KINDS[r.kind] || r.kind,
+      detail: r.by_id && r.by_id === r.user_id ? String(r.detail || '') : `${r.user_name}: ${r.detail || ''}`, c: null });
   /* the quarter's access review, stamped done (piece 8) */
   for (const r of db.prepare('SELECT * FROM access_reviews WHERE done_at >= ? AND done_at <= ?').all(lo, hi))
     out.push({ at: r.done_at, who: String(r.done_by_name || ''), what: 'Access review done', detail: `${r.quarter} · ${r.people} people: ${r.kept} kept, ${r.changed} changed`, c: null });
@@ -16131,9 +16226,9 @@ app.post('/api/users', auth, admin, async (req, res) => {
   // Without that, a signature attributed to a colleague is not attributable —
   // the admin knows the credential that produced it.
   const u = { id: 'u_' + rid(8), name, email, role, title, salt, hash: hashPw(password, salt), created_at: now(),
-    prefs: JSON.stringify({ mustChangePassword: true }) };
-  db.prepare('INSERT INTO users (id,name,email,role,title,salt,hash,created_at,prefs) VALUES (?,?,?,?,?,?,?,?,?)')
-    .run(u.id, u.name, u.email, u.role, u.title, u.salt, u.hash, u.created_at, u.prefs);
+    prefs: JSON.stringify({ mustChangePassword: true }), role_by: String(req.user.name || req.user.email || '') };
+  db.prepare('INSERT INTO users (id,name,email,role,title,salt,hash,created_at,prefs,role_by) VALUES (?,?,?,?,?,?,?,?,?,?)')
+    .run(u.id, u.name, u.email, u.role, u.title, u.salt, u.hash, u.created_at, u.prefs, u.role_by);
   /* "SENT" USED TO MEAN "WE HAVE A KEY". This answered emailSent: EMAIL_ON()
      without waiting to see what the provider did with it, so an admin whose
      sending domain is not verified — the commonest real mail failure there is —
@@ -16313,9 +16408,13 @@ app.patch('/api/users/:id', auth, (req, res) => {
   if (!hasRole && !hasValues && !hasTitle && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasSa && !hasClear2 && !hasPaper && !hasReFile && !hasHold && !hasName)
     return res.status(400).json({ error: 'Nothing to change' });
   const self = req.params.id === req.user.id;
-  // Only a title may be set by a non-admin, and only on their own account.
+  /* Only a title — and, since the gaps of 18 Oct 2026 (round 24 "One sheet":
+     Name · Change on a person's own You), their own NAME — may be set by a
+     non-admin, and only on their own account. A name stays unique (below),
+     and every change of one is recorded in the trail (acctRecord). An admin's
+     change of someone else's name stays as it was. */
   if (req.user.role !== 'admin'
-    && !(self && hasTitle && !hasRole && !hasValues && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasSa && !hasClear2 && !hasPaper && !hasReFile && !hasHold && !hasName))
+    && !(self && (hasTitle || hasName) && !hasRole && !hasValues && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasSa && !hasClear2 && !hasPaper && !hasReFile && !hasHold))
     return res.status(403).json({ error: 'Admin access required' });
   if (userPrefs(req.user).mustChangePassword)
     return res.status(403).json({ error: 'Set your own password before making changes', mustChangePassword: true });
@@ -16339,6 +16438,7 @@ app.patch('/api/users/:id', auth, (req, res) => {
     if (clash) return res.status(409).json({ error: 'Another member already has that name.' });
     if (nm !== target.name) {
       db.prepare('UPDATE users SET name=? WHERE id=?').run(nm, req.params.id);
+      acctRecord(req.user, target, 'name', `${target.name || ''} to ${nm}`);
       /* The approval rules follow the person: a rule that names them by their
          old name is repointed, and from now on carries their id too. */
       const st = getSetting('appSettings');
@@ -16355,7 +16455,8 @@ app.patch('/api/users/:id', auth, (req, res) => {
     }
   }
   if (hasTitle) db.prepare('UPDATE users SET title=? WHERE id=?').run(clean(b.title).slice(0, 120), req.params.id);
-  if (hasRole) db.prepare('UPDATE users SET role=? WHERE id=?').run(b.role, req.params.id);
+  /* who set it, said on the person's own You (round 24: "— set by Sara") */
+  if (hasRole && b.role !== target.role) db.prepare('UPDATE users SET role=?, role_by=? WHERE id=?').run(b.role, String(req.user.name || req.user.email || ''), req.params.id);
   if (hasClear2) db.prepare('UPDATE users SET totp_secret=NULL, totp_pending=NULL, totp_recovery=NULL WHERE id=?').run(req.params.id);
   if (hasCap) {
     /* null clears the decision, 'none' IS a decision, a number is the ceiling.
@@ -20220,7 +20321,8 @@ app.post('/api/password/change', auth, (req, res) => {
   if (String(password) === String(current)) return res.status(400).json({ error: 'Choose a password you have not used here before' });
   const salt = rid(16);
   const prefs = userPrefs(u); delete prefs.mustChangePassword;
-  db.prepare('UPDATE users SET salt=?, hash=?, prefs=? WHERE id=?').run(salt, hashPw(password, salt), JSON.stringify(prefs), u.id);
+  /* pw_at: the day You's Signing in row says (round 24) */
+  db.prepare('UPDATE users SET salt=?, hash=?, prefs=?, pw_at=? WHERE id=?').run(salt, hashPw(password, salt), JSON.stringify(prefs), now(), u.id);
   // every other session for this user is invalidated; this one keeps working
   db.prepare('DELETE FROM sessions WHERE user_id=? AND token<>?').run(u.id, req.token);
   res.json({ ok: true });
@@ -20236,7 +20338,7 @@ app.post('/api/password/reset', (req, res) => {
   const salt = rid(16);
   const ru = db.prepare('SELECT * FROM users WHERE id=?').get(row.user_id);
   const rprefs = ru ? userPrefs(ru) : {}; delete rprefs.mustChangePassword;
-  db.prepare('UPDATE users SET salt=?, hash=?, prefs=? WHERE id=?').run(salt, hashPw(password, salt), JSON.stringify(rprefs), row.user_id);
+  db.prepare('UPDATE users SET salt=?, hash=?, prefs=?, pw_at=? WHERE id=?').run(salt, hashPw(password, salt), JSON.stringify(rprefs), now(), row.user_id);
   db.prepare('UPDATE resets SET used=1 WHERE id=?').run(id);
   db.prepare('DELETE FROM sessions WHERE user_id=?').run(row.user_id); // force re-login everywhere
   res.json({ ok: true });

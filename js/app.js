@@ -319,7 +319,9 @@ function commandMeta(view){
     case 'mynotes':   return [i18t('nav_mynotes'), ''];   // the drawing's bar says "Calendar", the rail's word (SAP batch 2)
     case 'migration': return [i18t('nav_import'), i18t('pg_import_sub')];
     case 'reports':   return [i18t('pg_reports'), i18t('pg_reports_sub')];
-    case 'team':      return [i18t('pg_team'), i18t('pg_team_sub')];
+    /* a member reads their own settings only, and the head says so (round 24
+       as drawn, the gaps of 18 Oct 2026: "Your settings") */
+    case 'team':      return [(typeof isAdmin==='function'&&!isAdmin())?i18t('st_you_head'):i18t('pg_team'), i18t('pg_team_sub')];
     case 'directory': return [i18t('nav_directory'), ''];
     case 'folder': {
       /* The FOLDER'S OWN NAME is the customer's word and stays as typed; only
@@ -420,6 +422,10 @@ function pageActionHtml(kind){
     icon('plus','w-3.5 h-3.5',2)} ${i18t('home_draft_new')}</button>`;
   return '';
 }
+/* SETTINGS PAINTS ITS HEAD'S FACT AND ACT TOO (rounds 24 and 25 as drawn,
+   the gaps of 18 Oct 2026): "Settings · <the company>", or a member's "Your
+   settings · yours alone — nobody else sees them" with Ask an admin. */
+PAGE_HEAD_PAINT.team='stPaintHead';
 /* PAGES THAT ALREADY STATE THEIR OWN NAME get no header from here — putting
    one above them is the second layer this whole change removes.
 
@@ -790,7 +796,10 @@ function renderPageHeader(view){
   host.style.padding='var(--page-pad-t) var(--page-pad-x) 0';
   host.innerHTML=`
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap">
-      <div style="min-width:0">
+      ${''/* THE FACTS ON THE TITLE'S LINE (owner's yes, 18 Oct 2026: every picked
+             drawing of rounds 14–26 sets them beside the page's name — "Negotiations
+             7 live · 3 waiting on our side"); they wrap under it where the line is full */}
+      <div class="page-title-row" style="min-width:0;display:flex;align-items:baseline;column-gap:12px;row-gap:2px;flex-wrap:wrap">
         <h1 style="margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${esc(t)}</h1>
         ${''/* A FACTS LINE, NOT A SUBTITLE (second pass, 21 Sep 2026): the
                Contracts page prints its count and its money here — the
