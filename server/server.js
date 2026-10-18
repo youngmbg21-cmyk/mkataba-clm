@@ -7505,16 +7505,16 @@ const GRAPH_ASK_CAP = 600;   // contracts per map command, the browser's own cap
 /* The structured filter the tool may return. HaTi applies it in the browser
    over its own cards (graphWhereIds), so the model never has to copy 159 ids
    by hand. Only these keys pass; anything else is dropped here. */
-const GRAPH_WHERE_KEYS = ['status', 'folder', 'kind', 'counterparty', 'valueAbove', 'valueBelow', 'expiringWithinDays', 'signedFrom', 'signedTo', 'overdueObligations', 'offStandard', 'notRead', 'move', 'archived'];
+const GRAPH_WHERE_KEYS = ['status', 'folder', 'kind', 'counterparty', 'valueAbove', 'valueBelow', 'expiringWithinDays', 'signedFrom', 'signedTo', 'overdueObligations', 'offStandard', 'notRead', 'move', 'archived', 'imported'];
 /* ONE SCHEMA for the vocabulary, read by the graph tool and by list_portfolio
    (Copilot audit phase 4); its keys ARE GRAPH_WHERE_KEYS (f305 pins the set). */
-const GRAPH_WHERE_SCHEMA = { type: 'object', description: 'A structured filter HaTi applies itself over every contract. Prefer this over copying ids. Keys: status (string or list), folder (value-stream name or id), kind (substring), counterparty (substring), valueAbove, valueBelow (numbers in the contract\'s own currency), expiringWithinDays (number), signedFrom, signedTo (YYYY-MM-DD, off signedAt), overdueObligations (true = has overdue obligations), offStandard (true = deviates from the playbook), notRead (true = Jambo has not read it), move ("you" = waiting on us, "them" = with the other side), archived (true/false).',
+const GRAPH_WHERE_SCHEMA = { type: 'object', description: 'A structured filter HaTi applies itself over every contract. Prefer this over copying ids. Keys: status (string or list), folder (value-stream name or id), kind (substring), counterparty (substring), valueAbove, valueBelow (numbers in the contract\'s own currency), expiringWithinDays (number), signedFrom, signedTo (YYYY-MM-DD, off signedAt), overdueObligations (true = has overdue obligations), offStandard (true = deviates from the playbook), notRead (true = Jambo has not read it), move ("you" = waiting on us, "them" = with the other side), archived (true/false), imported (true = brought in through Import contracts).',
   properties: {
     status: { type: 'array', items: { type: 'string' } }, folder: { type: 'string' }, kind: { type: 'string' }, counterparty: { type: 'string' },
     valueAbove: { type: 'number' }, valueBelow: { type: 'number' }, expiringWithinDays: { type: 'number' },
     signedFrom: { type: 'string' }, signedTo: { type: 'string' },
     overdueObligations: { type: 'boolean' }, offStandard: { type: 'boolean' }, notRead: { type: 'boolean' },
-    move: { type: 'string', enum: ['you', 'them'] }, archived: { type: 'boolean' } } };
+    move: { type: 'string', enum: ['you', 'them'] }, archived: { type: 'boolean' }, imported: { type: 'boolean' } } };
 function graphWhereClean(w) {
   if (!w || typeof w !== 'object' || Array.isArray(w)) return null;
   const out = {};
@@ -11659,7 +11659,7 @@ function copilotList(ctx, filter = {}) {
      Copilot's totals could disagree with the register head. The same
      reading — `c.archived` set — off the record, as the screens read it;
      `archived:true` includes the shelf deliberately. */
-  /* THE GRAPH'S VOCABULARY (phase 4): the same fourteen keys, the same
+  /* THE GRAPH'S VOCABULARY (phase 4): the same fifteen keys, the same
      predicate (js/graphwhere.js), over the server's reading of each record. */
   const w = graphWhereClean(filter.where);
   const wantShelf = !!filter.archived || !!(w && w.archived === true);
@@ -11742,7 +11742,9 @@ function copilotCardOf(c, briefIds, effOf) {
   return { id: c.id, contractNo: c.contractNo || undefined, name: c.name || c.id, counterparty: c.counterparty || '', folder: c.folder || '', kind: copilotContractKind(c),
     /* a salary carries no deal value, so it never matches a money cut (fxIsPay) */
     status: c.status || '', value: fxIsPay(c) ? null : (Number(c.value) || 0), expiry: (effOf && effOf(c)) || c.expiry || '', signedAt: contractSignedOn(c) || '',
-    overdue, offStandard, read, move, archived: !!c.archived };
+    overdue, offStandard, read, move, archived: !!c.archived,
+    /* brought in through Import (the imports trial, 18 Oct 2026): the browser's CA_HERE_FACTS reading */
+    imported: !!c.migration };
 }
 /* ---- OBLIGATIONS AND THE TRAIL (phase 8) ----
    Read-only. Every row is a READING of the stored record — the band and the
@@ -12125,7 +12127,7 @@ const COPILOT_TOOLS = [
     input_schema: { type: 'object', properties: { id: { type: 'string', description: 'Contract id, e.g. MK-103.' } }, required: ['id'] } },
   { name: 'get_scan_findings', description: 'Fetch just the open risk/missing/ambiguity findings for one contract id (from the deterministic local-practice scan). Empty if it has not been scanned.',
     input_schema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } },
-  { name: 'list_portfolio', description: 'List/filter contracts across the whole workspace. Use for aggregate questions ("what expires in 90 days", "pending contracts", "high-value deals", "everything with Naivas", "what is waiting on us", "signed this year"). "where" carries the full filter vocabulary — the same fourteen keys the contract graph uses. Returns at most 40 rows per call plus the TRUE total: when "truncated" is true, quote "total" as the count, and pass "offset" = "nextOffset" to read the next page rather than guessing what lies past the cap. ' + COPILOT_MONEY_NOTE,
+  { name: 'list_portfolio', description: 'List/filter contracts across the whole workspace. Use for aggregate questions ("what expires in 90 days", "pending contracts", "high-value deals", "everything with Naivas", "what is waiting on us", "signed this year"). "where" carries the full filter vocabulary — the same fifteen keys the contract graph uses. Returns at most 40 rows per call plus the TRUE total: when "truncated" is true, quote "total" as the count, and pass "offset" = "nextOffset" to read the next page rather than guessing what lies past the cap. ' + COPILOT_MONEY_NOTE,
     input_schema: { type: 'object', properties: {
       where: GRAPH_WHERE_SCHEMA,
       offset: { type: 'number', description: 'Row to start from (0-based); pass the previous call\'s "nextOffset" to page.' },

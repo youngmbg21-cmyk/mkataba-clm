@@ -313,6 +313,7 @@ function caCardHtml(a, i){
   if (a.kind === 'menu') return caMenuCardHtml(a, i);
   if (a.kind === 'go') return caGoCardHtml(a, i);
   if (a.kind === 'map') return (typeof jmCardHtml === 'function') ? jmCardHtml(a, i) : '';
+  if (a.kind === 'here') return caHereCardHtml(a, i);
   if (a.kind !== 'send') return '';
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   const B = (act, label, cls) => `<button type="button" class="ui-btn ui-btn-sm${cls === 'lead' ? ' ui-btn-primary' : ''}" data-ca-act="${act}" data-ca-turn="${i}">${_caE(label)}</button>`;
@@ -350,6 +351,7 @@ async function caCardPress(i, act, btn){
   if (a.kind === 'menu') return caMenuPress(i, act);
   if (a.kind === 'go') return caGoPress(a, act);
   if (a.kind === 'map') return (typeof jmCardPress === 'function') ? jmCardPress(i, act) : undefined;
+  if (a.kind === 'here') return caHerePress(a, act);
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   if (act === 'sendscreen'){ if (c && typeof openShareModal === 'function') openShareModal(c); return; }
   if (act === 'note'){
@@ -1564,6 +1566,69 @@ function caHandHome(t, a){
   setTimeout(ask, 0);
   return true;
 }
+/* ---- ANSWER WHERE YOU STAND (owner, 18 Oct 2026: "assessment of current
+   screen vs moving someone to another screen if the information is in
+   multiple locations"; the imports trial) ----
+   A request to SEE a group of contracts that the screen in front can show is
+   answered THERE — Explorer narrows its map with its own reader, the Contracts
+   place narrows its list — and the page that also holds them is offered as a
+   door under the answer, never pressed. A page named outright ("open the
+   import page", "go to imports") or an act only that page does ("import old
+   contracts", "bulk upload") still goes to the page. Spends nothing.
+   CA_HERE_FACTS is the ONE list of such facts: Explorer's reader
+   (igConditions) reads its words from here, and the AI's map filter carries
+   the same fact as a field (GRAPH_WHERE_KEYS `imported`, both hosts). */
+const CA_HERE_FACTS = [
+  /* brought in through Import: c.migration, written by the Import page alone */
+  { k: 'imported', page: 'import', of: c => !!(c && c.migration),
+    re: /(?<!\p{L})(?:imports|imported|migrated|(?:did|have|had)\s+(?:we|i)\s+import|importerade|migrerade|importer|importerna|importerat)(?!\p{L})/iu },
+];
+/* the page itself is asked for */
+const CA_HERE_PAGE_RE = /(?<!\p{L})(?:page|screen|sidan|sida|vyn)(?!\p{L})|^\s*(?:please\s+)?(?:(?:go|take me|bring me|jump|switch)\s+(?:back\s+)?to|open|gå\s+(?:tillbaka\s+)?till|öppna|ta mig till)(?!\p{L})/iu;
+/* an act only that page does */
+const CA_HERE_ACT_RE = /^\s*(?:please\s+)?(?:(?:can|could|would)\s+you\s+)?(?:import|importera|bulk|upload|migrate|bring in|load|ladda upp|flytta in|ta in)(?!\p{L})|(?<!\p{L})(?:how (?:do|can|should) (?:i|we)|i want to|we want to|we need to|help me|let me|jag vill|vi vill|hur (?:gör|kan) (?:jag|vi))\s+(?:import|upload|migrate|bring in|importera|ladda upp|flytta in)(?!\p{L})/iu;
+/* shaped as a request to see: a see-word first, or only a few words ("imports", "the imported ones") */
+const CA_HERE_SEE_RE = /^\s*(?:please\s+)?(?:(?:can|could|would)\s+you\s+)?(?:show|see|list|which|what|find|filter|highlight|display|only|just|give me|get me|bring up|how many|where|visa|vilka|vilket|vilken|vad|hitta|lista|filtrera|markera|hur många|var|ge mig)(?!\p{L})/iu;
+const CA_HERE_SHORT = 4;
+/* which screen in front can show a group of contracts: Explorer's map, or the Contracts place's list */
+function caHereScreen(){
+  try {
+    if (typeof state === 'undefined' || !state || state.view !== 'dashboard' || typeof hbFace !== 'function') return '';
+    const f = hbFace();
+    if (f === 'explorer') return 'explorer';
+    if (f === 'paper' && typeof document !== 'undefined' && document.getElementById('ct-place') && !(typeof igPaperUp === 'function' && igPaperUp())) return 'contracts';
+  } catch (_){}
+  return '';
+}
+function caHereFact(k){ return CA_HERE_FACTS.find(f => f.k === k) || null; }
+function caHereRead(q){
+  const t = String(q || '').trim(); if (!t || t.length > 160) return null;
+  const screen = caHereScreen(); if (!screen) return null;
+  if (CA_HERE_PAGE_RE.test(t) || CA_HERE_ACT_RE.test(t)) return null;
+  const fact = CA_HERE_FACTS.find(f => f.re.test(t)); if (!fact) return null;
+  if (!CA_HERE_SEE_RE.test(t) && t.split(/\s+/).length > CA_HERE_SHORT) return null;
+  return { kind: 'here', fact: fact.k, page: fact.page, screen };
+}
+/* THE CONTRACTS PLACE: its list narrowed by the map's own reading of the same
+   words (igConditions → igIdsWhere), so "imported contracts expiring this
+   year" keeps both; none found is said, the list left whole */
+function caHereOnList(here, q){
+  let conds = []; try { conds = (typeof igConditions === 'function') ? igConditions(q) : []; } catch (_){ conds = []; }
+  if (!conds.some(c => c.field === here.fact)) return null;
+  let ids = []; try { ids = (typeof igIdsWhere === 'function') ? igIdsWhere(conds, caContracts()) : []; } catch (_){ ids = []; }
+  const what = conds.map(c => c.label).join(' · ');
+  if (ids.length && typeof regShowOnly === 'function') regShowOnly(ids, what);
+  const any = ids.length || caContracts().some(c => { const f = caHereFact(here.fact); return !!(f && f.of(c)); });
+  return Object.assign({}, here, { n: ids.length, what, say: ids.length ? _caT('ca_here_list', { n: ids.length, what })
+    : any ? _caT('ca_here_none_match', { what }) : _caT('ca_here_none_' + here.fact) });
+}
+function caHereCardHtml(a, i){
+  const B = (act, label) => `<button type="button" class="ui-btn ui-btn-sm" data-ca-act="${act}" data-ca-turn="${i}">${_caE(label)}</button>`;
+  return `<div class="ca-card ca-here" data-ca-card="${i}"><p class="ca-foot" style="margin-top:0">${_caE(_caT('ca_here_also_' + a.fact))}</p>
+    <div class="ca-acts">${B('herepage', _caT('ca_here_open_' + a.page))}</div></div>`;
+}
+/* the door: the page, through the one mover */
+function caHerePress(a, act){ if (act === 'herepage') return caGo({ kind: 'go', place: a.page, state: 'ready' }); }
 function caAskAnywhere(text, opts = {}){
   const t = String(text || '').trim(); if (!t) return false;
   /* A REQUEST TO BOOK OR FIND TIME, OR A QUESTION ABOUT ONE'S OWN CALENDAR
@@ -1708,3 +1773,5 @@ if (typeof document !== 'undefined' && !document._caBackWired){
 Object.assign(window, { CA_PLACES, CA_PLACE_LEAD, CA_PLACE_MAX, CA_PLACE_MIN_TYPED, caPlaceOf, caOnBoard, caReadPlace, CA_USES_KEY, caUses, caUseBump, CA_SLASH, CA_SLASH_MAX, caSlashWord, caSlashRows,
   CA_TRAIL_MAX, caPlaceNow, caTrailPush, caTrailTop, caTrailLabel, caTrailBack, caBackRowHtml, caHomeFace, caHomeWall, caRoomTab, CA_GO, caGoSay, caGo, caGoRepaint,
   caPlaceRows, caPlaceRun, CA_CARD_WORDS, caTakesWords, caHandHome, caAskAnywhere, CA_SL_MAX, CA_SL_TALL, caSlRead, caSlPaint, caSlClose, caSlTake, caGoCardHtml, caGoPress, CA_CHIPS, CA_CHIPS_WALL, CA_CHIP_WALL_WORD, caChipLead });
+/* ANSWER WHERE YOU STAND (the imports trial): published after its definitions */
+Object.assign(window, { CA_HERE_FACTS, CA_HERE_PAGE_RE, CA_HERE_ACT_RE, CA_HERE_SEE_RE, caHereScreen, caHereFact, caHereRead, caHereOnList, caHereCardHtml, caHerePress });
