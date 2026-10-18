@@ -2045,7 +2045,7 @@ function calWireOwn(){
      Home — a page, a contract's number, a draft, a send — he does here too
      (caAskAnywhere); planning time is this box's own job, for the rest */
   if(inp) inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault();
-    const v=inp.value; if(typeof caAskAnywhere==='function'&&caAskAnywhere(v)){ inp.value=''; return; } calPlanAsk(v); } });
+    const v=inp.value; if(typeof caAskAnywhere==='function'&&caAskAnywhere(v,{cal:true})){ inp.value=''; return; } calPlanAsk(v); } });
   const body=document.getElementById('cal-wk-body');
   if(body&&body.dataset&&!body.dataset.scrolled&&typeof getComputedStyle==='function'){ body.dataset.scrolled='1';
     const first=body.querySelector('.cal-wk-blk'); const pref=typeof minePref==='function'?minePref():{dayStart:8};
