@@ -1063,12 +1063,23 @@ function regHomeStale(){ return regPlaceUp() && regBookSig()!==_regHomeSig; }
    · Quick filters, then Clear while narrowed, Do this to these and Adapt
    filters at the row's end. The same boxes, ids and wiring as the page's band,
    so a filter means one thing wherever it is pressed. */
+/* THE ARCHIVE HAS ITS OWN BUTTON (round 13 of the redesign: the owner picked
+   "Wall of papers" and said yes to the archive leaving the Quick filters box,
+   17 Oct 2026): beside Wall | List, with its own count — the press's own
+   reading (regViewCount), so the number on the door is the shelf behind it.
+   It is the archive view (R.view 'archived'); pressed again, the live book. */
+function regArchiveBtnHtml(R){
+  const on=R.view==='archived';
+  let n=null; try{ n=regViewCount('archived'); }catch(_){ n=null; }
+  return `<button type="button" class="ui-btn ct-arch" data-ct-archive aria-pressed="${on?'true':'false'}" title="${esc(i18t(on?'ct_arch_back':'ct_arch_title'))}">${typeof icon==='function'?icon('archive','w-4 h-4'):''}<span>${esc(i18t('ct_archive'))}</span>${n?`<span class="ct-arch-n">${esc(String(n))}</span>`:''}</button>`;
+}
 function regHomeHeadHtml(R, boxes, adapt, clear){
   const show=R.show==='list'?'list':'wall';
   const ic=k=>typeof icon==='function'?icon(k==='wall'?'grid':'list','w-4 h-4'):'';
   return `<div class="reg-band sap-band ct-head">
       <div class="reg-tabbar ct-top">
         <div class="ct-name"><h2 class="ct-h">${esc(i18t('nav_contracts'))}</h2><div id="reg-head-facts" class="ct-facts"></div></div>
+        ${regArchiveBtnHtml(R)}
         <div class="reg-seg ct-seg" role="group" aria-label="${esc(i18t('ct_show_as'))}">${REG_SHOWS.map(k=>
           `<button type="button" data-ct-show="${k}" aria-pressed="${show===k?'true':'false'}">${ic(k)}<span>${esc(i18t('ct_'+k))}</span></button>`).join('')}</div>
       </div>
@@ -1499,13 +1510,14 @@ function regStageOptsHtml(R){
    forget the one in force). The fact is still R.view; a saved view still
    lights when the bar matches it. regViewTabsHtml stays built for the record
    and has no caller. */
-function regViewOptsHtml(R){
+function regViewOptsHtml(R, o={}){
   const cur=(()=>{ const m=regSavedViews().find(v=>regSavedMatches(v,R)); return m?('saved:'+m.name):(R.view||''); })();
   const opt=(v,l)=>`<option value="${esc(v)}"${cur===v?' selected':''}>${esc(l)}</option>`;
   const cnt=k=>{ const n=regViewCount(k); return n?` (${n})`:''; };
   const saved=regSavedViews();
   const lit=saved.find(v=>regSavedMatches(v,R));
-  return opt('',i18t('reg_tab_all'))+REG_VIEWS.map(v=>opt(v.k,v.label+cnt(v.k))).join('')
+  /* on the Contracts place the archive is its own button (round 13) */
+  return opt('',i18t('reg_tab_all'))+REG_VIEWS.filter(v=>!(o.home&&v.k==='archived')).map(v=>opt(v.k,v.label+cnt(v.k))).join('')
     +(saved.length?`<optgroup label="${esc(i18t('reg_qf_saved'))}">${saved.map(v=>opt('saved:'+v.name,v.name)).join('')}</optgroup>`:'')
     +`<optgroup label="${esc(i18t('reg_qf_acts'))}">${opt('act:save',i18t('reg_qf_save'))}${lit?opt('act:forget:'+lit.name,i18t('reg_qf_forget',{name:lit.name})):''}</optgroup>`;
 }
@@ -2954,7 +2966,7 @@ function renderRegister(opts){
         ${''/* QUICK FILTERS LAST (owner, 16 Oct 2026). The long sentence is the
                TOOLTIP, not the label — used as a label it ran to 460px and
                pushed the whole bar off the row. */}
-        ${(!neg&&BAR.includes('view'))?selFilter('reg-view-sel',regViewOptsHtml(R),!!R.view||regSavedViews().some(v=>regSavedMatches(v,R)),i18t('reg_quick_filters_title'),i18t('reg_quick_filters')):''}
+        ${(!neg&&BAR.includes('view'))?selFilter('reg-view-sel',regViewOptsHtml(R,{ home:HOME }),(!!R.view&&!(HOME&&R.view==='archived'))||regSavedViews().some(v=>regSavedMatches(v,R)),i18t('reg_quick_filters_title'),i18t('reg_quick_filters')):''}
 `;
   const adaptBtn=`
         ${''/* THE DOOR TO THE REST. A link rather than a button, because it
@@ -3681,6 +3693,10 @@ function renderRegister(opts){
   /* WALL | LIST (the Contracts place on Home): a way of looking, like the
      density — a repaint; the tabs, filters and set stay, and so does the
      place a refresh comes back to */
+  /* THE ARCHIVE'S OWN BUTTON (round 13): the shelf, and pressed again the
+     live book — one press each way */
+  document.querySelectorAll('[data-reg-home] [data-ct-archive]').forEach(b=>b.addEventListener('click',()=>{
+    R.view=R.view==='archived'?null:'archived'; R.page=1; regRepaint(); }));
   document.querySelectorAll('[data-reg-home] [data-ct-show]').forEach(b=>b.addEventListener('click',()=>{
     const k=b.getAttribute('data-ct-show'); if(!REG_SHOWS.includes(k)||R.show===k) return;
     R.show=k; regRepaint(); }));
