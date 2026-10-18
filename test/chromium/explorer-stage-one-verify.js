@@ -8,8 +8,11 @@
    bucket (IG_ATTN), with each row's and column's total; "shade the cells by
    money" shades by value; (3) on the renewal-decision and expiry timelines a
    contract with a notice period carries a tail — the notice period; (4) the
-   timeline counts each stretch in a strip under its dates; (5) an amendment's
-   link names itself on hover.
+   timeline counts each stretch in a strip above its lanes; (5) an amendment's
+   link names itself on hover. Then the Brain, as the owner picked it by name
+   ("Glow", 18 Oct 2026): (8) "shade the lobes by liability cap" puts an amber
+   glow round each lobe holding uncapped contracts and a count on its card;
+   "size the lobes by value" spreads each lobe by its share of the value.
 
    Every claim measures what was PAINTED: the canvas's own fillText and fill
    are listened to for a frame, so a total held in a variable but never drawn
@@ -18,7 +21,8 @@
 
    Red at the parent (705dc90): no floor or grid total is painted, no cell is
    amber, "shade the cells by money" is not understood, no contract carries a
-   tail, there is no strip and no link answers the pointer.
+   tail, there is no strip, no link answers the pointer, and no lobe glows or
+   grows.
 
    Screenshots go to test/chromium/shots/explorer-stage-one/ (or HATI_SHOT_DIR).
    Run: node test/chromium/explorer-stage-one-verify.js */
@@ -41,7 +45,8 @@ const NOTICE = [30, 60, 90, 0, 45];
 const BOOK = FIXTURES.concat(Array.from({ length: 30 }, (_, i) => {
   const c = fixtureContract('MK-S' + i, ['Freight Services', 'Cloud Hosting', 'Facilities Management'][i % 3], ['Kipande', 'Savanna', 'Mvua', 'Tausi'][i % 4],
     ST[i % 3], ((i * 37) % 90 + 5) * 1e6, ['Signed', 'Signed', 'Under Review', 'Draft'][i % 4]);
-  c.metadata = Object.assign({}, c.metadata || {}, { liabilityCapped: LC[i % 5] });
+  /* the mfg stream is kept fully capped: a clean lobe the glow must leave alone (8c) */
+  c.metadata = Object.assign({}, c.metadata || {}, { liabilityCapped: ST[i % 3] === 'mfg' && LC[i % 5] === 'uncapped' ? 'capped' : LC[i % 5] });
   if (NOTICE[i % 5]) c.metadata.noticePeriodDays = NOTICE[i % 5];
   c.expiry = monthEnd(3 + (i % 16));
   return c;
@@ -169,6 +174,57 @@ const check = (name, pass, detail) => {
     await page.screenshot({ path: path.join(OUT, '7-link-says-why.png') });
     await page.evaluate(() => { const p = document.querySelector('[data-ig-link-hit="family"]'); p && p.dispatchEvent(new PointerEvent('pointerleave')); });
     check('7b leaving the link puts the card away', await page.evaluate(() => { const hv = document.getElementById('ig-hover'); return !hv || hv.hidden; }));
+
+    /* ================= 8. GLOW: THE BRAIN'S LOBES ============================ */
+    await page.evaluate(() => { igbCam().spin = false; igSetView(1); });
+    await settle(1);
+    await ask('shade the lobes by liability cap');
+    await settle(0);
+    const g8 = await page.evaluate(() => ({ shade: intel.lobeShade, view: igbCam().view, said: (intel.history[intel.history.length - 1] || {}).text || '',
+      hubs: IG.hubs.map(h => ({ label: h.label, n: h.attn && h.attn.n, t: h.attn && h.attn.t, card: (h.g && h.g.querySelector('[data-ig-attn]') || {}).textContent || '' })) }));
+    check('8a "shade the lobes by liability cap" turns to the Brain and says the lobes glow by it', g8.shade === 'liability' && g8.view === 0 && /glows amber/.test(g8.said), JSON.stringify({ shade: g8.shade, view: g8.view, said: g8.said }));
+    const cardsOk = g8.hubs.every(h => h.card === `${h.n} of ${h.t} uncapped · ${Math.round(h.n / Math.max(1, h.t) * 100)}%`);
+    check('8b every group\'s card says how many of its contracts are uncapped, and its share', g8.hubs.length >= 3 && cardsOk && g8.hubs.some(h => h.n > 0), JSON.stringify(g8.hubs.map(h => h.label + ': ' + h.card)));
+    const glow = await page.evaluate(() => new Promise(res => {
+      const ctx = IG.ctx, crg = ctx.createRadialGradient, recs = [];
+      ctx.createRadialGradient = function (x0, y0, r0, x1, y1, r1) { const gr = crg.apply(this, arguments), rec = { x: x0, y: y0, r: r1, cols: [] }; recs.push(rec);
+        const as = gr.addColorStop.bind(gr); gr.addColorStop = (o, c) => { rec.cols.push(String(c)); return as(o, c); }; return gr; };
+      try { igWake(); } catch (_) {}
+      setTimeout(() => { ctx.createRadialGradient = crg;
+        /* a lobe's glow is wide and sits on the lobe's own point; amber is also the "In review" stage's
+           colour, so a dot's own glow is amber too — the glow is matched to each lobe's point */
+        const amberAt = h => recs.some(r => r.r >= 60 && Math.hypot(h.q[0] - r.x, h.q[1] - r.y) < 2 && /^rgba\(242,\s*178,\s*76,/.test(r.cols[0] || '') && Number((/,\s*([\d.]+)\)$/.exec(r.cols[0]) || [])[1]) >= .02);
+        /* a lobe turned to the back fades its glow with its card (igbDraw's own facing weight) */
+        const open = IG.hubs.filter(h => h.q && h.fold < .95), facing = open.filter(h => (h.q[3] + .25) * 2 > .1);
+        res({ want: facing.filter(h => h.attn && h.attn.n).map(h => h.label), lit: facing.filter(h => h.attn && h.attn.n && amberAt(h)).map(h => h.label),
+          clean: open.filter(h => h.attn && !h.attn.n).map(h => h.label), cleanLit: open.filter(h => h.attn && !h.attn.n && amberAt(h)).map(h => h.label),
+          all: IG.hubs.map(h => h.label + ':' + (h.attn && h.attn.n) + ':' + (h.fold || 0).toFixed(1) + ':' + (h.q ? h.q[3].toFixed(2) : '-')) }); }, 450); }));
+    check('8c the canvas paints an amber glow round every lobe holding uncapped contracts, and none round a clean lobe',
+      glow.want.length >= 1 && glow.lit.length === glow.want.length && glow.clean.length >= 1 && glow.cleanLit.length === 0, JSON.stringify(glow));
+    const leg8 = await page.evaluate(() => document.querySelector('[data-ig-legend-glow]')?.textContent.trim() || '');
+    check('8d the legend names the glow', /Glow: share uncapped/.test(leg8), leg8);
+    await page.screenshot({ path: path.join(OUT, '8-brain-glow.png') });
+    const spread = () => page.evaluate(() => { const m = {}; IG.hubs.forEach(h => { const k = h.kids.map(n => n.At); if (k.length < 2) return; const c = [0, 1, 2].map(i => k.reduce((a, p) => a + p[i], 0) / k.length);
+      m[h.label] = { v: h.val, k: h.sizeK, s: k.reduce((a, p) => a + Math.hypot(p[0] - c[0], p[1] - c[1], p[2] - c[2]), 0) / k.length }; }); return m; });
+    const before = await spread();
+    await ask('size the lobes by value');
+    const after = await spread();
+    const labs = Object.keys(after).sort((a, b) => after[b].v - after[a].v), top = labs[0], low = labs[labs.length - 1];
+    const grew = l => after[l].s / before[l].s;
+    check('8e "size the lobes by value": the richest lobe spreads wider than it did, and grows more than the poorest; the legend says so',
+      (await page.evaluate(() => intel.lobeSize)) === 'value' && grew(top) > 1.15 && grew(top) > grew(low) * 1.05 && after[top].k > after[low].k
+      && /group’s value/.test(await page.evaluate(() => document.querySelector('[data-ig-legend-lobesize]')?.textContent || '')),
+      JSON.stringify({ top, low, grewTop: grew(top), grewLow: grew(low), kTop: after[top].k, kLow: after[low].k }));
+    await ask('shade the lobes by owner');
+    const no8 = await page.evaluate(() => ({ shade: intel.lobeShade, said: (intel.history[intel.history.length - 1] || {}).text || '', presses: document.querySelectorAll('#ig-dock [data-ig-choice]').length }));
+    check('8f a fact that is not a needs-attention fact cannot shade the lobes: it says so and offers the five', no8.shade === 'liability' && /cannot shade them/.test(no8.said) && no8.presses === 5, JSON.stringify(no8));
+    await ask('stop shading');
+    check('8g "stop shading" takes the glow and the cards\' counts off', await page.evaluate(() => intel.lobeShade === null && !document.querySelector('[data-ig-attn]')));
+    await page.evaluate(() => { window.__cvv = window.canViewValues; window.canViewValues = () => false; });
+    await ask('size the lobes by value');
+    const m8 = await page.evaluate(() => ({ size: intel.lobeSize, said: (intel.history[intel.history.length - 1] || {}).text || '' }));
+    await page.evaluate(() => { window.canViewValues = window.__cvv; });
+    check('8h for a reader who may not see money the lobes keep following their count, and say so', m8.size === null && /how many contracts/.test(m8.said), JSON.stringify(m8));
 
     check('9a no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {

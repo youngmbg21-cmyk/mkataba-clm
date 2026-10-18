@@ -1215,7 +1215,7 @@ function igRecipeNow(){
     groupBy:intel.groupBy, groups:intel.groups?{ ...intel.groups }:null,
     floorsBy:intel.floorsBy||null, columnsBy:intel.columnsBy||null, colourBy:intel.colourBy||null, sizeBy:intel.sizeBy||null,
     labelBy:intel.labelBy||null, timeBy:intel.timeBy||null, sortBy:intel.sortBy||null, view:igbCam().view,
-    names:intel.names?{ ...intel.names }:null, dotScale:intel.dotScale||1, bubbleBy:intel.bubbleBy||null, shadeBy:intel.shadeBy||null, folds:{ ...(intel.folds||{}) }, cellOpen:{ ...(intel.cellOpen||{}) },
+    names:intel.names?{ ...intel.names }:null, dotScale:intel.dotScale||1, bubbleBy:intel.bubbleBy||null, shadeBy:intel.shadeBy||null, lobeShade:intel.lobeShade||null, lobeSize:intel.lobeSize||null, folds:{ ...(intel.folds||{}) }, cellOpen:{ ...(intel.cellOpen||{}) },
     bundles:Array.isArray(intel.bundles)?intel.bundles.map(x=>({ ...x })):null, edgeNames:intel.edgeNames===true||null, rv:IG_RECIPE_V };
 }
 /* THE RECIPE'S EDITION. A place kept by an older edition is not put back:
@@ -1244,6 +1244,7 @@ function igRecipeSet(r){
   intel.groupBy=r.groupBy||'folder'; intel.groups=r.groups||null;
   ['floorsBy','columnsBy','colourBy','sizeBy','labelBy','timeBy','sortBy'].forEach(k=>{ intel[k]=r[k]||null; });
   intel.names=r.names?{ ...r.names }:null; intel.dotScale=igDotScaleClamp(r.dotScale||1); intel.bubbleBy=r.bubbleBy||null; intel.shadeBy=r.shadeBy==='value'?'value':null;
+  intel.lobeShade=(r.lobeShade&&IG_ATTN[r.lobeShade])?r.lobeShade:null; intel.lobeSize=r.lobeSize==='value'?'value':null;
   if(r.folds&&typeof r.folds==='object') intel.folds={ ...r.folds };
   intel.cellOpen=(r.cellOpen&&typeof r.cellOpen==='object')?{ ...r.cellOpen }:{};
   intel.bundles=Array.isArray(r.bundles)&&r.bundles.length?r.bundles.filter(x=>x&&x.q).slice(0,IG_BUNDLES_MAX).map(x=>({ q:String(x.q), label:String(x.label||x.q) })):null;
@@ -1276,6 +1277,8 @@ function igRecipeSays(){
   if((intel.dotScale||1)!==1) out.push(i18t('int_says_dots',{ n:Math.round((intel.dotScale||1)*100) }));
   if(intel.bubbleBy==='value') out.push(i18t('int_says_bubbles_value'));
   if(intel.shadeBy==='value') out.push(i18t('int_says_shade_value'));
+  if(intel.lobeShade&&IG_ATTN[intel.lobeShade]) out.push(i18t('int_says_lobe_shade',{ x:graphGroupingWord(intel.lobeShade) }));
+  if(intel.lobeSize==='value') out.push(i18t('int_says_lobe_size'));
   if(Array.isArray(intel.bundles)&&intel.bundles.length) out.push(i18t('int_says_bundles',{ x:intel.bundles.map(x=>x.label).join(', ') }));
   if(intel.edgeNames===true) out.push(i18t('int_says_edge_names'));
   return out;
@@ -1612,6 +1615,16 @@ function igLookRead(q){
   /* "colour …" stays the dots' colour, as it always was: only shade, heat and skugga shade the cells */
   m=q.match(/^(?:please\s+)?(?:shade|heat|skugga)\s+(?:the\s+)?(?:grid(?:'s)?\s+)?(?:cells?\s+|squares?\s+|rutorna\s+|rutnätet\s+)?(?:by|on|per|efter)\s+(value|worth|money|amount|count|number|how many|contracts|värde|antal|avtal)$/);
   if(m) return [{ shadeBy:/value|worth|money|amount|värde/.test(m[1])?'value':'count' }];
+  /* THE BRAIN'S GLOW (owner picked "Glow", 18 Oct 2026): "shade the lobes by
+     liability cap" — a needs-attention fact (IG_ATTN) only; any other fact is
+     answered with the five it can be. "stop shading" takes it off. A bare
+     "shade by X" keeps colouring the dots, as it always did (f427). */
+  if(/^(?:please\s+)?(?:stop|remove|clear|turn off|no)\s+(?:the\s+)?(?:shading|glow(?:ing)?)(?:\s+(?:on\s+)?the\s+(?:lobes?|brain))?$|^(?:ta bort|stäng av)\s+(?:skuggningen|glöden)$/.test(q)) return [{ lobeShade:'none' }];
+  m=q.match(/^(?:please\s+)?(?:shade|glow|skugga|lys upp)\s+(?:the\s+)?(?:lobes?|brain|groups?|loberna|hjärnan|grupperna)\s+(?:by|on|per|efter)\s+(.+)$/)||q.match(/^(?:please\s+)?(?:glow|lys)\s+(?:by|efter)\s+(.+)$/);
+  if(m){ const f=igFactFind(m[1].replace(/^(?:the|a)\s+/,'')); if(f) return [IG_ATTN[f.key]?{ lobeShade:f.key }:{ lobeShadeNo:f.key }]; }
+  m=q.match(/^(?:please\s+)?(?:size|grow|scale)\s+(?:the\s+)?(?:lobes?|brain|loberna)\s+(?:by|on|per|efter|to)\s+(value|worth|money|amount|count|number|how many|contracts|värde|antal|avtal)$/)
+    ||q.match(/^(?:låt\s+)?(?:loberna)\s+(?:växa|storlek)\s+(?:efter)\s+(värde|antal)$/);
+  if(m) return [{ lobeSize:/value|worth|money|amount|värde/.test(m[1])?'value':'count' }];
   /* "fold only <group>": that group folds, every other opens (6 Oct 2026) */
   m=q.match(/^(?:please\s+)?(?:fold|collapse|close|gather)\s+(?:up\s+)?only\s+(?:the\s+)?(.+?)(?:\s+(?:bubbles?|group))*$/)||q.match(/^(?:please\s+)?(?:fold|collapse|close|gather)\s+(?:up\s+)?(?:the\s+)?(.+?)\s+only$/)
     ||q.match(/^(?:fäll ihop|samla)\s+(?:bara|endast)\s+(.+?)(?:\s+(?:bubblan|gruppen))*$/)||q.match(/^(?:fäll|samla)\s+(?:bara|endast)\s+ihop\s+(.+?)(?:\s+(?:bubblan|gruppen))*$/);
@@ -1791,7 +1804,7 @@ function igViewFind(name){ const n=_igNorm(name), L=igViewsRead().slice().revers
    grouped by value stream, small dots, names on, nothing folded by a person,
    no bundle, no names on the edges. The lenses are "everything"'s. */
 function igLandingSet(){
-  ['floorsBy','columnsBy','colourBy','sizeBy','labelBy','timeBy','sortBy','lastRole','names','bubbleBy','shadeBy','bundles','edgeNames','foldWant'].forEach(k=>{ intel[k]=null; });
+  ['floorsBy','columnsBy','colourBy','sizeBy','labelBy','timeBy','sortBy','lastRole','names','bubbleBy','shadeBy','lobeShade','lobeSize','bundles','edgeNames','foldWant'].forEach(k=>{ intel[k]=null; });
   intel.dotScale=1; intel.groupBy='folder'; intel.groups=null; intel.folds={}; intel.cellOpen={};
   if(typeof igPaintGroupSelect==='function') try{ igPaintGroupSelect(); }catch(_){}
 }
@@ -1827,6 +1840,15 @@ function igRecipeRun(parsed, opts){
     /* money is shaded only for a reader who may see money; anyone else's grid shades by count and says so */
     if(a.shadeBy){ intel.shadeBy=a.shadeBy==='value'&&((typeof canViewValues!=='function')||canViewValues())?'value':null;
       said.push(i18t(intel.shadeBy==='value'?'int_did_shade_value':'int_did_shade_count')); if(igbCam().view!==3) igSetView(3); continue; }
+    /* THE BRAIN'S GLOW: the cards carry the count, so the map is rebuilt; the glow is the Brain's own */
+    if(a.lobeShade){ intel.lobeShade=a.lobeShade==='none'?null:a.lobeShade;
+      said.push(intel.lobeShade?i18t('int_did_lobe_shade',{ x:i18t('int_attn_long_'+intel.lobeShade) }):i18t('int_did_lobe_shade_off'));
+      if(intel.lobeShade&&igbCam().view!==0) igSetView(0); changed=true; continue; }
+    if(a.lobeShadeNo){ said.push(i18t('int_lobe_shade_which',{ x:graphGroupingWord(a.lobeShadeNo) }));
+      choices=Object.keys(IG_ATTN).map(k=>({ label:i18t('int_says_lobe_shade',{ x:graphGroupingWord(k) }).replace(/^./,c=>c.toUpperCase()), acts:[{ lobeShade:k }] })); continue; }
+    /* lobes sized by value only for a reader who may see money; anyone else's follow their count, as they always did, and are told so */
+    if(a.lobeSize){ intel.lobeSize=a.lobeSize==='value'&&((typeof canViewValues!=='function')||canViewValues())?'value':null;
+      said.push(i18t(intel.lobeSize==='value'?'int_did_lobe_size_value':'int_did_lobe_size_count')); if(igbCam().view!==0) igSetView(0); changed=true; continue; }
     /* EVERY FOLD GOES THROUGH igFoldHub, the button's own writer, and the
        reply is COUNTED off the map as drawn after the rebuild (igFoldSaid) —
        a sentence never says more bubbles than the map draws (6 Oct 2026) */
@@ -2937,6 +2959,17 @@ function igbLayout(G){
      sentence) is applied to the groups as built */
   if(intel.foldWant){ const all=intel.foldWant==='all'; hubs.forEach(h=>{ folds[(intel.groupBy||'')+'|'+h.label]=all?IG_FOLD_BUBBLE:false; }); intel.foldWant=null; }
   const many=hubs.length>IGB_FOLD_MANY;
+  /* LOBE SIZE BY VALUE (Glow): a lobe's contracts spread wider the more of the
+     book's value the group holds — igHomeValue, the value the grid's cells sum,
+     so a value that is not the reader's or has no rate home adds nothing;
+     from .6 to 1.4 of the spread it has by count */
+  const sizeByV=intel.lobeSize==='value'&&((typeof canViewValues!=='function')||canViewValues());
+  hubs.forEach(h=>{ h.val=0; h.kids.forEach(n=>{ const v=igHomeValue(n.c); if(v!=null) h.val+=v; }); });
+  const vTop=hubs.reduce((a,h)=>Math.max(a,h.val),0);
+  hubs.forEach(h=>{ h.sizeK=sizeByV&&vTop>0?.6+.8*Math.sqrt(h.val/vTop):1;
+    /* THE GLOW'S COUNT: how many of the group's contracts sit in the
+       needs-attention bucket of the fact asked for — groupLabelOf's own bucket */
+    h.attn=intel.lobeShade&&IG_ATTN[intel.lobeShade]?{ n:h.kids.filter(n=>igAttn(intel.lobeShade,groupLabelOf(n.c,intel.lobeShade))).length, t:h.kids.length }:null; });
   order.forEach((h,i)=>{
     h.slot=igbSlot(i); h.col=IGB_PALETTE[i%IGB_PALETTE.length];
     h.foldKey=(intel.groupBy||'')+'|'+h.label;
@@ -2945,8 +2978,8 @@ function igbLayout(G){
     const d=h.slot.cereb?igbNorm([0,-.6,-.8]):igbNorm(h.slot.dir), [u,v]=igbBasis(d), crowd=Math.min(1,14/Math.max(14,h.kids.length));
     h.hAt=h.slot.cereb?[0,-.5,-.78]:igbCortex(d,1.06);
     h.kids.forEach((n,j)=>{ n.hub=h;
-      const a=(j+2)*IGB_GOLD, rr=.1+.055*Math.sqrt(j+1)*(.6+.4*crowd);
-      if(h.slot.cereb){ const r2=(.12+.045*Math.sqrt(j+1))*(.6+.4*crowd); n.At=[Math.cos(a)*r2*2.2, -.46+Math.sin(a)*.05, -.8+Math.sin(a)*r2]; }
+      const a=(j+2)*IGB_GOLD, rr=(.1+.055*Math.sqrt(j+1)*(.6+.4*crowd))*h.sizeK;
+      if(h.slot.cereb){ const r2=(.12+.045*Math.sqrt(j+1))*(.6+.4*crowd)*h.sizeK; n.At=[Math.cos(a)*r2*2.2, -.46+Math.sin(a)*.05, -.8+Math.sin(a)*r2]; }
       else { const o=[u[0]*Math.cos(a)*rr+v[0]*Math.sin(a)*rr, u[1]*Math.cos(a)*rr+v[1]*Math.sin(a)*rr, u[2]*Math.cos(a)*rr+v[2]*Math.sin(a)*rr]; n.At=igbCortex([d[0]+o[0],d[1]+o[1],d[2]+o[2]],1.03); }
     });
   });
@@ -3489,7 +3522,12 @@ function igbDraw(G,t){
     ctx.fillStyle=igbHexA(reg?reg.col:IGB_IDLE,a); ctx.fillRect(q[0]-sz/2,q[1]-sz/2,sz,sz); }
   const bw=igbCardW(w);
   if(bw>.05) G.hubs.forEach(h=>{ if(h.fold>.95) return; const q=h.q, vis=(w[0]*igbClamp01((q[3]+.25)*2)+w[1])*h.vis;
-    igbGlow(ctx,q[0],q[1],50+6*Math.sqrt(h.kids.length),h.col,.1*bw*vis*(1-h.fold)); });
+    igbGlow(ctx,q[0],q[1],(50+6*Math.sqrt(h.kids.length))*(h.sizeK||1),h.col,.1*bw*vis*(1-h.fold));
+    /* GLOW (owner picked it, 18 Oct 2026): an amber glow round the lobe, as
+       strong as the share of its contracts that needs attention — the Brain's
+       alone, so it fades as the view turns to another */
+    if(h.attn&&h.attn.n&&w[0]>.05){ const sh=h.attn.n/Math.max(1,h.attn.t), vb=w[0]*igbClamp01((q[3]+.25)*2)*h.vis;
+      igbGlow(ctx,q[0],q[1],(64+8*Math.sqrt(h.kids.length))*(h.sizeK||1),IGB_FACT_TONE.amber,Math.min(.62,.1+.6*sh)*vb*(1-h.fold)); } });
   /* ONE BIG BUBBLE PER GROUP (Young, 4 Oct 2026): a folded group is drawn as
      a bubble in its colour where its contracts gathered, sized by how many it
      holds — or by their value when asked (igBubbleRadius) — and the card
@@ -3812,12 +3850,15 @@ function makeIntelGraph(model){
       n.num.style.display='none'; n.num._disp='none';
     } else {
       const lines=(n.lines||[]);
-      n.w=lines.length?220:176;
+      /* GLOW's count on the card: "14 of 36 uncapped · 39%" and a thin amber bar, under the card's own lines */
+      const attnT=n.attn?i18t('int_attn_card',{ n:n.attn.n, t:n.attn.t, x:i18t('int_attn_short_'+intel.lobeShade), p:Math.round(n.attn.n/Math.max(1,n.attn.t)*100) }):null;
+      n.w=(lines.length||attnT)?220:176;
       let y=27; const ys=[];
       if(n.sub) y+=12;
       lines.forEach((l,i)=>ys.push(y+i*12));
       const share=n.party&&n.party.share!=null;
-      n.h=(lines.length?ys[ys.length-1]:(n.sub?27:14))+(share?12:10);
+      const attnY=attnT?(lines.length?ys[ys.length-1]:(n.sub?27:14))+12+(share?6:0):null;
+      n.h=attnT?attnY+16:(lines.length?ys[ys.length-1]:(n.sub?27:14))+(share?12:10);
       g.setAttribute('role','button'); g.setAttribute('tabindex','0'); g.setAttribute('aria-expanded',n.folded?'false':'true');
       if(n.folded) g.classList.add('folded');
       const card=n.card=igbEl('g',{ class:'ig-card' },g);
@@ -3844,6 +3885,10 @@ function makeIntelGraph(model){
       if(share){ const yb=(ys.length?ys[ys.length-1]:27)+5, bw=n.w-20;
         igbEl('rect',{ x:10, y:yb, width:bw, height:3, rx:1.5, fill:'rgba('+igbTone().ln+',.25)', 'pointer-events':'none' },card);
         igbEl('rect',{ class:'ig-cp-share', x:10, y:yb, width:Math.max(2,Math.round(bw*Math.min(1,n.party.share))), height:3, rx:1.5, fill:n.col, 'pointer-events':'none' },card); }
+      if(attnT){ const ln=igbEl('text',{ class:'ig-sub', 'data-ig-attn':intel.lobeShade, x:10, y:attnY, 'pointer-events':'none' },card);
+        ln.style.fill=n.attn.n?IGB_FACT_TONE.amber:IGB_STATUS_COL.Signed; ln.setAttribute('font-weight','600'); ln.textContent=attnT;
+        const bw2=n.w-20; igbEl('rect',{ x:10, y:attnY+5, width:bw2, height:3, rx:1.5, fill:'rgba('+igbTone().ln+',.25)', 'pointer-events':'none' },card);
+        if(n.attn.n) igbEl('rect',{ 'data-ig-attn-bar':'', x:10, y:attnY+5, width:Math.max(2,Math.round(bw2*n.attn.n/Math.max(1,n.attn.t))), height:3, rx:1.5, fill:IGB_FACT_TONE.amber, 'pointer-events':'none' },card); }
     }
     gNodes.appendChild(g);
     g.addEventListener('pointerenter',()=>{ if(IG&&!IG.turning){ IG.hover=n; igPaint(n); if(n.kind==='contract') igHoverShow(n); } });
@@ -4159,6 +4204,11 @@ function renderIntelLegend(model){
   /* STAGE 1's ROWS, each only on its view: the grid's heat and its amber,
      the timeline's notice tails */
   const vw=igbCam().view;
+  if(vw===0&&IG&&(intel.lobeShade||intel.lobeSize==='value')){
+    html+=`<div class="igl-k igl-gap">${i18t('int_legend_lobes')}</div>`+
+      (intel.lobeShade?`<div data-ig-legend-glow class="igl-row"><span class="igl-sw" style="background:${IGB_FACT_TONE.amber}"></span>${i18t('int_legend_glow',{ x:i18t('int_attn_short_'+intel.lobeShade) })}</div>`:'')+
+      (intel.lobeSize==='value'?`<div data-ig-legend-lobesize class="igl-row"><span class="igl-sw" style="background:radial-gradient(rgba(${igbTone().gw},.9),rgba(${igbTone().gw},0));border-radius:50%"></span>${i18t('int_legend_lobe_size')}</div>`:'');
+  }
   if(vw===3&&IG&&IG.grid&&Object.keys(IG.grid.cells||{}).length){
     const byMoney=intel.shadeBy==='value'&&((typeof canViewValues!=='function')||canViewValues());
     const attn=(IG.floors||[]).some(f=>igAttn(IG.floorKey,f.label))||(IG.cols||[]).some(c=>igAttn(IG.colKey,c.label));
