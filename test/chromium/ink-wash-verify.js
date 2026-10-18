@@ -20,6 +20,12 @@
 
      node test/chromium/ink-wash-verify.js --save   (record, on the code BEFORE)
 
+   RE-RECORDED 18 Oct 2026 (eighth, again), OWNER-ASKED (the overnight
+   build, same standing yes): Round 10's late fix — the route's own "Signing
+   paper" link stays drawn while it is not the reader's turn; only the Sign
+   button is held back — so on the signing screen the 12 and 13px counts and
+   the dividers' counts rose by a few. Audited by key: only the signing
+   screen moved; no colour new, none gone.
    RE-RECORDED 17 Oct 2026 (eighth), OWNER-ASKED (the overnight build, same
    standing yes): Round 10, "The road" — Before you sign draws its stops
    (Ready to sign, who signs, sealed and sent) above and around the column, so
