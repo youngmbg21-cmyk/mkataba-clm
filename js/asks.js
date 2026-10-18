@@ -564,8 +564,11 @@ function askRuleFor(c, ruleId, o){
   const last = mine[mine.length - 1] || null;
   if (last && last.state === 'open') return last;
   if (last && last.state === 'yes') askLapse(c, last.id);
+  /* THE QUESTION CARRIES WHAT IT ASKS ABOUT (18 Oct 2026): the approval stamp
+     at the moment it is opened, so "since it was asked" is a reading of its own
+     wording hash (Approvals' "Since last look", round 15) */
   return askOpen(c, { kind: 'rule', of: [_akStr(ruleId)], to: o && o.approver ? _akRuleTo(o.approver) : null,
-    keepStep: !!(o && o.keepStep), at: o && o.at });
+    keepStep: !!(o && o.keepStep), at: o && o.at, stamp: o && o.stamp ? o.stamp : null });
 }
 
 const ASKS_API = { ASK_KINDS, ASK_STATES, ASK_KEEP, ASK_WHY_MAX, askLapsed, askSamePerson, askRuleTo: _akRuleTo,

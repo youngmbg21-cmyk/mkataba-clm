@@ -499,7 +499,7 @@ function cuPaintCustomerPanel(tb){
   const money = cuMoney();
   const paint = key => {
     const r = key ? cuView(cuCustomerOf(key)) : null;
-    if (!r){ insPaintPanel({ seat, c: null, item: null, empty: i18t('cu_panel_none') }); return; }
+    if (!r){ insPaintPanel({ seat, c: null, item: null, empty: i18t('cu_panel_none'), jlHome: i18t('nav_customers'), jlPh: i18t('jl_ph_any') }); return; }
     const count = list => { const v = money ? cuMoneyWords(list) : ''; return list.length ? `${list.length}${v ? ' · ' + v : ''}` : '0'; };
     const facts = [
       { k: 'active', label: i18t('cu_tab_active'), v: _cuE(count(r.active)) },
@@ -509,7 +509,8 @@ function cuPaintCustomerPanel(tb){
       { k: 'nda', label: i18t('cu_col_nda'), v: cuNdaFactHtml(cuNdaOf(key)), wide: true },
     ];
     const streams = r.streams.map(f => `<span>${cuStripeHtml(f)}${_cuE(cuStreamName(f))}</span><span class="n">${r.items.filter(c => c.folder === f).length}</span>`).join('');
-    insPaintPanel({ seat, item: { id: r.key }, head: {
+    /* Jambo's panel (round 19): it holds a party */
+    insPaintPanel({ seat, jlWord: i18t('jl_w_party'), jlHome: i18t('nav_customers'), jlPh: i18t('jl_ph_any'), item: { id: r.key }, head: {
         eyebrow: _cuE(i18tn('cu_n_contracts', r.items.length, { n: r.items.length })) + ' · ' + _cuE(i18tn('cu_n_streams', r.streams.length, { n: r.streams.length })),
         title: r.name,
         acts: [{ k: 'open', kind: 'accent', label: i18t('cu_open_customer'), iconEnd: 'chevR', run: x => cuOpenCustomer(x.id) },

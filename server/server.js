@@ -1939,8 +1939,10 @@ function srvAsksMerge(prev, c, user) {
         const rule = ruleOf(e);
         if (!rule || !(srvRuleMatches(rule, c) || (prev && srvRuleMatches(rule, prev))))
           return { status: 403, error: 'No approval rule asks that of this contract.' };
+        /* stamped by the server from the record being saved, never the body's
+           own stamp: what the question covers is the record's fact */
         b = { id, kind: 'rule', of: [String(rule.id)], by: null, to: askRuleTo(rule.approver), at: now(), due: null,
-          state: 'open', answeredAt: null, answeredBy: null, why: null, note: null, stamp: null };
+          state: 'open', answeredAt: null, answeredBy: null, why: null, note: null, stamp: srvApprovalStamp(c) };
       } else {
         const m = fromMirrors.get(id);
         if (!m || m.kind !== e.kind)
@@ -6090,7 +6092,7 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
         const tmp = { ...c, asks: list };
         const open = list.some(a => a && a.kind === 'rule' && a.state === 'open' && String(a.of && a.of[0]) === String(due.ruleId));
         const rule = srvApprovalRules().find(r => r && r.id === due.ruleId);
-        if (!open && rule) askRuleFor(tmp, due.ruleId, { approver: rule.approver, keepStep: true, at: now() });
+        if (!open && rule) askRuleFor(tmp, due.ruleId, { approver: rule.approver, keepStep: true, at: now(), stamp: srvApprovalStamp(c) });
         list.splice(0, list.length, ...tmp.asks);
       }
     } catch (_) { /* the save is the thing that matters */ }
@@ -15814,7 +15816,7 @@ async function runRuleStepReminders() {
         const fresh = db.prepare('SELECT json FROM contracts WHERE id=?').get(String(c.id));
         const cj = fresh ? JSON.parse(fresh.json) : null;
         if (rule && cj && !asksDerive(cj).some(a => a.kind === 'rule' && a.state === 'open' && String(a.of && a.of[0]) === String(step.ruleId))) {
-          askRuleFor(cj, step.ruleId, { approver: rule.approver, keepStep: true, at: now() });
+          askRuleFor(cj, step.ruleId, { approver: rule.approver, keepStep: true, at: now(), stamp: srvApprovalStamp(cj) });
           db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(cj), String(c.id));
         }
       } catch (_) { /* the mail is the thing that matters */ }

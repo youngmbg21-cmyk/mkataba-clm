@@ -826,6 +826,10 @@ function aiEmbeddedHere(){
     if(cl && typeof cl.contains==='function' && cl.contains('ce-open') && document.getElementById('ce-ask')) return 'editor';
     const dock = document.getElementById('ig-dock');
     if(dock && dock.isConnected && typeof dock.getClientRects==='function' && dock.getClientRects().length) return 'home';
+    /* Jambo's panel beside a list (18 Oct 2026, js/views/inspector.js) or
+       beside Import's batch: its box is his — folded or open */
+    const jl = document.getElementById('jl-q');
+    if(jl && jl.isConnected && (jl.closest('.ins-panel.is-jambo') || jl.closest('#mig-side'))) return 'list';
     /* Settings' side panel (the Control Room, 16 Oct 2026): Jambo is its first face */
     const side = document.getElementById('st-side');
     if(side && side.isConnected && typeof side.getClientRects==='function' && side.getClientRects().length && typeof window.stJamboFocus==='function') return 'settings';
@@ -853,6 +857,8 @@ function aiGoEmbedded(here, prefill){
     return true;
   }
   if(here === 'settings' && typeof window.stJamboFocus === 'function') return !!window.stJamboFocus(prefill);
+  /* beside a list: the panel unfolds, the words are put ready, nothing is sent */
+  if(here === 'list' && typeof window.jlFocus === 'function') return !!window.jlFocus(prefill);
   return false;
 }
 /* hidden where Copilot is already on screen, back on the way out */
@@ -995,6 +1001,8 @@ function closeAI(){
   document.getElementById('ai-scrim').classList.remove('open');
   ai.open=false;
   aiSyncDock();
+  /* the conversation goes back to the panel beside the list, if one is up */
+  if(aiListFeed()) try{ renderAIFeed(); }catch(_){}
   /* A seeded rephrase ends with the drawer. Left open, the next thing typed
      into the panel — which by then is an ordinary question about the portfolio
      — would be read as an instruction about a passage the reader has long since
@@ -1119,8 +1127,29 @@ function aiFaceHtml(mood){
   if(typeof jamboFaceHtml==='function') return jamboFaceHtml(mood, 28, 'ai-face shrink-0 mt-0.5');
   return `<div class="h-7 w-7 shrink-0 grid place-items-center rounded-lg bg-gold-500/15 text-gold-600 mt-0.5">${icon('sparkle','w-3.5 h-3.5')}</div>`;
 }
+/* ONE CONVERSATION, TWO PLACES IT IS SAID (owner's yes, 18 Oct 2026 — Jambo's
+   panel beside the lists): the window's feed, or the panel's own (#jl-feed,
+   js/views/inspector.js) while the panel is on screen and the window is not
+   open. ONE COPY ON THE PAGE AT A TIME: the other host is emptied, so a
+   chart's canvas id is never drawn twice. */
+function aiListFeed(){
+  if(typeof document==='undefined') return null;
+  const f=document.getElementById('jl-feed');
+  /* on screen = its scroller is (an empty feed draws nothing of its own) */
+  const box=f && f.parentElement;
+  return (f && f.isConnected && box && typeof box.getClientRects==='function' && box.getClientRects().length) ? f : null;
+}
+function aiFeedEl(){
+  if(!ai.open){ const f=aiListFeed(); if(f) return f; }
+  return document.getElementById('ai-feed');
+}
+/* an answer said where the reader is looking lights no launcher */
+function aiUnreadIfAway(){ if(!ai.open && !aiListFeed()){ ai.unread=true; updateAIBadge(); } }
 function renderAIFeed(typing=false){
-  const feed=document.getElementById('ai-feed');
+  const feed=aiFeedEl();
+  if(!feed) return;
+  const inList=feed.id==='jl-feed';
+  { const other=document.getElementById(inList?'ai-feed':'jl-feed'); if(other&&other!==feed) other.innerHTML=''; }
   /* A repaint rebuilds every card from state, so anything typed into a live
      card's reason box and not yet captured would be wiped by the very paint
      that follows pressing Edit or a new message landing. Read the boxes back
@@ -1135,6 +1164,8 @@ function renderAIFeed(typing=false){
      conversation with anything in it shows the conversation. It is never a
      message, so it never travels to the model and never freezes. */
   if(!ai.history.length){
+    /* beside a list Jambo has already said the page in his own words above */
+    if(inList){ feed.innerHTML=''; return; }
     feed.innerHTML=`<div class="ai-msg flex gap-2.5">
       ${aiFaceHtml('hello')}
       <div class="max-w-[88%] space-y-2">
@@ -1166,7 +1197,7 @@ function renderAIFeed(typing=false){
       ${aiFaceHtml('think')}
       <div class="rounded-2xl rounded-tl-md bg-canvas border border-brand-100 px-4 py-3 typing"><span></span><span></span><span></span></div>
     </div>`:'');
-  feed.scrollTop=feed.scrollHeight;
+  { const sc=inList?(feed.closest('.jl-body')||feed):feed; sc.scrollTop=sc.scrollHeight; }
   /* Charts last: the canvases only exist now the feed has painted. The sweep
      first, because this innerHTML assignment has just detached every canvas
      from the previous paint while their Chart instances are still running. */
@@ -2579,7 +2610,7 @@ async function copilotAsk(messages, context, onEvent, opts){
 function aiStreamRenderer(){
   let text='';
   const target=()=>{
-    const feed=document.getElementById('ai-feed'); if(!feed) return null;
+    const feed=aiFeedEl(); if(!feed) return null;
     const last=feed.querySelector('.ai-msg:last-child'); if(!last) return null;
     const t=last.querySelector('.typing');
     if(t){ t.classList.remove('typing'); t.setAttribute('data-ai-stream',''); t.textContent=''; }
@@ -2595,8 +2626,8 @@ function aiStreamRenderer(){
     }else if(ev.type==='token'&&ev.text){
       text+=ev.text;
       el.textContent=text;
-      const feed=document.getElementById('ai-feed');
-      if(feed) feed.scrollTop=feed.scrollHeight;
+      const feed=aiFeedEl();
+      if(feed){ const sc=feed.id==='jl-feed'?(feed.closest('.jl-body')||feed):feed; sc.scrollTop=sc.scrollHeight; }
     }
   };
 }
@@ -4045,7 +4076,7 @@ function aiProposalSetPlacement(id, placement){
   renderAIFeed();
 }
 function aiWireProposals(){
-  const feed = document.getElementById('ai-feed');
+  const feed = aiFeedEl();
   if (!feed || !feed.querySelectorAll) return;
   const bind = (attr, fn) => feed.querySelectorAll(`[${attr}]`).forEach(b =>
     b.addEventListener('click', () => fn(b.getAttribute(attr))));
@@ -4265,6 +4296,13 @@ async function aiSubmit(){
   /* Back to one line, or the next question is typed into the hole the last one
      grew to. */
   if(window.chatFieldReset) chatFieldReset(inp); else inp.value='';
+  return aiAskWords(q);
+}
+/* THE ONE TURN, from the window's box or from Jambo's panel beside a list
+   (jlAsk, js/views/inspector.js): asked once, said where the feed is
+   (aiFeedEl). The caller has already taken the words out of its box. */
+async function aiAskWords(qRaw){
+  const q=String(qRaw||'').trim(); if(!q||ai.busy) return;
   /* ---- WHAT THE READER TYPED IS WORDS, NEVER MARKUP (26 Sep 2026, the
      overnight clean-up) ---- The feed draws a user bubble's `text` as HTML,
      because the two seeded doors (a clause action from the Document tab and
@@ -4301,7 +4339,7 @@ async function aiSubmit(){
       aiPush('assistant',{text:`<div>${i18t('ai_did_not_come_back',{err:_aiEsc((e&&e.message)||i18t('ai_could_not_answer'))})}</div>`,err:true});
       renderAIFeed();
     }
-    if(!ai.open){ ai.unread=true; updateAIBadge(); }
+    aiUnreadIfAway();
     return;
   }
   if(live && live.onRefine){
@@ -4318,7 +4356,7 @@ async function aiSubmit(){
       aiPush('assistant',{text:`<div>That revision did not come back: ${_aiEsc((e&&e.message)||'Jambo could not answer')}. The wording on the card above is unchanged.</div>`,err:true});
       renderAIFeed();
     }
-    if(!ai.open){ ai.unread=true; updateAIBadge(); }
+    aiUnreadIfAway();
     return;
   }
   /* "Give me a report on my portfolio" is not a chat answer — it is a
@@ -4332,7 +4370,7 @@ async function aiSubmit(){
       ? {text:`<div>${i18t('ai_report_built')}</div>`}
       : {text:`<div>${i18t('ai_report_failed')}</div>`,err:true});
     renderAIFeed();
-    if(!ai.open){ ai.unread=true; updateAIBadge(); }
+    aiUnreadIfAway();
     return;
   }
   renderAIFeed(true);
@@ -4341,7 +4379,7 @@ async function aiSubmit(){
     aiPush('assistant',ans);
     renderAIFeed();
     // answer arrived while the panel was minimized/closed -> light up the launcher
-    if(!ai.open){ ai.unread=true; updateAIBadge(); }
+    aiUnreadIfAway();
   };
   // Real HaTi Copilot whenever a key is available — server-mediated in server
   // mode, browser-direct in local mode. Otherwise the built-in keyword engine
@@ -5238,4 +5276,4 @@ Object.assign(window,{ aiDoorFace,aiFaceHtml,aiFloatSync,aiFloatClamp,aiFloatMax
   aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,aiDropRestatedHeading,
   aiParseProposal,copilotPropose,copilotProposeTemplate,AI_TEMPLATE_RULE,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
   aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,aiStepBackIfSummoned,
-  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,aiPortfolioFigures,aiPortfolioSays,aiWholeBookAsk,aiDegrade,AI_CHAT_STEPS,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,AI_DEPENDENTS_TOOL_DESC,AI_COUNTERPARTY_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiGraphSays, aiScreenContractId,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,briefMoved,briefMovedHtml,briefReadFootHtml,BRIEF_MOVED_MAX,runContractBrief,runFillBlanks,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,renewalStartPaper,renewalDecisionAct,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scanCanvas,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});
+  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,aiPortfolioFigures,aiPortfolioSays,aiWholeBookAsk,aiDegrade,AI_CHAT_STEPS,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,AI_DEPENDENTS_TOOL_DESC,AI_COUNTERPARTY_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiAskWords,aiFeedEl,aiListFeed,aiUnreadIfAway,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiGraphSays, aiScreenContractId,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,briefMoved,briefMovedHtml,briefReadFootHtml,BRIEF_MOVED_MAX,runContractBrief,runFillBlanks,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,renewalStartPaper,renewalDecisionAct,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scanCanvas,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});

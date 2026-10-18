@@ -6764,8 +6764,15 @@ function renderIntelDock(){
              grows with its words up to its cap, Enter asks, Shift+Enter breaks
              the line — and Ask sits at its foot, where a growing box keeps it. */}
       ${igPreOn()?`<div id="igd-pre" class="hb-pre" aria-live="polite"></div>`:''}
+      ${''/* THE HINT LINE UNDER THE BOX (owner's yes, 18 Oct 2026; every picked
+             drawing): the box and its Ask in their own frame, so the line under
+             them never moves the button; with a paper up it adds the keys the box
+             answers ("/ places · Esc closes", rounds 6–9 and 12) */}
+      <div class="igd-askbox relative">
       <textarea id="igd-input" rows="1" placeholder="${igEsc(igAskPlaceholder())}" title="${igEsc(igAskCost())}" class="chat-field w-full rounded-xl border border-inputln bg-white pl-3.5 pr-16 py-2.5 text-[13px] outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition" style="display:block"></textarea>
-      <button id="igd-go" class="ui-btn ui-btn-sm ui-btn-primary absolute" style="right:18px;bottom:20px">${i18t('int_ask')}</button>
+      <button id="igd-go" class="ui-btn ui-btn-sm ui-btn-primary absolute" style="right:6px;bottom:8px">${i18t('int_ask')}</button>
+      </div>
+      ${typeof window.jamboHintHtml==='function'?jamboHintHtml({ places:!!(igPaperUp()||(window.pdOnPaper&&pdOnPaper())) }):''}
     </div>`}`;
   const feed=document.getElementById('igd-feed'); feed.scrollTop=feed.scrollHeight;
   /* JAMBO, ALIVE (owner, 16 Oct 2026): he takes his seat on the chips row again */

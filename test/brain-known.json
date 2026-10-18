@@ -51,7 +51,6 @@
   "js/views/designstep.js",
   "js/views/handover.js",
   "js/views/healthreport.js",
-  "js/views/inspector.js",
   "js/views/library.js",
   "js/views/migration.js",
   "js/views/negotiation-css.js",

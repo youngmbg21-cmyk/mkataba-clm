@@ -98,6 +98,8 @@ const ICONS = {
   close:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
   logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
   userplus:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/>',
+  /* one person — "for Jonas", a stand-in's answer (round 15) */
+  user:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
   history:'<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
   leaf:'<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/>',
   /* a code name's tag (round 13: a deal kept to its list, on the wall) */
@@ -149,6 +151,20 @@ function jamboFacePaint(root){
     const want = JAMBO_FACE[img.getAttribute('data-jambo-face')] || JAMBO_FACE.hello;
     if (img.getAttribute('src') !== want) img.setAttribute('src', want); }); }catch(_){}
 }
+/* ---- THE HINT LINE UNDER EVERY JAMBO ASK BOX (owner's yes, 18 Oct 2026:
+   every picked drawing draws it, rounds 3–26) ----
+   "Typing never signs, sends or files — a press does." — ONE builder for
+   Home's panel, Settings' Jambo side, Import's panel and Jambo's panel beside
+   the lists, so the words cannot drift apart. `places` adds the keys Home's
+   box answers ("/ places · Esc closes", rounds 6–9 and 12); 'lists' says it
+   the way round 3 did ("/ lists the places."). */
+const jamboHintHtml = (o = {}) => {
+  const t = (k) => (typeof i18t === 'function') ? i18t(k) : k;
+  const kbd = x => `<kbd class="jb-kbd">${esc(x)}</kbd>`;
+  const tail = o.places === 'lists' ? ` ${kbd('/')} ${esc(t('jb_hint_lists'))}`
+    : o.places ? ` ${kbd('/')} ${esc(t('jb_hint_places'))} · ${kbd('Esc')} ${esc(t('jb_hint_closes'))}` : '';
+  return `<p class="jb-hint" data-jb-hint>${esc(t('jb_hint'))}${tail}</p>`;
+};
 /* ---- WHEN SOMETHING IS LOADING, SOMETHING MOVES (owner, 11 Oct 2026: "when
    something is loading, there should be some type of movement on screen so
    you know it is loading, as a rule") ----
@@ -161,7 +177,7 @@ const _busyEsc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&
 const busyHtml = text => `<span class="ob-spin" aria-hidden="true"></span>${_busyEsc(text)}`;
 /* a button or line that is now waiting: its ring and its word */
 const busySet = (el, text) => { if (el) el.innerHTML = busyHtml(text); };
-Object.assign(window,{ICONS,icon,plusLed,JAMBO_FACE,jamboFaceHtml,jamboFacePaint,busyHtml,busySet});
+Object.assign(window,{ICONS,icon,plusLed,JAMBO_FACE,jamboFaceHtml,jamboFacePaint,jamboHintHtml,busyHtml,busySet});
 /* ---- AN EMPTY BOX THAT IS OWED AN ANSWER IS AMBER (owner, 13 Oct 2026:
    "where a field needs to be filled out and it is empty, it should be amber
    ... across the platform ... so users are pulled to that field") ----

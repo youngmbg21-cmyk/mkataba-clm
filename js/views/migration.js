@@ -1195,8 +1195,20 @@ function migSideHtml(){
 }
 function migSidePaint(){
   const host = document.getElementById('mig-side'); if (!host) return;
-  host.innerHTML = migSideHtml();
+  /* THE ASK BOX AND ITS HINT AT THE FOOT (owner's yes, 18 Oct 2026 — round
+     22 draws them): the one box Jambo's panel beside the lists carries
+     (jlAskHtml), built once so the words typed in it survive a choice; his
+     conversation is said under his words (#jl-feed) */
+  let main = host.querySelector(':scope > .mig-side-main');
+  if (!main){
+    host.innerHTML = `<div class="mig-side-main"></div>${typeof jlAskHtml === 'function' ? jlAskHtml({ placeholder: i18t('jl_ph_any') }) : ''}`;
+    main = host.querySelector(':scope > .mig-side-main');
+  }
+  main.innerHTML = migSideHtml();
+  const body = main.querySelector('.mig-side-body');
+  if (body && typeof jlAskHtml === 'function') body.insertAdjacentHTML('beforeend', '<div id="jl-feed" class="jl-feed" aria-live="polite"></div>');
   wireOpens(host);
+  if (typeof renderAIFeed === 'function' && typeof ai !== 'undefined' && ai && Array.isArray(ai.history) && ai.history.length) try { renderAIFeed(!!ai.busy); } catch (_){}
 }
 /* one press for the panel's doors, wired once at load (A LISTENER ON A PAINTED
    ELEMENT IS BOUND ONCE): the panel is repainted on every choice */
@@ -1263,6 +1275,8 @@ function renderMigration(){
       @media (max-width:1180px){ .mig-cols{grid-template-columns:minmax(0,1fr)} }
       .mig-side{position:sticky;top:var(--s-3);display:flex;flex-direction:column;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;max-height:calc(100vh - 140px)}
       @media (max-width:1180px){ .mig-side{position:static;max-height:none} }
+      .mig-side-main{flex:1;min-height:0;display:flex;flex-direction:column}
+      .mig-side .jl-feed{padding:8px 0 0}
       .mig-side-head{flex:none;display:flex;align-items:center;gap:var(--s-2);padding:8px 12px;border-bottom:1px solid var(--color-divider)}
       .mig-side-who{display:inline-flex;align-items:center;gap:7px;font-size:var(--t-meta)}
       .mig-side-who b{font-weight:var(--w-strong)}
