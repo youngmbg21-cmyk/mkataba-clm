@@ -3200,7 +3200,8 @@ function renderPlaybookPage(){
   </div>`;
 
   renderClauseLibrary();   // fills #clause-lib and #playbook-view, wires edit/add/remove
-  document.querySelectorAll('[data-dev-open]').forEach(b=>b.addEventListener('click',()=>openWorkspace(b.getAttribute('data-dev-open'))));
+  /* the narrow drawing opens a departure's contract as the wide one does */
+  document.querySelectorAll('[data-dev-open]').forEach(b=>b.addEventListener('click',()=>sdOpenContract(b.getAttribute('data-dev-open'))));
   }
   /* A tab press is CLASS AND HIDDEN FLIPS, never a re-render: the clause
      library holds open editors and scroll the reader is in the middle of,
@@ -3743,6 +3744,12 @@ function sdDevPanelOpts(c, d){
   };
 }
 function sdOpenContract(id){
+  /* Open contract lands where every list's does (`regOpenContract`): a
+     code-named stand-in is stopped first, then Home's Document on the
+     reader's own "A contract opens on" ('open'); the room only where Home
+     cannot take it. */
+  if(typeof codeNameStop==='function'&&codeNameStop(getContract(id))) return;
+  if(typeof pdOpenOnHome==='function'&&pdOpenOnHome(id,'open')) return;
   if(typeof selectContract==='function') selectContract(id);
   else if(typeof openWorkspace==='function') openWorkspace(id);
 }

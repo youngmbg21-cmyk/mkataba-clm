@@ -10361,7 +10361,7 @@ function rlBenchOpts(c, o = {}){
       const freed = (!solo && window.negoHeldBackIds) ? negoHeldBackIds(c).length : 0;
       if (solo && window.negoHoldOthers) negoHoldOthers(c, solo);
       else if (window.negoReleaseHold) released = negoReleaseHold(c);
-      const to = c.counterpartyName || c.counterparty || 'the counterparty';
+      const to = c.counterpartyName || c.counterparty || i18t('ng_the_counterparty');
       const btns = [...document.querySelectorAll(`${scope} [data-rl-send], ${scope} [data-rl-blast]`)];
       btns.forEach(b => { b.disabled = true; });
       try{
@@ -10397,7 +10397,7 @@ function rlBenchOpts(c, o = {}){
            beside this toast said the move was still ours — negWhoseMove is the
            ONE reading of whose move it is, so the sentence asks it too. */
         const theirsNow = (typeof negWhoseMove === 'function') ? ((negWhoseMove(c) || {}).k === 'them') : moved;
-        const turnLine = (moved && theirsNow) ? ' — it is now their turn' : '';
+        const turnLine = (moved && theirsNow) ? i18t('ng_solo_turn') : '';
         /* A SECOND LIVE LINK IS SAID ON SCREEN, not only in the audit trail.
            This is the state reported on MK-255: the round published, the owner
            was told it had gone, and the counterparty reloaded the URL they
@@ -10439,7 +10439,7 @@ function rlBenchOpts(c, o = {}){
         /* A solo send says what it deliberately left on the desk — silence
            about the other drafts is how a partial send reads as a full one. */
         const kept = window.negoHeldBackIds ? negoHeldBackIds(c).length : 0;
-        const keptLine = kept ? ` — ${kept} other draft${kept === 1 ? '' : 's'} still unsent` : '';
+        const keptLine = kept ? i18tn('ng_solo_kept', kept, { n: kept }) : '';
         /* THE TURN EMAIL'S OWN THREE OUTCOMES (4 Oct 2026): where the send
            tried to tell them it is their turn, the toast says whether that
            email went, is waiting in the outbox, or was refused and why. */
@@ -10460,9 +10460,9 @@ function rlBenchOpts(c, o = {}){
             onClick: () => { try{ navigator.clipboard.writeText(link); }catch(e){}
               if (window.toast) toast(i18t('ng_link_copied'), 'ok'); } } } : undefined);
         else if (window.toast) toast(out && out.stranded
-          ? `${window.reshareStrandedLine ? reshareStrandedLine(to) : 'A NEW link was created for ' + to + '.'}${turnLine ? ' It is now their turn.' : ''}`
+          ? `${window.reshareStrandedLine ? reshareStrandedLine(to) : 'A NEW link was created for ' + to + '.'}${turnLine ? i18t('ng_solo_turn_end') : ''}`
           : delivered
-          ? `Sent to ${to}${turnLine}${keptLine}`
+          ? `${i18t('ng_solo_sent', { who: to })}${turnLine}${keptLine}`
           /* A sentence that ends in a full stop loses it before a tail is
              joined on — "not emailed. — 1 other draft" read as two broken
              sentences (26 Sep 2026, the overnight clean-up). */
@@ -10475,7 +10475,7 @@ function rlBenchOpts(c, o = {}){
               if (window.toast) toast(i18t('ng_link_copied'), 'ok'); } } } : undefined);
       }catch(err){
         btns.forEach(b => { b.disabled = false; });
-        if (window.toast) toast(`Could not send to ${to} — ${(err && err.message) || err}`, 'err');
+        if (window.toast) toast(i18t('ng_solo_failed', { who: to, why: (err && err.message) || err }), 'err');
         return;
       }
       again();
@@ -10501,7 +10501,7 @@ function rlBenchOpts(c, o = {}){
        confirmed a point in the thread and Erik's page never showed it. It
        goes down the discussion channel as well, under the change's own
        topic, which is the store their page reads live. */
-    async onComment(_c, ch, msg){
+    async onComment(_c, ch, msg, how){
       if (!window.API_MODE || !API_MODE() || !ch) return;
       try{
         const res = await api('contracts/' + c.id + '/messages', 'POST', {
@@ -10509,9 +10509,10 @@ function rlBenchOpts(c, o = {}){
           topicLabel: `Change #${ch.id}${ch.clauseLabel ? ' · ' + _neClause(ch.clauseLabel) : ''}`,
           body: msg.text });
         c._messages = (res && res.messages) || c._messages || [];
-        if (window.toast) toast(`Comment posted on #${ch.id} — ${c.counterparty || 'the counterparty'} sees it on the same change. The contract is unchanged.`);
+        /* the notes drawer says its own "Sent" (how.confirms): one press, one confirmation */
+        if (window.toast && !(how && how.confirms)) toast(i18t('ng_comment_posted', { id: ch.id, who: c.counterparty || i18t('ng_the_counterparty') }), 'ok');
       }catch(e){
-        if (window.toast) toast(`Saved on the change, but it could not be sent to ${c.counterparty || 'the counterparty'}: ${(e && e.message) || 'the message channel is unavailable'}`, 'err');
+        if (window.toast) toast(i18t('ng_comment_not_sent', { who: c.counterparty || i18t('ng_the_counterparty'), why: (e && e.message) || i18t('ng_comment_no_channel') }), 'err');
       }
     },
     /* ---- THE HAND-OFF LIVES HERE NOW ----
@@ -17904,7 +17905,7 @@ async function rlNotesSend(host, c, ch, opts, room, extra = {}){
          Both carry the note's meta, so the other seat reads the anchor and the
          reply exactly as this one does. */
       const sent = (typeof opts.onComment === 'function')
-        ? await opts.onComment(c, home, msg).then(r => (r && r.ok === false) ? r : { ok: true })
+        ? await opts.onComment(c, home, msg, { confirms: true }).then(r => (r && r.ok === false) ? r : { ok: true })
         : await negoPostToChannel(c, home, msg);
       if (sent && sent.ok) msg.sentAt = (window.nowISO ? window.nowISO() : new Date().toISOString());
       if (sent && sent.ok && opts.persist !== false && window.persist) persist(c);
