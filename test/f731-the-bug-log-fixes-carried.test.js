@@ -138,7 +138,9 @@ describe('f731 (6) Negotiate\'s solo-send words are in both books', () => {
 
 describe('f731 (7) a reminder names only somebody the server would mail', () => {
   const users = [{ id: 'u1', name: 'Wanjiku Kamau', email: 'wanjiku@x.co.ke' }, { id: 'u2', name: 'Amina Otieno', email: 'amina@x.co.ke' }];
-  const mk = allow => loadViews(['js/obligations.js'], { getUsers: () => users, canAccessFolder: (fid, u) => allow(u), currentUser: () => users[1] });
+  let kv = null;
+  const mk = allow => loadViews(['js/obligations.js'], { getUsers: () => users, canAccessFolder: (fid, u) => allow(u), currentUser: () => users[1],
+    insMenuItemHtml: () => '', insSecHtml: () => '', insKvHtml: rows => { kv = rows; return ''; } });
   const o = { id: 'o1', desc: 'Pay the deposit', due: '2026-10-25', status: 'open', party: 'ours', assignee: 'Wanjiku Kamau' };
   const c = { id: 'MK-1', folder: 'proc', counterparty: 'Kabras', obligations: [o], owner: { id: 'u2', name: 'Amina Otieno' } };
   const line = w => w.obligationReminderLine(o, c).replace(/<[^>]+>/g, '');
@@ -154,6 +156,14 @@ describe('f731 (7) a reminder names only somebody the server would mail', () => 
     const ob = strip(R('js/obligations.js'));
     assert.equal((ob.match(/const m = obligationReachable\(obligationReminderTo\(o\), c\);/g) || []).length, 2, 'the sentence and the one line');
     assert.match(fnOf(R('js/views/agents.js'), 'agForName'), /canAccessFolder\(c\.folder \|\| '', to0\)/);
+    assert.match(strip(fnOf(R('js/views/agents.js'), 'agForName')), /const ow = to \? null : obligationOwnerTo\(c\)/, 'the owner the same way');
+  });
+  test('the panel\'s Whose fact agrees with its Reminders line', () => {
+    const whose = w => { kv = null; w.obPanelOpts(o, c, 0, 'tab'); const f = (kv || []).find(r => r && r.k === 'whose'); return f ? String(f.v).replace(/<[^>]+>/g, '') : null; };
+    assert.match(whose(mk(() => true)) || '', /Wanjiku/, 'reached: named');
+    const w1 = whose(mk(u => u.id !== 'u1')) || '';
+    assert.match(w1, /Wanjiku/, 'still named');
+    assert.match(w1, /not reminded/, 'and said not reminded, as its Reminders line names the owner');
   });
 });
 
@@ -169,15 +179,25 @@ describe('f731 (8) a copy that leaves the live paper carries no scan mark', () =
     assert.match(core, /return docBody\(c,\{ marks:false \}\)\|\|undefined;/, 'the view link');
     assert.match(strip(fnOf(R('js/core.js'), 'shareAdviceBody')), /docBody\(c,\{ marks:false \}\)/, 'an adviser\'s clauses');
     assert.match(strip(fnOf(R('js/adviserlink.js'), 'adviserClauses')), /docBody\(c,\{ marks:false \}\)/, 'an adviser\'s link');
-    assert.match(strip(fnOf(R('js/views/intelligence.js'), 'contractPlainText')), /docBody\(c,\{ marks:false \}\)/, 'what Jambo is sent');
+    assert.match(strip(fnOf(R('js/views/intelligence.js'), 'contractPlainText')), /docBody\(c,\(opts&&opts\.marks\)\?undefined:\{ marks:false \}\)/, 'what Jambo is sent');
+    assert.match(strip(fnOf(R('js/triage.js'), 'triageWordingHash')), /contractPlainText\(c, \{ marks: true \}\)/, 'the wording hash keeps the text its stamps were taken over');
     assert.match(strip(fnOf(R('js/family.js'), 'amendParentHtml')), /docBody\(parent,\{ marks:false \}\)/, 'the amendment\'s parent');
+    assert.match(strip(fnOf(R('js/views/contract.js'), 'signCopySheetHtml')), /const body0=docBody\(c,\{ marks:false \}\);/, 'the signing copy, printed and signed');
+    assert.match(strip(R('js/views/portal.js')), /holder\.innerHTML=docBody\(c,\{ marks:false \}\);/, 'the PDF\'s long sheet');
   });
 });
 
 describe('f731 (9) the short title wherever risks are named', () => {
   test('the triage strip\'s tile and the health report ask riskTitleOf', () => {
     assert.match(strip(R('js/triage.js')), /rkOpen\.slice\(0, 2\)\.map\(rkName\)/);
+    assert.match(strip(R('js/triage.js')), /const rkName = x => \(x && x\.src && [^\n]*window\.riskTitleOf\(x\)/, 'and rkName asks riskTitleOf');
     assert.match(strip(R('js/views/healthreport.js')), /riskTitleOf\(\{ src:'scan', id:f\.id/);
+  });
+  test('so do Before you sign, the Clauses tab\'s marks, the weekly review and the Explorer\'s scan answer', () => {
+    assert.match(strip(R('js/signcheck.js')), /title: _scCall\('riskTitleOf', \{ src: 'scan', id: f\.id/, 'Before you sign');
+    assert.match(strip(R('js/views/contract.js')), /lead:\(f&&typeof riskTitleOf==='function'\)\?riskTitleOf\(\{ src:'scan', id:f\.id/, 'the marks');
+    assert.match(strip(R('js/views/weekly.js')), /title:\(typeof riskTitleOf==='function'\)\?riskTitleOf\(\{ src:'scan', id:f\.id/, 'the weekly review');
+    assert.match(strip(R('js/views/intelligence.js')), /igEsc\(fTitle\(f\)\)/, 'the Explorer');
   });
 });
 
@@ -191,16 +211,20 @@ describe('f731 (10) closing an unanswered handover declines through the one act'
 describe('f731 (11) the words', () => {
   const I18N = R('js/i18n.js');
   const both = k => (I18N.match(new RegExp('\\n    ' + k + ': ', 'g')) || []).length;
-  test('no Swedish line calls Jambo "anslutet"', () => assert.ok(!/Jambo är inte anslutet/.test(I18N)));
+  test('no Swedish line calls Jambo "anslutet" or "inställt"', () => assert.ok(!/Jambo är inte (anslutet|inställt)/.test(I18N)));
   test('the new sentences are in both books', () => {
-    for (const k of ['co_reshare_stranded', 'ng_comment_posted', 'ng_comment_not_sent', 'ng_comment_no_channel', 'srv_member_name_taken'])
+    for (const k of ['co_reshare_stranded', 'co_reshare_emailed', 'co_reshare_whatsapp', 'co_sent_again', 'ng_comment_posted', 'ng_comment_not_sent', 'ng_comment_no_channel', 'srv_member_name_taken'])
       assert.equal(both(k), 2, k);
     assert.match(I18N, /'Another member already has that name\.': 'srv_member_name_taken'/, 'the server\'s refusal is translated');
   });
   test('the stranded line, the WhatsApp line and the comment lines say themselves, in the reader\'s words', () => {
     const core = strip(R('js/core.js'));
     assert.match(core, /const reshareStrandedLine = who => i18t\('co_reshare_stranded',\{ who \}\);/);
-    assert.match(core, /WhatsApp opened so you can send it to \$\{who\}`,'ok'\)/);
+    assert.match(core, /toast\(i18t\('co_reshare_whatsapp',\{who\}\),'ok'\)/);
+    assert.match(core, /toast\(i18t\('co_reshare_emailed',\{who\}\),'ok'\)/);
+    assert.match(core, /toast\(i18t\('co_sent_again',\{who\}\),'ok'\)/);
+    assert.ok(!/toast\(`(Updated version emailed to|Link updated — WhatsApp opened|Sent again to) \$\{who\}/.test(core), 'no English resend toast');
+    assert.match(fnOf(R('js/core.js'), 'roundReachedByHand'), /c\.counterparty \|\| i18t\('ng_the_counterparty'\)/, 'the by-hand line names them in the reader\'s words');
     assert.equal((core.match(/out\.recipient\.phone\|\|i18t\('ng_the_counterparty'\)/g) || []).length, 2, 'both standing-link callers');
     for (const f of ['js/views/negotiation.js', 'js/views/contract.js']) {
       const src = strip(R(f));
@@ -212,6 +236,8 @@ describe('f731 (11) the words', () => {
   test('one comment, one confirmation: the drawer says it, so the portal\'s handler stays quiet there', () => {
     assert.match(strip(R('js/views/negotiation.js')), /opts\.onComment\(c, home, msg, \{ confirms: true \}\)/);
     assert.match(strip(R('js/views/portal.js')), /if\(!\(how&&how\.confirms\)\) toast\(i18t\('di_comment_sent_to'/);
+    assert.match(strip(R('js/views/negotiation.js')), /async onComment\(_c, ch, msg, how\)\{[\s\S]{0,700}if \(window\.toast && !\(how && how\.confirms\)\) toast\(i18t\('ng_comment_posted'/, 'our side too');
+    assert.match(strip(R('js/views/contract.js')), /async onComment\(_c, ch, msg, how\)\{[\s\S]{0,600}if\(!\(how&&how\.confirms\)\) toast\(i18t\('ng_comment_posted'/, 'the room too');
   });
 });
 

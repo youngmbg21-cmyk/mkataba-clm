@@ -1027,10 +1027,13 @@ function agForName(it){
     else if (['answer', 'reply', 'party', 'soon'].includes(it.kind) && typeof deskLead === 'function'){ const l = deskLead(c); n = (l && l.name) || ''; }
     else if (it.kind === 'ours'){
       /* THE PERSON THE EMAIL REACHES: the assignee where that is a member,
-         else the contract's owner (below). */
+         else the contract's owner. */
       const to0 = (typeof obligationReminderTo === 'function') ? obligationReminderTo(it.ob) : null;
       /* …and only one who can open the stream: the server's sweep skips the rest */
       const to = (to0 && (!c || typeof canAccessFolder !== 'function' || canAccessFolder(c.folder || '', to0))) ? to0 : null;
+      /* the owner the same way (obligationOwnerTo: a member with an address who
+         can open the stream), so nobody reached is nobody named */
+      if (typeof obligationOwnerTo === 'function'){ const ow = to ? null : obligationOwnerTo(c); return String((to && to.name) || (ow && ow.name) || '').trim(); }
       n = (to && to.name) || '';
     }
     else if (it.kind === 'read' || it.kind === 'reading'){

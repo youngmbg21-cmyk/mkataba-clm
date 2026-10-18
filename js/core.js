@@ -2922,7 +2922,7 @@ function renderNegotiationSection(c){
       if(out.stranded){
         toast(reshareStrandedLine(who),'err');
       } else if(out.delivered){
-        toast(`Updated version emailed to ${who}`,'ok');
+        toast(i18t('co_reshare_emailed',{who}),'ok');
       } else if(out.quiet){
         /* THE SAME LIE, SECOND PLACE. A round published onto a standing link
            sends nothing ON PURPOSE — the link was emailed once, when the
@@ -2936,7 +2936,7 @@ function renderNegotiationSection(c){
       } else if(out.channel==='whatsapp' && out.recipient.phone){
         // the same route the first share uses — nothing sends WhatsApp for us
         try{ window.open(waShareLink(out.recipient.phone, shareMessageText(c, out.link, '', null)),'_blank'); }catch(_){}
-        toast(`Link updated — WhatsApp opened so you can send it to ${who}`,'ok');
+        toast(i18t('co_reshare_whatsapp',{who}),'ok');
       } else {
         reshareNotSentModal(c, out, who);
       }
@@ -6913,7 +6913,9 @@ async function roundReachedByHand(c, out, opts={}){
   /* opts.turn===false: a door that never moved the turn on a delivered send
      (the "Send updated version" resends) does not move it here either. */
   if(opts.turn===false) persist(c); else roundHandedOver(c, opts.by||me);
-  if(opts.say!==false) try{ if(typeof toast==='function') toast(i18t('co_by_hand_done',{ who }),'ok'); }catch(_){}
+  /* the record above keeps English; the reader's line names them in the reader's words */
+  const whoSaid=(out.recipient && (out.recipient.name||out.recipient.email)) || c.counterparty || i18t('ng_the_counterparty');
+  if(opts.say!==false) try{ if(typeof toast==='function') toast(i18t('co_by_hand_done',{ who:whoSaid }),'ok'); }catch(_){}
   return true;
 }
 
@@ -8728,7 +8730,7 @@ async function renderSharesSection(c){
       const who=out.recipient.name||out.recipient.email||out.recipient.phone||i18t('ng_the_counterparty');
       /* Their copy could not be reused — see the other caller; same order. */
       if(out.stranded) toast(reshareStrandedLine(who),'err');
-      else if(out.delivered) toast(`Sent again to ${who}`,'ok');
+      else if(out.delivered) toast(i18t('co_sent_again',{who}),'ok');
       /* Deliberately quiet, not refused — see the note on the other caller. */
       else if(out.quiet) toast(i18t('co_round_on_standing_link',{who}),'ok');
       else reshareNotSentModal(c, out, who);

@@ -6073,7 +6073,7 @@ function exportPDF(c, opts){
        sheet does not carry, so it prints as a heap of unstyled text — and the
        print-styled block below would then be the second copy. Take the wording
        only, and let printExecutionBlock render the execution once, properly. */
-    holder.innerHTML=docBody(c);
+    holder.innerHTML=docBody(c,{ marks:false });   /* a copy that leaves the building carries no scan marks */
     holder.querySelectorAll('.seal-in, [data-anchor="sig"]').forEach(n=>n.remove());
     /* An unfilled blank prints as a paper form's blank line — an underscore
        run, never the on-screen grey box and never the field's label. */

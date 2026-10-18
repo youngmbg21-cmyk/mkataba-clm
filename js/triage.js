@@ -759,7 +759,9 @@ function triageWordingHash(c){
     if (typeof playbookHashOf !== 'function') return null;
     const txt = (typeof isUpload === 'function' && isUpload(c))
       ? ((c.upload && c.upload.extractedText) || '')
-      : ((typeof contractPlainText === 'function') ? contractPlainText(c) || '' : '');
+      /* { marks:true }: the text every stamp on file was hashed over (the scan's
+         tags included), so a reading kept before stays a reading of these words */
+      : ((typeof contractPlainText === 'function') ? contractPlainText(c, { marks: true }) || '' : '');
     return String(txt).trim() ? playbookHashOf(txt) : null;
   }catch(_){ return null; }
 }

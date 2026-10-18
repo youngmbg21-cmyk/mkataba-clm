@@ -2308,10 +2308,12 @@ function intelGraphApply(q, res, opts){
 }
 
 /* ---- template advisor: stage 1 metadata shortlist, stage 2 clause-level Copilot rank ---- */
-function contractPlainText(c){
+function contractPlainText(c, opts){
   try{
     if(isUpload(c)) return (c.upload&&c.upload.extractedText)||'';
-    const host=document.createElement('div'); host.innerHTML=docBody(c,{ marks:false });
+    /* the words alone, never the scan's tags; { marks:true } only for the wording
+       hash (triageWordingHash), whose stamps on file were taken over the tagged text */
+    const host=document.createElement('div'); host.innerHTML=docBody(c,(opts&&opts.marks)?undefined:{ marks:false });
     host.querySelectorAll('input').forEach(i=>i.replaceWith(document.createTextNode(i.value||i.getAttribute('value')||'')));
     return (host.textContent||'').replace(/\s+/g,' ').trim();
   }catch(e){ return ''; }
@@ -2482,7 +2484,9 @@ async function intelComplianceScan(q){
   const totalFindings=rows.reduce((n,r)=>n+r.findings.length,0);
   let html=`<b>${i18t('int_compliance_review')}</b> ${rows.length} of ${cs.length} live contracts carry clauses worth a closer look — ${totalFindings} potential issue${totalFindings===1?'':'s'} in all (risks, missing protections or ambiguous terms), ranked by severity. This is a first-pass review to raise with counsel, not legal advice.`;
   html+=top.map(r=>{
-    const items=r.findings.slice(0,3).map(f=>`<li style="margin:2px 0"><b>${igEsc(f.title)}</b>${f.why?` — ${igEsc(f.why)}`:''}</li>`).join('');
+    /* named by the ONE short title (riskTitleOf), as the health report is */
+    const fTitle=f=>(typeof riskTitleOf==='function')?riskTitleOf({ src:'scan', id:f.id, kind:f.kind||'', title:String(f.title||'') }):f.title;
+    const items=r.findings.slice(0,3).map(f=>`<li style="margin:2px 0"><b>${igEsc(fTitle(f))}</b>${f.why?` — ${igEsc(f.why)}`:''}</li>`).join('');
     const more=r.findings.length>3?`<div style="font-size:var(--t-label);color:var(--color-neutral-500);margin-top:1px">+${r.findings.length-3} more</div>`:'';
     return `<div style="margin-top:10px;padding-top:9px;border-top:1px solid color-mix(in srgb,var(--color-text) 9%,transparent)">
       <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px;flex-wrap:wrap">

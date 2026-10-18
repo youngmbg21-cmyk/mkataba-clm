@@ -10501,7 +10501,7 @@ function rlBenchOpts(c, o = {}){
        confirmed a point in the thread and Erik's page never showed it. It
        goes down the discussion channel as well, under the change's own
        topic, which is the store their page reads live. */
-    async onComment(_c, ch, msg){
+    async onComment(_c, ch, msg, how){
       if (!window.API_MODE || !API_MODE() || !ch) return;
       try{
         const res = await api('contracts/' + c.id + '/messages', 'POST', {
@@ -10509,7 +10509,8 @@ function rlBenchOpts(c, o = {}){
           topicLabel: `Change #${ch.id}${ch.clauseLabel ? ' · ' + _neClause(ch.clauseLabel) : ''}`,
           body: msg.text });
         c._messages = (res && res.messages) || c._messages || [];
-        if (window.toast) toast(i18t('ng_comment_posted', { id: ch.id, who: c.counterparty || i18t('ng_the_counterparty') }), 'ok');
+        /* the notes drawer says its own "Sent" (how.confirms): one press, one confirmation */
+        if (window.toast && !(how && how.confirms)) toast(i18t('ng_comment_posted', { id: ch.id, who: c.counterparty || i18t('ng_the_counterparty') }), 'ok');
       }catch(e){
         if (window.toast) toast(i18t('ng_comment_not_sent', { who: c.counterparty || i18t('ng_the_counterparty'), why: (e && e.message) || i18t('ng_comment_no_channel') }), 'err');
       }

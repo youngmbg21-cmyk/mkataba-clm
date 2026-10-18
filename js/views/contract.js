@@ -3244,7 +3244,9 @@ function signCopySheetHtml(c, o){
   const theirs=signCopyTheirs(c);
   const b=(!up&&window.resolveDocBranding)?resolveDocBranding(c):null;
   const P=window.PG_SIGN_PAD||{t:64,r:84,b:88,l:84};
-  const structured=(b&&window.docStructureBodyHtml)?docStructureBodyHtml(b,docBody(c)):docBody(c);
+  /* the copy that is signed and printed carries no scan marks, as the sealed copy does */
+  const body0=docBody(c,{ marks:false });
+  const structured=(b&&window.docStructureBodyHtml)?docStructureBodyHtml(b,body0):body0;
   /* TWO COLUMNS DO NOT GO ONTO THE SIGNING PAGES YET: a page-maker that moves
      whole blocks cannot fill two columns a page at a time, and a column that
      ran the whole length of a long contract is not a page anybody signs. The
@@ -9080,7 +9082,7 @@ function openNegotiationOwnerRoom(c){
        silence. They are not waiting to be told we accepted something; they
        cannot answer wording they do not know has arrived. */
     async onSendDirect(){
-      const to=c.counterpartyName||c.counterparty||'the counterparty';
+      const to=c.counterpartyName||c.counterparty||i18t('ng_the_counterparty');
       try{
         /* handOver: a round send — where it hands the table to them, one
            "it is your turn" email rides with it (roundTurnMail). */
@@ -9108,7 +9110,7 @@ function openNegotiationOwnerRoom(c){
             : i18t('ng_turn_mail_failed',{who:to, why:out.emailError||''}), out.delivered?'ok':'warn');
         } else
         toast(out.stranded
-          ? `${reshareStrandedLine(to)} It is now their turn.`
+          ? `${reshareStrandedLine(to)}${i18t('ng_solo_turn_end')}`
           : out.quiet
           ? `Sent to ${to} — the new round is on their link, and it is now their turn`
           : out.delivered
@@ -9129,7 +9131,7 @@ function openNegotiationOwnerRoom(c){
        afterwards. It goes down the discussion channel as well, under the
        change's own topic, which is the store their page reads. Same message,
        both stores, one thread on each side's card. */
-    async onComment(_c, ch, msg){
+    async onComment(_c, ch, msg, how){
       if(!API_MODE()||!ch) return;
       try{
         const res=await api('contracts/'+c.id+'/messages','POST',{
@@ -9137,7 +9139,7 @@ function openNegotiationOwnerRoom(c){
           topicLabel:`Change #${ch.id}${ch.clauseLabel?' · '+_ctClauseName(ch.clauseLabel):''}`,
           body:msg.text });
         c._messages=(res&&res.messages)||c._messages||[];
-        toast(i18t('ng_comment_posted',{ id:ch.id, who:c.counterparty||i18t('ng_the_counterparty') }),'ok');
+        if(!(how&&how.confirms)) toast(i18t('ng_comment_posted',{ id:ch.id, who:c.counterparty||i18t('ng_the_counterparty') }),'ok');
       }catch(e){
         toast(i18t('ng_comment_not_sent',{ who:c.counterparty||i18t('ng_the_counterparty'), why:e.message||i18t('ng_comment_no_channel') }),'err');
       }
@@ -13819,7 +13821,9 @@ const _xrPbOpen = v => !!v && !/^(ok|aligned|na)$/.test(String(v.status||''));
    contract-level block are drawn from one builder and cannot drift. */
 const _xrScanMark = f => { const sev=String((f&&f.sev)||'');
   return { k:'scan', grade:XR_SEV_GRADE[sev]||'amber', tag:i18t('xr_m_scan'),
-    lead:String((f&&f.title)||''), say:'', why:String((f&&f.why)||''), id:(f&&f.id)||'', sev }; };
+    /* named by the ONE short title (riskTitleOf), as the triage tile and the health report are */
+    lead:(f&&typeof riskTitleOf==='function')?riskTitleOf({ src:'scan', id:f.id, kind:f.kind||'', title:String(f.title||'') }):String((f&&f.title)||''),
+    say:'', why:String((f&&f.why)||''), id:(f&&f.id)||'', sev }; };
 const _xrPbMark = v => ({ k:'pb', grade:'amber', tag:i18t('xr_m_pb'),
     lead:String(v.category||''),
     say:i18t(String(v.status)==='missing'?'xr_pb_missing':'xr_pb_departs'),

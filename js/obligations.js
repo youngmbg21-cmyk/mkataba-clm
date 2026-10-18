@@ -3370,8 +3370,11 @@ function obPanelOpts(o, c, i, ctx){
   const theirs = obligationIsTheirs(o);
   const st = obligationStatusSay(o, c);
   const money = obligationMoneyVisible();
-  const m = theirs ? null : obligationReminderTo(o);
-  const typed = String((o && o.assignee) || '').trim();
+  /* who the reminder reaches, as its Reminders line below reads it: a member
+     who cannot open the stream is named, and said not reminded */
+  const m0 = theirs ? null : obligationReminderTo(o);
+  const m = obligationReachable(m0, c);
+  const typed = String((o && o.assignee) || '').trim() || (m0 && m0.name) || '';
   const whose = theirs
     ? _obEsc(ctx === 'page' ? i18t('ob_whose_theirs_cp', { cp: o.counterparty || c.counterparty || '' }) : i18t('ob_side_theirs'))
     : (m ? _obEsc(i18t('ob_whose_ours', { who: m.name || typed })) : `<span class="ins-unassigned">${_obEsc(i18t(typed ? 'ob_whose_ours_unknown' : 'ob_whose_ours_nobody', { who: typed }))}</span>`);
