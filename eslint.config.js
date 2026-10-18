@@ -214,7 +214,8 @@ const BUG_RULES = {
 };
 
 module.exports = [
-  { ignores: ['node_modules/**', 'coverage/**', 'prototype/**', 'test/chromium/shots/**', 'js/aimd.js'] },
+  /* vendor/ is third-party bytes, never edited and never swept by our own checks (vendor/README.md) */
+  { ignores: ['node_modules/**', 'coverage/**', 'prototype/**', 'test/chromium/shots/**', 'js/aimd.js', 'vendor/**'] },
 
   /* The app: plain scripts in a browser, sharing one global namespace. */
   {

@@ -328,6 +328,10 @@ function counterAsk(text){
   const t = String(text || '').trim(); if (!t) return false;
   let a = null; try { a = (typeof caReadPlace === 'function') ? caReadPlace(t) : null; } catch (_){ a = null; }
   if (a && a.kind === 'go' && !CN_ASKS_JAMBO.includes(a.place) && typeof caGo === 'function' && caGo(a)) return true;
+  /* JAMBO'S MAP (js/jambomap.js): everyday words for a page open it here as a
+     place word does; a card (an act, "which did you mean?") is Jambo's, beside the Board */
+  if (!a){ let m = null; try { m = (typeof jmRead === 'function') ? jmRead(t) : null; } catch (_){ m = null; }
+    if (m && m.kind === 'go' && !m.missing && !CN_ASKS_JAMBO.includes(m.place) && typeof caGo === 'function' && caGo(m)) return true; }
   if (typeof hbS !== 'function' || typeof setView !== 'function') return false;
   /* drafting is the wall's (where his New agreement card stands); the rest is asked on the Board */
   const toWall = !!(a && a.place === 'draft') || (typeof caIsDraftAsk === 'function' && caIsDraftAsk(t));

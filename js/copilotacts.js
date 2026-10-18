@@ -289,6 +289,10 @@ function caActOf(q){
   const go = caReadPlace(t); if (go) return go;
   const menu = caReadMenu(t); if (menu) return menu;
   if (typeof caReadDraft === 'function'){ const d = caReadDraft(t); if (d){ setTimeout(() => { caDraftRun(d); }, 0); return d; } }
+  /* JAMBO'S MAP (18 Oct 2026, js/jambomap.js): last of all, a sentence in
+     everyday words ("where are the contracts ending soon?") reaches the same
+     doors as the exact words; what it does not know goes on to the model */
+  if (typeof jmRead === 'function'){ const m = jmRead(t); if (m) return m; }
   return null;
 }
 
@@ -308,6 +312,7 @@ function caCardHtml(a, i){
   if (a.kind === 'door') return caDoorCardHtml(a, i);
   if (a.kind === 'menu') return caMenuCardHtml(a, i);
   if (a.kind === 'go') return caGoCardHtml(a, i);
+  if (a.kind === 'map') return (typeof jmCardHtml === 'function') ? jmCardHtml(a, i) : '';
   if (a.kind !== 'send') return '';
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   const B = (act, label, cls) => `<button type="button" class="ui-btn ui-btn-sm${cls === 'lead' ? ' ui-btn-primary' : ''}" data-ca-act="${act}" data-ca-turn="${i}">${_caE(label)}</button>`;
@@ -344,6 +349,7 @@ async function caCardPress(i, act, btn){
   if (a.kind === 'door') return caDoorPress(i, act);
   if (a.kind === 'menu') return caMenuPress(i, act);
   if (a.kind === 'go') return caGoPress(a, act);
+  if (a.kind === 'map') return (typeof jmCardPress === 'function') ? jmCardPress(i, act) : undefined;
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   if (act === 'sendscreen'){ if (c && typeof openShareModal === 'function') openShareModal(c); return; }
   if (act === 'note'){
@@ -762,8 +768,16 @@ const CA_DOORS = [
   ['counter', /^\s*(?:please\s+)?counter\b/i],
   ['lock', /\b(?:hand|give|pass)\b[^.?!]*\block\b/i],
 ];
+/* THE WORD DOOR SENDS A WORD COPY OUT (owner, 18 Oct 2026: "Fix the Word
+   file door misread next"): "add a word file", "upload a word file", "we got
+   a word copy", "import the word file" bring one in, and "download a word
+   copy" keeps one here — none of them is a copy for the other side, unless
+   the words also send it ("send them the word file"). */
+const CA_DOOR_NOT = {
+  word: t => !CA_FILE_OUT.test(t) && (CA_MENU_INBOUND.test(t) || CA_FILE_KEEP.test(t)),
+};
 function caReadDoor(q){
-  const hit = CA_DOORS.find(([, re]) => re.test(q)); if (!hit) return null;
+  const hit = CA_DOORS.find(([k, re]) => re.test(q) && !(CA_DOOR_NOT[k] && CA_DOOR_NOT[k](q))); if (!hit) return null;
   const c = caFindContract(q); if (!c) return null;
   return { kind: 'door', door: hit[0], cid: c.id, state: 'ready' };
 }
@@ -840,7 +854,7 @@ async function caDoorPress(i, act){
 const CA_MENU = [
   ['export', /^\s*(?:please\s+)?(?:export|download|print|exportera|ladda ner|skriv ut)\b(?![^.?!]*\b(?:pdf|word)\b)/i, ['#ws-pdf', '#ws-word', '#ws-pdf-record']],
   ['pdf', /\bpdf\b|\bclean copy\b|\bren kopia\b/i, ['#ws-pdf']],
-  ['wordx', /\b(?:export|download|exportera)\b[^.?!]*\bword\b|\b(?:as|in|to|till|som) word\b/i, ['#ws-word']],
+  ['wordx', /\b(?:export|download|save|exportera|ladda ner|spara)\b[^.?!]*\bword\b|\b(?:as|in|to|till|som) (?:an? |en )?word\b/i, ['#ws-word']],
   ['record', /\b(?:sealed|audit)\s+(?:record|copy|trail)\b/i, ['#ws-pdf-record']],
   ['signed', /\b(?:add|attach|link|upload|lägg till|bifoga)\b[^.?!]*\b(?:signed|undertecknat)\b|\bsigned (?:document|copy|agreement)\b/i, ['#ws-m-link']],
   ['adviser', /\b(?:ask|consult|get|fråga)\b[^.?!]*\b(?:adviser|advisor|lawyer|counsel|rådgivare|jurist)\b|^\s*(?:an? )?(?:adviser|advisor|rådgivare)\s*$/i, ['#ws-advice']],
@@ -864,9 +878,27 @@ const CA_MENU = [
 const CA_MENU_MAX = 140;
 /* a question about the thing ("who are the signers?") is for Jambo to answer, not a press */
 const CA_MENU_ASKS = /^\s*(?:what|who|whom|why|how|when|which|where|vad|vem|varför|hur|när|vilken|vilka)\b/i;   // a longer question is a question for the model, not a press
+/* TWO ROWS THAT MISREAD A FILE COMING IN (owner, 18 Oct 2026: "Fix the Menu
+   reader's pdf and import misreads"). The PDF row is a copy going OUT: "I want
+   to upload a pdf", "add a signed pdf", "we got a pdf" bring a file in, so the
+   row is not read and the words go on to the doors that bring one in (the
+   signed-document row, the upload). The import row brings in THEIR file — the
+   other side's Word response — so it is read only where the words say whose:
+   "import from excel" and "import our old contracts" are the Import page's. */
+const CA_MENU_INBOUND = /(?<!\p{L})(?:upload\p{L}*|attach\p{L}*|scan\p{L}*|drop\p{L}*|add(?:s|ed|ing)?|receiv\p{L}*|got|bring(?:ing)? in|import\p{L}*|ladda(?:r|de)? upp|bifoga\p{L}*|lägg(?:a|er)? (?:in|till)|skanna\p{L}*|fått|fick)(?!\p{L})/iu;
+const CA_MENU_THEIR_FILE = /(?<!\p{L})(?:their|them|the other side|counterparty|response|reply|markup|mark-up|redlines?|changes|word|deras|motparten|svar(?:et)?|ändringar(?:na)?)(?!\p{L})/iu;
+/* words that send a copy OUT to someone, and words that keep one HERE (the Word door, above) */
+const CA_FILE_OUT = /(?<!\p{L})(?:send|sending|share|sharing|e-?mail|mail|forward|skicka|dela|mejla|maila)(?!\p{L})/iu;
+const CA_FILE_KEEP = /(?<!\p{L})(?:download\p{L}*|export\p{L}*|save|print|exportera|ladda ner|spara|skriv ut)(?!\p{L})/iu;
+const CA_MENU_NOT = {
+  pdf: t => CA_MENU_INBOUND.test(t),
+  import: t => !CA_MENU_THEIR_FILE.test(t),
+  /* the Word download is a copy going out too: "upload it as word" is not it (18 Oct 2026) */
+  wordx: t => CA_MENU_INBOUND.test(t) && !CA_FILE_OUT.test(t),
+};
 function caReadMenu(q){
   const t = String(q || ''); if (t.length > CA_MENU_MAX || CA_MENU_ASKS.test(t)) return null;
-  const hit = CA_MENU.find(([, re]) => re.test(t)); if (!hit) return null;
+  const hit = CA_MENU.find(([k, re]) => re.test(t) && !(CA_MENU_NOT[k] && CA_MENU_NOT[k](t))); if (!hit) return null;
   const c = caFindContract(t); if (!c) return null;
   return { kind: 'menu', menu: hit[0], sels: hit[2], cid: c.id, state: 'ready' };
 }
@@ -1183,7 +1215,7 @@ async function caDraftReply(prompt, cid){
   }
 }
 Object.assign(window, { caDraftReply });
-Object.assign(window, { caRefFix, CA_REF_RE, caRefLinkPaint, caRefOpen, CA_MENU, caReadMenu, caMenuRows, caMenuCardHtml, caMenuPress, CA_DOORS, caReadDoor, caRoomSign, CA_DOOR_GO, CA_DOOR_SHUT, CA_DOOR_NEEDS, caDoorCardHtml, caDoorPress });
+Object.assign(window, { caRefFix, CA_REF_RE, caRefLinkPaint, caRefOpen, CA_MENU, CA_MENU_INBOUND, CA_MENU_THEIR_FILE, CA_FILE_OUT, CA_FILE_KEEP, CA_MENU_NOT, caReadMenu, caMenuRows, caMenuCardHtml, caMenuPress, CA_DOORS, CA_DOOR_NOT, caReadDoor, caRoomSign, CA_DOOR_GO, CA_DOOR_SHUT, CA_DOOR_NEEDS, caDoorCardHtml, caDoorPress });
 Object.assign(window, { CA_PICK_MAX, CA_NOTE_MAX, CA_SEND_RE, caPeople, caContracts, caOpenContract, caTokenAt, caMatches, caPopHtml, caPopClose, caPopRead, caChoose,
   caFindContract, caFindPerson, caNoteOf, caReadSend, caActOf, caSendBlock, caCardHtml, caCardPress,
   CA_DRAFT_RE, CA_DRAFT_NOUN, CA_DRAFT_OPTS, CA_DRAFT_BARE, CA_DRAFT_ASKING, caIsDraftAsk, caReadDraft, caDraftScore, caDraftRank, caDraftRun, caDraftCardHtml, caDraftPress, CA_DRAFT_WITH, CA_DRAFT_WITH_MAX, caDraftWith, CA_DRAFT_NOT_PARTY, CA_DRAFT_TERM_WORD, caDraftBest, caDraftTitleOf, caDraftWho, caDraftForm,
@@ -1442,6 +1474,8 @@ function caGoSay(a){
   if (!a) return '';
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   if (a.missing) return _caT('ca_go_need', { word: _caT('ca_w_' + a.place) });
+  /* a task of Jambo's map that lands on a narrowed list or a Settings section says where (js/jambomap.js) */
+  if (a.say) return _caT(a.say);
   if (a.place === 'back'){ const p = caTrailTop(); return p ? _caT('ca_go_back', { where: caTrailLabel(p) }) : _caT('ca_go_back_none'); }
   /* a viewer's "upload" is answered with the refusal, once, where they look — not a toast beside it */
   if ((a.place === 'upload' || a.place === 'import') && !caMayAdd()) return _caT('ct_viewers_no_add');
@@ -1460,6 +1494,16 @@ function caGo(a){
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   caTrailPush();
   if (a.missing){ caHomeWall(); caGoRepaint(); return true; }
+  /* JAMBO'S MAP (js/jambomap.js) reaches two doors no single word had: the
+     Contracts place narrowed, as Home's tiles open it (regGoFiltered), and a
+     Settings section, as the Settings finder opens it (stFindGo) */
+  const door = a.reg ? (typeof regGoFiltered === 'function' ? () => regGoFiltered(a.reg) : null)
+    : a.st ? (typeof stFindGo === 'function' ? () => stFindGo(a.st) : null) : undefined;
+  if (door !== undefined){
+    if (!door) return false;
+    try { door(); } catch (e){ if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); return false; }
+    caGoRepaint(); return true;
+  }
   const go = CA_GO[a.place]; if (typeof go !== 'function') return false;
   try { go(c); } catch (e){ if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); return false; }
   caGoRepaint();
