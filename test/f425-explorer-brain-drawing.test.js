@@ -147,7 +147,9 @@ test('f425 (6) Copilot steers the map: colour, size and show everything are read
   assert.equal(win.eval('intel.lenses.length'), 0); assert.equal(win.eval('intel.groups'), null);
   assert.equal(await win.intelMapLocal('What does MK-101 say about liability?'), null, 'a question about wording is not for the map');
   const ask = code(region(IG, 'intelAsk'));
-  assert.match(ask, /const mapRest=\(igPaperUp\(\)\|\|boardUp\)\?null:await intelMapLocal\(q\);/, 'read first, never on the paper');
+  /* RE-POINTED 18 Oct 2026 (rounds 7 and 12 as drawn): nor beside a page
+     brought up on the desk, whose box asks about that contract (heldId) */
+  assert.match(ask, /const mapRest=\(igPaperUp\(\)\|\|boardUp\|\|heldId\)\?null:await intelMapLocal\(q\);/, 'read first, never on the paper');
   assert.doesNotMatch(code(region(IG, 'intelMapLocal')).replace(/intelGraphAsk\(restRaw\)/, ''), /\bapi\(|fetch\(|copilotAsk\(/, 'these spend nothing');
 });
 

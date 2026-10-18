@@ -79,8 +79,10 @@ describe('F380 — the history reads as a line of time', () => {
     assert.ok(ats.every((a, k) => k === 0 || ats[k - 1] <= a), ats.join(' | '));
   });
   test('(1c) the head says which way it runs, in both books', () => {
-    assert.match(I18N, /ct_hist_reading: 'Newest first · /);
-    assert.match(I18N, /ct_hist_reading: 'Nyast först · /);
+    /* RE-POINTED 18 Oct 2026 (round 12, "Two sides", as drawn: "Newest first ·
+       our side left, theirs right · 13 events · 2 open changes") */
+    assert.match(I18N, /ct_hist_reading: 'Newest first',/);
+    assert.match(I18N, /ct_hist_reading: 'Nyast först',/);
     assert.ok(!/ct_hist_reading: '(Oldest|Äldsta)/.test(I18N), 'neither book still says oldest first');
   });
   test('(1d) [wall] the pop-out record and the exported report keep their own order', async () => {
@@ -143,7 +145,11 @@ describe('F380 — the history reads as a line of time', () => {
     const { box, rows } = rowsOf(win, win.roomHistoryHtml(c));
     const heads = box.querySelectorAll('.hist-day-h');
     assert.ok(heads.length >= 1, 'a day heading');
-    assert.match(heads[0].textContent, new RegExp(String(new Date().getFullYear())), 'the whole date, year and all');
+    /* RE-POINTED 18 Oct 2026 (round 12 as drawn): the day as a person says
+       it, "Thu 15 Oct" — the year only where it is not this one — its count
+       on the pill's hover */
+    assert.match(heads[0].textContent.trim(), /^\S+ \d{1,2} \S+$/, 'the day as a person says it');
+    assert.match(heads[0].getAttribute('title') || '', /event/, 'its count on the hover');
     for (const r of rows){
       assert.ok(r.querySelector('.hist-when > .hist-time').textContent, 'every row has its time');
       assert.ok(!/\d{4}-\d{2}-\d{2}/.test(r.querySelector('.hist-when').textContent));
@@ -151,11 +157,22 @@ describe('F380 — the history reads as a line of time', () => {
   });
 
   /* ═══════ 3. A RING IN THE KIND'S TONE ═══════ */
+  /* RE-POINTED 18 Oct 2026 (round 12, "Two sides", as drawn: "16:24 · PN Per
+     Nordvik"): in a bubble the time is followed by a dot of punctuation and
+     the kind's name rides the time's hover; an entry on the middle line keeps
+     its ring, the tone on its edge */
   test('(3) the tone is the ring\'s edge, not a fill', async () => {
     const { win, c } = await storyWorld();
     const { rows } = rowsOf(win, win.roomHistoryHtml(c));
     for (const r of rows){
-      const st = r.querySelector('.hist-dot').getAttribute('style');
+      const dot = r.querySelector('.hist-dot');
+      if (r.getAttribute('data-hist-lane') !== 'mid'){
+        assert.equal(dot, null, 'no ring in a bubble');
+        assert.ok(r.querySelector('.hist-top .hist-sep'), 'the time and the person joined by a dot');
+        assert.ok((r.querySelector('.hist-when').getAttribute('title') || '').length > 0, 'the kind on the time\'s hover');
+        continue;
+      }
+      const st = dot.getAttribute('style');
       assert.match(st, /^border-color:var\(--/, st);
       assert.ok(!/background/.test(st), 'no fill on the element');
     }
@@ -167,9 +184,9 @@ describe('F380 — the history reads as a line of time', () => {
     const { rows } = rowsOf(win, win.roomHistoryHtml(c));
     const r = rows.find(x => /Rejected/.test(x.querySelector('.hist-text').textContent));
     assert.ok(r, 'the refusal is on the page');
-    /* The TONE is the claim, whichever property carries it — (3) above is the
-       claim that it is the edge. */
-    assert.match(r.querySelector('.hist-dot').getAttribute('style'), /var\(--st-ruby-dot\)/);
+    /* The TONE is the claim, whichever property carries it — since round 12
+       as drawn, the outcome's own pill (18 Oct 2026). */
+    assert.match(r.querySelector('.hist-pill').className, /\bis-r\b/);
   });
 
   /* ═══════ 4. ONE LINE JOINS THEM ═══════ */
@@ -197,16 +214,16 @@ describe('F380 — the history reads as a line of time', () => {
   /* ═══════ 5. THE ROUND AT THE RIGHT WALL ═══════ */
   /* RE-POINTED 9 Oct 2026: the round is a chip on the event's own line (as
      drawn), not a column at the right wall; an entry in no round has none. */
+  /* RE-POINTED 18 Oct 2026 (round 12, "Two sides", as drawn): a change's entry
+     says what happened to which clause in words, so no clause or round chip
+     trails it; the round's whole name rides the time's hover. The chip stays
+     for an entry whose words do not name its clause. */
   test('(5) a round reads "R1" as a chip on the event\'s line, its whole name on the hover', async () => {
     const { win, c } = await storyWorld();
     const { rows } = rowsOf(win, win.roomHistoryHtml(c));
-    const inRound = rows.filter(r => r.querySelector('.hist-text .hist-rchip'));
+    const inRound = rows.filter(r => (r.querySelector('.hist-when').getAttribute('title') || '').includes(win.i18t('ct_round_n', { n: 1 })));
     assert.ok(inRound.length >= 2, 'the proposal and the refusal');
-    for (const r of inRound){
-      const el = r.querySelector('.hist-rchip');
-      assert.equal(el.textContent, win.i18t('ct_round_short', { n: 1 }));
-      assert.equal(el.getAttribute('title'), win.i18t('ct_round_n', { n: 1 }));
-    }
+    for (const r of inRound) assert.equal(r.querySelector('.hist-text .hist-rchip'), null, 'its words name the clause; the round is on the hover');
     assert.equal(win.i18t('ct_round_short', { n: 1 }), 'R1');
     assert.match(rule('.hist-rchip'), /font-weight:var\(--w-strong\)/);
   });
