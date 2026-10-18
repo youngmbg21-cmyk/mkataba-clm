@@ -1795,8 +1795,9 @@ function calWeekHtml(contractEvs){
     return (contractEvs||[]).filter(e=>e.date===iso).concat((contractEvs||[]).filter(e=>we.includes(e.date)).map(e=>Object.assign({},e,{ _we:calWeekendWord(e.date) }))); };
   const allDay=days.map(d=>{ const iso=_isoLocal(d);
     const c=onDay(iso).map(e=>{ const ev=CAL_EVENT[e.type];
-      const t=(e._we?e._we+' · ':'')+(e.type==='obligation'?calChipText(e):ev.short+' · '+(e.cref||e.cid));
-      return `<button type="button" class="cal-chip cal-wk-ct" data-sel="${_esc(e.cid)}" title="${_esc((e._we?e._we+' · ':'')+ev.label+': '+(e.note||e.cname))}" style="border-left-color:${ev.dot};background:${ev.bg};color:${ev.fg}">${_esc(t)}</button>`; });
+      /* the reference wears its one dress, as the month's chip does */
+      const t=_esc(e._we?e._we+' · ':'')+(e.type==='obligation'?_esc(calChipText(e)):_esc(ev.short)+' · '+(window.refHtml?refHtml(e.cref||e.cid):_esc(e.cref||e.cid)));
+      return `<button type="button" class="cal-chip cal-wk-ct" data-sel="${_esc(e.cid)}" title="${_esc((e._we?e._we+' · ':'')+ev.label+': '+(e.note||e.cname))}" style="border-left-color:${ev.dot};background:${ev.bg};color:${ev.fg}">${t}</button>`; });
     const o=own.filter(e=>e.date===iso&&!e.start).map(e=>{ const ev=CAL_EVENT[e.type];
       return `<button type="button" class="cal-chip cal-own is-${e.type}" ${e.own} title="${_esc(e.title)}" style="border-left-color:${ev.dot};background:${ev.bg};color:${ev.fg}">${_esc(e.chip)}</button>`; });
     return `<div class="cal-wk-all">${c.concat(o).join('')}</div>`; }).join('');
@@ -1837,9 +1838,12 @@ function calMoreWeeksHtml(a,onDay){
       const chip=e?(()=>{ const ev=CAL_EVENT[e.type];
         const we=e._we||(e.date!==iso?calWeekendWord(e.date):'');
         const t=(we?we+' · ':'')+(e.own?e.chip:e.type==='obligation'?calChipText(e):ev.short+' · '+(e.cref||e.cid)+(e.cname?' '+e.cname:''));
+        /* the reference wears its one dress, as the month's chip does */
+        const th=e.own||e.type==='obligation'?_esc(t)
+          :_esc(we?we+' · ':'')+_esc(ev.short)+' · '+(window.refHtml?refHtml(e.cref||e.cid):_esc(e.cref||e.cid))+(e.cname?' '+_esc(e.cname):'');
         return e.own
-          ? `<span class="cal-chip cal-own is-${e.type}" ${e.own} title="${_esc(t)}" style="border-left-color:${ev.dot};background:${ev.bg};color:${ev.fg}">${_esc(t)}</span>`
-          : `<span class="cal-chip" data-cal-ct="${_esc(e.cid)}" title="${_esc((we?we+' · ':'')+ev.label+': '+(e.note||e.cname))}" style="border-left-color:${ev.dot};background:${ev.bg};color:${ev.fg}">${_esc(t)}</span>`; })():'';
+          ? `<span class="cal-chip cal-own is-${e.type}" ${e.own} title="${_esc(t)}" style="border-left-color:${ev.dot};background:${ev.bg};color:${ev.fg}">${th}</span>`
+          : `<span class="cal-chip" data-cal-ct="${_esc(e.cid)}" title="${_esc((we?we+' · ':'')+ev.label+': '+(e.note||e.cname))}" style="border-left-color:${ev.dot};background:${ev.bg};color:${ev.fg}">${th}</span>`; })():'';
       const more=list.length>1?`<span class="cal-more">${_esc(i18t('cal_n_more',{n:list.length-1}))}</span>`:'';
       const dayName=d.toLocaleDateString(langLocale(),{day:'numeric',month:'long',year:'numeric'});
       return `<div class="cal-wkm-d${iso===calToday()?' is-today':''}" role="button" tabindex="0" data-cal-week="${iso}" title="${_esc(i18t('cal_open_week_of',{day:dayName}))}"><span class="cal-wkm-dn">${_esc(d.toLocaleDateString(langLocale(),{weekday:'short'}))} ${d.getDate()}</span>${chip}${more}</div>`;
