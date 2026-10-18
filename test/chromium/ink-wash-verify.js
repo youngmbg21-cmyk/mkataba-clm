@@ -20,6 +20,12 @@
 
      node test/chromium/ink-wash-verify.js --save   (record, on the code BEFORE)
 
+   RE-RECORDED 18 Oct 2026 (tenth), OWNER-ASKED (the overnight build, same
+   standing yes): Round 13, "Wall of papers" — the Contracts place's papers
+   carry their facts under them (number · value, party, a private stream's
+   lock) and the archive is its own button, so on the contracts screen and the
+   dialog, alerts and toast drawn over it the 13px count and the dividers'
+   counts rose. Audited by key: no colour new, none gone.
    RE-RECORDED 18 Oct 2026 (ninth), OWNER-ASKED (the overnight build, same
    standing yes): Round 12, "Two sides" — History reads as two lanes (ours,
    the days, theirs) with a bubble per entry, so on the History screen the
