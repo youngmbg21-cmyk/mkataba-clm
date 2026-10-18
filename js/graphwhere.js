@@ -42,7 +42,7 @@ function graphWhereHit(k, w, reads){
   if (w.move != null){ const want = fold(w.move); const mv = want === 'mine' || want === 'you' || want === 'us' ? 'you' : want === 'theirs' || want === 'them' ? 'them' : want; if (k.move !== mv) return false; }
   if (w.archived != null){ if (!!w.archived !== !!k.archived) return false; }
   /* imported = came in through the Import page (the card's `imported`, read off
-     the contract's own import record; owner, 18 Oct 2026) */
+     the contract's own import record; owner, 18 Oct 2026); the imports trial reads the same fact */
   if (w.imported != null){ if (!!w.imported !== !!k.imported) return false; }
   return true;
 }

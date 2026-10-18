@@ -16,6 +16,12 @@
        printed and HaTi's line is what is read first
    At the parent (cb6290f) 1 and 2 fail (no filter, no group) and 3 prints the
    model's count. Waits ask for the state, bounded.
+
+   RE-POINTED 18 Oct 2026 (main's #345, ANSWER WHERE YOU STAND): the owner's
+   own words are now answered by the map's own reader, with no call to Jambo,
+   so 1a–1c measure that answer and 1d asks the cards' mark in words only
+   Jambo reads ("came over from the legacy system"); part 3 asks in those
+   words too, so his regroup and his count still reach the panel.
    Run: node test/chromium/imported-on-the-map-verify.js */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -82,9 +88,22 @@ const BOOK = FIXTURES.concat([
       check('1b HaTi counts them: "Showing 3 of N", and Jambo\'s 29 is not printed', !!got && got.panel.includes(`Showing 3 of ${total}`) && !/29 contracts/.test(got.panel),
         got && got.panel.slice(0, 220));
       check('1c "Read all 3" rides the answer', !!got && /Read all 3/.test(got.panel), got && (got.panel.match(/Read all \d+[^·]{0,20}/) || [''])[0]);
-      const sent = JSON.stringify((ai.calls[0] || {}).body || {});
-      check('1d the cards that reached Jambo carry the mark', sent.includes('\\"imported\\":true') && sent.includes('where.imported true'));
+      check('1d0 the owner\'s words are answered on the map, without a call to Jambo', ai.calls.length === 0, 'calls ' + ai.calls.length);
       await shot(page, 'imported-1-filtered');
+    }
+    /* words the map's own reader leaves alone reach Jambo, and his cards carry the mark */
+    await page.evaluate(() => { intel.lenses = []; rebuildIntelGraph(); });
+    ai.reset();
+    ai.script({ content: [{ type: 'tool_use', id: 'tu_g1', name: 'render_graph', input: { where: { imported: true }, action: 'filter', note: 'Imported',
+      answer: 'These 29 contracts came over from the legacy system.' } }] });
+    const before1 = await page.evaluate(() => intel.history.length);
+    if (await askInBox('Which contracts came over from the legacy system?')) {
+      const got = await until(b => { if (intel.history.length <= b || intel.busy) return null; const m = intel.history[intel.history.length - 1];
+        if (!m || m.role !== 'assistant') return null; const act = intelActive(); return { kept: act.ids ? [...act.ids].sort() : null, text: m.text }; }, before1, 10000);
+      const sent = JSON.stringify((ai.calls[0] || {}).body || {});
+      check('1d the cards that reached Jambo carry the mark', sent.includes('\\"imported\\":true') && sent.includes('where.imported true'), 'calls ' + ai.calls.length);
+      check('1e his filter keeps the three, and his 29 is not printed', !!got && JSON.stringify(got.kept) === JSON.stringify(IMPORTED) && !/29 contracts/.test(got.text),
+        got && JSON.stringify({ kept: got.kept, text: String(got.text).slice(0, 120) }));
     }
 
     console.log('\n2 · Origin draws Imported as its own group');
@@ -100,7 +119,7 @@ const BOOK = FIXTURES.concat([
     ai.script({ content: [{ type: 'tool_use', id: 'tu_g2', name: 'render_graph', input: { groupBy: 'source', note: 'By origin',
       answer: 'These 24 contracts were imported from external sources, mostly leases.' } }] });
     const before = await page.evaluate(() => intel.history.length);
-    if (await askInBox('Show me which contracts were imported')) {
+    if (await askInBox('Which contracts came over from the legacy system?')) {
       const said = await until(b => { if (intel.history.length <= b || intel.busy) return null; const m = intel.history[intel.history.length - 1];
         return m && m.role === 'assistant' ? { text: m.text, how: m.how || '', lenses: intel.lenses.length } : null; }, before, 10000);
       check('3a his 24 is not printed', !!said && !/24 contracts/.test(said.text), said && said.text.slice(0, 160));

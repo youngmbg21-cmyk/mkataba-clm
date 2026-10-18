@@ -75,7 +75,9 @@ test('f730 (2) "imported" is a filter on both hosts, through the one predicate',
   assert.ok(win.GRAPH_WHERE_KEYS.includes('imported'), 'the browser\'s list');
   assert.deepEqual(new Set(serverKeys()), new Set(win.GRAPH_WHERE_KEYS), 'the server\'s list is the same set');
   assert.match(SERVER, /archived: \{ type: 'boolean' \}, imported: \{ type: 'boolean' \} \} \};/, 'the schema offers it');
-  assert.match(SERVER, /imported \(true = brought in through the Import page; false = everything else\)/, 'and says what it means');
+  /* RE-POINTED 18 Oct 2026 (main's #345 named it first, "Import contracts"; f736 pins that): one wording on both hosts */
+  assert.match(SERVER, /imported \(true = brought in through Import contracts\), and false keeps everything else/, 'and says what it means');
+  assert.match(AI, /imported \(true = brought in through Import contracts\), and false keeps everything else/, 'the browser-held key\'s schema says the same');
   assert.match(AI, /'notRead','move','archived','imported'\];\nconst AI_WHERE_SCHEMA/, 'the browser-held key\'s fallback list too');
   assert.match(AI, /\['overdueObligations','offStandard','notRead','archived','imported'\]\.includes\(k\)\?\{type:'boolean'\}/);
   // the predicate itself: true keeps the imported, false keeps the rest

@@ -7508,7 +7508,7 @@ const GRAPH_ASK_CAP = 600;   // contracts per map command, the browser's own cap
 const GRAPH_WHERE_KEYS = ['status', 'folder', 'kind', 'counterparty', 'valueAbove', 'valueBelow', 'expiringWithinDays', 'signedFrom', 'signedTo', 'overdueObligations', 'offStandard', 'notRead', 'move', 'archived', 'imported'];
 /* ONE SCHEMA for the vocabulary, read by the graph tool and by list_portfolio
    (Copilot audit phase 4); its keys ARE GRAPH_WHERE_KEYS (f305 pins the set). */
-const GRAPH_WHERE_SCHEMA = { type: 'object', description: 'A structured filter HaTi applies itself over every contract. Prefer this over copying ids. Keys: status (string or list), folder (value-stream name or id), kind (substring), counterparty (substring), valueAbove, valueBelow (numbers in the contract\'s own currency), expiringWithinDays (number), signedFrom, signedTo (YYYY-MM-DD, off signedAt), overdueObligations (true = has overdue obligations), offStandard (true = deviates from the playbook), notRead (true = Jambo has not read it), move ("you" = waiting on us, "them" = with the other side), archived (true/false), imported (true = brought in through the Import page; false = everything else).',
+const GRAPH_WHERE_SCHEMA = { type: 'object', description: 'A structured filter HaTi applies itself over every contract. Prefer this over copying ids. Keys: status (string or list), folder (value-stream name or id), kind (substring), counterparty (substring), valueAbove, valueBelow (numbers in the contract\'s own currency), expiringWithinDays (number), signedFrom, signedTo (YYYY-MM-DD, off signedAt), overdueObligations (true = has overdue obligations), offStandard (true = deviates from the playbook), notRead (true = Jambo has not read it), move ("you" = waiting on us, "them" = with the other side), archived (true/false), imported (true = brought in through Import contracts), and false keeps everything else.',
   properties: {
     status: { type: 'array', items: { type: 'string' } }, folder: { type: 'string' }, kind: { type: 'string' }, counterparty: { type: 'string' },
     valueAbove: { type: 'number' }, valueBelow: { type: 'number' }, expiringWithinDays: { type: 'number' },
@@ -11659,7 +11659,7 @@ function copilotList(ctx, filter = {}) {
      Copilot's totals could disagree with the register head. The same
      reading — `c.archived` set — off the record, as the screens read it;
      `archived:true` includes the shelf deliberately. */
-  /* THE GRAPH'S VOCABULARY (phase 4): the same fourteen keys, the same
+  /* THE GRAPH'S VOCABULARY (phase 4): the same fifteen keys, the same
      predicate (js/graphwhere.js), over the server's reading of each record. */
   const w = graphWhereClean(filter.where);
   const wantShelf = !!filter.archived || !!(w && w.archived === true);
@@ -11743,7 +11743,7 @@ function copilotCardOf(c, briefIds, effOf) {
     /* a salary carries no deal value, so it never matches a money cut (fxIsPay) */
     status: c.status || '', value: fxIsPay(c) ? null : (Number(c.value) || 0), expiry: (effOf && effOf(c)) || c.expiry || '', signedAt: contractSignedOn(c) || '',
     overdue, offStandard, read, move, archived: !!c.archived,
-    /* brought in on the Import page — its import record, as the browser's card reads it */
+    /* brought in on the Import page — its import record, as the browser's card (and CA_HERE_FACTS) reads it */
     imported: !!c.migration };
 }
 /* ---- OBLIGATIONS AND THE TRAIL (phase 8) ----
