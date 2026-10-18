@@ -8443,7 +8443,9 @@ async function openShareModal(c, opts={}){
       const pyPick=(typeof sharePartyPick==='function')?sharePartyPick(c):null;
       try{
         r = reuse
-          ? await api('shares/'+reuse.token+'/payload','PUT',{ payload:payloadObj })
+          /* the letter the screen shows is the email that goes, on the link
+             they already hold too (round 11's gaps): the note and the name */
+          ? await api('shares/'+reuse.token+'/payload','PUT',{ payload:payloadObj, letter:{ message:msg, recName:name } })
           : await api('shares','POST',{ payload:payloadObj, channel:ch, message:msg,
               recipient:{ name, email, phone }, expiryDays:Number(fval('sh-exp'))||14,
               durable:wantDurable, purpose:payloadObj.purpose,

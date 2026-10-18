@@ -19240,7 +19240,35 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
   const notify = notifyRaw !== false;
   const link = shareUrl(req, s.token);
   let emailSent = false, emailError = null, mailTried = false;
-  if (!silent && notify && (s.channel || 'link') === 'email' && s.recipient_email) {
+  /* ---- THE SEND SCREEN'S LETTER, ON THE LINK THEY ALREADY HOLD (round 11's
+     gaps, 18 Oct 2026) ----
+     The send screen draws the email the other side will get, word for word,
+     and a round sent to somebody who already holds a negotiation link travels
+     on THIS route — so the screen's letter is what this route mails when the
+     screen sent it (`letter`): the same words (js/sharemail.js), the same
+     link they hold, their note. The note is the only part the body supplies
+     (clamped as on the first send) and is kept on the row as the first send
+     keeps it; the round and what it answers are read off the copy that
+     travels; WHO SENT IT is the signed-in person; the code is said where this
+     link asks for one (shareNeedsCode). Sent by email whatever the row's
+     first channel was — the sender chose email on the screen. */
+  const letterIn = (req.body || {}).letter;
+  const letter = (!silent && letterIn && typeof letterIn === 'object' && !Array.isArray(letterIn)) ? letterIn : null;
+  if (letter && s.recipient_email) {
+    mailTried = true;
+    const pc = payload.contract || {};
+    const note = String(letter.message || '').slice(0, 1000);
+    if (note) db.prepare('UPDATE shares SET message=? WHERE token=?').run(note, s.token);
+    const mail = shareMailOf({ channel: 'email', purpose: sharePurposeOf(s), sender: req.user.name, title: req.user.title || '',
+      org: payload.org, cName: pc.name || s.contract_id || 'a contract', recName: String(letter.recName || s.recipient_name || '').slice(0, 120),
+      message: note, link, expires: s.expires_at, round: shareRoundOf(pc.negotiation), answers: shareAnswersOf(pc), codeOn: shareNeedsCode(s) });
+    const r = await sendEmail(s.recipient_email, mail.subject, mail.body, `share letter: ${link}`, { html: mail.html });
+    emailSent = !!r.sent; emailError = r.detail || null;
+    if (!emailSent && !emailError) emailError = mailReport(r).emailError;
+    if (r.sent) db.prepare('UPDATE shares SET sent_at=?, send_error=NULL WHERE token=?').run(now(), s.token);
+    else db.prepare('UPDATE shares SET send_error=? WHERE token=?')
+      .run(String(emailError || (EMAIL_ON() ? 'The email provider refused the message.' : 'Email is not configured on this server — the message is in the outbox.')).slice(0, 300), s.token);
+  } else if (!silent && notify && (s.channel || 'link') === 'email' && s.recipient_email) {
     mailTried = true;
     const cName = (payload.contract && payload.contract.name) || s.contract_id || 'a contract';
     const cnt = k => { const n = Math.floor(Number(((req.body || {}).turn || {})[k])); return Number.isFinite(n) && n > 0 ? Math.min(n, 999) : 0; };

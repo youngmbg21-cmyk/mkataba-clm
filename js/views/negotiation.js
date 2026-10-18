@@ -4199,7 +4199,15 @@ function wireNegotiationTab(c, opts = {}){
     const live = (window.counterpartyContact && window.cachedShares)
       ? counterpartyContact(c, cachedShares(c)) : null;
     const contact = (live && live.email) ? live : opts.contact;
-    if (side === 'owner' && contact && contact.email
+    /* ---- SEND ALL OPENS THE LETTER (round 11's gaps, 18 Oct 2026: "Every way
+       to send — Share on the paper's line, Send all on Redlines, Jambo's share
+       — opens this same screen") ----
+       On our seat a batch send opens the one send screen, which draws the email
+       that goes and says what stays behind; the screen's own send hands the turn
+       over (onSent below). A card's own Send (one change) still goes on the
+       press, as before. */
+    const letterDoor = side === 'owner' && !_rlSoloSendId && typeof window.openShareModal === 'function';
+    if (!letterDoor && side === 'owner' && contact && contact.email
         && typeof opts.onSendDirect === 'function'){
       /* ---- SEND ALL SAYS WHAT TRAVELS (the 9 Oct 2026 review) ----
          A card's own Send is one change and goes on the press. A BATCH send
@@ -4232,10 +4240,14 @@ function wireNegotiationTab(c, opts = {}){
        endpoint here and deliberately never will be. */
     const to = side === 'owner' ? 'counterparty' : 'owner';
     const who = to === 'counterparty' ? (c.counterparty || 'the counterparty') : 'the owner';
+    /* A BATCH THROUGH THE LETTER STILL RELEASES A SOLO SEND'S HOLD, as the
+       direct batch always did (onSendDirect): the drafts a card's own Send
+       kept back travel with it, and the hand-over is told they went */
+    const released = letterDoor && window.negoReleaseHold ? !!negoReleaseHold(c) : false;
     const shareOpts = {
       handOver: true,
       onSent: info => {
-        if (!negoHandOver(c, { to, by: opts.by })) return;
+        if (!negoHandOver(c, { to, by: opts.by, sentAnyway: released })) return;
         if (opts.persist !== false && window.persist) persist(c);
         if (window.toast) toast(info && info.emailSent
           ? i18t('ng_sent_their_turn', { who })
