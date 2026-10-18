@@ -1111,8 +1111,13 @@ function pdRoadPaint(c){
   const body = host.querySelector('.pd-sf-body'); if (body) body.style.order = String(2 * R.cur + 3);
   const foot = host.querySelector('.pd-sf-foot');
   if (foot){ const show = R.mineAt >= 0;
-    foot.style.order = String(2 * Math.max(R.mineAt, 0) + 3);
-    foot.style.display = show ? '' : 'none';
+    /* the Sign button only in the reader's own stop; "Signing it their way,
+       on paper…" (#sign-paper) is a choice of route, not a signature, so the
+       foot stays for it — under the open stop — with the button hidden */
+    const route = !!foot.querySelector('#sign-paper');
+    foot.style.order = String(show ? 2 * R.mineAt + 3 : 2 * R.cur + 4);
+    foot.style.display = (show || route) ? '' : 'none';
+    const btn = foot.querySelector('#sign-btn'); if (btn) btn.style.display = show ? '' : 'none';
     foot.toggleAttribute('data-pd-road-mine', show); }
 }
 function pdSignFaceHtml(c){

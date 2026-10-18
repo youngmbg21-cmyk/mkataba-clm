@@ -73,7 +73,8 @@ const DOC = ['POWER PURCHASE AGREEMENT', '', '1. Supply', '', 'The Seller delive
     check('1a the way to "signed" as stops: Ready to sign, who signs, sealed and sent', ks[0] === 'ready' && ks.includes('who') && ks[ks.length - 1] === 'sealed', JSON.stringify(R1.stops));
     check('1b the road is at its first open stop, and the column\'s body stands open under it', R1.stops[0].cls.includes('is-now') && R1.bodyOrder === R1.stops[0].order + 1, JSON.stringify({ body: R1.bodyOrder, first: R1.stops[0] }));
     check('1c "Nobody is named to sign yet" while no signer is', R1.stops.some(s => s.k === 'who' && /Nobody is named/.test(s.sub)), JSON.stringify(R1.stops));
-    check('2a nobody\'s turn on our side: no Sign button', R1.foot && !R1.foot.shown, JSON.stringify(R1.foot));
+    /* the foot may stay for the route's own link ("Signing it their way…"); the Sign button is what is held back */
+    check('2a nobody\'s turn on our side: no Sign button', !R1.btn || !R1.btn.vis, JSON.stringify({ foot: R1.foot, btn: R1.btn }));
     await shot(page, 'the-road-1440x780');
 
     /* 2 their turn; reserved for somebody else */
@@ -81,10 +82,10 @@ const DOC = ['POWER PURCHASE AGREEMENT', '', '1. Supply', '', 'The Seller delive
     const R2 = await page.evaluate(ROAD);
     const theirStop = R2.stops.find(s => /Helio Energy AB signs/.test(s.t)), ourStop = R2.stops.find(s => /signs/.test(s.t) && !/Helio/.test(s.t));
     check('2b each step of the route is a stop, in order, named for its side: theirs now, ours after', !!theirStop && !!ourStop && /their turn now/.test(theirStop.sub) && /after the step before/.test(ourStop.sub) && theirStop.order < ourStop.order, JSON.stringify(R2.stops));
-    check('2c their turn: no Sign button for us', R2.foot && !R2.foot.shown, JSON.stringify(R2.foot));
+    check('2c their turn: no Sign button for us', !R2.btn || !R2.btn.vis, JSON.stringify({ foot: R2.foot, btn: R2.btn }));
     await setPlan([{ id: 's-us', party: 'internal', name: 'Somebody Else', memberId: 'u_somebody_else', order: 1 }]);
     const R3 = await page.evaluate(ROAD);
-    check('2d the next signer reserved for somebody else: no Sign button', R3.foot && !R3.foot.shown, JSON.stringify(R3.foot));
+    check('2d the next signer reserved for somebody else: no Sign button', !R3.btn || !R3.btn.vis, JSON.stringify({ foot: R3.foot, btn: R3.btn }));
 
     /* 3 my turn */
     await setPlan([{ id: 's-us', party: 'internal', name: me.name, memberId: me.id, order: 1 }, { id: 's-cp', party: 'counterparty', name: 'Henrik Dahl', email: 'henrik@helio.example', order: 2 }]);
