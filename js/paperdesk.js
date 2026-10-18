@@ -115,6 +115,13 @@ function pdTabCount(t, c){
      on every redraw held Explorer's still map long enough to shift its dots) */
   if (!c && t === 'copilot'){
     const onBoard = !!(window.state && state.view === 'dashboard') && (typeof hbFace === 'function') && hbFace() === 'board';
+    /* A PAPER CHOSEN ON THE WALL (round 13 as drawn): his tab carries the
+       Counter's own number, as it does beside a paper — read on the press that
+       chose it, never on the wall's own redraws */
+    if (!onBoard && pdHolds() === 'chosen'){
+      let k = 0; try { k = (typeof counterNeedsCount === 'function') ? counterNeedsCount() : 0; } catch (_){ k = 0; }
+      return k ? { n: k, tone: 'warn' } : null;
+    }
     const n = (onBoard && typeof hbNeedsCount === 'function') ? hbNeedsCount() : 0;
     return n ? { n, tone: 'warn' } : null; }
   if (!c) return null;

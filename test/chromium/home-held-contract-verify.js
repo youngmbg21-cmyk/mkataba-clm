@@ -91,6 +91,7 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     const PANEL = () => { const d = document.getElementById('ig-dock'); if (!d) return null;
       const ch = d.querySelector('#pd-chosen');
       return { word: ((d.querySelector('.igd-head-w') || {}).textContent || '').trim(), ph: (document.getElementById('igd-input') || {}).placeholder || '',
+        count: ((d.querySelector('.pd-tab[data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || '').trim(), counter: (typeof counterNeedsCount === 'function') ? String(counterNeedsCount()) : '',
         chosen: ch ? { id: ch.getAttribute('data-pd-chosen-for'), name: (ch.querySelector('.pd-ch-name') || {}).textContent, ref: (ch.querySelector('.pd-ch-ref') || {}).textContent,
           facts: [...ch.querySelectorAll('.pd-ch-f')].map(f => [f.querySelector('dt').textContent, f.querySelector('dd').textContent.replace(/\s+/g, ' ').trim()]),
           needs: ch.querySelectorAll('.pd-ch-needs .pd-gl-row').length, open: !!ch.querySelector('[data-pd-ch-open]'), life: !!ch.querySelector('[data-pd-ch-life]') } : null,
@@ -124,6 +125,7 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     check('1d its facts read the record: the stage with its round, Owner "You", "Nordvik Logistik sent 2 redlines", how long ago',
       /^In Review · round 1$/.test(fact('Stage')) && fact('Owner') === 'You' && /^Nordvik Logistik sent 2 redlines today$/.test(fact('Last move')) && /KES/.test(fact('Value')), JSON.stringify(C1 && C1.chosen && C1.chosen.facts));
     check('1e what it asks of you (Needs you), the box asks about anything, no chips (as drawn)', !!C1 && C1.chosen.needs >= 1 && C1.ph === 'Ask for a contract, a number or a list…' && C1.chips.length === 0, JSON.stringify({ needs: C1 && C1.chosen.needs, ph: C1 && C1.ph, chips: C1 && C1.chips }));
+    check('1e2 his tab carries the Counter\'s own number, as beside a paper', !!C1 && !!C1.count && C1.count === C1.counter, JSON.stringify({ count: C1 && C1.count, counter: C1 && C1.counter }));
     if (OUT) await page.screenshot({ path: path.join(OUT, '13-chosen-paper-1440x780.png') });
     const other = await page.evaluate(p => [...document.querySelectorAll('#ig-wall .igw-card')].map(x => x.getAttribute('data-ig-pick')).find(id => id !== p), pick);
     await press(`#ig-wall .igw-card[data-ig-pick="${other}"]`);
@@ -137,6 +139,14 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     await press('[data-reg-home] .ct-h');
     const away = await until(() => !document.querySelector('#ig-dock #pd-chosen') && !document.querySelector('#ig-wall .igw-card.is-chosen'), null, 4000);
     check('1h a press elsewhere on the page lets it go', !!had && !!away, JSON.stringify({ had, away }));
+    /* a narrowing that takes the chosen paper off the wall lets it go, and the panel says the wall again */
+    await press(`#ig-wall .igw-card[data-ig-pick="${pick}"]`);
+    const had2 = await until(() => !!document.querySelector('#ig-dock #pd-chosen'), null, 4000);
+    await page.evaluate(() => { state.reg.stage = 'Signed'; regRepaint(); });
+    const gone2 = await until(id => !document.querySelector(`#ig-wall .igw-card[data-ig-pick="${id}"]`) && !document.querySelector('#ig-dock #pd-chosen') && !!document.querySelector('#ig-dock #pd-drop, #ig-dock .pd-wall'), pick, 5000);
+    check('1h2 a narrowing that takes the chosen paper off the wall lets it go; the panel says the wall again', !!had2 && !!gone2, JSON.stringify({ had2, gone2 }));
+    await page.evaluate(() => { state.reg.stage = 'all'; regRepaint(); });
+    await until(id => !!document.querySelector(`#ig-wall .igw-card[data-ig-pick="${id}"]`), pick, 5000);
     /* a refresh keeps the choice */
     await press(`#ig-wall .igw-card[data-ig-pick="${pick}"]`);
     await until(() => !!document.querySelector('#ig-dock #pd-chosen'), null, 4000);

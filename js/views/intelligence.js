@@ -7620,7 +7620,9 @@ function igWallBodyHtml(rows,o){
   const n=igWallShownN(list.length), shown=list.slice(0,n);
   /* a choice the list no longer draws is let go: the panel never says a paper the reader cannot see */
   const ch=igWallChosenId();
-  if(ch&&!shown.some(c=>String(c.id)===ch)) _igChosen=null;
+  if(ch&&!shown.some(c=>String(c.id)===ch)){ _igChosen=null;
+    /* and the panel says the wall again once this paint is in */
+    if(typeof setTimeout==='function') setTimeout(()=>{ if(!_igChosen&&typeof renderIntelDock==='function') renderIntelDock(); },0); }
   const order=igWallOrderWords();
   /* .reg-filterbar dresses the list's own Sort it is handed, as on the List's head */
   const foot=list.length>IG_WALL_STEP?`<div class="igw-foot"><span class="igw-shown" role="status" aria-live="polite">${igEsc(i18t('igw_shown',{ k:n, n:list.length }))}</span>${n<list.length?`<button type="button" class="ui-btn ui-btn-sm" data-ig-wall-more>${igEsc(i18t('igw_more'))}</button>`:''}</div>`:'';
