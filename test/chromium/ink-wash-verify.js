@@ -28,10 +28,10 @@
    numbers (#8B9895) and its filled "today" square left the opening screen
    with the month (both still drawn on Month).
    RE-RECORDED 18 Oct 2026 (eleventh), OWNER-ASKED (the overnight build, same
-   standing yes): Round 15, "One worklist" — Approvals & signing is one list
-   with a Kind pill and two group rows ("Yours to answer", "Waiting on
-   others"), so on the signing screen the 12 and 13px counts and the
-   dividers' counts rose by a few. Audited by key: no colour new, none gone.
+   standing yes): recorded on Round 15, "One worklist"; the counts that moved
+   (the signing screen's 12 and 13px and dividers, by a few) were Round 10's
+   late route-link fix arriving here — see "eighth, again" — not the worklist,
+   which this census does not draw. Audited by key: no colour new, none gone.
    RE-RECORDED 18 Oct 2026 (tenth), OWNER-ASKED (the overnight build, same
    standing yes): Round 13, "Wall of papers" — the Contracts place's papers
    carry their facts under them (number · value, party, a private stream's
