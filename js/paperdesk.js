@@ -481,13 +481,82 @@ function pdFillDoneHtml(c){
 }
 function pdFillFaceHtml(c){
   _pdActs.clear();
-  return `<div class="pd-ff" data-pd-ff="${_pdE(c.id)}">
+  /* OWED FIRST (round 8 of the redesign: the owner picked "Owed first" by
+     name, 17 Oct 2026): one worklist — what is still owed, from the
+     contract's details and the paper's questions alike, under "Still to
+     fill"; the answered ones folded under one line; then the document and
+     the stream. THE PAINTERS ARE UNTOUCHED: their hosts are laid flat in the
+     face (.pd-ff-work) and each row is placed by a mark set when the face is
+     painted (pdFillMark), so every box keeps its own writer, and a box being
+     answered stays where it is until the face is drawn again. */
+  return `<div class="pd-ff pd-ff-work${_pdFillFolded ? '' : ' is-filled-open'}" data-pd-ff="${_pdE(c.id)}">
     <div class="pd-ff-h" data-pd-ff-head>${pdFillHeadHtml(c)}
       ${''/* in the head that stays in sight: the last box is at the foot of the form */}<div data-pd-ff-done>${pdFillDoneHtml(c)}</div></div>
+    <div class="pd-ff-owh" data-pd-ff-owh></div>
+    <div class="pd-ff-fdh" data-pd-ff-fdh></div>
+    <div class="pd-ff-doc" data-pd-ff-doc></div>
     <div id="det-basics" class="pd-ff-basics"></div>
     <div id="pd-fill" class="pd-ff-paper"></div>
     ${pdFillStreamHtml(c)}
   </div>`;
+}
+/* the fold of what is answered: shut by default, kept as the reader left it for the sitting */
+let _pdFillFolded = true;
+/* WHICH ROWS ARE OWED, read once when the face is painted (detailsOf, by key;
+   a box detailsOf does not count goes by what it holds). A row drawn again by
+   its own painter carries no mark until the next count, which marks it. */
+function pdFillRowKey(row, c){
+  const k = row.getAttribute('data-cd-key'); if (k) return k;
+  const b = row.querySelector('[data-blankf],[data-tplf]'); return b ? (pdFillKeyOf(b, c) || b.getAttribute('data-blankf') || '') : '';
+}
+function pdFillRows(host){
+  return [...host.querySelectorAll('#det-basics .cd-fld[data-cd-key]')].concat([...host.querySelectorAll('#pd-fill label')].filter(l => l.querySelector('[data-blankf],[data-tplf]')));
+}
+function pdFillMark(c, all){
+  const host = document.getElementById('pd-fillface'); if (!host || !c) return;
+  /* THE PAINTERS' OWN WRAPPERS STATE display:flex INLINE, which no sheet rule
+     outranks (never !important): they are laid flat where the markup's own
+     value lives, as the strip's Focus does (WRITTEN ON THE ELEMENT) */
+  host.querySelectorAll('#pd-fill > div, #pd-fill details.pd-fill-done > div').forEach(el => {
+    /* the questions' own head ("Blanks in this document · 0 of 3") is the face's head now */
+    const want = el.querySelector('label, [data-tplf-fill], details') ? 'contents' : 'none';
+    if (el.style.display !== want) el.style.display = want; });
+  const d = pdFillDetails(c) || { items: [] };
+  const open = new Map((d.items || []).map(x => [String(x.key), !!x.open]));
+  pdFillRows(host).forEach(r => {
+    if (!all && r.hasAttribute('data-pd-owed')) return;
+    const k = pdFillRowKey(r, c);
+    const box = r.querySelector('input:not([type="checkbox"]),select,textarea');
+    const owed = open.has(k) ? open.get(k) : !!(box && !String(box.value == null ? '' : box.value).trim());
+    r.setAttribute('data-pd-owed', owed ? '1' : '0');
+  });
+  pdFillGroupsPaint(c);
+}
+/* the two headings and the document's line, from the marks and the record */
+function pdFillGroupsPaint(c){
+  const host = document.getElementById('pd-fillface'); if (!host || !c) return;
+  const d = pdFillDetails(c) || { left: 0 };
+  const rows = pdFillRows(host);
+  const owedN = rows.filter(r => r.getAttribute('data-pd-owed') !== '0').length;
+  const filled = rows.filter(r => r.getAttribute('data-pd-owed') === '0');
+  const owh = host.querySelector('[data-pd-ff-owh]');
+  /* the questions' own heading is laid away; the one fact about the machinery it carried on its hover
+     (an answer to somebody else's placeholder is a working note) rides this heading's hover */
+  const note = ((host.querySelector('#pd-fill h6[title]') || {}).title || '').trim();
+  if (owh) owh.innerHTML = owedN ? `<h4${note ? ` title="${_pdE(note)}"` : ''}>${_pdE(_pdT('pd_ff_owed'))}</h4>${d.left ? `<span class="pd-ff-cnt">${d.left}</span>` : `<span class="pd-ff-cnt is-ok">✓</span>`}` : '';
+  const fdh = host.querySelector('[data-pd-ff-fdh]');
+  if (fdh){
+    const names = filled.map(r => ((r.querySelector('.cd-lab, span') || {}).textContent || '').replace(/\s*\*\s*$/, '').trim()).filter(Boolean);
+    const shown = names.slice(0, PD_GL_SUB_MAX).join(' · ') + (names.length > PD_GL_SUB_MAX ? ' …' : '');
+    const openF = host.querySelector('.pd-ff').classList.contains('is-filled-open');
+    fdh.innerHTML = filled.length ? `<button type="button" class="pd-ff-fold" data-pd-ff-fold aria-expanded="${openF}"><b>${_pdE(_pdT('pd_ff_filled'))}</b><span class="pd-ff-cnt">${filled.length}</span><small>${_pdE(shown)}</small><i aria-hidden="true">${openF ? '▴' : '▾'}</i></button>` : '';
+  }
+  const doc = host.querySelector('[data-pd-ff-doc]');
+  if (doc){
+    let pend = false; try { pend = !!(typeof tplFormPending === 'function' && tplFormPending(c)); } catch (_){ pend = false; }
+    doc.innerHTML = (c.templateForm && host.querySelector('#pd-fill [data-tplf-fill]'))
+      ? `<h4>${_pdE(_pdT('pd_ff_doc'))}</h4><span>${_pdE(_pdT(pend ? 'pd_ff_doc_pending' : 'pd_ff_doc_in'))}</span>` : '';
+  }
 }
 /* ---- THE STREAM, ASKED AND NEVER OWED (the overnight work order, step 6;
    the demo's fillFace) ----
@@ -546,6 +615,7 @@ function pdFillCounts(c){
   const fin = host.querySelector('[data-pd-ff-done]'); if (fin) fin.innerHTML = pdFillDoneHtml(c);
   try { if (typeof detMarkOpen === 'function') detMarkOpen(c); } catch (_){}
   try { if (typeof detPaintPaperEmpties === 'function') detPaintPaperEmpties(); } catch (_){}
+  pdFillMark(c, false);
   pdChipsRepaint();
 }
 /* THE CHIPS FOLLOW THE CONTRACT AS A FACE CHANGES IT (stage 6): what is owed
@@ -600,6 +670,9 @@ function pdFillWire(host){
   });
   host.addEventListener('click', e => {
     if (e.target.closest && e.target.closest('[data-pd-ff-close]')){ e.preventDefault(); pdFillClose(); return; }
+    if (e.target.closest && e.target.closest('[data-pd-ff-fold]')){ e.preventDefault();
+      const ff = host.querySelector('.pd-ff'); if (ff){ ff.classList.toggle('is-filled-open'); _pdFillFolded = !ff.classList.contains('is-filled-open'); }
+      pdFillGroupsPaint(pdContract()); return; }
     const sb = e.target.closest ? e.target.closest('[data-pd-stream]') : null;
     if (sb && !sb.disabled){ e.preventDefault(); pdFillStreamPick(sb.getAttribute('data-pd-stream')); }
   });
@@ -613,6 +686,9 @@ function pdFillFacePaint(c){
   /* the room's own clothes: HaTi's date faces, an owed empty box amber */
   try { if (typeof popupControlsDress === 'function') popupControlsDress(host); } catch (_){}
   try { if (typeof detPaintPaperEmpties === 'function') detPaintPaperEmpties(); } catch (_){}
+  /* the paper questions' own "Show N filled" fold is laid flat: the face's one fold holds them */
+  host.querySelectorAll('#pd-fill details.pd-fill-done').forEach(x => { x.open = true; });
+  pdFillMark(c, true);
   pdFillWire(host);
   pdPresenceOn(c);
 }
@@ -634,8 +710,11 @@ function pdFillLand(){
       if (!box) box = host.querySelector('.cd-fld.is-open input, .cd-fld.is-open select')
         || host.querySelector('[data-blankf]:not([value]), [data-blankf][value=""]')
         || host.querySelector('[data-tplf]');
-      /* an answered box sits in the "Show N filled" fold, opened first */
+      /* an answered box sits in the "Show N filled" fold, opened first — the face's own fold too (round 8) */
       const fold = box && box.closest ? box.closest('details') : null; if (fold && !fold.open) fold.open = true;
+      const row = box && box.closest ? box.closest('[data-pd-owed="0"]') : null;
+      const ff = host.querySelector('.pd-ff');
+      if (row && ff && !ff.classList.contains('is-filled-open')){ ff.classList.add('is-filled-open'); _pdFillFolded = false; pdFillGroupsPaint(c); }
       if (box){ try { box.focus({ preventScroll: true }); } catch (_){ try { box.focus(); } catch (_e){} }
         try { box.scrollIntoView({ block: 'center' }); } catch (_){} }
       return;
@@ -2054,7 +2133,7 @@ Object.assign(window, { pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAme
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedHeadEndHtml, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,
-  PD_FILL_TRIES, PD_FILL_BEAT_MS, pdFillFor, pdFillShows, pdFillOpen, pdFillSeen, pdFillAway, pdFillClose, pdFillHeadHtml, pdFillDoneHtml, pdFillFaceHtml, pdFillFacePaint, pdFillCounts, pdFillKeyOf, pdFillEcho, pdFillWire, pdFillLand, pdFillRefresh,
+  PD_FILL_TRIES, PD_FILL_BEAT_MS, pdFillFor, pdFillShows, pdFillOpen, pdFillSeen, pdFillAway, pdFillClose, pdFillHeadHtml, pdFillDoneHtml, pdFillFaceHtml, pdFillMark, pdFillGroupsPaint, pdFillRows, pdFillRowKey, pdFillFacePaint, pdFillCounts, pdFillKeyOf, pdFillEcho, pdFillWire, pdFillLand, pdFillRefresh,
   pdFillStreamMay, pdFillStreamHtml, pdFillStreamRepaint, pdFillStreamPick,
   PD_DROP_ACCEPT, pdDropMay, pdWallHelloHtml, pdDropInner, pdDropStreams, pdDropStreamNow, pdDropStreamHtml, pdDropHtml, pdDropPaint, pdWallHtml, pdDropInput, pdDropBusyNow, pdDropPick, PD_DROP_TOAST_MS, pdDropToastOff, pdDropTake,
   PD_GLANCE, PD_GL_SUB_MAX, pdGlanceSub, pdGlanceBriefHtml, pdGlanceFootHtml, pdDropImportHtml, pdDropDoor, PD_DROP_CALL_MS, pdGlanceRows, pdSignAhead, pdGlanceHtml, pdGlanceRepaint, pdJamboTopHtml, pdNeedsRows, pdNeedRowHtml, pdNeedsHtml, pdNeedsRepaint, pdBackHtml, PD_BACK_CLOSE, PD_GL_DONE_MS, pdGlanceDone,
