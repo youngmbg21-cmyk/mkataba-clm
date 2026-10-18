@@ -21,7 +21,9 @@
        after the first paint is drawn when it comes (counterFollow).
    (4) THE FOOT: "Show N more" and the names of what waits behind it.
    (5) Jambo's work's head says "· N prepared · nothing sent or filed until
-       you press" while open; the words, in both books.
+       you press" (RE-POINTED 18 Oct 2026, LAND ON IT: the row no longer opens
+       in place, so the drawn head words are its own whenever work waits, and
+       its Open lands on the Board's card); the words, in both books.
    (6) SECOND PASS (the checker against the drawing, 18 Oct 2026): "waiting 4
        days" (homeboard publishes hbNyDays, the Counter's row read a bare
        number); the four chips alike; a request's short name says what it is
@@ -29,9 +31,11 @@
        "Show N more", the card's last line.
    (7) JAMBO'S HOUSE SAYS THE COUNTER'S COUNT: "5 waiting for you" on Your
        desk and "1 waiting for you" in a room read counterWorkByAgent, the
-       pieces the Counter lists (never the approvals desk), and each opens the
-       work on the Counter (counterOpenWork); the house stands four and three
-       rooms a floor as drawn, each agent clear of his room's words, and Jambo
+       pieces the Board's Jambo's work card lists (never the approvals desk),
+       and each LANDS ON that card (hbOpenAgent — RE-POINTED 18 Oct 2026 from
+       counterOpenWork, which LAND ON IT took away); the house stands four and
+       three rooms a floor as drawn, each agent clear of his room's words
+       (main's measured rule: a short room draws no work line), and Jambo
        folds to the right edge beside it (his face, the Counter's count, ‹).
    AT THE PARENT (8dc306a) every test here FAILS.
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -74,7 +78,7 @@ function counter(rows, extra){
   ctx.window = ctx;
   vm.createContext(ctx);
   const names = ['cnDayWords', 'cnMayMoney', 'cnNeedVerb', 'cnNeedTitle', 'cnNeedSub', 'cnNeedRowHtml', 'cnNoteRowHtml', 'cnReqRowHtml', 'cnReqWhat', 'cnNeedShort', 'cnNeedDoorAttrs', 'cnChipsHtml', 'cnFace', 'counterHtml'];
-  vm.runInContext(['_cnE', '_cnT', '_cnTn', '_cnFirst', '_cnWho', '_cnToday', '_cnPill', 'CN_ROWS', 'CN_PICK_UP', 'CN_REQ_WHAT_RE'].map(n => constLine(CN, n)).join('\n') + '\nlet _cnAll = false, _cnSig = "", _cnJwOpen = false, _cnJwLook = null;\n'
+  vm.runInContext(['_cnE', '_cnT', '_cnTn', '_cnFirst', '_cnWho', '_cnToday', '_cnPill', 'CN_ROWS', 'CN_PICK_UP', 'CN_REQ_WHAT_RE'].map(n => constLine(CN, n)).join('\n') + '\nlet _cnAll = false, _cnSig = "";\n'
     + constBlock(CN, 'CN_NEED_GO') + '\n' + names.map(n => fnBody(CN, n)).join('\n'), ctx);
   return ctx;
 }
@@ -158,6 +162,24 @@ describe('f803 (3) Needs you whole', () => {
   });
 });
 
+describe('f803 (3b) a note\'s and a request\'s door LANDS ON its row (LAND ON IT, 18 Oct 2026)', () => {
+  test('3e the page opens, then the one lander lights the row named; it presses nothing', () => {
+    const wire = CN.slice(CN.indexOf("if ((el = t.closest('[data-cn-note]')))"), CN.indexOf("if ((el = t.closest('[data-cn-need]')))"));
+    assert.match(wire, /myNotesOpen\(id\); cnLand\('\[data-mn-row="' \+ cnSel\(id\) \+ '"\]', 'cn_land_note_gone'\);/);
+    assert.match(wire, /intakeGoTo\(id\); cnLand\('\[data-ik-row="' \+ cnSel\(id\) \+ '"\]', 'cn_land_req_gone'\);/);
+    const ctx = { landOn: (sel, o) => { ctx.got = { sel, o }; }, i18t: k => k };
+    vm.createContext(ctx);
+    vm.runInContext(constLine(CN, '_cnT') + '\n' + fnBody(CN, 'cnLand'), ctx);
+    ctx.cnLand('[data-mn-row="nt_1"]', 'cn_land_note_gone');
+    assert.equal(ctx.got.sel, '[data-mn-row="nt_1"]');
+    assert.equal(ctx.got.o.missing, 'cn_land_note_gone', 'a row that is gone is said where the reader looks');
+    for (const k of ['cn_land_note_gone', 'cn_land_req_gone']) for (const lang of ['en', 'sv']) assert.ok(BOOKS[lang][k], k + ' ' + lang);
+    /* the rows the lander looks for are the pages' own */
+    assert.match(R('js/views/mynotes.js'), /<tr data-mn-row="\$\{_mnE\(n\.id\)\}"/);
+    assert.match(R('js/views/intake.js'), /<tr data-ins-row data-ik-row="\$\{esc\(r\.id\)\}"/);
+  });
+});
+
 describe('f803 (4) the foot', () => {
   test('4a "Show N more" and the names of what waits behind it', () => {
     const rows = [approval, redlines, details(1), details(2), details(3), details(4), details(5), note, pay, req];
@@ -173,9 +195,15 @@ describe('f803 (4) the foot', () => {
 });
 
 describe('f803 (5) Jambo\'s work\'s head, and the words', () => {
-  test('5a open, its head says what the drawing says', () => {
+  test('5a its head says what the drawing says, and its Open lands on the Board\'s card', () => {
     assert.equal(BOOKS.en.cn_jw_said, 'nothing sent or filed until you press');
-    assert.match(fnBody(CN, 'cnJwRowHtml'), /\$\{open \? ' · ' \+ _cnE\(_cnT\('cn_jw_said'\)\) : ''\}<\/span><\/b>\$\{open \? '' :/);
+    const ctx = { i18t: (k, v) => fill(BOOKS.en[k] || k, v), i18tn: (k, n, v) => fill(BOOKS.en[k + (n === 1 ? '_one' : '_other')] || BOOKS.en[k] || k, { n, ...(v || {}) }), jamboFaceHtml: () => '' };
+    ctx.window = ctx; vm.createContext(ctx);
+    vm.runInContext(['_cnE', '_cnT', '_cnTn'].map(n => constLine(CN, n)).join('\n') + '\n' + fnBody(CN, 'cnFace') + fnBody(CN, 'cnJwRowHtml'), ctx);
+    const row = ctx.cnJwRowHtml({ ready: 5, rows: [{ who: 'Nordvik Logistik' }, { who: 'Baltic Freight' }] });
+    assert.match(row, /Jambo’s work <span class="cn-n">· 5 prepared · nothing sent or filed until you press<\/span><\/b><span>Nordvik Logistik · Baltic Freight<\/span>/);
+    assert.match(row, /data-cn-jw>Open</);
+    assert.doesNotMatch(ctx.cnJwRowHtml({ ready: 0, rows: [] }), /nothing sent or filed/, 'nothing waiting says so, not the promise');
   });
   test('5b the words, in both books', () => {
     for (const k of ['cn_need_approval', 'cn_need_approval_for', 'cn_need_details_one', 'cn_need_details_other', 'cn_need_away', 'cn_need_for', 'cn_need_go_approval', 'cn_need_go_redlines',
@@ -217,7 +245,7 @@ describe('f803 (6) second pass: the Counter as drawn', () => {
   });
 });
 
-describe('f803 (7) Jambo\'s house says the Counter\'s count', () => {
+describe('f803 (7) Jambo\'s house says the Board card\'s count', () => {
   const JH = R('js/views/jambohouse.js');
   test('7a one reading: what the Counter lists, by agent', () => {
     const ctx = { cnWork: () => ({ ready: 5, rows: [{ k: 'round', pill: 1 }, { k: 'paper', pill: 1 }, { k: 'renew', pill: 1 }, { k: 'late', pill: 1 }, { k: 'import', pill: 1 }] }) };
@@ -235,18 +263,19 @@ describe('f803 (7) Jambo\'s house says the Counter\'s count', () => {
     assert.match(f, /wn = W \? \(W\.by\[r\.k\] \|\| 0\) : 0/);
     assert.match(fnBody(JH, 'jhWaitNow'), /counterWorkByAgent\(\)/);
   });
-  test('7c "N waiting for you" is a door to the work on the Counter', () => {
+  test('7c "N waiting for you" lands on the Board\'s Jambo\'s work card (LAND ON IT)', () => {
     const f = fnBody(JH, 'jhDrawOffice');
     assert.match(f, /jhLinkText\(ctx, dw, c\.x \+ c\.w - 14, ly1\(c\) \+ 2, C\.ok, 'desk'\)/);
     assert.match(f, /jhLinkText\(ctx, link, wx \+ ctx\.measureText\(head\)\.width, ly2\(c\), C\.amber, r\.k\)/);
-    assert.match(JH, /if \(typeof counterOpenWork === 'function'\) counterOpenWork\(k === 'desk' \? null : k\); return; \}/);
-    const go = fnBody(CN, 'counterOpenWork');
-    assert.match(go, /_cnJwOpen = true;/);
-    assert.match(go, /setView\('counter'\)/);
+    assert.match(JH, /if \(typeof hbOpenAgent === 'function'\) hbOpenAgent\(k === 'desk' \? null : k\); return; \}/, 'a room: its agent\'s work below the card');
+    assert.match(JH, /if \(t\.closest\('\[data-jh-work\]'\)\)\{ if \(typeof hbOpenAgent === 'function'\) hbOpenAgent\(\); return; \}/, 'the keyboard\'s door: the card');
+    assert.doesNotMatch(JH + CN, /counterOpenWork/, 'no second way onto the work');
+    assert.ok(BOOKS.en.jh_wait_open && BOOKS.sv.jh_wait_open && BOOKS.en.jh_wait_open_p && BOOKS.sv.jh_wait_open_p, 'the door and its hover, in both books');
   });
-  test('7d four and three rooms a floor, as drawn; each agent clear of his room\'s words', () => {
+  test('7d four and three rooms a floor, as drawn; a room\'s work line only where it clears the seat', () => {
     assert.match(fnBody(JH, 'jhLayout'), /_jhCols = offices\.length > JH_COLS \* 2 \? JH_COLS_MAX : JH_COLS;/);
-    assert.match(fnBody(JH, 'jhDrawOffice'), /const wx = r\.seat\.y - 26 >= ly2\(c\) \+ 4 \? lx\(c\) : r\.seat\.x \+ 18/);
+    /* RE-POINTED 18 Oct 2026: main measured the same overlap and draws no work line where it would not clear the seat */
+    assert.match(fnBody(JH, 'jhDrawOffice'), /if \(!cp && ly2\(c\) \+ 4 <= r\.seat\.y - 25\)\{/);
   });
   test('7e Jambo folded to the right edge beside his house: his face, the Counter\'s count, his name, ‹ — a press opens him', () => {
     const f = fnBody(JH, 'jhJamboDoorHtml');
