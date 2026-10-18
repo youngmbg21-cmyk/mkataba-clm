@@ -1258,6 +1258,7 @@ function igRecipeSet(r){
 }
 /* Every change goes through here: the recipe before it is kept for undo. */
 function igRecipePush(){
+  intel.tour=null;
   const st=intel.recipeStack||(intel.recipeStack=[]);
   st.push(igRecipeNow()); if(st.length>IG_UNDO_MAX) st.shift();
 }
@@ -2083,6 +2084,8 @@ const IG_CLAIM_RE=/\b(?:hid(?:den|e)?|removed?|now (?:shows?|showing|displays?)|
    can place contracts by reading them; a colour, size or floors by something
    no fact names is answered here, with the nearest things the map can do. */
 async function intelMapLocal(q){
+  /* "explain this view" (stage 3) is the view's own walk, before "walk me through" walks contracts */
+  if(IG_TOUR_RE.test(String(q||'').trim())){ igTourStart(); return ''; }
   const say=text=>intel.history.push({ role:'assistant', text:igEsc(text) });
   const walk=IG_WALK_RE.test(q), outl=IG_OUTLIER_RE.test(q);
   const all=re=>new RegExp(re.source,'gi');
@@ -2178,7 +2181,7 @@ async function intelAsk(qRaw){
      the whole of their words, so on Explorer the map answers them where the
      reader stands (Jambo's one rule) before any task card */
   const hereMap=!!(here&&here.screen==='explorer');
-  const mapOwn=!hereMap&&typeof window.caHereScreen==='function'&&caHereScreen()==='explorer'&&!!(igUntilRead(q)||igSoleRead(q));
+  const mapOwn=!hereMap&&typeof window.caHereScreen==='function'&&caHereScreen()==='explorer'&&!!(IG_TOUR_RE.test(q)||igUntilRead(q)||igSoleRead(q));
   /* ---- COPILOT PREPARES, YOU PRESS (Young, 7 Oct 2026) ----
      Sending a contract to a colleague (@ a person, # a contract) and drafting
      one from a sentence are read here, from the words alone, and answered
@@ -2625,7 +2628,9 @@ function intelGraphApply(q, res, opts){
        already is the sentence (or "nothing changed" with it) */
     else if(parts.length) line+=(rich?'':'<br>')+ownHtml;
   }
-  intel.history.push({ role:'assistant', text:line, how, cardIds:(ids||[]).slice(0,5), listIds:(ids&&ids.length)?ids.slice():null, listTitle:igBoardTitle(q,res)||(res.note?String(res.note):null), listHonest:!!igBoardTitle(q,res), listChart:(res&&res.chart&&typeof res.chart==='object')?res.chart:null, choices:choices&&choices.length?choices:null });
+  /* on the map Jambo's own words ride apart from HaTi's line, so they — and only
+     they — have their figures checked; the names of the map's parts point (stage 3) */
+  intel.history.push({ role:'assistant', text:line, how, point:!!own&&!onBoard, own:own&&!onBoard?own:null, cardIds:(ids||[]).slice(0,5), listIds:(ids&&ids.length)?ids.slice():null, listTitle:igBoardTitle(q,res)||(res.note?String(res.note):null), listHonest:!!igBoardTitle(q,res), listChart:(res&&res.chart&&typeof res.chart==='object')?res.chart:null, choices:choices&&choices.length?choices:null });
   return { refused:false, groupBy, ids };
 }
 
@@ -3274,12 +3279,12 @@ function igbAxes(G, hubs, order){
      decision timeline a stretch inside a crowded quarter (graphCliffCrowded's
      rule, over the contracts on the map) is marked amber. */
   const strip=[];
-  if(ts.length){ const per={}; dated.forEach(([n,t])=>{ if(t!=null){ const k=stretchOf(t); per[k]=(per[k]||0)+1; } });
+  if(ts.length){ const per={}, perIds={}; dated.forEach(([n,t])=>{ if(t!=null){ const k=stretchOf(t); per[k]=(per[k]||0)+1; (perIds[k]||(perIds[k]=[])).push(n.id); } });
     const crowd=new Set(tKey==='decision'&&tStep<=3?graphCrowdedQuarters(kids.map(n=>n.c)):[]);
     const d0=new Date(t0), d=new Date(d0.getFullYear(), d0.getMonth()-(d0.getMonth()%tStep), 1);
     for(let i=0;i<120&&d.getTime()<=t1;i++){ const a=d.getTime(), k=stretchOf(a), qk='Q'+(Math.floor(d.getMonth()/3)+1)+' '+d.getFullYear();
       d.setMonth(d.getMonth()+tStep); const b=d.getTime();
-      if(per[k]) strip.push({ x0:tx(Math.max(a,t0)), x1:tx(Math.min(b,t1)), n:per[k], crowded:tStep<=3&&crowd.has(qk) }); } }
+      if(per[k]) strip.push({ x0:tx(Math.max(a,t0)), x1:tx(Math.min(b,t1)), n:per[k], crowded:tStep<=3&&crowd.has(qk), a, qk, ids:perIds[k] }); } }
   /* the line stands at the day asked (the axis was stretched to hold it); its
      count is the lit contracts on the map — the lens's own ids, as drawn */
   let until=null;
@@ -3907,7 +3912,7 @@ function igPaintFoldAll(){
   const b=document.getElementById('ig-foldall'); if(!b||!IG||!IG.hubs) return;
   const t=i18t(igAllFolded()?'int_open_all':'int_fold_all'); if(b.textContent!==t) b.textContent=t;
 }
-function igSetView(v){ igWake();
+function igSetView(v){ igWake(); if(intel.tour&&intel.tour.view!==v) intel.tour=null;
   const cam=igbCam(), was=cam.view; cam.view=Math.max(0,Math.min(IGB_NV-1,Number(v)||0));
   document.querySelectorAll('[data-ig-view]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.getAttribute('data-ig-view'))===cam.view)));
   igPaintFoldAll();
@@ -4089,6 +4094,8 @@ function igPaint(focus){
 // two-way linking: light up an explicit set of contract ids (hover from the dock)
 function igPaintIds(ids){
   if(!IG) return;
+  /* letting go of a hover puts back the part the walk is saying (stage 3) */
+  if((!ids||!ids.length)&&intel.tour){ const t=igTourStep(); if(t&&t.ids&&t.ids.length) ids=t.ids; }
   if(!ids||!ids.length){ igPaint(null); return; }
   const set=ids instanceof Set?ids:new Set(ids);
   IG.nodes.forEach(n=>{ const on=set.has(n.id)||(n.kind==='hub'&&[...(IG.adj[n.id]||[])].some(id=>set.has(id)));
@@ -4227,6 +4234,8 @@ function rebuildIntelGraph(){
   igRender();
   updateIntelNote(); renderIntelLegend(model); igPaintGroupSelect(); igPaintFoldAll(); igSetView(igbCam().view);
   if(model.linear) igApplyCliff(Number(intel.cliffDays)||0);
+  /* the same map redrawn keeps the part the walk is saying lit (stage 3) */
+  if(intel.tour) igTourLight();
   igWake();
 }
 /* ANY PRESS, DRAG, WHEEL, HOVER OR KEY ON THE MAP WAKES IT; bound once per
@@ -4302,6 +4311,7 @@ function updateIntelNote(){
   if(on.length) bits.push(`<b class="text-brand-700">${on.map(l=>igEsc(l.label)).join(' ∩ ')}</b>${act.action==='filter'?'':` <span class="text-ink/40">${igEsc(i18t('int_did_highlighted',{ n:act.ids?act.ids.size:0, t:total }))}</span>`}`);
   igRecipeSays().forEach(x=>bits.push(igEsc(x)));
   const wk=intel.walk;
+  if(intel.tour) bits.push(igTourNoteHtml());
   if(wk){ const k=Math.max(0,Math.min(wk.ids.length,Math.floor((wk.clock-IGB_PULSE_S)/IGB_STEP_S)+1));
     bits.push(`<b class="text-ink">${igEsc(i18t('int_walking',{ k, n:wk.ids.length }))}</b> <button id="ig-walk-stop" type="button" class="ui-link">${i18t('int_walk_stop')}</button>`); }
   el.innerHTML = intel.busy ? `<span class="text-brand-700">${window.busyHtml?busyHtml(i18t('int_thinking')):i18t('int_thinking')}</span>`
@@ -4344,6 +4354,149 @@ function igNoteMeasure(){
 /* SHOW EVERYTHING: every cut Copilot made comes off, its grouping with it, and
    a walk-through stops. The colour and the size stay — they narrow nothing. */
 function igShowEverything(){ igRecipePush(); intel.lenses=[]; intel.groups=null; intel.walk=null; intel.tlUntil=null; rebuildIntelGraph(); renderIntelDock(); }
+/* ---- SENTENCES THAT POINT (Explorer stage 3, 18 Oct 2026) ----
+   Jambo's own sentence about the map names its groups: each name the map
+   draws (a lobe, a floor, a column) becomes a press that lights that part,
+   and every figure in the sentence is checked against the figures the map
+   drew — "3 figures match the map", or how many of them do. Nothing is
+   rewritten: a figure the map did not draw is said, not removed. */
+function igPointTargets(){
+  const G=IG; if(!G||!G.nodes) return [];
+  const kids=G.nodes.filter(n=>n.kind==='contract'), out=[], seen=new Set();
+  const add=(label,ids)=>{ const l=String(label||'').trim(), k=l.toLowerCase(); if(l.length<3||seen.has(k)||!ids.length) return; seen.add(k); out.push({ label:l, ids }); };
+  (G.hubs||[]).forEach(h=>{ if(h.kind==='hub'&&h.kids) add(h.label,h.kids.map(n=>n.id)); });
+  const v=igbCam().view;
+  if(v>=2&&v<=3){ (G.floors||[]).forEach((f,i)=>add(f.label,kids.filter(n=>n._floor===i).map(n=>n.id)));
+    (G.cols||[]).forEach((c,i)=>add(c.label,kids.filter(n=>n._col===i).map(n=>n.id))); }
+  return out.sort((a,b)=>b.label.length-a.label.length);
+}
+/* the figures the map drew: counts (the book, what is shown, each part) and money (each part, short) */
+function igFigsDrawn(){
+  const G=IG, n=new Set(), m=new Set(); if(!G||!G.nodes) return { n, m };
+  const kids=G.nodes.filter(x=>x.kind==='contract'), fmt=v=>(typeof fmtMoneyShort==='function')?String(fmtMoneyShort(v)):'';
+  const money=v=>{ const s=fmt(v).replace(/[^\d.,KMB]/gi,'').toUpperCase(); if(s) m.add(s); };
+  const val=list=>{ let t=0; list.forEach(x=>{ const h=igHomeValue(x.c); if(h!=null) t+=h; }); return t; };
+  igCountsDrawn(igBookTotal()).forEach(k=>n.add(Number(k))); n.add(kids.length); money(val(kids));
+  (G.hubs||[]).forEach(h=>{ if(!h.kids) return; n.add(h.kids.length); money(val(h.kids)); if(h.attn){ n.add(h.attn.n); n.add(h.attn.t); } });
+  (G.floors||[]).forEach(f=>{ if(f.n!=null){ n.add(f.n); money(f.v||0); } if(f.over) n.add(f.over); });
+  if(G.grid) Object.values(G.grid.cells||{}).forEach(c=>{ n.add(c.n); money(c.v||0); });
+  if(G.tl){ (G.tl.strip||[]).forEach(s=>n.add(s.n)); n.add(G.tl.undated); if(G.tl.until) n.add(G.tl.until.n); }
+  return { n, m };
+}
+function igFigsCheck(text){
+  const t=' '+String(text||'').replace(/\b(?:MK|RL)-[\w-]+/gi,' ').replace(/\b\d{1,2}\s+(?:jan|feb|mar|apr|may|maj|jun|jul|aug|sep|oct|okt|nov|dec)\w*\b/gi,' ').replace(/\b(?:jan|feb|mar|apr|may|maj|jun|jul|aug|sep|oct|okt|nov|dec)\w*\s+\d{1,2}\b/gi,' ')+' ';
+  const D=igFigsDrawn(); let all=0, ok=0;
+  const re=/(?:^|[^\w.,])(\d[\d,]*(?:\.\d+)?)\s*([KMB](?![a-z])|million|billion|thousand|miljoner|miljarder|tusen)?(?=[^\w%]|$)/gi; let x;
+  while((x=re.exec(t))){ const raw=x[1].replace(/,/g,''), unit=(x[2]||'').toLowerCase(), num=Number(raw);
+    if(!unit&&/^(?:19|20)\d\d$/.test(raw)) continue;          // a year
+    if(!unit&&num===0) continue;
+    all++;
+    if(unit){ const u=/^m|million|miljon/.test(unit)?'M':/^b|billion|miljard/.test(unit)?'B':'K'; if(D.m.has((raw+u).toUpperCase())) ok++; }
+    else if(D.n.has(num)) ok++; }
+  return { all, ok };
+}
+function igPointPaint(feed){
+  if(!feed||!IG) return;
+  const T=igPointTargets();
+  feed.querySelectorAll('[data-ig-turn]').forEach(row=>{
+    const m=intel.history[Number(row.getAttribute('data-ig-turn'))]; if(!m||!m.point) return;
+    const bub=row.querySelector('.ai-bub'); if(!bub||bub.dataset.igPointed) return; bub.dataset.igPointed='1';
+    T.forEach(tg=>{ const w=document.createTreeWalker(bub,NodeFilter.SHOW_TEXT); let node;
+      while((node=w.nextNode())){ if(node.parentElement&&node.parentElement.closest('button,a,.ig-point')) continue;
+        const i=node.nodeValue.toLowerCase().indexOf(tg.label.toLowerCase()); if(i<0) continue;
+        const b=document.createElement('button'); b.type='button'; b.className='ig-point'; b.setAttribute('data-ig-point',tg.label); b.textContent=node.nodeValue.slice(i,i+tg.label.length);
+        b.title=i18t('int_point_title',{ x:tg.label }); b._ids=tg.ids;
+        const after=node.splitText(i); after.nodeValue=after.nodeValue.slice(tg.label.length); node.parentNode.insertBefore(b,after); break; } });
+    const f=igFigsCheck(m.own||'');
+    if(f.all){ const p=document.createElement('div'); p.className='igd-figs'+(f.ok<f.all?' is-off':''); p.setAttribute('data-ig-figs',f.ok+'/'+f.all);
+      p.textContent=f.ok===f.all?i18tn('int_figs_match',f.all,{ n:f.all }):i18t('int_figs_some',{ k:f.ok, n:f.all }); bub.insertAdjacentElement('afterend',p); } });
+}
+/* a press lights the part; pressed again, it lets go */
+document.addEventListener('click',e=>{ const b=e.target&&e.target.closest&&e.target.closest('.ig-point'); if(!b) return;
+  const on=!b.classList.contains('is-on'); document.querySelectorAll('.ig-point.is-on').forEach(x=>x.classList.remove('is-on'));
+  if(on){ b.classList.add('is-on'); igPaintIds(b._ids||[]); } else igPaintIds(null); });
+document.addEventListener('pointerover',e=>{ const b=e.target&&e.target.closest&&e.target.closest('.ig-point'); if(b&&!document.querySelector('.ig-point.is-on')) igPaintIds(b._ids||[]); });
+document.addEventListener('pointerout',e=>{ const b=e.target&&e.target.closest&&e.target.closest('.ig-point'); if(b&&!document.querySelector('.ig-point.is-on')&&!(e.relatedTarget&&b.contains(e.relatedTarget))) igPaintIds(null); });
+/* ---- JAMBO EXPLAINS THIS VIEW (Explorer stage 3, 18 Oct 2026) ----
+   "explain this view": the view on screen, part by part, biggest first — the
+   whole first, then up to four parts (a lobe, a floor, a cell, a stretch of
+   time) — each said in one sentence written from the numbers the map DREW
+   (never a model's), each lighting its part when it is the one being said.
+   Free: nothing is sent. Per sitting; any change to the map ends it (the
+   sentences would describe a map that is gone). */
+const IG_TOUR_MAX=5;
+const IG_TOUR_RE=/^(?:please\s+)?(?:explain|describe|walk (?:me |us )?through|talk (?:me |us )?through|take (?:me |us )?through)\s+(?:this|the)\s+(?:view|map|picture|chart)\b|^what am i looking at\b|^(?:förklara|beskriv|gå igenom)\s+(?:vyn|kartan|bilden)\b|^vad (?:är det jag )?tittar jag på\b/i;
+function igTourMoney(v){ const ok=(typeof canViewValues!=='function')||canViewValues(); return ok&&v>0?', '+((typeof fmtMoneyShort==='function')?fmtMoneyShort(v):String(Math.round(v))):''; }
+function igTourSteps(){
+  const G=IG; if(!G||!G.nodes) return [];
+  const v=igbCam().view, kids=G.nodes.filter(n=>n.kind==='contract'), steps=[], nC=n=>i18tn('int_n_contracts',n,{ n });
+  const val=list=>{ let t=0; list.forEach(n=>{ const h=igHomeValue(n.c); if(h!=null) t+=h; }); return t; };
+  if(!kids.length) return [];
+  if(v===0||v===1){
+    const hubs=(G.hubs||[]).filter(h=>h.kind==='hub'&&h.kids&&h.kids.length);
+    const byV=intel.lobeSize==='value'&&((typeof canViewValues!=='function')||canViewValues());
+    steps.push({ text:i18t('int_tour_open_groups',{ n:nC(kids.length), x:graphGroupingWord(intel.groups?'custom':intel.groupBy), k:i18tn('int_n_groups',hubs.length,{ n:hubs.length }) }), ids:null });
+    hubs.slice().sort((a,b)=>byV?(val(b.kids)-val(a.kids)):(b.kids.length-a.kids.length)).slice(0,IG_TOUR_MAX-1).forEach(h=>{
+      let t=i18t('int_tour_part',{ x:String(h.label), n:nC(h.kids.length), v:igTourMoney(val(h.kids)) });
+      if(intel.lobeShade&&h.attn&&h.attn.n) t+=' '+i18t('int_tour_attn',{ a:h.attn.n, x:i18t('int_attn_long_'+intel.lobeShade) });
+      steps.push({ text:t, ids:h.kids.map(n=>n.id), attn:!!(intel.lobeShade&&h.attn&&h.attn.n) }); });
+  } else if(v===2){
+    const fl=(G.floors||[]).map((f,i)=>Object.assign({ i },f)).filter(f=>f.n);
+    steps.push({ text:i18t('int_tour_open_floors',{ x:graphGroupingWord(G.floorKey), k:i18tn('int_n_floors',fl.length,{ n:fl.length }), n:nC(kids.length) }), ids:null });
+    fl.sort((a,b)=>b.n-a.n).slice(0,IG_TOUR_MAX-1).forEach(f=>{
+      let t=i18t('int_tour_part',{ x:String(f.label), n:nC(f.n), v:igTourMoney(f.v) });
+      if(f.over) t+=' '+i18tn('int_tour_over',f.over,{ n:f.over });
+      steps.push({ text:t, ids:kids.filter(n=>n._floor===f.i).map(n=>n.id), attn:!!f.over }); });
+  } else if(v===3&&G.grid){
+    const cells=Object.values(G.grid.cells||{}).filter(c=>c.n), byV=intel.shadeBy==='value'&&((typeof canViewValues!=='function')||canViewValues());
+    const cl=c=>String((G.cols||[])[c.ci]&&G.cols[c.ci].label||''), fl=c=>String((G.floors||[])[c.fi]&&G.floors[c.fi].label||'');
+    steps.push({ text:i18t('int_tour_open_grid',{ a:graphGroupingWord(G.colKey||intel.groupBy), b:graphGroupingWord(G.floorKey), k:i18tn('int_n_cells',cells.length,{ n:cells.length }) }), ids:null });
+    cells.sort((a,b)=>byV?((b.v||0)-(a.v||0)):(b.n-a.n)).slice(0,IG_TOUR_MAX-1).forEach(c=>{
+      const attn=igAttn(G.floorKey,fl(c))||igAttn(G.colKey,cl(c));
+      steps.push({ text:i18t('int_tour_part',{ x:(cl(c)?cl(c)+' × ':'')+fl(c), n:nC(c.n), v:igTourMoney(c.v) })+(attn?' '+i18t('int_tour_cell_attn'):''),
+        ids:kids.filter(n=>n._col===c.ci&&n._floor===c.fi).map(n=>n.id), attn }); });
+  } else if(v===4&&G.tl){
+    const tl=G.tl, dated=kids.length-tl.undated;
+    steps.push({ text:i18t('int_tour_open_tl',{ x:i18t('int_time_'+tl.key), d:nC(dated), u:tl.undated }), ids:null });
+    if(tl.until) steps.push({ text:i18t('int_tour_until',{ n:nC(tl.until.n), d:igDayWord(tl.until.iso) }), ids:(intel.lenses.find(l=>l.kind==='until')||{ ids:[] }).ids.filter(id=>kids.some(n=>n.id===id)) });
+    const word=a=>{ const d=new Date(a); return tl.step===12?String(d.getFullYear()):tl.step===3?'Q'+(Math.floor(d.getMonth()/3)+1)+' '+d.getFullYear()
+      :dateFmtOf((typeof langLocale==='function')?langLocale():undefined,{ month:'long', year:'numeric' }).format(d); };
+    (tl.strip||[]).slice().sort((a,b)=>b.n-a.n).slice(0,IG_TOUR_MAX-steps.length).forEach(s=>{
+      steps.push({ text:i18t('int_tour_part',{ x:word(s.a), n:nC(s.n), v:'' })+(s.crowded?' '+i18t('int_tour_crowded'):''), ids:(s.ids||[]).slice(), attn:!!s.crowded }); });
+  }
+  return steps.slice(0,IG_TOUR_MAX).map(x=>Object.assign(x,{ text:x.text.charAt(0).toUpperCase()+x.text.slice(1) }));
+}
+function igTourStart(){
+  const steps=igTourSteps();
+  if(steps.length<2){ intel.tour=null; intel.history.push({ role:'assistant', text:igEsc(i18t('int_tour_empty')) }); return false; }
+  intel.walk=null;
+  intel.tour={ view:igbCam().view, steps, at:0, turn:intel.history.length };
+  intel.history.push({ role:'assistant', text:igEsc(i18t('int_tour_said')), tour:true });
+  igTourLight(); updateIntelNote(); return true;
+}
+function igTourStep(){ const t=intel.tour; return t&&t.steps[t.at]||null; }
+/* a step lights its part on the map; the whole is every dot at rest */
+function igTourLight(){ const s=igTourStep(); if(!IG) return; if(s&&s.ids&&s.ids.length) igPaintIds(s.ids); else igPaint(null); }
+function igTourGo(k){ const t=intel.tour; if(!t) return; t.at=Math.max(0,Math.min(t.steps.length-1,k)); igTourLight(); renderIntelDock(); updateIntelNote(); }
+function igTourStop(){ if(!intel.tour) return; intel.tour=null; if(IG) igPaint(null); renderIntelDock(); updateIntelNote(); }
+/* the walk's sentences, under Jambo's answer: each a press that lights its part */
+function igTourHtml(i){
+  const t=intel.tour; if(!t||t.turn!==i) return '';
+  return `<ol class="ig-tour" aria-label="${igEsc(i18t('int_tour_label'))}">${t.steps.map((s,j)=>`<li><button type="button" class="ig-tour-s${j===t.at?' is-on':''}${s.attn?' is-attn':''}" data-ig-tour-go="${j}" aria-current="${j===t.at?'step':'false'}">${igEsc(s.text)}</button></li>`).join('')}</ol>`;
+}
+/* the walk's place on the head line: where it is, back, on, stop — the walk-through's own slot */
+function igTourNoteHtml(){
+  const t=intel.tour; if(!t) return '';
+  return `<b class="text-ink">${igEsc(i18t('int_tour_label'))} · ${igEsc(i18t('int_walk_at',{ k:t.at+1, n:t.steps.length }))}</b> <button id="ig-tour-prev" type="button" class="ui-link" aria-label="${igEsc(i18t('int_tour_prev'))}"${t.at<=0?' disabled aria-disabled="true"':''}>‹</button> <button id="ig-tour-next" type="button" class="ui-link" aria-label="${igEsc(i18t('int_tour_next'))}"${t.at>=t.steps.length-1?' disabled aria-disabled="true"':''}>›</button> <button id="ig-tour-stop" type="button" class="ui-link">${i18t('int_walk_stop')}</button>`;
+}
+/* the one door besides the words: under the latest answer, while the map is the screen */
+function igTourOffered(){ return !!(IG&&IG.nodes&&!intel.tour&&!igPaperUp()&&!igBoardNow()&&state.view==='dashboard'&&typeof hbFace==='function'&&hbFace()==='explorer'); }
+document.addEventListener('click',e=>{ const t=e.target&&e.target.closest&&e.target.closest('[data-ig-tour-go],[data-ig-tour-open],#ig-tour-prev,#ig-tour-next,#ig-tour-stop'); if(!t) return;
+  if(t.hasAttribute('data-ig-tour-go')) igTourGo(Number(t.getAttribute('data-ig-tour-go'))||0);
+  else if(t.hasAttribute('data-ig-tour-open')){ intel.history.push({ role:'user', text:i18t('int_tour_ask') }); igTourStart(); renderIntelDock(); }
+  else if(t.id==='ig-tour-prev') igTourGo((intel.tour&&intel.tour.at||0)-1);
+  else if(t.id==='ig-tour-next') igTourGo((intel.tour&&intel.tour.at||0)+1);
+  else igTourStop(); });
 function renderIntelLegend(model){
   const el=document.getElementById('ig-legend'); if(!el) return;
   /* THE LEGEND FOLDS TO ITS HEAD (owner-asked 11 Sep 2026): it sits over the
@@ -7040,6 +7193,8 @@ function igMsgHTML(m,i){
              the two or three things it could mean, as presses. */}
       ${''/* THE BOARD'S PRESSES (work order Part 5): a big build offered as a list
              with ticks, and Undo for an answer that changed the board */}
+      ${(Number.isInteger(i)&&m.tour)?igTourHtml(i):''}
+      ${(Number.isInteger(i)&&!m.err&&!m.tour&&i===intel.history.length-1&&igTourOffered())?`<div class="igd-small"><button type="button" class="ui-link" data-ig-tour-open="${i}">${igEsc(i18t('int_tour_open'))}</button></div>`:''}
       ${(Number.isInteger(i)&&m.act&&typeof window.caCardHtml==='function')?caCardHtml(m.act,i):''}
       ${(Number.isInteger(i)&&m.preview&&typeof window.hbPreviewHtml==='function')?hbPreviewHtml(m.preview):''}
       ${''/* a choice sits right under the sentence that offers it; then how the
@@ -7301,6 +7456,8 @@ function renderIntelDock(){
   if(typeof window.jamboPerchMount==='function') try{ jamboPerchMount(dock); }catch(_){ }
   /* a contract number in an answer is a link to it (caRefLinkPaint) */
   if(typeof window.caRefLinkPaint==='function') caRefLinkPaint(feed);
+  /* Jambo's sentence about the map points at its parts, its figures checked (stage 3) */
+  try{ igPointPaint(feed); }catch(_){ }
   /* THE DOCUMENT TAB IS THE CLAUSE LIST (10 Oct 2026): its host is drawn
      empty and filled by the Document tab's own painter. */
   if(window.pdShowsDesk&&pdShowsDesk()&&window.pdTab&&pdTab()==='doc'&&typeof window.docThreadPaint==='function'){ const pc=pdContract(); if(pc) try{ docThreadPaint(pc); }catch(_){ } }
