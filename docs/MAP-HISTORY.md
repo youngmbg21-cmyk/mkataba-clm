@@ -30746,3 +30746,17 @@ anything else the contract owes still makes a line ("1 detail to fill."). Only
 the Approvals page's panel changes: the checklist beside the other lists keeps
 the item. sap-lists-verify 2d re-pointed (red at main: the line still said
 "Your approval is asked for. 1 detail to fill is also waiting.").
+
+
+## SETTINGS → YOU: THE SIDEBAR SWITCH GOES (18 Oct 2026)
+
+Round 24 ("One sheet") left a question open: "How you like to work" had a
+switch for the left sidebar ("only what you use" / show everything), but a
+computer draws no left sidebar since the Counter and the desk tabs, so the
+switch had nothing to act on. The owner's yes to removing it came on 18 Oct
+2026. Gone from the computer: the row on You (`stYouCardHtml` 'work'), the
+toggle in the How you like to work drawer (`#pref-nav-all`), its writer
+`stNavAllSet` and its finder words. It is on SET_CLOSURES (`sidebar`), so f193
+names it rather than missing it. The phone keeps its own switch in its menu
+(js/mobile.js), where the menu still earns its items (navShowEverything,
+navEarned) — those and their words stay. Tests re-pointed: f193, f691, f725.
