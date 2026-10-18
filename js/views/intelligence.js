@@ -1893,8 +1893,6 @@ function intelAskReady(q){
   try{ inp.focus({ preventScroll:true }); inp.setSelectionRange(q.length,q.length); }catch(_){}
   return true;
 }
-/* the words Jambo answers with a card rather than a move (caGoCardHtml) */
-const IG_CARD_PLACES=['draft','share','next','help'];
 async function intelAsk(qRaw){
   const q=(qRaw||'').trim();
   if(!q||intel.busy) return;
@@ -1925,7 +1923,7 @@ async function intelAsk(qRaw){
          share, what's next, help) is drawn ONCE per conversation — a second
          ask lands on the one already there, lit, its main button ready —
          and the first is landed on too, so the eye goes straight to it */
-      const cardWord=act.kind==='go'&&IG_CARD_PLACES.includes(act.place)&&!act.missing;
+      const cardWord=act.kind==='go'&&Array.isArray(window.CA_CARD_WORDS)&&CA_CARD_WORDS.includes(act.place)&&!act.missing;
       const had=cardWord?intel.history.findIndex(m=>m&&m.act&&m.act.kind==='go'&&m.act.place===act.place&&String(m.act.cid||'')===String(act.cid||'')&&!m.act.missing):-1;
       if(had>=0){
         renderIntelDock();

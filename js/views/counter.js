@@ -211,8 +211,6 @@ function deskGoCounter(){ _dkMoreOpen = false; if (typeof setView === 'function'
 const CN_ROWS = 7;          // contract rows in sight; "Show all N" brings the rest
 const CN_POP_MAX = 40;      // every place; the list scrolls, and typing narrows it
 const CN_PICK_UP = 3;       // open pages offered on a quiet day
-/* words Jambo answers with a card beside the page, not a move */
-const CN_ASKS_JAMBO = ['share', 'draft', 'help', 'next'];
 let _cnAll = false;
 /* JAMBO'S WORK LANDS ON THE BOARD'S CARD (LAND ON IT, owner 18 Oct 2026:
    "when you click on jambos work, it should take you to the jambos work card
@@ -297,23 +295,11 @@ function counterRepaint(){
   const fresh = t.querySelector('#cn-needs'); if (fresh) card.replaceWith(fresh);
 }
 
-/* THE BOX: a place opens on the desk; anything else is Jambo's, beside the page */
+/* THE BOX: a place opens on the desk; anything else is Jambo's, beside the
+   page — the one reader every Jambo box uses (caAskAnywhere), with the
+   Counter's own rule that a question goes to Home's Jambo too */
 function counterAsk(text){
-  const t = String(text || '').trim(); if (!t) return false;
-  let a = null; try { a = (typeof caReadPlace === 'function') ? caReadPlace(t) : null; } catch (_){ a = null; }
-  if (a && a.kind === 'go' && !CN_ASKS_JAMBO.includes(a.place) && typeof caGo === 'function' && caGo(a)) return true;
-  if (typeof hbS !== 'function' || typeof setView !== 'function') return false;
-  /* drafting is the wall's (where his New agreement card stands); the rest is asked on the Board */
-  const toWall = !!(a && a.place === 'draft') || (typeof caIsDraftAsk === 'function' && caIsDraftAsk(t));
-  if (toWall && typeof hbOpenContracts === 'function') hbOpenContracts();
-  else { const s = hbS(); s.face = 'board'; if (typeof hbSave === 'function') hbSave(); setView('dashboard'); }
-  let tries = 0;
-  const ask = () => {
-    if (document.getElementById('igd-input') && typeof intelAsk === 'function'){ try { intelAsk(t); } catch (_){} return; }
-    if (++tries < 30) setTimeout(ask, 100);
-  };
-  setTimeout(ask, 0);
-  return true;
+  return (typeof caAskAnywhere === 'function') ? caAskAnywhere(text, { all: true }) : false;
 }
 
 /* "/" — the places, most used first: the same rows the Board's list draws (caSlashRows) */

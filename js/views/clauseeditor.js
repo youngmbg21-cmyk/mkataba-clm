@@ -5244,6 +5244,16 @@ async function ceAsk(question, opts = {}){
   if (ceNoAi()) return;
   const q = String(question == null ? '' : question).trim();
   if (!q || _ceBusy) return;
+  /* JAMBO, THE SAME ON EVERY PAGE (owner, 18 Oct 2026): a page's name typed
+     here moves there as it does on Home — after this page's own question
+     when a draft is unfiled (ceLeaveGuard); anything else is a question about
+     these words, as before */
+  const goTo = (typeof window !== 'undefined' && window.caReadPlace) ? (() => { try { return caReadPlace(q); } catch (_){ return null; } })() : null;
+  if (goTo && goTo.kind === 'go' && !(window.CA_CARD_WORDS || []).includes(goTo.place) && window.caGo){
+    const box = _ceQ('#ce-ask'); if (box){ box.value = ''; try { box.dispatchEvent(new Event('input', { bubbles: true })); } catch (_){} }
+    ceLeaveGuard(() => { rlCloseClauseEditor(); caGo(goTo); });
+    return;
+  }
   /* ---- WHAT THIS QUESTION IS ABOUT, TAKEN NOW ---- (owner-ruled 31 Aug 2026)
      A held passage narrows the question to those words and the answer to a
      replacement for them. TAKEN AT THE PRESS rather than read again when the

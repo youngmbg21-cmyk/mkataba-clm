@@ -2246,6 +2246,14 @@ function tbOnResize() {
    handler. */
 function tbSend() {
   const box = document.getElementById('tb-ask'); const said = box ? box.value.trim() : '';
+  /* JAMBO, THE SAME ON EVERY PAGE (owner, 18 Oct 2026): a page's name moves
+     there as it does on Home, through this page's own way out (tbLeave keeps
+     the work); anything else is drafting, as before */
+  let goTo = null; try { goTo = (typeof caReadPlace === 'function') ? caReadPlace(said) : null; } catch (_) { goTo = null; }
+  if (goTo && goTo.kind === 'go' && !(window.CA_CARD_WORDS || []).includes(goTo.place) && typeof caGo === 'function') {
+    if (box) box.value = '';
+    tbLeave(() => caGo(goTo)); return;
+  }
   if (!_tb.blocks.length || _tb.outline) { tbOutlineRun(said); return; }
   if (_tb.focus == null) { toast(i18t('tb_ph_pick'), 'err'); return; }
   tbDraft(_tb.focus, said);
@@ -2487,8 +2495,8 @@ function tbMove(i, d) {
    still the honest answer — a draft this browser REFUSED to keep — and the
    ordinary way out takes the rung below it, a transient confirmation. Question
    2 of the six: the cheapest channel that carries the fact. */
-function tbLeave() {
-  const go = () => { tbGutter(false); openTemplateLibDetail(_tb.tid); };
+function tbLeave(then) {
+  const go = () => { tbGutter(false); if (typeof then === 'function') then(); else openTemplateLibDetail(_tb.tid); };
   if (!_tb.dirty) return go();
   /* THE PENDING KEEP IS SPENT BEFORE ANYTHING ELSE. Leaving inside the
      debounce window must not be the one press that loses the sentence the

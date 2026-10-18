@@ -8486,6 +8486,7 @@ const STRINGS = {
     ai_apply_redline: 'Apply Redline',
     ai_decline: 'Decline',
     ai_could_not_turn: 'I could not turn that into a proposal. Say it another way, or decline and select the passage again.',
+    ai_handed_home: 'Opened — my answer is in the panel on the right.',
     ai_viewers_no_scan: 'Viewers cannot run a scan',
     ai_scanning: 'Scanning…',
     /* ---- THE SCAN SAYS WHAT IT FOUND, INCLUDING NOTHING ----
@@ -25318,6 +25319,7 @@ const STRINGS = {
     ai_apply_redline: 'Tillämpa ändring',
     ai_decline: 'Avböj',
     ai_could_not_turn: 'Jag kunde inte göra ett förslag av det. Formulera om, eller avbryt och markera stycket igen.',
+    ai_handed_home: 'Öppnat — mitt svar finns i panelen till höger.',
     ai_viewers_no_scan: 'Läsare kan inte köra en granskning',
     ai_scanning: 'Granskar…',
     ai_scan_clean: 'Skanningen är klar — inga problem hittades',
