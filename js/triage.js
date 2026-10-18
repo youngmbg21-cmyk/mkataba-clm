@@ -408,7 +408,9 @@ function triageTiles(c){
     : (typeof window !== 'undefined' && typeof window.riskOpenOf === 'function') ? window.riskOpenOf(c)
     : (typeof openFindings === 'function') ? openFindings(c) : [];
   const rkRan = !!(rkLive || rk.ok);
-  add('risk', rkRan ? rkOpen.slice(0, 2).map(x => x.title).join(' · ') : (rk.why || ''),
+  /* named by the ONE short title, as the Board's risks pack (bug log, 13 Oct) */
+  const rkName = x => (x && x.src && typeof window !== 'undefined' && typeof window.riskTitleOf === 'function') ? window.riskTitleOf(x) : (x && x.title);
+  add('risk', rkRan ? rkOpen.slice(0, 2).map(rkName).join(' · ') : (rk.why || ''),
     rkRan && rkOpen.length ? rkOpen.length : null, rkLive);
   const rkTile = out[out.length - 1];
   if (rkTile && rkTile.key === 'risk' && rkTile.ok && !rkTile.working && !rkOpen.length)
@@ -757,7 +759,9 @@ function triageWordingHash(c){
     if (typeof playbookHashOf !== 'function') return null;
     const txt = (typeof isUpload === 'function' && isUpload(c))
       ? ((c.upload && c.upload.extractedText) || '')
-      : ((typeof contractPlainText === 'function') ? contractPlainText(c) || '' : '');
+      /* { marks:true }: the text every stamp on file was hashed over (the scan's
+         tags included), so a reading kept before stays a reading of these words */
+      : ((typeof contractPlainText === 'function') ? contractPlainText(c, { marks: true }) || '' : '');
     return String(txt).trim() ? playbookHashOf(txt) : null;
   }catch(_){ return null; }
 }

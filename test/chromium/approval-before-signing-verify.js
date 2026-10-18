@@ -264,12 +264,13 @@ let H;
       landed.card && landed.approve, String(landed.approve));
     check('4L3 and the card is lit so the eye finds it',
       landed.lit, String(landed.lit));
-    /* THE MARK TAKES ITSELF OFF. A permanent ring on a card that already
-       carries a decision is a band nobody asked for. */
-    await P.page.waitForTimeout(2600);
-    const unlit = await P.page.evaluate(() =>
-      !document.getElementById('sa-card')?.classList.contains('is-landed'));
-    check('4L4 and the light goes out by itself', unlit, String(unlit));
+    /* THE MARK COMES OFF AT THE READER'S NEXT PRESS (LAND ON IT, owner 18 Oct
+       2026: a pulse, then a soft ring until the next press — it was 2.4s
+       and gone). A ring nobody can put out would be a band. */
+    await P.page.mouse.click(4, 300);
+    const unlit = await P.page.evaluate(() => new Promise(r => setTimeout(() =>
+      r(!document.getElementById('sa-card')?.classList.contains('is-landed')), 200)));
+    check('4L4 and the light goes out at the next press', unlit, String(unlit));
     /* A WORD THE TABLE DOES NOT KNOW IS NOT ACTED ON — the room still opens. */
     const junk = await P.page.evaluate(() => {
       if (window.setView) setView('dashboard');

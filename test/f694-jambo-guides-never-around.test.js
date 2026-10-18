@@ -65,6 +65,7 @@ describe('f694 (2) every instruction that answers a person carries it', () => {
       ['the amendment draft', 'const prompt = `A signed agreement needs an amendment.'],
       ['the round-answers agent', 'const prompt = `You negotiate for ${party'],
       ['the why answers in Settings', "const prompt = `You explain a contract-management workspace's settings"],
+      ['the Calendar\'s Jambo', "const prompt = `You are Jambo, beside ${req.user.name || 'a lawyer'}'s calendar"],
     ]) {
       const region = promptRegion(opening);
       assert.ok(region, name + ' found');

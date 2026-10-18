@@ -1,6 +1,7 @@
 /* ============================================================
-   JAMBO'S MAP — HaTi's thirty commonest tasks, in the words people use
-   (owner, 18 Oct 2026: "Start with MiniSearch and the map for 30 tasks")
+   JAMBO'S MAP — HaTi's thirty-one commonest tasks, in the words people use
+   (owner, 18 Oct 2026: "Start with MiniSearch and the map for 30 tasks";
+   the same day: "add Explorer as the 31st task")
    ============================================================
    THE PROBLEM IT SOLVES. Jambo's free reader (js/copilotacts.js, caActOf)
    knows a place only by its exact word: "obligations" opens them, "what do
@@ -44,7 +45,7 @@ const JM_NEAR = 0.6;         // a task this close to the first is offered beside
 const JM_PICKS = 3;          // at most this many on the "which did you mean" card
 const JM_FUZZY_COUNTS = 7;   // a word matched only by a near spelling counts from this length (a typo, not another word)
 
-/* THE THIRTY TASKS. `to` is the existing door:
+/* THE THIRTY-ONE TASKS. `to` is the existing door:
      place  — a CA_PLACES word (need 'one' asks which contract when none is up)
      door   — a CA_DOORS act on a contract; `home` is the place asked "which
               contract?" when none is named or up
@@ -137,6 +138,13 @@ const JM_TASKS = [
   { k: 'insights', to: { place: 'insights' }, w: {
     en: ['reports', 'analytics', 'statistics', 'charts', 'spend analysis', 'trends', 'portfolio report'],
     sv: ['rapporter', 'analys', 'statistik', 'diagram', 'trender'] } },
+  /* the 31st (owner, 18 Oct 2026: "add Explorer as the 31st task"): every
+     contract as a dot on one map, grouped, coloured and sized as asked */
+  { k: 'explorer', to: { place: 'explorer' }, w: {
+    en: ['explore our contracts', 'all contracts on one map', 'contract map', 'see how our contracts connect', 'contracts linked to each other', 'relationships between contracts',
+      'visualise the portfolio', 'visualize the portfolio', 'bird\'s eye view', 'contract landscape', 'network of contracts', 'spot the outliers', 'graph of our contracts',
+      'a map of every contract', 'the big picture of our contracts'],
+    sv: ['utforska avtalen', 'avtalskarta', 'alla avtal på en karta', 'hur avtalen hänger ihop', 'samband mellan avtalen', 'visualisera avtalen', 'avtalen som ett nätverk', 'hitta avvikarna', 'helhetsbilden av avtalen'] } },
   { k: 'team', admin: true, to: { st: 'page:team' }, w: {
     en: ['add a user', 'invite a colleague', 'new user', 'give someone access', 'add a team member', 'remove a user', 'user accounts', 'add someone', 'revoke access for a leaver'],
     sv: ['lägg till en användare', 'bjud in en kollega', 'ny användare', 'ge någon åtkomst', 'ta bort en användare', 'användarkonton'] } },

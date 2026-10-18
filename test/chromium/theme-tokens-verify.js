@@ -29,6 +29,13 @@
    variables actually repaints the platform. A token nothing reads is not a
    token, and no census of the DEFAULT theme would ever notice.
 
+   RE-RECORDED 18 Oct 2026 (seventh), OWNER-ASKED ("The SAP way, and call it
+   Home"): no tab row above the page; the bar reads ‹ · Ha · the page's name
+   and opens Recent. Audited as a set difference: no colour new; one gone, on
+   the dark register, calendar and contract screens only — rgba(53,96,180,
+   0.16), the pressed tab pill's fill, which left with the tabs (the same
+   accent wash is still worn elsewhere). Explorer's Group by in the map's
+   corner wears the map note's own ink, so no light screen gained a colour.
    RE-RECORDED 18 Oct 2026 (sixth), OWNER-ASKED (the overnight build, same
    standing yes): Round 21, "Paper first" — the templates screen's book is an
    index and a template's own paper, so its counts moved in both themes.

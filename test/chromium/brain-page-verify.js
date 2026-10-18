@@ -57,8 +57,9 @@ const ok = (name, good, detail) => {
     await page.waitForTimeout(2200);
     const onPage = await page.evaluate(() => state.view === 'brain' && !!document.getElementById('br-cv'));
     ok('1d pressing it opens the Brain page', onPage);
-    ok('1e the shell names the page', onPage && await page.evaluate(() => (document.getElementById('shell-title') || {}).textContent || '').then(t => /Brain/.test(t)));
-    ok('1b it is the desk\'s tab in front, named for the page', onPage && await page.evaluate(() => /Brain/.test((document.querySelector('#dk-row .dk-tab.is-on') || {}).textContent || '')));
+    /* RE-POINTED 18 Oct 2026 (the SAP way): the bar's page name, and Recent's first row */
+    ok('1e the bar names the page', onPage && await page.evaluate(() => (document.getElementById('dk-page') || {}).textContent || '').then(t => /Brain/.test(t)));
+    ok('1b it is Recent\'s first page', onPage && await page.waitForTimeout(450).then(() => page.evaluate(() => (deskRecentRows()[0] || {}).k === 'v:brain')));
 
     if (onPage){
       /* ---- 2. the brain is painted ---- */

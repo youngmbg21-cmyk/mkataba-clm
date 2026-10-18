@@ -189,9 +189,14 @@ const check = (name, pass, detail) => {
     check('7c no card is drawn over a bubble — its own or another group\'s', bub.covered.length === 0, JSON.stringify(bub.covered));
     await page.screenshot({ path: path.join(OUT, '7-one-bubble-per-customer.png') });
     /* a bubble is a door: it names its group, and a press opens it */
-    const door = await page.evaluate(() => { const h = IG.hubs.find(x => x._bubR > 8 && x.bubEl && x.bubEl.style.display !== 'none');
-      if (!h) return null; const r = h.bubEl.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2, at = document.elementFromPoint(x, y);
-      return { label: h.label, title: (h.bubEl.querySelector('title') || {}).textContent || '', x, y, mine: at === h.bubEl }; });
+    /* a bubble the reader can see: one may lie under Jambo's panel beside the map
+       (where it lands moves with the map's height), so the first big bubble whose
+       middle answers to itself is pressed, else the first big one is reported */
+    const door = await page.evaluate(() => { const big = IG.hubs.filter(x => x._bubR > 8 && x.bubEl && x.bubEl.style.display !== 'none');
+      const at = h => { const r = h.bubEl.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2; return { h, x, y, mine: document.elementFromPoint(x, y) === h.bubEl }; };
+      const pick = big.map(at).find(a => a.mine) || (big[0] && at(big[0]));
+      if (!pick) return null; const h = pick.h;
+      return { label: h.label, title: (h.bubEl.querySelector('title') || {}).textContent || '', x: pick.x, y: pick.y, mine: pick.mine }; });
     check('7f a bubble names its group when pointed at', !!door && door.title.indexOf(door.label) === 0, JSON.stringify(door));
     if (door && door.mine){
       await page.mouse.click(door.x, door.y);
