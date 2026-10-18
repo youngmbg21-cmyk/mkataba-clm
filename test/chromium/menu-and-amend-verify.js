@@ -6,7 +6,9 @@
      gone from the paper's line
    2 asking Jambo for a Menu act answers with the row itself as the button
      ("export" → PDF · Word), nothing spent; a press opens the Menu tab and
-     presses the row
+     presses the row; a file coming IN is not the PDF copy going out, and
+     "import from excel" is not the other side's file (owner, 18 Oct 2026:
+     "Fix the Menu reader's pdf and import misreads")
    3 a contract number in any form ("mk B1", "mkB1") opens that contract on
      Home; a number in an answer is a link that opens it
    4 a highlight's Comment keeps its words on the saved note, on a contract
@@ -70,11 +72,62 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await ask('add a signed document');
     ok('2c "add a signed document" is the Menu\'s own row', ((await lastCard()) || {}).menu === 'signed');
     ok('2d a question about the thing stays a question', await page.evaluate(() => caReadMenu('who are the signers?') === null));
+    /* A FILE COMING IN, AND SOMEBODY ELSE'S IMPORT, ARE NOT THESE ROWS (18 Oct 2026) */
+    const reads = await page.evaluate(() => ({
+      inbound: ['I want to upload a pdf', 'attach the pdf', 'we got a pdf from them', 'ladda upp en pdf'].map(q => [q, (caReadMenu(q) || {}).menu || null]),
+      signedPdf: (caReadMenu('add a signed pdf') || {}).menu || null,
+      outbound: ['get me a pdf', 'save as pdf', 'download the pdf'].map(q => [q, (caReadMenu(q) || {}).menu || null]),
+      bulk: ['import from excel', 'import our old contracts', 'importera gamla avtal'].map(q => [q, (caReadMenu(q) || {}).menu || null]),
+      theirs: ['import their changes', 'import the word file', 'importera deras ändringar'].map(q => [q, (caReadMenu(q) || {}).menu || null]) }));
+    ok('2f a file coming in is not the PDF copy going out; "add a signed pdf" is the signed-document row',
+      reads.inbound.every(([, m]) => m === null) && reads.signedPdf === 'signed' && reads.outbound.every(([, m]) => m === 'pdf'), JSON.stringify(reads));
+    ok('2g the import row is the other side\'s file only; an import from elsewhere is not it',
+      reads.bulk.every(([, m]) => m === null) && reads.theirs.every(([, m]) => m === 'import'), JSON.stringify(reads));
+    const cards0 = await page.evaluate(() => document.querySelectorAll('#igd-feed [data-ca-menu]').length);
+    await ask('I want to upload a pdf');
+    const up = await page.evaluate(n => { const m = intel.history[intel.history.length - 1] || {};
+      return { cards: document.querySelectorAll('#igd-feed [data-ca-menu]').length - n, act: m.act ? { kind: m.act.kind, place: m.act.place } : null }; }, cards0);
+    ok('2h typed beside the paper, "I want to upload a pdf" goes to the upload, no PDF card', up.cards === 0 && !!up.act && up.act.kind === 'go' && up.act.place === 'upload', JSON.stringify(up));
+    /* RE-POINTED 18 Oct 2026 (LAND ON IT, the owner's rule): the upload lands on
+       Jambo's drop area on the Contracts place, lit — the paper is left — so the
+       next ask brings the paper back first */
+    ok('2h2 and it lands on the drop area on the Contracts place, lit', await until(page, () => { const d = document.getElementById('pd-drop');
+      return !!d && d.classList.contains('is-landed') && !!document.getElementById('ct-place'); }, null, 6000));
+    const toJambo = async () => { await page.evaluate(() => { setView('dashboard'); igAnalyze('MK-B2'); });
+      await until(page, () => window.intel && intel.paper && intel.paper.id === 'MK-B2' && !!document.querySelector('#ig-dock [data-pd-tab="copilot"]'), null, 10000);
+      await page.click('#ig-dock [data-pd-tab="copilot"]').catch(() => {});
+      return until(page, () => { const i = document.querySelector('#igd-input'); return !!i && i.getBoundingClientRect().width > 0 && !intel.busy; }, null, 8000); };
+    await toJambo();
     await ask('filing');
     await page.evaluate(() => { const cs = document.querySelectorAll('#igd-feed [data-ca-menu]'); const b = cs[cs.length - 1].querySelector('button:not([disabled])'); b.click(); });
     /* the row's own act: Filing and stream opens the contract's Details sheet at its filing rows */
     const landed = await until(page, () => !!document.getElementById('ov-record'), null, 6000);
     ok('2e the press presses the Menu\'s own row (Filing and stream lands on the filing rows)', landed);
+    /* back to Jambo beside the paper (the Details sheet left his panel on another tab, as step 3 knows) */
+    ok('2i · Jambo beside the paper again', await toJambo());
+    await ask('import from excel');
+    ok('2j "import from excel" beside the paper opens the Import page, not the other side\'s file', await until(page, () => state.view === 'migration', null, 6000),
+      await page.evaluate(() => state.view));
+    await toJambo();
+    /* A WORD FILE COMING IN, OR KEPT HERE, IS NOT THE COPY SENT TO THE OTHER SIDE (18 Oct 2026) */
+    const wd = await page.evaluate(() => {
+      const door = q => (caReadDoor(q) || {}).door || null;
+      const act = q => { const a = caActOf(q) || {}; return a.kind === 'door' ? 'door:' + a.door : a.kind === 'menu' ? 'menu:' + a.menu : a.kind === 'go' ? 'go:' + a.place : String(a.kind || null); };
+      return {
+        inbound: ['add a word file', 'I want to upload a word file', 'we got a word copy from them', 'import the word file', 'attach the word document'].map(q => [q, door(q)]),
+        kept: ['download a word copy', 'save it as a word file', 'export a word version'].map(q => [q, door(q)]),
+        sent: ['send them a word version', 'email the word file to them', 'share a word copy', 'with tracked changes'].map(q => [q, door(q)]),
+        routed: [['add a word file', 'go:upload'], ['import the word file', 'menu:import'], ['download a word copy', 'menu:wordx'], ['send them a word version', 'door:word']].map(([q, want]) => [q, act(q), want]) };
+    });
+    ok('2k a Word file coming in, or kept here, is not the Word copy for the other side; sending one still is',
+      wd.inbound.every(([, d]) => d === null) && wd.kept.every(([, d]) => d === null) && wd.sent.every(([, d]) => d === 'word'), JSON.stringify(wd));
+    ok('2l each goes to its own door: upload · their file · the Word download · the Word copy to send', wd.routed.every(([, got, want]) => got === want), JSON.stringify(wd.routed));
+    const doors0 = await page.evaluate(() => document.querySelectorAll('#igd-feed .ca-card').length);
+    await ask('add a word file');
+    const wup = await page.evaluate(n => { const m = intel.history[intel.history.length - 1] || {};
+      return { cards: document.querySelectorAll('#igd-feed .ca-card').length - n, door: !!(m.act && m.act.kind === 'door'), act: m.act ? { kind: m.act.kind, place: m.act.place } : null }; }, doors0);
+    ok('2m typed beside the paper, "add a word file" goes to the upload, no Word copy card', !wup.door && !!wup.act && wup.act.kind === 'go' && wup.act.place === 'upload', JSON.stringify(wup));
+    await toJambo();
 
     /* 3 a contract number in any form */
     const forms = await page.evaluate(() => ['mk B1', 'mkB1', 'MK-B1', '#mk-b1'].map(q => { const r = hbParse(q); return r && r.act === 'openc' ? r.id : String(r && r.act); })

@@ -13,8 +13,11 @@
  *   2. Jambo says it too: his greeting names the count and the oldest, his
  *      tab carries the same number, and "What needs me?" leads his chips;
  *   3. "All N" shows every item, and pressed again folds back (the rule);
- *   4. a colleague's look is the oldest, is named first, and its own Done
- *      answers it — the card, the tab and the greeting all count one less;
+ *   4. a colleague's look has waited longest: Jambo's sentence names it, the
+ *      urgent renewal stays first on the card (urgent first, then oldest —
+ *      hbNeedsList; the owner, 18 Oct 2026: "Keep the urgent renewal first and
+ *      update the check"), the look comes next, and its own Done answers it —
+ *      the card, the tab and the greeting all count one less;
  *   5. a button opens the checklist's own door (details → Fill in);
  *   6. the word "needs me", typed on the paper, brings the Board and the
  *      whole list back;
@@ -126,7 +129,11 @@ const CONTRACTS = [
     ok('3a "All N" shows every item', three.open === one.book, JSON.stringify(three));
     ok('3b and pressed again folds back to three', three.shut === 3, JSON.stringify(three));
 
-    /* ===== 4. A COLLEAGUE'S LOOK: OLDEST, NAMED FIRST, ANSWERED BY ITS OWN DONE ===== */
+    /* ===== 4. A COLLEAGUE'S LOOK: WAITED LONGEST, NAMED IN THE SENTENCE, NEXT AFTER
+       WHAT CANNOT WAIT, ANSWERED BY ITS OWN DONE =====
+       The card is urgent first, then oldest (hbNeedsList, 15 Oct 2026). This
+       step used to want the look first, ahead of the urgent renewal; the owner
+       kept the card's order (18 Oct 2026). */
     const asked = await page.evaluate(() => {
       const me = currentUser(); const c = state.contracts.find(x => x.id === 'MK-W1');
       if (!c || typeof askOpen !== 'function') return 'no ask writer';
@@ -136,12 +143,17 @@ const CONTRACTS = [
       persist(c); hbPaintBoard(); return 'ok';
     });
     const looked = asked === 'ok' && await until(page, () => !!document.querySelector('#hb-needs [data-hb-ny-done]'));
-    const four = await page.evaluate(() => ({
-      first: ((document.querySelector('#hb-needs .hb-ny-go') || {}).getAttribute ? document.querySelector('#hb-needs .hb-ny-go').getAttribute('data-hb-ny') : ''),
-      say: ((document.querySelector('#hb-needs .hb-ny-say') || {}).textContent || '').replace(/\s+/g, ' '),
-      n: Number((document.querySelector('#hb-needs .hb-pill') || {}).textContent) }));
+    const four = await page.evaluate(() => {
+      const rows = [...document.querySelectorAll('#hb-needs .hb-ny-go')].map(b => ({ kind: b.getAttribute('data-hb-ny'), id: b.getAttribute('data-hb-ny-id'),
+        hot: !!(b.closest('.hb-ny-p') && b.closest('.hb-ny-p').classList.contains('is-hot')) }));
+      return { first: rows[0] ? rows[0].kind : '', rows: rows.slice(0, 3),
+        say: ((document.querySelector('#hb-needs .hb-ny-say') || {}).textContent || '').replace(/\s+/g, ' '),
+        n: Number((document.querySelector('#hb-needs .hb-pill') || {}).textContent) }; });
     ok('4a the look is on the card, with its own Done', looked, asked);
-    ok('4b it has waited longest, so it is named first', four.first === 'look' && /Waiting longest: .* on MK-W1, 3 days/.test(four.say), JSON.stringify(four));
+    const r0 = four.rows[0] || {}, r1 = four.rows[1] || {};
+    ok('4b the urgent renewal stays first on the card', r0.kind === 'renewal' && r0.id === 'MK-W2' && r0.hot, JSON.stringify(four.rows));
+    ok('4c the look, having waited longest, comes next and is named in the sentence', r1.kind === 'look' && r1.id === 'MK-W1'
+      && /cannot wait\. Waiting longest: .* on MK-W1, 3 days/.test(four.say), JSON.stringify(four));
     if (looked) {
       await page.click('#hb-needs [data-hb-ny-done]');
       await until(page, n => Number((document.querySelector('#hb-needs .hb-pill') || {}).textContent) === n - 1
@@ -152,7 +164,7 @@ const CONTRACTS = [
       tab: Number((document.querySelector('#ig-dock [data-pd-tab="copilot"] .pd-tab-n') || {}).textContent),
       done: !document.querySelector('#hb-needs [data-hb-ny-done]'),
       answered: (() => { const c = state.contracts.find(x => x.id === 'MK-W1'); return (c.asks || []).filter(a => a.kind === 'look' && a.state !== 'open').length; })() }));
-    ok('4c Done answers it: the card and the tab both count one less', after.card === four.n - 1 && after.tab === four.n - 1 && after.done && after.answered === 1, JSON.stringify(after));
+    ok('4d Done answers it: the card and the tab both count one less', after.card === four.n - 1 && after.tab === four.n - 1 && after.done && after.answered === 1, JSON.stringify(after));
 
     /* ===== 5. A BUTTON IS THE CHECKLIST'S OWN DOOR ===== */
     const det = await page.$('#hb-needs [data-hb-ny="details"]');
