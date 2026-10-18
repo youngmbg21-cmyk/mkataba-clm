@@ -105,7 +105,10 @@ const CONTRACTS = [
     await ask('contracts');
     const place = await until(() => state.view === 'dashboard' && hbFace() === 'paper' && !pdContract() && !!document.getElementById('ct-place'));
     check('3a "contracts" opens the Contracts place', !!place);
-    const t1 = await until(() => { const t = document.querySelector('#dk-home .dk-tab.is-on [data-dk-go]'); return t && t.getAttribute('data-dk-go'); });
+    /* ask for the state, bounded: the tab lit at the first instant may be the one before (red once on GitHub, 18 Oct 2026) */
+    const litHome = () => { const t = document.querySelector('#dk-home .dk-tab.is-on [data-dk-go]'); return t ? t.getAttribute('data-dk-go') : 'none'; };
+    const t1 = await until(() => { const t = document.querySelector('#dk-home .dk-tab.is-on [data-dk-go]'); return t && t.getAttribute('data-dk-go') === 'home:contracts' ? 'home:contracts' : null; })
+      || await page.evaluate(litHome);
     check('3b it is the tab in front, in Home\'s head row', t1 === 'home:contracts', t1);
     await toCounter(); await ask('approvals');
     const ap = await until(() => state.view === 'approvals' && !document.getElementById('dk-row').hidden && document.querySelector('#dk-row .dk-tab.is-on [data-dk-go]')
