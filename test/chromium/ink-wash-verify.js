@@ -20,6 +20,14 @@
 
      node test/chromium/ink-wash-verify.js --save   (record, on the code BEFORE)
 
+   RE-RECORDED 18 Oct 2026 (fifteenth), OWNER-ASKED (the overnight build,
+   same standing yes): Round 24, "One sheet" — Settings → You is one sheet of
+   rows under its headings with a contents list, so the settings screen's
+   counts moved (more 12px small print, fewer 13px card lines). Audited by
+   key: light themes, counts only; dark themes add the rows' hairline and
+   the accent's icon stroke (both already worn on other screens) and the off
+   switch's fill, which is --field-line, the product's control-edge token.
+   No colour new to the product.
    RE-RECORDED 18 Oct 2026 (fourteenth), OWNER-ASKED (the overnight build,
    same standing yes): Round 21, "Paper first" — Our paper's book draws an
    index of templates and the chosen template's own paper, so the ourpaper

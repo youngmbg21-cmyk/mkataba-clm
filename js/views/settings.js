@@ -1549,10 +1549,12 @@ function stYouItems(){
     api && { key:'safety', t:'st_you_safety', w:['ts_title','ts_sub','st_acct_sessions','set_sessions_sub','st_you_codes_words'], door:'me:safety',
       state:()=>i18t(u.twoStep?'st_you_ts_on':'st_you_ts_off') },
     api && { key:'password', t:'st_you_password', w:['st_you_password_sub','st_you_password_words'], door:'me:password' },
-    { key:'lang', t:'st_you_lang', w:['st_acct_lang_note','st_you_lang_words'], focus:'#lang-switch', state:stLangName },
-    api && { key:'told', t:'st_you_told', w:['st_acct_email','set_brief_how_often','set_brief_daily','set_brief_weekly','set_brief_off','st_you_told_words'], door:'me:told',
+    { key:'lang', t:'st_you_lang', w:['st_acct_lang_note','st_you_lang_words'], focus:'#st-you-lang .st-yseg', state:stLangName },
+    /* told and work change IN THEIR ROWS on the sheet (round 24): no drawer
+       door; their drawers stay for the avatar's account drawer */
+    api && { key:'told', t:'st_you_told', w:['st_acct_email','set_brief_how_often','set_brief_daily','set_brief_weekly','set_brief_off','st_you_told_words'], focus:'[data-st-brief]',
       state:()=>i18t('st_you_brief_'+briefCadenceOf(u)) },
-    { key:'work', t:'st_you_work', w:['st_acct_sidebar','set_show_everything','set_full_cockpit','st_you_chips','st_you_opens','st_you_work_words'], door:'me:work',
+    { key:'work', t:'st_you_work', w:['st_acct_sidebar','set_show_everything','set_full_cockpit','st_you_chips','st_you_opens','st_you_work_words'], focus:'[data-st-sw="chips"]',
       state:stOpensWord },
     { key:'data', t:'st_you_data', w:['st_acct_backup','set_export_backup','st_you_data_words'] },
     (u.role==='legal') && { key:'design', t:'st_acct_design', w:['set_edit_design','st_acct_design_note','st_you_design_words'], door:'me:design' },
@@ -1565,73 +1567,149 @@ const ST_YOU_WAS={ job:'who', sidebar:'work', email:'told', twostep:'safety', se
 const stYouItem=k=>stYouItems().find(it=>it.key===(ST_YOU_WAS[k]||k))||null;
 /* every word a You row can be found by, tags out */
 const stYouHay=it=>[it.t].concat(it.w).map(k=>i18t(k)).join(' ').replace(/<[^>]*>/g,' ').toLowerCase();
+/* ONE SHEET (round 24 of the redesign: the owner picked "One sheet" by name,
+   17 Oct 2026): You is one page of plain rows under its headings, with a
+   contents list beside it. A switch or a choice changes right in its row,
+   through the same writer its drawer uses, with a passing confirmation; the
+   forms that need several boxes (job title, password, two-step, away, the
+   points table, the design) keep their one door, the drawer. Each heading's
+   section still answers to data-st-you-card="<key>", so every door, Jambo's
+   finder and a repaint reach it by the same name. Away comes first. */
+const ST_YOU_SHEET=['away','who','safety','lang','told','work','design','points','data'];
+const stSrHtml=(label,value,act,cls)=>`<div class="st-sr${cls?' '+cls:''}"><div class="st-sl">${label}</div><div class="st-sv">${value}</div><div class="st-sa">${act||''}</div></div>`;
+const stSwHtml=(key,on,label)=>`<button type="button" role="switch" class="st-swt${on?' on':''}" aria-checked="${on?'true':'false'}" aria-label="${esc(label)}" data-st-sw="${key}"><i aria-hidden="true"></i></button>`;
 function stYouCardHtml(it){
   if(!it) return '';
   const u=(typeof currentUser==='function'&&currentUser())||{};
-  const fact=(attrs,html)=>`<button type="button" class="st-fact st-fact-plain" ${attrs}><span class="st-fact-n">${html}</span></button>`;
-  const line=html=>`<span class="st-you-line">${html}</span>`;
-  const door=(attrs,label)=>stDoorHtml(attrs,label);
+  const sub=html=>`<span class="st-you-sub">${html}</span>`;
+  const door=(attrs,label)=>`<button type="button" class="ui-link st-sr-door" ${attrs}>${esc(label)}</button>`;
   const d=k=>`data-st-panel="${k}"`;
-  let facts='', doors='', chip='';
+  let rows='', chip='';
   if(it.key==='who'){
-    facts=fact(d('me:who'), `${esc(u.name||u.email||'')} · ${esc((typeof roleName==='function')?roleName(u.role):'')}`)
-      +line(esc([u.email,u.title].filter(Boolean).join(' · ')));
-    doors=door(d('me:who'),i18t('st_you_edit'));
+    rows=stSrHtml(esc(i18t('st_f_name')), esc(u.name||u.email||''), '')
+      +stSrHtml(esc(i18t('st_f_email')), esc(u.email||''), '')
+      +stSrHtml(esc(i18t('st_f_title')), u.title?esc(u.title):sub(esc(i18t('st_you_none'))), door(d('me:who'),i18t('st_you_change')))
+      +stSrHtml(esc(i18t('st_you_role')), esc((typeof roleName==='function')?roleName(u.role):''), '');
   } else if(it.key==='safety'){
     const dev=_stYouFacts.devices;
-    facts=fact(d('me:safety'), `${esc(i18t('ts_title'))} <span class="chip ${u.twoStep?'st-chip-on':'st-chip-off'}">${esc(i18t(u.twoStep?'st_sh_on':'st_sh_off'))}</span>`)
-      +fact(`${d('me:safety')} data-st-focus="#sessions-list"`, [u.twoStep?esc(stCodesLeftText()):'', dev==null?'':esc(i18tn('st_you_devices',dev,{n:dev}))].filter(Boolean).join(' · ')||esc(i18t('st_you_devices_unknown')));
-    doors=door(d('me:safety'),i18t('st_you_twostep_door'))+door(d('me:password'),i18t('st_you_password_go'));
+    rows=stSrHtml(esc(i18t('st_you_password_row')), sub(esc(i18t('st_you_password_sub'))), door(d('me:password'),i18t('st_you_change')))
+      +stSrHtml(esc(i18t('ts_title')), `<span class="chip ${u.twoStep?'st-chip-on':'st-chip-off'}">${esc(i18t(u.twoStep?'st_sh_on':'st_sh_off'))}</span>${u.twoStep?' '+sub(esc(stCodesLeftText())):''}`, door(d('me:safety'),i18t('st_you_manage')))
+      +stSrHtml(esc(i18t('st_you_devices_row')), dev==null?sub(esc(i18t('st_you_devices_unknown'))):esc(i18tn('st_you_devices',dev,{n:dev})), door(`${d('me:safety')} data-st-focus="#sessions-list"`,i18t('st_you_see_them')));
   } else if(it.key==='lang'){
-    const others=(typeof LANGUAGES!=='undefined'?LANGUAGES:[]).filter(l=>l.id!==((typeof langId==='function')?langId():'')).map(l=>l.name||l.label||l.id);
-    facts=line(`${esc(stLangName())}${others.length?` · ${esc(i18t('st_you_lang_also',{names:others.join(', ')}))}`:''}`)
-      +line(`<span class="st-you-sub">${esc(i18t('st_you_lang_sub'))}</span>`);
-    doors=door('data-st-you="lang"',i18t('st_you_change'));
+    const now=(typeof langId==='function')?langId():'';
+    const L=(typeof LANGUAGES!=='undefined'?LANGUAGES:[]);
+    rows=stSrHtml(esc(i18t('st_you_lang')), `<span class="st-yseg" role="group" aria-label="${esc(i18t('st_you_lang'))}">${L.map(l=>`<button type="button" data-st-lang="${esc(l.id)}" aria-pressed="${l.id===now?'true':'false'}">${esc(l.name||l.id)}</button>`).join('')}</span>`, '', 'is-lang')
+      +stSrHtml(esc(i18t('st_you_lang_money')), sub(esc(i18t('st_you_lang_sub'))), '');
   } else if(it.key==='told'){
-    facts=fact(d('me:told'), esc(i18t('st_you_brief_line',{when:i18t('st_you_brief_'+briefCadenceOf(u))})))
-      +line(`<span class="st-you-sub">${esc(i18t('st_you_told_always'))}</span>`);
-    doors=door(d('me:told'),i18t('st_you_brief_door'));
+    const cad=briefCadenceOf(u);
+    rows=stSrHtml(esc(i18t('set_brief_how_often')), `<select data-st-brief aria-label="${esc(i18t('set_brief_how_often'))}">${['daily','weekly','off'].map(v=>`<option value="${v}"${v===cad?' selected':''}>${esc(i18t('set_brief_'+v))}</option>`).join('')}</select>`, '')
+      +stSrHtml(esc(i18t('st_you_bell_row')), sub(esc(i18t('st_you_told_always'))), '');
   } else if(it.key==='work'){
     const all=(typeof navShowEverything==='function')&&navShowEverything();
-    facts=fact(d('me:work'), esc(i18t(all?'st_you_sidebar_all':'st_you_sidebar_short')))
-      +fact(`${d('me:work')} data-st-focus="#pref-jb-chips"`, esc(i18t((typeof jamboChipsOn!=='function'||jamboChipsOn())?'st_you_chips_on':'st_you_chips_off')))
-      +fact(`${d('me:work')} data-st-focus="#pref-opens-on"`, esc(i18t('st_you_opens_line',{where:stOpensWord()})));
-    doors=door(d('me:work'),i18t('st_you_flags_door'));
+    const chips=(typeof jamboChipsOn!=='function')||jamboChipsOn();
+    const opens=(typeof contractOpensOn==='function')?contractOpensOn():'jambo';
+    rows=stSrHtml(esc(i18t('st_you_chips')), `${stSwHtml('chips',chips,i18t('st_you_chips'))}${sub(esc(i18t('st_you_chips_sub')))}`, '', 'is-sw')
+      +stSrHtml(esc(i18t('st_you_opens')), `<select data-st-opens aria-label="${esc(i18t('st_you_opens'))}">${((typeof OPENS_ON!=='undefined')?OPENS_ON:['jambo']).map(v=>`<option value="${v}"${v===opens?' selected':''}>${esc(i18t('st_opens_'+v))}</option>`).join('')}</select>`, '')
+      +stSrHtml(esc(i18t('set_show_everything')), `${stSwHtml('navall',all,i18t('set_show_everything'))}${sub(esc(i18t('set_full_cockpit')))}`, '', 'is-sw');
   } else if(it.key==='data'){
-    facts=line(esc(i18t('st_you_data_line')))+line(`<span class="st-you-sub">${esc(i18t('st_you_data_sub'))}</span>`);
-    doors=door('data-st-backup',i18t('st_you_download'));
+    rows=stSrHtml(esc(i18t('st_you_data_line')), sub(esc(i18t('st_you_data_sub'))), `<button type="button" class="ui-btn ui-btn-sm" data-st-backup>${icon('download','w-3.5 h-3.5')} ${esc(i18t('st_you_download'))}</button>`);
   } else if(it.key==='design'){
-    facts=line(esc(i18t('st_acct_design_note')));
-    doors=door(d('me:design'),i18t('set_edit_design'));
+    rows=stSrHtml(esc(i18t('st_acct_design')), sub(esc(i18t('st_acct_design_note'))), door(d('me:design'),i18t('set_edit_design')));
   } else if(it.key==='points'){
     const keys=(typeof agPointsKeys==='function')?agPointsKeys():[];
     const own=keys.filter(k=>{ try{ return !!agPointsMine(k); }catch(_){ return false; } }).length;
-    facts=line(esc(i18tn('st_you_points_own',own,{n:own,of:keys.length})))+line(`<span class="st-you-sub">${esc(i18t('st_you_points_sub'))}</span>`);
-    doors=door(d('me:points'),i18t('st_you_points_door'));
+    rows=stSrHtml(esc(i18t('st_you_points_row')), `${esc(i18tn('st_you_points_own',own,{n:own,of:keys.length}))} ${sub(esc(i18t('st_you_points_sub')))}`, door(d('me:points'),i18t('st_you_points_door')));
   } else if(it.key==='away'){
     const a=state.away||{}, m=a.mine, me=u.name||u.email||'';
     if(m){
       chip=` <span class="chip st-chip-on st-aw-chip">${esc(stAwayState())}</span>`;
-      facts=line(i18t('st_aw_line',{who:`<b>${esc(m.deputyName)}</b>`,from:`<b>${esc(stDay(m.from))}</b>`,to:`<b>${esc(stAwayDay(m.to))}</b>`}))
-        +line(`<span class="st-you-sub">${esc(i18t('st_aw_sub',{who:m.deputyName,me}))}</span>`);
-      doors=door(d('me:away'),i18t('st_aw_change'))+door('data-st-away-end',i18t('st_aw_end'));
+      rows=stSrHtml(esc(i18t('st_aw_who')), `<b>${i18t('st_aw_line',{who:`<b>${esc(m.deputyName)}</b>`,from:`<b>${esc(stDay(m.from))}</b>`,to:`<b>${esc(stAwayDay(m.to))}</b>`})}</b>${sub(esc(i18t('st_aw_sub',{who:m.deputyName,me})))}`,
+        door(d('me:away'),i18t('st_aw_change'))+door('data-st-away-end',i18t('st_aw_end')));
     } else {
-      facts=line(esc(i18t('st_aw_none')))+line(`<span class="st-you-sub">${esc(i18t('st_aw_none_sub'))}</span>`);
-      doors=door(d('me:away'),i18t('st_aw_set'));
+      rows=stSrHtml(esc(i18t('st_aw_who')), `<b>${esc(i18t('st_aw_none'))}</b>${sub(esc(i18t('st_aw_none_sub')))}`, `<button type="button" class="ui-btn ui-btn-sm" ${d('me:away')}>${esc(i18t('st_aw_set'))}</button>`);
     }
     /* whom this person answers for, said where they keep their own */
-    facts+=(Array.isArray(a.covering)?a.covering:[]).map(r=>line(`<span class="st-aw-for">${esc(i18t(r.from<=(a.today||todayISO())?'st_aw_covering':'st_aw_covering_later',{who:r.userName,from:stDay(r.from),to:stAwayDay(r.to)}))}</span>`)).join('');
+    rows+=(Array.isArray(a.covering)?a.covering:[]).map(r=>`<div class="st-sr is-full"><span class="st-aw-for">${esc(i18t(r.from<=(a.today||todayISO())?'st_aw_covering':'st_aw_covering_later',{who:r.userName,from:stDay(r.from),to:stAwayDay(r.to)}))}</span></div>`).join('');
   } else if(it.key==='password') return '';
-  return `<section class="st-grp st-card st-you-card" data-st-you-card="${it.key}" id="st-you-${it.key}">
-    <h3 class="st-card-h">${esc(i18t(it.t))}${chip}</h3>
-    <div class="st-card-facts">${facts}</div>
-    <div class="st-card-doors">${doors}</div>
+  return `<section class="st-grp st-ssec st-you-card" data-st-you-card="${it.key}" id="st-you-${it.key}">
+    <h3 class="st-ssec-h">${esc(i18t(it.t))}${chip}</h3>
+    <div class="st-srows">${rows}</div>
   </section>`;
 }
+/* the sheet's sections, away first, each drawn once */
+function stYouSheetItems(){
+  const all=stYouItems().filter(it=>it.key!=='password');
+  return ST_YOU_SHEET.map(k=>all.find(it=>it.key===k)).filter(Boolean).concat(all.filter(it=>!ST_YOU_SHEET.includes(it.key)));
+}
 function stYouHtml(){
+  const its=stYouSheetItems();
   return `<div class="st-board st-youb" id="st-board">
-    <div class="st-cards st-you-board">${stYouItems().map(stYouCardHtml).join('')}</div>
+    <div class="st-sheet">
+      <nav class="st-toc" aria-label="${esc(i18t('st_you_toc'))}">${its.map((it,i)=>`<button type="button" data-st-toc="${it.key}"${i===0?' aria-current="true"':''}>${esc(i18t(it.t))}</button>`).join('')}</nav>
+      <div class="st-cards st-you-board">${its.map(stYouCardHtml).join('')}</div>
+    </div>
   </div>`;
+}
+/* THE IN-PLACE WRITERS — each the one its drawer uses too, each confirming
+   with a passing toast, each putting the screen back if the save fails */
+async function stChipsSet(on){
+  if(await stPrefSet('jamboChips', on)){ toast(i18t(on?'st_you_chips_saved_on':'st_you_chips_saved_off'),'ok'); stYouCardRepaint('work');
+    /* the chips beside this page follow at once */
+    const chips=document.querySelector('#st-jb-feed .st-jb-chips'); if(chips) chips.innerHTML=stJbChipsHtml();
+    return true; }
+  stYouCardRepaint('work'); return false;
+}
+async function stOpensSet(v){
+  if(await stPrefSet('opensOn', v)){ toast(i18t('st_you_opens_saved',{where:i18t('st_opens_'+v)}),'ok'); stYouCardRepaint('work'); return true; }
+  stYouCardRepaint('work'); return false;
+}
+function stNavAllSet(on){
+  if(typeof navSetShowEverything==='function') navSetShowEverything(on);
+  toast(on?i18t('set_sidebar_all_on'):i18t('set_sidebar_all_off'),'ok');
+  stYouCardRepaint('work');
+}
+async function stBriefSet(v){
+  const was=briefCadenceOf(currentUser());
+  try{
+    const r=await api('me/prefs','PUT',{ briefEvery:v });
+    const u=currentUser(); if(u) u.prefs=(r&&r.prefs)||{ ...(u.prefs||{}), briefEvery:v };
+    briefPaintCadence(v);          // every copy of the control says the same thing
+    toast(i18t('set_brief_saved_'+v),'ok');
+    return true;
+  }catch(err){
+    /* THE SCREEN MUST NOT CLAIM A SAVE THAT FAILED — put the previous
+       answer back rather than leaving the new one lit. */
+    briefPaintCadence(was);
+    toast(i18t('set_daily_brief_fail')+(err&&err.message||''),'err');
+    return false;
+  }
+}
+/* the sheet's presses, delegated once: the contents list jumps, a language
+   button switches through langSet (the bar's own writer), a switch or a
+   choice writes in place */
+if(typeof document!=='undefined' && !window._stSheetWired){
+  window._stSheetWired=true;
+  document.addEventListener('click',e=>{
+    const t=e.target&&e.target.closest?e.target:null; if(!t||!t.closest('#set-page')) return;
+    let el;
+    if((el=t.closest('[data-st-toc]'))){
+      const k=el.getAttribute('data-st-toc'), sec=document.getElementById('st-you-'+k);
+      document.querySelectorAll('#set-page [data-st-toc]').forEach(b=>{ if(b===el) b.setAttribute('aria-current','true'); else b.removeAttribute('aria-current'); });
+      if(sec){ try{ sec.scrollIntoView({block:'start',behavior:'smooth'}); }catch(_){ /* a page without smooth scrolling still lights it */ } sec.classList.remove('st-lit'); void sec.offsetWidth; sec.classList.add('st-lit'); }
+      return; }
+    if((el=t.closest('[data-st-lang]'))){ const id=el.getAttribute('data-st-lang');
+      if(id && id!==((typeof langId==='function')?langId():'') && typeof langSet==='function'){ langSet(id); toast(i18t('st_you_lang_saved',{name:el.textContent.trim()}),'ok'); }
+      return; }
+    if((el=t.closest('[data-st-sw]'))){ const k=el.getAttribute('data-st-sw'), on=el.getAttribute('aria-checked')!=='true';
+      el.setAttribute('aria-checked',String(on)); el.classList.toggle('on',on);
+      if(k==='chips') stChipsSet(on); else if(k==='navall') stNavAllSet(on);
+      return; }
+  });
+  document.addEventListener('change',e=>{
+    const t=e.target; if(!t||!t.closest||!t.closest('#set-page')) return;
+    if(t.hasAttribute('data-st-brief')){ stBriefSet(t.value); return; }
+    if(t.hasAttribute('data-st-opens')){ stOpensSet(t.value); return; }
+  });
 }
 /* SHOW ME: the You tab, that card, lit, and its drawer open with the
    reader's hand on the control — the control is still theirs to use.
@@ -2001,23 +2079,23 @@ function stJbYouStage(q, words){
   const brief=Object.keys(ST_JB_CADENCE).find(v=>has(ST_JB_CADENCE[v]));
   if(api && brief && has(['brief','briefs','digest','email','emails','mejl','sammanfattning','sammanfattningen'])){
     const now=briefCadenceOf(u);
-    return { key:'told', focus:`[data-pref-brief='${brief}']`, want:i18t('st_you_brief_'+brief), now:i18t('st_you_brief_'+now), same:now===brief };
+    return { key:'told', focus:'[data-st-brief]', want:i18t('st_you_brief_'+brief), now:i18t('st_you_brief_'+now), same:now===brief };
   }
   const L=(typeof langList==='function')?langList():[];
   const lang=L.find(l=>words.includes(String(l.name||'').toLowerCase())||words.includes(String(l.id||'').toLowerCase()));
   if(lang && has(['language','switch','språk','byt','change','to','till','in','på'])){
     const nowL=L.find(l=>l.id===((typeof langId==='function')?langId():''));
-    return { key:'lang', focus:`#lang-switch [data-lang="${lang.id}"]`, want:lang.name, now:nowL?nowL.name:'', same:!!nowL&&nowL.id===lang.id };
+    return { key:'lang', focus:`[data-st-lang="${lang.id}"]`, want:lang.name, now:nowL?nowL.name:'', same:!!nowL&&nowL.id===lang.id };
   }
   const opens=(typeof OPENS_ON!=='undefined'?OPENS_ON:[]).find(v=>{ const w=String(i18t('st_opens_'+v)).toLowerCase().split(/[^\p{L}]+/u).filter(x=>x.length>=4); return w.some(x=>words.includes(x)); });
   if(opens && has(['open','opens','opened','land','start','öppna','öppnas','öppnar'])){
     const now=(typeof contractOpensOn==='function')?contractOpensOn():'jambo';
-    return { key:'work', focus:'#pref-opens-on', want:i18t('st_opens_'+opens), now:i18t('st_opens_'+now), same:now===opens };
+    return { key:'work', focus:'[data-st-opens]', want:i18t('st_opens_'+opens), now:i18t('st_opens_'+now), same:now===opens };
   }
   if(has(['suggestions','chips','förslag']) && has(['off','on','hide','show','stop','av','på','dölj','visa'])){
     const on=(typeof jamboChipsOn!=='function')||jamboChipsOn();
     const want=!has(['off','hide','stop','av','dölj']);
-    return { key:'work', focus:'#pref-jb-chips', want:i18t(want?'st_you_chips_on':'st_you_chips_off'), now:i18t(on?'st_you_chips_on':'st_you_chips_off'), same:on===want };
+    return { key:'work', focus:'[data-st-sw="chips"]', want:i18t(want?'st_you_chips_on':'st_you_chips_off'), now:i18t(on?'st_you_chips_on':'st_you_chips_off'), same:on===want };
   }
   return null;
 }
@@ -3796,39 +3874,19 @@ function stAccountWire(){
     toast(i18t('st_acct_saved'));
     if(state.view==='team' && isAdmin()) renderTeam();
   });
-  document.getElementById('pref-nav-all')?.addEventListener('change',e=>{
-    if(typeof navSetShowEverything==='function') navSetShowEverything(e.target.checked);
-    toast(e.target.checked?i18t('set_sidebar_all_on'):i18t('set_sidebar_all_off'));
-  });
-  document.querySelectorAll('[data-pref-brief]').forEach(el=>el.addEventListener('change',async e=>{
-    const v=e.target.getAttribute('data-pref-brief');
-    const was=briefCadenceOf(currentUser());
-    try{
-      const r=await api('me/prefs','PUT',{ briefEvery:v });
-      const u=currentUser(); if(u) u.prefs=(r&&r.prefs)||{ ...(u.prefs||{}), briefEvery:v };
-      briefPaintCadence(v);          // every copy of the control says the same thing
-      toast(i18t('set_brief_saved_'+v));
-    }catch(err){
-      /* THE SCREEN MUST NOT CLAIM A SAVE THAT FAILED — put the previous
-         answer back rather than leaving the new one lit. */
-      briefPaintCadence(was);
-      toast(i18t('set_daily_brief_fail')+(err&&err.message||''),'err');
-    }
-  }));
+  /* each written through the ONE writer the sheet's rows use too (round 24) */
+  document.getElementById('pref-nav-all')?.addEventListener('change',e=>stNavAllSet(e.target.checked));
+  document.querySelectorAll('[data-pref-brief]').forEach(el=>el.addEventListener('change',e=>stBriefSet(e.target.getAttribute('data-pref-brief'))));
   document.getElementById('ts-toggle')?.addEventListener('click',()=>stTwoStepToggle());
   document.getElementById('ts-codes-new')?.addEventListener('click',()=>stCodesNew());
   /* the two flags the full build added, each written as it changes */
   document.getElementById('pref-jb-chips')?.addEventListener('change',async e=>{
     const on=!!e.target.checked;
-    if(await stPrefSet('jamboChips', on)){ toast(i18t(on?'st_you_chips_saved_on':'st_you_chips_saved_off'),'ok'); stYouCardRepaint('work');
-      /* the chips beside this page follow at once */
-      const chips=document.querySelector('#st-jb-feed .st-jb-chips'); if(chips) chips.innerHTML=stJbChipsHtml(); }
-    else e.target.checked=!on;
+    if(!(await stChipsSet(on))) e.target.checked=!on;
   });
   document.getElementById('pref-opens-on')?.addEventListener('change',async e=>{
     const v=e.target.value, was=(typeof contractOpensOn==='function')?contractOpensOn():'jambo';
-    if(await stPrefSet('opensOn', v)){ toast(i18t('st_you_opens_saved',{where:i18t('st_opens_'+v)}),'ok'); stYouCardRepaint('work'); }
-    else e.target.value=was;
+    if(!(await stOpensSet(v))) e.target.value=was;
   });
   document.getElementById('bk-export')?.addEventListener('click',()=>settingsExportBackup());
   document.getElementById('brand-edit')?.addEventListener('click',()=>{
@@ -4204,6 +4262,7 @@ function briefPaintCadence(v){
   document.querySelectorAll('[data-pref-brief]').forEach(el=>{
     el.checked = el.getAttribute('data-pref-brief')===v;
   });
+  document.querySelectorAll('[data-st-brief]').forEach(el=>{ el.value=v; });
 }
 function briefCadenceOf(u){
   const p=(u&&u.prefs)||{};
@@ -8124,7 +8183,7 @@ Object.assign(window,{stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsP
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
   stRulesRows,stPaintRules,stPaintSignFolders,
   openMyAccount,openSettingsAt,settingsGoTab,stUnfinishedCount,stPeopleWire,settingsTab,stLandTop,SET_PANELS,ST_TABS,SET_CLOSURES,ST_GROUPS,ST_ATTENTION_MAX,
-  ST_FACES,ST_GOV_LADDER,stGovRungs,stGovNext,stYouItems,stMenuHits,stFind,stFindRows,stFindGo,stNeedsAll,settingsGoPage,stYouGo,stPrefSet,stAsksLoad,stAsksOpen,stAsksAnswered,stAskSeen,stAskFrom,stJbAnswer,stJbAmount,stJbAsk,stJamboFocus,stSideSet,stSideFit,
+  ST_FACES,ST_GOV_LADDER,stGovRungs,stGovNext,stYouItems,stYouHtml,stYouCardHtml,stYouSheetItems,ST_YOU_SHEET,stChipsSet,stOpensSet,stNavAllSet,stBriefSet,stMenuHits,stFind,stFindRows,stFindGo,stNeedsAll,settingsGoPage,stYouGo,stPrefSet,stAsksLoad,stAsksOpen,stAsksAnswered,stAskSeen,stAskFrom,stJbAnswer,stJbAmount,stJbAsk,stJamboFocus,stSideSet,stSideFit,
   stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
   settingsWriteFolderAccess,settingsExportBackup,stGoLive,stLoadAiCfgOnce,stSampleContracts,stClearSamples,stRunIntegrity,
   stPersonMissing,stPersonSays,stPersonSumHtml,stAccountBodyHtml,parseDirectoryCsv,openFolderAccessEditor,settingsMirrorDirectory,
