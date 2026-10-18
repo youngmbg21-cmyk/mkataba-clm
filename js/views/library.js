@@ -3743,9 +3743,12 @@ function sdDevPanelOpts(c, d){
   };
 }
 function sdOpenContract(id){
-  /* Open contract lands where every list's does: Home's Document on Jambo
-     (`regOpenContract`), the room only where Home cannot take it. */
-  if(typeof pdOpenOnHome==='function'&&pdOpenOnHome(id,'copilot')) return;
+  /* Open contract lands where every list's does (`regOpenContract`): a
+     code-named stand-in is stopped first, then Home's Document on the
+     reader's own "A contract opens on" ('open'); the room only where Home
+     cannot take it. */
+  if(typeof codeNameStop==='function'&&codeNameStop(getContract(id))) return;
+  if(typeof pdOpenOnHome==='function'&&pdOpenOnHome(id,'open')) return;
   if(typeof selectContract==='function') selectContract(id);
   else if(typeof openWorkspace==='function') openWorkspace(id);
 }

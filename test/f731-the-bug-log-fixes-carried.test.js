@@ -96,16 +96,23 @@ describe('f731 (3) the toasts that printed nothing now say themselves', () => {
   });
 });
 
-describe('f731 (4) Open contract lands on Home, as every list\'s does', () => {
-  test('Our standards: Home\'s Document first, the room only where Home cannot take it', () => {
+describe('f731 (4) Open contract lands on Home, as every list\'s does (regOpenContract)', () => {
+  test('Our standards: a code name stopped, then Home on the reader\'s own choice, the room only where Home cannot take it', () => {
     const f = strip(fnOf(R('js/views/library.js'), 'sdOpenContract'));
-    const home = f.indexOf("pdOpenOnHome(id,'copilot')"), old = f.indexOf('selectContract(id)');
-    assert.ok(home > 0 && old > home, 'pdOpenOnHome is asked before selectContract');
+    const stop = f.indexOf('codeNameStop(getContract(id))'), home = f.indexOf("pdOpenOnHome(id,'open')"), old = f.indexOf('selectContract(id)');
+    assert.ok(stop > 0 && home > stop && old > home, 'codeNameStop, then pdOpenOnHome(…,\'open\'), then selectContract');
   });
-  test('Jambo\'s agents: the contract itself opens on Home\'s Document', () => {
+  test('Jambo\'s agents: the contract itself opens the same way', () => {
     const f = strip(fnOf(R('js/views/agents.js'), 'agGo'));
-    const home = f.indexOf("where === 'contract' && typeof pdOpenOnHome === 'function' && pdOpenOnHome(cid, 'copilot')");
-    assert.ok(home > 0 && f.indexOf('openWorkspace(cid)') > home, 'asked before openWorkspace');
+    const stop = f.indexOf("where === 'contract' && typeof codeNameStop === 'function' && codeNameStop(c)");
+    const home = f.indexOf("where === 'contract' && typeof pdOpenOnHome === 'function' && pdOpenOnHome(cid, 'open')");
+    assert.ok(stop > 0 && home > stop && f.indexOf('openWorkspace(cid)') > home, 'stopped, then Home, before openWorkspace');
+  });
+  test('and the agents page\'s "Open contract" buttons reach it (they went to the strip\'s Overview)', () => {
+    const src = strip(R('js/views/agents.js'));
+    assert.ok(!/B\('overview', _agT\('ins_open_contract'\)/.test(src), 'no Open contract button rides the overview act');
+    assert.equal((src.match(/B\('contract', _agT\('ins_open_contract'\)/g) || []).length, 2, 'both Open contract buttons carry their own act');
+    assert.match(src, /if \(act === 'contract'\) return agGo\('contract', it\.cid\);/);
   });
 });
 

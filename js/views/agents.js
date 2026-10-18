@@ -1328,9 +1328,12 @@ function agGo(where, cid){
   if (where === 'nego'){ if (typeof openRedlineWorkbench === 'function') openRedlineWorkbench(cid); else if (typeof selectContract === 'function') selectContract(cid); return; }
   if (where === 'import'){ if (typeof setView === 'function') setView('migration'); return; }
   if (!c) return;
-  /* The contract itself opens on Home's Document, like every list's Open
-     contract — the room has no Document tab since 11 Oct 2026. */
-  if (where === 'contract' && typeof pdOpenOnHome === 'function' && pdOpenOnHome(cid, 'copilot')) return;
+  /* The contract itself opens as every list's Open contract does
+     (regOpenContract): a code-named stand-in stopped first, then Home's
+     Document on the reader's own "A contract opens on" — the room has no
+     Document tab since 11 Oct 2026. */
+  if (where === 'contract' && typeof codeNameStop === 'function' && codeNameStop(c)) return;
+  if (where === 'contract' && typeof pdOpenOnHome === 'function' && pdOpenOnHome(cid, 'open')) return;
   if (typeof openWorkspace !== 'function') return;
   const tab = where === 'oblig' ? 'oblig' : where === 'sign' ? 'sign' : where === 'contract' ? null : 'terms';
   /* the room's Signing and Obligations tabs went home (the one-page Home plan, stage 5) */
@@ -2030,8 +2033,8 @@ function agPanelActs(it){
   if (it.kind === 'ours') return B('oblig', _agT('ag_a_oblig'), 'lead');
   if (it.kind === 'approve'){
     let may = null; try { may = (typeof approvalDecidableNow === 'function') ? approvalDecidableNow(it.c) : null; } catch (_){ may = null; }
-    return may ? B('approve', _agT('ap_pg_approve'), 'lead') + B('refuse', _agT('ag_a_refuse'), '') + B('overview', _agT('ins_open_contract'), 'link')
-      : B('signing', _agT('ap_pg_open_gate'), 'lead') + B('overview', _agT('ins_open_contract'), '');
+    return may ? B('approve', _agT('ap_pg_approve'), 'lead') + B('refuse', _agT('ag_a_refuse'), '') + B('contract', _agT('ins_open_contract'), 'link')
+      : B('signing', _agT('ap_pg_open_gate'), 'lead') + B('contract', _agT('ins_open_contract'), '');
   }
   if (it.kind === 'request') return (ed ? B('ikdraft', _agT('ik_act_draft'), 'lead') : '') + B('ikopen', _agT('ag_a_request'), ed ? '' : 'lead');
   if (it.kind === 'lane') return B('overview', _agT('ag_a_draft_open'), 'lead') + B('ikopen', _agT('ag_a_request'), '');
@@ -2177,6 +2180,7 @@ async function agRunAct(key, act){
   }
   if (act === 'nego') return agGo('nego', it.cid);
   if (act === 'overview') return agGo('terms', it.cid);
+  if (act === 'contract') return agGo('contract', it.cid);
   if (act === 'oblig') return agGo('oblig', it.cid);
   if (act === 'import') return agGo('import');
   if (act === 'signing') return agGo('sign', it.cid);
