@@ -525,6 +525,14 @@ function bsNdaTile(c, N){
     : `<span class="bs-nda-mark is-still">${bsE(words)}</span>`;
   return { n, sub: words, subHtml: mark };
 }
+/* how many days an obligation is late (null where it is not): ONE reading for
+   the Next obligation figure and the line's caption (pass 3, round 7 as drawn:
+   "Next up: Check the September invoice (…), 7 days late.") */
+function bsLateDays(O, r){
+  if (!r || r.st !== 'overdue' || !r.due) return null;
+  const a = _bsDay0((O && O.today) || bsToday()), b = _bsDay0(r.due);
+  return (a && b) ? Math.max(0, Math.round((a - b) / _bsDD)) : null;
+}
 function bsLifeData(c){
   let M = null; try { M = (typeof ov2Model === 'function') ? ov2Model(c) : null; } catch (_){ M = null; }
   const owed = bsOwedKeys(c);
@@ -558,7 +566,7 @@ function bsLifeData(c){
      where the name of who owes it stood ("Check the September invoice · 7
      days late"); who owes it is the table's column under it */
   if (O.next){
-    const lateBy = (O.next.st === 'overdue' && O.next.due) ? Math.max(0, Math.round((_bsDay0(O.today || bsToday()) - _bsDay0(O.next.due)) / _bsDD)) : null;
+    const lateBy = bsLateDays(O, O.next);
     K.next = { n: O.next.due ? bsDay(O.next.due) : bsT('bs_ob_nodue'),
       sub: O.next.what + ' · ' + (lateBy != null ? bsTn('bs_k_next_late', lateBy, { n: lateBy }) : bsWho(c, O.next)),
       tip: O.next.what + ' · ' + bsWho(c, O.next), tone: O.next.st === 'overdue' ? 'bad' : '' };
@@ -667,11 +675,15 @@ function bsStripHtml(st, o){
     : page === 'hist' ? `<div class="bs-sec bs-host bs-hist" data-hb-own data-bs-host="hist" data-bs-cid="${id}"></div>`
     : page === 'details' ? `<div class="bs-sec bs-host bs-details" data-hb-own data-bs-host="details" data-bs-cid="${id}"></div>`
     : bsLifeHtml(c, st);
+  /* ONE ⋯ ON HISTORY (pass 3, round 12 as drawn): the History page's own
+     toolbar ends with its ⋯ (Verify · Export · Print · the whole trail), so
+     the head draws none — "‹ Overview" is the way to the page's others */
+  const dots = page === 'hist' ? '' : `<span class="bs-dwrap"><button type="button" class="hb-ib bs-dots${open ? ' is-on' : ''}" data-bs-dots="${id}" aria-haspopup="menu" aria-expanded="${open}" aria-label="${bsE(bsT('bs_more', { ref: bsRef(c) }))}" title="${bsE(bsT('bs_more', { ref: bsRef(c) }))}">⋯</button>${menu}</span>`;
   /* ON THE DESK THE TAB'S × PUTS IT AWAY (round 7): the card draws none of its own */
   const x = desk ? '' : `<button type="button" class="hb-ib hb-x" data-bs-x="${id}" aria-label="${bsE(bsT('bs_close'))}" title="${bsE(bsT('bs_close'))}">${_bsX}</button>`;
   return `<section class="hb-card bs-strip${desk ? ' bs-on-desk' : ''}${_bsArrive === String(c.id) && !desk ? ' is-new' : ''}${open ? ' is-menu' : ''}" id="bs-strip-${id}" data-bs-id="${id}" data-bs-on="${page}" aria-label="${bsE(bsT('bs_aria', { ref: bsRef(c) }))}">
     <header class="hb-ch bs-head"><span class="hb-ct">${bsE(c.name || bsRef(c))}</span><span class="bs-ref">${(typeof refHtml === 'function') ? refHtml(c) : ref}${c.counterparty ? ' · ' + bsE(c.counterparty) : ''}</span>${pill}${crumbs}<span class="hb-grow"></span>
-      <span class="bs-dwrap"><button type="button" class="hb-ib bs-dots${open ? ' is-on' : ''}" data-bs-dots="${id}" aria-haspopup="menu" aria-expanded="${open}" aria-label="${bsE(bsT('bs_more', { ref: bsRef(c) }))}" title="${bsE(bsT('bs_more', { ref: bsRef(c) }))}">⋯</button>${menu}</span>
+      ${dots}
       ${x}</header>
     ${bsFamHtml(c)}${body}</section>`;
 }
@@ -810,8 +822,10 @@ function bsCaption(D){
   const am = bsAmendMarks(D.c);
   am.slice(0, 2).forEach(a => out.push(a.value ? bsT('bs_cap_amend_value', { w: a.label, d: bsDay(a.d), v: a.value }) : bsT('bs_cap_amend', { w: a.label, d: bsDay(a.d) })));
   if (am.length > 2) out.push(bsTn('bs_cap_amend_more', am.length - 2, { n: am.length - 2 }));
-  const nx = D.O.next;
-  out.push(nx ? (nx.due ? bsT('bs_cap_next', { what: nx.what, who: bsWho(D.c, nx), d: bsDay(nx.due) }) : bsT('bs_cap_next_nodue', { what: nx.what, who: bsWho(D.c, nx) })) : bsT('bs_cap_next_none'));
+  const nx = D.O.next, late = bsLateDays(D.O, nx);
+  /* a late one says how late, never "by" a day already gone */
+  out.push(nx ? (late != null ? bsTn('bs_cap_next_late', late, { what: nx.what, who: bsWho(D.c, nx), n: late })
+    : nx.due ? bsT('bs_cap_next', { what: nx.what, who: bsWho(D.c, nx), d: bsDay(nx.due) }) : bsT('bs_cap_next_nodue', { what: nx.what, who: bsWho(D.c, nx) })) : bsT('bs_cap_next_none'));
   /* A CAP IS A FACT: what the legend counts but the line cannot draw is said */
   if (D.life.undated) out.push(bsTn('bs_cap_undated', D.life.undated, { n: D.life.undated }));
   return out.join(' ');
@@ -934,7 +948,7 @@ function bsTermsObsHtml(D){
   });
   const edit = (typeof canEdit !== 'function' || canEdit()) ? `<button type="button" class="hb-link" data-bs-page="details" data-bs-id="${bsE(c.id)}">${bsE(bsT('bs_t_edit'))}</button>` : `<button type="button" class="hb-link" data-bs-page="details" data-bs-id="${bsE(c.id)}">${bsE(bsT('bs_t_more'))}</button>`;
   const O = D.O;
-  const obRows = O.rows.map(r => `<tr${r === O.next ? ' class="is-next"' : ''}${r.st === 'done' ? ' data-done' : ''}><td>${bsE(r.what)}${r === O.next ? `<span class="bs-nx">${bsE(bsT('bs_ob_next'))}</span>` : ''}${r.st === 'overdue' ? `<span class="bs-late">${bsE(bsT('bs_ob_late'))}</span>` : ''}${r.st === 'done' ? `<span class="bs-done">${bsE(bsT('bs_ob_done'))}</span>` : ''}</td>
+  const obRows = O.rows.map(r => `<tr${r === O.next ? ' class="is-next"' : ''}${r.st === 'done' ? ' data-done' : ''}><td>${bsE(r.what)}${''/* LATE FIRST, THEN NEXT (pass 3, round 7 as drawn: "Check the September invoice [Late]", [Next] under it) */}${r.st === 'overdue' ? `<span class="bs-late">${bsE(bsT('bs_ob_late'))}</span>` : ''}${r === O.next ? `<span class="bs-nx">${bsE(bsT('bs_ob_next'))}</span>` : ''}${r.st === 'done' ? `<span class="bs-done">${bsE(bsT('bs_ob_done'))}</span>` : ''}</td>
     <td class="bs-who"><i class="bs-dot ${r.theirs ? 'is-theirs' : 'is-ours'}" aria-hidden="true"></i>${bsE(bsWho(c, r))}</td><td class="bs-d">${r.due ? bsE(bsDay(r.due)) : bsE(bsT('bs_ob_nodue'))}</td></tr>`).join('');
   const obs = O.rows.length
     ? `<div class="bs-obs" tabindex="0" role="region" aria-label="${bsE(bsT('bs_ob_aria'))}"><table class="bs-ob"><thead><tr><th>${bsE(bsT('bs_ob_col_what'))}</th><th>${bsE(bsT('bs_ob_col_who'))}</th><th>${bsE(bsT('bs_ob_col_due'))}</th></tr></thead><tbody>${obRows}</tbody></table></div>`
@@ -1331,5 +1345,5 @@ if (typeof window !== 'undefined') Object.assign(window, { bsFamRows, bsFamHtml,
   BS_PAGES, BS_MENU_PAGES, BS_MAX,
   bsCardOn, bsCardId, bsCardLeave, bsAmendMarks,
   hbStripBring, bsStrips, bsStrip, bsStripPage, bsStripClose, bsStripKeep, bsStripLetGo, bsRefresh, bsRepaint,
-  roomRetiredLand, bsLifeData, bsObRows, bsCaption, bsStripsHtml, bsStripHtml, bsLifeHtml, bsChartSvg, bsPaintHosts, bsDay,
+  roomRetiredLand, bsLateDays, bsLifeData, bsObRows, bsCaption, bsStripsHtml, bsStripHtml, bsLifeHtml, bsChartSvg, bsPaintHosts, bsDay,
 });

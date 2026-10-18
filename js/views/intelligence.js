@@ -6748,12 +6748,12 @@ function renderIntelDock(){
            Board's head beside Make a pack (hbSavedViewsHtml), and a press
            opens the view on Explorer, where the map is. */}
     ${(()=>{
-      /* A CONTRACT HELD WITH NO PAPER UP (rounds 13, 7, 12): its own chips,
-         or none (a paper chosen on the wall, as drawn); null where it holds
-         none of these and the panel's own chips stand */
+      /* A CONTRACT HELD WITH NO PAPER UP (rounds 13, 7, 12): no chips in
+         this foot row — a page's own sit right under its card (pdHeldChipsHtml,
+         pass 3), a paper chosen on the wall has none (as drawn); null where
+         it holds none of these and the panel's own chips stand */
       const held=(state.view==='dashboard'&&typeof window.pdPanelChipsHtml==='function')?pdPanelChipsHtml():null;
-      if(held!==null) return held&&!(window.pdShowsDesk&&pdShowsDesk())?`
-    <div class="px-3.5 pb-2 shrink-0 flex flex-wrap gap-1.5" data-ig-chips data-pd-held-chips>${held}</div>`:'';
+      if(held!==null) return '';
       return (!intel.history.length||igHomePaperFace()===true)&&!(window.pdShowsDesk&&pdShowsDesk())&&!(window.jamboChipsOn&&!jamboChipsOn())?`
     <div class="px-3.5 pb-2 shrink-0 flex flex-wrap gap-1.5" data-ig-chips>
       ${(typeof window.caChipsHtml==='function'&&caChipsHtml())||((state.view==='dashboard'&&typeof hbSuggestions==='function'&&hbSuggestions())||IG_SUGGESTIONS.slice(0,3)).map(s=>`<button data-igsug="${igEsc(s)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${igEsc(s)}</button>`).join('')}
@@ -6783,7 +6783,13 @@ function renderIntelDock(){
       <textarea id="igd-input" rows="1" placeholder="${igEsc(igAskPlaceholder())}" title="${igEsc(igAskCost())}" class="chat-field w-full rounded-xl border border-inputln bg-white pl-3.5 pr-16 py-2.5 text-[13px] outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition" style="display:block"></textarea>
       <button id="igd-go" class="ui-btn ui-btn-sm ui-btn-primary absolute" style="right:18px;bottom:20px">${i18t('int_ask')}</button>
     </div>`}`;
-  const feed=document.getElementById('igd-feed'); feed.scrollTop=feed.scrollHeight;
+  const feed=document.getElementById('igd-feed');
+  /* A CONTRACT HELD WITH NO CONVERSATION YET (pass 3, rounds 13, 7 and 12):
+     its card is read from its name down, so the feed starts at its top — a
+     tall card on the shortest screen (1536×730) had its name under the tab
+     row; a conversation still lands on its newest answer */
+  const heldTop=state.view==='dashboard'&&!intel.history.length&&typeof window.pdHolds==='function'&&!!pdHolds();
+  feed.scrollTop=heldTop?0:feed.scrollHeight;
   /* JAMBO, ALIVE (owner, 16 Oct 2026): he takes his seat on the chips row again */
   if(typeof window.jamboPerchMount==='function') try{ jamboPerchMount(dock); }catch(_){ }
   /* a contract number in an answer is a link to it (caRefLinkPaint) */
@@ -7531,13 +7537,18 @@ function igWallSheetHtml(c,opening){
 }
 /* the number's companion under the paper: its value, read as the List reads
    it (fmtMoneyShortOf: pay is a dash), a dash where no money passes, nothing
-   where values are not the reader's to see; a code-named deal's stream */
+   where values are not the reader's to see; a code-named deal's stream.
+   AS AMENDED (pass 3, 18 Oct 2026; the owner's yes in round 7): a signed
+   amendment that set the value governs it — effectiveValueView, the List's
+   own cell and the page's Value figure — so the wall, the chosen paper's
+   panel, the List and the page say one figure. */
 function igWallValue(c){
   if(c&&c._codeNamed){ const f=(typeof FOLDERS==='object'&&FOLDERS&&FOLDERS[c.folder])||null; return f&&f.name?f.name:''; }
   if(typeof canViewValues==='function'&&!canViewValues()) return '';
   const money=(typeof isMonetary==='function')?isMonetary(c):true;
-  if(!money||!Number(c&&c.value)) return '\u2014';
-  return (typeof fmtMoneyShortOf==='function')?fmtMoneyShortOf(c):String(c.value);
+  let cv=c; try{ if(c&&typeof effectiveValueView==='function') cv=effectiveValueView(c)||c; }catch(_){ cv=c; }
+  if(!money||!Number(cv&&cv.value)) return '\u2014';
+  return (typeof fmtMoneyShortOf==='function')?fmtMoneyShortOf(cv):String(cv.value);
 }
 function igWallCardHtml(c,need){
   const st=igWallStage(c);
@@ -7567,27 +7578,43 @@ function igWallCardHtml(c,need){
    is the number read here and the shown are never more than the whole.
    `o.base` is the register's book at rest with only the set kept
    (regRestBase); `o.only` the set itself. */
+/* THE UNIT THE WALL COUNTS IN (pass 3 of the round 13 gaps, 18 Oct 2026: "48
+   live", "48 contracts", "Showing 12 of 48" — the numbers on the doors match
+   the list behind them): an agreement, an amendment counted WITH it, as the
+   page head counts its live book (regHeadFactsHtml) and a party's shelf counts
+   its row (cuBook's rule). Only a set a door sent — a number on the Board,
+   Insights' figure — is counted whole, the number on the door that sent it
+   (the checkers of step 7: "Open these 7 contracts" landed on "6 of 6
+   contracts · 1 amendment"). */
 function igWallCountWords(rows,o){
   const list=Array.isArray(rows)?rows:[], base=(o&&Array.isArray(o.base))?o.base:list;
-  /* AT REST THE HEAD SAYS THE BOOK (round 13 as drawn: "48 contracts ·
-     newest first"): every paper of the book at rest, nothing narrowing it,
-     reads as its one number; any narrowing keeps "k of n" */
-  if(!(o&&o.only)&&list.length===base.length) return i18tn('igw_count_all',list.length,{ n:list.length });
-  /* A PARTY'S SHELF counts as its row does (agreements, the amendments beside
-     them); any other set — a number on the Board, Insights' figure — is
-     counted whole, the number on the door that sent it (the checkers of step
-     7: "Open these 7 contracts" landed on "6 of 6 contracts · 1 amendment") */
-  if(!(o&&o.only&&o.only.party)) return i18t('igw_count',{k:list.length,n:base.length});
-  const lead=c=>!c.parentId, amends=list.filter(c=>!lead(c)).length;
-  const words=i18t('igw_count',{k:list.filter(lead).length,n:base.filter(lead).length});
-  return amends?words+' \u00b7 '+i18tn('int_dep_amend',amends,{n:amends}):words;
+  /* a door's set: whole, the number on the door that sent it */
+  if(o&&o.only&&!o.only.party) return i18t('igw_count',{k:list.length,n:base.length});
+  const lead=igWallLeadOf(o), L=list.filter(lead), amends=list.length-L.length;
+  const tail=amends?' \u00b7 '+i18tn('int_dep_amend',amends,{n:amends}):'';
+  /* AT REST THE LINE SAYS THE BOOK (round 13 as drawn: "48 contracts · newest
+     first"): the head's own number — the closed among them said, so the
+     head's "N live" adds up on the screen; any narrowing keeps "k of n" */
+  if(!(o&&o.only)&&list.length===base.length){
+    const closed=L.filter(c=>c&&c.status==='Declined').length;
+    return i18tn('igw_count_all',L.length,{ n:L.length })+(closed?' \u00b7 '+i18tn('igw_count_closed',closed,{ n:closed }):'')+tail;
+  }
+  return i18t('igw_count',{k:L.length,n:base.filter(lead).length})+tail;
+}
+/* the unit itself (above): every paper of a door's set, else an agreement */
+function igWallLeadOf(o){
+  if(o&&o.only&&!o.only.party) return ()=>true;
+  return c=>!(c&&c.parentId);
 }
 /* ---- TWELVE AT A TIME, THE REST ONE PRESS AWAY (round 13 as drawn,
    the owner's "build all the gaps", 18 Oct 2026) ----
    The wall draws its papers twelve at a time — two rows on each of the
    owner's three screens — and its foot says how many of the list are drawn,
    with "Show more" for the next twelve. A CAP IS A FACT, NEVER A SILENT TRIM:
-   the count line counts the whole list, the foot the papers drawn. How far
+   the count line counts the whole list, the foot the papers drawn — both in
+   the count line's unit (igWallLeadOf: an amendment rides with the papers
+   round it and is not one of the twelve), so "Showing 12 of 48" and "48
+   contracts" and the head's "48 live" are one number. How far
    the reader has opened it lives for the sitting and rides the refresh pair
    (igWallPlace); a new narrowing starts again at twelve (igWallMoreReset). */
 const IG_WALL_STEP=12;
@@ -7597,7 +7624,14 @@ function igWallKeyOf(){
   const R=(window.state&&state.reg)||{};
   try{ return JSON.stringify([R.query,R.stage,R.type,R.category,R.signed,R.payterms,R.docs,R.view,R.only,R.sort,R.dir]); }catch(_){ return ''; }
 }
-function igWallShownN(total){ return Math.min(Math.max(0,Number(total)||0),IG_WALL_STEP*(1+_igWallMore)); }
+/* the papers drawn, in order, until twelve of the unit (twenty-four after one
+   Show more…) are in: { shown, k: the unit drawn, n: the unit in the list } */
+function igWallShown(rows,o){
+  const list=Array.isArray(rows)?rows:[], lead=igWallLeadOf(o), cap=IG_WALL_STEP*(1+_igWallMore), shown=[];
+  let k=0;
+  for(const c of list){ if(k>=cap) break; if(lead(c)) k++; shown.push(c); }
+  return { shown, k, n:list.filter(lead).length };
+}
 function igWallMoreReset(){ _igWallMore=0; }
 function igWallShowMore(){
   _igWallMore++;
@@ -7617,7 +7651,7 @@ function igWallBodyHtml(rows,o){
   _igWallNeed=null;
   const opts=o||{}, list=Array.isArray(rows)?rows:[], need=igWallNeed();
   const key=igWallKeyOf(); if(_igWallKey!==null&&key!==_igWallKey) _igWallMore=0; _igWallKey=key;
-  const n=igWallShownN(list.length), shown=list.slice(0,n);
+  const S=igWallShown(list,opts), shown=S.shown;
   /* a choice the list no longer draws is let go: the panel never says a paper the reader cannot see */
   const ch=igWallChosenId();
   if(ch&&!shown.some(c=>String(c.id)===ch)){ _igChosen=null;
@@ -7625,7 +7659,8 @@ function igWallBodyHtml(rows,o){
     if(typeof setTimeout==='function') setTimeout(()=>{ if(!_igChosen&&typeof renderIntelDock==='function') renderIntelDock(); },0); }
   const order=igWallOrderWords();
   /* .reg-filterbar dresses the list's own Sort it is handed, as on the List's head */
-  const foot=list.length>IG_WALL_STEP?`<div class="igw-foot"><span class="igw-shown" role="status" aria-live="polite">${igEsc(i18t('igw_shown',{ k:n, n:list.length }))}</span>${n<list.length?`<button type="button" class="ui-btn ui-btn-sm" data-ig-wall-more>${igEsc(i18t('igw_more'))}</button>`:''}</div>`:'';
+  const cut=shown.length<list.length;
+  const foot=(S.n>IG_WALL_STEP||cut)?`<div class="igw-foot"><span class="igw-shown" role="status" aria-live="polite">${igEsc(i18t('igw_shown',{ k:S.k, n:S.n }))}</span>${cut?`<button type="button" class="ui-btn ui-btn-sm" data-ig-wall-more>${igEsc(i18t('igw_more'))}</button>`:''}</div>`:'';
   return `<div class="igw-chips igw-line reg-filterbar"><span class="igw-count" role="status" aria-live="polite">${igEsc(igWallCountWords(list,opts))}</span>${order?`<span class="igw-order">${igEsc(order)}</span>`:''}${opts.tools||''}</div>
     ${list.length?`<div class="igw-grid" role="list">${shown.map(c=>igWallCardHtml(c,need.has(String(c.id)))).join('')}</div>${foot}`:`<p class="ig-pick-none">${igEsc(i18t('int_pick_none'))}</p>`}`;
 }
@@ -7661,6 +7696,9 @@ function igWallChosenId(){ return _igChosen?String(_igChosen):null; }
 /* the contract chosen, while the wall it was chosen on is what Home shows */
 function igWallChosen(){
   if(!_igChosen||igHomePaperFace()!==true||(intel&&intel.paper)) return null;
+  /* A CHOICE LIVES ON THE WALL THAT MADE IT (pass 3, 18 Oct 2026): the List
+     in front marks no paper, so the panel says none */
+  if(window.state&&state.reg&&state.reg.show==='list') return null;
   const c=(typeof getContract==='function')?getContract(_igChosen):null;
   return c||null;
 }
@@ -7720,7 +7758,12 @@ function igPickWire(host){
 }
 /* A PRESS ELSEWHERE, OR ESC, LETS THE CHOICE GO — armed once, at load. A
    press on a paper (it chooses or opens), in Jambo's panel (it acts on the
-   choice), on Show more, or inside a dialog or menu over the page keeps it. */
+   choice), on Show more, or inside a dialog or menu over the page keeps it.
+   HEARD ON THE WAY DOWN (pass 3, 18 Oct 2026): a press that redraws the place
+   under itself — List, the archive, a filter box — has taken its own button
+   off the page before a listener on the way up could ask what it was, and the
+   choice outlived the wall that made it (the List marked no row while the
+   panel still said the paper). */
 if(typeof document!=='undefined'&&!document._igWallChoiceWired){
   document._igWallChoiceWired=true;
   document.addEventListener('click',e=>{
@@ -7728,7 +7771,7 @@ if(typeof document!=='undefined'&&!document._igWallChoiceWired){
     const t=e.target; if(!t||!t.closest||!t.isConnected) return;
     if(t.closest('#ig-wall .igw-card, #ig-dock, [data-ig-wall-more], #modal-root, [data-top-overlay], [role="menu"], [role="listbox"], .sm-pop')) return;
     igWallLetGo();
-  });
+  },true);
   document.addEventListener('keydown',e=>{
     if(e.key!=='Escape'||!_igChosen||!igWallChosen()) return;
     if(document.querySelector('[data-top-overlay]')) return;
@@ -8326,7 +8369,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
   });
 }
 
-Object.assign(window,{igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallValue,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_WALL_STEP,igWallShownN,igWallMoreReset,igWallKeyOf,igWallShowMore,igWallOrderWords,igWallChosenId,igWallChosen,igWallChosenPaint,igWallChoose,igWallLetGo,igWallOpen,igWallPress,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igHeldAskId,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
+Object.assign(window,{igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallValue,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_WALL_STEP,igWallLeadOf,igWallShown,igWallMoreReset,igWallKeyOf,igWallShowMore,igWallOrderWords,igWallChosenId,igWallChosen,igWallChosenPaint,igWallChoose,igWallLetGo,igWallOpen,igWallPress,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igHeldAskId,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
 Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});

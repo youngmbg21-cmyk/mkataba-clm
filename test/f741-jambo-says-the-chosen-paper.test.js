@@ -13,6 +13,12 @@
        own rows, the details owed among them), Open the paper and Life line and
        details; a deal kept to its list says its rule and offers no door.
    (4) Both books.
+   (5) PASS 3 (the checker's differences, 18 Oct 2026): their redlines waiting
+       on our side are a row of their own — "Answer 2 redlines", the clauses
+       under it ("Clause 7 Liability cap · clause 11 Payment terms"), "Open
+       redlines" — standing aside past the desk's standard (the checklist's
+       'quiet' row says it then); the Value reads as amended, the page's own
+       figure; a row's second line wraps, never cut.
    AT THE PARENT (8dc306a) every test here FAILS.
    ═══════════════════════════════════════════════════════════════════════════ */
 const { test, describe } = require('node:test');
@@ -35,7 +41,8 @@ const BOOKS = (() => {
   return { en, sv };
 })();
 const FNS = ['pdCardNow', 'pdCardPage', 'pdHolds', 'pdHeldContract', 'pdHeadWord', 'pdAskPlaceholder', 'pdAskContractId', 'pdDaysSince', 'pdAgoWords',
-  'pdStageWords', 'pdLastMove', 'pdChosenFacts', 'pdChosenHtml', 'pdNeedsRows'];
+  'pdStageWords', 'pdLastMove', 'pdClauseSaid', 'pdTheirAsksRow', 'pdTheirAsksRowHtml', 'pdChosenFacts', 'pdChosenHtml', 'pdNeedsRows'];
+const INDEX = R('index.html');
 const J = x => JSON.parse(JSON.stringify(x));
 const ago = d => new Date(Date.now() - d * 864e5 - 3600e3).toISOString();
 /* the English book's words, filled in, so a sentence reads as the reader sees it */
@@ -67,12 +74,17 @@ function world(over){
     hbAgentsData: () => ({ rows: [] }),
     needsYouOf: c => c.needs || [],
     pdNeedRowHtml: (c, r) => `<row ${r.it ? r.it.kind : 'jw'}>`,
+    histMoveOf: c => c.move || null,
+    deskMayRedline: c => !c.noSeat,
+    negoMayStart: () => ({ ok: true }),
+    negoClauseName: s => s,
+    effectiveTerm: c => ({ v: null, from: c.amendedBy ? { id: c.amendedBy } : null }),
     icon: () => '<svg/>',
     chosen: null,
   }, over || {});
   ctx.window = ctx;
   vm.createContext(ctx);
-  const src = [lineOf(PD, 'const _pdE = '), lineOf(PD, 'const _pdT = '), lineOf(PD, 'const _pdTn = ')].concat(FNS.map(f => fnBody(PD, f))).join('\n');
+  const src = [lineOf(PD, 'const _pdE = '), lineOf(PD, 'const _pdT = '), lineOf(PD, 'const _pdTn = '), lineOf(PD, 'const PD_CH_CLAUSES_MAX = ')].concat(FNS.map(f => fnBody(PD, f))).join('\n');
   vm.runInContext(src, ctx);
   return ctx;
 }
@@ -173,6 +185,49 @@ describe('f741 (3) the panel', () => {
     assert.match(seg, /\[data-pd-ch-open\][\s\S]*?igWallOpen\(op\.getAttribute\('data-pd-ch-open'\)\)/);
     assert.match(seg, /\[data-pd-ch-life\][\s\S]*?igWallLetGo\(\);[\s\S]*?hbStripBring\(id\)/);
     assert.match(fnBody(PD, 'pdJamboTopHtml'), /const held = pdHeldTopHtml\(\); if \(held != null\) return held;/);
+  });
+});
+
+describe('f741 (5) pass 3: their redlines, the value as amended, a row that wraps', () => {
+  const MOVE = { k: 'you', theirs: [{ id: 'CHG-2', clauseId: 'c7', clauseLabel: '7 Liability cap' }, { id: 'CHG-3', clauseId: 'c11', clauseLabel: '11 Payment terms' }], ours: [], open: 2 };
+  test('5a our move, their two changes open: "Answer 2 redlines", the clauses under it, "Open redlines" — after Jambo\'s work, before the checklist\'s rows', () => {
+    const w = world();
+    const h = w.pdChosenHtml({ ...MSA(), move: MOVE, needs: [{ kind: 'details', n: 1 }] });
+    assert.match(h, /<div class="pd-gl-b"><div class="pd-gl-row pd-nd-row" data-pd-nd-kind="answer"><span><b>Answer 2 redlines<\/b><small title="Clause 7 Liability cap · clause 11 Payment terms">Clause 7 Liability cap · clause 11 Payment terms<\/small><\/span><button type="button" class="ui-btn ui-btn-sm" data-pd-ch-red="MK-0382"[^>]*>Open redlines<\/button><\/div><row details><\/div>/);
+    const one = w.pdTheirAsksRow({ ...MSA(), move: { ...MOVE, theirs: [MOVE.theirs[0], { id: 'CHG-4', clauseId: 'c7', clauseLabel: '7 Liability cap' }] }, needs: [] });
+    assert.equal(one.n, 2); assert.equal(one.sub, 'Clause 7 Liability cap', 'one clause said once');
+    const many = w.pdTheirAsksRow({ ...MSA(), move: { ...MOVE, theirs: ['1 A', '2 B', '3 C', '4 D', '5 E'].map((l, i) => ({ id: 'X' + i, clauseId: 'k' + i, clauseLabel: l })) }, needs: [] });
+    assert.equal(many.sub, 'Clause 1 A · clause 2 B · clause 3 C · 2 more', 'a few, then how many more');
+  });
+  test('5b it stands aside: past the desk\'s standard (the checklist\'s own row says it), their move, no seat, a deal kept to its list', () => {
+    const w = world();
+    assert.equal(w.pdTheirAsksRow({ ...MSA(), move: MOVE, needs: [{ kind: 'quiet', n: 2 }] }), null, 'never said twice');
+    assert.equal(w.pdTheirAsksRow({ ...MSA(), move: { ...MOVE, k: 'them' }, needs: [] }), null);
+    assert.equal(w.pdTheirAsksRow({ ...MSA(), move: { ...MOVE, theirs: [] }, needs: [] }), null);
+    assert.equal(w.pdTheirAsksRow({ ...MSA(), move: MOVE, needs: [], noSeat: true }), null);
+    assert.equal(w.pdTheirAsksRow({ ...MSA(), move: MOVE, needs: [], _codeNamed: true }), null);
+  });
+  test('5c its door opens Jambo\'s Redlines on that contract, letting the choice go', () => {
+    const i = PD.indexOf('document._pdHeldWired'), seg = PD.slice(i, PD.indexOf('\n}\n', i));
+    assert.match(seg, /\[data-pd-ch-red\][\s\S]*?igWallLetGo\(\);[\s\S]*?pdRedOpen\(id\)/);
+  });
+  test('5d the Value reads as amended, and says which amendment set it', () => {
+    const w = world();
+    const v = w.pdChosenFacts({ ...MSA(), amendedBy: 'MK-0377-A1' }).find(f => f.k === 'value');
+    assert.equal(v.sub, 'as amended by MK-0377-A1');
+    assert.equal(w.pdChosenFacts(MSA()).find(f => f.k === 'value').sub, '', 'no amendment: no words');
+    const IG = R('js/views/intelligence.js');
+    assert.match(fnBody(IG, 'igWallValue'), /cv=effectiveValueView\(c\)\|\|c;[\s\S]*?fmtMoneyShortOf\(cv\)/, 'the wall\'s value is the List\'s own: as amended');
+  });
+  test('5e a row\'s second line wraps on the chosen paper\'s panel, its button at the top', () => {
+    assert.match(INDEX, /#ig-dock \.pd-ch-needs \.pd-nd-row\{align-items:flex-start\}/);
+    assert.match(INDEX, /#ig-dock \.pd-ch-needs \.pd-nd-row small\{white-space:normal;overflow:visible;text-overflow:clip;/);
+  });
+  test('5f every new word in English and Svenska', () => {
+    for (const k of ['pd_ch_answer_one', 'pd_ch_answer_other', 'pd_ch_clause', 'pd_ch_clause_lc', 'pd_ch_more_one', 'pd_ch_more_other', 'pd_ch_go_red', 'pd_ch_go_red_tip', 'pd_ch_value_amended']){
+      assert.ok(BOOKS.en[k], 'en ' + k); assert.ok(BOOKS.sv[k], 'sv ' + k);
+    }
+    assert.equal(BOOKS.en.pd_ch_go_red, 'Open redlines');
   });
 });
 

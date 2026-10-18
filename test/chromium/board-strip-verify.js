@@ -318,12 +318,18 @@ const OBS = [
       return { q: !!host.querySelector('#hist-q'), side: [...host.querySelectorAll('.hist-side [data-ht-side]')].map(b => b.textContent.trim()), sideSel: !!host.querySelector('[data-ht-filter="side"]'),
         lanes: [...host.querySelectorAll('.hist-trail.is-lanes > .hist-lh')].map(x => x.textContent.trim().split(' · ')[0]),
         filter: !!host.querySelector('#hist-filter-btn'), wording: (host.querySelector('#hist-detail') || {}).textContent, n: host.querySelectorAll('.hist-ev').length,
-        scroll: tr ? getComputedStyle(tr).overflowY : '', maxH: tr ? parseFloat(getComputedStyle(tr).maxHeight) : 0, more: !!host.querySelector('#hist-more-menu #ht-verify') }; });
+        scroll: tr ? getComputedStyle(tr).overflowY : '', maxH: tr ? parseFloat(getComputedStyle(tr).maxHeight) : 0, more: !!host.querySelector('#hist-more-menu #ht-verify'),
+        desk: !!host.closest('.bs-on-desk') }; });
     /* RE-POINTED 17 Oct 2026 (round 12, the owner picked "Two sides"): the
        side is the lane — Ours · Day · Theirs — and the switch is gone */
     check('3f History opens in the strip: search, two lanes (Ours · Day · Theirs, no switch, no Side box), Filter, Show the wording',
       hs && H1.q && H1.side.length === 0 && JSON.stringify(H1.lanes) === JSON.stringify(['Ours', 'Day', 'Theirs']) && !H1.sideSel && H1.filter && /Show the wording/.test(H1.wording || ''), JSON.stringify(H1));
-    check('3g the trail scrolls inside the card, and ⋯ More keeps Verify integrity', H1.scroll === 'auto' && H1.maxH > 0 && H1.maxH <= 480 && H1.more, JSON.stringify({ scroll: H1.scroll, maxH: H1.maxH, more: H1.more }));
+    /* RE-POINTED 18 Oct 2026 (pass 3 of the redesign's gaps, round 12 as
+       drawn): a contract brought up as a page on the desk runs its trail
+       inside the History card and the desk scrolls the page; a strip among
+       the Board's strips still scrolls its trail in its own box */
+    check('3g the trail runs inside the card on the desk (scrolls in its own box among the Board\'s strips), and ⋯ More keeps Verify integrity',
+      (H1.desk ? (H1.scroll === 'visible' && !(H1.maxH > 0)) : (H1.scroll === 'auto' && H1.maxH > 0 && H1.maxH <= 480)) && H1.more, JSON.stringify({ desk: H1.desk, scroll: H1.scroll, maxH: H1.maxH, more: H1.more }));
     /* RE-POINTED 17 Oct 2026 (round 12): their moves stand in the right lane —
        exactly the trail's own "Theirs" reading, nothing filtered away */
     const H2 = await page.evaluate(() => { const host = document.querySelector('#bs-strip-MK-L1 [data-bs-host="hist"]');

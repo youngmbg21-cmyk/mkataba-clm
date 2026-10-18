@@ -14,6 +14,11 @@
        the value's line; a late next obligation is in the late colour and says
        how late; the foot's first act is "Open the paper".
    (3) Both books.
+   (4) PASS 3 (the checker's differences, 18 Oct 2026): the life line's
+       sentence says how late a late obligation is ("Next up: Check the
+       September invoice (…), 7 days late."), never "by" a day gone — one
+       reading with the figure (bsLateDays); the Obligations table says Late
+       before Next.
    AT THE PARENT (8dc306a) every test here FAILS.
    The browser half: test/chromium/home-held-contract-verify.js (section 2).
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -138,6 +143,28 @@ describe('f742 (2) the page itself, as drawn', () => {
   });
   test('2e the foot\'s first act is "Open the paper" (Svenska: "Öppna papperet")', () => {
     assert.equal(BOOKS.en.bs_open, 'Open the paper'); assert.equal(BOOKS.sv.bs_open, 'Öppna papperet');
+  });
+});
+
+describe('f742 (4) pass 3: how late, said once and alike', () => {
+  test('4a the caption says how late, as the figure does; an obligation on time keeps "by <day>"', () => {
+    const s = strip({ ov2Model: () => ({ start: new Date(Date.UTC(2026, 4, 1)), end: new Date(Date.UTC(2028, 3, 30)) }) });
+    const D = s.bsLifeData(SUPPLY());
+    assert.match(s.bsCaption(D), /Next up: Check the September invoice \(Lindqvist & Co AB\), 7 days late\.$/);
+    assert.equal(s.bsLateDays(D.O, D.O.next), 7, 'one reading for the figure and the sentence');
+    const onTime = s.bsLifeData({ ...SUPPLY(), obligations: [{ id: 'o2', desc: 'Food safety certificate', party: 'theirs', due: dayAt(70), status: 'open' }] });
+    assert.match(s.bsCaption(onTime), /Next up: Food safety certificate \(Brightwater Foods\), by /);
+    assert.equal(s.bsLateDays(onTime.O, onTime.O.next), null);
+    const one = s.bsLifeData({ ...SUPPLY(), obligations: [{ id: 'o1', desc: 'Pay', party: 'ours', due: dayAt(-1), status: 'open' }] });
+    assert.match(s.bsCaption(one), /\(Lindqvist & Co AB\), 1 day late\.$/);
+  });
+  test('4b the Obligations table: Late first, then Next', () => {
+    const s = strip();
+    const h = s.bsLifeHtml(SUPPLY(), { id: 'MK-0377' });
+    assert.match(h, /<td>Check the September invoice<span class="bs-late">Late<\/span><span class="bs-nx">Next<\/span><\/td>/);
+  });
+  test('4c both books', () => {
+    for (const k of ['bs_cap_next_late_one', 'bs_cap_next_late_other']){ assert.ok(BOOKS.en[k], 'en ' + k); assert.ok(BOOKS.sv[k], 'sv ' + k); }
   });
 });
 

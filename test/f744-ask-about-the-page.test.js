@@ -16,6 +16,11 @@
        with a paper chosen; a question beside a page goes with THAT contract's
        wording (igPaperAsk(q, id)), the Board's own reader and the map's
        stepped past, as beside the paper.
+   (4) PASS 3 (the checker's differences, 18 Oct 2026): a page's chips sit
+       RIGHT UNDER ITS CARD, at the top of the panel (rounds 7 and 12 as
+       drawn), not in the panel's foot row — which a page leaves empty, so
+       Jambo perches on the ask box; a row of their own, never the paper's
+       chips row (pdChipsRepaint writes the paper's next steps into that).
    AT THE PARENT (8dc306a) every test here FAILS.
    ═══════════════════════════════════════════════════════════════════════════ */
 const { test, describe } = require('node:test');
@@ -39,7 +44,7 @@ const BOOKS = (() => {
   return { en, sv };
 })();
 const say = (k, v) => { const t = BOOKS.en[k]; if (t == null) return k; return t.replace(/\{(\w+)\}/g, (_, x) => (v && v[x] != null) ? v[x] : ''); };
-const FNS = ['pdCardNow', 'pdCardPage', 'pdHolds', 'pdHeldContract', 'pdHeadWord', 'pdAskPlaceholder', 'pdAskContractId', 'pdHeldChips', 'pdPanelChipsHtml', 'pdHistQuestions'];
+const FNS = ['pdCardNow', 'pdCardPage', 'pdHolds', 'pdHeldContract', 'pdHeadWord', 'pdAskPlaceholder', 'pdAskContractId', 'pdHeldChips', 'pdPanelChipsHtml', 'pdHeldChipsHtml', 'pdHistChanges', 'pdHistQuestions'];
 function world(o){
   const ctx = Object.assign({ Array, JSON, Math, Number, String, Object,
     state: { view: 'dashboard' }, i18t: say, i18tn: (k, n, v) => say(k + (n === 1 ? '_one' : '_other'), Object.assign({ n }, v)),
@@ -101,12 +106,33 @@ describe('f744 (2) the chips for what is held', () => {
     const h = w.pdPanelChipsHtml();
     assert.match(h, /^<button type="button" data-ca-fill="what changed in round 2"[^>]*>what changed in round 2<\/button><button type="button" data-ca-fill="who decided clause 12"[^>]*>who decided clause 12<\/button><button type="button" data-pd-held-chip="redline"[^>]*>redline<\/button>$/);
   });
-  test('2d the dock takes the held chips (or none) before its own; the chip readings are published', () => {
+  test('2d the dock draws no foot chips where a contract is held (its own sit under its card); the chip readings are published', () => {
     const D = fnBody(IG, 'renderIntelDock');
-    assert.match(D, /const held=\(state\.view==='dashboard'&&typeof window\.pdPanelChipsHtml==='function'\)\?pdPanelChipsHtml\(\):null;\n\s+if\(held!==null\) return held/);
+    /* RE-POINTED (pass 3, 18 Oct 2026): the held chips moved under the card (pdHeldChipsHtml) */
+    assert.match(D, /const held=\(state\.view==='dashboard'&&typeof window\.pdPanelChipsHtml==='function'\)\?pdPanelChipsHtml\(\):null;\n\s+if\(held!==null\) return '';/);
     assert.match(CA, /caChipShut, caNextLabel/);
     const i = PD.indexOf('document._pdHeldWired'), seg = PD.slice(i, PD.indexOf('\n}\n', i));
     assert.match(seg, /\[data-pd-held-chip\][\s\S]*?pdHeldGo\(pdCardNow\(\), ch\.getAttribute\('data-pd-held-chip'\)\)/);
+  });
+});
+
+describe('f744 (4) pass 3: the chips right under the card', () => {
+  test('4a beside a page and on its History, the chips are a row of their own under the card; none for a chosen paper or nothing held', () => {
+    const w = world({ card: SIGNED });
+    assert.match(w.pdHeldChipsHtml(), /^<div class="pd-held-chips" data-pd-held-chips><button type="button" data-pd-held-chip="oblig"[^]*<\/div>$/);
+    assert.doesNotMatch(w.pdHeldChipsHtml(), /data-ig-chips/, 'never the paper\'s chips row');
+    w.page = 'hist'; w.card = LIVE;
+    assert.match(w.pdHeldChipsHtml(), /data-ca-fill="what changed in round 2"/);
+    assert.equal(world({ face: 'paper', chosen: { id: 'MK-1' } }).pdHeldChipsHtml(), '');
+    assert.equal(world().pdHeldChipsHtml(), '');
+    assert.equal(world({ card: SIGNED, jamboChipsOn: () => false }).pdHeldChipsHtml(), '', 'a reader who turned the chips off sees none');
+  });
+  test('4b the top draws the card and then its chips; a repaint keeps the row under the card', () => {
+    assert.match(fnBody(PD, 'pdHeldTopHtml'), /return \(k === 'hist' \? pdHistGlanceHtml\(c\) : k === 'card' \? pdCardGlanceHtml\(c\) : pdChosenHtml\(c\)\) \+ pdHeldChipsHtml\(\);/);
+    const F = fnBody(PD, 'pdHeldFollow');
+    assert.match(F, /const row = document\.querySelector\('#ig-dock \[data-pd-held-chips\]'\), want = pdHeldChipsHtml\(\);/);
+    assert.match(F, /else if \(nr\) card\.after\(nr\);/);
+    assert.match(R('index.html'), /#ig-dock \.pd-held-chips\{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px\}/);
   });
 });
 

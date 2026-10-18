@@ -9584,8 +9584,14 @@
   #ig-dock .pd-ch-lock{display:inline-flex;align-self:center;color:var(--color-neutral-600)}
   #ig-dock .pd-ch-h{margin:4px 0 6px;font-size:12px;font-weight:var(--w-label);color:var(--color-neutral-700)}
   #ig-dock .pd-ch-needs{margin-bottom:12px}
+  /* a row's second line wraps, never cut (pass 3, round 13 as drawn: "Clause 7
+     Liability cap · clause 11 / Payment terms"); its button stays at the top */
+  #ig-dock .pd-ch-needs .pd-nd-row{align-items:flex-start}
+  #ig-dock .pd-ch-needs .pd-nd-row small{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:break-word}
   #ig-dock .pd-ch-acts{display:flex;flex-wrap:wrap;gap:8px}
   #ig-dock .pd-ch-rule{margin:0;padding:8px 10px;border-radius:var(--radius);background:var(--color-neutral-100);font-size:12.5px;line-height:1.5;color:var(--color-text)}
+  /* a page's chips right under its card (pass 3, rounds 7 and 12 as drawn) */
+  #ig-dock .pd-held-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
   #ig-dock .pd-cglance .pd-gl-row, #ig-dock .pd-hglance .pd-gl-row{align-items:flex-start}
   #ig-dock .pd-cglance .pd-gl-row + .pd-gl-row, #ig-dock .pd-hglance .pd-gl-row + .pd-gl-row{padding-top:8px;border-top:1px solid var(--color-divider)}
   #ig-dock .pd-cglance .pd-gl-row > span, #ig-dock .pd-hglance .pd-gl-row > span{line-height:1.5}
@@ -10613,6 +10619,10 @@
      trail scrolls inside the card so the strip never grows with it */
   .bs-host{padding:12px 16px}
   .bs-hist .hist-trail{max-height:430px;overflow:auto;border:1px solid rgba(var(--hb-ln),.16);border-radius:var(--radius-lg)}
+  /* A CONTRACT'S PAGE ON THE DESK (pass 3, round 12 as drawn): the lanes run
+     inside the History card under the toolbar's one hairline, and the desk
+     scrolls the page — no box of its own, no fixed height, no scroll inside */
+  .bs-on-desk .bs-hist .hist-trail{max-height:none;overflow:visible;border:0;border-radius:0}
   @container bsstrips (max-width:780px){
     .bs-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
     .bs-kpi:nth-child(4){border-left:0}

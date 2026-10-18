@@ -12,6 +12,13 @@
    (3) The count line: at rest the book's number ("48 contracts"), any
        narrowing "k of n"; the order after it ("newest first").
    (4) Both books carry the new words.
+   (5) PASS 3 (the checker's differences, 18 Oct 2026): the wall counts in the
+       head's unit — an agreement, an amendment counted with it — so "N live",
+       "N contracts" and "Showing 12 of N" are one number (the closed among
+       them said); twelve AGREEMENTS at a time, an amendment riding with the
+       papers round it; the choice lives on the wall that made it: the List
+       in front says none, and a press that redraws the place is heard on the
+       way down.
    AT THE PARENT (8dc306a) every test here FAILS.
    The browser half: test/chromium/home-held-contract-verify.js (section 1).
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -34,7 +41,7 @@ const BOOKS = (() => {
   }
   return { en, sv };
 })();
-const WALL_FNS = ['igWallCountWords', 'igWallKeyOf', 'igWallShownN', 'igWallMoreReset', 'igWallShowMore', 'igWallOrderWords', 'igWallBodyHtml',
+const WALL_FNS = ['igWallLeadOf', 'igWallCountWords', 'igWallKeyOf', 'igWallShown', 'igWallMoreReset', 'igWallShowMore', 'igWallOrderWords', 'igWallBodyHtml',
   'igWallPlace', 'igWallPlacePut', 'igWallChosenId', 'igWallChosen', 'igWallChosenPaint', 'igWallChoose', 'igWallLetGo', 'igWallOpen', 'igWallPress'];
 /* the wall's own functions in a small world: a book, Home's Document face, the
    one door (igAnalyze) and the panel's paint counted, nothing else */
@@ -187,9 +194,42 @@ describe('f740 (3) the count line and its order', () => {
   });
 });
 
+describe('f740 (5) pass 3: one number on every door, the choice on its own wall', () => {
+  /* a book of 28 agreements and 2 amendments, each amendment beside its agreement, newest first */
+  const fam = () => { const b = Array.from({ length: 28 }, (_, i) => ({ id: 'MK-' + (i + 1), name: 'Agreement ' + (i + 1) }));
+    b.splice(3, 0, { id: 'MK-3-A1', parentId: 'MK-3' }); b.splice(15, 0, { id: 'MK-14-A1', parentId: 'MK-14' }); return b; };
+  test('5a at rest the head\'s unit: "28 contracts · 2 amendments"; the closed among them said', () => {
+    const w = world(); const b = fam();
+    assert.equal(w.igWallCountWords(b, { base: b }), 'igw_count_all#28 · int_dep_amend#2');
+    const c = b.map((x, i) => i === 5 || i === 6 ? { ...x, status: 'Declined' } : x);
+    assert.equal(w.igWallCountWords(c, { base: c }), 'igw_count_all#28 · igw_count_closed#2 · int_dep_amend#2', '28 − 2 closed = the head\'s 26 live');
+    assert.equal(w.igWallCountWords(b.slice(0, 5), { base: b }), 'igw_count{"k":4,"n":28} · int_dep_amend#1', 'narrowed: k of n in the same unit');
+    assert.equal(w.igWallCountWords(b.slice(0, 5), { base: b.slice(0, 5), only: { ids: [] } }), 'igw_count{"k":5,"n":5}', 'a door\'s set: whole, the number on the door');
+  });
+  test('5b twelve agreements drawn, an amendment riding with them; the foot counts agreements', () => {
+    const w = world(); const b = fam();
+    const html = w.igWallBodyHtml(b, { base: b });
+    assert.equal((html.match(/<card /g) || []).length, 13, 'twelve agreements and the amendment among them');
+    assert.match(html, /<card MK-3-A1>/);
+    assert.match(html, /igw_shown\{"k":12,"n":28\}<\/span><button[^>]*data-ig-wall-more>/);
+    w.igWallShowMore();
+    const h2 = w.igWallBodyHtml(b, { base: b });
+    assert.equal((h2.match(/<card /g) || []).length, 26); assert.match(h2, /igw_shown\{"k":24,"n":28\}/);
+    w.igWallShowMore();
+    assert.match(w.igWallBodyHtml(b, { base: b }), /igw_shown\{"k":28,"n":28\}<\/span><\/div>/, 'all drawn: no Show more');
+  });
+  test('5c the List in front: the panel says no paper; the press that turned it is heard on the way down', () => {
+    const w = world();
+    w.igWallChoose('MK-4'); assert.equal(w.igWallChosen().id, 'MK-4');
+    w.state.reg.show = 'list'; assert.equal(w.igWallChosen(), null, 'no row is marked on the List, so the panel says none');
+    const i = IG.indexOf('document._igWallChoiceWired'), seg = IG.slice(i, IG.indexOf('\n}\n', i));
+    assert.match(seg, /igWallLetGo\(\);\n\s+\},true\);/, 'heard on the way down, before the place redraws its own button away');
+  });
+});
+
 describe('f740 (4) both books', () => {
   test('4a every new word in English and Svenska', () => {
-    for (const k of ['igw_count_all_one', 'igw_count_all_other', 'igw_order_newest', 'igw_shown', 'igw_more']){
+    for (const k of ['igw_count_all_one', 'igw_count_all_other', 'igw_order_newest', 'igw_shown', 'igw_more', 'igw_count_closed_one', 'igw_count_closed_other']){
       assert.ok(BOOKS.en[k], 'en ' + k); assert.ok(BOOKS.sv[k], 'sv ' + k);
     }
     assert.equal(BOOKS.en.igw_shown, 'Showing {k} of {n}');

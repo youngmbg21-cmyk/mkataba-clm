@@ -228,7 +228,10 @@ describe('f560 (5) — every point is a door onto the paper (Young, 8 Oct 2026)'
   test('5e on Home\'s Paper side a question reaches the paper, not the board\'s reader', () => {
     const body = IG.slice(IG.indexOf('async function intelAsk'), IG.indexOf('C-1 · THE CARD CARRIES'));
     assert.match(body, /const onPaperSide=igHomePaperFace\(\)===true&&igPaperUp\(\);/);
-    assert.match(body, /state\.view==='dashboard' && !onPaperSide && typeof window\.hbAsk==='function'/);
+    /* RE-POINTED 18 Oct 2026 (rounds 7 and 12 as drawn): a page brought up on
+       the desk is asked about as the paper is, so the board's reader also
+       stands aside there (heldId) */
+    assert.match(body, /state\.view==='dashboard' && !onPaperSide && !heldId && typeof window\.hbAsk==='function'/);
   });
   test('5f a point in an answer is tied to the passage whose words it carries', () => {
     const fn = IG.slice(IG.indexOf('function igCiteNorm'), IG.indexOf('function igCiteRowsMark'));

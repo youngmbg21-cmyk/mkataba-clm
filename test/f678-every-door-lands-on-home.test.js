@@ -232,9 +232,11 @@ describe('f678 (3) Open party opens Home\'s Contracts place, narrowed to the par
     const ctx = { Array, i18t: (k, v) => `${k}[${v.k} of ${v.n}]`, i18tn: (k, n) => `${k}#${n}` };
     vm.createContext(ctx); vm.runInContext(IG.slice(a, b) + '\nthis.words=igWallCountWords;', ctx);
     const w = world();
-    /* RE-POINTED (round 13 gaps, 18 Oct 2026): at rest the head says the book,
-       "4 contracts", as drawn; any narrowing keeps "k of n" */
-    assert.equal(ctx.words(w.regFiltered(), { base: w.regRestBase() }), 'igw_count_all#4', 'open: every paper drawn, out of the book at rest');
+    /* RE-POINTED (round 13 gaps, 18 Oct 2026): at rest the line says the book
+       as drawn; RE-POINTED AGAIN (pass 3, 18 Oct 2026: the head's "N live" and
+       this line must be one number) — in the head's unit, an amendment counted
+       with its agreement and the closed among them said; narrowed, "k of n" */
+    assert.equal(ctx.words(w.regFiltered(), { base: w.regRestBase() }), 'igw_count_all#3 · igw_count_closed#1 · int_dep_amend#1', 'open: the agreements, the closed and the amendment said beside them');
     w.regShowOnly(['MK-1', 'MK-3', 'MK-2'], 'Naivas', { party: true });
     const R = w.state.reg;
     assert.equal(ctx.words(w.regFiltered(), { only: R.only, base: w.regRestBase() }), 'igw_count[2 of 2] · int_dep_amend#1', 'the agreements Parties counted, the amendment beside them');

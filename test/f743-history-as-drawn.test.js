@@ -18,6 +18,12 @@
        printed only with the wording.
    (4) Jambo's panel on History: "<ref> · History", the few lines, the
        Redlines door, the questions worth asking as chips; both books.
+   (5) PASS 3 (the checker's differences, 18 Oct 2026): "who decided clause
+       N" is asked once a round has closed (its decisions live on
+       negotiation.rounds[].changes); "Newest: …" says what happened when the
+       newest entry is a round closing or a trail line, never the pill's area
+       word ("Negotiation"); the page's trail runs inside its card (no box of
+       its own) and the head draws no second ⋯.
    AT THE PARENT (8dc306a) every test here FAILS.
    The browser half: test/chromium/home-held-contract-verify.js (section 3).
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -157,6 +163,40 @@ describe('f743 (3) the page as drawn', () => {
   });
 });
 
+describe('f743 (5) pass 3: every round\'s decisions, the newest said, the trail in its card', () => {
+  test('5a round 1 decided and closed, round 2 open: "what changed in round 2" and "who decided clause 12"', () => {
+    const ctx = { Array, JSON, Math, Number, String, Object, i18t: say, negoClauseName: s => s, dsChanges: c => c.changes };
+    ctx.window = ctx; vm.createContext(ctx);
+    vm.runInContext([lineOf(DS, 'const DS_INSIDE_ID = '), lineOf(PD, 'const _pdT = '), fnBody(PD, 'pdHistChanges'), fnBody(PD, 'pdHistQuestions')].join('\n'), ctx);
+    const c = { negotiation: { round: 2, rounds: [{ n: 1, changes: [
+      CH({ status: 'accepted', clauseLabel: '4. Fees', resolvedAt: '2026-10-11T10:00:00Z' }),
+      CH({ status: 'rejected', clauseLabel: '12. Governing law', resolvedAt: '2026-10-12T17:02:00Z' }),
+      CH({ status: 'rejected', clauseLabel: '9. Term', resolvedAt: '2026-10-12T09:00:00Z' })] }] },
+    changes: [CH({ clauseLabel: '7. Liability cap' }), CH({ clauseLabel: '11. Payment terms' })] };
+    const before = JSON.stringify(c);
+    assert.deepEqual(J(ctx.pdHistQuestions(c)), ['what changed in round 2', 'who decided clause 12']);
+    assert.equal(JSON.stringify(c), before, 'reading writes nothing');
+    assert.deepEqual(J(ctx.pdHistQuestions({ negotiation: { round: 2, rounds: [{ n: 1, changes: [CH({ status: 'accepted', clauseLabel: '3. Price', resolvedAt: '2026-10-01' })] }] }, changes: [] })),
+      ['what changed in round 1', 'who decided clause 3'], 'nothing yet in round 2: the newest round with changes');
+  });
+  test('5b "Newest: …" says what happened: a round closing, a trail line\'s own sentence, a decision to its clause — never the area word', () => {
+    const w = world();
+    assert.equal(w.histNewestWords({ _k: 'round-closed', round: 1, text: 'Round 1 closed — …' }), 'round 1 closed');
+    const trail = { _k: 'system', text: 'Negotiation — Round 1 closed by Amina Otieno — 1 of 3 changes adopted; the agreed wording is now the baseline for round 2',
+      _audit: { action: 'Negotiation', detail: 'Round 1 closed by Amina Otieno — 1 of 3 changes adopted; the agreed wording is now the baseline for round 2' } };
+    assert.equal(w.histNewestWords(trail), 'Round 1 closed by Amina Otieno');
+    assert.notEqual(w.histNewestWords(trail), 'Negotiation');
+    assert.equal(w.histNewestWords({ _k: 'system', text: 'Created — fixture', _audit: { action: 'Created', detail: 'fixture' } }), 'Created', 'a word of detail: the act itself');
+    assert.equal(w.histNewestWords({ _k: 'decided', outcome: 'accepted', clauseLabel: '4 Fees', ch: { authorSide: 'counterparty', summary: 'prices may rise once a year' } }), 'Accepted their change to clause 4, Fees');
+  });
+  test('5c the page\'s trail runs inside its card on the desk; the History head draws no second ⋯', () => {
+    const INDEX = R('index.html'), BS = R('js/views/boardstrip.js');
+    assert.match(INDEX, /\.bs-on-desk \.bs-hist \.hist-trail\{max-height:none;overflow:visible;border:0;border-radius:0\}/);
+    assert.match(BS, /const dots = page === 'hist' \? '' : `<span class="bs-dwrap">/);
+    assert.match(BS, /\$\{crumbs\}<span class="hb-grow"><\/span>\n\s+\$\{dots\}/);
+  });
+});
+
 describe('f743 (4) Jambo on History, and both books', () => {
   test('4a "<ref> · History": the last two weeks, the newest, what is open with whose move, the Redlines door', () => {
     const ctx = { Array, JSON, Math, Number, String, Object, Date, isFinite, i18t: say, i18tn: sayN, todayISO: () => '',
@@ -174,7 +214,7 @@ describe('f743 (4) Jambo on History, and both books', () => {
     const ctx = { Array, JSON, Math, Number, String, Object, i18t: say, negoClauseName: s => s,
       dsChanges: c => c.changes };
     ctx.window = ctx; vm.createContext(ctx);
-    vm.runInContext([lineOf(DS, 'const DS_INSIDE_ID = '), lineOf(PD, 'const _pdT = '), fnBody(PD, 'pdHistQuestions')].join('\n'), ctx);
+    vm.runInContext([lineOf(DS, 'const DS_INSIDE_ID = '), lineOf(PD, 'const _pdT = '), fnBody(PD, 'pdHistChanges'), fnBody(PD, 'pdHistQuestions')].join('\n'), ctx);
     assert.deepEqual(J(ctx.pdHistQuestions({ changes: [CH({ roundN: 1, status: 'rejected', clauseLabel: '12. Law', resolvedAt: '2026-10-12' }), CH({ roundN: 2 })] })),
       ['what changed in round 2', 'who decided clause 12']);
     assert.deepEqual(J(ctx.pdHistQuestions({ changes: [] })), [], 'nothing negotiated: no question');
@@ -186,6 +226,6 @@ describe('f743 (4) Jambo on History, and both books', () => {
       'pd_hg_head', 'pd_ask_hist', 'pd_hg_recent_one', 'pd_hg_recent_other', 'pd_hg_quiet_one', 'pd_hg_quiet_other', 'pd_hg_none', 'pd_hg_newest',
       'pd_hg_theirs_open_one', 'pd_hg_theirs_open_other', 'pd_hg_ours_open_one', 'pd_hg_ours_open_other', 'pd_hg_open_none',
       'pd_hg_move_you_one', 'pd_hg_move_you_other', 'pd_hg_move_you_plain', 'pd_hg_move_you_today', 'pd_hg_move_them_one', 'pd_hg_move_them_other', 'pd_hg_move_them_plain', 'pd_hg_move_them_today',
-      'pd_hq_round', 'pd_hq_decided_n', 'pd_hq_decided']){ assert.ok(BOOKS.en[k], 'en ' + k); assert.ok(BOOKS.sv[k], 'sv ' + k); }
+      'pd_hq_round', 'pd_hq_decided_n', 'pd_hq_decided', 'ct_hist_sum_round_closed']){ assert.ok(BOOKS.en[k], 'en ' + k); assert.ok(BOOKS.sv[k], 'sv ' + k); }
   });
 });

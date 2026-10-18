@@ -8756,14 +8756,30 @@ function histSummaryOf(c,now){
   const recent=evs.filter(e=>{ const t=Date.parse(String(e.at||'')); return isFinite(t)&&t>=t0; }).length;
   return { total:evs.length, recent, newest:evs.length?evs[evs.length-1]:null, move:histMoveOf(c) };
 }
-/* the newest entry as one short phrase: a change by its side and round
-   ("their round 2"), else its outcome word or its own words */
+/* the newest entry as one short phrase that SAYS WHAT HAPPENED (round 12 as
+   drawn: "Newest: their round 2, 15 Oct."): a change by its side and round
+   ("their round 2"), a round closing ("round 1 closed"), a decision in the
+   bubble's own words to its clause ("Accepted their change to clause 4,
+   Fees"), a trail entry by its own sentence — never the trail's area word
+   ("Negotiation") the pill wears (pass 3, 18 Oct 2026). The trail's record
+   words are kept as written; only the first part of a long one is said. */
 function histNewestWords(e){
   if(!e) return '';
   if(e._k==='proposed'&&e.round&&(e.side==='counterparty'||e.side==='owner'))
     return i18t(e.side==='counterparty'?'ct_hist_sum_their_round':'ct_hist_sum_our_round',{ n:e.round });
-  const oc=histOutcome(e);
-  const t=String((oc&&oc.w)||histSaysOf(e)||'').replace(/\s+/g,' ').trim();
+  if(e._k==='round-closed'&&e.round) return i18t('ct_hist_sum_round_closed',{ n:e.round });
+  let t='';
+  if(e._k==='proposed'||e._k==='decided'||e._k==='withdrawn') t=String(histSaysOf(e)||'').split(': ')[0];
+  else if(e._k==='system'){
+    /* "Negotiation — Round 1 closed by Amina Otieno — 1 of 3 changes adopted;
+       …": the act is the detail's first part where it is a sentence, else
+       the trail's own word for it ("Created") */
+    const a=e._audit||{}, d=String(a.detail||'').split(/ \u2014 |; /)[0].trim();
+    t=(d&&d.split(/\s+/).length>=3)?d:String(a.action||e.text||'');
+  }
+  else t=String(e.text||'');
+  if(!String(t).trim()){ const oc=histOutcome(e); t=(oc&&oc.w)||''; }
+  t=String(t).replace(/\s+/g,' ').trim();
   return t.length>60?t.slice(0,59)+'\u2026':t;
 }
 function roomHistoryHtml(c,f={},opts={}){
