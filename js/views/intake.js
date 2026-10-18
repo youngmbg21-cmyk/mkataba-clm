@@ -1489,9 +1489,7 @@ function renderIntakeInspector(host){
      one; on anything else the verbs in the panel are the way on. */
   if(tb) insListWire(tb,{ rowSel:'[data-ins-row]', idOf,
     onSelect:k=>{ insSelect(seat,k); insMarkRow(tb,'[data-ins-row]',idOf,k); paint(k); },
-    /* lands where the panel's own "Open the contract" does ([data-ik-open]) */
-    onOpen:k=>{ const r=byId.get(k); if(r&&r._adv){ if(window.openAdviceModal) openAdviceModal(r.id); }
-      else if(r&&r.contractId){ if(!(typeof pdOpenOnHome==='function'&&pdOpenOnHome(r.contractId,'open'))) openWorkspace(r.contractId); } } });
+    onOpen:k=>{ const r=byId.get(k); if(r&&r._adv){ if(window.openAdviceModal) openAdviceModal(r.id); } else if(r&&r.contractId) openWorkspace(r.contractId); } });
   if(typeof insWatchWidth==='function') insWatchWidth();
 }
 

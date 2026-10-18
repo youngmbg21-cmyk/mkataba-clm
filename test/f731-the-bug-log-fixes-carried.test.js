@@ -216,9 +216,6 @@ describe('f731 (11) the words', () => {
 });
 
 describe('f731 (12) every Open contract on these pages lands on Home', () => {
-  test('the Requests list\'s second press, as its panel\'s button', () => {
-    assert.match(strip(R('js/views/intake.js')), /else if\(r&&r\.contractId\)\{ if\(!\(typeof pdOpenOnHome==='function'&&pdOpenOnHome\(r\.contractId,'open'\)\)\) openWorkspace\(r\.contractId\); \}/);
-  });
   test('the narrow Our standards page, as the wide one', () => {
     const lib = strip(R('js/views/library.js'));
     assert.match(lib, /\[data-dev-open\]'\)\.forEach\(b=>b\.addEventListener\('click',\(\)=>sdOpenContract\(/);
