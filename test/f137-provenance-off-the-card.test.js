@@ -106,11 +106,17 @@ describe('F137b — but the record still says where the change came from', () =>
        one press of Open away, beside the wording it is a reason about. The
        claim is unchanged in substance and this file still holds it: a render
        may move, and removing one must never take the field with it. */
+    /* CLAIM RE-POINTED AGAIN (17 Oct 2026, round 9 of the redesign): the
+       owner picked "Piles", whose row carries the reason under the change in
+       the asker's own words, quoted (rl-card-whyq), above the row's buttons.
+       That reverses the 19 Aug ruling for the row; the old titled strip
+       (.rl-card-why) stays gone, and the panel still draws it. */
     const p = await page({ why: 'Our AP cycle runs monthly, so Net-30 forces an out-of-cycle payment.' });
     assert.equal(p.column().querySelector('.rl-card-why'), null,
-      'not on the card any more');
-    assert.ok(!/AP cycle runs monthly/.test(p.column().textContent),
-      'and not anywhere else on the row either');
+      'not on the card as a titled strip any more');
+    const q = p.column().querySelector('.rl-card-whyq');
+    assert.ok(q && /AP cycle runs monthly/.test(q.textContent),
+      'the row quotes it, once, in the asker\'s words');
     const panel = p.win.document.querySelector('.rl-cp');
     assert.ok(panel, 'the clause panel is mounted on this page');
     assert.ok(panel.querySelector('.rl-cp-why'), 'the reason is drawn in the panel');
