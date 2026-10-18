@@ -31,7 +31,12 @@ describe('f586 — email is not set up here', () => {
     assert.match(body, /issued to you personally — please do not forward it/);
   });
   test('where mail works, the code line is the one that goes', () => {
+    /* RE-POINTED 18 Oct 2026 (round 11, "The letter"): the turn mail's words
+       are built by ONE builder both shells read (js/sharemail.js,
+       signerTurnMailOf); the server tells it whether mail works */
     const S = fs.readFileSync(path.join(__dirname, '..', 'server', 'server.js'), 'utf8');
-    assert.match(S, /tFor\(L, EMAIL_ON\(\) \? 'mail_code_note' : 'mail_link_personal'\)/);
+    const M = fs.readFileSync(path.join(__dirname, '..', 'js', 'sharemail.js'), 'utf8');
+    assert.match(S, /codeOn: EMAIL_ON\(\)/);
+    assert.match(M, /t\(x\.codeOn \? 'mail_code_note' : 'mail_link_personal'\)/);
   });
 });
