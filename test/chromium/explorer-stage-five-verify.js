@@ -115,10 +115,10 @@ const check = (name, pass, detail) => {
     check('2a "Copy picture" sits under the latest answer on the map', d2 === 1, String(d2));
     const pic = await page.evaluate(async () => {
       if (typeof igPictureBlob !== 'function') return { missing: true };
-      const texts = []; const ft = CanvasRenderingContext2D.prototype.fillText;
-      CanvasRenderingContext2D.prototype.fillText = function (t, ...a) { if (!this.canvas.id) texts.push(String(t)); return ft.call(this, t, ...a); };
-      let blob = null; try { blob = await igPictureBlob(); } finally { CanvasRenderingContext2D.prototype.fillText = ft; }
-      const bmp = await createImageBitmap(blob); const wrap = document.getElementById('ig-gwrap').getBoundingClientRect();
+      const texts = []; const ft = window.CanvasRenderingContext2D.prototype.fillText;
+      window.CanvasRenderingContext2D.prototype.fillText = function (t, ...a) { if (!this.canvas.id) texts.push(String(t)); return ft.call(this, t, ...a); };
+      let blob = null; try { blob = await igPictureBlob(); } finally { window.CanvasRenderingContext2D.prototype.fillText = ft; }
+      const bmp = await window.createImageBitmap(blob); const wrap = document.getElementById('ig-gwrap').getBoundingClientRect();
       const svg = new DOMParser().parseFromString(igPictureSvg(document.getElementById('ig-svg')), 'image/svg+xml').documentElement.textContent;
       const labels = IG.hubs.filter(h => h.kind === 'hub').map(h => String(h.label).toUpperCase());
       return { type: blob.type, w: bmp.width, h: bmp.height, ww: Math.round(wrap.width), wh: Math.round(wrap.height), texts, labelsIn: labels.filter(l => svg.toUpperCase().includes(l)).length, labels: labels.length };
