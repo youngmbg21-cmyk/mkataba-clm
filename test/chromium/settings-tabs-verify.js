@@ -741,7 +741,8 @@ const signIn = async (page, base, email, pass) => {
       gates: !!document.getElementById('rv-gate-panel') || !!document.getElementById('dk-rule-panel'),
       /* since the full build (16 Oct 2026): a short card each, whose door
          opens the drawer with the control in it */
-      mine: !!document.querySelector('[data-st-you-card="who"] [data-st-panel="me:who"]') && !!document.querySelector('[data-st-you-card="work"] [data-st-panel="me:work"]'),
+      /* since round 24 (One sheet) how you work changes in its row */
+      mine: !!document.querySelector('[data-st-you-card="who"] [data-st-panel="me:who"]') && !!document.querySelector('[data-st-you-card="work"] [data-st-sw="chips"]'),
       sessions: !!document.querySelector('[data-st-you-card="safety"] [data-st-panel="me:safety"]'),
       backup: !!document.querySelector('[data-st-you-card="data"] [data-st-backup]'),
       design: !!document.querySelector('[data-st-you-card="design"] [data-st-panel="me:design"]'),

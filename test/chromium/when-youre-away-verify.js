@@ -62,17 +62,18 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
       while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(120); }
       return v; };
     const press = async (sel, what) => { if (!(await page.locator(sel).count())) { check(what + ' (nothing to press: ' + sel + ')', false); return false; } await page.locator(sel).first().click(); return true; };
+    /* since round 24 (One sheet) the card is a section of rows: its doors sit at the row's end (.st-sa) */
     const readCard = () => until(() => {
       if (!document.getElementById('set-page') || settingsTab() !== 'you') { setView('team'); settingsGoTab('you'); return null; }
       const c = document.querySelector('[data-st-you-card="away"]'); if (!c) return null;
       const b = document.querySelector('.st-you-board').getBoundingClientRect(), r = c.getBoundingClientRect();
       return { text: c.textContent.replace(/\s+/g, ' ').trim(), wide: Math.abs(r.width - b.width) < 2,
-        doors: [...c.querySelectorAll('.st-card-doors button, .st-card-doors a')].map(x => x.textContent.replace(/[›\s]+$/, '').trim()) };
+        doors: [...c.querySelectorAll('.st-card-doors button, .st-card-doors a, .st-sa button')].map(x => x.textContent.replace(/[›\s]+$/, '').trim()) };
     }, null, 15000);
 
     console.log('\n1 · the card');
     let card = await readCard();
-    check('1a When you\'re away, across the board: nobody yet, Set it up', !!card && card.wide && /^When you're away Nobody answers for you while you are away\./.test(card.text)
+    check('1a When you\'re away, across the board: nobody yet, Set it up', !!card && card.wide && /^When you're away (Who answers for you ?)?Nobody answers for you while you are away\./.test(card.text)
       && card.doors.join('|') === 'Set it up', JSON.stringify(card));
 
     console.log('\n2 · the drawer');
@@ -104,9 +105,9 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
     const told = await until(() => { const t = (document.getElementById('toast-root') || {}).textContent || ''; return /answers for you from/.test(t) ? t.replace(/\s+/g, ' ').trim() : null; });
     check('3a an \'ok\': "No Values Legal answers for you from …"', !!told && /No Values Legal answers for you from /.test(told), told);
     card = await until(() => { const c = document.querySelector('[data-st-you-card="away"]'); const t = c && c.textContent.replace(/\s+/g, ' ').trim();
-      return t && /answers your approvals/.test(t) ? { text: t, doors: [...c.querySelectorAll('.st-card-doors button')].map(x => x.textContent.replace(/[›\s]+$/, '').trim()) } : null; });
+      return t && /answers your approvals/.test(t) ? { text: t, doors: [...c.querySelectorAll('.st-card-doors button, .st-sa button')].map(x => x.textContent.replace(/[›\s]+$/, '').trim()) } : null; });
     check('3b the card: "On until …", who answers from when to when, ends on its own, each answer "for Unrestricted Legal"; Change · End it now', !!card
-      && /^When you're away On until .+ No Values Legal answers your approvals and internal reviews from .+ to .+\.\s?It ends on its own\. It never covers signing — that stays yours\. Each thing No Values Legal answers says “for Unrestricted Legal”\./.test(card.text)
+      && /^When you're away On until .+?\s?No Values Legal answers your approvals and internal reviews from .+ to .+\.\s?It ends on its own\. It never covers signing — that stays yours\. Each thing No Values Legal answers says “for Unrestricted Legal”\./.test(card.text)
       && card.doors.join('|') === 'Change|End it now', JSON.stringify(card));
     await shot(page, 'away-card-1440x780');
     await page.evaluate(() => renderTeam());

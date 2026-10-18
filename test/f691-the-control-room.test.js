@@ -366,7 +366,8 @@ describe('f691 — Jambo finds, explains and readies; the AI only on a press', (
     const t = ask(S.en.st_jb_c_brief);
     const go = t.querySelector('[data-st-you="told"]');
     assert.ok(go, 'the brief card');
-    assert.match(go.getAttribute('data-st-you-focus'), /weekly/, 'with the weekly answer lit in its drawer');
+    /* since round 24 (One sheet) the brief changes in its row: the readied card lights the row's choice */
+    assert.equal(go.getAttribute('data-st-you-focus'), '[data-st-brief]', 'with the brief\'s choice lit in its row');
     assert.ok(t.textContent.includes(S.en.st_you_brief_weekly) && t.textContent.includes(S.en.st_you_brief_daily), 'it says what it will be and what it is');
     assert.equal(log.api.length, sent, 'nothing was sent');
   });
