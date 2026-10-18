@@ -20,6 +20,12 @@
 
      node test/chromium/ink-wash-verify.js --save   (record, on the code BEFORE)
 
+   RE-RECORDED 18 Oct 2026 (ninth), OWNER-ASKED (the overnight build, same
+   standing yes): Round 12, "Two sides" — History reads as two lanes (ours,
+   the days, theirs) with a bubble per entry, so on the History screen the
+   12 and 13px counts and the dividers' counts moved, and in dark the Board's
+   own side pair (#7FA6F0 ours, #B3A2F0 theirs) and two divider tones are new
+   to that screen. Audited by key: only History moved; nothing gone.
    RE-RECORDED 17 Oct 2026 (eighth), OWNER-ASKED (the overnight build, same
    standing yes): Round 10, "The road" — Before you sign draws its stops
    (Ready to sign, who signs, sealed and sent) above and around the column, so
