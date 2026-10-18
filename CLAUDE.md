@@ -26,7 +26,7 @@ THIS FILE IS RULES ONLY (condensed 11 Aug, 11 Sep, 27 Sep and twice on 4 Oct 202
 
 THE OWNER'S OWN WORDS, 24 Aug 2026. They GOVERN the Bug Fix Rules: Rule 2 says find every place a thing appears; this says do not fix the other things you find on the way. The finding still gets one line in BUGLOG.md, never a fix.
 
-**BUGLOG.md — APPEND, NEVER READ.** 8,000+ lines; reading it is DENIED on purpose in `.claude/settings.json`. Append only with `cat >> ./BUGLOG.md <<'EOF' … EOF` or `tee -a ./BUGLOG.md >/dev/null <<'EOF' … EOF` (both pre-approved; no other form is). Verify with `git diff --stat -- ./BUGLOG.md`. House style: `git show HEAD:BUGLOG.md | tail -80`. A refusal on one verb is not a refusal on another. `.claude/settings.json` is strict JSON: no comments, and an unknown key can take the hooks down.
+**BUGLOG.md — APPEND, NEVER READ.** About 21,000 lines (1.5 MB, 18 Oct 2026); reading it is DENIED on purpose in `.claude/settings.json`. Append only with `cat >> ./BUGLOG.md <<'EOF' … EOF` or `tee -a ./BUGLOG.md >/dev/null <<'EOF' … EOF` (both pre-approved; no other form is). Verify with `git diff --stat -- ./BUGLOG.md`. House style: `git show HEAD:BUGLOG.md | tail -80`. A refusal on one verb is not a refusal on another. `.claude/settings.json` is strict JSON: no comments, and an unknown key can take the hooks down.
 
 ## NO NEW BANDS ON THE PAGE — ASK FIRST (owner-asked 26 Aug 2026)
 
@@ -132,7 +132,7 @@ Doc Lab is REMOVED — flag any doclab mention as stale. Line numbers drift: gre
 - A HELD change never travels (`buildSharePayload`); every send door asks `reviewSendBlock`/`reviewGateMessage` (share dialog, `reshareToLastRecipient` THROWS, `#nego-send`) — a fourth must too. The counterparty never learns of a review (`reviewSeatShowsReview`); names only through `reviewMaySee`.
 - Admin setting, off by default, per person (`reviewGateApplies`, server `rvGateApplies`, `reviewChecked(u)`). Review gates SENDING, approvals SIGNING, the desk REDLINING. A chosen subset per change (`reviewOpenFor`, `reviewInPlay`); `rlActorHeld`; only `reviewAsk`/`reviewMark` initialise `c.review`; `revisions[]`. Server `rvOpenList`/`rvWithheldIds` off the STORED contract.
 - "Waiting on them" only by the server's `srvReach` (`_reach`, `reachTake`); `negoTheirCopy(c)`; `negWhoseMove` asks `negoUnsentAsks` first; `standingShareFor`; `refreshLiveShareQuietly`.
-Tests: f17, f154–f159, f161, f162, f164, f174, f186, f190, f412.
+Tests: f17, f154–f159, f161, f162, f164, f174, f186, f190, f412, wall-standing.
 
 ## THE OVERVIEW — READ DOWN, ONE SHEET
 - `js/section.js` the grammar; since step 8 the Lifeline strip's Details page (`ovSheetPaint`, one door `roomOverviewOpen`). IT EDITS (owner): `.ov-top` = Read the brief + Edit these details (`data-ov-edit="all"`, `ovEditing(dealK)`) + Fill from document; + Add a party; `data-ov-go-details` STALE. ESSENTIALS `#ov-ess`: parties `.ov-pty-list`; terms = the EIGHT `OV_ESS_REST` (cells `ovEssRestCells`; Edit the same eight, `ovEssEditHtml`; the card never grows; an answer two lines max); filing on ⋯ (`ovOpenFiling`); parties in Edit = the directory (`participantsDirHtml`). DUTIES map `#ov-map` (`ovMapData` → `ovMapSvg`, `ovMapPane`, `ovMapDutyRow`). Related agreements (`renderKeyTermsSide`); `data-ov-route`.
