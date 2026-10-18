@@ -1096,6 +1096,119 @@ function migUnfinishedHtml(){
       <button data-dismiss-batch="${migEsc(b.id)}" class="ui-btn ui-btn-sm">${i18t('mig_dismiss')}</button>
     </div>`).join('');
 }
+/* ---- JAMBO'S PANEL BESIDE THE LIST (round 22, "The SAP way": the owner's
+   word, 18 Oct 2026 — "you need a Jambo side panel") ----
+   A READING, NOTHING FILED. With no file chosen Jambo says the batch in words,
+   from the figures' own counts (migKpis), and names the figure that narrows
+   the list to what needs you. A press on a row CHOOSES it (pressed again, it
+   is let go — PRESS IT AGAIN AND IT CLOSES); the panel then says that file:
+   the facts the review window asks for (MIG_CRITICAL, labelled as META_FIELDS
+   labels them), amber where a fact is missing or was read with low
+   confidence — the same reading migReadNeedsReview makes — the marks in words
+   (migGates: what the dots only said on a hover), and the row's own doors:
+   Review, Link, Open. Per sitting, like the figures; nothing is written. */
+let _migPick = null;
+function migPickSet(id){
+  _migPick = (!id || id === _migPick || !getContract(id)) ? null : id;
+  document.querySelectorAll('.mig-table tbody tr[data-row]').forEach(tr => {
+    const on = tr.getAttribute('data-row') === _migPick;
+    tr.classList.toggle('is-picked', on); tr.setAttribute('aria-selected', on ? 'true' : 'false'); });
+  migSidePaint();
+}
+const migFieldLabel = k => { const f = (typeof META_FIELDS !== 'undefined' ? META_FIELDS : []).find(x => x.k === k); return f ? f.label : k; };
+const migDay = d => (typeof regDotDate === 'function') ? regDotDate(d) : String(d || '');
+/* One fact of a chosen file: its value as the record holds it, and whether it
+   needs a person — missing, or read with low confidence. A contract that says
+   no money passes is not missing its value (migReadNeedsReview's valueNone). */
+function migSideFacts(c){
+  const m = c.metadata || {}, conf = m.confidence || {};
+  const money = (typeof isMonetary === 'function') ? isMonetary(c) : true;
+  const val = {
+    counterparty: c.counterparty || m.counterparty || '',
+    contractType: m.contractType || '',
+    effectiveDate: (c.fields && c.fields.effDate) || m.effectiveDate || '',
+    expiryDate: c.expiry || m.expiryDate || '',
+    value: !money ? i18t('mig_side_no_money') : (Number(c.value) > 0 ? ((window.fmtMoneyShortOf ? fmtMoneyShortOf(c) : fmtMoneyShort(c.value))) : ''),
+  };
+  const shown = k => k === 'effectiveDate' || k === 'expiryDate' ? (val[k] ? migDay(val[k]) : '') : val[k];
+  return (typeof MIG_CRITICAL !== 'undefined' ? MIG_CRITICAL : ['counterparty', 'contractType', 'effectiveDate', 'expiryDate', 'value']).map(k => {
+    let text = shown(k);
+    if (k === 'expiryDate' && !text && m.renewalType === 'evergreen') text = i18t('mig_side_evergreen');
+    const missing = !text;
+    const unsure = !missing && conf[k] === 'low' && !(k === 'value' && !money);
+    return { k, label: migFieldLabel(k), text, missing, unsure };
+  });
+}
+function migSideFileHtml(c){
+  const mg = c.migration || {}, edit = canEdit();
+  const facts = migSideFacts(c), gates = migGates(c);
+  const link = !!(c.linkSuggestions && c.linkSuggestions.length && !c.parentId && !c.linkConfirmed);
+  const say = mg.blocked ? i18t('mig_side_say_blocked')
+    : mg.needsReview ? i18t(isOcrText(mg.textSource) ? 'mig_side_say_scan' : mg.aiSource === 'ai' ? 'mig_side_say_unsure' : 'mig_side_say_pattern')
+    : link ? i18t('mig_side_say_link')
+    : migComplete(c) ? i18t('mig_side_say_done') : i18t('mig_side_say_missing');
+  const fact = f => `<div class="mig-sf${f.missing || f.unsure ? ' is-need' : ''}"><dt>${migEsc(f.label)}</dt>
+    <dd>${f.missing ? `<span class="mig-sf-q">${migEsc(i18t('mig_side_not_found'))}</span>` : migEsc(f.text)}${f.unsure ? `<span class="mig-sf-q">${migEsc(i18t('mig_side_not_sure'))}</span>` : ''}</dd></div>`;
+  const mark = g => `<li class="${g.ok ? 'is-ok' : 'is-no'}"><span class="mig-sm-dot" aria-hidden="true"></span>${migEsc(g.label)}<span class="mig-sm-w">${migEsc(i18t(g.ok ? 'mig_side_mark_ok' : 'mig_side_mark_no'))}</span></li>`;
+  return `<div class="mig-side-file">
+    <div class="mig-side-name"><b>${migEsc(c.name || '')}</b><span>${window.refHtml ? refHtml(c) : migEsc(c.id)}${c.upload && c.upload.fileName ? ' · ' + migEsc(c.upload.fileName) : ''}</span></div>
+    <p class="mig-side-say">${migEsc(say)}</p>
+    <dl class="mig-sfs">
+      <div class="mig-sf"><dt>${migEsc(i18t('mig_col_stream'))}</dt><dd>${migEsc(streamLabel(c))}</dd></div>
+      ${facts.map(fact).join('')}
+    </dl>
+    <div class="mig-side-h">${migEsc(i18t('mig_side_marks'))}</div>
+    <ul class="mig-sms">${gates.map(mark).join('')}</ul>
+    <div class="mig-side-acts">
+      ${mg.needsReview && edit ? `<button type="button" class="ui-btn ui-btn-primary" data-mig-side-review="${migEsc(c.id)}">${i18t('mig_review')}</button>` : ''}
+      ${link && edit ? `<button type="button" class="ui-btn" data-mig-side-link="${migEsc(c.id)}">${i18t('mig_col_link')}</button>` : ''}
+      <button type="button" class="ui-btn" data-open="${migEsc(c.id)}">${i18t('mig_open')}</button>
+    </div>
+  </div>`;
+}
+function migSideBatchHtml(){
+  const k = migKpis(), M = migState(), a = M.allowance;
+  const lines = [];
+  if (!k.total) lines.push(i18t('mig_side_none'));
+  else {
+    lines.push(i18tn('mig_side_total', k.total, { n: k.total }));
+    const need = [];
+    if (k.review) need.push(i18tn('mig_side_n_review', k.review, { n: k.review }));
+    if (k.blocked) need.push(i18tn('mig_side_n_blocked', k.blocked, { n: k.blocked }));
+    if (k.linkPending) need.push(i18tn('mig_side_n_link', k.linkPending, { n: k.linkPending }));
+    lines.push(need.length ? i18t('mig_side_need', { what: need.join(', ') }) : i18t('mig_side_need_none'));
+  }
+  if (a && a.open && a.budget > 0) lines.push(i18t('mig_side_spent', { spent: migMoney(a.spent || 0), of: migMoney(a.budget) }));
+  const door = (show, n, key) => n ? `<button type="button" class="mig-side-chip" data-mig-side-show="${show}" aria-pressed="${_migShow === show ? 'true' : 'false'}">${migEsc(i18tn(key, n, { n }))}</button>` : '';
+  const doors = k.total ? door('review', k.review, 'mig_side_show_review') + door('blocked', k.blocked, 'mig_side_show_blocked') : '';
+  return `<div class="mig-side-batch">${lines.map(l => `<p class="mig-side-say">${migEsc(l)}</p>`).join('')}
+    ${doors ? `<div class="mig-side-chips">${doors}</div>` : ''}
+    ${k.total ? `<p class="mig-side-hint">${migEsc(i18t('mig_side_pick'))}</p>` : ''}</div>`;
+}
+function migSideHtml(){
+  const c = _migPick ? getContract(_migPick) : null;
+  if (_migPick && !c) _migPick = null;
+  const face = (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 22, 'mig-side-face').replace('<img', '<img data-ink-exempt') : '';
+  return `<div class="mig-side-head">${c ? `<button type="button" class="mig-side-back" data-mig-pick="">‹ ${migEsc(i18t('mig_side_back'))}</button>` : ''}
+      <span class="mig-side-who">${face}<b>${migEsc(i18t('st_side_jambo'))}</b></span></div>
+    <div class="mig-side-body">${c ? migSideFileHtml(c) : migSideBatchHtml()}</div>`;
+}
+function migSidePaint(){
+  const host = document.getElementById('mig-side'); if (!host) return;
+  host.innerHTML = migSideHtml();
+  wireOpens(host);
+}
+/* one press for the panel's doors, wired once at load (A LISTENER ON A PAINTED
+   ELEMENT IS BOUND ONCE): the panel is repainted on every choice */
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
+  const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+  const side = t.closest('#mig-side'); if (!side) return;
+  const back = t.closest('[data-mig-pick]'); if (back) { migPickSet(back.getAttribute('data-mig-pick') || null); return; }
+  const show = t.closest('[data-mig-side-show]'); if (show) { migShowSet(show.getAttribute('data-mig-side-show')); return; }
+  const rv = t.closest('[data-mig-side-review]'); if (rv) { const c = getContract(rv.getAttribute('data-mig-side-review')); if (c) openMigReview(c); return; }
+  const lk = t.closest('[data-mig-side-link]'); if (lk) { const c = getContract(lk.getAttribute('data-mig-side-link')); if (c) openLinkModal(c, () => renderMigration()); }
+});
+
 function renderMigration(){
   const M=migState();
   const cs=migContracts();
@@ -1144,9 +1257,47 @@ function renderMigration(){
       .mig-kpi:focus-visible{outline:2px solid var(--focus-color);outline-offset:2px}
       .mig-shown{border:1px solid var(--color-accent);border-radius:999px;background:color-mix(in srgb,var(--color-accent) 8%,transparent);color:var(--accent-ink);font:inherit;font-size:var(--t-label);padding:1px 9px;cursor:pointer}
       #mig-drop:hover{border-color:var(--color-accent)}
+      ${''/* JAMBO'S PANEL BESIDE THE LIST (round 22, "The SAP way") — the list
+             and the panel side by side; on a narrow window the panel follows */}
+      .mig-cols{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:var(--s-3);align-items:start}
+      @media (max-width:1180px){ .mig-cols{grid-template-columns:minmax(0,1fr)} }
+      .mig-side{position:sticky;top:var(--s-3);display:flex;flex-direction:column;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;max-height:calc(100vh - 140px)}
+      @media (max-width:1180px){ .mig-side{position:static;max-height:none} }
+      .mig-side-head{flex:none;display:flex;align-items:center;gap:var(--s-2);padding:8px 12px;border-bottom:1px solid var(--color-divider)}
+      .mig-side-who{display:inline-flex;align-items:center;gap:7px;font-size:var(--t-meta)}
+      .mig-side-who b{font-weight:var(--w-strong)}
+      .mig-side-face{width:22px;height:22px;flex:none;border-radius:50%}
+      .mig-side-back{appearance:none;border:0;background:none;padding:0 4px 0 0;font:inherit;font-size:var(--t-meta);color:var(--accent-ink);cursor:pointer}
+      .mig-side-back:hover{text-decoration:underline}
+      .mig-side-body{flex:1;min-height:0;overflow:auto;padding:12px}
+      .mig-side-say{margin:0 0 8px;font-size:var(--t-meta);line-height:1.5;color:var(--color-text)}
+      .mig-side-hint{margin:8px 0 0;font-size:var(--t-label);color:var(--color-neutral-600)}
+      .mig-side-chips{display:flex;flex-wrap:wrap;gap:6px}
+      .mig-side-chip{appearance:none;font:inherit;font-size:var(--t-label);cursor:pointer;border:1px solid var(--color-divider);background:var(--color-surface);color:var(--accent-ink);border-radius:999px;padding:4px 11px;line-height:1.35}
+      .mig-side-chip:hover,.mig-side-chip[aria-pressed="true"]{border-color:var(--color-accent)}
+      .mig-side-name{display:flex;flex-direction:column;gap:2px;margin-bottom:8px;min-width:0}
+      .mig-side-name b{font-size:var(--t-body);font-weight:var(--w-strong);overflow-wrap:anywhere}
+      .mig-side-name span{font-size:var(--t-label);color:var(--color-neutral-600);overflow-wrap:anywhere}
+      .mig-sfs{margin:0 0 10px;display:flex;flex-direction:column;border-top:1px solid var(--surface-2)}
+      .mig-sf{display:grid;grid-template-columns:42% minmax(0,1fr);gap:8px;padding:6px 0;border-bottom:1px solid var(--surface-2);font-size:var(--t-meta)}
+      .mig-sf dt{color:var(--color-neutral-600)}
+      .mig-sf dd{margin:0;display:flex;flex-direction:column;gap:1px;overflow-wrap:anywhere}
+      .mig-sf.is-need dd{background:var(--need-bg,var(--st-amber-bg));border-radius:var(--radius);padding:1px 6px;margin:-1px -6px}
+      .mig-sf-q{font-size:var(--t-label);color:var(--st-amber-fg)}
+      .mig-side-h{font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600);margin:0 0 4px}
+      .mig-sms{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:3px;font-size:var(--t-meta)}
+      .mig-sms li{display:flex;align-items:center;gap:7px}
+      .mig-sm-dot{width:8px;height:8px;border-radius:50%;flex:none;border:1px solid var(--color-neutral-400);background:var(--color-neutral-300)}
+      .mig-sms li.is-ok .mig-sm-dot{background:var(--st-green-dot);border-color:var(--st-green-dot)}
+      .mig-sm-w{margin-left:auto;font-size:var(--t-label);color:var(--color-neutral-600)}
+      .mig-sms li.is-no .mig-sm-w{color:var(--st-amber-fg)}
+      .mig-side-acts{display:flex;flex-wrap:wrap;gap:8px}
+      .mig-table tbody tr.is-picked{background:color-mix(in srgb,var(--color-accent) 9%,transparent)}
+      .mig-table tbody tr:focus-visible{outline:2px solid var(--focus-color);outline-offset:-2px}
       #mig-drop.dragover{border-color:var(--color-accent);background:var(--st-steel-bg)}
     </style>
-    <div style="display:flex;flex-direction:column;gap:var(--s-3)">
+    <div class="mig-cols">
+    <div class="mig-main" style="display:flex;flex-direction:column;gap:var(--s-3)">
 
       <!-- KPI strip -->
       <div id="mig-kpis" class="mig-kpis">
@@ -1220,7 +1371,7 @@ function renderMigration(){
             <tbody>
               ${cs.filter(c=>migShowPass(c)).map(c=>{ const m=c.metadata||{};
                 const need=c.migration.needsReview;
-                return `<tr data-row="${c.id}" style="cursor:pointer">
+                return `<tr data-row="${c.id}" tabindex="0" class="${c.id===_migPick?'is-picked':''}" aria-selected="${c.id===_migPick?'true':'false'}" style="cursor:pointer">
                 <td style="padding-left:var(--s-3);font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap">${window.refHtml?refHtml(c):c.id}</td>
                 <td style="max-width:250px">
                   <span style="display:block;font-weight:var(--w-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.parentId?`<span style="color:var(--color-neutral-500);font-family:var(--font-mono);font-size:var(--t-label)">↳ ${RELATION_LABEL[c.relation]||'Amendment'} of ${(window.contractRef?contractRef(getContract(c.parentId)||{id:c.parentId}):c.parentId)} · </span>`:''}${migEsc(c.name)}</span>
@@ -1261,6 +1412,8 @@ function renderMigration(){
         ${recon.extra?`<p style="font-size:var(--t-meta);color:var(--st-amber-fg);margin:${recon.missing.length?'8px':'0'} 0 0">${recon.extra} imported file${recon.extra===1?'':'s'} had no manifest row — worth confirming they belong in this migration.</p>`:''}
       </section>`:''}
     </div>
+    <aside class="mig-side" id="mig-side" aria-label="${migEsc(i18t('mig_side_label'))}"></aside>
+    </div>
   </div>`;
 
   // wiring
@@ -1293,11 +1446,20 @@ function renderMigration(){
   sf?.addEventListener('change',()=>{ if(sf.files[0]) migImportSheet(sf.files[0]); });
   document.querySelectorAll('[data-mig-review]').forEach(b=>b.addEventListener('click',()=>{ const c=getContract(b.getAttribute('data-mig-review')); if(c) openMigReview(c); }));
   document.querySelectorAll('[data-mig-link]').forEach(b=>b.addEventListener('click',()=>{ const c=getContract(b.getAttribute('data-mig-link')); if(c) openLinkModal(c, ()=>renderMigration()); }));
-  document.querySelectorAll('.mig-table [data-row]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-row'))));
+  /* A PRESS CHOOSES, A SECOND PRESS LETS IT GO (round 22, Jambo's panel):
+     the row's Open and its reference still open the contract, as does a
+     double-click or Enter on a chosen row */
+  document.querySelectorAll('.mig-table [data-row]').forEach(el=>{
+    el.addEventListener('click',()=>migPickSet(el.getAttribute('data-row')));
+    el.addEventListener('dblclick',()=>selectContract(el.getAttribute('data-row')));
+    el.addEventListener('keydown',e=>{ if(e.target!==el||(e.key!=='Enter'&&e.key!==' ')) return; e.preventDefault();
+      const id=el.getAttribute('data-row'); if(e.key==='Enter'&&id===_migPick) selectContract(id); else migPickSet(id); });
+  });
   document.querySelectorAll('[data-mig-show]').forEach(b=>b.addEventListener('click',()=>migShowSet(b.getAttribute('data-mig-show'))));
   wireOpens(document.getElementById('content'));
+  migSidePaint();
   renderMigQueue();
   setActiveNav('migration');
 }
 
-Object.assign(window,{migShowPass,migShowSet,MIG_SHOWS,migAllowanceHtml,migBuildAndSave,migIndexContract,migDrawAllowanceDoc,migResolveDuplicate,migDupeRowHtml,migWireDupes,migEstimate,migConfirmEstimate,migLoadAiState,migGuessPages,applyReviewedMeta,migContracts,migExportSheet,migGates,migImportSheet,migLoadManifest,migLoadUnfinished,migDismissBatch,migUnfinishedHtml,migDateOrder,migParseDate,migParseValue,migNeedsReview,migProcessFiles,migReviewAll,migRerunAi,migState,openMigReview,parseCsv,renderMigration});
+Object.assign(window,{migPickSet,migSideHtml,migSideFacts,migSidePaint,migShowPass,migShowSet,MIG_SHOWS,migAllowanceHtml,migBuildAndSave,migIndexContract,migDrawAllowanceDoc,migResolveDuplicate,migDupeRowHtml,migWireDupes,migEstimate,migConfirmEstimate,migLoadAiState,migGuessPages,applyReviewedMeta,migContracts,migExportSheet,migGates,migImportSheet,migLoadManifest,migLoadUnfinished,migDismissBatch,migUnfinishedHtml,migDateOrder,migParseDate,migParseValue,migNeedsReview,migProcessFiles,migReviewAll,migRerunAi,migState,openMigReview,parseCsv,renderMigration});

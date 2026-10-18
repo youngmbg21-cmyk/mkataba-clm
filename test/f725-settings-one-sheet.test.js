@@ -138,7 +138,8 @@ describe('f725 (2) a switch or a choice changes in its row', () => {
     assert.equal(q('[data-st-you-card="work"] [data-st-sw="chips"]').getAttribute('role'), 'switch');
     assert.equal(q('[data-st-sw="chips"]').getAttribute('aria-checked'), 'true');
     assert.equal(q('[data-st-you-card="work"] select[data-st-opens]').value, 'jambo');
-    assert.ok(q('[data-st-you-card="work"] [data-st-sw="navall"]'));
+    /* the sidebar switch went (owner's yes, 18 Oct 2026): a computer draws no left sidebar */
+    assert.ok(!q('[data-st-sw="navall"]') && !q('#pref-nav-all'), 'no sidebar switch on a computer');
     assert.ok(!q('[data-st-you-card="work"] [data-st-panel="me:work"]') && !q('[data-st-you-card="told"] [data-st-panel="me:told"]'), 'no drawer for a single choice');
   });
   test('2b each writes as it changes, through the person\'s own route, with a passing ok', async () => {
@@ -163,7 +164,7 @@ describe('f725 (2) a switch or a choice changes in its row', () => {
   });
   test('2d ONE writer each: the drawer\'s controls and the rows call the same functions', () => {
     const wire = fnBody(SET, 'stAccountWire');
-    for (const w of ['stNavAllSet(', 'stBriefSet(', 'stChipsSet(', 'stOpensSet(']) assert.ok(wire.includes(w), 'the drawer uses ' + w);
+    for (const w of ['stBriefSet(', 'stChipsSet(', 'stOpensSet(']) assert.ok(wire.includes(w), 'the drawer uses ' + w);
     assert.equal((SET.match(/api\('me\/prefs','PUT',\{ briefEvery:v \}\)/g) || []).length, 1, 'one place writes the brief');
     assert.match(fnBody(SET, 'briefPaintCadence'), /\[data-st-brief\][\s\S]*el\.value=v/, 'every copy of the brief says the same');
   });

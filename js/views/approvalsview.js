@@ -289,13 +289,17 @@ function apInsPaint(rows){
     const tab=apRowTab(r);
     /* THE CHECKLIST LEAVES OUT WHAT THIS PANEL ALREADY SAYS (27 Sep 2026):
        on a signature's panel the lead section is "what stands before signing",
-       so a "Your signature" row above it would print it twice. */
+       so a "Your signature" row above it would print it twice. AND ON AN
+       APPROVAL'S (owner's yes, 18 Oct 2026, round 15's open question): the
+       amber "Your approval is asked for." line went — the list's first group,
+       "Yours to answer", and the panel's Approve button already say it. */
     const done=!!(r&&r.done);
+    const skip=tab==='signatures'?['sign']:['approval'];
     insPaintPanel({ seat, c:r?r.c:null, acts:apInsActs(tab,r), lead:apLeadHtml(tab,r), moveSuffix:false,
       statusBeside:true,
       statusHtml:done?apApprovedPillHtml():null,
-      needsHtml:!r?null:done?apDoneLineHtml():(typeof insNeedsLineHtml==='function'?insNeedsLineHtml(r.c, tab==='signatures'?['sign']:[]):null),
-      needsSkip:tab==='signatures'?['sign']:[],
+      needsHtml:!r?null:done?apDoneLineHtml():(typeof insNeedsLineHtml==='function'?insNeedsLineHtml(r.c, skip):null),
+      needsSkip:skip,
       order:['lead','facts','reads'],
       factKeys:['value','owner','stream','ends'],
       empty:i18t('ap_wl_none') });

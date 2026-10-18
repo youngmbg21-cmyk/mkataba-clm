@@ -284,6 +284,8 @@ const SET_CLOSURES=[
      the name that appears on executed paper. The DESIGN is untouched — the
      logo, the accent colour and the layout are what that permission was for. */
   { key:'legal-identity', what:'An Editor can no longer change the company\'s registered name, registration number or address. Those moved to Settings → Platform settings → Company & market, which is admin-only, and the server refuses them for anybody else. The company design — logo, accent colour, layout — is unchanged and still theirs.' },
+  /* 18 Oct 2026, the owner's yes to round 24's open question. */
+  { key:'sidebar', what:'Nobody sets the left sidebar from a computer\'s Settings any more: a computer draws no left sidebar since the Counter and the desk tabs, so the switch had nothing to act on. The phone keeps its own switch in its menu.' },
 ];
 
 /* WHERE EACH PANEL LIVES. Since the Control Room these are no longer tabs on
@@ -1674,7 +1676,7 @@ function stYouItems(){
        door; their drawers stay for the avatar's account drawer */
     api && { key:'told', t:'st_you_told', w:['st_acct_email','set_brief_how_often','set_brief_daily','set_brief_weekly','set_brief_off','st_you_told_words'], focus:'[data-st-brief]',
       state:()=>i18t('st_you_brief_'+briefCadenceOf(u)) },
-    { key:'work', t:'st_you_work', w:['st_acct_sidebar','set_show_everything','set_full_cockpit','st_you_chips','st_you_opens','st_you_work_words'], focus:'[data-st-sw="chips"]',
+    { key:'work', t:'st_you_work', w:['st_you_chips','st_you_opens','st_you_work_words'], focus:'[data-st-sw="chips"]',
       state:stOpensWord },
     { key:'data', t:'st_you_data', w:['st_acct_backup','set_export_backup','st_you_data_words'] },
     (u.role==='legal') && { key:'design', t:'st_acct_design', w:['set_edit_design','st_acct_design_note','st_you_design_words'], door:'me:design' },
@@ -1725,12 +1727,14 @@ function stYouCardHtml(it){
     rows=stSrHtml(esc(i18t('set_brief_how_often')), `<select data-st-brief aria-label="${esc(i18t('set_brief_how_often'))}">${['daily','weekly','off'].map(v=>`<option value="${v}"${v===cad?' selected':''}>${esc(i18t('set_brief_'+v))}</option>`).join('')}</select>`, '')
       +stSrHtml(esc(i18t('st_you_bell_row')), sub(esc(i18t('st_you_told_always'))), '');
   } else if(it.key==='work'){
-    const all=(typeof navShowEverything==='function')&&navShowEverything();
+    /* THE SIDEBAR SWITCH WENT (owner's yes, 18 Oct 2026, round 24's open
+       question): a computer draws no left sidebar any more (the Counter and
+       the desk tabs), so the switch had nothing to act on. The phone keeps its
+       own (js/mobile.js), where the menu still earns its items. */
     const chips=(typeof jamboChipsOn!=='function')||jamboChipsOn();
     const opens=(typeof contractOpensOn==='function')?contractOpensOn():'jambo';
     rows=stSrHtml(esc(i18t('st_you_chips')), `${stSwHtml('chips',chips,i18t('st_you_chips'))}${sub(esc(i18t('st_you_chips_sub')))}`, '', 'is-sw')
-      +stSrHtml(esc(i18t('st_you_opens')), `<select data-st-opens aria-label="${esc(i18t('st_you_opens'))}">${((typeof OPENS_ON!=='undefined')?OPENS_ON:['jambo']).map(v=>`<option value="${v}"${v===opens?' selected':''}>${esc(i18t('st_opens_'+v))}</option>`).join('')}</select>`, '')
-      +stSrHtml(esc(i18t('set_show_everything')), `${stSwHtml('navall',all,i18t('set_show_everything'))}${sub(esc(i18t('set_full_cockpit')))}`, '', 'is-sw');
+      +stSrHtml(esc(i18t('st_you_opens')), `<select data-st-opens aria-label="${esc(i18t('st_you_opens'))}">${((typeof OPENS_ON!=='undefined')?OPENS_ON:['jambo']).map(v=>`<option value="${v}"${v===opens?' selected':''}>${esc(i18t('st_opens_'+v))}</option>`).join('')}</select>`, '');
   } else if(it.key==='data'){
     rows=stSrHtml(esc(i18t('st_you_data_line')), sub(esc(i18t('st_you_data_sub'))), `<button type="button" class="ui-btn ui-btn-sm" data-st-backup>${icon('download','w-3.5 h-3.5')} ${esc(i18t('st_you_download'))}</button>`);
   } else if(it.key==='design'){
@@ -1783,11 +1787,6 @@ async function stOpensSet(v){
   if(await stPrefSet('opensOn', v)){ toast(i18t('st_you_opens_saved',{where:i18t('st_opens_'+v)}),'ok'); stYouCardRepaint('work'); return true; }
   stYouCardRepaint('work'); return false;
 }
-function stNavAllSet(on){
-  if(typeof navSetShowEverything==='function') navSetShowEverything(on);
-  toast(on?i18t('set_sidebar_all_on'):i18t('set_sidebar_all_off'),'ok');
-  stYouCardRepaint('work');
-}
 async function stBriefSet(v){
   const was=briefCadenceOf(currentUser());
   try{
@@ -1822,7 +1821,7 @@ if(typeof document!=='undefined' && !window._stSheetWired){
       return; }
     if((el=t.closest('[data-st-sw]'))){ const k=el.getAttribute('data-st-sw'), on=el.getAttribute('aria-checked')!=='true';
       el.setAttribute('aria-checked',String(on)); el.classList.toggle('on',on);
-      if(k==='chips') stChipsSet(on); else if(k==='navall') stNavAllSet(on);
+      if(k==='chips') stChipsSet(on);
       return; }
   });
   document.addEventListener('change',e=>{
@@ -3887,19 +3886,14 @@ function stAccountBodyHtml(opts){
       </div>
       <p class="st-note">${esc(i18t('st_f_title_note'))}</p>
     </section>`;
-  /* HOW YOU LIKE TO WORK: the sidebar, and the two flags the full build
-     added — Jambo's next-step chips, and where a contract opens for you.
-     Each is written the moment it changes, like everything in this drawer. */
+  /* HOW YOU LIKE TO WORK: the two flags the full build added — Jambo's
+     next-step chips, and where a contract opens for you. Each is written the
+     moment it changes, like everything in this drawer. The sidebar switch
+     went (owner's yes, 18 Oct 2026): a computer draws no left sidebar. */
   const opens=(typeof contractOpensOn==='function')?contractOpensOn():'jambo';
   S.work=`<section class="st-sec"${sec('work')}>
       <h3 class="st-sec-h">${esc(i18t('st_you_work'))}</h3>
-      <p class="st-note" style="margin-bottom:6px">${i18t('set_sidebar_sub')}</p>
       <label class="st-toggle">
-        <input id="pref-nav-all" type="checkbox" ${(typeof navShowEverything==='function'&&navShowEverything())?'checked':''}/>
-        <span><span class="st-role-name">${i18t('set_show_everything')}</span>
-        <span class="st-note">${i18t('set_full_cockpit')}</span></span>
-      </label>
-      <label class="st-toggle" style="margin-top:var(--s-3)">
         <input id="pref-jb-chips" type="checkbox" ${(typeof jamboChipsOn!=='function'||jamboChipsOn())?'checked':''}/>
         <span><span class="st-role-name">${esc(i18t('st_you_chips'))}</span>
         <span class="st-note">${esc(i18t('st_you_chips_sub'))}</span></span>
@@ -3995,7 +3989,6 @@ function stAccountWire(){
     if(state.view==='team' && isAdmin()) renderTeam();
   });
   /* each written through the ONE writer the sheet's rows use too (round 24) */
-  document.getElementById('pref-nav-all')?.addEventListener('change',e=>stNavAllSet(e.target.checked));
   document.querySelectorAll('[data-pref-brief]').forEach(el=>el.addEventListener('change',e=>stBriefSet(e.target.getAttribute('data-pref-brief'))));
   document.getElementById('ts-toggle')?.addEventListener('click',()=>stTwoStepToggle());
   document.getElementById('ts-codes-new')?.addEventListener('click',()=>stCodesNew());
@@ -5831,8 +5824,10 @@ async function stPsSave(){
   toast(d.on?i18t('st_ps_saved_private',{name:f.name,named:i18tn('st_ps_who_named',d.ids.length,{n:d.ids.length})})
     :i18t('st_ps_saved_open',{name:f.name}),'ok');
   /* who may open what just moved — this admin's own book may have gained or
-     lost the stream's contracts */
+     lost the stream's contracts, and keeping's Needs rows with them (a stream
+     that now names an admin leaves "No admin can see it") */
   await stPsReloadBook();
+  if(stKpOn()){ _stKp.data=null; await stKpLoad(); stSyncAttention(); }
   stDrawerOpen('folders');
 }
 /* No server: the same record, kept in this browser like every other setting. */
@@ -5898,7 +5893,7 @@ async function stKpLoad(){
 function stKpSync(){
   const d=_stKp.data; if(!d||!d.streams) return;
   const due={}; Object.entries(d.streams).forEach(([fid,s])=>{ if(s.rule&&s.due&&s.due.length) due[fid]={ n:s.due.length, then:s.rule.then }; });
-  state.keeping={ rules:d.rules||{}, due };
+  state.keeping={ rules:d.rules||{}, due, unseen:Array.isArray(d.unseen)?d.unseen:[] };
 }
 const stKpYearsWord=n=>i18tn('st_kp_years',n,{n});
 function stKpHtml(fid){
@@ -5995,7 +5990,14 @@ function stKpNeedRows(){
   return Object.entries(k.due).filter(([fid,x])=>x&&x.n>0&&FOLDERS[fid]).map(([fid,x])=>({ key:'keep:'+fid, dot:'warn',
     text:i18t(x.then==='archive'?'st_kp_need_archive':'st_kp_need_delete',{name:FOLDERS[fid].name}),
     sub:i18tn(x.then==='archive'?'st_kp_need_archive_sub':'st_kp_need_delete_sub',x.n,{n:x.n}),
-    btn:`data-st-panel="stream:${PB_ATTR(fid)}@keeping"`, verb:i18t('st_kp_need_go') }));
+    btn:`data-st-panel="stream:${PB_ATTR(fid)}@keeping"`, verb:i18t('st_kp_need_go') }))
+  /* A PRIVATE STREAM NO ADMIN CAN SEE (owner's yes, 18 Oct 2026): it has
+     contracts past their keeping time and names no admin, so nobody is asked.
+     The row says only that — no count, no names — and its door is the
+     stream's page, where an admin is named (themselves included). */
+    .concat((Array.isArray(k.unseen)?k.unseen:[]).filter(fid=>FOLDERS[fid]).map(fid=>({ key:'keep-unseen:'+fid, dot:'warn',
+      text:i18t('st_kp_need_unseen',{name:FOLDERS[fid].name}), sub:i18t('st_kp_need_unseen_sub'),
+      btn:`data-st-panel="stream:${PB_ATTR(fid)}"`, verb:i18t('st_kp_need_unseen_go') })));
 }
 /* The person's drawer says which private streams name them, each a door back
    to its page — their access to a private stream is set THERE, nowhere else. */
@@ -8317,7 +8319,7 @@ Object.assign(window,{stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsP
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
   stRulesRows,stPaintRules,stPaintSignFolders,
   openMyAccount,openSettingsAt,settingsGoTab,stUnfinishedCount,stPeopleWire,settingsTab,stLandTop,SET_PANELS,ST_TABS,SET_CLOSURES,ST_GROUPS,ST_ATTENTION_MAX,
-  ST_FACES,ST_GOV_LADDER,stGovRungs,stGovNext,stYouItems,stYouHtml,stYouCardHtml,stYouSheetItems,ST_YOU_SHEET,stChipsSet,stOpensSet,stNavAllSet,stBriefSet,stMenuHits,stFind,stFindRows,stFindGo,stNeedsAll,settingsGoPage,stYouGo,stPrefSet,stAsksLoad,stAsksOpen,stAsksAnswered,stAskSeen,stAskFrom,stJbAnswer,stJbAmount,stJbAsk,stJamboFocus,stSideSet,stSideFit,
+  ST_FACES,ST_GOV_LADDER,stGovRungs,stGovNext,stYouItems,stYouHtml,stYouCardHtml,stYouSheetItems,ST_YOU_SHEET,stChipsSet,stOpensSet,stBriefSet,stMenuHits,stFind,stFindRows,stFindGo,stNeedsAll,settingsGoPage,stYouGo,stPrefSet,stAsksLoad,stAsksOpen,stAsksAnswered,stAskSeen,stAskFrom,stJbAnswer,stJbAmount,stJbAsk,stJamboFocus,stSideSet,stSideFit,
   stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
   settingsWriteFolderAccess,settingsExportBackup,stGoLive,stLoadAiCfgOnce,stSampleContracts,stClearSamples,stRunIntegrity,
   stPersonMissing,stPersonSays,stPersonSumHtml,stAccountBodyHtml,parseDirectoryCsv,openFolderAccessEditor,settingsMirrorDirectory,

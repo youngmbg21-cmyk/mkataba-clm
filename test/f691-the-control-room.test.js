@@ -298,7 +298,7 @@ describe('f691 — the You board, as drawn', () => {
     const { sb, win, $ } = stage();
     for (const it of sb.stYouItems().filter(i => i.key !== 'password'))
       assert.ok(win.document.querySelector(`[data-st-you-card="${it.key}"]`), `${it.key} has a card`);
-    for (const [door, ids] of [['me:who', ['acct-title']], ['me:safety', ['ts-toggle', 'sessions-list']], ['me:work', ['pref-nav-all', 'pref-jb-chips', 'pref-opens-on']], ['me:told', []], ['me:password', ['pw-cur', 'pw-new', 'pw-again']]]) {
+    for (const [door, ids] of [['me:who', ['acct-title']], ['me:safety', ['ts-toggle', 'sessions-list']], ['me:work', ['pref-jb-chips', 'pref-opens-on']], ['me:told', []], ['me:password', ['pw-cur', 'pw-new', 'pw-again']]]) {
       sb.stDrawerOpen(door);
       for (const id of ids) assert.ok($(id), `${door} holds #${id}`);
     }

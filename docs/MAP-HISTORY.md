@@ -30700,3 +30700,89 @@ The owner picked "The SAP way" by name in the round 26 artifact (the drawing rec
 - **DATA & BACKUP IS A PAGE.** Every door that named the drawer — the Housekeeping card, The trail door, the Menu, Jambo, ⌘K, Needs you — lands on `settingsGoPage('data')` on the tab it asked for (`stDrawerOpen`: `trail` → the trail tab, `backup` → the Backup tab); `SET_PANELS.backup.page='data'` marks it, and its drawer body stays for anything that paints the panel by name. Tabs The trail · Backup at the head's right. The trail's asks are labelled boxes in one row (From, To, Streams, As — a choice, `#st-tr-as-sel`, where the drawer had two radios) with Download and the count under them; the downloads a table under that (`stTrailBandHtml`, the drawer's own ids and wiring, `stBkPaneHtml` choosing band or stack). The drawer's lead sentence ("Every act in HaTi for a period…") is not on the page: the page's name and its boxes say it.
 - **KEPT, AND WHY.** The drawing's Downloads table had an Acts column; the server does not keep a download's count, so the column is left out rather than guessed.
 - Tests: f727, streams-and-data-verify (red at the parent). Re-pointed: f193 (the drawer reuse test opens Approvals), settings-tabs (the drawer walk leaves out a panel whose door is a page, and checks that one lands on its page), trail-export (the page's tabs and band).
+
+
+## IMPORT: JAMBO'S PANEL BESIDE THE LIST (18 Oct 2026)
+
+The owner picked "The SAP way" for Import in round 22 of the redesign. The
+overnight build made the figures doors and the drop area a strip, but left out
+the panel the drawing showed beside the list, and said so in the morning
+summary ("there's no Jambo panel"). The owner's answer, 18 Oct 2026: "you need
+a jambo side panel so the uploads needs fixing".
+
+What was built (js/views/migration.js):
+- `#mig-side`, beside the list on a computer (the list and the panel in two
+  columns; under 1180 px wide the panel follows the list). Sticky in the page's
+  own scroller; nothing filed, per sitting like the figures.
+- With no file chosen, Jambo says the batch in words from the figures' own
+  counts (`migKpis`): how many came in, what needs you (to check, no readable
+  text, link decisions), the onboarding allowance used, and a chip that is the
+  figure's own door (narrows the list to the files to check, `migShowSet`).
+- A row press now CHOOSES the file (`migPickSet`, the list inspector's rule: a
+  press selects; pressed again it is let go). The row's Open, a double-click
+  and Enter on a chosen row still open the contract.
+- The chosen file: its facts are the review window's (MIG_CRITICAL, labelled
+  by META_FIELDS), amber where missing or read with low confidence — the same
+  reading migReadNeedsReview makes; a contract that passes no money is not
+  missing its value; evergreen is an answer. The marks (`migGates`), which the
+  dots only named on a hover, are said in words. Its doors are the row's own:
+  Review (openMigReview), Link (openLinkModal), Open.
+- Not built: the ask box at the panel's foot in the drawing — Jambo's one door
+  stays in the top bar, so the page has no second ask box. The import queue and
+  the migrated list stay two cards.
+
+Tests: f728-import-jambo-panel (red at main), import-jambo-panel-verify (red at
+main: every check fails, the run stops at a row press that opened the contract).
+
+
+## APPROVALS & SIGNING: THE AMBER LINE GOES (18 Oct 2026)
+
+Round 15 ("One worklist") left a question open: may the amber "Your approval is
+asked for." line go from the approval's panel, since the list's first group
+("Yours to answer") and the panel's Approve button already say it? The owner's
+yes came on 18 Oct 2026. The panel's line now skips the `approval` item
+(js/views/approvalsview.js, `insNeedsLineHtml(c, skip)`, `needsSkip` alike);
+anything else the contract owes still makes a line ("1 detail to fill."). Only
+the Approvals page's panel changes: the checklist beside the other lists keeps
+the item. sap-lists-verify 2d re-pointed (red at main: the line still said
+"Your approval is asked for. 1 detail to fill is also waiting.").
+
+
+## SETTINGS → YOU: THE SIDEBAR SWITCH GOES (18 Oct 2026)
+
+Round 24 ("One sheet") left a question open: "How you like to work" had a
+switch for the left sidebar ("only what you use" / show everything), but a
+computer draws no left sidebar since the Counter and the desk tabs, so the
+switch had nothing to act on. The owner's yes to removing it came on 18 Oct
+2026. Gone from the computer: the row on You (`stYouCardHtml` 'work'), the
+toggle in the How you like to work drawer (`#pref-nav-all`), its writer
+`stNavAllSet` and its finder words. It is on SET_CLOSURES (`sidebar`), so f193
+names it rather than missing it. The phone keeps its own switch in its menu
+(js/mobile.js), where the menu still earns its items (navShowEverything,
+navEarned) — those and their words stay. Tests re-pointed: f193, f691, f725.
+
+
+## KEEPING: A PRIVATE STREAM NO ADMIN CAN SEE (18 Oct 2026)
+
+Round 26 left a question open. A private stream's contracts are read only by
+the people it names, admins too, so where no admin is named, contracts past
+their keeping period were never listed for anybody: nobody was asked, and they
+stayed for ever. Three answers were offered; the owner picked "Prompt admins to
+get named" on 18 Oct 2026.
+
+- Server: `kpUnseen(rules)` reads, for each private stream that has a keeping
+  rule and names no admin, whether anything in it is due (`kpBook(null, fid,
+  [fid])` — kpBook took an optional scope for this; the one place the server
+  looks past the wall, and only to say yes or no). The answer, a list of stream
+  ids and nothing else (no count, no contract's id, name or party), rides the
+  admin's bootstrap (`keeping.unseen`) and GET /api/keeping. A workspace with no
+  rules keeps its old answer, `{ rules, due }`.
+- Browser: `stKpNeedRows` adds a Needs your attention row per stream, "No admin
+  can see it · <stream>", its button the stream's own page (Access), where an
+  admin names an admin, themselves included ("Add me"). Saving the stream reads
+  keeping again (`stKpLoad`) and takes the row out at once (`stSyncAttention`,
+  which removes rows and never adds one under the reader's hand); the page's
+  next paint brings the stream's contracts into that admin's own Ready to delete.
+- Not changed: who may delete. Only an admin named on the stream decides.
+
+Tests: f729 (1–3 red at main), keeping-no-admin-verify (1–3 red at main).
