@@ -2249,6 +2249,10 @@ const ALERT_KINDS = [
      cleared once read). Both open Settings, where the ask lives. */
   { k:'settings-ask',    tone:'amber', ic:'&#9881;' },
   { k:'settings-answer', tone:'green', ic:'&#9881;' },
+  /* findings on the map (Explorer stage 4): a question put to you, a finding sent to you, a reply to your question */
+  { k:'finding-ask',     tone:'amber', ic:'&#9671;' },
+  { k:'finding-sent',    tone:'gray',  ic:'&#9671;' },
+  { k:'finding-answer',  tone:'green', ic:'&#9671;' },
   /* THE QUARTER'S ACCESS REVIEW (17 Oct 2026, piece 8 of the sensitive-
      contracts plan): an admin's work owed until the quarter is stamped done */
   { k:'access-review',   tone:'amber', ic:'&#9881;' },
@@ -2794,6 +2798,13 @@ function buildAlerts(){
     if(typeof window.stAsksAnswered==='function') stAsksAnswered().forEach(a=>
       push('settings-answer',null,i18t(a.status==='done'?'al_settings_done':'al_settings_no',{what:a.what}),
         ()=>{ if(window.stAskSeen) stAskSeen(a.id); setView('team'); }, { sub:a.note||'' }));
+  }catch(e){}
+  /* FINDINGS ON THE MAP (Explorer stage 4): a hand-off lands here until it is answered or opened (flow rule 3) */
+  try{
+    if(typeof window.igFindingsOwed==='function'){ const o=igFindingsOwed(), title=id=>{ const f=window.igFinding&&igFinding(id); return (f&&f.title)||''; };
+      o.asked.forEach(s=>push('finding-ask',null,i18t('al_finding_ask',{ who:s.from.name||'', x:title(s.findingId) }),()=>igFindingGo(s.findingId),{ sub:s.ask||'' }));
+      o.sent.forEach(s=>push('finding-sent',null,i18t('al_finding_sent',{ who:s.from.name||'', x:title(s.findingId) }),()=>igFindingGo(s.findingId)));
+      o.answered.forEach(s=>push('finding-answer',null,i18t('al_finding_answer',{ who:s.to.name||'', x:title(s.findingId) }),()=>igFindingGo(s.findingId))); }
   }catch(e){}
   try{
     const meS=(typeof currentUser==='function')?currentUser():null;

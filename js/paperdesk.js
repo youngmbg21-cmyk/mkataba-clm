@@ -41,12 +41,12 @@ const PD_TAB_ALIAS = { deal: 'doc', hist: 'copilot', facts: 'copilot' };
 /* THE ARTIFACT'S SYMBOLS, EXACTLY (owner, 10 Oct 2026: "use the Symbols that
    were in the artifact before not the ones in hati"): typed marks, each held
    to its text face (U+FE0E), never the left menu's drawings. */
-const PD_TAB_GLYPH = { copilot: '\u2726', facts: '\u25A6', doc: '\u25A2', oblig: '\u2691', hist: '\u25F7', deal: '\u21C4', menu: '\u2630' };
+const PD_TAB_GLYPH = { copilot: '\u2726', facts: '\u25A6', doc: '\u25A2', oblig: '\u2691', hist: '\u25F7', deal: '\u21C4', menu: '\u2630', findings: '\u25C7' };
 const PD_TAB_ICON = PD_TAB_GLYPH;
 /* the room's own words for its tabs; Copilot and Deal have no room tab */
 /* THE DOCUMENT TAB IS CALLED CLAUSES (owner, 11 Oct 2026): Home's face is
    "Document" now, and this tab holds the clause list. */
-const PD_TAB_NAME = { copilot: 'pd_tab_copilot', facts: 'tab_overview', doc: 'pd_tab_clauses', oblig: 'tab_obligations', hist: 'tab_history', deal: 'pd_tab_deal', menu: 'pd_tab_menu' };
+const PD_TAB_NAME = { copilot: 'pd_tab_copilot', facts: 'tab_overview', doc: 'pd_tab_clauses', oblig: 'tab_obligations', hist: 'tab_history', deal: 'pd_tab_deal', menu: 'pd_tab_menu', findings: 'pd_tab_findings' };
 const PD_HIST_MAX = 40;          // trail rows drawn; the rest are counted and one press away
 let _pdTab = 'copilot';
 const _pdActs = new Map();       // act id -> function, refilled at every paint (resolved at press time)
@@ -108,6 +108,8 @@ function pdEmpty(title, ic){
    the duties recorded, Deal = their changes still open. Nothing is counted
    that the tab does not draw. */
 function pdTabCount(t, c){
+  /* the Findings tab counts the hand-offs owed this reader, never the list */
+  if (t === 'findings') return typeof igFindingsCount === 'function' ? igFindingsCount() : null;
   /* HIS TAB CARRIES THE COUNT while no paper is up (Jambo's note, 15 Oct
      2026): what needs you, the Board's "Needs you" card's own number */
   /* on the Board only, where the card is: the count walks the book, and
@@ -1627,8 +1629,11 @@ function pdTabGlyphHtml(t){
   return PD_TAB_GLYPH[t] + '\uFE0E';
 }
 function pdHeadHtml(brain){
-  const tabs = pdOnPaper() ? PD_TABS : ['copilot'];
-  const lit = tabs.includes(_pdTab) ? _pdTab : 'copilot';
+  /* FINDINGS (Explorer stage 4): beside Jambo on Explorer's map, no paper up;
+     the tab is the map's own (igFindingsShows), so the paper's tabs never meet it */
+  const fd = !pdOnPaper() && typeof igFindingsTabOn === 'function' && igFindingsTabOn();
+  const tabs = pdOnPaper() ? PD_TABS : (fd ? ['copilot', 'findings'] : ['copilot']);
+  const lit = fd && typeof igFindingsShows === 'function' && igFindingsShows() ? 'findings' : (tabs.includes(_pdTab) ? _pdTab : 'copilot');
   const c = pdOnPaper() ? pdContract() : null;
   return tabs.map(t => {
     const name = _pdT(PD_TAB_NAME[t]);

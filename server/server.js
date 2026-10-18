@@ -15615,7 +15615,10 @@ async function runSignApprovalReminders() {
   /* ASK AN ADMIN rides here too (16 Oct 2026): an ask nobody has answered */
   let asks = null;
   try { asks = await runSettingsAskReminders(); } catch (e) { asks = { error: (e && e.message) || String(e) }; }
-  return { ...named, sent: (named.sent || 0) + ((ruleSteps && ruleSteps.sent) || 0) + ((looks && looks.sent) || 0) + ((asks && asks.sent) || 0), ruleSteps, looks, asks };
+  /* …and a question put on a finding on the map (Explorer stage 4) */
+  let findings = null;
+  try { findings = await runFindingAskReminders(); } catch (e) { findings = { error: (e && e.message) || String(e) }; }
+  return { ...named, sent: (named.sent || 0) + ((ruleSteps && ruleSteps.sent) || 0) + ((looks && looks.sent) || 0) + ((asks && asks.sent) || 0) + ((findings && findings.sent) || 0), ruleSteps, looks, asks, findings };
 }
 async function runNamedYesReminders() {
   const rows = db.prepare("SELECT id, folder, json FROM contracts WHERE status!='Declined' AND status!='Signed' AND json LIKE '%signApprovals%'").all();
@@ -16306,6 +16309,166 @@ async function runSettingsAskReminders() {
   const rows = db.prepare("SELECT * FROM settings_asks WHERE status='open' AND created_at<=? AND (reminded_at IS NULL OR reminded_at<=?)").all(cut, cut);
   let sent = 0;
   for (const r of rows) { sent += settingsAskMailAdmins(r, null, true) ? 1 : 0; db.prepare('UPDATE settings_asks SET reminded_at=? WHERE id=?').run(now(), r.id); }
+  return { checked: rows.length, sent };
+}
+
+/* ============================================================
+   FINDINGS ON THE MAP (Explorer stage 4, 18 Oct 2026; built on the owner's
+   "build all the stages autonomously", as drawn in the "every view" picture)
+   ============================================================
+   A finding is a view of Explorer kept for colleagues: the recipe that draws
+   it, the parts it was counted in (each a list of contract ids), Jambo's
+   checked sentence and the author's note — its OWN RECORD here, never a
+   browser's. THE SERVER IS THE WALL: every id is filtered for the reader by
+   folderScopeFor (private streams included) before it leaves; the browser
+   then counts again on the reader's own book, so the numbers a reader sees
+   are always inside their access. A finding some of whose contracts the
+   reader cannot see says so — never how many, never their names — and its
+   sentence (written over the whole set) is not shown to them. A reader who
+   can see none of its contracts is not shown the finding at all. Code names:
+   every JSON answer passes cnMask at the front door, so a real deal name in a
+   title, note or sentence reaches an outsider as its code.
+   SEND TO A COLLEAGUE is a tracked hand-off (flow rule 3): it lands in their
+   bell; with a question it waits there, is reminded after
+   FINDING_ASK_REMIND_DAYS, and closes on their reply, which reaches the
+   sender's bell. A ROUTE NEVER READS AN ADDRESS FROM THE BODY: the colleague
+   is a member looked up by id. */
+db.exec(`CREATE TABLE IF NOT EXISTS map_findings (
+  id TEXT PRIMARY KEY, by_id TEXT NOT NULL, by_name TEXT, title TEXT NOT NULL, note TEXT NOT NULL DEFAULT '',
+  said TEXT NOT NULL DEFAULT '', recipe TEXT NOT NULL DEFAULT '{}', parts TEXT NOT NULL DEFAULT '[]',
+  ids TEXT NOT NULL DEFAULT '[]', view INTEGER NOT NULL DEFAULT 0, anchor TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL, removed_at TEXT)`);
+db.exec(`CREATE TABLE IF NOT EXISTS map_finding_notes (
+  id TEXT PRIMARY KEY, finding_id TEXT NOT NULL, by_id TEXT, by_name TEXT, text TEXT NOT NULL, created_at TEXT NOT NULL)`);
+db.exec(`CREATE TABLE IF NOT EXISTS map_finding_sends (
+  id TEXT PRIMARY KEY, finding_id TEXT NOT NULL, from_id TEXT NOT NULL, from_name TEXT, to_id TEXT NOT NULL, to_name TEXT,
+  ask TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'open', answered_at TEXT, seen_at TEXT, answer_seen_at TEXT,
+  created_at TEXT NOT NULL, reminded_at TEXT)`);
+const FINDING_IDS_MAX = 5000, FINDING_PARTS_MAX = 60, FINDING_RECIPE_MAX = 200000, FINDING_ASK_REMIND_DAYS = 3;
+const fdIds = v => [...new Set((Array.isArray(v) ? v : []).map(x => String(x == null ? '' : x).slice(0, 80)).filter(Boolean))].slice(0, FINDING_IDS_MAX);
+const fdJson = (s, d) => { try { const v = JSON.parse(s); return v == null ? d : v; } catch (_) { return d; } };
+/* the contract ids this reader may see, out of a list: inside their scope and still on the book */
+function fdVisible(user, ids) {
+  if (!ids.length) return new Set();
+  const scope = folderScopeFor(user), out = new Set();
+  const q = db.prepare('SELECT id, folder FROM contracts WHERE id=?');
+  for (const id of ids) { const r = q.get(id); if (r && inScope(scope, r.folder)) out.add(id); }
+  return out;
+}
+/* a finding as one reader may have it, or null when it is not theirs to see */
+function fdServe(row, user) {
+  const ids = fdIds(fdJson(row.ids, [])), mine = String(row.by_id) === String(user.id);
+  const vis = fdVisible(user, ids);
+  if (!mine && ids.length && !vis.size) return null;
+  const keep = list => fdIds(list).filter(id => vis.has(id));
+  const recipe = fdJson(row.recipe, {});
+  if (recipe && Array.isArray(recipe.lenses)) recipe.lenses = recipe.lenses.map(l => Object.assign({}, l, { ids: keep(l && l.ids),
+    badges: l && l.badges && typeof l.badges === 'object' ? Object.fromEntries(Object.entries(l.badges).filter(([id]) => vis.has(id))) : null }));
+  if (recipe && recipe.groups && typeof recipe.groups === 'object') recipe.groups = Object.fromEntries(Object.entries(recipe.groups).filter(([id]) => vis.has(id)));
+  /* a part holding none of the reader's contracts is not named to them: its label is a stream's, a party's… they may not see */
+  const parts = (fdJson(row.parts, []) || []).slice(0, FINDING_PARTS_MAX).map(p => ({ label: String((p && p.label) || '').slice(0, 120), ids: keep(p && p.ids) })).filter(p => p.ids.length);
+  const partial = vis.size < ids.length;
+  const notes = db.prepare('SELECT * FROM map_finding_notes WHERE finding_id=? ORDER BY created_at').all(row.id)
+    .map(n => ({ id: n.id, by: { id: n.by_id, name: n.by_name || '' }, text: n.text, at: n.created_at }));
+  return { id: row.id, by: { id: row.by_id, name: row.by_name || '' }, mine, title: row.title, note: row.note || '',
+    said: partial ? null : (row.said || ''), partial, recipe, parts, ids: [...vis], view: Number(row.view) || 0,
+    anchor: row.anchor || '', createdAt: row.created_at, notes };
+}
+const fdSendRow = r => ({ id: r.id, findingId: r.finding_id, from: { id: r.from_id, name: r.from_name || '' }, to: { id: r.to_id, name: r.to_name || '' },
+  ask: r.ask || '', status: r.status, answeredAt: r.answered_at || null, seenAt: r.seen_at || null, answerSeenAt: r.answer_seen_at || null, createdAt: r.created_at });
+function fdMailTo(u, key, vars, req) {
+  if (!u || !validEmail(u.email)) return false;
+  const L = (u.lang && I18N_STRINGS[u.lang]) ? u.lang : I18N_DEFAULT;
+  const url = (APP_URL() || (req ? `${req.protocol}://${req.get('host')}` : '')) + '/#intel';
+  sendEmail(u.email, tFor(L, key + '_subject', vars), `${tFor(L, 'mail_hello')}${u.name ? ' ' + u.name : ''},\n\n`
+    + tFor(L, key + '_lead', vars) + '\n' + (vars.ask ? `\n"${vars.ask}"\n` : '') + (url ? `\n${url}\n` : '') + `\n${tFor(L, 'mail_automated_notice')}`, 'map finding');
+  return true;
+}
+app.get('/api/findings', auth, (req, res) => {
+  const rows = db.prepare('SELECT * FROM map_findings WHERE removed_at IS NULL ORDER BY created_at DESC LIMIT 400').all();
+  const findings = rows.map(r => fdServe(r, req.user)).filter(Boolean);
+  const seen = new Set(findings.map(f => f.id));
+  const sends = db.prepare('SELECT * FROM map_finding_sends WHERE to_id=? OR from_id=? ORDER BY created_at DESC LIMIT 200').all(req.user.id, req.user.id)
+    .filter(s => seen.has(s.finding_id)).map(fdSendRow);
+  res.json({ findings, sends });
+});
+app.post('/api/findings', auth, rlIntake, (req, res) => {
+  const b = req.body || {};
+  const title = myText(b.title, 160); if (!title) return res.status(400).json({ error: 'Give the finding a title' });
+  const recipe = (b.recipe && typeof b.recipe === 'object' && !Array.isArray(b.recipe)) ? b.recipe : {};
+  const rj = JSON.stringify(recipe); if (rj.length > FINDING_RECIPE_MAX) return res.status(413).json({ error: 'This view is too large to keep' });
+  const parts = (Array.isArray(b.parts) ? b.parts : []).slice(0, FINDING_PARTS_MAX).map(p => ({ label: myText(p && p.label, 120), ids: fdIds(p && p.ids) })).filter(p => p.label);
+  /* the set it is about: what was drawn — every id in a part or a lens — and only what the author may see */
+  const all = fdIds([].concat(fdIds(b.contracts), ...parts.map(p => p.ids), ...((recipe.lenses || []).map(l => fdIds(l && l.ids)))));
+  const vis = fdVisible(req.user, all);
+  const ids = all.filter(id => vis.has(id));
+  const id = 'FD-' + rid(5).toUpperCase();
+  db.prepare('INSERT INTO map_findings (id,by_id,by_name,title,note,said,recipe,parts,ids,view,anchor,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
+    .run(id, req.user.id, req.user.name || '', title, myText(b.note, 1200), myText(b.said, 1200), rj,
+      JSON.stringify(parts.map(p => ({ label: p.label, ids: p.ids.filter(x => vis.has(x)) }))), JSON.stringify(ids),
+      Math.max(0, Math.min(4, Number(b.view) || 0)), myText(b.anchor, 120), now());
+  res.json({ ok: true, finding: fdServe(db.prepare('SELECT * FROM map_findings WHERE id=?').get(id), req.user) });
+});
+/* the author, or an admin, takes a finding down; it stays on the record */
+app.delete('/api/findings/:id', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM map_findings WHERE id=? AND removed_at IS NULL').get(String(req.params.id || ''));
+  if (!r || !fdServe(r, req.user)) return res.status(404).json({ error: 'Finding not found' });
+  if (String(r.by_id) !== String(req.user.id) && req.user.role !== 'admin') return res.status(403).json({ error: 'Only its author or an admin can remove a finding' });
+  db.prepare('UPDATE map_findings SET removed_at=? WHERE id=?').run(now(), r.id);
+  res.json({ ok: true });
+});
+/* a reply; from a colleague a question was put to, it is their answer */
+app.post('/api/findings/:id/notes', auth, rlIntake, (req, res) => {
+  const r = db.prepare('SELECT * FROM map_findings WHERE id=? AND removed_at IS NULL').get(String(req.params.id || ''));
+  if (!r || !fdServe(r, req.user)) return res.status(404).json({ error: 'Finding not found' });
+  const text = myText((req.body || {}).text, 1200); if (!text) return res.status(400).json({ error: 'Write the reply first' });
+  db.prepare('INSERT INTO map_finding_notes (id,finding_id,by_id,by_name,text,created_at) VALUES (?,?,?,?,?,?)').run('FN-' + rid(6).toUpperCase(), r.id, req.user.id, req.user.name || '', text, now());
+  const open = db.prepare("SELECT * FROM map_finding_sends WHERE finding_id=? AND to_id=? AND status='open' AND ask!=''").all(r.id, req.user.id);
+  for (const s of open) {
+    db.prepare("UPDATE map_finding_sends SET status='answered', answered_at=?, seen_at=COALESCE(seen_at, ?) WHERE id=?").run(now(), now(), s.id);
+    fdMailTo(db.prepare('SELECT * FROM users WHERE id=?').get(s.from_id), 'mail_fd_answer', { who: req.user.name || '', title: r.title, ask: text }, req);
+  }
+  res.json({ ok: true, finding: fdServe(r, req.user), answered: open.length });
+});
+app.post('/api/findings/:id/send', auth, rlIntake, (req, res) => {
+  const r = db.prepare('SELECT * FROM map_findings WHERE id=? AND removed_at IS NULL').get(String(req.params.id || ''));
+  if (!r || !fdServe(r, req.user)) return res.status(404).json({ error: 'Finding not found' });
+  const b = req.body || {};
+  const to = db.prepare('SELECT * FROM users WHERE id=?').get(String(b.to || ''));
+  if (!to) return res.status(400).json({ error: 'Choose a colleague' });
+  if (String(to.id) === String(req.user.id)) return res.status(400).json({ error: 'Choose someone other than yourself' });
+  if (!fdServe(r, to)) return res.status(409).json({ error: `${to.name || 'They'} cannot see any of the contracts in this finding` });
+  const ask = myText(b.ask, 600);
+  const open = db.prepare("SELECT * FROM map_finding_sends WHERE finding_id=? AND to_id=? AND from_id=? AND status='open'").get(r.id, to.id, req.user.id);
+  if (open) return res.json({ ok: true, send: fdSendRow(open), again: true });
+  const id = 'FS-' + rid(6).toUpperCase();
+  db.prepare('INSERT INTO map_finding_sends (id,finding_id,from_id,from_name,to_id,to_name,ask,status,created_at) VALUES (?,?,?,?,?,?,?,?,?)')
+    .run(id, r.id, req.user.id, req.user.name || '', to.id, to.name || '', ask, 'open', now());
+  const mailed = fdMailTo(to, ask ? 'mail_fd_ask' : 'mail_fd_sent', { who: req.user.name || '', title: r.title, ask }, req);
+  res.json({ ok: true, send: fdSendRow(db.prepare('SELECT * FROM map_finding_sends WHERE id=?').get(id)), mailed });
+});
+/* "seen" is the reader's own: a finding sent without a question closes when its colleague opens it */
+app.patch('/api/findings/sends/:id', auth, (req, res) => {
+  const s = db.prepare('SELECT * FROM map_finding_sends WHERE id=?').get(String(req.params.id || ''));
+  if (!s || (String(s.to_id) !== String(req.user.id) && String(s.from_id) !== String(req.user.id))) return res.status(404).json({ error: 'Not found' });
+  if (String(s.to_id) === String(req.user.id)) {
+    db.prepare('UPDATE map_finding_sends SET seen_at=COALESCE(seen_at, ?) WHERE id=?').run(now(), s.id);
+    if (!s.ask && s.status === 'open') db.prepare("UPDATE map_finding_sends SET status='seen' WHERE id=?").run(s.id);
+  } else db.prepare('UPDATE map_finding_sends SET answer_seen_at=COALESCE(answer_seen_at, ?) WHERE id=?').run(now(), s.id);
+  res.json({ ok: true, send: fdSendRow(db.prepare('SELECT * FROM map_finding_sends WHERE id=?').get(s.id)) });
+});
+/* THE REMINDER: a question on a finding still unanswered FINDING_ASK_REMIND_DAYS
+   after it was put (or after its last reminder) is mailed again. Rides the
+   approval reminders' sweep, beside Ask an admin. */
+async function runFindingAskReminders() {
+  const cut = new Date(Date.now() - FINDING_ASK_REMIND_DAYS * 864e5).toISOString();
+  const rows = db.prepare("SELECT * FROM map_finding_sends WHERE status='open' AND ask!='' AND created_at<=? AND (reminded_at IS NULL OR reminded_at<=?)").all(cut, cut);
+  let sent = 0;
+  for (const s of rows) {
+    const f = db.prepare('SELECT * FROM map_findings WHERE id=? AND removed_at IS NULL').get(s.finding_id);
+    if (f && fdMailTo(db.prepare('SELECT * FROM users WHERE id=?').get(s.to_id), 'mail_fd_ask_again', { who: s.from_name || '', title: f.title, ask: s.ask }, null)) sent++;
+    db.prepare('UPDATE map_finding_sends SET reminded_at=? WHERE id=?').run(now(), s.id);
+  }
   return { checked: rows.length, sent };
 }
 
