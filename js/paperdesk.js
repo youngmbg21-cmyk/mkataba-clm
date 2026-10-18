@@ -1044,6 +1044,77 @@ function pdSignNextHtml(c){
     ? `<button type="button" class="pd-go" data-pd-sf-oblig="${_pdE(c.id)}">${_pdE(_pdT('pd_sf_next_go'))}${PD_GO_ARROW}</button>` : '';
   return `<section class="pd-sf-next"><h6>${_pdE(_pdT('pd_sf_next_head'))}</h6><p>${_pdE(say)}</p>${go}</section>`;
 }
+/* ---- THE ROAD (round 10 of the redesign: the owner picked "The road" by
+   name and said yes to the Sign button appearing only to the person whose
+   turn it is, 17 Oct 2026) ----
+   The way to "signed" as stops: the checks, the yes where an approval is
+   asked, each step of the signing route, sealed and sent. Each stop is a
+   READING of what the column already reads (signReadiness, signSteps,
+   nextSigner) — nothing here holds, writes or decides. The column's own body
+   stands open under the stop the road is at, its buttons wired by their
+   painters as before; the Sign button stands only in the stop of the person
+   whose turn it is (grey with its reason where something still holds), and
+   nowhere for anyone else. */
+const PD_RD_YES = ['approval', 'signapproval'];
+const PD_RD_SIGN = ['turn', 'signers', 'spots', 'signcap', 'signfolder'];
+/* whose turn it is, read as the signing act reads it (signDocument): the next
+   signer on our side, and either reserved for this person or for anyone */
+function pdSignMine(c){
+  if (!c || pdSignState(c).closed || typeof nextSigner !== 'function') return false;
+  const ns = nextSigner(c); if (!ns || ns.party !== 'internal') return false;
+  const u = (typeof currentUser === 'function') ? currentUser() : null;
+  return !ns.memberId || !!(u && String(u.id) === String(ns.memberId));
+}
+function pdRoadStops(c){
+  const s = pdSignState(c);
+  let rd = { holds: [], rows: [] };
+  if (!s.closed) try { rd = (typeof signReadiness === 'function') ? (signReadiness(c) || rd) : rd; } catch (_){}
+  const holds = rd.holds || [];
+  const checks = holds.filter(h => !PD_RD_YES.includes(h.kind) && !PD_RD_SIGN.includes(h.kind));
+  const yes = holds.filter(h => PD_RD_YES.includes(h.kind));
+  const yesSettled = (rd.rows || []).some(r => r && r.kind === 'signapproval' && r.settled);
+  const stops = [];
+  stops.push({ k: 'ready', done: s.closed || !checks.length, t: _pdT('pd_rd_ready'),
+    sub: (s.closed || !checks.length) ? _pdT('pd_rd_ready_done') : _pdTn('sc_n_to_settle', checks.length, { n: checks.length }) });
+  if (yes.length || yesSettled) stops.push({ k: 'yes', done: s.closed || !yes.length, t: _pdT('pd_rd_yes'),
+    sub: yes.length ? String(yes[0].short || yes[0].label || '') : _pdT('pd_rd_yes_done') });
+  let steps = []; try { steps = (typeof signSteps === 'function') ? signSteps(c) : []; } catch (_){ steps = []; }
+  const now = (typeof signStepNow === 'function') ? signStepNow(c) : 0;
+  const mine = pdSignMine(c);
+  let ours = ''; try { ours = (typeof contractParty === 'function') ? String(contractParty(c) || '') : ''; } catch (_){ ours = ''; }
+  if (!steps.length && !s.closed) stops.push({ k: 'who', done: false, t: _pdT('pd_rd_who'), sub: _pdT('pd_rd_nobody') });
+  steps.forEach(st => {
+    const theirs = st.rows.every(r => r && r.party === 'counterparty');
+    const party = theirs ? (String(c.counterparty || '').trim() || _pdT('ng_the_counterparty')) : (ours || _pdT('pd_rd_us'));
+    const names = st.rows.map(r => String((r && r.name) || '').trim()).filter(Boolean).join(' · ');
+    const done = st.rows.every(r => r && r.signed);
+    const here = !done && st.n === now;
+    const isMine = here && mine && st.rows.some(r => r && r.party === 'internal');
+    const state = done ? _pdT('pd_rd_signed') : here ? _pdT(isMine ? 'pd_rd_turn_you' : 'pd_rd_turn') : _pdT('pd_rd_after');
+    stops.push({ k: 'step' + st.n, done, mine: isMine, t: _pdT('pd_rd_signs', { party }), sub: [names, state].filter(Boolean).join(' · ') });
+  });
+  const obs = (Array.isArray(c.obligations) ? c.obligations : []).filter(o => o && o.status !== 'done').length;
+  stops.push({ k: 'sealed', done: s.closed, t: _pdT('pd_rd_sealed'),
+    sub: [_pdT('pd_rd_copies'), obs ? _pdTn('pd_rd_obls', obs, { n: obs }) : ''].filter(Boolean).join(' · ') });
+  const cur = stops.findIndex(x => !x.done);
+  return { stops, cur: cur < 0 ? stops.length - 1 : cur, mineAt: stops.findIndex(x => x.mine), closed: s.closed };
+}
+/* drawn in place after every paint of the column (pdSignCounts): the stops,
+   and where the column's body and the Sign button stand among them */
+function pdRoadPaint(c){
+  const host = (typeof document !== 'undefined') ? document.getElementById('pd-signface') : null; if (!host || !c) return;
+  const w = host.querySelector('[data-pd-road]'); if (!w) return;
+  const R = pdRoadStops(c);
+  const h = R.stops.map((x, i) => `<div class="pd-road-stop ${x.done ? 'is-done' : i === R.cur ? 'is-now' : 'is-later'}${i === R.stops.length - 1 ? ' is-last' : ''}" data-pd-road-stop="${_pdE(x.k)}" style="order:${2 * i + 2}">
+      <i class="pd-road-dot" aria-hidden="true">${x.done ? '✓' : i === R.cur ? '!' : ''}</i><div class="pd-road-t"><b>${_pdE(x.t)}</b>${x.sub ? `<small>${_pdE(x.sub)}</small>` : ''}</div></div>`).join('');
+  if (w.innerHTML !== h) w.innerHTML = h;
+  const body = host.querySelector('.pd-sf-body'); if (body) body.style.order = String(2 * R.cur + 3);
+  const foot = host.querySelector('.pd-sf-foot');
+  if (foot){ const show = R.mineAt >= 0;
+    foot.style.order = String(2 * Math.max(R.mineAt, 0) + 3);
+    foot.style.display = show ? '' : 'none';
+    foot.toggleAttribute('data-pd-road-mine', show); }
+}
 function pdSignFaceHtml(c){
   if (!c) return '';
   _pdActs.clear();
@@ -1052,8 +1123,9 @@ function pdSignFaceHtml(c){
      line and the copies, then the record of who approved and signed */
   const closed = pdSignState(c).closed;
   const wrap = `<div id="sign-wrap"></div>`;
-  return `<div class="pd-sf${closed ? ' is-closed' : ''}" data-pd-sf="${_pdE(c.id)}">
+  return `<div class="pd-sf is-road${closed ? ' is-closed' : ''}" data-pd-sf="${_pdE(c.id)}">
     <div class="pd-sf-h" data-pd-sf-head>${pdSignHeadHtml(c)}</div>
+    <div class="pd-road-w" data-pd-road></div>
     <div class="pd-sf-body scroll-thin sign-one">
       <div id="sign-seal-acts" class="sign-seal-acts"></div>
       <div data-pd-sf-next>${pdSignNextHtml(c)}</div>
@@ -1081,6 +1153,7 @@ function pdSignCounts(c){
   if (!c || String(c.id) !== _pdSign) return;
   const head = host.querySelector('[data-pd-sf-head]'); if (head) head.innerHTML = pdSignHeadHtml(c);
   const next = host.querySelector('[data-pd-sf-next]'); if (next) next.innerHTML = pdSignNextHtml(c);
+  pdRoadPaint(c);
   /* the face's shape follows the contract closing (the Sign button's foot
      becomes the receipt's line), and the paper takes a signature given */
   const root = host.querySelector('.pd-sf');
@@ -2132,7 +2205,7 @@ if (typeof document !== 'undefined' && !document._jbWired){
 Object.assign(window, { pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedHeadEndHtml, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
-  pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,
+  pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,
   PD_FILL_TRIES, PD_FILL_BEAT_MS, pdFillFor, pdFillShows, pdFillOpen, pdFillSeen, pdFillAway, pdFillClose, pdFillHeadHtml, pdFillDoneHtml, pdFillFaceHtml, pdFillMark, pdFillGroupsPaint, pdFillRows, pdFillRowKey, pdFillFacePaint, pdFillCounts, pdFillKeyOf, pdFillEcho, pdFillWire, pdFillLand, pdFillRefresh,
   pdFillStreamMay, pdFillStreamHtml, pdFillStreamRepaint, pdFillStreamPick,
   PD_DROP_ACCEPT, pdDropMay, pdWallHelloHtml, pdDropInner, pdDropStreams, pdDropStreamNow, pdDropStreamHtml, pdDropHtml, pdDropPaint, pdWallHtml, pdDropInput, pdDropBusyNow, pdDropPick, PD_DROP_TOAST_MS, pdDropToastOff, pdDropTake,

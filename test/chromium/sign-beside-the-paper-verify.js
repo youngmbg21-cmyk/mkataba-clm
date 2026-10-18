@@ -202,9 +202,12 @@ const FACE = () => {
         return { dock: Math.round(document.getElementById('ig-dock').getBoundingClientRect().width),
           headIn: !!head && head.top >= fr.top - 1 && head.bottom <= fr.bottom, xIn: !!x && x.right <= fr.right + 1,
           btnIn: !!btn && btn.bottom <= Math.min(fr.bottom, innerHeight) + 1 && btn.top >= fr.top,
+          mine: !!(window.pdSignMine && pdSignMine(getContract('MK-A2'))), btnHidden: !btn || (btn.width === 0 && btn.height === 0),
           sideways: body ? body.scrollWidth - body.clientWidth : null, docW: document.documentElement.scrollWidth - document.documentElement.clientWidth };
       });
-      check(`8 ${w}×${hh}: the face fits — head, × and Sign in sight, nothing sideways`, m.headIn && m.xIn && m.btnIn && m.sideways <= 1 && m.docW <= 0, JSON.stringify(m));
+      /* RE-POINTED 17 Oct 2026 (round 10, "The road"; the owner's yes): the Sign button stands only in the stop
+         of the person whose turn it is — in sight for them, drawn for nobody else */
+      check(`8 ${w}×${hh}: the face fits — head and × in sight, Sign in sight where it is the reader's turn (else not drawn), nothing sideways`, m.headIn && m.xIn && (m.mine ? m.btnIn : m.btnHidden) && m.sideways <= 1 && m.docW <= 0, JSON.stringify(m));
       check(`8 ${w}×${hh}: the panel keeps its width when the face opens`, before === m.dock, `${before} → ${m.dock}`);
       await page.screenshot({ path: path.join(OUT, `8-${w}x${hh}.png`) });
     }

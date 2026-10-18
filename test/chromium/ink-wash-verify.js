@@ -20,6 +20,11 @@
 
      node test/chromium/ink-wash-verify.js --save   (record, on the code BEFORE)
 
+   RE-RECORDED 17 Oct 2026 (eighth), OWNER-ASKED (the overnight build, same
+   standing yes): Round 10, "The road" — Before you sign draws its stops
+   (Ready to sign, who signs, sealed and sent) above and around the column, so
+   on the signing screen the 11, 12 and 13px counts rose and, in dark, counts
+   of colours already in the palette. Audited by key: nothing new, nothing gone.
    RE-RECORDED 17 Oct 2026 (seventh), OWNER-ASKED (the overnight build, same
    standing yes): Round 9, "Piles" — a Redlines row says who and when and the
    reason they gave, the reference rides its hover: on the negotiate screen

@@ -9446,6 +9446,25 @@
   #pd-signface .pd-sf-wrap{padding:12px 15px;border-bottom:1px solid var(--color-divider)}
   #pd-signface .pd-sf-foot, #pd-amendface .pd-sf-foot{flex:none;padding:10px 14px 12px;border-top:1px solid var(--color-divider);background:var(--color-surface)}
   #pd-signface .pd-sf-foot:has(#sign-wrap:empty){display:none}
+  /* THE ROAD (round 10 of the redesign, 17 Oct 2026): the way to "signed" as stops down the face, the
+     column's body open under the stop it is at, the Sign button in the stop of the person whose turn it
+     is; the face scrolls as one, its head staying in sight */
+  #pd-signface .pd-sf.is-road{overflow-y:auto}
+  #pd-signface .pd-sf.is-road > .pd-sf-h{position:sticky;top:0;z-index:2;background:var(--color-surface);order:0}
+  #pd-signface .pd-sf.is-road > .pd-sf-body.sign-one{flex:none;overflow:visible;min-height:auto;margin:0 0 4px 30px;border-left:2px solid var(--st-amber-line)}
+  #pd-signface .pd-sf.is-road > .pd-sf-foot{position:static;margin:0 0 4px 30px;border-top:0}
+  #pd-signface .pd-road-w{display:contents}
+  #pd-signface .pd-road-stop{display:flex;gap:10px;align-items:flex-start;padding:10px 14px 8px;position:relative}
+  #pd-signface .pd-road-stop::before{content:"";position:absolute;left:24px;top:30px;bottom:-8px;width:2px;background:var(--color-divider)}
+  #pd-signface .pd-road-stop.is-last::before{display:none}
+  #pd-signface .pd-road-stop.is-done::before{background:var(--st-green-line)}
+  #pd-signface .pd-road-dot{flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:11px;font-weight:var(--w-strong);background:var(--color-surface);border:2px solid var(--color-divider);color:var(--color-neutral-600);position:relative;z-index:1}
+  #pd-signface .pd-road-stop.is-done .pd-road-dot{background:var(--st-green-bg);border-color:var(--st-green-line);color:var(--st-green-fg)}
+  #pd-signface .pd-road-stop.is-now .pd-road-dot{background:var(--st-amber-bg);border-color:var(--st-amber-line);color:var(--st-amber-fg)}
+  #pd-signface .pd-road-t{display:flex;flex-direction:column;gap:2px;min-width:0}
+  #pd-signface .pd-road-t b{font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text)}
+  #pd-signface .pd-road-stop.is-later .pd-road-t b{font-weight:var(--w-label);color:var(--color-neutral-700)}
+  #pd-signface .pd-road-t small{font-size:12px;color:var(--color-neutral-600);line-height:1.45}
   #pd-signface .pd-sf-foot #sign-wrap > p{margin-bottom:0}
   #pd-body .pd-ob.is-chosen{box-shadow:inset 3px 0 0 var(--accent-ink);background:var(--color-accent-50)}
   /* AMEND, BESIDE THE PAPER (owner, 15 Oct 2026): the face wears the Before you sign frame; the paper's marks are painted, never stored */
