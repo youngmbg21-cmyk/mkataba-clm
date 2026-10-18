@@ -7121,7 +7121,11 @@ function ktFieldCell(c,k,edit,marks){
         const door=(!PORTAL_MODE&&window.bsPayMay&&bsPayMay(c))?` <button type="button" class="ui-link" data-ov-pay-edit="${esc(c.id)}">${esc(i18t('bs_pay_edit'))}</button>`:'';
         return [i18t('ov_f_pay'), `<span class="ov-pay-read">${read||'—'}${door}</span>`];
       }
-      const read=R.monetary?(R.money?mono(R.money):''):esc(i18t('ct_non_monetary'));
+      /* AS AMENDED (round 7, owner's yes, 17 Oct 2026): a signed amendment that
+         set the value governs the figure shown, the signed one said beside it
+         — the same reading as the life line's Value (effectiveTerm) */
+      let am=null; try{ const e=(!edit&&window.effectiveTerm)?effectiveTerm(c,'value'):null; if(e&&e.from&&Number(e.v)>0&&Number(e.v)!==Number(c.value)) am=e; }catch(_){ am=null; }
+      const read=R.monetary?(R.money?(am&&window.effectiveValueView&&window.fmtMoneyOf?`${mono(fmtMoneyOf(effectiveValueView(c)))} <span class="ov-amd">${esc(i18t('ov_value_amended',{ v:R.money }))}</span>`:mono(R.money)):''):esc(i18t('ct_non_monetary'));
       if(!edit) return [i18t('ov_f_value'), read];
       return [i18t('ov_f_value'),
         `<span class="ov-val-edit" style="display:flex;align-items:center;gap:8px">
@@ -8651,6 +8655,23 @@ function histWhen(at, now){
   }
   return { day, time };
 }
+/* ---- TWO SIDES (round 12 of the redesign: the owner picked "Two sides" by
+   name, 17 Oct 2026) ----
+   History reads as the negotiation's conversation: our steps in the left
+   lane, theirs in the right, the days down the middle. Which lane is the
+   event's own side (the negotiation's `side`); a trail entry with no side
+   is ours where one of our own people wrote it (_histOurPeople, the "Ours"
+   reading's own rule); what only we can see — who opened it, who was named
+   on its stream — and an entry nobody can place sit on the middle line.
+   A reading of the row only: nothing is filtered, moved or counted by it. */
+function histLaneOf(e, ours){
+  if(!e) return 'mid';
+  if(e._k==='opened'||e._k==='access') return 'mid';
+  if(e.side==='owner') return 'ours';
+  if(e.side==='counterparty') return 'theirs';
+  const who=String(e.actor||'').trim().toLowerCase();
+  return (who && ours && ours.has(who)) ? 'ours' : 'mid';
+}
 function roomHistoryHtml(c,f={},opts={}){
   /* ---- NEWEST FIRST (Young ruled 24 Sep 2026: "The way the history is
      chronicled") ----
@@ -8739,14 +8760,25 @@ function roomHistoryHtml(c,f={},opts={}){
     const dot=e._k==='opened'
       ? `<span class="hist-dot is-eye" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span>`
       : `<span class="hist-dot" style="border-color:${histTone(e)}" title="${esc(m.mark)}" aria-hidden="true"></span>`;
-    return `<div class="hist-ev${e._k==='opened'?' is-open':''}" data-hist-at="${esc(e.at||'')}">
-      <span class="hist-when">${w.time?`<span class="hist-time">${esc(w.time)}</span>`:`<span class="hist-day">${esc(w.day)}</span>`}</span>
-      ${dot}
+    /* TWO SIDES (round 12): the same parts in a bubble in its side's lane —
+       the time, the ring, who and the outcome on its top line, the event and
+       its wording under it — or, on the middle line, one quiet pill. */
+    const lane=histLaneOf(e, ours);
+    const when=`<span class="hist-when">${w.time?`<span class="hist-time">${esc(w.time)}</span>`:`<span class="hist-day">${esc(w.day)}</span>`}</span>`;
+    const whoH=`<span class="hist-who">${e.actor?`${av}<span>${esc(e.actor)}</span>`:''}</span>`;
+    const ocH=`<span class="hist-oc">${oc?`<span class="hist-pill is-${oc.t}">${esc(oc.w)}</span>`:''}</span>`;
+    const inside=e._k==='opened'||e._k==='access';
+    if(lane==='mid') return `<div class="hist-ev is-mid${inside?' is-inside':''}${e._k==='opened'?' is-open':''}" data-hist-at="${esc(e.at||'')}" data-hist-lane="mid">
+      <span class="hist-inside">${when}${dot}${whoH}<span class="hist-body"><span class="hist-text">${esc(e.text||'')}${rchip}${cl}</span></span>${ocH}</span>${body?`<div class="hist-mid-more">${body}</div>`:''}</div>`;
+    return `<div class="hist-ev is-${lane}${e._k==='opened'?' is-open':''}" data-hist-at="${esc(e.at||'')}" data-hist-lane="${lane}">
+      <div class="hist-bub"><div class="hist-top">${when}${dot}${whoH}${ocH}</div>
       <div class="hist-body"><div class="hist-text">${esc(e.text||'')}${rchip}${cl}</div>
-      ${also?`<div class="hist-meta">${also}</div>`:''}${body}${why}${reply}</div>
-      <span class="hist-who">${e.actor?`${av}<span>${esc(e.actor)}</span>`:''}</span>
-      <span class="hist-oc">${oc?`<span class="hist-pill is-${oc.t}">${esc(oc.w)}</span>`:''}</span></div>`;
+      ${also?`<div class="hist-meta">${also}</div>`:''}${body}${why}${reply}</div></div></div>`;
   };
+  const ours=_histOurPeople();
+  /* the lanes' heads: our party, the days, theirs */
+  const usName=(typeof contractParty==='function'?contractParty(c):'')||FIRST_PARTY||'';
+  const lanesHead=`<div class="hist-lh is-l"><i aria-hidden="true"></i>${esc(i18t('ct_hist_lane_ours',{ who:usName }))}</div><div class="hist-lh is-m">${esc(i18t('ct_hist_lane_day'))}</div><div class="hist-lh is-r"><i aria-hidden="true"></i>${esc(i18t('ct_hist_lane_theirs',{ who:c.counterparty||i18t('co_them') }))}</div>`;
   /* THE DAY IS A HEADING OVER ITS ENTRIES, with its count (as drawn). */
   const dayKey=e=>String(e.at||'').slice(0,10);
   const dayLabel=e=>{ const d=new Date(e.at); if(isNaN(d)) return dayKey(e)||'\u2014';
@@ -8788,12 +8820,13 @@ function roomHistoryHtml(c,f={},opts={}){
      own: it is a fact about the list, not a status. */
   return `<div class="hist-head">
       <h6 style="margin:0;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading)">${esc(i18t('tab_history'))}</h6>
-      <span class="hist-cap">${esc(i18t('ct_hist_reading'))} · ${on?esc(i18t('ct_hist_n_of',{n:evs.length,all}))
+      <span class="hist-cap">${esc(i18t('ct_hist_reading'))} · ${esc(i18t('ct_hist_lanes_say'))} · ${on?esc(i18t('ct_hist_n_of',{n:evs.length,all}))
         :esc(i18tn('ct_hist_events',all,{n:all}))}${opensN?` · ${esc(i18tn('ct_hist_opens_n',opensN,{n:opensN}))}`:''}${cutN?` · ${esc(i18tn('ct_hist_opens_cut',cutN,{n:cutN}))}`:''}</span>
       <span style="flex:1;min-width:4px"></span>
       <label class="hist-q"><span class="sr-only">${esc(i18t('ct_hist_search'))}</span>${icon('search','w-3.5 h-3.5')}<input id="hist-q" type="search" value="${esc(_histQ)}" placeholder="${esc(i18t('ct_hist_search'))}" autocomplete="off"></label>
-      <div class="hist-side" role="group" aria-label="${esc(i18t('ct_hf_side'))}">${HIST_SIDES.map(([v,k])=>
-        `<button type="button" data-ht-side="${v}" aria-pressed="${String((f&&f.side)||'')===v}">${esc(i18t(k))}</button>`).join('')}</div>
+      ${''/* THE SIDE SWITCH IS GONE (round 12, "Two sides"): each side is its own
+             lane, so "whose step was it" is read by where it stands, not
+             filtered. HIST_SIDES and .hist-side are STALE. */}
       <button id="hist-filter-btn" class="ui-btn" aria-expanded="${(_histFiltersOpen||onF)?'true':'false'}" aria-controls="hist-filters">${icon('filter','w-3.5 h-3.5')}${esc(i18t('ct_hist_filter'))}${onF?` <span class="hist-fn">${onF}</span>`:''}${icon('chevD')}</button>
       ${''/* The long reading. Named for what pressing it does, not for the mode
              it is in — "Detailed" tells you nothing about which way you are
@@ -8813,6 +8846,12 @@ function roomHistoryHtml(c,f={},opts={}){
                  the strip's History page among them. */}
           ${`<button type="button" id="ht-export">${icon('download','w-3.5 h-3.5')}${i18t('ct_export_history')}<span class="mnote">${i18t('ct_standalone_file')}</span></button>
           <button type="button" id="ht-print">${icon('printer','w-3.5 h-3.5')}${esc(i18t('ct_hist_print'))}<span class="mnote">${i18t('ct_same_report_paper')}</span></button>`}
+          ${''/* THE WHOLE TRAIL, FOR ADMINS (round 12, the owner's "Yes"): every
+                 contract's record for a period, as a file — Settings → Data &
+                 backup → The trail, its one home. Beside this contract's own
+                 Export, so there is one place to take a record away. */}
+          ${histTrailDoorOn()?`<div class="hist-mg">${esc(i18t('ct_hist_trail_group'))}</div>
+          <button type="button" id="ht-trail">${icon('download','w-3.5 h-3.5')}${esc(i18t('ct_hist_trail_door'))}<span class="mnote">${esc(i18t('ct_hist_trail_note'))}</span></button>`:''}
         </div>
       </div>
     </div>
@@ -8823,13 +8862,17 @@ function roomHistoryHtml(c,f={},opts={}){
            and ends at the last's, and a filter that leaves one entry draws no
            line at all. The empty sentence stays outside it — there is nothing
            to join. */}
-    ${evs.length?`<div class="hist-trail">${grouped()}</div>`
+    ${evs.length?`<div class="hist-trail is-lanes">${lanesHead}${grouped()}</div>`
       :`<p class="hist-empty">${on?esc(i18t('ct_hist_none_match')):esc(i18t('ct_hist_none_yet'))}</p>`}`;
 }
-/* the four filters behind Filter, and the side switch's three positions
-   (the values are the record's own keys; only the words are translated) */
+/* the filters behind Filter (the values are the record's own keys; only the
+   words are translated). The side switch's HIST_SIDES went with the switch
+   (round 12, "Two sides": the side is the lane). */
 const HIST_FOLD_FILTERS=['clauseId','actor','round','outcome','opens'];
-const HIST_SIDES=[['','ct_hist_side_all'],['owner','ct_hf_ours'],['counterparty','ct_hf_theirs']];
+/* The whole trail is Settings' (stTrailOn): an admin, on a server. */
+function histTrailDoorOn(){
+  return typeof isAdmin==='function' && !!isAdmin() && typeof API_MODE==='function' && !!API_MODE();
+}
 function roomHistoryFiltersHtml(c,f){
   const all=window.negoTimeline?negoTimeline(c):[];
   const uniq=pairs=>Array.from(new Map(pairs.filter(x=>x&&String(x[0])).map(x=>[String(x[0]),x])).values());
@@ -8940,6 +8983,9 @@ function roomPaintHistory(c,f={},at){
      screen — a short list is not a record. The report already carries its own
      colours, its own legend and its verification result, and it already prints
      well because people file it. So: build it, hand it to the browser. */
+  host.querySelector('#ht-trail')?.addEventListener('click',()=>{
+    if(window.openSettingsAt) openSettingsAt('company','trail');
+  });
   host.querySelector('#ht-print')?.addEventListener('click',()=>{
     if(window.negoHistoryPrintRun) negoHistoryPrintRun(c);
     else toast(i18t('ct_printing_unavailable'),'err');
@@ -9389,8 +9435,21 @@ function detailsOf(c){
   add(recSec, 'party', i18t('det_f_party'), false, 'kt');
   add(recSec, 'counterparty', i18t('det_f_counterparty'), !String(c.counterparty || '').trim(), 'kt');
   let money = true; try{ money = (typeof isMonetary === 'function') ? isMonetary(c) : true; }catch(_){ money = true; }
-  if(money) add(recSec, 'value', i18t('ov_f_value'), !(Number(c.value) > 0), 'kt');
+  /* BASE PAY COUNTS (round 8, owner's yes, 17 Oct 2026): an employment
+     contract owes its base pay here as a deal owes its value — the same box,
+     read as pay (ktFieldCell), its one door Edit pay */
+  const pay = !!(typeof fxIsPay === 'function' && fxIsPay(c));
+  if(money || pay) add(recSec, 'value', i18t(pay ? 'ov_f_pay' : 'ov_f_value'), !(Number(c.value) > 0), 'kt');
   add(recSec, 'effDate', i18t('ov_f_effective'), !String((c.fields && c.fields.effDate) || '').trim(), 'kt');
+  /* AN NDA'S TWO FACTS COUNT UNTIL A PERSON CONFIRMS THEM (round 8, owner's
+     yes): who keeps it secret and until when — what the wording says is a
+     suggestion until it is confirmed (ndaClean of the stored c.nda, the one
+     writer ndaSet); their one door is ndaEditOpen */
+  if(typeof ndaIs === 'function' && ndaIs(c)){
+    const rec = (typeof ndaClean === 'function') ? ndaClean(c.nda) : null;
+    add(recSec, 'ndaDir', i18t('det_f_nda_dir'), !(rec && rec.dir), 'nda');
+    add(recSec, 'ndaEnds', i18t('det_f_nda_ends'), !(rec && (rec.ends || rec.forGood)), 'nda');
+  }
   const asked = new Set(DET_RECORD_KEYS);
   if(c.templateForm && Array.isArray(c.templateForm.fields)){
     let open = [];
@@ -9462,9 +9521,13 @@ function cdBoxHtml(c, x, bmap){
   if(x.kind==='kt'){
     if(x.key==='party') return `<input type="text" data-kt="party" value="${esc(c.party||'')}" placeholder="${esc((typeof contractParty==='function'?contractParty(c):'')||'')}" style="${IN}">`;
     if(x.key==='counterparty') return `<input type="text" data-kt="counterparty" value="${esc(c.counterparty||'')}" placeholder="${esc(i18t('det_ph_counterparty'))}" style="${IN}">`;
+    /* base pay is the Pay cell's, its one door Edit pay (round 8) */
+    if(x.key==='value'&&window.fxIsPay&&fxIsPay(c)){ const cell=ktFieldCell(c,'value',true,null); return cell?cell[1]:''; }
     if(x.key==='value') return `<input type="text" inputmode="numeric" data-kt="value" value="${(Number(c.value)>0)?Number(c.value).toLocaleString(jxLocale()):''}" placeholder="0" style="${IN};font-family:var(--font-mono)">`;
     if(x.key==='effDate') return `<input type="date" data-kt="effDate" value="${esc((c.fields&&c.fields.effDate)||'')}" style="${IN}">`;
   }
+  /* an NDA's two facts: their reading and their one door (round 8) */
+  if(x.kind==='nda'){ const d=detailsOf(c); const rows=detNdaRows(c,d,(k,l,html)=>k===x.key?html:'',canEdit()&&!PORTAL_MODE); return rows.join(''); }
   if(x.kind==='tplf'){
     const form=c.templateForm||{}; const idx=(form.fields||[]).findIndex(f=>f&&String(f.fieldKey)===x.key);
     if(idx<0||!window.tplFormInputHtml) return '';
@@ -9665,9 +9728,9 @@ function detBasicsHtml(c, opts){
        on Jambo's panel lands here without that pop-up */
     box('party', i18t('det_f_party'), (may && !frozen('party')) ? `<input type="text" data-kt="party" list="det-party-list" value="${esc(c.party||'')}" placeholder="${esc((typeof contractParty==='function'?contractParty(c):'')||'')}" style="${IN}"><datalist id="det-party-list">${uploadPartyOptions().map(v=>`<option value="${esc(v)}"></option>`).join('')}</datalist>` : readOut('party', contractParty(c))),
     box('counterparty', i18t('det_f_counterparty'), (may && !frozen('counterparty')) ? `<input type="text" data-kt="counterparty" value="${esc(c.counterparty||'')}" placeholder="${esc(i18t('det_ph_counterparty'))}" style="${IN}">` : readOut('counterparty', c.counterparty)),
-    owed.has('value') ? box('value', i18t('ov_f_value'), cellHtml('value')) : '',
+    owed.has('value') ? box('value', i18t((typeof fxIsPay === 'function' && fxIsPay(c)) ? 'ov_f_pay' : 'ov_f_value'), cellHtml('value')) : '',
     box('effDate', i18t('ov_f_effective'), cellHtml('effDate')),
-  ].filter(Boolean).join('');
+  ].concat(detNdaRows(c, d, box, may)).filter(Boolean).join('');
   const text = ((isUpload(c)?(c.upload&&c.upload.extractedText):(window.docPlainText?docPlainText(c):''))||'');
   const readable = (opts && opts.readable != null) ? !!opts.readable : text.length > 200;
   const fill = (may && readable)
@@ -9675,6 +9738,25 @@ function detBasicsHtml(c, opts){
   return `<div class="det-card-h"><span class="det-card-t">${esc(i18t('det_sec_contract'))}</span>${fill}</div>
     <div class="cd-grid det-grid">${rows}</div>`;
 }
+/* AN NDA'S TWO FACTS AS ROWS (round 8): what the wording says, marked a
+   suggestion, or what a person confirmed; the press is the facts' one door
+   (ndaEditOpen) — nothing is written here */
+function detNdaRows(c, d, box, may){
+  const items = (d && d.items || []).filter(x => x.kind === 'nda'); if(!items.length) return [];
+  let N = null; try{ N = (typeof ndaOf === 'function') ? ndaOf(c) : null; }catch(_){ N = null; }
+  const dirW = N && N.dir ? i18t('nda_dir_' + N.dir) : '';
+  let untilW = ''; try{ untilW = N && typeof ndaUntilWords === 'function' ? (ndaUntilWords(N) || '') : ''; }catch(_){ untilW = ''; }
+  const said = (k, w) => { const it = items.find(x => x.key === k); if(!it) return '';
+    const sug = N && !N.confirmed && w;
+    const read = w ? `${esc(w)}${sug ? ` <span class="det-nda-sug">${esc(i18t(N.clause ? 'det_nda_from_clause' : 'det_nda_from_wording', { n: N.clause || '' }))}</span>` : ''}` : `<span class="det-nda-sug">${esc(i18t('det_nda_unsaid'))}</span>`;
+    const door = may ? ` <button type="button" class="ui-link" data-det-nda="${esc(c.id)}">${esc(i18t(it.open ? 'det_nda_confirm' : 'det_nda_change'))}</button>` : '';
+    return box(k, it.label, `<span class="det-nda-read">${read}${door}</span>`); };
+  return [said('ndaDir', dirW), said('ndaEnds', untilW)];
+}
+if(typeof document!=='undefined') document.addEventListener('click',e=>{
+  const b=e.target&&e.target.closest&&e.target.closest('[data-det-nda]'); if(!b) return;
+  e.preventDefault(); if(window.ndaEditOpen) ndaEditOpen(b.getAttribute('data-det-nda'));
+});
 function detPaintBasics(c){
   const h = document.getElementById('det-basics'); if(!h || !c) return;
   h.innerHTML = detBasicsHtml(c);
@@ -10905,11 +10987,15 @@ function roomCheckBadge(n, tone){
    THE BUILDER. Its state is painted, never built: the count and the dead state
    move under a head that is built once per render, so paintChatDoor answers
    for both and wireRoomHead calls it after the paint. */
-function roomChatDoorHtml(){
+function roomChatDoorHtml(o){
   if(PORTAL_MODE) return '';
-  return `<button type="button" id="hdr-chat" class="room-check room-chat"
+  /* ON HOME'S PAPER LINE IT SAYS ITS WORD (round 6, "One line"): "Notes" and
+     the count beside it — the same door, id and dot, so paintChatDoor still
+     answers for it; the room keeps the bare icon */
+  const word=!!(o&&o.word);
+  return `<button type="button" id="hdr-chat" class="${word?'ui-btn ui-btn-sm room-chat ig-notes':'room-check room-chat'}"
       title="${esc(i18t('ng_chat_title'))}"
-    >${icon('chat','w-4 h-4')}<span id="hdr-chat-dot" class="room-badge" hidden></span></button>`;
+    >${icon('chat','w-4 h-4')}${word?`<span class="ig-notes-w">${esc(i18t('ig_line_notes'))}</span>`:''}<span id="hdr-chat-dot" class="room-badge" hidden></span></button>`;
 }
 function roomChecksHtml(c){
   if(typeof checkVerdict!=='function') return '';
@@ -18509,7 +18595,7 @@ Object.assign(window,{docReadLongSplit,DOC_READ_LONG_WORDS,DOC_READ_RUN_MIN,docT
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,roomChatDoorHtml,ROOM_TABS_HOME,roomTabHome,roomOpenAt,roomMoreMenuHtml,roomMenuWire,renderSignButton,renderSignSide,roomFactsHtml,signBlockHtml,signReadinessCardHtml,signRowTitle,signWhyShort,SIGN_WHY_WORDS,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,uploadReadFile,uploadReadMeta,uploadFromDrop,uploadDropBusy,uploadDropFolder,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,docWorkPreviewOf,formOnHome,formHostEl,formPaperEl,formHeldContract,formRepaint,docTermFill,docNoticeFill,docSyncWrite,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomArrivesOnHome,roomHomeLand,ROOM_ARRIVE_MS,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPlace,roomPlacePut,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,checkVerdict,tplFormOpenCount,tplFormOpenFields,detailsOf,detailsSections,blankFormLive,DET_RECORD_KEYS,detHeadHtml,detPaintHead,detailsChanged,detPaintPaperEmpties,detTintEmpties,detBasicsHtml,detPaintBasics,detMarkOpen,openCompleteDetails,cdRepaintCounts,openCheckPanel,roomHeadHtml,wireRoomHead,
+  ROOM_TABS,docWorkPreviewOf,formOnHome,formHostEl,formPaperEl,formHeldContract,formRepaint,docTermFill,docNoticeFill,docSyncWrite,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomArrivesOnHome,roomHomeLand,ROOM_ARRIVE_MS,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPlace,roomPlacePut,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,checkVerdict,tplFormOpenCount,tplFormOpenFields,detailsOf,detailsSections,blankFormLive,DET_RECORD_KEYS,detHeadHtml,detPaintHead,detailsChanged,detPaintPaperEmpties,detTintEmpties,detBasicsHtml,detNdaRows,detPaintBasics,detMarkOpen,openCompleteDetails,cdRepaintCounts,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill,
   /* idea 7 — the plain-English layer. Published because a name read through
      window from another module, or from a test stage, is silence when it is

@@ -9,7 +9,8 @@
      3  the Week ahead pill counts its dates, not its one card
      4  the value tile names the currency it leaves out, on the tile
      5  the bell says each heading once
-     6  the five tiles wrap 3 + 2 on a narrowed board, never 4 + 1
+     6  the five figures stay one row each on a narrowed board, their columns whole
+        (RE-POINTED 18 Oct 2026: round 17, "Then and now", made Your book a table)
      7  an obligation the other side owes carries no "nobody owns this"
      8  late duties, one job each (owner, 16 Oct 2026): Our promises off the
         Board, the overdue figure says ours · theirs, Jambo opens its list
@@ -121,13 +122,17 @@ const BOOK = FIXTURES.concat(Array.from({ length: 20 }, (_, i) => {
     check('5 the bell says each heading once', texts.length > 0 && new Set(texts).size === texts.length, JSON.stringify(texts));
     await page.keyboard.press('Escape');
 
-    /* 6 the tiles wrap 3 + 2 on a narrowed board */
+    /* 6 on a narrowed board the figures stay one row each (round 17's table),
+       their numbers in one column, nothing cut */
     await page.evaluate(() => { const d = document.getElementById('ig-dock'); d.style.transition = 'none'; d.style.width = '640px'; });
     await page.waitForTimeout(300);
     const wrap = await page.evaluate(() => { const f = document.querySelector('#hb-board .hb-figs');
-      const tops = [...f.children].map(k => Math.round(k.getBoundingClientRect().top)); const rows = [...new Set(tops)];
-      return { w: f.clientWidth, perRow: rows.map(t => tops.filter(x => x === t).length) }; });
-    check('6 the five tiles wrap 3 + 2 on a narrowed board, never 4 + 1', wrap.perRow.join('+') === '3+2', JSON.stringify(wrap));
+      const rows = [...f.querySelectorAll(':scope > .hb-fig')], tops = rows.map(k => Math.round(k.getBoundingClientRect().top));
+      const rights = rows.map(k => Math.round(k.querySelector('.hb-fig-n').getBoundingClientRect().right));
+      const cut = rows.filter(k => { const n = k.querySelector('.hb-fig-n'); return n.scrollWidth > n.clientWidth + 1; }).length;
+      return { w: f.clientWidth, rows: rows.length, oneEach: new Set(tops).size === rows.length, rights: [...new Set(rights)].length, cut }; });
+    check('6 on a narrowed board the five figures stay one row each, their numbers in one column, none cut',
+      wrap.rows === 5 && wrap.oneEach && wrap.rights === 1 && wrap.cut === 0, JSON.stringify(wrap));
     await page.screenshot({ path: path.join(OUT, '6-tiles-wrap.png') });
 
     check('no page errors', errs.length === 0, errs.slice(0, 3).join(' | '));

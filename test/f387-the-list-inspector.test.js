@@ -302,11 +302,13 @@ describe('f387 (3) the Negotiations list in the inspector’s shape', () => {
     const heads = b.$$('.reg-table thead th').map(t => t.textContent.replace(/[▲▼]/g, '').trim());
     /* RE-POINTED 9 Oct 2026 (SAP benchmark, owner-approved): the drawing's
        columns, and whose move as tabs over the bands. */
-    assert.deepEqual(heads, ['Ref', 'Counterparty and agreement', 'Round', 'Changes', 'Waiting']);
+    /* RE-POINTED 17 Oct 2026 (round 14, "Whose move"): what the changes ask is
+       "What is open", and who leads each deal is its own column (owner's yes). */
+    assert.deepEqual(heads, ['Ref', 'Counterparty and agreement', 'Round', 'What is open', 'Waiting', 'Lead']);
     const moves = b.$$('#reg-tbody tr[data-row] .reg-ch').map(x => x.textContent.trim());
     assert.ok(moves.length === 2 && moves.every(m => /^1 to answer$/.test(m)), moves.join('|'));
     const bands = b.$$('#reg-tbody tr.ngl-band .ngl-band-k').map(x => x.textContent.trim());
-    assert.deepEqual(bands, ['Waiting on you'], 'an empty group is not drawn');
+    assert.deepEqual(bands, ['Waiting on our side'], 'an empty group is not drawn');
     assert.equal(b.$('[data-reg-view]'), null, 'the Contracts views are not drawn on this page');
     assert.ok(b.$('.reg-views [data-reg-band="you"]'), 'whose move is a tab row');
   });
@@ -442,7 +444,8 @@ describe('f387 (5) the Approvals & signing page', () => {
     const c = code(AP);
     assert.match(c, /const INS=\(typeof insFits==='function'\)&&insFits\(\)/);
     assert.match(c, /<aside id="ins-panel" class="ins-panel"/);
-    assert.match(c, /apInsPaint\(tab, tab==='approvals'\?ap:sg\)/);
+    /* RE-POINTED 17 Oct 2026 (round 15, "One worklist"): one list, both kinds */
+    assert.match(c, /apInsPaint\(W\.rows\)/);
     assert.match(c, /data-ins-page="approvals" data-ins="\$\{INS\?'1':'0'\}"/);
   });
   test('5b the lead act is the page’s own verb, and the row opens it on a second press', () => {

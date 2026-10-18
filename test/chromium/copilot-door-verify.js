@@ -51,7 +51,8 @@ const check = (name, ok, detail) => {
       if (!d || !b) return { there: false, dock: d ? getComputedStyle(d).display : 'none' };
       const r = b.getBoundingClientRect(); const at = document.elementFromPoint(r.left + r.width / 2, r.top + Math.min(80, r.height / 2));
       return { there: true, dock: getComputedStyle(d).display, w: Math.round(d.getBoundingClientRect().width), h: Math.round(r.height),
-        label: b.textContent.trim(), hit: !!(at && b.contains(at)), bg: getComputedStyle(b).backgroundColor,
+        /* the door's words (round 3 put his face and count beside them, 17 Oct 2026) */
+        label: (b.querySelector('.igd-door-w') || b).textContent.trim(), hit: !!(at && b.contains(at)), bg: getComputedStyle(b).backgroundColor,
         size: parseFloat(getComputedStyle(b.querySelector('.igd-door-w') || b).fontSize) };
     });
 

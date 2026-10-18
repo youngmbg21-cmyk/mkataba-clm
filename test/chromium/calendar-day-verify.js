@@ -134,7 +134,8 @@ const check = (name, pass, detail) => {
          contract costs nothing there. */
       state.contracts.push(mk('CAL6', 'Depot Lease — Mombasa', 'Kilindini Holdings', d.soon));
     }, days);
-    await page.evaluate(() => setView('calendar'));
+    /* the calendar opens on this week and five more since round 16 (18 Oct 2026); this check is about the month, so it asks for it */
+    await page.evaluate(() => { setView('calendar'); calSetView('month'); });
     await page.waitForTimeout(1200);
 
     /* ---- every day box is the door to its week ---- */
@@ -143,7 +144,9 @@ const check = (name, pass, detail) => {
       const all = Array.from(document.querySelectorAll('#cal-grid .cal-day:not(.is-mute)'));
       const many = at(d.many);
       return {
-        allDoors: all.length > 27 && all.every(el => el.hasAttribute('data-cal-week') && el.getAttribute('role') === 'button' && el.getAttribute('tabindex') === '0'),
+        /* Monday to Friday since round 16 (owner's yes, 17 Oct 2026): a month
+           has 20 to 23 working days, each one a door */
+        allDoors: all.length >= 20 && all.length <= 23 && all.every(el => el.hasAttribute('data-cal-week') && el.getAttribute('role') === 'button' && el.getAttribute('tabindex') === '0'),
         n: all.length,
         title: many ? many.getAttribute('title') : '',
         chips: many ? many.querySelectorAll('.cal-chip').length : 0,
@@ -152,7 +155,7 @@ const check = (name, pass, detail) => {
         chipCt: many ? Array.from(many.querySelectorAll('.cal-chip')).every(c => c.hasAttribute('data-cal-ct')) : false,
       };
     }, days);
-    check('every day of the month is a door: a button, a tab stop', cells.allDoors, `${cells.n} days`);
+    check('every working day of the month is a door: a button, a tab stop', cells.allDoors, `${cells.n} days`);
     check('and it says which door it is before you press it — its week', /week/i.test(cells.title || ''), cells.title);
     check('a busy day shows what fits and says how many more',
       cells.chips >= 1 && cells.chips <= 2 && /\+\s*\d+/.test(cells.more), `${cells.chips} chip(s), ${JSON.stringify(cells.more)}`);

@@ -1121,6 +1121,19 @@ function ikWithCellHtml(r, asker){
   if(!(r.assignee&&r.assignee.id)) return `<span class="ins-nobody">${esc(i18t('ik_with_nobody'))}</span>`;
   return ikWhoHtml(r.assignee.name||'', (!asker&&ikHeldByMe(r))?i18t('ik_with_you'):'');
 }
+/* WITH, AS THE TEAM'S LIST SAYS IT (round 20 of the redesign, owner picked
+   "The SAP way" for Requests, 17 Oct 2026): who holds it, "You" for the
+   reader, "Nobody yet" in amber — the asker's own cell, ONE builder — and,
+   while it is open, the lane that sent it */
+function ikWithListHtml(r){
+  const base=ikWithCellHtml(r, false);
+  return r.lane&&!IK_STOPPED.includes(r.status)?`${base} <span class="ik-lane-chip" title="${esc(i18t('ik_why_lane',{name:r.lane}))}">${esc(i18t('ik_lane_chip',{lane:r.lane}))}</span>`:base;
+}
+/* the files a request carries, as a count with the clip; none is a dash */
+function ikFilesCellHtml(r){
+  const n=Array.isArray(r&&r.files)?r.files.length:0;
+  return n?`<span class="ik-files-n" title="${esc(i18tn('ik_files_n',n,{n}))}">${typeof icon==='function'?icon('clip','w-3.5 h-3.5'):''}${n}</span>`:`<span class="ins-quiet">—</span>`;
+}
 function ikRoadHtml(r){
   const road=intakeRoad(r);
   const rd=IK_ROADS[road.k]||IK_ROADS.standard;
@@ -1223,7 +1236,7 @@ function ikPanelOpts(r, asker){
   const pr=intakePromiseSay(r);
   const withV=IK_STOPPED.includes(r.status)
     ? esc((r.assignee&&r.assignee.name)||'')
-    : (r.assignee&&r.assignee.id)?esc(r.assignee.name||''):`<span class="ins-nobody">${esc(i18t('ik_with_nobody'))}</span>`;
+    : (r.assignee&&r.assignee.id)?esc(r.assignee.name||'')+(r.lane?` <span class="ins-quiet">${esc(i18t('ik_with_sent_by',{lane:r.lane}))}</span>`:''):`<span class="ins-nobody">${esc(i18t('ik_with_nobody'))}</span>`;
   const road=intakeRoad(r);
   const rd=IK_ROADS[road.k]||IK_ROADS.standard;
   const stopped=IK_STOPPED.includes(r.status);
@@ -1380,7 +1393,7 @@ function renderIntakeInspector(host){
      the list, because "who has my request" is the asker's whole question. */
   const cols=asker
     ? [{ t:i18t('ik_col_ref'), w:96 }, { t:i18t('ik_col_request') }, { t:i18t('ik_f_with'), w:170 }, { t:i18t('ik_f_promised'), w:130 }]
-    : [{ t:i18t('ik_col_ref'), w:96 }, { t:i18t('ik_col_request') }, { t:i18t('ik_col_kind'), w:110 }, { t:i18t('ik_f_road'), w:150 }, { t:i18t('ik_f_promised'), w:120 }];
+    : [{ t:i18t('ik_col_ref'), w:96 }, { t:i18t('ik_col_request') }, { t:i18t('ik_col_kind'), w:88 }, { t:i18t('ik_f_road'), w:120 }, { t:i18t('ik_f_with'), w:132 }, { t:i18t('ik_col_files'), w:56 }, { t:i18t('ik_col_asked'), w:66 }, { t:i18t('ik_f_promised'), w:92 }];
   const kindPill=k=>`<span class="reg-stg ins-pill"><i aria-hidden="true"></i>${esc(i18t(k==='advice'?'ik_kind_advice':'ik_kind_contract'))}</span>`;
   const advTr=r=>{
     const st=(window.adviceStage?adviceStage(r.status):null)||{ label:r.status };
@@ -1391,6 +1404,9 @@ function renderIntakeInspector(host){
       <td><span class="ins-c2"><b title="${esc(r.title)}">${esc(r.title)}</b><span>${esc([r.by.name, r.company].filter(Boolean).join(' · '))}</span></span></td>
       <td>${kindPill('advice')}</td>
       <td>${esc(st.label||r.status)}</td>
+      <td>${r.assignee?ikWhoHtml(String(r.assignee.name||r.assignee)):`<span class="ins-quiet">—</span>`}</td>
+      <td><span class="ins-quiet">—</span></td>
+      <td class="ik-ask">${esc(ikDay(r.createdAt))}</td>
       <td class="ik-pr">${r.eta?(left===0&&late?`<span class="ins-late">${esc(i18t('ik_pr_today_word'))}</span>`:`<span class="${late?'ins-late':''}">${esc(ikDay(r.eta,{ weekday:true }))}</span>`):`<span class="ins-quiet">—</span>`}</td>
     </tr>`;
   };
@@ -1412,6 +1428,7 @@ function renderIntakeInspector(host){
       <td><span class="ins-c2"><b title="${esc(r.title||'')}">${esc(r.title||'')}</b><span>${esc(sub)}</span></span></td>
       ${asker?'':`<td>${kindPill('contract')}</td>`}
       <td>${asker?ikWithCellHtml(r, asker):ikRoadHtml(r)}</td>
+      ${asker?'':`<td>${ikWithListHtml(r)}</td><td>${ikFilesCellHtml(r)}</td><td class="ik-ask">${esc(ikDay(r.createdAt))}</td>`}
       <td class="ik-pr">${prHtml}</td>
     </tr>`;
   };
@@ -1548,7 +1565,7 @@ async function intakeTrackCopy(id){
   catch(_){ try{ window.open(url,'_blank'); }catch(__){ toast(url,'warn'); } }
 }
 
-Object.assign(window,{INTAKE_STATUS,IK_LIVE,IK_ROADS,IK_TONE,IK_MEDIAN_MIN,IK_STOPPED,
+Object.assign(window,{ikWithListHtml,ikFilesCellHtml,INTAKE_STATUS,IK_LIVE,IK_ROADS,IK_TONE,IK_MEDIAN_MIN,IK_STOPPED,
   ikKnownCounterparty,intakeRoad,intakeStoppedAt,intakeMinutes,
   intakeMedianDays,intakePromise,intakePastDue,intakeTrackUrl,intakeLanes,intakeLaneFor,
   intakeRefresh,intakeSweepStart,IK_SWEEP_MS,intakeFormFields,ikFieldHtml,ikFieldId,intakeTitleFrom,intakeHoldDraft,intakeHeldDraft,intakeClaimDraft,intakeContractSent,intakeGoTo,intakeAlertRows,intakeLaneDraftRows,intakeLaneArrivals,ikShelfOf,IK_HOLD_AFTER_CREATE_MS,ikClockHtml,ikFactHtml,intakePick,intakePromiseAsk,intakeTrackCopy,intakePatch,

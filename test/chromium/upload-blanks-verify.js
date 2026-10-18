@@ -121,7 +121,8 @@ const SEEN = () => {
   const wording = canvas ? canvas.querySelector('[data-upwording]') : null;
   const marks = canvas ? [...canvas.querySelectorAll('span.up-blank')] : [];
   const boxes = host ? [...host.querySelectorAll('[data-blankf]')] : [];
-  const pr = host ? host.getBoundingClientRect() : null;
+  /* RE-POINTED 17 Oct 2026 (round 8, "Owed first"): the questions' host is laid flat in Fill in's worklist, so the face is what is drawn */
+  const pr = host ? ((getComputedStyle(host).display === 'contents' && document.getElementById('pd-fillface')) || host).getBoundingClientRect() : null;
   const cr = canvas ? canvas.getBoundingClientRect() : null;
   /* THE GEOMETRY OF THE WORDING, block by block — this is what says the marks
      cost the contract nothing. Rounded to whole pixels; sub-pixel reflow of a

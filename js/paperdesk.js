@@ -118,6 +118,14 @@ function pdTabCount(t, c){
     const n = (onBoard && typeof hbNeedsCount === 'function') ? hbNeedsCount() : 0;
     return n ? { n, tone: 'warn' } : null; }
   if (!c) return null;
+  /* WITH A PAPER UP HIS FACE CARRIES THE COUNTER'S OWN NUMBER (owner picked
+     "Tabs and faces" by name, round 3, 17 Oct 2026): the "All N" that Needs
+     you here opens, read once per paint (the list is kept for the task) */
+  if (t === 'copilot'){
+    const onPaper = typeof igHomePaperFace === 'function' && igHomePaperFace() === true;
+    let n = 0; try { n = (onPaper && typeof counterNeedsCount === 'function') ? counterNeedsCount() : 0; } catch (_){ n = 0; }
+    return n ? { n, tone: 'warn' } : null;
+  }
   try {
     if (t === 'doc'){
       const n = (typeof docThreadHomeMarks === 'function') ? docThreadHomeMarks(c) : 0;
@@ -447,7 +455,7 @@ function pdFillHeadHtml(c){
   const done = d.all - d.left;
   const pct = d.all ? Math.round(done * 100 / d.all) : 100;
   const close = _pdT('act_close');
-  return `<div class="pd-ff-r"><h3>${_pdE(_pdT('pd_ff_title'))}</h3><span data-pd-ff-pill>${
+  return `<div class="pd-ff-r">${pdBackHtml('fill')}<h3>${_pdE(_pdT('pd_ff_title'))}</h3><span data-pd-ff-pill>${
       d.left ? pdPill('warn', _pdTn('det_left_n', d.left, { n: d.left })) : pdPill('ok', _pdT('pd_ff_all_in'))}</span>
       <button type="button" class="pd-ff-x" data-pd-ff-close title="${_pdE(close)}" aria-label="${_pdE(close)}">×</button></div>
     <div class="det-bar" aria-hidden="true"><i data-pd-ff-bar style="width:${pct}%"></i></div>
@@ -473,13 +481,82 @@ function pdFillDoneHtml(c){
 }
 function pdFillFaceHtml(c){
   _pdActs.clear();
-  return `<div class="pd-ff" data-pd-ff="${_pdE(c.id)}">
+  /* OWED FIRST (round 8 of the redesign: the owner picked "Owed first" by
+     name, 17 Oct 2026): one worklist — what is still owed, from the
+     contract's details and the paper's questions alike, under "Still to
+     fill"; the answered ones folded under one line; then the document and
+     the stream. THE PAINTERS ARE UNTOUCHED: their hosts are laid flat in the
+     face (.pd-ff-work) and each row is placed by a mark set when the face is
+     painted (pdFillMark), so every box keeps its own writer, and a box being
+     answered stays where it is until the face is drawn again. */
+  return `<div class="pd-ff pd-ff-work${_pdFillFolded ? '' : ' is-filled-open'}" data-pd-ff="${_pdE(c.id)}">
     <div class="pd-ff-h" data-pd-ff-head>${pdFillHeadHtml(c)}
       ${''/* in the head that stays in sight: the last box is at the foot of the form */}<div data-pd-ff-done>${pdFillDoneHtml(c)}</div></div>
+    <div class="pd-ff-owh" data-pd-ff-owh></div>
+    <div class="pd-ff-fdh" data-pd-ff-fdh></div>
+    <div class="pd-ff-doc" data-pd-ff-doc></div>
     <div id="det-basics" class="pd-ff-basics"></div>
     <div id="pd-fill" class="pd-ff-paper"></div>
     ${pdFillStreamHtml(c)}
   </div>`;
+}
+/* the fold of what is answered: shut by default, kept as the reader left it for the sitting */
+let _pdFillFolded = true;
+/* WHICH ROWS ARE OWED, read once when the face is painted (detailsOf, by key;
+   a box detailsOf does not count goes by what it holds). A row drawn again by
+   its own painter carries no mark until the next count, which marks it. */
+function pdFillRowKey(row, c){
+  const k = row.getAttribute('data-cd-key'); if (k) return k;
+  const b = row.querySelector('[data-blankf],[data-tplf]'); return b ? (pdFillKeyOf(b, c) || b.getAttribute('data-blankf') || '') : '';
+}
+function pdFillRows(host){
+  return [...host.querySelectorAll('#det-basics .cd-fld[data-cd-key]')].concat([...host.querySelectorAll('#pd-fill label')].filter(l => l.querySelector('[data-blankf],[data-tplf]')));
+}
+function pdFillMark(c, all){
+  const host = document.getElementById('pd-fillface'); if (!host || !c) return;
+  /* THE PAINTERS' OWN WRAPPERS STATE display:flex INLINE, which no sheet rule
+     outranks (never !important): they are laid flat where the markup's own
+     value lives, as the strip's Focus does (WRITTEN ON THE ELEMENT) */
+  host.querySelectorAll('#pd-fill > div, #pd-fill details.pd-fill-done > div').forEach(el => {
+    /* the questions' own head ("Blanks in this document · 0 of 3") is the face's head now */
+    const want = el.querySelector('label, [data-tplf-fill], details') ? 'contents' : 'none';
+    if (el.style.display !== want) el.style.display = want; });
+  const d = pdFillDetails(c) || { items: [] };
+  const open = new Map((d.items || []).map(x => [String(x.key), !!x.open]));
+  pdFillRows(host).forEach(r => {
+    if (!all && r.hasAttribute('data-pd-owed')) return;
+    const k = pdFillRowKey(r, c);
+    const box = r.querySelector('input:not([type="checkbox"]),select,textarea');
+    const owed = open.has(k) ? open.get(k) : !!(box && !String(box.value == null ? '' : box.value).trim());
+    r.setAttribute('data-pd-owed', owed ? '1' : '0');
+  });
+  pdFillGroupsPaint(c);
+}
+/* the two headings and the document's line, from the marks and the record */
+function pdFillGroupsPaint(c){
+  const host = document.getElementById('pd-fillface'); if (!host || !c) return;
+  const d = pdFillDetails(c) || { left: 0 };
+  const rows = pdFillRows(host);
+  const owedN = rows.filter(r => r.getAttribute('data-pd-owed') !== '0').length;
+  const filled = rows.filter(r => r.getAttribute('data-pd-owed') === '0');
+  const owh = host.querySelector('[data-pd-ff-owh]');
+  /* the questions' own heading is laid away; the one fact about the machinery it carried on its hover
+     (an answer to somebody else's placeholder is a working note) rides this heading's hover */
+  const note = ((host.querySelector('#pd-fill h6[title]') || {}).title || '').trim();
+  if (owh) owh.innerHTML = owedN ? `<h4${note ? ` title="${_pdE(note)}"` : ''}>${_pdE(_pdT('pd_ff_owed'))}</h4>${d.left ? `<span class="pd-ff-cnt">${d.left}</span>` : `<span class="pd-ff-cnt is-ok">✓</span>`}` : '';
+  const fdh = host.querySelector('[data-pd-ff-fdh]');
+  if (fdh){
+    const names = filled.map(r => ((r.querySelector('.cd-lab, span') || {}).textContent || '').replace(/\s*\*\s*$/, '').trim()).filter(Boolean);
+    const shown = names.slice(0, PD_GL_SUB_MAX).join(' · ') + (names.length > PD_GL_SUB_MAX ? ' …' : '');
+    const openF = host.querySelector('.pd-ff').classList.contains('is-filled-open');
+    fdh.innerHTML = filled.length ? `<button type="button" class="pd-ff-fold" data-pd-ff-fold aria-expanded="${openF}"><b>${_pdE(_pdT('pd_ff_filled'))}</b><span class="pd-ff-cnt">${filled.length}</span><small>${_pdE(shown)}</small><i aria-hidden="true">${openF ? '▴' : '▾'}</i></button>` : '';
+  }
+  const doc = host.querySelector('[data-pd-ff-doc]');
+  if (doc){
+    let pend = false; try { pend = !!(typeof tplFormPending === 'function' && tplFormPending(c)); } catch (_){ pend = false; }
+    doc.innerHTML = (c.templateForm && host.querySelector('#pd-fill [data-tplf-fill]'))
+      ? `<h4>${_pdE(_pdT('pd_ff_doc'))}</h4><span>${_pdE(_pdT(pend ? 'pd_ff_doc_pending' : 'pd_ff_doc_in'))}</span>` : '';
+  }
 }
 /* ---- THE STREAM, ASKED AND NEVER OWED (the overnight work order, step 6;
    the demo's fillFace) ----
@@ -538,6 +615,7 @@ function pdFillCounts(c){
   const fin = host.querySelector('[data-pd-ff-done]'); if (fin) fin.innerHTML = pdFillDoneHtml(c);
   try { if (typeof detMarkOpen === 'function') detMarkOpen(c); } catch (_){}
   try { if (typeof detPaintPaperEmpties === 'function') detPaintPaperEmpties(); } catch (_){}
+  pdFillMark(c, false);
   pdChipsRepaint();
 }
 /* THE CHIPS FOLLOW THE CONTRACT AS A FACE CHANGES IT (stage 6): what is owed
@@ -547,6 +625,7 @@ function pdFillCounts(c){
    renderIntelDock binds them. */
 function pdChipsRepaint(){
   if (typeof window === 'undefined' || !window.caChipsHtml) return;
+  pdNeedsRepaint();
   pdGlanceRepaint();
   const chips = document.querySelector('#ig-dock [data-ig-chips]'); if (!chips) return;
   const h = caChipsHtml(); if (!h || h === chips.innerHTML) return;
@@ -591,6 +670,9 @@ function pdFillWire(host){
   });
   host.addEventListener('click', e => {
     if (e.target.closest && e.target.closest('[data-pd-ff-close]')){ e.preventDefault(); pdFillClose(); return; }
+    if (e.target.closest && e.target.closest('[data-pd-ff-fold]')){ e.preventDefault();
+      const ff = host.querySelector('.pd-ff'); if (ff){ ff.classList.toggle('is-filled-open'); _pdFillFolded = !ff.classList.contains('is-filled-open'); }
+      pdFillGroupsPaint(pdContract()); return; }
     const sb = e.target.closest ? e.target.closest('[data-pd-stream]') : null;
     if (sb && !sb.disabled){ e.preventDefault(); pdFillStreamPick(sb.getAttribute('data-pd-stream')); }
   });
@@ -604,6 +686,9 @@ function pdFillFacePaint(c){
   /* the room's own clothes: HaTi's date faces, an owed empty box amber */
   try { if (typeof popupControlsDress === 'function') popupControlsDress(host); } catch (_){}
   try { if (typeof detPaintPaperEmpties === 'function') detPaintPaperEmpties(); } catch (_){}
+  /* the paper questions' own "Show N filled" fold is laid flat: the face's one fold holds them */
+  host.querySelectorAll('#pd-fill details.pd-fill-done').forEach(x => { x.open = true; });
+  pdFillMark(c, true);
   pdFillWire(host);
   pdPresenceOn(c);
 }
@@ -625,8 +710,11 @@ function pdFillLand(){
       if (!box) box = host.querySelector('.cd-fld.is-open input, .cd-fld.is-open select')
         || host.querySelector('[data-blankf]:not([value]), [data-blankf][value=""]')
         || host.querySelector('[data-tplf]');
-      /* an answered box sits in the "Show N filled" fold, opened first */
+      /* an answered box sits in the "Show N filled" fold, opened first — the face's own fold too (round 8) */
       const fold = box && box.closest ? box.closest('details') : null; if (fold && !fold.open) fold.open = true;
+      const row = box && box.closest ? box.closest('[data-pd-owed="0"]') : null;
+      const ff = host.querySelector('.pd-ff');
+      if (row && ff && !ff.classList.contains('is-filled-open')){ ff.classList.add('is-filled-open'); _pdFillFolded = false; pdFillGroupsPaint(c); }
       if (box){ try { box.focus({ preventScroll: true }); } catch (_){ try { box.focus(); } catch (_e){} }
         try { box.scrollIntoView({ block: 'center' }); } catch (_){} }
       return;
@@ -716,7 +804,7 @@ function pdRedOpts(c){
   const base = (typeof rlBenchOpts === 'function')
     ? rlBenchOpts(c, { side: 'owner', hostId: 'pd-redface', again: pdRedRepaint, scope: '#pd-redface' })
     : { side: 'owner', hostId: 'pd-redface', rerender: pdRedRepaint };
-  return Object.assign({}, base, { cpPanel: false, headEnd: pdRedHeadEndHtml(c) });
+  return Object.assign({}, base, { cpPanel: false, headStart: pdBackHtml('red'), headEnd: pdRedHeadEndHtml(c) });
 }
 function pdRedFaceHtml(c){
   if (!c || typeof rlColumnHtml !== 'function') return '';
@@ -877,6 +965,16 @@ function pdSignShows(){
 /* the one door: false where Home has no paper (the phone), and the caller
    carries on to the phone's own screens */
 function pdSignOpen(id){ return pdOpenOnHome(id, 'signing'); }
+/* ---- THE WAY BACK TO JAMBO (owner picked "Tabs and faces" by name, round 3
+   of the redesign, 17 Oct 2026) ----
+   Every face's head opens with "‹ Jambo", as a desk tab's crumb opens with
+   "‹ The counter"; its × stays at the end. Both do the face's one close (the
+   map below, pressed by the one delegated listener) — nothing new is done. */
+const PD_BACK_CLOSE = { fill: () => pdFillClose(), red: () => pdRedClose(), signing: () => pdSignClose(), amend: () => pdAmendClose() };
+function pdBackHtml(face){
+  const t = _pdT('pd_back_jambo');
+  return `<button type="button" class="pd-back" data-pd-back="${_pdE(face)}" title="${_pdE(t)}" aria-label="${_pdE(t)}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${_pdE(_pdT('pd_tab_copilot'))}</button>`;
+}
 /* WHICH FACE IS UP, FOR A REFRESH (the owner's rule: a refresh lands at the
    same spot; stage 5 — the Negotiate page a refresh used to land back on
    folded into the Redlines face): the face's door word, or '' */
@@ -924,7 +1022,7 @@ function pdSignHeadHtml(c){
   const close = _pdT('act_close');
   const s = pdSignState(c);
   /* signed, the title says so and the pill would say it twice */
-  return `<div class="pd-sf-r"><h3>${_pdE(_pdT(s.closed ? 'pd_st_signed' : 'pd_sf_title'))}</h3><span data-pd-sf-pill>${s.closed ? '' : pdSignPillHtml(c)}</span>
+  return `<div class="pd-sf-r">${pdBackHtml('signing')}<h3>${_pdE(_pdT(s.closed ? 'pd_st_signed' : 'pd_sf_title'))}</h3><span data-pd-sf-pill>${s.closed ? '' : pdSignPillHtml(c)}</span>
       <button type="button" class="pd-sf-x" data-pd-sf-close title="${_pdE(close)}" aria-label="${_pdE(close)}">×</button></div>`;
 }
 /* ONCE BOTH HAVE SIGNED THE FACE IS THE RECEIPT (the owner's yes, decision
@@ -946,6 +1044,82 @@ function pdSignNextHtml(c){
     ? `<button type="button" class="pd-go" data-pd-sf-oblig="${_pdE(c.id)}">${_pdE(_pdT('pd_sf_next_go'))}${PD_GO_ARROW}</button>` : '';
   return `<section class="pd-sf-next"><h6>${_pdE(_pdT('pd_sf_next_head'))}</h6><p>${_pdE(say)}</p>${go}</section>`;
 }
+/* ---- THE ROAD (round 10 of the redesign: the owner picked "The road" by
+   name and said yes to the Sign button appearing only to the person whose
+   turn it is, 17 Oct 2026) ----
+   The way to "signed" as stops: the checks, the yes where an approval is
+   asked, each step of the signing route, sealed and sent. Each stop is a
+   READING of what the column already reads (signReadiness, signSteps,
+   nextSigner) — nothing here holds, writes or decides. The column's own body
+   stands open under the stop the road is at, its buttons wired by their
+   painters as before; the Sign button stands only in the stop of the person
+   whose turn it is (grey with its reason where something still holds), and
+   nowhere for anyone else. */
+const PD_RD_YES = ['approval', 'signapproval'];
+const PD_RD_SIGN = ['turn', 'signers', 'spots', 'signcap', 'signfolder'];
+/* whose turn it is, read as the signing act reads it (signDocument): the next
+   signer on our side, and either reserved for this person or for anyone */
+function pdSignMine(c){
+  if (!c || pdSignState(c).closed || typeof nextSigner !== 'function') return false;
+  const ns = nextSigner(c); if (!ns || ns.party !== 'internal') return false;
+  const u = (typeof currentUser === 'function') ? currentUser() : null;
+  return !ns.memberId || !!(u && String(u.id) === String(ns.memberId));
+}
+function pdRoadStops(c){
+  const s = pdSignState(c);
+  let rd = { holds: [], rows: [] };
+  if (!s.closed) try { rd = (typeof signReadiness === 'function') ? (signReadiness(c) || rd) : rd; } catch (_){}
+  const holds = rd.holds || [];
+  const checks = holds.filter(h => !PD_RD_YES.includes(h.kind) && !PD_RD_SIGN.includes(h.kind));
+  const yes = holds.filter(h => PD_RD_YES.includes(h.kind));
+  const yesSettled = (rd.rows || []).some(r => r && r.kind === 'signapproval' && r.settled);
+  const stops = [];
+  stops.push({ k: 'ready', done: s.closed || !checks.length, t: _pdT('pd_rd_ready'),
+    sub: (s.closed || !checks.length) ? _pdT('pd_rd_ready_done') : _pdTn('sc_n_to_settle', checks.length, { n: checks.length }) });
+  if (yes.length || yesSettled) stops.push({ k: 'yes', done: s.closed || !yes.length, t: _pdT('pd_rd_yes'),
+    sub: yes.length ? String(yes[0].short || yes[0].label || '') : _pdT('pd_rd_yes_done') });
+  let steps = []; try { steps = (typeof signSteps === 'function') ? signSteps(c) : []; } catch (_){ steps = []; }
+  const now = (typeof signStepNow === 'function') ? signStepNow(c) : 0;
+  const mine = pdSignMine(c);
+  let ours = ''; try { ours = (typeof contractParty === 'function') ? String(contractParty(c) || '') : ''; } catch (_){ ours = ''; }
+  if (!steps.length && !s.closed) stops.push({ k: 'who', done: false, t: _pdT('pd_rd_who'), sub: _pdT('pd_rd_nobody') });
+  steps.forEach(st => {
+    const theirs = st.rows.every(r => r && r.party === 'counterparty');
+    const party = theirs ? (String(c.counterparty || '').trim() || _pdT('ng_the_counterparty')) : (ours || _pdT('pd_rd_us'));
+    const names = st.rows.map(r => String((r && r.name) || '').trim()).filter(Boolean).join(' · ');
+    const done = st.rows.every(r => r && r.signed);
+    const here = !done && st.n === now;
+    const isMine = here && mine && st.rows.some(r => r && r.party === 'internal');
+    const state = done ? _pdT('pd_rd_signed') : here ? _pdT(isMine ? 'pd_rd_turn_you' : 'pd_rd_turn') : _pdT('pd_rd_after');
+    stops.push({ k: 'step' + st.n, done, mine: isMine, t: _pdT('pd_rd_signs', { party }), sub: [names, state].filter(Boolean).join(' · ') });
+  });
+  const obs = (Array.isArray(c.obligations) ? c.obligations : []).filter(o => o && o.status !== 'done').length;
+  stops.push({ k: 'sealed', done: s.closed, t: _pdT('pd_rd_sealed'),
+    sub: [_pdT('pd_rd_copies'), obs ? _pdTn('pd_rd_obls', obs, { n: obs }) : ''].filter(Boolean).join(' · ') });
+  const cur = stops.findIndex(x => !x.done);
+  return { stops, cur: cur < 0 ? stops.length - 1 : cur, mineAt: stops.findIndex(x => x.mine), closed: s.closed };
+}
+/* drawn in place after every paint of the column (pdSignCounts): the stops,
+   and where the column's body and the Sign button stand among them */
+function pdRoadPaint(c){
+  const host = (typeof document !== 'undefined') ? document.getElementById('pd-signface') : null; if (!host || !c) return;
+  const w = host.querySelector('[data-pd-road]'); if (!w) return;
+  const R = pdRoadStops(c);
+  const h = R.stops.map((x, i) => `<div class="pd-road-stop ${x.done ? 'is-done' : i === R.cur ? 'is-now' : 'is-later'}${i === R.stops.length - 1 ? ' is-last' : ''}" data-pd-road-stop="${_pdE(x.k)}" style="order:${2 * i + 2}">
+      <i class="pd-road-dot" aria-hidden="true">${x.done ? '✓' : i === R.cur ? '!' : ''}</i><div class="pd-road-t"><b>${_pdE(x.t)}</b>${x.sub ? `<small>${_pdE(x.sub)}</small>` : ''}</div></div>`).join('');
+  if (w.innerHTML !== h) w.innerHTML = h;
+  const body = host.querySelector('.pd-sf-body'); if (body) body.style.order = String(2 * R.cur + 3);
+  const foot = host.querySelector('.pd-sf-foot');
+  if (foot){ const show = R.mineAt >= 0;
+    /* the Sign button only in the reader's own stop; "Signing it their way,
+       on paper…" (#sign-paper) is a choice of route, not a signature, so the
+       foot stays for it — under the open stop — with the button hidden */
+    const route = !!foot.querySelector('#sign-paper');
+    foot.style.order = String(show ? 2 * R.mineAt + 3 : 2 * R.cur + 4);
+    foot.style.display = (show || route) ? '' : 'none';
+    const btn = foot.querySelector('#sign-btn'); if (btn) btn.style.display = show ? '' : 'none';
+    foot.toggleAttribute('data-pd-road-mine', show); }
+}
 function pdSignFaceHtml(c){
   if (!c) return '';
   _pdActs.clear();
@@ -954,8 +1128,9 @@ function pdSignFaceHtml(c){
      line and the copies, then the record of who approved and signed */
   const closed = pdSignState(c).closed;
   const wrap = `<div id="sign-wrap"></div>`;
-  return `<div class="pd-sf${closed ? ' is-closed' : ''}" data-pd-sf="${_pdE(c.id)}">
+  return `<div class="pd-sf is-road${closed ? ' is-closed' : ''}" data-pd-sf="${_pdE(c.id)}">
     <div class="pd-sf-h" data-pd-sf-head>${pdSignHeadHtml(c)}</div>
+    <div class="pd-road-w" data-pd-road></div>
     <div class="pd-sf-body scroll-thin sign-one">
       <div id="sign-seal-acts" class="sign-seal-acts"></div>
       <div data-pd-sf-next>${pdSignNextHtml(c)}</div>
@@ -983,6 +1158,7 @@ function pdSignCounts(c){
   if (!c || String(c.id) !== _pdSign) return;
   const head = host.querySelector('[data-pd-sf-head]'); if (head) head.innerHTML = pdSignHeadHtml(c);
   const next = host.querySelector('[data-pd-sf-next]'); if (next) next.innerHTML = pdSignNextHtml(c);
+  pdRoadPaint(c);
   /* the face's shape follows the contract closing (the Sign button's foot
      becomes the receipt's line), and the paper takes a signature given */
   const root = host.querySelector('.pd-sf');
@@ -1109,7 +1285,7 @@ function pdAmendAdd(el){
 }
 function pdAmendHeadHtml(c){
   const close = _pdT('act_close');
-  return `<div class="pd-sf-r"><h3>${_pdE(_pdT('pd_am_title', { ref: (typeof contractRef === 'function') ? contractRef(c) : c.id }))}</h3>
+  return `<div class="pd-sf-r">${pdBackHtml('amend')}<h3>${_pdE(_pdT('pd_am_title', { ref: (typeof contractRef === 'function') ? contractRef(c) : c.id }))}</h3>
       <button type="button" class="pd-sf-x" data-pd-am-close title="${_pdE(close)}" aria-label="${_pdE(close)}">×</button></div>
     <p class="pd-am-sub">${_pdE(_pdT('pd_am_sub'))}</p>`;
 }
@@ -1588,7 +1764,44 @@ function pdDropInner(){
     ${''/* HOME'S ONE FILLED ACT WEARS HOME'S DRESS (.hm-primary, the act
            "+ Draft new agreement" wore in the head until step 3): one class,
            so its night rung — the fill that stands off the dark page — is
-           the same act's */}<button type="button" class="hm-primary" data-pd-drop-pick>${_pdE(_pdT(d && d.state === 'refused' ? 'pd_drop_again' : 'pd_drop_pick'))}</button>`;
+           the same act's */}<button type="button" class="hm-primary" data-pd-drop-pick>${_pdE(_pdT(d && d.state === 'refused' ? 'pd_drop_again' : 'pd_drop_pick'))}</button>
+    ${pdDropImportHtml()}`;
+}
+/* SEVERAL FILES GO TO THE IMPORTER (round 5, "Jambo's tray"): the upload
+   pop-up's one door into it moved here with the pop-up's job — the same words
+   and the same count of imports still waiting for a person */
+function pdDropImportHtml(){
+  if (typeof setView !== 'function') return '';
+  let n = 0; try { n = (typeof navCounts === 'function') ? Number((navCounts() || {}).migration) || 0 : 0; } catch (_){ n = 0; }
+  return `<span class="pd-drop-more">${_pdE(_pdT('ct_several_q'))} <button type="button" class="ui-link" data-pd-drop-import>${_pdE(_pdT('ct_import_contracts_link'))}</button>${
+    n > 0 ? ` <span class="pd-drop-wait">· ${_pdE(_pdTn('ct_import_waiting', n, { n }))}</span>` : ''}</span>`;
+}
+/* ---- ONE WAY IN: THE TRAY (owner picked "Jambo's tray" by name and said
+   "Yes" to one way in, round 5, 17 Oct 2026) ----
+   On a computer every "upload a contract" door lands here — the Contracts
+   place with no paper up, Jambo's panel open on its drop area, the stream
+   asked in it and the cost said before the drop. The doors that opened the
+   upload pop-up (the new-agreement menu's Upload, the + menu, a page's Upload,
+   the arrivals agent's own door) ask here first; the pop-up stays for what the
+   drop hands it (a signed copy coming back) and on the phone. Answers whether
+   it took the door. */
+const PD_DROP_CALL_MS = 1600;
+function pdDropDoor(){
+  if (typeof window === 'undefined' || (window.innerWidth && window.innerWidth < 768)) return false;
+  if (typeof hbOpenContracts !== 'function' || !(typeof deskShellOn !== 'function' || deskShellOn())) return false;
+  if (!pdDropMay()){ if (typeof toast === 'function') toast(_pdT('ct_viewers_no_add'), 'err'); return true; }
+  if (typeof closeModal === 'function' && document.getElementById('modal-root') && document.getElementById('modal-root').children.length) try { closeModal(); } catch (_){}
+  hbOpenContracts();
+  if (typeof intel === 'object' && intel && !intel.dockOpen){ intel.dockOpen = true; if (typeof renderIntelDock === 'function') renderIntelDock(); if (typeof igSyncDockWidth === 'function') try { igSyncDockWidth(); } catch (_){} }
+  pdSetTab('copilot');
+  let n = 0;
+  const land = () => { const el = document.getElementById('pd-drop');
+    if (el && el.getBoundingClientRect().height > 0){
+      try { el.scrollIntoView({ block: 'nearest' }); } catch (_){}
+      el.classList.add('is-called'); setTimeout(() => el.classList.remove('is-called'), PD_DROP_CALL_MS); return; }
+    if (++n < 30) setTimeout(land, 100); };
+  setTimeout(land, 0);
+  return true;
 }
 /* ---- THE STREAM IS ASKED AT THE DROP (the fix round, 15 Oct 2026; the
    owner's ruling of 18 Sep: the stream is asked at every creation door) ----
@@ -1677,7 +1890,9 @@ async function pdDropTake(file){
 }
 /* ---- A CONTRACT AT A GLANCE ---- */
 const PD_GLANCE = { fill: ['pd_gl_details', 'pd_gl_fill', 'ca_w_fill'], redline: ['pd_gl_risks', 'pd_gl_redlines', 'ca_w_redline'],
-  share: ['pd_gl_unsent', 'pd_gl_share', 'ca_w_share'], sign: ['pd_gl_signers', 'pd_gl_signing', 'ca_w_sign'] };
+  share: ['pd_gl_unsent', 'pd_gl_share', 'ca_w_share'], sign: ['pd_gl_signers', 'pd_gl_signing', 'ca_w_sign'],
+  /* WHAT JAMBO FOUND (round 5, "Jambo's tray"): their doors are this panel's own tabs, so the fourth is the tab */
+  std: ['pd_gl_std', 'pd_tab_clauses', '', 'doc'], oblig: ['pd_gl_obls', 'tab_obligations', '', 'oblig'] };
 function pdGlanceRows(c){
   const rows = []; if (!c) return rows;
   let d = null; try { d = pdFillDetails(c); } catch (_){ d = null; }
@@ -1687,6 +1902,17 @@ function pdGlanceRows(c){
      before a scan the face offers the scan, not a count, so neither does this */
   let rk = 0; try { rk = (c.scan && typeof riskOpenOf === 'function' && (typeof riskMayAct !== 'function' || riskMayAct(c, {}))) ? riskOpenOf(c).length : 0; } catch (_){ rk = 0; }
   if (rk) rows.push({ k: 'redline', n: rk });
+  /* WHAT JAMBO FOUND, WHILE SIGNING IS STILL AHEAD (owner picked "Jambo's
+     tray" by name, round 5, 17 Oct 2026): the standards check's own count of
+     departures (deviationSummary — a check not run says nothing) and the
+     obligations recorded, read RAW, each opening this panel's own tab */
+  if (pdSignAhead(c)){
+    let sd = null; try { sd = (typeof deviationSummary === 'function') ? deviationSummary(c) : null; } catch (_){ sd = null; }
+    const nd = sd ? (Number(sd.dev) || 0) + (Number(sd.miss) || 0) : 0;
+    if (nd) rows.push({ k: 'std', n: nd });
+    const obs = Array.isArray(c.obligations) ? c.obligations.filter(o => o && o.status !== 'done') : [];
+    if (obs.length) rows.push({ k: 'oblig', n: obs.length });
+  }
   let un = 0; try { un = (c.negotiation && typeof rlUnsentCount === 'function') ? rlUnsentCount(c, {}) : 0; } catch (_){ un = 0; }
   if (un) rows.push({ k: 'share', n: un });
   /* NOBODY NAMED TO SIGN only while signing is still ahead: signed, sealed or
@@ -1709,13 +1935,105 @@ function pdGlanceHtml(c){
     return why ? `<button type="button" class="ui-btn ui-btn-sm" disabled aria-disabled="true" title="${_pdE(why)}">${label}</button>`
       : `<button type="button" class="ui-btn ui-btn-sm" data-pd-glance="${r.k}">${label}</button>`; };
   const rows = pdGlanceRows(c);
+  /* each row's door: the face's word Jambo reads, or this panel's own tab */
+  const btn2 = r => (PD_GLANCE[r.k][3] ? `<button type="button" class="ui-btn ui-btn-sm" data-pd-glance-tab="${PD_GLANCE[r.k][3]}">${_pdE(_pdT(PD_GLANCE[r.k][1]))}</button>` : btn(r));
   const said = r => r.k === 'sign' ? _pdT(PD_GLANCE.sign[0]) : _pdTn(PD_GLANCE[r.k][0], r.n, { n: r.n });
   const done = pdGlanceDone(c, rows, said);
   const doneHtml = done.map(d => `<div class="pd-gl-row is-done" data-pd-gl-done="${_pdE(d.k)}"><i aria-hidden="true">✓</i><span><s>${_pdE(d.text)}</s></span></div>`).join('');
   const body = rows.length
-    ? rows.map(r => `<div class="pd-gl-row" data-pd-gl="${r.k}"><span>${_pdE(said(r))}</span>${btn(r)}</div>`).join('') + doneHtml
+    ? rows.map(r => { const sub = pdGlanceSub(c, r);
+        return `<div class="pd-gl-row" data-pd-gl="${r.k}"><span>${_pdE(said(r))}${sub ? `<small title="${_pdE(sub)}">${_pdE(sub)}</small>` : ''}</span>${btn2(r)}</div>`; }).join('') + doneHtml
     : doneHtml + `<div class="pd-gl-none"><i aria-hidden="true">✓</i><span>${_pdE(_pdT('pd_gl_none'))}</span></div>`;
-  return `<div id="pd-glance" class="pd-glance" data-pd-glance-for="${_pdE(c.id)}"><div class="pd-gl-h"><b>${_pdE(_pdT('pd_gl_title', { ref }))}</b><span class="pd-gl-sp"></span>${pill}</div><div class="pd-gl-b">${body}</div></div>`;
+  return `<div id="pd-glance" class="pd-glance" data-pd-glance-for="${_pdE(c.id)}"><div class="pd-gl-h"><b>${_pdE(_pdT('pd_gl_title', { ref }))}</b><span class="pd-gl-sp"></span>${pill}</div><div class="pd-gl-b">${pdGlanceBriefHtml(c)}${body}</div>${pdGlanceFootHtml(c)}</div>`;
+}
+/* ---- WHAT JAMBO FOUND, SAID WHERE IT IS (owner picked "Jambo's tray" by
+   name, round 5, 17 Oct 2026) ----
+   The brief's own first lines above the rows (its press opens the brief), a
+   line under each row naming what it counts — the empty boxes, the risks'
+   titles, the standards departed from, whose obligations — and, under the
+   card, when Jambo read it on arrival. Every word is a reading the record
+   already holds; nothing is asked, spent or written. */
+const PD_GL_SUB_MAX = 3;
+function pdGlanceSub(c, r){
+  const few = L => { const a = L.filter(Boolean); return a.slice(0, PD_GL_SUB_MAX).join(', ') + (a.length > PD_GL_SUB_MAX ? ' …' : ''); };
+  try {
+    if (r.k === 'fill' && typeof detailsOf === 'function') return few(detailsOf(c).items.filter(x => x.open).map(x => x.label));
+    if (r.k === 'redline' && typeof riskOpenOf === 'function') return few(riskOpenOf(c).map(it => (typeof riskTitleOf === 'function') ? riskTitleOf(it) : ''));
+    if (r.k === 'std'){
+      const v = (c.playbook && Array.isArray(c.playbook.verdicts)) ? c.playbook.verdicts : [];
+      return few(v.filter(x => x && (x.status === 'deviation' || x.status === 'missing')).map(x => { const t = String(x.category || ''); return t.charAt(0).toUpperCase() + t.slice(1); }));
+    }
+    if (r.k === 'oblig'){
+      const obs = (Array.isArray(c.obligations) ? c.obligations : []).filter(o => o && o.status !== 'done');
+      const theirs = obs.filter(o => (typeof obligationIsTheirs === 'function') ? obligationIsTheirs(o) : o.party === 'theirs').length;
+      return _pdT('pd_gl_obls_split', { theirs, ours: obs.length - theirs });
+    }
+  } catch (_){ return ''; }
+  return '';
+}
+function pdGlanceBriefHtml(c){
+  const d = (c && ((c._brief && c._brief.data) || (c._briefLite && c._briefLite.data))) || null;
+  const t = String((d && d.overview) || '').trim(); if (!t) return '';
+  return `<button type="button" class="pd-gl-brief" data-pd-gl-brief title="${_pdE(t)}"><em>${_pdE(_pdT('pd_gl_brief'))}</em><span>${_pdE(t)}</span></button>`;
+}
+function pdGlanceFootHtml(c){
+  const t = c && c.triage; if (!t || !t.at) return '';
+  const read = (typeof triageReadAnything === 'function') ? triageReadAnything(c) : true; if (!read) return '';
+  const at = new Date(t.at); if (isNaN(at)) return '';
+  const loc = (typeof langLocale === 'function') ? langLocale() : undefined;
+  const today = at.toDateString() === new Date().toDateString();
+  let when = ''; try { when = today ? at.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' }) : at.toLocaleDateString(loc, { day: 'numeric', month: 'short' }); } catch (_){ when = String(t.at).slice(0, 10); }
+  return `<div class="pd-gl-foot">${_pdE(_pdT('pd_gl_read', { when }))}</div>`;
+}
+/* ---- NEEDS YOU HERE (owner picked "Tabs and faces" by name, round 3 of the
+   redesign, 17 Oct 2026) ----
+   Above the contract at a glance on Jambo's tab: what THIS contract owes the
+   reader, Jambo's prepared work on it first — the Counter's own two readings
+   (hbAgentsData, needsYouOf), never a list of its own. Each row's button is its
+   one door: a prepared piece opens on the Board's Jambo's work card
+   (hbOpenAgent, the Counter's own), an owed item through needsYouGo (the
+   checklist's, with its words insNeedWords and verb INS_NEED_VERB). "All N" is
+   the Counter's own number (counterNeedsCount) and opens the Counter. Nothing
+   owed here, no card: the glance below says the rest. NOT SAID TWICE: the
+   details still owed are the glance's own row (with its tick when they are in,
+   the owner's "Alive"), so the checklist's 'details' item is left to it.
+   Reading writes nothing. */
+function pdNeedsRows(c){
+  const rows = []; if (!c) return rows;
+  let A = null; try { A = (typeof hbAgentsData === 'function') ? hbAgentsData(null) : null; } catch (_){ A = null; }
+  ((A && A.rows) || []).forEach(r => (r.items || []).forEach(it => {
+    if (it && String(it.cid) === String(c.id)) rows.push({ jw: true, k: r.k, key: it.key, sum: it.sum || '', urg: it.urg || '' }); }));
+  let L = []; try { L = (typeof needsYouOf === 'function') ? (needsYouOf(c) || []) : []; } catch (_){ L = []; }
+  L.filter(it => it && it.kind !== 'details').forEach(it => rows.push({ it }));
+  return rows;
+}
+function pdNeedRowHtml(c, r){
+  if (r.jw){
+    const face = (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 22, 'pd-nd-face').replace('<img', '<img data-ink-exempt') : '';
+    const sub = [r.sum, r.urg].filter(Boolean).join(' · ');
+    return `<div class="pd-gl-row pd-nd-row is-jw">${face}<span><b>${_pdE(_pdT('cn_jw'))} · ${_pdE(_pdT('ag_' + r.k))}</b>${sub ? `<small title="${_pdE(sub)}">${_pdE(sub)}</small>` : ''}</span><button type="button" class="ui-btn ui-btn-sm" data-pd-nd-jw="${_pdE(r.k)}" data-pd-nd-key="${_pdE(r.key || '')}">${_pdE(_pdT('pd_nd_see'))}</button></div>`;
+  }
+  let w = null; try { w = (typeof insNeedWords === 'function') ? insNeedWords(c, r.it) : null; } catch (_){ w = null; }
+  const verb = (typeof INS_NEED_VERB !== 'undefined' && INS_NEED_VERB[r.it.kind]) ? _pdT(INS_NEED_VERB[r.it.kind]) : _pdT('cn_open');
+  /* insNeedWords' line is HTML already (its late days marked); its words plain on the hover */
+  return `<div class="pd-gl-row pd-nd-row${r.it.urgent ? ' is-hot' : ''}" data-pd-nd-kind="${_pdE(r.it.kind)}"><span><b>${_pdE((w && w.title) || '')}</b>${w && w.sub ? `<small title="${_pdE(w.plain || '')}">${w.sub}</small>` : ''}</span><button type="button" class="ui-btn ui-btn-sm" data-pd-nd="${_pdE(r.it.kind)}" data-pd-nd-id="${_pdE(c.id)}">${_pdE(verb)}</button></div>`;
+}
+function pdNeedsHtml(c){
+  const rows = pdNeedsRows(c); if (!rows.length) return '';
+  let all = 0; try { all = (typeof counterNeedsCount === 'function') ? counterNeedsCount() : 0; } catch (_){ all = 0; }
+  const more = (all && typeof deskGoCounter === 'function')
+    ? `<button type="button" class="pd-go pd-nd-all" data-pd-nd-all title="${_pdE(_pdT('pd_nd_all_tip'))}">${_pdE(_pdT('pd_nd_all', { n: all }))}${PD_GO_ARROW}</button>` : '';
+  return `<div id="pd-needs" class="pd-glance pd-needs" data-pd-needs-for="${_pdE(c.id)}"><div class="pd-gl-h"><b>${_pdE(_pdT('pd_nd_title'))}</b>${pdPill('quiet', String(rows.length))}<span class="pd-gl-sp"></span>${more}</div><div class="pd-gl-b">${rows.map(r => pdNeedRowHtml(c, r)).join('')}</div></div>`;
+}
+/* in place, with the glance, as a face or a save changes what is owed */
+function pdNeedsRepaint(){
+  const glance = (typeof document !== 'undefined') ? document.getElementById('pd-glance') : null; if (!glance) return;
+  const c = pdContract(); if (!c || String(c.id) !== glance.getAttribute('data-pd-glance-for')) return;
+  const el = document.getElementById('pd-needs'), html = pdNeedsHtml(c);
+  if (!html){ if (el) el.remove(); return; }
+  const t = document.createElement('div'); t.innerHTML = html;
+  const nu = t.firstElementChild; if (!nu) return;
+  if (!el) glance.before(nu); else if (nu.outerHTML !== el.outerHTML) el.replaceWith(nu);
 }
 /* ---- A ROW THAT GOES IS TICKED OFF FIRST (owner picked "Alive" by name, 16
    Oct 2026: "when something is done he hops, and the row in the at a glance
@@ -1758,7 +2076,7 @@ function pdJamboTopHtml(){
      "Needs you" card's own reading; owner picked Jambo's note, 15 Oct 2026) */
   if (typeof igHomePaperFace !== 'function' || igHomePaperFace() !== true) return (typeof hbNeedsHelloHtml === 'function') ? hbNeedsHelloHtml() : '';
   const c = pdContract();
-  return c ? pdGlanceHtml(c) : pdWallHtml();
+  return c ? pdNeedsHtml(c) + pdGlanceHtml(c) : pdWallHtml();
 }
 /* the presses, delegated once: the panel is redrawn under them */
 if (typeof document !== 'undefined' && !document._pdJamboTopWired){
@@ -1775,6 +2093,18 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
     if (t.closest('[data-pd-drop-pick]')){ e.preventDefault(); pdDropPick(); return; }
+    if (t.closest('[data-pd-drop-import]')){ e.preventDefault(); if (typeof setView === 'function') setView('migration'); return; }
+    const back = t.closest('[data-pd-back]');
+    if (back){ e.preventDefault(); const go = PD_BACK_CLOSE[back.getAttribute('data-pd-back')]; if (go) go(); return; }
+    if (t.closest('[data-pd-nd-all]')){ e.preventDefault(); if (typeof deskGoCounter === 'function') deskGoCounter(); return; }
+    const jw = t.closest('[data-pd-nd-jw]');
+    if (jw){ e.preventDefault(); if (typeof hbOpenAgent === 'function') hbOpenAgent(jw.getAttribute('data-pd-nd-jw'), jw.getAttribute('data-pd-nd-key') || null); return; }
+    const nd = t.closest('[data-pd-nd]');
+    if (nd){ e.preventDefault(); if (typeof needsYouGo === 'function') needsYouGo(nd.getAttribute('data-pd-nd'), nd.getAttribute('data-pd-nd-id')); return; }
+    const gt = t.closest('[data-pd-glance-tab]');
+    if (gt){ e.preventDefault(); pdSetTab(gt.getAttribute('data-pd-glance-tab')); if (typeof renderIntelDock === 'function') renderIntelDock(); return; }
+    if (t.closest('[data-pd-gl-brief]')){ e.preventDefault(); const cc = pdContract();
+      if (cc && typeof openCheckPanel === 'function') openCheckPanel(getContract(cc.id) || cc, 'brief'); return; }
     const g = t.closest('[data-pd-glance]');
     if (g && !g.disabled){ e.preventDefault(); const row = PD_GLANCE[g.getAttribute('data-pd-glance')]; if (row && typeof intelAsk === 'function') intelAsk(_pdT(row[2])); }
   });
@@ -1880,9 +2210,9 @@ if (typeof document !== 'undefined' && !document._jbWired){
 Object.assign(window, { pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedHeadEndHtml, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
-  pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,
-  PD_FILL_TRIES, PD_FILL_BEAT_MS, pdFillFor, pdFillShows, pdFillOpen, pdFillSeen, pdFillAway, pdFillClose, pdFillHeadHtml, pdFillDoneHtml, pdFillFaceHtml, pdFillFacePaint, pdFillCounts, pdFillKeyOf, pdFillEcho, pdFillWire, pdFillLand, pdFillRefresh,
+  pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,
+  PD_FILL_TRIES, PD_FILL_BEAT_MS, pdFillFor, pdFillShows, pdFillOpen, pdFillSeen, pdFillAway, pdFillClose, pdFillHeadHtml, pdFillDoneHtml, pdFillFaceHtml, pdFillMark, pdFillGroupsPaint, pdFillRows, pdFillRowKey, pdFillFacePaint, pdFillCounts, pdFillKeyOf, pdFillEcho, pdFillWire, pdFillLand, pdFillRefresh,
   pdFillStreamMay, pdFillStreamHtml, pdFillStreamRepaint, pdFillStreamPick,
   PD_DROP_ACCEPT, pdDropMay, pdWallHelloHtml, pdDropInner, pdDropStreams, pdDropStreamNow, pdDropStreamHtml, pdDropHtml, pdDropPaint, pdWallHtml, pdDropInput, pdDropBusyNow, pdDropPick, PD_DROP_TOAST_MS, pdDropToastOff, pdDropTake,
-  PD_GLANCE, pdGlanceRows, pdSignAhead, pdGlanceHtml, pdGlanceRepaint, pdJamboTopHtml, PD_GL_DONE_MS, pdGlanceDone,
+  PD_GLANCE, PD_GL_SUB_MAX, pdGlanceSub, pdGlanceBriefHtml, pdGlanceFootHtml, pdDropImportHtml, pdDropDoor, PD_DROP_CALL_MS, pdGlanceRows, pdSignAhead, pdGlanceHtml, pdGlanceRepaint, pdJamboTopHtml, pdNeedsRows, pdNeedRowHtml, pdNeedsHtml, pdNeedsRepaint, pdBackHtml, PD_BACK_CLOSE, PD_GL_DONE_MS, pdGlanceDone,
   JB_BEAT_MS, JB_HOP_MS, jamboPerchMount, jamboRest, jamboWorkWords, jamboBeat, jamboHop, jamboLookPaint });

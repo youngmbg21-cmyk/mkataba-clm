@@ -97,7 +97,8 @@ const openRoom = async (page, id) => {
 const PANEL = () => {
   const host = document.getElementById('pd-fill');
   if (!host) return { there: false };
-  const r = host.getBoundingClientRect();
+  /* RE-POINTED 17 Oct 2026 (round 8, "Owed first"): on Home the questions' host is laid flat in Fill in's worklist, so the face is what is drawn */
+  const r = ((getComputedStyle(host).display === 'contents' && document.getElementById('pd-fillface')) || host).getBoundingClientRect();
   const boxes = [...host.querySelectorAll('[data-blankf]')].map(b => ({
     key: b.getAttribute('data-blankf'),
     label: ((b.closest('label') || {}).textContent || '').trim(),

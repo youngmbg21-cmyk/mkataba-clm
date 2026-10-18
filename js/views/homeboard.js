@@ -181,6 +181,8 @@ function hbS(){
       .map(x => ({ id: x.id.slice(0, 80), page: ['ov', 'where', 'hist', 'details'].includes(x.page) ? x.page : 'ov', kept: !!x.kept,
         day: /^\d{4}-\d{2}-\d{2}$/.test(String(x.day || '')) ? x.day : '', at: String(x.at || '').slice(0, 8) }))
       .filter(x => x.kept || x.day === hbToday());
+    /* the contract's page on the desk comes back with its strip (round 7) */
+    if (typeof v.card === 'string' && s.strips.some(x => x.id === v.card)) s.card = v.card;
     { const ck = s.path.filter(k => /^c:/.test(k));
       if (ck.length){ const id = ck[ck.length - 1].slice(2);
         if (id && !s.strips.some(x => x.id === id)) s.strips.unshift({ id, page: 'ov', kept: false, day: hbToday(), at: '' });
@@ -542,13 +544,13 @@ function hbFigSeries(k, d){
   return out;
 }
 /* "+58 · vs 6 months ago": the tile's number against the first point of its line */
-function hbVsHtml(k, d, tone){
+function hbVsHtml(k, d, tone, bare){
   const h = hbFigSeries(k, d); if (h.length < 2) return '';
   const was = h[0].v, now = h[h.length - 1].v, dlt = now - was;
   const amt = k === 'value' ? (was > 0 ? (dlt >= 0 ? '+' : '−') + (Math.abs(dlt) / was * 100).toFixed(1).replace(/\.0$/, '') + '%' : (dlt >= 0 ? '+' : '−') + _hbM(Math.abs(dlt))) : (dlt > 0 ? '+' : dlt < 0 ? '−' : '') + _hbN(Math.abs(dlt));
   const good = tone === 'bad' || tone === 'warn' ? dlt < 0 : dlt > 0;
   const cls = !dlt ? '' : good ? ' is-good' : (tone === 'bad' ? ' is-bad' : ' is-warn');
-  return `<span class="hb-vs"><b class="hb-vs-n${cls}">${_hbE(dlt ? amt : i18t('hb_vs_same'))}</b> · ${_hbE(i18t('hb_vs_6m'))}</span>`;
+  return `<span class="hb-vs"><b class="hb-vs-n${cls}">${_hbE(dlt ? amt : i18t('hb_vs_same'))}</b>${bare ? '' : ' · ' + _hbE(i18t('hb_vs_6m'))}</span>`;
 }
 function hbSparkHtml(k, fmt, book){
   const h = book ? hbFigSeries(k, book) : hbHistOf(k);
@@ -1339,8 +1341,26 @@ function hbLeftCodes(ids){
     if (miss) codes.add((typeof contractCurrency === 'function' ? contractCurrency(c) : ((c.metadata || {}).currency)) || '?'); });
   return [...codes].sort().join(', ');
 }
+/* ---- THEN AND NOW (round 17 of the redesign: the owner picked "Then and
+   now" by name, 17 Oct 2026) ----
+   The comparison is the card's spine: each figure is a row — what it counts,
+   what it was six months ago, today, the change, its six-month line — read
+   off the figure's own line (hbFigSeries, the one reading the tiles' "vs 6
+   months ago" already used), so the first point IS the "then" and the last
+   IS today. The stage bar is drawn twice, then above today, the key saying
+   both ("Drafting 6 (7)"). Every today is still its door; a then is history
+   and opens nothing. */
+function hbThenDay(){ return hbMonthsAgo(HB_SPARK_MONTHS); }
+function hbThenWord(month){
+  try { return new Date(hbThenDay() + 'T00:00:00').toLocaleDateString((typeof langLocale === 'function') ? langLocale() : undefined,
+    month ? { month: 'long' } : { day: 'numeric', month: 'long' }); } catch (_){ return hbThenDay(); }
+}
+const HB_STAGE_FIG = { 'Draft': 'drafting', 'Under Review': 'review', 'Signed': 'signed' };
+function hbStageThen(d, k){ const f = HB_STAGE_FIG[k]; const h = f ? hbFigSeries(f, d) : []; return h.length >= 2 ? h[0].v : null; }
 function hbBookHtml(d, moved, since){
   const chosen = hbFigsChosen(d.money);
+  const thenWord = hbThenWord();
+  const fmtOf = f => f.k === 'value' ? _hbM : f.days ? (n => i18tn('hb_f_days', n, { n: _hbN(n) })) : _hbN;
   const tiles = chosen.map(f => {
     const F = d.figs[f.k];
     const num = f.k === 'value' ? _hbM(F.v) : f.days ? (F.none ? '—' : i18tn('hb_f_days', F.n, { n: _hbN(F.n) })) : _hbN(F.n);
@@ -1351,22 +1371,30 @@ function hbBookHtml(d, moved, since){
     const left = leftSay ? ' · ' + leftSay : '';
     /* THE NEW BOARD'S TILE (11 Oct 2026): what it counts, then the number,
        then what moved since your last visit, then the figure's own line */
-    return `<div class="hb-fig${tone}">
+    /* THEN AND NOW: one row — what it counts (and what it leaves out), then,
+       today (the door), the change, its line */
+    const h = hbFigSeries(f.k, d), was = h.length >= 2 ? fmtOf(f)(h[0].v) : '—';
+    return `<div class="hb-fig${tone}" data-hb-fig="${f.k}">
       <button type="button" class="hb-fig-main" ${zero ? 'disabled' : `data-hb-dig="f:${f.k}"`} title="${_hbE(i18t(f.k === 'paygap' && F.gap != null ? (F.gap < 0 ? 'hb_f_paygap_good' : F.gap > 0 ? 'hb_f_paygap_bad' : 'hb_f_paygap_tip') : f.tip) + left)}">
-        <span class="hb-fig-l">${_hbE(i18t(f.word))}</span><span class="hb-fig-n">${_hbE(num)}</span></button>
-      ${leftSay ? `<span class="hb-fig-left${f.k === 'overdue' ? ' is-split' : ''}">${_hbE(leftSay)}</span>` : ''}${hbDeltaHtml(f.k, moved && moved[f.k], since)}${hbVsHtml(f.k, d, f.k === 'paygap' ? (F.tone === 'good' ? '' : 'warn') : f.tone)}${hbSparkHtml(f.k, f.k === 'value' ? _hbM : f.days ? (n => i18tn('hb_f_days', n, { n: _hbN(n) })) : _hbN, d)}</div>`;
+        <span class="hb-fig-lw"><span class="hb-fig-l">${_hbE(i18t(f.word))}</span>${leftSay ? `<span class="hb-fig-left${f.k === 'overdue' ? ' is-split' : ''}">${_hbE(leftSay)}</span>` : ''}</span><span class="hb-fig-then" title="${_hbE(thenWord)}">${_hbE(was)}</span><span class="hb-fig-n">${_hbE(num)}</span></button>
+      <span class="hb-fig-chg">${hbVsHtml(f.k, d, f.k === 'paygap' ? (F.tone === 'good' ? '' : 'warn') : f.tone, true)}${hbDeltaHtml(f.k, moved && moved[f.k], since)}</span>${hbSparkHtml(f.k, fmtOf(f), d)}</div>`;
   }).join('');
+  const head = `<div class="hb-tn-h" aria-hidden="true"><span>${_hbE(i18t('hb_tn_figure'))}</span><span>${_hbE(thenWord)}</span><span>${_hbE(i18t('hb_tn_today'))}</span><span>${_hbE(i18t('hb_tn_change'))}</span><span>${_hbE(i18t('hb_tn_six'))}</span></div>`;
   const tot = d.stages.reduce((a, s) => a + s.n, 0);
-  const bar = tot ? `<div class="hb-stagebar">${d.stages.map(s => s.n ? `<button type="button" style="flex-grow:${s.n};background:${_hbE(s.tone)}" data-hb-dig="st:${_hbE(s.k)}" title="${_hbE((s.word ? i18t(s.word) : s.k) + ': ' + i18tn('home_map_n_contracts', s.n, { n: _hbN(s.n) }))}" aria-label="${_hbE((s.word ? i18t(s.word) : s.k) + ': ' + i18tn('home_map_n_contracts', s.n, { n: _hbN(s.n) }))}"></button>` : '').join('')}</div>
-    <div class="hb-stagekey">${d.stages.map(s => `<button type="button" ${s.n ? `data-hb-dig="st:${_hbE(s.k)}"` : 'disabled'}><i style="background:${_hbE(s.tone)}"></i>${_hbE(s.word ? i18t(s.word) : s.k)} <b>${_hbN(s.n)}</b></button>`).join('')}</div>` : '';
+  /* THE STAGE BAR, THEN ABOVE TODAY: the then bar is history, drawn not pressed */
+  const thens = d.stages.map(s => hbStageThen(d, s.k)), thenTot = thens.every(v => v != null) ? thens.reduce((a, v) => a + v, 0) : 0;
+  const sw = s => s.word ? i18t(s.word) : s.k;
+  const thenBar = thenTot ? `<div class="hb-stagerow is-then"><span class="hb-sr-l">${_hbE(thenWord)}</span><div class="hb-stagebar-then" role="img" aria-label="${_hbE(d.stages.map((s, i) => sw(s) + ' ' + _hbN(thens[i])).join(', '))}">${d.stages.map((s, i) => thens[i] ? `<span style="flex-grow:${thens[i]};background:${_hbE(s.tone)}" title="${_hbE(sw(s) + ' · ' + thenWord + ': ' + i18tn('home_map_n_contracts', thens[i], { n: _hbN(thens[i]) }))}"></span>` : '').join('')}</div><span class="hb-sr-n">${_hbN(thenTot)}</span></div>` : '';
+  const bar = tot ? `<div class="hb-stagerows${thenTot ? ' is-two' : ''}">${thenBar}<div class="hb-stagerow"><span class="hb-sr-l">${_hbE(i18t('hb_tn_today'))}</span><div class="hb-stagebar">${d.stages.map(s => s.n ? `<button type="button" style="flex-grow:${s.n};background:${_hbE(s.tone)}" data-hb-dig="st:${_hbE(s.k)}" title="${_hbE(sw(s) + ': ' + i18tn('home_map_n_contracts', s.n, { n: _hbN(s.n) }))}" aria-label="${_hbE(sw(s) + ': ' + i18tn('home_map_n_contracts', s.n, { n: _hbN(s.n) }))}"></button>` : '').join('')}</div><span class="hb-sr-n">${_hbN(tot)}</span></div></div>
+    <div class="hb-stagekey">${d.stages.map((s, i) => `<button type="button" ${s.n ? `data-hb-dig="st:${_hbE(s.k)}"` : 'disabled'}><i style="background:${_hbE(s.tone)}"></i>${_hbE(sw(s))} <b>${_hbN(s.n)}</b>${thenTot ? ` <span class="hb-sk-then">(${_hbN(thens[i])})</span>` : ''}</button>`).join('')}${thenTot ? `<span class="hb-sk-note">${_hbE(i18t('hb_tn_brackets', { m: hbThenWord(true) }))}</span>` : ''}</div>` : '';
   const count = hbCountLabel(d.lens);
   /* the same rule as the head's chip: the default is never read back */
-  const sub = [count, d.lens === 'all' ? '' : i18t('hb_lens_' + d.lens), since ? i18t('hb_book_since', { when: hbDayWords(since) }) : ''].filter(Boolean).join(' · ');
+  const sub = [i18t('hb_tn_sub', { then: thenWord }), count, d.lens === 'all' ? '' : i18t('hb_lens_' + d.lens), since ? i18t('hb_book_since', { when: hbDayWords(since) }) : ''].filter(Boolean).join(' · ');
   const unsided = d.unsided ? `<div class="hb-quiet">${_hbE(i18tn('hb_unsided', d.unsided, { n: _hbN(d.unsided) }))}</div>` : '';
   return `<section class="hb-card hb-book" id="hb-book"><header class="hb-ch"><span class="hb-ct">${_hbE(i18t('hb_book'))}</span><span class="hb-cs">${_hbE(sub)}</span>
     ${hbS().prep === 'closed' ? `<span class="hb-grow"></span><button type="button" class="hb-link" data-hb-prep="open" title="${_hbE(i18t('hb_prep_back'))}">${_hbE(i18t('hm_ag_title'))} <span class="hb-pill">${_hbN(hbAgentsData(null).ready)}</span></button>` : ''}
     <span class="hb-grow"></span><span class="hb-figpick-w"><button type="button" class="hb-ib hb-figs-set" data-hb-figpick aria-haspopup="dialog" aria-expanded="${_hbFigPick}" title="${_hbE(i18t('hb_figs_pick'))}" aria-label="${_hbE(i18t('hb_figs_pick'))}"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor"><use href="#i-sliders"/></svg></button>${_hbFigPick ? hbFigPickHtml(d.money) : ''}</span></header>
-    <div class="hb-cb"><div class="hb-figs is-n${chosen.length}" style="--hb-figs-n:${chosen.length}">${tiles}</div>${bar}${unsided}</div></section>`;
+    <div class="hb-cb"><div class="hb-figs hb-tn is-n${chosen.length}" style="--hb-figs-n:${chosen.length}">${head}${tiles}</div>${bar}${unsided}</div></section>`;
 }
 
 /* ---- PREPARED BY COPILOT, under the book ----
@@ -5686,6 +5714,9 @@ function hbGridBalanced(html){
 }
 /* ---- THE BOARD ---- */
 function hbBoardHtml(){
+  /* A CONTRACT BROUGHT UP IS A PAGE ON THE DESK (round 7, "Read down"): the
+     card alone, none of the Board's own furniture */
+  if (typeof window.bsCardId === 'function' && window.bsCardId() && typeof window.bsStripsHtml === 'function') return window.bsStripsHtml();
   /* THE CONTRACT'S VIEWS ARE GONE (owner, 15 Oct 2026: "the whole page needs
      to go as they are redundant": History is on the contract's strip,
      Obligations has its own tab in Jambo's panel, Your book was useless).
@@ -6881,7 +6912,11 @@ function hbPaintHead(){
   const track = document.querySelector('#hb-head .hb-faces'); if (track) track.style.setProperty('--hb-fi', String(Math.max(0, HB_FACES.indexOf(s.face))));
   document.querySelectorAll('[data-hb-screen]').forEach(b => b.setAttribute('aria-pressed', String(b.getAttribute('data-hb-screen') === hbScreenNow())));
   const gb = document.getElementById('hb-groupby'); if (gb) gb.hidden = s.face !== 'explorer';
-  const scr = document.querySelector('#hb-head .hb-scr'); if (scr) scr.hidden = s.face !== 'board';
+  /* a contract's page on the desk (round 7) is not the Board: its screen and Present are the Board's */
+  const card = s.face === 'board' && typeof window.bsCardId === 'function' && !!window.bsCardId();
+  const scr = document.querySelector('#hb-head .hb-scr'); if (scr) scr.hidden = s.face !== 'board' || card;
+  const pres = document.getElementById('hb-present'); if (pres) pres.hidden = card;
+  const pg0 = hbPage(); if (pg0) pg0.classList.toggle('hb-on-card', card);
   const chip = document.querySelector('.hb-counting');
   if (chip){ const h = hbCountChipHtml(); if (chip.innerHTML !== h) chip.innerHTML = h; }
   /* the face turned: it is the tab in front now (Round 2) */
@@ -7038,7 +7073,11 @@ function hbSetFace(f){
   if (!HB_FACES.includes(f)) return;
   const s = hbS(); if (s.face === f) return;
   const kb = document.activeElement && document.activeElement.getAttribute && document.activeElement.getAttribute('data-hb-face') != null;
-  s.face = f; hbSave();
+  s.face = f;
+  /* TURNING TO THE BOARD IS THE BOARD (round 7): a contract's page shown on
+     the Board's side is let go; hbStripBring sets it again after the turn */
+  if (f === 'board') s.card = null;
+  hbSave();
   /* a presentation carries on across the turn; the pen's marks were drawn
      over the other side, so they go */
   if (_hbPresenting){ _hbStroke = null; hbInkClear(); }
@@ -10364,7 +10403,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { hbSetupLeft, hbSetupGo, HB_NY_PILLS, hbNeedsList, hbNeedsCount, hbNyWhat, hbNyWhen, hbNyOldestSay, hbNeedsHtml, hbNeedsHelloHtml, hbNeedsOpen, hbNeedsPress, hbSavedViewsHtml, hbOpenSavedView, hbOpenCalendar, hbOpenContracts, hbOpenHome, HB_CVIEWS, HB_CV_WORD, HB_CV_ROOM_TAB, hbCvNow, hbCvSet, hbCvCounts, hbCvReady, hbCvSwitchHtml, hbCvBodyHtml, hbCvPaint, hbOpenView, hbCvPick, hbCvReportOf, hbCvPrint, hbCvDownload, hbCvShareFormHtml, hbCvGive, hbCvGiftValid, hbCvGiftHtml, hbGiftSeen, hbCvGiftOpen, hbGiftsSeenSay, hbGiftAlerts, hbAngleOf, hbAngleText, HB_ANGLE, HB_SLASH_PLACES, HB_ASKPOP_LONG, hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgentWorkPress, hbOpenAgent, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_FACE_ICON, hbFaceWordsHtml, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
+Object.assign(window, { hbThenDay, hbThenWord, HB_STAGE_FIG, hbStageThen, hbSetupLeft, hbSetupGo, HB_NY_PILLS, hbNeedsList, hbNeedsCount, hbNyWhat, hbNyWhen, hbNyOldestSay, hbNeedsHtml, hbNeedsHelloHtml, hbNeedsOpen, hbNeedsPress, hbSavedViewsHtml, hbOpenSavedView, hbOpenCalendar, hbOpenContracts, hbOpenHome, HB_CVIEWS, HB_CV_WORD, HB_CV_ROOM_TAB, hbCvNow, hbCvSet, hbCvCounts, hbCvReady, hbCvSwitchHtml, hbCvBodyHtml, hbCvPaint, hbOpenView, hbCvPick, hbCvReportOf, hbCvPrint, hbCvDownload, hbCvShareFormHtml, hbCvGive, hbCvGiftValid, hbCvGiftHtml, hbGiftSeen, hbCvGiftOpen, hbGiftsSeenSay, hbGiftAlerts, hbAngleOf, hbAngleText, HB_ANGLE, HB_SLASH_PLACES, HB_ASKPOP_LONG, hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgentWorkPress, hbOpenAgent, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_FACE_ICON, hbFaceWordsHtml, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbOpenRef, HB_OPEN_REF_LEAD, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,

@@ -9244,6 +9244,10 @@ function negoRoundLine(c){
 const NEGO_DEAD_STATUS = new Set(['Signed', 'Declined']);
 function negoIsLive(c){
   if (!c) return false;
+  /* A DEAL KEPT TO ITS LIST is not a live negotiation for anyone outside it
+     (round 14, the owner's "No" to listing it): its stand-in carries no
+     negotiation to read, and the list, its counts and the Board's say alike. */
+  if (c._codeNamed) return false;
   /* ---- A WORKING FILE LIVES HERE (26 Sep 2026, redline here, sign there) ----
      Opened to be negotiated and signed on their side, it is listed on
      Negotiations from the day it is opened — before a change is filed — until
@@ -19430,6 +19434,10 @@ function redlineChangeCardsHtml(c, opts = {}){
     const label = b === 'with'
       ? i18t(side === 'counterparty' ? 'ng_band_with_named' : 'ng_band_with', { who: otherSide })
       : i18t('ng_band_' + b);
+    /* SETTLED, FOLDED (round 9, "Piles"): what is finished this round stands
+       behind its own heading, a press opens it and a press again shuts it */
+    if (RL_QUIET_BANDS.includes(b)) return `<button type="button" class="rl-band rl-band-fold" data-rl-band="${_nea(b)}" data-rl-settled-fold aria-expanded="${_rlSettledOpen ? 'true' : 'false'}"><span>${
+      _ne(label)}</span><b>${n}</b><i aria-hidden="true">${_rlSettledOpen ? '▴' : '▾'}</i></button>`;
     return `<div class="rl-band" role="presentation" data-rl-band="${_nea(b)}"><span>${
       _ne(label)}</span><b>${n}</b></div>`;
   };
@@ -20273,9 +20281,9 @@ function redlineChangeCardsHtml(c, opts = {}){
             heldHere ? `<span class="rl-badge rl-badge-${badge[0]}"${badge[2] ? ` title="${_nea(badge[2])}"` : ''}>${badge[1]}</span>` : ''}${
             ''/* THE REFERENCE AT THE RIGHT (the artifact's row, Young 21 Sep 2026):
                   quiet, in the data face; the clause still leads. */}${
-            who ? `<span class="rl-card-id">${_ne(ch.id)}</span>` : ''}${
+            who ? `<span class="rl-card-id">${_ne(ch.id)}</span>${rlRowByHtml(ch, _short)}` : ''}${
             rlCardNotesCountHtml(c, ch, opts, side)}</div>
-          ${sub}${pySub}${prepSub}
+          ${(() => { const why = rlRowWhyHtml(ch); return why ? `<div class="rl-card-sumw">${sub}${why}</div>` : sub; })()}${pySub}${prepSub}
         </div>
         ${''/* ---- AND THE OPEN BUTTON IS GONE WITH THE BODY IT UNFOLDED
                (Young ruled 15 Sep 2026) ----
@@ -21580,6 +21588,41 @@ function redlinePanesHtml(c, opts = {}){
    draw (the Thread's TH_HOSTS pattern). opts.cpPanel false = no clause
    panel in this mount, so the rows draw no Open door onto one. Lifted out of
    redlinePanesHtml word for word, with the readings only it used. */
+/* ---- PILES (round 9 of the redesign: the owner picked "Piles" by name,
+   17 Oct 2026) ----
+   The row says who and when — the reference rides its hover, which the row's
+   meta tip already carried — and the reason they gave sits under the change,
+   in their words (negoReasonOf, the one reading of it). The settled piles
+   fold behind their heading, shut until pressed, for the sitting. */
+let _rlSettledOpen = false;
+function rlAgoWords(iso){
+  const t = Date.parse(String(iso || '')); if (!isFinite(t)) return '';
+  const day = s => { const d = new Date(s); d.setHours(0, 0, 0, 0); return d.getTime(); };
+  const n = Math.round((day(Date.now()) - day(t)) / 86400000);
+  if (n <= 0) return i18t('rl_ago_today');
+  if (n === 1) return i18t('rl_ago_yesterday');
+  return (typeof i18tn === 'function') ? i18tn('rl_ago_days', n, { n }) : n + ' days ago';
+}
+function rlRowByHtml(ch, short){
+  const who = String((ch && ch.author) || '').trim();
+  const when = rlAgoWords(ch && (ch.createdAt || ch.at));
+  const words = [who ? (typeof short === 'function' ? short(who) : who) : '', when].filter(Boolean).join(' \u00b7 ');
+  return words ? `<span class="rl-card-by" title="${_nea([who, ch.id].filter(Boolean).join(' \u00b7 '))}">${_ne(words)}</span>` : '';
+}
+function rlRowWhyHtml(ch){
+  const w = String((typeof window.negoReasonOf === 'function') ? negoReasonOf(ch) : ((ch && ch.why) || '')).trim();
+  return w ? `<div class="rl-card-whyq" title="${_nea(w)}">\u201c${_ne(w)}\u201d</div>` : '';
+}
+function rlSettledToggle(){
+  _rlSettledOpen = !_rlSettledOpen;
+  document.querySelectorAll('#rl-changes-col').forEach(col => col.classList.toggle('rl-settled-open', _rlSettledOpen));
+  document.querySelectorAll('[data-rl-settled-fold]').forEach(b => { b.setAttribute('aria-expanded', String(_rlSettledOpen));
+    const i = b.querySelector('i'); if (i) i.textContent = _rlSettledOpen ? '\u25b4' : '\u25be'; });
+}
+if (typeof document !== 'undefined') document.addEventListener('click', e => {
+  const b = e.target && e.target.closest && e.target.closest('[data-rl-settled-fold]'); if (!b) return;
+  e.preventDefault(); rlSettledToggle();
+});
 function rlColumnHtml(c, opts = {}){
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const p = (typeof negoProgress === 'function') ? negoProgress(c) : { done:0, total:0, pct:0, pending:0 };
@@ -21642,7 +21685,7 @@ function rlColumnHtml(c, opts = {}){
              `inert` is what actually takes it away: no focus, no clicks, and
              removed from the accessibility tree. It is a boolean attribute, so
              it is emitted or it is not — never inert="false", which is inert. */}
-        <div class="nego-pane index" id="rl-changes-col" aria-label="${i18t('ng_tracked_changes')}" ${rlReadOnlyReading() ? 'aria-disabled="true" inert' : ''}>
+        <div class="nego-pane index${_rlSettledOpen ? ' rl-settled-open' : ''}" id="rl-changes-col" aria-label="${i18t('ng_tracked_changes')}" ${rlReadOnlyReading() ? 'aria-disabled="true" inert' : ''}>
           ${''/* ---- THE CHANGE INDEX (owner-approved render, 24 Aug 2026) ----
                  The head said "TRACKED CHANGES" and a count of what is OPEN,
                  which never told a reader how far through the round they were.
@@ -21676,7 +21719,9 @@ function rlColumnHtml(c, opts = {}){
                      count and is named for exactly the state it holds.
                      `ng_tracked_head_n`, `ng_n_open` and `.rl-idx-open` are
                      STALE — the keys are left inert in both dictionaries. */}
-              <span class="rl-idx-title">${
+              ${''/* A HOST'S OWN WAY BACK (round 3, "Tabs and faces"): Jambo's
+                     Redlines face opens its head with "‹ Jambo"; the
+                     Negotiate page passes nothing. */}${opts.headStart || ''}<span class="rl-idx-title">${
                 _ne(i18t('ng_redlines_head_n', { n: changeTotal }))
                   .replace(/\s*\(?(\d+)\)?\s*$/, ' <i>$1</i>')}</span>
               <span class="rl-idx-sp"></span>
@@ -22018,7 +22063,7 @@ if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoT
      ending on every screen that draws a document — which is what the shared
      builder was for. */
   rlPaperFootHtml,
-  redlinePanesHtml, rlColumnHtml, rlBenchOpts, rlBenchCatchUp, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, rlCardNotesHtml, negoWhen,
+  redlinePanesHtml, rlAgoWords, rlRowByHtml, rlRowWhyHtml, rlSettledToggle, rlColumnHtml, rlBenchOpts, rlBenchCatchUp, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, rlCardNotesHtml, negoWhen,
   NOTE_ROOMS, negoNoteRoom, negoRoomNotes, negoNoteCounts, notesMayWrite,
   negoNoteParty, negoNoteRoomKey, negoNoteRoomList, negoRoomIsExternal,
   negoRoomPartyId, negoRoomKey, rlNpRoomsHtml, rlNpRoomNow,

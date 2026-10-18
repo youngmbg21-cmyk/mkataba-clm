@@ -272,7 +272,11 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
     /* RE-POINTED 10 Oct 2026 (SAP pop-ups): New agreement is a PAGE now, with
        the white head of every page; the frame's rule is asked of a dialog that
        is still a dialog — Add a received contract, behind the other door. */
-    await page.evaluate(() => { const d = document.querySelector('[data-nd-door="upload"]'); if (d) d.click(); });
+    /* RE-POINTED 17 Oct 2026 (round 5, the owner picked "Jambo's tray"): the
+       Upload door lands on the drop area in Jambo's panel; the dialog the frame
+       is asked of is the upload pop-up itself, which still finishes what a drop
+       hands it, opened as the drop opens it */
+    await page.evaluate(() => { try { closeModal(); } catch (_) {} if (typeof openUploadModal === 'function') openUploadModal(); });
     await page.waitForTimeout(1600);
     await page.screenshot({ path: path.join(OUT, '05-popup.png') });
     /* RE-POINTED 10 Oct 2026 (the pop-ups as drawn): the 3px accent line at a

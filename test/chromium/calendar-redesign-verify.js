@@ -122,7 +122,8 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
     await page.click('#li-go');
     await pause(2400);
     await page.evaluate(SEED);
-    await page.evaluate(() => setView('calendar'));
+    /* the calendar opens on this week and five more since round 16 (18 Oct 2026); this check is about the month, so it asks for it */
+    await page.evaluate(() => { setView('calendar'); calSetView('month'); });
     await pause(1400);
     await page.screenshot({ path: path.join(OUT, '01-month.png') });
 
@@ -194,7 +195,7 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
         && !!(await page.evaluate(() => !!document.querySelector('#ig-dock #cal-plan'))),
       { grid: shape.grid && shape.grid.w, panel: shape.panel && shape.panel.w,
         stageY: shape.stage && shape.stage.y, panelY: shape.panel && shape.panel.y });
-    check('1 the week starts on Monday', shape.dow[0] && /^M/i.test(shape.dow[0]), shape.dow);
+    check('1 the week starts on Monday and runs to Friday (Monday to Friday everywhere, round 16)', shape.dow[0] && /^M/i.test(shape.dow[0]) && shape.dow.length === 5 && /^F/i.test(shape.dow[4]), shape.dow);
     /* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2): the drawing's
        key names only the kinds that month carries. A relation, so it holds on
        whatever day this runs: one key entry per kind on the month, no more. */
@@ -215,7 +216,7 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
         const gr = g && g.getBoundingClientRect();
         return { pageScroll: sc ? sc.scrollHeight - sc.clientHeight : null,
           gridScroll: g ? g.scrollHeight - g.clientHeight : null,
-          rows: cells.length / 7,
+          rows: cells.length / 5,   /* Monday to Friday since round 16 (owner's yes, 17 Oct 2026) */
           hidden: gr ? cells.filter(c => c.getBoundingClientRect().bottom > gr.bottom + 1).length : null,
           lastNumber: cells.length ? (cells[cells.length - 1].textContent || '').trim().slice(0, 2) : null };
       });

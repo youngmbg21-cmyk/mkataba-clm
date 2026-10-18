@@ -120,10 +120,13 @@ function mDetBoxHtml(c, x, bmap){
   if(x.kind==='kt'){
     if(x.key==='party') return `<input type="text" data-kt="party" value="${mEsc(c.party||'')}" placeholder="${mEsc((typeof contractParty==='function'?contractParty(c):'')||'')}" style="${IN}">`;
     if(x.key==='counterparty') return `<input type="text" data-kt="counterparty" value="${mEsc(c.counterparty||'')}" style="${IN}">`;
+    /* base pay and an NDA's facts are confirmed through their own doors on a computer (round 8) */
+    if(x.key==='value'&&typeof fxIsPay==='function'&&fxIsPay(c)) return `<div class="m-note">${mEsc(i18t('det_on_computer'))}</div>`;
     if(x.key==='value') return `<input type="text" inputmode="numeric" data-kt="value" value="${(Number(c.value)>0)?mEsc(Number(c.value).toLocaleString(typeof jxLocale==='function'?jxLocale():undefined)):''}" placeholder="0" style="${IN}">`;
     if(x.key==='effDate') return `<input type="date" data-kt="effDate" value="${mEsc((c.fields&&c.fields.effDate)||'')}" style="${IN}">`;
     return '';
   }
+  if(x.kind==='nda') return `<div class="m-note">${mEsc(i18t('det_on_computer'))}</div>`;
   if(x.kind==='tplf'){
     const form=c.templateForm||{}; const idx=(form.fields||[]).findIndex(f=>f&&String(f.fieldKey)===x.key);
     if(idx<0||typeof tplFormInputHtml!=='function') return '';

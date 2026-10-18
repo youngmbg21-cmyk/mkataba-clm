@@ -104,8 +104,11 @@ const check = (name, pass, detail) => {
     });
     check('2a six papers a line at 1280 wide with Jambo\'s panel open',
       fit.perLine === 6 && fit.dock > 0, JSON.stringify(fit));
-    check('2b the papers are small (about 120–150 px wide) and shaped like a page',
-      fit.w >= 110 && fit.w <= 160 && Math.abs(fit.h / fit.w - 1.414) < 0.08, JSON.stringify(fit));
+    /* RE-POINTED 17 Oct 2026 (round 13, the owner picked "Wall of papers"):
+       each paper is the top of its first page — wider than tall — so two rows
+       stand on a laptop's screen; the facts sit under it */
+    check('2b the papers are small (about 120–160 px wide), the top of a page',
+      fit.w >= 110 && fit.w <= 160 && Math.abs(fit.w / fit.h - 1.55) < 0.08, JSON.stringify(fit));
     check('2c the first paper is painted where it stands', fit.painted);
 
     /* ================= 3. SEARCH NARROWS (the top bar's box, the place's one search) ================= */
