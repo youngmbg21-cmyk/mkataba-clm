@@ -21025,3 +21025,4 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Fixed by the one rule (not a separate change): "show me the signed contracts" on the Contracts place no longer gives a job card — the list narrows.
 - Noticed, not fixed (18 Oct 2026, Explorer stage 1): CLAUDE.md is about 112 KB, past the "keep it under about 80 KB" its own head asks for; the last trim was 15 Oct.
 - Noticed, not fixed (18 Oct 2026, Explorer stage 1): on Explorer's Timeline at 1536×730 the axis's date labels end at about 692px and the view bar starts at 695px — three pixels apart before stage 1 touched anything.
+- Noticed, not fixed (18 Oct 2026, Explorer stage 2): Explorer's head line (#ig-note) has no room kept for the Group by box in the stage's top-right corner; a long line (a lens label plus "Highlighted N of T" plus Show everything · Undo · Save view) runs under "Group by" at 1536×730. Its max-width is the whole stage less 24px.
