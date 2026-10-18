@@ -30616,3 +30616,14 @@ The owner picked "Then and now" by name. Its one question was about another opti
 - Re-pointed: f660 (3) and f690 (the row and the class), board-walkthrough-fixes 6 (on a narrowed board the figures stay one row each, numbers in one column, none cut — the number columns size to their content) and home-page 4 (the five numbers share one right edge).
 - Census: ink-wash (thirteenth) re-recorded under the standing yes — sizes only on the home screen (the figures 20 → 16px); no colour moved.
 - Tests: f719 (red at the parent), then-and-now-verify (red at the parent).
+
+## PARTIES, "THE SAP WAY" — ROUND 19 OF THE REDESIGN (17 Oct 2026)
+
+The owner picked "The SAP way" by name (round 18, Explorer, skipped: "Explorer needs to stay exactly as it is today") and answered its question — a deal behind a code name on Parties — "Leave it off".
+
+- **A DEAL KEPT TO ITS LIST IS LEFT OFF BY NAME.** The server's stand-in names no party, so it never made a shelf; `cuBook` now also leaves out any `_codeNamed` record on purpose, so a stand-in that one day carries a party name stays off too.
+- **A STATUS BOX.** All · Live · Ended beside Stream, Owner and NDA, read through the one reading `cuBucket`; a choice that holds nobody is not offered; a refresh keeps it (`cuPlace`). It opens on All, so the list and its count are as before until the reader narrows.
+- **WHAT WAITS ON YOU, IN WORDS.** The column said a number (negotiations whose move is ours); it now says what waits — the checklist's own items over the party's contracts (`needsYouOf`, said by `insNeedWords`, the words the panel beside every list uses), urgent first, then any negotiation whose move is ours the checklist does not already name: "1 detail to fill", "Your approval is asked for · +2 more". ONE reading, `cuNeedsOf`; `cuNeedsSay` for the column and the panel's fact.
+- **THE PANEL'S TWO LISTS.** Under the facts: what waits, each row with its own door (`needsYouGo`; our move opens the redlines), and the party's agreements, each a door onto its paper (`regOpenContract`, Home's Document). Rows are delegated once on the document.
+- **KEPT, AND WHY.** The drawing set the filter labels above their boxes and drew People as a table. The owner ruled the label inside the box for this band on 10 Oct, and picked People's face cards on 13 Oct; a drawing's detail is not taken as reversing either (the scope rule: never the wider reading). Both are named in the morning summary. A "City" column was drawn; HaTi keeps no city on a party, so none was invented.
+- Tests: f720 (red at the parent), parties-sap-way-verify (red at the parent).
