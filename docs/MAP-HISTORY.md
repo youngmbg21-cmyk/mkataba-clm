@@ -30835,3 +30835,15 @@ WHAT WAS BUILT (js/copilotacts.js; the rows and their regexes are unchanged). CA
 TESTS. menu-and-amend-verify 2f–2j (25/25; at the jambos-map head 2f, 2g, 2h and 2j fail): the reader's answers, "I want to upload a pdf" typed beside the paper goes to the upload with no PDF card, "import from excel" opens the Import page. f705's exam gained both sentences (with a paper up).
 
 LEFT, in BUGLOG: Jambo's doors (CA_DOORS, not the Menu reader) have the same shape of misread — "add a word file" is read as the door that sends the other side a Word file.
+
+## THE WORD DOOR — A WORD FILE COMING IN IS NOT THE COPY SENT (18 Oct 2026)
+
+THE OWNER'S WORDS: "Fix the Word file door misread next" (after the Menu reader's pdf and import fix, which logged it: with a paper up, "add a word file" and "I want to upload a word file" were read as the door that sends the other side a Word file, because its rule matched "word file" anywhere in a sentence).
+
+WHAT CHANGED. Jambo's doors now skip the Word door when the sentence brings a file IN (the Menu reader's own inbound words, `CA_MENU_INBOUND`: upload, attach, add, received, got, import, ladda upp…) or KEEPS one here (`CA_FILE_KEEP`: download, export, save, print, ladda ner, spara, skriv ut) — unless it also sends it (`CA_FILE_OUT`: send, share, email, mail, forward, skicka, dela, mejla). The rule is `CA_DOOR_NOT.word`, asked in `caReadDoor` the way `CA_MENU_NOT` is asked in `caReadMenu`. The Menu's Word download row (`wordx`) now also hears "save … word" and "as a word file", and is not read for a file coming in unless the words send it.
+
+WHERE THE SENTENCES LAND NOW (f705 13, menu-and-amend-verify 2k–2m): "add a word file", "I want to upload a word file", "attach the word document" → the upload; "import the word file" → the Menu's import row (their file); "download a word copy", "save it as a word file", "export a word version" → the Menu's Word download; "send them a word version", "email the word file to them", "share a word copy", "with tracked changes" → the Word door, as before. "We got a word copy from them" now goes to Jambo's AI instead of a wrong door.
+
+RED AT THE PARENT (claude/menu-reader-misreads at 7af1a55): f705 13a, 13b, 13d fail (13c, sending one is still the door, passes there as it must); menu-and-amend-verify 2k, 2l, 2m fail ("add a word file" drew the Word copy card).
+
+LEFT, IN BUGLOG: "send me a word file" is still the door that sends the other side a copy; the Word door's rule is English only ("skicka en wordkopia" reaches no door).
