@@ -44,7 +44,8 @@ const BOOKS = (() => {
   return { en, sv };
 })();
 const say = (k, v) => { const t = BOOKS.en[k]; if (t == null) return k; return t.replace(/\{(\w+)\}/g, (_, x) => (v && v[x] != null) ? v[x] : ''); };
-const FNS = ['pdCardNow', 'pdCardPage', 'pdHolds', 'pdHeldContract', 'pdHeadWord', 'pdAskPlaceholder', 'pdAskContractId', 'pdHeldChips', 'pdPanelChipsHtml', 'pdHeldChipsHtml', 'pdHistChanges', 'pdHistQuestions'];
+/* pass 4: what a page owes leads its chips (pdHeldOwes); History asks its trail's other questions (pdHistAlso) */
+const FNS = ['pdCardNow', 'pdCardPage', 'pdHolds', 'pdHeldContract', 'pdHeadWord', 'pdAskPlaceholder', 'pdAskContractId', 'pdHeldOwes', 'pdHeldChips', 'pdPanelChipsHtml', 'pdHeldChipsHtml', 'pdHistChanges', 'pdHistAlso', 'pdHistQuestions'];
 function world(o){
   const ctx = Object.assign({ Array, JSON, Math, Number, String, Object,
     state: { view: 'dashboard' }, i18t: say, i18tn: (k, n, v) => say(k + (n === 1 ? '_one' : '_other'), Object.assign({ n }, v)),
@@ -62,7 +63,7 @@ function world(o){
   ctx.getContract = id => (ctx.card && ctx.card.id === id ? ctx.card : null);
   ctx.caChipShut = (c, k) => ctx.shut.includes(k);
   ctx.window = ctx; vm.createContext(ctx);
-  vm.runInContext([lineOf(PD, 'const _pdE = '), lineOf(PD, 'const _pdT = '), lineOf(PD, 'const _pdTn = '), lineOf(PD, 'const PD_HELD_CHIPS = '), lineOf(PD, 'const PD_CHIP_CLS = ')]
+  vm.runInContext([lineOf(PD, 'const _pdE = '), lineOf(PD, 'const _pdT = '), lineOf(PD, 'const _pdTn = '), lineOf(PD, 'const PD_HELD_CHIPS = '), lineOf(PD, 'const PD_CHIP_CLS = '), lineOf(PD, 'const PD_HELD_CHIPS_MAX = '), lineOf(PD, 'const PD_HELD_CHIP_WORD = ')]
     .concat(FNS.map(f => fnBody(PD, f))).join('\n'), ctx);
   return ctx;
 }
@@ -173,5 +174,41 @@ describe('f744 (3) the box asks about what is held', () => {
     const P = fnBody(IG, 'igPaperAsk');
     assert.match(P, /^function igPaperAsk\(q,cid\)\{\n[\s\S]*?const p0=intel\.paper; const c=cid\?getContract\(cid\):\(p0\?getContract\(p0\.id\):null\);/);
     assert.match(P, /if\(p\)\{ p\.words=/, 'the paper\'s own count is written only for the paper');
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   (5) PASS 4 — LAND ON IT (owner, 18 Oct 2026, main's rule): every door these
+   panels hold names the one thing it opens on and arrives there through the
+   one lander (landOn) — lit, in view, pressing nothing. And the box reads
+   through Jambo's one reader first (the screen in front, the words' acts)
+   before a page's question goes with its wording.
+   AT THE LANE'S PREVIOUS COMMIT (dfe908f) every test here FAILS.
+   ═══════════════════════════════════════════════════════════════════════════ */
+describe('f744 (5) pass 4: every door lands on what it opened', () => {
+  test('5a one table of where each door lands, through landOn; the door opens first, then lands', () => {
+    const calls = [];
+    const ctx = { Array, String, Set, Map, Object, CSS: { escape: s => s }, intel: { paper: { id: 'MK-1' } },
+      document: { querySelector: s => ({ sel: s }) }, landOn: (t, o) => { calls.push({ el: t(), o }); return Promise.resolve(null); } };
+    ctx.window = ctx; vm.createContext(ctx);
+    vm.runInContext([lineOf(PD, 'const PD_HELD_LAND_TRIES = '), lineOf(PD, 'const PD_HELD_LAND_STILL = ')].join('\n') + '\n'
+      + PD.slice(PD.indexOf('const PD_HELD_LAND = {'), PD.indexOf('\n};', PD.indexOf('const PD_HELD_LAND = {')) + 3) + '\n' + fnBody(PD, 'pdHeldLand'), ctx);
+    const want = { oblig: '#obw-one-host', history: '#bs-strip-MK-1[data-bs-on="hist"]', amend: '#pd-amendface', red: '#pd-redface [data-nego-card]', fill: '#pd-fillface [data-pd-owed="1"]',
+      sign: '#pd-signface #sign-btn', pay: '[data-bs-host="pay"][data-bs-cid="MK-1"]', access: '#st-ps', page: '#bs-strip-MK-1', paper: '#ig-paper' };
+    for (const [k, sel] of Object.entries(want)){ calls.length = 0; ctx.pdHeldLand(k, 'MK-1'); assert.equal(calls.length, 1, k); assert.equal(calls[0].el.sel, sel, k); }
+    calls.length = 0; ctx.pdHeldLand('redline', 'MK-1'); assert.equal(calls[0].el.sel, '#pd-redface [data-nego-card]', 'redline is the Redlines face too');
+    calls.length = 0; ctx.pdHeldLand('page', 'MK-1'); assert.equal(calls[0].o.focus, false, 'a page is lit, no button readied on it'); assert.equal(calls[0].o.block, 'start');
+    ctx.intel.paper = { id: 'MK-2' }; calls.length = 0; ctx.pdHeldLand('paper', 'MK-1'); assert.equal(calls[0].el, null, 'the paper only once it is the one opened');
+    assert.match(fnBody(PD, 'pdHeldGo'), /const done = pdHeldOpen\(c, w\);\n\s+if \(done && c\) pdHeldLand\(w, c\.id\);/);
+  });
+  test('5b the chosen panel\'s doors and the glance\'s Bring it up land; Details\' doors too', () => {
+    const i = PD.indexOf('document._pdHeldWired'), seg = PD.slice(i, PD.indexOf('\n}\n', i));
+    assert.match(seg, /pdRedOpen\(id\) !== false\) pdHeldLand\('red', id\)/);
+    assert.match(seg, /\[data-pd-cg-bring\][\s\S]*?hbStripBring\(id\) !== false\) pdHeldLand\('page', id\)/);
+    const CT = R('js/views/contract.js'), FAM = R('js/family.js');
+    assert.match(fnBody(CT, 'ovFilingRestPaint'), /openSettingsAt\('company','stream:'\+P2\.fid\); if\(typeof pdHeldLand==='function'\) pdHeldLand\('access',cc\.id\);/);
+    assert.match(fnBody(CT, 'ovOpenFiling'), /landOn\(\(\)=>\{ const el=document\.getElementById\('ov-record'\);/, 'Re-file lands on the filing rows through the one lander');
+    assert.ok(!/scrollIntoView/.test(fnBody(CT, 'ovOpenFiling')), 'never a hand-rolled scroll');
+    assert.match(FAM, /if\(hbStripBring\(id\)!==false&&typeof pdHeldLand==='function'\) pdHeldLand\('page',id\);/);
   });
 });

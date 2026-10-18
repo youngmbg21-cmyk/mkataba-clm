@@ -236,10 +236,12 @@ describe('f678 (3) Open party opens Home\'s Contracts place, narrowed to the par
        as drawn; RE-POINTED AGAIN (pass 3, 18 Oct 2026: the head's "N live" and
        this line must be one number) — in the head's unit, an amendment counted
        with its agreement and the closed among them said; narrowed, "k of n" */
-    assert.equal(ctx.words(w.regFiltered(), { base: w.regRestBase() }), 'igw_count_all#3 · igw_count_closed#1 · int_dep_amend#1', 'open: the agreements, the closed and the amendment said beside them');
+    /* RE-POINTED AGAIN (pass 4, round 13 as drawn: "48 contracts  newest
+       first"): the agreements, and nothing added to the line */
+    assert.equal(ctx.words(w.regFiltered(), { base: w.regRestBase() }), 'igw_count_all#3', 'open: the agreements, an amendment riding with its own');
     w.regShowOnly(['MK-1', 'MK-3', 'MK-2'], 'Naivas', { party: true });
     const R = w.state.reg;
-    assert.equal(ctx.words(w.regFiltered(), { only: R.only, base: w.regRestBase() }), 'igw_count[2 of 2] · int_dep_amend#1', 'the agreements Parties counted, the amendment beside them');
+    assert.equal(ctx.words(w.regFiltered(), { only: R.only, base: w.regRestBase() }), 'igw_count[2 of 2]', 'the agreements Parties counted');
     R.stage = 'Signed';
     assert.equal(ctx.words(w.regFiltered(), { only: R.only, base: w.regRestBase() }), 'igw_count[1 of 2]', 'a tab narrows k, never n');
     /* ANY OTHER SET IS COUNTED WHOLE (the checkers of step 7: the Board's

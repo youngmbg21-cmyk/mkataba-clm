@@ -182,8 +182,10 @@ describe('f741 (3) the panel', () => {
   });
   test('3d the panel\'s doors: Open the paper is the wall\'s open, Life line and details brings up its page', () => {
     const i = PD.indexOf('document._pdHeldWired'), seg = PD.slice(i, PD.indexOf('\n}\n', i));
-    assert.match(seg, /\[data-pd-ch-open\][\s\S]*?igWallOpen\(op\.getAttribute\('data-pd-ch-open'\)\)/);
-    assert.match(seg, /\[data-pd-ch-life\][\s\S]*?igWallLetGo\(\);[\s\S]*?hbStripBring\(id\)/);
+    /* RE-POINTED (pass 4, LAND ON IT): each door lands on what it opened — the
+       paper, the page brought up — through the one lander (pdHeldLand) */
+    assert.match(seg, /\[data-pd-ch-open\][\s\S]*?igWallOpen\(id\) !== false\) pdHeldLand\('paper', id\)/);
+    assert.match(seg, /\[data-pd-ch-life\][\s\S]*?igWallLetGo\(\);[\s\S]*?hbStripBring\(id\) !== false\) pdHeldLand\('page', id\)/);
     assert.match(fnBody(PD, 'pdJamboTopHtml'), /const held = pdHeldTopHtml\(\); if \(held != null\) return held;/);
   });
 });

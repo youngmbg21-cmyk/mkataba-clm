@@ -57,7 +57,10 @@ describe('f714 (2) the lanes, the head and the door', () => {
     for (const k of ['ct_hist_lane_ours', 'ct_hist_lane_day', 'ct_hist_lane_theirs']) assert.ok(H.includes(`i18t('${k}'`), k);
     assert.match(H, /const lane=histLaneOf\(e, ours\);/);
     assert.match(H, /data-hist-lane="\$\{lane\}"/);
-    for (const part of ['class="hist-when"', 'class="hist-who"', 'class="hist-oc"', '${dot}']) assert.ok(H.includes(part), part);
+    /* RE-POINTED (pass 4, round 12 as drawn): a bubble keeps its time, person
+       and outcome; the middle line's quiet pill carries its own mark (an eye
+       for an open, a lock for the stream's acts) */
+    for (const part of ['class="hist-when"', 'class="hist-who"', 'class="hist-oc"', '${mark}']) assert.ok(H.includes(part), part);
   });
   test('2b the side switch is gone; the head says where each side is', () => {
     assert.ok(!/class="hist-side"/.test(H) && !/data-ht-side=/.test(H), 'no switch drawn');

@@ -51,7 +51,8 @@ const BOOKS = (() => {
 const say = (k, v) => { const t = BOOKS.en[k]; if (t == null) return k; return t.replace(/\{(\w+)\}/g, (_, x) => (v && v[x] != null) ? v[x] : ''); };
 const sayN = (k, n, v) => say(k + (n === 1 ? '_one' : '_other'), Object.assign({ n }, v));
 const ago = d => new Date(Date.now() - d * 864e5 - 3600e3).toISOString();
-const FNS = ['histClauseWords', 'histSaysOf', '_histDaysSince', 'histMoveOf', 'histClausesSay', 'histSummaryOf', 'histNewestWords', 'histOutcome'];
+/* pass 4: the trail's own lines in words (histTrailSaysOf, HIST_LINK_RE) */
+const FNS = ['histClauseWords', 'histTrailSaysOf', 'histSaysOf', '_histDaysSince', 'histMoveOf', 'histClausesSay', 'histSummaryOf', 'histNewestWords', 'histOutcome'];
 function world(over){
   const ctx = Object.assign({ Array, JSON, Math, Number, String, Object, Date, Set, Map, isFinite, Intl,
     i18t: say, i18tn: sayN, langLocale: () => 'en-GB', negoClauseName: s => s, negoExecuted: c => c.status === 'Signed',
@@ -62,7 +63,7 @@ function world(over){
     roomHistoryEvents: c => c.events || [] }, over || {});
   ctx.window = ctx;
   vm.createContext(ctx);
-  vm.runInContext([lineOf(DS, 'const DS_INSIDE_ID = '), lineOf(CT, 'const HIST_SAY_CLAUSES_MAX='), lineOf(CT, 'const HIST_RECENT_DAYS=')].concat(FNS.map(f => fnBody(CT, f))).join('\n'), ctx);
+  vm.runInContext([lineOf(DS, 'const DS_INSIDE_ID = '), lineOf(CT, 'const HIST_SAY_CLAUSES_MAX='), lineOf(CT, 'const HIST_RECENT_DAYS='), lineOf(CT, 'const HIST_LINK_RE=')].concat(FNS.map(f => fnBody(CT, f))).join('\n'), ctx);
   return ctx;
 }
 const CH = (o) => Object.assign({ id: 'CHG-1', authorSide: 'counterparty', clauseLabel: '11. Payment terms', summary: '60 days', status: 'pending', createdAt: ago(4), roundN: 2 }, o);
@@ -158,8 +159,11 @@ describe('f743 (3) the page as drawn', () => {
   test('3d a bubble: the time, a dot, the person, the outcome; the kind and round on the time\'s hover; the fingerprint only with the wording', () => {
     assert.match(H, /<div class="hist-top">\$\{when\}<span class="hist-sep" aria-hidden="true">\\u00b7<\/span>\$\{whoH\}\$\{ocH\}<\/div>/);
     assert.match(H, /const whenTip=\[m\.mark,\(e\.round!=null&&e\.round!==''\)\?i18t\('ct_round_n',\{n:e\.round\}\):'',fpTip\]/);
-    assert.match(H, /\$\{also&&_histDetail\?`<div class="hist-meta">\$\{also\}<\/div>`:''\}/);
-    assert.match(H, /<div class="hist-text">\$\{esc\(said\)\}\$\{named\?'':rchip\+cl\}<\/div>/);
+    /* RE-POINTED (pass 4, round 12 as drawn): Show the wording prints only
+       the wording — the fingerprint stays on the time's hover — and no round
+       chip is drawn anywhere */
+    assert.ok(!/hist-meta">\$\{also\}/.test(H) && !/rchip/.test(H), 'no fingerprint line, no round chip');
+    assert.match(H, /<div class="hist-text">\$\{esc\(said\)\}\$\{named\?'':cl\}<\/div>/);
   });
 });
 
@@ -167,7 +171,7 @@ describe('f743 (5) pass 3: every round\'s decisions, the newest said, the trail 
   test('5a round 1 decided and closed, round 2 open: "what changed in round 2" and "who decided clause 12"', () => {
     const ctx = { Array, JSON, Math, Number, String, Object, i18t: say, negoClauseName: s => s, dsChanges: c => c.changes };
     ctx.window = ctx; vm.createContext(ctx);
-    vm.runInContext([lineOf(DS, 'const DS_INSIDE_ID = '), lineOf(PD, 'const _pdT = '), fnBody(PD, 'pdHistChanges'), fnBody(PD, 'pdHistQuestions')].join('\n'), ctx);
+    vm.runInContext([lineOf(DS, 'const DS_INSIDE_ID = '), lineOf(PD, 'const _pdT = '), fnBody(PD, 'pdHistChanges'), fnBody(PD, 'pdHistAlso'), fnBody(PD, 'pdHistQuestions')].join('\n'), ctx);
     const c = { negotiation: { round: 2, rounds: [{ n: 1, changes: [
       CH({ status: 'accepted', clauseLabel: '4. Fees', resolvedAt: '2026-10-11T10:00:00Z' }),
       CH({ status: 'rejected', clauseLabel: '12. Governing law', resolvedAt: '2026-10-12T17:02:00Z' }),
@@ -204,7 +208,7 @@ describe('f743 (4) Jambo on History, and both books', () => {
       negoMayStart: () => ({ ok: true }),
       histSummaryOf: () => ({ total: 13, recent: 13, newest: { at: '2026-10-15T16:24:00Z' }, move: { k: 'you', days: 4, party: 'Nordvik', open: 2, theirs: [{ n: 7 }, { n: 11 }], ours: [] } }) };
     ctx.window = ctx; vm.createContext(ctx);
-    vm.runInContext([lineOf(PD, 'const _pdE = '), lineOf(PD, 'const _pdT = '), lineOf(PD, 'const _pdTn = ')].concat(['pdDaysSince', 'pdHistGlanceHtml'].map(f => fnBody(PD, f))).join('\n'), ctx);
+    vm.runInContext([lineOf(PD, 'const _pdE = '), lineOf(PD, 'const _pdT = '), lineOf(PD, 'const _pdTn = '), lineOf(PD, 'const PD_CG_NAMES_MAX = ')].concat(['pdDaysSince', 'pdListSay', 'pdNeverShared', 'pdHistGlanceHtml'].map(f => fnBody(PD, f))).join('\n'), ctx);
     const h = ctx.pdHistGlanceHtml({ id: 'MK-0382' });
     assert.match(h, /<b>MK-0382 · History<\/b>/);
     assert.match(h, /<span>13 entries in the last two weeks\.<small title="Newest: their round 2, 15 Oct\.">Newest: their round 2, 15 Oct\.<\/small><\/span>/);
@@ -214,7 +218,7 @@ describe('f743 (4) Jambo on History, and both books', () => {
     const ctx = { Array, JSON, Math, Number, String, Object, i18t: say, negoClauseName: s => s,
       dsChanges: c => c.changes };
     ctx.window = ctx; vm.createContext(ctx);
-    vm.runInContext([lineOf(DS, 'const DS_INSIDE_ID = '), lineOf(PD, 'const _pdT = '), fnBody(PD, 'pdHistChanges'), fnBody(PD, 'pdHistQuestions')].join('\n'), ctx);
+    vm.runInContext([lineOf(DS, 'const DS_INSIDE_ID = '), lineOf(PD, 'const _pdT = '), fnBody(PD, 'pdHistChanges'), fnBody(PD, 'pdHistAlso'), fnBody(PD, 'pdHistQuestions')].join('\n'), ctx);
     assert.deepEqual(J(ctx.pdHistQuestions({ changes: [CH({ roundN: 1, status: 'rejected', clauseLabel: '12. Law', resolvedAt: '2026-10-12' }), CH({ roundN: 2 })] })),
       ['what changed in round 2', 'who decided clause 12']);
     assert.deepEqual(J(ctx.pdHistQuestions({ changes: [] })), [], 'nothing negotiated: no question');
@@ -227,5 +231,144 @@ describe('f743 (4) Jambo on History, and both books', () => {
       'pd_hg_theirs_open_one', 'pd_hg_theirs_open_other', 'pd_hg_ours_open_one', 'pd_hg_ours_open_other', 'pd_hg_open_none',
       'pd_hg_move_you_one', 'pd_hg_move_you_other', 'pd_hg_move_you_plain', 'pd_hg_move_you_today', 'pd_hg_move_them_one', 'pd_hg_move_them_other', 'pd_hg_move_them_plain', 'pd_hg_move_them_today',
       'pd_hq_round', 'pd_hq_decided_n', 'pd_hq_decided', 'ct_hist_sum_round_closed']){ assert.ok(BOOKS.en[k], 'en ' + k); assert.ok(BOOKS.sv[k], 'sv ' + k); }
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   (6) PASS 4 (the checker's differences, 18 Oct 2026, after main moved on):
+   a send is told once ("Sent round 1 back to Per Nordvik: 3 answers"), their
+   hand-back is theirs ("Their round 2 came back: 2 changes"), the trail's own
+   lines say what happened (shared, uploaded); the filters list only what can
+   give results and read the whole trail; Clear greys while nothing is set;
+   "Today, Sun 18 Oct"; the middle line is a quiet pill with no initials and
+   no outcome; no round chip; the ⋯ menu as drawn; the wording cut around the
+   edit, no fingerprint; a private or unshared contract's History in Jambo's
+   panel, with the questions its trail can answer.
+   AT THE LANE'S PREVIOUS COMMIT (dfe908f) every test here FAILS.
+   ═══════════════════════════════════════════════════════════════════════════ */
+const INDEX = R('index.html');
+describe('f743 (6) pass 4: History as drawn, the second time', () => {
+  const ROOM_FNS = ['_histKey', 'histPrivateEvents', 'histSendOf', 'histTheirPerson', 'histOutcomeKey', 'roomHistoryEvents', '_histOurPeople', 'histClauseWords', 'histTrailSaysOf', 'histSaysOf', 'histFilterChoices'];
+  const room = (nego, over) => {
+    const ctx = Object.assign({ Array, JSON, Math, Number, String, Object, Date, Set, Map, isFinite, Intl, i18t: say, i18tn: sayN,
+      getUsers: () => [{ id: 'u1', name: 'Maria Lindgren' }, { id: 'u2', name: 'Erik Ström' }], currentUser: () => ({ id: 'u1', name: 'Maria Lindgren' }) }, over || {});
+    ctx.window = ctx;
+    ctx.negoTimeline = () => nego.map(e => ({ ...e }));
+    vm.createContext(ctx);
+    vm.runInContext([lineOf(DS, 'const DS_INSIDE_ID = '), lineOf(CT, 'const HIST_SEND_GAP_MS='), lineOf(CT, 'const HIST_TURN_RE='), lineOf(CT, 'const HIST_MORE_RE='), lineOf(CT, 'const HIST_CLOSED_RE='),
+      lineOf(CT, 'const HIST_CLOSED_SEND_RE='), lineOf(CT, 'const HIST_LINK_RE='), lineOf(CT, 'const HIST_OUTCOME_ORDER='), lineOf(CT, 'const HIST_OUTCOME_WORD=')].concat(ROOM_FNS.map(f => fnBody(CT, f))).join('\n'), ctx);
+    return ctx;
+  };
+  const T = m => `2026-10-12T17:${String(m).padStart(2, '0')}:00Z`;
+  const R1 = [CH({ id: 'CHG-1', clauseLabel: '4. Fees', status: 'accepted', author: 'Per Nordvik' }), CH({ id: 'CHG-2', clauseLabel: '12. Law', status: 'rejected', author: 'Per Nordvik' }), CH({ id: 'CHG-3', clauseLabel: '9. Confidentiality', status: 'rejected', author: 'Per Nordvik' })];
+  const NEGO = [{ kind: 'round-closed', at: T(2), actor: '', side: '', outcome: '', round: 1, clauseId: null, clauseLabel: '', text: 'Round 1 closed — the agreed wording became the baseline for round 2' }];
+  const AUDIT = [
+    { at: T(2), user: 'Maria Lindgren', action: 'Negotiation', detail: 'Round 1 closed by Maria Lindgren — 1 of 3 changes adopted; the agreed wording is now the baseline for round 2' },
+    { at: T(2), user: 'Maria Lindgren', action: 'Negotiation', detail: 'Turn handed to counterparty by Maria Lindgren in round 2 — 0 change(s) awaiting a decision' },
+    { at: '2026-10-15T16:24:00Z', user: 'Per Nordvik', action: 'Negotiation', detail: 'Turn handed to owner by Per Nordvik in round 2 — 2 change(s) awaiting a decision' },
+    { at: '2026-10-07T09:15:00Z', user: 'Maria Lindgren', action: 'Shared', detail: 'Negotiation link sent to Per Nordvik by email' },
+    { at: '2026-10-06T13:10:00Z', user: 'Maria Lindgren', action: 'Uploaded', detail: 'Received “MSA_Nordvik_v3.docx” (88 KB), 12,000 chars extracted' }];
+  const C = () => ({ id: 'MK-0382', counterparty: 'Nordvik Logistik AB', negotiation: { round: 2, rounds: [{ n: 1, at: T(2), changes: R1 }] }, changes: [], audit: AUDIT.map(a => ({ ...a })) });
+  test('6a a send is told once, in our lane and in words; their hand-back is theirs; the trail\'s own lines say what happened', () => {
+    const w = room(NEGO.concat([{ kind: 'link', at: '2026-10-07T09:15:00Z', actor: 'Maria Lindgren', side: '', outcome: '', round: null, clauseId: null, clauseLabel: '', text: 'Negotiation link sent to Per Nordvik by email' }]));
+    const ev = w.roomHistoryEvents(C());
+    const closed = ev.filter(e => e._k === 'round-closed');
+    assert.equal(closed.length, 1); assert.equal(closed[0].side, 'owner'); assert.equal(closed[0].actor, 'Maria Lindgren');
+    assert.equal(closed[0]._also.length, 2, 'the trail\'s close and its hand-over fold into the one entry');
+    assert.equal(w.histSaysOf(closed[0]), 'Sent round 1 back to Per Nordvik: 3 answers');
+    assert.ok(!ev.some(e => e._k === 'system' && /closed by|Turn handed/.test(e.text)), 'never told twice');
+    const back = ev.find(e => e._k === 'handover');
+    assert.equal(back.side, 'counterparty'); assert.equal(back.actor, 'Per Nordvik');
+    assert.equal(w.histSaysOf(back), 'Their round 2 came back: 2 changes');
+    assert.equal(w.histSaysOf(ev.find(e => e._k === 'link')), 'Shared it with Per Nordvik to negotiate');
+    assert.equal(w.histSaysOf(ev.find(e => e._audit && e._audit.action === 'Uploaded')), 'Uploaded MSA_Nordvik_v3.docx');
+    assert.equal(w.histTrailSaysOf({ _k: 'link', text: 'Negotiation link for Per NOT sent by email — the outbox' }), 'Negotiation link for Per NOT sent by email — the outbox', 'a link not sent keeps the record\'s words');
+    const lone = room([]).roomHistoryEvents({ id: 'X', counterpartyName: 'Annika Holm', audit: [{ at: T(9), user: 'Maria Lindgren', action: 'Negotiation', detail: 'Turn handed to counterparty by Maria Lindgren in round 1 — 3 change(s) awaiting a decision' }] });
+    assert.equal(w.histSaysOf(lone[0]), 'Sent round 1 to Annika Holm: 3 changes');
+  });
+  test('6b the filters list only what can give results; Person reads the whole trail; Clear greys while nothing is set', () => {
+    const w = room([]);
+    const cfo = { id: 'MK-0399', folder: 'board', audit: [{ at: '2026-10-02T14:20:00Z', user: 'Maria Lindgren', action: 'Created', detail: 'Created from custom template “Employment” v2' }, { at: '2026-10-16T15:12:00Z', user: 'Erik Ström', action: 'Edited', detail: 'Base pay filled in' }],
+      _opens: [{ at: '2026-10-15T11:02:00Z', by: { name: 'Maria Lindgren' } }, { at: '2026-10-16T15:10:00Z', by: { name: 'Erik Ström' } }],
+      _access: [{ at: '2026-10-05T10:30:00Z', act: 'add', by: { name: 'Sara Nyström' }, who: { name: 'Erik Ström' } }] };
+    const ch = w.histFilterChoices(cfo);
+    assert.deepEqual(J(ch.clause), [], 'no clause: no Clause box');
+    assert.deepEqual(J(ch.round), [], 'no round: no Round box');
+    assert.deepEqual(J(ch.outcome), [], 'no decision: no Outcome box');
+    assert.deepEqual(J(ch.person.map(p => p[0])).sort(), ['Erik Ström', 'Maria Lindgren', 'Sara Nyström']);
+    assert.equal(ch.opens, true);
+    const mine = w.roomHistoryEvents(cfo, { actor: 'Erik Ström' });
+    assert.ok(mine.length === 2 && mine.every(e => e.actor === 'Erik Ström'), 'a person\'s own entries, the trail\'s and the opens among them: ' + JSON.stringify(mine.map(e => e.text)));
+    assert.equal(w.histTrailSaysOf(w.roomHistoryEvents(cfo).find(e => e._audit && e._audit.action === 'Created')), 'Created it from the template “Employment”');
+    const F = fnBody(CT, 'roomHistoryFiltersHtml');
+    assert.match(F, /const sel=\(k,label,pairs\)=>pairs\.length\?/, 'a box with no choice is not drawn');
+    assert.match(F, /<button id="ht-clear" class="ui-btn" style="align-self:flex-end"\$\{any\?'':` disabled title="\$\{esc\(i18t\('ct_hist_clear_none'\)\)\}"`\}>/);
+    assert.match(INDEX, /\.hist-filters\{ display:flex;[^}]*background:var\(--surface-2\); \}/, 'the grey band under the toolbar');
+  });
+  test('6c "Today, <day>"; the middle line is a quiet pill — time · person: what, an eye or a lock, no initials, no outcome; no round chip', () => {
+    const H = fnBody(CT, 'roomHistoryHtml');
+    assert.match(H, /return \(window\.todayISO&&loc===todayISO\(\)\)\?i18t\('ct_hist_day_today',\{ d:said \}\):said; \};/);
+    assert.equal(say('ct_hist_day_today', { d: 'Mon 19 Oct' }), 'Today, Mon 19 Oct');
+    assert.match(H, /const mark=e\._k==='opened'\?dot:e\._k==='access'\?`<span class="hist-lock" aria-hidden="true">\$\{icon\('lock','w-3 h-3'\)\}<\/span>`:dot;/);
+    assert.match(H, /line=e\.actor\?`\$\{esc\(e\.actor\)\}: \$\{esc\(t\.charAt\(0\)\.toLocaleLowerCase\(\)\+t\.slice\(1\)\)\}`:esc\(t\);/);
+    const mid = H.slice(H.indexOf("if(lane==='mid'){"), H.indexOf("const said=histSaysOf(e), named"));
+    assert.ok(mid.length > 50 && !/whoH|ocH|av\b/.test(mid), 'no initials, no outcome pill on the middle line');
+    assert.ok(!/rchip/.test(H), 'no round chip anywhere');
+  });
+  test('6d the ⋯ menu as drawn: "This contract" over its three acts with their lines under them, no symbols; the whole trail for admins', () => {
+    const H = fnBody(CT, 'roomHistoryHtml');
+    const m = H.slice(H.indexOf('<div id="hist-more-menu"'), H.indexOf('</div>\n      </div>', H.indexOf('<div id="hist-more-menu"')));
+    assert.match(m, /class="room-menu hist-menu hidden"/);
+    assert.match(m, /<div class="hist-mg is-first">\$\{esc\(i18t\('ct_hist_menu_this'\)\)\}<\/div>/);
+    for (const k of ['ct_hist_menu_verify_l', 'ct_hist_menu_export_l', 'ct_hist_menu_print_l', 'ct_hist_trail_note']) assert.ok(m.includes(`<small>\${esc(i18t('${k}'))}</small>`), k);
+    assert.ok(!/icon\(/.test(m), 'no symbols');
+    assert.equal(BOOKS.en.ct_hist_menu_verify_l, 'Work out every fingerprint again and compare');
+    assert.equal(BOOKS.en.ct_hist_menu_export_l, 'A file of its own, with the check inside it');
+    assert.equal(BOOKS.en.ct_hist_menu_print_l, 'The same report, on paper');
+    assert.match(INDEX, /\.room-menu\.hist-menu\{ width:300px; min-width:0; \}/);
+    assert.match(INDEX, /\.room-menu\.hist-menu button\{ flex-direction:column; align-items:flex-start;/);
+  });
+  test('6e Show the wording prints only the wording, cut around the edit; never the fingerprint', () => {
+    const ctx = { Array, String };
+    vm.createContext(ctx); vm.runInContext(lineOf(CT, 'const HIST_WORDING_KEEP=') + fnBody(CT, 'histWordingCut'), ctx);
+    const ops = [{ op: 'keep', text: 'The supplier shall maintain insurance and its total liability under this agreement in any one year is limited to ' }, { op: 'del', text: 'fifty' }, { op: 'ins', text: 'one hundred' },
+      { op: 'keep', text: ' per cent of the fees paid in that year, and it shall not be liable for any indirect loss at all under it.' }];
+    const cut = J(ctx.histWordingCut(ops));
+    assert.ok(cut[0].text.startsWith('… ') && cut[0].text.endsWith('is limited to '), JSON.stringify(cut[0]));
+    assert.ok(cut[3].text.endsWith(' …'), JSON.stringify(cut[3]));
+    assert.deepEqual(cut.slice(1, 3), ops.slice(1, 3), 'the edit itself whole');
+    assert.deepEqual(J(ctx.histWordingCut([{ op: 'keep', text: 'Short ' }, { op: 'ins', text: 'x' }])), [{ op: 'keep', text: 'Short ' }, { op: 'ins', text: 'x' }], 'a short clause is not cut');
+    const H = fnBody(CT, 'roomHistoryHtml');
+    assert.match(H, /const body=\(_histDetail&&\(e\._k==='proposed'\|\|e\._k==='decided'\)&&e\.ch\)\n\s+\? `<div class="hist-redline">\$\{histWordingHtml\(e\.ch\)\}<\/div>` : '';/);
+    assert.ok(!/hist-fp/.test(H), 'no fingerprint printed');
+  });
+  test('6f Jambo on a private, unshared History: its wall, its opens lately, nothing shared yet; who opened it · what Erik changed · fill in', () => {
+    const ctx = { Array, JSON, Math, Number, String, Object, Date, isFinite, Intl, i18t: say, i18tn: sayN, todayISO: () => '', langLocale: () => 'en-GB', contractRef: c => c.id,
+      histWhen: () => ({ day: '15 Oct' }), histNewestWords: () => 'opened the contract', histClausesSay: () => '', negoMayStart: () => ({ ok: true }),
+      histSummaryOf: () => ({ total: 7, recent: 4, newest: { at: new Date().toISOString() }, move: null }),
+      bsPrivateOf: () => ({ fid: 'board', stream: 'Board', names: ['Maria Lindgren', 'Erik Ström'], first: ['Maria', 'Erik'] }),
+      histTheirPerson: () => 'Annika Holm', roomHistoryEvents: () => [], cachedShares: () => [], negoExecuted: () => false };
+    ctx.window = ctx; vm.createContext(ctx);
+    vm.runInContext([lineOf(PD, 'const _pdE = '), lineOf(PD, 'const _pdT = '), lineOf(PD, 'const _pdTn = '), lineOf(PD, 'const PD_CG_NAMES_MAX = ')]
+      .concat(['pdDaysSince', 'pdListSay', 'pdNeverShared', 'pdHistGlanceHtml'].map(f => fnBody(PD, f))).join('\n'), ctx);
+    const now = Date.now();
+    const h = ctx.pdHistGlanceHtml({ id: 'MK-0399', status: 'Draft', _opens: [{ at: new Date(now - 864e5).toISOString() }, { at: new Date(now - 3 * 864e5).toISOString() }, { at: new Date(now - 4 * 864e5).toISOString() }, { at: new Date(now - 30 * 864e5).toISOString() }] });
+    assert.match(h, /<span>Private · Board\. Only Maria and Erik open it; every open is in this History\.<small>3 opens in the last two weeks\.<\/small><\/span>/);
+    assert.match(h, /<span>Nothing has been shared with Annika Holm yet\.<\/span>/);
+    const qs = { Array, JSON, Math, Number, String, Object, i18t: say, negoClauseName: s => s, dsChanges: c => c.changes || [],
+      currentUser: () => ({ name: 'Maria Lindgren' }), _histOurPeople: () => new Set(['maria lindgren', 'erik ström']),
+      histLaneOf: (e, ours) => (e.side === 'owner' || (ours && ours.has(String(e.actor).toLowerCase()))) ? 'ours' : 'mid',
+      roomHistoryEvents: () => [{ _k: 'system', actor: 'Erik Ström', text: 'Edited — Base pay filled in', at: '2026-10-16' }, { _k: 'opened', actor: 'Maria Lindgren', at: '2026-10-19' }] };
+    qs.window = qs; vm.createContext(qs);
+    vm.runInContext([lineOf(DS, 'const DS_INSIDE_ID = '), lineOf(PD, 'const _pdT = '), fnBody(PD, 'pdHistChanges'), fnBody(PD, 'pdHistAlso'), fnBody(PD, 'pdHistQuestions')].join('\n'), qs);
+    assert.deepEqual(J(qs.pdHistQuestions({ changes: [], _opens: [{ at: '2026-10-19' }] })), ['who opened it', 'what Erik changed']);
+    assert.match(fnBody(PD, 'pdHeldChips'), /const door = live && !shut\('redline'\) \? 'redline' : O\.det \? 'fill' : shut\('redline'\) \? '' : 'redline';/, 'then one door: redline while live, else fill in where something is owed');
+  });
+  test('6g both books', () => {
+    for (const k of ['ct_hist_s_sent_back_one', 'ct_hist_s_sent_back_other', 'ct_hist_s_sent_back_plain', 'ct_hist_s_came_back_one', 'ct_hist_s_came_back_other', 'ct_hist_s_came_back_plain',
+      'ct_hist_s_sent_more', 'ct_hist_s_sent_round_one', 'ct_hist_s_sent_round_other', 'ct_hist_s_sent_round_plain', 'ct_hist_s_shared_nego', 'ct_hist_s_shared_sign', 'ct_hist_s_shared_read',
+      'ct_hist_s_uploaded', 'ct_hist_s_created_tpl', 'ct_hist_created_w', 'ct_hist_sum_sent_back', 'ct_hist_sum_sent_round', 'ct_hist_day_today', 'ct_hist_menu_this',
+      'ct_hist_menu_verify_l', 'ct_hist_menu_export_l', 'ct_hist_menu_print_l', 'ct_hist_clear_none', 'pd_hg_private', 'pd_hg_private_plain', 'pd_hg_opens_one', 'pd_hg_opens_other',
+      'pd_hg_unshared', 'pd_hq_opened', 'pd_hq_changed']){ assert.ok(BOOKS.en[k], 'en ' + k); assert.ok(BOOKS.sv[k], 'sv ' + k); }
   });
 });

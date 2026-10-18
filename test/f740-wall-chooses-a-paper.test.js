@@ -72,8 +72,9 @@ function world(n){
   ctx.placeSave = () => { ctx.saved++; };
   ctx.window = ctx;
   vm.createContext(ctx);
-  const src = [lineOf(IG, 'const IG_WALL_STEP='), lineOf(IG, 'let _igWallMore=0'), 'let _igWallNeed=null;', lineOf(IG, 'let _igChosen=null;')]
-    .concat(WALL_FNS.map(f => fnBody(IG, f))).join('\n');
+  const src = [lineOf(IG, 'const IG_WALL_STEP='), lineOf(IG, 'let _igWallMore=0'), 'let _igWallNeed=null;', lineOf(IG, 'let _igChosen=null;'),
+    lineOf(IG, 'const IG_WALL_SCROLL_NEAR='), lineOf(IG, 'let _igWallScrollAsked=')]
+    .concat(WALL_FNS.map(f => fnBody(IG, f))).concat([fnBody(IG, 'igWallScrollNear')]).join('\n');
   vm.runInContext(src + '\nthis.__peek=()=>({ chosen:_igChosen, more:_igWallMore });', ctx);
   ctx.book = book;
   return ctx;
@@ -198,12 +199,15 @@ describe('f740 (5) pass 3: one number on every door, the choice on its own wall'
   /* a book of 28 agreements and 2 amendments, each amendment beside its agreement, newest first */
   const fam = () => { const b = Array.from({ length: 28 }, (_, i) => ({ id: 'MK-' + (i + 1), name: 'Agreement ' + (i + 1) }));
     b.splice(3, 0, { id: 'MK-3-A1', parentId: 'MK-3' }); b.splice(15, 0, { id: 'MK-14-A1', parentId: 'MK-14' }); return b; };
-  test('5a at rest the head\'s unit: "28 contracts · 2 amendments"; the closed among them said', () => {
+  /* RE-POINTED (pass 4, round 13 as drawn: "48 contracts  newest first"):
+     the line says the agreements and nothing more — no "· N amendments", no
+     "· K closed" */
+  test('5a at rest the head\'s unit: "28 contracts", and nothing added', () => {
     const w = world(); const b = fam();
-    assert.equal(w.igWallCountWords(b, { base: b }), 'igw_count_all#28 · int_dep_amend#2');
+    assert.equal(w.igWallCountWords(b, { base: b }), 'igw_count_all#28');
     const c = b.map((x, i) => i === 5 || i === 6 ? { ...x, status: 'Declined' } : x);
-    assert.equal(w.igWallCountWords(c, { base: c }), 'igw_count_all#28 · igw_count_closed#2 · int_dep_amend#2', '28 − 2 closed = the head\'s 26 live');
-    assert.equal(w.igWallCountWords(b.slice(0, 5), { base: b }), 'igw_count{"k":4,"n":28} · int_dep_amend#1', 'narrowed: k of n in the same unit');
+    assert.equal(w.igWallCountWords(c, { base: c }), 'igw_count_all#28', 'the closed are among the 28; nothing is added to the line');
+    assert.equal(w.igWallCountWords(b.slice(0, 5), { base: b }), 'igw_count{"k":4,"n":28}', 'narrowed: k of n in the same unit');
     assert.equal(w.igWallCountWords(b.slice(0, 5), { base: b.slice(0, 5), only: { ids: [] } }), 'igw_count{"k":5,"n":5}', 'a door\'s set: whole, the number on the door');
   });
   test('5b twelve agreements drawn, an amendment riding with them; the foot counts agreements', () => {
@@ -235,5 +239,52 @@ describe('f740 (4) both books', () => {
     assert.equal(BOOKS.en.igw_shown, 'Showing {k} of {n}');
     assert.equal(BOOKS.en.igw_more, 'Show more');
     assert.equal(BOOKS.en.igw_order_newest, 'newest first');
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   (6) PASS 4 (the checker's differences, 18 Oct 2026, after main moved on):
+   the next papers follow as you scroll (a reader's scroll to the foot asks
+   once per paint, the button stays); his tab carries ONE number on Home —
+   the Counter's own — beside a chosen paper, a page, its History and the
+   wall at rest; the chosen panel's two doors stay whole under Needs you.
+   AT THE LANE'S PREVIOUS COMMIT (dfe908f) every test here FAILS.
+   ═══════════════════════════════════════════════════════════════════════════ */
+const PD = R('js/paperdesk.js');
+describe('f740 (6) pass 4: as you scroll, one number, the doors whole', () => {
+  test('6a a scroll that reaches the foot brings the next twelve — once per paint; far from it, nothing', () => {
+    const w = world();
+    assert.ok(fnBody(IG, 'igWallScrollNear'), 'the reading');
+    const html = w.igWallBodyHtml(w.book, { base: w.book });
+    assert.match(html, /data-ig-wall-more/);
+    let top = 900;
+    const foot = { getBoundingClientRect: () => ({ top }) };
+    w.document = { querySelector: s => (s === '#ig-wall [data-ig-wall-more]' ? foot : null), scrollingElement: null };
+    const sc = { contains: () => true, getBoundingClientRect: () => ({ bottom: 700 }) };
+    assert.equal(w.igWallScrollNear(sc), false, 'the foot is far below: nothing');
+    assert.equal(w.repainted, 0);
+    top = 760;
+    assert.equal(w.igWallScrollNear(sc), true, 'near the foot: the next twelve');
+    assert.equal(w.__peek().more, 1); assert.equal(w.repainted, 1);
+    assert.equal(w.igWallScrollNear(sc), false, 'one foot asks once');
+    w.igWallBodyHtml(w.book, { base: w.book });
+    assert.equal(w.igWallScrollNear(sc), true, 'the next paint\'s foot may ask again');
+    assert.match(IG, /document\.addEventListener\('scroll',e=>\{[^\n]*\n\s+if\(sc&&sc\.querySelector&&sc\.querySelector\('#ig-wall'\)\) igWallScrollNear\(sc\); \},true\);/, 'a reader\'s scroll, heard on its way down');
+  });
+  test('6b his tab: the Counter\'s own number beside a chosen paper, a page, its History and the wall at rest; the Board at rest keeps its card\'s', () => {
+    const ctx = { Array, Number, String, Object, state: { view: 'dashboard' }, face: 'board', holds: '', contract: null, paper: false,
+      counterNeedsCount: () => 16, hbNeedsCount: () => 14 };
+    ctx.window = ctx;
+    ctx.hbFace = () => ctx.face; ctx.pdHolds = () => ctx.holds; ctx.pdContract = () => ctx.contract; ctx.igHomePaperFace = () => (ctx.face === 'paper' ? true : null);
+    vm.createContext(ctx); vm.runInContext(fnBody(PD, 'pdTabCount'), ctx);
+    const n = () => { const r = ctx.pdTabCount('copilot', null); return r ? r.n : 0; };
+    assert.equal(n(), 14, 'the Board at rest: its own Needs you card');
+    ctx.holds = 'card'; assert.equal(n(), 16, 'a page brought up');
+    ctx.holds = 'hist'; assert.equal(n(), 16, 'its History');
+    ctx.face = 'paper'; ctx.holds = 'chosen'; assert.equal(n(), 16, 'a paper chosen on the wall');
+    ctx.holds = ''; assert.equal(n(), 16, 'the wall at rest');
+  });
+  test('6c the chosen panel\'s two doors hold to its foot, whole, above the ask box', () => {
+    assert.match(R('index.html'), /#ig-dock \.pd-ch-acts\{display:flex;flex-wrap:wrap;gap:8px;position:sticky;bottom:0;z-index:1;padding:8px 0 4px;background:var\(--color-surface\)\}/);
   });
 });

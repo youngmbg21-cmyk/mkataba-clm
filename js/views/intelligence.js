@@ -8121,16 +8121,13 @@ function igWallCountWords(rows,o){
   const list=Array.isArray(rows)?rows:[], base=(o&&Array.isArray(o.base))?o.base:list;
   /* a door's set: whole, the number on the door that sent it */
   if(o&&o.only&&!o.only.party) return i18t('igw_count',{k:list.length,n:base.length});
-  const lead=igWallLeadOf(o), L=list.filter(lead), amends=list.length-L.length;
-  const tail=amends?' \u00b7 '+i18tn('int_dep_amend',amends,{n:amends}):'';
-  /* AT REST THE LINE SAYS THE BOOK (round 13 as drawn: "48 contracts · newest
-     first"): the head's own number — the closed among them said, so the
-     head's "N live" adds up on the screen; any narrowing keeps "k of n" */
-  if(!(o&&o.only)&&list.length===base.length){
-    const closed=L.filter(c=>c&&c.status==='Declined').length;
-    return i18tn('igw_count_all',L.length,{ n:L.length })+(closed?' \u00b7 '+i18tn('igw_count_closed',closed,{ n:closed }):'')+tail;
-  }
-  return i18t('igw_count',{k:L.length,n:base.filter(lead).length})+tail;
+  const lead=igWallLeadOf(o), L=list.filter(lead);
+  /* AT REST THE LINE SAYS THE BOOK, AND ONLY THAT (round 13 as drawn: "48
+     contracts · newest first"; pass 4 took off the "· 1 amendment" and
+     "· K closed" pass 3 had added): agreements, an amendment riding with its
+     own; any narrowing keeps "k of n" */
+  if(!(o&&o.only)&&list.length===base.length) return i18tn('igw_count_all',L.length,{ n:L.length });
+  return i18t('igw_count',{k:L.length,n:base.filter(lead).length});
 }
 /* the unit itself (above): every paper of a door's set, else an agreement */
 function igWallLeadOf(o){
@@ -8168,6 +8165,26 @@ function igWallShowMore(){
   _igWallMore++;
   if(typeof regRepaint==='function') regRepaint();
 }
+/* ---- THE NEXT PAPERS FOLLOW AS YOU SCROLL (round 13 as drawn, pass 4: "In
+   the full version the next papers follow as you scroll") ----
+   A reader's own scroll that reaches the wall's foot brings the next twelve,
+   as Show more does (the same act, igWallShowMore); a wall that fits keeps
+   its button. Only a scroll asks — a paint never does — and one foot asks
+   once (_igWallScrollAsked, reset with each paint). */
+const IG_WALL_SCROLL_NEAR=96;
+let _igWallScrollAsked=false;
+function igWallScrollNear(sc){
+  if(!sc||_igWallScrollAsked) return false;
+  const foot=document.querySelector('#ig-wall [data-ig-wall-more]'); if(!foot||!sc.contains(foot)) return false;
+  const r=foot.getBoundingClientRect(), b=(sc===document.scrollingElement||sc===document.documentElement)?innerHeight:sc.getBoundingClientRect().bottom;
+  if(r.top>b+IG_WALL_SCROLL_NEAR) return false;
+  _igWallScrollAsked=true; igWallShowMore(); return true;
+}
+if(typeof document!=='undefined'&&!document._igWallScrollWired){
+  document._igWallScrollWired=true;
+  document.addEventListener('scroll',e=>{ const sc=e.target&&e.target.nodeType===1?e.target:document.scrollingElement;
+    if(sc&&sc.querySelector&&sc.querySelector('#ig-wall')) igWallScrollNear(sc); },true);
+}
 /* the sort the list is in, said after the count ("newest first" for the
    book's own order, else the Sort box's own words) */
 function igWallOrderWords(){
@@ -8182,6 +8199,7 @@ function igWallBodyHtml(rows,o){
   _igWallNeed=null;
   const opts=o||{}, list=Array.isArray(rows)?rows:[], need=igWallNeed();
   const key=igWallKeyOf(); if(_igWallKey!==null&&key!==_igWallKey) _igWallMore=0; _igWallKey=key;
+  _igWallScrollAsked=false;
   const S=igWallShown(list,opts), shown=S.shown;
   /* a choice the list no longer draws is let go: the panel never says a paper the reader cannot see */
   const ch=igWallChosenId();
@@ -8903,7 +8921,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
   });
 }
 
-Object.assign(window,{igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallValue,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_WALL_STEP,igWallLeadOf,igWallShown,igWallMoreReset,igWallKeyOf,igWallShowMore,igWallOrderWords,igWallChosenId,igWallChosen,igWallChosenPaint,igWallChoose,igWallLetGo,igWallOpen,igWallPress,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igHeldAskId,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
+Object.assign(window,{igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallValue,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_WALL_STEP,igWallLeadOf,igWallShown,igWallMoreReset,igWallKeyOf,igWallShowMore,IG_WALL_SCROLL_NEAR,igWallScrollNear,igWallOrderWords,igWallChosenId,igWallChosen,igWallChosenPaint,igWallChoose,igWallLetGo,igWallOpen,igWallPress,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igHeldAskId,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
 Object.assign(window,{IG,IG_SUGGESTIONS,IG_ATTN,igAttn,IGB_ATTN_RGB,igLinkHoverShow,igDateRead,igDayWord,igUntilRead,igUntilIds,igSoleRead,igSoleData,igObOpenOf,IG_TEMPLATE_RE,IG_BOOK_RE,IG_BOOK_NOT_RE,IG_MYCAL_RE,igBookAsk,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,igCountsDrawn,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});

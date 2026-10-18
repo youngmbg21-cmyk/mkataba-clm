@@ -4149,6 +4149,13 @@
   .room-menu button:hover{ background:var(--color-neutral-100); }
   /* a group's small head inside a menu (History's "Every contract · admins only", round 12) */
   .room-menu .hist-mg{ margin:6px 4px 2px; padding-top:6px; border-top:1px solid var(--color-divider); font-size:var(--t-label); color:var(--color-neutral-600); }
+  /* HISTORY'S ⋯ AS DRAWN (round 12 gaps, pass 4): about 300px, "This contract"
+     over its acts, each title with its line stacked under it, no symbols */
+  .room-menu.hist-menu{ width:300px; min-width:0; }
+  .room-menu.hist-menu .hist-mg.is-first{ margin-top:2px; padding-top:0; border-top:0; }
+  .room-menu.hist-menu button{ flex-direction:column; align-items:flex-start; gap:1px; white-space:normal; }
+  .room-menu.hist-menu button b{ font-weight:var(--w-label); }
+  .room-menu.hist-menu button small{ font-size:var(--t-label); color:var(--color-neutral-600); line-height:1.4; }
   /* "Draft new agreement" drops its two doors as a menu (SAP's menu button,
      10 Oct 2026; openNewDoors in js/wizard.js). */
   .nd-menu{ position:fixed; z-index:72; width:320px; padding:4px; background:var(--color-surface);
@@ -4981,6 +4988,39 @@
   #ov-ess .ov-ess-g .sec-f-v{ display:block; line-height:20px; max-height:40px; overflow-y:auto;
     overscroll-behavior:contain; scrollbar-width:thin; }
   #ov-ess .ov-ess-g .sec-f-v > .sec-f-c{ margin-left:6px; }
+  /* AS DRAWN (round 7, pass 4): the value as amended on one line, the signed
+     figure on the next; the renewal's day is the page's Key terms', not this
+     narrow cell's */
+  #ov-ess .ov-amd-signed{ display:block; }
+  #ov-ess .ov-rn-by{ display:none; }
+  /* DETAILS AS DRAWN (round 7, pass 4): under the terms card, two columns —
+     People and Related agreements | Filing */
+  .ov-det2{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,2fr); background:var(--color-surface);
+    border:1px solid var(--color-divider); border-radius:var(--radius-lg); }
+  .ov-det2-l{ padding:14px 16px; border-right:1px solid var(--color-divider); min-width:0; display:flex; flex-direction:column; gap:14px; }
+  .ov-det2-r{ padding:14px 16px; min-width:0; }
+  .ov-det2 #kt-side{ background:none; border:0; border-radius:0; }
+  .ov-det2 #kt-side .sec-box{ border-top:0; }
+  .ov-det2 #kt-side .sec-head{ padding:0 0 6px; }
+  .ov-det2 #kt-side .fam-drawn-wrap{ padding:0; }
+  .ov-sec-h{ display:flex; align-items:baseline; gap:10px; margin-bottom:6px; }
+  .ov-sec-h h5{ margin:0; font-size:var(--t-card); font-weight:var(--w-strong); color:var(--color-text); }
+  .ov-sec-note{ font-size:var(--t-label); color:var(--color-neutral-600); }
+  .ov-sec-none{ margin:0; font-size:var(--t-meta); color:var(--color-neutral-600); }
+  .ov-prow{ display:flex; align-items:center; gap:10px; padding:7px 0; border-top:1px solid var(--color-divider); }
+  .ov-av{ flex:none; width:26px; height:26px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
+    font-size:var(--t-micro); font-weight:var(--w-strong); background:var(--surface-2); color:var(--color-neutral-700); border:1px solid var(--color-divider); }
+  .ov-pw{ display:flex; flex-direction:column; min-width:0; font-size:var(--t-meta); }
+  .ov-pw b{ font-weight:var(--w-label); color:var(--color-text); }
+  .ov-pw span{ color:var(--color-neutral-600); }
+  .ov-frow{ display:grid; grid-template-columns:150px minmax(0,1fr) auto; gap:12px; align-items:baseline; padding:9px 0; border-top:1px solid var(--color-divider); font-size:var(--t-meta); }
+  .ov-fk{ color:var(--color-neutral-600); }
+  .ov-fv{ min-width:0; color:var(--color-text); display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; }
+  .ov-fv b{ font-weight:var(--w-label); }
+  .ov-fs{ flex-basis:100%; font-size:var(--t-label); color:var(--color-neutral-600); }
+  .ov-fa{ justify-self:end; }
+  .ov-filing .ov-cn{ margin:0; padding:9px 0; border:0; border-top:1px solid var(--color-divider); border-radius:0; background:none; }
+  @media (max-width:900px){ .ov-det2{ grid-template-columns:minmax(0,1fr); } .ov-det2-l{ border-right:0; border-bottom:1px solid var(--color-divider); } }
   /* THE TERMS CARD: THE LABEL IS BOLD, THE ANSWER IS NOT (owner picked "Headed"
      by name, 10 Oct 2026, over real pictures of the card). This card only: the
      20 Sep "a field's name is not bold" rule stands everywhere else. Weight
@@ -5176,7 +5216,10 @@
   #ov-map .ov-map-stage{ flex:none; height:calc((100cqw - 354px) * 310 / 900); }
   @container ovpane (max-width:1100px){
     .ov-map-grid{ grid-template-columns:minmax(0,1fr); }
-    .ov-map-side{ contain:none; height:420px; }
+    /* stacked under the map, the panel is as tall as what it holds, up to
+       420px (round 7 gaps, pass 4: a short Renewal panel left a wide empty
+       card on Details) */
+    .ov-map-side{ contain:none; height:auto; max-height:420px; }
     #ov-map .ov-map-stage{ height:calc((100cqw - 2px) * 310 / 900); }
   }
   .ov-map-top{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding:10px 12px; border-bottom:1px solid var(--color-divider); }
@@ -5622,6 +5665,7 @@
   .hist-ev.is-inside .hist-inside{ border-style:dashed; border-color:var(--rule-strong); }
   .hist-inside .hist-text{ font-size:var(--t-meta); font-weight:var(--w-body); line-height:18px; color:inherit; }
   .hist-inside .hist-body{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .hist-inside .hist-lock{ display:inline-flex; color:var(--color-neutral-600); }
   .hist-mid-more{ max-width:560px; width:100%; }
   @media (max-width:700px){ .hist-trail.is-lanes{ grid-template-columns:minmax(0,1fr); }
     .hist-trail.is-lanes::before, .hist-lh.is-m{ display:none; }
@@ -5707,8 +5751,10 @@
   .hist-fp{ font-family:var(--font-mono); font-size:var(--t-label); color:var(--color-neutral-400); }
   /* The redline itself, under the event that made it — the same green-added /
      red-removed convention the exported report prints. */
-  .hist-redline{ border:1px solid var(--color-divider); border-radius:var(--radius); padding:var(--s-2) 10px;
-    margin-top:6px; font-size:var(--t-meta); line-height:1.6; background:var(--color-surface); }
+  /* AS DRAWN (round 12 gaps, pass 4): the wording under a change sits on the
+     page's grey with a rule at its start, cut around the edit */
+  .hist-redline{ border:0; border-left:3px solid var(--color-divider); border-radius:0 var(--radius) var(--radius) 0; padding:var(--s-2) 10px;
+    margin-top:6px; font-size:var(--t-meta); line-height:1.6; background:var(--surface-2); max-width:70ch; }
   .hist-redline ins{ background:var(--st-green-bg); color:var(--st-green-fg); text-decoration:underline; }
   .hist-redline del{ background:var(--st-ruby-bg); color:var(--st-ruby-fg); }
   .hist-note{ font-size:var(--t-label); color:var(--color-neutral-700); margin-top:5px;
@@ -5728,7 +5774,7 @@
      one. Same 12px sentence-case label, same control metrics. The row is inset
      and ruled like the head above it, because the pane no longer pads itself. */
   .hist-filters{ display:flex; gap:var(--s-2) var(--s-3); flex-wrap:wrap; align-items:flex-end;
-    padding:10px var(--s-4); border-bottom:1px solid var(--color-divider); }
+    padding:10px var(--s-4); border-bottom:1px solid var(--color-divider); background:var(--surface-2); }
   #hist-filters{ margin:0; }
   /* ---- THE FIVE FILTERS TAKE THE ROW (owner-reported 25 Aug 2026: "space out
      the filters and make them longer since there is enough space so that when
@@ -5741,7 +5787,7 @@
      above; the old 150px ceiling is gone, because a ceiling is what left the
      surplus unused. min-width is the floor at which they stop shrinking and
      the row wraps instead — the wrap is the narrow-window answer and is kept. */
-  .hist-f{ display:flex; flex-direction:column; flex:1 1 0; min-width:132px; }
+  .hist-f{ display:flex; flex-direction:column; flex:1 1 0; min-width:132px; max-width:260px; }
   .hist-f > span{ font-size:var(--t-label); font-weight:var(--w-body); letter-spacing:0; text-transform:none;
     color:var(--color-neutral-600); margin-bottom:3px; white-space:nowrap; }
   .hist-f select{ font:inherit; font-size:var(--field-size); font-weight:var(--w-body); text-transform:none;
@@ -9589,7 +9635,10 @@
      Liability cap · clause 11 / Payment terms"); its button stays at the top */
   #ig-dock .pd-ch-needs .pd-nd-row{align-items:flex-start}
   #ig-dock .pd-ch-needs .pd-nd-row small{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:break-word}
-  #ig-dock .pd-ch-acts{display:flex;flex-wrap:wrap;gap:8px}
+  /* the two doors stay whole under Needs you (pass 4, round 13 at 1536×730):
+     where the panel is taller than its window they hold to its foot, above
+     the ask box, on the panel's own ground */
+  #ig-dock .pd-ch-acts{display:flex;flex-wrap:wrap;gap:8px;position:sticky;bottom:0;z-index:1;padding:8px 0 4px;background:var(--color-surface)}
   #ig-dock .pd-ch-rule{margin:0;padding:8px 10px;border-radius:var(--radius);background:var(--color-neutral-100);font-size:12.5px;line-height:1.5;color:var(--color-text)}
   /* a page's chips right under its card (pass 3, rounds 7 and 12 as drawn) */
   #ig-dock .pd-held-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
@@ -10469,6 +10518,16 @@
   .bs-mi b{display:block;font-weight:var(--w-label)}
   .bs-mi small{display:block;font-size:var(--t-meta);color:var(--hb-mute)}
   .bs-mi:hover,.bs-mi:focus-visible,.bs-mi.is-here{background:rgba(var(--hb-gw),.1)}
+  .bs-menu .bs-mg{padding:4px 10px 2px;font-size:var(--t-label);color:var(--hb-mute)}
+  .bs-mi:disabled{cursor:default;color:var(--hb-mute)}
+  .bs-mi:disabled:hover{background:none}
+  /* RELATED AGREEMENTS AS DRAWN (round 7, pass 4): ref · what it is · signed · Bring it up */
+  .fam-drawn{display:flex;flex-direction:column}
+  .fam-drow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--color-divider)}
+  .fam-drow .hati-ref{flex:none;font-size:var(--t-label)}
+  .fam-drow .fam-dw{flex:1;min-width:0;font-size:var(--t-meta);color:var(--color-neutral-700)}
+  .fam-drow .ui-btn{flex:none}
+  .fam-none{margin:0;font-size:var(--t-meta);color:var(--color-neutral-600)}
   .bs-mi.is-here b{font-weight:var(--w-strong)}
   .bs-menu hr{border:0;border-top:1px solid rgba(var(--hb-ln),.18);margin:4px 2px}
   .bs-sec{padding:16px 20px;border-top:1px solid rgba(var(--hb-ln),.14);min-width:0}
@@ -10503,6 +10562,13 @@
   .bs-kpi.is-bad b{color:var(--hb-ruby)}
   /* the stage on a page's head is the paper line's own pill (round 7) */
   .bs-head .bs-stage{flex:none;display:inline-flex}
+  /* a glance's head wraps its pills under its title rather than squeezing it (pass 4) */
+  #ig-dock .pd-cglance .pd-gl-h{flex-wrap:wrap;row-gap:4px}
+  #ig-dock .pd-cglance .pd-gl-h > b{flex:1 0 auto;max-width:100%}
+  /* a private contract's lock, beside its stage (round 7 as drawn, pass 4;
+     bsPrivatePillHtml, the one builder: the page's head and Jambo's glance) */
+  .bs-lockp{flex:none;display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:10px;font-size:var(--t-label);font-weight:var(--w-body);
+    white-space:nowrap;background:var(--surface-2);color:var(--color-neutral-600);border:1px solid var(--color-divider)}
   /* the obligations on a page read as a quiet table, no box round it (round 7) */
   .bs-on-desk .bs-obs{border:0;border-radius:0;padding:0}
   /* a job title is words, not a figure: a size down, so a role reads whole */

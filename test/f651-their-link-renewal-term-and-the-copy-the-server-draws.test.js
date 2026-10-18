@@ -121,8 +121,10 @@ describe('f651 (B) how long each renewal runs — the page', () => {
     const c = { id: 'MK-651R', name: 'Distributor Agreement', status: 'Signed', value: 1, audit: [], obligations: [], comments: [],
       fields: { effDate: '2025-03-01' }, expiry: '2027-02-28',
       metadata: { renewalType: 'auto-renew', renewalTermMonths: 12, noticePeriodDays: 90 } };
-    assert.match(win.ovEssRenewalRead(c), /renews for 12 months/);
-    assert.doesNotMatch(win.ovEssRenewalRead({ ...c, metadata: { ...c.metadata, renewalType: 'fixed' } }), /renews for/,
+    /* RE-POINTED (pass 4, round 7 as drawn: "Auto-renew · 12 months · notice
+       90 days"): the length in months, never "renews for" */
+    assert.match(win.ovEssRenewalRead(c), /· 12 months ·/);
+    assert.doesNotMatch(win.ovEssRenewalRead({ ...c, metadata: { ...c.metadata, renewalType: 'fixed' } }), /12 months/,
       'a fixed term says no renewal length');
     assert.match(win.ovMetaBoxHtml(c, 'renewalTermMonths'), /data-ktm="renewalTermMonths"[^>]*type="number"[^>]*value="12"/);
   });
