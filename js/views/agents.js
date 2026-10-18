@@ -1938,7 +1938,7 @@ function agChaseMail(c, o, firm){
      who will press Send, for our company on this agreement. The standing link
      is the server's to find, so it is not drawn here (said on the box's hover). */
   const me = (typeof currentUser === 'function') ? currentUser() : null;
-  const party = (typeof contractParty === 'function') ? contractParty(c) : '';
+  const party = (typeof contractParty === 'function') ? contractParty(c) : (String(c.party || '').trim() || String((typeof window !== 'undefined' && window.FIRST_PARTY) || ''));
   if (typeof chaseMailOf !== 'function') return null;
   const m = chaseMailOf({ t: T, firm: !!firm, dated: !!(o && o.due), soon, vars, link: null, sender: (me && me.name) || '', party });
   return { to, subject: m.subject, body: m.body, parts: m.parts };
