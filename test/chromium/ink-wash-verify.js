@@ -20,6 +20,11 @@
 
      node test/chromium/ink-wash-verify.js --save   (record, on the code BEFORE)
 
+   RE-RECORDED 18 Oct 2026 (eleventh), OWNER-ASKED (the overnight build, same
+   standing yes): Round 15, "One worklist" — Approvals & signing is one list
+   with a Kind pill and two group rows ("Yours to answer", "Waiting on
+   others"), so on the signing screen the 12 and 13px counts and the
+   dividers' counts rose by a few. Audited by key: no colour new, none gone.
    RE-RECORDED 18 Oct 2026 (tenth), OWNER-ASKED (the overnight build, same
    standing yes): Round 13, "Wall of papers" — the Contracts place's papers
    carry their facts under them (number · value, party, a private stream's
