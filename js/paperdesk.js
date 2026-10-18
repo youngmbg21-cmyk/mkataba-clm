@@ -459,7 +459,7 @@ function pdFillHeadHtml(c){
       d.left ? pdPill('warn', _pdTn('det_left_n', d.left, { n: d.left })) : pdPill('ok', _pdT('pd_ff_all_in'))}</span>
       <button type="button" class="pd-ff-x" data-pd-ff-close title="${_pdE(close)}" aria-label="${_pdE(close)}">×</button></div>
     <div class="det-bar" aria-hidden="true"><i data-pd-ff-bar style="width:${pct}%"></i></div>
-    <span class="pd-ff-n" data-pd-ff-count>${_pdE(_pdT('det_n_of_m', { done, all: d.all }))} · ${_pdE(_pdT('det_saved_note'))}</span>`;
+    <span class="pd-ff-n" data-pd-ff-count>${_pdE(_pdT('det_n_of_m', { done, all: d.all }))} · ${_pdE(_pdT('pd_ff_saved'))}</span>`;
 }
 /* EVERY STEP STARTS THE NEXT (rule 4): with nothing left, the face says so
    and offers the next act — the redlines, or the send screen. A company
@@ -497,6 +497,8 @@ function pdFillFaceHtml(c){
     <div class="pd-ff-doc" data-pd-ff-doc></div>
     <div id="det-basics" class="pd-ff-basics"></div>
     <div id="pd-fill" class="pd-ff-paper"></div>
+    ${''/* AS DRAWN, EACH PART IS A CARD (the gaps, 18 Oct 2026): the rows stand between
+           their heading and these edges, by CSS order, in the painters' own hosts */}<div class="pd-ff-owend" data-pd-ff-owend aria-hidden="true"></div><div class="pd-ff-fdend" data-pd-ff-fdend aria-hidden="true"></div>
     ${pdFillStreamHtml(c)}
   </div>`;
 }
@@ -546,17 +548,121 @@ function pdFillGroupsPaint(c){
   if (owh) owh.innerHTML = owedN ? `<h4${note ? ` title="${_pdE(note)}"` : ''}>${_pdE(_pdT('pd_ff_owed'))}</h4>${d.left ? `<span class="pd-ff-cnt">${d.left}</span>` : `<span class="pd-ff-cnt is-ok">✓</span>`}` : '';
   const fdh = host.querySelector('[data-pd-ff-fdh]');
   if (fdh){
-    const names = filled.map(r => ((r.querySelector('.cd-lab, span') || {}).textContent || '').replace(/\s*\*\s*$/, '').trim()).filter(Boolean);
+    const names = filled.map(r => pdFillLabelOf(r)).filter(Boolean);
     const shown = names.slice(0, PD_GL_SUB_MAX).join(' · ') + (names.length > PD_GL_SUB_MAX ? ' …' : '');
     const openF = host.querySelector('.pd-ff').classList.contains('is-filled-open');
     fdh.innerHTML = filled.length ? `<button type="button" class="pd-ff-fold" data-pd-ff-fold aria-expanded="${openF}"><b>${_pdE(_pdT('pd_ff_filled'))}</b><span class="pd-ff-cnt">${filled.length}</span><small>${_pdE(shown)}</small><i aria-hidden="true">${openF ? '▴' : '▾'}</i></button>` : '';
   }
+  /* THE FOLD HOLDS ON EVERY ROW: the paper's questions state display:block on
+     their own element, which no sheet rule outranks (never !important), so an
+     answered question stood in sight under a shut "Filled" (measured, 18 Oct
+     2026). The fold is written on the element, the painter's own value kept
+     to give back. */
+  const shut = !host.querySelector('.pd-ff').classList.contains('is-filled-open');
+  rows.forEach(r => {
+    if (!r.hasAttribute('data-pd-disp')) r.setAttribute('data-pd-disp', r.style.display || '');
+    const want = (shut && r.getAttribute('data-pd-owed') === '0') ? 'none' : r.getAttribute('data-pd-disp');
+    if (r.style.display !== want) r.style.display = want;
+  });
+  const fe = host.querySelector('[data-pd-ff-fdend]'); if (fe) fe.hidden = shut || !filled.length;
+  const oe = host.querySelector('[data-pd-ff-owend]'); if (oe) oe.hidden = !owedN;
+  /* THE DOCUMENT, AS DRAWN: how many answers stand on the paper and not yet in
+     the wording (tplFormPendingKeys, the one reading Fill the document closes),
+     and Fill the document in the card — a press on the form's own button, the
+     one act; its state is the form's own. Built once, then written in place,
+     so a press that commits the last answer is never redrawn from under the hand. */
   const doc = host.querySelector('[data-pd-ff-doc]');
   if (doc){
-    let pend = false; try { pend = !!(typeof tplFormPending === 'function' && tplFormPending(c)); } catch (_){ pend = false; }
-    doc.innerHTML = (c.templateForm && host.querySelector('#pd-fill [data-tplf-fill]'))
-      ? `<h4>${_pdE(_pdT('pd_ff_doc'))}</h4><span>${_pdE(_pdT(pend ? 'pd_ff_doc_pending' : 'pd_ff_doc_in'))}</span>` : '';
+    const own = host.querySelector('#pd-fill [data-tplf-fill]');
+    if (!(c.templateForm && own)){ if (doc.innerHTML) doc.innerHTML = ''; }
+    else {
+      if (!doc.querySelector('[data-pd-ff-docfill]'))
+        doc.innerHTML = `<div class="pd-ff-doc-t"><h4>${_pdE(_pdT('pd_ff_doc'))}</h4><span data-pd-ff-doc-say></span></div><button type="button" class="ui-btn ui-btn-sm" data-pd-ff-docfill></button>`;
+      let keys = []; try { keys = (typeof tplFormPendingKeys === 'function') ? tplFormPendingKeys(c) : []; } catch (_){ keys = []; }
+      let pend = false; try { pend = !!(typeof tplFormPending === 'function' && tplFormPending(c)); } catch (_){ pend = false; }
+      const say = !pend ? _pdT('pd_ff_doc_in') : keys.length ? _pdTn('pd_ff_doc_n', keys.length, { n: keys.length }) : _pdT('pd_ff_doc_pending');
+      const sp = doc.querySelector('[data-pd-ff-doc-say]'); if (sp && sp.textContent !== say) sp.textContent = say;
+      const b = doc.querySelector('[data-pd-ff-docfill]');
+      const lab = String(own.textContent || '').trim() || _pdT('tl_fill_doc');
+      if (b.textContent !== lab) b.textContent = lab;
+      b.disabled = !!own.disabled; b.title = own.title || '';
+    }
   }
+  pdFillExtrasPaint(c);
+}
+/* ---- UNDER AN OWED BOX, AND WHERE IT LANDS (the gaps, round 8 "Owed
+   first", 18 Oct 2026) ----
+   OUR STANDARD, WHERE ONE NAMES THIS FACT: "Our standard for termination:
+   90 days · Use it" — stdValueFor reads it off Our standards' own wording,
+   never guessed; Use it puts it in the box and tells the box the way a
+   person's typing does (input, change), so the box's own writer stores it.
+   WHERE IT LANDS: "clause 3" at the row's head, read off the paper beside it
+   (the box's own spot, contractFieldPeer, and the clause heading above it);
+   the row being typed in says "on the paper · clause 3". A press puts the
+   cursor in the box, which lights its spot on the paper. Nothing is written
+   by drawing these. */
+const PD_FF_BOX = 'input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]),textarea,select';
+function pdFillBoxOf(row){ return row ? row.querySelector(PD_FF_BOX) : null; }
+function pdFillLabelOf(row){ const sp = [...row.querySelectorAll('.cd-lab, span')].find(x => !x.closest('[data-pd-ff-at],[data-pd-ff-std]'));
+  return ((sp || {}).textContent || '').replace(/\s*\*\s*$/, '').trim(); }
+const PD_FF_UNIT = { days: 'pd_ff_u_days', months: 'pd_ff_u_months', years: 'pd_ff_u_years' };
+function pdFillStdOf(row){
+  const box = pdFillBoxOf(row);
+  if (!box || box.tagName === 'SELECT' || !['text', 'number', 'textarea', ''].includes(String(box.type || box.tagName.toLowerCase()).toLowerCase())) return null;
+  if (String(box.value || '').trim()) return null;
+  const v = (typeof stdValueFor === 'function') ? stdValueFor(pdFillLabelOf(row)) : null;
+  if (!v || !PD_FF_UNIT[v.unit]) return null;
+  const said = _pdTn(PD_FF_UNIT[v.unit], v.figure, { n: v.figure });
+  return { ...v, said, put: String(box.type || '').toLowerCase() === 'number' ? String(v.figure) : said };
+}
+/* the clause a spot on the paper sits under: the nearest heading above it that opens with a number */
+const PD_FF_CLAUSE_NUM = /^\s*(?:clause|article|section|§)?\s*(\d{1,3}(?:\.\d{1,3})*)[.)]?(?:\s|$)/i;
+function pdFillSpotClause(node, root){
+  if (!node) return '';
+  const H = 'h1,h2,h3,h4,h5,h6';
+  const a = node.closest ? node.closest('[data-anchor]') : null;
+  if (a){ const h = a.querySelector(H); const m = h && PD_FF_CLAUSE_NUM.exec(h.textContent || ''); if (m) return m[1]; }
+  let el = node;
+  while (el && el !== root && el.parentElement){
+    let sib = el.previousElementSibling;
+    while (sib){
+      const hs = sib.matches(H) ? [sib] : [...sib.querySelectorAll(H)];
+      for (let i = hs.length - 1; i >= 0; i--){ const m = PD_FF_CLAUSE_NUM.exec(hs[i].textContent || ''); if (m) return m[1]; }
+      sib = sib.previousElementSibling;
+    }
+    el = el.parentElement;
+  }
+  return '';
+}
+function pdFillSpotOf(row, c){
+  const k = pdFillRowKey(row, c); if (!k || typeof contractFieldPeer !== 'function') return null;
+  let node = null; try { node = contractFieldPeer(k, 'paper'); } catch (_){ node = null; }
+  if (!node) return null;
+  const n = pdFillSpotClause(node, document.getElementById('ig-canvas'));
+  return n ? { key: k, n } : null;
+}
+function pdFillExtrasPaint(c){
+  const host = (typeof document !== 'undefined') ? document.getElementById('pd-fillface') : null; if (!host || !c) return;
+  pdFillRows(host).forEach(r => {
+    /* where it lands, on every row the paper carries */
+    const at = pdFillSpotOf(r, c);
+    let link = r.querySelector(':scope > [data-pd-ff-at]');
+    if (at){
+      const h = `<span class="pd-ff-on">${_pdE(_pdT('pd_ff_on_paper'))} · </span>${_pdE(_pdT('pd_ff_at', { n: at.n }))}`;
+      /* at the end of the row, drawn at its head: the row's own label stays its first words */
+      if (!link){ link = document.createElement('button'); link.type = 'button'; link.className = 'pd-ff-at'; link.setAttribute('data-pd-ff-at', ''); r.appendChild(link); }
+      if (link.innerHTML !== h) link.innerHTML = h;
+      r.classList.add('has-at');
+    } else if (link){ link.remove(); r.classList.remove('has-at'); }
+    /* our standard, under an owed box still empty */
+    const std = r.getAttribute('data-pd-owed') === '1' ? pdFillStdOf(r) : null;
+    let hint = r.querySelector(':scope > [data-pd-ff-std]');
+    if (std){
+      const h = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M3.5 2.5h7.5v11H3.5z"/><path d="M6 5.5h3M6 8h3"/></svg><span>${_pdE(_pdT('pd_ff_std', { what: std.category.toLowerCase(), value: std.said }))}</span><button type="button" class="pd-ff-use" data-pd-ff-use="${_pdE(std.put)}">${_pdE(_pdT('pd_ff_use'))}</button>`;
+      if (!hint){ hint = document.createElement('div'); hint.className = 'pd-ff-std'; hint.setAttribute('data-pd-ff-std', ''); r.appendChild(hint); }
+      if (hint.innerHTML !== h) hint.innerHTML = h;
+    } else if (hint) hint.remove();
+  });
 }
 /* ---- THE STREAM, ASKED AND NEVER OWED (the overnight work order, step 6;
    the demo's fillFace) ----
@@ -581,11 +687,32 @@ function pdFillStreamHtml(c){
   const may = pdFillStreamMay();
   const why = may ? '' : _pdT('pd_ff_stream_ro');
   const seg = list.map(f => `<button type="button" data-pd-stream="${_pdE(f.id)}" aria-pressed="${f.id === c.folder ? 'true' : 'false'}"${may ? '' : ` disabled aria-disabled="true" title="${_pdE(why)}"`}>${_pdE(f.name)}</button>`).join('');
+  /* AS DRAWN, THE RULE'S OWN DOOR (the gaps, round 8 "Owed first", 18 Oct
+     2026): "Moving a contract to another stream is an admin's act. · Ask an
+     admin" — the Ask-an-admin record sent in one press (stAskDirect), and once
+     sent, when and whom it was asked of, until an admin answers */
+  let ro = '';
+  if (!may){
+    const asked = (typeof stAskOpenFor === 'function') ? stAskOpenFor('refile:' + c.id) : null;
+    const who = (typeof stAdminsSaid === 'function') ? stAdminsSaid() : '';
+    const door = (typeof stAskDirect === 'function' && !(typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE));
+    ro = `<span class="pd-ff-ro">${_pdE(_pdT('pd_ff_stream_admin'))}${asked
+      ? ` <span class="pd-ff-asked">${_pdE(_pdT('st_ask_sent_h', { who, day: (typeof stDay === 'function') ? stDay(asked.createdAt) : '' }))}</span>`
+      : door ? ` <button type="button" class="pd-ff-use" data-pd-ff-ask>${_pdE(_pdT('st_ask_go'))}</button>` : ''}</span>`;
+  }
   return `<div class="pd-ff-stream" data-pd-ff-stream>
     <span class="pd-ff-sl">${_pdE(_pdT('pd_ff_stream'))} <span>· ${_pdE(_pdT('pd_ff_stream_never'))}</span></span>
     <div class="pd-ff-seg" role="group" aria-label="${_pdE(_pdT('pd_ff_stream'))}">${seg}</div>
-    ${may ? '' : `<span class="pd-ff-ro">${_pdE(why)}</span>`}
+    ${ro}
   </div>`;
+}
+/* the ask, sent; the row then says when, and whom */
+async function pdFillStreamAsk(){
+  const c = pdContract(); if (!c || typeof stAskDirect !== 'function') return null;
+  const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
+  const a = await stAskDirect(_pdT('pd_ff_ask_words', { ref, name: String(c.name || '').trim() }).replace(/\s+/g, ' ').trim(), 'refile:' + c.id);
+  pdFillStreamRepaint((typeof getContract === 'function' && getContract(c.id)) || c);
+  return a;
 }
 function pdFillStreamRepaint(c){
   const el = (typeof document !== 'undefined') ? document.querySelector('#pd-fillface [data-pd-ff-stream]') : null; if (!el || !c) return;
@@ -611,7 +738,7 @@ function pdFillCounts(c){
   const pill = host.querySelector('[data-pd-ff-pill]');
   if (pill) pill.innerHTML = d.left ? pdPill('warn', _pdTn('det_left_n', d.left, { n: d.left })) : pdPill('ok', _pdT('pd_ff_all_in'));
   const bar = host.querySelector('[data-pd-ff-bar]'); if (bar) bar.style.width = (d.all ? Math.round(done * 100 / d.all) : 100) + '%';
-  const n = host.querySelector('[data-pd-ff-count]'); if (n) n.textContent = `${_pdT('det_n_of_m', { done, all: d.all })} · ${_pdT('det_saved_note')}`;
+  const n = host.querySelector('[data-pd-ff-count]'); if (n) n.textContent = `${_pdT('det_n_of_m', { done, all: d.all })} · ${_pdT('pd_ff_saved')}`;
   const fin = host.querySelector('[data-pd-ff-done]'); if (fin) fin.innerHTML = pdFillDoneHtml(c);
   try { if (typeof detMarkOpen === 'function') detMarkOpen(c); } catch (_){}
   try { if (typeof detPaintPaperEmpties === 'function') detPaintPaperEmpties(); } catch (_){}
@@ -674,7 +801,30 @@ function pdFillWire(host){
       const ff = host.querySelector('.pd-ff'); if (ff){ ff.classList.toggle('is-filled-open'); _pdFillFolded = !ff.classList.contains('is-filled-open'); }
       pdFillGroupsPaint(pdContract()); return; }
     const sb = e.target.closest ? e.target.closest('[data-pd-stream]') : null;
-    if (sb && !sb.disabled){ e.preventDefault(); pdFillStreamPick(sb.getAttribute('data-pd-stream')); }
+    if (sb && !sb.disabled){ e.preventDefault(); pdFillStreamPick(sb.getAttribute('data-pd-stream')); return; }
+    const t = e.target.closest ? e.target : null; if (!t) return;
+    /* OUR STANDARD, PUT IN THE BOX the way typing does: the box's own writer stores it */
+    const use = t.closest('[data-pd-ff-use]');
+    if (use){ e.preventDefault();
+      const box = pdFillBoxOf(use.closest('[data-pd-owed]')); if (!box) return;
+      box.value = use.getAttribute('data-pd-ff-use');
+      box.dispatchEvent(new Event('input', { bubbles: true })); box.dispatchEvent(new Event('change', { bubbles: true }));
+      return; }
+    /* WHERE IT LANDS: the cursor into the box, its spot lit on the paper */
+    const at = t.closest('[data-pd-ff-at]');
+    if (at){ e.preventDefault();
+      const row = at.closest('[data-pd-owed]'), box = pdFillBoxOf(row), c = pdContract();
+      if (box) try { box.focus({ preventScroll: true }); } catch (_){}
+      const k = row && c ? pdFillRowKey(row, c) : '';
+      if (k && typeof contractFieldLight === 'function' && typeof contractFieldPeer === 'function') try { contractFieldLight(contractFieldPeer(k, 'paper')); } catch (_){}
+      return; }
+    /* FILL THE DOCUMENT, in the document's card: the form's own button pressed — the one act */
+    const df = t.closest('[data-pd-ff-docfill]');
+    if (df){ e.preventDefault();
+      const own = host.querySelector('#pd-fill [data-tplf-fill]'); if (own && !own.disabled) own.click();
+      setTimeout(() => { const c = pdContract(); if (c) pdFillGroupsPaint(c); }, 0);
+      return; }
+    if (t.closest('[data-pd-ff-ask]')){ e.preventDefault(); pdFillStreamAsk(); }
   });
 }
 /* after renderIntelDock drew the face's host: its parts, from their own painters */
@@ -2435,7 +2585,7 @@ Object.assign(window, { pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAme
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedHeadEndHtml, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, PD_RD_CHECKS, pdRoadCheckOf, pdRoadCheckNames, pdDayWord, pdBackDay, pdAwayOf, pdRoadYesOf, pdRoadYesTitle, pdRoadYesFramed, pdRoadYesFacts, pdRoadYesHtml, pdRoadPress, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,
   PD_FILL_TRIES, PD_FILL_BEAT_MS, pdFillFor, pdFillShows, pdFillOpen, pdFillSeen, pdFillAway, pdFillClose, pdFillHeadHtml, pdFillDoneHtml, pdFillFaceHtml, pdFillMark, pdFillGroupsPaint, pdFillRows, pdFillRowKey, pdFillFacePaint, pdFillCounts, pdFillKeyOf, pdFillEcho, pdFillWire, pdFillLand, pdFillRefresh,
-  pdFillStreamMay, pdFillStreamHtml, pdFillStreamRepaint, pdFillStreamPick,
+  pdFillStreamMay, pdFillStreamHtml, pdFillStreamAsk, PD_FF_BOX, pdFillBoxOf, pdFillLabelOf, PD_FF_UNIT, pdFillStdOf, PD_FF_CLAUSE_NUM, pdFillSpotClause, pdFillSpotOf, pdFillExtrasPaint, pdFillStreamRepaint, pdFillStreamPick,
   PD_DROP_ACCEPT, pdDropMay, pdWallHelloHtml, pdDropInner, pdDropStreams, pdDropStreamNow, pdDropStreamHtml, pdDropHtml, pdDropPaint, pdWallHtml, pdDropInput, pdDropBusyNow, pdDropPick, PD_DROP_TOAST_MS, pdDropToastOff, pdDropTake,
   PD_GLANCE, PD_GL_SUB_MAX, pdGlanceSub, pdGlanceBriefHtml, pdGlanceFootHtml, pdDropImportHtml, pdDropDoor, PD_DROP_CALL_MS, pdGlanceRows, pdSignAhead, pdGlanceHtml, pdGlanceRepaint, pdJamboTopHtml, pdNeedsRows, pdNeedRowHtml, pdNeedsHtml, pdNeedsRepaint, pdBackHtml, PD_BACK_CLOSE, PD_GL_DONE_MS, pdGlanceDone,
   JB_BEAT_MS, JB_HOP_MS, jamboPerchMount, jamboRest, jamboWorkWords, jamboBeat, jamboHop, jamboLookPaint });

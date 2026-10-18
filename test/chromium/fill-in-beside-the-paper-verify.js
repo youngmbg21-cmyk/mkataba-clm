@@ -180,7 +180,8 @@ const FACE = () => {
     const pre = await page.evaluate(() => { const c = getContract(intel.paper.id); return { paper: /Avenyn 12/.test(document.getElementById('ig-canvas').textContent), stored: /Avenyn 12/.test(c.redlineText || ''), owed: tplFormPending(c) }; });
     check('5a the answer shows on the paper while the stored wording waits for the press', up5 && pre.paper && !pre.stored && pre.owed, JSON.stringify(pre));
     await page.screenshot({ path: path.join(OUT, '5-company-preview.png') });
-    await page.click('#pd-fillface [data-tplf-fill]');
+    /* RE-POINTED 18 Oct 2026 (the gaps, round 8, f751): the press is in the document's own card, as drawn */
+    await page.click('#pd-fillface [data-pd-ff-docfill]');
     await waitFor(page, () => { const c = getContract(intel.paper.id); return /Avenyn 12/.test(c.redlineText || ''); }, 3000);
     const post = await page.evaluate(() => { const c = getContract(intel.paper.id); return { stored: /Avenyn 12/.test(c.redlineText || ''), owed: tplFormPending(c) }; });
     check('5b Fill the document writes it into the wording', post.stored && !post.owed, JSON.stringify(post));

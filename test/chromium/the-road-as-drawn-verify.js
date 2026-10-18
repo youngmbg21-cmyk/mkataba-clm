@@ -159,13 +159,13 @@ const dayAfter = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCD
       await shot(page, `10-the-road-${w}x${ht}`);
     }
     await page.setViewportSize({ width: 1440, height: 780 }); await page.waitForTimeout(300);
-    await page.evaluate(() => { if (window.langSet) langSet('sv'); else if (window.setLang) setLang('sv'); });
+    await page.evaluate(() => { if (window.langSet) langSet('sv'); });
     await page.waitForTimeout(500);
     await page.evaluate(() => { const c = getContract('MK-0391'); if (window.renderSignButton) renderSignButton(c); });
     const SV = await untilOn(page, () => { const t = (document.querySelector('#pd-signface [data-pd-road-stop="yes"] b') || {}).textContent; return t && /Godkännande/.test(t) ? { t, st: [...document.querySelectorAll('#pd-signface .pd-rd-st')].map(s => s.textContent).join('|') } : null; }, null, 6000);
     check('6 in Svenska: "Godkännande från Jonas Berg", its states in Swedish', !!SV && SV.t === 'Godkännande från Jonas Berg' && /Väntar/.test(SV.st), JSON.stringify(SV));
     await shot(page, '10-the-road-sv-1440x780');
-    await page.evaluate(() => { if (window.langSet) langSet('en'); else if (window.setLang) setLang('en'); });
+    await page.evaluate(() => { if (window.langSet) langSet('en'); });
     await page.waitForTimeout(500);
     await page.evaluate(() => { const c = getContract('MK-0391'); if (window.renderSignButton) renderSignButton(c); });
     await untilOn(page, () => /Approve for/.test((document.querySelector('#pd-signface [data-pd-rd-approve]') || {}).textContent || ''), null, 6000);

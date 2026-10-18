@@ -2379,6 +2379,24 @@ function stAskFrom(panel, words){
     const box=document.getElementById('st-ask-why-'+t.id); if(box) try{ box.focus({preventScroll:true}); }catch(_){} };
   if(typeof requestAnimationFrame==='function') requestAnimationFrame(go); else go();
 }
+/* SENT FROM THE PLACE THE RULE STOPPED THEM (the gaps, round 8 "Owed first",
+   18 Oct 2026: Fill in's stream row, "Moving a contract to another stream is
+   an admin's act. · Ask an admin"): the same record by the same route (POST
+   /api/settings-asks — Needs you, the bell, the reminder, as every ask), sent
+   with its words in one press; no second record and no second writer.
+   Resolves to the ask, or null where it could not be sent (said in a toast). */
+async function stAskDirect(what, panel){
+  const words = String(what || '').trim().slice(0, 200);
+  if(!words || !(typeof API_MODE==='function'&&API_MODE())){ toast(i18t('st_needs_server'),'warn'); return null; }
+  try{
+    const r=await api('settings-asks','POST',{ what:words, why:'', panel:String(panel||'') });
+    toast(i18t(r&&r.again?'st_ask_sent_again':'st_ask_toast',{who:stAdminsSaid()}), r&&r.again?'warn':'ok');
+    await stAsksLoad();
+    return (r&&r.ask)||null;
+  }catch(e){ toast((e&&e.message)||i18t('st_needs_server'),'err'); return null; }
+}
+/* the reader's own ask still waiting for one panel: what Fill in's row says it already asked */
+const stAskOpenFor=panel=>stAsksMine().find(a=>a&&a.status==='open'&&String(a.panel||'')===String(panel||''))||null;
 /* JAMBO'S CARD FOR A NON-ADMIN: the rule is a company one; an admin decides;
    Jambo asks for them, with their reason — and says where it will wait */
 function stAskCardHtml(c, t){
@@ -8319,7 +8337,7 @@ Object.assign(window,{stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsP
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
   stRulesRows,stPaintRules,stPaintSignFolders,
   openMyAccount,openSettingsAt,settingsGoTab,stUnfinishedCount,stPeopleWire,settingsTab,stLandTop,SET_PANELS,ST_TABS,SET_CLOSURES,ST_GROUPS,ST_ATTENTION_MAX,
-  ST_FACES,ST_GOV_LADDER,stGovRungs,stGovNext,stYouItems,stYouHtml,stYouCardHtml,stYouSheetItems,ST_YOU_SHEET,stChipsSet,stOpensSet,stBriefSet,stMenuHits,stFind,stFindRows,stFindGo,stNeedsAll,settingsGoPage,stYouGo,stPrefSet,stAsksLoad,stAsksOpen,stAsksAnswered,stAskSeen,stAskFrom,stJbAnswer,stJbAmount,stJbAsk,stJamboFocus,stSideSet,stSideFit,
+  ST_FACES,ST_GOV_LADDER,stGovRungs,stGovNext,stYouItems,stYouHtml,stYouCardHtml,stYouSheetItems,ST_YOU_SHEET,stChipsSet,stOpensSet,stBriefSet,stMenuHits,stFind,stFindRows,stFindGo,stNeedsAll,settingsGoPage,stYouGo,stPrefSet,stAsksLoad,stAsksOpen,stAsksAnswered,stAskSeen,stAskFrom,stAskDirect,stAskOpenFor,stAdminsSaid,stDay,stJbAnswer,stJbAmount,stJbAsk,stJamboFocus,stSideSet,stSideFit,
   stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
   settingsWriteFolderAccess,settingsExportBackup,stGoLive,stLoadAiCfgOnce,stSampleContracts,stClearSamples,stRunIntegrity,
   stPersonMissing,stPersonSays,stPersonSumHtml,stAccountBodyHtml,parseDirectoryCsv,openFolderAccessEditor,settingsMirrorDirectory,

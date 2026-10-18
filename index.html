@@ -9479,6 +9479,30 @@
   #pd-fillface .pd-ff-fold small{flex:1;min-width:0;font-size:12px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #pd-fillface .pd-ff-fold i{font-style:normal;color:var(--color-neutral-600)}
   #pd-fillface .pd-ff-fold:focus-visible{outline:2px solid var(--accent-fill);outline-offset:2px;border-radius:var(--radius)}
+  /* OWED FIRST, AS DRAWN (the gaps, 18 Oct 2026): each part a card — "Still to fill" holds its rows between
+     its heading and its edge, then "Filled", the document (its count and Fill the document) and the stream;
+     under an owed box what Our standards says, with Use it; at a row's head where it lands on the paper */
+  #pd-fillface .pd-ff.pd-ff-work{gap:0}
+  #pd-fillface .pd-ff-work > .pd-ff-owh{margin-top:12px;padding:10px 12px;border:1px solid var(--color-divider);border-radius:var(--radius-lg) var(--radius-lg) 0 0}
+  #pd-fillface .pd-ff-work :is(#det-basics, #pd-fill) [data-pd-owed]{position:relative;padding:8px 12px 4px;border:solid var(--color-divider);border-width:0 1px;background:var(--color-surface)}
+  #pd-fillface .pd-ff-work #det-basics .det-card-h{padding:0 12px;border:solid var(--color-divider);border-width:0 1px;margin:0}
+  #pd-fillface .pd-ff-work > .pd-ff-owend{order:2;height:10px;border:1px solid var(--color-divider);border-top:0;border-radius:0 0 var(--radius-lg) var(--radius-lg)}
+  #pd-fillface .pd-ff-work > .pd-ff-fdh{margin-top:12px;padding:10px 12px;border:1px solid var(--color-divider);border-radius:var(--radius-lg)}
+  #pd-fillface .pd-ff-work.is-filled-open > .pd-ff-fdh{border-radius:var(--radius-lg) var(--radius-lg) 0 0}
+  #pd-fillface .pd-ff-work > .pd-ff-fdend{order:5;height:10px;border:1px solid var(--color-divider);border-top:0;border-radius:0 0 var(--radius-lg) var(--radius-lg)}
+  #pd-fillface .pd-ff-work > :is(.pd-ff-owend, .pd-ff-fdend)[hidden]{display:none}
+  #pd-fillface .pd-ff-work > .pd-ff-doc{margin-top:12px;padding:10px 12px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:center}
+  #pd-fillface .pd-ff-doc-t{display:flex;flex-direction:column;gap:2px;min-width:0}
+  #pd-fillface .pd-ff-work #pd-fill [data-tplf-fill]{display:none}
+  #pd-fillface .pd-ff-work > .pd-ff-stream{margin-top:12px;padding:10px 12px;border:1px solid var(--color-divider);border-radius:var(--radius-lg)}
+  #pd-fillface .pd-ff-at{position:absolute;right:12px;top:8px;border:0;background:none;padding:0;font:inherit;font-size:12px;color:var(--accent-ink);cursor:pointer;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
+  #pd-fillface .pd-ff-at .pd-ff-on{display:none}
+  #pd-fillface [data-pd-owed]:focus-within > .pd-ff-at .pd-ff-on{display:inline}
+  #pd-fillface .has-at > :is(.cd-lab, span:first-of-type){padding-right:150px}
+  #pd-fillface .pd-ff-std{display:flex;align-items:center;gap:6px;margin:6px 0 2px;font-size:12px;line-height:1.4;color:var(--color-neutral-700)}
+  #pd-fillface .pd-ff-std svg{flex:none;color:var(--color-neutral-600)}
+  #pd-fillface .pd-ff-use{border:0;background:none;padding:0;font:inherit;font-size:12px;color:var(--accent-ink);cursor:pointer;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
+  #pd-fillface .pd-ff-asked{color:var(--color-neutral-700)}
   .det-nda-read{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;font-size:var(--t-body)}
   .det-nda-sug{font-size:12px;color:var(--color-neutral-600)}
   /* THE WALL'S GREETING AND DROP AREA, AND A CONTRACT AT A GLANCE (steps 4 and 5): at the top of Jambo's tab on Home's Document face */
