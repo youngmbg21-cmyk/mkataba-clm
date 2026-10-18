@@ -326,6 +326,8 @@ function counterRepaint(){
 /* THE BOX: a place opens on the desk; anything else is Jambo's, beside the page */
 function counterAsk(text){
   const t = String(text || '').trim(); if (!t) return false;
+  /* a request to book or find time goes to the Calendar's own Jambo with its words (18 Oct 2026) */
+  if (typeof igBookAsk === 'function' && igBookAsk(t) && typeof calHandOff === 'function' && calHandOff(t)) return true;
   let a = null; try { a = (typeof caReadPlace === 'function') ? caReadPlace(t) : null; } catch (_){ a = null; }
   if (a && a.kind === 'go' && !CN_ASKS_JAMBO.includes(a.place) && typeof caGo === 'function' && caGo(a)) return true;
   /* JAMBO'S MAP (js/jambomap.js): everyday words for a page open it here as a

@@ -30859,3 +30859,20 @@ THE ALLOW-LISTS. Beside the wall sit PASS_PAYLOAD, PASS_CONTRACT and PASS_CHANGE
 THE DAY'S RESULT (main at 6804579): nothing crossed. 5 of 5, 1.4 s.
 
 CARRIED OVER, 18 Oct 2026 (owner: "Tidy up"). Written on 13 Oct in the phase-1 stack (PRs #260–#269), which could no longer merge; brought over on a fresh branch and the stack closed. On main at 9d30154 it passed 5 of 5. Its neighbour in the stack, screens-at-3000-verify (#261), was meant to come too and was left on its branch: three runs here passed 11, 8 and 9 of 11, a different screen failing each time, because the 400-contract paint swung from 10 to 220 ms between runs and the ratio follows it.
+
+## JAMBO FOLLOWS THE ASK (18 Oct 2026)
+
+THE OWNER'S WORDS: "why is it when i ask jambo questions regarding the calendar it schedules appointments not following my command?" — then, after the survey of the other Jambos, "fix both together".
+
+WHAT WAS WRONG, MEASURED BEFORE BUILDING. The Calendar's Jambo had ONE tool (propose_blocks) and was forced to call it, so every question came back as time blocks. He was never told today's date or the weekdays, saw only the next two weeks, and any block outside working hours, on a weekend or over an event was dropped and said only as a count — so "Tuesday at 7:30" quietly vanished. In the main box (Home and the Counter), tested in a real browser: any question containing "template" or "start from" went to the template adviser ("What does our NDA template say about the notice period?" got a template ranking); a real template request was taken first by the map's word reader (it lit the supplier contracts, "0 of 4"); "book a meeting with Naivas on Tuesday at 2pm" was sent to the contract map; "red flags in MK-12" swept the whole book.
+
+WHAT WAS BUILT.
+- The plan route offers two tools and the model chooses (`tool_choice: any`): `answer` (say + up to eight lines, nothing to add, even under "Just do it") and `propose_blocks`. The instruction carries AI_GOVERNANCE_RULE (f694 now names it), today and its weekday, the next 28 days by weekday, and everything up to `until` (the browser asks 120 days ahead; the server clamps to from + PLAN_HORIZON_DAYS). It cannot move or delete events and says so.
+- A block the person named (`asked: true`) keeps its day and time outside working hours or on a weekend; it is still never put on top of an event or an all-day block. Every block not kept comes back in `left` with one reason (clash · hours · weekend · busy · window · bad · cap), said on the panel under "Left out:" in both books; an older answer with only a count still says the count. Nothing is trimmed from that list.
+- The main box asks `igBookAsk` (IG_BOOK_RE, minus a sentence that opens as a question, IG_BOOK_NOT_RE) before any free reader; a booking is handed to the Calendar with its words (`calHandOff`: hbOpenCalendar, then the Calendar's own calPlanAsk — the one door that adds time). The Counter asks it first too. Not on the phone.
+- IG_TEMPLATE_RE now names a REQUEST (a template to use or start from, a template or starting point recommended, a contract as a base); such a request skips the Board's reader and the map's word reader and reaches intelTemplateAsk; a question that only mentions a template is answered as any question.
+- The red-flag sweep (intelComplianceScan) runs only when no contract reference is in the question; "any red flags in MK-12?" goes to Jambo as a question about MK-12.
+
+LEFT ALONE: Ask me first / Just do it unchanged (an answer adds nothing under either); the Calendar's three chips unchanged; the compliance sweep's own words unchanged.
+
+TESTS. f732 (16 claims, all red at 9d27242), f641 (5) the reasons and the asked blocks, f694 (2) the Calendar's instruction carries the rule, jambo-follows-the-ask-verify (red at 9d27242: 1a, 1b, 2a, 2b, 3a–3c, 4a, 5a, 5b), photographed at 1440×780, 1536×730 and 1366×950: nothing spills from the panel and the page does not scroll.
