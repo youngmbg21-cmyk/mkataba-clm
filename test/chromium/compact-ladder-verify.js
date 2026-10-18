@@ -265,6 +265,10 @@ const HELPERS = `(() => {
     await page.evaluate(id => openWorkspace(id, { room: true }), ids.rev);   /* back from Home (section 3) */
     await page.waitForFunction(() => !!document.querySelector('#ws-tabs [data-ws-tab="sign"]'), null, { timeout: 8000 }).catch(() => {});
     await page.evaluate(id => roomGoTab(getContract(id), 'sign'), ids.rev);
+    /* RE-POINTED 17 Oct 2026 (round 10, "The road"; the owner's yes): the Sign button stands only for the
+       person whose turn it is, so the route names an internal signer anybody of ours may sign as (in the
+       page only, nothing saved) before the button is measured */
+    await page.evaluate(id => { const c = getContract(id); c.signerPlan = [{ id: 'cl-s1', party: 'internal', name: 'A. Otieno', order: 1 }]; if (window.renderSignButton) renderSignButton(c); }, ids.rev);
     await page.waitForTimeout(1500);
     await load();
     const c4 = await page.evaluate(() => {

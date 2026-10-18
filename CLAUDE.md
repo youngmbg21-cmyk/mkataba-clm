@@ -329,7 +329,8 @@ Tests: f277, f300, f315, f364, f373, f384, f507, f536, f656, thread, thread-draw
 - `signBlockers(c)` the ONE list for `renderSignButton` and `signDocument` (never desk, never review); `signReadiness(c)` in `SIGN_STAGES`; gate `signCheckGate()` off · advise · require; server `signCheckRefusal`; the brief last (`signCheckBriefStands`). Pad intent line (`openSignaturePad({intent:true})`); an empty value never stamped 'none' (only `nda`).
 - WITH THE OTHER SIDE: a signature is a MARK painted after the render (`pagesSignRows`/`pagesSignMarks`); an open owner ask refuses 409 (`srvSignOpenAsks`, `portalSignHold`); `portalReceiptHtml`.
 - BEFORE YOU SIGN, BESIDE THE PAPER (stage 5, owner picked "Checklist"): Jambo's face (`pdSignOpen`, `#pd-signface`) draws the Signing column's four slots for `renderSignButton`, owns no writer; the signing copy on Home's paper (`igSignOn`, `pdSignPaperPaint`) — no banner word, no Track, its own page arrows and size (`igZoomCornerHtml`), the walk on the paper's line (`signWalkHtml(c,{home})`); pill = `signReadiness` (`pdSignState`); signed, the RECEIPT (`pdSignNextHtml`); a server's answer redraws Home (`contractOnHome`). `pdOpenOnHome(id,'sign')` opens Approvals (bell, checklist: the face).
-Tests: f308, f311, f319, f353, f367, f543, f676, signing-flow, sign-beside-the-paper verify.
+- THE ROAD (round 10, 17 Oct 2026; owner's yes to Sign only for whose turn): the face draws stops (`pdRoadStops`, a reading of signReadiness/signSteps/nextSigner: ready · the yes (`PD_RD_YES`) · each route step · sealed), the column's body under the open stop and the Sign foot only in the reader's own stop (`pdSignMine`, signDocument's test; `pdRoadPaint` from pdSignCounts), drawn for nobody else.
+Tests: f308, f311, f319, f353, f367, f543, f676, signing-flow, sign-beside-the-paper, the-road verify; f712.
 
 ## A LINK LANDS ON WHAT YOU CAME TO DO
 
