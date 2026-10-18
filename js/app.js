@@ -1349,6 +1349,11 @@ function setView(view){
     }catch(_){}
     if(window.toast) toast(`${VIEW_LABEL[view]||view} could not be drawn${cid?` — check ${cid}`:''}: ${(e&&e.message)||e}`,'err');
   }
+  /* A PAGE THAT SENT THE READER ON while drawing (Insights' map → Home's
+     Explorer, hbOpenExplorer) did it through setView, which recorded and
+     painted the page actually drawn. Going on here would paint this call's
+     page head over it: "Insights", 40px above Home's map. */
+  if(state.view!==view) return;
   /* ---- WHERE THE READER IS STANDING IS RECORDED BEFORE THE PANELS ARE
      PAINTED, AND EACH PAINT IS GUARDED ON ITS OWN (owner-reported 10 Sep 2026:
      "sometimes when i am on one page and i refresh, the page refreshes and

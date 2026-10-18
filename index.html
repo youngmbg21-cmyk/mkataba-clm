@@ -10055,6 +10055,10 @@
   #hb-page{height:var(--view-h);display:flex;flex-direction:column;min-height:0}
   #hb-page .hb-col{position:relative;flex:1;min-height:0}
   .hb-note{display:flex;align-items:center;gap:var(--s-2);font-size:var(--t-micro);color:var(--hb-mute)}
+  /* the computer's line also carries Light | Dark (the SAP way, 18 Oct 2026): a
+     narrow window wraps it rather than squeezing the switch shut */
+  .hb-note{flex-wrap:wrap;row-gap:var(--s-1)}
+  .hb-note>.hb-seg{flex:none}
   /* ═══ THE CONTRACT'S VIEWS ON THE BOARD (the one-page Home plan, stage 4, the
      owner picked "Views", 14 Oct 2026) ═══ One line: the switch, whose contract,
      and Print · Share · Download for the view shown. A view takes the Board

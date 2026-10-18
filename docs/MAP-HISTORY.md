@@ -30936,3 +30936,15 @@ THE ALLOW-LISTS. Beside the wall sit PASS_PAYLOAD, PASS_CONTRACT and PASS_CHANGE
 THE DAY'S RESULT (main at 6804579): nothing crossed. 5 of 5, 1.4 s.
 
 CARRIED OVER, 18 Oct 2026 (owner: "Tidy up"). Written on 13 Oct in the phase-1 stack (PRs #260–#269), which could no longer merge; brought over on a fresh branch and the stack closed. On main at 9d30154 it passed 5 of 5. Its neighbour in the stack, screens-at-3000-verify (#261), was meant to come too and was left on its branch: three runs here passed 11, 8 and 9 of 11, a different screen failing each time, because the 400-contract paint swung from 10 to 220 ms between runs and the ratio follows it.
+
+## #339 BROUGHT TO GREEN (18 Oct 2026, the owner: "fix it and merge once checks pass")
+
+Main merged in (#335–#338, #340). #339's f730 and f731 became f732 (the counter in the clause) and f733 (a half-undone counter): main's #340 had taken both numbers.
+
+SEVEN CHECKS WERE RED, the same seven before and after main came in:
+- document-wall, analyze-on-the-graph 5a: waited for, or measured, Home's head row, which a computer no longer draws (the SAP way). Re-pointed: the head is waited for attached, and 5a asks that a stored focus does not change the head (measured with and without).
+- explorer-brain 3d: double-clicked the map's "empty top-right corner", where Group by now sits (the owner's choice). Re-pointed to a spot on the right edge, below Group by, that the map itself answers.
+- explorer-magnitude 5a: a 40px "Insights" page head sat above Home's map. ROOT CAUSE, older than #339: setView('intel') draws through renderIntel, which sends the reader to Home's Explorer (hbOpenExplorer → setView('dashboard')); the outer call then went on and painted ITS page head ("Insights") over Home's. Main hid it under Home's head row. Fix: setView stops after the render when the page sent the reader on (`state.view !== view`), as every other old door already does at the top of setView. The check now measures the map against the bar.
+- jambo-agents 19a: at 1536×730 #339's 41px put the house on three rooms a floor with 65px cards: not compact (under 60), too short for the work line between the name and the seat. Main already failed the same audit at 1440×780 (fh 101), unmeasured. Fix: the work line draws only where it clears the seat, measured (`ly2(c) + 4 <= r.seat.y - 25`), as its comment always said.
+- swedish 800: Light | Dark on the Board's first line (#339) was squeezed 7px at 800 wide in Swedish. `.hb-note` wraps; the switch keeps its width. One row at all three of the owner's screens.
+- home-and-recent: left Present and pressed the bar before full screen had closed (asynchronous; #content covers the bar until then). The check waits for it.

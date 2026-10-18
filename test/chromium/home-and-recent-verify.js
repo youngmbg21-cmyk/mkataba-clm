@@ -211,6 +211,8 @@ const CONTRACTS = [
     if (await press('#dk-recent [data-dk-present]', '5b Present this page')) {
       check('5b Present this page is Recent\'s last row on Home, and presses Present', !!await until(() => document.getElementById('dk-recent').hidden && !!document.querySelector('.hb-presenting')));
       await page.evaluate(() => hbPresent(false));
+      /* leaving full screen is asynchronous: until it has, #content covers the bar */
+      await until(() => !document.fullscreenElement && !document.querySelector('.hb-presenting'), null, 5000);
     }
     await page.evaluate(() => setView('approvals')); await until(() => state.view === 'approvals'); await openRecent();
     check('5c and not on a page that has nothing to present', await page.evaluate(() => !document.querySelector('#dk-recent [data-dk-present]')));
