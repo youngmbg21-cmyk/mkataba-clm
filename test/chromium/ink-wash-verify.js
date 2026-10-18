@@ -20,6 +20,14 @@
 
      node test/chromium/ink-wash-verify.js --save   (record, on the code BEFORE)
 
+   RE-RECORDED 18 Oct 2026 (fourteenth), OWNER-ASKED (the overnight build,
+   same standing yes): Round 21, "Paper first" — Our paper's book draws an
+   index of templates and the chosen template's own paper, so the ourpaper
+   screen's counts moved and its paper is measured for the first time (the
+   PAPER reading now knows .tpl-pf-sheet, as it knows .pg-sheet). Audited by
+   key: the new keys are the paper's own colours and sizes (the ones every
+   other paper already wears) and the chosen row's accent tint; no colour new
+   to the product.
    RE-RECORDED 18 Oct 2026 (thirteenth), OWNER-ASKED (the overnight build,
    same standing yes): Round 17, "Then and now" — Your book is a table (then,
    today, change, line) and the stage bar is drawn twice, so on the home
@@ -294,7 +302,7 @@ const GREYS = () => {
     return sat < .12; };
   const hits = {};
   for (const el of document.querySelectorAll('body *')) {
-    if (el.closest('.pg-sheet, #ig-canvas.rl-paper, svg, script, style, #theme-menu, [data-brand-pick], .hati-ref, .rl-card button, .rl-unsent-go, .rl-decisions-go, #nego-send, [data-ink-exempt]')) continue;
+    if (el.closest('.pg-sheet, #ig-canvas.rl-paper, .tpl-pf-sheet, svg, script, style, #theme-menu, [data-brand-pick], .hati-ref, .rl-card button, .rl-unsent-go, .rl-decisions-go, #nego-send, [data-ink-exempt]')) continue;
     const s = getComputedStyle(el);
     if (s.display === 'none' || s.visibility === 'hidden' || +s.opacity === 0) continue;
     const r = el.getBoundingClientRect(); if (r.width < 1 || r.height < 1) continue;
@@ -313,7 +321,7 @@ const GREYS = () => {
 const CAPS = () => {
   const hits = {};
   for (const el of document.querySelectorAll('body *')) {
-    if (el.closest('.pg-sheet, #ig-canvas.rl-paper, svg, script, style, .hati-ref, kbd, [data-ink-exempt]')) continue;
+    if (el.closest('.pg-sheet, #ig-canvas.rl-paper, .tpl-pf-sheet, svg, script, style, .hati-ref, kbd, [data-ink-exempt]')) continue;
     let own = ''; for (const n of el.childNodes) if (n.nodeType === 3) own += n.nodeValue;
     if (!/[a-z]/i.test(own)) continue;
     const s = getComputedStyle(el);
@@ -331,10 +339,11 @@ const CAPS = () => {
    which shows the desk and follows it — and Home's Document paper, which is
    the same paper drawn without the page-maker's sheet (#ig-canvas.rl-paper,
    Redlined and Clean; added 11 Oct 2026 when the Document tab's paper moved
-   there). */
+   there) — and Our paper's book, which draws the chosen template's own paper
+   (.tpl-pf-sheet; added 18 Oct 2026, round 21, "Paper first"). */
 const PAPER = props => {
   const out = {};
-  for (const root of document.querySelectorAll('.pg-sheet, #ig-canvas.rl-paper')) for (const el of [root, ...root.querySelectorAll('*')]) {
+  for (const root of document.querySelectorAll('.pg-sheet, #ig-canvas.rl-paper, .tpl-pf-sheet')) for (const el of [root, ...root.querySelectorAll('*')]) {
     if (el.closest('.pg-gap')) continue;
     const s = getComputedStyle(el);
     if (s.display === 'none' || s.visibility === 'hidden') continue;

@@ -13808,6 +13808,34 @@
   .tpl-bk-seg button + button{border-left:1px solid var(--btn-edge);}
   .tpl-bk-seg button.on{background:var(--color-accent-50);color:var(--accent-ink);font-weight:var(--w-strong);}
   @media (max-width:1023px){ .tpl-bk{grid-template-columns:minmax(0,1fr);} }
+  /* THE BOOK IS PAPER FIRST (round 21, owner picked it, 17 Oct 2026): the
+     index on the left, the chosen template's own paper on the right, each
+     scrolling in its own box; the paper wears the fill preview's clothes */
+  .tpl-pf{display:grid;grid-template-columns:minmax(220px,280px) minmax(0,1fr);gap:var(--s-4);align-items:stretch;min-height:0;height:100%;}
+  .tpl-pf-idx,.tpl-pf-paper{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);min-height:0;display:flex;flex-direction:column;overflow:hidden;}
+  .tpl-pf-find{display:flex;align-items:center;gap:6px;margin:10px;padding:0 10px;height:var(--ctl-h);border:1px solid var(--btn-edge);border-radius:var(--radius);color:var(--color-neutral-600);}
+  .tpl-pf-find input{flex:1;min-width:0;border:0;background:none;font:inherit;color:var(--color-text);outline:0;}
+  .tpl-pf-list{flex:1;min-height:0;overflow:auto;}
+  .tpl-pf-g{padding:8px 12px 4px;font-size:var(--t-micro);color:var(--color-neutral-600);border-top:1px solid var(--color-divider);}
+  .tpl-pf-list>.tpl-pf-g:first-child{border-top:0;}
+  .tpl-pf-i{display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border:0;border-top:1px solid var(--color-divider);background:none;text-align:left;font:inherit;color:inherit;cursor:pointer;}
+  .tpl-pf-i:hover{background:var(--surface-2);}
+  .tpl-pf-i.is-on{background:color-mix(in srgb,var(--color-accent) 8%,transparent);box-shadow:inset 2px 0 0 var(--accent-solid);}
+  .tpl-pf-t{display:flex;flex-direction:column;min-width:0;flex:1;}
+  .tpl-pf-t b{font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tpl-pf-t span{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tpl-pf-b{flex:none;font-size:var(--t-micro);padding:1px 7px;border-radius:999px;border:1px solid var(--color-divider);color:var(--color-neutral-600);}
+  .tpl-pf-b.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg);border-color:transparent;}
+  .tpl-pf-h{display:flex;align-items:flex-start;gap:var(--s-3);padding:14px 16px;border-bottom:1px solid var(--color-divider);}
+  .tpl-pf-hl{flex:1;min-width:0;}
+  .tpl-pf-hl h2{margin:0;font-size:var(--t-section);font-weight:var(--w-title);color:var(--color-text);}
+  .tpl-pf-hl p{margin:3px 0 0;font-size:var(--t-meta);color:var(--color-neutral-600);}
+  .tpl-pf-v{display:inline-block;margin-left:6px;padding:0 7px;border:1px solid var(--color-divider);border-radius:999px;font-size:var(--t-micro);font-weight:var(--w-label);color:var(--color-neutral-600);vertical-align:2px;}
+  .tpl-pf-acts{display:flex;gap:8px;flex:none;flex-wrap:wrap;justify-content:flex-end;}
+  .tpl-pf-scroll{flex:1;min-height:0;overflow:auto;padding:16px;background:var(--desk-ground, var(--surface-2));}
+  .tpl-pf-sheet{max-width:var(--doc-sheet-max, 720px);margin:0 auto;background:var(--color-doc-warm);border:1px solid var(--color-doc-warm-line);padding:28px 36px;font-size:13px;user-select:text;}
+  .tpl-pf-none{padding:16px;}
+  @media (max-width:1023px){ .tpl-pf{grid-template-columns:minmax(0,1fr);height:auto;} }
   /* THE DRAWING'S BOOK (SAP benchmark, owner 9 Oct 2026): the shelves card runs
      to the foot of the page, the small cards stay their own height, a touch
      more air between the figures and the tabs, Most used at reading size. */

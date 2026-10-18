@@ -2577,7 +2577,65 @@ function tplBookGlanceHtml(d){
   </div>`;
 }
 const TPL_SHELF_SUB = { company:'lib_shelf_sub_company', builtin:'lib_shelf_sub_builtin', sample:'lib_shelf_sub_sample', cp:'lib_shelf_sub_cp' };
+/* ---- THE BOOK IS PAPER FIRST (round 21 of the redesign: the owner picked
+   "Paper first" by name, 17 Oct 2026) ----
+   An index of every template on its shelf, and beside it the chosen one's own
+   paper — drawn by the product's ONE document renderer (fillPreviewHtml →
+   docBody), never a second drawing — under its facts and the template's own
+   doors (tplPanelActs, the list's verbs, through the same functions). The
+   shelves' totals stay the head's figures (tplBookGlanceHtml). The choice and
+   the find box are per sitting; nothing is written. A sample is read once it
+   is imported; a template whose paper HaTi cannot draw here says so. */
+const _tplPf = { pick:null, q:'' };
+const TPL_PF_SHELVES = ['company', 'builtin', 'sample', 'cp'];
+function tplPfKey(c){ return c ? c.kind + ':' + c.id : ''; }
+function tplPfGroups(d){
+  const q = String(_tplPf.q || '').trim().toLowerCase();
+  const cards = (d.cards || []).filter(c => !q || String(c.name || '').toLowerCase().includes(q));
+  return TPL_PF_SHELVES.map(k => ({ k, cards: cards.filter(c => c.kind === k) })).filter(g => g.cards.length);
+}
+function tplPfChosen(d){
+  const all = tplPfGroups(d).flatMap(g => g.cards);
+  return all.find(c => tplPfKey(c) === _tplPf.pick) || all[0] || null;
+}
+function tplPfPaperHtml(card){
+  let html = '';
+  try {
+    if (card.kind === 'builtin') html = fillPreviewHtml('builtin', { tid: card.id });
+    else if (card.kind === 'cp'){ const t = customTemplates().find(x => String(x.id) === String(card.id)); if (t) html = fillPreviewHtml('saved', { t }); }
+    else if (card.kind === 'company'){ const t = (((typeof tplLibAll === 'function') ? tplLibAll() : { list:[] }).list || []).find(x => String(x.id) === String(card.id)); if (t) html = fillPreviewHtml('saved', { t }); }
+  } catch (_){ html = ''; }
+  return html ? `<div class="tpl-pf-sheet doc-surface hati-doc">${html}</div>`
+    : `<p class="tpl-empty tpl-pf-none">${_tplEsc(i18t(card.kind === 'sample' ? 'lib_pf_sample' : 'lib_pf_no_paper'))}</p>`;
+}
+function tplPfHtml(d){
+  const groups = tplPfGroups(d), card = tplPfChosen(d);
+  const shelfWord = k => tplOvBucketLabel({ key:k, sec:'library' });
+  const idx = groups.map(g => `<div class="tpl-pf-g">${_tplEsc(shelfWord(g.k))} · ${g.cards.length}</div>${g.cards.map(c => {
+      const sub = [c.mono ? '' : (c.version || ''), c.used != null ? i18t('lib_pf_used_short', { n: c.used }) : '', c.stream && FOLDERS[c.stream] ? tplShortStream(FOLDERS[c.stream].name) : ''].filter(Boolean).join(' · ');
+      const badge = c.draft ? `<span class="tpl-pf-b">${_tplEsc(i18t('lib_draft_tag'))}</span>` : c.off ? `<span class="tpl-pf-b is-amber">${_tplEsc(i18tn('lib_pf_changed', c.off, { n: c.off }))}</span>` : '';
+      return `<button type="button" class="tpl-pf-i${card && tplPfKey(c) === tplPfKey(card) ? ' is-on' : ''}" data-tpl-pf="${_tplEsc(tplPfKey(c))}" aria-pressed="${card && tplPfKey(c) === tplPfKey(card) ? 'true' : 'false'}"><span class="tpl-pf-t"><b>${_tplEsc(c.name)}</b><span>${_tplEsc(sub)}</span></span>${badge}</button>`; }).join('')}`).join('');
+  let paper = `<p class="tpl-empty">${_tplEsc(i18t('lib_nothing_matches'))}</p>`;
+  if (card){
+    const row = { kind:card.kind, id:card.id, i:card.i, name:card.name, draft:card.draft, imported:card.imported };
+    let acts = []; try { acts = (tplPanelActs(row).acts || []).filter(a => a.k !== 'more'); } catch (_){ acts = []; }
+    _tplPf.acts = acts;
+    const facts = [shelfWord(card.kind), card.stream && FOLDERS[card.stream] ? tplShortStream(FOLDERS[card.stream].name) : '',
+      card.used != null ? i18tn('lib_pf_used', card.used, { n: card.used }) : '', card.scanned ? i18tn('lib_pf_came_back', card.off, { n: card.off }) : ''].filter(Boolean).join(' · ');
+    paper = `<header class="tpl-pf-h"><div class="tpl-pf-hl"><h2>${_tplEsc(card.name)}${!card.mono && card.version ? ` <span class="tpl-pf-v">${_tplEsc(card.version)}</span>` : ''}</h2><p>${_tplEsc(facts)}</p></div>
+        <div class="tpl-pf-acts">${acts.map((a, i) => `<button type="button" class="ui-btn${a.kind === 'accent' ? ' ui-btn-primary' : ''}" data-tpl-pf-act="${i}">${_tplEsc(a.label)}</button>`).join('')}</div></header>
+      <div class="tpl-pf-scroll">${tplPfPaperHtml(card)}</div>`;
+  }
+  return `<div class="tpl-book tpl-pf">
+    <aside class="tpl-pf-idx"><label class="tpl-pf-find">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input type="search" data-tpl-pf-q value="${_tplEsc(_tplPf.q)}" placeholder="${_tplEsc(i18t('lib_pf_find'))}" aria-label="${_tplEsc(i18t('lib_pf_find'))}"></label><div class="tpl-pf-list">${idx}</div></aside>
+    <section class="tpl-pf-paper">${paper}</section>
+  </div>`;
+}
 function tplBookHtml(d){
+  return tplPfHtml(d);
+}
+/* the shelves' summary the book drew before round 21: kept, unused by the page */
+function tplBookShelvesHtml(d){
   const cut = _tplBookCut === 'stream' ? 'stream' : 'library';
   /* the four shelves (the "All templates" roll-up is the head's own figure) */
   /* the drawing's order: our own paper, HaTi's, the samples, then theirs */
@@ -2635,6 +2693,12 @@ function tplBookRepaint(){
    Shelves | Value streams and repaints the book alone. */
 function tplBookWire(host){
   if(!host) return;
+  /* PAPER FIRST (round 21): an index row chooses; the find box narrows the
+     index (the caret kept); the chosen template's doors are its own verbs */
+  host.querySelectorAll('[data-tpl-pf]').forEach(b=>b.addEventListener('click',()=>{ _tplPf.pick=b.getAttribute('data-tpl-pf'); tplBookRepaint(); }));
+  host.querySelectorAll('[data-tpl-pf-act]').forEach(b=>b.addEventListener('click',()=>{ const a=(_tplPf.acts||[])[Number(b.getAttribute('data-tpl-pf-act'))]; if(a&&a.run) a.run(); }));
+  const q=host.querySelector('[data-tpl-pf-q]');
+  if(q) q.addEventListener('input',()=>{ _tplPf.q=q.value; const at=q.selectionStart; tplBookRepaint(); const n=document.querySelector('[data-tpl-pf-q]'); if(n){ n.focus(); try{ n.setSelectionRange(at,at); }catch(_){ } } });
   host.querySelectorAll('[data-tpl-book-cut]').forEach(b=>b.addEventListener('click',()=>{
     _tplBookCut=b.getAttribute('data-tpl-book-cut'); tplBookRepaint(); }));
   host.querySelectorAll('tr[data-tpl-ov-bucket]').forEach(tr=>{
@@ -3922,4 +3986,4 @@ function sdWire(d, mayEdit){
 Object.assign(window,{sdSettledHtml,sdLearnApply,sdLearnProposal,sdLearnChartHtml,sdLearnNewText,sdPanelClauseId,tplPlace,tplPlacePut,pbInsMounted,pbPaintHead,sdData,sdHeads,sdFirm,sdLimitWords,sdLegalLine,sdClausePanelOpts,sdBookPanelOpts,sdDevPanelOpts,sdDevRows,sdDevFilters,SD_DEV_DEF,SD_DEV_CHIPS,SD_WHERE_MAX,sdPaintSection,sdGoTab,sdGoBook,sdGoClause,sdGoDev,sdCheckAgain,sdOpenDraftCompare,
   tplOvFit,HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,_tplSourceLabel,_richSelection,_richReplaceRange,
   templateVersionNo,templateVersions,templateUsage,templateUsageLabel,saveTemplateVersion,
-  PAPER_TABS,paperTabsHtml,paperTabsWire,openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,tplBuiltinKey,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplBookHtml,tplBookRepaint,tplBookWire,tplBookGlanceHtml,TPL_BOOK_SECS,tplOvCardHtml,tplOvPanelsHtml,tplOvRateInk,bucketStreamName,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,tplListIns,tplInsPaint,tplPanelOpts,tplPanelActs,tplReadOf,tplListHeadHtml,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});
+  PAPER_TABS,paperTabsHtml,paperTabsWire,openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,tplBuiltinKey,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplBookHtml,tplBookShelvesHtml,tplPfHtml,tplPfGroups,tplPfChosen,tplPfPaperHtml,TPL_PF_SHELVES,_tplPf,tplBookRepaint,tplBookWire,tplBookGlanceHtml,TPL_BOOK_SECS,tplOvCardHtml,tplOvPanelsHtml,tplOvRateInk,bucketStreamName,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,tplListIns,tplInsPaint,tplPanelOpts,tplPanelActs,tplReadOf,tplListHeadHtml,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});
