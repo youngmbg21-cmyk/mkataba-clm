@@ -523,15 +523,19 @@ describe('f307 (6) — the Word file is what the sender chose', () => {
     const { win } = buildWorld();
     const m = await openShare(await negotiated(win));
     const title = () => m.$('#share-lead-title').textContent.replace(/\s+/g, ' ').trim();
-    assert.equal(title(), 'Send round 1 to Nordfrakt Logistik AB', 'the contract: the round');
+    /* RE-POINTED 18 Oct 2026 (round 11's gaps, "The letter" as drawn: "Send
+       round 2 to Nordvik Logistik AB · MK-0382"): the head names the contract's
+       reference after whom it goes to */
+    const ref = 'MK-307';
+    assert.equal(title(), 'Send round 1 to Nordfrakt Logistik AB · ' + ref, 'the contract: the round');
     m.$('#share-other').click();
     m.$('[data-share-kind="history"]').click();
     m.$('#share-kind-next').click();
-    assert.equal(title(), 'Send the negotiation history to Nordfrakt Logistik AB', 'the record: the history');
+    assert.equal(title(), 'Send the negotiation history to Nordfrakt Logistik AB · ' + ref, 'the record: the history');
     m.$('#share-other').click();
     m.$('[data-share-kind="contract"]').click();
     m.$('#share-kind-next').click();
-    assert.equal(title(), 'Send round 1 to Nordfrakt Logistik AB', 'and back');
+    assert.equal(title(), 'Send round 1 to Nordfrakt Logistik AB · ' + ref, 'and back');
     assert.equal((I18N.match(/co_send_history_to:/g) || []).length, 2, 'both books');
     assert.match(CORE, /function shareLeadTitle\(c, s, purposeSel\)/, 'one reading for the builder and the switch');
   });

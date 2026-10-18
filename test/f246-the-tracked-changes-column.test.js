@@ -110,9 +110,22 @@ describe('f246 (1) — the column names itself, and the name carries the total',
     const i = NEG_CODE.indexOf('ng_redlines_head_n');
     assert.ok(i > -1, 'the heading is still built here');
     const line = NEG_CODE.slice(i - 200, i + 200);
-    assert.match(line, /changeTotal/, 'it prints the figure the rest of the head prints');
+    /* RE-POINTED 18 Oct 2026 (round 9's gaps, "Piles" as drawn: "Redlines 4"
+       over two waiting, one suggested, one draft, with six settled folded
+       away): the head prints the rows IN SIGHT, `openTotal`, and that figure
+       is borrowed too — rlOpenCardCount files the cards' own list
+       (redlineCardIds) by the bands' own reading (rlCardBand) and counts what
+       stands outside the settled fold. The claim is unchanged: no second
+       arithmetic beside the heading. */
+    assert.match(line, /openTotal/, 'it prints the figure the piles print');
     assert.doesNotMatch(line, /\.filter\(|\.length\s*\)/,
       'and works nothing out for itself');
+    const j = NEG_CODE.indexOf('function rlOpenCardCount');
+    assert.ok(j > -1, 'the rows in sight are one reading');
+    const body = NEG_CODE.slice(j, NEG_CODE.indexOf('\n}', j));
+    assert.match(body, /redlineCardIds\(/, 'over the cards\' own list');
+    assert.match(body, /rlCardBand\(/, 'filed by the bands\' own reading');
+    assert.match(body, /RL_QUIET_BANDS/, 'leaving out what the fold keeps');
   });
 
   /* ---- AND IT SAYS ONE NUMBER (owner-asked 27 Aug 2026: "do not add another
@@ -296,7 +309,10 @@ describe('f246 (3) — the bands', () => {
       'there is no fifth pile — a change is pending, accepted, refused or withdrawn');
     /* NINE since 28 Sep 2026 (Mirror): their seat's held answers are a pile of
        their own, `answered`, straight under what awaits them. */
-    assert.equal(RL_CARD_BANDS.length, 9, 'nine readings, four of them outcomes');
+    /* TEN since 18 Oct 2026 (round 9's gaps, "Piles" as drawn): a
+       contributor's suggestion is a pile of its own, `suggest`, on our seat. */
+    assert.equal(RL_CARD_BANDS.length, 10, 'ten readings, four of them outcomes');
+    assert.ok(RL_CARD_BANDS.includes('suggest'), 'a colleague\'s suggestion has its own pile');
     assert.equal(RL_CARD_BANDS[2], 'answered');
   });
 
@@ -503,8 +519,13 @@ describe('f246 (4) — the card is a meta line, a summary and an action row', ()
        is, and the summary the funnel wrote — quoted, never composed. */
     const sum = card.querySelector('.rl-card-sum');
     assert.ok(sum, 'a second line');
-    assert.ok(sum.classList.contains('rl-card-track') || sum.textContent.includes(ch.summary),
-      'the track, or the rung sentence carrying the change\'s own summary');
+    /* RE-POINTED 18 Oct 2026 (round 9's gaps, "Piles" as drawn): where the
+       change carries its stored ops the line is THE CHANGED WORDS cut around
+       the edit ("… capped at 50% 100% of the fees"), and the argument line it
+       replaces rides its hover — still the funnel's own summary, quoted. */
+    assert.ok(sum.classList.contains('rl-card-track') || sum.textContent.includes(ch.summary)
+      || (sum.classList.contains('rl-card-ex') && String(sum.getAttribute('title') || '').includes(ch.summary)),
+      'the track, the rung sentence carrying the change\'s own summary, or the changed words with it on the hover');
   });
 
   /* ---- REVERSED IN PLACE (owner-asked 26 Aug 2026) ----
@@ -1641,8 +1662,14 @@ describe('f246 (12) — every verb on the face carries the shell\'s own mark', (
     assert.ok(i > -1, 'one injection, not a copy at each verb');
     /* ONE CALLER, and it is the face itself, so a verb added tomorrow is
        dressed by the same rule rather than by whoever remembers. */
-    assert.equal((NEG_CODE.match(/rlFaceMark/g) || []).length, 2,
-      'rlFaceMark is defined once and called once');
+    /* RE-POINTED 18 Oct 2026 (round 9's gaps, "Piles" as drawn): a second
+       caller, the suggestion row's own face (Adopt · Hand back · Ladder,
+       rlSuggestFaceHtml), dressed by the SAME table — the claim (one table,
+       one injection) stands; the count moves by that one caller. */
+    assert.equal((NEG_CODE.match(/rlFaceMark/g) || []).length, 3,
+      'rlFaceMark is defined once and called by the face and the suggestion row');
+    assert.match(NEG_CODE, /function rlSuggestFaceHtml[\s\S]{0,1200}?\.map\(rlFaceMark\)/,
+      'the second caller is the suggestion row');
     assert.match(NEG_CODE, /out\.filter\(Boolean\)\.map\(rlFaceMark\)/,
       'and the caller is the face, after the ordering, so every kept verb goes through it');
   });

@@ -136,21 +136,31 @@ describe('f705 (3) the way back to Jambo on every face', () => {
     const h = ctx.pdBackHtml('red');
     assert.match(h, /class="pd-back" data-pd-back="red" title="pd_back_jambo" aria-label="pd_back_jambo"/);
     assert.match(h, /#i-left[\s\S]*pd_tab_copilot<\/button>$/, '‹ and his name');
-    assert.deepEqual(Object.keys(ctx.PD_BACK_CLOSE).sort(), ['amend', 'fill', 'red', 'signing']);
-    assert.deepEqual(Object.keys(ctx.PD_BACK_CLOSE).sort(), [...ctx.PD_FACE_WORDS].sort(), 'every face has its way back');
+    /* RE-POINTED 18 Oct 2026 (round 11's gaps, "The letter" as drawn): the
+       send screen is a face of the panel too ("Before you send"), and its way
+       back is the screen's own Cancel, asked through its guard. */
+    assert.deepEqual(Object.keys(ctx.PD_BACK_CLOSE).sort(), ['amend', 'fill', 'red', 'send', 'signing']);
+    for (const f of ctx.PD_FACE_WORDS) assert.ok(Object.keys(ctx.PD_BACK_CLOSE).includes(f), 'every face has its way back: ' + f);
     const map = PD.slice(PD.indexOf('const PD_BACK_CLOSE'), PD.indexOf('function pdBackHtml'));
     for (const [k, fn] of [['fill', 'pdFillClose'], ['red', 'pdRedClose'], ['signing', 'pdSignClose'], ['amend', 'pdAmendClose']])
       assert.match(map, new RegExp(k + ': \\(\\) => ' + fn + '\\(\\)'), k + ' closes through ' + fn);
+    assert.match(map, /send: \(\) => \{[^}]*closeModalGuarded\(\)/, 'send closes through the screen\'s own guarded close');
     const wiring = PD.slice(PD.indexOf('document._pdJamboTopWired = true'), PD.indexOf('JAMBO, ALIVE'));
     assert.match(wiring, /closest\('\[data-pd-back\]'\)[\s\S]*PD_BACK_CLOSE\[back\.getAttribute\('data-pd-back'\)\]/);
   });
-  test('3b each head opens with it, its × kept at the end', () => {
+  /* RE-POINTED 18 Oct 2026 (the gaps of rounds 8–11 as drawn: the panel's
+     row while a face is up reads Jambo's tab, the face's word, "‹ Jambo" at
+     its end — and no ×): ‹ Jambo moved from each face's head into the panel's
+     own row (pdFaceBackHtml, drawn by renderIntelDock's head), ONE builder for
+     every face; the faces' heads draw neither it nor ×. */
+  test('3b the panel\'s row carries it for every face; the faces\' heads draw neither it nor ×', () => {
     for (const [fn, face, x] of [['pdFillHeadHtml', 'fill', 'data-pd-ff-close'], ['pdSignHeadHtml', 'signing', 'data-pd-sf-close'], ['pdAmendHeadHtml', 'amend', 'data-pd-am-close']]){
       const b = fnBody(PD, fn);
-      const i = b.indexOf(`pdBackHtml('${face}')`), t = b.indexOf('<h3>'), k = b.indexOf(x);
-      assert.ok(i > 0 && i < t && t < k, fn + ': ‹ Jambo, the title, then ×');
+      assert.ok(b.indexOf(`pdBackHtml('${face}')`) < 0 && b.indexOf(x) < 0 && b.indexOf('<h3>') > 0, fn + ': the title alone');
     }
-    assert.match(fnBody(PD, 'pdRedOpts'), /headStart: pdBackHtml\('red'\), headEnd: pdRedHeadEndHtml\(c\)/);
+    assert.doesNotMatch(fnBody(PD, 'pdRedOpts'), /headStart|headEnd/, 'the Redlines face passes no ‹ Jambo and no ×');
+    assert.match(fnBody(PD, 'pdFaceBackHtml'), /pdBackHtml\(f\)/, 'one builder for whichever face is up');
+    assert.match(IG.slice(IG.indexOf('function renderIntelDock(')), /pdFaceBackHtml\(\)/, 'drawn in the panel\'s own row');
     const head = NG.slice(NG.indexOf('<div class="rl-idx-top">'), NG.indexOf("${opts.headEnd || ''}"));
     assert.ok(head.indexOf("${opts.headStart || ''}") > 0 && head.indexOf("${opts.headStart || ''}") < head.indexOf('<span class="rl-idx-title">'),
       'the column\'s head takes the host\'s start before its name; the Negotiate page passes none');

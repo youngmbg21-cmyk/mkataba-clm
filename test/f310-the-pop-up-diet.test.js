@@ -95,7 +95,10 @@ describe('f310 (1) — the send pop-up is laid out as the owner drew it', () => 
     assert.equal(boxes.length, 1, 'two boxes for one sentence were one too many');
     assert.equal(boxes[0].id, 'sh-summary');
     assert.ok(!m.$('#sh-msg'), 'the "Personal message" box is gone');
-    assert.match(m.$('#sh-summary-label').textContent, /^Note to Nordfrakt Logistik AB \(optional\)$/);
+    /* RE-POINTED 18 Oct 2026 (round 11's gaps, "The letter" as drawn): the one
+       box sits in the email where the note goes, under the drawing's own label
+       on its dashed edge. Still one box, still the one the send reads. */
+    assert.match(m.$('#sh-summary-label').textContent, /^Your note · type here$/);
     const send = strip(CORE.slice(CORE.indexOf('async function openShareModal')));
     assert.match(send, /fval\('sh-summary'\)/, 'the send still reads the one box');
   });

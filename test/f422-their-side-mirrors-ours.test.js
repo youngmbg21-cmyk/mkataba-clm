@@ -102,7 +102,10 @@ test('f422 (3) their column draws our flat row in our piles, with no Open', asyn
   const col2 = win.document.getElementById('rl-changes-col');
   assert.ok(col2.querySelector('[data-rl-band="answered"]'), 'a held answer has its own pile');
   const NEG = R('js/views/negotiation.js');
-  assert.match(NEG, /const RL_CARD_BANDS = \['refused', 'awaiting', 'answered', 'drafts'/);
+  /* RE-POINTED 18 Oct 2026 (round 9's gaps, "Piles" as drawn): a
+     colleague's suggestion is a pile of our seat's own, between their answers
+     and our drafts; their seat never draws it */
+  assert.match(NEG, /const RL_CARD_BANDS = \['refused', 'awaiting', 'answered', 'suggest', 'drafts'/);
   assert.match(NEG, /i18t\(side === 'counterparty' \? 'ng_band_with_named' : 'ng_band_with', \{ who: otherSide \}\)/);
   assert.match(NEG, /return \{ c, side, previewSeat, unsent, banded: true \};/);
 });

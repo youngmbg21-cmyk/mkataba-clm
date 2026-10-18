@@ -6459,7 +6459,6 @@ function redlineLayoutCss(){
     color:var(--color-text);font-size:var(--t-meta);line-height:1.5}
   .redline-page .rl-card-ex del{color:var(--st-ruby-fg);text-decoration:line-through}
   .redline-page .rl-card-ex ins{color:var(--accent-ink);text-decoration:underline;text-underline-offset:2px}
-  .redline-page .rl-card-ex del + ins{margin-left:.3em}
   .redline-page .rl-card-ex .rl-card-ex-tag{color:var(--color-neutral-600);font-size:var(--t-label)}
   .redline-page .rl-card-d.rl-card-quiet .rl-card-sum.rl-card-ex{color:var(--color-neutral-500)}
   .redline-page .rl-card-lock{display:flex;align-items:center;gap:6px;margin-top:6px;padding:5px 8px;border-radius:var(--radius);

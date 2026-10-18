@@ -19404,8 +19404,9 @@ function redlineChangeCardsHtml(c, opts = {}){
          loses nothing by moving up one place; Discard beside Send is the
          mistake that cannot be taken back. */
       out.push(relabel(door, i18t('act_edit')), take(/data-rl-send=/));
-      /* "Discard last", as drawn (round 9's gaps, 18 Oct 2026): the latest unsent wording goes */
-      discard = relabel(take(/data-rl-retract=/), i18t('ng_discard_last'));
+      /* "Discard last", as drawn (round 9's gaps, 18 Oct 2026): the latest
+         unsent wording goes. The drawing is our seat's; their page keeps its word. */
+      discard = relabel(take(/data-rl-retract=/), i18t(side === 'counterparty' ? 'ng_discard' : 'ng_discard_last'));
       /* THE REVIEW ASK STAYS ON THE FACE (reversed the same day, 21 Sep 2026).
          It was taken off here for the artifact's four-verb row, and that was
          this pass's own reading, not the owner's word: the artifact has no
@@ -21757,7 +21758,10 @@ function rlRowExcerptHtml(ch){
   let mid = '';
   for (let i = first; i <= last; i++){
     const o = ops[i];
-    mid += o.op === 'del' ? `<del>${_ne(o.text)}</del>` : o.op === 'ins' ? `<ins>${_ne(o.text)}</ins>` : _rlExMid(o.text);
+    /* a struck run met by its replacement reads "50% 100%": a real space
+       between the two, so a copy and a screen reader say two words */
+    const gap = o.op === 'ins' && i > first && ops[i - 1].op === 'del' && !/\s$/.test(ops[i - 1].text) && !/^\s/.test(o.text) ? ' ' : '';
+    mid += o.op === 'del' ? `<del>${_ne(o.text)}</del>` : o.op === 'ins' ? `${gap}<ins>${_ne(o.text)}</ins>` : _rlExMid(o.text);
   }
   return `<div class="rl-card-ex">${head.cut ? '… ' : ''}${_ne(head.s.replace(/^\s+/, ''))}${mid}${_ne(tail.s.replace(/\s+$/, ''))}${tail.cut ? ' …' : ''}</div>`;
 }

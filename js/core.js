@@ -7464,7 +7464,9 @@ function shareBesideJambo(){
   if(window.innerWidth<1024) return false;
   if(typeof window.hbFace==='function' && window.hbFace()==='calendar') return false;
   const dock=document.getElementById('ig-dock');
-  return !!(dock && dock.getClientRects().length && typeof window.pdSendOpen==='function');
+  /* drawn on the desk: a box the browser lays out (a stand-in without one is not) */
+  let shown=false; try{ shown=!!(dock && typeof dock.getClientRects==='function' && dock.getClientRects().length); }catch(_){ shown=false; }
+  return shown && typeof window.pdSendOpen==='function';
 }
 function shareLetterPagePlace(){
   const root=document.getElementById('modal-root'); const panel=root&&root.querySelector('.modal-in[data-sh-page]'); if(!panel) return;
