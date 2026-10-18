@@ -7582,8 +7582,6 @@ function igWallCountWords(rows,o){
   const words=i18t('igw_count',{k:list.filter(lead).length,n:base.filter(lead).length});
   return amends?words+' \u00b7 '+i18tn('int_dep_amend',amends,{n:amends}):words;
 }
-/* the count line (with the tools the place hands it: the list's own Sort)
-   over the papers */
 /* ---- TWELVE AT A TIME, THE REST ONE PRESS AWAY (round 13 as drawn,
    the owner's "build all the gaps", 18 Oct 2026) ----
    The wall draws its papers twelve at a time — two rows on each of the
@@ -7597,7 +7595,7 @@ let _igWallMore=0, _igWallKey=null;
 /* the narrowing the wall was last drawn for: a new one starts at twelve again */
 function igWallKeyOf(){
   const R=(window.state&&state.reg)||{};
-  try{ return JSON.stringify([R.query,R.stage,R.type,R.category,R.signed,R.payterms,R.docs,R.view,R.only,R.sort,R.dir,R.folder]); }catch(_){ return ''; }
+  try{ return JSON.stringify([R.query,R.stage,R.type,R.category,R.signed,R.payterms,R.docs,R.view,R.only,R.sort,R.dir]); }catch(_){ return ''; }
 }
 function igWallShownN(total){ return Math.min(Math.max(0,Number(total)||0),IG_WALL_STEP*(1+_igWallMore)); }
 function igWallMoreReset(){ _igWallMore=0; }
@@ -7613,6 +7611,8 @@ function igWallOrderWords(){
   const s=(typeof REG_SORTS!=='undefined'&&Array.isArray(REG_SORTS))?REG_SORTS.find(x=>x.k===k):null;
   return s?String(s.label||''):'';
 }
+/* the count line (with the tools the place hands it: the list's own Sort)
+   over the papers */
 function igWallBodyHtml(rows,o){
   _igWallNeed=null;
   const opts=o||{}, list=Array.isArray(rows)?rows:[], need=igWallNeed();
