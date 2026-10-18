@@ -30700,3 +30700,36 @@ The owner picked "The SAP way" by name in the round 26 artifact (the drawing rec
 - **DATA & BACKUP IS A PAGE.** Every door that named the drawer — the Housekeeping card, The trail door, the Menu, Jambo, ⌘K, Needs you — lands on `settingsGoPage('data')` on the tab it asked for (`stDrawerOpen`: `trail` → the trail tab, `backup` → the Backup tab); `SET_PANELS.backup.page='data'` marks it, and its drawer body stays for anything that paints the panel by name. Tabs The trail · Backup at the head's right. The trail's asks are labelled boxes in one row (From, To, Streams, As — a choice, `#st-tr-as-sel`, where the drawer had two radios) with Download and the count under them; the downloads a table under that (`stTrailBandHtml`, the drawer's own ids and wiring, `stBkPaneHtml` choosing band or stack). The drawer's lead sentence ("Every act in HaTi for a period…") is not on the page: the page's name and its boxes say it.
 - **KEPT, AND WHY.** The drawing's Downloads table had an Acts column; the server does not keep a download's count, so the column is left out rather than guessed.
 - Tests: f727, streams-and-data-verify (red at the parent). Re-pointed: f193 (the drawer reuse test opens Approvals), settings-tabs (the drawer walk leaves out a panel whose door is a page, and checks that one lands on its page), trail-export (the page's tabs and band).
+
+
+## IMPORT: JAMBO'S PANEL BESIDE THE LIST (18 Oct 2026)
+
+The owner picked "The SAP way" for Import in round 22 of the redesign. The
+overnight build made the figures doors and the drop area a strip, but left out
+the panel the drawing showed beside the list, and said so in the morning
+summary ("there's no Jambo panel"). The owner's answer, 18 Oct 2026: "you need
+a jambo side panel so the uploads needs fixing".
+
+What was built (js/views/migration.js):
+- `#mig-side`, beside the list on a computer (the list and the panel in two
+  columns; under 1180 px wide the panel follows the list). Sticky in the page's
+  own scroller; nothing filed, per sitting like the figures.
+- With no file chosen, Jambo says the batch in words from the figures' own
+  counts (`migKpis`): how many came in, what needs you (to check, no readable
+  text, link decisions), the onboarding allowance used, and a chip that is the
+  figure's own door (narrows the list to the files to check, `migShowSet`).
+- A row press now CHOOSES the file (`migPickSet`, the list inspector's rule: a
+  press selects; pressed again it is let go). The row's Open, a double-click
+  and Enter on a chosen row still open the contract.
+- The chosen file: its facts are the review window's (MIG_CRITICAL, labelled
+  by META_FIELDS), amber where missing or read with low confidence — the same
+  reading migReadNeedsReview makes; a contract that passes no money is not
+  missing its value; evergreen is an answer. The marks (`migGates`), which the
+  dots only named on a hover, are said in words. Its doors are the row's own:
+  Review (openMigReview), Link (openLinkModal), Open.
+- Not built: the ask box at the panel's foot in the drawing — Jambo's one door
+  stays in the top bar, so the page has no second ask box. The import queue and
+  the migrated list stay two cards.
+
+Tests: f728-import-jambo-panel (red at main), import-jambo-panel-verify (red at
+main: every check fails, the run stops at a row press that opened the contract).
