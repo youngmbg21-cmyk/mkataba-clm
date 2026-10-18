@@ -872,7 +872,8 @@ const GRAPH_GROUP_KEYS=GRAPH_GROUPINGS.map(g=>g.k);
    shades by a fact: the Grid's cells now, the Brain's lobes next. Each is a
    bucket groupLabelOf already cuts, never a second reading; a fact with no
    bucket here is shaded in the map's own teal and judged nothing. Payment
-   terms wait for a supplier payment standard (stage 2). */
+   terms wait for a payment standard on each side — when we are paid and when
+   we pay (stage 2); Our standards holds only the first today. */
 const IG_ATTN={ liability:['Liability uncapped'], read:['Not read yet'], risk:['High risk'], expiry:['Within 30 days','31–90 days'], obligations:['3 or more open'] };
 const igAttn=(key,label)=>!!(key&&IG_ATTN[key]&&IG_ATTN[key].includes(label));
 const graphGroupingOf=k=>GRAPH_GROUPINGS.find(g=>g.k===k)||null;
