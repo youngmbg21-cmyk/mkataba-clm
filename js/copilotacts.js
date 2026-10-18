@@ -1566,6 +1566,15 @@ function caHandHome(t, a){
 }
 function caAskAnywhere(text, opts = {}){
   const t = String(text || '').trim(); if (!t) return false;
+  /* A REQUEST TO BOOK OR FIND TIME, OR A QUESTION ABOUT ONE'S OWN CALENDAR
+     (owner, 18 Oct 2026: "fix all four"), is the Calendar's Jambo's from every
+     box — the one Jambo who reads a person's events and plans time (igBookAsk
+     → calHandOff). Answers 'cal' so a box can say so in its own words; the
+     Calendar's own box (opts.cal) plans it itself. */
+  if (!opts.cal && typeof igBookAsk === 'function' && typeof calHandOff === 'function'){
+    let b = false; try { b = igBookAsk(t); } catch (_){ b = false; }
+    if (b && calHandOff(t)) return 'cal';
+  }
   /* on Home his own box is the reader already */
   if (typeof document !== 'undefined' && document.getElementById('igd-input') && typeof intelAsk === 'function'
     && typeof state !== 'undefined' && state && state.view === 'dashboard'){ if (!opts.all && !caReadPlace(t) && !caTakesWords(t)) return false; intelAsk(t); return true; }
