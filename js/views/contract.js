@@ -8655,6 +8655,23 @@ function histWhen(at, now){
   }
   return { day, time };
 }
+/* ---- TWO SIDES (round 12 of the redesign: the owner picked "Two sides" by
+   name, 17 Oct 2026) ----
+   History reads as the negotiation's conversation: our steps in the left
+   lane, theirs in the right, the days down the middle. Which lane is the
+   event's own side (the negotiation's `side`); a trail entry with no side
+   is ours where one of our own people wrote it (_histOurPeople, the "Ours"
+   reading's own rule); what only we can see — who opened it, who was named
+   on its stream — and an entry nobody can place sit on the middle line.
+   A reading of the row only: nothing is filtered, moved or counted by it. */
+function histLaneOf(e, ours){
+  if(!e) return 'mid';
+  if(e._k==='opened'||e._k==='access') return 'mid';
+  if(e.side==='owner') return 'ours';
+  if(e.side==='counterparty') return 'theirs';
+  const who=String(e.actor||'').trim().toLowerCase();
+  return (who && ours && ours.has(who)) ? 'ours' : 'mid';
+}
 function roomHistoryHtml(c,f={},opts={}){
   /* ---- NEWEST FIRST (Young ruled 24 Sep 2026: "The way the history is
      chronicled") ----
@@ -8743,14 +8760,25 @@ function roomHistoryHtml(c,f={},opts={}){
     const dot=e._k==='opened'
       ? `<span class="hist-dot is-eye" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span>`
       : `<span class="hist-dot" style="border-color:${histTone(e)}" title="${esc(m.mark)}" aria-hidden="true"></span>`;
-    return `<div class="hist-ev${e._k==='opened'?' is-open':''}" data-hist-at="${esc(e.at||'')}">
-      <span class="hist-when">${w.time?`<span class="hist-time">${esc(w.time)}</span>`:`<span class="hist-day">${esc(w.day)}</span>`}</span>
-      ${dot}
+    /* TWO SIDES (round 12): the same parts in a bubble in its side's lane —
+       the time, the ring, who and the outcome on its top line, the event and
+       its wording under it — or, on the middle line, one quiet pill. */
+    const lane=histLaneOf(e, ours);
+    const when=`<span class="hist-when">${w.time?`<span class="hist-time">${esc(w.time)}</span>`:`<span class="hist-day">${esc(w.day)}</span>`}</span>`;
+    const whoH=`<span class="hist-who">${e.actor?`${av}<span>${esc(e.actor)}</span>`:''}</span>`;
+    const ocH=`<span class="hist-oc">${oc?`<span class="hist-pill is-${oc.t}">${esc(oc.w)}</span>`:''}</span>`;
+    const inside=e._k==='opened'||e._k==='access';
+    if(lane==='mid') return `<div class="hist-ev is-mid${inside?' is-inside':''}${e._k==='opened'?' is-open':''}" data-hist-at="${esc(e.at||'')}" data-hist-lane="mid">
+      <span class="hist-inside">${when}${dot}${whoH}<span class="hist-body"><span class="hist-text">${esc(e.text||'')}${rchip}${cl}</span></span>${ocH}</span>${body?`<div class="hist-mid-more">${body}</div>`:''}</div>`;
+    return `<div class="hist-ev is-${lane}${e._k==='opened'?' is-open':''}" data-hist-at="${esc(e.at||'')}" data-hist-lane="${lane}">
+      <div class="hist-bub"><div class="hist-top">${when}${dot}${whoH}${ocH}</div>
       <div class="hist-body"><div class="hist-text">${esc(e.text||'')}${rchip}${cl}</div>
-      ${also?`<div class="hist-meta">${also}</div>`:''}${body}${why}${reply}</div>
-      <span class="hist-who">${e.actor?`${av}<span>${esc(e.actor)}</span>`:''}</span>
-      <span class="hist-oc">${oc?`<span class="hist-pill is-${oc.t}">${esc(oc.w)}</span>`:''}</span></div>`;
+      ${also?`<div class="hist-meta">${also}</div>`:''}${body}${why}${reply}</div></div></div>`;
   };
+  const ours=_histOurPeople();
+  /* the lanes' heads: our party, the days, theirs */
+  const usName=(typeof contractParty==='function'?contractParty(c):'')||FIRST_PARTY||'';
+  const lanesHead=`<div class="hist-lh is-l"><i aria-hidden="true"></i>${esc(i18t('ct_hist_lane_ours',{ who:usName }))}</div><div class="hist-lh is-m">${esc(i18t('ct_hist_lane_day'))}</div><div class="hist-lh is-r"><i aria-hidden="true"></i>${esc(i18t('ct_hist_lane_theirs',{ who:c.counterparty||i18t('co_them') }))}</div>`;
   /* THE DAY IS A HEADING OVER ITS ENTRIES, with its count (as drawn). */
   const dayKey=e=>String(e.at||'').slice(0,10);
   const dayLabel=e=>{ const d=new Date(e.at); if(isNaN(d)) return dayKey(e)||'\u2014';
@@ -8792,12 +8820,13 @@ function roomHistoryHtml(c,f={},opts={}){
      own: it is a fact about the list, not a status. */
   return `<div class="hist-head">
       <h6 style="margin:0;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading)">${esc(i18t('tab_history'))}</h6>
-      <span class="hist-cap">${esc(i18t('ct_hist_reading'))} · ${on?esc(i18t('ct_hist_n_of',{n:evs.length,all}))
+      <span class="hist-cap">${esc(i18t('ct_hist_reading'))} · ${esc(i18t('ct_hist_lanes_say'))} · ${on?esc(i18t('ct_hist_n_of',{n:evs.length,all}))
         :esc(i18tn('ct_hist_events',all,{n:all}))}${opensN?` · ${esc(i18tn('ct_hist_opens_n',opensN,{n:opensN}))}`:''}${cutN?` · ${esc(i18tn('ct_hist_opens_cut',cutN,{n:cutN}))}`:''}</span>
       <span style="flex:1;min-width:4px"></span>
       <label class="hist-q"><span class="sr-only">${esc(i18t('ct_hist_search'))}</span>${icon('search','w-3.5 h-3.5')}<input id="hist-q" type="search" value="${esc(_histQ)}" placeholder="${esc(i18t('ct_hist_search'))}" autocomplete="off"></label>
-      <div class="hist-side" role="group" aria-label="${esc(i18t('ct_hf_side'))}">${HIST_SIDES.map(([v,k])=>
-        `<button type="button" data-ht-side="${v}" aria-pressed="${String((f&&f.side)||'')===v}">${esc(i18t(k))}</button>`).join('')}</div>
+      ${''/* THE SIDE SWITCH IS GONE (round 12, "Two sides"): each side is its own
+             lane, so "whose step was it" is read by where it stands, not
+             filtered. HIST_SIDES and .hist-side are STALE. */}
       <button id="hist-filter-btn" class="ui-btn" aria-expanded="${(_histFiltersOpen||onF)?'true':'false'}" aria-controls="hist-filters">${icon('filter','w-3.5 h-3.5')}${esc(i18t('ct_hist_filter'))}${onF?` <span class="hist-fn">${onF}</span>`:''}${icon('chevD')}</button>
       ${''/* The long reading. Named for what pressing it does, not for the mode
              it is in — "Detailed" tells you nothing about which way you are
@@ -8817,6 +8846,12 @@ function roomHistoryHtml(c,f={},opts={}){
                  the strip's History page among them. */}
           ${`<button type="button" id="ht-export">${icon('download','w-3.5 h-3.5')}${i18t('ct_export_history')}<span class="mnote">${i18t('ct_standalone_file')}</span></button>
           <button type="button" id="ht-print">${icon('printer','w-3.5 h-3.5')}${esc(i18t('ct_hist_print'))}<span class="mnote">${i18t('ct_same_report_paper')}</span></button>`}
+          ${''/* THE WHOLE TRAIL, FOR ADMINS (round 12, the owner's "Yes"): every
+                 contract's record for a period, as a file — Settings → Data &
+                 backup → The trail, its one home. Beside this contract's own
+                 Export, so there is one place to take a record away. */}
+          ${histTrailDoorOn()?`<div class="hist-mg">${esc(i18t('ct_hist_trail_group'))}</div>
+          <button type="button" id="ht-trail">${icon('download','w-3.5 h-3.5')}${esc(i18t('ct_hist_trail_door'))}<span class="mnote">${esc(i18t('ct_hist_trail_note'))}</span></button>`:''}
         </div>
       </div>
     </div>
@@ -8827,13 +8862,17 @@ function roomHistoryHtml(c,f={},opts={}){
            and ends at the last's, and a filter that leaves one entry draws no
            line at all. The empty sentence stays outside it — there is nothing
            to join. */}
-    ${evs.length?`<div class="hist-trail">${grouped()}</div>`
+    ${evs.length?`<div class="hist-trail is-lanes">${lanesHead}${grouped()}</div>`
       :`<p class="hist-empty">${on?esc(i18t('ct_hist_none_match')):esc(i18t('ct_hist_none_yet'))}</p>`}`;
 }
-/* the four filters behind Filter, and the side switch's three positions
-   (the values are the record's own keys; only the words are translated) */
+/* the filters behind Filter (the values are the record's own keys; only the
+   words are translated). The side switch's HIST_SIDES went with the switch
+   (round 12, "Two sides": the side is the lane). */
 const HIST_FOLD_FILTERS=['clauseId','actor','round','outcome','opens'];
-const HIST_SIDES=[['','ct_hist_side_all'],['owner','ct_hf_ours'],['counterparty','ct_hf_theirs']];
+/* The whole trail is Settings' (stTrailOn): an admin, on a server. */
+function histTrailDoorOn(){
+  return typeof isAdmin==='function' && !!isAdmin() && typeof API_MODE==='function' && !!API_MODE();
+}
 function roomHistoryFiltersHtml(c,f){
   const all=window.negoTimeline?negoTimeline(c):[];
   const uniq=pairs=>Array.from(new Map(pairs.filter(x=>x&&String(x[0])).map(x=>[String(x[0]),x])).values());
@@ -8944,6 +8983,9 @@ function roomPaintHistory(c,f={},at){
      screen — a short list is not a record. The report already carries its own
      colours, its own legend and its verification result, and it already prints
      well because people file it. So: build it, hand it to the browser. */
+  host.querySelector('#ht-trail')?.addEventListener('click',()=>{
+    if(window.openSettingsAt) openSettingsAt('company','trail');
+  });
   host.querySelector('#ht-print')?.addEventListener('click',()=>{
     if(window.negoHistoryPrintRun) negoHistoryPrintRun(c);
     else toast(i18t('ct_printing_unavailable'),'err');

@@ -29,6 +29,10 @@
    variables actually repaints the platform. A token nothing reads is not a
    token, and no census of the DEFAULT theme would ever notice.
 
+   RE-RECORDED 18 Oct 2026 (third), OWNER-ASKED (the overnight build, same
+   standing yes): Round 12, "Two sides" — History's two lanes moved its own
+   counts, light and dark; audited as a set difference by key: only the
+   History screen moved, no value new to the record, nothing gone.
    RE-RECORDED 17 Oct 2026 (second), OWNER-ASKED (the overnight build: "Build
    and update record even on new ones"): Round 7, "Read down" — a contract
    brought up is a page of its own on the desk, so the History screen (a

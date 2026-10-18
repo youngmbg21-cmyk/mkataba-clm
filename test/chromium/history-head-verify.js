@@ -115,6 +115,7 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
         chips: host.querySelectorAll('.hist-seg, [data-ht-side]').length,
         sideSwitch: [...host.querySelectorAll('.hist-side [data-ht-side]')].map(b => b.getAttribute('data-ht-side') + '=' + b.textContent.trim()),
         sideSeen: seen(host.querySelector('.hist-side')),
+        lanes: [...host.querySelectorAll('.hist-trail.is-lanes > .hist-lh')].map(x => x.textContent.replace(/\\s+/g, ' ').trim()),
         lid: !!host.querySelector('#hist-filter'),
         btn: seen(host.querySelector('#hist-filter-btn')),
         btnExp: (host.querySelector('#hist-filter-btn') || {}).getAttribute
@@ -139,8 +140,11 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
        again as ONE switch — All sides · Ours · Theirs — and the Side box left
        the fold with it, so it is still one handle on one switch (the 13 Aug
        complaint was two). */
-    check('Side is ONE switch in the open (All sides · Ours · Theirs), on screen without a press',
-      head.chips === 3 && head.sideSwitch.length === 3 && !!(head.sideSeen && head.sideSeen.on), `${head.chips} found · ${head.sideSwitch.join(' · ')}`);
+    /* RE-POINTED AGAIN 17 Oct 2026 (round 12: the owner picked "Two sides"):
+       each side is its own lane, so whose step it was is read where it
+       stands; the switch is gone (reverses the 15 Oct switch in the open). */
+    check('no side switch: the side is the lane (Ours · Day · Theirs)',
+      head.chips === 0 && head.sideSwitch.length === 0 && head.lanes.length === 3, `${head.chips} switch buttons · lanes ${head.lanes.join(' | ')}`);
     check('the old Filter lid (#hist-filter) is gone', !head.lid, head.lid ? 'still there' : 'none');
     /* RE-POINTED 10 Oct 2026 — follows SAP batch 3 (e0e3035, 9 Oct 2026, owner:
        "Build exactly the drawings of SAP way"): the History tab draws a search
@@ -177,9 +181,9 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
     check('the row still names each filter', head.labels.length === 4, head.labels.join(' | '));
 
     /* ---- the Side control says Ours / Theirs, in the owner's chair ---- */
-    check('Side offers exactly All sides / Ours / Theirs — our own record, in plain words',
-      JSON.stringify(head.sideSwitch) === JSON.stringify(['=All sides', 'owner=Ours', 'counterparty=Theirs']),
-      head.sideSwitch.join(' · '));
+    check('the lanes say whose, in plain words: Ours · our party, Theirs · theirs',
+      /^Ours · \S/.test(head.lanes[0] || '') && head.lanes[1] === 'Day' && /^Theirs · \S/.test(head.lanes[2] || ''),
+      head.lanes.join(' | '));
 
     /* ============ 2. "MORE" IS NAMED, AND IS STILL A MENU =============== */
     check('the ⋯ button carries a word now', !!(head.more && /More/.test(head.more.text)),
@@ -208,8 +212,12 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
     /* RE-POINTED 15 Oct 2026 (owner: the contract's views went): the trail is
        the strip's History page, and its own menu carries Verify, Download and
        Print again (the Board's line that carried the two is gone) */
-    check('and the menu holds Verify integrity, Download and Print',
-      opened.items.length === 3 && opened.items[0].includes('Verify') && opened.items.some(t => /Print/.test(t)), opened.items.join(' | '));
+    /* RE-POINTED 17 Oct 2026 (round 12, the owner's "Yes"): an admin on a
+       server finds a fourth row under them, the whole trail as a file. */
+    const admin = await page.evaluate(() => !!(window.isAdmin && isAdmin() && window.API_MODE && API_MODE()));
+    check('and the menu holds Verify integrity, Download and Print (and, for an admin, the whole trail)',
+      opened.items.length === (admin ? 4 : 3) && opened.items[0].includes('Verify') && opened.items.some(t => /Print/.test(t))
+      && (!admin || /whole trail/.test(opened.items[3] || '')), opened.items.join(' | '));
     check('the button says it is open', opened.expanded === 'true', String(opened.expanded));
 
     /* RE-POINTED 24 Aug 2026 — .hist-rail went with the two-column
@@ -229,21 +237,25 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
 
     /* ============ 3. FILTERING, FROM THE ROW IN THE OPEN ================ */
     const before = head.rows;
-    await page.click('#bs-strips [data-bs-host="hist"] .hist-side [data-ht-side="owner"]');
+    /* RE-POINTED 17 Oct 2026 (round 12): with the side switch gone, the
+       narrowing is asked of the Person filter in the fold (still open). */
+    const person = await page.evaluate(() => { const s = document.querySelector('#bs-strips [data-bs-host="hist"] [data-ht-filter="actor"]');
+      const o = s && [...s.options].find(x => x.value); return o ? o.value : ''; });
+    await page.selectOption('#bs-strips [data-bs-host="hist"] [data-ht-filter="actor"]', person);
     await page.waitForTimeout(700);
     await page.screenshot({ path: path.join(OUT, '03-filtered-ours.png') });
     const narrowed = await page.evaluate(`(() => {
       const host = document.querySelector('#bs-strips [data-bs-host="hist"]');
       return { rows: host.querySelectorAll('.hist-ev').length,
         pill: ((host.querySelector('.hist-cap') || {}).textContent || '').trim(),
-        side: (host.querySelector('[data-ht-side][aria-pressed="true"]') || {}).getAttribute?.('data-ht-side'),
+        side: (host.querySelector('[data-ht-filter="actor"]') || {}).value,
         row: ${SEEN}(host.querySelector('.hist-filters')) };
     })()`);
-    check('picking Ours narrows the record', narrowed.rows > 0 && narrowed.rows < before,
+    check('picking a person narrows the record', narrowed.rows > 0 && narrowed.rows < before,
       `${before} → ${narrowed.rows}`);
     check('the count says how much of the record is showing', /of/.test(narrowed.pill || ''), narrowed.pill);
     check('the repaint keeps the choice on the control that made it',
-      narrowed.side === 'owner', narrowed.side);
+      !!person && narrowed.side === person, narrowed.side);
     check('and the filter row is still in the open after a repaint',
       !!(narrowed.row && narrowed.row.on), narrowed.row ? `${narrowed.row.w}x${narrowed.row.h}` : 'absent');
 
@@ -251,9 +263,9 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
        filter change, and it used to add a document listener per paint. Proved
        from the reader's chair — after several repaints the menu must still take
        exactly one press to open and one to shut. */
-    await page.click('#bs-strips [data-bs-host="hist"] .hist-side [data-ht-side="counterparty"]');
+    await page.selectOption('#bs-strips [data-bs-host="hist"] [data-ht-filter="actor"]', '');
     await page.waitForTimeout(450);
-    await page.click('#bs-strips [data-bs-host="hist"] .hist-side [data-ht-side="owner"]');
+    await page.selectOption('#bs-strips [data-bs-host="hist"] [data-ht-filter="actor"]', person);
     await page.waitForTimeout(450);
     await page.click('#bs-strips [data-bs-host="hist"] #hist-more');
     await page.waitForTimeout(300);
@@ -273,10 +285,10 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
     const cleared = await page.evaluate(`(() => {
       const host = document.querySelector('#bs-strips [data-bs-host="hist"]');
       return { rows: host.querySelectorAll('.hist-ev').length,
-        side: (host.querySelector('[data-ht-side][aria-pressed="true"]') || {}).getAttribute?.('data-ht-side'),
+        side: (host.querySelector('[data-ht-filter="actor"]') || {}).value,
         pill: ((host.querySelector('.hist-cap') || {}).textContent || '').trim() };
     })()`);
-    check('Clear is the one way back, and it puts side back with the rest',
+    check('Clear is the one way back, and it puts every filter back',
       cleared.rows === before && cleared.side === '', `${cleared.rows} rows · side "${cleared.side}" · ${cleared.pill}`);
 
     /* ============ 4. THE POP-OUT RECORD — SAME CHAIR ==================== */
