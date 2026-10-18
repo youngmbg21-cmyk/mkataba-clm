@@ -64,6 +64,26 @@ const _apByFor=s=>(typeof awayByLabel==='function')?awayByLabel(s&&s.by,s&&s.for
 function approverForOf(a, u){
   return (a&&a.kind==='member'&&a.id!=null&&a.id!==''&&u&&String(a.id)!==String(u.id)&&typeof awayForOf==='function') ? awayForOf(u,a.id) : null;
 }
+/* WHOM THIS READER ANSWERS FOR ON THE APPROVAL WAITING ON THEM (round 23's
+   gaps, 18 Oct 2026: the Counter's row "Answer an approval for Jonas · for
+   Jonas · away until Friday"): the person they stand in for on the step that
+   is theirs to answer now — a rule step's named approver, or a named yes's
+   approver or backup — and the last day of that person's away rule. Null
+   where they answer as themself. The approvals' own readings; nothing kept. */
+function approvalAnswersFor(c, u){
+  u=u||(typeof currentUser==='function'?currentUser():null);
+  if(!c||!u) return null;
+  let d=null; try{ d=approvalDecidableNow(c, u); }catch(_){ d=null; }
+  if(!d) return null;
+  let fw=null;
+  if(d.kind==='rule'&&d.step) fw=approverForOf(d.step.approver, u);
+  else if(d.kind==='sa'&&d.row&&d.row.req&&typeof awayForOf==='function') fw=awayForOf(u, d.row.req.approverId)||awayForOf(u, d.row.req.backupId);
+  if(!fw) return null;
+  const a=(typeof state!=='undefined'&&state&&state.away)||null;
+  const r=(a&&Array.isArray(a.covering)?a.covering:[]).find(x=>x&&String(x.userId)===String(fw.id));
+  return { id:fw.id, name:fw.name||'', until:(r&&r.to)||null };
+}
+Object.assign(window,{approvalAnswersFor});
 function userCanApprove(a, u){
   if(!u) return false;
   /* …or the member's stand-in while they are away (piece 9, awayCovers) */

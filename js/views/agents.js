@@ -709,6 +709,9 @@ function agentsData(list){
      email, as its own runner does. */
   AG_KEYS.forEach(k => { if (agLevelOf(k) === 'mine'){ agents[k].ready = []; agents[k].leftToYou = true; } });
   agReportPrepared(agents);
+  /* PUT AWAY BY THIS PERSON (round 23's gaps): gone from their list while it
+     is still about the same thing — prepared all the same, so reported above */
+  AG_KEYS.forEach(k => { agents[k].ready = agents[k].ready.filter(it => !agAwayHeld(it)); });
   /* The finished lists are newest first, and bounded. */
   AG_KEYS.forEach(k => {
     const a = agents[k];
@@ -1327,6 +1330,8 @@ function agGo(where, cid){
   const c = (typeof getContract === 'function') ? getContract(cid) : null;
   if (where === 'nego'){ if (typeof openRedlineWorkbench === 'function') openRedlineWorkbench(cid); else if (typeof selectContract === 'function') selectContract(cid); return; }
   if (where === 'import'){ if (typeof setView === 'function') setView('migration'); return; }
+  /* Fill in, beside the paper: the one door every "fill in" press passes (roomOpenAt) */
+  if (where === 'details'){ if (typeof roomOpenAt === 'function') roomOpenAt(cid, 'details'); return; }
   if (!c || typeof openWorkspace !== 'function') return;
   const tab = where === 'oblig' ? 'oblig' : where === 'sign' ? 'sign' : where === 'contract' ? null : 'terms';
   /* the room's Signing and Obligations tabs went home (the one-page Home plan, stage 5) */
@@ -1915,20 +1920,49 @@ function agChaseMail(c, o, firm){
     return v ? String(x).replace(/\{(\w+)\}/g, (m, y) => (v[y] == null ? m : String(v[y]))) : String(x);
   };
   const ref = _agRef(c);
-  const vars = { desc: (o && o.desc) || '', name: c.name || ref, id: ref, due: (o && o.due) || '' };
+  /* THE DAYS IN WORDS, IN THE RECIPIENT'S LANGUAGE — the route's own dayWords
+     (srvChaseSend): a calendar day read as that day, UTC, anything unreadable
+     left as written. The preview printed the stored "2026-10-13" while the
+     inbox got "13 October 2026" (round 23's gaps, 18 Oct 2026). */
+  const dayWords = v => {
+    const iso = String(v || '').slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return v || '';
+    try { return new Date(iso + 'T00:00:00Z').toLocaleDateString(L === 'sv' ? 'sv-SE' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }); } catch (_){ return iso; }
+  };
+  const vars = { desc: (o && o.desc) || '', name: c.name || ref, id: ref, due: dayWords(o && o.due) };
   /* THE FIRMER ONE is the route's own `firm` keys, with the day the first went. */
-  if (firm) vars.first = String((o && o.chasedAt) || '').slice(0, 10);
-  const soon = (o && o.due && String(o.due).slice(0, 10) > new Date().toISOString().slice(0, 10)) ? '_soon' : '';   // the route's own rule (B11)
-  const line = firm
-    ? T((o && o.due) ? 'mail_ob_chase_firm_line' + soon : 'mail_ob_chase_firm_line_nodate', vars)
-    : T((o && o.due) ? 'mail_ob_chase_line' + soon : 'mail_ob_chase_line_nodate', vars);
-  return { to, subject: T(firm ? 'mail_ob_chase_firm_subject' : 'mail_ob_chase_subject', vars), body: `${T('mail_hello')},\n\n${line}\n\n${T('mail_automated_notice')}` };
+  if (firm) vars.first = dayWords(String((o && o.chasedAt) || '').slice(0, 10));
+  const today = (typeof todayISO === 'function') ? todayISO() : new Date().toISOString().slice(0, 10);
+  const soon = !!(o && o.due && String(o.due).slice(0, 10) > today);   // the route's own rule (B11)
+  /* ONE LETTER, TWO HOSTS (js/sharemail.js chaseMailOf): signed by the person
+     who will press Send, for our company on this agreement. The standing link
+     is the server's to find, so it is not drawn here (said on the box's hover). */
+  const me = (typeof currentUser === 'function') ? currentUser() : null;
+  const party = (typeof contractParty === 'function') ? contractParty(c) : '';
+  if (typeof chaseMailOf !== 'function') return null;
+  const m = chaseMailOf({ t: T, firm: !!firm, dated: !!(o && o.due), soon, vars, link: null, sender: (me && me.name) || '', party });
+  return { to, subject: m.subject, body: m.body, parts: m.parts };
 }
 function agChaseMailHtml(c, o, firm){
   const m = agChaseMail(c, o, firm);
   if (!m) return '';
   return `<div class="ag-mail" title="${_agE(_agT('ag_mail_link_note'))}"><dl class="ag-mail-h"><dt>${_agE(_agT('ag_mail_to'))}</dt><dd>${_agE(m.to)}</dd><dt>${
     _agE(_agT('ag_mail_subject'))}</dt><dd>${_agE(m.subject)}</dd></dl><div class="ag-mail-b">${_agE(m.body)}</div></div>`;
+}
+
+/* LOOK ON A CHASE SHOWS THE EMAIL WHOLE (round 23, "Open in place"): on the
+   Counter, Look opens the letter itself — To, Subject, the body — and under it
+   where it goes and that the press asks once more. The house's panel keeps its
+   facts around the same letter (agChaseBody). */
+function agChaseLookHtml(it){
+  if (!it || !it.c) return '';
+  if (it.noAddress) return `<p class="ag-p-note">${_agE(_agT('ag_chase_noaddr_note'))}</p>`;
+  return agChaseMailHtml(it.c, it.ob || {}, it.kind === 'chase-firm') + `<p class="ag-p-note cn-mail-foot">${_agE(_agT('ag_chase_note'))}</p>`;
+}
+/* WHAT LOOK OPENS ON A ROW: the chase's letter, else the piece's whole body */
+function agLookHtml(it){
+  if (it && (it.kind === 'chase' || it.kind === 'chase-firm')) return agChaseLookHtml(it);
+  return agPanelBody(it);
 }
 
 /* ---- AN IMPORT BATCH: the counts, and the contracts NAMED — the ones that
@@ -1987,14 +2021,24 @@ function agLinkBody(it){
 
 /* THE ACTS — each the product's own, pressing the same function its own home
    presses. The lead act is the ladder's filled button (one per area), the
-   rest secondary, and putting away is the ladder's text button. */
-function agPanelActs(it){
-  const B = (act, label, cls) => `<button type="button" class="${cls === 'lead' ? 'ui-btn ui-btn-primary' : cls === 'link' ? 'ui-link' : 'ui-btn'}" data-ag-act="${act}">${_agE(label)}</button>`;
+   rest secondary, and putting away is the ladder's text button.
+   THE ACTS ARE DATA, DRAWN TWICE (round 23's gaps, 18 Oct 2026): agActsOf
+   lists them ({ act, label, cls }); the house's panel draws them all
+   (agPanelActs) and the Counter's row draws its one act (agRowActOf) beside
+   Look and Put away — the same acts, the same words, the same runner.
+   EVERY PIECE CAN BE PUT AWAY (the owner's "build all the gaps": the drawing
+   carries Put away on every piece): a piece the desk keeps is put away on the
+   contract by an editor, as before; any other piece — and any piece for a
+   reader who may not edit — for this person only (agAwaySet), never the work
+   it is about, which stays where it is owed. */
+function agActsOf(it){
+  const L = [];
+  const B = (act, label, cls) => { L.push({ act, label, cls: cls || '' }); };
   const ed = !(typeof canEdit === 'function' && !canEdit());
-  if (it.kind === 'answer') return B('nego', _agT('ag_a_answer'), 'lead') + B('overview', _agT('ag_a_overview'), '');
-  if (it.kind === 'notice') return B('notice', _agT('desk_nt_read'), 'lead') + B('overview', _agT('ag_a_renewal'), '') + (ed ? B('away', _agT('desk_discard'), 'link') : '');
-  if (it.kind === 'renewal') return B('overview', _agT('ag_a_renewal'), 'lead') + (ed ? B('away', _agT('desk_discard'), 'link') : '');
-  if (it.kind === 'read'){
+  if (it.kind === 'answer'){ B('nego', _agT('ag_a_answer'), 'lead'); B('overview', _agT('ag_a_overview')); }
+  else if (it.kind === 'notice'){ B('notice', _agT('desk_nt_read'), 'lead'); B('overview', _agT('ag_a_renewal')); }
+  else if (it.kind === 'renewal') B('overview', _agT('ag_a_renewal'), 'lead');
+  else if (it.kind === 'read'){
     const hasBrief = !!(it.c && (it.c._brief || it.c._hasBrief));
     /* THE OBLIGATIONS FOUND have one door onto being added — the review dialog
        runFindObligations opens on the list auto-triage holds — and it is drawn
@@ -2002,42 +2046,73 @@ function agPanelActs(it){
     const obs = ed ? agHeldCount(it.c) : 0;
     /* READ THE BRIEF LEADS where there is one (Young, 7 Oct 2026); the
        Overview stays one press away beside it. */
-    return (hasBrief ? B('brief', _agT('ag_a_brief'), 'lead') : '') + B('overview', _agT('ag_a_overview'), hasBrief ? '' : 'lead')
-      + (obs ? B('obs', _agTn('ag_a_obs', obs, { n: obs }), '') : '') + (ed ? B('seen', _agT('ag_a_seen'), 'link') : '');
+    if (hasBrief) B('brief', _agT('ag_a_brief'), 'lead');
+    B('overview', _agT('ag_a_overview'), hasBrief ? '' : 'lead');
+    /* WHAT IS STILL TO FILL IN, its own door (round 23's gaps: the drawn
+       row's act is "Fill in 3 details") — detailsOf's own count, Fill in's door */
+    const fill = agFillLeft(it.c);
+    if (fill) B('fill', _agTn('ag_a_fill', fill, { n: fill }));
+    if (obs) B('obs', _agTn('ag_a_obs', obs, { n: obs }));
+    if (ed) B('seen', _agT('ag_a_seen'), 'link');
   }
-  if (it.kind === 'chase') return (it.noAddress || !ed ? '' : B('chase', _agT('desk_chase_send'), 'lead'))
-    + B('oblig', _agT('ag_a_oblig'), it.noAddress ? 'lead' : '') + (ed ? B('away', _agT('desk_discard'), 'link') : '');
-  if (it.kind === 'import') return B('import', _agT('ag_a_import'), 'lead');
+  else if (it.kind === 'chase'){
+    if (!(it.noAddress || !ed)) B('chase', _agT('desk_chase_send'), 'lead');
+    B('oblig', _agT('ag_a_oblig'), it.noAddress ? 'lead' : '');
+  }
+  else if (it.kind === 'import') B('import', _agTn('ag_a_import_n', it.review || 0, { n: it.review || 0 }), 'lead');
   /* THE FRESH LINK, AND THE WAY ROUND IT WHERE THE PERSON IS WRONG — the send
      screen for an answer, the Signing tab for a signature. Somebody who may not
      send is shown where the work lives and nothing else. */
-  if (it.kind === 'reply') return ed ? B('fresh', _agT('ag_a_fresh'), 'lead') + B('sendscreen', _agT('ag_a_send_screen'), '')
-    : B('overview', _agT('ag_a_overview'), 'lead');
-  if (it.kind === 'sign') return (ed ? B('fresh', _agT('ag_a_fresh'), 'lead') : '') + B('signing', _agT('ag_a_signing'), ed ? '' : 'lead');
+  else if (it.kind === 'reply'){ if (ed){ B('fresh', _agT('ag_a_fresh'), 'lead'); B('sendscreen', _agT('ag_a_send_screen')); } else B('overview', _agT('ag_a_overview'), 'lead'); }
+  else if (it.kind === 'sign'){ if (ed) B('fresh', _agT('ag_a_fresh'), 'lead'); B('signing', _agT('ag_a_signing'), ed ? '' : 'lead'); }
   /* ONE PARTY OF SEVERAL: the send screen, with that party already chosen —
      the round send picks the first party, and this is not the first. */
-  if (it.kind === 'party') return ed ? B('sendparty', _agT('ag_a_send_party'), 'lead') : B('overview', _agT('ag_a_overview'), 'lead');
+  else if (it.kind === 'party'){ if (ed) B('sendparty', _agT('ag_a_send_party'), 'lead'); else B('overview', _agT('ag_a_overview'), 'lead'); }
   /* A LINK ABOUT TO RUN OUT: the same link, given more time. */
-  if (it.kind === 'soon' || it.kind === 'soon-sign')
-    return (ed ? B('keepopen', _agT('ag_a_keep_open'), 'lead') : '') + B(it.kind === 'soon-sign' ? 'signing' : 'nego',
-      _agT(it.kind === 'soon-sign' ? 'ag_a_signing' : 'ct_open_negotiation'), ed ? '' : 'lead');
-  if (it.kind === 'chase-firm') return (it.noAddress || !ed ? '' : B('chasefirm', _agT('ag_a_chase_firm'), 'lead'))
-    + B('oblig', _agT('ag_a_oblig'), it.noAddress ? 'lead' : '');
-  if (it.kind === 'ours') return B('oblig', _agT('ag_a_oblig'), 'lead');
-  if (it.kind === 'approve'){
+  else if (it.kind === 'soon' || it.kind === 'soon-sign'){
+    if (ed) B('keepopen', _agT('ag_a_keep_open'), 'lead');
+    B(it.kind === 'soon-sign' ? 'signing' : 'nego', _agT(it.kind === 'soon-sign' ? 'ag_a_signing' : 'ct_open_negotiation'), ed ? '' : 'lead');
+  }
+  else if (it.kind === 'chase-firm'){
+    if (!(it.noAddress || !ed)) B('chasefirm', _agT('ag_a_chase_firm'), 'lead');
+    B('oblig', _agT('ag_a_oblig'), it.noAddress ? 'lead' : '');
+  }
+  else if (it.kind === 'ours') B('oblig', _agT('ag_a_oblig'), 'lead');
+  else if (it.kind === 'approve'){
     let may = null; try { may = (typeof approvalDecidableNow === 'function') ? approvalDecidableNow(it.c) : null; } catch (_){ may = null; }
-    return may ? B('approve', _agT('ap_pg_approve'), 'lead') + B('refuse', _agT('ag_a_refuse'), '') + B('overview', _agT('ins_open_contract'), 'link')
-      : B('signing', _agT('ap_pg_open_gate'), 'lead') + B('overview', _agT('ins_open_contract'), '');
+    if (may){ B('approve', _agT('ap_pg_approve'), 'lead'); B('refuse', _agT('ag_a_refuse')); B('overview', _agT('ins_open_contract'), 'link'); }
+    else { B('signing', _agT('ap_pg_open_gate'), 'lead'); B('overview', _agT('ins_open_contract')); }
   }
-  if (it.kind === 'request') return (ed ? B('ikdraft', _agT('ik_act_draft'), 'lead') : '') + B('ikopen', _agT('ag_a_request'), ed ? '' : 'lead');
-  if (it.kind === 'lane') return B('overview', _agT('ag_a_draft_open'), 'lead') + B('ikopen', _agT('ag_a_request'), '');
-  if (it.kind === 'week') return B('calendar', _agT('ag_a_calendar'), 'lead') + B('ics', _agT('ag_a_ics'), '');
-  if (it.kind === 'quiet'){
+  else if (it.kind === 'request'){ if (ed) B('ikdraft', _agT('ik_act_draft'), 'lead'); B('ikopen', _agT('ag_a_request'), ed ? '' : 'lead'); }
+  else if (it.kind === 'lane'){ B('overview', _agT('ag_a_draft_open'), 'lead'); B('ikopen', _agT('ag_a_request')); }
+  else if (it.kind === 'week'){ B('calendar', _agT('ag_a_calendar'), 'lead'); B('ics', _agT('ag_a_ics')); }
+  else if (it.kind === 'quiet'){
     const r = _agReplies.get(it.key);
-    if (r && r.state === 'done') return B('usereply', _agT('ag_a_use_reply'), 'lead') + B('draftreply', _agT('ag_a_redraft'), '') + B('notes', _agT('ag_a_answer_note'), 'link');
-    return (ed ? B('draftreply', _agT('ag_a_draft_reply'), r && r.state === 'busy' ? '' : 'lead') : '') + B('notes', _agT('ag_a_answer_note'), ed ? '' : 'lead') + B('overview', _agT('ag_a_overview'), '');
+    if (r && r.state === 'done'){ B('usereply', _agT('ag_a_use_reply'), 'lead'); B('draftreply', _agT('ag_a_redraft')); B('notes', _agT('ag_a_answer_note'), 'link'); }
+    else { if (ed) B('draftreply', _agT('ag_a_draft_reply'), r && r.state === 'busy' ? '' : 'lead'); B('notes', _agT('ag_a_answer_note'), ed ? '' : 'lead'); B('overview', _agT('ag_a_overview')); }
   }
-  return '';
+  else return L;
+  /* AND LAST, ON EVERY PIECE: Put away (the owner kept the word) */
+  B('away', _agT('desk_discard'), 'link');
+  return L;
+}
+function agPanelActs(it){
+  return agActsOf(it).map(a => `<button type="button" class="${a.cls === 'lead' ? 'ui-btn ui-btn-primary' : a.cls === 'link' ? 'ui-link' : 'ui-btn'}" data-ag-act="${a.act}">${_agE(a.label)}</button>`).join('');
+}
+/* THE ONE ACT A ROW OFFERS (round 23, "Open in place"): each piece "with Look,
+   its act and Put away" — the act named for what it does: Answer on Redlines,
+   Fill in 3 details, Decide the renewal, Send the chase, Check the 3 files.
+   It is the panel's lead act, save a new contract's read where details are
+   still owed: then Fill in, as drawn. Null where the piece has no act. */
+function agRowActOf(it){
+  const L = agActsOf(it).filter(a => a.act !== 'away');
+  return (it.kind === 'read' && L.find(a => a.act === 'fill')) || L.find(a => a.cls === 'lead') || L.find(a => a.cls !== 'link') || null;
+}
+/* the details still owed on a contract, Fill in's own count (detailsOf) */
+function agFillLeft(c){
+  if (!c || typeof detailsOf !== 'function') return 0;
+  let d = null; try { d = detailsOf(c); } catch (_){ d = null; }
+  return d && d.left > 0 ? d.left : 0;
 }
 /* THE PANEL'S HEAD is the drawing's: what the work IS, whose contract (its
    reference first — Young, 8 Oct 2026: "there is no contract number in the
@@ -2063,6 +2138,143 @@ function agPanelTitle(it){
   if (it.kind === 'quiet') return _agT('ag_pt_quiet');
   return '';
 }
+/* ============================================================
+   A PIECE IN ONE ROW (round 23, "Open in place", and its gaps, 18 Oct 2026)
+   ============================================================
+   The Counter draws each prepared piece as a row: the agent's tag, what it is
+   in a few words ("Nordvik Logistik's answer", "A read of Baltic Freight",
+   "The Brightwater Foods memo", "A chase to Kettle & Co", "3 imports to
+   check"), its reference, and one sentence of what it holds, read off the
+   readings the piece already carries — nothing asked of a model, nothing
+   written. A kind with no sentence of its own says the card's line. */
+/* THE ENGLISH POSSESSIVE OF A NAME, for the words that say "{whos}": "Sara’s",
+   "Jonas’s", and a name of several words that ends in s takes the mark alone
+   ("Brightwater Foods’"). The Swedish words never use it (they say "från {who}"). */
+function agPoss(name){
+  const n = String(name || '').trim(); if (!n) return '';
+  return (/s$/i.test(n) && /\s/.test(n)) ? n + '\u2019' : n + '\u2019s';
+}
+function agPieceTitle(it){
+  if (!it) return '';
+  const p = agCardParts(it), who = p.who || '';
+  if (it.kind === 'answer') return _agT('ag_pc_answer', { who, whos: agPoss(who) });
+  if (it.kind === 'read') return _agT('ag_pc_read', { who });
+  if (it.kind === 'renewal') return _agT(it.memo ? 'ag_pc_memo' : 'ag_pc_renewal', { who });
+  if (it.kind === 'notice') return _agT('ag_pc_notice', { who });
+  if (it.kind === 'chase') return _agT('ag_pc_chase', { who });
+  if (it.kind === 'chase-firm') return _agT('ag_pc_chase_firm', { who });
+  if (it.kind === 'import') return _agTn('ag_pc_import', it.review || 0, { n: it.review || 0 });
+  return agPanelTitle(it) || p.kind || '';
+}
+/* its reference: the contract's own (refHtml, the one dress), or an import's day */
+function agPieceRefHtml(it){
+  if (!it) return '';
+  if (it.c) return (typeof refHtml === 'function') ? refHtml(it.c) : _agE(_agRef(it.c));
+  if (it.kind === 'import' && it.at) return _agE(_agT('ag_pc_import_ref', { day: _agDay(it.at) }));
+  return '';
+}
+/* "a, b and c" in the reader's words */
+function _agAnd(list){
+  const L = (list || []).filter(Boolean);
+  if (L.length < 2) return L.join('');
+  return L.slice(0, -1).join(', ') + ' ' + _agT('ag_ln_and') + ' ' + L[L.length - 1];
+}
+/* "clause 7 (Liability cap)" from a clause's own label ("7. Liability cap") */
+function _agClauseSay(label){
+  const l = String(label || '').replace(/\s+/g, ' ').trim();
+  const m = /^(?:clause\s+|article\s+)?(\d+(?:\.\d+)*)\s*[.):·—–-]?\s*(.{1,60})$/i.exec(l);
+  if (m) return _agT('ag_ln_clause', { n: m[1], name: m[2].trim() });
+  if (!l) return _agT('ag_ln_a_clause');
+  /* a clause with no heading of its own is named by its first words, quoted */
+  if (l.length <= 32 && !/[.;:]/.test(l)) return l;
+  const w = l.split(' '), q = w.slice(0, 5).join(' ').replace(/[.,;:]+$/, '');
+  return _agT('ag_ln_clause_q', { q: w.length > 5 ? q + '\u2026' : q });
+}
+function agPieceLine(it){
+  if (!it) return '';
+  const p = agCardParts(it);
+  const c = it.c || null;
+  if (it.kind === 'answer'){
+    const plan = Array.isArray(it.plan) ? it.plan : [];
+    const bits = plan.map(r => _agT('ag_ln_v_' + (['accept', 'push', 'escalate', 'review'].includes(r.verdict) ? r.verdict : 'review'), { clause: _agClauseSay(r.clause) }));
+    const n = it.n || plan.length;
+    return bits.length ? _agTn('ag_ln_answer', n, { n, list: bits.join('; ') }) : [p.sum, p.urg].filter(Boolean).join(' · ');
+  }
+  if (it.kind === 'read'){
+    const t = (typeof triageOf === 'function') ? triageOf(c) : (c && c.triage) || null;
+    const st = (t && t.steps) || {};
+    const bits = [];
+    if ((st.brief && st.brief.ok) || (c && (c._brief || c._hasBrief))) bits.push(_agT('ag_ln_brief'));
+    const ob = st.oblig && st.oblig.ok && Array.isArray(st.oblig.found) ? st.oblig.found.length : 0;
+    if (ob) bits.push(_agTn('ag_ln_obs', ob, { n: ob }));
+    const fill = agFillLeft(c);
+    if (fill) bits.push(_agTn('ag_ln_fill', fill, { n: fill }));
+    const pb = st.playbook;
+    const dep = pb && pb.ok ? (pb.dev || 0) + (pb.miss || 0) : 0;
+    if (dep){ const cats = Array.isArray(pb.cats) ? pb.cats.filter(Boolean).map(x => String(x).toLowerCase()).slice(0, 3) : [];
+      bits.push(_agTn(cats.length ? 'ag_ln_dep_cats' : 'ag_ln_dep', dep, { n: dep, cats: cats.join(', ') })); }
+    return bits.length ? _agT('ag_ln_read', { list: _agAnd(bits) }) : _agT('ag_read_nothing');
+  }
+  if (it.kind === 'renewal'){
+    const w = it.w || {};
+    const amended = c && typeof effectiveExpiryFrom === 'function' ? effectiveExpiryFrom(c) : null;
+    const end = (c && typeof effectiveExpiry === 'function' && effectiveExpiry(c)) || w.expiry || '';
+    const out = [];
+    if (end) out.push(_agT(amended ? 'ag_ln_ends_amended' : 'ag_ln_ends', { day: _agDay(end) }));
+    if (w.decideBy) out.push(end && String(w.decideBy).slice(0, 10) === String(end).slice(0, 10) && !w.auto ? _agT('ag_ln_decide_end')
+      : _agT(w.auto ? 'ag_ln_notice_due' : 'ag_ln_decide_due', { day: _agDay(w.decideBy) }));
+    if (it.prepared){
+      const me = (typeof currentUser === 'function') ? currentUser() : null;
+      const owner = c && c.owner ? c.owner : null;
+      const mine = !!(me && owner && String(owner.id) === String(me.id));
+      out.push(mine ? _agT('ag_ln_memo_night_you') : _agT('ag_ln_memo_night', { who: (owner && owner.name) || '' }));
+    } else if (it.memo) out.push(_agT('ag_ln_memo'));
+    return out.length ? out.join(' ') : [p.sum, p.urg].filter(Boolean).join(' · ');
+  }
+  if (it.kind === 'notice' && it.by) return String(p.sum || '').replace(/[.\s]+$/, '') + '. ' + _agT('ag_ln_notice_by', { day: _agDay(it.by) });
+  if (it.kind === 'chase' || it.kind === 'chase-firm'){
+    const desc = String((it.ob && it.ob.desc) || '').trim();
+    const days = Number(it.days) || 0;
+    const late = _agTn('ag_ln_late', days, { n: days, what: desc });
+    if (it.noAddress) return late + ' ' + _agT('ag_ln_chase_noaddr');
+    return late + ' ' + (it.kind === 'chase-firm' ? _agT('ag_ln_chase_firm', { day: _agDay(it.ob && it.ob.chasedAt) }) : _agT('ag_ln_chase_ready'));
+  }
+  if (it.kind === 'import'){
+    const cs = (Array.isArray(it.cs) ? it.cs : []).filter(x => x && x.migration && x.migration.needsReview);
+    const names = cs.map(x => String((x.upload && x.upload.fileName) || x.name || '')).filter(Boolean);
+    const shown = names.slice(0, 3), more = names.length - shown.length;
+    const list = more > 0 ? shown.concat([_agTn('ag_ln_more', more, { n: more })]) : shown;
+    const n = it.review || cs.length;
+    return n ? _agTn('ag_ln_import', n, { n, list: _agAnd(list) }) : [p.sum, p.urg].filter(Boolean).join(' · ');
+  }
+  return [p.sum, p.urg].filter(Boolean).join(' · ');
+}
+
+/* ============================================================
+   HOW FAR THE AGENTS MAY GO, IN ONE LINE (round 23, "Open in place": "All
+   seven agents: Ask me first · set by Sara for everyone · Ask an admin")
+   ============================================================
+   The seven that act (the readings are not on the ladder), grouped by the
+   company's level, largest first; who set it, off the server's status (the
+   name the level-setting route wrote, `levelBy`) — and where nobody has moved
+   it from the start, said so; and every agent this person chose their own
+   level for, by name. Null while the status has not come yet: the line says
+   nothing it cannot read. A reading — it spends nothing and writes nothing. */
+const AG_ACTING = AG_KEYS.filter(k => !AG_READINGS.includes(k));
+function agLevelsSaid(){
+  const st = (typeof agentsStatus === 'function') ? agentsStatus() : null;
+  const server = typeof API_MODE === 'function' && API_MODE();
+  if (server && !(st && st.agents)) return null;
+  const groups = new Map();
+  AG_ACTING.forEach(k => { const lv = agLevelCo(k); if (!groups.has(lv)) groups.set(lv, []); groups.get(lv).push(k); });
+  const G = [...groups.entries()].map(([lv, keys]) => ({ lv, keys })).sort((a, b) => b.keys.length - a.keys.length);
+  const me = (typeof currentUser === 'function') ? currentUser() : null;
+  const by = new Map();
+  AG_ACTING.forEach(k => { const a = st && st.agents && st.agents[k]; if (a && a.levelBy) by.set(String(a.levelById || a.levelBy), { name: String(a.levelBy), you: !!(me && a.levelById && String(a.levelById) === String(me.id)) }); });
+  const mine = AG_ACTING.map(k => ({ k, lv: agLevelMine(k) })).filter(x => x.lv && x.lv !== agLevelCo(x.k));
+  return { n: AG_ACTING.length, groups: G, by: [...by.values()], mine };
+}
+
 function agPanelHeadHtml(it){
   const p = agCardParts(it);
   const title = agPanelTitle(it);
@@ -2137,6 +2349,67 @@ function agPanelRefresh(key){
   const a = panel.querySelector('.ag-p-acts');
   if (a){ const html = agPanelActs(it); if (a.innerHTML !== html) a.innerHTML = html; }
 }
+/* ============================================================
+   PUT AWAY, ON EVERY PIECE (round 23's gaps, 18 Oct 2026)
+   ============================================================
+   TWO KEEPERS, ONE PRESS. A piece the desk keeps (a notice, a renewal, a
+   chase: `deskKey`) is put away on the contract by an editor, through the
+   desk's one writer (deskDismiss), as it always was — gone from everyone's
+   list. Any other piece, and any piece for a reader who may not edit, is put
+   away for this person only (agentAwaySet, their prefs): their Counter, not a
+   colleague's. Neither touches the work the piece is about — an approval, an
+   answer, a request still waits in Needs you.
+   WHAT IT WAS ABOUT IS KEPT WITH IT (agAwaySubject): a piece about something
+   new — their next round, a new reading, another file to check — comes back.
+   UNDO FOR A FEW SECONDS, AND THE TRAIL ONCE THEY HAVE PASSED: the house's
+   log is told "thrown" (agPieceSay) only when Undo was not pressed, so a
+   piece taken straight back scores nothing either way. */
+const AG_AWAY_UNDO_MS = 6000;
+function agAwaySubject(it){
+  if (!it) return '';
+  const ids = Array.isArray(it.plan) ? it.plan.map(r => String(r.id)).sort().join(',') : '';
+  return [it.kind, it.at || it.since || '', it.n != null ? it.n : '', it.review != null ? it.review : '', ids,
+    it.ob ? (it.ob.chasedAt || it.ob.due || '') : '', it.r ? (it.r.status || '') : '', it.note ? (it.note.at || '') : ''].join('|').slice(0, 400);
+}
+/* THE READING: put away by this person, about what it is still about */
+function agAwayHeld(it){
+  try {
+    const u = (typeof currentUser === 'function') ? currentUser() : null;
+    const m = u && u.prefs && u.prefs.agentAway;
+    const v = m && it && it.key ? m[it.key] : null;
+    return !!(v && v.on === agAwaySubject(it));
+  } catch (_){ return false; }
+}
+/* the desk keeps it only where the reader may write the contract */
+function agAwayOnDesk(it){
+  return !!(it && it.deskKey && it.c && typeof deskDismiss === 'function' && !(typeof canEdit === 'function' && !canEdit()));
+}
+async function agPutAway(it, said){
+  if (!it) return false;
+  const c = it.c ? ((typeof getContract === 'function' && getContract(it.cid)) || it.c) : null;
+  const desk = agAwayOnDesk(it) && !!c;
+  if (desk){ if (!deskDismiss(c, it.deskKey)) return false; }
+  else {
+    if (typeof agentAwaySet !== 'function') return false;
+    try { await agentAwaySet(it.key, agAwaySubject(it)); }
+    catch (e){ if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); return false; }
+  }
+  if (typeof closeModal === 'function' && document.querySelector && document.querySelector('[data-ag-panel]')) try { closeModal(); } catch (_){}
+  let undone = false;
+  const t = setTimeout(() => { if (!undone && typeof said === 'function') said('thrown'); }, AG_AWAY_UNDO_MS);
+  const undo = async () => {
+    undone = true; clearTimeout(t);
+    if (desk) deskDismiss(c, it.deskKey, { undo: true });
+    else if (typeof agentAwaySet === 'function') try { await agentAwaySet(it.key, null); } catch (_){}
+    agRepaint();
+    if (typeof counterRepaint === 'function') try { counterRepaint(); } catch (_){}
+  };
+  if (typeof toast === 'function') toast(_agT(desk ? 'ag_put_away' : 'ag_put_away_mine'), 'ok', { action: { label: _agT('act_undo'), onClick: undo } });
+  agRepaint();
+  return true;
+}
+Object.assign(window, { agActsOf, agRowActOf, agFillLeft, agAwaySubject, agAwayHeld, agPutAway, AG_AWAY_UNDO_MS, agChaseLookHtml, agLookHtml,
+  agPoss, agPieceTitle, agPieceRefHtml, agPieceLine, AG_ACTING, agLevelsSaid });
 async function agRunAct(key, act){
   const it = agFind(key);
   if (!it) return;
@@ -2261,15 +2534,8 @@ async function agRunAct(key, act){
     try { await runFindObligations(c); said('used'); } catch (_){}
     return;
   }
-  if (act === 'away'){
-    if (c && typeof deskDismiss === 'function' && deskDismiss(c, it.deskKey)){
-      if (typeof closeModal === 'function') try { closeModal(); } catch (_){}
-      if (typeof toast === 'function') toast(_agT('ag_put_away'), 'ok');
-      said('thrown');
-      agRepaint();
-    }
-    return;
-  }
+  if (act === 'away') return agPutAway(it, said);
+  if (act === 'fill') return agGo('details', it.cid);
   if (act === 'seen'){
     if (c && typeof triageAck === 'function' && triageAck(c)){
       if (typeof closeModal === 'function') try { closeModal(); } catch (_){}

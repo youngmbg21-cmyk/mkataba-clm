@@ -208,7 +208,7 @@ function deskTabClose(k){
 function deskGoCounter(){ _dkMoreOpen = false; if (typeof setView === 'function') setView('counter'); }
 
 /* ---------------- THE COUNTER ---------------- */
-const CN_ROWS = 7;          // contract rows in sight; "Show all N" brings the rest
+const CN_ROWS = 7;          // rows in sight; "Show N more" brings the rest
 const CN_POP_MAX = 40;      // every place; the list scrolls, and typing narrows it
 const CN_PICK_UP = 3;       // open pages offered on a quiet day
 /* words Jambo answers with a card beside the page, not a move */
@@ -220,7 +220,16 @@ let _cnAll = false;
    it is, the contract, one line) with Look · its own acts · Put away, the
    acts the house's own (agPanelActs → agRunAct, the one runner); Look opens
    the piece's whole body under its row. The house is one link away. Per
-   sitting; nothing is sent or filed until a press. */
+   sitting; nothing is sent or filed until a press.
+   AS DRAWN (round 23's gaps, 18 Oct 2026, the owner's "build all the gaps"):
+   each piece's row is its room's coloured tag, what it is in a few words, its
+   reference and ONE sentence (agPieceTitle · agPieceRefHtml · agPieceLine);
+   then Look, its ONE act (agRowActOf: Answer on Redlines, Fill in 3 details,
+   Decide the renewal, Send the chase, Check the 3 files) and Put away — on
+   every piece. Look stays "Look", pressed; its act is the filled button while
+   the piece is open (one filled button per area: the open piece is the area).
+   Look on a chase is the email whole (agLookHtml). Under the pieces, how far
+   the seven agents may go and who set it (agLevelsSaid), with Ask an admin. */
 let _cnJwOpen = false, _cnJwLook = null;
 const CN_JW_MAX = 8;
 let _cnPop = null;          // { rows, on }
@@ -232,48 +241,182 @@ function cnCompany(){ try { return (typeof stNeedsAll === 'function') ? (stNeeds
    admin's one row is Home's own "Finish setting up — N left" door, the same
    reading (hbSetupLeft) and the same act (hbSetupGo); the company row after */
 function cnSetup(){ try { const n = (typeof hbSetupLeft === 'function') ? hbSetupLeft() : null; return n > 0 ? n : 0; } catch (_){ return 0; } }
+const _cnToday = () => (typeof todayISO === 'function') ? todayISO() : new Date().toISOString().slice(0, 10);
+const _cnFirst = s => String(s || '').trim().split(/\s+/)[0] || '';
+/* a name and its English possessive, for the words that say "{whos}" (agPoss) */
+const _cnWho = n => ({ who: n, whos: (typeof agPoss === 'function') ? agPoss(n) : n + '\u2019s' });
+/* NEEDS YOU, WHOLE (round 23's gaps, 18 Oct 2026: the drawing's list holds
+   "a note due today" and "Sara's NDA request" beside each contract's items):
+   each contract's owed item (hbNeedsList, the checklist's own reading), a
+   note of yours that is due (mineNotesDue, My notes' own — the bell's
+   note-due) and a request nobody holds yet (intakeAlertRows, the bell's
+   request rows). The urgent first; within that, each list's own order. An
+   approval answered for somebody away carries whom for (approvalAnswersFor). */
+function cnRows(){
+  const out = cnNeeds().map(x => {
+    let fw = null;
+    if (x.it.kind === 'approval' && typeof approvalAnswersFor === 'function') try { fw = approvalAnswersFor(x.c); } catch (_){ fw = null; }
+    return { k: 'c', kind: x.it.kind, urgent: !!x.it.urgent, x, fw };
+  });
+  let notes = []; try { notes = (typeof mineNotesDue === 'function') ? (mineNotesDue() || []) : []; } catch (_){ notes = []; }
+  const today = _cnToday();
+  notes.forEach(n => out.push({ k: 'note', kind: 'mynote', urgent: String(n.reviewBy || '') < today, n }));
+  let reqs = []; try { reqs = (typeof intakeAlertRows === 'function') ? (intakeAlertRows() || []) : []; } catch (_){ reqs = []; }
+  reqs.forEach(r => out.push({ k: 'req', kind: 'request', urgent: false, r }));
+  return out.map((y, i) => ({ y, i })).sort((a, b) => (Number(b.y.urgent) - Number(a.y.urgent)) || (a.i - b.i)).map(o => o.y);
+}
 /* the number on "Needs you" is the rows under it: Jambo's work while he has
-   prepared any, each contract's item, and the admin's one row */
-function counterNeedsCount(){ return (cnWork().ready ? 1 : 0) + cnNeeds().length + ((cnSetup() || cnCompany().length) ? 1 : 0); }
+   prepared any, each owed row, and the admin's one row */
+function counterNeedsCount(){ return (cnWork().ready ? 1 : 0) + cnRows().length + ((cnSetup() || cnCompany().length) ? 1 : 0); }
 
 function cnFace(size, cls){ return (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', size, cls) : ''; }
 function cnJwRowHtml(A){
   const n = A.ready || 0;
   const who = [...new Set((A.rows || []).map(r => r.who || r.sum).filter(Boolean))].slice(0, 4);
   const open = _cnJwOpen && n > 0;
-  return `<div class="cn-r cn-jw${open ? ' is-open' : ''}">${cnFace(24, 'cn-r-face')}<div class="cn-w"><b>${_cnE(_cnT('cn_jw'))} <span class="cn-n">· ${_cnE(n ? _cnTn('cn_jw_n', n, { n }) : _cnT('cn_jw_none'))}</span></b><span>${_cnE(open ? _cnT('cn_jw_said') : n ? who.join(' · ') : _cnT('cn_jw_rest'))}</span></div><button type="button" class="ui-btn ui-btn-sm" data-cn-jw aria-expanded="${open ? 'true' : 'false'}">${_cnE(_cnT(open ? 'cn_close' : 'cn_open'))}</button></div>${open ? cnJwPiecesHtml(A) : ''}`;
+  /* open, it says in its head what the drawing says: "· 5 prepared · nothing
+     sent or filed until you press"; folded, whose work it is */
+  const lead = n ? _cnTn('cn_jw_n', n, { n }) : _cnT('cn_jw_none');
+  return `<div class="cn-r cn-jw${open ? ' is-open' : ''}">${cnFace(24, 'cn-r-face')}<div class="cn-w"><b>${_cnE(_cnT('cn_jw'))} <span class="cn-n">· ${_cnE(lead)}${open ? ' · ' + _cnE(_cnT('cn_jw_said')) : ''}</span></b>${open ? '' : `<span>${_cnE(n ? who.join(' · ') : _cnT('cn_jw_rest'))}</span>`}</div><button type="button" class="ui-btn ui-btn-sm" data-cn-jw aria-expanded="${open ? 'true' : 'false'}">${_cnE(_cnT(open ? 'cn_close' : 'cn_open'))}</button></div>${open ? cnJwPiecesHtml(A) : ''}`;
 }
 function cnJwPiecesHtml(A){
   const keys = (A.rows || []).flatMap(r => (r.items || []).map(x => x.key));
   const its = keys.map(k => (typeof agFind === 'function') ? agFind(k) : null).filter(Boolean);
   const shown = its.slice(0, CN_JW_MAX);
+  const T = (fn, it, d) => { try { return (typeof window[fn] === 'function') ? window[fn](it) : d; } catch (_){ return d; } };
   const row = it => {
-    let title = '', parts = {}, acts = '', body = '';
-    try { title = (typeof agPanelTitle === 'function') ? agPanelTitle(it) : ''; } catch (_){ title = ''; }
-    try { parts = (typeof agCardParts === 'function') ? agCardParts(it) : {}; } catch (_){ parts = {}; }
-    /* one filled button per area: on the Counter every act is the quiet one */
-    try { acts = (typeof agPanelActs === 'function') ? String(agPanelActs(it) || '').replace(/ui-btn ui-btn-primary/g, 'ui-btn') : ''; } catch (_){ acts = ''; }
     const look = _cnJwLook === it.key;
-    if (look) try { body = (typeof agPanelBody === 'function') ? agPanelBody(it) : ''; } catch (_){ body = ''; }
-    const ref = it.c ? ((typeof refHtml === 'function') ? refHtml(it.c) : _cnE((typeof contractRef === 'function') ? contractRef(it.c) : it.c.id)) : '';
+    const title = T('agPieceTitle', it, '') || (T('agPanelTitle', it, '') || '');
+    const line = T('agPieceLine', it, '') || ((T('agCardParts', it, {}) || {}).sum || '');
+    const ref = T('agPieceRefHtml', it, '');
+    const act = T('agRowActOf', it, null);
+    const body = look ? (T('agLookHtml', it, '') || T('agPanelBody', it, '')) : '';
+    const col = (typeof jhAgentColour === 'function') ? jhAgentColour(it.agent) : '';
+    const tag = `<span class="cn-jw-tag"${col ? ` style="--c:${_cnE(col)}"` : ''}><i aria-hidden="true"></i>${_cnE(_cnT('ag_' + it.agent))}</span>`;
+    /* ONE FILLED BUTTON PER AREA: the act is the quiet one, and the filled one
+       while its piece is open under Look (the open piece is the area) */
+    const actBtn = act ? `<button type="button" class="ui-btn ui-btn-sm${look ? ' ui-btn-primary' : ''}" data-ag-act="${_cnE(act.act)}">${_cnE(act.label)}</button>` : '';
+    const mail = look && (it.kind === 'chase' || it.kind === 'chase-firm');
     return `<div class="cn-jw-i${look ? ' is-look' : ''}" data-cn-ag-item="${_cnE(it.key)}"><div class="cn-jw-r">
-        <div class="cn-w"><b><span class="cn-jw-tag">${_cnE(_cnT('ag_' + it.agent))}</span> ${_cnE(title || parts.who || '')} ${ref}</b><span title="${_cnE(parts.sum || '')}">${_cnE(parts.sum || parts.who || '')}</span></div>
-        <div class="cn-jw-acts"><button type="button" class="ui-link" data-cn-look="${_cnE(it.key)}" aria-expanded="${look ? 'true' : 'false'}">${_cnE(_cnT(look ? 'cn_jw_look_close' : 'cn_jw_look'))}</button>${acts}</div></div>
-      ${look ? `<div class="cn-jw-body">${body}</div>` : ''}</div>`;
+        <div class="cn-w"><b class="cn-jw-t">${tag}<span class="cn-jw-name">${_cnE(title)}</span>${ref ? `<span class="cn-jw-ref">${ref}</span>` : ''}</b><span class="cn-jw-line" title="${_cnE(line)}">${_cnE(line)}</span></div>
+        <div class="cn-jw-acts"><button type="button" class="ui-link cn-jw-look${look ? ' is-on' : ''}" data-cn-look="${_cnE(it.key)}" aria-pressed="${look ? 'true' : 'false'}" aria-expanded="${look ? 'true' : 'false'}">${_cnE(_cnT('cn_jw_look'))}</button>${actBtn}<button type="button" class="ui-link" data-ag-act="away">${_cnE(_cnT('desk_discard'))}</button></div></div>
+      ${look ? `<div class="cn-jw-body${mail ? ' is-mail' : ''}">${body}</div>` : ''}</div>`;
   };
   const more = its.length - shown.length;
-  return `<div class="cn-jw-list" id="cn-jw-list">${shown.map(row).join('')}<div class="cn-jw-foot">${more > 0 ? `<span>${_cnE(_cnT('cn_jw_more', { n: more }))}</span>` : ''}<button type="button" class="ui-link" data-cn-house>${_cnE(_cnT('cn_jw_house'))}</button></div></div>`;
+  return `<div class="cn-jw-list" id="cn-jw-list">${shown.map(row).join('')}<div class="cn-jw-foot">${cnJwLevelsHtml()}<span class="cn-jw-sp"></span>${more > 0 ? `<span>${_cnE(_cnT('cn_jw_more', { n: more }))}</span>` : ''}<button type="button" class="ui-link" data-cn-house>${_cnE(_cnT('cn_jw_house'))}</button></div></div>`;
 }
-function cnNeedRowHtml(x){
-  const c = x.c, it = x.it;
-  const what = (typeof hbNyWhat === 'function') ? hbNyWhat(x) : '';
-  const when = (typeof hbNyWhen === 'function') ? hbNyWhen(x) : '';
-  const ref = (typeof refHtml === 'function') ? refHtml(c) : _cnE((typeof contractRef === 'function') ? contractRef(c) : c.id);
+/* "All seven agents: Ask me first · set by Sara for everyone · Ask an admin"
+   (round 23, "Open in place"): the levels the house keeps, in one line —
+   agLevelsSaid's reading; where a person chose their own, it says so. A
+   member asks an admin through the tracked ask (stAskFrom, the record
+   Settings' Ask an admin makes); an admin changes it where it is set. */
+function cnJwLevelsHtml(){
+  let L = null; try { L = (typeof agLevelsSaid === 'function') ? agLevelsSaid() : null; } catch (_){ L = null; }
+  if (!L || !L.groups || !L.groups.length) return '';
+  const lv = v => _cnT('st_agents_lv_' + v), ag = k => _cnT('ag_' + k);
+  const head = L.groups.length === 1
+    ? `${_cnE(L.n === 7 ? _cnT('cn_lv_all7') : _cnT('cn_lv_all', { n: L.n }))} <b>${_cnE(lv(L.groups[0].lv))}</b>`
+    : L.groups.map(g => `${_cnE(g.keys.length === 1 ? _cnT('cn_lv_one', { agent: ag(g.keys[0]) }) : _cnTn('cn_lv_n', g.keys.length, { n: g.keys.length }))} <b>${_cnE(lv(g.lv))}</b>`).join(' · ');
+  const names = L.by.map(b => b.you ? _cnT('cn_lv_you') : _cnFirst(b.name)).filter(Boolean);
+  const by = !names.length ? _cnT('cn_lv_start') : _cnT('cn_lv_by', { who: names.length < 2 ? names[0] : names.slice(0, -1).join(', ') + ' ' + _cnT('ag_ln_and') + ' ' + names[names.length - 1] });
+  const mine = !L.mine.length ? '' : L.mine.length === 1 ? _cnT('cn_lv_mine_k', { lv: lv(L.mine[0].lv), agent: ag(L.mine[0].k) }) : _cnTn('cn_lv_mine', L.mine.length, { n: L.mine.length });
+  const admin = typeof isAdmin === 'function' && isAdmin();
+  const door = admin ? `<button type="button" class="ui-link" data-cn-lv-change>${_cnE(_cnT('cn_lv_change'))}</button>`
+    : `<button type="button" class="ui-link" data-cn-lv-ask>${_cnE(_cnT('cn_lv_ask'))}</button>`;
+  return `<span class="cn-lv" data-cn-levels>${head} · ${_cnE(by)}${mine ? ' · ' + _cnE(mine) : ''}</span>${door}`;
+}
+/* ---- A ROW OF NEEDS YOU, AS DRAWN (round 23's gaps) ----
+   "Answer an approval for Jonas" (for Jonas · away until Friday) / "Power
+   purchase agreement · Helio Energy AB · SEK 8.1 M" / Open approval. The
+   title says the act, the line the agreement — its name, the party unless the
+   title already names it (a salary's job title, as the Pay section reads it),
+   the value where an approval or a signature turns on it, and how long it
+   has waited; the reference rides the hover. The button opens its page. */
+const CN_NEED_GO = { approval: 'cn_need_go_approval', refused: 'cn_need_go_approval', quiet: 'cn_need_go_redlines', review: 'cn_need_go_redlines',
+  suggest: 'cn_need_go_redlines', details: 'det_need_verb', look: 'cn_open' };
+function cnNeedVerb(kind){
+  if (CN_NEED_GO[kind]) return _cnT(CN_NEED_GO[kind]);
+  return (typeof INS_NEED_VERB !== 'undefined' && INS_NEED_VERB[kind]) ? _cnT(INS_NEED_VERB[kind]) : _cnT('cn_open');
+}
+function cnNeedTitle(y){
+  const x = y.x, it = x.it;
+  if (it.kind === 'approval') return y.fw ? _cnT('cn_need_approval_for', { who: _cnFirst(y.fw.name) }) : _cnT('cn_need_approval');
+  if (it.kind === 'details') return _cnTn('cn_need_details', it.n || 1, { n: it.n || 1 });
+  return (typeof hbNyWhat === 'function') ? hbNyWhat(x) : '';
+}
+/* a day said the way a person says it: its weekday within the week, else the date */
+function cnDayWords(iso){
+  const d = String(iso || '').slice(0, 10); if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return '';
+  const loc = (typeof langLocale === 'function') ? langLocale() : undefined;
+  const t = new Date(d + 'T00:00:00'), n = new Date(_cnToday() + 'T00:00:00');
+  const days = Math.round((t - n) / 864e5);
+  try { return (days >= 0 && days < 7) ? t.toLocaleDateString(loc, { weekday: 'long' }) : t.toLocaleDateString(loc, { day: 'numeric', month: 'short' }); } catch (_){ return d; }
+}
+function cnMayMoney(c){
+  if (!c || !(Number(c.value) > 0) || typeof fmtMoneyShortOf !== 'function') return false;
+  if (typeof canViewValues === 'function' && !canViewValues()) return false;
+  if (typeof isMonetary === 'function' && !isMonetary(c)) return false;
+  return !(typeof fxIsPay === 'function' && fxIsPay(c));
+}
+function cnNeedSub(y, title){
+  const x = y.x, c = x.c, it = x.it;
+  const bits = [];
+  if (c.name) bits.push(_cnE(c.name));
+  const pay = typeof fxIsPay === 'function' && fxIsPay(c);
+  const party = String((pay && c.metadata && c.metadata.jobTitle) || c.counterparty || '').trim();
+  if (party && !String(title).includes(party)) bits.push(_cnE(party));
+  if ((it.kind === 'approval' || it.kind === 'sign') && cnMayMoney(c)) bits.push(_cnE(fmtMoneyShortOf(c)));
+  const when = x.age != null ? (x.age > 0 ? _cnT('cn_waiting', { days: (typeof hbNyDays === 'function') ? hbNyDays(x.age) : x.age }) : '') : ((typeof hbNyWhen === 'function') ? hbNyWhen(x) : '');
+  if (when) bits.push(it.urgent ? `<span class="cn-late">${_cnE(when)}</span>` : _cnE(when));
+  return bits.join(' · ');
+}
+const _cnPill = (ic, words) => ` <span class="cn-pill">${(typeof icon === 'function') ? icon(ic, 'cn-pill-ic') : ''}${_cnE(words)}</span>`;
+function cnNeedRowHtml(y){
+  if (y.k === 'note') return cnNoteRowHtml(y);
+  if (y.k === 'req') return cnReqRowHtml(y);
+  const x = y.x, c = x.c, it = x.it;
+  const title = cnNeedTitle(y);
+  const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
   const priv = c.folder && typeof streamIsPrivate === 'function' && streamIsPrivate(c.folder)
-    ? ` <span class="cn-pill">${(typeof icon === 'function') ? icon('lock', 'cn-pill-ic') : ''}${_cnE(_cnT('cn_private', { stream: ((typeof FOLDERS !== 'undefined' && FOLDERS[c.folder]) || {}).name || '' }))}</span>` : '';
-  const verb = (typeof INS_NEED_VERB !== 'undefined' && INS_NEED_VERB[it.kind]) ? _cnT(INS_NEED_VERB[it.kind]) : _cnT('cn_open');
-  const sub = [ref + ' ' + _cnE(c.counterparty || ''), _cnE(c.name || ''), when ? (it.urgent ? `<span class="cn-late">${_cnE(when)}</span>` : _cnE(when)) : ''].filter(Boolean).join(' · ');
-  return `<div class="cn-r"><div class="cn-w"><b>${_cnE(what)}${priv}</b><span>${sub}</span></div><button type="button" class="ui-btn ui-btn-sm" data-cn-need="${_cnE(it.kind)}" data-cn-id="${_cnE(c.id)}">${_cnE(verb)}</button></div>`;
+    ? _cnPill('lock', _cnT('cn_private', { stream: ((typeof FOLDERS !== 'undefined' && FOLDERS[c.folder]) || {}).name || '' })) : '';
+  const away = y.fw ? _cnPill('users', y.fw.until ? _cnT('cn_need_away', { who: _cnFirst(y.fw.name), day: cnDayWords(y.fw.until) }) : _cnT('cn_need_for', { who: _cnFirst(y.fw.name) })) : '';
+  return `<div class="cn-r" title="${_cnE([ref, c.name].filter(Boolean).join(' · '))}"><div class="cn-w"><b>${_cnE(title)}${away}${priv}</b><span>${cnNeedSub(y, title)}</span></div><button type="button" class="ui-btn ui-btn-sm" data-cn-need="${_cnE(it.kind)}" data-cn-id="${_cnE(c.id)}">${_cnE(cnNeedVerb(it.kind))}</button></div>`;
+}
+/* a note of yours that is due: only you see it (My notes are private) */
+function cnNoteRowHtml(y){
+  const n = y.n, late = y.urgent;
+  const text = String(n.title || n.body || '').replace(/\s+/g, ' ').trim();
+  const c = n.contractId && typeof getContract === 'function' ? getContract(n.contractId) : null;
+  const sub = [text ? `“${_cnE(text.length > 90 ? text.slice(0, 89).replace(/\s+\S*$/, '') + '…' : text)}”` : '', c ? _cnE(c.name || '') : '', _cnE(_cnT('cn_need_note_only'))].filter(Boolean).join(' · ');
+  return `<div class="cn-r"><div class="cn-w"><b>${_cnE(late ? _cnT('cn_need_note_late', { day: cnDayWords(n.reviewBy) }) : _cnT('cn_need_note'))}</b><span>${sub}</span></div><button type="button" class="ui-btn ui-btn-sm" data-cn-note="${_cnE(n.id)}">${_cnE(_cnT('cn_need_go_note'))}</button></div>`;
+}
+/* a request nobody holds yet (the bell's), opened on Requests */
+function cnReqRowHtml(y){
+  const r = y.r || {}, who = (r.by && r.by.name) || '';
+  const t = Date.parse(String(r.createdAt || '')), age = isFinite(t) ? Math.max(0, Math.floor((Date.now() - t) / 864e5)) : null;
+  const sub = [r.counterparty ? _cnE(r.counterparty) : '', age ? _cnE(_cnT('cn_waiting', { days: (typeof hbNyDays === 'function') ? hbNyDays(age) : age })) : ''].filter(Boolean).join(' · ');
+  return `<div class="cn-r" title="${_cnE(String(r.id || ''))}"><div class="cn-w"><b>${_cnE(_cnT('cn_need_request', { ..._cnWho(_cnFirst(who)), title: r.title || '' }))}</b>${sub ? `<span>${sub}</span>` : ''}</div><button type="button" class="ui-btn ui-btn-sm" data-cn-req="${_cnE(String(r.id || ''))}">${_cnE(_cnT('cn_need_go_request'))}</button></div>`;
+}
+/* THE SHORT NAME OF A ROW — the lead chip, and the names "Show 3 more" says
+   ("a note due today · Baltic Freight's 3 details · Sara's NDA request") */
+function cnNeedShort(y){
+  if (y.k === 'note') return y.urgent ? _cnT('cn_sh_mynote_late') : _cnT('cn_sh_mynote');
+  if (y.k === 'req') return _cnT('cn_sh_request', _cnWho(_cnFirst((y.r && y.r.by && y.r.by.name) || '')));
+  const x = y.x, c = x.c, it = x.it, cp = String(c.counterparty || c.name || '').trim(), n = it.n || 1;
+  if (it.kind === 'approval') return y.fw ? _cnT('cn_sh_approval_for', _cnWho(_cnFirst(y.fw.name))) : _cnT('cn_sh_approval', { who: cp });
+  if (it.kind === 'quiet') return _cnTn('cn_sh_redlines', n, { ..._cnWho(cp), n });
+  if (it.kind === 'details') return _cnTn('cn_sh_details', n, { ..._cnWho(cp), n });
+  if (it.kind === 'renewal') return _cnT('cn_sh_renewal', _cnWho(cp));
+  if (it.kind === 'sign') return _cnT('cn_sh_sign', { who: cp });
+  if (['review', 'look', 'refused', 'join', 'note', 'suggest'].includes(it.kind) && it.who) return _cnT('cn_sh_' + it.kind, _cnWho(_cnFirst(it.who)));
+  const w = (typeof hbNyWhat === 'function') ? hbNyWhat(x) : '';
+  return w ? w.charAt(0).toLowerCase() + w.slice(1) : '';
+}
+/* a row's own door, as data attributes: the lead chip presses the same one */
+function cnNeedDoorAttrs(y){
+  if (y.k === 'note') return `data-cn-note="${_cnE(y.n.id)}"`;
+  if (y.k === 'req') return `data-cn-req="${_cnE(String((y.r && y.r.id) || ''))}"`;
+  return `data-cn-need="${_cnE(y.x.it.kind)}" data-cn-id="${_cnE(y.x.c.id)}"`;
 }
 function cnCompanyRowHtml(R){
   const sub = R.slice(0, 3).map(r => String(r.text || '').trim()).filter(Boolean).join(' · ');
@@ -282,31 +425,46 @@ function cnCompanyRowHtml(R){
 function cnSetupRowHtml(n){
   return `<div class="cn-r cn-co"><span class="cn-co-ic" aria-hidden="true">${(typeof icon === 'function') ? icon('building', 'cn-pill-ic') : ''}</span><div class="cn-w"><b>${_cnE(_cnTn('hb_setup_left', n, { n }))}</b></div><button type="button" class="ui-btn ui-btn-sm" data-cn-setup>${_cnE(_cnT('cn_open'))}</button></div>`;
 }
-function cnChipsHtml(A){
+/* THE CHIPS, AS DRAWN ("Jonas's approval · contracts · calendar · draft a new
+   agreement"): what is owed first leads — the first row's short name, its
+   press the row's own door — then the three places */
+function cnChipsHtml(rows){
   const w = k => _cnT(k);
-  const L = (A.ready ? [[w('ca_w_work'), 1]] : []).concat([[w('nav_contracts').toLowerCase()], [w('ca_w_calendar')], [w('ca_wall_draft')], [w('ca_wall_upload')]]);
-  return L.map(([word, lead]) => `<button type="button" class="cn-chip${lead ? ' is-lead' : ''}" data-cn-ask="${_cnE(word)}">${_cnE(word)}</button>`).join('');
+  const first = (rows || [])[0];
+  const lead = first ? cnNeedShort(first) : '';
+  return (lead ? `<button type="button" class="cn-chip is-lead" ${cnNeedDoorAttrs(first)}>${_cnE(lead)}</button>` : '')
+    + [w('nav_contracts').toLowerCase(), w('ca_w_calendar'), w('ca_wall_draft')].map(word => `<button type="button" class="cn-chip" data-cn-ask="${_cnE(word)}">${_cnE(word)}</button>`).join('');
 }
 function counterHtml(){
   const me = (typeof currentUser === 'function') ? currentUser() : null;
   const name = String((me && me.name) || '').trim().split(/\s+/)[0] || _cnT('home_greet_there');
-  const A = cnWork(), N = cnNeeds(), R = cnCompany(), S = cnSetup();
+  const A = cnWork(), N = cnRows(), R = cnCompany(), S = cnSetup();
   const n = (A.ready ? 1 : 0) + N.length + ((S || R.length) ? 1 : 0);
   const shown = _cnAll ? N : N.slice(0, CN_ROWS);
   const quiet = !N.length && !R.length && !S;
-  const rows = cnJwRowHtml(A) + shown.map(cnNeedRowHtml).join('') + (S ? cnSetupRowHtml(S) : R.length ? cnCompanyRowHtml(R) : '')
+  const rows = cnJwRowHtml(A) + shown.map(cnNeedRowHtml).join('');
+  const after = (S ? cnSetupRowHtml(S) : R.length ? cnCompanyRowHtml(R) : '')
     + (quiet ? `<div class="cn-r"><div class="cn-w"><b>${_cnE(_cnT('cn_nothing'))}</b></div></div>` : '');
-  const more = N.length > CN_ROWS ? `<div class="cn-foot"><button type="button" class="ui-link" data-cn-all aria-expanded="${_cnAll}">${_cnE(_cnAll ? _cnT('cn_show_fewer') : _cnT('cn_show_all', { n: N.length }))}</button></div>` : '';
+  /* "Show 3 more · a note due today · Baltic Freight's 3 details · Sara's NDA
+     request": what waits behind the press, by name (A CAP IS A FACT) */
+  const hid = N.slice(CN_ROWS);
+  const names = hid.slice(0, 3).map(cnNeedShort).filter(Boolean);
+  const said = names.join(' · ') + (hid.length > 3 ? ' · ' + _cnT('cn_and_more', { n: hid.length - 3 }) : '');
+  const more = N.length > CN_ROWS ? `<div class="cn-foot"><button type="button" class="ui-link" data-cn-all aria-expanded="${_cnAll}">${_cnE(_cnAll ? _cnT('cn_show_fewer') : _cnTn('cn_show_more', hid.length, { n: hid.length }))}</button>${_cnAll ? '' : `<span class="cn-foot-said">${_cnE(said)}</span>`}</div>` : '';
   const open = quiet ? dkTabs().slice().sort((a, b) => (b.at || 0) - (a.at || 0)).filter(t => deskTabLabel(t.k)).slice(0, CN_PICK_UP) : [];
   const pick = open.length ? `<section class="cn-card"><header class="cn-h"><span class="cn-t">${_cnE(_cnT('cn_pick_up'))}</span></header>${open.map(t =>
     `<div class="cn-r"><div class="cn-w"><b>${_cnE(deskTabLabel(t.k))}</b></div><button type="button" class="ui-btn ui-btn-sm" data-dk-go="${_cnE(t.k)}">${_cnE(_cnT('cn_open'))}</button></div>`).join('')}</section>` : '';
+  _cnSig = cnSig(N, A);
   return `<div class="cn-page" id="cn-page"><div class="cn-in">
     <section class="cn-card cn-ask">${cnFace(40, 'cn-face')}<h1>${_cnE(_cnT('cn_hello', { name }))}</h1>
       <div class="cn-wrap"><div class="cn-box"><input id="cn-q" type="text" autocomplete="off" spellcheck="false" placeholder="${_cnE(_cnT('cn_box_ph'))}" aria-label="${_cnE(_cnT('cn_box_label'))}"><button type="button" class="ui-btn ui-btn-primary" data-cn-send>${_cnE(_cnT('cn_ask'))}</button></div><div class="ca-pop cn-pop" id="cn-pop" hidden></div></div>
-      <div class="cn-chips">${cnChipsHtml(A)}</div></section>
-    <section class="cn-card cn-needs" id="cn-needs"><header class="cn-h"><span class="cn-t">${_cnE(_cnT('hb_ny_title'))}</span><span class="cn-cnt">${n}</span>${n ? `<span class="cn-hint">${_cnE(_cnT('cn_needs_hint'))}</span>` : ''}</header>${rows}${more}</section>
+      <div class="cn-chips" id="cn-chips">${cnChipsHtml(N)}</div></section>
+    <section class="cn-card cn-needs" id="cn-needs"><header class="cn-h"><span class="cn-t">${_cnE(_cnT('hb_ny_title'))}</span><span class="cn-cnt">${n}</span>${n ? `<span class="cn-hint">${_cnE(_cnT('cn_needs_hint'))}</span>` : ''}</header>${rows}${more}${after}</section>
     ${pick}</div></div>`;
 }
+/* what the card was drawn from, so a list that arrives later redraws it once */
+let _cnSig = '';
+function cnSig(N, A){ return [(A && A.ready) || 0, (A && A.rows || []).map(r => (r.items || []).map(i => i.key).join(',')).join(';'), N.map(y => y.k + ':' + y.kind + ':' + (y.x ? y.x.c.id : y.n ? y.n.id : y.r ? y.r.id : '')).join(',')].join('|'); }
 function renderCounter(){
   const host = document.getElementById('content'); if (!host) return;
   _cnPop = null;
@@ -314,6 +472,15 @@ function renderCounter(){
   /* the box takes the keys straight away where there is a keyboard to type with */
   let fine = false; try { fine = !!(window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches); } catch (_){ fine = false; }
   if (fine) setTimeout(() => { const q = document.getElementById('cn-q'); if (q && state.view === 'counter') try { q.focus({ preventScroll: true }); } catch (_){} }, 0);
+  /* WHEN SOMETHING LOADS, SOMETHING MOVES: a note due, a request, the agents'
+     levels that arrive after the first paint are drawn when they come */
+  if (typeof mineLoad === 'function') try { mineLoad().then(counterFollow, () => {}); } catch (_){}
+  cnStatusWanted();
+}
+/* the agents' levels ride the agents' status, asked once a sitting */
+function cnStatusWanted(){
+  if (!_cnJwOpen || typeof agentsStatus !== 'function' || agentsStatus() || typeof agentsStatusLoad !== 'function') return;
+  try { agentsStatusLoad().then(() => counterRepaint(), () => {}); } catch (_){}
 }
 /* the list's own data moved (a save, a new item): only the Needs card is drawn again */
 function counterRepaint(){
@@ -321,6 +488,15 @@ function counterRepaint(){
   const card = document.getElementById('cn-needs'); if (!card) return;
   const t = document.createElement('div'); t.innerHTML = counterHtml();
   const fresh = t.querySelector('#cn-needs'); if (fresh) card.replaceWith(fresh);
+  const chips = document.getElementById('cn-chips'), fc = t.querySelector('#cn-chips');
+  if (chips && fc && chips.innerHTML !== fc.innerHTML) chips.innerHTML = fc.innerHTML;
+}
+/* asked after the side's counts are worked out (updateSidebarCounts) and when
+   My notes arrive: the Counter is drawn again only where what it lists moved */
+function counterFollow(){
+  if (typeof state === 'undefined' || !state || state.view !== 'counter' || !document.getElementById('cn-needs')) return;
+  let sig = ''; try { sig = cnSig(cnRows(), cnWork()); } catch (_){ return; }
+  if (sig !== _cnSig) counterRepaint();
 }
 
 /* THE BOX: a place opens on the desk; anything else is Jambo's, beside the page */
@@ -386,12 +562,19 @@ if (typeof document !== 'undefined' && !window._cnWired){
     if (_cnPop && !t.closest('.cn-wrap')) counterPopClose();
     if ((el = t.closest('[data-cn-send]'))){ const q = document.getElementById('cn-q'); if (q){ const v = q.value; q.value = ''; counterPopClose(); counterAsk(v); } return; }
     if ((el = t.closest('[data-cn-ask]'))){ counterAsk(el.getAttribute('data-cn-ask')); return; }
-    if ((el = t.closest('[data-cn-jw]'))){ _cnJwOpen = !_cnJwOpen; _cnJwLook = null; counterRepaint(); return; }
+    if ((el = t.closest('[data-cn-jw]'))){ _cnJwOpen = !_cnJwOpen; _cnJwLook = null; counterRepaint(); cnStatusWanted(); return; }
     if ((el = t.closest('[data-cn-look]'))){ const k = el.getAttribute('data-cn-look'); _cnJwLook = _cnJwLook === k ? null : k; counterRepaint(); return; }
     if ((el = t.closest('[data-cn-ag-item] [data-ag-act]'))){ const k = el.closest('[data-cn-ag-item]').getAttribute('data-cn-ag-item');
       if (typeof agRunAct === 'function'){ let r = null; try { r = agRunAct(k, el.getAttribute('data-ag-act')); } catch (_){ r = null; }
         Promise.resolve(r).then(() => setTimeout(counterRepaint, 0), () => setTimeout(counterRepaint, 0)); } return; }
     if ((el = t.closest('[data-cn-house]'))){ if (typeof setView === 'function') setView('jambo'); return; }
+    /* how far the agents may go: a member asks an admin (the tracked ask on
+       Settings, stAskFrom — the record, the admin's Needs you and bell); an
+       admin opens the agents' own settings, where the level is set */
+    if (t.closest('[data-cn-lv-ask]')){ if (typeof stAskFrom === 'function') stAskFrom('agents', _cnT('cn_lv_ask_words')); return; }
+    if (t.closest('[data-cn-lv-change]')){ if (typeof openSettingsAt === 'function') openSettingsAt('company', 'agents'); return; }
+    if ((el = t.closest('[data-cn-note]'))){ if (typeof myNotesOpen === 'function') myNotesOpen(el.getAttribute('data-cn-note')); return; }
+    if ((el = t.closest('[data-cn-req]'))){ if (typeof intakeGoTo === 'function') intakeGoTo(el.getAttribute('data-cn-req')); return; }
     if ((el = t.closest('[data-cn-need]'))){ if (typeof hbNeedsPress === 'function') hbNeedsPress(el.getAttribute('data-cn-need'), el.getAttribute('data-cn-id')); return; }
     if (t.closest('[data-cn-setup]')){ if (typeof hbSetupGo === 'function') hbSetupGo(); return; }
     if ((el = t.closest('[data-cn-co]'))){ if (typeof openSettingsAt === 'function') openSettingsAt('company'); return; }
@@ -421,5 +604,5 @@ if (typeof document !== 'undefined' && !window._cnWired){
   });
 }
 
-Object.assign(window, { cnJwPiecesHtml, CN_JW_MAX, deskShellOn, DK_KEY, DK_SHOW, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskTabsSync, deskTabsHtml, deskTabsPaint, deskTabOpen, deskTabClose, deskGoCounter,
+Object.assign(window, { cnJwPiecesHtml, cnJwLevelsHtml, cnRows, cnNeedShort, counterFollow, CN_JW_MAX, deskShellOn, DK_KEY, DK_SHOW, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskTabsSync, deskTabsHtml, deskTabsPaint, deskTabOpen, deskTabClose, deskGoCounter,
   CN_ROWS, renderCounter, counterHtml, counterRepaint, counterAsk, counterNeedsCount, counterPopRead, counterPopClose });

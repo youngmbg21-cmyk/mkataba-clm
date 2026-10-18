@@ -199,12 +199,18 @@ function deskDismissed(c, key){
    Home's Put away and Put away all, the Copilot's work page — so none of
    them learns what a subject is. A stamp that is still in force refuses a
    second press; one left over from an earlier subject is replaced. */
-function deskDismiss(c, key){
+/* AND ITS UNDO, THROUGH THE SAME WRITER (round 23's gaps, 18 Oct 2026: Put
+   away offers Undo for a few seconds): `{ undo: true }` takes back off the
+   stamp still in force — one lapsed is no press of this sitting's — and the
+   one save carries it, as it carried the stamp. */
+function deskDismiss(c, key, opts){
   if(!c || !key) return false;
   if(typeof canEdit === 'function' && !canEdit()) return false;
   if(!c.desk || typeof c.desk !== 'object') c.desk = {};
-  if(deskDismissed(c, key)) return false;
-  c.desk[key] = { at: (typeof nowISO === 'function') ? nowISO() : new Date().toISOString(),
+  const undo = !!(opts && opts.undo);
+  if(undo ? !deskDismissed(c, key) : deskDismissed(c, key)) return false;
+  if(undo) delete c.desk[key];
+  else c.desk[key] = { at: (typeof nowISO === 'function') ? nowISO() : new Date().toISOString(),
     on: deskSubjectOf(c, key) };
   if(typeof persist === 'function') persist(c);
   return true;

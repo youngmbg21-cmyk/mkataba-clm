@@ -71,6 +71,16 @@ const JH_SPARE = [['#9333ea', 'top'], ['#0891b2', 'safari'], ['#65a30d', 'hard']
 /* The order of the rooms: the work's own path through the house, ground floor
    first — what comes in, what is read, what is negotiated, what is kept. */
 const JH_ORDER = ['request', 'paper', 'import', 'round', 'approve', 'link', 'late', 'ours', 'quiet', 'week', 'renew'];
+/* EACH AGENT'S COLOUR, READ ONCE FOR EVERY DRAWING (round 23's gaps, 18 Oct
+   2026): the Counter tags each prepared piece with its room's colour, as the
+   drawing does, from this table — so a piece and its room are one colour. A
+   new agent takes its spare in JH_ORDER's turn, as the house gives it. */
+function jhAgentColour(k){
+  if (JH_LOOK[k]) return JH_LOOK[k][0];
+  const extra = JH_ORDER.filter(x => !JH_LOOK[x]).indexOf(k);
+  return extra >= 0 ? JH_SPARE[extra % JH_SPARE.length][0] : '';
+}
+Object.assign(window, { jhAgentColour });
 
 const _jhE = s => (typeof esc === 'function') ? esc(s)
   : String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));

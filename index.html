@@ -14461,16 +14461,32 @@
   .cn-jw-i{border-top:1px solid var(--color-divider);padding:8px 16px 8px 52px}
   .cn-jw-r{display:flex;align-items:center;gap:12px}
   .cn-jw-r .cn-w{flex:1;min-width:0}
-  .cn-jw-tag{display:inline-block;margin-right:6px;padding:0 6px;border-radius:3px;background:var(--color-surface);border:1px solid var(--color-divider);font-size:var(--t-micro);font-weight:var(--w-label);color:var(--color-neutral-600);vertical-align:1px}
+  /* AS DRAWN (round 23's gaps, 18 Oct 2026): the agent's tag is its room's colour and its name, no box;
+     what it is, bold; its reference quiet; one line under, clipped — whole while it is open under Look */
+  .cn-w b.cn-jw-t{gap:6px 8px;flex-wrap:nowrap;min-width:0}
+  .cn-jw-t > .cn-jw-tag,.cn-jw-t > .cn-jw-ref{flex:none}
+  .cn-jw-tag{display:inline-flex;align-items:center;gap:5px;font-size:var(--t-micro);font-weight:400;color:var(--color-neutral-600);white-space:nowrap}
+  .cn-jw-tag i{width:8px;height:8px;border-radius:2px;background:var(--c,var(--color-neutral-400));flex:none}
+  .cn-jw-name{font-weight:var(--w-strong);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cn-jw-ref{font-weight:400;font-size:var(--t-label);color:var(--color-neutral-600)}
+  .cn-jw-i.is-look .cn-w > .cn-jw-line{white-space:normal}
+  .cn-jw-acts .cn-jw-look.is-on{background:color-mix(in srgb,var(--accent-solid) 10%,transparent)}
+  .cn-jw-body.is-mail{padding:0;background:none;border:0;border-radius:0}
+  .cn-jw-body.is-mail .ag-mail{background:var(--color-surface)}
+  .cn-jw-body.is-mail .cn-mail-foot{margin-top:8px}
   .cn-jw-acts{display:flex;align-items:center;gap:8px;flex:none;flex-wrap:wrap;justify-content:flex-end}
   .cn-jw-acts .ui-btn{height:var(--ctl-h-sm);padding:0 10px;font-size:var(--t-label)}
   .cn-jw-body{margin-top:8px;padding:12px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg)}
-  .cn-jw-foot{display:flex;justify-content:flex-end;gap:12px;align-items:center;padding:8px 16px;border-top:1px solid var(--color-divider);font-size:var(--t-meta);color:var(--color-neutral-600)}
+  .cn-jw-foot{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;padding:8px 16px 8px 52px;border-top:1px solid var(--color-divider);font-size:var(--t-meta);color:var(--color-neutral-600)}
+  .cn-jw-foot .cn-lv b{font-weight:var(--w-strong);color:var(--color-text)}
+  .cn-jw-sp{flex:1 1 0;min-width:0}
   .cn-pill{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:10px;font-size:var(--t-micro);font-weight:400;background:var(--surface-2);color:var(--color-neutral-600);border:1px solid var(--color-divider)}
   .cn-pill-ic{width:11px;height:11px}
   .cn-co-ic{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--color-accent-100);color:var(--accent-ink);flex:none}
   .cn-co-ic .cn-pill-ic{width:14px;height:14px}
-  .cn-foot{padding:8px 16px;border-top:1px solid var(--color-divider)}
+  .cn-foot{display:flex;align-items:center;gap:12px;padding:8px 16px;border-bottom:1px solid var(--color-divider)}
+  .cn-foot:last-child{border-bottom:0}
+  .cn-foot-said{flex:1;min-width:0;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 </style>
 
 

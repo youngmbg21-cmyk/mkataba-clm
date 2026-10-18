@@ -52,10 +52,19 @@ function counter(pieces){
     agPanelActs: () => '<button type="button" class="ui-btn ui-btn-primary" data-ag-act="overview">Open</button><button type="button" class="ui-link" data-ag-act="away">Put away</button>',
     agPanelBody: it => '<p class="body">Body of ' + it.key + '</p>',
     refHtml: c => '<span class="ref">' + c.id + '</span>',
+    /* RE-POINTED 18 Oct 2026 (round 23's gaps, the drawing built whole): the
+       row draws its piece's few words, reference and one sentence, and ONE act
+       (agRowActOf) beside Look and Put away; under the pieces, the levels line */
+    agPieceTitle: it => 'Title ' + it.key, agPieceLine: it => 'Sum of ' + it.key,
+    agPieceRefHtml: it => '<span class="ref">' + it.c.id + '</span>',
+    agRowActOf: () => ({ act: 'overview', label: 'Open', cls: 'lead' }),
+    agLookHtml: it => '<p class="body">Body of ' + it.key + '</p>',
+    agLevelsSaid: () => null,
   };
+  ctx.window = ctx;
   vm.createContext(ctx);
-  const src = ['_cnE', '_cnT', '_cnTn'].map(n => constLine(CN, n)).join('\n') + '\nlet _cnJwOpen = false, _cnJwLook = null;\n' + constLine(CN, 'CN_JW_MAX')
-    + fnBody(CN, 'cnFace') + fnBody(CN, 'cnJwRowHtml') + fnBody(CN, 'cnJwPiecesHtml')
+  const src = ['_cnE', '_cnT', '_cnTn', '_cnFirst'].map(n => constLine(CN, n)).join('\n') + '\nlet _cnJwOpen = false, _cnJwLook = null;\n' + constLine(CN, 'CN_JW_MAX')
+    + fnBody(CN, 'cnFace') + fnBody(CN, 'cnJwRowHtml') + fnBody(CN, 'cnJwPiecesHtml') + fnBody(CN, 'cnJwLevelsHtml')
     + ';this.set=(o,l)=>{_cnJwOpen=o;_cnJwLook=l;};this.max=()=>CN_JW_MAX;';
   vm.runInContext(src, ctx);
   return ctx;
@@ -75,23 +84,29 @@ describe('f724 (1) Jambo\'s work opens in place', () => {
     assert.match(open, /data-cn-jw aria-expanded="true">Close</);
     assert.equal((open.match(/data-cn-ag-item="/g) || []).length, 2);
     assert.match(open, new RegExp(BOOKS.en.cn_jw_said), 'it says nothing goes until a press');
-    assert.match(open, /<span class="cn-jw-tag">[^<]+<\/span> Title k0 <span class="ref">MK-0<\/span>/, 'its agent, what it is, the contract');
+    /* RE-POINTED 18 Oct 2026: the tag wears its room's colour square, and the
+       reference sits after what the piece is, as drawn */
+    assert.match(open, /<span class="cn-jw-tag"><i aria-hidden="true"><\/i>[^<]+<\/span><span class="cn-jw-name">Title k0<\/span><span class="cn-jw-ref"><span class="ref">MK-0<\/span><\/span>/, 'its agent, what it is, the contract');
     assert.match(open, /data-cn-house>/, 'the house one link away');
   });
-  test('1b each piece carries Look and the house\'s own acts, every one the quiet button', () => {
+  /* RE-POINTED 18 Oct 2026 (round 23's gaps): "Look · its act · Put away" —
+     the ONE act agRowActOf names, and Put away on every piece; Look stays
+     "Look", pressed, while the piece is open, and its act is the filled one */
+  test('1b each piece carries Look, its one act and Put away, every one the quiet button', () => {
     const w = counter(P(1)); w.set(true, null);
     const html = w.cnJwRowHtml(A(1));
-    assert.match(html, /data-cn-look="k0" aria-expanded="false">Look</);
-    assert.match(html, /data-ag-act="overview"/);
+    assert.match(html, /data-cn-look="k0" aria-pressed="false" aria-expanded="false">Look</);
+    assert.equal((html.match(/data-ag-act="overview"/g) || []).length, 1);
     assert.match(html, /data-ag-act="away">Put away</);
     assert.doesNotMatch(html, /ui-btn-primary/, 'one filled button per area');
   });
-  test('1c Look opens the piece\'s whole body under its row; Hide puts it back', () => {
+  test('1c Look opens the piece\'s whole body under its row; Look again puts it back', () => {
     const w = counter(P(2)); w.set(true, 'k1');
     const html = w.cnJwRowHtml(A(2));
-    assert.match(html, /data-cn-look="k1" aria-expanded="true">Hide</);
+    assert.match(html, /data-cn-look="k1" aria-pressed="true" aria-expanded="true">Look</);
     assert.match(html, /<div class="cn-jw-body"><p class="body">Body of k1<\/p><\/div>/);
     assert.doesNotMatch(html, /Body of k0/);
+    assert.equal((html.match(/ui-btn-primary/g) || []).length, 1, 'the open piece\'s act is the one filled button');
   });
   test('1d past the cap the rest wait in the house, and it says how many', () => {
     const max = counter([]).max();

@@ -157,3 +157,42 @@ function signerTurnMailOf(o){
 const SHARE_MAIL_API = { SHARE_MAIL_NOTE_MAX, shareMailNoteHead, shareMailOf, shareWaTextOf, signerTurnMailOf };
 if (typeof window !== 'undefined') Object.assign(window, SHARE_MAIL_API);
 if (typeof module !== 'undefined' && module.exports) module.exports = SHARE_MAIL_API;
+
+/* ============================================================
+   THE CHASE — A REMINDER ABOUT A PROMISE OF THEIRS, WRITTEN ONCE
+   (round 23's gaps, 18 Oct 2026, the owner's "build all the gaps": Look on
+   a chase shows the email whole — To, Subject, the body, signed by the
+   person who sends it)
+   ============================================================
+   The Counter's Look draws the chase the other side will get, and POST
+   /api/contracts/:id/chase mails it (srvChaseSend). One letter, two hosts,
+   so the screen cannot promise one sentence while the inbox receives
+   another. The words are the books' (mail_ob_chase_*): `t` is the host's
+   translator for the RECIPIENT's language, and the days arrive already in
+   words in that language. `dated` says whether the promise has a due day
+   at all (an undated one has its own sentence); `soon` that the day has
+   not come yet ("is due on", never "was due on"). `link` is the standing
+   link they already hold (null where none: no line). The letter is signed
+   by `sender`, the person pressing, for `party`, our company on this
+   agreement (c.party, else the workspace) — as drawn; with nobody pressing
+   the automated notice stands where the name would.
+   o = { t, firm, dated, soon, vars:{ desc, name, id, due, first }, link, sender, party } */
+function chaseMailOf(o){
+  const x = o || {};
+  const t = typeof x.t === 'function' ? x.t : (k => k);
+  const v = x.vars || {};
+  const firm = !!x.firm, soon = x.dated && x.soon ? '_soon' : '';
+  const line = firm ? t(x.dated ? 'mail_ob_chase_firm_line' + soon : 'mail_ob_chase_firm_line_nodate', v)
+    : t(x.dated ? 'mail_ob_chase_line' + soon : 'mail_ob_chase_line_nodate', v);
+  const link = x.link ? String(x.link) : null;
+  const who = String(x.sender || '').trim();
+  const parts = [{ k: 'hello', t: `${t('mail_hello')},` }, { k: 'say', t: line }];
+  if (link) parts.push({ k: 'say', t: t('mail_ob_chase_open'), open: true }, { k: 'link', t: link });
+  parts.push(who ? { k: 'sign', t: [who, String(x.party || '').trim()].filter(Boolean).join(', ') }
+    : { k: 'foot', t: t('mail_automated_notice') });
+  const body = `${parts[0].t}\n\n${line}` + (link ? `\n\n${t('mail_ob_chase_open')}\n${link}` : '') + `\n\n${parts[parts.length - 1].t}`;
+  return { subject: t(firm ? 'mail_ob_chase_firm_subject' : 'mail_ob_chase_subject', v), parts, body };
+}
+const CHASE_MAIL_API = { chaseMailOf };
+if (typeof window !== 'undefined') Object.assign(window, CHASE_MAIL_API);
+if (typeof module !== 'undefined' && module.exports) Object.assign(module.exports, CHASE_MAIL_API);
