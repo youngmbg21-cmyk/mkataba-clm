@@ -49,6 +49,8 @@ const check = (name, pass, detail) => {
   catch (e) { cnSet = String(e && e.message).slice(0, 160); }
   console.log('code name: ' + cnSet);
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
+  /* a route the server may not have reports, never stops the run (a missing feature reads red) */
+  const getJ = async (c, p, o) => { try { return await c.json(p, o); } catch (e) { return { _err: e.status || String(e && e.message) }; } };
   const errors = [];
   const open = async (email, pass) => {
     const page = await (await browser.newContext({ viewport: { width: 1440, height: 780 } })).newPage();
@@ -90,7 +92,7 @@ const check = (name, pass, detail) => {
       await a.press('#ig-dock [data-ig-pin-go]');
     }
     await A.waitForTimeout(600);
-    const got1 = await W.admin.json('/api/findings');
+    const got1 = await getJ(W.admin, '/api/findings');
     const f1 = ((got1 && got1.findings) || []).find(f => f.title === 'Project Falcon Supply and the three streams');
     check('1c the finding is kept on the server: its title, note, the three streams it is counted in, every contract on the map',
       !!f1 && f1.note === 'Fix the caps at renewal' && f1.parts.length === 3 && f1.ids.length === BOOK.length && f1.view === 0 && !f1.partial,
@@ -105,12 +107,12 @@ const check = (name, pass, detail) => {
     await a.press('#ig-dock [data-ig-pin-open]');
     if (await A.locator('#ig-pin-t').count()) { await A.fill('#ig-pin-t', 'Manufacturing alone'); await a.press('#ig-dock [data-ig-pin-go]'); }
     await A.waitForTimeout(600);
-    const got2 = await W.admin.json('/api/findings');
+    const got2 = await getJ(W.admin, '/api/findings');
     const f2 = ((got2 && got2.findings) || []).find(f => f.title === 'Manufacturing alone');
     check('1e a finding narrowed to one stream keeps only that stream\'s contracts', !!f2 && f2.ids.length === BOOK.filter(c => c.folder === 'mfg').length, JSON.stringify(f2 && f2.ids.length));
 
     /* ================= 2. THE WALL: COUNTED FOR EACH READER ==================== */
-    const r2 = await W.restricted.json('/api/findings');
+    const r2 = await getJ(W.restricted, '/api/findings');
     const rf1 = ((r2 && r2.findings) || []).find(f => f1 && f.id === f1.id), rf2 = ((r2 && r2.findings) || []).find(f => f2 && f.id === f2.id);
     check('2a a colleague who can see only Procurement gets the first finding with only Procurement\'s contracts, said to be partial, its sentence held back, and no part named that holds none of theirs',
       !!rf1 && rf1.partial === true && rf1.said === null && JSON.stringify(rf1.ids.slice().sort()) === JSON.stringify(PROC)
@@ -152,7 +154,7 @@ const check = (name, pass, detail) => {
     if (rf1) { await r.press(`#ig-fd [data-ig-fd-ui="${rf1.id}:reply"]`);
       if (await R.locator(`#ig-fd-rt-${rf1.id}`).count()) { await R.fill(`#ig-fd-rt-${rf1.id}`, 'Yes, I will raise the caps in March.'); await r.press(`#ig-fd [data-ig-fd-reply="${rf1.id}"]`); } }
     await R.waitForTimeout(800);
-    const after = await W.admin.json('/api/findings');
+    const after = await getJ(W.admin, '/api/findings');
     const sd = ((after && after.sends) || []).find(s => f1 && s.findingId === f1.id);
     check('3e their reply answers the question: the hand-off is closed on the server, the reply under the finding',
       !!sd && sd.status === 'answered' && ((after.findings || []).find(f => f1 && f.id === f1.id) || { notes: [] }).notes.some(n => /raise the caps in March/.test(n.text)), JSON.stringify(sd && sd.status));
