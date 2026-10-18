@@ -1273,7 +1273,7 @@ function renderMigration(){
              and the panel side by side; on a narrow window the panel follows */}
       .mig-cols{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:var(--s-3);align-items:start}
       @media (max-width:1180px){ .mig-cols{grid-template-columns:minmax(0,1fr)} }
-      .mig-side{position:sticky;top:var(--s-3);display:flex;flex-direction:column;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;max-height:calc(100vh - 140px)}
+      .mig-side{position:sticky;top:var(--s-3);display:flex;flex-direction:column;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;max-height:calc(var(--view-h,100vh) - 2 * var(--s-3) - 8px)}
       @media (max-width:1180px){ .mig-side{position:static;max-height:none} }
       .mig-side-main{flex:1;min-height:0;display:flex;flex-direction:column}
       .mig-side .jl-feed{padding:8px 0 0}

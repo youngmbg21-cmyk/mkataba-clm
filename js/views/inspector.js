@@ -1212,15 +1212,15 @@ function jlNeedsHtml(c, opt){
   items = items.filter(x => x && INS_NEED_VERB[x.kind] && !leave.has(x.kind));
   _jlNeedRuns = {};
   if (!rows.length && !items.length) return '';
-  const row = (tone, title, sub, plain, btn) => `<div class="jl-need-r is-${tone}"><i class="jl-need-dot" aria-hidden="true"></i><div class="jl-need-b"><div class="jl-need-t" title="${esc(title)}">${esc(title)}</div>${
+  const row = (attr, tone, title, sub, plain, btn) => `<div class="jl-need-r is-${tone}" ${attr}><i class="jl-need-dot" aria-hidden="true"></i><div class="jl-need-b"><div class="jl-need-t" title="${esc(title)}">${esc(title)}</div>${
     sub ? `<div class="jl-need-s" title="${esc(plain || '')}">${sub}</div>` : ''}</div>${btn}</div>`;
   const html = rows.map(r => {
     _jlNeedRuns[r.k] = r.run;
-    return row(r.urgent ? 'ruby' : 'amber', r.title, r.sub || '', r.plain || '',
+    return row(`data-jl-need-row="${esc(r.k)}"`, r.urgent ? 'ruby' : 'amber', r.title, r.sub || '', r.plain || '',
       `<button type="button" class="ui-btn ui-btn-sm jl-need-go" data-jl-need="${esc(r.k)}"${r.go ? ` title="${esc(r.go)}"` : ''}>${esc(r.verb || i18t('home_verb_answer'))}</button>`);
   }).concat(items.map(it => {
     const w = insNeedWords(c, it);
-    return row(it.urgent ? 'ruby' : 'amber', w.title, w.sub, w.plain,
+    return row(`data-ins-need-row="${esc(it.kind)}"`, it.urgent ? 'ruby' : 'amber', w.title, w.sub, w.plain,
       `<button type="button" class="ui-btn ui-btn-sm jl-need-go" data-ins-need="${esc(it.kind)}" title="${esc(i18t(INS_NEED_GO[it.kind]))}">${esc(i18t(INS_NEED_VERB[it.kind]))}</button>`);
   })).join('');
   return insSecHtml(i18t('jl_need_head'), '', `<div class="jl-need">${html}</div>`, 'jl-needs');

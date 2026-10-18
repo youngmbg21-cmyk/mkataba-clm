@@ -156,7 +156,10 @@ describe('f387 (2) the Contracts list in the inspector’s shape', () => {
     assert.equal(sel.getAttribute('aria-current'), 'true');
     assert.equal(b.$('#ins-panel').getAttribute('data-ins-id'), 'MK-1');
     assert.match(b.$('#ins-panel .ins-cp').textContent, /Aleph Group/);
-    assert.equal(b.$('#ins-panel .ins-sub').textContent.trim(), 'Digital & Influencer Campaign', 'an ampersand prints as one');
+    /* RE-POINTED 18 Oct 2026 (Jambo's panel, round 14 as drawn: "MK-0382 ·
+       Master services agreement"): the agreement's name is the eyebrow's, beside
+       the reference, no longer a sub line under the party */
+    assert.match(b.$('#ins-panel .ins-eb').textContent, /· Digital & Influencer Campaign$/, 'an ampersand prints as one');
   });
 
   test('2c a press SELECTS and opens nothing; a double-click, Enter and the panel’s button open', () => {
@@ -339,7 +342,10 @@ describe('f387 (3) the Negotiations list in the inspector’s shape', () => {
     /* 15 Oct 2026 (owner): the Document door went — Negotiation · Workspace */
     assert.deepEqual(acts, ['door-nego', 'door-ws']);
     assert.ok(b.$('#ins-panel [data-ins-act="door-nego"]').classList.contains('ui-btn-primary'), 'the lead act is the filled one');
-    assert.equal(b.$$('#ins-panel .ui-btn-primary').length, 1, 'one filled button');
+    /* RE-POINTED 18 Oct 2026: the panel's ask box (its foot, round 14 as
+       drawn) carries its own filled Ask — one filled button per AREA, so the
+       count is the panel's body, where the doors are */
+    assert.equal(b.$$('#ins-panel .jl-body .ui-btn-primary').length, 1, 'one filled button');
     b.$('#reg-tbody tr[data-row="MK-7"]').dispatchEvent(evt(b.win, 'dblclick'));
     assert.deepEqual(b.calls.pop(), ['nego', 'MK-7']);
   });

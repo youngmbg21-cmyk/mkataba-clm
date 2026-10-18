@@ -249,7 +249,9 @@ const ok = (name, good, detail) => {
       bandTabs: [...document.querySelectorAll('.reg-views [data-reg-band]')].map(x => x.textContent.replace(/\d+/g, '').trim()),
       bands: [...document.querySelectorAll('#reg-tbody .ngl-band-k')].map(x => x.textContent.trim()),
       views: !!document.querySelector('[data-reg-view]'),
-      first: document.getElementById('ins-panel') ? [...document.getElementById('ins-panel').children].map(x => x.className)[1] : null,
+      /* RE-POINTED 18 Oct 2026: the panel is Jambo's — its head, then the body
+         holding what it says — so the sections are read inside the body */
+      first: document.getElementById('ins-panel') ? [...(document.querySelector('#ins-panel .jl-body') || document.getElementById('ins-panel')).children].map(x => x.className)[1] : null,
       table: document.querySelector('#ins-panel .ins-table') ? document.querySelector('#ins-panel .ins-table').innerText : '',
     }));
     /* RE-POINTED 9 Oct 2026 (SAP benchmark, owner-approved): the drawing's

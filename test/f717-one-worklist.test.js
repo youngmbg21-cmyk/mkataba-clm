@@ -52,7 +52,11 @@ describe('f717 (1) one list, no tabs', () => {
 });
 
 describe('f717 (2) grouped by who owes the next step', () => {
-  const stage = (ap, sg) => { const ctx = { apApprovalRows: () => ap, apRowsShown: x => x, apSignatureRows: () => sg };
+  /* RE-POINTED 18 Oct 2026 (round 15 as drawn): the list also holds a
+     colleague's signature on the reader's own contract (apOtherSignRows, under
+     Waiting on others) and sorts each group (apSortRows); staged empty and
+     as-is here, so the grouping is what is pinned */
+  const stage = (ap, sg) => { const ctx = { apApprovalRows: () => ap, apRowsShown: x => x, apSignatureRows: () => sg, apOtherSignRows: () => [], apSortRows: x => x };
     vm.createContext(ctx); vm.runInContext(fnBody(AP, 'apWorkRows'), ctx); return ctx; };
   test('2a yours first (asked of you, your signature, raised and unsent, answered), then the rest', () => {
     const ap = [{ c: { id: 'A' }, mine: true }, { c: { id: 'B' } }, { c: { id: 'C' }, own: true, notAsked: true }, { c: { id: 'D' }, done: true }, { c: { id: 'E' }, own: true }];
@@ -64,7 +68,9 @@ describe('f717 (2) grouped by who owes the next step', () => {
     assert.deepEqual(W.rows.map(r => r.type), ['approval', 'approval', 'approval', 'signature', 'approval', 'approval']);
   });
   test('2b the band counts the same two groups the list draws', () => {
-    const page = fnBody(AP, 'renderApprovalsPage');
+    /* RE-POINTED 18 Oct 2026 (round 15 as drawn): the counts are on the page
+       head's line beside the title (apPaintHead), from the same reading */
+    const page = fnBody(AP, 'apPaintHead') + fnBody(AP, 'renderApprovalsPage');
     assert.match(page, /const W=apWorkRows\(\)/);
     assert.match(page, /i18tn\('ap_wl_n_yours',W\.yours\.length/);
     assert.match(page, /i18tn\('ap_wl_n_others',W\.others\.length/);

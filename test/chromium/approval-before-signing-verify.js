@@ -215,7 +215,9 @@ let H;
       return tr ? tr.textContent.replace(/\s+/g, ' ').trim() : '';
     });
     check('4a  it is on the approver\'s Approvals page, named for the person, asked by the lead',
-      /Unrestricted Legal/.test(list) && /Needs approval to sign/.test(list), list);
+      /* RE-POINTED 18 Oct 2026 (round 15 as drawn, "Jonas's yes before signing /
+         Erik's contracts need it"): the line under the step names whose contracts need it */
+      /Unrestricted Legal/.test(list) && /contracts need it/.test(list), list);
     await shot(P.page, 'sa-05-list');
     await openSign(P.page);
     const card = await P.page.evaluate(() => {

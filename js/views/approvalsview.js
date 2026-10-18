@@ -171,6 +171,7 @@ function apSinceLook(r){
     return moved?'terms':'same';
   }catch(_){ return 'unknown'; }
 }
+const AP_SINCE_WORDS={ same:'jl_ap_since_same', wording:'jl_ap_since_wording', value:'jl_ap_since_value', terms:'jl_ap_since_terms', unknown:'jl_ap_since_unknown' };
 /* "Erik Ström · 3 days ago" */
 function apAskedByText(r){
   const ago=r.idle==null?'':(Number(r.idle)===0?i18t('home_today'):i18tn('jl_days_ago',Number(r.idle),{n:Number(r.idle)}));
@@ -200,7 +201,7 @@ function apLeadJlHtml(tab, r, acts){
       { k:'asked', label:i18t('ap_pg_asked_by'), v:esc(apAskedByText(r)) },
       ...(money?[{ k:'value', label:i18t('ins_f_value'), v:esc(val) }]:[]),
       ...(!r.mine?[{ k:'waits', label:i18t('ins_ap_waits'), v:esc(r.notAsked?i18t('sa_pg_not_asked'):(r.waitsOn||'')) }]:[]),
-      { k:'since', label:i18t('jl_ap_since'), v:esc(i18t('jl_ap_since_'+since)), tone:since==='same'||since==='unknown'?'':'amber' }];
+      { k:'since', label:i18t('jl_ap_since'), v:esc(i18t(AP_SINCE_WORDS[since]||AP_SINCE_WORDS.unknown)), tone:since==='same'||since==='unknown'?'':'amber' }];
     let answer='';
     const body=(acts||[]).filter(a=>a&&a.inBody);
     if(body.length){
@@ -382,6 +383,7 @@ function apWorkRows(){
    Per sitting. */
 let _apSort='wait';
 const AP_SORTS=['wait','value','ref'];
+const AP_SORT_WORDS={ wait:'jl_ap_sort_wait', value:'jl_ap_sort_value', ref:'jl_ap_sort_ref' };
 function apSortRows(list){
   const k=AP_SORTS.includes(_apSort)?_apSort:'wait';
   const val=r=>{ try{ return (typeof fxHomeValue==='function')?Number(fxHomeValue(r.c))||0:Number(r.c.value)||0; }catch(_){ return 0; } };
@@ -441,7 +443,7 @@ function apTurnText(r){
     return i18t(r.kind==='sign'?'ap_wl_you_sign':'ap_wl_you');
   }
   if(r.done) return i18t('ap_pg_approved');
-  if(r.mine){ const fw=apForWho(r); return fw?i18t('jl_ap_you_for',{who:String(fw.name).split(/\s+/)[0]}):i18t('ap_wl_you'); }
+  if(r.mine){ const fw=typeof apForWho==='function'?apForWho(r):null; return fw?i18t('jl_ap_you_for',{who:String(fw.name).split(/\s+/)[0]}):i18t('ap_wl_you'); }
   if(r.notAsked) return i18t('ap_wl_you_send');
   return r.waitsOn||'—';
 }
@@ -574,7 +576,7 @@ function renderApprovalsPage(){
      signature · 4 · late after 7 days", the sort at its end; its foot says
      how many are shown */
   const loc=typeof jxLocale==='function'?jxLocale():undefined;
-  const sortOpts=AP_SORTS.map(k=>`<option value="${k}"${(_apSort===k)?' selected':''}>${esc(i18t('jl_ap_sort_'+k))}</option>`).join('');
+  const sortOpts=AP_SORTS.map(k=>`<option value="${k}"${(_apSort===k)?' selected':''}>${esc(i18t(AP_SORT_WORDS[k]))}</option>`).join('');
   const sortHtml=(typeof regSortIconHtml==='function')?regSortIconHtml(sortOpts,'ap-sort'):'';
   const card=`<section class="ap-card">
       <div class="ap-card-h reg-cardhead reg-filterbar"><h2 class="ap-card-t">${esc(i18t('ap_wl_title'))} <span class="ap-card-n is-pill">${n.toLocaleString(loc)}</span> <span class="ap-card-m">${esc(i18tn('jl_ap_late_after',AP_LATE_DAYS,{n:AP_LATE_DAYS}))}</span></h2><span class="ap-card-sp"></span>${sortHtml}</div>
@@ -600,6 +602,6 @@ function renderApprovalsPage(){
   setActiveNav('approvals');
 }
 Object.assign(window,{AP_TABS,apTab,apSetTab,apWorkRows,apRowTab,apWhyHtml,apTurnText,apKindHtml,
-  apOtherSignRows,AP_SORTS,apSortRows,apWhyLines,apForWho,apDayAfter,apTurnHtml,apSinceLook,apAskedByText,apWhySentence,apLeadJlHtml,apForPillHtml,apSay,apPaintHead,apSaWaiting,apApprovalRows,apSignatureRows,approvalsDoorCount,renderApprovalsPage,apOpenSigning,
+  apOtherSignRows,AP_SORTS,AP_SORT_WORDS,AP_SINCE_WORDS,apSortRows,apWhyLines,apForWho,apDayAfter,apTurnHtml,apSinceLook,apAskedByText,apWhySentence,apLeadJlHtml,apForPillHtml,apSay,apPaintHead,apSaWaiting,apApprovalRows,apSignatureRows,approvalsDoorCount,renderApprovalsPage,apOpenSigning,
   apInsSeat,apLeadHtml,apInsActs,apInsPaint,apMayDecide,apDecide,
   AP_LATE_DAYS,apLate,apRowsShown,apUndo,apMayUndo,apApprovedPillHtml,apDoneLineHtml});

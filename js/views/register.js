@@ -2274,11 +2274,11 @@ function regRowsHtml(cs){
       CELL.round=`<td class="reg-num">${esc(nc.round)}</td>`;
       CELL.changes=`<td class="reg-ch" title="${esc(nc.say)}">${esc(nc.changes)}</td>`;
       const ld=regNegoLeadOf(c);
+      CELL.lead=`<td class="reg-lead" title="${esc(ld.name)}">${esc(ld.short)}</td>`;
       /* AMBER WHERE IT WAITS ON THE READER (round 14, "Whose move" as drawn):
          our move, on a deal the reader leads — the one wait that is theirs */
       const onMe=ld.mine&&c._ngBand==='you'&&nc.waiting!=='\u2014';
-      CELL.waiting=`<td class="reg-wait${onMe?' is-mine':''}" style="text-align:right;white-space:nowrap">${esc(nc.waiting)}</td>`;
-      CELL.lead=`<td class="reg-lead" title="${esc(ld.name)}">${esc(ld.short)}</td>`; }
+      CELL.waiting=`<td class="reg-wait${onMe?' is-mine':''}" style="text-align:right;white-space:nowrap">${esc(nc.waiting)}</td>`; }
     /* ---- THE `stream` CELL IS GONE FROM BOTH SEATS (24 Sep 2026) ----
           Owner-ruled with the filter kept. DELETED RATHER THAN STUBBED, for
           the `name` column's reason below. regStreamName stays: the sort by
@@ -2470,6 +2470,11 @@ function regNegoSay(){
 function regNegoNeedRows(c){
   if(!c||!c.negotiation||!Array.isArray(c.changes)) return [];
   const m=(typeof insMove==='function')?insMove(c):null; if(!m||m.k!=='you') return [];
+  /* past the desk's standard the checklist's own row says it, in ruby, with
+     the wait and the standard (needsYouOf 'quiet'); this row is the drawing's
+     for the ordinary case */
+  let late=false; try{ late=(typeof needsYouOf==='function'?(needsYouOf(c)||[]):[]).some(x=>x&&x.kind==='quiet'); }catch(_){ late=false; }
+  if(late) return [];
   const pend=c.changes.filter(x=>x&&x.status==='pending'&&!x.withdrawn&&x.authorSide==='counterparty');
   if(!pend.length) return [];
   const nm=ch=>{ const raw=ch.clauseLabel||ch.headingText||ch.clauseId||''; return (typeof negoClauseName==='function')?negoClauseName(raw):String(raw); };
@@ -2478,7 +2483,7 @@ function regNegoNeedRows(c){
   const sub=esc(shown.join(' \u00b7 '))+(more?' \u00b7 '+esc(i18tn('ins_more_asks',more,{n:more})):'');
   const ok=typeof insNegoDoorState==='function'?insNegoDoorState(c).ok:true;
   return [{ k:'answer', title:i18tn('jl_need_answer',pend.length,{n:pend.length}), sub, plain:names.join(' \u00b7 '),
-    verb:i18t('home_verb_answer'), go:i18t('ins_need_go_nego'), skips:['quiet'],
+    verb:i18t('home_verb_answer'), go:i18t('ins_need_go_nego'),
     run:()=>{ if(ok&&typeof openRedlineWorkbench==='function') openRedlineWorkbench(c.id,{ face:true }); } }];
 }
 function regInsSeat(){ return regScope()==='negotiations' ? 'negotiations' : 'contracts'; }

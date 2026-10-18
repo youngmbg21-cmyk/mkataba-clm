@@ -99,10 +99,12 @@ const wait = async (page, fn, arg, ms = 5000) => {
         const red = !!(tr && tr.querySelector('.late'));
         return red !== (r.idle >= 7);
       }).map(r => r.c.id + ':' + r.idle);
-      return { title: t ? t.textContent.trim() : null, tab: tab ? tab.textContent.trim() : '', n: rows.length,
+      /* RE-POINTED 18 Oct 2026 (round 15 as drawn): the count is a pill beside the title ("· 4 ·"), no brackets */
+      const pill = document.querySelector('.ap-card-t .ap-card-n.is-pill');
+      return { title: t ? t.textContent.trim() : null, pill: pill ? pill.textContent.trim() : null, tab: tab ? tab.textContent.trim() : '', n: rows.length,
         mine: rows.filter(r => r.mine).length, wrong, idles: rows.map(r => r.idle) };
     }) : null;
-    check('2a the table says what it is and how many', !!ap && /\(\d+\)$/.test(ap.title || '') && ap.title.includes(`(${ap.n})`),
+    check('2a the table says what it is and how many', !!ap && /^What waits for a yes or a signature/.test(ap.title || '') && ap.pill === String(ap.n),
       ap ? `${ap.title} · ${ap.n} rows` : 'page missing');
     check('2b a waiting row is red only from 7 days', !!ap && ap.n > 0 && ap.wrong.length === 0,
       ap ? `idle ${ap.idles.join(',')} · wrong ${ap.wrong.join(',') || 'none'}` : 'page missing');
@@ -111,13 +113,15 @@ const wait = async (page, fn, arg, ms = 5000) => {
     const head = sel ? await page.evaluate(() => {
       const p = document.getElementById('ins-panel');
       return { beside: !!p.querySelector('.ins-cp .ins-st-side'), av: !!p.querySelector('.ins-cp .reg-av'),
-        line: ((p.querySelector('[data-ins-need-line]') || {}).textContent || ''), decide: p.querySelectorAll('[data-ins-need]').length,
+        line: ((p.querySelector('[data-ins-need-line]') || {}).textContent || ''), decide: p.querySelectorAll('[data-ins-need="approval"]').length,
         sub: !!p.querySelector('.ins-doors [data-ins-act="door-ws"]') && !p.querySelector('.ins-sub [data-ins-act]'), approve: !!p.querySelector('[data-ins-act="approve"]') };
     }) : null;
     /* RE-POINTED 12 Oct 2026 (owner): the sub line's Open contract became the Document door in the doors row */
     /* RE-POINTED 15 Oct 2026 (owner): the Document door went; the doors row is Negotiation · Workspace */
-    check('2c the panel head: initials, the stage beside the name, the doors under the verbs',
-      !!head && head.beside && head.av && head.sub, JSON.stringify(head));
+    /* RE-POINTED 18 Oct 2026 (Jambo's panel, round 15 as drawn): the party's
+       name with its pill beside it and no initials; the doors still in a row */
+    check('2c the panel head: the pill beside the name, no initials, the doors in their row',
+      !!head && head.beside && !head.av && head.sub, JSON.stringify(head));
     /* RE-POINTED 18 Oct 2026 (owner's yes to round 15's question): the amber
        "Your approval is asked for." line went — "Yours to answer" and the
        Approve button say it; a line stays only for something else owed */
