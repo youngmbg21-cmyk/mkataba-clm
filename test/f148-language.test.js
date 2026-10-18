@@ -149,6 +149,7 @@ const SAME_IN_BOTH = new Set([ 'na_tab_hati', 'cal_k_plan', 'pd_tab_copilot', 's
   'int_cp_pay_in',        // 'in' is 'in' — the one-word direction on the party hub (A-3)
   'int_flow_in',          // 'In' is 'In' — the stream hub's money line (A-5)
   'reg_col_status',       // ditto
+  'cu_status',            // 'Status' is 'Status' — the Parties list's Status box (round 19)
   'pt_col_gap',           // 'Gap' is a loanword Swedish uses unchanged, and a
                           // COLUMN HEAD wants the indefinite form -- the hero
                           // above it is 'Gapet', which is the definite one and
