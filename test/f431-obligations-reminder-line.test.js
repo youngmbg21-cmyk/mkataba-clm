@@ -136,6 +136,27 @@ describe('f431 (1) — a lane per person carrying it', () => {
   });
 });
 
+describe('f431 (1b) — a member who cannot open the stream is not reminded', () => {
+  test('the reading asks stream access, as the server\'s obligationRecipient does (bug log)', () => {
+    const w = buildWorld({ intelView: true });
+    const win = w.win;
+    win.getUsers = () => ([{ id: 'u2', name: 'Brian Kariuki', email: 'brian@example.co.ke', role: 'legal' }]);
+    /* the world does not load js/core.js: its predicate, as it reads the map */
+    win.canAccessFolder = (fid, u) => ((win.state.settings.folderAccess || {})[u.id] || []).includes(fid);
+    win.state = { settings: { folderAccess: { u2: ['FA'] } }, contracts: [
+      { id: 'MK-9', name: 'Supply', counterparty: 'Naivas', status: 'Signed', folder: 'FB',
+        obligations: [{ id: 'ob1', desc: 'Pay', due: day(5), recurring: 'none', assignee: 'Brian Kariuki', status: 'open' }] },
+    ] };
+    const c = win.state.contracts[0];
+    const r = win.obReminderOf(c.obligations[0], c);
+    assert.equal(r.owned, false, 'Brian cannot open stream FB, so the sweep never mails him: ' + JSON.stringify(r));
+    win.state.settings.folderAccess.u2 = ['FA', 'FB'];
+    const r2 = win.obReminderOf(c.obligations[0], c);
+    assert.equal(r2.owned, true);
+    assert.equal(r2.memberName, 'Brian Kariuki', 'with the stream open to him, he is the one reminded');
+  });
+});
+
 describe('f431 (2) — the window is the sweep’s own milestones', () => {
   test('read off server.js, and the predicate carries exactly those days', () => {
     const S = sweepDays();

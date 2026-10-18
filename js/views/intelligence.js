@@ -5022,7 +5022,10 @@ function obReminderOf(o, c){
   const theirs=(typeof obligationIsTheirs==='function')?obligationIsTheirs(o):((o&&o.party)==='theirs');
   const ours=!theirs;
   const typed=String((o&&o.assignee)||'').trim();
-  const mem=(typed&&typeof window.obligationReminderTo==='function')?obligationReminderTo({ assignee:typed }):null;
+  /* the server's obligationRecipient mails a member only where they can open
+     the contract's stream; so does this reading (bug log) */
+  const mem0=(typed&&typeof window.obligationReminderTo==='function')?obligationReminderTo({ assignee:typed }):null;
+  const mem=(mem0&&(!c||typeof window.canAccessFolder!=='function'||canAccessFolder(c.folder||'',mem0)))?mem0:null;
   const owner=(!mem&&ours&&typeof window.obligationOwnerTo==='function')?obligationOwnerTo(c):null;
   const owned=!!mem, reach=owned||!!owner;
   const last=ours?OB_LAST_OURS:OB_LAST_OWNED;
