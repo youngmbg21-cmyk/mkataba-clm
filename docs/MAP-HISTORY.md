@@ -30733,3 +30733,16 @@ What was built (js/views/migration.js):
 
 Tests: f728-import-jambo-panel (red at main), import-jambo-panel-verify (red at
 main: every check fails, the run stops at a row press that opened the contract).
+
+
+## APPROVALS & SIGNING: THE AMBER LINE GOES (18 Oct 2026)
+
+Round 15 ("One worklist") left a question open: may the amber "Your approval is
+asked for." line go from the approval's panel, since the list's first group
+("Yours to answer") and the panel's Approve button already say it? The owner's
+yes came on 18 Oct 2026. The panel's line now skips the `approval` item
+(js/views/approvalsview.js, `insNeedsLineHtml(c, skip)`, `needsSkip` alike);
+anything else the contract owes still makes a line ("1 detail to fill."). Only
+the Approvals page's panel changes: the checklist beside the other lists keeps
+the item. sap-lists-verify 2d re-pointed (red at main: the line still said
+"Your approval is asked for. 1 detail to fill is also waiting.").
