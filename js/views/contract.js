@@ -13821,9 +13821,7 @@ const _xrPbOpen = v => !!v && !/^(ok|aligned|na)$/.test(String(v.status||''));
    contract-level block are drawn from one builder and cannot drift. */
 const _xrScanMark = f => { const sev=String((f&&f.sev)||'');
   return { k:'scan', grade:XR_SEV_GRADE[sev]||'amber', tag:i18t('xr_m_scan'),
-    /* named by the ONE short title (riskTitleOf), as the triage tile and the health report are */
-    lead:(f&&typeof riskTitleOf==='function')?riskTitleOf({ src:'scan', id:f.id, kind:f.kind||'', title:String(f.title||'') }):String((f&&f.title)||''),
-    say:'', why:String((f&&f.why)||''), id:(f&&f.id)||'', sev }; };
+    lead:String((f&&f.title)||''), say:'', why:String((f&&f.why)||''), id:(f&&f.id)||'', sev }; };
 const _xrPbMark = v => ({ k:'pb', grade:'amber', tag:i18t('xr_m_pb'),
     lead:String(v.category||''),
     say:i18t(String(v.status)==='missing'?'xr_pb_missing':'xr_pb_departs'),

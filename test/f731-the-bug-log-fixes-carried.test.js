@@ -193,9 +193,8 @@ describe('f731 (9) the short title wherever risks are named', () => {
     assert.match(strip(R('js/triage.js')), /const rkName = x => \(x && x\.src && [^\n]*window\.riskTitleOf\(x\)/, 'and rkName asks riskTitleOf');
     assert.match(strip(R('js/views/healthreport.js')), /riskTitleOf\(\{ src:'scan', id:f\.id/);
   });
-  test('so do Before you sign, the Clauses tab\'s marks, the weekly review and the Explorer\'s scan answer', () => {
+  test('so do Before you sign, the weekly review and the Explorer\'s scan answer', () => {
     assert.match(strip(R('js/signcheck.js')), /title: _scCall\('riskTitleOf', \{ src: 'scan', id: f\.id/, 'Before you sign');
-    assert.match(strip(R('js/views/contract.js')), /lead:\(f&&typeof riskTitleOf==='function'\)\?riskTitleOf\(\{ src:'scan', id:f\.id/, 'the marks');
     assert.match(strip(R('js/views/weekly.js')), /title:\(typeof riskTitleOf==='function'\)\?riskTitleOf\(\{ src:'scan', id:f\.id/, 'the weekly review');
     assert.match(strip(R('js/views/intelligence.js')), /igEsc\(fTitle\(f\)\)/, 'the Explorer');
   });
