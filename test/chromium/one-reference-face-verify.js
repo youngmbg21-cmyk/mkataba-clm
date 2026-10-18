@@ -54,17 +54,21 @@ const refsOn = (page, scope) => page.evaluate(([scope, refs]) => {
   }
   return out;
 }, [scope, ['MK-A1', 'MK-A2', 'MK-B1', 'MK-B2', 'MK-RF1', 'MK-RF2']]);
-/* THE CALENDAR OPENS ON THIS MONTH: an expiry "20 days from today" fell in
-   the next month from the 12th on (red 12 Oct 2026, a test whose answer
-   depended on the day it ran). The 15th of the running month is always on
-   the month the Calendar opens on. */
-const midMonth = () => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-15`; };
+/* THE CALENDAR OPENS ON THIS WEEK (round 16: this working week by the hour
+   and five more; a Saturday or a Sunday opens the working week ahead). The
+   15th of the month stopped being on it from the third week of a month on
+   (red 18 Oct 2026, a Sunday). The Wednesday of the working week the
+   Calendar opens on is always on it, whatever day this runs. */
+const openWeekWed = () => { const n = new Date(); const d = n.getDay();
+  const mon = new Date(n.getFullYear(), n.getMonth(), n.getDate() + (d === 6 ? 2 : d === 0 ? 1 : 1 - d));
+  const w = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 2);
+  return `${w.getFullYear()}-${String(w.getMonth() + 1).padStart(2, '0')}-${String(w.getDate()).padStart(2, '0')}`; };
 const geist = f => /^"?Geist Mono"?/.test(f || '');
 
 (async () => {
   const h = await startHati({});
   const extra = [
-    { ...FIXTURES[0], id: 'MK-RF1', name: 'Rail freight', counterparty: 'Coast Rail Ltd', status: 'Signed', expiry: midMonth(),
+    { ...FIXTURES[0], id: 'MK-RF1', name: 'Rail freight', counterparty: 'Coast Rail Ltd', status: 'Signed', expiry: openWeekWed(),
       obligations: [{ id: 'o-rf1', desc: 'Send the quarterly report', party: 'ours', due: iso(-3), status: 'open' }] },
     { ...FIXTURES[1], id: 'MK-RF2', name: 'Port handling', counterparty: 'Mombasa Port Services', status: 'Under Review', expiry: iso(45), value: 90000000, folder: FOLDER_A },
   ];
