@@ -243,6 +243,7 @@ Tests: stakes-verify, jambo-pill-and-window 3a, f668, f671, f277.
 ## INSIGHTS
 - COUNTING IS NOT DRAWING: a `*Data` + a renderer per panel; `pfPanelData`/`PF_PANEL_DATA` the one door (`get_insights_panel` both hosts); `IG_TABS` Portfolio · Friction · Obligations · Payment terms · Exposure; `.igx-fig` the ONE tile; doors → `regShowOnly`; `exposureGridData` (no score, unseen streams never named).
 - EXPLORER: `GRAPH_GROUPINGS`, `buildGraphEdges`, `intelGraphApply` judges Copilot, `INTEL_CAP` said; every view folds (`igbDrawCells`, `igCellFolded`); recipe `igRecipeNow`/`igRecipeSet`; `IG_CLAIM_RE`; `igPaperChanges` RAW.
+- IMPORTED (owner, 18 Oct 2026): `imported` = `c.migration` (the Import page's list, never `source`) on every card both hosts (`graphCopilotCard`, `copilotCardOf`) and a `where` key (GRAPH_WHERE_KEYS both, js/graphwhere.js); Origin cuts Imported apart. Nothing narrowed: a count prints only if HaTi drew it (`igCountsDrawn`) and HaTi's line leads (reverses 8 Oct's answer-first there). Tests: f730, imported-on-the-map-verify.
 Tests: f151, f183, f247, f267, f290–f299, f305, f321, f338, f392, f394, f424–f438, f441, f457, f459 (A), f539; insights-*, portfolio-frame, obligations-report, friction-fits-the-screen, explorer-*, analyze-on-the-graph, map-asked-bubbles, owners-fifteen, fold-every-view verify.
 
 ## OBLIGATIONS

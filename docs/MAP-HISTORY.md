@@ -30847,3 +30847,22 @@ WHERE THE SENTENCES LAND NOW (f705 13, menu-and-amend-verify 2k–2m): "add a wo
 RED AT THE PARENT (claude/menu-reader-misreads at 7af1a55): f705 13a, 13b, 13d fail (13c, sending one is still the door, passes there as it must); menu-and-amend-verify 2k, 2l, 2m fail ("add a word file" drew the Word copy card).
 
 LEFT, IN BUGLOG: "send me a word file" is still the door that sends the other side a copy; the Word door's rule is English only ("skicka en wordkopia" reaches no door).
+
+## IMPORTED (owner-reported 18 Oct 2026, off an iPad screenshot of Explorer; the fix on the owner's "go ahead")
+
+*"Investigate why Jambo and explorer are not giving me the right view. The contracts on screen did not reduce to the imported contracts."* Asked on Explorer: "Show me which contracts were imported". The map regrouped by origin and kept every contract; the panel said "These 24 contracts were imported", and on "I see more than 24 contracts", "29 … (source = 'upload')". Asked what "imported" means, the owner answered: **the Import page** — the contracts that page lists (`migContracts` = `c.migration`), not every upload.
+
+FOUR FAULTS UNDER ONE ANSWER, found by reading, before any code (the owner said "Do not code yet"):
+- **NO FILTER FOR IT.** The map's `where` had fourteen keys and none for where a contract came from; the prompt says ids only for "a name, a city", so the model could not narrow and grouped by origin instead.
+- **NO FACT FOR IT.** An Import page contract is stored `source:'upload'` like a single file; the card sent to the model carried `source` and not the import record, and the chat's card (`copilotCardOf`) carried neither. "Imported" could only be guessed as "uploaded". The Origin grouping folded imports into "Uploaded paper" the same way.
+- **AN UNCHECKED COUNT.** The prompt forbids stating a count and `intelGraphApply` drops a sentence whose count differs from HaTi's — but only over a set (`ids`). With nothing narrowed, 24 and 29 went straight to the panel.
+- **A CLAIM OVER AN UNCHANGED SET.** 8 Oct's "THE ANSWER FIRST" put the model's sentence first and HaTi's "Grouped N contracts…" behind "How this was drawn", so a sentence about "these contracts" read as if the map had narrowed. `IG_CLAIM_RE` only bites where the map did nothing; here it had regrouped.
+
+WHAT WAS BUILT:
+- `imported:!!c.migration` on `graphCopilotCard` and `copilotCardOf`; `imported` on GRAPH_WHERE_KEYS on both hosts (f305 pins them a set), GRAPH_WHERE_SCHEMA, the browser-held key's `AI_WHERE_KEYS` fallback and descriptions, and one clause in `graphWhereHit`. The graph prompt names the field and the rule ("imported" → where.imported true). `list_portfolio` rows say `imported:true`.
+- Origin: `groupLabelOf('source')` answers **Imported** first (GRAPH_GROUP_DESC says so to the model).
+- The built-in reader (no engine) hears "imported / migrated / importerade" — never "important".
+- `igCountsDrawn(total)`: the book, what is shown, each group's size. Where nothing narrowed (and not on the Board), a count outside it is not printed.
+- Where nothing narrowed (and not on the Board), HaTi's line leads and the model's sentence follows; over a set the sentence still leads (8 Oct kept there). **This reverses 8 Oct's "answer first" for grouping-only answers, on the owner's yes to item 5.**
+
+RED AT THE PARENT (cb6290f): every f730 claim (8 of 8). imported-on-the-map-verify drives the dock's own box with a scripted render_graph: 1a–1d (only the imported stay, "Showing 3 of 9 · Imported", "Read all 3"), 2a (the Imported group), 3a–3c (a regroup prints HaTi's line, not "24 contracts"). Re-pointed in place: f299 (5b), home-first-verify 6. A browser stage that turns Home's face must first wait for the sign-in's landing on the Counter, which otherwise turns it back to the Board (found while writing the check).

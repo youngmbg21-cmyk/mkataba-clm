@@ -913,7 +913,9 @@ function groupLabelOf(c, groupBy, override){
     case 'owner': { let o=null; try{ o=(typeof contractOwnerName==='function')?contractOwnerName(c):null; }catch(_){} return o||'Nobody owns this'; }
     case 'obligations': { const k=((c.obligations)||[]).filter(o=>o&&!o.completedAt&&!o.done&&o.status!=='done').length; return !k?'No open obligations':k<=2?'1–2 open':'3 or more open'; }
     case 'read': { let u=null; try{ u=graphNodeFacts(c).unread; }catch(_){} return u?'Not read yet':'Read'; }
-    case 'source': return c.source==='upload'?'Uploaded paper'
+    /* an Import page contract is Imported, never folded into Uploaded paper
+       (owner, 18 Oct 2026) */
+    case 'source': return c.migration?'Imported':c.source==='upload'?'Uploaded paper'
       :(c.templateId||c.templateForm||c.template)?'From a template':'Drafted in HaTi';
     case 'folder': default: return FOLDERS[c.folder]?.name||'Other';
   }
@@ -1021,6 +1023,7 @@ function graphInterpret(qRaw){
     badges={}; vis.forEach(c=>badges[c.id]='ends in '+daysUntil(_gExpiryDay(c))+'d');
     action='highlight';
   }
+  else if(/\b(?:imported|migrated|importerade?)\b/.test(q)) { vis=cs.filter(c=>c.migration); note='Imported'; }
   else if(has('lease')) { vis=kindHit('lease'); note='Leases'; }
   else if(has('nda','non-disclosure','confidential')) { vis=kindHit('nda','non-disclosure'); note='NDAs'; }
   else if(has('supply','raw material','packaging')) { vis=kindHit('supply','packaging','raw material'); note='Supply agreements'; }
@@ -2055,7 +2058,12 @@ function graphCopilotCard(c){
     parentId:c.parentId||'', relation:c.relation||'',
     move, live, overdue:f.overdue, nextDue:graphNextDue(c)||'',
     offStandard:f.offStandard, risk:c.scan?riskScore(c):null, read:(f.unread==null)?null:!f.unread,
-    archived:!!c.archived, source:c.source||'' };
+    archived:!!c.archived, source:c.source||'',
+    /* IMPORTED IS ITS OWN FACT (owner, 18 Oct 2026): a contract brought in on
+       the Import page is stored as an upload, so `source` alone cannot tell it
+       from a single file; its import record (c.migration, the Import page's
+       own list) can */
+    imported:!!c.migration };
   /* a salary carries no deal value, so it never matches a money cut (fxIsPay) */
   if(money&&!(typeof fxIsPay==='function'&&fxIsPay(c))) card.value=Number(c.value||0);
   return card;
@@ -2066,7 +2074,7 @@ function graphCopilotCard(c){
    condition reads the card the model was sent; a card carrying no value never
    matches a money cut (an absence is stated, not guessed). Returns null where
    nothing in `where` narrows. */
-const GRAPH_WHERE_KEYS=['status','folder','kind','counterparty','valueAbove','valueBelow','expiringWithinDays','signedFrom','signedTo','overdueObligations','offStandard','notRead','move','archived'];
+const GRAPH_WHERE_KEYS=['status','folder','kind','counterparty','valueAbove','valueBelow','expiringWithinDays','signedFrom','signedTo','overdueObligations','offStandard','notRead','move','archived','imported'];
 function graphWhereIds(where){
   /* THE PREDICATE IS SHARED (js/graphwhere.js, Copilot audit phase 4): the
      chat's list_portfolio applies the same one on the server over its own
@@ -2182,6 +2190,19 @@ function igBoardTitle(q,res){
   if(!igBoardNow()||typeof window.hbFoundTitle!=='function') return null;
   try{ return hbFoundTitle(q,res&&res._top); }catch(_){ return null; }
 }
+/* The counts HaTi drew on the map as it stands: the book, what is shown, and
+   each group's size — the only numbers of contracts a sentence may state
+   where nothing narrowed (intelGraphApply). */
+function igCountsDrawn(total){
+  const out=new Set([Number(total)||0]);
+  try{
+    const model=buildGraphModel(), per={};
+    out.add(model.shown);
+    model.nodes.forEach(n=>{ if(n.kind==='contract') per[n.group]=(per[n.group]||0)+1; });
+    Object.values(per).forEach(k=>out.add(k));
+  }catch(_){}
+  return out;
+}
 function graphSaysMore(own, note, line){
   const s=String(own||'').replace(/\s+/g,' ').trim(); if(!s) return false;
   const fold=x=>String(x||'').replace(/\s+/g,' ').trim().toLowerCase().replace(/[.!]+$/,'');
@@ -2272,7 +2293,13 @@ function intelGraphApply(q, res, opts){
      (the disconnect check, hbProseChecked) */
   if(onBoard&&own0&&!(ids&&ids.length)&&typeof window.hbProseChecked==='function') own0=hbProseChecked(own0).text;
   const saidN=own0.match(/\b(\d[\d,.\s]*)\s+(?:matching\s+|live\s+|such\s+)?(?:contracts?|agreements?|avtal)\b/i);
-  const ownN=(saidN&&ids&&Number(String(saidN[1]).replace(/[^\d]/g,''))!==ids.length)?'':own0;
+  const saidNum=saidN?Number(String(saidN[1]).replace(/[^\d]/g,'')):null;
+  let ownN=(saidN&&ids&&saidNum!==ids.length)?'':own0;
+  /* NOTHING NARROWED, SO NOTHING THE MODEL COUNTED (owner, 18 Oct 2026: the
+     map regrouped and the sentence said "these 24 contracts were imported",
+     then "29"): with no set on the map, a count is printed only where it is
+     one HaTi drew — the book, what is shown, or one group's size. */
+  if(saidN&&!ids&&!onBoard&&!igCountsDrawn(total).has(saidNum)) ownN='';
   /* ---- COPILOT'S OWN SENTENCE IS FORMATTED, NOT PRINTED RAW (Young, 28 Sep
      2026: Explorer's answers showed "**" round bold words and ran a list into
      one line, where the side panel drew the same answer properly) ----
@@ -2297,7 +2324,16 @@ function intelGraphApply(q, res, opts){
      of a small "How this was drawn" under it. Counts alone stay the answer. */
   let how='';
   /* A CAP IS A FACT: a cut stays on the screen under the answer, never only on a hover */
-  if(line&&ownHtml&&graphSaysMore(own,res.note,parts[0])){ how=parts.filter(x=>x!==capSaid).join(' · '); line=ownHtml+(capSaid?`<p class="ai-p igd-cap">${igEsc(capSaid)}</p>`:''); }
+  /* …AND ONLY OVER A SET (owner, 18 Oct 2026, reverses "the answer first" where
+     nothing narrowed): when the map only regrouped or re-dressed, HaTi's own
+     line is read first and Copilot's sentence follows it — a sentence about
+     "these contracts" over a map that removed none read as if it had. */
+  if(line&&ownHtml&&graphSaysMore(own,res.note,parts[0])){
+    if((ids&&ids.length)||onBoard){ how=parts.filter(x=>x!==capSaid).join(' · '); line=ownHtml+(capSaid?`<p class="ai-p igd-cap">${igEsc(capSaid)}</p>`:''); }
+    /* the sentence follows HaTi's line once; where HaTi had no line, `line`
+       already is the sentence (or "nothing changed" with it) */
+    else if(parts.length) line+=(rich?'':'<br>')+ownHtml;
+  }
   intel.history.push({ role:'assistant', text:line, how, cardIds:(ids||[]).slice(0,5), listIds:(ids&&ids.length)?ids.slice():null, listTitle:igBoardTitle(q,res)||(res.note?String(res.note):null), listHonest:!!igBoardTitle(q,res), listChart:(res&&res.chart&&typeof res.chart==='object')?res.chart:null, choices:choices&&choices.length?choices:null });
   return { refused:false, groupBy, ids };
 }
@@ -8164,7 +8200,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
 }
 
 Object.assign(window,{igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
-Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,igCountsDrawn,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp,IG_PRE_MS,igPreOn,igPrePaint});
