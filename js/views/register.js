@@ -664,10 +664,16 @@ const REG_COL_KEYS_INS      = ['mk','counterparty','stage','value'];
 /* THE DRAWING'S COLUMNS ON NEGOTIATIONS (SAP benchmark, owner-approved 9 Oct
    2026): the round, what the changes ask of whom, and how long it has waited
    — whose move is the band and the panel's pill, so it is not a column too. */
-const REG_COL_KEYS_NEGO_INS = ['mk','counterparty','round','changes','waiting'];
+/* WHOSE MOVE (round 14 of the redesign: the owner picked "Whose move" and said
+   yes to a Lead column, 17 Oct 2026): who leads each deal, so a deal a
+   colleague leads does not read as the reader's own move. */
+const REG_COL_KEYS_NEGO_INS = ['mk','counterparty','round','changes','waiting','lead'];
 /* round + changes + waiting = stage + value (340), so the reference and the
    counterparty stay cut identically on both seats (inspector-verify 2e). */
-const REG_INS_COL_PX = { mk:84, stage:216, move:216, value:124, round:72, changes:172, waiting:96 };
+/* the Lead column (round 14) is the counterparty's to give: its words and
+   the other three's stay whole (the old pairing with stage + value, 340, was
+   retired with inspector-verify 2e on 15 Oct 2026) */
+const REG_INS_COL_PX = { mk:84, stage:216, move:216, value:124, round:64, changes:168, waiting:88, lead:84 };
 /* THE CONTRACTS PLACE ON HOME HAS NO INSPECTOR (the overnight work order,
    step 7): a row press opens the contract on the paper, and its six columns
    are the drawing's — the reference, the counterparty over the agreement,
@@ -1442,8 +1448,12 @@ function regNegoBase(){
 }
 function negoBandTabsHtml(R, book){
   const n=negoBandCounts(book||[]);
+  /* WHOSE MOVE (round 14): "Our move" — our side's, whoever on it leads —
+     then theirs, "For signature" and "Neither" only where something is in
+     them (a choice that gives nothing is not listed). The ones the reader is
+     standing on stay. */
   const tabs=[['',i18t('reg_tab_all'),(book||[]).length],['you',i18t('reg_pill_your_move'),n.you],['them',i18t('reg_pill_their_move'),n.them],
-    ...(n.out?[['out',i18t('ngl_band_out'),n.out]]:[]),['clear',i18t('ngl_tab_neither'),n.clear]];
+    ...((n.out||(R.band||'')==='out')?[['out',i18t('ngl_tab_sign'),n.out]]:[]),...((n.clear||(R.band||'')==='clear')?[['clear',i18t('ngl_tab_neither'),n.clear]]:[])];
   return `<div class="reg-views" role="tablist" aria-label="${esc(i18t('ngl_tabs_label'))}">${tabs.map(([k,label,c])=>{
     const on=(R.band||'')===k;
     return `<button type="button" role="tab" class="reg-vtab${on?' on':''}${!c&&!on?' is-zero':''}" data-reg-band="${k}" aria-selected="${on?'true':'false'}">${esc(label)}${c?`<span class="n">${c}</span>`:''}</button>`;
@@ -2263,7 +2273,9 @@ function regRowsHtml(cs){
     if(neg&&insOn){ const nc=regNegoCols(c);
       CELL.round=`<td class="reg-num">${esc(nc.round)}</td>`;
       CELL.changes=`<td class="reg-ch" title="${esc(nc.say)}">${esc(nc.changes)}</td>`;
-      CELL.waiting=`<td style="text-align:right;white-space:nowrap">${esc(nc.waiting)}</td>`; }
+      CELL.waiting=`<td style="text-align:right;white-space:nowrap">${esc(nc.waiting)}</td>`;
+      const ld=regNegoLeadOf(c);
+      CELL.lead=`<td class="reg-lead" title="${esc(ld.name)}">${esc(ld.short)}</td>`; }
     /* ---- THE `stream` CELL IS GONE FROM BOTH SEATS (24 Sep 2026) ----
           Owner-ruled with the filter kept. DELETED RATHER THAN STUBBED, for
           the `name` column's reason below. regStreamName stays: the sort by
@@ -2390,12 +2402,24 @@ function regNegoCols(c){
   const waiting=m.k==='clear'||d==null?'—':(d===0?i18t('home_today'):i18tn('ap_pg_days',d,{n:d}));
   return { round, changes, waiting, say:m.say||'' };
 }
+/* WHO LEADS IT, ONE READING (round 14): the desk's lead, else the contract's
+   owner — the panel's Lead fact and the list's Lead column. The column says
+   "You" where it is the reader, else the first name (the whole on the hover). */
+function regNegoLeadOf(c){
+  let name='', id='';
+  try{ const l=(typeof deskLead==='function')?deskLead(c):null;
+    if(l&&l.name){ name=l.name; id=String(l.id||''); }
+    else { name=((typeof contractOwnerName==='function')?contractOwnerName(c):'')||''; id=String((c&&c.owner&&c.owner.id)||''); } }catch(_){ name=''; }
+  const me=(typeof currentUser==='function'&&currentUser())||{};
+  const mine=!!name&&((id&&me.id&&id===String(me.id))||(!id&&name===me.name));
+  return { name, mine, short: !name ? '\u2014' : mine ? i18t('ngl_lead_you') : String(name).split(/\s+/)[0] };
+}
 /* The Negotiations panel's four facts, as the drawing names them: Value,
    Lead, their changes (open · agreed) and when we last sent a round. */
 function regNegoFacts(c){
   const f=(typeof insFacts==='function')?insFacts(c):[];
   const val=f.find(x=>x.k==='value');
-  let lead=''; try{ const l=(typeof deskLead==='function')?deskLead(c):null; lead=(l&&l.name)||((typeof contractOwnerName==='function')?contractOwnerName(c):'')||''; }catch(_){ lead=''; }
+  const lead=regNegoLeadOf(c).name;
   const theirs=(Array.isArray(c.changes)?c.changes:[]).filter(x=>x&&x.authorSide==='counterparty');
   const open=theirs.filter(x=>x.status==='pending'||!x.status).length, agreed=theirs.filter(x=>x.status==='accepted').length;
   const rounds=(c.negotiation&&Array.isArray(c.negotiation.rounds))?c.negotiation.rounds:[];
@@ -3509,7 +3533,7 @@ function renderRegister(opts){
                   if(k==='move') return neg ? (()=>{ const i=_colN; return `<th style="${INS?'':'text-align:right;'}${colAt('',k)}">${i18t('ngl_col_move')}${gripFor(i)}</th>`; })()
                     : sortableTh('move',i18t('ngl_col_move'),'',k);
                   if(k==='owner') return sortableTh('owner',i18t('reg_col_owner_word'),'',k);
-                  if(k==='round'||k==='changes'||k==='waiting'){ const i=_colN; return `<th style="${k==='waiting'?'text-align:right;':''}${colAt('',k)}">${esc(i18t('ngl_col_'+k))}${gripFor(i)}</th>`; }
+                  if(k==='round'||k==='changes'||k==='waiting'||k==='lead'){ const i=_colN; return `<th style="${k==='waiting'?'text-align:right;':''}${colAt('',k)}">${esc(i18t('ngl_col_'+k))}${gripFor(i)}</th>`; }
                   return (()=>{ const i=_colN; return `<th style="text-align:right;${colAt('',k)}">${gripFor(i)}</th>`; })();
                 }).join('')}
               </tr>

@@ -30566,3 +30566,14 @@ The owner picked "Wall of papers" by name (the design notes recommended "The SAP
 - **NOTICED, NOT FIXED (from the design notes).** An admin who is not on a code-named deal's list cannot change its code name: the front-door wall refuses any request about the deal (BUGLOG).
 - Re-pointed: document-wall-verify 2b (the top of a page, not a whole page), contracts-stage-tabs-verify 3b/3c (the box without the archive; a pick asked of another shortcut). The colour census was re-recorded on the owner's standing yes (counts only).
 - Tests: f715 (red at the parent), wall-of-papers-verify (red at the parent).
+
+## NEGOTIATIONS, "WHOSE MOVE" — ROUND 14 OF THE REDESIGN (17 Oct 2026)
+
+The owner picked "Whose move" by name, answered "Yes" to its first question (change "Your move" to "Our move" and add a Lead column, because a deal a colleague leads is not the reader's own move) and "No" to its second (a code-named deal on this list for people outside its list).
+
+- **OUR SIDE'S WORDS.** The tab reads "Our move" (and the panel's pill with it), the first group "Waiting on our side" and the page's facts line "N waiting on our side"; the column that says what the changes ask reads "What is open". "For signature" (the group "With them for signature") and "Neither" are tabs only where something is in them, or while the reader stands on one — a choice that gives nothing is not listed.
+- **THE LEAD COLUMN.** Who leads each deal: the desk's lead, else the contract's owner — ONE reading, `regNegoLeadOf`, for the panel's Lead fact and the list's Lead column. The column says "You" for the reader's own deal and a colleague's first name otherwise, the whole name on the hover. The four short columns (Round, What is open, Waiting, Lead) take their room from the counterparty column; the old pairing with stage + value (inspector-verify 2e) was already retired on 15 Oct.
+- **A DEAL KEPT TO ITS LIST.** Not a live negotiation for anyone outside its list (`negoIsLive` returns false for a code-name stand-in), so it is off the list and out of every count that reads the live list — the facts line, the tabs and the Board — alike. (The server's stand-in carries no negotiation anyway; the reading now says so on purpose rather than by accident.)
+- **KEPT, AND WHY.** The drawing put the pressed row's facts, checklist and two doors in Jambo's panel. Negotiations is a page of its own, not a Home place, and has no Jambo panel; the list inspector beside the table already holds the same facts and the same two doors (Negotiation · Workspace), so it stays.
+- Re-pointed: f184 and f387 (the group's words, the six column heads), inspector-verify 2a/2b/2c (the heads; the wait is the second-to-last cell; "Our move" tab), no-link-to-sign-verify 1a and negotiations-door-verify (the group's words).
+- Tests: f716 (red at the parent), whose-move-verify (red at the parent).
