@@ -95,7 +95,9 @@ describe('f706 (2) asking brings the page, read without AI', () => {
     const form = calls.find(c => c[0] === 'form'); assert.ok(form, 'the form came');
     const o = form[1];
     assert.equal(o.pick, null, 'nothing is picked for you');
-    assert.deepEqual(o.closest, [{ kind: 'tid', id: 'NDA' }]);
+    /* RE-POINTED 18 Oct 2026 (the gaps, round 4, f750): the three closest always — those sharing a word
+       first, then the next by shelf (here the only other paper there is) */
+    assert.deepEqual(o.closest, [{ kind: 'tid', id: 'NDA' }, { kind: 'tid', id: 'lease' }]);
     assert.deepEqual(o.best, { kind: 'tid', id: 'NDA' });
     assert.deepEqual(o.words, { what: 'Mutual Non-Disclosure Agreement', who: 'Volvo Cars', known: false });
     assert.equal(o.prefill.counterparty, 'Volvo Cars'); assert.equal(o.asked, 'NDA with Volvo Cars for a pilot'); assert.equal(o.streamAsk, true);
@@ -111,7 +113,8 @@ describe('f706 (2) asking brings the page, read without AI', () => {
     const a = { kind: 'draft', sentence: 'NDA with Volvo Cars', state: 'opened', options: ctx.caDraftRank('NDA with Volvo Cars', cands, null), prefill: {} };
     const html = ctx.caDraftCardHtml(a, 0);
     assert.match(html, /class="ca-card ca-dr-said"/);
-    assert.match(html, /opened a new agreement on the desk with what I read: with Volvo Cars\. The closest of our paper is NDA; you pick\. Nothing is created until you press Create\./);
+    /* RE-POINTED 18 Oct 2026 (the gaps, round 4, f750): the line as drawn — what the words name, and "our" paper */
+    assert.match(html, /opened a new agreement on the desk with what I read: an NDA, with Volvo Cars\. The closest of our paper is our NDA; you pick\. Nothing is created until you press Create\./);
     assert.ok(!/<dl/.test(html) && !/ca-dr"/.test(html), 'the New agreement card is not drawn');
     assert.match(html, /data-ca-act="form"[^>]*>Open the form</); assert.match(html, /data-ca-act="ask"[^>]*>Change the ask</);
   });
@@ -135,7 +138,8 @@ describe('f706 (3) the form, opened from a sentence, is one sheet', () => {
   test('3c 1 Start from: the closest, the best marked, nothing picked, the whole list one press away, Ask Legal', () => {
     assert.match(WZ, /const closestHtml=\(\)=>/);
     assert.match(WZ, /\$\{best===true\?`<span class="na-best">/, 'the best marked (an index from .map is never "best")');
-    assert.match(WZ, /<div class="na-closest" id="na-closest">\$\{closestHtml\(\)\}<\/div>/);
+    /* RE-POINTED 18 Oct 2026 (the gaps, round 4, f750): the three are a group of radios, as drawn */
+    assert.match(WZ, /<div class="na-closest" id="na-closest" role="radiogroup" aria-label="\$\{esc\(i18t\('na_start'\)\)\}">\$\{closestHtml\(\)\}<\/div>/);
     assert.match(WZ, /id="na-all" aria-expanded="false">\$\{esc\(i18t\('na_all_paper',\{n:rows\(\)\.length\}\)\)\}/);
     assert.match(WZ, /<div id="na-search" hidden>/);
     assert.match(WZ, /getElementById\('na-legal'\)[\s\S]{0,260}openIntakeForm\(\{ need:asked/);

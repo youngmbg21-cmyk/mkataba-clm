@@ -1922,7 +1922,10 @@ async function intelAsk(qRaw){
       intel.history.push({role:'user', text:q});
       /* A WORD (the one-page Home plan, stage 1) is said in one line and the
          reader is moved after the paint: a place opens, work opens its door. */
-      const m={role:'assistant', text:act.kind==='go'&&typeof window.caGoSay==='function'?caGoSay(act):i18t(act.kind==='draft'?'ca_intro_draft':act.kind==='send'?'ca_intro_send':'ca_intro_job'), act};
+      /* A SENTENCE THAT DRAFTS IS ANSWERED IN ONE LINE (round 4 "One sheet", the
+         gaps, 18 Oct 2026): the card says what was read and that the form is on
+         the desk, so no line in front of it says it first (ca_intro_draft inert) */
+      const m={role:'assistant', text:act.kind==='go'&&typeof window.caGoSay==='function'?caGoSay(act):act.kind==='draft'?'':i18t(act.kind==='send'?'ca_intro_send':'ca_intro_job'), act};
       /* a card that lists passages (risks, obligations) carries them as the
          message's own quotes, so each row is a door onto the paper */
       if(Array.isArray(act.quotes)&&act.quotes.length&&act.cid){ m.paperId=act.cid; m.quotes=act.quotes; m.citesInline=true; }

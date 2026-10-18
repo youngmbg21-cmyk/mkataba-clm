@@ -408,7 +408,9 @@ describe('f679 (6) the stream in Fill in', () => {
     const { ctx, c } = pdStage({ refile: false });
     const html = ctx.pdFillStreamHtml(c);
     assert.match(html, /disabled aria-disabled="true" title="pd_ff_stream_ro"/);
-    assert.match(html, /class="pd-ff-ro">pd_ff_stream_ro</);
+    /* RE-POINTED 18 Oct 2026 (the gaps, round 8 "Owed first", f751): the line as drawn, whose act it is (the reason stays on each button's hover) */
+    assert.match(html, /class="pd-ff-ro">pd_ff_stream_admin/);
+    assert.match(html, /title="pd_ff_stream_ro"/);
   });
   test('6d a press moves it through the one stream writer, which asks first, records, and draws no room', async () => {
     const { ctx } = pdStage(); const moved = [];

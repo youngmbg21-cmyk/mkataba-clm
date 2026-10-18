@@ -62,7 +62,6 @@ function stage({ holds = [], rows = [], plan = [], me = { id: 'u-maria', name: '
   return { ctx, c };
 }
 const J = x => JSON.parse(JSON.stringify(x));
-const JONAS = { id: 'u-jonas', name: 'Jonas Berg' };
 const need = { key: 'u-jonas', approverId: 'u-jonas', approverName: 'Jonas Berg', backupId: '', people: [{ id: 'u-lina', name: 'Lina Ek', why: ['lead'] }] };
 const pending = { rows: [{ need, status: 'pending', req: { id: 'sa_1', status: 'pending', approverId: 'u-jonas', askedAt: '2026-10-17T09:00:00Z',
   askedBy: { id: 'u-lina', name: 'Lina Ek' }, shows: { round: 3, value: 8100000, currency: 'SEK', signers: ['Henrik Dahl', 'Jonas Berg'] } } }], started: false, ok: false, open: [] };
