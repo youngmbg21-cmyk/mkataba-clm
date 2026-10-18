@@ -591,6 +591,9 @@ function stDrawerOpen(key){
      signing limits at once, the rules still off, a colleague's ask, and each
      of the reader's own settings (the You cards' doors) */
   if(key==='trail'){ _stBkTab='trail'; key='backup'; }
+  /* DATA & BACKUP IS A PAGE (round 26, "The SAP way", 17 Oct 2026): every
+     door that named the drawer lands on the page, on the tab it asked for */
+  if(key==='backup'){ settingsGoPage('data'); return; }
   if(key==='limits'){ _stOpen=key; stDrawerPaint(stLimitsDrawer()); return; }
   if(key==='gates'){ _stOpen=key; stDrawerPaint(stGatesDrawer()); return; }
   if(String(key||'').indexOf('ask:')===0 && typeof stAskDrawer==='function'){ const d=stAskDrawer(String(key).slice(4)); if(d){ _stOpen=key; stDrawerPaint(d); } return; }
@@ -1096,7 +1099,8 @@ const ST_CARDS=[
   { key:'signing', groups:['signing'], extra:()=>[{ panel:'limits', label:i18t('st_card_limits') }] },
   { key:'agreement', groups:['agreement'], extra:()=>stGatesOff().length?[{ panel:'gates', label:i18t('st_card_gates') }]:[] },
   { key:'links', groups:['links'] },
-  { key:'standards', groups:['standards'] },
+  /* the streams' own page, a door of its own (round 26) */
+  { key:'standards', groups:['standards'], extra:()=>[{ page:'streams', label:i18t('st_sw_title') }] },
   { key:'intake', groups:['intake'] },
   { key:'copilot', groups:['copilot'] },
   { key:'house', groups:['house'], extra:()=>stTrailOn()?[{ panel:'trail', label:i18t('st_card_trail') }]:[] },
@@ -1129,7 +1133,7 @@ function stGroupCardHtml(card){
   return `<section class="st-grp st-card" data-st-card="${card.key}">
     <h3 class="st-card-h">${esc(stCardTitle(card))}</h3>
     <div class="st-card-facts">${facts.map(stFactHtml).join('')}</div>
-    <div class="st-card-doors">${extra.map(x=>stDoorHtml(`data-st-panel="${x.panel}"`,x.label)).join('')}${rest.map(k=>stDoorHtml(`data-st-panel="${k}"`,SET_PANELS[k].title())).join('')}</div>
+    <div class="st-card-doors">${extra.map(x=>stDoorHtml(x.page?`data-st-page="${x.page}"`:`data-st-panel="${x.panel}"`,x.label)).join('')}${rest.map(k=>stDoorHtml(`data-st-panel="${k}"`,SET_PANELS[k].title())).join('')}</div>
   </section>`;
 }
 /* PEOPLE & ACCESS, two columns of facts; every one a door */
@@ -1269,7 +1273,7 @@ function stSheetCardHtml(){
    Who holds what (every grant, read-only, with Download). Each says where it
    is and carries ‹ Settings back; a refresh comes back to it (settingsPlace). */
 let _stPage=null;
-const ST_PAGES=['team','sheet','roles'];
+const ST_PAGES=['team','sheet','roles','streams','data'];
 function stPageHeadHtml(title, sub, acts){
   return `<div class="st-pg-head">
     <button type="button" class="st-pg-back" data-st-page="">‹ ${esc(i18t('pg_team'))}</button>
@@ -1292,6 +1296,111 @@ function stSheetPageHtml(){
     ${stArFootHtml()}
     <p class="st-note st-pg-foot">${esc(i18t(stArOn()?'st_ar_foot':'st_sh_foot'))}</p>
   </div>`;
+}
+/* ---- ROUND 26, "THE SAP WAY" (owner picked it by name, 17 Oct 2026):
+   CONTRACT STREAMS AND DATA & BACKUP ARE PAGES ----
+   Contract streams: labelled filters, then a table of the streams — who may
+   open, contracts, kept after they end, due now, on hold — read from the
+   stream's own readings (stPsSaved, stPsCount, folderSeerCount, the keeping
+   book); a row opens the stream's own page in the drawer (stream:<fid>), the
+   one door. Adding, renaming and categories stay in the Contract folders
+   drawer (+ New stream). Data & backup: The trail · Backup as the page's
+   tabs; the trail's asks are labelled boxes in one row, its downloads a
+   table under them. Nothing here writes. */
+let _stSw={ who:'any', keep:'any', q:'' };
+function stSwRows(){
+  const me=String(((typeof currentUser==='function'&&currentUser())||{}).id||'');
+  const kp=(_stKp.data&&_stKp.data.streams)||{}, kpRead=!!(_stKp.data&&_stKp.data.streams);
+  return Object.values(FOLDERS).filter(f=>f&&f.id).map(f=>{
+    const p=stPsSaved(f.id), priv=!!(p&&p.on), ids=priv?stPsIds(p):[];
+    const k=kp[f.id]||null, rule=stKpSaved(f.id);
+    return { id:f.id, name:f.name, color:f.color, priv, named:ids.length, mine:ids.includes(me),
+      seers:priv?ids.length:folderSeerCount(f.id).n, contracts:stPsCount(f.id),
+      years:rule?rule.years:null, due:k&&rule?k.due.length:null, held:k?k.held.length:(kpRead?0:null) };
+  });
+}
+function stSwShown(rows){
+  const q=String(_stSw.q||'').trim().toLowerCase();
+  return rows.filter(r=>(_stSw.who==='any'||(_stSw.who==='named')===r.priv)
+    &&(_stSw.keep==='any'||(_stSw.keep==='set')===(r.years!=null))
+    &&(!q||String(r.name).toLowerCase().includes(q)));
+}
+function stSwTableHtml(){
+  const all=stSwRows(), rows=stSwShown(all), kpRead=!!(_stKp.data&&_stKp.data.streams);
+  const dash='<span class="st-note">—</span>', num=v=>v==null?dash:esc(String(v));
+  const who=r=>r.priv?`${esc(i18tn('st_ps_named',r.named,{n:r.named}))}${r.mine?'':` <span class="st-note">· ${esc(i18t('st_sw_not_you'))}</span>`}`
+    :esc(i18tn('st_sw_everyone',r.seers,{n:r.seers}));
+  const body=rows.length?rows.map(r=>`<tr class="st-sw-row" data-st-panel="stream:${PB_ATTR(r.id)}" tabindex="0">
+      <td><span class="st-fdot" style="background:${r.color||'var(--color-accent)'}"></span><b>${esc(r.name)}</b>${r.priv?` <span class="st-ps-badge">${STPS_LOCK}${esc(i18t('st_ps_private'))}</span>`:''}</td>
+      <td>${who(r)}</td><td class="r">${num(r.contracts)}</td>
+      <td>${r.years!=null?esc(stKpYearsWord(r.years)):esc(i18t('st_kp_none'))}</td>
+      <td class="r">${r.due?`<span class="st-sw-due">${r.due}</span>`:dash}</td><td class="r">${kpRead?num(r.held):dash}</td></tr>`).join('')
+    :`<tr><td colspan="6" class="st-note">${esc(i18t('st_sw_none'))}</td></tr>`;
+  return `<table class="st-sh-table st-sw-tb"><thead><tr><th>${esc(i18t('st_sw_c_stream'))}</th><th>${esc(i18t('st_sw_c_who'))}</th><th class="r">${esc(i18t('st_sw_c_contracts'))}</th>
+    <th>${esc(i18t('st_sw_c_kept'))}</th><th class="r">${esc(i18t('st_sw_c_due'))}</th><th class="r">${esc(i18t('st_sw_c_held'))}</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+function stStreamsPageHtml(){
+  const n=Object.values(FOLDERS).filter(f=>f&&f.id).length;
+  const sel=(k,opts)=>`<label class="st-sw-f"><span>${esc(i18t('st_sw_f_'+k))}</span><select data-st-sw-f="${k}">${opts.map(([v,t])=>`<option value="${v}"${_stSw[k]===v?' selected':''}>${esc(t)}</option>`).join('')}</select></label>`;
+  const shown=stSwShown(stSwRows()).length;
+  return `<div class="st-pg" data-st-pg="streams">
+    ${stPageHeadHtml(i18t('st_sw_title'), String(n), `<button type="button" class="ui-btn" data-st-panel="folders" data-st-focus="#st-folder-new">+ ${esc(i18t('st_sw_new'))}</button>`)}
+    <div class="st-sw-band">
+      ${sel('who',[['any',i18t('st_sw_any')],['all',i18t('st_sw_who_all')],['named',i18t('st_sw_who_named')]])}
+      ${sel('keep',[['any',i18t('st_sw_any')],['set',i18t('st_sw_keep_set')],['none',i18t('st_kp_none')]])}
+      <label class="st-sw-f st-sw-find"><span>${esc(i18t('st_sw_f_find'))}</span><input type="search" id="st-sw-q" value="${PB_ATTR(_stSw.q)}" placeholder="${PB_ATTR(i18t('st_sw_find_ph'))}"/></label>
+    </div>
+    <section class="st-card st-sheet-full st-sw-card">
+      <h3 class="st-card-h">${esc(i18t('st_sw_list'))} <span class="st-card-sub" id="st-sw-n">${esc(i18t('st_sw_list_sub',{n:shown}))}</span></h3>
+      <div id="st-sw-tb">${stSwTableHtml()}</div>
+    </section>
+  </div>`;
+}
+function stSwRepaint(){
+  const tb=document.getElementById('st-sw-tb'); if(!tb) return;
+  tb.innerHTML=stSwTableHtml();
+  const n=document.getElementById('st-sw-n'); if(n) n.textContent=i18t('st_sw_list_sub',{n:stSwShown(stSwRows()).length});
+}
+/* the server's counts and the keeping book, read once the page is up */
+function stSwLoad(){
+  if(!_stPs.counts) Promise.resolve(stPsLoad()).then(stSwRepaint,()=>{});
+  if(!_stKp.data&&stKpOn()) Promise.resolve(stKpLoad()).then(stSwRepaint,()=>{});
+}
+if(typeof document!=='undefined' && !window._stSwWired){
+  window._stSwWired=true;
+  document.addEventListener('change',e=>{ const t=e.target; const k=t&&t.getAttribute&&t.getAttribute('data-st-sw-f'); if(!k||!t.closest('[data-st-pg="streams"]')) return;
+    _stSw[k]=t.value||'any'; stSwRepaint(); });
+  document.addEventListener('input',e=>{ const t=e.target; if(!t||t.id!=='st-sw-q') return; _stSw.q=t.value||''; stSwRepaint(); });
+  document.addEventListener('keydown',e=>{ const t=e.target; if(e.key!=='Enter'||!t||!t.classList||!t.classList.contains('st-sw-row')) return; t.click(); });
+}
+function stDataPageHtml(){
+  const trail=stTrailOn();
+  if(trail&&!_stTr.from) Object.assign(_stTr,stTrailDefault());
+  const tab=(k,label)=>`<button type="button" role="tab" class="st-dp-tab${_stBkTab===k?' is-on':''}" data-st-bk-tab="${k}" aria-selected="${_stBkTab===k}">${esc(label)}</button>`;
+  const tabs=trail?`<div class="st-dp-tabs" role="tablist">${tab('trail',i18t('st_bk_tab_trail'))}${tab('backup',i18t('st_bk_tab_backup'))}</div>`:'';
+  if(!trail) _stBkTab='backup';
+  return `<div class="st-pg" data-st-pg="data">
+    ${stPageHeadHtml(i18t('st_p_backup'), '', tabs)}
+    <div id="st-bk-pane">${_stBkTab==='trail'?stTrailBandHtml():`<section class="st-card st-sheet-full st-dp-card">${stBackupBodyHtml()}</section>`}</div>
+  </div>`;
+}
+/* THE TRAIL'S ASKS AS LABELLED BOXES IN ONE ROW, the count under them, the
+   downloads a table — the same ids and the same wiring as the drawer's */
+function stTrailBandHtml(){
+  const d=_stTr, streams=stTrailStreams();
+  const lbl=t=>`<span>${esc(t)}</span>`;
+  return `<section class="st-sw-band st-tr-band">
+      <label class="st-sw-f">${lbl(i18t('st_tr_from'))}<input type="date" id="st-tr-from" value="${esc(d.from)}"/></label>
+      <label class="st-sw-f">${lbl(i18t('st_tr_to'))}<input type="date" id="st-tr-to" value="${esc(d.to)}"/></label>
+      <label class="st-sw-f">${lbl(i18t('st_tr_streams'))}<select id="st-tr-stream">
+        <option value="all"${d.stream==='all'?' selected':''}>${esc(i18t('st_tr_all'))}</option>
+        ${streams.map(f=>`<option value="${esc(f.id)}"${d.stream===f.id?' selected':''}>${esc(f.name)}</option>`).join('')}</select></label>
+      <label class="st-sw-f">${lbl(i18t('st_tr_as'))}<select id="st-tr-as-sel">
+        <option value="csv"${d.as!=='pdf'?' selected':''}>${esc(i18t('st_tr_csv'))}</option>
+        <option value="pdf"${d.as==='pdf'?' selected':''}>${esc(i18t('st_tr_pdf'))}</option></select></label>
+      <div class="st-tr-go st-tr-go-band" id="st-tr-go">${stTrailGoHtml()}</div>
+    </section>
+    <section class="st-card st-sheet-full st-dp-card"><div class="st-tr-past" id="st-tr-past">${stTrailPastHtml()}</div></section>`;
 }
 /* ---- THE QUARTERLY ACCESS REVIEW (owner picked "Review the sheet — the SAP
    way", 17 Oct 2026; piece 8 of the sensitive contracts and governance plan) ----
@@ -1509,6 +1618,8 @@ function stCompanyHtml(){
   if(_stPage==='team') return stTeamPageHtml();
   if(_stPage==='sheet') return stSheetPageHtml();
   if(_stPage==='roles') return stRolesPageHtml();
+  if(_stPage==='streams') return stStreamsPageHtml();
+  if(_stPage==='data') return stDataPageHtml();
   return `<div class="st-board" id="st-board">
     ${stNeedsHtml()}
     <div class="st-cards">${ST_CARDS.filter(c=>c.key!=='ladder').map(c=>c.key==='people'?stPeopleCardHtml():stGroupCardHtml(c)).join('')}</div>
@@ -5324,7 +5435,10 @@ const SET_PANELS={
     sub:()=>API_MODE()?i18t('set_backup_server'):i18t('set_backup_local'),
     state(){ const at=stLastBackup(); return { dot:at?'ok':'off', text:at?`${i18t('set_export_backup')} · ${fmtDT(at)}`:i18t('st_not_set') }; },
     find(){ return stTrailOn()?[i18t('st_bk_tab_trail'),i18t('st_tr_find')]:[]; },
-    /* TWO TABS ON THE SERVER: Backup as it was, and The trail (piece 5) */
+    /* TWO TABS ON THE SERVER: Backup as it was, and The trail (piece 5).
+       Since round 26 its door is a PAGE (stDataPageHtml); the drawer's body
+       stays for anything that paints the panel by name. */
+    page:'data',
     body(){ return stTrailOn()?stBkTabsHtml():stBackupBodyHtml(); },
     wire(){ if(stTrailOn()) stBkWire(); else stWireBackup(); },
   },
@@ -6129,7 +6243,14 @@ function stBkTabsHtml(){
   if(!_stTr.from){ Object.assign(_stTr,stTrailDefault()); }
   const tab=(k,label)=>`<button type="button" role="tab" class="st-ps-tab${_stBkTab===k?' is-on':''}" data-st-bk-tab="${k}" aria-selected="${_stBkTab===k}">${esc(label)}</button>`;
   return `<div class="st-ps-tabs" role="tablist">${tab('backup',i18t('st_bk_tab_backup'))}${tab('trail',i18t('st_bk_tab_trail'))}</div>
-    <div id="st-bk-pane">${_stBkTab==='trail'?stTrailHtml():stBackupBodyHtml()}</div>`;
+    <div id="st-bk-pane">${stBkPaneHtml()}</div>`;
+}
+/* the pane for the tab in front: on the page the trail's asks are labelled
+   boxes in one row (round 26), in the drawer the stacked form */
+function stBkPaneHtml(){
+  const onPage=_stPage==='data'&&!!document.querySelector('[data-st-pg="data"]');
+  if(_stBkTab!=='trail') return onPage?`<section class="st-card st-sheet-full st-dp-card">${stBackupBodyHtml()}</section>`:stBackupBodyHtml();
+  return onPage?stTrailBandHtml():stTrailHtml();
 }
 function stTrailHtml(){
   const d=_stTr, streams=stTrailStreams();
@@ -6217,7 +6338,7 @@ function stBkWire(){
   document.querySelectorAll('[data-st-bk-tab]').forEach(b=>b.addEventListener('click',()=>{
     _stBkTab=b.getAttribute('data-st-bk-tab')==='trail'?'trail':'backup';
     document.querySelectorAll('[data-st-bk-tab]').forEach(x=>{ const on=x===b; x.classList.toggle('is-on',on); x.setAttribute('aria-selected',String(on)); });
-    host.innerHTML=_stBkTab==='trail'?stTrailHtml():stBackupBodyHtml();
+    host.innerHTML=stBkPaneHtml();
     stBkWirePane();
   }));
   stBkWirePane();
@@ -6229,6 +6350,7 @@ function stBkWirePane(){
   on('st-tr-from','change',e=>{ d.from=e.target.value; stTrailCount(); });
   on('st-tr-to','change',e=>{ d.to=e.target.value; stTrailCount(); });
   on('st-tr-stream','change',e=>{ d.stream=e.target.value||'all'; stTrailCount(); });
+  on('st-tr-as-sel','change',e=>{ d.as=e.target.value==='pdf'?'pdf':'csv'; });
   document.querySelectorAll('input[name="st-tr-as"]').forEach(r=>r.addEventListener('change',()=>{
     d.as=r.value==='pdf'?'pdf':'csv';
     document.querySelectorAll('.st-tr-as .st-ps-radio').forEach(l=>l.classList.toggle('is-on',!!l.querySelector('input:checked')));
@@ -7140,6 +7262,9 @@ function stPagePaint(admin){
   stWireList();
   if(admin) stLoadAiCfgOnce();
   if(face==='company') stPeopleWire();
+  /* round 26's two pages, wired once painted */
+  if(face==='company'&&_stPage==='data') stBkWire();
+  if(face==='company'&&_stPage==='streams') stSwLoad();
   if(face==='you') stYouLoad();
   if(_stAsks===null) stAsksLoad();
   /* measured now, and again once the page's entrance has settled — the
