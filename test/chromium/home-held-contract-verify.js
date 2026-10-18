@@ -68,6 +68,9 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     page.on('request', r => { if (/\/api\/ai\/chat\b/.test(r.url()) && r.method() === 'POST') { try { asks.push(JSON.parse(r.postData() || '{}')); } catch (_) {} } });
     /* a press on what is not there reports, never waits out a timeout */
     const press = async sel => { const el = await page.$(sel); if (!el) return false; await el.click(); return true; };
+    /* the wall draws twelve at a time: Show more until a paper is on it (bounded) */
+    const bring = async id => { for (let i = 0; i < 6 && !(await page.$(`#ig-wall .igw-card[data-ig-pick="${id}"]`)); i++){ if (!(await press('#ig-wall [data-ig-wall-more]'))) break; await page.waitForTimeout(250); }
+      return !!(await page.$(`#ig-wall .igw-card[data-ig-pick="${id}"]`)); };
     const until = async (fn, arg, ms = 8000) => { let v; const t0 = Date.now();
       while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(120); }
       return v; };
@@ -146,7 +149,8 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     const gone2 = await until(id => !document.querySelector(`#ig-wall .igw-card[data-ig-pick="${id}"]`) && !document.querySelector('#ig-dock #pd-chosen') && !!document.querySelector('#ig-dock #pd-drop, #ig-dock .pd-wall'), pick, 5000);
     check('1h2 a narrowing that takes the chosen paper off the wall lets it go; the panel says the wall again', !!had2 && !!gone2, JSON.stringify({ had2, gone2 }));
     await page.evaluate(() => { state.reg.stage = 'all'; regRepaint(); });
-    await until(id => !!document.querySelector(`#ig-wall .igw-card[data-ig-pick="${id}"]`), pick, 5000);
+    await until(() => !!document.querySelector('#ig-wall .igw-card'), null, 5000);
+    await bring(pick);
     /* a refresh keeps the choice */
     await press(`#ig-wall .igw-card[data-ig-pick="${pick}"]`);
     await until(() => !!document.querySelector('#ig-dock #pd-chosen'), null, 4000);
@@ -161,11 +165,12 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     check('1j the second press (on the paper chosen, not yet open) opens it on Home\'s paper', !!kept && !!opened, JSON.stringify({ kept, opened }));
     /* Enter on a paper opens it; Open the paper opens it */
     await page.evaluate(() => hbOpenContracts()); await until(() => !!document.querySelector('#ig-wall .igw-card'), null, 8000);
+    await bring(other);
     if (await page.$(`#ig-wall .igw-card[data-ig-pick="${other}"]`)) { await page.focus(`#ig-wall .igw-card[data-ig-pick="${other}"]`); await page.keyboard.press('Enter'); }
     const entered = await until(id => window.intel && intel.paper && String(intel.paper.id) === id, other, 15000);
     check('1k Enter on a paper opens it', !!entered);
     await page.evaluate(() => hbOpenContracts()); await until(() => !!document.querySelector('#ig-wall .igw-card'), null, 8000);
-    await press(`#ig-wall .igw-card[data-ig-pick="${pick}"]`);
+    await bring(pick); await press(`#ig-wall .igw-card[data-ig-pick="${pick}"]`);
     await until(() => !!document.querySelector('#ig-dock [data-pd-ch-open]'), null, 4000);
     const btn = await press('#ig-dock [data-pd-ch-open]');
     const viaPanel = await until(id => window.intel && intel.paper && String(intel.paper.id) === id, pick, 15000);
@@ -173,7 +178,7 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     await page.evaluate(() => hbOpenContracts()); await until(() => !!document.querySelector('#ig-wall .igw-card'), null, 8000);
 
     /* ===================== 2 ROUND 7: A CONTRACT BROUGHT UP ===================== */
-    await press(`#ig-wall .igw-card[data-ig-pick="MK-0377"]`);
+    await bring('MK-0377'); await press(`#ig-wall .igw-card[data-ig-pick="MK-0377"]`);
     await until(() => !!document.querySelector('#ig-dock [data-pd-ch-life="MK-0377"]'), null, 4000);
     await press('#ig-dock [data-pd-ch-life="MK-0377"]');
     const P7 = await until(() => { const g = document.querySelector('#ig-dock #pd-cardglance'); const st = document.getElementById('bs-strip-MK-0377');
@@ -238,8 +243,8 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     /* ===================== 4 THE OWNER'S THREE SCREENS ===================== */
     const shotsDir = OUT || '';
     const scenes = [
-      ['13-chosen-paper', async () => { await page.evaluate(() => { hbOpenContracts(); if (window.igWallLetGo) igWallLetGo(); }); await until(() => !!document.querySelector('#ig-wall .igw-card[data-ig-pick="MK-0382"]'), null, 8000);
-        await press('#ig-wall .igw-card[data-ig-pick="MK-0382"]');
+      ['13-chosen-paper', async () => { await page.evaluate(() => { hbOpenContracts(); if (window.igWallLetGo) igWallLetGo(); }); await until(() => !!document.querySelector('#ig-wall .igw-card'), null, 8000);
+        await bring('MK-0382'); await press('#ig-wall .igw-card[data-ig-pick="MK-0382"]');
         await until(() => !!document.querySelector('#ig-dock #pd-chosen'), null, 4000); return '#ig-dock #pd-chosen'; }],
       ['7-page-glance', async () => { await page.evaluate(() => hbStripBring('MK-0377')); await until(() => !!document.querySelector('#ig-dock #pd-cardglance') && !!document.querySelector('#bs-strip-MK-0377 .bs-kpi'), null, 8000); return '#ig-dock #pd-cardglance'; }],
       ['12-history-panel', async () => { await page.evaluate(() => hbStripBring('MK-0382', 'hist')); await until(() => !!document.querySelector('#ig-dock #pd-histglance') && !!document.querySelector('#bs-strips .hist-ev'), null, 8000); return '#ig-dock #pd-histglance'; }],
