@@ -17077,7 +17077,11 @@ function renderSignSide(c){
     ${''/* THE APPROVER'S OWN CARD (23 Sep 2026), above everything: for the
            person a personal approval is asked of, deciding it IS the work on
            this tab. Drawn only while there is a request they may decide. */}
-    ${(!closed&&window.signApprovalAskCardHtml)?signApprovalAskCardHtml(c):''}
+    ${''/* BEFORE YOU SIGN'S ROAD DRAWS THE APPROVAL AT ITS OWN STOP (round 10,
+           "The road": the states, the stand-in's line, Approve and Refuse… —
+           pdRoadYesHtml, with this card's id for the email's landing), so on
+           that face the card is not drawn a second time */}
+    ${(!closed&&window.signApprovalAskCardHtml&&!host.closest('#pd-signface'))?signApprovalAskCardHtml(c):''}
     ${''/* THE CHECK, ABOVE THE GATE AND THE ORDER: it is about whether this
            wording should be signed at all, which is a question that comes
            before who signs it and in what order. */}
@@ -18557,7 +18561,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{docReadLongSplit,DOC_READ_LONG_WORDS,DOC_READ_RUN_MIN,docThreadHomeMarks,TH_HOSTS,thHomeLive,ovRenewTermDoorHtml,ovRenewTermAsk,ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFrozen,paperTermFrozenRead,paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,roomHeadRefresh,
+Object.assign(window,{signApprovalRowWhy,docReadLongSplit,DOC_READ_LONG_WORDS,DOC_READ_RUN_MIN,docThreadHomeMarks,TH_HOSTS,thHomeLive,ovRenewTermDoorHtml,ovRenewTermAsk,ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFrozen,paperTermFrozenRead,paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,roomHeadRefresh,
   /* TWO COPIES OF ONE CONTRACT (25 Sep 2026): the sheet's builders and the
      signing copy's controls. The other side's signing link draws the signing
      copy through signCopySheetHtml, so it must be on this list — a name read

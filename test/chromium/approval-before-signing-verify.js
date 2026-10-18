@@ -218,14 +218,17 @@ let H;
       /Unrestricted Legal/.test(list) && /Needs approval to sign/.test(list), list);
     await shot(P.page, 'sa-05-list');
     await openSign(P.page);
+    /* RE-POINTED 18 Oct 2026 (the gaps, round 10 "The road", f752): the approval
+       asked of you is drawn at its own stop on the road — where it stands, what
+       it covers, the asker's note, Approve · Refuse… — and carries the card's id */
     const card = await P.page.evaluate(() => {
       const c = document.getElementById('sa-card');
-      return { there: !!c, text: c ? c.textContent.replace(/\s+/g, ' ') : '',
-        approve: !!(c && c.querySelector('[data-sa-approve]')), refuse: !!(c && c.querySelector('[data-sa-refuse]')) };
+      return { there: !!c, text: c ? c.textContent.replace(/\s+/g, ' ') : '', stop: !!(c && c.closest('[data-pd-road-stop="yes"]')),
+        approve: !!(c && c.querySelector('[data-pd-rd-approve]')), refuse: !!(c && c.querySelector('[data-pd-rd-refuse]')) };
     });
-    check('4b  the approver\'s own card leads the column, with the note and what they approve',
-      card.there && /asks you to approve this before anyone signs it/.test(card.text) && /Price held/.test(card.text)
-      && /You approve/.test(card.text) && card.approve && card.refuse, card.text.slice(0, 260));
+    check('4b  the approval asked of you stands at its stop, with what it covers, the note, Approve and Refuse…',
+      card.there && card.stop && /Unrestricted Legal asked\. It covers round 1 as it stands/.test(card.text) && /Price held/.test(card.text)
+      && /Waiting/.test(card.text) && card.approve && card.refuse, card.text.slice(0, 260));
     await shot(P.page, 'sa-06-decide');
 
     /* ===== 4L · THE EMAIL'S LINK LANDS ON THE DECISION (3 Oct 2026) =====
@@ -251,7 +254,7 @@ let H;
             const b = c.getBoundingClientRect();
             return r({ card: true, lit: wasLit,
               inView: b.top >= 0 && b.bottom <= (window.innerHeight || 0) + 2,
-              approve: !!c.querySelector('[data-sa-approve]'),
+              approve: !!c.querySelector('[data-pd-rd-approve]'),
               hash: location.hash });
           }
           setTimeout(look, 100);
@@ -283,7 +286,7 @@ let H;
       junk.ok && junk.onRoom && !junk.lit, JSON.stringify(junk));
 
     if (card.refuse) {
-      await P.page.click('[data-sa-refuse]');
+      await P.page.click('[data-pd-rd-refuse]');
       await P.page.waitForTimeout(400);
       const empty = await P.page.evaluate(() => !!document.getElementById('pd-input'));
       check('4c  Refuse asks why', empty);
@@ -292,7 +295,7 @@ let H;
         await P.page.waitForTimeout(400);
         const still = await P.page.evaluate(async () => { const c = getContract('MK-A2'); return (c.signApprovals || [])[0].status; });
         check('4d  a refusal with no reason is not a refusal', still === 'pending', still);
-        await P.page.click('[data-sa-refuse]').catch(() => {});
+        await P.page.click('[data-pd-rd-refuse]').catch(() => {});
         await P.page.waitForTimeout(400);
         if (await P.page.$('#pd-input')) {
           await P.page.fill('#pd-input', 'Ask Nandi for 45 days to pay. The price is fine.');
@@ -321,15 +324,17 @@ let H;
     await P.page.reload({ waitUntil: 'networkidle' });
     await P.page.waitForTimeout(2000);
     await openSign(P.page);
-    if (await P.page.$('[data-sa-approve]')) {
-      await P.page.fill('#sa-dec-note', 'Fine by me.');
-      await P.page.click('[data-sa-approve]');
+    /* RE-POINTED 18 Oct 2026 (the gaps, round 10): the road's Approve is one
+       press, as drawn — the optional note went with the column's card (the
+       phone keeps its note box, 8b) */
+    if (await P.page.$('[data-pd-rd-approve]')) {
+      await P.page.click('[data-pd-rd-approve]');
       await P.page.waitForTimeout(1500);
     }
     const rec5 = await W.admin.json('/api/contracts/MK-A2');
     const q5 = (rec5.signApprovals || []).slice(-1)[0] || {};
-    check('5b  approved on the record, by the approver, with the note', q5.status === 'approved' && q5.decidedBy && q5.decidedBy.id === R.id
-      && q5.decision === 'Fine by me.', JSON.stringify({ s: q5.status, d: q5.decision }));
+    check('5b  approved on the record, by the approver', q5.status === 'approved' && q5.decidedBy && q5.decidedBy.id === R.id,
+      JSON.stringify({ s: q5.status, d: q5.decision }));
     await L.page.reload({ waitUntil: 'networkidle' });
     await L.page.waitForTimeout(2000);
     await stage();
