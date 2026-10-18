@@ -30937,6 +30937,20 @@ THE DAY'S RESULT (main at 6804579): nothing crossed. 5 of 5, 1.4 s.
 
 CARRIED OVER, 18 Oct 2026 (owner: "Tidy up"). Written on 13 Oct in the phase-1 stack (PRs #260–#269), which could no longer merge; brought over on a fresh branch and the stack closed. On main at 9d30154 it passed 5 of 5. Its neighbour in the stack, screens-at-3000-verify (#261), was meant to come too and was left on its branch: three runs here passed 11, 8 and 9 of 11, a different screen failing each time, because the 400-contract paint swung from 10 to 220 ms between runs and the ratio follows it.
 
+## JAMBO'S MAP — THE 31ST TASK, EXPLORER (18 Oct 2026)
+
+THE OWNER'S WORDS. Asked "does Jambo's map also cover Explorer?" (it did not: only the exact words "explorer" / "utforskaren" and the slash list opened it; a sentence such as "how are our contracts connected?" went to the model, which cannot take anyone anywhere), the owner said: "yes, add Explorer as the 31st task".
+
+WHAT WAS BUILT (js/jambomap.js, one line in JM_TASKS). Task `explorer`, door `{ place: 'explorer' }` — the CA_PLACES word Explorer already had, opened by CA_GO.explorer (hbOpenExplorer). No second door. Ways of asking, English: explore our contracts, all contracts on one map, contract map, see how our contracts connect, contracts linked to each other, relationships between contracts, visualise/visualize the portfolio, bird's eye view, contract landscape, network of contracts, spot the outliers, graph of our contracts, a map of every contract, the big picture of our contracts. Svenska: utforska avtalen, avtalskarta, alla avtal på en karta, hur avtalen hänger ihop, samband mellan avtalen, visualisera avtalen, avtalen som ett nätverk, hitta avvikarna, helhetsbilden av avtalen. Titled jm_t_explorer (Explorer · Utforskaren) and described jm_s_explorer for ⌘K, both books. Words kept OUT on purpose because the exam's "not the map's" list holds them: risky, unusual, by stream, top/value (those are questions for the model or the Board's reader).
+
+MEASURED before the exam lines were written: 12 of 14 fresh sentences landed on Explorer through the full caActOf chain; the two misses ("a map of every agreement", "the big picture of all our contracts") became ways of asking. Neighbours checked: "every contract" stays Contracts, "a chart of spend" stays Insights, "which contracts are linked to Nordkust?" stays the model's. All 58 "not the map's" questions still answer null.
+
+AS DESIGNED, NOT CHANGED: on the Board or Explorer a sentence that asks for a list of contracts (JM_LIST_RE: "show me all our contracts on a map", "visa avtalen på en karta") is left to those pages' own readers, as the map has done since its first GitHub run (analyze-on-the-graph 0a). Beside a paper, at the Counter, in ⌘K and from the top bar it opens Explorer.
+
+COUNTED IN EVERY PLACE: "thirty" became "thirty-one" in jambomap.js's notes, the two books' section comments and the Brain page's description of the map (brn_pd_jambomap, both books: "thirty-one" · "trettioen"), app.js's and brainmap.js's comments, and CLAUDE.md's heading and line.
+
+TESTS. f705: 1a now 31 tasks; the exam gained five Explorer questions (three English, two Svenska); 47/47. At unchanged main, 1a and the exam fail (2 of 47 red). jambo-map-verify gained step 9 (the Counter, ⌘K's row and its press, Svenska; 9a–9d) — all passed. Green alongside: f148, f232, f48, f560, f561, f564, f603, f672, f678 (155/155); lint 0 errors, warnings unchanged from main (137).
+
 ## #339 BROUGHT TO GREEN (18 Oct 2026, the owner: "fix it and merge once checks pass")
 
 Main merged in (#335–#338, #340). #339's f730 and f731 became f732 (the counter in the clause) and f733 (a half-undone counter): main's #340 had taken both numbers.

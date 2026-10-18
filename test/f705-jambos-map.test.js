@@ -1,9 +1,10 @@
 'use strict';
 /* ═══════════════════════════════════════════════════════════════════════════
    f705 — JAMBO'S MAP (owner, 18 Oct 2026: "Start with MiniSearch and the map
-   for 30 tasks"; js/jambomap.js, vendor/minisearch-7.2.0.umd.js)
+   for 30 tasks"; the same day: "add Explorer as the 31st task";
+   js/jambomap.js, vendor/minisearch-7.2.0.umd.js)
 
-   (1) THE MAP: thirty tasks, each with ways of asking in English AND Svenska,
+   (1) THE MAP: thirty-one tasks, each with ways of asking in English AND Svenska,
        each pointing at a door HaTi already has — a place word, a door, a
        Menu row, the Contracts place narrowed, a Settings section — and each
        titled in both books.
@@ -113,12 +114,12 @@ function lands(ctx, a){
 /* sure: the act itself; not sure: the card's first pick */
 const landsOrFirst = (ctx, a) => a && a.kind === 'map' ? a.picks[0] : lands(ctx, a);
 
-describe('f705 (1) the map: thirty tasks, both languages, each on an existing door', () => {
+describe('f705 (1) the map: thirty-one tasks, both languages, each on an existing door', () => {
   const { ctx } = stage();
   const T = ctx.JM_TASKS;
-  test('1a thirty tasks, each named once', () => {
-    assert.equal(T.length, 30);
-    assert.equal(new Set(T.map(x => x.k)).size, 30);
+  test('1a thirty-one tasks, each named once', () => {
+    assert.equal(T.length, 31);
+    assert.equal(new Set(T.map(x => x.k)).size, 31);
   });
   test('1b every task has at least three ways of asking in each language, and each way has a word the map can read', () => {
     for (const t of T){
@@ -186,6 +187,9 @@ const EXAM = [
   ['where are our standard templates?', 'ourpaper'], ['open the clause library', 'ourpaper'], ['var finns våra mallar?', 'ourpaper'],
   ['show me the dashboard', 'board'], ['where are the key figures?', 'board'], ['visa nyckeltalen', 'board'],
   ['import from excel', 'import'], ['I want to see reports', 'insights'], ['spend analysis by supplier', 'insights'], ['visa statistik', 'insights'],
+  /* the 31st task (owner, 18 Oct 2026): Explorer, every contract on one map */
+  ['how are our contracts connected?', 'explorer'], ['show me all our contracts on a map', 'explorer'], ['where can I see the outliers?', 'explorer'],
+  ['jag vill utforska alla avtal', 'explorer'], ['visa avtalen på en karta', 'explorer'],
   ['how do I add a new user?', 'team'], ['invite my colleague to HaTi', 'team'], ['bjud in en kollega', 'team'],
   ['set the signing limits', 'signcap'], ['how do I limit what Peter can sign?', 'signcap'], ['ändra signeringsgränser', 'signcap'],
   ['how do I make a folder private?', 'folders'], ['change who has access', 'folders'], ['begränsa åtkomst till en mapp', 'folders'],
