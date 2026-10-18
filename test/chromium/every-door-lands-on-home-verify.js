@@ -383,8 +383,13 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
     await door(A, 'Contracts place, List row ⋯ Workspace (MK-A2)', { start: atList,
       press: async () => (await click(LROW + ' [data-menu="MK-A2"]')) && click(LROW + ' [data-act="open"][data-id="MK-A2"]'),
       expect: await wsExpect('MK-A2'), says: (await owedFor('MK-A2')) ? SAYS.fill : SAYS.copilot });
-    await door(A, 'Contracts place, a paper on the Wall (MK-A2)', { start: async () => { await toPlace('wall')(); await waitFor(page, s => !!document.querySelector(s), 6000, WCARD); },
-      press: () => click(WCARD), expect: E.paper('MK-A2'), says: SAYS.paper });
+    /* RE-POINTED 18 Oct 2026 (round 13 as drawn): a press on a paper chooses
+       it (Jambo's panel says it), a second press opens it; and so does the
+       panel's own Open the paper */
+    await door(A, 'Contracts place, a paper on the Wall, pressed twice (MK-A2)', { start: async () => { await toPlace('wall')(); await waitFor(page, s => !!document.querySelector(s), 6000, WCARD); },
+      press: async () => (await click(WCARD)) && click(WCARD), expect: E.paper('MK-A2'), says: SAYS.paper });
+    await door(A, 'Contracts place, a paper on the Wall, then Jambo\'s Open the paper (MK-A2)', { start: async () => { await toPlace('wall')(); await waitFor(page, s => !!document.querySelector(s), 6000, WCARD); },
+      press: async () => (await click(WCARD)) && (await waitFor(page, () => !!document.querySelector('#ig-dock [data-pd-ch-open="MK-A2"]'), 4000)) && click('#ig-dock [data-pd-ch-open="MK-A2"]'), expect: E.paper('MK-A2'), says: SAYS.paper });
     /* RE-POINTED 17 Oct 2026 (round 6, "One line"): "‹ Contracts" left the
        paper's line — the way back is the frame's, the Contracts place's own
        desk tab, kept once the place has settled */

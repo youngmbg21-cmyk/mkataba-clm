@@ -126,7 +126,7 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
         labels: [...host.querySelectorAll('.hist-f > span')].map(s => s.textContent.trim()),
         clear: seen(host.querySelector('#ht-clear')),
         more: (() => { const b = host.querySelector('#hist-more');
-          return b ? { tag: b.tagName, text: (b.textContent || '').replace(/\\s+/g, ' ').trim(),
+          return b ? { tag: b.tagName, text: (b.textContent || '').replace(/\\s+/g, ' ').trim(), aria: b.getAttribute('aria-label') || '', tip: b.getAttribute('title') || '',
             expanded: b.getAttribute('aria-expanded'), ...seen(b) } : null; })(),
         selectsOnHead: host.querySelectorAll('#hist-more, #hist-more ~ select').length,
         rows: host.querySelectorAll('.hist-ev').length,
@@ -186,8 +186,11 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
       head.lanes.join(' | '));
 
     /* ============ 2. "MORE" IS NAMED, AND IS STILL A MENU =============== */
-    check('the ⋯ button carries a word now', !!(head.more && /More/.test(head.more.text)),
-      head.more ? `<${head.more.tag}> "${head.more.text}"` : 'absent');
+    /* RE-POINTED 18 Oct 2026 (round 12, "Two sides", as drawn): ⋯ stands
+       alone at the toolbar's end; its name is said to a screen reader and on
+       the hover, and the menu's rows still say what each does */
+    check('the ⋯ button is named: "More" for a screen reader, what it holds on the hover', !!(head.more && head.more.aria === 'More' && /Verify/.test(head.more.tip)),
+      head.more ? `<${head.more.tag}> "${head.more.text}" aria="${head.more.aria}" tip="${head.more.tip}"` : 'absent');
     /* A select would sit there afterwards wearing the last act as a setting. */
     check('and it is a button opening a menu, NOT a <select> of actions',
       !!head.more && head.more.tag === 'BUTTON', head.more ? head.more.tag : 'absent');

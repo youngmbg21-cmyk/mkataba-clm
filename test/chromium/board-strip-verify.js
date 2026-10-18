@@ -217,7 +217,7 @@ const OBS = [
     const R = await page.evaluate(() => {
       const c = getContract('MK-L1'), el = document.getElementById('bs-strip-MK-L1');
       const t = s => ((el.querySelector(s) || {}).textContent || '').replace(/\s+/g, ' ').trim();
-      const kpi = k => { const x = el.querySelector(`[data-bs-kpi="${k}"]`); return x ? { n: x.querySelector('b').textContent.trim(), sub: x.querySelector('span').textContent.trim(), warn: x.classList.contains('is-warn') } : null; };
+      const kpi = k => { const x = el.querySelector(`[data-bs-kpi="${k}"]`); return x ? { n: x.querySelector('b').textContent.trim(), sub: x.querySelector('span').textContent.trim(), warn: x.classList.contains('is-warn'), bad: x.classList.contains('is-bad') } : null; };
       const D = bsLifeData(c);
       const ob = bsObRows(c);
       const M = ov2Model(c);
@@ -227,7 +227,7 @@ const OBS = [
       const th = el.querySelector('.bs-ob th');
       const svg = el.querySelector('.bs-chart');
       return {
-        head: { title: t('.hb-ct'), ref: t('.bs-ref'), pill: t('.bs-head .hb-chip'), dots: !!el.querySelector('[data-bs-dots]'), x: !!el.querySelector('[data-bs-x]') },
+        head: { title: t('.hb-ct'), ref: t('.bs-ref'), pill: t('.bs-head .hb-chip') || t('.bs-head .bs-stage'), dots: !!el.querySelector('[data-bs-dots]'), x: !!el.querySelector('[data-bs-x]') },
         id: t('.bs-idline'), value: kpi('value'), term: kpi('term'), next: kpi('next'), notice: kpi('notice'), move: kpi('move'),
         want: { value: fmtMoneyShortIn(3600000, contractCurrency(c)), from: bsDay(M.start), nextDay: bsDay(ob.next.due), nextWhat: ob.next.what, notice: bsDay(M.noticeBy), round: ds.round, open: ds.open, wm: wm.k,
           ours: ob.ours, theirs: ob.theirs, n: ob.rows.length, risks: riskOpenOf(c).length, brief: triageBriefLine(c._brief), det: detailsOf(c).left, dev: deviationSummary(c) },
@@ -248,11 +248,15 @@ const OBS = [
       };
     });
     /* RE-POINTED (round 7): on the desk the tab's × puts the page away, so the head draws none of its own */
-    check('2a the head: title · ref · counterparty · stage · ⋯ (the desk tab\'s × puts it away)', R.head.title === 'Packaging Film Supply Agreement' && /MK-L1 · Nordfilm Packaging AB/.test(R.head.ref) && R.head.pill === 'In Review' && R.head.dots && !R.head.x, JSON.stringify(R.head));
+    /* RE-POINTED 18 Oct 2026 (rounds 7 and 12 as drawn): the stage is the
+       paper line's own pill — its dot, its words and its round */
+    check('2a the head: title · ref · counterparty · stage · ⋯ (the desk tab\'s × puts it away)', R.head.title === 'Packaging Film Supply Agreement' && /MK-L1 · Nordfilm Packaging AB/.test(R.head.ref) && /^In Review( · round \d+)?$/.test(R.head.pill) && R.head.dots && !R.head.x, JSON.stringify(R.head));
     check('2b who it is with: the counterparty\'s role, the type, the stream, the owner, uploaded', /Nordfilm Packaging AB is the supplier/.test(R.id) && /owned by/.test(R.id) && /uploaded/.test(R.id), R.id);
     check('2c Value is the record\'s, in its own currency, with what it comes to a year over the term', R.value && R.value.n === R.want.value && /a year/.test(R.value.sub), JSON.stringify(R.value) + ' want ' + R.want.value);
     check('2d Term: two years, from the start date on the record', R.term && R.term.n === '2 years' && R.term.sub === 'From ' + R.want.from, JSON.stringify(R.term));
-    check('2e Next obligation: the first open one by its day (late: amber), with what and whose', R.next && R.next.n === R.want.nextDay && R.next.sub.startsWith(R.want.nextWhat) && R.next.warn, JSON.stringify(R.next) + ' want ' + R.want.nextDay);
+    /* RE-POINTED 18 Oct 2026 (round 7 as drawn): late is the late colour, and
+       the line says how late where whose stood (whose is the table's column) */
+    check('2e Next obligation: the first open one by its day (late: the late colour, and how late)', R.next && R.next.n === R.want.nextDay && R.next.sub.startsWith(R.want.nextWhat) && /· \d+ days? late$/.test(R.next.sub) && R.next.bad, JSON.stringify(R.next) + ' want ' + R.want.nextDay);
     check('2f Notice by: ninety days before the end, and that it renews for twelve months', R.notice && R.notice.n === R.want.notice && /renews 12 months/.test(R.notice.sub), JSON.stringify(R.notice));
     check('2g Whose move: yours (amber), the round and what is open — dealStands and negWhoseMove', R.move && R.want.wm === 'you' && R.move.n === 'Yours' && R.move.warn && R.move.sub === `Round ${R.want.round} · ${R.want.open} open`, JSON.stringify(R.move) + ' ' + JSON.stringify({ r: R.want.round, o: R.want.open }));
     check('2h the life line: the term, the notice window, the negotiation and today, drawn at the card\'s width', R.chart && R.chart.term && R.chart.notice && R.chart.nego && R.chart.today && R.chart.w > 600, JSON.stringify(R.chart && { w: R.chart.w, term: R.chart.term, notice: R.chart.notice, nego: R.chart.nego, today: R.chart.today, span: R.nego }));
@@ -272,7 +276,8 @@ const OBS = [
       R.jb.risks === String(R.want.risks) && R.want.risks === 2 && R.jb.riskItems.includes('Liability is not capped') && R.jb.std === '2 of 4 met' && /1 missing/.test(R.jb.stdItems) && /1 differs/.test(R.jb.stdItems)
       && R.jb.det === String(R.want.det) && R.jb.ob === String(R.want.n), JSON.stringify(R.jb));
     check('2r every cell carries its door into Home', ['risks', 'std', 'oblig'].every(k => R.jb.doors.includes(k)) && (R.want.det ? R.jb.doors.includes('fill') : true), JSON.stringify(R.jb.doors));
-    check('2s the foot: Open · Keep · Ask why · Let it go, as the insight panels', JSON.stringify(R.foot) === JSON.stringify(['Open', 'Keep', 'Ask why', 'Let it go']), JSON.stringify(R.foot));
+    /* RE-POINTED 18 Oct 2026 (round 7 as drawn): "Open the paper" */
+    check('2s the foot: Open the paper · Keep · Ask why · Let it go, as the insight panels', JSON.stringify(R.foot) === JSON.stringify(['Open the paper', 'Keep', 'Ask why', 'Let it go']), JSON.stringify(R.foot));
     /* the doors land where they say, nothing spent */
     await page.click(`${strip('MK-L1')} [data-bs-go="oblig"]`);
     /* RE-POINTED 15 Oct 2026 (owner: the contract's views went; "obligations has its own panel") */
@@ -510,7 +515,7 @@ const OBS = [
     const SV = await page.evaluate(() => { const el = document.getElementById('bs-strip-MK-L1'); return { life: (el.querySelector('.bs-life h5') || {}).textContent, terms: (el.querySelector('.bs-two h5') || {}).textContent,
       kpis: [...el.querySelectorAll('.bs-kpi small')].map(x => x.textContent), foot: [...el.querySelectorAll('.bs-foot button')].map(b => b.textContent.trim()), jb: (el.querySelector('.bs-jb h5') || {}).textContent }; });
     check('8a the strip reads in Svenska', SV.life === 'Avtalets liv' && SV.terms === 'Huvudvillkor' && JSON.stringify(SV.kpis) === JSON.stringify(['Värde', 'Löptid', 'Nästa åtagande', 'Säg upp senast', 'Vems drag'])
-      && JSON.stringify(SV.foot) === JSON.stringify(['Öppna', 'Behållen', 'Fråga varför', 'Släpp den']) && SV.jb === 'Vad Jambo läste vid uppladdningen', JSON.stringify(SV));
+      && JSON.stringify(SV.foot) === JSON.stringify(['Öppna papperet', 'Behållen', 'Fråga varför', 'Släpp den']) && SV.jb === 'Vad Jambo läste vid uppladdningen', JSON.stringify(SV));
     await page.evaluate(() => { const el = document.getElementById('bs-strip-MK-L1'); const host = document.getElementById('hb-board'); host.scrollTop += el.getBoundingClientRect().top - host.getBoundingClientRect().top - 8; });
     await shot('8-svenska');
     const en2 = await page.$('.lang-btn[data-lang="en"]'); if (en2) await en2.click();
