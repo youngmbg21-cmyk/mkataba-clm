@@ -76,11 +76,13 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
     check('1a When you\'re away, across the board: nobody yet, Set it up', !!card && card.wide && /^When you're away (Who answers for you ?)?Nobody answers for you while you are away\./.test(card.text)
       && card.doors.join('|') === 'Set it up', JSON.stringify(card));
 
-    console.log('\n2 · the drawer');
-    if (await press('[data-st-you-card="away"] [data-st-panel="me:away"]', '2 Set it up')) {
-      const d = await until(() => { const dr = document.getElementById('st-drawer'); if (!dr || !dr.classList.contains('open')) return null;
+    /* RE-POINTED 18 Oct 2026 (the gaps, round 24 as drawn: "When you're away
+       opens inside its row"): the same form, Save and Cancel, in its row */
+    console.log('\n2 · the form, in its row');
+    if (await press('[data-st-you-card="away"] [data-st-rform="me:away"]', '2 Set it up')) {
+      const d = await until(() => { const dr = document.getElementById('st-rform'); if (!dr || !dr.closest('[data-st-you-card="away"]')) return null;
         const who = document.getElementById('st-aw-who');
-        return who ? { title: (document.querySelector('#st-dhead .rvd-title') || {}).textContent, from: (document.getElementById('st-aw-from') || {}).value,
+        return who ? { title: dr.getAttribute('aria-label'), from: (document.getElementById('st-aw-from') || {}).value,
           to: (document.getElementById('st-aw-to') || {}).value, people: [...who.options].map(o => o.textContent.trim()),
           body: dr.textContent.replace(/\s+/g, ' ') } : null; });
       check('2a it asks From, Until (a week from today) and who — colleagues only, never you', !!d && d.title === 'When you\'re away' && d.from === day(0) && d.to === day(6)
@@ -98,7 +100,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
       check('2d "No Values Legal can open every stream you can."', wide === 'No Values Legal can open every stream you can.', wide);
       await page.evaluate(v => { const el = document.getElementById('st-aw-to'); el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); }, day(4));
       await shot(page, 'away-drawer-1440x780');
-      await press('#st-dsave', '3 Save');
+      await press('#st-rform-save', '3 Save');
     }
 
     console.log('\n3 · saved');
@@ -156,18 +158,19 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
         return { right: r.right <= innerWidth + 1, cut, page: document.documentElement.scrollWidth - innerWidth };
       });
       await shot(page, `away-card-${vp.width}x${vp.height}`);
-      await page.evaluate(() => stDrawerOpen('me:away'));
-      /* asked once the drawer has slid in: its right edge on the window's */
-      const dr = await until(() => { const d = document.getElementById('st-drawer'); if (!d || !d.classList.contains('open') || !document.getElementById('st-aw-who')) return null;
-        const r = d.getBoundingClientRect(); if (Math.abs(r.right - innerWidth) > 1) return null;
-        const save = document.getElementById('st-dsave'); const s = save && save.getBoundingClientRect();
+      /* the form in its row (round 24 as drawn): its fields and Save on screen */
+      await page.evaluate(() => { stRowFormOpen('me:away'); const f = document.getElementById('st-rform'); if (f) f.scrollIntoView({ block: 'center' }); });
+      const dr = await until(() => { const d = document.getElementById('st-rform'); if (!d || !document.getElementById('st-aw-who')) return null;
+        const r = d.getBoundingClientRect();
+        const save = document.getElementById('st-rform-save'); const s = save && save.getBoundingClientRect();
         /* a date is drawn as HaTi's own face beside its hidden box (datePickDress) */
         const shown = el => (el.style.display === 'none' && el.nextElementSibling) ? el.nextElementSibling : el;
         const fields = ['st-aw-from', 'st-aw-to', 'st-aw-who'].map(id => shown(document.getElementById(id)).getBoundingClientRect());
         return { inside: r.right <= innerWidth + 1 && r.left >= -1, save: !!s && s.bottom <= innerHeight + 1 && s.width > 0,
           fields: fields.every(f => f.width > 60 && f.right <= r.right + 1) }; });
       await shot(page, `away-drawer-${vp.width}x${vp.height}`);
-      check(`6 ${vp.width}×${vp.height}: the card fits uncut; the drawer, its fields and Save are on screen`, fit.right && fit.cut === 0 && fit.page <= 0
+      await page.evaluate(() => stRowFormClose());
+      check(`6 ${vp.width}×${vp.height}: the card fits uncut; the form, its fields and Save are on screen`, fit.right && fit.cut === 0 && fit.page <= 0
         && !!dr && dr.inside && dr.save && dr.fields, JSON.stringify({ fit, dr }));
     }
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));

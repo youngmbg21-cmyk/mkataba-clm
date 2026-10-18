@@ -68,16 +68,20 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     await page.fill('#st-sw-q', 'sales').catch(() => null);
     const found = await until(() => { const rows = [...document.querySelectorAll('.st-sw-row')]; return rows.length >= 1 && rows.every(r => /sales/i.test(r.textContent)) ? rows.length : null; }, null, 3000);
     const said = await page.evaluate(() => (document.getElementById('st-sw-n') || {}).textContent || '');
-    check('2a find narrows the table to matching names, and the count says so', !!found && said.startsWith(found + ' shown'), found + ' · ' + said);
+    /* the count is the head's small tag since round 26 as drawn (18 Oct 2026) */
+    check('2a find narrows the table to matching names, and the count says so', !!found && said.trim() === String(found), found + ' · ' + said);
     await page.fill('#st-sw-q', '').catch(() => null);
     await page.selectOption('[data-st-sw-f="keep"]', 'set').catch(() => null);
     const none = await until(() => document.querySelectorAll('.st-sw-row').length === 0 && /No stream matches/.test((document.querySelector('.st-sw-tb tbody') || {}).textContent || '') ? true : null, null, 3000);
     check('2b a filter with nothing behind it says so in the table', !!none);
     await page.selectOption('[data-st-sw-f="keep"]', 'any').catch(() => null);
 
+    /* RE-POINTED 18 Oct 2026 (round 26 as drawn): a press shows the stream in
+       the side panel (settings-as-drawn-verify); Enter or a double press opens
+       its own page, the one door it always had */
     console.log('\n3 · a row opens its stream');
-    const first = await page.evaluate(() => { const r = document.querySelector('.st-sw-row'); return r ? { fid: r.getAttribute('data-st-panel').slice(7), name: r.querySelector('b').textContent } : null; });
-    if (first && await press('.st-sw-row', '3 the row')) {
+    const first = await page.evaluate(() => { const r = document.querySelector('.st-sw-row'); return r ? { fid: r.getAttribute('data-st-sw-pick'), name: r.querySelector('b').textContent } : null; });
+    if (first && await page.locator('.st-sw-row').first().dblclick().then(() => true, () => false)) {
       const d = await until(() => { const dw = document.getElementById('st-drawer'); return dw && dw.classList.contains('open') ? (document.querySelector('#st-dhead .rvd-title') || {}).textContent : null; }, null, 4000);
       check('3 the row opens that stream\'s own page', d === first.name, d);
       await page.evaluate(() => stDrawerClose());

@@ -749,19 +749,21 @@ const signIn = async (page, base, email, pass) => {
       /* since the full build (16 Oct 2026): a short card each, whose door
          opens the drawer with the control in it */
       /* since round 24 (One sheet) how you work changes in its row */
-      mine: !!document.querySelector('[data-st-you-card="who"] [data-st-panel="me:who"]') && !!document.querySelector('[data-st-you-card="work"] [data-st-sw="chips"]'),
-      sessions: !!document.querySelector('[data-st-you-card="safety"] [data-st-panel="me:safety"]'),
-      backup: !!document.querySelector('[data-st-you-card="data"] [data-st-backup]'),
+      /* re-pointed 18 Oct 2026 (round 24 as drawn): the forms open in their
+         row, and Your data's Download is their own copy, recorded */
+      mine: !!document.querySelector('[data-st-you-card="who"] [data-st-rform="me:name"]') && !!document.querySelector('[data-st-you-card="work"] [data-st-sw="chips"]'),
+      sessions: !!document.querySelector('[data-st-you-card="safety"] [data-st-rform="me:sessions"]'),
+      backup: !!document.querySelector('[data-st-you-card="data"] [data-st-mycopy]'),
       design: !!document.querySelector('[data-st-you-card="design"] [data-st-panel="me:design"]'),
     }));
-    await p2.click('[data-st-you-card="who"] [data-st-panel="me:who"]'); await p2.waitForTimeout(500);
-    const whoV = await p2.evaluate(VISIBLE, '#acct-title');
+    await p2.click('[data-st-you-card="who"] [data-st-rform="me:name"]'); await p2.waitForTimeout(500);
+    const whoV = await p2.evaluate(VISIBLE, '#st-me-title');
     check('a card\'s door opens their drawer with the control in it, as pixels', whoV.ok, whoV.why);
     await p2.keyboard.press('Escape'); await p2.waitForTimeout(300);
     check('reaching the page anyway lands on their own account, not a blank',
       theirs.mine && theirs.sessions && theirs.backup, JSON.stringify({ mine: theirs.mine, sessions: theirs.sessions, backup: theirs.backup }));
     const noTabs = await p2.evaluate(() => !document.querySelector('#set-page .st-faces, [data-st-tab="company"]')
-      && !!document.getElementById('st-jb-q') && !!document.querySelector('[data-st-side="menu"]'));
+      && !!document.getElementById('st-jb-q') && !!document.getElementById('st-side-menu'));   /* the Menu: "/" in Jambo's box (round 24 as drawn) */
     check('with no tab row at all, and Jambo and the Menu beside their settings', noTabs);
     check('the roster, the rules and the gates are not on it',
       theirs.roster === 0 && !theirs.rules && !theirs.gates,

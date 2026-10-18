@@ -105,7 +105,10 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     }
 
     console.log('\n3 · Jambo says it');
-    const jb = await until(() => { const m = String(document.body.innerText || '').replace(/\s+/g, ' ').match(/Jambo! \d+ things need you\.[^]*?nothing is blocked\./); return m ? m[0] : null; });
+    /* RE-POINTED 18 Oct 2026 (round 25 "Control room" as drawn): his first
+       words name what needs you ("Six things need you here: …"); the clashes'
+       sentence still follows them */
+    const jb = await until(() => { const m = String(document.body.innerText || '').replace(/\s+/g, ' ').match(/things need you here: [^]*?nothing is blocked\./); return m ? m[0] : null; });
     check('3 Jambo: "4 of them are clashes in who may do what: they warn, nothing is blocked."', /4 of them are clashes in who may do what: they warn, nothing is blocked\./.test(jb || ''), jb);
 
     console.log('\n4 · a clash goes when the rights change');

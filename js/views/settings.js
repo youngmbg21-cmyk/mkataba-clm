@@ -3063,9 +3063,19 @@ function stJbNeedPhrase(r){
 function stJbCompanyWords(){
   const rows=stNeedsAll();
   if(!rows.length) return i18t('st_jb_co_none');
-  const said=rows.slice(0,4).map(stJbNeedPhrase).filter(Boolean);
-  if(rows.length>4) said.push(i18tn('st_jb_np_more',rows.length-4,{ n:rows.length-4 }));
-  return i18tn('st_jb_co_needs',rows.length,{ n:stNumWord(rows.length), list:stListJoin(said) });
+  /* rows of one kind said once, with their count ("three clashes in who may
+     do what"), never the same words three times over */
+  const groups=[], byWords={};
+  rows.forEach(r=>{ const k=String(r&&r.key||''), kind=(k.indexOf('clash:')===0&&k.indexOf('clash:cap:')!==0)?'clash':k;
+    if(byWords[kind]) byWords[kind].n++; else { byWords[kind]={ r, kind, n:1 }; groups.push(byWords[kind]); } });
+  const shown=groups.slice(0,4);
+  const said=shown.map(g=>g.kind==='clash'?i18tn('st_jb_np_clashes',g.n,{ n:stNumWord(g.n,true) }):stJbNeedPhrase(g.r)).filter(Boolean);
+  const rest=rows.length-shown.reduce((a,g)=>a+g.n,0);
+  if(rest>0) said.push(i18tn('st_jb_np_more',rest,{ n:rest }));
+  /* the clashes among them are counted, as the owner's pick of 17 Oct asked
+     ("they warn, nothing is blocked") */
+  const k=stClashes().length;
+  return i18tn('st_jb_co_needs',rows.length,{ n:stNumWord(rows.length), list:stListJoin(said) })+(k?' '+i18tn('st_jb_clashes',k,{n:k}):'');
 }
 /* THE STREAMS PAGE, said from its own table's readings (nothing chosen) */
 function stJbStreamsWords(){
@@ -3086,7 +3096,7 @@ function stJbDataWords(){
   const d=_stTr, out=stTrailLeftOut();
   const period=(d.from&&d.to)?stTrailPeriodWords(d.from,d.to):'';
   const s=(d.sum&&d.sumKey===stTrailQuery())?d.sum:null;
-  const parts=[s?i18tn('st_jb_tr_words',s.acts,{ period, n:Number(s.acts).toLocaleString((typeof jxLocale==='function')?jxLocale():undefined), streams:i18tn('st_jb_tr_streams',s.streams,{ n:s.streams }) })
+  const parts=[(s&&!Number(s.acts))?i18t('st_jb_tr_none',{ period }):s?i18tn('st_jb_tr_words',s.acts,{ period, n:Number(s.acts).toLocaleString((typeof jxLocale==='function')?jxLocale():undefined), streams:i18tn('st_jb_tr_streams',s.streams,{ n:s.streams }) })
     :i18t('st_jb_tr_counting',{ period })];
   if(out.length) parts.push(i18tn('st_jb_tr_out',out.length,{ names:stListJoin(out) }));
   if((state.contracts||[]).some(c=>c&&c._codeNamed)) parts.push(i18t('st_jb_tr_code'));
@@ -3138,7 +3148,7 @@ function stJbFeedHtml(){
 function stTrailReadyPdf(){
   if(!(stIsAdmin()&&settingsTab()==='company'&&_stPage==='data')){ _stBkTab='trail'; settingsGoPage('data'); }
   else if(_stBkTab!=='trail'){ const b=document.querySelector('[data-st-bk-tab="trail"]'); if(b) b.click(); }
-  _stTr.as='pdf';
+  _stTr.as='pdf'; _stTr.lit=true;
   const sel=document.getElementById('st-tr-as-sel'); if(sel) sel.value='pdf';
   const btn=document.getElementById('st-tr-download');
   if(btn){ btn.classList.remove('st-lit'); void btn.offsetWidth; btn.classList.add('st-lit'); try{ btn.focus({preventScroll:true}); }catch(_){} }
@@ -5357,7 +5367,7 @@ const SET_PANELS={
        day limit, where one is set */
     fact(){ const on=(typeof copilotAvailable==='function')&&copilotAvailable();
       const cap=Number(((state.aiCfg||{}).limits||{}).dailySpendLimit||0);
-      return { n:i18t('st_side_jambo'), s:(on?stOn():stOff())+(on&&cap>0?' · '+i18t('st_cf_day_cap',{ cap:'$'+(Math.round(cap*100)/100) }):'') }; },
+      return { n:i18t('st_side_jambo'), s:i18t(on?'st_sh_on':'st_sh_off')+(on&&cap>0?' · '+i18t('st_cf_day_cap',{ cap:'$'+(Math.round(cap*100)/100) }):'') }; },
     sub:()=>i18t('st_p_copilot_sub'),
     state(){ const on=(typeof copilotAvailable==='function')&&copilotAvailable();
       return { dot:on?'ok':'off', text:`${i18t('st_p_copilot_on')} — ${on?stOn():stOff()}` }; },
@@ -6913,7 +6923,7 @@ function stTrailGoHtml(){
   }
   const grey=bad||d.busy;
   return `<div class="st-tr-fig">${fig}</div>
-    <button type="button" class="ui-btn ui-btn-primary" id="st-tr-download"${grey?' disabled aria-disabled="true"':''}${bad?` title="${esc(i18t('st_tr_bad_period'))}"`:''}>${
+    <button type="button" class="ui-btn ui-btn-primary${d.lit?' st-lit':''}" id="st-tr-download"${grey?' disabled aria-disabled="true"':''}${bad?` title="${esc(i18t('st_tr_bad_period'))}"`:''}>${
       d.busy?busyOf(i18t('st_tr_preparing')):`${icon('download','w-3.5 h-3.5')} ${esc(i18t('st_tr_download'))}`}</button>
     ${d.err?`<p class="st-note st-amber st-tr-err">${esc(d.err)}</p>`:''}`;
 }
@@ -6932,7 +6942,11 @@ function stTrailPastHtml(){
 }
 function stTrailPaint(part){
   const go=document.getElementById('st-tr-go'), past=document.getElementById('st-tr-past');
-  if((!part||part==='go')&&go) go.innerHTML=stTrailGoHtml();
+  /* the button is drawn again with every count: a readied one stays lit and
+     keeps the reader's focus (Jambo's "download … as a PDF") */
+  const had=document.activeElement&&document.activeElement.id==='st-tr-download';
+  if((!part||part==='go')&&go){ go.innerHTML=stTrailGoHtml();
+    if(had){ const b=document.getElementById('st-tr-download'); if(b) try{ b.focus({preventScroll:true}); }catch(_){} } }
   if((!part||part==='past')&&past) past.innerHTML=stTrailPastHtml();
 }
 let _stTrSumT=0;
@@ -6954,7 +6968,7 @@ async function stTrailList(){
 }
 async function stTrailDownload(){
   const d=_stTr; if(stTrailBad()||d.busy) return;
-  d.busy=true; d.err=''; stTrailPaint('go');
+  d.busy=true; d.err=''; d.lit=false; stTrailPaint('go');
   try{
     const res=await fetch('api/trail/export?'+stTrailQuery({ as:d.as }),{ credentials:'same-origin' });
     if(!res.ok){ let why=res.statusText; try{ why=(await res.json()).error||why; }catch(_){ } throw new Error(why); }
@@ -6992,7 +7006,7 @@ function stBkWirePane(){
   on('st-tr-from','change',e=>{ d.from=e.target.value; stTrailCount(); });
   on('st-tr-to','change',e=>{ d.to=e.target.value; stTrailCount(); });
   on('st-tr-stream','change',e=>{ d.stream=e.target.value||'all'; stTrailCount(); });
-  on('st-tr-as-sel','change',e=>{ d.as=e.target.value==='pdf'?'pdf':'csv'; });
+  on('st-tr-as-sel','change',e=>{ d.as=e.target.value==='pdf'?'pdf':'csv'; d.lit=false; });
   document.querySelectorAll('input[name="st-tr-as"]').forEach(r=>r.addEventListener('change',()=>{
     d.as=r.value==='pdf'?'pdf':'csv';
     document.querySelectorAll('.st-tr-as .st-ps-radio').forEach(l=>l.classList.toggle('is-on',!!l.querySelector('input:checked')));

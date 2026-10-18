@@ -163,7 +163,8 @@ const PAINTED = (sel) => {
       crossed, (att.rows || []).join(' · '));
 
     /* ============ 4. ONE BOX OVER ALL OF THEM — the Menu's ============ */
-    await page.click('[data-st-side="menu"]');
+    /* re-pointed 18 Oct 2026 (rounds 24–26 as drawn): "/" in Jambo's box opens the Menu */
+    await page.fill('#st-jb-q', '/');
     await page.waitForTimeout(300);
     const box = await page.evaluate(PAINTED, '#st-q');
     check('4a. the search box is painted', box.ok, box.why);

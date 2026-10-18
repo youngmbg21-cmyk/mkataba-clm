@@ -111,12 +111,15 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       check('5c and marks where you are', cur === 'data', String(cur));
     }
 
-    console.log('\n6 · a form with several boxes keeps its door');
+    /* RE-POINTED 18 Oct 2026 (the gaps, round 24 as drawn: "Opens in place"):
+       the form opens IN ITS ROW, the same boxes the drawer had */
+    console.log('\n6 · a form with several boxes opens in its row');
     await toYou();
-    if (await press('[data-st-you-card="safety"] [data-st-panel="me:password"]', '6 Change password')) {
-      const d = await until(() => { const dr = document.getElementById('st-drawer'); return dr && dr.classList.contains('open') && document.getElementById('pw-cur') && document.getElementById('pw-again') ? true : null; }, null, 5000);
-      check('6 Change password opens the drawer with its boxes', !!d);
-      await page.evaluate(() => stDrawerClose());
+    if (await press('[data-st-you-card="safety"] [data-st-rform="me:password"]', '6 Change password')) {
+      const d = await until(() => { const f = document.getElementById('st-rform'); const dr = document.getElementById('st-drawer');
+        return f && f.closest('[data-st-you-card="safety"]') && document.getElementById('pw-cur') && document.getElementById('pw-again') && !(dr && dr.classList.contains('open')) ? true : null; }, null, 5000);
+      check('6 Change password opens its boxes in its row', !!d);
+      await page.evaluate(() => stRowFormClose());
     }
 
     console.log('\n7 · the owner\'s three screens');
