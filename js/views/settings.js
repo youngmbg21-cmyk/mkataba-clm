@@ -7950,7 +7950,7 @@ function renderApprovalRules(){
       </div>
     </div>`).join(''):`<p style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('set_no_approval_rules')}</p>`;
   host.querySelectorAll('[data-ar-edit]').forEach(b=>b.addEventListener('click',()=>openApprovalRuleEditor(Number(b.getAttribute('data-ar-edit')))));
-  host.querySelectorAll('[data-ar-del]').forEach(b=>b.addEventListener('click',()=>{ const rules2=approvalRules().slice(); rules2.splice(Number(b.getAttribute('data-ar-del')),1); saveApprovalRules(rules2); renderApprovalRules(); toast(i18t('set_rule_removed')); }));
+  host.querySelectorAll('[data-ar-del]').forEach(b=>b.addEventListener('click',()=>{ const rules2=approvalRules().slice(); rules2.splice(Number(b.getAttribute('data-ar-del')),1); saveApprovalRules(rules2); renderApprovalRules(); toast(i18t('set_rule_removed'),'ok'); }));
 }
 function openApprovalRuleEditor(idx){
   const rules=approvalRules().slice();
@@ -8032,7 +8032,7 @@ function openApprovalRuleEditor(idx){
     r.approver = apM?{kind:'member',name:apM.name,id:apM.id}:{kind:'role',role:ap[1]};
     r.name = condLabel(cond);
     if(idx>=0) rules[idx]=r; else rules.push(r);
-    saveApprovalRules(rules); closeModal(); renderApprovalRules(); toast(i18t('set_rule_saved'));
+    saveApprovalRules(rules); closeModal(); renderApprovalRules(); toast(i18t('set_rule_saved'),'ok');
   });
 }
 
