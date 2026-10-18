@@ -462,7 +462,8 @@ LANGUAGE is the person's (js/i18n.js); MARKET is the company's (js/jurisdiction.
 ## JAMBO'S AGENTS — THE HOUSE AND HIS POINTS (js/views/jambohouse.js)
 - View `jambo`, the office: one block (`jhDrawOffice`, `jhLayout`), each piece a trip through its agent's rooms (`JH_ROUTE`, `jhTripOf`, one at a time `JH_WALK`), fits the window (`jhFitCanvas`, `JH_FH_*`), compact under 60 (`jhCompact`; `jhOverlapAudit` at 1536×730), the log the first tab (`#jh-log`), `jhSetRange` (`JH_DAYS_MAX` 120), `jhSignedIn`. Not on the phone.
 - EVERY AGENT RECORDS ITS WORK: `agent_pieces` (`agentPieceAdd`/`agentPieceDecide`, `agReportPrepared`); rebuild admin-only (`agentRebuild`, dry first, `{undo}`); ONE sum `agPointsTally`, reading `agPointsOf`, table `agPointsTableHtml`. STALE: `.jh-bar`, `data-jh-range`/`-speed`/`-look`, `jh-facts`.
-Tests: f667, jambo-agents-verify.
+Tests: f667, f724, jambo-agents, open-in-place verify.
+- OPEN IN PLACE (round 23, owner picked it 17 Oct 2026): the Counter's Jambo's work row opens where it is (`cnJwPiecesHtml`, ≤`CN_JW_MAX`, Look · the house's acts quiet · Put away → `agRunAct`); "Jambo's house ›" = `setView('jambo')`. EACH PERSON CHOOSES, ONLY DOWN: prefs `agentLevels` ('ask'·'mine'; PUT /api/me/prefs), one reading each host (`agLevelOf`, `agentLevelFor`; the link watch asks the owner's), save `agentLevelMineSet` (js/agentruns.js), chooser "For you" on the house's card (`jhLevelPickHtml`); Just do it stays the admin's.
 
 ## OTHER PAGES AND SERVICES
 - APPROVALS & SIGNING decides through `approvalDecidableNow`/`approvalDecideAsk` (f344, f466). NOTICE DESK `noticeDraft`; MAILROOM files, does not read; MEMO `negoMemo` (no model).

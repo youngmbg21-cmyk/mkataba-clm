@@ -61,6 +61,22 @@ async function agentSendBack(k, body){
 function agentPrepared(pieces){
   return api('agents/prepared', 'POST', { pieces: Array.isArray(pieces) ? pieces : [] });
 }
+/* A PERSON'S OWN LEVEL FOR ONE AGENT (round 23, owner, 17 Oct 2026: "Each
+   person chooses"): 'ask' · 'mine', or null for the company's. Kept in their
+   own prefs; the house and the Board read it through agLevelOf. */
+async function agentLevelMineSet(k, v){
+  const u = (typeof currentUser === 'function') ? currentUser() : null; if (!u) return false;
+  const was = u.prefs && u.prefs.agentLevels ? { ...u.prefs.agentLevels } : {};
+  const next = { ...was }; if (v) next[k] = v; else delete next[k];
+  if (typeof API_MODE === 'function' && API_MODE()){
+    const r = await api('me/prefs', 'PUT', { agentLevels: { [k]: v || null } });
+    u.prefs = (r && r.prefs) || { ...(u.prefs || {}), agentLevels: next };
+  } else {
+    u.prefs = { ...(u.prefs || {}), agentLevels: next };
+    if (typeof saveUsers === 'function' && typeof getUsers === 'function') saveUsers(getUsers());
+  }
+  return true;
+}
 async function shareKeepOpen(c, token){
   const r = await api('shares/' + encodeURIComponent(token) + '/extend', 'POST', {});
   if (c && typeof reachTake === 'function') reachTake(c, r);
@@ -155,5 +171,5 @@ function agentsWatch(){
   }, AR_BEAT_MS);
 }
 
-Object.assign(window, { agentsStatus, agentsStatusLoad, agentRunNow, agentSaveCfg, agentSendBack, agentPrepared, shareKeepOpen,
+Object.assign(window, { agentsStatus, agentsStatusLoad, agentRunNow, agentSaveCfg, agentSendBack, agentPrepared, agentLevelMineSet, shareKeepOpen,
   importQueueRead, contractsTakeRow, contractsTakeChanged, agentsBeat, agentsWatch, AR_BEAT_MS, AR_REACH_MS });
