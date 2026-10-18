@@ -138,31 +138,37 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
        Renewals row of Prepared by Copilot. The geometry claim is the same —
        the verb sits beside the sentence, at the right — and the card's own
        act is its door onto Copilot's work (Put away lives there now). */
+    /* RE-POINTED 18 Oct 2026 (round 17 as drawn, the owner's yes): Jambo's
+       work LEFT THE BOARD for the Counter, where each prepared piece opens in
+       place (round 23, "Open in place"). The geometry claim is the same — the
+       verbs sit beside the sentence, at the right — measured on the
+       renewal's own row there. */
+    await page.evaluate(() => setView('counter'));
+    await page.waitForFunction(() => !!document.querySelector('#cn-needs [data-cn-jw]'), null, { timeout: 8000 }).catch(() => {});
+    if (await page.$('#cn-needs [data-cn-jw][aria-expanded="false"]')) await page.click('#cn-needs [data-cn-jw]');
+    await page.waitForTimeout(400);
     const desk = await page.evaluate(() => {
-      const card = document.getElementById('hm-agents');
-      if (!card) return { drawn: false };
-      const row = card.querySelector('[data-hm-agent-row="renew"]');
+      const row = [...document.querySelectorAll('#cn-needs [data-cn-ag-item]')].find(r => (typeof agFind === 'function' && agFind(r.getAttribute('data-cn-ag-item')) || {}).agent === 'renew');
       if (!row) return { drawn: false };
-      /* RE-POINTED IN PLACE 3 Oct 2026: the row is the board's own (Young:
-         Home is the board); Review digs in, the head's link opens Copilot's work */
-      const btn = row.querySelector('button[data-hm-agent], .hb-btn'), head = row.querySelector('.hm-rb, .hb-ag-b');
-      const rr = row.getBoundingClientRect(), ar = btn.getBoundingClientRect(), hr = head.getBoundingClientRect();
+      const line = row.querySelector('.cn-jw-r') || row, acts = row.querySelector('.cn-jw-acts'), head = row.querySelector('.cn-w');
+      if (!acts || !head) return { drawn: false };
+      const rr = line.getBoundingClientRect(), ar = acts.getBoundingClientRect(), hr = head.getBoundingClientRect();
       return { drawn: true,
-        verbs: [...row.querySelectorAll('button')].map(b => b.textContent.trim()),
-        door: (card.querySelector('.hm-cz, .hb-link[data-hm-agent]') || {}).textContent,
+        verbs: [...acts.querySelectorAll('button')].map(b => b.textContent.trim()),
+        filled: !!acts.querySelector('.ui-btn-primary'),
         sameLine: Math.abs((ar.top + ar.height / 2) - (hr.top + hr.height / 2)) < 10,
         rightOfText: ar.left >= hr.right - 1,
         gapToWall: Math.round(rr.right - ar.right),
         rowH: Math.round(rr.height) };
     });
-    ok('1 the Renewals row draws its Review', desk.drawn && desk.verbs.length >= 1,
+    ok('1 the renewal\'s row on the Counter draws its acts', desk.drawn && desk.verbs.length >= 1,
       JSON.stringify(desk.verbs));
-    ok('1b it sits on the SAME LINE as the sentence', desk.sameLine === true, JSON.stringify(desk));
+    ok('1b they sit on the SAME LINE as the sentence', desk.sameLine === true, JSON.stringify(desk));
     ok('1c and at the RIGHT of it', desk.rightOfText === true,
       'gap to the wall ' + desk.gapToWall + 'px');
-    /* RE-POINTED 7 Oct 2026 ("Below the card"): Review is the one door — it
-       opens the agent's work below the card; the head carries no second link. */
-    ok('1d Review is the card\'s one door — no second link to a separate page', !desk.door && desk.verbs.length >= 1, String(desk.door));
+    ok('1d one filled button per area: the row\'s acts are all quiet', desk.drawn && !desk.filled, JSON.stringify(desk.verbs));
+    await page.evaluate(() => { hbS().face = 'board'; hbSave(); setView('dashboard'); });
+    await page.waitForTimeout(800);
 
     /* ════════ 3. THE HORIZON'S DECISION COLUMN ════════ */
     await page.evaluate(() => {

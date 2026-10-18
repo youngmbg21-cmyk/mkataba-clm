@@ -91,7 +91,8 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     check('1a Needs you here is drawn above the contract at a glance', !!nd && nd.before && nd.title === 'Needs you here', JSON.stringify(nd));
     check('1b Jambo\'s prepared work on this contract leads, with his face', !!nd && nd.firstJw && nd.jwFace, nd && nd.kinds.join(','));
     check('1d its number is its rows', !!nd && Number(nd.n) === nd.rows, nd && (nd.n + ' / ' + nd.rows));
-    check('1e "All N" is the Counter\'s own number', !!nd && nd.all.trim() === 'All ' + nd.counter, nd && nd.all);
+    /* the drawn lower case, "all 7 ›" (round 3 as drawn, 18 Oct 2026) */
+    check('1e "all N" is the Counter\'s own number', !!nd && nd.all.trim() === 'all ' + nd.counter, nd && nd.all);
     check('1f his tab carries the same number', !!nd && Number(nd.badge) === nd.counter, nd && nd.badge);
     await shot(page, 'jambos-panel-1440x780');
 
@@ -158,10 +159,15 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
       const fit = await until(() => { const dock = document.getElementById('ig-dock'), feed = document.getElementById('igd-feed'),
         nd = document.getElementById('pd-needs'), gl = document.getElementById('pd-glance'), box = document.getElementById('igd-input');
         if (!dock || !feed || !nd || !gl || !box) return null;
-        const f = feed.getBoundingClientRect(), g = gl.getBoundingClientRect(), b = box.getBoundingClientRect(), d = dock.getBoundingClientRect();
+        const f = feed.getBoundingClientRect(), g = gl.getBoundingClientRect(), b = box.getBoundingClientRect(), d = dock.getBoundingClientRect(), n = nd.getBoundingClientRect();
         const wide = [...dock.querySelectorAll('#pd-needs *, #pd-glance *')].filter(e => e.getBoundingClientRect().right > d.right + 1).length;
-        return { cards: g.bottom <= f.bottom + 1, box: b.bottom <= innerHeight + 1 && b.top >= 0, wide, scroll: feed.scrollHeight - feed.clientHeight }; }, null, 8000);
-      check(`6 ${w}×${ht}: both cards and the ask box in view, nothing past the panel's edge`, !!fit && fit.cards && fit.box && fit.wide === 0, JSON.stringify(fit));
+        return { top: n.top >= f.top - 1 && feed.scrollTop === 0, glance: g.top < f.bottom, box: b.bottom <= innerHeight + 1 && b.top >= 0, wide, scroll: feed.scrollHeight - feed.clientHeight }; }, null, 8000);
+      /* RE-POINTED 18 Oct 2026 (rounds 3 and 6 as drawn): the glance now says
+         their round and EACH of their asks, so on a short screen it can be
+         longer than the panel — which then opens at its TOP (Needs you here
+         first, never scrolled past), the glance begins in view, the box
+         stands, and the rest is a scroll away */
+      check(`6 ${w}×${ht}: Needs you here at the top, the glance begun, the ask box in view, nothing past the panel's edge`, !!fit && fit.top && fit.glance && fit.box && fit.wide === 0, JSON.stringify(fit));
       await shot(page, `jambos-panel-${w}x${ht}`);
     }
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));

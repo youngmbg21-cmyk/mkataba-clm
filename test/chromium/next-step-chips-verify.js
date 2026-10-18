@@ -9,7 +9,7 @@
      list shows its own Edit a clause, so no chip repeats it; with a change on
      the table "edit a clause" is offered, and its press opens the editor
    2 "what's next?" answers with the chips' own steps on a card
-   3 a signed agreement: no "sign" chip; obligations, amend, history
+   3 a signed agreement: no "sign" chip; obligations, amend, history (and share, the fourth since round 3 as drawn)
    4 the same agreement EXPIRED: no "sign" and no "amend" chip; asking for an
      amendment says why, with no button; the Menu's amend row is grey with
      the same reason
@@ -99,7 +99,8 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await until(page, () => window.intel && intel.paper && intel.paper.id === 'MK-B1' && !!document.querySelector('#ig-dock [data-ig-chips] [data-ca-chip]'), null, 10000);
     await page.waitForTimeout(400);
     const c3 = await chips();
-    ok('3 a signed agreement: no "sign" chip; obligations · amend · history', JSON.stringify(c3) === JSON.stringify(['oblig', 'amend', 'history']), JSON.stringify(c3));
+    /* RE-POINTED 18 Oct 2026 (round 3 as drawn: four chips, "answer the redlines · name a signer · share · history"): a signed one's fourth is share */
+    ok('3 a signed agreement: no "sign" chip; obligations · amend · history · share', JSON.stringify(c3) === JSON.stringify(['oblig', 'amend', 'history', 'share']), JSON.stringify(c3));
 
     /* 4 expired (in this browser only: the end date moved into the past) */
     await page.evaluate(() => { const c = getContract('MK-B1'); c.expiry = '2020-01-31'; c.metadata = Object.assign({}, c.metadata, { expiryDate: '2020-01-31' }); renderIntelDock(); });

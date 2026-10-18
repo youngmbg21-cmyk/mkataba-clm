@@ -1689,7 +1689,9 @@ function igShownOf(act){ return (act&&act.ids&&act.action==='filter')?act.ids.si
    it (round 17 as drawn: the Board's saved views are chips with their
    counts). The same two readings the head line uses; reads only. */
 function igRecipeShown(r){ return igShownOf(intelActive((r&&Array.isArray(r.lenses))?r.lenses:[])); }
-function igViewsWrite(list){ try{ localStorage.setItem(IG_VIEWS_KEY, JSON.stringify(list.slice(-IG_VIEWS_MAX))); return true; }catch(_){ return false; } }
+/* the Board's head draws them as chips (round 17 as drawn): told when they change */
+function igViewsWrite(list){ try{ localStorage.setItem(IG_VIEWS_KEY, JSON.stringify(list.slice(-IG_VIEWS_MAX)));
+  if(typeof window.hbViewsChanged==='function') setTimeout(window.hbViewsChanged,0); return true; }catch(_){ return false; } }
 function igViewName(){ const bits=[graphGroupingWord(intel.groupBy)].concat(igRecipeSays()).concat(intel.lenses.filter(l=>l.on).map(l=>l.label)); const s=bits.join(' · '); return s.charAt(0).toUpperCase()+s.slice(1); }
 /* Recipes are saved without their ids' badges' prose, and a lens keeps its
    ids: a saved view opened next week shows the same contracts it named. */
@@ -6780,7 +6782,11 @@ function renderIntelDock(){
       <textarea id="igd-input" rows="1" placeholder="${igEsc(igAskPlaceholder())}" title="${igEsc(igAskCost())}" class="chat-field w-full rounded-xl border border-inputln bg-white pl-3.5 pr-16 py-2.5 text-[13px] outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition" style="display:block"></textarea>
       <button id="igd-go" class="ui-btn ui-btn-sm ui-btn-primary absolute" style="right:18px;bottom:20px">${i18t('int_ask')}</button>
     </div>`}`;
-  const feed=document.getElementById('igd-feed'); feed.scrollTop=feed.scrollHeight;
+  /* THE NEWEST WORDS IN VIEW — or, with no conversation yet, the TOP: what
+     he draws above it (Needs you here, the glance, the Board's greeting) is
+     read from its first line, never scrolled past (round 3 as drawn: Needs
+     you is the first card, 18 Oct 2026) */
+  const feed=document.getElementById('igd-feed'); feed.scrollTop=intel.history.length?feed.scrollHeight:0;
   /* JAMBO, ALIVE (owner, 16 Oct 2026): he takes his seat on the chips row again */
   if(typeof window.jamboPerchMount==='function') try{ jamboPerchMount(dock); }catch(_){ }
   /* a contract number in an answer is a link to it (caRefLinkPaint) */
@@ -7354,13 +7360,13 @@ function igQuoteGo(text,ob){
    clause is not on it. */
 function igPaperGoClause(clauseId){
   const id=String(clauseId||''); if(!id||typeof document==='undefined') return null;
-  const host=document.getElementById('ig-paper'), sc=document.getElementById('ig-paper-scroll');
-  if(!host||host.hidden||!sc) return null;
+  const host=document.getElementById('ig-paper'), box=document.getElementById('ig-paper-scroll');
+  if(!host||host.hidden||!box) return null;
   const sel=`[data-clause="${(window.CSS&&CSS.escape)?CSS.escape(id):id}"]`;
   const el=host.querySelector(sel); if(!el) return null;
-  const r=el.getBoundingClientRect(), sr=sc.getBoundingClientRect();
-  const top=Math.max(0, sc.scrollTop+(r.top-sr.top)-Math.max(16,(sc.clientHeight-Math.min(r.height,sc.clientHeight))/2));
-  try{ sc.scrollTo({ top, behavior:'smooth' }); }catch(_){ sc.scrollTop=top; }
+  const r=el.getBoundingClientRect(), br=box.getBoundingClientRect();
+  const top=Math.max(0, box.scrollTop+(r.top-br.top)-Math.max(16,(box.clientHeight-Math.min(r.height,box.clientHeight))/2));
+  try{ box.scrollTo({ top, behavior:'smooth' }); }catch(_){ box.scrollTop=top; }
   el.classList.remove('ig-arrived'); void el.offsetWidth; el.classList.add('ig-arrived');
   return el;
 }

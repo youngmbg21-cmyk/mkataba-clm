@@ -140,21 +140,24 @@ const ok = (name, good, detail) => {
     const act = async a => { const b = await page.$(`${CARD} [data-ag-act="${a}"]`); if (!b) return false; await b.click(); await page.waitForTimeout(900); return true; };
     const back = async () => { await page.evaluate(() => setView('dashboard')); await page.waitForTimeout(700); };
 
-    /* ---- 1d–1g ON THE BOARD: the prepared-work card lists the agents with
-       work ready, in the agents' own order (approvals are off the Board,
-       HB_OFF_BOARD), and its count is the number of things ready. */
-    await back();
+    /* ---- 1d–1g ON THE COUNTER (RE-POINTED 18 Oct 2026, round 17 as drawn:
+       Jambo's work LEFT THE BOARD for the Counter, the owner's yes): its row
+       opens in place on the pieces, the agents in their own order (approvals
+       are off it, HB_OFF_BOARD), and its count is the number of things ready. */
+    const toCounter = async () => { await page.evaluate(() => setView('counter')); await page.waitForTimeout(500);
+      if (await page.$('#cn-needs [data-cn-jw][aria-expanded="false"]')) await page.click('#cn-needs [data-cn-jw]'); await page.waitForTimeout(300); };
+    await toCounter();
     const head = await page.evaluate(() => {
       const A = hbAgentsData(null);
-      /* RE-POINTED 11 Oct 2026 (owner's go: one row per item, as drawn): the agents in the order their rows come */
-      return { rows: [...new Set([...document.querySelectorAll('#hm-agents [data-hm-agent-row]')].map(b => b.getAttribute('data-hm-agent-row')))],
+      const keys = [...document.querySelectorAll('#cn-needs [data-cn-ag-item]')].map(b => b.getAttribute('data-cn-ag-item'));
+      return { rows: [...new Set(keys.map(k => (typeof agFind === 'function' && agFind(k) || {}).agent).filter(Boolean))],
         want: AG_KEYS.filter(k => !HB_OFF_BOARD.includes(k) && A.rows.some(r => r.k === k)),
-        ready: A.ready, sub: ((document.querySelector('#hm-agents .hb-cs') || {}).textContent || '').trim(),
-        over: document.documentElement.scrollWidth - innerWidth };
+        ready: A.ready, sub: ((document.querySelector('#cn-needs .cn-jw .cn-n') || {}).textContent || '').replace(/^\s*·\s*/, '').trim(),
+        board: !!document.querySelector('#hb-board #hm-agents'), over: document.documentElement.scrollWidth - innerWidth };
     });
-    ok('1d the Board lists the agents with work ready, in the agents\' own order, approvals off the Board',
-      head.rows.length >= 4 && head.rows.join(',') === head.want.join(',') && !head.rows.includes('approve'), head.rows.join(','));
-    ok('1e the number on the card is the number of things ready', head.ready > 0 && new RegExp('^' + head.ready + '\\b').test(head.sub), `ready ${head.ready} · "${head.sub}"`);
+    ok('1d the Counter lists the agents with work ready, in the agents\' own order, approvals off it',
+      head.rows.length >= 2 && head.want.join(',').startsWith(head.rows.join(',')) && !head.rows.includes('approve'), head.rows.join(',') + ' / ' + head.want.join(','));
+    ok('1e the number on Jambo\'s work is the number of things ready', head.ready > 0 && new RegExp('^' + head.ready + '\\b').test(head.sub), `ready ${head.ready} · "${head.sub}"`);
     await pick('round');
     const shown = await page.evaluate(() => ({ path: (hbS().path || []).join('|'), cards: [...document.querySelectorAll('.hb-ag-works .hb-ag-work')].map(c => c.getAttribute('data-hb-ag-item')) }));
     ok('1f Review opens the agent asked for, its work below the card', shown.path === 'ag:round' && shown.cards.length >= 1 && shown.cards.every(k => /MK-149/.test(k)), JSON.stringify(shown));
@@ -282,10 +285,10 @@ const ok = (name, good, detail) => {
 
     /* ---- 8. the door count follows the work ---- */
     /* RE-POINTED 11 Oct 2026: there is no rail door; the count that must
-       agree is the Board card's own. */
-    await back();
-    const after = await page.evaluate(() => ({ sub: ((document.querySelector('#hm-agents .hb-cs') || {}).textContent || '').trim(), ready: hbAgentsData(null).ready }));
-    ok('8a with work done, the count went down and the Board\'s card still agrees', after.ready < head.ready && new RegExp('^' + after.ready + '\\b').test(after.sub), JSON.stringify({ ...after, before: head.ready }));
+       agree is Jambo's work's own — on the Counter since 18 Oct 2026. */
+    await toCounter();
+    const after = await page.evaluate(() => ({ sub: ((document.querySelector('#cn-needs .cn-jw .cn-n') || {}).textContent || '').replace(/^\s*·\s*/, '').trim(), ready: hbAgentsData(null).ready }));
+    ok('8a with work done, the count went down and the Counter still agrees', after.ready < head.ready && new RegExp('^' + after.ready + '\\b').test(after.sub), JSON.stringify({ ...after, before: head.ready }));
 
     /* ---- 8b–8e. a step held back in a payment chain is not chased (27 Sep 2026) ----
        Young: "fix the two problems you found". The desk asked the chain

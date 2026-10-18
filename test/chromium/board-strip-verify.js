@@ -190,7 +190,8 @@ const OBS = [
     const onDesk = await page.evaluate(() => ({ card: bsCardId(), key: deskKeyNow(), furniture: !!document.querySelector('#hb-board .hb-prep, #hb-board .hb-note, #hb-board .hb-grid'), present: !!(document.getElementById('hb-present') || {}).hidden }));
     check('1a0 on the desk it is a page of its own: its contract\'s tab in front, none of the Board\'s furniture (round 7)', onDesk.card === 'MK-L1' && onDesk.key === 'c:MK-L1' && !onDesk.furniture && onDesk.present, JSON.stringify(onDesk));
     await allOnBoard();
-    const order = await page.evaluate(() => { const prep = document.querySelector('#hb-board .hb-prep'), st = document.getElementById('bs-strips');
+    /* RE-POINTED 18 Oct 2026 (round 17 as drawn): Jambo's work left the Board, so the strip is measured below Today's insights itself (or the book, where no insight is drawn) */
+    const order = await page.evaluate(() => { const prep = document.querySelector('#hb-board .hb-inscard') || document.querySelector('#hb-board #hb-book'), st = document.getElementById('bs-strips');
       return { prep: !!prep, after: !!(prep && st && (prep.compareDocumentPosition(st) & Node.DOCUMENT_POSITION_FOLLOWING)), focus: !!document.querySelector('#hb-focus .hb-dig'), face: hbFace(), view: state.view }; });
     check('1a and on the Board tab it stands as a strip below Today\'s insights; no old card', typed && up1 && order.after && !order.focus && order.face === 'board' && order.view === 'dashboard', JSON.stringify(order));
     const said = await page.evaluate(() => { const m = [...document.querySelectorAll('#ig-dock .igd-msg, #ig-dock [class*="msg"]')].map(x => x.textContent).join(' '); return /strip/i.test(m); });
