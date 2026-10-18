@@ -85,7 +85,7 @@ const check = (name, pass, detail) => {
     await until(() => !!document.querySelector('#ins-panel [data-cu-ag]'));
     const agId = await page.evaluate(() => document.querySelector('#ins-panel [data-cu-ag]').getAttribute('data-cu-ag'));
     await page.click('#ins-panel [data-cu-ag]');
-    const opened = await until(id => state.view !== 'customers' && (window.intel && intel.open === id || (window.igOpenId && igOpenId() === id) || document.body.innerText.includes(id)) ? state.view : null, agId, 12000);
+    const opened = await until(id => state.view !== 'customers' && (window.intel && intel.open === id || document.body.innerText.includes(id)) ? state.view : null, agId, 12000);
     check('3c an agreement in the panel opens its paper', !!opened, String(opened));
 
     /* ---- 4 the code-named deal ---- */
