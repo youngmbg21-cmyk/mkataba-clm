@@ -9973,6 +9973,26 @@
   .ig-point:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
   .igd-figs{font-size:12px;color:var(--color-text);opacity:.75;padding:0 4px}
   .igd-figs.is-off{color:var(--st-amber-fg);opacity:1}
+  /* findings on the map (Explorer stage 4): one card per finding, the work owed first */
+  .ig-fd-list{display:flex;flex-direction:column;gap:10px}
+  .ig-fd{border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:10px 12px;display:flex;flex-direction:column;gap:5px;font-size:13px;line-height:1.45;color:var(--color-text)}
+  .ig-fd.is-open{border-color:var(--accent-solid)}
+  .ig-fd-t{font-weight:var(--w-strong,600)}
+  .ig-fd-m,.ig-fd-empty{font-size:12px;opacity:.75}
+  .ig-fd-ask{font-size:12.5px}
+  .ig-fd-ask.is-owed{background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:var(--radius);padding:4px 8px}
+  .ig-fd-s{border-left:3px solid var(--accent-solid);padding-left:8px}
+  .ig-fd-p{font-size:12px;color:var(--st-amber-fg)}
+  .ig-fd-c ul{margin:4px 0 0;padding-left:16px}
+  .ig-fd-d.is-up,.ig-fd-d.is-down{font-weight:var(--w-strong,600)}
+  .ig-fd-r{display:flex;flex-direction:column;gap:3px;border-top:1px solid var(--color-divider);padding-top:5px}
+  .ig-fd-a{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+  .ig-fd-form{display:flex;flex-direction:column;gap:5px}
+  .ig-fd-l{font-size:12px;font-weight:var(--w-label,500)}
+  .ig-fd-in{box-sizing:border-box;width:100%;font:inherit;font-size:13px;color:var(--color-text);background:transparent;border:1px solid var(--color-divider);border-radius:var(--radius);padding:5px 8px;resize:vertical}
+  .ig-fd-in:focus-visible{outline:2px solid var(--accent-solid);outline-offset:0}
+  .ig-fd select{max-width:100%}
+  .ig-fd-pinform{border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:10px 12px}
   .ig-brain .ig-floor-door:hover{border-color:#F2B24C}
   .ig-brain .ig-floor-door:focus-visible{outline:2px solid #F2B24C;outline-offset:1px}
   #ig-page.hb-light .ig-brain .ig-floor-door{background:rgba(255,255,255,.86);border-color:rgba(14,95,88,.22);color:var(--hb-ink)}

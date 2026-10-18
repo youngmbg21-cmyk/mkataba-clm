@@ -51,7 +51,8 @@ describe('f563 (2) — no Signing tab; an approval opens where it is decided', (
     assert.deepEqual([...v('PD_TABS')], ['copilot', 'doc', 'oblig', 'menu']);
     assert.equal(v('PD_TAB_NAME').doc, 'pd_tab_clauses', 'the Document tab is called Clauses');
     assert.ok(!('sign' in v('PD_BODY')));
-    assert.deepEqual(Object.values(v('PD_TAB_GLYPH')), ['\u2726', '\u25A6', '\u25A2', '\u2691', '\u25F7', '\u21C4', '\u2630']);
+    /* Findings, beside Jambo on Explorer's map only (Explorer stage 4, 18 Oct 2026) */
+    assert.deepEqual(Object.values(v('PD_TAB_GLYPH')), ['\u2726', '\u25A6', '\u25A2', '\u2691', '\u25F7', '\u21C4', '\u2630', '\u25C7']);
   });
   test('2b an approval opens the Approvals page with its row chosen', () => {
     const seen = [];
