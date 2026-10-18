@@ -400,6 +400,7 @@ ONE CODE, ONE PROOF, TWO GATES (opening and signing) on the existing `share_otp`
 ## THE SEND SCREEN
 
 One screen: title (`shareLeadTitle`) → what travels → purpose (`sharePurposePickerHtml`: Sign · Negotiate · View · Adviser) → channel → name/email → one note → readiness (`readinessPanelHtml`) → Send; opens on email. The record ("history") kind never reuses a contract link (409). Word is a channel (`wordTrackedFile`/`wordHistoryFile`), never for Adviser. Adviser links (js/adviserlink.js, NOT js/advice.js): chosen clauses (`shareAdviceBody`, `adviserClauseKey`), 14 days, notes never reach the counterparty (`MSG_SIDE_ADVISER`). Tests: f17, f42, f307, f310, f333, share-recipient-verify.
+- THE LETTER (owner picked "The letter", 17 Oct 2026; "Keep it": the note stays the only part written; reverses the order above): the screen IS the email — From · To (`#sh-name`/`#sh-email`) · Subject · Sent as (purpose, channel, `#sh-link-opts`), its words with `#sh-summary` where the note goes, "Before you send" beside it (`shareSideHtml`, `shareStaysHtml` no names; history = `#share-other`, status = its own door). THE WORDS ARE ONE MODULE, BOTH HOSTS: js/sharemail.js (`shareMailOf`, `signerTurnMailOf`, `shareWaTextOf`, `shareMailNoteHead`) — the route mails it, `shareLetterPaint` draws its parts; a new email sentence goes THERE. Tests: f713, the-letter-verify (sends through the stub, compares word for word).
 
 ## THE TEMPLATES PAGE, THE BUILDER, AND NEW STANDARDS
 

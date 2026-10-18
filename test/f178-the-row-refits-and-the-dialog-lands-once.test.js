@@ -118,7 +118,9 @@ describe('F178 — the share dialog arrives once, at its final size', () => {
     const fn = /async function openShareModal\([\s\S]*?\n\}/.exec(CORE)[0];
     assert.ok(!/function shareOpeningHtml/.test(CORE), 'the separate opening markup is gone');
     assert.match(fn, /const oneScreenHtml=\(pre, o=\{\}\)=>/, 'one builder for the one screen');
-    assert.match(fn, /openModal\(oneScreenHtml\(_noPre, \{ opening:true \}\), \{ maxWidth:'46rem' \}\)/,
+    /* 64rem since round 11 (the owner picked "The letter", 17 Oct 2026): the
+       letter and "Before you send" stand side by side. */
+    assert.match(fn, /openModal\(oneScreenHtml\(_noPre, \{ opening:true \}\), \{ maxWidth:'64rem' \}\)/,
       'the first frame IS the one screen, at the width the settled dialog keeps');
     assert.match(fn, /shareFillModal\(oneScreenHtml\(pre\)\)/, 'and the fill draws the same builder with the prefill');
     assert.match(fn, /shareKindStepHtml\(c, purposeSel, \{ hidden:true \}\)/, 'the kind question is folded from the first frame');

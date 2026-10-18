@@ -73,10 +73,15 @@ async function openShare(c, opts, tweak){
 const before = (a, b) => !!(a && b && (a.compareDocumentPosition(b) & 4));
 
 describe('f310 (1) — the send pop-up is laid out as the owner drew it', () => {
-  test('what travels, then the purpose, then the channel, then who, then the note, then the checks, then the link settings', async () => {
+  /* RE-POINTED, round 11 (the owner picked "The letter", 17 Oct 2026): the
+     screen is the email the other side will get, so it reads as an email
+     does — who it is to, how it goes (what it is for, the channel, the link's
+     settings), the words with the note in them — then the checks, then
+     "Before you send" (what travels) beside it, and Send under both. */
+  test('who, then how it goes, then the note, then the checks, then what travels, then Send', async () => {
     const { win } = buildWorld();
     const m = await openShare(await negotiated(win));
-    const order = ['#share-manifest-line', '#share-purpose-wrap', '#share-tabs', '#sh-email', '#sh-summary', '#share-readiness', '#sh-link-opts', '#share-send']
+    const order = ['#sh-email', '#share-purpose-wrap', '#share-tabs', '#sh-link-opts', '#sh-summary', '#share-readiness', '#share-manifest-line', '#share-send']
       .map(s => [s, m.$(s)]);
     for (const [s, el] of order) assert.ok(el, s + ' is drawn');
     for (let i = 1; i < order.length; i++)

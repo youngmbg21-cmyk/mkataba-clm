@@ -4814,11 +4814,9 @@ const b64d = str => { try{ return JSON.parse(decodeURIComponent(escape(atob(Stri
 // message ready to send — no Business API needed, and the recipient sees a
 // number they recognise. The portal link itself carries the tracking.
 const waShareLink=(phone,text)=>'https://wa.me/'+String(phone||'').replace(/[^\d]/g,'')+'?text='+encodeURIComponent(text);
-const shareMessageText=(c,link,msg,expiresAt)=>
-  `${currentUser().name} at ${FIRST_PARTY} shared "${c.name}" for your review.`
-  +(msg?`\n\n${msg}`:'')
-  +`\n\nOpen it here — review, sign, request changes or decline, no account needed:\n${link}`
-  +(expiresAt?`\n\nThis link expires on ${String(expiresAt).slice(0,10)}.`:'');
+/* The words are js/sharemail.js's (the letter on the send screen draws them). */
+const shareMessageText=(c,link,msg,expiresAt)=>shareWaTextOf({ sender:currentUser().name, org:FIRST_PARTY,
+  cName:c.name, message:msg, link, expires:expiresAt }).body;
 
 /* ---------- what is this link FOR? ----------
    A share carries a purpose, and the purpose decides which screen the other
@@ -5181,6 +5179,130 @@ function shareNoteBoxHtml(c, hist){
           hist?'e.g. The full record of our negotiation, for your file.'
              :'e.g. We have moved on payment terms but not on the liability cap.'}"></textarea></label>`;
 }
+/* ============================================================
+   THE LETTER (round 11 of the redesign: the owner picked "The letter" by
+   name, 17 Oct 2026, and answered "1. Keep it.": the note stays the only part
+   the sender writes)
+   ============================================================
+   The send screen IS the email the other side will get: From, To, Subject,
+   how it goes ("Sent as": what it is for, the channel, the link's settings),
+   then the email's own words with the note as the one box in them, and their
+   link where the address will stand. Beside it, "Before you send": what goes,
+   what stays here and why, what they never see, and something else to send.
+
+   THE WORDS ARE THE SERVER'S. js/sharemail.js writes them once and the route
+   mails what it writes, so the letter on the screen and the one in the inbox
+   are the same function's answer. Nothing here composes a sentence of the
+   email; it only lays out the parts.
+
+   Every control the send screen had keeps its id and its wiring: the letter
+   is a new frame around the same boxes and segments, painted again on every
+   keystroke and choice (shareLetterPaint). */
+function shareLetterExpires(){
+  /* the server's own sum, so the date drawn is the date mailed */
+  const d=Math.min(90, Math.max(1, Number(fval('sh-exp'))||14));
+  return new Date(Date.now()+d*86400000).toISOString();
+}
+function shareLetterWho(c){
+  const n=String(fval('sh-name')||'').trim();
+  return n ? n.split(/\s+/)[0] : (c.counterparty||i18t('co_them'));
+}
+/* WHICH LETTER, read from the screen's own state. Returns the parts js/sharemail.js
+   wrote, plus what the frame needs to know (a file, WhatsApp, nothing sent,
+   the signing email). */
+function shareLetterOf(c, st){
+  const s=st||{}, ch=s.ch||'email';
+  const me=(typeof currentUser==='function' && currentUser())||{};
+  const base={ sender:me.name||'', org:FIRST_PARTY, cName:c.name, recName:String(fval('sh-name')||'').trim(),
+    message:String(fval('sh-summary')||'').trim(), link:null };
+  if(ch==='link') return { none:true, parts:[] };
+  if(ch==='whatsapp') return { ...shareWaTextOf({ ...base, expires:API_MODE()?shareLetterExpires():null }), wa:true };
+  if(ch==='word') return { ...shareMailOf({ ...base, channel:'word', purpose:s.purpose==='history'?'history':null }), file:true, head:true };
+  /* A SIGNING LINK BOUND TO ONE OF THEIR SIGNERS sends that signer their
+     turn's email instead, in the books' words — the server's choice too
+     (signerTurnEmail), and it carries no note. */
+  if(s.purpose==='sign' && s.signerSel){
+    const plan=(typeof signerPlan==='function')?(signerPlan(c)||[]):[];
+    const row=plan.find(x=>x && String(x.id)===String(s.signerSel));
+    if(row && row.party==='counterparty')
+      return { ...signerTurnMailOf({ signer:row, plan, cName:c.name||'a contract', org:FIRST_PARTY||'the sender',
+        them:c.counterparty||'', link:null, expiresAt:shareLetterExpires(), t:(k,v)=>i18t(k,v),
+        codeOn:!emailOff(), stepOf:window.signStepOf }), turn:true };
+  }
+  return { ...shareMailOf({ ...base, channel:'email', purpose:s.purpose, expires:shareLetterExpires() }), head:true };
+}
+function shareLetterPartsHtml(parts){
+  return parts.filter(p=>p.k!=='msgHead' && p.k!=='msg').map(p=>p.k==='link'
+    ? `<p class="sh-lt-p"><span class="sh-lt-link" data-sh-lt-link>${esc(i18t('sh_lt_link'))}</span></p>`
+    : `<p class="sh-lt-p sh-lt-${p.k}">${esc(p.t)}</p>`).join('');
+}
+function shareLetterPaint(c, st){
+  const host=document.getElementById('sh-letter'); if(!host) return;
+  const L=shareLetterOf(c, st);
+  const me=(typeof currentUser==='function' && currentUser())||{};
+  const who=shareLetterWho(c);
+  host.setAttribute('aria-label', i18t('sh_lt_aria', { who }));
+  const set=(id, v)=>{ const el=document.getElementById(id); if(el && el.textContent!==v) el.textContent=v; return el; };
+  set('sh-lt-from', L.wa ? i18t('sh_lt_from_wa', { who:me.name||'' }) : i18t('sh_lt_from_v', { who:me.name||'', org:FIRST_PARTY }));
+  const subj=document.getElementById('sh-lt-subj-row');
+  if(subj) subj.classList.toggle('hidden', !L.subject);
+  set('sh-lt-subject', L.subject||'');
+  /* THE NOTE SITS WHERE THE EMAIL PUTS IT: after the first line, under its
+     own heading — dim while the box is empty, because an empty note sends
+     neither. A signing email carries none; a copied link carries no letter. */
+  const lead=L.parts.findIndex(p=>p.k==='lead');
+  const before=lead>=0 ? L.parts.slice(0, lead+1) : L.parts;
+  const after=lead>=0 ? L.parts.slice(lead+1) : [];
+  const b=document.getElementById('sh-lt-before'), a=document.getElementById('sh-lt-after');
+  const bh=L.none ? `<p class="sh-lt-p sh-lt-none">${esc(i18t('sh_lt_none'))}</p>` : shareLetterPartsHtml(before);
+  const ah=shareLetterPartsHtml(after)+(L.file?`<p class="sh-lt-p"><span class="sh-lt-file">${icon('file','w-3.5 h-3.5')}${esc(i18t('sh_lt_file'))}</span></p>`:'');
+  if(b && b.innerHTML!==bh) b.innerHTML=bh;
+  if(a && a.innerHTML!==ah) a.innerHTML=ah;
+  const mh=document.getElementById('sh-lt-msghead');
+  if(mh){
+    const typed=!!String(fval('sh-summary')||'').trim();
+    mh.textContent = L.turn ? i18t('sh_lt_no_note') : L.wa ? '' : shareMailNoteHead(me.name||'');
+    mh.classList.toggle('hidden', !!L.none || !!L.wa);
+    mh.classList.toggle('is-off', !!L.turn || !typed);
+  }
+  set('sh-lt-jsay', i18t(L.none?'sh_lt_jsay_link':L.wa?'sh_lt_jsay_wa':L.turn?'sh_lt_jsay_turn':'sh_lt_jsay_mail', { who }));
+  /* Something else to send: the other two kinds of link, whichever is not
+     this one; a "Where we are" page has nothing else to offer here. */
+  const hist=st && st.purpose==='history';
+  document.getElementById('sh-lt-else')?.classList.toggle('hidden', !!(st && st.purpose==='status'));
+  document.querySelector('[data-sh-lt-else="history"]')?.classList.toggle('hidden', hist);
+  document.querySelector('[data-sh-lt-else="contract"]')?.classList.toggle('hidden', !hist);
+  set('sh-lt-else-p', i18t(hist?'sh_lt_else_hist_p':'sh_lt_else_p'));
+}
+/* WHAT STAYS HERE, AND WHY: the changes the internal review keeps out of this
+   send (reviewWithheldIds, the set buildSharePayload subtracts), by clause.
+   No names: who reviews is the review's own business (reviewMaySee). */
+function shareStaysHtml(c){
+  let back=null; try{ back=(typeof reviewWithheldIds==='function')?reviewWithheldIds(c):null; }catch(_){ back=null; }
+  if(!back || !back.size) return '';
+  const s=(typeof negoChangeSummary==='function')?negoChangeSummary(c):null;
+  const all=(window.negoUnsentAsks?negoUnsentAsks(c,'owner'):[]);
+  return all.filter(x=>back.has(x.id)).map(x=>{
+    const line=s && s.lines ? s.lines.find(l=>String(l.id)===String(x.id)) : null;
+    const held=(typeof reviewHeld==='function') && reviewHeld(x);
+    return `<div class="sh-lt-card is-stays" data-sh-lt-stays="${esc(x.id)}"><h4>${esc(i18t('sh_lt_stays_h', { clause:(line&&line.clause)||('#'+x.id) }))}</h4><p>${
+      esc(i18t(held?'sh_lt_stays_held':'sh_lt_stays_wait'))}</p></div>`;
+  }).join('');
+}
+function shareSideHtml(c, part){
+  const them=esc(c.counterparty||i18t('co_them'));
+  if(part==='top') return `<div class="sh-lt-jb">${(typeof aiFaceHtml==='function')?aiFaceHtml():''}<b>${esc(i18t('sh_lt_before'))}</b></div>
+    <p class="sh-lt-say" id="sh-lt-jsay"></p>`;
+  const histOk=(()=>{ try{ const s=negoChangeSummary(c); return !!(s && s.lines && s.lines.length); }catch(_){ return false; } })();
+  return `${shareStaysHtml(c)}
+    <div class="sh-lt-card"><h4>${i18t('sh_lt_never_h', { who:them })}</h4><p>${esc(i18t('sh_lt_never', { org:FIRST_PARTY }))}</p></div>
+    <div class="sh-lt-card" id="sh-lt-else"><h4>${esc(i18t('sh_lt_else_h'))}</h4><p id="sh-lt-else-p"></p>
+      <div class="sh-lt-acts">
+        <button type="button" class="ui-btn ui-btn-sm" id="share-other" data-sh-lt-else="history"${histOk?'':` disabled title="${esc(i18t('sh_lt_else_hist_none'))}"`}>${esc(i18t('sh_lt_else_hist'))}</button>
+        <button type="button" class="ui-btn ui-btn-sm hidden" data-sh-lt-else="contract">${esc(i18t('sh_lt_else_contract'))}</button>
+        <button type="button" class="ui-btn ui-btn-sm" data-sh-lt-else="status">${esc(i18t('sh_lt_else_status'))}</button>
+      </div></div>`;
+}
 /* THE TITLE SAYS WHAT IS GOING OUT (Young, 13 Sep 2026: "fix the title so it
    says the history is being sent"). One reading for the builder and for the
    kind switch, so the heading and the screen under it cannot disagree. */
@@ -5190,6 +5312,11 @@ function shareLeadTitle(c, s, purposeSel){
   return (s && s.lines.length)
     ? i18t('co_send_round_to', { n:s.round, who })
     : i18t('co_send_to_who', { who });
+}
+function shareLeadHeadHtml(c, purposeSel){
+  const s = (typeof negoChangeSummary==='function') ? negoChangeSummary(c) : null;
+  return `<div class="dlg-h sh-hd"><h2 id="share-lead-title">${shareLeadTitle(c, s, purposeSel)}</h2><p>${
+    esc([typeof contractRef==='function'?contractRef(c):c.id, c.name].filter(Boolean).join(' · '))}</p></div>`;
 }
 function shareSummaryStepHtml(c, opts={}){
   const s = (typeof negoChangeSummary==='function') ? negoChangeSummary(c) : null;
@@ -5221,7 +5348,7 @@ function shareSummaryStepHtml(c, opts={}){
         sharePurposePickerHtml(c, opts.purposeSel||defaultSharePurpose(c), { compact:one })
       }${shareAdviseBlockHtml(c, opts.purposeSel)}</div>`;
   return `
-    <div id="share-step-1"${opts.hiddenStart?' class="hidden"':''}>
+    <div${opts.letter?' class="sh-lt-side"':''} id="share-step-1"${opts.hiddenStart?' class="hidden"':''}>
       ${''/* ---- THE ORDER ON ONE SCREEN IS THE OWNER'S DRAWING ---- (the pop-up
              diet, 13 Sep 2026): title, what travels, what this round is for,
              then the recipient and the note, which live in step 2. The pieces
@@ -5230,8 +5357,10 @@ function shareSummaryStepHtml(c, opts={}){
       ${''/* THE TITLE SAYS WHO IT IS GOING TO AND WHICH ROUND, because on one
              screen this is the page's only heading and "What you are sending"
              is a question the screen below answers by itself. */}
-      ${one ? `<div class="dlg-h sh-hd"><h2 id="share-lead-title">${shareLeadTitle(c, s, opts.purposeSel)}</h2><p>${
-          esc([typeof contractRef==='function'?contractRef(c):c.id, c.name].filter(Boolean).join(' · '))}</p></div>`
+      ${''/* THE LETTER (round 11) draws the title across the top of the screen
+             (shareLeadHeadHtml) and opens this column as "Before you send". */}
+      ${one && opts.letter ? shareSideHtml(c, 'top')
+      : one ? shareLeadHeadHtml(c, opts.purposeSel)
       : `<div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
         <h2 id="share-lead-title" style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;color:var(--color-text);margin:0;">${
           i18t('co_what_you_sending')}</h2></div>`}
@@ -5330,7 +5459,8 @@ function shareSummaryStepHtml(c, opts={}){
              the contract, or the record of the negotiation — as a quiet way
              out rather than a screen everybody must pass. Both markups are
              kept and one is drawn: an option, not a fork in the builder. */}
-      ${opts.oneScreen ? `<div style="margin:-6px 0 14px"><button type="button" id="share-other" class="ui-link">${i18t('co_send_something_else')}</button></div>${opts.purposeInForm?'':purposeBlock}`
+      ${opts.oneScreen && opts.letter ? shareSideHtml(c, 'bottom')
+      : opts.oneScreen ? `<div style="margin:-6px 0 14px"><button type="button" id="share-other" class="ui-link">${i18t('co_send_something_else')}</button></div>${opts.purposeInForm?'':purposeBlock}`
       : `<div class="dlg-foot">
         <button id="share-back-kind" class="ui-btn">${icon('arrowLeft','w-3.5 h-3.5')}Back</button>
         <button data-dlg-cancel id="share-close-1" class="ui-btn">${i18t('act_cancel')}</button>
@@ -7241,20 +7371,17 @@ async function openShareModal(c, opts={}){
              writes is written whichever way the round travels.
              Offered only where it can actually work: a server to post the file
              to, and the .docx writer loaded. */}
-      ${''/* WHAT IT IS FOR AND HOW IT GOES, SIDE BY SIDE (SAP pop-ups, 10 Oct
-             2026): two short choices of four segments each sit on one row as
-             drawn; a narrow window stacks them. */}
-      <div class="sh-pick-row">
-      <div id="share-purpose-wrap"${purposeSel==='history'?' class="hidden"':''}>${sharePurposePickerHtml(c, purposeSel, { compact:true })}</div>
-      <div class="sh-by"><span class="sap-lbl">${i18t('co_send_by')}</span>
-      <div id="share-tabs" class="sh-segs">${tab('email','Email',true)}${tab('whatsapp','WhatsApp',false)}${
-        (server&&window.docxExportTracked)?tab('word',i18t('co_ch_word'),false):''}${tab('link',i18t('co_copy_link'),false)}</div>
-      ${''/* Spoken only where the channel costs something (a file has no page,
-             a copied link mails nothing); empty for email and WhatsApp. */}
-      <div id="sh-ch-note" style="font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);margin:5px 0 0"></div>
-      </div></div>
-      ${shareAdviseBlockHtml(c, purposeSel)}
-      <div id="share-fields">
+      ${''/* ---- THE LETTER (round 11, owner picked "The letter", 17 Oct 2026) ----
+             The email itself, drawn: its head (From, To, Subject, and how it
+             goes, "Sent as"), then its words with the note where the email
+             puts it. The boxes and segments are the ones this screen always
+             had, in the letter's places; shareLetterPaint writes the rest from
+             js/sharemail.js, the words the server mails. */}
+      <section class="sh-lt" id="sh-letter">
+      <div class="sh-lt-h">
+      <div class="sh-lt-row"><span class="sh-lt-k">${i18t('sh_lt_from')}</span><b id="sh-lt-from"></b></div>
+      <div class="sh-lt-row sh-lt-to"><span class="sh-lt-k">${i18t('sh_lt_to')}</span>
+      <div id="share-fields" class="sh-lt-v">
         ${''/* ---- WHICH PARTY THIS ROUND IS GOING TO (22 Sep 2026) ----
                Each outside party gets its own link and its own copy of the
                page, so on a contract with more than one the send has to ask
@@ -7267,7 +7394,7 @@ async function openShareModal(c, opts={}){
         ${''/* Where the address came from rides as an attribute on the box —
                a test-facing fact — and is no longer a sentence above it: a
                filled box says it is filled. */}
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="sh-lt-who">
           <label><span style="${LBL}">${i18t('co_name')}</span><input id="sh-name" type="text" value="${attr(pre.name)}" placeholder="e.g. Grace Njeri" style="${FLD}"/></label>
           <label id="sh-email-wrap"><span style="${LBL}">${i18t('co_email_req')}</span><input id="sh-email" type="email" data-prefill-src="${attr(pre.source||'')}" value="${attr(pre.email)}" list="sh-email-book" autocomplete="off" placeholder="them@company.co.ke" style="${FLD}"/></label>
           ${''/* THE ADDRESS BOOK, OFFERED (4 Oct 2026): the box picks from the
@@ -7277,38 +7404,21 @@ async function openShareModal(c, opts={}){
             `<option value="${attr(r.email)}">${esc(r.name||'')}</option>`).join('')}</datalist>
           <label id="sh-phone-wrap" class="hidden"><span style="${LBL}">${i18t('co_whatsapp_number')}</span><input id="sh-phone" type="tel" value="${attr(pre.phone)}" placeholder="+254 7…" style="${FLD}"/></label>
         </div>
-        ${''/* ---- AND EVERYONE ELSE WHO SHOULD GET IT (Young ruled 21 Sep
-               2026: *"in Door B, you should be able to add multiple people to
-               send the document to"*) ----
-               The people already named on this contract, each with a tick.
-               ONE SEND, ONE ROUND, SEVERAL LINKS: everything that happens once
-               — the round, the handover, leaving Draft — happens once, and
-               each person named here gets a link of their own addressed to
-               them. Drawn only where somebody has been named, and never on the
-               record kind, which travels to a colleague. */}
-        <div id="sh-more">${(typeof shareMoreRowsHtml==='function')?shareMoreRowsHtml(c, purposeSel, pre.email):''}</div>
-        <div style="margin-top:10px">${shareNoteBoxHtml(c, purposeSel==='history')}</div>
-        ${''/* ---- A BOX MUST SAY WHERE WHAT YOU TYPE IN IT GOES (13 Aug 2026),
-               and since the diet it says so ONLY where the answer is nowhere:
-               a copied link carries no message. On the channels that carry it
-               the line is empty — "it goes in the email" under an email form
-               is the fact printed twice. Repainted by setCh. */}
-        <div id="sh-msg-where" style="margin-top:5px;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600)"></div>
-      </div>
-      ${''/* THE CHECKS ARE THE CONTRACT'S (Young, 13 Sep 2026: "what does the
-             highlighted area have to do with sending negotiation history").
-             The readiness list reads the agreement's own blanks and stage; a
-             history send carries the record and no agreement, so the fold and
-             its tick stand down on the record kind (setKind). */}
-      <div id="share-readiness-wrap">${readinessPanelHtml(c, { fold:true })}</div>
-      ${''/* EMAIL OFF: one line and the way forward. The four-line version said
-             what else could not be delivered on this workspace, which is the
-             mail panel's job, not this dialog's. */}
-      ${emailOff()?`<div id="sh-noemail" style="margin:0 0 var(--s-3);border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:var(--radius);padding:9px var(--s-3);font-size:var(--t-meta);line-height:1.55;color:var(--st-amber-fg)">${i18t('co_email_off_line')}</div>`:''}
-      ${server?'':`<div style="margin:0 0 var(--s-3);border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:var(--radius);padding:10px var(--s-3);">
-        <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--st-ruby-fg);margin-bottom:5px;">${icon('alert','w-3.5 h-3.5')} ${i18t('co_demo_sharing')}</div>
-        <p style="margin:0;font-size:var(--t-meta);line-height:1.6;color:var(--st-ruby-fg);">${i18t('co_without_server')} <strong>${i18t('co_inside_link')}</strong>. That link <strong>${i18t('co_never_expires')}</strong> — anyone who is forwarded it, now or in a year, can read this contract, and you will have no record that they did. Do not send a real contract this way. Run the HaTi server for tracked links that expire, can be withdrawn, and report back when they are opened.</p>
-      </div>`}
+      </div></div>
+      <div class="sh-lt-row" id="sh-lt-subj-row"><span class="sh-lt-k">${i18t('sh_lt_subject')}</span><b id="sh-lt-subject"></b></div>
+      <div class="sh-lt-row sh-lt-as"><span class="sh-lt-k">${i18t('sh_lt_as')}</span><div class="sh-lt-v">
+      ${''/* WHAT IT IS FOR AND HOW IT GOES, SIDE BY SIDE (SAP pop-ups, 10 Oct
+             2026): two short choices of four segments each sit on one row as
+             drawn; a narrow window stacks them. */}
+      <div class="sh-pick-row">
+      <div id="share-purpose-wrap"${purposeSel==='history'?' class="hidden"':''}>${sharePurposePickerHtml(c, purposeSel, { compact:true })}</div>
+      <div class="sh-by"><span class="sap-lbl">${i18t('co_send_by')}</span>
+      <div id="share-tabs" class="sh-segs">${tab('email','Email',true)}${tab('whatsapp','WhatsApp',false)}${
+        (server&&window.docxExportTracked)?tab('word',i18t('co_ch_word'),false):''}${tab('link',i18t('co_copy_link'),false)}</div>
+      ${''/* Spoken only where the channel costs something (a file has no page,
+             a copied link mails nothing); empty for email and WhatsApp. */}
+      <div id="sh-ch-note" style="font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);margin:5px 0 0"></div>
+      </div></div>
       ${server?`<div id="sh-link-opts" class="sap-row">
           <div class="sap-f"><span class="sap-lbl">${i18t('co_link_stays_open')}</span>
           <label class="sh-durable-box">
@@ -7323,7 +7433,51 @@ async function openShareModal(c, opts={}){
           <select id="sh-exp" style="${FLD}">
             ${[7,14,30,60].map(d=>`<option value="${d}" ${d===14?'selected':''}>${i18t('co_in_n_days',{n:d})}</option>`).join('')}
           </select></label></div>`:''}
+      </div></div>
+      </div>
+      <div class="sh-lt-b">
+      <div id="sh-lt-before"></div>
+      <div class="sh-lt-note"><p class="sh-lt-mh" id="sh-lt-msghead"></p>${shareNoteBoxHtml(c, purposeSel==='history')}</div>
+      <div id="sh-lt-after"></div>
+      </div>
+      </section>
+      ${''/* ---- A BOX MUST SAY WHERE WHAT YOU TYPE IN IT GOES (13 Aug 2026),
+               and since the diet it says so ONLY where the answer is nowhere:
+               a copied link carries no message. On the channels that carry it
+               the line is empty — "it goes in the email" under an email form
+               is the fact printed twice. Repainted by setCh. */}
+        <div id="sh-msg-where" style="margin-top:5px;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600)"></div>
+      ${shareAdviseBlockHtml(c, purposeSel)}
+        ${''/* ---- AND EVERYONE ELSE WHO SHOULD GET IT (Young ruled 21 Sep
+               2026: *"in Door B, you should be able to add multiple people to
+               send the document to"*) ----
+               The people already named on this contract, each with a tick.
+               ONE SEND, ONE ROUND, SEVERAL LINKS: everything that happens once
+               — the round, the handover, leaving Draft — happens once, and
+               each person named here gets a link of their own addressed to
+               them. Drawn only where somebody has been named, and never on the
+               record kind, which travels to a colleague. */}
+      <div id="sh-more">${(typeof shareMoreRowsHtml==='function')?shareMoreRowsHtml(c, purposeSel, pre.email):''}</div>
+      ${''/* THE CHECKS ARE THE CONTRACT'S (Young, 13 Sep 2026: "what does the
+             highlighted area have to do with sending negotiation history").
+             The readiness list reads the agreement's own blanks and stage; a
+             history send carries the record and no agreement, so the fold and
+             its tick stand down on the record kind (setKind). */}
+      <div id="share-readiness-wrap">${readinessPanelHtml(c, { fold:true })}</div>
+      ${''/* EMAIL OFF: one line and the way forward. The four-line version said
+             what else could not be delivered on this workspace, which is the
+             mail panel's job, not this dialog's. */}
+      ${emailOff()?`<div id="sh-noemail" style="margin:0 0 var(--s-3);border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:var(--radius);padding:9px var(--s-3);font-size:var(--t-meta);line-height:1.55;color:var(--st-amber-fg)">${i18t('co_email_off_line')}</div>`:''}
+      ${server?'':`<div style="margin:0 0 var(--s-3);border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:var(--radius);padding:10px var(--s-3);">
+        <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--st-ruby-fg);margin-bottom:5px;">${icon('alert','w-3.5 h-3.5')} ${i18t('co_demo_sharing')}</div>
+        <p style="margin:0;font-size:var(--t-meta);line-height:1.6;color:var(--st-ruby-fg);">${i18t('co_without_server')} <strong>${i18t('co_inside_link')}</strong>. That link <strong>${i18t('co_never_expires')}</strong> — anyone who is forwarded it, now or in a year, can read this contract, and you will have no record that they did. Do not send a real contract this way. Run the HaTi server for tracked links that expire, can be withdrawn, and report back when they are opened.</p>
+      </div>`}
       <div id="sh-result" style="margin-top:var(--s-3);"></div>
+      </div>
+`;
+  /* The foot belongs to the whole screen (the letter and its column), so it
+     is drawn after both and the SAP frame stretches it edge to edge. */
+  const sendFootHtml=(o={})=>`
       ${''/* THE FOOT STAYS IN VIEW AND SAYS CANCEL (the Compact ladder, 26 Sep
              2026 — rule 8 of the button review). On a laptop Send sat below
              the visible edge until you scrolled inside the dialog; the foot is
@@ -7335,15 +7489,22 @@ async function openShareModal(c, opts={}){
         <button data-dlg-cancel id="share-close" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="share-send" class="ui-btn ui-btn-primary"${o.opening?' disabled':''}>${icon('send','w-3.5 h-3.5')} <span id="sh-send-lbl">${i18t('co_send_by_email')}</span></button>
       </div>
-      </div>
 `;
+  /* THE LETTER'S SCREEN (round 11): the title across the top, the letter on
+     the left, "Before you send" on the right, the foot under both. The rare
+     question (the record or the contract) keeps its own step behind the
+     column's "Something else to send?". */
   const oneScreenHtml=(pre, o={})=>`
-    <div data-share-sap style="padding:16px 18px;">
+    <div data-share-sap class="sh-letter" style="padding:16px 18px;">
+      ${shareLeadHeadHtml(c, purposeSel)}
       ${quickOk?quickSendStepHtml(c, pre, purposeSel, qsWarns):''}
       ${shareKindStepHtml(c, purposeSel, { hidden:true })}
-      ${shareSummaryStepHtml(c, { ...opts, purposeSel, oneScreen:true, purposeInForm:true,
-        signerSel:(pre.source==='route'?pre.signerId:null) })}
+      <div class="sh-lt-grid">
       ${sendFormHtml(pre, o)}
+      ${shareSummaryStepHtml(c, { ...opts, purposeSel, oneScreen:true, purposeInForm:true, letter:true,
+        signerSel:(pre.source==='route'?pre.signerId:null) })}
+      </div>
+      ${sendFootHtml(o)}
     </div>`;
   const _noPre={ name:'', email:'', phone:'', source:'', channel:'', signerId:null };
   /* WIDER THAN THE 32rem DEFAULT, and said HERE: the fill below replaces the
@@ -7351,7 +7512,10 @@ async function openShareModal(c, opts={}){
      set. This dialog carries a scrolling change manifest and a five-row
      textarea, and then asks for a decision underneath both — at the default
      width the buttons sat below the fold. */
-  openModal(oneScreenHtml(_noPre, { opening:true }), { maxWidth:'46rem' });
+  /* The letter and its column side by side (round 11): wider than the
+     46rem the one-column screen took. */
+  openModal(oneScreenHtml(_noPre, { opening:true }), { maxWidth:'64rem' });
+  try{ shareLetterPaint(c, { purpose:purposeSel, ch:'email' }); }catch(_){}
   shareWireOpening(_pending, c, () => purposeSel,
     k => { purposeSel = k === 'history' ? 'history'
       : SHARE_PURPOSE(k) || (SHARE_PURPOSE(opts.purpose) || defaultSharePurpose(c)); },
@@ -7445,6 +7609,14 @@ async function openShareModal(c, opts={}){
   const _held={ 'sh-name':fval('sh-name'), 'sh-email':fval('sh-email'), 'sh-phone':fval('sh-phone'), 'sh-summary':fval('sh-summary') };
   shareFillModal(oneScreenHtml(pre));
   Object.keys(_held).forEach(id=>{ const el=document.getElementById(id); if(el && _held[id]) el.value=_held[id]; });
+  /* THE LETTER IS PAINTED FROM WHERE EVERY CHOICE STANDS (round 11): each
+     painter below ends by repainting it, and so does every keystroke in the
+     boxes it quotes. Bound once per panel (a dataset flag). */
+  function letterPaint(){ try{ shareLetterPaint(c, { purpose:purposeSel, ch, signerSel }); }catch(_){} }
+  { const pn=document.querySelector('#modal-root .modal-in');
+    if(pn && !pn.dataset.shLetter){ pn.dataset.shLetter='1';
+      pn.addEventListener('input', e=>{ const id=(e.target && e.target.id)||''; if(/^sh-(name|email|phone|summary)$/.test(id)) letterPaint(); });
+      pn.addEventListener('change', e=>{ if(e.target && e.target.id==='sh-exp') letterPaint(); }); } }
   /* Both steps are built once and toggled, rather than re-rendered. The send
      form wires a dozen listeners to elements it looks up by id; rebuilding it
      on Next would mean wiring them all a second time, and the first one to be
@@ -7533,6 +7705,7 @@ async function openShareModal(c, opts={}){
     const hblurb=document.getElementById('share-send-blurb-hist');
     if(hblurb) hblurb.classList.toggle('hidden', !hist);
     paintChNote();
+    letterPaint();
   };
   /* THE PURPOSE PICKER. Repainting the two buttons in place rather than
      re-rendering step 1: the summary textarea sits in that step and the sender
@@ -7596,6 +7769,7 @@ async function openShareModal(c, opts={}){
        record; this is the same rule for the same reason. */
     document.getElementById('share-readiness-wrap')?.classList.toggle('hidden', purposeSel==='advise');
     shareSendGate();
+    letterPaint();
   };
   /* The row this link is for, or null for the free-typed recipient. Held here
      rather than read off the DOM at send time, so a repaint cannot lose it. */
@@ -7604,6 +7778,7 @@ async function openShareModal(c, opts={}){
     const host=document.getElementById('share-signer-rows'); if(!host) return;
     host.innerHTML=shareSignerRowsHtml(c, signerSel).html;
     wireSignerRows();
+    letterPaint();
   };
   function wireSignerRows(){
     document.querySelectorAll('#share-signer-rows [data-share-signer]').forEach(b=>
@@ -7659,6 +7834,16 @@ async function openShareModal(c, opts={}){
   document.getElementById('share-back-kind')?.addEventListener('click',()=>step('kind'));
   /* THE RARER QUESTION, ON THE WAY OUT RATHER THAN IN THE WAY. */
   document.getElementById('share-other')?.addEventListener('click',()=>step('kind'));
+  /* SOMETHING ELSE TO SEND (the letter's column, round 11). The history is
+     the rare question's own step, opened on the history; the contract comes
+     back in one press; a "Where we are" page is that link's own door (the
+     one Where we are uses), with the note carried. */
+  if(document.getElementById('sh-lt-else')){
+    document.getElementById('share-other')?.addEventListener('click',()=>setKind('history'));
+    document.querySelector('[data-sh-lt-else="contract"]')?.addEventListener('click',()=>setKind('contract'));
+    document.querySelector('[data-sh-lt-else="status"]')?.addEventListener('click',()=>{
+      openShareModal(c, { ...opts, purpose:'status', resume:{ summary:fval('sh-summary') } }); });
+  }
   wireSignerRows();
   /* Coming back from the route editor — the note the sender had typed before
      they went to assign somebody. Restored after the step is built, because
@@ -7748,6 +7933,7 @@ async function openShareModal(c, opts={}){
       where.style.color='var(--st-amber-fg)';
       where.style.fontWeight='600';
     }
+    letterPaint();
   };
   document.querySelectorAll('[data-share-ch]').forEach(b=>b.addEventListener('click',()=>setCh(b.getAttribute('data-share-ch'))));
   /* Called for EVERY channel, email included. It used to be skipped there

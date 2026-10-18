@@ -10,6 +10,7 @@ import './roundprep.js';    // Their round came back: one key for an ask of thei
 import './migread.js';      // Archive import: what an imported contract's reading decides, both hosts (27 Sep 2026)
 import './sealtext.js';     // the frozen copy's text, one reading: the server seals with it, Verify reads it (9 Oct 2026)
 import './asks.js';         // one ask record: who was asked, the answer, when and for what — both hosts (4 Oct 2026)
+import './sharemail.js';    // the letter: the share email's words, the send screen and the server alike (round 11, 17 Oct 2026)
 import './nda.js';          // an NDA's two facts: who keeps it secret, and until when — both hosts (17 Oct 2026)
 import './section.js';      // the section grammar: one way of grouping a screen (16 Sep 2026)
 import './core.js';
