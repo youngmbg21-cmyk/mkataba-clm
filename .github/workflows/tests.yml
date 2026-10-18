@@ -22,9 +22,26 @@
 # keeps a red run meaningful: there is nowhere for a new failure to hide.
 name: tests
 
+# ONE RUN PER UPLOAD, AND THE NEWEST UPLOAD WINS (owner's yes, 18 Oct 2026).
+# Every upload to a branch with an open pull request used to start TWO full
+# runs of the same commit — one for the push, one for the pull request — and
+# an upload that replaced an earlier one left the earlier run queued in
+# front of it. On the night of 17–18 Oct a stack of fourteen pull requests,
+# pushed twice, put about seventy runs in the line and the one that mattered
+# waited hours behind runs of commits nobody would merge. Now:
+#   · a push runs the checks, on every branch — a branch with no pull request
+#     is checked exactly as before, and a pull request shows the push run's
+#     results for its head, since they are the same commit;
+#   · a newer upload to the same branch cancels the older run still going;
+#   · main is gentler: a run already going on main always finishes, and
+#     merges that land meanwhile wait behind it — GitHub keeps only the
+#     newest of the waiting ones, which checks them all together.
 on:
   push:
-  pull_request:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   # The proofreader runs first and alone: it takes seconds, needs no browser,
