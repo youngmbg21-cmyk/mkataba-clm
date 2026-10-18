@@ -1,0 +1,145 @@
+'use strict';
+/* ═══════════════════════════════════════════════════════════════════════════
+   f758 — THE PANEL'S ROW WHILE A FACE IS UP, AND THE SEND SCREEN'S TAB
+   (the gaps of rounds 8–11 as drawn: the owner's "build all the gaps", 18 Oct
+   2026 — rounds 9 "Piles" and 11 "The letter" draw the panel's row as Jambo's
+   tab, the face's word, "‹ Jambo" at the end; and the letter as a page on the
+   desk with its own tab "Send · MK-0382")
+   (1) ONE row for every face: while a face is up the panel's row is Jambo's
+       tab and the face's word ("Redlines", "Before you send", …); "‹ Jambo" is
+       the row's (pdFaceBackHtml, drawn by renderIntelDock's head); no chips
+       under a face; the contract's tabs come back when the face goes.
+   (2) "Before you send" is a face that owns no builder and no writer: the
+       send screen hands its column over (pdSendOpen), the face keeps it
+       across repaints and gives it back (pdSendClose); its way back is the
+       screen's own guarded Cancel.
+   (3) The desk's tab: "Send · MK-0382" in front while the screen is up
+       (deskKeyNow), never kept as a tab of its own (deskTabsSync), its × the
+       screen's Cancel, another tab or the Counter putting it away first.
+   AT THE BASE (8dc306a) every test here FAILS.
+   The browser half: test/chromium/the-letter-as-drawn-verify.js (1, 6) and
+   test/chromium/piles-as-drawn-verify.js (1).
+   ═══════════════════════════════════════════════════════════════════════════ */
+const { test, describe } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const R = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+const PD = R('js/paperdesk.js');
+const IG = R('js/views/intelligence.js');
+const CN = R('js/views/counter.js');
+const CSS = R('index.html');
+const fnBody = (src, name) => { const i = src.indexOf('function ' + name + '('); assert.ok(i >= 0, name + ' exists');
+  const j = src.indexOf('\nfunction ', i + 10); return src.slice(i, j > 0 ? j : undefined); };
+
+function pdStage({ paper = 'MK-1' } = {}){
+  const c = { id: 'MK-1', contractNo: 'MK-0382', counterparty: 'Nordvik Logistik AB', folder: 'proc', status: 'Under Review' };
+  const painted = [];
+  const ctx = {
+    intel: { paper: paper ? { id: paper } : null, dockOpen: false }, state: { view: 'dashboard' },
+    getContract: id => (id === c.id ? c : null), contractRef: x => x.contractNo,
+    i18t: (k, v) => k + (v ? '[' + Object.values(v).join(',') + ']' : ''), i18tn: (k, n) => k + ':' + n,
+    igHomePaperFace: () => !!paper, hbFace: () => 'paper', canEdit: () => true, PORTAL_MODE: false,
+    detailsOf: () => ({ left: 0, all: 4, live: true, items: [] }), signBlockers: () => [], needsYouOf: () => [],
+    hbAgentsData: () => ({ ready: 0, rows: [] }), jamboFaceHtml: () => '<img class="jf" alt="">',
+    renderIntelDock: () => painted.push('dock'), setTimeout: () => 0,
+  };
+  ctx.window = ctx;
+  vm.createContext(ctx); vm.runInContext(PD, ctx);
+  return { ctx, c, painted };
+}
+const tabsOf = h => [...h.matchAll(/data-pd-tab="([a-z]+)"/g)].map(m => m[1]);
+
+describe('f758 (1) one row for every face', () => {
+  test('1a a face up: Jambo\'s tab, then the face\'s word; the contract\'s tabs come back when it goes', () => {
+    const { ctx } = pdStage();
+    const before = tabsOf(ctx.pdHeadHtml());
+    assert.ok(before.length > 1, 'beside a paper: the contract\'s tabs');
+    ctx.pdSendOpen('MK-1', null);
+    const h = ctx.pdHeadHtml();
+    assert.deepEqual(tabsOf(h), ['copilot'], 'a face up: Jambo\'s tab alone');
+    assert.match(h, /<span class="pd-face-w" data-pd-face-w="send">pd_face_w_send<\/span>$/, 'then the face\'s word');
+    ctx.pdSendClose();
+    assert.deepEqual(tabsOf(ctx.pdHeadHtml()), before, 'the face gone: the tabs are back');
+  });
+  test('1b every face has its word, and "‹ Jambo" is the row\'s, for whichever face is up', () => {
+    const { ctx } = pdStage();
+    assert.deepEqual(Object.keys(ctx.PD_FACE_WORD).sort(), ['amend', 'fill', 'red', 'send', 'signing']);
+    for (const f of ctx.PD_FACE_WORDS) assert.ok(ctx.PD_FACE_WORD[f], 'a word for ' + f);
+    assert.equal(ctx.pdFaceBackHtml(), '', 'no face: nothing');
+    ctx.pdSendOpen('MK-1', null);
+    assert.equal(ctx.pdFaceUp(), 'send', 'the send screen wins while it is up');
+    assert.match(ctx.pdFaceBackHtml(), /^<button type="button" class="pd-back" data-pd-back="send"/);
+    const head = IG.slice(IG.indexOf('function renderIntelDock('));
+    assert.match(head, /pdFaceBackHtml\(\)/, 'drawn in the panel\'s own row');
+    assert.match(head, /dock\.classList\.toggle\('pd-face-up',!!\(window\.pdFaceUp&&pdFaceUp\(\)\)\)/, 'the panel knows a face is up');
+    assert.match(CSS, /#ig-dock\.pd-face-up \[data-ig-chips\]\{display:none\}/, 'no chips under a face');
+  });
+  test('1c the faces\' own heads draw neither ‹ Jambo nor ×', () => {
+    for (const fn of ['pdFillHeadHtml', 'pdSignHeadHtml', 'pdAmendHeadHtml'])
+      assert.doesNotMatch(fnBody(PD, fn).replace(/\/\*[\s\S]*?\*\//g, ''), /pdBackHtml\(|-close|>×</, fn);
+  });
+});
+
+describe('f758 (2) "Before you send" owns no builder and no writer', () => {
+  test('2a the screen hands its column over; the face keeps it, gives it back, and opens the panel', () => {
+    const { ctx, painted } = pdStage();
+    const node = { parentNode: null };
+    assert.equal(ctx.pdSendShows(), false);
+    ctx.pdSendOpen('MK-1', node);
+    assert.equal(ctx.pdSendFor(), 'MK-1');
+    assert.equal(ctx.pdSendShows(), true, 'on Home');
+    assert.equal(ctx.intel.dockOpen, true, 'the panel opens to say it');
+    assert.ok(painted.length >= 1, 'and is drawn');
+    assert.match(ctx.pdSendFaceHtml(), /^<div id="pd-send-slot" class="pd-send-slot" data-pd-send="MK-1"><\/div>$/, 'a slot, nothing written');
+    ctx.state.view = 'register';
+    assert.equal(ctx.pdSendShows(), false, 'off Home it is not a face');
+    ctx.state.view = 'dashboard';
+    ctx.pdSendClose();
+    assert.equal(ctx.pdSendFor(), null);
+  });
+  test('2b its way back is the screen\'s own guarded Cancel; the screen gives the face back on close', () => {
+    const map = PD.slice(PD.indexOf('const PD_BACK_CLOSE'), PD.indexOf('function pdBackHtml'));
+    assert.match(map, /send: \(\) => \{ if \(typeof window\.closeModalGuarded === 'function'\) window\.closeModalGuarded\(\); else pdSendClose\(\); \}/);
+    const core = R('js/core.js');
+    assert.match(core, /onClose:_onDesk\?\(\)=>shareLetterPageOff\(c\):null/, 'the screen\'s close gives the column back');
+    assert.match(core, /function closeModalGuarded\(/);
+    assert.match(core, /Object\.assign\(window,\s*\{[^}]*closeModalGuarded/, 'published, so the face and the tab can ask it');
+  });
+});
+
+describe('f758 (3) the desk\'s tab for the send screen', () => {
+  function cnStage({ sending = 'MK-1', view = 'dashboard' } = {}){
+    const c = { id: 'MK-1', contractNo: 'MK-0382', counterparty: 'Nordvik Logistik AB' };
+    const did = [];
+    const store = {};
+    const ctx = {
+      state: { view }, getContract: id => (id === c.id ? c : null), contractRef: x => x.contractNo,
+      i18t: (k, v) => k + (v ? '[' + Object.values(v).join(',') + ']' : ''), hbFace: () => 'paper', pdContract: () => c,
+      pdSendFor: () => sending, closeModal: () => did.push('close'), closeModalGuarded: () => did.push('guarded'),
+      localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); } },
+      currentUser: () => ({ id: 'u1' }), setTimeout: () => 0, clearTimeout: () => {},
+    };
+    ctx.window = ctx;
+    vm.createContext(ctx); vm.runInContext(CN, ctx);
+    return { ctx, did, store };
+  }
+  test('3a in front while the screen is up, with its own words; never kept as a tab of its own', () => {
+    const { ctx } = cnStage();
+    assert.equal(ctx.deskKeyNow(), 'send:MK-1');
+    assert.equal(ctx.deskTabLabel('send:MK-1'), 'dk_send_tab[MK-0382]');
+    assert.equal(cnStage({ sending: null }).ctx.deskKeyNow(), 'c:MK-1', 'the screen gone: the paper\'s own tab');
+    assert.match(fnBody(CN, 'deskTabsSync'), /DK_SEND/, 'the sync leaves the send screen out of the kept tabs');
+  });
+  test('3b its × is the screen\'s Cancel, asked through the guard; another door puts it away first', () => {
+    const { ctx, did } = cnStage();
+    ctx.deskTabClose('send:MK-1');
+    assert.deepEqual(did, ['guarded']);
+    ctx.dkLeaveSend('c:MK-1');
+    assert.deepEqual(did, ['guarded', 'close'], 'pressing the paper\'s tab puts the screen away');
+    const same = cnStage(); same.ctx.dkLeaveSend('send:MK-1');
+    assert.deepEqual(same.did, [], 'its own tab leaves it up');
+    assert.match(fnBody(CN, 'deskGoCounter'), /dkLeaveSend\(null\)/, 'the Counter puts it away too');
+  });
+});
