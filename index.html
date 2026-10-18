@@ -9124,6 +9124,34 @@
   .igw-ref{font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .igw-nm{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   @media (prefers-reduced-motion:reduce){.igw-sheet{transition:none}}
+  /* WALL OF PAPERS (round 13 of the redesign, owner picked "Wall of papers",
+     17 Oct 2026): a small paper — the top of its first page, title and party
+     over a few ruled lines, nothing stamped on it — and the facts under it:
+     stage, number · value, party, then what it asks and a private stream's
+     lock. A deal kept to its list is a hatched paper with its code name. The
+     archive is its own button beside Wall | List. */
+  .ct-wall .igw-sheet{aspect-ratio:1.55/1;padding:9% 9% 0}
+  .ct-wall .igw-t{font-size:8px;-webkit-line-clamp:1}
+  .ct-wall .igw-p{font-size:6px;margin:2px 0 7px}
+  .ct-wall .igw-ln{height:60%}
+  .igw-rl{display:flex;align-items:baseline;min-width:0;white-space:nowrap}
+  .igw-rl .igw-ref{flex:none;max-width:100%}
+  .igw-val{min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:var(--t-body);font-weight:var(--w-body);color:var(--color-neutral-600)}
+  .igw-pills{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:2px;min-width:0}
+  .igw-lock{display:inline-flex;align-items:center;gap:4px;max-width:100%;padding:0 6px;border:1px solid var(--color-divider);border-radius:999px;
+    font-size:11px;line-height:18px;color:var(--color-neutral-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .igw-lock svg{flex:none;width:11px;height:11px}
+  .igw-cn svg{flex:none;width:14px;height:14px}
+  .ct-arch svg{flex:none;width:16px;height:16px}
+  .igw-sheet.is-coded{display:grid;place-items:center;padding:6%;background:repeating-linear-gradient(135deg,var(--color-surface) 0 6px,var(--surface-2) 6px 12px)}
+  .igw-cn{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;color:var(--color-neutral-600)}
+  .igw-sheet.is-coded .igw-t{font-family:inherit;font-size:var(--t-meta);-webkit-line-clamp:1}
+  .igw-sheet.is-coded .igw-p{font-size:11px;margin:0}
+  .igw-card.is-coded .igw-nm{color:var(--accent-ink)}
+  .ct-arch{display:inline-flex;align-items:center;gap:6px}
+  .ct-arch[aria-pressed="true"]{border-color:var(--accent-fill);color:var(--accent-ink);background:color-mix(in srgb,var(--accent-fill) 8%,var(--color-surface))}
+  .ct-arch-n{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;
+    background:var(--color-accent-100);color:var(--accent-ink);font-size:11px;font-weight:var(--w-label);font-variant-numeric:tabular-nums}
   /* A PAPER BEING OPENED wears the turning ring until it is up (igOpeningPaint, owner 16 Oct 2026) */
   .igw-opening{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:inline-flex;align-items:center;white-space:nowrap;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:999px;padding:3px 10px;font-size:11px;line-height:1.4;color:var(--color-text)}
   .igw-opening .ob-spin{width:9px;height:9px;margin-right:5px;border-width:1.5px}
@@ -9144,6 +9172,8 @@
   /* Wall | List wears the page's own switch (.reg-seg — the clothes follow
      the builder); only its place in the row and the icon's gap are its own. */
   .reg-seg.ct-seg{align-self:flex-start;margin-left:auto}
+  .ct-top .ct-arch{align-self:flex-start;margin-left:auto;flex:none}
+  .ct-top .ct-arch + .reg-seg.ct-seg{margin-left:0}
   .reg-seg.ct-seg button{display:inline-flex;align-items:center;gap:6px}
   /* the filter row: the boxes from the left edge (wrapping within their own
      block on a narrow place), Do this to these and Adapt filters at its end */

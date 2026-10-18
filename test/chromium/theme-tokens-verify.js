@@ -29,6 +29,9 @@
    variables actually repaints the platform. A token nothing reads is not a
    token, and no census of the DEFAULT theme would ever notice.
 
+   RE-RECORDED 18 Oct 2026 (fourth), OWNER-ASKED (the overnight build, same
+   standing yes): Round 13, "Wall of papers" — the register screen's counts
+   moved, light and dark; audited by key: nothing new, nothing gone.
    RE-RECORDED 18 Oct 2026 (third), OWNER-ASKED (the overnight build, same
    standing yes): Round 12, "Two sides" — History's two lanes moved its own
    counts, light and dark; audited as a set difference by key: only the
