@@ -9375,11 +9375,19 @@ let _rlShowingList = false;
 /* A REFRESH LANDS WHERE YOU WERE (Young, 28 Sep 2026): the list, with its
    search and filters, or the contract on the bench — read by placeSave and put
    back by placeResume (js/app.js) before the first paint, as a bare repaint. */
-function rlPlace(){ return { list: _rlShowingList, held: _redlineHeldId || null, st: (_rlShowingList && state.regNego) ? { ...state.regNego } : null }; }
+/* The Deal board rides along (bug log, 3 Oct 2026): open, its pick and its
+   filter, so a refresh with the board up lands on the board. */
+function rlPlace(){ return { list: _rlShowingList, held: _redlineHeldId || null, st: (_rlShowingList && state.regNego) ? { ...state.regNego } : null,
+  board: (!_rlShowingList && _redlineHeldId && _rlBoardOpen) ? { pick: _rlBoardPick, f: _rlBoardFilter } : null }; }
 function rlPlacePut(p){
   if (!p) return;
   if (p.list){ _rlShowingList = true; _redlineHeldId = null; if (p.st) state.regNego = { ...p.st }; }
-  else if (p.held){ _rlShowingList = false; _redlineHeldId = p.held; }
+  else if (p.held){ _rlShowingList = false; _redlineHeldId = p.held;
+    /* the first paint of a fresh page counts as arriving on a new contract
+       and would close the board (rlCardForgetPins); a fresh page has nothing
+       else open to forget, so it is told this contract is already the one. */
+    if (p.board){ _rlPinnedFor = String(p.held); _rlBoardOpen = true; _rlBoardPick = p.board.pick == null ? null : String(p.board.pick);
+      _rlBoardFilter = RL_BOARD_FILTERS.includes(p.board.f) ? p.board.f : 'all'; } }
 }
 
 /* ---- WHOSE MOVE IS IT ON THIS AGREEMENT ----

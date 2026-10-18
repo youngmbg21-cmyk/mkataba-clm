@@ -177,6 +177,13 @@ const check = (name, pass, detail) => {
     const wOn = await page.evaluate(() => ({ view: state.view, face: window.pdRedFor ? pdRedFor() : null, paper: window.pdContract && pdContract() ? pdContract().id : null }));
     check('5a the Negotiate page comes back on the same contract, scrolled to the same clause', w0 >= 400 && w1 === w0 && wOn.face === 'MK-R1' && wOn.paper === 'MK-R1', JSON.stringify({ w0, w1, wOn }));
 
+    /* the Deal board rides along (bug log, 3 Oct 2026): open it, refresh, it is still up */
+    await page.evaluate(() => { if (window.openDealBoard) openDealBoard(); });
+    const bOn = await until(() => window.rlBoardIsOpen && rlBoardIsOpen() && document.getElementById('rl-boardpage') ? true : null);
+    await reload();
+    const bBack = await until(() => state.view === 'redline' && window.rlBoardIsOpen && rlBoardIsOpen() && document.getElementById('rl-boardpage') ? true : null);
+    check('5b a refresh with the Deal board open lands on the board, on the same contract', bOn === true && bBack === true && (await page.evaluate(() => state.activeId)) === 'MK-R1', JSON.stringify({ bOn, bBack }));
+
     /* ================= 6. THE READER'S HAND WINS ============================= */
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await until(() => document.getElementById('reg-scroll'));
