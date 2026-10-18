@@ -3709,7 +3709,7 @@ function docBody(c){
     const a=key||('c'+n);
     const p=flags[a]?FLAGPAL[flags[a].sev]:null;
     const wrap=p?` style="background:${p.box};outline:1px solid ${p.line};border-radius:var(--radius);padding:6px 10px;margin-bottom:14px"`:'';
-    const tag=p?`<span style="font-size:var(--t-figure);font-weight:var(--w-title);background:${p.bg};color:${p.fg};padding:1px 6px;border-radius:var(--radius);flex:none">${p.tag}</span>`:'';
+    const tag=p?`<span data-not-wording style="font-size:var(--t-figure);font-weight:var(--w-title);background:${p.bg};color:${p.fg};padding:1px 6px;border-radius:var(--radius);flex:none">${p.tag}</span>`:'';
     /* NO FIXED-SIZE UTILITY ON THE PAPER. These carried `text-[13.5px]` and
        `text-[13px]`, and both LIE: the 22 Aug size sweep moved the compiled
        values to 15px and 14px and left the class NAMES saying 13.5 and 13.

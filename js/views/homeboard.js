@@ -5845,7 +5845,7 @@ function hbPackData(name, lens){
     P.cols = [i18t('hb_pk_col_contract'), money ? i18t('hb_ms_exposure') : i18t('hb_pk_col_risks'), i18t('hb_pk_col_why')];
     P.rows = rows.slice(0, HB_PACK_ROWS).map(r => {
       const sev = r.risks.slice().sort((a, b) => (HB_RISK_WEIGHT[b.sev] || 0) - (HB_RISK_WEIGHT[a.sev] || 0));
-      const why = sev.slice(0, 2).map(it => String(it.title || '').trim()).filter(Boolean);
+      const why = sev.slice(0, 2).map(it => String((typeof riskTitleOf === 'function' ? riskTitleOf(it) : it.title) || '').trim()).filter(Boolean);
       const w = (typeof renewalWindow === 'function') ? (() => { try { return renewalWindow(r.c); } catch (_){ return null; } })() : null;
       /* the wording's reading adds the missing cap unless a finding already says it */
       const unc = i18t('hb_pk_why_uncapped');
