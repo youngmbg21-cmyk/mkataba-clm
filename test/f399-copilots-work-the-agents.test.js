@@ -410,7 +410,12 @@ describe('f399 (6) — the cards and panels are as full as the drawing, off the 
        email whole"): the day in words, as the route has written it since 28
        Sep — the page still printed the stored day — and signed by the person
        who presses, for our company on the agreement, as drawn. */
-    assert.match(m.body, /This is a reminder about "Deliver the Q3 stock report" under our agreement ".+" \(MK-SUP-3\), which was due on \d{1,2} [A-Z][a-z]+ \d{4}\./,
+    /* RE-POINTED 18 Oct 2026 (round 23's gaps, second pass — the drawn letter:
+       "under our Supply agreement (MK-0368), which was due on 14 October"):
+       the agreement is named as ours, unquoted, and the year is said only
+       outside this year (chaseDayWords, one reading for both hosts). An act
+       ("Deliver …") keeps its quotation marks and asks where it stands. */
+    assert.match(m.body, /This is a reminder about "Deliver the Q3 stock report" under our .+ \(MK-SUP-3\), which was due on \d{1,2} [A-Z][a-z]+( \d{4})?\. Could you let us know where it stands\?/,
       'the route\'s line, with the due date in words — which is what the route writes');
     assert.match(m.body, new RegExp(String(win.currentUser().name).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(, .+)?$'), 'signed by the person who presses');
     /* THE RELATION, NOT THE WORDS: the route composes from these keys and these

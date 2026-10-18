@@ -18,6 +18,12 @@
    (4) The Counter's row draws exactly Look · that act · Put away, and Look
        on a chase draws the letter only (agLookHtml → agChaseLookHtml).
    (5) The words, in both books.
+   (6) SECOND PASS (the checker against the drawing, 18 Oct 2026): the chase
+       reads "Their insurance certificate is 5 days late." (chaseWhatOf); a
+       Swedish short date ending in its own stop does not end the sentence
+       twice ("27 nov.."); the possessive is said in the reader's language
+       ("Saras", "Kettle & Co:s"), so both books fill the same holes; the
+       piece's name is never cut on the Counter (the reference goes under).
    AT THE PARENT (8dc306a) every test here FAILS.
    ═══════════════════════════════════════════════════════════════════════════ */
 const { test, describe } = require('node:test');
@@ -89,7 +95,8 @@ describe('f800 (2) one sentence of what it holds', () => {
   });
   test('2b a chase: how late, and that the first chase is ready to the address on the contract', () => {
     const { win, of } = staged();
-    assert.equal(win.agPieceLine(of('chase')), '“the insurance certificate” is 5 days late. The first chase is ready, to the address on the contract.');
+    /* RE-POINTED 18 Oct 2026 (second pass): as drawn, "Their insurance certificate is 5 days late." */
+    assert.equal(win.agPieceLine(of('chase')), 'Their insurance certificate is 5 days late. The first chase is ready, to the address on the contract.');
   });
   test('2c an import names the files that wait', () => {
     const { win, of } = staged();
@@ -189,5 +196,43 @@ describe('f800 (5) the words', () => {
     assert.equal(BOOKS.en.ag_a_answer, 'Answer on Redlines');
     assert.equal(BOOKS.en.ag_a_renewal, 'Decide the renewal');
     assert.equal(BOOKS.en.ag_chase_note, 'It goes to the address on the contract. You are asked once more before it is sent.');
+  });
+});
+
+describe('f800 (6) second pass: the drawn words', () => {
+  test('6a a promise written as an act keeps its quotation marks', () => {
+    const { win, its } = staged();
+    const it = its.find(i => i.kind === 'chase');
+    it.ob = { ...it.ob, desc: 'Deliver the stock report' };
+    assert.equal(win.agPieceLine(it), '“Deliver the stock report” is 5 days late. The first chase is ready, to the address on the contract.');
+  });
+  test('6b one sentence ends once: a Swedish short date keeps its own stop', () => {
+    const AG = R('js/views/agents.js');
+    const ctx = {}; vm.createContext(ctx);
+    vm.runInContext(constLine(AG, '_agStop') + '\nthis.f = _agStop;', ctx);
+    assert.equal(ctx.f('Det löper ut 27 nov.. Beslutet ska fattas senast 30 okt..'), 'Det löper ut 27 nov. Beslutet ska fattas senast 30 okt.');
+    assert.equal(ctx.f('Wait... then go.'), 'Wait... then go.');
+    assert.match(fnBody(AG, 'agPieceLine'), /return _agStop\(_agPieceLine\(it\)\);/);
+  });
+  test('6c the possessive in the reader\'s language', () => {
+    const { win } = staged();
+    const was = win.langId();
+    try {
+      win.langSet('sv');
+      assert.deepEqual(['Sara', 'Jonas', 'Kettle & Co', 'IKEA', 'Nordvik Logistik'].map(n => win.agPoss(n)), ['Saras', 'Jonas', 'Kettle & Co:s', 'IKEA:s', 'Nordvik Logistiks']);
+    } finally { win.langSet(was); }
+    assert.equal(win.agPoss('Sara'), 'Sara’s');
+  });
+  test('6d both books fill the same holes on every word this lane says', () => {
+    const vars = t => (String(t).match(/\{(\w+)\}/g) || []).sort().join(',');
+    for (const k of Object.keys(BOOKS.en).filter(k => /^(cn_|ag_pc_|ag_ln_|mail_ob_chase_)/.test(k)))
+      if (BOOKS.sv[k] != null) assert.equal(vars(BOOKS.sv[k]), vars(BOOKS.en[k]), k);
+  });
+  test('6e the piece\'s name is never cut: no ellipsis on it, the reference may go under', () => {
+    const IX = R('index.html');
+    const rule = (IX.match(/\.cn-jw-name\{[^}]*\}/) || [''])[0];
+    assert.ok(rule, 'the rule');
+    assert.doesNotMatch(rule, /ellipsis|overflow:hidden/);
+    assert.match(IX, /\.cn-w b\.cn-jw-t\{display:block;white-space:normal/);
   });
 });

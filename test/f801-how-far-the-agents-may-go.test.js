@@ -12,8 +12,15 @@
    (3) The line (cnJwLevelsHtml): "All seven agents: <level> · set by <first
        name> for everyone"; groups by name or count where levels differ; "the
        default, for everyone" where nobody moved it; "you chose …" where the
-       person chose their own; Ask an admin for a member (the tracked ask,
-       stAskFrom('agents')), Change for an admin (where it is set).
+       person chose their own; Ask an admin for a member, Change for an
+       admin (where it is set).
+   (4) SECOND PASS, AS DRAWN ("Ask an admin sends Sara your question as a
+       request she answers; it waits in her Needs you until she does" — on the
+       Counter, which the reader never leaves): the press sends the tracked
+       ask from where it is (stAskDirect: POST /api/settings-asks, the same
+       record Settings makes, the admin's Needs you and bell), and the line
+       says "Asked Sara · waiting for an answer" where the button stood while
+       it is open (stAskOpenOn). A press never opens Settings.
    AT THE PARENT (8dc306a) every test here FAILS but 1a and 1c, the controls
    (no name is written there at all, so none is wrongly written either).
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -88,11 +95,11 @@ describe('f801 (2) the reading', () => {
   });
 });
 
-function line(L, admin){
+function line(L, admin, open){
   const ctx = { i18t: (k, v) => fill(BOOKS.en[k] || k, v), i18tn: (k, n, v) => fill(BOOKS.en[k + (n === 1 ? '_one' : '_other')] || BOOKS.en[k] || k, { n, ...(v || {}) }),
-    agLevelsSaid: () => L, isAdmin: () => !!admin };
+    agLevelsSaid: () => L, isAdmin: () => !!admin, stAskOpenOn: p => (open && p === 'agents') ? open : null, stAdminsSaid: () => 'Sara Lind' };
   vm.createContext(ctx);
-  vm.runInContext(['_cnE', '_cnT', '_cnTn', '_cnFirst'].map(n => constLine(CN, n)).join('\n') + fnBody(CN, 'cnJwLevelsHtml'), ctx);
+  vm.runInContext(['_cnE', '_cnT', '_cnTn', '_cnFirst'].map(n => constLine(CN, n)).join('\n') + '\nlet _cnLvAsking = false;\n' + fnBody(CN, 'cnLvAskState') + fnBody(CN, 'cnJwLevelsHtml'), ctx);
   return ctx.cnJwLevelsHtml();
 }
 const text = h => h.replace(/<[^>]+>/g, '');
@@ -119,11 +126,41 @@ describe('f801 (3) the line', () => {
   });
   test('3e no reading, no line', () => { assert.equal(line(null, false), ''); });
   test('3f the doors: the tracked ask about the agents, or the agents\' own settings', () => {
-    assert.match(CN, /if \(t\.closest\('\[data-cn-lv-ask\]'\)\)\{ if \(typeof stAskFrom === 'function'\) stAskFrom\('agents', _cnT\('cn_lv_ask_words'\)\); return; \}/);
+    /* RE-POINTED 18 Oct 2026 (second pass): the ask is sent where it is pressed, never through Settings */
+    assert.match(CN, /if \(t\.closest\('\[data-cn-lv-ask\]'\)\)\{ cnLvAsk\(\); return; \}/);
     assert.match(CN, /if \(t\.closest\('\[data-cn-lv-change\]'\)\)\{ if \(typeof openSettingsAt === 'function'\) openSettingsAt\('company', 'agents'\); return; \}/);
   });
   test('3g the words, in both books', () => {
-    for (const k of ['cn_lv_all7', 'cn_lv_all', 'cn_lv_one', 'cn_lv_n_one', 'cn_lv_n_other', 'cn_lv_you', 'cn_lv_start', 'cn_lv_by', 'cn_lv_mine_k', 'cn_lv_mine_one', 'cn_lv_mine_other', 'cn_lv_ask', 'cn_lv_change', 'cn_lv_ask_words'])
+    for (const k of ['cn_lv_all7', 'cn_lv_all', 'cn_lv_agent', 'cn_lv_n_one', 'cn_lv_n_other', 'cn_lv_you', 'cn_lv_start', 'cn_lv_by', 'cn_lv_mine_k', 'cn_lv_mine_one', 'cn_lv_mine_other', 'cn_lv_ask', 'cn_lv_change', 'cn_lv_ask_words'])
+      for (const lang of ['en', 'sv']) assert.ok(BOOKS[lang][k], k + ' ' + lang);
+  });
+});
+
+describe('f801 (4) Ask an admin, sent from the Counter', () => {
+  const seven = { n: 7, groups: [{ lv: 'ask', keys: ['round', 'link', 'renew', 'paper', 'late', 'ours', 'import'] }], by: [{ name: 'Sara Lind', you: false }], mine: [] };
+  test('4a once asked, the line says so where the button stood', () => {
+    const h = line(seven, false, { id: 'ASK-1', status: 'open', panel: 'agents' });
+    assert.equal(text(h), 'All seven agents: Ask me first · set by Sara for everyoneAsked Sara Lind · waiting for an answer');
+    assert.doesNotMatch(h, /data-cn-lv-ask>/);
+  });
+  test('4b the press sends the ask from here: no trip to Settings', () => {
+    const f = fnBody(CN, 'cnLvAsk');
+    assert.match(f, /await stAskDirect\('agents', words, ''\);/);
+    assert.match(f, /const words = _cnT\('cn_lv_ask_words'\);/);
+    assert.doesNotMatch(f.slice(f.indexOf('_cnLvAsking = true')), /setView|openSettingsAt|stAskFrom/);
+    assert.match(f, /toast\(\(e && e\.message\) \|\| _cnT\('cn_lv_ask_failed'\), 'err'\)/, 'a failure says so');
+  });
+  test('4c the one sender is Settings\' own record: POST /api/settings-asks, the toast, the list read again', () => {
+    const ST = R('js/views/settings.js');
+    const f = fnBody(ST, 'stAskDirect');
+    assert.match(f, /api\('settings-asks','POST',\{ what:/);
+    assert.match(f, /toast\(i18t\('st_ask_toast',\{who:stAdminsSaid\(\)\}\),'ok'\)/);
+    assert.match(f, /await stAsksLoad\(\)/);
+    assert.match(ST, /const stAskOpenOn=panel=>stAsksMine\(\)\.find\(a=>a&&a\.status==='open'&&a\.panel===panel\)\|\|null;/);
+    assert.match(ST, /stAskFrom,stAskDirect,stAskOpenOn,stAdminsSaid,/, 'published');
+  });
+  test('4d the words, in both books', () => {
+    for (const k of ['cn_lv_asking', 'cn_lv_asked', 'cn_lv_asked_any', 'cn_lv_ask_failed', 'cn_lv_agent'])
       for (const lang of ['en', 'sv']) assert.ok(BOOKS[lang][k], k + ' ' + lang);
   });
 });
