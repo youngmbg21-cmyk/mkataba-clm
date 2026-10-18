@@ -17,7 +17,7 @@ const { jxPack, JX_DEFAULT, JURISDICTIONS,
 const { ndaClean, ndaFacts } = require('../js/nda.js');
 /* THE LETTER (round 11, 17 Oct 2026): the share email's words, written once for
    the send screen that draws it and this route that mails it (js/sharemail.js). */
-const { shareMailOf, signerTurnMailOf, shareRoundOf, shareAnswersOf } = require('../js/sharemail.js');
+const { shareMailOf, shareMailNameOf, signerTurnMailOf, shareRoundOf, shareAnswersOf } = require('../js/sharemail.js');
 /* One dictionary, two hosts. The server writes email and needs the recipient's
    own language from the SAME table the screens use — a second copy here would
    drift from js/i18n.js without anything noticing, which is the fault the
@@ -3669,6 +3669,16 @@ function cnOf(id) {
   const k = db.prepare('SELECT * FROM code_names WHERE contract_id=?').get(e.root) || {};
   const names = new Map(db.prepare('SELECT id, name, email FROM users').all().map(u => [String(u.id), u.name || u.email || '']));
   return { code: e.code, inherited: e.root !== String(id), people: [...e.people].map(pid => ({ id: pid, name: names.get(pid) || '' })), by: k.set_by || '', at: k.set_at || '' };
+}
+/* A CODE-NAMED DEAL'S LETTER TO THE OTHER SIDE names its code and number only
+   (round 11's gaps, second pass: "Round 2 of Project Falcon (MK-0412)"); the
+   words are js/sharemail.js's (shareMailNameOf). Empty where it has none. */
+function srvMailCodeOf(id) {
+  const cn = id ? cnOf(id) : null;
+  if (!cn || !cn.code) return {};
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(String(id));
+  let c = {}; try { c = row ? (JSON.parse(row.json) || {}) : {}; } catch (_) { c = {}; }
+  return { code: cn.code, ref: contractRef(c) || String(id) };
 }
 /* the text of an email, for the person it goes to */
 function cnMailMask(to, parts) {
@@ -17748,7 +17758,7 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     } else {
       /* The words are js/sharemail.js's: the send screen draws this letter. */
       const mail = shareMailOf({ channel: 'word', purpose: histFile ? 'history' : null, sender: req.user.name,
-        org: payload.org, cName, recName: rec.name, message });
+        org: payload.org, cName, recName: rec.name, message, ...srvMailCodeOf(shareId) });
       const r = await sendEmail(email,
         mail.subject,
         mail.body, `share as word: ${fname}`,
@@ -17772,7 +17782,8 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     const pc = (payload && payload.contract) || {};
     const mail = shareMailOf({ channel: 'email', purpose: purp, sender: req.user.name, title: req.user.title || '', org: payload.org,
       cName, recName: rec.name, message, link, expires,
-      round: shareRoundOf(pc.negotiation), answers: shareAnswersOf(pc, shareId ? srvStoredContract(shareId) : null), codeOn: shareCodeOn() && purp !== 'status' });
+      round: shareRoundOf(pc.negotiation), answers: shareAnswersOf(pc, shareId ? srvStoredContract(shareId) : null), codeOn: shareCodeOn() && purp !== 'status',
+      ...srvMailCodeOf(shareId) });
     const r = await sendEmail(email,
       mail.subject,
       mail.body, `share link: ${link}`, { html: mail.html });
@@ -19261,7 +19272,8 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
     if (note) db.prepare('UPDATE shares SET message=? WHERE token=?').run(note, s.token);
     const mail = shareMailOf({ channel: 'email', purpose: sharePurposeOf(s), sender: req.user.name, title: req.user.title || '',
       org: payload.org, cName: pc.name || s.contract_id || 'a contract', recName: String(letter.recName || s.recipient_name || '').slice(0, 120),
-      message: note, link, expires: s.expires_at, round: shareRoundOf(pc.negotiation), answers: shareAnswersOf(pc, s.contract_id ? srvStoredContract(s.contract_id) : null), codeOn: shareNeedsCode(s) });
+      message: note, link, expires: s.expires_at, round: shareRoundOf(pc.negotiation), answers: shareAnswersOf(pc, s.contract_id ? srvStoredContract(s.contract_id) : null), codeOn: shareNeedsCode(s),
+      ...srvMailCodeOf(s.contract_id) });
     const r = await sendEmail(s.recipient_email, mail.subject, mail.body, `share letter: ${link}`, { html: mail.html });
     emailSent = !!r.sent; emailError = r.detail || null;
     if (!emailSent && !emailError) emailError = mailReport(r).emailError;
@@ -19270,7 +19282,8 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
       .run(String(emailError || (EMAIL_ON() ? 'The email provider refused the message.' : 'Email is not configured on this server — the message is in the outbox.')).slice(0, 300), s.token);
   } else if (!silent && notify && (s.channel || 'link') === 'email' && s.recipient_email) {
     mailTried = true;
-    const cName = (payload.contract && payload.contract.name) || s.contract_id || 'a contract';
+    /* a code-named deal is named by its code and number here too (round 11's gaps) */
+    const cName = shareMailNameOf(srvMailCodeOf(s.contract_id)) || (payload.contract && payload.contract.name) || s.contract_id || 'a contract';
     const cnt = k => { const n = Math.floor(Number(((req.body || {}).turn || {})[k])); return Number.isFinite(n) && n > 0 ? Math.min(n, 999) : 0; };
     const moved = turnMail ? srvTurnMovedLine(cnt('changes'), cnt('notes')) : '';
     const body = (turnMail ? [

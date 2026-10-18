@@ -770,6 +770,8 @@ function pdRedOpen(id){
 function pdRedLand(id){
   const phone = typeof window !== 'undefined' && window.innerWidth && window.innerWidth < 768;
   if (phone || typeof igWalk !== 'function') return false;
+  /* the face opens on its piles, never on the notes left open last time */
+  if (typeof rlFaceNotesSet === 'function') rlFaceNotesSet(null);
   return pdOpenOnHome(id, 'red');
 }
 /* another contract asked for puts the face away (igAnalyze), as Fill in's */
@@ -777,6 +779,7 @@ function pdRedSeen(id){ if (_pdRed && String(id) !== _pdRed) _pdRed = null; }
 function pdRedAway(){ _pdRed = null; }
 function pdRedClose(){
   const id = _pdRed; _pdRed = null;
+  if (typeof rlFaceNotesSet === 'function') rlFaceNotesSet(null);
   pdPresenceOff(id);
   pdRedPaper(id);
   if (typeof renderIntelDock === 'function') renderIntelDock();
@@ -809,7 +812,10 @@ function pdRedOpts(c){
   /* ‹ Jambo is the panel's own row now (pdFaceTabHtml, round 9 as drawn) and
      the column's head carries no × (the drawing has none: ‹ Jambo closes);
      no progress pile beside the paper — the head says the round */
-  return Object.assign({}, base, { cpPanel: false, noProgress: true });
+  /* …and nothing under the piles (round 9's gaps, 18 Oct 2026): the column
+     ends with its settled fold, as drawn — the risk list is the clause
+     editor's Risks tab and the glance's own row */
+  return Object.assign({}, base, { cpPanel: false, noProgress: true, noRisks: true });
 }
 function pdRedFaceHtml(c){
   if (!c || typeof rlColumnHtml !== 'function') return '';
@@ -981,7 +987,12 @@ function pdSignOpen(id){ return pdOpenOnHome(id, 'signing'); }
 const PD_BACK_CLOSE = { fill: () => pdFillClose(), red: () => pdRedClose(), signing: () => pdSignClose(), amend: () => pdAmendClose(),
   /* the send screen's face: its way back is the screen's own Cancel (the
      letter and its face go together, and its guard is asked) */
-  send: () => { if (typeof window.closeModalGuarded === 'function') window.closeModalGuarded(); else pdSendClose(); } };
+  /* ‹ JAMBO WHILE THE LETTER IS UP TURNS THE PANEL BACK TO JAMBO'S OWN WORDS
+     (round 11's gaps, second pass: "it opens Jambo's panel as designed in
+     round 3"): the letter stays on the desk with what is typed in it; "Before
+     you send" waits as a tab of the panel's head (pdSendBack). Cancel on the
+     letter is still the way to put the screen away. */
+  send: () => pdSendAway() };
 function pdBackHtml(face){
   const t = _pdT('pd_back_jambo');
   return `<button type="button" class="pd-back" data-pd-back="${_pdE(face)}" title="${_pdE(t)}" aria-label="${_pdE(t)}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${_pdE(_pdT('pd_tab_copilot'))}</button>`;
@@ -996,9 +1007,32 @@ function pdBackHtml(face){
    (pdSendFacePaint) and gives it back when the screen closes (pdSendClose,
    the screen's onClose). A question asked in the box is answered under it;
    nothing here sends. Not kept through a refresh: the screen is not. */
-let _pdSend = null;          // { id, node } while the send screen is a page beside the panel
+let _pdSend = null;          // { id, node, away } while the send screen is a page beside the panel
 function pdSendFor(){ return _pdSend ? _pdSend.id : null; }
-function pdSendShows(){ return !!_pdSend && typeof state !== 'undefined' && !!state && state.view === 'dashboard'; }
+/* the screen is up (the letter on the desk), whichever face the panel shows */
+function pdSendHeld(){ return !!_pdSend && typeof state !== 'undefined' && !!state && state.view === 'dashboard'; }
+/* the panel shows "Before you send" — not while ‹ Jambo has turned it to
+   Jambo's own words (away) */
+function pdSendShows(){ return pdSendHeld() && !_pdSend.away; }
+function pdSendAway(){
+  if (!_pdSend) return;
+  _pdSend.away = true;
+  /* Jambo's own words: a face that stood under the letter (Redlines, from
+     its Send all; Fill in; Before you sign) is put away too, by its own close */
+  _pdTab = 'copilot';
+  try { if (_pdRed) pdRedClose(); } catch (_){}
+  try { if (_pdFill) pdFillClose(); } catch (_){}
+  try { if (_pdSign) pdSignClose(); } catch (_){}
+  try { if (_pdAmend) pdAmendClose(); } catch (_){}
+  if (typeof renderIntelDock === 'function') renderIntelDock();
+}
+function pdSendBack(){
+  if (!_pdSend) return;
+  _pdSend.away = false;
+  if (typeof renderIntelDock === 'function') renderIntelDock();
+  /* the column was out of sight: the letter's painter fills it again */
+  try { const L = document.getElementById('sh-letter'); if (L && typeof L._shPaint === 'function') L._shPaint(); } catch (_){}
+}
 function pdSendOpen(id, node){
   if (!id) return false;
   const keep = _pdSend && _pdSend.id === String(id) ? _pdSend.node : null;
@@ -1016,6 +1050,9 @@ function pdSendClose(){
   if (typeof renderIntelDock === 'function') renderIntelDock();
 }
 function pdSendFaceHtml(){ return `<div id="pd-send-slot" class="pd-send-slot" data-pd-send="${_pdE(pdSendFor() || '')}"></div>`; }
+/* while the panel shows Jambo's own words the column waits in the panel,
+   unseen, so every box and choice in it is still in the page for Send */
+function pdSendKeepHtml(){ return (pdSendHeld() && !pdSendShows()) ? `<div hidden data-pd-send-kept>${pdSendFaceHtml()}</div>` : ''; }
 function pdSendFacePaint(){
   const slot = (typeof document !== 'undefined') ? document.getElementById('pd-send-slot') : null;
   if (slot && _pdSend && _pdSend.node && _pdSend.node.parentNode !== slot) slot.appendChild(_pdSend.node);
@@ -1691,11 +1728,14 @@ function pdHeadHtml(brain){
   const lit = face ? 'copilot' : tabs.includes(_pdTab) ? _pdTab : 'copilot';
   const c = pdOnPaper() ? pdContract() : null;
   const word = face ? `<span class="pd-face-w" data-pd-face-w="${_pdE(face)}">${_pdE(_pdT(PD_FACE_WORD[face] || 'pd_tab_copilot'))}</span>` : '';
+  /* the letter is up and the panel turned to Jambo: "Before you send" waits
+     as a tab after Jambo's, one press back (round 11's gaps, second pass) */
+  const sendBack = (!face && pdSendHeld()) ? `<button type="button" class="pd-tab pd-tab-face" data-pd-send-back title="${_pdE(_pdT(PD_FACE_WORD.send))}"><span class="pd-tab-w">${_pdE(_pdT(PD_FACE_WORD.send))}</span></button>` : '';
   return tabs.map(t => {
     const name = _pdT(PD_TAB_NAME[t]);
     const tip = t === 'copilot' && brain ? name + ' · ' + brain : name;
     const on = t === lit, cnt = pdTabCount(t, c);
-    return `<button type="button" role="tab" class="pd-tab${on ? ' on' : ''}" data-pd-tab="${t}" aria-selected="${on}" aria-label="${_pdE(cnt ? _pdT('pd_tab_n', { name, n: cnt.n }) : name)}" title="${_pdE(tip)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${pdTabGlyphHtml(t)}</span>${cnt ? `<span class="pd-tab-n is-${cnt.tone}">${cnt.n > 99 ? '99+' : cnt.n}</span>` : ''}</span><span class="pd-tab-w">${_pdE(name)}</span></button>`;
+    return `<button type="button" role="tab" class="pd-tab${on ? ' on' : ''}" data-pd-tab="${t}" aria-selected="${on}" aria-label="${_pdE(cnt ? _pdT('pd_tab_n', { name, n: cnt.n }) : name)}" title="${_pdE(tip)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${pdTabGlyphHtml(t)}</span>${cnt ? `<span class="pd-tab-n is-${cnt.tone}">${cnt.n > 99 ? '99+' : cnt.n}</span>` : ''}</span><span class="pd-tab-w">${_pdE(name)}</span></button>${t === 'copilot' ? sendBack : ''}`;
   }).join('') + word;
 }
 function pdBodyHtml(c){
@@ -2157,6 +2197,7 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
     if (t.closest('[data-pd-drop-import]')){ e.preventDefault(); if (typeof setView === 'function') setView('migration'); return; }
     const back = t.closest('[data-pd-back]');
     if (back){ e.preventDefault(); const go = PD_BACK_CLOSE[back.getAttribute('data-pd-back')]; if (go) go(); return; }
+    if (t.closest('[data-pd-send-back]')){ e.preventDefault(); pdSendBack(); return; }
     if (t.closest('[data-pd-nd-all]')){ e.preventDefault(); if (typeof deskGoCounter === 'function') deskGoCounter(); return; }
     const jw = t.closest('[data-pd-nd-jw]');
     if (jw){ e.preventDefault(); if (typeof hbOpenAgent === 'function') hbOpenAgent(jw.getAttribute('data-pd-nd-jw'), jw.getAttribute('data-pd-nd-key') || null); return; }
@@ -2269,7 +2310,7 @@ if (typeof document !== 'undefined' && !document._jbWired){
     return true; };
   if (!watch()) document.addEventListener('DOMContentLoaded', watch, { once: true });
 }
-Object.assign(window, { pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_FACE_WORD, pdFaceUp, pdFaceBackHtml, pdSendFor, pdSendShows, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml,
+Object.assign(window, { pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_FACE_WORD, pdFaceUp, pdFaceBackHtml, pdSendFor, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedHeadEndHtml, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,

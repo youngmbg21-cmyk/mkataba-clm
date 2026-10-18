@@ -1759,11 +1759,11 @@
   [data-share-sap] .sh-lt-btn{ display:inline-flex; align-items:center; height:36px; padding:0 16px; border-radius:var(--radius); background:var(--accent-fill); color:#fff;
     font-size:var(--t-body); font-weight:var(--w-strong); }
   [data-share-sap] .sh-lt-foot{ color:var(--color-neutral-600); font-size:var(--t-meta); }
-  [data-share-sap] #sh-letter.is-letter .sh-lt-note label{ display:block; padding:6px 10px 6px; border:1px dashed color-mix(in srgb, var(--accent-fill) 45%, var(--color-divider));
+  [data-share-sap] #sh-letter.is-letter .sh-lt-note label{ display:inline-block; max-width:100%; vertical-align:top; padding:6px 10px 6px; border:1px dashed color-mix(in srgb, var(--accent-fill) 45%, var(--color-divider));
     border-radius:var(--radius); background:color-mix(in srgb, var(--accent-fill) 5%, var(--color-surface)); }
   [data-share-sap] #sh-letter.is-letter .sh-lt-note #sh-summary-label{ position:static; width:auto; height:auto; overflow:visible; clip:auto; margin:0 0 2px;
     font-family:inherit; font-size:var(--t-label); font-weight:var(--w-body); letter-spacing:0; color:var(--color-neutral-600); }
-  [data-share-sap] #sh-letter.is-letter .sh-lt-note textarea{ border:0; background:transparent; padding:0; min-height:46px; box-shadow:none; }
+  [data-share-sap] #sh-letter.is-letter .sh-lt-note textarea{ border:0; background:transparent; padding:0; min-height:0; box-shadow:none; resize:none; overflow:hidden; }
   /* what goes is the letter itself now: the side no longer lists it (the manifest stays in the markup for the record kind's swap) */
   .sh-lt-side > #share-manifest-line, .sh-lt-side > #share-manifest{ display:none; }
   [data-share-sap] .sh-lt-card h4 .sh-lt-pause{ display:inline-block; width:8px; height:10px; margin-right:7px; border-left:3px solid currentColor; border-right:3px solid currentColor; box-sizing:border-box; vertical-align:-1px; }

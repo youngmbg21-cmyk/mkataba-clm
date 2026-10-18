@@ -166,6 +166,18 @@ let _ceSpellFor = null;
    passage card, the Playbook scan, the highlight's Ask — is drawn or reached. */
 const ceSide = () => (_ceOpts && _ceOpts.side === 'counterparty') ? 'counterparty' : 'owner';
 const ceNoAi = () => ceSide() === 'counterparty' || !!(_ceOpts && _ceOpts.noAi);
+/* ---- WHERE EDIT LANDS FROM A REDLINES ROW (round 9's gaps, second pass, 18
+   Oct 2026 — the picked drawing's "E · Where Edit lands") ----
+   Counter or Edit pressed on a row of the Redlines column (fromRow) opens this
+   same editor dressed as drawn: "‹ Redlines" and a title naming the act, the
+   clause and their ask in the head, a short toolbar, only this clause on the
+   paper in its box with the step it will be ("Step 2 · your counter · saved as
+   you type, not sent") and the next clause dimmed, the rail's tabs Playbook ·
+   Risks · Ladder with their counts and three cards (our standard, what they
+   asked, ask Jambo with its cost), and the foot walking their asks. ONE
+   EDITOR: every writer, wall and filing path is the page's own; only the
+   dress and the walk differ. Our seat with Jambo only. */
+const ceRowMode = () => !!(_ceOpts && _ceOpts.fromRow) && ceSide() === 'owner' && !ceNoAi();
 
 const clauseEditorOpen = () => !!_ceClauseId;
 const clauseEditorClauseId = () => _ceClauseId;
@@ -1108,6 +1120,40 @@ function clauseEditorCss(){
      offered at all (see clauseEditorFits) — this is the belt to that braces,
      so a window dragged narrow while the page is open stacks rather than
      crushing the rail to nothing. */
+  ${''/* ---- FROM A REDLINES ROW, AS DRAWN (round 9's gaps, second pass) ----
+         The head: ‹ Redlines, the act's title and their ask, the short shelf,
+         Exit. The paper: the context line, this clause in its box with its
+         step, the next dimmed, nothing else. The left foot's draft time and
+         Undo stand down (the box says "saved as you type"; Undo is the
+         keyboard's), the rail's name and clause picker too; the cards and the
+         walk are the rail's. */}
+  #clause-editor .ce-rowhead[hidden]{display:none}
+  #clause-editor.ce-rowmode .ce-rowhead{display:inline-flex; align-items:center; gap:12px; min-width:0; flex:0 1 auto; margin-right:6px}
+  .ce-rowback{flex:none; height:var(--ctl-h-sm); padding:0 10px; border:1px solid var(--btn-edge); border-radius:var(--radius);
+    background:var(--color-surface); font:inherit; font-size:var(--t-meta); color:var(--color-text); cursor:pointer; white-space:nowrap}
+  .ce-rowback:hover{border-color:var(--accent-ink); color:var(--accent-ink)}
+  .ce-rowtitle{display:inline-flex; align-items:baseline; gap:8px; min-width:0; white-space:nowrap; overflow:hidden}
+  .ce-rowtitle b{flex:none; font-weight:var(--w-strong); font-size:var(--t-body); color:var(--color-text)}
+  .ce-rowtitle span{min-width:0; overflow:hidden; text-overflow:ellipsis; font-size:var(--t-meta); color:var(--color-neutral-600)}
+  #clause-editor.ce-rowmode #ce-doc .ce-row-off{display:none}
+  #clause-editor.ce-rowmode #ce-doc .ce-row-next{opacity:.45}
+  #clause-editor.ce-rowmode #ce-doc .rl-rung,#clause-editor.ce-rowmode #ce-doc .rl-paper-foot,#clause-editor.ce-rowmode #ce-readbar{display:none}
+  #clause-editor .ce-row-ctx{margin:0 0 16px; font-size:var(--t-meta); line-height:1.4; color:var(--color-neutral-600)}
+  #clause-editor .ce-row-step{margin:2px 0 8px; font-size:var(--t-label); line-height:1.4; color:var(--color-neutral-600)}
+  #clause-editor.ce-rowmode #ce-doc .ce-row-on #ce-clausebody{border:1px solid var(--accent-solid); border-radius:var(--radius); padding:10px 12px}
+  #clause-editor.ce-rowmode .ce-foot .draft,#clause-editor.ce-rowmode .ce-foot .undo{display:none}
+  #clause-editor.ce-rowmode .ce-foot:not(:has(#ce-waiting > *)){display:none}
+  #clause-editor.ce-rowmode .ce-ah .sp{display:none}
+  #clause-editor.ce-rowmode #ce-pick{display:none}
+  ${''/* one row at every screen: the shelf keeps its line, the title gives way (ellipsis) */}
+  #clause-editor.ce-rowmode .ce-bar{flex-wrap:nowrap; flex:none}
+  #clause-editor.ce-rowmode .ce-barrow{flex-wrap:nowrap}
+  #clause-editor .ce-row-asked,#clause-editor .ce-row-jb{background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg)}
+  #clause-editor .ce-row-asked .q{margin:4px 0 0; font-size:var(--t-meta); line-height:1.5; font-style:italic; color:var(--color-text)}
+  #clause-editor .ce-row-asked .by{font-style:italic; color:var(--color-neutral-600)}
+  #clause-editor .ce-row-jb .t{margin:4px 0 0; font-size:var(--t-meta); line-height:1.5; color:var(--color-neutral-600)}
+  #clause-editor .ce-row-jb .acts{display:flex; align-items:center; gap:10px; margin-top:8px; flex-wrap:wrap}
+  #clause-editor .ce-row-jb .cost{font-size:var(--t-label); color:var(--color-neutral-600)}
   @media (max-width:1023px){
     .ce-grid{grid-template-columns:minmax(0,1fr); grid-template-rows:auto auto}
     .ce-rail{border-left:0; border-top:1px solid var(--color-divider); min-height:320px}
@@ -1758,6 +1804,9 @@ function clauseEditorHtml(){
            Drawn by richBarHtml, the product's ONE shelf: the same builder the
            clause panel's inline editor draws, at its 'full' setting. */}
       <div class="ce-barrow">
+        ${''/* "‹ Redlines" and the act's title, from a Redlines row only
+               (round 9's gaps, second pass; ceRowHeadPaint) */}
+        <span class="ce-rowhead" id="ce-rowhead" hidden></span>
         <div class="ce-bar" id="ce-bar" role="toolbar"
           aria-label="${_ceea(_cet('ce_bar_label'))}"></div>
         <span class="ce-say" id="ce-say" role="status"></span>
@@ -2489,6 +2538,8 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
      column. Their header stands down while it is open (`pw-editing`). */
   const theirs = ceSide() === 'counterparty' && !!document.querySelector('#pt-nego #rl-side');
   page.classList.toggle('is-theirs', theirs);
+  /* from a Redlines row: the editor as drawn (round 9's gaps, second pass) */
+  page.classList.toggle('ce-rowmode', ceRowMode());
   document.body.classList.toggle('pw-editing', theirs);
   /* THE SHELL BAR'S THREE PANEL DOORS ARE DEAD WHILE THIS PAGE COVERS THE
      WINDOW — Chat, the bell and Activity all open the same drawer, which sits
@@ -2514,6 +2565,8 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   /* The greeting goes in BEFORE the first paint rather than after it — drawing
      an empty lane and then filling it is two paints for one arrival. */
   _ceThread.push({ who: 'ai', greeting: true });
+  /* from a Redlines row, our standard for this clause is the first card */
+  { const sc = ceRowStdCard(); if (sc) _ceThread.push(sc); }
   /* ---- THEIR ROUND CAME BACK: COPILOT'S PREPARED COUNTER LEADS THE RAIL
      (27 Sep 2026) ---- Where Counter was pressed on an ask of theirs that
      Copilot answered with a counter when their round arrived, that wording is
@@ -3158,7 +3211,10 @@ function ceRenderBar(){
   /* THE SHARED SHELF AND NOTHING ELSE. The button at the end of the strip is
      the WAY OUT and lives in the markup beside this host rather than inside it,
      because it is not a writing tool and must never grey with them. */
-  host.innerHTML = richBarHtml({ shelf: 'full', size: ceSizeNow() });
+  /* FROM A REDLINES ROW THE SHELF IS THE DRAWN ONE: B I U · bullets numbers
+     · outdent indent (round 9's gaps, second pass) */
+  host.innerHTML = richBarHtml({ shelf: ceRowMode() ? 'redline' : 'full', size: ceSizeNow() });
+  ceRowHeadPaint();
   /* ---- GREYED WHERE THIS PAGE CAN KNOW BEFORE THE PRESS ----
      This product's own rule for exactly that. There is ONE thing it can know:
      whether anything is typeable at all. With the caret out of the clause —
@@ -3180,6 +3236,145 @@ function ceRenderBar(){
     if (why) b.setAttribute('title', why); else b.removeAttribute('title');
   });
   ceSyncBarSteps();
+}
+/* ============================================================================
+   FROM A REDLINES ROW — THE EDITOR AS DRAWN (round 9's gaps, second pass)
+   ----------------------------------------------------------------------------
+   Readings over what this page already holds (_ceC, _ceLead, the ladder, the
+   negotiation); nothing here files, and every press below is an existing one:
+   ‹ Redlines is the page's own way out (its guard asked), Ask for a softer
+   version is the chips' own question through ceAsk, the standard card is the
+   Playbook card with its Apply · Undo, and the walk is the foot's own.
+   ========================================================================== */
+/* their ask this row is about: the change the row opened on where it is
+   theirs, else the first of theirs on the table here */
+function ceRowTheirs(){
+  if (_ceLead && _ceLead.authorSide === 'counterparty') return _ceLead;
+  return ceOnTable().find(x => x && x.authorSide === 'counterparty') || null;
+}
+/* "Counter · 7. Liability cap" / "Edit · 9. Data protection" — the act, and
+   the clause named as the paper prints it (clauseNameAsDrafted) */
+function ceRowTitle(){
+  const theirs = _ceLead ? _ceLead.authorSide === 'counterparty' : !!ceRowTheirs();
+  const cl = ceClause();
+  const raw = (_ceLead && _ceLead.clauseLabel) || (cl && window.clauseLabel ? clauseLabel(cl) : '') || '';
+  const clause = (window.clauseNameAsDrafted ? clauseNameAsDrafted(raw) : raw) || _cet('ce_this_clause');
+  return _cet(theirs ? 'ce_row_counter' : 'ce_row_edit', { clause });
+}
+/* "Nordvik asks 100% · back lands on the same row" */
+function ceRowSub(){
+  const t = ceRowTheirs();
+  let lead = '';
+  if (_ceLead && _ceLead.authorSide !== 'counterparty') lead = _cet('ce_row_yours');
+  else if (t){
+    const who = String((_ceC && _ceC.counterparty) || '').trim().split(/\s+/)[0] || _cet('ce_prep_them');
+    const fig = window.shareFigureOf ? shareFigureOf(ceWords(t.newText || ''), ceWords(t.oldText || '')) : null;
+    const say = fig ? (fig.unit === '%' ? fig.n + '%' : [fig.n, fig.unit].filter(Boolean).join(' ')) : '';
+    lead = say ? _cet('ce_row_asks_fig', { who, fig: say }) : _cet('ce_row_asks', { who });
+  }
+  return [lead, _cet('ce_row_lands')].filter(Boolean).join(' · ');
+}
+function ceRowHeadPaint(){
+  const host = _ceQ('#ce-rowhead'); if (!host) return;
+  if (!ceRowMode()){ host.hidden = true; host.innerHTML = ''; return; }
+  host.hidden = false;
+  const html = `<button type="button" class="ce-rowback" data-ce-act="row-back" title="${_ceea(_cet('ce_row_back_title'))}">‹ ${_cee(_cet('ce_row_back'))}</button>`
+    + `<span class="ce-rowtitle"><b>${_cee(ceRowTitle())}</b><span>${_cee(ceRowSub())}</span></span>`;
+  if (host.innerHTML !== html) host.innerHTML = html;
+}
+/* the step this wording will be on the clause's ladder: the draft's own rung
+   where it is already filed, else the next one (RAW: ladderRungs) */
+function ceRowStep(){
+  let rungs = [];
+  try{ rungs = (window.ladderRungs && _ceC && _ceClauseId) ? ladderRungs(_ceC, String(_ceClauseId)) : []; }catch(_){ rungs = []; }
+  const mine = _ceLead && _ceLead.authorSide !== 'counterparty' && _ceLead.status === 'pending';
+  const at = mine ? rungs.find(r => String(r.id) === String(_ceLead.id)) : null;
+  return { n: at ? at.n : rungs.length + 1, counter: !mine && !!ceRowTheirs() };
+}
+/* "Master services agreement · MK-0382 · Nordvik Logistik AB · round 2" */
+function ceRowContextLine(){
+  const c = _ceC || {};
+  const n = (c.negotiation && Number(c.negotiation.round) > 0) ? Number(c.negotiation.round) : 1;
+  const ref = window.contractRef ? contractRef(c) : (c.id || '');
+  return _cet('ce_row_ctx', { name: c.name || '', ref, party: c.counterparty || '', n });
+}
+/* THE PAPER FROM A ROW: the context line, this clause in its box with its
+   step, the next clause dimmed; the rest of the paper is not drawn (CSS on
+   .ce-rowmode). Marks set after each paint of the paper. */
+function ceRowPaperDress(host){
+  if (!host || !ceRowMode()) return;
+  const all = [...host.querySelectorAll('[data-clause]')].filter(el => !el.parentElement || !el.parentElement.closest('[data-clause]'));
+  const at = all.findIndex(el => String(el.getAttribute('data-clause')) === String(_ceClauseId));
+  all.forEach((el, i) => { el.classList.toggle('ce-row-on', i === at); el.classList.toggle('ce-row-next', at >= 0 && i === at + 1);
+    el.classList.toggle('ce-row-off', at >= 0 && i !== at && i !== at + 1); });
+  const sheet = host.querySelector('.rl-paper, .nego-doc, .doc-surface') || host;
+  let ctx = host.querySelector('.ce-row-ctx');
+  if (!ctx){ ctx = document.createElement('p'); ctx.className = 'ce-row-ctx'; const first = all[0]; if (first && first.parentElement) first.parentElement.insertBefore(ctx, first); else sheet.insertBefore(ctx, sheet.firstChild); }
+  ctx.textContent = ceRowContextLine();
+  const on = at >= 0 ? all[at] : null;
+  if (on){
+    let lbl = on.querySelector('.ce-row-step');
+    if (!lbl){
+      lbl = document.createElement('div'); lbl.className = 'ce-row-step';
+      const top = on.querySelector('.rl-clause-top, .rl-clause-h, h4');
+      const anchor = top ? (top.closest('.rl-clause-top') || top) : null;
+      if (anchor && anchor.parentElement) anchor.parentElement.insertBefore(lbl, anchor.nextSibling); else on.insertBefore(lbl, on.firstChild);
+    }
+    const st = ceRowStep();
+    lbl.textContent = _cet(st.counter ? 'ce_row_step_counter' : 'ce_row_step_draft', { n: st.n });
+  }
+}
+/* THE RAIL'S CARDS FROM A ROW: what they asked (their reason, and who), and
+   Ask Jambo with its cost before the press. Our standard is the Playbook card
+   put on the thread at the open (ceRowStdCard), drawn above these. */
+function ceRowCardsHtml(){
+  const out = [];
+  const t = ceRowTheirs();
+  if (t){
+    const why = String((window.negoReasonOf ? negoReasonOf(t) : t.why) || '').trim();
+    const who = String(t.author || t.by || '').trim();
+    out.push(`<div class="ce-card ce-row-asked"><div class="n"><span>${_cee(_cet('ce_row_asked_h'))}</span></div>`
+      + `<p class="q">${why ? `“${_cee(why)}”` : _cee(_cet('ce_row_asked_none'))}${who ? ` <span class="by">— ${_cee(who)}</span>` : ''}</p></div>`);
+  }
+  const softer = !ceUnderDeletion();
+  const q = _cet(softer ? 'ce_q_softer' : 'ce_q_plain');
+  out.push(`<div class="ce-card ce-row-jb"><div class="n"><span>${_cee(_cet('ce_row_jambo_h'))}</span></div>`
+    + `<p class="t">${_cee(_cet('ce_row_jambo_p'))}</p>`
+    + `<div class="acts"><button type="button" class="ui-btn ui-btn-sm" data-ce-chip="${_ceea(q)}">${_cee(_cet(softer ? 'ce_row_jambo_go' : 'ce_row_jambo_plain'))}</button>`
+    + `<span class="cost">${_cee(_cet('ce_row_jambo_cost'))}</span></div></div>`);
+  return out.join('');
+}
+/* OUR STANDARD ON A CARD, AT THE OPEN, FROM A ROW: the Playbook's own card
+   (ceStdWording, its Apply · Discard → Applied · Undo), the fallback where
+   the lead may go there (a counter meets them part-way), else the standard.
+   Nothing reaches the box until Apply. */
+function ceRowStdCard(){
+  if (!ceRowMode() || ceUnderDeletion()) return null;
+  const it = ceStdItem(); if (!it) return null;
+  const kind = ['fallback', 'preferred', 'draft'].find(k => !!ceStdWording(it, k));
+  const w = kind ? ceStdWording(it, kind) : null; if (!w) return null;
+  const v = it.v || {};
+  const topic = String(v.category || '').trim().toLowerCase() || _cet('ce_this_clause');
+  return { who: 'ai', rowStd: true, text: '', read: [],
+    cards: [{ name: _cet('ce_row_std_h', { topic }), chip: '', chipTone: 'std', line: window.pbVerdictWords ? String(pbVerdictWords(v)) : String(v.position || ''),
+      cost: '', rests: '', text: w.text, passage: null, std: { kind, fitted: w.fitted, item: it } }] };
+}
+/* THEIR ASKS, IN THE PAPER'S ORDER: what the foot walks from a row */
+function ceRowAsks(){
+  const c = _ceC; if (!c) return [];
+  const asks = (Array.isArray(c.changes) ? c.changes : []).filter(x => x && x.authorSide === 'counterparty' && !x.withdrawn && x.status === 'pending' && x.clauseId);
+  const pos = window.rlClauseOrderOf ? rlClauseOrderOf(c) : new Map();
+  const at = x => pos.has(String(x.clauseId)) ? pos.get(String(x.clauseId)) : 1e9;
+  return asks.slice().sort((a, b) => at(a) - at(b)).map(x => ({ id: String(x.id), clauseId: String(x.clauseId) }));
+}
+/* ‹ REDLINES: the page's own way out (its leave question asked), then the
+   column lands on the row it came from, lit */
+function ceRowBack(){
+  ceLeaveGuard(() => {
+    const c = _ceC, id = _ceLead ? String(_ceLead.id) : '';
+    rlCloseClauseEditor({ repaint: true });
+    if (c && id && window.rlLinkFocus) setTimeout(() => { try{ rlLinkFocus(c, id, 'card'); }catch(_){} }, 60);
+  });
 }
 /* What size is the caret in? The stored size nearest the selection, falling
    back to the base the paper draws its clauses at. */
@@ -3366,6 +3561,9 @@ function ceRenderPaper(){
   try{
     host.innerHTML = html || `<p class="rl-clause-p">${_cee(_cet('ce_this_clause'))}</p>`;
     ceNewBadge(host);
+    /* from a Redlines row: the context line, this clause in its box with its
+       step, the next one dimmed (round 9's gaps, second pass) */
+    try { ceRowPaperDress(host); } catch (_){}
     /* THE NOTE MARKS ARE FURNITURE ON THE CANVAS, painted after it and never
        inside the typing box (rlPaintNoteMarks skips the clause being typed). */
     try { if (window.rlPaintNoteMarks && _ceC) rlPaintNoteMarks(host, _ceC, { side: ceSide() }); } catch (e){}
@@ -4168,7 +4366,8 @@ function ceRenderFoot(){
   walk.hidden = !w;
   if (w){
     const prev = walk.querySelector('[data-ce-act="walk-prev"]'), next = walk.querySelector('[data-ce-act="walk-next"]'), k = walk.querySelector('.k');
-    const kw = w.k ? _cet('ce_walk_of', { k: w.k, n: w.n }) : _cet('ce_walk_none', { n: w.n });
+    const kw = w.asks ? (w.k ? _cet('ce_walk_asks_of', { k: w.k, n: w.n }) : _cet('ce_walk_asks_none', { n: w.n }))
+      : w.k ? _cet('ce_walk_of', { k: w.k, n: w.n }) : _cet('ce_walk_none', { n: w.n });
     if (k.textContent !== kw) k.textContent = kw;
     prev.textContent = '\u2039'; next.textContent = '\u203a';
     prev.setAttribute('aria-label', _cet('ce_walk_prev')); prev.title = _cet('ce_walk_prev');
@@ -4234,12 +4433,30 @@ function ceWalkNow(){
     return { k: info.k, n: info.n, prev: info.k > 1, next: true };
   }
   if (_ceTab !== 'chat' || ceNoAi()) return null;
+  /* FROM A REDLINES ROW THE FOOT WALKS THEIR ASKS ("‹ 1 of 2 of their asks
+     ›", round 9's gaps, second pass), where there are any */
+  if (ceRowMode()){
+    const asks = ceRowAsks();
+    if (asks.length){
+      const lead = _ceLead ? String(_ceLead.id) : '';
+      let k = asks.findIndex(a => a.id === lead) + 1;
+      if (!k) k = asks.findIndex(a => a.clauseId === String(_ceClauseId)) + 1;
+      return { k, n: asks.length, prev: k > 1, next: k < asks.length, asks };
+    }
+  }
   const ids = cePbWalkIds(); if (!ids.length) return null;
   const k = ids.indexOf(String(_ceClauseId)) + 1;
   return { k, n: ids.length, prev: k > 1, next: k < ids.length, ids };
 }
 function cePbGo(step){
-  const w = ceWalkNow(); if (!w || !w.ids) return;
+  const w = ceWalkNow();
+  /* their asks: to the next ask's clause, the editor speaking for that ask */
+  if (w && w.asks){
+    const a = w.k ? w.asks[w.k - 1 + step] : w.asks[step > 0 ? 0 : w.asks.length - 1];
+    if (a) ceRowGo(a);
+    return;
+  }
+  if (!w || !w.ids) return;
   const id = w.k ? w.ids[w.k - 1 + step] : w.ids[step > 0 ? 0 : w.ids.length - 1];
   if (id) ceGoClause(id, { tab: 'chat', risk: undefined, newClause: undefined, changeId: undefined });
 }
@@ -4259,12 +4476,28 @@ async function ceSaveAndOn(){
   const w = _ceTab === 'chat' ? ceWalkNow() : null;
   _ceLastNoteAsk = null;
   const ch = await ceSaveChecked();
-  if (!ch || !w || !w.ids || !w.k || w.k >= w.n) return ch;
+  if (!ch || !w || !(w.ids || w.asks) || !w.k || w.k >= w.n) return ch;
   const wait = _ceLastNoteAsk; _ceLastNoteAsk = null;
   try{ if (wait) await wait; }catch(_){}
   if (wait){ try{ if (window.closeContextPanel) closeContextPanel(); }catch(_){} }
-  if (clauseEditorOpen()) ceGoClause(w.ids[w.k], { tab: 'chat', risk: undefined, newClause: undefined, changeId: undefined });
+  if (clauseEditorOpen()){
+    if (w.asks) ceRowGo(w.asks[w.k]);
+    else ceGoClause(w.ids[w.k], { tab: 'chat', risk: undefined, newClause: undefined, changeId: undefined });
+  }
   return ch;
+}
+/* to one of their asks from the walk: its clause, speaking for that ask; on
+   the same clause, the editor opens again on it (its leave question asked) */
+function ceRowGo(a){
+  if (!a || !clauseEditorOpen()) return;
+  /* a colleague holding that clause is said here, and the page stays where it
+     is (the open would refuse it after this page had closed) */
+  const held = (window.clauseLockHeldByOther && _ceC) ? clauseLockHeldByOther(_ceC, a.clauseId) : null;
+  if (held){ const why = _cet('cl_locked_refuse', { who: String((held.by && held.by.name) || '').trim() || _cet('cl_a_colleague') }); ceSay(why); if (window.toast) toast(why, 'warn'); return; }
+  const extra = { tab: 'chat', risk: undefined, newClause: undefined, changeId: a.id, fromRow: true, typing: true };
+  if (String(a.clauseId) !== String(_ceClauseId)){ ceGoClause(a.clauseId, extra); return; }
+  if (_ceLead && String(_ceLead.id) === String(a.id)) return;
+  ceLeaveGuard(() => { const c = _ceC, opts = _ceOpts; rlCloseClauseEditor(); rlOpenClauseEditor(c, a.clauseId, { ...opts, ...extra }); });
 }
 
 /* Below this the say span is showing an ellipsis and a letter or two, which is
@@ -4705,7 +4938,9 @@ function ceRenderTabs(){
   const ask = _ceQ('#ce-askrow'), chips = _ceQ('#ce-chips'), scope = _ceQ('#ce-tagline');
   const rk = _ceTab === 'risks' && ceRiskAsking();
   if (ask) ask.style.display = (_ceTab === 'chat' || rk) ? '' : 'none';
-  if (chips) chips.style.display = (_ceTab === 'chat' || rk) ? '' : 'none';
+  /* from a Redlines row the prepared questions are the Ask Jambo card's one
+     press (ceRowCardsHtml), so the chips row stands down on Playbook */
+  if (chips) chips.style.display = ((_ceTab === 'chat' && !ceRowMode()) || rk) ? '' : 'none';
   if (scope) scope.style.display = (_ceTab === 'chat' || (rk && !_ceSel && !_ceWhole && !ceIsNew())) ? '' : 'none';
   ceRenderChips(); ceRenderScope();
 }
@@ -4717,7 +4952,9 @@ function ceRiskAsking(){
 function ceRenderLane(){
   if (!clauseEditorOpen()) return;
   const lane = _ceQ('#ce-lane'); if (!lane) return;
-  if (_ceTab === 'ladder'){ lane.innerHTML = ceLadderLaneHtml(); lane.scrollTop = 0; return; }
+  /* from a Redlines row the ladder's own card (what moved, our ladder, what
+     we settled for, the reply) stands in the Ladder tab, not over the cards */
+  if (_ceTab === 'ladder'){ lane.innerHTML = (ceRowMode() && !_cePrep ? ceLadderCardHtml() : '') + ceLadderLaneHtml(); lane.scrollTop = 0; return; }
   if (_ceTab === 'risks'){
     lane.innerHTML = (window.riskLaneHtml && _ceC ? riskLaneHtml(_ceC) : '') + ceRiskAnswerHtml();
     lane.scrollTop = 0; ceRenderRiskFoot(); ceRenderTabs(); ceRenderFull(); return;
@@ -4725,6 +4962,19 @@ function ceRenderLane(){
   /* THE LADDER CARD LEADS THE CONVERSATION (14 Sep 2026): what moved, where
      it sits on our ladder, what we settled for, and the reply that follows —
      worked out, not asked for. */
+  /* FROM A REDLINES ROW, AS DRAWN: our standard's card, what they asked, Ask
+     Jambo — then the conversation; the greeting's rows are what they asked */
+  if (ceRowMode()){
+    const turns = _ceThread.map((t, i) => [t, i]);
+    /* Jambo's own prepared counter (when their round came back) leads, then
+       our standard; the conversation follows the cards */
+    const lead = t => t.rowStd || (Array.isArray(t.cards) && t.cards.some(k => k && k.prepared));
+    lane.innerHTML = turns.filter(([t]) => lead(t) && !t.rowStd).map(([t, i]) => ceTurnHtml(t, i)).join('')
+      + turns.filter(([t]) => t.rowStd).map(([t, i]) => ceTurnHtml(t, i)).join('')
+      + ceRowCardsHtml()
+      + turns.filter(([t]) => !lead(t) && !t.greeting).map(([t, i]) => ceTurnHtml(t, i)).join('')
+      + (_ceBusy ? `<p class="ce-work"><i></i>${_cee(_cet('ce_thinking'))}</p>` : '');
+  } else
   lane.innerHTML = (_cePrep ? '' : ceLadderCardHtml()) + _ceThread.map(ceTurnHtml).join('')
     + (_ceBusy ? `<p class="ce-work"><i></i>${_cee(_cet('ce_thinking'))}</p>` : '');
   const last = lane.lastElementChild;
@@ -6326,6 +6576,9 @@ function ceRisksOn(){
   if (ceNoAi() || !_ceC || !window.riskMayAct || !window.riskOpenOf) return false;
   try{
     if (!riskMayAct(_ceC, { side: ceSide() })) return false;
+    /* from a Redlines row the Risks tab is always drawn, as drawn — its own
+       lane says where the scan stands when nothing is open */
+    if (ceRowMode()) return true;
     return !!((_ceOpts && _ceOpts.risk) || riskOpenOf(_ceC).length);
   }catch(_){ return false; }
 }
@@ -6996,6 +7249,8 @@ function ceWirePage(page){
          one control here whose whole job is stopping, so it is the door a
          reader most often reaches for with a draft still in the box. */
       case 'close': ceLeaveGuard(() => rlCloseClauseEditor()); break;
+      /* ‹ REDLINES: the same way out, landing on the row it came from */
+      case 'row-back': ceRowBack(); break;
       case 'undo': ceUndo(); break;
       case 'discard': ceDiscard(); break;
       case 'prep-out': cePrepOut(); break;
@@ -7346,6 +7601,7 @@ Object.assign(window, {
   ceEditableReading, ceGoClause,
   ceFitSplit, ceWireSplit, ceStacked, ceSplit, ceSplitLeft, CE_LEFT_MIN, CE_RIGHT_MIN, CE_FMIN, CE_FMAX, CE_SPLIT_KEY,
   ceLadderCardHtml, ceLadderLaneHtml, ceLadderRow,
+  ceRowMode, ceRowTheirs, ceRowTitle, ceRowSub, ceRowHeadPaint, ceRowStep, ceRowContextLine, ceRowPaperDress, ceRowCardsHtml, ceRowStdCard, ceRowAsks, ceRowBack, ceRowGo,
   ceMarksPaint, ceMarksClear, ceMarksOps, ceMarksMount, ceLiveTextNodes, ceCaretSave, ceCaretRestore, ceAtomSkip, ceAtomAt, ceDraftNow, CE_MARK_ATTR, CE_MARKS_MS, CE_PAINT_SEL,
   ceMarksPlanOf, ceMarksPaintBox, ceAtomWall, ceAtomSkipIn, ceInlineSeed, ceBoxHtml,
 });

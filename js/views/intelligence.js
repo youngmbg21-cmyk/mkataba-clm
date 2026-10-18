@@ -6771,7 +6771,8 @@ function renderIntelDock(){
       ${igPreOn()?`<div id="igd-pre" class="hb-pre" aria-live="polite"></div>`:''}
       <textarea id="igd-input" rows="1" placeholder="${igEsc(igAskPlaceholder())}" title="${igEsc(igAskCost())}" class="chat-field w-full rounded-xl border border-inputln bg-white pl-3.5 pr-16 py-2.5 text-[13px] outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition" style="display:block"></textarea>
       <button id="igd-go" class="ui-btn ui-btn-sm ui-btn-primary absolute" style="right:18px;bottom:20px">${i18t('int_ask')}</button>
-    </div>`}`;
+    </div>`}${''/* the letter's "Before you send" column waits here unseen while
+           ‹ Jambo has turned the panel to Jambo (round 11's gaps, second pass) */}${(window.pdSendKeepHtml&&pdSendKeepHtml())||''}`;
   const feed=document.getElementById('igd-feed'); feed.scrollTop=feed.scrollHeight;
   /* NO CHIPS UNDER A FACE (rounds 8–11 as drawn, the gaps of 18 Oct 2026): the
      face carries its own acts, so the panel says a face is up and the chips row
@@ -6784,7 +6785,7 @@ function renderIntelDock(){
   /* THE DOCUMENT TAB IS THE CLAUSE LIST (10 Oct 2026): its host is drawn
      empty and filled by the Document tab's own painter. */
   if(window.pdShowsDesk&&pdShowsDesk()&&window.pdTab&&pdTab()==='doc'&&typeof window.docThreadPaint==='function'){ const pc=pdContract(); if(pc) try{ docThreadPaint(pc); }catch(_){ } }
-  if(document.getElementById('pd-sendface')&&typeof window.pdSendFacePaint==='function') try{ pdSendFacePaint(); }catch(_){ }
+  if(document.getElementById('pd-send-slot')&&typeof window.pdSendFacePaint==='function') try{ pdSendFacePaint(); }catch(_){ }
   /* the Fill in face's parts, from their own painters (stage 2) */
   if(document.getElementById('pd-fillface')&&typeof window.pdFillFacePaint==='function'){ const pc=pdContract(); if(pc) try{ pdFillFacePaint(pc); }catch(_){ } }
   /* the Redlines face, wired by the Negotiate page's own wiring (stage 3) */
@@ -7142,6 +7143,10 @@ function igPaperCost(c){
   return { words:igPaperWords(c)+(story.text?story.text.split(/\s+/).filter(Boolean).length:0), changes:story.count };
 }
 function igAskPlaceholder(){
+  /* BESIDE THE REDLINES FACE THE BOX ASKS AS DRAWN (round 9's gaps, 18 Oct
+     2026): "Ask for a number, a list or a contract…" — the Board's own words;
+     the letter's Before you send and every other face keep "Ask about MK-…" */
+  if(window.pdRedShows&&pdRedShows()&&!(window.pdSendShows&&pdSendShows())) return i18t('hb_ask_ph');
   const c=igPaperUp()?getContract(intel.paper.id):null;
   if(!c && state.view==='dashboard' && typeof window.hbPlaceholder==='function'){ const h=hbPlaceholder(); if(h) return h; }
   return c?i18t('int_ask_contract',{ref:(window.contractRef?contractRef(c):c.id)}):i18t('int_ask_portfolio');
@@ -7642,7 +7647,7 @@ function igPaperHtml(c){
     if(typeof window.negoEnsureStyle==='function') try{ negoEnsureStyle(); }catch(_){ }
     if(typeof window.redlineLayoutCss==='function') try{ redlineLayoutCss(); }catch(_){ }
     const hide=clean?(Array.isArray(c.changes)?c.changes:[]).filter(x=>x&&x.status!=='accepted').map(x=>x.id):null;
-    let body=''; try{ body=redlineDocHtml(c,igTheirsOn(c)?{ side:'counterparty', readonly:true, preview:true }:{ side:'owner', readonly:true, ...(hide?{ hiddenIds:hide }:{}) }); }catch(_){ body=''; }
+    let body=''; try{ body=redlineDocHtml(c,igTheirsOn(c)?{ side:'counterparty', readonly:true, preview:true, noRungs:true }:{ side:'owner', readonly:true, noRungs:true, ...(hide?{ hiddenIds:hide }:{}) }); }catch(_){ body=''; }
     sheet=`<div class="ig-redpaper nego-onpaper${clean?' is-clean':''}" style="padding:20px 0 40px"><article id="ig-canvas" class="doc-surface rl-paper" style="max-width:var(--doc-sheet-max,860px);margin:0 auto">${body}</article></div>`;
   }
   else if(typeof docSheetHtml==='function') sheet=docSheetHtml(c,{ copy:'work', canvasId:'ig-canvas', readOnly:true });

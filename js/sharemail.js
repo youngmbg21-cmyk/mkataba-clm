@@ -63,8 +63,9 @@ function shareMailNoteHead(sender){ return `Message from ${sender || ''}:`; }
    which reads the same payload, and the inbox say the same. */
 const _smFirst = n => String(n || '').trim().split(/\s+/)[0] || '';
 /* "the Master services agreement": a name that brings its own article keeps it */
-function _smThe(name, cap){
+function _smThe(name, cap, coded){
   const n = String(name || '').trim() || 'contract';
+  if (coded) return n;
   const t = /^(the|a|an)\s/i.test(n) ? n.replace(/^The\s/, 'the ') : 'the ' + n;
   return cap ? t.charAt(0).toUpperCase() + t.slice(1) : t;
 }
@@ -158,18 +159,18 @@ function shareAnswersOf(contract, stored){
 const SHARE_MAIL_KIND = {
   negotiate: { subj: (o, n) => `Round ${n} of ${_smThe(o.cName)}, from ${o.org}`, btn: n => `Open round ${n}`,
     line: 'You can propose changes on your own page. Nothing can be signed on this link.' },
-  sign: { subj: o => `${_smThe(o.cName, true)} to sign, from ${o.org}`, btn: () => 'Open it to sign',
+  sign: { subj: o => `${_smThe(o.cName, true, o.coded)} to sign, from ${o.org}`, btn: () => 'Open it to sign',
     line: 'You sign this exact wording on your own page.' },
-  view: { subj: o => `${_smThe(o.cName, true)}, from ${o.org}`, btn: () => 'Open it',
+  view: { subj: o => `${_smThe(o.cName, true, o.coded)}, from ${o.org}`, btn: () => 'Open it',
     line: 'You can read it on your own page, and nothing else can be done on this link.' },
-  advise: { subj: o => `Your advice on ${_smThe(o.cName)}, from ${o.org}`, btn: () => 'Open the clauses',
+  advise: { subj: o => `Your advice on ${_smThe(o.cName, false, o.coded)}, from ${o.org}`, btn: () => 'Open the clauses',
     line: 'You see only the clauses you were asked about, and can leave notes. Nothing can be signed or changed on this link.' },
-  status: { subj: o => `Where we stand on ${_smThe(o.cName)}, from ${o.org}`, btn: () => 'See where we stand',
+  status: { subj: o => `Where we stand on ${_smThe(o.cName, false, o.coded)}, from ${o.org}`, btn: () => 'See where we stand',
     line: 'The page shows where the deal stands: the journey, whose move it is, what is settled and what is open. It carries no wording and nothing to press.' },
-  history: { subj: o => `The negotiation history of ${_smThe(o.cName)}, from ${o.org}`, btn: () => 'Open the history',
+  history: { subj: o => `The negotiation history of ${_smThe(o.cName, false, o.coded)}, from ${o.org}`, btn: () => 'Open the history',
     line: 'The page is the record of the negotiation: every change proposed, by whom, and what was decided. There is nothing on it to sign.' },
   /* a link stored before its kind was asked: what every such page lets them do */
-  any: { subj: o => `${_smThe(o.cName, true)}, from ${o.org}`, btn: () => 'Open it',
+  any: { subj: o => `${_smThe(o.cName, true, o.coded)}, from ${o.org}`, btn: () => 'Open it',
     line: 'You can read it and answer on your own page.' },
 };
 const SHARE_MAIL_CODE = 'Before the page opens, we send a one-time code to this address.';
@@ -177,11 +178,24 @@ const SHARE_MAIL_CODE = 'Before the page opens, we send a one-time code to this 
    o = { channel, purpose, sender, title, org, cName, recName, message, link,
          expires, round, answers, codeOn } — `answers` is shareAnswersOf's
    reading of the copy that travels, `round` shareRoundOf's. */
+/* A CODE-NAMED DEAL IS NAMED BY ITS CODE AND NUMBER (round 11's gaps, second
+   pass, 18 Oct 2026, the Compare's rule in every option: "the email names only
+   the code name and number, for example Subject: Round 2 of Project Falcon
+   (MK-0412)"). `x.code` is the deal's code name and `x.ref` its number, passed
+   by both hosts from their own reading (server cnOf, browser c._codeName);
+   where they are given, the real name appears nowhere in the letter. */
+function shareMailNameOf(x){
+  const code = String((x && x.code) || '').trim();
+  if (!code) return null;
+  const ref = String((x && x.ref) || '').trim();
+  return ref ? `${code} (${ref})` : code;
+}
 function shareMailOf(o){
   const x = o || {};
   const sender = String(x.sender || '');
   const org = x.org || 'HaTi';
-  const cName = x.cName || 'a contract';
+  const coded = shareMailNameOf(x);
+  const cName = coded || x.cName || 'a contract';
   const rec = x.recName ? `, ${x.recName}` : '';
   const msg = x.message ? String(x.message).slice(0, SHARE_MAIL_NOTE_MAX) : '';
   const link = x.link == null ? null : String(x.link);
@@ -222,7 +236,11 @@ function shareMailOf(o){
   parts.push({ k: 'link', t: link, at: true });
   parts.push({ k: 'say', t: kind.line + (x.codeOn && x.purpose !== 'status' ? ' ' + SHARE_MAIL_CODE : '') });
   parts.push({ k: 'foot', t: [sender, String(x.title || '').trim(), org].filter(Boolean).join(' · ') });
-  const subject = kind.subj({ cName, org }, round);
+  /* a code-named deal: the code and number only, as drawn ("Round 2 of
+     Project Falcon (MK-0412)") — a proper name takes no "the" */
+  const subject = coded
+    ? (x.purpose === 'negotiate' ? `Round ${round} of ${coded}` : kind.subj({ cName: coded, org, coded: true }, round))
+    : kind.subj({ cName, org }, round);
   return { subject, parts, body: _smLetterJoin(parts), html: _smLetterHtml(parts) };
 }
 /* THE LETTER'S JOINS: a blank line between its blocks; the answers under
@@ -328,7 +346,7 @@ function signerTurnMailOf(o){
   return { subject: t('mail_turn_subject', { name: cName }), parts, body };
 }
 
-const SHARE_MAIL_API = { SHARE_MAIL_NOTE_MAX, shareMailNoteHead, shareMailOf, shareWaTextOf, signerTurnMailOf,
+const SHARE_MAIL_API = { SHARE_MAIL_NOTE_MAX, shareMailNoteHead, shareMailNameOf, shareMailOf, shareWaTextOf, signerTurnMailOf,
   shareRoundOf, shareClauseParts, shareClauseSay, shareFigureOf, shareAnswersOf, SHARE_MAIL_KIND, SHARE_MAIL_CODE };
 if (typeof window !== 'undefined') Object.assign(window, SHARE_MAIL_API);
 if (typeof module !== 'undefined' && module.exports) module.exports = SHARE_MAIL_API;

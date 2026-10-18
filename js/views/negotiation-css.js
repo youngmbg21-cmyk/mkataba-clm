@@ -6428,6 +6428,11 @@ function redlineLayoutCss(){
   .redline-page .rl-head-notes svg,.redline-page .rl-head-review svg{width:13px;height:13px;flex:none}
   .redline-page .rl-head-notes b{min-width:18px;height:18px;padding:0 5px;border-radius:9px;display:inline-grid;place-items:center;
     background:var(--color-neutral-100);font-weight:var(--w-title);font-size:var(--t-label);font-variant-numeric:tabular-nums}
+  ${''/* "Redlines 4": the count in a small grey pill, as the piles' heads
+         and Notes carry theirs (round 9's gaps, second pass) */}
+  .redline-page .rl-idx-title i{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;margin-left:4px;
+    border-radius:9px;background:var(--color-neutral-100);font-family:inherit;font-size:var(--t-label);font-weight:var(--w-title);
+    font-variant-numeric:tabular-nums;color:var(--color-neutral-600);vertical-align:1px}
   .redline-page .rl-head-here{flex:none;display:inline-flex;align-items:center;gap:6px;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap}
   .redline-page .rl-head-here:not(:has(.pz-row)){display:none}
   .redline-page .rl-head-here .pz-row{height:auto}
@@ -6477,6 +6482,55 @@ function redlineLayoutCss(){
   .redline-page .rl-card-face .rl-sg-back{color:var(--color-text)}
   ${''/* the settled fold is drawn as its pile's head alone, with its count — no chevron */}
   .redline-page .rl-pile-quiet .rl-band-fold i{display:none}
+  ${''/* ---- THE NOTES IN THE SAME PANEL (round 9's gaps, second pass) ----
+         Notes pressed: the button wears the accent edge; the body is a tab
+         row (a lock on Internal, a count pill on each, ‹ Redlines at its end),
+         the notes as face · line · bubble, and the box with Post. The verbs
+         under a note show on hover or focus, and always on a touch screen. */}
+  .redline-page .rl-head-notes.is-on{border-color:var(--accent-ink);color:var(--accent-ink)}
+  .redline-page #nego-cards.is-notes{padding:0}
+  .redline-page .rl-fn{display:block;padding:0 12px 12px}
+  .redline-page .rl-fn-tabs{display:flex;align-items:flex-end;gap:2px;border-bottom:1px solid var(--color-divider);margin:0 0 10px;min-width:0}
+  .redline-page .rl-fn-tab{flex:0 1 auto;min-width:0;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 10px;
+    border:0;border-bottom:2px solid transparent;margin-bottom:-1px;background:none;font:inherit;font-size:var(--t-meta);
+    font-weight:var(--w-label);color:var(--color-neutral-600);cursor:pointer;white-space:nowrap}
+  .redline-page .rl-fn-tab:hover{color:var(--color-text)}
+  .redline-page .rl-fn-tab.on{color:var(--accent-ink);border-bottom-color:var(--accent-solid);font-weight:var(--w-strong)}
+  .redline-page .rl-fn-tab .rl-np-i{width:12px;height:12px;flex:none}
+  .redline-page .rl-fn-tab-w{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .redline-page .rl-fn-tab b{flex:none;min-width:18px;height:18px;padding:0 5px;border-radius:9px;display:inline-grid;place-items:center;
+    background:var(--color-neutral-100);color:var(--color-neutral-600);font-size:var(--t-label);font-weight:var(--w-title);font-variant-numeric:tabular-nums}
+  .redline-page .rl-fn-sp{flex:1 1 0;min-width:4px}
+  .redline-page .rl-fn-back{flex:none;align-self:center;border:0;background:none;padding:0 2px;font:inherit;font-size:var(--t-meta);
+    color:var(--color-neutral-600);cursor:pointer;white-space:nowrap}
+  .redline-page .rl-fn-back:hover{color:var(--accent-ink)}
+  .redline-page .rl-fn-list{display:block}
+  .redline-page .rl-fn-thread{margin:0 0 10px;padding:0;border:0;background:none}
+  .redline-page .rl-fn-note{display:flex;gap:8px;align-items:flex-start;margin:0 0 8px}
+  .redline-page .rl-fn-note.is-reply{margin-left:28px}
+  .redline-page .rl-fn-face{flex:none;width:20px;height:20px;border-radius:50%;display:inline-grid;place-items:center;margin-top:1px;
+    background:var(--color-accent-100);color:var(--accent-ink-700);font-size:9px;font-weight:var(--w-title)}
+  .redline-page .rl-fn-note.is-them .rl-fn-face{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .redline-page .rl-fn-main{flex:1;min-width:0}
+  .redline-page .rl-fn-line{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 5px;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5}
+  .redline-page .rl-fn-line b{color:var(--color-text);font-weight:var(--w-strong)}
+  .redline-page .rl-fn-cl{border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);text-decoration:underline;
+    text-underline-offset:2px;cursor:pointer}
+  .redline-page .rl-fn-say{margin-top:4px;padding:8px 10px;border-radius:var(--radius-lg);background:var(--color-neutral-100);
+    font-size:var(--t-meta);line-height:1.5;color:var(--color-text);white-space:pre-wrap;overflow-wrap:anywhere}
+  .redline-page .rl-fn-note.is-new .rl-fn-say{box-shadow:inset 2px 0 0 var(--accent-solid)}
+  .redline-page .rl-fn-acts{display:none;margin-top:4px}
+  .redline-page .rl-fn-note:hover > .rl-fn-main > .rl-fn-acts,.redline-page .rl-fn-note:focus-within > .rl-fn-main > .rl-fn-acts{display:block}
+  @media (hover:none){ .redline-page .rl-fn-acts{display:block} }
+  .redline-page .rl-fn-acts .rl-np-acts{margin:0}
+  .redline-page .rl-fn-empty{padding:14px 2px;font-size:var(--t-meta);color:var(--color-neutral-600)}
+  .redline-page .rl-fn-foot{position:relative;display:flex;align-items:flex-end;gap:6px;margin-top:6px;padding:4px 4px 4px 10px;
+    border:1px solid var(--btn-edge);border-radius:var(--radius-lg);background:var(--color-surface)}
+  .redline-page .rl-fn-foot:focus-within{border-color:var(--accent-ink)}
+  .redline-page .rl-fn-foot .rl-fn-in{flex:1;min-width:0;border:0;outline:0;background:none;resize:none;padding:6px 0;
+    font:inherit;font-size:var(--t-meta);line-height:1.45;min-height:0;max-height:140px}
+  .redline-page .rl-fn-post{flex:none}
+  .redline-page .rl-fn-foot .rl-np-tags{position:absolute;left:0;right:0;bottom:calc(100% + 4px);z-index:5}
   `;
   document.head.appendChild(s);
 }
