@@ -967,7 +967,7 @@ function caChipLead(c){
    own reason. */
 const CA_CHIPS_MORE = ['oblig', 'share'];
 function caChipShut(c, k){
-  if (k === 'redline') return typeof negoMayStart === 'function' && !negoMayStart(c).ok;
+  if (k === 'redline' || k === 'answer') return typeof negoMayStart === 'function' && !negoMayStart(c).ok;
   /* NO BUTTON THAT TAKES YOU NOWHERE (owner, 15 Oct 2026): nothing is left to
      sign on an executed or expired agreement; an amendment asks its own one
      answer (amendmentShutWhy); "edit a clause" only where the Edit a clause
@@ -1006,7 +1006,28 @@ function caEditChipBtn(c){
      amend), and never a door this contract has shut (caChipShut).
    Read live, spends nothing, writes nothing. */
 const CA_NEXT_FACE = { fill: 'fill', red: 'redline', signing: 'sign', amend: 'amend' };
-const CA_NEXT_MAX = 3;
+/* FOUR, AS ROUND 3 DRAWS THEM ("answer the redlines · name a signer · share ·
+   history"; the owner's "build all the gaps", 18 Oct 2026) */
+const CA_NEXT_MAX = 4;
+/* ---- WHAT IS OWED HERE, FIRST (round 3 as drawn) ----
+   The checklist's lead (caChipLead) and the two owed facts the glance says
+   beside the paper: their asks waiting on us (negoNeedsYouIds, RAW) — the
+   redline chip then says "answer the redlines" and opens them — and nobody
+   named to sign while signing is ahead (signBlockers' own 'signers') — "name
+   a signer", the route editor's own door. Read live; writes nothing. */
+function caOwedSteps(c){
+  const out = []; if (!c) return out;
+  const lead = caChipLead(c);
+  let asks = 0; try { asks = (typeof negoNeedsYouIds === 'function') ? negoNeedsYouIds(c).length : 0; } catch (_){ asks = 0; }
+  if (lead && !(lead === 'redline' && asks)) out.push(lead);
+  if (asks) out.push('answer');
+  let nobody = false;
+  try { nobody = (typeof pdSignAhead !== 'function' || pdSignAhead(c)) && typeof signBlockers === 'function' && signBlockers(c).some(b => b && b.key === 'signers'); } catch (_){ nobody = false; }
+  if (nobody) out.push('signer');
+  return out;
+}
+/* the owed step that stands for a ladder step: answering is redlining, naming a signer is the way to signing */
+const CA_OWED_FOR = { answer: 'redline', signer: 'sign' };
 function caNextSteps(c){
   if (!c) return [];
   const face = (typeof pdFaceNow === 'function') ? pdFaceNow() : '';
@@ -1015,14 +1036,16 @@ function caNextSteps(c){
   const ladder = executed ? ['oblig', 'amend', 'history']
     : face === 'red' ? ['edit', 'sign', 'share']
     : ['redline', 'share', 'sign'];
-  const lead = caChipLead(c);
-  return (lead ? [lead] : []).concat(ladder, ['history', 'oblig', 'share'])
-    .filter((k, i, all) => all.indexOf(k) === i && k !== here && !caChipShut(c, k))
+  const owed = executed ? [] : caOwedSteps(c);
+  const covered = new Set(owed.map(k => CA_OWED_FOR[k]).filter(Boolean));
+  return owed.concat(ladder, ['history', 'oblig', 'share'])
+    .filter((k, i, all) => all.indexOf(k) === i && k !== here && CA_OWED_FOR[k] !== here && !covered.has(k) && !caChipShut(c, k))
     .slice(0, CA_NEXT_MAX);
 }
-/* a step's words: a place word Jambo reads (ca_w_*), or the two that press
-   their own row (edit a clause, amend) */
-const CA_NEXT_GO = ['edit', 'amend'];
+/* a step's words: a place word Jambo reads (ca_w_*), or the ones that press
+   their own row (edit a clause, amend) or door (answer the redlines → the
+   Redlines face; name a signer → the route editor) */
+const CA_NEXT_GO = ['edit', 'amend', 'answer', 'signer'];
 function caNextLabel(k){ return CA_NEXT_GO.includes(k) ? _caT('ca_next_' + k) : _caT('ca_w_' + k); }
 /* a step pressed: a place is asked as its word (one path with typing,
    caReadPlace); edit and amend press the act their row presses */
@@ -1030,6 +1053,8 @@ function caNextRun(c, k){
   if (!c) return false;
   if (k === 'edit'){ const b = caEditChipBtn(c); return b ? rlEditClausePress(getContract(c.id) || c, b) : false; }
   if (k === 'amend') return (typeof pdAmendOpen === 'function') ? pdAmendOpen(c.id) : false;
+  if (k === 'answer') return CA_GO.redline(c);
+  if (k === 'signer') return (typeof openSignerPlanEditor === 'function') ? (openSignerPlanEditor(getContract(c.id) || c), true) : CA_GO.sign(c);
   if (typeof intelAsk === 'function') return intelAsk(_caT('ca_w_' + k));
   return false;
 }
@@ -1040,15 +1065,17 @@ function caPaperChips(){
   const c = caOpenContract();
   /* a viewer adds nothing: the upload chip steps aside, as a shut door's chip does on a paper (caChipShut) */
   if (!c) return CA_CHIPS_WALL.filter(k => k !== 'upload' || caMayAdd()).map(k => ({ ask: _caT(CA_CHIP_WALL_WORD[k] || ('ca_w_' + k)), k }));
-  const lead = caChipLead(c);
-  return caNextSteps(c).map(k => CA_NEXT_GO.includes(k) ? { go: k, label: caNextLabel(k), k } : { ask: _caT('ca_w_' + k), k, owed: k === lead });
+  /* work owed leads, in the accent's amber (the first owed step) */
+  const lead = (caOwedSteps(c)[0]) || caChipLead(c);
+  return caNextSteps(c).map(k => CA_NEXT_GO.includes(k) ? { go: k, label: caNextLabel(k), k, owed: k === lead } : { ask: _caT('ca_w_' + k), k, owed: k === lead });
 }
 function caChipsHtml(){
   /* the person turned Jambo's suggestions off (You · How you like to work) */
   if (typeof jamboChipsOn === 'function' && !jamboChipsOn()) return '';
   const L = caPaperChips(); if (!L) return '';
   return L.map(x => x.go
-    ? `<button type="button" data-ca-next="${_caE(x.go)}" data-ca-chip="${_caE(x.k)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${_caE(x.label)}</button>`
+    ? (x.owed ? `<button type="button" data-ca-next="${_caE(x.go)}" data-ca-chip="${_caE(x.k)}" class="ca-chip-owed text-[10.5px] rounded-full px-2.5 py-1 transition text-left">${_caE(x.label)}</button>`
+      : `<button type="button" data-ca-next="${_caE(x.go)}" data-ca-chip="${_caE(x.k)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${_caE(x.label)}</button>`)
     : x.owed
     ? `<button type="button" data-igsug="${_caE(x.ask)}" data-ca-chip="${_caE(x.k)}" class="ca-chip-owed text-[10.5px] rounded-full px-2.5 py-1 transition text-left">${_caE(x.ask)}</button>`
     : x.fill
@@ -1219,7 +1246,7 @@ Object.assign(window, { caRefFix, CA_REF_RE, caRefLinkPaint, caRefOpen, CA_MENU,
 Object.assign(window, { CA_PICK_MAX, CA_NOTE_MAX, CA_SEND_RE, caPeople, caContracts, caOpenContract, caTokenAt, caMatches, caPopHtml, caPopClose, caPopRead, caChoose,
   caFindContract, caFindPerson, caNoteOf, caReadSend, caActOf, caSendBlock, caCardHtml, caCardPress,
   CA_DRAFT_RE, CA_DRAFT_NOUN, CA_DRAFT_OPTS, CA_DRAFT_BARE, CA_DRAFT_ASKING, caIsDraftAsk, caReadDraft, caDraftScore, caDraftRank, caDraftRun, caDraftCardHtml, caDraftPress, CA_DRAFT_WITH, CA_DRAFT_WITH_MAX, caDraftWith, CA_DRAFT_NOT_PARTY, CA_DRAFT_TERM_WORD, caDraftBest, caDraftTitleOf, caDraftWho, caDraftForm,
-  CA_JOBS, CA_JOB_RE, caReadJob, caNamedOrUp, caRowsWithQuotes, caRiskList, caObligList, caListCardHtml, caReadyDoor, caJobCardHtml, caJobPress, caMayAdd, caPaperChips, caChipsHtml, caNextSteps, caNextRun, caNextLabel, caEditChipBtn, CA_NEXT_FACE, CA_NEXT_MAX, CA_NEXT_GO,
+  CA_JOBS, CA_JOB_RE, caReadJob, caNamedOrUp, caRowsWithQuotes, caRiskList, caObligList, caListCardHtml, caReadyDoor, caJobCardHtml, caJobPress, caMayAdd, caPaperChips, caChipsHtml, caNextSteps, caOwedSteps, CA_OWED_FOR, caNextRun, caNextLabel, caEditChipBtn, CA_NEXT_FACE, CA_NEXT_MAX, CA_NEXT_GO,
   CA_SEL_ACTIONS, caSelKill, caSelClauseId, caSelOpen, caSelPick, CA_RISK_MAX, caRiskMark });
 
 /* ============================================================

@@ -9535,6 +9535,8 @@
   #ig-dock .pd-nd-row small{font-size:11.5px;line-height:1.4;color:var(--color-neutral-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #ig-dock .pd-nd-row small .late{color:var(--st-amber-fg);font-weight:var(--w-label)}
   #ig-dock .pd-nd-row.is-jw{margin:-4px -8px;padding:6px 8px;border-radius:var(--radius);background:var(--color-accent-50)}
+  /* a note's own words wrap to two lines, as round 3 draws them — never cut to one */
+  #ig-dock .pd-nd-row.is-note small{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
   #ig-dock .pd-nd-face{flex:none;width:22px;height:22px;border-radius:50%}
   /* THE WAY BACK TO JAMBO at the start of every face's head (pdBackHtml): a crumb, as "‹ The counter" is on the desk */
   #ig-dock .pd-back{flex:none;display:inline-flex;align-items:center;gap:3px;height:var(--ctl-h-sm);padding:0 8px 0 5px;border:1px solid var(--btn-edge);border-radius:var(--radius);background:var(--color-surface);color:var(--accent-ink);font:inherit;font-size:12px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
@@ -11284,6 +11286,41 @@
   .hb-sheet-def{margin:0 0 6px;font-size:var(--t-label);line-height:1.45;color:var(--hb-ink-2)}
   .hb-fig-left{display:block;font-size:var(--t-micro);line-height:1.35;color:var(--hb-amber);margin:-2px 0 4px}
   .hb-fig-left.is-split{color:var(--hb-ink-2)}
+  /* ═══ THE BOARD AS DRAWN (round 17, "Then and now"; the owner's "build all
+     the gaps", 18 Oct 2026) ═══ A head card — "Board", what it is, the live
+     dot and when it was counted, Summarise my board with its cost — and the
+     saved views as chips with their counts under it; Your book is ONE card
+     (its head, the table, the two stage bars); Today's insights says its
+     count as a pill. Doubled classes outrank the 11 Oct "no card of its own"
+     rules above by scope. */
+  .hb-bhead.hb-card{flex:none;padding:12px var(--s-4)}
+  .hb-bh-r.hb-note{gap:var(--s-2);flex-wrap:wrap;row-gap:6px;font-size:var(--t-meta);color:var(--hb-mute)}
+  .hb-bh-t{margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);line-height:var(--lh-tight);letter-spacing:-.01em;color:var(--hb-ink);white-space:nowrap}
+  .hb-bh-s{font-size:var(--t-body);color:var(--hb-ink-2);white-space:nowrap;margin-right:var(--s-2)}
+  .hb-bh-at{white-space:nowrap;margin-left:-4px}
+  .hb-bs-cost{display:inline-flex;align-items:center;align-self:stretch;margin:0 -9px 0 4px;padding:0 9px;border-left:1px solid var(--btn-edge,var(--color-divider));font-size:var(--t-micro);font-weight:var(--w-label);color:var(--hb-mute)}
+  .hb-bh-views{display:flex;align-items:center;flex-wrap:wrap;gap:6px var(--s-2);margin-top:12px;padding-top:12px;border-top:1px solid rgba(var(--hb-ln),.12)}
+  .hb-bh-l{font-size:var(--t-meta);color:var(--hb-ink-2);margin-right:4px;white-space:nowrap}
+  .hb-sv-chip{display:inline-flex;align-items:center;gap:6px;height:var(--ctl-h-sm);padding:0 10px;border-radius:999px;border:1px solid var(--chip-edge,var(--color-divider));background:var(--color-surface);color:var(--accent-ink,var(--hb-glow));font:inherit;font-size:var(--t-label);font-weight:var(--w-label);cursor:pointer;white-space:nowrap;max-width:280px}
+  .hb-sv-chip:hover{border-color:var(--accent-solid,var(--hb-glow))}
+  .hb-sv-n{overflow:hidden;text-overflow:ellipsis}
+  .hb-sv-chip b{font-weight:var(--w-label);color:var(--hb-mute);font-variant-numeric:tabular-nums}
+  .hb-board .hb-book.hb-card{background:var(--hb-card);border:1px solid rgba(var(--hb-ln),.18);box-shadow:var(--hb-shadow)}
+  .hb-board .hb-book.hb-card>.hb-ch{border-bottom:1px solid rgba(var(--hb-ln),.12);padding:10px 12px 10px var(--s-4);min-height:40px}
+  .hb-board .hb-book.hb-card>.hb-cb{padding:0 0 14px}
+  .hb-board .hb-book .hb-figs.hb-tn.hb-tn{border:0;border-radius:0;background:none}
+  .hb-board .hb-book .hb-figs.hb-tn.hb-tn>.hb-fig:last-child{border-bottom:1px solid rgba(var(--hb-ln),.12)}
+  .hb-board .hb-book .hb-tn-h>span:first-child,.hb-board .hb-book .hb-tn .hb-fig-lw{padding-left:var(--s-4)}
+  .hb-board .hb-book .hb-stagerows{padding:14px var(--s-4) 0}
+  .hb-board .hb-book .hb-stagerows+.hb-stagekey{padding:10px var(--s-4) 0 calc(var(--s-4) + 86px)}
+  .hb-board .hb-book .hb-cb>.hb-quiet{padding:8px var(--s-4) 0}
+  .hb-ins-n.hb-pill{flex:none;margin-right:2px}
+  .hb-jb-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  /* a clause gone to on Home's paper (Follow me, "Go to it") is lit for a moment */
+  #ig-paper [data-clause].ig-arrived{animation:igArrive 1.6s ease 1;border-radius:var(--radius)}
+  @keyframes igArrive{0%{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent-solid) 55%,transparent)}70%{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent-solid) 30%,transparent)}100%{box-shadow:0 0 0 3px transparent}}
+  @media (prefers-reduced-motion:reduce){ #ig-paper [data-clause].ig-arrived{animation:none;box-shadow:0 0 0 2px color-mix(in srgb,var(--accent-solid) 45%,transparent)} }
+  #ig-dock .igd-head-w{flex:0 1 auto;min-width:0;margin-left:10px;font-size:13px;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #ig-page:has(#hb-board[hidden]) #hb-sheet-host,#hb-page:has(#hb-board[hidden]) #hb-sheet-host{display:none}
   /* the Copilot panel's resize handle lives in another layer and showed through the side list (the stray amber bar) */
   #ig-page:has(.hb-sheet) .ig-resizer{visibility:hidden}

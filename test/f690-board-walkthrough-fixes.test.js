@@ -121,7 +121,8 @@ describe('F690 (7, 8) — the Board\'s wording and tiles', () => {
   });
   test('the value tile names what it leaves out, on the tile', () => {
     assert.match(strip(bodyOf(HB, 'hbBookHtml')), /hb-fig-left/);
-    assert.match(bodyOf(HB, 'hbLeftCodes'), /fx(Home|Counted)/);   // fxCounted: fxHome, less a private folder (17 Oct 2026)
+    /* round 17 as drawn (18 Oct 2026): hbValueSay says the whole line — the currency, the rates, the left out, the not added — off fxCounted */
+    assert.match(bodyOf(HB, 'hbValueSay'), /fx(Home|Counted)/);   // fxCounted: fxHome, less a private folder (17 Oct 2026)
   });
 });
 

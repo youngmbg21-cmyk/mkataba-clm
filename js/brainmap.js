@@ -24,8 +24,8 @@ const BRAIN_FLOORS = 4;
    cannot be looked up (a table, a route with a method in front). */
 const BRAIN_PARTS = [
   ['home', 'hmDecisionItems', 'see', 0],
-  /* Needs you, Jambo's note (15 Oct 2026): what is owed by name, on the Board, above Jambo's work */
-  ['needsme', 'hbNeedsHtml', 'see', 0],
+  /* Needs you, Jambo's note (15 Oct 2026): what is owed by name — the one reading the Counter, Needs you here and the bell draw (it left the Board with round 17, 18 Oct 2026) */
+  ['needsme', 'hbNeedsList', 'see', 0],
   /* The counter (17 Oct 2026): the first screen after signing in on a computer; the desk tabs take the left menu's place */
   ['counter', 'renderCounter', 'see', 0],
   ['desktabs', 'deskTabsHtml', 'see', 0],

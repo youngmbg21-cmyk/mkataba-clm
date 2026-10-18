@@ -335,11 +335,21 @@ function presenceLeaveSoon(cid){
    pencil was last pressed, which is where the reader WAS. Measured off the
    painted page (elementFromPoint), because a rect is not a painted pixel.
    READS ONLY, and answers null anywhere there is no paper. */
+/* ON HOME'S PAPER TOO (round 6 as drawn, 18 Oct 2026): the paper beside
+   Jambo is where a contract is read now, so a reader there sends where they
+   are — the paper's own scroller, while it is up and drawn. */
+function presenceHomePaper(){
+  if (typeof document === 'undefined') return null;
+  const host = document.getElementById('ig-paper'), sc = document.getElementById('ig-paper-scroll');
+  if (!host || host.hidden || !sc) return null;
+  if (typeof window.igPaperUp === 'function' && !window.igPaperUp()) return null;
+  return sc;
+}
 function presenceSpotNow(){
   if (typeof document === 'undefined') return null;
   const doc = document.getElementById('rl-doc')
     || document.querySelector('#view-redline #rl-doc, .redline-page #rl-doc');
-  const box = doc || document.getElementById('doc-scroll');
+  const box = doc || presenceHomePaper() || document.getElementById('doc-scroll');
   if (!box || !box.getBoundingClientRect) return null;
   const r = box.getBoundingClientRect();
   if (!r.width || !r.height) return null;
@@ -347,7 +357,18 @@ function presenceSpotNow(){
   const y = Math.round(Math.max(r.top, 0) + Math.min(r.height, (window.innerHeight || r.height)) / 2);
   const el = document.elementFromPoint(x, y);
   const cl = el && el.closest ? el.closest('[data-clause]') : null;
-  return cl ? (cl.getAttribute('data-clause') || null) : null;
+  if (cl) return cl.getAttribute('data-clause') || null;
+  /* A GAP IS NOT NOWHERE (18 Oct 2026, Follow me on Home): the centre can fall
+     between two clauses, or below the last one a paper cannot scroll past —
+     the reader is on the clause nearest the centre line, measured off the
+     painted clauses inside the paper's own box. */
+  let best = null, gap = Infinity;
+  (box.querySelectorAll ? box.querySelectorAll('[data-clause]') : []).forEach(k => {
+    const q = k.getBoundingClientRect(); if (!q.height || q.bottom < r.top || q.top > r.bottom) return;
+    const d = y < q.top ? q.top - y : y > q.bottom ? y - q.bottom : 0;
+    if (d < gap){ gap = d; best = k; }
+  });
+  return (best && gap <= r.height / 2) ? (best.getAttribute('data-clause') || null) : null;
 }
 /* Per sitting, in memory, and one at a time: following two people would be two
    pages fighting over one scroll. */
@@ -380,8 +401,23 @@ function presenceWalk(rows){
   const spot = lead.spot ? String(lead.spot) : '';
   if (!spot || spot === _pzWent) return false;
   _pzWent = spot;
+  return !!presenceGo(spot);
+}
+/* THE WALK'S ONE DOOR: Home's paper where it is up (igPaperGoClause — round 6
+   as drawn, Follow me on Home), else the Negotiate page's own
+   (rlJumpToClause). Either moves the page; neither writes. */
+function presenceGo(spot){
+  if (presenceHomePaper() && typeof window.igPaperGoClause === 'function'){
+    try{ return window.igPaperGoClause(spot); }catch(_){ return null; }
+  }
   if (typeof window.rlJumpToClause !== 'function') return false;
-  try{ return !!window.rlJumpToClause(spot); }catch(_){ return false; }
+  try{ return window.rlJumpToClause(spot); }catch(_){ return false; }
+}
+/* where the walk can work: the Negotiate page, or Home's paper */
+function presenceCanWalk(){
+  if (typeof document === 'undefined') return false;
+  if ((document.getElementById('view-redline') || document.querySelector('.redline-page')) && typeof window.rlJumpToClause === 'function') return true;
+  return !!presenceHomePaper() && typeof window.igPaperGoClause === 'function';
 }
 
 /* ---- THE ROW ----
@@ -419,9 +455,10 @@ function presenceRowHtml(c){
      fault this codebase names in four other places. Presence (idea 5) is drawn
      everywhere; Follow me (idea 14) is offered where it works, and the row is
      the same width either way. */
-  const canWalk = typeof document !== 'undefined'
-    && !!(document.getElementById('view-redline') || document.querySelector('.redline-page'))
-    && typeof window.rlJumpToClause === 'function';
+  /* …AND ON HOME'S PAPER (round 6 as drawn, 18 Oct 2026): the faces on the
+     paper's line are pressable there, the walk going through Home's own
+     door (presenceGo → igPaperGoClause) */
+  const canWalk = presenceCanWalk();
   const faceHtml = r => {
     if (!canWalk) return `<span class="pz-face" title="${_pzE(r.name || '')}">${_pzE(presenceInitials(r.name))}</span>`;
     const on = String(presenceFollowing() || '') === String(r.id);
@@ -483,4 +520,5 @@ Object.assign(window, {
   presenceMyAsks, presenceKeepAsks, presenceLeave,
   presenceInitials, presenceRowHtml, presencePaint,
   presenceSpotNow, presenceFollow, presenceFollowing, presenceWalk,
+  presenceHomePaper, presenceGo, presenceCanWalk,
 });
