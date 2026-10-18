@@ -65,6 +65,7 @@ describe('f641 (5) Copilot\'s plan is checked, block by block', () => {
   const fnOf = name => { const at = SRV.indexOf('function ' + name + '('); assert.ok(at > -1); const open = SRV.indexOf('{', SRV.indexOf(')', at)); let d = 0;
     for (let i = open; i < SRV.length; i++){ if (SRV[i] === '{') d++; else if (SRV[i] === '}' && !--d) return SRV.slice(at, i + 1); } };
   const ctx = {}; vm.createContext(ctx);
+  const plain = x => JSON.parse(JSON.stringify(x)); // an array made in the vm is not this realm's Array
   vm.runInContext([one('myDay'), one('myHm'), one('myText'), 'function myContractOk(){ return ""; }', fnOf('planBlocksCheck'), 'this.check = planBlocksCheck;'].join('\n'), ctx);
   test('only blocks that fit are kept, and the rest are counted', () => {
     const o = { from: '2026-10-19', to: '2026-10-25', hs: 8, he: 17, events: [{ date: '2026-10-20', start: '13:00', end: '14:30', title: 'Board pack' }, { date: '2026-10-23', start: '', end: '', title: 'Travel' }] };
@@ -81,9 +82,28 @@ describe('f641 (5) Copilot\'s plan is checked, block by block', () => {
     ], o);
     assert.equal(out.blocks.map(b => b.title).join(' | '), 'Decide notice | Review MK-235');
     assert.equal(out.dropped, 7);
+    /* JAMBO FOLLOWS THE ASK (18 Oct 2026): every block left out says why, by name */
+    assert.deepEqual(plain(out.left.map(l => l.title + ':' + l.why)), ['Overlaps the board pack:clash', 'Too early:hours', 'Saturday:weekend',
+      'Travel day:busy', 'Outside the window:window', 'Clashes with the first:clash', 'Ends first:bad']);
     const many = Array.from({ length: 11 }, (_, i) => ({ date: '2026-10-' + String(19 + (i % 5)).padStart(2, '0'), start: String(8 + Math.floor(i / 5) * 2).padStart(2, '0') + ':00', end: String(9 + Math.floor(i / 5) * 2).padStart(2, '0') + ':00', title: 'Block ' + i }));
     const capped = ctx.check(many, { ...o, events: [] });
     assert.equal(capped.blocks.length, 8, 'at most eight kept');
     assert.equal(capped.blocks.length + capped.dropped, 11, 'and every other one is counted, never lost');
+    assert.deepEqual(plain(capped.left.map(l => l.why)), ['cap', 'cap', 'cap'], 'the cap is said as the cap');
+  });
+  test('a day and time the person named is kept as asked — outside hours or on a weekend — but never double-booked', () => {
+    const o = { from: '2026-10-19', to: '2026-10-25', hs: 8, he: 17, events: [{ date: '2026-10-20', start: '13:00', end: '14:30', title: 'Board pack' }, { date: '2026-10-23', start: '', end: '', title: 'Travel' }] };
+    const out = ctx.check([
+      { date: '2026-10-21', start: '07:00', end: '08:00', title: 'Early call with Naivas', asked: true },
+      { date: '2026-10-24', start: '10:00', end: '11:00', title: 'Saturday review', asked: true },
+      { date: '2026-10-20', start: '14:00', end: '15:00', title: 'Over the board pack', asked: true },
+      { date: '2026-10-23', start: '10:00', end: '11:00', title: 'On the travel day', asked: true },
+      { date: '2026-10-30', start: '10:00', end: '11:00', title: 'Past the window', asked: true },
+      { date: '2026-10-22', start: '18:00', end: '19:00', title: 'Late, not asked' },
+    ], o);
+    assert.equal(out.blocks.map(b => b.title + (b.asked ? ' (asked)' : '')).join(' | '), 'Early call with Naivas (asked) | Saturday review (asked)');
+    assert.deepEqual(plain(out.left.map(l => l.why)), ['clash', 'busy', 'window', 'hours']);
+    assert.equal(out.blocks[0].asked, true);
+    assert.ok(!('asked' in ctx.check([{ date: '2026-10-19', start: '10:00', end: '11:00', title: 'Plain' }], o).blocks[0]), 'only a named time carries asked');
   });
 });

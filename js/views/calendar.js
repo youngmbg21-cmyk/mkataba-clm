@@ -1524,6 +1524,9 @@ function calStyleCss(){ return `
   .cal-cop .cal-prop button.p{background:var(--color-accent-700);border-color:transparent;color:#fff}
   .cal-cop .cal-prop button.is-added{opacity:1}
   .cal-plan-read{margin:0;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5}
+  .cal-cop .cal-plan-pts{margin:4px 0 0;padding:0 0 0 18px;font-size:var(--t-meta);line-height:1.5;color:var(--color-text)}
+  .cal-cop .cal-plan-pts li{margin:2px 0;overflow-wrap:anywhere}
+  .cal-cop .cal-plan-left .cal-plan-pts{color:var(--color-neutral-600);font-size:var(--t-label)}
   .cal-cop .cal-plan-chips{padding:0 14px 10px}
   .cal-cop .cal-plan-chips button{height:auto;padding:4px 9px;font-size:var(--t-label);font-weight:var(--w-body);border-radius:3px}
   .cal-cop .cal-plan-ask{padding:0 14px 6px}
@@ -1856,7 +1859,9 @@ function calMoreWeeksHtml(a,onDay){
 }
 
 /* ---- COPILOT'S PLAN (per sitting; what is added lives in js/mine.js) ---- */
-let _calPlan = { busy:false, say:'', err:'', blocks:[], dropped:0, seq:0, ask:'', read:null };
+let _calPlan = { busy:false, say:'', err:'', blocks:[], dropped:0, left:[], kind:'', points:[], seq:0, ask:'', read:null };
+/* how far ahead the Calendar's Jambo may look when the person names a later day (the server caps it alike, PLAN_HORIZON_DAYS) */
+const CAL_PLAN_HORIZON_DAYS = 120;
 const CAL_I_X='<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>';
 const CAL_I_TICK='<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg>';
 const CAL_I_UNDO='<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3L2 6l3 3"/><path d="M2 6h7.5a4 4 0 010 8H6"/></svg>';
@@ -1890,8 +1895,10 @@ function calPlanHtml(){
   const you=_calPlan.ask?`<div class="cal-plan-you">${_esc(_calPlan.ask)}</div>`:'';
   const answer=_calPlan.busy?`<p class="cal-plan-busy" aria-busy="true"><span class="ob-spin" aria-hidden="true"></span>${_esc(i18t('cal_plan_busy'))}</p>`
     :_calPlan.err?`<p class="cal-plan-err">${_esc(_calPlan.err)}</p>`
+    :_calPlan.seq&&_calPlan.kind==='answer'?`<div class="cal-plan-ai">${_calPlan.say?`<p class="cal-plan-say">${_esc(_calPlan.say)}</p>`:''}${
+      _calPlan.points.length?`<ul class="cal-plan-pts">${_calPlan.points.map(x=>`<li>${_esc(x)}</li>`).join('')}</ul>`:''}${read}</div>`
     :_calPlan.seq?`<div class="cal-plan-ai">${_calPlan.say?`<p class="cal-plan-say">${_esc(_calPlan.say)}</p>`:''}${rows?`<div class="cal-props">${rows}</div>`:`<p class="cal-plan-say">${_esc(i18t('cal_plan_none'))}</p>`}${
-      _calPlan.dropped?`<p class="cal-plan-read">${_esc(i18tn('cal_plan_dropped',_calPlan.dropped,{n:_calPlan.dropped}))}</p>`:''}${read}</div>`
+      calPlanLeftHtml()}${read}</div>`
     :`<p class="cal-plan-say cal-plan-intro">${_esc(i18t('cal_plan_empty'))}</p>`;
   const nx=calPlanNextRef();
   const off=_calPlan.busy?' disabled':'';
@@ -1905,6 +1912,15 @@ function calPlanHtml(){
     <div class="cal-plan-ask"><input id="cal-plan-in" type="text" maxlength="600" enterkeyhint="send" placeholder="${_esc(i18t('cal_plan_ph'))}" aria-label="${_esc(i18t('cal_plan_ph'))}"${off}></div>
     <p class="cal-plan-cost">${_esc(i18t(auto?'cal_plan_cost_auto':'cal_plan_cost'))}</p>
   </aside>`;
+}
+/* WHAT WAS LEFT OUT, AND WHY (owner, 18 Oct 2026): each suggestion the check
+   did not keep is named with its reason; an older answer with only a count
+   still says the count. */
+function calPlanLeftHtml(){
+  const left=_calPlan.left||[];
+  if(!left.length) return _calPlan.dropped?`<p class="cal-plan-read">${_esc(i18tn('cal_plan_dropped',_calPlan.dropped,{n:_calPlan.dropped}))}</p>`:'';
+  return `<div class="cal-plan-left"><p class="cal-plan-read">${_esc(i18t('cal_plan_left'))}</p><ul class="cal-plan-pts">${
+    left.map(x=>`<li><b>${_esc(x.title||'—')}</b> — ${_esc(i18t('cal_plan_why_'+(['clash','hours','weekend','busy','window','bad','cap'].includes(x.why)?x.why:'bad')))}</li>`).join('')}</ul></div>`;
 }
 /* The whole page repaints (the suggestions draw on the grid too); the places
    the reader had scrolled to are kept. */
@@ -1923,18 +1939,26 @@ async function calPlanAsk(q, ref){
   const ask=q==='week'?i18t('cal_plan_p_week'):q==='due'?i18t('cal_plan_p_due'):q==='hour'?i18t('cal_plan_p_hour',{ref:ref||''}):String(q||'').trim();
   if(!ask) return;
   const said=q==='week'?i18t('cal_plan_q_week'):q==='due'?i18t('cal_plan_q_due'):q==='hour'?i18t('cal_plan_q_hour',{ref:ref||''}):ask;
-  const until=_isoLocal(calAddDays(new Date(to+'T00:00:00'),30));
-  const dates=calVisible(calendarEvents()).filter(e=>e.date>=from&&e.date<=until).slice(0,120)
+  /* JAMBO FOLLOWS THE ASK (owner, 18 Oct 2026): he is told today, and reads as
+     far ahead as the person may name a day (CAL_PLAN_HORIZON_DAYS) — the next
+     two weeks are still where he plans when no day is named */
+  const until=_isoLocal(calAddDays(new Date(from+'T00:00:00'),CAL_PLAN_HORIZON_DAYS));
+  const dates=calVisible(calendarEvents()).filter(e=>e.date>=from&&e.date<=until).slice(0,200)
     .map(e=>({ date:e.date, title:(e.cref||e.cid)+' · '+(e.type==='obligation'?(e.note||CAL_EVENT[e.type].label):CAL_EVENT[e.type].label)+(e.cname?' ('+e.cname+')':''), contractId:e.cid }));
-  const events=(typeof mineList==='function'?mineList('event'):[]).filter(e=>e.date>=from&&e.date<=to).map(e=>({ date:e.date, start:e.start, end:e.end, title:e.title }));
+  const events=(typeof mineList==='function'?mineList('event'):[]).filter(e=>e.date>=from&&e.date<=until).slice(0,200).map(e=>({ date:e.date, start:e.start, end:e.end, title:e.title }));
   const pref=typeof minePref==='function'?minePref():{dayStart:8,dayEnd:17,copilotLevel:'ask'};
   _calPlan.busy=true; _calPlan.err=''; _calPlan.ask=said; _calPlan.read=null; calPlanRepaint();
   try{
     if(!(typeof API_MODE==='function'&&API_MODE())) throw Object.assign(new Error('needsKey'),{needsKey:true});
-    const r=await api('ai/plan','POST',{ from, to, ask, dates, events, dayStart:pref.dayStart, dayEnd:pref.dayEnd });
+    const r=await api('ai/plan','POST',{ from, to, until, today:calToday(), ask, dates, events, dayStart:pref.dayStart, dayEnd:pref.dayEnd });
     _calPlan.seq++;
+    /* an ANSWER is words (and lines), nothing to add; a PLAN is blocks, each
+       left-out one with its reason */
+    _calPlan.kind=(r&&r.kind)==='answer'?'answer':'plan';
     _calPlan.say=String((r&&r.say)||'');
+    _calPlan.points=Array.isArray(r&&r.points)?r.points.map(String).filter(Boolean).slice(0,8):[];
     _calPlan.dropped=Number((r&&r.dropped)||0);
+    _calPlan.left=Array.isArray(r&&r.left)?r.left.filter(x=>x&&x.why):[]; // every one said: a cap is a fact
     _calPlan.read={ d:dates.length, e:events.length, hs:pref.dayStart, he:pref.dayEnd };
     _calPlan.blocks=((r&&r.blocks)||[]).map((b,i)=>({ ...b, k:'b'+_calPlan.seq+'_'+i, st:'proposed', itemId:null }));
     _calPlan.busy=false;
@@ -1959,6 +1983,20 @@ async function calPlanUndo(k){
   const b=_calPlan.blocks.find(x=>x.k===k); if(!b) return;
   if(b.st==='added'&&b.itemId){ try{ await mineDelete(b.itemId); }catch(_){} b.itemId=null; }
   b.st='proposed'; calPlanRepaint();
+}
+/* A REQUEST TO BOOK OR FIND TIME, TYPED ANYWHERE ELSE (Jambo's main box, the
+   Counter), IS HANDED HERE with its words (owner, 18 Oct 2026): the Calendar
+   opens on Home and its own Jambo takes the ask — the one door that can plan
+   time. Not on the phone (it draws its own calendar); false when it cannot. */
+function calHandOff(q){
+  const t=String(q||'').trim();
+  if(!t||typeof hbOpenCalendar!=='function') return false;
+  if(typeof mPhone==='function'&&mPhone()) return false;
+  hbOpenCalendar();
+  let n=0;
+  const go=()=>{ if(calOnScreen()&&document.getElementById('cal-plan')){ calPlanAsk(t); return; } if(++n<60) setTimeout(go,50); };
+  setTimeout(go,0);
+  return true;
 }
 /* ---- ONE EVENT: NEW OR EDITED (a dialog — the event's facts are a
    decision the reader is making). Private, said once at the foot. ---- */
@@ -2044,4 +2082,4 @@ Object.assign(window,{calendarDoorCount,calOnScreen,calWireOwn,calState,calPlace
   calToday,calChipText,calIcsFor,calUpcoming,calSummaryLines,calMonthGridHtml,calPanelHtml,
   CAL_AGENDA_DAYS,CAL_AGENDA_WINDOWS,CAL_AGENDA_ROWS,calAgendaDays,calSetAgendaDays,
   calSetView,calSetScope,calStep,openCalendarShare,renderCalendar,
-  calLayers,calWeekStart,calWeekHtml,calMoreWeeksHtml,calWeekendWord,CAL_WEEKS_SHOWN,CAL_WEEK_DAYS,calOwnEvents,calPlanHtml,calPlanAsk,calPlanAdd,calPlanUndo,calEventDialog,_calPlanState});
+  calLayers,calWeekStart,calWeekHtml,calMoreWeeksHtml,calWeekendWord,CAL_WEEKS_SHOWN,CAL_WEEK_DAYS,calOwnEvents,calPlanHtml,calPlanAsk,calPlanAdd,calPlanUndo,calEventDialog,_calPlanState,calPlanLeftHtml,CAL_PLAN_HORIZON_DAYS,calHandOff});
