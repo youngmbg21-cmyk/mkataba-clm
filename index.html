@@ -13313,6 +13313,7 @@
   .jl-ask .jl-pop{left:0;right:0;bottom:calc(100% + 6px);top:auto;max-height:320px;}
   .jl-ask .jl-pop[hidden]{display:none;}
   .jb-hint{margin:6px 2px 0;font-size:var(--t-micro);line-height:1.45;color:var(--color-neutral-600);}
+  .jb-keys{white-space:nowrap;}
   .jb-kbd{display:inline-block;min-width:16px;padding:0 4px;border:1px solid var(--color-neutral-300);border-radius:4px;font:inherit;font-size:var(--t-micro);line-height:1.35;text-align:center;color:var(--color-neutral-700);background:var(--color-surface);}
   /* Needs you, its own section: one card, a row each, a dot in the row's tone and the row's own verb */
   .jl-need{border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden;}
@@ -15293,21 +15294,23 @@
   #ig-dock .ig-dock-title,#ig-dock .ig-card-name{font-size:var(--t-body)}
   #ai-panel #ai-input,#ig-dock #igd-input{font-size:var(--t-body)}
 }
-#ai-feed .ai-p{margin:0 0 .5em}
-#ai-feed .ai-p:last-child{margin-bottom:0}
-#ai-feed .ai-h{font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-card);margin:.7em 0 .3em}
-#ai-feed .ai-list{margin:.3em 0 .5em;padding-left:1.15rem}
-#ai-feed ul.ai-list{list-style:disc}
-#ai-feed ol.ai-list{list-style:decimal}
-#ai-feed .ai-list li{margin:.15em 0}
-#ai-feed .ai-quote{border-left:2px solid var(--color-divider);padding-left:.65rem;margin:.4em 0;color:var(--color-neutral-700)}
-#ai-feed .ai-code{background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius);
+/* the same answer, said in Jambo's panel beside a list (#jl-feed, 18 Oct 2026): one
+   reading of the turn, so one dress — :is() keeps the id's weight */
+:is(#ai-feed,#jl-feed) .ai-p{margin:0 0 .5em}
+:is(#ai-feed,#jl-feed) .ai-p:last-child{margin-bottom:0}
+:is(#ai-feed,#jl-feed) .ai-h{font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-card);margin:.7em 0 .3em}
+:is(#ai-feed,#jl-feed) .ai-list{margin:.3em 0 .5em;padding-left:1.15rem}
+:is(#ai-feed,#jl-feed) ul.ai-list{list-style:disc}
+:is(#ai-feed,#jl-feed) ol.ai-list{list-style:decimal}
+:is(#ai-feed,#jl-feed) .ai-list li{margin:.15em 0}
+:is(#ai-feed,#jl-feed) .ai-quote{border-left:2px solid var(--color-divider);padding-left:.65rem;margin:.4em 0;color:var(--color-neutral-700)}
+:is(#ai-feed,#jl-feed) .ai-code{background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius);
   padding:.5rem .65rem;overflow-x:auto;font-family:var(--font-mono);font-size:var(--t-label);margin:.4em 0}
-#ai-feed .ai-table-wrap{overflow-x:auto;margin:.45em 0}
-#ai-feed .ai-table{width:100%;border-collapse:collapse;font-size:var(--t-meta)}
-#ai-feed .ai-table th,#ai-feed .ai-table td{border:1px solid var(--color-divider);padding:var(--s-1) 7px;text-align:left}
-#ai-feed .ai-table th{background:var(--color-bg);font-weight:var(--w-strong)}
-#ai-feed hr{border:0;border-top:1px solid var(--color-divider);margin:.6em 0}
+:is(#ai-feed,#jl-feed) .ai-table-wrap{overflow-x:auto;margin:.45em 0}
+:is(#ai-feed,#jl-feed) .ai-table{width:100%;border-collapse:collapse;font-size:var(--t-meta)}
+:is(#ai-feed,#jl-feed) .ai-table th,:is(#ai-feed,#jl-feed) .ai-table td{border:1px solid var(--color-divider);padding:var(--s-1) 7px;text-align:left}
+:is(#ai-feed,#jl-feed) .ai-table th{background:var(--color-bg);font-weight:var(--w-strong)}
+:is(#ai-feed,#jl-feed) hr{border:0;border-top:1px solid var(--color-divider);margin:.6em 0}
 /* THE SAME ANSWER STYLES IN EXPLORER'S PANEL (28 Sep 2026). Its answers go
    through the same renderer as the side panel's, but these rules were written
    for #ai-feed alone, so a list in Explorer drew no bullets and its
@@ -15330,13 +15333,13 @@
    about wording they can no longer necessarily see, so the wording comes with
    the question. Quoted and set in the document face, so it reads as the
    contract's words rather than as the Copilot's. */
-#ai-feed .ai-target{border-left:2px solid var(--color-accent-300);
+:is(#ai-feed,#jl-feed) .ai-target{border-left:2px solid var(--color-accent-300);
   background:var(--color-bg);border-radius:var(--radius);padding:var(--s-2) 11px;margin:0 0 var(--s-2)}
-#ai-feed .ai-target-head{font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;
+:is(#ai-feed,#jl-feed) .ai-target-head{font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;
   color:var(--color-neutral-500);margin-bottom:var(--s-1)}
-#ai-feed .ai-target-body{font-family:var(--font-doc);font-size:var(--t-body);line-height:1.6;
+:is(#ai-feed,#jl-feed) .ai-target-body{font-family:var(--font-doc);font-size:var(--t-body);line-height:1.6;
   color:var(--color-neutral-800);max-height:9.6em;overflow:auto;white-space:pre-wrap}
-#ai-feed .ai-target-ask{font-size:var(--t-body);line-height:1.55}
+:is(#ai-feed,#jl-feed) .ai-target-ask{font-size:var(--t-body);line-height:1.55}
 /* Suggested-question chips: shown on an empty panel only (js/ai.js). */
 .ai-chip{border:1px dashed var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);
   display:inline-flex;align-items:center;min-height:var(--ctl-h-sm);

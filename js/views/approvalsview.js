@@ -548,8 +548,11 @@ function renderApprovalsPage(){
   const ident=c=>`<td><div class="ap-id">${apAvHtml(c.counterparty)}<div><span class="ap-name">${esc(c.counterparty||'—')}</span><span class="ap-sub">${esc(c.name||'')}</span></div></div></td>`;
   /* the drawing's room (round 15): Whose turn wide enough for "You · for
      Jonas" and "Jonas signs · back Friday", Waiting for "9 days · late" */
-  const head=[{t:i18t('reg_col_ref'),w:84},{t:i18t('reg_col_party')},{t:i18t('ap_wl_kind'),w:92},{t:i18t('ap_wl_why'),w:188},{t:i18t('ap_wl_turn'),w:168},{t:i18t('ap_pg_waiting'),w:104},
-    ...(money?[{t:i18t('reg_col_value'),right:true,w:92}]:[]),...(INS?[]:[{t:'',w:220}])];
+  /* widths measured on the words they hold (18 Oct 2026): "Signature" in its
+     pill, "Jonas signs · back Wednesday", "100 days · late" — the party keeps
+     the rest, 190px or more at 1366 beside Jambo's panel */
+  const head=[{t:i18t('reg_col_ref'),w:76},{t:i18t('reg_col_party')},{t:i18t('ap_wl_kind'),w:100},{t:i18t('ap_wl_why'),w:190},{t:i18t('ap_wl_turn'),w:188},{t:i18t('ap_pg_waiting'),w:120},
+    ...(money?[{t:i18t('reg_col_value'),right:true,w:88}]:[]),...(INS?[]:[{t:'',w:220}])];
   const acts=r=>{
     if(r.type==='signature') return `<button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_sign_title'))}">${esc(i18t('ap_pg_open_signing'))}</button>`;
     if(r.done) return `<span class="ap-acts">${apMayUndo(r)?`<button type="button" class="ui-btn ui-btn-sm" data-ap-undo="${esc(r.c.id)}" title="${esc(i18t('ap_pg_undo_title'))}">${esc(i18t('ap_pg_undo'))}</button>`:''}<button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_gate_title'))}">${esc(i18t('ap_pg_open'))}</button></span>`;

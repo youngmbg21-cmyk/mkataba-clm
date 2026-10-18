@@ -161,8 +161,9 @@ function jamboFacePaint(root){
 const jamboHintHtml = (o = {}) => {
   const t = (k) => (typeof i18t === 'function') ? i18t(k) : k;
   const kbd = x => `<kbd class="jb-kbd">${esc(x)}</kbd>`;
-  const tail = o.places === 'lists' ? ` ${kbd('/')} ${esc(t('jb_hint_lists'))}`
-    : o.places ? ` ${kbd('/')} ${esc(t('jb_hint_places'))} · ${kbd('Esc')} ${esc(t('jb_hint_closes'))}` : '';
+  /* the keys are one unit: where the line is short they go down together */
+  const tail = o.places === 'lists' ? ` <span class="jb-keys">${kbd('/')} ${esc(t('jb_hint_lists'))}</span>`
+    : o.places ? ` <span class="jb-keys">${kbd('/')} ${esc(t('jb_hint_places'))} · ${kbd('Esc')} ${esc(t('jb_hint_closes'))}</span>` : '';
   return `<p class="jb-hint" data-jb-hint>${esc(t('jb_hint'))}${tail}</p>`;
 };
 /* ---- WHEN SOMETHING IS LOADING, SOMETHING MOVES (owner, 11 Oct 2026: "when
