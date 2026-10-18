@@ -30,7 +30,7 @@
  *      reachable by scrolling inside its own card rather than by pushing the
  *      month off;
  *   3. a day box is a rounded tile with an edge, and the day-name band above
- *      still stands over its seven columns;
+ *      still stands over its five columns (Monday to Friday since round 16);
  *   4. More wears the same outline as Export and Share beside it.
  *
  * Every driven half is guarded, so a missing control REPORTS rather than
@@ -86,7 +86,8 @@ const OFFSETS = [3, 6, 9, 12, 20, 26, 35, 44, 52, 61, 70, 78, 85, 88];
        sooner either */
     await page.waitForFunction(() => state.contracts.some(c => c.id === 'MK-B2'), null, { timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(600);
-    await page.evaluate(() => setView('calendar'));
+    /* the calendar opens on this week and five more since round 16 (18 Oct 2026); this check is about the month, so it asks for it */
+    await page.evaluate(() => { setView('calendar'); calSetView('month'); });
     await pause(1200);
     /* SEEDED ON THE PAGE, after it has drawn once: the bootstrap's own fetch
        lands late and replaces state.contracts, so a book written before the
@@ -192,13 +193,13 @@ const OFFSETS = [3, 6, 9, 12, 20, 26, 35, 44, 52, 61, 70, 78, 85, 88];
         wkBg: ws.backgroundColor, gap: ws.columnGap,
         /* a line is painted only where its style draws one */
         edgeDrawn: cs.borderTopStyle !== 'none' && parseFloat(cs.borderTopWidth) > 0,
-        align: [col(0), col(3), col(6)], dowGap: ds.columnGap };
+        align: [col(0), col(2), col(4)], dowGap: ds.columnGap };
     });
     ok('3a a day box has the card radius', !!tile && tile.radius >= 8, tile && String(tile.radius));
     ok('3b and an edge that is really drawn', !!tile && tile.edgeDrawn, tile && tile.edge);
     ok('3c the grey backing behind the old grid lines is gone',
       !!tile && /rgba\(0, 0, 0, 0\)|transparent/.test(tile.wkBg), tile && tile.wkBg);
-    ok('3d the day-name band still stands over its seven columns',
+    ok('3d the day-name band still stands over its five columns (Monday to Friday since round 16)',
       !!tile && tile.align.every(x => x != null && Math.abs(x) <= 1), tile && JSON.stringify(tile.align));
 
     /* ===== 4. MORE WEARS THE ROW'S OUTLINE ===== */

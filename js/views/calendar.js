@@ -39,7 +39,7 @@
    and CAL_AGENDA_DAYS is a const declared below it, so naming it here is a read
    inside its own temporal dead zone — the getter trap this codebase records,
    one keyword along. calAgendaDays() supplies the default. */
-let calState = { ym:null, view:'month', scope:'all', days:null, wk:null, lay:{ ct:true, me:true, cp:true } };
+let calState = { ym:null, view:'week', scope:'all', days:null, wk:null, lay:{ ct:true, me:true, cp:true } };
 /* ---- THREE TABS, THE DESIGN'S OWN (owner-ruled 24 Aug 2026) ----
    Month · Horizon · Obligations. 'quarter' and 'list' are RETIRED: Quarter drew
    three compact months of the same grid, which is the Month view three times
@@ -101,7 +101,8 @@ const CAL_AGENDA_ROWS = 40;
 function calPlace(){ return { ...calState }; }
 function calPlacePut(p){ if(p) Object.keys(calState).forEach(k=>{ if(k in p) calState[k]=p[k]; }); }
 function calMonth(){ if(!calState.ym){ const d=new Date(); calState.ym={y:d.getFullYear(), m:d.getMonth()}; } return calState.ym; }
-function calView(){ return CAL_VIEWS.includes(calState.view)?calState.view:'month'; }
+/* the calendar opens on this week by the hour and five more (round 16) */
+function calView(){ return CAL_VIEWS.includes(calState.view)?calState.view:'week'; }
 function calScope(){ return calState.scope==='mine'?'mine':'all'; }
 
 /* ---- FOUR TONES, AND EACH IS A TOKEN ----
@@ -244,7 +245,7 @@ function calEventMine(e, u){
    shows its month; Quarter and List show that month and the two after it. */
 function calPeriod(){
   const {y,m}=calMonth(), view=calView();
-  if(view==='week'){ const a=calWeekStart(), z=calAddDays(a,CAL_WEEK_DAYS-1);
+  if(view==='week'){ const a=calWeekStart(), z=calAddDays(a,7*(CAL_WEEKS_SHOWN-1)+CAL_WEEK_DAYS-1);
     return { months:[{y:a.getFullYear(),m:a.getMonth()}], from:_isoLocal(a), to:_isoLocal(z) }; }
   const months=[{y,m}];
   if(view!=='month') for(let i=1;i<3;i++){ const d=new Date(y,m+i,1); months.push({y:d.getFullYear(),m:d.getMonth()}); }
@@ -374,7 +375,8 @@ function calDowCells(short){
      and follows the language, which is the rule this product already states
      for months. */
   const out=[];
-  for(let i=0;i<7;i++){
+  /* MONDAY TO FRIDAY EVERYWHERE (round 16, owner's yes, 17 Oct 2026) */
+  for(let i=0;i<CAL_WEEK_DAYS;i++){
     const d=new Date(2024,0,1+i);   // 1 Jan 2024 was a Monday
     const w=d.toLocaleDateString(langLocale(),{weekday:short?'narrow':'short'});
     out.push(`<span>${_esc(w)}</span>`);
@@ -382,6 +384,12 @@ function calDowCells(short){
   return out.join('');
 }
 
+/* A weekend date as it stands on the Friday before: "Sat 24". */
+function calWeekendWord(iso){
+  const d=new Date(String(iso||'').slice(0,10)+'T00:00:00');
+  if(isNaN(d.getTime())) return '';
+  return `${d.toLocaleDateString(langLocale(),{weekday:'short'})} ${d.getDate()}`;
+}
 /* One month's 42 cells. `compact` is the Quarter view: no chips, just the day
    number and a row of dots, because a cell a twenty-first of the page wide has
    no room for words and a truncated word is worse than a dot. */
@@ -390,9 +398,17 @@ function calMonthGridHtml(y, m, byDay, opts){
   const first=new Date(y,m,1), start=(first.getDay()+6)%7, days=new Date(y,m+1,0).getDate();
   const todayIso=calToday();
   const cells=[];
+  const isoOf=dd=>{ const d=new Date(y,m,dd); return _isoLocal(d); };
   for(let i=0;i<42;i++){
+    /* MONDAY TO FRIDAY (round 16, owner's yes, 17 Oct 2026): the six weeks
+       draw their working days only; a Saturday's or a Sunday's dates stand on
+       the Friday before, each saying its own day ("Sat 24 · …"). */
+    if(i%7>=CAL_WEEK_DAYS) continue;
     const dnum=i-start+1, inMonth=dnum>=1&&dnum<=days;
-    if(!inMonth){
+    const weekend=i%7===CAL_WEEK_DAYS-1
+      ? [1,2].filter(k=>dnum+k>=1&&dnum+k<=days).flatMap(k=>(byDay[isoOf(dnum+k)]||[]).map(e=>Object.assign({},e,{ _we:calWeekendWord(isoOf(dnum+k)) })))
+      : [];
+    if(!inMonth&&!(weekend.length&&!compact)){
       /* The days either side keep their NUMBERS, greyed — the render draws
          them and a reader counting back from the 1st needs somewhere to land.
          They carry no events and no press: this month's grid is not the place
@@ -401,8 +417,8 @@ function calMonthGridHtml(y, m, byDay, opts){
       cells.push(`<div class="cal-day is-mute"><span class="cal-dn">${d.getDate()}</span></div>`);
       continue;
     }
-    const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(dnum).padStart(2,'0')}`;
-    const list=byDay[iso]||[];
+    const iso=isoOf(dnum);
+    const list=(inMonth?(byDay[iso]||[]):[]).concat(weekend);
     const today=iso===todayIso;
     const dayName=new Date(y,m,dnum).toLocaleDateString(langLocale(),{day:'numeric',month:'long',year:'numeric'});
     /* ---- THE WHOLE BOX OPENS ITS WEEK, A CONTRACT OPENS ITS CONTRACT (Young,
@@ -433,18 +449,19 @@ function calMonthGridHtml(y, m, byDay, opts){
            carries no title and the browser walks up to the cell's own
            ("choose from N on 30 August"), which is where the press really
            lands. */
-        const t=` title="${_esc(ev.label+': '+(e.note||e.cname))}"`;
+        const t=` title="${_esc((e._we?e._we+' · ':'')+ev.label+': '+(e.note||e.cname))}"`;
+        const we=e._we?`<b class="cal-we">${_esc(e._we)}</b> · `:'';
         /* the chip's reference wears the reference face (calChipText stays the text) */
         /* the drawing's chip names the contract after its reference ("Ends · MK-A6 Flour…") */
         if(e.own){
-          return `<span class="cal-chip cal-own is-${e.type}${e.st==='added'?' is-added':''}" ${e.own} title="${_esc(e.title)}" style="border-left-color:${ev.dot};background:${ev.bg};color:${ev.fg}">${_esc(e.chip)}</span>`;
+          return `<span class="cal-chip cal-own is-${e.type}${e.st==='added'?' is-added':''}" ${e.own} title="${_esc((e._we?e._we+' · ':'')+e.title)}" style="border-left-color:${ev.dot};background:${ev.bg};color:${ev.fg}">${we}${_esc(e.chip)}</span>`;
         }
-        const chip=e.type==='obligation'?_esc(calChipText(e)):_esc(CAL_EVENT[e.type].short)+' · '+(window.refHtml?refHtml(e.cref||e.cid):_esc(e.cref||e.cid))+(e.cname?' '+_esc(e.cname):'');
+        const chip=we+(e.type==='obligation'?_esc(calChipText(e)):_esc(CAL_EVENT[e.type].short)+' · '+(window.refHtml?refHtml(e.cref||e.cid):_esc(e.cref||e.cid))+(e.cname?' '+_esc(e.cname):''));
         return `<span class="cal-chip${e.done?' is-done':''}" data-cal-ct="${_esc(e.cid)}"${t} style="border-left-color:${ev.dot};background:${ev.bg};color:${ev.fg}">${chip}</span>`;
       }).join('')+(more>0?`<span class="cal-more">${i18t('cal_n_more',{n:more})}</span>`:'')+`</span>`;
     }
-    const dn=`<span class="cal-dn">${dnum}</span>`;
-    cells.push(`<div class="cal-day${today?' is-today':''}"${attrs}>${dn}${inner}</div>`);
+    const dn=`<span class="cal-dn">${new Date(y,m,dnum).getDate()}</span>`;
+    cells.push(`<div class="cal-day${today?' is-today':''}${inMonth?'':' is-mute'}"${attrs}>${dn}${inner}</div>`);
   }
   /* id="cal-grid" is KEPT from the grid this replaces, and only the MONTH view
      carries it — three of them in the Quarter view would be three elements
@@ -1151,7 +1168,7 @@ function calStyleCss(){ return `
          words with nothing above it to separate. Clearing `border` alone left
          it, which is why it survived the move. */}
   .cal-cardbar .cal-legend{margin:0;padding:0;border:0;box-shadow:none;flex:none}
-  .cal-dow{flex:none;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));
+  .cal-dow{flex:none;display:grid;grid-template-columns:repeat(${CAL_WEEK_DAYS},minmax(0,1fr));
     column-gap:var(--s-1);padding:0 var(--s-1);
     background:var(--color-neutral-100);box-shadow:inset 0 -1px var(--color-divider)}
   .cal-dow span{padding:7px var(--s-2);font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.06em;
@@ -1166,7 +1183,7 @@ function calStyleCss(){ return `
          CARD radius is --radius-lg, the one CLAUDE.md names for a card.
          The day-name band above takes the SAME column gap and side padding,
          or its seven labels no longer stand over their seven columns. */}
-  .cal-weeks{flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));
+  .cal-weeks{flex:1;min-height:0;display:grid;grid-template-columns:repeat(${CAL_WEEK_DAYS},minmax(0,1fr));
     grid-template-rows:repeat(6,minmax(0,1fr));gap:var(--s-1);padding:var(--s-1);background:none}
   .cal-day{background:var(--color-surface);border:1px solid var(--color-divider);
     border-radius:var(--radius-lg);padding:var(--s-1) var(--s-1) 6px;display:flex;
@@ -1354,7 +1371,22 @@ function calStyleCss(){ return `
   .cal-chip.is-plan{border:1px dashed var(--cal-cp);border-left-width:3px}
   .cal-wk-card{height:calc(var(--cal-day-h) * 6 + 28px)}
   .cal-wk{display:flex;flex-direction:column;min-height:0;height:100%}
-  .cal-wk-hd,.cal-wk-alls,.cal-wk-grid{display:grid;grid-template-columns:52px repeat(${CAL_WEEK_DAYS},minmax(0,1fr))}
+  .cal-wk-hd,.cal-wk-alls,.cal-wk-grid,.cal-wkm-row{display:grid;grid-template-columns:84px repeat(${CAL_WEEK_DAYS},minmax(0,1fr))}
+  .cal-wk-lab.is-this{align-self:end;padding-bottom:8px}
+  .cal-wkm{flex:none;border-top:1px solid var(--color-divider)}
+  .cal-wkm-row{height:var(--cal-wkm-h,44px);border-bottom:1px solid var(--color-divider)}
+  .cal-wkm-row:last-child{border-bottom:0}
+  .cal-wkm-lab{display:flex;flex-direction:column;justify-content:center;padding:0 8px;min-width:0}
+  .cal-wkm-lab b{font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap}
+  .cal-wkm-lab span{font-size:var(--t-micro);color:var(--color-neutral-600);white-space:nowrap}
+  .cal-wkm-d{border-left:1px solid var(--color-divider);padding:3px 4px;display:flex;flex-direction:column;gap:2px;min-width:0;overflow:hidden;cursor:pointer}
+  .cal-wkm-d:hover{background:color-mix(in srgb,var(--accent-solid) 6%,transparent)}
+  .cal-wkm-d:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:-2px}
+  .cal-wkm-d.is-today .cal-wkm-dn{color:var(--accent-ink);font-weight:var(--w-strong)}
+  .cal-wkm-dn{font-size:var(--t-micro);color:var(--color-neutral-600);line-height:1.2}
+  .cal-wkm-d .cal-chip{display:block;font-size:var(--t-micro);padding:1px 5px;border-left:3px solid;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+  .cal-wkm-d .cal-more{font-size:var(--t-micro);color:var(--color-neutral-600);line-height:1.1}
+  .cal-we{font-weight:var(--w-strong)}
   .cal-wk-hd{border-bottom:1px solid var(--color-divider)}
   .cal-wk-h{padding:6px 8px;font-size:var(--t-label);color:var(--color-neutral-600);border-left:1px solid var(--color-divider)}
   .cal-wk-h b{display:block;font-size:var(--t-h3, 16px);color:var(--color-text);font-weight:var(--w-strong)}
@@ -1720,10 +1752,12 @@ function calWeekStart(){
   if(base.getDay()===6||base.getDay()===0) return calAddDays(base,base.getDay()===6?2:1);
   return calAddDays(base,-((base.getDay()+6)%7));
 }
-/* THE WORKING WEEK'S NAME, "19–23 Oct 2026" — the design's bar title. */
+/* THE SIX WEEKS' NAME, "19 Oct – 27 Nov 2026" — the bar's title since the
+   week view became this week by the hour and five more (round 16). */
 const CAL_WEEK_DAYS = 5;
+const CAL_WEEKS_SHOWN = 6;
 function calWeekTitle(){
-  const a=calWeekStart(), z=calAddDays(a,CAL_WEEK_DAYS-1);
+  const a=calWeekStart(), z=calAddDays(a,7*(CAL_WEEKS_SHOWN-1)+CAL_WEEK_DAYS-1);
   const f=(d,o)=>d.toLocaleDateString(langLocale(),o);
   return a.getMonth()===z.getMonth()?`${a.getDate()}–${f(z,{day:'numeric',month:'short',year:'numeric'})}`
     :`${f(a,{day:'numeric',month:'short'})} – ${f(z,{day:'numeric',month:'short',year:'numeric'})}`;
@@ -1749,15 +1783,20 @@ const calMins=hm=>{ const [h,m]=String(hm||'0:0').split(':').map(Number); return
 function calWeekHtml(contractEvs){
   const a=calWeekStart(), days=Array.from({length:CAL_WEEK_DAYS},(_,i)=>calAddDays(a,i));
   const pref=typeof minePref==='function'?minePref():{dayStart:8,dayEnd:17};
-  const H0=Math.max(0,Math.min(pref.dayStart,8)-1), H1=Math.min(24,Math.max(pref.dayEnd,17)+1), ROW=40;
+  const H0=Math.max(0,Math.min(pref.dayStart,8)-1), H1=Math.min(24,Math.max(pref.dayEnd,17)+1), ROW=28;
   const today=calToday(), from=_isoLocal(days[0]), to=_isoLocal(days[days.length-1]);
   const own=calOwnEvents(from,to);
   const head=days.map(d=>{ const iso=_isoLocal(d);
     return `<div class="cal-wk-h${iso===today?' is-today':''}${d.getDay()%6===0?' is-we':''}"><span>${_esc(d.toLocaleDateString(langLocale(),{weekday:'short'}))}</span><b>${d.getDate()}</b></div>`; }).join('');
+  /* a Saturday's or a Sunday's contract dates stand on the Friday before,
+     each saying its own day (Monday to Friday everywhere, round 16) */
+  const onDay=iso=>{ const d=new Date(iso+'T00:00:00');
+    const we=d.getDay()===5?[1,2].map(k=>_isoLocal(calAddDays(d,k))):[];
+    return (contractEvs||[]).filter(e=>e.date===iso).concat((contractEvs||[]).filter(e=>we.includes(e.date)).map(e=>Object.assign({},e,{ _we:calWeekendWord(e.date) }))); };
   const allDay=days.map(d=>{ const iso=_isoLocal(d);
-    const c=(contractEvs||[]).filter(e=>e.date===iso).map(e=>{ const ev=CAL_EVENT[e.type];
-      const t=e.type==='obligation'?calChipText(e):ev.short+' · '+(e.cref||e.cid);
-      return `<button type="button" class="cal-chip cal-wk-ct" data-sel="${_esc(e.cid)}" title="${_esc(ev.label+': '+(e.note||e.cname))}" style="border-left-color:${ev.dot};background:${ev.bg};color:${ev.fg}">${_esc(t)}</button>`; });
+    const c=onDay(iso).map(e=>{ const ev=CAL_EVENT[e.type];
+      const t=(e._we?e._we+' · ':'')+(e.type==='obligation'?calChipText(e):ev.short+' · '+(e.cref||e.cid));
+      return `<button type="button" class="cal-chip cal-wk-ct" data-sel="${_esc(e.cid)}" title="${_esc((e._we?e._we+' · ':'')+ev.label+': '+(e.note||e.cname))}" style="border-left-color:${ev.dot};background:${ev.bg};color:${ev.fg}">${_esc(t)}</button>`; });
     const o=own.filter(e=>e.date===iso&&!e.start).map(e=>{ const ev=CAL_EVENT[e.type];
       return `<button type="button" class="cal-chip cal-own is-${e.type}" ${e.own} title="${_esc(e.title)}" style="border-left-color:${ev.dot};background:${ev.bg};color:${ev.fg}">${_esc(e.chip)}</button>`; });
     return `<div class="cal-wk-all">${c.concat(o).join('')}</div>`; }).join('');
@@ -1770,10 +1809,46 @@ function calWeekHtml(contractEvs){
         :`<b>${_esc(e.type==='plan'?'✦ '+e.title:e.title)}</b><small>${_esc(e.start+'–'+e.end)}${e.type==='plan'?' · '+_esc(i18t('cal_plan_suggested')):''}</small>`}</button>`; }).join('');
     return `<div class="cal-wk-col${iso===today?' is-today':''}" style="height:${(H1-H0)*ROW}px">${slots}${blocks}</div>`; }).join('');
   return `<div class="cal-wk" id="cal-week" style="--cal-wk-row:${ROW}px">
-    <div class="cal-wk-hd"><div></div>${head}</div>
+    <div class="cal-wk-hd"><div class="cal-wk-lab is-this">${_esc(i18t('cal_wk_this'))}</div>${head}</div>
     <div class="cal-wk-alls"><div class="cal-wk-lab">${_esc(i18t('cal_all_day'))}</div>${allDay}</div>
     <div class="cal-wk-body scroll-thin" id="cal-wk-body"><div class="cal-wk-grid"><div class="cal-wk-times">${hours}</div>${cols}</div></div>
+    ${calMoreWeeksHtml(a,onDay)}
   </div>`;
+}
+/* ---- THE FIVE WEEKS AFTER IT, ONE ROW EACH (round 16, "Week by week",
+   owner picked it 17 Oct 2026) ----
+   Each row is a working week: its dates and how many contract dates it holds
+   on the left, then Monday to Friday with what falls on each (a weekend's on
+   the Friday, saying its day). A day shows its first date and "+N more"; the
+   whole day box is that week's door — pressed, the week comes up by the hour.
+   The person's own events ride along as on the month. */
+function calMoreWeeksHtml(a,onDay){
+  const rows=[];
+  for(let w=1;w<CAL_WEEKS_SHOWN;w++){
+    const mon=calAddDays(a,7*w), fri=calAddDays(mon,CAL_WEEK_DAYS-1);
+    const own=calOwnEvents(_isoLocal(mon),_isoLocal(calAddDays(mon,6)));
+    let n=0;
+    const cells=Array.from({length:CAL_WEEK_DAYS},(_,i)=>{
+      const d=calAddDays(mon,i), iso=_isoLocal(d);
+      const ct=onDay(iso); n+=ct.length;
+      const mine=own.filter(e=>e.date===iso||(i===CAL_WEEK_DAYS-1&&[1,2].some(k=>_isoLocal(calAddDays(d,k))===e.date)));
+      const list=ct.concat(mine);
+      const e=list[0];
+      const chip=e?(()=>{ const ev=CAL_EVENT[e.type];
+        const we=e._we||(e.date!==iso?calWeekendWord(e.date):'');
+        const t=(we?we+' · ':'')+(e.own?e.chip:e.type==='obligation'?calChipText(e):ev.short+' · '+(e.cref||e.cid)+(e.cname?' '+e.cname:''));
+        return e.own
+          ? `<span class="cal-chip cal-own is-${e.type}" ${e.own} title="${_esc(t)}" style="border-left-color:${ev.dot};background:${ev.bg};color:${ev.fg}">${_esc(t)}</span>`
+          : `<span class="cal-chip" data-cal-ct="${_esc(e.cid)}" title="${_esc((we?we+' · ':'')+ev.label+': '+(e.note||e.cname))}" style="border-left-color:${ev.dot};background:${ev.bg};color:${ev.fg}">${_esc(t)}</span>`; })():'';
+      const more=list.length>1?`<span class="cal-more">${_esc(i18t('cal_n_more',{n:list.length-1}))}</span>`:'';
+      const dayName=d.toLocaleDateString(langLocale(),{day:'numeric',month:'long',year:'numeric'});
+      return `<div class="cal-wkm-d${iso===calToday()?' is-today':''}" role="button" tabindex="0" data-cal-week="${iso}" title="${_esc(i18t('cal_open_week_of',{day:dayName}))}"><span class="cal-wkm-dn">${_esc(d.toLocaleDateString(langLocale(),{weekday:'short'}))} ${d.getDate()}</span>${chip}${more}</div>`;
+    }).join('');
+    const f=(d,o)=>d.toLocaleDateString(langLocale(),o);
+    const rng=mon.getMonth()===fri.getMonth()?`${mon.getDate()}–${f(fri,{day:'numeric',month:'short'})}`:`${f(mon,{day:'numeric',month:'short'})} – ${f(fri,{day:'numeric',month:'short'})}`;
+    rows.push(`<div class="cal-wkm-row" data-cal-wkm="${_isoLocal(mon)}"><div class="cal-wkm-lab"><b>${_esc(rng)}</b><span>${_esc(n?i18tn('cal_wk_n_dates',n,{n}):i18t('cal_wk_none'))}</span></div>${cells}</div>`);
+  }
+  return `<div class="cal-wkm" id="cal-wk-more" aria-label="${_esc(i18t('cal_wk_more_label'))}">${rows.join('')}</div>`;
 }
 
 /* ---- COPILOT'S PLAN (per sitting; what is added lives in js/mine.js) ---- */
@@ -1965,4 +2040,4 @@ Object.assign(window,{calendarDoorCount,calOnScreen,calWireOwn,calState,calPlace
   calToday,calChipText,calIcsFor,calUpcoming,calSummaryLines,calMonthGridHtml,calPanelHtml,
   CAL_AGENDA_DAYS,CAL_AGENDA_WINDOWS,CAL_AGENDA_ROWS,calAgendaDays,calSetAgendaDays,
   calSetView,calSetScope,calStep,openCalendarShare,renderCalendar,
-  calLayers,calWeekStart,calWeekHtml,calOwnEvents,calPlanHtml,calPlanAsk,calPlanAdd,calPlanUndo,calEventDialog,_calPlanState});
+  calLayers,calWeekStart,calWeekHtml,calMoreWeeksHtml,calWeekendWord,CAL_WEEKS_SHOWN,CAL_WEEK_DAYS,calOwnEvents,calPlanHtml,calPlanAsk,calPlanAdd,calPlanUndo,calEventDialog,_calPlanState});

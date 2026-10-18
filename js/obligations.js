@@ -3463,9 +3463,10 @@ function obListHtml(rows, ctx, c1){
     { t: i18t('ob_f_whose'), w: 132 },
     ...(money ? [{ t: i18t('ob_amount'), w: 112, r: true }] : []),
   ];
-  const tr = r => {
+  const tr = (r, W) => {
     const c = r._c || c1;
     const due = obligationDueSay(r, c);
+    if(W && obligationDue(r) && /^(overdue|later|w\d)$/.test(W.k)) due.day = obWeekDay(obligationDue(r), W.k === 'overdue' || W.k === 'later');
     const line2 = ctx === 'page' ? obPageLine2(r, c) : obligationFactsLine(r, c, false);
     return `<tr data-ins-row data-ob-key="${_obEsc(r._key)}" tabindex="-1">
       <td><span class="ins-c2"><b>${_obEsc(due.day)}</b><span class="${due.cls}">${_obEsc(due.sub)}</span></span></td>
@@ -3475,15 +3476,115 @@ function obListHtml(rows, ctx, c1){
     </tr>`;
   };
   let body = '';
+  if(ctx === 'page'){
+    /* WEEK BY WEEK on the page (round 16): the groups are weeks, the day a
+       weekday ("Mon 19"), a later week folded to one line saying what is in it */
+    for(const W of obWeekGroups(rows)){
+      const mw = obMoneyWords(W.rows, null);
+      const shut = W.fold && !obwWeekOpen(W.k);
+      const said = shut ? obWeekSaid(W.rows) : '';
+      const word = `${_obEsc(W.word)}${W.range ? `<span class="ob-wk-rng">${_obEsc(W.range)}</span>` : ''}`;
+      const head = W.fold
+        ? `<button type="button" class="ob-wk-fold" data-obw-week="${W.k}" aria-expanded="${shut ? 'false' : 'true'}"><i class="ob-wk-car" aria-hidden="true"></i>${word}</button>`
+        : word;
+      body += `<tr class="ins-grp${W.fold ? ' is-fold' : ''}${shut ? ' is-shut' : ''}" data-ob-win="${W.win}" data-ob-week="${W.k}"><td colspan="${cols.length}"><span class="ins-g"><i class="ins-dot2 is-${W.tone}" aria-hidden="true"></i>${head}<span class="n">${W.rows.length}</span>${
+        said ? `<span class="ob-wk-said" title="${_obEsc(said)}">${_obEsc(said)}</span>` : ''}${
+        mw.text || mw.left ? `<span class="ins-g-r">${_obEsc(mw.text)}${obMoneyLeftHtml(mw)}</span>` : ''}</span></td></tr>`
+        + W.rows.map(r => tr(r, W)).join('').replace(/<tr data-ins-row /g, shut ? '<tr hidden data-ins-row ' : '<tr data-ins-row ');
+    }
+    return { cols, body };
+  }
   for(const [k, key, tone] of OB_WINDOWS){
     const g = rows.filter(r => r.win === k);
     if(!g.length) continue;
     const mw = obMoneyWords(g, ctx === 'tab' ? c1 : null);
     body += `<tr class="ins-grp" data-ob-win="${k}"><td colspan="${cols.length}"><span class="ins-g"><i class="ins-dot2 is-${tone}" aria-hidden="true"></i>${_obEsc(i18t(key))}<span class="n">${g.length}</span>${
-      mw.text || mw.left ? `<span class="ins-g-r">${_obEsc(mw.text)}${obMoneyLeftHtml(mw)}</span>` : ''}</span></td></tr>` + g.map(tr).join('');
+      mw.text || mw.left ? `<span class="ins-g-r">${_obEsc(mw.text)}${obMoneyLeftHtml(mw)}</span>` : ''}</span></td></tr>` + g.map(r => tr(r)).join('');
   }
   return { cols, body };
 }
+
+/* ---- WEEK BY WEEK (round 16 of the redesign: the owner picked "Week by
+   week" by name, 17 Oct 2026, and said yes to Monday to Friday everywhere) ----
+   On the Obligations PAGE the open work groups by the WEEK it falls in, the
+   working week as the calendar draws it: Late on top, This week and Next week
+   open, each later week of the six the calendar shows folded to one line that
+   says what is in it, then Later. A Saturday or Sunday opens the working week
+   ahead, as the calendar's calWeekStart does; a date that falls on a weekend
+   stays in its own week with its own weekday. ONE READING, obWeekKeyOf; the
+   contract's tab, the report and the phone keep the windows (OB_WINDOWS). */
+const OB_WEEKS_SHOWN = 6;
+const _obIsoLocal = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+function obWeekMonday(iso){
+  const d = new Date(String(iso || '').slice(0, 10) + 'T00:00:00');
+  if(isNaN(d.getTime())) return null;
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d;
+}
+/* The Monday of the working week "this week" names: today's, or the next one
+   on a Saturday or a Sunday. */
+function obThisMonday(){
+  const t = new Date(((typeof todayISO === 'function') ? todayISO() : _obIsoLocal(new Date())) + 'T00:00:00');
+  if(t.getDay() === 6 || t.getDay() === 0) t.setDate(t.getDate() + (t.getDay() === 6 ? 2 : 1));
+  return obWeekMonday(_obIsoLocal(t));
+}
+function obWeekKeyOf(r){
+  if(!r || r.win === 'overdue' || r.win === 'nodate' || r.win === 'waiting' || r.win === 'done') return r ? r.win : 'nodate';
+  const mon = obWeekMonday(obligationDue(r)), base = obThisMonday();
+  if(!mon || !base) return 'nodate';
+  const k = Math.max(0, Math.round((mon - base) / (7 * 864e5)));
+  return k >= OB_WEEKS_SHOWN ? 'later' : 'w' + k;
+}
+/* "19–23 October", "29 October – 2 November": Monday to Friday, in the
+   reader's language. */
+function obWeekRange(k){
+  const base = obThisMonday(); if(!base) return '';
+  const a = new Date(base); a.setDate(a.getDate() + 7 * Number(String(k).slice(1)));
+  const z = new Date(a); z.setDate(z.getDate() + 4);
+  const loc = (typeof langLocale === 'function') ? langLocale() : 'en-GB';
+  try{
+    return a.getMonth() === z.getMonth()
+      ? `${a.getDate()}–${z.toLocaleDateString(loc, { day: 'numeric', month: 'long' })}`
+      : `${a.toLocaleDateString(loc, { day: 'numeric', month: 'long' })} – ${z.toLocaleDateString(loc, { day: 'numeric', month: 'long' })}`;
+  }catch(_){ return ''; }
+}
+function obWeekGroups(rows){
+  const keys = ['overdue', ...Array.from({ length: OB_WEEKS_SHOWN }, (_, i) => 'w' + i), 'later', 'nodate', 'waiting', 'done'];
+  const by = {}; (rows || []).forEach(r => { const k = obWeekKeyOf(r); (by[k] = by[k] || []).push(r); });
+  const winOf = k => /^w\d$/.test(k) ? 'week' : k;
+  return keys.filter(k => by[k] && by[k].length).map(k => {
+    const n = /^w(\d)$/.test(k) ? Number(k.slice(1)) : -1;
+    const word = k === 'overdue' ? i18t('ob_wk_late') : n === 0 ? i18t('ob_wk_this') : n === 1 ? i18t('ob_wk_next') : n > 1 ? obWeekRange(k) : i18t('ob_w_' + k);
+    return { k, win: winOf(k), rows: by[k], word, range: n === 0 || n === 1 ? obWeekRange(k) : '',
+      tone: k === 'overdue' ? 'ruby' : n === 0 ? 'amber' : n > 0 ? 'steel' : obWinTone(k), fold: n > 1 || k === 'later' };
+  });
+}
+/* What a folded week holds, in one line: its first two promises, then +N. */
+function obWeekSaid(rows){
+  const t = (rows || []).map(r => String(r.desc || '').trim()).filter(Boolean);
+  return t.slice(0, 2).join(' · ') + (t.length > 2 ? ' · ' + i18t('ob_wk_more', { n: t.length - 2 }) : '');
+}
+/* The weekday as the week groups say it: "Mon 19"; Late and Later carry the
+   month too ("Fri 16 Oct"). */
+function obWeekDay(iso, withMonth){
+  const d = new Date(String(iso || '').slice(0, 10) + 'T00:00:00');
+  if(isNaN(d.getTime())) return '';
+  const loc = (typeof langLocale === 'function') ? langLocale() : 'en-GB';
+  try{
+    const wd = d.toLocaleDateString(loc, { weekday: 'short' });
+    return `${wd} ${withMonth ? d.toLocaleDateString(loc, { day: 'numeric', month: 'short' }) : d.getDate()}`;
+  }catch(_){ return obDay(iso); }
+}
+/* WHICH LATER WEEKS ARE OPEN, per sitting: a press on the week's line opens
+   or folds it; "Open every week" opens them all. */
+let _obwWeeksAll = false;
+const _obwWeeksOpen = new Set();
+function obwWeekOpen(k){ return _obwWeeksAll || _obwWeeksOpen.has(k); }
+function obwWeekToggle(k){
+  if(_obwWeeksAll){ _obwWeeksAll = false; obWeekGroups((typeof obwBook === 'function') ? obwBook() : []).forEach(W => { if(W.fold) _obwWeeksOpen.add(W.k); }); }
+  if(_obwWeeksOpen.has(k)) _obwWeeksOpen.delete(k); else _obwWeeksOpen.add(k);
+}
+function obwWeeksAll(on){ _obwWeeksAll = !!on; _obwWeeksOpen.clear(); }
 /* The counterparty's initials, as on every list (regAvatarHtml, the one builder). */
 function obAvHtml(name){ return (typeof window.regAvatarHtml === 'function') ? window.regAvatarHtml(name || '—') : ''; }
 function obTableHtml(cols, body){
@@ -3535,6 +3636,11 @@ function renderObligationsInspector(host){
   const views = insViewTabsHtml({ attr:'data-obw-view', cur: f.state, label: i18t('ob_views_label'),
     views: OBW_VIEWS.map(([k, key]) => ({ k, label: i18t(key), n: book.filter(r => obwPass(r, { ...f, state: k })).length })) });
   rows.forEach(r => { r._key = obKeyOf(r.cid, r, r._i); });
+  /* the row the reader had chosen never hides in a folded week: its week opens */
+  const wantKey = (typeof insPick === 'function') ? insPick('obligations', rows.map(r => r._key)) : null;
+  const want = rows.find(r => r._key === wantKey);
+  const weeksFold = obWeekGroups(rows).some(W => W.fold);
+  if(want){ const wk = obWeekKeyOf(want); if(obWeekGroups([want]).some(W => W.fold) && !obwWeekOpen(wk)) _obwWeeksOpen.add(wk); }
   const { cols, body } = obListHtml(rows, 'page');
   const empty = `<tr class="ins-empty"><td colspan="${cols.length}">${_obEsc(i18t(narrowing.length ? 'ob_none_match_short' : 'ob_none_here'))}${
     narrowing.length ? `<br><button type="button" class="ui-link" data-obw-clear style="margin-top:8px">${_obEsc(i18t('ob_clear_filters'))}</button>` : ''}</td></tr>`;
@@ -3548,6 +3654,7 @@ function renderObligationsInspector(host){
     <div class="ins-body">
       <section class="ins-card" aria-label="${_obEsc(i18t('nav_obligations'))}">
         <div class="ins-cardhead"><h2 class="ins-cardhead-t">${_obEsc(i18t((OBW_VIEWS.find(v => v[0] === f.state) || OBW_VIEWS[0])[1]))} <span class="ins-cardhead-n">(${rows.length})</span></h2><span style="flex:1"></span>
+          ${weeksFold ? `<button type="button" class="ui-btn ui-btn-plain obw-weeks-btn" data-obw-weeks aria-pressed="${_obwWeeksAll ? 'true' : 'false'}">${_obEsc(i18t(_obwWeeksAll ? 'ob_wk_fold_all' : 'ob_wk_open_all'))}</button>` : ''}
           <button type="button" class="ui-btn ui-btn-plain obw-filter-btn${narrowing.length ? ' on' : ''}" data-obw-filters aria-expanded="${_obwFiltersOpen || narrowing.length ? 'true' : 'false'}">${typeof icon === 'function' ? icon('filter', 'w-3.5 h-3.5') : ''}${_obEsc(i18t('ob_filter_btn'))}${narrowing.length ? ` <span class="obw-filter-n">${narrowing.length}</span>` : ''}</button></div>
         <div class="ins-bar reg-filterbar"${_obwFiltersOpen || narrowing.length ? '' : ' hidden'}>${chips}</div>
         <div class="ins-scroll" id="obw-scroll">${obTableHtml(cols, rows.length ? body : empty)}</div>
@@ -3564,6 +3671,8 @@ function renderObligationsInspector(host){
   host.querySelectorAll('[data-obw-f]').forEach(sel => sel.addEventListener('change', () => { f[sel.getAttribute('data-obw-f')] = sel.value; obwRepaint(); }));
   host.querySelectorAll('[data-obw-clear]').forEach(b => b.addEventListener('click', () => { OBW_CHIPS.forEach(k => { f[k] = OBW_DEF[k]; }); f.only = null; obwRepaint(); }));
   host.querySelector('[data-obw-only-clear]')?.addEventListener('click', () => { f.only = null; obwRepaint(); });
+  host.querySelectorAll('[data-obw-week]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); obwWeekToggle(b.getAttribute('data-obw-week')); obwRepaint(); }));
+  host.querySelector('[data-obw-weeks]')?.addEventListener('click', () => { obwWeeksAll(!_obwWeeksAll); obwRepaint(); });
   const tb = host.querySelector('.ob-lt tbody');
   const idOf = t => t.getAttribute('data-ob-key');
   const byKey = new Map(rows.map(r => [r._key, r]));
@@ -3572,7 +3681,7 @@ function renderObligationsInspector(host){
   const paint = k => { const r = byKey.get(k); const hit = r ? obLocate(k) : null;
     obPaintPanel('ins-panel', hit ? hit.o : null, hit ? hit.c : null, hit ? hit.i : -1, 'page', i18t('ob_panel_none')); };
   paint(id);
-  if(tb) insListWire(tb, { rowSel:'[data-ins-row]', idOf,
+  if(tb) insListWire(tb, { rowSel:'[data-ins-row]:not([hidden])', idOf,
     onSelect: k => { insSelect('obligations', k); insMarkRow(tb, '[data-ins-row]', idOf, k); paint(k); },
     onOpen: k => { const r = byKey.get(k); if(r) obOpenContract(r.cid, k); } });
   if(typeof insWatchWidth === 'function') insWatchWidth();
@@ -3799,6 +3908,7 @@ Object.assign(window,{obligationIsDoc,obligationDocUntil,obligationDocFile,oblig
   OB_DOC_SOON_DAYS,contractDocuments,contractDocsLapsed,contractDocsMissing,
   obligationAfter,obligationPrev,obligationBlocked,obligationChain,obligationChains,obligationStepNo,obligationRoll,
   obligationAlreadyOn,obligationRequireDoc,obFindBusy,obFinding,OB_FIND_DOORS,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,
+  OB_WEEKS_SHOWN,obWeekKeyOf,obWeekGroups,obWeekRange,obWeekSaid,obWeekDay,obThisMonday,obwWeekOpen,obwWeekToggle,obwWeeksAll,
   OB_WINDOWS,OB_WIN_ORDER,obligationWindow,obWinTone,obDay,obligationRelWords,obInitials,obShortName,obRepeatsWord,obDocSay,
   obligationDueSay,obWhoCellHtml,obAmountCellHtml,obligationReminderLine,obAvHtml,obwHomeSum,obMoneyWords,obPageLine2,obligationFactsLine,obligationStatusSay,
   obligationReminderSay,obligationHistory,obligationStampHistory,obHistoryHtml,obChainSectionHtml,obDocSectionHtml,obWordingSectionHtml,
