@@ -1677,6 +1677,53 @@
   [data-share-sap] #sh-link-opts{ margin:0 0 14px; }
   [data-share-sap] .sh-durable-box{ display:flex; align-items:center; gap:8px; height:var(--field-h); padding:0 10px; border:1px solid var(--field-line, var(--color-divider));
     border-radius:var(--radius); font-size:var(--t-body); color:var(--color-text); cursor:pointer; }
+  /* THE LETTER (round 11 of the redesign, owner picked "The letter", 17 Oct
+     2026): the send screen is the email, drawn: its head rows (From, To,
+     Subject, Sent as), its words with the note as the one box in them, and
+     "Before you send" beside it. The rare question's step hides the title
+     and the foot it does not use. */
+  [data-share-sap].sh-letter .sh-lt-grid{ display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:18px; align-items:start; }
+  [data-share-sap].sh-letter:has(> #share-step-kind:not(.hidden)) > .sh-hd,
+  [data-share-sap].sh-letter > #share-step-kind:not(.hidden) ~ .dlg-foot{ display:none; }
+  @media (max-width:900px){ [data-share-sap].sh-letter .sh-lt-grid{ grid-template-columns:minmax(0,1fr); } }
+  [data-share-sap] .sh-lt{ border:1px solid var(--color-divider); border-radius:var(--radius-lg); background:var(--color-surface); margin:0 0 12px; }
+  [data-share-sap] .sh-lt-h{ padding:0 14px; border-bottom:1px solid var(--color-divider); }
+  [data-share-sap] .sh-lt-row{ display:grid; grid-template-columns:72px minmax(0,1fr); gap:10px; align-items:center; min-height:36px; padding:6px 0; border-bottom:1px solid var(--color-divider); }
+  [data-share-sap] .sh-lt-row:last-child{ border-bottom:0; }
+  [data-share-sap] .sh-lt-row.sh-lt-as, [data-share-sap] .sh-lt-row.sh-lt-to{ align-items:start; }
+  [data-share-sap] :is(.sh-lt-as, .sh-lt-to) > .sh-lt-k{ padding-top:8px; }
+  [data-share-sap] .sh-lt-k{ font-size:var(--t-label); color:var(--color-neutral-600); }
+  [data-share-sap] .sh-lt-row > b{ min-width:0; font-weight:var(--w-label); font-size:var(--t-body); color:var(--color-text); overflow-wrap:anywhere; }
+  [data-share-sap] .sh-lt-v{ min-width:0; }
+  [data-share-sap] .sh-lt-who{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.3fr); gap:8px; }
+  [data-share-sap] .sh-lt-as .sh-pick-row{ grid-template-columns:minmax(0,1fr); gap:8px; margin:0 0 8px; }
+  [data-share-sap] .sh-lt-as #sh-link-opts{ margin:0; }
+  [data-share-sap] .sh-lt-b{ padding:14px 16px 16px; font-size:var(--t-body); line-height:1.6; color:var(--color-text); }
+  [data-share-sap] .sh-lt-p{ margin:0 0 10px; white-space:pre-line; overflow-wrap:anywhere; }
+  [data-share-sap] #sh-lt-after .sh-lt-p:last-child{ margin-bottom:0; }
+  [data-share-sap] .sh-lt-note{ margin:0 0 10px; }
+  [data-share-sap] .sh-lt-mh{ margin:0 0 4px; }
+  [data-share-sap] .sh-lt-mh.is-off{ color:var(--color-neutral-600); }
+  [data-share-sap] .sh-lt-note label{ position:relative; }
+  [data-share-sap] .sh-lt-note #sh-summary-label{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; margin:0; }
+  [data-share-sap] .sh-lt-note textarea{ border-style:dashed; border-color:color-mix(in srgb, var(--accent-fill) 45%, var(--color-divider));
+    background:color-mix(in srgb, var(--accent-fill) 5%, var(--color-surface)); }
+  [data-share-sap] .sh-lt-link{ display:inline-flex; align-items:center; height:30px; padding:0 12px; border-radius:var(--radius);
+    background:var(--accent-fill); color:#fff; font-size:var(--t-label); font-weight:var(--w-label); }
+  [data-share-sap] .sh-lt-file{ display:inline-flex; align-items:center; gap:6px; height:28px; padding:0 10px; border:1px solid var(--color-divider);
+    border-radius:var(--radius); font-size:var(--t-label); }
+  [data-share-sap] .sh-lt-none{ color:var(--color-neutral-600); }
+  [data-share-sap] .sh-lt-side{ display:flex; flex-direction:column; gap:10px; min-width:0; }
+  [data-share-sap] .sh-lt-side > :is(p, div){ margin-top:0; }
+  [data-share-sap] .sh-lt-jb{ display:flex; align-items:center; gap:8px; font-size:var(--t-body); color:var(--color-text); }
+  [data-share-sap] .sh-lt-jb b{ font-weight:var(--w-strong); }
+  [data-share-sap] .sh-lt-say{ margin:0; font-size:var(--t-meta); line-height:1.5; color:var(--color-text); }
+  [data-share-sap] .sh-lt-card{ border:1px solid var(--color-divider); border-radius:var(--radius); padding:10px 12px; background:var(--color-surface); }
+  [data-share-sap] .sh-lt-card h4{ margin:0 0 4px; font-size:var(--t-body); font-weight:var(--w-strong); color:var(--color-text); }
+  [data-share-sap] .sh-lt-card p{ margin:0; font-size:var(--t-meta); line-height:1.5; color:var(--color-neutral-700); }
+  [data-share-sap] .sh-lt-card.is-stays{ border-color:var(--st-amber-line); background:var(--st-amber-bg); }
+  [data-share-sap] .sh-lt-card.is-stays :is(h4, p){ color:var(--st-amber-fg); }
+  [data-share-sap] .sh-lt-acts{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
   /* ALERTS, AS DRAWN (SAP pop-ups, 10 Oct 2026): a contract under its group. */
   .al-grow{ display:flex; gap:10px; align-items:center; width:100%; padding:8px 2px; border:0; border-bottom:1px solid var(--color-divider);
     background:transparent; text-align:left; cursor:pointer; color:var(--color-text); font:inherit; }

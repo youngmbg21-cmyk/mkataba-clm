@@ -15,6 +15,9 @@ const { jxPack, JX_DEFAULT, JURISDICTIONS,
 /* An NDA's two facts — who keeps it secret, and until when — one shape on
    both hosts (owner picked "The tail on the life line", 17 Oct 2026) */
 const { ndaClean, ndaFacts } = require('../js/nda.js');
+/* THE LETTER (round 11, 17 Oct 2026): the share email's words, written once for
+   the send screen that draws it and this route that mails it (js/sharemail.js). */
+const { shareMailOf, signerTurnMailOf } = require('../js/sharemail.js');
 /* One dictionary, two hosts. The server writes email and needs the recipient's
    own language from the SAME table the screens use — a second copy here would
    drift from js/i18n.js without anything noticing, which is the fault the
@@ -16969,35 +16972,17 @@ function signerTurn(contractId, signerId) {
    share email itself, where the invitation must match the screen the link
    actually opens. */
 function signerTurnEmail({ signer, plan, payload, link, expiresAt, senderLang }) {
-  const cName = (payload && payload.contract && payload.contract.name) || 'a contract';
-  const org = (payload && payload.org) || 'the sender';
-  const total = (plan || []).length;
   /* The counterparty has no account, so no stored language of their own: this
      falls back to the sender's, which is the honest answer — they know who
-     they are writing to. */
+     they are writing to. The words are js/sharemail.js's (the send screen
+     draws the same letter). */
   const L = langForEmail(signer.email, senderLang);
-  const posText = signer.order && total
-    ? tFor(L, 'mail_turn_pos', { n: signer.order, total }) : '';
-  /* THE WHOLE ORDER, NAMED (7 Oct 2026, O-28): who signs before and after
-     them, for which side, so nobody opens a link expecting to sign and finds
-     somebody else's turn. Names and sides only; never an address. */
-  const them = (payload && payload.contract && payload.contract.counterparty) || '';
-  const rows = (plan || []).slice().sort((a, b) => srvSignStep(a) - srvSignStep(b) || (a.order || 0) - (b.order || 0));
-  const orderLine = rows.length > 1 ? '\n\n' + tFor(L, 'mail_turn_order', { list: rows.map((r, i) =>
-    `${i + 1}. ${String(r.id) === String(signer.id) ? tFor(L, 'mail_turn_you') : (r.name || '—')}`
-    + ` (${r.party === 'counterparty' ? (them || '—') : org})`).join(' · ') }) : '';
-  return {
-    subject: tFor(L, 'mail_turn_subject', { name: cName }),
-    body: `${tFor(L, 'mail_hello')}${signer.name ? ' ' + signer.name : ''},\n\n`
-      + tFor(L, 'mail_turn_body', { name: cName, org, pos: posText })
-      + orderLine
-      + `\n\n${tFor(L, 'mail_open_link')}\n${link}\n\n`
-      /* ONLY WHAT IS TRUE (B9, 8 Oct 2026): the code is sent only where this
-         server can send mail (the respond route asks for it exactly then). */
-      + tFor(L, EMAIL_ON() ? 'mail_code_note' : 'mail_link_personal')
-      + (expiresAt ? `\n\n${tFor(L, 'mail_link_expires', { date: String(expiresAt).slice(0, 10) })}` : '')
-      + `\n\n${tFor(L, 'mail_automated_notice')}`,
-  };
+  const m = signerTurnMailOf({ signer, plan,
+    cName: (payload && payload.contract && payload.contract.name) || 'a contract',
+    org: (payload && payload.org) || 'the sender',
+    them: (payload && payload.contract && payload.contract.counterparty) || '',
+    link, expiresAt, t: (k, v) => tFor(L, k, v), codeOn: EMAIL_ON(), stepOf: srvSignStep });
+  return { subject: m.subject, body: m.body };
 }
 
 /* ============================================================
@@ -17741,24 +17726,12 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
       emailError = 'No file was supplied, so nothing was sent.';
       db.prepare('UPDATE shares SET send_error=? WHERE token=?').run(emailError, token);
     } else {
-      const body = histFile ? [
-        `${req.user.name} at ${payload.org || 'HaTi'} has sent you the negotiation history of "${cName}"${rec.name ? `, ${rec.name}` : ''} as a Word file.`,
-        message ? `\nMessage from ${req.user.name}:\n${String(message).slice(0, 1000)}` : '',
-        `\nThe attached document is the record of the negotiation — every change proposed, by whom, and what was decided, with its own integrity check. There is nothing on it to mark up or sign.`,
-        `\nReplies to this email reach ${req.user.name} directly.`,
-      ].filter(Boolean).join('\n') : [
-        `${req.user.name} at ${payload.org || 'HaTi'} has sent you "${cName}"${rec.name ? `, ${rec.name}` : ''} as a Word file.`,
-        message ? `\nMessage from ${req.user.name}:\n${String(message).slice(0, 1000)}` : '',
-        `\nThe attached document carries their proposed changes as Word tracked changes, and their notes as Word comments.`,
-        /* D5 (owner, 9 Oct 2026): nothing reads a reply automatically, so the
-           mail promises only what happens — the file goes back to the sender,
-           who brings it into HaTi. This channel carries no link to send it on. */
-        `\nMark it up in Word and send the file back to ${req.user.name} — they will bring your changes into HaTi.`,
-        `\nReplies to this email reach ${req.user.name} directly.`,
-      ].filter(Boolean).join('\n');
+      /* The words are js/sharemail.js's: the send screen draws this letter. */
+      const mail = shareMailOf({ channel: 'word', purpose: histFile ? 'history' : null, sender: req.user.name,
+        org: payload.org, cName, recName: rec.name, message });
       const r = await sendEmail(email,
-        histFile ? `${req.user.name} sent you the negotiation history of "${cName}"` : `${req.user.name} sent you "${cName}" to mark up`,
-        body, `share as word: ${fname}`,
+        mail.subject,
+        mail.body, `share as word: ${fname}`,
         { attachments: [{ filename: fname, content: b64 }] });
       emailSent = !!r.sent; emailError = r.detail || null;
       if (r.sent) db.prepare('UPDATE shares SET sent_at=?, send_error=NULL WHERE token=?').run(now(), token);
@@ -17767,23 +17740,14 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     }
   } else if (ch === 'email' && !heldForTurn) {
     const cName = (payload.contract && payload.contract.name) || 'a contract';
-    const body = [
-      `${req.user.name} at ${payload.org || 'HaTi'} has shared "${cName}" with you for review${rec.name ? `, ${rec.name}` : ''}.`,
-      message ? `\nMessage from ${req.user.name}:\n${String(message).slice(0, 1000)}` : '',
-      /* The invitation matches the link. A negotiation link opens the room,
-         where the verbs are per-change decisions and "ready to sign" — telling
-         its recipient to "approve & sign" describes a screen they will not
-         see. */
-      purp === 'negotiate'
-        ? `\nOpen the link to work through the proposed changes clause by clause — accept, refuse or discuss each one, and propose your own wording. Nothing is signed there. No account is needed:\n${link}`
-        : `\nOpen the contract to review it and respond — approve & sign, propose changes, or decline. No account is needed:\n${link}`,
-      `\nThis link expires on ${expires.slice(0, 10)}. Replies to this email reach ${req.user.name} directly.`,
-    ].filter(Boolean).join('\n');
+    /* The words are js/sharemail.js's: the send screen draws this letter,
+       word for word, before the press. The invitation matches the link — a
+       negotiation link opens the room, where nothing is signed. */
+    const mail = shareMailOf({ channel: 'email', purpose: purp, sender: req.user.name, org: payload.org,
+      cName, recName: rec.name, message, link, expires });
     const r = await sendEmail(email,
-      purp === 'negotiate'
-        ? `${req.user.name} sent you "${cName}" to negotiate`
-        : `${req.user.name} shared "${cName}" for your review`,
-      body, `share link: ${link}`);
+      mail.subject,
+      mail.body, `share link: ${link}`);
     emailSent = !!r.sent; emailError = r.detail || null;
     /* ---- THE RECORD SAYS WHAT ACTUALLY HAPPENED ----
        This stamped sent_at whatever the provider did, and never wrote
