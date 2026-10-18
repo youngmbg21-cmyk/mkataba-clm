@@ -39,6 +39,8 @@ const SAME_IN_BOTH = new Set([ 'na_tab_hati', 'cal_k_plan', 'pd_tab_copilot', 's
   'hb_pop_used',
   /* the Control Room (16 Oct 2026): "Jambo" is his name, and "1 person" and "Person" are the same words in Swedish */
   'st_side_jambo', 'st_cr_people_n_one', 'st_pc_people_one', 'st_sh_person',
+  /* Jambo's panel beside the lists (18 Oct 2026): "Person" and "1 risk" are the same words in Swedish */
+  'jl_w_person', 'jl_read_risks_one',
   /* Jambo's agents (12 Oct 2026): "1 agent", "Normal" and "Agent" are the same word in Swedish */
   'jh_n_agents_one', 'jh_sp_1', 'jh_col_agent', 'jh_pt_col_ex',
   /* the Brain's Stack view (10 Oct 2026): product and service names (Node.js, Render, GitHub…), the

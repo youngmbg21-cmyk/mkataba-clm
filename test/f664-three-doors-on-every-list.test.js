@@ -15,7 +15,10 @@ const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '
 
 test('every list panel draws its doors from the one builder', () => {
   assert.match(strip(R('js/views/register.js')), /return insDoorActs\(c, \{ lead: neg \? 'nego' : 'ws' \}\);/);
-  assert.match(strip(R('js/views/approvalsview.js')), /const open=insDoorActs\(r\.c\);/);
+  /* RE-POINTED 18 Oct 2026 (round 15 as drawn, owner's "build all the
+     gaps" — the picked drawing over this rule for the one panel it draws):
+     an Approval's panel draws none; a signature's keeps both */
+  assert.match(strip(R('js/views/approvalsview.js')), /const open=tab==='approvals'\?\[\]:insDoorActs\(r\.c\);/);
   /* RE-POINTED 15 Oct 2026: no Document door, so no page hands one a landing */
   assert.match(strip(R('js/obligations.js')), /acts\.push\(\.\.\.insDoorActs\(c\)\);/);
   assert.match(strip(R('js/views/intake.js')), /insDoorActs\(doorC,\{ lead:'ws' \}\)/);
@@ -23,7 +26,9 @@ test('every list panel draws its doors from the one builder', () => {
 
 test('the panel\'s ⋯ no longer repeats Workspace; the row menu keeps it', () => {
   const reg = strip(R('js/views/register.js'));
-  assert.match(reg, /menu=regRowActsHtml\(c,\['open'\]\)/);
+  /* RE-POINTED 18 Oct 2026 (round 14 as drawn): no ⋯ in the Negotiation
+     panel at all; the Contracts seat keeps its row menu, less Workspace */
+  assert.match(reg, /if\(c&&seat!=='negotiations'\)\{ try\{ menu=regRowActsHtml\(c,\['open'\]\); \}/);
   assert.match(reg, /\{k:'open',\s*ic:'folderOpen'/);
 });
 
@@ -41,8 +46,11 @@ test('the builder: three doors, the lead filled, Negotiation greyed with its rea
   const body = ins.slice(ins.indexOf('function insDoorActs'), ins.indexOf('function insActsHtml'));
   assert.doesNotMatch(body, /ins_door_doc|door-doc/, 'no Document door (owner, 15 Oct 2026)');
   assert.match(body, /const order = o\.lead === 'ws' \? \['ws', 'nego'\] : \['nego', 'ws'\];/, 'the lead first, two doors');
-  assert.match(body, /icon: 'msg', label: i18t\('ins_door_nego'\)/);
-  assert.match(body, /icon: 'folderOpen', label: i18t\('ins_door_ws'\)/);
+  /* RE-POINTED 18 Oct 2026 (rounds 14 and 19 as drawn, owner's "build all
+     the gaps"): the doors wear their words only, no mark before them */
+  assert.match(body, /\{ k: 'door-nego', door: true, label: i18t\('ins_door_nego'\),/);
+  assert.match(body, /\{ k: 'door-ws', door: true, label: i18t\('ins_door_ws'\),/);
+  assert.doesNotMatch(body, /icon: '/, 'no icon on a door');
   assert.match(body, /disabled: !ns\.ok, title: ns\.ok \? '' : ns\.why/);
   /* RE-POINTED 14 Oct 2026 (the overnight work order, step 2; was the room,
      on Details while owed, 12 Oct): the Workspace door opens Home through the

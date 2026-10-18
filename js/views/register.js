@@ -2400,8 +2400,12 @@ function regNegoCols(c){
   const ch=Array.isArray(c&&c.changes)?c.changes:[];
   const ours=ch.filter(x=>x&&x.authorSide!=='counterparty'&&(x.status==='pending'||!x.status)).length;
   let changes;
+  /* the drawing's words (round 14): "2 redlines to answer", "2 answers
+     decided, not sent", "1 sent, no answer yet", "All agreed · out to sign" */
   if(m.k==='you'&&!m.why) changes=i18tn('ngl_ch_to_answer',m.n||0,{n:m.n||0});
-  else if(m.k==='them'&&m.why!=='handover') changes=i18tn('ngl_ch_sent',ours,{n:ours});
+  else if(m.why==='decided') changes=i18tn('ngl_ch_decided',m.n||0,{n:m.n||0});
+  else if(m.why==='handover') changes=i18t('ngl_ch_out');
+  else if(m.k==='them') changes=i18tn('ngl_ch_sent',ours,{n:ours});
   else if(m.k==='clear') changes=ch.length?i18t('ngl_ch_settled'):i18t('ngl_ch_none');
   else changes=m.say||'';
   const at=Date.parse(n.turnAt||c.lastAction||'');
@@ -2463,6 +2467,17 @@ function regNegoSay(){
   if(typeof ngStartPickerOpen==='function') chips.push({ label:i18t('jl_ng_chip_start'), run:()=>ngStartPickerOpen() });
   return { lines, chips };
 }
+/* A CLAUSE SAID THE WAY THE DRAWING SAYS IT (round 14): "Clause 7 Liability
+   cap", the next "clause 11 Payment terms" — the heading's own number and its
+   name in the ONE presenting reading (clauseNameShown via negoClauseName),
+   never a number invented: a heading without one is said by its name. */
+function regClauseSaid(raw, lower){
+  const shown=(typeof negoClauseName==='function')?negoClauseName(raw):String(raw||'');
+  let p=null; try{ p=(typeof clauseParseHeading==='function')?clauseParseHeading(String(shown||'')):null; }catch(_){ p=null; }
+  const num=p&&String(p.num||'').trim().replace(/[.)]+$/,''), title=p&&String(p.title||'').trim();
+  if(!num||!title) return String(shown||'');
+  return i18t(lower?'jl_need_clause_lc':'jl_need_clause',{n:num,name:title});
+}
 /* NEEDS YOU, FIRST ROW (round 14: "Answer 2 redlines · Clause 7 Liability cap ·
    clause 11 Payment terms · Answer"): their asks still standing, read RAW, the
    clauses named as the asks table names them; only while the move is ours.
@@ -2477,8 +2492,7 @@ function regNegoNeedRows(c){
   if(late) return [];
   const pend=c.changes.filter(x=>x&&x.status==='pending'&&!x.withdrawn&&x.authorSide==='counterparty');
   if(!pend.length) return [];
-  const nm=ch=>{ const raw=ch.clauseLabel||ch.headingText||ch.clauseId||''; return (typeof negoClauseName==='function')?negoClauseName(raw):String(raw); };
-  const names=[...new Set(pend.map(nm).filter(Boolean))];
+  const names=[...new Set(pend.map(ch=>ch.clauseLabel||ch.headingText||ch.clauseId||'').filter(Boolean))].map((raw,i)=>regClauseSaid(raw,i>0));
   const shown=names.slice(0,3), more=names.length-shown.length;
   const sub=esc(shown.join(' \u00b7 '))+(more?' \u00b7 '+esc(i18tn('ins_more_asks',more,{n:more})):'');
   const ok=typeof insNegoDoorState==='function'?insNegoDoorState(c).ok:true;
@@ -2520,7 +2534,11 @@ function regInsPaint(){
   insMarkRow(tb,'[data-row]',idOf,id);
   const paint=pid=>{
     const c=pid?getContract(pid):null;
-    let menu=''; if(c){ try{ menu=regRowActsHtml(c,['open']); }catch(_){ menu=''; } }
+    /* ONLY THE DOORS ON NEGOTIATIONS (round 14 as drawn, owner's "build all
+       the gaps", 18 Oct 2026): no ⋯ in Jambo's panel there — share, scan,
+       PDF, end or pause and delete are the paper's Menu tab's, one press
+       through Workspace; the Contracts seat keeps its row menu */
+    let menu=''; if(c&&seat!=='negotiations'){ try{ menu=regRowActsHtml(c,['open']); }catch(_){ menu=''; } }
     insPaintPanel({ seat, c, acts:regInsActs(c), menuHtml:menu,
       onMenu:(act,cid)=>regRunRowAct(act,cid),
       moveSuffix:true,

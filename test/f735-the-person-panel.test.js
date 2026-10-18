@@ -103,7 +103,11 @@ describe('f735 (2) the panel as drawn', () => {
     assert.match(f, /const av = `<span class="jl-av" aria-hidden="true">\$\{_dE\(dirInitials\(p\.name \|\| p\.email\)\)\}<\/span>`;/);
     assert.match(f, /sub: _dE\(\[p\.title, i18t\('jl_side_ours'\)\]\.filter\(Boolean\)\.join\(' · '\)\)/);
     assert.match(f, /label: i18t\('dir_show_contracts'\)[\s\S]{0,200}\.concat\(mailBtn\)/);
-    assert.match(f, /menuHtml: admin && typeof insMenuItemHtml === 'function' \? insMenuItemHtml\(\{ k: 'manage', label: i18t\('dir_manage_settings'\)/);
+    /* RE-POINTED 18 Oct 2026 (the checker against round 19's People scene:
+       "Only the doors … No overflow menu"): no ⋯ on the person's panel — a
+       person's rights stay on Settings → People (the page's own Manage link) */
+    assert.doesNotMatch(f, /menuHtml|insMenuItemHtml|'manage'/);
+    assert.match(DIR, /id="dir-manage" class="ui-link">\$\{_dE\(i18t\('dir_manage_settings'\)\)\}/, 'the page keeps its own Manage in Settings');
     assert.equal(t('dir_show_contracts'), 'Show their contracts');
   });
   test('2b the facts as rows: Email · In HaTi · Streams · Named on · Away (Away only where known)', () => {
@@ -175,5 +179,69 @@ describe('f735 (4) nothing chosen: the page in Jambo\'s words', () => {
       'jl_side_ours', 'jl_email', 'jl_f_email', 'jl_f_away', 'jl_away_until', 'jl_away_line', 'jl_named_n', 'jl_waiting_on', 'jl_may_answer',
       'jl_kind_review', 'jl_kind_look', 'jl_kind_move', 'jl_open_approval', 'jl_open_review', 'jl_open_signing', 'jl_open_negotiation', 'jl_all_on_contracts'])
       for (const lang of ['en', 'sv']) assert.ok(BOOKS[lang][k] != null, `${k} ${lang}`);
+  });
+});
+
+/* ═══ PASS 3 (18 Oct 2026), the checker against round 19's People scene ════
+   (5) NAMED ON IT IN ANY ROLE: a colleague the approval rule names, a
+       question put to them by name, or our signer on the route is "named on"
+       that contract — "Named on 12 contracts · 7 live", "MK-0391 · Helio
+       Energy AB · approver", and Show their contracts is a live door. The
+       same readings "Waiting on" reads, so a person waited on is never named
+       on nothing. A yes already given stays participantsAuto's; a signed,
+       declined or code-named contract's chain is not read; a role addressed
+       to a role ("an admin") names nobody.
+   AT THE PARENT (8dc306a) and before this pass (14b2f8a) these FAIL. */
+describe('f735 (5) named on it in any role — the approver and the signer too', () => {
+  const users = [{ id: 'u7', name: 'Jonas Berg', email: 'jonas@x.se', role: 'editor' }, { id: 'u1', name: 'Maria Lindgren', email: 'maria@x.se', role: 'admin' }];
+  const book = () => [
+    { id: 'MK-0391', name: 'Power purchase agreement', counterparty: 'Helio Energy AB', status: 'Under Review', folder: 'f1' },
+    { id: 'MK-0350', name: 'Software licence', counterparty: 'Stratos Software', status: 'Signed', folder: 'f1', signerPlan: [{ party: 'owner', memberId: 'u7', name: 'Jonas Berg' }, { party: 'counterparty', name: 'Elin Strand', email: 'elin@s.se' }] },
+    { id: 'MK-0400', name: 'Mutual NDA', counterparty: 'Kettle & Co', status: 'Under Review' },
+    { id: 'MK-0401', name: 'Old deal', counterparty: 'Rena', status: 'Signed' },
+    { id: 'MK-0412', name: 'Project Falcon', counterparty: 'x', status: 'Under Review', _codeNamed: true },
+    { id: 'MK-0420', name: 'Role ask', counterparty: 'y', status: 'Under Review' }];
+  const world = () => {
+    const ctx = { console, getUsers: () => users, state: { contracts: book() }, currentUser: () => users[1], i18t: t, i18tn: tn, esc,
+      approvalState: c => ({ chain: c.id === 'MK-0391' || c.id === 'MK-0401' || c.id === 'MK-0412' ? [{ status: 'pending', approver: { kind: 'member', id: 'u7', name: 'Jonas Berg' } }]
+        : c.id === 'MK-0400' ? [{ status: 'approved', approver: { kind: 'member', id: 'u7' } }, { status: 'pending', approver: { kind: 'role', role: 'admin' } }] : [] }),
+      asksOf: c => c.id === 'MK-0400' ? [{ kind: 'review', state: 'open', to: { id: 'u7', name: 'Jonas Berg' } }]
+        : c.id === 'MK-0420' ? [{ kind: 'rule', state: 'open', to: { role: 'admin' } }, { kind: 'rule', state: 'answered', to: { id: 'u7' } }] : [],
+      signerPlan: c => c.signerPlan || [], contactsOf: () => [], participantsOf: () => [], participantsAuto: () => [], contractOwnerName: () => '', orgDirectory: () => [] };
+    ctx.window = ctx; vm.createContext(ctx); vm.runInContext(DIR, ctx); return ctx;
+  };
+  test('5a the rule\'s approver, a question put to them by name and our signer are read in; nothing else', () => {
+    const w = world();
+    const j = w.dirBook().find(p => p.id === 'u7');
+    assert.deepEqual(Array.from(j.contracts), ['MK-0391', 'MK-0350', 'MK-0400']);
+    assert.equal(Array.from(j.contracts, id => id + ':' + Array.from(j.roleOn(id)).join('+')).join('|'), 'MK-0391:approve|MK-0350:sign|MK-0400:review');
+    assert.ok(Array.from(j.roles).includes('approve') && Array.from(j.roles).includes('sign'), 'the role filter finds them');
+  });
+  test('5b their side of the route is not ours; a code-named, signed or role-addressed step names nobody', () => {
+    const w = world();
+    assert.equal(w.dirBook().filter(p => p.side === 'ours' && p.id !== 'u7' && p.contracts.length).length, 0, 'Maria is named on nothing');
+    const roles = id => w.dirNamedRoles(w.state.contracts.find(c => c.id === id)).map(x => x.role + ':' + (x.memberId || x.name)).join('|');
+    assert.equal(roles('MK-0401'), '', 'a signed contract\'s chain is history');
+    assert.equal(roles('MK-0412'), '', 'a code-named deal is not read');
+    assert.equal(roles('MK-0420'), '', 'an ask to a role, or an answered one, names nobody');
+    assert.equal(roles('MK-0350'), 'sign:u7', 'our signer only');
+  });
+  test('5c the panel: "Named on 3 contracts · 3 live", "MK-0391 · Helio Energy AB · approver", Show their contracts live', () => {
+    const w = world();
+    let painted = null; w.insPaintPanel = o => { painted = o; }; w.insRowsHtml = list => list.map(f => `<i data-k="${f.k}">${f.v}</i>`).join('');
+    w.insSecHtml = (h, n, body) => `<section><h3>${h} ${n}</h3>${body}</section>`; w.contractRef = c => c.id; w.document = { getElementById: () => null };
+    const j = w.dirBook().find(p => p.id === 'u7');
+    w.dirPaintPanel(j, w.dirBook());
+    const body = String(painted.body);
+    assert.match(body, /<i data-k="contracts">3 contracts · 3 live<\/i>/);
+    assert.match(body, /MK-0391 · Helio Energy AB · approver/);
+    assert.match(body, /MK-0350 · Stratos Software · signer/);
+    const show = painted.head.acts.find(a => a.k === 'contracts');
+    assert.equal(!!show.disabled, false, 'Show their contracts is a live door');
+  });
+  test('5d the short role words in both books', () => {
+    for (const k of ['jl_role_owner', 'jl_role_sign', 'jl_role_approve', 'jl_role_review', 'jl_role_contribute', 'jl_role_read'])
+      for (const lang of ['en', 'sv']) assert.ok(BOOKS[lang][k], `${k} ${lang}`);
+    assert.equal(BOOKS.en.jl_role_approve, 'approver');
   });
 });

@@ -993,8 +993,17 @@ function openAI(prefill,opts){
   if(!aiFloatOn()) try{ toggleAIExpand(!!(typeof lsGet==='function'&&lsGet('hati.v1.aiExpanded'))); }catch(_){}
   aiSyncDock();
   renderAIFeed(); renderAISuggest();
+  aiHintPaint();
   const inp=document.getElementById('ai-input');
   if(prefill){ inp.value=prefill; aiSubmit(); } else inp.focus();
+}
+/* THE HINT LINE UNDER THE WINDOW'S BOX (owner, 18 Oct 2026, "Every Jambo
+   box"): the one builder, painted on every open so it speaks the reader's
+   language of the moment; CSS keeps it off the phone */
+function aiHintPaint(){
+  const el=document.getElementById('ai-hint');
+  if(!el||typeof window.jamboHintHtml!=='function') return;
+  try{ el.innerHTML=window.jamboHintHtml(); }catch(_){}
 }
 function closeAI(){
   document.getElementById('ai-panel').classList.remove('open');

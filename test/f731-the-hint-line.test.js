@@ -28,6 +28,10 @@ const INS = read('js/views/inspector.js');
 const IG = read('js/views/intelligence.js');
 const SET = read('js/views/settings.js');
 const MIG = read('js/views/migration.js');
+const CN = read('js/views/counter.js');
+const CE = read('js/views/clauseeditor.js');
+const AI = read('js/ai.js');
+const HTML = read('index.html');
 const I18N = read('js/i18n.js');
 const fnOf = (src, name) => { const i = src.indexOf('function ' + name + '('); if (i < 0) return ''; return src.slice(i, src.indexOf('\n}', i) + 2); };
 const BOOKS = (() => {
@@ -65,7 +69,9 @@ describe('f731 (1) one builder, the drawn words', () => {
 
 describe('f731 (2) every Jambo ask box draws it, from the builder', () => {
   test('2a Home\'s panel: under its box, with the keys while a paper is up', () => {
-    assert.match(IG, /jamboHintHtml\(\{ places:!!\(igPaperUp\(\)\|\|\(window\.pdOnPaper&&pdOnPaper\(\)\)\) \}\)/);
+    /* RE-POINTED 18 Oct 2026 (pass 3, the checker against rounds 3, 7 and
+       12): which keys the line names is ONE reading, igHintKeys — see (4) */
+    assert.match(IG, /jamboHintHtml\(\{ places:igHintKeys\(\) \}\)/);
     assert.match(IG, /<div class="igd-askbox relative">[\s\S]{0,700}<button id="igd-go" class="ui-btn ui-btn-sm ui-btn-primary absolute" style="right:6px;bottom:8px">/, 'the box and Ask in their own frame, so the line never moves the button');
   });
   test('2b Settings\' Jambo side: under its form', () => {
@@ -91,5 +97,82 @@ describe('f731 (3) both books', () => {
     for (const k of ['jb_hint', 'jb_hint_places', 'jb_hint_closes', 'jb_hint_lists'])
       for (const lang of ['en', 'sv']) assert.ok(BOOKS[lang][k], `${k} ${lang}`);
     assert.equal(BOOKS.sv.jb_hint, 'Att skriva skriver aldrig under, skickar eller arkiverar — det gör ett tryck.');
+  });
+});
+
+/* ═══ PASS 3 (18 Oct 2026): the owner's answer (2), "Every Jambo box", and the
+   checker against rounds 3, 7 and 12 ══════════════════════════════════════
+   (4) THE LAST THREE BOXES: the Counter's ("What do you need, Amina?"), the
+       floating Jambo window's (#ai-input) and the clause editor's ask — each
+       from the one builder; the window's line is painted on every open (the
+       reader's language of the moment) and never on the phone, whose
+       full-screen Jambo is the same element.
+   (5) WHICH KEYS HOME'S LINE NAMES, ONE READING (igHintKeys): "/ places · Esc
+       closes" with a contract in front — a paper (rounds 6, 8, 9) or a
+       contract brought up as a page, its History too (rounds 7, 12); "/ lists
+       the places." on Jambo's tab beside a paper while Needs you here has
+       rows (round 3); the sentence alone on Before you sign (round 10), the
+       wall and the Board (rounds 13, 17).
+   AT THE PARENT (8dc306a) and before this pass (14b2f8a) these FAIL. */
+describe('f731 (4) the last three boxes: the Counter, the Jambo window, the clause editor', () => {
+  test('4a the Counter\'s box: the line right under it, from the builder', () => {
+    assert.match(fnOf(CN, 'counterHtml'), /<div class="ca-pop cn-pop" id="cn-pop" hidden><\/div><\/div>\s*\$\{''\/\*[\s\S]*?\*\/\}\$\{typeof jamboHintHtml === 'function' \? jamboHintHtml\(\) : ''\}\s*<div class="cn-chips">/);
+    assert.match(HTML, /\.cn-ask > \.jb-hint\{margin:-6px 2px 0;text-align:left\}/);
+  });
+  test('4b the floating window: a host under its box, painted from the builder on every open; off on the phone', () => {
+    assert.match(HTML, /data-ic-big="send"><\/button>\s*<\/div>\s*<!--[\s\S]*?-->\s*<div id="ai-hint" class="ai-hint"><\/div>\s*<\/footer>/);
+    assert.match(fnOf(AI, 'aiHintPaint'), /el\.innerHTML=window\.jamboHintHtml\(\);/);
+    assert.match(fnOf(AI, 'openAI'), /renderAIFeed\(\); renderAISuggest\(\);\s*aiHintPaint\(\);/);
+    assert.match(HTML, /@media \(max-width:767px\)\{ \.ai-hint\{display:none;\} \}/, 'the phone stays untouched');
+  });
+  test('4c the clause editor\'s ask: under its row, from the builder, and only where Jambo asks (not their seat)', () => {
+    assert.match(CE, /title="\$\{_ceea\(_cet\('ce_send'\)\)\}">\$\{CE_SEND_ICON\}<\/button>\s*<\/div>\s*\$\{''\/\*[\s\S]*?\*\/\}\$\{typeof jamboHintHtml === 'function' \? jamboHintHtml\(\) : ''\}`\}/);
+    assert.match(CE, /\.ce-ask \+ \.jb-hint\{flex:none; margin:-4px 14px 8px\}/);
+  });
+});
+
+describe('f731 (5) which keys Home\'s line names — one reading', () => {
+  const run = env => {
+    const ctx = Object.assign({ state: { view: 'dashboard' }, intel: { paper: null }, getContract: () => null }, env || {});
+    ctx.window = ctx; vm.createContext(ctx);
+    vm.runInContext(fnOf(IG, 'igPaperUp') + '\n' + fnOf(IG, 'igMapUp') + '\n' + fnOf(IG, 'igHintKeys'), ctx);
+    return ctx.igHintKeys();
+  };
+  const paper = { intel: { paper: { mode: 'paper', id: 'C1' } }, getContract: () => ({ id: 'C1' }), pdContract: () => ({ id: 'C1' }), pdOnPaper: () => true, hbFace: () => 'paper' };
+  test('5a a paper up: the keys (rounds 6, 8, 9)', () => {
+    assert.equal(run(Object.assign({}, paper, { pdNeedsRows: () => [] })), true);
+    assert.equal(run(Object.assign({}, paper, { pdNeedsRows: () => [{ k: 'x' }], pdFillShows: () => true })), true, 'Fill in keeps them');
+    assert.equal(run(Object.assign({}, paper, { pdNeedsRows: () => [{ k: 'x' }], pdRedShows: () => true })), true, 'Redlines keeps them');
+  });
+  test('5b Jambo\'s tab beside a paper with Needs you here: "/ lists the places." (round 3)', () => {
+    assert.equal(run(Object.assign({}, paper, { pdNeedsRows: () => [{ k: 'x' }] })), 'lists');
+  });
+  test('5c a contract brought up as a page — its History too: the keys (rounds 7, 12)', () => {
+    assert.equal(run({ bsCardId: () => 'C1', hbFace: () => 'board' }), true);
+    assert.equal(run({ bsCardId: () => 'C1', hbFace: () => 'calendar' }), false, 'the card is the Board\'s: not in front on another face');
+  });
+  test('5c2 a paper left open behind the Board is not in front; one on Explorer\'s map is', () => {
+    assert.equal(run({ intel: { paper: { mode: 'paper', id: 'C1' } }, getContract: () => ({ id: 'C1' }), pdOnPaper: () => false, hbFace: () => 'board', bsCardId: () => null }), false);
+    assert.equal(run({ intel: { paper: { mode: 'paper', id: 'C1' } }, getContract: () => ({ id: 'C1' }), pdOnPaper: () => false, hbFace: () => 'explorer',
+      document: { getElementById: id => id === 'ig-svg' ? {} : null } }), true);
+  });
+  test('5d the sentence alone: Before you sign, the wall, the Board, another page', () => {
+    assert.equal(run(Object.assign({}, paper, { pdSignShows: () => true })), false, 'round 10');
+    assert.equal(run({ bsCardId: () => null, hbFace: () => 'board' }), false, 'the Board, the wall');
+    assert.equal(run({ state: { view: 'negotiations' }, bsCardId: () => 'C1' }), false);
+  });
+  test('5e a reading that writes nothing', () => {
+    assert.match(fnOf(IG, 'igHintKeys'), /^function igHintKeys\(\)\{/, 'the reading is there');
+    assert.doesNotMatch(fnOf(IG, 'igHintKeys'), /pdSetTab|hbSave|\.push\(|(intel|state)\.[a-z.]+\s*=[^=]/);
+  });
+});
+
+describe('f731 (6) the line follows what is in front, in place', () => {
+  test('6a one painter, the one builder, called where the Board paints and where Needs you here repaints', () => {
+    const f = fnOf(IG, 'igHintPaint');
+    assert.match(f, /document\.querySelector\('#ig-dock \.igd-askbox \+ \.jb-hint'\)/);
+    assert.match(f, /jamboHintHtml\(\{ places:igHintKeys\(\) \}\)/);
+    assert.match(fnOf(read('js/views/homeboard.js'), 'hbPaintBoard'), /if \(typeof window\.igHintPaint === 'function'\) try \{ igHintPaint\(\); \} catch \(_\)\{\}\n\}$/);
+    assert.equal((fnOf(read('js/paperdesk.js'), 'pdNeedsRepaint').match(/igHintPaint\(\)/g) || []).length, 2, 'filling and emptying');
   });
 });

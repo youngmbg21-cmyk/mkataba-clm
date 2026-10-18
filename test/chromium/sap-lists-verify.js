@@ -114,13 +114,14 @@ const wait = async (page, fn, arg, ms = 5000) => {
       const p = document.getElementById('ins-panel');
       return { beside: !!p.querySelector('.ins-cp .ins-st-side'), av: !!p.querySelector('.ins-cp .reg-av'),
         line: ((p.querySelector('[data-ins-need-line]') || {}).textContent || ''), decide: p.querySelectorAll('[data-ins-need="approval"]').length,
-        sub: !!p.querySelector('.ins-doors [data-ins-act="door-ws"]') && !p.querySelector('.ins-sub [data-ins-act]'), approve: !!p.querySelector('[data-ins-act="approve"]') };
+        /* RE-POINTED 18 Oct 2026 (round 15 as drawn, owner's "build all the gaps"): an Approval's panel draws no doors */
+        sub: !p.querySelector('.ins-doors') && !p.querySelector('[data-ins-act^="door-"]') && !p.querySelector('.ins-sub [data-ins-act]'), approve: !!p.querySelector('[data-ins-act="approve"]') };
     }) : null;
     /* RE-POINTED 12 Oct 2026 (owner): the sub line's Open contract became the Document door in the doors row */
     /* RE-POINTED 15 Oct 2026 (owner): the Document door went; the doors row is Negotiation · Workspace */
     /* RE-POINTED 18 Oct 2026 (Jambo's panel, round 15 as drawn): the party's
        name with its pill beside it and no initials; the doors still in a row */
-    check('2c the panel head: the pill beside the name, no initials, the doors in their row',
+    check('2c the panel head: the pill beside the name, no initials, no doors (round 15)',
       !!head && head.beside && !head.av && head.sub, JSON.stringify(head));
     /* RE-POINTED 18 Oct 2026 (owner's yes to round 15's question): the amber
        "Your approval is asked for." line went — "Yours to answer" and the

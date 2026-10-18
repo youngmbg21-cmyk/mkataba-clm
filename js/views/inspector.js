@@ -376,9 +376,11 @@ function insDoorActs(c, opt){
   /* THE DOCUMENT DOOR IS GONE (owner, 15 Oct 2026: "we have 2 buttons to the
      same page so document will simply need to be deleted"): it and Workspace
      both landed on Home's paper. Two doors stay: Negotiation · Workspace. */
-  const nego = { k: 'door-nego', door: true, icon: 'msg', label: i18t('ins_door_nego'),
+  /* THE DOORS WEAR WORDS ONLY (rounds 14 and 19 as drawn, owner's "build all
+     the gaps", 18 Oct 2026): "Negotiation · Workspace", no mark before them */
+  const nego = { k: 'door-nego', door: true, label: i18t('ins_door_nego'),
     disabled: !ns.ok, title: ns.ok ? '' : ns.why, run: () => { if (insNegoDoorState(c).ok) openRedlineWorkbench(c.id, { face: true }); } };   /* Jambo's Redlines face beside Home's paper (stage 3) */
-  const ws = { k: 'door-ws', door: true, icon: 'folderOpen', label: i18t('ins_door_ws'),
+  const ws = { k: 'door-ws', door: true, label: i18t('ins_door_ws'),
     /* THE WORKSPACE OPENS HOME (the overnight work order, step 2, 14 Oct
        2026; was the room, on Details while owed, 12 Oct): Fill in beside the
        paper while anything is owed, else the paper on Jambo's tab — the one

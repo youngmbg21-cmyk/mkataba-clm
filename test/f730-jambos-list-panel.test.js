@@ -220,3 +220,52 @@ describe('f730 (6) the words and the Brain', () => {
     assert.match(I18N, /brn_p_listask: 'Jambos panel bredvid listorna'/);
   });
 });
+
+/* ═══ PASS 3 (18 Oct 2026), the checker against round 19's Parties scene ═══
+   (7) A ROW READS WHOLE IN THE 380px PANEL: what waits on you at a party says
+       "Answer 2 redlines · Master services agreement · waiting 4 days · Open
+       redlines" — the button a short door word (where it opens), the long
+       sentence of where it lands on its hover; the "Waiting on you" fact runs
+       across the panel and may wrap. Before this pass the long sentences
+       ("Open it in Workspace, with the approval pack") squeezed the titles to
+       "Your …" at every one of the owner's screens.
+   AT THE PARENT (8dc306a) and before this pass (14b2f8a) these FAIL. */
+describe('f730 (7) a party\'s rows read whole in Jambo\'s panel', () => {
+  const vm = require('node:vm');
+  const CU = read('js/views/customers.js');
+  const BOOK = (() => { const en = {}; for (const m of I18N.matchAll(/^\s+([a-z][a-z0-9_]*): ["']((?:[^"'\\]|\\.)*)["'],?\s*$/gm)) if (!(m[1] in en)) en[m[1]] = m[2]; return en; })();
+  const stage = () => {
+    const m = /const CU_NEED_DOOR = \{[\s\S]*?\};\nconst CU_NEED_LINE = new Set\(\[[^\]]*\]\);/.exec(CU);
+    const ctx = { i18t: (k, v) => String(BOOK[k] || k).replace(/\{(\w+)\}/g, (_, n) => (v && v[n] != null ? v[n] : '')), _cuE: s => String(s), contractRef: c => c.id,
+      INS_NEED_GO: { quiet: 'ins_need_go_nego', approval: 'ins_need_go_approval' },
+      insNeedWords: (c, it) => ({ title: it.kind === 'approval' ? 'Your approval is asked for' : 'Answer 2 redlines', plain: it.kind === 'quiet' ? 'waiting 4 days' : '' }),
+      cuNeedTitle: x => x.it.kind === 'approval' ? 'Your approval is asked for' : 'Answer 2 redlines' };
+    ctx.regNegoCols = () => ({ waiting: '4 days' });
+    vm.createContext(ctx); vm.runInContext((m ? m[0].replace(/const /g, 'var ') : '') + '\n' + fnOf(CU, 'cuPanelNeedsHtml'), ctx); return ctx;
+  };
+  test('7a a short door word on the button, the long landing on its hover; the agreement and its wait under the title', () => {
+    const html = stage().cuPanelNeedsHtml([{ c: { id: 'MK-0382', name: 'Master services agreement' }, it: { kind: 'quiet' } },
+      { c: { id: 'MK-0391', name: 'Power purchase agreement' }, it: { kind: 'approval' } }]);
+    assert.match(html, /<b title="Answer 2 redlines">Answer 2 redlines<\/b><span title="[^"]*">Master services agreement · waiting 4 days<\/span>/);
+    assert.match(html, /title="Opens the negotiation">Open redlines<\/button>/);
+    assert.match(html, /title="Open it in Workspace, with the approval pack">Open approval<\/button>/);
+    assert.match(html, /<span title="[^"]*">Power purchase agreement<\/span>/, 'a need with no when says only its agreement');
+  });
+  test('7a2 our move in a negotiation says its wait, as the list does: "Waiting 4 days"', () => {
+    const html = stage().cuPanelNeedsHtml([{ c: { id: 'MK-0382', name: 'Master services agreement' }, it: { kind: 'move' } }]);
+    assert.match(html, />Master services agreement · Waiting 4 days<\/span>/);
+    assert.match(html, />Open redlines<\/button>/);
+  });
+  test('7b every door word is short and in both books', () => {
+    const m = /const CU_NEED_DOOR = \{([\s\S]*?)\};/.exec(CU);
+    assert.ok(m, 'CU_NEED_DOOR');
+    for (const k of new Set(Array.from(m[1].matchAll(/'([a-z_]+)'/g), x => x[1]).filter(x => /_/.test(x)))){
+      assert.ok(BOOK[k] && BOOK[k].length <= 16, `${k}: "${BOOK[k]}" is a short word`);
+      assert.ok(I18N.split(`${k}:`).length >= 3, `${k} in both books`);
+    }
+  });
+  test('7c the Waiting on you fact runs across the panel and may wrap', () => {
+    assert.match(fnOf(CU, 'cuPaintCustomerPanel'), /\{ k: 'waiting', label: i18t\('cu_col_waiting'\), v: _cuE\(cuNeedsSay\(r\.needs\)\), wide: true \}/);
+    assert.match(HTML, /\.ins-facts \.wide dd\{white-space:normal;\}/);
+  });
+});

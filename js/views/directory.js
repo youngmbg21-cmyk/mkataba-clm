@@ -76,6 +76,10 @@ function dirPeople(){
 /* ---- SMALL READINGS ---- */
 function dirRoleName(role){ return (typeof roleName === 'function') ? (roleName(role) || '') : _dStr(role); }
 function dirRoleWord(k){ return (typeof participantRoleLabel === 'function') ? participantRoleLabel(k) : _dStr(k); }
+/* a colleague's role said short, as the person's Named on list draws it
+   ("approver", "owner"); a role without a short word keeps its long one */
+const DIR_ROLE_NOUN = { owner: 'jl_role_owner', sign: 'jl_role_sign', approve: 'jl_role_approve', review: 'jl_role_review', contribute: 'jl_role_contribute', read: 'jl_role_read' };
+function dirRoleNoun(k){ return DIR_ROLE_NOUN[k] ? i18t(DIR_ROLE_NOUN[k]) : dirRoleWord(k); }
 function dirRoleWords(p){
   const roles = Array.isArray(p && p.roles) ? p.roles : [];
   return DIR_ROLE_ORDER.filter(k => roles.includes(k)).concat(roles.filter(k => !DIR_ROLE_ORDER.includes(k))).map(dirRoleWord).join(' · ');
@@ -112,6 +116,29 @@ function dirPartyNameOf(c, partyId){
   if (hit && _dStr(hit.name)) return _dStr(hit.name);
   if (_dStr(c && c.counterparty)) return _dStr(c.counterparty);
   return list.length && _dStr(list[0].name) ? _dStr(list[0].name) : '';
+}
+
+/* The colleagues a contract names by the rules and the route, RAW: rule
+   steps naming a member (approvalState's chain — a member, never a role),
+   open questions to a person by name (asksOf: an approval → approve, a
+   review or a look → review), and our own rows on the signing route
+   (signerPlan). Reads only; nothing is initialised or written. */
+function dirNamedRoles(c){
+  const out = [];
+  if (!c) return out;
+  const live = c.status !== 'Signed' && c.status !== 'Declined' && !c._codeNamed;
+  if (live){
+    let st = null; try { st = (typeof approvalState === 'function') ? approvalState(c) : null; } catch (_){ st = null; }
+    ((st && st.chain) || []).forEach(x => { const a = x && x.approver;
+      if (x && x.status !== 'approved' && a && a.kind === 'member' && a.id != null) out.push({ memberId: _dStr(a.id), name: _dStr(a.name), role: 'approve' }); });
+    let asks = []; try { asks = (typeof asksOf === 'function') ? (asksOf(c) || []) : []; } catch (_){ asks = []; }
+    asks.forEach(a => { if (a && a.state === 'open' && a.to && !a.to.role && (a.to.id || a.to.name))
+      out.push({ memberId: _dStr(a.to.id), name: _dStr(a.to.name), role: a.kind === 'review' || a.kind === 'look' ? 'review' : 'approve' }); });
+  }
+  let plan = []; try { plan = (typeof signerPlan === 'function') ? (signerPlan(c) || []) : (Array.isArray(c.signerPlan) ? c.signerPlan : []); } catch (_){ plan = []; }
+  plan.forEach(r => { if (r && r.party !== 'counterparty' && (r.memberId != null || r.email || r.name))
+    out.push({ memberId: _dStr(r.memberId), email: _dStr(r.email), name: _dStr(r.name), role: 'sign' }); });
+  return out;
 }
 
 /* ---- THE BOOK: every person once, with their party, roles and contracts ----
@@ -191,6 +218,14 @@ function dirBook(){
     });
     const owner = _dCall('contractOwnerName', c);
     if (owner) named(colleague('', c.owner && c.owner.id, owner), c, 'owner');
+    /* NAMED ON IT IN ANY ROLE, THE APPROVER AND THE SIGNER TOO (round 19's
+       People scene as drawn: "Named on 12 contracts · 7 live", "MK-0391 ·
+       Helio Energy AB · approver"): the rule steps that name a colleague, the
+       questions put to them by name (the one ask list), and our signers on
+       the route — the same readings "Waiting on" reads (dirWaitingOn), so a
+       person waited on is never "named on" nothing. Live work only for the
+       chain; a yes already given is participantsAuto's 'approve'. */
+    dirNamedRoles(c).forEach(x => named(colleague(x.email, x.memberId, x.name), c, x.role));
   });
   /* 3. THE IMPORTED LIST: a title for somebody already here, or a person
      nobody has named on a contract yet. */
@@ -491,22 +526,22 @@ function dirPaintPanel(p, book){
       const c = byId.get(id); if (!c) return '';
       const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
       const st = (typeof contractStatusDotHtml === 'function') ? contractStatusDotHtml(c) : _dE(c.status || '');
-      const roles = p.roleOn(id).map(dirRoleWord).join(' · ');
+      const roles = p.roleOn(id).map(p.side === 'ours' ? dirRoleNoun : dirRoleWord).join(' · ');
       const sub = [ref, p.side === 'ours' ? _dStr(c.counterparty) : '', roles].filter(Boolean).join(' · ');
       return `<button type="button" class="dir-ct jl-ct" data-dir-ct="${_dE(c.id)}" title="${_dE(i18t('ins_door_doc'))}"><span class="dir-ct-n">${_dE(c.name || c.counterparty || '')}</span><span class="dir-ct-st">${st}</span>${sub ? `<span class="dir-ct-sub">${_dE(sub)}</span>` : ''}</button>`;
     }).join('')}</div>${p.contracts.length > ids.length || p.contracts.length ? `<button type="button" class="ui-link jl-all" data-dir-all>${_dE(i18t('jl_all_on_contracts', { n: p.contracts.length }))}${ic('chevR')}</button>` : ''}`;
   };
   if (p.side === 'ours'){
-    const admin = _dCall('isAdmin') === true;
     const aw = (typeof jlAwayOf === 'function') ? jlAwayOf(p.id) : null;
     const today = (typeof todayISO === 'function') ? todayISO() : '';
     const away = aw && aw.to && (!today || aw.to >= today) ? `<span class="ap-for jl-away">${ic('clock')}${_dE(i18t('jl_away_until', { day: (typeof jlDayWord === 'function') ? jlDayWord(aw.to, true) : aw.to }))}</span><span class="sub">${_dE(i18t('jl_away_line', {
       span: (typeof jlDayRange === 'function') ? jlDayRange(aw.from, aw.to) : `${aw.from}–${aw.to}`, who: aw.deputyName || me.name || '' }))}</span>` : '';
     head = { av, title: p.name || p.email, sub: _dE([p.title, i18t('jl_side_ours')].filter(Boolean).join(' · ')),
       acts: [{ k: 'contracts', kind: 'accent', label: i18t('dir_show_contracts'), disabled: !n,
-        title: n ? '' : i18t('dir_show_contracts_none'), run: () => dirShowContracts(p) }].concat(mailBtn),
-      menuHtml: admin && typeof insMenuItemHtml === 'function' ? insMenuItemHtml({ k: 'manage', label: i18t('dir_manage_settings'), icon: 'cog' }) : '',
-      moreAria: i18t('reg_more_actions') };
+        title: n ? '' : i18t('dir_show_contracts_none'), run: () => dirShowContracts(p) }].concat(mailBtn) };
+    /* ONLY THE DOORS (round 19's People scene as drawn, owner's "build all
+       the gaps", 18 Oct 2026): Show his contracts · Email, no ⋯ — a person's
+       rights are changed on Settings → People, the one place they live */
     body = rowsOf([{ k: 'email', label: i18t('jl_f_email'), v: mail }, { k: 'hati', label: i18t('dir_f_in_hati'), v: _dE(p.hati) },
       { k: 'streams', label: i18t('cu_panel_streams'), v: streams }, { k: 'contracts', label: i18t('dir_named_on'), v: n ? _dE(i18t('jl_named_n', { n, live: p.active })) : '' },
       ...(away ? [{ k: 'away', label: i18t('jl_f_away'), v: away }] : [])])
@@ -533,8 +568,7 @@ function dirPaintPanel(p, book){
       + sec(i18t('dir_also_at', { party: p.partyName }), others.length,
         others.length ? peopleRows(others) : `<p class="ins-note">${_dE(i18t('dir_nobody_else'))}</p>`);
   }
-  insPaintPanel({ seat: DIR_SEAT, item: { id: p.key }, head, body, menuHtml: head.menuHtml || '',
-    onMenu: act => { if (act === 'manage' && typeof openSettingsAt === 'function') openSettingsAt('people'); },
+  insPaintPanel({ seat: DIR_SEAT, item: { id: p.key }, head, body,
     jlWord: i18t('jl_w_person'), jlHome: DIR_JL.jlHome(), jlPh: DIR_JL.jlPh(), jlSay: dirSay });
   dirPanelWire();
 }
@@ -698,4 +732,4 @@ const DIR_CSS = `
 
 Object.assign(window, { renderDirectory, dirRepaint, dirPeople, dirBook, dirRows, dirMatches, dirTabCount, dirPeopleOfParty, dirRoleWords,
   dirFaceHtml, dirAzHtml, dirPlace, dirPlacePut, dirOpenParty, dirShowContracts, dirOpenContract, dirPaintPanel, dirSelect, DIR_TABS,
-  dirWaitingOn, DIR_WAIT_MAX, DIR_WAIT_KIND, DIR_WAIT_OPEN, dirWaitGo, dirSay });
+  dirWaitingOn, DIR_WAIT_MAX, DIR_WAIT_KIND, DIR_WAIT_OPEN, dirWaitGo, dirSay, dirNamedRoles, DIR_ROLE_NOUN, dirRoleNoun });

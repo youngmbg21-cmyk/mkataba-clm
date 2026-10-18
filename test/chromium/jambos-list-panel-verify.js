@@ -25,6 +25,15 @@
        paper is up), Settings' and Import's
      8 the owner's three screens: the panel inside the window, the list beside
        it (never under it), the box in view, nothing sideways
+   PASS 3 (18 Oct 2026, the checker against the picked drawings):
+     2f "What is open" says "2 redlines to answer"; Needs you names "Clause N
+        Name · clause N Name"; only the doors — no ⋯, no icon on a door
+     5g the Approval's panel draws no doors; 5h a colleague's approval says
+        "Sara approves", Whose turn "Sara"
+     6d Jonas is "Named on" the contracts he approves and signs: the row, the
+        list ("approver", "signer") and a live Show their contracts; no ⋯
+     9  PARTIES: a row of what waits on you reads whole in the 380px panel —
+        its title, its short door, the Waiting on you fact — at three screens
    Waits ask for the state, bounded; a missing part reports.
    Run: node test/chromium/jambos-list-panel-verify.js
    Photographs: HATI_SHOT_DIR=<dir> node test/chromium/jambos-list-panel-verify.js */
@@ -55,12 +64,22 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
     cond: { type: 'value', op: '>=', value: 10000000 }, approver: { kind: 'member', id: jonas.id, name: 'Jonas Berg' } }] } });
   /* Jonas is away; the admin answers his approvals until he is back */
   await W.unrestricted.json('/api/me/away', { method: 'PUT', body: { deputyId: admin.id, from: day(0), to: day(4) } });
+  /* PASS 3: a second rule naming Sara, so an approval waits on someone the reader does not stand in for */
+  const sara = W.users.restricted;
+  await W.admin.json('/api/users/' + sara.id, { method: 'PATCH', body: { name: 'Sara Nyström' } }).catch(() => {});
+  await W.admin.json('/api/settings', { method: 'PUT', body: { approvalRules: [{ id: 'r1', order: 1, name: 'Over 10 M',
+    cond: { type: 'value', op: '>=', value: 10000000 }, approver: { kind: 'member', id: jonas.id, name: 'Jonas Berg' } },
+    { id: 'r2', order: 2, name: 'Over 5 M', cond: { type: 'value', op: '>=', value: 5000000 }, approver: { kind: 'member', id: sara.id, name: 'Sara Nyström' } }] } });
   const mk = async (id, name, value, status, extra) => W.admin.json('/api/contracts/' + id, { method: 'PUT', body: { baseVersion: 0, contract: Object.assign(
     H.fixtureContract(id, name, name.split(' ')[0] + ' AB', H.FOLDER_A, value, status), { owner: { id: admin.id, name: admin.name } }, extra || {}) } });
   /* an approval the admin answers for Jonas: the save that makes it due stamps its question */
   await mk('MK-AP1', 'Helio power purchase', 20000000, 'Draft');
   { const c = await W.admin.json('/api/contracts/MK-AP1'); const v = c._v; delete c._v; c.status = 'Under Review';
     await W.admin.raw('/api/contracts/MK-AP1', { method: 'PUT', body: { contract: c, baseVersion: v } }); }
+  /* PASS 3: one that waits on Sara alone (over 5 M, under 10 M) */
+  await mk('MK-AP2', 'Kustfrakt freight', 6000000, 'Draft');
+  { const c = await W.admin.json('/api/contracts/MK-AP2'); const v = c._v; delete c._v; c.status = 'Under Review';
+    await W.admin.raw('/api/contracts/MK-AP2', { method: 'PUT', body: { contract: c, baseVersion: v } }); }
   /* the admin's own contract, below the rule, that waits on Jonas's signature */
   await mk('MK-SG1', 'Stratos support', 300000, 'Under Review',
     { signerPlan: [{ id: 's-j', party: 'internal', name: 'Jonas Berg', memberId: jonas.id, order: 1 }] });
@@ -122,6 +141,17 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
     check('2d Needs you leads with "Answer 2 redlines"; What Jambo read in the drawing\'s order', N1r.need === 'Answer 2 redlines'
       && JSON.stringify(N1r.reads) === JSON.stringify(['brief', 'playbook', 'scan', 'oblig']), JSON.stringify({ need: N1r.need, reads: N1r.reads }));
     await shot('r14-negotiation-panel-1440x780.png');
+    await part('2f pass 3', async () => {
+      const N4 = await page.evaluate(() => { const p = document.getElementById('ins-panel');
+        const row = document.querySelector('#reg-tbody tr[data-row="MK-A2"]');
+        return { open: row ? ((row.querySelector('.reg-ch') || {}).textContent || '').trim() : null,
+          sub: ((p.querySelector('.jl-needs .jl-need-s') || {}).textContent || '').trim(),
+          more: !!p.querySelector('[data-ins-more]'),
+          doors: [...p.querySelectorAll('.ins-doors [data-ins-act]')].map(b => ({ k: b.getAttribute('data-ins-act'), t: b.textContent.trim(), svg: !!b.querySelector('svg') })) }; });
+      check('2f "What is open": "2 redlines to answer"', N4.open === '2 redlines to answer', JSON.stringify(N4.open));
+      check('2g Needs you names the clauses as drawn: "Clause N Name · clause N Name"', /^Clause [\dIVXLC.]+ \S.* · clause [\dIVXLC.]+ \S/.test(N4.sub), JSON.stringify(N4.sub));
+      check('2h only the doors: Negotiation · Workspace, no ⋯, no icon on a door', !N4.more && N4.doors.map(d => d.t).join('|') === 'Negotiation|Workspace' && N4.doors.every(d => !d.svg), JSON.stringify(N4));
+    });
     await part('2e ‹ Jambo', async () => {
       await page.click('#ins-panel [data-jl-back]');
       const N2 = await until(() => { const p = document.getElementById('ins-panel'); return p && p.querySelector('[data-jl-words]') && !document.querySelector('#reg-tbody tr.is-sel') ? true : null; });
@@ -190,7 +220,16 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       check('5e the rows: Why it waits · Asked by · Value · Since last look "Nothing changed in the wording"',
         !!A1 && ['Why it waits', 'Asked by', 'Value'].every(k => A1.rows[k]) && A1.rows['Since last look'] === 'Nothing changed in the wording', JSON.stringify(A1 && A1.rows));
       check('5f the recorded-as sentence says whom the answer is for', !!A1 && /for Jonas/i.test(A1.rec), JSON.stringify(A1 && A1.rec));
+      const A2 = await page.evaluate(() => { const p = document.getElementById('ins-panel');
+        const head = p.querySelector('.ins-h'), first = p.querySelector('.jl-rows');
+        return { doors: p.querySelectorAll('[data-ins-act^="door-"]').length, doorsRow: !!p.querySelector('.ins-doors'),
+          order: head && first ? !!(head.compareDocumentPosition(first) & Node.DOCUMENT_POSITION_FOLLOWING) : null }; });
+      check('5g the Approval\'s panel: no Negotiation · Workspace — the head goes straight into Why it waits', A2.doors === 0 && !A2.doorsRow && A2.order === true, JSON.stringify(A2));
       await shot('r15-approval-panel-1440x780.png');
+      const A3 = await page.evaluate(() => { const r = document.querySelector('[data-ap-row="MK-AP2"]'); if (!r) return null;
+        const cell = r.querySelector('td.ap-turn') && r.querySelector('td.ap-turn').previousElementSibling;
+        return { why: cell ? ((cell.querySelector('.ap-sub') || {}).textContent || '').trim() : null, turn: ((r.querySelector('.ap-turn') || {}).textContent || '').replace(/\s+/g, ' ').trim() }; });
+      check('5h a colleague\'s approval: "Sara approves", Whose turn "Sara"', !!A3 && A3.why === 'Sara approves' && A3.turn === 'Sara', JSON.stringify(A3));
     });
 
     /* ---- 6 People ---- */
@@ -207,7 +246,39 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       check('6b the rows: Email · In HaTi · Streams · Named on · Away', !!P && ['Email', 'In HaTi', 'Streams', 'Named on', 'Away'].every(k => P.rows.includes(k)), JSON.stringify(P && P.rows));
       check('6c "Waiting on Jonas": his approval with its own door, "you may answer for them"; away until a day', !!P && P.wait && /Waiting on Jonas/.test(P.text) && /you may answer for them/.test(P.text) && /Away until /.test(P.text), P && P.text.slice(0, 400));
       await shot('r19-person-panel-1440x780.png');
+      const P2 = await page.evaluate(() => { const p = document.getElementById('ins-panel');
+        const named = [...p.querySelectorAll('.jl-rows > div')].find(r => /Named on/.test((r.querySelector('dt') || {}).textContent || ''));
+        const show = p.querySelector('[data-ins-act="contracts"]');
+        return { named: named ? ((named.querySelector('dd') || {}).textContent || '').trim() : null,
+          list: [...p.querySelectorAll('.jl-ct .dir-ct-sub')].map(x => x.textContent.trim()),
+          show: show ? !show.disabled : null, more: !!p.querySelector('[data-ins-more]') }; });
+      check('6d Jonas is named on what he approves and signs: the row, the list, a live Show their contracts, no ⋯',
+        !!P2 && /^\d+ contracts · \d+ live$/.test(P2.named || '') && Number((P2.named || '').split(' ')[0]) >= 2
+        && P2.list.some(x => /MK-AP1 · .* · approver/.test(x)) && P2.list.some(x => /MK-SG1 · .* · signer/.test(x)) && P2.show === true && !P2.more, JSON.stringify(P2));
     });
+
+    /* ---- 9 Parties: a row of what waits on you reads whole (pass 3) ---- */
+    for (const [w, ht] of SCREENS) {
+      await part('9 Parties ' + w, async () => {
+        await page.setViewportSize({ width: w, height: ht });
+        await page.evaluate(() => setView('customers'));
+        await until(() => document.querySelector('[data-cu-cust]'), null, 10000);
+        const found = await page.evaluate(async () => {
+          for (const r of [...document.querySelectorAll('[data-cu-cust]')]){ r.click(); await new Promise(z => setTimeout(z, 250));
+            if (document.querySelector('#ins-panel .cu-needs .cu-li')) return r.getAttribute('data-cu-cust'); }
+          return null; });
+        const R = found ? await page.evaluate(() => { const p = document.getElementById('ins-panel');
+          const cut = el => !!el && el.scrollWidth > el.clientWidth + 1;
+          const rows = [...p.querySelectorAll('.cu-needs .cu-li')].map(li => { const b = li.querySelector('.cu-li-b b'), btn = li.querySelector('button');
+            return { t: b ? b.textContent.trim() : '', cut: cut(b), btn: btn ? btn.textContent.trim() : '', hover: btn ? btn.getAttribute('title') : '' }; });
+          const fact = p.querySelector('[data-ins-fact="waiting"] dd');
+          return { rows, factCut: cut(fact), fact: fact ? fact.textContent.trim() : null, side: document.documentElement.scrollWidth <= innerWidth + 1 }; }) : null;
+        check(`9 Parties ${w}×${ht}: what waits on you reads whole — titles uncut, a short door word (its landing on the hover), the fact uncut`,
+          !!R && R.rows.length && R.rows.every(r => !r.cut && r.btn.length <= 16 && r.hover) && !R.factCut && R.side, JSON.stringify(R));
+        await shot(`r19-party-panel-${w}x${ht}.png`);
+      });
+    }
+    await page.setViewportSize({ width: 1440, height: 780 });
 
     /* ---- 8 the three screens, on each list ---- */
     const FIT = () => { const p = document.getElementById('ins-panel'), q = document.getElementById('jl-q');
@@ -243,9 +314,12 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await page.setViewportSize({ width: w, height: ht });
       await part('7a Home', async () => {
         await page.evaluate(() => { if (typeof regOpenContract === 'function') regOpenContract('MK-A2'); });
-        const HH = await until(() => { const e = document.querySelector('#ig-dock .jb-hint'); return e && e.getClientRects().length ? { t: e.textContent.replace(/\s+/g, ' ').trim(), kbd: e.querySelectorAll('kbd').length,
+        const HH = await until(() => { const e = document.querySelector('#ig-dock .jb-hint'); return e && e.getClientRects().length && /\//.test(e.textContent) ? { t: e.textContent.replace(/\s+/g, ' ').trim(), kbd: e.querySelectorAll('kbd').length, needs: !!document.getElementById('pd-needs'),
           inView: e.getBoundingClientRect().bottom <= innerHeight, keysOne: (() => { const k = e.querySelector('.jb-keys'); return !!k && k.getClientRects().length === 1; })() } : null; }, null, 10000);
-        check(`7a Home ${w}×${ht}: the hint under Jambo's box, with the keys while a paper is up, in view, the keys on one line`, !!HH && HH.t === 'Typing never signs, sends or files — a press does. / places · Esc closes' && HH.kbd === 2 && HH.inView && HH.keysOne, JSON.stringify(HH));
+        /* RE-POINTED 18 Oct 2026 (pass 3, round 3 as drawn): beside a paper whose Needs you here has rows, "/ lists the places." */
+        check(`7a Home ${w}×${ht}: the hint under Jambo's box, with the keys while a paper is up, in view, the keys on one line`, !!HH && (HH.needs
+          ? HH.t === 'Typing never signs, sends or files — a press does. / lists the places.' && HH.kbd === 1
+          : HH.t === 'Typing never signs, sends or files — a press does. / places · Esc closes' && HH.kbd === 2) && HH.inView && HH.keysOne, JSON.stringify(HH));
         await shot(`hint-home-${w}x${ht}.png`);
       });
       await part('7b Settings', async () => {

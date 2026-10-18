@@ -13313,6 +13313,9 @@
   .jl-ask .jl-pop{left:0;right:0;bottom:calc(100% + 6px);top:auto;max-height:320px;}
   .jl-ask .jl-pop[hidden]{display:none;}
   .jb-hint{margin:6px 2px 0;font-size:var(--t-micro);line-height:1.45;color:var(--color-neutral-600);}
+  /* the floating window's line: a computer only — the phone stays untouched */
+  .ai-hint:empty{display:none;}
+  @media (max-width:767px){ .ai-hint{display:none;} }
   .jb-keys{white-space:nowrap;}
   .jb-kbd{display:inline-block;min-width:16px;padding:0 4px;border:1px solid var(--color-neutral-300);border-radius:4px;font:inherit;font-size:var(--t-micro);line-height:1.35;text-align:center;color:var(--color-neutral-700);background:var(--color-surface);}
   /* Needs you, its own section: one card, a row each, a dot in the row's tone and the row's own verb */
@@ -14560,6 +14563,9 @@
   .cn-ask .cn-face{margin:0 auto -4px;display:block}
   .cn-ask h1{font-size:20px;font-weight:var(--w-title);margin:0;color:var(--color-text);letter-spacing:-.01em}
   .cn-wrap{position:relative}
+  /* the hint line under the box (owner, 18 Oct 2026, "Every Jambo box"): it
+     hugs the box it speaks of, read from the box's own left edge */
+  .cn-ask > .jb-hint{margin:-6px 2px 0;text-align:left}
   .cn-box{display:flex;align-items:center;gap:8px;height:44px;border:1px solid var(--color-accent);border-radius:10px;background:var(--color-surface);padding:0 6px 0 14px;box-shadow:0 0 0 3px var(--color-accent-100);text-align:left}
   .cn-box input{flex:1;min-width:0;border:0;outline:0;background:transparent;font-size:15px;color:var(--color-text);height:40px}
   .cn-box input::placeholder{color:var(--color-neutral-500)}
@@ -15255,6 +15261,10 @@
       <textarea id="ai-input" rows="1" data-i18n-ph="ai_input_ph" placeholder="Search, summarize, or ask about your contracts…  (Shift+Enter for a new line)" class="chat-field flex-1 px-3.5 py-2.5 text-sm outline-none transition" style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);"></textarea>
       <button id="ai-send" aria-label="Send to Jambo" data-i18n-aria="sh_ai_send_aria" class="h-10 w-10 shrink-0 grid place-items-center text-white transition" style="background:var(--color-accent);border-radius:var(--radius);" data-ic-big="send"></button>
     </div>
+    <!-- THE HINT LINE UNDER THE BOX (owner, 18 Oct 2026, "Every Jambo box"):
+         painted by the one builder (jamboHintHtml) each time the window opens;
+         the phone, whose full-screen Jambo this same element is, draws none -->
+    <div id="ai-hint" class="ai-hint"></div>
   </footer>
 </section>
 

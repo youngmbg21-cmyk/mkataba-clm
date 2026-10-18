@@ -2030,10 +2030,12 @@ function pdNeedsRepaint(){
   const glance = (typeof document !== 'undefined') ? document.getElementById('pd-glance') : null; if (!glance) return;
   const c = pdContract(); if (!c || String(c.id) !== glance.getAttribute('data-pd-glance-for')) return;
   const el = document.getElementById('pd-needs'), html = pdNeedsHtml(c);
-  if (!html){ if (el) el.remove(); return; }
+  if (!html){ if (el){ el.remove(); if (typeof window !== 'undefined' && typeof window.igHintPaint === 'function') try { igHintPaint(); } catch (_){} } return; }
   const t = document.createElement('div'); t.innerHTML = html;
   const nu = t.firstElementChild; if (!nu) return;
   if (!el) glance.before(nu); else if (nu.outerHTML !== el.outerHTML) el.replaceWith(nu);
+  /* the hint line's keys follow Needs you here (round 3: "/ lists the places.") */
+  if (typeof window !== 'undefined' && typeof window.igHintPaint === 'function') try { igHintPaint(); } catch (_){}
 }
 /* ---- A ROW THAT GOES IS TICKED OFF FIRST (owner picked "Alive" by name, 16
    Oct 2026: "when something is done he hops, and the row in the at a glance

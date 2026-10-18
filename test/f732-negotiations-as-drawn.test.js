@@ -41,6 +41,9 @@ const fill = (s, v) => String(s).replace(/\{(\w+)\}/g, (_, k) => (v && v[k] != n
 const t = (k, v) => fill(BOOKS.en[k] != null ? BOOKS.en[k] : k, v);
 const tn = (k, n, v) => t(k + (n === 1 ? '_one' : '_other'), Object.assign({ n }, v || {}));
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+/* the clause model itself (js/clausemodel.js), for the one presenting reading */
+const CLAUSES = () => { const c = { window: {} }; c.window = c; vm.createContext(c); vm.runInContext(read('js/clausemodel.js'), c);
+  return { clauseParseHeading: c.clauseParseHeading, negoClauseName: s => c.clauseNameShown(s) }; };
 const stage = (names, extra) => { const ctx = Object.assign({ i18t: t, i18tn: tn, esc, window: {} }, extra || {});
   vm.createContext(ctx); vm.runInContext(names.map(n => fnOf(REG, n)).join('\n'), ctx); return ctx; };
 
@@ -70,16 +73,22 @@ describe('f732 (1) Jambo\'s panel says "Negotiation"', () => {
   });
   test('1d Needs you leads with "Answer 2 redlines" and the clauses by name; its door is the negotiation', () => {
     const opened = [];
-    const ctx = stage(['regNegoNeedRows'], { insMove: () => ({ k: 'you' }), needsYouOf: () => [], negoClauseName: s => s,
-      insNegoDoorState: () => ({ ok: true }), openRedlineWorkbench: (id, o) => opened.push([id, o && o.face]) });
+    /* RE-POINTED 18 Oct 2026 (the checker against round 14: the build said the
+       raw headings, "1. Supply & Specification · 2. Price & Contract Value"):
+       the change's record as clauseLabel stamps it ("Clause 7 · Liability
+       cap") and a heading as the paper writes it ("11. Payment terms"), said
+       "Clause 7 Liability Cap · clause 11 Payment Terms" through the one
+       presenting reading (clauseNameShown, which title-cases a heading) */
+    const ctx = stage(['regNegoNeedRows', 'regClauseSaid'], Object.assign(CLAUSES(), { insMove: () => ({ k: 'you' }), needsYouOf: () => [],
+      insNegoDoorState: () => ({ ok: true }), openRedlineWorkbench: (id, o) => opened.push([id, o && o.face]) }));
     const c = { id: 'MK-0382', negotiation: {}, changes: [
-      { authorSide: 'counterparty', status: 'pending', clauseLabel: 'Clause 7 Liability cap' },
-      { authorSide: 'counterparty', status: 'pending', clauseLabel: 'clause 11 Payment terms' },
+      { authorSide: 'counterparty', status: 'pending', clauseLabel: 'Clause 7 · Liability cap' },
+      { authorSide: 'counterparty', status: 'pending', headingText: '11. Payment terms' },
       { authorSide: 'owner', status: 'pending', clauseLabel: 'Clause 3' }] };
     const rows = ctx.regNegoNeedRows(c);
     assert.equal(rows.length, 1);
     assert.equal(rows[0].title, 'Answer 2 redlines');
-    assert.equal(rows[0].sub, 'Clause 7 Liability cap · clause 11 Payment terms');
+    assert.equal(rows[0].sub, 'Clause 7 Liability Cap · clause 11 Payment Terms');
     assert.equal(rows[0].verb, 'Answer');
     rows[0].run();
     assert.deepEqual(opened, [['MK-0382', true]], 'Answer opens the negotiation beside the paper');
@@ -133,5 +142,65 @@ describe('f732 (3) the page as drawn', () => {
       'jl_ng_theirs_one', 'jl_ng_theirs_other', 'jl_ng_out_one', 'jl_ng_out_other', 'jl_ng_oldest', 'jl_ng_chip_ours', 'jl_ng_chip_start',
       'jl_need_answer_one', 'jl_need_answer_other', 'jl_and'])
       for (const lang of ['en', 'sv']) assert.ok(BOOKS[lang][k] != null, `${k} ${lang}`);
+  });
+});
+
+/* ═══ PASS 3 (18 Oct 2026), the checker against round 14 ═══════════════════
+   (4) "WHAT IS OPEN" IN THE DRAWING'S WORDS: "2 redlines to answer", "1
+       redline to answer", "2 answers decided, not sent", "1 sent, no answer
+       yet", "All agreed · out to sign" — read RAW (negoMoveSay), no negoInit.
+   (5) A CLAUSE SAID AS DRAWN: "Clause 7 Liability Cap", the next lower case;
+       a heading without a number by its name, never a number invented.
+   (6) ONLY THE DOORS: no ⋯ in the Negotiation panel; Negotiation · Workspace
+       wear their words only.
+   AT THE PARENT (8dc306a) and before this pass (14b2f8a) these FAIL. */
+describe('f732 (4) "What is open" in the drawing\'s words', () => {
+  const cols = (m, changes) => stage(['regNegoCols'], { negoMoveSay: () => m }).regNegoCols({ id: 'X', changes: changes || [], negotiation: { round: 2 } }).changes;
+  const ours = n => [...Array(n)].map(() => ({ authorSide: 'owner', status: 'pending' }));
+  test('4a their redlines to answer: "2 redlines to answer", "1 redline to answer"', () => {
+    assert.equal(cols({ k: 'you', n: 2 }), '2 redlines to answer');
+    assert.equal(cols({ k: 'you', n: 1 }), '1 redline to answer');
+  });
+  test('4b our answers decided and not sent back: "2 answers decided, not sent"', () => {
+    assert.equal(cols({ k: 'you', why: 'decided', n: 2 }), '2 answers decided, not sent');
+    assert.equal(cols({ k: 'you', why: 'decided', n: 1 }), '1 answer decided, not sent');
+  });
+  test('4c ours sent, theirs still to come: "1 sent, no answer yet"', () => {
+    assert.equal(cols({ k: 'them', n: 0 }, ours(1)), '1 sent, no answer yet');
+    assert.equal(cols({ k: 'them', n: 0 }, ours(2)), '2 sent, no answer yet');
+  });
+  test('4d handed over for signature: "All agreed · out to sign"', () => {
+    assert.equal(cols({ k: 'them', why: 'handover', n: 0 }), 'All agreed · out to sign');
+  });
+  test('4e the words in both books', () => {
+    for (const k of ['ngl_ch_to_answer_one', 'ngl_ch_to_answer_other', 'ngl_ch_sent_one', 'ngl_ch_sent_other', 'ngl_ch_decided_one', 'ngl_ch_decided_other', 'ngl_ch_out', 'jl_need_clause', 'jl_need_clause_lc'])
+      for (const lang of ['en', 'sv']) assert.ok(BOOKS[lang][k] != null, `${k} ${lang}`);
+    assert.equal(BOOKS.sv.ngl_ch_out, 'Allt överens · ute för underskrift');
+  });
+});
+
+describe('f732 (5) a clause said as drawn', () => {
+  const ctx = stage(['regClauseSaid'], CLAUSES());
+  test('5a "Clause N Name", the next one lower case', () => {
+    assert.equal(ctx.regClauseSaid('Clause 7 · Liability cap', false), 'Clause 7 Liability Cap');
+    assert.equal(ctx.regClauseSaid('1. Supply & Specification', true), 'clause 1 Supply & Specification');
+    assert.equal(ctx.regClauseSaid('7.2 Liability', false), 'Clause 7.2 Liability');
+  });
+  test('5b no number on the heading: its name alone, never a number made up; a bare number stays as written', () => {
+    assert.equal(ctx.regClauseSaid('Payment terms', false), 'Payment Terms');
+    assert.equal(ctx.regClauseSaid('Clause 3', false), 'Clause 3');
+  });
+});
+
+describe('f732 (6) only the doors in the Negotiation panel', () => {
+  test('6a no ⋯ on the Negotiations seat; the Contracts seat keeps its row menu', () => {
+    assert.match(fnOf(REG, 'regInsPaint'), /let menu=''; if\(c&&seat!=='negotiations'\)\{ try\{ menu=regRowActsHtml\(c,\['open'\]\); \}catch\(_\)\{ menu=''; \} \}/);
+  });
+  test('6b the doors wear their words only — no icon', () => {
+    const INSP = read('js/views/inspector.js');
+    const body = INSP.slice(INSP.indexOf('function insDoorActs'), INSP.indexOf('function insActsHtml'));
+    assert.match(body, /\{ k: 'door-nego', door: true, label: i18t\('ins_door_nego'\),/);
+    assert.match(body, /\{ k: 'door-ws', door: true, label: i18t\('ins_door_ws'\),/);
+    assert.doesNotMatch(body.replace(/\/\*[\s\S]*?\*\//g, ''), /icon: '/);
   });
 });

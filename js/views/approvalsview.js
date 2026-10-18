@@ -185,7 +185,7 @@ function apWhySentence(r){
     const who=String((sa&&sa.req&&sa.req.approverName)||r.waitsOn||'').split(/\s+/)[0];
     if(whose&&who) return i18t('jl_ap_why_sa',{whose,who});
   }
-  return r.waitsOn?i18t('jl_ap_why_rule',{rule:r.rule,who:r.waitsOn}):r.rule;
+  return r.waitsOn?i18t('jl_ap_why_rule',{rule:r.rule,who:apWaitsShort(r)}):r.rule;
 }
 /* JAMBO'S PANEL ON THIS PAGE (round 15, "One worklist" as drawn): the facts
    as rows — Why it waits · Asked by · Value · Since last look — then "Your
@@ -298,7 +298,11 @@ function apInsActs(tab, r){
      doors every list draws (owner, 12 Oct 2026: Document · Negotiation ·
      Workspace, replacing the sub line's "Open contract" link). None filled:
      this page's filled button is its own verb. */
-  const open=insDoorActs(r.c);
+  /* THE APPROVAL'S PANEL DRAWS NO DOORS (round 15 as drawn, owner's "build
+     all the gaps", 18 Oct 2026 — the picked drawing over the 12 Oct "two doors
+     on every list panel"): the head goes straight into Why it waits; "Open
+     Before you sign" is its way to the paper. A signature's panel keeps them. */
+  const open=tab==='approvals'?[]:insDoorActs(r.c);
   if(tab==='approvals' && r.done) return [
     ...(apMayUndo(r)?[{ k:'undo', label:i18t('ap_pg_undo'), title:i18t('ap_pg_undo_title'), run:c=>apUndo(c.id) }]:[]),
     { k:'gate', label:i18t('ap_pg_open_signing'), title:i18t('ap_pg_gate_title'), run:c=>apOpenSigning(c.id) },
@@ -411,7 +415,15 @@ function apWhyLines(r){
     const whose=(typeof contractOwnerName==='function')?(contractOwnerName(r.c)||''):'';
     return [r.rule, whose?i18t('jl_ap_whose',{who:String(whose).split(/\s+/)[0]}):r.ruleSub];
   }
-  return [r.rule, r.waitsOn?i18t('jl_ap_approves',{who:String(r.waitsOn)}):''];
+  return [r.rule, r.waitsOn?i18t('jl_ap_approves',{who:apWaitsShort(r)}):''];
+}
+/* WHO IT WAITS ON, AS THE LIST SAYS IT (round 15: "Sara approves", Whose turn
+   "Sara" — the first name, as "Sara signs"): a named colleague by their first
+   name, a role ("an admin", "the legal approver") whole */
+function apWaitsShort(r){
+  const w=String((r&&r.waitsOn)||'');
+  let member=false; try{ const nx=r&&r.st&&r.st.next; member=!!(nx&&nx.approver&&nx.approver.kind==='member'); }catch(_){ member=false; }
+  return member?(w.split(/\s+/)[0]||w):w;
 }
 function apWhyHtml(r){
   const [a,b]=apWhyLines(r);
@@ -445,7 +457,7 @@ function apTurnText(r){
   if(r.done) return i18t('ap_pg_approved');
   if(r.mine){ const fw=typeof apForWho==='function'?apForWho(r):null; return fw?i18t('jl_ap_you_for',{who:String(fw.name).split(/\s+/)[0]}):i18t('ap_wl_you'); }
   if(r.notAsked) return i18t('ap_wl_you_send');
-  return r.waitsOn||'—';
+  return apWaitsShort(r)||'—';
 }
 /* back the day after the last day away */
 function apDayAfter(iso){ const d=new Date(String(iso).slice(0,10)+'T12:00:00'); if(isNaN(d)) return String(iso||''); d.setDate(d.getDate()+1);
@@ -604,7 +616,7 @@ function renderApprovalsPage(){
   }
   setActiveNav('approvals');
 }
-Object.assign(window,{AP_TABS,apTab,apSetTab,apWorkRows,apRowTab,apWhyHtml,apTurnText,apKindHtml,
+Object.assign(window,{AP_TABS,apTab,apSetTab,apWorkRows,apRowTab,apWhyHtml,apWaitsShort,apTurnText,apKindHtml,
   apOtherSignRows,AP_SORTS,AP_SORT_WORDS,AP_SINCE_WORDS,apSortRows,apWhyLines,apForWho,apDayAfter,apTurnHtml,apSinceLook,apAskedByText,apWhySentence,apLeadJlHtml,apForPillHtml,apSay,apPaintHead,apSaWaiting,apApprovalRows,apSignatureRows,approvalsDoorCount,renderApprovalsPage,apOpenSigning,
   apInsSeat,apLeadHtml,apInsActs,apInsPaint,apMayDecide,apDecide,
   AP_LATE_DAYS,apLate,apRowsShown,apUndo,apMayUndo,apApprovedPillHtml,apDoneLineHtml});

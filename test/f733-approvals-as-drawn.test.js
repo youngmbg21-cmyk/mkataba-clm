@@ -125,8 +125,12 @@ describe('f733 (2) the panel\'s facts as rows, "Since last look" from the approv
 
 describe('f733 (3) the list as drawn', () => {
   test('3a why it waits in two lines', () => {
-    const ctx = stage(['apWhyLines'], { contractOwnerName: () => 'Erik Ström', approvalState: () => ({ chain: [] }), regDotDate: d => d });
-    assert.equal(ctx.apWhyLines({ type: 'approval', rule: 'Over SEK 2 M', waitsOn: 'Sara Nyström' }).join(' / '), 'Over SEK 2 M / Sara Nyström approves');
+    const ctx = stage(['apWhyLines', 'apWaitsShort'], { contractOwnerName: () => 'Erik Ström', approvalState: () => ({ chain: [] }), regDotDate: d => d });
+    /* RE-POINTED 18 Oct 2026 (the checker against round 15: "Sara approves",
+       the first name — as "Sara signs"); a role is said whole */
+    const member = { next: { approver: { kind: 'member', id: 'u-s' } } };
+    assert.equal(ctx.apWhyLines({ type: 'approval', rule: 'Over SEK 2 M', waitsOn: 'Sara Nyström', st: member }).join(' / '), 'Over SEK 2 M / Sara approves');
+    assert.equal(ctx.apWhyLines({ type: 'approval', rule: 'Over SEK 2 M', waitsOn: 'An admin', st: { next: { approver: { kind: 'role', role: 'admin' } } } }).join(' / '), 'Over SEK 2 M / An admin approves');
     assert.equal(ctx.apWhyLines({ type: 'approval', rule: 'Jonas Berg’s yes before signing', ruleSub: 'x', c: {} }).join(' / '), 'Jonas Berg’s yes before signing / Erik’s contracts need it');
     assert.equal(ctx.apWhyLines({ type: 'signature', kind: 'sign', n: 0, c: {} }).join(' / '), 'Ready to sign / nothing in the way');
     const ctx2 = stage(['apWhyLines'], { approvalState: () => ({ chain: [{ status: 'approved', by: 'Erik Ström', at: '2026-10-14T10:00:00Z' }] }), regDotDate: () => '14 Oct' });
@@ -185,5 +189,39 @@ describe('f733 (4) nothing chosen: the page in Jambo\'s words', () => {
     assert.ok(keys.length > 15);
     for (const k of keys) for (const lang of ['en', 'sv'])
       assert.ok(plural.has(k) ? (BOOKS[lang][k + '_one'] && BOOKS[lang][k + '_other']) : BOOKS[lang][k] != null, `${k} ${lang}`);
+  });
+});
+
+/* ═══ PASS 3 (18 Oct 2026), the checker against round 15 ═══════════════════
+   (5) THE APPROVAL'S PANEL DRAWS NO DOORS: Ref · name, the party with "for
+       Jonas", then straight into Why it waits — the picked drawing over the
+       12 Oct "two doors on every list panel" for the one panel it draws; "Open
+       Before you sign" is its way to the paper. A signature's panel keeps the
+       two doors. Whose turn and Why it waits name a colleague by the first
+       name ("Sara approves", "Sara"), a role whole.
+   AT THE PARENT (8dc306a) and before this pass (14b2f8a) these FAIL. */
+describe('f733 (5) the Approval panel as drawn: no doors; first names', () => {
+  const doors = [{ k: 'door-nego', door: true }, { k: 'door-ws', door: true }];
+  const mk = extra => stage(['apInsActs'], Object.assign({ insDoorActs: () => doors, apMayUndo: () => false, apMayDecide: () => null,
+    apForWho: () => null, apOpenSigning(){}, apDecide(){}, apUndo(){} }, extra || {}));
+  const keys = (ctx, tab, r) => ctx.apInsActs(tab, r).map(a => a.k).join(',');
+  test('5a an approval waiting on others: its own verb only, no Negotiation · Workspace', () => {
+    assert.equal(keys(mk(), 'approvals', { c: {}, mine: false }), 'gate');
+  });
+  test('5b an approval the reader answers: Approve · Refuse… · Open Before you sign, and nothing after', () => {
+    assert.equal(keys(mk({ apMayDecide: () => ({ kind: 'rule' }) }), 'approvals', { c: {}, mine: true }), 'approve,refuse,gate');
+  });
+  test('5c an approval just given: Undo · Open Before you sign — still no doors', () => {
+    assert.equal(keys(mk({ apMayUndo: () => true }), 'approvals', { c: {}, mine: true, done: { ruleId: 'r1' } }), 'undo,gate');
+  });
+  test('5d [control] a signature\'s panel keeps the two doors (not drawn otherwise)', () => {
+    assert.equal(keys(mk(), 'signatures', { c: {}, kind: 'sign' }), 'sign,door-nego,door-ws');
+  });
+  test('5e Whose turn and the panel\'s Why name a colleague by the first name, a role whole', () => {
+    const ctx = stage(['apTurnText', 'apWaitsShort', 'apWhySentence'], { contractOwnerName: () => '' });
+    const member = { next: { approver: { kind: 'member', id: 'u-s' } } };
+    assert.equal(ctx.apTurnText({ type: 'approval', waitsOn: 'Sara Nyström', st: member }), 'Sara');
+    assert.equal(ctx.apWhySentence({ rule: 'Over SEK 2 M', waitsOn: 'Sara Nyström', st: member }), 'Over SEK 2 M: Sara approves before anyone signs');
+    assert.equal(ctx.apTurnText({ type: 'approval', waitsOn: 'The legal approver', st: { next: { approver: { kind: 'role', role: 'legal' } } } }), 'The legal approver');
   });
 });

@@ -505,7 +505,9 @@ function cuPaintCustomerPanel(tb){
       { k: 'active', label: i18t('cu_tab_active'), v: _cuE(count(r.active)) },
       { k: 'expired', label: i18t('cu_tab_expired'), v: _cuE(count(r.expired)) },
       { k: 'next', label: i18t('cu_col_next_end'), v: r.next ? _cuE(cuDay(r.next)) : '' },
-      { k: 'waiting', label: i18t('cu_col_waiting'), v: _cuE(cuNeedsSay(r.needs)) },
+      /* across the panel and allowed to wrap: a 380px panel cut "Your
+         approval is asked f…" (round 19 draws it whole) */
+      { k: 'waiting', label: i18t('cu_col_waiting'), v: _cuE(cuNeedsSay(r.needs)), wide: true },
       { k: 'nda', label: i18t('cu_col_nda'), v: cuNdaFactHtml(cuNdaOf(key)), wide: true },
     ];
     const streams = r.streams.map(f => `<span>${cuStripeHtml(f)}${_cuE(cuStreamName(f))}</span><span class="n">${r.items.filter(c => c.folder === f).length}</span>`).join('');
@@ -533,12 +535,30 @@ function cuPaintCustomerPanel(tb){
 
 /* THE PANEL'S TWO LISTS (round 19): what waits on you here, each with its
    own door; and the party's agreements, each a door onto its paper */
+/* A ROW READS WHOLE IN JAMBO'S PANEL (round 19 as drawn: "Answer 2 redlines
+   · Master services agreement · waiting 4 days · Open redlines"): the button
+   is a short door word — the page it opens — and the long sentence of where
+   it lands rides its hover; the line under the title is the agreement and the
+   need's own line (its wait), so a 380px panel cuts neither the title nor
+   the button. */
+const CU_NEED_DOOR = { quiet: 'cu_need_go_move', review: 'cu_need_go_move', suggest: 'cu_need_go_move', join: 'cu_need_go_move', move: 'cu_need_go_move',
+  approval: 'jl_open_approval', refused: 'jl_open_signing', sign: 'jl_open_signing', look: 'jl_open_review', details: 'det_need_verb', note: 'cu_need_go_note', renewal: 'home_verb_decide' };
+const CU_NEED_LINE = new Set(['quiet', 'look', 'review', 'note', 'renewal', 'refused', 'join']);
 function cuPanelNeedsHtml(list){
   return `<div class="cu-list">${list.map(x => {
     const t = cuNeedTitle(x), ref = (typeof contractRef === 'function') ? contractRef(x.c) : x.c.id;
     const go = x.it.kind === 'move' ? i18t('cu_need_go_move') : i18t((typeof INS_NEED_GO !== 'undefined' && INS_NEED_GO[x.it.kind]) || 'ins_need_go_nego');
-    return `<div class="cu-li${x.it.urgent ? ' is-late' : ''}"><div class="cu-li-b"><b title="${_cuE(t)}">${_cuE(t)}</b><span>${_cuE([x.c.name || '', ref].filter(Boolean).join(' · '))}</span></div>
-      <button type="button" class="ui-btn ui-btn-sm" data-cu-need="${_cuE(x.it.kind)}" data-cu-id="${_cuE(x.c.id)}">${_cuE(go)}</button></div>`; }).join('')}</div>`;
+    /* the line says when, where the need has a when: its wait, a due day, the
+       note it quotes; a need without one ("approval", "details") says only
+       its agreement — never the landing sentence, which is the hover's */
+    let line = '';
+    try {
+      if (x.it.kind === 'move'){ const w = (typeof regNegoCols === 'function') ? regNegoCols(x.c).waiting : ''; if (w && w !== '\u2014') line = i18t('ins_need_waiting', { days: w }); }
+      else if (CU_NEED_LINE.has(x.it.kind) && typeof insNeedWords === 'function') line = String(insNeedWords(x.c, x.it).plain || '');
+    } catch (_){ line = ''; }
+    const sub = [x.c.name || ref, line].filter(Boolean).join(' · ');
+    return `<div class="cu-li${x.it.urgent ? ' is-late' : ''}"><div class="cu-li-b"><b title="${_cuE(t)}">${_cuE(t)}</b><span title="${_cuE([sub, ref].join(' · '))}">${_cuE(sub)}</span></div>
+      <button type="button" class="ui-btn ui-btn-sm" data-cu-need="${_cuE(x.it.kind)}" data-cu-id="${_cuE(x.c.id)}" title="${_cuE(go)}">${_cuE(i18t(CU_NEED_DOOR[x.it.kind] || 'cu_need_go_move'))}</button></div>`; }).join('')}</div>`;
 }
 function cuPanelAgreementsHtml(items){
   return `<div class="cu-list">${items.slice().sort((a, b) => String(cuEnds(b) || '').localeCompare(String(cuEnds(a) || ''))).map(c => {
@@ -587,7 +607,7 @@ function cuWire(host, INS){
   });
 }
 
-Object.assign(window, { cuNeedsOf, cuNeedTitle, cuNeedsSay, cuNeedGo, cuPanelNeedsHtml, cuPanelAgreementsHtml, cuNameOf, cuKeyOf, cuBook, cuBucket, cuCustomers, cuCustomerOf, cuDoorCount, cuNextEnd, cuFilterItems, cuView, cuIdsOf,
+Object.assign(window, { cuNeedsOf, cuNeedTitle, cuNeedsSay, cuNeedGo, cuPanelNeedsHtml, CU_NEED_DOOR, CU_NEED_LINE, cuPanelAgreementsHtml, cuNameOf, cuKeyOf, cuBook, cuBucket, cuCustomers, cuCustomerOf, cuDoorCount, cuNextEnd, cuFilterItems, cuView, cuIdsOf,
   cuNdaMap, cuNdaOf, cuNdaWants, cuNdaShort, cuOpenNda,
   cuPlace, cuPlacePut, cuOpenCustomer, cuOpenExplorer, cuDraftFor, renderCustomers, cuRepaint,
   /* the one filter-box builder the band's clothes dress; the Directory draws its boxes with it too (13 Oct 2026) */

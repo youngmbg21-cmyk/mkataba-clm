@@ -6864,6 +6864,9 @@ function hbPaintBoard(opts){
   hbRcMenuPlace(host);
   hbFitMeasure();
   hbFitWatch(host);
+  /* the hint line under Jambo's box names the keys while a contract is up as
+     a page here (rounds 7, 12): it follows the card in place */
+  if (typeof window.igHintPaint === 'function') try { igHintPaint(); } catch (_){}
 }
 /* THE BOARD'S OWN WIDTH (owner, 11 Oct 2026: a chart's words grew huge): the
    board narrows and widens without the window moving — the Copilot panel

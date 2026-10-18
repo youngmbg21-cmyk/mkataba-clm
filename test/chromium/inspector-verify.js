@@ -260,7 +260,7 @@ const ok = (name, good, detail) => {
        Lead column the owner said yes to, after the wait */
     ok('2a Negotiations draws the list and the panel, with the round, what is open, the wait and the lead', ng.ins === '1'
       && ng.heads.join('|') === 'Ref|Counterparty and agreement|Round|What is open|Waiting|Lead', ng.heads.join(' | '));
-    ok('2b the changes say what they ask of whom, and the wait says how long', ng.moves.some(m => /^\d+ to answer$/.test(m)) && ng.moves.some(m => /^sent \d+ changes?$/.test(m))
+    ok('2b the changes say what they ask of whom, and the wait says how long', /* RE-POINTED 18 Oct 2026 (round 14 as drawn): "N redlines to answer", "N sent, no answer yet" */ ng.moves.some(m => /^\d+ redlines? to answer$/.test(m)) && ng.moves.some(m => /^\d+ sent, no answer yet$/.test(m))
       && ng.waits.some(w => /^(\d+ days?|today)$/.test(w)), `${ng.moves.join(' | ')} · ${ng.waits.join(' | ')}`);
     ok('2c only the groups that have rows are drawn, whose move is a tab row, and no Contracts views', !ng.bands.includes('Nothing outstanding') && !ng.views
       && ng.bandTabs.includes('Our move') && ng.bandTabs.includes('Their move'), `${ng.bands.join(' | ')} · tabs ${ng.bandTabs.join(' | ')}`);
@@ -332,7 +332,14 @@ const ok = (name, good, detail) => {
       await page.click('#ins-panel [data-ins-act="door-ws"]'); await page.waitForTimeout(1200);
       const r = await page.evaluate(HOMED);
       ok('3d Approvals: the Workspace door lands on Home, on that contract', r.view === 'dashboard' && r.id === apPid, JSON.stringify(r));
-    } else ok('3d Approvals: the Workspace door lands on Home', false, 'no panel or no Workspace door');
+    } else if (apPid && await page.$('#ins-panel [data-ins-act="gate"]')) {
+      /* RE-POINTED 18 Oct 2026 (round 15 as drawn, owner's "build all the
+         gaps"): an Approval's panel draws no doors — "Open Before you sign" is
+         its way to the paper, and it lands on Home, on that contract */
+      await page.click('#ins-panel [data-ins-act="gate"]'); await page.waitForTimeout(1200);
+      const r = await page.evaluate(HOMED);
+      ok('3d Approvals: an Approval\'s "Open Before you sign" lands on Home, on that contract', r.view === 'dashboard' && r.id === apPid, JSON.stringify(r));
+    } else ok('3d Approvals: the panel\'s way to the paper lands on Home', false, 'no panel, no Workspace door, no Open Before you sign');
     const obCid = await page.evaluate(() => { const c = state.contracts.find(x => !x.archived); if (!c) return null;
       c.obligations = (c.obligations || []).concat([{ id: 'ob-ins-3e', desc: 'Send the quarterly report', due: todayISO(), party: 'us', status: 'open' }]); return c.id; });
     await page.evaluate(() => setView('obligations')); await page.waitForTimeout(1200);
