@@ -2273,7 +2273,7 @@ function pdChosenHtml(c){
   const id = _pdE(c.id), ref = (typeof contractRef === 'function') ? contractRef(c) : String(c.id);
   const facts = pdChosenFacts(c);
   const lock = (typeof icon === 'function') ? icon('lock', 'w-3 h-3') : '';
-  const rows = facts.map(f => `<div class="pd-ch-f" data-pd-ch-f="${f.k}"><dt>${_pdE(f.label)}</dt><dd>${f.dot ? `<i class="pd-ch-dot" style="background:${f.dot}" aria-hidden="true"></i>` : ''}${f.lock ? `<span class="pd-ch-lock" title="${_pdE(_pdT('igw_private_title', { s: f.v }))}">${lock}</span>` : ''}<span>${_pdE(f.v)}</span>${f.sub ? `<small>${_pdE(f.sub)}</small>` : ''}</dd></div>`).join('');
+  const rows = facts.map(f => `<div class="pd-ch-f" data-pd-ch-f="${f.k}"><dt>${_pdE(f.label)}</dt><dd>${f.dot ? `<i class="pd-ch-dot" style="background:${f.dot}" aria-hidden="true"></i>` : ''}${f.lock ? `<span class="pd-ch-lock" title="${_pdE(_pdT('igw_private_title', { s: f.v }))}">${lock}</span>` : ''}<span>${_pdE(f.v)}</span>${f.sub ? ` <small>${_pdE(f.sub)}</small>` : ''}</dd></div>`).join('');
   const stream = (facts.find(f => f.k === 'stream') || {}).v || '';
   const sub = c._codeNamed ? [ref, stream].filter(Boolean).join(' · ') : [ref, c.counterparty].filter(Boolean).join(' · ');
   /* A DEAL KEPT TO ITS LIST says its rule in the stop's own words, and no
