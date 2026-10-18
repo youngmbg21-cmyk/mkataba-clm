@@ -90,7 +90,10 @@ describe('f712 (3) where the body and the Sign button stand', () => {
     const f = PD.slice(PD.indexOf('function pdRoadPaint('), PD.indexOf('function pdSignFaceHtml('));
     assert.match(f, /body\.style\.order = String\(2 \* R\.cur \+ 3\);/);
     assert.match(f, /const show = R\.mineAt >= 0;/);
-    assert.match(f, /foot\.style\.display = show \? '' : 'none';/);
+    /* the route's own link keeps the foot when it is not the reader's turn,
+       the Sign button hidden in it (upload-blanks-verify's door, CI 18 Oct) */
+    assert.match(f, /foot\.style\.display = \(show \|\| route\) \? '' : 'none';/);
+    assert.match(f, /const btn = foot\.querySelector\('#sign-btn'\); if \(btn\) btn\.style\.display = show \? '' : 'none';/);
     assert.match(PD, /const next = host\.querySelector\('\[data-pd-sf-next\]'\); if \(next\) next\.innerHTML = pdSignNextHtml\(c\);\n\s+pdRoadPaint\(c\);/, 'drawn after every paint of the column');
   });
   test('3b the words, in both books', () => {
