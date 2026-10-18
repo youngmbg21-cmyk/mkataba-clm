@@ -4084,6 +4084,8 @@
     border:0; background:none; cursor:pointer; font:inherit; font-size:var(--t-body); font-weight:var(--w-body);
     color:var(--color-text); border-radius:var(--radius); padding:var(--s-2) 10px; }
   .room-menu button:hover{ background:var(--color-neutral-100); }
+  /* a group's small head inside a menu (History's "Every contract · admins only", round 12) */
+  .room-menu .hist-mg{ margin:6px 4px 2px; padding-top:6px; border-top:1px solid var(--color-divider); font-size:var(--t-label); color:var(--color-neutral-600); }
   /* "Draft new agreement" drops its two doors as a menu (SAP's menu button,
      10 Oct 2026; openNewDoors in js/wizard.js). */
   .nd-menu{ position:fixed; z-index:72; width:320px; padding:4px; background:var(--color-surface);
@@ -5520,6 +5522,47 @@
   .hist-pill.is-r{ background:var(--st-ruby-bg); color:var(--st-ruby-fg); }
   .hist-pill.is-a{ background:var(--st-amber-bg); color:var(--st-amber-fg); }
   @media (max-width:900px){ .hist-trail .hist-ev{ grid-template-columns:56px 14px minmax(0,1fr) auto; } .hist-who{ display:none; } }
+  /* TWO SIDES (round 12 of the redesign, owner picked "Two sides", 17 Oct
+     2026): our steps in the left lane, theirs in the right, the days down a
+     middle line; what only we can see sits on that line as a quiet pill. The
+     row keeps its parts (time, ring, who, outcome); only where it stands
+     moves. The per-row joining line gives way to the one middle line. The two
+     side colours are the Board's own pair, checked for colour blindness. */
+  .hist-trail.is-lanes{ --hist-ours:var(--bs-ours,#264c9e); --hist-theirs:var(--bs-theirs,#7E66D6);
+    display:grid; grid-template-columns:minmax(0,1fr) 64px minmax(0,1fr); row-gap:6px; padding:0 var(--s-4) 14px; }
+  .hist-trail.is-lanes::before{ content:""; position:absolute; top:30px; bottom:0; left:50%; width:1px; background:var(--rule); }
+  .hist-trail.is-lanes .hist-ev::before{ display:none; }
+  .hist-trail.is-lanes .hist-ev{ display:flex; grid-template-columns:none; padding:0; border-bottom:0; background:transparent; min-width:0; }
+  .hist-trail.is-lanes .hist-ev:hover{ background:transparent; }
+  .hist-trail.is-lanes .hist-ev.is-ours{ grid-column:1; justify-content:flex-end; padding-right:12px; }
+  .hist-trail.is-lanes .hist-ev.is-theirs{ grid-column:3; justify-content:flex-start; padding-left:12px; }
+  .hist-trail.is-lanes .hist-ev.is-mid{ grid-column:1 / -1; flex-direction:column; align-items:center; }
+  .hist-trail.is-lanes .hist-day-h{ grid-column:1 / -1; justify-self:center; position:relative; z-index:1; margin:10px 0 2px;
+    padding:1px 10px; border:1px solid var(--color-divider); border-radius:11px; background:var(--surface-2); white-space:nowrap; }
+  .hist-trail.is-lanes .hist-day-h:first-child{ border-top:1px solid var(--color-divider); }
+  .hist-lh{ position:sticky; top:0; z-index:2; padding:8px 0 4px; background:var(--color-surface);
+    font-size:var(--t-meta); font-weight:var(--w-label); color:var(--color-neutral-600); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .hist-lh.is-l{ grid-column:1; text-align:right; padding-right:12px; }
+  .hist-lh.is-m{ grid-column:2; text-align:center; }
+  .hist-lh.is-r{ grid-column:3; padding-left:12px; }
+  .hist-lh i{ display:inline-block; width:8px; height:8px; border-radius:50%; margin:0 6px; vertical-align:0; background:var(--hist-ours); }
+  .hist-lh.is-r i{ background:var(--hist-theirs); }
+  .hist-bub{ min-width:0; max-width:440px; padding:7px 10px; border:1px solid var(--color-divider); border-radius:var(--radius-lg); background:var(--color-surface); }
+  .hist-ev.is-ours .hist-bub{ border-right:3px solid var(--hist-ours); }
+  .hist-ev.is-theirs .hist-bub{ border-left:3px solid var(--hist-theirs); }
+  .hist-top{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:2px; font-size:var(--t-meta); color:var(--color-neutral-600); }
+  .hist-top .hist-when, .hist-inside .hist-when{ flex-direction:row; line-height:18px; }
+  .hist-top .hist-dot, .hist-inside .hist-dot{ --hist-dot:10px; margin-top:0; border-width:2px; }
+  .hist-top .hist-oc{ margin-left:auto; }
+  .hist-inside{ position:relative; z-index:1; display:inline-flex; align-items:center; gap:6px; max-width:100%; padding:2px 10px;
+    border:1px solid var(--color-divider); border-radius:12px; background:var(--color-surface); font-size:var(--t-meta); color:var(--color-neutral-600); }
+  .hist-ev.is-inside .hist-inside{ border-style:dashed; border-color:var(--rule-strong); }
+  .hist-inside .hist-text{ font-size:var(--t-meta); font-weight:var(--w-body); line-height:18px; color:inherit; }
+  .hist-inside .hist-body{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .hist-mid-more{ max-width:560px; width:100%; }
+  @media (max-width:700px){ .hist-trail.is-lanes{ grid-template-columns:minmax(0,1fr); }
+    .hist-trail.is-lanes::before, .hist-lh.is-m{ display:none; }
+    .hist-trail.is-lanes .hist-ev.is-ours, .hist-trail.is-lanes .hist-ev.is-theirs, .hist-lh.is-l, .hist-lh.is-r{ grid-column:1; justify-content:flex-start; text-align:left; padding:0; } }
   .hist-head{ display:flex; align-items:center; gap:10px; flex-wrap:wrap;
     padding:10px var(--s-4); border-bottom:1px solid var(--color-divider); }
   .hist-cap{ font-size:var(--t-label); color:var(--color-neutral-600); }
