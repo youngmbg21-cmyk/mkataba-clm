@@ -36,7 +36,7 @@
 function adviserClauses(c){
   if(typeof clauseSegment!=='function') return [];
   let body='';
-  try{ body=(typeof docBody==='function'?docBody(c):'')||c.redlineText||''; }catch(_){ body=c.redlineText||''; }
+  try{ body=(typeof docBody==='function'?docBody(c,{ marks:false }):'')||c.redlineText||''; }catch(_){ body=c.redlineText||''; }
   if(!body) return [];
   try{ return (clauseSegment(body)||[]); }catch(_){ return []; }
 }

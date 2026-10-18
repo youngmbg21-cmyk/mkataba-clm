@@ -1,6 +1,6 @@
 'use strict';
 /* ═══════════════════════════════════════════════════════════════════════════
-   f734 — A RULE STEP'S QUESTION CARRIES WHAT IT ASKS ABOUT (18 Oct 2026; the
+   f808 — A RULE STEP'S QUESTION CARRIES WHAT IT ASKS ABOUT (18 Oct 2026; the
    reading behind Approvals' "Since last look · Nothing changed in the
    wording", round 15 of the redesign as drawn)
 
@@ -48,7 +48,7 @@ before(async () => {
 });
 after(async () => { if (h) await h.stop(); });
 
-describe('f734 (1) the save that makes the step due opens its question with the record\'s stamp', () => {
+describe('f808 (1) the save that makes the step due opens its question with the record\'s stamp', () => {
   test('1a Draft → In Review: the rule\'s question is open, and stamped with what it covers', async () => {
     const c = await get(W.admin, 'MK-S1');
     c.status = 'Under Review';
@@ -72,7 +72,7 @@ describe('f734 (1) the save that makes the step due opens its question with the 
   });
 });
 
-describe('f734 (2) the stamp is the record\'s, never the body\'s', () => {
+describe('f808 (2) the stamp is the record\'s, never the body\'s', () => {
   test('2a a question the browser opens with its own stamp is stamped by the server from the record', async () => {
     const c = await get(W.admin, 'MK-S2');
     c.status = 'Under Review';
@@ -88,7 +88,7 @@ describe('f734 (2) the stamp is the record\'s, never the body\'s', () => {
   });
 });
 
-describe('f734 (3) money in the stamp is masked for a reader who may not see it', () => {
+describe('f808 (3) money in the stamp is masked for a reader who may not see it', () => {
   test('3a the no-values reader gets the question, its value blank', async () => {
     const c = await get(W.novalues, 'MK-S1');
     const q = ruleAsks(c).find(a => a.state === 'open');
@@ -97,7 +97,7 @@ describe('f734 (3) money in the stamp is masked for a reader who may not see it'
   });
 });
 
-describe('f734 (4) the one writer passes the stamp through', () => {
+describe('f808 (4) the one writer passes the stamp through', () => {
   test('4a askRuleFor(c, rule, { stamp }) opens the question with it; with none, none', () => {
     const c = { id: 'X', asks: [] };
     const a = askRuleFor(c, 'r1', { approver: { kind: 'member', id: 'u9', name: 'Jonas Berg' }, stamp: { v: 2, doc: 'abc', value: 5, fields: {} } });

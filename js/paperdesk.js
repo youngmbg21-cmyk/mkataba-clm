@@ -1785,7 +1785,6 @@ function pdDropImportHtml(){
    the arrivals agent's own door) ask here first; the pop-up stays for what the
    drop hands it (a signed copy coming back) and on the phone. Answers whether
    it took the door. */
-const PD_DROP_CALL_MS = 1600;
 function pdDropDoor(){
   if (typeof window === 'undefined' || (window.innerWidth && window.innerWidth < 768)) return false;
   if (typeof hbOpenContracts !== 'function' || !(typeof deskShellOn !== 'function' || deskShellOn())) return false;
@@ -1794,13 +1793,8 @@ function pdDropDoor(){
   hbOpenContracts();
   if (typeof intel === 'object' && intel && !intel.dockOpen){ intel.dockOpen = true; if (typeof renderIntelDock === 'function') renderIntelDock(); if (typeof igSyncDockWidth === 'function') try { igSyncDockWidth(); } catch (_){} }
   pdSetTab('copilot');
-  let n = 0;
-  const land = () => { const el = document.getElementById('pd-drop');
-    if (el && el.getBoundingClientRect().height > 0){
-      try { el.scrollIntoView({ block: 'nearest' }); } catch (_){}
-      el.classList.add('is-called'); setTimeout(() => el.classList.remove('is-called'), PD_DROP_CALL_MS); return; }
-    if (++n < 30) setTimeout(land, 100); };
-  setTimeout(land, 0);
+  /* LAND ON IT (owner, 18 Oct 2026): the drop area lit, Choose files ready */
+  if (typeof landOn === 'function') landOn('#pd-drop', { focus: '[data-pd-drop-pick]' });
   return true;
 }
 /* ---- THE STREAM IS ASKED AT THE DROP (the fix round, 15 Oct 2026; the
@@ -2216,5 +2210,5 @@ Object.assign(window, { pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAme
   PD_FILL_TRIES, PD_FILL_BEAT_MS, pdFillFor, pdFillShows, pdFillOpen, pdFillSeen, pdFillAway, pdFillClose, pdFillHeadHtml, pdFillDoneHtml, pdFillFaceHtml, pdFillMark, pdFillGroupsPaint, pdFillRows, pdFillRowKey, pdFillFacePaint, pdFillCounts, pdFillKeyOf, pdFillEcho, pdFillWire, pdFillLand, pdFillRefresh,
   pdFillStreamMay, pdFillStreamHtml, pdFillStreamRepaint, pdFillStreamPick,
   PD_DROP_ACCEPT, pdDropMay, pdWallHelloHtml, pdDropInner, pdDropStreams, pdDropStreamNow, pdDropStreamHtml, pdDropHtml, pdDropPaint, pdWallHtml, pdDropInput, pdDropBusyNow, pdDropPick, PD_DROP_TOAST_MS, pdDropToastOff, pdDropTake,
-  PD_GLANCE, PD_GL_SUB_MAX, pdGlanceSub, pdGlanceBriefHtml, pdGlanceFootHtml, pdDropImportHtml, pdDropDoor, PD_DROP_CALL_MS, pdGlanceRows, pdSignAhead, pdGlanceHtml, pdGlanceRepaint, pdJamboTopHtml, pdNeedsRows, pdNeedRowHtml, pdNeedsHtml, pdNeedsRepaint, pdBackHtml, PD_BACK_CLOSE, PD_GL_DONE_MS, pdGlanceDone,
+  PD_GLANCE, PD_GL_SUB_MAX, pdGlanceSub, pdGlanceBriefHtml, pdGlanceFootHtml, pdDropImportHtml, pdDropDoor, pdGlanceRows, pdSignAhead, pdGlanceHtml, pdGlanceRepaint, pdJamboTopHtml, pdNeedsRows, pdNeedRowHtml, pdNeedsHtml, pdNeedsRepaint, pdBackHtml, PD_BACK_CLOSE, PD_GL_DONE_MS, pdGlanceDone,
   JB_BEAT_MS, JB_HOP_MS, jamboPerchMount, jamboRest, jamboWorkWords, jamboBeat, jamboHop, jamboLookPaint });

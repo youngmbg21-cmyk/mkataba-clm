@@ -14,6 +14,9 @@
        a press opens that page
      4 a question about the wording is NOT the map's: no card, no move
      5 in Svenska the words are read and Jambo says where he went in Svenska
+     9 Explorer, the 31st task (owner, 18 Oct 2026: "add Explorer as the
+       31st task"): everyday words open it from the Counter and ⌘K, and in
+       Svenska
      6 nothing on the page threw
    Waits ask for the state, bounded; a part that is missing reports.
    Run: node test/chromium/jambo-map-verify.js */
@@ -213,6 +216,28 @@ const check = (name, pass, detail) => {
     const tbCard = await until(n => { if (state.view !== 'dashboard' || intel.history.length < n + 2) return null;
       const m = intel.history[intel.history.length - 1]; return m.act && m.act.kind === 'door' ? m.act.door + ':' + m.act.cid : null; }, n1, 6000);
     check('8d an act from the top bar is Jambo\'s card beside the Board, on the contract named', tbCard === 'signlink:MK-B2', String(tbCard));
+
+    console.log('\n9 · Explorer, the 31st task');
+    const onExplorer = () => until(() => state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'explorer' && !!document.getElementById('ig-cv'));
+    const whereNow = () => page.evaluate(() => JSON.stringify({ view: state.view, face: typeof hbFace === 'function' ? hbFace() : null, canvas: !!document.getElementById('ig-cv') }));
+    await toCounter();
+    await counterAsk('how are our contracts connected?');
+    check('9a the Counter: "how are our contracts connected?" opens Explorer', !!(await onExplorer()), await whereNow());
+    await page.screenshot({ path: path.join(OUT, '9a-explorer-1440x780.png') });
+    await toCounter();
+    const p9 = await palette('a map of all our contracts');
+    const want9 = await page.evaluate(() => i18t('jm_t_explorer'));
+    const row9 = (p9 || []).findIndex(r => r.text.startsWith(want9));
+    check('9b ⌘K: "a map of all our contracts" is a row titled ' + want9, row9 >= 0, JSON.stringify(p9 && p9.slice(0, 4)));
+    if (row9 >= 0){
+      await page.locator('#cp-list [data-cp-i]').nth(row9).click();
+      check('9c its press opens Explorer', !!(await onExplorer()), await whereNow());
+    }
+    await page.evaluate(() => window.langSet('sv')); await page.waitForTimeout(300);
+    await toCounter();
+    await counterAsk('visa avtalen på en karta');
+    check('9d in Svenska: "visa avtalen på en karta" opens Utforskaren', !!(await onExplorer()), await whereNow());
+    await page.evaluate(() => window.langSet('en')); await page.waitForTimeout(300);
 
     console.log('\n6 · the page');
     check('6 nothing threw', errors.length === 0, errors.slice(0, 3).join(' | '));

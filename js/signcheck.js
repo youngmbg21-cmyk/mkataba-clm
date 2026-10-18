@@ -702,7 +702,9 @@ function signReadiness(c, opts){
     .forEach(r => rows.push(r));
   const findings = _scCall('openFindings', c) || [];
   findings.filter(f => f && f.sev === SIGN_RISK_SEV).forEach(f => rows.push({
-    kind: 'risk', key: 'risk:' + f.id, id: f.id, title: f.title, what: f.what, fix: f.fix,
+    /* named by the ONE short title (riskTitleOf), as the triage tile and the health report are */
+    kind: 'risk', key: 'risk:' + f.id, id: f.id,
+    title: _scCall('riskTitleOf', { src: 'scan', id: f.id, kind: f.kind || '', title: String(f.title || '') }) || f.title, what: f.what, fix: f.fix,
     anchor: f.anchor, stage: signStageOf('risk'), holds: false, settled: false }));
   /* HOLDING FIRST, then what is merely open, then what was settled — and
      escalations lead the holds, because they are the ones the signer cannot

@@ -1,6 +1,6 @@
 'use strict';
 /* ═══════════════════════════════════════════════════════════════════════════
-   f736 — ONE CONVERSATION, SAID WHERE THE READER IS LOOKING (Jambo's panel
+   f810 — ONE CONVERSATION, SAID WHERE THE READER IS LOOKING (Jambo's panel
    beside the lists, 18 Oct 2026)
 
    (1) THE FEED IS WHERE THE READER LOOKS: while Jambo's panel beside a list is
@@ -44,7 +44,7 @@ const page = ({ listShown = true, listThere = true } = {}) => {
 const stage = (names, extra) => { const ctx = Object.assign({ window: {} }, extra || {});
   vm.createContext(ctx); vm.runInContext(names.map(n => fnOf(AI, n)).join('\n'), ctx); return ctx; };
 
-describe('f736 (1) the feed is where the reader looks', () => {
+describe('f810 (1) the feed is where the reader looks', () => {
   const names = ['aiListFeed', 'aiFeedEl'];
   test('1a the panel beside a list is on screen, the window shut: the panel', () => {
     const p = page();
@@ -65,7 +65,7 @@ describe('f736 (1) the feed is where the reader looks', () => {
   });
 });
 
-describe('f736 (2) one copy on the page at a time', () => {
+describe('f810 (2) one copy on the page at a time', () => {
   test('2a beside a list, an empty conversation draws nothing — and the window\'s copy is emptied', () => {
     const p = page();
     const c = stage(['aiListFeed', 'aiFeedEl', 'renderAIFeed'], { document: p.document, ai: { open: false, history: [] }, aiProposals: new Map(), AI_PROPOSAL_OPEN: 'open' });
@@ -79,7 +79,7 @@ describe('f736 (2) one copy on the page at a time', () => {
   });
 });
 
-describe('f736 (3) one turn, whichever box asked', () => {
+describe('f810 (3) one turn, whichever box asked', () => {
   test('3a the window\'s box takes its words out and asks through aiAskWords — the one turn', () => {
     assert.match(code(fnOf(AI, 'aiSubmit')), /return aiAskWords\(q\);\s*\}$/);
     assert.match(code(fnOf(AI, 'aiAskWords')), /^async function aiAskWords\(qRaw\)\{\s*const q=String\(qRaw\|\|''\)\.trim\(\); if\(!q\|\|ai\.busy\) return;/, 'empty or busy: nothing asked twice');
@@ -95,7 +95,7 @@ describe('f736 (3) one turn, whichever box asked', () => {
   });
 });
 
-describe('f736 (4) an answer said where the reader looks lights no launcher', () => {
+describe('f810 (4) an answer said where the reader looks lights no launcher', () => {
   test('4a beside a list: no badge; the window shut and no panel: the badge, as before', () => {
     let badge = 0;
     const p = page();
@@ -116,7 +116,7 @@ describe('f736 (4) an answer said where the reader looks lights no launcher', ()
   });
 });
 
-describe('f736 (5) the same dress in both feeds', () => {
+describe('f810 (5) the same dress in both feeds', () => {
   test('5a paragraphs, lists, quotes, code, tables and rules are dressed in both, at the id\'s weight', () => {
     for (const sel of ['.ai-p{', 'ul.ai-list{', 'ol.ai-list{', '.ai-list li{', '.ai-quote{', '.ai-code{', '.ai-table{', 'hr{', '.ai-target{'])
       assert.ok(HTML.includes(':is(#ai-feed,#jl-feed) ' + sel), sel);

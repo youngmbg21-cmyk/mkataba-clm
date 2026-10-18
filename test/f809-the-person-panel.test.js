@@ -1,6 +1,6 @@
 'use strict';
 /* ═══════════════════════════════════════════════════════════════════════════
-   f735 — PEOPLE: THE PERSON IN JAMBO'S PANEL (round 19 of the redesign, scene
+   f809 — PEOPLE: THE PERSON IN JAMBO'S PANEL (round 19 of the redesign, scene
    b, as drawn; the owner's "build all the gaps", 18 Oct 2026)
 
    (1) WHAT WAITS ON A PERSON is a READING of the loaded list, nothing written:
@@ -46,7 +46,7 @@ const stage = (src, names, extra) => { const ctx = Object.assign({ i18t: t, i18t
   vm.createContext(ctx); vm.runInContext(names.map(n => fnOf(src, n)).join('\n'), ctx); return ctx; };
 const ids = list => Array.from(list, w => w.c.id + ':' + w.kind).join('|');
 
-describe('f735 (1) what waits on a person — a reading, nothing written', () => {
+describe('f809 (1) what waits on a person — a reading, nothing written', () => {
   const JONAS = { id: 'u7', name: 'Jonas Berg' };
   const book = [
     { id: 'A', status: 'Under Review', asks: [{ kind: 'rule', state: 'open', to: { id: 'u7', name: 'Jonas Berg' } }] },
@@ -97,7 +97,7 @@ describe('f735 (1) what waits on a person — a reading, nothing written', () =>
   });
 });
 
-describe('f735 (2) the panel as drawn', () => {
+describe('f809 (2) the panel as drawn', () => {
   const f = fnOf(DIR, 'dirPaintPanel');
   test('2a the head: initials, "title · our side"; Show their contracts · Email; Manage in Settings in ⋯ for an admin only', () => {
     assert.match(f, /const av = `<span class="jl-av" aria-hidden="true">\$\{_dE\(dirInitials\(p\.name \|\| p\.email\)\)\}<\/span>`;/);
@@ -135,7 +135,7 @@ describe('f735 (2) the panel as drawn', () => {
   });
 });
 
-describe('f735 (3) away is said only where the reader may know it', () => {
+describe('f809 (3) away is said only where the reader may know it', () => {
   const ctxOf = (away, me) => stage(INS, ['jlAwayOf'], { state: { away }, currentUser: () => me });
   test('3a their own rule; one the reader stands in for; nobody else\'s', () => {
     const away = { mine: { from: '2026-10-16', to: '2026-10-23' }, covering: [{ userId: 'u7', userName: 'Jonas Berg', from: '2026-10-16', to: '2026-10-23', deputyName: 'Maria' }] };
@@ -156,7 +156,7 @@ describe('f735 (3) away is said only where the reader may know it', () => {
   });
 });
 
-describe('f735 (4) nothing chosen: the page in Jambo\'s words', () => {
+describe('f809 (4) nothing chosen: the page in Jambo\'s words', () => {
   test('4a "12 people here: 8 of ours and 4 from the other side." — and whom the reader stands in for; chips are the tabs', () => {
     const _dir = { tab: 'all' };
     const book = [...Array(8)].map(() => ({ side: 'ours' })).concat([...Array(4)].map(() => ({ side: 'theirs' })));
@@ -192,7 +192,7 @@ describe('f735 (4) nothing chosen: the page in Jambo\'s words', () => {
        declined or code-named contract's chain is not read; a role addressed
        to a role ("an admin") names nobody.
    AT THE PARENT (8dc306a) and before this pass (14b2f8a) these FAIL. */
-describe('f735 (5) named on it in any role — the approver and the signer too', () => {
+describe('f809 (5) named on it in any role — the approver and the signer too', () => {
   const users = [{ id: 'u7', name: 'Jonas Berg', email: 'jonas@x.se', role: 'editor' }, { id: 'u1', name: 'Maria Lindgren', email: 'maria@x.se', role: 'admin' }];
   const book = () => [
     { id: 'MK-0391', name: 'Power purchase agreement', counterparty: 'Helio Energy AB', status: 'Under Review', folder: 'f1' },

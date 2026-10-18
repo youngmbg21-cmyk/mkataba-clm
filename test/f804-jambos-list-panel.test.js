@@ -1,6 +1,6 @@
 'use strict';
 /* ═══════════════════════════════════════════════════════════════════════════
-   f730 — JAMBO'S PANEL BESIDE THE LISTS (owner's yes, 18 Oct 2026: "build all
+   f804 — JAMBO'S PANEL BESIDE THE LISTS (owner's yes, 18 Oct 2026: "build all
    the gaps"; rounds 14, 15, 16, 19 and 20 of the redesign draw it beside every
    list; js/views/inspector.js jlFrame)
 
@@ -63,7 +63,7 @@ function world(list){
 }
 const evt = (win, type) => new win.Event(type, { bubbles: true, cancelable: true });
 
-describe('f730 (1) the list panel is dressed as Jambo\'s, once, by the one builder', () => {
+describe('f804 (1) the list panel is dressed as Jambo\'s, once, by the one builder', () => {
   const list = () => [fixture('MK-1', { name: 'Supply & Delivery', counterparty: 'Aleph Group' }), fixture('MK-2', { counterparty: 'Wasoko' })];
   test('1a a head with his tab, a word for what it holds, ‹ Jambo while it holds a row, and the fold', () => {
     const b = world(list());
@@ -77,7 +77,7 @@ describe('f730 (1) the list panel is dressed as Jambo\'s, once, by the one build
     assert.ok(p.querySelector('[data-jl-fold]'), 'the fold to the edge');
     assert.ok(p.querySelector('.jl-body .ins-h'), 'the chosen row\'s panel is in the body');
     assert.ok(p.querySelector('.jl-foot #jl-q') && p.querySelector('.jl-foot [data-jl-send]'), 'the ask box and its Ask at the foot');
-    assert.match(fnOf(INS, 'jlAskHtml'), /jamboHintHtml\(\)/, 'and the one hint line under it (the builder is components.js\'s, f731)');
+    assert.match(fnOf(INS, 'jlAskHtml'), /jamboHintHtml\(\)/, 'and the one hint line under it (the builder is components.js\'s, f805)');
   });
   test('1b the frame is built once: a row press keeps the words typed in the box', () => {
     const b = world(list());
@@ -95,7 +95,7 @@ describe('f730 (1) the list panel is dressed as Jambo\'s, once, by the one build
   });
 });
 
-describe('f730 (2) nothing chosen: the page in Jambo\'s words', () => {
+describe('f804 (2) nothing chosen: the page in Jambo\'s words', () => {
   const list = () => [fixture('MK-1', { counterparty: 'Aleph Group' }), fixture('MK-2'), fixture('MK-3')];
   test('2a ‹ Jambo lets the row go: his words from the list\'s own count, "no Jambo call", no row lit', () => {
     const b = world(list());
@@ -140,7 +140,7 @@ describe('f730 (2) nothing chosen: the page in Jambo\'s words', () => {
   });
 });
 
-describe('f730 (3) the ask: the Counter\'s one reading, said in the panel', () => {
+describe('f804 (3) the ask: the Counter\'s one reading, said in the panel', () => {
   test('3a a place word opens its page; a word for one contract takes the held row; the map\'s card and a question are said here', () => {
     const f = code(fnOf(INS, 'jlAsk'));
     const at = s => f.indexOf(s);
@@ -164,7 +164,7 @@ describe('f730 (3) the ask: the Counter\'s one reading, said in the panel', () =
   });
 });
 
-describe('f730 (4) What Jambo read, as drawn', () => {
+describe('f804 (4) What Jambo read, as drawn', () => {
   test('4a the drawing\'s order and words: The brief · Playbook pass · 1 departure · Risk scan · 2 risks · Obligations · not read yet', () => {
     const { win } = world([]);
     win.ktReadingsRows = () => [
@@ -182,7 +182,7 @@ describe('f730 (4) What Jambo read, as drawn', () => {
   });
 });
 
-describe('f730 (5) where it stands', () => {
+describe('f804 (5) where it stands', () => {
   test('5a the right edge, Home\'s panel\'s width, the page beside it narrowed — a hidden tab\'s panel takes nothing', () => {
     assert.match(HTML, /#content \.ins-panel\.is-jambo\{position:fixed;right:0;top:var\(--jl-top,88px\);bottom:0;width:380px;/);
     assert.match(HTML, /#app-shell:has\(#content \.ins-panel\.is-jambo\):not\(:has\(#content \[hidden\] \.ins-panel\.is-jambo\)\) #content-scroll\{margin-right:380px;\}/);
@@ -201,7 +201,7 @@ describe('f730 (5) where it stands', () => {
   });
 });
 
-describe('f730 (6) the words and the Brain', () => {
+describe('f804 (6) the words and the Brain', () => {
   test('6a every jl_ word is in both books', () => {
     const en = I18N.slice(I18N.indexOf('  en: {'), I18N.indexOf('  sv: {'));
     const sv = I18N.slice(I18N.indexOf('  sv: {'));
@@ -230,7 +230,7 @@ describe('f730 (6) the words and the Brain', () => {
        ("Open it in Workspace, with the approval pack") squeezed the titles to
        "Your …" at every one of the owner's screens.
    AT THE PARENT (8dc306a) and before this pass (14b2f8a) these FAIL. */
-describe('f730 (7) a party\'s rows read whole in Jambo\'s panel', () => {
+describe('f804 (7) a party\'s rows read whole in Jambo\'s panel', () => {
   const vm = require('node:vm');
   const CU = read('js/views/customers.js');
   const BOOK = (() => { const en = {}; for (const m of I18N.matchAll(/^\s+([a-z][a-z0-9_]*): ["']((?:[^"'\\]|\\.)*)["'],?\s*$/gm)) if (!(m[1] in en)) en[m[1]] = m[2]; return en; })();

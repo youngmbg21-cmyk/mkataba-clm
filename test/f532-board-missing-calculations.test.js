@@ -139,6 +139,10 @@ describe('f532 (3) the smallest contracts', () => {
     assert.deepEqual(acts('lowest value contracts')[0].top.dir, 'up');
     assert.deepEqual(acts('bottom 3 contracts')[0].top, { n: 3, by: 'value', per: null, dir: 'up' });
     assert.equal(acts('top 5 contracts')[0].top.dir, undefined, 'the top stays the top');
+    /* a number in words counts (bug log, 5 Oct 2026: "the top two by value" drew ten) */
+    assert.equal(acts('the top two by value')[0].top.n, 2);
+    assert.equal(acts('the three smallest contracts')[0].top.n, 3);
+    assert.equal(acts('topp fem efter värde')[0].top.n, 5);
     assert.equal(w.igRecipeParse('lowest payment terms'), null, 'a payment question is not a smallest list');
     const ids = J(w.igTopIds(5, 'value', null, null, 'up'));
     const vals = ids.map(id => w.igHomeValue(w.getContract(id)));

@@ -1,9 +1,9 @@
 /* ============================================================
-   THE COUNTER AND THE DESK TABS (owner picked "Front desk", with Jambo's
-   work first in line, and "Desk tabs", 17 Oct 2026 — Rounds 1 and 2 of the
-   Counter redesign)
+   HOME (THE COUNTER) AND THE BAR'S RECENT (owner picked "Front desk", with
+   Jambo's work first in line, 17 Oct 2026; "The SAP way" and the name Home,
+   18 Oct 2026. The code keeps the name counter: the view, its ids, cn-*)
    ============================================================
-   THE COUNTER is the first screen after signing in on a computer: Jambo's
+   HOME is the first screen after signing in on a computer: Jambo's
    face, one box, a few chips, and the work that is yours. It keeps nothing
    of its own and files nothing — every row reads a list the house already
    keeps and its button is the door that already does the act:
@@ -17,14 +17,13 @@
    the desk; anything else is asked of Jambo beside the page (intelAsk on
    Home), so there is one brain for every box. Typing never acts.
 
-   THE DESK TABS take the left menu's place on a computer: every page a
-   person opens stays as a small tab after "‹ The counter", six in sight and
-   the rest behind "+N more" (a press there opens the list, pressed again it
-   closes), × puts one away, and they come back on a refresh — kept per
-   person in this browser under their own key. ONE builder (deskTabsHtml),
-   two hosts: Home's head row, in the place of its greeting and faces so the
-   paper does not move down, and the shell's row above every other page.
-   The phone keeps its own screens and draws neither.
+   HOME, RECENT AND BACK take the left menu's place on a computer (the owner
+   picked "The SAP way" and the name Home, 18 Oct 2026; it reverses "Desk
+   tabs"): no row above the page. The bar reads ‹ · Ha · the page's name ▾;
+   the name opens Recent (Home, then the last six pages, newest first, × on
+   each), ‹ goes back one page and the Ha mark is Home. Kept per person in
+   this browser under their own key. The phone keeps its own screens and
+   draws none of it.
    ============================================================ */
 
 const _cnE = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -36,24 +35,30 @@ function deskShellOn(){
   try { return !(typeof window.mPhone === 'function' && window.mPhone()); } catch (_){ return true; }
 }
 
-/* ---------------- THE DESK TABS ---------------- */
+/* ---------------- HOME, RECENT AND BACK, IN THE TOP BAR ----------------
+   THE SAP WAY (the owner picked it, and the name Home, 18 Oct 2026; reverses
+   "Desk tabs"): no row of tabs above the page. The bar's left reads
+   ‹ · Ha · the page's name ▾ — ‹ goes back one page, the Ha mark is Home,
+   and the page's name opens Recent: Home first, then your last six pages,
+   newest first, each with × to take it off now; the seventh page drops the
+   oldest. Present this page is Recent's last row on Home's faces. Kept per
+   person in this browser under their own key; the trail ‹ walks is this
+   sitting's. Pressed again, Esc, or a press outside closes the menu. */
 const DK_KEY = 'hati.v1.deskTabs';
-const DK_SHOW = 6;     // tabs in sight; the rest wait behind "+N more"
-const DK_KEEP = 24;    // tabs remembered at most; the longest unused go first
-let _dkMoreOpen = false;
+const DK_RECENT = 6;   // pages Recent keeps; the seventh drops the oldest
+let _dkMenuOpen = false;
 function dkWho(){ const me = (typeof currentUser === 'function') ? currentUser() : null; return String((me && me.id) || 'me'); }
 function dkAll(){ try { const v = JSON.parse(localStorage.getItem(DK_KEY) || '{}'); return (v && typeof v === 'object') ? v : {}; } catch (_){ return {}; } }
 function dkTabs(){ const t = dkAll()[dkWho()]; return Array.isArray(t) ? t.filter(x => x && typeof x.k === 'string') : []; }
 function dkSave(L){
   try {
     const all = dkAll();
-    const keep = L.length > DK_KEEP ? L.slice().sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, DK_KEEP).map(t => t.k) : null;
-    all[dkWho()] = keep ? L.filter(t => keep.includes(t.k)) : L;
+    all[dkWho()] = L.slice().sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, DK_RECENT);
     localStorage.setItem(DK_KEY, JSON.stringify(all));
   } catch (_){}
 }
-/* Which page the reader is on, as a tab: a face of Home, a contract on
-   Home's paper, or any other page. The Counter itself is never a tab. */
+/* Which page the reader is on: a face of Home, a contract on Home's paper,
+   or any other page. Home itself is never a Recent row (it is the first). */
 const DK_HOME_FACE = { board: 'home:board', calendar: 'home:calendar', explorer: 'home:explorer' };
 function deskKeyNow(){
   if (typeof state === 'undefined' || !state || !state.view || state.view === 'counter') return null;
@@ -61,19 +66,20 @@ function deskKeyNow(){
   if (v === 'dashboard'){
     const f = (typeof hbFace === 'function') ? hbFace() : 'board';
     if (f === 'paper'){ const c = (typeof pdContract === 'function') ? pdContract() : null; return c ? 'c:' + c.id : 'home:contracts'; }
-    /* a contract brought up is its own page, on its contract's tab (round 7) */
+    /* a contract brought up is its own page, on its contract's row (round 7) */
     if (f === 'board' && typeof window.bsCardId === 'function'){ const id = window.bsCardId(); if (id) return 'c:' + id; }
     return DK_HOME_FACE[f] || 'home:board';
   }
   if (v === 'workspace' || v === 'doc') return state.activeId ? 'c:' + state.activeId : null;
   return 'v:' + v;
 }
-/* A tab's name, read when it is drawn, so it follows the reader's language. */
+/* A page's name, read when it is drawn, so it follows the reader's language. */
 const DK_VIEW_WORD = { redline: 'nav_negotiations', customers: 'nav_customers', approvals: 'nav_approvals', obligations: 'nav_obligations',
   mynotes: 'nav_mynotes', intel: 'nav_insights', jambo: 'nav_jambo', templates: 'nav_tpl_std', playbook: 'nav_tpl_std', migration: 'nav_import',
   intake: 'nav_intake', directory: 'nav_directory', team: 'nav_settings_rules', brain: 'nav_brain', register: 'nav_contracts' };
 function deskTabLabel(k){
   k = String(k || '');
+  if (k === 'home') return _cnT('dk_counter');
   if (k.startsWith('home:')){ const f = k.slice(5); return f === 'contracts' ? _cnT('nav_contracts') : _cnT('hb_face_' + f); }
   if (k.startsWith('c:')){
     const c = (typeof getContract === 'function') ? getContract(k.slice(2)) : null; if (!c) return '';
@@ -87,87 +93,148 @@ function deskTabLabel(k){
   }
   return '';
 }
+/* the page in front, as the bar names it: Home on Home */
+function deskPageName(){
+  const k = deskKeyNow();
+  if (!k) return (typeof state !== 'undefined' && state && state.view === 'counter') ? _cnT('dk_counter') : '';
+  return deskTabLabel(k);
+}
+/* THE TRAIL ‹ WALKS: this sitting's pages, oldest first ('home' is Home).
+   Back goes to the page before this one and leaves the later ones behind,
+   as a browser's back does. */
+const DK_TRAIL_MAX = 50;
+let _dkTrail = [];
+function dkTrailNote(k){
+  if (!k || _dkTrail[_dkTrail.length - 1] === k) return;
+  _dkTrail.push(k); if (_dkTrail.length > DK_TRAIL_MAX) _dkTrail.shift();
+}
+function deskBackTarget(){
+  const now = deskKeyNow() || 'home';
+  for (let i = _dkTrail.length - 1; i >= 0; i--){
+    const k = _dkTrail[i]; if (k === now) continue;
+    if (k === 'home' || deskTabLabel(k)) return { k, i };
+  }
+  return null;
+}
+function deskGoBack(){
+  const t = deskBackTarget(); if (!t) return false;
+  _dkTrail = _dkTrail.slice(0, t.i + 1); _dkMenuOpen = false;
+  if (t.k === 'home') deskGoCounter(); else deskTabOpen(t.k);
+  deskBarPaint(); return true;
+}
 /* Asked after every page is drawn, every face turned and every paper put up.
-   The row is drawn at once; the page is KEPT as a tab only once it has
-   settled, so a door that passes through the Board on its way to a paper
-   leaves one tab, not two. */
+   The bar is named at once; the page is KEPT in Recent (and on the trail)
+   only once it has settled, so a door that passes through the Board on its
+   way to a paper leaves one row, not two. */
 const DK_SETTLE_MS = 300;
 let _dkNoteT = 0;
 function deskTabsSync(){
   if (!deskShellOn()) return;
-  deskTabsPaint();
+  deskBarPaint();
   clearTimeout(_dkNoteT);
   _dkNoteT = setTimeout(() => {
     const k = deskKeyNow();
     if (k){
       const L = dkTabs(); let t = L.find(x => x.k === k);
       if (t) t.at = Date.now(); else { t = { k, at: Date.now() }; L.push(t); }
-      /* ONE TAB PER CONTRACT, two ways to read it (round 7): it remembers
+      /* ONE ROW PER CONTRACT, two ways to read it (round 7): it remembers
          whether its page or its paper was in front */
       if (k.startsWith('c:')) t.view = (typeof window.bsCardId === 'function' && window.bsCardId() && state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'board') ? 'card' : 'paper';
       dkSave(L);
     }
-    deskTabsPaint();
+    dkTrailNote(k || ((typeof state !== 'undefined' && state && state.view === 'counter') ? 'home' : null));
+    deskBarPaint();
   }, DK_SETTLE_MS);
 }
-function deskTabsHtml(){
+/* Recent's rows: newest first, at most six, the page in front among them */
+function deskRecentRows(){
   const now = deskKeyNow();
   let L = dkTabs().filter(t => deskTabLabel(t.k));
-  /* the page in front is drawn as a tab before it is kept */
   if (now && !L.some(t => t.k === now) && deskTabLabel(now)) L = L.concat([{ k: now, at: Date.now() }]);
-  const inSight = new Set(L.slice().sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, DK_SHOW).map(t => t.k));
-  if (now) inSight.add(now);
-  const shown = L.filter(t => inSight.has(t.k)), rest = L.filter(t => !inSight.has(t.k));
-  const tab = t => {
+  L = L.slice().sort((a, b) => (b.at || 0) - (a.at || 0));
+  if (now){ const i = L.findIndex(t => t.k === now); if (i > 0) L.unshift(L.splice(i, 1)[0]); }
+  return L.slice(0, DK_RECENT);
+}
+/* what a row is and when, under its name: "Contract · 25 min ago" */
+function dkAgo(at, on){
+  if (on) return _cnT('dk_ago_now');
+  const m = Math.max(0, Math.round((Date.now() - (Number(at) || 0)) / 60000));
+  if (m < 1) return _cnT('dk_ago_now');
+  if (m < 60) return _cnT('dk_ago_min', { n: m });
+  const h = Math.round(m / 60); if (h < 24) return _cnT('dk_ago_h', { n: h });
+  const d = Math.round(h / 24); return d <= 1 ? _cnT('dk_ago_yesterday') : _cnT('dk_ago_days', { n: d });
+}
+function dkKindWord(k){
+  if (k.startsWith('c:')) return _cnT('dk_kind_contract');
+  if (k.startsWith('home:')) return _cnT('dk_counter');
+  return '';
+}
+/* Present this page: Home's faces only, and not a contract's own page (round 7) */
+function dkPresentOn(){
+  if (typeof state === 'undefined' || !state || state.view !== 'dashboard' || typeof hbPresent !== 'function') return false;
+  return !(typeof window.bsCardId === 'function' && window.bsCardId() && typeof hbFace === 'function' && hbFace() === 'board');
+}
+function deskRecentHtml(){
+  const now = deskKeyNow(), home = !now && typeof state !== 'undefined' && state && state.view === 'counter';
+  const tick = (typeof icon === 'function') ? icon('check2', 'dk-r-ic', 2) : '';
+  const homeIc = '<svg class="dk-r-ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-home"/></svg>';
+  const playIc = '<svg class="dk-r-ic" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M5 3.5v9l7-4.5z"/></svg>';
+  const row = t => {
     const on = t.k === now, w = deskTabLabel(t.k), away = _cnT('dk_put_away', { what: w });
-    return `<span class="dk-tab${on ? ' is-on' : ''}"><button type="button" class="dk-go" data-dk-go="${_cnE(t.k)}"${on ? ' aria-current="page"' : ''} title="${_cnE(w)}">${_cnE(w)}</button><button type="button" class="dk-x" data-dk-x="${_cnE(t.k)}" title="${_cnE(away)}" aria-label="${_cnE(away)}">×</button></span>`;
+    const sub = [dkKindWord(t.k), dkAgo(t.at, on)].filter(Boolean).join(' · ');
+    return `<div class="dk-r${on ? ' is-on' : ''}"><button type="button" class="dk-r-go" role="menuitem" data-dk-go="${_cnE(t.k)}"${on ? ' aria-current="page"' : ''}><span class="dk-r-tick" aria-hidden="true">${on ? tick : ''}</span><span class="dk-r-w"><span class="dk-r-t">${_cnE(w)}</span><small>${_cnE(sub)}</small></span></button><button type="button" class="dk-r-x" data-dk-x="${_cnE(t.k)}" title="${_cnE(away)}" aria-label="${_cnE(away)}">×</button></div>`;
   };
-  const more = rest.length ? `<span class="dk-more-w"><button type="button" class="dk-more" data-dk-more aria-expanded="${_dkMoreOpen}">${_cnE(_cnT('dk_more', { n: rest.length }))}</button>${_dkMoreOpen
-    ? `<div class="dk-menu" role="menu">${rest.map(t => `<button type="button" role="menuitem" data-dk-go="${_cnE(t.k)}">${_cnE(deskTabLabel(t.k))}</button>`).join('')}</div>` : ''}</span>` : '';
-  return `<nav class="dk-tabs" aria-label="${_cnE(_cnT('dk_tabs_label'))}"><button type="button" class="dk-back" data-dk-counter>‹ ${_cnE(_cnT('dk_counter'))}</button>${shown.map(tab).join('')}${more}</nav>`;
+  const rows = deskRecentRows();
+  return `<div class="dk-r dk-r-home${home ? ' is-on' : ''}"><button type="button" class="dk-r-go" role="menuitem" data-dk-counter${home ? ' aria-current="page"' : ''}><span class="dk-r-tick" aria-hidden="true">${home ? tick : homeIc}</span><span class="dk-r-w"><span class="dk-r-t">${_cnE(_cnT('dk_counter'))}</span><small>${_cnE(_cnT('dk_home_sub'))}</small></span></button></div>
+    <div class="dk-r-h">${_cnE(_cnT('dk_recent_head', { n: DK_RECENT }))}</div>
+    ${rows.length ? rows.map(row).join('') : `<p class="dk-r-none">${_cnE(_cnT('dk_recent_none'))}</p>`}
+    <p class="dk-r-foot">${_cnE(_cnT('dk_recent_foot', { n: DK_RECENT + 1 }))}</p>
+    ${dkPresentOn() ? `<button type="button" class="dk-r-act" role="menuitem" data-dk-present>${playIc}${_cnE(_cnT('dk_present'))}</button>` : ''}`;
 }
-/* the two hosts: Home's head row draws its own (hbHeadHtml), the shell's row the rest */
-const _dkPainted = new Map();
-function deskTabsPaint(){
+/* the bar's three: ‹ (grey with its reason when there is no page to go back
+   to), the Ha mark, and the page's name, which holds Recent */
+let _dkMenuHtml = '';
+function deskBarPaint(){
   const on = deskShellOn();
-  const v = (typeof state !== 'undefined' && state) ? state.view : '';
-  const row = document.getElementById('dk-row');
-  if (row){
-    /* a contract's own page by name (the room, the Negotiate page's bench) draws no row:
-       its paper may not move down (the Six Questions' third); the Ha mark and the page's
-       own way back stay */
-    const paper = v === 'workspace' || v === 'doc' || (v === 'redline' && !!document.querySelector('#content .redline-page .rl-grid'));
-    const show = on && !!v && v !== 'counter' && v !== 'dashboard' && !paper;
-    /* the row's height is the page's to know: a page that owns its height reads --view-h */
-    if (row.hidden === show){ row.hidden = !show; if (typeof syncViewHeight === 'function') try { syncViewHeight(); } catch (_){} }
-    const h = show ? deskTabsHtml() : '';
-    if (_dkPainted.get(row) !== h){ row.innerHTML = h; _dkPainted.set(row, h); }
+  const back = document.getElementById('dk-back'), w = document.getElementById('dk-pg-w'), btn = document.getElementById('dk-page');
+  if (back){
+    back.hidden = !on;
+    const can = !!deskBackTarget();
+    back.disabled = !can;
+    const tip = can ? _cnT('dk_back') : _cnT('dk_back_none');
+    if (back.title !== tip){ back.title = tip; back.setAttribute('aria-label', tip); }
   }
-  const home = document.getElementById('dk-home');
-  if (home){ const h = on ? deskTabsHtml() : ''; if (_dkPainted.get(home) !== h || !home.firstChild){ home.innerHTML = h; _dkPainted.set(home, h); } }
-  /* A PRESS THAT REDRAWS THE ROW KEEPS THE KEYBOARD WHERE IT WAS: the tab pressed a moment
-     ago gets focus back, never the top of the page */
-  if (_dkFocus && Date.now() - _dkFocus.at < DK_FOCUS_MS){
-    const a = document.activeElement;
-    if (!a || a === document.body){
-      const host = (row && !row.hidden) ? row : home;
-      const b = host && host.querySelector(`[data-dk-go="${(window.CSS && CSS.escape) ? CSS.escape(_dkFocus.k) : _dkFocus.k}"]`);
-      if (b) try { b.focus({ preventScroll: true }); } catch (_){}
-    }
+  if (w) w.hidden = !on;
+  if (btn){
+    const name = deskPageName();
+    const word = btn.querySelector('.dk-page-w'); if (word && word.textContent !== name) word.textContent = name;
+    if (btn.title !== name) btn.title = name;
+    btn.setAttribute('aria-expanded', String(_dkMenuOpen));
+    btn.classList.toggle('is-open', _dkMenuOpen);
+  }
+  const menu = document.getElementById('dk-recent');
+  if (menu){
+    if (menu.hidden === _dkMenuOpen) menu.hidden = !_dkMenuOpen;
+    const h = _dkMenuOpen ? deskRecentHtml() : '';
+    if (_dkMenuHtml !== h || (_dkMenuOpen && !menu.firstChild)){ menu.innerHTML = h; _dkMenuHtml = h; }
   }
 }
-const DK_FOCUS_MS = 2000;
-let _dkFocus = null;   // { k, at }: the tab the keyboard was on
-/* a tab's press: the door that already opens that page */
+function deskRecentToggle(open){
+  _dkMenuOpen = open == null ? !_dkMenuOpen : !!open;
+  deskBarPaint();
+  if (_dkMenuOpen){ const b = document.querySelector('#dk-recent .dk-r-go'); if (b && document.activeElement && document.activeElement.id === 'dk-page') try { b.focus({ preventScroll: true }); } catch (_){} }
+}
+/* a row's press: the door that already opens that page */
 function deskTabOpen(k){
-  k = String(k || ''); _dkMoreOpen = false;
+  k = String(k || ''); _dkMenuOpen = false;
+  if (k === 'home'){ deskGoCounter(); return true; }
   if (k.startsWith('home:')){
     const f = k.slice(5);
     if (f === 'contracts' && typeof hbOpenContracts === 'function'){ hbOpenContracts(); return true; }
     if (f === 'calendar' && typeof hbOpenCalendar === 'function'){ hbOpenCalendar(); return true; }
     if (f === 'explorer' && typeof hbOpenExplorer === 'function'){ hbOpenExplorer(); return true; }
     if (typeof hbS !== 'function') return false;
-    /* the Board tab is the Board, not a contract's page on it (round 7) */
+    /* the Board row is the Board, not a contract's page on it (round 7) */
     const left = (typeof window.bsCardLeave === 'function') && window.bsCardLeave();
     if (state.view === 'dashboard' && typeof hbSetFace === 'function' && document.getElementById('hb-head')){
       if (left && hbFace() === 'board' && typeof hbPaintBoard === 'function') hbPaintBoard(); else hbSetFace('board');
@@ -192,37 +259,34 @@ function deskTabOpen(k){
   }
   return false;
 }
-/* × puts a tab away; the page in front goes to the tab used last, else the Counter */
+/* × takes a page off Recent; the page in front goes to the one used last, else Home */
 function deskTabClose(k){
-  const L = dkTabs(); const i = L.findIndex(t => t.k === k); if (i < 0) return;
+  const L = dkTabs(); const i = L.findIndex(t => t.k === k);
   const wasNow = deskKeyNow() === k;
-  /* a contract's page put away is let go, as its own × did (round 7) */
-  if (L[i].view === 'card' && typeof bsStripClose === 'function') bsStripClose(k.slice(2));
-  L.splice(i, 1); dkSave(L);
+  if (i < 0 && !wasNow) return;
+  /* a contract's page taken off is let go, as its own × did (round 7) */
+  if (i >= 0 && L[i].view === 'card' && typeof bsStripClose === 'function') bsStripClose(k.slice(2));
+  if (i >= 0){ L.splice(i, 1); dkSave(L); }
   if (wasNow){
     const next = L.slice().sort((a, b) => (b.at || 0) - (a.at || 0))[0];
+    const keep = _dkMenuOpen;
     if (next) deskTabOpen(next.k); else deskGoCounter();
+    _dkMenuOpen = keep;
   }
-  deskTabsPaint();
+  deskBarPaint();
 }
-function deskGoCounter(){ _dkMoreOpen = false; if (typeof setView === 'function') setView('counter'); }
+function deskGoCounter(){ _dkMenuOpen = false; if (typeof setView === 'function') setView('counter'); }
 
 /* ---------------- THE COUNTER ---------------- */
 const CN_ROWS = 7;          // contract rows in sight; "Show all N" brings the rest
 const CN_POP_MAX = 40;      // every place; the list scrolls, and typing narrows it
 const CN_PICK_UP = 3;       // open pages offered on a quiet day
-/* words Jambo answers with a card beside the page, not a move */
-const CN_ASKS_JAMBO = ['share', 'draft', 'help', 'next'];
 let _cnAll = false;
-/* JAMBO'S WORK OPENS IN PLACE (round 23 of the redesign: the owner picked
-   "Open in place" by name, 17 Oct 2026, and kept the word "Put away"): the
-   first row of Needs you opens where it is — each prepared piece a row (what
-   it is, the contract, one line) with Look · its own acts · Put away, the
-   acts the house's own (agPanelActs → agRunAct, the one runner); Look opens
-   the piece's whole body under its row. The house is one link away. Per
-   sitting; nothing is sent or filed until a press. */
-let _cnJwOpen = false, _cnJwLook = null;
-const CN_JW_MAX = 8;
+/* JAMBO'S WORK LANDS ON THE BOARD'S CARD (LAND ON IT, owner 18 Oct 2026:
+   "when you click on jambos work, it should take you to the jambos work card
+   in the board"; and "remove the in-place list") — reverses round 23's Open
+   in place: one list of Jambo's work, the Board's, and the row's Open is the
+   door to it (hbOpenAgent, which lands on the card, lit). */
 let _cnPop = null;          // { rows, on }
 
 function cnNeeds(){ try { return (typeof hbNeedsList === 'function') ? (hbNeedsList() || []) : []; } catch (_){ return []; } }
@@ -240,29 +304,7 @@ function cnFace(size, cls){ return (typeof jamboFaceHtml === 'function') ? jambo
 function cnJwRowHtml(A){
   const n = A.ready || 0;
   const who = [...new Set((A.rows || []).map(r => r.who || r.sum).filter(Boolean))].slice(0, 4);
-  const open = _cnJwOpen && n > 0;
-  return `<div class="cn-r cn-jw${open ? ' is-open' : ''}">${cnFace(24, 'cn-r-face')}<div class="cn-w"><b>${_cnE(_cnT('cn_jw'))} <span class="cn-n">· ${_cnE(n ? _cnTn('cn_jw_n', n, { n }) : _cnT('cn_jw_none'))}</span></b><span>${_cnE(open ? _cnT('cn_jw_said') : n ? who.join(' · ') : _cnT('cn_jw_rest'))}</span></div><button type="button" class="ui-btn ui-btn-sm" data-cn-jw aria-expanded="${open ? 'true' : 'false'}">${_cnE(_cnT(open ? 'cn_close' : 'cn_open'))}</button></div>${open ? cnJwPiecesHtml(A) : ''}`;
-}
-function cnJwPiecesHtml(A){
-  const keys = (A.rows || []).flatMap(r => (r.items || []).map(x => x.key));
-  const its = keys.map(k => (typeof agFind === 'function') ? agFind(k) : null).filter(Boolean);
-  const shown = its.slice(0, CN_JW_MAX);
-  const row = it => {
-    let title = '', parts = {}, acts = '', body = '';
-    try { title = (typeof agPanelTitle === 'function') ? agPanelTitle(it) : ''; } catch (_){ title = ''; }
-    try { parts = (typeof agCardParts === 'function') ? agCardParts(it) : {}; } catch (_){ parts = {}; }
-    /* one filled button per area: on the Counter every act is the quiet one */
-    try { acts = (typeof agPanelActs === 'function') ? String(agPanelActs(it) || '').replace(/ui-btn ui-btn-primary/g, 'ui-btn') : ''; } catch (_){ acts = ''; }
-    const look = _cnJwLook === it.key;
-    if (look) try { body = (typeof agPanelBody === 'function') ? agPanelBody(it) : ''; } catch (_){ body = ''; }
-    const ref = it.c ? ((typeof refHtml === 'function') ? refHtml(it.c) : _cnE((typeof contractRef === 'function') ? contractRef(it.c) : it.c.id)) : '';
-    return `<div class="cn-jw-i${look ? ' is-look' : ''}" data-cn-ag-item="${_cnE(it.key)}"><div class="cn-jw-r">
-        <div class="cn-w"><b><span class="cn-jw-tag">${_cnE(_cnT('ag_' + it.agent))}</span> ${_cnE(title || parts.who || '')} ${ref}</b><span title="${_cnE(parts.sum || '')}">${_cnE(parts.sum || parts.who || '')}</span></div>
-        <div class="cn-jw-acts"><button type="button" class="ui-link" data-cn-look="${_cnE(it.key)}" aria-expanded="${look ? 'true' : 'false'}">${_cnE(_cnT(look ? 'cn_jw_look_close' : 'cn_jw_look'))}</button>${acts}</div></div>
-      ${look ? `<div class="cn-jw-body">${body}</div>` : ''}</div>`;
-  };
-  const more = its.length - shown.length;
-  return `<div class="cn-jw-list" id="cn-jw-list">${shown.map(row).join('')}<div class="cn-jw-foot">${more > 0 ? `<span>${_cnE(_cnT('cn_jw_more', { n: more }))}</span>` : ''}<button type="button" class="ui-link" data-cn-house>${_cnE(_cnT('cn_jw_house'))}</button></div></div>`;
+  return `<div class="cn-r cn-jw">${cnFace(24, 'cn-r-face')}<div class="cn-w"><b>${_cnE(_cnT('cn_jw'))} <span class="cn-n">· ${_cnE(n ? _cnTn('cn_jw_n', n, { n }) : _cnT('cn_jw_none'))}</span></b><span>${_cnE(n ? who.join(' · ') : _cnT('cn_jw_rest'))}</span></div>${n ? `<button type="button" class="ui-btn ui-btn-sm" data-cn-jw>${_cnE(_cnT('cn_open'))}</button>` : ''}</div>`;
 }
 function cnNeedRowHtml(x){
   const c = x.c, it = x.it;
@@ -325,27 +367,14 @@ function counterRepaint(){
   const fresh = t.querySelector('#cn-needs'); if (fresh) card.replaceWith(fresh);
 }
 
-/* THE BOX: a place opens on the desk; anything else is Jambo's, beside the page */
+/* THE BOX: a place opens on the desk; anything else is Jambo's, beside the
+   page — the one reader every Jambo box uses (caAskAnywhere), with the
+   Counter's own rule that a question goes to Home's Jambo too */
 function counterAsk(text){
   const t = String(text || '').trim(); if (!t) return false;
-  let a = null; try { a = (typeof caReadPlace === 'function') ? caReadPlace(t) : null; } catch (_){ a = null; }
-  if (a && a.kind === 'go' && !CN_ASKS_JAMBO.includes(a.place) && typeof caGo === 'function' && caGo(a)) return true;
-  /* JAMBO'S MAP (js/jambomap.js): everyday words for a page open it here as a
-     place word does; a card (an act, "which did you mean?") is Jambo's, beside the Board */
-  if (!a){ let m = null; try { m = (typeof jmRead === 'function') ? jmRead(t) : null; } catch (_){ m = null; }
-    if (m && m.kind === 'go' && !m.missing && !CN_ASKS_JAMBO.includes(m.place) && typeof caGo === 'function' && caGo(m)) return true; }
-  if (typeof hbS !== 'function' || typeof setView !== 'function') return false;
-  /* drafting is the wall's (where his New agreement card stands); the rest is asked on the Board */
-  const toWall = !!(a && a.place === 'draft') || (typeof caIsDraftAsk === 'function' && caIsDraftAsk(t));
-  if (toWall && typeof hbOpenContracts === 'function') hbOpenContracts();
-  else { const s = hbS(); s.face = 'board'; if (typeof hbSave === 'function') hbSave(); setView('dashboard'); }
-  let tries = 0;
-  const ask = () => {
-    if (document.getElementById('igd-input') && typeof intelAsk === 'function'){ try { intelAsk(t); } catch (_){} return; }
-    if (++tries < 30) setTimeout(ask, 100);
-  };
-  setTimeout(ask, 0);
-  return true;
+  /* a request to book or find time goes to the Calendar's own Jambo with its words (18 Oct 2026, #342) */
+  if (typeof igBookAsk === 'function' && igBookAsk(t) && typeof calHandOff === 'function' && calHandOff(t)) return true;
+  return (typeof caAskAnywhere === 'function') ? caAskAnywhere(text, { all: true }) : false;
 }
 
 /* "/" — the places, most used first: the same rows the Board's list draws (caSlashRows) */
@@ -378,30 +407,29 @@ if (typeof document !== 'undefined' && !window._cnWired){
   document.addEventListener('click', e => {
     const t = e.target; if (!t || !t.closest) return;
     let el;
-    if ((el = t.closest('[data-dk-counter]'))){ deskGoCounter(); return; }
+    /* a row chosen from the keyboard hands the keyboard back to the page's name,
+       never the top of the page (the menu it stood in is gone) */
+    const fromMenu = e.detail === 0 && !!t.closest('#dk-recent');   /* asked before the press redraws the menu away */
+    const keyBack = () => { if (fromMenu){ const b = document.getElementById('dk-page'); if (b) try { b.focus({ preventScroll: true }); } catch (_){} } };
+    if ((el = t.closest('[data-dk-counter]'))){ deskGoCounter(); keyBack(); return; }
+    if ((el = t.closest('[data-dk-back]'))){ deskGoBack(); return; }
     if ((el = t.closest('[data-dk-x]'))){ deskTabClose(el.getAttribute('data-dk-x')); return; }
-    if ((el = t.closest('[data-dk-go]'))){ deskTabOpen(el.getAttribute('data-dk-go')); return; }
-    if ((el = t.closest('[data-dk-more]'))){ _dkMoreOpen = !_dkMoreOpen; deskTabsPaint(); return; }
-    if (_dkMoreOpen && !t.closest('.dk-more-w')){ _dkMoreOpen = false; deskTabsPaint(); }
+    if ((el = t.closest('[data-dk-go]'))){ deskTabOpen(el.getAttribute('data-dk-go')); keyBack(); return; }
+    if ((el = t.closest('[data-dk-present]'))){ _dkMenuOpen = false; deskBarPaint(); if (typeof hbPresent === 'function') hbPresent(true); return; }
+    if ((el = t.closest('[data-dk-recent]'))){ deskRecentToggle(); return; }
+    if (_dkMenuOpen && !t.closest('#dk-pg-w')){ _dkMenuOpen = false; deskBarPaint(); }
     if (!t.closest('#cn-page')) return;
     if ((el = t.closest('[data-cn-pop]'))){ counterPopTake(Number(el.getAttribute('data-cn-pop'))); return; }
     if (_cnPop && !t.closest('.cn-wrap')) counterPopClose();
     if ((el = t.closest('[data-cn-send]'))){ const q = document.getElementById('cn-q'); if (q){ const v = q.value; q.value = ''; counterPopClose(); counterAsk(v); } return; }
     if ((el = t.closest('[data-cn-ask]'))){ counterAsk(el.getAttribute('data-cn-ask')); return; }
-    if ((el = t.closest('[data-cn-jw]'))){ _cnJwOpen = !_cnJwOpen; _cnJwLook = null; counterRepaint(); return; }
-    if ((el = t.closest('[data-cn-look]'))){ const k = el.getAttribute('data-cn-look'); _cnJwLook = _cnJwLook === k ? null : k; counterRepaint(); return; }
-    if ((el = t.closest('[data-cn-ag-item] [data-ag-act]'))){ const k = el.closest('[data-cn-ag-item]').getAttribute('data-cn-ag-item');
-      if (typeof agRunAct === 'function'){ let r = null; try { r = agRunAct(k, el.getAttribute('data-ag-act')); } catch (_){ r = null; }
-        Promise.resolve(r).then(() => setTimeout(counterRepaint, 0), () => setTimeout(counterRepaint, 0)); } return; }
-    if ((el = t.closest('[data-cn-house]'))){ if (typeof setView === 'function') setView('jambo'); return; }
+    if ((el = t.closest('[data-cn-jw]'))){ if (typeof hbOpenAgent === 'function') hbOpenAgent(); return; }
     if ((el = t.closest('[data-cn-need]'))){ if (typeof hbNeedsPress === 'function') hbNeedsPress(el.getAttribute('data-cn-need'), el.getAttribute('data-cn-id')); return; }
     if (t.closest('[data-cn-setup]')){ if (typeof hbSetupGo === 'function') hbSetupGo(); return; }
     if ((el = t.closest('[data-cn-co]'))){ if (typeof openSettingsAt === 'function') openSettingsAt('company'); return; }
     if ((el = t.closest('[data-cn-all]'))){ _cnAll = !_cnAll; counterRepaint(); }
   });
   document.addEventListener('input', e => { if (e.target && e.target.id === 'cn-q') counterPopRead(e.target); });
-  document.addEventListener('focusin', e => { const b = e.target && e.target.closest && e.target.closest('[data-dk-go]');
-    _dkFocus = b ? { k: b.getAttribute('data-dk-go'), at: Date.now() } : null; });
   document.addEventListener('keydown', e => {
     const t = e.target;
     if (t && t.id === 'cn-q'){
@@ -413,7 +441,17 @@ if (typeof document !== 'undefined' && !window._cnWired){
       if (e.key === 'Escape'){ if (_cnPop) counterPopClose(); else t.value = ''; }
       return;
     }
-    if (e.key === 'Escape' && _dkMoreOpen){ _dkMoreOpen = false; deskTabsPaint(); return; }
+    /* Recent: Esc closes it and hands the keyboard back to the page's name; the arrows walk its rows */
+    if (_dkMenuOpen && t && t.closest && t.closest('#dk-pg-w')){
+      if (e.key === 'Escape'){ e.preventDefault(); _dkMenuOpen = false; deskBarPaint(); const b = document.getElementById('dk-page'); if (b) try { b.focus(); } catch (_){} return; }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+        const L = [...document.querySelectorAll('#dk-recent .dk-r-go, #dk-recent .dk-r-act')]; if (!L.length) return;
+        e.preventDefault(); const i = L.indexOf(t.closest('.dk-r-go, .dk-r-act'));
+        const j = i < 0 ? 0 : (i + (e.key === 'ArrowDown' ? 1 : -1) + L.length) % L.length;
+        try { L[j].focus(); } catch (_){} return;
+      }
+    }
+    if (e.key === 'Escape' && _dkMenuOpen){ _dkMenuOpen = false; deskBarPaint(); return; }
     /* "/" on the Counter, anywhere but a box, starts the list */
     if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey && typeof state !== 'undefined' && state && state.view === 'counter'
       && !(t && t.closest && t.closest('input,textarea,select,[contenteditable="true"]'))){
@@ -423,5 +461,5 @@ if (typeof document !== 'undefined' && !window._cnWired){
   });
 }
 
-Object.assign(window, { cnJwPiecesHtml, CN_JW_MAX, deskShellOn, DK_KEY, DK_SHOW, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskTabsSync, deskTabsHtml, deskTabsPaint, deskTabOpen, deskTabClose, deskGoCounter,
+Object.assign(window, { deskShellOn, DK_KEY, DK_RECENT, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskPageName, deskTabsSync, deskRecentRows, deskRecentHtml, deskBarPaint, deskRecentToggle, deskBackTarget, deskGoBack, deskTabOpen, deskTabClose, deskGoCounter,
   CN_ROWS, renderCounter, counterHtml, counterRepaint, counterAsk, counterNeedsCount, counterPopRead, counterPopClose });

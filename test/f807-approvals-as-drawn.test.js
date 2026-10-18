@@ -1,6 +1,6 @@
 'use strict';
 /* ═══════════════════════════════════════════════════════════════════════════
-   f733 — APPROVALS & SIGNING, "ONE WORKLIST" AS DRAWN (round 15 of the
+   f807 — APPROVALS & SIGNING, "ONE WORKLIST" AS DRAWN (round 15 of the
    redesign, the owner's pick, and their "build all the gaps", 18 Oct 2026)
 
    (1) A STAND-IN'S ANSWER SAYS WHOM IT IS FOR: "You · for Jonas" in Whose
@@ -10,7 +10,7 @@
        awayByLabel), never a right of their own.
    (2) THE PANEL'S FACTS AS ROWS: Why it waits · Asked by (who · when) · Value
        · Since last look, the last read from the approval's OWN stamp (the
-       question's, f734; a named approval's) against the record now.
+       question's, f808; a named approval's) against the record now.
    (3) THE LIST AS DRAWN: Why it waits in two lines, "9 days · late", a
        colleague's signature on the reader's own contract under Waiting on
        others ("Jonas signs · back Friday"), the card's head ("· 4 · late after
@@ -49,7 +49,7 @@ const stage = (names, extra) => { const ctx = Object.assign({ i18t: t, i18tn: tn
   vm.createContext(ctx); vm.runInContext(names.map(n => fnOf(AP, n)).concat(/const AP_SINCE_WORDS=\{[^}]*\};/.exec(AP)[0].replace('const', 'var')).join('\n'), ctx); return ctx; };
 const JONAS = { id: 'u-j', name: 'Jonas Berg' };
 
-describe('f733 (1) a stand-in\'s answer says whom it is for', () => {
+describe('f807 (1) a stand-in\'s answer says whom it is for', () => {
   test('1a whom: the rule\'s member while the reader stands in for them; nobody where they answer as themself', () => {
     const me = { id: 'u-m', name: 'Maria Lindgren' };
     const ctx = stage(['apForWho'], { currentUser: () => me,
@@ -92,7 +92,7 @@ describe('f733 (1) a stand-in\'s answer says whom it is for', () => {
   });
 });
 
-describe('f733 (2) the panel\'s facts as rows, "Since last look" from the approval\'s own stamp', () => {
+describe('f807 (2) the panel\'s facts as rows, "Since last look" from the approval\'s own stamp', () => {
   const C = { id: 'MK-1', redlineText: 'Clause 1. The supplier delivers.', value: 8100000, fields: { term: '24 months' }, party: 'Lindqvist', counterparty: 'Helio' };
   const since = (c, ask) => stage(['apSinceLook'], { apAskOf: () => ask, approvalStamp: stampOf, apSaWaiting: () => null }).apSinceLook({ type: 'approval', c, st: { next: { ruleId: 'r1' } } });
   test('2a nothing moved since it was asked → "Nothing changed in the wording"', () => {
@@ -123,7 +123,7 @@ describe('f733 (2) the panel\'s facts as rows, "Since last look" from the approv
   });
 });
 
-describe('f733 (3) the list as drawn', () => {
+describe('f807 (3) the list as drawn', () => {
   test('3a why it waits in two lines', () => {
     const ctx = stage(['apWhyLines', 'apWaitsShort'], { contractOwnerName: () => 'Erik Ström', approvalState: () => ({ chain: [] }), regDotDate: d => d });
     /* RE-POINTED 18 Oct 2026 (the checker against round 15: "Sara approves",
@@ -170,7 +170,7 @@ describe('f733 (3) the list as drawn', () => {
   });
 });
 
-describe('f733 (4) nothing chosen: the page in Jambo\'s words', () => {
+describe('f807 (4) nothing chosen: the page in Jambo\'s words', () => {
   test('4a counted from the list: how many, whose, the late ones, whom the reader stands in for', () => {
     const W = { yours: [{ c: { id: 'A' }, idle: 3 }], others: [{ c: { id: 'B' }, idle: 9 }, { c: { id: 'C' }, idle: 1 }, { c: { id: 'D' }, idle: 4 }] };
     W.rows = W.yours.concat(W.others);
@@ -200,7 +200,7 @@ describe('f733 (4) nothing chosen: the page in Jambo\'s words', () => {
        two doors. Whose turn and Why it waits name a colleague by the first
        name ("Sara approves", "Sara"), a role whole.
    AT THE PARENT (8dc306a) and before this pass (14b2f8a) these FAIL. */
-describe('f733 (5) the Approval panel as drawn: no doors; first names', () => {
+describe('f807 (5) the Approval panel as drawn: no doors; first names', () => {
   const doors = [{ k: 'door-nego', door: true }, { k: 'door-ws', door: true }];
   const mk = extra => stage(['apInsActs'], Object.assign({ insDoorActs: () => doors, apMayUndo: () => false, apMayDecide: () => null,
     apForWho: () => null, apOpenSigning(){}, apDecide(){}, apUndo(){} }, extra || {}));

@@ -28,7 +28,7 @@ const BRAIN_PARTS = [
   ['needsme', 'hbNeedsHtml', 'see', 0],
   /* The counter (17 Oct 2026): the first screen after signing in on a computer; the desk tabs take the left menu's place */
   ['counter', 'renderCounter', 'see', 0],
-  ['desktabs', 'deskTabsHtml', 'see', 0],
+  ['desktabs', 'deskRecentHtml', 'see', 0],
   /* End or pause (15 Oct 2026): one question, three answers — decline, archive, hold */
   ['endpause', 'endOrPauseOpen', 'time', 1],
   ['bell', 'buildAlerts', 'see', 0],
@@ -265,7 +265,7 @@ const BRAIN_PARTS = [
      # contracts with no model and answers with a card; one press runs the
      product's own act. Agents live on the Board, each with a level. */
   ['copilotask', 'caActOf', 'ai', 1],
-  /* Jambo's map (18 Oct 2026): the thirty commonest tasks in everyday words, matched by MiniSearch, each landing on a door caActOf already has */
+  /* Jambo's map (18 Oct 2026): the thirty-one commonest tasks in everyday words, matched by MiniSearch, each landing on a door caActOf already has */
   ['jambomap', 'jmRead', 'ai', 1],
   /* Jambo's panel beside the lists (18 Oct 2026): its box reads as the Counter's — a place, the map, else a question said in the panel */
   ['listask', 'jlAsk', 'ai', 0],

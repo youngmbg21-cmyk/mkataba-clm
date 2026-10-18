@@ -913,7 +913,9 @@ function groupLabelOf(c, groupBy, override){
     case 'owner': { let o=null; try{ o=(typeof contractOwnerName==='function')?contractOwnerName(c):null; }catch(_){} return o||'Nobody owns this'; }
     case 'obligations': { const k=((c.obligations)||[]).filter(o=>o&&!o.completedAt&&!o.done&&o.status!=='done').length; return !k?'No open obligations':k<=2?'1–2 open':'3 or more open'; }
     case 'read': { let u=null; try{ u=graphNodeFacts(c).unread; }catch(_){} return u?'Not read yet':'Read'; }
-    case 'source': return c.source==='upload'?'Uploaded paper'
+    /* an Import page contract is Imported, never folded into Uploaded paper
+       (owner, 18 Oct 2026) */
+    case 'source': return c.migration?'Imported':c.source==='upload'?'Uploaded paper'
       :(c.templateId||c.templateForm||c.template)?'From a template':'Drafted in HaTi';
     case 'folder': default: return FOLDERS[c.folder]?.name||'Other';
   }
@@ -1021,6 +1023,7 @@ function graphInterpret(qRaw){
     badges={}; vis.forEach(c=>badges[c.id]='ends in '+daysUntil(_gExpiryDay(c))+'d');
     action='highlight';
   }
+  else if(/\b(?:imported|migrated|importerade?)\b/.test(q)) { vis=cs.filter(c=>c.migration); note='Imported'; }
   else if(has('lease')) { vis=kindHit('lease'); note='Leases'; }
   else if(has('nda','non-disclosure','confidential')) { vis=kindHit('nda','non-disclosure'); note='NDAs'; }
   else if(has('supply','raw material','packaging')) { vis=kindHit('supply','packaging','raw material'); note='Supply agreements'; }
@@ -1051,14 +1054,63 @@ function graphInterpret(qRaw){
 /* ---- dock entry point: routes to the right engine ----
    The Intel dock is a notebook over the whole contract repository. Intent
    routing:
-   • compliance/red-flag questions   → intelComplianceScan (reads every contract)
+   • compliance/red-flag questions   → intelComplianceScan (reads every contract; none named)
    • compare / 2+ ids                → intelChatAsk (grounded side-by-side)
-   • template advice                 → intelTemplateAsk
+   • a REQUEST for a starting point  → intelTemplateAsk (IG_TEMPLATE_RE)
+   • a request to book or find time  → the Calendar's Jambo (IG_BOOK_RE → calHandOff)
    • graph commands (group/filter/…) → intelGraphAsk (map manipulation)
    • everything else that reads/summarises/quotes a contract → intelChatAsk
    • otherwise                        → intelGraphAsk (safe default) */
-const IG_TEMPLATE_RE=/\btemplate\b|\bbase\b.{0,30}\b(new|next|on)\b|model (contract|agreement)|starting point|start(ing)? from/i;
-// "which contracts have risky/illegal clauses", "red flags", "compliance issues"…
+/* JAMBO FOLLOWS THE ASK (owner, 18 Oct 2026: "fix both together"). The
+   template adviser ranks our CONTRACTS as a base for a new deal; it was taken
+   by the bare word — "what does our NDA template say about the notice
+   period?" and "start from where we left off on the Nordkust deal" were both
+   answered with a ranking. Now only a REQUEST for a starting point is its: a
+   template asked for (to use, to start from, for a deal), a template or
+   starting point recommended, a contract asked for as a base. Anything else
+   that says "template" or "start from" goes on as any question. */
+const IG_TEMPLATE_RE=/\btemplates?\b[^.?!]{0,40}\b(?:to use|should (?:i|we) use|do (?:i|we) use|could (?:i|we) use|to start|start(?:ing)? (?:from|with)|for (?:a|an|this|my|our|the next|a new|new)\b)|\b(?:recommend|suggest|pick|choose|find)\b[^.?!]{0,20}\b(?:a |the |our )?(?:best |right |good )?(?:templates?|starting point|precedent|base)\b|\b(?:starting point|precedent|model (?:contract|agreement))\b[^.?!]{0,20}\bfor\b|\bwhich (?:contract|agreement|deal)\b[^.?!]{0,40}\b(?:base|start from|use as)\b|(?<!\p{L})(?:vilken mall|vilka mallar|föreslå en mall|rekommendera en mall|utgångspunkt för|vilket avtal ska (?:jag|vi) utgå från)(?!\p{L})/iu;
+/* A REQUEST TO BOOK OR FIND TIME is the Calendar's (owner, 18 Oct 2026): "book
+   a meeting with Naivas on Tuesday at 2pm" was read as a question about the
+   contract map. A calendar verb with something to put in a calendar — a
+   meeting, a call, an hour, time for or with someone, "in my calendar" — goes
+   to the Calendar's own Jambo (calHandOff), who plans and answers. */
+const IG_BOOK_RE=new RegExp([
+  /* book · schedule · set up · arrange a meeting, a call, an hour… ("schedule 3" is an annex, never a verb) */
+  String.raw`(?<!\p{L})(?:book|schedule(?!\s*\d)|set up|arrange|organi[sz]e)(?!\p{L})[^.?!]{0,30}?(?<!\p{L})(?:meetings?|calls?|appointments?|sessions?|catch[- ]?ups?|slots?|reminders?|an hour|half an hour|\d+\s?(?:min|mins|minutes|hours?))(?!\p{L})`,
+  /* find · block · make · set aside · reserve time, an hour, a slot */
+  String.raw`(?<!\p{L})(?:find|block(?: out)?|make|set aside|reserve|book)\s+(?:some\s+|an?\s+|the\s+)?(?:free\s+)?(?:time|hour|half hour|slot|\d+\s?(?:min|mins|minutes|hours?))(?!\p{L})`,
+  /* put · add something in (or on) my calendar; add a reminder */
+  String.raw`(?<!\p{L})(?:put|add)(?!\p{L})[^.?!]{0,50}?(?<!\p{L})(?:in|on|to|into)\s+(?:my|the)\s+(?:calendar|diary)(?!\p{L})`,
+  String.raw`(?<!\p{L})add\s+(?:a\s+)?reminders?(?!\p{L})`,
+  String.raw`(?<!\p{L})plan\s+(?:my|our)\s+(?:week|day|days|time)(?!\p{L})`,
+  /* Svenska */
+  String.raw`(?<!\p{L})(?:boka|schemalägg|sätt upp|ordna)(?!\p{L})[^.?!]{0,30}?(?<!\p{L})(?:möte|mötet|möten|samtal|tid|en timme|en halvtimme|påminnelse|\d+\s?(?:min|minuter|timmar?))(?!\p{L})`,
+  String.raw`(?<!\p{L})(?:hitta|avsätt|reservera|blocka)\s+(?:lite\s+|en\s+)?(?:ledig\s+)?(?:tid|timme|halvtimme)(?!\p{L})`,
+  String.raw`(?<!\p{L})lägg\s+(?:in|till)(?!\p{L})[^.?!]{0,50}?(?<!\p{L})i\s+(?:min\s+kalender|kalendern)(?!\p{L})`,
+  String.raw`(?<!\p{L})planera\s+(?:min|mitt|mina|vår)\s+(?:vecka|dag|dagar|tid)(?!\p{L})`,
+].join('|'), 'iu');
+/* …but a sentence that opens as a question about what something says or is
+   ("what does schedule 2 say…", "when does MK-3's meeting duty start?") stays a
+   question: it goes on as before */
+const IG_BOOK_NOT_RE=/^\s*(?:what|which|when|where|why|who|how many|how much|does|do|is|are|was|were|explain|summari[sz]e|vad|vilka|vilket|vilken|när|var|varför|vem|hur många|hur mycket|förklara|sammanfatta)(?!\p{L})/iu;
+/* …and a question about the person's OWN calendar is the Calendar's too (owner,
+   18 Oct 2026: "fix all four"): only its Jambo reads their events, so "am I
+   free on Tuesday?" asked anywhere else had nobody who could answer it */
+const IG_MYCAL_RE=new RegExp([
+  String.raw`(?<!\p{L})(?:am i|are we)\s+(?:free|busy|available|booked)(?!\p{L})`,
+  String.raw`(?<!\p{L})(?:what(?:'s|’s|\s+is)|anything|is there anything|do i have anything)\s+(?:in|on)\s+my\s+(?:calendar|diary|schedule)(?!\p{L})`,
+  String.raw`(?<!\p{L})(?:my|our)\s+(?:calendar|diary|schedule)\s+(?:for|on|this|next|today|tomorrow)(?!\p{L})`,
+  String.raw`(?<!\p{L})(?:do i have|have i got|have i)\s+(?:any\s+)?(?:meetings?|appointments?|calls?)(?!\p{L})`,
+  /* Svenska */
+  String.raw`(?<!\p{L})(?:är jag|är vi)\s+(?:ledig|lediga|upptagen|upptagna)(?!\p{L})`,
+  String.raw`(?<!\p{L})(?:vad (?:finns|står|har jag)|finns det något)\s+i\s+(?:min kalender|kalendern)(?!\p{L})`,
+  String.raw`(?<!\p{L})har jag\s+(?:några\s+)?(?:möten|möte|samtal)(?!\p{L})`,
+].join('|'), 'iu');
+function igBookAsk(q){ const s=String(q||''); return (IG_BOOK_RE.test(s)&&!IG_BOOK_NOT_RE.test(s))||IG_MYCAL_RE.test(s); }
+/* "which contracts have risky/illegal clauses", "red flags", "compliance issues"…
+   sweep the whole book only when no contract is named: "any red flags in
+   MK-12?" is a question about MK-12 (18 Oct 2026) */
 const IG_COMPLIANCE_RE=/\b(illegal|unlawful|non-?complian(?:t|ce)|red[-\s]?flags?|problematic|risky clauses?|risk(?:y)?\s+(?:or|and)\s+(?:illegal|unlawful|problematic)|onerous|unfair terms?|dodgy|complian(?:ce|t)\s+(?:issues?|risks?|review|check)|potential(?:ly)?\s+(?:illegal|unlawful|risky|problematic))\b/i;
 // reads / summarises / quotes a contract → grounded Copilot Q&A
 const IG_QA_RE=/\b(summar(?:y|ise|ize|ies)|quote|verbatim|explain|describe|read|clause|says?|state[sd]?|obligations?|payment terms?|governing law|liabilit\w*|termination|indemnit\w*|renewal terms?|brief(?:ing)?|what (?:does|do|is|are|kind|type)|tell me about|how much (?:is|does)|when does)\b/i;
@@ -1133,6 +1185,8 @@ const IG_TIME_KEYS=['decision','expiry','signed','created'];
    the map CAN do in that role (ask back, step 4). */
 const IG_NEAREST={ group:['folder','counterparty','status'], floors:['status','payterms','valueBand'], columns:['folder','counterparty','kind'], colour:['status','risk','payterms'], size:['value','obligations','same'], label:['counterparty','owner','payterms'], time:['decision','expiry','signed'] };
 const IG_UNDO_MAX=30, IG_VIEWS_KEY='hati.v1.igViews', IG_VIEWS_MAX=12, IG_TOP_DEFAULT=10;
+const IG_NUM_WORDS={ one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8, nine:9, ten:10, eleven:11, twelve:12,
+  en:1, ett:1, 'två':2, tre:3, fyra:4, fem:5, sex:6, sju:7, 'åtta':8, nio:9, tio:10, elva:11, tolv:12 };
 function igRecipeNow(){
   return { lenses:intel.lenses.map(l=>({ ...l, ids:l.ids.slice(), badges:l.badges?{ ...l.badges }:null })),
     groupBy:intel.groupBy, groups:intel.groups?{ ...intel.groups }:null,
@@ -1344,6 +1398,9 @@ function igConditions(text){
     if(h) add('expired', c=>(typeof contractExpired==='function')?(live(c)&&contractExpired(c)):(()=>{ const e=_gExpiryDay(c); const d=e?daysUntil(e):null; return d!=null&&d<0; })(), 'expired', h); }
   // the record's own flags
   { const h=hit(/ (?:overdue|late obligations|past due|försenade|förfallna) /); if(h) add('overdue', c=>graphNodeFacts(c).overdue>0, 'overdue', h); }
+  /* brought in through Import (the imports trial, 18 Oct 2026): its words and
+     its reading are the one fact list's (caHereFact, js/copilotacts.js) */
+  { const f=(typeof window.caHereFact==='function')?caHereFact('imported'):null; const m=f&&t.match(f.re); if(m) add('imported', f.of, 'imported', m[0].trim()); }
   { const h=hit(/ (?:waiting on us|our move|mine to answer|väntar på oss|vårt drag) /); if(h) add('waiting on us', c=>{ try{ const w=negWhoseMove(c); return !!w&&w.k==='you'; }catch(_){ return false; } }, 'move', h); }
   { const h=hit(/ (?:waiting on them|their move|with the other side|väntar på dem|deras drag) /); if(h) add('waiting on them', c=>{ try{ const w=negWhoseMove(c); return !!w&&w.k==='them'; }catch(_){ return false; } }, 'move', h); }
   /* DEAL FACTS (5 Oct 2026, the board's Part 8). "Stalled" is said as what
@@ -1552,7 +1609,8 @@ function igRecipeParse(qRaw){
   if(/^(?:please\s+)?(?:summari[sz]e|explain|describe|quote|tell me about|draft|write|translate|sammanfatta|förklara|beskriv|citera|skriv|översätt)\b/.test(q)) return null;
   if(/^(?:undo|go back|back|previous view|revert|undo that|take that back|ångra|tillbaka|gå tillbaka|backa)$/.test(q)) return { acts:[{ undo:true }], rest:'' };
   if(/^(?:please\s+)?(?:reset(?: the map| everything| it)?|start (?:again|over)|back to (?:the )?start|återställ(?: kartan| allt)?|börja om)$/.test(q)) return { acts:[{ everything:true }, { landing:true }], rest:'' };
-  if(IG_EVERYTHING_RE.test(q)||/^(?:visa allt|visa alla(?: avtal)?|rensa(?: allt| kartan)?)$/.test(q)) return { acts:[{ everything:true }], rest:'' };
+  /* every contract, in the words Jambo's one rule reads it (CA_HERE_ALL_RE: "all contracts", "every contract", "alla avtal") */
+  if(IG_EVERYTHING_RE.test(q)||/^(?:visa allt|visa alla(?: avtal)?|rensa(?: allt| kartan)?)$/.test(q)||(window.CA_HERE_ALL_RE instanceof RegExp&&CA_HERE_ALL_RE.test(q))) return { acts:[{ everything:true }], rest:'' };
   let m=q.match(/^(?:save|keep|remember)\s+(?:this|the current|the)?\s*(?:view|map|layout)(?:\s+(?:as|called|named)\s+(.+))?$/)||q.match(/^spara\s+(?:den här\s+|denna\s+)?(?:vyn|vy|kartan)(?:\s+som\s+(.+))?$/);
   if(m){ const raw=m[1]?String(q0).slice(-m[1].length).trim():''; return { acts:[{ save:(raw&&_igNorm(raw)===m[1].trim()?raw:(m[1]||'')).trim() }], rest:'' }; }
   m=q.match(/^(?:open|show|load|go to|switch to)\s+(?:the\s+|my\s+)?(?:saved\s+)?view\s+(.+)$/)||q.match(/^(?:öppna|visa)\s+(?:den sparade\s+)?vyn\s+(.+)$/);
@@ -1595,7 +1653,10 @@ function igRecipeParse(qRaw){
   if(tp&&(/\b(top|topp|biggest|largest|highest|slowest|största|högsta|långsammaste)\b/.test(rest)||tpEnd)){
     /* the other end: "the 5 smallest contracts", "lowest value", "bottom 10" */
     const up=tpEnd&&!/\b(?:top|topp|biggest|largest|highest|största|högsta)\b/.test(rest);
-    const n=Number((rest.match(/\b(\d+)\b/)||[])[1]||IG_TOP_DEFAULT);
+    /* a number in words counts too: "the top two by value" (bug log, 5 Oct 2026) */
+    const nw=rest.match(/\b(?:top|topp|de|bottom|biggest|largest|highest|smallest|lowest|största|högsta|minsta|lägsta)\s+(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|en|ett|två|tre|fyra|fem|sex|sju|åtta|nio|tio|elva|tolv)(?![\wåäö])/);
+    const nw2=nw||rest.match(/(?:^|\s)(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|en|ett|två|tre|fyra|fem|sex|sju|åtta|nio|tio|elva|tolv)\s+(?:biggest|largest|highest|smallest|lowest|least valuable|slowest|största|högsta|minsta|lägsta|långsammaste)\b/);
+    const n=Number((rest.match(/\b(\d+)\b/)||[])[1]||(nw2?IG_NUM_WORDS[nw2[1]]:0)||IG_TOP_DEFAULT);
     const by=/slow|pay|betal|långsam/.test(rest)?'payterms':/obligation|åtagand/.test(rest)?'obligations':/renew|förny|soonest/.test(rest)?'renewal':'value';
     const perM=rest.match(/\b(?:in each|per|for each|within each|by each|i varje|för varje|per)\s+(.+)$/); const per=perM?igFactFind(perM[1]):null;
     acts.push({ top:Object.assign({ n:Math.max(1,Math.min(200,n)), by, per:per?per.key:null }, up&&by==='value'?{ dir:'up' }:{}) });
@@ -1635,7 +1696,8 @@ function igRecipeParse(qRaw){
   /* narrowing: only / hide / highlight */
   const nar=rest.match(/\b(?:only|just|nothing but|bara|endast|enbart)\s+(.+)$/);
   const hid=rest.match(/\b(?:hide|without|except|excluding|exclude|leave out|but not|göm|dölj|utan|förutom|utom)\s+(.+)$/);
-  const hil=rest.match(/^(?:highlight|light up|mark|point out|which|what|markera|lys upp|vilka|visa vilka)\s+(.+)$/);
+  /* "where are the …" asks to be shown them, as "which" does (Jambo's one rule, 18 Oct 2026) */
+  const hil=rest.match(/^(?:highlight|light up|mark|point out|which|what|where are|where's|markera|lys upp|vilka|visa vilka|var är|var finns)\s+(.+)$/);
   if(nar){ const c=igConditions(nar[1]); if(c.length) acts.push({ narrow:{ conds:c, mode:follow?'and':'only' } }); }
   else if(hid){ const c=igConditions(hid[1]); if(c.length) acts.push({ narrow:{ conds:c, mode:'hide' } }); }
   else if(hil&&!/\boutliers?\b/.test(hil[1])){ const c=igConditions(hil[1]); if(c.length&&!/\b(say|says|mean|clause|wording|står|säger)\b/.test(hil[1])) acts.push({ narrow:{ conds:c, mode:'highlight' } }); }
@@ -1911,14 +1973,49 @@ async function intelAsk(qRaw){
     intel.busy=false; renderIntelDock();
     return;
   }
+  /* A REQUEST TO BOOK OR FIND TIME (18 Oct 2026) is the Calendar's: it opens
+     and its own Jambo is asked the same words there (calHandOff, the one door
+     that adds to a calendar); a question about dates stays here */
+  if(igBookAsk(q)&&typeof window.calHandOff==='function'&&calHandOff(q)){
+    intel.history.push({role:'user', text:q}, {role:'assistant', text:i18t('ig_cal_handoff')});
+    renderIntelDock(); return;
+  }
+  const tplAsk=IG_TEMPLATE_RE.test(q);
+  /* ANSWER WHERE YOU STAND — ONE RULE, EVERY SCREEN (owner, 18 Oct 2026): a
+     request to SEE contracts that the screen in front reads whole is answered
+     there, and the page that also holds them is a door under the answer
+     (caHereRead). The Contracts place narrows its list now (every contract:
+     the place at rest, as its word does); on Explorer no page word is read,
+     so the map's own reader below narrows the map. */
+  const here=(typeof window.caHereRead==='function')?caHereRead(q):null;
+  if(here&&here.screen==='contracts'&&here.all&&typeof window.caGo==='function'){
+    const go={ kind:'go', place:'contracts', state:'ready' };
+    intel.history.push({role:'user', text:q}, {role:'assistant', text:typeof window.caGoSay==='function'?caGoSay(go):'', act:go}); renderIntelDock(); caGo(go); return;
+  }
+  if(here&&here.screen==='contracts'&&typeof window.caHereOnList==='function'){
+    const done=caHereOnList(here,q);
+    if(done){ intel.history.push({role:'user', text:q}, {role:'assistant', text:igEsc(done.say), act:done}); renderIntelDock(); return; }
+  }
+  const hereMap=!!(here&&here.screen==='explorer');
   /* ---- COPILOT PREPARES, YOU PRESS (Young, 7 Oct 2026) ----
      Sending a contract to a colleague (@ a person, # a contract) and drafting
      one from a sentence are read here, from the words alone, and answered
      with a card that waits for a press (js/copilotacts.js). Nothing spends,
      nothing is sent; anything else goes on exactly as before. */
-  if(typeof window.caActOf==='function'){
+  if(!hereMap&&typeof window.caActOf==='function'){
     let act=null; try{ act=caActOf(q); }catch(_){ act=null; }
     if(act){
+      /* LAND ON IT (owner, 18 Oct 2026): a card a word answers with (draft,
+         share, what's next, help) is drawn ONCE per conversation — a second
+         ask lands on the one already there, lit, its main button ready —
+         and the first is landed on too, so the eye goes straight to it */
+      const cardWord=act.kind==='go'&&Array.isArray(window.CA_CARD_WORDS)&&CA_CARD_WORDS.includes(act.place)&&!act.missing;
+      const had=cardWord?intel.history.findIndex(m=>m&&m.act&&m.act.kind==='go'&&m.act.place===act.place&&String(m.act.cid||'')===String(act.cid||'')&&!m.act.missing):-1;
+      if(had>=0){
+        renderIntelDock();
+        if(typeof window.landOn==='function') landOn(()=>document.querySelector(`#ig-dock [data-ca-card="${had}"]`));
+        return;
+      }
       intel.history.push({role:'user', text:q});
       /* A WORD (the one-page Home plan, stage 1) is said in one line and the
          reader is moved after the paint: a place opens, work opens its door. */
@@ -1929,6 +2026,8 @@ async function intelAsk(qRaw){
       intel.history.push(m);
       renderIntelDock();
       if(act.kind==='go'&&typeof window.caGo==='function') caGo(act);
+      if(cardWord&&typeof window.landOn==='function'){ const at=intel.history.length-1;
+        landOn(()=>document.querySelector(`#ig-dock [data-ca-card="${at}"]`)); }
       return;
     }
   }
@@ -1952,7 +2051,7 @@ async function intelAsk(qRaw){
     let said=null; if(br){ try{ said=hbAsk(q); }catch(_){ said=null; } }
     if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{})); renderIntelDock(); return; }
   }
-  if(state.view==='dashboard' && !onPaperSide && typeof window.hbAsk==='function'){
+  if(state.view==='dashboard' && !onPaperSide && !tplAsk && !hereMap && typeof window.hbAsk==='function'){
     let said=null; try{ said=hbAsk(q); }catch(e){ said=null; }
     if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{}, rdOf(), typeof window.hbBoardReplyMeta==='function'?hbBoardReplyMeta():{})); renderIntelDock(); return; }
   }
@@ -1986,17 +2085,30 @@ async function intelAsk(qRaw){
     let mapListy=false;
     if(igBoardNow()){ try{ const pz=igRecipeParse(q); mapListy=!!(pz&&pz.acts.some(x=>x.top||x.narrow||x.compare||x.linked||x.linkedParty||x.families||x.sort)); }catch(_){ mapListy=false; } }
     const boardUp=!!igBoardNow()&&!IG_WALK_RE.test(q)&&!IG_OUTLIER_RE.test(q)&&!mapListy;
-    const mapRest=(igPaperUp()||boardUp)?null:await intelMapLocal(q);
+    /* A REQUEST FOR A STARTING POINT (18 Oct 2026) goes to the template adviser
+       before the map's word reader, which lit the supplier contracts for "which
+       template should I start from for a supplier deal?"; a question that only
+       MENTIONS a template is answered like any other */
+    const mapRest=(igPaperUp()||boardUp||tplAsk)?null:await intelMapLocal(q);
     if(mapRest!=null){ if(mapRest) await intelGraphAsk(mapRest); }
+    else if(tplAsk&&!igPaperUp())                       await intelTemplateAsk(q);
     else if(igPaperUp())                                await igPaperAsk(q);
     else if(idHits>=2)                                  await intelChatAsk(q);
-    else if(IG_COMPLIANCE_RE.test(q))                   await intelComplianceScan(q);
-    else if(IG_TEMPLATE_RE.test(q))                     await intelTemplateAsk(q);
+    else if(IG_COMPLIANCE_RE.test(q)&&!idHits)          await intelComplianceScan(q);
     else                                                await intelGraphAsk(q);
   }catch(e){
     intel.history.push({role:'assistant', text:'Something went wrong: '+igEsc(e.message), err:true});
   }
   intel.busy=false;
+  /* the page that also holds what the map now shows is a door under the answer;
+     the Contracts list opens on the same set the map shows (none shown, no door)
+     — and where the map's answer already carries its own door to that list
+     ("Open these N on the Contracts page", igDoorsHtml), that one is the door */
+  if(hereMap){ const m=intel.history.slice(h0).reverse().find(x=>x&&x.role==='assistant'&&!x.err);
+    const shown=intelActive().ids, ids=shown?[...shown]:null;
+    const list=here.page==='contracts'&&!here.all;
+    const ownDoor=list&&!!m&&Array.isArray(m.listIds)&&m.listIds.length>0;
+    if(m&&!m.act&&!ownDoor&&!(list&&!(ids&&ids.length))) m.act=Object.assign({}, here, list?{ ids }:{}); }
   rebuildIntelGraph(); renderIntelDock();
   /* ASKED ON HOME'S BOARD, ANSWERED ON THE BOARD (4 Oct 2026): a list that
      came back from Copilot or the map is drawn on the board as well. */
@@ -2055,7 +2167,12 @@ function graphCopilotCard(c){
     parentId:c.parentId||'', relation:c.relation||'',
     move, live, overdue:f.overdue, nextDue:graphNextDue(c)||'',
     offStandard:f.offStandard, risk:c.scan?riskScore(c):null, read:(f.unread==null)?null:!f.unread,
-    archived:!!c.archived, source:c.source||'' };
+    archived:!!c.archived, source:c.source||'',
+    /* IMPORTED IS ITS OWN FACT (owner, 18 Oct 2026): a contract brought in on
+       the Import page is stored as an upload, so `source` alone cannot tell it
+       from a single file; its import record (c.migration, the Import page's
+       own list) can; the one fact list (CA_HERE_FACTS) reads it too */
+    imported:!!(c&&c.migration) };
   /* a salary carries no deal value, so it never matches a money cut (fxIsPay) */
   if(money&&!(typeof fxIsPay==='function'&&fxIsPay(c))) card.value=Number(c.value||0);
   return card;
@@ -2066,7 +2183,7 @@ function graphCopilotCard(c){
    condition reads the card the model was sent; a card carrying no value never
    matches a money cut (an absence is stated, not guessed). Returns null where
    nothing in `where` narrows. */
-const GRAPH_WHERE_KEYS=['status','folder','kind','counterparty','valueAbove','valueBelow','expiringWithinDays','signedFrom','signedTo','overdueObligations','offStandard','notRead','move','archived'];
+const GRAPH_WHERE_KEYS=['status','folder','kind','counterparty','valueAbove','valueBelow','expiringWithinDays','signedFrom','signedTo','overdueObligations','offStandard','notRead','move','archived','imported'];
 function graphWhereIds(where){
   /* THE PREDICATE IS SHARED (js/graphwhere.js, Copilot audit phase 4): the
      chat's list_portfolio applies the same one on the server over its own
@@ -2182,6 +2299,19 @@ function igBoardTitle(q,res){
   if(!igBoardNow()||typeof window.hbFoundTitle!=='function') return null;
   try{ return hbFoundTitle(q,res&&res._top); }catch(_){ return null; }
 }
+/* The counts HaTi drew on the map as it stands: the book, what is shown, and
+   each group's size — the only numbers of contracts a sentence may state
+   where nothing narrowed (intelGraphApply). */
+function igCountsDrawn(total){
+  const out=new Set([Number(total)||0]);
+  try{
+    const model=buildGraphModel(), per={};
+    out.add(model.shown);
+    model.nodes.forEach(n=>{ if(n.kind==='contract') per[n.group]=(per[n.group]||0)+1; });
+    Object.values(per).forEach(k=>out.add(k));
+  }catch(_){}
+  return out;
+}
 function graphSaysMore(own, note, line){
   const s=String(own||'').replace(/\s+/g,' ').trim(); if(!s) return false;
   const fold=x=>String(x||'').replace(/\s+/g,' ').trim().toLowerCase().replace(/[.!]+$/,'');
@@ -2272,7 +2402,13 @@ function intelGraphApply(q, res, opts){
      (the disconnect check, hbProseChecked) */
   if(onBoard&&own0&&!(ids&&ids.length)&&typeof window.hbProseChecked==='function') own0=hbProseChecked(own0).text;
   const saidN=own0.match(/\b(\d[\d,.\s]*)\s+(?:matching\s+|live\s+|such\s+)?(?:contracts?|agreements?|avtal)\b/i);
-  const ownN=(saidN&&ids&&Number(String(saidN[1]).replace(/[^\d]/g,''))!==ids.length)?'':own0;
+  const saidNum=saidN?Number(String(saidN[1]).replace(/[^\d]/g,'')):null;
+  let ownN=(saidN&&ids&&saidNum!==ids.length)?'':own0;
+  /* NOTHING NARROWED, SO NOTHING THE MODEL COUNTED (owner, 18 Oct 2026: the
+     map regrouped and the sentence said "these 24 contracts were imported",
+     then "29"): with no set on the map, a count is printed only where it is
+     one HaTi drew — the book, what is shown, or one group's size. */
+  if(saidN&&!ids&&!onBoard&&!igCountsDrawn(total).has(saidNum)) ownN='';
   /* ---- COPILOT'S OWN SENTENCE IS FORMATTED, NOT PRINTED RAW (Young, 28 Sep
      2026: Explorer's answers showed "**" round bold words and ran a list into
      one line, where the side panel drew the same answer properly) ----
@@ -2297,16 +2433,27 @@ function intelGraphApply(q, res, opts){
      of a small "How this was drawn" under it. Counts alone stay the answer. */
   let how='';
   /* A CAP IS A FACT: a cut stays on the screen under the answer, never only on a hover */
-  if(line&&ownHtml&&graphSaysMore(own,res.note,parts[0])){ how=parts.filter(x=>x!==capSaid).join(' · '); line=ownHtml+(capSaid?`<p class="ai-p igd-cap">${igEsc(capSaid)}</p>`:''); }
+  /* …AND ONLY OVER A SET (owner, 18 Oct 2026, reverses "the answer first" where
+     nothing narrowed): when the map only regrouped or re-dressed, HaTi's own
+     line is read first and Copilot's sentence follows it — a sentence about
+     "these contracts" over a map that removed none read as if it had. */
+  if(line&&ownHtml&&graphSaysMore(own,res.note,parts[0])){
+    if((ids&&ids.length)||onBoard){ how=parts.filter(x=>x!==capSaid).join(' · '); line=ownHtml+(capSaid?`<p class="ai-p igd-cap">${igEsc(capSaid)}</p>`:''); }
+    /* the sentence follows HaTi's line once; where HaTi had no line, `line`
+       already is the sentence (or "nothing changed" with it) */
+    else if(parts.length) line+=(rich?'':'<br>')+ownHtml;
+  }
   intel.history.push({ role:'assistant', text:line, how, cardIds:(ids||[]).slice(0,5), listIds:(ids&&ids.length)?ids.slice():null, listTitle:igBoardTitle(q,res)||(res.note?String(res.note):null), listHonest:!!igBoardTitle(q,res), listChart:(res&&res.chart&&typeof res.chart==='object')?res.chart:null, choices:choices&&choices.length?choices:null });
   return { refused:false, groupBy, ids };
 }
 
 /* ---- template advisor: stage 1 metadata shortlist, stage 2 clause-level Copilot rank ---- */
-function contractPlainText(c){
+function contractPlainText(c, opts){
   try{
     if(isUpload(c)) return (c.upload&&c.upload.extractedText)||'';
-    const host=document.createElement('div'); host.innerHTML=docBody(c);
+    /* the words alone, never the scan's tags; { marks:true } only for the wording
+       hash (triageWordingHash), whose stamps on file were taken over the tagged text */
+    const host=document.createElement('div'); host.innerHTML=docBody(c,(opts&&opts.marks)?undefined:{ marks:false });
     host.querySelectorAll('input').forEach(i=>i.replaceWith(document.createTextNode(i.value||i.getAttribute('value')||'')));
     return (host.textContent||'').replace(/\s+/g,' ').trim();
   }catch(e){ return ''; }
@@ -2477,7 +2624,9 @@ async function intelComplianceScan(q){
   const totalFindings=rows.reduce((n,r)=>n+r.findings.length,0);
   let html=`<b>${i18t('int_compliance_review')}</b> ${rows.length} of ${cs.length} live contracts carry clauses worth a closer look — ${totalFindings} potential issue${totalFindings===1?'':'s'} in all (risks, missing protections or ambiguous terms), ranked by severity. This is a first-pass review to raise with counsel, not legal advice.`;
   html+=top.map(r=>{
-    const items=r.findings.slice(0,3).map(f=>`<li style="margin:2px 0"><b>${igEsc(f.title)}</b>${f.why?` — ${igEsc(f.why)}`:''}</li>`).join('');
+    /* named by the ONE short title (riskTitleOf), as the health report is */
+    const fTitle=f=>(typeof riskTitleOf==='function')?riskTitleOf({ src:'scan', id:f.id, kind:f.kind||'', title:String(f.title||'') }):f.title;
+    const items=r.findings.slice(0,3).map(f=>`<li style="margin:2px 0"><b>${igEsc(fTitle(f))}</b>${f.why?` — ${igEsc(f.why)}`:''}</li>`).join('');
     const more=r.findings.length>3?`<div style="font-size:var(--t-label);color:var(--color-neutral-500);margin-top:1px">+${r.findings.length-3} more</div>`:'';
     return `<div style="margin-top:10px;padding-top:9px;border-top:1px solid color-mix(in srgb,var(--color-text) 9%,transparent)">
       <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px;flex-wrap:wrap">
@@ -4017,7 +4166,8 @@ function renderIntel(){
           </select>
           <span style="position:absolute;right:9px;pointer-events:none;color:var(--color-accent);font-size:var(--t-figure)">▼</span>
         </span>`;
-  const headerHtml=onHome ? hbHeadHtml(groupSel) : headStyle+`
+  const hbDeskStage=onHome&&typeof window.deskShellOn==='function'&&window.deskShellOn();
+  const headerHtml=onHome ? hbHeadHtml(hbDeskStage?'':groupSel) : headStyle+`
     <!-- No vertical padding: the tab buttons carry it themselves, so their
          underline lands on the strip's own hairline.
 
@@ -4166,6 +4316,11 @@ function renderIntel(){
                stage's top-left corner the way the legend and the view bar sit in
                theirs, and its row is the map's. */}
         <div id="ig-note" class="ig-note"></div>
+        ${''/* GROUP BY RIDES THE STAGE TOO (the SAP way, 18 Oct 2026): on a
+               computer Home draws no head row, so Explorer's one control sits
+               in the stage's top-right corner, as the head line sits in its
+               top-left. The phone keeps it in Home's head. */}
+        ${hbDeskStage?`<label class="hb-groupby hb-groupby-stage" id="hb-groupby"${(typeof hbFace==='function'&&hbFace()==='explorer')?'':' hidden'}>${igEsc(i18t('hb_group_by'))} ${groupSel}</label>`:''}
         ${''/* THE VIEW BAR — the three views, the zoom and Fold all, in the
                stage's own corner where the old "drag nodes" hint sat. How to
                move the map is machinery, so it lives on the bar's hover. */}
@@ -5017,7 +5172,10 @@ function obReminderOf(o, c){
   const theirs=(typeof obligationIsTheirs==='function')?obligationIsTheirs(o):((o&&o.party)==='theirs');
   const ours=!theirs;
   const typed=String((o&&o.assignee)||'').trim();
-  const mem=(typed&&typeof window.obligationReminderTo==='function')?obligationReminderTo({ assignee:typed }):null;
+  /* the server's obligationRecipient mails a member only where they can open
+     the contract's stream; so does this reading (bug log) */
+  const mem0=(typed&&typeof window.obligationReminderTo==='function')?obligationReminderTo({ assignee:typed }):null;
+  const mem=(mem0&&(!c||typeof window.canAccessFolder!=='function'||canAccessFolder(c.folder||'',mem0)))?mem0:null;
   const owner=(!mem&&ours&&typeof window.obligationOwnerTo==='function')?obligationOwnerTo(c):null;
   const owned=!!mem, reach=owned||!!owner;
   const last=ours?OB_LAST_OURS:OB_LAST_OWNED;
@@ -7760,7 +7918,10 @@ function igPaintPaper(){
      no sheet rule can outrank, so Focus folds it where its own declaration
      lives and puts the markup's own value back — never !important. */
   /* on Home the head row is Home's own (#hb-head, 3 Oct 2026): Focus folds it the same way */
-  const head=document.getElementById('ig-head')||document.getElementById('hb-head'); if(head) head.style.display=focus?'none':'flex';
+  /* Home's head states no display of its own (its sheet does), so Focus gives
+     it back nothing and a head drawn hidden on a computer stays hidden (the
+     SAP way, 18 Oct 2026) */
+  const head=document.getElementById('ig-head')||document.getElementById('hb-head'); if(head) head.style.display=focus?'none':(head.id==='hb-head'?'':'flex');
   if(!up){ host.hidden=true; return; }
   if(host.dataset.for!==igPaperKey(c)){ host.innerHTML=igPaperHtml(c); host.dataset.for=igPaperKey(c); igPaperWire(host);
     /* THE BLANKS ARE MARKED HERE TOO (11 Oct 2026, the Document tab gone): an
@@ -8204,7 +8365,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
 }
 
 Object.assign(window,{igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igHintKeys,igHintPaint,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
-Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,IG_BOOK_RE,IG_BOOK_NOT_RE,IG_MYCAL_RE,igBookAsk,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,igCountsDrawn,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp,IG_PRE_MS,igPreOn,igPrePaint});

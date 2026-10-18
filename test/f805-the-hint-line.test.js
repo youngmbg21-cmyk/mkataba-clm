@@ -1,6 +1,6 @@
 'use strict';
 /* ═══════════════════════════════════════════════════════════════════════════
-   f731 — THE HINT LINE UNDER EVERY JAMBO ASK BOX (owner's yes, 18 Oct 2026:
+   f805 — THE HINT LINE UNDER EVERY JAMBO ASK BOX (owner's yes, 18 Oct 2026:
    every picked drawing of rounds 3–26 draws it — "Typing never signs, sends
    or files — a press does.")
 
@@ -51,7 +51,7 @@ const builder = (() => {
 })();
 const text = html => String(html).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 
-describe('f731 (1) one builder, the drawn words', () => {
+describe('f805 (1) one builder, the drawn words', () => {
   test('1a the sentence as drawn', () => {
     assert.ok(builder, 'jamboHintHtml is there');
     assert.equal(text(builder()), 'Typing never signs, sends or files — a press does.');
@@ -67,7 +67,7 @@ describe('f731 (1) one builder, the drawn words', () => {
   });
 });
 
-describe('f731 (2) every Jambo ask box draws it, from the builder', () => {
+describe('f805 (2) every Jambo ask box draws it, from the builder', () => {
   test('2a Home\'s panel: under its box, with the keys while a paper is up', () => {
     /* RE-POINTED 18 Oct 2026 (pass 3, the checker against rounds 3, 7 and
        12): which keys the line names is ONE reading, igHintKeys — see (4) */
@@ -92,7 +92,7 @@ describe('f731 (2) every Jambo ask box draws it, from the builder', () => {
   });
 });
 
-describe('f731 (3) both books', () => {
+describe('f805 (3) both books', () => {
   test('3a the words in English and Svenska', () => {
     for (const k of ['jb_hint', 'jb_hint_places', 'jb_hint_closes', 'jb_hint_lists'])
       for (const lang of ['en', 'sv']) assert.ok(BOOKS[lang][k], `${k} ${lang}`);
@@ -114,7 +114,7 @@ describe('f731 (3) both books', () => {
        rows (round 3); the sentence alone on Before you sign (round 10), the
        wall and the Board (rounds 13, 17).
    AT THE PARENT (8dc306a) and before this pass (14b2f8a) these FAIL. */
-describe('f731 (4) the last three boxes: the Counter, the Jambo window, the clause editor', () => {
+describe('f805 (4) the last three boxes: the Counter, the Jambo window, the clause editor', () => {
   test('4a the Counter\'s box: the line right under it, from the builder', () => {
     assert.match(fnOf(CN, 'counterHtml'), /<div class="ca-pop cn-pop" id="cn-pop" hidden><\/div><\/div>\s*\$\{''\/\*[\s\S]*?\*\/\}\$\{typeof jamboHintHtml === 'function' \? jamboHintHtml\(\) : ''\}\s*<div class="cn-chips">/);
     assert.match(HTML, /\.cn-ask > \.jb-hint\{margin:-6px 2px 0;text-align:left\}/);
@@ -131,7 +131,7 @@ describe('f731 (4) the last three boxes: the Counter, the Jambo window, the clau
   });
 });
 
-describe('f731 (5) which keys Home\'s line names — one reading', () => {
+describe('f805 (5) which keys Home\'s line names — one reading', () => {
   const run = env => {
     const ctx = Object.assign({ state: { view: 'dashboard' }, intel: { paper: null }, getContract: () => null }, env || {});
     ctx.window = ctx; vm.createContext(ctx);
@@ -167,7 +167,7 @@ describe('f731 (5) which keys Home\'s line names — one reading', () => {
   });
 });
 
-describe('f731 (6) the line follows what is in front, in place', () => {
+describe('f805 (6) the line follows what is in front, in place', () => {
   test('6a one painter, the one builder, called where the Board paints and where Needs you here repaints', () => {
     const f = fnOf(IG, 'igHintPaint');
     assert.match(f, /document\.querySelector\('#ig-dock \.igd-askbox \+ \.jb-hint'\)/);

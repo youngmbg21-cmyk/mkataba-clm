@@ -1,6 +1,6 @@
 'use strict';
 /* ═══════════════════════════════════════════════════════════════════════════
-   f732 — NEGOTIATIONS, "WHOSE MOVE" AS DRAWN (round 14 of the redesign, the
+   f806 — NEGOTIATIONS, "WHOSE MOVE" AS DRAWN (round 14 of the redesign, the
    owner's pick, and their "build all the gaps", 18 Oct 2026)
 
    (1) JAMBO'S PANEL SAYS "Negotiation": the reference and the agreement's
@@ -47,7 +47,7 @@ const CLAUSES = () => { const c = { window: {} }; c.window = c; vm.createContext
 const stage = (names, extra) => { const ctx = Object.assign({ i18t: t, i18tn: tn, esc, window: {} }, extra || {});
   vm.createContext(ctx); vm.runInContext(names.map(n => fnOf(REG, n)).join('\n'), ctx); return ctx; };
 
-describe('f732 (1) Jambo\'s panel says "Negotiation"', () => {
+describe('f806 (1) Jambo\'s panel says "Negotiation"', () => {
   test('1a the panel\'s words: Negotiation, the page\'s name with nothing chosen, its own placeholder', () => {
     const f = fnOf(REG, 'regInsPaint');
     assert.match(f, /jlWord:i18t\(seat==='negotiations'\?'jl_w_negotiation':'jl_w_contract'\)/);
@@ -100,7 +100,7 @@ describe('f732 (1) Jambo\'s panel says "Negotiation"', () => {
   });
 });
 
-describe('f732 (2) nothing chosen: the page in Jambo\'s words, from its own book', () => {
+describe('f806 (2) nothing chosen: the page in Jambo\'s words, from its own book', () => {
   test('2a "7 live negotiations: 3 wait on our side, 2 are with the other side and 1 is out to sign." and the longest wait', () => {
     const book = [...Array(3)].map((_, i) => ({ id: 'Y' + i, _ngBand: 'you', counterparty: 'Nordvik Logistik AB', negotiation: { turnAt: new Date(Date.now() - (4 - i) * 864e5).toISOString() } }))
       .concat([{ id: 'T1', _ngBand: 'them' }, { id: 'T2', _ngBand: 'them' }, { id: 'O1', _ngBand: 'out' }, { id: 'C1', _ngBand: 'clear' }]);
@@ -123,7 +123,7 @@ describe('f732 (2) nothing chosen: the page in Jambo\'s words, from its own book
   });
 });
 
-describe('f732 (3) the page as drawn', () => {
+describe('f806 (3) the page as drawn', () => {
   test('3a the facts on the title\'s line, on Negotiations and every page head', () => {
     assert.match(NEG, /<div class="page-title-row ngl-title-row"><h2>\$\{i18t\('ng_door_title'\)\}<\/h2>\s*<div class="ngl-live page-facts">/);
     assert.match(HTML, /\.ngl-head \.ngl-title-row\{ display:flex; align-items:baseline;/);
@@ -154,7 +154,7 @@ describe('f732 (3) the page as drawn', () => {
    (6) ONLY THE DOORS: no ⋯ in the Negotiation panel; Negotiation · Workspace
        wear their words only.
    AT THE PARENT (8dc306a) and before this pass (14b2f8a) these FAIL. */
-describe('f732 (4) "What is open" in the drawing\'s words', () => {
+describe('f806 (4) "What is open" in the drawing\'s words', () => {
   const cols = (m, changes) => stage(['regNegoCols'], { negoMoveSay: () => m }).regNegoCols({ id: 'X', changes: changes || [], negotiation: { round: 2 } }).changes;
   const ours = n => [...Array(n)].map(() => ({ authorSide: 'owner', status: 'pending' }));
   test('4a their redlines to answer: "2 redlines to answer", "1 redline to answer"', () => {
@@ -179,7 +179,7 @@ describe('f732 (4) "What is open" in the drawing\'s words', () => {
   });
 });
 
-describe('f732 (5) a clause said as drawn', () => {
+describe('f806 (5) a clause said as drawn', () => {
   const ctx = stage(['regClauseSaid'], CLAUSES());
   test('5a "Clause N Name", the next one lower case', () => {
     assert.equal(ctx.regClauseSaid('Clause 7 · Liability cap', false), 'Clause 7 Liability Cap');
@@ -192,7 +192,7 @@ describe('f732 (5) a clause said as drawn', () => {
   });
 });
 
-describe('f732 (6) only the doors in the Negotiation panel', () => {
+describe('f806 (6) only the doors in the Negotiation panel', () => {
   test('6a no ⋯ on the Negotiations seat; the Contracts seat keeps its row menu', () => {
     assert.match(fnOf(REG, 'regInsPaint'), /let menu=''; if\(c&&seat!=='negotiations'\)\{ try\{ menu=regRowActsHtml\(c,\['open'\]\); \}catch\(_\)\{ menu=''; \} \}/);
   });

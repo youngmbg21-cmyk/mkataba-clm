@@ -40,11 +40,12 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await page.evaluate(() => hbOpenHome());
     await until(page, () => !!document.getElementById('hb-head'), null, 15000);
 
-    /* ---- 1 the faces are desk tabs (RE-POINTED 17 Oct 2026: the owner picked "Desk
-       tabs", Round 2; the sliding pill is not drawn on a computer) ---- */
-    const head = await page.evaluate(() => ({ pill: !!document.querySelector('#hb-head .hb-faces'), tabs: !!document.querySelector('#hb-head #dk-home .dk-tabs'),
+    /* ---- 1 the faces are Recent's pages (RE-POINTED 18 Oct 2026: the owner picked
+       "The SAP way"; no pill and no head row on a computer, the bar names the face) ---- */
+    const head = await page.evaluate(() => ({ pill: !!document.querySelector('#hb-head .hb-faces'), headShown: document.getElementById('hb-head').getBoundingClientRect().height > 0,
+      bar: (document.getElementById('dk-page') || {}).textContent.trim(), want: deskTabLabel(deskKeyNow()),
       faces: HB_FACES.slice(), en: ['board', 'calendar', 'explorer'].map(f => deskTabLabel('home:' + f)) }));
-    ok('1a Home\'s head carries the desk tabs, no pill', !head.pill && head.tabs, JSON.stringify(head));
+    ok('1a no pill and no head row: the bar names the face', !head.pill && !head.headShown && !!head.want && head.bar === head.want, JSON.stringify(head));
     ok('1b the faces are Board · Document · Calendar · Explorer (no Breakdown)', head.faces.join(',') === 'board,paper,calendar,explorer', head.faces.join(','));
     ok('1c each face\'s tab is named in English', head.en.join(',') === 'Board,Calendar,Explorer', head.en.join(','));
     await page.evaluate(() => { if (typeof langSet === 'function') langSet('sv'); if (typeof applyLanguage === 'function') applyLanguage(); });

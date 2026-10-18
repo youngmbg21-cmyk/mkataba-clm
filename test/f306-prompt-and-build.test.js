@@ -765,7 +765,8 @@ describe('f306 (11) — what the screen prints', () => {
     /* The two ways out, read at their doors (the stub DOM cannot press Back;
        prompt-and-build-verify 13f presses it for real). */
     const leave = TB.slice(TB.indexOf('function tbLeave'), TB.indexOf('async function tbSave'));
-    assert.match(leave, /const go = \(\) => \{ tbGutter\(false\); openTemplateLibDetail\(_tb\.tid\); \};/, 'Back gives it back before the template\'s own page paints');
+    /* RE-POINTED 18 Oct 2026: a page's name typed in Jambo's box leaves through the same door, to that page */
+    assert.match(leave, /const go = \(\) => \{ tbGutter\(false\); if \(typeof then === 'function'\) then\(\); else openTemplateLibDetail\(_tb\.tid\); \};/, 'Back gives it back before the template\'s own page paints');
     const pub = TB.slice(TB.indexOf('async function tbPublish'), TB.indexOf('function tbFieldModal'));
     assert.ok(pub.indexOf('tbGutter(false)') > pub.indexOf('tbSave(true)') && pub.indexOf('tbGutter(false)') < pub.indexOf('openDesignStep('), 'Publish gives it back before the Design step paints');
   });

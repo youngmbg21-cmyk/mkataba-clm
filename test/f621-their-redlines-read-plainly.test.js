@@ -110,11 +110,11 @@ describe('f621 (4) — no ladder jargon on their paper', () => {
     const now = w.win.negoClauseList(c).find(x => x.clauseId === cl.clauseId) || cl;
     const theirs = w.win.rlBaselineHtml(c, now, 'counterparty');
     const ours = w.win.rlBaselineHtml(c, now, 'owner');
+    assert.ok(c.changes.some(x => x.status === 'countered'), 'the clause is stacked, so this measures something');
     assert.ok(!/R0|Plain text on clause/.test(theirs), theirs);
-    assert.ok(ours, 'the stage draws a line on our seat, so this measures something');
-    /* The walk's own case: the unmarked words ARE the agreed wording, so on
-       their seat there is nothing to say (ours says "= the agreed wording"). */
+    /* The owner, 18 Oct 2026: "this should not be on paper at all" — neither
+       seat draws the ladder line under a stacked clause any more. */
     assert.equal(theirs, '', theirs);
-    assert.match(ours, /R0/, 'our seat keeps the ladder line Young ruled');
+    assert.equal(ours, '', 'our seat draws no ladder line either (owner, 18 Oct 2026)');
   });
 });
