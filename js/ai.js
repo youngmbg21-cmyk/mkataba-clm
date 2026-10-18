@@ -4331,6 +4331,8 @@ async function aiSubmit(){
   const cardOwns=!!(aiActiveProposal()||aiActiveRephrase()) && !aiAsksPastCard(q);
   if(!cardOwns && typeof window.caAskAnywhere==='function'){
     let go=null; try{ go=window.caReadPlace?caReadPlace(q):null; }catch(_){ go=null; }
+    /* a request the screen in front answers stays there: no place is said (caHereRead) */
+    try{ if(go&&window.caHereRead&&caHereRead(q)) go=null; }catch(_){ }
     const took=caAskAnywhere(q);
     if(took){
       /* a booking or a question about their own calendar went to the Calendar's Jambo (18 Oct 2026) */

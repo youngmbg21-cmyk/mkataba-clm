@@ -33,15 +33,9 @@ const fnOf = (src, head) => { const at = src.indexOf(head); if (at < 0) return '
   for (let i = open; i < src.length; i++){ if (src[i] === '{') d++; else if (src[i] === '}' && !--d) return src.slice(at, i + 1); } return ''; };
 const lineOf = (src, re) => { const m = src.match(re); return m ? m[0] : ''; };
 
-/* the readings, run as the page runs them, on a stage whose screen we set; read
-   once and asked by each claim, so a missing piece reports where it is missed */
-const stage = (() => {
-  const a = CA.indexOf('const CA_HERE_FACTS = ['), z = CA.indexOf('function caHereOnList(');
-  const ctx = { state: { view: 'dashboard', contracts: [] }, face: 'explorer', document: { getElementById: () => ({}) } };
-  ctx.hbFace = () => ctx.face; ctx.igPaperUp = () => false;
-  try { vm.createContext(ctx); vm.runInContext(CA.slice(a, z) + '\nthis.read = caHereRead; this.fact = caHereFact;', ctx); } catch (_){}
-  return ctx;
-})();
+/* the readings, run as the page runs them, on a stage whose screen we set —
+   since the one rule (f737, 18 Oct 2026) with the map's real word readers */
+const stage = require('./herestage').hereStage();
 const read = (q, face) => { stage.face = face || 'explorer'; return stage.read ? stage.read(q) : undefined; };
 
 describe('f736 (1) one fact list', () => {
