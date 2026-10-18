@@ -178,7 +178,9 @@ const check = (name, pass, detail) => {
        ready-made panels, made bigger, read and offer the one ask */
     await page.evaluate(() => { const s = hbS(); s.panels = []; s.path = []; s.digBig = false; s.why = {}; hbSave(); hbPaintBoard(); window._asked = []; });
     const fv = await until(() => document.querySelector('#hb-board [data-hb-dig="f:value"]') ? true : null);
-    if (fv) await page.click('#hb-board [data-hb-dig="f:value"]');
+    /* RE-POINTED 18 Oct 2026 (round 17 as drawn): the figure opens the
+       Contracts place; the value's own card is opened through its own dig */
+    if (fv) await page.evaluate(() => hbDig('f:value'));
     const v8 = await until(() => document.querySelector('#hb-focus [data-hb-digbig]') ? true : null);
     if (v8) await page.click('#hb-focus [data-hb-digbig]');
     const s8a = await until(() => { const r = document.querySelector('#hb-focus .hb-dig.is-big .hb-read'); return r ? { lines: [...r.querySelectorAll('li')].map(li => li.textContent.replace(/\s+/g, ' ').trim()), ask: !!document.querySelector('#hb-focus [data-hb-why="f:value"]') } : null; });
@@ -192,7 +194,9 @@ const check = (name, pass, detail) => {
     await page.evaluate(() => { const s = hbS(); s.path = []; s.digBig = false; hbSave(); hbPaintBoard(); });
     const fe = await until(() => document.querySelector('#hb-board [data-hb-dig="f:ending"]') ? true : null);
     /* RE-POINTED: a list figure opens the side list; "Open as a chart" opens its card */
-    if (fe) { await page.click('#hb-board [data-hb-dig="f:ending"]'); await until(() => document.querySelector('.hb-sheet [data-hb-sheet-dig]') ? true : null); await page.click('.hb-sheet [data-hb-sheet-dig]'); }
+    /* RE-POINTED 18 Oct 2026 (round 17 as drawn): the figure opens the
+       Contracts place; its card is opened through its own dig */
+    if (fe) await page.evaluate(() => hbDig('f:ending'));
     if (await until(() => document.querySelector('#hb-focus [data-hb-tools-more]') ? true : null)) await pressBig('#hb-focus');
     const s8b = await until(() => { const r = document.querySelector('#hb-focus .hb-dig.is-big .hb-read'); return r ? [...r.querySelectorAll('li')].map(li => li.textContent.replace(/\s+/g, ' ').trim()) : null; });
     check('8b Ending in 90 days, made bigger, names the first to end', !!s8b && s8b.some(l => /end in the next 90 days; the first is MK-S0 \(Nordkraft AB\), on /.test(l)), JSON.stringify({ fe, s8b }));

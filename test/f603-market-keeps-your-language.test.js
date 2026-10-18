@@ -112,8 +112,13 @@ describe('f603 (D13) — a good sign-in clears what the bad tries left', () => {
 
 describe('f603 (D12) — a brand-new Home has one door to finish setting up', () => {
   const HB = fs.readFileSync(path.join(ROOT, 'js/views/homeboard.js'), 'utf8');
+  /* RE-POINTED 18 Oct 2026 (round 17 as drawn, the owner's "build all the
+     gaps"): the Board ends with its insights — the dashed box's words
+     (hb_empty) are gone; a brand-new workspace keeps its one door, in the
+     same slot, and nothing at all is drawn when there is no door */
   test('it lives inside the board\'s own empty slot, not a band', () => {
-    assert.match(HB, /<div class="hb-empty">\$\{_hbE\(i18t\('hb_empty'\)\)\}\$\{hbSetupDoorHtml\(\)\}<\/div>/);
+    assert.match(HB, /function hbEmptyHtml\(\)\{\s*const door = hbSetupDoorHtml\(\);\s*return door \? `<div class="hb-grid"><div class="hb-empty is-setup">\$\{door\}<\/div><\/div>` : '';/);
+    assert.ok(!/i18t\('hb_empty'\)/.test(HB), 'the tip is not said');
   });
   /* RE-POINTED 17 Oct 2026: signing in lands on the Counter (the owner's
      "Front desk"), so the reading moved into ONE function both places draw

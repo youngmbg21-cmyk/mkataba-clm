@@ -161,7 +161,9 @@ const check = (name, pass, detail) => {
     if (rw.door) await page.click('#hb-book .hb-fig-main[data-hb-dig="f:ending"]');
     await page.waitForTimeout(500);
     /* RE-POINTED 11 Oct 2026 (the Board as drawn): the figure opens its list in the side list, one row a contract */
-    const listed = await page.evaluate(() => [...document.querySelectorAll('.hb-sheet [data-hb-sheet-c]')].map(e => e.getAttribute('data-hb-sheet-c')));
+    /* RE-POINTED 18 Oct 2026 (round 17 as drawn): the figure opens the
+       Contracts place narrowed to exactly the contracts it counts */
+    const listed = await page.evaluate(() => ((regState().only || {}).ids || []).slice());
     check('3d its dig-in lists each one by name',
       ren.length > 0 && ren.every(r => listed.includes(r.id)), JSON.stringify({ want: ren.map(r => r.id), listed }));
     check('3e the quiet desk the rail plotted is a row in the bell now',

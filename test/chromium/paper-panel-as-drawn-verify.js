@@ -4,6 +4,14 @@
    pdGlGoTo; js/copilotacts.js caOwedSteps; js/presence.js presenceCanWalk,
    presenceGo; js/views/intelligence.js igPaperGoClause)
 
+   PASS 2 (the checker's review, 18 Oct 2026): their redlines are a row in
+   Needs you here from the day they arrive (quiet, "Arrived today" / "Waiting
+   4 days"); each ask says what its number is of and which way it moved;
+   "Risks not read yet" costs 1 Jambo call and Read it runs the Clauses
+   tab's deep read; the lead chip wears the accent's outline; Follow me
+   names the clause on the hover, says what a press did, and works on the
+   signing copy beside Before you sign — photographed at all three screens.
+
    WHAT THIS PINS, in real browsers on a seeded workspace with a contract
    whose other side sent two redlines, a note of the reader's due today on
    it, and a colleague on it too
@@ -104,6 +112,17 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
         all: (document.querySelector('#pd-needs [data-pd-nd-all]') || {}).textContent || '', counter: counterNeedsCount() }; }, null, 10000);
     check('1a "1 note due today", its own words and "only you", with Open note', !!nt && nt.title === '1 note due today' && nt.sub === '“Check Nordvik\'s insurance broker.” · only you' && nt.btn === 'Open note', JSON.stringify(nt));
     check('1b the card counts it with its rows; "all N" is the Counter\'s own number', !!nt && nt.n === nt.rows && nt.all.trim() === 'all ' + nt.counter, JSON.stringify(nt));
+    /* PASS 2: their redlines from the day they arrive, quiet, with which clauses */
+    const qrow = () => until(() => { const r = document.querySelector('#pd-needs [data-pd-nd-kind="quiet"]'); if (!r) return null;
+      const sm = r.querySelector('small'); return { title: r.querySelector('b').textContent.trim(), sub: sm ? sm.textContent.trim() : '', late: !!(sm && sm.querySelector('.late')), btn: (r.querySelector('[data-pd-nd]') || {}).textContent || '' }; }, null, 8000);
+    const q0 = await qrow();
+    check('1e (pass 2) their redlines, the day they came: "Answer Nordvik Logistik AB’s 2 redlines" · Arrived today · clauses 7 and 11 · Open redlines',
+      !!q0 && q0.title === 'Answer Nordvik Logistik AB’s 2 redlines' && q0.sub === 'Arrived today · clauses 7 and 11' && !q0.late && q0.btn.trim() === 'Open redlines', JSON.stringify(q0));
+    await page.evaluate(() => { const at = new Date(Date.now() - 4 * 864e5).toISOString();
+      (getContract('MK-0382').changes || []).forEach(x => { if (x.authorSide === 'counterparty') x.createdAt = at; }); pdNeedsRepaint(); });
+    const q4 = await until(() => { const r = document.querySelector('#pd-needs [data-pd-nd-kind="quiet"] small'); return r && /4 days/.test(r.textContent) ? { sub: r.textContent.trim(), late: !!r.querySelector('.late') } : null; }, null, 6000);
+    check('1f (pass 2) four days on: "Waiting 4 days", not late — the standard is not passed', !!q4 && q4.sub === 'Waiting 4 days · clauses 7 and 11' && !q4.late, JSON.stringify(q4));
+    await shot(page, '3-panel-asks-4-days-1440x780');
 
     console.log('\n2 · the glance as drawn');
     const gl = await page.evaluate(() => { const g = document.getElementById('pd-glance'); const rows = [...g.querySelectorAll('.pd-gl-row')];
@@ -113,11 +132,12 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     check('2a the stage pill says its round, as the paper\'s line does', /^In Review · round \d+$/.test(gl.pill.trim()), gl.pill);
     check('2b their round: "Nordvik Logistik AB sent 2 redlines today." · Your move. · Redlines',
       gl.move.length === 1 && /^Nordvik Logistik AB sent 2 redlines (today|\d+ days? ago)\.$/.test(gl.move[0].say) && gl.move[0].sub === 'Your move.' && gl.move[0].btn === 'Redlines', JSON.stringify(gl.move));
-    check('2c one row per ask, in its own words: their ask · Go to it',
-      gl.asks.length === 2 && gl.asks.some(a => a.say === 'Clause 7: they ask for “100%” in place of “50%”.') && gl.asks.every(a => a.sub === 'their ask' && a.btn === 'Go to it'), JSON.stringify(gl.asks));
+    check('2c one row per ask, in its own words — what the number is of, which way it moved: their ask · Go to it',
+      gl.asks.length === 2 && gl.asks.some(a => a.say === 'Clause 7: they ask for 100% of the fees paid, up from 50%.') && gl.asks.some(a => a.say === 'Clause 11: they ask for 60 days of receipt, up from 30.')
+      && gl.asks.every(a => a.sub === 'their ask' && a.btn === 'Go to it'), JSON.stringify(gl.asks));
     check('2d nobody named to sign: Needed before signing · Signing', gl.sign.length === 1 && gl.sign[0].say === 'Nobody has been named to sign yet.' && gl.sign[0].sub === 'Needed before signing' && gl.sign[0].btn === 'Signing', JSON.stringify(gl.sign));
-    check('2e the risks not read yet, what reading costs said before the press, and Read it',
-      gl.scan.length === 1 && gl.scan[0].say === 'Risks not read yet.' && /^Reading is free/.test(gl.scan[0].sub) && gl.scan[0].btn === 'Read it', JSON.stringify(gl.scan));
+    check('2e the risks not read yet: "Reading costs 1 Jambo call" said before the press, and Read it',
+      gl.scan.length === 1 && gl.scan[0].say === 'Risks not read yet' && gl.scan[0].sub === 'Reading costs 1 Jambo call' && gl.scan[0].btn === 'Read it', JSON.stringify(gl.scan));
     check('2f their round leads, then their asks', gl.order[0] === 'move' && gl.order[1] === 'ask' && gl.order[2] === 'ask', gl.order.join(','));
     await shot(page, '3-panel-beside-a-paper-1440x780');
 
@@ -130,10 +150,15 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     check('3 Go to it Redlines the paper and brings their ask\'s clause up, lit', !!went && went.lit, JSON.stringify(went));
 
     console.log('\n4 · Read it');
-    if (await press('#pd-glance [data-pd-gl-scan]', '4 Read it')) {
-      const read = await until(() => !!getContract('MK-0382').scan && !document.querySelector('#pd-glance [data-pd-gl="scan"]'), null, 8000);
-      check('4 Read it runs the risk read, and the row goes', !!read);
-    }
+    /* PASS 2: the deep read the Clauses tab carries (one Jambo call): the tab opens and the read is asked of the server */
+    const asked = [];
+    page.on('request', r => { if (/\/api\/ai\/breakdown$/.test(r.url()) && r.method() === 'POST') asked.push(r.url()); });
+    if (await page.evaluate(() => { const b = document.querySelector('#pd-glance [data-pd-gl-scan]'); if (b) b.click(); return !!b; })) {
+      const read = await until(n => (document.querySelector('[data-pd-tab="doc"].on, [data-pd-tab="doc"][aria-selected="true"]') && document.querySelector('#pd-thread .stk-head')) ? true : null, null, 10000);
+      await until(() => true, null, 300);
+      check('4 Read it runs the Clauses tab\'s deep read — one call to Jambo — and opens the tab where it is drawn', !!read && asked.length === 1, JSON.stringify({ read, asked: asked.length }));
+      await page.evaluate(() => { pdSetTab('copilot'); renderIntelDock(); });
+    } else check('4 Read it (nothing to press)', false);
 
     console.log('\n5 · the chips');
     const ch = await until(() => { const L = [...document.querySelectorAll('#ig-dock [data-ca-chip]')]; return L.length ? L.map(b => ({ k: b.getAttribute('data-ca-chip'), w: b.textContent.trim(), owed: b.classList.contains('ca-chip-owed') })) : null; }, null, 6000);
@@ -141,6 +166,11 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     check('5a the owed lead — "answer the redlines", "name a signer" — never also "redline" or "sign"',
       ks.includes('answer') && ks.includes('signer') && !ks.includes('redline') && !ks.includes('sign') && ks.length === 4 && ch[0].owed
       && ch.find(x => x.k === 'answer').w === 'answer the redlines' && ch.find(x => x.k === 'signer').w === 'name a signer', JSON.stringify(ch));
+    /* PASS 2: the lead chip wears the accent's outline, as drawn — not amber */
+    const edge = await page.evaluate(() => { const b = document.querySelector('#ig-dock .ca-chip-owed'); if (!b) return null;
+      const probe = document.createElement('i'); probe.style.color = 'var(--accent-solid)'; document.body.appendChild(probe); const acc = getComputedStyle(probe).color; probe.remove();
+      const cs = getComputedStyle(b); return { border: cs.borderTopColor, style: cs.borderTopStyle, width: cs.borderTopWidth, acc, bg: cs.backgroundColor }; });
+    check('5c (pass 2) the lead chip: the accent\'s outline, not amber', !!edge && edge.border === edge.acc && edge.style === 'solid' && edge.width === '1px' && !/180, 83, 9|254, 243, 199/.test(edge.bg), JSON.stringify(edge));
     if (await press('#ig-dock [data-ca-chip="signer"]', '5b name a signer')) {
       const route = await until(() => /Signing route/.test((document.body.innerText || '')) && !!document.querySelector('.modal-overlay, .modal, [role="dialog"]'), null, 8000);
       check('5b "name a signer" opens the signing route', !!route);
@@ -158,9 +188,15 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     const face = await until(() => { const b = document.querySelector('#ig-strip [data-pz-slot="paper"] button[data-pz-follow]'); return b ? b.getAttribute('data-pz-follow') : null; }, null, 10000);
     check('6a the colleague\'s face on the paper\'s line is a button on Home', !!face, String(face));
     if (face) {
+      /* PASS 2: the hover names the clause they are on */
+      const hover = await page.evaluate(() => (document.querySelector('#ig-strip [data-pz-slot="paper"] button[data-pz-follow]') || {}).title || '');
+      check('6a2 (pass 2) its hover names where they are: "<name> is reading clause N now. Press to follow: the paper goes where <first> reads."',
+        /^Unrestricted Legal is reading clause \d+ now\. Press to follow: the paper goes where Unrestricted reads\.$/.test(hover), hover);
       await page.click('#ig-strip [data-pz-slot="paper"] button[data-pz-follow]');
       const lit = await until(() => { const b = document.querySelector('#ig-strip [data-pz-slot="paper"] button[data-pz-follow]'); return b && b.classList.contains('is-following') && b.getAttribute('aria-pressed') === 'true' && !!presenceFollowing(); }, null, 6000);
       check('6b pressed, it lights: following', !!lit);
+      const said = await until(() => [...document.querySelectorAll('#toast-root > *')].map(e => e.textContent.trim()).find(t => /^Following /.test(t)) || null, null, 4000);
+      check('6b2 (pass 2) and the press says what it did, once', /^Following Unrestricted Legal: the paper goes to clause \d+ and moves when they do\. Press the face again to stop\.$/.test(said || ''), said);
       /* the colleague goes to clause 7 on their own paper, and says so on their beat */
       const lead = await peer.evaluate(id => { igPaperGoClause(id); return new Promise(r => setTimeout(async () => { await presenceSay('MK-0382'); r(presenceSpotNow()); }, 900)); }, k7.id);
       await page.evaluate(() => presenceSay('MK-0382'));
@@ -170,11 +206,37 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
       await page.click('#ig-strip [data-pz-slot="paper"] button[data-pz-follow]');
       const off = await until(() => !presenceFollowing() && !document.querySelector('#ig-strip [data-pz-slot="paper"] .is-following'), null, 6000);
       check('6d pressed again, it stops', !!off);
+      const stopped = await until(() => [...document.querySelectorAll('#toast-root > *')].map(e => e.textContent.trim()).find(t => /^You stopped following/.test(t)) || null, null, 4000);
+      check('6d2 (pass 2) and says so', stopped === 'You stopped following Unrestricted Legal.', stopped);
       await peer.evaluate(id => { igPaperGoClause(id); return new Promise(r => setTimeout(async () => { await presenceSay('MK-0382'); r(true); }, 900)); }, k1.id);
       await page.evaluate(() => presenceSay('MK-0382'));
       await page.waitForTimeout(900);
       const stayed = await page.evaluate(() => presenceSpotNow());
       check('6e and the page stops moving', stayed !== k1.id, String(stayed));
+
+      /* PASS 2: THE SIGNING COPY beside Before you sign — its headings marked, so the face walks there too */
+      console.log('\n6f · Follow me on the signing copy, at the owner\'s three screens');
+      for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
+        await page.setViewportSize({ width: w, height: ht }); await peer.setViewportSize({ width: w, height: ht });
+        await page.evaluate(() => { if (presenceFollowing()) presenceFollow(presenceFollowing()); if (typeof toastsClear === 'function') toastsClear(); });
+        await peer.evaluate(id => { igPaperGoClause(id); return new Promise(r => setTimeout(async () => { await presenceSay('MK-0382'); r(true); }, 900)); }, k11.id);
+        await page.evaluate(() => pdSignOpen('MK-0382'));
+        const up = await until(() => !!document.querySelector('#ig-paper .ig-signpaper [data-pz-clause]'), null, 12000);
+        await page.evaluate(() => { const sc = document.getElementById('ig-paper-scroll'); if (sc) sc.scrollTop = 0; return presenceSay('MK-0382'); });
+        const btn = await until(() => !!document.querySelector('#ig-strip [data-pz-slot="paper"] button[data-pz-follow]'), null, 8000);
+        check(`6f ${w}×${ht}: the signing copy's headings carry their clauses, and the face is a button there`, !!up && !!btn, JSON.stringify({ up, btn }));
+        if (!btn) continue;
+        await page.click('#ig-strip [data-pz-slot="paper"] button[data-pz-follow]');
+        const there = await until(id => { const el = document.querySelector(`#ig-paper [data-pz-clause="${id}"]`), sc = document.getElementById('ig-paper-scroll'); if (!el || !sc) return null;
+          const r = el.getBoundingClientRect(), b = sc.getBoundingClientRect(); const spot = presenceSpotNow();
+          /* the walk scrolls smoothly: asked until it has come to rest there */
+          return (r.top >= b.top - 1 && r.bottom <= b.bottom + 1 && spot === id) ? { top: Math.round(sc.scrollTop), spot } : null; }, k11.id, 8000);
+        check(`6g ${w}×${ht}: pressed, the signing copy goes to the clause the colleague reads, and the reader's own place is that clause`, !!there && there.top > 0 && there.spot === k11.id, JSON.stringify(there));
+        await shot(page, `6-follow-me-signing-copy-${w}x${ht}`);
+        await page.evaluate(() => { if (presenceFollowing()) presenceFollow(presenceFollowing()); });
+        await page.evaluate(() => { if (typeof pdSignClose === 'function') pdSignClose(); });
+      }
+      await page.setViewportSize({ width: 1440, height: 780 }); await peer.setViewportSize({ width: 1440, height: 780 });
     }
     console.log('\n1c · the note is the reader\'s alone');
     const theirs = await until(() => !!document.getElementById('pd-glance'), null, 6000, peer) && await peer.evaluate(() => !!document.querySelector('#pd-needs [data-pd-nd-kind="mynote"]') || /insurance broker/.test((document.getElementById('ig-dock') || {}).innerText || ''));
@@ -195,6 +257,7 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
         const wide = [...dock.querySelectorAll('#pd-needs *, #pd-glance *, [data-ig-chips] *')].filter(e => { const q = e.getBoundingClientRect(); return q.width && q.right > d.right + 1; }).length;
         return { needs: !n || n.top >= d.top, box: b.bottom <= innerHeight + 1 && b.top >= 0, wide, side: document.documentElement.scrollWidth <= innerWidth + 1 }; }, null, 8000);
       check(`7 ${w}×${ht}: the cards and the box in view, nothing past the panel's edge`, !!fit && fit.needs && fit.box && fit.wide === 0 && fit.side, JSON.stringify(fit));
+      await page.evaluate(() => { if (typeof toastsClear === 'function') toastsClear(); });
       await shot(page, `3-panel-beside-a-paper-${w}x${ht}`);
     }
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }

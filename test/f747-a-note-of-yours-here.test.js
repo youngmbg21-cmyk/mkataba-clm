@@ -13,6 +13,14 @@
        4 days · clauses 7 and 11") and open with "Open redlines".
    (3) "all N" — the Counter's own number, in the drawn lower case.
    (4) Reading writes nothing; the words are in both books.
+   PASS 2 (the checker's review of 18 Oct 2026):
+   (5) THEIR REDLINES FROM THE DAY THEY ARRIVE (as drawn: "waiting 4 days"):
+       beside the paper the row is there before the desk's stale standard —
+       deskWaitingFresh, asked of the same people the stale inbox asks
+       (deskAnswerableBy, the one reading both use) — quiet (not late, no
+       standard named as passed; "Arrived today" on the first day); past the
+       standard it is needsYouOf's own urgent row and never a second one. The
+       checklist, the bell and the Counter keep their standard.
    AT THE PARENT (8dc306a) every test here FAILS but 4a, a guard (reading
    writes nothing) that holds there too: pdNoteRows and
    pdAskClausesSay do not exist, the quiet row's verb is "Answer" and the
@@ -23,6 +31,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { buildWorld } = require('./world');
 const R = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
 const PD = R('js/paperdesk.js');
 const I18N = R('js/i18n.js');
@@ -37,7 +46,7 @@ const BOOKS = (() => {
 const fill = (s, v) => String(s).replace(/\{(\w+)\}/g, (m, k) => (v && k in v) ? v[k] : m);
 const TODAY = '2026-10-18';
 
-function stage({ notes = [], loaded = true, needs = [], asks = [] } = {}){
+function stage({ notes = [], loaded = true, needs = [], asks = [], fresh = null } = {}){
   const c = { id: 'MK-1', contractNo: 'MK-1', counterparty: 'Nordvik Logistik AB', status: 'Under Review',
     changes: asks.map((a, i) => ({ id: 'ch' + i, status: 'pending', authorSide: 'counterparty', clauseLabel: a, ops: [] })) };
   const calls = [];
@@ -50,7 +59,8 @@ function stage({ notes = [], loaded = true, needs = [], asks = [] } = {}){
     detailsOf: () => ({ left: 0, all: 4, live: true, items: [] }), signBlockers: () => [], negoMayStartLine: () => '',
     contractStatusTextHtml: () => '<span class="room-stat">In review</span>',
     hbAgentsData: () => ({ ready: 0, rows: [] }),
-    needsYouOf: () => needs.slice(),
+    needsYouOf: () => needs.slice(), deskWaitingFresh: () => fresh,
+    NEEDS_YOU_ORDER: ['quiet', 'review', 'look', 'approval', 'refused', 'note', 'suggest', 'join', 'details', 'sign', 'renewal'],
     insNeedWords: (cc, it) => ({ title: 'Answer Nordvik Logistik AB’s 2 redlines', sub: '<span class="late">waiting 4 days</span>', plain: 'waiting 4 days' }),
     INS_NEED_VERB: { quiet: 'home_verb_answer', note: 'home_verb_answer' },
     negoNeedsYouIds: () => c.changes.map(x => x.id),
@@ -135,4 +145,41 @@ describe('f747 (4) reading writes nothing; both books', () => {
   });
   for (const k of ['pd_nd_note_one', 'pd_nd_note_other', 'pd_nd_note_late_one', 'pd_nd_note_late_other', 'pd_nd_only_you', 'pd_nd_open_note', 'pd_nd_open_red', 'pd_nd_clause_one', 'pd_nd_clause_other', 'pd_nd_and'])
     test(k, () => { assert.ok(BOOKS.en[k] && BOOKS.sv[k] && BOOKS.en[k] !== BOOKS.sv[k], k); });
+});
+
+describe('f747 (5) their redlines, from the day they arrive', () => {
+  const ago = d => new Date(Date.now() - d * 864e5).toISOString();
+  test('5a before the standard: a quiet row, in the checklist\'s order', () => {
+    const since = ago(4);
+    const { ctx, c } = stage({ needs: [{ kind: 'sign', urgent: false }], fresh: { since, n: 2 } });
+    const rows = J(ctx.pdNeedsRows(c).map(r => r.it));
+    assert.deepEqual(rows, [{ kind: 'quiet', urgent: false, fresh: true, n: 2, since }, { kind: 'sign', urgent: false }]);
+  });
+  test('5b past the standard it is needsYouOf\'s own row, never a second one', () => {
+    const { ctx, c } = stage({ needs: [{ kind: 'quiet', urgent: true, n: 2, since: ago(9) }], fresh: { since: ago(9), n: 2 } });
+    assert.equal(ctx.pdNeedsRows(c).filter(r => r.it && r.it.kind === 'quiet').length, 1);
+  });
+  test('5c deskWaitingFresh: the people the stale inbox asks, before the standard only', () => {
+    const w = buildWorld({ registerView: true }).win;
+    const mk = d => ({ id: 'MK-1', status: 'Under Review', changes: ['a', 'b'].map(id => ({ id, status: 'pending', authorSide: 'counterparty', createdAt: ago(d) })) });
+    const admin = { id: 'ad', name: 'Admin', role: 'admin' }, other = { id: 'u9', name: 'Someone', role: 'editor' };
+    const one = mk(1);
+    assert.deepEqual(J(w.deskWaitingFresh(one, admin)), { since: one.changes[0].createdAt, n: 2 });
+    assert.equal(w.deskWaitingFresh(mk(12), admin), null, 'past the standard: the stale row\'s');
+    assert.equal(w.deskStaleInboxFor([mk(12)], admin).length, 1);
+    assert.equal(w.deskWaitingFresh(mk(1), other), null, 'nobody it would not ask');
+    const D = R('js/desk.js');
+    assert.match(D.slice(D.indexOf('function deskStaleInboxFor('), D.indexOf('function deskWaitingFresh(')), /if \(!deskAnswerableBy\(c, me\)\) return;/, 'one reading of who answers');
+  });
+  test('5d the words: quiet, not late, no standard named; "Arrived today" on the first day', () => {
+    const w = buildWorld({ registerView: true }).win;
+    const c = { counterparty: 'Nordvik Logistik AB' };
+    assert.deepEqual(J(w.insNeedWords(c, { kind: 'quiet', urgent: false, n: 2, since: ago(4) })), { title: 'Answer Nordvik Logistik AB’s 2 redlines', sub: 'Waiting 4 days', plain: 'Waiting 4 days' });
+    assert.equal(w.insNeedWords(c, { kind: 'quiet', urgent: false, n: 2, since: ago(0) }).sub, 'Arrived today');
+    assert.match(w.insNeedWords(c, { kind: 'quiet', urgent: true, n: 2, since: ago(9) }).sub, /^<span class="late">Waiting 9 days<\/span>$/, 'past the standard, late as before');
+  });
+  test('5e the drawn row: "waiting N days · clauses 7 and 11 · Open redlines"', () => {
+    const { ctx, c } = stage({ asks: ['7. Limitation', '11. Payment terms'], fresh: { since: ago(4), n: 2 } });
+    assert.match(ctx.pdNeedsHtml(c), /data-pd-nd-kind="quiet"><span><b>Answer Nordvik Logistik AB’s 2 redlines<\/b><small title="waiting 4 days · clauses 7 and 11">[^<]*<span class="late">waiting 4 days<\/span> · clauses 7 and 11<\/small><\/span><button[^>]*data-pd-nd="quiet"[^>]*>Open redlines</);
+  });
 });

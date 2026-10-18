@@ -1065,7 +1065,7 @@ function caPaperChips(){
   const c = caOpenContract();
   /* a viewer adds nothing: the upload chip steps aside, as a shut door's chip does on a paper (caChipShut) */
   if (!c) return CA_CHIPS_WALL.filter(k => k !== 'upload' || caMayAdd()).map(k => ({ ask: _caT(CA_CHIP_WALL_WORD[k] || ('ca_w_' + k)), k }));
-  /* work owed leads, in the accent's amber (the first owed step) */
+  /* work owed leads, in the accent's outline (the first owed step; round 3 as drawn) */
   const lead = (caOwedSteps(c)[0]) || caChipLead(c);
   return caNextSteps(c).map(k => CA_NEXT_GO.includes(k) ? { go: k, label: caNextLabel(k), k, owed: k === lead } : { ask: _caT('ca_w_' + k), k, owed: k === lead });
 }
@@ -1074,10 +1074,10 @@ function caChipsHtml(){
   if (typeof jamboChipsOn === 'function' && !jamboChipsOn()) return '';
   const L = caPaperChips(); if (!L) return '';
   return L.map(x => x.go
-    ? (x.owed ? `<button type="button" data-ca-next="${_caE(x.go)}" data-ca-chip="${_caE(x.k)}" class="ca-chip-owed text-[10.5px] rounded-full px-2.5 py-1 transition text-left">${_caE(x.label)}</button>`
+    ? (x.owed ? `<button type="button" data-ca-next="${_caE(x.go)}" data-ca-chip="${_caE(x.k)}" class="ca-chip-owed text-[10.5px] rounded-full bg-canvas hover:bg-brand-50 px-2.5 py-1 transition text-left">${_caE(x.label)}</button>`
       : `<button type="button" data-ca-next="${_caE(x.go)}" data-ca-chip="${_caE(x.k)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${_caE(x.label)}</button>`)
     : x.owed
-    ? `<button type="button" data-igsug="${_caE(x.ask)}" data-ca-chip="${_caE(x.k)}" class="ca-chip-owed text-[10.5px] rounded-full px-2.5 py-1 transition text-left">${_caE(x.ask)}</button>`
+    ? `<button type="button" data-igsug="${_caE(x.ask)}" data-ca-chip="${_caE(x.k)}" class="ca-chip-owed text-[10.5px] rounded-full bg-canvas hover:bg-brand-50 px-2.5 py-1 transition text-left">${_caE(x.ask)}</button>`
     : x.fill
     ? `<button type="button" data-ca-fill="${_caE(x.fill)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${_caE(x.label)}</button>`
     : `<button type="button" data-igsug="${_caE(x.ask)}"${x.k ? ` data-ca-chip="${_caE(x.k)}"` : ''} class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${_caE(x.ask)}</button>`).join('');

@@ -7362,13 +7362,47 @@ function igPaperGoClause(clauseId){
   const id=String(clauseId||''); if(!id||typeof document==='undefined') return null;
   const host=document.getElementById('ig-paper'), box=document.getElementById('ig-paper-scroll');
   if(!host||host.hidden||!box) return null;
-  const sel=`[data-clause="${(window.CSS&&CSS.escape)?CSS.escape(id):id}"]`;
-  const el=host.querySelector(sel); if(!el) return null;
+  const q=(window.CSS&&CSS.escape)?CSS.escape(id):id;
+  /* the redline's own sections, else the headings marked on a paper drawn without them (igPaperClauseMarks) */
+  const el=host.querySelector(`[data-clause="${q}"]`)||host.querySelector(`[data-pz-clause="${q}"]`); if(!el) return null;
   const r=el.getBoundingClientRect(), br=box.getBoundingClientRect();
   const top=Math.max(0, box.scrollTop+(r.top-br.top)-Math.max(16,(box.clientHeight-Math.min(r.height,box.clientHeight))/2));
   try{ box.scrollTo({ top, behavior:'smooth' }); }catch(_){ box.scrollTop=top; }
   el.classList.remove('ig-arrived'); void el.offsetWidth; el.classList.add('ig-arrived');
   return el;
+}
+/* ---- THE CLAUSES ON A PAPER THAT DRAWS NONE (Follow me on Home, round 6
+   as drawn, "One line"; the owner's "build all the gaps", 18 Oct 2026) ----
+   The signing copy beside Before you sign is drawn from the wording alone, so
+   it carries no clause ids: a colleague's place could not be found on it, nor
+   the reader's own place said, and the faces on its line were buttons that
+   did nothing. After each paint, every clause heading the paper draws is
+   marked with its clause's id (data-pz-clause), matched IN ORDER against the
+   record's own clause list — read RAW off the negotiation's baseline, never
+   negoClauseList (which would start a negotiation). Marks on the page only;
+   nothing is written to the record. A paper that already carries the
+   redline's sections, or a contract never negotiated, is left as it is. */
+function igPaperClauseMarks(c){
+  if(!c||typeof document==='undefined') return 0;
+  const cv=document.getElementById('ig-canvas'), host=document.getElementById('ig-paper');
+  if(!cv||!host||host.querySelector('[data-clause]')) return 0;
+  const base=c.negotiation&&c.negotiation.baselineBody;
+  if(!base||typeof window.clauseSegment!=='function') return 0;
+  let list=[]; try{ list=clauseSegment(base).filter(k=>k&&k.clauseId); }catch(_){ list=[]; }
+  if(!list.length) return 0;
+  const norm=t=>String(t||'').replace(/\s+/g,' ').trim().toLowerCase();
+  const heads=[...cv.querySelectorAll('h1,h2,h3,h4,h5,h6')];
+  let from=0, n=0;
+  for(const k of list){
+    const want=norm(k.headingText||[k.num,k.title].filter(Boolean).join(' '));
+    if(!want) continue;
+    for(let j=from;j<heads.length;j++){
+      if(norm(heads[j].textContent)!==want) continue;
+      if(heads[j].getAttribute('data-pz-clause')!==k.clauseId) heads[j].setAttribute('data-pz-clause',k.clauseId);
+      from=j+1; n++; break;
+    }
+  }
+  return n;
 }
 /* ---- the strip ---- */
 /* ---- THE PAPER'S LINE TAKES THE CONTRACT'S ACTS (the one-page Home plan,
@@ -7781,6 +7815,9 @@ function igPaintPaper(){
   igPaperPaginate(c);
   igPinsPaint();
   igStrandPaint(c);
+  /* the clause marks Follow me walks to, on a paper drawn without them, and
+     the faces on the line drawn again now that they can (or cannot) be pressed */
+  if(igPaperClauseMarks(c)&&homePaper===true&&typeof window.presencePaint==='function') try{ presencePaint(c.id); }catch(_){ }
 }
 function igPaperWire(host){
   if(host.dataset.igBound) return; host.dataset.igBound='1';
@@ -8201,7 +8238,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
   });
 }
 
-Object.assign(window,{igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
+Object.assign(window,{igPaperClauseMarks,igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
 Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});

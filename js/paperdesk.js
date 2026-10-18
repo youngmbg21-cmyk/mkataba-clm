@@ -1210,7 +1210,12 @@ function pdSignPaperPaint(c){
      room's page arrows ‹ 1/n › and size, scControlsHtml, wired here once per
      paint of the corner) */
   const fit = () => { if (typeof scApplyZoom === 'function') try { scApplyZoom(); } catch (_){}
-    if (typeof scPaintPage === 'function') try { scPaintPage(); } catch (_){} };
+    if (typeof scPaintPage === 'function') try { scPaintPage(); } catch (_){}
+    /* laid out into pages: its clause headings marked again for Follow me
+       (igPaperClauseMarks), and a reader following someone taken again to
+       where they are — the pages moved every clause (presenceReWalk) */
+    if (typeof igPaperClauseMarks === 'function') try { igPaperClauseMarks(c); } catch (_){}
+    if (typeof presenceReWalk === 'function') try { presenceReWalk(); } catch (_){} };
   if (sheet && typeof signCopyWatch === 'function' && !sheet._pgRO){
     try { signCopyWatch(sheet, c, fit); } catch (_){}
   }
@@ -1931,10 +1936,13 @@ function pdGlanceRows(c){
      declined, the Before you sign face reads "Signed", and so does this card */
   let nobody = false; try { nobody = pdSignAhead(c) && (typeof signBlockers === 'function') && signBlockers(c).some(b => b && b.key === 'signers'); } catch (_){ nobody = false; }
   if (nobody) rows.push({ k: 'sign', n: 1 });
-  /* RISKS NOT READ YET (round 3 as drawn): where the risk read has not run
-     and this person may act on the wording — its press runs the scan, which
-     is HaTi's own rules and costs nothing, and the row says so before it */
-  let unread = false; try { unread = !c.scan && pdSignAhead(c) && typeof runScanFor === 'function' && (typeof riskMayAct !== 'function' || riskMayAct(c, {})) && (typeof canEdit !== 'function' || canEdit()); } catch (_){ unread = false; }
+  /* RISKS NOT READ YET (round 3 as drawn: "Risks not read yet · Reading costs
+     1 Jambo call · Read it"): the deep read the Clauses tab carries (bdOf —
+     Jambo's reading of THESE words in this reader's language) has not been
+     made, and this person may read the paper and keep what is read. Its cost
+     is said before the press; with no key the row says so instead of a
+     button (a silent failure is refused) */
+  let unread = false; try { unread = pdSignAhead(c) && typeof stkRun === 'function' && typeof stkOf === 'function' && !stkOf(c) && (typeof canEdit !== 'function' || canEdit()); } catch (_){ unread = false; }
   if (unread) rows.push({ k: 'scan', n: 1 });
   return rows;
 }
@@ -1961,23 +1969,50 @@ function pdAskClause(c, ch){
   let name = label; try { if (typeof clauseNameShown === 'function') name = clauseNameShown(label) || label; } catch (_){}
   return name || _pdT('ds_a_clause');
 }
+/* THEIR ASK IN WORDS (round 6 as drawn: "Clause 11: they ask for 60 days to
+   pay, up from 30."). Read off the change's own stored ops, never a sentence
+   invented about what it means: the first stretch they changed, widened to
+   whole words; where both sides of it are numbers, what the number is OF —
+   the words that follow it on the paper, up to PD_GL_CONTEXT words and never
+   past a stop — and which way it moved ("up from 30"). Any other change is
+   quoted, whole words, as before. */
+const PD_GL_CONTEXT = 4;
+const PD_GL_GLUE = new Set(['of', 'the', 'a', 'an', 'and', 'or', 'to', 'in', 'on', 'at', 'by', 'for', 'with', 'from', 'than', 'that', 'which', 'per', 'its', 'their', 'our', 'av', 'och', 'eller', 'i', 'på', 'till', 'för', 'med', 'från', 'än', 'som', 'per', 'den', 'det', 'de']);
+const PD_GL_NUM_RE = /^[^\d\s]{0,4}\s?\d[\d\s.,]*\s?(%|percent|per cent|procent)?$/i;
+function pdAskParts(ch){
+  const ops = (Array.isArray(ch && ch.ops) ? ch.ops : []).filter(Boolean);
+  let i = ops.findIndex(op => op.op !== 'keep'); if (i < 0) return null;
+  let b = '', a = '', j = i;
+  for (; j < ops.length && ops[j].op !== 'keep'; j++){ if (ops[j].op === 'del') b += ops[j].text || ''; else a += ops[j].text || ''; }
+  const pre = i > 0 ? String(ops[i - 1].text || '') : '', post = j < ops.length ? String(ops[j].text || '') : '';
+  /* whole words: a change that starts or ends inside a word takes the rest of it */
+  const head = (pre.match(/[^\s.,;:()]+$/) || [''])[0], tail = (post.match(/^[^\s.,;:()]+/) || [''])[0];
+  return { b: head + b + tail, a: head + a + tail, post: post.slice(tail.length) };
+}
 function pdAskSay(c, ch){
   const clause = pdAskClause(c, ch);
   if (ch.changeType === 'insertClause') return _pdT('pd_gl_ask_new', { clause });
   if (ch.changeType === 'deleteClause') return _pdT('pd_gl_ask_del', { clause });
-  const cut = t => { const x = String(t || '').replace(/\s+/g, ' ').trim(); return x.length > PD_GL_QUOTE ? x.slice(0, PD_GL_QUOTE - 1) + '…' : x; };
-  let b = '', a = '', on = false;
-  for (const op of (Array.isArray(ch.ops) ? ch.ops : [])){
-    if (!op) continue;
-    if (op.op === 'keep'){ if (on) break; continue; }
-    on = true; if (op.op === 'del') b += op.text || ''; else a += op.text || '';
+  const flat = t => String(t || '').replace(/\s+/g, ' ').trim();
+  const cut = t => { const x = flat(t); return x.length > PD_GL_QUOTE ? x.slice(0, PD_GL_QUOTE - 1) + '…' : x; };
+  const P = pdAskParts(ch);
+  if (!P) return _pdT('pd_gl_ask_words', { clause });
+  const b = flat(P.b), a = flat(P.a);
+  const num = t => { const m = String(t).replace(/[^\d.,]/g, '').replace(/,(?=\d{3}\b)/g, '').replace(',', '.'); const n = parseFloat(m); return isFinite(n) ? n : null; };
+  if (b && a && PD_GL_NUM_RE.test(b) && PD_GL_NUM_RE.test(a) && num(a) !== num(b)){
+    /* what the number is of: the words after it, to a stop, without a dangling "of the" */
+    const words = flat(String(P.post).split(/[.;:,()\n]/)[0]).split(' ').filter(Boolean).slice(0, PD_GL_CONTEXT);
+    while (words.length && PD_GL_GLUE.has(words[words.length - 1].toLowerCase())) words.pop();
+    const what = cut([a].concat(words).join(' '));
+    return _pdT(num(a) > num(b) ? 'pd_gl_ask_up' : 'pd_gl_ask_down', { clause, what, b });
   }
-  b = cut(b); a = cut(a);
-  if (b && a) return _pdT('pd_gl_ask_swap', { clause, a, b });
-  if (a) return _pdT('pd_gl_ask_add', { clause, a });
-  if (b) return _pdT('pd_gl_ask_cut', { clause, b });
+  if (b && a) return _pdT('pd_gl_ask_swap', { clause, a: cut(a), b: cut(b) });
+  if (a) return _pdT('pd_gl_ask_add', { clause, a: cut(a) });
+  if (b) return _pdT('pd_gl_ask_cut', { clause, b: cut(b) });
   return _pdT('pd_gl_ask_words', { clause });
 }
+/* where Jambo can be asked to read at all (the deep read's own test, bdRun) */
+function pdGlReadKeyed(){ return !!(typeof API_MODE === 'function' && API_MODE() && typeof state !== 'undefined' && state && state.aiConfigured); }
 /* how long ago their newest ask came */
 function pdGlAgo(iso){
   const t = Date.parse(String(iso || '')); if (!isFinite(t)) return '';
@@ -2018,7 +2053,7 @@ function pdGlanceHtml(c){
   const btn2 = r => r.kind === 'ask'
     ? `<button type="button" class="ui-btn ui-btn-sm" data-pd-gl-go="${_pdE(r.ch.clauseId || '')}">${_pdE(_pdT('pd_gl_go_to_it'))}</button>`
     : r.k === 'move' || r.k === 'asks-more' ? btn({ k: 'redline' })
-    : r.k === 'scan' ? `<button type="button" class="ui-btn ui-btn-sm" data-pd-gl-scan>${_pdE(_pdT('pd_gl_scan_go'))}</button>`
+    : r.k === 'scan' ? (pdGlReadKeyed() ? `<button type="button" class="ui-btn ui-btn-sm" data-pd-gl-scan>${_pdE(_pdT('pd_gl_scan_go'))}</button>` : '')
     : (PD_GLANCE[r.k][3] ? `<button type="button" class="ui-btn ui-btn-sm" data-pd-glance-tab="${PD_GLANCE[r.k][3]}">${_pdE(_pdT(PD_GLANCE[r.k][1]))}</button>` : btn(r));
   const said = r => r.kind === 'ask' ? pdAskSay(c, r.ch)
     : r.k === 'move' ? pdGlMoveSay(c, asks)
@@ -2047,7 +2082,7 @@ function pdGlanceSub(c, r){
     if (r.k === 'move') return _pdT('pd_gl_your_move');
     if (r.kind === 'ask') return _pdT('pd_gl_their_ask');
     if (r.k === 'sign') return _pdT('pd_gl_signers_sub');
-    if (r.k === 'scan') return _pdT('pd_gl_scan_cost');
+    if (r.k === 'scan') return pdGlReadKeyed() ? _pdT('pd_gl_scan_cost') : _pdT('bd_no_key');
     if (r.k === 'fill' && typeof detailsOf === 'function') return few(detailsOf(c).items.filter(x => x.open).map(x => x.label));
     if (r.k === 'redline' && typeof riskOpenOf === 'function') return few(riskOpenOf(c).map(it => (typeof riskTitleOf === 'function') ? riskTitleOf(it) : ''));
     if (r.k === 'std'){
@@ -2095,7 +2130,21 @@ function pdNeedsRows(c){
   ((A && A.rows) || []).forEach(r => (r.items || []).forEach(it => {
     if (it && String(it.cid) === String(c.id)) rows.push({ jw: true, k: r.k, key: it.key, sum: it.sum || '', urg: it.urg || '' }); }));
   let L = []; try { L = (typeof needsYouOf === 'function') ? (needsYouOf(c) || []) : []; } catch (_){ L = []; }
-  L.filter(it => it && it.kind !== 'details').forEach(it => rows.push({ it }));
+  L = L.filter(it => it && it.kind !== 'details');
+  /* THEIR REDLINES, WAITING ON US AT ANY AGE (round 3 as drawn: "Answer
+     Nordvik Logistik's 2 redlines · waiting 4 days · clauses 7 and 11 · Open
+     redlines"): beside the paper the row is there from the day they arrive,
+     for the person who answers them (deskWaitingFresh — the same people the
+     stale standard asks). Past the standard it is needsYouOf's own urgent row,
+     as everywhere else; before it, it is quiet here, and the checklist, the
+     bell and the Counter keep their standard. */
+  if (!L.some(it => it.kind === 'quiet')){
+    let w = null; try { w = (typeof deskWaitingFresh === 'function') ? deskWaitingFresh(c) : null; } catch (_){ w = null; }
+    if (w) L.push({ kind: 'quiet', urgent: false, fresh: true, n: w.n, since: w.since });
+  }
+  const rank = k => { const o = (typeof NEEDS_YOU_ORDER !== 'undefined' && NEEDS_YOU_ORDER) || []; const i = o.indexOf(k); return i < 0 ? 99 : i; };
+  L.map((it, i) => ({ it, i })).sort((x, y) => (Number(!!y.it.urgent) - Number(!!x.it.urgent)) || (rank(x.it.kind) - rank(y.it.kind)) || (x.i - y.i))
+    .forEach(o => rows.push({ it: o.it }));
   return rows;
 }
 /* ---- A NOTE OF YOURS DUE ON THIS CONTRACT (round 3 as drawn: "1 note due
@@ -2239,8 +2288,13 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
     if (nn){ e.preventDefault(); if (typeof myNotesOpen === 'function') myNotesOpen(nn.getAttribute('data-pd-nd-note')); return; }
     const gg = t.closest('[data-pd-gl-go]');
     if (gg){ e.preventDefault(); pdGlGoTo(gg.getAttribute('data-pd-gl-go')); return; }
+    /* Read it: the press that spends — the Clauses tab's own deep read
+       (stkRun, the read its head runs), and the tab opened where the reading
+       is drawn as it comes */
     if (t.closest('[data-pd-gl-scan]')){ e.preventDefault(); const cc = pdContract();
-      if (cc && typeof runScanFor === 'function') Promise.resolve(runScanFor(getContract(cc.id) || cc)).then(() => { try { pdGlanceRepaint(); pdNeedsRepaint(); } catch (_){} }, () => {});
+      if (cc && typeof stkRun === 'function'){ const live = getContract(cc.id) || cc;
+        Promise.resolve(stkRun(live)).then(() => { try { pdGlanceRepaint(); } catch (_){} }, () => {});
+        pdSetTab('doc'); if (typeof renderIntelDock === 'function') renderIntelDock(); }
       return; }
     const gt = t.closest('[data-pd-glance-tab]');
     if (gt){ e.preventDefault(); pdSetTab(gt.getAttribute('data-pd-glance-tab')); if (typeof renderIntelDock === 'function') renderIntelDock(); return; }
@@ -2355,5 +2409,5 @@ Object.assign(window, { pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAme
   PD_FILL_TRIES, PD_FILL_BEAT_MS, pdFillFor, pdFillShows, pdFillOpen, pdFillSeen, pdFillAway, pdFillClose, pdFillHeadHtml, pdFillDoneHtml, pdFillFaceHtml, pdFillMark, pdFillGroupsPaint, pdFillRows, pdFillRowKey, pdFillFacePaint, pdFillCounts, pdFillKeyOf, pdFillEcho, pdFillWire, pdFillLand, pdFillRefresh,
   pdFillStreamMay, pdFillStreamHtml, pdFillStreamRepaint, pdFillStreamPick,
   PD_DROP_ACCEPT, pdDropMay, pdWallHelloHtml, pdDropInner, pdDropStreams, pdDropStreamNow, pdDropStreamHtml, pdDropHtml, pdDropPaint, pdWallHtml, pdDropInput, pdDropBusyNow, pdDropPick, PD_DROP_TOAST_MS, pdDropToastOff, pdDropTake,
-  PD_GLANCE, PD_GL_SUB_MAX, pdGlanceSub, pdGlanceBriefHtml, pdGlanceFootHtml, pdDropImportHtml, pdDropDoor, PD_DROP_CALL_MS, pdGlanceRows, pdSignAhead, PD_GL_ASKS_MAX, pdTheirAsks, pdAskClause, pdAskSay, pdGlAgo, pdGlMoveSay, pdGlGoTo, pdNoteRows, pdAskClausesSay, pdGlanceHtml, pdGlanceRepaint, pdJamboTopHtml, pdNeedsRows, pdNeedRowHtml, pdNeedsHtml, pdNeedsRepaint, pdBackHtml, PD_BACK_CLOSE, PD_GL_DONE_MS, pdGlanceDone,
+  PD_GLANCE, PD_GL_SUB_MAX, pdGlanceSub, pdGlanceBriefHtml, pdGlanceFootHtml, pdDropImportHtml, pdDropDoor, PD_DROP_CALL_MS, pdGlanceRows, pdSignAhead, PD_GL_ASKS_MAX, pdTheirAsks, pdAskClause, PD_GL_CONTEXT, pdAskParts, pdAskSay, pdGlReadKeyed, pdGlAgo, pdGlMoveSay, pdGlGoTo, pdNoteRows, pdAskClausesSay, pdGlanceHtml, pdGlanceRepaint, pdJamboTopHtml, pdNeedsRows, pdNeedRowHtml, pdNeedsHtml, pdNeedsRepaint, pdBackHtml, PD_BACK_CLOSE, PD_GL_DONE_MS, pdGlanceDone,
   JB_BEAT_MS, JB_HOP_MS, jamboPerchMount, jamboRest, jamboWorkWords, jamboBeat, jamboHop, jamboLookPaint });

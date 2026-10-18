@@ -102,10 +102,14 @@ const CONTRACTS = [
     if (landed) await page.click('.hb-fig-main[data-hb-dig="f:live"]');
     /* RE-POINTED 11 Oct 2026 (the Board as drawn): a figure opens its contracts
        in the side list on the right — the same list the number was counted from */
-    ok('2a pressing Live contracts opens its list on the right', await until(page, () => !!document.querySelector('.hb-sheet [data-hb-sheet-c]')));
-    ok('2b the list holds the live contracts, as many as the figure says', await page.evaluate(() => document.querySelectorAll('.hb-sheet [data-hb-sheet-c]').length === hbBookData('all').figs.live.n));
-    await page.click('.hb-sheet [data-hb-sheet-x]').catch(() => {});
-    ok('2c × closes it, back to the book', await until(page, () => !document.querySelector('.hb-sheet') && hbS().path.length === 0));
+    /* RE-POINTED 18 Oct 2026 (round 17 as drawn, "Then and now" — its
+       Compare: "contract figures open Contracts"): the figure opens the
+       Contracts place itself, narrowed to exactly the contracts it counts;
+       Home's door brings the Board back */
+    ok('2a pressing Live contracts opens the list behind it: Contracts, narrowed', await until(page, () => !!(regState().only && document.getElementById('ct-place'))));
+    ok('2b the list holds the live contracts, as many as the figure says', await page.evaluate(() => ((regState().only || {}).ids || []).length === hbBookData('all').figs.live.n));
+    await page.evaluate(() => { regState().only = null; hbOpenHome(); });
+    ok('2c Home brings the book back', await until(page, () => hbFace() === 'board' && !!document.querySelector('#hb-book .hb-fig') && !document.querySelector('.hb-sheet') && hbS().path.length === 0));
 
     /* ===== 3. ASKING ===== */
     await ask(page, 'suppliers only');
@@ -151,7 +155,10 @@ const CONTRACTS = [
     ok('5b a figure that did not move carries none', M.others === 1, JSON.stringify(M));
 
     /* ===== 6. WATCH A NUMBER ===== */
-    await page.click('.hb-fig-main[data-hb-dig="f:live"]');
+    /* RE-POINTED 18 Oct 2026 (round 17 as drawn): the figure's own card —
+       where its watch lives — is opened through its own dig (the figure opens
+       Contracts now) */
+    await page.evaluate(() => hbDig('f:live'));
     await until(page, () => !!document.querySelector('[data-hb-watch]'));
     await page.click('[data-hb-watch]').catch(() => {});
     const formUp = await until(page, () => !!document.querySelector('[data-hb-watch-form]'));
@@ -374,14 +381,16 @@ const CONTRACTS = [
     if (liveBtn) await liveBtn.click();
     /* RE-POINTED 11 Oct 2026 (the Board as drawn): the figure opens its list in
        the side list — still within Juno: the count stays, the six stay, the list is Juno's */
+    /* RE-POINTED 18 Oct 2026 (round 17 as drawn): the figure opens the
+       Contracts place — still within Juno: the list is exactly Juno's live
+       contracts, and the count stays for the way back to the Board */
     ok('14d a card pressed while counting Juno opens within Juno: the six stay, the count stays, the list is Juno\'s', !!liveBtn && await until(page, n => {
-      const p = hbS().path || [];
-      return p.length === 1 && /^q:/.test(p[0]) && hbBookData('all').figs.live.n === n
-        && String((document.querySelector('#hb-book .hb-fig .hb-fig-n') || {}).textContent).replace(/\D/g, '') === String(n)
-        && document.querySelectorAll('.hb-sheet [data-hb-sheet-c]').length === n && !!document.querySelector('.hb-counting .is-count');
-    }, counted.live), JSON.stringify(await page.evaluate(() => ({ path: hbS().path, live: hbBookData('all').figs.live.n, rows: document.querySelectorAll('.hb-sheet [data-hb-sheet-c]').length }))));
-    await page.keyboard.press('Escape');
-    await until(page, () => !document.querySelector('.hb-sheet'));
+      const p = hbS().path || [], o = regState().only;
+      return p.length === 1 && /^q:/.test(p[0]) && hbBookData('all').figs.live.n === n && !!hbCountKey()
+        && !!o && o.ids.length === n && !!document.getElementById('ct-place');
+    }, counted.live), JSON.stringify(await page.evaluate(() => ({ path: hbS().path, live: hbBookData('all').figs.live.n, rows: ((regState().only || {}).ids || []).length }))));
+    await page.evaluate(() => { regState().only = null; hbOpenHome(); });
+    await until(page, () => hbFace() === 'board' && !!document.querySelector('.hb-counting .is-count [data-hb-crumb="-1"]'));
     await page.evaluate(() => Promise.race([Promise.all(document.getAnimations().filter(a => a.effect && a.effect.getTiming().iterations !== Infinity).map(a => a.finished.catch(() => {}))), new Promise(r => setTimeout(r, 2000))]));
     await page.screenshot({ path: path.join(OUT, '14d-card-within-the-count.png') });
     await page.click('.hb-counting .is-count [data-hb-crumb="-1"]');

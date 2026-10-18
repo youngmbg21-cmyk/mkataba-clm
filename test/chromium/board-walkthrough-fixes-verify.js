@@ -61,7 +61,10 @@ const BOOK = FIXTURES.concat(Array.from({ length: 20 }, (_, i) => {
     await waitFor(page, () => !!document.querySelector('#hb-board [data-hb-dig="f:live"]'), 10000);
 
     /* 1 the side list */
-    const tile = page.locator('#hb-board [data-hb-dig="f:live"]').first();
+    /* RE-POINTED 18 Oct 2026 (round 17 as drawn): Your book's figures open
+       the list behind them on its own page (Contracts, Obligations); the side
+       list is opened from the stage bar's own door, the press it still answers */
+    const tile = page.locator('#hb-board .hb-stagebar [data-hb-dig^="st:"]').first();
     await tile.tap();
     const opened = await waitFor(page, () => !!document.querySelector('.hb-sheet'), 6000);
     const geo = opened ? await page.evaluate(() => {
@@ -112,7 +115,10 @@ const BOOK = FIXTURES.concat(Array.from({ length: 20 }, (_, i) => {
 
     /* 7 theirs carries no "nobody owns this" */
     await page.evaluate(() => { document.querySelector('#hb-board').scrollTop = 0; });
-    await page.locator('#hb-board [data-hb-dig="f:overdue"]').first().tap();
+    /* RE-POINTED 18 Oct 2026 (round 17 as drawn): Your book's overdue figure
+       opens the Obligations page; the Board's own overdue card — the list 8c
+       asks Jambo for — is opened through its own dig */
+    await page.evaluate(() => hbDig('f:overdue'));
     await waitFor(page, () => !!document.querySelector('#hb-focus .hb-row'), 8000);
     const rows = await page.evaluate(() => [...document.querySelectorAll('#hb-focus .hb-row')].map(r => r.innerText.replace(/\s+/g, ' ')));
     const theirs = rows.filter(r => /Pay invoice/.test(r)), ours = rows.filter(r => /Monthly report/.test(r));

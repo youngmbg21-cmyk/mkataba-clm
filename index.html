@@ -9288,9 +9288,10 @@
   .ca-dr .ca-dr-sp{flex:1}
   .ca-dr .ca-dr-owed{color:var(--st-amber-fg)}
   .ca-dr .ca-dr-quiet{color:var(--color-neutral-600)}
-  /* JAMBO'S WORDS (the one-page Home plan, stage 1): the chip for work owed wears amber; the way back is a bold link above the conversation */
-  .ca-chip-owed{background:var(--st-amber-bg);border:1px solid var(--st-amber-line);color:var(--st-amber-fg);font-weight:var(--w-label)}
-  .ca-chip-owed:hover{border-color:var(--st-amber-dot)}
+  /* JAMBO'S WORDS (the one-page Home plan, stage 1): the chip for work owed leads; the way back is a bold link above the conversation.
+     AS DRAWN (round 3, "Tabs and faces"; the owner's "build all the gaps", 18 Oct 2026): the lead chip wears the accent's outline and the label weight, its ground the other chips' own */
+  .ca-chip-owed{border:1px solid var(--accent-solid);color:var(--accent-ink);font-weight:var(--w-label)}
+  .ca-chip-owed:hover{border-color:var(--accent-solid-hover)}
   .ca-back{flex-shrink:0;align-self:flex-start;margin:8px 14px 0;padding:2px 0;border:0;background:none;font-size:12.5px;font-weight:var(--w-strong);color:var(--accent-ink);cursor:pointer;white-space:nowrap;max-width:calc(100% - 28px);overflow:hidden;text-overflow:ellipsis}
   .ca-back:hover{text-decoration:underline;text-underline-offset:3px}
   /* HOME FIRST (8 Oct 2026): an answer's doors, the walk through a set, the Paper's desk */
@@ -10154,9 +10155,8 @@
   .hb-fig:first-child{border-left:0}
   .hb-fig:has(.hb-fig-main:not(:disabled):hover){background:rgba(var(--hb-gw),.06)}
   .hb-spark{display:block;width:100%;height:26px;margin-top:2px}
-  .hb-spark-a{fill:var(--hb-glow);opacity:.08}
   .hb-spark-l{fill:none;stroke:var(--hb-glow);stroke-width:1.6;vector-effect:non-scaling-stroke}
-  .hb-spark-e{fill:var(--hb-glow)}
+  .hb-spark-e{fill:none;stroke:var(--hb-glow);stroke-width:5;stroke-linecap:round;vector-effect:non-scaling-stroke}
   .hb-fig-main{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-width:0;width:100%}
   .hb-fig-main:disabled{cursor:default}
   .hb-fig-main:focus-visible{outline:2px solid var(--hb-glow);outline-offset:2px;border-radius:2px}
@@ -11318,6 +11318,28 @@
   .hb-board .hb-book .hb-cb>.hb-quiet{padding:8px var(--s-4) 0}
   .hb-ins-n.hb-pill{flex:none;margin-right:2px}
   .hb-jb-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  /* TODAY'S FIGURES IN INK (round 17 as drawn): only the Change column carries colour */
+  .hb-board .hb-book .hb-tn .hb-fig .hb-fig-n{color:var(--hb-ink)}
+  /* TODAY'S INSIGHTS AS DRAWN: the head its own slim card, its line whole (it wraps before it is ever cut) */
+  .hb-board .hb-inscard.hb-ins-head{flex:none}
+  .hb-board .hb-ins-head>.hb-ch{border-bottom:0;padding:10px var(--s-4);min-height:0;flex-wrap:wrap;row-gap:2px}
+  .hb-board .hb-ins-head>.hb-ch .hb-ct{flex:none}
+  .hb-board .hb-ins-head>.hb-ch .hb-cs{flex:1 1 auto;white-space:normal;overflow:visible;text-overflow:clip;color:var(--hb-ink-2)}
+  /* …and each picture its own card, two to a row; an odd last card takes the row */
+  .hb-board .hb-shelf.hb-shelf-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:0;border:0;align-items:start}
+  .hb-board .hb-shelf.hb-shelf-cards>.hb-ins:last-child:nth-child(odd){grid-column:1/-1}
+  .hb-board .hb-shelf-cards>.hb-ins{background:var(--hb-card);border:1px solid rgba(var(--hb-ln),.18);border-radius:var(--radius-lg);box-shadow:var(--hb-shadow);padding:14px var(--s-4) 0;gap:8px}
+  .hb-board .hb-shelf-cards .hb-ins-t{font-size:15px;min-height:0}
+  .hb-board .hb-shelf-cards .hb-ins-pic .hb-svg{height:120px}
+  .hb-board .hb-shelf-cards .hb-ins-pic .hb-blocks,.hb-board .hb-shelf-cards .hb-ins-pic .hb-bars{max-height:124px}
+  .hb-board .hb-shelf-cards .hb-ins-pic .hb-chart-bars{pointer-events:none;gap:2px;margin:0}
+  .hb-board .hb-shelf-cards .hb-ins-pic .hb-cbar{min-height:22px;padding:0;grid-template-columns:minmax(0,150px) minmax(0,1fr) minmax(64px,auto);gap:var(--s-2);text-align:left}
+  .hb-board .hb-shelf-cards .hb-ins-pic .hb-cbar-t{font-size:var(--t-meta);color:var(--hb-ink)}
+  .hb-board .hb-shelf-cards .hb-ins-pic .hb-cbar-tr{height:10px}
+  .hb-board .hb-shelf-cards .hb-ins-pic .hb-cbar-n{font-size:var(--t-meta)}
+  .hb-board .hb-shelf-cards .hb-ins-f{font-size:var(--t-body);color:var(--hb-ink);-webkit-line-clamp:3;line-clamp:3}
+  .hb-board .hb-shelf-cards .hb-ins-acts{margin:auto calc(-1 * var(--s-4)) 0;padding:8px var(--s-4);border-top:1px solid rgba(var(--hb-ln),.12)}
+  .hb-board .hb-empty.is-setup{border:0;padding:0;text-align:left}
   /* a clause gone to on Home's paper (Follow me, "Go to it") is lit for a moment */
   #ig-paper [data-clause].ig-arrived{animation:igArrive 1.6s ease 1;border-radius:var(--radius)}
   @keyframes igArrive{0%{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent-solid) 55%,transparent)}70%{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent-solid) 30%,transparent)}100%{box-shadow:0 0 0 3px transparent}}

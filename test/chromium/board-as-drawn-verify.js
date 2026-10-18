@@ -21,6 +21,20 @@
      6 "my saved views" asked of him lists them with their counts, free
      7 the owner's three screens: the head and the book in view, nothing
        sideways, nothing past the panel's edge
+   PASS 2 (the checker's review of 18 Oct 2026), on a book with a year of
+   history whose payment days left their normal range last month:
+     8 Today's insights: the head its own slim card, "N · what moved most
+       since <month> · worked out this morning from your book", whole at
+       every screen (never cut); the pictures their own cards, two to a row,
+       each with Open · Keep · Ask why · Let it go; no Hide
+     9 Value by counterparty: bars, each party's name and value, and one
+       sentence under them
+    10 Your book: no figure picker; today's figures in ink; a plain line with
+       a dot, no shaded area
+    11 the Board ends with the insights: no dashed box of words under them
+    12 every figure lands on the list behind it: Live, Ending, Past and Value
+       on the Contracts place narrowed to exactly what they count; Obligations
+       overdue on the Obligations page's Overdue tab
    Waits ask for the state, bounded; a missing part reports.
    Run: node test/chromium/board-as-drawn-verify.js */
 const fs = require('node:fs');
@@ -38,9 +52,22 @@ const check = (name, pass, detail) => {
 };
 const shot = async (page, name) => { if (!OUT) return; try { await page.screenshot({ path: path.join(OUT, name + '.png') }); } catch (_) {} };
 
+/* a year of history: four contracts signed each closed month, payment days
+   steady at 30–32 until the last, when three are paid in 60 (the shelf's own
+   stage, insights-shelf-verify); one obligation of ours is late */
+const dayIn = (months, day) => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() + months); d.setDate(day);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const DRIFT = [];
+for (let m = 12; m >= 1; m--) for (let j = 0; j < 4; j++){
+  const c = H.fixtureContract(`MK-P${m}-${j}`, `Supply ${m}-${j}`, ['Naivas Supermarkets', 'Kabras Sugar', 'Bidco Africa', 'Twiga Foods'][j], 'proc', 1e6 * (j + 1), 'Signed');
+  c.signedAt = dayIn(-m, 10 + j); c.metadata = { ...c.metadata, paymentTerms: (m === 1 && j < 3 ? 60 : 30 + (m % 3)) + ' days' };
+  DRIFT.push(c);
+}
+DRIFT[DRIFT.length - 1].obligations = [{ id: 'ob-late', desc: 'Deliver the quarterly report', due: dayIn(-1, 3), side: 'ours', status: 'open' }];
+
 (async () => {
   const h = await H.startHati({ HATI_AGENTS_AUTO: 'off' });
-  await H.seedWorkspace(h, { approvalRules: [] });
+  await H.seedWorkspace(h, { contracts: H.FIXTURES.concat(DRIFT), approvalRules: [] });
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const errors = [];
   try {
@@ -135,6 +162,81 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
         return { head: !!head && head.top >= 0 && head.bottom <= innerHeight, table: !!tbl && tbl.top < innerHeight, over, wide, side: document.documentElement.scrollWidth <= innerWidth + 1 }; });
       check(`7 ${w}×${ht}: the head and the book in view, nothing past an edge, nothing sideways`, fit.head && fit.table && !fit.over && !fit.wide && fit.side, JSON.stringify(fit));
       await shot(page, `17-board-as-drawn-${w}x${ht}`);
+    }
+
+    /* ================= PASS 2 ================= */
+    await page.setViewportSize({ width: 1440, height: 780 });
+    await toBoard();
+    const shelf = await until(() => { const sh = document.querySelector('#hb-board .hb-shelf-cards'); const hd = document.querySelector('#hb-board .hb-ins-head');
+      return sh && hd && hbS().ins && hbS().ins.list.length ? true : null; }, null, 12000);
+    console.log('\n8 · Today\'s insights as drawn');
+    const ins = await page.evaluate(() => { const hd = document.querySelector('#hb-board .hb-ins-head'), sh = document.querySelector('#hb-board .hb-shelf-cards');
+      if (!hd || !sh) return null;
+      const cards = [...sh.querySelectorAll(':scope > .hb-ins')];
+      const tops = [...new Set(cards.map(c => Math.round(c.getBoundingClientRect().top)))];
+      const cs = getComputedStyle(cards[0] || sh);
+      return { head: hd.querySelector('.hb-ch').textContent.replace(/\s+/g, ' ').trim(), hide: !!hd.querySelector('[data-hb-ins-fold]'), headHasPics: !!hd.querySelector('.hb-ins'),
+        n: cards.length, perRow: cards.filter(c => Math.round(c.getBoundingClientRect().top) === tops[0]).length, edge: cs.borderTopStyle + ' ' + cs.borderTopWidth,
+        acts: cards.every(c => c.querySelector('[data-hb-ins="open"]') && c.querySelector('[data-hb-ins="keep"]') && c.querySelector('[data-hb-read-more]') && c.querySelector('[data-hb-ins="go"]')),
+        month: hbThenWord(true) }; });
+    check('8a the head is its own slim card: the count and "what moved most since <month> · worked out this morning from your book"; no Hide',
+      !!shelf && !!ins && new RegExp(`^Today’s insights\\s*\\d+\\s*what moved most since ${ins.month} · worked out this morning from your book$`).test(ins.head) && !ins.hide && !ins.headHasPics, JSON.stringify(ins));
+    check('8b each picture its own card, two to a row, each with Open · Keep · Ask why · Let it go', !!ins && ins.n >= 2 && ins.n <= 4 && ins.perRow === 2 && ins.edge === 'solid 1px' && ins.acts, JSON.stringify(ins));
+
+    console.log('\n9 · Value by counterparty');
+    await page.evaluate(() => { const c = document.querySelector('[data-hb-ins-card="cp"]'); if (c) c.scrollIntoView({ block: 'center' }); });
+    const cp = await page.evaluate(() => { const c = document.querySelector('[data-hb-ins-card="cp"]'); if (!c) return null;
+      const bars = [...c.querySelectorAll('.hb-ins-pic .hb-cbar')];
+      return { bars: bars.map(b => ({ name: (b.querySelector('.hb-cbar-t') || {}).textContent || '', val: (b.querySelector('.hb-cbar-n') || {}).textContent || '' })), blocks: !!c.querySelector('.hb-sv-block'),
+        say: (c.querySelector('.hb-ins-f') || {}).textContent || '', inCard: !!c.querySelector('.hb-ins-acts') && !document.querySelector('.hb-shelf-cards > .hb-ins-acts') }; });
+    check('9 bars, each party\'s name and value, and one sentence under them', !!cp && cp.bars.length >= 4 && cp.bars.slice(0, 4).every(b => b.name && /KES/.test(b.val)) && !cp.blocks
+      && /^No party holds more than \d+% of the value: .+ holds the most\.$/.test(cp.say) && cp.inCard, JSON.stringify(cp));
+    await shot(page, '17-board-insights-1440x780');
+
+    console.log('\n10 · Your book as drawn');
+    const book = await page.evaluate(() => { const b = document.getElementById('hb-book');
+      const ink = getComputedStyle(b.querySelector('.hb-fig-lw .hb-fig-l') || b).color;
+      return { picker: !!b.querySelector('[data-hb-figpick]'), area: !!b.querySelector('.hb-spark-a'), dot: !!b.querySelector('.hb-spark-e'),
+        today: [...b.querySelectorAll('.hb-tn .hb-fig .hb-fig-n')].map(e => getComputedStyle(e).color), ink }; });
+    check('10 no figure picker; today\'s figures in ink; a plain line with a dot', !book.picker && !book.area && book.dot && new Set(book.today).size === 1, JSON.stringify(book));
+
+    console.log('\n11 · the Board ends with its insights');
+    const tail = await page.evaluate(() => ({ box: !!document.querySelector('#hb-board .hb-empty:not(.is-setup)'), words: /Each answer lands here/.test(document.getElementById('hb-board').innerText) }));
+    check('11 no dashed box of words under the insights', !tail.box && !tail.words, JSON.stringify(tail));
+
+    console.log('\n12 · where a figure\'s door lands');
+    for (const k of ['live', 'ending', 'past', 'value']) {
+      await toBoard();
+      const want = await page.evaluate(k => { const F = hbBookData(hbS().lens || 'all').figs[k]; const b = document.querySelector(`#hb-book .hb-fig-main[data-hb-dig="f:${k}"]`);
+        return { ids: F.ids.slice().sort(), off: !b || b.disabled }; }, k);
+      if (want.off) { check(`12 ${k}: nothing behind it, so no door (greyed)`, !want.ids.length, JSON.stringify(want)); continue; }
+      await page.click(`#hb-book .hb-fig-main[data-hb-dig="f:${k}"]`);
+      const got = await until(() => { const o = typeof regState === 'function' ? regState().only : null; return o && document.getElementById('ct-place') ? o.ids.slice().sort() : null; }, null, 8000);
+      check(`12 ${k}: the Contracts place, narrowed to exactly what it counts`, !!got && JSON.stringify(got) === JSON.stringify(want.ids), JSON.stringify({ got: got && got.length, want: want.ids.length }));
+      await shot(page, `17-board-figure-${k}-1440x780`);
+      await page.evaluate(() => { regState().only = null; });
+    }
+    await toBoard();
+    const late = await page.evaluate(() => { const b = document.querySelector('#hb-book .hb-fig-main[data-hb-dig="f:overdue"]'); return b && !b.disabled ? hbBookData('all').figs.overdue.n : 0; });
+    if (late) {
+      await page.click('#hb-book .hb-fig-main[data-hb-dig="f:overdue"]');
+      const ob = await until(() => state.view === 'obligations' && document.querySelector('[data-obw-view="overdue"][aria-selected="true"], [data-obw-view="overdue"].on, [data-obw-view="overdue"].is-on') ? true : null, null, 8000);
+      check('12 Obligations overdue: the Obligations page, on its Overdue tab', !!ob, String(ob));
+      await shot(page, '17-board-figure-overdue-1440x780');
+    } else check('12 the stage carries a late obligation of ours, so the overdue door can be pressed', false, 'no overdue figure');
+
+    console.log('\n8c · the insights head at the owner\'s three screens');
+    for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
+      await page.setViewportSize({ width: w, height: ht });
+      await toBoard(); await page.waitForTimeout(400);
+      await page.evaluate(() => { const hd = document.querySelector('#hb-board .hb-ins-head'); if (hd) hd.scrollIntoView({ block: 'start' }); });
+      const fit = await page.evaluate(() => { const hd = document.querySelector('#hb-board .hb-ins-head .hb-cs'), sh = document.querySelector('#hb-board .hb-shelf-cards'), board = document.getElementById('hb-board').getBoundingClientRect();
+        if (!hd || !sh) return null;
+        const cut = hd.scrollWidth > hd.clientWidth + 1;
+        const over = [...sh.querySelectorAll('*')].filter(e => { const q = e.getBoundingClientRect(); return q.width && q.right > board.right + 1; }).length;
+        return { cut, over, side: document.documentElement.scrollWidth <= innerWidth + 1 }; });
+      check(`8c ${w}×${ht}: the head's line whole (never cut), nothing past the board's edge, nothing sideways`, !!fit && !fit.cut && !fit.over && fit.side, JSON.stringify(fit));
+      await shot(page, `17-board-insights-head-${w}x${ht}`);
     }
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }
   finally {

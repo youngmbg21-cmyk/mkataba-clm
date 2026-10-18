@@ -3,7 +3,7 @@
    plan on 14 Oct 2026 and picked "Chips" by name)
    ============================================================
      1  On Home's Document, the chips stand above the box and say the next
-        words for the contract on the paper; work owed leads, in amber
+        words for the contract on the paper; work owed leads, in the accent's outline (round 3 as drawn; amber before 18 Oct 2026)
      2  "/" on the Document lists the places, and nothing of the Board's
      3  a typed word moves the reader ("board"), and the panel offers the way
         back; Back returns to the same paper
@@ -76,8 +76,13 @@ const DOC = 'SOFTWARE AS A SERVICE AGREEMENT\n\n1. TERM\n\nThis Agreement runs f
       k: b.getAttribute('data-ca-chip'), text: b.textContent.trim(), owed: b.classList.contains('ca-chip-owed'),
       bg: getComputedStyle(b).backgroundColor, want: getComputedStyle(document.documentElement).getPropertyValue('--st-amber-bg').trim() })));
     ok('1b details owed: "fill in" leads', c1[0] && c1[0].k === 'fill' && c1[0].text === 'fill in', JSON.stringify(c1.map(x => x.text)));
-    const amber = await page.evaluate(() => { const d = document.createElement('i'); d.style.background = 'var(--st-amber-bg)'; document.body.appendChild(d); const v = getComputedStyle(d).backgroundColor; d.remove(); return v; });
-    ok('1c the lead is amber (work owed), the rest are not', c1[0] && c1[0].owed && c1[0].bg === amber && c1.slice(1).every(x => !x.owed && x.bg !== amber), `${c1[0] && c1[0].bg} vs ${amber}`);
+    /* RE-POINTED 18 Oct 2026 (round 3 as drawn, "Tabs and faces"): the lead
+       chip wears the accent's outline and the label weight, on the other
+       chips' own ground — not amber */
+    const lead = await page.evaluate(() => { const b = document.querySelector('[data-ig-chips] .ca-chip-owed'); const o = document.querySelector('[data-ig-chips] [data-ca-chip]:not(.ca-chip-owed)');
+      const d = document.createElement('i'); d.style.color = 'var(--accent-solid)'; document.body.appendChild(d); const acc = getComputedStyle(d).color; d.remove();
+      return b ? { edge: getComputedStyle(b).borderTopColor, acc, bg: getComputedStyle(b).backgroundColor, otherBg: o ? getComputedStyle(o).backgroundColor : null, otherEdge: o ? getComputedStyle(o).borderTopColor : null } : null; });
+    ok('1c the lead is drawn as owed work — the accent outline — the rest are not', c1[0] && c1[0].owed && c1.slice(1).every(x => !x.owed) && !!lead && lead.edge === lead.acc && lead.bg === lead.otherBg && lead.otherEdge !== lead.acc, JSON.stringify(lead));
     ok('1d the chips agree with the side panel\'s checklist', await page.evaluate(() => caChipLead(getContract('MK-W1')) === 'fill'));
     await page.screenshot({ path: path.join(OUT, '1-chips-on-the-paper.png') });
 

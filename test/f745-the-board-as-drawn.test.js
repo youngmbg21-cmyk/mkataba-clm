@@ -201,3 +201,112 @@ describe('f745 (6) the words, in both books', () => {
     assert.notEqual(BOOKS.en[k], BOOKS.sv[k], k + ' is said in Svenska');
   });
 });
+
+/* ═══ PASS 2 (the checker's review of 18 Oct 2026, built to the drawing) ═══
+   (7) TODAY'S INSIGHTS: the head is its own slim card — the title, the count,
+       "what moved most since <month> · worked out this morning from your
+       book" for every reader whose shelf found something (whoever's pictures
+       they are; each card says whose on its own chip), no Hide; the pictures
+       are their own cards, two to a row, up to four (HB_INS_MAX); an odd last
+       card takes the row. Value by counterparty is BARS with each party's
+       name and value, the first five and the rest in one row, and one
+       sentence under them; a picture of buttons is drawn as spans inside the
+       picture's own button.
+   (8) YOUR BOOK: the head is the title and its line only (no figure picker);
+       today's figures in ink (only Change carries colour); the six-month line
+       is a plain line with a dot at its end (no shaded area).
+   (9) THE BOARD ENDS WITH ITS INSIGHTS: no dashed box of words under them; a
+       brand-new workspace keeps its one door.
+   (10) A FIGURE'S DOOR LANDS ON THE LIST BEHIND IT: contract figures open the
+       Contracts place narrowed to exactly what they count (regShowOnly);
+       Obligations overdue opens the Obligations page on Overdue
+       (obwGoFiltered). A picked extra figure keeps the side list.
+   AT THE PARENT every test below FAILS: the head shares its card with Hide
+   and the pictures, three across; the picture is blocks; the book's head has
+   the picker and its line a shaded area; the dashed box is drawn; every
+   figure opens the side list. */
+const CSS = read('index.html');
+function shelfWorld(scope){
+  const { w } = world();
+  w.hbS().ins = { scope, day: 'x', list: [] };
+  const fake = (shape, title) => ({ shape, id: shape, mine: scope === 'mine', C: { R: { body: '<svg class="hb-svg"><title>t</title><rect data-hb-dig="x"/></svg>' } }, title, say: 'S ' + title, tone: 'warn', rank: '' });
+  return { w, I: [fake('pay', 'Payment days are getting longer'), fake('sign', 'Signing got faster')] };
+}
+describe('f745 (7) Today\'s insights as drawn', () => {
+  test('7a one slim head for every reader: the count and "what moved most since …"; no Hide', () => {
+    for (const scope of ['mine', 'few', 'co']){
+      const { w, I } = shelfWorld(scope);
+      const html = w.hbInsCardHtml(I);
+      const want = BOOKS.en.hb_ins_sub_moved.replace('{m}', w.hbThenWord(true));
+      assert.ok(html.startsWith('<section class="hb-card hb-inscard hb-ins-head"><header class="hb-ch"><span class="hb-ct">Today’s insights</span><span class="hb-pill hb-ins-n">2</span><span class="hb-cs">' + want + '</span></header></section><div class="hb-shelf hb-shelf-cards"'), scope + ': ' + html.slice(0, 260));
+      assert.ok(!/data-hb-ins-fold/.test(html), 'no Hide');
+    }
+  });
+  test('7b each picture its own card, up to four, two to a row; an odd last card takes the row', () => {
+    assert.equal(world().w.HB_INS_MAX, 4);
+    assert.match(CSS, /\.hb-board \.hb-shelf\.hb-shelf-cards\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\);gap:12px;/);
+    assert.match(CSS, /\.hb-board \.hb-shelf\.hb-shelf-cards>\.hb-ins:last-child:nth-child\(odd\)\{grid-column:1\/-1\}/);
+    assert.match(CSS, /\.hb-board \.hb-shelf-cards>\.hb-ins\{background:var\(--hb-card\);border:1px solid/);
+    assert.match(CSS, /\.hb-board \.hb-ins-head>\.hb-ch \.hb-cs\{flex:1 1 auto;white-space:normal;overflow:visible;text-overflow:clip;/, 'the head\'s line wraps before it is ever cut (the iPad)');
+    const { w, I } = shelfWorld('co');
+    const cards = w.hbInsCardHtml(I).match(/<article class="hb-ins/g) || [];
+    assert.ok(cards.length >= 2 && cards.length <= 4, String(cards.length));
+    assert.match(w.hbInsCardHtml(I), /data-hb-ins="open"[\s\S]*data-hb-ins="keep"[\s\S]*data-hb-read-more[\s\S]*data-hb-ins="go"/, 'Open · Keep · Ask why · Let it go on each');
+  });
+  test('7c value by counterparty: bars, five and the rest, its old blocks seeded again; drawn as spans in the picture', () => {
+    const { w } = world();
+    assert.deepEqual(JSON.parse(JSON.stringify(w.HB_INS.cp.recipe)), { pic: 'bars', measure: 'value', split: { by: 'counterparty' }, top: 5 });
+    const key = w.hbInsKey('cp'); const s = w.hbS(); s.recipe = s.recipe || {};
+    s.recipe[key] = w.hbCardClean({ pic: 'blocks', measure: 'value', split: { by: 'counterparty' } });
+    w.hbInsRecipeOn('cp');
+    assert.equal(s.recipe[key].pic, 'bars', 'a picture seeded under the old drawing is seeded again');
+    s.recipe[key] = w.hbCardClean({ pic: 'ring', measure: 'value', split: { by: 'counterparty' } });
+    w.hbInsRecipeOn('cp');
+    assert.equal(s.recipe[key].pic, 'ring', 'one the reader changed is theirs');
+    const t = w.hbInsThumb({ body: '<div class="hb-chart hb-chart-bars"><button type="button" class="hb-cbar" data-hb-dig="q">A</button><button type="button" disabled>B</button></div>' });
+    assert.equal(t, '<div class="hb-chart hb-chart-bars"><span class="hb-cbar">A</span><span>B</span></div>');
+    assert.equal(BOOKS.en.hb_ins_s_cp_plain, 'No party holds more than {pct}% of the value: {who} holds the most.');
+  });
+});
+describe('f745 (8) Your book as drawn', () => {
+  test('8a the head is the title and its line; today in ink; a plain line with a dot', () => {
+    const { w } = world();
+    const html = w.hbBookHtml(w.hbBookData('all'), null, null);
+    assert.ok(!/data-hb-figpick|hb-figpick-w/.test(html), 'no figure picker');
+    assert.match(html, /<header class="hb-ch"><span class="hb-ct">Your book<\/span><span class="hb-cs">[^<]*<\/span><\/header>/);
+    assert.ok(!/hb-spark-a/.test(HB.slice(HB.indexOf('function hbSparkHtml('), HB.indexOf('function hbMoved('))), 'no shaded area');
+    assert.match(HB, /<path d="M\$\{e\[0\]\.toFixed\(1\)\} \$\{e\[1\]\.toFixed\(1\)\}h0" class="hb-spark-e"\/>/);
+    assert.match(CSS, /\.hb-spark-e\{fill:none;stroke:var\(--hb-glow\);stroke-width:5;stroke-linecap:round;vector-effect:non-scaling-stroke\}/, 'round however the line is stretched');
+    assert.match(CSS, /\.hb-board \.hb-book \.hb-tn \.hb-fig \.hb-fig-n\{color:var\(--hb-ink\)\}/, 'today\'s figures in ink');
+  });
+});
+describe('f745 (9) the Board ends with its insights', () => {
+  test('9a no box of words under them; a brand-new workspace keeps its one door', () => {
+    const { w } = world();
+    assert.equal(w.hbEmptyHtml(), '', 'a book with contracts: nothing');
+    assert.ok(!/class="hb-empty"/.test(w.hbBoardHtml()) && !w.hbBoardHtml().includes(BOOKS.en.hb_empty));
+    w.hbSetupDoorHtml = () => '<button data-hb-setup>Finish</button>';
+    w.eval('hbSetupDoorHtml = window.hbSetupDoorHtml');
+    assert.match(w.hbEmptyHtml(), /^<div class="hb-grid"><div class="hb-empty is-setup"><button data-hb-setup>/);
+  });
+});
+describe('f745 (10) a figure\'s door lands on the list behind it', () => {
+  test('10a contract figures: the Contracts place narrowed to what they count; overdue: the Obligations page on Overdue', () => {
+    const { w } = world();
+    const went = [];
+    w.regShowOnly = (ids, label) => went.push(['reg', ids.slice().sort().join(','), label]);
+    w.obwGoFiltered = p => went.push(['obl', p.state]);
+    const d = w.hbBookData('all');
+    assert.equal(w.hbFigDoor('f:live'), true);
+    assert.deepEqual(went[0], ['reg', d.figs.live.ids.slice().sort().join(','), 'Live contracts']);
+    assert.equal(w.hbFigDoor('f:overdue'), true);
+    assert.deepEqual(went[1], ['obl', 'overdue']);
+    assert.equal(w.hbFigDoor('f:paygap'), false, 'a picked extra figure keeps the side list');
+    assert.equal(w.hbFigDoor('st:Draft'), false);
+    assert.deepEqual(JSON.parse(JSON.stringify(w.HB_FIG_TO_CONTRACTS)), ['live', 'value', 'ending', 'past']);
+  });
+  test('10b the press asks it before the side list', () => {
+    const at = HB.indexOf("if ((el = on('#hb-book .hb-fig-main[data-hb-dig]')) && !el.disabled && hbFigDoor(el.getAttribute('data-hb-dig'))) return;");
+    assert.ok(at > 0 && at < HB.indexOf('const sk = hbSheetKeyOf(el)'), 'the figure\'s own door first');
+  });
+});

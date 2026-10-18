@@ -72,7 +72,9 @@ const check = (name, pass, detail) => {
     const live = R.find(r => r.k === 'live') || {};
     check('2b today is the figure\'s door', live.door === 'f:live', JSON.stringify(live));
     await page.click('#hb-book [data-hb-fig="live"] .hb-fig-main');
-    const opened = await until(() => !!document.querySelector('#hb-focus .hb-row, .hb-sheet'), null, 8000);
+    /* RE-POINTED 18 Oct 2026 (round 17 as drawn): the list behind a contract
+       figure is the Contracts place, narrowed to what it counts */
+    const opened = await until(() => (typeof regState === 'function' && regState().only && regState().only.ids && !!document.getElementById('ct-place')) ? regState().only.ids.length : null, null, 8000);
     check('2c a press opens the list behind it', !!opened, String(opened));
     await page.keyboard.press('Escape').catch(() => {});
     await page.evaluate(() => { if (typeof hbOpenHome === 'function') hbOpenHome('board'); });
