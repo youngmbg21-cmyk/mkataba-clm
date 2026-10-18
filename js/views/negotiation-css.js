@@ -2216,6 +2216,9 @@ function redlineLayoutCss(){
   .rl-sug-ins{color:var(--accent-ink);background:var(--color-accent-50);border-radius:2px;
     text-decoration:underline dashed var(--color-accent-600);text-decoration-thickness:1.5px;text-underline-offset:3px}
   .rl-sug-del{text-decoration:line-through dashed var(--color-accent-600);text-decoration-thickness:2px}
+  ${''/* A COUNTER THAT KEEPS PART OF THEIR ASK, AND A LAW AND SEAT THAT DISAGREE
+         (owner, 18 Oct 2026): said on our row, in amber, a line each */}
+  .rl-card-keeps{display:flex;flex-direction:column;gap:2px;margin-top:3px;font-size:var(--t-meta);color:var(--st-amber-fg)}
   .rl-sug-reject :is(ins,.nego-ins){text-decoration:line-through dashed var(--color-accent-600);text-decoration-thickness:2px;
     outline:1.5px dashed var(--color-accent-600);outline-offset:2px}
   .rl-sug-reject.rl-sug-whole{outline:1.5px dashed var(--color-accent-600);outline-offset:6px}

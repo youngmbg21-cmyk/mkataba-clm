@@ -20321,7 +20321,8 @@ function redlineChangeCardsHtml(c, opts = {}){
                   quiet, in the data face; the clause still leads. */}${
             who ? `<span class="rl-card-id">${_ne(ch.id)}</span>${rlRowByHtml(ch, _short)}` : ''}${
             rlCardNotesCountHtml(c, ch, opts, side)}</div>
-          ${(() => { const why = rlRowWhyHtml(ch); return why ? `<div class="rl-card-sumw">${sub}${why}</div>` : sub; })()}${pySub}${prepSub}
+          ${(() => { const why = rlRowWhyHtml(ch), keeps = rlRowKeepsHtml(c, ch, side);
+            return (why || keeps) ? `<div class="rl-card-sumw">${sub}${why}${keeps}</div>` : sub; })()}${pySub}${prepSub}
         </div>
         ${''/* ---- AND THE OPEN BUTTON IS GONE WITH THE BODY IT UNFOLDED
                (Young ruled 15 Sep 2026) ----
@@ -21647,6 +21648,93 @@ function rlRowByHtml(ch, short){
   const words = [who ? (typeof short === 'function' ? short(who) : who) : '', when].filter(Boolean).join(' \u00b7 ');
   return words ? `<span class="rl-card-by" title="${_nea([who, ch.id].filter(Boolean).join(' \u00b7 '))}">${_ne(words)}</span>` : '';
 }
+/* ---- A COUNTER THAT UNDOES ONLY PART OF THEIR ASK SAYS WHAT IT KEEPS (owner,
+   18 Oct 2026, over MK-369: "In the governing law clause, you have changed
+   back to Sweden but left the city to be still in Nairobi which makes no
+   sense") ----
+   A counter on top of their ask accepts whatever of it the counter does not
+   touch. Where ours takes out some of the words they put in but leaves others
+   standing, our row says which stand ("Keeps their change: Nairobi (2
+   places)"). A READING of the two changes' words (a word LCS), RAW, nothing
+   filed, our seat only; a counter that undoes none of theirs, or all of it,
+   says nothing. */
+const _rlTok = s => String(s == null ? '' : s).split(/\s+/).filter(Boolean);
+const _rlWordNorm = w => String(w).replace(/^[“"‘'(]+|[”"’'),.;:]+$/g, '').replace(/[’]/g, "'");
+function rlWordKept(A, B){
+  const n = A.length, m = B.length; if (!n || !m || n * m > 400000) return null;
+  const L = Array.from({ length: n + 1 }, () => new Int32Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--)
+    L[i][j] = A[i] === B[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  const a = new Array(n).fill(false), b = new Array(m).fill(false);
+  let i = 0, j = 0;
+  while (i < n && j < m){
+    if (A[i] === B[j]){ a[i] = b[j] = true; i++; j++; }
+    else if (L[i + 1][j] >= L[i][j + 1]) i++; else j++;
+  }
+  return { a, b };
+}
+function negoKeepsTheirs(c, ch){
+  if (!c || !ch || ch.authorSide === 'counterparty' || !ch.counterOf) return null;
+  const th = (Array.isArray(c.changes) ? c.changes : []).find(x => x && x.id === ch.counterOf);
+  if (!th || th.authorSide !== 'counterparty') return null;
+  const O = _rlTok(th.oldText), T = _rlTok(th.newText), U = _rlTok(ch.newText);
+  const theirs = rlWordKept(O, T), ours = rlWordKept(T, U);
+  if (!theirs || !ours) return null;
+  const put = T.map((w, i) => !theirs.b[i]);            // the words they put in
+  const undone = put.some((p, i) => p && !ours.a[i]);
+  const kept = [];
+  for (let i = 0; i < T.length; i++){
+    if (!put[i] || !ours.a[i]) continue;
+    const run = [T[i]];
+    while (i + 1 < T.length && put[i + 1] && ours.a[i + 1]) run.push(T[++i]);
+    kept.push(run.map(_rlWordNorm).join(' ').trim());
+  }
+  if (!undone || !kept.length) return null;
+  const counted = [];
+  kept.filter(Boolean).forEach(w => { const x = counted.find(k => k.w === w); if (x) x.n++; else counted.push({ w, n: 1 }); });
+  return counted.length ? counted : null;
+}
+/* ---- THE LAW, THE SEAT AND THE BODY ASKED TOGETHER (the same ruling) ----
+   Governing law, the arbitration seat and the arbitration body are agreed as
+   one choice; a counter that moves one and not the others says something
+   nobody meant ("the laws of Sweden … seated in Nairobi"). Read off the words
+   our draft proposes, with no model; said as a QUESTION on our row, never a
+   block — a neutral seat is sometimes chosen on purpose. Only places this
+   table knows are compared; an unknown one says nothing. */
+const RL_SEAT_LAND = { stockholm: 'sweden', gothenburg: 'sweden', 'göteborg': 'sweden', 'malmö': 'sweden', nairobi: 'kenya', mombasa: 'kenya',
+  london: 'england', paris: 'france', geneva: 'switzerland', zurich: 'switzerland', singapore: 'singapore', 'hong kong': 'hong kong', dubai: 'uae',
+  kampala: 'uganda', 'dar es salaam': 'tanzania', kigali: 'rwanda', lagos: 'nigeria', johannesburg: 'south africa', 'new york': 'usa', oslo: 'norway',
+  copenhagen: 'denmark', helsinki: 'finland', 'the hague': 'netherlands', amsterdam: 'netherlands', frankfurt: 'germany', vienna: 'austria' };
+const RL_LAW_LAND = { sweden: 'sweden', kenya: 'kenya', england: 'england', 'england and wales': 'england', 'england & wales': 'england', 'the united kingdom': 'england',
+  france: 'france', switzerland: 'switzerland', singapore: 'singapore', 'hong kong': 'hong kong', 'the united arab emirates': 'uae', uganda: 'uganda', tanzania: 'tanzania',
+  rwanda: 'rwanda', nigeria: 'nigeria', 'south africa': 'south africa', 'the state of new york': 'usa', 'new york': 'usa', norway: 'norway', denmark: 'denmark',
+  finland: 'finland', 'the netherlands': 'netherlands', netherlands: 'netherlands', germany: 'germany', austria: 'austria' };
+function negoLawSeatQ(text){
+  const t = String(text == null ? '' : text).replace(/\s+/g, ' ');
+  const law = /\blaws? of ((?:the )?[A-Z][\wåäöÅÄÖ&' ]{1,40}?)(?=\s*(?:[,.;]|with\b|and\b|as\b|$))/.exec(t);
+  const seat = /\bseated in ([A-Z][\wåäöÅÄÖ' ]{1,30}?)(?=\s*(?:[,.;]|under\b|before\b|and\b|$))/.exec(t);
+  /* the city right before "Chamber of Commerce" (one or two capitalised words) */
+  const inst = /\b([A-Z][\wåäöÅÄÖ']*(?: [A-Z][\wåäöÅÄÖ']*)?) Chamber of Commerce/.exec(t);
+  const S = seat && seat[1].trim(), sL = S && RL_SEAT_LAND[S.toLowerCase()];
+  if (law && sL){
+    const W = law[1].trim(), wL = RL_LAW_LAND[W.toLowerCase()];
+    if (wL && wL !== sL) return { kind: 'law', law: W.replace(/^the /i, ''), seat: S };
+  }
+  if (inst && S && sL){
+    const I = inst[1].trim();
+    if (RL_SEAT_LAND[I.toLowerCase()] && I.toLowerCase() !== S.toLowerCase()) return { kind: 'body', seat: S, body: I };
+  }
+  return null;
+}
+function rlRowKeepsHtml(c, ch, side){
+  if (side === 'counterparty' || !ch || ch.authorSide === 'counterparty' || ch.status !== 'pending' || ch.withdrawn) return '';
+  const lines = [];
+  const k = negoKeepsTheirs(c, ch);
+  if (k) lines.push(i18t('ng_keeps_theirs', { what: k.map(x => x.n > 1 ? i18tn('ng_keeps_n', x.n, { w: x.w, n: x.n }) : x.w).join(', ') }));
+  const q = negoLawSeatQ(ch.newText);
+  if (q) lines.push(q.kind === 'law' ? i18t('ng_lawseat_q', { law: q.law, seat: q.seat }) : i18t('ng_seatbody_q', { seat: q.seat, body: q.body }));
+  return lines.length ? `<div class="rl-card-keeps">${lines.map(l => `<span>${_ne(l)}</span>`).join('')}</div>` : '';
+}
 function rlRowWhyHtml(ch){
   const w = String((typeof window.negoReasonOf === 'function') ? negoReasonOf(ch) : ((ch && ch.why) || '')).trim();
   return w ? `<div class="rl-card-whyq" title="${_nea(w)}">\u201c${_ne(w)}\u201d</div>` : '';
@@ -22050,7 +22138,7 @@ if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoT
   rlCpOpenId, rlCpSetOpen, rlCpSetShown, rlCpPaint, rlCpNotesOn, rlCpSetNotes, rlCpLadderOnly, rlCpNarrowSeat,
   rlEditorTakesIt,
   rlCpTypePx, rlCpSetType, rlCpZoom, rlCpZoomPct, rlCpSetZoom,
-  rlUnsentBandHtml, rlUnsentSendHtml, rlDecisionsSendHtml, rlPaperSubText, RL_SUG_VERB, rlCopilotAnswers, rlSugWordsHtml, RL_SUG_SKIP, RL_SUG_MARK, rlSugInline, rlSugInlineClear, rlPaintCopilotAnswers, rlUnsentCount, rlCloseRoundHtml, rlRoundLabelHtml,
+  rlUnsentBandHtml, rlUnsentSendHtml, rlDecisionsSendHtml, rlPaperSubText, RL_SUG_VERB, rlCopilotAnswers, rlSugWordsHtml, rlWordKept, negoKeepsTheirs, RL_SEAT_LAND, RL_LAW_LAND, negoLawSeatQ, rlRowKeepsHtml, RL_SUG_SKIP, RL_SUG_MARK, rlSugInline, rlSugInlineClear, rlPaintCopilotAnswers, rlUnsentCount, rlCloseRoundHtml, rlRoundLabelHtml,
   rlFitTabRow, rlWireFitTabRow, rlObserveTabRow,
   redlineHeldId, redlineEvict, openRedlineWorkbench,
   rlRungPeekHtml, rlPeekShow, rlPeekHide, rlPeekLater, rlPeekOpenId, RL_PEEK_MS,
