@@ -1051,14 +1051,50 @@ function graphInterpret(qRaw){
 /* ---- dock entry point: routes to the right engine ----
    The Intel dock is a notebook over the whole contract repository. Intent
    routing:
-   • compliance/red-flag questions   → intelComplianceScan (reads every contract)
+   • compliance/red-flag questions   → intelComplianceScan (reads every contract; none named)
    • compare / 2+ ids                → intelChatAsk (grounded side-by-side)
-   • template advice                 → intelTemplateAsk
+   • a REQUEST for a starting point  → intelTemplateAsk (IG_TEMPLATE_RE)
+   • a request to book or find time  → the Calendar's Jambo (IG_BOOK_RE → calHandOff)
    • graph commands (group/filter/…) → intelGraphAsk (map manipulation)
    • everything else that reads/summarises/quotes a contract → intelChatAsk
    • otherwise                        → intelGraphAsk (safe default) */
-const IG_TEMPLATE_RE=/\btemplate\b|\bbase\b.{0,30}\b(new|next|on)\b|model (contract|agreement)|starting point|start(ing)? from/i;
-// "which contracts have risky/illegal clauses", "red flags", "compliance issues"…
+/* JAMBO FOLLOWS THE ASK (owner, 18 Oct 2026: "fix both together"). The
+   template adviser ranks our CONTRACTS as a base for a new deal; it was taken
+   by the bare word — "what does our NDA template say about the notice
+   period?" and "start from where we left off on the Nordkust deal" were both
+   answered with a ranking. Now only a REQUEST for a starting point is its: a
+   template asked for (to use, to start from, for a deal), a template or
+   starting point recommended, a contract asked for as a base. Anything else
+   that says "template" or "start from" goes on as any question. */
+const IG_TEMPLATE_RE=/\btemplates?\b[^.?!]{0,40}\b(?:to use|should (?:i|we) use|do (?:i|we) use|could (?:i|we) use|to start|start(?:ing)? (?:from|with)|for (?:a|an|this|my|our|the next|a new|new)\b)|\b(?:recommend|suggest|pick|choose|find)\b[^.?!]{0,20}\b(?:a |the |our )?(?:best |right |good )?(?:templates?|starting point|precedent|base)\b|\b(?:starting point|precedent|model (?:contract|agreement))\b[^.?!]{0,20}\bfor\b|\bwhich (?:contract|agreement|deal)\b[^.?!]{0,40}\b(?:base|start from|use as)\b|(?<!\p{L})(?:vilken mall|vilka mallar|föreslå en mall|rekommendera en mall|utgångspunkt för|vilket avtal ska (?:jag|vi) utgå från)(?!\p{L})/iu;
+/* A REQUEST TO BOOK OR FIND TIME is the Calendar's (owner, 18 Oct 2026): "book
+   a meeting with Naivas on Tuesday at 2pm" was read as a question about the
+   contract map. A calendar verb with something to put in a calendar — a
+   meeting, a call, an hour, time for or with someone, "in my calendar" — goes
+   to the Calendar's own Jambo (calHandOff), who plans and answers. */
+const IG_BOOK_RE=new RegExp([
+  /* book · schedule · set up · arrange a meeting, a call, an hour… ("schedule 3" is an annex, never a verb) */
+  String.raw`(?<!\p{L})(?:book|schedule(?!\s*\d)|set up|arrange|organi[sz]e)(?!\p{L})[^.?!]{0,30}?(?<!\p{L})(?:meetings?|calls?|appointments?|sessions?|catch[- ]?ups?|slots?|reminders?|an hour|half an hour|\d+\s?(?:min|mins|minutes|hours?))(?!\p{L})`,
+  /* find · block · make · set aside · reserve time, an hour, a slot */
+  String.raw`(?<!\p{L})(?:find|block(?: out)?|make|set aside|reserve|book)\s+(?:some\s+|an?\s+|the\s+)?(?:free\s+)?(?:time|hour|half hour|slot|\d+\s?(?:min|mins|minutes|hours?))(?!\p{L})`,
+  /* put · add something in (or on) my calendar; add a reminder */
+  String.raw`(?<!\p{L})(?:put|add)(?!\p{L})[^.?!]{0,50}?(?<!\p{L})(?:in|on|to|into)\s+(?:my|the)\s+(?:calendar|diary)(?!\p{L})`,
+  String.raw`(?<!\p{L})add\s+(?:a\s+)?reminders?(?!\p{L})`,
+  String.raw`(?<!\p{L})plan\s+(?:my|our)\s+(?:week|day|days|time)(?!\p{L})`,
+  /* Svenska */
+  String.raw`(?<!\p{L})(?:boka|schemalägg|sätt upp|ordna)(?!\p{L})[^.?!]{0,30}?(?<!\p{L})(?:möte|mötet|möten|samtal|tid|en timme|en halvtimme|påminnelse|\d+\s?(?:min|minuter|timmar?))(?!\p{L})`,
+  String.raw`(?<!\p{L})(?:hitta|avsätt|reservera|blocka)\s+(?:lite\s+|en\s+)?(?:ledig\s+)?(?:tid|timme|halvtimme)(?!\p{L})`,
+  String.raw`(?<!\p{L})lägg\s+(?:in|till)(?!\p{L})[^.?!]{0,50}?(?<!\p{L})i\s+(?:min\s+kalender|kalendern)(?!\p{L})`,
+  String.raw`(?<!\p{L})planera\s+(?:min|mitt|mina|vår)\s+(?:vecka|dag|dagar|tid)(?!\p{L})`,
+].join('|'), 'iu');
+/* …but a sentence that opens as a question about what something says or is
+   ("what does schedule 2 say…", "when does MK-3's meeting duty start?") stays a
+   question: it goes on as before */
+const IG_BOOK_NOT_RE=/^\s*(?:what|which|when|where|why|who|how many|how much|does|do|is|are|was|were|explain|summari[sz]e|vad|vilka|vilket|vilken|när|var|varför|vem|hur många|hur mycket|förklara|sammanfatta)(?!\p{L})/iu;
+function igBookAsk(q){ const s=String(q||''); return IG_BOOK_RE.test(s)&&!IG_BOOK_NOT_RE.test(s); }
+/* "which contracts have risky/illegal clauses", "red flags", "compliance issues"…
+   sweep the whole book only when no contract is named: "any red flags in
+   MK-12?" is a question about MK-12 (18 Oct 2026) */
 const IG_COMPLIANCE_RE=/\b(illegal|unlawful|non-?complian(?:t|ce)|red[-\s]?flags?|problematic|risky clauses?|risk(?:y)?\s+(?:or|and)\s+(?:illegal|unlawful|problematic)|onerous|unfair terms?|dodgy|complian(?:ce|t)\s+(?:issues?|risks?|review|check)|potential(?:ly)?\s+(?:illegal|unlawful|risky|problematic))\b/i;
 // reads / summarises / quotes a contract → grounded Copilot Q&A
 const IG_QA_RE=/\b(summar(?:y|ise|ize|ies)|quote|verbatim|explain|describe|read|clause|says?|state[sd]?|obligations?|payment terms?|governing law|liabilit\w*|termination|indemnit\w*|renewal terms?|brief(?:ing)?|what (?:does|do|is|are|kind|type)|tell me about|how much (?:is|does)|when does)\b/i;
@@ -1916,6 +1952,14 @@ async function intelAsk(qRaw){
     intel.busy=false; renderIntelDock();
     return;
   }
+  /* A REQUEST TO BOOK OR FIND TIME (18 Oct 2026) is the Calendar's: it opens
+     and its own Jambo is asked the same words there (calHandOff, the one door
+     that adds to a calendar); a question about dates stays here */
+  if(igBookAsk(q)&&typeof window.calHandOff==='function'&&calHandOff(q)){
+    intel.history.push({role:'user', text:q}, {role:'assistant', text:i18t('ig_cal_handoff')});
+    renderIntelDock(); return;
+  }
+  const tplAsk=IG_TEMPLATE_RE.test(q);
   /* ---- COPILOT PREPARES, YOU PRESS (Young, 7 Oct 2026) ----
      Sending a contract to a colleague (@ a person, # a contract) and drafting
      one from a sentence are read here, from the words alone, and answered
@@ -1970,7 +2014,7 @@ async function intelAsk(qRaw){
     let said=null; if(br){ try{ said=hbAsk(q); }catch(_){ said=null; } }
     if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{})); renderIntelDock(); return; }
   }
-  if(state.view==='dashboard' && !onPaperSide && typeof window.hbAsk==='function'){
+  if(state.view==='dashboard' && !onPaperSide && !tplAsk && typeof window.hbAsk==='function'){
     let said=null; try{ said=hbAsk(q); }catch(e){ said=null; }
     if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{}, rdOf(), typeof window.hbBoardReplyMeta==='function'?hbBoardReplyMeta():{})); renderIntelDock(); return; }
   }
@@ -2004,12 +2048,16 @@ async function intelAsk(qRaw){
     let mapListy=false;
     if(igBoardNow()){ try{ const pz=igRecipeParse(q); mapListy=!!(pz&&pz.acts.some(x=>x.top||x.narrow||x.compare||x.linked||x.linkedParty||x.families||x.sort)); }catch(_){ mapListy=false; } }
     const boardUp=!!igBoardNow()&&!IG_WALK_RE.test(q)&&!IG_OUTLIER_RE.test(q)&&!mapListy;
-    const mapRest=(igPaperUp()||boardUp)?null:await intelMapLocal(q);
+    /* A REQUEST FOR A STARTING POINT (18 Oct 2026) goes to the template adviser
+       before the map's word reader, which lit the supplier contracts for "which
+       template should I start from for a supplier deal?"; a question that only
+       MENTIONS a template is answered like any other */
+    const mapRest=(igPaperUp()||boardUp||tplAsk)?null:await intelMapLocal(q);
     if(mapRest!=null){ if(mapRest) await intelGraphAsk(mapRest); }
+    else if(tplAsk&&!igPaperUp())                       await intelTemplateAsk(q);
     else if(igPaperUp())                                await igPaperAsk(q);
     else if(idHits>=2)                                  await intelChatAsk(q);
-    else if(IG_COMPLIANCE_RE.test(q))                   await intelComplianceScan(q);
-    else if(IG_TEMPLATE_RE.test(q))                     await intelTemplateAsk(q);
+    else if(IG_COMPLIANCE_RE.test(q)&&!idHits)          await intelComplianceScan(q);
     else                                                await intelGraphAsk(q);
   }catch(e){
     intel.history.push({role:'assistant', text:'Something went wrong: '+igEsc(e.message), err:true});
@@ -8198,7 +8246,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
 }
 
 Object.assign(window,{igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
-Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,IG_BOOK_RE,IG_BOOK_NOT_RE,igBookAsk,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp,IG_PRE_MS,igPreOn,igPrePaint});

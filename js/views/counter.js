@@ -369,6 +369,9 @@ function counterRepaint(){
    page — the one reader every Jambo box uses (caAskAnywhere), with the
    Counter's own rule that a question goes to Home's Jambo too */
 function counterAsk(text){
+  const t = String(text || '').trim(); if (!t) return false;
+  /* a request to book or find time goes to the Calendar's own Jambo with its words (18 Oct 2026, #342) */
+  if (typeof igBookAsk === 'function' && igBookAsk(t) && typeof calHandOff === 'function' && calHandOff(t)) return true;
   return (typeof caAskAnywhere === 'function') ? caAskAnywhere(text, { all: true }) : false;
 }
 
